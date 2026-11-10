@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-de.test.mts — phần thuần của máy sinh đề (không gọi mô hình)
 import assert from 'node:assert';
-import { kiemDe, rapDe, slugDe, MAU_CUA_DANG, vanHeThong, vanNguoiDung, giuHook, GIU_HOOK_TOI_THIEU, timHook } from './may-de';
+import { kiemDe, rapDe, slugDe, MAU_CUA_DANG, vanHeThong, vanNguoiDung, giuHook, GIU_HOOK_TOI_THIEU, timHook, maHookKhop } from './may-de';
 
 const sp = { ma: 'front-porch-only-one', ten: 'Only ONE', ngach: ['cao-tuoi'], site: 'pickjot.com', link: 'https://pickjot.com/printables/large-print-word-search/', nhan: 'Front Porch Puzzles', mo_ta: 'large print word search puzzles for seniors', book: 'nostalgia' };
 const goc = { sp: 1435, id: 37192, loai: 'ai_tinh_huong', ten: 'Đi đường dài bằng ô tô' };
@@ -65,4 +65,8 @@ assert.ok(kiemDe({ ...dungHook, title: dungHook.title + ' Your Astrology Reading
 assert.ok(vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('3496181930676276') && vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('WORD FOR WORD'), 'prompt có hook gốc + dặn giữ nguyên văn');
 { const ds = [{ id: 'kenh:931', chu: 'a', ngay: 1, page: '' }, { id: '1998170110766377', chu: 'b', ngay: 1, page: '' }];
   assert.equal(timHook(ds, '931')?.id, 'kenh:931', 'mô hình bỏ tiền tố kenh: vẫn khớp'); assert.equal(timHook(ds, '[1998170110766377]')?.id, '1998170110766377', 'có ngoặc vẫn khớp'); assert.equal(timHook(ds, 'x'), null, 'không có số thì không khớp bừa'); }
+{ const ds = [{ id: 'it', chu: 'Landing in Italy? Do this before your plane touches down', ngay: 1, page: '' }, { id: 'otp', chu: 'Stay ready for every OTP when you travel abroad', ngay: 1, page: '' }];
+  assert.equal(maHookKhop(ds, 'it', 'Stay ready for every OTP when you fly abroad'), 'otp', 'khai nhầm mã hook: lấy hook tiêu đề thật bám (esimfares 10/11)');
+  assert.equal(maHookKhop(ds, 'it', 'Landing in Japan? Do this before your plane touches down'), 'it', 'khai đúng thì giữ');
+  assert.equal(maHookKhop(ds, 'it', 'Totally new words here'), 'it', 'không hook nào khớp thì giữ mã cũ (kiemDe vẫn chặn)'); }
 console.log('may-de: phần thuần đạt');

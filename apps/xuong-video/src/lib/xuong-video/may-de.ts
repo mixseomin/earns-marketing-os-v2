@@ -6,7 +6,7 @@ import { z } from 'zod/v4';
 import type { MauMayDung } from './may-dung-mau';
 import type { DeNapMay } from './may';
 import { giaChuCents } from './kieu';
-import { loiHook, dongHookBai, bangChungHook, CHU_VIET, chuManHinh } from './hook-qc.mjs';
+import { loiHook, giuHook, dongHookBai, bangChungHook, CHU_VIET, chuManHinh } from './hook-qc.mjs';
 
 /** Dạng trong kho (scripts/ke-hoach-goc/dang-bai.json) → mẫu studio dựng được. Dạng chưa có mẫu → null (ô để máy đăng dùng bài kho như cũ). */
 export const MAU_CUA_DANG: Record<string, MauMayDung | null> = {
@@ -130,6 +130,13 @@ export const timHook = (ds: HookQc[] | undefined, ma: string | undefined): HookQ
   const so = (v: string) => String(v ?? '').replace(/^\D+/, '').replace(/\D+$/, '');
   return ds?.find((k) => k.id === ma) ?? ds?.find((k) => !!ma && so(k.id) !== '' && so(k.id) === so(ma)) ?? null;
 };
+/** Mã hook THẬT của tiêu đề: mô hình hay viết tiêu đề bám hook này mà khai mã hook khác (esimfares 10/11/2026: 4/4 đề làm lại trượt "sửa quá xa"
+ *  so với cùng một hook "Landing in Italy…" dù chữ là hook khác). Hook đã khai mà tiêu đề trượt → lấy hook trong kho tiêu đề bám đạt (giữ nhiều chữ nhất). Thuần. */
+export const maHookKhop = (ds: HookQc[] | undefined, ma: string | undefined, title: string): string | undefined => {
+  const h = timHook(ds, ma); if (!ds?.length || (h && !loiHook([title], h.chu).length)) return ma;
+  const dat = ds.filter((k) => !loiHook([title], k.chu).length).sort((a, b) => giuHook(title, b.chu) - giuHook(title, a.chu));
+  return dat[0]?.id ?? ma;
+};
 export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string, unknown>; title: string; description: string; nhan: string; ngon_ngu?: 'en' | 'vi'; hooks?: HookQc[]; hook_qc?: string }): string[] {
   const loi: string[] = [], chu = `${x.title}\n${x.description}`, thuong = chu.toLowerCase();
   if (x.title.length < 25) loi.push(`câu móc quá ngắn (${x.title.length})`); if (x.title.length > 110) loi.push(`câu móc dài ${x.title.length}`);
@@ -196,7 +203,7 @@ export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[], ngo
   return [`ANGLE (${LOAI_VI[goc.loai] ?? goc.loai}): "${goc.ten}"${goc.mo_ta ? ` — ${goc.mo_ta}` : ''}.`,
     ngonNgu !== 'vi' && CHU_VIET.test(`${goc.ten} ${goc.mo_ta ?? ''}`) ? 'The angle above is an internal note in Vietnamese: translate its meaning and write EVERYTHING in English.' : '',
     `Format "${dang_bai}": ${MO_TA_DANG[dang_bai] ?? ''}`,
-    hooks.length ? `PROVEN AD HOOKS (first lines of real ads that kept running for months — they work):\n${hooks.map((h) => `- [${h.id}] (${bangChungHook(h)}) "${h.chu}"`).join('\n')}\nHooks with an id starting "kenh:" are OUR OWN best videos: keep their frame word for word but change the specific subject (country, word, item, number) to this post's angle, never repeat the same title. For the others, pick the ONE that best fits the angle and use it WORD FOR WORD as the hook (post title${MO_TA_DANG[dang_bai] && /hook|móc/i.test(MO_TA_DANG[dang_bai]!) ? ' and the on-screen hook' : ''}) — it has been proven for months, your rewrite has not. Edit ONLY when needed: remove a brand / app / advertiser name, flip his/her to fit the angle, or drop a claim our product cannot keep; then change the fewest words and keep its rhythm and its promise (never bolt the product or the angle onto it — the body of the post connects the hook to the angle). Put its id in hook_qc.` : '',
+    hooks.length ? `PROVEN AD HOOKS (first lines of real ads that kept running for months — they work):\n${hooks.map((h) => `- [${h.id}] (${bangChungHook(h)}) "${h.chu}"`).join('\n')}\nHooks with an id starting "kenh:" are OUR OWN best videos: keep their frame word for word but change the specific subject (country, word, item, number) to this post's angle, never repeat the same title. For the others, pick the ONE that best fits the angle and use it WORD FOR WORD as the hook (post title AND the on-screen line "moc" if the format has one — both are checked against the hook, a self-written moc is rejected; leave moc empty when the format allows it) — it has been proven for months, your rewrite has not. Edit ONLY when needed: remove a brand / app / advertiser name, flip his/her to fit the angle, or drop a claim our product cannot keep; then change the fewest words and keep its rhythm and its promise (never bolt the product or the angle onto it — the body of the post connects the hook to the angle). Put its id in hook_qc.` : '',
     daDung.length ? `Hooks already used (write something different): ${daDung.slice(0, 12).map((t) => `"${t}"`).join('; ')}` : '',
     'Return the JSON now.'].filter(Boolean).join('\n');
 }
@@ -234,6 +241,9 @@ export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: Mau
     : o.mau === 'lat-dap-an' ? (() => { const d = o.de as z.infer<typeof DeLatSchema>; return { kieu: o.dang_bai, cau: d.cau.map((c) => ({ khang_dinh: c.khang_dinh, dung: c.dung, ly_do: c.ly_do, truy: c.truy })), ...(o.dang_bai === 'dung-sai' && d.tieu_de ? { tieu_de: d.tieu_de } : {}), ...(d.ket?.length ? { ket: d.ket } : {}), am: d.am, nhan: o.sp.nhan }; })()
     : o.mau === 'top-n' ? (() => { const d = o.de as z.infer<typeof DeTopSchema>; return { tieu_de: d.tieu_de, muc: d.muc.map((m) => ({ ten: m.ten, ...(m.chu ? { chu: m.chu } : {}), truy: m.truy })), ...(d.moc ? { moc: d.moc } : {}), ...(d.ket?.length ? { ket: d.ket } : {}), am: d.am, nhan: o.sp.nhan }; })()
     : (() => { const d = o.de as z.infer<typeof DeCanhSchema>; return { truy: d.truy, moc: d.moc, am: d.am, dai: d.dai, ...(d.ket?.length ? { ket: d.ket } : {}) }; })();
+  // câu móc trên màn (moc) mô hình hay TỰ VIẾT (lạc loại / top-n: "Can you spot Q before Japan?") dù đã dặn giữ hook QC → Phòng Nội dung chặn "sửa quá xa hook QC gốc"
+  // dù tiêu đề đạt (esimfares 10/11/2026: 4/7 bài hỏng cả 2 lượt). Gác bằng máy: moc lệch hook gốc thì thay bằng chính tiêu đề (dòng hook đã chọn). giai-thich giữ: moc phải = lời đọc đầu.
+  if (o.hook && o.mau !== 'giai-thich' && typeof de.moc === 'string' && de.moc.trim() && loiHook([de.moc], o.hook.chu).length && !loiHook([o.chu.title], o.hook.chu).length) de.moc = o.chu.title;
   return { slug: slugDe(o.dang_bai, o.goc.id, (de.tieu_de as string | undefined) ?? (de.tinh_huong as string | undefined) ?? (de.cau_hoi as string | undefined) ?? ((de.cau as { khang_dinh: string }[] | undefined)?.[0]?.khang_dinh) ?? (de.moc as string | undefined) ?? (de.chu as string | undefined) ?? o.goc.ten), chu_de: o.goc.ten, mau: o.mau, de: de as never,
     dang: { title: o.chu.title, description: mota, link, nhom: 'Góc spy', ...(o.mau === 'binh-chon' ? { loai: 'poll', lua: (o.de as z.infer<typeof DePollSchema>).lua, ngay: (o.de as z.infer<typeof DePollSchema>).ngay } : {}), dang_bai: o.dang_bai, goc: { sp: o.goc.sp, id: o.goc.id, loai: o.goc.loai, ten: o.goc.ten }, ...(o.hook ? { hook: { qc: o.hook.id, goc: o.hook.chu, page: o.hook.page, ngay: o.hook.ngay } } : {}), ...(o.sp.book ? { book: o.sp.book } : {}) } as DeNapMay['dang'] };
 }
@@ -244,19 +254,23 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
   const { sinhJson } = await import('./claude');
   const schema = z.object({ de: mau === 'giai-thich' ? DeGiaiThichSchema : mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : mau === 'binh-chon' ? DePollSchema : mau === 'carousel' ? DeCarouselSchema : DeCanhSchema, chu: ChuDangSchema, hook_qc: z.string().describe('id of the proven ad hook you adapted (empty if none were given)') });
   // tiền: ckey báo VNĐ thật (tokens.vnd); không báo (Anthropic trực tiếp, hoặc ckey thiếu x_ckey.cost — 27/10 nhật ký ghi 0₫) thì ƯỚC theo token × bảng giá (26.000₫/$)
-  let vnd = 0, loiCu: string[] = []; const tk = { in: 0, out: 0 };
-  for (let lan = 0; lan < 2; lan++) {
-    const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en', o.hooks ?? []) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''), ten: 'de_bai' });
+  let vnd = 0, loiCu: string[] = [], hookCu: HookQc | null = null; const tk = { in: 0, out: 0 };
+  for (let lan = 0; lan < 3; lan++) {
+    // trượt "sửa quá xa": mô hình rẻ cầm cả kho thì không bám (esimfares 10/11/2026: hook kênh "Landing in Italy? Do this before your plane touches down"
+    // → viết "Set this up before takeoff", giữ 17%, 2/3 bài kẹt cả 2 lượt) → lượt sau khoá vào ĐÚNG hook đã chọn + đưa nguyên câu làm khuôn, thêm một lượt.
+    const xa = !!hookCu && loiCu.some((l) => /sửa quá xa/.test(l)), hooksLuot = xa ? [hookCu as HookQc] : (o.hooks ?? []);
+    const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en', hooksLuot) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.${xa ? ` The title AND any on-screen hook line must be this exact sentence: "${(hookCu as HookQc).chu}". Copy it, swapping at most 2-3 words (the country, item or number) to fit the angle; keep every other word and the punctuation. hook_qc must be "${(hookCu as HookQc).id}".` : ''}` : ''), ten: 'de_bai' });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;
-    const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich, hook: timHook(o.hooks, r.data.hook_qc) });
-    loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu, hooks: o.hooks, hook_qc: r.data.hook_qc });
+    const maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); hookCu = timHook(hooksLuot, maHook) ?? hookCu;
+    const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich, hook: timHook(hooksLuot, maHook) });
+    loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu, hooks: hooksLuot, hook_qc: maHook });
     // tiêu đề trùng bài có sẵn của máy = Phòng Nội dung chặn chống spam → sinh lại ngay ở đây (31/10/2026: hook video thắng chép nguyên văn trùng chính video đó)
     const chuanTd = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
     if ((o.daDung ?? []).some((t) => chuanTd(t) === chuanTd(de.dang.title ?? ''))) loiCu.push('tiêu đề trùng một bài có sẵn của máy — đổi phần cụ thể (nước, từ, món, con số) để thành bài mới');
     if (!loiCu.length) return { ok: true, de, vnd, model: r.model, tokens: { ...tk, vnd } };
   }
-  return { ok: false, loi: `đề sai luật sau 2 lượt: ${loiCu.join('; ')}`, vnd };
+  return { ok: false, loi: `đề sai luật sau 3 lượt: ${loiCu.join('; ')}`, vnd };
 }
 
 // ── BÀI VIẾT (Quora trả lời…, followup #1470 — anh 28/10/2026 "không tốn token gọi mày"): cùng đường chữ AI rẻ (sinhJson, ckey Haiku) như đề video.

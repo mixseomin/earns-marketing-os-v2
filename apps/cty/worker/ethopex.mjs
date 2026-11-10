@@ -369,9 +369,12 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     const viecHuy = [];
     // 1. lỗi của chính máy luật (trừ lỗi đọc API tạm — nhịp sau tự đọc lại)
     for (const m of kq.loi_may || []) if (!/không đọc được|HTTP Error 5|timed out|timeout|Connection/i.test(String(m.chu))) viecHuy.push({ khoa: `etp:luat|${lop(m.chu)}`, chu: `Máy luật Ethopex báo lỗi: ${m.chu}` });
-    // 2. lệnh gửi Ethopex lỗi trong 30 phút (trừ tên miền chưa bật — việc của admin Ethopex, canh-bao.py đã báo đỏ)
+    // 2. lệnh gửi Ethopex lỗi trong 30 phút (trừ tên miền chưa bật — việc của admin Ethopex, canh-bao.py đã báo đỏ;
+    //    trừ lệnh ANH BẤM TAY bị cổng nhịp chặn đúng luật — etp2 / chat đã trả lý do ngay dưới nút, không phải lỗi máy. 11/11/2026 #88441: anh bấm $6 → $9
+    //    lúc 01:22 khi ROI hôm nay +80% < 100% → xếp cho Huy như lỗi. Lệnh MÁY tự tăng mà bị nhịp chặn thì vẫn xếp: đó là máy luật lệch cổng.)
     const lenh = JSON.parse(String(await chayPsql(`select coalesce(json_agg(x), '[]') from (select viec, left(loi, 400) loi, count(*) n, string_agg(distinct camp_id::text, ', ') camps
-      from etp.nhat_ky where ok is false and luc > now() - interval '30 minutes' and coalesce(loi, '') not like '%is not enabled for this traffic source%' group by 1, 2) x`)).trim() || '[]');
+      from etp.nhat_ky where ok is false and luc > now() - interval '30 minutes' and coalesce(loi, '') not like '%is not enabled for this traffic source%'
+      and not (coalesce(ai, '') like 'anh (%' and coalesce(loi, '') ~ '^(vừa tăng lúc|vừa giảm lúc)') group by 1, 2) x`)).trim() || '[]');
     for (const x of lenh) viecHuy.push({ khoa: `etp:lenh|${x.viec}|${lop(x.loi)}`, chu: `Lệnh ${x.viec} gửi Ethopex lỗi ${x.n} lần (camp ${x.camps}) trong 30 phút: ${x.loi}` });
     // 3. thẻ xét luật đứng (trang etp vẽ chip theo số cũ)
     const dung = Number(String(await chayPsql("select coalesce(extract(epoch from now() - max(luc)) / 60, 9999)::int from etp.xet_luat")).trim() || 0);

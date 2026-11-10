@@ -103,8 +103,12 @@ def cho_tang(api, cid, bay_gio=None, du=None):
             except Exception: du = False
         if du and trong_nhanh(now): return None, None   # KHUNG TĂNG NHANH: đạt cổng → tăng ngay, không chờ nhịp (anh 10/11/2026)
         if gap < NGHI_DON_GIO or not du:
-            return ((f"vừa tăng lúc {vn(ls[0]):%H:%M} — chờ tới {vn(ls[0] + dt.timedelta(hours=NGHI_GIO)):%H:%M} (cách nhau ≥ {NGHI_GIO} giờ; "
-                     f"đã tiêu ≥ {float(KD['nap_chi']):.0%} ngân sách mới + ROI hôm nay ≥ {KD['sang_roi']}% thì được từ {vn(ls[0] + dt.timedelta(hours=NGHI_DON_GIO)):%H:%M})"),
+            # mốc ghi kèm NGÀY (11/11/2026: nhịp 24 giờ → "vừa tăng lúc 07:02 — chờ tới 07:02" trông như vô lý; giống câu "vừa giảm" đã có ngày)
+            # trong khung tăng nhanh: chưa đạt cổng là lý do duy nhất (đạt thì tăng ngay) — câu nói thẳng thế, không hẹn "được từ +3 giờ" sai
+            cong = f"đã tiêu ≥ {float(KD['nap_chi']):.0%} ngân sách đang chạy + ROI hôm nay ≥ {KD['sang_roi']}%"
+            return ((f"vừa tăng lúc {vn(ls[0]):%H:%M %d/%m} — chờ tới {vn(ls[0] + dt.timedelta(hours=NGHI_GIO)):%H:%M %d/%m} (cách nhau ≥ {NGHI_GIO} giờ; "
+                     + (f"đang khung tăng nhanh nhưng camp chưa đạt cổng: {cong} thì tăng ngay)" if trong_nhanh(now) else
+                        f"{cong} thì được từ {vn(ls[0] + dt.timedelta(hours=NGHI_DON_GIO)):%H:%M %d/%m})")),
                     ls[0] + dt.timedelta(hours=NGHI_DON_GIO if gap < NGHI_DON_GIO and du else NGHI_GIO))
     hom = [x for x in ls if vn(x).date() == vn(now).date()]
     if TOI_DA_NGAY and len(hom) >= TOI_DA_NGAY:
@@ -130,6 +134,9 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     du_don = lambda *a_, **k_: False
     assert chan_tang(api, 1, u("2026-10-21T14:00:00")).startswith("vừa tăng"), "khung nhanh, không kèm du, đọc cổng không đạt → chặn"
     du_don = _goc_dd
+    _c = chan_tang(api, 1, u("2026-10-21T18:00:00"), du=False)   # 01:00 VN 22/10, khung nhanh, 18 giờ sau lần tăng 14:37 21/10
+    assert "14:37 21/10" in _c and "14:37 22/10" in _c and "chưa đạt cổng" in _c, f"câu chờ có NGÀY + khung nhanh nói thẳng chưa đạt cổng (11/11/2026 #88441): {_c}"
+    assert "được từ" in chan_tang(api, 1, u("2026-10-21T09:00:00"), du=False), "ngoài khung nhanh vẫn hẹn mốc tăng dồn"
     assert trong_nhanh(u("2026-10-21T01:30:00")) and trong_nhanh(u("2026-10-21T22:00:00")) and not trong_nhanh(u("2026-10-21T05:30:00")) and not trong_nhanh(u("2026-10-21T23:30:00")), "8h30 / 5h VN trong khung; 12h30 / 6h30 VN ngoài khung"
     assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=False).startswith("vừa tăng"), "3–24 giờ mà KHÔNG đạt cổng thì chặn (nhịp 24 giờ)"
     assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=True) is None, "3 giờ + đạt cổng (tiêu ≥ nap_chi × NS mới, ROI ≥ 100%) → tăng dồn được"

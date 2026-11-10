@@ -654,9 +654,12 @@ except Exception as e:
     loi_may.append((0, f"luật TV lỗi: {str(e)[:80]}"))
 def _tv_the(cid):
     """thẻ xét luật TV — cùng số với danh sách tat_tv"""
-    x = _tv.get(int(cid)); dk = f"{TV_NGAY} ngày khép liền chi ≥ {TV_PHAN:.0%} NS trước {TV_GIO}h UTC & lỗ"
-    if not x: return ["tiêu vống (TV)", "chưa có số giờ", dk, False], None
-    return ["tiêu vống (TV)", f"{x[0]}/{TV_NGAY} ngày · {x[3][:70]}", dk, x[0] >= TV_NGAY], ((x[2] - x[1]) if x[1] else None)
+    # khuôn thẻ = DANH SÁCH dòng [tên, số, ngưỡng, đạt] như _t8_the (09/11/2026 trả một dòng → _xet_luat chết "'bool' object is not subscriptable",
+    # etp.xet_luat ngừng ghi 16:08 09/11 → 10/11 trang hiện chip tăng / tắt theo số cũ gần 20 giờ); lo = đúng / sai (camp có đang lỗ trong khung luật)
+    x = _tv.get(int(cid)); nguong = f"≥ {TV_PHAN:.0%} NS trước {TV_GIO}h UTC & lỗ"
+    dk = [[f"Ngày đã khép tiêu vống ({TV_NGAY} ngày gần nhất)", "chưa có số giờ" if not x else f"{x[0]}/{TV_NGAY} ngày", f"{TV_NGAY}/{TV_NGAY} ngày {nguong}", bool(x) and x[0] >= TV_NGAY]]
+    if x: dk.append(["Từng ngày", (x[3] or "—")[:90], nguong, x[0] >= TV_NGAY])
+    return dk, ((x[2] - x[1]) < 0 if x and x[1] else None)
 
 def _t8_the(cid):
     """thẻ xét luật T8 — cùng số với danh sách tat_t8"""
@@ -1081,6 +1084,7 @@ def _xet_luat():
     f = lambda v, dv="": "—" if v is None else (f"{v:+.0f}%" if dv == "%" else f"${v:.2f}" if dv == "$" else f"{v:g}{dv}")
     def L(ma, ten, mo_ta, dk, vao_ds=None, ghi=None, ap=True, tien=0, lo=None):
         # tien = số điều kiện TIỀN ĐỀ đứng đầu dk (camp có thuộc diện luật không: đáy $1 không giảm được, đã qua 2 ngày đầu…) — hỏng một cái là 'khong_ap', không gọi là 'gần'
+        if not (isinstance(dk, list) and all(isinstance(x, list) and len(x) == 4 for x in dk)): raise ValueError(f"thẻ {ma}: dk sai khuôn (cần danh sách [tên, số, ngưỡng, đạt])")   # lỗi nói đúng thẻ nào (09/11/2026 TV)
         ap = ap and all(x[3] for x in dk[:tien]); thieu = sum(1 for x in dk if not x[3])
         # lo = camp có đang LỖ trong khung của luật tắt không (anh 29/10/2026 sau L4: camp lãi +177% hiện thẻ "L4 gần chạm" vì đủ ngày + đủ chi, chỉ thiếu điều kiện ROI
         # — rồi máy thay camp coi là sắp tắt). Luật tắt: camp đang lãi thì KHÔNG bao giờ là 'gần', chỉ 'xa'
@@ -1252,6 +1256,8 @@ if JSON:
     m = lambda ds: [{"id": i, "chu": s, **(x[0] if x else {}), **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {})} for i, s, *x in ds]   # phần tử thứ ba (tuỳ chọn) = trường thêm, vd G10 hồi {"ab": [mã, nhánh]}
     try:   # XÉT LUẬT TỪNG CAMP → etp.xet_luat (đi qua stdin psql: chuỗi lớn vượt giới hạn một tham số dòng lệnh)
         _x = _xet_luat()
+        _sai = sorted({l_["ma"] for ls_ in _x.values() for l_ in ls_ if not (isinstance(l_.get("dk"), list) and all(isinstance(r_, list) and len(r_) == 4 and isinstance(r_[3], bool) for r_ in l_["dk"]))})
+        if _sai: loi_may.append((0, f"thẻ xét luật sai khuôn dk (cần danh sách [tên, số, ngưỡng, đạt]): {', '.join(_sai)}"))
         _sql = "begin; create temp table _x (j jsonb); insert into _x values ('" + json.dumps([{"c": k, "x": v} for k, v in _x.items()], ensure_ascii=False).replace("'", "''") + "'::jsonb);" + \
                (f" insert into etp.xet_luat_ngoai (camp_id, nguoi_id, luc, xet) select (e->>'c')::int, {EA.XEM}, now(), e->'x' from _x, jsonb_array_elements(j) e on conflict (camp_id) do update set nguoi_id = excluded.nguoi_id, luc = excluded.luc, xet = excluded.xet;"
                 f" delete from etp.xet_luat_ngoai where nguoi_id = {EA.XEM} and luc < now() - interval '3 hours'; commit;" if EA.XEM else

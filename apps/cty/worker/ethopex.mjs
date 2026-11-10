@@ -57,7 +57,7 @@ const NHOM = [
   ['tang30', '⇈ <b>T30 — LÊN $30</b> — camp $20, 5 ngày đã khép chi TB ≥ $12 (60% ngân sách), ROI ≥ 50% (nới 29/10 theo tk Nguyễn Sơn); ★ ROAS giữ ngưỡng cũ · máy tự tăng, không chờ nút (anh 28/10/2026)', null],
   // moc30 (đủ tiêu chí lên ROAS) không còn là nhóm báo: máy tự lên ROAS cuối nhịp và gửi tin ★ MÁY TỰ LÊN ROAS (anh 29/10/2026)
   ['dong', '⏸ <b>CAMP ĐÃ BỊ ĐÓNG</b> — Ethopex dừng (chạm rule hoặc tắt tay); báo MỘT lần mỗi lần dừng', null],
-  ['loi_may', '⚙️ <b>LỖI MÁY</b> — đọc API Ethopex vẫn lỗi sau 3 lần thử; nhịp sau tự đọc lại, anh không cần làm gì (tin tự xoá)', null],
+  ['loi_may', '⚙️ <b>LỖI MÁY LUẬT</b> — câu lỗi ở từng dòng (lỗi đọc API tự hết ở nhịp sau, tin tự xoá; lỗi khác con phải sửa, tin giữ lại)', null],   // 10/11/2026: nhãn cũ "đọc API… tin tự xoá" giấu lỗi ghi thẻ xét luật 20 giờ
 ];
 
 const TEN = Object.fromEntries(NHOM.map(([k, t]) => [k, (t.match(/<b>(.*?)<\/b>/) || [, k])[1].toLowerCase()]));
@@ -664,7 +664,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       link_preview_options: { is_disabled: true }, ...(bang.length ? { reply_markup: { inline_keyboard: bang } } : {}) });
     const mid = j?.result?.message_id;
     if (mid && bang.length) { const so = docJ(TEP_DX(), {}); so[mid] = { kb: bang, khoa: Object.fromEntries(moi.slice(0, 15).map((m) => [String(m.id), khoa(k, m)])) }; fs.writeFileSync(TEP_DX(), JSON.stringify(so)); }
-    else if (mid && (k === 'dong' || k === 'loi_may')) tinNhanh(mid);   // camp đã bị đóng = thông báo nhanh
+    else if (mid && (k === 'dong' || (k === 'loi_may' && moi.every((m) => /không đọc được|HTTP Error 5|timed out|timeout|Connection/i.test(String(m.chu)))))) tinNhanh(mid);   // camp đã bị đóng / lỗi đọc API tạm = thông báo nhanh; lỗi máy luật khác GIỮ tin
     for (const m of moi) { da.add(khoa(k, m)); for (const c of m.cung) da.add(`${c.k}:${m.id}${c.dich ? `:${c.dich}` : ''}`); } gui++;
   }
   // TIỀN THẬT MỖI NGÀY (anh 22/10/2026): mỗi nhịp chụp tổng cộng dồn (so-ngay.py --chup → tiền mới vào theo ngày); 9h mỗi sáng (hết giờ yên)

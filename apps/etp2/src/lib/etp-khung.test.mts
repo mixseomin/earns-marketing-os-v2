@@ -10,4 +10,5 @@ assert.equal(gio(lucLam('tat', luc, false, vn(16, 10))), '16:32', 'tắt theo kh
 assert.equal(lucLam('tang', luc, true, vn(16, 10)), null, 'sổ hoãn cũ → không hứa giờ');
 assert.equal(lucLam('tang', null, false, vn(16, 10)), null, 'chưa có nhịp → không hứa giờ');
 assert.equal(gio(lucLam('tang', luc, false, vn(16, 10), vn(23, 40))), '00:02', 'cổng nhịp (som) đẩy qua nửa đêm');
+assert.equal(gio(lucLam('tao', luc, false, vn(16, 10))), '16:32', 'nhân bản: nhịp kế ở mọi khung');
 console.log('✓ etp-khung lucLam');

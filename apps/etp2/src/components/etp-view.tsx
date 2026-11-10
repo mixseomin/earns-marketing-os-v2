@@ -65,7 +65,7 @@ import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 import { phimDangSx, tvChuaCr } from '@/lib/etp-sx';
-import { KD, KHUNG_TEN, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucLam, type HuongLuat } from '@/lib/etp-khung';
+import { KD, KHUNG_TEN, chuLich, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucLam, type HuongLuat } from '@/lib/etp-khung';
 
 type Tab = 'tong' | 'tong2' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -439,9 +439,12 @@ type GioLam = { t: number; can: string | null };
 function gioThe(l: XetLuat, hoan: { luc: string | null; cu: boolean }, don: boolean): GioLam | null {
   if (l.ket !== 'dat' && l.ket !== 'gan') return null;
   if (l.mo) return { t: Math.max(Date.parse(l.mo.luc), Date.now()), can: l.mo.can };   // Siết TS chặn: mốc + điều kiện của chính máy luật
-  const h = HUONG_THE(l.ma), t = lucLam(h, hoan.luc, hoan.cu, Date.now(), l.cho_toi ? Date.parse(l.cho_toi) : 0, h === 'tang' && don);
+  // nhân bản (NB · thang): worker tạo bản ngay nhịp kế, không chờ khung tăng — bản mới chạy theo khung lên (chuLich)
+  const nb = l.ma === 'nb' || l.ma === 'thang_nb', h = HUONG_THE(l.ma), t = lucLam(nb ? 'tao' : h, hoan.luc, hoan.cu, Date.now(), l.cho_toi ? Date.parse(l.cho_toi) : 0, h === 'tang' && don);
   const chiNhip = l.dk.every((d) => d[3] || d[0].startsWith('Nhịp tăng'));   // chỉ cổng nhịp chặn = chỉ chờ giờ (cho_toi)
-  return t == null ? null : { t, can: l.ket === 'gan' && !chiNhip ? 'đủ điều kiện' : null };
+  if (t == null) return null;
+  const can = l.ket === 'gan' && !chiNhip ? 'đủ điều kiện' : null;
+  return { t, can: nb ? `${can ? `${can} · ` : ''}tạo xong ${chuLich(t)}` : can };
 }
 // chip: một dòng ngắn cạnh chip · bảng: giờ + điều kiện dưới tên luật — vàng = còn điều kiện, xanh = chỉ chờ giờ
 function ChuGio({ g, chip }: { g: GioLam; chip?: boolean }) {

@@ -3,6 +3,7 @@ import assert from 'node:assert';
 import { anhLat, assLat, demCua, dongKhangDinh, kichBanLat, lenhLat, nhanLat, nhipLat, truyVanLat, truyVanThemLat, type DeLat } from './may-dung-lat';
 import { anhTheoMuc, chuoiAnh } from './may-dung-chuoi';
 import { giayDoc } from './may-dung-ass';
+import { BO_DUNG as MAU_DUNG } from './mau-dung';
 
 const ds: DeLat = { kieu: 'dung-sai', tieu_de: '3 hotel booking facts. True or false?', nhan: 'ratesbyroom.com',
   cau: [{ khang_dinh: 'The hotel always has the same price as the booking site', dung: false, ly_do: 'Many hotels match or beat it if you call and ask', truy: 'hotel reception desk' },
@@ -43,4 +44,11 @@ assert.strictEqual(nhanLat('cau-do', true), 'ANSWER');
 const dai = 'Most hotel booking apps have terrible customer service because OTA companies cut corners';
 const L = dongKhangDinh(dai); assert.strictEqual(L.dong.join(' '), dai, 'không mất chữ'); assert.ok(L.co < 60);
 assert.ok(assLat({ ...lt, cau: [{ ...lt.cau[0]!, khang_dinh: dai }] }).includes('corners'), 'đuôi câu còn trên khung');
+// máy đề ghi kieu = dạng bài 'cau-do-meo' (Ngọc chặn 10/11/2026: chữ "undefined" trên hình) — cửa vào mẫu phải chuẩn hoá
+const meo = { am: 'im', cau: [{ dung: true, truy: 'hotel review', ly_do: 'A hotel review', khang_dinh: 'I show stars, but I never shine. What am I?' }], ket: ['Check the message before paying', 'ratesbyroom.com'], kieu: 'cau-do-meo', nhan: 'ratesbyroom.com' };
+const am = (MAU_DUNG as Record<string, { ass: (d: unknown) => string }>)['lat-dap-an']!.ass(meo);
+assert.ok(!am.includes('undefined'), 'câu đố mẹo còn chữ undefined'); assert.ok(am.includes('Think before it flips') && am.includes('ANSWER'));
+// dòng kết dài phải ngắt dòng (\q2 không tự xuống dòng → tràn mép 1080 ở khung cuối)
+const dk = am.split('\n').find((x) => x.includes('Check the'))!; assert.ok(dk.includes('\\N'), 'dòng kết dài không ngắt dòng');
+for (const dong of dk.slice(dk.lastIndexOf('}') + 1).split('\\N')) assert.ok(dong.length <= 20, `dòng kết quá dài: ${dong}`);
 console.log(`may-dung-lat: đạt (đúng/sai ${N.DAI.toFixed(1)}s, lầm tưởng ${M.DAI.toFixed(1)}s)`);

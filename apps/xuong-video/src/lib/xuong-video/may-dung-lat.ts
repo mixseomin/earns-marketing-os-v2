@@ -81,8 +81,10 @@ export function assLat(de: DeLat): string {
   if (N.ket.length) {
     const t0 = N.T_DIEM;
     if (!N.diem) d.push([6, t0, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.6)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([7, t0, N.DAI, 'Den', `{\\an5\\pos(540,900)${fs(64)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,0)}${chu(N.ket[0]!)}`]);
-    if (N.ket[1]) d.push([7, t0, N.DAI, 'Chu', `{\\an5\\pos(540,1010)\\b1${fs(40)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&\\fad(300,0)}${chu(N.ket[1])}`]);
+    // dòng kết phải NGẮT dòng: \q2 không tự xuống dòng, "Check the message before paying" cỡ 80px tràn mép 1080 (Ngọc chặn 10/11/2026)
+    const k0 = ngat(N.ket[0]!, 20).slice(0, 3), y0 = 900 - 50 * (k0.length - 1), y1 = y0 + 100 * k0.length + 10;
+    d.push([7, t0, N.DAI, 'Den', `{\\an5\\pos(540,${y0})${fs(64)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,0)}${k0.map(chu).join('\\N')}`]);
+    if (N.ket[1]) d.push([7, t0, N.DAI, 'Chu', `{\\an5\\pos(540,${y1})\\b1${fs(40)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&\\fad(300,0)}${ngat(N.ket[1], 34).slice(0, 2).map(chu).join('\\N')}`]);
   }
   if (de.nhan) d.push([2, 0, N.DAI, 'Chu', `{\\an7\\pos(40,40)\\b1${fs(26)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&}${chu(de.nhan)}`]);
   return rapAss(W, H, d);

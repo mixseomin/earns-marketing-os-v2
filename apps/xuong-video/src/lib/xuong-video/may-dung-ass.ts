@@ -11,8 +11,10 @@ export const alpha = (duc: number) => `&H${Math.round((1 - Math.min(1, Math.max(
 /** Giây → mốc ASS h:mm:ss.cc */
 export const tg = (s: number) => { const c = Math.max(0, Math.round(s * 100)); return `${Math.floor(c / 360000)}:${String(Math.floor(c / 6000) % 60).padStart(2, '0')}:${String(Math.floor(c / 100) % 60).padStart(2, '0')}.${String(c % 100).padStart(2, '0')}`; };
 export const ms = (s: number) => Math.round(s * 1000);
-/** Chữ đưa vào ASS: bỏ ký tự điều khiển { } \ */
-export const chu = (s: string) => s.replace(/[{}\\]/g, '');
+/** Chữ đưa vào ASS: bỏ ký tự điều khiển { } \ + cờ nước (cặp regional indicator 🇯🇵 — libass không có font màu, vẽ thành hai ô vuông;
+ *  Ngọc chặn esimfares vat-lac-loai-19201 10/11/2026 "lỗi font hai ô vuông"). Mọi mẫu Máy Dựng đi qua đây nên cả lớp hết. */
+const CO_NUOC = /[\u{1F1E6}-\u{1F1FF}]/u;
+export const chu = (s: string) => { const t = s.replace(/[{}\\]/g, ''); return CO_NUOC.test(t) ? t.replace(/[\u{1F1E6}-\u{1F1FF}]+\s?/gu, '').replace(/ {2,}/g, ' ') : t; };
 /** Hình chữ nhật bo góc (ASS drawing, gốc 0,0) — đặt bằng \an5\pos(tâm) để phóng/thu quanh tâm. */
 export function bo(w: number, h: number, r: number): string {
   const R = Math.min(r, w / 2, h / 2), k = Math.round(R * 0.4477 * 10) / 10;   // 1 − 0,5523: điểm điều khiển bezier xấp xỉ cung 1/4 tròn

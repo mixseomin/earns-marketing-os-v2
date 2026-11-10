@@ -162,6 +162,21 @@ def loi_binh(du):
         except Exception as e: loi = f"{model}: {str(e)[:120]}"
     return None, 0, loi
 
+# ---------- độ đúng (B5) ----------
+# Mỗi đề xuất trong bản ĐÃ GỬI (phien 'HH:MM') ngày D (ngày Ethopex) chấm bằng ngày D+1 đã khép của chính camp đó:
+#   tắt đúng = D+1 vẫn lỗ (ROI < 0) · tăng / ROAS / nhân bản đúng = D+1 vẫn lãi (ROI ≥ 0); D+1 không chi ≥ $1 (đã tắt / dừng) thì không chấm
+DO_NGAY = 7
+def do_dung():
+    return qj(f"""with d as (
+        select distinct on (t.nguoi_id, x.k, (c->>'camp_id')::int, (t.luc at time zone 'UTC')::date) t.nguoi_id, x.k loai, (c->>'camp_id')::int camp_id, (t.luc at time zone 'UTC')::date ngay
+        from etp.tu_van t, jsonb_each(t.du->'nen') x(k, v), jsonb_array_elements(x.v) c
+        where t.phien <> 'song' and t.luc > now() - interval '{DO_NGAY + 1} days'),
+      s as ({_SO})
+      select d.nguoi_id, d.loai, count(*)::int n,
+        count(*) filter (where (d.loai = 'tat' and s.thu < s.chi) or (d.loai <> 'tat' and s.thu >= s.chi))::int dung
+      from d join s on s.camp_id = d.camp_id and s.ngay = d.ngay + 1 and s.chi >= 1
+      where d.ngay + 1 < current_date group by 1, 2""") if q("select to_regclass('etp.tu_van')") else []
+
 # ---------- chữ Telegram ----------
 def chu(du, phien=None):
     e = lambda s: html.escape(str(s), quote=False); ht, tt, ph = du["hien_trang"], du["thi_truong"], du["phien"]
@@ -183,6 +198,10 @@ def chu(du, phien=None):
         L.append(f"<b>{tit}{tay}</b> — {du['dem'][k]} camp" + (f", {len(xs)} lớn nhất:" if du["dem"][k] > len(xs) else ":"))
         L += [f"  #{x['camp_id']} {e(x['ten'][:40])} — {e(x['ly'])}" for x in xs]
     if not any(du["nen"].values()): L.append("Không có camp nào chạm ngưỡng tắt / tăng / ROAS / nhân bản lúc này.")
+    dd = du.get("do_dung") or []
+    if dd:
+        ten = {"tat": "tắt", "tang": "tăng", "roas": "ROAS", "nhan": "nhân bản"}
+        L.append(f"<i>Độ đúng đề xuất {DO_NGAY} ngày (chấm bằng ngày khép kế tiếp): " + " · ".join(f"{ten[x['loai']]} {x['dung']}/{x['n']}" for x in dd) + "</i>")
     if du.get("ai"): L.append(f"\n💬 {e(du['ai'])}")
     return "\n".join(L)
 
@@ -204,6 +223,8 @@ def main(a):
     chon = int(a[a.index("--nguoi") + 1]) if "--nguoi" in a else None
     ds = [mot_nguoi(int(n["nguoi_id"]), n["nguoi"], ngay, camp, gio, tt, the, tu_dong, nha_gio, now) for n in nguoi if chon in (None, int(n["nguoi_id"]))]
     ds = [d for d in ds if d["hien_trang"]["chi"] > 0 or d["hien_trang"]["chi_qua"]]   # người không chạy 2 ngày thì không báo
+    dd = do_dung()
+    for d in ds: d["do_dung"] = sorted((x for x in dd if x["nguoi_id"] == d["nguoi_id"]), key=lambda x: ["tat", "tang", "roas", "nhan"].index(x["loai"]))
     if "--luu" in a: ghi("song", ds); print(f"tư vấn sống: {len(ds)} người"); return
     phien = a[a.index("--phien") + 1] if "--phien" in a else None
     if "--ai" in a:

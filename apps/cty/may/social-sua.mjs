@@ -8,7 +8,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { cayRieng, MOS2_GOC } from './cay-rieng.mjs';
+import { cayHoacBao, MOS2_GOC } from './cay-rieng.mjs';
 
 if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`Khang chỉ chạy trên iMac (máy này: ${os.hostname()}) — Claude không giao diện bằng gói thuê bao chỉ iMac`); process.exit(3); }
 
@@ -16,7 +16,7 @@ const BOX = 'root@167.233.241.16', APP = '/opt/earns-marketing-os-v2/apps/cty', 
 const CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 30, thu = process.argv.includes('--thu');
 // CÂY REPO RIÊNG (may/cay-rieng.mjs, anh 10/11/2026 "chạy ổn định … tao ko phải tham gia"): sửa + commit trong worktree ~/may-ky-su/<người>, không đụng cây mos2 chính đang có việc dở
 // của các phiên khác. Kéo origin/main đầu lượt (chỉ fast-forward) — không được thì chưa nhận việc (việc vẫn chờ ở hàng).
-const cay = (() => { if (thu) return { dir: MOS2_GOC, do: [] }; try { return cayRieng(NGUOI); } catch (e) { console.log(`${new Date().toISOString()} chưa chuẩn bị được cây riêng, chưa nhận việc: ${String(e.stderr || e.message).split('\n')[0]}`); process.exit(0); } })();
+const cay = thu ? { dir: MOS2_GOC, do: [] } : cayHoacBao(NGUOI, { ten: 'Khang', khoa: 'social:cay-rieng', phong: 'social-traffic', tep: TEP });
 const MOS2 = cay.dir;
 // QUYỀN HẸP: sửa CHỈ phần bài social của repo mos2 (máy sinh / dựng bài apps/xuong-video/scripts + src/lib/xuong-video, mẫu apps/xuong-video/mau, tệp sự thật
 // apps/xuong-video/su-that, Phòng Nội dung chấm bài đăng apps/cty/worker/cham-dang.mjs); đọc + chạy lệnh box3 qua ssh; kiểm tĩnh; push (GHA deploy box3). Không web, không hỏi, không lan việc.

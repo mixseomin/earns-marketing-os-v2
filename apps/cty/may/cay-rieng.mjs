@@ -29,3 +29,18 @@ export function cayRieng(nguoi, goc = MOS2_GOC) {
 }
 
 if (process.argv[1]?.endsWith('cay-rieng.mjs') && process.argv[2]) { const r = cayRieng(process.argv[2]); console.log(JSON.stringify(r)); }
+
+/** Như cayRieng, nhưng kẹt (không fast-forward được) thì BÁO chủ đề phòng rồi bỏ lượt — kỹ sư đứng im mà không ai biết là lỗi im lặng
+ *  (anh 11/11/2026: "phải biết giới hạn đúng lúc, đúng chỗ"). tho-may-viec --canh tự giữ nhịp: mỗi khoá ≤ 1 tin / 24 giờ, không thành 5 phút một tin. */
+export function cayHoacBao(nguoi, { ten, khoa, phong, tep }) {
+  try { return cayRieng(nguoi); } catch (e) {
+    const ly = String(e.stderr || e.message).split('\n')[0];
+    console.log(`${new Date().toISOString()} chưa chuẩn bị được cây riêng, chưa nhận việc: ${ly}`);
+    try {
+      execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', 'root@167.233.241.16',
+        `cd /opt/earns-marketing-os-v2/apps/cty && CTY_DATA_DIR=/var/lib/cty THO_MAY_TEP=${tep} node worker/tho-may-viec.mjs --canh ${khoa} ${phong}`],
+      { input: `${ten} không kéo được bản mới nhất vào cây repo riêng trên iMac (~/may-ky-su/${nguoi}) nên đang đứng im, lỗi chưa ai sửa. Git báo: ${ly}`, encoding: 'utf8', timeout: 60000 });
+    } catch (e2) { console.log(`báo kẹt lỗi: ${String(e2.message).split('\n')[0]}`); }
+    process.exit(0);
+  }
+}

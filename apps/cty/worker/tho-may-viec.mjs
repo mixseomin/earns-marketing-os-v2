@@ -7,7 +7,7 @@
 // tài khoản bị nền tảng chặn (canh|) và kho cạn (kho| — phải làm bài, có thể tốn tiền) vẫn để anh quyết, không vào hàng.
 //   node worker/tho-may-viec.mjs --lay | --nhan <id> | --bao <id> <da_sua|khong_sua|can_anh> (chữ ở stdin) | --xem | --tu-kiem
 import fs from 'node:fs';
-import { ghiNut, NUT_HOI } from './tg-phong.mjs';
+import { ghiNut, NUT_HOI, topicPhong } from './tg-phong.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 // HÀNG RIÊNG THEO NGƯỜI (anh 10/11/2026 "Phòng ETP này phải có 1 con riêng phụ trách"): THO_MAY_TEP chọn tệp hàng — Mạnh = tho-may.json (mặc định), Huy (Ethopex) = etp-sua.json
@@ -29,6 +29,8 @@ const vuaKetKhongSua = (hang, c, luc) => hang.some((v) => v.khoa === c.khoa && v
  *  đã xong ≥ LAP_TRAN - 1 lần → lần xếp kế mang ghi chú LẶP (đòi gốc sâu hơn hoặc CAN_ANH để anh thấy); đã xong ≥ LAP_TRAN lần → thôi xếp tới hết 24 giờ. */
 export const LAP_TRAN = 3;
 const soLanXong = (hang, c, luc) => hang.filter((v) => v.khoa === c.khoa && v.tt === 'xong' && v.xong && luc - Date.parse(v.xong) < LAP_GIO * 36e5).length;
+/** Thuần — runner báo máy KẸT (vd Huy không kéo được bản mới nên đứng im): mỗi khoá tối đa MỘT tin / LAP_GIO giờ, không thành mỗi 5 phút một tin. */
+export const nenCanh = (st, k, luc = Date.now()) => !(st.canh?.[k] && luc - Date.parse(st.canh[k]) < LAP_GIO * 36e5);
 export function themViec(st, ds, { luc = Date.now(), topic = null, msg = null } = {}) {
   const hang = st.hang || [], dang = new Set(hang.filter((v) => v.tt === 'cho' || v.tt === 'dang').map((v) => v.khoa));
   let them = 0, so = hang.reduce((a, v) => Math.max(a, v.id), 0);
@@ -124,6 +126,8 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     assert.equal(st.ngay[ngayVN(t0)], 8, 'bộ đếm ngày vẫn đếm'); assert.equal(layViec(st, t0).ly_do, 'không có việc', 'hết việc thì nghỉ');
     { const s2 = { hang: [{ id: 1, khoa: 'lan:a', tt: 'cho' }, { id: 2, khoa: 'kenh:parody|x', tt: 'cho' }], ngay: {} }; assert.equal(layViec(s2, t0).viec.id, 2, 'việc kênh nhận trước'); }
     assert.strictEqual(themViec({ hang: [{ id: 1, khoa: 'lan:a', tt: 'xong' }] }, [{ khoa: 'lan:a', chu: 'tái phát' }]).them, 1, 'đã xong rồi tái phát: nhận lại');
+    assert.ok(nenCanh({}, 'etp:keo-ban', t0), 'chưa báo: báo'); assert.ok(!nenCanh({ canh: { 'etp:keo-ban': new Date(t0 - 36e5).toISOString() } }, 'etp:keo-ban', t0), 'vừa báo 1 giờ trước: thôi');
+    assert.ok(nenCanh({ canh: { 'etp:keo-ban': new Date(t0 - 25 * 36e5).toISOString() } }, 'etp:keo-ban', t0), 'quá 24 giờ: báo lại');
     { const xong = (n) => ({ hang: Array.from({ length: n }, (_, i) => ({ id: i + 1, khoa: 'etp:luat', tt: 'xong', xong: new Date(t0 - (i + 1) * 36e5).toISOString() })) });
       const r2 = themViec(xong(2), [{ khoa: 'etp:luat', chu: 'tái phát' }], { luc: t0 });
       assert.strictEqual(r2.them, 1, 'đã sửa 2 lần trong 24 giờ: còn một lượt'); assert.match(r2.st.hang.at(-1).chu, /LẶP/, 'lượt đó mang ghi chú LẶP');
@@ -166,6 +170,11 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     console.log(themTuCanhBao([{ khoa: a[1], chu: fs.readFileSync(0, 'utf8').trim().slice(0, 3000) }], {}));
   } else if (a[0] === '--ghi-them') {   // ghi chú bổ sung (mos2 /api/may-dang/so): --ghi-them <khoá>, chữ ở stdin → nối vào việc đang chờ cùng khoá hoặc xếp mới. In gop | moi | bo
     const r = ghiThem(doc(), a[1], fs.readFileSync(0, 'utf8').trim().slice(0, 3000)); if (r.kieu !== 'bo') ghi(r.st); console.log(r.kieu);
+  } else if (a[0] === '--canh') {   // --canh <khoá> <phòng>, chữ ở stdin: báo máy kẹt vào chủ đề phòng, mỗi khoá ≤ 1 tin / 24 giờ. In gui | bo | loi
+    const st = doc(), luc = Date.now();
+    if (!nenCanh(st, a[1], luc)) console.log('bo');
+    else { const topic = await topicPhong(a[2], a[2], tg); const j = await traLoi({ tg: { topic } }, `<b>🔧 ${esc(tenViec({ khoa: `${a[1]}` }))} · ⚠️ Đứng im</b>\n${esc(fs.readFileSync(0, 'utf8').trim().slice(0, 1500))}`);
+      if (j?.ok) { st.canh = { ...(st.canh || {}), [a[1]]: new Date(luc).toISOString() }; ghi(st); } console.log(j?.ok ? 'gui' : 'loi'); }
   } else if (a[0] === '--xem') console.log(JSON.stringify(doc(), null, 1));
-  else { console.error('dùng: --lay | --nhan <id> | --bao <id> <da_sua|khong_sua|can_anh> | --them <khoá> (chữ ở stdin) | --xem | --tu-kiem'); process.exit(2); }
+  else { console.error('dùng: --lay | --nhan <id> | --bao <id> <da_sua|khong_sua|can_anh> | --them <khoá> | --canh <khoá> <phòng> (chữ ở stdin) | --xem | --tu-kiem'); process.exit(2); }
 }

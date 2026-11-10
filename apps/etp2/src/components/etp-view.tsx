@@ -92,7 +92,8 @@ function BangTach({ ds, so }: { ds: NhomTach[]; so: (c: CampEtpKho) => SoTien })
     <span style={{ height: con ? 4 : 6, borderRadius: 3, background: 'var(--bg-3, #161b25)', position: 'relative', overflow: 'hidden' }}><span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(h.s.chi / max) * 100}%`, background: con ? '#60a5fa99' : '#60a5fa', borderRadius: 3 }} /></span>
     <span style={{ textAlign: 'right' }}><Lai s={h.s} /></span><span style={{ textAlign: 'right' }}><Roi s={h.s} /></span></div>;
   return <div style={{ display: 'flex', flexDirection: 'column', fontSize: 12, height: '100%', overflowY: 'auto' }}>
-    <div style={{ display: 'grid', gridTemplateColumns: luoi, gap: 6, fontSize: 10, color: 'var(--fg-3, #777)', paddingBottom: 3 }}><span /><span style={{ textAlign: 'right' }}>camp</span><span>chi</span><span style={{ textAlign: 'right' }}>lãi</span><span style={{ textAlign: 'right' }}>ROI</span></div>
+    {/* tiêu đề cột DÍNH khi cuộn trong widget (anh 10/11/2026 "các table bên trong phải sticky header nếu cuộn xuống") — khung cuộn là chính khối này (overflowY auto) */}
+    <div style={{ display: 'grid', gridTemplateColumns: luoi, gap: 6, fontSize: 10, color: 'var(--fg-3, #777)', padding: '0 0 3px', position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-1, #0b0e14)', borderBottom: '1px solid var(--line)' }}><span /><span style={{ textAlign: 'right' }}>camp</span><span>chi</span><span style={{ textAlign: 'right' }}>lãi</span><span style={{ textAlign: 'right' }}>ROI</span></div>
     {hang.map((h, i) => <Fragment key={i}>{dong(h, i, false)}{(h.con && h.con.length > 1 ? xep(h.con) : []).map((c, j) => dong(c, j, true))}</Fragment>)}
   </div>;
 }

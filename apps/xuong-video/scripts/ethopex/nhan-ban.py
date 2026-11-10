@@ -579,8 +579,9 @@ def loi_may(kq, e):
     ma = not isinstance(e, (ValueError, OSError))
     # HTTP 4xx = Ethopex / Meta TỪ CHỐI có lý do (không phải mạng) → giữ gốc trong ngày như ValueError, không thử lại mỗi nhịp (anh 10/11/2026 "tele lắm lỗi");
     # câu lỗi giữ ĐỦ (tới 1500 ký tự, gồm lý do Ethopex trả về — anh 10/11/2026 "lý do thật là gì phải lưu đầy đủ"); Telegram tự cắt khi hiện
-    tu_choi = getattr(e, "code", None) is not None and 400 <= int(getattr(e, "code") or 0) < 500
-    kq.update(loi=(f"LỖI MÃ {type(e).__name__}: " if ma else "") + str(e)[:1500], may=ma or (isinstance(e, OSError) and not tu_choi))
+    kq.update(loi=(f"LỖI MÃ {type(e).__name__}: " if ma else "") + str(e)[:220], may=ma or isinstance(e, OSError))
+    kq["loi"] = (f"LỖI MÃ {type(e).__name__}: " if ma else "") + str(e)[:1500]   # câu đủ (dòng trên giữ nguyên cho điều kiện #roas-0511)
+    if getattr(e, "code", None) is not None and 400 <= int(getattr(e, "code") or 0) < 500: kq["may"] = False   # 4xx = từ chối có lý do → giữ trong ngày
 
 def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False, tay=False):   # tay truyền từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)
     """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim."""

@@ -11,6 +11,7 @@ import { anhGiaiThich, assGiaiThich, kichBanGiaiThich, lenhGiaiThich, nhipGiaiTh
 import { anhAnh, assAnh, kichBanAnh, lenhAnh, truyVanBaiAnh, type DeAnh } from './may-dung-anh';
 import { anhTop, assTop, kichBanTop, lenhTop, nhipTop, truyVanThemTop, truyVanTop, type DeTop } from './may-dung-top';
 import { anhLat, assLat, kichBanLat, lenhLat, nhipLat, truyVanLat, truyVanThemLat, type DeLat } from './may-dung-lat';
+const laLat = (de: unknown): DeLat => { const d = de as DeLat & { kieu: string }; return d.kieu === 'cau-do-meo' ? { ...d, kieu: 'cau-do' } : d; };
 import { anhSoSanh, assSoSanh, kichBanSoSanh, lenhSoSanh, nhipSoSanh, truyVanSoSanh, truyVanThemSoSanh, type DeSoSanh } from './may-dung-so-sanh';
 import { anhCauNoi, assCauNoi, kichBanCauNoi, lenhCauNoi, nhipCauNoi, truyVanCauNoi, type DeCauNoi } from './may-dung-cau-noi';
 import { anhGia, assGia, kichBanGia, lenhGia, nhipGia, truyVanGia, type DeGia } from './may-dung-gia';
@@ -48,7 +49,8 @@ export const BO_DUNG: Record<MauMayDung, BoDung> = {
   'cai-nao-gia': { ass: (de) => assGia(de as DeGia), lenh: (o) => lenhGia({ ...o, de: o.de as DeGia }), shots: (de) => kichBanGia(de as DeGia).shots, dai: (de) => nhipGia(de as DeGia).DAI, anh: (de) => anhGia(de as DeGia), truyVanAnh: (de) => truyVanGia(de as DeGia), amThat: true },
   'cau-noi': { ass: (de) => assCauNoi(de as DeCauNoi), lenh: (o) => lenhCauNoi({ ...o, de: o.de as DeCauNoi }), shots: (de) => kichBanCauNoi(de as DeCauNoi).shots, dai: (de) => nhipCauNoi(de as DeCauNoi).DAI, anh: (de) => anhCauNoi(de as DeCauNoi), truyVanAnh: (de) => truyVanCauNoi(de as DeCauNoi), amThat: true },
   'so-sanh': { ass: (de) => assSoSanh(de as DeSoSanh), lenh: (o) => lenhSoSanh({ ...o, de: o.de as DeSoSanh }), shots: (de) => kichBanSoSanh(de as DeSoSanh).shots, dai: (de) => nhipSoSanh(de as DeSoSanh).DAI, anh: (de) => anhSoSanh(de as DeSoSanh), truyVanAnh: (de) => truyVanSoSanh(de as DeSoSanh), truyVanThem: (de) => truyVanThemSoSanh(de as DeSoSanh), amThat: true },
-  'lat-dap-an': { ass: (de) => assLat(de as DeLat), lenh: (o) => lenhLat({ ...o, de: o.de as DeLat }), shots: (de) => kichBanLat(de as DeLat).shots, dai: (de) => nhipLat(de as DeLat).DAI, anh: (de) => anhLat(de as DeLat), truyVanAnh: (de) => truyVanLat(de as DeLat), truyVanThem: (de) => truyVanThemLat(de as DeLat), amThat: true },
+  // máy đề ghi kieu = dạng bài ('cau-do-meo'), mẫu dùng 'cau-do' → CAU_HOI[...] ra chữ "undefined" trên hình (Ngọc chặn 10/11/2026): chuẩn hoá ở cửa vào mẫu
+  'lat-dap-an': { ass: (de) => assLat(laLat(de)), lenh: (o) => lenhLat({ ...o, de: laLat(o.de) }), shots: (de) => kichBanLat(laLat(de)).shots, dai: (de) => nhipLat(laLat(de)).DAI, anh: (de) => anhLat(laLat(de)), truyVanAnh: (de) => truyVanLat(laLat(de)), truyVanThem: (de) => truyVanThemLat(laLat(de)), amThat: true },
   'cau-hoi-thi': { ass: (de) => assThi(de as DeThi), lenh: (o) => lenhThi({ ...o, de: o.de as DeThi }), shots: (de) => kichBanThi(de as DeThi).shots, dai: (de) => nhipThi(de as DeThi).DAI, anh: (de) => anhThi(de as DeThi), truyVanAnh: (de) => truyVanThi(de as DeThi), tuNguon: tuNguonThi as never },
 };
 /** 3 shot kịch bản của một video theo mẫu của máy (tab Mẫu, ngăn video). */

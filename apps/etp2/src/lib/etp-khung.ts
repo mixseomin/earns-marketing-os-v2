@@ -35,10 +35,11 @@ export function docHoan(cauHinh: { khoa: string; gia_tri: unknown }[], now = Dat
 export const NHIP_PHUT = 30;
 /** mốc máy thực sự tăng: nhịp máy luật (NHIP_PHUT phút, lần gần nhất = sổ hoãn `luc`) đầu tiên ≥ `som` (cổng nhịp tăng — cho_toi của thẻ máy) rơi vào khung tăng — hoặc khung sáng khi tiêu dồn (nạp sáng).
  *  null khi sổ cũ (máy không chạy) */
-export function lucTang(luc: string | null, cu: boolean, now = Date.now(), som = 0, don = false): number | null {
+/** MỌI HƯỚNG LUẬT (anh 10/11/2026 "các luật khác thấy chạm đéo hiện à"): nhịp máy luật đầu tiên ≥ som rơi vào khung cho hướng đó — tăng: khung tăng (khung sáng khi tiêu dồn) · giảm / tắt: khung giảm */
+export function lucLam(huong: HuongLuat, luc: string | null, cu: boolean, now = Date.now(), som = 0, don = false): number | null {
   if (!luc || cu) return null;
   const buoc = NHIP_PHUT * 60_000; let t = Date.parse(luc) + buoc; while (t < now) t += buoc;
-  for (let i = 0; i < 4 * 48; i++, t += buoc) { const k = khungLuc(gioVnNay(t)); if (t >= som && (k === 'tang' || (k === 'sang' && don))) return t; }
+  for (let i = 0; i < 4 * 48; i++, t += buoc) { const k = khungLuc(gioVnNay(t)); if (t >= som && (huong === 'tang' ? k === 'tang' || (k === 'sang' && don) : k === 'giam')) return t; }
   return null;
 }
 /** GIỜ CHẠY của camp TẠO lúc `now` — cùng luật nhan-ban.lich_len (khung_doi.len, 07–12h VN): trong khung chạy ngay, ngoài khung hẹn 07:00 hôm sau / sáng nay.

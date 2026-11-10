@@ -65,7 +65,7 @@ import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 import { phimDangSx, tvChuaCr } from '@/lib/etp-sx';
-import { KD, KHUNG_TEN, NHIP_PHUT, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucTang, type HuongLuat } from '@/lib/etp-khung';
+import { KD, KHUNG_TEN, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucLam, type HuongLuat } from '@/lib/etp-khung';
 
 type Tab = 'tong' | 'tong2' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -407,7 +407,8 @@ function tinhLuat({ c, ba, bao, boThang, thangMuc, xet }: VaoLuat) {
   const xDat = (xet ?? []).find((x) => x.ket === 'dat' && x.ma !== 'roas'), xGan = (xet ?? []).find((x) => x.ket === 'gan');
   const chinh2 = daXep[0] ? chinh : xDat ? { chip: XET_CHIP[xDat.ma]?.[0] ?? xDat.ten, mau: XET_CHIP[xDat.ma]?.[1] ?? '#94a3b8', dac: true }
     : ganBao[0] ? chinh : xGan ? { chip: XET_CHIP[xGan.ma]?.[0] ?? xGan.ten, mau: XET_CHIP[xGan.ma]?.[1] ?? '#94a3b8', dac: false } : xet ? null : chinh;
-  return { chinh: chinh2, daXep, ganBao, hien: [...du, ...gan.filter((l) => !du.includes(l))], xet };
+  const don = c.ngan_sach > 0 && c.nay.chi > 0 && c.nay.chi >= KD.nap_chi * c.ngan_sach && (c.nay.thu - c.nay.chi) / c.nay.chi * 100 >= KD.sang_roi;   // tiêu dồn → được nạp ở khung sáng
+  return { chinh: chinh2, daXep, ganBao, hien: [...du, ...gan.filter((l) => !du.includes(l))], xet, the: daXep[0] || ganBao[0] ? undefined : xDat ?? xGan, don };
 }
 // nho: cỡ gọn cho widget Theo luật (Tổng quan 2, anh 10/11/2026 "show màu và trạng thái giống trong tab camp nhưng nhỏ gọn hơn")
 const ChipO = ({ chinh, nho }: { chinh: { chip: string; mau: string; dac: boolean }; nho?: boolean }) => <span style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -431,7 +432,25 @@ const KHONG_GIAN: React.CSSProperties = { width: 0, minWidth: '100%' };
 const chuVao = (deXuat?: boolean) => <span style={{ color: '#4ade80' }}>{deXuat ? ' · máy đề xuất (chỉ đề xuất, không làm)' : ' · máy đã xếp làm'}</span>;
 // BẢNG XÉT LUẬT RỘNG THEO NỘI DUNG nhưng KHÔNG VƯỢT KHUNG (#1487 + anh 10/11/2026 "vẫn cứ phải scroll sang ngang": bảng 1057px trong khung 718px vì chữ bị ép
 // không xuống dòng + độ rộng tối thiểu cột) — bỏ nowrap / minWidth, bảng tối đa 100% khung, chữ dài tự xuống dòng
-function BangXet({ xet, gon, deXuat }: { xet: XetLuat[]; gon?: boolean; deXuat?: boolean }) {
+// GIỜ ÁP DỤNG NGAY Ở Ô TÊN LUẬT (anh 10/11/2026 "gắn thời gian vào đây" · "các luật khác thấy chạm đéo hiện à"): MỌI thẻ Đạt / Gần có ⏳ —
+// .mo (Siết TS chặn: mốc + điều kiện của máy) · cho_toi (cổng nhịp tăng) · còn lại: nhịp máy luật đầu tiên trong khung của hướng luật (tăng 21h · giảm / tắt 15h), Gần = khi đủ điều kiện
+const HUONG_THE = (ma: string): HuongLuat => { const h = (BANG_LUAT.the as Record<string, unknown[]>)[ma]?.[2]; return h === 'tang' || h === 'tat' ? h : (BANG_LUAT.the as Record<string, unknown[]>)[ma]?.[0]?.toString().startsWith('✕') || ma === 'dung_dem' ? 'tat' : 'giam'; };
+type GioLam = { t: number; can: string | null };
+function gioThe(l: XetLuat, hoan: { luc: string | null; cu: boolean }, don: boolean): GioLam | null {
+  if (l.ket !== 'dat' && l.ket !== 'gan') return null;
+  if (l.mo) return { t: Math.max(Date.parse(l.mo.luc), Date.now()), can: l.mo.can };   // Siết TS chặn: mốc + điều kiện của chính máy luật
+  const h = HUONG_THE(l.ma), t = lucLam(h, hoan.luc, hoan.cu, Date.now(), l.cho_toi ? Date.parse(l.cho_toi) : 0, h === 'tang' && don);
+  const chiNhip = l.dk.every((d) => d[3] || d[0].startsWith('Nhịp tăng'));   // chỉ cổng nhịp chặn = chỉ chờ giờ (cho_toi)
+  return t == null ? null : { t, can: l.ket === 'gan' && !chiNhip ? 'đủ điều kiện' : null };
+}
+// chip: một dòng ngắn cạnh chip · bảng: giờ + điều kiện dưới tên luật — vàng = còn điều kiện, xanh = chỉ chờ giờ
+function ChuGio({ g, chip }: { g: GioLam; chip?: boolean }) {
+  const sat = g.t - Date.now() < 60_000, con = sat ? 'nhịp tới' : conLai(new Date(g.t).toISOString()), gio = new Date(g.t + 7 * 3600_000).toISOString().slice(11, 16), mau = g.can ? '#facc15' : '#4ade80';
+  if (chip) return <span title={`máy làm ~${gio} VN${g.can ? ` nếu ${g.can}` : ''}`} style={{ fontSize: 10.5, color: mau, whiteSpace: 'nowrap' }}>⏳{con}</span>;
+  return <div style={{ color: mau, fontSize: 11, fontWeight: 600 }}>⏳ {sat ? con : `${con} · ${gio}`}{g.can ? <div style={{ fontWeight: 400, fontSize: 10.5 }}>nếu {g.can}</div> : null}</div>;
+}
+function GioThe({ l, don }: { l: XetLuat; don: boolean }) { const hoan = useContext(HoanCtx), g = gioThe(l, hoan, don); return g ? <ChuGio g={g} /> : null; }
+function BangXet({ xet, gon, deXuat, don }: { xet: XetLuat[]; gon?: boolean; deXuat?: boolean; /** camp tiêu dồn (nạp sáng) — giờ tăng tính cả khung sáng */ don?: boolean }) {
   const thu = { dat: 0, gan: 1, xa: 2, khong_ap: 3 } as const;
   const ds = [...xet].sort((a, b) => thu[a.ket] - thu[b.ket]);
   // LUẬT ĐANG TẠM DỪNG gom vào một dòng gập (anh 28/10/2026 #1473 "luật tạm dừng thì cho vào 1 collapsed ko show ngay ra")
@@ -446,10 +465,10 @@ function BangXet({ xet, gon, deXuat }: { xet: XetLuat[]; gon?: boolean; deXuat?:
       {gon ? null : <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}><th style={o}>Luật</th><th style={o}>Điều kiện</th><th style={{ ...o, textAlign: 'right' }}>Giá trị</th><th style={o}>Ngưỡng</th><th style={o} /></tr></thead>}
       {(() => { const ve = (l: XetLuat, vi: number) => { const [kt, km] = KET_XET[l.ket]; const mo = l.ket === 'xa' || l.ket === 'khong_ap'; const n = Math.max(1, l.dk.length);
         const dau = <td rowSpan={n} title={l.mo_ta} style={{ ...o, cursor: 'help', overflowWrap: 'anywhere', opacity: mo ? 0.6 : 1 }}>
-          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b><div><b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null}</div>
+          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b><div><b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null}</div>{deXuat ? null : <GioThe l={l} don={!!don} />}
           {l.ghi ? <div style={{ ...KHONG_GIAN, color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}</td>;
         const dauGon = <tr key={`${l.ma}-t`} style={{ opacity: mo ? 0.6 : 1 }}><td colSpan={4} title={l.mo_ta} style={{ ...o, paddingTop: 8, borderTop: '1px solid var(--fg-3, #555)' }}>
-          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> · <b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null}
+          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> · <b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null}{deXuat ? null : <GioThe l={l} don={!!don} />}
           {l.ghi ? <div style={{ ...KHONG_GIAN, color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}{l.dk.length ? null : <div style={{ ...KHONG_GIAN, color: 'var(--fg-2)' }}>{l.mo_ta}</div>}</td></tr>;
         // MỖI LUẬT MỘT KHỐI (anh 29/10/2026 "background khác nhau giữa các khối màu của bậc · hover thì highlight nhẹ bg"): <tbody> riêng, nền nhạt theo màu
         // luật, khối chẵn / lẻ đậm nhạt khác nhau (hai luật cùng màu đứng cạnh vẫn tách được), rê vào khối → nền đậm hơn
@@ -474,7 +493,7 @@ function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: bo
   if (t.xet) return <>
     {[...t.daXep, ...t.ganBao].map((b, i) => <div key={i} style={{ ...(gon ? {} : KHONG_GIAN), marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật {LUAT_NHAN[b.nhom]![3] === 'dang' ? 'đã xếp' : 'báo gần'}: {LUAT_NHAN[b.nhom]?.[1]}</b>
       <div style={{ color: 'var(--fg-2)' }}>{luatThuong(b.chu.replace(/^#\d+:[^·]*·\s*/, '').replace(/^#\S*\s*/, ''))}</div></div>)}
-    <BangXet xet={t.xet} gon={gon} deXuat={deXuat} />
+    <BangXet xet={t.xet} gon={gon} deXuat={deXuat} don={t.don} />
   </>;
   return <>
     {[...t.daXep, ...t.ganBao].map((b, i) => <div key={i} style={{ marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật {LUAT_NHAN[b.nhom]![3] === 'dang' ? 'đã xếp' : 'báo gần'}: {LUAT_NHAN[b.nhom]?.[1]}</b>
@@ -545,31 +564,16 @@ function ChipLuat(p: VaoLuat) {
   const R = t.xet ? 760 : 340;
   // KHUNG ĐỔI CAMP (anh 04/11/2026): luật đã đạt mà khung giờ đang chặn → ⏳ giờ máy sẽ làm (camp người khác: chỉ đề xuất, không ghi)
   const cho = !p.deXuat && hoanDs.has(p.c.camp_id) ? `${gioLam(hoanDs.get(p.c.camp_id)!)}h` : null;
-  // TĂNG ĐÃ ĐẠT → còn bao lâu máy thực sự tăng (khung tăng + nhịp máy luật 30 phút) — camp người khác chỉ đề xuất, không có mốc
-  // mốc tăng đọc THẺ MÁY LUẬT (etp.xet_luat): thẻ Tăng bậc đạt → nhịp máy kế trong khung; chỉ còn dòng "Nhịp tăng" chặn → mốc cho_toi của máy (đúng cổng lệnh tăng, gồm cả lần đổi ngoài máy)
-  // hai thẻ cùng một lệnh tăng (Tăng bậc · Tăng trong ngày): lấy thẻ đạt, không thì thẻ chỉ còn dòng Nhịp tăng chặn
-  const gan1 = (x: XetLuat) => { const n = x.dk.find((d) => d[0].startsWith('Nhịp tăng')); return x.ket !== 'dat' && !!x.cho_toi && !!n && !n[3] && x.dk.every((d) => d[3] || d === n); };
-  const theT = p.deXuat ? [] : (p.xet ?? []).filter((x) => x.ma === 'tang' || x.ma === 'tang_ngay');
-  const xT = theT.find((x) => x.ket === 'dat') ?? theT.find(gan1), nhipT = xT?.dk.find((d) => d[0].startsWith('Nhịp tăng'));
-  const chiCong = !!xT && gan1(xT);
-  const don = p.c.ngan_sach > 0 && p.c.nay.chi >= KD.nap_chi * p.c.ngan_sach && p.c.nay.chi > 0 && (p.c.nay.thu - p.c.nay.chi) / p.c.nay.chi * 100 >= KD.sang_roi;   // tiêu dồn → được nạp ở khung sáng
-  const lucT = xT?.ket === 'dat' || chiCong ? lucTang(hoan.luc, hoan.cu, Date.now(), chiCong ? Date.parse(xT!.cho_toi!) : 0, don) : null;
-  const chuT = lucT ? `${conLai(new Date(lucT).toISOString())} nữa · ~${new Date(lucT + 7 * 3600_000).toISOString().slice(11, 16)} VN` : null;
-  // TĂNG BỊ SIẾT TS CHẶN → mốc sớm nhất máy thôi chặn (thẻ máy .mo, luat-ethopex _ts_mo — anh 10/11/2026 "phải show thời gian sẽ áp dụng sau bao lâu"): vàng = còn điều kiện phải đạt lúc đó
-  const xMo = lucT || cho ? undefined : theT.find((x) => x.mo && x.dk.every((d) => d[3] || /^(Siết tăng TS|Nhịp tăng)/.test(d[0])));
-  const moT = xMo?.mo ? Math.max(Date.parse(xMo.mo.luc), Date.now()) : null, moSat = moT != null && moT - Date.now() < 60_000;
-  const chuMo = moT ? (moSat ? 'nhịp máy luật tới' : `${conLai(new Date(moT).toISOString())} nữa · ~${new Date(moT + 7 * 3600_000).toISOString().slice(11, 16)} VN`) : null, chanMo = xMo?.dk.find((d) => !d[3]);   // máy đã đủ luật, hoãn vì khung giờ (sổ hoãn) — giờ theo hướng: tăng 21h · giảm/tắt 15h
+  // GIỜ MÁY LÀM của thẻ đang hiện trên chip — CÙNG một hàm gioThe với ô tên luật trong bảng xét (audit 10/11/2026: chip và bảng từng tính hai kiểu)
+  const g = p.deXuat || cho || !t.the ? null : gioThe(t.the, hoan, t.don);
   return (
     <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
       {t.chinh ? <ChipO chinh={t.chinh} /> : <span style={{ color: 'var(--fg-3, #777)', padding: '0 6px' }}>…</span>}
-      {cho ? <span style={{ fontSize: 10.5, color: KHUNG_TEN.bang[2], whiteSpace: 'nowrap' }}>⏳{cho}</span> : lucT ? <span title={`máy tăng ${chuT}`} style={{ fontSize: 10.5, color: '#4ade80', whiteSpace: 'nowrap' }}>⏳{conLai(new Date(lucT).toISOString())}</span>
-        : moT ? <span title={`sớm nhất ${chuMo}${xMo!.mo!.can ? ` nếu ${xMo!.mo!.can}` : ''}`} style={{ fontSize: 10.5, color: xMo!.mo!.can ? '#facc15' : '#4ade80', whiteSpace: 'nowrap' }}>⏳{moSat ? 'nhịp tới' : conLai(new Date(moT).toISOString())}</span> : null}
+      {cho ? <span style={{ fontSize: 10.5, color: KHUNG_TEN.bang[2], whiteSpace: 'nowrap' }}>⏳{cho}</span> : g ? <ChuGio g={g} chip /> : null}
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={R} cao={t.xet ? 520 : 300} noi={noi}><div style={{ ...(t.xet ? { width: 'max-content', minWidth: 340, maxWidth: R } : { width: R }), maxHeight: 520, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
         {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
           <span title={p.c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.ten ?? p.c.phim} · ${p.c.ngan_sach}</span></div>
-        {lucT ? <div style={{ marginBottom: 6, color: '#4ade80' }}>⏳ Máy thực sự tăng sau <b>{chuT}</b> — {chiCong ? `chờ cổng nhịp tăng (${nhipT![1]}: cách lần tăng trước ≥ ${KD.nghi_gio} giờ, tiêu dồn ${KD.nghi_don_gio} giờ), rồi nhịp máy luật đầu tiên trong khung tăng` : khungLuc(gioVnNay()) === 'tang' ? 'nhịp máy luật kế' : `nhịp đầu sau khi khung tăng mở ${KD.tang[0]}:00`} (máy luật chạy {NHIP_PHUT} phút / lần, lần gần nhất {hoan.luc ? new Date(Date.parse(hoan.luc) + 7 * 3600_000).toISOString().slice(11, 16) : '—'} VN); điều kiện còn đạt lúc đó thì tăng</div> : null}
-        {moT ? <div style={{ marginBottom: 6, color: xMo!.mo!.can ? '#facc15' : '#4ade80' }}>⏳ Tăng sớm nhất <b>{chuMo}</b>{xMo!.mo!.can ? <> nếu <b>{xMo!.mo!.can}</b></> : null}{chanMo ? <span style={{ color: 'var(--fg-2)' }}> · đang chặn: {chanMo[1]}</span> : null}</div> : null}
         {cho ? <div style={{ marginBottom: 6, color: 'var(--fg-2)' }}>⏳ Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc <b>{cho} VN</b>. Khung: {KD.tang[0]}–{KD.tang[1]}h tăng · {KD.giam[0]}–{KD.giam[1]}h giảm / tắt · {KD.sang[0]}–{KD.sang[1]}h chỉ nạp camp đã tiêu ≥ {KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ {KD.sang_roi}%.</div> : null}
         <ThanLuat t={t} deXuat={p.deXuat} />
         {/* LỊCH SỬ ĐỔI BẬC ngay dưới bảng luật (anh 10/11/2026 "phần hover này cũng cần show thêm lịch sử tăng bậc") — cùng dòng thời gian thẻ Lịch sử bậc (DongBac) */}

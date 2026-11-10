@@ -24,7 +24,8 @@ const LUAT = [
   { card: 'tpl-1011', tep: 'apps/etp2/src/components/etp-tong2.tsx', co: 'rong="Bố cục tự sửa"', cam: 'rong="Bố cục đang dùng"', vi: 'ô Template ghi tên bố cục đang hiện, không ghi chung chung (anh 10/11/2026)' },
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'BO_LOC.every(([kk, f]) => kk === k || f(c))', vi: 'mỗi widget breakdown tách trên tập camp qua mọi ô lọc TRỪ ô của chính nó' },
   { card: 'mo-1011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if _ts: ls[-1]["mo"] = _ts_mo(cid)', vi: 'thẻ tăng bị Siết TS chặn mang mốc sớm nhất thôi chặn (anh 10/11/2026 "show thời gian sẽ áp dụng sau bao lâu")' },
-  { card: 'mo-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'theT.find((x) => x.mo && x.dk.every(', vi: 'chip luật tăng hiện ⏳ mốc sớm nhất của máy khi TS chặn' },
+  { card: 'mo-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'gioThe(t.the, hoan, t.don)', vi: 'chip luật hiện ⏳ giờ máy làm — cùng hàm gioThe với bảng xét' },
+  { card: 'mo-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: '{deXuat ? null : <GioThe l={l} don={!!don} />}', vi: 'MỌI thẻ Đạt / Gần có giờ áp dụng ở ô tên luật (anh 10/11/2026 "gắn thời gian vào đây" · "các luật khác thấy chạm đéo hiện à")' },
   { card: 'mo-1011', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "interval '90 minutes'", cam: "from etp.xet_luat where luc > now() - interval '30 minutes'", vi: 'thẻ máy giữ 90 phút: nhịp máy luật dài không làm trang tự tính trái máy' },
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "(c) => (c.ban || c.giong ? [", vi: 'loại creative có dòng con theo biến thể (PO.1, ATT.KD…)' },
 ];
@@ -38,5 +39,8 @@ for (const l of LUAT) {
   if (l.co && !s.includes(l.co)) loi.push(`#${l.card} ${l.vi} — mất: ${l.co}`);
   if (l.cam && s.includes(l.cam)) loi.push(`#${l.card} ${l.vi} — dạng cũ quay lại: ${l.cam}`);
 }
+// SỔ LUẬT HAI BẢN (audit 10/11/2026: máy luật đọc apps/web, etp2 đọc bản chép — nap_chi 0.4 vs 0.5 lệch cả buổi, trang ghi cổng 50% trong khi máy dùng 40%)
+if (readFileSync(join(GOC, 'apps/etp2/src/lib/etp-bang-luat.json'), 'utf8') !== readFileSync(join(GOC, 'apps/web/src/lib/etp-bang-luat.json'), 'utf8'))
+  loi.push('sổ luật etp2 lệch sổ máy luật — chép lại: cp apps/web/src/lib/etp-bang-luat.json apps/etp2/src/lib/etp-bang-luat.json');
 if (loi.length) { console.error(`✗ góp ý etp2 bị quay về bản cũ (${loi.length}):\n${loi.join('\n')}`); process.exit(1); }
 console.log(`✓ kiem-gop-y etp2: ${LUAT.length} điều kiện giữ nguyên`);

@@ -4,6 +4,10 @@
 //   { card: <id>, tep: <tệp từ gốc repo>, mot | co | cam: '<chuỗi>', vi: '<anh muốn gì>' }   mot = đúng 1 lần · co = phải có · cam = không được có
 export const V = 'apps/web/src/components/etp-view.tsx';
 export const LUAT = [
+  { card: 'hover-ngang-1011', tep: 'apps/web/src/components/etp-view.tsx', cam: "<td style={{ ...o, minWidth: 190 }}>{ten}</td>", vi: 'bảng xét luật trong hover không ép cột Điều kiện rộng tối thiểu — hết cuộn ngang (anh 10/11/2026)' },
+  { card: 'hover-ngang-1011', tep: 'apps/web/src/components/etp-view.tsx', co: "<td style={{ ...o, overflowWrap: 'anywhere' }}>{ten}</td>", vi: 'điều kiện / giá trị / ngưỡng tự xuống dòng trong hover' },
+  { card: 'hover-ngang-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "<td style={{ ...o, overflowWrap: 'anywhere' }}>{ten}</td>", vi: 'etp2: cùng bảng hover không cuộn ngang' },
+  { card: 'hover-bac-1011', tep: 'apps/web/src/components/etp-view.tsx', co: "<b style={{ fontSize: 12 }}>Lịch sử đổi bậc · 30 ngày</b><DongBac ls={lsBac} />", vi: 'hover luật camp có lịch sử đổi bậc (anh 10/11/2026)' },
   // 09–10/11/2026 phiên Dol / ROAS / lệnh lỗi — chặn quay về
   { card: 'tu-choi-han-0911', tep: 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', co: 'if dong_bo_luc(a) < cho["luc"] + CHO_PHUT * 60: return {**kq, "ok": True, "viec": "cho_meta_duyet"}', vi: 'chờ Meta duyệt lại có hạn — Ethopex đọc lại vẫn bị từ chối thì thay tiếp (anh 09/11/2026)' },
   { card: 'tu-choi-han-0911', tep: 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', cam: 'khoa("ethopex_thay_cho_duyet").get(str(camp)) == cu', vi: 'không quay lại sổ chờ không giờ' },

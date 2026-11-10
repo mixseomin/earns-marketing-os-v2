@@ -396,9 +396,9 @@ function BangXet({ xet, gon, deXuat }: { xet: XetLuat[]; gon?: boolean; deXuat?:
     // khung cuộn ngang: ngăn điện thoại hẹp hơn bảng (cột điều kiện không gãy dòng) — trước bảng tràn mép phải, mất cột Giá trị / Ngưỡng
     <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
     <style>{'.bx-khoi>tr>td{background:color-mix(in srgb,var(--bx) var(--bx-a),transparent);transition:background .12s}.bx-khoi:hover>tr>td{background:color-mix(in srgb,var(--bx) 10%,transparent)}'}</style>
-    // BẢNG CO VỪA KHUNG (anh 10/11/2026 "vẫn cứ phải scroll sang ngang"): bảng 1057px trong khung 718px → mất cột Giá trị / Ngưỡng. Cột theo tỷ lệ, chữ tự xuống dòng
-    <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11.5, tableLayout: 'fixed', fontVariantNumeric: 'tabular-nums' }}>
-      {gon ? null : <colgroup><col style={{ width: '21%' }} /><col style={{ width: '37%' }} /><col style={{ width: '18%' }} /><col style={{ width: '20%' }} /><col style={{ width: '4%' }} /></colgroup>}
+    // RỘNG THEO NỘI DUNG nhưng KHÔNG VƯỢT KHUNG (#1487 + anh 10/11/2026 "vẫn cứ phải scroll sang ngang": bảng 1057px trong khung 718px vì chữ bị ép không xuống
+    // dòng + độ rộng tối thiểu cột) — bỏ nowrap / minWidth, bảng tối đa 100% khung, chữ dài tự xuống dòng
+    <table style={{ borderCollapse: 'collapse', width: gon ? '100%' : 'auto', fontSize: 11.5, maxWidth: '100%', tableLayout: gon ? 'fixed' : undefined, fontVariantNumeric: 'tabular-nums' }}>
       {gon ? null : <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}><th style={o}>Luật</th><th style={o}>Điều kiện</th><th style={{ ...o, textAlign: 'right' }}>Giá trị</th><th style={o}>Ngưỡng</th><th style={o} /></tr></thead>}
       {(() => { const ve = (l: XetLuat, vi: number) => { const [kt, km] = KET_XET[l.ket]; const mo = l.ket === 'xa' || l.ket === 'khong_ap'; const n = Math.max(1, l.dk.length);
         const dau = <td rowSpan={n} title={l.mo_ta} style={{ ...o, cursor: 'help', overflowWrap: 'anywhere', opacity: mo ? 0.6 : 1 }}>
@@ -515,7 +515,7 @@ function ChipLuat(p: VaoLuat) {
     <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
       {t.chinh ? <ChipO chinh={t.chinh} /> : <span style={{ color: 'var(--fg-3, #777)', padding: '0 6px' }}>…</span>}
       {cho ? <span style={{ fontSize: 10.5, color: KHUNG_TEN.bang[2], whiteSpace: 'nowrap' }}>⏳{cho}</span> : lucT ? <span title={`máy tăng ${chuT}`} style={{ fontSize: 10.5, color: '#4ade80', whiteSpace: 'nowrap' }}>⏳{conLai(new Date(lucT).toISOString())}</span> : null}
-      {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={R} cao={t.xet ? 520 : 300} noi={noi}><div style={{ width: R   /* khung cố định, bảng luật co theo khung (10/11/2026) — bỏ max-content để bảng không nở quá khung */, maxHeight: 520, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
+      {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={R} cao={t.xet ? 520 : 300} noi={noi}><div style={{ ...(t.xet ? { width: 'max-content', minWidth: 340, maxWidth: R } : { width: R }), maxHeight: 520, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
         {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
           <span title={p.c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.ten ?? p.c.phim} · ${p.c.ngan_sach}</span></div>

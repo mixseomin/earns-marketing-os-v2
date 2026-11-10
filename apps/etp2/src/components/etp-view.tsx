@@ -79,11 +79,14 @@ const Roi = ({ s }: { s: SoTien }) => <RoiSo r={roiOf(s)} />;
 // BREAKDOWN THEO Ô LỌC (anh 10/11/2026 Tổng quan 2: "thêm 1 bố cục là breakdown theo từng loại trong bộ filter"): mỗi giá trị của một ô lọc = MỘT dòng —
 // tên · số camp · thanh chi (so với dòng chi nhiều nhất) · lãi · ROI theo kỳ đang chọn. Nhóm dựng trong EtpView bằng đúng hàm phân loại của ô lọc đó.
 type NhomTach = { nhan: React.ReactNode; ten: string; cs: CampEtpKho[]; /** khoá xếp riêng (A/B: mã lần) — có thì không xếp theo chi */ xep?: string; con?: NhomTach[] };
+// TIÊU ĐỀ CỘT NẰM CÙNG HÀNG TÊN WIDGET (anh 10/11/2026 "dồn lên thành 1 hàng cho gọn"): Tong2 đặt DAU_TACH vào ô phải đầu Panel — đầu Panel không cuộn nên tiêu đề luôn đứng yên
+const COT_TACH = '30px 50px 84px 44px';
+const DAU_TACH = <div style={{ display: 'grid', gridTemplateColumns: COT_TACH, gap: 6, fontSize: 10, fontWeight: 400, color: 'var(--fg-3, #777)' }}><span style={{ textAlign: 'right' }}>camp</span><span>chi</span><span style={{ textAlign: 'right' }}>lãi</span><span style={{ textAlign: 'right' }}>ROI</span></div>;
 const tongTach = (cs: CampEtpKho[], so: (c: CampEtpKho) => SoTien) => cs.reduce<SoTien>((a, c) => { const x = so(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 });
 function BangTach({ ds, so }: { ds: NhomTach[]; so: (c: CampEtpKho) => SoTien }) {
   const xep = (g: NhomTach[]) => g.filter((x) => x.cs.length).map((x) => ({ ...x, s: tongTach(x.cs, so) }))
     .sort((a, b) => (a.xep != null || b.xep != null ? (a.xep ?? '￿').localeCompare(b.xep ?? '￿') : b.s.chi - a.s.chi || b.cs.length - a.cs.length));
-  const hang = xep(ds), max = Math.max(1, ...hang.map((h) => h.s.chi)), luoi = 'minmax(0,1fr) 30px 50px 84px 44px';   // cột lãi kiểu kế toán (KeToan: $ mép trái, số mép phải, âm trong ngoặc — anh 10/11/2026)
+  const hang = xep(ds), max = Math.max(1, ...hang.map((h) => h.s.chi)), luoi = `minmax(0,1fr) ${COT_TACH}`;   // cột lãi kiểu kế toán (KeToan: $ mép trái, số mép phải, âm trong ngoặc — anh 10/11/2026)
   if (!hang.length) return <div style={{ color: 'var(--fg-2)', fontSize: 12 }}>Không có camp nào trong bộ lọc đang chọn.</div>;
   const dong = (h: ReturnType<typeof xep>[number], i: number, con: boolean) => <div key={`${con ? 'c' : 'p'}${i}-${h.ten}`} title={`${h.ten} · ${h.cs.length} camp · chi $${h.s.chi.toFixed(2)} · thu $${h.s.thu.toFixed(2)}`}
     style={{ display: 'grid', gridTemplateColumns: luoi, gap: 6, alignItems: 'center', padding: con ? '1px 0' : '3px 0', borderTop: con ? undefined : '1px solid var(--line)', fontSize: con ? 11 : 12, color: con ? 'var(--fg-2)' : undefined }}>
@@ -92,8 +95,6 @@ function BangTach({ ds, so }: { ds: NhomTach[]; so: (c: CampEtpKho) => SoTien })
     <span style={{ height: con ? 4 : 6, borderRadius: 3, background: 'var(--bg-3, #161b25)', position: 'relative', overflow: 'hidden' }}><span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(h.s.chi / max) * 100}%`, background: con ? '#60a5fa99' : '#60a5fa', borderRadius: 3 }} /></span>
     <span style={{ display: 'flex' }}><KeToan v={h.s.thu - h.s.chi} mau={mauLai(h.s.thu - h.s.chi)} /></span><span style={{ textAlign: 'right' }}><Roi s={h.s} /></span></div>;
   return <div style={{ display: 'flex', flexDirection: 'column', fontSize: 12, height: '100%', overflowY: 'auto' }}>
-    {/* tiêu đề cột DÍNH khi cuộn trong widget (anh 10/11/2026 "các table bên trong phải sticky header nếu cuộn xuống") — khung cuộn là chính khối này (overflowY auto) */}
-    <div style={{ display: 'grid', gridTemplateColumns: luoi, gap: 6, fontSize: 10, color: 'var(--fg-3, #777)', padding: '0 0 3px', position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-1, #0b0e14)', borderBottom: '1px solid var(--line)' }}><span /><span style={{ textAlign: 'right' }}>camp</span><span>chi</span><span style={{ textAlign: 'right' }}>lãi</span><span style={{ textAlign: 'right' }}>ROI</span></div>
     {hang.map((h, i) => <Fragment key={i}>{dong(h, i, false)}{(h.con && (h.con.length > 1 || h.con[0]?.ten !== h.ten) ? xep(h.con) : []).map((c, j) => dong(c, j, true))}</Fragment>)}
   </div>;
 }
@@ -3055,7 +3056,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
           {bangNgay}
         </div>
       ) : tab === 'tong2' ? (
-        <Tong2 laChu={!chiXem} ky={khK} ve={{ bieu_do_ngay: (k) => bieuDoNgay(k.cao), bang_ngay: () => bangNgay, ...veTach }} />
+        <Tong2 laChu={!chiXem} ky={khK} ve={{ bieu_do_ngay: (k) => bieuDoNgay(k.cao), bang_ngay: () => bangNgay, ...veTach }} dau={Object.fromEntries(Object.keys(veTach).map((k) => [k, DAU_TACH]))} />
       ) : tab === 'roas' ? (
         <TabRoas camps={campRoas} tong={roasTong} ungVien={du.roas} cot={cotCamp.filter((k) => k.key !== 'lich' && k.key !== 'tl')} nhom={NHOM} du={du} anh={anh} />
       ) : tab === 'camp' && xemCamp === 'lich' ? (

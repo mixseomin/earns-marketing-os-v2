@@ -15,7 +15,7 @@ export type VeWidget = (k: { rong: number; cao: number }) => ReactNode;
 const GAP = 8, DAU = 26, PAD = 8;   // khe giữa ô · cao dòng tên widget · đệm trong ô
 const nut: React.CSSProperties = { fontSize: 12, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer' };
 
-export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>; laChu: boolean; ky: { tu: string; den: string } }) {
+export function Tong2({ ve: veNgoai, laChu, ky, dau }: { ve: Record<string, VeWidget>; laChu: boolean; ky: { tu: string; den: string }; /** nội dung ô phải dòng tên widget (vd tiêu đề cột của widget breakdown) */ dau?: Record<string, ReactNode> }) {
   const ve = { ...useVeSo(ky), ...veNgoai };   // widget số (etp-tong2-widget.tsx) + widget dùng lại khối của EtpView
   const [doc, setDoc] = useState<BoCucDoc | null>(null);
   const [o, setO] = useState<O[]>(MAC_DINH);
@@ -101,7 +101,7 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
             onChange={(k) => { setMot(k); history.replaceState(null, '', urlW(k)); }} />
         </div>
         <div ref={hop} style={{ height: kt.h, overflow: 'hidden' }}>
-          {chon ? <Panel pad={PAD} title={WIDGET[chon.ma]?.ten} style={{ height: kt.h, marginBottom: 0, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+          {chon ? <Panel pad={PAD} title={WIDGET[chon.ma]?.ten} actions={dau?.[chon.ma]} style={{ height: kt.h, marginBottom: 0, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
             <div style={{ flex: 1, minHeight: 0, marginTop: -6, overflowY: 'auto', overflowX: 'hidden' }}>{v ? v({ rong: kt.w - PAD * 2 - 2, cao: kt.h - DAU - PAD * 2 }) : null}</div>
           </Panel> : null}
         </div>
@@ -134,7 +134,7 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
               // viền viết ĐỦ shorthand, không ghi đè borderColor (anh 01/11/2026 etp #1501: React gỡ borderColor khi thôi sửa / hết đỏ thì xoá luôn phần border của Panel → viền rơi về màu chữ, trắng gắt)
               border: `1px solid ${ra ? '#f87171' : sua ? 'var(--accent)' : 'var(--line)'}`, transition: keo ? 'none' : 'left .15s, top .15s, width .15s, height .15s' }}
               title={<span onPointerDown={(e) => batDau(e, x, 'doi')} title={WIDGET[x.ma]?.mo_ta} style={{ fontSize: 12, cursor: sua ? 'move' : 'default', userSelect: 'none', touchAction: sua ? 'none' : undefined }}>{sua ? '⠿ ' : ''}{WIDGET[x.ma]?.ten ?? x.ma}</span>}
-              actions={sua ? <button type="button" onClick={() => ghi(o.filter((y) => y.ma !== x.ma))} title="bỏ widget này" style={{ border: 0, background: 'none', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 12, padding: 0 }}>✕</button> : undefined}>
+              actions={sua ? <button type="button" onClick={() => ghi(o.filter((y) => y.ma !== x.ma))} title="bỏ widget này" style={{ border: 0, background: 'none', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 12, padding: 0 }}>✕</button> : dau?.[x.ma]}>
               <div style={{ flex: 1, minHeight: 0, marginTop: -6, overflowY: 'auto', overflowX: 'hidden', pointerEvents: sua ? 'none' : undefined, opacity: sua ? 0.55 : 1 }}>
                 {v ? v({ rong: Math.max(0, w - PAD * 2 - 2), cao: Math.max(0, h - DAU - PAD * 2) }) : <span style={{ color: '#f87171', fontSize: 12 }}>widget {x.ma} chưa có hàm vẽ</span>}
               </div>

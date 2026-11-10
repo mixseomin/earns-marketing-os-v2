@@ -5,10 +5,10 @@
 // tập đã làm / chờ đăng / đã đăng, người đăng ký, lượt xem cộng dồn + 7 ngày. ▸ mở CÂY video của kênh ngay dưới dòng (chặng + ngày đăng + lượt xem từng video).
 // Số từ lib/tai-san/kenh-sp.ts.
 import { useShallowParam } from '@/lib/url-shallow';
-import { DataTable, Panel, type DataColumn } from '@/components/ui';
+import { DataTable, Pager, Panel, type DataColumn } from '@/components/ui';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { DongHo, nutTuanTu } from '@/components/ui/dong-ho';
-import { cayHangCho, cayKeHoach, laDemo, cayLoTrinh, cayMau, cayNguoi, caySoKenh, cayPlaylist, cayPlaylistThat, lichKenh, locGap, thongKeMau, tomLoTrinh, COT_MAU, type DongKe, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
+import { cayHangCho, cayKeHoach, laDemo, cayLoTrinh, cayMau, cayNguoi, caySoKenh, cayPlaylist, cayPlaylistThat, lichKenh, locGap, phanTrangNhom, thongKeMau, tomLoTrinh, COT_MAU, type DongKe, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
 import { CHANG_VIDEO as CHANG, KenhNgan, useNganKenh } from './kenh-ngan';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -26,10 +26,14 @@ const THUT_NHOM = 22, THUT_MUC = 44;
 const REPO = 'https://github.com/mixseomin/earns-marketing-os-v2/blob/main';
 
 type Dong = { loai: 'kenh'; k: KenhSp } | { loai: 'video'; k: KenhSp; v: VideoKenh }
+  /** thanh trang của một khối dài (phanTrangNhom) — khoa = <mã kênh>:<khối> */
+  | { loai: 'trang'; k: KenhSp; khoa: string; trang: number; soTrang: number; tong: number }
   /** dòng KẾ HOẠCH trong cây: nhóm (tiêu đề nhóm) hoặc một mục lịch (sản xuất / đăng) */
   | ({ loai: 'ke'; k: KenhSp; ngay?: string | null } & DongKe);
 /** ô số của bảng thống kê mẫu: cột cố định, thẳng hàng giữa dòng nhóm (tên cột) và từng mẫu */
 const O_RONG = 74, O_CHU = 760;
+/** số dòng con mỗi trang của một khối trong cây (Hàng chờ ý tưởng 408 mục, Đã làm, Lá số…) */
+const CO_TRANG = 20;
 /** CÂY của một kênh: 📘 Sổ kênh + 🧩 Mẫu + 💡 Hàng chờ + 🧭 Lộ trình + 📂 Playlist (so-kenh.json, nếu kênh có khai) + ▶ Đang sản xuất + 🗓 Lịch (cayKeHoach — thuần, tự kiểm) rồi 🎬 Đã làm (chặng từng video).
  *  Lịch tháng vẫn ở LỊCH NHỎ trong menu ⋯. */
 function cayKenh(k: KenhSp): Dong[] {
@@ -54,17 +58,25 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   const [gapUrl, datGapUrl] = useShallowParam('kenh_gap', '');
   const gap = new Set(gapUrl.split(',').filter(Boolean));
   const doiGap = (khoa: string) => { const n = new Set(gap); if (n.has(khoa)) n.delete(khoa); else n.add(khoa); datGapUrl([...n].join(',')); };
+  // TRANG của từng khối dài (mỗi trang CO_TRANG dòng), nhớ trên URL: ?kenh_trang=<mã>:<khối>:<trang từ 1>,…
+  const [trangUrl, datTrangUrl] = useShallowParam('kenh_trang', '');
+  const trangCua = new Map(trangUrl.split(',').filter(Boolean).map((x) => { const i = x.lastIndexOf(':'); return [x.slice(0, i), Math.max(0, Number(x.slice(i + 1)) - 1 || 0)] as const; }));
+  const datTrang = (khoa: string, t: number) => { const n = new Map(trangCua); if (t > 0) n.set(khoa, t); else n.delete(khoa); datTrangUrl([...n].map(([k, v]) => `${k}:${v + 1}`).join(',')); };
   const ngan = useNganKenh();
   if (!kenh.length) return null;
   const doi = (ma: string) => { const n = new Set(moCay); if (n.has(ma)) n.delete(ma); else n.add(ma); datMoUrl([...n].join(',')); };
   const dong: Dong[] = kenh.flatMap((k) => [{ loai: 'kenh' as const, k },
-    ...(moCay.has(k.ma) ? locGap(cayKenh(k), (d) => (d.loai === 'ke' && d.nhom ? `${k.ma}:${d.id}` : null), gap) : [])]);
+    ...(moCay.has(k.ma) ? (() => { const nhom = (d: Dong) => (d.loai === 'ke' && d.nhom ? `${k.ma}:${d.id}` : null);
+      return phanTrangNhom(locGap(cayKenh(k), nhom, gap), nhom, (kh) => trangCua.get(kh) ?? 0, CO_TRANG, (khoa, trang, soTrang, tong): Dong => ({ loai: 'trang', k, khoa, trang, soTrang, tong })); })() : [])]);
   const laK = (d: Dong): d is Extract<Dong, { loai: 'kenh' }> => d.loai === 'kenh';
   const vd = (d: Dong): VideoKenh | null => (d.loai === 'video' ? d.v : null);
   const chiKenh = <R,>(f: (k: KenhSp) => R) => (d: Dong) => (laK(d) ? f(d.k) : null);
   const cot: DataColumn<Dong>[] = [
     { key: 'kenh', header: 'Kênh', align: 'left', width: 320, sortValue: (d) => d.k.ten,
       cell: (d) => {
+        // Pager chung tự canh phải + lề trên 12 — bọc khung co theo nội dung, kéo lên lại để thanh trang nằm gọn trong dòng, canh dưới chữ của khối
+        if (d.loai === 'trang') return <span style={{ display: 'inline-block', marginLeft: THUT_MUC, marginTop: -12 }}>
+          <Pager page={d.trang} pageCount={d.soTrang} total={d.tong} pageSize={CO_TRANG} onPage={(t) => datTrang(d.khoa, t)} /></span>;
         if (d.loai === 'ke') return <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: d.nhom ? THUT_NHOM : THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0, whiteSpace: 'nowrap' }}>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, ...(d.o ? { width: O_CHU - (d.nhom ? THUT_NHOM : THUT_MUC), flex: 'none', overflow: 'hidden' } : { flex: 1 }) }}>
           {!d.nhom && <span style={{ color: 'var(--fg-4)' }}>└</span>}
@@ -126,8 +138,8 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   ];
   return (
     <Panel title="📺 Kênh nội dung" subtitle={'kênh nội dung là sản phẩm (video trọn chuyện) · ▸ mở: đang sản xuất · lịch · đã làm · "–" = chưa đo (khác 0) · số đọc mỗi giờ từ trang YouTube công khai'}>
-      <DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
-        fullRow={(d) => d.loai === 'ke'}
+      <DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : d.loai === 'trang' ? `${d.khoa}/trang` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
+        fullRow={(d) => d.loai === 'ke' || d.loai === 'trang'}
         minWidth={320 + 260 + 64 + 84 + 76 + 116 + 88 + 96 + 96 + 84 + 72} card />
       <KenhNgan kenh={kenh} />
     </Panel>

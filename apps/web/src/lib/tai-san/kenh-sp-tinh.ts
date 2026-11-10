@@ -261,6 +261,18 @@ export function locGap<T>(rows: T[], khoaNhom: (r: T) => string | null, gap: Rea
   return rows.filter((r) => { const k = khoaNhom(r); if (k != null) { dangGap = gap.has(k); return true; } return !dangGap; });
 }
 
+/** PHÂN TRANG TỪNG KHỐI trong cây (anh 10/11/2026: "Hàng chờ ý tưởng (408) … phải có phân trang chứ ko đc show full"): khối có hơn `co` dòng con
+ *  chỉ hiện trang đang chọn (trang(k), đếm từ 0, tự kẹp vào khoảng) + một dòng thanh trang `taoTrang` ngay sau trang đó. Chạy SAU locGap (khối gập thì không có con). Thuần. */
+export function phanTrangNhom<T>(rows: T[], khoaNhom: (r: T) => string | null, trang: (k: string) => number, co: number,
+  taoTrang: (k: string, trang: number, soTrang: number, tong: number) => T): T[] {
+  const ra: T[] = []; let k: string | null = null, con: T[] = [];
+  const xa = () => { if (k == null) { ra.push(...con); return; } const tong = con.length, soTrang = Math.max(1, Math.ceil(tong / co));
+    if (soTrang <= 1) { ra.push(...con); return; }
+    const t = Math.min(Math.max(0, trang(k)), soTrang - 1); ra.push(...con.slice(t * co, t * co + co), taoTrang(k, t, soTrang, tong)); };
+  for (const r of rows) { const kn = khoaNhom(r); if (kn != null) { xa(); ra.push(r); k = kn; con = []; } else con.push(r); }
+  xa(); return ra;
+}
+
 /** PLAYLIST THẬT (kenh.json › playlist — cùng luật với apps/xuong-video/scripts/lich-su/playlist.mjs): lịch làm tập + số tập / đã đăng / lượt xem từng playlist. */
 export type PlaylistHs = { ma: string; ten: string; tien_to?: string; lich_tap?: number[]; gio_tap?: string; trang_dich?: string; yt?: Record<string, string> };
 export type HoSoKenhLich = { lich_tap?: number[]; gio_tap?: string; playlist?: PlaylistHs[] };

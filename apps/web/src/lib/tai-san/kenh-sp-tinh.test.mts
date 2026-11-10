@@ -70,7 +70,7 @@ import { tomLoTrinh, cayLoTrinh } from './kenh-sp-tinh';
   assert.strictEqual(c[2]!.phu, 'tầng playlist');                 // anh "không" → không thêm đuôi
   assert.strictEqual(c[3]!.phu, 'logo · anh: duyệt ảnh');
   assert.strictEqual(tomLoTrinh({ giai_doan: [{ ma: 'G0', ten: 'x', viec: '', anh: '', trang_thai: 'xong' }] }).chu, '🧭 xong lộ trình'); }
-import { cayPlaylist, locGap } from './kenh-sp-tinh';
+import { cayPlaylist, locGap, phanTrangNhom } from './kenh-sp-tinh';
 { const c = cayPlaylist({ giai_doan: [], playlist: [
     { ma: 'b', ten: 'Sau', trang_thai: 'sau', khi: 'G10' },
     { ma: 'a', ten: 'Đầu', trang_thai: 'de_xuat', mo_dau: true, ho_hinh: 'engraving', ngay: 'Thứ 2', trang_dich: 'ZR' }] });
@@ -79,6 +79,12 @@ import { cayPlaylist, locGap } from './kenh-sp-tinh';
   assert.deepStrictEqual(cayPlaylist({ giai_doan: [] }), []);
   const r = ['A', 'a1', 'a2', 'B', 'b1', 'C', 'c1'];
   assert.deepStrictEqual(locGap(r, (x) => (x === x.toUpperCase() ? x : null), new Set(['A', 'C'])), ['A', 'B', 'b1', 'C']); }
+{ // phân trang từng khối: khối > co dòng con chỉ hiện trang đang chọn + dòng thanh trang; khối nhỏ giữ nguyên; trang vượt khoảng tự kẹp
+  const r = ['A', 'a1', 'a2', 'a3', 'a4', 'a5', 'B', 'b1'], nhom = (x: string) => (x === x.toUpperCase() ? x : null), tao = (k: string, t: number, n: number, tong: number) => `#${k}:${t + 1}/${n}:${tong}`;
+  assert.deepStrictEqual(phanTrangNhom(r, nhom, () => 0, 2, tao), ['A', 'a1', 'a2', '#A:1/3:5', 'B', 'b1']);
+  assert.deepStrictEqual(phanTrangNhom(r, nhom, (k) => (k === 'A' ? 2 : 0), 2, tao), ['A', 'a5', '#A:3/3:5', 'B', 'b1']);
+  assert.deepStrictEqual(phanTrangNhom(r, nhom, () => 99, 2, tao), ['A', 'a5', '#A:3/3:5', 'B', 'b1']);
+  assert.deepStrictEqual(phanTrangNhom(r, nhom, () => 0, 10, tao), r); }
 import { lichKenhHs, soTheoPlaylist, cayPlaylistThat } from './kenh-sp-tinh';
 { // 02/11/2026 Thứ Hai 12:00 — kênh một playlist giữ đúng chữ lịch cũ; hai playlist ghi tên + gộp lượt kế
   const h1 = { gio_tap: '09:30', playlist: [{ ma: 'full-stories', ten: 'Full Stories', lich_tap: [1, 3, 5] }] };

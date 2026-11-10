@@ -53,22 +53,24 @@ async function spCua(ma: string) {
   return sp;
 }
 
-/** Video YouTube nhiều lượt xem theo các cụm tìm (yt-dlp trên box3, không cần khoá API). Đệm 3 ngày theo khoá nhóm. Trả [{ id, title, views }] ≥ 300.000 lượt, nhiều trước. */
+/** Video YouTube nhiều lượt xem theo các cụm tìm (yt-dlp trên box3, không cần khoá API). Đệm 3 ngày theo khoá nhóm. Trả [{ id, title, views }] ≥ 300.000 lượt (ngách hẹp hạ 100.000 / 50.000), nhiều trước. */
 async function hookYoutube(khoa: string, cum: string[]): Promise<{ id: string; title: string; views: number }[]> {
-  const fs = await import('node:fs'), { execFileSync } = await import('node:child_process'), dir = `${process.env.HOME}/.cache/hook-yt-2`, tep = `${dir}/${khoa}.json`;
+  const fs = await import('node:fs'), { execFileSync } = await import('node:child_process'), dir = `${process.env.HOME}/.cache/hook-yt-3`, tep = `${dir}/${khoa}.json`;
   try { const c = JSON.parse(fs.readFileSync(tep, 'utf8')); if (Date.now() - c.luc < 3 * 86_400_000 && c.ds?.length) return c.ds; } catch { /* chưa có đệm */ }
   const ra = new Map<string, { id: string; title: string; views: number }>();
   // tìm cả biến thể câu hỏi của cụm ("why … ") — tiêu đề nhiều lượt xem nhất thường là NHÃN chủ đề ("WW1 - Oversimplified"), Ngọc loại 39/40 vì nhạt (02/11/2026)
   for (const q of cum.slice(0, 6).flatMap((c) => [c, `why ${c}`])) {
     try {
       const j = JSON.parse(execFileSync('yt-dlp', ['--flat-playlist', '-J', `ytsearch40:${q}`], { encoding: 'utf8', timeout: 90_000, maxBuffer: 32 << 20 }));
-      for (const e of j.entries ?? []) if (e.id && e.title && Number(e.view_count) >= 300_000) ra.set(e.id, { id: e.id, title: e.title, views: Number(e.view_count) });
+      for (const e of j.entries ?? []) if (e.id && e.title && Number(e.view_count) >= 50_000) ra.set(e.id, { id: e.id, title: e.title, views: Number(e.view_count) });
     } catch (e) { console.error(`· hook YouTube "${q}": ${String((e as Error).message).split('\n')[0].slice(0, 120)}`); }
   }
   // chỉ giữ tiêu đề có HÌNH DẠNG HOOK (câu hỏi / mở bằng why-how-what-the day… / so sánh nhất / con số gây tò mò), bỏ nhãn chủ đề + tên series ("|", "(Part n)", #thẻ)
   const hinhHook = (t: string) => !/\s[|]\s|\(part \d|#\w|oversimplified/i.test(t) && (/\?$/.test(t.trim()) || /^(why|how|what|when|where|who|the (day|man|woman|time|year|night)|this|imagine|nobody|no one|you|they)\b/i.test(t.trim())
     || /\b(worst|strangest|weirdest|craziest|deadliest|dumbest|most|never|only|secret|forgotten|real reason)\b/i.test(t));
-  const ds = [...ra.values()].filter((v) => hinhHook(v.title)).sort((a, b) => b.views - a.views);
+  // NGÁCH HẸP (anh duyệt 10/11/2026, militarycalc: mức 300.000 chỉ ra 1 câu): mức chuẩn 300.000; dưới 5 câu đạt thì hạ dần 100.000 → 50.000, nhiều lượt xem vẫn đứng trước
+  const hinh = [...ra.values()].filter((v) => hinhHook(v.title)).sort((a, b) => b.views - a.views);
+  const ds = [300_000, 100_000, 50_000].map((m) => hinh.filter((v) => v.views >= m)).find((x) => x.length >= 5) ?? hinh;
   if (ds.length) { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(tep, JSON.stringify({ luc: Date.now(), ds })); }
   return ds;
 }
@@ -272,14 +274,18 @@ if (a.includes('--nap')) {
     const gocId = Number((v.dang as { goc?: { id?: number } } | null)?.goc?.id ?? 0);
     const g = gocs.find((x) => x.id === gocId) ?? gocs[0]; if (!g) { ra.push(`✗ ${v.slug}: nhóm spy không còn góc`); continue; }
     const hk = hooksCho(g, n); if (!hk.length) { ra.push(`· hết hook QC chưa dùng — dừng lượt (${ds.length - n} bài còn chờ)`); break; }
-    const kq = await sinhDe({ sp, goc: g, dang_bai: v.mau ?? 'so-sanh', daDung, hooks: hk }); vnd += kq.vnd;
+    // dang_bai = DẠNG (lam-tuong, vat-lac-loai…), KHÔNG phải MẪU (lat-dap-an, lac-loai…): v.mau là mẫu dựng nên sinhDe báo "chưa có mẫu sinh đề" (10/11/2026, 10/11 bài esimfares kẹt).
+    const { MAU_CUA_DANG } = await import('../src/lib/xuong-video/may-de');
+    const dangCu = String((v.dang as { dang_bai?: string } | null)?.dang_bai ?? '') || Object.keys(MAU_CUA_DANG).find((k) => v.slug.startsWith(`${k}-`)) || (v.mau && v.mau in MAU_CUA_DANG ? v.mau : '') || 'so-sanh';
+    const kq = await sinhDe({ sp, goc: g, dang_bai: dangCu, daDung, hooks: hk }); vnd += kq.vnd;
     if (!kq.ok) { ra.push(`✗ ${v.slug}: ${kq.loi}`); if (/TỐN TIỀN/.test(kq.loi)) break; continue; }
     (kq.de.dang as Record<string, unknown>).lam_lai = lan + 1;
     await napVideo(db, ma, [kq.de]); daDung.push(kq.de.dang.title ?? ''); const hq = (kq.de.dang as { hook?: { qc?: string } }).hook?.qc; if (hq) hookDaDung.add(hq);
     const moi = ((await db.execute(sql`SELECT id FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${kq.de.slug}`)) as unknown as { id: number }[])[0];
     const x = moi ? await xuatVideo(db, Number(moi.id)) : { ok: false as const, loi: 'không thấy dòng vừa nạp' };
     if (!x.ok) { ra.push(`⚠ ${v.slug} → ${kq.de.slug}: dựng ✗ ${x.loi} — giữ bài cũ`); continue; }
-    await db.execute(sql`UPDATE xv_may_video SET luu_tru = true, dang = coalesce(dang, '{}'::jsonb) || jsonb_build_object('thay_bang', ${kq.de.slug}::text), updated_at = now() WHERE id = ${v.id}`);
+    // đề mới ra TRÙNG slug bài cũ (slug = dạng + góc + đầu tiêu đề) → napVideo đã ghi đè chính dòng đó thành bài mới: KHÔNG cất (10/11/2026: Khang làm lại militarycalc, bài mới bị cất nhầm)
+    if (Number(moi?.id) !== Number(v.id)) await db.execute(sql`UPDATE xv_may_video SET luu_tru = true, dang = coalesce(dang, '{}'::jsonb) || jsonb_build_object('thay_bang', ${kq.de.slug}::text), updated_at = now() WHERE id = ${v.id}`);
     ra.push(`✓ ${v.slug} → ${kq.de.slug} (lần ${lan + 1}, ${Math.round(kq.vnd)}₫) · hook: ${hk[0]?.page ?? ''}`); n++;
   }
   console.log(ra.join('\n')); console.log(`làm lại ${ma}: ${n}/${ds.length} bài, ${Math.round(vnd)}₫`);

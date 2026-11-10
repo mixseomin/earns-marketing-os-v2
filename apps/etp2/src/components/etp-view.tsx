@@ -83,14 +83,14 @@ const tongTach = (cs: CampEtpKho[], so: (c: CampEtpKho) => SoTien) => cs.reduce<
 function BangTach({ ds, so }: { ds: NhomTach[]; so: (c: CampEtpKho) => SoTien }) {
   const xep = (g: NhomTach[]) => g.filter((x) => x.cs.length).map((x) => ({ ...x, s: tongTach(x.cs, so) }))
     .sort((a, b) => (a.xep != null || b.xep != null ? (a.xep ?? '￿').localeCompare(b.xep ?? '￿') : b.s.chi - a.s.chi || b.cs.length - a.cs.length));
-  const hang = xep(ds), max = Math.max(1, ...hang.map((h) => h.s.chi)), luoi = 'minmax(0,1fr) 30px 56px 62px 44px';
+  const hang = xep(ds), max = Math.max(1, ...hang.map((h) => h.s.chi)), luoi = 'minmax(0,1fr) 30px 50px 84px 44px';   // cột lãi kiểu kế toán (KeToan: $ mép trái, số mép phải, âm trong ngoặc — anh 10/11/2026)
   if (!hang.length) return <div style={{ color: 'var(--fg-2)', fontSize: 12 }}>Không có camp nào trong bộ lọc đang chọn.</div>;
   const dong = (h: ReturnType<typeof xep>[number], i: number, con: boolean) => <div key={`${con ? 'c' : 'p'}${i}-${h.ten}`} title={`${h.ten} · ${h.cs.length} camp · chi $${h.s.chi.toFixed(2)} · thu $${h.s.thu.toFixed(2)}`}
     style={{ display: 'grid', gridTemplateColumns: luoi, gap: 6, alignItems: 'center', padding: con ? '1px 0' : '3px 0', borderTop: con ? undefined : '1px solid var(--line)', fontSize: con ? 11 : 12, color: con ? 'var(--fg-2)' : undefined }}>
     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0, paddingLeft: con ? 18 : 0 }}>{h.nhan}</span>
     <span style={{ textAlign: 'right', color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{h.cs.length}</span>
     <span style={{ height: con ? 4 : 6, borderRadius: 3, background: 'var(--bg-3, #161b25)', position: 'relative', overflow: 'hidden' }}><span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(h.s.chi / max) * 100}%`, background: con ? '#60a5fa99' : '#60a5fa', borderRadius: 3 }} /></span>
-    <span style={{ textAlign: 'right' }}><Lai s={h.s} /></span><span style={{ textAlign: 'right' }}><Roi s={h.s} /></span></div>;
+    <span style={{ display: 'flex' }}><KeToan v={h.s.thu - h.s.chi} mau={mauLai(h.s.thu - h.s.chi)} /></span><span style={{ textAlign: 'right' }}><Roi s={h.s} /></span></div>;
   return <div style={{ display: 'flex', flexDirection: 'column', fontSize: 12, height: '100%', overflowY: 'auto' }}>
     {/* tiêu đề cột DÍNH khi cuộn trong widget (anh 10/11/2026 "các table bên trong phải sticky header nếu cuộn xuống") — khung cuộn là chính khối này (overflowY auto) */}
     <div style={{ display: 'grid', gridTemplateColumns: luoi, gap: 6, fontSize: 10, color: 'var(--fg-3, #777)', padding: '0 0 3px', position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-1, #0b0e14)', borderBottom: '1px solid var(--line)' }}><span /><span style={{ textAlign: 'right' }}>camp</span><span>chi</span><span style={{ textAlign: 'right' }}>lãi</span><span style={{ textAlign: 'right' }}>ROI</span></div>

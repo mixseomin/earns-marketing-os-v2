@@ -84,6 +84,16 @@ def bao_hoa_phim(nay):
           select content_id, ten, so_camp, roi, chan_nb, bao_hoa from jsonb_to_recordset($J${j}$J$::jsonb) as x(content_id int, ten text, so_camp int, roi jsonb, chan_nb text, bao_hoa text); commit;""")
     return n
 
+# ETHOPEX CHẶN TẠO CAMP VÌ CẤU HÌNH WORKSPACE (10/11/2026: tên miền maybic.com bị tắt cho nguồn Facebook → mọi lệnh tạo / nhân bản / ROAS lỗi 400 suốt 9 giờ
+# mà chỉ thấy từng dòng lỗi lẻ): có dòng nhật ký lỗi đó trong 30 phút → báo ĐỎ một lần mỗi ngày, ghi đúng câu Ethopex + việc cần làm
+SQL_WS_CHAN = ("select count(*) || '|' || coalesce(max(substring(loi from 'workspace: ([a-z0-9.-]+)')), '?') from etp.nhat_ky "
+               "where ok is false and loi like '%is not enabled for this traffic source%' and luc > now() - interval '{khung}'")
+def ws_chan(nay, khung="30 minutes"):
+    n, mien = (q(SQL_WS_CHAN.format(khung=khung)).split("|", 1) + ["?"])[:2]
+    if int(n or 0) == 0: return 0
+    bao("ws_chan", "do", f"ws_chan:{nay}", f"Ethopex CHẶN MỌI LỆNH TẠO CAMP: tên miền {mien} chưa bật cho Facebook trong workspace ({n} lệnh lỗi trong {khung}) — nhờ Dol / admin Ethopex bật lại; bật xong máy tự chạy lại ở nhịp sau")
+    return 1
+
 def tran_phim(nay):
     """TRẦN CAMP / PHIM THEO TỪNG TÀI KHOẢN (anh 02/11/2026: "Set lại 30 cho mọi camp nhà. Và theo từng tk. Có cảnh báo nếu film nhiều camp hơn mức đó").
     Đếm camp đang chạy (nhà: etp.camp_dang_chay; team: ACTIVE), camp ROAS ★ không tính — cùng cách đếm với nhan-ban.py dem_tk."""
@@ -140,6 +150,7 @@ def main():
              f"Camp #{i} SẮP ĐỦ bid ROAS — chi ${float(chi):.0f}/${ROAS_DAT}, ROI {roi}%, ổn định ≥ 50% · ${float(ns):g}/ngày ≈ {max(1, round((ROAS_DAT - float(chi)) / max(float(ns) * 0.7, 1)))} ngày nữa — {ten[:70]}")); n += 1
     n += bao_hoa_phim(now.date())
     n += tran_phim(nay)
+    n += ws_chan(nay)
     # TÀI KHOẢN TEAM LÊN CAMP CHO PHIM ĐANG BÃO HOÀ (anh 02/11/2026: "tk team chỉ cảnh báo") — không chặn, báo mỗi tài khoản × phim một lần mỗi ngày
     for l in q(f"""select c.ad_account_id, c.content_id, count(*), coalesce(max(t.nguoi), '?'), max(b.ten), max(b.chan_nb) from etp.camp_ngoai c
                    join etp.tai_khoan t using (ad_account_id) join etp.phim_bao_hoa b using (content_id)

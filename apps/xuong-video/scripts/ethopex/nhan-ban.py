@@ -582,6 +582,9 @@ def loi_may(kq, e):
     kq.update(loi=(f"LỖI MÃ {type(e).__name__}: " if ma else "") + str(e)[:220], may=ma or isinstance(e, OSError))
     kq["loi"] = (f"LỖI MÃ {type(e).__name__}: " if ma else "") + str(e)[:1500]   # câu đủ (dòng trên giữ nguyên cho điều kiện #roas-0511)
     if getattr(e, "code", None) is not None and 400 <= int(getattr(e, "code") or 0) < 500: kq["may"] = False   # 4xx = từ chối có lý do → giữ trong ngày
+    # LỖI CẤU HÌNH WORKSPACE ETHOPEX (10/11/2026: "domain is not enabled for this traffic source" chặn MỌI lệnh tạo camp 00:20–09:43, bật lại là chạy): không phải lỗi của
+    # camp → không giữ gốc, nhịp sau tự thử lại; canh-bao.py báo đỏ Telegram một lần để người bật lại tên miền
+    if "is not enabled for this traffic source" in str(e): kq["may"] = True
 
 def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False, tay=False):   # tay truyền từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)
     """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim."""

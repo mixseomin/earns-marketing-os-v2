@@ -385,6 +385,7 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
         # mức ROAS ĐẦU tên (anh 26/10/2026 "đặt thêm chỉ số ROAS vào tên camp để kiểm tra cho tiện" — bảng Ethopex cắt mất đuôi); đuôi "roas X duplicate by <gốc>" giữ cho máy đọc
         # gốc là camp ★ ROAS (anh 06/11/2026 "duplicate camp roas chạm trần"): bỏ đầu "★ ROAS x · " + đuôi " roas x duplicate by N" của gốc, không lặp hai lần
         lo = re.sub(r"\s+roas [\d.]+ duplicate by \d+$", "", re.sub(r"^★ ROAS [\d.]+ · ", "", re.sub(r'^\d+:\s*', '', c['name'])))
+        lo = ten_sach_roas(lo)   # bỏ ghi chú nội bộ trong ngoặc (anh 10/11/2026 "sao lại có chữ Son trong đó … lên camp phải bỏ hết những thông tin kia")
         ten = f"★ ROAS {roas:g} · {lo}{f' {nhan}' if nhan else ''} roas {roas:g} duplicate by {goc_id}"   # nhan: phân biệt bản cùng mức (vd "chay ngay")   # ★ = dấu camp ROAS (anh 26/10/2026), cong.la_roas nhận theo tên
     elif moi:
         ten = moi["ten"]; a = {**a, "creative_id": moi["creative"], "content_id": moi["content"]}
@@ -585,6 +586,14 @@ def loi_may(kq, e):
     # LỖI CẤU HÌNH WORKSPACE ETHOPEX (10/11/2026: "domain is not enabled for this traffic source" chặn MỌI lệnh tạo camp 00:20–09:43, bật lại là chạy): không phải lỗi của
     # camp → không giữ gốc, nhịp sau tự thử lại; canh-bao.py báo đỏ Telegram một lần để người bật lại tên miền
     if "is not enabled for this traffic source" in str(e): kq["may"] = True
+
+def ten_sach_roas(t):
+    """TÊN CAMP ROAS SẠCH (anh 10/11/2026): bỏ mọi ghi chú nội bộ trong ngoặc của tên camp gốc — "(cr tk Son 54757)", "(thay 81599)", "(nhan ban 1 cua 65725)",
+    "(thang $X cua N)"… — chỉ giữ tên phim · dạng · đoạn. Đuôi "roas X duplicate by <gốc>" do roas_main gắn sau (máy đọc)."""
+    return re.sub(r"\s{2,}", " ", re.sub(r"\s*\([^()]*\)", "", t or "")).strip(" -·")
+assert ten_sach_roas("3010 The Dragon Lord Comes Home EN - tap nguyen ep8 (cr tk Son 54757)") == "3010 The Dragon Lord Comes Home EN - tap nguyen ep8"
+assert ten_sach_roas("dp20lt Bound to the Wrong Dragon Prince EN - canh that 267-394s (thay 81599)") == "dp20lt Bound to the Wrong Dragon Prince EN - canh that 267-394s"
+assert ten_sach_roas("2110 Number One Nobody EN - ke chuyen (nhan ban 1 cua 65725)") == "2110 Number One Nobody EN - ke chuyen"
 
 def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False, tay=False):   # tay truyền từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)
     """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim."""

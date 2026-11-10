@@ -844,6 +844,10 @@ tat_pl, tat_l3, tat_d24, tat_l, tat7, tat2, tat1, tat_t8, tat_tv, t1_cho, tu_cho
 # gốc đã có camp ★ ROAS (đọc thẳng danh sách camp Ethopex — camp vừa tạo chưa cần chờ kho) → không lên ROAS lại. Mọi kiểu tên: nhà "duplicate by <gốc>",
 # team "_D<gốc>_ROAS1" / "Dup by <gốc> ROAS 1.1" / "<tên gốc>_D2 (ROAS)" (31/10/2026: Luật tự động của Sơn — trước chỉ nhận kiểu nhà, gốc Sơn đã có ROAS vẫn vào moc30)
 _goc_roas = CONG.goc_roas(ds_camp)
+# BÀI ĐĂNG ĐÃ BỊ META TỪ CHỐI KHI LÊN ROAS (apps/etp/doc_lai_roas.py ghi, 10/11/2026: 4 camp ROAS #72910 bị "Spam") → không lên ROAS lại từ gốc đó
+try: _bai_tc = {int(k) for k in json.loads(q("select coalesce((select gia_tri::text from xv_khoa_ngoai where ten = 'ethopex_bai_roas_tu_choi'), '{}')") or "{}")}
+except Exception: _bai_tc = set()
+moc30 = [x for x in moc30 if int(x[0] or 0) not in _bai_tc]
 moc30 = [x for x in moc30 if int(x[0] or 0) not in _goc_roas]
 # ROAS TRƯỚC NHÂN BẢN (anh 02/11/2026 duyệt review luật: 7 ngày camp ROAS +18%, clone thường −7%): camp gốc đủ lên ROAS mà chưa có camp ★ → lượt này
 # chỉ lên ROAS, không nhân bản thường; có ROAS rồi mới tới lượt luật NB.

@@ -5,4 +5,5 @@ export const NHIP_MAY = { 'don-nhat-ky': { may: 'MacBook', script: '~/bin/don-nh
   'sua-bai': { may: 'iMac', script: 'apps/cty/may/long-sua-bai.mjs', launchd: 'tc.on.cty.long-sua-bai' },
   'xu-thu': { may: 'iMac', script: 'apps/cty/may/van-thu.mjs', launchd: 'tc.on.cty.van-thu' },
   'sua-may': { may: 'iMac', script: 'apps/cty/may/tho-may.mjs', launchd: 'tc.on.spy.tu-sua-may-cao' },
-  'xu-task-astrolas': { may: 'iMac', script: '~/bin/thanh/chay.mjs', launchd: 'tc.on.cty.astrolas-tasks' } };   // Spy - tự sửa máy cào (Claude trên iMac, 24/10/2026)
+  'xu-task-astrolas': { may: 'iMac', script: '~/bin/thanh/chay.mjs', launchd: 'tc.on.cty.astrolas-tasks' },
+  'sua-may-etp': { may: 'iMac', script: 'apps/cty/may/etp-sua.mjs', launchd: 'tc.on.cty.etp-sua' } };   // Huy · Ethopex tự sửa lỗi máy (anh 10/11/2026)   // Spy - tự sửa máy cào (Claude trên iMac, 24/10/2026)

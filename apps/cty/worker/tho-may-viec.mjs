@@ -10,11 +10,12 @@ import fs from 'node:fs';
 import { ghiNut, NUT_HOI } from './tg-phong.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
-const TEP = () => `${DATA()}/tho-may.json`;
+// HÀNG RIÊNG THEO NGƯỜI (anh 10/11/2026 "Phòng ETP này phải có 1 con riêng phụ trách"): THO_MAY_TEP chọn tệp hàng — Mạnh = tho-may.json (mặc định), Huy (Ethopex) = etp-sua.json
+const TEP = () => `${DATA()}/${process.env.THO_MAY_TEP || 'tho-may.json'}`;
 export const TREO_PHUT = 45;
 // kenh: = dây chuyền KÊNH NỘI DUNG (kênh lịch sử, apps/xuong-video/scripts/lich-su — anh 03/11/2026: "thế này mà cho tự chạy … không có ai sửa à?"):
 // chay-kenh.mjs xếp `kenh:<kênh>|<tập>` khi một lượt làm tập hỏng
-export const LOAI_SUA = /^(lan|box3|vps|dang|kenh|anh):/;   // khoá cảnh báo thợ máy được nhận (xetCanhBao trong tai-nguyen.mjs · soiMayDang trong cham-dang.mjs · chay-kenh.mjs)
+export const LOAI_SUA = /^(lan|box3|vps|dang|kenh|anh|etp):/;   // etp: = lỗi máy Ethopex — hàng của Huy (THO_MAY_TEP=etp-sua.json), Phát xếp mỗi nhịp   // khoá cảnh báo thợ máy được nhận (xetCanhBao trong tai-nguyen.mjs · soiMayDang trong cham-dang.mjs · chay-kenh.mjs)
 const ngayVN = (t = Date.now()) => new Date(t + 7 * 36e5).toISOString().slice(0, 10);
 
 /** Thuần — thêm việc cho các cảnh báo mới; bỏ khoá không thuộc thợ máy, bỏ khoá đang chờ / đang làm (không xếp đôi). */
@@ -84,7 +85,7 @@ async function tg(phuong, body) {
 }
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const traLoi = (v, html, them = {}) => tg('sendMessage', { ...them, parse_mode: 'HTML', text: html.slice(0, 3900), ...(v.tg?.topic ? { message_thread_id: v.tg.topic } : {}), ...(v.tg?.msg ? { reply_parameters: { message_id: v.tg.msg, allow_sending_without_reply: true } } : {}) });
-const tenViec = (v) => (String(v.khoa).startsWith('anh:') ? 'Lệnh anh' : String(v.khoa).startsWith('kenh:') ? 'Kênh nội dung tự sửa' : String(v.khoa).startsWith('dang:') ? 'Máy đăng tự sửa' : 'Spy tự sửa máy cào');
+const tenViec = (v) => (String(v.khoa).startsWith('anh:') ? 'Lệnh anh' : String(v.khoa).startsWith('etp:') ? 'Huy · Ethopex tự sửa' : String(v.khoa).startsWith('kenh:') ? 'Kênh nội dung tự sửa' : String(v.khoa).startsWith('dang:') ? 'Máy đăng tự sửa' : 'Spy tự sửa máy cào');
 const KET = { da_sua: '✅ Đã sửa', khong_sua: '⚠️ Không sửa được', can_anh: '🙋 Cần anh quyết', treo: '⏱ Hết giờ' };
 
 if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {

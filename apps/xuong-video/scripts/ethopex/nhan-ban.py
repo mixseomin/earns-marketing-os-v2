@@ -635,7 +635,10 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
             time.sleep(8); d2 = api(f"/api/v1/campaigns/{moi}"); c = d2["campaign"]
             if c.get("sync_status") in ("done", "error") or c.get("error"): break
         if c.get("error"): raise ValueError("Ethopex báo lỗi: " + str(c.get("error"))[:200])
-        if c.get("sync_status") != "done": raise ValueError(f"camp #{moi} chưa đồng bộ xong sau 20 phút ({c.get('sync_status')}) — chưa đọc lại / tạm dừng được, kiểm tay")
+        if c.get("sync_status") != "done":   # MÁY PHỤ TRÁCH ĐỌC LẠI (anh 10/11/2026 "lỗi này ai phụ trách"): ghi sổ chờ, apps/etp/doc_lai_roas.py đọc lại mỗi nhịp worker — không báo "kiểm tay"
+            q(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_roas_cho_doc', '{{}}'::jsonb) on conflict (ten) do nothing")
+            q(f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('{int(moi)}', jsonb_build_object('goc', {int(goc)}, 'roas', {float(roas)}, 'ns', {float(ns)}, 'luc_s', {int(time.time())})) where ten = 'ethopex_roas_cho_doc'")
+            kq.update(ok=True, cho_dong_bo=True, dong_bo=c.get("sync_status")); raise ChanLuat(f"đã tạo #{moi}, Ethopex / Meta chưa đồng bộ xong sau 20 phút ({c.get('sync_status')}) — máy tự đọc lại mỗi nhịp")
         if float(c.get("budget_daily") or 0) != ns:   # Ethopex có lúc không nhận ngân sách lúc tạo → đặt lại
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": ns}}}); time.sleep(8)
             d2 = api(f"/api/v1/campaigns/{moi}"); c = d2["campaign"]
@@ -656,7 +659,8 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
         if tn: ab_ghi(moi, tn)
         if not NGOAI: ghi_bo(cid, bo)
     except ChanLuat as e:
-        kq.update(ok=None, chan=True, loi=str(e)[:240])
+        if kq.get("cho_dong_bo"): kq.update(ok=True, loi=None, ghi=str(e)[:240])   # đã tạo, chờ đồng bộ — máy đọc lại (doc_lai_roas.py), không phải lỗi
+        else: kq.update(ok=None, chan=True, loi=str(e)[:240])
     except Exception as e:
         loi_may(kq, e)
     if that: ghi_nhat_ky(kq, luat, ai)

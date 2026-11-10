@@ -8,7 +8,7 @@ cong_nguoi: tăng ngân sách / tắt camp = anh bấm nút duyệt trên Telegr
 so_do: 
 tom_tat: Theo dõi luật vận hành camp FB phim ngắn trên Ethopex, báo Telegram 📂 Ethopex khi có camp chạm luật; anh duyệt tăng / tắt bằng nút ngay trong tin
 du_an: [ethopex]
-trang_thai: chạy một việc · Theo dõi luật camp Ethopex (Phát, mỗi 30 phút trên box3, từ 21/10/2026)
+trang_thai: chạy một việc · Theo dõi luật camp Ethopex (Phát, mỗi 30 phút trên box3, từ 21/10/2026) · Huy (tự sửa lỗi máy Ethopex) chờ anh duyệt lịch chạy iMac
 ---
 **Vì sao có phòng này** (anh 21/10/2026: "cần 1 con chuyên theo dõi và báo qua telegram để ko phải đợi tao nhắc trên chat thì mới check các rule đó. Tạo 1 phòng mới là Ethopex cũng đc" + "tao có thể duyệt trên đó luôn"): luật của nhóm Support Ads đổi liên tục trong ngày (lãi đầu phiên tăng luôn, tắt camp lỗ sâu, ad bị từ chối…) — trước đây chỉ được chấm khi anh hỏi trong chat.
 
@@ -18,3 +18,5 @@ trang_thai: chạy một việc · Theo dõi luật camp Ethopex (Phát, mỗi 3
 3. Mục MỚI trong ngày → một tin mỗi nhóm vào 📂 Ethopex, nút duyệt cho từng camp; mục đã báo hôm nay không báo lại.
 
 **Cấm**: tự tăng ngân sách / tự tắt camp khi anh chưa bấm; vượt trần $20/camp; đổi tài khoản QC, Page, pixel; xoá camp hay ad; lên camp mới.
+
+**Huy — Kỹ sư Ethopex** (anh 10/11/2026 "Phòng ETP này phải có 1 con riêng phụ trách vì nó là dự án quan trọng"): Claude Code trên iMac (apps/cty/may/etp-sua.mjs), nhận lỗi máy Ethopex Phát xếp mỗi nhịp vào hàng riêng (etp-sua.json: lỗi máy luật, lệnh bị Ethopex từ chối, thẻ xét luật đứng, ROAS đọc lại sai), tìm gốc + sửa + kiểm + deploy, báo dưới tin trong 📂 Ethopex. Không làm lệnh camp, không đổi luật anh chưa chốt.

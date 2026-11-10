@@ -359,6 +359,31 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   await gomTin(tg); let nut = 0;
   for (const x of moHop('ethopex')) if ((await xuChuBoPhim(tg, x)) || (await xuNut(tg, x))) nut++;
   const kq = boPhimLoc(JSON.parse((await chay(LUAT, ['--json'], 540)).trim().split('\n').pop()));   // phim anh đã bỏ: không báo, không tự tăng
+  // XẾP VIỆC CHO HUY — KỸ SƯ ETHOPEX (anh 10/11/2026 "Phòng ETP này phải có 1 con riêng phụ trách"; "ko phải mỗi lần lại tạo 1 cái như vậy"): MỌI lỗi máy Ethopex
+  // vào MỘT hàng (worker/tho-may-viec.mjs, tệp etp-sua.json) — Huy (apps/cty/may/etp-sua.mjs, Claude Code trên iMac) tìm gốc + sửa + báo dưới tin trong 📂 Ethopex.
+  // Khoá theo LỚP lỗi (bỏ số) → cùng lớp đang chờ / đang sửa không xếp đôi; đã sửa mà tái phát thì xếp lại (lần trước chưa tới gốc).
+  try {
+    const { themTuCanhBao } = await import('./tho-may-viec.mjs');
+    const xepHuy = (ds) => { if (!ds.length) return 0; const cu = process.env.THO_MAY_TEP; process.env.THO_MAY_TEP = 'etp-sua.json';
+      try { return themTuCanhBao(ds, { topic }); } finally { if (cu === undefined) delete process.env.THO_MAY_TEP; else process.env.THO_MAY_TEP = cu; } };
+    const lop = (t) => String(t).replace(/#?\d[\d.,:/]*/g, 'N').replace(/\s+/g, ' ').trim().slice(0, 70);
+    const viecHuy = [];
+    // 1. lỗi của chính máy luật (trừ lỗi đọc API tạm — nhịp sau tự đọc lại)
+    for (const m of kq.loi_may || []) if (!/không đọc được|HTTP Error 5|timed out|timeout|Connection/i.test(String(m.chu))) viecHuy.push({ khoa: `etp:luat|${lop(m.chu)}`, chu: `Máy luật Ethopex báo lỗi: ${m.chu}` });
+    // 2. lệnh gửi Ethopex lỗi trong 30 phút (trừ tên miền chưa bật — việc của admin Ethopex, canh-bao.py đã báo đỏ)
+    const lenh = JSON.parse(String(await chayPsql(`select coalesce(json_agg(x), '[]') from (select viec, left(loi, 400) loi, count(*) n, string_agg(distinct camp_id::text, ', ') camps
+      from etp.nhat_ky where ok is false and luc > now() - interval '30 minutes' and coalesce(loi, '') not like '%is not enabled for this traffic source%' group by 1, 2) x`)).trim() || '[]');
+    for (const x of lenh) viecHuy.push({ khoa: `etp:lenh|${x.viec}|${lop(x.loi)}`, chu: `Lệnh ${x.viec} gửi Ethopex lỗi ${x.n} lần (camp ${x.camps}) trong 30 phút: ${x.loi}` });
+    // 3. thẻ xét luật đứng (trang etp vẽ chip theo số cũ)
+    const dung = Number(String(await chayPsql("select coalesce(extract(epoch from now() - max(luc)) / 60, 9999)::int from etp.xet_luat")).trim() || 0);
+    if (dung > 30) viecHuy.push({ khoa: 'etp:the-dung', chu: `Thẻ xét luật etp.xet_luat không ghi ${dung} phút — trang etp ẩn chip tăng / tắt; tìm vì sao máy luật không ghi thẻ (loi_may: ${JSON.stringify(kq.loi_may || []).slice(0, 300)})` });
+    // 4. camp ROAS vừa tạo: đọc lại mỗi nhịp (apps/etp/doc_lai_roas.py) — bị từ chối báo anh; sai bid / treo quá lâu giao Huy
+    const dl = String(await chay(path.join(REPO, 'apps/etp/doc_lai_roas.py'), [], 240)).trim().split('\n').filter((l) => l.startsWith('{')).map((l) => JSON.parse(l));
+    const baoDl = dl.filter((x) => x.viec !== 'cho');
+    for (const x of dl.filter((y) => y.viec === 'sai' || y.viec === 'qua_lau')) viecHuy.push({ khoa: `etp:roas|${x.viec}|${x.goc}`, chu: `Camp ROAS #${x.camp} (gốc #${x.goc}): ${x.chu}` });
+    if (baoDl.length) { await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, message_thread_id: topic, disable_notification: true, text: `★ <b>ĐỌC LẠI CAMP ROAS</b>\n${baoDl.map((x) => `${x.viec === 'xong' ? '✅' : x.viec === 'tu_choi' ? '⛔' : '⚠️'} #${x.camp} (gốc #${x.goc}): ${esc(x.chu)}`).join('\n')}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` }); }
+    const n = xepHuy(viecHuy); if (n) console.log(`Huy: xếp ${n} việc`);
+  } catch (e) { console.error('xếp việc Huy:', e.message); }
   // BÁO LÊN etp.on.tc (anh 24/10/2026 "báo trên etp nữa"): ghi đè etp.bao bằng đúng các nhóm luật của nhịp này — trang etp tab Luật đọc
   try {
     // MỌI danh sách luật của nhịp (anh 27/10/2026: etp.on.tc "cần show được camp đang chạm luật nào (chưa chạy), chuẩn bị chạm") — cả luật máy tự làm

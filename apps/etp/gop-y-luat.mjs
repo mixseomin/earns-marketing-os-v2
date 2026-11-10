@@ -4,6 +4,7 @@
 //   { card: <id>, tep: <tệp từ gốc repo>, mot | co | cam: '<chuỗi>', vi: '<anh muốn gì>' }   mot = đúng 1 lần · co = phải có · cam = không được có
 export const V = 'apps/web/src/components/etp-view.tsx';
 export const LUAT = [
+  { card: 'quyen-20-1011', tep: 'apps/cty/worker/ethopex.mjs', co: "const trongQuyen = (k, m) => tuTang && ['tang', 'dau_phien', 'hoi_g10'].includes(k)", vi: 'tăng trong quyền máy ($20) không gửi nút xin duyệt — ngoài khung thì máy hoãn rồi tự tăng (anh 10/11/2026)' },
   { card: 'anh-tay-1011', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "'nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that'", vi: 'anh nhân bản tay trên etp2: máy không chặn bằng luật mềm, anh chịu trách nhiệm (anh 10/11/2026)' },
   { card: 'anh-tay-1011', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'anh = "--anh" in a; ep = ep or anh', vi: 'cờ --anh đi như lệnh đích danh' },
   { card: 'anh-tay-1011', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: "khoa = 'camp_anh_tay'", vi: 'camp anh nhân bản tay được đánh dấu (sổ camp_anh_tay)' },

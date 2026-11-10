@@ -675,7 +675,11 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   { const so = docJ(TEP_DX(), {});
     for (const { mid, kb } of deXuatHet(so, khoaNay)) await (kb ? tg('editMessageReplyMarkup', { message_id: mid, reply_markup: { inline_keyboard: kb } }) : tg('deleteMessage', { message_id: mid }));
     fs.writeFileSync(TEP_DX(), JSON.stringify(so)); }
-  const gom = gopCamp(NHOM.map(([k, , nutCho]) => [k, nutCho, (kq[k] || []).filter((m) => !da.has(khoa(k, m)) && !lamRoi.has(m.id)).map((m) => ({ ...m, dich: dichCua(m) }))]));
+  // TĂNG TRONG QUYỀN MÁY KHÔNG XIN NÚT (anh 10/11/2026 "tao đã cấp quyền từ tăng đến $20 mà cái này lại xin hả"): camp tăng tới bậc ≤ trần máy tự tăng (tuTang)
+  // là việc của máy — trong khung thì máy đã tăng ở trên, ngoài khung (15–21h giảm / tắt…) máy đã ghi sổ hoãn và tự tăng khi tới khung (chip ⏳ trên etp).
+  // Chỉ bậc VƯỢT quyền (> tuTang) mới gửi tin kèm nút cho anh duyệt.
+  const trongQuyen = (k, m) => tuTang && ['tang', 'dau_phien', 'hoi_g10'].includes(k) && Number(dichCua(m)) > 0 && Number(dichCua(m)) <= tuTang;
+  const gom = gopCamp(NHOM.map(([k, , nutCho]) => [k, nutCho, (kq[k] || []).filter((m) => !da.has(khoa(k, m)) && !lamRoi.has(m.id) && !trongQuyen(k, m)).map((m) => ({ ...m, dich: dichCua(m) }))]));
   for (const [k, tieu, nutCho] of NHOM) {
     const moi = gom.get(k) ?? [];
     if (!moi.length) continue;

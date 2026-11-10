@@ -698,9 +698,11 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     }));
     for (const m of goc) { const ly = giuGocRoas(viec.filter((v) => v.m === m).map((v) => v.r)); if (ly) giu[m.id] = ly; }
     fs.writeFileSync(TEP_R, JSON.stringify({ ngay: homNay, ban: banLuat(), giu }));
-    if (viec.length) {
+    if (viec.some((v) => !(!v.r.ok && v.r.chan && /^đã có camp/.test(String(v.r.loi || ''))))) {   // mọi mức đều đã có camp → không báo (không có gì mới)
       const ok = viec.filter((v) => v.r.ok).length;
-      const dong = bangViec(viec.map(({ m, muc, r }) => ({ m, doi: `${muc}→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '30 ng');
+      // mức đã có camp ★ (tạo ở lượt trước / lệnh tay) = KHÔNG phải lỗi (anh 10/11/2026: tin "0/4 ⚠ lỗi" trong khi 4 camp đã có) → ghi "đã có"
+      const daCo = (r) => !r.ok && r.chan && /^đã có camp/.test(String(r.loi || ''));
+      const dong = bangViec(viec.map(({ m, muc, r }) => ({ m, doi: daCo(r) ? `${muc} đã có` : `${muc}→#${r.moi ?? '?'}`, loi: r.ok || daCo(r) ? null : r.loi || 'không rõ' })), '30 ng');
       await guiNhanh({ message_thread_id: topic, text: `★ <b>MÁY TỰ LÊN ROAS</b> — ${goc.length} camp gốc đủ lên ROAS (lãi 30 ngày ≥ $75 — anh 29/10/2026, hoặc chi ≥ $20 & ROI ≥ 50% — Dol 09/11/2026); mỗi gốc ${ROAS_MUC.length} mức ${ROAS_MUC.join(' · ')}, $20/ngày, ${chuChay(viec.filter((v) => v.r.ok).map((v) => v.r))} — tạo được ${ok}/${viec.length}\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
       gui++;
     }

@@ -59,7 +59,13 @@ _TK_SQL = ",".join(str(int(x)) for x in sorted(EA.TK)) or "0"
 def _ap_nuoc(pl, nh):   # A/B kieu 'nuoc': danh sách nước của nhánh vào Ad Set
     sp = pl["campaign"]["ad_groups"][0]["source_payload"]; tg = dict(sp.get("targeting") or {})
     tg["geo_locations"] = {**(tg.get("geo_locations") or {}), "countries": list(nh["nuoc"])}; sp["targeting"] = tg
-AP = {"nuoc": _ap_nuoc}   # mỗi KIỂU A/B một hàm đặt tham số nhánh vào payload — thêm kiểu mới = thêm một dòng ở đây + một dòng etp.ab
+def _ap_gio(pl, nh):   # A/B kieu 'gio' (AB05, anh 10/11/2026 "lên 10% theo khung mới để test"): nhánh có gio_utc → Ad Set lịch Custom, chạy lúc gio_utc:00 UTC kế tiếp
+    # (Ethopex: type_run 'custom' + start_time "YYYY-MM-DD HH:MM:00" — đúng dạng form Budget & schedule › Custom gửi, app.ethopex.dev Un/Vn). Nhánh không có gio_utc = lịch lich_len.
+    if nh.get("gio_utc") is None: return
+    g = int(nh["gio_utc"]); bay = dt.datetime.now(dt.timezone.utc); ngay = bay.date() if bay.hour < g else bay.date() + dt.timedelta(days=1)
+    ag = pl["campaign"]["ad_groups"][0]; ag["type_run"] = "custom"; ag["start_time"] = f"{ngay.isoformat()} {g:02d}:00:00"
+    ag.get("source_payload", {}).pop("start_time", None)
+AP = {"nuoc": _ap_nuoc, "gio": _ap_gio}   # mỗi KIỂU A/B một hàm đặt tham số nhánh vào payload — thêm kiểu mới = thêm một dòng ở đây + một dòng etp.ab
 def ab_ap(pl, lich, goc, moi, roas=False, cr=None):
     """SỔ A/B etp.ab (migration 0426 — anh 05/11/2026 "nhiều kiểu thử khác nhau … đặt tên lần thử này để dễ nắm bắt"): mã AB01, AB02… · kieu = biến thử · nhánh thu / doi.
     Camp nhà (không ROAS) có ngày chạy đầu trong [bat_dau, ket_thuc] của một lần A/B đang chạy → chia nhánh theo tên camp (crc32 chẵn = thu, lẻ = doi), đặt tham số nhánh vào payload.
@@ -83,7 +89,9 @@ def ab_ap(pl, lich, goc, moi, roas=False, cr=None):
             t, d, m = int(dem.get("thu", 0)), int(dem.get("doi", 0)), int(ab["moi_dang"])
             nh = "thu" if t < m and t <= d else "doi" if d < m else None
             if not nh: AP[ab["kieu"]](pl, ab["nhanh"]["doi"]); return None
-        else: nh = "thu" if zlib.crc32(pl["name"].encode()) % 2 == 0 else "doi"
+        else:   # ty_le ở nhánh thu (AB05: 0.1 = 10% camp mới vào nhánh thử); không khai = chia đôi chẵn / lẻ như cũ
+            tl = (ab["nhanh"].get("thu") or {}).get("ty_le")
+            nh = ("thu" if zlib.crc32(pl["name"].encode()) % 100 < round(float(tl) * 100) else "doi") if tl is not None else ("thu" if zlib.crc32(pl["name"].encode()) % 2 == 0 else "doi")
         AP[ab["kieu"]](pl, ab["nhanh"][nh])
         # CAMP A/B VẪN ĐI TỪ $1 (anh 08/11/2026: "AB test vẫn phải đi từ $1. Nếu khác thì phải xin phép" — AB01 từng khai ns $3 ở nhánh, 52 camp mới lên $3):
         # máy KHÔNG đặt ngân sách theo nhánh nữa; ngân sách camp mới khác $1 bị cổng chặn (cong.kiem, luật camp mới $1)
@@ -99,7 +107,7 @@ def ab_ap(pl, lich, goc, moi, roas=False, cr=None):
     # CHỈ KIỂU MANG THAM SỐ TRONG PAYLOAD MỚI THỪA HƯỞNG (anh 08/11/2026 "sửa đi"): bản nhân của camp nhánh thu AB02 (G10 hồi) từng bị gán vào AB02 —
     # #86256 #86824 là bản $1 của #65722, chưa từng qua G10 hồi, làm bẩn nhánh thử. Kiểu nước (AP) chép Ad Set nên bản nhân vẫn mang 4 nước → thừa hưởng đúng;
     # kiểu khác (g10_hoi, roas_nhan_doi, roas_tang…) là CÁCH XỬ camp chứ không nằm trong payload → bản nhân không thuộc thử nghiệm.
-    if kieu not in AP: return None
+    if kieu not in AP or kieu == "gio": return None   # 'gio' = giờ lên của chính camp đó, bản nhân không mang lịch Custom → không thuộc thử nghiệm
     if moi:
         if kieu in AP: AP[kieu](pl, json.loads(doi))
         return None

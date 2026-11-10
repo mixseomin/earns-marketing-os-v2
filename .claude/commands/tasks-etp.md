@@ -29,7 +29,7 @@ Nhiều phiên cùng sửa `etp-view.tsx` / `luat-ethopex.py` → đọc lại t
 
 ## Luật riêng etp (Ethopex — tiền QC thật)
 
-- **Sửa xong card nào = thêm điều kiện cho card đó vào `/Users/htuan/Me/GitHub/earns-marketing-os-v2/scripts/check-etp-gop-y.mjs`** (mot / co / cam, ghi số card),
+- **Sửa xong card nào = thêm điều kiện cho card đó vào `/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/etp/gop-y-luat.mjs`** (mot / co / cam, ghi số card — danh sách nằm trong app etp từ 10/11/2026 để không đụng tệp dùng chung `scripts/`; máy chấm vẫn là `scripts/check-etp-gop-y.mjs`),
   chạy `node scripts/check-etp-gop-y.mjs --tu-kiem && node scripts/check-etp-gop-y.mjs` rồi mới submit. CI + deploy.sh chạy tệp này: bản nào đưa lại dạng cũ
   thì không lên. Anh 29/10/2026 sau #1476 (đổi Cây sang DataTable chép lại ô creative cũ): "lần sau tao không để ý mày lại khôi phục cái cũ thì sao?".
   Viết lại / chuyển khối giao diện thì DÙNG LẠI hàm đang có (oCr, BacCamp, ChipLuat…), không chép tay.

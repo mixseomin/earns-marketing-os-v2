@@ -1,0 +1,23 @@
+{
+ "_": "Quy trình nghiệp vụ của Phòng Ethopex. so_hoa 'co-dinh' = máy chạy; lich = việc nền thật trong cong-ty/viec-nen.json, mỗi việc nền thuộc đúng một nhân sự.",
+ "phong": "ethopex",
+ "quy_trinh": [
+  {
+   "id": "sua-may-etp",
+   "ten": "Tự sửa lỗi máy Ethopex (Claude Code trên iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền; chỉ gọi Claude khi hàng etp-sua.json có việc",
+   "mo_ta": "Huy lấy một việc ở hàng riêng (Phát xếp mỗi nhịp từ lỗi máy luật / lệnh Ethopex bị từ chối / camp ROAS treo; anh trả lời dưới tin của Huy cũng vào hàng này), kéo bản mới nhất origin/main, tìm gốc, sửa phần Ethopex của repo, kiểm, đẩy main (GHA deploy box3) rồi báo dưới tin trong 📂 Ethopex.",
+   "ma": "apps/cty/may/etp-sua.mjs · hàng: apps/cty/worker/tho-may-viec.mjs (THO_MAY_TEP=etp-sua.json)",
+   "chu_tri": "huy",
+   "lam": [
+    "may"
+   ],
+   "khi": "khi hàng etp-sua.json có việc",
+   "lich": [
+    "iMac:tc.on.cty.etp-sua"
+   ],
+   "chi_phi": "gói Claude thuê bao (không tính theo lượt)"
+  }
+ ]
+}

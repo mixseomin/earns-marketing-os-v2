@@ -30,11 +30,16 @@ const log = (s) => console.log(`${new Date().toISOString()} ${s}`);
 const [chinh, soul] = box(`cat ${DATA}/nhip-chinh.json 2>/dev/null || echo {}; echo '@@'; grep -E '^model:' ${APP}/cong-ty/nhan-su/${NGUOI}/SOUL.md`).split('@@');
 if (JSON.parse(chinh.trim() || '{}')[NGUOI]?.bat === false) { log('Huy đang tắt'); process.exit(0); }
 const dm = (soul.match(/^model:.*$/m) || [''])[0], model = (dm.match(/claude-code:([\w.-]+)/) || [])[1] || 'opus', effort = (dm.match(/effort:(low|medium|high|max)\b/) || [])[1] || null;
+const git = (...a) => execFileSync('git', ['-C', MOS2, ...a], { encoding: 'utf8' }).trim();
+const tepDo = () => execFileSync('git', ['-C', MOS2, 'status', '--porcelain'], { encoding: 'utf8' }).split('\n').filter(Boolean).map((l) => l.slice(3));
+// SERVER LÀ CHUẨN (anh: "trước hết luôn phải pull bản mới nhất về"): kéo origin/main TRƯỚC khi nhận việc. Cây MOS2 trên iMac dùng chung với
+// việc nền xưởng video (studio-shot-code, lich-su-*) nên KHÔNG dọn tệp dở của chúng; chỉ fast-forward — không được thì chưa nhận việc (việc vẫn chờ ở hàng).
+if (!thu) { try { git('fetch', '-q', 'origin', 'main'); git('merge', '-q', '--ff-only', 'origin/main'); } catch (e) { log(`chưa kéo được bản mới nhất, chưa nhận việc: ${String(e.stderr || e.message).split('\n')[0]}`); process.exit(0); } }
+const doTruoc = new Set(tepDo());
 const r0 = thu ? (() => { const st = JSON.parse(box(`cat ${DATA}/${TEP} 2>/dev/null || echo '{"hang":[]}'`) || '{"hang":[]}'); const x = (st.hang || []).find((y) => y.tt === 'cho'); return x ? { viec: x } : { ly_do: 'không có việc' }; })()
   : JSON.parse(viec('--lay'));
 if (!r0.viec) { log(`không nhận việc: ${r0.ly_do}`); process.exit(0); }
 const v = r0.viec, chu = String(v.chu).replace(/<[^>]+>/g, '');
-const git = (...a) => execFileSync('git', ['-C', MOS2, ...a], { encoding: 'utf8' }).trim();
 
 const loiGiao = `Bạn là Huy, kỹ sư Phòng Ethopex (công ty AI của anh Tuấn). Ethopex là dự án quan trọng: máy chạy camp quảng cáo Facebook phim ngắn bằng TIỀN THẬT.
 Máy vừa báo một lỗi. Bạn phải tìm GỐC, sửa một lần cho cả lớp lỗi, kiểm, deploy, rồi báo lại — anh không ngồi máy.
@@ -76,8 +81,9 @@ let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng
 const ra = String(kq.result || '').trim(), ketDong = (ra.match(/^\s*\**KET:\**\s*(DA_SUA|KHONG_SUA|CAN_ANH)\b.*$/gim) || []).pop();
 const ket = ketDong ? ketDong.match(/DA_SUA|KHONG_SUA|CAN_ANH/i)[0].toLowerCase() : (r.signal || r.error ? 'treo' : 'khong_sua');
 const sau = git('rev-parse', 'HEAD'), commit = sau === truoc ? '' : git('log', '--format=%h %s', `${truoc}..${sau}`).split('\n').slice(0, 5).join('\n');
+const lan = sau === truoc ? [] : git('diff', '--name-only', `${truoc}..${sau}`).split('\n').filter((f) => doTruoc.has(f));   // commit kèm tệp đã dở từ trước = lẫn việc của việc nền khác
 const boKet = ra.replace(/^\s*\**KET:.*$/gim, '').trim(), sauBao = boKet.split(/^\s*[*#\s]*BÁO ANH:?\**\s*$/im);
 const than = ((sauBao.length > 1 ? sauBao.pop().trim() : boKet.split('\n').slice(-8).join('\n')) || `Claude thoát ${r.status ?? r.signal} không kèm báo cáo (${String(r.stderr || r.error?.message || '').slice(0, 200)})`)
-  + (commit ? `\n\nCommit:\n${commit}` : '') + `\n(${Math.round((kq.duration_ms || 0) / 6e4)} phút)`;
+  + (commit ? `\n\nCommit:\n${commit}` : '') + (lan.length ? `\n⚠ Commit có kèm tệp vốn đang dở từ trước (của việc nền khác trên iMac): ${lan.join(', ')} — anh xem lại.` : '') + `\n(${Math.round((kq.duration_ms || 0) / 6e4)} phút)`;
 log(`xong #${v.id}: ${ket} · commit ${commit ? sau.slice(0, 8) : 'không'} · ${kq.num_turns ?? '?'} lượt`);
 viec(`--bao ${v.id} ${ket === 'treo' ? 'treo' : ket}`, than);

@@ -8,7 +8,7 @@ cong_nguoi: tăng ngân sách / tắt camp = anh bấm nút duyệt trên Telegr
 so_do: 
 tom_tat: Theo dõi luật vận hành camp FB phim ngắn trên Ethopex, báo Telegram 📂 Ethopex khi có camp chạm luật; anh duyệt tăng / tắt bằng nút ngay trong tin
 du_an: [ethopex]
-trang_thai: chạy một việc · Theo dõi luật camp Ethopex (Phát, mỗi 30 phút trên box3, từ 21/10/2026) · Huy (tự sửa lỗi máy Ethopex) chờ anh duyệt lịch chạy iMac
+trang_thai: chạy một việc · Theo dõi luật camp Ethopex (Phát, mỗi 30 phút trên box3, từ 21/10/2026) · Huy (tự sửa lỗi máy Ethopex, iMac mỗi 5 phút, anh duyệt 10/11/2026)
 ---
 **Vì sao có phòng này** (anh 21/10/2026: "cần 1 con chuyên theo dõi và báo qua telegram để ko phải đợi tao nhắc trên chat thì mới check các rule đó. Tạo 1 phòng mới là Ethopex cũng đc" + "tao có thể duyệt trên đó luôn"): luật của nhóm Support Ads đổi liên tục trong ngày (lãi đầu phiên tăng luôn, tắt camp lỗ sâu, ad bị từ chối…) — trước đây chỉ được chấm khi anh hỏi trong chat.
 

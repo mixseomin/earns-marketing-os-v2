@@ -4,6 +4,8 @@
 //   { card: <id>, tep: <tệp từ gốc repo>, mot | co | cam: '<chuỗi>', vi: '<anh muốn gì>' }   mot = đúng 1 lần · co = phải có · cam = không được có
 export const V = 'apps/web/src/components/etp-view.tsx';
 export const LUAT = [
+  { card: 'huy-1011', tep: 'apps/etp/manh.py', cam: '<b>Mạnh</b>', vi: 'tin máy Ethopex ký Huy (kỹ sư riêng phòng Ethopex), không ký Mạnh (anh 10/11/2026)' },
+  { card: 'huy-1011', tep: 'apps/cty/worker/thu-ky.mjs', co: 'const vtHuy = theoHang(HANG_HUY, () => viecCuaTin(nc.hoi_mid));', vi: 'anh trả lời dưới tin của Huy = lệnh vào hàng Huy' },
   { card: 'hover-ngang-1011', tep: 'apps/web/src/components/etp-view.tsx', cam: "<td style={{ ...o, minWidth: 190 }}>{ten}</td>", vi: 'bảng xét luật trong hover không ép cột Điều kiện rộng tối thiểu — hết cuộn ngang (anh 10/11/2026)' },
   { card: 'hover-ngang-1011', tep: 'apps/web/src/components/etp-view.tsx', co: "<td style={{ ...o, overflowWrap: 'anywhere' }}>{ten}</td>", vi: 'điều kiện / giá trị / ngưỡng tự xuống dòng trong hover' },
   { card: 'hover-ngang-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "<td style={{ ...o, overflowWrap: 'anywhere' }}>{ten}</td>", vi: 'etp2: cùng bảng hover không cuộn ngang' },

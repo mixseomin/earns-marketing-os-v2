@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""THẰNG MẠNH — CANH DÒNG PHIM (anh 03/11/2026: "có thằng Mạnh ở chờ ở phía sau để chủ động check nếu bị stuck cái nào đó timeout ngu mà ko chịu dừng").
+"""CANH DÒNG PHIM — tin Telegram ký HUY (Kỹ sư Ethopex, anh 10/11/2026 "Phòng ETP phải có 1 con riêng phụ trách"; trước ký "Mạnh" làm anh tưởng thợ máy Mạnh còn dính Ethopex — tên tệp / dấu "Mạnh:" trong etp.dong_buoc.ghi giữ nguyên vì dòng lọc bên dưới đọc dấu đó). THẰNG MẠNH — CANH DÒNG PHIM (anh 03/11/2026: "có thằng Mạnh ở chờ ở phía sau để chủ động check nếu bị stuck cái nào đó timeout ngu mà ko chịu dừng").
 Chạy trên box3 (etp-manh.timer, 2 phút/lần) — máy KHÁC với máy chạy dòng (apps/etp/dong_phim.py, iMac) để máy kia chết thì vẫn có người thấy.
 Mỗi lượt:
   1. bước 'dang' quá hạn (han_giay) hoặc im (nhip) quá 10 phút → đặt huy (máy chạy dòng giết tiến trình), ghi lỗi; lần đầu thì tự FIX (chạy lại bước) một lần
@@ -84,7 +84,7 @@ def main():
             if int(da) < 1800: continue
             ghi(f"update etp.dong_may set bao_luc = now() where may = '{may}'")
             lam.append(f"máy chạy dòng {may} im {int(im) // 60} phút")
-            bao(f"🚨 <b>Mạnh</b> · máy chạy dòng phim <b>{may}</b> im {int(im) // 60} phút mà còn dòng đang chạy — máy tự bật lại; bước đang dở sẽ bị huỷ + FIX khi quá {IM_BUOC // 60} phút")
+            bao(f"🚨 <b>Huy</b> · máy chạy dòng phim <b>{may}</b> im {int(im) // 60} phút mà còn dòng đang chạy — máy tự bật lại; bước đang dở sẽ bị huỷ + FIX khi quá {IM_BUOC // 60} phút")
     def muc3():
         # 3. dòng vừa kết thúc → Telegram. GOM (anh 07/11/2026 "Gom"; 09/11/2026 "Đang có nhiều tin nhắn tele quá" — 200 tin / 22 giờ: tin gom bắn mỗi khi đủ 10 dòng,
         #    🚧 / ❌ mỗi lượt máy tự thử lại cùng một phim). Nay: BÁO NGAY chỉ lỗi CẦN NGƯỜI (mục 6 hết lượt thử lại); còn lại — xong, dừng đúng luật, lỗi máy còn tự
@@ -95,7 +95,7 @@ def main():
                        from etp.dong_phim d where d.trang_thai in ('xong', 'dung', 'loi') and d.bao_luc is null and d.xong_luc > now() - interval '1 day' order by d.xong_luc""")
         for dong, cid, ten, tt, ly, camp, chet in [l for l in cho if l[6] == "t"]:
             ghi(f"update etp.dong_phim set bao_luc = now() where id = {dong}"); lam.append(f"dòng #{dong} lỗi cần người")
-            bao(f"❌ <b>Mạnh</b> · phim <b>{ten or cid}</b> (#{cid}) — lỗi kỹ thuật, máy đã hết lượt tự thử lại, cần người xem\n{ly[:600]}")
+            bao(f"❌ <b>Huy</b> · phim <b>{ten or cid}</b> (#{cid}) — lỗi kỹ thuật, máy đã hết lượt tự thử lại, cần người xem\n{ly[:600]}")
         gom = [l for l in cho if l[6] != "t"]
         tu = q("select coalesce((select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'manh_gom_luc'), (now() - interval '1 day')::text)")
         if q(f"select '{tu}'::timestamptz < now() - interval '{GOM_PHUT} minutes'") != "t": return
@@ -113,7 +113,7 @@ def main():
         dong = [f"{dau[tt]} {ten}{f' ×{so}' if so > 1 else ''}{f' · camp #{camp}' if camp else ''} — {ly}" for (_, tt, ly), (ten, so, camp) in phim.items()]
         if huy: dong.append("🚧 Mạnh huỷ bước treo + tự chạy lại: " + " · ".join(f"{ten or cid}{f' ×{so}' if int(so) > 1 else ''}" for cid, ten, so in huy[:10]))
         tu_vn = q(f"select to_char('{tu}'::timestamptz at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM')")   # tin đầu / sau quãng nghỉ gom từ lần gửi trước, không phải đúng 60 phút
-        bao(f"📋 <b>Mạnh</b> · từ {tu_vn}: ✅ {n['xong']} lên camp · ⛔ {n['dung']} dừng đúng luật · 🔁 {n['loi']} lỗi máy tự thử lại"
+        bao(f"📋 <b>Huy</b> · từ {tu_vn}: ✅ {n['xong']} lên camp · ⛔ {n['dung']} dừng đúng luật · 🔁 {n['loi']} lỗi máy tự thử lại"
             + (f" · 🚧 {sum(int(h[2]) for h in huy)} bước treo" if huy else "") + "\n" + "\n".join(dong)[:3800])
     def muc4():
         # 4. việc cắt lô dòng phim kẹt
@@ -166,7 +166,7 @@ def main():
             if os.path.exists(dau) and os.path.getmtime(dau) > __import__("time").time() - 6 * 3600: continue
             if not THU: open(dau, "w").write(kieu)
             lam.append(f"lỗi mã {viec} ×{n}")
-            bao(f"🐞 <b>Mạnh</b> · LỖI MÃ ở máy <b>{viec}</b> — {n} lượt từ {tu} (camp {camps[:120]})\n<code>{loi[:240]}</code>\n"
+            bao(f"🐞 <b>Huy</b> · LỖI MÃ ở máy <b>{viec}</b> — {n} lượt từ {tu} (camp {camps[:120]})\n<code>{loi[:240]}</code>\n"
                 "→ máy gọi tự thử lại ở nhịp sau (nhân bản tài khoản team: sau 6 giờ); cần sửa mã (lỗi không tự hết)")
     # MỖI MỤC CHẠY RIÊNG (05/11/2026: một hàng lạ ở mục 3 làm Mạnh chết cả lượt suốt 24 giờ — mục 1/4/5/6 không chạy, không ai biết):
     # mục hỏng → ghi lại, báo Telegram (một lần mỗi giờ mỗi mục), các mục khác vẫn chạy; cuối lượt trả mã lỗi để systemd vẫn thấy
@@ -178,7 +178,7 @@ def main():
             dau = f"/tmp/manh-hong-{ten[-1]}"
             if not THU and (not os.path.exists(dau) or os.path.getmtime(dau) < __import__("time").time() - 3600):
                 open(dau, "w").write(str(e)[:300])
-                bao(f"🛠 <b>Mạnh</b> · {ten} hỏng: <code>{type(e).__name__}: {str(e)[:200]}</code> — các mục khác vẫn chạy; sửa apps/etp/manh.py")
+                bao(f"🛠 <b>Huy</b> · {ten} hỏng: <code>{type(e).__name__}: {str(e)[:200]}</code> — các mục khác vẫn chạy; sửa apps/etp/manh.py")
     lam += [f"{x} HỎNG" for x in hong]
     print("Mạnh:", " · ".join(lam) if lam else "không có gì kẹt")
     if hong: sys.exit(1)

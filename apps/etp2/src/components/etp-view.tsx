@@ -407,8 +407,9 @@ function tinhLuat({ c, ba, bao, boThang, thangMuc, xet }: VaoLuat) {
     : ganBao[0] ? chinh : xGan ? { chip: XET_CHIP[xGan.ma]?.[0] ?? xGan.ten, mau: XET_CHIP[xGan.ma]?.[1] ?? '#94a3b8', dac: false } : xet ? null : chinh;
   return { chinh: chinh2, daXep, ganBao, hien: [...du, ...gan.filter((l) => !du.includes(l))], xet };
 }
-const ChipO = ({ chinh }: { chinh: { chip: string; mau: string; dac: boolean } }) => <span style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-  fontSize: 11, padding: '0 6px', borderRadius: 9, color: chinh.mau, border: `1px ${chinh.dac ? 'solid' : 'dashed'} ${chinh.mau}${chinh.dac ? '' : '99'}`, background: chinh.dac ? `${chinh.mau}22` : 'transparent' }}>{chinh.chip}</span>;
+// nho: cỡ gọn cho widget Theo luật (Tổng quan 2, anh 10/11/2026 "show màu và trạng thái giống trong tab camp nhưng nhỏ gọn hơn")
+const ChipO = ({ chinh, nho }: { chinh: { chip: string; mau: string; dac: boolean }; nho?: boolean }) => <span style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  fontSize: nho ? 10 : 11, lineHeight: nho ? '15px' : undefined, padding: nho ? '0 5px' : '0 6px', borderRadius: 9, color: chinh.mau, border: `1px ${chinh.dac ? 'solid' : 'dashed'} ${chinh.mau}${chinh.dac ? '' : '99'}`, background: chinh.dac ? `${chinh.mau}22` : 'transparent' }}>{chinh.chip}</span>;
 // nhãn chip theo mã luật máy xét (luat-ethopex.py _xet_luat)
 const XET_CHIP: Record<string, [string, string]> = Object.fromEntries(Object.entries(BANG_LUAT.the).map(([k, v]) => [k, [v[0] as string, v[1] as string]]));   // mã thẻ xét luật → [chữ, màu] — từ sổ luật chung
 const KET_XET: Record<XetLuat['ket'], [string, string]> = { dat: ['Đạt', '#4ade80'], gan: ['Gần', '#facc15'], xa: ['Xa', 'var(--fg-3, #777)'], khong_ap: ['Không áp', 'var(--fg-3, #777)'] };
@@ -2738,7 +2739,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       bd_loc: ['loc', (c) => (dangChay(c) ? ['Đang chạy', undefined, '1'] : choGio(c) ? ['Chờ giờ chạy', undefined, '2'] : daTat(c) ? ['Đã tắt', undefined, '3'] : ['Đang tạo', undefined, '4'])],
       bd_lai: ['lai', (c) => { const s = so(c); return s.chi <= 0 ? ['Chưa tiêu trong kỳ', undefined, '3'] : s.thu > s.chi ? ['Lãi trong kỳ', undefined, '1'] : ['Lỗ trong kỳ', undefined, '2']; }],
       bd_tuoi: ['tuoi', (c) => { const t = tuoiNgay(c.tao); const i = t == null ? -1 : TUOI.findIndex(([a, b]) => t >= a && t < b); return i < 0 ? ['Chưa rõ tuổi', undefined, 'z'] : [TUOI[i]![2], undefined, String(i)]; }],
-      bd_luat: ['luat', (c) => [chipMap.get(c.camp_id)?.chip ?? 'Không chạm luật']],
+      bd_luat: ['luat', (c) => { const ch = chipMap.get(c.camp_id); return ch ? [ch.chip, <ChipO chinh={ch} nho />] : ['Không chạm luật']; }],   // chip y như cột Luật tab Camp, cỡ nhỏ
       bd_dang: ['dang', (c) => [c.dang ?? 'Chưa rõ loại', c.dang ? <><BadgeDang d={c.dang} ngan /><span>{c.dang}</span></> : undefined],
         (c) => [c.ban ?? 'bản chưa ghi', <><span style={{ fontFamily: 'var(--font-mono, monospace)' }}>{c.ban ?? '—'}</span>{c.ban ? null : <span style={{ color: 'var(--fg-3, #777)' }}>bản chưa ghi</span>}</>]],
       bd_ro: ['ro', (c) => (laRoas(c) ? ['★ Camp ROAS'] : ['Camp thường'])],

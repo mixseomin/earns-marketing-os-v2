@@ -25,12 +25,18 @@ const ngayVN = (t = Date.now()) => new Date(t + 7 * 36e5).toISOString().slice(0,
  *  (Khang 63 lượt / 37 lần "cần anh" trong vài giờ). Đã sửa (xong) mà tái phát thì vẫn nhận lại; bộ việc đổi (dấu khác) thì nhận. Anh trả lời (anh:) không qua đây. */
 export const LAP_GIO = 24;
 const vuaKetKhongSua = (hang, c, luc) => hang.some((v) => v.khoa === c.khoa && v.tt === 'ket' && (v.dau ?? null) === (c.dau ?? null) && v.xong && luc - Date.parse(v.xong) < LAP_GIO * 36e5);
+/** Đã báo "đã sửa" mà tái phát cũng có trần (anh 11/11/2026 "không được có vòng lặp vô hạn, phải biết giới hạn đúng lúc, đúng chỗ"): trong 24 giờ cùng khoá
+ *  đã xong ≥ LAP_TRAN - 1 lần → lần xếp kế mang ghi chú LẶP (đòi gốc sâu hơn hoặc CAN_ANH để anh thấy); đã xong ≥ LAP_TRAN lần → thôi xếp tới hết 24 giờ. */
+export const LAP_TRAN = 3;
+const soLanXong = (hang, c, luc) => hang.filter((v) => v.khoa === c.khoa && v.tt === 'xong' && v.xong && luc - Date.parse(v.xong) < LAP_GIO * 36e5).length;
 export function themViec(st, ds, { luc = Date.now(), topic = null, msg = null } = {}) {
   const hang = st.hang || [], dang = new Set(hang.filter((v) => v.tt === 'cho' || v.tt === 'dang').map((v) => v.khoa));
   let them = 0, so = hang.reduce((a, v) => Math.max(a, v.id), 0);
   for (const c of ds) {
-    if (!LOAI_SUA.test(c.khoa) || dang.has(c.khoa) || vuaKetKhongSua(hang, c, luc)) continue;
-    hang.push({ id: ++so, khoa: c.khoa, chu: c.chu, ...(c.dau ? { dau: c.dau } : {}), luc: new Date(luc).toISOString(), tg: { topic, msg }, tt: 'cho' }); dang.add(c.khoa); them++;   // dau: dấu bộ việc (Khang — không xếp lại y nguyên)
+    const nXong = LOAI_SUA.test(c.khoa) ? soLanXong(hang, c, luc) : 0;
+    if (!LOAI_SUA.test(c.khoa) || dang.has(c.khoa) || vuaKetKhongSua(hang, c, luc) || nXong >= LAP_TRAN) continue;
+    const chu = nXong >= LAP_TRAN - 1 ? `${c.chu}\n\n⚠ LẶP: lỗi này đã báo "đã sửa" ${nXong} lần trong ${LAP_GIO} giờ mà vẫn tái phát. Đừng sửa lại kiểu cũ: tìm gốc sâu hơn; không chắc thì KET: CAN_ANH để anh quyết. Đây là lượt cuối trong ${LAP_GIO} giờ.` : c.chu;
+    hang.push({ id: ++so, khoa: c.khoa, chu, ...(c.dau ? { dau: c.dau } : {}), luc: new Date(luc).toISOString(), tg: { topic, msg }, tt: 'cho' }); dang.add(c.khoa); them++;   // dau: dấu bộ việc (Khang — không xếp lại y nguyên)
   }
   return { st: { ...st, hang: hang.slice(-200) }, them };
 }
@@ -118,6 +124,12 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     assert.equal(st.ngay[ngayVN(t0)], 8, 'bộ đếm ngày vẫn đếm'); assert.equal(layViec(st, t0).ly_do, 'không có việc', 'hết việc thì nghỉ');
     { const s2 = { hang: [{ id: 1, khoa: 'lan:a', tt: 'cho' }, { id: 2, khoa: 'kenh:parody|x', tt: 'cho' }], ngay: {} }; assert.equal(layViec(s2, t0).viec.id, 2, 'việc kênh nhận trước'); }
     assert.strictEqual(themViec({ hang: [{ id: 1, khoa: 'lan:a', tt: 'xong' }] }, [{ khoa: 'lan:a', chu: 'tái phát' }]).them, 1, 'đã xong rồi tái phát: nhận lại');
+    { const xong = (n) => ({ hang: Array.from({ length: n }, (_, i) => ({ id: i + 1, khoa: 'etp:luat', tt: 'xong', xong: new Date(t0 - (i + 1) * 36e5).toISOString() })) });
+      const r2 = themViec(xong(2), [{ khoa: 'etp:luat', chu: 'tái phát' }], { luc: t0 });
+      assert.strictEqual(r2.them, 1, 'đã sửa 2 lần trong 24 giờ: còn một lượt'); assert.match(r2.st.hang.at(-1).chu, /LẶP/, 'lượt đó mang ghi chú LẶP');
+      assert.strictEqual(themViec(xong(3), [{ khoa: 'etp:luat', chu: 'tái phát' }], { luc: t0 }).them, 0, 'đã sửa 3 lần trong 24 giờ: thôi xếp (chặn vòng lặp)');
+      assert.strictEqual(themViec(xong(3), [{ khoa: 'etp:luat', chu: 'tái phát' }], { luc: t0 + 25 * 36e5 }).them, 1, 'quá 24 giờ: nhận lại');
+      assert.doesNotMatch(themViec(xong(1), [{ khoa: 'etp:luat', chu: 'tái phát' }], { luc: t0 }).st.hang.at(-1).chu, /LẶP/, 'mới sửa 1 lần: chưa ghi LẶP'); }
     { const xong = new Date(t0 - 36e5).toISOString(), ket = (dau) => ({ hang: [{ id: 1, khoa: 'social:sua|m', tt: 'ket', ket: 'can_anh', xong, ...(dau ? { dau } : {}) }] });
       assert.strictEqual(themViec(ket('a,b'), [{ khoa: 'social:sua|m', dau: 'a,b', chu: 'y nguyên' }], { luc: t0 }).them, 0, 'vừa kết không sửa được, cùng bộ việc → không xếp lại (chống vòng lặp)');
       assert.strictEqual(themViec(ket('a,b'), [{ khoa: 'social:sua|m', dau: 'a,b,c', chu: 'có bài mới' }], { luc: t0 }).them, 1, 'bộ việc đổi → nhận');

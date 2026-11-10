@@ -657,7 +657,8 @@ def _tv_the(cid):
     # khuôn thẻ = DANH SÁCH dòng [tên, số, ngưỡng, đạt] như _t8_the (09/11/2026 trả một dòng → _xet_luat chết "'bool' object is not subscriptable",
     # etp.xet_luat ngừng ghi 16:08 09/11 → 10/11 trang hiện chip tăng / tắt theo số cũ gần 20 giờ); lo = đúng / sai (camp có đang lỗ trong khung luật)
     x = _tv.get(int(cid)); nguong = f"chi trước {(TV_GIO + 7) % 24}h VN ({TV_GIO}h UTC) ≥ {TV_PHAN:.0%} ngân sách & ngày đó lỗ · NS ≥ ${TV_NS:g}"
-    dk = [[f"Ngày đã khép tiêu vống ({TV_NGAY} ngày gần nhất)", "chưa có số giờ" if not x else f"{x[0]}/{TV_NGAY} ngày", f"{TV_NGAY}/{TV_NGAY} ngày {nguong}", bool(x) and x[0] >= TV_NGAY]]
+    # ngưỡng ghi THẲNG trong tên điều kiện (anh 10/11/2026 "có ngưỡng thì phải ghi cụ thể vào đây"): bảng hover hẹp hay mất cột Ngưỡng
+    dk = [[f"{TV_NGAY} ngày đã khép liền: chi trước {(TV_GIO + 7) % 24}h VN ≥ {TV_PHAN:.0%} ngân sách VÀ ngày đó lỗ (camp ≥ ${TV_NS:g})", "chưa có số giờ" if not x else f"{x[0]}/{TV_NGAY} ngày", f"{TV_NGAY}/{TV_NGAY} ngày", bool(x) and x[0] >= TV_NGAY]]
     if x: dk.append(["Từng ngày", (x[3] or "—")[:90], nguong, x[0] >= TV_NGAY])
     return dk, ((x[2] - x[1]) < 0 if x and x[1] else None)
 

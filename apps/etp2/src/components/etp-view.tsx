@@ -36,7 +36,8 @@ const MA_BAN = /^[A-Za-z0-9_-]{8,64}$/;
 async function maBan(): Promise<string | null> { try { const r = await fetch('/etp/ban', { cache: 'no-store' }); if (!r.ok) return null; const m = (await r.text()).trim(); return MA_BAN.test(m) ? m : null; } catch { return null; } }
 async function lamMoiAnToan(router: { refresh: () => void }) { if (await maBan()) router.refresh(); }
 const ChiXem = createContext(false);
-const HoanCtx = createContext<ReturnType<typeof docHoan>>({ luc: null, cu: true, ds: new Map() });   // sổ hoãn khung đổi camp (máy ghi) — chip ⏳ + hàng khung tab Camp cùng đọc
+const HoanCtx = createContext<ReturnType<typeof docHoan>>({ luc: null, cu: true, ds: new Map() });
+const LsBacCtx = createContext<DuLieuEtp['lsBac']>({});   // lịch sử đổi bậc 30 ngày mọi camp — thẻ hover luật hiện kèm (anh 10/11/2026)   // sổ hoãn khung đổi camp (máy ghi) — chip ⏳ + hàng khung tab Camp cùng đọc
 /** người xem sửa được camp trong danh sách đang xem (admin etp xem chính tài khoản của mình — anh 31/10/2026 Sơn "được edit camp của Sơn") */
 // ĐIỀU KHIỂN CAMP NHÀ BẰNG TAY (#1553): chỉ chủ (admin mos2) đang xem camp Nhà — null = không hiện nút ⚙ · bo = các bộ tài khoản để nhân bản sang
 // LỊCH SỬ THAY ĐỔI của một camp cho tab 🕘 Lịch sử (anh 09/11/2026 "thêm lịch sử thay đổi vào đó"): lệnh tay etp2 (sổ chờ áp, 2 giờ) · bật / tắt (nhật ký luật) · bậc 30 ngày
@@ -509,7 +510,7 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   );
 }
 function ChipLuat(p: VaoLuat) {
-  const noi = useNoi<{ id: 0 }>(); const t = tinhLuat(p), hoan = useContext(HoanCtx), hoanDs = hoan.ds;
+  const noi = useNoi<{ id: 0 }>(); const t = tinhLuat(p), hoan = useContext(HoanCtx), hoanDs = hoan.ds, lsBac = useContext(LsBacCtx)[p.c.camp_id] ?? [];
   // CAMP ĐÃ TẮT THEO LUẬT → luật hiện ở CỘT LUẬT (anh 03/11/2026 "nếu tắt theo Luật thì show bên cột Luật"): chip ✕ <mã> đã tắt, hover = lý do có cấu trúc (kieuDung)
   const maTat = p.c.trang_thai && p.c.trang_thai !== 'ACTIVE' ? p.c.dong?.ma ?? null : null;
   if (maTat) return <ReDung c={p.c}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, padding: '0 6px', borderRadius: 4, border: '1px solid #7f1d1d', color: '#fca5a5', whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>✕ {maTat} đã tắt</span></ReDung>;
@@ -538,7 +539,9 @@ function ChipLuat(p: VaoLuat) {
           <span title={p.c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.ten ?? p.c.phim} · ${p.c.ngan_sach}</span></div>
         {lucT ? <div style={{ marginBottom: 6, color: '#4ade80' }}>⏳ Máy thực sự tăng sau <b>{chuT}</b> — {chiCong ? `chờ cổng nhịp tăng (${nhipT![1]}: cách lần tăng trước ≥ ${KD.nghi_gio} giờ, tiêu dồn ${KD.nghi_don_gio} giờ), rồi nhịp máy luật đầu tiên trong khung tăng` : khungLuc(gioVnNay()) === 'tang' ? 'nhịp máy luật kế' : `nhịp đầu sau khi khung tăng mở ${KD.tang[0]}:00`} (máy luật chạy {NHIP_PHUT} phút / lần, lần gần nhất {hoan.luc ? new Date(Date.parse(hoan.luc) + 7 * 3600_000).toISOString().slice(11, 16) : '—'} VN); điều kiện còn đạt lúc đó thì tăng</div> : null}
         {cho ? <div style={{ marginBottom: 6, color: 'var(--fg-2)' }}>⏳ Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc <b>{cho} VN</b>. Khung: {KD.tang[0]}–{KD.tang[1]}h tăng · {KD.giam[0]}–{KD.giam[1]}h giảm / tắt · {KD.sang[0]}–{KD.sang[1]}h chỉ nạp camp đã tiêu ≥ {KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ {KD.sang_roi}%.</div> : null}
-        <ThanLuat t={t} deXuat={p.deXuat} /></div></KhungNoi> : null}
+        <ThanLuat t={t} deXuat={p.deXuat} />
+        {/* LỊCH SỬ ĐỔI BẬC ngay dưới bảng luật (anh 10/11/2026 "phần hover này cũng cần show thêm lịch sử tăng bậc") — cùng dòng thời gian thẻ Lịch sử bậc (DongBac) */}
+        <div style={{ ...KHONG_GIAN, marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--line)' }}><b style={{ fontSize: 12 }}>Lịch sử đổi bậc · 30 ngày</b><DongBac ls={lsBac} /></div></div></KhungNoi> : null}
     </span>
   );
 }
@@ -2940,7 +2943,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   return (
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
-    <ChiXem.Provider value={chiXem}><HoanCtx.Provider value={hoanSo}>
+    <ChiXem.Provider value={chiXem}><HoanCtx.Provider value={hoanSo}><LsBacCtx.Provider value={du.lsBac ?? {}}>
     <PhamViLuu value={phamViNg(du)}><DieuKhienCtx.Provider value={quyen?.vai === 'chu' && !du.nguoi.ngoai ? { bo: Object.keys(du.boTk).sort(), cho: choMap, ls: lsCamp } : null}><SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
     <div ref={cuonRef} onScroll={(e) => { const h = heroRef.current; const g = !!h && e.currentTarget.scrollTop > (gon ? h.offsetTop + h.offsetHeight : 12); if (g !== gonHero) setGonHero(g); }} style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}@keyframes etpXoay{to{transform:rotate(360deg)}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>
@@ -3121,6 +3124,6 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     </div>
     </div>
     </SuaCampCtx.Provider></DieuKhienCtx.Provider></PhamViLuu>
-    </HoanCtx.Provider></ChiXem.Provider>
+    </LsBacCtx.Provider></HoanCtx.Provider></ChiXem.Provider>
   );
 }

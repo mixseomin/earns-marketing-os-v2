@@ -52,11 +52,15 @@ export const khongThayAnh = (o) => o?.thay_anh === false || /không (tìm )?th�
 /** sổ chấm ảnh của Ngọc, bỏ các mục "ảnh không tới" còn sót từ trước (để lượt này hỏi lại). */
 const docSoAnh = (tep) => { let so = {}; try { so = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* chưa có sổ */ } for (const k of Object.keys(so)) if (khongThayAnh(so[k])) delete so[k]; return so; };
 async function hoiNgoc({ luot, system, content, max_tokens = 200, cho = 60000 }) {
-  const coAnh = content.some((b) => b.type === 'image');
+  // content nhận CẢ chuỗi lẫn mảng khối: xetHookAi truyền một chuỗi (hook chỉ có chữ), các chỗ chấm ảnh truyền mảng
+  // [{type:'text'},{type:'image'}]. Trước đây gọi thẳng content.some() nên mọi lượt chấm có hook đều ném
+  // "content.some is not a function" và DỪNG CẢ DÂY CHUYỀN chấm bài (10/11/2026).
+  const khoi = Array.isArray(content) ? content : [{ type: 'text', text: String(content) }];
+  const coAnh = khoi.some((b) => b.type === 'image');
   if (coAnh) system += ' If no image reached you, reply {"thay_anh":false,"ly_do":"..."} and nothing else.';
   try {
     const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ngoc', 'x-cty-luot': `${luot}-${Date.now()}`, 'x-cty-phong': 'noi-dung' },
-      body: JSON.stringify({ model: MODEL_NGOC, max_tokens, temperature: 0, system, messages: [{ role: 'user', content }] }), signal: AbortSignal.timeout(cho) });
+      body: JSON.stringify({ model: MODEL_NGOC, max_tokens, temperature: 0, system, messages: [{ role: 'user', content: khoi }] }), signal: AbortSignal.timeout(cho) });
     const j = await r.json(); if (!r.ok) { console.error(`hỏi Ngọc (${luot}): proxy ${r.status} ${JSON.stringify(j).slice(0, 160)}`); return undefined; }
     const txt = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
     const o = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));

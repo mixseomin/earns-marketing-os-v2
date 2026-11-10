@@ -30,7 +30,7 @@ def main():
                 try: EA.api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [int(moi)], "status": "paused"}])
                 except Exception: pass
             sid = a.get("effective_object_story_id") or v.get("bai")
-            if sid: bai[str(v.get("goc"))] = {"bai": sid, "ly_do": str(loi)[:300], "luc": time.strftime("%H:%M %d/%m")}
+            if sid: bai[str(v.get("goc"))] = {"bai": sid, "ly_do": str(loi)[:300], "luc": time.strftime("%H:%M %d/%m", time.gmtime(time.time() + 7 * 3600))}   # luc: giờ VN
             ra.append({"camp": int(moi), "goc": v.get("goc"), "viec": "tu_choi", "chu": f"Meta / Ethopex từ chối camp ROAS {v.get('roas')} — camp đã dừng, không tốn tiền; máy không lên ROAS lại từ bài đăng này · lý do: {str(loi)[:160]}"})
             so.pop(moi); continue
         if c.get("sync_status") != "done":

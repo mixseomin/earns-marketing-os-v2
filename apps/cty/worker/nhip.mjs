@@ -78,6 +78,10 @@ export const VIEC_NHIP = {
     { ma: 'sua-may', ten: 'Spy - tự sửa máy cào (Claude trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/tho-may.mjs mỗi 5 phút: hàng worker/tho-may-viec.mjs (Phòng Tài nguyên xếp cảnh báo máy móc: làn đứng, box3 / VPS quá tải, thiếu RAM, daemon tắt; Phòng Nội dung xếp kênh máy đăng lỡ lượt thật — từ 25/10/2026) có việc → báo nhận dưới tin cảnh báo, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) quyền hẹp trong repo spy-on-tc + ssh box3 / VPS máy cào: đo, tìm gốc, sửa, kiểm, commit, deploy — tối đa 30 phút, rồi trả lời dưới tin cảnh báo (đã sửa / không sửa được / cần anh). Không giới hạn số lượt, mỗi lần một việc. Không nhận khoá 2proxy / tài sản (chuyện tiền).' },
   ],
+  'sua-social': [
+    { ma: 'sua-social', ten: 'Social - làm lại bài bị chặn (Claude · Khang trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
+      mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/social-sua.mjs mỗi 5 phút: hàng riêng của Khang (worker/tho-may-viec.mjs, THO_MAY_TEP=social-sua.json — Phòng Nội dung xếp sau mỗi lượt chấm: máy có bài chưa đăng bị SỬA LẠI quá 1 giờ) có việc → báo nhận trong 📂 Social Traffic, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) làm lại bài bằng đề mới cùng góc + dạng (may-dung --lam-lai-sua) hoặc sửa gốc máy sinh bài, kiểm, push, chấm lại, rồi trả lời dưới tin (anh 10/11/2026 "Phải có 1 con CLI phụ trách việc này").' },
+  ],
   'sua-may-etp': [
     { ma: 'sua-may-etp', ten: 'Ethopex - tự sửa lỗi máy (Claude · Huy trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/etp-sua.mjs mỗi 5 phút: hàng riêng của Huy (worker/tho-may-viec.mjs, THO_MAY_TEP=etp-sua.json — Phát xếp mỗi nhịp: lỗi máy luật, lệnh gửi Ethopex lỗi, thẻ xét luật đứng, camp ROAS đọc lại sai) có việc → báo nhận trong 📂 Ethopex, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) sửa phần Ethopex của repo mos2, kiểm, push, rồi trả lời dưới tin (anh 10/11/2026 "Phòng ETP này phải có 1 con riêng phụ trách").' },

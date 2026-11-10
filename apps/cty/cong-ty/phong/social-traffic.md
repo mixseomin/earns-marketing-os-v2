@@ -12,5 +12,10 @@ trang_thai: đang chạy · theo việc
 Phòng giữ phần kéo traffic từ mạng xã hội: xin và giữ quyền API của nền tảng (Pinterest trước tiên), lịch đăng, đo traffic về site.
 Việc thật đang do phiên Claude "Social Traffic" làm; Vân là người nhận việc trong cty.
 
+**Khang (Kỹ sư Social, Claude Code trên iMac, `apps/cty/may/social-sua.mjs` mỗi 5 phút):** phụ trách bài social bị Phòng Nội dung chặn. Sau mỗi lượt chấm, máy có bài
+chưa đăng bị SỬA LẠI quá 1 giờ thành một việc `social:sua|<máy>` trong hàng riêng của Khang (`social-sua.json`). Khang báo nhận trong chủ đề này, làm lại bài bằng đề mới
+cùng góc + dạng (`may-dung --lam-lai-sua`, cất bài cũ, tối đa 3 lần một chuỗi) hoặc sửa gốc máy sinh bài, chấm lại, rồi trả lời ngay dưới tin. Anh trả lời dưới tin của
+Khang = lệnh vào hàng của Khang. Máy đăng lỡ lượt vẫn là việc của Mạnh (thợ máy).
+
 **Đang chờ thư:** khai mỗi thứ phòng đang đợi một dòng `cho_thu: <mẫu> | <lý do>` ở phần đầu tệp này. Thư khớp mẫu (người gửi + tiêu đề +
 đầu thư) thì Kiên chuyển thẳng vào chủ đề 📂 Social Traffic. Hết chờ thì xoá dòng. Kiên chuyển sai phòng → bấm "↪️ Sai phòng" dưới thư.

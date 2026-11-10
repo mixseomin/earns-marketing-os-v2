@@ -434,34 +434,30 @@ export function tinChamDang(kq) {
 }
 
 /** Nhịp: chấm rồi báo Telegram chủ đề 📝 Nội dung khi có bài mới chấm. Gọi từ NHIP['kiem-bai'] (nhip.mjs). */
-/** TỰ LÀM LẠI BÀI SỬA LẠI (anh 10/11/2026: 9 bài Scam or Real? kẹt từ 01/11 không ai làm lại): máy có bài chưa đăng bị chặn CHỈ vì lỗi đề (hook / tiêu đề trùng / chưa gắn góc)
- *  → gọi may-dung.mts --lam-lai-sua (đề mới cùng góc + dạng, dựng, cất bài cũ; mỗi chuỗi tối đa 3 lần). Mỗi máy tối đa một lượt / giờ (sổ lam-lai-sua.json) để lượt chấm
- *  mỗi phút không gọi dồn; chữ AI vài chục đồng / đề. Trả các dòng kết quả để báo cùng tin chấm. */
-export async function lamLaiSua(sql, { nay = Date.now(), chay } = {}) {
-  const may = (await sql`SELECT DISTINCT m.ma FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE NOT coalesce(v.luu_tru, false) AND v.cham->>'ket' = 'SUA_LAI'
-    AND coalesce(v.da_dang, '{}'::jsonb) = '{}'::jsonb AND jsonb_array_length(coalesce(v.cham->'chan_cung', '[]'::jsonb)) > 0
-    AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements_text(v.cham->'chan_cung') c WHERE c !~ 'hook|tiêu đề trùng|chưa gắn góc|sửa quá xa')`).map((x) => x.ma);
-  if (!may.length) return [];
-  const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'lam-lai-sua.json');
-  const so = (() => { try { return JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { return {}; } })(), ra = [];
-  const goi = chay ?? ((ma) => { const { spawnSync } = require_('node:child_process'); const goc = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../..');
-    const r = spawnSync('bash', ['-lc', `cd ${goc} && set -a && . ./.env.production && set +a && cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/may-dung.mts --may ${ma} --lam-lai-sua --toi-da 5`], { encoding: 'utf8', timeout: 30 * 60_000, maxBuffer: 32 << 20 });
-    return `${r.stdout ?? ''}${r.status ? `\n✗ ${(r.stderr ?? '').trim().split('\n').slice(-2).join(' · ')}` : ''}`; });
-  for (const ma of may) {
-    if (!/^[a-z0-9-]+$/.test(ma) || nay - (so[ma] ?? 0) < 3600_000) continue;
-    so[ma] = nay; fs.mkdirSync(path.dirname(tep), { recursive: true }); fs.writeFileSync(tep, JSON.stringify(so));
-    const out = String(goi(ma)).trim(); if (out) ra.push(`<b>${esc(ma)}</b>\n${esc(out.split('\n').slice(-12).join('\n'))}`);
-  }
-  return ra;
+/** XẾP VIỆC CHO KHANG — KỸ SƯ SOCIAL (anh 10/11/2026: 9 bài Scam or Real? kẹt SỬA LẠI từ 01/11, không ai làm lại → "Phải có 1 con CLI phụ trách việc này.
+ *  Tham khảo thằng Thành (astrolas) và Huy (Ethopex)"): máy có bài CHƯA ĐĂNG, chưa cất, bị SỬA LẠI quá 1 giờ → một việc `social:sua|<máy>` vào hàng riêng của Khang
+ *  (tho-may-viec.mjs, social-sua.json); Khang (apps/cty/may/social-sua.mjs, Claude Code trên iMac) làm lại bài (may-dung --lam-lai-sua) hoặc sửa gốc máy sinh rồi báo dưới tin.
+ *  Một máy một việc đang chờ / đang làm (themViec không xếp đôi). Trả số việc vừa xếp. */
+export async function xepKhang(sql, { them } = {}) {
+  const ds = await sql`SELECT m.ma, count(*)::int AS n, string_agg(DISTINCT regexp_replace(c, ' \(.*$', ''), ' · ') AS ly_do, string_agg(DISTINCT v.slug, ', ') AS slug
+    FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id LEFT JOIN LATERAL jsonb_array_elements_text(coalesce(v.cham->'chan_cung', '[]'::jsonb)) c ON true
+    WHERE NOT coalesce(v.luu_tru, false) AND v.cham->>'ket' = 'SUA_LAI' AND coalesce(v.da_dang, '{}'::jsonb) = '{}'::jsonb AND (v.cham->>'luc')::timestamptz < now() - interval '1 hour'
+    GROUP BY m.ma ORDER BY m.ma`;
+  if (!ds.length) return 0;
+  const viec = ds.filter((x) => /^[a-z0-9-]+$/.test(x.ma)).map((x) => ({ khoa: `social:sua|${x.ma}`,
+    chu: `Máy ${x.ma}: ${x.n} bài chưa đăng bị Phòng Nội dung chặn SỬA LẠI quá 1 giờ.\nLý do: ${String(x.ly_do ?? '').slice(0, 600)}\nBài: ${String(x.slug ?? '').slice(0, 900)}` }));
+  if (them) return them(viec);
+  const { tgNoiDung } = await import('./kiem-bai.mjs'); const { topicPhong } = await import('./tg-phong.mjs'); const { tg } = await tgNoiDung();
+  const topic = await topicPhong('social-traffic', '📂 Social Traffic', tg);
+  const { themTuCanhBao, theoHang, HANG_KHANG } = await import('./tho-may-viec.mjs');
+  return theoHang(HANG_KHANG, () => themTuCanhBao(viec, { topic }));
 }
-const require_ = (await import('node:module')).createRequire(import.meta.url);
 
 export async function nhipChamDang() {
   const sql = await ketNoi();
   try {
     const kq = await chamMoi(sql);
-    const lai = await lamLaiSua(sql).catch((e) => [`✗ tự làm lại bài SỬA LẠI: ${esc(e.message)}`]);
-    if (lai.length) { const { tgNoiDung } = await import('./kiem-bai.mjs'); const { bao } = await tgNoiDung(); await bao(`🔁 <b>Ngọc [Nội dung]</b> · tự làm lại bài SỬA LẠI (đề mới cùng góc + dạng):\n${lai.join('\n')}`); }
+    await xepKhang(sql).catch((e) => console.error('✗ xếp việc Khang:', e.message));
     // báo Telegram chỉ khi có bài SỬA LẠI (xuất lại cả loạt đều DUYỆT thì mỗi phút một tin "toàn DUYỆT" chỉ là tiếng ồn — đo 18/10/2026); số vẫn vào nhật ký nhịp
     const vd = await soiMayDang(sql);
     if (kq.sua || vd.length) {
@@ -481,13 +477,11 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   const tot = { nen_url: 'https://images.pexels.com/photos/1/p.jpeg?w=1080', video_url: 'https://img.on.tc/v.mp4', xuat_luc: '2026-10-18',
     dang: { title: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds', description: 'Scam: fake deadline · asks for card by chat. Never pay through a link in a message. Call the hotel on its official number. Checklist: https://ratesbyroom.com/hotel-scam-check/', link: 'https://ratesbyroom.com/hotel-scam-check/', goc: { sp: 179, id: 1, loai: 'ai_noi_dau', ten: 'x' }, hook: { qc: '123', goc: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds' } } };   // mọi bài phải có góc + hook từ QC spy (31/10/2026)
   t.equal(doBaiDang(tot).ket, 'DUYET', 'bài đủ thì DUYỆT');
-  { // tự làm lại bài SỬA LẠI: mỗi máy một lượt / giờ, mã máy lạ không gọi lệnh, không máy nào thì không gọi
-    process.env.CTY_DATA_DIR = fs.mkdtempSync(path.join((await import('node:os')).tmpdir(), 'llsua-')); const goi = [];
-    const sqlGia = async () => [{ ma: 'scam-or-real' }, { ma: 'x; rm -rf /' }], chay = (ma) => { goi.push(ma); return '✓ a → b'; };
-    t.equal((await lamLaiSua(sqlGia, { nay: 10_000_000, chay })).length, 1); t.deepEqual(goi, ['scam-or-real'], 'mã máy lạ bị bỏ');
-    t.equal((await lamLaiSua(sqlGia, { nay: 10_000_000 + 60_000, chay })).length, 0, 'chưa đủ một giờ thì không gọi lại');
-    t.equal((await lamLaiSua(sqlGia, { nay: 10_000_000 + 3_700_000, chay })).length, 1, 'qua một giờ thì gọi lại');
-    t.deepEqual(await lamLaiSua(async () => [], { chay }), [], 'không có bài thì không gọi'); }
+  { // xếp việc Khang: một việc / máy, khoá social:sua|<máy>, mã máy lạ bỏ, không có bài thì không xếp
+    let ra = null; const sqlGia = async () => [{ ma: 'ratesbyroom-scam-or-real', n: 9, ly_do: 'hook mượn từ QC khác ngách', slug: 'a, b' }, { ma: 'x; rm -rf /', n: 1 }];
+    await xepKhang(sqlGia, { them: (v) => { ra = v; return v.length; } });
+    t.deepEqual(ra.map((x) => x.khoa), ['social:sua|ratesbyroom-scam-or-real']); t.ok(ra[0].chu.includes('9 bài') && ra[0].chu.includes('khác ngách'));
+    t.equal(await xepKhang(async () => [], { them: () => 99 }), 0, 'không có bài thì không xếp'); }
   t.ok(khongThayAnh({ ly_do: 'Không tìm thấy hình ảnh thumbnail đính kèm để đánh giá.' }) && khongThayAnh({ thay_anh: false }), 'ảnh không tới = không phải lời chấm (09/11/2026)');
   t.ok(!khongThayAnh({ ly_do: 'Không thấy lỗi nào, chủ thể rõ.' }) && !khongThayAnh(null), 'lời chấm thật vẫn giữ');
   t.ok(doBaiDang({ ...tot, de: { ket: ['MilitaryCalc', 'Xem công cụ tại militarycalc.com'] } }).chan_cung.some((x) => x.includes('trên màn')), 'chữ trên màn tiếng Việt = chặn (#740, 02/11/2026)');

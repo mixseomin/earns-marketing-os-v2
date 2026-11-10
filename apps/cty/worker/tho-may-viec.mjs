@@ -15,7 +15,8 @@ const TEP = () => `${DATA()}/${process.env.THO_MAY_TEP || 'tho-may.json'}`;
 export const TREO_PHUT = 45;
 // kenh: = dây chuyền KÊNH NỘI DUNG (kênh lịch sử, apps/xuong-video/scripts/lich-su — anh 03/11/2026: "thế này mà cho tự chạy … không có ai sửa à?"):
 // chay-kenh.mjs xếp `kenh:<kênh>|<tập>` khi một lượt làm tập hỏng
-export const LOAI_SUA = /^(lan|box3|vps|dang|kenh|anh|etp):/;   // etp: = lỗi máy Ethopex — hàng của Huy (THO_MAY_TEP=etp-sua.json), Phát xếp mỗi nhịp   // khoá cảnh báo thợ máy được nhận (xetCanhBao trong tai-nguyen.mjs · soiMayDang trong cham-dang.mjs · chay-kenh.mjs)
+export const LOAI_SUA = /^(lan|box3|vps|dang|kenh|anh|etp|social):/;   // social: = bài social kẹt SỬA LẠI — hàng của Khang (THO_MAY_TEP=social-sua.json), Phòng Nội dung xếp sau mỗi lượt chấm (anh 10/11/2026)
+// etp: = lỗi máy Ethopex — hàng của Huy (THO_MAY_TEP=etp-sua.json), Phát xếp mỗi nhịp   // khoá cảnh báo thợ máy được nhận (xetCanhBao trong tai-nguyen.mjs · soiMayDang trong cham-dang.mjs · chay-kenh.mjs)
 const ngayVN = (t = Date.now()) => new Date(t + 7 * 36e5).toISOString().slice(0, 10);
 
 /** Thuần — thêm việc cho các cảnh báo mới; bỏ khoá không thuộc thợ máy, bỏ khoá đang chờ / đang làm (không xếp đôi). */
@@ -78,6 +79,8 @@ export const viecCuaTin = (mid) => (doc().hang || []).find((v) => mid && (v.tin_
 /** Chạy fn (đồng bộ) trên HÀNG của một người: Mạnh = tho-may.json (mặc định), Huy (Ethopex) = etp-sua.json (anh 10/11/2026) — thư ký / Phát dùng chung, không tự đổi biến môi trường */
 export const theoHang = (tep, fn) => { const cu = process.env.THO_MAY_TEP; process.env.THO_MAY_TEP = tep; try { return fn(); } finally { if (cu === undefined) delete process.env.THO_MAY_TEP; else process.env.THO_MAY_TEP = cu; } };
 export const HANG_HUY = 'etp-sua.json';
+/** Khang · Kỹ sư Social (anh 10/11/2026: "Phải có 1 con CLI phụ trách việc này. Tham khảo thằng Thành (astrolas) và Huy (Ethopex)") — bài social kẹt SỬA LẠI */
+export const HANG_KHANG = 'social-sua.json';
 export const giaoAnh = (x) => { const r = themAnh(doc(), x); ghi(r.st); return r.viec; };
 export const themTuCanhBao = (ds, tg) => { const r = themViec(doc(), ds, tg); if (r.them) ghi(r.st); return r.them; };
 
@@ -88,7 +91,7 @@ async function tg(phuong, body) {
 }
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const traLoi = (v, html, them = {}) => tg('sendMessage', { ...them, parse_mode: 'HTML', text: html.slice(0, 3900), ...(v.tg?.topic ? { message_thread_id: v.tg.topic } : {}), ...(v.tg?.msg ? { reply_parameters: { message_id: v.tg.msg, allow_sending_without_reply: true } } : {}) });
-const tenViec = (v) => (String(v.khoa).startsWith('anh:') ? 'Lệnh anh' : String(v.khoa).startsWith('etp:') ? 'Huy · Ethopex tự sửa' : String(v.khoa).startsWith('kenh:') ? 'Kênh nội dung tự sửa' : String(v.khoa).startsWith('dang:') ? 'Máy đăng tự sửa' : 'Spy tự sửa máy cào');
+const tenViec = (v) => (String(v.khoa).startsWith('anh:') ? 'Lệnh anh' : String(v.khoa).startsWith('etp:') ? 'Huy · Ethopex tự sửa' : String(v.khoa).startsWith('social:') ? 'Khang · Social tự sửa' : String(v.khoa).startsWith('kenh:') ? 'Kênh nội dung tự sửa' : String(v.khoa).startsWith('dang:') ? 'Máy đăng tự sửa' : 'Spy tự sửa máy cào');
 const KET = { da_sua: '✅ Đã sửa', khong_sua: '⚠️ Không sửa được', can_anh: '🙋 Cần anh quyết', treo: '⏱ Hết giờ' };
 
 if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
@@ -100,6 +103,7 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     assert.strictEqual(themViec({}, [{ khoa: 'dang:lo|m|instagram', chu: 'lỡ' }]).them, 1, 'nhận lỡ lượt máy đăng');
     assert.strictEqual(layViec({ hang: [{ id: 1, khoa: 'lan:x', tt: 'cho' }, { id: 2, khoa: 'dang:lo|m|youtube', tt: 'cho' }] }).viec.id, 2, 'lỡ lượt đăng nhận trước việc cào');
     assert.strictEqual(themViec({}, [{ khoa: 'kenh:parody|tap-1', chu: 'hỏng ở bước viết' }]).them, 1, 'nhận lượt hỏng của kênh nội dung');
+    assert.strictEqual(themViec({}, [{ khoa: 'social:sua|ratesbyroom-scam-or-real', chu: '9 bài kẹt SỬA LẠI' }]).them, 1, 'nhận bài social kẹt (hàng Khang)');
     assert.strictEqual(themViec(st, [{ khoa: 'lan:doi_thu', chu: 'lại' }], { luc: t0 }).them, 0, 'khoá đang chờ: không xếp đôi');
     let r = layViec(st, t0); assert.strictEqual(r.viec.khoa, 'lan:doi_thu', 'lấy việc cũ nhất'); st = r.st;
     assert.strictEqual(layViec(st, t0 + 6e4).viec, null, 'đang có việc: không lấy thêm');

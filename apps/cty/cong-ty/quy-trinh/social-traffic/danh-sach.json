@@ -18,6 +18,23 @@
     "iMac:tc.on.cty.van-thu"
    ],
    "chi_phi": "gói thuê bao Claude Code; token mỗi lượt ghi nhật ký Vân"
+  },
+  {
+   "id": "sua-social",
+   "ten": "Làm lại bài social bị chặn (Claude Code trên iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền; chỉ gọi Claude khi hàng social-sua.json có việc",
+   "mo_ta": "Khang lấy một việc ở hàng riêng (Phòng Nội dung xếp sau mỗi lượt chấm: máy có bài chưa đăng bị SỬA LẠI quá 1 giờ; anh trả lời dưới tin của Khang cũng vào hàng này), kéo bản mới nhất origin/main, làm lại bài bằng đề mới cùng góc + dạng (may-dung --lam-lai-sua) hoặc sửa gốc máy sinh bài, kiểm, đẩy main (GHA deploy box3), chấm lại rồi báo dưới tin trong 📂 Social Traffic.",
+   "ma": "apps/cty/may/social-sua.mjs · hàng: apps/cty/worker/tho-may-viec.mjs (THO_MAY_TEP=social-sua.json) · lệnh: apps/xuong-video/scripts/may-dung.mts --lam-lai-sua",
+   "chu_tri": "khang",
+   "lam": [
+    "may"
+   ],
+   "khi": "khi hàng social-sua.json có việc",
+   "lich": [
+    "iMac:tc.on.cty.social-sua"
+   ],
+   "chi_phi": "gói Claude thuê bao (không tính theo lượt) + chữ AI vài chục đồng / bài làm lại"
   }
  ]
 }

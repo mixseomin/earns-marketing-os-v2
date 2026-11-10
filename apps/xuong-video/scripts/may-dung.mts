@@ -26,6 +26,7 @@
 //   --sinh-game <N>                dạng game Only ONE: tiêu đề theo KHUNG video thắng của kênh (≥ 500 lượt sau 7 ngày, đọc lại lượt xem YouTube trước) + góc spy dùng ít nhất → nạp + dựng, 0₫
 //   --sinh-kho <N>                 lấp kho VIDEO cho máy: N đề theo góc spy chưa dùng, dạng ra MP4 xoay vòng → nạp + dựng (TỐN TIỀN chữ AI — lô lớn duyệt qua Telegram)
 //   --tu-khoa | --viet-bai           stdin { goc [, cau_hoi, slug] } → JSON câu tìm Quora / câu trả lời (chữ AI rẻ ~1¢; nạp vẫn qua nap-bai.mjs) — puzzle-books sinh-bai.mjs gọi
+//   --lam-lai-sua [--toi-da N]     bài social SỬA LẠI chỉ vì lỗi đề (hook / tiêu đề trùng / chưa gắn góc) → đề mới cùng góc + dạng, dựng, cất bài cũ; tối đa 3 lần một chuỗi (chữ AI vài chục đồng / đề)
 //   --ke-hoach <YYYY-MM-DD>        in JSON ô KẾ HOẠCH GÓC của máy ngày đó [{ ho, nen, format, dang, goc, dich }] (ke_hoach_goc — mos2 tự sinh hằng tuần); máy đăng ưu tiên bài đúng góc + dùng link đích
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
@@ -247,6 +248,41 @@ if (a.includes('--nap')) {
     ra.push(`${x.ok ? '✓' : '⚠'} #${g.id} ${d} → ${kq.de.slug} (${Math.round(kq.vnd)}₫)${x.ok ? '' : ` · dựng ✗ ${x.loi}`}`); n++;
   }
   console.log(ra.join('\n')); console.log(`sinh kho ${ma}: ${n}/${N} đề, ${Math.round(vnd)}₫`);
+} else if (a.includes('--lam-lai-sua')) {
+  // TỰ LÀM LẠI BÀI SOCIAL BỊ SỬA LẠI (anh 10/11/2026: 9 bài Scam or Real? kẹt SỬA LẠI từ 01/11, không máy nào làm lại — máy kênh có vòng này, bài social thì không).
+  // Bài chưa đăng nền nào, chưa cất, Phòng Nội dung chặn CHỈ vì lỗi đề sửa được bằng đề mới (hook khác ngách / hứa sai / nhạt / sửa xa QC gốc, tiêu đề trùng, chưa gắn góc)
+  // → sinh đề mới CÙNG góc + CÙNG dạng với hook khác (kho đã qua Ngọc lọc; hook của bài cũ vẫn tính "đã dùng" nên không quay lại) → nạp + dựng → cất bài cũ (luu_tru, không xoá,
+  // dang.thay_bang = slug mới). Mỗi chuỗi tối đa 3 lần (dang.lam_lai), quá thì in ✗ để báo người. Chữ AI ckey vài chục đồng / đề (sinhJson tự gác ngưỡng tiền).
+  //   --lam-lai-sua [--toi-da N]   (mặc định 5 bài / lượt) — Phòng Nội dung (cty cham-dang.mjs › nhipChamDang) gọi sau mỗi lượt chấm
+  const N = Math.max(1, Math.min(20, Number(lay('--toi-da')) || 5)), m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
+  const SUA_DUOC = /hook|tiêu đề trùng|chưa gắn góc|sửa quá xa/;
+  const ds = ((await db.execute(sql`SELECT v.id, v.slug, v.mau, v.dang, v.cham->'chan_cung' AS chan FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)
+    AND v.cham->>'ket' = 'SUA_LAI' AND coalesce(v.da_dang, '{}'::jsonb) = '{}'::jsonb ORDER BY v.id`)) as unknown as { id: number; slug: string; mau: string | null; dang: Record<string, unknown> | null; chan: string[] | null }[])
+    .filter((v) => (v.chan ?? []).length && (v.chan ?? []).every((c) => SUA_DUOC.test(c)));
+  if (!ds.length) { console.log(`làm lại ${ma}: không có bài SỬA LẠI sửa được bằng đề mới`); process.exit(0); }
+  const { sinhDe } = await import('../src/lib/xuong-video/may-de');
+  const sp = await spCua(ma), { tt, gocs, hooksCho, hookDaDung } = await khoGocHook(ma, Number(m.id), sp);
+  if (tt.length && tt.every((t) => /^VN/i.test(t))) (sp as { ngon_ngu?: 'vi' }).ngon_ngu = 'vi';
+  const daDung = ((await db.execute(sql`SELECT dang->>'title' AS t FROM xv_may_video WHERE may_id = ${m.id} AND NOT coalesce(luu_tru, false)`)) as unknown as { t: string | null }[]).map((x) => x.t ?? '').filter(Boolean);
+  let vnd = 0, n = 0; const ra: string[] = [];
+  for (const v of ds) {
+    if (n >= N) break;
+    const lan = Number((v.dang as { lam_lai?: number } | null)?.lam_lai ?? 0);
+    if (lan >= 3) { ra.push(`✗ ${v.slug}: đã làm lại 3 lần vẫn SỬA LẠI — cần người xem (${(v.chan ?? []).join(' · ').slice(0, 160)})`); continue; }
+    const gocId = Number((v.dang as { goc?: { id?: number } } | null)?.goc?.id ?? 0);
+    const g = gocs.find((x) => x.id === gocId) ?? gocs[0]; if (!g) { ra.push(`✗ ${v.slug}: nhóm spy không còn góc`); continue; }
+    const hk = hooksCho(g, n); if (!hk.length) { ra.push(`· hết hook QC chưa dùng — dừng lượt (${ds.length - n} bài còn chờ)`); break; }
+    const kq = await sinhDe({ sp, goc: g, dang_bai: v.mau ?? 'so-sanh', daDung, hooks: hk }); vnd += kq.vnd;
+    if (!kq.ok) { ra.push(`✗ ${v.slug}: ${kq.loi}`); if (/TỐN TIỀN/.test(kq.loi)) break; continue; }
+    (kq.de.dang as Record<string, unknown>).lam_lai = lan + 1;
+    await napVideo(db, ma, [kq.de]); daDung.push(kq.de.dang.title ?? ''); const hq = (kq.de.dang as { hook?: { qc?: string } }).hook?.qc; if (hq) hookDaDung.add(hq);
+    const moi = ((await db.execute(sql`SELECT id FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${kq.de.slug}`)) as unknown as { id: number }[])[0];
+    const x = moi ? await xuatVideo(db, Number(moi.id)) : { ok: false as const, loi: 'không thấy dòng vừa nạp' };
+    if (!x.ok) { ra.push(`⚠ ${v.slug} → ${kq.de.slug}: dựng ✗ ${x.loi} — giữ bài cũ`); continue; }
+    await db.execute(sql`UPDATE xv_may_video SET luu_tru = true, dang = coalesce(dang, '{}'::jsonb) || jsonb_build_object('thay_bang', ${kq.de.slug}::text), updated_at = now() WHERE id = ${v.id}`);
+    ra.push(`✓ ${v.slug} → ${kq.de.slug} (lần ${lan + 1}, ${Math.round(kq.vnd)}₫) · hook: ${hk[0]?.page ?? ''}`); n++;
+  }
+  console.log(ra.join('\n')); console.log(`làm lại ${ma}: ${n}/${ds.length} bài, ${Math.round(vnd)}₫`);
 } else if (a.includes('--kho-hook')) {
   // CẢ KHO HOOK của máy (06/11/2026, kênh Astrolas: máy viết gọi --goc-hook một lần rồi dùng lại 6 câu cho mọi tập → 3/4 tập mở bằng cùng một câu):
   // in JSON { gocs[{ id, ten, qc_ids }], nhom[] (QC chạy lâu nhất, đã qua Ngọc lọc), qc_goc[] (QC gắn góc), da_dung[] (hook đã nằm trong bài đang chờ) } —

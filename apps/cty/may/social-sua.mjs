@@ -8,11 +8,16 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { cayRieng, MOS2_GOC } from './cay-rieng.mjs';
 
 if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`Khang chỉ chạy trên iMac (máy này: ${os.hostname()}) — Claude không giao diện bằng gói thuê bao chỉ iMac`); process.exit(3); }
 
 const BOX = 'root@167.233.241.16', APP = '/opt/earns-marketing-os-v2/apps/cty', DATA = '/var/lib/cty', NGUOI = 'khang', TEP = 'social-sua.json';
-const MOS2 = path.join(os.homedir(), 'Me/GitHub/earns-marketing-os-v2'), CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 30;
+const CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 30, thu = process.argv.includes('--thu');
+// CÂY REPO RIÊNG (may/cay-rieng.mjs, anh 10/11/2026 "chạy ổn định … tao ko phải tham gia"): sửa + commit trong worktree ~/may-ky-su/<người>, không đụng cây mos2 chính đang có việc dở
+// của các phiên khác. Kéo origin/main đầu lượt (chỉ fast-forward) — không được thì chưa nhận việc (việc vẫn chờ ở hàng).
+const cay = (() => { if (thu) return { dir: MOS2_GOC, do: [] }; try { return cayRieng(NGUOI); } catch (e) { console.log(`${new Date().toISOString()} chưa chuẩn bị được cây riêng, chưa nhận việc: ${String(e.stderr || e.message).split('\n')[0]}`); process.exit(0); } })();
+const MOS2 = cay.dir;
 // QUYỀN HẸP: sửa CHỈ phần bài social của repo mos2 (máy sinh / dựng bài apps/xuong-video/scripts + src/lib/xuong-video, mẫu apps/xuong-video/mau, tệp sự thật
 // apps/xuong-video/su-that, Phòng Nội dung chấm bài đăng apps/cty/worker/cham-dang.mjs); đọc + chạy lệnh box3 qua ssh; kiểm tĩnh; push (GHA deploy box3). Không web, không hỏi, không lan việc.
 const SUA = ['apps/xuong-video/scripts', 'apps/xuong-video/src/lib/xuong-video', 'apps/xuong-video/mau', 'apps/xuong-video/su-that'].map((d) => path.join(MOS2, d));
@@ -21,14 +26,13 @@ const SUA = ['apps/xuong-video/scripts', 'apps/xuong-video/src/lib/xuong-video',
 // Mở đúng các dạng đó (vẫn là danh sách cụ thể, không mở Bash trọn); CAM_BASH chặn hoàn tác git, xoá, đẩy mã ngoài GHA, trình duyệt, cài gói.
 const QUYEN = ['Read', 'Glob', 'Grep', ...SUA.flatMap((d) => [`Edit(/${d}/**)`, `Write(/${d}/**)`]), `Edit(/${MOS2}/apps/cty/worker/cham-dang.mjs)`,
   `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${MOS2}:*)`, `Bash(cd ${MOS2}/apps/:*)`, `Bash(git -C ${MOS2}:*)`,
-  'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git add apps/:*)', 'Bash(git commit:*)', 'Bash(git push origin main)',
+  'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git add apps/:*)', 'Bash(git commit:*)', 'Bash(git push origin HEAD:main)',
   `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`, 'Bash(node --check:*)', 'Bash(node apps/cty/:*)', 'Bash(node_modules/.bin/tsx apps/xuong-video/:*)', 'Bash(../../node_modules/.bin/tsx:*)',
   'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(diff:*)'];
 const CAM_BASH = ['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
   'rm', 'rmdir', 'rsync', 'scp', 'br', 'open', 'npm install', 'npm i', 'npx', 'brew', 'pip', 'launchctl', 'crontab', 'sudo', 'kill', 'pkill'].map((c) => `Bash(${c}:*)`);
 const CAM = [...CAM_BASH, 'AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate'];
 const ENV = { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}` };
-const thu = process.argv.includes('--thu');
 const box = (cmd, input) => { for (let i = 1; ; i++) { try { return execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', BOX, cmd], { encoding: 'utf8', timeout: 120000, input }); } catch (e) { if (i >= 3) throw e; } } };
 const viec = (args, input) => box(`cd ${APP} && CTY_DATA_DIR=${DATA} THO_MAY_TEP=${TEP} node worker/tho-may-viec.mjs ${args}`, input);
 const log = (s) => console.log(`${new Date().toISOString()} ${s}`);
@@ -38,9 +42,6 @@ if (JSON.parse(chinh.trim() || '{}')[NGUOI]?.bat === false) { log('Khang đang t
 const dm = (soul.match(/^model:.*$/m) || [''])[0], model = (dm.match(/claude-code:([\w.-]+)/) || [])[1] || 'opus', effort = (dm.match(/effort:(low|medium|high|max)\b/) || [])[1] || null;
 const git = (...a) => execFileSync('git', ['-C', MOS2, ...a], { encoding: 'utf8' }).trim();
 const tepDo = () => execFileSync('git', ['-C', MOS2, 'status', '--porcelain'], { encoding: 'utf8' }).split('\n').filter(Boolean).map((l) => l.slice(3));
-// SERVER LÀ CHUẨN (anh: "trước hết luôn phải pull bản mới nhất về"): kéo origin/main TRƯỚC khi nhận việc. Cây MOS2 trên iMac dùng chung với
-// việc nền xưởng video (studio-shot-code, lich-su-*) nên KHÔNG dọn tệp dở của chúng; chỉ fast-forward — không được thì chưa nhận việc (việc vẫn chờ ở hàng).
-if (!thu) { try { git('fetch', '-q', 'origin', 'main'); git('merge', '-q', '--ff-only', 'origin/main'); } catch (e) { log(`chưa kéo được bản mới nhất, chưa nhận việc: ${String(e.stderr || e.message).split('\n')[0]}`); process.exit(0); } }
 const doTruoc = new Set(tepDo());
 const r0 = thu ? (() => { const st = JSON.parse(box(`cat ${DATA}/${TEP} 2>/dev/null || echo '{"hang":[]}'`) || '{"hang":[]}'); const x = (st.hang || []).find((y) => y.tt === 'cho'); return x ? { viec: x } : { ly_do: 'không có việc' }; })()
   : JSON.parse(viec('--lay'));
@@ -64,8 +65,8 @@ HẠ TẦNG:
   · --ds, --xuat <slug>, --sinh-kho … (đọc đầu tệp scripts/may-dung.mts).
   Phòng Nội dung chấm lại: cd /opt/earns-marketing-os-v2/apps/cty && set -a && . ../../.env.production && set +a && CTY_DATA_DIR=/var/lib/cty node worker/cham-dang.mjs --chay
   Sổ: psql "$DATABASE_URL" — xv_may (máy, dang[] nơi đăng), xv_may_video (bài: mau = dạng, dang (title, hook, goc), cham (ket, chan_cung[]), da_dang, luu_tru).
-- Sửa ở iMac (repo ${MOS2}), lên box3 bằng git push origin main (GHA deploy ~2 phút; chờ bằng ${os.homedir()}/bin/gh-watch deploy.yml). KHÔNG rsync / scp mã lên box3.
-- Cây làm việc có tệp phiên khác đang sửa dở: chỉ git add đúng tệp chính bạn sửa.
+- Sửa ở iMac (repo ${MOS2}), lên box3 bằng git push origin HEAD:main (cây riêng của bạn trên nhánh ky-su/<tên>; GHA deploy ~2 phút; chờ bằng ${os.homedir()}/bin/gh-watch deploy.yml). KHÔNG rsync / scp mã lên box3.
+- Bạn làm trong CÂY RIÊNG ${MOS2} (không ai khác sửa ở đây): git add đúng tệp bạn sửa rồi commit + push, không để thay đổi nằm lại.${cay.do.length ? `\n- Cây riêng còn thay đổi CHƯA COMMIT từ lượt trước của chính bạn: ${cay.do.join(', ')} — kiểm rồi commit nếu đúng, sai thì sửa tới (không hoàn tác).` : ''}
 
 CÁCH LÀM:
 1. Đọc lý do chặn nguyên văn (cham.chan_cung) của từng bài trong việc. Phân loại: (a) lỗi đề sửa được bằng đề mới → chạy --lam-lai-sua cho máy đó, rồi chấm lại, đọc kết quả;
@@ -76,7 +77,7 @@ CÁCH LÀM:
    KHÔNG báo "bị chặn quyền" cho anh. CAN_ANH CHỈ khi: tiền AI trên 5.000₫ một lượt · tài khoản / nền tảng bị khoá, cảnh báo · phải xoá dữ liệu · phải nới CHUẨN CHẤM của Phòng Nội dung.
 2. Kiểm: node --check tệp đã sửa, node apps/cty/worker/cham-dang.mjs --tu-kiem nếu đụng phòng chấm, tsx các tệp *.test.mts liên quan; sau deploy chạy lại trên box3 và đọc sổ:
    bài mới DUYỆT chưa, còn bao nhiêu bài kẹt.
-3. git add đúng tệp + git commit (tiếng Việt: gốc + cách sửa) + git push origin main + gh-watch deploy.yml.
+3. git add đúng tệp + git commit (tiếng Việt: gốc + cách sửa) + git push origin HEAD:main + gh-watch deploy.yml.
 
 CẤM: đăng bài bằng tay / bấm đăng / viết script đăng riêng (một đường đăng: máy đăng dang-may.mjs tự lấy bài DUYỆT) · nới chuẩn chấm cho bài qua · xoá dữ liệu (cất = luu_tru, không DELETE)
 · git revert / reset / checkout · sửa tệp ngoài phần bài social · in khoá / token · mua / nạp tiền · lượt AI trên 5.000₫ (dừng, CAN_ANH kèm giá).
@@ -87,7 +88,7 @@ lời thường, không bảng, không dán lệnh dài, mỗi ý một dòng m�
 // danh sách quyền mà không báo — kỹ sư tưởng bị chặn rồi hỏi anh. Máy ghi lại (kq.permission_denials) và đưa vào lời giao lượt sau để kỹ sư gõ dạng khớp quyền.
 const TEP_TU_CHOI = path.join(os.homedir(), '.cache', `${NGUOI}-tu-choi.json`);
 const tuChoiCu = (() => { try { return JSON.parse(fs.readFileSync(TEP_TU_CHOI, 'utf8')); } catch { return []; } })();
-const loiGiaoDu = tuChoiCu.length ? `${loiGiao}\n\nLƯỢT TRƯỚC MÁY ĐÃ TỪ CHỐI các lệnh sau vì không khớp danh sách quyền (KHÔNG phải anh chặn, KHÔNG báo anh):\n${tuChoiCu.map((c) => `- ${c}`).join('\n')}\nGõ lại dạng khớp: mỗi lệnh bắt đầu bằng đúng tên lệnh được phép (git add apps/…, git commit …, git push origin main, ssh ${BOX} '…'), không gán biến tạm, không cd sang thư mục khác.` : loiGiao;
+const loiGiaoDu = tuChoiCu.length ? `${loiGiao}\n\nLƯỢT TRƯỚC MÁY ĐÃ TỪ CHỐI các lệnh sau vì không khớp danh sách quyền (KHÔNG phải anh chặn, KHÔNG báo anh):\n${tuChoiCu.map((c) => `- ${c}`).join('\n')}\nGõ lại dạng khớp: mỗi lệnh bắt đầu bằng đúng tên lệnh được phép (git add apps/…, git commit …, git push origin HEAD:main, ssh ${BOX} '…'), không gán biến tạm, không cd sang thư mục khác.` : loiGiao;
 if (thu) { console.log(loiGiaoDu); process.exit(0); }
 try { viec(`--nhan ${v.id}`); } catch (e) { log(`báo nhận lỗi: ${e.message.split('\n')[0]}`); }
 log(`nhận việc #${v.id} ${v.khoa} · model ${model}${effort ? ` · effort ${effort}` : ''}`);

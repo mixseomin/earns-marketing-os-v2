@@ -124,7 +124,9 @@ export function ghiNut(tg) {
     return j; };
 }
 /** Câu hỏi gửi anh: "anh quyết / cho / duyệt / chọn…", "… không?", dòng kết bằng "?" (bỏ thẻ HTML). */
-export const laCauHoi = (t) => { const c = String(t ?? '').replace(/<[^>]+>/g, ''); return /anh (quyết|cho (phép|tạo|làm|chạy)|duyệt|chọn|muốn|có (muốn|đồng ý))|\banh\b[^?\n]*\?\s*$/im.test(c); };   // chỉ câu nhắm tới ANH — dòng FAQ "Is it safe…?" trong tin báo không phải câu hỏi
+// "anh cho phép / cho tạo…" chỉ là câu hỏi khi dòng đó kết bằng "?" — tin báo "MÁY TỰ TĂNG — anh cho phép tới khi anh rút lại" là THÔNG BÁO việc đã làm, không gắn nút (anh 10/11/2026:
+// "tin nhắn qua Tele chỉ là dạng thông báo thì thêm 2 cái ở dưới để làm gì"); các cụm hỏi thẳng (anh quyết / duyệt / chọn / muốn / có đồng ý) giữ như cũ
+export const laCauHoi = (t) => { const c = String(t ?? '').replace(/<[^>]+>/g, ''); return /anh (quyết|duyệt|chọn|muốn|có (muốn|đồng ý))|\banh\b[^?\n]*\?\s*$/im.test(c); };   // chỉ câu nhắm tới ANH — dòng FAQ "Is it safe…?" trong tin báo không phải câu hỏi
 export const NUT_HOI = { inline_keyboard: [[{ text: '✅ Đồng ý', callback_data: 'hq:co' }, { text: '✖ Không', callback_data: 'hq:khong' }]] };
 const TEP_TRA = () => path.join(GOC_HOP(), 'da-tra-loi.json');
 /** Tin của anh đã có phòng trả lời (mọi bộ gửi bọc ghiNut tự ghi khi reply_parameters trỏ vào tin đó) — thư ký không trả lời trùng. */
@@ -290,6 +292,7 @@ if (process.argv[1]?.endsWith('tg-phong.mjs') && process.argv.includes('--tu-kie
     t.deepEqual(buocDon(so, 3000, 3000 + 15 * P), [1], 'đọc đủ 15 phút → xoá'); t.ok(!so[1] && so[2]);
     t.deepEqual(buocDon(so, 3000, 5000 + 48 * 3600_000), [2], 'quá 47 giờ thì bỏ khỏi sổ'); }
   { t.ok(laCauHoi('Khoá 2proxy …08wY còn 2.0 ngày — anh quyết gia hạn hay bỏ (máy không tự gia hạn)')); t.ok(laCauHoi('Phòng Kinh doanh chưa có chủ đề — em không tự tạo. Anh cho tạo không?'));
+    t.ok(!laCauHoi('🤖 <b>MÁY TỰ TĂNG</b> — anh cho phép tới khi anh rút lại, trần $20; đã đọc lại'), 'tin báo máy đã làm (anh cho phép …) không phải câu hỏi — không gắn nút');
     t.ok(!laCauHoi('box3 quá tải: CPU bận 95% suốt 30 phút qua')); t.ok(!laCauHoi('<b>Nguyên</b> · báo xong'));
     t.ok(!laCauHoi('Thiếu FAQ: "Is it safe to pay the hotel on WhatsApp?"\nKết luận: SỬA LẠI'), 'câu FAQ trích trong tin báo không phải câu hỏi'); t.ok(laCauHoi('Em làm tiếp phần B được không anh?'));
     const gui = []; const g = ghiNut(async (m, b) => { gui.push(b); return { ok: true, result: { message_id: 700, message_thread_id: 2424 } }; });

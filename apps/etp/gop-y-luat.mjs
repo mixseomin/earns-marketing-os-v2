@@ -4,6 +4,10 @@
 //   { card: <id>, tep: <tệp từ gốc repo>, mot | co | cam: '<chuỗi>', vi: '<anh muốn gì>' }   mot = đúng 1 lần · co = phải có · cam = không được có
 export const V = 'apps/web/src/components/etp-view.tsx';
 export const LUAT = [
+  { card: 'anh-tay-1011', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "'nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that'", vi: 'anh nhân bản tay trên etp2: máy không chặn bằng luật mềm, anh chịu trách nhiệm (anh 10/11/2026)' },
+  { card: 'anh-tay-1011', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'anh = "--anh" in a; ep = ep or anh', vi: 'cờ --anh đi như lệnh đích danh' },
+  { card: 'anh-tay-1011', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: "khoa = 'camp_anh_tay'", vi: 'camp anh nhân bản tay được đánh dấu (sổ camp_anh_tay)' },
+  { card: 'anh-tay-1011', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: 'camp mới ${chayLuc()}', vi: 'nhân bản tay báo rõ ngày giờ camp thực sự chạy' },
   { card: 'huy-1011', tep: 'apps/etp/manh.py', cam: '<b>Mạnh</b>', vi: 'tin máy Ethopex ký Huy (kỹ sư riêng phòng Ethopex), không ký Mạnh (anh 10/11/2026)' },
   { card: 'huy-1011', tep: 'apps/cty/worker/thu-ky.mjs', co: 'const vtHuy = theoHang(HANG_HUY, () => viecCuaTin(nc.hoi_mid));', vi: 'anh trả lời dưới tin của Huy = lệnh vào hàng Huy' },
   { card: 'hover-ngang-1011', tep: 'apps/web/src/components/etp-view.tsx', cam: "<td style={{ ...o, minWidth: 190 }}>{ten}</td>", vi: 'bảng xét luật trong hover không ép cột Điều kiện rộng tối thiểu — hết cuộn ngang (anh 10/11/2026)' },

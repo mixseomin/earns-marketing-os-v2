@@ -46,6 +46,13 @@ def api(duong, body=None):
 api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 js = lambda v: json.loads(v) if isinstance(v, str) and v.strip().startswith("{") else (v or {})
 BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))   # sổ luật chung: khung giờ lên camp (khung_doi.len)
+def chay_luc(lich, luc=None):
+    """LÚC CAMP THỰC SỰ CHẠY (anh 10/11/2026 "khi nhân bản phải ghi rõ ngày, giờ sẽ thực sự active"): today = ngay khi Ethopex / Meta đồng bộ xong · tomorrow = 07:00 VN hôm sau"""
+    now = luc or dt.datetime.now(dt.timezone.utc); vn = now + dt.timedelta(hours=7)
+    if lich == "today": return f"chạy ngay khi Ethopex / Meta đồng bộ xong (~2–20 phút, từ {vn:%H:%M %d/%m} giờ VN)"
+    mai = (vn + dt.timedelta(days=1)) if vn.hour >= int(BANG_LUAT["khung_doi"]["len"][0]) else vn
+    return f"hẹn chạy 07:00 {mai:%d/%m} giờ VN (ngoài khung lên {BANG_LUAT['khung_doi']['len'][0]}–{BANG_LUAT['khung_doi']['len'][1]}h)"
+
 def lich_len(_bo_qua=None, luc=None):
     """GIỜ LÊN CAMP — MỘT CHỖ cho mọi đường lên (dòng phim · worker phim mới / KT · nhân bản · ROAS · anh bấm tay). Anh 05/11/2026 chốt theo số toàn đội
     (apps/etp/phan-tich-gio.py mục D): đồng chi đầu rơi 08–12h VN lãi 72h +$2,85/camp, chiều +$1,25, tối +$0,13, đêm +$0,32 — Meta dồn 53–62% chi 24h đầu
@@ -454,8 +461,12 @@ def main(a):
     lich, luat, ai = lich_len(), lay("--luat"), lay("--ai")   # giờ chạy do lich_len quyết, --lich của nơi gọi không còn nghĩa (anh 05/11/2026)
     moi = {"creative": int(lay("--creative")), "content": int(lay("--content")), "ten": lay("--ten")} if lay("--creative") else None
     ep = "--ep" in a and bool(lay("--bo")); mien_cham = "--mien-cham" in a   # clone sang bộ khác theo lệnh anh — xem docstring
+    # ANH NHÂN BẢN TAY (--anh, nút etp2 — anh 10/11/2026 "nếu tao nhân bản bằng tay thì mày không được phép chặn. Đánh dấu camp đó lại, tao chịu trách nhiệm"):
+    # đi như lệnh đích danh (ep): bỏ trần phim / ngân sách gốc / trần đoạn / cổng chấm / trần camp ngày; CHỈ còn dừng khẩn (anh tự bật) và cổng tài khoản nhà + $ của API.
+    # Camp mới vào sổ etp.cau_hinh 'camp_anh_tay' (anh chịu trách nhiệm) + kq.chay_luc = lúc camp thực sự chạy.
+    anh = "--anh" in a; ep = ep or anh
     nac = "--nac" in a   # NHÂN THEO NẤC (anh 07/11/2026, luật NB hai nấc trong luat-ethopex): gốc tiêu ≥ $10/+50% hay $45/+100% → không đòi ngân sách gốc ≥ nb_ns_goc
-    bo = lay("--bo"); thang = float(lay("--thang")) if lay("--thang") else None
+    bo = lay("--bo"); thang = float(lay("--thang")) if lay("--thang") else None; bo_doi = bool(lay("--bo"))
     if thang and (moi or thang not in THANG_MUC): raise SystemExit(f"--thang phải là một trong {sorted(THANG_MUC)} và không đi kèm --creative")
     if moi and not (moi["content"] and moi["ten"]): raise SystemExit("--creative cần kèm --content và --ten")
     roas = float(lay("--roas")) if lay("--roas") else None
@@ -511,7 +522,7 @@ def main(a):
             except Exception: bh = ""
             if bh: kq["canh_bao"] = f"phim {cid} đang bão hoà — {bh} (chỉ cảnh báo)"
         ad0 = pl["campaign"]["ad_groups"][0]["ads"][0]; cr = ad0["creative_id"]
-        if ep: kq["viec"] = "sang_bo"
+        if ep: kq["viec"] = "nhan_ban" if anh and not bo_doi else "sang_bo"
         elif not moi:   # clone GIỮ NGUYÊN creative gốc tới trần TRAN_DOAN camp chạy / đoạn (anh 28/10/2026); đoạn đã đủ trần → creative khác cùng phim
             if dem_doan(cr) >= TRAN_DOAN:
                 # TẠM DỪNG CLONE SANG CREATIVE KHÁC (anh 02/11/2026 duyệt review luật: 74 clone đổi creative ROI −1%, clone giữ creative +46%) tới hết
@@ -536,7 +547,7 @@ def main(a):
             ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}
         kq["content"], kq["creative"] = cid, ad0["creative_id"]   # nhật ký mang phim + creative → dem_dang_chay đếm được camp vừa tạo chưa vào kho
         ly = cham_sach(ad0["creative_id"])   # cổng chấm: creative cuối cùng phải SẠCH
-        if ly and ep and mien_cham: kq["mien_cham"] = ly; ly = None   # --mien-cham chỉ đi cùng --ep (lệnh đích danh của anh)
+        if ly and ep and (mien_cham or anh): kq["mien_cham"] = ly; ly = None   # --mien-cham chỉ đi cùng --ep (lệnh đích danh của anh) · --anh: anh chịu trách nhiệm
         # CLONE BỊ CỔNG CHẤM CHẶN → THAY CREATIVE HOẶC BỎ (anh 07/11/2026 "bỏ hoặc thay creative luôn"): creative khác cùng phim chấm sạch, chưa có camp thì dùng
         # (đè tạm dừng đổi creative tới CLONE_KHAC_CR_DEN — chỉ ca bị chấm chặn); không có thì bỏ qua lặng: nhật ký vẫn ghi, tin 🧬 không báo lỗi (kq.bo_qua)
         if ly and not moi and not ep:
@@ -554,6 +565,7 @@ def main(a):
         # CỔNG đọc NGÂN SÁCH THẬT sẽ gửi (payload sau A/B), không phải số giả định — 08/11/2026 cổng nhận "1" trong khi payload mang $3 của nhánh AB01
         ns_gui = thang or float((pl["campaign"].get("source_payload") or {}).get("daily_budget") or 1)
         ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, ns_gui, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, lenh_anh=ep, bac=bool(thang))
+        if ly and anh and "DỪNG KHẨN" not in ly: kq["anh_bo_qua"] = ly; ly = None   # anh nhân bản tay: luật mềm chỉ ghi lại, không chặn
         if ly: raise ChanLuat(ly)
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
@@ -571,6 +583,11 @@ def main(a):
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": int(thang)}}}); time.sleep(8)
             kq["ns"] = api(f"/api/v1/campaigns/{moi}")["campaign"].get("budget_daily")
         if kq["ok"] and tn: ab_ghi(moi, tn)
+        kq["chay_luc"] = chay_luc(lich)
+        if kq["ok"] and anh:   # ĐÁNH DẤU camp anh nhân bản tay — anh chịu trách nhiệm (10/11/2026)
+            q("insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('camp_anh_tay', '{}'::jsonb, 'camp anh nhân bản tay trên etp2 — anh chịu trách nhiệm, máy không chặn lúc tạo', 'nhan-ban.py') on conflict (khoa) do nothing")
+            j = json.dumps({str(moi): {"goc": int(goc), "luc": dt.datetime.now(dt.timezone.utc).isoformat(), "chay": kq["chay_luc"], "bo_qua": kq.get("anh_bo_qua")}}, ensure_ascii=False).replace("'", "''")
+            q(f"update etp.cau_hinh set gia_tri = gia_tri || '{j}'::jsonb, luc = now() where khoa = 'camp_anh_tay'")
         if kq["ok"] and not NGOAI:
             ghi_bo(cid, bo)
             try: kq["lich"] = lich_ap(moi, cid)

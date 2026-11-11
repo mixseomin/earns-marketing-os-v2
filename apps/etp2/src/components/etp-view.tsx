@@ -2163,7 +2163,10 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   const conHet = useMemo(() => { const m = new Map<number, CampEtpKho[]>(); for (const c of du.camps) if (c.goc) m.set(c.goc, [...(m.get(c.goc) ?? []), c]); return m; }, [du.camps]);   // đếm cả bản đã tắt / bị bộ lọc giấu
   const giongHet = (c: CampEtpKho): number => { let n = 0; const di = (id: number) => { for (const x of conHet.get(id) ?? []) { if (x.creative_id === c.creative_id) n++; di(x.camp_id); } }; di(c.camp_id); return n; };
   // Ô CREATIVE — MỘT bản cho dòng cây điện thoại / lưới cũ và cột Creative của bảng (anh 29/10/2026 #1476: bản chép tay ở bảng mất mã + điểm chấm + ×N đã sửa ở #1465 #1474)
-  const oCr = (c: CampEtpKho) => { const cr = c.creative_id ? anhCr.get(c.creative_id) : undefined; return (
+  const oCr = (c: CampEtpKho) => { const cr = c.creative_id ? anhCr.get(c.creative_id) : undefined;
+    // USED POST (#1561, anh 12/11/2026 — luật Ethopex 11/11 "nhân bản phải kèm used post"): bản nhân bài cũ không có creative riêng → trước hiện ô xám "chưa chấm", anh tưởng máy không dùng
+    if (!c.creative_id && / bai-cu /.test(c.ten)) return <span data-cot="creative" title={`USED POST — ad dùng lại bài đăng của camp gốc${c.goc ? ` #${c.goc}` : ''} (giữ tương tác), không đăng creative mới`} style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 6px', border: '1px solid #4ade80', borderRadius: 4, color: '#4ade80', fontSize: 10.5, whiteSpace: 'nowrap' }}>used post</span>;
+    return (
           <span data-cot="creative" onMouseEnter={c.creative_id && moCr ? (e) => moCr(c.creative_id!, e) : undefined} onMouseLeave={dongCr}
             onClick={c.creative_id && moCr ? (e) => { e.stopPropagation(); e.preventDefault(); moCr(c.creative_id!, e); } : undefined} title={`cr #${c.creative_id ?? '?'}${c.doan ? ` · đoạn ${c.doan.split(':')[1] ?? ''}s` : ''}`} style={{ cursor: c.creative_id ? 'zoom-in' : undefined,  display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
             {cr?.anh ? <img src={cr.anh} alt="" style={{ width: 14, height: 24, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: 14, height: 24, background: 'var(--line)' }} />}

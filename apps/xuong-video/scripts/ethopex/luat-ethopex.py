@@ -468,7 +468,7 @@ try:
         for _ in range(max(0, thieu)):
             if dang_chay.get((p, tk_cua.get(cid)), 0) >= TRAN_PHIM_CHAY or ban_phim.get(p, 0) >= NB_PHIM_NGAY: break
             dang_chay[(p, tk_cua.get(cid))] = dang_chay.get((p, tk_cua.get(cid)), 0) + 1; ban_phim[p] = ban_phim.get(p, 0) + 1
-            nb.append((cid, f"#{a['ten'][:70]} · {rd(cid)} {r:+.0f}% · tiêu ${a['chi']:.2f} · ROI 3 ngày {g3:+.0f}% → nấc {'2' if muc == 6 else '1'}: đủ {muc} bản, đã {ban_tong.get(cid, 0)} → nhân 1 bản $1 (phim {p}: {dang_chay[(p, tk_cua.get(cid))]}/{TRAN_PHIM_CHAY} camp chạy ở tài khoản này)"))
+            nb.append((cid, f"#{a['ten'][:70]} · {rd(cid)} {r:+.0f}% · tiêu ${a['chi']:.2f} · ROI 3 ngày {g3:+.0f}% → nấc {'2' if muc == 6 else '1'}: đủ {muc} bản, đã {ban_tong.get(cid, 0)} → nhân 1 bản used post (dùng lại bài đăng camp gốc) (phim {p}: {dang_chay[(p, tk_cua.get(cid))]}/{TRAN_PHIM_CHAY} camp chạy ở tài khoản này)"))
 except Exception as e:
     loi_may.append((0, f"luật NB lỗi: {str(e)[:80]}"))
 # CHỈ CAMP ĐANG BẬT mới vào danh sách tăng / giảm (22/10/2026: bảng đề xuất tăng #65648 SIMP NO MORE đã tắt vì phim cấm — máy tự tăng vẫn từ chối camp PAUSED,
@@ -1370,7 +1370,7 @@ def _xet_luat():
             # GIẢM BẬC — đã bỏ (anh 29/10/2026 "làm 1+2"): không còn trong bản xét; camp lỗ liền xem luật L3
             ls.append(L_roas(cid, a, rg))
             if not b2:
-                ls.append(L("nb", "Nhân bản camp thắng (NB)", f"Hai nấc theo cách Kiên (anh 07/11/2026): " + " · ".join(f"tiêu ≥ ${c:g} & ROI ≥ +{m}% → đủ {n} bản" for c, m, n in reversed(NB_NAC)) + f"; mỗi phim tối đa {NB_PHIM_NGAY} bản / 24 giờ; cần ROI 3 ngày gần ≥ {NB_ROI3}%; không đòi ngân sách gốc (mốc ${TRAN_NB:g} chỉ còn cho nhân bản tay) → bản $1 GIỮ NGUYÊN creative (đoạn đã đủ {TRAN_DOAN_} camp chạy mới đổi creative khác cùng phim).",
+                ls.append(L("nb", "Nhân bản camp thắng (NB)", f"Hai nấc theo cách Kiên (anh 07/11/2026): " + " · ".join(f"tiêu ≥ ${c:g} & ROI ≥ +{m}% → đủ {n} bản" for c, m, n in reversed(NB_NAC)) + f"; mỗi phim tối đa {NB_PHIM_NGAY} bản / 24 giờ; cần ROI 3 ngày gần ≥ {NB_ROI3}%; không đòi ngân sách gốc (mốc ${TRAN_NB:g} chỉ còn cho nhân bản tay) → bản USED POST (nhan-ban.py: ad dùng lại bài đăng của camp gốc, giữ tương tác — luật Ethopex 11/11/2026, ${CONG.NS_BAI_CU:g}/ngày); chỉ khi đoạn đã đủ {TRAN_DOAN_} camp chạy phải đổi creative khác cùng phim mới đăng bài mới $1.",
                     [[f"Nấc {i}: chi ≥ ${c:g} & ROI ≥ +{m}%", f"${a.get('chi', 0):.2f} · " + f(r, "%"), f"đủ {n} bản", nb_muc(a.get("chi", 0), r) >= n] for i, (c, m, n) in enumerate(reversed(NB_NAC), 1)] + [
                      ["ROI 3 ngày gần", f(rg, "%"), f"≥ {NB_ROI3}%", rg is not None and rg >= NB_ROI3]],
                     "nb" if int(cid) in vao["nb"] else None))

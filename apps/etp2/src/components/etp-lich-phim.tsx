@@ -69,7 +69,7 @@ function KhoiThang({ c, hoan, H }: { c: CampThang; hoan: boolean; H: (n: React.R
     {H('Nhân bản', c.la_ban ? <span style={{ color: 'var(--fg-3)' }} title="bản nhân không làm gốc nhân tiếp (vẫn lên bậc như camp thường)">bản nhân</span>
       : <div style={GON} title={[...nac.map(([ch, m, n], i) => `nấc ${i + 1}: ${Math.min(c.ban, n)}/${n} bản · chi ${tien(c.chi30)} / $${ch} · ROI ${pc(r30)} / +${m}% ${c.chi30 >= ch && r30 != null && r30 >= m ? '✓' : '○'}`),
         `ROI 3 ngày ${pc(r3)} / ≥ ${NB.roi3}% ${r3Dat ? '✓' : '○'}`,
-        roasTruoc ? 'đủ lãi lên ★ ROAS → máy lên ROAS trước, nhân bản sau' : muc > c.ban ? (r3Dat ? `🤖 máy nhân thêm ${muc - c.ban} bản $1 ở nhịp kế (mỗi phim tối đa ${NB.phim_ngay} bản / 24 giờ)` : 'đủ nấc nhưng ROI 3 ngày chưa đạt → chưa nhân')
+        roasTruoc ? 'đủ lãi lên ★ ROAS → máy lên ROAS trước, nhân bản sau' : muc > c.ban ? (r3Dat ? `🤖 máy nhân thêm ${muc - c.ban} bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế (mỗi phim tối đa ${NB.phim_ngay} bản / 24 giờ)` : 'đủ nấc nhưng ROI 3 ngày chưa đạt → chưa nhân')
           : muc ? `đã đủ ${c.ban} bản của nấc hiện tại` : '🤖 máy tự nhân khi chạm nấc 1'].join('\n')}>
         {nac.map(([ch, m, n], i) => <span key={n} style={{ marginRight: 8 }}>nấc {i + 1} <Dat ok={c.chi30 >= ch && r30 != null && r30 >= m} /></span>)}
         <span style={{ marginRight: 8 }}>3 ngày <Dat ok={r3Dat} /></span><b style={{ color: 'var(--fg-1)' }}>{c.ban}/{nac[nac.length - 1]?.[2] ?? 0} bản</b>

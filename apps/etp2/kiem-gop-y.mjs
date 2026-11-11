@@ -53,6 +53,8 @@ const LUAT = [
   { card: 1556, tep: 'apps/etp2/src/components/etp-view.tsx', cam: '{p}% NS</span>', vi: 'Tổng quan 2: chỉ vạch % ngân sách, không in chữ % NS — rê mới hiện (anh 11/11/2026)' },
   { card: 'mo-1011', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "interval '90 minutes'", cam: "from etp.xet_luat where luc > now() - interval '30 minutes'", vi: 'thẻ máy giữ 90 phút: nhịp máy luật dài không làm trang tự tính trái máy' },
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "(c) => (c.ban || c.giong ? [", vi: 'loại creative có dòng con theo biến thể (PO.1, ATT.KD…)' },
+  { card: 1561, tep: 'apps/etp2/src/components/etp-view.tsx', co: "if (!c.creative_id && / bai-cu /.test(c.ten)) return <span data-cot=\"creative\" title={`USED POST", vi: 'Cây: bản nhân dùng bài cũ hiện nhãn used post thay ô creative xám "chưa chấm" (anh 12/11/2026)' },
+  { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },
 ];
 
 const loi = [];

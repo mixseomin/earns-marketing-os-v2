@@ -78,6 +78,9 @@ export const dichCua = (m) => [...String(m.chu).matchAll(/→ \$(\d+)/g)].pop()?
 export const giuGocRoas = (ds) => (!ds.some((r) => r.ok) && ds.every((r) => !r.may && r.loi) ? String(ds[0].loi).slice(0, 120) : null);
 export const chuChay = (ds, [a, b] = BANG_LUAT.khung_doi.len.map((x) => String(x).padStart(2, '0'))) => (ds.length && ds.every((r) => r?.chay === 'today') ? `chạy ngay (tạo trong khung ${a}–${b}h VN)`
   : ds.length && ds.every((r) => r?.chay === 'tomorrow') ? 'chạy từ 07:00 VN hôm sau' : `chạy theo khung lên ${a}–${b}h VN`);
+/** loại bản nhân theo KẾT QUẢ nhan-ban.py (kq.bai_cu = mã bài đăng dùng lại, kq.ns = ngân sách thật) — anh 12/11/2026 #1561: tin ghi cứng "bản mới $1" nên anh tưởng máy không dùng used post */
+export const kieuNb = (ds) => { const ok = ds.filter((r) => r?.ok), bai = ok.filter((r) => r.bai_cu), moi = ok.filter((r) => !r.bai_cu), ns = (x, m) => [...new Set(x.map((r) => `$${r.ns ?? m}`))].join('/');
+  return [bai.length ? `${bai.length} bản USED POST (dùng lại bài đăng camp gốc) ${ns(bai, '?')}` : '', moi.length ? `${moi.length} bản bài mới ${ns(moi, 1)} (đổi creative / khác bộ)` : ''].filter(Boolean).join(' · ') || 'không tạo được bản nào'; };
 /** ngưỡng ROI hôm nay để được nạp trong khung chỉ-nạp ('sang' 07–15h); null = khung không nạp (tang: tăng đủ luật · giam / bang: không tăng) */
 export const roiNap = (khung, KD = BANG_LUAT.khung_doi) => (khung === 'sang' ? Number(KD.sang_roi) : null);
 export function gopCamp(ds) {
@@ -615,7 +618,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     if (!r.bo_qua) daNb.push({ m, r });   // clone bị cổng chấm chặn, phim không có creative thay → bỏ, không báo lỗi (anh 07/11/2026)
   }
   if (daNb.length) {
-    const dong = bangViec(daNb.map(({ m, r }) => ({ m, doi: `→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng') + `\n<i>bản mới $1 · ${chuChay(daNb.map(({ r }) => r))}</i>`;
+    const dong = bangViec(daNb.map(({ m, r }) => ({ m, doi: `→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng') + `\n<i>${kieuNb(daNb.map(({ r }) => r))} · ${chuChay(daNb.map(({ r }) => r))}</i>`;
     await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ${NB_LUAT_CHU}; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
     gui++;
   }
@@ -765,6 +768,10 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
 }
 
 if (process.argv.includes('--tu-kiem')) {
+  { const { strict: a } = await import('node:assert');   // #1561: tin nhân bản nói đúng loại bản theo kết quả nhan-ban
+    a.equal(kieuNb([{ ok: true, bai_cu: '1_2', ns: 2 }, { ok: true, bai_cu: '1_2', ns: 2 }]), '2 bản USED POST (dùng lại bài đăng camp gốc) $2', '#1561: bản bài cũ phải hiện USED POST, không ghi cứng $1');
+    a.equal(kieuNb([{ ok: true, bai_cu: '1_2', ns: 2 }, { ok: true, ns: 1 }, { ok: false }]), '1 bản USED POST (dùng lại bài đăng camp gốc) $2 · 1 bản bài mới $1 (đổi creative / khác bộ)');
+    console.log('✓ kieuNb (#1561)'); }
   { const { strict: a } = await import('node:assert');
     a.equal(tenPhim('2010 SIMP NO MORE EN - canh that 0-86s · $1 → $2'), 'simp no more'); a.equal(tenPhim('#65735: 2110 Atras No te metas con ese vagabundo ES - canh that'), 'atras no te metas con ese vagabundo');
     const kq = { tang: [{ id: 1, chu: '#65648: 2010 SIMP NO MORE EN - canh that · $1 → $2' }, { id: 2, chu: '#65735: 2110 Number One Nobody EN - canh' }], luc: 'x' };

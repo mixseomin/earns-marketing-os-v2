@@ -1152,4 +1152,7 @@ export const LUAT = [
   { card: 'chat', tep: 'apps/web/src/lib/actions/etp-tim.ts', co: "if (!qu || qu.vai === 'nguoi' || k.length < 3) return [];", vi: 'tìm camp người khác: vai người không được biết camp người khác' },
   { card: 1550, tep: V, co: "data-cot={`${cot}-ns`}", vi: 'ô hôm nay có vạch xanh % ngân sách đã tiêu (cùng màu đường chi cộng dồn / NS của biểu đồ giờ)' },
   { card: 1550, tep: V, co: '<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} ns={c.ngan_sach} ', vi: 'ô hôm nay của dòng camp truyền ngân sách cho vạch % tiêu' },
+  { card: 1561, tep: 'apps/cty/worker/ethopex.mjs', co: '`\\n<i>${kieuNb(daNb.map(({ r }) => r))} · ', cam: '`\\n<i>bản mới $1 · ', vi: 'tin Telegram nhân bản camp thắng ghi loại bản theo kết quả nhan-ban (USED POST $2 / bài mới $1), không ghi cứng "bản mới $1" (anh 12/11/2026)' },
+  { card: 1561, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '→ nhân 1 bản used post (dùng lại bài đăng camp gốc)', cam: '→ nhân 1 bản $1 (phim {p}:', vi: 'dòng luật NB nói rõ bản nhân dùng used post' },
+  { card: 1561, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '→ bản USED POST (nhan-ban.py: ad dùng lại bài đăng của camp gốc', cam: '→ bản $1 GIỮ NGUYÊN creative', vi: 'mô tả luật NB (thẻ / trang) nói used post, không còn "bản $1 giữ creative"' },
 ];

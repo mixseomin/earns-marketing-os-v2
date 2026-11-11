@@ -719,15 +719,16 @@ def _t8_the(cid):
 # (ngày đã khép, kho etp.so_ngay) có ít nhất MỘT ngày trọn không chi = camp đã đứng ≥ 24 giờ (tắt rồi bật lại, hoặc Meta ngừng phân phối) → tắt hẳn như T2,
 # không xét lãi lỗ (anh lệnh). Đo 29/10: 11/326 camp đang chạy dính, cùng nghỉ 23–25/10. Camp ROAS không áp (_bo_roas).
 tat_d24 = []
+_D24_TH = {}   # camp → (số ngày có chi, ngày trọn không chi) TÍNH TRƯỚC khi bỏ ngày thị trường xấu — thẻ xét D24 đọc đúng số này (11/11/2026: thẻ đọc _ng đã cắt 28–30/10 → 10 camp lãi hiện ✕ D24 giả)
 try:
     _hq = dt.date.fromisoformat(d(1)); _ng = {}
     for _l in q(f"select s.camp_id, s.ngay, s.chi, s.thu, coalesce(s.ngan_sach, 0), coalesce(c.ten, '') from {K_SO} s left join {K_CAMP} c using (camp_id) where s.ngay < '{d(0)}' and s.chi > 0 order by s.camp_id, s.ngay").splitlines():
         _p = _l.split("|", 5)   # (ngày, chi, thu, ngân sách ngày đó — L3 đo ngưỡng chi theo nó)
         if len(_p) == 6 and _p[0].isdigit(): _ng.setdefault(int(_p[0]), [_p[5], []])[1].append((dt.date.fromisoformat(_p[1]), float(_p[2]), float(_p[3]), float(_p[4] or 0)))
     for _c, (_ten, _ds) in _ng.items():
-        if _c not in _dc: continue
         _co = {x[0] for x in _ds}; _thieu = [_ds[0][0] + dt.timedelta(days=i) for i in range((_hq - _ds[0][0]).days + 1)]; _thieu = [x for x in _thieu if x not in _co]
-        if not _thieu: continue
+        _D24_TH[_c] = (len(_ds), _thieu)
+        if _c not in _dc or not _thieu: continue
         _ca, _ta = sum(x[1] for x in _ds), sum(x[2] for x in _ds)
         tat_d24.append((_c, f"#{_ten[:70]} · không chi {len(_thieu)} ngày ({', '.join(f'{x:%d/%m}' for x in _thieu[:4])}{'…' if len(_thieu) > 4 else ''}) · cả {len(_ds)} ngày có chi: chi ${_ca:.2f} · lãi ${_ta - _ca:+.2f} · ROI {(_ta - _ca) / _ca * 100:+.0f}% → TẮT (luật D24: có khoảng dừng > 24 giờ)"))
     tat_d24.sort(key=lambda x: float(x[1].split("lãi $")[1].split(" ")[0]))
@@ -1240,9 +1241,9 @@ def _xet_luat():
                 "tat2" if int(cid) in vao["tat2"] else None, tien=1, lo=(r2 is not None and r2 < 0) or (ra_ is not None and ra_ < 0)))
             # D24 — khoảng dừng > 24 giờ
             _g = _ng.get(int(cid), [None, []])[1] if "_ng" in globals() else []
-            _th = [x for x in ([_g[0][0] + dt.timedelta(days=i) for i in range((_hq - _g[0][0]).days + 1)] if _g else []) if x not in {y[0] for y in _g}]
+            _n24, _th = _D24_TH.get(int(cid), (0, []))   # CÙNG số với danh sách tắt D24 (trước khi cắt ngày xấu cho L3 / L4 / G10)
             ls.append(L("d24", "D24 · dừng > 24 giờ", "Từ ngày chi đầu tiên tới hôm qua có một ngày trọn không chi (camp đã đứng ≥ 24 giờ: tắt rồi bật lại, hoặc Meta ngừng phân phối) → máy tắt hẳn, không xét lãi lỗ.",
-                [["Ngày có chi (đã khép)", f"{len(_g)} ngày", "≥ 1", bool(_g)], ["Ngày trọn không chi sau ngày chi đầu", ", ".join(f"{x:%d/%m}" for x in _th[:4]) or "không", "≥ 1 ngày", bool(_th)]],
+                [["Ngày có chi (đã khép)", f"{_n24} ngày", "≥ 1", bool(_n24)], ["Ngày trọn không chi sau ngày chi đầu", ", ".join(f"{x:%d/%m}" for x in _th[:4]) or "không", "≥ 1 ngày", bool(_th)]],
                 "tat_d24" if int(cid) in vao["tat_d24"] else None, tien=2))   # cả hai là tiền đề: chưa có khoảng nghỉ = KHÔNG ÁP, không có "sắp chạm D24" (anh 29/10/2026: thẻ D24 nét đứt trên camp chưa từng nghỉ)
             # L3 — lỗ 3 ngày đã khép liền
             _m3 = {x[0]: x for x in _g}; _l3 = [_m3.get(k) for k in _d3] if "_d3" in globals() else []

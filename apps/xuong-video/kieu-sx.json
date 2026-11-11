@@ -6,7 +6,7 @@
     "nguon": "phim",
     "vnd": 0,
     "may": "iMac",
-    "ve": "Cắt 9 giây cao trào từ tập phim miễn phí tải ở reelshort.com, bỏ dải CTA cháy sẵn ở đáy khung (crop 84%), chữ mời xem ở bình luận hiện 2,7 giây cuối. Dựng bằng ffmpeg nên CHỈ chạy ở iMac (luật: cấm dựng video trên box3)."
+    "ve": "Cắt 9 giây cao trào từ tập phim miễn phí tải ở reelshort.com, bỏ dải CTA cháy sẵn ở đáy khung (crop 84%), chữ mời xem ở bình luận hiện 2,7 giây cuối. Dựng bằng ffmpeg nên CHỈ chạy ở iMac (luật: cấm dựng video trên box3). Không còn là mặc định từ 11/11/2026 (thua bản FREE 22 vs 236 lượt phát)."
   },
   "reel_canh9_free": {
     "ten": "Reel cắt cảnh 9s có chữ FREE",
@@ -14,7 +14,7 @@
     "nguon": "phim",
     "vnd": 0,
     "may": "iMac",
-    "ve": "Như reel_canh9, thêm huy hiệu FREE góc trên trái và dòng nhỏ 'watch free in comment' góc dưới — đang đo xem chữ free có nâng hiệu suất không (bản đầu đăng 11/11/2026)."
+    "ve": "Như reel_canh9, thêm huy hiệu FREE góc trên trái và dòng nhỏ 'watch free in comment' góc dưới. KẾT QUẢ ĐO 11/11/2026 (Graph video_insights, phim Married the Mafia Don, Page Mia): bản FREE 236 lượt phát · 42 lượt xem lại · xem TB 4,8s/9s · tổng 892 giây xem; bản thường cùng cảnh 9s chỉ 22 lượt phát. Lời đăng của bản thắng kể MỘT khoảnh khắc cụ thể có câu thoại nhân vật ('he always repays his debts'), bản thua nói chung chung ('the elevator scene broke me'). Còn lệch giờ đăng (07:26 vs 00:24 giờ VN) → là dạng MẶC ĐỊNH cho nền facebook (sx-may.mjs › kieuMacDinh), đo tiếp."
   },
   "anh_doi_thuong": {
     "ten": "Ảnh đời thường (sinh AI)",

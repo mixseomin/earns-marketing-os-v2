@@ -33,7 +33,9 @@ function psql(sql) {
 }
 
 /** Dạng bài mặc định suy từ NỀN khi bài chưa khai dang.kieu_sx — nền Reel → cắt cảnh, nền ảnh → ảnh đời thường. */
-const kieuMacDinh = (nen) => (nen === 'fb_anh' ? 'anh_doi_thuong' : nen === 'facebook' ? 'reel_canh9' : null);
+// Reel mặc định = bản có chữ FREE (anh 11/11/2026 "video mới nhất của Mia có nhiều view hẳn. Rút kinh nghiệm"): cùng cảnh 9s, cùng phim, bản FREE 236 lượt phát /
+// 42 lượt xem lại / xem TB 4,8s so với bản thường 22 lượt (Graph video_insights 11/11/2026). Còn lệch giờ đăng (07:26 vs 00:24 giờ VN) nên đo tiếp, nhưng mặc định theo bản thắng.
+const kieuMacDinh = (nen) => (nen === 'fb_anh' ? 'anh_doi_thuong' : nen === 'facebook' ? 'reel_canh9_free' : null);
 
 /** Bài CẦN DỰNG: đã có ngày đăng trong N ngày tới, chưa đăng, chưa có tệp (video lẫn ảnh đều trống). */
 function canDung(may, ngay) {
@@ -90,7 +92,7 @@ const main = async () => {
     for (const k of dang) a.ok(LAM[k], `dạng '${k}' có trong sổ kieu-sx.json nhưng THIẾU hàm trong sx-bai.mjs`);
     for (const k of Object.keys(LAM)) a.ok(dang.includes(k), `hàm '${k}' trong sx-bai.mjs nhưng THIẾU dòng trong sổ kieu-sx.json`);
     for (const k of dang) { const v = SO[k]; a.ok(v.ten && v.nen && v.may, `dạng '${k}' thiếu ten/nen/may trong sổ`); }
-    a.equal(kieuMacDinh('fb_anh'), 'anh_doi_thuong'); a.equal(kieuMacDinh('facebook'), 'reel_canh9'); a.equal(kieuMacDinh('x'), null);
+    a.equal(kieuMacDinh('fb_anh'), 'anh_doi_thuong'); a.equal(kieuMacDinh('facebook'), 'reel_canh9_free'); a.equal(kieuMacDinh('x'), null);
     // đọc cờ: cờ ĐẦU TIÊN cũng phải đọc được (chỉ số 0), cờ không có trả null, cờ đứng cuối không có giá trị trả null
     a.equal(doc(['--may', 'mia'], '--may'), 'mia'); a.equal(doc(['--xem', '--may', 'mia'], '--may'), 'mia');
     a.equal(doc(['--xem'], '--may'), null); a.equal(doc(['--may'], '--may'), null);

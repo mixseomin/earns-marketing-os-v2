@@ -38,6 +38,7 @@ const ds = JSON.parse(sql(`select coalesce(json_agg(x order by x.created_at), '[
 const card = kiem ? JSON.parse(sql(`select json_build_object('id', id, 'title', title, 'tin_nguoi', 0) from human_tasks where id=${kiem}`)) : ds.find((c) => { const d = daLam[c.id]; return !d || d.tin_nguoi < c.tin_nguoi || Date.now() - Date.parse(d.luc) > 24 * 36e5; });
 if (!card) { log(`không có card mới (${ds.length} card mở, đã làm cả)`); process.exit(0); }
 
+ENV.BR_URL_NGUON = `card góp ý mos2 #${card.id} (trang lưu trong luồng card trên box3)`;   // luật br chống bịa URL: link trang lấy từ card là nguồn thật
 const luong = JSON.parse(sql(`select coalesce(prep_payload->'trao_doi','[]') from human_tasks where id=${Number(card.id)}`) || '[]');
 const cuoiNguoi = [...luong].reverse().find((t) => t.nguoi !== 'ai');
 const cay = thu ? { dir: MOS2_GOC, do: [] } : cayHoacBao(NGUOI, { ten: 'Đạt', khoa: 'mos2:cay-rieng', phong: 'dung-san-pham', tep: 'mos2-gop-y.json' });

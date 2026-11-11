@@ -60,12 +60,22 @@ const v = r0.viec, chu = String(v.chu).replace(/<[^>]+>/g, '');
 // CARD GÓP Ý etp2 / etp: việc là MỘT card hòm góp ý, làm đúng quy trình /tasks-etp2
 const gopY = (String(v.khoa).match(/^etp:gopy\|(\d+)$/) || [])[1], gyTrang = /^Góp ý etp2 /.test(chu) ? 'etp2.on.tc' : 'etp.on.tc';
 // ẢNH CARD máy tải sẵn (Claude không giao diện không có quyền mạng: curl bị từ chối ở lượt #1559) → Huy chỉ Read
-const anhGopY = (() => { if (!gopY || thu) return []; try { const d = path.join(os.homedir(), '.cache', 'huy-anh'); fs.mkdirSync(d, { recursive: true });
-  const ls = [...new Set(box(`GOPY_TRANG=${gyTrang} /opt/earns-marketing-os-v2/scripts/gop-y.sh show ${gopY}`).match(/https:\/\/img\.on\.tc\/[^\s|]+/g) || [])];
-  return ls.map((u, i) => { const f = path.join(d, `${gopY}-${i + 1}${path.extname(u) || '.png'}`); execFileSync('curl', ['-s', '-o', f, u], { timeout: 60000 }); return f; }); } catch (e) { log(`tải ảnh card lỗi: ${e.message.split('\n')[0]}`); return []; } })();
+// ĐỦ NGỮ CẢNH CARD (anh 12/11/2026 "Huy phải đọc đủ context, ảnh, file đính kèm"): gop-y.sh show không in ngữ cảnh màn (thiết bị · cỡ khung) và trang của từng tin →
+// máy đọc nguyên luồng prep_payload.trao_doi từ kho, tải sẵn MỌI ảnh của MỌI tin (gốc + anh trả lời / làm lại), đưa cả luồng vào lời giao. Góp ý chỉ đính kèm ảnh.
+const ctGopY = (() => { if (!gopY || thu) return null; try { const d = path.join(os.homedir(), '.cache', 'huy-anh'); fs.mkdirSync(d, { recursive: true });
+  const c = JSON.parse(box(`cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -qtA -f -`, `select json_build_object('tieu_de', title, 'trang', prep_payload->>'source_url',
+    'tin', coalesce(prep_payload->'trao_doi', '[]'::jsonb)) from human_tasks where id = ${Number(gopY)} and project_id = 'mos2' and prep_payload->>'source_platform' = 'feedback'`).trim() || 'null');
+  if (!c) return null; let n = 0;
+  const tin = (c.tin || []).map((t, k) => { const anh = (t.anh || []).map((u) => { const f = path.join(d, `${gopY}-${++n}${path.extname(u) || '.png'}`);
+    try { execFileSync('curl', ['-s', '-o', f, u], { timeout: 60000 }); return f; } catch { return `${u} (tải lỗi)`; } });
+    const gio = t.luc ? new Date(Date.parse(t.luc) + 7 * 36e5).toISOString().slice(0, 16).replace('T', ' ') + ' VN' : '';
+    return `Tin ${k + 1} · ${gio} · ${t.nguoi ?? '?'}${t.xuLy ? ` · ${t.xuLy}` : ''}\n  Nội dung: ${String(t.noiDung ?? '').trim()}${t.trang ? `\n  Trang: ${t.trang}` : ''}${t.nguCanh ? `\n  Ngữ cảnh màn: ${t.nguCanh}` : ''}${anh.length ? `\n  Ảnh (đã tải, ĐỌC HẾT bằng Read): ${anh.join(' · ')}` : ''}`; });
+  return `CARD #${gopY}: ${c.tieu_de}\nTrang gửi: ${c.trang}\nLUỒNG TRAO ĐỔI (tin gốc trước, tin sau là anh trả lời / bảo làm lại — tin MỚI NHẤT của anh là yêu cầu hiện hành):\n${tin.join('\n')}`;
+  } catch (e) { log(`đọc card góp ý lỗi: ${e.message.split('\n')[0]}`); return null; } })();
 const viecGopY = gopY ? `VIỆC: card góp ý #${gopY} của ${gyTrang} (anh gửi bằng nút Góp ý) — ${chu}
+${ctGopY ?? '(máy không đọc được card — tự đọc bằng gop-y.sh show, kho human_tasks.prep_payload.trao_doi)'}
 Làm ĐÚNG quy trình trong /${MOS2}/apps/etp2/tasks-etp2.md (và luật riêng etp trong /${MOS2}/.claude/commands/tasks-etp.md) cho RIÊNG card này:
-1. ssh ${BOX} "GOPY_TRANG=${gyTrang} /opt/earns-marketing-os-v2/scripts/gop-y.sh show ${gopY}" rồi cùng lệnh với claim ${gopY}. ${anhGopY.length ? `Ảnh của card máy đã tải sẵn — ĐỌC HẾT bằng Read (lỗi hiển thị nằm trong ảnh): ${anhGopY.join(' · ')}` : 'Card không có ảnh.'}
+1. ssh ${BOX} "GOPY_TRANG=${gyTrang} /opt/earns-marketing-os-v2/scripts/gop-y.sh show ${gopY}" rồi cùng lệnh với claim ${gopY}. Máy đã đọc sẵn nguyên card bên dưới (đủ tin, ngữ cảnh màn, ảnh) — đọc HẾT trước khi sửa; lỗi hiển thị nằm trong ảnh, cỡ khung ở ngữ cảnh màn.
 2. etp.on.tc ĐÓNG BĂNG: giao diện chỉ sửa trong apps/etp2 (kể cả card gửi từ etp.on.tc); máy nền (apps/etp, luat-ethopex.py, worker Phát) dùng chung. Sửa tận gốc, dùng lại hàm đang có; YDNI: chữ phụ gập vào chữ rê.
 3. Thêm điều kiện chống quay về bản cũ cho card: giao diện etp2 → apps/etp2/kiem-gop-y.mjs, máy nền → apps/etp/gop-y-luat.mjs. Kiểm: ./node_modules/.bin/tsc -p apps/etp2/tsconfig.json --noEmit, node apps/etp2/kiem-gop-y.mjs, node scripts/check-etp-gop-y.mjs.
 4. commit + push + gh-watch, rồi ssh ... gop-y.sh submit ${gopY} "sai gì · sửa gì · commit nào" (nộp Review — KHÔNG bao giờ tự Done).

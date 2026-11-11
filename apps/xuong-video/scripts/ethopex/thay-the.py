@@ -28,7 +28,7 @@ THAT = "--that" in sys.argv
 # mỗi camp mới chờ Ethopex đồng bộ ~1 phút → trần mỗi nhịp để nhịp ethopex (32 phút) không bị giữ; phim còn thiếu lên ở nhịp sau
 TOI_DA = int(next((sys.argv[i + 1] for i, x in enumerate(sys.argv[:-1]) if x == "--toi-da"), 15)); DA_LEN = [0]
 CHO = "camp chờ — phim chỉ 1 camp đang chạy"   # chữ đầu ghi của dòng thay khi camp cũ còn khoẻ (trang etp hiện "camp chờ" thay vì "thay #")
-TAT_MA = ("t1", "l3", "l4", "t2", "off", "d24")   # luật tắt hẳn camp (cùng mã etp.xet_luat) — + T1 (anh 04/11/2026: Freezing Point 2 camp sắp ✕ T1 mà không có camp thay)
+TAT_MA = ("t1", "l3", "l4", "l0", "t2", "off", "d24")   # luật tắt hẳn camp (cùng mã etp.xet_luat) — + T1 (anh 04/11/2026: Freezing Point 2 camp sắp ✕ T1 mà không có camp thay)
 HOOK_GAP, GIU_GAP = 1.25, 0.8               # chi/lượt hiện ≥ 1.25× camp lãi → hook yếu · thu/lượt hiện ≤ 0.8× → không giữ chân
 vn = lambda: (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y")
 s_ = lambda t: str(t or "").replace("'", "''")

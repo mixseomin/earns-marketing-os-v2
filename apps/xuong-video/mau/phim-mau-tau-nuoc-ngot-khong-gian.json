@@ -1,53 +1,409 @@
 {
  "_ghi_chu": "SƠ ĐỒ CẢNH tập #2936 (khuôn khong-gian.ts / so-do-canh.ts). Mặt bằng nhìn từ trên: x sang đông (m), y sang bắc (m). Đoàn tàu đỗ dọc mép tây sân ga (x≈-1.5), cửa sổ chú ở y=5. Sân ga chạy về BẮC tới cuối ga có tiệm nước (y=30) và mặt trời thấp (y=60). Máy chính đứng phía nam nhìn lên bắc → tàu luôn bên TRÁI màn, mặt trời giữa xa. Nhóc đi mua = chạy lên bắc (xa máy), về = đi xuống nam (về phía máy). Chú luôn nhìn về phía nhóc.",
  "chung": {
-  "nguoi": ["Chú", "Nhóc"],
+  "nguoi": [
+   "Chú",
+   "Nhóc"
+  ],
   "so_do": {
-   "den": { "tu": [0, 60], "ten": "low golden sun at the far north end of the platform (backlight, centre-distance in the main angles)" },
-   "moc": { "cua_so": [-1.2, 5], "duoi_cua_so": [0.4, 5], "giua_ga": [1.0, 9], "nhoc_xa": [1.0, 18], "nhoc_ve": [0.8, 9.5], "tiem": [1.2, 30], "banh_xe": [-1.5, 6.2] },
-   "ten": { "cua_so": "the man's open train window", "tiem": "the shop at the far end of the platform", "banh_xe": "the train wheel" },
-   "may": {
-    "toan_ga":  { "dat": [3.2, -2], "nhin": [0, 16], "cao": 1.6, "ong": 26 },
-    "can_chu":  { "dat": [1.0, 3.6], "nhin": [-1.2, 5], "cao": 1.9, "ong": 50 },
-    "pov_chu":  { "dat": [-1.1, 5], "nhin": [1.0, 9], "cao": 2.3, "ong": 35 },
-    "can_nhoc": { "dat": [0.9, 3.0], "nhin": [0.4, 5], "cao": 1.0, "ong": 50 },
-    "banh_xe":  { "dat": [0.0, 5.0], "nhin": [-1.5, 6.2], "cao": 0.4, "ong": 35 },
-    "nhoc_ve":  { "dat": [0.6, 6.5], "nhin": [0.8, 12], "cao": 1.0, "ong": 50 },
-    "mat_chu":  { "dat": [0.4, 4.4], "nhin": [-1.2, 5], "cao": 2.0, "ong": 85 }
+   "den": {
+    "tu": [
+     0,
+     60
+    ],
+    "ten": "low golden sun at the far north end of the platform (backlight, centre-distance in the main angles)"
    },
-   "mat_cao": { "Chú": 2.0, "Nhóc": 1.15 }
+   "moc": {
+    "cua_so": [
+     -1.2,
+     5
+    ],
+    "duoi_cua_so": [
+     0.4,
+     5
+    ],
+    "giua_ga": [
+     1.0,
+     9
+    ],
+    "nhoc_xa": [
+     1.0,
+     18
+    ],
+    "nhoc_ve": [
+     0.8,
+     9.5
+    ],
+    "tiem": [
+     1.2,
+     30
+    ],
+    "banh_xe": [
+     -1.5,
+     6.2
+    ]
+   },
+   "ten": {
+    "cua_so": "the man's open train window",
+    "tiem": "the shop at the far end of the platform",
+    "banh_xe": "the train wheel",
+    "duoi_cua_so": "the platform just below the man's window",
+    "giua_ga": "the middle of the platform",
+    "nhoc_xa": "the far end of the platform",
+    "nhoc_ve": "the platform a few metres from the train"
+   },
+   "may": {
+    "toan_ga": {
+     "dat": [
+      -0.6,
+      -2
+     ],
+     "nhin": [
+      0.4,
+      16
+     ],
+     "cao": 1.6,
+     "ong": 26
+    },
+    "can_chu": {
+     "dat": [
+      1.0,
+      3.6
+     ],
+     "nhin": [
+      -1.2,
+      5
+     ],
+     "cao": 1.9,
+     "ong": 50
+    },
+    "pov_chu": {
+     "dat": [
+      -1.1,
+      5
+     ],
+     "nhin": [
+      1.0,
+      9
+     ],
+     "cao": 2.3,
+     "ong": 35
+    },
+    "can_nhoc": {
+     "dat": [
+      0.9,
+      3.0
+     ],
+     "nhin": [
+      0.4,
+      5
+     ],
+     "cao": 1.0,
+     "ong": 50
+    },
+    "banh_xe": {
+     "dat": [
+      0.0,
+      5.0
+     ],
+     "nhin": [
+      -1.5,
+      6.2
+     ],
+     "cao": 0.4,
+     "ong": 35
+    },
+    "nhoc_ve": {
+     "dat": [
+      0.6,
+      6.5
+     ],
+     "nhin": [
+      0.8,
+      12
+     ],
+     "cao": 1.0,
+     "ong": 50
+    },
+    "mat_chu": {
+     "dat": [
+      0.4,
+      4.4
+     ],
+     "nhin": [
+      -1.2,
+      5
+     ],
+     "cao": 2.0,
+     "ong": 85
+    },
+    "theo_cua_so": {
+     "dat": [
+      3.0,
+      4.0
+     ],
+     "nhin": [
+      -1.2,
+      5.5
+     ],
+     "cao": 1.7,
+     "ong": 35
+    }
+   },
+   "mat_cao": {
+    "Chú": 2.0,
+    "Nhóc": 1.15
+   }
   },
   "so_vat": {
    "Tàu xanh": [
-    { "tu": 1, "ai": null, "cach": "the green train is parked at the platform, completely still, not moving", "vi": "tàu đỗ yên bên sân ga" },
-    { "tu": 12, "ai": null, "cach": "the green train jolts and starts rolling slowly toward screen left", "vi": "tàu chuyển bánh, trôi sang trái", "su_kien": "tàu chuyển bánh" }
+    {
+     "tu": 1,
+     "ai": null,
+     "cach": "the green train is parked at the platform, completely still, not moving",
+     "vi": "tàu đỗ yên bên sân ga"
+    },
+    {
+     "tu": 12,
+     "ai": null,
+     "cach": "the green train jolts and starts rolling slowly toward screen left",
+     "vi": "tàu chuyển bánh, trôi sang trái",
+     "su_kien": "tàu chuyển bánh"
+    }
    ],
    "Tờ 5 nghìn": [
-    { "tu": 1, "ai": "Chú", "cach": "a folded 5,000-dong note held in the man's hand at the window", "vi": "chú cầm tờ 5k" },
-    { "tu": 3, "ai": "Nhóc", "cach": "the 5,000-dong note held in the boy's hand", "vi": "nhóc cầm tờ 5k", "su_kien": "chú đưa tiền, nhóc nhận" }
+    {
+     "tu": 1,
+     "ai": "Chú",
+     "cach": "a folded 5,000-dong note held in the man's hand at the window",
+     "vi": "chú cầm tờ 5k"
+    },
+    {
+     "tu": 3,
+     "ai": "Nhóc",
+     "cach": "the 5,000-dong note held in the boy's hand",
+     "vi": "nhóc cầm tờ 5k",
+     "su_kien": "chú đưa tiền, nhóc nhận"
+    },
+    {
+     "tu": 8,
+     "ai": null,
+     "cach": "already spent at the shop — the 5,000-dong note is gone, nobody holds it",
+     "vi": "đã tiêu ở tiệm",
+     "su_kien": "nhóc mua nước ở tiệm"
+    }
    ],
    "Tiền thừa": [
-    { "tu": 9, "ai": "Nhóc", "cach": "a few crumpled change notes held out in the boy's hand", "vi": "nhóc chìa tiền thừa", "su_kien": "nhóc về, chìa tiền thừa" },
-    { "tu": 10, "ai": "Chú", "cach": "the crumpled change notes held in the man's hand", "vi": "chú cầm tiền thừa", "su_kien": "chú nhận tiền thừa" }
+    {
+     "tu": 9,
+     "ai": "Nhóc",
+     "cach": "a few crumpled change notes held out in the boy's hand",
+     "vi": "nhóc chìa tiền thừa",
+     "su_kien": "nhóc về, chìa tiền thừa"
+    },
+    {
+     "tu": 10,
+     "ai": "Chú",
+     "cach": "the crumpled change notes held in the man's hand",
+     "vi": "chú cầm tiền thừa",
+     "su_kien": "chú nhận tiền thừa"
+    }
    ],
    "Chai nước ngọt": [
-    { "tu": 8, "ai": "Nhóc", "cach": "one half-drunk glass cola bottle with a straw in the boy's hand", "vi": "nhóc cầm một chai đang uống dở", "su_kien": "nhóc mua về một chai, vừa đi vừa uống" }
+    {
+     "tu": 8,
+     "ai": "Nhóc",
+     "cach": "one half-drunk glass cola bottle with a straw in the boy's hand",
+     "vi": "nhóc cầm một chai đang uống dở",
+     "su_kien": "nhóc mua về một chai, vừa đi vừa uống"
+    }
    ]
   },
-  "ten_en": { "Tàu xanh": "the green passenger train", "Tờ 5 nghìn": "the 5,000-dong note", "Tiền thừa": "the change notes", "Chai nước ngọt": "the cola bottle", "Chú": "the man", "Nhóc": "the boy" }
+  "ten_en": {
+   "Tàu xanh": "the green passenger train",
+   "Tờ 5 nghìn": "the 5,000-dong note",
+   "Tiền thừa": "the change notes",
+   "Chai nước ngọt": "the cola bottle",
+   "Chú": "the man",
+   "Nhóc": "the boy"
+  }
  },
  "shot": {
-  "1":  { "sd": { "may": "can_chu", "o": { "Chú": "cua_so" }, "nhin": { "Chú": "giua_ga" }, "khung": ["Chú"] } },
-  "2":  { "sd": { "may": "pov_chu", "o": { "Nhóc": "giua_ga" }, "nhin": { "Nhóc": "cua_so" }, "khung": ["Nhóc"] } },
-  "3":  { "sd": { "may": "toan_ga", "o": { "Chú": "cua_so", "Nhóc": "duoi_cua_so" }, "nhin": { "Chú": "Nhóc", "Nhóc": "Chú" } } },
-  "4":  { "sd": { "may": "can_nhoc", "o": { "Nhóc": "duoi_cua_so" }, "nhin": { "Nhóc": "cua_so" }, "khung": ["Nhóc"] }, "sd_ket": { "o": { "Nhóc": "nhoc_xa" }, "nhin": { "Nhóc": "tiem" } } },
-  "5":  { "sd": { "may": "toan_ga", "o": { "Chú": "cua_so" }, "nhin": { "Chú": "tiem" }, "khung": ["Chú"] } },
-  "6":  { "sd": { "may": "banh_xe", "o": {}, "khung": [] } },
-  "7":  { "sd": { "may": "can_chu", "o": { "Chú": "cua_so" }, "nhin": { "Chú": "tiem" }, "khung": ["Chú"] } },
-  "8":  { "sd": { "may": "nhoc_ve", "o": { "Nhóc": "nhoc_ve" }, "nhin": { "Nhóc": "cua_so" }, "khung": ["Nhóc"] } },
-  "9":  { "sd": { "may": "toan_ga", "o": { "Chú": "cua_so", "Nhóc": "duoi_cua_so" }, "nhin": { "Chú": "Nhóc", "Nhóc": "Chú" } } },
-  "10": { "sd": { "may": "mat_chu", "o": { "Chú": "cua_so", "Nhóc": "duoi_cua_so" }, "nhin": { "Chú": "Nhóc" }, "khung": ["Chú"] } },
-  "11": { "sd": { "may": "toan_ga", "o": { "Chú": "cua_so", "Nhóc": "duoi_cua_so" }, "nhin": { "Chú": "Nhóc", "Nhóc": "tiem" } }, "sd_ket": { "o": { "Nhóc": "nhoc_xa" }, "nhin": { "Chú": "Nhóc" } } },
-  "12": { "sd": { "may": "toan_ga", "o": { "Chú": "cua_so" }, "nhin": { "Chú": "nhoc_xa" }, "khung": ["Chú"] } }
+  "1": {
+   "sd": {
+    "may": "can_chu",
+    "o": {
+     "Chú": "cua_so"
+    },
+    "nhin": {
+     "Chú": "giua_ga"
+    },
+    "khung": [
+     "Chú"
+    ]
+   }
+  },
+  "2": {
+   "sd": {
+    "may": "pov_chu",
+    "o": {
+     "Nhóc": "giua_ga"
+    },
+    "nhin": {
+     "Nhóc": "cua_so"
+    },
+    "khung": [
+     "Nhóc"
+    ]
+   }
+  },
+  "3": {
+   "sd": {
+    "may": "toan_ga",
+    "o": {
+     "Chú": "cua_so",
+     "Nhóc": "duoi_cua_so"
+    },
+    "nhin": {
+     "Chú": "Nhóc",
+     "Nhóc": "Chú"
+    }
+   }
+  },
+  "4": {
+   "sd": {
+    "may": "can_nhoc",
+    "o": {
+     "Nhóc": "duoi_cua_so"
+    },
+    "nhin": {
+     "Nhóc": "Chú"
+    },
+    "khung": [
+     "Nhóc"
+    ]
+   },
+   "sd_ket": {
+    "o": {
+     "Nhóc": "nhoc_xa"
+    },
+    "nhin": {
+     "Nhóc": "tiem"
+    }
+   }
+  },
+  "5": {
+   "sd": {
+    "may": "toan_ga",
+    "o": {
+     "Chú": "cua_so"
+    },
+    "nhin": {
+     "Chú": "tiem"
+    },
+    "khung": [
+     "Chú"
+    ]
+   }
+  },
+  "6": {
+   "sd": {
+    "may": "banh_xe",
+    "o": {},
+    "khung": []
+   }
+  },
+  "7": {
+   "sd": {
+    "may": "can_chu",
+    "o": {
+     "Chú": "cua_so"
+    },
+    "nhin": {
+     "Chú": "tiem"
+    },
+    "khung": [
+     "Chú"
+    ]
+   }
+  },
+  "8": {
+   "sd": {
+    "may": "nhoc_ve",
+    "o": {
+     "Nhóc": "nhoc_ve"
+    },
+    "nhin": {
+     "Nhóc": "cua_so"
+    },
+    "khung": [
+     "Nhóc"
+    ]
+   }
+  },
+  "9": {
+   "sd": {
+    "may": "toan_ga",
+    "o": {
+     "Chú": "cua_so",
+     "Nhóc": "duoi_cua_so"
+    },
+    "nhin": {
+     "Chú": "Nhóc",
+     "Nhóc": "Chú"
+    }
+   },
+   "co_canh": "ws"
+  },
+  "10": {
+   "sd": {
+    "may": "mat_chu",
+    "o": {
+     "Chú": "cua_so",
+     "Nhóc": "duoi_cua_so"
+    },
+    "nhin": {
+     "Chú": "Nhóc"
+    },
+    "khung": [
+     "Chú"
+    ]
+   }
+  },
+  "11": {
+   "sd": {
+    "may": "toan_ga",
+    "o": {
+     "Chú": "cua_so",
+     "Nhóc": "duoi_cua_so"
+    },
+    "nhin": {
+     "Chú": "Nhóc",
+     "Nhóc": "tiem"
+    }
+   },
+   "sd_ket": {
+    "o": {
+     "Nhóc": "nhoc_xa"
+    },
+    "nhin": {
+     "Chú": "Nhóc"
+    }
+   }
+  },
+  "12": {
+   "sd": {
+    "may": "theo_cua_so",
+    "o": {
+     "Chú": "cua_so"
+    },
+    "nhin": {
+     "Chú": "nhoc_xa"
+    },
+    "khung": [
+     "Chú"
+    ]
+   }
+  }
  }
 }

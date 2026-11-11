@@ -224,7 +224,9 @@ export function nhanNhin(ds: readonly { ten: string; moTaNv?: string | null; ao?
   const x = ds.map((d) => {
     const ao = (d.ao ?? '').split(/[,;.]| with | tucked /)[0]!.trim().toLowerCase();
     const m = d.moTaNv ?? '';
-    const gioi = /\bwoman\b|\bgirl\b|(^|[^\p{L}])(nữ|cô gái|phụ nữ|chị)([^\p{L}]|$)/iu.test(m) ? 'woman' : /\bman\b|\bboy\b|(^|[^\p{L}])(nam|đàn ông|chàng|anh)([^\p{L}]|$)/iu.test(m) ? 'man' : 'person';
+    // TRẺ EM tách khỏi người lớn (11/11/2026, phim #2934: chú + nhóc cùng ra "the man" khi không có đồ để phân biệt — prompt bảo "the man nhìn the man")
+    const gioi = /\bgirl\b|(^|[^\p{L}])(bé gái|cô bé)([^\p{L}]|$)/iu.test(m) ? 'girl' : /\bwoman\b|(^|[^\p{L}])(nữ|cô gái|phụ nữ|chị)([^\p{L}]|$)/iu.test(m) ? 'woman'
+      : /\bboy\b|(^|[^\p{L}])(bé trai|cậu bé|thằng bé)([^\p{L}]|$)/iu.test(m) ? 'boy' : /\bman\b|(^|[^\p{L}])(nam|đàn ông|chàng|anh)([^\p{L}]|$)/iu.test(m) ? 'man' : 'person';
     return { ten: d.ten, gioi, tu: ao ? ao.split(/\s+/) : [], day: ao ? `the ${gioi} in the ${ao}` : `the ${gioi}` };
   });
   return x.map((a) => {

@@ -352,7 +352,7 @@ export const LUAT = [
   { card: 'phim-ydni-0211', tep: "apps/web/src/components/etp-view.tsx", cam: "🧪", vi: 'tab Phim không emoji, không lặp chữ có thể test' },
   { card: 'phim-ydni-0211', tep: "apps/web/src/components/etp-view.tsx", cam: "— chưa thêm</span>", vi: 'trang phim trống in — mờ' },
   { card: 'phim-ydni-0211', tep: "apps/web/src/components/etp-view.tsx", cam: "{p.ten ?? p.content_id} <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{p.locale ?? ''} {p.nguon ?? ''}</span>", vi: 'ô tên phim không lặp tiếng / nguồn' },
-  { card: 'ngan-phim-0211', tep: "apps/web/src/lib/entity-drawer.ts", co: "'contact', 'etp-phim', 'etp-sx']", vi: "ngăn phim etp (+ ngăn Sản xuất #1528) đăng ký vào host chung (xếp chồng, URL)" },
+  { card: 'ngan-phim-0211', tep: "apps/web/src/lib/entity-drawer.ts", co: "'etp-phim', 'etp-sx'", vi: "ngăn phim etp (+ ngăn Sản xuất #1528) đăng ký vào host chung (xếp chồng, URL)" },
   { card: 'ngan-phim-0211', tep: "apps/web/src/components/entity-drawer-host.tsx", co: "case 'etp-phim': return <EtpPhimDrawer id={id} onClose={onClose} />;", vi: "host mở ngăn phim theo mã" },
   { card: 'ngan-phim-0211', tep: "apps/web/src/components/etp-view.tsx", co: "onClick={() => openEntityDrawer('etp-phim', p.content_id)}", vi: "bấm tên phim mở ngăn nội dung" },
   { card: 'ngan-phim-0211', tep: "apps/web/src/lib/actions/etp-phim.ts", co: "/api/v2/movie/groups/${encodeURIComponent(String(tv.nhom_id))}", vi: "ngăn phim đọc nội dung thật từ Ethopex" },

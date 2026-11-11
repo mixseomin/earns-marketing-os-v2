@@ -795,7 +795,7 @@
    },
    "nhat_ky": "/Users/htuan/.cache/etp-sua.log",
    "hen": {
-    "moi_giay": 1800
+    "moi_giay": 120
    },
    "uu_tien_thap": true,
    "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"

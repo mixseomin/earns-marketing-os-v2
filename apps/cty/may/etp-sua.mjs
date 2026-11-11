@@ -25,7 +25,8 @@ const QUYEN = ['Read', 'Glob', 'Grep', ...SUA.flatMap((d) => [`Edit(/${d}/**)`, 
   `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add apps/:*)', 'Bash(git commit:*)',
   'Bash(git push origin HEAD:main)', `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`, 'Bash(node scripts/check-:*)', 'Bash(node --check:*)', 'Bash(python3 -m py_compile:*)',
   'Bash(python3 apps/xuong-video/scripts/ethopex/nhip_tang.py)', 'Bash(python3 apps/etp/cong.py --tu-kiem)', 'Bash(node apps/cty/worker/ethopex.mjs --tu-kiem)',
-  'Bash(./node_modules/.bin/tsc -p apps/web/tsconfig.json --noEmit)', 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)',
+  'Bash(./node_modules/.bin/tsc -p apps/web/tsconfig.json --noEmit)', 'Bash(./node_modules/.bin/tsc -p apps/etp2/tsconfig.json --noEmit)', 'Bash(node apps/etp2/kiem-gop-y.mjs)',
+  `Edit(/${MOS2}/apps/etp2/kiem-gop-y.mjs)`, `Bash(curl -s -o ${os.homedir()}/.cache/huy-anh/:*)`, `Bash(mkdir -p ${os.homedir()}/.cache/huy-anh)`,   // góp ý etp / etp2: tải ảnh card về đọc 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)',
   // dạng lệnh Claude thật gõ (anh 10/11/2026 "chạy ổn định … tao ko phải tham gia" — cùng gốc Khang: danh sách hẹp bị từ chối im lặng → báo "cần anh"); CAM_BASH chặn hoàn tác / xoá
   `Bash(cd ${MOS2}:*)`, `Bash(git -C ${MOS2}:*)`, 'Bash(git show:*)', 'Bash(head:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)'];
 const CAM_BASH = ['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
@@ -42,17 +43,35 @@ const dm = (soul.match(/^model:.*$/m) || [''])[0], model = (dm.match(/claude-cod
 const git = (...a) => execFileSync('git', ['-C', MOS2, ...a], { encoding: 'utf8' }).trim();
 const tepDo = () => execFileSync('git', ['-C', MOS2, 'status', '--porcelain'], { encoding: 'utf8' }).split('\n').filter(Boolean).map((l) => l.slice(3));
 const doTruoc = new Set(tepDo());
+// HÒM GÓP Ý etp2 / etp (anh 12/11/2026 "cover các tasks của etp và etp2 giống thằng Thành" · "check tasks ko tốn token nên tăng nhịp"): mỗi lượt (2 phút) đọc card
+// chưa ai nhận bằng một câu SQL qua ssh ($0, không gọi Claude) rồi xếp vào hàng của chính Huy (khoá etp:gopy|<id>, chủ đề 📂 Ethopex). Claude chỉ chạy khi hàng có việc.
+if (!thu) try {
+  const gy = JSON.parse(box(`cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -qtA -f -`, `select coalesce(json_agg(x order by x.luc), '[]') from (
+    select id, left(title, 160) tieu_de, prep_payload->>'source_url' url, created_at luc from human_tasks where project_id = 'mos2' and prep_payload->>'source_platform' = 'feedback'
+    and (prep_payload->>'source_url' like 'https://etp2.on.tc/%' or prep_payload->>'source_url' like 'https://etp.on.tc/%')
+    and coalesce(prep_payload->'site_status'->>'mos2', 'pending') not in ('completed', 'verified', 'dropped', 'broken', 'claimed', 'review') limit 10) x`).trim() || '[]');
+  for (const x of gy) viec(`--them 'etp:gopy|${x.id}' ethopex`, `Góp ý ${String(x.url).startsWith('https://etp2.') ? 'etp2' : 'etp'} #${x.id}: ${x.tieu_de} — ${x.url}`);
+} catch (e) { log(`đọc hòm góp ý etp lỗi: ${e.message.split('\n')[0]}`); }
 const r0 = thu ? (() => { const st = JSON.parse(box(`cat ${DATA}/${TEP} 2>/dev/null || echo '{"hang":[]}'`) || '{"hang":[]}'); const x = (st.hang || []).find((y) => y.tt === 'cho'); return x ? { viec: x } : { ly_do: 'không có việc' }; })()
   : JSON.parse(viec('--lay'));
 if (!r0.viec) { log(`không nhận việc: ${r0.ly_do}`); process.exit(0); }
 const v = r0.viec, chu = String(v.chu).replace(/<[^>]+>/g, '');
 
+// CARD GÓP Ý etp2 / etp: việc là MỘT card hòm góp ý, làm đúng quy trình /tasks-etp2
+const gopY = (String(v.khoa).match(/^etp:gopy\|(\d+)$/) || [])[1], gyTrang = /^Góp ý etp2 /.test(chu) ? 'etp2.on.tc' : 'etp.on.tc';
+const viecGopY = gopY ? `VIỆC: card góp ý #${gopY} của ${gyTrang} (anh gửi bằng nút Góp ý) — ${chu}
+Làm ĐÚNG quy trình trong /${MOS2}/apps/etp2/tasks-etp2.md (và luật riêng etp trong /${MOS2}/.claude/commands/tasks-etp.md) cho RIÊNG card này:
+1. ssh ${BOX} "GOPY_TRANG=${gyTrang} /opt/earns-marketing-os-v2/scripts/gop-y.sh show ${gopY}" rồi cùng lệnh với claim ${gopY}. Tải MỌI ảnh trong card: mkdir -p ${os.homedir()}/.cache/huy-anh rồi curl -s -o ${os.homedir()}/.cache/huy-anh/${gopY}-<n>.png <link>, đọc ảnh bằng Read — lỗi hiển thị nằm trong ảnh.
+2. etp.on.tc ĐÓNG BĂNG: giao diện chỉ sửa trong apps/etp2 (kể cả card gửi từ etp.on.tc); máy nền (apps/etp, luat-ethopex.py, worker Phát) dùng chung. Sửa tận gốc, dùng lại hàm đang có; YDNI: chữ phụ gập vào chữ rê.
+3. Thêm điều kiện chống quay về bản cũ cho card: giao diện etp2 → apps/etp2/kiem-gop-y.mjs, máy nền → apps/etp/gop-y-luat.mjs. Kiểm: ./node_modules/.bin/tsc -p apps/etp2/tsconfig.json --noEmit, node apps/etp2/kiem-gop-y.mjs, node scripts/check-etp-gop-y.mjs.
+4. commit + push + gh-watch, rồi ssh ... gop-y.sh submit ${gopY} "sai gì · sửa gì · commit nào" (nộp Review — KHÔNG bao giờ tự Done).
+Card đòi đổi luật / ngưỡng / tiền / bật, tăng, lên camp → không làm: gop-y.sh reply ${gopY} "<cần anh quyết gì>" rồi KET: CAN_ANH. Câu chửi / nhận xét không kèm việc cụ thể → reply hỏi lại, KET: KHONG_SUA.` : null;
 const loiGiao = `Bạn là Huy, kỹ sư Phòng Ethopex (công ty AI của anh Tuấn). Ethopex là dự án quan trọng: máy chạy camp quảng cáo Facebook phim ngắn bằng TIỀN THẬT.
 Máy vừa báo một lỗi. Bạn phải tìm GỐC, sửa một lần cho cả lớp lỗi, kiểm, deploy, rồi báo lại — anh không ngồi máy.
 
 ${/^anh:/.test(v.khoa) ? `LỆNH ANH (anh vừa trả lời trên Telegram — đây là việc phải LÀM, không hỏi lại điều anh vừa trả lời; giới hạn bên dưới chỉ mở đúng phần anh nói):
 ${v.cau_hoi ? `CÂU HỎI / BÁO CÁO ANH ĐANG TRẢ LỜI:\n${String(v.cau_hoi).replace(/<[^>]+>/g, '').slice(0, 3000)}\n` : ''}ANH TRẢ LỜI: ${v.anh ?? chu}
-VIỆC: ${chu}` : `LỖI (${v.luc}) · khoá ${v.khoa}:
+VIỆC: ${chu}` : viecGopY ?? `LỖI (${v.luc}) · khoá ${v.khoa}:
 ${chu}`}
 
 ĐỌC TRƯỚC: /${MOS2}/CLAUDE.md · /${MOS2}/.claude/commands/tasks-etp.md (luật riêng Ethopex).

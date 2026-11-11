@@ -167,7 +167,9 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     // "Cần anh quyết" LUÔN có nút (05/11/2026: tin này gửi riêng, không qua ghiNut nên không có nút); trả lời dưới tin = lệnh cho đúng việc này (thu-ky.mjs › viecCuaTin)
     const j = await traLoi(v, `<b>🔧 ${tenViec(v)} · ${KET[ket]}</b>\n${esc(chu)}`, ket === 'can_anh' ? { reply_markup: NUT_HOI } : {}); const st2 = doc(), v2 = st2.hang.find((x) => x.id === id); if (v2 && j?.result?.message_id) { v2.tin_bao = j.result.message_id; ghi(st2); } console.log(j.ok ? 'ok' : JSON.stringify(j).slice(0, 200));
   } else if (a[0] === '--them') {   // xếp một việc từ ngoài (chay-kenh.mjs): --them <khoá> , chữ cảnh báo ở stdin. In số việc đã thêm (0 = khoá đang chờ / không thuộc thợ máy)
-    console.log(themTuCanhBao([{ khoa: a[1], chu: fs.readFileSync(0, 'utf8').trim().slice(0, 3000) }], {}));
+    // --them <khoá> [phòng]: có phòng → việc mang chủ đề phòng đó (Huy xếp card góp ý etp từ iMac, anh 12/11/2026) để tin nhận / báo nằm đúng 📂 phòng
+    const topic = a[2] ? await topicPhong(a[2], a[2], tg) : null;
+    console.log(themTuCanhBao([{ khoa: a[1], chu: fs.readFileSync(0, 'utf8').trim().slice(0, 3000) }], { topic }));
   } else if (a[0] === '--ghi-them') {   // ghi chú bổ sung (mos2 /api/may-dang/so): --ghi-them <khoá>, chữ ở stdin → nối vào việc đang chờ cùng khoá hoặc xếp mới. In gop | moi | bo
     const r = ghiThem(doc(), a[1], fs.readFileSync(0, 'utf8').trim().slice(0, 3000)); if (r.kieu !== 'bo') ghi(r.st); console.log(r.kieu);
   } else if (a[0] === '--canh') {   // --canh <khoá> <phòng>, chữ ở stdin: báo máy kẹt vào chủ đề phòng, mỗi khoá ≤ 1 tin / 24 giờ. In gui | bo | loi

@@ -1173,10 +1173,6 @@ def _xet_luat():
            ("thang_nb", thang_nb), ("thang_tat", thang_tat), ("tang30", tang30), ("tat_l0", tat_l0), ("h3", h3), ("dung_dem", dung_dem), ("tat_roas", tat_roas), ("tat_r0", tat_r0), ("g10", g10), ("tat_g10", tat_g10), ("hoi_g10", hoi_g10), ("moc30", moc30))}
     # THẺ LÊN ROAS (anh 11/11/2026 "nhìn vào đây đéo biết bao giờ mày sẽ lên camp ROAS. Các chỉ số thì viết hết ra ngoài"): điều kiện + cổng chặn thật của lần lên
     # (worker ethopex.mjs ★ LÊN ROAS → nhan-ban.py --roas → cong.kiem) vào bảng, lần thử gần nhất bị chặn ghi ở dòng cam, trần camp mới / ngày chặn → mốc 00:00 VN
-    try: _so_moi, _tran_moi = int(q(CONG.SQL_TAO_HOM_NAY) or 0), q(f"select gia_tri::text from etp.cau_hinh where khoa = '{CONG.KHOA_TRAN_NGAY}'")
-    except Exception: _so_moi, _tran_moi = 0, ""
-    _tran_moi = int(float(_tran_moi)) if (_tran_moi or "").replace(".", "", 1).isdigit() else None
-    _ngay_mai = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).replace(hour=0, minute=0, second=0, microsecond=0) + dt.timedelta(days=1) - dt.timedelta(hours=7)
     try: _roas_thu = {int(x["c"]): x for x in json.loads(q("""select coalesce(json_agg(t), '[]') from (select distinct on (camp_id) camp_id c, to_char(luc at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI') g, ok, loi
         from etp.nhat_ky where viec = 'roas' and camp_id is not null and (luc at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date order by camp_id, luc desc) t""") or "[]")}
     except Exception: _roas_thu = {}

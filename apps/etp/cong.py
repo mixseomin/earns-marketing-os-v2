@@ -42,7 +42,8 @@ LY_IT_NUOC = "camp ít nước (nhánh thử A/B nhắm nước) hoặc trong l�
 KHOA_DUNG_CAMP_MOI = "dung_camp_moi"
 SQL_DUNG_CAMP_MOI = f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{KHOA_DUNG_CAMP_MOI}'), 'false') = 'true'"
 LY_DUNG_CAMP_MOI = "ĐANG DỪNG LÊN CAMP MỚI"
-SQL_TAO_HOM_NAY = "select count(*) from etp.camp where (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date"
+# camp ★ ROAS không phải camp thử → không đếm, không bị trần chặn (anh 12/11/2026: camp đủ lên ROAS bị vướng "Trần camp mới hôm nay 116/35")
+SQL_TAO_HOM_NAY = "select count(*) from etp.camp where (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date and not coalesce(la_roas, false)"
 # TRANG PHIM HỎNG HẲN (anh 09/11/2026 "Fix triệt để" — 91648 From Doomed Baby đứng bước Trang phim 01:26 08/11 → 01:27 09/11, hơn 20 lượt chờ 60 phút → Mạnh huỷ → FIX):
 # bản workspace Nhà đã thêm quá TRANG_CHO_SINH giây mà Ethopex vẫn chưa sinh đủ (thường là link tập 1: thư viện phim không có nguồn tập 1, 7 phim 09/11) → chờ thêm vô ích.
 # MỘT định nghĩa cho cổng Trang phim (dong_phim.b_ws dừng dòng), máy lộ trình (lo_trinh_phim không xếp dòng) và Mạnh (dấu cổng: Ethopex có link → tự mở lại dòng).
@@ -139,7 +140,7 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         tcm = ch.get(KHOA_TRAN_NGAY)   # TRẦN CAMP MỚI MỖI NGÀY (anh 07/11/2026 chốt 100 camp thử / ngày): đếm camp nhà tạo trong ngày VN, kể cả bản nhân
         # lenh_anh: clone SANG BỘ KHÁC theo lệnh đích danh của anh trong lượt (nhan-ban.py --bo --ep; anh 08/11/2026 "50 camp này dup luôn sang tk số 4" — bản thay
         # cho camp bộ 2 không tiêu) → không tính vào trần camp mới / ngày; mọi cổng khác giữ nguyên
-        if tcm is not None and viec in ("nhan_ban", "tao_camp") and not lenh_anh:
+        if tcm is not None and viec in ("nhan_ban", "tao_camp") and not lenh_anh and not roas:
             so = int(_q(SQL_TAO_HOM_NAY) or 0)
             if so >= int(tcm): return f"hôm nay đã tạo {so} camp, chạm trần {tcm} camp mới / ngày (etp.cau_hinh.{KHOA_TRAN_NGAY}) — mai lên tiếp (dong_phim.mo_tran_ngay tự FIX sang ngày mới)"
         tn = ch.get("tran_ngay")

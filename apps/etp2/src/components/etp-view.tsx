@@ -389,7 +389,9 @@ function dieuKienLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' 
 }
 type VaoLuat = { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao' | 'ten' | 'bo' | 'camp_id' | 'phim'> & { trang_thai?: string; dong?: CampEtpKho['dong'] }; ba: SoTien; bao?: { nhom: string; chu: string }[]; boThang: string[]; thangMuc: number[]; xet?: XetLuat[];
   /** camp người khác (?ng=): bảng xét là ĐỀ XUẤT của máy luật nhà, không ai làm (anh 30/10/2026 "chỉ đề xuất, ko tự ý update") */
-  deXuat?: boolean };
+  deXuat?: boolean;
+  /** #1559: bảng đã có cột ⏳ riêng ngay trước Luật → chip không in giờ nữa */
+  khongGio?: boolean };
 // MỘT chỗ tính luật cho chip (Cây) và ngăn camp (điện thoại) — THỨ TỰ NGUỒN: máy luật đã xếp (etp.bao 'dang', chip đặc) → luật đủ điều kiện theo số trang →
 // máy luật báo GẦN (etp.bao 'gan', vd Gần T7 — nét đứt) → luật thiếu điều kiện theo số trang (nét đứt). Sổ máy luật là nguồn thật; bảng điều kiện của trang chỉ bù khi máy chưa ghi.
 function tinhLuat({ c, ba, bao, boThang, thangMuc, xet }: VaoLuat) {
@@ -455,6 +457,24 @@ function ChuGio({ g, chip }: { g: GioLam; chip?: boolean }) {
   return <div style={{ color: mau, fontSize: 11, fontWeight: 600 }}>⏳ {sat ? con : `${con} · ${gio}`}{g.can ? <div style={{ fontWeight: 400, fontSize: 10.5 }}>nếu {g.can}</div> : null}</div>;
 }
 function GioThe({ l, don, chip }: { l: XetLuat; don: boolean; chip?: boolean }) { const hoan = useContext(HoanCtx), g = gioThe(l, hoan, don); return g ? <ChuGio g={g} chip={chip} /> : null; }
+/** mốc kế tiếp đồng hồ VN chạm giờ nguyên h */
+const lucGioVn = (h: number, now = Date.now()) => { const d = new Date(now + 7 * 3600_000); let t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h) - 7 * 3600_000; if (t <= now) t += 86_400_000; return t; };
+/** GIỜ MÁY LÀM của thẻ luật đang hiện — MỘT nguồn cho chip luật (hover) và cột ⏳ (#1559): cho = giờ VN khung đổi camp đang chặn (sổ hoãn), không thì gioThe */
+function gioLuat(p: VaoLuat, t: ReturnType<typeof tinhLuat>, hoan: ReturnType<typeof docHoan>): (GioLam & { cho: number | null }) | null {
+  if (p.deXuat || (p.c.trang_thai && p.c.trang_thai !== 'ACTIVE' && p.c.dong?.ma) || (!t.chinh && !t.xet)) return null;
+  if (hoan.ds.has(p.c.camp_id)) { const h = gioLam(hoan.ds.get(p.c.camp_id)!); return { t: lucGioVn(h), can: null, cho: h }; }
+  const g = t.the ? gioThe(t.the, hoan, t.don) : null; return g ? { ...g, cho: null } : null;
+}
+/** định dạng gọn h:mm (anh 11/11/2026 #1559 "dùng format time khác cho gọn hơn") — 0:27 · 2:15, thẳng cột */
+const gioGon = (t: number) => { const p = Math.max(0, Math.round((t - Date.now()) / 60000)); return `${Math.floor(p / 60)}:${String(p % 60).padStart(2, '0')}`; };
+// CỘT ⏳ NGAY TRƯỚC LUẬT (anh 11/11/2026 #1559 "cho thời gian này vào 1 cột ngay trước luật") — trước nằm cạnh chip luật dạng ⏳27p; chữ phụ (giờ VN, điều kiện) gập vào chữ rê
+function OGioLuat(p: VaoLuat) {
+  const hoan = useContext(HoanCtx), g = gioLuat(p, tinhLuat(p), hoan);
+  if (!g) return null;
+  const vn = new Date(g.t + 7 * 3600_000).toISOString().slice(11, 16), mau = g.cho != null ? KHUNG_TEN.bang[2] : g.can ? '#facc15' : '#4ade80';
+  const tieu = g.cho != null ? `Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc ${g.cho}h VN` : `máy làm ~${vn} VN${g.can ? ` nếu ${g.can}` : ''}`;
+  return <span data-o="gio-luat" title={`còn ${gioGon(g.t)} (giờ:phút) · ${tieu}`} style={{ fontSize: 11, color: mau, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', cursor: 'help' }}>{gioGon(g.t)}</span>;
+}
 // GHI CHÚ LUẬT GẬP (anh 12/11/2026 #1558 "ko ghi hết chữ ra màn hình" — YDNI): ô tên luật chỉ còn tên · kết · ⏳ giờ · ℹ; giờ đầy đủ + lý do máy chặn ở chữ rê
 const GhiLuat = ({ t }: { t: string | null | undefined }) => (t ? <span title={t} style={{ marginLeft: 4, color: '#fb923c', cursor: 'help', fontSize: 11 }}>ℹ</span> : null);
 function BangXet({ xet, gon, deXuat, don }: { xet: XetLuat[]; gon?: boolean; deXuat?: boolean; /** camp tiêu dồn (nạp sáng) — giờ tăng tính cả khung sáng */ don?: boolean }) {
@@ -561,7 +581,7 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   );
 }
 function ChipLuat(p: VaoLuat) {
-  const noi = useNoi<{ id: 0 }>(); const t = tinhLuat(p), hoan = useContext(HoanCtx), hoanDs = hoan.ds, lsBac = useContext(LsBacCtx)[p.c.camp_id] ?? [];
+  const noi = useNoi<{ id: 0 }>(); const t = tinhLuat(p), hoan = useContext(HoanCtx), lsBac = useContext(LsBacCtx)[p.c.camp_id] ?? [];
   // CAMP ĐÃ TẮT THEO LUẬT → luật hiện ở CỘT LUẬT (anh 03/11/2026 "nếu tắt theo Luật thì show bên cột Luật"): chip ✕ <mã> đã tắt, hover = lý do có cấu trúc (kieuDung)
   const maTat = p.c.trang_thai && p.c.trang_thai !== 'ACTIVE' ? p.c.dong?.ma ?? null : null;
   if (maTat) return <ReDung c={p.c}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, padding: '0 6px', borderRadius: 4, border: '1px solid #7f1d1d', color: '#fca5a5', whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>✕ {maTat} đã tắt</span></ReDung>;
@@ -569,13 +589,12 @@ function ChipLuat(p: VaoLuat) {
   // camp không chạm luật nào vẫn rê được: ô hiện "…" (anh 28/10/2026 "hiển thị (...) là được")
   const R = t.xet ? 760 : 340;
   // KHUNG ĐỔI CAMP (anh 04/11/2026): luật đã đạt mà khung giờ đang chặn → ⏳ giờ máy sẽ làm (camp người khác: chỉ đề xuất, không ghi)
-  const cho = !p.deXuat && hoanDs.has(p.c.camp_id) ? `${gioLam(hoanDs.get(p.c.camp_id)!)}h` : null;
-  // GIỜ MÁY LÀM của thẻ đang hiện trên chip — CÙNG một hàm gioThe với ô tên luật trong bảng xét (audit 10/11/2026: chip và bảng từng tính hai kiểu)
-  const g = p.deXuat || cho || !t.the ? null : gioThe(t.the, hoan, t.don);
+  // GIỜ MÁY LÀM của thẻ đang hiện — CÙNG gioLuat với cột ⏳ (#1559), gioThe với ô tên luật trong bảng xét (audit 10/11/2026: chip và bảng từng tính hai kiểu)
+  const gl = gioLuat(p, t, hoan), cho = gl?.cho != null ? `${gl.cho}h` : null, g = gl && gl.cho == null ? gl : null;
   return (
     <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
       {t.chinh ? <ChipO chinh={t.chinh} /> : <span style={{ color: 'var(--fg-3, #777)', padding: '0 6px' }}>…</span>}
-      {cho ? <span style={{ fontSize: 10.5, color: KHUNG_TEN.bang[2], whiteSpace: 'nowrap' }}>⏳{cho}</span> : g ? <ChuGio g={g} chip /> : null}
+      {p.khongGio ? null : cho ? <span style={{ fontSize: 10.5, color: KHUNG_TEN.bang[2], whiteSpace: 'nowrap' }}>⏳{cho}</span> : g ? <ChuGio g={g} chip /> : null}
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={R} cao={t.xet ? 520 : 300} noi={noi}><div style={{ ...(t.xet ? { width: 'max-content', minWidth: 340, maxWidth: R } : { width: R }), maxHeight: 520, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
         {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
@@ -2225,8 +2244,11 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
     { key: 'ns', header: 'Ngân sách', align: 'left', width: 86, loc: 'so', title: 'ngân sách $/ngày — rê xem lịch sử bậc', cell: (c) => <BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach,
       total: (rs) => { const t = rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0);   // $0 mờ · ≥ $20 đậm sáng (anh 28/10/2026)
         return <span title="tổng ngân sách/ngày camp đang bật" style={{ display: 'inline-block', width: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: t >= 20 ? 'var(--fg)' : 'var(--fg-2)', fontWeight: t >= 20 ? 700 : 400, opacity: t ? 1 : 0.45 }}>${t}</span>; } },   // cùng ô 30px canh phải với $ của camp (anh 29/10/2026 #1476 "thò thụt")
+    // CỘT ⏳ NGAY TRƯỚC LUẬT (anh 11/11/2026 #1559): bao lâu nữa máy làm theo thẻ luật đang hiện, dạng h:mm — trước in ⏳27p dính sau chip luật
+    { key: 'gio', header: '⏳', align: 'right', width: 40, title: 'bao lâu nữa máy làm theo thẻ luật đang hiện (giờ:phút) — xanh chỉ chờ giờ · vàng còn điều kiện · cam ngoài khung đổi camp; rê xem giờ VN',
+      cell: (c) => <OGioLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} /> },
     { key: 'luat', header: 'Luật', align: 'left', width: 130, title: 'thẻ luật đang hiện — lọc chọn nhiều theo đúng chữ trên thẻ', sortValue: (c) => chipCamp(du, c, baoCamp.get(c.camp_id))?.chip ?? '',
-      cell: (c) => <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} />,
+      cell: (c) => <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} khongGio />,
       // dòng PHIM (mọi camp cùng một phim) = thẻ vòng thử phim + bão hoà; dòng tổng bảng (nhiều phim) để trống
       total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k != null && rs.every((x) => x.content_id === k) ? <ChipPhim ph={phCua.get(k)} bh={bhCua.get(k)} /> : null; } },
     // MỌI CỘT CÓ BỀ RỘNG CỐ ĐỊNH, khoảng thừa vào cột đệm cuối bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang" — trước TT rồi Tuổi lần lượt ăn khoảng trống)

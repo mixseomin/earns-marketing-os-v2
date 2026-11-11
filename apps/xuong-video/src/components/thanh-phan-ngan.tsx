@@ -3,7 +3,8 @@
 // (anh 01/11/2026: "các thành phần bấm vào phải mở ra drawer"). ma = 'nv-<id>' anchor (nhân vật / bối cảnh / cấu kiện / đạo cụ) · 'bt-<id>' một món look.
 // Dùng lại đúng khối chi tiết của cây phim (NhanVatSection chiTiet / BienTheChiTiet) — một màn sửa, không bản chép.
 import { useCallback, useEffect, useState } from 'react';
-import { docPhim, trangThaiKhoa, type PhimDayDu } from '@/lib/actions';
+import { trangThaiKhoa, type PhimDayDu } from '@/lib/actions';
+import { docPhim } from '@/lib/doc';   // hàm ĐỌC đi đường song song (doc-ham.ts)
 import { NhanVatSection, BienTheChiTiet } from './nhan-vat';
 import type { Khoa } from './ui';
 import { mono } from './ui';

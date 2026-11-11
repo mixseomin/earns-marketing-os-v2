@@ -4,7 +4,7 @@
 // với prompt keyframe + cổng đối chiếu) — màn này chỉ hiện, không có chữ tả riêng.
 import { useEffect, useState } from 'react';
 import { useNho } from './nho';
-import { phieuShotsTap } from '@/lib/actions';
+import { phieuShotsTap } from '@/lib/doc';   // hàm ĐỌC đi đường song song (doc-ham.ts)
 import type { NutPhieu, PhieuShot } from '@/lib/xuong-video/phieu-shots';
 import type { DongDoiChieu } from '@/lib/xuong-video/kieu';
 import { anhNho } from '@/lib/xuong-video/anh-nho';

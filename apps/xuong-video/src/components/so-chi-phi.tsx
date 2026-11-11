@@ -2,7 +2,8 @@
 // Sổ chi phí — mọi lần gọi AI (chữ, ảnh, video, âm), giờ Việt Nam. Dùng chung cho drawer 💰 và trang /log; lọc tại chỗ, không điều hướng.
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { soChiPhi, dsPhim } from '@/lib/actions';
+import { soChiPhi } from '@/lib/actions';
+import { dsPhim } from '@/lib/doc';   // hàm ĐỌC đi đường song song (doc-ham.ts)
 import { tien, gioVN, type Phim } from '@/lib/xuong-video/kieu';
 import { taNguon, taThu } from '@/lib/xuong-video/cong-ai';
 import { moNgan } from './ngan-chung';

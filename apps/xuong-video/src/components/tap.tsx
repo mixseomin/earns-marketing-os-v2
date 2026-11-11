@@ -15,7 +15,8 @@ import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { quyTrinh, phimQt } from '@/lib/xuong-video/quy-trinh';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
-import { luuKhuonTap, apDiemNhan, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, datKhungLaiTat, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, xuatLongTiengVi, daDangMayTap, trangThaiXuat, khopNhipNhac, khopGiongTapAction, doiCta } from '@/lib/actions';
+import { luuKhuonTap, apDiemNhan, suaTap, vietKichBanTap, tachCanhTap, suaCanh, datKhungLaiTat, themCanh, sinhKeyframe, sinhVideoCanh, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, goiYAIBrief, xuatTap, xuatLongTiengVi, daDangMayTap, trangThaiXuat, khopNhipNhac, khopGiongTapAction, doiCta } from '@/lib/actions';
+import { dsCanh, uocTien, kiemVideo, uocAm } from '@/lib/doc';   // hàm ĐỌC đi đường song song (doc-ham.ts)
 import { thanhPhanCanh, docKinhThanh, giaChuUoc, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, banHien, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, TabPhim, KqChay, O, Nut, Loi, Menu, MucMenu, mono, goiAction } from './ui';

@@ -11,7 +11,8 @@ import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { nhomPhim, demKieu, laLuuTru, anhDaiDien, TEN_KIEU, type KieuNhom } from '@/lib/xuong-video/nhom-phim';
-import { dsPhim, luuTruPhim, luuThanhTemplate, docPhim, taoPhim, taoPhimMau, xoaPhim, taoTap, dsMoHinh, dsThungRac, khoiPhuc, docHoanTac, hoanTac, baoCaoChuanBiAction, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
+import { luuTruPhim, luuThanhTemplate, taoPhim, taoPhimMau, xoaPhim, taoTap, khoiPhuc, hoanTac, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
+import { dsPhim, docPhim, dsMoHinh, dsThungRac, docHoanTac, baoCaoChuanBiAction } from '@/lib/doc';   // hàm ĐỌC đi đường song song (doc-ham.ts)
 import type { MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { LOAI_PHIM, docKinhThanh, giaAnhCents, giaVideoCents, tien, gioVN, type Phim, type Job, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Khoa, type TabPhim, Pill, Seg, Nut, Xoa, Loi, Menu, MucMenu, mono } from './ui';
@@ -70,8 +71,7 @@ function Ruot({ khoa }: { khoa: Khoa }) {
   const taiLai = useCallback(() => (dangTai.current ??= dsPhim().then(setPhim).finally(() => { dangTai.current = null; })), []);
   // Server action của Next chạy LẦN LƯỢT: tải danh sách (~3 MB) lúc ngăn phim đang mở thì mọi lệnh của ngăn (docPhim, shot…) xếp hàng sau nó
   // (đo 11/11/2026: shot hiện sau 3,5 s). Mở thẳng một phim → chưa tải danh sách; đóng ngăn (onClose) tự taiLai.
-  const moSan = modal.is('phim');
-  useEffect(() => { if (!moSan && ds === null) void taiLai(); }, [moSan, ds, taiLai]);
+
   const [moHinh, setMoHinh] = useState<{ anh: MoHinhChon[]; video: MoHinhChon[] }>({ anh: [], video: [] });
   useEffect(() => { void dsMoHinh().then(setMoHinh); }, []);
 
@@ -90,6 +90,10 @@ function Ruot({ khoa }: { khoa: Khoa }) {
   // BA CỬA VÀO (anh 17/10/2026, duyệt bản xem): ⚙ Tự động = máy ra video hàng loạt 0đ (may-ui.tsx) · 🧩 Theo template = QC nhân từ khuôn, người
   // duyệt từng bước (kho template + video tạo từ mỗi template) · 🎬 Làm tự do = phim không theo máy / template. 📦 Sản phẩm giữ như cũ.
   const [khoTab, setKhoTab] = useNho<'tu_dong' | 'template' | 'tu_do' | 'sanpham'>('xv-kho-tab', 'tu_dong', ['tu_dong', 'template', 'tu_do', 'sanpham'], 'kho');
+  // BẤM ĐÂU TẢI ĐÓ (anh 11/11/2026): danh sách phim (~2.900, ~3 MB) chỉ tải khi đứng ở tab cần nó (Template · Làm tự do · Sản phẩm) và không có
+  // ngăn phim đang mở; ⚙ Tự động không cần nó. Đóng ngăn (onClose) tự taiLai.
+  const moSan = modal.is('phim');
+  useEffect(() => { if (!moSan && ds === null && khoTab !== 'tu_dong') void taiLai(); }, [moSan, ds, khoTab, taiLai]);
   const tuDo = phim.filter((p) => !p.kinh_thanh?.tu_template && p.loai !== 'may_dung');   // video tạo từ template nằm dưới template của nó
   // Ngăn một sản phẩm (kho creative): khoá sản phẩm trong URL (?sp=) → F5 / chia sẻ mở lại đúng sản phẩm.
   const [spMo, setSpMoState] = useState<string | null>(null);
@@ -137,12 +141,12 @@ function Ruot({ khoa }: { khoa: Khoa }) {
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
       {khoTab === 'tu_dong' ? (
         <TuDong />
+      ) : ds === null ? (
+        <div style={{ ...mono, padding: 16 }}>đang tải danh sách phim…</div>
       ) : khoTab === 'sanpham' ? (
         <DanhSachSanPham phim={phim} onMo={setSpMo} />
       ) : khoTab === 'template' ? (
         <KhoTemplate ds={phim.filter((p) => p.kinh_thanh?.template && !laLuuTru(p))} phimTu={phim.filter((p) => p.kinh_thanh?.tu_template)} onMo={moPhim} />
-      ) : ds === null ? (
-        <div style={{ ...mono, padding: 16 }}>đang tải danh sách phim…</div>
       ) : phim.length === 0 ? (
         <div className="xv-panel" style={{ textAlign: 'center', padding: 40 }}><div style={{ fontSize: 28 }}>🎬</div><b>Chưa có phim nào</b><div style={mono}>Tạo một phim ở trên: đặt tên, chọn loại, rồi khai nhân vật/sản phẩm và dán kịch bản.</div></div>
       ) : (() => {

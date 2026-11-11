@@ -8,7 +8,9 @@ import { batCamXuc } from './qc-cam-xuc';
 import { moTaChuyenDong, bienTheTheoSo } from './bo-set-3d';
 import { tinhCatCuoi } from './cat-cuoi';
 import 'server-only';
-import { diChuyen, ngoaiCaShot } from './khong-gian';
+import { diChuyen, ngoaiCaShot, coKhongGian, sdLuc, nguoiKhung } from './khong-gian';
+import { cauHuong } from './so-do-canh';
+import { cauVat } from './so-vat';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
@@ -115,6 +117,13 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
     // KHOẢNH KHẮC: prompt_video riêng của shot (nếu có); thẻ có mở / kết hoặc câu diễn (mảnh ReelShort một việc) thì khối diễn đã nói — không lấy hanh_dong (mô tả cho người đọc, có thể tiếng Việt)
     khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('khoanh_khac', boCauTrung(boThoaiTrongPrompt(bc.canh.prompt_video.trim() || ((bc.canh.dan_dung?.mo && bc.canh.dan_dung?.ket) || bc.canh.dan_dung?.dien?.trim() ? '' : bc.canh.hanh_dong)), [bc.canh.dan_dung?.mo, bc.canh.dan_dung?.ket])),
     // đường đi: đồ đang cầm / đeo (vi_tri.cam) đi theo người, không tả riêng — tả riêng làm video phô món đó (#12 tổng tài: vòng ngọc gài lộ trước cú trả #25)
+    // SƠ ĐỒ CẢNH + SỔ ĐỒ VẬT cho phim KHÔNG 3D (anh 11/11/2026, phim #2934: "thiếu bố cục trong từng shot… sao không dùng chuẩn" — tàu đang đỗ tự chạy, chú nhìn
+    // ngược hướng nhóc chạy): trước đây hai sổ này chỉ vào prompt KEYFRAME + bộ chấm; prompt video không nói ai bên nào màn / nhìn về đâu / đồ đang ở trạng thái
+    // nào → model tự quyết. Món không ai giữ (tàu, xe, cửa) vào câu khi anchor cùng tên gắn shot.
+    khoi('huong', coKhongGian(bc.khongGian, bc.canh) ? [cauHuong(bc.khongGian.so_do, sdLuc(bc.canh, 'dau')!, bc.khongGian.nguoi, (t) => bc.khongGian!.ten_en?.[t] ?? t),
+      bc.canh.ky_thuat?.sd_ket ? `By the end of the shot: ${cauHuong(bc.khongGian.so_do, sdLuc(bc.canh, 'ket')!, bc.khongGian.nguoi, (t) => bc.khongGian!.ten_en?.[t] ?? t)}` : ''].filter(Boolean).join(' ') : ''),
+    khoi('vat', coKhongGian(bc.khongGian, bc.canh) && bc.khongGian.so_vat ? cauVat(bc.khongGian.so_vat, bc.canh.thu_tu, nguoiKhung(bc.khongGian, bc.canh, 'ket') ?? [], (t) => bc.khongGian!.ten_en?.[t] ?? t,
+      bc.nhanVat.filter((v) => bc.canh.nhan_vat.includes(v.id)).map((v) => v.ten), 'ket') : ''),
     khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di?.filter((d) => !bc.canh.may_3d?.vi_tri.some((v) => v.ten === d.ten && v.cam)), goiTenEn([...bc.nhanVat, ...bc.nvPhim]), (t) => [...bc.nhanVat, ...bc.nvPhim].some((v) => v.ten === t && v.loai === 'nhan_vat'), (t) => bc.canh.may_3d?.vi_tri.some((v) => v.ten === t && v.den && Math.hypot(v.den[0]! - v.tam[0]!, v.den[1]! - v.tam[1]!, (v.den[2] ?? 0) - (v.tam[2] ?? 0)) >= 15) ?? true)), khoi('khac', laDungLop(bc.kt) ? `${CAU_SONG_VIDEO_LOP} ${CAU_CHAN_VIDEO_LOP}` : lv.song(coMau(bc.kt.qc)) ? CHAT_LIEU[cl].song_video(chen) : ''), khoi('boi_canh', laDungLop(bc.kt) ? CAU_NEN_VIDEO_LOP : ''), khoi('vat', spTrongTam),
     khoi('thoai', thoaiVeo || imLang), khoi('noi_cat', catDongTac), khoi('giu', `${giuAnh} ${giuKhung} ${cauVatLy(bc.kt.the_loai)}`.trim()), khoi('khong_them', khongThem), khoi('cam_chu', 'No on-screen text, captions, subtitles or logos.'),
     khoi('trang_thai', [bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', cauDoMang(bc.nhanVat.filter((v) => bc.canh.nhan_vat.includes(v.id)))].filter(Boolean).join(' ')), khoi('may', laDungLop(bc.kt) ? CAU_MAY_VIDEO_LOP : promptKyThuatVideo(bc.canh.ky_thuat)),

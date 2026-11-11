@@ -5,7 +5,7 @@
  "mo_ta": "Dựng lại để làm THƯ VIỆN từ reel Facebook của Page 'Sương Và Nắng' (https://www.facebook.com/share/r/184jjr8r3x/, tải 11/11/2026, 14,5 s, 720×1280). Bản gốc làm bằng AI (dấu 豆包AI生成 = Doubao của ByteDance), hoạt hình kiểu anime, khung phim 16:9 đặt giữa khung dọc 9:16 với nền mờ phóng to của chính khung đó; từ giây 6 có băng QC InterLink ('Đào miễn phí, cơ hội nhận ngay 11$') đè trên đầu. Phim là một trò đùa trọn vẹn trong 7 shot: chú trên tàu đưa thằng nhóc 5k mua hai chai nước ngọt, nhóc về muộn, đang mút dở một chai, bảo 'tiệm chỉ còn một chai', trả tiền thừa rồi chạy. Đo: cắt cảnh ffmpeg scene trên dải phim, phụ đề đọc khung 0,2 s. Câu thoại giữ NGUYÊN VĂN bản gốc. Phân tích kỹ: tham-khao/tau-nuoc-ngot.md.",
  "kinh_thanh": {
   "phong_cach": "Japanese 2D anime feature film look: hand-painted detailed backgrounds, clean thin linework, soft cel shading, warm late-afternoon golden-hour sun low behind the train, strong backlight with lens flare and sun glints on metal, long soft shadows across the platform, dusty warm haze; palette of deep bottle-green train carriage with a mustard-yellow stripe, honey gold light, cream concrete, faded khaki and navy; characters with expressive large eyes and readable silhouettes; cinematic 16:9 framing; clean frames with no text, letters, subtitles or logos.",
-  "chat_lieu": "hoat_hinh",
+  "chat_lieu": "ve_2d",
   "ti_le": "16:9",
   "do_phan_giai": "720p",
   "ngon_ngu": "vi",

@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { DataTable, type DataColumn } from '@/components/ui/data-table';
+import { InfoHint } from '@/components/ui/info-hint';
 import type { ViecSx, NguonSx } from '@/lib/may-sx/gom';
 
 // tên dạng bài (kieu_ten) do API đọc từ SỔ apps/xuong-video/kieu-sx.json — trang KHÔNG gõ lại nhãn (audit 11/11/2026: nhãn gõ tay lệch máy khi đổi mặc định)
@@ -67,8 +68,14 @@ export function MaySxView() {
     // minmax(0, 1fr): ô lưới mặc định min-width:auto → NỞ theo chuỗi dài nhất trong bảng (dòng lỗi "TimeoutExpired: Command '['nice', …" không có
     // chỗ xuống dòng) và kéo cả trang cuộn ngang 2.634px (do-man cuon 11/11/2026). Chặn ở khung: bảng tự cuộn ngang trong dt-scroll của nó.
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
-      <div style={{ fontSize: 13, color: 'var(--fg-2)' }}>
-        Mọi việc sản xuất của Ethopex, Kênh nội dung, Social / Page và Puzzle gom về đây — bấm một dòng mở đúng chi tiết ở trang gốc. Máy SX của Page dựng tệp cho bài đã lên lịch rồi nộp Phòng Nội dung chấm; Máy Đăng lấy bài đã DUYỆT. Sổ dạng bài: <code>apps/xuong-video/kieu-sx.json</code> · <b>chưa có lịch tự chạy</b> — máy chỉ dựng khi chạy <code>node scripts/sx-may.mjs --may &lt;mã&gt;</code> trên iMac.
+      {/* ĐẦU TRANG MỘT DÒNG (audit 11/11/2026: đoạn giải thích chiếm 523px trên điện thoại nằm ngang, hơn một màn trước hàng dữ liệu đầu) — chữ đầy đủ vào InfoHint */}
+      <div style={{ fontSize: 13, color: 'var(--fg-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span>Việc sản xuất của mọi nguồn · bấm dòng mở chi tiết · <b>chưa có lịch tự chạy</b></span>
+        <InfoHint label="Máy SX hoạt động thế nào">
+          Mọi việc sản xuất của Ethopex, Kênh nội dung, Social / Page và Puzzle gom về đây — bấm một dòng mở đúng chi tiết ở trang gốc.
+          Máy SX của Page dựng tệp cho bài đã lên lịch rồi nộp Phòng Nội dung chấm; Máy Đăng lấy bài đã DUYỆT. Sổ dạng bài: apps/xuong-video/kieu-sx.json.
+          Chưa có lịch tự chạy — máy chỉ dựng khi chạy node scripts/sx-may.mjs --het trên iMac.
+        </InfoHint>
       </div>
       {loi ? <div role="alert" style={{ border: '1px solid var(--bad, #dc2626)', color: 'var(--bad, #dc2626)', borderRadius: 8, padding: 10, fontSize: 13 }}>Không đọc được sổ Máy SX: {loi}</div> : null}
       {du?.loi?.length ? <div role="alert" style={{ border: '1px solid var(--warn, #d97706)', color: 'var(--warn, #d97706)', borderRadius: 8, padding: 10, fontSize: 13 }}>{du.loi.join(' · ')}</div> : null}

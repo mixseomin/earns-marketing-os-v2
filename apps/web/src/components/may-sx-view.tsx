@@ -5,10 +5,13 @@ import { useEffect, useState } from 'react';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import type { ViecSx, NguonSx } from '@/lib/may-sx/gom';
 
-type Luot = { id: number; luc: string; may: string; slug: string; kieu: string | null; ngay_dang: string | null; ok: boolean; vnd: number; ghi: string | null; loi: string | null; tep: string | null };
-type Cho = { may: string; slug: string; nen: string | null; ngay_dang: string | null; kieu: string | null; huong: string | null };
-const KIEU: Record<string, string> = { reel_canh9: 'Reel cắt cảnh 9s', reel_canh9_free: 'Reel 9s có FREE', anh_doi_thuong: 'Ảnh đời thường' };
-const kieuCua = (k: string | null, nen: string | null) => KIEU[k ?? ''] ?? (nen === 'fb_anh' ? 'Ảnh đời thường' : nen === 'facebook' ? 'Reel cắt cảnh 9s' : k ?? '—');
+// tên dạng bài (kieu_ten) do API đọc từ SỔ apps/xuong-video/kieu-sx.json — trang KHÔNG gõ lại nhãn (audit 11/11/2026: nhãn gõ tay lệch máy khi đổi mặc định)
+type Luot = { id: number; luc: string; may: string; slug: string; kieu: string | null; kieu_ten: string | null; ngay_dang: string | null; ok: boolean; trang_thai: 'dang' | 'xong' | 'hong'; vnd: number; ghi: string | null; loi: string | null; tep: string | null };
+/** Lượt 'dang' quá 40 phút chưa cập nhật = bị ngắt giữa chừng (phiên đóng, máy tắt) — một lượt dựng thật mất 3–8 phút. */
+const MAT_DAU_PHUT = 40;
+const tinhTrang = (x: Luot): { chu: string; mau: string } => x.trang_thai === 'xong' ? { chu: '✓ xong', mau: 'var(--ok, #16a34a)' }
+  : x.trang_thai === 'hong' ? { chu: '✗ hỏng', mau: 'var(--bad, #dc2626)' }
+  : Date.now() - Date.parse(x.luc) > MAT_DAU_PHUT * 60e3 ? { chu: '⚠ mất dấu', mau: 'var(--bad, #dc2626)' } : { chu: '⏳ đang dựng', mau: 'var(--warn, #d97706)' };
 const gioVn = (iso: string) => new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(5, 16).replace('T', ' ').replace(/^(\d\d)-(\d\d)/, '$2/$1');
 const ngayVn = (n: string | null) => (n ? `${n.slice(8, 10)}/${n.slice(5, 7)}` : '—');
 // tên + màu từng nguồn — chip lọc và nhãn dòng dùng chung một bảng
@@ -26,7 +29,7 @@ const tuLuc = (iso?: string | null) => { if (!iso) return '—'; const p = Math.
 
 export function MaySxView() {
   const [ngay, setNgay] = useState(() => { try { return new URLSearchParams(window.location.search).get('sx_ngay') ?? '7'; } catch { return '7'; } });
-  const [du, setDu] = useState<{ luot: Luot[]; cho: Cho[]; viec: ViecSx[]; loi: string[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
+  const [du, setDu] = useState<{ luot: Luot[]; viec: ViecSx[]; loi: string[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
   const [nguon, setNguon] = useState<NguonSx | null>(() => { try { return (new URLSearchParams(window.location.search).get('sx_nguon') as NguonSx) || null; } catch { return null; } });
   useEffect(() => {
     const p = new URLSearchParams(window.location.search); if (ngay === '7') p.delete('sx_ngay'); else p.set('sx_ngay', ngay);
@@ -37,11 +40,11 @@ export function MaySxView() {
     hoi(); const t = setInterval(hoi, 30_000); return () => { dung = true; clearInterval(t); };
   }, [ngay, nguon]);
   const o = { padding: '6px 10px', borderBottom: '1px solid var(--border)', textAlign: 'left' as const, verticalAlign: 'top' as const };
-  const tien = du?.luot.reduce((t, x) => t + (x.vnd ?? 0), 0) ?? 0, hong = du?.luot.filter((x) => !x.ok).length ?? 0;
+  const tien = du?.luot.reduce((t, x) => t + (x.vnd ?? 0), 0) ?? 0, hong = du?.luot.filter((x) => tinhTrang(x).chu !== '✓ xong' && tinhTrang(x).chu !== '⏳ đang dựng').length ?? 0;
   return (
     <div style={{ display: 'grid', gap: 18 }}>
       <div style={{ fontSize: 13, color: 'var(--fg-2)' }}>
-        Mọi việc sản xuất của Ethopex, Kênh nội dung, Social / Page và Puzzle gom về đây — bấm một dòng mở đúng chi tiết ở trang gốc. Máy SX của Page dựng tệp cho bài đã lên lịch rồi nộp Phòng Nội dung chấm; Máy Đăng lấy bài đã DUYỆT. Sổ dạng bài: <code>apps/xuong-video/kieu-sx.json</code> · chạy: <code>node scripts/sx-may.mjs --may &lt;mã&gt;</code> trên iMac.
+        Mọi việc sản xuất của Ethopex, Kênh nội dung, Social / Page và Puzzle gom về đây — bấm một dòng mở đúng chi tiết ở trang gốc. Máy SX của Page dựng tệp cho bài đã lên lịch rồi nộp Phòng Nội dung chấm; Máy Đăng lấy bài đã DUYỆT. Sổ dạng bài: <code>apps/xuong-video/kieu-sx.json</code> · <b>chưa có lịch tự chạy</b> — máy chỉ dựng khi chạy <code>node scripts/sx-may.mjs --may &lt;mã&gt;</code> trên iMac.
       </div>
       {loi ? <div role="alert" style={{ border: '1px solid var(--bad, #dc2626)', color: 'var(--bad, #dc2626)', borderRadius: 8, padding: 10, fontSize: 13 }}>Không đọc được sổ Máy SX: {loi}</div> : null}
       {du?.loi?.length ? <div role="alert" style={{ border: '1px solid var(--warn, #d97706)', color: 'var(--warn, #d97706)', borderRadius: 8, padding: 10, fontSize: 13 }}>{du.loi.join(' · ')}</div> : null}
@@ -58,7 +61,7 @@ export function MaySxView() {
           if (!ds.length) return <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Không có việc sản xuất nào{nguon ? ' ở nguồn này' : ''}.</div>;
           return <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
-              <thead><tr style={{ color: 'var(--fg-2)' }}><th style={o}>Nguồn</th><th style={o}>Việc</th><th style={o}>Bước</th><th style={o}>Đã</th><th style={o}>Ghi chú / lỗi</th></tr></thead>
+              <thead><tr style={{ color: 'var(--fg-2)' }}><th style={o}>Nguồn</th><th style={o}>Việc</th><th style={o}>Bước</th><th style={o} title="lần cập nhật gần nhất của việc này ở nguồn gốc">Cập nhật</th><th style={o}>Ghi chú / lỗi</th></tr></thead>
               <tbody>{ds.map((v) => { const n = NGUON.find((x) => x.k === v.nguon)!, pct = v.so != null && v.tong ? Math.min(100, Math.round((v.so / v.tong) * 100)) : null;
                 return <tr key={v.khoa} onClick={() => moViec(v)} title="bấm mở chi tiết" style={{ cursor: 'pointer', background: v.loi ? 'color-mix(in srgb, var(--bad, #dc2626) 7%, transparent)' : undefined }}>
                   <td style={{ ...o, whiteSpace: 'nowrap' }}><span style={{ color: n.mau, fontWeight: 600 }}>● {n.ten}</span></td>
@@ -66,7 +69,7 @@ export function MaySxView() {
                   <td style={{ ...o, minWidth: 140 }}><div>{v.buoc}</div>{pct != null ? <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                     <span style={{ flex: 1, height: 5, borderRadius: 3, background: 'var(--bg-2, rgba(0,0,0,.08))', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: `${pct}%`, background: v.loi ? 'var(--bad, #dc2626)' : n.mau }} /></span>
                     <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{v.so}/{v.tong}</span></div> : null}</td>
-                  <td style={{ ...o, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: 'var(--fg-2)' }}>{tuLuc(v.luc)}</td>
+                  <td style={{ ...o, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: 'var(--fg-2)' }}>{v.luc ? `${tuLuc(v.luc)} trước` : '—'}</td>
                   <td style={{ ...o, color: v.loi ? 'var(--bad, #dc2626)' : 'var(--fg-2)' }}>{v.loi ? `✗ ${v.loi}` : v.ghi ?? ''}</td></tr>; })}</tbody>
             </table></div>;
         })()}
@@ -85,10 +88,10 @@ export function MaySxView() {
               <thead><tr style={{ color: 'var(--fg-2)' }}><th style={o}>Lúc</th><th style={o}>Kết quả</th><th style={o}>Kênh</th><th style={o}>Dạng</th><th style={o}>Ngày đăng</th><th style={{ ...o, textAlign: 'right' }}>Tiền</th><th style={o}>Ghi chú / lỗi</th><th style={o}>Tệp</th></tr></thead>
               <tbody>{du.luot.map((x) => <tr key={x.id}>
                 <td style={{ ...o, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{gioVn(x.luc)}</td>
-                <td style={o}><span style={{ fontWeight: 600, color: x.ok ? 'var(--ok, #16a34a)' : 'var(--bad, #dc2626)' }}>{x.ok ? '✓ xong' : '✗ hỏng'}</span></td>
-                <td style={o}>{x.may}</td><td style={{ ...o, whiteSpace: 'nowrap' }}>{kieuCua(x.kieu, null)}</td><td style={{ ...o, fontVariantNumeric: 'tabular-nums' }}>{ngayVn(x.ngay_dang)}</td>
+                <td style={o}><span title={tinhTrang(x).chu === '⚠ mất dấu' ? `lượt bắt đầu quá ${MAT_DAU_PHUT} phút mà chưa kết thúc — bị ngắt giữa chừng, bài chưa có tệp; lượt kế máy dựng lại` : undefined} style={{ fontWeight: 600, color: tinhTrang(x).mau }}>{tinhTrang(x).chu}</span></td>
+                <td style={o}>{x.may}</td><td style={{ ...o, whiteSpace: 'nowrap' }}>{x.kieu_ten ?? '—'}</td><td style={{ ...o, fontVariantNumeric: 'tabular-nums' }}>{ngayVn(x.ngay_dang)}</td>
                 <td style={{ ...o, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{x.vnd ? `${x.vnd.toLocaleString('vi-VN')}₫` : '0₫'}</td>
-                <td style={{ ...o, color: x.ok ? 'var(--fg-2)' : 'var(--bad, #dc2626)' }}>{x.ok ? x.ghi : x.loi}<div style={{ color: 'var(--fg-3)', fontSize: 11 }}>{x.slug}</div></td>
+                <td style={{ ...o, color: x.trang_thai === 'hong' ? 'var(--bad, #dc2626)' : 'var(--fg-2)' }}>{x.trang_thai === 'hong' ? x.loi : x.ghi}<div style={{ color: 'var(--fg-3)', fontSize: 11 }}>{x.slug}</div></td>
                 <td style={o}>{x.tep ? <a href={x.tep} target="_blank" rel="noreferrer">mở ↗</a> : '—'}</td></tr>)}</tbody>
             </table>
           </div>)}

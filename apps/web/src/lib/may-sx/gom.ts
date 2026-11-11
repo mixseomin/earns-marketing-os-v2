@@ -12,6 +12,7 @@ import { docKenhSp } from '@/lib/tai-san/kenh-sp';
 import { laDemo } from '@/lib/tai-san/kenh-sp-tinh';
 import { docEtp } from '@/lib/etp-doc';
 import { docTaiSanBan, TT_SP } from '@/lib/tai-san/doc';
+import { dangCua, tenDang } from './so-kieu';
 
 export type NguonSx = 'social' | 'kenh' | 'etp' | 'puzzle';
 export const TEN_NGUON: Record<NguonSx, string> = { social: 'Social / Page', kenh: 'Kênh nội dung', etp: 'Ethopex', puzzle: 'Puzzle / Tài sản' };
@@ -33,32 +34,26 @@ export async function docViecSx(): Promise<{ viec: ViecSx[]; loi: string[] }> {
   const doc = async <T>(ten: string, f: () => Promise<T[]>): Promise<T[]> => { try { return await f(); } catch (e) { loi.push(`${ten}: ${(e as Error).message.slice(0, 140)}`); return []; } };
 
   const [social, kenh, etp, puzzle] = await Promise.all([
+    // BÀI CHỜ DỰNG = view xv_bai_cho_dung do CHÍNH MÁY SX tạo (sx-may.mjs › VIEW_CHO_DUNG) — một định nghĩa cho máy lẫn trang (audit 11/11/2026: từng chép 3 nơi).
+    // View chưa có = máy chưa chạy lượt nào → báo lỗi nguồn, không tự đoán điều kiện.
     doc('Social', async () => {
       const d = getDb(); if (!d) throw new Error('không có DB');
-      const r = (await d.execute(sql`SELECT v.id, v.slug, m.id AS may_id, m.ma, m.ten AS may_ten, coalesce(v.dang->>'y', v.dang->>'title', v.chu_de) AS ten,
-          v.dang->>'dang_tu' AS ngay, v.dang->>'dang_bai' AS nen, v.dang->>'kieu_sx' AS kieu, v.updated_at::text AS luc,
-          (SELECT l.loi FROM may_sx_luot l WHERE l.slug = v.slug ORDER BY l.luc DESC LIMIT 1) AS loi_moi
-        FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id
-        WHERE m.chay AND NOT coalesce(v.luu_tru, false) AND v.da_dang = '{}'::jsonb AND v.video_url IS NULL
-          AND jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) = 0
-        ORDER BY (v.dang->>'dang_tu') IS NULL, v.dang->>'dang_tu', v.id DESC LIMIT 200`).catch(async () =>
-          // bảng may_sx_luot chưa có (máy chưa chạy lần nào) → đọc không kèm lỗi lượt
-          d.execute(sql`SELECT v.id, v.slug, m.id AS may_id, m.ma, m.ten AS may_ten, coalesce(v.dang->>'y', v.dang->>'title', v.chu_de) AS ten,
-            v.dang->>'dang_tu' AS ngay, v.dang->>'dang_bai' AS nen, v.dang->>'kieu_sx' AS kieu, v.updated_at::text AS luc, NULL AS loi_moi
-          FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.chay AND NOT coalesce(v.luu_tru, false) AND v.da_dang = '{}'::jsonb AND v.video_url IS NULL
-            AND jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) = 0 ORDER BY (v.dang->>'dang_tu') IS NULL, v.dang->>'dang_tu', v.id DESC LIMIT 200`))) as unknown as
-        { id: number; slug: string; may_id: number; ma: string; may_ten: string; ten: string | null; ngay: string | null; nen: string | null; kieu: string | null; luc: string | null; loi_moi: string | null }[];
+      const r = (await d.execute(sql`SELECT c.id, c.slug, c.may_id, c.may_ten, c.ten, c.dang_tu AS ngay, c.nen, c.kieu_sx AS kieu, c.updated_at::text AS luc,
+          (SELECT l.loi FROM may_sx_luot l WHERE l.slug = c.slug ORDER BY l.luc DESC LIMIT 1) AS loi_moi
+        FROM xv_bai_cho_dung c WHERE c.chay ORDER BY c.dang_tu IS NULL, c.dang_tu, c.id DESC LIMIT 200`)) as unknown as
+        { id: number; slug: string; may_id: number; may_ten: string; ten: string | null; ngay: string | null; nen: string | null; kieu: string | null; luc: string | null; loi_moi: string | null }[];
       return r.map((x): ViecSx => ({ nguon: 'social', khoa: `s-${x.id}`, ten: x.ten || x.slug, cua: x.may_ten,
         buoc: x.ngay ? `chờ dựng · đăng ${x.ngay.slice(8, 10)}/${x.ngay.slice(5, 7)}` : 'chờ dựng (chưa xếp ngày)', luc: x.luc, loi: x.loi_moi,
-        ghi: [x.kieu ?? (x.nen === 'fb_anh' ? 'ảnh đời thường' : x.nen === 'facebook' ? 'Reel cắt cảnh' : x.nen), x.slug].filter(Boolean).join(' · '),
+        ghi: [tenDang(dangCua(x.kieu, x.nen)), x.slug].join(' · '),
         mo: { url: `${STUDIO}/?kho=tu_dong&may=${x.may_id}&video=${x.id}` } }));
     }),
     doc('Kênh nội dung', async () => (await docKenhSp(hom)).flatMap((k) => k.ke.dangLam.filter((d) => !laDemo(d)).map((d): ViecSx => ({
       nguon: 'kenh', khoa: `k-${k.ma}-${d.id}`, ten: d.ten || d.id, cua: k.ma, buoc: d.buoc ?? 'đang làm', so: d.so ?? null, tong: d.tong ?? null,
       luc: d.buoc_luc ?? d.luc, loi: d.loi ?? null, ghi: d.chi_tiet ?? null, mo: { url: `/?tab=kenh&kenh_mo=${encodeURIComponent(k.ma)}` } })))),
-    // "Kho góc sạch chưa dùng" (1.754 dòng đo 11/11/2026) là HÀNG ĐÃ LÀM XONG nằm kho, không phải việc đang sản xuất — gom vào thì bảng
-    // 1.782 dòng, 28 việc thật chìm mất. Dòng chờ cắt lại mà ghi chú mang lỗi lần trước (TimeoutExpired…) thì hiện là LỖI, không giả vờ đang chờ.
-    doc('Ethopex', async () => (await docEtp(undefined, false)).dangSx.filter((x) => !/^Kho góc/.test(x.buoc)).map((x): ViecSx => {
+    // Kho góc sạch chưa dùng (1.754 dòng đo 11/11/2026) là HÀNG ĐÃ LÀM XONG nằm kho, không phải việc đang sản xuất — gom vào thì bảng
+    // 1.782 dòng, 28 việc thật chìm mất. Lọc theo MÃ dòng (`camp-<creative>` — etp-doc.ts › choCamp), không theo chữ nhãn: đổi chữ "Kho góc…"
+    // thì lọc theo chữ im lặng hỏng (audit 11/11/2026). Dòng chờ cắt lại mà ghi chú mang lỗi lần trước (TimeoutExpired…) hiện là LỖI.
+    doc('Ethopex', async () => (await docEtp(undefined, false)).dangSx.filter((x) => !x.khoa.startsWith('camp-')).map((x): ViecSx => {
       const loiCu = !x.loi && /Error|Timeout|Traceback|Exception/.test(x.ghi ?? '');
       return {
       nguon: 'etp', khoa: `e-${x.khoa}`, ten: x.phim ?? (x.content_id ? `phim ${x.content_id}` : x.khoa), cua: x.lo ?? null, buoc: loiCu ? `${x.buoc} (lần trước hỏng)` : x.buoc,

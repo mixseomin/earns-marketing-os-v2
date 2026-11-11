@@ -12,6 +12,8 @@ const KHO = `${process.env.HOME}/.cache/sx-may`;      // tập phim tải về +
 // Tự định vị theo CHÍNH TỆP NÀY, không ghép tên repo bằng tay (11/11/2026: ghép thừa một tầng → "No such file").
 const TOI = path.dirname(new URL(import.meta.url).pathname);
 const chay = (l, a, o = {}) => execFileSync(l, a, { encoding: 'utf8', timeout: 900_000, ...o });
+/** Thoát một chuỗi cho shell bên kia ssh: bọc nháy đơn, nháy đơn bên trong thành '\'' — không gì bị bung ra ($, `, \, ", khoảng trắng). */
+export const shq = (x) => `'${String(x).replace(/'/g, `'\\''`)}'`;
 
 /** Tải tập miễn phí của phim về kho (một lần cho mỗi phim) → thư mục chứa tap01.mp4… Dùng chính tai-tap.py đang có. */
 export function taiTap(contentId, urlPhim) {
@@ -157,11 +159,13 @@ async function lamReelCanh9(de, { free = false } = {}) {
 async function lamAnhDoiThuong(de) {
   if (!de.prompt) throw new Error(`${de.slug}: ảnh đời thường cần dang.prompt (mô tả cảnh cho AI)`);
   const ra = `/tmp/sx-${de.slug}.png`;
-  const o = chay('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/anh-le.mts --prompt=${JSON.stringify(de.prompt)} --ti-le=4:5 --ra=${ra}`]);
+  // prompt đi trong NHÁY ĐƠN đã thoát (shq) — audit 11/11/2026: trước bọc JSON.stringify trong nháy kép, `$` / dấu ` trong prompt bị shell box3 bung ra
+  const o = chay('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/anh-le.mts ${shq(`--prompt=${de.prompt}`)} --ti-le=4:5 --ra=${shq(ra)}`]);
   const url = (o.match(/https:\/\/img\.on\.tc\/\S+/) ?? [])[0];
   if (!url) throw new Error(`anh-le.mts không trả ảnh: ${o.slice(-200)}`);
-  const vnd = Number((o.match(/(\d+)\s*₫/) ?? [])[1] ?? 110);
-  return { anh: [url], vnd, ghi: 'ảnh sinh AI qua cổng rẻ' };
+  // giá THẬT từ dòng anh-le in ra ("… · <cổng>:<model> · 107₫"); cổng không báo giá thì ghi RÕ là chưa rõ — trước lặng lẽ ghi 110₫ như thể đã đo
+  const gia = o.match(/·\s*(\d+)₫\s*$/m);
+  return { anh: [url], vnd: gia ? Number(gia[1]) : 0, ghi: gia ? 'ảnh sinh AI qua cổng rẻ' : 'ảnh sinh AI qua cổng rẻ · CHƯA RÕ GIÁ (cổng không báo), sổ ghi 0₫' };
 }
 
 /** BẢNG HÀM — khoá phải khớp ĐÚNG sổ kieu-sx.json (sx-may.mjs --tu-kiem gác). */

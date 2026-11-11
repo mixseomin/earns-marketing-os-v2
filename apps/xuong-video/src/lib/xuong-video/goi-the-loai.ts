@@ -157,6 +157,9 @@ export const DIGEN_NHOM = ['Short Drama', 'Anime', 'Music', 'Roleplay', 'Manhua'
   'Game', 'News', 'Health', 'Finance', 'Sports', 'YouTuber', 'Custom', 'Other'] as const;
 export const DIGEN_KHONG_TINH: readonly string[] = ['Poster', 'Custom', 'Other'];
 export const goiTheoKey = (k: string | undefined | null) => GOI_THE_LOAI.find((g) => g.key === k);
+/** PHIM NGẮN nhịp nhanh (sàn giây đọc 1,2 s — nhip-hinh.ts › giayDoc): thể loại phim_doc, hoặc gói khung 'short' (hài ngắn, meme, anime ngắn…).
+ *  MỘT chỗ quyết cho cổng keyframe, tách cảnh, hậu kỳ (11/11/2026: phim mẫu #2934 hài ngắn bị chặn "10 shot dưới 3s" — trước chỉ xét the_loai). */
+export const laPhimNgan = (kt: { the_loai?: string | null; goi?: string | null }): boolean => kt.the_loai === 'phim_doc' || goiTheoKey(kt.goi)?.khung === 'short';
 /** BỐ CỤC MẶC ĐỊNH của gói (anh 19/10/2026: "gắn layout này thành default của mỗi gói"): khai riêng thắng; không khai thì phim dọc 9:16 → màn xem bên phải
  *  (cao, thấy timeline cùng lúc — kiểu CapCut), phim ngang → giữa hàng panel. Timeline dùng khi công tắc đang ở "tự động". */
 export const boCucGoi = (g: Pick<GoiTheLoai, 'bo_cuc' | 'ti_le'>): BoCucXem => g.bo_cuc ?? (g.ti_le === '9:16' ? 'phai' : 'giua');

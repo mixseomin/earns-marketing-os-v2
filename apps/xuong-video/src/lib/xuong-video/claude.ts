@@ -12,7 +12,7 @@ import { vanLuatDung, LUAT_DUNG_CANH, luatDung } from './luat-dung';
 import { vanKhuonChuoi } from './khuon-chuoi';
 import { nguoiBanTuyen } from './ckey-tuyen';
 import { vanKhanGia } from './khan-gia';
-import { vanGoi, goiTheoKey } from './goi-the-loai';
+import { vanGoi, goiTheoKey, laPhimNgan } from './goi-the-loai';
 import { vanPhoiHop } from './thu-vien-vat';
 import { vanKhoVat, vanSoTay, phepThuCua, cachViet, kiemTheGag, chonGag, kichBanTuGag, ketLuan, PHEP_THU_GAG, type ChamKb, type TheGag, type DiemGag, type ThuMu } from './so-tay-kich-ban';
 import { congTk, giaChuCents, docKinhThanh, phongCachHinh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
@@ -356,7 +356,7 @@ export async function tachCanh(opts: {
   if (mau) { opts = { ...opts, soCanh: mau.shots.length, thoiLuongS: giayMau(mau) }; }
   // Thời lượng mục tiêu chia cho từng beat (quảng cáo có tỉ lệ sẵn) → Claude biết hook được mấy giây, không tự kéo 24s thành 64s.
   const giayTheoBeat = opts.thoiLuongS && !mau ? giayBeat(kKhung, opts.thoiLuongS) : null;
-  const phimDoc = kt.the_loai === 'phim_doc';
+  const phimDoc = laPhimNgan(kt);
   const toiGiay = giayDoc({ laQc, khong_loi: kt.khong_loi, phim_doc: phimDoc });
   const user = [
     `DANH SÁCH ANCHOR (dùng đúng tên trong trường nhan_vat):\n${taAnchor(opts.nhanVat)}`,

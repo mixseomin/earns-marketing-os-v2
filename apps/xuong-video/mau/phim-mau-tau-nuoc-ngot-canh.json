@@ -13,8 +13,8 @@
   },
   {
    "ten": "Twist",
-   "mo_ta": "Nhóc về với một chai đang mút dở",
-   "cam_xuc": 2
+   "mo_ta": "Tàu sắp chạy, nhóc chưa về — rồi về với một chai đang mút dở (căng, nghi)",
+   "cam_xuc": -2
   },
   {
    "ten": "Payoff",
@@ -95,8 +95,8 @@
    "xung_dot": "Nhóc chỉ cầm một chai, đang uống dở",
    "an_y": "Người xem biết trước chú",
    "nhip": "vua",
-   "cam_xuc_dau": 2,
-   "cam_xuc_cuoi": 2,
+   "cam_xuc_dau": -1,
+   "cam_xuc_cuoi": -2,
    "noi": "Sân ga tàu xanh",
    "luc": "Lát sau, nắng xiên hơn, tàu sắp chạy",
    "gia_tri_doi": "chờ đợi → nghi ngờ",
@@ -160,7 +160,7 @@
    "xung_dot": "Chú đứng hình, không kịp phản ứng",
    "an_y": "Thật thà kiểu trẻ con",
    "nhip": "nhanh",
-   "cam_xuc_dau": 3,
+   "cam_xuc_dau": -2,
    "cam_xuc_cuoi": 3,
    "noi": "Sân ga tàu xanh",
    "luc": "Ngay sau đó, tàu chuyển bánh",
@@ -200,7 +200,7 @@
    "goc_may": "MCU, máy cầm tay rung nhẹ",
    "phan_doan": "Giao tiền",
    "cam_xuc": 0,
-   "phat_s": 0.9,
+   "phat_s": 1.2,
    "hanh_dong": "Chú thò đầu ra cửa sổ tàu, đưa mắt dọc sân ga trái sang phải tìm người, rồi khựng lại.",
    "nhan_vat": [
     "Chú",
@@ -245,7 +245,7 @@
    "goc_may": "POV từ cửa sổ, đẩy nhẹ vào",
    "phan_doan": "Giao tiền",
    "cam_xuc": 0,
-   "phat_s": 0.8,
+   "phat_s": 1.2,
    "hanh_dong": "Góc nhìn của chú: thằng nhóc đứng một mình giữa sân ga ngược nắng, tay đút túi.",
    "nhan_vat": [
     "Nhóc",
@@ -351,7 +351,7 @@
    "phan_doan": "Giao tiền",
    "cam_xuc": 1,
    "thoi_luong_s": 4,
-   "phat_s": 1.13,
+   "phat_s": 1.2,
    "hanh_dong": "Nhóc cầm tờ 5k ngước nhìn nghe dặn, rồi quay lưng chạy vào trong ga.",
    "nhan_vat": [
     "Nhóc",
@@ -461,7 +461,7 @@
    "goc_may": "Insert sát bánh xe, máy trượt ngang chậm",
    "phan_doan": "Quay về",
    "cam_xuc": 1,
-   "phat_s": 1.0,
+   "phat_s": 1.2,
    "hanh_dong": "Cận bánh xe sắt và thanh truyền của toa xanh: phanh xì hơi, bánh nhích lên một chút rồi dừng.",
    "nhan_vat": [
     "Sân ga tàu xanh"
@@ -680,7 +680,8 @@
    "hanh_dong": "Đặc tả mặt chú đứng hình, mắt mở to, một giọt mồ hôi; ở đáy khung tay chú vừa nhận xấp tiền thừa.",
    "nhan_vat": [
     "Chú",
-    "Tờ 5 nghìn"
+    "Tờ 5 nghìn",
+    "Sân ga tàu xanh"
    ],
    "am_thanh": "sudden quiet, a single cicada",
    "thoai": [

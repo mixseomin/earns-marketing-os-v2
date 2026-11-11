@@ -5,6 +5,7 @@
 // (hook, CTA, bằng chứng), bên này chấm QUY TRÌNH sản xuất. Thuần — tự kiểm: quy-trinh.test.mts.
 import { diCmShot } from './khong-gian';
 import { batCamXuc } from './qc-cam-xuc';
+import { laPhimNgan } from './goi-the-loai';
 import { lintPrompt } from './tu-sua-clip-do';
 import { chanKhung } from './khung';
 import { maAnimatic, conTapSau } from './ho-so';
@@ -27,10 +28,10 @@ export type Cong = 'keyframe' | 'video' | 'xuat';
 export type NhomQt = 'Tiền kỳ' | 'Sản xuất' | 'Hậu kỳ';
 export type MucQt = { key: string; nhom: NhomQt; ten: string; ok: boolean; thieu: string[]; cong: Cong | null; lam: string };
 export type TapQt = { /** sơ đồ 2D theo cảnh (khong-gian.ts) — quãng đi khi không 3D */ khong_gian?: import('./khong-gian').KhongGianTap; ho_so?: TapHoSo; so?: number; brief: string; thu_nguoi_xem?: ThuNguoiXem | null; beats: Pick<Beat, 'ten' | 'cam_xuc'>[]; phan_canh: (Pick<PhanCanh, 'ten'> & Partial<Pick<PhanCanh, 'beat' | 'intro' | 'gag'>>)[]; nhac_url: string | null; nhac_phan_canh: Record<string, string> };
-export type PhimQt = { phong_cach?: string; /** thể loại (phim_doc bật bộ chấm phim ngắn dọc) */ the_loai?: string; ti_le?: string; logo_url?: string; laQc: boolean; logline?: string; series?: Series | null; khong_loi?: boolean; /** Murch QC (qc-cam-xuc.ts) */ camXucQc?: boolean };
+export type PhimQt = { /** phim ngắn nhịp nhanh (goi-the-loai.ts › laPhimNgan) — sàn giây đọc 1,2 s */ phim_doc?: boolean; phong_cach?: string; /** thể loại (phim_doc bật bộ chấm phim ngắn dọc) */ the_loai?: string; ti_le?: string; logo_url?: string; laQc: boolean; logline?: string; series?: Series | null; khong_loi?: boolean; /** Murch QC (qc-cam-xuc.ts) */ camXucQc?: boolean };
 /** PhimQt từ kinh thánh — MỘT chỗ dựng (thanh 🎬, bảng chọn shot, cổng keyframe máy chủ); trước đây 4 chỗ tự dựng, bảng chọn shot ghi cứng laQc: false. */
-export const phimQt = (loai: string, kt: Pick<KinhThanh, 'phong_cach' | 'logline' | 'series' | 'khong_loi' | 'qc'> & Partial<Pick<KinhThanh, 'cam_xuc_qc' | 'the_loai'>>): PhimQt =>
-  ({ phong_cach: kt.phong_cach, the_loai: kt.the_loai, logo_url: kt.qc?.logo_url, laQc: loai === 'quang_cao', logline: kt.logline, series: kt.series, khong_loi: kt.khong_loi, camXucQc: batCamXuc(loai, kt) });
+export const phimQt = (loai: string, kt: Pick<KinhThanh, 'phong_cach' | 'logline' | 'series' | 'khong_loi' | 'qc'> & Partial<Pick<KinhThanh, 'cam_xuc_qc' | 'the_loai' | 'goi'>>): PhimQt =>
+  ({ phim_doc: laPhimNgan(kt), phong_cach: kt.phong_cach, the_loai: kt.the_loai, logo_url: kt.qc?.logo_url, laQc: loai === 'quang_cao', logline: kt.logline, series: kt.series, khong_loi: kt.khong_loi, camXucQc: batCamXuc(loai, kt) });
 type ShotQt = Pick<Canh, 'id' | 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'thoai_url' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'hanh_dong' | 'phan_doan' | 'keyframe_url' | 'trang_thai' | 'ky_thuat' | 'thoai' | 'loi_thoai' | 'chu_man'> & Partial<Pick<Canh, 'kiem_khung' | 'soi_mat' | 'prompt_video' | 'keyframe_ket' | 'bieu_cam' | 'noi_lien' | 'soat' | 'video_url' | 'video_cuoi_url' | 'nhanh'>>;
 
 /** Luật anh 12/10/2026: MỌI video phải có PHÂN CẢNH cụ thể (mục tiêu · xung đột · cảm xúc đầu→cuối) trước khi sinh keyframe —

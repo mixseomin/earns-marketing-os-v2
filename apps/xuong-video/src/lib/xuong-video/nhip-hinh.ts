@@ -142,7 +142,7 @@ export function kiemDanKhongGian(ds: { thu_tu: number; nhan_vat?: number[]; ky_t
   return out;
 }
 /** Shot phát ngắn hơn giây đọc tối thiểu — chặn keyframe (quy-trinh.ts › chanTienKy). Quảng cáo không xét (luật QC riêng ở kiem-qc.ts). */
-export function kiemGiayDoc(ds: { thu_tu: number; phat_s: number | null; thoi_luong_s: number }[], p: { laQc?: boolean; khong_loi?: boolean }): string[] {
+export function kiemGiayDoc(ds: { thu_tu: number; phat_s: number | null; thoi_luong_s: number }[], p: { laQc?: boolean; khong_loi?: boolean; phim_doc?: boolean }): string[] {
   if (p.laQc) return [];
   const toi = giayDoc(p);
   const ngan = ds.filter((c) => (c.phat_s && c.phat_s > 0 ? c.phat_s : c.thoi_luong_s || 4) < toi - 0.05);

@@ -6,7 +6,7 @@ import { kgCua } from '@/lib/xuong-video/khong-gian';
 // Mục 3 một tập: brief → kịch bản → tách cảnh → storyboard/timeline → âm thanh → xuất.
 import { HoSoTap } from './ho-so';
 import { PhieuShots } from './phieu-shots';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { khaiNguCanh } from '@/lib/ngu-canh';
 import { Timeline } from './timeline';
 import { LuoiKichBan } from './luoi-kich-ban';
@@ -14,6 +14,7 @@ import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { quyTrinh, phimQt } from '@/lib/xuong-video/quy-trinh';
+import { phuThuocShot } from '@/lib/xuong-video/phu-thuoc';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
 import { luuKhuonTap, apDiemNhan, suaTap, vietKichBanTap, tachCanhTap, suaCanh, datKhungLaiTat, themCanh, sinhKeyframe, sinhVideoCanh, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, goiYAIBrief, xuatTap, xuatLongTiengVi, daDangMayTap, trangThaiXuat, khopNhipNhac, khopGiongTapAction, doiCta } from '@/lib/actions';
 import { dsCanh, uocTien, kiemVideo, uocAm } from '@/lib/doc';   // hàm ĐỌC đi đường song song (doc-ham.ts)
@@ -156,6 +157,10 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab, onMoNut }: {
     </Menu>
   );
   // 🎬 Quy trình chuẩn ngành (quy-trinh.ts): tiền kỳ → sản xuất → hậu kỳ; mục gác cổng (keyframe/video/xuất) chưa đạt thì máy chủ cũng từ chối.
+  // LÝ DO CHẶN SINH KEYFRAME từng shot, tính sẵn trên trình duyệt bằng ĐÚNG luật máy chủ dùng (phu-thuoc.ts) → thẻ shot hiện lý do + khoá nút
+  // TRƯỚC khi bấm (anh 11/11/2026: "bấm vào mới hiện ra nguyên nhân").
+  const chanKf = useMemo(() => { const ds = canh ? locNhanh(canh, nhanh) : []; const pq = phimQt(phim.loai, kt);
+    return new Map(ds.map((c, i) => [c.id, phuThuocShot('keyframe', c, nhanVat, { truoc: ds[i - 1], ke: ds[i + 1], noiKhung: tap.noi_khung, tap, phim: pq, ds }).chan])); }, [canh, nhanh, phim.loai, kt, nhanVat, tap]);
   const qtDs = canh?.length ? quyTrinh({ tap, phim: phimQt(phim.loai, kt), canh: locNhanh(canh, nhanh), canhA: locNhanh(canh, 'A'), nhanVat }) : [];
   const qtThieu = qtDs.filter((x) => !x.ok);
   const congKe = qtThieu.find((x) => x.cong)?.cong;
@@ -373,7 +378,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab, onMoNut }: {
                   }}
                   // Thẻ shot đang chọn nằm ở panel THUỘC TÍNH bên phải (bố cục After Effects) — không còn chồng dưới timeline (13/10/2026).
                   theShot={<div data-ngu-canh={`tập #${tap.id} ${tap.ten} · cảnh đang mở #${cc.thu_tu} (id ${cc.id}) ${cc.canh} · ${cc.trang_thai}`}>
-                    <CanhRow key={cc.id} c={cc} kg={kgCua(tap.khong_gian, cc)} sau={shotSau(cc)} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />
+                    <CanhRow key={cc.id} c={cc} kg={kgCua(tap.khong_gian, cc)} sau={shotSau(cc)} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} chanKf={chanKf.get(cc.id)} />
                   </div>}
                   onXep={(ids) => { setCanh((ds) => ds && ids.map((id, i) => ({ ...ds.find((x) => x.id === id)!, thu_tu: i + 1 }))); void chay('xep', () => xepCanh(tap.id, ids)); }} />
               </>
@@ -383,7 +388,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab, onMoNut }: {
           ) : xem === 'luoi' ? (
             <LuoiKichBan canh={locNhanh(canh, nhanh)} nhanVat={nhanVat} tap={tap} tiLe={kt.ti_le} laQc={phim.loai === 'quang_cao'} moHinhChu={kt.mo_hinh_chu} onChanged={async () => { await taiCanh(); await onChanged(); }} onMo={(id) => setXemShot(id)} />
           ) : (
-            <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} kg={kgCua(tap.khong_gian, c)} sau={shotSau(c)} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />)}</div>
+            <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} kg={kgCua(tap.khong_gian, c)} sau={shotSau(c)} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} chanKf={chanKf.get(c.id)} />)}</div>
           )}
         </>
       ))}
@@ -394,7 +399,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab, onMoNut }: {
         return (
           <Ngan onClose={() => setXemShot(null)} tieuDe={`Shot #${c.thu_tu} · ${c.canh}`}
             nut={<button type="button" className="xv-btn" title="Đóng ngăn, chuyển sang Timeline và đặt con trỏ ở đầu shot này" onClick={() => { setXemShot(null); setChonCanh(c.id); setXem('timeline'); }}>⏱ Mở trên timeline</button>}>
-            <CanhRow key={c.id} c={c} kg={kgCua(tap.khong_gian, c)} sau={shotSau(c)} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} chiTiet />
+            <CanhRow key={c.id} c={c} kg={kgCua(tap.khong_gian, c)} sau={shotSau(c)} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} chanKf={chanKf.get(c.id)} chiTiet />
           </Ngan>
         );
       })()}

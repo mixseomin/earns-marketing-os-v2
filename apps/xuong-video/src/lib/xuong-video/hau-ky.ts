@@ -1,3 +1,4 @@
+import { laPhimNgan } from './goi-the-loai';
 import { xepPhat } from './kieu';
 // Các bước dựng 0đ chạy trên máy chủ cho cả tập (12/10/2026) — gọi từ server action (nút trên studio) và scripts/hau-ky.mts, MỘT đường:
 //   khopGiongTap       giây phát mỗi shot ≥ đủ đọc hết giọng (khop-giong.ts), chữ màn co giãn mốc theo, lớp phủ dời theo shot
@@ -63,7 +64,7 @@ export async function khopGiongTap(db: Db, tapId: number, nguoi: string): Promis
   const phatCu = d.ds.map(giayPhat); let doi = 0, thieu = 0;
   const p0 = ((await db.execute(sql`SELECT kinh_thanh, loai FROM xv_phim WHERE id = ${d.tap.phim_id}`)) as unknown as Row[])[0];
   const kt = docKinhThanh(p0?.kinh_thanh as KinhThanh);
-  const san = Math.max(SHOT_TOI_THIEU, giayDoc({ laQc: p0?.loai === 'quang_cao', khong_loi: kt.khong_loi, phim_doc: kt.the_loai === 'phim_doc' }));
+  const san = Math.max(SHOT_TOI_THIEU, giayDoc({ laQc: p0?.loai === 'quang_cao', khong_loi: kt.khong_loi, phim_doc: laPhimNgan(kt) }));
   // Shot có câu nói không co dưới sàn (trừ khi vốn đã ngắn hơn) — hình còn phải diễn: sàn = giây đọc của loại phim (nhip-hinh.ts › giayDoc).
   // Phim KHÔNG LỜI: âm hiệu (nửa giây "Hup!") không quyết định nhịp — chỉ kéo dài cho đủ tiếng, không bao giờ co hình theo nó
   // (Tango & Lint tập 1: co theo âm hiệu → shot 2s, người xem chưa hiểu đã cắt).

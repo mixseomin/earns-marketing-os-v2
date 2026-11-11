@@ -238,7 +238,7 @@ export function DoiChieuNgan({ canhId }: { canhId: number }) {
 }
 
 /** chiTiet: đang nằm trong ngăn chi tiết shot — cột trái rộng hơn, khung 3D nhúng bộ xem xoay được (#1365). */
-export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, chiTiet, kg, sau }: { kg?: KhongGian | null; sau?: Canh | null; c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; phimLoai: LoaiPhim; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>, taiCho?: boolean) => Promise<string>; chiTiet?: boolean }) {
+export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, chiTiet, kg, sau, chanKf }: { /** lý do máy chủ sẽ từ chối sinh keyframe (phu-thuoc.ts) — hiện + khoá nút trước khi bấm */ chanKf?: string[]; kg?: KhongGian | null; sau?: Canh | null; c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; phimLoai: LoaiPhim; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>, taiCho?: boolean) => Promise<string>; chiTiet?: boolean }) {
   // Lỗi của MỌI nút trong thẻ shot hiện ngay trên hàng nút của chính shot đó (không phải đầu tập).
   const [loiNut, setLoiNut] = useState('');
   const chay = async (k: string, fn: () => Promise<KqChay>) => { setLoiNut(''); setLoiNut(await chayTap(k, fn, true)); };
@@ -276,6 +276,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
   const giaVid = giaVideoUi(dsVideo, mhVideo, giay, kt.do_phan_giai);
   const giaNangCap = NANG_CAP.giaGiayCents * (c.thoi_luong_s || 8);
   const lyAnh = (!khoa.google && !khoa.openai && !(mhAnh.startsWith('fal:') && khoa.fal) && !(mhAnh.startsWith('ckey:') && khoa.ckey) && !(mhAnh.startsWith('shopaikey:') && khoa.shopaikey) && !khoa.ckey && !khoa.shopaikey && 'thiếu khoá ảnh') || (!c.prompt_anh.trim() && 'chưa có prompt ảnh (Sửa cảnh → prompt ảnh)') || (tp.thieu.length > 0 && `thiếu: ${tp.thieu.join('; ')}`);
+  const lyAnhKf = lyAnh || (chanKf?.length ? `chưa sinh được — ${chanKf.length} lý do ở khung đỏ ngay trên` : false);
   // Cùng cổng với máy chủ (quy-trinh.ts › chanVideo: keyframe đã duyệt + giọng trước video) → nút tắt kèm lý do thay vì bấm rồi bị chặn.
   // Nút Sinh nháp tự lo phần máy làm được (duyệt keyframe đang chọn, sinh giọng còn thiếu → giọng xong tự gửi video), nên chỉ tắt
   // vì thứ người phải làm: thiếu khoá, chưa có keyframe, đang sinh giọng dở.
@@ -411,13 +412,17 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
             </div>
           )}
           <Loi>{loiNut}</Loi>
+          {!!chanKf?.length && !c.keyframe_url && <div style={{ border: '1px solid var(--red, #f85149)', borderRadius: 6, padding: '6px 9px', marginTop: 6, fontSize: 12.5, color: 'var(--red, #f85149)', display: 'grid', gap: 2 }}>
+            <b>🔒 Chưa sinh keyframe được — sửa các mục này trước (máy chủ cũng sẽ từ chối):</b>
+            {chanKf.slice(0, 6).map((x, i) => <span key={i}>• {x}</span>)}{chanKf.length > 6 && <span>… và {chanKf.length - 6} mục nữa (thanh 🎬 của tập)</span>}
+          </div>}
           {/* Nút xếp theo NHÓM (#1245): Ảnh (model + sinh/duyệt) · Video (model + nháp/bản cuối) · sửa/⋯ ở mép phải. */}
           <div style={{ display: 'flex', gap: 8, marginTop: 7, flexWrap: 'wrap', alignItems: 'stretch' }}>
             <NhomNut nhan="🖼 Ảnh">
               {chonAnh}
-              {buoc === 'trong' && <Nut chinh ly={lyAnh} ban={ban(k)} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>Sinh keyframe · {tien(giaAnh)}</Nut>}
+              {buoc === 'trong' && <Nut chinh ly={lyAnhKf} ban={ban(k)} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>Sinh keyframe · {tien(giaAnh)}</Nut>}
               {/* Sinh lại ảnh hiện ngay (không giấu trong ⋯): sửa trang phục / prompt / đối tượng xong là bấm lại được. Ảnh cũ vẫn giữ làm ứng viên. */}
-              {buoc !== 'trong' && buoc !== 'dang' && <Nut ly={lyAnh} ban={ban(k)} title="Sinh thêm một ảnh keyframe mới theo prompt / trang phục / đối tượng hiện tại; ảnh cũ vẫn giữ trong dải ứng viên để chọn lại" onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>↻ Sinh lại · {tien(giaAnh)}</Nut>}
+              {buoc !== 'trong' && buoc !== 'dang' && <Nut ly={lyAnhKf} ban={ban(k)} title="Sinh thêm một ảnh keyframe mới theo prompt / trang phục / đối tượng hiện tại; ảnh cũ vẫn giữ trong dải ứng viên để chọn lại" onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>↻ Sinh lại · {tien(giaAnh)}</Nut>}
               {buoc === 'kf' && <Nut chinh ban={ban(k)} onClick={() => void chay(k, () => duyetCanh(c.id, true))}>✓ Duyệt keyframe</Nut>}
               {buoc === 'dang' && c.dang_sinh_anh && <span style={{ ...mono, color: 'var(--violet)', alignSelf: 'center' }}>đang sinh ảnh…</span>}
             </NhomNut>

@@ -1,5 +1,5 @@
 {
- "tomTat": "Chú trên tàu đưa nhóc sân ga 5k mua hai chai nước ngọt, 'cháu một chai, chú một chai'. Nhóc về muộn, đang mút dở chai duy nhất, bảo tiệm chỉ còn một chai, trả tiền thừa rồi chạy mất.",
+ "tomTat": "Chú trên tàu đưa nhóc sân ga 5k mua hai chai nước ngọt, 'cháu một chai, chú một chai'. Nhóc về muộn, đang mút dở chai duy nhất, bảo tiệm chỉ còn một chai, trả tiền thừa rồi chạy mất. Bản thư viện thêm 5 shot nối: chú nhìn quanh, góc nhìn chú thấy nhóc, bánh xe tàu nhích, chú sốt ruột chờ, tàu chuyển bánh với chú cầm tiền thừa.",
  "beats": [
   {
    "ten": "Hook",
@@ -33,7 +33,60 @@
    "cam_xuc_dau": 1,
    "cam_xuc_cuoi": 1,
    "noi": "Sân ga tàu xanh",
-   "luc": "Chiều muộn, nắng vàng"
+   "luc": "Chiều muộn, nắng vàng, tàu đỗ ở ga",
+   "gia_tri_doi": "khát nước → có người đi mua hộ",
+   "diem_xoay": "'Cháu một chai, chú một chai' — lời hứa chia đôi",
+   "mau_mo_ta": "Nắng chiều vàng mật ngược sáng, toa xanh đậm sọc vàng, bóng dài trên sân ga",
+   "anh_sang": "nguoc",
+   "mau": "am",
+   "nhac": "khong",
+   "nhip_hd": [
+    "chú nhìn quanh",
+    "thấy nhóc",
+    "gọi + đưa 5k",
+    "nhóc chạy đi",
+    "chú dặn với theo"
+   ],
+   "kich_ban": [
+    {
+     "loai": "hd",
+     "chu": "Chú thò đầu ra cửa sổ tàu, nhìn quanh sân ga, thấy thằng nhóc đứng một mình."
+    },
+    {
+     "loai": "nv",
+     "ten": "Chú",
+     "dien": "gọi to",
+     "loi": "Nhóc, lại đây"
+    },
+    {
+     "loai": "nv",
+     "ten": "Chú",
+     "dien": "dúi tiền",
+     "loi": "Chú cho cháu 5k"
+    },
+    {
+     "loai": "nv",
+     "ten": "Chú",
+     "dien": "dặn nhanh",
+     "loi": "Đi mua hai chai nước ngọt"
+    },
+    {
+     "loai": "hd",
+     "chu": "Nhóc cầm tiền chạy vào ga."
+    },
+    {
+     "loai": "nv",
+     "ten": "Chú",
+     "dien": "gọi với theo",
+     "loi": "Cháu một chai, chú một chai"
+    },
+    {
+     "loai": "nv",
+     "ten": "Chú",
+     "dien": "sốt ruột",
+     "loi": "Đi nhanh về nhanh nhé"
+    }
+   ]
   },
   {
    "ten": "Quay về",
@@ -45,7 +98,60 @@
    "cam_xuc_dau": 2,
    "cam_xuc_cuoi": 2,
    "noi": "Sân ga tàu xanh",
-   "luc": "Chiều muộn, nắng vàng"
+   "luc": "Lát sau, nắng xiên hơn, tàu sắp chạy",
+   "gia_tri_doi": "chờ đợi → nghi ngờ",
+   "diem_xoay": "Nhóc về với đúng một chai, đang mút dở",
+   "mau_mo_ta": "Vàng ấm, bụi bay trong nắng xiên, sân ga vắng",
+   "anh_sang": "nguoc",
+   "mau": "am",
+   "nhac": "khong",
+   "nhip_hd": [
+    "bánh xe nhích",
+    "chú sốt ruột",
+    "nhóc thong thả về",
+    "chú hỏi dồn",
+    "nhóc xin lỗi"
+   ],
+   "kich_ban": [
+    {
+     "loai": "hd",
+     "chu": "Phanh tàu xì hơi, bánh xe nhích. Chú gõ tay lên cửa sổ chờ."
+    },
+    {
+     "loai": "hd",
+     "chu": "Nhóc thong thả đi về, mút ống hút một chai nước ngọt."
+    },
+    {
+     "loai": "nv",
+     "ten": "Chú",
+     "dien": "bực",
+     "loi": "Sao giờ mới về?"
+    },
+    {
+     "loai": "nv",
+     "ten": "Chú",
+     "dien": "gấp",
+     "loi": "Tàu sắp chạy rồi"
+    },
+    {
+     "loai": "nv",
+     "ten": "Chú",
+     "dien": "nghi",
+     "loi": "Nước ngọt của chú đâu?"
+    },
+    {
+     "loai": "nv",
+     "ten": "Nhóc",
+     "dien": "lí nhí",
+     "loi": "Xin lỗi chú"
+    },
+    {
+     "loai": "nv",
+     "ten": "Nhóc",
+     "dien": "thật thà",
+     "loi": "Tiệm chỉ còn một chai nước ngọt"
+    }
+   ]
   },
   {
    "ten": "Tiền thừa",
@@ -57,10 +163,128 @@
    "cam_xuc_dau": 3,
    "cam_xuc_cuoi": 3,
    "noi": "Sân ga tàu xanh",
-   "luc": "Chiều muộn, nắng vàng"
+   "luc": "Ngay sau đó, tàu chuyển bánh",
+   "gia_tri_doi": "hy vọng → bị bỏ lại với tiền thừa",
+   "diem_xoay": "'Tiền thừa trả chú, cháu đi nhé'",
+   "mau_mo_ta": "Vàng cam đậm dần, loá nắng cuối sân ga",
+   "anh_sang": "hoang_hon",
+   "mau": "am",
+   "nhac": "khong",
+   "nhip_hd": [
+    "nhóc trả tiền thừa",
+    "chú đứng hình",
+    "nhóc chạy mất",
+    "tàu chuyển bánh, chú còn cầm tiền"
+   ],
+   "kich_ban": [
+    {
+     "loai": "nv",
+     "ten": "Nhóc",
+     "dien": "vui vẻ",
+     "loi": "Tiền thừa trả chú, cháu đi nhé"
+    },
+    {
+     "loai": "hd",
+     "chu": "Chú đứng hình. Nhóc chạy mất dọc sân ga. Tàu giật mình chuyển bánh, chú vẫn cầm tiền thừa nhìn theo."
+    },
+    {
+     "loai": "chuyen",
+     "chu": "TỐI DẦN."
+    }
+   ]
   }
  ],
  "canh": [
+  {
+   "canh": "[thêm] Chú nhìn quanh sân ga",
+   "goc_may": "MCU, máy cầm tay rung nhẹ",
+   "phan_doan": "Giao tiền",
+   "cam_xuc": 0,
+   "phat_s": 0.9,
+   "hanh_dong": "Chú thò đầu ra cửa sổ tàu, đưa mắt dọc sân ga trái sang phải tìm người, rồi khựng lại.",
+   "nhan_vat": [
+    "Chú",
+    "Sân ga tàu xanh"
+   ],
+   "am_thanh": "station ambience, distant announcement",
+   "prompt_anh": "Japanese 2D anime film still, hand-painted background, golden-hour backlight with lens flare, deep bottle-green train carriage with mustard-yellow stripe, cream concrete platform with yellow tactile strip, warm dusty haze. Medium close-up of the young man in a navy jacket leaning his head out of the open train window, scanning the platform with narrowed eyes, sun glare on his face.",
+   "prompt_video": "He turns his head slowly from left to right looking along the platform, then stops abruptly, eyes locking on something.",
+   "ky_thuat": {
+    "vai": "hanh_dong",
+    "co_canh": "mcu",
+    "goc": "ngang",
+    "chuyen_dong": "cam_tay",
+    "ong_kinh": "chuan",
+    "anh_sang": "nguoc",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "moi_truong"
+    ],
+    "nhac": "khong"
+   },
+   "dan_dung": {
+    "bo_cuc": "foreground: window frame edge; midground: man's head and shoulders; background: crowded carriage interior",
+    "mo": "man looking to the left along the platform",
+    "ket": "head stopped facing screen right, eyes fixed",
+    "huong": "head turns left to right, ends facing screen right",
+    "muc_dich": "Nối: chú đang tìm ai đó — mắt dừng lại dẫn sang cú nhìn của chú.",
+    "dien": "scan, then a sudden stop",
+    "motif": "",
+    "nhan": ""
+   },
+   "thoai": [],
+   "loi_thoai": "",
+   "bien_the": [],
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoi_luong_s": 4
+  },
+  {
+   "canh": "[thêm] Chú thấy nhóc (góc nhìn chú)",
+   "goc_may": "POV từ cửa sổ, đẩy nhẹ vào",
+   "phan_doan": "Giao tiền",
+   "cam_xuc": 0,
+   "phat_s": 0.8,
+   "hanh_dong": "Góc nhìn của chú: thằng nhóc đứng một mình giữa sân ga ngược nắng, tay đút túi.",
+   "nhan_vat": [
+    "Nhóc",
+    "Sân ga tàu xanh"
+   ],
+   "am_thanh": "station ambience",
+   "prompt_anh": "Japanese 2D anime film still, hand-painted background, golden-hour backlight with lens flare, deep bottle-green train carriage with mustard-yellow stripe, cream concrete platform with yellow tactile strip, warm dusty haze. Point-of-view from the train window looking down the sunlit platform: the small boy in a worn beige shirt stands alone in the middle distance, hands in pockets, long shadow, the green carriage edge in the near left of frame.",
+   "prompt_video": "Slow push toward the boy as he idly kicks a pebble.",
+   "ky_thuat": {
+    "vai": "chu_quan",
+    "co_canh": "ws",
+    "goc": "tren_xuong",
+    "chuyen_dong": "day_vao",
+    "ong_kinh": "chuan",
+    "anh_sang": "nguoc",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "moi_truong"
+    ],
+    "nhac": "khong"
+   },
+   "dan_dung": {
+    "bo_cuc": "foreground: carriage edge (left); midground: boy alone; background: platform roof and sun",
+    "mo": "boy small in frame, kicking a pebble",
+    "ket": "boy a bit larger, looks up toward camera",
+    "huong": "boy faces camera, camera moves toward him",
+    "muc_dich": "Cho người xem thấy đúng cái chú thấy — vì sao chú gọi đứa này.",
+    "dien": "idle, bored, then looks up",
+    "motif": "",
+    "nhan": ""
+   },
+   "thoai": [],
+   "loi_thoai": "",
+   "bien_the": [],
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoi_luong_s": 4
+  },
   {
    "canh": "Chú gọi nhóc, đưa 5k",
    "goc_may": "WS",
@@ -109,7 +333,12 @@
    "dan_dung": {
     "mo": "man leaning out with the note, boy below",
     "ket": "boy's hand on the note",
-    "muc_dich": "Đặt hai người, hai tầng cao (tàu / sân ga) và vật trao tay ngay khung đầu."
+    "muc_dich": "Đặt hai người, hai tầng cao (tàu / sân ga) và vật trao tay ngay khung đầu.",
+    "bo_cuc": "foreground: green carriage window with the man leaning out (left); midground: boy on the platform (right); background: platform vanishing into the low sun",
+    "huong": "man faces screen right and down, boy faces screen left and up",
+    "dien": "man calls and reaches down with the note; boy steps in and takes it",
+    "motif": "",
+    "nhan": ""
    },
    "loi_thoai": "Chú: Nhóc, lại đây / Chú: Chú cho cháu 5k",
    "bien_the": [],
@@ -157,7 +386,12 @@
    "dan_dung": {
     "mo": "boy holding note, looking up",
     "ket": "boy's back running away",
-    "muc_dich": "Nhóc nhận việc và rời khung, để chỗ trống cho câu dặn sau."
+    "muc_dich": "Nhóc nhận việc và rời khung, để chỗ trống cho câu dặn sau.",
+    "bo_cuc": "foreground: boy holding the note at chest; midground: empty platform; background: iron pillars and far tracks",
+    "huong": "boy looks up off-screen left, then turns and runs away from camera",
+    "dien": "nod, spin, run — quick and eager",
+    "motif": "",
+    "nhan": ""
    },
    "loi_thoai": "Chú: Đi mua hai chai nước ngọt",
    "bien_the": [],
@@ -211,7 +445,11 @@
     "mo": "man calling from window",
     "ket": "wide empty platform, train waiting",
     "muc_dich": "GÀI: 'cháu một chai, chú một chai'. Lùi máy = thời gian trôi, không cần chữ.",
-    "motif": "hai chai (gài)"
+    "motif": "hai chai (gài)",
+    "bo_cuc": "foreground: window frame; midground: man leaning out; background: crowded passengers inside, then the long train and empty platform",
+    "huong": "man calls toward screen right; camera pulls back to the left",
+    "dien": "loud call, then impatient wait",
+    "nhan": ""
    },
    "loi_thoai": "Chú: Cháu một chai, chú một chai / Chú: Đi nhanh về nhanh nhé",
    "bien_the": [],
@@ -219,8 +457,97 @@
    "chu_man": ""
   },
   {
+   "canh": "[thêm] Bánh xe tàu chuẩn bị lăn",
+   "goc_may": "Insert sát bánh xe, máy trượt ngang chậm",
+   "phan_doan": "Quay về",
+   "cam_xuc": 1,
+   "phat_s": 1.0,
+   "hanh_dong": "Cận bánh xe sắt và thanh truyền của toa xanh: phanh xì hơi, bánh nhích lên một chút rồi dừng.",
+   "nhan_vat": [
+    "Sân ga tàu xanh"
+   ],
+   "am_thanh": "air brake hiss, metal clank, short whistle far away",
+   "prompt_anh": "Japanese 2D anime film still, golden-hour side light. Extreme close-up insert of a train's steel wheel and connecting rod under the bottle-green carriage with a mustard-yellow stripe, rail and gravel below, a puff of brake air, dust in the light.",
+   "prompt_video": "A burst of air hisses from the brake, the wheel creaks forward a few centimeters on the rail and stops.",
+   "ky_thuat": {
+    "vai": "chi_tiet",
+    "co_canh": "insert",
+    "goc": "sat_dat",
+    "chuyen_dong": "truot_ngang",
+    "ong_kinh": "macro",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "foley"
+    ],
+    "nhac": "khong"
+   },
+   "dan_dung": {
+    "bo_cuc": "foreground: rail and gravel; midground: wheel and rod; background: shadow under the carriage",
+    "mo": "wheel still, brake air bursting",
+    "ket": "wheel just nudged forward, steam drifting",
+    "huong": "wheel rolls toward screen right",
+    "muc_dich": "Gài áp lực: tàu sắp chạy mà nhóc chưa về — câu 'Tàu sắp chạy rồi' có hình trước.",
+    "dien": "hold the action clear and readable, settle at the end",
+    "motif": "tàu chuyển bánh (gài)",
+    "nhan": ""
+   },
+   "thoai": [],
+   "loi_thoai": "",
+   "bien_the": [],
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoi_luong_s": 4
+  },
+  {
+   "canh": "[thêm] Chú sốt ruột chờ",
+   "goc_may": "MS qua cửa sổ, đẩy chậm",
+   "phan_doan": "Quay về",
+   "cam_xuc": 1,
+   "phat_s": 1.2,
+   "hanh_dong": "Chú chống tay lên khung cửa sổ, ngó ra sân ga vắng, gõ ngón tay, nắng xiên và bụi bay.",
+   "nhan_vat": [
+    "Chú",
+    "Sân ga tàu xanh"
+   ],
+   "am_thanh": "finger tapping on metal, distant train horn",
+   "prompt_anh": "Japanese 2D anime film still, hand-painted background, golden-hour backlight with lens flare, deep bottle-green train carriage with mustard-yellow stripe, cream concrete platform with yellow tactile strip, warm dusty haze. Medium shot through the open train window: the young man rests his forearms on the frame, chin on hand, staring out at the empty sunlit platform, dust motes floating in slanted light.",
+   "prompt_video": "He drums his fingers on the window frame and leans out a little more, the light shifting slowly.",
+   "ky_thuat": {
+    "vai": "tam_trang",
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "day_vao",
+    "ong_kinh": "chuan",
+    "anh_sang": "nguoc",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "moi_truong"
+    ],
+    "nhac": "khong"
+   },
+   "dan_dung": {
+    "bo_cuc": "foreground: window frame; midground: man waiting; background: empty platform in haze",
+    "mo": "man chin on hand, staring",
+    "ket": "man leaning further out",
+    "huong": "man faces screen right toward the station building",
+    "muc_dich": "Lặng một nhịp: chờ lâu, sốt ruột — để cú nhóc thong thả về càng buồn cười.",
+    "dien": "bored, impatient finger drumming",
+    "motif": "",
+    "nhan": ""
+   },
+   "thoai": [],
+   "loi_thoai": "",
+   "bien_the": [],
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoi_luong_s": 4
+  },
+  {
    "canh": "Nhóc thong thả về, đang mút nước",
-   "goc_may": "MS",
+   "goc_may": "MS, máy lùi theo nhóc",
    "phan_doan": "Quay về",
    "cam_xuc": 2,
    "thoi_luong_s": 4,
@@ -239,7 +566,7 @@
     "vai": "he_lo",
     "co_canh": "ms",
     "goc": "ngang",
-    "chuyen_dong": "tinh",
+    "chuyen_dong": "theo",
     "ong_kinh": "chuan",
     "anh_sang": "nguoc",
     "mau": "am",
@@ -252,7 +579,12 @@
    "dan_dung": {
     "mo": "boy walking, sipping",
     "ket": "boy still sipping, closer",
-    "muc_dich": "Người xem biết trước chú: chỉ một chai và nó đang vơi — hài vì người xem đi trước nhân vật."
+    "muc_dich": "Người xem biết trước chú: chỉ một chai và nó đang vơi — hài vì người xem đi trước nhân vật.",
+    "bo_cuc": "foreground: sunlit platform; midground: boy walking with the bottle; background: pillars and roof in haze",
+    "huong": "boy walks toward camera, slightly screen left",
+    "dien": "slow carefree stroll, sipping, eyes half closed",
+    "motif": "",
+    "nhan": ""
    },
    "loi_thoai": "",
    "bien_the": [],
@@ -310,7 +642,7 @@
    "prompt_anh": "Japanese 2D anime film still, hand-painted background, golden-hour backlight with lens flare, deep bottle-green train carriage with mustard-yellow stripe, cream concrete platform with yellow tactile strip, warm dusty haze. Two-shot: the young man in a navy jacket leans out of the train window on the left frowning down; the small boy stands below on the right holding a half-drunk glass cola bottle with a straw, looking up guiltily.",
    "prompt_video": "Slow continuous push-in over the man's shoulder onto the boy: the boy lowers his head, then looks up with an awkward grin and holds out a few crumpled change notes.",
    "ky_thuat": {
-    "vai": "phan_ung",
+    "vai": "tong_the",
     "co_canh": "two",
     "goc": "tren_xuong",
     "chuyen_dong": "day_vao",
@@ -326,7 +658,12 @@
    "dan_dung": {
     "mo": "two-shot, man frowning, boy with bottle",
     "ket": "close on boy holding out change, awkward grin",
-    "muc_dich": "TRẢ cú gài: 'chỉ còn một chai' — một máy đẩy liền, không cắt, để câu thoại dồn tới cú lật."
+    "muc_dich": "TRẢ cú gài: 'chỉ còn một chai' — một máy đẩy liền, không cắt, để câu thoại dồn tới cú lật.",
+    "bo_cuc": "foreground: man's shoulder and arm in the window (left); midground: boy below with the bottle (right); background: platform and sun flare",
+    "huong": "man looks down screen right, boy looks up screen left",
+    "dien": "man frowns and fires questions; boy lowers head, then grins awkwardly and holds out change",
+    "motif": "",
+    "nhan": ""
    },
    "loi_thoai": "Chú: Sao giờ mới về? / Chú: Tàu sắp chạy rồi / Chú: Nước ngọt của chú đâu? / Nhóc: Xin lỗi chú / Nhóc: Tiệm chỉ còn một chai nước ngọt",
    "bien_the": [],
@@ -374,7 +711,12 @@
    "dan_dung": {
     "mo": "frozen face",
     "ket": "mouth slightly open",
-    "muc_dich": "Phản ứng là cú đấm: cắt sang mặt người chịu khi câu chốt còn đang đọc."
+    "muc_dich": "Phản ứng là cú đấm: cắt sang mặt người chịu khi câu chốt còn đang đọc.",
+    "bo_cuc": "foreground: man's face filling frame; midground: his hand with change at the bottom edge; background: blurred carriage interior",
+    "huong": "man faces camera, eyes toward screen right where the boy is",
+    "dien": "total freeze, only eyes tremble, mouth falls open slightly",
+    "motif": "",
+    "nhan": ""
    },
    "loi_thoai": "Nhóc: Tiền thừa trả chú, cháu đi nhé",
    "bien_the": [],
@@ -401,14 +743,14 @@
    "prompt_anh": "Japanese 2D anime film still, hand-painted background, golden-hour backlight with lens flare, deep bottle-green train carriage with mustard-yellow stripe, cream concrete platform with yellow tactile strip, warm dusty haze. Medium-wide shot: the young man in the train window on the left holding a few banknotes, stunned; the small boy on the platform in the foreground right, turning away to run down the sunlit platform with the cola bottle.",
    "prompt_video": "The boy runs away down the platform toward the low sun, getting smaller, while the man stays frozen in the window holding the change.",
    "ky_thuat": {
-    "vai": "ket_canh",
+    "vai": "tong_the",
     "co_canh": "ws",
     "goc": "ngang",
     "chuyen_dong": "tinh",
     "ong_kinh": "chuan",
     "anh_sang": "nguoc",
     "mau": "am",
-    "chuyen_canh": "toi_den",
+    "chuyen_canh": "cat",
     "am_thanh": [
      "foley"
     ],
@@ -417,12 +759,66 @@
    "dan_dung": {
     "mo": "man frozen, boy turning",
     "ket": "boy small far down the platform",
-    "muc_dich": "Kết bằng hình chứ không bằng câu: người đứng hình, người chạy mất."
+    "muc_dich": "Kết bằng hình chứ không bằng câu: người đứng hình, người chạy mất.",
+    "bo_cuc": "foreground: boy turning away (right); midground: man frozen in the window (left); background: long platform toward the sun",
+    "huong": "boy runs away from camera toward the sun; man stays facing screen right",
+    "dien": "boy bolts happily; man doesn't move",
+    "motif": "",
+    "nhan": ""
    },
    "loi_thoai": "",
    "bien_the": [],
    "trang_phuc": "",
    "chu_man": ""
+  },
+  {
+   "canh": "[thêm] Tàu chuyển bánh, chú còn cầm tiền thừa",
+   "goc_may": "WS trên sân ga, máy lia theo cửa sổ của chú khi toa trượt đi",
+   "phan_doan": "Tiền thừa",
+   "cam_xuc": 3,
+   "phat_s": 3.0,
+   "hanh_dong": "Tàu giật một cái rồi lăn bánh; chú vẫn thò người ra cửa sổ, tay cầm xấp tiền thừa, mặt đờ ra nhìn theo hướng nhóc chạy, trôi dần ra khỏi khung.",
+   "nhan_vat": [
+    "Chú",
+    "Sân ga tàu xanh",
+    "Tờ 5 nghìn"
+   ],
+   "am_thanh": "train jolt, wheels rolling, long horn",
+   "prompt_anh": "Japanese 2D anime film still, hand-painted background, golden-hour backlight with lens flare, deep bottle-green train carriage with mustard-yellow stripe, cream concrete platform with yellow tactile strip, warm dusty haze. Wide shot from the platform: the green train starting to move to screen left, the young man still leaning out of his window holding a few banknotes, staring back toward screen right with a blank stunned face.",
+   "prompt_video": "The train jolts and slowly rolls to the left; the camera pans with the man's window while he keeps staring back, until he slides out of frame.",
+   "ky_thuat": {
+    "vai": "phan_ung",
+    "co_canh": "ws",
+    "goc": "ngang",
+    "chuyen_dong": "theo",
+    "ong_kinh": "rong",
+    "anh_sang": "nguoc",
+    "mau": "am",
+    "chuyen_canh": "toi_den",
+    "am_thanh": [
+     "foley"
+    ],
+    "nhac": "khong",
+    "luat": [
+     "giu_phan_ung"
+    ]
+   },
+   "dan_dung": {
+    "bo_cuc": "foreground: platform edge; midground: moving carriage with the man; background: far platform and sun",
+    "mo": "train jolts, man frozen holding change",
+    "ket": "man's window sliding out of frame left, still staring back",
+    "huong": "train moves to screen left, man looks back to screen right",
+    "muc_dich": "TRẢ cú gài bánh xe + GIỮ phản ứng: chú bị bỏ lại với tiền thừa — khán giả kịp cười.",
+    "dien": "hold the action clear and readable, settle at the end",
+    "motif": "tàu chuyển bánh (trả)",
+    "nhan": ""
+   },
+   "thoai": [],
+   "loi_thoai": "",
+   "bien_the": [],
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoi_luong_s": 4
   }
  ]
 }

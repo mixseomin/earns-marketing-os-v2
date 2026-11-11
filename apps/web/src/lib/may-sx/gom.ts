@@ -1,0 +1,76 @@
+// GOM SẢN XUẤT MỌI NGUỒN về tab Máy SX (anh 11/11/2026: "Máy sx hãy gom các bước sản xuất ở page khác về cùng").
+// Mỗi việc đang sản xuất của mọi nguồn = MỘT dòng cùng khuôn ViecSx; bấm dòng mở chi tiết CŨ (trang cũ giữ nguyên, không xoá):
+//   social  = bài đã khai mà chưa có tệp (xv_may_video — Máy SX dựng / xưởng studio)          → studio.on.tc
+//   kenh    = tập đang làm của kênh nội dung (docKenhSp › ke.dangLam, bỏ tập demo)            → tab Kênh nội dung, mở cây kênh
+//   etp     = creative Ethopex đang cắt / chờ soát / chờ dựng lại (docEtp › dangSx)          → ngăn Sản xuất phim (?ed=etp-sx~<mã phim>)
+//   puzzle  = sản phẩm đang làm / chờ ảnh / chờ duyệt (docTaiSanBan, sổ cái Directus)         → tab Tài sản
+// Đọc DỮ LIỆU THẬT bằng chính hàm của trang gốc, không viết lại truy vấn → hai nơi luôn cùng số. Nguồn nào hỏng thì ghi `loi`, nguồn khác vẫn hiện.
+// docEtp nặng (cả sổ camp) nên kết quả gom nhớ 60 giây — tab hỏi lại mỗi 30 giây.
+import { getDb } from '@mos2/db';
+import { sql } from 'drizzle-orm';
+import { docKenhSp } from '@/lib/tai-san/kenh-sp';
+import { laDemo } from '@/lib/tai-san/kenh-sp-tinh';
+import { docEtp } from '@/lib/etp-doc';
+import { docTaiSanBan, TT_SP } from '@/lib/tai-san/doc';
+
+export type NguonSx = 'social' | 'kenh' | 'etp' | 'puzzle';
+export const TEN_NGUON: Record<NguonSx, string> = { social: 'Social / Page', kenh: 'Kênh nội dung', etp: 'Ethopex', puzzle: 'Puzzle / Tài sản' };
+export type ViecSx = {
+  nguon: NguonSx; khoa: string; ten: string; /** dự án / kênh / máy */ cua: string | null;
+  buoc: string; so?: number | null; tong?: number | null; /** bắt đầu / cập nhật gần nhất (ISO) */ luc?: string | null;
+  loi?: string | null; ghi?: string | null;
+  mo: { url: string } | { ed: string; id: string };
+};
+
+const STUDIO = 'https://studio.on.tc';
+const TT_DANG = new Set(['dang_lam', 'cho_anh', 'cho_duyet']);
+let nho: { luc: number; ra: { viec: ViecSx[]; loi: string[] } } | null = null;
+
+export async function docViecSx(): Promise<{ viec: ViecSx[]; loi: string[] }> {
+  if (nho && Date.now() - nho.luc < 60_000) return nho.ra;
+  const loi: string[] = [];
+  const hom = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+  const doc = async <T>(ten: string, f: () => Promise<T[]>): Promise<T[]> => { try { return await f(); } catch (e) { loi.push(`${ten}: ${(e as Error).message.slice(0, 140)}`); return []; } };
+
+  const [social, kenh, etp, puzzle] = await Promise.all([
+    doc('Social', async () => {
+      const d = getDb(); if (!d) throw new Error('không có DB');
+      const r = (await d.execute(sql`SELECT v.id, v.slug, m.id AS may_id, m.ma, m.ten AS may_ten, coalesce(v.dang->>'y', v.dang->>'title', v.chu_de) AS ten,
+          v.dang->>'dang_tu' AS ngay, v.dang->>'dang_bai' AS nen, v.dang->>'kieu_sx' AS kieu, v.updated_at::text AS luc,
+          (SELECT l.loi FROM may_sx_luot l WHERE l.slug = v.slug ORDER BY l.luc DESC LIMIT 1) AS loi_moi
+        FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id
+        WHERE m.chay AND NOT coalesce(v.luu_tru, false) AND v.da_dang = '{}'::jsonb AND v.video_url IS NULL
+          AND jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) = 0
+        ORDER BY (v.dang->>'dang_tu') IS NULL, v.dang->>'dang_tu', v.id DESC LIMIT 200`).catch(async () =>
+          // bảng may_sx_luot chưa có (máy chưa chạy lần nào) → đọc không kèm lỗi lượt
+          d.execute(sql`SELECT v.id, v.slug, m.id AS may_id, m.ma, m.ten AS may_ten, coalesce(v.dang->>'y', v.dang->>'title', v.chu_de) AS ten,
+            v.dang->>'dang_tu' AS ngay, v.dang->>'dang_bai' AS nen, v.dang->>'kieu_sx' AS kieu, v.updated_at::text AS luc, NULL AS loi_moi
+          FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.chay AND NOT coalesce(v.luu_tru, false) AND v.da_dang = '{}'::jsonb AND v.video_url IS NULL
+            AND jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) = 0 ORDER BY (v.dang->>'dang_tu') IS NULL, v.dang->>'dang_tu', v.id DESC LIMIT 200`))) as unknown as
+        { id: number; slug: string; may_id: number; ma: string; may_ten: string; ten: string | null; ngay: string | null; nen: string | null; kieu: string | null; luc: string | null; loi_moi: string | null }[];
+      return r.map((x): ViecSx => ({ nguon: 'social', khoa: `s-${x.id}`, ten: x.ten || x.slug, cua: x.may_ten,
+        buoc: x.ngay ? `chờ dựng · đăng ${x.ngay.slice(8, 10)}/${x.ngay.slice(5, 7)}` : 'chờ dựng (chưa xếp ngày)', luc: x.luc, loi: x.loi_moi,
+        ghi: [x.kieu ?? (x.nen === 'fb_anh' ? 'ảnh đời thường' : x.nen === 'facebook' ? 'Reel cắt cảnh' : x.nen), x.slug].filter(Boolean).join(' · '),
+        mo: { url: `${STUDIO}/?kho=tu_dong&may=${x.may_id}&video=${x.id}` } }));
+    }),
+    doc('Kênh nội dung', async () => (await docKenhSp(hom)).flatMap((k) => k.ke.dangLam.filter((d) => !laDemo(d)).map((d): ViecSx => ({
+      nguon: 'kenh', khoa: `k-${k.ma}-${d.id}`, ten: d.ten || d.id, cua: k.ma, buoc: d.buoc ?? 'đang làm', so: d.so ?? null, tong: d.tong ?? null,
+      luc: d.buoc_luc ?? d.luc, loi: d.loi ?? null, ghi: d.chi_tiet ?? null, mo: { url: `/?tab=kenh&kenh_mo=${encodeURIComponent(k.ma)}` } })))),
+    doc('Ethopex', async () => (await docEtp(undefined, false)).dangSx.map((x): ViecSx => ({
+      nguon: 'etp', khoa: `e-${x.khoa}`, ten: x.phim ?? (x.content_id ? `phim ${x.content_id}` : x.khoa), cua: x.lo ?? null, buoc: x.buoc,
+      luc: x.luc, loi: x.loi ? (x.ghi ?? 'lỗi') : null, ghi: x.loi ? null : x.ghi,
+      mo: x.content_id ? { ed: 'etp-sx', id: String(x.content_id) } : { url: '/?tab=ethopex' } }))),
+    doc('Puzzle / Tài sản', async () => {
+      const t = await docTaiSanBan();
+      if (t.loi.length) loi.push(...t.loi.map((l) => `Tài sản: ${l}`));
+      return t.shops.flatMap((s) => s.sp.filter((p) => TT_DANG.has(p.trangThai)).map((p): ViecSx => {
+        const m = p.tienDo?.match(/^(\d+)\/(\d+)$/);
+        return { nguon: 'puzzle', khoa: `p-${p.khoa}`, ten: p.ten, cua: s.ten, buoc: TT_SP.find((x) => x.key === p.trangThai)?.chu ?? p.trangThai,
+          so: m ? Number(m[1]) : null, tong: m ? Number(m[2]) : null, ghi: p.ke ? `bước kế: ${p.ke}` : null, mo: { url: '/?tab=taisan' } };
+      }));
+    }),
+  ]);
+  const ra = { viec: [...etp, ...kenh, ...social, ...puzzle], loi };
+  nho = { luc: Date.now(), ra };
+  return ra;
+}

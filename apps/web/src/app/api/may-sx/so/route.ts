@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCurrentUser, getEffectiveUser } from '@/lib/auth';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
+import { docViecSx } from '@/lib/may-sx/gom';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,5 +22,7 @@ export async function GET(req: Request) {
       AND jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) = 0 AND coalesce(v.dang->>'dang_tu', '') <> ''
       AND (v.dang->>'dang_tu') >= to_char((now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date, 'YYYY-MM-DD')
     ORDER BY v.dang->>'dang_tu', m.ma LIMIT 300`).catch((e: Error) => { loi.push(`hàng chờ: ${e.message.slice(0, 120)}`); return []; })) as unknown as Record<string, unknown>[];
-  return NextResponse.json({ luot, cho, loi, luc: new Date().toISOString() });
+  // GOM mọi nguồn sản xuất (anh 11/11/2026) — nguồn hỏng ghi vào loi, không làm hỏng cả tab
+  const gom = await docViecSx().catch((e: Error) => ({ viec: [], loi: [`gom sản xuất: ${e.message.slice(0, 120)}`] }));
+  return NextResponse.json({ luot, cho, viec: gom.viec, loi: [...loi, ...gom.loi], luc: new Date().toISOString() });
 }

@@ -2,7 +2,7 @@
 // LƯỚI LỊCH ĐĂNG (anh 18/10/2026: "phần lịch phải show thêm kiểu lịch thật"): cột = ngày (3 ngày qua → 6 ngày tới), hàng = giờ (GMT+7),
 // mỗi ô = các bài trên các kênh. ✓ đặc = đã đăng (bấm mở bài) · viền nét đứt = máy SẼ đăng (dang-may tính bằng luật nhịp an toàn — xv_lich_du_kien).
 import { loaiGoc, linkGoc, type GocBai } from '@/lib/goc-spy';
-import { useState } from 'react';
+import { useState, createContext, useContext } from 'react';
 import { Drawer } from '@/components/ui/drawer';
 import { useModalParam } from '@/lib/use-modal-param';
 import type { StKho, StLuoi, StLuoiO } from '@/lib/social-traffic';
@@ -21,13 +21,20 @@ const cong = (ngay: string, n: number) => new Date(Date.parse(`${ngay}T00:00:00Z
  *  MỘT drawer dùng chung cho cả ba mặt lịch (lưới giờ, tuần, tháng) — trước đây mỗi ô chỉ có tooltip `title`,
  *  đọc được một dòng và không copy được. Khoá ô = `may|nen|ngay|gio` (ô lịch không có id riêng), ghi vào URL
  *  bằng useModalParam nên F5 / gửi link mở lại đúng ô. */
+// Thẻ bài nằm sâu trong LichBai / DongThoiGian / BangNoiDung — luồn prop qua từng tầng là thứ ui-conventions gọi là
+// prop-threading tay. Một context: nơi nào bọc thì thẻ ở đó bấm ra drawer, nơi nào không bọc thì thẻ giữ hành vi cũ.
+const MoBaiCtx = createContext<((x: StLuoiO) => void) | null>(null);
+
 function useChiTietBai(ds: StLuoiO[]) {
   const modal = useModalParam('ob');
   const khoaCua = (x: StLuoiO) => `${x.may}|${x.nen}|${x.ngay}|${x.gio}`;
   const dangMo = modal.is('o-lich') ? ds.find((x) => khoaCua(x) === modal.id) ?? null : null;
+  const mo = (x: StLuoiO) => modal.open('o-lich', khoaCua(x));
   return {
-    mo: (x: StLuoiO) => modal.open('o-lich', khoaCua(x)),
+    mo,
     khoaCua,
+    /** Bọc quanh phần vẽ thẻ để MỌI thẻ bên trong bấm ra drawer. */
+    Boc: ({ children }: { children: React.ReactNode }) => <MoBaiCtx.Provider value={mo}>{children}</MoBaiCtx.Provider>,
     drawer: dangMo ? <ChiTietBai x={dangMo} onClose={() => modal.close()} /> : null,
   };
 }
@@ -36,11 +43,21 @@ function useChiTietBai(ds: StLuoiO[]) {
  *  Chữ bài là tiếng Anh (người xem Mỹ) nên nhìn card không biết đang làm PHIM nào, HƯỚNG gì — hai dòng này trả lời đúng hai câu đó.
  *  Bài đời thường không có phim, chỉ có hướng; không có cả hai thì không vẽ gì (card đã chật). */
 function PhimHuong({ x, gon }: { x: StLuoiO; gon?: boolean }) {
-  if (!x.phimTen && !x.huong) return null;
+  if (!x.phimTen) return null;
+  return <span title={`phim: ${x.phimTen}`} style={{ fontSize: gon ? 10 : 11, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>🎬 {x.phimTen}</span>;
+}
+
+/** CHỮ TRÊN THẺ — TIẾNG VIỆT ĐỨNG TRƯỚC (anh 11/11/2026 "viết tiếng Việt cơ mà?").
+ *  Chữ bài BẮT BUỘC là tiếng Anh (người xem là người Mỹ) nhưng THẺ LỊCH là để anh đọc, nên dòng chính lấy
+ *  hướng nội dung tiếng Việt; chữ tiếng Anh tụt xuống dòng phụ, mờ hơn. Bài chưa có hướng thì chữ Anh lên dòng chính. */
+function ChuThe({ x, gon }: { x: StLuoiO; gon?: boolean }) {
+  const anh = x.title.replace(/\s*#shorts\s*/i, '');
+  const cl = (n: number) => ({ display: '-webkit-box', WebkitLineClamp: n, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' });
+  if (!x.huong) return <span style={{ fontSize: gon ? 11 : 12, lineHeight: 1.3, ...cl(gon ? 1 : 2) }}>{anh}</span>;
   return (
-    <span style={{ display: 'grid', gap: 2, minWidth: 0 }}>
-      {x.phimTen ? <span title={`phim: ${x.phimTen}`} style={{ fontSize: gon ? 10 : 11, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🎬 {x.phimTen}</span> : null}
-      {x.huong ? <span title={`hướng nội dung: ${x.huong}`} style={{ fontSize: gon ? 10 : 11, color: 'var(--fg-2)', border: '1px solid var(--border)', borderRadius: 999, padding: '0 7px', justifySelf: 'start', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.huong}</span> : null}
+    <span style={{ display: 'grid', gap: 1, minWidth: 0 }}>
+      <span style={{ fontSize: gon ? 11 : 12.5, fontWeight: 600, lineHeight: 1.3, ...cl(gon ? 1 : 2) }}>{x.huong}</span>
+      {gon ? null : <span title={anh} style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.25, ...cl(1) }}>{anh}</span>}
     </span>
   );
 }
@@ -242,6 +259,7 @@ type KenhBang = { k: string; khoa: string; tk: string; url: string | null; may: 
 // CÂY CHỌN (anh 25/10/2026: "hiện tại đang show hết có vẻ nặng và ko tập trung — tree select nền tảng bên trái, bấm vào mới hiện danh sách bài của từng page"):
 // trái = nền tảng → kênh (gom theo TÀI KHOẢN: một Page có Reel + album + bài link là một mục), phải = bài của kênh đang chọn, chia theo ngày
 export function BangNoiDung({ luoi, kenhMo, doiKenh }: { luoi: StLuoi; kenhMo?: string; doiKenh?: (v: string) => void }) {
+  const ct = useChiTietBai(luoi.o);
   // DỊCH NGÀY (anh 25/10/2026 "cho phép dịch chuyển ngày để xem các bài trước đó"): mỗi bước 7 ngày, trong khoảng sổ có (6 tuần qua → 6 tuần tới)
   const [lech, setLech] = useState(0), [so, setSo] = useState(true), [chon, datChon] = useState<string | null>(null), [dong, setDong] = useState<Record<string, boolean>>({}), [loc, setLoc] = useState<string | null>(null), [locGoc, setLocGoc] = useState<string | null>(null);
   // HAI CÁCH XEM (anh 25/10/2026: "phần bài vẫn phải show kiểu lịch… nếu cột thì phải là dạng timeline, nhưng chỉ là 1 option"):
@@ -323,9 +341,10 @@ export function BangNoiDung({ luoi, kenhMo, doiKenh }: { luoi: StLuoi; kenhMo?: 
               style={{ border: `1px solid ${mau}`, background: 'transparent', color: on ? mau : 'var(--fg-3)', borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', borderStyle: k === 'chưa có góc' ? 'dashed' : 'solid' }}>{k}{locGoc === k ? ' ✕' : ''}</button>; })}
         </div> : null}
         {!bai.length ? <div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Không có bài trong khoảng ngày này — bấm ◀ ▶ để xem tuần khác.</div>
-          : xem === 'lich' ? <LichBai ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} gon={!chiTiet} />
-          : <DongThoiGian ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} />}
+          : <ct.Boc>{xem === 'lich' ? <LichBai ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} gon={!chiTiet} />
+          : <DongThoiGian ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} />}</ct.Boc>}
       </section> : null}
+      {ct.drawer}
     </div>
   );
 }
@@ -424,6 +443,7 @@ function ChipGoc({ g, gon }: { g?: GocBai | null; gon?: boolean }) {
 }
 /** thẻ CAO CỐ ĐỊNH 56px cho dòng thời gian (đặt tuyệt đối theo giờ, nên chiều cao phải biết trước): ảnh vuông trái · màu format ở viền · giờ + chấm trạng thái · 1 dòng chữ */
 function OBaiDong({ x, hom, so }: { x: StLuoiO; hom: string; so: boolean | 'bam' }) {
+  const mo = useContext(MoBaiCtx);
   const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da';
   const tt = `${x.title}\n${x.goc ? `góc ${loaiGoc(x.goc.loai)[0]}: ${x.goc.ten}\n` : 'chưa có góc\n'}${f} · ${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : ''}${da && so === true && x.xem != null ? ` · 👁 ${x.xem}` : ''}${da && x.thich != null ? ` · ♥ ${x.thich}` : ''}${da && x.binhLuan != null ? ` · 💬 ${x.binhLuan}` : ''}`;
   const the = (
@@ -436,15 +456,19 @@ function OBaiDong({ x, hom, so }: { x: StLuoiO; hom: string; so: boolean | 'bam'
           {x.link === true ? <span aria-label="có link">🔗</span> : null}
           <span aria-label={da ? 'đã đăng' : 'máy sẽ đăng'} style={{ marginLeft: 'auto', width: 8, height: 8, flex: 'none', borderRadius: '50%', background: da ? 'var(--ok, #16a34a)' : 'transparent', border: `2px solid ${da ? 'var(--ok, #16a34a)' : 'var(--warn, #d97706)'}` }} />
         </span>
-        <span style={{ fontSize: 11, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
+        <span style={{ fontSize: 11, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.huong || x.title.replace(/\s*#shorts\s*/i, '')}</span>
         <PhimHuong x={x} gon />
         {so === true && da ? <span style={{ fontSize: 10, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>👁 {x.xem ?? '—'}</span> : null}
       </div>
     </div>);
+  // BẤM THẺ = MỞ DRAWER (anh 11/11/2026 "bấm vào card cũng đéo thấy drawer nào"): trước đây thẻ đã đăng là <a> mở thẳng
+  // bài ngoài Facebook, thẻ chưa đăng không bấm được gì. Link bài ngoài giờ nằm trong drawer.
+  if (mo) return <button type="button" onClick={() => mo(x)} style={{ all: 'unset', display: 'block', width: '100%', cursor: 'pointer' }}>{the}</button>;
   return da && x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{the}</a> : the;
 }
 // YDNI: trạng thái = dấu hiệu (chấm xanh đã đăng · vòng cam máy sẽ đăng · 🔗 có link), chữ vào hover; thẻ gọn: ảnh · một dòng nhãn · 2 dòng chữ · số
 function OBai({ x, hom, so, gon, dong }: { x: StLuoiO; hom: string; so: boolean | 'bam'; gon?: boolean; dong?: boolean }) {
+  const mo = useContext(MoBaiCtx);
   if (dong) return <OBaiDong x={x} hom={hom} so={so} />;
   const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da', nhanF = x.format ?? f;
   const tt = `${x.format ? `kế hoạch góc · ${x.format}${x.canDung ? ' (chưa có đường đăng)' : ''}${x.dich ? ` · trỏ sang ${x.dich}` : x.baiSite ? ` · bài site: ${x.baiSite.tt}` : ''}\n` : ''}${gon ? `${x.title}\n` : ''}${x.goc ? `góc ${loaiGoc(x.goc.loai)[0]}: ${x.goc.ten}\n` : ''}${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : x.link === false ? ' · không link' : ''}${x.nhom ? ` · ${x.nhom}` : ''}`;
@@ -463,12 +487,13 @@ function OBai({ x, hom, so, gon, dong }: { x: StLuoiO; hom: string; so: boolean 
             <span aria-label={da ? 'đã đăng' : 'máy sẽ đăng'} style={{ width: 9, height: 9, borderRadius: '50%', background: da ? 'var(--ok, #16a34a)' : 'transparent', border: `2px solid ${da ? 'var(--ok, #16a34a)' : 'var(--warn, #d97706)'}` }} />
           </span>
         </span>
-        <span style={{ fontSize: gon ? 11 : 12, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: gon ? 1 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
+        <ChuThe x={x} gon={gon} />
         <PhimHuong x={x} gon={gon} />
         <ChipGoc g={x.goc} gon={gon} />
         {da && (so === true || x.thich != null || x.binhLuan != null) ? <span style={{ fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', display: 'flex', flexWrap: 'wrap', gap: '2px 10px', color: 'var(--fg-2)' }}>
           {so === true ? <span title="lượt xem">👁 {x.xem == null ? '—' : x.xem.toLocaleString('vi-VN')}</span> : null}{x.thich != null ? <span title="lượt thích">♥ {x.thich}</span> : null}{x.binhLuan != null ? <span title="bình luận">💬 {x.binhLuan}</span> : null}</span> : null}
       </div>
     </div>);
+  if (mo) return <button type="button" onClick={() => mo(x)} style={{ all: 'unset', display: 'block', width: '100%', cursor: 'pointer' }}>{the}</button>;
   return da && x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{the}</a> : the;
 }

@@ -66,8 +66,12 @@ function Ruot({ khoa }: { khoa: Khoa }) {
   const [hienLuuTru, setHienLuuTru] = useState(false);
   const [tapMo, setTapMo] = useState<number | null>(null);
   const [soHien, setSoHien] = useState(150);   // số dòng phim vẽ trong danh sách 🎬 Làm tự do   // bấm chip tập → mở ngăn phim đúng tập
-  const taiLai = useCallback(async () => setPhim(await dsPhim()), []);
-  useEffect(() => { void taiLai(); }, [taiLai]);
+  const dangTai = useRef<Promise<void> | null>(null);   // một lượt tải danh sách một lúc (đóng ngăn + effect cùng gọi → không tải đôi 3 MB)
+  const taiLai = useCallback(() => (dangTai.current ??= dsPhim().then(setPhim).finally(() => { dangTai.current = null; })), []);
+  // Server action của Next chạy LẦN LƯỢT: tải danh sách (~3 MB) lúc ngăn phim đang mở thì mọi lệnh của ngăn (docPhim, shot…) xếp hàng sau nó
+  // (đo 11/11/2026: shot hiện sau 3,5 s). Mở thẳng một phim → chưa tải danh sách; đóng ngăn (onClose) tự taiLai.
+  const moSan = modal.is('phim');
+  useEffect(() => { if (!moSan && ds === null) void taiLai(); }, [moSan, ds, taiLai]);
   const [moHinh, setMoHinh] = useState<{ anh: MoHinhChon[]; video: MoHinhChon[] }>({ anh: [], video: [] });
   useEffect(() => { void dsMoHinh().then(setMoHinh); }, []);
 

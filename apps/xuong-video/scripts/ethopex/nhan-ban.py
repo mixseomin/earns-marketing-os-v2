@@ -486,7 +486,7 @@ def main(a):
         return roas_main(goc, roas, int(float(lay("--ns", "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a, tay)
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None, "chay": lich}
     try:
-        d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep); kq["ten"] = ten; bo = pl.pop("bo"); bai = pl.pop("bai_cu", None)
+        d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep); kq["ten"] = ten; bo = pl.pop("bo"); bai0 = bai = pl.pop("bai_cu", None); cr_bai = pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"]
         ly = None if NGOAI else (None if moi or ep else q(f"select etp.bo_chan_mo_camp('{bo}', {int(goc)})"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (0339); camp gốc tự thắng (3 ngày khép ROI ≥ 30%) thì miễn (0372, anh 30/10/2026)
         if ly: raise ChanLuat(ly)
         if moi: kq["viec"] = "tao_camp"
@@ -556,6 +556,7 @@ def main(a):
             if chan: raise ChanLuat(chan)
             ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}
         kq["content"], kq["creative"] = cid, ad0["creative_id"]   # nhật ký mang phim + creative → dem_dang_chay đếm được camp vừa tạo chưa vào kho
+        if ad0["creative_id"] != cr_bai: bai = None   # BÀI CŨ chỉ khi creative cuối = creative của bài gốc — đổi creative (đoạn đủ trần) là đăng bài mới, cổng chấm đủ tiêu chí CTA
         ly = cham_sach(ad0["creative_id"], bo_cta=bool(bai))   # cổng chấm: creative cuối cùng phải SẠCH (bài cũ: bỏ tiêu chí CTA)
         if ly and ep and (mien_cham or anh): kq["mien_cham"] = ly; ly = None   # --mien-cham chỉ đi cùng --ep (lệnh đích danh của anh) · --anh: anh chịu trách nhiệm
         # CLONE BỊ CỔNG CHẤM CHẶN → THAY CREATIVE HOẶC BỎ (anh 07/11/2026 "bỏ hoặc thay creative luôn"): creative khác cùng phim chấm sạch, chưa có camp thì dùng
@@ -569,8 +570,9 @@ def main(a):
             else: kq["bo_qua"] = True
         if ly: raise ChanLuat(ly)
         kq["phim_dang_chay"] = n
-        if bai and kq.get("doi_creative"):   # máy đã đổi sang creative khác (đoạn đủ trần / cổng chấm) → không còn là bài cũ: đăng bài mới, $1 như clone thường
-            bai = None; ten = ten.replace(" bai-cu ", " doi-cr "); kq["ten"] = ten
+        if ad0["creative_id"] != cr_bai: bai = None   # cổng chấm vừa thay creative (nhánh trên) → cũng không còn là bài cũ
+        if bai0 and not bai:   # không còn là bài cũ: đăng bài mới, $1 như clone thường
+            ten = ten.replace(" bai-cu ", " doi-cr "); kq["ten"] = ten
             pl = json.loads(json.dumps(pl, ensure_ascii=False).replace(" bai-cu ", " doi-cr ")); pl["campaign"]["source_payload"]["daily_budget"] = int(thang) if thang else 1
             ad0 = pl["campaign"]["ad_groups"][0]["ads"][0]
         if bai:   # ad = CHỈ bài đăng cũ (Ethopex chặn trộn effective_object_story_id với creative_id / content_id — mã form app.ethopex.dev 11/11/2026)
@@ -578,7 +580,7 @@ def main(a):
             kq["bai_cu"] = bai
         # CLONE SANG BỘ KHÁC THEO LỆNH ANH (--bo --ep) = bản sao ĐÚNG camp gốc: không chia vào A/B đang chạy (08/11/2026: dup 50 camp bộ 2 → bộ 4 bị AB01 gán nhánh
         # và đặt ngân sách $3 của nhánh; anh: "Sao dup sang bộ 4 lại set ngân sách $3 ngay") — giữ $1 + tham số Ad Set của gốc
-        tn = None if ep else ab_lay(kq, pl, lich, goc, moi, cr=ad0["creative_id"])   # sổ A/B etp.ab — đặt tham số nhánh trước khi tạo (anh 05/11/2026) · bài cũ cũng qua: A/B chỉ đổi Ad Set, ad0 vẫn giữ creative gốc để xếp định dạng   # sổ A/B etp.ab — đặt tham số nhánh trước khi tạo (anh 05/11/2026)
+        tn = None if ep else ab_lay(kq, pl, lich, goc, moi, cr=ad0["creative_id"])   # sổ A/B etp.ab — đặt tham số nhánh trước khi tạo (anh 05/11/2026) · bài cũ cũng qua: A/B chỉ đổi Ad Set, ad0 vẫn giữ creative gốc để xếp định dạng
         # CỔNG đọc NGÂN SÁCH THẬT sẽ gửi (payload sau A/B), không phải số giả định — 08/11/2026 cổng nhận "1" trong khi payload mang $3 của nhánh AB01
         ns_gui = thang or float((pl["campaign"].get("source_payload") or {}).get("daily_budget") or 1)
         ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, ns_gui, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, lenh_anh=ep, bac=bool(thang), bai_cu=bool(bai))

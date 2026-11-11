@@ -1182,15 +1182,15 @@ def _xet_luat():
     except Exception: _roas_thu = {}
     def L_roas(cid, a, rg):
         lai = a.get("thu", 0) - a.get("chi", 0); chi_, roi_ = float(ROAS_LEN["chi"]), float(ROAS_LEN["roi"])
-        dk = ([["Lãi 30 ngày", f"${lai:.2f}", f"≥ ${ROAS_LAI}", True]] if lai >= ROAS_LAI else
-              [["Chi 30 ngày", f"${a.get('chi', 0):.2f}", f"≥ ${chi_:g} (nhánh kia: lãi ≥ ${ROAS_LAI}, đang ${lai:.0f})", a.get("chi", 0) >= chi_], ["ROI 3 ngày đã khép", f(rg, "%"), f"≥ {roi_:g}%", rg is not None and rg >= roi_]])
-        dk += [["Gốc chưa có camp ★ ROAS", "đã có" if int(cid) in _goc_roas else "chưa có", "chưa có", int(cid) not in _goc_roas],
-               ["Bài đăng chưa bị Meta từ chối khi lên ROAS", "đã bị từ chối" if int(cid) in _bai_tc else "chưa", "chưa", int(cid) not in _bai_tc]]
-        if _tran_moi is not None: dk.append([f"Trần camp mới hôm nay (mở lại 00:00 VN)", f"{_so_moi}/{_tran_moi}", f"< {_tran_moi}", _so_moi < _tran_moi])
+        # 2 dòng TIỀN ĐỀ (tien=2): gốc đã có ★ / bài đã bị từ chối → 'không áp', không gọi là "gần" (rà 12/11/2026: 13 camp đã có ★ hiện "gần lên ROAS")
+        dk = [["Gốc chưa có camp ★ ROAS", "đã có" if int(cid) in _goc_roas else "chưa có", "chưa có", int(cid) not in _goc_roas],
+              ["Bài đăng chưa bị Meta từ chối khi lên ROAS", "đã bị từ chối" if int(cid) in _bai_tc else "chưa", "chưa", int(cid) not in _bai_tc]]
+        dk += ([["Lãi 30 ngày", f"${lai:.2f}", f"≥ ${ROAS_LAI}", True]] if lai >= ROAS_LAI else
+               [["Chi 30 ngày", f"${a.get('chi', 0):.2f}", f"≥ ${chi_:g} (nhánh kia: lãi ≥ ${ROAS_LAI}, đang ${lai:.0f})", a.get("chi", 0) >= chi_], ["ROI 3 ngày đã khép", f(rg, "%"), f"≥ {roi_:g}%", rg is not None and rg >= roi_]])
+        # trần camp mới / ngày KHÔNG áp camp ★ ROAS (cong.kiem roas=True miễn, anh 12/11/2026) — bỏ điều kiện khỏi thẻ Lên ROAS
         t = _roas_thu.get(int(cid)); ghi = f"{t['g']} máy thử lên ROAS bị chặn: {str(t['loi'])[:160]}" if t and t.get("loi") else f"{t['g']} đã lên ROAS" if t and t.get("ok") else None
         o = L("roas", "★ Lên ROAS (4 mức · $20)", f"Lãi 30 ngày ≥ ${ROAS_LAI} (anh 29/10/2026) HOẶC chi 30 ngày ≥ ${chi_:g} & ROI 3 ngày đã khép ≥ {roi_:g}% (Dol 09/11/2026) → cuối nhịp kế máy tạo 4 camp ★ ROAS $20 từ camp này (giờ chạy theo lịch lên); gốc đã có camp ★ thì không lên lại.",
-              dk, "moc30" if int(cid) in vao["moc30"] else None, ghi=ghi)
-        if _tran_moi is not None and _so_moi >= _tran_moi: o["cho_toi"] = _ngay_mai.isoformat()
+              dk, "moc30" if int(cid) in vao["moc30"] else None, ghi=ghi, tien=2)
         return o
     giam_tu = q("select gia_tri::text from etp.cau_hinh where khoa = 'giam_tu_dong'") != "false"
     f = lambda v, dv="": "—" if v is None else (f"{v:+.0f}%" if dv == "%" else f"${v:.2f}" if dv == "$" else f"{v:g}{dv}")

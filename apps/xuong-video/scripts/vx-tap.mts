@@ -11,7 +11,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { napKhung, guiShot, getMedia, catId, trenApp, ngu } from './vx-br.mts';
-import { moPhien } from './videoexpress.mjs';
+import { moPhien, dongPhien } from './videoexpress.mjs';
 
 const BOX = 'root@167.233.241.16';
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';
@@ -47,7 +47,10 @@ if (process.env.VX_CHAY !== '1') {
   for (const s of ds) console.log(`#${s.so}${s.kf ? '' : ' ⚠ CHƯA CÓ KEYFRAME'}${s.vx?.xong ? ' (đã có clip VX)' : ''}: ${cauPrompt(s)}`);
   process.exit(0);
 }
-if (!trenApp()) await moPhien();
+// TRÌNH DUYỆT CHỈ MỞ KHI CẦN (anh 11/11/2026: "lúc đợi thì đóng br lại"): mở để lấy clip / gửi tiếp, đóng ngay trong lúc chờ render (~4 phút).
+let dangMo = false;
+const canPhien = async () => { if (!dangMo || !trenApp()) { await moPhien(); dangMo = true; } };
+await canPhien();
 const catDefault = catId('default'), catVideo = catId('my_ai_videos');
 const batDau = Date.now();
 const canGui = (s: Shot) => s.kf && (lai.has(s.so) || (!s.vx?.uuid && !s.vx?.xong));
@@ -71,7 +74,7 @@ while (Date.now() - batDau < HAN_PHUT * 60e3) {
   // 1) thu clip xong
   const dang = ds.filter((s) => s.vx?.uuid && !s.vx.xong);
   if (dang.length) {
-    if (!trenApp()) await moPhien();
+    await canPhien();
     const theoUuid = new Map(getMedia(catVideo, 100).results.map((r) => [r.uuid, r]));
     for (const s of dang) {
       const it = theoUuid.get(s.vx!.uuid!);
@@ -88,7 +91,7 @@ while (Date.now() - batDau < HAN_PHUT * 60e3) {
     const f = join(thu, `kf-${s.so}.jpg`);
     execFileSync('curl', ['-sfL', '-o', f, s.kf!], { timeout: 120e3 });
     // tab có thể rời app giữa lượt (11/11/2026: fetch '/library/upload/4' hỏng 'Failed to parse URL' — trang không còn ở app) → kiểm phiên trước MỖI lần nạp
-    if (!trenApp()) await moPhien();
+    await canPhien();
     let mediaId: number | null = null;
     try { mediaId = await napKhung(f, catDefault); } catch (e) { console.log(`#${s.so}: ! nạp keyframe lỗi, thử lại nhịp sau — ${String(e).split('\n')[0]!.slice(0, 160)}`); break; }
     if (!mediaId) { console.log(`#${s.so}: ✗ nạp keyframe hỏng — DỪNG gửi`); hetLuot = true; break; }
@@ -103,9 +106,11 @@ while (Date.now() - batDau < HAN_PHUT * 60e3) {
   if (!con) break;
   if (hetLuot && !ds.some((s) => s.vx?.uuid && !s.vx.xong)) break;
   console.log(`  ${new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} · còn ${con} shot · đang render ${cho}`);
-  await ngu(30e3);
-  if (!trenApp()) await moPhien();
+  // chờ render: ĐÓNG trình duyệt, ngủ ~4 phút (một lượt render), mở lại ở nhịp sau khi cần
+  dongPhien(); dangMo = false;
+  await ngu(cho ? 240e3 : 30e3);
 }
 const xong = ds.filter((s) => s.vx?.xong).length;
+dongPhien();
 console.log(`\nXong ${xong}/${ds.length} shot có clip VideoExpress.${xong < ds.length ? ' Chạy lại cùng lệnh để đi tiếp (sổ ở ky_thuat.vx).' : ''}`);
 process.exit(0);

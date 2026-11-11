@@ -22,11 +22,11 @@ const MOS2 = cay.dir;
 // danh sách điều kiện chống quay về bản cũ apps/etp/gop-y-luat.mjs); đọc box3 qua ssh; kiểm tĩnh; push (GHA deploy box3). Không web, không hỏi, không lan việc.
 const SUA = ['apps/etp', 'apps/xuong-video/scripts/ethopex', 'apps/etp2/src', 'apps/web/src/components', 'apps/web/src/lib'].map((d) => path.join(MOS2, d));
 const QUYEN = ['Read', 'Glob', 'Grep', ...SUA.flatMap((d) => [`Edit(/${d}/**)`, `Write(/${d}/**)`]), `Edit(/${MOS2}/apps/cty/worker/ethopex.mjs)`,
-  `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add apps/:*)', 'Bash(git commit:*)',
-  'Bash(git push origin HEAD:main)', `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`, 'Bash(node scripts/check-:*)', 'Bash(node --check:*)', 'Bash(python3 -m py_compile:*)',
+  `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add:*)', 'Bash(git commit:*)',
+  'Bash(git push origin HEAD:main)', `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`, 'Bash(node scripts/check-etp-gop-y.mjs)', 'Bash(node scripts/check-etp-gop-y.mjs --tu-kiem)', 'Bash(node --check:*)', 'Bash(python3 -m py_compile:*)',
   'Bash(python3 apps/xuong-video/scripts/ethopex/nhip_tang.py)', 'Bash(python3 apps/etp/cong.py --tu-kiem)', 'Bash(node apps/cty/worker/ethopex.mjs --tu-kiem)',
   'Bash(./node_modules/.bin/tsc -p apps/web/tsconfig.json --noEmit)', 'Bash(./node_modules/.bin/tsc -p apps/etp2/tsconfig.json --noEmit)', 'Bash(node apps/etp2/kiem-gop-y.mjs)',
-  `Edit(/${MOS2}/apps/etp2/kiem-gop-y.mjs)`, `Bash(curl -s -o ${os.homedir()}/.cache/huy-anh/:*)`, `Bash(mkdir -p ${os.homedir()}/.cache/huy-anh)`,   // góp ý etp / etp2: tải ảnh card về đọc 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)',
+  `Edit(/${MOS2}/apps/etp2/kiem-gop-y.mjs)`, `Read(${os.homedir()}/.cache/huy-anh/**)`,   // góp ý etp / etp2: máy tải sẵn ảnh card, Huy chỉ đọc 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)',
   // dạng lệnh Claude thật gõ (anh 10/11/2026 "chạy ổn định … tao ko phải tham gia" — cùng gốc Khang: danh sách hẹp bị từ chối im lặng → báo "cần anh"); CAM_BASH chặn hoàn tác / xoá
   `Bash(cd ${MOS2}:*)`, `Bash(git -C ${MOS2}:*)`, 'Bash(git show:*)', 'Bash(head:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)'];
 const CAM_BASH = ['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
@@ -59,9 +59,13 @@ const v = r0.viec, chu = String(v.chu).replace(/<[^>]+>/g, '');
 
 // CARD GÓP Ý etp2 / etp: việc là MỘT card hòm góp ý, làm đúng quy trình /tasks-etp2
 const gopY = (String(v.khoa).match(/^etp:gopy\|(\d+)$/) || [])[1], gyTrang = /^Góp ý etp2 /.test(chu) ? 'etp2.on.tc' : 'etp.on.tc';
+// ẢNH CARD máy tải sẵn (Claude không giao diện không có quyền mạng: curl bị từ chối ở lượt #1559) → Huy chỉ Read
+const anhGopY = (() => { if (!gopY || thu) return []; try { const d = path.join(os.homedir(), '.cache', 'huy-anh'); fs.mkdirSync(d, { recursive: true });
+  const ls = [...new Set(box(`GOPY_TRANG=${gyTrang} /opt/earns-marketing-os-v2/scripts/gop-y.sh show ${gopY}`).match(/https:\/\/img\.on\.tc\/[^\s|]+/g) || [])];
+  return ls.map((u, i) => { const f = path.join(d, `${gopY}-${i + 1}${path.extname(u) || '.png'}`); execFileSync('curl', ['-s', '-o', f, u], { timeout: 60000 }); return f; }); } catch (e) { log(`tải ảnh card lỗi: ${e.message.split('\n')[0]}`); return []; } })();
 const viecGopY = gopY ? `VIỆC: card góp ý #${gopY} của ${gyTrang} (anh gửi bằng nút Góp ý) — ${chu}
 Làm ĐÚNG quy trình trong /${MOS2}/apps/etp2/tasks-etp2.md (và luật riêng etp trong /${MOS2}/.claude/commands/tasks-etp.md) cho RIÊNG card này:
-1. ssh ${BOX} "GOPY_TRANG=${gyTrang} /opt/earns-marketing-os-v2/scripts/gop-y.sh show ${gopY}" rồi cùng lệnh với claim ${gopY}. Tải MỌI ảnh trong card: mkdir -p ${os.homedir()}/.cache/huy-anh rồi curl -s -o ${os.homedir()}/.cache/huy-anh/${gopY}-<n>.png <link>, đọc ảnh bằng Read — lỗi hiển thị nằm trong ảnh.
+1. ssh ${BOX} "GOPY_TRANG=${gyTrang} /opt/earns-marketing-os-v2/scripts/gop-y.sh show ${gopY}" rồi cùng lệnh với claim ${gopY}. ${anhGopY.length ? `Ảnh của card máy đã tải sẵn — ĐỌC HẾT bằng Read (lỗi hiển thị nằm trong ảnh): ${anhGopY.join(' · ')}` : 'Card không có ảnh.'}
 2. etp.on.tc ĐÓNG BĂNG: giao diện chỉ sửa trong apps/etp2 (kể cả card gửi từ etp.on.tc); máy nền (apps/etp, luat-ethopex.py, worker Phát) dùng chung. Sửa tận gốc, dùng lại hàm đang có; YDNI: chữ phụ gập vào chữ rê.
 3. Thêm điều kiện chống quay về bản cũ cho card: giao diện etp2 → apps/etp2/kiem-gop-y.mjs, máy nền → apps/etp/gop-y-luat.mjs. Kiểm: ./node_modules/.bin/tsc -p apps/etp2/tsconfig.json --noEmit, node apps/etp2/kiem-gop-y.mjs, node scripts/check-etp-gop-y.mjs.
 4. commit + push + gh-watch, rồi ssh ... gop-y.sh submit ${gopY} "sai gì · sửa gì · commit nào" (nộp Review — KHÔNG bao giờ tự Done).

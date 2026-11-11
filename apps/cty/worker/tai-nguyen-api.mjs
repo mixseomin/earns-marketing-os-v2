@@ -14,7 +14,7 @@ import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const ENV_STUDIO = '/opt/earns-marketing-os-v2/.env.production';
-export const SAN = { tokenhot: 2, flatkey: 2, shopaikey: 5, kie: 500, runpod: 2, plenxai: 100, vast: 2, elevenlabs: 1000, fal: 5, ke: 5000 };   // $ / credit / $ / ₫ — dưới mức này là báo
+export const SAN = { tokenhot: 2, flatkey: 2, shopaikey: 5, kie: 500, runpod: 2, plenxai: 100, vast: 2, elevenlabs: 1000, fal: 5, ke: 5000, donk: 2000 };   // $ / credit / $ / ₫ — dưới mức này là báo
 export const NGAY_CON = 3; export const GIO_BAO = '08:00'; export const GIO_DON = '03:00';
 /** Giá R2 (cloudflare.com/r2/pricing, gói Standard): lưu $0,015/GB-tháng sau 10 GB miễn phí · lớp A $4,50/triệu sau 1 triệu · lớp B $0,36/triệu sau 10 triệu · xoá + băng thông ra: 0. */
 export const GIA_R2 = { gb: 0.015, gbFree: 10, a: 4.5, aFree: 1e6, b: 0.36, bFree: 10e6 };
@@ -23,8 +23,8 @@ export const NGUONG_R2 = { thangVnd: 100000, tangGb: 10 };
 const VND = 26000;   // $1 ≈ 26.000₫ (cùng tỷ giá báo cáo studio)
 const LOP_B = new Set(['GetObject', 'HeadObject', 'HeadBucket', 'GetBucketLocation', 'GetBucketEncryption', 'GetBucketCors', 'GetBucketLifecycleConfiguration']);
 const MIEN_PHI = new Set(['DeleteObject', 'DeleteObjects', 'DeleteBucket', 'AbortMultipartUpload']);
-const DON = { tokenhot: '$', flatkey: '$', shopaikey: '$', kie: 'credit', runpod: '$', ckey: '₫', plenxai: 'credit', vast: '$', elevenlabs: 'credit', fal: '$', ke: 'credit' };
-const TEN = { tokenhot: 'TokenHot', flatkey: 'FlatKey', plenxai: 'PlenX AI', shopaikey: 'ShopAIKey', kie: 'Kie.ai', runpod: 'RunPod', ckey: 'ckey.vn', vast: 'Vast.ai', elevenlabs: 'ElevenLabs', anthropic: 'Anthropic', google: 'Google', fal: 'fal.ai', ke: 'Keywords Everywhere' };
+const DON = { donk: '₫', tokenhot: '$', flatkey: '$', shopaikey: '$', kie: 'credit', runpod: '$', ckey: '₫', plenxai: 'credit', vast: '$', elevenlabs: 'credit', fal: '$', ke: 'credit' };
+const TEN = { donk: 'Donk (Claude)', tokenhot: 'TokenHot', flatkey: 'FlatKey', plenxai: 'PlenX AI', shopaikey: 'ShopAIKey', kie: 'Kie.ai', runpod: 'RunPod', ckey: 'ckey.vn', vast: 'Vast.ai', elevenlabs: 'ElevenLabs', anthropic: 'Anthropic', google: 'Google', fal: 'fal.ai', ke: 'Keywords Everywhere' };
 
 const so = (x, d = 2) => Number(x).toLocaleString('vi-VN', { maximumFractionDigits: d });
 const hien = (k, v) => (DON[k] === '$' ? `$${so(v)}` : DON[k] === '₫' ? `${so(v, 0)}₫` : `${so(v, 0)} ${DON[k]}`);
@@ -186,6 +186,12 @@ export async function docSoDu() {
     // fal.ai (anh 26/10/2026 "cần thêm ngân sách còn lại" ở bảng AI spy): khoá AI FAL_KEY không có quyền billing → cần khoá ADMIN riêng FAL_ADMIN_KEY (quyền billing:usage:read)
     // Keywords Everywhere (anh 02/11/2026): khoá nằm ở spy.env — spy là chỗ duy nhất gọi KE (server/ke.mjs); đọc số dư miễn phí
     thu('ke', async () => { const k = docEnvTep('/root/.secrets/spy.env').KE_API_KEY; if (!k) throw new Error('thiếu khoá KE_API_KEY (spy.env)'); const j = await lay('https://api.keywordseverywhere.com/v1/account/credits', { headers: { authorization: `Bearer ${k}` } }); const v = Number(Array.isArray(j) ? j[0] : j?.credits); if (!Number.isFinite(v)) throw new Error('trả lạ'); return v; }),
+    // Donk (anh 12/11/2026 "trạng thái của token donk phải chuyển cho phòng tài nguyên"): gói Claude trả trước của shopdonk.com, khoá DONK_API_KEY
+    // (.env.production, vault #693). /api/token/check trả quota đơn vị nhà cung cấp (limit/used/remaining) → số dư quy ra ₫ của gói
+    // (DONK_GOI_VND, mặc định 20.000₫ = gói 50M) để tieuNgay / cảnh báo "còn N ngày" dùng chung với cổng khác. Khoá không ACTIVE = lỗi.
+    thu('donk', async () => { if (!e.DONK_API_KEY) throw new Error('thiếu khoá DONK_API_KEY'); const j = await lay('https://shopdonk.com/api/token/check', { headers: { authorization: `Bearer ${e.DONK_API_KEY}`, 'user-agent': 'Mozilla/5.0' } });
+      const d = j?.data, qu = d?.quota; if (!d?.ok || d.status !== 'ACTIVE') throw new Error(`khoá ${d?.status ?? 'không đọc được'}`); if (!(qu?.limit > 0)) throw new Error('không có quota');
+      return Math.round((qu.remaining / qu.limit) * Number(e.DONK_GOI_VND || 20000)); }),
     thu('fal', async () => { if (!e.FAL_ADMIN_KEY) throw new Error('thiếu khoá FAL_ADMIN_KEY (quyền billing:usage:read)'); const j = await lay('https://rest.alpha.fal.ai/billing/user_balance', { headers: { authorization: `Key ${e.FAL_ADMIN_KEY}` } }); const v = Number(typeof j === 'object' ? j.balance ?? j.credits : j); if (!Number.isFinite(v)) throw new Error('trả lạ'); return Math.round(v * 100) / 100; }),
   ]);
   return { du, loi };

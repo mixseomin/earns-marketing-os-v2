@@ -1,0 +1,27 @@
+{
+  "_ve": "SỔ DẠNG BÀI của MÁY SẢN XUẤT (anh 11/11/2026: 'cần làm 1 con Máy sx để tạo nội dung cho tập trung giống Máy đăng. Sau sửa chữa, nâng cấp cho dễ'). MỘT NGUỒN cho mọi đường làm bài, song song với sổ nền đăng nen-dang.json. Đọc bởi: scripts/sx-bai.mjs (bảng hàm LAM — mỗi dạng một hàm) và scripts/sx-may.mjs (điều phối). Thêm dạng bài = THÊM MỘT DÒNG ở đây + MỘT HÀM trong sx-bai.mjs; `sx-may.mjs --tu-kiem` đỏ nếu một bên thiếu. CẤM viết script làm bài riêng bên ngoài đường này — đúng luật 'đăng bài = một đường' áp cho khâu sản xuất.",
+  "reel_canh9": {
+    "ten": "Reel cắt cảnh 9s",
+    "nen": "facebook",
+    "nguon": "phim",
+    "vnd": 0,
+    "may": "iMac",
+    "ve": "Cắt 9 giây cao trào từ tập phim miễn phí tải ở reelshort.com, bỏ dải CTA cháy sẵn ở đáy khung (crop 84%), chữ mời xem ở bình luận hiện 2,7 giây cuối. Dựng bằng ffmpeg nên CHỈ chạy ở iMac (luật: cấm dựng video trên box3)."
+  },
+  "reel_canh9_free": {
+    "ten": "Reel cắt cảnh 9s có chữ FREE",
+    "nen": "facebook",
+    "nguon": "phim",
+    "vnd": 0,
+    "may": "iMac",
+    "ve": "Như reel_canh9, thêm huy hiệu FREE góc trên trái và dòng nhỏ 'watch free in comment' góc dưới — đang đo xem chữ free có nâng hiệu suất không (bản đầu đăng 11/11/2026)."
+  },
+  "anh_doi_thuong": {
+    "ten": "Ảnh đời thường (sinh AI)",
+    "nen": "fb_anh",
+    "nguon": "ai",
+    "vnd": 110,
+    "may": "box3",
+    "ve": "Một ảnh sinh AI theo bố cục/địa điểm thật, giọng người thật của persona, KHÔNG link. Đi qua scripts/anh-le.mts (cổng rẻ ckey trước) nên chạy ở box3 có khoá R2."
+  }
+}

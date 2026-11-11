@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { heSo, mauCpm, mocMau, nen, ngayThiTruong, saiSo, type SoNgay } from './etp-thi-truong';
+import { heSo, hieuChinh, mauCpm, mocMau, nen, ngayThiTruong, saiSo, type SoNgay } from './etp-thi-truong';
 
 const so: Record<string, SoNgay> = {};
 for (let i = 1; i <= 10; i++) so[`2026-11-${String(i).padStart(2, '0')}`] = { chi: 1000, cpm: 20, cpc: 0.6, roi: 20 };
@@ -28,6 +28,11 @@ assert.strictEqual(bf.roi, null); assert.strictEqual(bf.sai, s[7]);             
 assert.strictEqual(ds[2]!.sai, s[3]);                                                // 12/11: cách nền 2 ngày → biên 3 ngày
 assert.strictEqual(ngayThiTruong(so, '2026-11-11', '2026-10-01', '2026-10-01')[0]!.cpm, null);
 
+assert.strictEqual(hieuChinh(so, '2026-11-11'), null);   // chưa có ngày mùa đã khép → hệ số gốc
+const mua: Record<string, SoNgay> = { '2026-11-15': { chi: 1, cpm: 20, cpc: 0.6, roi: 0 } };
+for (let i = 16; i <= 22; i++) mua[`2026-11-${i}`] = { chi: 1, cpm: 20 * (1 + 0.05 * 0.5), cpc: 0.6, roi: 0 };   // thật chỉ tăng nửa hệ số giả định (×1,025 thay ×1,05)
+const hc = hieuChinh(mua, '2026-11-23')!; assert.ok(hc.n >= 2 && Math.abs(hc.k - 0.5) < 0.6, JSON.stringify(hc));
+const bf2 = ngayThiTruong(mua, '2026-11-23', '2026-11-27', '2026-11-27')[0]!; assert.ok(bf2.heSo < 1.8 && bf2.heSo > 1, String(bf2.heSo));   // BF hạ theo thực tế
 assert.strictEqual(mauCpm(16, 20), 'hsla(140, 75%, 45%, 0.42)');
 assert.strictEqual(mauCpm(32, 20), 'hsla(0, 75%, 45%, 0.42)');
 assert.strictEqual(mauCpm(null, 20), 'transparent');

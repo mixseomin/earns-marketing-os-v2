@@ -94,9 +94,10 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
       .map(([k, n]) => { const [d, viec, ten] = k.split('|'); return { d: d!, viec: viec!, luat: ten!, n }; }),
     phim: phim.filter((x) => cua(x.n)).map((x) => ({ p: x.p, ten: x.ten ?? `#${x.p}`, n: x.n, chi: so(x.chi), thu: so(x.thu) })),
     thiTruong: nha ? (() => {
-      const ch = Object.fromEntries(pbCh.map((r) => [r.khoa, r.gia_tri])) as { cpm_ngay?: Record<string, { chi?: number; cpm?: number; cpc?: number; roi?: number | null }>; tran_len?: { tran?: number; ly_do?: string } };
+      const ch = Object.fromEntries(pbCh.map((r) => [r.khoa, r.gia_tri])) as { cpm_ngay?: Record<string, { chi?: number; cpm?: number; cpc?: number; roi?: number | null; nuoc?: Record<string, { chi?: number; cpm?: number | null; roi?: number | null }> }>; tran_len?: { tran?: number; ly_do?: string } };
       const so_: Record<string, SoNgay> = {};
-      for (const [d, v] of Object.entries(ch.cpm_ngay ?? {})) so_[d] = { chi: so(v.chi), cpm: so(v.cpm), cpc: so(v.cpc), roi: v.roi == null ? null : so(v.roi) };
+      for (const [d, v] of Object.entries(ch.cpm_ngay ?? {})) so_[d] = { chi: so(v.chi), cpm: so(v.cpm), cpc: so(v.cpc), roi: v.roi == null ? null : so(v.roi),
+        ...(v.nuoc ? { nuoc: Object.fromEntries(Object.entries(v.nuoc).map(([k, x]) => [k, { chi: so(x.chi), cpm: x.cpm == null ? null : so(x.cpm), roi: x.roi == null ? null : so(x.roi) }])) } : {}) };
       return { so: so_, tranMoi: ch.tran_len?.tran == null ? null : { tran: so(ch.tran_len.tran), ly_do: String(ch.tran_len.ly_do ?? '') } };
     })() : null,
     phanBo: nha ? (() => {

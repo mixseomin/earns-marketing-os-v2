@@ -7,7 +7,8 @@
 // HỆ SỐ MÙA — ngày lễ chính chỉnh theo số công khai BFCM 2025 của Meta (cửa hàng TMĐT Mỹ, khác ngành nhà nhưng cùng phiên đấu giá):
 //   Lebesgue (so tháng 9): Black Friday +84%, Cyber Monday +71%, thứ 3 sau +48%, thứ 4 sau +20% · Biddyco (so tháng 10): BF ~×2, CM +41% · AdScale: tuần 9/11 +4%.
 //   Các khoảng khác (tuần trước lễ, tháng 12, sau Giáng sinh) là GIẢ ĐỊNH, chưa có nguồn — ô vẫn ghi biên sai đo được. ROI không dự đoán.
-export type SoNgay = { chi: number; cpm: number; cpc: number; roi: number | null };
+export type SoNuoc = { chi: number; cpm: number | null; roi: number | null };
+export type SoNgay = { chi: number; cpm: number; cpc: number; roi: number | null; nuoc?: Record<string, SoNuoc> };   // nuoc: 8 nước chi nhiều nhất (dong-bo.py cpm_nuoc)
 export type OThiTruong = { d: string; du: boolean; chi: number | null; cpm: number | null; cpc: number | null; roi: number | null; heSo: number; le: string | null; sai: number | null };
 
 const MUA: [string, string, number, string | null, boolean][] = [   // [từ, đến (gồm), hệ số, tên ngày lễ, có nguồn số 2025]
@@ -60,15 +61,27 @@ export function saiSo(so: Record<string, SoNgay>, nay: string): Record<1 | 3 | 7
   return ra;
 }
 
+/** TỰ HIỆU CHỈNH HỆ SỐ MÙA (anh 11/11/2026 "thông tin đúng hơn"): mỗi ngày mùa (hệ số > 1) đã khép → phần tăng THẬT so với nền ngày trước ÷ phần tăng hệ số giả định.
+ *  k = TB các tỉ số đó (≥ 2 ngày mùa đã khép, kẹp 0,3–2) → mọi ngày mùa CHƯA tới dùng hệ số 1 + (h − 1) × k. Chưa đủ 2 ngày mùa → null, dùng hệ số gốc. */
+export function hieuChinh(so: Record<string, SoNgay>, nay: string): { k: number; n: number } | null {
+  const ds = daKhep(so, nay), r: number[] = [];
+  for (let i = 1; i < ds.length; i++) {
+    const [d, v] = ds[i]!, [dn, vn] = ds[i - 1]!, h = heSo(d).h;
+    if (h > 1.0001) r.push((v.cpm / (vn.cpm / heSo(dn).h) - 1) / (h - 1));
+  }
+  return r.length >= 2 ? { k: Math.max(0.3, Math.min(2, r.reduce((a, b) => a + b, 0) / r.length)), n: r.length } : null;
+}
+
 /** các ngày [tu, den]: ngày có số thật → số thật; ngày sau `nay` (chưa tới) → dự đoán + biên sai theo khoảng cách; ngày cũ không có số → trống */
 export function ngayThiTruong(so: Record<string, SoNgay>, nay: string, tu: string, den: string): OThiTruong[] {
-  const n = nen(so, nay), s = saiSo(so, nay), ra: OThiTruong[] = [];
+  const n = nen(so, nay), s = saiSo(so, nay), hc = hieuChinh(so, nay), ra: OThiTruong[] = [];
   for (let d = tu; d <= den; d = congNgay(d, 1)) {
     const v = so[d], { h, le } = heSo(d);
     if (v && v.cpm > 0) ra.push({ d, du: false, chi: v.chi, cpm: v.cpm, cpc: v.cpc, roi: v.roi, heSo: h, le, sai: null });
     else if (d > nay && n) {
       const xa = Math.round((Date.parse(`${d}T00:00:00Z`) - Date.parse(`${n.d}T00:00:00Z`)) / 86_400_000);   // khoảng cách tới ngày nền
-      ra.push({ d, du: true, chi: null, cpm: n.cpm * h, cpc: n.cpc * h, roi: null, heSo: h, le, sai: xa <= 1 ? s[1] : xa <= 3 ? s[3] : s[7] });
+      const hh = hc && h > 1 ? 1 + (h - 1) * hc.k : h;   // hệ số đã hiệu chỉnh theo các ngày mùa đã qua
+      ra.push({ d, du: true, chi: null, cpm: n.cpm * hh, cpc: n.cpc * hh, roi: null, heSo: Math.round(hh * 100) / 100, le, sai: xa <= 1 ? s[1] : xa <= 3 ? s[3] : s[7] });
     } else ra.push({ d, du: false, chi: null, cpm: null, cpc: null, roi: null, heSo: h, le, sai: null });
   }
   return ra;

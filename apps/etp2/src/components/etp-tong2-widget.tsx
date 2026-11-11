@@ -7,7 +7,7 @@ import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
 import { Dem } from '@/components/etp-so';
-import { congNgay as congN, heSo, mauCpm, mocMau, nen, ngayThiTruong, saiSo, type SoNgay } from '@/lib/etp-thi-truong';
+import { congNgay as congN, heSo, hieuChinh, mauCpm, mocMau, nen, ngayThiTruong, saiSo, type SoNgay } from '@/lib/etp-thi-truong';
 
 type ST = { chi: number; thu: number };
 const cong = (rs: ST[]) => rs.reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 });
@@ -56,6 +56,8 @@ function LuyKe({ s, rong, cao }: { s: SoTong2; rong: number; cao: number }) {
  *  lịch nhiệt tháng (ô = ngày Ethopex, màu = CPM so với nền: xanh rẻ → đỏ đắt; ô sọc nét đứt = dự đoán) · bảng 30 ngày + 14 ngày dự đoán. Hàm số: lib/etp-thi-truong.ts */
 function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tranMoi: { tran: number; ly_do: string } | null }; nay: string; rong: number; cao: number }) {
   const [che, setChe] = useState<'lich' | 'bang'>('lich'); const [th, setTh] = useState(0);
+  const hc = hieuChinh(t.so, nay), us = (d: string) => t.so[d]?.nuoc?.US, tyUs = (d: string) => { const v = t.so[d]; return v?.nuoc?.US && v.chi ? v.nuoc.US.chi / v.chi : null; };
+  const nuocChu = (d: string) => Object.entries(t.so[d]?.nuoc ?? {}).slice(0, 5).map(([k, x]) => `${k} ${t.so[d]!.chi ? Math.round((x.chi / t.so[d]!.chi) * 100) : 0}% · CPM ${x.cpm == null ? '—' : `$${x.cpm.toFixed(1)}`} · ROI ${pct(x.roi)}`).join('\n');
   const n = nen(t.so, nay), nenCpm = mocMau(t.so, nay), ss = saiSo(t.so, nay), bien = (v: number | null) => (v == null ? '' : ` ±${Math.round(v)}%`);   // nenCpm = mốc màu TB 30 ngày
   const g = new Date(`${nay}T00:00:00Z`), m0 = new Date(Date.UTC(g.getUTCFullYear(), g.getUTCMonth() + th, 1));
   const dau = m0.toISOString().slice(0, 10), soNgayThang = new Date(Date.UTC(m0.getUTCFullYear(), m0.getUTCMonth() + 1, 0)).getUTCDate();
@@ -68,6 +70,8 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
     {che === 'lich' ? <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><button type="button" style={nutC(false)} disabled={th <= -1} onClick={() => setTh(th - 1)}>◀</button><b>tháng {thang + 1}/{m0.getUTCFullYear()}</b><button type="button" style={nutC(false)} disabled={th >= 2} onClick={() => setTh(th + 1)}>▶</button></span> : null}
     <span title="màu ô = CPM ngày đó ÷ CPM nền (TB 3 ngày đã khép, đã bỏ hệ số mùa)" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--fg-3)' }}>rẻ<span style={{ width: 70, height: 8, borderRadius: 4, background: `linear-gradient(90deg, ${mauCpm(16, 20, 0.9)}, ${mauCpm(24, 20, 0.9)}, ${mauCpm(32, 20, 0.9)})` }} />đắt</span>
     <span style={{ color: 'var(--fg-2)' }} title={`mốc màu = CPM TB 30 ngày đã khép · nền dự đoán = CPM ngày ${n?.d ?? '—'} (hôm qua) đã bỏ hệ số mùa`}>TB 30 ngày {cpm$(nenCpm)} · nền dự đoán {cpm$(n?.cpm ?? null)} · CPC {n ? `$${n.cpc.toFixed(2)}` : '—'} · ROI {pct(n?.roi ?? null)}</span>
+    {n && us(n.d)?.cpm != null ? <span title="CPM chung đổi theo cả giá thị trường lẫn tỉ trọng nước — CPM Mỹ mới là giá thị trường Mỹ" style={{ color: 'var(--fg-2)' }}>Mỹ hôm qua {cpm$(us(n.d)!.cpm)} · {Math.round((tyUs(n.d) ?? 0) * 100)}% chi</span> : null}
+    {hc ? <span title={`đã có ${hc.n} ngày mùa lễ khép: phần tăng thật = ${Math.round(hc.k * 100)}% phần tăng giả định → hệ số các ngày lễ còn lại nhân theo`} style={{ color: '#f59e0b' }}>hệ số lễ tự chỉnh ×{hc.k.toFixed(2)}</span> : null}
     {t.tranMoi ? <span title={t.tranMoi.ly_do} style={{ color: 'var(--fg-2)' }}>trần camp mới hôm nay <b>{t.tranMoi.tran}</b></span> : null}
     <span style={{ color: MO }} title={`dự đoán = CPM hôm qua × hệ số mùa · sai số đo trên số nhà: 1 ngày${bien(ss[1])} · 3 ngày${bien(ss[3])} · 7 ngày${bien(ss[7])} · hệ số Black Friday / Cyber Monday / 1–2/12 theo số công khai BFCM 2025 (Lebesgue, Biddyco, AdScale), các ngày khác là giả định · ROI không dự đoán`}>ô sọc = dự đoán (sai 1 / 3 / 7 ngày:{bien(ss[1])}{bien(ss[3])}{bien(ss[7])})</span>
   </div>;
@@ -77,6 +81,8 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
     { key: 'cpm', header: 'CPM', align: 'right', cell: (o) => <span style={{ display: 'inline-block', minWidth: 52, padding: '0 6px', borderRadius: 4, background: mauCpm(o.cpm, nenCpm), fontVariantNumeric: 'tabular-nums' }}>{cpm$(o.cpm)}</span> },
     { key: 'so', header: 'So TB 30n', align: 'right', cell: (o) => (o.cpm == null || !nenCpm ? '—' : `${Math.round((o.cpm / nenCpm) * 100)}%`) },
     { key: 'sai', header: 'Biên sai', align: 'right', cell: (o) => (o.du ? (o.sai == null ? 'chưa đủ số' : `±${Math.round(o.sai)}%`) : '') },
+    { key: 'us', header: 'CPM Mỹ', align: 'right', cell: (o) => { const x = us(o.d); return x?.cpm == null ? '—' : <span title={nuocChu(o.d)}>{cpm$(x.cpm)}</span>; } },
+    { key: 'tyus', header: '% chi Mỹ', align: 'right', cell: (o) => { const r = tyUs(o.d); return r == null ? '—' : `${Math.round(r * 100)}%`; } },
     { key: 'cpc', header: 'CPC', align: 'right', cell: (o) => (o.cpc == null ? '—' : `$${o.cpc.toFixed(2)}`) },
     { key: 'roi', header: 'ROI', align: 'right', cell: (o) => <span style={{ color: o.roi == null ? MO : o.roi >= 0 ? XANH : DO }}>{pct(o.roi)}</span> },
   ]} /></div>;
@@ -88,6 +94,7 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
         const ngoai = new Date(`${o.d}T00:00:00Z`).getUTCMonth() !== thang;
         const tit = [`${o.d}${o.le ? ` · ${o.le}` : ''}${o.du ? ' · DỰ ĐOÁN' : o.d === nay ? ' · hôm nay (chưa khép)' : ''}`,
           o.cpm == null ? 'chưa có số' : `CPM ${cpm$(o.cpm)}${nenCpm ? ` = ${Math.round((o.cpm / nenCpm) * 100)}% TB 30 ngày` : ''} · CPC ${o.cpc == null ? '—' : `$${o.cpc.toFixed(2)}`}`,
+          ...(t.so[o.d]?.nuoc ? [nuocChu(o.d)] : []),
           o.du ? `hệ số mùa ×${o.heSo}${heSo(o.d).nguon ? '' : ' (giả định)'} · biên sai ${o.sai == null ? 'chưa đủ số đo' : `±${Math.round(o.sai)}%`}` : `chi ${o.chi == null ? '—' : tien(o.chi)} · ROI ${pct(o.roi)}`].join('\n');
         return <div key={o.d} title={tit}
           style={{ height: oH, borderRadius: 6, padding: '2px 5px', overflow: 'hidden', opacity: ngoai ? 0.35 : 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',

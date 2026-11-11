@@ -137,6 +137,17 @@ def main():
             q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'so_dang', 'so_dang:' || md5($N${nd}$N$), 'do', $N$Sổ dạng creative lệch / có bảng dạng tự khai:\n{nd}$N$
                   where not exists (select 1 from etp.canh_bao where khoa = 'so_dang:' || md5($N${nd}$N$))""")
     except Exception as e: loi.append(f"so_dang: {e}")
+    # CPM THEO NƯỚC (anh 11/11/2026 "thông tin đúng hơn"): report chiều geo — 04/11 → 10/11 CPM chung +29% nhưng CPM Mỹ chỉ +13%, phần còn lại là tỉ trọng chi Mỹ
+    # 78% → 86% (Mỹ đắt nhất, Tây Ban Nha $4,6). Ghi 8 nước chi nhiều nhất mỗi ngày vào cpm_ngay[ngày].nuoc {mã nước: {chi, cpm, roi}} — widget Thị trường etp2 đọc.
+    def cpm_nuoc(ngay):
+        nc = {}
+        for x in EA.api("/api/v1/report", {"columns": ["geo", "campaign_name", "cost", "supply_impressions", "revenue"], "filters": {}, "metric_conditions": [], "limit": 20000, "page": 1,
+                                          "page_size": 20000, "date_from": ngay, "date_to": ngay}).get("rows") or []:
+            if not int(x.get("campaign_id") or 0): continue   # dòng tổng
+            v = nc.setdefault(x.get("country_code") or str(x.get("geo") or "?")[1:3], [0.0, 0.0, 0.0])
+            v[0] += float(x.get("cost") or 0); v[1] += float(x.get("supply_impressions") or 0); v[2] += float(x.get("revenue") or 0)
+        return {k: {"chi": round(v[0], 2), "cpm": round(v[0] / v[1] * 1000, 2) if v[1] else None, "roi": round((v[2] - v[0]) / v[0] * 100) if v[0] else None}
+                for k, v in sorted(nc.items(), key=lambda z: -z[1][0])[:8] if v[0] > 0}
     # ── CPM NGÀY (anh 08/11/2026 plan mùa lễ Mỹ 27/11–05/01, tiến độ E05 bước 1): report Ethopex có cost + supply_impressions (cpm của report = cost / supply_impressions × 1000;
     # cột "impressions" là số khác, nhỏ hơn nhiều) → etp.cau_hinh 'cpm_ngay' {ngày UTC: {chi, cpm, cpc, roi}} cho hôm qua + hôm nay mỗi lượt.
     # Hôm qua đã khép mà CPM > 130% trung bình 7 ngày trước đó → etp.canh_bao 'cpm' (Telegram, một lần mỗi ngày). Mốc 08/11: CPM ~15–16 (đỉnh 25,3 ngày 23/10).
@@ -149,6 +160,9 @@ def main():
                                             "page_size": 5000, "date_from": d_.isoformat(), "date_to": d_.isoformat()}).get("rows") or []
             c_ = sum(float(x.get("cost") or 0) for x in rw); i_ = sum(float(x.get("supply_impressions") or 0) for x in rw); k_ = sum(float(x.get("clicks") or 0) for x in rw); v_ = sum(float(x.get("revenue") or 0) for x in rw)
             if c_: so[d_.isoformat()] = {"chi": round(c_, 2), "cpm": round(c_ / i_ * 1000, 2) if i_ else None, "cpc": round(c_ / k_, 3) if k_ else None, "roi": round((v_ - c_) / c_ * 100)}
+            if c_:
+                try: so[d_.isoformat()]["nuoc"] = cpm_nuoc(d_.isoformat())
+                except Exception as e: loi.append(f"cpm_nuoc {d_}: {e}")
         q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('cpm_ngay', $J${json.dumps(so)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
         hq = (hn - _dt.timedelta(days=1)).isoformat(); nen = [so[k]["cpm"] for k in sorted(so) if k < hq and so[k].get("cpm")][-7:]
         if so.get(hq, {}).get("cpm") and len(nen) >= 5 and so[hq]["cpm"] > 1.3 * sum(nen) / len(nen):

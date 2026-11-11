@@ -15,7 +15,9 @@ if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`Đạt chỉ chạ
 const BOX = 'root@167.233.241.16', APP = '/opt/earns-marketing-os-v2/apps/cty', DATA = '/var/lib/cty', NGUOI = 'dat', HOME = os.homedir();
 const CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 40, thu = process.argv.includes('--thu'), kiem = Number(process.argv[process.argv.indexOf('--kiem') + 1]) || 0;
 const PLAY = `${HOME}/bin/play`, ANH = path.join(HOME, '.cache', 'dat-anh'), TEP_DA = path.join(HOME, '.cache', 'dat-da-lam.json');
-const ENV = { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}` };
+// PROFILE br RIÊNG của Đạt (anh 12/11/2026 "phải cho nó mở và đọc br. Giờ ko cấm mở mos2.on.tc nữa"): mọi lệnh br của Claude đi thẳng profile này qua BR_PROFILE
+const BR = `${HOME}/bin/br`, HO_SO = path.join(HOME, 'may-ky-su', NGUOI, 'br-profile');
+const ENV = { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}`, BR_PROFILE: HO_SO };
 const log = (s) => console.log(`${new Date().toISOString()} ${s}`);
 const box = (cmd) => { for (let i = 1; ; i++) { try { return execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', BOX, cmd], { encoding: 'utf8', timeout: 120000 }); } catch (e) { if (i >= 3) throw e; } } };
 const sql = (q) => box(`cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -tA -c ${JSON.stringify(q.replace(/\s+/g, " ")).replace(/\$/g, '\\$')}`).trim();
@@ -45,12 +47,14 @@ const QUYEN = ['Read', 'Glob', 'Grep', ...SUA.flatMap((d) => [`Edit(/${d}/**)`, 
   `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${MOS2}:*)`, `Bash(git -C ${MOS2}:*)`, `Bash(curl -s -o ${ANH}/:*)`, `Bash(curl -s:*)`,
   'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git add apps/:*)', 'Bash(git add packages/:*)', 'Bash(git commit:*)', 'Bash(git push origin HEAD:main)',
   `Bash(${HOME}/bin/gh-watch deploy.yml)`, `Bash(${PLAY} reply:*)`, `Bash(${PLAY} show:*)`, `Bash(${PLAY} done:*)`, 'Bash(./node_modules/.bin/tsc:*)', 'Bash(node_modules/.bin/tsx:*)', 'Bash(node --check:*)', 'Bash(node apps/:*)',
-  'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(diff:*)'];
+  'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(diff:*)', `Bash(${BR} goto:*)`, `Bash(${BR} look:*)`, `Bash(${BR} read:*)`, `Bash(${BR} scroll:*)`, `Bash(${BR} wait:*)`];
 const CAM = [...['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
-  'rm', 'rmdir', 'rsync', 'scp', 'br', 'open', 'npm install', 'npm i', 'npx', 'brew', 'pip', 'launchctl', 'crontab', 'sudo', 'kill', 'pkill'].map((c) => `Bash(${c}:*)`),
+  'rm', 'rmdir', 'rsync', 'scp', 'open', 'npm install', 'npm i', 'npx', 'brew', 'pip', 'launchctl', 'crontab', 'sudo', 'kill', 'pkill'].map((c) => `Bash(${c}:*)`),
   'AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate'];
 
-const tin = luong.map((t, i) => `#${i + 1} ${t.nguoi === 'ai' ? 'AI' : 'NGƯỜI'} · ${String(t.luc || '').slice(0, 16)}${t.trang ? `\n  trang: ${t.trang}` : ''}${t.nguCanh ? `\n  ngữ cảnh: ${t.nguCanh}` : ''}${(t.anh || []).length ? `\n  ảnh: ${t.anh.join(' ')}` : ''}\n  ${String(t.noiDung || '').slice(0, 3000)}`).join('\n');
+const urlAnh = (a) => (typeof a === 'string' ? a : a?.url) || '';   // ảnh lưu dạng chuỗi (cũ) hoặc {ten, url} (trao-doi-card)
+const moiAnh = luong.flatMap((t) => (t.anh || []).map(urlAnh)).filter(Boolean);
+const tin = luong.map((t, i) => `#${i + 1} ${t.nguoi === 'ai' ? 'AI' : 'NGƯỜI'} · ${String(t.luc || '').slice(0, 16)}${t.trang ? `\n  trang: ${t.trang}` : ''}${t.nguCanh ? `\n  ngữ cảnh: ${t.nguCanh}` : ''}${(t.anh || []).length ? `\n  ảnh / tệp: ${t.anh.map((a) => `${urlAnh(a)}${a?.ten ? ` (${a.ten})` : ''}`).join(' ')}` : ''}\n  ${String(t.noiDung || '').slice(0, 3000)}`).join('\n');
 const loiGiao = `Bạn là Đạt, kỹ sư hòm góp ý của MOS2 (mos2.on.tc, công ty AI của anh Tuấn). Anh không ngồi máy: bạn xử tới khi xong, tự kiểm, tự deploy, tự trả lời trong card.
 
 LÀM ĐÚNG LỆNH /tasks-mos2: đọc ${HOME}/.claude/commands/tasks-mos2.md rồi làm theo mục 2 (Làm) và 3 (Trả lời + nộp Review) cho DUY NHẤT card #${card.id} "${card.title}". Mục 1 (nạp) máy đã làm, luồng card ở dưới.
@@ -59,7 +63,8 @@ LÀM ĐÚNG LỆNH /tasks-mos2: đọc ${HOME}/.claude/commands/tasks-mos2.md r�
 LUỒNG CARD #${card.id}:
 ${tin}
 
-ẢNH: tải về rồi Read trước khi kết luận màn nào lỗi: curl -s -o ${ANH}/<tên>.png <url>.
+ĐỌC ĐỦ TRƯỚC KHI SỬA (bắt buộc, không bỏ cái nào): lời từng tin + "trang" + "ngữ cảnh" + MỌI ảnh / tệp đính kèm (${moiAnh.length} cái): tải từng cái curl -s -o ${ANH}/<tên> <url> rồi Read.
+NHÌN TRANG THẬT bằng br (profile riêng đã đăng nhập mos2, lệnh br tự đi profile đó): ${BR} goto <trang> → ${BR} look (in đường dẫn PNG, Read nó); sau khi deploy xong goto lại + look để so với ảnh của anh. Không bấm nút làm đổi dữ liệu (lưu, xoá, chạy, duyệt).
 ĐỌC TRƯỚC: ${MOS2}/CLAUDE.md và ${MOS2}/.claude/contexts/ phần liên quan màn trong "trang".
 CÂY RIÊNG ${MOS2} (nhánh ky-su/dat, không ai khác sửa): git add đúng tệp bạn sửa, git commit (tiếng Việt: gốc + cách sửa, ghi "góp ý #${card.id}"), git push origin HEAD:main, ${HOME}/bin/gh-watch deploy.yml. KHÔNG rsync / scp mã.${cay.do.length ? `\nCây còn thay đổi chưa commit từ lượt trước của chính bạn: ${cay.do.join(', ')} — kiểm rồi commit nếu đúng, sai thì sửa tới (không hoàn tác).` : ''}
 KIỂM: ./node_modules/.bin/tsc -p apps/web/tsconfig.json --noEmit (chỉ đọc lỗi tệp bạn sửa); sau deploy ssh ${BOX} kiểm bản dựng / psql. CẤM mở mos2.on.tc bằng trình duyệt.
@@ -70,8 +75,17 @@ CẤM: hoàn tác git, xoá dữ liệu, migration xoá / đổi dữ liệu có
 
 KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó một dòng "BÁO ANH:" rồi 2–4 dòng tiếng Việt, xưng "con", gọi "anh".`;
 if (thu) { console.log(loiGiao); process.exit(0); }
-const giao = kiem ? `${loiGiao}\n\nCHẾ ĐỘ THỬ (máy kiểm đường chạy, KHÔNG phải việc thật): KHÔNG sửa tệp, KHÔNG commit / push, KHÔNG chạy play reply / done. Chỉ làm: tải + Read MỘT ảnh của card, git status, ./node_modules/.bin/tsc -p apps/web/tsconfig.json --noEmit | head -3, ssh ${BOX} 'cd /opt/earns-marketing-os-v2 && git log --oneline -1', ${PLAY} show ${card.id} | head -3, rồi BÁO ANH: mỗi bước một dòng đạt / bị chặn (nguyên văn lỗi) + ảnh cho thấy màn gì. KET: KHONG_SUA` : loiGiao;
+const giao = kiem ? `${loiGiao}\n\nCHẾ ĐỘ THỬ (máy kiểm đường chạy, KHÔNG phải việc thật): KHÔNG sửa tệp, KHÔNG commit / push, KHÔNG chạy play reply / done. Chỉ làm: tải + Read MỌI ảnh của card, ${BR} goto <trang của tin người mới nhất> rồi ${BR} look và Read ảnh chụp (nói trang đang hiện gì, có đăng nhập chưa), git status, ./node_modules/.bin/tsc -p apps/web/tsconfig.json --noEmit | head -3, ssh ${BOX} 'cd /opt/earns-marketing-os-v2 && git log --oneline -1', ${PLAY} show ${card.id} | head -3, rồi BÁO ANH: mỗi bước một dòng đạt / bị chặn (nguyên văn lỗi) + ảnh cho thấy màn gì. KET: KHONG_SUA` : loiGiao;
 
+// PHIÊN MOS2 60 phút cho profile br của Đạt: tạo trên box3 rồi nạp cookie httpOnly thẳng vào daemon (/datcookie) — token không qua dòng lệnh br, Claude không thấy
+try {
+  const tk = execFileSync('openssl', ['rand', '-hex', '32'], { encoding: 'utf8' }).trim();
+  sql(`insert into auth_sessions (session_token, user_id, expires_at) values ('${tk}', (select user_id from members where role='admin' order by user_id limit 1), now() + interval '60 minutes')`);
+  execFileSync(BR, ['open', HO_SO], { encoding: 'utf8', env: ENV, timeout: 90000 });
+  const kq = execFileSync('curl', ['-s', '-m', '20', '-X', 'POST', 'http://127.0.0.1:39222/datcookie', '-H', 'content-type: application/json', '--data-binary', '@-'],
+    { input: JSON.stringify({ profile: HO_SO, domain: '.on.tc', name: 'mos2-session', value: tk }), encoding: 'utf8' });
+  if (!/"ok":true/.test(kq)) throw new Error(kq.slice(0, 200));
+} catch (e) { log(`chưa nạp được phiên br: ${String(e.message).split('\n')[0]} — Claude vẫn chạy, chỉ thiếu mắt`); }
 log(`nhận card #${card.id} ${card.title} · model ${model}${effort ? ` · effort ${effort}` : ''}`);
 if (!kiem) daLam[card.id] = { tin_nguoi: card.tin_nguoi, luc: new Date().toISOString() };   // ghi TRƯỚC khi chạy: lượt treo / chết cũng không chạy lại liền mỗi 5 phút
 fs.writeFileSync(TEP_DA, JSON.stringify(daLam));
@@ -87,3 +101,4 @@ else if (moi.length === luong.length) {
   const bao = (ra.split(/BÁO ANH:?/i).pop() || '').replace(/^\s*\**KET:.*$/gim, '').trim().slice(0, 1500) || `Đạt chạy hỏng (${ket}, thoát ${r.status ?? r.signal}) — lượt sau có tin mới của anh thì làm lại.`;
   try { execFileSync(PLAY, ['reply', String(card.id), `[Đạt · ${ket}] ${bao}`], { encoding: 'utf8', env: ENV }); } catch (e) { log(`ghi tin lỗi: ${String(e.message).split('\n')[0]}`); }
 }
+try { execFileSync(BR, ['close', HO_SO], { encoding: 'utf8', env: ENV, timeout: 30000 }); } catch { /* chưa mở được thì thôi */ }   // xong là dọn: đóng ĐÍCH DANH profile của Đạt

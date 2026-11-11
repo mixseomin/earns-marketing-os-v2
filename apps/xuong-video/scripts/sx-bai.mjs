@@ -73,17 +73,23 @@ export function doanSach(rms, chu, giay = 9, toiDa = 10) {
 /** CHỌN 9 GIÂY (11/11/2026, thay bản chỉ đo độ to — bản đó cắt ra cảnh SAI HƯỚNG và dính thoại miệt thị):
  *  1. đọc phụ đề, LOẠI mọi đoạn dính từ cấm · 2. lấy 10 đoạn sạch to tiếng nhất · 3. AI rẻ (ckey, box3) chọn đoạn khớp HƯỚNG NỘI DUNG.
  *  AI hỏng → lùi về đoạn sạch to nhất (vẫn sạch, chỉ chưa chắc khớp hướng — ghi rõ vào nhật ký). Không còn đoạn sạch nào → ném lỗi, KHÔNG cắt bừa. */
-export function chonCanh(tep, giay = 9, huong = '') {
-  const uv = doanSach(doTo(tep), docPhuDe(tep), giay);
-  if (!uv.length) throw new Error('tập này không còn đoạn 9 giây nào sạch thoại (mọi đoạn dính từ cấm) — đổi tập / đổi phim');
+// Nhận NHIỀU tập (11/11/2026: tập 1 của Runaway Mom không có cảnh "đứa trẻ nói câu làm người lớn đứng hình" — AI phải lấy cảnh nhạt;
+// cảnh đúng hướng thường nằm sau tập 1). Mỗi tập góp tối đa 7 đoạn sạch, AI chọn trên cả lô.
+export function chonCanh(teps, giay = 9, huong = '') {
+  const ds = Array.isArray(teps) ? teps : [teps];
+  const uv = ds.flatMap((tep, i) => doanSach(doTo(tep), docPhuDe(tep), giay, 7).map((x) => ({ ...x, tep, tap: i + 1 })))
+    .map((x, i) => ({ ...x, id: i }));
+  if (!uv.length) throw new Error('các tập đã tải không còn đoạn 9 giây nào sạch thoại (mọi đoạn dính từ cấm) — đổi phim');
   let r = {};
   try {
     r = JSON.parse(execFileSync('ssh', [BOX, 'cd /opt/earns-marketing-os-v2/apps/xuong-video && ../../node_modules/.bin/tsx scripts/sx-chon-canh.mts'],
-      { input: JSON.stringify({ huong, ung_vien: uv.map(({ bat_dau, chu }) => ({ bat_dau, chu })) }), encoding: 'utf8', timeout: 300_000 }).trim().split('\n').pop());
+      { input: JSON.stringify({ huong, ung_vien: uv.map(({ id, tap, bat_dau, chu }) => ({ bat_dau: id, nhan: `tập ${tap} giây ${bat_dau}`, chu })) }), encoding: 'utf8', timeout: 300_000 }).trim().split('\n').pop());
   } catch (e) { r = { bat_dau: null, loi: String(e.message).split('\n')[0].slice(0, 160) }; }
-  const chon = uv.find((x) => x.bat_dau === r.bat_dau);
-  if (chon) return { batDau: chon.bat_dau, vnd: r.vnd ?? 0, ghi: `giây ${chon.bat_dau} · AI chọn khớp hướng: ${r.ly_do} · thoại: ${chon.chu.slice(0, 120)}` };
-  return { batDau: uv[0].bat_dau, vnd: r.vnd ?? 0, ghi: `giây ${uv[0].bat_dau} · AI chưa chọn được (${r.loi ?? 'không rõ'}) → lấy đoạn sạch to tiếng nhất, CHƯA CHẮC khớp hướng · thoại: ${uv[0].chu.slice(0, 120)}` };
+  // sx-chon-canh trả lại đúng khoá đã gửi — ở đây là `id` của đoạn (đoạn của hai tập có thể trùng số giây)
+  const chon = uv.find((x) => x.id === r.bat_dau);
+  if (chon) return { tep: chon.tep, batDau: chon.bat_dau, vnd: r.vnd ?? 0, ghi: `tập ${chon.tap} giây ${chon.bat_dau} · ${r.khop === false ? 'KHÔNG đoạn nào khớp hướng, AI lấy đoạn gần nhất' : 'AI chọn khớp hướng'}: ${r.ly_do} · thoại: ${chon.chu.slice(0, 120)}` };
+  const to = [...uv].sort((a, b) => b.diem - a.diem)[0];
+  return { tep: to.tep, batDau: to.bat_dau, vnd: r.vnd ?? 0, ghi: `tập ${to.tap} giây ${to.bat_dau} · AI chưa chọn được (${r.loi ?? 'không rõ'}) → đoạn sạch to tiếng nhất, CHƯA CHẮC khớp hướng · thoại: ${to.chu.slice(0, 120)}` };
 }
 
 /** Lớp chữ phủ lên clip (PNG trong suốt 1080×1920) — dựng bằng PIL vì bản ffmpeg của máy này KHÔNG có drawtext. */
@@ -102,12 +108,13 @@ if ${free ? 'True' : 'False'}:
     for dx,dy in ((2,2),(-2,2),(2,-2),(-2,-2)): d.text((sx+dx,sy+dy),s,font=f2,fill=(0,0,0,150))
     d.text((sx,sy),s,font=f2,fill=(255,255,255,245))
 else:
-    for i in range(420):
-        a=int(200*(i/420)**1.4); d.line([(0,H-420+i),(W,H-420+i)],fill=(0,0,0,a))
-    f1=B(62); l1=${JSON.stringify('full story is in the comments')}
-    w1=d.textlength(l1,font=f1); d.text(((W-w1)/2,H-250),l1,font=f1,fill=(255,255,255,255))
-    f2=R(46); l2="↓ first comment ↓"; w2=d.textlength(l2,font=f2)
-    d.text(((W-w2)/2,H-160),l2,font=f2,fill=(255,214,120,255))
+    # ĐỈNH KHUNG, không phải đáy (11/11/2026: đặt ở đáy thì đè đúng dòng phụ đề in cứng của phim — "Maybe you should ask her out?" bị che)
+    for i in range(380):
+        a=int(190*(1-i/380)**1.4); d.line([(0,i),(W,i)],fill=(0,0,0,a))
+    f1=B(60); l1=${JSON.stringify('full story is in the comments')}
+    w1=d.textlength(l1,font=f1); d.text(((W-w1)/2,150),l1,font=f1,fill=(255,255,255,255))
+    f2=R(44); l2="↓ first comment ↓"; w2=d.textlength(l2,font=f2)
+    d.text(((W-w2)/2,235),l2,font=f2,fill=(255,214,120,255))
 im.save(${JSON.stringify(ra)})
 `;
   chay('python3', ['-c', py]);
@@ -140,11 +147,11 @@ export function lenR2(tep, thuMuc = 'mia-reel') {
 async function lamReelCanh9(de, { free = false } = {}) {
   if (!de.phim) throw new Error(`${de.slug}: dạng Reel cắt cảnh cần dang.phim (content_id phim)`);
   const thu = taiTap(de.phim, de.urlPhim);
-  const tep = `${thu}/tap01.mp4`;
-  const c = chonCanh(tep, 9, de.huong ?? '');
+  const teps = ['tap01.mp4', 'tap02.mp4', 'tap03.mp4'].map((t) => `${thu}/${t}`).filter((t) => existsSync(t));
+  const c = chonCanh(teps, 9, de.huong ?? '');
   mkdirSync(`${KHO}/ra`, { recursive: true });
-  const ra = dungClip({ tep, batDau: c.batDau, ra: `${KHO}/ra/${de.slug}.mp4`, free });
-  return { video_url: lenR2(ra), vnd: c.vnd, ghi: `tập 1 · ${c.ghi}`, tepCuc: ra };
+  const ra = dungClip({ tep: c.tep, batDau: c.batDau, ra: `${KHO}/ra/${de.slug}.mp4`, free });
+  return { video_url: lenR2(ra), vnd: c.vnd, ghi: c.ghi, tepCuc: ra };
 }
 
 async function lamAnhDoiThuong(de) {

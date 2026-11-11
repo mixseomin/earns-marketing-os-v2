@@ -15,6 +15,13 @@ const ca = [
       description: 'a'.repeat(320) } }, true],
   ['persona 4 hashtag (phải CHẶN)', { ...nen, dang: { loai: 'anh', title: 'rain again',
       description: 'cozy morning #rain #seattle #coffee #drama' } }, true],
+  // Máy SX (11/11/2026): Reel cắt từ phim thật — có video + mã phim → không bị luật "nền màu phẳng" chặn; video mẫu không mã phim vẫn bị chặn
+  ['Reel cắt cảnh phim thật (phải ĐẠT)', { xuat_luc: new Date().toISOString(), persona: true, can_goc: false, video_url: 'https://img.on.tc/xuong-video/mia-reel/a.mp4',
+      dang: { loai: 'video', phim: 149304, title: 'she ran with the baby and took nothing',
+        description: 'she ran with the baby and took nothing, not even her own name. five years later the man funding her shelter is the one she ran from' } }, false],
+  ['video KHÔNG mã phim, không nền (phải CHẶN như cũ)', { xuat_luc: new Date().toISOString(), persona: true, can_goc: false, video_url: 'https://img.on.tc/x.mp4',
+      dang: { loai: 'video', title: 'she ran with the baby and took nothing',
+        description: 'she ran with the baby and took nothing, not even her own name. five years later the man funding her shelter is the one she ran from' } }, true],
   ['KHÔNG persona, ảnh AI (phải CHẶN như cũ)', { xuat_luc: new Date().toISOString(), nen_url: 'https://img.on.tc/x.png', can_goc: false,
       dang: { loai: 'anh', title: 'a title that is definitely long enough here', description: 'x' } }, true],
 ];

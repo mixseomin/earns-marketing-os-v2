@@ -141,7 +141,11 @@ export function doBaiDang(v, ten = '') {
   // ảnh kho ai cũng dùng, nhìn ra ngay là Page dựng. Kênh loại này sinh ảnh AI theo bố cục + địa điểm THẬT ("như vừa đi check-in ở đây").
   // Khe này KHÔNG mở cho kênh khác: phải có `anh_ai: true` trong dang của kênh (xv_may.dang[].anh_ai) thì doBaiDang mới nhận.
   const anhAi = !!(v.anh_ai || d.anh_ai);
-  if (!v.nen_url && !khongAnh && !(anhAi && v.anh?.length)) chan.push('không có ảnh thật (nen_url trống) — chữ trên nền màu phẳng');
+  // CẢNH PHIM THẬT (anh 11/11/2026, Máy SX): Reel cắt thẳng từ tập phim (có video + dang.phim = mã phim thật) thì MỌI khung là cảnh quay thật —
+  // luật này sinh ra để chặn video chữ-trên-nền-phẳng, áp lên Reel cắt cảnh thì Máy SX dựng bài nào cũng SỬA LẠI, Máy Đăng không bao giờ tự lấy.
+  // Khe hẹp: phải có CẢ video lẫn mã phim; video mẫu dựng (không có dang.phim) vẫn bị chặn như cũ.
+  const canhPhim = !!v.video_url && Number(d.phim) > 0;
+  if (!v.nen_url && !khongAnh && !canhPhim && !(anhAi && v.anh?.length)) chan.push('không có ảnh thật (nen_url trống) — chữ trên nền màu phẳng');
   else if (v.nen_url && d.loai !== 'poll' && !NGUON_ANH.test(v.nen_url) && !anhAi) chan.push(`ảnh nền không từ Pexels / Pixabay / Unsplash / Wikimedia Commons (${String(v.nen_url).slice(0, 60)})`);
   for (const u of [v.nen_url, ...(v.nen_them ?? [])]) if (/wikimedia\.org/i.test(u ?? '') && !/Wikimedia Commons/.test(String(d.description ?? ''))) { chan.push('ảnh Wikimedia Commons chưa ghi công tác giả + giấy phép trong chữ đăng'); break; }
   // bản xuất = video, hoặc ảnh đã dựng (v.anh — bài ảnh / album / thẻ chữ, kế hoạch Page hoài cổ 25/10/2026), hoặc bài link

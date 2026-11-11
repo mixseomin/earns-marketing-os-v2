@@ -35,6 +35,23 @@
     "iMac:tc.on.cty.social-sua"
    ],
    "chi_phi": "gói Claude thuê bao (không tính theo lượt) + chữ AI vài chục đồng / bài làm lại"
+  },
+  {
+   "id": "may-san-xuat",
+   "ten": "Máy Sản Xuất: dựng bài đã lên lịch (iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac 06:00 và 18:00 — bộ điều phối việc nền (cong-ty/viec-nen.json › iMac:com.earns.may-san-xuat)",
+   "mo_ta": "Tìm mọi bài đã có ngày đăng trong 3 ngày tới mà chưa có video / ảnh (view xv_bai_cho_dung), dựng theo dạng bài trong sổ apps/xuong-video/kieu-sx.json (Reel cắt cảnh phim, ảnh đời thường), đưa lên R2, ghi sổ lượt may_sx_luot (tab Máy SX trên mos2), rồi nộp Phòng Nội dung chấm. Hỏng thì thử lại một lần; vẫn hỏng hoặc treo quá 40 phút thì Phòng Nội dung xếp việc social:sx|<máy> cho Khang sửa gốc.",
+   "ma": "apps/xuong-video/scripts/sx-may.mjs · lõi: apps/xuong-video/scripts/sx-bai.mjs · sổ: apps/xuong-video/kieu-sx.json",
+   "chu_tri": "khang",
+   "lam": [
+    "may"
+   ],
+   "khi": "06:00 và 18:00 mỗi ngày",
+   "lich": [
+    "iMac:com.earns.may-san-xuat"
+   ],
+   "chi_phi": "AI chọn cảnh ~2₫ / Reel, ảnh ~65₫ / ảnh; dưới 5.000₫ / lượt"
   }
  ]
 }

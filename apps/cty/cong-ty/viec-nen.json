@@ -819,6 +819,30 @@
    "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
   },
   {
+   "nhan": "iMac:com.earns.may-san-xuat",
+   "ten": "Máy Sản Xuất - dựng bài đã lên lịch mà chưa có tệp",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video/scripts/sx-may.mjs",
+    "--het",
+    "--ngay",
+    "3"
+   ],
+   "thu_muc": "/Users/htuan/Me/GitHub/earns-marketing-os-v2",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/sx-may/lich.log",
+   "hen": {
+    "luc": [
+     "06:00",
+     "18:00"
+    ]
+   },
+   "uu_tien_thap": true,
+   "ghi_chu": "Anh duyệt 11/11/2026 (\"làm từ 1 đến 4 luôn\"). Chạy ở iMac vì Reel dùng ffmpeg (cấm dựng video trên box3). Hỏng / treo → Phòng Nội dung xếp việc social:sx|<máy> cho Khang."
+  },
+  {
    "nhan": "iMac:tc.on.cty.astrolas-site",
    "ten": "Astrolas - site cục bộ cho Thành nhìn trang",
    "chay": [

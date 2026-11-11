@@ -436,7 +436,7 @@ const KHONG_GIAN: React.CSSProperties = { width: 0, minWidth: '100%' };
 const chuVao = (deXuat?: boolean) => <span title={deXuat ? 'máy luật nhà chỉ đề xuất cho camp người khác, không làm' : 'máy đã xếp làm luật này ở nhịp kế'} style={{ color: '#4ade80', cursor: 'help' }}>{deXuat ? ' · đề xuất' : ' · ⚙'}</span>;
 // BẢNG XÉT LUẬT RỘNG THEO NỘI DUNG nhưng KHÔNG VƯỢT KHUNG (#1487 + anh 10/11/2026 "vẫn cứ phải scroll sang ngang": bảng 1057px trong khung 718px vì chữ bị ép
 // không xuống dòng + độ rộng tối thiểu cột) — bỏ nowrap / minWidth, bảng tối đa 100% khung, chữ dài tự xuống dòng
-// GIỜ ÁP DỤNG NGAY Ở Ô TÊN LUẬT (anh 10/11/2026 "gắn thời gian vào đây" · "các luật khác thấy chạm đéo hiện à"): MỌI thẻ Đạt / Gần có ⏳ —
+// GIỜ ÁP DỤNG NGAY Ở Ô TÊN LUẬT (anh 10/11/2026 "gắn thời gian vào đây" · "các luật khác thấy chạm đéo hiện à"): thẻ Đạt có ⏳; Gần chỉ khi chỉ còn chờ cổng giờ (12/11/2026) —
 // .mo (Siết TS chặn: mốc + điều kiện của máy) · cho_toi (cổng nhịp tăng) · còn lại: nhịp máy luật đầu tiên trong khung của hướng luật (tăng 21h · giảm / tắt 15h), Gần = khi đủ điều kiện
 const HUONG_THE = (ma: string): HuongLuat => { const h = (BANG_LUAT.the as Record<string, unknown[]>)[ma]?.[2]; return h === 'tang' || h === 'tat' ? h : (BANG_LUAT.the as Record<string, unknown[]>)[ma]?.[0]?.toString().startsWith('✕') || ma === 'dung_dem' ? 'tat' : 'giam'; };
 type GioLam = { t: number; can: string | null };
@@ -446,9 +446,10 @@ function gioThe(l: XetLuat, hoan: { luc: string | null; cu: boolean }, don: bool
   // nhân bản (NB · thang): worker tạo bản ngay nhịp kế, không chờ khung tăng — bản mới chạy theo khung lên (chuLich)
   const nb = l.ma === 'nb' || l.ma === 'thang_nb' || l.ma === 'roas', h = HUONG_THE(l.ma), t = lucLam(nb ? 'tao' : h, hoan.luc, hoan.cu, Date.now(), l.cho_toi ? Date.parse(l.cho_toi) : 0, h === 'tang' && don);
   const chiNhip = l.dk.every((d) => d[3] || d[0].startsWith('Nhịp tăng'));   // chỉ cổng nhịp chặn = chỉ chờ giờ (cho_toi)
-  if (t == null) return null;
-  const can = l.ket === 'gan' && !chiNhip ? 'đủ điều kiện' : null;
-  return { t, can: nb ? `${can ? `${can} · ` : ''}tạo xong ${chuLich(t)}` : can };
+  // GẦN mà còn thiếu điều kiện THẬT → không có giờ (anh 12/11/2026 #73232 "toàn là gần thì hiện time làm gì"): ⏳ chỉ khi máy sẽ làm —
+  // Đạt, hoặc Gần mà thứ duy nhất còn thiếu là cổng giờ (nhịp tăng · Siết TS ở nhánh .mo trên)
+  if (t == null || (l.ket === 'gan' && !chiNhip)) return null;
+  return { t, can: nb ? `tạo xong ${chuLich(t)}` : null };
 }
 // chip: một dòng ngắn cạnh chip · bảng: giờ + điều kiện dưới tên luật — vàng = còn điều kiện, xanh = chỉ chờ giờ
 function ChuGio({ g, chip }: { g: GioLam; chip?: boolean }) {

@@ -33,6 +33,7 @@ const LUAT = [
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'BO_LOC.every(([kk, f]) => kk === k || f(c))', vi: 'mỗi widget breakdown tách trên tập camp qua mọi ô lọc TRỪ ô của chính nó' },
   { card: 'tu-van-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "nen_lam: () => <NenLam ds={du.tuVan ?? []}", vi: 'Tổng quan 2 có widget Nên làm gì bây giờ (tư vấn sống theo người, anh 10/11/2026)' },
   { card: 'tu-van-1011', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "from etp.tu_van where phien = 'song' and ${cuaNg(sql`nguoi_id`)}", vi: 'tư vấn đọc bản sống, người chỉ thấy bản của mình' },
+  { card: 'gio-gan-1211', tep: 'apps/etp2/src/components/etp-view.tsx', co: "if (t == null || (l.ket === 'gan' && !chiNhip)) return null;", vi: 'thẻ Gần còn thiếu điều kiện thật không hiện ⏳ (anh 12/11/2026 #73232)' },
   { card: 'mo-1011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if _ts: ls[-1]["mo"] = _ts_mo(cid)', vi: 'thẻ tăng bị Siết TS chặn mang mốc sớm nhất thôi chặn (anh 10/11/2026 "show thời gian sẽ áp dụng sau bao lâu")' },
   { card: 'mo-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'gioThe(t.the, hoan, t.don)', vi: 'chip luật hiện ⏳ giờ máy làm — cùng hàm gioThe với bảng xét' },
   { card: 'mo-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: '{deXuat ? null : <GioThe l={l} don={!!don} chip />}', vi: 'MỌI thẻ Đạt / Gần có giờ áp dụng ở ô tên luật (anh 10/11/2026 "gắn thời gian vào đây") — dạng ⏳ gọn, giờ đủ ở chữ rê (#1558)' },

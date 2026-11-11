@@ -459,11 +459,20 @@ export async function xepKhang(sql, { them } = {}) {
     WHERE NOT coalesce(v.luu_tru, false) AND v.cham->>'ket' = 'SUA_LAI' AND coalesce(v.da_dang, '{}'::jsonb) = '{}'::jsonb AND (v.cham->>'luc')::timestamptz < now() - interval '1 hour'
       AND NOT coalesce(m.la_san_pham, false)   -- kênh nội dung (YNT, Astrolas) có vòng tự làm lại tập riêng (chay-kenh / chay-so-kenh) — không xếp đôi
     GROUP BY m.ma ORDER BY m.ma`;
-  if (!ds.length) return 0;
+  // MÁY SẢN XUẤT HỎNG / TREO cũng là việc của Khang (anh 11/11/2026 hỏi "máy sx tự sửa lỗi thế nào, thằng nào phụ trách" — trước chỉ ghi 'hong' vào sổ
+  // may_sx_luot, không ai đọc). Lấy lượt MỚI NHẤT của mỗi bài còn chờ dựng: 'hong' trong 24 giờ, hoặc 'dang' quá 40 phút (lượt bị ngắt). Bảng do Máy SX tự tạo — chưa có thì bỏ qua.
+  const sx = await sql`SELECT l.may AS ma, count(*)::int AS n, string_agg(DISTINCT coalesce(left(l.loi, 160), 'lượt treo quá 40 phút, không ghi kết thúc'), ' · ') AS ly_do, string_agg(DISTINCT l.slug, ', ') AS slug
+    FROM (SELECT DISTINCT ON (slug) * FROM may_sx_luot ORDER BY slug, luc DESC) l JOIN xv_bai_cho_dung c ON c.slug = l.slug
+    WHERE (l.trang_thai = 'hong' AND l.luc > now() - interval '24 hours') OR (l.trang_thai = 'dang' AND l.luc < now() - interval '40 minutes')
+    GROUP BY l.may ORDER BY l.may`.catch(() => []);
+  if (!ds.length && !sx.length) return 0;
   // dau = dấu bộ bài (danh sách slug) — hàng việc (tho-may-viec › themViec) không xếp lại y nguyên bộ bài Khang vừa trả lời trong 24 giờ (chống vòng lặp, anh 10/11/2026)
   const dau = (slug) => String(slug ?? '').split(', ').sort().join(',');
   const viec = ds.filter((x) => /^[a-z0-9-]+$/.test(x.ma)).map((x) => ({ khoa: `social:sua|${x.ma}`, dau: dau(x.slug),
     chu: `Máy ${x.ma}: ${x.n} bài chưa đăng bị Phòng Nội dung chặn SỬA LẠI quá 1 giờ.\nLý do: ${String(x.ly_do ?? '').slice(0, 600)}\nBài: ${String(x.slug ?? '').slice(0, 900)}` }))
+    .concat(sx.filter((x) => /^[a-z0-9-]+$/.test(x.ma)).map((x) => ({ khoa: `social:sx|${x.ma}`, dau: dau(x.slug),
+      chu: `Máy Sản Xuất dựng hỏng ${x.n} bài của máy ${x.ma} (sổ may_sx_luot, tab Máy SX trên mos2).\nLỗi: ${String(x.ly_do ?? '').slice(0, 600)}\nBài: ${String(x.slug ?? '').slice(0, 900)}\n`
+        + `Sửa gốc ở apps/xuong-video/scripts/sx-bai.mjs / sx-may.mjs / kieu-sx.json, rồi dựng lại: node apps/xuong-video/scripts/sx-may.mjs --slug <slug> (chạy ở iMac).` })));
   if (them) return them(viec);
   const { tgNoiDung } = await import('./kiem-bai.mjs'); const { topicPhong } = await import('./tg-phong.mjs'); const { tg } = await tgNoiDung();
   const topic = await topicPhong('social-traffic', '📂 Social Traffic', tg);
@@ -496,9 +505,14 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
     dang: { title: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds', description: 'Scam: fake deadline · asks for card by chat. Never pay through a link in a message. Call the hotel on its official number. Checklist: https://ratesbyroom.com/hotel-scam-check/', link: 'https://ratesbyroom.com/hotel-scam-check/', goc: { sp: 179, id: 1, loai: 'ai_noi_dau', ten: 'x' }, hook: { qc: '123', goc: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds' } } };   // mọi bài phải có góc + hook từ QC spy (31/10/2026)
   t.equal(doBaiDang(tot).ket, 'DUYET', 'bài đủ thì DUYỆT');
   { // xếp việc Khang: một việc / máy, khoá social:sua|<máy>, mã máy lạ bỏ, không có bài thì không xếp
-    let ra = null; const sqlGia = async () => [{ ma: 'ratesbyroom-scam-or-real', n: 9, ly_do: 'hook mượn từ QC khác ngách', slug: 'a, b' }, { ma: 'x; rm -rf /', n: 1 }];
+    let ra = null; const laSx = (q) => q.join('').includes('may_sx_luot');
+    const sqlGia = async (q) => (laSx(q) ? [] : [{ ma: 'ratesbyroom-scam-or-real', n: 9, ly_do: 'hook mượn từ QC khác ngách', slug: 'a, b' }, { ma: 'x; rm -rf /', n: 1 }]);
     await xepKhang(sqlGia, { them: (v) => { ra = v; return v.length; } });
-    t.deepEqual(ra.map((x) => x.khoa), ['social:sua|ratesbyroom-scam-or-real']); t.ok(ra[0].chu.includes('9 bài') && ra[0].chu.includes('khác ngách'));
+    t.deepEqual(ra.map((x) => x.khoa), ['social:sua|ratesbyroom-scam-or-real']);
+    // Máy SX dựng hỏng / treo → việc social:sx|<máy> riêng (11/11/2026); chỉ có lỗi dựng, không có SỬA LẠI vẫn xếp; bảng chưa có (lỗi SQL) thì bỏ qua
+    let rb = null; await xepKhang(async (q) => (laSx(q) ? [{ ma: 'mia-calloway', n: 1, ly_do: 'tải tập lỗi', slug: 'mia-x' }] : []), { them: (v) => { rb = v; return v.length; } });
+    t.deepEqual(rb.map((x) => x.khoa), ['social:sx|mia-calloway']); t.ok(rb[0].chu.includes('sx-may.mjs --slug') && rb[0].chu.includes('tải tập lỗi'));
+    t.equal(await xepKhang((q) => (laSx(q) ? Promise.reject(new Error('relation does not exist')) : Promise.resolve([])), { them: () => 99 }), 0, 'chưa có bảng may_sx_luot thì không xếp, không vỡ'); t.ok(ra[0].chu.includes('9 bài') && ra[0].chu.includes('khác ngách'));
     t.equal(await xepKhang(async () => [], { them: () => 99 }), 0, 'không có bài thì không xếp');
     t.equal(ra[0].dau, 'a,b', 'dấu bộ bài để hàng việc chống xếp lại y nguyên'); }
   t.ok(khongThayAnh({ ly_do: 'Không tìm thấy hình ảnh thumbnail đính kèm để đánh giá.' }) && khongThayAnh({ thay_anh: false }), 'ảnh không tới = không phải lời chấm (09/11/2026)');

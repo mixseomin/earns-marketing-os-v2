@@ -23,9 +23,21 @@ export function cayRieng(nguoi, goc = MOS2_GOC) {
   // liên kết node_modules là TỆP (không phải thư mục) nên mẫu 'node_modules/' của .gitignore không khớp → thêm '/node_modules' vào exclude chung (thư mục thật vốn đã bị bỏ qua)
   const ex = path.resolve(dir, git(dir, 'rev-parse', '--git-path', 'info/exclude')); const exCu = fs.existsSync(ex) ? fs.readFileSync(ex, 'utf8') : '';
   if (!/^\/node_modules$/m.test(exCu)) { fs.mkdirSync(path.dirname(ex), { recursive: true }); fs.appendFileSync(ex, `${exCu && !exCu.endsWith('\n') ? '\n' : ''}/node_modules\n`); }
-  git(dir, 'merge', '-q', '--ff-only', 'origin/main');
+  // BẢN DỞ TRÙNG TỆP MAIN VỪA ĐỔI (11/11/2026: Khang để dở may-dung.mts từ 23:06 10/11, main sau đó đổi cùng tệp → `merge --ff-only` từ chối mỗi lượt,
+  // Khang đứng im gần một ngày, 4 việc chờ trong hàng — gồm việc SỬA LẠI của máy Mia). Cất bản dở thành tệp vá + stash (không xoá, không hoàn tác),
+  // kéo main, rồi áp lại tệp vá lên bản mới. Áp không được = trả `vat` để kỹ sư đọc tệp vá và làm lại trên main mới, cây vẫn sạch để nhận việc.
+  let vat = null;
+  try { git(dir, 'merge', '-q', '--ff-only', 'origin/main'); } catch (e) {
+    const dirty = git(dir, 'status', '--porcelain', '--untracked-files=no');
+    if (!dirty) throw e;   // không phải do bản dở (nhánh riêng có commit chưa lên main) — để người gọi báo
+    const tep = path.join(os.homedir(), 'may-ky-su', nguoi, `do-${new Date().toISOString().replace(/[:.]/g, '-')}.patch`);
+    fs.writeFileSync(tep, execFileSync('git', ['-C', dir, 'diff', 'HEAD'], { encoding: 'utf8' }));
+    git(dir, 'stash', 'push', '-q', '-m', `cay-rieng: bản dở của ${nguoi} trước khi kéo main (tệp vá ${tep})`);
+    git(dir, 'merge', '-q', '--ff-only', 'origin/main');
+    try { git(dir, 'apply', '--check', tep); git(dir, 'apply', tep); } catch { vat = tep; }
+  }
   const doDo = git(dir, 'status', '--porcelain', '--untracked-files=no').split('\n').filter(Boolean).map((l) => l.slice(3));
-  return { dir, do: doDo };
+  return { dir, do: doDo, vat };
 }
 
 if (process.argv[1]?.endsWith('cay-rieng.mjs') && process.argv[2]) { const r = cayRieng(process.argv[2]); console.log(JSON.stringify(r)); }

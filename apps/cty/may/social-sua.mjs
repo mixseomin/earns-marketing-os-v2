@@ -27,7 +27,7 @@ const SUA = ['apps/xuong-video/scripts', 'apps/xuong-video/src/lib/xuong-video',
 const QUYEN = ['Read', 'Glob', 'Grep', ...SUA.flatMap((d) => [`Edit(/${d}/**)`, `Write(/${d}/**)`]), `Edit(/${MOS2}/apps/cty/worker/cham-dang.mjs)`,
   `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${MOS2}:*)`, `Bash(cd ${MOS2}/apps/:*)`, `Bash(git -C ${MOS2}:*)`,
   'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git add apps/:*)', 'Bash(git commit:*)', 'Bash(git push origin HEAD:main)',
-  `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`, 'Bash(node --check:*)', 'Bash(node apps/cty/:*)', 'Bash(node_modules/.bin/tsx apps/xuong-video/:*)', 'Bash(../../node_modules/.bin/tsx:*)',
+  `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`, 'Bash(node --check:*)', 'Bash(node apps/cty/:*)', 'Bash(node apps/xuong-video/scripts/sx-may.mjs:*)', 'Bash(node_modules/.bin/tsx apps/xuong-video/:*)', 'Bash(../../node_modules/.bin/tsx:*)',
   'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(diff:*)'];
 const CAM_BASH = ['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
   'rm', 'rmdir', 'rsync', 'scp', 'br', 'open', 'npm install', 'npm i', 'npx', 'brew', 'pip', 'launchctl', 'crontab', 'sudo', 'kill', 'pkill'].map((c) => `Bash(${c}:*)`);
@@ -66,7 +66,7 @@ HẠ TẦNG:
   Phòng Nội dung chấm lại: cd /opt/earns-marketing-os-v2/apps/cty && set -a && . ../../.env.production && set +a && CTY_DATA_DIR=/var/lib/cty node worker/cham-dang.mjs --chay
   Sổ: psql "$DATABASE_URL" — xv_may (máy, dang[] nơi đăng), xv_may_video (bài: mau = dạng, dang (title, hook, goc), cham (ket, chan_cung[]), da_dang, luu_tru).
 - Sửa ở iMac (repo ${MOS2}), lên box3 bằng git push origin HEAD:main (cây riêng của bạn trên nhánh ky-su/<tên>; GHA deploy ~2 phút; chờ bằng ${os.homedir()}/bin/gh-watch deploy.yml). KHÔNG rsync / scp mã lên box3.
-- Bạn làm trong CÂY RIÊNG ${MOS2} (không ai khác sửa ở đây): git add đúng tệp bạn sửa rồi commit + push, không để thay đổi nằm lại.${cay.do.length ? `\n- Cây riêng còn thay đổi CHƯA COMMIT từ lượt trước của chính bạn: ${cay.do.join(', ')} — kiểm rồi commit nếu đúng, sai thì sửa tới (không hoàn tác).` : ''}
+- Bạn làm trong CÂY RIÊNG ${MOS2} (không ai khác sửa ở đây): git add đúng tệp bạn sửa rồi commit + push, không để thay đổi nằm lại.${cay.do.length ? `\n- Cây riêng còn thay đổi CHƯA COMMIT từ lượt trước của chính bạn: ${cay.do.join(', ')} — kiểm rồi commit nếu đúng, sai thì sửa tới (không hoàn tác).` : ''}${cay.vat ? `\n- Lượt trước bạn để dở một bản sửa KHÔNG áp được lên main mới (main đã đổi cùng tệp): tệp vá ${cay.vat}. Đọc nó; còn cần thì làm lại trên bản main hiện tại rồi commit, không cần thì bỏ qua.` : ''}
 
 CÁCH LÀM:
 1. Đọc lý do chặn nguyên văn (cham.chan_cung) của từng bài trong việc. Phân loại: (a) lỗi đề sửa được bằng đề mới → chạy --lam-lai-sua cho máy đó, rồi chấm lại, đọc kết quả;

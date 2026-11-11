@@ -63,7 +63,7 @@ HẠ TẦNG:
   Sổ: cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -c "…" — etp.camp, etp.so_ngay, etp.so_gio_camp, etp.nhat_ky (lệnh máy, cột loi),
   etp.xet_luat, etp.bao, etp.canh_bao, etp.cau_hinh, xv_khoa_ngoai (sổ máy). Chạy thử máy luật (không làm lệnh): cd apps/xuong-video/scripts/ethopex && python3 luat-ethopex.py --json.
 - Sửa ở iMac (repo ${MOS2}), lên box3 bằng git push origin HEAD:main (cây riêng của bạn trên nhánh ky-su/<tên>; GHA deploy ~2 phút; chờ bằng ${os.homedir()}/bin/gh-watch deploy.yml). KHÔNG rsync / scp mã lên box3.
-- Bạn làm trong CÂY RIÊNG ${MOS2} (không ai khác sửa ở đây): git add đúng tệp bạn sửa rồi commit + push, không để thay đổi nằm lại.${cay.do.length ? `\n- Cây riêng còn thay đổi CHƯA COMMIT từ lượt trước của chính bạn: ${cay.do.join(', ')} — kiểm rồi commit nếu đúng, sai thì sửa tới (không hoàn tác).` : ''}
+- Bạn làm trong CÂY RIÊNG ${MOS2} (không ai khác sửa ở đây): git add đúng tệp bạn sửa rồi commit + push, không để thay đổi nằm lại.${cay.do.length ? `\n- Cây riêng còn thay đổi CHƯA COMMIT từ lượt trước của chính bạn: ${cay.do.join(', ')} — kiểm rồi commit nếu đúng, sai thì sửa tới (không hoàn tác).` : ''}${cay.vat ? `\n- Lượt trước bạn để dở một bản sửa KHÔNG áp được lên main mới (main đã đổi cùng tệp): tệp vá ${cay.vat}. Đọc nó; còn cần thì làm lại trên bản main hiện tại rồi commit, không cần thì bỏ qua.` : ''}
 
 CÁCH LÀM:
 1. Đọc lỗi nguyên văn + nhật ký + mã liên quan; đo trên số thật (psql, chạy thử máy luật). Phân loại: (a) lỗi mã / lệch giữa hai đầu → sửa GỐC (một lần cho cả lớp, không vá riêng camp);

@@ -157,7 +157,10 @@ const main = async () => {
   let tien = 0, hong = 0;
   for (const b of ds) {
     const id = moLuot(b);
-    try { const kq = await dungMot(b); tien += kq.vnd ?? 0; dongLuot(id, b, true, kq); console.log(`✓ ${b.slug} (${b.kieu}) ${kq.vnd ?? 0}₫ — ${kq.ghi ?? ''}`); }
+    // THỬ LẠI MỘT LẦN: lỗi mạng / R2 / ssh chập chờn thường qua ở lần hai (Reel 13₫, ảnh 65₫). Vẫn hỏng thì ghi 'hong' — Phòng Nội dung xếp việc
+    // `social:sx|<máy>` cho Khang (cham-dang.mjs › xepKhang) sửa gốc rồi dựng lại; không ai phải mở tab mới biết.
+    const thu2 = async () => { try { return await dungMot(b); } catch (e) { console.log(`↻ ${b.slug}: thử lại (${String(e.message).split('\n')[0].slice(0, 120)})`); return dungMot(b); } };
+    try { const kq = await thu2(); tien += kq.vnd ?? 0; dongLuot(id, b, true, kq); console.log(`✓ ${b.slug} (${b.kieu}) ${kq.vnd ?? 0}₫ — ${kq.ghi ?? ''}`); }
     catch (e) { hong++; const l = String(e.message).split('\n')[0].slice(0, 300); dongLuot(id, b, false, {}, l); console.log(`✗ ${b.slug} (${b.kieu}): ${l.slice(0, 200)}`); }
   }
   console.log(`dựng ${ds.length - hong}/${ds.length} bài · ${tien}₫`);

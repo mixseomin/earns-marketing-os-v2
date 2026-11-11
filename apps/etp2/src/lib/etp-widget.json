@@ -243,6 +243,18 @@
         12,
         12
       ]
+    },
+    "bd_nhom": {
+      "ten": "Theo nhóm creative",
+      "mo_ta": "breakdown theo NHÓM creative nhìn thấy được trên video (cắt cảnh · ảnh tĩnh · poster động · kể chuyện · chèn khung), mở ra là dạng chi tiết — creative đội do máy phân loại (đúng 92% theo nhóm), trên tập camp sau các ô lọc đang chọn",
+      "min": [
+        3,
+        4
+      ],
+      "mac": [
+        3,
+        9
+      ]
     }
   },
   "template": {

@@ -4,6 +4,7 @@ apps/etp/kiem-so-dang.mjs (dong-bo.py chạy mỗi lượt, đỏ → cảnh bá
   DG.CHUAN        nhãn (có dấu / không dấu) → dạng có dấu
   DG.KHONG_DAU    dạng có dấu → nhãn không dấu
   DG.MA           dạng có dấu → mã ngắn
+  DG.NHOM         dạng có dấu → nhóm nhìn thấy được trên video
   DG.DONG         mã loại dòng phim → dạng
   DG.TINH         tập mã dòng phim dạng tĩnh
   DG.KIEU         tên kiểu script dựng (--kieu) → mục sổ
@@ -14,7 +15,8 @@ _TEP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web", "sr
 DS = json.load(open(_TEP, encoding="utf-8"))["dang"]
 CHUAN = {**{x["khong_dau"]: x["dang"] for x in DS}, **{x["dang"]: x["dang"] for x in DS}}
 KHONG_DAU = {x["dang"]: x["khong_dau"] for x in DS}
-MA = {x["dang"]: x["ma"] for x in DS}   # dạng → mã ngắn (badge / báo cáo)
+MA = {x["dang"]: x["ma"] for x in DS}
+NHOM = {x["dang"]: x.get("nhom") for x in DS}   # dạng → nhóm nhìn thấy được (cắt cảnh · ảnh tĩnh · poster động · kể chuyện · chèn khung) — phan_loai_cr.py, trang etp2   # dạng → mã ngắn (badge / báo cáo)
 DONG = {x["dong"]: x["dang"] for x in DS if x.get("dong")}
 TINH = {x["dong"] for x in DS if x.get("tinh") and x.get("dong")}
 KIEU = {x["kieu"]: x for x in DS if x.get("kieu")}   # tên kiểu (--kieu của kieu-moi.py / tinh-ba-kieu.py) → mục sổ

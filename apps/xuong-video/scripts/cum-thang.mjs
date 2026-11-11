@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 
 const ag = process.argv.slice(2), lay = (k, mac) => { const i = ag.indexOf(k); return i >= 0 ? ag[i + 1] : mac; };
-const NHOM = lay('--nhom', null), TOP = Number(lay('--top', 25)), MIN = Number(lay('--toi-thieu', 40)), THANG = Number(lay('--thang', 30)), THUA = Number(lay('--thua', 7));
+const MIN_PAGE = Number(lay('--page', 5)), NHOM = lay('--nhom', null), TOP = Number(lay('--top', 25)), MIN = Number(lay('--toi-thieu', 40)), THANG = Number(lay('--thang', 30)), THUA = Number(lay('--thua', 7));
 const BO = new Set('the a an and or of to in on for is it this that with at by be are was as from his her he she they we i you my your our me him them its not but so if do did just all have has had will can about what who how when then there their into out up one more after than'.split(' '));
 
 /** Thuần — tách cụm: từ đơn (bỏ từ nối), cụm 2–3 từ liền nhau, emoji / dấu ! ?. Mỗi QC đếm một cụm một lần. */
@@ -25,13 +25,16 @@ export function tachCum(chu) {
   return ra;
 }
 /** Thuần — xếp cụm theo độ nâng: tỉ lệ ở nhóm thắng / tỉ lệ ở nhóm thua (làm trơn +1 để cụm vắng ở nhóm thua không chia cho 0). */
-export function xepCum(ds, { thang = 30, thua = 7, min = 40 } = {}) {
+// Một nhà quảng cáo chạy hàng trăm BẢN COPY cùng chữ (sách Kindle 140 QC "www amazon com") → số đếm phồng: gộp QC trùng chữ (giữ ngày chạy dài nhất) và
+// chỉ nhận cụm xuất hiện ở ≥ minPage Page khác nhau trong nhóm thắng (một Page = một lá phiếu, không phải trăm lá).
+export function xepCum(ds, { thang = 30, thua = 7, min = 40, minPage = 5 } = {}) {
+  const gop = new Map(); for (const r of ds) { const k = String(r.chu).toLowerCase().replace(/\s+/g, ' ').trim(); const c = gop.get(k); if (!c || r.ngay > c.ngay) gop.set(k, r); }
   const dem = new Map(); let nT = 0, nH = 0;
-  for (const { chu, ngay } of ds) {
+  for (const { chu, ngay, page = '' } of gop.values()) {
     const la = ngay >= thang ? 'T' : ngay <= thua ? 'H' : null; if (!la) continue; if (la === 'T') nT++; else nH++;
-    for (const c of tachCum(chu)) { const x = dem.get(c) ?? { T: 0, H: 0 }; x[la]++; dem.set(c, x); }
+    for (const c of tachCum(chu)) { const x = dem.get(c) ?? { T: 0, H: 0, pg: new Set() }; x[la]++; if (la === 'T') x.pg.add(page); dem.set(c, x); }
   }
-  const ra = [...dem].filter(([, x]) => x.T >= min).map(([c, x]) => ({ cum: c, thang: x.T, pThang: x.T / Math.max(nT, 1), pThua: x.H / Math.max(nH, 1),
+  const ra = [...dem].filter(([, x]) => x.T >= min && x.pg.size >= minPage).map(([c, x]) => ({ cum: c, thang: x.T, page: x.pg.size, pThang: x.T / Math.max(nT, 1), pThua: x.H / Math.max(nH, 1),
     nang: (x.T + 1) / (nT + 2) / ((x.H + 1) / (nH + 2)) }));
   return { nT, nH, len: ra.sort((a, b) => b.nang - a.nang), xuong: [...ra].sort((a, b) => a.nang - b.nang) };
 }
@@ -41,16 +44,16 @@ if (ag.includes('--tu-kiem')) {
   t.ok(tachCum('Watch the FULL episode free 👇').has('free') && tachCum('Watch the FULL episode free 👇').has('full episode') && tachCum('x 👇').has('👇'));
   t.ok(!tachCum('the and of').has('the'), 'bỏ từ nối đứng một mình');
   const ds = [...Array(50).fill({ chu: 'free episode', ngay: 40 }), ...Array(50).fill({ chu: 'episode', ngay: 3 })];
-  const r = xepCum(ds, { min: 10 }); t.equal(r.len[0].cum, 'free'); t.equal(r.nT, 50); t.equal(r.nH, 50);
+  const r = xepCum(ds.map((x, i) => ({ ...x, chu: `${x.chu} n${i}`, page: `p${i % 7}` })), { min: 10 }); t.equal(r.len[0].cum, 'free'); t.equal(r.nT, 50); t.equal(r.nH, 50);
   t.ok(r.len.find((x) => x.cum === 'episode').nang < 1.1, 'cụm có ở cả hai nhóm không nâng');
   console.log('cum-thang: tự kiểm đạt'); process.exit(0);
 }
 if (!NHOM) { console.error('cần --nhom <biểu thức chữ QC của ngách> (vd \'(reelshort|dramabox|short drama)\')'); process.exit(2); }
 const url = process.env.SPY_DATABASE_URL ?? fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13);
 const spy = (await import('postgres')).default(url, { max: 1, prepare: false });
-const ds = (await spy`select noi_dung as chu, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay from qc_meta where bat_dau is not null and noi_dung ~* ${NHOM}`).map((r) => ({ chu: r.chu ?? '', ngay: Number(r.ngay) }));
+const ds = (await spy`select noi_dung as chu, coalesce(page_ten, page_id::text, '') as page, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay from qc_meta where bat_dau is not null and noi_dung ~* ${NHOM}`).map((r) => ({ chu: r.chu ?? '', page: r.page, ngay: Number(r.ngay) }));
 await spy.end();
-const r = xepCum(ds, { thang: THANG, thua: THUA, min: MIN }), pc = (x) => `${(x * 100).toFixed(1)}%`;
-console.log(`nhóm "${NHOM}": ${ds.length} QC · thắng (≥ ${THANG} ngày) ${r.nT} · thua (≤ ${THUA} ngày) ${r.nH} · cụm có ≥ ${MIN} QC thắng`);
-console.log(`\nCỤM THẮNG (ở QC chạy lâu nhiều hơn QC tắt sớm):`); for (const x of r.len.slice(0, TOP)) console.log(`  ×${x.nang.toFixed(1)}  ${x.cum.padEnd(28)} thắng ${pc(x.pThang)} · thua ${pc(x.pThua)} · ${x.thang} QC`);
+const r = xepCum(ds, { thang: THANG, thua: THUA, min: MIN, minPage: MIN_PAGE }), pc = (x) => `${(x * 100).toFixed(1)}%`;
+console.log(`nhóm "${NHOM}": ${ds.length} QC · thắng (≥ ${THANG} ngày) ${r.nT} · thua (≤ ${THUA} ngày) ${r.nH} · cụm có ≥ ${MIN} QC thắng ở ≥ ${MIN_PAGE} Page (đã gộp bản copy trùng chữ)`);
+console.log(`\nCỤM THẮNG (ở QC chạy lâu nhiều hơn QC tắt sớm):`); for (const x of r.len.slice(0, TOP)) console.log(`  ×${x.nang.toFixed(1)}  ${x.cum.padEnd(28)} thắng ${pc(x.pThang)} · thua ${pc(x.pThua)} · ${x.thang} QC / ${x.page} Page`);
 console.log(`\nCỤM THUA (tránh):`); for (const x of r.xuong.slice(0, Math.ceil(TOP / 2))) console.log(`  ×${x.nang.toFixed(2)}  ${x.cum.padEnd(28)} thắng ${pc(x.pThang)} · thua ${pc(x.pThua)} · ${x.thang} QC`);

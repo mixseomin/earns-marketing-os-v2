@@ -8,6 +8,8 @@
 //   node scripts/sx-may.mjs --may mia-calloway --xem        xem sẽ dựng gì (không dựng, không tiêu tiền)
 //   node scripts/sx-may.mjs --may mia-calloway [--ngay 3]   dựng mọi bài thiếu tệp tới hạn trong N ngày (mặc định 3)
 //   node scripts/sx-may.mjs --slug <slug>                   dựng đúng một bài
+//   node scripts/sx-may.mjs --het [--ngay 3]                MỌI máy có bài thiếu tệp tới hạn — lượt theo lịch của sổ việc nền cty gọi lệnh này
+//                                                          (apps/cty/cong-ty/viec-nen.json › iMac:com.earns.may-san-xuat)
 //
 // VÌ SAO CHẠY Ở iMAC: dạng Reel dùng ffmpeg — luật nhà cấm dựng video trên box3. Dạng ảnh tự gọi sang box3 (khoá R2 ở đó).
 import { execFileSync } from 'node:child_process';
@@ -32,7 +34,7 @@ const lay = (k) => doc(ag, k);
 let soGoi = 0;
 function psql(sql) {
   const ten = `sx-${process.pid}-${Date.now()}-${++soGoi}.sql`, cuc = `/tmp/${ten}`, t = `/tmp/${ten}`;
-  writeFileSync(cuc, sql);
+  writeFileSync(cuc, `SET client_min_messages TO warning;\n${sql}`);   // NOTICE "đã có, bỏ qua" của CREATE/ALTER IF NOT EXISTS không phải lỗi — đừng in ra nhật ký
   execFileSync('scp', ['-q', cuc, `${BOX}:${t}`], { timeout: 120_000 });
   return execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -qtAf ${t}`], { encoding: 'utf8', timeout: 300_000 });
 }
@@ -57,13 +59,13 @@ WHERE v.da_dang = '{}'::jsonb AND NOT coalesce(v.luu_tru, false) AND v.video_url
 function canDung(may, ngay) {
   const r = psql(`${VIEW_CHO_DUNG}
 ${BANG_LUOT}
-SELECT slug||E'\\t'||coalesce(nen,'')||E'\\t'||dang_tu||E'\\t'||coalesce(kieu_sx,'')||E'\\t'||coalesce(phim,'')||E'\\t'||coalesce(huong,'')||E'\\t'||coalesce(prompt,'')
-FROM xv_bai_cho_dung WHERE may=${q(may)} AND dang_tu IS NOT NULL
+SELECT may||E'\\t'||slug||E'\\t'||coalesce(nen,'')||E'\\t'||dang_tu||E'\\t'||coalesce(kieu_sx,'')||E'\\t'||coalesce(phim,'')||E'\\t'||coalesce(huong,'')||E'\\t'||coalesce(prompt,'')
+FROM xv_bai_cho_dung WHERE ${may ? `may=${q(may)}` : 'chay'} AND dang_tu IS NOT NULL
   AND dang_tu::date <= (now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date + ${Number(ngay)}
 ORDER BY dang_tu;`);
   return r.split('\n').filter(Boolean).map((d) => {
-    const [slug, nen, dangTu, kieuSx, phim, y, prompt] = d.split('\t');
-    return { slug, nen, dangTu, kieu: kieuSx || kieuMacDinh(nen), phim: phim ? Number(phim) : null, huong: y, prompt, may };
+    const [mayDong, slug, nen, dangTu, kieuSx, phim, y, prompt] = d.split('\t');
+    return { slug, nen, dangTu, kieu: kieuSx || kieuMacDinh(nen), phim: phim ? Number(phim) : null, huong: y, prompt, may: mayDong };
   });
 }
 
@@ -140,8 +142,9 @@ const main = async () => {
     return;
   }
   const may = lay('--may'), slug = lay('--slug'), ngay = Number(lay('--ngay') ?? 3);
-  if (!may && !slug) { console.error('cần --may <mã> hoặc --slug <slug> (hoặc --tu-kiem)'); process.exit(1); }
-  let ds = canDung(may ?? '', ngay);
+  if (!may && !slug && !co('--het')) { console.error('cần --may <mã> | --slug <slug> | --het (hoặc --tu-kiem)'); process.exit(1); }
+  // --het và --slug đọc mọi máy đang chạy (may = null); --may chỉ một máy
+  let ds = canDung(may, ngay);
   if (slug) ds = ds.filter((x) => x.slug === slug);
   if (!ds.length) { console.log(`không có bài nào thiếu tệp tới hạn trong ${ngay} ngày`); return; }
 

@@ -261,11 +261,14 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
   for (let lan = 0; lan < 3; lan++) {
     // trượt "sửa quá xa": mô hình rẻ cầm cả kho thì không bám (esimfares 10/11/2026: hook kênh "Landing in Italy? Do this before your plane touches down"
     // → viết "Set this up before takeoff", giữ 17%, 2/3 bài kẹt cả 2 lượt) → lượt sau khoá vào ĐÚNG hook đã chọn + đưa nguyên câu làm khuôn, thêm một lượt.
-    const xa = !!hookCu && loiCu.some((l) => /sửa quá xa/.test(l)), hooksLuot = xa ? [hookCu as HookQc] : (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length);
+    const xa = !!hookCu && loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l)), hooksLuot = xa ? [hookCu as HookQc] : (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length);
     const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en', hooksLuot) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.${xa ? ` The title AND any on-screen hook line must be this exact sentence: "${(hookCu as HookQc).chu}". Copy it, swapping at most 2-3 words (the country, item or number) to fit the angle; keep every other word and the punctuation. hook_qc must be "${(hookCu as HookQc).id}".` : ''}` : ''), ten: 'de_bai' });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;
     const maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); hookCu = timHook(hooksLuot, maHook) ?? hookCu;
+    // mô hình không khai mã hook nào trong kho (bỏ trống / tự viết hook) → lượt sau KHOÁ vào hook gần tiêu đề nhất, đưa nguyên câu làm khuôn
+    // (militarycalc 12/11/2026: kho còn 1 hook, 3 lượt đều "chưa chọn hook QC gốc", bài lam-tuong-42929 kẹt SỬA LẠI)
+    if (!hookCu && hooksLuot.length) hookCu = [...hooksLuot].sort((a, b) => giuHook(r.data.chu.title, b.chu) - giuHook(r.data.chu.title, a.chu))[0]!;
     const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich, hook: timHook(hooksLuot, maHook) });
     loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu, hooks: hooksLuot, hook_qc: maHook });
     // tiêu đề trùng bài có sẵn của máy = Phòng Nội dung chặn chống spam → sinh lại ngay ở đây (31/10/2026: hook video thắng chép nguyên văn trùng chính video đó)

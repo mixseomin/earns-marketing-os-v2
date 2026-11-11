@@ -48,8 +48,9 @@ export async function moPhien() {
     try { br('open', PROFILE); br('use', ACCT); break; }
     catch (e) { if (i >= 9) throw e; await ngu(3000); }
   }
-  br('goto', APP);
-  let t = trang();
+  // vừa mở lại profile thì goto đầu có thể rơi về about:blank (11/11/2026) → đi lại tối đa 5 lần
+  let t = { url: '' };
+  for (let i = 0; i < 5; i++) { br('goto', APP); t = trang(); if (/videoexpress\.ai/.test(t.url ?? '')) break; await ngu(3000); }
   if (/\/login/.test(t.url)) { await dangNhap(); t = trang(); }
   if (!t.app) throw new Error(`VideoExpress: không vào được app (đang ở ${t.url})`);
   return true;

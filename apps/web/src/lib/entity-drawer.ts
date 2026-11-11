@@ -21,7 +21,7 @@ export interface EntityDrawerReq { kind: string; id: string | number; project?: 
 // Both the host (switch) and <EntityRef> (open-in-place vs deep-link) read THIS — no more
 // two hand-synced copies. Lives here (a light module both already import) to avoid the
 // ui → host → accounts-vault import cycle a shared constant would otherwise create.
-export const HOST_KINDS = new Set(['account', 'browser-profile', 'proxy', 'identity', 'brief', 'habitat', 'tribe', 'agent', 'team-member', 'media', 'contact', 'etp-phim', 'etp-sx']);   // etp-phim: ngăn phim etp.on.tc (anh 02/11/2026)
+export const HOST_KINDS = new Set(['account', 'browser-profile', 'proxy', 'identity', 'brief', 'habitat', 'tribe', 'agent', 'team-member', 'media', 'contact', 'etp-phim', 'etp-sx', 'may-sx']);   // etp-phim: ngăn phim etp.on.tc (anh 02/11/2026)
 
 const EMPTY: EntityDrawerReq[] = [];
 let stack: EntityDrawerReq[] = EMPTY;   // ngăn xếp; phần tử cuối = drawer TRÊN CÙNG (đang tương tác)

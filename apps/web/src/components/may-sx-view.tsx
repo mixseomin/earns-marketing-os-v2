@@ -21,11 +21,9 @@ const NGUON: { k: NguonSx; ten: string; mau: string }[] = [
   { k: 'etp', ten: 'Ethopex', mau: '#7c3aed' }, { k: 'kenh', ten: 'Kênh nội dung', mau: '#dc2626' },
   { k: 'social', ten: 'Social / Page', mau: '#1d4ed8' }, { k: 'puzzle', ten: 'Puzzle / Tài sản', mau: '#047857' },
 ];
-/** Bấm dòng → mở CHI TIẾT CŨ: ngăn (EntityDrawerHost, mở được trên mọi trang) hoặc trang gốc. Link ngoài (studio.on.tc) mở tab mới. */
-const moViec = (v: ViecSx) => {
-  if ('ed' in v.mo) { openEntityDrawer(v.mo.ed as never, v.mo.id); return; }
-  if (v.mo.url.startsWith('http')) window.open(v.mo.url, '_blank', 'noopener'); else window.location.href = v.mo.url;
-};
+/** Bấm dòng → NGĂN (anh 12/11/2026: "mọi thứ ở tab Máy SX phải khi bấm vào phải dùng drawer"). Ethopex có ngăn Sản xuất phim sẵn (etp-sx);
+ *  mọi nguồn khác mở ngăn may-sx (bài + tệp + chấm + lượt dựng, hoặc chi tiết việc) — trang gốc chỉ còn là đường dẫn phụ trong ngăn. */
+const moViec = (v: ViecSx) => { if ('ed' in v.mo) openEntityDrawer(v.mo.ed, v.mo.id); else openEntityDrawer('may-sx', v.khoa); };
 const tuLuc = (iso?: string | null) => { if (!iso) return '—'; const p = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
   return p < 60 ? `${p} phút` : p < 1440 ? `${Math.round(p / 60)} giờ` : `${Math.round(p / 1440)} ngày`; };
 
@@ -48,7 +46,7 @@ const COT_LUOT: DataColumn<Luot>[] = [
   { key: 'ngay', header: 'Ngày đăng', width: 90, sortValue: (x) => x.ngay_dang ?? '', cell: (x) => ngayVn(x.ngay_dang) },
   { key: 'vnd', header: 'Tiền', width: 80, sortValue: (x) => x.vnd, total: (rs) => `${rs.reduce((t, x) => t + (x.vnd ?? 0), 0).toLocaleString('vi-VN')}₫`, cell: (x) => `${(x.vnd ?? 0).toLocaleString('vi-VN')}₫` },
   { key: 'ghi', header: 'Ghi chú / lỗi', align: 'left', cell: (x) => <span style={{ color: x.trang_thai === 'hong' ? 'var(--bad, #dc2626)' : 'var(--fg-2)' }}>{x.trang_thai === 'hong' ? x.loi : x.ghi}<div style={{ color: 'var(--fg-3)', fontSize: 11 }}>{x.slug}</div></span> },
-  { key: 'tep', header: 'Tệp', width: 60, cell: (x) => (x.tep ? <a href={x.tep} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>mở ↗</a> : '—') },
+  { key: 'tep', header: 'Tệp', width: 60, cell: (x) => (x.tep ? <span style={{ color: '#60a5fa' }}>xem</span> : '—') },   // tệp xem trong ngăn (bấm cả dòng), không mở tab mới
 ];
 
 export function MaySxView() {
@@ -70,11 +68,11 @@ export function MaySxView() {
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
       {/* ĐẦU TRANG MỘT DÒNG (audit 11/11/2026: đoạn giải thích chiếm 523px trên điện thoại nằm ngang, hơn một màn trước hàng dữ liệu đầu) — chữ đầy đủ vào InfoHint */}
       <div style={{ fontSize: 13, color: 'var(--fg-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span>Việc sản xuất của mọi nguồn · bấm dòng mở chi tiết · <b>chưa có lịch tự chạy</b></span>
+        <span>Việc sản xuất của mọi nguồn · bấm dòng mở chi tiết · tự chạy 06:00 và 18:00</span>
         <InfoHint label="Máy SX hoạt động thế nào">
-          Mọi việc sản xuất của Ethopex, Kênh nội dung, Social / Page và Puzzle gom về đây — bấm một dòng mở đúng chi tiết ở trang gốc.
+          Mọi việc sản xuất của Ethopex, Kênh nội dung, Social / Page và Puzzle gom về đây — bấm một dòng mở ngăn chi tiết ngay tại chỗ.
           Máy SX của Page dựng tệp cho bài đã lên lịch rồi nộp Phòng Nội dung chấm; Máy Đăng lấy bài đã DUYỆT. Sổ dạng bài: apps/xuong-video/kieu-sx.json.
-          Chưa có lịch tự chạy — máy chỉ dựng khi chạy node scripts/sx-may.mjs --het trên iMac.
+          Tự chạy trên iMac lúc 06:00 và 18:00 (sổ việc nền cty). Dựng hỏng thử lại một lần; vẫn hỏng hoặc treo quá 40 phút thì Khang (Phòng Social Traffic) nhận việc sửa.
         </InfoHint>
       </div>
       {loi ? <div role="alert" style={{ border: '1px solid var(--bad, #dc2626)', color: 'var(--bad, #dc2626)', borderRadius: 8, padding: 10, fontSize: 13 }}>Không đọc được sổ Máy SX: {loi}</div> : null}
@@ -90,7 +88,7 @@ export function MaySxView() {
         {/* DataTable nhà (audit 11/11/2026: bảng tự dựng dài 4.000–7.000px không tiêu đề dính, không phân trang — do-man cuon 3/3 khổ) */}
         {!du ? <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Đang tải…</div>
           : <DataTable rows={du.viec.filter((v) => !nguon || v.nguon === nguon).sort((a, b) => Number(!!b.loi) - Number(!!a.loi))} columns={COT_VIEC}
-              getRowKey={(v) => v.khoa} onRowClick={(v) => moViec(v)} rowTitle={() => 'bấm mở chi tiết ở trang gốc'}
+              getRowKey={(v) => v.khoa} onRowClick={(v) => moViec(v)} rowTitle={() => 'bấm xem chi tiết'}
               rowStyle={(v) => (v.loi ? { background: 'color-mix(in srgb, var(--bad, #dc2626) 7%, transparent)' } : undefined)}
               pageSize={20} persistKey="may-sx-viec" minWidth={760} />}
       </section>
@@ -103,7 +101,7 @@ export function MaySxView() {
           </span>
         </div>
         {!du ? null : !du.luot.length ? <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Chưa có lượt dựng nào trong {ngay} ngày.</div>
-          : <DataTable rows={du.luot} columns={COT_LUOT} getRowKey={(x) => String(x.id)} pageSize={20} persistKey="may-sx-luot" minWidth={900} />}
+          : <DataTable rows={du.luot} columns={COT_LUOT} getRowKey={(x) => String(x.id)} onRowClick={(x) => openEntityDrawer('may-sx', `l-${x.id}`)} rowTitle={() => 'bấm xem chi tiết lượt + bài'} pageSize={20} persistKey="may-sx-luot" minWidth={900} />}
       </section>
     </div>
   );

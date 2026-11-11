@@ -14,14 +14,8 @@ import { docEtp } from '@/lib/etp-doc';
 import { docTaiSanBan, TT_SP } from '@/lib/tai-san/doc';
 import { dangCua, tenDang } from './so-kieu';
 
-export type NguonSx = 'social' | 'kenh' | 'etp' | 'puzzle';
-export const TEN_NGUON: Record<NguonSx, string> = { social: 'Social / Page', kenh: 'Kênh nội dung', etp: 'Ethopex', puzzle: 'Puzzle / Tài sản' };
-export type ViecSx = {
-  nguon: NguonSx; khoa: string; ten: string; /** dự án / kênh / máy */ cua: string | null;
-  buoc: string; so?: number | null; tong?: number | null; /** bắt đầu / cập nhật gần nhất (ISO) */ luc?: string | null;
-  loi?: string | null; ghi?: string | null;
-  mo: { url: string } | { ed: string; id: string };
-};
+import type { NguonSx, ViecSx } from './gom-kieu';
+export { TEN_NGUON, type NguonSx, type ViecSx } from './gom-kieu';
 
 const STUDIO = 'https://studio.on.tc';
 const TT_DANG = new Set(['dang_lam', 'cho_anh', 'cho_duyet']);

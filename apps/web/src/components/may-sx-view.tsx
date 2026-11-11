@@ -3,6 +3,7 @@
 // + SỔ LƯỢT DỰNG (mỗi bài một dòng: dạng, cắt từ đâu, tiền thật, lỗi). Đọc /api/may-sx/so, tự hỏi lại mỗi 30 giây. Ngày giờ GMT+7.
 import { useEffect, useState } from 'react';
 import { openEntityDrawer } from '@/lib/entity-drawer';
+import { DataTable, type DataColumn } from '@/components/ui/data-table';
 import type { ViecSx, NguonSx } from '@/lib/may-sx/gom';
 
 // tên dạng bài (kieu_ten) do API đọc từ SỔ apps/xuong-video/kieu-sx.json — trang KHÔNG gõ lại nhãn (audit 11/11/2026: nhãn gõ tay lệch máy khi đổi mặc định)
@@ -27,6 +28,28 @@ const moViec = (v: ViecSx) => {
 const tuLuc = (iso?: string | null) => { if (!iso) return '—'; const p = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
   return p < 60 ? `${p} phút` : p < 1440 ? `${Math.round(p / 60)} giờ` : `${Math.round(p / 1440)} ngày`; };
 
+const NG = (k: NguonSx) => NGUON.find((x) => x.k === k)!;
+const COT_VIEC: DataColumn<ViecSx>[] = [
+  { key: 'nguon', header: 'Nguồn', align: 'left', width: 150, sortValue: (v) => v.nguon, cell: (v) => <span style={{ color: NG(v.nguon).mau, fontWeight: 600, whiteSpace: 'nowrap' }}>● {NG(v.nguon).ten}</span> },
+  { key: 'ten', header: 'Việc', align: 'left', sortValue: (v) => v.ten, cell: (v) => <><div style={{ fontWeight: 600 }}>{v.ten}</div>{v.cua ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>{v.cua}</div> : null}</> },
+  { key: 'buoc', header: 'Bước', align: 'left', width: 190, sortValue: (v) => v.buoc, cell: (v) => { const pct = v.so != null && v.tong ? Math.min(100, Math.round((v.so / v.tong) * 100)) : null;
+    return <><div>{v.buoc}</div>{pct != null ? <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+      <span style={{ flex: 1, height: 5, borderRadius: 3, background: 'var(--bg-2, rgba(0,0,0,.08))', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: `${pct}%`, background: v.loi ? 'var(--bad, #dc2626)' : NG(v.nguon).mau }} /></span>
+      <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{v.so}/{v.tong}</span></div> : null}</>; } },
+  { key: 'luc', header: 'Cập nhật', title: 'lần cập nhật gần nhất của việc này ở nguồn gốc', width: 110, sortValue: (v) => (v.luc ? Date.parse(v.luc) : 0), cell: (v) => <span style={{ whiteSpace: 'nowrap', color: 'var(--fg-2)' }}>{v.luc ? `${tuLuc(v.luc)} trước` : '—'}</span> },
+  { key: 'ghi', header: 'Ghi chú / lỗi', align: 'left', sortValue: (v) => (v.loi ? 0 : 1), cell: (v) => <span style={{ color: v.loi ? 'var(--bad, #dc2626)' : 'var(--fg-2)' }}>{v.loi ? `✗ ${v.loi}` : v.ghi ?? ''}</span> },
+];
+const COT_LUOT: DataColumn<Luot>[] = [
+  { key: 'luc', header: 'Lúc', width: 110, sortValue: (x) => Date.parse(x.luc), cell: (x) => <span style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{gioVn(x.luc)}</span> },
+  { key: 'tt', header: 'Kết quả', align: 'left', width: 120, sortValue: (x) => tinhTrang(x).chu, cell: (x) => <span title={tinhTrang(x).chu === '⚠ mất dấu' ? `lượt bắt đầu quá ${MAT_DAU_PHUT} phút mà chưa kết thúc — bị ngắt giữa chừng, bài chưa có tệp; lượt kế máy dựng lại` : undefined} style={{ fontWeight: 600, color: tinhTrang(x).mau, whiteSpace: 'nowrap' }}>{tinhTrang(x).chu}</span> },
+  { key: 'may', header: 'Kênh', align: 'left', width: 120, sortValue: (x) => x.may, cell: (x) => x.may },
+  { key: 'kieu', header: 'Dạng', align: 'left', width: 200, sortValue: (x) => x.kieu_ten ?? '', cell: (x) => x.kieu_ten ?? '—' },
+  { key: 'ngay', header: 'Ngày đăng', width: 90, sortValue: (x) => x.ngay_dang ?? '', cell: (x) => ngayVn(x.ngay_dang) },
+  { key: 'vnd', header: 'Tiền', width: 80, sortValue: (x) => x.vnd, total: (rs) => `${rs.reduce((t, x) => t + (x.vnd ?? 0), 0).toLocaleString('vi-VN')}₫`, cell: (x) => `${(x.vnd ?? 0).toLocaleString('vi-VN')}₫` },
+  { key: 'ghi', header: 'Ghi chú / lỗi', align: 'left', cell: (x) => <span style={{ color: x.trang_thai === 'hong' ? 'var(--bad, #dc2626)' : 'var(--fg-2)' }}>{x.trang_thai === 'hong' ? x.loi : x.ghi}<div style={{ color: 'var(--fg-3)', fontSize: 11 }}>{x.slug}</div></span> },
+  { key: 'tep', header: 'Tệp', width: 60, cell: (x) => (x.tep ? <a href={x.tep} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>mở ↗</a> : '—') },
+];
+
 export function MaySxView() {
   const [ngay, setNgay] = useState(() => { try { return new URLSearchParams(window.location.search).get('sx_ngay') ?? '7'; } catch { return '7'; } });
   const [du, setDu] = useState<{ luot: Luot[]; viec: ViecSx[]; loi: string[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
@@ -39,7 +62,6 @@ export function MaySxView() {
     const hoi = async () => { try { const r = await fetch(`/api/may-sx/so?ngay=${ngay}`, { cache: 'no-store' }); const j = await r.json(); if (j.error) throw new Error(j.error); if (!dung) { setDu(j); setLoi(null); } } catch (e) { if (!dung) setLoi((e as Error).message); } };
     hoi(); const t = setInterval(hoi, 30_000); return () => { dung = true; clearInterval(t); };
   }, [ngay, nguon]);
-  const o = { padding: '6px 10px', borderBottom: '1px solid var(--border)', textAlign: 'left' as const, verticalAlign: 'top' as const };
   const tien = du?.luot.reduce((t, x) => t + (x.vnd ?? 0), 0) ?? 0, hong = du?.luot.filter((x) => tinhTrang(x).chu !== '✓ xong' && tinhTrang(x).chu !== '⏳ đang dựng').length ?? 0;
   return (
     <div style={{ display: 'grid', gap: 18 }}>
@@ -56,23 +78,12 @@ export function MaySxView() {
               style={{ border: `1px solid ${n.mau}`, background: on ? n.mau : 'transparent', color: on ? '#fff' : n.mau, borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
               {n.ten} {so}{hong ? <span style={{ color: on ? '#fff' : 'var(--bad, #dc2626)' }}> · {hong} lỗi</span> : null}{on ? ' ✕' : ''}</button>; })}
         </div> : null}
-        {!du ? <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Đang tải…</div> : (() => {
-          const ds = du.viec.filter((v) => !nguon || v.nguon === nguon).sort((a, b) => Number(!!b.loi) - Number(!!a.loi));
-          if (!ds.length) return <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Không có việc sản xuất nào{nguon ? ' ở nguồn này' : ''}.</div>;
-          return <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
-            <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
-              <thead><tr style={{ color: 'var(--fg-2)' }}><th style={o}>Nguồn</th><th style={o}>Việc</th><th style={o}>Bước</th><th style={o} title="lần cập nhật gần nhất của việc này ở nguồn gốc">Cập nhật</th><th style={o}>Ghi chú / lỗi</th></tr></thead>
-              <tbody>{ds.map((v) => { const n = NGUON.find((x) => x.k === v.nguon)!, pct = v.so != null && v.tong ? Math.min(100, Math.round((v.so / v.tong) * 100)) : null;
-                return <tr key={v.khoa} onClick={() => moViec(v)} title="bấm mở chi tiết" style={{ cursor: 'pointer', background: v.loi ? 'color-mix(in srgb, var(--bad, #dc2626) 7%, transparent)' : undefined }}>
-                  <td style={{ ...o, whiteSpace: 'nowrap' }}><span style={{ color: n.mau, fontWeight: 600 }}>● {n.ten}</span></td>
-                  <td style={o}><div style={{ fontWeight: 600 }}>{v.ten}</div>{v.cua ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>{v.cua}</div> : null}</td>
-                  <td style={{ ...o, minWidth: 140 }}><div>{v.buoc}</div>{pct != null ? <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                    <span style={{ flex: 1, height: 5, borderRadius: 3, background: 'var(--bg-2, rgba(0,0,0,.08))', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: `${pct}%`, background: v.loi ? 'var(--bad, #dc2626)' : n.mau }} /></span>
-                    <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{v.so}/{v.tong}</span></div> : null}</td>
-                  <td style={{ ...o, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: 'var(--fg-2)' }}>{v.luc ? `${tuLuc(v.luc)} trước` : '—'}</td>
-                  <td style={{ ...o, color: v.loi ? 'var(--bad, #dc2626)' : 'var(--fg-2)' }}>{v.loi ? `✗ ${v.loi}` : v.ghi ?? ''}</td></tr>; })}</tbody>
-            </table></div>;
-        })()}
+        {/* DataTable nhà (audit 11/11/2026: bảng tự dựng dài 4.000–7.000px không tiêu đề dính, không phân trang — do-man cuon 3/3 khổ) */}
+        {!du ? <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Đang tải…</div>
+          : <DataTable rows={du.viec.filter((v) => !nguon || v.nguon === nguon).sort((a, b) => Number(!!b.loi) - Number(!!a.loi))} columns={COT_VIEC}
+              getRowKey={(v) => v.khoa} onRowClick={(v) => moViec(v)} rowTitle={() => 'bấm mở chi tiết ở trang gốc'}
+              rowStyle={(v) => (v.loi ? { background: 'color-mix(in srgb, var(--bad, #dc2626) 7%, transparent)' } : undefined)}
+              pageSize={20} persistKey="may-sx-viec" minWidth={760} />}
       </section>
       <section>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -82,19 +93,8 @@ export function MaySxView() {
             {['1', '7', '30'].map((n) => <button key={n} type="button" aria-pressed={ngay === n} onClick={() => setNgay(n)} style={{ border: 0, padding: '4px 10px', fontSize: 12, cursor: 'pointer', background: ngay === n ? 'var(--accent-soft, rgba(37,99,235,.14))' : 'var(--bg-1)', color: 'inherit', fontWeight: ngay === n ? 700 : 400 }}>{n} ngày</button>)}
           </span>
         </div>
-        {!du ? null : !du.luot.length ? <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Chưa có lượt dựng nào trong {ngay} ngày.</div> : (
-          <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
-            <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
-              <thead><tr style={{ color: 'var(--fg-2)' }}><th style={o}>Lúc</th><th style={o}>Kết quả</th><th style={o}>Kênh</th><th style={o}>Dạng</th><th style={o}>Ngày đăng</th><th style={{ ...o, textAlign: 'right' }}>Tiền</th><th style={o}>Ghi chú / lỗi</th><th style={o}>Tệp</th></tr></thead>
-              <tbody>{du.luot.map((x) => <tr key={x.id}>
-                <td style={{ ...o, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{gioVn(x.luc)}</td>
-                <td style={o}><span title={tinhTrang(x).chu === '⚠ mất dấu' ? `lượt bắt đầu quá ${MAT_DAU_PHUT} phút mà chưa kết thúc — bị ngắt giữa chừng, bài chưa có tệp; lượt kế máy dựng lại` : undefined} style={{ fontWeight: 600, color: tinhTrang(x).mau }}>{tinhTrang(x).chu}</span></td>
-                <td style={o}>{x.may}</td><td style={{ ...o, whiteSpace: 'nowrap' }}>{x.kieu_ten ?? '—'}</td><td style={{ ...o, fontVariantNumeric: 'tabular-nums' }}>{ngayVn(x.ngay_dang)}</td>
-                <td style={{ ...o, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{x.vnd ? `${x.vnd.toLocaleString('vi-VN')}₫` : '0₫'}</td>
-                <td style={{ ...o, color: x.trang_thai === 'hong' ? 'var(--bad, #dc2626)' : 'var(--fg-2)' }}>{x.trang_thai === 'hong' ? x.loi : x.ghi}<div style={{ color: 'var(--fg-3)', fontSize: 11 }}>{x.slug}</div></td>
-                <td style={o}>{x.tep ? <a href={x.tep} target="_blank" rel="noreferrer">mở ↗</a> : '—'}</td></tr>)}</tbody>
-            </table>
-          </div>)}
+        {!du ? null : !du.luot.length ? <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Chưa có lượt dựng nào trong {ngay} ngày.</div>
+          : <DataTable rows={du.luot} columns={COT_LUOT} getRowKey={(x) => String(x.id)} pageSize={20} persistKey="may-sx-luot" minWidth={900} />}
       </section>
     </div>
   );

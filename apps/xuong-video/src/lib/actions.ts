@@ -213,9 +213,20 @@ export async function dsPhim(): Promise<Phim[]> {
         (SELECT c.keyframe_url FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id AND c.keyframe_url IS NOT NULL ORDER BY c.updated_at DESC, c.id DESC LIMIT 1) AS anh_dai_dien,
         (SELECT count(*) FROM xv_anh_qc a WHERE a.phim_id = p.id AND NOT a.an) AS so_anh_qc,
         (SELECT coalesce(json_agg(json_build_object('id', a.id, 'url', a.url, 'ti_le', a.ti_le) ORDER BY a.id), '[]'::json)
-          FROM xv_anh_qc a WHERE a.phim_id = p.id AND NOT a.an AND a.url IS NOT NULL) AS anh_qc_tom
+          FROM (SELECT a.id, a.url, a.ti_le FROM xv_anh_qc a WHERE a.phim_id = p.id AND NOT a.an AND a.url IS NOT NULL ORDER BY a.id LIMIT 6) a) AS anh_qc_tom,
+        -- BẢN TÓM cho DANH SÁCH (anh 11/11/2026 "tab shots load chậm"): trang chủ gửi kèm mọi phim (~2.900, phần lớn creative Ethopex) — trước
+        -- gửi nguyên kinh thánh + mô tả → HTML 5,2 MB mỗi lần mở studio, kể cả mở thẳng một phim. Ngăn phim đọc bản đầy đủ bằng docPhim;
+        -- danh sách chỉ đọc đúng các khoá dưới (nhom-phim.ts · template-ui.tsx · trang.tsx · kho-creative-ui.tsx). Thêm khoá đọc ở danh sách → thêm vào đây.
+        jsonb_strip_nulls(jsonb_build_object(
+          'luu_tru', p.kinh_thanh->'luu_tru', 'series', p.kinh_thanh->'series', 'template', p.kinh_thanh->'template',
+          'tu_template', CASE WHEN p.kinh_thanh ? 'tu_template' THEN jsonb_build_object('id', p.kinh_thanh->'tu_template'->'id') END,
+          'qc', CASE WHEN p.kinh_thanh ? 'qc' THEN jsonb_build_object('ten', p.kinh_thanh->'qc'->'ten', 'link', p.kinh_thanh->'qc'->'link') END,
+          'ethopex', CASE WHEN p.kinh_thanh ? 'ethopex' THEN jsonb_build_object('creative_id', p.kinh_thanh->'ethopex'->'creative_id', 'camp_id', p.kinh_thanh->'ethopex'->'camp_id',
+            'camp_nhan_ban', p.kinh_thanh->'ethopex'->'camp_nhan_ban', 'so_lieu', p.kinh_thanh->'ethopex'->'so_lieu') END,
+          'the_loai', p.kinh_thanh->'the_loai', 'ngon_ngu', p.kinh_thanh->'ngon_ngu')) AS kt_tom,
+        CASE WHEN p.kinh_thanh ? 'template' THEN p.mo_ta ELSE '' END AS mo_ta_tom
       FROM xv_phim p WHERE p.loai <> 'may_dung' ORDER BY p.updated_at DESC`);   // video máy ở cửa ⚙ Tự động (xv_may_video); phim Máy Dựng cũ mở qua mId vẫn được
-    return (r as unknown as Row[]).map(mapPhim);
+    return (r as unknown as Row[]).map((x) => mapPhim({ ...x, kinh_thanh: x.kt_tom, mo_ta: x.mo_ta_tom }));
   } catch { return []; }
 }
 const mapPhim = (r: Row): Phim => ({

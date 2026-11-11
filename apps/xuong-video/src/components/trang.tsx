@@ -43,6 +43,13 @@ export function XuongVideoTrang(props: { phimDau: Phim[]; khoa: Khoa }) {
   return <Suspense fallback={<span style={mono}>…</span>}><Ruot {...props} /></Suspense>;
 }
 
+/** Cắt danh sách nhóm còn tối đa `toiDa` dòng phim (nhóm cuối có thể bị cắt dở) — giữ thứ tự, nhóm rỗng sau cắt thì bỏ. */
+function catNhom<G extends { phim: unknown[] }>(ds: G[], toiDa: number): G[] {
+  const ra: G[] = []; let con = toiDa;
+  for (const g of ds) { if (con <= 0) break; ra.push(g.phim.length <= con ? g : { ...g, phim: g.phim.slice(0, con) }); con -= g.phim.length; }
+  return ra;
+}
+
 function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   const [phim, setPhim] = useState<Phim[]>(phimDau);
   const [ten, setTen] = useState('');
@@ -54,7 +61,8 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   const [locKieu, setLocKieu] = useNho<KieuNhom | ''>('xv-loc-kieu', '', ['', 'series', 'quang_cao', 'phim']);   // template + video máy có cửa riêng, không còn là bộ lọc
   const [locTim, setLocTim] = useState('');
   const [hienLuuTru, setHienLuuTru] = useState(false);
-  const [tapMo, setTapMo] = useState<number | null>(null);   // bấm chip tập → mở ngăn phim đúng tập
+  const [tapMo, setTapMo] = useState<number | null>(null);
+  const [soHien, setSoHien] = useState(150);   // số dòng phim vẽ trong danh sách 🎬 Làm tự do   // bấm chip tập → mở ngăn phim đúng tập
   const taiLai = useCallback(async () => setPhim(await dsPhim()), []);
   const [moHinh, setMoHinh] = useState<{ anh: MoHinhChon[]; video: MoHinhChon[] }>({ anh: [], video: [] });
   useEffect(() => { void dsMoHinh().then(setMoHinh); }, []);
@@ -167,7 +175,8 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
             {!nhom.length && <div style={{ ...mono, padding: 16 }}>Không có phim khớp bộ lọc.</div>}
             {/* Series LUÔN có đầu nhóm, kể cả mới một bản (anh 17/10/2026 "cho vào group của film này"): series là chỗ gom các bản / ngôn ngữ / tập —
                 bản tiếng Anh của 'Nữ Thừa Kế Bí Mật' sẽ vào đúng nhóm. Nhóm một phim kiểu khác vẫn gọn một dòng (15/10/2026). */}
-            {nhom.map((g) => g.phim.length === 1 && g.kieu !== 'series'
+            {/* Vẽ tối đa soHien dòng (anh 11/11/2026: danh sách ~2.800 creative Ethopex vẽ hết = 35.000 phần tử + ~230 ảnh, nằm sau cả ngăn phim) */}
+            {catNhom(nhom, soHien).map((g) => g.phim.length === 1 && g.kieu !== 'series'
               ? dong(g.phim[0]!, <span style={{ fontSize: 12, width: 16, textAlign: 'center' }} title={TEN_KIEU[g.kieu]}>{bieuTuong(g.kieu)}</span>)
               : (
                 <section key={g.key}>
@@ -178,6 +187,8 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
                   {g.phim.map((p) => dong(p))}
                 </section>
               ))}
+            {(() => { const tong = nhom.reduce((a, g) => a + g.phim.length, 0); return tong > soHien && (
+              <div style={{ padding: 10, textAlign: 'center' }}><Nut onClick={() => setSoHien(soHien + 300)} title="Danh sách chỉ vẽ một phần cho nhẹ; ô 🔍 tìm vẫn lọc trên toàn bộ phim">Hiện thêm 300 · đang hiện {soHien} / {tong}</Nut></div>); })()}
           </div>
         );
       })()}

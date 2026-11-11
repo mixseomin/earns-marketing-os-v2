@@ -22,7 +22,7 @@ const LUAT = [
   { card: 'nhanh-1011', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"nhanh": [[8, 12], [21, 6]]', vi: 'sổ luật chung có khung tăng nhanh' },
   { card: 'thi-truong-1111', tep: 'apps/etp2/src/lib/etp-widget.json', co: '"thi_truong"', vi: 'Tổng quan 2 có mẫu + widget Thị trường: lịch nhiệt CPM tháng, ngày chưa tới dự đoán (anh 11/11/2026)' },
   { card: 'thi-truong-1111', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'thi_truong: ({ rong, cao }) =>', vi: 'hàm vẽ widget Thị trường' },
-  { card: 'thi-truong-1111', tep: 'apps/etp2/src/lib/etp-thi-truong.ts', co: 'HỆ SỐ MÙA LÀ GIẢ ĐỊNH', vi: 'dự đoán ghi rõ giả định, không đoán ROI' },
+  { card: 'thi-truong-1111', tep: 'apps/etp2/src/lib/etp-thi-truong.ts', co: 'export function saiSo(', vi: 'dự đoán kèm biên sai máy tự đo trên số thật, ngày lễ có nguồn / giả định ghi rõ, không đoán ROI (anh 11/11/2026 "thông tin đúng hơn")' },
   { card: 'tach-1011', tep: 'apps/etp2/src/lib/etp-widget.json', co: '"phan_tach"', vi: 'Tổng quan 2 có bố cục Breakdown theo bộ lọc (anh 10/11/2026)' },
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function BangTach({ ds, so }', vi: 'widget breakdown dùng chung cho mọi ô lọc' },
   { card: 'tpl-1011', tep: 'apps/etp2/src/components/etp-tong2.tsx', co: 'rong="Bố cục tự sửa"', cam: 'rong="Bố cục đang dùng"', vi: 'ô Template ghi tên bố cục đang hiện, không ghi chung chung (anh 10/11/2026)' },

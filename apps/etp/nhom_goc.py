@@ -1,6 +1,6 @@
 """NHÓM GỐC PHIM tự chấm trên poster (thiếu poster → 4 khung giữa video creative đã chấm) (anh 29/10/2026: "dừng các phim ngoài âu mỹ … chặn khi lên camp target US" → "làm cho kín").
 Cổng cong.kiem gặp phim chưa có etp.phim.nhom_goc thì gọi cham(content_id) NGAY lúc định lên camp (theo sự kiện, không chạy nền):
-poster (ethopex_content.anh, CDN dofez) + tên phim → mô hình nhìn ảnh rẻ qua ckey (tuyến sống /var/lib/spy/ckey-tuyen.json, Haiku trước) → ghi nhom_goc.
+poster (ethopex_content.anh, CDN dofez) + tên phim → mô hình nhìn ảnh rẻ qua ai_chu.py (donk → ckey, Haiku trước) → ghi nhom_goc.
 Luật chấm giống lần chấm tay 200 phim (apps/etp/phan-tich/nhom-goc-phim.json): theo NGOẠI HÌNH diễn viên; hoat_hinh CHỈ khi nhìn ra tranh vẽ / hoạt hình 2D-3D;
 phim làm bằng AI mà nhìn như người thật xếp theo ngoại hình. Không chấm được (lỗi mạng / ảnh) → trả None, cổng CHẶN (kín: chưa biết nhóm thì không lên).
   python3 apps/etp/nhom_goc.py <content_id…> [--ghi]   (không --ghi: chỉ in, không ghi kho)"""
@@ -21,10 +21,8 @@ doll-like skin with no pores, oversized glossy eyes, glowing fantasy-art lightin
 camera photo of real people (film still, studio shot), even if retouched or AI-made. When in doubt between a glossy fantasy illustration and a photo, choose tranh_ve.
 Title: """
 _q = lambda s, db: subprocess.run(["psql", db, "-tAc", s], capture_output=True, text=True, timeout=30).stdout.strip()
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import ai_chu as AI   # MỘT đường gọi AI (donk → ckey)
 def _spy(): return subprocess.run(["bash", "-c", ". /root/.secrets/spy.env; echo \"$DATABASE_URL|$CKEY_KEY\""], capture_output=True, text=True).stdout.strip().split("|", 1)
-def _tuyen():
-    try: j = json.load(open("/var/lib/spy/ckey-tuyen.json"))["dong"]; return [m.replace("ckey:", "") for m in (j.get("haiku") or []) + (j.get("sonnet") or [])]
-    except Exception: return ["nghiaphan0633/claude-haiku-5.5"]
 
 def cham(content_id, ghi=True, them=None):
     """→ (nhom | None, chi_vnd, ly_do) · them = ảnh cảnh trong phim (URL hoặc data URI) — POSTER + CẢNH chấm cùng lúc (anh 04/11/2026 "quét poster + vài cảnh trong phim")"""
@@ -50,22 +48,15 @@ def cham(content_id, ghi=True, them=None):
                 if og: anh_ds, nguon = [og], "poster trang phim"
             except Exception as e: print("poster trang phim lỗi:", e, file=sys.stderr)
         if not anh_ds: return None, 0, "không có poster trong kho Ethopex, trang phim không có ảnh og:image, chưa có creative nào chấm xong để lấy khung"
-    chi, loi = 0.0, ""
-    for model in _tuyen()[:3]:
-        try:
-            body = {"model": model, "max_tokens": 200, "messages": [{"role": "user", "content": [*({"type": "image_url", "image_url": {"url": u}} for u in anh_ds), {"type": "text", "text": (LUAT if nguon.startswith("poster") else LUAT.replace("this short-drama poster", "these frames from the short drama's ad video")) + ten}]}],
-                    "tools": [{"type": "function", "function": {"name": "ghi_nhom", "parameters": {"type": "object", "required": ["kieu_anh", "nhom", "ly_do"], "properties": {"kieu_anh": {"type": "string", "enum": ["anh_chup", "tranh_ve"]}, "nhom": {"type": "string", "enum": NHOM}, "ly_do": {"type": "string"}}}}}],
-                    "tool_choice": {"type": "function", "function": {"name": "ghi_nhom"}}}
-            r = json.load(urllib.request.urlopen(urllib.request.Request("https://api.xah.io/v1/chat/completions", data=json.dumps(body).encode(), headers={"Authorization": f"Bearer {khoa}", "content-type": "application/json"}), timeout=120))
-            chi += float(((r.get("usage") or {}).get("x_ckey") or {}).get("cost") or 0)
-            a = json.loads(r["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
-            if a.get("kieu_anh") == "tranh_ve": a["nhom"] = "hoat_hinh"   # tranh vẽ thắng ngoại hình (anh: phim kiểu tranh vẽ phải chỉ rõ)
-            if a.get("nhom") in NHOM:
-                if ghi: _q(f"insert into etp.phim (content_id, ten, nhom_goc) values ({int(content_id)}, $T${ten}$T$, '{a['nhom']}') on conflict (content_id) do update set nhom_goc = excluded.nhom_goc", db)
-                return a["nhom"], round(chi), f"{model} ({nguon}): {str(a.get('ly_do'))[:120]}"
-            loi = f"{model}: nhóm lạ {a.get('nhom')}"
-        except Exception as e: loi = f"{model}: {str(e)[:120]}"
-    return None, round(chi), loi
+    noi = [*({"type": "image_url", "image_url": {"url": u}} for u in anh_ds), {"type": "text", "text": (LUAT if nguon.startswith("poster") else LUAT.replace("this short-drama poster", "these frames from the short drama's ad video")) + ten}]
+    def kiem(a):
+        if a.get("kieu_anh") == "tranh_ve": a["nhom"] = "hoat_hinh"   # tranh vẽ thắng ngoại hình (anh: phim kiểu tranh vẽ phải chỉ rõ)
+        return None if a.get("nhom") in NHOM else f"nhóm lạ {a.get('nhom')}"
+    a, chi, model, loi = AI.goi(noi, max_tokens=200, kiem=kiem, timeout=120, cong_cu=("ghi_nhom", {"type": "object", "required": ["kieu_anh", "nhom", "ly_do"],
+        "properties": {"kieu_anh": {"type": "string", "enum": ["anh_chup", "tranh_ve"]}, "nhom": {"type": "string", "enum": NHOM}, "ly_do": {"type": "string"}}}))   # donk → ckey: ai_chu.py
+    if not a: return None, round(chi), loi
+    if ghi: _q(f"insert into etp.phim (content_id, ten, nhom_goc) values ({int(content_id)}, $T${ten}$T$, '{a['nhom']}') on conflict (content_id) do update set nhom_goc = excluded.nhom_goc", db)
+    return a["nhom"], round(chi), f"{model} ({nguon}): {str(a.get('ly_do'))[:120]}"
 
 if __name__ == "__main__":
     ids = [int(x) for x in sys.argv[1:] if x.isdigit()]; tong = 0

@@ -6,7 +6,8 @@ Không chấm được (lỗi mạng / ảnh) → trả None, KHÔNG ghi sổ (c
   python3 apps/etp/soat_18_ai.py <content_id…> [--ghi]   (không --ghi: chỉ in)"""
 import json, os, re, subprocess, sys, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from nhom_goc import _q, _spy, _tuyen
+from nhom_goc import _q
+import ai_chu as AI   # MỘT đường gọi AI (donk → ckey)
 
 K18 = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "kiem-phim-18.py")
 LUAT = """You screen a short-drama POSTER (plus title and synopsis) before it is advertised on Facebook. Answer with the tool.
@@ -36,28 +37,20 @@ def _tom_tat(url):
 
 def soat(content_id, ghi=True):
     """→ (dat True/False | None, chi_vnd, ly_do)"""
-    db = os.environ["DATABASE_URL"]; _, khoa = _spy()
+    db = os.environ["DATABASE_URL"]
     r = _q(f"select coalesce(ten, '') || '|' || coalesce(anh, '') || '|' || coalesce(url, '') from etp.thu_vien_phim where content_id = {int(content_id)}", db)
     ten, anh, url = (r.split("|", 2) + ["", "", ""])[:3]
     if not anh: return None, 0, "không có poster trong kho thư viện (etp.thu_vien_phim)"
     anh = anh if anh.startswith("http") else f"https://acdn.dofez.com/{anh.lstrip('/')}"
     chu = f"{ten}\nSynopsis: {_tom_tat(url)}"
-    chi, loi = 0.0, ""
-    for model in _tuyen()[:3]:
-        try:
-            body = {"model": model, "max_tokens": 300, "messages": [{"role": "user", "content": [{"type": "image_url", "image_url": {"url": anh}}, {"type": "text", "text": LUAT + chu}]}],
-                    "tools": [{"type": "function", "function": {"name": "ket_qua", "parameters": {"type": "object", "required": ["dat", "vi_pham", "ly_do"], "properties": {
-                        "dat": {"type": "boolean"}, "vi_pham": {"type": "array", "items": {"type": "string"}}, "ly_do": {"type": "string"}}}}}],
-                    "tool_choice": {"type": "function", "function": {"name": "ket_qua"}}}
-            r = json.load(urllib.request.urlopen(urllib.request.Request("https://api.xah.io/v1/chat/completions", data=json.dumps(body).encode(), headers={"Authorization": f"Bearer {khoa}", "content-type": "application/json"}), timeout=120))
-            chi += float(((r.get("usage") or {}).get("x_ckey") or {}).get("cost") or 0)
-            a = json.loads(r["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
-            if not isinstance(a.get("dat"), bool): loi = f"{model}: trả lời lạ"; continue
-            ly = f"AI soát poster ({model.split('/')[-1]}): {str(a.get('ly_do') or '')[:160]}" + (f" — {', '.join(a.get('vi_pham') or [])}" if not a["dat"] else "")
-            if ghi: subprocess.run(["python3", K18, "--soat", str(int(content_id)), "ok" if a["dat"] else "cam", ly], capture_output=True, text=True, timeout=60)
-            return a["dat"], round(chi), ly
-        except Exception as e: loi = f"{model}: {str(e)[:120]}"
-    return None, round(chi), loi
+    a, chi, model, loi = AI.goi([{"type": "image_url", "image_url": {"url": anh}}, {"type": "text", "text": LUAT + chu}], max_tokens=300, timeout=120,
+        kiem=lambda a: None if isinstance(a.get("dat"), bool) else "trả lời lạ",
+        cong_cu=("ket_qua", {"type": "object", "required": ["dat", "vi_pham", "ly_do"], "properties": {
+            "dat": {"type": "boolean"}, "vi_pham": {"type": "array", "items": {"type": "string"}}, "ly_do": {"type": "string"}}}))   # donk → ckey: ai_chu.py
+    if not a: return None, round(chi), loi
+    ly = f"AI soát poster ({model.split('/')[-1]}): {str(a.get('ly_do') or '')[:160]}" + (f" — {', '.join(a.get('vi_pham') or [])}" if not a["dat"] else "")
+    if ghi: subprocess.run(["python3", K18, "--soat", str(int(content_id)), "ok" if a["dat"] else "cam", ly], capture_output=True, text=True, timeout=60)
+    return a["dat"], round(chi), ly
 
 if __name__ == "__main__":
     ids = [int(x) for x in sys.argv[1:] if x.isdigit()]; tong = 0

@@ -23,6 +23,7 @@ NHAN_ROI3, NHAN_CHI3 = 100, 10                   # nên nhân bản: 3 ngày ROI
 TOI_DA = 5                                        # mỗi danh sách tối đa 5 camp (xếp theo $ ảnh hưởng)
 VN = dt.timezone(dt.timedelta(hours=7))
 GOC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import ai_chu as AI
 
 def q(s):
     r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=s, capture_output=True, text=True)
@@ -139,11 +140,6 @@ def mot_nguoi(nid, ten, ngay, camp, gio, tt, the, tu_dong, nha_gio, now):
             "dem": {"tat": len(tat), "tang": len(tang), "roas": len(roas), "nhan": len(nhan)}}
 
 # ---------- lời bình AI (ckey) ----------
-def _ckey():
-    r = subprocess.run(["bash", "-c", ". /root/.secrets/spy.env; echo \"$CKEY_KEY\""], capture_output=True, text=True).stdout.strip()
-    try: tuyen = json.load(open("/var/lib/spy/ckey-tuyen.json"))["dong"]; m = [x.replace("ckey:", "") for x in (tuyen.get("haiku") or []) + (tuyen.get("sonnet") or [])]
-    except Exception: m = []
-    return r, m
 LUAT_AI = ("Bạn là cố vấn chạy quảng cáo phim ngắn trên Meta (Ethopex). Dưới đây là SỐ ĐÃ TÍNH của một người chạy. Viết MỘT câu tiếng Việt, tối đa 25 chữ, giọng điềm tĩnh, "
            "chỉ nói việc quan trọng nhất nên làm ngay trong phiên tới. CHỈ dùng số có trong dữ liệu, không bịa số, không lặp lại cả bảng. "
            "Nếu thị trường cả đội cùng lệch thì nói rõ là do thị trường. Không dùng markdown, không gạch đầu dòng.")
@@ -151,19 +147,9 @@ def loi_binh(du):
     q(BANG)
     da = float(q("select coalesce(sum(chi_ai), 0) from etp.tu_van where luc > date_trunc('day', now() at time zone 'Asia/Ho_Chi_Minh') at time zone 'Asia/Ho_Chi_Minh'") or 0)
     if da >= AI_TRAN_NGAY: return None, 0, f"đã dùng {da:.0f}₫ hôm nay (trần {AI_TRAN_NGAY}₫)"
-    khoa, tuyen = _ckey(); loi = "không có tuyến ckey"
     gon = {k: du[k] for k in ("nguoi", "hien_trang", "thi_truong", "phien", "may_se_lam", "dem")} | {"nen": {k: v[:3] for k, v in du["nen"].items()}}
-    for model in tuyen[:3]:
-        try:
-            body = {"model": model, "max_tokens": 120, "messages": [{"role": "user", "content": LUAT_AI + "\n\n" + json.dumps(gon, ensure_ascii=False)}]}
-            r = json.load(urllib.request.urlopen(urllib.request.Request("https://api.xah.io/v1/chat/completions", data=json.dumps(body).encode(),
-                headers={"Authorization": f"Bearer {khoa}", "content-type": "application/json"}), timeout=60))
-            chi = float(((r.get("usage") or {}).get("x_ckey") or {}).get("cost") or 0)
-            t = (r["choices"][0]["message"]["content"] or "").strip()
-            if t: return t[:900], chi, model
-            loi = f"{model}: trả rỗng"
-        except Exception as e: loi = f"{model}: {str(e)[:120]}"
-    return None, 0, loi
+    t, chi, mo, loi = AI.goi(LUAT_AI + "\n\n" + json.dumps(gon, ensure_ascii=False), max_tokens=120, timeout=60)   # chuỗi cổng donk → ckey: apps/etp/ai_chu.py
+    return (t[:900], chi, mo) if t else (None, chi, loi)
 
 # ---------- độ đúng (B5) ----------
 # Mỗi đề xuất trong bản ĐÃ GỬI (phien 'HH:MM') ngày D (ngày Ethopex) chấm bằng ngày D+1 đã khép của chính camp đó:

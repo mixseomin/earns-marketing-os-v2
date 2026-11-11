@@ -49,10 +49,28 @@ const SCHEMA = { type: 'object', required: ['nhan_vat', 'nguoi_ke', 'boi_canh', 
   nhan_vat: { type: 'string' }, nguoi_ke: { type: 'string', enum: ['nu', 'nam'] },
   boi_canh: { type: 'object', required: ['ten', 'mo_ta'], properties: { ten: { type: 'string' }, mo_ta: { type: 'string' } } },
   canh: { type: 'array', minItems: 6, maxItems: 6, items: { type: 'object', required: ['loi', 'anh', 'dong'], properties: { loi: { type: 'string' }, anh: { type: 'string' }, dong: { type: 'string' } } } } } };
-let kq: { nhan_vat: string; nguoi_ke: 'nu' | 'nam'; boi_canh: { ten: string; mo_ta: string }; canh: { loi: string; anh: string; dong: string }[] } | null = null;
+type KichBan = { nhan_vat: string; nguoi_ke: 'nu' | 'nam'; boi_canh: { ten: string; mo_ta: string }; canh: { loi: string; anh: string; dong: string }[] };
+let kq: KichBan | null = null;
 let chi = 0, loi = '';
-for (const model of TUYEN) {
+// CỔNG CHỮ = đúng danh sách từ cấm cat-canh / kiem-thoai.py dùng (một nguồn) — một hàm cho mọi lượt (donk + ckey)
+const tuCam = (canh: { loi: string }[]): string[] => (JSON.parse(execFileSync('python3', ['-c', `import importlib.util as u,json,sys;s=u.spec_from_file_location('k','scripts/ethopex/kiem-thoai.py');m=u.module_from_spec(s);s.loader.exec_module(m);print(json.dumps([m.soat(c) for c in json.load(sys.stdin)]))`],
+      { input: JSON.stringify(canh.map((c) => c.loi)), encoding: 'utf8' }).trim().split('\n').pop()!) as (string | null)[]).map((w, i) => (w ? `#${i + 1} "${w}"` : '')).filter(Boolean);
+// DONK ĐẦU CHUỖI (anh 11/11/2026): lượt 'donk' đi qua apps/etp/ai_chu.py --json (MỘT đường gọi AI của Ethopex: đổi khuôn, ảnh base64, tiền ước), rồi mới tới tuyến ckey
+const quaDonk = (): { x: unknown; vnd: number; loi: string | null } => {
+  const out = execFileSync('python3', [new URL('../../../etp/ai_chu.py', import.meta.url).pathname, '--json'], { encoding: 'utf8', timeout: 6 * 60e3, maxBuffer: 16 << 20,
+    input: JSON.stringify({ noi: [{ type: 'image_url', image_url: { url: poster } }, { type: 'text', text: LUAT }], max_tokens: 3000, cong_cu: ['ghi_kich_ban', SCHEMA], uu: 'sonnet', cong: ['donk'], timeout: 300 }) });
+  const j = JSON.parse(out.trim().split('\n').pop()!) as { ket: unknown; vnd: number; loi: string | null };
+  return { x: j.ket, vnd: Number(j.vnd) || 0, loi: j.loi };
+};
+for (const model of ['donk', ...TUYEN]) {
   try {
+    if (model === 'donk') {
+      const d = quaDonk(); chi += d.vnd; const x = d.x as KichBan | null;
+      if (!x) { loi = `donk: ${d.loi}`; continue; }
+      const dinh = x.canh?.length === 6 ? tuCam(x.canh) : [];
+      if (x.canh?.length === 6 && x.nhan_vat && !dinh.length) { kq = x; break; }
+      loi = dinh.length ? `donk: lời dính từ cấm ${dinh.join(', ')}` : 'donk: sai khuôn'; continue;
+    }
     const r = await fetch('https://api.xah.io/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${KHOA}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(5 * 60e3),
       body: JSON.stringify({ model, max_tokens: 3000, messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: poster } }, { type: 'text', text: LUAT }] }],
         tools: [{ type: 'function', function: { name: 'ghi_kich_ban', description: 'Ghi kịch bản QC kể chuyện', parameters: SCHEMA } }], tool_choice: { type: 'function', function: { name: 'ghi_kich_ban' } } }) });
@@ -61,8 +79,7 @@ for (const model of TUYEN) {
     const a = j.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     const x = a ? JSON.parse(a) : null;
     // CỔNG CHỮ = đúng danh sách từ cấm cat-canh / kiem-thoai.py dùng (một nguồn): câu nào dính thì thử tuyến kế, không để tới bước dựng mới bị chặn
-    const dinh = x?.canh?.length === 6 ? (JSON.parse(execFileSync('python3', ['-c', `import importlib.util as u,json,sys;s=u.spec_from_file_location('k','scripts/ethopex/kiem-thoai.py');m=u.module_from_spec(s);s.loader.exec_module(m);print(json.dumps([m.soat(c) for c in json.load(sys.stdin)]))`],
-      { input: JSON.stringify(x.canh.map((c: { loi: string }) => c.loi)), encoding: 'utf8' }).trim().split('\n').pop()!) as (string | null)[]).map((w, i) => (w ? `#${i + 1} "${w}"` : '')).filter(Boolean) : [];
+    const dinh = x?.canh?.length === 6 ? tuCam(x.canh) : [];
     if (x?.canh?.length === 6 && x.nhan_vat && !dinh.length) { kq = x; break; }
     if (dinh.length) { loi = `${model}: lời dính từ cấm ${dinh.join(', ')}`; continue; }
     loi = `${model}: ${JSON.stringify(j.error ?? 'sai khuôn').slice(0, 160)}`;

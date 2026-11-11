@@ -80,12 +80,15 @@ HOI = ("You review a contact sheet (30 frames, in order) cut from a short drama,
        "Reply ONLY JSON: {\"ket\": \"ok\"|\"cam\"|\"xem\", \"ly\": \"<short reason in Vietnamese, name the frame>\", \"khung\": [<numbers of EVERY banned frame when ket is cam>]}")
 
 def goi_claude(jpg, hoi, max_tokens=300, kiem=None):   # jpg: một đường dẫn hoặc danh sách (nhiều tờ khung)
-    """chạy TRÊN BOX3: một tờ khung + câu hỏi → (JSON trả về, đường đã dùng) qua chuỗi rẻ ckey → ShopAIKey → Anthropic.
+    """chạy TRÊN BOX3: một tờ khung + câu hỏi → (JSON trả về, đường đã dùng) qua chuỗi donk → ckey → ShopAIKey → Anthropic.
     kiem(j) ném lỗi khi JSON sai khuôn → thử đường sau. Mọi đường lỗi → RuntimeError (người gọi quyết định giữ lại)."""
     import base64, urllib.request
     anh = [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": base64.b64encode(open(f, "rb").read()).decode()}} for f in ([jpg] if isinstance(jpg, str) else jpg)]
     nd = [{"role": "user", "content": [*anh, {"type": "text", "text": hoi}]}]
     e = os.environ; duong = []
+    # DONK ĐẦU CHUỖI (anh 11/11/2026): cùng khoá + tên model với apps/etp/ai_chu.py (một nguồn), khuôn Anthropic như chuỗi này
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import ai_chu as AI
+    if AI.khoa_donk(): duong += [("donk", AI.DONK_URL, AI.khoa_donk(), m) for m, _ in AI.DONK["sonnet" if "sonnet" in MO_HINH else "haiku"]]
     if e.get("CKEY_API_KEY"): duong += [("ckey", "https://api.xah.io/v1/messages", e["CKEY_API_KEY"], m) for m in CKEY]
     if e.get("SHOPAIKEY_API_KEY"): duong.append(("shopaikey", "https://api.shopaikey.com/v1/messages", e["SHOPAIKEY_API_KEY"], MO_HINH))
     if e.get("ANTHROPIC_API_KEY"): duong.append(("anthropic", "https://api.anthropic.com/v1/messages", e["ANTHROPIC_API_KEY"], MO_HINH))
@@ -93,7 +96,8 @@ def goi_claude(jpg, hoi, max_tokens=300, kiem=None):   # jpg: một đường d�
     for ten, url, k, m in duong:
         try:
             h = {"x-api-key": k, "anthropic-version": "2023-06-01", "content-type": "application/json"}
-            if ten != "anthropic": h["authorization"] = "Bearer " + k
+            if ten not in ("anthropic", "donk"): h["authorization"] = "Bearer " + k
+            if ten == "donk": h["user-agent"] = "mos2-etp"
             r = urllib.request.Request(url, data=json.dumps({"model": m, "max_tokens": max_tokens, "messages": nd}).encode(), method="POST", headers=h)
             t = "".join(b.get("text", "") for b in json.load(urllib.request.urlopen(r, timeout=180)).get("content", []) if b.get("type") == "text")
             j = json.loads(t[t.index("{"): t.rindex("}") + 1])

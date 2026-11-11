@@ -25,6 +25,8 @@ const doc = (ag, k) => { const i = ag.indexOf(k); return i >= 0 ? ag[i + 1] ?? n
 const lay = (k) => doc(ag, k);
 
 /** psql trên box3 — chữ SQL đi qua tệp để không vướng dấu nháy (bài học 11/11/2026: nhồi SQL vào -c bị shell nuốt). */
+// `-q`: chỉ in DỮ LIỆU, không in chữ báo lệnh (CREATE VIEW, ALTER TABLE, UPDATE 0…) — audit 11/11/2026: gộp CREATE VIEW + ALTER vào cùng
+// lượt SELECT thì các chữ đó lọt vào kết quả, canDung đọc chúng như một bài và vỡ (padEnd của undefined).
 // Tệp tạm MANG TÊN RIÊNG mỗi lần gọi (audit 11/11/2026: trước ghi chung /tmp/sx-tam.sql — hai lượt chạy cùng lúc, vd lịch tự chạy + con chạy tay,
 // ghi đè SQL của nhau trước khi scp, lượt này chạy nhầm câu của lượt kia).
 let soGoi = 0;
@@ -32,7 +34,7 @@ function psql(sql) {
   const ten = `sx-${process.pid}-${Date.now()}-${++soGoi}.sql`, cuc = `/tmp/${ten}`, t = `/tmp/${ten}`;
   writeFileSync(cuc, sql);
   execFileSync('scp', ['-q', cuc, `${BOX}:${t}`], { timeout: 120_000 });
-  return execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -tAf ${t}`], { encoding: 'utf8', timeout: 300_000 });
+  return execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -qtAf ${t}`], { encoding: 'utf8', timeout: 300_000 });
 }
 
 /** Dạng bài mặc định suy từ NỀN khi bài chưa khai dang.kieu_sx — ĐỌC SỔ (kieu-sx.json › mac_dinh: true), không gõ lại trong mã.

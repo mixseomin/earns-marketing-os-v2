@@ -26,9 +26,12 @@ let nho: { luc: number; ra: { viec: ViecSx[]; kenh: KenhSp[]; loi: string[] } } 
 
 /** Ô LỊCH Social Traffic của từng bài (theo máy + slug) để mở CHÍNH ngăn bài của lịch (ChiTietBai). Bài chưa có ô trên lịch (ngoài cửa sổ lịch, chưa xếp ngày)
  *  thì dựng ô cùng khuôn từ sổ bài — vẫn là ngăn bài của lịch, chỉ thiếu số liệu đăng. */
+let nhoLuoi: { luc: number; o: StLuoiO[] } | null = null;
 export async function baiTheoSlug(ds: { may: string; slug: string }[]): Promise<Map<string, StLuoiO>> {
   const ra = new Map<string, StLuoiO>(); if (!ds.length) return ra;
-  const { luoi } = await docLuoiSocial().catch(() => ({ luoi: { o: [] as StLuoiO[] } }));
+  // lịch Social dựng ~5 giây (đo 12/11/2026) — nhớ 60 giây như phần gom, tab hỏi lại mỗi 30 giây
+  if (!nhoLuoi || Date.now() - nhoLuoi.luc > 60_000) nhoLuoi = { luc: Date.now(), o: (await docLuoiSocial().catch(() => ({ luoi: { o: [] as StLuoiO[] } }))).luoi.o };
+  const luoi = { o: nhoLuoi.o };
   for (const o of luoi.o) if (o.slug && !ra.has(`${o.may}|${o.slug}`)) ra.set(`${o.may}|${o.slug}`, o);
   const thieu = ds.filter((x) => !ra.has(`${x.may}|${x.slug}`)); const d = getDb();
   if (thieu.length && d) {

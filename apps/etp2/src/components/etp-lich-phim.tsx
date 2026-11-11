@@ -37,6 +37,7 @@ const pc = (r: number | null) => (r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`
 const gioVn = (ms: number) => { const d = new Date(ms + 7 * 3600_000); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`; };
 const Thanh = ({ v, mau }: { v: number; mau: string }) => <span style={{ display: 'inline-block', width: 56, height: 6, borderRadius: 3, background: 'var(--line)', verticalAlign: 'middle', marginRight: 6, overflow: 'hidden' }}>
   <span style={{ display: 'block', width: `${Math.max(0, Math.min(1, v)) * 100}%`, height: '100%', background: mau }} /></span>;
+const GON: React.CSSProperties = { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'help' };   // một dòng, chi tiết ở chữ rê (#1560)
 const Dat = ({ ok }: { ok: boolean }) => <span style={{ color: ok ? '#4ade80' : 'var(--fg-3)' }}>{ok ? '✓' : '○'}</span>;
 /** lên bậc: bậc kế + cổng hôm nay + những gì đang chặn (nghỉ sau lần tăng, tiêu dồn, khung giảm / tắt, sổ hoãn) — cùng thứ tự cổng máy luật */
 function lenBac(c: CampThang, hoan: boolean, now = Date.now()) {
@@ -57,23 +58,25 @@ function KhoiThang({ c, hoan, H }: { c: CampThang; hoan: boolean; H: (n: React.R
     <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--line)', paddingTop: 7, fontSize: 11.5, color: 'var(--fg-2)' }}>
       <b style={{ color: '#4ade80' }}>CAMP THẮNG #{c.camp_id}</b> · ${c.ns} · chi {tien(c.chi30)} · lãi {tien(lai30)} · <span style={{ color: '#4ade80' }}>{pc(r30)}</span>
       {c.la_ban ? <span style={{ color: 'var(--fg-3)' }}> · bản nhân</span> : null}</div>
-    {H('Lên bậc', <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {b.ke ? <>
-        <div><b style={{ color: 'var(--fg-1)' }}>${c.ns} → ${b.ke}</b> · 🤖 máy tự{b.hoan ? <span style={{ color: '#4ade80' }}> · đã vào sổ, tăng lúc {KD.tang[0]}:00</span> : null}</div>
-        <div title={`cổng tăng (nhip_tang.du_so): hôm nay chi ≥ ${KD.nap_chi * 100}% ngân sách và ROI hôm nay ≥ ${KD.sang_roi}%`}><Thanh v={c.chi_nay / b.can} mau={b.dat ? '#4ade80' : '#facc15'} />hôm nay chi {tien(c.chi_nay)} / {tien(b.can)} · ROI {pc(b.rNay)} / ≥ {KD.sang_roi}% <Dat ok={b.dat} /></div>
-        {b.chan.map((x) => <div key={x} style={{ color: '#f59e0b' }}>⏳ {x}</div>)}
-        {!b.chan.length && b.dat && !b.hoan ? <div style={{ color: '#4ade80' }}>đạt cổng → máy tăng ở nhịp kế</div> : null}
-        <div style={{ color: 'var(--fg-3)' }}>Lộ trình: {b.lo.map((x) => `$${x}`).join(' → ')}{c.co_roas ? '' : ' · $30 chỉ cho ★ ROAS'}</div>
-      </> : <div>${c.ns} · đã tới trần máy tự tăng ${THANG_TU[THANG_TU.length - 1]}{c.co_roas ? '' : ' · lên tiếp bằng ★ ROAS'}</div>}</div>, true)}
-    {H('Nhân bản', c.la_ban ? <span style={{ color: 'var(--fg-3)' }}>bản nhân không làm gốc nhân tiếp (vẫn lên bậc như camp thường)</span> : <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {nac.map(([ch, m, n], i) => { const ok = c.chi30 >= ch && r30 != null && r30 >= m;
-        return <div key={n}><Thanh v={c.chi30 / ch} mau={ok ? '#4ade80' : '#facc15'} />nấc {i + 1}: <b style={{ color: 'var(--fg-1)' }}>{Math.min(c.ban, n)}/{n} bản</b> · chi {tien(c.chi30)} / ${ch} · ROI {pc(r30)} / +{m}% <Dat ok={ok} /></div>; })}
-      <div>ROI 3 ngày {pc(r3)} / ≥ {NB.roi3}% <Dat ok={r3Dat} /></div>
-      <div style={{ color: roasTruoc ? '#a78bfa' : muc > c.ban && r3Dat ? '#4ade80' : 'var(--fg-3)' }}>
-        {roasTruoc ? 'đủ lãi lên ★ ROAS → máy lên ROAS trước, nhân bản sau' : muc > c.ban ? (r3Dat ? `🤖 máy nhân thêm ${muc - c.ban} bản $1 ở nhịp kế (mỗi phim tối đa ${NB.phim_ngay} bản / 24 giờ)` : 'đủ nấc nhưng ROI 3 ngày chưa đạt → chưa nhân')
-          : muc ? `đã đủ ${c.ban} bản của nấc hiện tại` : `🤖 máy tự nhân khi chạm nấc 1`}</div></div>, true)}
-    {H('★ ROAS', c.co_roas ? <span style={{ color: '#a78bfa' }}>đã có camp ★ ROAS</span>
-      : <div><Thanh v={Math.max(lai30 / ROAS_LAI, c.chi30 / ROAS_LEN.chi)} mau="#a78bfa" />lãi 30 ngày {tien(lai30)} / ${ROAS_LAI}, hoặc chi {tien(c.chi30)} / ${ROAS_LEN.chi} với ROI ≥ {ROAS_LEN.roi}% (Dol 09/11) · 🤖 máy tự lên khi đủ</div>)}
+    {/* MỖI HÀNG MỘT DÒNG (anh 12/11/2026 #1560 "nhìn dài quá"): dòng chỉ còn bậc / vạch / ✓○, mọi câu giải thích (cổng, chặn, lộ trình, nấc) nằm ở chữ rê */}
+    {H('Lên bậc', b.ke ? <div style={GON} title={[`🤖 máy tự tăng $${c.ns} → $${b.ke}`, b.hoan ? `đã vào sổ, tăng lúc ${KD.tang[0]}:00` : '',
+      `cổng tăng (nhip_tang.du_so): hôm nay chi ${tien(c.chi_nay)} / ${tien(b.can)} (≥ ${KD.nap_chi * 100}% ngân sách) · ROI ${pc(b.rNay)} / ≥ ${KD.sang_roi}% ${b.dat ? '✓' : '○'}`,
+      ...b.chan.map((x) => `⏳ ${x}`), !b.chan.length && b.dat && !b.hoan ? 'đạt cổng → máy tăng ở nhịp kế' : '',
+      `Lộ trình: ${b.lo.map((x) => `$${x}`).join(' → ')}${c.co_roas ? '' : ' · $30 chỉ cho ★ ROAS'}`].filter(Boolean).join('\n')}>
+        <b style={{ color: 'var(--fg-1)' }}>${c.ns} → ${b.ke}</b> <Thanh v={c.chi_nay / b.can} mau={b.dat ? '#4ade80' : '#facc15'} /><Dat ok={b.dat} />
+        {b.hoan ? <span style={{ color: '#4ade80' }}> · {KD.tang[0]}:00</span> : b.chan.length ? <span style={{ color: '#f59e0b' }}> · ⏳ hoãn</span> : b.dat ? <span style={{ color: '#4ade80' }}> · nhịp kế</span> : null}</div>
+      : <div style={GON} title={`đã tới trần máy tự tăng $${THANG_TU[THANG_TU.length - 1]}${c.co_roas ? '' : ' · lên tiếp bằng ★ ROAS'}`}>${c.ns} · trần máy tự</div>)}
+    {H('Nhân bản', c.la_ban ? <span style={{ color: 'var(--fg-3)' }} title="bản nhân không làm gốc nhân tiếp (vẫn lên bậc như camp thường)">bản nhân</span>
+      : <div style={GON} title={[...nac.map(([ch, m, n], i) => `nấc ${i + 1}: ${Math.min(c.ban, n)}/${n} bản · chi ${tien(c.chi30)} / $${ch} · ROI ${pc(r30)} / +${m}% ${c.chi30 >= ch && r30 != null && r30 >= m ? '✓' : '○'}`),
+        `ROI 3 ngày ${pc(r3)} / ≥ ${NB.roi3}% ${r3Dat ? '✓' : '○'}`,
+        roasTruoc ? 'đủ lãi lên ★ ROAS → máy lên ROAS trước, nhân bản sau' : muc > c.ban ? (r3Dat ? `🤖 máy nhân thêm ${muc - c.ban} bản $1 ở nhịp kế (mỗi phim tối đa ${NB.phim_ngay} bản / 24 giờ)` : 'đủ nấc nhưng ROI 3 ngày chưa đạt → chưa nhân')
+          : muc ? `đã đủ ${c.ban} bản của nấc hiện tại` : '🤖 máy tự nhân khi chạm nấc 1'].join('\n')}>
+        {nac.map(([ch, m, n], i) => <span key={n} style={{ marginRight: 8 }}>nấc {i + 1} <Dat ok={c.chi30 >= ch && r30 != null && r30 >= m} /></span>)}
+        <span style={{ marginRight: 8 }}>3 ngày <Dat ok={r3Dat} /></span><b style={{ color: 'var(--fg-1)' }}>{c.ban}/{nac[nac.length - 1]?.[2] ?? 0} bản</b>
+        {roasTruoc ? <span style={{ color: '#a78bfa' }}> · ★ trước</span> : muc > c.ban && r3Dat ? <span style={{ color: '#4ade80' }}> · +{muc - c.ban} nhịp kế</span> : null}</div>)}
+    {H('★ ROAS', c.co_roas ? <span style={{ color: '#a78bfa' }}>đã có ★</span>
+      : <div style={GON} title={`lãi 30 ngày ${tien(lai30)} / $${ROAS_LAI}, hoặc chi ${tien(c.chi30)} / $${ROAS_LEN.chi} với ROI ≥ ${ROAS_LEN.roi}% (Dol 09/11) · 🤖 máy tự lên khi đủ`}>
+        <Thanh v={Math.max(lai30 / ROAS_LAI, c.chi30 / ROAS_LEN.chi)} mau="#a78bfa" />lãi {tien(lai30)} / ${ROAS_LAI}</div>)}
   </>;
 }
 
@@ -120,7 +123,7 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
             const ke = l.ke, them = ke?.trang_thai === 'them' || ke?.trang_thai === 'cho_do', cho = l.hen.length + Math.max(ke?.san ?? 0, l.tu_len), k = l.lt ? l.lt.ke : them ? ke!.k : 0;
             const m = l.thieu?.match(/(\d+\/\d+) camp.*thiếu (\d+)/);
             // MỞ RỘNG: +k của etp.mo_rong chỉ là số tham khảo; máy chỉ tự xếp dòng cho phim cả đội lãi (etp.phim_doi_lai) — nói rõ ai làm + creative có đủ không (anh 07/11/2026)
-            const buocKe = l.lt ? (l.lt.ma === 'sx' ? null : `🤖 ${l.lt.chu}`) : !ke ? 'Chưa có kế hoạch: phim chưa có camp Nhà đang chạy' : !them ? `Chưa thêm: ${ke.ly}`
+            const buocKe = l.lt ? (l.lt.ma === 'sx' ? null : `🤖 ${l.lt.chu}`) : !ke ? 'Chưa có kế hoạch: phim chưa có camp Nhà đang chạy' : !them ? <span style={{ cursor: 'help' }} title={ke.ly}>Chưa thêm <span style={{ color: 'var(--fg-3)' }}>ⓘ</span></span>
               : <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <div>{l.may_mo ? '🤖 máy tự xếp, tối đa 1 đợt / 24 giờ' : `✋ máy không tự làm — chỉ tự mở khi cả đội ${l.doi_lai.ngay} ngày chi ≥ $${l.doi_lai.chi} & ROI ≥ ${l.doi_lai.roi}%; thêm bằng nút ＋ bên dưới`}</div>
                 {ke.trang_thai === 'cho_do' ? <div style={{ color: '#f59e0b' }}>⏳ chờ đo đủ 1 ngày khép{l.do_toi ? ` — tới ${l.do_toi}` : ''}</div> : null}

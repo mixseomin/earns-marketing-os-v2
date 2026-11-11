@@ -29,9 +29,11 @@ const dm = (soul.match(/^model:.*$/m) || [''])[0], model = (dm.match(/claude-cod
 // CHỐNG VÒNG LẶP (cùng luật hàng thợ máy, anh 11/11/2026 "phải biết giới hạn đúng lúc, đúng chỗ"): card đã chạy mà luồng chưa có tin NGƯỜI mới → không làm lại trong 24 giờ.
 // Anh trả lời / bấm làm lại = có tin mới → nhận lại ngay.
 const daLam = (() => { try { return JSON.parse(fs.readFileSync(TEP_DA, 'utf8')); } catch { return {}; } })();
+// card góp ý etp.on.tc / etp2.on.tc là hàng của Huy (may/etp-sua.mjs) — Đạt bỏ qua, không xử đôi (#1560: Huy sửa xong, Đạt nhận lại)
 const ds = JSON.parse(sql(`select coalesce(json_agg(x order by x.created_at), '[]') from (select id, created_at, title,
   (select count(*) from jsonb_array_elements(coalesce(prep_payload->'trao_doi','[]')) t where t->>'nguoi' <> 'ai') as tin_nguoi
   from human_tasks where project_id='mos2' and prep_payload->>'source_platform'='feedback'
+  and coalesce(prep_payload->>'source_url','') not like 'https://etp%.on.tc/%'
   and coalesce(prep_payload->'site_status'->>'mos2', status) in ('pending','claimed','broken')) x`) || '[]');
 const card = kiem ? JSON.parse(sql(`select json_build_object('id', id, 'title', title, 'tin_nguoi', 0) from human_tasks where id=${kiem}`)) : ds.find((c) => { const d = daLam[c.id]; return !d || d.tin_nguoi < c.tin_nguoi || Date.now() - Date.parse(d.luc) > 24 * 36e5; });
 if (!card) { log(`không có card mới (${ds.length} card mở, đã làm cả)`); process.exit(0); }

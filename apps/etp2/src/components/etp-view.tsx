@@ -430,7 +430,7 @@ function ChuCamp({ t }: { t: string }) {
 // CHỮ DÀI KHÔNG ĐẨY BỀ RỘNG (anh 30/10/2026 #1487 "thu gọn đoạn này lại"): bọc mô tả / ghi chú bằng khối này → bảng rộng theo các cột số liệu, chữ dài xuống dòng theo đó
 const KHONG_GIAN: React.CSSProperties = { width: 0, minWidth: '100%' };
 // camp người khác: máy luật nhà chỉ ĐỀ XUẤT — chữ "máy đã xếp làm" đổi thành đề xuất (cùng bảng, không bản thứ hai)
-const chuVao = (deXuat?: boolean) => <span style={{ color: '#4ade80' }}>{deXuat ? ' · máy đề xuất (chỉ đề xuất, không làm)' : ' · máy đã xếp làm'}</span>;
+const chuVao = (deXuat?: boolean) => <span title={deXuat ? 'máy luật nhà chỉ đề xuất cho camp người khác, không làm' : 'máy đã xếp làm luật này ở nhịp kế'} style={{ color: '#4ade80', cursor: 'help' }}>{deXuat ? ' · đề xuất' : ' · ⚙'}</span>;
 // BẢNG XÉT LUẬT RỘNG THEO NỘI DUNG nhưng KHÔNG VƯỢT KHUNG (#1487 + anh 10/11/2026 "vẫn cứ phải scroll sang ngang": bảng 1057px trong khung 718px vì chữ bị ép
 // không xuống dòng + độ rộng tối thiểu cột) — bỏ nowrap / minWidth, bảng tối đa 100% khung, chữ dài tự xuống dòng
 // GIỜ ÁP DỤNG NGAY Ở Ô TÊN LUẬT (anh 10/11/2026 "gắn thời gian vào đây" · "các luật khác thấy chạm đéo hiện à"): MỌI thẻ Đạt / Gần có ⏳ —
@@ -453,7 +453,9 @@ function ChuGio({ g, chip }: { g: GioLam; chip?: boolean }) {
   if (chip) return <span title={`máy làm ~${gio} VN${g.can ? ` nếu ${g.can}` : ''}`} style={{ fontSize: 10.5, color: mau, whiteSpace: 'nowrap' }}>⏳{con}</span>;
   return <div style={{ color: mau, fontSize: 11, fontWeight: 600 }}>⏳ {sat ? con : `${con} · ${gio}`}{g.can ? <div style={{ fontWeight: 400, fontSize: 10.5 }}>nếu {g.can}</div> : null}</div>;
 }
-function GioThe({ l, don }: { l: XetLuat; don: boolean }) { const hoan = useContext(HoanCtx), g = gioThe(l, hoan, don); return g ? <ChuGio g={g} /> : null; }
+function GioThe({ l, don, chip }: { l: XetLuat; don: boolean; chip?: boolean }) { const hoan = useContext(HoanCtx), g = gioThe(l, hoan, don); return g ? <ChuGio g={g} chip={chip} /> : null; }
+// GHI CHÚ LUẬT GẬP (anh 12/11/2026 #1558 "ko ghi hết chữ ra màn hình" — YDNI): ô tên luật chỉ còn tên · kết · ⏳ giờ · ℹ; giờ đầy đủ + lý do máy chặn ở chữ rê
+const GhiLuat = ({ t }: { t: string | null | undefined }) => (t ? <span title={t} style={{ marginLeft: 4, color: '#fb923c', cursor: 'help', fontSize: 11 }}>ℹ</span> : null);
 function BangXet({ xet, gon, deXuat, don }: { xet: XetLuat[]; gon?: boolean; deXuat?: boolean; /** camp tiêu dồn (nạp sáng) — giờ tăng tính cả khung sáng */ don?: boolean }) {
   const thu = { dat: 0, gan: 1, xa: 2, khong_ap: 3 } as const;
   const ds = [...xet].sort((a, b) => thu[a.ket] - thu[b.ket]);
@@ -469,11 +471,9 @@ function BangXet({ xet, gon, deXuat, don }: { xet: XetLuat[]; gon?: boolean; deX
       {gon ? null : <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}><th style={o}>Luật</th><th style={o}>Điều kiện</th><th style={{ ...o, textAlign: 'right' }}>Giá trị</th><th style={o}>Ngưỡng</th><th style={o} /></tr></thead>}
       {(() => { const ve = (l: XetLuat, vi: number) => { const [kt, km] = KET_XET[l.ket]; const mo = l.ket === 'xa' || l.ket === 'khong_ap'; const n = Math.max(1, l.dk.length);
         const dau = <td rowSpan={n} title={l.mo_ta} style={{ ...o, cursor: 'help', overflowWrap: 'anywhere', opacity: mo ? 0.6 : 1 }}>
-          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b><div><b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null}</div>{deXuat ? null : <GioThe l={l} don={!!don} />}
-          {l.ghi ? <div style={{ ...KHONG_GIAN, color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}</td>;
+          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b><div style={{ whiteSpace: 'nowrap' }}><b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null} {deXuat ? null : <GioThe l={l} don={!!don} chip />}<GhiLuat t={l.ghi} /></div></td>;
         const dauGon = <tr key={`${l.ma}-t`} style={{ opacity: mo ? 0.6 : 1 }}><td colSpan={4} title={l.mo_ta} style={{ ...o, paddingTop: 8, borderTop: '1px solid var(--fg-3, #555)' }}>
-          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> · <b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null}{deXuat ? null : <GioThe l={l} don={!!don} />}
-          {l.ghi ? <div style={{ ...KHONG_GIAN, color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}{l.dk.length ? null : <div style={{ ...KHONG_GIAN, color: 'var(--fg-2)' }}>{l.mo_ta}</div>}</td></tr>;
+          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> · <b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null} {deXuat ? null : <GioThe l={l} don={!!don} chip />}<GhiLuat t={l.ghi} />{l.dk.length ? null : <div style={{ ...KHONG_GIAN, color: 'var(--fg-2)' }}>{l.mo_ta}</div>}</td></tr>;
         // MỖI LUẬT MỘT KHỐI (anh 29/10/2026 "background khác nhau giữa các khối màu của bậc · hover thì highlight nhẹ bg"): <tbody> riêng, nền nhạt theo màu
         // luật, khối chẵn / lẻ đậm nhạt khác nhau (hai luật cùng màu đứng cạnh vẫn tách được), rê vào khối → nền đậm hơn
         const khoi = (con: React.ReactNode) => <tbody key={l.ma} className="bx-khoi" style={{ ['--bx' as string]: XET_CHIP[l.ma]?.[1] ?? '#94a3b8', ['--bx-a' as string]: vi % 2 ? '2.5%' : '5%' } as React.CSSProperties}>{con}</tbody>;
@@ -2005,9 +2005,8 @@ function BieuNgay({ ngay, sd, nay, n, ns }: { ngay: string[]; sd: (SoTien | unde
           <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>{x.s.chi ? `$${x.s.chi.toFixed(x.s.chi < 10 ? 2 : 0)}` : '·'}</span>
           {/* % NGÂN SÁCH ĐÃ TIÊU TRONG NGÀY (anh 10/11/2026 "show thêm đường thể hiện % tiêu tiền trong ngày") — cùng màu vạch chi / ngân sách ô NAY trên cây (#1550) */}
           {ns ? (() => { const v = ns[cot.indexOf(x)], p = v && v > 0 ? Math.round((x.s.chi / v) * 100) : null;
-            return p == null ? <span style={{ fontSize: 9, color: 'var(--fg-3)' }}>&nbsp;</span> : <span title={`đã tiêu ${p}% ngân sách ngày $${v}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '80%', gap: 1 }}>
-              <span style={{ position: 'relative', width: '100%', height: 3, borderRadius: 2, background: 'var(--line)' }}><span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.min(100, p)}%`, borderRadius: 2, background: MAU_CHI_NS }} /></span>
-              <span style={{ fontSize: 9.5, color: MAU_CHI_NS }}>{p}% NS</span></span>; })() : null}
+            return p == null ? <span style={{ fontSize: 9, color: 'var(--fg-3)' }}>&nbsp;</span> : <span title={`đã tiêu ${p}% ngân sách ngày $${v}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '80%', gap: 1, padding: '3px 0', cursor: 'help' }}>
+              <span style={{ position: 'relative', width: '100%', height: 3, borderRadius: 2, background: 'var(--line)' }}><span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.min(100, p)}%`, borderRadius: 2, background: MAU_CHI_NS }} /></span></span>; })() : null}{/* #1556 (anh 11/11/2026 "bỏ các text này, hover vào show ra"): chỉ vạch, % ngân sách ở chữ rê */}
           <span style={{ fontSize: 10, color: Math.abs(lai) < 0.005 ? 'var(--fg-3)' : mauLai(lai) }}>{x.s.chi || x.s.thu ? `${lai < 0 ? '−' : '+'}${Math.abs(lai).toFixed(Math.abs(lai) < 10 ? 2 : 0)}` : '\u00a0'}</span>
           {/* #1503: một dòng, canh giữa như ô trên — dòng lãi rỗng vẫn giữ chiều cao để các ô thẳng hàng */}
           {x.n != null ? <span title={`${x.n} camp có chi trong ngày`} style={{ fontSize: 10, color: x.n ? 'var(--fg-2)' : 'var(--fg-3)', textAlign: 'center', lineHeight: 1.15 }}>{x.n}<br /><span style={{ fontSize: 9, opacity: 0.75 }}>camp</span></span> : null}
@@ -2143,10 +2142,10 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   // Ô CREATIVE — MỘT bản cho dòng cây điện thoại / lưới cũ và cột Creative của bảng (anh 29/10/2026 #1476: bản chép tay ở bảng mất mã + điểm chấm + ×N đã sửa ở #1465 #1474)
   const oCr = (c: CampEtpKho) => { const cr = c.creative_id ? anhCr.get(c.creative_id) : undefined; return (
           <span data-cot="creative" onMouseEnter={c.creative_id && moCr ? (e) => moCr(c.creative_id!, e) : undefined} onMouseLeave={dongCr}
-            onClick={c.creative_id && moCr ? (e) => { e.stopPropagation(); e.preventDefault(); moCr(c.creative_id!, e); } : undefined} style={{ cursor: c.creative_id ? 'zoom-in' : undefined,  display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+            onClick={c.creative_id && moCr ? (e) => { e.stopPropagation(); e.preventDefault(); moCr(c.creative_id!, e); } : undefined} title={`cr #${c.creative_id ?? '?'}${c.doan ? ` · đoạn ${c.doan.split(':')[1] ?? ''}s` : ''}`} style={{ cursor: c.creative_id ? 'zoom-in' : undefined,  display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
             {cr?.anh ? <img src={cr.anh} alt="" style={{ width: 14, height: 24, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: 14, height: 24, background: 'var(--line)' }} />}
             {/* chỉ mã + điểm chấm (anh 28/10/2026 #1465 "chỉ cần ID đủ… show thêm điểm số"); đoạn giây ở hover */}
-            <span title={c.doan ? `đoạn ${c.doan.split(':')[1] ?? ''}s` : undefined}>cr #{c.creative_id ?? '?'}</span>
+            {/* #1555 (anh 10/11/2026 "ẩn thông tin này, cần thì hover"): mã creative không in ra ô — rê ô mới thấy */}
             {(() => { const n = giongHet(c); return n ? <span title={`camp này được nhân bản GIỐNG HỆT ${n} lần (cùng creative cr #${c.creative_id}, mọi cấp con, kể cả bản đã tắt)`} style={{ order: 9, marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: 'var(--fg-1, #eee)' }}>×{n}</span> : null; })()}
             {(() => { const ch = c.creative_id ? du.cham[c.creative_id] : undefined; return ch ? <span title="điểm chấm nội dung Meta · AFS (thang 10, cao = an toàn; xanh ≥ 8, vàng 5–7, đỏ < 5)" style={{ fontSize: 10.5 }}><span style={{ color: mauDiem(ch.meta) }}>M{ch.meta ?? '–'}</span> <span style={{ color: mauDiem(ch.afs) }}>A{ch.afs ?? '–'}</span></span> : <span style={{ fontSize: 10.5, color: 'var(--fg-3, #777)' }}>chưa chấm</span>; })()}</span>); };
   const Dong = ({ c, cap }: { c: CampEtpKho; cap: number }) => {

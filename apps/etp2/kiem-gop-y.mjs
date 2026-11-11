@@ -35,7 +35,10 @@ const LUAT = [
   { card: 'tu-van-1011', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "from etp.tu_van where phien = 'song' and ${cuaNg(sql`nguoi_id`)}", vi: 'tư vấn đọc bản sống, người chỉ thấy bản của mình' },
   { card: 'mo-1011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if _ts: ls[-1]["mo"] = _ts_mo(cid)', vi: 'thẻ tăng bị Siết TS chặn mang mốc sớm nhất thôi chặn (anh 10/11/2026 "show thời gian sẽ áp dụng sau bao lâu")' },
   { card: 'mo-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'gioThe(t.the, hoan, t.don)', vi: 'chip luật hiện ⏳ giờ máy làm — cùng hàm gioThe với bảng xét' },
-  { card: 'mo-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: '{deXuat ? null : <GioThe l={l} don={!!don} />}', vi: 'MỌI thẻ Đạt / Gần có giờ áp dụng ở ô tên luật (anh 10/11/2026 "gắn thời gian vào đây" · "các luật khác thấy chạm đéo hiện à")' },
+  { card: 'mo-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: '{deXuat ? null : <GioThe l={l} don={!!don} chip />}', vi: 'MỌI thẻ Đạt / Gần có giờ áp dụng ở ô tên luật (anh 10/11/2026 "gắn thời gian vào đây") — dạng ⏳ gọn, giờ đủ ở chữ rê (#1558)' },
+  { card: 1558, tep: 'apps/etp2/src/components/etp-view.tsx', co: '<GhiLuat t={l.ghi} />', cam: "{l.ghi ? <div style={{ ...KHONG_GIAN, color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}", vi: 'ô tên luật không in ghi chú dài — ℹ, rê mới hiện (anh 12/11/2026 YDNI)' },
+  { card: 1555, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "cr #{c.creative_id ?? '?'}</span>", vi: 'ô creative trên cây không in mã cr # — rê ô mới thấy (anh 10/11/2026)' },
+  { card: 1556, tep: 'apps/etp2/src/components/etp-view.tsx', cam: '{p}% NS</span>', vi: 'Tổng quan 2: chỉ vạch % ngân sách, không in chữ % NS — rê mới hiện (anh 11/11/2026)' },
   { card: 'mo-1011', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "interval '90 minutes'", cam: "from etp.xet_luat where luc > now() - interval '30 minutes'", vi: 'thẻ máy giữ 90 phút: nhịp máy luật dài không làm trang tự tính trái máy' },
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "(c) => (c.ban || c.giong ? [", vi: 'loại creative có dòng con theo biến thể (PO.1, ATT.KD…)' },
 ];

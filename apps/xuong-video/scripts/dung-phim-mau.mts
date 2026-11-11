@@ -31,15 +31,16 @@ const docMau = () => { const m = hs.kinh_thanh.qc?.mau as MauQc | undefined; ret
 let { mau, thoiLuong } = docMau();
 const tiep = Number((process.argv.find((a) => a.startsWith('--phim=')) ?? '').split('=')[1] || 0);
 const vietLai = process.argv.includes('--viet-lai');
-let phimId: number; let tapId: number; let kichBanCu = '';
+let phimId: number; let tapId: number; let kichBanCu = ''; let taoTap = false;
 const nhanVat: NhanVat[] = [];
 if (tiep) {
   phimId = tiep;
   const nv = (await db.execute(sql`SELECT id, loai, ten, mo_ta, anh_ref, giong FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[];
   for (const r of nv) nhanVat.push({ id: Number(r.id), phim_id: phimId, loai: String(r.loai) as LoaiNhanVat, ten: String(r.ten), mo_ta: String(r.mo_ta), anh_ref: (r.anh_ref as string[]) ?? [], giong: String(r.giong ?? ''), bien_the: [] } as NhanVat);
   const t = (await db.execute(sql`SELECT id, kich_ban FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so LIMIT 1`)) as unknown as Row[];
-  if (!t[0]) { console.error('phim chưa có tập'); process.exit(1); }
-  tapId = Number(t[0].id); kichBanCu = vietLai ? '' : String(t[0].kich_ban ?? '');
+  // lượt đầu gãy ngay sau khi tạo phim + anchor (chưa kịp tạo tập) → chạy tiếp thì tạo tập từ hồ sơ, như lượt đầu
+  if (!t[0]) taoTap = true;
+  tapId = t[0] ? Number(t[0].id) : 0; kichBanCu = vietLai || !t[0] ? '' : String(t[0].kich_ban ?? '');
   const p = (await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[];
   if (p[0]?.kinh_thanh) { hs.kinh_thanh = p[0].kinh_thanh as KinhThanh; ({ mau, thoiLuong } = docMau()); }   // kinh thánh THẬT của phim (đã sửa trên studio/SQL), không lấy từ tệp mẫu
   console.log(`chạy tiếp phim #${phimId} · tập #${tapId} · ${nhanVat.length} anchor · ngôn ngữ ${hs.kinh_thanh.ngon_ngu ?? 'vi'}${kichBanCu ? ' · đã có kịch bản' : vietLai ? ' · viết lại kịch bản' : ''}`);
@@ -52,12 +53,16 @@ if (tiep) {
     nhanVat.push({ id: Number(r[0]!.id), phim_id: phimId, loai: v.loai, ten: v.ten, mo_ta: v.mo_ta, anh_ref: v.anh_ref ?? [], giong: v.giong ?? '', bien_the: [] } as NhanVat);
     console.log(`  anchor #${r[0]!.id} [${v.loai}] ${v.ten}${v.anh_ref?.length ? ` · ${v.anh_ref.length} ảnh` : ''}`);
   }
-  const t = (await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, brief, thoi_luong_s) VALUES (${phimId}, ${hs.tap.so ?? 1}, ${hs.tap.ten}, ${hs.tap.brief}, ${thoiLuong}) RETURNING id`)) as unknown as Row[];
+  taoTap = true;
+}
+if (taoTap) {
+  // xv_tap.thoi_luong_s là số NGUYÊN, giayMau làm tròn 0,5 s (mẫu 14,5 s → lỗi 22P02, 11/11/2026) → làm tròn lên giây
+  const t = (await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, brief, thoi_luong_s) VALUES (${phimId}, ${hs.tap.so ?? 1}, ${hs.tap.ten}, ${hs.tap.brief}, ${Math.ceil(thoiLuong)}) RETURNING id`)) as unknown as Row[];
   tapId = Number(t[0]!.id);
   console.log(`  tập #${tapId} · ${hs.tap.ten} · ${thoiLuong}s${mau?.shots?.length ? ` · QC mẫu ${mau.shots.length} shot` : ''}`);
 }
 const tenSp = hs.kinh_thanh.qc?.ten ?? '';
-if (mau?.shots?.length && !tiep) console.log(`  thư viện khuôn: +${await ghiKhuonTuMau(db, mau.shots, nhanVat, tenSp, `QC mẫu · ${mau.nguon.slice(0, 60)}`, phimId)} khuôn mới từ mẫu`);
+if (mau?.shots?.length && taoTap) console.log(`  thư viện khuôn: +${await ghiKhuonTuMau(db, mau.shots, nhanVat, tenSp, `QC mẫu · ${mau.nguon.slice(0, 60)}`, phimId)} khuôn mới từ mẫu`);
 if (chiTao) { console.log('dừng ở đây (0đ). Gọi Claude viết kịch bản + tách cảnh + bài đăng: thêm --claude (≈ $1,1 / 28 shot) khi anh duyệt.'); process.exit(0); }
 
 const ghiJob = async (nhan: string, r: { model?: string; tokens?: { in: number; out: number } }) => {

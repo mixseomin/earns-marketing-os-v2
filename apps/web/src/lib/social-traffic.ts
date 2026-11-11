@@ -426,7 +426,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     const [da, dk] = await Promise.all([
       d.execute(sql`SELECT m.ma, m.ten AS may_ten, e.key AS nen, e.value->>'ngay' AS ngay, e.value->>'luc' AS luc, e.value->>'url' AS url, coalesce(v.dang->>'title', v.chu_de) AS title,
           coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh, e.value->>'link' AS link, v.dang->>'nhom' AS nhom, v.dang->>'link' AS dich, v.dang->'goc' AS goc,
-          v.dang->>'phim' AS phim, v.dang->>'y' AS huong
+          v.dang->>'phim' AS phim, v.dang->>'y' AS huong, v.dang->>'description' AS mo_ta
         FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id CROSS JOIN LATERAL jsonb_each(v.da_dang) e
         WHERE e.value->>'ngay' >= to_char((now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - 42, 'YYYY-MM-DD')`) as unknown as Promise<(Record<string, string | null> & { goc?: GocBai | null })[]>,   // 6 tuần: đủ cho lịch tháng / tuần (anh 22/10/2026)
       d.execute(sql`SELECT luc::text AS luc, ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ luc: string; ds: { ngay: string; gio: string; may: string; mayTen?: string; nen: string; title: string; slug?: string | null; format?: string; nhom?: string | null; moTa?: string | null; chuaDung?: boolean; phim?: number | string | null; huong?: string | null }[] }[]>,
@@ -484,7 +484,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
       anh: x.anh ?? null, tk: tkCua.get(`${x.ma}|${x.nen}`) ?? null, nhom: x.nhom ?? null, goc: x.goc ?? null, link: x.link == null ? null : x.link === 'true',
       thich: x.url ? soFb.get(maBai(x.url))?.thich ?? null : null, binhLuan: x.url ? soFb.get(maBai(x.url))?.binhLuan ?? null : null,
       xem: x.url ? xemCua.get(maBai(x.url)) ?? null : null,
-      phimTen: x.phim ? tenPhim.get(Number(x.phim)) ?? null : null, huong: x.huong ?? null }));
+      phimTen: x.phim ? tenPhim.get(Number(x.phim)) ?? null : null, huong: x.huong ?? null, moTa: x.mo_ta ?? null }));
     const bayVn = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
     const cuoiLuoi = new Date(Date.parse(`${hom}T00:00:00Z`) + 42 * 864e5).toISOString().slice(0, 10);   // 6 tuần tới cho lịch tháng / tuần (lưới giờ tự lọc 10 ngày); lịch 90 ngày còn lại chỉ dùng cho thống kê kho
     for (const x of dk[0]?.ds ?? []) if (`${x.ngay} ${x.gio}` > bayVn && x.ngay <= cuoiLuoi) o.push({ ngay: x.ngay, gio: x.gio, may: x.may, mayTen: x.mayTen ?? x.may, nen: x.nen, title: x.title, url: null, loai: 'du_kien', anh: x.slug ? anhCua.get(`${x.may}|${x.slug}`) ?? null : null, tk: tkCua.get(`${x.may}|${x.nen}`) ?? null, nhom: x.nhom ?? null, link: null, moTa: x.moTa ?? null, phimTen: x.phim ? tenPhim.get(Number(x.phim)) ?? null : null, huong: x.huong ?? null, goc: x.slug ? gocCua.get(`${x.may}|${x.slug}`) ?? null : null });

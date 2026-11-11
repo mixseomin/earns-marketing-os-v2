@@ -13,7 +13,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { LAM } from './sx-bai.mjs';
+import { LAM, MIET_THI, doanSach } from './sx-bai.mjs';
 
 const BOX = 'root@167.233.241.16';
 const D = path.dirname(new URL(import.meta.url).pathname);
@@ -94,7 +94,15 @@ const main = async () => {
     // đọc cờ: cờ ĐẦU TIÊN cũng phải đọc được (chỉ số 0), cờ không có trả null, cờ đứng cuối không có giá trị trả null
     a.equal(doc(['--may', 'mia'], '--may'), 'mia'); a.equal(doc(['--xem', '--may', 'mia'], '--may'), 'mia');
     a.equal(doc(['--xem'], '--may'), null); a.equal(doc(['--may'], '--may'), null);
-    console.log(`sx-may: ${dang.length} dạng bài, sổ ↔ bảng hàm khớp · ${dang.length * 2 + 8}/${dang.length * 2 + 8} ok`);
+    // CHỌN CẢNH: câu thoại ĐÃ LỌT ngày 11/11/2026 phải bị chặn; chữ thường không bị chặn nhầm
+    a.ok(MIET_THI.test("Oh my God... let's see this cripple eat shit!"), 'câu miệt thị người khuyết tật lọt 11/11 phải bị chặn');
+    a.ok(!MIET_THI.test('a triple shot of espresso') && !MIET_THI.test('he still cannot stand on his own'), 'chữ thường không bị chặn nhầm');
+    const rms = Array.from({ length: 100 }, (_, i) => (i === 50 ? 999 : 10)), chu = Array.from({ length: 100 }, (_, i) => ({ s: i, chu: `c${i}`, cam: i === 50 ? 'cripple' : null }));
+    const uv = doanSach(rms, chu);
+    a.ok(uv.length > 0 && uv.every((x) => x.bat_dau + 9 <= 50 || x.bat_dau > 50), 'không đoạn nào chứa giây dính từ cấm — kể cả khi giây đó to tiếng nhất');
+    a.ok(uv.every((x, i) => uv.every((y, j) => i === j || Math.abs(x.bat_dau - y.bat_dau) >= 6)), 'các đoạn ứng viên cách nhau ≥ 6 giây');
+    a.equal(doanSach(rms, chu.map((x) => ({ ...x, cam: 'x' }))).length, 0, 'mọi giây dính từ cấm → không có đoạn sạch (máy ném lỗi, không cắt bừa)');
+    console.log(`sx-may: ${dang.length} dạng bài, sổ ↔ bảng hàm khớp · ${dang.length * 2 + 13}/${dang.length * 2 + 13} ok`);
     return;
   }
   const may = lay('--may'), slug = lay('--slug'), ngay = Number(lay('--ngay') ?? 3);

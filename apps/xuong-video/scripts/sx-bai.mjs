@@ -24,26 +24,66 @@ export function taiTap(contentId, urlPhim) {
   return ra;
 }
 
-/** CHỌN 9 GIÂY CAO TRÀO — bằng ĐỘ TO của tiếng, không bằng cảm tính.
- *  Cao trào phim ngắn gần như luôn trùng chỗ tiếng to nhất (quát, khóc, va chạm, nhạc dồn). Đọc PCM 8 kHz một lượt,
- *  tính RMS từng giây, lấy cửa sổ 9 giây có trung bình lớn nhất — bỏ 25% đầu (giới thiệu) và 8% cuối (hậu đề). */
-export function chonCanh(tep, giay = 9) {
+/** TỪ MIỆT THỊ riêng của Page persona (11/11/2026: lượt đầu cắt trúng câu "let's see this cripple eat shit"). Cổng thoại chung
+ *  ethopex/kiem-thoai.py chặn được "shit" nhưng KHÔNG chặn từ miệt thị người khuyết tật / chủng tộc / giới — danh sách đó là của Ethopex
+ *  (đổi là đổi luôn creative đang chạy), nên bộ bổ sung nằm ở đây, chỉ áp cho Máy SX. */
+export const MIET_THI = /\b(cripple[sd]?|retard(ed|s)?|spaz|midget|gimp|tranny|fag(got)?s?|n[i1]gg\w*|chinks?|spics?|wetbacks?)\b/i;
+
+/** ĐỌC PHỤ ĐỀ CHÁY TRONG HÌNH, mỗi giây một dòng — DÙNG LẠI ethopex/kiem-thoai.py (doc-chu.swift = Vision macOS, 0₫; có sẵn <tệp>.chu.json thì đọc luôn)
+ *  và cổng `soat` của nó (từ tục / bạo lực / tình dục / CTA dụ nhấp). Ghi lại <tệp>.chu.json để lượt sau và kiem-thoai dùng chung. → [{ s, chu, cam }] */
+export function docPhuDe(tep) {
+  const py = `
+import importlib.util as u, json, os, subprocess, sys
+s = u.spec_from_file_location("k", ${JSON.stringify(path.join(TOI, 'ethopex', 'kiem-thoai.py'))}); k = u.module_from_spec(s); s.loader.exec_module(k)
+tep = ${JSON.stringify(tep)}
+dur = float(subprocess.run(["ffprobe","-v","error","-show_entries","format=duration","-of","csv=p=0",tep],capture_output=True,text=True).stdout.strip())
+ds = k.doc(tep, 0, int(dur))
+f = os.path.splitext(tep)[0] + ".chu.json"
+if not os.path.exists(f): json.dump({str(int(t)): c for t, c in ds}, open(f, "w"), ensure_ascii=False)
+print(json.dumps([{"s": int(t), "chu": c or "", "cam": k.soat(c or "")} for t, c in ds], ensure_ascii=False))
+`;
+  const ds = JSON.parse(execFileSync('python3', ['-c', py], { encoding: 'utf8', timeout: 1_800_000, maxBuffer: 1 << 26 }).trim().split('\n').pop());
+  return ds.map((x) => ({ ...x, cam: x.cam || (MIET_THI.exec(x.chu)?.[0] ?? null) }));
+}
+
+/** RMS từng giây của tiếng (PCM 8 kHz một lượt) — điểm "cao trào" phụ: chỗ quát / khóc / nhạc dồn to hơn. */
+function doTo(tep) {
   const raw = execFileSync('ffmpeg', ['-v', 'error', '-i', tep, '-ac', '1', '-ar', '8000', '-f', 's16le', '-'], { maxBuffer: 1 << 28 });
-  const n = Math.floor(raw.length / 2), mau = 8000, soGiay = Math.floor(n / mau);
-  if (soGiay < giay + 4) throw new Error(`tập quá ngắn (${soGiay}s) để cắt ${giay}s`);
-  const rms = [];
-  for (let s = 0; s < soGiay; s++) {
-    let t = 0; for (let i = s * mau; i < (s + 1) * mau; i++) { const v = raw.readInt16LE(i * 2); t += v * v; }
-    rms.push(Math.sqrt(t / mau));
-  }
-  const tu = Math.floor(soGiay * 0.25), den = Math.floor(soGiay * 0.92) - giay;
-  if (den <= tu) throw new Error('tập quá ngắn sau khi bỏ đầu/cuối');
-  let best = tu, diem = -1;
+  const mau = 8000, soGiay = Math.floor(raw.length / 2 / mau), rms = [];
+  for (let s = 0; s < soGiay; s++) { let t = 0; for (let i = s * mau; i < (s + 1) * mau; i++) { const v = raw.readInt16LE(i * 2); t += v * v; } rms.push(Math.sqrt(t / mau)); }
+  return rms;
+}
+
+/** CÁC ĐOẠN SẠCH: cửa sổ `giay` giây không giây nào dính từ cấm (cổng thoại chung + MIET_THI), bỏ 20% đầu / 8% cuối tập;
+ *  xếp theo độ to, giữ tối đa `toiDa` đoạn cách nhau ≥ 6 giây. Thuần — tự kiểm được không cần video. */
+export function doanSach(rms, chu, giay = 9, toiDa = 10) {
+  const n = rms.length, cam = new Set(chu.filter((x) => x.cam).map((x) => x.s)), chuCua = new Map(chu.map((x) => [x.s, x.chu]));
+  const tu = Math.floor(n * 0.2), den = Math.floor(n * 0.92) - giay, ds = [];
   for (let s = tu; s <= den; s++) {
-    const d = rms.slice(s, s + giay).reduce((a, b) => a + b, 0) / giay;
-    if (d > diem) { diem = d; best = s; }
+    let sach = true; for (let i = s; i < s + giay; i++) if (cam.has(i)) { sach = false; break; }
+    if (!sach) continue;
+    ds.push({ bat_dau: s, diem: rms.slice(s, s + giay).reduce((a, b) => a + b, 0) / giay,
+      chu: [...new Set(Array.from({ length: giay }, (_, i) => (chuCua.get(s + i) ?? '').trim()).filter(Boolean))].join(' / ') });
   }
-  return best;
+  ds.sort((a, b) => b.diem - a.diem);
+  const ra = []; for (const d of ds) { if (ra.every((x) => Math.abs(x.bat_dau - d.bat_dau) >= 6)) ra.push(d); if (ra.length >= toiDa) break; }
+  return ra;
+}
+
+/** CHỌN 9 GIÂY (11/11/2026, thay bản chỉ đo độ to — bản đó cắt ra cảnh SAI HƯỚNG và dính thoại miệt thị):
+ *  1. đọc phụ đề, LOẠI mọi đoạn dính từ cấm · 2. lấy 10 đoạn sạch to tiếng nhất · 3. AI rẻ (ckey, box3) chọn đoạn khớp HƯỚNG NỘI DUNG.
+ *  AI hỏng → lùi về đoạn sạch to nhất (vẫn sạch, chỉ chưa chắc khớp hướng — ghi rõ vào nhật ký). Không còn đoạn sạch nào → ném lỗi, KHÔNG cắt bừa. */
+export function chonCanh(tep, giay = 9, huong = '') {
+  const uv = doanSach(doTo(tep), docPhuDe(tep), giay);
+  if (!uv.length) throw new Error('tập này không còn đoạn 9 giây nào sạch thoại (mọi đoạn dính từ cấm) — đổi tập / đổi phim');
+  let r = {};
+  try {
+    r = JSON.parse(execFileSync('ssh', [BOX, 'cd /opt/earns-marketing-os-v2/apps/xuong-video && ../../node_modules/.bin/tsx scripts/sx-chon-canh.mts'],
+      { input: JSON.stringify({ huong, ung_vien: uv.map(({ bat_dau, chu }) => ({ bat_dau, chu })) }), encoding: 'utf8', timeout: 300_000 }).trim().split('\n').pop());
+  } catch (e) { r = { bat_dau: null, loi: String(e.message).split('\n')[0].slice(0, 160) }; }
+  const chon = uv.find((x) => x.bat_dau === r.bat_dau);
+  if (chon) return { batDau: chon.bat_dau, vnd: r.vnd ?? 0, ghi: `giây ${chon.bat_dau} · AI chọn khớp hướng: ${r.ly_do} · thoại: ${chon.chu.slice(0, 120)}` };
+  return { batDau: uv[0].bat_dau, vnd: r.vnd ?? 0, ghi: `giây ${uv[0].bat_dau} · AI chưa chọn được (${r.loi ?? 'không rõ'}) → lấy đoạn sạch to tiếng nhất, CHƯA CHẮC khớp hướng · thoại: ${uv[0].chu.slice(0, 120)}` };
 }
 
 /** Lớp chữ phủ lên clip (PNG trong suốt 1080×1920) — dựng bằng PIL vì bản ffmpeg của máy này KHÔNG có drawtext. */
@@ -101,10 +141,10 @@ async function lamReelCanh9(de, { free = false } = {}) {
   if (!de.phim) throw new Error(`${de.slug}: dạng Reel cắt cảnh cần dang.phim (content_id phim)`);
   const thu = taiTap(de.phim, de.urlPhim);
   const tep = `${thu}/tap01.mp4`;
-  const batDau = chonCanh(tep, 9);
+  const c = chonCanh(tep, 9, de.huong ?? '');
   mkdirSync(`${KHO}/ra`, { recursive: true });
-  const ra = dungClip({ tep, batDau, ra: `${KHO}/ra/${de.slug}.mp4`, free });
-  return { video_url: lenR2(ra), vnd: 0, ghi: `cắt từ giây ${batDau} của tập 1 (chọn theo độ to của tiếng)`, tepCuc: ra };
+  const ra = dungClip({ tep, batDau: c.batDau, ra: `${KHO}/ra/${de.slug}.mp4`, free });
+  return { video_url: lenR2(ra), vnd: c.vnd, ghi: `tập 1 · ${c.ghi}`, tepCuc: ra };
 }
 
 async function lamAnhDoiThuong(de) {

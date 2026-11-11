@@ -7,7 +7,7 @@ import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
 import { Dem } from '@/components/etp-so';
-import { congNgay as congN, mauCpm, nen, ngayThiTruong, type SoNgay } from '@/lib/etp-thi-truong';
+import { congNgay as congN, mauCpm, nen, NEN_NGAY, ngayThiTruong, type SoNgay } from '@/lib/etp-thi-truong';
 
 type ST = { chi: number; thu: number };
 const cong = (rs: ST[]) => rs.reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 });
@@ -66,8 +66,8 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
   const dauTrang = <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 11, marginBottom: 4 }}>
     <span style={{ display: 'inline-flex', gap: 2 }}><button type="button" style={nutC(che === 'lich')} onClick={() => setChe('lich')}>Lịch tháng</button><button type="button" style={nutC(che === 'bang')} onClick={() => setChe('bang')}>Bảng 30 ngày</button></span>
     {che === 'lich' ? <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><button type="button" style={nutC(false)} disabled={th <= -1} onClick={() => setTh(th - 1)}>◀</button><b>tháng {thang + 1}/{m0.getUTCFullYear()}</b><button type="button" style={nutC(false)} disabled={th >= 2} onClick={() => setTh(th + 1)}>▶</button></span> : null}
-    <span title="màu ô = CPM ngày đó ÷ CPM nền (TB 7 ngày đã khép, đã bỏ hệ số mùa)" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--fg-3)' }}>rẻ<span style={{ width: 70, height: 8, borderRadius: 4, background: `linear-gradient(90deg, ${mauCpm(16, 20, 0.9)}, ${mauCpm(24, 20, 0.9)}, ${mauCpm(32, 20, 0.9)})` }} />đắt</span>
-    <span style={{ color: 'var(--fg-2)' }}>nền CPM {cpm$(nenCpm)} · CPC {n ? `$${n.cpc.toFixed(2)}` : '—'} · ROI {pct(n?.roi ?? null)}</span>
+    <span title="màu ô = CPM ngày đó ÷ CPM nền (TB 3 ngày đã khép, đã bỏ hệ số mùa)" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--fg-3)' }}>rẻ<span style={{ width: 70, height: 8, borderRadius: 4, background: `linear-gradient(90deg, ${mauCpm(16, 20, 0.9)}, ${mauCpm(24, 20, 0.9)}, ${mauCpm(32, 20, 0.9)})` }} />đắt</span>
+    <span style={{ color: 'var(--fg-2)' }} title={`TB ${NEN_NGAY} ngày đã khép gần nhất`}>nền CPM {cpm$(nenCpm)} · CPC {n ? `$${n.cpc.toFixed(2)}` : '—'} · ROI {pct(n?.roi ?? null)}</span>
     {t.tranMoi ? <span title={t.tranMoi.ly_do} style={{ color: 'var(--fg-2)' }}>trần camp mới hôm nay <b>{t.tranMoi.tran}</b></span> : null}
     <span style={{ color: MO }} title="dự đoán = CPM nền × hệ số mùa (giả định theo lịch bán lẻ Mỹ 2026, chưa đo trên số nhà) · ROI không dự đoán">ô sọc = dự đoán</span>
   </div>;

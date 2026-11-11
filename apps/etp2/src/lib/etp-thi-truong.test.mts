@@ -11,8 +11,8 @@ assert.deepStrictEqual(heSo('2027-01-03'), { h: 0.8, le: null });   // tên lễ
 assert.strictEqual(heSo('2026-10-25').h, 1);
 
 const n = nen(so, '2026-11-11')!;
-assert.strictEqual(n.n, 7); assert.ok(Math.abs(n.cpm - 20) < 1e-9, String(n.cpm));   // nền bỏ ngày hôm nay (chưa khép)
-assert.strictEqual(nen({ '2026-11-01': so['2026-11-01']! }, '2026-11-11'), null);   // < 3 ngày: không đoán
+assert.strictEqual(n.n, 3); assert.ok(Math.abs(n.cpm - 20) < 1e-9, String(n.cpm));   // nền bỏ ngày hôm nay (chưa khép)
+assert.strictEqual(nen({ '2026-11-01': so['2026-11-01']!, '2026-11-02': so['2026-11-02']! }, '2026-11-11'), null);   // < 3 ngày: không đoán
 
 const ds = ngayThiTruong(so, '2026-11-11', '2026-11-10', '2026-11-27');
 assert.strictEqual(ds[0]!.du, false); assert.strictEqual(ds[1]!.cpm, 23);           // số thật (cả hôm nay)

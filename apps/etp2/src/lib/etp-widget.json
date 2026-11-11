@@ -234,7 +234,7 @@
     },
     "thi_truong": {
       "ten": "Thị trường",
-      "mo_ta": "CPM / CPC / ROI từng ngày Ethopex của nhà — lịch nhiệt tháng (xanh rẻ → đỏ đắt so với nền 7 ngày) hoặc bảng 30 ngày; ngày chưa tới là dự đoán theo hệ số mùa lễ (giả định)",
+      "mo_ta": "CPM / CPC / ROI từng ngày Ethopex của nhà — lịch nhiệt tháng (xanh rẻ → đỏ đắt so với nền 3 ngày đã khép) hoặc bảng 30 ngày; ngày chưa tới là dự đoán theo hệ số mùa lễ (giả định)",
       "min": [
         6,
         8

@@ -1,13 +1,12 @@
 // THỊ TRƯỜNG — CPM / CPC / ROI theo ngày Ethopex (UTC) + DỰ ĐOÁN ngày chưa tới (anh 11/11/2026: "Template Tổng quát: Thị trường để có được bảng CPM
 // kia trong 30 ngày gần nhất… hoặc show theo kiểu lịch tháng. Ngày chưa đến thì dự đoán. Dùng màu sắc, số, gradient… để mô tả trực quan").
 // Số thật: etp.cau_hinh.cpm_ngay (apps/etp/dong-bo.py ghi mỗi lượt từ báo cáo Ethopex của nhà). Dự đoán = CPM nền × hệ số mùa của ngày đó, trong đó
-// CPM nền = TB 7 ngày đã khép gần nhất ĐÃ BỎ hệ số mùa của chính các ngày đó. HỆ SỐ MÙA LÀ GIẢ ĐỊNH (lịch bán lẻ Mỹ 2026: Lễ Tạ ơn 26/11, Black Friday 27/11,
+// CPM nền = TB 3 ngày đã khép gần nhất (CPM đang lên nhanh: TB 7 ngày tụt sau, 11/11/2026 đoán 12/11 $17,2 khi 3 ngày qua $18–20) ĐÃ BỎ hệ số mùa của chính các ngày đó. HỆ SỐ MÙA LÀ GIẢ ĐỊNH (lịch bán lẻ Mỹ 2026: Lễ Tạ ơn 26/11, Black Friday 27/11,
 // Cyber Monday 30/11, Giáng sinh) — chưa đo trên số nhà; khi có số thật ngày đó thì ô hiện số thật. ROI không dự đoán (không có mô hình đủ tin).
 export type SoNgay = { chi: number; cpm: number; cpc: number; roi: number | null };
 export type OThiTruong = { d: string; du: boolean; chi: number | null; cpm: number | null; cpc: number | null; roi: number | null; heSo: number; le: string | null };
 
 const MUA: [string, string, number, string | null][] = [   // [từ, đến (gồm), hệ số, tên ngày lễ]
-  ['2026-11-11', '2026-11-11', 1.0, '11/11'],
   ['2026-11-16', '2026-11-22', 1.1, null],
   ['2026-11-23', '2026-11-25', 1.25, null],
   ['2026-11-26', '2026-11-26', 1.4, 'Tạ ơn'],
@@ -28,10 +27,11 @@ export function heSo(d: string): { h: number; le: string | null } {
 }
 export const congNgay = (d: string, n: number) => { const t = new Date(`${d}T00:00:00Z`); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 
-/** nền đã bỏ mùa: TB 7 ngày đã khép gần nhất (trước `nay`, có CPM) chia hệ số mùa từng ngày */
+/** nền đã bỏ mùa: TB NEN_NGAY ngày đã khép gần nhất (trước `nay`, có CPM) chia hệ số mùa từng ngày */
+export const NEN_NGAY = 3;
 export function nen(so: Record<string, SoNgay>, nay: string): { cpm: number; cpc: number; roi: number | null; n: number } | null {
-  const ds = Object.entries(so).filter(([d, v]) => d < nay && v.cpm > 0).sort(([a], [b]) => (a < b ? 1 : -1)).slice(0, 7);
-  if (ds.length < 3) return null;
+  const ds = Object.entries(so).filter(([d, v]) => d < nay && v.cpm > 0).sort(([a], [b]) => (a < b ? 1 : -1)).slice(0, NEN_NGAY);
+  if (ds.length < NEN_NGAY) return null;
   const tb = (f: (v: SoNgay, d: string) => number) => ds.reduce((a, [d, v]) => a + f(v, d), 0) / ds.length;
   const rs = ds.map(([, v]) => v.roi).filter((r): r is number => r != null);
   return { cpm: tb((v, d) => v.cpm / heSo(d).h), cpc: tb((v, d) => v.cpc / heSo(d).h), roi: rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : null, n: ds.length };

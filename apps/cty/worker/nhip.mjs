@@ -87,8 +87,8 @@ export const VIEC_NHIP = {
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/etp-sua.mjs mỗi 30 phút: hàng riêng của Huy (worker/tho-may-viec.mjs, THO_MAY_TEP=etp-sua.json — Phát xếp mỗi nhịp: lỗi máy luật, lệnh gửi Ethopex lỗi, thẻ xét luật đứng, camp ROAS đọc lại sai) có việc → báo nhận trong 📂 Ethopex, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) sửa phần Ethopex của repo mos2, kiểm, push, rồi trả lời dưới tin (anh 10/11/2026 "Phòng ETP này phải có 1 con riêng phụ trách").' },
   ],
   'xu-task-astrolas': [
-    { ma: 'xu-task-astrolas', ten: 'Astrolas - xử task (Claude trên iMac)', lich: () => 'mỗi 10 phút · iMac', khop: null,
-      mo_ta: 'Bộ điều phối iMac gọi ~/bin/thanh/chay.mjs mỗi 10 phút, cả ngày lẫn đêm: có task trong php artisan ai-tasks hoặc anh trả lời dưới tin báo → gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) chạy nguyên lệnh /tasks của repo (thứ tự nhận, 5 suất, claim, multi-agent), sau mỗi task qua cổng máy (đủ ảnh, chụp màn, Result đúng luật) rồi đẩy lên nhánh ai (deploy thật) và rồi báo vào chủ đề Astrolas ngay từng task. Trần 30 task / ngày giờ VN. Không có task thì không gọi mô hình.' },
+    { ma: 'xu-task-astrolas', ten: 'Astrolas - xử task (Claude trên iMac)', lich: () => 'mỗi 2 phút · iMac', khop: null,
+      mo_ta: 'Bộ điều phối iMac gọi ~/bin/thanh/chay.mjs mỗi 2 phút, cả ngày lẫn đêm: có task trong php artisan ai-tasks hoặc anh trả lời dưới tin báo → gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) chạy nguyên lệnh /tasks của repo (thứ tự nhận, 5 suất, claim, multi-agent), sau mỗi task qua cổng máy (đủ ảnh, chụp màn, Result đúng luật) rồi đẩy lên nhánh ai (deploy thật) và rồi báo vào chủ đề Astrolas ngay từng task. Trần 30 task / ngày giờ VN. Không có task thì không gọi mô hình.' },
   ],
   'sua-bai': [
     { ma: 'sua-bai', ten: 'Sửa bài Phòng Nội dung trả về', lich: () => 'mỗi 30 phút · iMac', khop: null,

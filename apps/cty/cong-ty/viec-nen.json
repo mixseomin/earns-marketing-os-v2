@@ -778,10 +778,9 @@
    },
    "nhat_ky": "/Users/htuan/.cache/astrolas-tasks.log",
    "hen": {
-    "moi_giay": 600
+    "moi_giay": 120
    },
-   "uu_tien_thap": true,
-   "ghi_chu": "Giảm tần suất 10 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
+   "uu_tien_thap": true
   },
   {
    "nhan": "iMac:tc.on.cty.etp-sua",

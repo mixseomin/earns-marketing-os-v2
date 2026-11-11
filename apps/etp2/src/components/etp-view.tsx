@@ -441,8 +441,8 @@ function gioThe(l: XetLuat, hoan: { luc: string | null; cu: boolean }, don: bool
   if (l.ket !== 'dat' && l.ket !== 'gan') return null;
   if (l.mo) return { t: Math.max(Date.parse(l.mo.luc), Date.now()), can: l.mo.can };   // Siết TS chặn: mốc + điều kiện của chính máy luật
   // nhân bản (NB · thang): worker tạo bản ngay nhịp kế, không chờ khung tăng — bản mới chạy theo khung lên (chuLich)
-  const nb = l.ma === 'nb' || l.ma === 'thang_nb', h = HUONG_THE(l.ma), t = lucLam(nb ? 'tao' : h, hoan.luc, hoan.cu, Date.now(), l.cho_toi ? Date.parse(l.cho_toi) : 0, h === 'tang' && don);
-  const chiNhip = l.dk.every((d) => d[3] || d[0].startsWith('Nhịp tăng'));   // chỉ cổng nhịp chặn = chỉ chờ giờ (cho_toi)
+  const nb = l.ma === 'nb' || l.ma === 'thang_nb' || l.ma === 'roas', h = HUONG_THE(l.ma), t = lucLam(nb ? 'tao' : h, hoan.luc, hoan.cu, Date.now(), l.cho_toi ? Date.parse(l.cho_toi) : 0, h === 'tang' && don);
+  const chiNhip = l.dk.every((d) => d[3] || d[0].startsWith('Nhịp tăng') || d[0].startsWith('Trần camp mới hôm nay'));   // chỉ cổng nhịp / trần camp mới ngày chặn = chỉ chờ giờ (cho_toi)
   if (t == null) return null;
   const can = l.ket === 'gan' && !chiNhip ? 'đủ điều kiện' : null;
   return { t, can: nb ? `${can ? `${can} · ` : ''}tạo xong ${chuLich(t)}` : can };
@@ -494,11 +494,12 @@ function BangXet({ xet, gon, deXuat, don }: { xet: XetLuat[]; gon?: boolean; deX
   );
 }
 function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: boolean; deXuat?: boolean }) {
-  if (t.xet) return <>
+  // luật đã có khối trong bảng điều kiện (l.vao = nhóm etp.bao) → chỉ một dòng tên, số nằm trong bảng (anh 11/11/2026 "các chỉ số thì viết hết ra ngoài làm gì")
+  if (t.xet) { const trongBang = new Set(t.xet.map((l) => l.vao).filter(Boolean)); return <>
     {[...t.daXep, ...t.ganBao].map((b, i) => <div key={i} style={{ ...(gon ? {} : KHONG_GIAN), marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật {LUAT_NHAN[b.nhom]![3] === 'dang' ? 'đã xếp' : 'báo gần'}: {LUAT_NHAN[b.nhom]?.[1]}</b>
-      <div style={{ color: 'var(--fg-2)' }}>{luatThuong(b.chu.replace(/^#\d+:[^·]*·\s*/, '').replace(/^#\S*\s*/, ''))}</div></div>)}
+      {trongBang.has(b.nhom) ? null : <div style={{ color: 'var(--fg-2)' }}>{luatThuong(b.chu.replace(/^#\d+:[^·]*·\s*/, '').replace(/^#\S*\s*/, ''))}</div>}</div>)}
     <BangXet xet={t.xet} gon={gon} deXuat={deXuat} don={t.don} />
-  </>;
+  </>; }
   return <>
     {[...t.daXep, ...t.ganBao].map((b, i) => <div key={i} style={{ marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật {LUAT_NHAN[b.nhom]![3] === 'dang' ? 'đã xếp' : 'báo gần'}: {LUAT_NHAN[b.nhom]?.[1]}</b>
       <div style={{ color: 'var(--fg-2)' }}>{luatThuong(b.chu.replace(/^#\d+:[^·]*·\s*/, '').replace(/^#\S*\s*/, ''))}</div></div>)}

@@ -1153,7 +1153,28 @@ except Exception as e:
 _LOI_THE = []   # lỗi dựng thẻ từng camp — gom báo một dòng loi_may
 def _xet_luat():
     vao = {k: {int(x[0] or 0) for x in v} for k, v in (("tat_l3", tat_l3), ("tat_l4", tat_l4), ("tat_pl", tat_pl), ("tat_d24", tat_d24), ("tat2", tat2), ("tat1", tat1), ("tat_t8", tat_t8), ("tat_tv", tat_tv), ("tat", tat_l), ("tang", dat), ("dau_phien", dau_phien), ("ha", ha), ("giam", giam), ("nb", nb),
-           ("thang_nb", thang_nb), ("thang_tat", thang_tat), ("tang30", tang30), ("tat_l0", tat_l0), ("h3", h3), ("dung_dem", dung_dem), ("tat_roas", tat_roas), ("tat_r0", tat_r0), ("g10", g10), ("tat_g10", tat_g10), ("hoi_g10", hoi_g10))}
+           ("thang_nb", thang_nb), ("thang_tat", thang_tat), ("tang30", tang30), ("tat_l0", tat_l0), ("h3", h3), ("dung_dem", dung_dem), ("tat_roas", tat_roas), ("tat_r0", tat_r0), ("g10", g10), ("tat_g10", tat_g10), ("hoi_g10", hoi_g10), ("moc30", moc30))}
+    # THẺ LÊN ROAS (anh 11/11/2026 "nhìn vào đây đéo biết bao giờ mày sẽ lên camp ROAS. Các chỉ số thì viết hết ra ngoài"): điều kiện + cổng chặn thật của lần lên
+    # (worker ethopex.mjs ★ LÊN ROAS → nhan-ban.py --roas → cong.kiem) vào bảng, lần thử gần nhất bị chặn ghi ở dòng cam, trần camp mới / ngày chặn → mốc 00:00 VN
+    try: _so_moi, _tran_moi = int(q(CONG.SQL_TAO_HOM_NAY) or 0), q(f"select gia_tri::text from etp.cau_hinh where khoa = '{CONG.KHOA_TRAN_NGAY}'")
+    except Exception: _so_moi, _tran_moi = 0, ""
+    _tran_moi = int(float(_tran_moi)) if (_tran_moi or "").replace(".", "", 1).isdigit() else None
+    _ngay_mai = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).replace(hour=0, minute=0, second=0, microsecond=0) + dt.timedelta(days=1) - dt.timedelta(hours=7)
+    try: _roas_thu = {int(x["c"]): x for x in json.loads(q("""select coalesce(json_agg(t), '[]') from (select distinct on (camp_id) camp_id c, to_char(luc at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI') g, ok, loi
+        from etp.nhat_ky where viec = 'roas' and camp_id is not null and (luc at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date order by camp_id, luc desc) t""") or "[]")}
+    except Exception: _roas_thu = {}
+    def L_roas(cid, a, rg):
+        lai = a.get("thu", 0) - a.get("chi", 0); chi_, roi_ = float(ROAS_LEN["chi"]), float(ROAS_LEN["roi"])
+        dk = ([["Lãi 30 ngày", f"${lai:.2f}", f"≥ ${ROAS_LAI}", True]] if lai >= ROAS_LAI else
+              [["Chi 30 ngày", f"${a.get('chi', 0):.2f}", f"≥ ${chi_:g} (nhánh kia: lãi ≥ ${ROAS_LAI}, đang ${lai:.0f})", a.get("chi", 0) >= chi_], ["ROI 3 ngày đã khép", f(rg, "%"), f"≥ {roi_:g}%", rg is not None and rg >= roi_]])
+        dk += [["Gốc chưa có camp ★ ROAS", "đã có" if int(cid) in _goc_roas else "chưa có", "chưa có", int(cid) not in _goc_roas],
+               ["Bài đăng chưa bị Meta từ chối khi lên ROAS", "đã bị từ chối" if int(cid) in _bai_tc else "chưa", "chưa", int(cid) not in _bai_tc]]
+        if _tran_moi is not None: dk.append([f"Trần camp mới hôm nay (mở lại 00:00 VN)", f"{_so_moi}/{_tran_moi}", f"< {_tran_moi}", _so_moi < _tran_moi])
+        t = _roas_thu.get(int(cid)); ghi = f"{t['g']} máy thử lên ROAS bị chặn: {str(t['loi'])[:160]}" if t and t.get("loi") else f"{t['g']} đã lên ROAS" if t and t.get("ok") else None
+        o = L("roas", "★ Lên ROAS (4 mức · $20)", f"Lãi 30 ngày ≥ ${ROAS_LAI} (anh 29/10/2026) HOẶC chi 30 ngày ≥ ${chi_:g} & ROI 3 ngày đã khép ≥ {roi_:g}% (Dol 09/11/2026) → cuối nhịp kế máy tạo 4 camp ★ ROAS $20 từ camp này (giờ chạy theo lịch lên); gốc đã có camp ★ thì không lên lại.",
+              dk, "moc30" if int(cid) in vao["moc30"] else None, ghi=ghi)
+        if _tran_moi is not None and _so_moi >= _tran_moi: o["cho_toi"] = _ngay_mai.isoformat()
+        return o
     giam_tu = q("select gia_tri::text from etp.cau_hinh where khoa = 'giam_tu_dong'") != "false"
     f = lambda v, dv="": "—" if v is None else (f"{v:+.0f}%" if dv == "%" else f"${v:.2f}" if dv == "$" else f"{v:g}{dv}")
     def L(ma, ten, mo_ta, dk, vao_ds=None, ghi=None, ap=True, tien=0, lo=None):
@@ -1327,6 +1348,7 @@ def _xet_luat():
             if not b2 and NT.trong_nhanh() and rh is not None and rh >= float(KD["sang_roi"]) and ns and h.get("chi", 0) >= float(KD["nap_chi"]) * ns:   # khung tăng nhanh (anh 10/11/2026)
                 ls[-1]["ghi"] = f"khung tăng nhanh (08–12h, 21–06h): ROI hôm nay ≥ {KD['sang_roi']}% + đã tiêu ≥ {float(KD['nap_chi']):.0%} ngân sách → máy tăng bậc kế ngay nhịp tới"
             # GIẢM BẬC — đã bỏ (anh 29/10/2026 "làm 1+2"): không còn trong bản xét; camp lỗ liền xem luật L3
+            ls.append(L_roas(cid, a, rg))
             if not b2:
                 ls.append(L("nb", "Nhân bản camp thắng (NB)", f"Hai nấc theo cách Kiên (anh 07/11/2026): " + " · ".join(f"tiêu ≥ ${c:g} & ROI ≥ +{m}% → đủ {n} bản" for c, m, n in reversed(NB_NAC)) + f"; mỗi phim tối đa {NB_PHIM_NGAY} bản / 24 giờ; cần ROI 3 ngày gần ≥ {NB_ROI3}%; không đòi ngân sách gốc (mốc ${TRAN_NB:g} chỉ còn cho nhân bản tay) → bản $1 GIỮ NGUYÊN creative (đoạn đã đủ {TRAN_DOAN_} camp chạy mới đổi creative khác cùng phim).",
                     [[f"Nấc {i}: chi ≥ ${c:g} & ROI ≥ +{m}%", f"${a.get('chi', 0):.2f} · " + f(r, "%"), f"đủ {n} bản", nb_muc(a.get("chi", 0), r) >= n] for i, (c, m, n) in enumerate(reversed(NB_NAC), 1)] + [

@@ -72,6 +72,7 @@
     "t30":       ["⇈ $30", "#4ade80", "tang"],
     "t30_roas":  ["★ $30", "#facc15", "tang", "T30 · ★ ROAS (theo dõi)"],
     "nb":        ["🧬 Nhân bản", "#a78bfa", "tang"],
+    "roas":      ["★ Lên ROAS", "#facc15", "tang"],
     "thang_nb":  ["⧉ Thang", "#60a5fa", "tang"],
     "g10":       ["↓ G10 về $10", "#fb923c", "giam"],
     "g10k":      ["↓ G10 kém đi", "#fb923c", "giam"],

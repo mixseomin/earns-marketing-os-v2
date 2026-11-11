@@ -843,6 +843,23 @@
    "ghi_chu": "Anh duyệt 11/11/2026 (\"làm từ 1 đến 4 luôn\"). Chạy ở iMac vì Reel dùng ffmpeg (cấm dựng video trên box3). Hỏng / treo → Phòng Nội dung xếp việc social:sx|<máy> cho Khang."
   },
   {
+   "nhan": "iMac:tc.on.cty.mos2-gop-y",
+   "ten": "MOS2 - Đạt xử hòm góp ý (Claude)",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/cty/may/mos2-gop-y.mjs"
+   ],
+   "thu_muc": "/Users/htuan/Me/GitHub/earns-marketing-os-v2",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/mos2-gop-y.log",
+   "hen": {
+    "moi_giay": 300
+   },
+   "uu_tien_thap": true
+  },
+  {
    "nhan": "iMac:tc.on.cty.astrolas-site",
    "ten": "Astrolas - site cục bộ cho Thành nhìn trang",
    "chay": [

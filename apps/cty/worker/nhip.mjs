@@ -82,6 +82,10 @@ export const VIEC_NHIP = {
     { ma: 'sua-social', ten: 'Social - làm lại bài bị chặn (Claude · Khang trên iMac)', lich: () => 'mỗi 30 phút · iMac', khop: null,
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/social-sua.mjs mỗi 30 phút: hàng riêng của Khang (worker/tho-may-viec.mjs, THO_MAY_TEP=social-sua.json — Phòng Nội dung xếp sau mỗi lượt chấm: máy có bài chưa đăng bị SỬA LẠI quá 1 giờ) có việc → báo nhận trong 📂 Social Traffic, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) làm lại bài bằng đề mới cùng góc + dạng (may-dung --lam-lai-sua) hoặc sửa gốc máy sinh bài, kiểm, push, chấm lại, rồi trả lời dưới tin (anh 10/11/2026 "Phải có 1 con CLI phụ trách việc này").' },
   ],
+  'xu-gop-y-mos2': [
+    { ma: 'xu-gop-y-mos2', ten: 'MOS2 - xử hòm góp ý (Claude · Đạt trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
+      mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/mos2-gop-y.mjs mỗi 5 phút: hòm góp ý 💬 của mos2.on.tc (card feedback trên plays mos2, pending / claimed / broken) có card chưa làm hoặc có tin mới của anh → gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) trong cây riêng chạy đúng /tasks-mos2: sửa gốc apps/web, kiểm, push (GHA deploy box3), trả lời vào luồng card rồi nộp Review. Card đã làm mà chưa có tin mới thì không làm lại trong 24 giờ.' },
+  ],
   'sua-may-etp': [
     { ma: 'sua-may-etp', ten: 'Ethopex - tự sửa lỗi máy (Claude · Huy trên iMac)', lich: () => 'mỗi 30 phút · iMac', khop: null,
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/etp-sua.mjs mỗi 30 phút: hàng riêng của Huy (worker/tho-may-viec.mjs, THO_MAY_TEP=etp-sua.json — Phát xếp mỗi nhịp: lỗi máy luật, lệnh gửi Ethopex lỗi, thẻ xét luật đứng, camp ROAS đọc lại sai) có việc → báo nhận trong 📂 Ethopex, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) sửa phần Ethopex của repo mos2, kiểm, push, rồi trả lời dưới tin (anh 10/11/2026 "Phòng ETP này phải có 1 con riêng phụ trách").' },

@@ -53,6 +53,23 @@
     "iMac:com.earns.adsense-site-check"
    ],
    "chi_phi": "0"
+  },
+  {
+   "id": "xu-gop-y-mos2",
+   "ten": "Xử hòm góp ý MOS2 (Claude Code trên iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền; chỉ gọi Claude khi hòm góp ý mos2 có card mở",
+   "mo_ta": "Đạt lấy card góp ý mở cũ nhất trên plays mos2 (nút 💬 của mos2.on.tc; anh bấm làm lại thì card về hàng với tin mới), kéo origin/main vào cây riêng, làm đúng /tasks-mos2: sửa gốc, kiểm, đẩy main (GHA deploy box3), trả lời vào luồng card rồi nộp Review.",
+   "ma": "apps/cty/may/mos2-gop-y.mjs · lệnh ~/.claude/commands/tasks-mos2.md",
+   "chu_tri": "dat",
+   "lam": [
+    "may"
+   ],
+   "khi": "khi hòm góp ý mos2 có card mở",
+   "lich": [
+    "iMac:tc.on.cty.mos2-gop-y"
+   ],
+   "chi_phi": "gói Claude thuê bao (không tính theo lượt)"
   }
  ]
 }

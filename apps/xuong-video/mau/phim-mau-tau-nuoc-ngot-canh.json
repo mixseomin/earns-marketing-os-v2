@@ -400,7 +400,7 @@
   },
   {
    "canh": "Chú gọi với theo, thời gian trôi",
-   "goc_may": "MS → WS",
+   "goc_may": "MS, máy đứng yên",
    "phan_doan": "Giao tiền",
    "cam_xuc": 1,
    "thoi_luong_s": 4,
@@ -426,7 +426,7 @@
     }
    ],
    "prompt_anh": "Japanese 2D anime film still, hand-painted background, golden-hour backlight with lens flare, deep bottle-green train carriage with mustard-yellow stripe, cream concrete platform with yellow tactile strip, warm dusty haze. Medium shot from the platform: the young man in a navy jacket leans out of the open train window, mouth open calling out toward screen right, crowded passengers visible inside the carriage behind him.",
-   "prompt_video": "The man calls out after the boy, then the camera slowly pulls back and pans to reveal the long green train stretching down the empty sunlit platform.",
+   "prompt_video": "The man leans further out of the window and calls after the boy down the platform, cupping one hand beside his mouth; locked camera — he stays in frame, facing down the platform, the whole time.",
    "ky_thuat": {
     "vai": "thoi_gian",
     "co_canh": "ms",
@@ -443,11 +443,11 @@
    },
    "dan_dung": {
     "mo": "man calling from window toward the far end of the platform; the train stands still at the platform, not moving",
-    "ket": "wide empty platform, the train parked and waiting, not moving; the train stands still at the platform, not moving",
+    "ket": "man still leaning out of the window, hand by his mouth, looking down the platform toward the sun; the train stands still at the platform, not moving",
     "muc_dich": "GÀI: 'cháu một chai, chú một chai'. Lùi máy = thời gian trôi, không cần chữ.",
     "motif": "hai chai (gài)",
     "bo_cuc": "foreground: window frame; midground: man leaning out; background: crowded passengers inside, then the long train and empty platform",
-    "huong": "man calls down the platform toward the sun where the boy went; camera pulls back, the train itself never moves",
+    "huong": "man faces screen right, calling down the platform toward the sun where the boy went; camera does not move",
     "dien": "loud call, then impatient wait",
     "nhan": ""
    },

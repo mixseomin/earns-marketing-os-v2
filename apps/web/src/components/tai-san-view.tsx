@@ -241,7 +241,7 @@ function SuaTrangThai({ x }: { x: SpNut }) {
 }
 
 /** Drawer chi tiết một sản phẩm: ảnh lớn, link (href.li), shop + tài khoản, mọi số và ghi chú đầy đủ. */
-function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => void }) {
+export function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => void }) {
   const laApp = s.khoa.startsWith('app-store:') && !!x.idSo;   // shop App Store (doc.ts: khoa = '<platform>:<store>')
   const dong: [string, React.ReactNode][] = [
     ['Shop', <><span style={{ display: 'inline-flex', verticalAlign: 'middle', marginRight: 6 }}><Logo s={s} /></span>{s.ten}{s.url && <> · <a {...extLinkProps(s.url)} style={{ color: 'var(--accent)' }}>mở shop ↗</a></>}</>],

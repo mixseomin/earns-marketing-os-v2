@@ -5,10 +5,16 @@ import { useEffect, useState } from 'react';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { DataTable, type DataColumn } from '@/components/ui/data-table';
 import { InfoHint } from '@/components/ui/info-hint';
-import type { ViecSx, NguonSx } from '@/lib/may-sx/gom';
+import { useModalParam } from '@/lib/use-modal-param';
+import { ChiTietSp } from '@/components/tai-san-view';
+import { ChiTietBai } from '@/components/social-lich-luoi';
+import { KenhNgan, useNganKenh } from '@/components/kenh-ngan';
+import type { ViecSx, NguonSx } from '@/lib/may-sx/gom-kieu';
+import type { StLuoiO } from '@/lib/social-traffic';
+import type { KenhSp } from '@/lib/tai-san/kenh-sp-tinh';
 
 // tên dạng bài (kieu_ten) do API đọc từ SỔ apps/xuong-video/kieu-sx.json — trang KHÔNG gõ lại nhãn (audit 11/11/2026: nhãn gõ tay lệch máy khi đổi mặc định)
-type Luot = { id: number; luc: string; may: string; slug: string; kieu: string | null; kieu_ten: string | null; ngay_dang: string | null; ok: boolean; trang_thai: 'dang' | 'xong' | 'hong'; vnd: number; ghi: string | null; loi: string | null; tep: string | null };
+type Luot = { bai: StLuoiO | null; id: number; luc: string; may: string; slug: string; kieu: string | null; kieu_ten: string | null; ngay_dang: string | null; ok: boolean; trang_thai: 'dang' | 'xong' | 'hong'; vnd: number; ghi: string | null; loi: string | null; tep: string | null };
 /** Lượt 'dang' quá 40 phút chưa cập nhật = bị ngắt giữa chừng (phiên đóng, máy tắt) — một lượt dựng thật mất 3–8 phút. */
 const MAT_DAU_PHUT = 40;
 const tinhTrang = (x: Luot): { chu: string; mau: string } => x.trang_thai === 'xong' ? { chu: '✓ xong', mau: 'var(--ok, #16a34a)' }
@@ -21,9 +27,10 @@ const NGUON: { k: NguonSx; ten: string; mau: string }[] = [
   { k: 'etp', ten: 'Ethopex', mau: '#7c3aed' }, { k: 'kenh', ten: 'Kênh nội dung', mau: '#dc2626' },
   { k: 'social', ten: 'Social / Page', mau: '#1d4ed8' }, { k: 'puzzle', ten: 'Puzzle / Tài sản', mau: '#047857' },
 ];
-/** Bấm dòng → NGĂN (anh 12/11/2026: "mọi thứ ở tab Máy SX phải khi bấm vào phải dùng drawer"). Ethopex có ngăn Sản xuất phim sẵn (etp-sx);
- *  mọi nguồn khác mở ngăn may-sx (bài + tệp + chấm + lượt dựng, hoặc chi tiết việc) — trang gốc chỉ còn là đường dẫn phụ trong ngăn. */
-const moViec = (v: ViecSx) => { if ('ed' in v.mo) openEntityDrawer(v.mo.ed, v.mo.id); else openEntityDrawer('may-sx', v.khoa); };
+/** Bấm dòng → NGĂN SẴN CÓ CỦA CHÍNH NGUỒN ĐÓ (anh 12/11/2026: "các kiểu drawer này phải chính là drawer của sản phẩm đó — cấm tự bịa drawer mới nếu đã có"):
+ *  Ethopex = ngăn Sản xuất phim (EntityDrawerHost etp-sx) · Puzzle = ngăn sản phẩm tab Tài sản (ChiTietSp) · Kênh = ngăn hồ sơ kênh (KenhNgan) ·
+ *  Social và lượt dựng = ngăn bài của lịch Social Traffic (ChiTietBai). Cùng tham số URL với trang gốc → link chia sẻ / F5 dùng chung một kiểu. */
+const khoaBai = (x: StLuoiO) => `${x.may}|${x.slug ?? x.title}`;
 const tuLuc = (iso?: string | null) => { if (!iso) return '—'; const p = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
   return p < 60 ? `${p} phút` : p < 1440 ? `${Math.round(p / 60)} giờ` : `${Math.round(p / 1440)} ngày`; };
 
@@ -46,12 +53,13 @@ const COT_LUOT: DataColumn<Luot>[] = [
   { key: 'ngay', header: 'Ngày đăng', width: 90, sortValue: (x) => x.ngay_dang ?? '', cell: (x) => ngayVn(x.ngay_dang) },
   { key: 'vnd', header: 'Tiền', width: 80, sortValue: (x) => x.vnd, total: (rs) => `${rs.reduce((t, x) => t + (x.vnd ?? 0), 0).toLocaleString('vi-VN')}₫`, cell: (x) => `${(x.vnd ?? 0).toLocaleString('vi-VN')}₫` },
   { key: 'ghi', header: 'Ghi chú / lỗi', align: 'left', cell: (x) => <span style={{ color: x.trang_thai === 'hong' ? 'var(--bad, #dc2626)' : 'var(--fg-2)' }}>{x.trang_thai === 'hong' ? x.loi : x.ghi}<div style={{ color: 'var(--fg-3)', fontSize: 11 }}>{x.slug}</div></span> },
-  { key: 'tep', header: 'Tệp', width: 60, cell: (x) => (x.tep ? <span style={{ color: '#60a5fa' }}>xem</span> : '—') },   // tệp xem trong ngăn (bấm cả dòng), không mở tab mới
+  { key: 'tep', header: 'Tệp', width: 60, cell: (x) => (x.tep ? <span style={{ color: '#60a5fa' }}>xem</span> : '—') },   // tệp xem trong ngăn bài (bấm cả dòng), không mở tab mới
 ];
 
 export function MaySxView() {
+  const sp = useModalParam('sp'), ob = useModalParam('ob'), ngan = useNganKenh();
   const [ngay, setNgay] = useState(() => { try { return new URLSearchParams(window.location.search).get('sx_ngay') ?? '7'; } catch { return '7'; } });
-  const [du, setDu] = useState<{ luot: Luot[]; viec: ViecSx[]; loi: string[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
+  const [du, setDu] = useState<{ luot: Luot[]; viec: ViecSx[]; kenh: KenhSp[]; loi: string[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
   const [nguon, setNguon] = useState<NguonSx | null>(() => { try { return (new URLSearchParams(window.location.search).get('sx_nguon') as NguonSx) || null; } catch { return null; } });
   useEffect(() => {
     const p = new URLSearchParams(window.location.search); if (ngay === '7') p.delete('sx_ngay'); else p.set('sx_ngay', ngay);
@@ -61,6 +69,12 @@ export function MaySxView() {
     const hoi = async () => { try { const r = await fetch(`/api/may-sx/so?ngay=${ngay}`, { cache: 'no-store' }); const j = await r.json(); if (j.error) throw new Error(j.error); if (!dung) { setDu(j); setLoi(null); } } catch (e) { if (!dung) setLoi((e as Error).message); } };
     hoi(); const t = setInterval(hoi, 30_000); return () => { dung = true; clearInterval(t); };
   }, [ngay, nguon]);
+  const moViec = (v: ViecSx) => {
+    if ('ed' in v.mo) openEntityDrawer(v.mo.ed, v.mo.id); else if ('sp' in v.mo) sp.open('sp', v.mo.sp.x.khoa);
+    else if ('kenh' in v.mo) ngan.mo('kenh', v.mo.kenh); else ob.open('o-lich', khoaBai(v.mo.bai));
+  };
+  const spMo = sp.is('sp') ? du?.viec.map((v) => ('sp' in v.mo ? v.mo.sp : null)).find((x) => x?.x.khoa === sp.id) ?? null : null;
+  const baiMo = ob.is('o-lich') ? [...(du?.viec.map((v) => ('bai' in v.mo ? v.mo.bai : null)) ?? []), ...(du?.luot.map((l) => l.bai) ?? [])].find((x) => x && khoaBai(x) === ob.id) ?? null : null;
   const tien = du?.luot.reduce((t, x) => t + (x.vnd ?? 0), 0) ?? 0, hong = du?.luot.filter((x) => tinhTrang(x).chu !== '✓ xong' && tinhTrang(x).chu !== '⏳ đang dựng').length ?? 0;
   return (
     // minmax(0, 1fr): ô lưới mặc định min-width:auto → NỞ theo chuỗi dài nhất trong bảng (dòng lỗi "TimeoutExpired: Command '['nice', …" không có
@@ -101,8 +115,12 @@ export function MaySxView() {
           </span>
         </div>
         {!du ? null : !du.luot.length ? <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Chưa có lượt dựng nào trong {ngay} ngày.</div>
-          : <DataTable rows={du.luot} columns={COT_LUOT} getRowKey={(x) => String(x.id)} onRowClick={(x) => openEntityDrawer('may-sx', `l-${x.id}`)} rowTitle={() => 'bấm xem chi tiết lượt + bài'} pageSize={20} persistKey="may-sx-luot" minWidth={900} />}
+          : <DataTable rows={du.luot} columns={COT_LUOT} getRowKey={(x) => String(x.id)} onRowClick={(x) => { if (x.bai) ob.open('o-lich', khoaBai(x.bai)); }} rowTitle={(x) => (x.bai ? 'bấm mở ngăn bài' : 'bài không còn trong sổ bài')} pageSize={20} persistKey="may-sx-luot" minWidth={900} />}
       </section>
+      {/* NGĂN SẴN CÓ của từng nguồn — không có ngăn riêng của Máy SX */}
+      {spMo ? <ChiTietSp key={spMo.x.khoa} s={spMo.s} x={spMo.x} onClose={sp.close} /> : null}
+      {baiMo ? <ChiTietBai x={baiMo} onClose={ob.close} /> : null}
+      {du ? <KenhNgan kenh={du.kenh} /> : null}
     </div>
   );
 }

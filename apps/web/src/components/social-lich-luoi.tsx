@@ -62,7 +62,7 @@ function ChuThe({ x, gon }: { x: StLuoiO; gon?: boolean }) {
   );
 }
 
-function ChiTietBai({ x, onClose }: { x: StLuoiO; onClose: () => void }) {
+export function ChiTietBai({ x, onClose }: { x: StLuoiO; onClose: () => void }) {
   const nhan: [string, React.ReactNode][] = [
     ...(x.phimTen ? [['Phim', x.phimTen] as [string, React.ReactNode]] : []),
     ...(x.huong ? [['Hướng nội dung', x.huong] as [string, React.ReactNode]] : []),

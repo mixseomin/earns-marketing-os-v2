@@ -26,16 +26,27 @@ export function cayRieng(nguoi, goc = MOS2_GOC) {
   // BẢN DỞ TRÙNG TỆP MAIN VỪA ĐỔI (11/11/2026: Khang để dở may-dung.mts từ 23:06 10/11, main sau đó đổi cùng tệp → `merge --ff-only` từ chối mỗi lượt,
   // Khang đứng im gần một ngày, 4 việc chờ trong hàng — gồm việc SỬA LẠI của máy Mia). Cất bản dở thành tệp vá + stash (không xoá, không hoàn tác),
   // kéo main, rồi áp lại tệp vá lên bản mới. Áp không được = trả `vat` để kỹ sư đọc tệp vá và làm lại trên main mới, cây vẫn sạch để nhận việc.
-  let vat = null;
-  try { git(dir, 'merge', '-q', '--ff-only', 'origin/main'); } catch (e) {
-    const dirty = git(dir, 'status', '--porcelain', '--untracked-files=no');
-    if (!dirty) throw e;   // không phải do bản dở (nhánh riêng có commit chưa lên main) — để người gọi báo
-    const tep = path.join(os.homedir(), 'may-ky-su', nguoi, `do-${new Date().toISOString().replace(/[:.]/g, '-')}.patch`);
+  let vat = null, tep = null;
+  // 1. BẢN DỞ (chưa commit) trùng tệp main vừa đổi (11/11/2026: Khang để dở may-dung.mts → `merge --ff-only` từ chối mỗi lượt, đứng im gần một ngày):
+  //    cất thành tệp vá + stash (không xoá, không hoàn tác), lát nữa áp lại lên bản mới; áp không được → trả `vat` để kỹ sư đọc và làm lại.
+  if (git(dir, 'status', '--porcelain', '--untracked-files=no')) {
+    tep = path.join(os.homedir(), 'may-ky-su', nguoi, `do-${new Date().toISOString().replace(/[:.]/g, '-')}.patch`);
     fs.writeFileSync(tep, execFileSync('git', ['-C', dir, 'diff', 'HEAD'], { encoding: 'utf8' }));
     git(dir, 'stash', 'push', '-q', '-m', `cay-rieng: bản dở của ${nguoi} trước khi kéo main (tệp vá ${tep})`);
-    git(dir, 'merge', '-q', '--ff-only', 'origin/main');
-    try { git(dir, 'apply', '--check', tep); git(dir, 'apply', tep); } catch { vat = tep; }
   }
+  // 2. COMMIT CHƯA LÊN MAIN (12/11/2026: Khang commit fc7d6cbc lúc 00:02 mà `git push origin HEAD:main` bị từ chối vì main vừa có commit khác; kỹ sư bị cấm
+  //    rebase nên commit kẹt, nhánh lệch main → mọi lượt sau "Diverging branches", việc chờ đứng im). Máy đặt commit của kỹ sư lên main mới rồi đẩy (thử 3 lần).
+  //    Xung đột → huỷ rebase (nhánh về nguyên trạng, commit vẫn còn) và ném lỗi để người gọi báo phòng.
+  const kep = Number(git(dir, 'rev-list', '--count', 'origin/main..HEAD'));
+  if (kep > 0) {
+    try { git(dir, 'rebase', '-q', 'origin/main'); } catch (e) { try { git(dir, 'rebase', '--abort'); } catch { /* không có rebase dở */ }
+      throw new Error(`${kep} commit chưa lên main của ${nguoi} xung đột với main mới, cần làm lại: ${String(e.stderr || e.message).split('\n')[0]}`); }
+    for (let i = 1; ; i++) { try { git(dir, 'push', '-q', 'origin', 'HEAD:main'); break; } catch (e) { if (i >= 3) throw e; git(dir, 'fetch', '-q', 'origin', 'main'); git(dir, 'rebase', '-q', 'origin/main'); } }
+    git(dir, 'fetch', '-q', 'origin', 'main');
+    console.log(`${new Date().toISOString()} đã đẩy ${kep} commit kẹt của ${nguoi} lên main`);
+  }
+  git(dir, 'merge', '-q', '--ff-only', 'origin/main');
+  if (tep) { try { git(dir, 'apply', '--check', tep); git(dir, 'apply', tep); } catch { vat = tep; } }
   const doDo = git(dir, 'status', '--porcelain', '--untracked-files=no').split('\n').filter(Boolean).map((l) => l.slice(3));
   return { dir, do: doDo, vat };
 }

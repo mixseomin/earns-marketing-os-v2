@@ -15,7 +15,6 @@ PHIM_CHI, PHIM_ROI, GOC_CHI, PHIM_BO, MOI_NHIP = 50, 25, 5, 3, 4
 NB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "nhan-ban.py")
 LUAT = "nuôi bộ"
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-c", s], capture_output=True, text=True, timeout=60).stdout.strip()
-HOM_NAY = "(luc at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date"
 
 def ke_hoach():
     tl = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'tran_len'), '{}')") or "{}")
@@ -23,7 +22,11 @@ def ke_hoach():
     nuoi = {str(b): int(n) for b, n in (tl.get("nuoi") or {}).items() if int(n) > 0}
     if not nuoi: return [], "tran_len chưa chia phần nuôi (trần 0 hoặc chưa quyết hôm nay)"
     da = {}   # (bộ, phim) → số camp nuôi hôm nay
-    for l in q(f"select split_part(split_part(luat, ' · ', 1), ' ', 3), split_part(split_part(luat, 'phim #', 2), ' ', 1) from etp.nhat_ky where viec = 'nhan_ban' and ok and luat like '{LUAT} %' and {HOM_NAY}").splitlines():
+    # đếm từ nhật ký GỐC (xv_khoa_ngoai['ethopex_nhat_ky'] — nhan-ban.py ghi ngay lúc tạo, luc = 'HH:MM DD/MM/YYYY' giờ VN); etp.nhat_ky chỉ chép sang mỗi 10 phút
+    # → đếm ở đó thì nhịp kế có thể nuôi trùng (11/11/2026: 4 camp vừa tạo chưa có trong etp.nhat_ky)
+    for l in q(f"""select split_part(split_part(x->>'luat', ' · ', 1), ' ', 3), x->>'content' from xv_khoa_ngoai, jsonb_array_elements(gia_tri) x
+            where ten = 'ethopex_nhat_ky' and x->>'viec' = 'nhan_ban' and (x->>'ok')::boolean and x->>'luat' like '{LUAT} %'
+              and split_part(x->>'luc', ' ', 2) = to_char(now() at time zone 'Asia/Ho_Chi_Minh', 'DD/MM/YYYY')""").splitlines():
         b, p = (l.split("|") + [""])[:2]
         if b: da[(b, p)] = da.get((b, p), 0) + 1
     phim = [l.split("|") for l in q(f"""with d as (select (now() at time zone 'utc')::date d0),

@@ -73,7 +73,7 @@ export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi
           { ten: 'Dựng', tt: dung, ghi: x.l_loi }, { ten: 'Chấm', tt: cham, chu: x.ket === 'SUA_LAI' ? 'sửa lại' : x.ket === 'KHONG_DUYET' ? 'không duyệt' : null, ghi: x.chan },
           { ten: 'Đăng', tt: cham === 'xong' ? 'dang' : 'cho', chu: cham === 'xong' ? 'chờ giờ' : null }];
         const hien = nhip.find((n) => n.tt !== 'xong');
-        return { nguon: 'social', khoa: `s-${x.id}`, ten: x.ten || x.slug, cua: x.may_ten, buoc: hien ? `${hien.ten}${hien.tt === 'loi' ? ' lỗi' : hien.tt === 'dang' ? ' đang làm' : ' chờ'}` : 'xong', nhip,
+        return { nguon: 'social', khoa: `s-${x.id}`, ten: x.ten || x.slug, cua: x.may_ten, buoc: !hien ? 'xong' : hien.ten === 'Đăng' ? 'chờ giờ đăng' : `${hien.ten}${hien.tt === 'loi' ? ' lỗi' : hien.tt === 'dang' ? ' đang làm' : ' chờ'}`, nhip,
           luc: x.luc, loi: dung === 'loi' ? x.l_loi : cham === 'loi' ? x.chan : null, ghi: [tenDang(dangCua(x.kieu, x.nen)), x.slug].join(' · '),
           mo: { bai: { ngay: '', gio: '', may: x.may, mayTen: x.may_ten, nen: '', title: x.slug, url: null, loai: 'du_kien', slug: x.slug } } };
       });
@@ -87,11 +87,13 @@ export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi
     // ETHOPEX = CHÍNH các dòng phim của bảng Sản xuất (lib/actions/etp-dong › docDong, lọc đang làm + lỗi) — nhịp vẽ bằng ChuoiBuoc của bảng đó (anh 12/11/2026
     // chỉ vào bảng này: "SX thì làm sao chia thành các nhịp rõ ràng thế này"). Trước đọc hàng chờ rời (docEtp › dangSx) — có mục "chờ soát đoạn" đứng 92 ngày.
     doc('Ethopex', async () => {
+      // docDong dựng cả danh sách mỗi lần gọi rồi cắt trang 50 → gọi ít: 'dang' đọc hết (≤ 10 trang), 'loi' chỉ trang đầu (xếp gấp trước — 292 dòng
+      // "lên camp dừng" đo 12/11/2026 phần lớn là lịch sử). Phần không hiện thì BÁO số, không cắt im lặng.
       const ds = new Map<number, DongPhim>();
-      for (const loc of ['dang', 'loi'] as const) for (let t = 0; t < 6; t++) {
-        const r = await docDong(loc, '', t); if ('loi' in r) throw new Error(String(r.loi));
-        for (const x of r.dong) ds.set(x.id, x); if ((t + 1) * 50 >= r.tong) break;
-      }
+      for (let t = 0; t < 10; t++) { const r = await docDong('dang', '', t); if ('loi' in r) throw new Error(String(r.loi)); for (const x of r.dong) ds.set(x.id, x); if ((t + 1) * 50 >= r.tong) break;
+        if (t === 9) loi.push(`Ethopex: ${r.tong} dòng đang làm, tab hiện 500 — đủ ở tab Ethopex › Sản xuất`); }
+      const rl = await docDong('loi', '', 0); if ('loi' in rl) throw new Error(String(rl.loi)); for (const x of rl.dong) ds.set(x.id, x);
+      if (rl.tong > rl.dong.length) loi.push(`Ethopex: ${rl.tong} dòng lỗi / dừng, tab hiện ${rl.dong.length} dòng gấp nhất — đủ ở tab Ethopex › Sản xuất (lọc Lỗi / dừng)`);
       return [...ds.values()].map((x): ViecSx => {
         const hien = x.buoc.find((b) => ['loi', 'dung'].includes(b.trang_thai)) ?? x.buoc.find((b) => b.trang_thai === 'dang') ?? x.buoc.find((b) => b.trang_thai === 'cho');
         const hong = ['loi', 'dung'].includes(x.trang_thai) || ['loi', 'dung'].includes(hien?.trang_thai ?? '');

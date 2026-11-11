@@ -23,7 +23,7 @@ export const luatDaLam = (viec: string, luat: string | null) => NHAT_KY_LUAT.fin
 export type SoTien = { chi: number; thu: number };
 /** ns = tổng ngân sách ngày của camp đang chạy (anh 26/10/2026): ngày cũ = ảnh chụp cuối ngày trong etp.so_ngay (camp ACTIVE); hôm nay = view camp_dang_chay (gồm camp tạm dừng vì lịch); null = chưa ghi */
 export type DongNgayEtp = SoTien & { ngay: string; camp: number; ns: number | null };
-export type XetLuat = { ma: string; ten: string; mo_ta: string; dk: [string, string, string, boolean][]; ket: 'dat' | 'gan' | 'xa' | 'khong_ap'; vao: string | null; ghi: string | null; /** thẻ Tăng bậc bị cổng nhịp chặn: mốc UTC được tăng (luat-ethopex · nhip_tang.cho_tang) */ cho_toi?: string | null; /** thẻ tăng bị Siết TS chặn: mốc UTC sớm nhất thôi chặn + điều kiện còn phải đạt lúc đó (luat-ethopex _ts_mo, anh 10/11/2026) */ mo?: { luc: string; can: string | null } };
+export type XetLuat = { ma: string; ten: string; mo_ta: string; dk: [string, string, string, boolean][]; ket: 'dat' | 'gan' | 'xa' | 'khong_ap'; vao: string | null; ghi: string | null; /** thẻ Tăng bậc bị cổng nhịp chặn: mốc UTC được tăng (luat-ethopex · nhip_tang.cho_tang) */ cho_toi?: string | null; /** máy ĐÃ LÀM việc của thẻ sau lúc ghi thẻ — giờ VN (etp-doc theDaLam) */ da?: string; /** thẻ tăng bị Siết TS chặn: mốc UTC sớm nhất thôi chặn + điều kiện còn phải đạt lúc đó (luat-ethopex _ts_mo, anh 10/11/2026) */ mo?: { luc: string; can: string | null } };
 export type CampEtpKho = { camp_id: number; ten: string; bo: string | null; trang_thai: string; giao: string | null; ngan_sach: number; creative_id: number | null; content_id: number | null;
   goc: number | null; lich: string | null; tao: string | null; loi: string | null; dong_bo?: string | null; phim: string | null; the_loai: string | null; dang: string | null; /** bản mẫu (PO.1…PO.5) — sqlBan */ ban: string | null; /** giọng đọc (ky_di…) — sqlGiong */ giong: string | null; doan: string | null; cung_doan: number;
   thang: SoTien; qua: SoTien; nay: SoTien;
@@ -202,6 +202,14 @@ export type PhanNang = { chamCt: Record<number, Pick<ChamCr, 'lop' | 'diem' | 'l
 const tvCay = (v: ThuVienMuc) => tvSx(v);   // bản nhẹ giữ đủ thư viện cho badge sản xuất + ô Lọc 'phim đang sản xuất' (lib/etp-sx)
 export const phanNang = (d: DuLieuEtp): PhanNang => ({ chamCt: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { lop: c.lop, diem: c.diem, ly_do: c.ly_do, khung: c.khung }])),
   pheu: d.pheu, diemCham: d.diemCham, thuVien: d.thuVien, dangSx: d.dangSx, creatives: d.creatives });
+/** thẻ xét luật + việc máy đã làm sau lúc ghi thẻ → thẻ khớp mang `da` (giờ VN) — xem chú thích lamR */
+const HUONG_MA = (ma: string) => String((BANG_LUAT.the as Record<string, unknown[]>)[ma]?.[2] ?? '');
+const VIEC_THE: Record<string, (ma: string) => boolean> = { roas: (m) => m === 'roas', nhan_ban: (m) => m === 'nb' || m === 'thang_nb',
+  tang: (m) => HUONG_MA(m) === 'tang' && !['nb', 'thang_nb', 'roas'].includes(m), giam: (m) => HUONG_MA(m) === 'giam', tat: (m) => HUONG_MA(m) === 'tat' };
+function theDaLam(xet: XetLuat[], luc: string, lam: { viec: string; luc: string; gio: string }[]): XetLuat[] {
+  const sau = lam.filter((v) => Date.parse(v.luc) > Date.parse(luc) && VIEC_THE[v.viec]);
+  return sau.length ? xet.map((l) => { const v = sau.find((x) => VIEC_THE[x.viec]!(l.ma)); return v && (l.ket === 'dat' || l.ket === 'gan') ? { ...l, da: v.gio } : l; }) : xet;
+}
 export async function docEtp(ng?: string, nhe = false): Promise<DuLieuEtp> {
   const d = await docEtpDu(ng);
   if (!nhe) return d;
@@ -376,6 +384,11 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const qAbSo = som(ngoai ? Promise.resolve([]) : run<{ ma: string; ten: string; batDau: string; giaThuyet: string | null; thu: string; doi: string }>(sql`select ma, ten, bat_dau::text "batDau", gia_thuyet "giaThuyet", nhanh->'thu'->>'ten' thu, nhanh->'doi'->>'ten' doi from etp.ab where trang_thai = 'dang' order by ma desc`).catch(() => []));
   // tư vấn sống: chạy song song với khối dưới (bảng chưa có → rỗng); Team thấy mọi người, người thấy bản của mình
   const tuVanP = run<{ nguoi_id: number; nguoi: string; luc: string; du: TuVan['du'] }>(sql`select nguoi_id, nguoi, luc::text luc, du from etp.tu_van where phien = 'song' and ${cuaNg(sql`nguoi_id`)} order by nguoi_id`).catch(() => []);
+  // VIỆC MÁY ĐÃ LÀM SAU LÚC GHI THẺ (anh 12/11/2026 #81648: thẻ ghi lúc 00:27 'Lên ROAS · Đạt ⏳16p' trong khi máy đã tạo 4 camp ROAS lúc 00:47–00:50):
+  // thẻ xét luật chỉ ghi mỗi nhịp (~37 phút), máy làm SAU lúc ghi → thẻ có việc khớp trong etp.nhat_ky (ok, sau luc của thẻ) mang `da` = giờ VN máy làm, trang thôi đếm giờ.
+  // việc nhật ký → thẻ: roas / nhan_ban theo mã; tang / giam / tat theo HƯỚNG thẻ ở sổ luật chung (BANG_LUAT.the[ma][2])
+  const lamR = ngoai ? [] : await run<{ c: number; viec: string; luc: string; gio: string }>(sql`select coalesce(case when viec in ('roas', 'nhan_ban') then goc end, camp_id) c, viec, max(luc)::text luc,
+      to_char(max(luc) at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI') gio from etp.nhat_ky where ok and luc > now() - interval '90 minutes' and coalesce(case when viec in ('roas', 'nhan_ban') then goc end, camp_id) is not null group by 1, 2`);
   const [ngay, camps, cauHinh, nhatKy, xetR, lsBacR, canhBao, dongBo, tl] = await Promise.all([   // thứ tự PHẢI khớp các câu bên dưới (xet_luat trước lịch sử bậc)
     run<{ ngay: string; chi: string; thu: string; camp: string; ns: string | null }>(sql`select ngay::text ngay, sum(chi) chi, sum(thu) thu, count(*) filter (where chi > 0) camp, ${ngoai ? sql`null::numeric` : sql`sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0)`} ns from ${SN} group by ngay having sum(chi) > 0 or sum(thu) > 0 order by ngay`),
     ngoai ? run<Record<string, unknown>>(sql`with s as (${soCamp})
@@ -557,7 +570,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     moRong: mrR.map((r) => ({ ...r, content_id: n(r.content_id), n: n(r.n), k: n(r.k), san: n(r.san), can_sx: n(r.can_sx) })),
     thayThe: ttR.map((r) => ({ ...r, id: n(r.id), content_id: n(r.content_id), camp_cu: n(r.camp_cu), creative_id: r.creative_id == null ? null : n(r.creative_id), camp_moi: r.camp_moi == null ? null : n(r.camp_moi) })),
     pheu: pheuR.map((r) => ({ c: n(r.c), d: r.d, h: n(r.h), n: n(r.n), v: n(r.v), sh: n(r.sh), sn: n(r.sn), sv: n(r.sv), sg: n(r.sg) })), diemCham: Object.fromEntries(dcR.map((r) => [n(r.creative_id), r.cham])), soLuat: slR.map((r) => ({ ma: r.ma, luc: r.luc, ...r.so })),
-    cauHinh, nhatKy, xetLuat: Object.fromEntries(xetR.map((r) => [Number(r.camp_id), r.xet])), xetLuc: xetR.reduce<string | null>((m, r) => (!m || r.luc > m ? r.luc : m), null), lsBac: lsBacR.reduce<DuLieuEtp['lsBac']>((m, r) => { (m[r.camp_id] ??= []).push({ luc: r.luc, viec: r.viec, truoc: r.truoc, sau: r.sau, luat: r.luat, ai: r.ai }); return m; }, {}), canhBao, dongBo: dongBo[0] ?? null, theLoai: tl[0]?.gia_tri?.the_loai ?? {}, abSo, soNgay: soNgay.map((r) => ({ c: n(r.c), d: r.d, chi: n(r.chi), thu: n(r.thu) })), demNgay, boTk,
+    cauHinh, nhatKy, xetLuat: Object.fromEntries(xetR.map((r) => [Number(r.camp_id), theDaLam(r.xet, r.luc, lamR.filter((x) => Number(x.c) === Number(r.camp_id)))])), xetLuc: xetR.reduce<string | null>((m, r) => (!m || r.luc > m ? r.luc : m), null), lsBac: lsBacR.reduce<DuLieuEtp['lsBac']>((m, r) => { (m[r.camp_id] ??= []).push({ luc: r.luc, viec: r.viec, truoc: r.truoc, sau: r.sau, luat: r.luat, ai: r.ai }); return m; }, {}), canhBao, dongBo: dongBo[0] ?? null, theLoai: tl[0]?.gia_tri?.the_loai ?? {}, abSo, soNgay: soNgay.map((r) => ({ c: n(r.c), d: r.d, chi: n(r.chi), thu: n(r.thu) })), demNgay, boTk,
     taiNguyen, mayTho: mayTho.map((r) => ({ may: String(r.may), xong: n(r.xong), loi: n(r.loi), dang: n(r.dang), cuoi: (r.cuoi as string) ?? null, giay_tb: r.giay_tb == null ? null : n(r.giay_tb) })),
     hangDoi: { cho: n(hd[0]?.cho), dang: n(hd[0]?.dang), xong: n(hd[0]?.xong), loi: n(hd[0]?.loi) },
     quet: (sKhoa.find((r) => r.ten === 'ethopex_quet')?.gia_tri ?? {}) as unknown as DuLieuEtp['quet'],

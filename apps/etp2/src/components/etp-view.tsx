@@ -412,7 +412,7 @@ function tinhLuat({ c, ba, bao, boThang, thangMuc, xet }: VaoLuat) {
   const chinh2 = daXep[0] ? chinh : xDat ? { chip: XET_CHIP[xDat.ma]?.[0] ?? xDat.ten, mau: XET_CHIP[xDat.ma]?.[1] ?? '#94a3b8', dac: true }
     : ganBao[0] ? chinh : xGan ? { chip: XET_CHIP[xGan.ma]?.[0] ?? xGan.ten, mau: XET_CHIP[xGan.ma]?.[1] ?? '#94a3b8', dac: false } : xet ? null : chinh;
   const don = c.ngan_sach > 0 && c.nay.chi > 0 && c.nay.chi >= KD.nap_chi * c.ngan_sach && (c.nay.thu - c.nay.chi) / c.nay.chi * 100 >= KD.sang_roi;   // tiêu dồn → được nạp ở khung sáng
-  return { chinh: chinh2, daXep, ganBao, hien: [...du, ...gan.filter((l) => !du.includes(l))], xet, the: daXep[0] || ganBao[0] ? undefined : xDat ?? xGan, don };
+  return { chinh: chinh2, daXep, ganBao, hien: [...du, ...gan.filter((l) => !du.includes(l))], xet, the: daXep[0] || ganBao[0] ? (xet ?? []).find((x) => x.vao === (daXep[0] ?? ganBao[0])!.nhom) : xDat ?? xGan, don };   // máy đã xếp → giờ của chính thẻ xét luật đó (12/11/2026 #81648: ô giờ trống)
 }
 // nho: cỡ gọn cho widget Theo luật (Tổng quan 2, anh 10/11/2026 "show màu và trạng thái giống trong tab camp nhưng nhỏ gọn hơn")
 const ChipO = ({ chinh, nho }: { chinh: { chip: string; mau: string; dac: boolean }; nho?: boolean }) => <span style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -441,7 +441,7 @@ const chuVao = (deXuat?: boolean) => <span title={deXuat ? 'máy luật nhà ch�
 const HUONG_THE = (ma: string): HuongLuat => { const h = (BANG_LUAT.the as Record<string, unknown[]>)[ma]?.[2]; return h === 'tang' || h === 'tat' ? h : (BANG_LUAT.the as Record<string, unknown[]>)[ma]?.[0]?.toString().startsWith('✕') || ma === 'dung_dem' ? 'tat' : 'giam'; };
 type GioLam = { t: number; can: string | null };
 function gioThe(l: XetLuat, hoan: { luc: string | null; cu: boolean }, don: boolean): GioLam | null {
-  if (l.ket !== 'dat' && l.ket !== 'gan') return null;
+  if ((l.ket !== 'dat' && l.ket !== 'gan') || l.da) return null;   // máy đã làm sau lúc ghi thẻ → hết chờ (GioThe ghi ✓ đã làm)
   if (l.mo) return { t: Math.max(Date.parse(l.mo.luc), Date.now()), can: l.mo.can };   // Siết TS chặn: mốc + điều kiện của chính máy luật
   // nhân bản (NB · thang): worker tạo bản ngay nhịp kế, không chờ khung tăng — bản mới chạy theo khung lên (chuLich)
   const nb = l.ma === 'nb' || l.ma === 'thang_nb' || l.ma === 'roas', h = HUONG_THE(l.ma), t = lucLam(nb ? 'tao' : h, hoan.luc, hoan.cu, Date.now(), l.cho_toi ? Date.parse(l.cho_toi) : 0, h === 'tang' && don);
@@ -457,7 +457,9 @@ function ChuGio({ g, chip }: { g: GioLam; chip?: boolean }) {
   if (chip) return <span title={`máy làm ~${gio} VN${g.can ? ` nếu ${g.can}` : ''}`} style={{ fontSize: 10.5, color: mau, whiteSpace: 'nowrap' }}>⏳{con}</span>;
   return <div style={{ color: mau, fontSize: 11, fontWeight: 600 }}>⏳ {sat ? con : `${con} · ${gio}`}{g.can ? <div style={{ fontWeight: 400, fontSize: 10.5 }}>nếu {g.can}</div> : null}</div>;
 }
-function GioThe({ l, don, chip }: { l: XetLuat; don: boolean; chip?: boolean }) { const hoan = useContext(HoanCtx), g = gioThe(l, hoan, don); return g ? <ChuGio g={g} chip={chip} /> : null; }
+function GioThe({ l, don, chip }: { l: XetLuat; don: boolean; chip?: boolean }) { const hoan = useContext(HoanCtx), g = gioThe(l, hoan, don);
+  if (l.da) return <span title={`máy đã làm lúc ${l.da} VN — thẻ ghi trước đó, nhịp sau cập nhật`} style={{ fontSize: 10.5, color: '#4ade80', whiteSpace: 'nowrap' }}>✓ đã làm {l.da}</span>;
+  return g ? <ChuGio g={g} chip={chip} /> : null; }
 /** mốc kế tiếp đồng hồ VN chạm giờ nguyên h */
 const lucGioVn = (h: number, now = Date.now()) => { const d = new Date(now + 7 * 3600_000); let t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h) - 7 * 3600_000; if (t <= now) t += 86_400_000; return t; };
 /** GIỜ MÁY LÀM của thẻ luật đang hiện — MỘT nguồn cho chip luật (hover) và cột ⏳ (#1559): cho = giờ VN khung đổi camp đang chặn (sổ hoãn), không thì gioThe */

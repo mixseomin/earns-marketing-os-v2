@@ -5,6 +5,9 @@ import { boChamCuoi, chiaCum } from './ngat-dong';
 // Giá: ai.google.dev/gemini-api/docs/pricing đọc 08/10/2026 (Veo 3.1 Lite 720p $0,05/giây; Nano Banana 2.1 1K $0,0336/ảnh).
 // Sora 2 API của OpenAI đã đóng 24/09/2026 → video chỉ còn Google; chữ dùng Claude.
 
+/** Cổng chữ đã đi nằm ở TIỀN TỐ tên model ('donk:…', 'ckey:…', 'shopaikey:…'; Anthropic trực tiếp = tên trơn) — một chỗ cho mọi nơi đọc nguồn (claude.ts, doc-db.ts › ghiTienChu). */
+export type NguonChu = 'donk' | 'ckey' | 'shopaikey' | 'anthropic';
+export const nguonChuCua = (model: string): NguonChu => (/^(donk|ckey|shopaikey):/.exec(model)?.[1] as NguonChu | undefined) ?? 'anthropic';
 export type LoaiPhim = 'short' | 'phim' | 'quang_cao' | 'may_dung';
 export const LOAI_PHIM: { key: LoaiPhim; label: string; mo_ta: string }[] = [
   { key: 'short', label: 'Short video', mo_ta: 'Reels / TikTok / Shorts 15-60s, một tập' },

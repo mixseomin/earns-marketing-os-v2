@@ -15,7 +15,7 @@ import { vanKhanGia } from './khan-gia';
 import { vanGoi, goiTheoKey, laPhimNgan } from './goi-the-loai';
 import { vanPhoiHop } from './thu-vien-vat';
 import { vanKhoVat, vanSoTay, phepThuCua, cachViet, kiemTheGag, chonGag, kichBanTuGag, ketLuan, PHEP_THU_GAG, type ChamKb, type TheGag, type DiemGag, type ThuMu } from './so-tay-kich-ban';
-import { congTk, giaChuCents, docKinhThanh, phongCachHinh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
+import { congTk, nguonChuCua, type NguonChu, giaChuCents, docKinhThanh, phongCachHinh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
 
 const CanhSchema = z.object({
   canh: z.string().describe('Nhãn ngắn của cảnh, tiếng Việt, ví dụ "Cảnh 1 · Khu rừng buổi sáng"'),
@@ -114,7 +114,12 @@ export type PhanCanhSinh = Omit<z.infer<typeof StoryboardSchema>['phan_canh'][nu
  *  → Anthropic trực tiếp. Đo 19/10/2026 một lượt Opus điển hình (6,8k vào / 3,5k ra): ckey ≈ 30–125₫ · ShopAIKey ≈ 315₫ · Anthropic ≈ 2.500₫.
  *  Bước nào lỗi / từ chối / trả sai khuôn → bước sau. r.model trả về mang tiền tố đường đã đi ('ckey:…', 'shopaikey:…'; Anthropic = tên trơn);
  *  ckey báo tiền thật mỗi lượt (usage.x_ckey.cost, VNĐ) → tkCua(r).vnd → ghiTienChu ghi đúng tiền. */
-type DuongChu = { ten: 'ckey' | 'shopaikey' | 'anthropic'; c: Anthropic; model: string; jsonTay: boolean };
+type DuongChu = { ten: NguonChu; c: Anthropic; model: string; jsonTay: boolean };
+/** DONK (shopdonk.com, anh mua thử 11/11/2026 gói Claude 50M = 20.000₫ trả trước — vault #693, khoá DONK_API_KEY): đứng ĐẦU chuỗi để "dùng nhanh cho hết" mà đo giá thật
+ *  (20.000₫ / tổng token tới khi khoá trả 429). Chỉ có Opus 5 · Sonnet 5 · Haiku 4.5 → map theo DÒNG model. Cổng báo token vào sai (lời nhắc ~30 token ghi 1) → ước
+ *  theo độ dài lời nhắc; tiền ghi theo giá niêm yết của shop (₫ / 1M token, cả vào + ra) = ƯỚC. Hỏng / hết gói → cầu dao (claude-duong.json) đẩy xuống cuối 20 phút. */
+const DONK_DONG: [RegExp, string, number][] = [[/haiku/i, 'claude-haiku-4-5', 105], [/sonnet/i, 'claude-sonnet-5', 235], [/opus/i, 'claude-opus-5', 400]];
+export const donkCua = (model: string): { model: string; gia: number } | null => { const x = DONK_DONG.find(([re]) => re.test(model)); return x ? { model: x[1], gia: x[2] } : null; };
 /** NGƯỜI BÁN CKEY ĐANG CÓ cho một model Claude — đọc /v1/models (nhớ 10 phút): người bán trên chợ đổi tên / nghỉ liên tục (27/10/2026: cả hai người bán Haiku
  *  trong bảng gõ tay cũ đều 404 → lượt rơi thẳng về Anthropic giá gấp 30 lần). Chỉ còn là LƯỚI khi danh sách sống của Phòng Tài nguyên (ckey-tuyen.ts) chưa có dòng cho model; bảng người bán gõ tay đã bỏ 31/10/2026. Thuần phần khớp tên. */
 export const khopTenCkey = (model: string, id: string): boolean => { const d = id.split('/')[1]; if (!d || !id.includes('/')) return false; const re = new RegExp('^' + model.replace(/[.-](?=\d)/g, '[.-]') + '$', 'i'); return re.test(d); };
@@ -134,6 +139,8 @@ const duongChu = async (model: string): Promise<DuongChu[]> => {
   // 18 phút ở bước viết vì 4 người bán ckey cùng treo.
   const ke = (key: string, baseURL: string) => new Anthropic({ apiKey: key, baseURL, defaultHeaders: { authorization: `Bearer ${key}` }, maxRetries: 0, timeout: 90_000 });
   // người bán: danh sách sống của Phòng Tài nguyên (ckey-tuyen.ts) trước; tự dò danh mục chỉ là lưới khi tệp chưa có dòng cho model này
+  const kd = process.env.DONK_API_KEY, dk = donkCua(model);
+  if (kd && dk) ds.push({ ten: 'donk', c: ke(kd, 'https://api.shopdonk.com'), model: dk.model, jsonTay: true });   // jsonTay: chưa đo cổng này với output_config → dặn khuôn trong system (an toàn như ckey)
   if (kc) { const co = nguoiBanTuyen(model), them = (await nguoiBanCkey(kc, model)).filter((m) => !co.includes(m)); for (const m of [...co, ...them]) ds.push({ ten: 'ckey', c: ke(kc, 'https://api.xah.io'), model: m, jsonTay: true }); }   // jsonTay: ckey trả JSON hỏng với output_config từ 28/10 ("Unterminated fractional number…") → mọi lượt rơi sang Anthropic ~7× giá; dặn khuôn trong system như ShopAIKey
   if (ks && /^claude-/.test(model)) ds.push({ ten: 'shopaikey', c: ke(ks, 'https://api.shopaikey.com'), model, jsonTay: true });
   if (ka) ds.push({ ten: 'anthropic', c: new Anthropic({ apiKey: ka }), model, jsonTay: false });
@@ -197,8 +204,12 @@ async function quaChuoi(p0: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu, sig?: Ab
       const lk = du ? kiem(du) : 'không đọc được JSON theo khuôn'; if (lk) throw hong(lk);
     }
     const x = (r.usage as { x_ckey?: { cost?: number } }).x_ckey?.cost;
+    if (d.ten === 'donk') {   // token vào: số lớn hơn giữa cổng báo và ước theo độ dài lời nhắc; tiền = giá niêm yết shop (ước) — để đo gói, xem DONK_DONG
+      r.usage.input_tokens = Math.max(r.usage.input_tokens || 0, Math.round(JSON.stringify([p.system ?? '', p.messages ?? '']).length / 3));
+      r.vnd = ((r.usage.input_tokens + r.usage.output_tokens) * (donkCua(d.model)?.gia ?? 400)) / 1e6;
+    }
     ghiSo(khoaD(d), { tot: Date.now() });
-    return Object.assign(r, { model: d.ten === 'anthropic' ? p.model : `${d.ten}:${p.model}`, ...(d.ten === 'ckey' && typeof x === 'number' ? { vnd: x } : {}) });
+    return Object.assign(r, { model: d.ten === 'anthropic' ? p.model : `${d.ten}:${d.ten === 'donk' ? d.model : p.model}`, ...(d.ten === 'ckey' && typeof x === 'number' ? { vnd: x } : {}) });
   };
   const xong = (r: TinChu, d: DuongChu) => { if (loi.length) console.error('[claude] dự phòng:', loi.join(' · '), '→', d.ten); return r; };
   // ĐUA (x_dua = n, 03/11/2026, anh: "dùng ckey api chạy song song"): lượt dài (kịch bản 22k token, 5–7 phút) gửi CÙNG LÚC cho n đường CHỢ (ckey / ShopAIKey) —
@@ -1053,19 +1064,19 @@ Luật:
 
 /** Lượt Claude tự động của máy (xác nhận lỗi clip, kiểm người xem…): nội dung ảnh + chữ, đi CÙNG chuỗi dự phòng ckey → ShopAIKey → Anthropic
  *  của client(). `nguon` = đường đã đi, `model` trơn; tiền thật (ckey) ở tokens.vnd. */
-export type KqClaude = { ok: true; text: string; tokens: { in: number; out: number; vnd?: number }; nguon: 'ckey' | 'shopaikey' | 'anthropic'; model: string } | { ok: false; loi: string };
+export type KqClaude = { ok: true; text: string; tokens: { in: number; out: number; vnd?: number }; nguon: NguonChu; model: string } | { ok: false; loi: string };
 export async function goiClaude(o: { noiDung: ({ anh: string } | { text: string })[]; maxTokens: number; model?: string; he?: string }): Promise<KqClaude> {
   const model = o.model ?? 'claude-sonnet-5-5';
   const c = client(); if (!c) return { ok: false, loi: 'Thiếu khoá Claude trên máy chủ' };
   try {
     const r = await c.messages.create({ model, max_tokens: o.maxTokens, ...(o.he ? { system: o.he } : {}),
       messages: [{ role: 'user', content: o.noiDung.map((x) => ('anh' in x ? { type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: x.anh } } : { type: 'text' as const, text: x.text })) }] });
-    const nguon = (r.model.split(':')[0] === 'ckey' || r.model.split(':')[0] === 'shopaikey' ? r.model.split(':')[0] : 'anthropic') as 'ckey' | 'shopaikey' | 'anthropic';
+    const nguon = nguonChuCua(r.model);
     return { ok: true, text: r.content.map((b) => (b.type === 'text' ? b.text : '')).join(''), tokens: tkCua(r), nguon, model };
   } catch (e) { return { ok: false, loi: loiGoi(e) }; }
 }
 /** Khoá ghi sổ tiền của một lượt goiClaude: đi đại lý thì 'shopaikey:<model>' (bảng GIA_CHU tính theo tiền thật), trực tiếp thì đúng tên model. */
-export const modelSoTien = (k: { nguon: 'ckey' | 'shopaikey' | 'anthropic'; model: string }): string => (k.nguon === 'anthropic' ? k.model : `${k.nguon}:${k.model}`);
+export const modelSoTien = (k: { nguon: NguonChu; model: string }): string => (k.nguon === 'anthropic' ? k.model : `${k.nguon}:${k.model}`);
 /** Lấy khối JSON đầu tiên trong chữ Claude trả (có thể bọc ```json). */
 export const tachJson = <T>(t: string): T | null => { const m = t.match(/\{[\s\S]*\}/); if (!m) return null; try { return JSON.parse(m[0]) as T; } catch { return null; } };
 

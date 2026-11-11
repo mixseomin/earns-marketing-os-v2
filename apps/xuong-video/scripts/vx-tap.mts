@@ -27,13 +27,16 @@ const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
 
 type Thoai = { loi: string; nhan_vat?: string; dien_xuat?: string };
 type Vx = { uuid?: string; media_id?: number; luc?: string; prompt?: string; xong?: string };
-type DD = { mo?: string; ket?: string; huong?: string; dien?: string; vao_ra?: string; nhip?: string };
-type Shot = { id: number; so: number; kf: string | null; pv: string | null; hd: string | null; thoai: Thoai[] | null; vx: Vx | null; dd: DD | null };
+type DD = { mo?: string; ket?: string; huong?: string; dien?: string; vao_ra?: string; nhip?: string; vat?: Record<string, string> };
+type Vat = { ten: string; mo_ta: string };
+type Shot = { id: number; so: number; kf: string | null; pv: string | null; hd: string | null; thoai: Thoai[] | null; vx: Vx | null; dd: DD | null; vat: Vat[] | null };
 const ttPhim = JSON.parse(psql(`SELECT json_build_object('ti_le', p.kinh_thanh->>'ti_le', 'chat', p.kinh_thanh->>'chat_lieu', 'pc', p.kinh_thanh->>'phong_cach')
   FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId};`) || '{}') as { ti_le?: string; chat?: string; pc?: string };
 const kho = (['16:9', '9:16', '1:1'].includes(ttPhim.ti_le ?? '') ? ttPhim.ti_le : '9:16') as '16:9' | '9:16' | '1:1';
 const docShot = (): Shot[] => JSON.parse(psql(`SELECT coalesce(json_agg(x ORDER BY x.so), '[]') FROM (SELECT id, thu_tu::int AS so, nullif(keyframe_url, '') AS kf,
-  prompt_video AS pv, hanh_dong AS hd, thoai, ky_thuat->'vx' AS vx, dan_dung AS dd FROM xv_canh WHERE tap_id = ${tapId}) x;`) || '[]') as Shot[];
+  prompt_video AS pv, hanh_dong AS hd, thoai, ky_thuat->'vx' AS vx, dan_dung AS dd,
+  (SELECT json_agg(json_build_object('ten', n.ten, 'mo_ta', n.mo_ta)) FROM xv_nhan_vat n WHERE n.id IN (SELECT jsonb_array_elements_text(c.nhan_vat)::int) AND n.loai = 'dao_cu') AS vat
+  FROM xv_canh c WHERE tap_id = ${tapId}) x;`) || '[]') as Shot[];
 const ghiVx = (id: number, vx: Vx) => psql(`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vx}', ${q(JSON.stringify(vx))}::jsonb), updated_at = now() WHERE id = ${id};`);
 
 /** Ai nói: tên nhân vật trong thoại → chủ ngữ tiếng Anh cho mô hình. */
@@ -54,9 +57,12 @@ function cauPrompt(s: Shot): string {
   const d = s.dd ?? {};
   const the = [d.mo && d.ket ? `The shot runs from: ${d.mo} — to: ${d.ket}.` : '', d.dien ? `Acting: ${d.dien}.` : '', d.huong ? `Keep screen direction exactly: ${d.huong}.` : '',
     d.vao_ra ? `${d.vao_ra}.` : '', d.nhip ? `Timing: ${d.nhip}.` : ''].filter(Boolean).join(' ');
+  // ĐỐI TƯỢNG THEO DÕI (anh 11/11/2026 "tàu tách thành 1 đối tượng để nó được follow trong prompt"): đạo cụ gắn shot có trạng thái khai ở dan_dung.vat
+  // → một câu riêng tả nó + trạng thái của nó trong shot này; model không phải đoán từ câu hành động.
+  const theo = (s.vat ?? []).filter((v) => d.vat?.[v.ten]).map((v) => `Tracked object — ${v.mo_ta.split('.')[0]}: in this shot it is ${d.vat![v.ten]}.`).join(' ');
   // WHITELIST (như studio): thứ hành động không nêu thì giữ nguyên như khung đầu — xe / tàu đang đỗ không tự chạy, người không tự quay hướng khác.
   const giu = 'Only what the action names changes; every vehicle, person and object it does not name stays exactly as in the first frame — parked vehicles stay parked, nobody turns to face a different direction.';
-  return `${nen} ${dong} ${the} ${giu} ${loi}${tieng} Natural motion and weight. No text, no subtitles, no captions, no logos, no watermarks.`.replace(/\s+/g, ' ').replace(/\.\./g, '.').slice(0, 2000);
+  return `${nen} ${dong} ${the} ${theo} ${giu} ${loi}${tieng} Natural motion and weight. No text, no subtitles, no captions, no logos, no watermarks.`.replace(/\s+/g, ' ').replace(/\.\./g, '.').slice(0, 2000);
 }
 
 let ds = docShot().filter((s) => !loc.length || loc.includes(s.so));

@@ -647,6 +647,7 @@ export type DanDung = {
    *  không ngắt bước | 3-6s: đi tiếp, hệ quả sau lưng" — phim mẫu là một mạch đi liền (anh 01/11/2026). Thiếu ô này clip 8s nhận một câu "từ… tới…" và bỏ nhịp giữa (phim #1156 #6: không thấy cú kẹp, 01/11/2026). Khung đầu = nhịp đầu. */ nhip?: string;
   /** VÀO / RA KHUNG (tiếng Anh, vào prompt video): ai đi vào từ mép nào, ai đi ra khỏi khung phía nào trước khi shot hết — vd "the vendor walks out of frame on the right" */ vao_ra?: string;
   /** ĐIỂM NHẤN âm–hình của gag: khung nào, tiếng gì đập đúng lúc nào (shot có cú bùng của gag bắt buộc có) */ nhan?: string;
+  /** TRẠNG THÁI ĐỐI TƯỢNG theo shot {tên anchor → trạng thái tiếng Anh} (anh 11/11/2026: tàu tách thành đối tượng để prompt bám theo) — vào prompt video (vx-tap.mts) */ vat?: Record<string, string>;
   /** mã shot CỐ ĐỊNH trong hồ sơ viết tay (vd "4.6a") — đồng bộ hồ sơ ↔ studio khớp theo mã này, chèn shot giữa cảnh không làm lệch shot sau */ ma?: string;
 };
 export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoModel: boolean }[] = [

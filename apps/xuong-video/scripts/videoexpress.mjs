@@ -43,7 +43,12 @@ export async function dangNhap() {
 
 /** mở phiên làm việc: profile riêng → cổng br use → app; phiên rụng thì đăng nhập một lần */
 export async function moPhien() {
-  br('open', PROFILE); br('use', ACCT); br('goto', APP);
+  // mở lại ngay sau khi đóng (vx-tap đóng trong lúc chờ render): daemon chưa kịp nhả profile → 'PROFILE CHƯA MỞ'. Chờ tới khi nhận rồi mới use / goto.
+  for (let i = 0; ; i++) {
+    try { br('open', PROFILE); br('use', ACCT); break; }
+    catch (e) { if (i >= 9) throw e; await ngu(3000); }
+  }
+  br('goto', APP);
   let t = trang();
   if (/\/login/.test(t.url)) { await dangNhap(); t = trang(); }
   if (!t.app) throw new Error(`VideoExpress: không vào được app (đang ở ${t.url})`);

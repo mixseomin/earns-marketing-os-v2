@@ -3,6 +3,7 @@
 // source_platform='feedback', trạng thái pending / claimed / broken — anh bấm làm lại thì card về pending với tin mới). Lấy MỘT card cũ nhất, chạy Claude Code KHÔNG GIAO DIỆN
 // trong cây repo riêng theo đúng lệnh /tasks-mos2 (~/.claude/commands/tasks-mos2.md): sửa gốc, deploy, trả lời vào luồng card, nộp Review. Done vẫn là chữ ký của anh.
 //   node mos2-gop-y.mjs        một lượt      · node mos2-gop-y.mjs --thu   in lời giao cho card kế, không gọi Claude
+//   node mos2-gop-y.mjs --kiem <id>   CHẠY THỬ thật trên card bất kỳ (kể cả đã đóng): Claude chỉ đọc — tải + xem ảnh, tsc, ssh box3, git — không sửa, không push, không trả lời card
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -12,7 +13,7 @@ import { cayHoacBao, MOS2_GOC } from './cay-rieng.mjs';
 if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`Đạt chỉ chạy trên iMac (máy này: ${os.hostname()}) — Claude không giao diện bằng gói thuê bao chỉ iMac`); process.exit(3); }
 
 const BOX = 'root@167.233.241.16', APP = '/opt/earns-marketing-os-v2/apps/cty', DATA = '/var/lib/cty', NGUOI = 'dat', HOME = os.homedir();
-const CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 40, thu = process.argv.includes('--thu');
+const CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 40, thu = process.argv.includes('--thu'), kiem = Number(process.argv[process.argv.indexOf('--kiem') + 1]) || 0;
 const PLAY = `${HOME}/bin/play`, ANH = path.join(HOME, '.cache', 'dat-anh'), TEP_DA = path.join(HOME, '.cache', 'dat-da-lam.json');
 const ENV = { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}` };
 const log = (s) => console.log(`${new Date().toISOString()} ${s}`);
@@ -30,7 +31,7 @@ const ds = JSON.parse(sql(`select coalesce(json_agg(x order by x.created_at), '[
   (select count(*) from jsonb_array_elements(coalesce(prep_payload->'trao_doi','[]')) t where t->>'nguoi' <> 'ai') as tin_nguoi
   from human_tasks where project_id='mos2' and prep_payload->>'source_platform'='feedback'
   and coalesce(prep_payload->'site_status'->>'mos2', status) in ('pending','claimed','broken')) x`) || '[]');
-const card = ds.find((c) => { const d = daLam[c.id]; return !d || d.tin_nguoi < c.tin_nguoi || Date.now() - Date.parse(d.luc) > 24 * 36e5; });
+const card = kiem ? JSON.parse(sql(`select json_build_object('id', id, 'title', title, 'tin_nguoi', 0) from human_tasks where id=${kiem}`)) : ds.find((c) => { const d = daLam[c.id]; return !d || d.tin_nguoi < c.tin_nguoi || Date.now() - Date.parse(d.luc) > 24 * 36e5; });
 if (!card) { log(`không có card mới (${ds.length} card mở, đã làm cả)`); process.exit(0); }
 
 const luong = JSON.parse(sql(`select coalesce(prep_payload->'trao_doi','[]') from human_tasks where id=${Number(card.id)}`) || '[]');
@@ -43,7 +44,7 @@ const SUA = ['apps/web', 'packages'].map((d) => path.join(MOS2, d));
 const QUYEN = ['Read', 'Glob', 'Grep', ...SUA.flatMap((d) => [`Edit(/${d}/**)`, `Write(/${d}/**)`]), `Read(/${ANH}/**)`,
   `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${MOS2}:*)`, `Bash(git -C ${MOS2}:*)`, `Bash(curl -s -o ${ANH}/:*)`, `Bash(curl -s:*)`,
   'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git add apps/:*)', 'Bash(git add packages/:*)', 'Bash(git commit:*)', 'Bash(git push origin HEAD:main)',
-  `Bash(${HOME}/bin/gh-watch deploy.yml)`, `Bash(${PLAY} reply:*)`, `Bash(${PLAY} done:*)`, 'Bash(./node_modules/.bin/tsc:*)', 'Bash(node_modules/.bin/tsx:*)', 'Bash(node --check:*)', 'Bash(node apps/:*)',
+  `Bash(${HOME}/bin/gh-watch deploy.yml)`, `Bash(${PLAY} reply:*)`, `Bash(${PLAY} show:*)`, `Bash(${PLAY} done:*)`, 'Bash(./node_modules/.bin/tsc:*)', 'Bash(node_modules/.bin/tsx:*)', 'Bash(node --check:*)', 'Bash(node apps/:*)',
   'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(diff:*)'];
 const CAM = [...['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
   'rm', 'rmdir', 'rsync', 'scp', 'br', 'open', 'npm install', 'npm i', 'npx', 'brew', 'pip', 'launchctl', 'crontab', 'sudo', 'kill', 'pkill'].map((c) => `Bash(${c}:*)`),
@@ -69,18 +70,20 @@ CẤM: hoàn tác git, xoá dữ liệu, migration xoá / đổi dữ liệu có
 
 KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó một dòng "BÁO ANH:" rồi 2–4 dòng tiếng Việt, xưng "con", gọi "anh".`;
 if (thu) { console.log(loiGiao); process.exit(0); }
+const giao = kiem ? `${loiGiao}\n\nCHẾ ĐỘ THỬ (máy kiểm đường chạy, KHÔNG phải việc thật): KHÔNG sửa tệp, KHÔNG commit / push, KHÔNG chạy play reply / done. Chỉ làm: tải + Read MỘT ảnh của card, git status, ./node_modules/.bin/tsc -p apps/web/tsconfig.json --noEmit | head -3, ssh ${BOX} 'cd /opt/earns-marketing-os-v2 && git log --oneline -1', ${PLAY} show ${card.id} | head -3, rồi BÁO ANH: mỗi bước một dòng đạt / bị chặn (nguyên văn lỗi) + ảnh cho thấy màn gì. KET: KHONG_SUA` : loiGiao;
 
 log(`nhận card #${card.id} ${card.title} · model ${model}${effort ? ` · effort ${effort}` : ''}`);
-daLam[card.id] = { tin_nguoi: card.tin_nguoi, luc: new Date().toISOString() };   // ghi TRƯỚC khi chạy: lượt treo / chết cũng không chạy lại liền mỗi 5 phút
+if (!kiem) daLam[card.id] = { tin_nguoi: card.tin_nguoi, luc: new Date().toISOString() };   // ghi TRƯỚC khi chạy: lượt treo / chết cũng không chạy lại liền mỗi 5 phút
 fs.writeFileSync(TEP_DA, JSON.stringify(daLam));
-const r = spawnSync(CLAUDE, ['-p', loiGiao, '--model', model, ...(effort ? ['--effort', effort] : []), '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
+const r = spawnSync(CLAUDE, ['-p', giao, '--model', model, ...(effort ? ['--effort', effort] : []), '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
   { cwd: MOS2, encoding: 'utf8', timeout: TRAN_PHUT * 60000, maxBuffer: 64 << 20, env: ENV });
 let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng / hết giờ */ }
 const ra = String(kq.result || '').trim(), ket = ((ra.match(/KET:\**\s*(DA_SUA|KHONG_SUA|CAN_ANH)/gi) || []).pop() || (r.signal || r.error ? 'treo' : 'khong_sua')).replace(/.*KET:\**\s*/i, '').toLowerCase();
 log(`xong #${card.id}: ${ket} · ${kq.num_turns ?? '?'} lượt · ${Math.round((kq.duration_ms || 0) / 6e4)} phút`);
 // Claude không tự trả lời được (treo, chết, bị từ chối) → máy ghi một tin vào luồng để anh thấy ngay trong card, không im lặng
 const moi = JSON.parse(sql(`select coalesce(prep_payload->'trao_doi','[]') from human_tasks where id=${Number(card.id)}`) || '[]');
-if (moi.length === luong.length) {
+if (kiem) console.log(ra, '\n· từ chối:', JSON.stringify((kq.permission_denials || []).map((d) => d.tool_input?.command ?? d.tool_name)));
+else if (moi.length === luong.length) {
   const bao = (ra.split(/BÁO ANH:?/i).pop() || '').replace(/^\s*\**KET:.*$/gim, '').trim().slice(0, 1500) || `Đạt chạy hỏng (${ket}, thoát ${r.status ?? r.signal}) — lượt sau có tin mới của anh thì làm lại.`;
   try { execFileSync(PLAY, ['reply', String(card.id), `[Đạt · ${ket}] ${bao}`], { encoding: 'utf8', env: ENV }); } catch (e) { log(`ghi tin lỗi: ${String(e.message).split('\n')[0]}`); }
 }

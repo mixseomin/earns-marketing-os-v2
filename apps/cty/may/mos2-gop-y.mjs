@@ -17,7 +17,7 @@ const PLAY = `${HOME}/bin/play`, ANH = path.join(HOME, '.cache', 'dat-anh'), TEP
 const ENV = { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}` };
 const log = (s) => console.log(`${new Date().toISOString()} ${s}`);
 const box = (cmd) => { for (let i = 1; ; i++) { try { return execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', BOX, cmd], { encoding: 'utf8', timeout: 120000 }); } catch (e) { if (i >= 3) throw e; } } };
-const sql = (q) => box(`cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -tA -c ${JSON.stringify(q).replace(/\$/g, '\\$')}`).trim();
+const sql = (q) => box(`cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -tA -c ${JSON.stringify(q.replace(/\s+/g, " ")).replace(/\$/g, '\\$')}`).trim();
 
 const [chinh, soul] = box(`cat ${DATA}/nhip-chinh.json 2>/dev/null || echo {}; echo '@@'; grep -E '^model:' ${APP}/cong-ty/nhan-su/${NGUOI}/SOUL.md || true`).split('@@');
 if (JSON.parse(chinh.trim() || '{}')[NGUOI]?.bat === false) { log('Đạt đang tắt'); process.exit(0); }

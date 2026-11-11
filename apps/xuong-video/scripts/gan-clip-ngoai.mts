@@ -4,7 +4,7 @@
 //   · hiệu ứng: chép từ fal (link tạm, hết hạn) sang R2 → xv_canh.am_thanh_url
 //   · số giây shot → thoi_luong_s / phat_s; nguồn dựng (cảnh code, ảnh mốc, đoạn VideoExpress, lớp tàu, nhạc) → nguon_video
 // Chụp giá trị cũ trước khi ghi (hoan-tac.ts › chupTruoc — ↶ Hoàn tác được). Không tốn tiền.
-// Chạy trên box3: NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/gan-clip-ngoai.mts --canh=4132 --video=/tmp/x.mp4 --am=<url|tệp> --nguon=/tmp/nguon.json [--dan-dung=/tmp/dd.json]
+// Chạy trên box3: NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/gan-clip-ngoai.mts --canh=4132 --video=/tmp/x.mp4 --am=<url|tệp> --nguon=/tmp/nguon.json [--dan-dung=/tmp/dd.json] [--giu-nhip]
 import { execFileSync } from 'node:child_process';
 import { readFileSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -17,6 +17,8 @@ import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
 
 const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';
 const canhId = Number(arg('canh')), video = arg('video'), am = arg('am'), nguonTep = arg('nguon'), ddTep = arg('dan-dung');
+// --giu-nhip: clip ngoài dài hơn nhịp shot (VideoExpress tối thiểu ~4 s) → GIỮ thoi_luong_s / phat_s của shot, bản xuất tự cắt theo phat_s
+const giuNhip = process.argv.includes('--giu-nhip');
 if (!canhId || !video) { console.error('thiếu --canh --video'); process.exit(1); }
 const db = getDb();
 const thu = mkdtempSync(join(tmpdir(), 'gan-clip-'));
@@ -40,7 +42,7 @@ await chupTruoc(db, { bang: 'xv_canh', id: canhId, cot: ['video_url', 'am_thanh_
 const pb = JSON.stringify([{ url: urlVideo, ban: 'nhap', model: String(nguon.model ?? 'giay-cat+videoexpress'), luc: new Date().toISOString() }]);
 const g = Math.round(giay * 100) / 100;
 await db.execute(sql`UPDATE xv_canh SET video_url = ${urlVideo}, video_phien_ban = video_phien_ban || ${pb}::jsonb, am_thanh_url = coalesce(${urlAm}, am_thanh_url),
-  thoi_luong_s = ${Math.ceil(g)}, phat_s = ${g}, nguon_video = ${JSON.stringify({ ...nguon, giay: g, gan_luc: new Date().toISOString() })}::jsonb,
+  thoi_luong_s = CASE WHEN ${giuNhip} THEN thoi_luong_s ELSE ${Math.ceil(g)} END, phat_s = CASE WHEN ${giuNhip} THEN phat_s ELSE ${g} END, nguon_video = ${JSON.stringify({ ...nguon, giay: g, gan_luc: new Date().toISOString() })}::jsonb,
   dan_dung = CASE WHEN ${dd ? JSON.stringify(dd) : null}::jsonb IS NULL THEN dan_dung ELSE coalesce(dan_dung, '{}'::jsonb) || ${dd ? JSON.stringify(dd) : null}::jsonb END,
   trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${canhId}`);
 console.log(`#${canhId}: video ${urlVideo} · ${g}s${urlAm ? ` · hiệu ứng ${urlAm}` : ''}`);

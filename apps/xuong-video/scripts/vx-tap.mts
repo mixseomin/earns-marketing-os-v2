@@ -27,12 +27,13 @@ const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
 
 type Thoai = { loi: string; nhan_vat?: string; dien_xuat?: string };
 type Vx = { uuid?: string; media_id?: number; luc?: string; prompt?: string; xong?: string };
-type Shot = { id: number; so: number; kf: string | null; pv: string | null; hd: string | null; thoai: Thoai[] | null; vx: Vx | null };
+type DD = { mo?: string; ket?: string; huong?: string; dien?: string; vao_ra?: string; nhip?: string };
+type Shot = { id: number; so: number; kf: string | null; pv: string | null; hd: string | null; thoai: Thoai[] | null; vx: Vx | null; dd: DD | null };
 const ttPhim = JSON.parse(psql(`SELECT json_build_object('ti_le', p.kinh_thanh->>'ti_le', 'chat', p.kinh_thanh->>'chat_lieu', 'pc', p.kinh_thanh->>'phong_cach')
   FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId};`) || '{}') as { ti_le?: string; chat?: string; pc?: string };
 const kho = (['16:9', '9:16', '1:1'].includes(ttPhim.ti_le ?? '') ? ttPhim.ti_le : '9:16') as '16:9' | '9:16' | '1:1';
 const docShot = (): Shot[] => JSON.parse(psql(`SELECT coalesce(json_agg(x ORDER BY x.so), '[]') FROM (SELECT id, thu_tu::int AS so, nullif(keyframe_url, '') AS kf,
-  prompt_video AS pv, hanh_dong AS hd, thoai, ky_thuat->'vx' AS vx FROM xv_canh WHERE tap_id = ${tapId}) x;`) || '[]') as Shot[];
+  prompt_video AS pv, hanh_dong AS hd, thoai, ky_thuat->'vx' AS vx, dan_dung AS dd FROM xv_canh WHERE tap_id = ${tapId}) x;`) || '[]') as Shot[];
 const ghiVx = (id: number, vx: Vx) => psql(`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vx}', ${q(JSON.stringify(vx))}::jsonb), updated_at = now() WHERE id = ${id};`);
 
 /** Ai nói: tên nhân vật trong thoại → chủ ngữ tiếng Anh cho mô hình. */
@@ -47,8 +48,15 @@ function cauPrompt(s: Shot): string {
     const ngoai = /ngoài khung|off/i.test(t.dien_xuat ?? '');
     return ngoai ? `An off-screen voice (${chuNgu(t.nhan_vat)}) says in Vietnamese: "${t.loi}".` : `${chuNgu(t.nhan_vat)[0]!.toUpperCase()}${chuNgu(t.nhan_vat).slice(1)} says in Vietnamese with natural lip-sync: "${t.loi}".`;
   }).join(' ');
-  const tieng = loi ? '' : ' No speech. Natural ambient train-station sound.';
-  return `${nen} ${dong} ${loi}${tieng} Natural motion and weight. No text, no subtitles, no captions, no logos, no watermarks.`.replace(/\s+/g, ' ').slice(0, 1500);
+  const tieng = loi ? '' : ' No speech. Natural ambient sound.';
+  // THẺ SHOT (dan_dung — cùng ô studio đưa vào prompt video, sinh-video.ts › promptVideoCanh): trạng thái mở → kết, hướng nhìn / hướng đi, diễn xuất.
+  // 11/11/2026 bản đầu chỉ gửi prompt_video → tàu đang đỗ chờ lại chạy, chú nhìn ngược hướng nhóc chạy (anh chỉ). Thiếu ô thì bỏ câu đó.
+  const d = s.dd ?? {};
+  const the = [d.mo && d.ket ? `The shot runs from: ${d.mo} — to: ${d.ket}.` : '', d.dien ? `Acting: ${d.dien}.` : '', d.huong ? `Keep screen direction exactly: ${d.huong}.` : '',
+    d.vao_ra ? `${d.vao_ra}.` : '', d.nhip ? `Timing: ${d.nhip}.` : ''].filter(Boolean).join(' ');
+  // WHITELIST (như studio): thứ hành động không nêu thì giữ nguyên như khung đầu — xe / tàu đang đỗ không tự chạy, người không tự quay hướng khác.
+  const giu = 'Only what the action names changes; every vehicle, person and object it does not name stays exactly as in the first frame — parked vehicles stay parked, nobody turns to face a different direction.';
+  return `${nen} ${dong} ${the} ${giu} ${loi}${tieng} Natural motion and weight. No text, no subtitles, no captions, no logos, no watermarks.`.replace(/\s+/g, ' ').replace(/\.\./g, '.').slice(0, 2000);
 }
 
 let ds = docShot().filter((s) => !loc.length || loc.includes(s.so));

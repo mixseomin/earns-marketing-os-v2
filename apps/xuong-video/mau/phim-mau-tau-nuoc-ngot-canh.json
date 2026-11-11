@@ -225,8 +225,8 @@
    },
    "dan_dung": {
     "bo_cuc": "foreground: window frame edge; midground: man's head and shoulders; background: crowded carriage interior",
-    "mo": "man looking to the left along the platform",
-    "ket": "head stopped facing screen right, eyes fixed",
+    "mo": "man looking down the platform to the left; the train stands still at the platform, not moving",
+    "ket": "head stopped facing screen right, eyes fixed on the boy; the train stands still at the platform, not moving",
     "huong": "head turns left to right, ends facing screen right",
     "muc_dich": "Nối: chú đang tìm ai đó — mắt dừng lại dẫn sang cú nhìn của chú.",
     "dien": "scan, then a sudden stop",
@@ -270,8 +270,8 @@
    },
    "dan_dung": {
     "bo_cuc": "foreground: carriage edge (left); midground: boy alone; background: platform roof and sun",
-    "mo": "boy small in frame, kicking a pebble",
-    "ket": "boy a bit larger, looks up toward camera",
+    "mo": "boy small in frame, kicking a pebble; the train stands still at the platform, not moving",
+    "ket": "boy a bit larger, looks up toward camera; the train stands still at the platform, not moving",
     "huong": "boy faces camera, camera moves toward him",
     "muc_dich": "Cho người xem thấy đúng cái chú thấy — vì sao chú gọi đứa này.",
     "dien": "idle, bored, then looks up",
@@ -331,8 +331,8 @@
     "nhac": "khong"
    },
    "dan_dung": {
-    "mo": "man leaning out with the note, boy below",
-    "ket": "boy's hand on the note",
+    "mo": "man leaning out with the note, boy below; the train stands still at the platform, not moving",
+    "ket": "boy's hand on the note; the train stands still at the platform, not moving",
     "muc_dich": "Đặt hai người, hai tầng cao (tàu / sân ga) và vật trao tay ngay khung đầu.",
     "bo_cuc": "foreground: green carriage window with the man leaning out (left); midground: boy on the platform (right); background: platform vanishing into the low sun",
     "huong": "man faces screen right and down, boy faces screen left and up",
@@ -384,11 +384,11 @@
     "nhac": "khong"
    },
    "dan_dung": {
-    "mo": "boy holding note, looking up",
-    "ket": "boy's back running away",
+    "mo": "boy holding note, looking up at the man; the train stands still at the platform, not moving",
+    "ket": "boy's back running away down the platform toward the sun (the shop is at that far end); the train stands still at the platform, not moving",
     "muc_dich": "Nhóc nhận việc và rời khung, để chỗ trống cho câu dặn sau.",
     "bo_cuc": "foreground: boy holding the note at chest; midground: empty platform; background: iron pillars and far tracks",
-    "huong": "boy looks up off-screen left, then turns and runs away from camera",
+    "huong": "boy looks up toward the man, then turns and runs away from camera down the platform toward the low sun, where the shop is",
     "dien": "nod, spin, run — quick and eager",
     "motif": "",
     "nhan": ""
@@ -442,12 +442,12 @@
     "nhac": "khong"
    },
    "dan_dung": {
-    "mo": "man calling from window",
-    "ket": "wide empty platform, train waiting",
+    "mo": "man calling from window toward the far end of the platform; the train stands still at the platform, not moving",
+    "ket": "wide empty platform, the train parked and waiting, not moving; the train stands still at the platform, not moving",
     "muc_dich": "GÀI: 'cháu một chai, chú một chai'. Lùi máy = thời gian trôi, không cần chữ.",
     "motif": "hai chai (gài)",
     "bo_cuc": "foreground: window frame; midground: man leaning out; background: crowded passengers inside, then the long train and empty platform",
-    "huong": "man calls toward screen right; camera pulls back to the left",
+    "huong": "man calls down the platform toward the sun where the boy went; camera pulls back, the train itself never moves",
     "dien": "loud call, then impatient wait",
     "nhan": ""
    },
@@ -485,8 +485,8 @@
    },
    "dan_dung": {
     "bo_cuc": "foreground: rail and gravel; midground: wheel and rod; background: shadow under the carriage",
-    "mo": "wheel still, brake air bursting",
-    "ket": "wheel just nudged forward, steam drifting",
+    "mo": "wheel still, brake air bursting; the train is parked",
+    "ket": "wheel nudged forward only a few centimetres and stopped again; the train has NOT left, it is still parked",
     "huong": "wheel rolls toward screen right",
     "muc_dich": "Gài áp lực: tàu sắp chạy mà nhóc chưa về — câu 'Tàu sắp chạy rồi' có hình trước.",
     "dien": "hold the action clear and readable, settle at the end",
@@ -530,9 +530,9 @@
    },
    "dan_dung": {
     "bo_cuc": "foreground: window frame; midground: man waiting; background: empty platform in haze",
-    "mo": "man chin on hand, staring",
-    "ket": "man leaning further out",
-    "huong": "man faces screen right toward the station building",
+    "mo": "man chin on hand, staring down the platform toward the sun; the train stands still at the platform, not moving",
+    "ket": "man leaning further out, still looking down the platform toward the sun; the train stands still at the platform, not moving",
+    "huong": "man faces screen right, looking down the platform toward the sun where the boy went",
     "muc_dich": "Lặng một nhịp: chờ lâu, sốt ruột — để cú nhóc thong thả về càng buồn cười.",
     "dien": "bored, impatient finger drumming",
     "motif": "",
@@ -577,11 +577,11 @@
     "nhac": "khong"
    },
    "dan_dung": {
-    "mo": "boy walking, sipping",
-    "ket": "boy still sipping, closer",
+    "mo": "boy walking back from the far end of the platform, sipping; the train stands still at the platform, not moving",
+    "ket": "boy still sipping, closer to the train; the train stands still at the platform, not moving",
     "muc_dich": "Người xem biết trước chú: chỉ một chai và nó đang vơi — hài vì người xem đi trước nhân vật.",
     "bo_cuc": "foreground: sunlit platform; midground: boy walking with the bottle; background: pillars and roof in haze",
-    "huong": "boy walks toward camera, slightly screen left",
+    "huong": "boy walks toward camera, coming back from the far end of the platform (the sun is behind him)",
     "dien": "slow carefree stroll, sipping, eyes half closed",
     "motif": "",
     "nhan": ""
@@ -656,8 +656,8 @@
     "nhac": "khong"
    },
    "dan_dung": {
-    "mo": "two-shot, man frowning, boy with bottle",
-    "ket": "close on boy holding out change, awkward grin",
+    "mo": "two-shot, man frowning, boy with bottle; the train stands still at the platform, not moving",
+    "ket": "close on boy holding out change, awkward grin; the train stands still at the platform, not moving",
     "muc_dich": "TRẢ cú gài: 'chỉ còn một chai' — một máy đẩy liền, không cắt, để câu thoại dồn tới cú lật.",
     "bo_cuc": "foreground: man's shoulder and arm in the window (left); midground: boy below with the bottle (right); background: platform and sun flare",
     "huong": "man looks down screen right, boy looks up screen left",
@@ -710,8 +710,8 @@
     "dien_xuat": "dong_cung"
    },
    "dan_dung": {
-    "mo": "frozen face",
-    "ket": "mouth slightly open",
+    "mo": "frozen face; the train stands still at the platform, not moving",
+    "ket": "mouth slightly open; the train stands still at the platform, not moving",
     "muc_dich": "Phản ứng là cú đấm: cắt sang mặt người chịu khi câu chốt còn đang đọc.",
     "bo_cuc": "foreground: man's face filling frame; midground: his hand with change at the bottom edge; background: blurred carriage interior",
     "huong": "man faces camera, eyes toward screen right where the boy is",
@@ -758,11 +758,11 @@
     "nhac": "khong"
    },
    "dan_dung": {
-    "mo": "man frozen, boy turning",
-    "ket": "boy small far down the platform",
+    "mo": "man frozen in the window holding the change, boy turning; the train stands still at the platform, not moving",
+    "ket": "boy small far down the platform toward the sun; man still frozen, eyes following the boy; the train stands still at the platform, not moving",
     "muc_dich": "Kết bằng hình chứ không bằng câu: người đứng hình, người chạy mất.",
     "bo_cuc": "foreground: boy turning away (right); midground: man frozen in the window (left); background: long platform toward the sun",
-    "huong": "boy runs away from camera toward the sun; man stays facing screen right",
+    "huong": "boy runs away from camera down the platform toward the sun; man keeps his head and eyes turned the SAME way, following the boy down the platform — he never looks back into the carriage or the other way",
     "dien": "boy bolts happily; man doesn't move",
     "motif": "",
     "nhan": ""
@@ -806,9 +806,9 @@
    },
    "dan_dung": {
     "bo_cuc": "foreground: platform edge; midground: moving carriage with the man; background: far platform and sun",
-    "mo": "train jolts, man frozen holding change",
-    "ket": "man's window sliding out of frame left, still staring back",
-    "huong": "train moves to screen left, man looks back to screen right",
+    "mo": "the parked train jolts and starts moving for the first time; man frozen holding change",
+    "ket": "man's window sliding out of frame left, man still staring down the platform where the boy ran",
+    "huong": "train moves to screen left; the man keeps looking down the platform toward the sun where the boy ran, never back into the carriage",
     "muc_dich": "TRẢ cú gài bánh xe + GIỮ phản ứng: chú bị bỏ lại với tiền thừa — khán giả kịp cười.",
     "dien": "hold the action clear and readable, settle at the end",
     "motif": "tàu chuyển bánh (trả)",

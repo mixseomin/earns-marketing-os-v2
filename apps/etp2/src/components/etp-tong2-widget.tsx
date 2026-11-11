@@ -7,7 +7,7 @@ import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
 import { Dem } from '@/components/etp-so';
-import { congNgay as congN, heSo, hieuChinh, mauCpm, mocMau, nen, ngayThiTruong, saiSo, type SoNgay } from '@/lib/etp-thi-truong';
+import { congNgay as congN, doiChieu, heSo, hieuChinh, mauCpm, mocMau, nen, ngayThiTruong, saiSo, type NhatKyDuDoan, type SoNgay } from '@/lib/etp-thi-truong';
 
 type ST = { chi: number; thu: number };
 const cong = (rs: ST[]) => rs.reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 });
@@ -54,8 +54,8 @@ function LuyKe({ s, rong, cao }: { s: SoTong2; rong: number; cao: number }) {
 
 /** THỊ TRƯỜNG (anh 11/11/2026 "bảng CPM kia trong 30 ngày gần nhất… hoặc show theo kiểu lịch tháng. Ngày chưa đến thì dự đoán. Dùng màu sắc, số, gradient"):
  *  lịch nhiệt tháng (ô = ngày Ethopex, màu = CPM so với nền: xanh rẻ → đỏ đắt; ô sọc nét đứt = dự đoán) · bảng 30 ngày + 14 ngày dự đoán. Hàm số: lib/etp-thi-truong.ts */
-function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tranMoi: { tran: number; ly_do: string } | null }; nay: string; rong: number; cao: number }) {
-  const [che, setChe] = useState<'lich' | 'bang'>('lich'); const [th, setTh] = useState(0);
+function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tranMoi: { tran: number; ly_do: string } | null; nk: NhatKyDuDoan }; nay: string; rong: number; cao: number }) {
+  const [che, setChe] = useState<'lich' | 'bang' | 'doi'>('lich'); const [th, setTh] = useState(0);
   const hc = hieuChinh(t.so, nay), us = (d: string) => t.so[d]?.nuoc?.US, tyUs = (d: string) => { const v = t.so[d]; return v?.nuoc?.US && v.chi ? v.nuoc.US.chi / v.chi : null; };
   const nuocChu = (d: string) => Object.entries(t.so[d]?.nuoc ?? {}).slice(0, 5).map(([k, x]) => `${k} ${t.so[d]!.chi ? Math.round((x.chi / t.so[d]!.chi) * 100) : 0}% · CPM ${x.cpm == null ? '—' : `$${x.cpm.toFixed(1)}`} · ROI ${pct(x.roi)}`).join('\n');
   const n = nen(t.so, nay), nenCpm = mocMau(t.so, nay), ss = saiSo(t.so, nay), bien = (v: number | null) => (v == null ? '' : ` ±${Math.round(v)}%`);   // nenCpm = mốc màu TB 30 ngày
@@ -66,7 +66,7 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
   const thang = m0.getUTCMonth(), cpm$ = (v: number | null) => (v == null ? '—' : `$${v.toFixed(v >= 100 ? 0 : 1)}`);
   const nutC = (on: boolean): React.CSSProperties => ({ fontSize: 11, padding: '1px 8px', borderRadius: 5, border: '1px solid var(--line)', background: on ? 'var(--bg-2)' : 'transparent', color: on ? 'var(--fg-1)' : 'var(--fg-3)', cursor: 'pointer' });
   const dauTrang = <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 11, marginBottom: 4 }}>
-    <span style={{ display: 'inline-flex', gap: 2 }}><button type="button" style={nutC(che === 'lich')} onClick={() => setChe('lich')}>Lịch tháng</button><button type="button" style={nutC(che === 'bang')} onClick={() => setChe('bang')}>Bảng 30 ngày</button></span>
+    <span style={{ display: 'inline-flex', gap: 2 }}><button type="button" style={nutC(che === 'lich')} onClick={() => setChe('lich')}>Lịch tháng</button><button type="button" style={nutC(che === 'bang')} onClick={() => setChe('bang')}>Bảng 30 ngày</button><button type="button" style={nutC(che === 'doi')} onClick={() => setChe('doi')} title="nhật ký: dự đoán máy chụp 13:00 VN mỗi ngày ↔ CPM thật khi ngày đó khép">Đoán ↔ thật</button></span>
     {che === 'lich' ? <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><button type="button" style={nutC(false)} disabled={th <= -1} onClick={() => setTh(th - 1)}>◀</button><b>tháng {thang + 1}/{m0.getUTCFullYear()}</b><button type="button" style={nutC(false)} disabled={th >= 2} onClick={() => setTh(th + 1)}>▶</button></span> : null}
     <span title="màu ô = CPM ngày đó ÷ CPM nền (TB 3 ngày đã khép, đã bỏ hệ số mùa)" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--fg-3)' }}>rẻ<span style={{ width: 70, height: 8, borderRadius: 4, background: `linear-gradient(90deg, ${mauCpm(16, 20, 0.9)}, ${mauCpm(24, 20, 0.9)}, ${mauCpm(32, 20, 0.9)})` }} />đắt</span>
     <span style={{ color: 'var(--fg-2)' }} title={`mốc màu = CPM TB 30 ngày đã khép · nền dự đoán = CPM ngày ${n?.d ?? '—'} (hôm qua) đã bỏ hệ số mùa`}>TB 30 ngày {cpm$(nenCpm)} · nền dự đoán {cpm$(n?.cpm ?? null)} · CPC {n ? `$${n.cpc.toFixed(2)}` : '—'} · ROI {pct(n?.roi ?? null)}</span>
@@ -75,6 +75,21 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
     {t.tranMoi ? <span title={t.tranMoi.ly_do} style={{ color: 'var(--fg-2)' }}>trần camp mới hôm nay <b>{t.tranMoi.tran}</b></span> : null}
     <span style={{ color: MO }} title={`dự đoán = CPM hôm qua × hệ số mùa · sai số đo trên số nhà: 1 ngày${bien(ss[1])} · 3 ngày${bien(ss[3])} · 7 ngày${bien(ss[7])} · hệ số Black Friday / Cyber Monday / 1–2/12 theo số công khai BFCM 2025 (Lebesgue, Biddyco, AdScale), các ngày khác là giả định · ROI không dự đoán`}>ô sọc = dự đoán (sai 1 / 3 / 7 ngày:{bien(ss[1])}{bien(ss[3])}{bien(ss[7])})</span>
   </div>;
+  if (che === 'doi') {   // NHẬT KÝ DỰ ĐOÁN ↔ THỰC TẾ (anh 11/11/2026): apps/etp/du_doan_cpm.py chụp mỗi ngày, lib doiChieu đặt cạnh số thật
+    const { dong, tb } = doiChieu(t.so, t.nk, nay), o_ = (x: { cpm: number; lech: number; dl: boolean } | null) => (!x ? <span style={{ color: MO }}>—</span>
+      : <span title={x.dl ? 'DỰNG LẠI — ngày này trước khi máy bắt đầu chụp (11/11/2026), đoán lại bằng đúng cách hiện tại trên số cũ' : 'bản máy chụp lúc 13:00 VN ngày làm'} style={{ fontStyle: x.dl ? 'italic' : undefined }}>
+          {cpm$(x.cpm)} <b style={{ color: Math.abs(x.lech) <= 10 ? XANH : Math.abs(x.lech) <= 25 ? '#f59e0b' : DO }}>{x.lech > 0 ? '+' : ''}{Math.round(x.lech)}%</b>{x.dl ? <small style={{ color: MO }}> dl</small> : null}</span>);
+    return <div style={{ fontSize: 11 }}>{dauTrang}
+      <div style={{ color: 'var(--fg-2)', margin: '2px 0 4px' }}>lệch TB (tuyệt đối) đoán trước 1 ngày <b>{tb[1] == null ? '—' : `${Math.round(tb[1])}%`}</b> · 3 ngày <b>{tb[3] == null ? '—' : `${Math.round(tb[3])}%`}</b> · 7 ngày <b>{tb[7] == null ? '—' : `${Math.round(tb[7])}%`}</b>
+        <span style={{ color: MO }}> · + = đoán cao hơn thật · <i>dl</i> = dựng lại (trước 11/11), từ 11/11 là bản máy chụp thật · xanh ≤ 10% · vàng ≤ 25% · đỏ &gt; 25%</span></div>
+      {dong.length ? <SimpleTable rows={dong} getRowKey={(r) => r.d} columns={[
+        { key: 'd', header: 'Ngày', cell: (r) => `${r.d.slice(8, 10)}/${r.d.slice(5, 7)}` },
+        { key: 'that', header: 'CPM thật', align: 'right', cell: (r) => <span style={{ padding: '0 6px', borderRadius: 4, background: mauCpm(r.that, nenCpm) }}>{cpm$(r.that)}</span> },
+        { key: 'd1', header: 'Đoán trước 1 ngày', align: 'right', cell: (r) => o_(r.doan[1]) },
+        { key: 'd3', header: 'Trước 3 ngày', align: 'right', cell: (r) => o_(r.doan[3]) },
+        { key: 'd7', header: 'Trước 7 ngày', align: 'right', cell: (r) => o_(r.doan[7]) },
+      ]} /> : <span style={{ color: MO }}>chưa có nhật ký — máy chụp lần đầu sau 13:00 VN (apps/etp/du_doan_cpm.py)</span>}</div>;
+  }
   if (che === 'bang') return <div style={{ fontSize: 11 }}>{dauTrang}<SimpleTable rows={ds} getRowKey={(o) => o.d} rowStyle={(o) => (o.du ? { opacity: 0.75, fontStyle: 'italic' } : o.d === nay ? { fontWeight: 600 } : undefined)} columns={[
     { key: 'd', header: 'Ngày', cell: (o) => <span>{o.d.slice(8, 10)}/{o.d.slice(5, 7)}{o.d === nay ? ' (hôm nay)' : ''}{o.du ? ' · dự đoán' : ''}{o.le ? <b style={{ color: '#f59e0b' }}> · {o.le}</b> : null}</span> },
     { key: 'chi', header: 'Chi', align: 'right', cell: (o) => (o.chi == null ? '—' : tien(o.chi)) },

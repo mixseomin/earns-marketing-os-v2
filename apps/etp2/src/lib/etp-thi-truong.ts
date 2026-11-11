@@ -9,24 +9,13 @@
 //   Các khoảng khác (tuần trước lễ, tháng 12, sau Giáng sinh) là GIẢ ĐỊNH, chưa có nguồn — ô vẫn ghi biên sai đo được. ROI không dự đoán.
 export type SoNuoc = { chi: number; cpm: number | null; roi: number | null };
 export type SoNgay = { chi: number; cpm: number; cpc: number; roi: number | null; nuoc?: Record<string, SoNuoc> };   // nuoc: 8 nước chi nhiều nhất (dong-bo.py cpm_nuoc)
+/** nhật ký dự đoán (etp.cau_hinh.cpm_du_doan, du_doan_cpm.py chụp 13:00 VN mỗi ngày): ngày làm → ngày đích → {cpm đoán, hệ số, dựng lại?} */
+export type NhatKyDuDoan = Record<string, Record<string, { cpm: number; h: number; dl?: boolean }>>;
 export type OThiTruong = { d: string; du: boolean; chi: number | null; cpm: number | null; cpc: number | null; roi: number | null; heSo: number; le: string | null; sai: number | null };
 
-const MUA: [string, string, number, string | null, boolean][] = [   // [từ, đến (gồm), hệ số, tên ngày lễ, có nguồn số 2025]
-  ['2026-11-16', '2026-11-22', 1.05, null, true],
-  ['2026-11-23', '2026-11-25', 1.25, null, false],
-  ['2026-11-26', '2026-11-26', 1.5, 'Tạ ơn', false],
-  ['2026-11-27', '2026-11-27', 1.8, 'Black Friday', true],
-  ['2026-11-28', '2026-11-29', 1.5, null, false],
-  ['2026-11-30', '2026-11-30', 1.6, 'Cyber Monday', true],
-  ['2026-12-01', '2026-12-01', 1.45, null, true],
-  ['2026-12-02', '2026-12-02', 1.2, null, true],
-  ['2026-12-03', '2026-12-13', 1.15, null, false],
-  ['2026-12-14', '2026-12-20', 1.25, null, false],
-  ['2026-12-21', '2026-12-24', 1.3, null, false],
-  ['2026-12-25', '2026-12-25', 1.05, 'Giáng sinh', false],
-  ['2026-12-26', '2026-12-31', 0.85, null, false],
-  ['2027-01-01', '2027-01-05', 0.8, 'Năm mới', false],
-];
+import SO_MUA from './etp-mua.json';
+// hệ số mùa: MỘT NGUỒN etp-mua.json — máy chụp dự đoán hằng ngày apps/etp/du_doan_cpm.py đọc cùng tệp (nhật ký dự đoán ↔ thực tế)
+const MUA = SO_MUA.mua as [string, string, number, string | null, boolean][];
 export function heSo(d: string): { h: number; le: string | null; nguon: boolean } {
   const m = MUA.find(([a, b]) => a <= d && d <= b);
   return { h: m ? m[2] : 1, le: m && m[3] && d === m[0] ? m[3] : null, nguon: !m || m[4] };   // tên lễ chỉ ghi ở ngày đầu khoảng · ngoài mùa = ×1, không cần nguồn
@@ -92,4 +81,22 @@ export function mauCpm(cpm: number | null, moc: number | null, alpha = 0.42): st
   if (cpm == null || !moc) return 'transparent';
   const t = Math.max(0, Math.min(1, (cpm / moc - 0.8) / 0.8));
   return `hsla(${Math.round(140 * (1 - t))}, 75%, 45%, ${alpha})`;
+}
+
+/** DỰ ĐOÁN ↔ THỰC TẾ (anh 11/11/2026 "có log cụ thể xem dự đoán so với thực tế"): mỗi ngày đã khép có trong nhật ký → CPM thật + dự đoán làm trước 1 / 3 / 7 ngày
+ *  + % lệch; dl = bản DỰNG LẠI (ngày trước khi máy bắt đầu chụp 11/11/2026 — đoán lại bằng đúng cách hiện tại trên số cũ), ghi rõ trên bảng. */
+export type DongDoi = { d: string; that: number; doan: Record<1 | 3 | 7, { cpm: number; lech: number; dl: boolean } | null> };
+export function doiChieu(so: Record<string, SoNgay>, nk: NhatKyDuDoan, nay: string, soNgay = 21): { dong: DongDoi[]; tb: Record<1 | 3 | 7, number | null> } {
+  const dong: DongDoi[] = [];
+  for (const [d, v] of daKhep(so, nay).slice(-soNgay).reverse()) {
+    const doan = { 1: null, 3: null, 7: null } as DongDoi['doan'];
+    for (const h of [1, 3, 7] as const) {
+      const x = nk[congNgay(d, -h)]?.[d];
+      if (x) doan[h] = { cpm: x.cpm, lech: ((x.cpm - v.cpm) / v.cpm) * 100, dl: !!x.dl };
+    }
+    if (doan[1] || doan[3] || doan[7]) dong.push({ d, that: v.cpm, doan });
+  }
+  const tb = { 1: null, 3: null, 7: null } as Record<1 | 3 | 7, number | null>;
+  for (const h of [1, 3, 7] as const) { const e = dong.map((r) => r.doan[h]).filter((x): x is NonNullable<typeof x> => !!x).map((x) => Math.abs(x.lech)); tb[h] = e.length ? e.reduce((a, b) => a + b, 0) / e.length : null; }
+  return { dong, tb };
 }

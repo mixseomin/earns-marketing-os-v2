@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { heSo, hieuChinh, mauCpm, mocMau, nen, ngayThiTruong, saiSo, type SoNgay } from './etp-thi-truong';
+import { doiChieu, heSo, hieuChinh, mauCpm, mocMau, nen, ngayThiTruong, saiSo, type SoNgay } from './etp-thi-truong';
 
 const so: Record<string, SoNgay> = {};
 for (let i = 1; i <= 10; i++) so[`2026-11-${String(i).padStart(2, '0')}`] = { chi: 1000, cpm: 20, cpc: 0.6, roi: 20 };
@@ -33,6 +33,9 @@ const mua: Record<string, SoNgay> = { '2026-11-15': { chi: 1, cpm: 20, cpc: 0.6,
 for (let i = 16; i <= 22; i++) mua[`2026-11-${i}`] = { chi: 1, cpm: 20 * (1 + 0.05 * 0.5), cpc: 0.6, roi: 0 };   // thật chỉ tăng nửa hệ số giả định (×1,025 thay ×1,05)
 const hc = hieuChinh(mua, '2026-11-23')!; assert.ok(hc.n >= 2 && Math.abs(hc.k - 0.5) < 0.6, JSON.stringify(hc));
 const bf2 = ngayThiTruong(mua, '2026-11-23', '2026-11-27', '2026-11-27')[0]!; assert.ok(bf2.heSo < 1.8 && bf2.heSo > 1, String(bf2.heSo));   // BF hạ theo thực tế
+const dc = doiChieu(so, { '2026-11-09': { '2026-11-10': { cpm: 20, h: 1 } }, '2026-11-07': { '2026-11-10': { cpm: 24.2, h: 1, dl: true } } }, '2026-11-11');
+assert.strictEqual(dc.dong.length, 1); assert.ok(Math.abs(dc.dong[0]!.doan[1]!.lech - (20 - 22) / 22 * 100) < 1e-9);
+assert.strictEqual(dc.dong[0]!.doan[3]!.dl, true); assert.strictEqual(dc.dong[0]!.doan[7], null); assert.ok(Math.abs(dc.tb[3]! - 10) < 1e-9);   // đoán trước 1 / 3 ngày, dựng lại đánh dấu
 assert.strictEqual(mauCpm(16, 20), 'hsla(140, 75%, 45%, 0.42)');
 assert.strictEqual(mauCpm(32, 20), 'hsla(0, 75%, 45%, 0.42)');
 assert.strictEqual(mauCpm(null, 20), 'transparent');

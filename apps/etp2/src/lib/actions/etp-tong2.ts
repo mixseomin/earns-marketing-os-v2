@@ -9,7 +9,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp, xemNha } from '@/lib/etp-quyen';
 import { luatDaLam } from '@/lib/etp-doc';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
-import type { SoNgay } from '@/lib/etp-thi-truong';
+import type { NhatKyDuDoan, SoNgay } from '@/lib/etp-thi-truong';
 
 export type SoTong2 = {
   nay: string; gio: number;   // ngày Ethopex hôm nay (UTC) + giờ UTC hiện tại
@@ -27,7 +27,7 @@ export type SoTong2 = {
    *  đọc etp.cau_hinh 'phan_bo' (sửa kế hoạch = sửa cấu hình, không cần deploy) · trần ngày etp.cau_hinh 'tran_ngay' — chỉ nhà */
   phanBo: { tran: number | null; tong: number; nhom: { ma: string; ten: string; camp: number; ns: number; chi3: number; thu3: number; muc: [number, number] | null; cach: string }[] } | null;
   /** THỊ TRƯỜNG (anh 11/11/2026): CPM / CPC / ROI từng ngày Ethopex của nhà (etp.cau_hinh.cpm_ngay, dong-bo.py ghi) + trần camp mới đang áp (tran_len) — chỉ nhà */
-  thiTruong: { so: Record<string, SoNgay>; tranMoi: { tran: number; ly_do: string } | null } | null;
+  thiTruong: { so: Record<string, SoNgay>; tranMoi: { tran: number; ly_do: string } | null; nk: NhatKyDuDoan } | null;
 };
 
 const so = (v: unknown) => Number(v ?? 0) || 0;
@@ -71,7 +71,7 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
         from etp.camp c left join etp.so_ngay s using (camp_id) where c.trang_thai = 'ACTIVE' group by c.camp_id)
       select case when tao > now() - interval '3 days' then 'test' when chi3 >= 1 and thu3 >= chi3 * 1.3 then 'lai_cao' when chi3 >= 1 and thu3 >= chi3 then 'lai_mong'
         when chi3 >= 1 and thu3 >= chi3 * 0.85 then 'lo_nhe' when chi3 >= 1 then 'lo_nang' else 'chua_so' end ma, count(*)::int camp, sum(ns) ns, sum(chi3) chi3, sum(thu3) thu3 from x group by 1`) : Promise.resolve([]),
-    nha ? run<{ khoa: string; gia_tri: unknown }>(sql`select khoa, gia_tri from etp.cau_hinh where khoa in ('phan_bo', 'tran_ngay', 'cpm_ngay', 'tran_len')`) : Promise.resolve([]),
+    nha ? run<{ khoa: string; gia_tri: unknown }>(sql`select khoa, gia_tri from etp.cau_hinh where khoa in ('phan_bo', 'tran_ngay', 'cpm_ngay', 'tran_len', 'cpm_du_doan')`) : Promise.resolve([]),
   ]);
   const boCua = new Map(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [Number(b.tk), k]));
   const tkN = new Map(tk.map((t) => [t.id, t.n]));
@@ -94,11 +94,11 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
       .map(([k, n]) => { const [d, viec, ten] = k.split('|'); return { d: d!, viec: viec!, luat: ten!, n }; }),
     phim: phim.filter((x) => cua(x.n)).map((x) => ({ p: x.p, ten: x.ten ?? `#${x.p}`, n: x.n, chi: so(x.chi), thu: so(x.thu) })),
     thiTruong: nha ? (() => {
-      const ch = Object.fromEntries(pbCh.map((r) => [r.khoa, r.gia_tri])) as { cpm_ngay?: Record<string, { chi?: number; cpm?: number; cpc?: number; roi?: number | null; nuoc?: Record<string, { chi?: number; cpm?: number | null; roi?: number | null }> }>; tran_len?: { tran?: number; ly_do?: string } };
+      const ch = Object.fromEntries(pbCh.map((r) => [r.khoa, r.gia_tri])) as { cpm_ngay?: Record<string, { chi?: number; cpm?: number; cpc?: number; roi?: number | null; nuoc?: Record<string, { chi?: number; cpm?: number | null; roi?: number | null }> }>; tran_len?: { tran?: number; ly_do?: string }; cpm_du_doan?: NhatKyDuDoan };
       const so_: Record<string, SoNgay> = {};
       for (const [d, v] of Object.entries(ch.cpm_ngay ?? {})) so_[d] = { chi: so(v.chi), cpm: so(v.cpm), cpc: so(v.cpc), roi: v.roi == null ? null : so(v.roi),
         ...(v.nuoc ? { nuoc: Object.fromEntries(Object.entries(v.nuoc).map(([k, x]) => [k, { chi: so(x.chi), cpm: x.cpm == null ? null : so(x.cpm), roi: x.roi == null ? null : so(x.roi) }])) } : {}) };
-      return { so: so_, tranMoi: ch.tran_len?.tran == null ? null : { tran: so(ch.tran_len.tran), ly_do: String(ch.tran_len.ly_do ?? '') } };
+      return { so: so_, tranMoi: ch.tran_len?.tran == null ? null : { tran: so(ch.tran_len.tran), ly_do: String(ch.tran_len.ly_do ?? '') }, nk: ch.cpm_du_doan ?? {} };
     })() : null,
     phanBo: nha ? (() => {
       const ch = Object.fromEntries(pbCh.map((r) => [r.khoa, r.gia_tri])) as { phan_bo?: { nhom?: { ma: string; ten: string; muc?: [number, number] | null; cach?: string }[] }; tran_ngay?: number | null };

@@ -56,10 +56,14 @@ export async function docViecSx(): Promise<{ viec: ViecSx[]; loi: string[] }> {
     doc('Kênh nội dung', async () => (await docKenhSp(hom)).flatMap((k) => k.ke.dangLam.filter((d) => !laDemo(d)).map((d): ViecSx => ({
       nguon: 'kenh', khoa: `k-${k.ma}-${d.id}`, ten: d.ten || d.id, cua: k.ma, buoc: d.buoc ?? 'đang làm', so: d.so ?? null, tong: d.tong ?? null,
       luc: d.buoc_luc ?? d.luc, loi: d.loi ?? null, ghi: d.chi_tiet ?? null, mo: { url: `/?tab=kenh&kenh_mo=${encodeURIComponent(k.ma)}` } })))),
-    doc('Ethopex', async () => (await docEtp(undefined, false)).dangSx.map((x): ViecSx => ({
-      nguon: 'etp', khoa: `e-${x.khoa}`, ten: x.phim ?? (x.content_id ? `phim ${x.content_id}` : x.khoa), cua: x.lo ?? null, buoc: x.buoc,
-      luc: x.luc, loi: x.loi ? (x.ghi ?? 'lỗi') : null, ghi: x.loi ? null : x.ghi,
-      mo: x.content_id ? { ed: 'etp-sx', id: String(x.content_id) } : { url: '/?tab=ethopex' } }))),
+    // "Kho góc sạch chưa dùng" (1.754 dòng đo 11/11/2026) là HÀNG ĐÃ LÀM XONG nằm kho, không phải việc đang sản xuất — gom vào thì bảng
+    // 1.782 dòng, 28 việc thật chìm mất. Dòng chờ cắt lại mà ghi chú mang lỗi lần trước (TimeoutExpired…) thì hiện là LỖI, không giả vờ đang chờ.
+    doc('Ethopex', async () => (await docEtp(undefined, false)).dangSx.filter((x) => !/^Kho góc/.test(x.buoc)).map((x): ViecSx => {
+      const loiCu = !x.loi && /Error|Timeout|Traceback|Exception/.test(x.ghi ?? '');
+      return {
+      nguon: 'etp', khoa: `e-${x.khoa}`, ten: x.phim ?? (x.content_id ? `phim ${x.content_id}` : x.khoa), cua: x.lo ?? null, buoc: loiCu ? `${x.buoc} (lần trước hỏng)` : x.buoc,
+      luc: x.luc, loi: x.loi || loiCu ? (x.ghi ?? 'lỗi') : null, ghi: x.loi || loiCu ? null : x.ghi,
+      mo: x.content_id ? { ed: 'etp-sx', id: String(x.content_id) } : { url: '/?tab=ethopex' } }; })),
     doc('Puzzle / Tài sản', async () => {
       const t = await docTaiSanBan();
       if (t.loi.length) loi.push(...t.loi.map((l) => `Tài sản: ${l}`));

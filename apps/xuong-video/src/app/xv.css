@@ -147,3 +147,7 @@ div:hover > .xv-nut-sinh, .xv-nut-sinh:hover, .xv-nut-sinh:focus-visible { opaci
 .xv-cay-con > .xv-cay-nut::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; border-left: 1px solid var(--line-2, var(--line)); }
 .xv-cay-con > .xv-cay-nut:last-child::before { bottom: auto; height: 12px; }
 .xv-cay-con > .xv-cay-nut::after { content: ''; position: absolute; left: 0; top: 12px; width: 12px; border-top: 1px solid var(--line-2, var(--line)); }
+
+/* việc nền đang chạy (viec-nen-ui.tsx) */
+.xv-quay { display: inline-block; animation: xv-quay 1.2s linear infinite; }
+@keyframes xv-quay { to { transform: rotate(360deg); } }

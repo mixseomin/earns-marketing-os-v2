@@ -1,4 +1,5 @@
 'use server';
+import { chayViecNen, docViecNenDb, type ViecNen } from '@/lib/viec-nen';
 import type { SoLieuQc } from '@/lib/xuong-video/nhom-phim';
 
 // Xưởng video AI — server actions: phim (bộ) · anchor (nhân vật/sản phẩm/bối cảnh) · tập · cảnh (storyboard) · job (ảnh/video).
@@ -262,7 +263,7 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
       db.execute(sql`SELECT b.* FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${id} ORDER BY b.nhom, b.id`),
       db.execute(sql`SELECT j.nhan_vat_id, j.bien_the_id FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id
         WHERE v.phim_id = ${id} AND j.loai = 'anh' AND ${jobDangCho('j')}`),
-      db.execute(sql`SELECT * FROM xv_job WHERE phim_id = ${id} ORDER BY id DESC LIMIT 6`),
+      db.execute(sql`SELECT * FROM xv_job WHERE phim_id = ${id} AND loai <> 'viec_nen' ORDER BY id DESC LIMIT 6`),
       db.execute(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS t FROM xv_job WHERE phim_id = ${id} AND tinh_chi`),
       // Lần sinh ảnh gần nhất của mỗi anchor/biến thể — lỗi thì hiện dưới thẻ (việc chạy nền nên lỗi không trả về nút nữa).
       db.execute(sql`SELECT DISTINCT ON (j.nhan_vat_id, coalesce(j.bien_the_id, 0)) j.nhan_vat_id, j.bien_the_id, j.trang_thai, j.loi
@@ -361,7 +362,7 @@ export async function dsJobPhim(phimId: number): Promise<Job[]> {
     const r = await db.execute(sql`
       SELECT j.* FROM xv_job j
       LEFT JOIN xv_canh c ON c.id = j.canh_id LEFT JOIN xv_tap t ON t.id = c.tap_id LEFT JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id
-      WHERE t.phim_id = ${phimId} OR v.phim_id = ${phimId} ORDER BY j.id DESC LIMIT 200`);
+      WHERE (t.phim_id = ${phimId} OR v.phim_id = ${phimId}) AND j.loai <> 'viec_nen' ORDER BY j.id DESC LIMIT 200`);
     return (r as unknown as Row[]).map(mapJob);
   } catch { return []; }
 }
@@ -371,7 +372,7 @@ export async function soChiPhi(opts: { phimId?: number; ngay?: number }): Promis
   const db = getDb();
   if (!db || !(await admin())) return { jobs: [], theoNgay: [], theoLoai: [] };
   const ngay = Math.max(1, Math.min(365, opts.ngay ?? 30));
-  const loc = opts.phimId ? sql`AND j.phim_id = ${opts.phimId}` : sql``;
+  const loc = opts.phimId ? sql`AND j.phim_id = ${opts.phimId} AND j.loai <> 'viec_nen'` : sql`AND j.loai <> 'viec_nen'`;   // dòng theo dõi việc nền (viec-nen.ts) không phải lượt gọi AI
   const [jobs, nd, ll] = await Promise.all([
     db.execute(sql`SELECT j.*, p.ten AS phim_ten FROM xv_job j LEFT JOIN xv_phim p ON p.id = j.phim_id
       WHERE j.created_at > now() - make_interval(days => ${ngay}) ${loc} ORDER BY j.id DESC LIMIT 1000`),
@@ -886,6 +887,30 @@ export async function themNguonModel(d: { ten: string; loai: LoaiNguon; model: s
   await db.execute(sql`INSERT INTO xv_nguon_model (nguon_key, loai, model, gia_vnd, gia_goc, link, ngay_doc) VALUES (${key}, ${d.loai}, ${model}, ${d.gia_vnd}, ${d.gia_goc.trim() || 'nhập tay'}, ${d.link.trim()}, now()::date)
     ON CONFLICT (nguon_key, loai, model, goi) DO UPDATE SET gia_vnd = EXCLUDED.gia_vnd, gia_goc = EXCLUDED.gia_goc, link = EXCLUDED.link, ngay_doc = EXCLUDED.ngay_doc, updated_at = now()`);
   return { ok: true, data: key };
+}
+/** 🧑 Kiểm người xem chạy NỀN (viec-nen.ts): trả mã việc ngay, trang hỏi docViecNen để hiện bước / giây / lỗi (anh 11/11/2026: bấm xong "chết toi").
+ *  phanDoan = kiểm riêng một cảnh. Đang có một lượt chạy cho tập này → trả lại mã lượt đó, không gọi Claude lần hai (tiền). */
+export async function batDauNguoiXem(tapId: number, phanDoan?: string): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const viec = phanDoan ? `nguoi_xem_canh:${phanDoan}` : 'nguoi_xem';
+  const cu = await docViecNenDb(db, { tapId, viec });
+  if (cu?.trang_thai === 'chay') return { ok: true, data: cu.id };
+  const t = (await db.execute(sql`SELECT phim_id, so FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
+  if (!t[0]) return loi('không thấy tập');
+  const id = await chayViecNen(db, { phimId: n(t[0].phim_id), tapId, viec, nhan: `Kiểm người xem · tập ${n(t[0].so)}${phanDoan ? ` · cảnh ${phanDoan}` : ''}` }, async (buoc) => {
+    await buoc('Claude xem từng shot, kể lại câu chuyện rồi đối chiếu ý tác giả (2 lượt)');
+    const r = phanDoan ? await kiemNguoiXemCanh(db, tapId, phanDoan) : await kiemNguoiXemTap(db, tapId);
+    return r.ok ? { ok: true } : { ok: false, loi: r.loi };
+  });
+  return { ok: true, data: id };
+}
+/** Trạng thái việc nền (đọc — đi đường song song doc-ham.ts). */
+export async function docViecNen(q: { id: number } | { tapId: number; viec: string }): Promise<ViecNen | null> {
+  const db = getDb();
+  if (!db || !(await admin())) return null;
+  return docViecNenDb(db, q);
 }
 export async function thuNguoiXemTap(tapId: number): Promise<Kq<ThuNguoiXem>> {
   const db = getDb();

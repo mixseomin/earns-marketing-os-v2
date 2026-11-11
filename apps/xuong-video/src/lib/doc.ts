@@ -25,3 +25,4 @@ export const docHoanTac = tao('docHoanTac');
 export const uocTien = tao('uocTien');
 export const uocAm = tao('uocAm');
 export const kiemVideo = tao('kiemVideo');
+export const docViecNen = tao('docViecNen');

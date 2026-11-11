@@ -40,6 +40,8 @@ export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: strin
   /** BẢNG NỘI DUNG (anh 25/10/2026 "show bảng đó vào đây · data thật"): ảnh thật của bài (khung video / ảnh tĩnh / ảnh nền studio), kênh (xv_may.dang[].tk),
    *  kiểu nội dung (dang.nhom), có link hay không (sổ đăng ghi từ 25/10; bài cũ = null, lượt dự kiến = null — máy quyết lúc đăng) */
   anh?: string | null; tk?: string | null; nhom?: string | null; link?: boolean | null;
+  /** CHỮ BÀI THẬT (dang.description) — drawer chi tiết đọc giọng bài TRƯỚC khi sản xuất (anh 11/11/2026). null = bài chưa viết chữ. */
+  moTa?: string | null;
   /** số liệu bài đã đăng: lượt xem cộng dồn (kenh_so_ngay mới nhất, khớp link bài) + thích / bình luận (Graph); null = chưa đo */
   xem?: number | null; thich?: number | null; binhLuan?: number | null;
   /** GÓC spy bài được làm từ (dang.goc / bai_hen.goc, luật 25/10/2026); null = bài chưa có góc */
@@ -422,7 +424,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
           coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh, e.value->>'link' AS link, v.dang->>'nhom' AS nhom, v.dang->>'link' AS dich, v.dang->'goc' AS goc
         FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id CROSS JOIN LATERAL jsonb_each(v.da_dang) e
         WHERE e.value->>'ngay' >= to_char((now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - 42, 'YYYY-MM-DD')`) as unknown as Promise<(Record<string, string | null> & { goc?: GocBai | null })[]>,   // 6 tuần: đủ cho lịch tháng / tuần (anh 22/10/2026)
-      d.execute(sql`SELECT luc::text AS luc, ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ luc: string; ds: { ngay: string; gio: string; may: string; mayTen?: string; nen: string; title: string; slug?: string | null; format?: string; nhom?: string | null }[] }[]>,
+      d.execute(sql`SELECT luc::text AS luc, ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ luc: string; ds: { ngay: string; gio: string; may: string; mayTen?: string; nen: string; title: string; slug?: string | null; format?: string; nhom?: string | null; moTa?: string | null; chuaDung?: boolean }[] }[]>,
     ]);
     // kênh của từng nơi đăng (máy × nền → tên tài khoản) + ảnh thật của video trong lượt dự kiến (theo slug)
     const [noiTk, anhSlug] = await Promise.all([
@@ -470,7 +472,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
       xem: x.url ? xemCua.get(maBai(x.url)) ?? null : null }));
     const bayVn = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
     const cuoiLuoi = new Date(Date.parse(`${hom}T00:00:00Z`) + 42 * 864e5).toISOString().slice(0, 10);   // 6 tuần tới cho lịch tháng / tuần (lưới giờ tự lọc 10 ngày); lịch 90 ngày còn lại chỉ dùng cho thống kê kho
-    for (const x of dk[0]?.ds ?? []) if (`${x.ngay} ${x.gio}` > bayVn && x.ngay <= cuoiLuoi) o.push({ ngay: x.ngay, gio: x.gio, may: x.may, mayTen: x.mayTen ?? x.may, nen: x.nen, title: x.title, url: null, loai: 'du_kien', anh: x.slug ? anhCua.get(`${x.may}|${x.slug}`) ?? null : null, tk: tkCua.get(`${x.may}|${x.nen}`) ?? null, nhom: x.nhom ?? null, link: null, goc: x.slug ? gocCua.get(`${x.may}|${x.slug}`) ?? null : null });
+    for (const x of dk[0]?.ds ?? []) if (`${x.ngay} ${x.gio}` > bayVn && x.ngay <= cuoiLuoi) o.push({ ngay: x.ngay, gio: x.gio, may: x.may, mayTen: x.mayTen ?? x.may, nen: x.nen, title: x.title, url: null, loai: 'du_kien', anh: x.slug ? anhCua.get(`${x.may}|${x.slug}`) ?? null : null, tk: tkCua.get(`${x.may}|${x.nen}`) ?? null, nhom: x.nhom ?? null, link: null, moTa: x.moTa ?? null, goc: x.slug ? gocCua.get(`${x.may}|${x.slug}`) ?? null : null });
     // BÀI HẸN GIỜ theo kế hoạch Page (bai_hen — kế hoạch Page hoài cổ 25/10/2026): Facebook tự đăng đúng giờ; trước giờ = sẽ đăng, qua giờ = đã đăng.
     // nền theo format (Reel → facebook:<acct>, ảnh / album → fb_anh:<acct>, bài link → fb_link:<acct>) để nhãn format + nhóm kênh khớp bài máy trên cùng Page
     const hen = (await d.execute(sql`SELECT id, acct, ten, ke_hoach, hen_luc::text AS luc, nhom, format, chu, anh, video, link, url, post_id, goc FROM bai_hen WHERE graph_id IS NOT NULL`).catch(() => [])) as unknown as { acct: number; ten: string; ke_hoach: string; luc: string; nhom: string | null; format: string | null; chu: string; anh: string[] | null; video: string | null; link: string | null; url: string | null; post_id: string | null; goc: GocBai | null }[];

@@ -3,6 +3,8 @@
 // mỗi ô = các bài trên các kênh. ✓ đặc = đã đăng (bấm mở bài) · viền nét đứt = máy SẼ đăng (dang-may tính bằng luật nhịp an toàn — xv_lich_du_kien).
 import { loaiGoc, linkGoc, type GocBai } from '@/lib/goc-spy';
 import { useState } from 'react';
+import { Drawer } from '@/components/ui/drawer';
+import { useModalParam } from '@/lib/use-modal-param';
 import type { StKho, StLuoi, StLuoiO } from '@/lib/social-traffic';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { SiteFavicon } from '@/components/ui/site-favicon';
@@ -14,6 +16,68 @@ const nhanNen = (n: string) => { const g = n.split(':')[0] ?? n; return NEN_NHAN
 const MAU = ['#2563eb', '#d97706', '#059669', '#db2777', '#7c3aed', '#0891b2'];
 const THU = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const cong = (ngay: string, n: number) => new Date(Date.parse(`${ngay}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
+
+/** CHI TIẾT MỘT Ô LỊCH (anh 11/11/2026 "bấm vào phải ra drawer thể hiện chi tiết").
+ *  MỘT drawer dùng chung cho cả ba mặt lịch (lưới giờ, tuần, tháng) — trước đây mỗi ô chỉ có tooltip `title`,
+ *  đọc được một dòng và không copy được. Khoá ô = `may|nen|ngay|gio` (ô lịch không có id riêng), ghi vào URL
+ *  bằng useModalParam nên F5 / gửi link mở lại đúng ô. */
+function useChiTietBai(ds: StLuoiO[]) {
+  const modal = useModalParam('ob');
+  const khoaCua = (x: StLuoiO) => `${x.may}|${x.nen}|${x.ngay}|${x.gio}`;
+  const dangMo = modal.is('o-lich') ? ds.find((x) => khoaCua(x) === modal.id) ?? null : null;
+  return {
+    mo: (x: StLuoiO) => modal.open('o-lich', khoaCua(x)),
+    khoaCua,
+    drawer: dangMo ? <ChiTietBai x={dangMo} onClose={() => modal.close()} /> : null,
+  };
+}
+
+function ChiTietBai({ x, onClose }: { x: StLuoiO; onClose: () => void }) {
+  const nhan: [string, React.ReactNode][] = [
+    ['Kênh', x.tk ?? x.mayTen],
+    ['Nơi đăng', nhanNen(x.nen)],
+    ['Khi nào', `${x.ngay.slice(8)}/${x.ngay.slice(5, 7)}${x.gio === '—' ? '' : ` · ${x.gio}`} (GMT+7)`],
+    ['Trạng thái', x.loai === 'da' ? '✓ đã đăng' : x.anh ? 'máy sẽ đăng — đã dựng' : 'máy sẽ đăng — CHƯA dựng'],
+    ...(x.nhom ? [['Kiểu nội dung', x.nhom] as [string, React.ReactNode]] : []),
+    ...(x.link != null ? [['Link trong bài', x.link ? 'có' : 'bài thường (không link)'] as [string, React.ReactNode]] : []),
+  ];
+  const so: [string, number | null | undefined][] = [['Lượt xem', x.xem], ['Thích', x.thich], ['Bình luận', x.binhLuan]];
+  const coSo = so.some(([, v]) => v != null);
+  return (
+    <Drawer onClose={onClose} width={560}>
+      <div style={{ display: 'grid', gap: 14 }}>
+        <div>
+          <div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 4 }}>{x.mayTen}</div>
+          <h3 style={{ margin: 0, fontSize: 17, lineHeight: 1.35 }}>{x.title}</h3>
+        </div>
+        {x.anh ? <img src={x.anh} alt="" style={{ width: '100%', maxHeight: 260, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }} /> : null}
+        {/* CHỮ BÀI: thứ anh cần đọc TRƯỚC khi sản xuất — chưa viết thì nói thẳng, không để ô trống */}
+        <div>
+          <div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 4 }}>Chữ bài</div>
+          <div style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.55, border: '1px solid var(--border)', borderRadius: 10, padding: 10, background: 'var(--bg-2, rgba(0,0,0,.03))' }}>
+            {x.moTa || <span style={{ color: 'var(--fg-3)' }}>chưa viết chữ cho bài này</span>}
+          </div>
+        </div>
+        <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 14px', margin: 0, fontSize: 13 }}>
+          {nhan.map(([k, v]) => [
+            <dt key={`k${k}`} style={{ color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{k}</dt>,
+            <dd key={`v${k}`} style={{ margin: 0 }}>{v}</dd>,
+          ])}
+        </dl>
+        {coSo ? (
+          <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 14px', margin: 0, fontSize: 13 }}>
+            {so.filter(([, v]) => v != null).map(([k, v]) => [
+              <dt key={`k${k}`} style={{ color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{k}</dt>,
+              <dd key={`v${k}`} style={{ margin: 0, fontVariantNumeric: 'tabular-nums' }}>{v}</dd>,
+            ])}
+          </dl>
+        ) : null}
+        {x.goc ? <div style={{ fontSize: 13 }}><span style={{ color: 'var(--fg-2)' }}>Góc spy: </span>{linkGoc(x.goc) ? <a href={wrapExternalUrl(linkGoc(x.goc)!)} target="_blank" rel="noreferrer">{x.goc.ten}</a> : x.goc.ten} <span style={{ color: 'var(--fg-3)' }}>({loaiGoc(x.goc.loai)[0]})</span></div> : null}
+        {x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" style={{ alignSelf: 'start', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: 13, textDecoration: 'none' }}>Mở bài đã đăng ↗</a> : null}
+      </div>
+    </Drawer>
+  );
+}
 
 /** Bảng kho: máy × format | kiểu nội dung — đã đăng · kho DUYỆT chưa đăng · đủ tới ngày nào (đỏ: cạn trong 7 ngày; '—': không có lượt nào, vd kênh bị dừng). */
 function BangKho({ rows, hom, chieu, tieuDe }: { rows: StKho[]; hom: string; chieu: StKho['chieu']; tieuDe: string }) {
@@ -41,6 +105,7 @@ function BangKho({ rows, hom, chieu, tieuDe }: { rows: StKho[]; hom: string; chi
 }
 
 export function LichLuoi({ luoi }: { luoi: StLuoi }) {
+  const ct = useChiTietBai(luoi.o);
   const ngay = Array.from({ length: 10 }, (_, i) => cong(luoi.hom, i - 3));
   const may = [...new Map(luoi.o.map((x) => [x.may, x.mayTen])).entries()];
   const mauMay = Object.fromEntries(may.map(([m], i) => [m, MAU[i % MAU.length]!]));
@@ -73,13 +138,14 @@ export function LichLuoi({ luoi }: { luoi: StLuoi }) {
                   const nhan = `${x.loai === 'da' ? '✓ ' : ''}${nhanNen(x.nen)}`, tip = `${x.mayTen} · ${nhanNen(x.nen)} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
                   const st = { display: 'inline-block', padding: '1px 6px', borderRadius: 6, lineHeight: '18px', whiteSpace: 'nowrap' as const, borderLeft: `3px solid ${mauMay[x.may]}`,
                     ...(x.loai === 'da' ? { background: 'var(--bg-2, rgba(0,0,0,.05))', color: 'var(--fg-1, inherit)', textDecoration: 'none' } : { border: `1px dashed ${mauMay[x.may]}`, borderLeftWidth: 3, borderLeftStyle: 'solid' as const, color: 'var(--fg-2)' }) };
-                  return x.url ? <a key={i} href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" title={tip} style={st}>{nhan}</a> : <span key={i} title={tip} style={st}>{nhan}</span>;
+                  return <button key={i} type="button" onClick={() => ct.mo(x)} title={`${tip}\n(bấm xem chi tiết)`} style={{ ...st, cursor: 'pointer', font: 'inherit', textAlign: 'left' }}>{nhan}</button>;
                 })}
               </div>
             )),
           ])}
         </div>
       </div>
+      {ct.drawer}
     </div>
   );
 }
@@ -88,6 +154,7 @@ export function LichLuoi({ luoi }: { luoi: StLuoi }) {
  *  Tuần: 7 cột T2 → CN, mỗi ngày liệt kê bài theo giờ. Tháng: lưới 6 × 7, mỗi ngày = chấm màu theo máy (đặc = đã đăng, rỗng = sẽ đăng), bấm ngày → danh sách bên dưới.
  *  ‹ › đổi tuần / tháng; giờ GMT+7. */
 export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'thang' }) {
+  const ct = useChiTietBai(luoi.o);
   const [moc, setMoc] = useState(luoi.hom);
   const [chon, setChon] = useState<string | null>(null);
   const may = [...new Map(luoi.o.map((x) => [x.may, x.mayTen])).entries()];
@@ -105,7 +172,7 @@ export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'th
     const nhan = `${x.gio === '—' ? '' : `${x.gio} `}${x.loai === 'da' ? '✓ ' : ''}${nhanNen(x.nen)}`, tip = `${x.mayTen} · ${nhanNen(x.nen)} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
     const st = { display: 'block', padding: '1px 6px', borderRadius: 6, lineHeight: '18px', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', borderLeft: `3px solid ${mauMay[x.may]}`, fontSize: 11,
       ...(x.loai === 'da' ? { background: 'var(--bg-2, rgba(0,0,0,.05))', color: 'var(--fg-1, inherit)', textDecoration: 'none' } : { border: `1px dashed ${mauMay[x.may]}`, borderLeftWidth: 3, borderLeftStyle: 'solid' as const, color: 'var(--fg-2)' }) };
-    return x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" title={tip} style={st}>{nhan}</a> : <span title={tip} style={st}>{nhan}</span>;
+    return <button type="button" onClick={() => ct.mo(x)} title={`${tip}\n(bấm xem chi tiết)`} style={{ ...st, width: '100%', cursor: 'pointer', font: 'inherit', fontSize: 11, textAlign: 'left' }}>{nhan}</button>;
   };
   return (
     <div style={{ margin: '4px 0 18px' }}>
@@ -128,7 +195,7 @@ export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'th
                   background: chon === n ? 'var(--accent-soft, rgba(37,99,235,.14))' : homNay ? 'var(--accent-soft, rgba(37,99,235,.08))' : undefined, opacity: ngoaiThang ? .45 : 1, display: 'grid', alignContent: 'start', gap: 3 }}>
                 <span style={{ fontWeight: homNay ? 700 : 500, color: n < luoi.hom ? 'var(--fg-3)' : undefined }}>{homNay ? 'Hôm nay' : `${n.slice(8)}/${n.slice(5, 7)}`}{bs.length ? <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}> · {bs.length}</span> : null}</span>
                 {kieu === 'tuan' ? bs.map((x, i) => <Bai key={i} x={x} />)
-                  : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>{bs.slice(0, 24).map((x, i) => <i key={i} title={`${x.gio} ${nhanNen(x.nen)} · ${x.title}`} style={{ width: 8, height: 8, borderRadius: 2, background: x.loai === 'da' ? mauMay[x.may] : 'transparent', border: `1.5px solid ${mauMay[x.may]}` }} />)}</span>}
+                  : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>{bs.slice(0, 24).map((x, i) => <button key={i} type="button" onClick={(e) => { e.stopPropagation(); ct.mo(x); }} title={`${x.gio} ${nhanNen(x.nen)} · ${x.title}\n(bấm xem chi tiết)`} aria-label={x.title} style={{ width: 10, height: 10, padding: 0, borderRadius: 2, cursor: 'pointer', background: x.loai === 'da' ? mauMay[x.may] : 'transparent', border: `1.5px solid ${mauMay[x.may]}` }} />)}</span>}
               </div>
             );
           })}
@@ -139,6 +206,7 @@ export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'th
         <div style={{ display: 'grid', gap: 3, gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>{cua(chon).map((x, i) => <Bai key={i} x={x} />)}</div>
         {!cua(chon).length && <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không có bài nào.</span>}
       </div>}
+      {ct.drawer}
     </div>
   );
 }

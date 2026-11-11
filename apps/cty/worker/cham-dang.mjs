@@ -12,6 +12,19 @@ const NGUON_ANH = /^https:\/\/([a-z0-9-]+\.)*(pexels\.com|pixabay\.com|unsplash\
 const TU_MAY = ['delve', 'leverage', 'utilize', 'crucial', 'vital', 'comprehensive', 'robust', 'streamline', 'moreover', 'furthermore', 'seamless',
   'game-changer', 'cutting-edge', 'state-of-the-art', "in today's world", 'in the realm of', "it's worth noting", 'in conclusion', 'unlock the'];
 const DIEM_DUYET = 7;
+/** Cụm hô hào cấm trong bài PERSONA (Page đóng vai người thật). Dùng chung: phòng chấm (doBaiDang) + máy SX (sx-may.mjs chặn TRƯỚC khi dựng)
+ *  + cum-thang.mjs (đánh dấu cụm "thắng" persona không được dùng; 11/11/2026 mẹo C "free for a limited time" lấy từ cum-thang, bị chặn sau khi đã dựng). */
+export const HO_HAO = ['watch now', 'click here', 'link in bio', 'don\'t miss', 'dont miss', 'check it out', 'swipe up', 'limited time',
+  'free now', 'sign up', 'join now', 'best ever', 'must watch', 'you need to', 'trust me you'];
+export const TRAN_PERSONA = 300;
+/** Lỗi CHỮ bài persona, tính trên tiêu đề + chữ đăng (tiêu đề hay bị chép lại đầu chữ đăng → đếm hai lần; 3 bài Mia 13–15/11 vượt trần vì thế). */
+export function loiChuPersona(title, mo) {
+  const chu = `${title ?? ''}\n${mo ?? ''}`, ra = [];
+  if (chu.replace(/\s+/g, ' ').trim().length > TRAN_PERSONA) ra.push(`bài persona dài ${chu.trim().length} ký tự — người thật viết 1–3 câu`);
+  const dinh = HO_HAO.filter((x) => chu.toLowerCase().includes(x));
+  if (dinh.length) ra.push(`giọng quảng cáo trong bài persona: ${dinh.join(', ')}`);
+  return ra;
+}
 /** Cụm từ máy có trong chữ (chữ thường). Dùng chung: phòng chấm (doBaiDang) + máy sinh lọc kho hook trước khi đưa AI (may-dung › khoGocHook) + bộ viết tập lịch sử,
  *  để hook QC mang "unlock the" không lọt vào bài rồi bị chặn sau khi đã dựng (Alaska 02/11/2026). 'vital signs' là thuật ngữ y khoa (29/10/2026 chặn oan). */
 export const tuMayTrong = (chu) => { const t = String(chu).toLowerCase().replace(/vital signs?/g, ''); return TU_MAY.filter((w) => t.includes(w)); };
@@ -156,7 +169,7 @@ export function doBaiDang(v, ten = '') {
     if (title.length < 25) chan.push(`câu móc quá ngắn (${title.length} ký tự)`);
     else if (title.length > 110) canh.push(`câu móc dài ${title.length} ký tự (feed cắt ~100)`);
     if (!/[?!]|\d/.test(title)) canh.push('câu móc không có câu hỏi / con số / tình huống');
-  } else if (chu.replace(/\s+/g, ' ').trim().length > 300) chan.push(`bài persona dài ${chu.trim().length} ký tự — người thật viết 1–3 câu`);
+  } else chan.push(...loiChuPersona(title, mo).filter((x) => x.startsWith('bài persona dài')));
   if (ten && title.toLowerCase().startsWith(ten.toLowerCase())) chan.push(`câu móc mở bằng tên kênh "${ten}" thay vì tình huống`);
   // 7 · GÓC (anh duyệt 25/10/2026, siết 31/10/2026: "mọi bài đăng mới, video, post, ảnh… đều phải dựa vào 1 idea góc" — bài cũ chưa đăng không góc thì bỏ):
   // MỌI bài phải làm từ một góc cụ thể trong kho spy (dang.goc = { sp, id, loai, ten }); người gọi kiểm góc có thật và thuộc nhóm góc của thương hiệu (v.goc_loi).
@@ -197,10 +210,7 @@ export function doBaiDang(v, ten = '') {
   // PERSONA — CHẶT HƠN ở đúng chỗ quyết định bài có giống người thật không. Một người kể chuyện của mình không hô hào,
   // không gắn thẻ, không viết hoa cả cụm để nhấn. Lọt mấy thứ này là Page lộ ngay là dựng, mất luôn tác dụng của cả mô hình.
   if (persona) {
-    const hoHao = ['watch now', 'click here', 'link in bio', 'don\'t miss', 'dont miss', 'check it out', 'swipe up', 'limited time',
-      'free now', 'sign up', 'join now', 'best ever', 'must watch', 'you need to', 'trust me you'];
-    const dinh = hoHao.filter((x) => thuong.includes(x));
-    if (dinh.length) chan.push(`giọng quảng cáo trong bài persona: ${dinh.join(', ')}`);
+    chan.push(...loiChuPersona(title, mo).filter((x) => x.startsWith('giọng quảng cáo')));
     if (tag > 1) chan.push(`${tag} hashtag — người thật kể chuyện không gắn thẻ (persona tối đa 1)`);
     const hoa = (chu.match(/\b[A-Z]{4,}\b/g) || []).filter((w) => w !== 'OK');
     if (hoa.length) chan.push(`viết hoa cả cụm để nhấn (${hoa.slice(0, 3).join(', ')}) — giọng quảng cáo`);

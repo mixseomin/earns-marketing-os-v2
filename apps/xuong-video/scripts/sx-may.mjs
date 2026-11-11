@@ -16,6 +16,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { LAM, MIET_THI, doanSach, shq } from './sx-bai.mjs';
+import { loiChuPersona } from '../../cty/worker/cham-dang.mjs';
 
 const BOX = 'root@167.233.241.16';
 const D = path.dirname(new URL(import.meta.url).pathname);
@@ -98,10 +99,20 @@ function dongLuot(id, b, ok, kq = {}, loi = null) {
   } catch (e) { console.log(`⚠ không ghi được nhật ký lượt: ${String(e.message).split('\n')[0].slice(0, 120)}`); }
 }
 
+/** [title, description] của bài persona (bài thường trả [] → loiChuPersona bỏ qua). Đọc base64 để tab / xuống dòng trong chữ không làm vỡ dòng psql. */
+function chuBai(slug) {
+  const r = psql(`SELECT translate(encode(convert_to(coalesce(dang->>'title',''),'UTF8'),'base64'),E'\\n','')||E'\\t'||translate(encode(convert_to(coalesce(dang->>'description',''),'UTF8'),'base64'),E'\\n','') FROM xv_may_video WHERE slug=${q(slug)} AND (dang->>'persona')::boolean IS TRUE;`).trim();
+  if (!r) return ['', ''];
+  return r.split('\t').map((x) => Buffer.from(x, 'base64').toString('utf8'));
+}
+
 async function dungMot(b) {
   const ham = LAM[b.kieu];
   if (!b.kieu) throw new Error(`${b.slug}: nền '${b.nen}' chưa có dạng bài mặc định — khai dang.kieu_sx`);
   if (!ham) throw new Error(`${b.slug}: dạng '${b.kieu}' không có hàm trong sx-bai.mjs`);
+  // CHỮ BÀI PERSONA chặn TRƯỚC khi dựng, cùng luật phòng chấm (loiChuPersona): 11/11/2026 ba bài Mia dài 311–316 ký tự / có "limited time" vẫn
+  // dựng ảnh rồi mới bị SỬA LẠI. Lỗi ném ra → lượt ghi 'hong' → việc về Khang sửa chữ, không tốn tiền dựng bài chắc chắn bị chặn.
+  const cl = loiChuPersona(...chuBai(b.slug)); if (cl.length) throw new Error(`${b.slug}: chữ bài persona sẽ bị Phòng Nội dung chặn: ${cl.join(' · ')} — sửa dang.title / description trước khi dựng`);
   const de = { ...b, urlPhim: b.phim ? urlPhim(b.phim) : null };
   const kq = await ham(de);
   // ghi tệp vào sổ bài — KHÔNG đụng chữ bài (chữ do người/khâu viết lo, máy chỉ làm tệp)
@@ -138,6 +149,9 @@ const main = async () => {
     a.ok(uv.length > 0 && uv.every((x) => x.bat_dau + 9 <= 50 || x.bat_dau > 50), 'không đoạn nào chứa giây dính từ cấm — kể cả khi giây đó to tiếng nhất');
     a.ok(uv.every((x, i) => uv.every((y, j) => i === j || Math.abs(x.bat_dau - y.bat_dau) >= 6)), 'các đoạn ứng viên cách nhau ≥ 6 giây');
     a.equal(doanSach(rms, chu.map((x) => ({ ...x, cam: 'x' }))).length, 0, 'mọi giây dính từ cấm → không có đoạn sạch (máy ném lỗi, không cắt bừa)');
+    // chữ persona: đúng 3 bài Mia bị chặn 11/11 (tiêu đề + chữ đăng > 300, "limited time") phải bị chặn trước khi dựng; chữ ngắn sạch thì qua
+    a.ok(loiChuPersona('his family made her sign a paper before the wedding', 'his family made her sign a paper before the wedding saying she would leave with nothing. she signed it in front of everyone. what none of them checked was whose name was already on the building. it is free to watch for a limited time, i put it in the comments').length === 2, 'bài Mia 15/11 phải dính cả trần lẫn limited time');
+    a.equal(loiChuPersona('they kicked the man sleeping behind the restaurant', 'one phone call later he owns the place.').length, 0);
     console.log(`sx-may: ${dang.length} dạng bài, sổ ↔ bảng hàm khớp · ${dang.length * 3 + 17}/${dang.length * 3 + 17} ok`);
     return;
   }

@@ -6,6 +6,9 @@
 //   node apps/xuong-video/scripts/cum-thang.mjs --nhom '(reelshort|dramabox|short drama|full episode)' [--top 25] [--toi-thieu 40] [--thang 30] [--thua 7]
 // Kết quả là TƯƠNG QUAN trên chữ đăng (không phải chữ trên hình) — mỗi cụm phải thử A/B một thay đổi một lần (sổ dạng bài kieu-sx.json) mới thành luật.
 import fs from 'node:fs';
+import { HO_HAO } from '../../cty/worker/cham-dang.mjs';
+// cụm nằm trong câu hô hào phòng chấm cấm → ghi "CẤM cho Page persona" (11/11/2026: mẹo C "limited" chọn từ bảng này, 3 bài Mia bị SỬA LẠI sau khi dựng)
+const camPersona = (c) => (c.length > 3 && HO_HAO.some((h) => h.includes(c) || c.includes(h)) ? ' · CẤM cho Page persona (phòng chấm chặn)' : '');
 
 const ag = process.argv.slice(2), lay = (k, mac) => { const i = ag.indexOf(k); return i >= 0 ? ag[i + 1] : mac; };
 const MIN_PAGE = Number(lay('--page', 5)), NHOM = lay('--nhom', null), TOP = Number(lay('--top', 25)), MIN = Number(lay('--toi-thieu', 40)), THANG = Number(lay('--thang', 30)), THUA = Number(lay('--thua', 7));
@@ -55,5 +58,5 @@ const ds = (await spy`select noi_dung as chu, coalesce(page_ten, page_id::text, 
 await spy.end();
 const r = xepCum(ds, { thang: THANG, thua: THUA, min: MIN, minPage: MIN_PAGE }), pc = (x) => `${(x * 100).toFixed(1)}%`;
 console.log(`nhóm "${NHOM}": ${ds.length} QC · thắng (≥ ${THANG} ngày) ${r.nT} · thua (≤ ${THUA} ngày) ${r.nH} · cụm có ≥ ${MIN} QC thắng ở ≥ ${MIN_PAGE} Page (đã gộp bản copy trùng chữ)`);
-console.log(`\nCỤM THẮNG (ở QC chạy lâu nhiều hơn QC tắt sớm):`); for (const x of r.len.slice(0, TOP)) console.log(`  ×${x.nang.toFixed(1)}  ${x.cum.padEnd(28)} thắng ${pc(x.pThang)} · thua ${pc(x.pThua)} · ${x.thang} QC / ${x.page} Page`);
+console.log(`\nCỤM THẮNG (ở QC chạy lâu nhiều hơn QC tắt sớm):`); for (const x of r.len.slice(0, TOP)) console.log(`  ×${x.nang.toFixed(1)}  ${x.cum.padEnd(28)} thắng ${pc(x.pThang)} · thua ${pc(x.pThua)} · ${x.thang} QC / ${x.page} Page${camPersona(x.cum)}`);
 console.log(`\nCỤM THUA (tránh):`); for (const x of r.xuong.slice(0, Math.ceil(TOP / 2))) console.log(`  ×${x.nang.toFixed(2)}  ${x.cum.padEnd(28)} thắng ${pc(x.pThang)} · thua ${pc(x.pThua)} · ${x.thang} QC`);

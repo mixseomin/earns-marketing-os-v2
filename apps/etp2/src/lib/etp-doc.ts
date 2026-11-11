@@ -73,7 +73,7 @@ export type DeXuat = { lam: string; vi: string; cach: string | null };
 export type SoLuat = { ma: string; luc: string; ten: string; mo_ta: string | null; dk: [string, string][]; dung: boolean; de_xuat: DeXuat[];
   so: { lan: number; camp: number; ngay: number; do_duoc?: number; lai_ngay_truoc?: number | null; lai_ngay_sau?: number | null; roi_truoc?: number | null; roi_sau?: number | null;
     chi_ngay_truoc?: number | null; chi_ngay_sau?: number | null; ti_le_tot?: number | null; roi_3_ngay_truoc?: number | null; lo_ngay_truoc?: number | null; dang_lai?: number; lai_bi_tat?: number;
-    tat_ca?: NhomClone; cung_cr?: NhomClone; khac_cr?: NhomClone; theo_goc?: Record<string, NhomClone>; dang?: { dat: number; gan: number; xa: number; khong_ap: number }; ket_o?: [string, number][];
+    tat_ca?: NhomClone; cung_cr?: NhomClone; khac_cr?: NhomClone; bai_cu?: NhomClone; bai_moi?: NhomClone; theo_goc?: Record<string, NhomClone>; dang?: { dat: number; gan: number; xa: number; khong_ap: number }; ket_o?: [string, number][];
     /** đo có đối chứng (so-luat.py, 02/11/2026): camp Nhà cùng ngày, cùng ngân sách, đang lãi, không bị tăng → hieu_qua = chenh_tang − dc_chenh ($/ngày mỗi lần) */
     dc_n?: number; dc_chenh?: number; chenh_tang?: number; hieu_qua?: number;
     /** cùng số đo cho 7 ngày gần nhất */

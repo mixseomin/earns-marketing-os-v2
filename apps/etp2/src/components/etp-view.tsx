@@ -1024,12 +1024,15 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
     c('hq', 'Hiệu quả thật', 'kq', (l) => l.so.hieu_qua, 'tien', 'lãi/ngày mỗi lần tăng sinh ra thật = chênh của camp được tăng − chênh đối chứng (14 ngày)'),
     c('hq7', 'Hiệu quả 7n', 'kq', (l) => l.so.k7?.hieu_qua, 'tien', 'hiệu quả thật, chỉ tính các lần trong 7 ngày gần nhất'),
   ];
-  const nb = (k: 'tat_ca' | 'cung_cr' | 'khac_cr', f: 'n' | 'lai' | 'roi') => (l: SoLuat) => l.so[k]?.[f];
+  const nb = (k: 'tat_ca' | 'cung_cr' | 'khac_cr' | 'bai_cu' | 'bai_moi', f: 'n' | 'lai' | 'roi') => (l: SoLuat) => l.so[k]?.[f];
   const goc = (k: string, f: 'n' | 'roi') => (l: SoLuat) => l.so.theo_goc?.[k]?.[f];
   const cotNb: DataColumn<SoLuat>[] = [
     c('nb_n', 'Clone', 'nb', nb('tat_ca', 'n'), 'so', 'số bản clone đo được'), c('nb_lai', 'Lãi clone', 'nb', nb('tat_ca', 'lai'), 'tien', 'tổng lãi các bản clone từ lúc lên'), c('nb_roi', 'ROI clone', 'nb', nb('tat_ca', 'roi'), 'roi', 'ROI các bản clone'),
     c('cc_n', 'Cùng cr', 'nb', nb('cung_cr', 'n'), 'so', 'clone giữ nguyên creative camp gốc (giống hệt)'), c('cc_roi', 'ROI cùng cr', 'nb', nb('cung_cr', 'roi'), 'roi', 'ROI clone giống hệt'),
     c('kc_n', 'Khác cr', 'nb', nb('khac_cr', 'n'), 'so', 'clone đổi sang creative khác cùng phim'), c('kc_roi', 'ROI khác cr', 'nb', nb('khac_cr', 'roi'), 'roi', 'ROI clone đổi creative'),
+    // nhân bản BÀI CŨ (anh 11/11/2026): dùng lại bài đăng camp gốc (giữ tương tác, $2) ↔ đăng bài mới — so-luat.py tách theo tên ' bai-cu '
+    c('bc_n', 'Bài cũ', 'nb', nb('bai_cu', 'n'), 'so', 'clone dùng lại bài đăng của camp gốc (Use existing post, $2)'), c('bc_roi', 'ROI bài cũ', 'nb', nb('bai_cu', 'roi'), 'roi', 'ROI clone dùng bài đăng cũ'),
+    c('bm_roi', 'ROI bài mới', 'nb', nb('bai_moi', 'roi'), 'roi', 'ROI clone đăng bài mới (so với bài cũ)'),
     c('g6_roi', 'ROI gốc < $6', 'nb', goc('gốc tiêu < $6/ngày', 'roi'), 'roi', 'ROI clone khi camp gốc tiêu < $6/ngày lúc clone'), c('g14_roi', 'ROI gốc $6–14', 'nb', goc('gốc tiêu $6–14/ngày', 'roi'), 'roi', 'ROI clone khi camp gốc tiêu $6–14/ngày'),
     c('g20_roi', 'ROI gốc ≥ $14', 'nb', goc('gốc tiêu ≥ $14/ngày', 'roi'), 'roi', 'ROI clone khi camp gốc tiêu ≥ $14/ngày'),
   ];

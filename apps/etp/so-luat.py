@@ -49,6 +49,7 @@ def main():
         so[r["c"]][r["d"]] = (r["chi"], r["thu"])
         if r["ns"]: ns_ngay[r["d"]].setdefault(round(r["ns"]), []).append(r["c"])   # chỉ camp Nhà có ngân sách từng ngày → kho đối chứng
     cr = {r["c"]: r["cr"] for r in qj("select camp_id c, creative_id cr from etp.camp")}
+    bai = {r["c"] for r in qj("select camp_id c from etp.camp where ten like '% bai-cu %'")}   # nhân bản BÀI CŨ (nhan-ban.py, anh 11/11/2026): tên mang ' bai-cu '
     # T30 TÁCH HAI NHÁNH (anh 02/11/2026 "dừng T30 cho camp thường, theo dõi kỹ cho ROAS vì chưa có đủ data"): lần T30 trên camp ★ ROAS đo riêng ở t30_roas
     la_roas = {r["c"] for r in qj("select camp_id c from etp.camp where la_roas")}
     T30_ROAS_DU = 10   # đủ bao nhiêu lần đo có đối chứng thì sổ luật mới phán Giữ / Siết cho nhánh ROAS
@@ -88,7 +89,8 @@ def main():
             o.update(do_duoc=len(co), roi_3_ngay_truoc=roi(tc, tt), lo_ngay_truoc=round((tt - tc) / tn, 2) if tn else None, dang_lai=len(lai), lai_bi_tat=round(sum(a["truoc"][1] - a["truoc"][0] for a in lai), 2))
         elif m in ("nb", "thang_nb"):
             co = [a for a in mau if a["sau"][2]]
-            o.update(tat_ca=nhom(co), cung_cr=nhom([a for a in co if a["cung_cr"]]), khac_cr=nhom([a for a in co if not a["cung_cr"]]))
+            o.update(tat_ca=nhom(co), cung_cr=nhom([a for a in co if a["cung_cr"]]), khac_cr=nhom([a for a in co if not a["cung_cr"]]),
+                     bai_cu=nhom([a for a in co if a["bai_cu"]]), bai_moi=nhom([a for a in co if not a["bai_cu"]]))   # bài đăng cũ (giữ tương tác, $2) ↔ đăng bài mới
             g = collections.defaultdict(list)
             for a in co:
                 gc = a["goc3"][0] / a["goc3"][2] if a["goc3"][2] else 0
@@ -116,7 +118,7 @@ def main():
         x = ra[m]; x["lan"] += 1; x["camp"].add(h["camp_id"]); D = dt.date.fromisoformat(h["d"]); x.setdefault("ngay", []).append(D)
         t = cong(h["camp_id"], D - dt.timedelta(days=2), D - dt.timedelta(days=1))
         if h["viec"] == "nhan_ban":
-            s = cong(h["camp_id"], D, homqua); x["mau"].append({"D": D, "camp": h["camp_id"], "goc": h["goc"], "cung_cr": cr.get(h["camp_id"]) == cr.get(h["goc"]) and cr.get(h["camp_id"]) is not None,
+            s = cong(h["camp_id"], D, homqua); x["mau"].append({"D": D, "camp": h["camp_id"], "goc": h["goc"], "cung_cr": cr.get(h["camp_id"]) == cr.get(h["goc"]) and cr.get(h["camp_id"]) is not None, "bai_cu": h["camp_id"] in bai,
                                                                  "goc3": cong(h["goc"], D - dt.timedelta(days=3), D - dt.timedelta(days=1)), "sau": s})
         elif h["viec"] == "tat":
             x["mau"].append({"D": D, "camp": h["camp_id"], "truoc": cong(h["camp_id"], D - dt.timedelta(days=3), D - dt.timedelta(days=1))})

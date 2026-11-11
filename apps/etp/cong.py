@@ -92,7 +92,10 @@ def phim_chan_len():
         ra[int(cid)] = LY_AU_MY.format(ng) if ng and ng != "au_my" else LY_CAT.format(cid, tl)
     return ra
 
-def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False):
+# NHÂN BẢN BÀI CŨ (anh 11/11/2026, Dol: "chạy lại post cũ để $2 luôn cũng được" — anh chốt "$2 cho camp dùng bài cũ thắng"): bản nhân bản camp thắng thường
+# dùng LẠI bài đăng của camp gốc (Use existing post, ad chỉ mang effective_object_story_id) được lên tới NS_BAI_CU; mọi camp mới khác vẫn $1.
+NS_BAI_CU = 2
+def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False):
     if viec not in TANG: return None
     try:
         ct = content_id if content_id is not None else (_q(f"select content_id from etp.camp where camp_id = {int(camp_id)}") or None) if camp_id else None
@@ -113,7 +116,7 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
             return f"mùa lễ Mỹ: khoá tăng bậc ({(ch.get('mua_le') or {}).get('ly_do') or '25–30/11'}) — giảm / tắt / camp mới vẫn chạy (etp.cau_hinh.mua_le, apps/etp/mua_le.py)"
         # CAMP MỚI = $1 (anh 08/11/2026: "Ai cho mày lên camp mới ngân sách hơn $1" · "AB test vẫn phải đi từ $1. Nếu khác thì phải xin phép"): tạo camp / nhân bản thường
         # (kể cả camp A/B, clone sang bộ khác) gửi ngân sách > $1 → chặn. Miễn: camp ROAS (roas=True, loại anh duyệt 26/10/2026) · bản thang (bac=True, thang nhân bản anh duyệt 25/10/2026)
-        if viec in ("tao_camp", "nhan_ban") and not roas and not bac and ns_moi is not None and float(ns_moi) > 1:
+        if viec in ("tao_camp", "nhan_ban") and not roas and not bac and ns_moi is not None and float(ns_moi) > (NS_BAI_CU if bai_cu and viec == "nhan_ban" else 1):
             return f"camp mới phải $1 — đang gửi ${float(ns_moi):g} (anh 08/11/2026); ngân sách khác phải xin anh"
         # NẮP ROI 3 NGÀY (Dol 09/11/2026): camp thường tăng lên $X mà X > trần của dải ROI 3 ngày khép → chặn; camp ★ ROAS không áp; camp đang chạy không bị hạ (chỉ chặn tăng)
         if viec == "tang" and not roas and camp_id and ns_moi is not None and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") != "1":
@@ -204,8 +207,11 @@ def ns_tao(body):
     di(body)
     ten = str(sp.get("name") or body.get("name") or "")
     m = re.search(r"\(thang \$(\d+(?:\.\d+)?) cua \d+\)\s*$", ten)
+    ads = [ad for g in (cp.get("ad_groups") or []) if isinstance(g, dict) for ad in (g.get("ads") or []) if isinstance(ad, dict)]
+    bai = bool(ads) and all(str(ad.get("effective_object_story_id") or "").strip() and ad.get("creative_id") is None and ad.get("content_id") is None for ad in ads)
     if sp.get("bid_strategy") == "LOWEST_COST_WITH_MIN_ROAS": tran, loai = 20.0, "camp ROAS"
     elif m: tran, loai = float(m.group(1)), "bản thang"
+    elif bai: tran, loai = float(NS_BAI_CU), "nhân bản bài cũ"   # theo VẬT: mọi ad chỉ mang bài đăng cũ, không creative mới
     else: tran, loai = 1.0, "camp mới"
     vuot = [(k, v) for k, v in so if v > tran]
     if vuot: return f"{loai} '{ten[:60]}' gửi {', '.join(f'{k}=${v:g}' for k, v in vuot)} > ${tran:g} — camp mới phải $1 (anh 08/11/2026), ngân sách khác phải xin anh", tran
@@ -239,6 +245,9 @@ def _tu_kiem():
     assert ns_tao(_pl(5, ten="X (thang $5 cua 87811)")) == (None, 5.0) and ns_tao(_pl(10, ten="X (thang $5 cua 87811)"))[0], "bản thang tới đúng $X"
     assert ns_tao(_pl(3, ten="X (thang $5 cua 87811) copy"))[0], "chữ thang giữa tên không tính"
     assert ns_tao(_pl(1, g={"is_adset_budget_sharing_enabled": True}))[0] is None, "cờ boolean không phải ngân sách"
+    _bc = lambda ns, ad: {"name": "X", "campaign": {"source_payload": {"name": "X", "daily_budget": ns}, "ad_groups": [{"source_payload": {}, "ads": [ad]}]}}
+    assert ns_tao(_bc(2, {"effective_object_story_id": "1_2"})) == (None, 2.0) and ns_tao(_bc(3, {"effective_object_story_id": "1_2"}))[0], "bài cũ tới đúng $2"
+    assert ns_tao(_bc(2, {"effective_object_story_id": "1_2", "creative_id": 5}))[0] and ns_tao(_bc(2, {"creative_id": 5}))[0], "có creative mới → vẫn camp mới $1"
     print("✓ cong.py tự kiểm (nhận camp ROAS mọi kiểu tên + gốc đã có ROAS + camp mới $1 trên payload: 10 ca)")
 
 if __name__ == "__main__":

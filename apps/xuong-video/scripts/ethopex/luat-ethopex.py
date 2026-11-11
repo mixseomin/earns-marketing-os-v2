@@ -1185,7 +1185,7 @@ def _xet_luat():
                [["Chi 30 ngày", f"${a.get('chi', 0):.2f}", f"≥ ${chi_:g} (nhánh kia: lãi ≥ ${ROAS_LAI}, đang ${lai:.0f})", a.get("chi", 0) >= chi_], ["ROI 3 ngày đã khép", f(rg, "%"), f"≥ {roi_:g}%", rg is not None and rg >= roi_]])
         # trần camp mới / ngày KHÔNG áp camp ★ ROAS (cong.kiem roas=True miễn, anh 12/11/2026) — bỏ điều kiện khỏi thẻ Lên ROAS
         t = _roas_thu.get(int(cid)); ghi = f"{t['g']} máy thử lên ROAS bị chặn: {str(t['loi'])[:160]}" if t and t.get("loi") else f"{t['g']} đã lên ROAS" if t and t.get("ok") else None
-        o = L("roas", "★ Lên ROAS (4 mức · $20)", f"Lãi 30 ngày ≥ ${ROAS_LAI} (anh 29/10/2026) HOẶC chi 30 ngày ≥ ${chi_:g} & ROI 3 ngày đã khép ≥ {roi_:g}% (Dol 09/11/2026) → cuối nhịp kế máy tạo 4 camp ★ ROAS $20 từ camp này (giờ chạy theo lịch lên); gốc đã có camp ★ thì không lên lại.",
+        o = L("roas", f"★ Lên ROAS ({len(ROAS_LEN['muc'])} mức · ${ROAS_LEN['ns']:g})", f"Lãi 30 ngày ≥ ${ROAS_LAI} (anh 29/10/2026) HOẶC chi 30 ngày ≥ ${chi_:g} & ROI 3 ngày đã khép ≥ {roi_:g}% (Dol 09/11/2026) → cuối nhịp kế máy tạo {len(ROAS_LEN['muc'])} camp ★ ROAS ${ROAS_LEN['ns']:g} (mức {' · '.join(f'{x:g}' for x in ROAS_LEN['muc'])}) từ camp này (giờ chạy theo lịch lên); gốc đã có camp ★ thì không lên lại.",
               dk, "moc30" if int(cid) in vao["moc30"] else None, ghi=ghi, tien=2)
         return o
     giam_tu = q("select gia_tri::text from etp.cau_hinh where khoa = 'giam_tu_dong'") != "false"
@@ -1207,7 +1207,7 @@ def _xet_luat():
             f"đã hạ về ${G10_DICH} ngày {theo_:%d/%m} — đang theo dõi {G10_THEO} ngày đã khép, khoá tăng" if theo_ else None, tien=2, lo=None if r3 is None else r3 < G10_ROI)
     # thẻ "G10 kém đi" (g10k) đã gỡ 05/11/2026 cùng nhánh kém đi — không giảm camp đang lãi
     ra = {}; _giu = {int(x[0] or 0) for x in giu_cuoi}
-    _MA_TAT_THE = ("t1", "t8", "t2", "l3", "l4", "l0", "off", "d24", "g10", "tv", "pl")
+    _MA_TAT_THE = {k for k, v in BANG_LUAT["the"].items() if len(v) > 2 and v[2] == "tat"} | {"g10"}   # thẻ luật TẮT theo sổ luật chung (+ G10: bước cuối là tắt) — GIỮ camp cuối + HOÃN dùng chung
     _hoan_tat = {int(x[0] or 0): re.sub(r"^#[^·]*·\s*", "", str(x[1]))[:200] for x in (cho_duoi + tha_nay) if int(x[0] or 0)}
     for cid in sorted(_dc):
         try:   # MỖI CAMP MỘT VÒNG BẢO VỆ (10/11/2026: một thẻ TV sai khuôn làm chết cả bộ thẻ 229 camp ~20 giờ) — camp lỗi chỉ thiếu thẻ của nó, lỗi báo đích danh
@@ -1345,8 +1345,8 @@ def _xet_luat():
             _cho_toi = None
             if not b2 and all(x[3] for x in dk_tang): dk_tang = dk_tang + [_nhip()[0]]; _cho_toi = _nhip()[1]
             # đủ hết điều kiện thẻ mà máy KHÔNG xếp tăng → dòng ✗ nói đúng bộ lọc đã loại (không để thẻ ✓ hết rồi im lặng)
-            _kt = (lambda dk: dk + [["Máy xếp tăng nhịp này", f"không — {(_ly_tang(cid) or '')[:90]}", "có", False]]
-                   if not b2 and all(x[3] for x in dk) and int(cid) not in vao["tang"] and not _h3_ly(cid) and _ly_tang(cid) else dk)   # khoá L0 / H3 có dòng riêng (_khoa_dol)
+            _kt = (lambda dk: dk + [["Máy xếp tăng nhịp này", f"không — {(_ly_tang(cid) or 'chưa rõ bộ lọc nào loại (thêm vào _ly_tang)')[:90]}", "có", False]]
+                   if not b2 and all(x[3] for x in dk) and int(cid) not in vao["tang"] and not _h3_ly(cid) else dk)   # _ly_tang None = bộ lọc mới chưa khai ở _ly_tang → dòng kêu, không im   # khoá L0 / H3 có dòng riêng (_khoa_dol)
             dk_tang = _kt(dk_tang)
             ls.append(L("thang_nb" if b2 else "tang", "Thang nhân bản (bộ 2)" if b2 else "Tăng bậc",
                 ("Bộ 2: đủ luật tăng thì KHÔNG đổi ngân sách mà mở bản mới ở bậc kế (creative khác cùng phim). " if b2 else "") + f"ROI khung dài ≥ {ROI_TANG}%, spending > {sp_min:g}% ngân sách, hôm nay không lỗ, chưa ở trần. Cổng phụ: tăng cách nhau ≥ 3 giờ, sau lần giảm phải ROI ≥ 50% lại." + (f" Bộ 2: camp gốc tiêu TB ≥ ${THANG_CHI_GOC:g}/ngày 3 ngày đã khép mới mở bản thang (29/10)." if b2 else ""),
@@ -1382,7 +1382,7 @@ def _xet_luat():
             ls.append(L_g10(cid, ns))
             if int(cid) in _giu:   # camp cuối của phim: luật tắt đạt nhưng máy giữ (giu_cuoi) — thẻ nói thẳng, không hứa "máy tắt"
                 for l_ in ls:
-                    if l_["ket"] == "dat" and l_["ma"] in ("t1", "t8", "t2", "l3", "l4", "l0", "off", "d24", "g10"): l_["ghi"] = "GIỮ — camp cuối của phim, chưa có camp thay (tắt khi phim có camp nối hoặc phim bị cất)"
+                    if l_["ket"] == "dat" and l_["ma"] in _MA_TAT_THE: l_["ghi"] = "GIỮ — camp cuối của phim, chưa có camp thay (tắt khi phim có camp nối hoặc phim bị cất)"
             # luật tắt ĐẠT nhưng máy HOÃN (chờ đuôi ngày / tha hôm nay ROI cao) — thẻ nói đúng lý do hoãn thay vì ✓ hết rồi im (rà 11/11/2026: #81633 #87861 L3 đạt, đang chờ đuôi)
             if int(cid) in _hoan_tat and int(cid) not in _giu:
                 for l_ in ls:

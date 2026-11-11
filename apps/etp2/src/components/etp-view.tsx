@@ -443,7 +443,7 @@ function gioThe(l: XetLuat, hoan: { luc: string | null; cu: boolean }, don: bool
   if (l.mo) return { t: Math.max(Date.parse(l.mo.luc), Date.now()), can: l.mo.can };   // Siết TS chặn: mốc + điều kiện của chính máy luật
   // nhân bản (NB · thang): worker tạo bản ngay nhịp kế, không chờ khung tăng — bản mới chạy theo khung lên (chuLich)
   const nb = l.ma === 'nb' || l.ma === 'thang_nb' || l.ma === 'roas', h = HUONG_THE(l.ma), t = lucLam(nb ? 'tao' : h, hoan.luc, hoan.cu, Date.now(), l.cho_toi ? Date.parse(l.cho_toi) : 0, h === 'tang' && don);
-  const chiNhip = l.dk.every((d) => d[3] || d[0].startsWith('Nhịp tăng') || d[0].startsWith('Trần camp mới hôm nay'));   // chỉ cổng nhịp / trần camp mới ngày chặn = chỉ chờ giờ (cho_toi)
+  const chiNhip = l.dk.every((d) => d[3] || d[0].startsWith('Nhịp tăng'));   // chỉ cổng nhịp chặn = chỉ chờ giờ (cho_toi)
   if (t == null) return null;
   const can = l.ket === 'gan' && !chiNhip ? 'đủ điều kiện' : null;
   return { t, can: nb ? `${can ? `${can} · ` : ''}tạo xong ${chuLich(t)}` : can };

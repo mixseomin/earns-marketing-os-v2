@@ -263,7 +263,7 @@ async function xuNut(tg, x) {
 // sửa tại chỗ (không gửi tin mới) mỗi 5 phút từ dịch vụ nghe (tg-nghe.mjs) và ngay khi anh bấm 🔄 (eb:moi → hộp ethopex-bang). Tin bị xoá thì gửi + ghim lại.
 const TEP_BANG = () => path.join(DATA(), 'ethopex-bang.json');
 // mức ROAS máy tự lên cho mỗi camp gốc (khuôn anh duyệt 28/10/2026) — một danh sách cho nhà (nhipEthopex) và tài khoản team (etp-tu-dong.mjs)
-export const ROAS_MUC = [1, 1.1, 1.2, 1.3];
+export const ROAS_MUC = BANG_LUAT.roas_len.muc, ROAS_NS = BANG_LUAT.roas_len.ns;   // mức + ngân sách camp ★ ROAS: MỘT nguồn ở sổ luật chung (thẻ xét luật đọc cùng chỗ — audit 12/11/2026)
 export const BANG_MOI_PHUT = 5;
 const tienUsd = (x) => `${x < 0 ? '−' : '+'}$${Math.abs(x).toFixed(2)}`;
 const roiChu = (r) => (r == null ? '—' : `${r > 0 ? '+' : ''}${Math.round(r)}%`);
@@ -736,7 +736,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     const goc = (kq.moc30 || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id) && !seTat.has(m.id) && !giu[m.id]);
     const viec = goc.flatMap((m) => ROAS_MUC.map((muc) => ({ m, muc })));
     for (let i = 0; i < viec.length; i += 4) await Promise.all(viec.slice(i, i + 4).map(async (v) => {
-      try { v.r = JSON.parse((await chay(NB, [String(v.m.id), '--roas', String(v.muc), '--ns', '20', '--that', '--luat', `lên ROAS · ${v.m.chu}`.slice(0, 400), '--ai', 'máy tự lên ROAS (anh chat 29/10/2026: các camp đủ điều kiện lên roas thì lên luôn — lãi ≥ $75)'], 1500)).trim().split('\n').pop()); }
+      try { v.r = JSON.parse((await chay(NB, [String(v.m.id), '--roas', String(v.muc), '--ns', String(ROAS_NS), '--that', '--luat', `lên ROAS · ${v.m.chu}`.slice(0, 400), '--ai', 'máy tự lên ROAS (anh chat 29/10/2026: các camp đủ điều kiện lên roas thì lên luôn — lãi ≥ $75)'], 1500)).trim().split('\n').pop()); }
       catch (e) { v.r = { ok: false, loi: e.message, may: true }; }
     }));
     for (const m of goc) { const ly = giuGocRoas(viec.filter((v) => v.m === m).map((v) => v.r)); if (ly) giu[m.id] = ly; }
@@ -746,7 +746,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       // mức đã có camp ★ (tạo ở lượt trước / lệnh tay) = KHÔNG phải lỗi (anh 10/11/2026: tin "0/4 ⚠ lỗi" trong khi 4 camp đã có) → ghi "đã có"
       const daCo = (r) => !r.ok && r.chan && /^đã có camp/.test(String(r.loi || ''));
       const dong = bangViec(viec.map(({ m, muc, r }) => ({ m, doi: daCo(r) ? `${muc} đã có` : `${muc}→#${r.moi ?? '?'}`, loi: r.ok || daCo(r) ? null : r.loi || 'không rõ' })), '30 ng');
-      await guiNhanh({ message_thread_id: topic, text: `★ <b>MÁY TỰ LÊN ROAS</b> — ${goc.length} camp gốc đủ lên ROAS (lãi 30 ngày ≥ $75 — anh 29/10/2026, hoặc chi ≥ $20 & ROI ≥ 50% — Dol 09/11/2026); mỗi gốc ${ROAS_MUC.length} mức ${ROAS_MUC.join(' · ')}, $20/ngày, ${chuChay(viec.filter((v) => v.r.ok).map((v) => v.r))} — tạo được ${ok}/${viec.length}\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
+      await guiNhanh({ message_thread_id: topic, text: `★ <b>MÁY TỰ LÊN ROAS</b> — ${goc.length} camp gốc đủ lên ROAS (lãi 30 ngày ≥ $75 — anh 29/10/2026, hoặc chi ≥ $20 & ROI ≥ 50% — Dol 09/11/2026); mỗi gốc ${ROAS_MUC.length} mức ${ROAS_MUC.join(' · ')}, $${ROAS_NS}/ngày, ${chuChay(viec.filter((v) => v.r.ok).map((v) => v.r))} — tạo được ${ok}/${viec.length}\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
       gui++;
     }
   }

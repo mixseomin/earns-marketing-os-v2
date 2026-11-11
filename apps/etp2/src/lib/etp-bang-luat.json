@@ -6,7 +6,7 @@
   "nhan_ban": {"_ghi": "LUẬT NB — NHÂN BẢN CAMP THẮNG, MỘT NGUỒN (anh 07/11/2026: popup đồng hồ phim hiện lộ trình nhân bản; trước số nấc chép tay ở máy luật, tin Telegram, bản luật trang). nac = [[tiêu ≥ $, ROI ≥ %, tổng bản]] nấc cao trước · roi3 = ROI 3 ngày gần tối thiểu · phim_ngay = mỗi phim tối đa bấy nhiêu bản trong 24 giờ (anh 07/11/2026 sửa: mã cũ đếm cửa sổ 6 giờ → 24 bản/ngày). Máy luật luat-ethopex.py, worker ethopex.mjs, trang etp cùng đọc.", "nac": [[45, 100, 6], [10, 50, 2]], "roi3": 20, "phim_ngay": 6},
   "roas_lai": 75,
   "_roas_lai": "lãi 30 ngày tối thiểu để máy tự lên ★ ROAS (anh 29/10/2026) — máy luật ROAS_LAI, trang etp-doc + popup đồng hồ phim cùng đọc",
-  "roas_len": {"chi": 20, "roi": 50},
+  "roas_len": {"chi": 20, "roi": 50, "muc": [1, 1.1, 1.2, 1.3], "ns": 20},
   "_roas_len": "LÊN ROAS SỚM (Dol / Ethopex 09/11/2026, anh duyệt: Pixel + tài khoản + Page đã cứng): camp thường chi 30 ngày ≥ chi & ROI 3 NGÀY ĐÃ KHÉP gần nhất ≥ roi% (anh 10/11/2026 '3 ngày gần nhất') cũng đủ lên ★ ROAS — HOẶC với roas_lai. Máy luật moc30, etp-doc (ứng viên ROAS), popup đồng hồ phim cùng đọc.",
   "nap_tang": {"bac": [[30, 9], [50, 13], [80, 20]]},
   "_nap_tang": "NẮP NGÂN SÁCH THEO ROI 3 NGÀY KHÉP cho camp thường (Dol 09/11/2026 'ROI 30–50% ~$10 · 50–80% ~$15 · >80% ~$20, không chạy budget cao' — anh duyệt, chỉ áp cho LẦN TĂNG MỚI, camp đang chạy để yên): [[ROI ≥ %, trần $ = bậc thang gần nhất 9/13/20]]; ROI dưới bậc thấp nhất → trần = bậc ngay dưới ($6). Camp ★ ROAS không áp. Máy luật (dat) + cổng cong.kiem(tang) cùng đọc.",

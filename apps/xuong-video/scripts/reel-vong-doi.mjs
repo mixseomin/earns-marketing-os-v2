@@ -26,6 +26,8 @@ const NGAY_SONG = 3;
 const TANG_TOI_THIEU = 30;
 // Khoảng cách tối thiểu giữa hai mốc đem ra so (giờ). Lịch chạy mỗi giờ nên không so lượt-chạy-trước mà so mốc cách một ngày.
 const GIO_SO = 22;
+// Lượt phát phải nhảy thêm chừng này so với lần đã nhắn thì mới nhắn tiếp — chạy mỗi giờ, không để nó nhắn vì vài lượt lẻ.
+const BUOC_BAO = 100;
 // Khoá sản phẩm trên bảng Social Traffic › Kênh (cột Lượt xem đọc kenh_so_ngay theo khoá này).
 const SAN_PHAM = 'affiliate:mia-calloway';
 
@@ -92,6 +94,32 @@ except urllib.error.HTTPError as e:
 }
 
 
+/** ẨN Reel (anh 11/11/2026 "bài aff ko tăng traffic nữa thì nên ẩn đi") — KHÁC gỡ: bài biến khỏi Page + khỏi mắt đối thủ
+ *  nhưng video còn nguyên, số liệu còn đọc được, bật lại được bất cứ lúc nào. Gỡ là mất hẳn, không lấy lại số.
+ *  Đường: /{video_id}?fields=post_id → POST /{post_id} is_hidden=true (Reel nằm trên Page dưới dạng một bài feed). */
+function anReel(pageId, videoId, hien = false) {
+  const py = `
+import json, urllib.request, urllib.parse, urllib.error
+d = json.load(open("/root/.secrets/fb-pages.json"))
+pid, vid = ${JSON.stringify(String(pageId))}, ${JSON.stringify(String(videoId))}
+tok = d[pid]["token"]
+def goi(u, data=None, method=None):
+    r = urllib.request.Request(u, data=data, method=method)
+    return json.load(urllib.request.urlopen(r, timeout=30))
+try:
+    v = goi(f"https://graph.facebook.com/v21.0/{vid}?" + urllib.parse.urlencode({"fields": "post_id", "access_token": tok}))
+    post = v.get("post_id")
+    if not post: print(json.dumps({"_loi": "video khong co post_id — khong an duoc"}))
+    else:
+        body = urllib.parse.urlencode({"is_hidden": ${JSON.stringify(hien ? 'false' : 'true')}, "access_token": tok}).encode()
+        print(json.dumps({"ok": goi(f"https://graph.facebook.com/v21.0/{post}", body, "POST"), "post_id": post}))
+except urllib.error.HTTPError as e:
+    try: print(json.dumps({"_loi": json.load(e)["error"]["message"][:160]}))
+    except Exception: print(json.dumps({"_loi": f"HTTP {e.code}"}))
+`;
+  try { const r = JSON.parse(chayBox(py)); if (r._loi) { console.log(`  ✗ ${r._loi}`); return false; } return r.ok === true || r.ok?.success === true; } catch (e) { console.log(`  ✗ ${String(e.message).slice(0, 120)}`); return false; }
+}
+
 /** Ghi tổng lượt phát của mọi Reel đang sống vào kenh_so_ngay — cột "Lượt xem" của bảng Social Traffi › Kênh đọc từ đây.
  *  Khuôn theo dòng đã có trên bảng (đo 10/11/2026): kenh='fb-reels', san_pham='<dự án>:<nhóm>', nguon='graph-video-insights'. */
 function ghiSoNgay(sanPham, hien, soMuc, chiTiet) {
@@ -126,10 +154,39 @@ const main = () => {
       console.log(`${r.video_id} · ${tuoi} ngày · phát ${s.fb_reels_total_plays ?? '?'} (riêng FB ${s.blue_reels_play_count ?? '?'})${s._loi ? ` · LỖI ${s._loi}` : ''}`);
       r.phat = Number(s.fb_reels_total_plays ?? 0); r.do_luc = new Date().toISOString();
     }
-    ghiSo(so);
     const tong = song.reduce((t, r) => t + Number(r.phat ?? 0), 0);
     if (ghiSoNgay(SAN_PHAM, tong, song.length, { videos: song.map((r) => ({ url: r.link, xem: Number(r.phat ?? 0) })) }))
       console.log(`đã ghi kenh_so_ngay: fb-reels / ${SAN_PHAM} · ${tong} lượt phát / ${song.length} Reel`);
+    // TỰ BÁO, KHÔNG BẮT ANH MỞ TRANG (anh cấm tư vấn làm tay khi còn đường máy): lượt phát nhảy ≥ BUOC_BAO so với lần
+    // đã báo thì nhắn thẳng chủ đề Aff Convert. Chạy mỗi giờ nên mốc này giữ cho nó không nhắn liên tục vì vài lượt lẻ.
+    const daBao = Number(so.bao_tong ?? 0);
+    if (tong - daBao >= BUOC_BAO) {
+      const bang = song.map((r) => `${String(r.ghi_chu ?? r.video_id).slice(0, 22).padEnd(22)} ${String(r.phat ?? 0).padStart(6)}`).join('\n');
+      const tep = `${process.env.HOME}/.cache/reel-view.html`;
+      writeFileSync(tep, `<b>Reel Mia Calloway - ${tong} lượt phát</b>\n<pre>${bang}</pre>\nTrước đó ${daBao} · lúc ${gioVN()}`);
+      try { execFileSync(TG, ['send', 'mine', '--topic', 'Aff Convert', '--file', tep], { timeout: 60_000, stdio: ['ignore', 'pipe', 'pipe'] }); so.bao_tong = tong; console.log(`đã nhắn Telegram (${daBao} → ${tong})`); }
+      catch (e) { console.error(`nhắn Telegram hỏng: ${String(e.message).slice(0, 140)}`); }
+    }
+    ghiSo(so);
+    return;
+  }
+
+  // ẨN / HIỆN LẠI theo tay: node … --an <video_id> [<video_id> …]   ·   --hien <video_id> …
+  if (co('--an') || co('--hien')) {
+    const hien = co('--hien');
+    const i = ag.indexOf(hien ? '--hien' : '--an');
+    const ids = ag.slice(i + 1).filter((x) => !x.startsWith('--'));
+    if (!ids.length) { console.error(`cần: ${hien ? '--hien' : '--an'} <video_id> [<video_id> …]`); process.exit(1); }
+    for (const vid of ids) {
+      const r = so.reel.find((x) => x.video_id === vid);
+      if (!r) { console.log(`✗ ${vid}: không có trong sổ`); continue; }
+      // GIỮ SỐ TRƯỚC KHI ẨN: bài ẩn vẫn đọc được insights, nhưng ghi lại mốc cho chắc
+      const s2 = soLieu(r.page_id, r.video_id) || {};
+      const ok = anReel(r.page_id, r.video_id, hien);
+      if (ok) { r.an_luc = hien ? null : new Date().toISOString(); if (!hien) r.so_khi_an = s2; }
+      console.log(`${ok ? (hien ? '✓ đã hiện lại' : '✓ đã ẩn') : '✗ hỏng'} ${vid} — phát ${s2.fb_reels_total_plays ?? '?'}`);
+    }
+    ghiSo(so);
     return;
   }
 

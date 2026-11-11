@@ -290,7 +290,8 @@ def _ts_mo(cid):
         t = goc + dt.timedelta(hours=i)
         if NT.trong_nhanh(t - dt.timedelta(hours=7)): return {"luc": utc(t), "can": can}
     return {"luc": utc((goc + dt.timedelta(days=1)).replace(hour=7)), "can": f"hôm nay chốt ROI ngoài 0–{TS_HQ}%"}
-dat = _loc_tang(dat, lambda c: _ts_ly(c) and f"Siết TS: {_ts_ly(c)}")
+for _c_ in [int(x[0] or 0) for x in dat if _ts_ly(x[0])]: _KHONG_TANG.setdefault(_c_, f"Siết TS: {_ts_ly(_c_)}")   # lý do cho thẻ xét luật (gác #chat giữ nguyên dòng lọc dưới)
+dat = [(cid, chu) for cid, chu in dat if not _ts_ly(cid)]
 # LUẬT DOL (Dol 11/11/2026 "last 3, last 7 day có Cost > 10$ and ROIS < 20% là có thể Off" — anh duyệt bản chia ba phần: "làm thế đi, cả 3 phần").
 # Đo 20/10–07/11 (3 ngày sau khi chạm): ROI < 0% → −1% (63% lần lỗ) · 0–20% → +13% (44% lỗ) · 20–30% → +20% · ≥ 30% → +38%. Nên KHÔNG tắt cả nhóm < 20%:
 #   L0 — chi > $10 và ROI < 0% (3 HOẶC 7 ngày đã khép) → tắt hẳn (đường luật tắt chung: khung 15–21h, báo trước một nhịp, THA HÔM NAY ROI > 50%).

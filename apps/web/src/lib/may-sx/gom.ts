@@ -30,14 +30,16 @@ export async function baiTheoSlug(ds: { may: string; slug: string }[]): Promise<
   for (const o of luoi.o) if (o.slug && !ra.has(`${o.may}|${o.slug}`)) ra.set(`${o.may}|${o.slug}`, o);
   const thieu = ds.filter((x) => !ra.has(`${x.may}|${x.slug}`)); const d = getDb();
   if (thieu.length && d) {
-    const r = (await d.execute(sql`SELECT m.ma, m.ten, v.slug, v.dang, coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh, v.da_dang,
+    const r = (await d.execute(sql`SELECT m.ma, m.ten, v.slug, v.dang, coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh, v.video_url AS video, v.da_dang,
         (SELECT ten FROM etp.thu_vien_phim WHERE content_id::text = v.dang->>'phim' LIMIT 1) AS phim_ten
       FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.slug = ANY(${sql.raw(`ARRAY[${thieu.map((x) => `'${x.slug.replace(/'/g, "''")}'`).join(',')}]::text[]`)})`).catch(() => [])) as unknown as
-      { ma: string; ten: string; slug: string; dang: Record<string, string | null> | null; anh: string | null; da_dang: Record<string, { ngay?: string; url?: string }> | null; phim_ten: string | null }[];
-    for (const x of r) { const g = x.dang ?? {}, dt = g.dang_tu ? new Date(Date.parse(String(g.dang_tu)) + (/[zZ+]/.test(String(g.dang_tu).slice(10)) ? 7 * 3600e3 : 0)).toISOString() : null;
+      { ma: string; ten: string; slug: string; dang: Record<string, string | null> | null; anh: string | null; video: string | null; da_dang: Record<string, { ngay?: string; url?: string }> | null; phim_ten: string | null }[];
+    // dang_tu chỉ có NGÀY (vd '2026-11-17') — giờ do máy đăng xếp lúc lên lịch; không có giờ thì ghi '—', KHÔNG bịa 00:00 (12/11/2026)
+    for (const x of r) { const g = x.dang ?? {}, tu = String(g.dang_tu ?? ''), coGio = /T\d\d:\d\d/.test(tu);
+      const dt = !tu ? null : coGio ? (/[zZ]|[+-]\d\d:?\d\d$/.test(tu.slice(10)) ? new Date(Date.parse(tu) + 7 * 3600e3).toISOString() : tu) : null;
       const da = Object.entries(x.da_dang ?? {})[0];
-      ra.set(`${x.ma}|${x.slug}`, { ngay: da?.[1]?.ngay ?? dt?.slice(0, 10) ?? '—', gio: dt ? dt.slice(11, 16) : '—', may: x.ma, mayTen: x.ten, nen: da?.[0] ?? String(g.dang_bai ?? ''),
-        title: String(g.title ?? x.slug), url: da?.[1]?.url ?? null, loai: da ? 'da' : 'du_kien', slug: x.slug, anh: x.anh, moTa: g.description ?? null, huong: g.y ?? null, phimTen: x.phim_ten }); }
+      ra.set(`${x.ma}|${x.slug}`, { ngay: da?.[1]?.ngay ?? (dt ?? tu).slice(0, 10) ?? '—', gio: dt ? dt.slice(11, 16) : '—', may: x.ma, mayTen: x.ten, nen: da?.[0] ?? String(g.dang_bai ?? ''),
+        title: String(g.title ?? x.slug), url: da?.[1]?.url ?? null, loai: da ? 'da' : 'du_kien', slug: x.slug, anh: x.anh, video: x.video, moTa: g.description ?? null, huong: g.y ?? null, phimTen: x.phim_ten }); }
   }
   return ra;
 }

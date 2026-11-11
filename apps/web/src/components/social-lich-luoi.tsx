@@ -69,7 +69,7 @@ export function ChiTietBai({ x, onClose }: { x: StLuoiO; onClose: () => void }) 
     ['Kênh', x.tk ?? x.mayTen],
     ['Nơi đăng', nhanNen(x.nen)],
     ['Khi nào', `${x.ngay.slice(8)}/${x.ngay.slice(5, 7)}${x.gio === '—' ? '' : ` · ${x.gio}`} (GMT+7)`],
-    ['Trạng thái', x.loai === 'da' ? '✓ đã đăng' : x.anh ? 'máy sẽ đăng — đã dựng' : 'máy sẽ đăng — CHƯA dựng'],
+    ['Trạng thái', x.loai === 'da' ? '✓ đã đăng' : x.anh || x.video ? 'máy sẽ đăng — đã dựng' : 'máy sẽ đăng — CHƯA dựng'],   // Reel Máy SX chỉ có video, không ảnh khung (12/11/2026)
     ...(x.nhom ? [['Kiểu nội dung', x.nhom] as [string, React.ReactNode]] : []),
     ...(x.link != null ? [['Link trong bài', x.link ? 'có' : 'bài thường (không link)'] as [string, React.ReactNode]] : []),
   ];
@@ -82,7 +82,8 @@ export function ChiTietBai({ x, onClose }: { x: StLuoiO; onClose: () => void }) 
           <div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 4 }}>{x.mayTen}</div>
           <h3 style={{ margin: 0, fontSize: 17, lineHeight: 1.35 }}>{x.title}</h3>
         </div>
-        {x.anh ? <img src={x.anh} alt="" style={{ width: '100%', maxHeight: 260, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }} /> : null}
+        {x.anh ? <img src={x.anh} alt="" style={{ width: '100%', maxHeight: 260, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }} />
+          : x.video ? <video src={x.video} controls playsInline preload="metadata" style={{ width: 200, aspectRatio: '9 / 16', background: '#000', borderRadius: 10 }} /> : null}
         {/* CHỮ BÀI: thứ anh cần đọc TRƯỚC khi sản xuất — chưa viết thì nói thẳng, không để ô trống */}
         <div>
           <div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 4 }}>Chữ bài</div>

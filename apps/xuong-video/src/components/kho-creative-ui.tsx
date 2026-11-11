@@ -12,7 +12,8 @@ import { TaoTuTemplate } from './template-ui';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { LOAI_GOC_SPY, loaiGocSpy, linkGocSpy, linkSpSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import { COT_DONG, COT_KHUON, LOAI_THANH_PHAN, banDo, dongCua, oMaTran, cumCua, type CumGoc, type DongCreative, type ThanhPhan } from '@/lib/xuong-video/kho-creative';
-import { nhomPhim, tongSanPham, type TongSanPham, type SoLieuQc } from '@/lib/xuong-video/nhom-phim';
+import { nhomPhim, tongSanPham, apSong, type TongSanPham, type SoLieuQc, type DongSanPham } from '@/lib/xuong-video/nhom-phim';
+import { dsSanPhamTong } from '@/lib/doc';   // hàm ĐỌC đi đường song song (doc-ham.ts)
 import { DONG_TEMPLATE, tien, type Phim } from '@/lib/xuong-video/kieu';
 import { KhoCreative } from './kho-concept-ui';
 import { docKhoConcept, type KhoConcept } from '@/lib/actions-concept';
@@ -62,9 +63,13 @@ const LOAI_CR: Record<string, string> = { qc_canh_that: 'cảnh thật', qc_ke_c
 const usd = (x: number) => `${x < 0 ? '−' : ''}$${Math.abs(x).toFixed(2)}`;
 /** Danh sách sản phẩm = BẢNG QUẢN LÝ (anh 20/10/2026: "page này phải show đủ thông tin để quản lý, mỗi cái tên thì xem gì"): mỗi sản phẩm một dòng —
  *  creative (đủ nấc / kẹt), loại, camp (kể cả nhân bản), chi / thu / lãi / ROI QC (dong-bo-so-lieu.sh), chi phí sản xuất, lần sửa. Bấm dòng = mở ngăn sản phẩm. */
-export function DanhSachSanPham({ phim, onMo }: { phim: Phim[]; onMo: (key: string) => void }) {
+export function DanhSachSanPham({ nhip, onMo }: { nhip: number; onMo: (key: string) => void }) {
   const song = useSoLieuSong();
-  const ds = useMemo(() => nhomPhim(phim, { kieu: 'quang_cao' }).filter((g) => g.key.startsWith('sp:')).map((g) => tongSanPham(g, song.data?.theo_creative ?? null)), [phim, song.data]);
+  // dòng tổng gom sẵn ở máy chủ (actions-ds-phim.ts › dsSanPhamTong) — trước trình duyệt tải ~2.800 creative để tự gom (anh 11/11/2026)
+  const [dong, setDong] = useState<DongSanPham[] | null>(null);
+  useEffect(() => { void dsSanPhamTong().then(setDong); }, [nhip]);
+  const ds = useMemo(() => (dong ?? []).map((d) => apSong(d, song.data?.theo_creative ?? null)), [dong, song.data]);
+  if (!dong) return <div className="xv-panel" style={mono}>đang tải sản phẩm…</div>;
   if (!ds.length) return <div className="xv-panel" style={mono}>Chưa có creative quảng cáo nào gắn sản phẩm (ô Sản phẩm + link trang bán ở tab 📖 Phim của phim QC).</div>;
   const mau = (x: number) => (x > 0 ? 'var(--green, #3fb950)' : x < 0 ? 'var(--red, #f85149)' : 'var(--fg-2)');
   const cot: DataColumn<TongSanPham>[] = [

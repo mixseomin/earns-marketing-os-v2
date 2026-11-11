@@ -10,6 +10,10 @@ async function goi<K extends keyof HamDoc>(ham: K, args: Parameters<HamDoc[K]>):
 }
 const tao = <K extends keyof HamDoc>(ham: K) => (...args: Parameters<HamDoc[K]>) => goi(ham, args);
 
+export const tongQuanPhim = tao('tongQuanPhim');
+export const dsPhimTemplate = tao('dsPhimTemplate');
+export const dsNhomTuDo = tao('dsNhomTuDo');
+export const dsSanPhamTong = tao('dsSanPhamTong');
 export const dsPhim = tao('dsPhim');
 export const docPhim = tao('docPhim');
 export const dsMoHinh = tao('dsMoHinh');

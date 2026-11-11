@@ -10,9 +10,10 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
-import { nhomPhim, demKieu, laLuuTru, anhDaiDien, TEN_KIEU, type KieuNhom } from '@/lib/xuong-video/nhom-phim';
+import { laLuuTru, anhDaiDien, TEN_KIEU, type KieuNhom } from '@/lib/xuong-video/nhom-phim';
 import { luuTruPhim, luuThanhTemplate, taoPhim, taoPhimMau, xoaPhim, taoTap, khoiPhuc, hoanTac, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
-import { dsPhim, docPhim, dsMoHinh, dsThungRac, docHoanTac, baoCaoChuanBiAction } from '@/lib/doc';   // hàm ĐỌC đi đường song song (doc-ham.ts)
+import type { TongQuanPhim } from '@/lib/actions-ds-phim';
+import { tongQuanPhim, dsPhimTemplate, dsNhomTuDo, docPhim, dsMoHinh, dsThungRac, docHoanTac, baoCaoChuanBiAction } from '@/lib/doc';   // hàm ĐỌC đi đường song song (doc-ham.ts)
 import type { MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { LOAI_PHIM, docKinhThanh, giaAnhCents, giaVideoCents, tien, gioVN, type Phim, type Job, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Khoa, type TabPhim, Pill, Seg, Nut, Xoa, Loi, Menu, MucMenu, mono } from './ui';
@@ -44,18 +45,13 @@ export function XuongVideoTrang(props: { khoa: Khoa }) {
   return <Suspense fallback={<span style={mono}>…</span>}><Ruot {...props} /></Suspense>;
 }
 
-/** Cắt danh sách nhóm còn tối đa `toiDa` dòng phim (nhóm cuối có thể bị cắt dở) — giữ thứ tự, nhóm rỗng sau cắt thì bỏ. */
-function catNhom<G extends { phim: unknown[] }>(ds: G[], toiDa: number): G[] {
-  const ra: G[] = []; let con = toiDa;
-  for (const g of ds) { if (con <= 0) break; ra.push(g.phim.length <= con ? g : { ...g, phim: g.phim.slice(0, con) }); con -= g.phim.length; }
-  return ra;
-}
-
 function Ruot({ khoa }: { khoa: Khoa }) {
-  // Danh sách phim tải SAU khi trang hiện (anh 11/11/2026: mở thẳng một phim / tab Shots chậm vì máy chủ dựng xong danh sách ~2.900 phim
-  // rồi mới trả trang) — ngăn phim đọc docPhim riêng nên mở ngay; null = đang tải danh sách.
-  const [ds, setPhim] = useState<Phim[] | null>(null);
-  const phim = ds ?? [];
+  // BẤM ĐÂU TẢI ĐÓ (anh 11/11/2026): không còn tải cả ~2.900 phim về trình duyệt. Đầu trang = vài con số (tongQuanPhim); mỗi tab hỏi máy chủ
+  // đúng thứ nó vẽ (actions-ds-phim.ts), qua đường đọc song song (doc.ts) nên không chặn ngăn phim. null = đang tải.
+  const [tq, setTq] = useState<TongQuanPhim | null>(null);
+  const [tpl, setTpl] = useState<Awaited<ReturnType<typeof dsPhimTemplate>> | null>(null);
+  const [tuDoDs, setTuDoDs] = useState<Awaited<ReturnType<typeof dsNhomTuDo>> | null>(null);
+  const [nhipTai, setNhipTai] = useState(0);   // tăng = tải lại tab đang xem (sau tạo / khôi phục / đóng ngăn phim)
   const [ten, setTen] = useState('');
   const [loai, setLoai] = useState<LoaiPhim>('short');
   const [loiTao, setLoiTao] = useState('');
@@ -67,8 +63,7 @@ function Ruot({ khoa }: { khoa: Khoa }) {
   const [hienLuuTru, setHienLuuTru] = useState(false);
   const [tapMo, setTapMo] = useState<number | null>(null);
   const [soHien, setSoHien] = useState(150);   // số dòng phim vẽ trong danh sách 🎬 Làm tự do   // bấm chip tập → mở ngăn phim đúng tập
-  const dangTai = useRef<Promise<void> | null>(null);   // một lượt tải danh sách một lúc (đóng ngăn + effect cùng gọi → không tải đôi 3 MB)
-  const taiLai = useCallback(() => (dangTai.current ??= dsPhim().then(setPhim).finally(() => { dangTai.current = null; })), []);
+  const taiLai = useCallback(async () => { setNhipTai((x) => x + 1); }, []);
   // Server action của Next chạy LẦN LƯỢT: tải danh sách (~3 MB) lúc ngăn phim đang mở thì mọi lệnh của ngăn (docPhim, shot…) xếp hàng sau nó
   // (đo 11/11/2026: shot hiện sau 3,5 s). Mở thẳng một phim → chưa tải danh sách; đóng ngăn (onClose) tự taiLai.
 
@@ -83,18 +78,20 @@ function Ruot({ khoa }: { khoa: Khoa }) {
     setTen(''); await taiLai(); modal.open('phim', r.data);
   };
   const thieu = [!khoa.anthropic && 'ANTHROPIC_API_KEY (viết/tách kịch bản)', !khoa.google && 'GOOGLE_API_KEY (ảnh + video Veo)', !khoa.openai && 'OPENAI_API_KEY (ảnh dự phòng gpt-image)', !khoa.r2 && 'R2 (kho ảnh/video)'].filter(Boolean) as string[];
-  const tongTien = phim.reduce((a, p) => a + p.chi_phi_cents, 0);
-  const dem = demKieu(phim); const soLuuTru = phim.filter(laLuuTru).length;
+  const dem = tq?.dem ?? { template: 0, series: 0, quang_cao: 0, phim: 0, may_dung: 0 }; const soLuuTru = tq?.soLuuTru ?? 0;
   // YDNI trang chủ (anh 15/10/2026: "YDNI lại trang home"): trước là 4 khối chồng dọc (chỉ số · kho template · tạo mới · danh sách) dài ~4.300px.
   // Giờ MỘT MÀN: đầu ghim (tab Phim | Template · bộ lọc · chỉ số một dòng · ＋ Tạo mới gập sẵn), nội dung cuộn TRONG khung bên dưới.
   // BA CỬA VÀO (anh 17/10/2026, duyệt bản xem): ⚙ Tự động = máy ra video hàng loạt 0đ (may-ui.tsx) · 🧩 Theo template = QC nhân từ khuôn, người
   // duyệt từng bước (kho template + video tạo từ mỗi template) · 🎬 Làm tự do = phim không theo máy / template. 📦 Sản phẩm giữ như cũ.
   const [khoTab, setKhoTab] = useNho<'tu_dong' | 'template' | 'tu_do' | 'sanpham'>('xv-kho-tab', 'tu_dong', ['tu_dong', 'template', 'tu_do', 'sanpham'], 'kho');
-  // BẤM ĐÂU TẢI ĐÓ (anh 11/11/2026): danh sách phim (~2.900, ~3 MB) chỉ tải khi đứng ở tab cần nó (Template · Làm tự do · Sản phẩm) và không có
-  // ngăn phim đang mở; ⚙ Tự động không cần nó. Đóng ngăn (onClose) tự taiLai.
-  const moSan = modal.is('phim');
-  useEffect(() => { if (!moSan && ds === null && khoTab !== 'tu_dong') void taiLai(); }, [moSan, ds, khoTab, taiLai]);
-  const tuDo = phim.filter((p) => !p.kinh_thanh?.tu_template && p.loai !== 'may_dung');   // video tạo từ template nằm dưới template của nó
+  useEffect(() => { void tongQuanPhim().then(setTq); }, [nhipTai]);
+  useEffect(() => { if (khoTab === 'template') void dsPhimTemplate().then(setTpl); }, [khoTab, nhipTai]);
+  // 🎬 Làm tự do: máy chủ lọc + gom nhóm + cắt soHien dòng; chữ tìm chờ 300 ms sau phím cuối
+  useEffect(() => {
+    if (khoTab !== 'tu_do') return;
+    let huy = false; const t = setTimeout(() => { void dsNhomTuDo({ kieu: locKieu, tim: locTim, luuTru: hienLuuTru, toiDa: soHien }).then((r) => { if (!huy) setTuDoDs(r); }); }, locTim ? 300 : 0);
+    return () => { huy = true; clearTimeout(t); };
+  }, [khoTab, locKieu, locTim, hienLuuTru, soHien, nhipTai]);
   // Ngăn một sản phẩm (kho creative): khoá sản phẩm trong URL (?sp=) → F5 / chia sẻ mở lại đúng sản phẩm.
   const [spMo, setSpMoState] = useState<string | null>(null);
   useLayoutEffect(() => { const k = new URLSearchParams(window.location.search).get('sp'); if (k) setSpMoState(k); }, []);   // sau hydrate, như nho.ts
@@ -110,8 +107,8 @@ function Ruot({ khoa }: { khoa: Khoa }) {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <Seg options={[
             { value: 'tu_dong' as const, label: '⚙ Tự động', title: 'Máy chạy một mình mỗi ngày, ra video hàng loạt · 0đ, không cần người' },
-            { value: 'template' as const, label: '🧩 Theo template', title: `Video QC nhân từ khuôn, người bấm và duyệt từng bước · ${dem.template} template · ${phim.filter((p) => p.kinh_thanh?.tu_template && !laLuuTru(p)).length} video` },
-            { value: 'tu_do' as const, label: '🎬 Làm tự do', title: `Series, phim ngắn, video organic, QC làm riêng · ${tuDo.filter((p) => !laLuuTru(p) && !p.kinh_thanh?.template).length} phim` },
+            { value: 'template' as const, label: '🧩 Theo template', title: `Video QC nhân từ khuôn, người bấm và duyệt từng bước · ${dem.template} template · ${tq?.soVideoTemplate ?? '…'} video` },
+            { value: 'tu_do' as const, label: '🎬 Làm tự do', title: `Series, phim ngắn, video organic, QC làm riêng · ${tq?.soTuDo ?? '…'} phim` },
             { value: 'sanpham' as const, label: '📦 Sản phẩm', title: 'Creative gom theo sản phẩm: góc spy × khuôn × thành phần' },
           ]} value={khoTab} onChange={setKhoTab} />
           {khoTab === 'tu_do' && <>
@@ -120,11 +117,11 @@ function Ruot({ khoa }: { khoa: Khoa }) {
             {soLuuTru > 0 && <label title={`${soLuuTru} bản lưu trữ`} style={{ ...mono, display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={hienLuuTru} onChange={(e) => setHienLuuTru(e.target.checked)} />lưu trữ</label>}
           </>}
           <span style={{ flex: 1 }} />
-          <span style={mono} title="Đã tốn = ảnh + video theo giá niêm yết · giá mặc định Nano Banana 2.1 / Veo 3.1 Lite 720p">{phim.length} phim/bộ · {phim.reduce((a, p) => a + p.so_canh, 0)} cảnh · đã tốn {tien(tongTien)} · {tien(giaAnhCents('gemini-nano-banana-2.1'))}/ảnh · {tien(giaVideoCents('veo-3.1-lite-generate-preview', '720p', 8))}/8s</span>
+          <span style={mono} title="Đã tốn = ảnh + video theo giá niêm yết · giá mặc định Nano Banana 2.1 / Veo 3.1 Lite 720p">{tq ? <>{tq.soPhim} phim/bộ · {tq.soCanh} cảnh · đã tốn {tien(tq.tongTien)}</> : '…'} · {tien(giaAnhCents('gemini-nano-banana-2.1'))}/ảnh · {tien(giaVideoCents('veo-3.1-lite-generate-preview', '720p', 8))}/8s</span>
           <ThungRac phimId={null} onKhoiPhuc={taiLai} />
           <Nut chinh={!moTao} onClick={() => setMoTao(!moTao)} title="Tạo phim / bộ mới: short · phim nhiều tập · creative quảng cáo">{moTao ? '✕ Đóng' : '＋ Tạo mới'}</Nut>
         </div>
-        {(moTao || ds?.length === 0) && (
+        {(moTao || tq?.soPhim === 0) && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', paddingTop: 6, borderTop: '1px dashed var(--line)' }}>
             <input className="xv-in" style={{ minWidth: 260 }} value={ten} onChange={(e) => setTen(e.target.value)} placeholder="Tên: Thỏ và Rùa · Quảng cáo áo bra X…" onKeyDown={(e) => { if (e.key === 'Enter') void tao(); }} autoFocus />
             <Seg options={LOAI_PHIM.map((l) => ({ value: l.key, label: l.label, title: l.mo_ta }))} value={loai} onChange={setLoai} />
@@ -141,18 +138,18 @@ function Ruot({ khoa }: { khoa: Khoa }) {
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
       {khoTab === 'tu_dong' ? (
         <TuDong />
-      ) : ds === null ? (
-        <div style={{ ...mono, padding: 16 }}>đang tải danh sách phim…</div>
       ) : khoTab === 'sanpham' ? (
-        <DanhSachSanPham phim={phim} onMo={setSpMo} />
+        <DanhSachSanPham nhip={nhipTai} onMo={setSpMo} />
       ) : khoTab === 'template' ? (
-        <KhoTemplate ds={phim.filter((p) => p.kinh_thanh?.template && !laLuuTru(p))} phimTu={phim.filter((p) => p.kinh_thanh?.tu_template)} onMo={moPhim} />
-      ) : phim.length === 0 ? (
+        tpl ? <KhoTemplate ds={tpl.ds} phimTu={tpl.phimTu} onMo={moPhim} /> : <div style={{ ...mono, padding: 16 }}>đang tải template…</div>
+      ) : !tuDoDs ? (
+        <div style={{ ...mono, padding: 16 }}>đang tải danh sách phim…</div>
+      ) : tq?.soPhim === 0 ? (
         <div className="xv-panel" style={{ textAlign: 'center', padding: 40 }}><div style={{ fontSize: 28 }}>🎬</div><b>Chưa có phim nào</b><div style={mono}>Tạo một phim ở trên: đặt tên, chọn loại, rồi khai nhân vật/sản phẩm và dán kịch bản.</div></div>
       ) : (() => {
         // NHÓM (series / sản phẩm / thương hiệu) → PHIM → TẬP (nhom-phim.ts). Gọn (anh 15/10/2026 "chia nhóm gọn lại"): mỗi phim MỘT dòng
         // (ảnh đại diện · tên · số liệu · chip tập · ảnh QC); nhóm chỉ một phim thì không có đầu nhóm riêng; đầu nhóm dính khi cuộn.
-        const nhom = nhomPhim(tuDo, { kieu: locKieu, tim: locTim, luuTru: hienLuuTru });
+        const { nhom, tong } = tuDoDs;
         const bieuTuong = (k: KieuNhom) => (k === 'template' ? '🧩' : k === 'series' ? '📺' : k === 'quang_cao' ? '📣' : '🎬');
         const dong = (p: Phim, dau?: ReactNode) => {
           const anh = anhDaiDien(p);
@@ -190,19 +187,19 @@ function Ruot({ khoa }: { khoa: Khoa }) {
             {/* Series LUÔN có đầu nhóm, kể cả mới một bản (anh 17/10/2026 "cho vào group của film này"): series là chỗ gom các bản / ngôn ngữ / tập —
                 bản tiếng Anh của 'Nữ Thừa Kế Bí Mật' sẽ vào đúng nhóm. Nhóm một phim kiểu khác vẫn gọn một dòng (15/10/2026). */}
             {/* Vẽ tối đa soHien dòng (anh 11/11/2026: danh sách ~2.800 creative Ethopex vẽ hết = 35.000 phần tử + ~230 ảnh, nằm sau cả ngăn phim) */}
-            {catNhom(nhom, soHien).map((g) => g.phim.length === 1 && g.kieu !== 'series'
+            {nhom.map((g) => (g.dem?.so ?? g.phim.length) === 1 && g.kieu !== 'series'
               ? dong(g.phim[0]!, <span style={{ fontSize: 12, width: 16, textAlign: 'center' }} title={TEN_KIEU[g.kieu]}>{bieuTuong(g.kieu)}</span>)
               : (
                 <section key={g.key}>
                   <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', gap: 8, alignItems: 'baseline', padding: '5px 10px', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
                     <b style={{ fontSize: 12.5 }}>{bieuTuong(g.kieu)} {g.ten}</b>
-                    <span style={mono} title={`${g.kieu === 'quang_cao' ? `${g.phim.length} video · ${g.phim.reduce((a, p) => a + (p.so_anh_qc ?? 0), 0)} ảnh QC` : `${g.phim.length} phim · ${g.phim.reduce((a, p) => a + p.so_tap, 0)} tập`} · ${tien(g.chi_phi_cents)}`}>{TEN_KIEU[g.kieu]}</span>
+                    <span style={mono} title={`${g.kieu === 'quang_cao' ? `${g.dem?.so ?? g.phim.length} video · ${g.dem?.anh_qc ?? 0} ảnh QC` : `${g.dem?.so ?? g.phim.length} phim · ${g.dem?.tap ?? 0} tập`} · ${tien(g.chi_phi_cents)}`}>{TEN_KIEU[g.kieu]}</span>
                   </div>
                   {g.phim.map((p) => dong(p))}
                 </section>
               ))}
-            {(() => { const tong = nhom.reduce((a, g) => a + g.phim.length, 0); return tong > soHien && (
-              <div style={{ padding: 10, textAlign: 'center' }}><Nut onClick={() => setSoHien(soHien + 300)} title="Danh sách chỉ vẽ một phần cho nhẹ; ô 🔍 tìm vẫn lọc trên toàn bộ phim">Hiện thêm 300 · đang hiện {soHien} / {tong}</Nut></div>); })()}
+            {(() => tong > soHien && (
+              <div style={{ padding: 10, textAlign: 'center' }}><Nut onClick={() => setSoHien(soHien + 300)} title="Danh sách chỉ vẽ một phần cho nhẹ; ô 🔍 tìm vẫn lọc trên toàn bộ phim">Hiện thêm 300 · đang hiện {soHien} / {tong}</Nut></div>))()}
           </div>
         );
       })()}

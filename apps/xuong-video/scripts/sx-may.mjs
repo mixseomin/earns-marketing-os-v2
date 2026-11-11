@@ -56,6 +56,18 @@ function urlPhim(id) {
   return r || null;
 }
 
+/** NHẬT KÝ LƯỢT DỰNG → bảng may_sx_luot (tab Máy SX trên mos2 đọc). Bảng do CHÍNH MÁY tự tạo: migration dùng chung của monorepo
+ *  (packages/db) không thuộc app này. Ghi hỏng thì chỉ cảnh báo, không làm hỏng lượt dựng. */
+const q = (v) => (v == null ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`);
+function ghiLuot(b, ok, kq = {}, loi = null) {
+  try {
+    psql(`CREATE TABLE IF NOT EXISTS may_sx_luot (id bigserial PRIMARY KEY, luc timestamptz NOT NULL DEFAULT now(), may text NOT NULL, slug text NOT NULL,
+  kieu text, ngay_dang text, ok boolean NOT NULL, vnd integer NOT NULL DEFAULT 0, ghi text, loi text, tep text);
+CREATE INDEX IF NOT EXISTS may_sx_luot_luc ON may_sx_luot (luc DESC);
+INSERT INTO may_sx_luot (may, slug, kieu, ngay_dang, ok, vnd, ghi, loi, tep) VALUES (${q(b.may)}, ${q(b.slug)}, ${q(b.kieu)}, ${q(b.dangTu)}, ${ok}, ${Number(kq.vnd ?? 0)}, ${q(kq.ghi ?? null)}, ${q(loi)}, ${q(kq.video_url ?? kq.anh?.[0] ?? null)});`);
+  } catch (e) { console.log(`⚠ không ghi được nhật ký lượt: ${String(e.message).split('\n')[0].slice(0, 120)}`); }
+}
+
 async function dungMot(b) {
   const ham = LAM[b.kieu];
   if (!b.kieu) throw new Error(`${b.slug}: nền '${b.nen}' chưa có dạng bài mặc định — khai dang.kieu_sx`);
@@ -99,8 +111,8 @@ const main = async () => {
 
   let tien = 0, hong = 0;
   for (const b of ds) {
-    try { const kq = await dungMot(b); tien += kq.vnd ?? 0; console.log(`✓ ${b.slug} (${b.kieu}) ${kq.vnd ?? 0}₫ — ${kq.ghi ?? ''}`); }
-    catch (e) { hong++; console.log(`✗ ${b.slug} (${b.kieu}): ${String(e.message).split('\n')[0].slice(0, 200)}`); }
+    try { const kq = await dungMot(b); tien += kq.vnd ?? 0; ghiLuot(b, true, kq); console.log(`✓ ${b.slug} (${b.kieu}) ${kq.vnd ?? 0}₫ — ${kq.ghi ?? ''}`); }
+    catch (e) { hong++; const l = String(e.message).split('\n')[0].slice(0, 300); ghiLuot(b, false, {}, l); console.log(`✗ ${b.slug} (${b.kieu}): ${l.slice(0, 200)}`); }
   }
   console.log(`dựng ${ds.length - hong}/${ds.length} bài · ${tien}₫`);
   // nộp Phòng Nội dung chấm — máy đăng chỉ lấy bài DUYỆT

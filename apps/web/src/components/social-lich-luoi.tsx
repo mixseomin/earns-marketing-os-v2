@@ -32,8 +32,23 @@ function useChiTietBai(ds: StLuoiO[]) {
   };
 }
 
+/** BÀI AFF trên card lịch (anh 11/11/2026 "card lịch phải có tên phim, góc hay hướng nội dung, tiếng Việt").
+ *  Chữ bài là tiếng Anh (người xem Mỹ) nên nhìn card không biết đang làm PHIM nào, HƯỚNG gì — hai dòng này trả lời đúng hai câu đó.
+ *  Bài đời thường không có phim, chỉ có hướng; không có cả hai thì không vẽ gì (card đã chật). */
+function PhimHuong({ x, gon }: { x: StLuoiO; gon?: boolean }) {
+  if (!x.phimTen && !x.huong) return null;
+  return (
+    <span style={{ display: 'grid', gap: 2, minWidth: 0 }}>
+      {x.phimTen ? <span title={`phim: ${x.phimTen}`} style={{ fontSize: gon ? 10 : 11, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🎬 {x.phimTen}</span> : null}
+      {x.huong ? <span title={`hướng nội dung: ${x.huong}`} style={{ fontSize: gon ? 10 : 11, color: 'var(--fg-2)', border: '1px solid var(--border)', borderRadius: 999, padding: '0 7px', justifySelf: 'start', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.huong}</span> : null}
+    </span>
+  );
+}
+
 function ChiTietBai({ x, onClose }: { x: StLuoiO; onClose: () => void }) {
   const nhan: [string, React.ReactNode][] = [
+    ...(x.phimTen ? [['Phim', x.phimTen] as [string, React.ReactNode]] : []),
+    ...(x.huong ? [['Hướng nội dung', x.huong] as [string, React.ReactNode]] : []),
     ['Kênh', x.tk ?? x.mayTen],
     ['Nơi đăng', nhanNen(x.nen)],
     ['Khi nào', `${x.ngay.slice(8)}/${x.ngay.slice(5, 7)}${x.gio === '—' ? '' : ` · ${x.gio}`} (GMT+7)`],
@@ -422,6 +437,7 @@ function OBaiDong({ x, hom, so }: { x: StLuoiO; hom: string; so: boolean | 'bam'
           <span aria-label={da ? 'đã đăng' : 'máy sẽ đăng'} style={{ marginLeft: 'auto', width: 8, height: 8, flex: 'none', borderRadius: '50%', background: da ? 'var(--ok, #16a34a)' : 'transparent', border: `2px solid ${da ? 'var(--ok, #16a34a)' : 'var(--warn, #d97706)'}` }} />
         </span>
         <span style={{ fontSize: 11, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
+        <PhimHuong x={x} gon />
         {so === true && da ? <span style={{ fontSize: 10, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>👁 {x.xem ?? '—'}</span> : null}
       </div>
     </div>);
@@ -448,6 +464,7 @@ function OBai({ x, hom, so, gon, dong }: { x: StLuoiO; hom: string; so: boolean 
           </span>
         </span>
         <span style={{ fontSize: gon ? 11 : 12, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: gon ? 1 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
+        <PhimHuong x={x} gon={gon} />
         <ChipGoc g={x.goc} gon={gon} />
         {da && (so === true || x.thich != null || x.binhLuan != null) ? <span style={{ fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', display: 'flex', flexWrap: 'wrap', gap: '2px 10px', color: 'var(--fg-2)' }}>
           {so === true ? <span title="lượt xem">👁 {x.xem == null ? '—' : x.xem.toLocaleString('vi-VN')}</span> : null}{x.thich != null ? <span title="lượt thích">♥ {x.thich}</span> : null}{x.binhLuan != null ? <span title="bình luận">💬 {x.binhLuan}</span> : null}</span> : null}

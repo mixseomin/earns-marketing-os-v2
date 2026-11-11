@@ -42,6 +42,10 @@ export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: strin
   anh?: string | null; tk?: string | null; nhom?: string | null; link?: boolean | null;
   /** CHỮ BÀI THẬT (dang.description) — drawer chi tiết đọc giọng bài TRƯỚC khi sản xuất (anh 11/11/2026). null = bài chưa viết chữ. */
   moTa?: string | null;
+  /** BÀI AFF (anh 11/11/2026 "card lịch phải có tên phim, góc hay hướng nội dung, tiếng Việt"):
+   *  phimTen = tên phim tra từ etp.thu_vien_phim theo dang.phim · huong = hướng nội dung tiếng Việt (dang.y).
+   *  Chữ bài viết tiếng Anh cho người xem Mỹ nên nhìn card không biết đang làm phim gì, góc gì. */
+  phimTen?: string | null; huong?: string | null;
   /** số liệu bài đã đăng: lượt xem cộng dồn (kenh_so_ngay mới nhất, khớp link bài) + thích / bình luận (Graph); null = chưa đo */
   xem?: number | null; thich?: number | null; binhLuan?: number | null;
   /** GÓC spy bài được làm từ (dang.goc / bai_hen.goc, luật 25/10/2026); null = bài chưa có góc */
@@ -421,10 +425,11 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
   try {
     const [da, dk] = await Promise.all([
       d.execute(sql`SELECT m.ma, m.ten AS may_ten, e.key AS nen, e.value->>'ngay' AS ngay, e.value->>'luc' AS luc, e.value->>'url' AS url, coalesce(v.dang->>'title', v.chu_de) AS title,
-          coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh, e.value->>'link' AS link, v.dang->>'nhom' AS nhom, v.dang->>'link' AS dich, v.dang->'goc' AS goc
+          coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh, e.value->>'link' AS link, v.dang->>'nhom' AS nhom, v.dang->>'link' AS dich, v.dang->'goc' AS goc,
+          v.dang->>'phim' AS phim, v.dang->>'y' AS huong
         FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id CROSS JOIN LATERAL jsonb_each(v.da_dang) e
         WHERE e.value->>'ngay' >= to_char((now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - 42, 'YYYY-MM-DD')`) as unknown as Promise<(Record<string, string | null> & { goc?: GocBai | null })[]>,   // 6 tuần: đủ cho lịch tháng / tuần (anh 22/10/2026)
-      d.execute(sql`SELECT luc::text AS luc, ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ luc: string; ds: { ngay: string; gio: string; may: string; mayTen?: string; nen: string; title: string; slug?: string | null; format?: string; nhom?: string | null; moTa?: string | null; chuaDung?: boolean }[] }[]>,
+      d.execute(sql`SELECT luc::text AS luc, ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ luc: string; ds: { ngay: string; gio: string; may: string; mayTen?: string; nen: string; title: string; slug?: string | null; format?: string; nhom?: string | null; moTa?: string | null; chuaDung?: boolean; phim?: number | string | null; huong?: string | null }[] }[]>,
     ]);
     // kênh của từng nơi đăng (máy × nền → tên tài khoản) + ảnh thật của video trong lượt dự kiến (theo slug)
     const [noiTk, anhSlug] = await Promise.all([
@@ -433,6 +438,15 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
         FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n LEFT JOIN platform_accounts a ON a.id::text = n->'br'->>'acct'`) as unknown as Promise<{ ma: string; nen: string; tk: string | null; platform_key: string | null; handle: string | null; page_id: string | null; kenh_id: string | null }[]>,
       d.execute(sql`SELECT m.ma, v.slug, coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh, v.dang->'goc' AS goc, (v.cham->>'ket' = 'DUYET' AND v.cham->>'xuat' = v.xuat_luc::text) AS duyet FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.chay AND NOT coalesce(v.luu_tru, false)`) as unknown as Promise<{ ma: string; slug: string; anh: string | null; goc: GocBai | null; duyet: boolean | null }[]>,
     ]);
+    // TÊN PHIM cho bài aff (anh 11/11/2026): dang.phim là content_id của thư viện phim Ethopex — bảng nằm ở schema `etp`,
+    // KHÔNG phải `public` (tra nhầm schema thì psql báo "relation does not exist"). Chỉ nạp đúng những phim đang có trên lịch.
+    const idPhim = [...new Set([...da.map((x) => x.phim), ...(dk[0]?.ds ?? []).map((x) => x.phim)].map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0))];
+    const tenPhim = new Map<number, string>();
+    if (idPhim.length) {
+      const pr = (await d.execute(sql`SELECT content_id, ten FROM etp.thu_vien_phim WHERE content_id = ANY(${sql.raw(`ARRAY[${idPhim.join(',')}]::bigint[]`)})`)
+        .catch((e: Error) => { loi.push(`tên phim: ${e.message.slice(0, 100)}`); return []; })) as unknown as { content_id: string | number; ten: string }[];
+      for (const x of pr) tenPhim.set(Number(x.content_id), x.ten);
+    }
     const kenh: NonNullable<StLuoi['kenh']> = Object.fromEntries(noiTk.map((x) => [`${x.ma}|${x.nen}`, { tk: x.tk, nenKey: x.platform_key, url: x.platform_key && x.handle ? linkKenh(x.platform_key, x.handle, { pageId: x.page_id, kenhId: x.kenh_id }).url : null }]));
     // số liệu: lượt xem theo link bài (ô reel / Shorts / TikTok của sổ số đo mới nhất từng kênh). KHÔNG gắn click site vào thẻ bài: click chỉ đo được
     // theo nền × trang đích cộng dồn 6 tuần, gắn vào từng bài thì mọi bài cùng trang hiện chung một số (anh chửi 26/10/2026) — số đó ở bảng Số bài / Landing
@@ -469,10 +483,11 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     const o: StLuoiO[] = da.map((x) => ({ ngay: String(x.ngay), gio: gioVn(x.luc ?? null), may: String(x.ma), mayTen: String(x.may_ten), nen: String(x.nen), title: String(x.title ?? ''), url: x.url ?? null, loai: 'da' as const,
       anh: x.anh ?? null, tk: tkCua.get(`${x.ma}|${x.nen}`) ?? null, nhom: x.nhom ?? null, goc: x.goc ?? null, link: x.link == null ? null : x.link === 'true',
       thich: x.url ? soFb.get(maBai(x.url))?.thich ?? null : null, binhLuan: x.url ? soFb.get(maBai(x.url))?.binhLuan ?? null : null,
-      xem: x.url ? xemCua.get(maBai(x.url)) ?? null : null }));
+      xem: x.url ? xemCua.get(maBai(x.url)) ?? null : null,
+      phimTen: x.phim ? tenPhim.get(Number(x.phim)) ?? null : null, huong: x.huong ?? null }));
     const bayVn = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
     const cuoiLuoi = new Date(Date.parse(`${hom}T00:00:00Z`) + 42 * 864e5).toISOString().slice(0, 10);   // 6 tuần tới cho lịch tháng / tuần (lưới giờ tự lọc 10 ngày); lịch 90 ngày còn lại chỉ dùng cho thống kê kho
-    for (const x of dk[0]?.ds ?? []) if (`${x.ngay} ${x.gio}` > bayVn && x.ngay <= cuoiLuoi) o.push({ ngay: x.ngay, gio: x.gio, may: x.may, mayTen: x.mayTen ?? x.may, nen: x.nen, title: x.title, url: null, loai: 'du_kien', anh: x.slug ? anhCua.get(`${x.may}|${x.slug}`) ?? null : null, tk: tkCua.get(`${x.may}|${x.nen}`) ?? null, nhom: x.nhom ?? null, link: null, moTa: x.moTa ?? null, goc: x.slug ? gocCua.get(`${x.may}|${x.slug}`) ?? null : null });
+    for (const x of dk[0]?.ds ?? []) if (`${x.ngay} ${x.gio}` > bayVn && x.ngay <= cuoiLuoi) o.push({ ngay: x.ngay, gio: x.gio, may: x.may, mayTen: x.mayTen ?? x.may, nen: x.nen, title: x.title, url: null, loai: 'du_kien', anh: x.slug ? anhCua.get(`${x.may}|${x.slug}`) ?? null : null, tk: tkCua.get(`${x.may}|${x.nen}`) ?? null, nhom: x.nhom ?? null, link: null, moTa: x.moTa ?? null, phimTen: x.phim ? tenPhim.get(Number(x.phim)) ?? null : null, huong: x.huong ?? null, goc: x.slug ? gocCua.get(`${x.may}|${x.slug}`) ?? null : null });
     // BÀI HẸN GIỜ theo kế hoạch Page (bai_hen — kế hoạch Page hoài cổ 25/10/2026): Facebook tự đăng đúng giờ; trước giờ = sẽ đăng, qua giờ = đã đăng.
     // nền theo format (Reel → facebook:<acct>, ảnh / album → fb_anh:<acct>, bài link → fb_link:<acct>) để nhãn format + nhóm kênh khớp bài máy trên cùng Page
     const hen = (await d.execute(sql`SELECT id, acct, ten, ke_hoach, hen_luc::text AS luc, nhom, format, chu, anh, video, link, url, post_id, goc FROM bai_hen WHERE graph_id IS NOT NULL`).catch(() => [])) as unknown as { acct: number; ten: string; ke_hoach: string; luc: string; nhom: string | null; format: string | null; chu: string; anh: string[] | null; video: string | null; link: string | null; url: string | null; post_id: string | null; goc: GocBai | null }[];

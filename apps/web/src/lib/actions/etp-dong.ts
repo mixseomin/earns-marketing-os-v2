@@ -163,7 +163,7 @@ async function docNgoai(): Promise<DongPhim[]> {
 const dangNgoai = (d: DongPhim) => d.buoc.some((b) => b.trang_thai === 'dang');
 /** trạng thái một dòng để lọc / xếp: đang làm · lỗi / dừng · xong 24 giờ — dòng thật đọc cờ SQL, dòng ngoài tính từ bước */
 type CoDong = { la_dang: boolean; la_loi: boolean; moi_xong: boolean; hang: number };
-export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0, tl = '', lo = ''): Promise<{ dong: DongPhim[]; tong: number; dem: Record<LocDong, number>; theLoai: Record<string, [string, number]>; loai: Record<string, number>; may: { may: string; nhip: string }[]; luc: string } | { loi: string }> {
+export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0, tl = '', lo = '', /** cỡ trang — tab Máy SX đọc một lần cả bộ lọc (12/11/2026: 11 lần gọi trang 50 = 69 giây) */ coTrang = TRANG): Promise<{ dong: DongPhim[]; tong: number; dem: Record<LocDong, number>; theLoai: Record<string, [string, number]>; loai: Record<string, number>; may: { may: string; nhip: string }[]; luc: string } | { loi: string }> {
   if (!(await quyen())) return { loi: 'không có quyền' };
   const xongLuc = sql`coalesce(p.xong_luc, case when not exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.trang_thai not in ('xong', 'bo_qua')) then (select max(b.ket_thuc) from etp.dong_buoc b where b.dong_id = p.id) end)`;
   const coLoi = sql`(p.trang_thai in ('dung', 'loi') or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.trang_thai in ('loi', 'dung')))`;
@@ -198,8 +198,8 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0, tl
   for (const d of [...that, ...ngoai].filter((d) => khop(d) && hop(d, loc) && hopLo(d))) { const k = d.the_loai || '_'; theLoai[k] = [k !== '_' ? tenTl[k] ?? k : 'Chưa gắn thể loại', (theLoai[k]?.[1] ?? 0) + 1]; }
   const may = await run<{ may: string; nhip: string }>(sql`select may, nhip::text nhip from etp.dong_may`);
   const dem = Object.fromEntries((['mac_dinh', 'dang', 'loi', 'tat_ca'] as LocDong[]).map((l) => [l, ca.filter((d) => hop(d, l)).length])) as Record<LocDong, number>;
-  const tg = Math.max(0, Math.trunc(trang)) * TRANG;
-  const trangDs = ds.slice(tg, tg + TRANG); const idThat = trangDs.filter((d) => d.id > 0).map((d) => d.id);
+  const co = Math.min(1000, Math.max(1, Math.trunc(coTrang))), tg = Math.max(0, Math.trunc(trang)) * co;
+  const trangDs = ds.slice(tg, tg + co); const idThat = trangDs.filter((d) => d.id > 0).map((d) => d.id);
   const nang = new Map((idThat.length ? await run<DongPhim>(sql`select p.id, p.loai, p.so_camp, p.ai, p.trang_thai, p.ly_do, p.camp_id, p.creative_id, p.tao_luc::text tao_luc, p.xong_luc::text xong_luc,
       (select case when a like 'http%' then a else '/api/ethopex/anh?p=' || ltrim(a, '/') end from (select coalesce((select t.anh from etp.trang_phim t where t.content_id = p.content_id and t.anh is not null order by t.cap_nhat desc limit 1), (select v.anh from etp.thu_vien_phim v where v.content_id = p.content_id and v.anh is not null limit 1)) a) z where a is not null) anh,
       ((select gia_tri->p.content_id::text from etp.cau_hinh where khoa = 'lo_trinh')->>'bat_dau')::boolean duyet,

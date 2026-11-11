@@ -87,12 +87,12 @@ export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi
     // ETHOPEX = CHÍNH các dòng phim của bảng Sản xuất (lib/actions/etp-dong › docDong, lọc đang làm + lỗi) — nhịp vẽ bằng ChuoiBuoc của bảng đó (anh 12/11/2026
     // chỉ vào bảng này: "SX thì làm sao chia thành các nhịp rõ ràng thế này"). Trước đọc hàng chờ rời (docEtp › dangSx) — có mục "chờ soát đoạn" đứng 92 ngày.
     doc('Ethopex', async () => {
-      // docDong dựng cả danh sách mỗi lần gọi rồi cắt trang 50 → gọi ít: 'dang' đọc hết (≤ 10 trang), 'loi' chỉ trang đầu (xếp gấp trước — 292 dòng
-      // "lên camp dừng" đo 12/11/2026 phần lớn là lịch sử). Phần không hiện thì BÁO số, không cắt im lặng.
-      const ds = new Map<number, DongPhim>();
-      for (let t = 0; t < 10; t++) { const r = await docDong('dang', '', t); if ('loi' in r) throw new Error(String(r.loi)); for (const x of r.dong) ds.set(x.id, x); if ((t + 1) * 50 >= r.tong) break;
-        if (t === 9) loi.push(`Ethopex: ${r.tong} dòng đang làm, tab hiện 500 — đủ ở tab Ethopex › Sản xuất`); }
-      const rl = await docDong('loi', '', 0); if ('loi' in rl) throw new Error(String(rl.loi)); for (const x of rl.dong) ds.set(x.id, x);
+      // docDong dựng cả danh sách mỗi lần gọi → gọi MỘT lần mỗi bộ lọc với cỡ trang lớn: 'dang' đọc hết, 'loi' chỉ 50 dòng gấp nhất (2.123 dòng lỗi / dừng
+      // đo 12/11/2026 phần lớn là lịch sử "lên camp dừng"). Phần không hiện thì BÁO số, không cắt im lặng.
+      const ds = new Map<number, DongPhim>(), TOI_DA = 1000;
+      const rd = await docDong('dang', '', 0, '', '', TOI_DA); if ('loi' in rd) throw new Error(String(rd.loi)); for (const x of rd.dong) ds.set(x.id, x);
+      if (rd.tong > rd.dong.length) loi.push(`Ethopex: ${rd.tong} dòng đang làm, tab hiện ${rd.dong.length} — đủ ở tab Ethopex › Sản xuất`);
+      const rl = await docDong('loi', '', 0, '', '', 50); if ('loi' in rl) throw new Error(String(rl.loi)); for (const x of rl.dong) ds.set(x.id, x);
       if (rl.tong > rl.dong.length) loi.push(`Ethopex: ${rl.tong} dòng lỗi / dừng, tab hiện ${rl.dong.length} dòng gấp nhất — đủ ở tab Ethopex › Sản xuất (lọc Lỗi / dừng)`);
       return [...ds.values()].map((x): ViecSx => {
         const hien = x.buoc.find((b) => ['loi', 'dung'].includes(b.trang_thai)) ?? x.buoc.find((b) => b.trang_thai === 'dang') ?? x.buoc.find((b) => b.trang_thai === 'cho');

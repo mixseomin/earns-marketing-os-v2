@@ -64,7 +64,9 @@ export function MaySxView() {
   }, [ngay, nguon]);
   const tien = du?.luot.reduce((t, x) => t + (x.vnd ?? 0), 0) ?? 0, hong = du?.luot.filter((x) => tinhTrang(x).chu !== '✓ xong' && tinhTrang(x).chu !== '⏳ đang dựng').length ?? 0;
   return (
-    <div style={{ display: 'grid', gap: 18 }}>
+    // minmax(0, 1fr): ô lưới mặc định min-width:auto → NỞ theo chuỗi dài nhất trong bảng (dòng lỗi "TimeoutExpired: Command '['nice', …" không có
+    // chỗ xuống dòng) và kéo cả trang cuộn ngang 2.634px (do-man cuon 11/11/2026). Chặn ở khung: bảng tự cuộn ngang trong dt-scroll của nó.
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
       <div style={{ fontSize: 13, color: 'var(--fg-2)' }}>
         Mọi việc sản xuất của Ethopex, Kênh nội dung, Social / Page và Puzzle gom về đây — bấm một dòng mở đúng chi tiết ở trang gốc. Máy SX của Page dựng tệp cho bài đã lên lịch rồi nộp Phòng Nội dung chấm; Máy Đăng lấy bài đã DUYỆT. Sổ dạng bài: <code>apps/xuong-video/kieu-sx.json</code> · <b>chưa có lịch tự chạy</b> — máy chỉ dựng khi chạy <code>node scripts/sx-may.mjs --may &lt;mã&gt;</code> trên iMac.
       </div>

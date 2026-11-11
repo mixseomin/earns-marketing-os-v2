@@ -63,7 +63,7 @@ const COT_LUOT: DataColumn<Luot>[] = [
 export function MaySxView() {
   const sp = useModalParam('sp'), ob = useModalParam('ob'), ngan = useNganKenh();
   const [ngay, setNgay] = useState(() => { try { return new URLSearchParams(window.location.search).get('sx_ngay') ?? '7'; } catch { return '7'; } });
-  const [du, setDu] = useState<{ luot: Luot[]; viec: ViecSx[]; kenh: KenhSp[]; loi: string[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
+  const [du, setDu] = useState<{ luot: Luot[]; viec: ViecSx[]; kenh: KenhSp[]; loi: string[]; ghiChu?: string[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
   const [nguon, setNguon] = useState<NguonSx | null>(() => { try { return (new URLSearchParams(window.location.search).get('sx_nguon') as NguonSx) || null; } catch { return null; } });
   useEffect(() => {
     const p = new URLSearchParams(window.location.search); if (ngay === '7') p.delete('sx_ngay'); else p.set('sx_ngay', ngay);
@@ -96,7 +96,8 @@ export function MaySxView() {
       {loi ? <div role="alert" style={{ border: '1px solid var(--bad, #dc2626)', color: 'var(--bad, #dc2626)', borderRadius: 8, padding: 10, fontSize: 13 }}>Không đọc được sổ Máy SX: {loi}</div> : null}
       {du?.loi?.length ? <div role="alert" style={{ border: '1px solid var(--warn, #d97706)', color: 'var(--warn, #d97706)', borderRadius: 8, padding: 10, fontSize: 13 }}>{du.loi.join(' · ')}</div> : null}
       <section>
-        <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Đang sản xuất — mọi nguồn {du ? <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {du.viec.length} việc · {du.viec.filter((v) => v.loi).length} lỗi</span> : null}</h3>
+        <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Đang sản xuất — mọi nguồn {du ? <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {du.viec.length} việc · {du.viec.filter((v) => v.loi).length} lỗi · {du.viec.filter((v) => v.ghi?.startsWith('⏸')).length} dừng có chủ đích</span> : null}
+          {du?.ghiChu?.length ? <InfoHint label="Phạm vi bảng">{du.ghiChu.join(' · ')}</InfoHint> : null}</h3>
         {du ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {NGUON.map((n) => { const so = du.viec.filter((v) => v.nguon === n.k).length, hong = du.viec.filter((v) => v.nguon === n.k && v.loi).length, on = nguon === n.k;
             return <button key={n.k} type="button" aria-pressed={on} onClick={() => setNguon(on ? null : n.k)} title={`${so} việc${hong ? ` · ${hong} lỗi` : ''} · bấm để ${on ? 'bỏ lọc' : 'chỉ xem nguồn này'}`}

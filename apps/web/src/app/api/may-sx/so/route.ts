@@ -18,10 +18,10 @@ export async function GET(req: Request) {
   const luot = (await d.execute(sql`SELECT id, luc::text AS luc, may, slug, kieu, ngay_dang, ok, coalesce(trang_thai, CASE WHEN ok THEN 'xong' ELSE 'hong' END) AS trang_thai, vnd, ghi, loi, tep FROM may_sx_luot
     WHERE luc > now() - make_interval(days => ${ngay}) ORDER BY luc DESC LIMIT 500`).catch((e: Error) => { loi.push(`sổ lượt: ${e.message.slice(0, 120)}`); return []; })) as unknown as Record<string, unknown>[];
   // GOM mọi nguồn sản xuất (anh 11/11/2026) — nguồn hỏng ghi vào loi, không làm hỏng cả tab
-  const gom = await docViecSx().catch((e: Error) => ({ viec: [], kenh: [], loi: [`gom sản xuất: ${e.message.slice(0, 120)}`] }));
+  const gom = await docViecSx().catch((e: Error) => ({ viec: [], kenh: [], ghiChu: [] as string[], loi: [`gom sản xuất: ${e.message.slice(0, 120)}`] }));
   // lượt dựng = một BÀI → bấm mở CHÍNH ngăn bài của lịch Social Traffic (anh 12/11/2026: cấm bịa ngăn mới)
   const bai = await baiTheoSlug(luot.map((x) => ({ may: String(x.may), slug: String(x.slug) }))).catch(() => new Map());
   // tên dạng bài lấy từ SỔ (kieu-sx.json) — trang không tự gõ nhãn
   let so: ReturnType<typeof docSoKieu> = {}; try { so = docSoKieu(); } catch (e) { loi.push(`sổ dạng bài: ${(e as Error).message}`); }
-  return NextResponse.json({ luot: luot.map((x) => ({ ...x, kieu_ten: x.kieu ? so[String(x.kieu)]?.ten ?? String(x.kieu) : null, bai: bai.get(`${x.may}|${x.slug}`) ?? null })), viec: gom.viec, kenh: gom.kenh, loi: [...loi, ...gom.loi], luc: new Date().toISOString() });
+  return NextResponse.json({ luot: luot.map((x) => ({ ...x, kieu_ten: x.kieu ? so[String(x.kieu)]?.ten ?? String(x.kieu) : null, bai: bai.get(`${x.may}|${x.slug}`) ?? null })), viec: gom.viec, kenh: gom.kenh, ghiChu: gom.ghiChu, loi: [...loi, ...gom.loi], luc: new Date().toISOString() });
 }

@@ -22,7 +22,7 @@ import type { NguonSx, ViecSx } from './gom-kieu';
 export { TEN_NGUON, type NguonSx, type ViecSx } from './gom-kieu';
 
 const TT_DANG = new Set(['dang_lam', 'cho_anh', 'cho_duyet']);
-let nho: { luc: number; ra: { viec: ViecSx[]; kenh: KenhSp[]; loi: string[] } } | null = null;
+let nho: { luc: number; ra: { viec: ViecSx[]; kenh: KenhSp[]; loi: string[]; ghiChu: string[] } } | null = null;
 
 /** Ô LỊCH Social Traffic của từng bài (theo máy + slug) để mở CHÍNH ngăn bài của lịch (ChiTietBai). Bài chưa có ô trên lịch (ngoài cửa sổ lịch, chưa xếp ngày)
  *  thì dựng ô cùng khuôn từ sổ bài — vẫn là ngăn bài của lịch, chỉ thiếu số liệu đăng. */
@@ -49,9 +49,9 @@ export async function baiTheoSlug(ds: { may: string; slug: string }[]): Promise<
   return ra;
 }
 
-export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi: string[] }> {
+export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi: string[]; ghiChu: string[] }> {
   if (nho && Date.now() - nho.luc < 60_000) return nho.ra;
-  const loi: string[] = []; let dsKenh: KenhSp[] = [];
+  const loi: string[] = [], ghiChu: string[] = []; let dsKenh: KenhSp[] = [];   // loi = nguồn đọc hỏng · ghiChu = chú thích phạm vi (không phải lỗi)
   const hom = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
   const doc = async <T>(ten: string, f: () => Promise<T[]>): Promise<T[]> => { try { return await f(); } catch (e) { loi.push(`${ten}: ${(e as Error).message.slice(0, 140)}`); return []; } };
 
@@ -94,15 +94,17 @@ export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi
       // đo 12/11/2026 phần lớn là lịch sử "lên camp dừng"). Phần không hiện thì BÁO số, không cắt im lặng.
       const ds = new Map<number, DongPhim>(), TOI_DA = 1000;
       const rd = await docDong('dang', '', 0, '', '', TOI_DA); if ('loi' in rd) throw new Error(String(rd.loi)); for (const x of rd.dong) ds.set(x.id, x);
-      if (rd.tong > rd.dong.length) loi.push(`Ethopex: ${rd.tong} dòng đang làm, tab hiện ${rd.dong.length} — đủ ở tab Ethopex › Sản xuất`);
+      if (rd.tong > rd.dong.length) ghiChu.push(`Ethopex: ${rd.tong} dòng đang làm, tab hiện ${rd.dong.length} — đủ ở tab Ethopex › Sản xuất`);
       const rl = await docDong('loi', '', 0, '', '', 50); if ('loi' in rl) throw new Error(String(rl.loi)); for (const x of rl.dong) ds.set(x.id, x);
-      if (rl.tong > rl.dong.length) loi.push(`Ethopex: ${rl.tong} dòng lỗi / dừng, tab hiện ${rl.dong.length} dòng gấp nhất — đủ ở tab Ethopex › Sản xuất (lọc Lỗi / dừng)`);
+      if (rl.tong > rl.dong.length) ghiChu.push(`Ethopex: ${rl.tong} dòng lỗi / dừng, tab hiện ${rl.dong.length} dòng gấp nhất — đủ ở tab Ethopex › Sản xuất (lọc Lỗi / dừng)`);   // chú thích nguồn, không phải lỗi máy
       return [...ds.values()].map((x): ViecSx => {
         const hien = x.buoc.find((b) => ['loi', 'dung'].includes(b.trang_thai)) ?? x.buoc.find((b) => b.trang_thai === 'dang') ?? x.buoc.find((b) => b.trang_thai === 'cho');
-        const hong = ['loi', 'dung'].includes(x.trang_thai) || ['loi', 'dung'].includes(hien?.trang_thai ?? '');
+        // LỖI ≠ DỪNG (anh 12/11/2026 "nhiều lỗi thế": 148/152 "lỗi" là bước Lên camp DỪNG có chủ đích — chấm quá hạn, phim đã có dòng cùng loại,
+        // phim có dòng tự động, phim đội lãi). Chỉ trạng thái 'loi' mới là lỗi; 'dung' hiện ⏸ + lý do ở ghi chú, không đỏ, không đếm vào lỗi.
+        const hong = x.trang_thai === 'loi' || hien?.trang_thai === 'loi', dung = !hong && (x.trang_thai === 'dung' || hien?.trang_thai === 'dung');
         return { nguon: 'etp', khoa: `e-${x.id}`, ten: x.ten ?? `phim ${x.content_id}`, cua: [x.loai, x.the_loai, x.ngoai].filter(Boolean).join(' · ') || null,
           buoc: hien ? `${TEN_BUOC_ETP[hien.buoc] ?? hien.buoc}${hien.trang_thai === 'dang' ? ' đang làm' : hien.trang_thai === 'cho' ? ' chờ' : hien.trang_thai === 'dung' ? ' dừng' : ' lỗi'}` : 'xong',
-          luc: hien?.bat_dau ?? x.tao_luc, loi: hong ? (x.ly_do ?? hien?.ghi ?? 'lỗi') : null, ghi: hong ? null : hien?.ghi ?? null,
+          luc: hien?.bat_dau ?? x.tao_luc, loi: hong ? (x.ly_do ?? hien?.ghi ?? 'lỗi') : null, ghi: hong ? null : dung ? `⏸ ${x.ly_do ?? hien?.ghi ?? 'dừng'}` : hien?.ghi ?? null,
           etp: { loai: x.loai, buoc: x.buoc.map((b) => ({ buoc: b.buoc, trang_thai: b.trang_thai, ghi: b.ghi, ket_qua: b.ket_qua })) },
           mo: { ed: 'etp-sx', id: String(x.content_id) } };
       });
@@ -124,7 +126,7 @@ export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi
   const o = await baiTheoSlug(social.map((v) => ('bai' in v.mo ? { may: v.mo.bai.may, slug: v.mo.bai.slug ?? '' } : null)).filter((x): x is { may: string; slug: string } => !!x?.slug));
   for (const v of social) if ('bai' in v.mo) { const t = o.get(`${v.mo.bai.may}|${v.mo.bai.slug}`); if (t) v.mo = { bai: t }; }
   // hồ sơ kênh chỉ gửi kênh có việc đang làm — ngăn KenhNgan đọc từ đây
-  const kenhCo = new Set(kenh.map((v) => ('kenh' in v.mo ? v.mo.kenh : ''))), ra = { viec: [...etp, ...kenh, ...social, ...puzzle], kenh: dsKenh.filter((k) => kenhCo.has(k.ma)), loi };
+  const kenhCo = new Set(kenh.map((v) => ('kenh' in v.mo ? v.mo.kenh : ''))), ra = { viec: [...etp, ...kenh, ...social, ...puzzle], kenh: dsKenh.filter((k) => kenhCo.has(k.ma)), loi, ghiChu };
   nho = { luc: Date.now(), ra };
   return ra;
 }

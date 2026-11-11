@@ -3,6 +3,7 @@
 // TabDong = mỗi phim một dòng, 8 bước có giờ bắt đầu / kết thúc, nút FIX từng bước, Dừng dòng. Máy: apps/etp/dong_phim.py (iMac) · canh: apps/etp/manh.py (box3).
 import React, { useCallback, useEffect, useState } from 'react';
 import { Chon2 } from '@/components/ui/chon2';
+import { NEN_NHIP as NEN, CHU_NHIP as CHU, VIEN_NHIP as VIEN, KY_NHIP as KY, ChuoiNhip } from '@/components/ui/chuoi-nhip';
 import { DongHo, EmptyState, FormModal, FormModalFooter, FormModalSection, SearchInput, SelectField } from '@/components/ui';
 import { BadgeDangNgan, KeToan, mauLai } from '@/components/etp-so';
 import { chuChan, type TieuChi } from '@/lib/etp-chan';
@@ -85,19 +86,13 @@ function chuNode(buoc: BuocDong[], loai: string, so: { camp: number; chay: numbe
 /** HÀNG NODE của một dòng — đúng khuôn, đúng chữ hàng 📂 ở tab Sản xuất (anh 07/11/2026 "trình bày các node giống thế này"); thẻ phim (etp-lich-phim) dùng */
 export function ChuoiBuoc({ buoc, loai }: { buoc: { buoc: string; trang_thai: string; ghi?: string | null; ket_qua?: unknown }[]; loai: string }) {
   const tt = (b: string) => buoc.find((x) => x.buoc === b)?.trang_thai ?? 'cho', tong = chuNode(buoc as BuocDong[], loai, { camp: 0, chay: 0 });
-  return <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COT_CR.length}, 1fr)`, gap: 2 }}>
-    {COT_CR.map(([k, ten]) => <span key={k} style={{ textAlign: 'center', fontSize: 9.5, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden' }}>{ten}</span>)}
-    {COT_CR.map(([k, , bk]) => { const b = loai === 'KT' && k === 'cat' ? 'creative' : bk, t = loai === 'KT' && k === 'soat' ? 'bo_qua' : tt(b), rong = t === 'cho' || t === 'bo_qua';
-      return <span key={k} style={{ minWidth: 0, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 6px', borderRadius: 11, fontSize: 9.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', background: rong ? 'transparent' : NEN[t], color: CHU[t] ?? 'var(--fg-3)',
-        border: `1px ${rong ? 'dashed' : 'solid'} ${VIEN[t] ?? 'var(--line)'}`, animation: t === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>{KY[t] ?? ''}{tong[k] ? <span>{tong[k].replace(/ (đoạn|sạch|đã lên|camp)$/, '')}</span> : null}</span>; })}
-  </div>;
+  // vẽ bằng ChuoiNhip dùng chung (components/ui/chuoi-nhip) — cùng khuôn tab Máy SX (12/11/2026)
+  return <ChuoiNhip nhip={COT_CR.map(([k, ten, bk]) => { const b = loai === 'KT' && k === 'cat' ? 'creative' : bk;
+    return { ten, tt: loai === 'KT' && k === 'soat' ? 'bo_qua' : tt(b), chu: tong[k] ? tong[k].replace(/ (đoạn|sạch|đã lên|camp)$/, '') : null }; })} />;
 }
 const LOAI_DE: Record<string, string> = { CC: 'Cảnh cuối', KT: 'Kể chuyện', LT: 'Test rộng', AT: 'Ảnh tĩnh', KM: 'Kiểu mới', TT: 'Camp test thay thế' };   // AT / KM / TT: đường ngoài máy dòng phim (docNgoai)
-const NEN: Record<string, string> = { xong: '#14532d', dang: '#1e3a8a', chay: '#1e3a8a', dung: '#78350f', loi: '#7f1d1d', cho: 'transparent', bo_qua: 'transparent' };
-const CHU: Record<string, string> = { xong: '#86efac', dang: '#bfdbfe', chay: '#bfdbfe', dung: '#fcd34d', loi: '#fca5a5', cho: 'var(--fg-3)', bo_qua: 'var(--fg-3)' };
 // chữ trên khối ĐẶC cấp phim: nền cam (dừng) chữ trắng không đọc nổi (anh 05/11/2026 #1542) → chữ tối; nền xanh / đỏ / lục giữ chữ trắng
 const CHU_DAC: Record<string, string> = { dung: '#1c1917' };
-const KY: Record<string, string> = { xong: '✓', dang: '▶', chay: '▶', dung: '⏸', loi: '!', cho: '·', bo_qua: '–' };
 
 // NÚT CÓ DẤU HIỆU ĐÃ NHẬN (YDNI 03/11/2026: "bấm vào bất kỳ cái nào cũng phải có 1 dấu hiệu để biết đã nhận, rồi mới xử lý thực sự"): bấm → ⏳ + khoá ngay,
 // xong → ✓ tại chỗ, lỗi → chữ đỏ tại chỗ. Một khuôn cho mọi nút của tab.
@@ -127,7 +122,6 @@ function KhungXem() {
 }
 // BADGE THEO CẤP (anh 03/11/2026 "thiết kế badge khác đi ở từng nhóm, thể hiện rõ cấp bậc"):
 // 1 = PHIM: khối đặc, chữ đậm, cao 26 · 2 = LOẠI NỘI DUNG: chỉ viền màu + nền nhạt, cao 22 · 3 = CREATIVE: dấu + chữ màu, không nền, cao 18
-const VIEN: Record<string, string> = { xong: '#22c55e', dang: '#3b82f6', chay: '#3b82f6', dung: '#f59e0b', loi: '#ef4444', cho: 'var(--line)', bo_qua: 'var(--line)' };
 // so = tiền lãi của ô (cột Chạy) → in KIỂU KẾ TOÁN dùng chung etp-so (#1517 anh 04/11/2026 "format theo chuẩn kế toán + màu sắc"), không in "$-0.25" trần
 function O({ tt, chu, the, fix, bam, menu, xem, so, cap = 3 }: { tt: string; chu?: string; /** thẻ nổi khuôn chung (#1541) — không dùng title trình duyệt */ the?: () => TheNoi; so?: number; fix?: () => void; bam?: () => void; menu?: (e: React.MouseEvent) => void; xem?: Omit<Xem, 'x' | 'y'>; cap?: 1 | 2 | 3 }) {
   const trong = tt === 'cho' || tt === 'bo_qua';

@@ -13,3 +13,6 @@ export const tvSx = (v: ThuVienMuc, bayGio = Date.now()) =>
 export const phimDangSx = (du: Pick<DuLieuEtp, 'dongChay' | 'thuVien'>) => new Set<number>([
   ...(du.dongChay ?? []).filter((x) => (x.trang_thai ?? 'chay') === 'chay').map((x) => x.content_id),
   ...(du.thuVien ?? []).filter((v) => tvSx(v)).map((v) => v.content_id)]);
+
+/** TÊN BƯỚC dòng phim (etp.dong_buoc.buoc) — một bảng cho lịch phim lẫn tab Máy SX (gom 12/11/2026, trước nằm riêng trong etp-lich-phim.tsx). */
+export const TEN_BUOC: Record<string, string> = { nhan: 'nhận phim', ws: 'vào workspace', poster: 'poster', cat: 'cắt', soat: 'soát', creative: 'làm creative', camp: 'lên camp', chay: 'chờ chạy' };

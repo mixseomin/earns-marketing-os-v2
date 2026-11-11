@@ -10,7 +10,9 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { docKenhSp } from '@/lib/tai-san/kenh-sp';
 import { laDemo } from '@/lib/tai-san/kenh-sp-tinh';
-import { docEtp } from '@/lib/etp-doc';
+import { docDong, type DongPhim } from '@/lib/actions/etp-dong';
+import type { Nhip } from '@/components/ui/chuoi-nhip';
+import { TEN_BUOC as TEN_BUOC_ETP } from '@/lib/etp-sx';
 import { docTaiSanBan, TT_SP } from '@/lib/tai-san/doc';
 import { dangCua, tenDang } from './so-kieu';
 import { docLuoiSocial, type StLuoiO } from '@/lib/social-traffic';
@@ -51,38 +53,65 @@ export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi
   const doc = async <T>(ten: string, f: () => Promise<T[]>): Promise<T[]> => { try { return await f(); } catch (e) { loi.push(`${ten}: ${(e as Error).message.slice(0, 140)}`); return []; } };
 
   const [social, kenh, etp, puzzle] = await Promise.all([
-    // BÀI CHỜ DỰNG = view xv_bai_cho_dung do CHÍNH MÁY SX tạo (sx-may.mjs › VIEW_CHO_DUNG) — một định nghĩa cho máy lẫn trang (audit 11/11/2026: từng chép 3 nơi).
-    // View chưa có = máy chưa chạy lượt nào → báo lỗi nguồn, không tự đoán điều kiện.
+    // BÀI SOCIAL CỦA MÁY SX TỚI LÚC ĐĂNG (anh 12/11/2026 "SX thì làm sao chia thành các nhịp rõ ràng"): bài chờ dựng (view xv_bai_cho_dung — một định nghĩa
+    // với máy) + bài Máy SX đã dựng trong 14 ngày mà chưa đăng → nhịp Lịch · Dựng · Chấm · Đăng. View chưa có = máy chưa chạy lượt nào → báo lỗi nguồn.
     doc('Social', async () => {
       const d = getDb(); if (!d) throw new Error('không có DB');
-      const r = (await d.execute(sql`SELECT c.id, c.slug, c.may_id, c.may, c.may_ten, c.ten, c.dang_tu AS ngay, c.nen, c.kieu_sx AS kieu, c.updated_at::text AS luc,
-          (SELECT l.loi FROM may_sx_luot l WHERE l.slug = c.slug ORDER BY l.luc DESC LIMIT 1) AS loi_moi
-        FROM xv_bai_cho_dung c WHERE c.chay ORDER BY c.dang_tu IS NULL, c.dang_tu, c.id DESC LIMIT 200`)) as unknown as
-        { id: number; slug: string; may_id: number; may: string; may_ten: string; ten: string | null; ngay: string | null; nen: string | null; kieu: string | null; luc: string | null; loi_moi: string | null }[];
-      return r.map((x): ViecSx => ({ nguon: 'social', khoa: `s-${x.id}`, ten: x.ten || x.slug, cua: x.may_ten,
-        buoc: x.ngay ? `chờ dựng · đăng ${x.ngay.slice(8, 10)}/${x.ngay.slice(5, 7)}` : 'chờ dựng (chưa xếp ngày)', luc: x.luc, loi: x.loi_moi,
-        ghi: [tenDang(dangCua(x.kieu, x.nen)), x.slug].join(' · '),
-        mo: { bai: { ngay: '', gio: '', may: x.may, mayTen: x.may_ten, nen: '', title: x.slug, url: null, loai: 'du_kien', slug: x.slug } } }));
+      const r = (await d.execute(sql`SELECT v.id, v.slug, m.ma AS may, m.ten AS may_ten, coalesce(v.dang->>'y', v.dang->>'title', v.chu_de) AS ten, nullif(v.dang->>'dang_tu', '') AS ngay,
+          v.dang->>'dang_bai' AS nen, v.dang->>'kieu_sx' AS kieu, v.updated_at::text AS luc, (v.video_url IS NOT NULL OR jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) > 0) AS co_tep,
+          v.cham->>'ket' AS ket, (SELECT string_agg(c, ' · ') FROM jsonb_array_elements_text(coalesce(v.cham->'chan_cung', '[]'::jsonb)) c) AS chan, l.trang_thai AS l_tt, l.loi AS l_loi
+        FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id
+        LEFT JOIN LATERAL (SELECT trang_thai, loi FROM may_sx_luot x WHERE x.slug = v.slug ORDER BY x.luc DESC LIMIT 1) l ON true
+        WHERE m.chay AND v.da_dang = '{}'::jsonb AND NOT coalesce(v.luu_tru, false)
+          AND (v.id IN (SELECT id FROM xv_bai_cho_dung) OR EXISTS (SELECT 1 FROM may_sx_luot x WHERE x.slug = v.slug AND x.luc > now() - interval '14 days'))
+        ORDER BY nullif(v.dang->>'dang_tu', '') NULLS LAST, v.id DESC LIMIT 200`)) as unknown as
+        { id: number; slug: string; may: string; may_ten: string; ten: string | null; ngay: string | null; nen: string | null; kieu: string | null; luc: string | null; co_tep: boolean; ket: string | null; chan: string | null; l_tt: string | null; l_loi: string | null }[];
+      return r.map((x): ViecSx => {
+        const dung = x.co_tep ? 'xong' : x.l_tt === 'hong' ? 'loi' : x.l_tt === 'dang' ? 'dang' : 'cho';
+        const cham = !x.co_tep ? 'cho' : x.ket === 'DUYET' ? 'xong' : x.ket ? 'loi' : 'dang';
+        const nhip: Nhip[] = [{ ten: 'Lịch', tt: x.ngay ? 'xong' : 'cho', chu: x.ngay ? `${x.ngay.slice(8, 10)}/${x.ngay.slice(5, 7)}` : null },
+          { ten: 'Dựng', tt: dung, ghi: x.l_loi }, { ten: 'Chấm', tt: cham, chu: x.ket === 'SUA_LAI' ? 'sửa lại' : x.ket === 'KHONG_DUYET' ? 'không duyệt' : null, ghi: x.chan },
+          { ten: 'Đăng', tt: cham === 'xong' ? 'dang' : 'cho', chu: cham === 'xong' ? 'chờ giờ' : null }];
+        const hien = nhip.find((n) => n.tt !== 'xong');
+        return { nguon: 'social', khoa: `s-${x.id}`, ten: x.ten || x.slug, cua: x.may_ten, buoc: hien ? `${hien.ten}${hien.tt === 'loi' ? ' lỗi' : hien.tt === 'dang' ? ' đang làm' : ' chờ'}` : 'xong', nhip,
+          luc: x.luc, loi: dung === 'loi' ? x.l_loi : cham === 'loi' ? x.chan : null, ghi: [tenDang(dangCua(x.kieu, x.nen)), x.slug].join(' · '),
+          mo: { bai: { ngay: '', gio: '', may: x.may, mayTen: x.may_ten, nen: '', title: x.slug, url: null, loai: 'du_kien', slug: x.slug } } };
+      });
     }),
     doc('Kênh nội dung', async () => (dsKenh = await docKenhSp(hom)).flatMap((k) => k.ke.dangLam.filter((d) => !laDemo(d)).map((d): ViecSx => ({
       nguon: 'kenh', khoa: `k-${k.ma}-${d.id}`, ten: d.ten || d.id, cua: k.ma, buoc: d.buoc ?? 'đang làm', so: d.so ?? null, tong: d.tong ?? null,
-      luc: d.buoc_luc ?? d.luc, loi: d.loi ?? null, ghi: d.chi_tiet ?? null, mo: { kenh: k.ma } })))),
-    // Kho góc sạch chưa dùng (1.754 dòng đo 11/11/2026) là HÀNG ĐÃ LÀM XONG nằm kho, không phải việc đang sản xuất — gom vào thì bảng
-    // 1.782 dòng, 28 việc thật chìm mất. Lọc theo MÃ dòng (`camp-<creative>` — etp-doc.ts › choCamp), không theo chữ nhãn: đổi chữ "Kho góc…"
-    // thì lọc theo chữ im lặng hỏng (audit 11/11/2026). Dòng chờ cắt lại mà ghi chú mang lỗi lần trước (TimeoutExpired…) hiện là LỖI.
-    doc('Ethopex', async () => (await docEtp(undefined, false)).dangSx.filter((x) => !x.khoa.startsWith('camp-')).map((x): ViecSx => {
-      const loiCu = !x.loi && /Error|Timeout|Traceback|Exception/.test(x.ghi ?? '');
-      return {
-      nguon: 'etp', khoa: `e-${x.khoa}`, ten: x.phim ?? (x.content_id ? `phim ${x.content_id}` : x.khoa), cua: x.lo ?? null, buoc: loiCu ? `${x.buoc} (lần trước hỏng)` : x.buoc,
-      luc: x.luc, loi: x.loi || loiCu ? (x.ghi ?? 'lỗi') : null, ghi: x.loi || loiCu ? null : x.ghi,
-      mo: { ed: 'etp-sx', id: String(x.content_id ?? '') } }; })),
+      luc: d.buoc_luc ?? d.luc, loi: d.loi ?? null, ghi: d.chi_tiet ?? null, mo: { kenh: k.ma },
+      // nhịp = các bước của lượt làm tập (so/tong do máy ghi); máy chỉ ghi TÊN bước đang chạy nên ô khác mang số bước
+      nhip: Array.from({ length: d.tong ?? 0 }, (_, i): Nhip => { const so = d.so ?? 0, nay = i === so - 1;
+        return { ten: nay && d.buoc ? d.buoc : `Bước ${i + 1}`, tt: i < so - 1 ? 'xong' : nay ? (d.loi ? 'loi' : 'dang') : 'cho', ghi: nay ? d.loi ?? d.chi_tiet ?? null : null }; }) })))),
+    // ETHOPEX = CHÍNH các dòng phim của bảng Sản xuất (lib/actions/etp-dong › docDong, lọc đang làm + lỗi) — nhịp vẽ bằng ChuoiBuoc của bảng đó (anh 12/11/2026
+    // chỉ vào bảng này: "SX thì làm sao chia thành các nhịp rõ ràng thế này"). Trước đọc hàng chờ rời (docEtp › dangSx) — có mục "chờ soát đoạn" đứng 92 ngày.
+    doc('Ethopex', async () => {
+      const ds = new Map<number, DongPhim>();
+      for (const loc of ['dang', 'loi'] as const) for (let t = 0; t < 6; t++) {
+        const r = await docDong(loc, '', t); if ('loi' in r) throw new Error(String(r.loi));
+        for (const x of r.dong) ds.set(x.id, x); if ((t + 1) * 50 >= r.tong) break;
+      }
+      return [...ds.values()].map((x): ViecSx => {
+        const hien = x.buoc.find((b) => ['loi', 'dung'].includes(b.trang_thai)) ?? x.buoc.find((b) => b.trang_thai === 'dang') ?? x.buoc.find((b) => b.trang_thai === 'cho');
+        const hong = ['loi', 'dung'].includes(x.trang_thai) || ['loi', 'dung'].includes(hien?.trang_thai ?? '');
+        return { nguon: 'etp', khoa: `e-${x.id}`, ten: x.ten ?? `phim ${x.content_id}`, cua: [x.loai, x.the_loai, x.ngoai].filter(Boolean).join(' · ') || null,
+          buoc: hien ? `${TEN_BUOC_ETP[hien.buoc] ?? hien.buoc}${hien.trang_thai === 'dang' ? ' đang làm' : hien.trang_thai === 'cho' ? ' chờ' : hien.trang_thai === 'dung' ? ' dừng' : ' lỗi'}` : 'xong',
+          luc: hien?.bat_dau ?? x.tao_luc, loi: hong ? (x.ly_do ?? hien?.ghi ?? 'lỗi') : null, ghi: hong ? null : hien?.ghi ?? null,
+          etp: { loai: x.loai, buoc: x.buoc.map((b) => ({ buoc: b.buoc, trang_thai: b.trang_thai, ghi: b.ghi, ket_qua: b.ket_qua })) },
+          mo: { ed: 'etp-sx', id: String(x.content_id) } };
+      });
+    }),
     doc('Puzzle / Tài sản', async () => {
       const t = await docTaiSanBan();
       if (t.loi.length) loi.push(...t.loi.map((l) => `Tài sản: ${l}`));
       return t.shops.flatMap((s) => s.sp.filter((p) => TT_DANG.has(p.trangThai)).map((p): ViecSx => {
         const m = p.tienDo?.match(/^(\d+)\/(\d+)$/);
         return { nguon: 'puzzle', khoa: `p-${p.khoa}`, ten: p.ten, cua: s.ten, buoc: TT_SP.find((x) => x.key === p.trangThai)?.chu ?? p.trangThai,
-          so: m ? Number(m[1]) : null, tong: m ? Number(m[2]) : null, ghi: p.ke ? `bước kế: ${p.ke}` : null, mo: { sp: { s: { ...s, sp: [] }, x: p } } };
+          so: m ? Number(m[1]) : null, tong: m ? Number(m[2]) : null, ghi: p.ke ? `bước kế: ${p.ke}` : null, mo: { sp: { s: { ...s, sp: [] }, x: p } },
+          // vòng đời sản phẩm (lib/tai-san/kieu.ts): làm → anh duyệt bản xem → nộp sàn → sàn duyệt → bán
+          nhip: ((): Nhip[] => { const vi = { dang_lam: 0, cho_anh: 1, san_sang: 2, cho_duyet: 3, dang_ban: 4 }[p.trangThai as string] ?? 0;
+            return ['Làm', 'Anh duyệt', 'Nộp sàn', 'Sàn duyệt', 'Bán'].map((ten, i) => ({ ten, tt: i < vi ? 'xong' : i === vi ? 'dang' : 'cho', chu: i === 0 && vi === 0 ? p.tienDo ?? null : null, ghi: i === vi && p.ke ? `kế: ${p.ke}` : null })); })() };
       }));
     }),
   ]);

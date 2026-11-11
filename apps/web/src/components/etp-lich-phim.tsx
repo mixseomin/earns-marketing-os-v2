@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DongMoc, KhungNoi, TheChung, useNoi, type Moc, type TheNoi } from '@/components/etp-noi';
 import { ChuoiBuoc } from '@/components/etp-dong';
+import { TEN_BUOC } from '@/lib/etp-sx';
 import { MA_DANG, DANG_DONG } from '@/components/etp-so';
 import { chuLich, gioVnNay, KD, khungLuc } from '@/lib/etp-khung';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
@@ -15,7 +16,6 @@ const GD = ['Thử dạng', 'Camp lãi', 'Scale', 'ROAS'];
 const PHA: Record<string, [string, string]> = { hut: ['còn dư địa', '#22c55e'], dinh: ['quanh tối ưu', '#facc15'], bao_hoa: ['vượt sức chứa', '#ef4444'], it_so: ['chưa đủ số', '#6b7280'] };
 // giai đoạn theo camp ĐANG CHẠY, không theo lịch sử (anh 07/11/2026)
 const giaiDoan = (l: LichPhim) => { const lai = l.dang.reduce((a, d) => a + d.lai, 0); return l.roas > 0 ? 3 : lai >= 2 ? 2 : lai >= 1 ? 1 : 0; };
-const TEN_BUOC: Record<string, string> = { nhan: 'nhận phim', ws: 'vào workspace', poster: 'poster', cat: 'cắt', soat: 'soát', creative: 'làm creative', camp: 'lên camp', chay: 'chờ chạy' };
 // dòng còn phải tạo camp: bước camp chưa xong; đã lên camp thì camp đó đã đếm ở phần đang chạy
 const conSx = (d: LichPhim['sx'][number]) => d.trang_thai !== 'dung' && !d.buoc.some((b) => b.buoc === 'camp' && b.trang_thai === 'xong');
 const buocHien = (d: LichPhim['sx'][number]) => d.buoc.find((b) => b.trang_thai === 'loi' || b.trang_thai === 'dung') ?? d.buoc.find((b) => b.trang_thai === 'dang') ?? d.buoc.find((b) => b.trang_thai === 'cho');

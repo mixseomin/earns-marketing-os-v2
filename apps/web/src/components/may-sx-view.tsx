@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { DataTable, type DataColumn } from '@/components/ui/data-table';
 import { InfoHint } from '@/components/ui/info-hint';
+import { ChuoiNhip } from '@/components/ui/chuoi-nhip';
+import { ChuoiBuoc } from '@/components/etp-dong';
 import { useModalParam } from '@/lib/use-modal-param';
 import { ChiTietSp } from '@/components/tai-san-view';
 import { ChiTietBai } from '@/components/social-lich-luoi';
@@ -31,18 +33,20 @@ const NGUON: { k: NguonSx; ten: string; mau: string }[] = [
  *  Ethopex = ngăn Sản xuất phim (EntityDrawerHost etp-sx) · Puzzle = ngăn sản phẩm tab Tài sản (ChiTietSp) · Kênh = ngăn hồ sơ kênh (KenhNgan) ·
  *  Social và lượt dựng = ngăn bài của lịch Social Traffic (ChiTietBai). Cùng tham số URL với trang gốc → link chia sẻ / F5 dùng chung một kiểu. */
 const khoaBai = (x: StLuoiO) => `${x.may}|${x.slug ?? x.title}`;
-const tuLuc = (iso?: string | null) => { if (!iso) return '—'; const p = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+const tuLuc = (iso?: string | null) => { const t = iso ? Date.parse(iso) : NaN; if (Number.isNaN(t)) return '—';   // mốc không đọc được → '—', không in "NaN ngày" (12/11/2026)
+  const p = Math.max(0, Math.round((Date.now() - t) / 60000));
   return p < 60 ? `${p} phút` : p < 1440 ? `${Math.round(p / 60)} giờ` : `${Math.round(p / 1440)} ngày`; };
 
 const NG = (k: NguonSx) => NGUON.find((x) => x.k === k)!;
 const COT_VIEC: DataColumn<ViecSx>[] = [
   { key: 'nguon', header: 'Nguồn', align: 'left', width: 150, sortValue: (v) => v.nguon, cell: (v) => <span style={{ color: NG(v.nguon).mau, fontWeight: 600, whiteSpace: 'nowrap' }}>● {NG(v.nguon).ten}</span> },
   { key: 'ten', header: 'Việc', align: 'left', sortValue: (v) => v.ten, cell: (v) => <><div style={{ fontWeight: 600 }}>{v.ten}</div>{v.cua ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>{v.cua}</div> : null}</> },
-  { key: 'buoc', header: 'Bước', align: 'left', width: 190, sortValue: (v) => v.buoc, cell: (v) => { const pct = v.so != null && v.tong ? Math.min(100, Math.round((v.so / v.tong) * 100)) : null;
-    return <><div>{v.buoc}</div>{pct != null ? <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-      <span style={{ flex: 1, height: 5, borderRadius: 3, background: 'var(--bg-2, rgba(0,0,0,.08))', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: `${pct}%`, background: v.loi ? 'var(--bad, #dc2626)' : NG(v.nguon).mau }} /></span>
-      <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{v.so}/{v.tong}</span></div> : null}</>; } },
-  { key: 'luc', header: 'Cập nhật', title: 'lần cập nhật gần nhất của việc này ở nguồn gốc', width: 110, sortValue: (v) => (v.luc ? Date.parse(v.luc) : 0), cell: (v) => <span style={{ whiteSpace: 'nowrap', color: 'var(--fg-2)' }}>{v.luc ? `${tuLuc(v.luc)} trước` : '—'}</span> },
+  // NHỊP (anh 12/11/2026 "SX thì làm sao chia thành các nhịp rõ ràng thế này"): mỗi dòng một chuỗi ô bước cùng khuôn bảng Sản xuất Ethopex —
+  // Ethopex vẽ bằng chính ChuoiBuoc của bảng đó; nguồn khác bằng ChuoiNhip dùng chung (components/ui/chuoi-nhip). Chữ bước hiện tại ở thẻ rê chuột.
+  { key: 'buoc', header: 'Nhịp', align: 'left', width: 400, sortValue: (v) => v.buoc, cellTitle: (v) => v.buoc,
+    cell: (v) => <div style={{ width: v.etp ? 372 : undefined }}>{v.etp ? <ChuoiBuoc buoc={v.etp.buoc} loai={v.etp.loai} />
+      : v.nhip?.length ? <ChuoiNhip nhip={v.nhip} rongO={v.nhip.length > 6 ? 44 : 60} /> : <span style={{ color: 'var(--fg-2)' }}>{v.buoc}</span>}</div> },
+  { key: 'luc', header: 'Cập nhật', title: 'lần cập nhật gần nhất của việc này ở nguồn gốc', width: 110, sortValue: (v) => (v.luc ? Date.parse(v.luc) || 0 : 0), cell: (v) => <span style={{ whiteSpace: 'nowrap', color: 'var(--fg-2)' }}>{tuLuc(v.luc) === '—' ? '—' : `${tuLuc(v.luc)} trước`}</span> },
   { key: 'ghi', header: 'Ghi chú / lỗi', align: 'left', sortValue: (v) => (v.loi ? 0 : 1), cell: (v) => <span style={{ color: v.loi ? 'var(--bad, #dc2626)' : 'var(--fg-2)' }}>{v.loi ? `✗ ${v.loi}` : v.ghi ?? ''}</span> },
 ];
 const COT_LUOT: DataColumn<Luot>[] = [

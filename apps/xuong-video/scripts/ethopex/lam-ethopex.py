@@ -154,7 +154,11 @@ def main(a):
     ep = "--ep" in a   # anh lệnh đích danh (vd phim 18+) — bỏ qua chặn camp lãi
     # --bo-nhip: anh lệnh đích danh trong chat tăng lại một camp vừa tăng (05/11/2026 AB02: chuyển #73284 sang đối chứng $13 → $20) — chỉ khi --ai "anh (chat)", máy tự tăng không dùng
     bo_nhip = "--bo-nhip" in a and ai in ("anh (chat)", "anh (etp2)")   # anh (etp2) = anh tự bấm "ép" ở bảng điều khiển camp etp2 (#1553 09/11/2026)
-    a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai", "--ep", "--bo-nhip") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
+    # --du-luat: lệnh tăng do MÁY LUẬT xếp (worker ethopex.mjs, danh sách tang / dau_phien) — máy luật VỪA chấm cổng tăng (nhip_tang.du_so trên số hôm nay ĐÃ CHỐT CHI,
+    # _loc + _du_tang) cách đó vài phút. Lệnh tăng KHÔNG chấm lại cổng bằng số cả ngày (du_don): hai cách đo lệch nhau ở ca sát ngưỡng → 23 lần / 7 ngày máy xếp tăng
+    # rồi chính lệnh tăng chặn "vừa tăng — chờ" (rà 12/11/2026, anh "không thể lỗi ở bất kỳ khâu nào"). Khoá sau giảm, nhịp ≥ 3 giờ ngoài khung nhanh, mức, trần vẫn chặn.
+    du_luat = "--du-luat" in a and str(ai or "").startswith("máy tự tăng")
+    a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai", "--ep", "--bo-nhip", "--du-luat") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
     if a[0] == "tat-loat":   # tat-loat <id,id,…> --luat … --ai … [--t7]
         print(json.dumps(tat_loat([int(x) for x in a[1].split(",") if x.strip().isdigit()], luat, ai, t7="--t7" in sys.argv, ep=ep), ensure_ascii=False)); return
     viec, cid = a[0], int(a[1]); kq = {"ok": False, "viec": viec, "id": cid}
@@ -165,7 +169,8 @@ def main(a):
             if ns not in MUC: raise ValueError(f"${ns} không phải mức hợp lệ {sorted(MUC)}")
             if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đang {truoc['tt']}, không tăng")
             if ns <= float(truoc["ns"] or 0): raise ValueError(f"camp đã ${truoc['ns']} ≥ ${ns}")
-            ly = None if bo_nhip else NT.chan_tang(api, cid)   # nhịp tăng: ≥ 24 giờ, hoặc ≥ 3 giờ khi đã tiêu ≥ 90% NS mới + ROI hôm nay ≥ 100% (nút cũ bấm muộn cũng bị chặn)
+            if du_luat and not bo_nhip: ly = NT.chan_tang(api, cid, du=True)   # cổng đã chấm ở máy luật (xem --du-luat)
+            else: ly = None if bo_nhip else NT.chan_tang(api, cid)   # nhịp tăng: ≥ 24 giờ, hoặc ≥ 3 giờ khi đã tiêu ≥ 90% NS mới + ROI hôm nay ≥ 100% (nút cũ bấm muộn cũng bị chặn)
             if ly: raise ValueError(ly)
             ly = None if ep else chan_sau_giam(cid)   # đã giảm → tăng lại phải đủ quy trình, mọi đường tăng chung một cổng
             if ly: raise ValueError(ly)

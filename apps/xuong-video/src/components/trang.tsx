@@ -39,7 +39,7 @@ import { DanhSachSanPham, NganSanPham } from './kho-creative-ui';
 import { taNguon, taThu } from '@/lib/xuong-video/cong-ai';
 import { ghiThamSoUrl } from '@/lib/ghi-url';
 
-export function XuongVideoTrang(props: { phimDau: Phim[]; khoa: Khoa }) {
+export function XuongVideoTrang(props: { khoa: Khoa }) {
   return <Suspense fallback={<span style={mono}>…</span>}><Ruot {...props} /></Suspense>;
 }
 
@@ -50,8 +50,11 @@ function catNhom<G extends { phim: unknown[] }>(ds: G[], toiDa: number): G[] {
   return ra;
 }
 
-function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
-  const [phim, setPhim] = useState<Phim[]>(phimDau);
+function Ruot({ khoa }: { khoa: Khoa }) {
+  // Danh sách phim tải SAU khi trang hiện (anh 11/11/2026: mở thẳng một phim / tab Shots chậm vì máy chủ dựng xong danh sách ~2.900 phim
+  // rồi mới trả trang) — ngăn phim đọc docPhim riêng nên mở ngay; null = đang tải danh sách.
+  const [ds, setPhim] = useState<Phim[] | null>(null);
+  const phim = ds ?? [];
   const [ten, setTen] = useState('');
   const [loai, setLoai] = useState<LoaiPhim>('short');
   const [loiTao, setLoiTao] = useState('');
@@ -64,6 +67,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   const [tapMo, setTapMo] = useState<number | null>(null);
   const [soHien, setSoHien] = useState(150);   // số dòng phim vẽ trong danh sách 🎬 Làm tự do   // bấm chip tập → mở ngăn phim đúng tập
   const taiLai = useCallback(async () => setPhim(await dsPhim()), []);
+  useEffect(() => { void taiLai(); }, [taiLai]);
   const [moHinh, setMoHinh] = useState<{ anh: MoHinhChon[]; video: MoHinhChon[] }>({ anh: [], video: [] });
   useEffect(() => { void dsMoHinh().then(setMoHinh); }, []);
 
@@ -112,7 +116,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
           <ThungRac phimId={null} onKhoiPhuc={taiLai} />
           <Nut chinh={!moTao} onClick={() => setMoTao(!moTao)} title="Tạo phim / bộ mới: short · phim nhiều tập · creative quảng cáo">{moTao ? '✕ Đóng' : '＋ Tạo mới'}</Nut>
         </div>
-        {(moTao || phim.length === 0) && (
+        {(moTao || ds?.length === 0) && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', paddingTop: 6, borderTop: '1px dashed var(--line)' }}>
             <input className="xv-in" style={{ minWidth: 260 }} value={ten} onChange={(e) => setTen(e.target.value)} placeholder="Tên: Thỏ và Rùa · Quảng cáo áo bra X…" onKeyDown={(e) => { if (e.key === 'Enter') void tao(); }} autoFocus />
             <Seg options={LOAI_PHIM.map((l) => ({ value: l.key, label: l.label, title: l.mo_ta }))} value={loai} onChange={setLoai} />
@@ -133,6 +137,8 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
         <DanhSachSanPham phim={phim} onMo={setSpMo} />
       ) : khoTab === 'template' ? (
         <KhoTemplate ds={phim.filter((p) => p.kinh_thanh?.template && !laLuuTru(p))} phimTu={phim.filter((p) => p.kinh_thanh?.tu_template)} onMo={moPhim} />
+      ) : ds === null ? (
+        <div style={{ ...mono, padding: 16 }}>đang tải danh sách phim…</div>
       ) : phim.length === 0 ? (
         <div className="xv-panel" style={{ textAlign: 'center', padding: 40 }}><div style={{ fontSize: 28 }}>🎬</div><b>Chưa có phim nào</b><div style={mono}>Tạo một phim ở trên: đặt tên, chọn loại, rồi khai nhân vật/sản phẩm và dán kịch bản.</div></div>
       ) : (() => {

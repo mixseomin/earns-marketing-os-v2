@@ -2,21 +2,24 @@
 // câu phong cách của hướng đó (phong-cach-thu.ts); N shot đầu gắn sẵn keyframe thử mới nhất của hướng (scripts/thu-phong-cach.mts) →
 // anh mở phim thử trong studio và bấm sinh video (Claude không tự sinh video). Phim gốc không bị đụng. Không cần nữa thì Lưu trữ.
 // cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/nhan-ban-phim-thu.mts <tap_id> <huong> [so_shot=3]
+// BẢN SẠCH (anh 11/11/2026 "clone 1 file mới, ko clone keyframe và video" — để sinh lại keyframe bằng cổng khác, vd Muse):
+//   … nhan-ban-phim-thu.mts <tap_id> sach "<hậu tố tên>"   → giữ phong cách + anchor (ảnh nhân vật / biến thể), mọi shot về 'nhap', KHÔNG keyframe, KHÔNG video
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { HUONG_THU } from '../src/lib/xuong-video/phong-cach-thu';
 import type { Row } from '../src/lib/xuong-video/doc-db';
 
 const db = getDb()!;
-const tapId = Number(process.argv[2]); const huong = HUONG_THU.find((h) => h.key === process.argv[3]); const so = Number(process.argv[4] ?? 3);
-if (!tapId || !huong?.phong_cach) { console.error(`cần <tap_id> <huong: ${HUONG_THU.filter((h) => h.phong_cach).map((h) => h.key).join('|')}>`); process.exit(1); }
+const sach = process.argv[3] === 'sach', hauTo = sach ? ` (${process.argv[4] || 'bản sạch'})` : '';
+const tapId = Number(process.argv[2]); const huong = sach ? null : HUONG_THU.find((h) => h.key === process.argv[3]); const so = sach ? 0 : Number(process.argv[4] ?? 3);
+if (!tapId || (!sach && !huong?.phong_cach)) { console.error(`cần <tap_id> <huong: ${HUONG_THU.filter((h) => h.phong_cach).map((h) => h.key).join('|')}>`); process.exit(1); }
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const tap = (await q(sql`SELECT * FROM xv_tap WHERE id = ${tapId}`))[0]; if (!tap) { console.error('không thấy tập'); process.exit(1); }
 const phimGoc = Number(tap.phim_id);
 const ketQua = await db.transaction(async (tx) => {
   const t = async (s: ReturnType<typeof sql>) => (await tx.execute(s)) as unknown as Row[];
   const phim = (await t(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh, trang_thai)
-    SELECT project, ten || ${` (thử: ${huong.ten.split(' (')[0]!.toLowerCase()})`}, loai, mo_ta, jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{phong_cach}', to_jsonb(${huong.phong_cach}::text)), trang_thai
+    SELECT project, ten || ${huong ? ` (thử: ${huong.ten.split(' (')[0]!.toLowerCase()})` : hauTo}, loai, mo_ta, ${huong ? sql`jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{phong_cach}', to_jsonb(${huong.phong_cach}::text))` : sql`kinh_thanh`}, trang_thai
     FROM xv_phim WHERE id = ${phimGoc} RETURNING id`))[0]!;
   const phimId = Number(phim.id);
   const doiNv = new Map<number, number>(); const doiBt = new Map<number, number>();
@@ -36,7 +39,7 @@ const ketQua = await db.transaction(async (tx) => {
   let gan = 0;
   for (const c of canh) {
     const thuNay = coalesce(c.nhanh) === '' || c.nhanh === 'A' ? Number(c.thu_tu) <= so : false;
-    const kf = thuNay ? (await t(sql`SELECT output_url FROM xv_job WHERE request->>'dich' = 'thu_phong_cach' AND request->>'huong' = ${huong.key} AND (request->>'canh')::int = ${Number(c.id)} AND trang_thai = 'xong' ORDER BY id DESC LIMIT 1`))[0]?.output_url : null;
+    const kf = thuNay && huong ? (await t(sql`SELECT output_url FROM xv_job WHERE request->>'dich' = 'thu_phong_cach' AND request->>'huong' = ${huong.key} AND (request->>'canh')::int = ${Number(c.id)} AND trang_thai = 'xong' ORDER BY id DESC LIMIT 1`))[0]?.output_url : null;
     if (kf) gan++;
     const nv = ((c.nhan_vat as number[]) ?? []).map((x) => doiNv.get(Number(x))).filter((x): x is number => x != null);
     const bt = ((c.bien_the as number[]) ?? []).map((x) => doiBt.get(Number(x))).filter((x): x is number => x != null);

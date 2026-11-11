@@ -26,7 +26,7 @@ for (const { thu, nguon } of cap) {
   const url = await uploadToR2(`xuong-video/keyframe/${c.id}-${randomUUID()}.${duoi}`, buf, duoi === 'jpg' ? 'image/jpeg' : `image/${duoi}`);
   if (!url) { console.error(`shot ${thu}: tải lên R2 hỏng`); continue; }
   await chupTruoc(db, { bang: 'xv_canh', id: Number(c.id), cot: ['keyframe_url', 'keyframe_uv', 'trang_thai'], moTa: `keyframe = ảnh ${cong}`, nguoi: 'script keyframe-tu-tep' });
-  await taoJob(db, { nhan: `Keyframe · ${cong} · cảnh #${thu}`, canh_id: Number(c.id), loai: 'anh', provider: cong, model, request: { dich: 'keyframe_ngoai', nguon: /^https?:/.test(nguon) ? nguon : 'tệp' }, xong: true });
+  await taoJob(db, { nhan: `Keyframe · ${cong} · cảnh #${thu}`, canh_id: Number(c.id), loai: 'anh', provider: cong, model, request: { dich: 'keyframe_ngoai', nguon: /^https?:/.test(nguon) ? nguon : 'tệp' }, xong: true, cents: (vnd / 26000) * 100 });   // giá đã biết (ảnh sinh xong ở cổng ngoài) → cổng tiền so ngưỡng, không báo 'không ước được'
   await db.execute(sql`UPDATE xv_job SET output_url = ${url}, chi_phi_cents = ${Math.round((vnd / 26000) * 10000) / 100} WHERE id = (SELECT max(id) FROM xv_job WHERE canh_id = ${Number(c.id)} AND model = ${model})`);
   await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${url},
     keyframe_uv = CASE WHEN keyframe_uv @> ${JSON.stringify([url])}::jsonb THEN keyframe_uv ELSE coalesce(keyframe_uv, '[]'::jsonb) || ${JSON.stringify([url])}::jsonb END,

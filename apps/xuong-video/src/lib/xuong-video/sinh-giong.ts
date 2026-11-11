@@ -105,7 +105,9 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
         const chon = v ? tuy.theoNguoi?.[d.nhan_vat.trim()] ?? tuy.theoNguoi?.[v.ten] : giongDan;
         const model = chon?.model || tuy.model || v?.giong_model || MODEL_GIONG_MAC_DINH();
         const voice = chon?.voice || (tuy.model ? tuy.voice : '') || (v?.giong_model === model ? v.giong_id : '') || await giongMacDinh(model);
-        const text = d.loi.trim();
+        // CHỮ ĐEM ĐỌC ≠ CHỮ TRÊN MÀN (11/11/2026, phim #2934: "Chú cho cháu 5k" → MiniMax đọc "chú cho cháu năm", nuốt chữ k): viết tắt tiền kiểu 5k / 50k / 2tr
+        // đổi thành lời đọc trước khi gửi model giọng; câu thoại (chữ màn, phụ đề) giữ nguyên.
+        const text = (bc.kt.ngon_ngu ?? 'vi') === 'vi' ? d.loi.trim().replace(/(\d+(?:[.,]\d+)?)\s*k\b/gi, '$1 nghìn').replace(/(\d+(?:[.,]\d+)?)\s*tr\b/gi, '$1 triệu') : d.loi.trim();
         // Câu MỚI (chưa có file) mà câu y hệt — cùng chữ, cùng diễn xuất, cùng giọng — đã đọc ở bất kỳ phim nào → dùng lại file đó, 0đ.
         // Câu đang có file mà bấm sinh lại = muốn bản đọc mới → vẫn sinh.
         if (!d.url) {

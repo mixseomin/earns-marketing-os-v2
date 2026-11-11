@@ -23,6 +23,8 @@ export const NHOM_CHUYEN_CANH: { key: NhomChuyenCanh; ten: string }[] = [
 /** nen_ghep = shot NỀN GHÉP của khuôn đổi nền (mot_dang_moi_noi): ảnh nền không người, nơi chốn xuất hiện MỘT lần, người cắt nền phủ lên —
  *  keyframe của shot chính là mẫu nơi đó nên không cần anchor Bối cảnh (quy-trinh.ts › thieuMau); nơi lặp lại vẫn phải có anchor. */
 export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, string>> & { am_thanh?: string[]; giay_cc?: number; luat?: string[]; nen_ghep?: boolean;
+  /** Sổ VideoExpress của shot (scripts/vx-tap.mts): uuid job đã gửi, xong = mp4 đã gắn. Có uuid = đã thử đường 0₫ (cổng videoTraPhi). */ vx?: { uuid?: string; media_id?: number; luc?: string; prompt?: string; xong?: string };
+  /** Anh cho shot này đi video TRẢ PHÍ dù chưa thử VideoExpress (cổng videoTraPhi). */ tra_phi?: boolean;
   /** ĐIỂM VÀO CLIP (giây): bản dựng lấy đoạn phát bắt đầu từ đây thay vì đầu clip — mảnh ReelShort 1–2 s cắt đúng khoảnh khắc diễn trong clip 4–8 s
    *  (#322 #4: mắt chỉ liếc ở giây cuối). Không khai = bỏ ≤ 0,5 s đầu như cũ. */ vao_s?: number;
   /** KHUNG DỰNG LẠI (diem-nhin.ts › khungCanh, scripts/diem-nhin.mts): phóng s quanh tâm (cx, cy) để chủ thể mở shot nằm chỗ mắt người xem vừa rời shot trước */

@@ -65,7 +65,9 @@ for (const bc of bcs) {
   for (const d of dongThoai(bc.canh, bc.nhanVat)) { const v = bc.nhanVat.find((x) => x.ten === d.nhan_vat); uocGiong += giaGiongTheo(dm, v?.giong_model || (!v && bc.kt.giong_dan?.model) || MODEL_GIONG_MAC_DINH(), d.loi.length) ?? 0; }
 }
 console.log(`tập #${tapId} · ${bcs.map((b) => `#${b.canh.thu_tu} (id ${b.canh.id}, ${b.canh.trang_thai}${b.canh.keyframe_url ? ', có keyframe' : ''})`).join(' · ')}`);
-console.log(`  ước: keyframe ${bcs.length} × ${tien(giaAnh)} = ${tien(giaAnh * bcs.length)} · video ${[...dsModelVideo].join(' + ')} ${kt.do_phan_giai} ≈ ${tien(uocVideo)} · giọng ≈ ${tien(uocGiong)}`);
+const chuaVx = bcs.filter((b) => !b.canh.ky_thuat?.vx?.uuid && !b.canh.ky_thuat?.tra_phi).length;
+// VideoExpress TRƯỚC (anh 11/11/2026): dòng ước ghi đường 0₫ trước, model trả phí chỉ là dự phòng — trước đây chỉ in giá trả phí nên ai đọc cũng đề xuất trả phí
+console.log(`  ước: keyframe ${bcs.length} × ${tien(giaAnh)} = ${tien(giaAnh * bcs.length)} · video VideoExpress 0₫ (scripts/vx-tap.mts --tap=${tapId}${chuaVx ? `, ${chuaVx} shot chưa thử` : ''}) · dự phòng trả phí ${[...dsModelVideo].join(' + ')} ${kt.do_phan_giai} ≈ ${tien(uocVideo)} · giọng ≈ ${tien(uocGiong)}`);
 if (arg('xem')) {
   for (const bc of bcs) {
     const p = promptVideoCanh(bc);

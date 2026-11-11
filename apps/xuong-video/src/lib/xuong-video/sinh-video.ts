@@ -237,6 +237,8 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   // QC: keyframe gắn sản phẩm mà không thấy màu sản phẩm (soi-clip.ts) — mặc sai quần thì clip nào cũng sai, không tiêu tiền lên nó.
   if (tapR?.loai === 'quang_cao') { const sp = await khungDauThieuSp(db, bc.canh).catch((e) => { console.error(`đo màu sản phẩm keyframe shot ${canhId}:`, e); return null; }); if (sp) qt.push(sp); }
   if ((!thu && qt.length) || !bc.canh.keyframe_url) return loi(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ') || 'chưa có keyframe'}`);
+  // VIDEOEXPRESS TRƯỚC (anh 11/11/2026: "sao cứ chạy model trả tiền trước khi dùng free qua videoexpress"): shot chưa thử đường 0₫ thì không gửi model trả phí.
+  { const c = videoTraPhi(bc.canh.ky_thuat, bc.canh.tap_id, bc.canh.thu_tu, boQuaCong); if (c) return loi(c); }
   const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
   if (chan) return loi(chan);
   // Cổng nhận được lấy từ MỘT chỗ (cong-ai.ts › tachKhoa) — trước là regex chép tay, thêm cổng mới (kie, wavespeed) là ô chọn bị lờ đi.
@@ -442,4 +444,12 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     vuaXong++;
   }
   return { conChay, vuaXong };
+}
+
+/** CỔNG VIDEO TRẢ PHÍ — VideoExpress (0₫, tài khoản đã mua) phải được thử trước mọi model trả phí (Veo / Kling / fal / kie…).
+ *  Qua cổng khi: shot đã có job VideoExpress (ky_thuat.vx.uuid), anh bật ky_thuat.tra_phi cho shot, lượt tự gửi lại job trả phí đã duyệt (boQuaCong),
+ *  hoặc script đặt VIDEO_TRA_PHI=1 ngay sau khi anh duyệt. Trả câu lỗi (hiện dưới nút) hoặc null. */
+export function videoTraPhi(kt: { vx?: { uuid?: string }; tra_phi?: boolean } | null | undefined, tapId: number, thuTu: number, boQuaCong = false): string | null {
+  if (boQuaCong || kt?.tra_phi || kt?.vx?.uuid || process.env.VIDEO_TRA_PHI === '1') return null;
+  return `Shot #${thuTu}: chưa thử VideoExpress (0₫) — video trả phí bị chặn. Chạy trên iMac: tsx scripts/vx-tap.mts --tap=${tapId} --so=${thuTu} (VX_CHAY=1); clip VideoExpress hỏng mới sang model trả phí.`;
 }

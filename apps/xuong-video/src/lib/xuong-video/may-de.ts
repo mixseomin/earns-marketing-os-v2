@@ -257,11 +257,15 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
   const { sinhJson } = await import('./claude');
   const schema = z.object({ de: mau === 'giai-thich' ? DeGiaiThichSchema : mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : mau === 'binh-chon' ? DePollSchema : mau === 'carousel' ? DeCarouselSchema : DeCanhSchema, chu: ChuDangSchema, hook_qc: z.string().describe('id of the proven ad hook you adapted (empty if none were given)') });
   // tiền: ckey báo VNĐ thật (tokens.vnd); không báo (Anthropic trực tiếp, hoặc ckey thiếu x_ckey.cost — 27/10 nhật ký ghi 0₫) thì ƯỚC theo token × bảng giá (26.000₫/$)
-  let vnd = 0, loiCu: string[] = [], hookCu: HookQc | null = null; const tk = { in: 0, out: 0 };
-  for (let lan = 0; lan < 3; lan++) {
+  let vnd = 0, loiCu: string[] = [], hookCu: HookQc | null = null, khoaTruoc = false; const tk = { in: 0, out: 0 }, boHook = new Set<string>();
+  for (let lan = 0; lan < 4; lan++) {
+    // đã KHOÁ vào một hook mà vẫn trượt "sửa quá xa" → hook đó không hợp góc (ratesbyroom 12/11/2026: "Is PayLater Travel a scam?" khoá vẫn giữ 33%,
+    // top-n-40712 kẹt) → bỏ hook đó, lượt sau mở lại phần kho còn lại (trượt nữa thì khoá hook kế), không khoá mãi một câu không bám được.
+    if (khoaTruoc && hookCu && loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l))) { boHook.add(hookCu.id); hookCu = null; loiCu = loiCu.filter((l) => !/sửa quá xa|chưa chọn hook/.test(l)); }
     // trượt "sửa quá xa": mô hình rẻ cầm cả kho thì không bám (esimfares 10/11/2026: hook kênh "Landing in Italy? Do this before your plane touches down"
     // → viết "Set this up before takeoff", giữ 17%, 2/3 bài kẹt cả 2 lượt) → lượt sau khoá vào ĐÚNG hook đã chọn + đưa nguyên câu làm khuôn, thêm một lượt.
-    const xa = !!hookCu && loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l)), hooksLuot = xa ? [hookCu as HookQc] : (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length);
+    const xa = !!hookCu && loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l)), hooksLuot = xa ? [hookCu as HookQc] : (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length && !boHook.has(h.id));
+    khoaTruoc = xa;
     const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en', hooksLuot) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.${xa ? ` The title AND any on-screen hook line must be this exact sentence: "${(hookCu as HookQc).chu}". Copy it, swapping at most 2-3 words (the country, item or number) to fit the angle; keep every other word and the punctuation. hook_qc must be "${(hookCu as HookQc).id}".` : ''}` : ''), ten: 'de_bai' });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;

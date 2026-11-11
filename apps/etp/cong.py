@@ -121,6 +121,9 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
             if float(ns_moi) > nap: return f"nắp ROI 3 ngày khép ({(r3 + '%') if r3 else 'chưa có số'}) → camp thường trần ${nap:g}, không lên ${float(ns_moi):g} (Dol 09/11/2026: 30–50% ~$10 · 50–80% ~$15 · >80% ~$20, anh duyệt chỉ áp lần tăng mới)"
         # anh 09/11/2026: "ngày mai chỉ lên camp kiểu ROAS nếu có camp phù hợp. Chưa lên camp mới đợi các camp âm tắt hết" → công tắc dừng chặn camp thường, MIỄN camp ROAS
         # CHỈ chặn camp MỚI $1 từ creative (tao_camp) — anh 10/11/2026 "Nhân bản camp thắng vẫn đc. Chỉ chưa cho tạo camp mới $1": nhân bản (NB, thang, ROAS, clone sang bộ) vẫn chạy
+        # CHỐT 3 (apps/etp/tran_len.py, anh 11/11/2026): bộ 3 ngày đã khép ROI < −20% (chi ≥ $10) → không tạo / nhân bản camp mới VÀO bộ đó (lệnh anh trong lượt, ROAS miễn)
+        if viec in ("tao_camp", "nhan_ban") and bo and not ngoai and not roas and not lenh_anh and str(bo) in ((ch.get("tran_len") or {}).get("bo_dung") or []):
+            return f"bộ {bo} đang dừng nhận camp mới — 3 ngày đã khép ROI < −20% (etp.cau_hinh.tran_len.bo_dung, apps/etp/tran_len.py); mở lại khi ROI 3 ngày của bộ hồi"
         if ch.get(KHOA_DUNG_CAMP_MOI) and viec == "tao_camp" and not ngoai and not roas: return f"{LY_DUNG_CAMP_MOI} $1 từ creative (etp.cau_hinh.{KHOA_DUNG_CAMP_MOI} — anh dừng để review) — nhân bản camp thắng / tăng / giảm / tắt vẫn chạy"
         them = float(ns_moi or 1) - float(ns_cu or 0)   # camp mới / nhân bản = $1
         tc = ch.get("tran_camp")

@@ -231,6 +231,18 @@
         7,
         12
       ]
+    },
+    "thi_truong": {
+      "ten": "Thị trường",
+      "mo_ta": "CPM / CPC / ROI từng ngày Ethopex của nhà — lịch nhiệt tháng (xanh rẻ → đỏ đắt so với nền 7 ngày) hoặc bảng 30 ngày; ngày chưa tới là dự đoán theo hệ số mùa lễ (giả định)",
+      "min": [
+        6,
+        8
+      ],
+      "mac": [
+        12,
+        12
+      ]
     }
   },
   "template": {
@@ -571,6 +583,33 @@
           "y": 9,
           "w": 4,
           "h": 9
+        }
+      ]
+    },
+    "thi_truong": {
+      "ten": "Thị trường",
+      "muc": "giá thị trường từng ngày (CPM, CPC) + dự đoán mùa lễ cuối năm: chọn ngày lên camp, tăng / dừng thử",
+      "o": [
+        {
+          "ma": "thi_truong",
+          "x": 0,
+          "y": 0,
+          "w": 8,
+          "h": 18
+        },
+        {
+          "ma": "nam_nhanh",
+          "x": 8,
+          "y": 0,
+          "w": 4,
+          "h": 8
+        },
+        {
+          "ma": "bieu_do_ngay",
+          "x": 8,
+          "y": 8,
+          "w": 4,
+          "h": 10
         }
       ]
     }

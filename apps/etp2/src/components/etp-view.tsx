@@ -2560,13 +2560,14 @@ function NutLamMoi({ dongBo, gon }: { dongBo: DuLieuEtp['dongBo']; gon: boolean 
     style={{ alignSelf: 'center', border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: cho ? 'var(--fg-2)' : 'inherit', cursor: cho ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
     <span style={{ display: 'inline-block', animation: cho ? 'etpXoay 1s linear infinite' : undefined }}>↻</span>{gon ? '' : cho ? ' Đang làm mới…' : ' Làm mới'}{bao ? <span style={{ marginLeft: 6, color: 'var(--fg-2)' }}>{bao}</span> : null}</button>;
 }
-/** CÔNG TẮC LÊN CAMP MỚI ở dòng tiêu đề (anh 09/11/2026): TẮT = etp.cau_hinh.dung_camp_moi true — máy ngưng tạo / nhân bản camp, tăng / giảm / tắt vẫn chạy */
+/** CÔNG TẮC LÊN CAMP MỚI ở dòng tiêu đề (anh 09/11/2026): TẮT = etp.cau_hinh.dung_camp_moi true — máy ngưng tạo camp $1 mới từ creative (cong.kiem tao_camp) + nuôi bộ (apps/etp/nuoi_bo.py);
+ *  nhân bản camp thắng, ROAS, tăng / giảm / tắt vẫn chạy (anh 10/11/2026) */
 function NutLenCamp({ du, gon }: { du: DuLieuEtp; gon: boolean }) {
   const router = useRouter(); const [dang, setDang] = useState(false);
   const bat = du.cauHinh.find((c) => c.khoa === 'dung_camp_moi')?.gia_tri !== true;
-  const bam = async () => { if (!confirm(bat ? 'TẮT lên camp mới? Máy ngưng tạo / nhân bản camp (tăng / giảm / tắt vẫn chạy).' : 'BẬT lên camp mới? Máy tạo camp lại theo lộ trình + trần camp / ngày.')) return;
+  const bam = async () => { if (!confirm(bat ? 'TẮT lên camp mới? Máy ngưng tạo camp $1 mới + nuôi bộ (nhân bản camp thắng, ROAS, tăng / giảm / tắt vẫn chạy).' : 'BẬT lên camp mới? Máy tạo camp $1 mới theo lộ trình + nuôi bộ, trong trần camp mới / ngày (tự tăng theo lãi — apps/etp/tran_len.py).')) return;
     setDang(true); const r = await datLenCamp(!bat); if ('loi' in r) alert(r.loi); setDang(false); router.refresh(); };
-  return <button onClick={bam} disabled={dang} title="công tắc lên camp mới — TẮT: cổng chặn mọi đường tạo / nhân bản camp, lộ trình ngưng xếp dòng"
+  return <button onClick={bam} disabled={dang} title="công tắc lên camp mới — TẮT: cổng chặn tạo camp $1 mới, lộ trình ngưng xếp dòng, ngưng nuôi bộ; nhân bản camp thắng vẫn chạy"
     style={{ alignSelf: 'center', borderRadius: 8, padding: '2px 8px', fontSize: 12, fontWeight: 700, cursor: dang ? 'wait' : 'pointer', whiteSpace: 'nowrap',
       border: `1px solid ${bat ? 'rgba(74,222,128,.5)' : '#d93025'}`, background: bat ? 'rgba(74,222,128,.12)' : '#d93025', color: bat ? '#4ade80' : '#fff' }}>
     {bat ? (gon ? '▶ Lên camp' : '▶ Lên camp mới (David): BẬT') : (gon ? '⏸ Lên camp TẮT' : '⏸ Lên camp mới (David): TẮT')}</button>;

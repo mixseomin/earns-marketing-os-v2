@@ -567,6 +567,17 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     }
     await ghiBq();
   } catch (e) { console.error('phim mới lên camp:', e.message); }
+  // NUÔI BỘ ÍT CAMP (apps/etp/nuoi_bo.py, anh 11/11/2026 "lên thêm camp ở 2 bộ chưa lên camp nào để nuôi tài khoản" · "Ok thì làm"): nhân phim thắng ($1, creative gốc)
+  // sang bộ trong etp.cau_hinh.tran_len.nuoi — phần chia của trần camp mới / ngày (tran_len.py); mọi cổng như nhân bản thường; ≤ 4 camp / nhịp
+  try {
+    const r = JSON.parse((await chay(path.join(REPO, 'apps/etp/nuoi_bo.py'), [], 2700)).trim().split('\n').pop());
+    const da = r.da || [];
+    if (da.length) {
+      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🌱 <b>NUÔI BỘ</b> — nhân phim thắng sang bộ ít camp ($1, creative gốc)\n`
+        + da.map((x) => `${x.ok ? '✓' : '✗'} bộ ${esc(x.bo)} · phim #${esc(x.phim)} (7n ${esc(x.r7)}% · 3n ${esc(x.r3)}%) · gốc #${x.goc}${x.ok ? ` → #${x.moi}` : ` — ${esc(String(x.loi || '').slice(0, 120))}`}`).join('\n') });
+      gui++;
+    }
+  } catch (e) { console.error('nuôi bộ:', e.message); }
   // NHẬN PHIM TỰ ĐỘNG — ĐỘI (anh 02/11/2026: "Khi nhận phim thì nếu là Tự động thì hệ thống sẽ phải tự lên camp luôn"): phim người trong đội ở chế độ Tự động đang giữ, creative
   // kể chuyện tạo sau lúc nhận đã chấm Sạch (view etp.phim_nhan_td buoc cho_len) → nhan-ban.py --creative ở TÀI KHOẢN NGƯỜI NHẬN, bằng phiên Ethopex của họ (ETP_SUA_NGUOI),
   // khuôn = camp gần nhất của người đó cùng tiếng. Lỗi → etp.phim_nhan.loi (tab Phim / ngăn phim hiện, nhan_tu_dong.py báo Telegram); lên được thì xoá lỗi.

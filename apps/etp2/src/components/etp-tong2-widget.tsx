@@ -7,6 +7,7 @@ import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
 import { Dem } from '@/components/etp-so';
+import { congNgay as congN, mauCpm, nen, ngayThiTruong, type SoNgay } from '@/lib/etp-thi-truong';
 
 type ST = { chi: number; thu: number };
 const cong = (rs: ST[]) => rs.reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 });
@@ -48,6 +49,55 @@ function LuyKe({ s, rong, cao }: { s: SoTong2; rong: number; cao: number }) {
       <polyline points={duong(qua)} fill="none" stroke="var(--fg-2)" strokeWidth={1.2} />
       <polyline points={duong(nay)} fill="none" stroke={(nay.at(-1) ?? 0) >= 0 ? XANH : DO} strokeWidth={2.2} />
     </svg>
+  </div>;
+}
+
+/** THỊ TRƯỜNG (anh 11/11/2026 "bảng CPM kia trong 30 ngày gần nhất… hoặc show theo kiểu lịch tháng. Ngày chưa đến thì dự đoán. Dùng màu sắc, số, gradient"):
+ *  lịch nhiệt tháng (ô = ngày Ethopex, màu = CPM so với nền: xanh rẻ → đỏ đắt; ô sọc nét đứt = dự đoán) · bảng 30 ngày + 14 ngày dự đoán. Hàm số: lib/etp-thi-truong.ts */
+function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tranMoi: { tran: number; ly_do: string } | null }; nay: string; rong: number; cao: number }) {
+  const [che, setChe] = useState<'lich' | 'bang'>('lich'); const [th, setTh] = useState(0);
+  const n = nen(t.so, nay), nenCpm = n?.cpm ?? null;
+  const g = new Date(`${nay}T00:00:00Z`), m0 = new Date(Date.UTC(g.getUTCFullYear(), g.getUTCMonth() + th, 1));
+  const dau = m0.toISOString().slice(0, 10), soNgayThang = new Date(Date.UTC(m0.getUTCFullYear(), m0.getUTCMonth() + 1, 0)).getUTCDate();
+  const lech = (m0.getUTCDay() + 6) % 7, soO = Math.ceil((lech + soNgayThang) / 7) * 7, tu = congN(dau, -lech);
+  const ds = che === 'lich' ? ngayThiTruong(t.so, nay, tu, congN(tu, soO - 1)) : ngayThiTruong(t.so, nay, congN(nay, -29), congN(nay, 14)).reverse();
+  const thang = m0.getUTCMonth(), cpm$ = (v: number | null) => (v == null ? '—' : `$${v.toFixed(v >= 100 ? 0 : 1)}`);
+  const nutC = (on: boolean): React.CSSProperties => ({ fontSize: 11, padding: '1px 8px', borderRadius: 5, border: '1px solid var(--line)', background: on ? 'var(--bg-2)' : 'transparent', color: on ? 'var(--fg-1)' : 'var(--fg-3)', cursor: 'pointer' });
+  const dauTrang = <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 11, marginBottom: 4 }}>
+    <span style={{ display: 'inline-flex', gap: 2 }}><button type="button" style={nutC(che === 'lich')} onClick={() => setChe('lich')}>Lịch tháng</button><button type="button" style={nutC(che === 'bang')} onClick={() => setChe('bang')}>Bảng 30 ngày</button></span>
+    {che === 'lich' ? <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><button type="button" style={nutC(false)} disabled={th <= -1} onClick={() => setTh(th - 1)}>◀</button><b>tháng {thang + 1}/{m0.getUTCFullYear()}</b><button type="button" style={nutC(false)} disabled={th >= 2} onClick={() => setTh(th + 1)}>▶</button></span> : null}
+    <span title="màu ô = CPM ngày đó ÷ CPM nền (TB 7 ngày đã khép, đã bỏ hệ số mùa)" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--fg-3)' }}>rẻ<span style={{ width: 70, height: 8, borderRadius: 4, background: `linear-gradient(90deg, ${mauCpm(16, 20, 0.9)}, ${mauCpm(24, 20, 0.9)}, ${mauCpm(32, 20, 0.9)})` }} />đắt</span>
+    <span style={{ color: 'var(--fg-2)' }}>nền CPM {cpm$(nenCpm)} · CPC {n ? `$${n.cpc.toFixed(2)}` : '—'} · ROI {pct(n?.roi ?? null)}</span>
+    {t.tranMoi ? <span title={t.tranMoi.ly_do} style={{ color: 'var(--fg-2)' }}>trần camp mới hôm nay <b>{t.tranMoi.tran}</b></span> : null}
+    <span style={{ color: MO }} title="dự đoán = CPM nền × hệ số mùa (giả định theo lịch bán lẻ Mỹ 2026, chưa đo trên số nhà) · ROI không dự đoán">ô sọc = dự đoán</span>
+  </div>;
+  if (che === 'bang') return <div style={{ fontSize: 11 }}>{dauTrang}<SimpleTable rows={ds} getRowKey={(o) => o.d} rowStyle={(o) => (o.du ? { opacity: 0.75, fontStyle: 'italic' } : o.d === nay ? { fontWeight: 600 } : undefined)} columns={[
+    { key: 'd', header: 'Ngày', cell: (o) => <span>{o.d.slice(8, 10)}/{o.d.slice(5, 7)}{o.d === nay ? ' (hôm nay)' : ''}{o.du ? ' · dự đoán' : ''}{o.le ? <b style={{ color: '#f59e0b' }}> · {o.le}</b> : null}</span> },
+    { key: 'chi', header: 'Chi', align: 'right', cell: (o) => (o.chi == null ? '—' : tien(o.chi)) },
+    { key: 'cpm', header: 'CPM', align: 'right', cell: (o) => <span style={{ display: 'inline-block', minWidth: 52, padding: '0 6px', borderRadius: 4, background: mauCpm(o.cpm, nenCpm), fontVariantNumeric: 'tabular-nums' }}>{cpm$(o.cpm)}</span> },
+    { key: 'so', header: 'So nền', align: 'right', cell: (o) => (o.cpm == null || !nenCpm ? '—' : `${Math.round((o.cpm / nenCpm) * 100)}%`) },
+    { key: 'cpc', header: 'CPC', align: 'right', cell: (o) => (o.cpc == null ? '—' : `$${o.cpc.toFixed(2)}`) },
+    { key: 'roi', header: 'ROI', align: 'right', cell: (o) => <span style={{ color: o.roi == null ? MO : o.roi >= 0 ? XANH : DO }}>{pct(o.roi)}</span> },
+  ]} /></div>;
+  const hang = soO / 7, oH = Math.max(30, Math.floor((cao - 46 - 16 - (hang - 1) * 3) / hang)), rongO = (Math.max(280, rong) - 6 * 3) / 7, to = rongO >= 74 && oH >= 44;
+  return <div style={{ fontSize: 11 }}>{dauTrang}
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+      {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((w) => <div key={w} style={{ textAlign: 'center', color: 'var(--fg-3)', fontSize: 10 }}>{w}</div>)}
+      {ds.map((o) => {
+        const ngoai = new Date(`${o.d}T00:00:00Z`).getUTCMonth() !== thang;
+        const tit = [`${o.d}${o.le ? ` · ${o.le}` : ''}${o.du ? ' · DỰ ĐOÁN' : o.d === nay ? ' · hôm nay (chưa khép)' : ''}`,
+          o.cpm == null ? 'chưa có số' : `CPM ${cpm$(o.cpm)}${nenCpm ? ` = ${Math.round((o.cpm / nenCpm) * 100)}% nền` : ''} · CPC ${o.cpc == null ? '—' : `$${o.cpc.toFixed(2)}`}`,
+          o.du ? `hệ số mùa ×${o.heSo} (giả định)` : `chi ${o.chi == null ? '—' : tien(o.chi)} · ROI ${pct(o.roi)}`].join('\n');
+        return <div key={o.d} title={tit}
+          style={{ height: oH, borderRadius: 6, padding: '2px 5px', overflow: 'hidden', opacity: ngoai ? 0.35 : 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+            background: o.du ? `repeating-linear-gradient(135deg, ${mauCpm(o.cpm, nenCpm, 0.34)} 0 6px, ${mauCpm(o.cpm, nenCpm, 0.16)} 6px 12px)` : mauCpm(o.cpm, nenCpm),
+            border: o.d === nay ? '2px solid var(--fg-1)' : o.du ? '1px dashed var(--fg-3)' : '1px solid var(--line)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 2, color: 'var(--fg-2)', fontSize: 10 }}><span>{Number(o.d.slice(8))}</span>{o.le ? <b style={{ color: '#f59e0b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.le}</b> : o.du ? <span>dự</span> : null}</div>
+          <b style={{ fontSize: to ? 14 : 11, fontVariantNumeric: 'tabular-nums', fontStyle: o.du ? 'italic' : undefined }}>{cpm$(o.cpm)}</b>
+          {to ? <div style={{ fontSize: 10, color: o.roi == null ? MO : o.roi >= 0 ? XANH : DO }}>{o.du ? `×${o.heSo}` : o.roi == null ? ' ' : `ROI ${pct(o.roi)}`}</div> : null}
+        </div>;
+      })}
+    </div>
   </div>;
 }
 
@@ -195,6 +245,7 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
           ]} /> : <span style={{ color: MO }}>máy chưa làm gì trong kỳ</span>}</div>
       </div>;
     },
+    thi_truong: ({ rong, cao }) => (!s ? cho : !s.thiTruong ? <span style={{ color: MO, fontSize: 12 }}>số thị trường chỉ có ở tài khoản nhà</span> : <ThiTruong t={s.thiTruong} nay={s.nay} rong={rong} cao={cao} />),
     tk: ({ rong }) => {
       if (!x) return cho;
       const nhom = x.nguoi.map((p) => ({ p, ds: x.tk.filter((a) => a.n === p.id).sort((a, b) => b.k.chi - a.k.chi) }));

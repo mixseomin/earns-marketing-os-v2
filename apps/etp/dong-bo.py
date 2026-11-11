@@ -156,6 +156,10 @@ def main():
             q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'cpm', 'cpm:{hq}', 'vang', $N$CPM ngày {hq}: ${so[hq]['cpm']:.2f} = {so[hq]['cpm'] / tb * 100:.0f}% trung bình 7 ngày (${tb:.2f}) · ROI {so[hq]['roi']}% · chi ${so[hq]['chi']:.0f} — mùa lễ: xem nhánh A/B tiến độ E05$N$
                   where not exists (select 1 from etp.canh_bao where khoa = 'cpm:{hq}')""")
     except Exception as e: loi.append(f"cpm_ngay: {e}")
+    # ── TRẦN CAMP MỚI THEO LÃI + 3 CHỐT CHẶN (apps/etp/tran_len.py, anh 11/11/2026 "tăng theo lãi trước đó … đi từ dưới lên"): TRƯỚC mùa lễ — mua_le lấy số này làm trần gốc
+    try:
+        import tran_len as TL; kq["tran_len"] = TL.chay(q)
+    except Exception as e: loi.append(f"tran_len: {e}")
     # ── MÙA LỄ MỸ tự chạy (apps/etp/mua_le.py — khoá tăng 25–30/11, nhánh A/B 26–30/11, sau Giáng sinh 26/12–05/01; Telegram chỉ báo)
     try:
         import mua_le as ML; kq["mua_le"] = ML.chay(q)

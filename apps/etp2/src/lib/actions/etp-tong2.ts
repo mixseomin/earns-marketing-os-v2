@@ -9,6 +9,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp, xemNha } from '@/lib/etp-quyen';
 import { luatDaLam } from '@/lib/etp-doc';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
+import type { SoNgay } from '@/lib/etp-thi-truong';
 
 export type SoTong2 = {
   nay: string; gio: number;   // ngày Ethopex hôm nay (UTC) + giờ UTC hiện tại
@@ -25,6 +26,8 @@ export type SoTong2 = {
   /** PHÂN BỔ NGÂN SÁCH (anh 02/11/2026 "kế hoạch này hãy cho vào Tổng quan 2"): camp nhà đang bật chia nhóm theo 3 ngày đã khép (sống, mỗi lần tải) + mục tiêu / cách làm
    *  đọc etp.cau_hinh 'phan_bo' (sửa kế hoạch = sửa cấu hình, không cần deploy) · trần ngày etp.cau_hinh 'tran_ngay' — chỉ nhà */
   phanBo: { tran: number | null; tong: number; nhom: { ma: string; ten: string; camp: number; ns: number; chi3: number; thu3: number; muc: [number, number] | null; cach: string }[] } | null;
+  /** THỊ TRƯỜNG (anh 11/11/2026): CPM / CPC / ROI từng ngày Ethopex của nhà (etp.cau_hinh.cpm_ngay, dong-bo.py ghi) + trần camp mới đang áp (tran_len) — chỉ nhà */
+  thiTruong: { so: Record<string, SoNgay>; tranMoi: { tran: number; ly_do: string } | null } | null;
 };
 
 const so = (v: unknown) => Number(v ?? 0) || 0;
@@ -68,7 +71,7 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
         from etp.camp c left join etp.so_ngay s using (camp_id) where c.trang_thai = 'ACTIVE' group by c.camp_id)
       select case when tao > now() - interval '3 days' then 'test' when chi3 >= 1 and thu3 >= chi3 * 1.3 then 'lai_cao' when chi3 >= 1 and thu3 >= chi3 then 'lai_mong'
         when chi3 >= 1 and thu3 >= chi3 * 0.85 then 'lo_nhe' when chi3 >= 1 then 'lo_nang' else 'chua_so' end ma, count(*)::int camp, sum(ns) ns, sum(chi3) chi3, sum(thu3) thu3 from x group by 1`) : Promise.resolve([]),
-    nha ? run<{ khoa: string; gia_tri: unknown }>(sql`select khoa, gia_tri from etp.cau_hinh where khoa in ('phan_bo', 'tran_ngay')`) : Promise.resolve([]),
+    nha ? run<{ khoa: string; gia_tri: unknown }>(sql`select khoa, gia_tri from etp.cau_hinh where khoa in ('phan_bo', 'tran_ngay', 'cpm_ngay', 'tran_len')`) : Promise.resolve([]),
   ]);
   const boCua = new Map(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [Number(b.tk), k]));
   const tkN = new Map(tk.map((t) => [t.id, t.n]));
@@ -90,6 +93,12 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
     daLam: [...lam.reduce((m, r) => { const k = `${r.d}|${r.viec}|${luatDaLam(r.viec, r.luat)}`; m.set(k, (m.get(k) ?? 0) + r.n); return m; }, new Map<string, number>())]
       .map(([k, n]) => { const [d, viec, ten] = k.split('|'); return { d: d!, viec: viec!, luat: ten!, n }; }),
     phim: phim.filter((x) => cua(x.n)).map((x) => ({ p: x.p, ten: x.ten ?? `#${x.p}`, n: x.n, chi: so(x.chi), thu: so(x.thu) })),
+    thiTruong: nha ? (() => {
+      const ch = Object.fromEntries(pbCh.map((r) => [r.khoa, r.gia_tri])) as { cpm_ngay?: Record<string, { chi?: number; cpm?: number; cpc?: number; roi?: number | null }>; tran_len?: { tran?: number; ly_do?: string } };
+      const so_: Record<string, SoNgay> = {};
+      for (const [d, v] of Object.entries(ch.cpm_ngay ?? {})) so_[d] = { chi: so(v.chi), cpm: so(v.cpm), cpc: so(v.cpc), roi: v.roi == null ? null : so(v.roi) };
+      return { so: so_, tranMoi: ch.tran_len?.tran == null ? null : { tran: so(ch.tran_len.tran), ly_do: String(ch.tran_len.ly_do ?? '') } };
+    })() : null,
     phanBo: nha ? (() => {
       const ch = Object.fromEntries(pbCh.map((r) => [r.khoa, r.gia_tri])) as { phan_bo?: { nhom?: { ma: string; ten: string; muc?: [number, number] | null; cach?: string }[] }; tran_ngay?: number | null };
       const dem = new Map(pbNhom.map((r) => [r.ma, r]));

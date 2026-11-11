@@ -1056,6 +1056,7 @@ export const LUAT = [
   { card: 'chat', tep: V, co: "...(tab === 'tong' ? { display: 'none' } : {})", vi: 'Tổng quan (lưới widget) ẩn dải số đầu trang để lưới vừa một màn' },
   { card: 'chat', tep: 'apps/web/src/components/etp-tong2.tsx', co: 'const hep = kt.w < 700;', vi: 'Tổng quan 2 điện thoại: một widget một lúc, không lưới 12 cột' },
   { card: 'chat', tep: 'apps/web/src/lib/actions/etp-tong2.ts', co: 'const cua = (n: number | undefined) => chiNg == null || n === chiNg;', vi: 'Tổng quan 2: vai người chỉ nhận số của mình' },
+  { card: 'phan-loai-1211', tep: 'apps/etp/phan_loai_cr.py', co: "order by exists (select 1 from etp.camp_ngoai k where k.creative_id = c.creative_id and k.trang_thai = 'ACTIVE') desc", vi: 'phân loại creative camp đang chạy trước' },
   { card: 'phan-loai-1211', tep: 'apps/etp/dong-bo.py', co: '"phan_loai_cr.py"), "--team", "--toi-da", "30"]', vi: 'creative đội chấm xong tự được phân loại mỗi lượt đồng bộ (anh 12/11/2026)' },
   { card: 'phan-loai-1211', tep: 'apps/etp/phan_loai_cr.py', co: "where p.creative_id = c.creative_id and not p.mau_thu and p.ap and c.dang = 'team'", vi: 'máy chỉ thay nhãn tạm team, không đè dạng nhà' },
   { card: 'phan-loai-1211', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "nullif(crn.dang, 'team') dang", vi: 'trang etp2 xem người team đọc dạng thật, không gán cứng null' },

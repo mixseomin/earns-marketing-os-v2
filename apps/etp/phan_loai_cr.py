@@ -39,11 +39,11 @@ SCHEMA = {"type": "object", "required": ["dang", "tin_cay", "ly_do", "dau_hieu"]
     "dau_hieu": {"type": "object", "properties": {"long_tieng_ke": {"type": "boolean"}, "anh_dung_yen": {"type": "boolean"}, "co_chu_free": {"type": "boolean"},
                                                    "mo_dau": {"type": "string"}, "kieu_la": {"type": "string"}}}}}
 
-def du_lieu(where, gioi_han=None):
+def du_lieu(where, gioi_han=None, xep=""):
     return qj(f"""select c.creative_id, c.dang, h.lop->'anh'->>'giay' giay, h.lop->'anh'->'khung_url' khung, h.lop->'chu'->>'noi_dung' chu, h.lop->'chu'->'cta' cta,
                     h.lop->'giong'->>'noi_dung' giong, h.lop->'noi_dung'->>'tom_tat' tom_tat
                   from etp.creative c join etp.cham h using (creative_id) where jsonb_array_length(coalesce(h.lop->'anh'->'khung_url', '[]')) >= {SO_KHUNG} and {where}
-                  {f'limit {int(gioi_han)}' if gioi_han else ''}""")
+                  {xep} {f'limit {int(gioi_han)}' if gioi_han else ''}""")
 
 def mot(x):
     k = x.get("khung") or []; idx = sorted({round(i * (len(k) - 1) / (SO_KHUNG - 1)) for i in range(SO_KHUNG)})
@@ -96,7 +96,9 @@ def main(a):
     if "--team" in a:
         toi = int(a[a.index("--toi-da") + 1]) if "--toi-da" in a else 30
         q(BANG)
-        ds = du_lieu("c.dang = 'team' and not exists (select 1 from etp.phan_loai p where p.creative_id = c.creative_id and not p.mau_thu)", toi)
+        # creative của camp ĐANG CHẠY trước, mới nhất trước (12/11/2026: lượt đầu lấy bừa 500 / 1.175 → rơi vào camp đã tắt, 369 creative đang chạy vẫn 'team')
+        ds = du_lieu("c.dang = 'team' and not exists (select 1 from etp.phan_loai p where p.creative_id = c.creative_id and not p.mau_thu)", toi,
+                     "order by exists (select 1 from etp.camp_ngoai k where k.creative_id = c.creative_id and k.trang_thai = 'ACTIVE') desc, c.creative_id desc")
         if not ds: print("phân loại đội: không có creative mới"); return
         rows = ghi(chay(ds), False)
         print(f"phân loại đội: {len(rows)} creative · ghi dạng {sum(r['ap'] for r in rows)} · khác / chưa chắc {sum(not r['ap'] for r in rows)} · {sum(r['vnd'] for r in rows):.1f}₫ · "

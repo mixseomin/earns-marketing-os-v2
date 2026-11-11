@@ -34,11 +34,13 @@ export function trenApp(): boolean {
 
 // NẠP khung lên folder Default qua fetch (base64 → Blob → FormData). Trả mediaId (id ảnh vừa nạp) hoặc null.
 // base64 nạp theo MẢNH vào window.__b64 để không vượt giới hạn độ dài tham số lệnh (ảnh ~600KB → base64 ~800KB).
+// Loại tệp nạp (11/11/2026: thêm âm thanh cho đường khớp môi — narration nạp file giọng vào thư mục 'audio')
+const loaiTep = (f: string) => /\.mp3$/i.test(f) ? { mime: 'audio/mpeg', duoi: 'mp3' } : /\.wav$/i.test(f) ? { mime: 'audio/wav', duoi: 'wav' } : /\.jpe?g$/i.test(f) ? { mime: 'image/jpeg', duoi: 'jpg' } : { mime: 'image/png', duoi: 'png' };
 export async function napKhung(file: string, catDefault: number): Promise<number | null> {
   const b64 = readFileSync(file).toString('base64');
   brEval(`window.__b64=""`);
   for (let i = 0; i < b64.length; i += 300_000) brEval(`window.__b64+=${JSON.stringify(b64.slice(i, i + 300_000))}`);
-  const res = brEval<string>(`(async()=>{const s=window.__b64;const bin=atob(s);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);const fd=new FormData();fd.append("file",new Blob([a],{type:"${/\.jpe?g$/i.test(file) ? 'image/jpeg' : 'image/png'}"}),"f.${/\.jpe?g$/i.test(file) ? 'jpg' : 'png'}");fd.append("categoryId","${catDefault}");const r=await fetch("/library/upload/4",{method:"POST",headers:{"X-Requested-With":"XMLHttpRequest"},body:fd});return (await r.text()).trim().slice(0,50)})()`);
+  const res = brEval<string>(`(async()=>{const s=window.__b64;const bin=atob(s);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);const fd=new FormData();fd.append("file",new Blob([a],{type:"${loaiTep(file).mime}"}),"f.${loaiTep(file).duoi}");fd.append("categoryId","${catDefault}");const r=await fetch("/library/upload/4",{method:"POST",headers:{"X-Requested-With":"XMLHttpRequest"},body:fd});return (await r.text()).trim().slice(0,50)})()`);
   brEval(`window.__b64=""`);
   if (!/^OK$/i.test(res)) { console.log(`  ! upload hỏng: ${res}`); return null; }
   const moi = getMedia(catDefault, 1).results[0];           // ảnh mới nhất = ảnh vừa nạp (upload đồng bộ)
@@ -52,13 +54,15 @@ export async function napKhung(file: string, catDefault: number): Promise<number
 // faceMediaId (01/11/2026): ảnh MẶT nhân vật → faceImageMediaId + faceSwap=1 — khung đầu không thấy mặt (chụp sau vai) thì model bịa mặt khi người quay ra máy
 //   (A/B #2→#3 phim #353: 4/4 lượt trôi mặt); neo mặt bằng ảnh như @image của Seedance.
 // aspect (02/11/2026): khổ của phim — trước đây ghi cứng 9:16, phim ngang 16:9 (MV gag) cần '16:9'.
-export function guiShot(mediaId: number, prompt: string, enhance = true, lastMediaId = 0, faceMediaId = 0, aspect: '9:16' | '16:9' | '1:1' = '9:16'): string | null {
+// audioMediaId (11/11/2026, anh "voice làm sao khớp môi" → "làm giọng thế đi"): file GIỌNG của studio (MiniMax / ElevenLabs) đã nạp vào thư mục audio →
+//   isNarrationVideo=1 — VideoExpress dựng clip miệng nhép theo đúng file đó (giọng cố định từng nhân vật, đúng từng chữ, không in phụ đề lạ).
+export function guiShot(mediaId: number, prompt: string, enhance = true, lastMediaId = 0, faceMediaId = 0, aspect: '9:16' | '16:9' | '1:1' = '9:16', audioMediaId = 0): string | null {
   const noi = lastMediaId > 0;
   const body = [
     'type=human', 'imagePrompt=', `prompt=${encodeURIComponent(prompt)}`, 'uuid=', `mediaId=${mediaId}`,
     'lastFrameUuid=', `lastFrameMediaId=${noi ? lastMediaId : 0}`,
-    'audioMediaId=0', 'isShared=0', `aspect=${encodeURIComponent(aspect)}`, 'enhanceHumanFace=0', 'isTalkingVideoFromText=0',
-    'isNarrationVideo=0', `enhanceVideoPrompt=${enhance ? 1 : 0}`, 'videoOnly=0', 'speed=', `generatorName=${noi ? 'first_last_frame' : 'create_from_prompt'}`,
+    `audioMediaId=${audioMediaId}`, 'isShared=0', `aspect=${encodeURIComponent(aspect)}`, 'enhanceHumanFace=0', 'isTalkingVideoFromText=0',
+    `isNarrationVideo=${audioMediaId ? 1 : 0}`, `enhanceVideoPrompt=${enhance ? 1 : 0}`, 'videoOnly=0', 'speed=', `generatorName=${noi ? 'first_last_frame' : 'create_from_prompt'}`,
     `faceImageMediaId=${faceMediaId}`, `faceSwap=${faceMediaId ? 1 : 0}`, 'mode=',
   ].join('&');
   const r = brEval<{ success?: boolean; uuid?: string; message?: string }>(

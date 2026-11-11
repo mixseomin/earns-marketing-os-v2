@@ -26,12 +26,13 @@ const psql = (cau: string): string => execFileSync('ssh', [BOX, 'cd /opt/earns-m
 const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
 
 type Vx = { uuid?: string; media_id?: number; luc?: string; prompt?: string; xong?: string };
-type Shot = { id: number; so: number; kf: string | null; pv: string | null; hd: string | null; vx: Vx | null };
+type Dong = { nhan_vat?: string; dien_xuat?: string; tre?: number; url?: string };
+type Shot = { id: number; so: number; kf: string | null; pv: string | null; hd: string | null; vx: Vx | null; thoai: Dong[] | null; phat: number | null };
 const ttPhim = JSON.parse(psql(`SELECT json_build_object('ti_le', p.kinh_thanh->>'ti_le', 'chat', p.kinh_thanh->>'chat_lieu', 'pc', p.kinh_thanh->>'phong_cach')
   FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId};`) || '{}') as { ti_le?: string; chat?: string; pc?: string };
 const kho = (['16:9', '9:16', '1:1'].includes(ttPhim.ti_le ?? '') ? ttPhim.ti_le : '9:16') as '16:9' | '9:16' | '1:1';
 const docShot = (): Shot[] => JSON.parse(psql(`SELECT coalesce(json_agg(x ORDER BY x.so), '[]') FROM (SELECT id, thu_tu::int AS so, nullif(keyframe_url, '') AS kf,
-  prompt_video AS pv, hanh_dong AS hd, ky_thuat->'vx' AS vx FROM xv_canh c WHERE tap_id = ${tapId}) x;`) || '[]') as Shot[];
+  prompt_video AS pv, hanh_dong AS hd, ky_thuat->'vx' AS vx, thoai, phat_s AS phat FROM xv_canh c WHERE tap_id = ${tapId}) x;`) || '[]') as Shot[];
 const ghiVx = (id: number, vx: Vx) => psql(`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vx}', ${q(JSON.stringify(vx))}::jsonb), updated_at = now() WHERE id = ${id};`);
 
 // PROMPT CHUẨN của studio (sinh-shot.mts --prompt-json → promptVideoCanh: thẻ shot, sơ đồ cảnh, sổ đồ vật, thoại tiếng Việt, whitelist) — anh 11/11/2026
@@ -56,6 +57,27 @@ const batDau = Date.now();
 const canGui = (s: Shot) => s.kf && (lai.has(s.so) || (!s.vx?.uuid && !s.vx?.xong));
 for (const s of ds) if (lai.has(s.so)) s.vx = null;
 
+// KHỚP MÔI THEO GIỌNG STUDIO (anh 11/11/2026 "voice làm sao khớp môi" → "làm giọng thế đi"): shot có người NÓI TRONG KHUNG và mọi dòng đã có file giọng
+// → ghép một file giọng cho cả shot, đặt từng câu đúng mốc bản xuất sẽ đặt (am-thanh.ts: tDong = max(tDong, tre), +0,15 s giữa câu) → nạp vào thư mục audio →
+// image2video narration: miệng nhép theo đúng file. Clip KHÔNG mang tiếng về (bản xuất lồng giọng từ thoai[].url) và vao_s = 0 để mốc môi trùng mốc giọng.
+// Câu ngoài khung / lời dẫn không cần khớp môi — clip câm, chỉ lồng giọng.
+const trongKhung = (d: Dong) => !!d.nhan_vat?.trim() && !/ngoài khung|v\.?o\.?|lời dẫn|off/i.test(d.dien_xuat ?? '');
+const coThoai = (s: Shot) => (s.thoai ?? []).some((d) => d.url);
+const canKhopMoi = (s: Shot) => (s.thoai ?? []).some(trongKhung) && (s.thoai ?? []).every((d) => d.url);
+const daiAm = (f: string) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim());
+function giongShot(s: Shot): string {
+  const phat = s.phat ?? 4; let t = 0; const vao: string[] = [], loc: string[] = [];
+  (s.thoai ?? []).forEach((d, i) => {
+    const f = join(thu, `g-${s.so}-${i}.mp3`); execFileSync('curl', ['-sfL', '-o', f, d.url!], { timeout: 60e3 });
+    if (typeof d.tre === 'number' && d.tre > t) t = Math.min(d.tre, Math.max(0, phat - 0.2));
+    vao.push('-i', f); loc.push(`[${i}:a]aresample=48000,adelay=${Math.round(t * 1000)}|${Math.round(t * 1000)}[a${i}]`);
+    t += daiAm(f) + 0.15;
+  });
+  const ra = join(thu, `giong-${s.so}.mp3`), n = (s.thoai ?? []).length;
+  execFileSync('ffmpeg', ['-v', 'error', '-y', ...vao, '-filter_complex', `${loc.join(';')};${(s.thoai ?? []).map((_, i) => `[a${i}]`).join('')}amix=inputs=${n}:normalize=0,apad=whole_dur=${Math.max(phat, t).toFixed(2)}[o]`, '-map', '[o]', '-ac', '2', '-b:a', '192k', ra]);
+  return ra;
+}
+
 /** Clip đã render xong → tải về, tách tiếng, đẩy lên box, gắn vào shot (gan-clip-ngoai --giu-nhip). */
 function gan(s: Shot, mp4Url: string): string {
   const v = join(thu, `vx-${s.so}.mp4`), a = join(thu, `vx-${s.so}.wav`), n = join(thu, `vx-${s.so}.json`);
@@ -65,7 +87,8 @@ function gan(s: Shot, mp4Url: string): string {
   const dich = `/tmp/vx-tap-${tapId}`;
   execFileSync('ssh', [BOX, `mkdir -p ${dich}`]);
   execFileSync('scp', ['-q', v, a, n, `${BOX}:${dich}/`]);
-  const ra = execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/gan-clip-ngoai.mts --canh=${s.id} --video=${dich}/vx-${s.so}.mp4 --am=${dich}/vx-${s.so}.wav --nguon=${dich}/vx-${s.so}.json --giu-nhip && rm -f ${dich}/vx-${s.so}.*`], { encoding: 'utf8', timeout: 300e3 }).trim();
+  const ra = execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/gan-clip-ngoai.mts --canh=${s.id} --video=${dich}/vx-${s.so}.mp4 ${coThoai(s) ? '' : `--am=${dich}/vx-${s.so}.wav `}--nguon=${dich}/vx-${s.so}.json --giu-nhip && rm -f ${dich}/vx-${s.so}.*`], { encoding: 'utf8', timeout: 300e3 }).trim();
+  if (coThoai(s)) psql(`UPDATE xv_canh SET am_thanh_url = NULL${canKhopMoi(s) ? `, ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', '0'::jsonb)` : ''} WHERE id = ${s.id};`);
   return ra.split('\n').pop() ?? '';
 }
 
@@ -96,10 +119,12 @@ while (Date.now() - batDau < HAN_PHUT * 60e3) {
     try { mediaId = await napKhung(f, catDefault); } catch (e) { console.log(`#${s.so}: ! nạp keyframe lỗi, thử lại nhịp sau — ${String(e).split('\n')[0]!.slice(0, 160)}`); break; }
     if (!mediaId) { console.log(`#${s.so}: ✗ nạp keyframe hỏng — DỪNG gửi`); hetLuot = true; break; }
     const prompt = cauPrompt(s);
-    const uuid = guiShot(mediaId, prompt, false, 0, 0, kho);
+    let amId = 0;
+    if (canKhopMoi(s)) { try { amId = (await napKhung(giongShot(s), catId('audio'))) ?? 0; } catch (e) { console.log(`#${s.so}: ! nạp giọng lỗi — ${String(e).split('\n')[0]!.slice(0, 160)}`); } if (!amId) { console.log(`#${s.so}: ✗ không nạp được giọng — bỏ shot này`); continue; } }
+    const uuid = guiShot(mediaId, prompt, false, 0, 0, kho, amId);
     if (!uuid) { console.log(`#${s.so}: ✗ VideoExpress từ chối (có thể hết lượt ngày) — DỪNG gửi`); hetLuot = true; break; }
     s.vx = { uuid, media_id: mediaId, luc: new Date().toISOString(), prompt }; ghiVx(s.id, s.vx); lai.delete(s.so);
-    console.log(`#${s.so}: → gửi job ${uuid.slice(0, 8)}`); cho++;
+    console.log(`#${s.so}: → gửi job ${uuid.slice(0, 8)}${amId ? ' (khớp môi theo giọng)' : ''}`); cho++;
     await ngu(1500);
   }
   const con = ds.filter((s) => s.kf && !s.vx?.xong).length;

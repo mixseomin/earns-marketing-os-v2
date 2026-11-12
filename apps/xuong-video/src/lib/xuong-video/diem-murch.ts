@@ -10,7 +10,7 @@ import { giayPhat } from './kieu';
 import { camXucDo, loiMachBieuCam } from './qc-cam-xuc';
 import { loiMachTap, matQuayDi, vuotTruc, shotSoTruc, chuThe, boSetCuaShot, loiHinhHoc, VAI_GOC_RIENG, PT_THAY, nguoiNoiKhongThayMat, thoaiToanCanh, nguoiNoiTrongKhung } from './bo-set-3d';
 import { giayDoc } from './nhip-hinh';
-import { tiengGiay, docCachDien, SAN_TIENG_GIAY } from './giong';
+import { tiengGiay, docCachDien, SAN_TIENG_GIAY } from './toc-noi';
 import { coKhongGian, kgCua, nguoiKhung, thayMat, viTri, type KhongGianTap } from './khong-gian';
 
 export type TieuChi = 'cam_xuc' | 'truyen' | 'nhip' | 'eye_trace' | 'hai_chieu' | 'ba_chieu';

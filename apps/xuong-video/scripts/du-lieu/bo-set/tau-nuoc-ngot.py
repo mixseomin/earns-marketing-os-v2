@@ -20,9 +20,10 @@ SD['shot'].update({
 })
 SD['shot']['4']['sd']['may'] = 'mat_nhoc'   # nhóc nghe xong dặn: thấy MẶT (máy cũ phía đông-nam chỉ thấy lưng / gáy)
 SD['shot']['5']['sd']['may'] = 'chu_nhin_tiem'    # chú gọi với theo nhóc chạy về tiệm: cận vừa thấy mặt, không toàn ga
-SD['shot']['1']['sd']['may'] = 'chu_tu_duoi'      # nhìn quanh: thấy mặt chú đảo mắt từ đầu ga sang giữa ga
+SD['shot']['7']['sd']['may'] = 'chu_nhin_tiem'     # chú sốt ruột chờ, nhìn về tiệm: máy trước mặt (can_chu phía nam chỉ thấy gáy — đo 116°)
+SD['shot']['1']['sd']['may'] = 'chu_thay_nhoc'    # nhìn quanh rồi thấy nhóc: CÙNG máy với cận phản ứng #3 (glance và reaction một góc — Murch: hướng máy chủ các cận chú)
 C['may'].update({
-    'mat_nhoc_xa': {'dat': [0.75, 7.3], 'nhin': [1.0, 9], 'cao': 1.0, 'ong': 50},   # hướng máy ≤ 45° với các cận nhóc khác (#8, #15) — hậu cảnh không nhảy     # trước mặt nhóc ở giữa sân ga, cùng phía trục với mọi máy; lệch đông 0,5 m khỏi đường nhóc chạy về ô cửa
+    'mat_nhoc_xa': {'dat': [2.6, 7.1], 'nhin': [1.0, 9], 'cao': 1.0, 'ong': 50},   # phía đông-nam nhóc: hướng máy 130° nằm trong ±45° hướng chủ cảnh (153°) mà vẫn thấy 3/4 mặt nhóc nhìn về ô cửa   # hướng máy ≤ 45° với các cận nhóc khác (#8, #15) — hậu cảnh không nhảy     # trước mặt nhóc ở giữa sân ga, cùng phía trục với mọi máy; lệch đông 0,5 m khỏi đường nhóc chạy về ô cửa
     # QUA VAI CHÚ (reverse shot): máy lơ lửng ngay ngoài ô cửa, cao ngang vai chú, nhìn xuống mặt nhóc đang ngước lên — máy đặt dưới sân ga chỉ thấy gáy nhóc
     'mat_nhoc': {'dat': [-0.92, 4.45], 'nhin': [-0.2, 5], 'cao': 1.7, 'ong': 35},
     # CẬN CHÚ TỪ TẦM MẮT NHÓC: máy thấp trên sân ga cạnh chỗ nhóc, ngước lên mặt chú đang nhoài ra cúi nhìn xuống — máy cao (mat_chu 2,35 m) chỉ thấy đỉnh đầu
@@ -218,7 +219,10 @@ for ma, v in SD['shot'].items():
     if ma == '3': may[ma].update(MAY_HAI)
     # VIDEO THÔ: máy đặt sao giữ vậy (khoa_nhin) — để Blender tự ngắm lại thì #9 quay về điểm giữa 4 chủ thể, #12 xoay dần ở khung kết trông như rung
     may[ma]['khoa_nhin'] = True
-    if ma == '9': may[ma].update({'dat': [190, 330, 150], 'nhin': [80, 950, 120], 'ong_kinh': 32, 'nham': 'Nhóc', 'khung': ['Nhóc', 'Chú']})   # lia theo nhóc đi về tới ô cửa
+    if ma == '9': may[ma].update({'dat': [250, 200, 160], 'nhin': [-30, 700, 120], 'ong_kinh': 26, 'khung': ['Nhóc', 'Chú']})   # TỔNG THỂ cảnh "Quay về": đứng yên thấy cả chú ở ô cửa lẫn đường nhóc đi về (Murch: thiếu tổng thể + lệch hướng chủ 49° khi lia theo nhóc)
+    if ma == '8': may[ma].update({'dat': [254, 960, 100], 'nhin': [90, 1150, 110], 'ong_kinh': 50})   # nhóc vừa đi vừa uống: máy phía đông-nam, hướng 130° (hướng chủ cảnh 150°) thấy 3/4 mặt
+    if ma == '12': may[ma].update({'dat': [100, 800, 170], 'nhin': [-128, 520, 220], 'ong_kinh': 35})   # chú nhìn theo nhóc khi tàu chuyển bánh: máy phía bắc thấy mặt (theo_cua_so phía đông: nghiêng 90°)
+    if ma == '11': may[ma].update({'dat': [150, 100, 160], 'nhin': [-60, 900, 120], 'ong_kinh': 26})   # TỔNG THỂ cảnh "Tiền thừa": thấy chú + nhóc ở ô cửa và đường nhóc chạy về cuối ga (hướng 105°)
     if ma == '2': may[ma]['ong_kinh'] = 50   # POV từ ô cửa: nhóc to hơn trong khung
     # dây vàng: đường nhóc đi trong shot (tam → den) vẽ sát sàn + mũi tên ở cuối — người xem thấy ngay nhóc đi đâu
     for x in vt:
@@ -234,7 +238,8 @@ for ma, v in SD['shot'].items():
 # #13 CẬN PHẢN ỨNG chốt cảnh (anh 12/11/2026 "đoạn cuối cần shot mặt gần của Chú để rõ cảm xúc" — ngành: close-up reaction shot, kiểu hài double take /
 # slow burn, chốt cảnh = button): nối hướng nhìn từ cuối #12 (nhìn theo nhóc) → cúi nhìn nắm tiền thừa → ngẩng lên nhìn lại, mặt đứng hình; máy đẩy chậm vào mặt
 M['tay_chu'] = [CHU[0] + 30, CHU[1] - 6, CHU[2] + 125]   # nắm tiền đưa lên ngang ngực
-may['13'] = {'dat': [-30, 468, 228], 'nhin': [-125, 505, 222], 'ong_kinh': 42, 'khoa_nhin': True, 'khung': ['Chú'],   # khung ôm mặt + nắm tiền khi chú đưa lên nhìn
+may['13'] = {'dat': [-45, 650, 228], 'nhin': [-125, 505, 222], 'ong_kinh': 42,   # trước mặt chú đang nhìn theo nhóc về phía bắc (máy cũ phía nam: mặt lệch 98°, cận phản ứng không thấy mặt)
+             'khoa_nhin': True, 'khung': ['Chú'],   # khung ôm mặt + nắm tiền khi chú đưa lên nhìn
              'vi_tri': [{'ten': 'Chú', 'tam': CHU, 'huong': 170, 'nhin_ai': 'nhoc_xa', 'nhin_ai_den': 'nhoc_xa',
                          'nhip': [{'u': 0, 'nhin': 'nhoc_xa'}, {'u': 0.33, 'nhin': 'nhoc_xa'}, {'u': 0.45, 'nhin': 'tay_chu'}, {'u': 0.6, 'nhin': 'tay_chu'}, {'u': 0.72, 'nhin': 'nhoc_xa'}],
                          'dien': ['xem@0.3-0.76']},   # gập khuỷu đưa nắm tiền thừa lên trước ngực khi cúi nhìn — khung phải thấy chú nhìn CÁI GÌ

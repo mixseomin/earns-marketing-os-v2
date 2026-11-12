@@ -15,17 +15,20 @@ ssh $BOX "cd $APP && set -a; . ../../.env.production; set +a; rm -rf /tmp/dien-t
 rsync -aq $BOX:/tmp/dien-tap$TAP/ "$RA/vao/"
 python3 -I - "$RA" "$CHI" <<'PY'
 import json, glob, sys, os
-ra, chi = sys.argv[1], [int(x) for x in sys.argv[2].split(',') if x]
-giay = {l.split()[0]: (int(l.split()[1]), float(l.split()[2])) for l in open(f'{ra}/vao/giay.txt') if l.strip()}
+# thu_tu là numeric (máy chủ in '1.0000'; shot chèn giữa có '2.5') → đọc số thực, nhãn thư mục: 01 cho số nguyên, 02.5 cho số lẻ
+so_ = lambda x: (lambda f: int(f) if f.is_integer() else f)(float(x))
+nhan = lambda so: f'{so:02d}' if isinstance(so, int) else f'{so:04.1f}'
+ra, chi = sys.argv[1], [so_(x) for x in sys.argv[2].split(',') if x]
+giay = {l.split()[0]: (so_(l.split()[1]), float(l.split()[2])) for l in open(f'{ra}/vao/giay.txt') if l.strip()}
 ds = []
 for f in glob.glob(f'{ra}/vao/*/p*.json'):
     d = json.load(open(f))
     for s in d['shot']:
         so, g = giay.get(s['ma'], (s.get('so', 0), 4))
         if chi and so not in chi: continue
-        os.makedirs(f"{ra}/{so:02d}-{s['ma']}", exist_ok=True)
-        json.dump({**d, 'shot': [s]}, open(f"{ra}/{so:02d}-{s['ma']}/vao.json", 'w')); ds.append((so, s['ma'], g))
-open(f'{ra}/viec.txt', 'w').write('\n'.join(f'{so:02d}-{ma} {ma} {g}' for so, ma, g in sorted(ds)) + '\n')
+        os.makedirs(f"{ra}/{nhan(so)}-{s['ma']}", exist_ok=True)
+        json.dump({**d, 'shot': [s]}, open(f"{ra}/{nhan(so)}-{s['ma']}/vao.json", 'w')); ds.append((so, s['ma'], g))
+open(f'{ra}/viec.txt', 'w').write('\n'.join(f'{nhan(so)}-{ma} {ma} {g}' for so, ma, g in sorted(ds)) + '\n')
 PY
 # XV_NHAP=1 = BẢN NHÁP (playblast, anh 16/10/2026 "tao chỉ cần xem bản nháp cho nhanh"): EEVEE 360px, 4 mẫu, lông thưa.
 # MỘT SHOT MỘT LÚC, ưu tiên NỀN của macOS (taskpolicy -b: chỉ dùng CPU dư, việc của anh luôn đi trước) — anh 22/10/2026 "ko được chạy song song

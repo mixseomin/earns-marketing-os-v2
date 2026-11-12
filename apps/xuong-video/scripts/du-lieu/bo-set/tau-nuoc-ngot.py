@@ -4,8 +4,9 @@
 import json, math
 SD = json.load(open('mau/phim-mau-tau-nuoc-ngot-khong-gian.json'))
 C = SD['chung']['so_do']; M = {k: [v[0] * 100, v[1] * 100] for k, v in C['moc'].items()}
+M['duoi_cua_so'] = [-20, 500]   # nhóc đứng sát mép sân ga (mép x = -60) — tầm tay với chú ở ô cửa để trao tiền (sơ đồ 2D đặt 0,4 m: quá xa tay)
 TAU = [-260, 600, 0]          # tâm đáy khối tàu (cm); vách đông ở x = -103, cửa sổ của chú y 440–560, z 150–240
-CHU = [-150, 500, 40]         # chú đứng trong toa, sàn toa cao 40
+CHU = [-95, 500, 40]          # chú NGHIÊNG NGƯỜI ra ô cửa (vách x = -103): đứng sâu trong toa thì vách che mất ở mọi góc chéo (video thô 12/11: #3 #5 #9 #11 không thấy chú)
 def huong(tu, den): return round(math.degrees(math.atan2(den[0] - tu[0], -(den[1] - tu[1]))))   # 0 = nhìn −y (về máy chính), 90 = nhìn +x
 def cho(ai, moc):
     if ai == 'Chú': return CHU
@@ -35,6 +36,19 @@ khoi = {
     'Chú': {'hinh': 'nguoi', 'gioi': 'nam', 'tuoi': 45, 'co': [46, 28, 170], 'mau': '#c99a74', 'ao': '#3c5a78', 'toc': 'short02', 'mau_toc': '#1a1612', 'dang': ['dung_vung']},
     'Nhóc': {'hinh': 'nguoi', 'gioi': 'nam', 'tuoi': 9, 'co': [32, 18, 125], 'mau': '#c99a74', 'ao': '#d9473a', 'toc': 'short02', 'mau_toc': '#141110', 'dang': ['dung_vung']},
     'Tàu xanh': {'hinh': 'hop', 'co': [300, 3200, 40], 'mau': GAM, 'mat': False, 'phan': phan},
+    'Tờ 5 nghìn': {'hinh': 'hop', 'co': [14, 7, 1], 'mau': '#7fbf6a', 'mat': False},
+    'Chai nước ngọt': {'hinh': 'hop', 'co': [7, 7, 24], 'mau': '#4a2a1a', 'mat': False},
+    'Tiền thừa': {'hinh': 'hop', 'co': [10, 6, 2], 'mau': '#c9b96a', 'mat': False},
+}
+# SỔ ĐỒ VẬT theo shot (khớp so_vat của sơ đồ cảnh): (món, người cầm lúc mở, người nhận lúc kết | None, hết sau shot này)
+DO = {
+    '1': [('Tờ 5 nghìn', 'Chú', None, False)], '2': [('Tờ 5 nghìn', 'Chú', None, False)],
+    '3': [('Tờ 5 nghìn', 'Chú', 'Nhóc', False)], '4': [('Tờ 5 nghìn', 'Nhóc', None, True)],
+    '8': [('Chai nước ngọt', 'Nhóc', None, False)],
+    '9': [('Chai nước ngọt', 'Nhóc', None, False), ('Tiền thừa', 'Nhóc', None, False)],
+    '10': [('Chai nước ngọt', 'Nhóc', None, False), ('Tiền thừa', 'Nhóc', 'Chú', False)],
+    '11': [('Chai nước ngọt', 'Nhóc', None, False), ('Tiền thừa', 'Chú', None, False)],
+    '12': [('Tiền thừa', 'Chú', None, False)],
 }
 vat = [
     {'ten': 'Sân ga', 'nen': True, 'hinh': 'hop', 'tam': [270, 1200, -2], 'co': [660, 4400, 2], 'mau': '#9a948a', 'en': 'concrete railway platform', 'chat': 'be_tong'},
@@ -72,16 +86,26 @@ for ma, v in SD['shot'].items():
         if ma == '8': x['nhay'] = 'nhóc mua nước xong, quay lại đi về phía tàu (ngoài khung)'
         if ma == '8': x['tam'] = [100, 1500, 0]; x['den'] = [M['nhoc_ve'][0], M['nhoc_ve'][1], 0]; x['huong_den'] = x.get('huong', 0)   # vừa đi về vừa uống
         if ma == '9': x['tam'] = [M['nhoc_ve'][0], M['nhoc_ve'][1], 0]; x['den'] = [M['duoi_cua_so'][0], M['duoi_cua_so'][1], 0]; x['huong_den'] = x['huong']
+    cho_nv = {x['ten']: x for x in vt}
+    for mon, ai, nhan, het in DO.get(ma, []):
+        a = cho_nv.get(ai)
+        if not a: continue   # người cầm ngoài khung shot này
+        x = {'ten': mon, 'tam': [a['tam'][0], a['tam'][1], a['tam'][2] + 100], 'cam': ai}
+        if nhan and nhan in cho_nv: b = cho_nv[nhan]; bt = b.get('den') or b['tam']; x['den'] = [bt[0], bt[1], bt[2] + 100]   # đổi tay: kết gần tay người nhận
+        if het: x['het'] = True
+        vt.append(x)
     t = {'ten': 'Tàu xanh', 'tam': TAU, 'huong': 0}
-    if ma == '12':   # tàu chuyển bánh, trôi sang trái màn (máy đứng phía đông nhìn sang tây → trái = nam): lăn 3 m; chú đi theo toa
-        t['den'] = [TAU[0], TAU[1] - 300, 0]
+    if ma == '12':   # tàu VỪA chuyển bánh, nhích sang trái màn (máy phía đông nhìn sang tây → trái = nam) 35 cm trong 4 giây; chú ĐỨNG YÊN theo toa —
+        # dời ≥ 40 cm thì máy gắn dáng đi bộ (video thô 12/11: chú bước đi trong toa)
+        t['den'] = [TAU[0], TAU[1] - 35, 0]
         for x in vt:
-            if x['ten'] == 'Chú': x['den'] = [CHU[0], CHU[1] - 300, CHU[2]]; x['huong_den'] = x.get('huong', 0)
+            if x['ten'] in ('Chú', 'Tiền thừa'): x['den'] = [x['tam'][0], x['tam'][1] - 35, x['tam'][2]]; x.setdefault('huong_den', x.get('huong', 0)) if x['ten'] == 'Chú' else None
     vt.append(t)
     may[ma] = {'dat': [cm['dat'][0] * 100, cm['dat'][1] * 100, cm['cao'] * 100], 'nhin': [cm['nhin'][0] * 100, cm['nhin'][1] * 100, CAO_NHIN[sd['may']]],
                'ong_kinh': cm['ong'], 'vi_tri': vt, 'khung': sd.get('khung') or [x['ten'] for x in vt if x['ten'] != 'Tàu xanh']}
     if not may[ma]['khung']: may[ma]['khung'] = ['Tàu xanh']
     if ma == '6':   # chèn bánh xe: bánh nằm DƯỚI mặt sân ga → máy hạ sát mép sân ga, chúc xuống bánh
-        may[ma].update({'dat': [-82, 470, 8], 'nhin': [-110, 640, 0], 'ong_kinh': 35})   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
+        may[ma].update({'dat': [-82, 470, 8], 'nhin': [-110, 640, 0], 'ong_kinh': 35})
+    if ma == '4': may[ma]['nham'] = 'Nhóc'   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
 print(json.dumps({'ten': 'Sân ga tàu xanh (Tàu nước ngọt)', 'ghi_chu': 'Đơn vị cm, x đông, y bắc, z lên; dựng từ sơ đồ cảnh mau/phim-mau-tau-nuoc-ngot-khong-gian.json bằng scripts/du-lieu/bo-set/tau-nuoc-ngot.py.',
                   'vat': vat, 'vung': {'Sân ga tàu xanh': [100, 900, 0]}, 'khoi': khoi, 'may': may}, ensure_ascii=False, indent=1))

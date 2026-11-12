@@ -76,3 +76,7 @@ Anh 12/11/2026: "giao tiền xong chưa nói việc gì đã thấy bé chạy. 
 Anh 12/11/2026: "voice dùng lại không ổn". Đổi blocking (ai đứng đâu, nói tận mặt hay gọi với theo, vừa làm gì) thì SỬA `dien_xuat` từng câu theo cảnh mới rồi sinh lại (`sinh-shot.mts --canh=<ids> --giong --giong-lai`); không dùng lại giọng thu cho cách diễn cũ. Cách diễn kiểu "nói nhanh, chột dạ" dễ làm TTS líu chữ — thêm "rõ chữ".
 Soát chữ bằng Whisper phải nghe CẢ ĐOẠN nối liền như bản xuất (các câu của shot + 0,15 s ngắt): câu dưới 1 giây đứng riêng thì Whisper hay tự bịa ("Chào tạm biệt") dù giọng đúng — 12/11 tốn 3 lượt sinh lại oan cho "Sao giờ mới về?".
 Khớp giây theo giọng (hau-ky.ts › khopGiongTap) không co shot dưới `ky_thuat.phat_toi_thieu` — đặt mức này cho shot có động tác sau lời (nghe dặn rồi chạy).
+
+## 10. Một lượt nói liền = MỘT take
+
+Anh 12/11/2026: "giọng nó cứ lủng củng". Các câu LIỀN NHAU của cùng một người trong một shot phải sinh thành MỘT lần đọc (một take), cách diễn ghi thành một cung cảm xúc ("bực, hỏi dồn; câu cuối chậm lại, nghi — một hơi liền"). Sinh từng câu riêng rồi ghép cách 0,15 s thì ngữ điệu bắt đầu lại mỗi câu, nghe rời rạc. Gộp: `scripts/bo-set/gop-luot-noi.py` (bảng câu gộp theo phim), sao lưu `thoai` cũ trước khi ghi (phim #3071: `scripts/du-lieu/bo-set/tau-nuoc-ngot-thoai-truoc-gop.json`), rồi `sinh-shot.mts --giong`. Soát Whisper từng take (take dài → Whisper đáng tin hơn).

@@ -71,10 +71,14 @@ export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten:
       if (cua === v.ten) continue;   // món người này đang cầm che một phần thân: tự nhiên
       che[t] = (che[t] ?? 0) + 1;
     }
-    const pd = diem.map(chieu); const pg = goc.map(chieu); const pc = doc.map(chieu);
+    const pd = diem.map(chieu); const pg = goc.map(chieu); let pc = doc.map(chieu);
     const laN = laNguoi(v.ten);
     // NGƯỜI THẤY ĐẦU = THẤY NGƯỜI (12/11/2026, phim #3071): chú đứng trong toa, thân sau vách, đầu qua ô cửa — 9 điểm quanh tâm thân đều trúng vách nên
     // trước đây mọi shot báo "Chú bị Tàu xanh che" (cổng tổng thể chặn oan cả 3 cảnh). Đầu (82 % / 92 % chiều cao) lọt khung + tia tới không vướng → thấy.
+    // dáng CHỐNG BẬU nhoài người (dien chong_ban — trang three.js mau.html › dang: lưng cúi 0,26 rad ≈ 15°): đầu nhô ra trước ~0,16 chiều cao, thấp xuống ~0,03.
+    // Khối đo đứng thẳng nên không có độ nhô này — chú trong toa đo ra 'bị Tàu xanh che' dù trên trang đầu đã qua ô cửa (#3071 #16 #17 #19, 13/11/2026)
+    if (laN && (v.dien ?? []).some((x) => /^chong_ban/.test(x)) && v.huong != null) { const hr = (v.huong * Math.PI) / 180, cao = h.max.y - h.min.y;
+      for (const p of doc.slice(4)) { p.x += Math.sin(hr) * cao * 0.16; p.z += Math.cos(hr) * cao * 0.16; p.y -= cao * 0.03; } pc = doc.map(chieu); }
     const dauHo = laN && doc.slice(4).some((p, i) => { const q = pc[4 + i]!; if (!(q.truoc && q.x >= 0 && q.x <= 1 && q.y >= 0 && q.y <= 1)) return false;
       const d = p.clone().sub(cam.position); const t = tenCua(ban(d, d.length() - 0.05).tr?.object ?? null)?.userData.ten as string | undefined; return !t || t === v.ten; });
     if (dauHo) for (const k of Object.keys(che)) delete che[k];

@@ -238,7 +238,7 @@ for ma, v in SD['shot'].items():
 # #13 CẬN PHẢN ỨNG chốt cảnh (anh 12/11/2026 "đoạn cuối cần shot mặt gần của Chú để rõ cảm xúc" — ngành: close-up reaction shot, kiểu hài double take /
 # slow burn, chốt cảnh = button): nối hướng nhìn từ cuối #12 (nhìn theo nhóc) → cúi nhìn nắm tiền thừa → ngẩng lên nhìn lại, mặt đứng hình; máy đẩy chậm vào mặt
 M['tay_chu'] = [CHU[0] + 30, CHU[1] - 6, CHU[2] + 125]   # nắm tiền đưa lên ngang ngực
-may['13'] = {'dat': [-45, 650, 228], 'nhin': [-125, 505, 222], 'ong_kinh': 42,   # trước mặt chú đang nhìn theo nhóc về phía bắc (máy cũ phía nam: mặt lệch 98°, cận phản ứng không thấy mặt)
+may['13'] = {'dat': [-45, 600, 228], 'nhin': [-125, 505, 222], 'ong_kinh': 42,   # trước mặt chú đang nhìn theo nhóc về phía bắc (máy cũ phía nam: mặt lệch 98°, cận phản ứng không thấy mặt)
              'khoa_nhin': True, 'khung': ['Chú'],   # khung ôm mặt + nắm tiền khi chú đưa lên nhìn
              'vi_tri': [{'ten': 'Chú', 'tam': CHU, 'huong': 170, 'nhin_ai': 'nhoc_xa', 'nhin_ai_den': 'nhoc_xa',
                          'nhip': [{'u': 0, 'nhin': 'nhoc_xa'}, {'u': 0.33, 'nhin': 'nhoc_xa'}, {'u': 0.45, 'nhin': 'tay_chu'}, {'u': 0.6, 'nhin': 'tay_chu'}, {'u': 0.72, 'nhin': 'nhoc_xa'}],

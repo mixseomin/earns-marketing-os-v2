@@ -1795,11 +1795,11 @@
     148
    ],
    "nhin": [
-    -85,
+    -50,
     500,
-    150
+    152
    ],
-   "ong_kinh": 40,
+   "ong_kinh": 60,
    "vi_tri": [
     {
      "ten": "Chú",
@@ -1871,7 +1871,8 @@
     }
    ],
    "khung": [
-    "Tiền thừa"
+    "Tiền thừa",
+    "Nhóc"
    ],
    "khoa_nhin": true
   },

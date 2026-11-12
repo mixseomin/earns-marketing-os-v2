@@ -42,6 +42,17 @@ button[aria-pressed="true"] { border-color: var(--chu); font-weight: 600; }
 .dai button.dang { border-color: var(--nhan); box-shadow: inset 0 -3px 0 var(--nhan); }
 .chu-giai { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.82rem; color: var(--phu); }
 .chu-giai i { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.hop-chon { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--phu); }
+.nhin { display: grid; gap: 4px; font-size: 0.86rem; }
+.nhin p { margin: 0; }
+.nhin .en { font-family: var(--f-so); font-size: 0.78rem; color: var(--phu); }
+.noi h2 { margin: 6px 0 8px; font-size: 0.95rem; font-weight: 600; }
+.noi ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.noi li { display: grid; grid-template-columns: 7.5em 1fr; gap: 8px; font-size: 0.85rem; padding: 5px 8px; border: 1px solid var(--vien); border-radius: 6px; background: var(--mat); }
+.noi li b { font-family: var(--f-so); font-weight: 600; }
+.noi li.loi { border-color: var(--nhan); }
+.noi li.loi span { color: var(--nhan); }
+.noi li.dat span { color: var(--ok); }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
 </style>
 
@@ -60,9 +71,15 @@ button[aria-pressed="true"] { border-color: var(--chu); font-weight: 600; }
     <button id="toc05" type="button" aria-pressed="false">0,5×</button>
     <div class="thanh"><input id="tua" type="range" min="0" max="1000" value="0" aria-label="Tua"></div>
     <span class="thoi" id="thoi">0,0 / 0,0 s</span>
+    <label class="hop-chon"><input id="tiaNhin" type="checkbox" checked> Tia nhìn</label>
   </div>
   <p class="ta" id="ta"></p>
+  <div class="nhin" id="nhinShot"></div>
   <div class="dai" id="dai"></div>
+  <section class="noi">
+    <h2>Nối shot: chỗ đứng · hướng thân · hướng nhìn · đồ cầm · hướng trên màn</h2>
+    <ol id="noi"></ol>
+  </section>
   <div class="chu-giai">
     <span><i style="background:#3c5a78"></i>Chú (trong toa)</span>
     <span><i style="background:#d9473a"></i>Nhóc</span>
@@ -148,6 +165,17 @@ for (const [ten, k] of Object.entries(DU.khoi)) {
   for (const p of k.phan || []) g.add(hinh(p));
   g.visible = false; canh.add(g); khoi[ten] = { g, k };
 }
+// TIA NHÌN: đoạn mảnh từ mắt tới đích đang nhìn — soát hướng nhìn bằng mắt ngay trên khung
+let nhinCua = {}, hienTia = true; const tia = {};
+function veTia() {
+  for (const [ten, kk] of Object.entries(khoi)) {
+    if (!kk.ng) continue;
+    if (!tia[ten]) { tia[ten] = new T3.Line(new T3.BufferGeometry(), new T3.LineBasicMaterial({ color: 0xffd400 })); canh.add(tia[ten]); }
+    const n = nhinCua[ten], l = tia[ten];
+    l.visible = !!(hienTia && n && kk.g.visible);
+    if (l.visible) { const a = new T3.Vector3(); kk.ng.j.dau.getWorldPosition(a); a.y += kk.ng.H * 0.07; l.geometry.setFromPoints([a, P(n.diem)]); }
+  }
+}
 // DÁNG theo khung: đứng · đi (bước theo quãng đã đi) · chống bậu nhoài người (dien chong_ban) · vươn tay trao / nhận đồ · tay cầm đồ
 function dang(n, o) {
   const j = n.j; const z = (x) => x.rotation.set(0, 0, 0);
@@ -200,7 +228,21 @@ function dungShot(i, u) {
       dang(kk.ng, { di, chong: (v.dien || []).includes('chong_ban'), cam: dangCam.has(v.ten), vuon });
     }
   }
+  // ĐẦU NHÌN VỀ ĐÍCH (nhin_ai lúc mở → nhin_ai_den lúc kết, đổi trong 45 % cuối như quay người): đầu xoay độc lập thân, tối đa ±75°
+  nhinCua = {};
+  for (const v of vt) {
+    const kk = khoi[v.ten]; if (!kk?.ng || !cho[v.ten] || !v.nhin_ai) continue;
+    const a = v.nhin_ai, b = v.nhin_ai_den || a, k = a === b ? 0 : em(kep((u - 0.45) / 0.45));
+    const diem = (x) => (cho[x] ? [cho[x].p[0], cho[x].p[1], cho[x].p[2] + cao(x) * 0.93] : DU.moc?.[x] ? DU.moc[x] : null);
+    const pa = diem(a), pb = diem(b); if (!pa) continue;
+    const d = tron(pa, pb || pa, k), ng = cho[v.ten], mat = [ng.p[0], ng.p[1], ng.p[2] + cao(v.ten) * 0.93];
+    const yaw = (Math.atan2(d[0] - mat[0], -(d[1] - mat[1])) * 180) / Math.PI, rel = Math.max(-75, Math.min(75, ((((yaw - ng.h) % 360) + 540) % 360) - 180));
+    kk.ng.j.dau.rotation.y = (rel * Math.PI) / 180;
+    kk.ng.j.dau.rotation.x = Math.max(-0.5, Math.min(0.6, -Math.atan2(d[2] - mat[2], Math.hypot(d[0] - mat[0], d[1] - mat[1]))));
+    nhinCua[v.ten] = { ten: k < 0.5 ? a : b, diem: d, mat };
+  }
   canh.updateMatrixWorld(true);
+  veTia();
   const tayCua = (ten) => {
     const kk = khoi[ten]; if (!kk) return null;
     if (kk.ng) { const w = new T3.Vector3(); kk.ng.j.tp.ban.getWorldPosition(w); return w; }
@@ -263,6 +305,68 @@ tua.addEventListener('input', () => { dungAm(); t = (Number(tua.value) / 1000) *
 for (const [id, v] of [['toc1', 1], ['toc05', 0.5]]) document.getElementById(id).addEventListener('click', () => {
   toc = v; document.getElementById('toc1').setAttribute('aria-pressed', String(v === 1)); document.getElementById('toc05').setAttribute('aria-pressed', String(v === 0.5));
 });
+// ── TRẠNG THÁI + NỐI SHOT + CÂU PROMPT HƯỚNG NHÌN (cùng dữ liệu với hình 3D: thấy gì trên khung thì prompt viết đúng thế) ──
+const TEN = { 'Chú': ['Chú', 'the man'], 'Nhóc': ['Nhóc', 'the boy'] };
+const MOC_VI = { cua_so: 'ô cửa sổ toa', duoi_cua_so: 'sân ga dưới cửa sổ', giua_ga: 'giữa sân ga', nhoc_xa: 'cuối sân ga', nhoc_ve: 'sân ga gần tàu', tiem: 'tiệm nước', banh_xe: 'bánh tàu' };
+const tenVi = (x) => TEN[x]?.[0] ?? MOC_VI[x] ?? x, tenEn = (x) => TEN[x]?.[1] ?? DU.ten_moc?.[x] ?? x;
+function trangThai(i, u) {
+  dungShot(i, u); canh.updateMatrixWorld(true);
+  const s = DU.shot[i], ra = {}, fw = new T3.Vector3(); may.getWorldDirection(fw);
+  for (const v of s.may.vi_tri || []) {
+    const kk = khoi[v.ten]; if (!kk?.ng) continue;
+    const dau = new T3.Vector3(); kk.ng.j.dau.getWorldPosition(dau);
+    const n = nhinCua[v.ten], pd = dau.clone().project(may);
+    let man = null;
+    if (n) {
+      const dich = P(n.diem), huong = dich.clone().sub(dau).normalize(), pt = dau.clone().add(huong.clone().multiplyScalar(0.4)).project(may), dx = pt.x - pd.x, doc = huong.dot(fw);
+      man = Math.abs(dx) < 0.04 ? (doc < 0 ? 'thang' : 'xa') : dx > 0 ? 'phai' : 'trai';
+    }
+    const p = viTriLuc(v, u).p;
+    const yaw = n ? (Math.atan2(n.diem[0] - n.mat[0], -(n.diem[1] - n.mat[1])) * 180) / Math.PI : null;
+    ra[v.ten] = { p, yaw, h: viTriLuc(v, u).h, nhin: n?.ten ?? null, man, ben: pd.x < -0.33 ? 'trai' : pd.x > 0.33 ? 'phai' : 'giua', trong: Math.abs(pd.x) <= 1 && Math.abs(pd.y) <= 1 && pd.z < 1 };
+  }
+  const cam = {};
+  for (const v of s.may.vi_tri || []) if (v.cam) { const tr = v.den ? (s.may.vi_tri.filter((x) => !x.cam && khoi[x.ten]?.ng && x.ten !== v.cam).sort((a, b) => Math.hypot(a.tam[0] - v.den[0], a.tam[1] - v.den[1]) - Math.hypot(b.tam[0] - v.den[0], b.tam[1] - v.den[1]))[0]) : null; cam[v.ten] = u >= 0.7 && tr ? tr.ten : v.cam; }
+  return { ng: ra, cam };
+}
+const MAN_VI = { phai: 'sang phải màn', trai: 'sang trái màn', thang: 'thẳng về phía máy', xa: 'ra xa, quay lưng máy' }, MAN_EN = { phai: 'screen-right', trai: 'screen-left', thang: 'toward the camera', xa: 'away from the camera' };
+const BEN_VI = { trai: 'bên trái khung', phai: 'bên phải khung', giua: 'giữa khung' }, BEN_EN = { trai: 'frame left', phai: 'frame right', giua: 'frame center' };
+const PHAN = [], NOI = [];
+{
+  const st = DU.shot.map((_, i) => [trangThai(i, 0), trangThai(i, 1)]);
+  DU.shot.forEach((s, i) => {
+    const [a, b] = st[i], vi = [], en = [];
+    for (const [ten, x] of Object.entries(a.ng)) {
+      if (!x.trong && !b.ng[ten]?.trong) continue;
+      const y = b.ng[ten] || x;
+      let cv = `<b>${tenVi(ten)}</b> (${BEN_VI[x.ben]}) nhìn ${x.nhin ? `về ${tenVi(x.nhin)}` : 'thẳng'}${x.man ? `, ${MAN_VI[x.man]}` : ''}`;
+      let ce = `${tenEn(ten)[0].toUpperCase() + tenEn(ten).slice(1)} (${BEN_EN[x.ben]}) looks ${x.man ? MAN_EN[x.man] + ' ' : ''}${x.nhin ? `at ${tenEn(x.nhin)}` : 'straight ahead'}`;
+      if (y.nhin !== x.nhin || y.man !== x.man) { cv += ` → cuối shot quay đầu nhìn về ${tenVi(y.nhin)}${y.man ? ` (${MAN_VI[y.man]})` : ''}`; ce += `; by the end of the shot he turns his head to look ${y.man ? MAN_EN[y.man] + ' ' : ''}at ${tenEn(y.nhin)}`; }
+      vi.push(cv + '.'); en.push(ce + '.');
+    }
+    PHAN.push(`<p>${vi.join(' ') || 'Không có người trong khung.'}</p><p class="en">${en.join(' ')}</p>`);
+    if (i + 1 >= DU.shot.length) return;
+    const c = st[i + 1][0], loi = [], vtSau = DU.shot[i + 1].may.vi_tri || [];
+    for (const [ten, x] of Object.entries(b.ng)) {
+      const y = c.ng[ten]; if (!y) continue;
+      const v2 = vtSau.find((v) => v.ten === ten);
+      const lech = Math.hypot(x.p[0] - y.p[0], x.p[1] - y.p[1]);
+      if (lech > 40 && !v2?.nhay) loi.push(`${tenVi(ten)} lệch chỗ đứng ${Math.round(lech)} cm`);
+      const dh = Math.abs(((((y.h - x.h) % 360) + 540) % 360) - 180);
+      if (dh > 35 && !v2?.nhay) loi.push(`${tenVi(ten)} đổi hướng thân ${Math.round(dh)}° qua cú cắt`);
+      // so HƯỚNG NHÌN THẬT (góc từ mặt tới đích), không so tên — 'ô cửa sổ' và 'Chú' là một chỗ
+      if (x.yaw != null && y.yaw != null && !v2?.nhay) { const dn = Math.abs(((((y.yaw - x.yaw) % 360) + 540) % 360) - 180); if (dn > 25) loi.push(`${tenVi(ten)} đang nhìn ${tenVi(x.nhin)} → shot sau mở ra nhìn ${tenVi(y.nhin)} (lệch ${Math.round(dn)}°)`); }
+      if (x.yaw != null && y.yaw != null && Math.abs(((((y.yaw - x.yaw) % 360) + 540) % 360) - 180) <= 25 && x.man && y.man && ['phai', 'trai'].includes(x.man) && ['phai', 'trai'].includes(y.man) && x.man !== y.man) loi.push(`${tenVi(ten)} nhìn ${tenVi(x.nhin)} ${MAN_VI[x.man]} → shot sau ${MAN_VI[y.man]} (lật hướng trên màn, vượt trục)`);
+    }
+    for (const [mon, ai] of Object.entries(b.cam)) if (c.cam[mon] && c.cam[mon] !== ai) loi.push(`${mon}: cuối shot ${tenVi(ai)} cầm → shot sau ${tenVi(c.cam[mon])} cầm`);
+    NOI.push({ tu: s.so, den: DU.shot[i + 1].so, loi });
+  });
+  const ol = document.getElementById('noi');
+  for (const n of NOI) { const li = document.createElement('li'); li.className = n.loi.length ? 'loi' : 'dat'; li.innerHTML = `<b>#${n.tu} → #${n.den}</b><span>${n.loi.length ? '⚠ ' + n.loi.join(' · ') : '✓ khớp'}</span>`; ol.appendChild(li); }
+}
+document.getElementById('tiaNhin').addEventListener('change', (e) => { hienTia = e.target.checked; ve1(); });
+const veGoc = ve1;
+ve1 = function () { veGoc(); const i = shotLuc(Math.min(t, tong - 1e-3)); document.getElementById('nhinShot').innerHTML = PHAN[i] || ''; };
 function coKhung() { const r = man.getBoundingClientRect(); ve.setSize(r.width, r.height, false); may.aspect = r.width / r.height; ve1(); }
 new ResizeObserver(coKhung).observe(man);
 coKhung(); requestAnimationFrame(vong);

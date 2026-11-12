@@ -23,7 +23,7 @@ for s in tap:
     if not m: continue
     shots.append({'so': s['so'], 'giay': max(0.8, float(s['phat'] or 2)), 'cd': s['cd'] or 'tinh', 'tả': CHU_THICH.get(s['so'], ''), 'may': m,
                   'thoai': [{'loi': t['loi'], 'ai': t.get('nhan_vat', ''), 'tre': float(t.get('tre') or 0), 'am': tai(t['url'])} for t in (s['thoai'] or []) if t.get('url')]})
-du = {'vat': set_['vat'], 'khoi': set_['khoi'], 'shot': shots}
+du = {'vat': set_['vat'], 'khoi': set_['khoi'], 'shot': shots, 'moc': set_.get('moc', {}), 'ten_moc': set_.get('ten_moc', {})}
 html = open(__file__.replace('dung-trang.py', 'mau.html'), encoding='utf-8').read()
 open(ra, 'w', encoding='utf-8').write(html.replace('__TIEU_DE__', ten).replace('/*__DU_LIEU__*/null', json.dumps(du, ensure_ascii=False)))
 print(f'{ra}: {len(shots)} shot, {sum(len(x["thoai"]) for x in shots)} câu thoại, {len(html) // 1024 + sum(len(v) for v in am.values()) // 1024} KB')

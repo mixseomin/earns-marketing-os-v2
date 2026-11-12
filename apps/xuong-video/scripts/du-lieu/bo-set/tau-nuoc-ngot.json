@@ -1,4 +1,55 @@
 {
+ "moc": {
+  "cua_so": [
+   -120.0,
+   500,
+   110
+  ],
+  "duoi_cua_so": [
+   -20,
+   500,
+   110
+  ],
+  "giua_ga": [
+   100.0,
+   900,
+   110
+  ],
+  "nhoc_xa": [
+   100.0,
+   1800,
+   110
+  ],
+  "nhoc_ve": [
+   80.0,
+   950.0,
+   110
+  ],
+  "tiem": [
+   120.0,
+   3000,
+   110
+  ],
+  "banh_xe": [
+   -150.0,
+   620.0,
+   110
+  ],
+  "Chú": [
+   -103,
+   500,
+   230
+  ]
+ },
+ "ten_moc": {
+  "cua_so": "the man's open train window",
+  "tiem": "the shop at the far end of the platform",
+  "banh_xe": "the train wheel",
+  "duoi_cua_so": "the platform just below the man's window",
+  "giua_ga": "the middle of the platform",
+  "nhoc_xa": "the far end of the platform",
+  "nhoc_ve": "the platform a few metres from the train"
+ },
  "ten": "Sân ga tàu xanh (Tàu nước ngọt)",
  "ghi_chu": "Đơn vị cm, x đông, y bắc, z lên; dựng từ sơ đồ cảnh mau/phim-mau-tau-nuoc-ngot-khong-gian.json bằng scripts/du-lieu/bo-set/tau-nuoc-ngot.py.",
  "vat": [
@@ -1033,7 +1084,9 @@
       500,
       80
      ],
-     "huong": 150
+     "huong": 150,
+     "nhin_ai": "giua_ga",
+     "nhin_ai_den": "giua_ga"
     },
     {
      "ten": "Tờ 5 nghìn",
@@ -1079,7 +1132,9 @@
       900,
       0
      ],
-     "huong": -29
+     "huong": -29,
+     "nhin_ai": "cua_so",
+     "nhin_ai_den": "cua_so"
     },
     {
      "ten": "Tàu xanh",
@@ -1117,6 +1172,8 @@
       80
      ],
      "huong": 90,
+     "nhin_ai": "Nhóc",
+     "nhin_ai_den": "Nhóc",
      "dien": [
       "chong_ban"
      ]
@@ -1129,6 +1186,8 @@
       0
      ],
      "huong": -90,
+     "nhin_ai": "Chú",
+     "nhin_ai_den": "Chú",
      "nhay": "nhóc chạy từ giữa sân ga tới dưới cửa sổ giữa hai shot"
     },
     {
@@ -1183,6 +1242,8 @@
       0
      ],
      "huong": -90,
+     "nhin_ai": "Chú",
+     "nhin_ai_den": "tiem",
      "den": [
       100.0,
       1800,
@@ -1241,6 +1302,8 @@
       80
      ],
      "huong": 174,
+     "nhin_ai": "tiem",
+     "nhin_ai_den": "tiem",
      "dien": [
       "chong_ban"
      ]
@@ -1308,7 +1371,9 @@
       500,
       80
      ],
-     "huong": 174
+     "huong": 174,
+     "nhin_ai": "tiem",
+     "nhin_ai_den": "tiem"
     },
     {
      "ten": "Tàu xanh",
@@ -1346,6 +1411,8 @@
       0
      ],
      "huong": -24,
+     "nhin_ai": "cua_so",
+     "nhin_ai_den": "cua_so",
      "nhay": "nhóc mua nước xong, quay lại đi về phía tàu (ngoài khung)",
      "den": [
       80.0,
@@ -1403,6 +1470,8 @@
       80
      ],
      "huong": 90,
+     "nhin_ai": "Nhóc",
+     "nhin_ai_den": "Nhóc",
      "dien": [
       "chong_ban"
      ]
@@ -1414,7 +1483,9 @@
       950.0,
       0
      ],
-     "huong": -90,
+     "huong": -25,
+     "nhin_ai": "Chú",
+     "nhin_ai_den": "Chú",
      "den": [
       -20,
       500,
@@ -1482,6 +1553,8 @@
       80
      ],
      "huong": 90,
+     "nhin_ai": "Nhóc",
+     "nhin_ai_den": "Nhóc",
      "dien": [
       "chong_ban"
      ]
@@ -1493,7 +1566,9 @@
       500,
       0
      ],
-     "huong": -90
+     "huong": -90,
+     "nhin_ai": "Chú",
+     "nhin_ai_den": "Chú"
     },
     {
      "ten": "Chai nước ngọt",
@@ -1554,6 +1629,8 @@
       80
      ],
      "huong": 90,
+     "nhin_ai": "Nhóc",
+     "nhin_ai_den": "Nhóc",
      "dien": [
       "chong_ban"
      ]
@@ -1565,7 +1642,9 @@
       500,
       0
      ],
-     "huong": 177,
+     "huong": -90,
+     "nhin_ai": "Chú",
+     "nhin_ai_den": "tiem",
      "den": [
       100.0,
       1800,
@@ -1633,7 +1712,10 @@
       500,
       80
      ],
-     "huong": 170
+     "huong": 90,
+     "nhin_ai": "nhoc_xa",
+     "nhin_ai_den": "nhoc_xa",
+     "huong_den": 170
     },
     {
      "ten": "Tiền thừa",

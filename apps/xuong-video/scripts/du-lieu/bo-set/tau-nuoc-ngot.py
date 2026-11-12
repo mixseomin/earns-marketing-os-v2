@@ -102,6 +102,10 @@ for ma, v in SD['shot'].items():
         if n == 'Nhóc': d = cho('Nhóc', sd['o']['Nhóc'])
         if not d and len(sd['o']) > 1: d = cho('Chú' if ai == 'Nhóc' else 'Nhóc', sd['o']['Chú' if ai == 'Nhóc' else 'Nhóc'])   # không khai nhìn ai: nhìn người kia
         if d: x['huong'] = huong(a, d)
+        # HƯỚNG NHÌN (anh 12/11/2026: quay đầu / hướng nhìn phải nối liền mạch giữa các shot, xác minh ngay ở bản 3D): tên người hoặc mốc đang nhìn lúc mở / kết —
+        # trang three.js xoay ĐẦU độc lập thân về đích này, soát nối shot + sinh câu prompt hướng nhìn từ cùng dữ liệu
+        x['nhin_ai'] = n or next((k for k in sd['o'] if k != ai), None)
+        x['nhin_ai_den'] = (kt.get('nhin', {}).get(ai) if ai in kt.get('o', {}) or ai in kt.get('nhin', {}) else None) or x['nhin_ai']
         if ai in kt.get('o', {}):
             b = cho(ai, kt['o'][ai]); x['den'] = b
             nk = kt.get('nhin', {}).get(ai); dk = dich(nk) if nk else None
@@ -115,7 +119,8 @@ for ma, v in SD['shot'].items():
         if ma == '3': x['nhay'] = 'nhóc chạy từ giữa sân ga tới dưới cửa sổ giữa hai shot'
         if ma == '8': x['nhay'] = 'nhóc mua nước xong, quay lại đi về phía tàu (ngoài khung)'
         if ma == '8': x['tam'] = [100, 1500, 0]; x['den'] = [M['nhoc_ve'][0], M['nhoc_ve'][1], 0]; x['huong_den'] = x.get('huong', 0)   # vừa đi về vừa uống
-        if ma == '9': x['tam'] = [M['nhoc_ve'][0], M['nhoc_ve'][1], 0]; x['den'] = [M['duoi_cua_so'][0], M['duoi_cua_so'][1], 0]; x['huong_den'] = x['huong']
+        if ma == '9': x['tam'] = [M['nhoc_ve'][0], M['nhoc_ve'][1], 0]; x['den'] = [M['duoi_cua_so'][0], M['duoi_cua_so'][1], 0]; x['huong'] = huong(x['tam'], CHU); x['huong_den'] = huong(x['den'], CHU)   # hướng thân tính từ CHỖ MỚI (soát nối #8→#9: lệch 66°)
+        if ma == '11': x['huong'] = huong(x['tam'], CHU); x['nhin_ai'] = 'Chú'   # mở ra vẫn quay về chú như kết #10, rồi mới quay người chạy về tiệm (soát nối #10→#11: lệch 93°)
     # CHÚ NHOÀI RA Ô CỬA khi nói / trao đồ với nhóc: dáng 'chong_ban' (thư viện DONG_TAC) — chống tay lên bậu cửa (mép trên vách, z 150), máy tự cúi cột sống tới khi
     # bàn tay chạm bậu → đầu + vai nhô qua ô cửa. Shot chú chỉ nhìn theo (#1 #5 #7 #12) thì đứng thẳng trong toa.
     for x in vt:
@@ -128,6 +133,9 @@ for ma, v in SD['shot'].items():
         if nhan and nhan in cho_nv: b = cho_nv[nhan]; bt = b.get('den') or b['tam']; x['den'] = [bt[0], bt[1], bt[2] + 100]   # đổi tay: kết gần tay người nhận
         if het: x['het'] = True
         vt.append(x)
+    if ma == '12':   # mở ra chú vẫn quay về phía nhóc như kết #11, rồi xoay theo nhóc chạy xa (soát nối #11→#12: thân lệch 80°)
+        for x in vt:
+            if x['ten'] == 'Chú': x['huong_den'] = x['huong']; x['huong'] = 90
     t = {'ten': 'Tàu xanh', 'tam': TAU, 'huong': 0}
     if ma == '12':   # tàu VỪA chuyển bánh, nhích sang trái màn (máy phía đông nhìn sang tây → trái = nam) 35 cm trong 4 giây; chú ĐỨNG YÊN theo toa —
         # dời ≥ 40 cm thì máy gắn dáng đi bộ (video thô 12/11: chú bước đi trong toa)
@@ -156,5 +164,7 @@ for ma, v in SD['shot'].items():
     if ma == '4': may[ma]['nham'] = 'Nhóc'
     if ma == '10': may[ma].update({'dat': [20, 450, 235], 'nhin': [-106, 500, 235]} if os.environ.get('XV_KHOI') == '1' else {'dat': [70, 455, 232], 'nhin': [-100, 500, 230]})   # ma-nơ-canh: lùi máy 60 cm — sát quá thì thân đang nhoài choán hết khung (three.js 12/11)   # khối: đầu đứng thẳng cao hơn đầu ma-nơ-canh đang nhoài   # cận mặt chú đang NHOÀI (chong_ban): đầu thấp + ra trước so với lúc đứng thẳng   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
 vat += DUONG
-print(json.dumps({'ten': 'Sân ga tàu xanh (Tàu nước ngọt)', 'ghi_chu': 'Đơn vị cm, x đông, y bắc, z lên; dựng từ sơ đồ cảnh mau/phim-mau-tau-nuoc-ngot-khong-gian.json bằng scripts/du-lieu/bo-set/tau-nuoc-ngot.py.',
+MOC = {k: [v[0], v[1], 110] for k, v in M.items()}   # mốc nhìn (cm, tầm mắt người đứng sân ga) cho trang three.js
+MOC['Chú'] = [CHU[0] + 25, CHU[1], CHU[2] + 150]   # chú vắng khung (#4 #8) vẫn là đích nhìn: mặt chú ở ô cửa
+print(json.dumps({'moc': MOC, 'ten_moc': C['ten'], 'ten': 'Sân ga tàu xanh (Tàu nước ngọt)', 'ghi_chu': 'Đơn vị cm, x đông, y bắc, z lên; dựng từ sơ đồ cảnh mau/phim-mau-tau-nuoc-ngot-khong-gian.json bằng scripts/du-lieu/bo-set/tau-nuoc-ngot.py.',
                   'vat': vat, 'vung': {'Sân ga tàu xanh': [100, 900, 0]}, 'khoi': khoi, 'may': may}, ensure_ascii=False, indent=1))

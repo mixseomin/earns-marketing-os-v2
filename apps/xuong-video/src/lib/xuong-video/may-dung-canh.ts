@@ -5,7 +5,7 @@
 // Nền video PHẢI có chuyển động thật (may-dung.ts › timVideoNenDong đo độ lệch khung, bỏ clip tĩnh) và tiếng PHẢI là bản thu thật (am-nen.ts) — 26/10/2026 anh chê
 // bản đầu "có mỗi cái ảnh kèm tiếng ồn": clip Pexels đứng yên + nhiễu tổng hợp.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-canh.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, mauAss, ngat, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 
 import { amTheoTruy, type LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -36,7 +36,7 @@ export const anhCanh = (de: DeCanh): { t: number; cat: [number, number, number, 
 export function dongMoc(moc: string): { dong: string[]; co: number } {
   const t = moc.trim();
   for (const [rong, co] of [[36, 42], [44, 36], [54, 30], [70, 24]] as const) { const dong = ngat(t, rong); if (dong.length <= 3) return { dong, co }; }
-  return { dong: ngat(t, 70).slice(0, 3), co: 24 };
+  return vua(t, 70, 3, 24);
 }
 export function assCanh(de: DeCanh): string {
   const { CANH, DAI, ket } = nhipCanh(de), d: DongAss[] = [];

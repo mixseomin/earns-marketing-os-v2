@@ -3,7 +3,7 @@
 // riêng (nen_url = trang 1, nen_them = các trang sau — may.ts lấy Pexels theo `truy` từng trang). Đăng được ở IG carousel / FB album / TikTok bài ảnh / X (≤ 4 ảnh).
 // THUẦN: đề → ASS (mỗi trang một mốc giây t = i + 0,5) + lệnh ffmpeg cắt MỘT khung ở trang `khung`.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-carousel.test.mts
-import { alpha, bo, chu, mauAss, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, mauAss, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 
 export interface TrangCarousel { tieu_de: string; chu?: string; truy: string }
 export interface DeCarousel {
@@ -34,24 +34,24 @@ export function assCarousel(de: DeCarousel): string {
     d.push([5, i, i + 1, 'Chu', `{\\an9\\pos(1040,36)\\b1${fs(24)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2}${i + 1}/${n}`]); };
   // trang 1: phủ tối, móc to giữa, mũi tên vuốt
   d.push([1, 0, 1, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.5)}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-  const dongM = ngat(de.moc, 18).slice(0, 4), coM = dongM.length >= 4 ? 70 : 84;
+  const vM = vua(de.moc, 18, 4, 100), dongM = vM.dong, coM = Math.round(((dongM.length >= 4 ? 70 : 84) * vM.co) / 100);
   d.push([2, 0, 1, 'Den', `{\\an5\\pos(540,620)${fs(coM)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2}${dongM.map(chu).join('\\N')}`]);
   d.push([2, 0, 1, 'Chu', `{\\an5\\pos(540,1200)\\b1${fs(36)}\\1c${mauAss(NHAN)}\\3c&H000000&\\bord2}Swipe →`]); goc(0);
   // trang ý: dải tối đáy, số lớn tròn, tiêu đề + dòng
   y.forEach((t, k) => {
-    const i = k + 1, ten = ngat(t.tieu_de, 26).slice(0, 2), dong = t.chu ? ngat(t.chu, 40).slice(0, 3) : [], cao = 150 + 76 * ten.length + 50 * dong.length;
+    const i = k + 1, { dong: ten, co: coTen } = vua(t.tieu_de, 26, 2, 50), { dong, co: coDong } = t.chu ? vua(t.chu, 40, 3, 32) : { dong: [] as string[], co: 32 }, cao = 150 + 76 * ten.length + 50 * dong.length;
     d.push([1, i, i + 1, 'Ve', `{\\an2\\pos(540,1310)\\1c&H000000&\\1a${alpha(0.6)}\\p1}${bo(1000, cao, 28)}`]);
     d.push([2, i, i + 1, 'Ve', `{\\an5\\pos(130,${1310 - cao + 80})\\1c${mauAss(NHAN)}\\p1}${bo(110, 110, 55)}`]);
     d.push([3, i, i + 1, 'Den', `{\\an5\\pos(130,${1310 - cao + 84})${fs(64)}\\1c${mauAss(SAU)}}${k + 1}`]);
     let yy = 1310 - cao + 40;
-    d.push([3, i, i + 1, 'Den', `{\\an7\\pos(210,${yy})${fs(50)}\\1c&HFFFFFF&}${ten.map(chu).join('\\N')}`]); yy += 76 * ten.length + 14;
-    if (dong.length) d.push([3, i, i + 1, 'Chu', `{\\an7\\pos(80,${Math.max(yy, 1310 - cao + 150)})\\b1${fs(32)}\\1c${mauAss(TRANG)}\\1a&H20&}${dong.map(chu).join('\\N')}`]);
+    d.push([3, i, i + 1, 'Den', `{\\an7\\pos(210,${yy})${fs(coTen)}\\1c&HFFFFFF&}${ten.map(chu).join('\\N')}`]); yy += 76 * ten.length + 14;
+    if (dong.length) d.push([3, i, i + 1, 'Chu', `{\\an7\\pos(80,${Math.max(yy, 1310 - cao + 150)})\\b1${fs(coDong)}\\1c${mauAss(TRANG)}\\1a&H20&}${dong.map(chu).join('\\N')}`]);
     goc(i);
   });
   // trang cuối: phủ tối đậm, chốt + thương hiệu
   const c = n - 1;
   d.push([1, c, c + 1, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.66)}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-  d.push([2, c, c + 1, 'Den', `{\\an5\\pos(540,600)${fs(70)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2}${ngat(de.ket, 22).slice(0, 3).map(chu).join('\\N')}`]);
+  d.push([2, c, c + 1, 'Den', `{\\an5\\pos(540,600)${fs(vua(de.ket, 22, 3, 70).co)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2}${vua(de.ket, 22, 3, 70).dong.map(chu).join('\\N')}`]);
   if (de.nhan) d.push([2, c, c + 1, 'Chu', `{\\an5\\pos(540,820)\\b1${fs(44)}\\1c${mauAss(NHAN)}}${chu(de.nhan)}`]);
   d.push([5, c, c + 1, 'Chu', `{\\an9\\pos(1040,36)\\b1${fs(24)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2}${n}/${n}`]);
   return rapAss(W, H, d);

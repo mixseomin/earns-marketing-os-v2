@@ -4,7 +4,7 @@
 // lệnh ffmpeg, 0đ. Tên người gửi / thương hiệu trong đề là tên BỊA, không dùng thương hiệu thật. Nhịp theo luật đọc (giayDoc): mở đủ đọc hai thẻ,
 // lý do đứng đủ đọc. Khác mẫu Scam or Real (một mẫu, khung tin nhắn theo kênh): ở đây hai mẫu đối nhau nên người xem SO sánh, không chỉ đoán.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-gia.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, ngat, nhipDem, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, mauAss, nhipDem, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 import { chuoiAnh, locAmChuoi } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -46,8 +46,8 @@ function the(d: DongAss[], m: MauGia, y: number, nhan: string, loai: string, tu:
   d.push([4, tu, den, 'Chu', `{\\an6\\pos(${KHUNG.x + KHUNG.w - 30},${y + 46})\\b1${fs(28)}\\1c${mauAss(NHAN)}\\fad(200,0)}${chu(loai)}`]);
   d.push([4, tu, den, 'Chu', `{\\an7\\pos(${KHUNG.x + 30},${y + 112})\\b1${fs(32)}\\1c&H555555&\\fad(200,0)}${chu(m.gui)}`]);
   dong.forEach((x, i) => {
-    const yD = y + 165 + i * tuDong, dongChu = ngat(x.t, 44).slice(0, 2);
-    d.push([4, tu, den, 'Chu', `{\\an7\\pos(${KHUNG.x + 30},${yD})\\b1${fs(30)}\\1c${mauAss(CHU)}\\fad(200,0)}${dongChu.map(chu).join('\\N')}`]);
+    const yD = y + 165 + i * tuDong, { dong: dongChu, co: coD } = vua(x.t, 44, 2, 30);
+    d.push([4, tu, den, 'Chu', `{\\an7\\pos(${KHUNG.x + 30},${yD})\\b1${fs(coD)}\\1c${mauAss(CHU)}\\fad(200,0)}${dongChu.map(chu).join('\\N')}`]);
     if (lo && lo.gia && x.co) {
       d.push([6, lo.T_LO + 0.15 * x.co, lo.T_END, 'Ve', `{\\an7\\pos(${KHUNG.x + 14},${yD - 10})\\1c${mauAss(DO)}\\3c${mauAss(DO)}\\bord4\\1a&HFF&\\fad(150,0)\\p1}${bo(KHUNG.w - 28, 42 * dongChu.length + 16, 12)}`]);
       d.push([7, lo.T_LO + 0.15 * x.co, lo.T_END, 'Den', `{\\an5\\pos(${KHUNG.x + KHUNG.w - 36},${yD + 12})${fs(30)}\\1c&HFFFFFF&\\3c${mauAss(DO)}\\bord10\\fad(150,0)}${x.co}`]);
@@ -60,9 +60,9 @@ function the(d: DongAss[], m: MauGia, y: number, nhan: string, loai: string, tu:
   }
 }
 export function assGia(de: DeGia): string {
-  const N = nhipGia(de), d: DongAss[] = [];
+  const N = nhipGia(de), d: DongAss[] = [], tde = vua(de.tieu_de, 30, 2, 52);
   d.push([1, 0, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.55)}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-  d.push([5, 0, N.T_LO, 'Den', `{\\an5\\pos(540,170)${fs(52)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(200,0)}${ngat(de.tieu_de, 30).slice(0, 2).map(chu).join('\\N')}`]);
+  d.push([5, 0, N.T_LO, 'Den', `{\\an5\\pos(540,170)${fs(tde.co)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(200,0)}${tde.dong.map(chu).join('\\N')}`]);
   d.push([5, N.T_LO, N.DAI, 'Den', `{\\an5\\pos(540,170)${fs(52)}\\1c${mauAss(NHAN)}\\3c&H000000&\\bord3\\fad(150,0)}${de.gia === 'a' ? 'A is the fake' : 'B is the fake'}`]);
   the(d, de.a, KHUNG.yA, 'A', de.loai, 0, N.DAI, { gia: de.gia === 'a', T_LO: N.T_LO, T_END: N.DAI });
   the(d, de.b, KHUNG.yB, 'B', de.loai, 0, N.DAI, { gia: de.gia === 'b', T_LO: N.T_LO, T_END: N.DAI });

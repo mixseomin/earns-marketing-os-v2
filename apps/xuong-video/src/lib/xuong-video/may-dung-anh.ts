@@ -3,7 +3,7 @@
 //   · hai-lua-chon (A hay B? hai vế trên cùng ảnh). THUẦN: đề → ASS (một hoặc hai "khung" theo mốc giây) + lệnh ffmpeg xuất KHUNG ẢNH 1080×1350 (4:5 — Facebook / X / IG
 //   đều hiện trọn), không dựng MP4 (mau-dung › chiAnh). Nền = ảnh thật Pexels (anh-nen.ts) hoặc ảnh đã AI sửa theo góc; chữ đọc được nhờ dải tối mỏng, không phủ cả ảnh.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-anh.test.mts
-import { alpha, bo, chu, mauAss, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, mauAss, ngat, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 
 export type KieuAnh = 'the-chu-tren-anh' | 'ai-con-nho' | 'doan-nam-gia' | 'hai-lua-chon';
 export interface DeAnh {
@@ -21,13 +21,13 @@ const EM = 1.25, fs = (px: number) => `\\fs${Math.round(px * EM)}`, TRANG = '#F4
 export function coChu(s: string): { dong: string[]; co: number } {
   const t = s.replace(/\s+/g, ' ').trim();
   for (const [rong, co] of [[22, 68], [26, 60], [32, 50], [40, 42], [52, 34]] as const) { const dong = ngat(t, rong); if (dong.length <= 3) return { dong, co }; }
-  return { dong: ngat(t, 52).slice(0, 4), co: 30 };
+  return vua(t, 52, 4, 30);
 }
 /** Vế A / B lên ĐỦ CHỮ: ≤ 2 dòng × 38 ký tự ở cỡ 34; dài hơn ngắt rộng hơn và thu chữ (27/10/2026: bản đầu cắt còn một dòng 34 ký tự, mất đuôi vế). */
 export function veLua(v: string): { dong: string[]; co: number } {
   const t = v.replace(/\s+/g, ' ').trim();
   for (const [rong, co] of [[38, 34], [46, 29], [56, 24]] as const) { const dong = ngat(t, rong); if (dong.length <= 2) return { dong, co }; }
-  return { dong: ngat(t, 56).slice(0, 2), co: 24 };
+  return vua(t, 56, 2, 24);
 }
 export const NHAN_KIEU: Record<KieuAnh, string> = { 'the-chu-tren-anh': '', 'ai-con-nho': 'Do you remember this?', 'doan-nam-gia': 'Take a guess', 'hai-lua-chon': 'A or B?' };
 

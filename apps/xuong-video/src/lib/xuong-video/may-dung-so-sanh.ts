@@ -2,7 +2,7 @@
 // chia đôi màn dọc (trên = X, dưới = Y), mỗi bên một ẢNH THẬT riêng (nen_url = X, nen_them[0] = Y) lia chậm, tên bên + 2–4 dòng đối nhau hiện từng cặp,
 // kết luận một dòng, tiếng nền thu thật. THUẦN: đề → ASS + lệnh ffmpeg. Nhịp theo luật đọc (giayDoc): mỗi cặp dòng đứng đủ đọc cả hai vế.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-so-sanh.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, mauAss, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 import { locAmChuoi } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -44,22 +44,22 @@ export function assSoSanh(de: DeSoSanh): string {
   d.push([2, 0, N.DAI, 'Ve', `{\\an4\\pos(40,${NUA + 120})\\1c${mauAss(CAM)}\\p1}${bo(Math.min(900, 60 + 30 * de.phai.ten.length), 90, 20)}`]);
   d.push([3, 0, N.DAI, 'Den', `{\\an4\\pos(70,${NUA + 120 + 4})${fs(44)}\\1c&HFFFFFF&}${chu(de.phai.ten)}`]);
   // màn mở: tiêu đề giữa vạch chia
-  const dongT = ngat(de.tieu_de, 22).slice(0, 3);
+  const { dong: dongT, co: coT } = vua(de.tieu_de, 22, 3, 68);
   d.push([4, 0, N.T_MO, 'Ve', `{\\an5\\pos(540,${NUA - 240})\\1c&H000000&\\1a${alpha(0.55)}\\fad(200,250)\\p1}${bo(1000, 110 + 90 * dongT.length, 28)}`]);
-  d.push([5, 0, N.T_MO, 'Den', `{\\an5\\pos(540,${NUA - 240})${fs(68)}\\1c&HFFFFFF&\\3c&H000000&\\bord2\\q2\\fad(200,250)}${dongT.map(chu).join('\\N')}`]);
+  d.push([5, 0, N.T_MO, 'Den', `{\\an5\\pos(540,${NUA - 240})${fs(coT)}\\1c&HFFFFFF&\\3c&H000000&\\bord2\\q2\\fad(200,250)}${dongT.map(chu).join('\\N')}`]);
   // từng cặp dòng: mỗi bên một dải tối ở phần dưới nửa mình, dòng mới thêm vào dưới dòng cũ, giữ tới hết
   for (let i = 0; i < N.n; i++) {
     const t0 = N.tu[i]!, den = N.DAI;
     for (const [ben, goc] of [[de.trai, 0], [de.phai, NUA]] as const) {
-      const dong = ngat(ben.dong[i]!, 34).slice(0, 2), y = goc + 280 + i * 140;
+      const { dong, co: coD } = vua(ben.dong[i]!, 34, 2, 42), y = goc + 280 + i * 140;
       d.push([6, t0, den, 'Ve', `{\\an7\\pos(40,${y})\\1c&H000000&\\1a${alpha(0.55)}\\fad(200,0)\\p1}${bo(1000, 44 + 60 * dong.length, 18)}`]);
-      d.push([7, t0, den, 'Chu', `{\\an7\\pos(70,${y + 20})\\b1${fs(42)}\\1c${mauAss(TRANG)}\\fad(200,0)}${dong.map(chu).join('\\N')}`]);
+      d.push([7, t0, den, 'Chu', `{\\an7\\pos(70,${y + 20})\\b1${fs(coD)}\\1c${mauAss(TRANG)}\\fad(200,0)}${dong.map(chu).join('\\N')}`]);
     }
   }
   if (N.kl) {
-    const dongK = ngat(N.kl, 30).slice(0, 2);
+    const { dong: dongK, co: coK } = vua(N.kl, 30, 2, 52);
     d.push([8, N.T_KL, N.DAI, 'Ve', `{\\an5\\pos(540,1790)\\1c${mauAss(NHAN)}\\fad(200,0)\\p1}${bo(1000, 90 + 70 * dongK.length, 28)}`]);
-    d.push([9, N.T_KL, N.DAI, 'Den', `{\\an5\\pos(540,1794)${fs(52)}\\1c&H111111&\\q2\\fad(200,0)}${dongK.map(chu).join('\\N')}`]);
+    d.push([9, N.T_KL, N.DAI, 'Den', `{\\an5\\pos(540,1794)${fs(coK)}\\1c&H111111&\\q2\\fad(200,0)}${dongK.map(chu).join('\\N')}`]);
   }
   if (N.ket.length) {
     d.push([10, N.T_KET, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.62)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);

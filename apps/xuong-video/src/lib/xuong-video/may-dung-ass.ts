@@ -27,6 +27,13 @@ export function ngat(s: string, n = 31): string[] {
   if (d) ra.push(d);
   return ra;
 }
+/** NGẮT VỪA KHUNG, KHÔNG BAO GIỜ BỎ CHỮ: ≤ max dòng × n ký tự ở cỡ co; dài hơn thì ngắt rộng hơn và thu cỡ chữ cùng tỉ lệ (bề ngang dòng giữ nguyên).
+ *  Mọi chỗ đặt chữ có trần số dòng trong mẫu Máy Dựng đi qua đây — CẤM ngat(…).slice(0, k) (máy kiểm: may-dung-ass.test.mts). Trước 12/11/2026 mỗi mẫu
+ *  tự cắt k dòng → câu dài mất đuôi im lặng (spot-the-fake examweight mất "nursing career", Ngọc chặn "chữ bị cắt"), rồi vá từng mẫu một (veLua, #842, land, scam). */
+export function vua(s: string, n: number, max: number, co: number): { dong: string[]; co: number } {
+  const t = s.replace(/\s+/g, ' ').trim();
+  for (let r = n; ; r = Math.ceil(r * 1.1)) { const dong = ngat(t, r); if (dong.length <= Math.max(1, max) || r >= t.length) return { dong, co: Math.round((co * n) / r) }; }
+}
 /** Một dòng sự kiện: [lớp, từ giây, tới giây, kiểu chữ, nội dung đã gắn thẻ]. Kiểu: Ve (hình vẽ) · Den (Archivo Black) · Chu (Atkinson). */
 export type DongAss = [lop: number, tu: number, den: number, kieu: 'Ve' | 'Den' | 'Chu', text: string];
 /** Ráp tệp ASS từ các dòng (khung + 3 kiểu chữ chung). chuDam: kiểu Chu in đậm mặc định (đố chữ dùng). */

@@ -14,7 +14,7 @@ export interface DeThi {
   mang: string;                                  // mảng kiến thức (vd "Medications") — chữ nhỏ trên thẻ
 }
 
-import { alpha, bo, chu, giayDoc, mauAss, ms, nayVao, ngat, nhipDem, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, mauAss, ms, nayVao, ngat, nhipDem, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 import { nenH264 } from './nen-video.mjs';
 
 export const FPS = 30, T_DEM = 0.3, DEM = 10, T_LO = T_DEM + DEM;
@@ -41,8 +41,8 @@ export function boCucThi(de: DeThi) {
     return { c, ds, tren, duoi: tren + cao, tam: tren + cao / 2 };
   });
   // lời giải hiện SAU khi đồng hồ (đỉnh y≈1655, chỉ hiện lúc đếm) đã tắt → được xuống tới đáy an toàn 1880; quá dài thì cắt bớt dòng
-  const yG = y + 30, giai = ngat(de.giai, 40).slice(0, Math.max(1, Math.floor((1880 - yG - 70) / 50)));
-  return { hoi, yHoi, o, cuoi: y, yG, giai, cuoiG: yG + giai.length * 50 + 70 };
+  const yG = y + 30, vG = vua(de.giai, 40, Math.max(1, Math.floor((1880 - yG - 70) / 50)), 36), giai = vG.dong;
+  return { hoi, yHoi, o, cuoi: y, yG, giai, coG: vG.co, cuoiG: yG + giai.length * 50 + 70 };
 }
 
 export function assThi(de: DeThi): string {
@@ -88,9 +88,9 @@ export function assThi(de: DeThi): string {
     d.push([8, tu, den, 'Den', `{\\an5\\pos(540,1747)${fs(96)}\\1c${gap ? '&HFFFFFF&' : '&H111111&'}${nayGiay}}${s}`]);
   }
   // lời giải: khung tối dưới thẻ
-  const { giai, yG } = L, caoG = giai.length * 50 + 70;
+  const { giai, yG, coG } = L, caoG = giai.length * 50 + 70;
   d.push([9, T_LO, T_KET, 'Ve', `{\\an7\\pos(60,${yG})\\1c&H000000&\\1a${alpha(0.62)}\\fad(150,0)\\p1}${bo(960, caoG, 22)}`]);
-  for (const [i, s] of giai.entries()) d.push([10, T_LO, T_KET, 'Chu', `{\\an4\\pos(95,${yG + 50 + i * 50})\\b0${fs(36)}\\1c&HFFFFFF&\\fad(150,0)}${i === 0 ? `{\\b1\\1c${mauAss(XANH)}}${de.dung} is correct.{\\b0\\1c&HFFFFFF&} ` : ''}${chu(s)}`]);
+  for (const [i, s] of giai.entries()) d.push([10, T_LO, T_KET, 'Chu', `{\\an4\\pos(95,${yG + 50 + i * 50})\\b0${fs(coG)}\\1c&HFFFFFF&\\fad(150,0)}${i === 0 ? `{\\b1\\1c${mauAss(XANH)}}${de.dung} is correct.{\\b0\\1c&HFFFFFF&} ` : ''}${chu(s)}`]);
   // màn kết
   const fad = '\\fad(300,0)', [k1, k2, k3] = chuKet(de.ky);
   d.push([20, T_KET, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c${mauAss(SAU)}\\1a${alpha(0.82)}${fad}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);

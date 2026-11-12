@@ -5,7 +5,7 @@
 // MẪU CHUNG mọi ngách: đề = 1–3 câu (khẳng định · đúng/sai · lý do · từ khoá ảnh riêng). Mỗi câu một ẢNH THẬT (nen_url + nen_them qua may-dung-chuoi),
 // tiếng nền thu thật. THUẦN: đề → ASS + lệnh ffmpeg. Nhịp theo luật đọc (giayDoc): câu đứng đủ đọc, đếm 3s, đáp án + lý do đứng đủ đọc.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-lat.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, ngat, nhipDem, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, mauAss, ngat, nhipDem, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 import { anhTheoMuc, chuoiAnh, locAmChuoi, type DoanAnh } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -30,7 +30,7 @@ export const nhanLat = (kieu: KieuLat, dung: boolean) => (kieu === 'cau-do' ? 'A
 export function dongKhangDinh(s: string): { dong: string[]; co: number } {
   const t = s.trim();
   for (const [rong, co] of [[22, 76], [22, 68], [22, 60], [28, 52], [34, 44], [42, 36]] as const) { const dong = ngat(t, rong); if (dong.length <= (rong === 22 ? [1, 2, 3][[76, 68, 60].indexOf(co)]! + 1 : 4)) return { dong, co }; }
-  return { dong: ngat(t, 42).slice(0, 4), co: 36 };
+  return vua(t, 42, 4, 36);
 }
 export const soCau = (de: DeLat) => (de.kieu === 'dung-sai' ? Math.min(3, Math.max(1, de.cau.length)) : 1);
 const CAU_HOI: Record<KieuLat, string> = { 'lam-tuong': 'Myth or fact?', 'dung-sai': 'True or false?', 'cau-do': 'Think before it flips' };
@@ -53,7 +53,7 @@ export function assLat(de: DeLat): string {
   const N = nhipLat(de), d: DongAss[] = [], tong = N.n;
   if (N.T_MO > 0) {
     d.push([1, 0, N.T_MO, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.45)}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([2, 0, N.T_MO, 'Den', `{\\an5\\pos(540,900)${fs(78)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(200,250)}${ngat(de.tieu_de!, 20).slice(0, 3).map(chu).join('\\N')}`]);
+    d.push([2, 0, N.T_MO, 'Den', `{\\an5\\pos(540,900)${fs(vua(de.tieu_de!, 20, 3, 78).co)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(200,250)}${vua(de.tieu_de!, 20, 3, 78).dong.map(chu).join('\\N')}`]);
   }
   N.cau.forEach((c, i) => {
     // khẳng định lên khung ĐỦ CHỮ: ngắt 22 ký tự / dòng tối đa 4 dòng; dài hơn thì ngắt rộng hơn + thu cỡ chữ, không bao giờ cắt đuôi (27/10: đề AI 86 ký tự mất vế sau)
@@ -66,11 +66,11 @@ export function assLat(de: DeLat): string {
     // đếm N · … · 1 (mỗi số 1s, nảy ở cuối)
     for (let k = 0; k < N.DEM; k++) d.push([3, m.dem + k, m.dem + k + 1, 'Den', `{\\an5\\pos(540,1320)${fs(120)}\\1c&HFFFFFF&\\3c&H000000&\\bord4${nhipDem(1)}}${N.DEM - k}`]);
     // lật: thẻ màu + nhãn + lý do
-    const nhan = nhanLat(de.kieu, c.dung), mau = de.kieu === 'cau-do' ? NHAN : c.dung ? DUNG : SAI, dongL = ngat(c.ly_do, 34).slice(0, 3), cao = 150 + 52 * dongL.length;
+    const nhan = nhanLat(de.kieu, c.dung), mau = de.kieu === 'cau-do' ? NHAN : c.dung ? DUNG : SAI, { dong: dongL, co: coL } = vua(c.ly_do, 34, 3, 38), cao = 150 + 52 * dongL.length;
     d.push([4, m.lat, m.het, 'Ve', `{\\an5\\pos(540,${1320})\\1c${mauAss(mau)}\\fad(150,250)\\p1}${bo(560, 120, 60)}`]);
     d.push([5, m.lat, m.het, 'Den', `{\\an5\\pos(540,${1320 + 4})${fs(64)}\\1c&HFFFFFF&\\fad(150,250)}${nhan}`]);
     d.push([4, m.lat + 0.2, m.het, 'Ve', `{\\an8\\pos(540,${1420})\\1c&H000000&\\1a${alpha(0.55)}\\fad(200,250)\\p1}${bo(1000, cao - 110, 24)}`]);
-    d.push([5, m.lat + 0.2, m.het, 'Chu', `{\\an8\\pos(540,${1450})\\b1${fs(38)}\\1c${mauAss(TRANG)}\\q2\\fad(200,250)}${dongL.map(chu).join('\\N')}`]);
+    d.push([5, m.lat + 0.2, m.het, 'Chu', `{\\an8\\pos(540,${1450})\\b1${fs(coL)}\\1c${mauAss(TRANG)}\\q2\\fad(200,250)}${dongL.map(chu).join('\\N')}`]);
   });
   if (N.diem) {
     // màn điểm: phủ tối đậm (ảnh cuối có thể sáng trắng — bản thử 27/10 chữ chìm vào màn điện thoại) + viền chữ; KHÔNG mời bình luận (Facebook coi là mồi tương tác)
@@ -82,9 +82,9 @@ export function assLat(de: DeLat): string {
     const t0 = N.T_DIEM;
     if (!N.diem) d.push([6, t0, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.6)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
     // dòng kết phải NGẮT dòng: \q2 không tự xuống dòng, "Check the message before paying" cỡ 80px tràn mép 1080 (Ngọc chặn 10/11/2026)
-    const k0 = ngat(N.ket[0]!, 20).slice(0, 3), y0 = 900 - 50 * (k0.length - 1), y1 = y0 + 100 * k0.length + 10;
-    d.push([7, t0, N.DAI, 'Den', `{\\an5\\pos(540,${y0})${fs(64)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,0)}${k0.map(chu).join('\\N')}`]);
-    if (N.ket[1]) d.push([7, t0, N.DAI, 'Chu', `{\\an5\\pos(540,${y1})\\b1${fs(40)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&\\fad(300,0)}${ngat(N.ket[1], 34).slice(0, 2).map(chu).join('\\N')}`]);
+    const { dong: k0, co: co0 } = vua(N.ket[0]!, 20, 3, 64), y0 = 900 - 50 * (k0.length - 1), y1 = y0 + 100 * k0.length + 10;
+    d.push([7, t0, N.DAI, 'Den', `{\\an5\\pos(540,${y0})${fs(co0)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,0)}${k0.map(chu).join('\\N')}`]);
+    if (N.ket[1]) d.push([7, t0, N.DAI, 'Chu', `{\\an5\\pos(540,${y1})\\b1${fs(vua(N.ket[1], 34, 2, 40).co)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&\\fad(300,0)}${vua(N.ket[1], 34, 2, 40).dong.map(chu).join('\\N')}`]);
   }
   if (de.nhan) d.push([2, 0, N.DAI, 'Chu', `{\\an7\\pos(40,40)\\b1${fs(26)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&}${chu(de.nhan)}`]);
   return rapAss(W, H, d);

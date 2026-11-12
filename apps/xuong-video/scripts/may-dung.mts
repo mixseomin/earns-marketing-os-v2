@@ -102,9 +102,13 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
   const hookTu = (rows: { library_id: string; dong: string; ngay: number; page_ten: string | null }[]) => { const thay = new Set<string>(), ra: HookDong[] = [];
     for (const r of rows) { const chu = sachHook(r.dong), k = chu.toLowerCase(); if (chu.length < 20 || chu.length > 140 || thay.has(k) || /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu) !== vi || (!vi && ngoaiAnh(chu))) continue; thay.add(k); ra.push({ id: String(r.library_id), chu, ngay: Number(r.ngay) || 0, page: String(r.page_ten ?? '') }); }
     return ra; };
-  const hookNhom = hookTu((await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta
-    where bat_dau is not null and left(noi_dung, 280) ~* any(select replace(lien_quan, '\\b', '\\y') from goc_sp where id = any(${nhomHook}) and lien_quan is not null)
-    order by (coalesce(lan_cuoi, now()) - bat_dau) desc, bien_the desc nulls last limit 400`) as never).slice(0, 100);
+  // NHÓM CỦA MÁY TRƯỚC, NHÓM LÂN CẬN (hook_sp) SAU (12/11/2026, examweight): trước gộp chung rồi lấy 100 QC chạy lâu nhất → nhóm lân cận rộng
+  // ("Luyện thi chứng chỉ nghề nói chung": PMP, bất động sản, Kinh Thánh…) chiếm hết 100 chỗ, QC đúng ngách (Prepia TEAS, Paramedic Gems NREMT) không vào kho,
+  // Ngọc loại 84/86 vì khác ngách → kho còn 2 câu, máy quay lại cùng câu, bài kẹt "khác ngách / nhạt / tiêu đề trùng" lặp 3 lần trong 24 giờ.
+  const qcKhop = (ids: number[]) => ids.length ? spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta
+    where bat_dau is not null and left(noi_dung, 280) ~* any(select replace(lien_quan, '\\b', '\\y') from goc_sp where id = any(${ids}) and lien_quan is not null)
+    order by (coalesce(lan_cuoi, now()) - bat_dau) desc, bien_the desc nulls last limit 400` : [];
+  const hookNhom = hookTu([...(await qcKhop(nhom)), ...(await qcKhop(nhomHook.filter((id) => !nhom.includes(id))))] as never).slice(0, 100);
   // VIDEO THẮNG của chính máy (anh duyệt 31/10/2026: hook đã chứng minh = QC spy chạy lâu HOẶC video kênh ≥ 500 lượt sau 7 ngày) → đứng ĐẦU kho hook
   const { THANG_LUOT_XEM, THANG_SAU_NGAY } = await import('../src/lib/xuong-video/luot-xem');
   const { docLaiLuotXem, NGAY_DANG_SQL } = await import('../src/lib/xuong-video/luot-xem-db'); await docLaiLuotXem(db, Number(m.id));

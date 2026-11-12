@@ -4,7 +4,7 @@
 // đọc ba dòng + 1s nhìn chữ lạ. Chữ bản ngữ (Nhật / Hàn / Thái / Trung…) cần font trong máy dựng: container Cloudflare cài fonts-noto-cjk + fonts-noto-core
 // (cloudflare/dung-video/container/Dockerfile); libass tự rơi về font có ký tự đó qua fontconfig.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-cau-noi.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, mauAss, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 import { chuoiAnh, locAmChuoi } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -39,16 +39,16 @@ export function assCauNoi(de: DeCauNoi): string {
   // màn mở
   d.push([1, 0, N.T_MO, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.45)}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
   d.push([2, 0, N.T_MO, 'Chu', `{\\an5\\pos(540,760)\\b1${fs(40)}\\1c${mauAss(NHAN)}\\3c&H000000&\\bord2\\fad(200,250)}Say this in ${chu(de.ngon_ngu)}`]);
-  d.push([2, 0, N.T_MO, 'Den', `{\\an5\\pos(540,900)${fs(76)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(200,250)}${ngat(de.tinh_huong, 20).slice(0, 3).map(chu).join('\\N')}`]);
+  d.push([2, 0, N.T_MO, 'Den', `{\\an5\\pos(540,900)${fs(vua(de.tinh_huong, 20, 3, 76).co)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(200,250)}${vua(de.tinh_huong, 20, 3, 76).dong.map(chu).join('\\N')}`]);
   // từng thẻ: dải tối giữa màn, bản ngữ to, cách đọc màu nhấn, nghĩa trắng; số thứ tự nhỏ góc
   N.cau.forEach((c, i) => {
-    const t0 = N.tu[i]!, t1 = i + 1 < N.n ? N.tu[i + 1]! : N.T_KET, bn = ngat(c.ban_ngu, 14).slice(0, 2), doc = ngat(c.doc, 30).slice(0, 2), ng = ngat(c.nghia, 32).slice(0, 2);
-    const coBn = bn.some((x) => x.length > 10) ? 72 : 88, cao = 80 + Math.round(coBn * 1.5) * bn.length + 58 * doc.length + 50 * ng.length;
+    const t0 = N.tu[i]!, t1 = i + 1 < N.n ? N.tu[i + 1]! : N.T_KET, vBn = vua(c.ban_ngu, 14, 2, 100), bn = vBn.dong, { dong: doc, co: coDoc } = vua(c.doc, 30, 2, 42), { dong: ng, co: coNg } = vua(c.nghia, 32, 2, 36);
+    const coBn = Math.round(((bn.some((x) => x.length > 10) ? 72 : 88) * vBn.co) / 100), cao = 80 + Math.round(coBn * 1.5) * bn.length + 58 * doc.length + 50 * ng.length;
     d.push([3, t0, t1, 'Ve', `{\\an5\\pos(540,960)\\1c&H000000&\\1a${alpha(0.58)}\\fad(250,250)\\p1}${bo(1000, cao, 28)}`]);
     let y = 960 - cao / 2 + 40;
     d.push([4, t0, t1, 'Den', `{\\an8\\pos(540,${y})${fs(coBn)}\\1c&HFFFFFF&\\fad(250,250)}${bn.map(chu).join('\\N')}`]); y += Math.round(coBn * 1.5) * bn.length + 8;
-    d.push([4, t0, t1, 'Chu', `{\\an8\\pos(540,${y})\\b1${fs(42)}\\1c${mauAss(NHAN)}\\fad(250,250)}${doc.map(chu).join('\\N')}`]); y += 58 * doc.length + 6;
-    d.push([4, t0, t1, 'Chu', `{\\an8\\pos(540,${y})\\b1${fs(36)}\\1c${mauAss(TRANG)}\\1a&H30&\\fad(250,250)}${ng.map(chu).join('\\N')}`]);
+    d.push([4, t0, t1, 'Chu', `{\\an8\\pos(540,${y})\\b1${fs(coDoc)}\\1c${mauAss(NHAN)}\\fad(250,250)}${doc.map(chu).join('\\N')}`]); y += 58 * doc.length + 6;
+    d.push([4, t0, t1, 'Chu', `{\\an8\\pos(540,${y})\\b1${fs(coNg)}\\1c${mauAss(TRANG)}\\1a&H30&\\fad(250,250)}${ng.map(chu).join('\\N')}`]);
     d.push([4, t0, t1, 'Chu', `{\\an9\\pos(1040,40)\\b1${fs(30)}\\1c${mauAss(NHAN)}\\3c&H000000&\\bord2}${i + 1}/${N.n}`]);
   });
   if (N.ket.length) {

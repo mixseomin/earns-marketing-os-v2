@@ -2,7 +2,7 @@
 // 3×3 → 5×5 ô chữ / ký hiệu giống nhau (chữ, số, từ ngắn, ký tự Unicode có trong font), MỘT ô khác (O/Q, 6/9, CALM/CLAM…), đếm 7s, khoanh ô khác, câu móc
 // theo góc, trên cảnh thật làm tối + tiếng nền thu thật. THUẦN: đề → ASS + lệnh ffmpeg. Vị trí ô khác do đề quyết (máy sinh đề chọn ngẫu nhiên, kiểm trùng).
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-lac-loai.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, ngat, nhipDem, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, mauAss, nhipDem, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 import { chuoiAnh, locAmChuoi } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -42,7 +42,7 @@ export function assLacLoai(de: DeLacLoai): string {
   const N = nhipLacLoai(de), L = luoiLacLoai(de), d: DongAss[] = [];
   d.push([1, 0, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.5)}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
   d.push([2, 0, N.T_LO, 'Den', `{\\an5\\pos(540,300)${fs(60)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(200,0)}Find the odd one out`]);
-  if (de.moc) d.push([2, 0.3, N.DAI, 'Chu', `{\\an5\\pos(540,400)\\b1${fs(36)}\\1c${mauAss(NHAN)}\\3c&H000000&\\bord2\\fad(200,0)}${ngat(de.moc, 34).slice(0, 2).map(chu).join('\\N')}`]);
+  if (de.moc) d.push([2, 0.3, N.DAI, 'Chu', `{\\an5\\pos(540,400)\\b1${fs(vua(de.moc, 34, 2, 36).co)}\\1c${mauAss(NHAN)}\\3c&H000000&\\bord2\\fad(200,0)}${vua(de.moc, 34, 2, 36).dong.map(chu).join('\\N')}`]);
   for (let i = 0; i < L.hang * L.cot; i++) {
     const p = L.o(i), khac = i === L.vi;
     d.push([3, 0, N.DAI, 'Ve', `{\\an7\\pos(${p.x},${p.y})\\1c${mauAss(O)}\\fad(150,0)\\p1}${bo(L.canh, L.canh, 18)}`]);

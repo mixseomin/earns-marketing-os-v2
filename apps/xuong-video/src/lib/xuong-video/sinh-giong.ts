@@ -4,7 +4,7 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import { dayViecAm } from './hoan-tat';
 import { dongThoai, giaGiongTheo, GIONG_MAC_DINH, timNv } from './am-thanh';
-import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep } from './giong';
+import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep, docCachDien } from './giong';
 import { boiCanhTap, mapCanh, taoJob, canhDangSinhAm, type Db, type Row } from './doc-db';
 import { chanChuModel, coMau, thuongHieu, type NhanVat } from './kieu';
 import { chonGiongRieng } from './giong-rieng';
@@ -122,7 +122,7 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
         const g = giaGiongTheo(dm, model, text.length);
         const gia = g ?? 0;   // model không công bố giá → sổ ghi 0 và nhãn job ghi "giá chưa rõ" để sổ chi phí không hiểu nhầm là miễn phí
         const job = await taoJob(db, { ...(g != null ? { cents: g } : {}), nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})${g == null ? ' · giá chưa rõ' : ''}`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice, giong: `${model}|${voice}`, ...(tuy.sauVideo ? { sau_video: tuy.sauVideo } : {}) } });
-        await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text: d.dien_xuat && /eleven/.test(model) && /v3/.test(model) ? `[${d.dien_xuat}] ${text}` : text, voice, ngonNgu: bc.kt.ngon_ngu ?? 'vi', camXuc: tuy.camXuc ?? (v ? c.cam_xuc : camDan), theLoai: bc.kt.the_loai ?? '' }), thuMuc: `thoai/${c.id}-${i}` });
+        await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text: d.dien_xuat && /eleven/.test(model) && /v3/.test(model) ? `[${d.dien_xuat}] ${text}` : text, voice, ngonNgu: bc.kt.ngon_ngu ?? 'vi', camXuc: tuy.camXuc ?? (v ? c.cam_xuc : camDan), theLoai: bc.kt.the_loai ?? '', toc: (d as { toc?: number }).toc ?? docCachDien(d.dien_xuat).toc, cam: (d as { cam?: string }).cam ?? docCachDien(d.dien_xuat).cam }), thuMuc: `thoai/${c.id}-${i}` });
         so++;
       }
     }

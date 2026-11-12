@@ -55,7 +55,7 @@ async function spCua(ma: string) {
 
 /** Video YouTube nhiều lượt xem theo các cụm tìm (yt-dlp trên box3, không cần khoá API). Đệm 3 ngày theo khoá nhóm. Trả [{ id, title, views }] ≥ 300.000 lượt (ngách hẹp hạ 100.000 / 50.000), nhiều trước. */
 async function hookYoutube(khoa: string, cum: string[]): Promise<{ id: string; title: string; views: number }[]> {
-  const fs = await import('node:fs'), { execFileSync } = await import('node:child_process'), dir = `${process.env.HOME}/.cache/hook-yt-3`, tep = `${dir}/${khoa}.json`;
+  const fs = await import('node:fs'), { execFileSync } = await import('node:child_process'), dir = `${process.env.HOME}/.cache/hook-yt-4`, tep = `${dir}/${khoa}.json`;
   try { const c = JSON.parse(fs.readFileSync(tep, 'utf8')); if (Date.now() - c.luc < 3 * 86_400_000 && c.ds?.length) return c.ds; } catch { /* chưa có đệm */ }
   const ra = new Map<string, { id: string; title: string; views: number }>();
   // tìm cả biến thể câu hỏi của cụm ("why … ") — tiêu đề nhiều lượt xem nhất thường là NHÃN chủ đề ("WW1 - Oversimplified"), Ngọc loại 39/40 vì nhạt (02/11/2026)
@@ -70,7 +70,9 @@ async function hookYoutube(khoa: string, cum: string[]): Promise<{ id: string; t
     || /\b(worst|strangest|weirdest|craziest|deadliest|dumbest|most|never|only|secret|forgotten|real reason)\b/i.test(t));
   // NGÁCH HẸP (anh duyệt 10/11/2026, militarycalc: mức 300.000 chỉ ra 1 câu): mức chuẩn 300.000; dưới 5 câu đạt thì hạ dần 100.000 → 50.000, nhiều lượt xem vẫn đứng trước
   const hinh = [...ra.values()].filter((v) => hinhHook(v.title)).sort((a, b) => b.views - a.views);
-  const ds = [300_000, 100_000, 50_000].map((m) => hinh.filter((v) => v.views >= m)).find((x) => x.length >= 5) ?? hinh;
+  // trả HẾT câu ≥ 50.000 (đã xếp lượt xem giảm dần), không dừng ở mức đầu đủ 5 câu: militarycalc 12/11/2026 mức 300.000 ra đúng 5 câu, Ngọc loại cả 5 → kho cạn,
+  // bài top-n-42942 kẹt "hết hook QC chưa dùng". Bên gọi cắt 40 câu đầu, câu nhiều lượt xem vẫn được xét trước.
+  const ds = hinh;
   if (ds.length) { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(tep, JSON.stringify({ luc: Date.now(), ds })); }
   return ds;
 }

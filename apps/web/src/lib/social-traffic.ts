@@ -61,7 +61,9 @@ export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: strin
   /** link đích của ô kế hoạch (bài site của góc) — ô này là nguồn social trỏ sang bài */
   dich?: string | null;
   /** ô kế hoạch đã có video DUYỆT làm từ đúng góc */
-  coBai?: boolean }
+  coBai?: boolean;
+  /** dự án của máy (xv_may.du_an) — tab Máy đăng › Lịch lọc theo dự án (anh 12/11/2026) */
+  duAn?: string | null }
 /** THỐNG KÊ KHO (anh 18/10/2026: "cần thống kê theo kiểu nội dung, format… trên lịch nhìn thấy hết"): một dòng = máy × (format | kiểu nội dung).
  *  da = lượt đã đăng · kho = lượt DUYỆT chưa đăng (một video lên 3 nền = 3) · den = ngày lượt dự kiến cuối cùng (lịch 90 ngày của dang-may) — null = không có lượt nào. */
 export interface StKho { may: string; mayTen: string; chieu: 'format' | 'kieu'; nhan: string; da: number; kho: number; den: string | null }
@@ -436,11 +438,12 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
       d.execute(sql`SELECT luc::text AS luc, ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ luc: string; ds: { ngay: string; gio: string; may: string; mayTen?: string; nen: string; title: string; slug?: string | null; format?: string; nhom?: string | null; moTa?: string | null; chuaDung?: boolean; phim?: number | string | null; huong?: string | null }[] }[]>,
     ]);
     // kênh của từng nơi đăng (máy × nền → tên tài khoản) + ảnh thật của video trong lượt dự kiến (theo slug)
-    const [noiTk, anhSlug] = await Promise.all([
+    const [noiTk, anhSlug, duAnMay] = await Promise.all([
       d.execute(sql`SELECT m.ma, n->>'nen' AS nen, coalesce(n->>'tk', n->'br'->>'ten', n->>'ten') AS tk, a.platform_key, a.handle,
           coalesce(a.account_stats->>'page_id', n->'br'->>'graph_id') AS page_id, n->'br'->>'kenh_id' AS kenh_id
         FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n LEFT JOIN platform_accounts a ON a.id::text = n->'br'->>'acct'`) as unknown as Promise<{ ma: string; nen: string; tk: string | null; platform_key: string | null; handle: string | null; page_id: string | null; kenh_id: string | null }[]>,
       d.execute(sql`SELECT m.ma, v.slug, coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh, v.video_url AS video, v.dang->'goc' AS goc, (v.cham->>'ket' = 'DUYET' AND v.cham->>'xuat' = v.xuat_luc::text) AS duyet FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.chay AND NOT coalesce(v.luu_tru, false)`) as unknown as Promise<{ ma: string; slug: string; anh: string | null; video: string | null; goc: GocBai | null; duyet: boolean | null }[]>,
+      d.execute(sql`SELECT ma, du_an FROM xv_may`) as unknown as Promise<{ ma: string; du_an: string | null }[]>,
     ]);
     // TÊN PHIM cho bài aff (anh 11/11/2026): dang.phim là content_id của thư viện phim Ethopex — bảng nằm ở schema `etp`,
     // KHÔNG phải `public` (tra nhầm schema thì psql báo "relation does not exist"). Chỉ nạp đúng những phim đang có trên lịch.
@@ -516,6 +519,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
       for (const x of kh) if (x.ngay >= hom) o.push({ ngay: x.ngay, gio: '—', may: x.may, mayTen: tenMay.get(x.may) ?? x.may, nen: x.nen, title: x.goc.ten, url: null, loai: 'du_kien', anh: baiGoc.get(`${x.may}|${x.goc.id}`) ?? null, coBai: baiGoc.has(`${x.may}|${x.goc.id}`),
         tk: tkCua.get(`${x.may}|${x.nen}`) ?? tkCua.get(`${x.may}|${x.ho}`) ?? null, nhom: null, link: x.format === 'Bài link' || !!x.dich, goc: x.goc, format: x.format, canDung: x.can_dung, baiSite: bs.get(`${x.may}|${x.goc.id}`) ?? null, dich: x.dich });
     } catch (e) { loi.push(`kế hoạch góc: ${(e as Error).message.slice(0, 120)}`); }
+    const duAnCua = new Map(duAnMay.map((x) => [x.ma, x.du_an])); for (const x of o) x.duAn = duAnCua.get(x.may) ?? null;
     return { hom, tinhLuc: dk[0]?.luc ?? null, o, kenh, kho: [...gom.values()].filter((g) => g.da || g.kho).sort((a, b) => a.mayTen.localeCompare(b.mayTen) || a.chieu.localeCompare(b.chieu) || b.kho - a.kho) };
   } catch (e) { loi.push(`lưới lịch: ${(e as Error).message}`); return rong; }
 }

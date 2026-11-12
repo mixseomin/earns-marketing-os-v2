@@ -12,7 +12,7 @@ import { pkCua } from '@/lib/ho-nen';
 
 const NEN_NHAN: Record<string, string> = { youtube: 'YT', facebook: 'FB', fb_anh: 'FB ảnh', fb_link: 'FB link', x: 'X', x_anh: 'X ảnh', x_link: 'X link', tiktok: 'TikTok', instagram: 'IG', dailymotion: 'DM', threads: 'Threads' };
 // Page cũ gắn vào máy (S06): khoá 'facebook:<acct>' → 'FB Page cũ'
-const nhanNen = (n: string) => { const g = n.split(':')[0] ?? n; return NEN_NHAN[n] ?? (g !== n ? `${NEN_NHAN[g] ?? g} Page cũ` : n); };
+export const nhanNen = (n: string) => { const g = n.split(':')[0] ?? n; return NEN_NHAN[n] ?? (g !== n ? `${NEN_NHAN[g] ?? g} Page cũ` : n); };
 const MAU = ['#2563eb', '#d97706', '#059669', '#db2777', '#7c3aed', '#0891b2'];
 const THU = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const cong = (ngay: string, n: number) => new Date(Date.parse(`${ngay}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);

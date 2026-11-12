@@ -9,6 +9,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type React
 import { AnchoredPopover, DataTable, Drawer, EmptyState, MultiSelect, NutViec, Segmented, StatsStrip, TextField, type DataColumn, type DataGroup, type MultiSelectOption } from '@/components/ui';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { MayDang } from '@/components/social-may-dang';
+import { MayDangLich } from '@/components/may-dang-lich';
 import { pkCua } from '@/lib/ho-nen';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { useModalParam } from '@/lib/use-modal-param';
@@ -229,12 +230,14 @@ function ChiTiet({ r, admin, xong, dong }: { r: Dong; admin: boolean; xong: () =
   </Drawer>;
 }
 
+/** tab con: lich (mặc định, anh 12/11/2026 "hiện kiểu lịch") · luot · loi · may */
+type Md = 'lich' | 'luot' | 'loi' | 'may';
 /** Trạng thái xem đọc từ URL khi mount (F5 / chia sẻ giữ nguyên). */
 function docUrl() {
   const p = typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search);
   const loc = locTrong(); for (const k of LOC) loc[k] = (p.get(`md_${k}`) ?? '').split(',').filter(Boolean);
   const md = p.get('md'), ngay = p.get('md_ngay');
-  return { md: (md === 'loi' || md === 'may' ? md : 'luot') as 'luot' | 'loi' | 'may', ngay: NGAY.some((x) => x.value === ngay) ? ngay! : '3', loc };
+  return { md: (md === 'luot' || md === 'loi' || md === 'may' ? md : 'lich') as Md, ngay: NGAY.some((x) => x.value === ngay) ? ngay! : '3', loc };
 }
 /** URL hiện tại với một khoá đổi — cho ⌘/Ctrl-click mở tab mới (ui-conventions §1). */
 const hrefVoi = (k: string, v: string | null) => { if (typeof window === 'undefined') return null; const p = new URLSearchParams(window.location.search); if (v) p.set(k, v); else p.delete(k); return `${window.location.pathname}?${p}`; };
@@ -247,7 +250,7 @@ export function MayDangView() {
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search), dat = (k: string, v: string | null) => (v ? p.set(k, v) : p.delete(k));
-    dat('md', md === 'luot' ? null : md); dat('md_ngay', ngay === '3' ? null : ngay);
+    dat('md', md === 'lich' ? null : md); dat('md_ngay', ngay === '3' ? null : ngay);
     for (const k of LOC) dat(`md_${k}`, loc[k].length ? loc[k].join(',') : null);
     window.history.replaceState(null, '', `${window.location.pathname}?${p}`);
   }, [md, ngay, loc]);
@@ -333,13 +336,14 @@ export function MayDangView() {
 
   return <div style={{ display: 'grid', gap: 10 }}>
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-      <Segmented<'luot' | 'loi' | 'may'> value={md} onChange={setMd} hrefFor={(v) => hrefVoi('md', v === 'luot' ? null : v)} options={[
+      <Segmented<Md> value={md} onChange={setMd} hrefFor={(v) => hrefVoi('md', v === 'lich' ? null : v)} options={[
+        { value: 'lich', label: 'Lịch', title: 'đã đăng + máy sẽ đăng theo tuần / tháng / giờ — cùng lịch với Social Traffic, lọc theo dự án, kênh, nền, tài khoản' },
         { value: 'luot', label: 'Lượt đăng', title: 'mỗi dòng một lượt máy đăng xét một kênh × một nền, mới nhất trên đầu, 7 bước thành 7 cột' },
         { value: 'loi', label: 'Lỗi hay gặp', title: 'gom theo bước dừng × khâu kẹt × nhóm lý do để tập trung sửa — bấm một dòng là lọc ra các lượt đó' },
         { value: 'may', label: 'Máy', title: 'bật / tắt máy, cho nền nghỉ, vòng 10 phút gần nhất, kế hoạch hôm nay' }]} />
       <span style={{ ...nho, color: 'var(--fg-3)' }}>Máy đăng iMac, mỗi 10 phút · phụ trách: Phòng Social Traffic · Pinterest Front Porch (pin-hang) chưa vào sổ · sổ cũ bai_hen (dừng 25/10) và publications (dừng tháng 5) không còn chạy</span>
     </div>
-    {md !== 'may' && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+    {(md === 'luot' || md === 'loi') && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
       <Segmented<string> options={NGAY} value={ngay} onChange={setNgay} hrefFor={(v) => hrefVoi('md_ngay', v === '3' ? null : v)} />
       <MultiSelect label="Dự án" options={opt.da} selected={loc.da} onChange={(v) => dat('da', v)} compact />
       <MultiSelect label="Kênh" options={opt.km} selected={loc.km} onChange={(v) => dat('km', v)} compact />
@@ -352,7 +356,8 @@ export function MayDangView() {
       {LOC.some((k) => loc[k].length) && <button type="button" onClick={() => setLoc(locTrong())} style={{ border: 0, background: 'none', color: 'var(--accent, #60a5fa)', cursor: 'pointer', fontSize: 12 }}>bỏ lọc</button>}
       <span style={{ ...nho, color: loi ? 'var(--danger, #dc2626)' : 'var(--fg-3)', marginLeft: 'auto' }}>{loi ? `không đọc được sổ: ${loi}` : tai ? 'đang đọc…' : `${loc1.length} dòng · tự làm mới 5 giây`}</span>
     </div>}
-    {md !== 'may' && <StatsStrip cards={the} minColWidth={120} />}
+    {(md === 'luot' || md === 'loi') && <StatsStrip cards={the} minColWidth={120} />}
+    {md === 'lich' && <MayDangLich />}
     {md === 'luot' && (loc1.length || tai
       ? <DataTable rows={loc1} columns={cot} groups={nhom} getRowKey={(r) => String(r.id)} persistKey="may-dang-luot-2" minWidth={1500} pageSize={100} locTuDong={false}
           searchText={(r) => `${r.slug ?? ''} ${r.loi ?? ''} ${r.may_ten} ${r.nen} ${r.url ?? ''}`} searchPlaceholder="Tìm bài / lỗi / kênh…" onTimDoi={setQ}

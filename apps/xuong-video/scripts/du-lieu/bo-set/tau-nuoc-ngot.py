@@ -241,7 +241,7 @@ for ma, v in SD['shot'].items():
     if ma == '4': may[ma]['nham'] = 'Nhóc'
     if ma == '10':   # cận tay ở bậu cửa: chủ thể = nắm tiền thừa; tiền đang được nhóc GIƠ lên (tay 0,55) ngang bậu — chỗ đứng của món theo tay giơ, không theo hông
         # máy THẤP trên sân ga ngước lên bậu cửa: thấy tay chú đón + nắm tiền + mặt nhóc đang giơ (cận trao — luật vật cầm phải thấy người cầm)
-        may[ma].update({'dat': [60, 380, 120], 'nhin': [-70, 500, 155], 'ong_kinh': 50, 'khung': ['Tiền thừa', 'Nhóc']})
+        may[ma].update({'dat': [60, 380, 120], 'nhin': [-60, 500, 135], 'ong_kinh': 40, 'khung': ['Tiền thừa', 'Nhóc']})
         for x in vt:
             if x['ten'] == 'Tiền thừa': x['tam'] = [-70, 500, 155]   # chỗ hai bàn tay gặp nhau ở bậu (nhóc giơ 0,55 — trang three.js dựng tay tới đây)   # chủ thể cận tay = nắm tiền thừa (mặt chú ngoài khung là đúng)   # cận tay ở bậu cửa: ngang tầm hai bàn tay (nhóc giơ tới ~1,4 m, tay chú qua bậu 1,6 m)   # ma-nơ-canh: lùi máy 60 cm — sát quá thì thân đang nhoài choán hết khung (three.js 12/11)   # khối: đầu đứng thẳng cao hơn đầu ma-nơ-canh đang nhoài   # cận mặt chú đang NHOÀI (chong_ban): đầu thấp + ra trước so với lúc đứng thẳng   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
 # #13 CẬN PHẢN ỨNG chốt cảnh (anh 12/11/2026 "đoạn cuối cần shot mặt gần của Chú để rõ cảm xúc" — ngành: close-up reaction shot, kiểu hài double take /

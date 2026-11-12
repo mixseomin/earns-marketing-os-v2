@@ -98,7 +98,7 @@ export type TuVan = { nguoi_id: number; nguoi: string; luc: string; du: {
   phien: { gio: string; mo: string[]; dong: string[] } | null; may_se_lam: { luat: string; dat: number; gan: number }[];
   nen: Record<'tat' | 'tang' | 'roas' | 'nhan', TuVanCamp[]>; dem: Record<'tat' | 'tang' | 'roas' | 'nhan', number>;
   /** dự báo ngày yếu + dây báo động chợ (tu_van.py du_bao, anh 12/11/2026) */
-  du_bao?: { muc: 'xanh' | 'vang' | 'do'; ly: string[]; bao_dong: { roi: number; chi: number; toi_gio_vn: string } | null } | null } };
+  du_bao?: { muc: 'xanh' | 'vang' | 'do'; ly: string[]; bao_dong: { roi: number; chi: number; toi_gio_vn: string; roi_2h?: number | null; roi_2h_7?: number | null; hoi?: boolean } | null } | null } };
 export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt — etp-view tải bù khi tab cần (taiNangEtp) */; luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[]; thuVien: ThuVienMuc[];
   cauHinh: { khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }[];
   nhatKy: { luc: string; viec: string; camp_id: number | null; truoc: string | null; sau: string | null; ok: boolean | null; loi: string | null; luat: string | null; ai: string | null }[];

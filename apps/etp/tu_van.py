@@ -23,6 +23,7 @@ ROAS_CHI3, ROAS_ROI3 = 20, 50                    # Dol 09/11/2026: chi ≥ $20 &
 NHAN_ROI3, NHAN_CHI3 = 100, 10                   # nên nhân bản: 3 ngày ROI ≥ 100% chi ≥ $10
 TOI_DA = 5                                        # mỗi danh sách tối đa 5 camp (xếp theo $ ảnh hưởng)
 DB_CHI, DB_TOI = 25, -15     # dự báo ngày yếu: ngày trước chi ≥ +25% so TB 7 ngày · ROI đêm trước (01:00–07:00 VN) ≤ −15 điểm so TB 7 đêm (đo 23 ngày, 12/11/2026)
+HOI_LECH = 10                # chợ coi là đã hồi: 2 giờ gần nhất ROI ≥ 0 và không kém quá 10 điểm so cùng 2 giờ đó của 7 ngày
 BD_ROI, BD_CHI = -15, 200    # dây báo động trong ngày: cả chợ cộng dồn từ 07:00 ROI ≤ −15% trên chi ≥ $200 (đủ 2 giờ số)
 VN = dt.timezone(dt.timedelta(hours=7))
 GOC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -86,12 +87,20 @@ def du_bao(now):
     n = m.get(nay.isoformat()) if goc != nay else None; bd = None
     if n and n["gio"] >= 1 and n["chi"] >= BD_CHI and roi(n["chi"], n["thu"]) <= BD_ROI:
         bd = {"ngay": nay.isoformat(), "roi": roi(n["chi"], n["thu"]), "chi": round(n["chi"]), "toi_gio_vn": f"{(n['gio'] + 8) % 24:02d}:00"}
+        # ĐÃ HỒI CHƯA (anh 12/11/2026 "team báo thị trường bắt đầu ổn trở lại"): số cộng dồn kéo theo lỗ buổi sáng cả ngày → xét riêng 2 giờ gần nhất so cùng 2 giờ đó của 7 ngày
+        h = qj(f"""select (ngay = current_date) nay, sum(chi)::float chi, sum(thu)::float thu from (select ngay, gio, chi, thu from etp.so_gio_ngoai union all select ngay, gio, chi, thu from etp.so_gio) x
+                   where ngay >= current_date - 7 and gio in ({n['gio']}, {n['gio'] - 1}) group by 1""")
+        g2 = next((roi(r["chi"], r["thu"]) for r in h if r["nay"]), None); g7 = next((roi(r["chi"], r["thu"]) for r in h if not r["nay"]), None)
+        bd |= {"roi_2h": g2, "roi_2h_7": g7, "hoi": g2 is not None and g7 is not None and g2 >= max(0, g7 - HOI_LECH)}
     return {"muc": ("xanh", "vang", "do")[len(ly)], "ly": ly, "chi_vs": chi_vs, "toi": toi, "toi_vs": toi_vs, "bao_dong": bd}
 def chu_du_bao(db):
     """hai dòng dùng chung cho tin 🧭 và tin 🚨"""
     L = []
     if db: L.append({"xanh": "🟢 Dự báo: ngày bình thường", "vang": "🟡 Dự báo: dễ yếu", "do": "🔴 Dự báo: ngày yếu"}[db["muc"]] + (" — " + " · ".join(db["ly"]) + " → không tăng tổng ngân sách" if db["ly"] else ""))
-    if db and db["bao_dong"]: b = db["bao_dong"]; L.append(f"🚨 Chợ <b>{pc(b['roi'])}</b> trên {usd(b['chi'])} (07:00–{b['toi_gio_vn']}) → hoãn tăng / nhân bản camp thường")
+    if db and db["bao_dong"]:
+        b = db["bao_dong"]; g = f"2 giờ gần nhất {pc(b.get('roi_2h'))} (thường {pc(b.get('roi_2h_7'))})"
+        L.append(f"🌤 Chợ đang hồi: {g} · cả ngày còn {pc(b['roi'])} → tăng / nhân bản lại theo luật thường" if b.get("hoi")
+                 else f"🚨 Chợ <b>{pc(b['roi'])}</b> trên {usd(b['chi'])} (07:00–{b['toi_gio_vn']}) · {g} → hoãn tăng / nhân bản camp thường")
     return L
 
 # ---------- phiên ----------
@@ -241,7 +250,7 @@ def main(a):
     db = du_bao(now)
     if "--bao-dong" in a:   # worker etp-tu-van.mjs gọi mỗi 5 phút: dây đứt → một tin 🚨 vào chủ đề của người nhà (một lần / ngày, worker giữ dấu)
         nha = qj("select nguoi_id, nguoi from etp.tai_khoan where nha and nguoi_id is not null limit 1")
-        print(json.dumps({"ngay": db["bao_dong"]["ngay"], "nguoi_id": nha[0]["nguoi_id"], "nguoi": nha[0]["nguoi"], "html": "\n".join(chu_du_bao(db)[::-1])} if db and db["bao_dong"] and nha else {}, ensure_ascii=False)); return
+        print(json.dumps({"ngay": db["bao_dong"]["ngay"], "hoi": bool(db["bao_dong"].get("hoi")), "nguoi_id": nha[0]["nguoi_id"], "nguoi": nha[0]["nguoi"], "html": "\n".join(chu_du_bao(db)[::-1])} if db and db["bao_dong"] and nha else {}, ensure_ascii=False)); return
     nguoi, ngay, camp, gio, tt, the, tu_dong, nha_gio = doc_so()
     chon = int(a[a.index("--nguoi") + 1]) if "--nguoi" in a else None
     ds = [mot_nguoi(int(n["nguoi_id"]), n["nguoi"], ngay, camp, gio, tt, the, tu_dong, nha_gio, now) for n in nguoi if chon in (None, int(n["nguoi_id"]))]

@@ -41,13 +41,14 @@ async function baoDongCho() {
   const b = JSON.parse((await chayTuVan('--bao-dong')).trim().split('\n').filter((l) => l.startsWith('{')).pop() || '{}');
   if (!b.html) return 'chưa tới mốc';
   let da = {}; try { da = JSON.parse(fs.readFileSync(tepDa(), 'utf8')); } catch { /* lần đầu */ }
-  if (da.baoDong === b.ngay) return 'chưa tới mốc · báo động chợ đã gửi';
-  da.baoDong = b.ngay; fs.writeFileSync(tepDa(), JSON.stringify(da));   // đánh dấu TRƯỚC khi gửi, như mốc tư vấn
+  const khoa = b.hoi ? 'choHoi' : 'baoDong';   // mỗi ngày tối đa hai tin: 🚨 khi dây đứt, 🌤 khi 2 giờ gần nhất đã về mức thường (đã hồi rồi thì không báo 🚨 lại)
+  if (da[khoa] === b.ngay || da.choHoi === b.ngay) return `chưa tới mốc · ${b.hoi ? 'tin chợ hồi' : 'báo động chợ'} đã gửi`;
+  da[khoa] = b.ngay; fs.writeFileSync(tepDa(), JSON.stringify(da));   // đánh dấu TRƯỚC khi gửi, như mốc tư vấn
   const { tgNoiDung } = await import('./kiem-bai.mjs'); const { topicPhong } = await import('./tg-phong.mjs'); const { tg } = await tgNoiDung();
   const topic = await topicPhong(`ethopex-tv-${b.nguoi_id}`, `🧭 Tư vấn · ${b.nguoi}`, tg, { duocTao: true });
   const j = topic ? await tg('sendMessage', { message_thread_id: topic, text: b.html, parse_mode: 'HTML', link_preview_options: { is_disabled: true } }) : { ok: false, description: 'không có chủ đề' };
   if (!j.ok) throw new Error(`báo động chợ: ${j.description ?? 'gửi hỏng'}`);
-  ghiTin(b.nguoi_id, j.result.message_id); return 'báo động chợ: đã gửi';
+  ghiTin(b.nguoi_id, j.result.message_id); return b.hoi ? 'chợ hồi: đã gửi' : 'báo động chợ: đã gửi';
 }
 export async function nhipTuVan({ thu = false } = {}) {
   const moc = thu ? `${String(Math.floor(gioVn().phut / 60)).padStart(2, '0')}:${String(gioVn().phut % 60).padStart(2, '0')}` : mocToi();

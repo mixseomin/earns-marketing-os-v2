@@ -49,7 +49,7 @@ export async function ghiG10(ids) {
 const NHOM = [
   ['hoi_g10', '↑ <b>G10 HỒI</b> — camp đã hạ về $10, 2 ngày đã khép sau đó ROI ≥ 30% → máy nâng lại theo thang từng bậc tới $20, không quá ngân sách trước lúc hạ (anh 04/11 + 07/11/2026, cả ★ ROAS)', null],
   ['thang_nb', '🪜 <b>THANG NHÂN BẢN</b> — bộ 2: camp chạm luật tăng (như bộ 1) → thay vì tăng ngân sách, máy mở bản mới ở bậc kế, creative khác cùng phim; camp gốc giữ ngân sách', null],
-  ['tu_choi', '⛔ <b>AD BỊ META TỪ CHỐI</b> — lỗi nội dung máy thay creative sạch cùng phim; Spam / camp không bật lại thì không nộp lại', null],
+  ['tu_choi', '⛔ <b>AD BỊ META TỪ CHỐI</b> — lỗi nội dung máy thay creative sạch cùng phim; Spam / camp không bật lại / sửa 3 lần vẫn bị → tạo camp mới thay thế', null],
   ['dau_phien', '⇑ <b>LÃI ĐẦU PHIÊN</b> — ROI hôm nay > 50%, tăng luôn $2/$3', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
   ['tang', '↑ <b>ĐỦ ĐIỀU KIỆN TĂNG BẬC</b> — ROI 30 ngày (camp mới: từ lúc lên) ≥ 50%, Spending > 50%', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
   ['ha', '↓ <b>GIẢM BẬC</b> — sáng: hôm qua ROI < 0% và 3 ngày < 20% (vừa tăng thì bỏ điều kiện 3 ngày) · mọi nhịp: camp ≥ $15 tiêu đều, ROI 1–2 ngày < 30% (Support) · $20 vừa tăng mà hôm nay âm cũng giảm · luôn từng bậc $20 → $15 → $10; sau giảm khoá tăng 6 giờ, hồi lại thì lên lại', (m) => (m.dich ? [{ text: `↓ #${m.id} về $${m.dich}`, callback_data: `et:giam:${m.id}:${m.dich}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }] : null)],
@@ -527,10 +527,10 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const tc = (kq.tu_choi || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id) && !seTat.has(m.id));
   if (tc.length) {
     let ra = []; try { ra = (await chay(THAY, ['--camp', ...tc.map((m) => String(m.id))], 600)).trim().split('\n').filter((l) => l.startsWith('{')).map((l) => JSON.parse(l)); } catch (e) { ra = tc.map((m) => ({ camp: m.id, ok: false, loi: e.message })); }
-    const xong = new Set(ra.filter((r) => r.ok || r.viec === 'bo_qua').map((r) => r.camp));   // bo_qua: Spam / camp không bật lại — đã báo một lần, không lặp ⛔
-    const dong = ra.map((r) => (r.ok ? `🔁 #${r.camp} creative #${r.creative_cu} → <b>#${r.creative_moi}</b> · đã Update` + (r.bat ? (r.bat.ok ? ' · ▶ đã bật lại' : ` · ⚠️ chưa bật lại được: ${esc(r.bat.loi || '?')}`) : '') + ' · chờ Meta duyệt lại' : r.viec === 'cho_dung' ? `⏳ #${r.camp} creative #${r.creative_cu}: ${esc(r.loi)}` : r.viec === 'bo_qua' ? `⏸ #${r.camp} không nộp lại: ${esc(r.loi)}` : `⚠️ #${r.camp} chưa thay được: ${esc(r.loi || 'không rõ')}`) +
+    const xong = new Set(ra.filter((r) => r.ok || r.viec === 'bo_qua' || r.viec === 'tao_moi').map((r) => r.camp));   // bo_qua: Spam / camp không bật lại — đã báo một lần, không lặp ⛔
+    const dong = ra.map((r) => (r.ok ? `🔁 #${r.camp} creative #${r.creative_cu} → <b>#${r.creative_moi}</b> · đã Update` + (r.bat ? (r.bat.ok ? ' · ▶ đã bật lại' : ` · ⚠️ chưa bật lại được: ${esc(r.bat.loi || '?')}`) : '') + ' · chờ Meta duyệt lại' : r.viec === 'cho_dung' ? `⏳ #${r.camp} creative #${r.creative_cu}: ${esc(r.loi)}` : r.viec === 'tao_moi' ? `🆕 #${r.camp} bị phốt → <b>camp mới #${r.camp_moi}</b> thay thế · creative #${r.creative_moi} (cũ #${r.creative_cu}) · $1 · ${chuChay([r])}` : r.viec === 'bo_qua' ? `⏳ #${r.camp}: ${esc(r.loi)}` : `⚠️ #${r.camp} chưa thay được: ${esc(r.loi || 'không rõ')}`) +
       (r.ly_do ? `\n   ↳ lý do Meta: ${esc(String(r.ly_do).slice(0, 160))}` : '')).join('\n');
-    if (dong) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>AD BỊ META TỪ CHỐI → ĐỔI CREATIVE KHÁC</b> — chỉ ad bị từ chối, camp khác không đụng\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` }); gui++; }
+    if (dong) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>AD BỊ META TỪ CHỐI → ĐỔI CREATIVE / TẠO CAMP THAY</b> — chỉ ad bị từ chối, camp khác không đụng\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` }); gui++; }
     kq.tu_choi = (kq.tu_choi || []).filter((m) => !xong.has(Number(m.id)));
     for (const id of xong) lamRoi.add(id);
   }

@@ -153,7 +153,7 @@ def main():
         bo, page, d24, d7, sp = l.split("|"); d24, d7, sp = int(d24), int(d7), int(sp)
         if d24 >= TC_24 or d7 >= TC_7:
             bao("tu_choi_loat", "do", f"tu_choi_loat:{bo}:{nay}", f"Bộ {bo} (Page {page}): Meta từ chối {d24} bài / creative trong 24 giờ, {d7} trong 7 ngày ({sp} Spam / không rõ) — "
-                "Page / tài khoản đang bị gắn cờ, không phải video; máy KHÔNG nộp lại ad Spam (thay-tu-choi.la_spam), lỗi 18+ vẫn thay creative"); n += 1
+                "Page / tài khoản đang bị gắn cờ, không phải video; máy tạo camp mới thay thế cho từng camp bị phốt (thay-tu-choi.tao_moi)"); n += 1
     # BID ROAS (anh 24/10/2026: "camp nào gần đạt có cảnh báo; còn đạt thì cho vào một danh sách riêng"): ROI 30 ngày ≥ 50% và mọi ngày TRỌN có chi ≥ $1
     # trong 3 ngày gần nhất ROI ≥ 50% (≥ 2 ngày như vậy) — gần đạt = chi ≥ $ROAS_GAN, đạt = chi ≥ $ROAS_DAT. Báo MỘT lần mỗi camp mỗi mức.
     for l in q(f"""with t as (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay where ngay >= '{nay}'::date - 29 group by 1 having sum(chi) >= {ROAS_GAN} and sum(thu) >= 1.5 * sum(chi)),

@@ -57,6 +57,28 @@ def ly_khong_bat(camp, ns):
         import importlib.util as _iu
         _s = _iu.spec_from_file_location("lam_ethopex", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lam-ethopex.py")); _LAM = _iu.module_from_spec(_s); _s.loader.exec_module(_LAM)
     return _LAM.ly_khong_bat(camp, ns)
+# CAMP BỊ PHỐT → TẠO CAMP MỚI THAY THẾ ĐỂ META DUYỆT LẠI (anh 12/11/2026: "Camp bị phốt thì phải tạo cái mới thay thế để duyệt lại"): Spam (sửa ad cũ 3/3 lần vẫn bị),
+# camp không bao giờ bật lại, hay đã thay TRAN_THAY lần vẫn bị → KHÔNG sửa ad cũ nữa, tạo MỘT camp mới trên khuôn chính camp đó (cùng bộ / Page / Ad Set), creative SẠCH KHÁC
+# cùng phim (ung_vien), $1, qua nhan-ban.py (cổng chấm + rào chắn etp + lịch lên). Mỗi camp bị phốt chỉ thay một lần (sổ ethopex_tu_choi_thay_moi); hết creative → xếp hàng dựng góc mới.
+NB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhan-ban.py")
+def tao_moi(kq, camp, d, cu, cid, ly_meta, vi_sao, tu_choi, dat):
+    da = khoa("ethopex_tu_choi_thay_moi").get(str(camp))
+    if da: return {**kq, "ok": True, "viec": "da_bao"}
+    ds = ung_vien(cid, cu, tu_choi, dat)
+    if not ds:
+        gop("ethopex_cho_dung_lai", {str(cu): {"goc": camp, "luc": vn(), "ten": d["campaign"]["name"].split(": ", 1)[-1], "content_id": cid, "tu_choi": True, "ly_do": ly_meta}})
+        return bo_qua(kq, camp, cu, cid, ly_meta, f"{vi_sao} — chưa có creative sạch khác cùng phim, đã xếp hàng dựng góc mới (sua-cta.py); có creative thì máy tạo camp thay")
+    moi_cr = ds[0]; ten = re.sub(r"\s*\(thay \d+ bi tu choi\)", "", d["campaign"]["name"].split(": ", 1)[-1])[:150] + f" (thay {camp} bi tu choi)"
+    r = subprocess.run(["python3", NB, str(camp), "--creative", str(moi_cr), "--content", str(cid), "--ten", ten, "--that",
+                        "--luat", f"camp #{camp} bị Meta từ chối ({vi_sao}) → camp mới thay thế, creative sạch khác cùng phim #{moi_cr}",
+                        "--ai", "anh (chat 12/11/2026: camp bị phốt thì phải tạo cái mới thay thế để duyệt lại) — máy chạy"], capture_output=True, text=True, timeout=600)
+    try: j = json.loads((r.stdout.strip().splitlines() or ["{}"])[-1])
+    except Exception: j = {"ok": False, "loi": (r.stderr or r.stdout)[-200:]}
+    if not j.get("ok"): return {**kq, "creative_cu": cu, "content": cid, "viec": "tao_moi_hong", "ly_do": ly_meta, "loi": f"tạo camp thay hỏng: {str(j.get('loi') or '?')[:200]}"}
+    gop("ethopex_tu_choi_thay_moi", {str(camp): {"luc": vn(), "moi": j.get("moi"), "creative": moi_cr, "vi_sao": vi_sao}})
+    if not la_spam(ly_meta): gop("ethopex_tu_choi", {str(cu): {"camp": camp, "ly_do": ly_meta, "luc": vn()}})   # lỗi nội dung: creative cũ không bao giờ chọn lại
+    return {**kq, "ok": True, "viec": "tao_moi", "creative_cu": cu, "creative_moi": moi_cr, "content": cid, "camp_moi": j.get("moi"), "chay": j.get("chay"), "ly_do": ly_meta, "loi": None}
+
 def bo_qua(kq, camp, cu, cid, ly_meta, loi):
     """không thay — báo MỘT lần mỗi camp (sổ ethopex_tu_choi_bo_qua), lượt sau im"""
     if str(camp) in khoa("ethopex_tu_choi_bo_qua"): return {**kq, "ok": True, "viec": "da_bao"}
@@ -96,20 +118,17 @@ def mot(camp, tu_choi, dat):
     # từ chối thì gốc không nằm ở video (link / Page / tài khoản) → dừng thay, báo một lần cho anh.
     ly_meta = str(a.get("error") or a.get("delivery_status"))[:300]
     if la_spam(a.get("error")):
-        return bo_qua(kq, camp, cu, cid, ly_meta, "Meta gắn Spam — thay video không gỡ được (3/3 lần thay trước vẫn bị từ chối), gốc ở Page / tài khoản → máy không nộp lại; canh-bao báo theo bộ")
+        return tao_moi(kq, camp, d, cu, cid, ly_meta, "Spam — sửa ad cũ 3/3 lần vẫn bị", tu_choi, dat)
     if d["campaign"].get("state") == "PAUSED":
         kb = ly_khong_bat(camp, d["campaign"].get("budget_daily"))
-        if kb: return bo_qua(kq, camp, cu, cid, ly_meta, f"không thay: camp sẽ không được bật lại ({kb}) — nộp lại Meta chỉ thêm vết từ chối")
+        if kb: return tao_moi(kq, camp, d, cu, cid, ly_meta, f"camp cũ không bật lại được: {kb[:80]}", tu_choi, dat)
     cho = cho_cua(camp)
     lan_thay = 0
     if not lan and cho and cho["cr"] == cu:
         if dong_bo_luc(a) < cho["luc"] + CHO_PHUT * 60: return {**kq, "ok": True, "viec": "cho_meta_duyet"}   # Ethopex chưa đọc lại ad sau lần thay
         lan_thay = cho["lan"]
         if lan_thay >= TRAN_THAY:
-            if cho.get("bao"): return {**kq, "ok": True, "viec": "da_bao"}
-            gop("ethopex_thay_cho_duyet", {str(camp): {**cho, "bao": 1}})
-            return {**kq, "creative_cu": cu, "content": cid, "viec": "het_luot", "ly_do": str(a.get("error") or a.get("delivery_status"))[:300],
-                    "loi": f"đã thay {lan_thay} creative mà Meta vẫn từ chối — gốc không nằm ở video (link đích / Page / tài khoản), máy dừng thay, anh xem"}
+            return tao_moi(kq, camp, d, cu, cid, ly_meta, f"đã sửa ad cũ {lan_thay} lần vẫn bị", tu_choi, dat)
     ly = str(a.get("error") or a.get("delivery_status"))[:300] if not lan else f"creative #{cu} đã bị Meta từ chối ở camp khác ({str((tu_choi.get(str(cu)) or {}).get('ly_do', ''))[:120]})"
     if lan_thay: ly = f"vẫn bị từ chối sau lần thay thứ {lan_thay}: {ly}"[:300]
     kq.update(creative_cu=cu, content=cid, ly_do=ly)

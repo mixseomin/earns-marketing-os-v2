@@ -219,10 +219,10 @@ for ma, v in SD['shot'].items():
     if ma == '3': may[ma].update(MAY_HAI)
     # VIDEO THÔ: máy đặt sao giữ vậy (khoa_nhin) — để Blender tự ngắm lại thì #9 quay về điểm giữa 4 chủ thể, #12 xoay dần ở khung kết trông như rung
     may[ma]['khoa_nhin'] = True
-    if ma == '9': may[ma].update({'dat': [250, 200, 160], 'nhin': [-30, 700, 120], 'ong_kinh': 26, 'khung': ['Nhóc', 'Chú']})   # TỔNG THỂ cảnh "Quay về": đứng yên thấy cả chú ở ô cửa lẫn đường nhóc đi về (Murch: thiếu tổng thể + lệch hướng chủ 49° khi lia theo nhóc)
+    if ma == '9': may[ma].update({'dat': [450, 420, 160], 'nhin': [118, 644, 130], 'ong_kinh': 26, 'khung': ['Nhóc', 'Chú']})   # tổng thể từ phía đông-nam, CÙNG PHÍA trục chú–nhóc lúc nhóc tới ô cửa (y < 500): thấy mặt chú nhìn nhóc về + mặt nhóc đi tới — máy cũ: mặt chú lệch 106°   # TỔNG THỂ cảnh "Quay về": đứng yên thấy cả chú ở ô cửa lẫn đường nhóc đi về (Murch: thiếu tổng thể + lệch hướng chủ 49° khi lia theo nhóc)
     if ma == '8': may[ma].update({'dat': [254, 960, 100], 'nhin': [90, 1150, 110], 'ong_kinh': 50})   # nhóc vừa đi vừa uống: máy phía đông-nam, hướng 130° (hướng chủ cảnh 150°) thấy 3/4 mặt
     if ma == '12': may[ma].update({'dat': [100, 800, 170], 'nhin': [-128, 520, 220], 'ong_kinh': 35})   # chú nhìn theo nhóc khi tàu chuyển bánh: máy phía bắc thấy mặt (theo_cua_so phía đông: nghiêng 90°)
-    if ma == '11': may[ma].update({'dat': [150, 100, 160], 'nhin': [-60, 900, 120], 'ong_kinh': 26})   # TỔNG THỂ cảnh "Tiền thừa": thấy chú + nhóc ở ô cửa và đường nhóc chạy về cuối ga (hướng 105°)
+    if ma == '11': may[ma].update({'dat': [350, 2100, 150], 'nhin': [-80, 650, 140], 'ong_kinh': 35, 'qua_truc': True})   # qua_truc: cú máy TRUNG LẬP đầu trục (head-on) — máy nằm trên đường nhóc chạy (lệch 8°), ngành cho đổi phía trục qua cú máy này   # tổng thể từ CUỐI sân ga nhìn ngược về tàu: nhóc chạy VỀ PHÍA máy (thấy mặt lúc nói 'Cháu đi nhé'), chú nhìn theo cũng quay mặt về máy — máy phía nam cũ thấy lưng cả hai   # TỔNG THỂ cảnh "Tiền thừa": thấy chú + nhóc ở ô cửa và đường nhóc chạy về cuối ga (hướng 105°)
     if ma == '2': may[ma]['ong_kinh'] = 50   # POV từ ô cửa: nhóc to hơn trong khung
     # dây vàng: đường nhóc đi trong shot (tam → den) vẽ sát sàn + mũi tên ở cuối — người xem thấy ngay nhóc đi đâu
     for x in vt:

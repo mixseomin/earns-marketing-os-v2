@@ -2061,6 +2061,9 @@ def ngam_lai(s, cam, sh, khoi, ket=False):
     thì chỉ xét Vivian là trượt thẻ), None nếu chủ thể nào cũng trong khung. Món = tâm hộp; người = MẶT (đầu nhích về phía mặt thật quay) khi ống
     ≥ 60 mm, ngực khi rộng hơn — ngắm vào điểm trước mặt một chút (khoảng nhìn). Nhiều chủ thể → ngắm vào giữa chúng. Khung KẾT kiểm chặt hơn
     (mặt trong 0,25–0,75 bề ngang): máy đẩy vào gần thì khung dọc 9:16 hẹp, mặt quay nghiêng trôi ra mép (#24 kết chỉ còn tai + gáy Thần)."""
+    # KHOÁ HƯỚNG NHÌN (may_3d.khoa_nhin — anh 12/11/2026, shot chèn bánh tàu #6): máy khai dat / nhin là ĐÚNG ý — không ngắm lại vào chủ thể. Chủ thể là
+    # cả một khối lớn (toa tàu) thì "tâm hộp" nằm giữa thân cao 1,7 m, ngắm lại kéo máy chèn bánh xe ngửa lên thân toa.
+    if sh.get('khoa_nhin'): return None
     from bpy_extras.object_utils import world_to_camera_view
     bpy.context.view_layer.update(); diem = []
     # cận ĐỒ VẬT (chủ thể đầu là món — insert cổ tay #9 #25): chỉ ngắm các món, người cầm là bối cảnh — lấy cả mặt người vào trung điểm thì máy

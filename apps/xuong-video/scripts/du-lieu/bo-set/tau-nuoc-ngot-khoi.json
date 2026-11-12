@@ -373,9 +373,9 @@
   "Tàu xanh": {
    "hinh": "hop",
    "co": [
-    270,
-    3200,
-    50
+    90,
+    3000,
+    10
    ],
    "mau": "#2a2a2a",
    "mat": false,
@@ -498,6 +498,23 @@
      "chat": "son",
      "ten_phan": "sàn toa",
      "en": "train floor"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      0.0,
+      0,
+      54
+     ],
+     "co": [
+      230,
+      3000,
+      22
+     ],
+     "mau": "#2a2a2a",
+     "chat": "son",
+     "ten_phan": "khung gầm",
+     "en": "train underframe"
     },
     {
      "hinh": "hop",
@@ -1160,7 +1177,10 @@
       500,
       80
      ],
-     "huong": 174
+     "huong": 174,
+     "dien": [
+      "chong_ban"
+     ]
     },
     {
      "ten": "Tàu xanh",
@@ -1178,16 +1198,16 @@
   },
   "6": {
    "dat": [
-    -82,
-    470,
-    8
+    -62,
+    540,
+    25
    ],
    "nhin": [
     -198,
-    640,
-    10
+    620,
+    12
    ],
-   "ong_kinh": 35,
+   "ong_kinh": 28,
    "vi_tri": [
     {
      "ten": "Tàu xanh",
@@ -1199,7 +1219,10 @@
      "huong": 0
     }
    ],
-   "khung": []
+   "khung": [
+    "Tàu xanh"
+   ],
+   "khoa_nhin": true
   },
   "7": {
    "dat": [
@@ -1366,14 +1389,14 @@
   },
   "10": {
    "dat": [
-    40.0,
-    440.00000000000006,
-    235
+    10,
+    455,
+    205
    ],
    "nhin": [
-    -120.0,
+    -100,
     500,
-    240
+    205
    ],
    "ong_kinh": 85,
    "vi_tri": [

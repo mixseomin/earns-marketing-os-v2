@@ -37,6 +37,7 @@ phan = [
     p('vách tây', VT, 600, 50, [6, 3200, NOC - 50], XANH, 'green train side'),
     p('mái', XG, 600, NOC, [RONG + 10, 3200, 12], '#d8d8d0', 'train roof'),
     p('sàn toa', XG, 600, SAN - 4, [RONG - 6, 3200, 4], '#5a4a3a', 'train floor'),
+    p('khung gầm', XG, 600, 54, [RONG - 60, 3000, SAN - 58], GAM, 'train underframe'),   # dưới sàn, lùi 30 cm khỏi hai vách: nhìn ngang sân ga thấy bánh bên dưới
     p('sọc vàng', VD + 4, 600, SAN + 40, [2, 3200, 12], '#e8c84a', 'yellow stripe'),
 ] + [p(f'kính {y}', VD + 4, y, BAU + 5, [2, 110, DINH - BAU - 10], KINH, 'closed train window') for y in (-700, -450, -200, 50, 250, 750, 1000, 1250, 1500, 1750, 2000)] \
   + [p(f'bánh {y}', x, y, RAY, [12, 84, 84], '#6a6a6a', 'train wheel') for y in (-800, -650, 620, 770, 1850, 2000) for x in (-198, -298)]   # bánh Ø84 tì lên ray (ray khổ 1 m ở x -198 / -298)
@@ -56,7 +57,7 @@ KHOI_NGUOI = {'Chú': nguoi_khoi(172, 40, '#3c5a78', chom=22), 'Nhóc': nguoi_kh
 khoi = {
     'Chú': {'hinh': 'nguoi', 'gioi': 'nam', 'tuoi': 45, 'co': [46, 28, 170], 'mau': '#c99a74', 'ao': '#3c5a78', 'toc': 'short02', 'mau_toc': '#1a1612', 'dang': ['dung_vung']},
     'Nhóc': {'hinh': 'nguoi', 'gioi': 'nam', 'tuoi': 9, 'co': [32, 18, 125], 'mau': '#c99a74', 'ao': '#d9473a', 'toc': 'short02', 'mau_toc': '#141110', 'dang': ['dung_vung']},
-    'Tàu xanh': {'hinh': 'hop', 'co': [RONG - 20, 3200, 50], 'mau': GAM, 'mat': False, 'phan': phan},   # khung gầm z 0–50
+    'Tàu xanh': {'hinh': 'hop', 'co': [90, 3000, 10], 'mau': GAM, 'mat': False, 'phan': phan},   # khối gốc = thanh dầm giữa toa (mỏng, nằm giữa hai ray): khung gầm rộng che mất bánh ở shot chèn #6
     'Tờ 5 nghìn': {'hinh': 'hop', 'co': [14, 7, 1], 'mau': '#7fbf6a', 'mat': False},
     'Chai nước ngọt': {'hinh': 'hop', 'co': [7, 7, 24], 'mau': '#4a2a1a', 'mat': False},
     'Tiền thừa': {'hinh': 'hop', 'co': [10, 6, 2], 'mau': '#c9b96a', 'mat': False},
@@ -114,7 +115,7 @@ for ma, v in SD['shot'].items():
     # CHÚ NHOÀI RA Ô CỬA khi nói / trao đồ với nhóc: dáng 'chong_ban' (thư viện DONG_TAC) — chống tay lên bậu cửa (mép trên vách, z 150), máy tự cúi cột sống tới khi
     # bàn tay chạm bậu → đầu + vai nhô qua ô cửa. Shot chú chỉ nhìn theo (#1 #5 #7 #12) thì đứng thẳng trong toa.
     for x in vt:
-        if x['ten'] == 'Chú' and ma in ('3', '9', '10', '11'): x['dien'] = ['chong_ban']
+        if x['ten'] == 'Chú' and ma in ('3', '5', '9', '10', '11'): x['dien'] = ['chong_ban']   # #5: nhoài ra nhìn về tiệm — đứng thẳng trong toa thì máy phía nam không thấy chú
     cho_nv = {x['ten']: x for x in vt}
     for mon, ai, nhan, het in DO.get(ma, []):
         a = cho_nv.get(ai)
@@ -131,9 +132,10 @@ for ma, v in SD['shot'].items():
     vt.append(t)
     may[ma] = {'dat': [cm['dat'][0] * 100, cm['dat'][1] * 100, CAO_MAY.get(sd['may'], cm['cao'] * 100)], 'nhin': [cm['nhin'][0] * 100, cm['nhin'][1] * 100, CAO_NHIN[sd['may']]],
                'ong_kinh': cm['ong'], 'vi_tri': vt, 'khung': sd.get('khung') or [x['ten'] for x in vt if x['ten'] != 'Tàu xanh']}
-    if not may[ma]['khung'] and ma != '6': may[ma]['khung'] = ['Tàu xanh']   # #6 chèn bánh xe: tâm khối tàu nằm sau vách — làm chủ thể thì máy bị giải quay sang thân tàu
+    if not may[ma]['khung']: may[ma]['khung'] = ['Tàu xanh']   # chủ thể = khối gốc của tàu = thanh dầm thấp giữa hai ray: máy chèn #6 bị ngắm lại (dung-set › ngam_lai) vào đó thì vẫn nhìn ngang gầm, thấy bánh
     if ma == '6':   # chèn bánh xe: bánh nằm DƯỚI mặt sân ga → máy hạ sát mép sân ga, chúc xuống bánh
-        may[ma].update({'dat': [-82, 470, 8], 'nhin': [-198, 640, 10], 'ong_kinh': 35})
-    if ma == '4': may[ma]['nham'] = 'Nhóc'   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
+        may[ma].update({'dat': [-62, 540, 25], 'nhin': [-198, 620, 12], 'ong_kinh': 28, 'khoa_nhin': True})   # máy ở MÉP SÂN GA, thấp 25 cm: nhìn qua khe 50 cm giữa sân ga và đáy thân toa vào bánh (máy đặt ngoài sân ga bị kẹp vào trong)
+    if ma == '4': may[ma]['nham'] = 'Nhóc'
+    if ma == '10': may[ma].update({'dat': [10, 455, 205], 'nhin': [-100, 500, 205]})   # cận mặt chú đang NHOÀI (chong_ban): đầu thấp + ra trước so với lúc đứng thẳng   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
 print(json.dumps({'ten': 'Sân ga tàu xanh (Tàu nước ngọt)', 'ghi_chu': 'Đơn vị cm, x đông, y bắc, z lên; dựng từ sơ đồ cảnh mau/phim-mau-tau-nuoc-ngot-khong-gian.json bằng scripts/du-lieu/bo-set/tau-nuoc-ngot.py.',
                   'vat': vat, 'vung': {'Sân ga tàu xanh': [100, 900, 0]}, 'khoi': khoi, 'may': may}, ensure_ascii=False, indent=1))

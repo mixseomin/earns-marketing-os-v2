@@ -3079,8 +3079,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       <div ref={heroRef} style={{ margin: gon ? '8px 0' : '12px 0', ...(tab === 'tong' ? { display: 'none' } : {}) }}>{/* Tổng quan 2: widget Nắm nhanh thay dải số này — nhường chỗ để lưới vừa một màn (anh 01/11/2026) */}
         {gon ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }} title={`Camp chạy ${chay.length} · ngân sách $${chay.reduce((a, c) => a + c.ngan_sach, 0)}/ngày · đoạn vượt 3 camp ${new Set(du.camps.filter((c) => c.cung_doan > tranT).map((c) => c.doan)).size} · cảnh báo 24h ${du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length}`}>
-            {([['H.nay', nay], ['H.qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, s]) => (
-              <div key={ten} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 8px' }}>
+            {([['H.nay', nay], ['H.qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, s], i) => (   // khoá theo VỊ TRÍ: kỳ "Hôm nay" / "Hôm qua" trùng nhãn ô cố định (#1562)
+              <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 8px' }}>
                 <div style={{ fontSize: 10, color: 'var(--fg-2)' }}>{ten} · <Roi s={s} /></div>
                 <div style={{ fontWeight: 700, fontSize: 15 }}><Lai s={s} /></div>
               </div>))}
@@ -3100,7 +3100,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       {/* HERO GỌN DÍNH KHI CUỘN (anh 27/10/2026 "hero khi cuộn xuống vẫn sticky nhưng gọn lại"): cuộn qua dải số lớn thì một dòng số gọn dính trên hàng tab */}
       <div ref={dinhRef} data-comp="ui.StickyBar" style={{ position: 'sticky', top: 0, zIndex: 7, background: 'var(--bg-0, #0b0b0c)' }}>
       {gonHero ? <div style={{ display: 'flex', gap: gon ? 10 : 18, alignItems: gon ? 'baseline' : 'center', overflowX: 'auto', scrollbarWidth: 'none', whiteSpace: 'nowrap', fontSize: 12, padding: '6px 0 2px', borderBottom: '1px solid var(--line)' }}>
-        {([['Hôm nay', nay], ['Hôm qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, x]) => <span key={ten}><span style={{ color: 'var(--fg-2)' }}>{ten} </span><b style={{ fontSize: 14 }}><Lai s={x} /></b> <span style={{ fontSize: 11 }}><Roi s={x} /></span></span>)}
+        {([['Hôm nay', nay], ['Hôm qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, x], i) => <span key={i}><span style={{ color: 'var(--fg-2)' }}>{ten} </span><b style={{ fontSize: 14 }}><Lai s={x} /></b> <span style={{ fontSize: 11 }}><Roi s={x} /></span></span>)}
         <span><span style={{ color: 'var(--fg-2)' }}>Camp chạy </span><b style={{ fontSize: 14 }}>{chay.length}</b></span>
         <span><span style={{ color: 'var(--fg-2)' }}>Ngân sách </span><b style={{ fontSize: 14 }}>${[...chay, ...choChay].reduce((a, c) => a + c.ngan_sach, 0)}/ngày</b></span>
         {lenDinh ? <><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{coBo ? boSel() : null}{coKy ? kySel() : null}</span></>

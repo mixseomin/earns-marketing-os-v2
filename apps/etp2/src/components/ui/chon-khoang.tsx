@@ -76,7 +76,11 @@ export function ChonKhoang({ tu, den, ma, homNay, onDoi, mocThem, title }: {
   const [xem, setXem] = useState(() => dauThang(lui(dauThang(den), 1)));   // tháng bên trái (bên phải = tháng có `den`)
   const mo_ = () => { setOTu(tu); setODen(den); setCho(null); setXem(dauThang(lui(dauThang(den), 1))); setMo(true); };
   const chot = (v: { ma: string } | { tu: string; den: string }) => { onDoi(v); setMo(false); setCho(null); };
-  const haiDau = (a: string, b: string) => { if (!laNgay(a) || !laNgay(b)) return; const [x, y] = a <= b ? [a, b] : [b, a]; chot({ tu: x, den: y }); };
+  // HAI ĐẦU → khoảng hợp lệ: đúng dạng ngày, đảo nếu ngược, kẹp ≤ hôm nay (iOS bỏ qua max của ô ngày — chọn được ngày tương lai)
+  const haiDau = (a: string, b: string) => { if (!laNgay(a) || !laNgay(b)) return; const k = (s: string) => (s > homNay ? homNay : s); const [x, y] = a <= b ? [k(a), k(b)] : [k(b), k(a)]; chot({ tu: x, den: y }); };
+  // Ô NGÀY GÕ / CHỌN CHỈ SỬA NHÁP, bấm Áp dụng (hoặc Enter) mới chốt (etp2 #1562 anh 12/11/2026 "bấm đổi ngày trên mobile là lỗi"): trình chọn ngày của iOS bắn change
+  // ngay khi đang lăn / chạm ngày, chốt luôn = đóng bảng nổi + gỡ chính ô đang mở trình chọn giữa chừng; máy tính gõ năm từng số cũng chốt nhầm năm 0002
+  const apDung = () => haiDau(oTu, oDen), duDau = laNgay(oTu) && laNgay(oDen);
   const khoangChu = tu === den ? gon(tu) : `${gon(tu)} – ${gon(den)}`;
   const nhanMa = ma ? (mocThem?.find((m) => m.ma === ma)?.nhan ?? nhanCuaMoc(ma)) : null;
   const nhan = nhanMa ? (ma && mocThem?.some((m) => m.ma === ma) ? nhanMa : `${nhanMa} · ${khoangChu}`) : khoangChu;
@@ -108,10 +112,12 @@ export function ChonKhoang({ tu, den, ma, homNay, onDoi, mocThem, title }: {
             </div>
           </div>
           <div style={{ padding: '8px 12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8, borderBottom: '1px solid var(--line)', marginBottom: 8 }}>
-              <input type="date" value={oTu} max={oDen || homNay} aria-label="Từ ngày" style={oNgay} onChange={(e) => { setOTu(e.target.value); haiDau(e.target.value, oDen); }} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingBottom: 8, borderBottom: '1px solid var(--line)', marginBottom: 8 }}>
+              <input type="date" value={oTu} max={oDen || homNay} aria-label="Từ ngày" style={oNgay} onChange={(e) => { setOTu(e.target.value); setCho(null); }} onKeyDown={(e) => { if (e.key === 'Enter') apDung(); }} />
               <span style={{ color: 'var(--fg-2)' }}>–</span>
-              <input type="date" value={oDen} min={oTu || undefined} max={homNay} aria-label="Đến ngày" style={oNgay} onChange={(e) => { setODen(e.target.value); haiDau(oTu, e.target.value); }} />
+              <input type="date" value={oDen} min={oTu || undefined} max={homNay} aria-label="Đến ngày" style={oNgay} onChange={(e) => { setODen(e.target.value); setCho(null); }} onKeyDown={(e) => { if (e.key === 'Enter') apDung(); }} />
+              <button type="button" onClick={apDung} disabled={!duDau || (oTu === tu && oDen === den && !ma)} title={duDau ? `chốt kỳ ${gon(oTu)} – ${gon(oDen)}` : 'chọn đủ hai ngày'}
+                style={{ fontSize: 12, padding: '5px 10px', borderRadius: 6, border: 'none', cursor: duDau ? 'pointer' : 'default', background: duDau ? '#34d399' : 'var(--line)', color: duDau ? '#04130c' : 'var(--fg-3, #777)', fontWeight: 600 }}>Áp dụng</button>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', position: 'relative' }}>
               <button type="button" onClick={() => setXem(dauThang(lui(xem, 1)))} title="tháng trước" style={{ position: 'absolute', left: 0, top: -2, border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 14 }}>‹</button>

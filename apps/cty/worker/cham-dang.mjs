@@ -472,8 +472,8 @@ export async function xepKhang(sql, { them } = {}) {
   // MÁY SẢN XUẤT HỎNG / TREO cũng là việc của Khang (anh 11/11/2026 hỏi "máy sx tự sửa lỗi thế nào, thằng nào phụ trách" — trước chỉ ghi 'hong' vào sổ
   // may_sx_luot, không ai đọc). Lấy lượt MỚI NHẤT của mỗi bài còn chờ dựng: 'hong' trong 24 giờ, hoặc 'dang' quá 40 phút (lượt bị ngắt). Bảng do Máy SX tự tạo — chưa có thì bỏ qua.
   const sx = await sql`SELECT l.may AS ma, count(*)::int AS n, string_agg(DISTINCT coalesce(left(l.loi, 160), 'lượt treo quá 40 phút, không ghi kết thúc'), ' · ') AS ly_do, string_agg(DISTINCT l.slug, ', ') AS slug
-    FROM (SELECT DISTINCT ON (slug) * FROM may_sx_luot ORDER BY slug, luc DESC) l JOIN xv_bai_cho_dung c ON c.slug = l.slug
-    WHERE (l.trang_thai = 'hong' AND l.luc > now() - interval '24 hours') OR (l.trang_thai = 'dang' AND l.luc < now() - interval '40 minutes')
+    FROM (SELECT DISTINCT ON (slug) * FROM may_sx_luot ORDER BY slug, luc DESC) l LEFT JOIN xv_bai_cho_dung c ON c.slug = l.slug
+    WHERE (c.slug IS NOT NULL OR l.slug LIKE 'kho:%') AND ((l.trang_thai = 'hong' AND l.luc > now() - interval '24 hours') OR (l.trang_thai = 'dang' AND l.luc < now() - interval '40 minutes'))
     GROUP BY l.may ORDER BY l.may`.catch(() => []);
   if (!ds.length && !sx.length) return 0;
   // dau = dấu bộ bài (danh sách slug) — hàng việc (tho-may-viec › themViec) không xếp lại y nguyên bộ bài Khang vừa trả lời trong 24 giờ (chống vòng lặp, anh 10/11/2026)
@@ -482,7 +482,8 @@ export async function xepKhang(sql, { them } = {}) {
     chu: `Máy ${x.ma}: ${x.n} bài chưa đăng bị Phòng Nội dung chặn SỬA LẠI quá 1 giờ.\nLý do: ${String(x.ly_do ?? '').slice(0, 600)}\nBài: ${String(x.slug ?? '').slice(0, 900)}` }))
     .concat(sx.filter((x) => /^[a-z0-9-]+$/.test(x.ma)).map((x) => ({ khoa: `social:sx|${x.ma}`, dau: dau(x.slug),
       chu: `Máy Sản Xuất dựng hỏng ${x.n} bài của máy ${x.ma} (sổ may_sx_luot, tab Máy SX trên mos2).\nLỗi: ${String(x.ly_do ?? '').slice(0, 600)}\nBài: ${String(x.slug ?? '').slice(0, 900)}\n`
-        + `Sửa gốc ở apps/xuong-video/scripts/sx-bai.mjs / sx-may.mjs / kieu-sx.json, rồi dựng lại: node apps/xuong-video/scripts/sx-may.mjs --slug <slug> (chạy ở iMac).` })));
+        + `Sửa gốc ở apps/xuong-video/scripts/sx-bai.mjs / sx-may.mjs / kieu-sx.json, rồi dựng lại: node apps/xuong-video/scripts/sx-may.mjs --slug <slug> (chạy ở iMac).`
+        + (String(x.slug ?? '').includes('kho:') ? `\nDòng kho:<máy> = lượt LẤP KHO video hỏng (may-dung.mts --sinh-kho trên box3) — sửa gốc rồi chạy lại: node apps/xuong-video/scripts/sx-may.mjs --may ${x.ma}.` : '') })));
   if (them) return them(viec);
   const { tgNoiDung } = await import('./kiem-bai.mjs'); const { topicPhong } = await import('./tg-phong.mjs'); const { tg } = await tgNoiDung();
   const topic = await topicPhong('social-traffic', '📂 Social Traffic', tg);

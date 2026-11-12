@@ -25,5 +25,21 @@
     "may": "box3",
     "ve": "Một ảnh sinh AI theo bố cục/địa điểm thật, giọng người thật của persona, KHÔNG link. Đi qua scripts/anh-le.mts (cổng rẻ ckey trước) nên chạy ở box3 có khoá R2.",
     "mac_dinh": true
+  },
+  "_kho": {
+    "_ve": "LẤP KHO VIDEO (anh 12/11/2026 hỏi 'các nhóm cần sx đã đáp ứng đủ chưa' — đo ra 7 máy video social báo 'Hết video đã dựng chưa đăng' từ 00:20 12/11, lần lấp cuối 10/11 vì kho chỉ được lấp khi có người tạo tin xin duyệt chi). Mỗi lượt --het: máy trong `may` có (bài DUYỆT chưa đăng nền nào + bài đang chờ chấm) < `con_it_nhat` → may-dung.mts --sinh-kho cho đủ `len_toi`. Cộng dồn tiền cả lượt dừng trước `tran_vnd_luot` (dưới ngưỡng tự chạy 5.000₫ của luật nhà). Máy không có ở đây: mia-calloway (lịch bài persona — phần trên của máy), front-porch-only-one (puzzle-books --sinh-game 0₫), yesterdays-news-tonight (máy kênh lịch sử), giochap-van-khan (mẫu van-khan-ngoai chưa có trong --sinh-kho).",
+    "con_it_nhat": 3,
+    "len_toi": 6,
+    "vnd_de": 45,
+    "tran_vnd_luot": 4000,
+    "may": [
+      "militarycalc",
+      "ratesbyroom-scam-or-real",
+      "esimfares-before-you-land",
+      "examweight-cau-hoi",
+      "astrolas",
+      "saidly",
+      "sidecue"
+    ]
   }
 }

@@ -277,7 +277,7 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu, hooks: hooksLuot, hook_qc: maHook });
     // tiêu đề trùng bài có sẵn của máy = Phòng Nội dung chặn chống spam → sinh lại ngay ở đây (31/10/2026: hook video thắng chép nguyên văn trùng chính video đó)
     const chuanTd = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-    if ((o.daDung ?? []).some((t) => chuanTd(t) === chuanTd(de.dang.title ?? ''))) loiCu.push('tiêu đề trùng một bài có sẵn của máy — đổi phần cụ thể (nước, từ, món, con số) để thành bài mới');
+    if ((o.daDung ?? []).some((t) => chuanTd(t) === chuanTd(de.dang.title ?? ''))) loiCu.push(`tiêu đề trùng một bài có sẵn của máy: "${de.dang.title}" — KHÔNG dùng lại câu này, kể cả khi chép từ hook; viết tiêu đề khác hẳn (đổi con số, đối tượng, tình huống) mà vẫn giữ ý hook`);
     if (!loiCu.length) return { ok: true, de, vnd, model: r.model, tokens: { ...tk, vnd } };
   }
   return { ok: false, loi: `đề sai luật sau 3 lượt: ${loiCu.join('; ')}`, vnd };

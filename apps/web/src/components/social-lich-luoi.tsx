@@ -171,7 +171,7 @@ export function LichLuoi({ luoi }: { luoi: StLuoi }) {
                   const nhan = `${x.loai === 'da' ? '✓ ' : ''}${nhanNen(x.nen)}`, tip = `${x.mayTen} · ${nhanNen(x.nen)} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
                   const st = { display: 'inline-block', padding: '1px 6px', borderRadius: 6, lineHeight: '18px', whiteSpace: 'nowrap' as const,
                     ...(stBai(x.loai === 'da', mauMay[x.may]!)) };
-                  return <button key={i} type="button" onClick={() => ct.mo(x)} title={`${tip}\n(bấm xem chi tiết)`} style={{ ...st, cursor: 'pointer', font: 'inherit', textAlign: 'left' }}>{nhan}</button>;
+                  return <button key={i} type="button" onClick={() => ct.mo(x)} title={`${tip}\n(bấm xem chi tiết)`} style={{ ...st, cursor: 'pointer', font: 'inherit', textAlign: 'left' }}>{nhan}<KenhGon ten={tenKenhGon(luoi, x)} /></button>;
                 })}
               </div>
             )),
@@ -186,6 +186,13 @@ export function LichLuoi({ luoi }: { luoi: StLuoi }) {
 /** LỊCH TUẦN / THÁNG (anh 22/10/2026, bước 4): cùng dữ liệu lưới (đã đăng 6 tuần qua + máy sẽ đăng 6 tuần tới), xếp như lịch thật.
  *  Tuần: 7 cột T2 → CN, mỗi ngày liệt kê bài theo giờ. Tháng: lưới 6 × 7, mỗi ngày = chấm màu theo máy (đặc = đã đăng, rỗng = sẽ đăng), bấm ngày → danh sách bên dưới.
  *  ‹ › đổi tuần / tháng; giờ GMT+7. */
+/** Tên kênh rút gọn cho ô bài trong lịch (góp ý #1571): tài khoản đăng → tên máy; bỏ tiền tố "Page ", cắt ≤ 12 ký tự. */
+const tenKenhGon = (luoi: StLuoi, x: StLuoiO) => {
+  const t = (x.tk ?? luoi.kenh?.[`${x.may}|${x.nen}`]?.tk ?? x.mayTen.split(' · ')[0] ?? x.may).replace(/^Page /, '').replace(/^@/, '');
+  return t.length > 12 ? `${t.slice(0, 11)}…` : t;
+};
+const KenhGon = ({ ten }: { ten: string }) => <span style={{ color: 'var(--fg-3)', fontSize: 10, marginLeft: 4 }}>· {ten}</span>;
+
 /** Kiểu ô bài trong lịch (góp ý #1570): nút trình duyệt mặc định nền TRẮNG + viền nổi — đặt đủ nền + viền cho cả hai loại, không để rơi về mặc định. */
 const stBai = (da: boolean, mau: string) => da
   ? { background: 'var(--bg-2, rgba(255,255,255,.04))', color: 'var(--fg-1, inherit)', border: '1px solid var(--border)', borderLeft: `3px solid ${mau}` }
@@ -210,7 +217,7 @@ export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'th
     const nhan = `${x.gio === '—' ? '' : `${x.gio} `}${x.loai === 'da' ? '✓ ' : ''}${nhanNen(x.nen)}`, tip = `${x.mayTen} · ${nhanNen(x.nen)} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
     const st = { display: 'block', padding: '1px 6px', borderRadius: 6, lineHeight: '18px', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 11,
       ...(stBai(x.loai === 'da', mauMay[x.may]!)) };
-    return <button type="button" onClick={() => ct.mo(x)} title={`${tip}\n(bấm xem chi tiết)`} style={{ ...st, width: '100%', cursor: 'pointer', font: 'inherit', fontSize: 11, textAlign: 'left' }}>{nhan}</button>;
+    return <button type="button" onClick={() => ct.mo(x)} title={`${tip}\n(bấm xem chi tiết)`} style={{ ...st, width: '100%', cursor: 'pointer', font: 'inherit', fontSize: 11, textAlign: 'left' }}>{nhan}<KenhGon ten={tenKenhGon(luoi, x)} /></button>;
   };
   return (
     <div style={{ margin: '4px 0 18px' }}>

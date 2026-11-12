@@ -112,7 +112,8 @@ for (const [k, K] of Object.entries(KENH)) {
     // 3 lần vẫn kẹt → BỎ tập này (tu_dong.bo), lượt lịch kế làm tập MỚI với đề khác (anh 05/11/2026: "sửa triệt để ở quy trình cho tự động hoàn toàn" — không dừng chờ người)
     // trần: kẹt ở BƯỚC VIẾT (nội dung không khép) = 3 lần; kẹt ở bước sau (Ngọc chặn hình / thumbnail / dựng — lỗi máy, làm lại gần như 0đ vì giọng + kho đã có) = 6 lần
     const tran = /máy viết .*lượt vẫn lỗi|tập có lỗi/.test(td.loi ?? '') ? 3 : 6;
-    if (td.lan >= tran) { if (!td.bo) { t.tu_dong = { ...td, bo: true, bo_luc: new Date().toISOString() }; writeFileSync(tep, JSON.stringify(t, null, 1) + '\n');
+    // bỏ tập = gỡ luôn dấu "đang làm" (12/11/2026: tập 11/11 đã bỏ mà dấu còn treo → tab Máy SX mos2 tô đỏ mãi); gỡ cả với tập đã bỏ từ trước (dọn dấu cũ)
+    if (td.lan >= tran) { try { danhDau(K.may, t.id, null); } catch { /* phụ */ } if (!td.bo) { t.tu_dong = { ...td, bo: true, bo_luc: new Date().toISOString() }; writeFileSync(tep, JSON.stringify(t, null, 1) + '\n');
         tele(`⚠ ${K.ten}: tập ${t.id} tự làm lại ${tran} lần vẫn kẹt → BỎ, lượt kế làm đề khác\n${(td.loi ?? '').slice(0, 300)}\n${JSON.stringify(st?.chan ?? []).slice(0, 200)}`); } continue; }
     writeFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), String(process.pid));
     // kịch bản rỗng / cụt (cổng AI chập chờn trả bản 0 câu — 02/11/2026) → viết lại từ đầu; có kịch bản thì giữ, chỉ làm tiếp

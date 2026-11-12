@@ -343,8 +343,10 @@ function dungAm() { for (const a of dangPhat) { try { a.pause(); } catch (e) {} 
 // trang xem: khung MÀU (ẩn tia nhìn + dây đường đi) và bản đồ ĐỘ SÂU đúng quy ước Blender dung-set.py › ve_do_sau: khoảng cách tới máy, gần = 0,4 × khoảng
 // máy → điểm nhìn (trắng), xa = 3 × (đen) — FLUX depth đọc như ảnh Blender. Gọi từ scripts/bo-set/xem-web/xuat-khung.cjs.
 const DO_SAU_VL = new T3.ShaderMaterial({ uniforms: { gan: { value: 1 }, xa: { value: 10 } }, side: T3.DoubleSide,
-  vertexShader: 'varying float d; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); d = length(mv.xyz); gl_Position = projectionMatrix * mv; }',
-  fragmentShader: 'uniform float gan; uniform float xa; varying float d; void main(){ float v = clamp((xa - d) / (xa - gan), 0.0, 1.0); gl_FragColor = vec4(v, v, v, 1.0); }' });
+  // khoảng cách tính TỪNG ĐIỂM ẢNH (truyền toạ độ, không truyền độ dài): nội suy độ dài giữa các đỉnh của tấm lớn (vách toa 32 m) ra số sai — vách thành đen
+  // như ở xa vô cực, FLUX vẽ lệch bố cục (#3071 #7, 13/11/2026)
+  vertexShader: 'varying vec3 p; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); p = mv.xyz; gl_Position = projectionMatrix * mv; }',
+  fragmentShader: 'uniform float gan; uniform float xa; varying vec3 p; void main(){ float v = clamp((xa - length(p)) / (xa - gan), 0.0, 1.0); gl_FragColor = vec4(v, v, v, 1.0); }' });
 function xuatKhung(i, u, loai) {
   const ht = hienTia; hienTia = false;
   dungShot(i, u); veTia();

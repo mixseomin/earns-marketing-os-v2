@@ -12,7 +12,9 @@ DIR=$(cd "$(dirname "$0")/../.." && pwd); RA=~/xuong-video-render/tap$TAP; mkdir
 BLENDER=/Applications/Blender.app/Contents/MacOS/Blender
 "$DIR/scripts/bo-set/tai-tai-san.sh" >/dev/null
 ssh $BOX "cd $APP && set -a; . ../../.env.production; set +a; rm -rf /tmp/dien-tap$TAP && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/bo-set.mts --dung --tap=$TAP --tat-ca --xuat=/tmp/dien-tap$TAP >/dev/null && psql \"\$DATABASE_URL\" -tAc \"select id||' '||thu_tu||' '||thoi_luong_s from xv_canh where tap_id=$TAP order by thu_tu\" > /tmp/dien-tap$TAP/giay.txt"
-rsync -aq $BOX:/tmp/dien-tap$TAP/ "$RA/vao/"
+# --delete: thư mục vao/ chỉ được chứa đầu vào của LƯỢT NÀY — bộ set cũ (vd set 14 sau khi tập chuyển sang set 15) còn nằm lại thì vòng dưới đọc cả hai,
+# shot chạy hai lần và bản CŨ đè bản mới (12/11/2026: tập 3074 đổi người sang khối mà clip vẫn ra ma-nơ-canh)
+rsync -aq --delete $BOX:/tmp/dien-tap$TAP/ "$RA/vao/"
 python3 -I - "$RA" "$CHI" <<'PY'
 import json, glob, sys, os
 # thu_tu là numeric (máy chủ in '1.0000'; shot chèn giữa có '2.5') → đọc số thực, nhãn thư mục: 01 cho số nguyên, 02.5 cho số lẻ

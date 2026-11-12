@@ -140,6 +140,9 @@ def dung_nguoi(ten, cao=175.0, mau=(0.78, 0.66, 0.52, 1), mau_ao=None, dv=1.0, t
 _MPFB = {}
 def _mpfb():
     """Bật add-on MPFB (cài bằng scripts/bo-set/cai-mpfb.sh) một lần; không có (máy thuê chưa cài) → None, rơi về thân liền."""
+    # MA-NƠ-CANH GỖ NHẸ (XV_THAN_LIEN=1 — anh 12/11/2026, video thô: "dáng người tối ưu nhẹ nhất mà có đủ bộ rig"): bỏ thân MPFB (da, tóc, lưới dày),
+    # giữ nguyên bộ khớp + đi / quay đầu / cầm đồ — thân khối elip trên khớp. Khác XV_CHO_THAN_LIEN (chỉ rơi về thân liền khi MPFB lỗi).
+    if os.environ.get('XV_THAN_LIEN') == '1': return None
     if 'hs' not in _MPFB:
         try:
             import addon_utils, importlib, sys

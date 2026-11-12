@@ -36,7 +36,7 @@ phan = [
 import os
 # KHỐI (XV_KHOI=1 — anh 12/11/2026, video thô như nửa dưới reel): người = khối trứng đứng có hai mắt chỉ hướng mặt, đúng chiều cao; chỉ để đọc nhịp máy, cỡ cảnh,
 # đường đi, hướng nhìn, đồ đổi tay — không ma-nơ-canh. Không khai thì người = ma-nơ-canh có khớp (bản cho keyframe sau này).
-KHOI_NGUOI = {'Chú': {'hinh': 'trung', 'co': [46, 30, 170], 'mau': '#3c5a78', 'mat': True}, 'Nhóc': {'hinh': 'trung', 'co': [34, 24, 125], 'mau': '#d9473a', 'mat': True}}
+KHOI_NGUOI = {'Chú': {'hinh': 'trung', 'co': [42, 42, 170], 'mau': '#3c5a78', 'mat': True}, 'Nhóc': {'hinh': 'trung', 'co': [34, 34, 125], 'mau': '#d9473a', 'mat': True}}   # tròn đều: dẹt thì nhìn nghiêng thành cái đĩa
 khoi = {
     'Chú': {'hinh': 'nguoi', 'gioi': 'nam', 'tuoi': 45, 'co': [46, 28, 170], 'mau': '#c99a74', 'ao': '#3c5a78', 'toc': 'short02', 'mau_toc': '#1a1612', 'dang': ['dung_vung']},
     'Nhóc': {'hinh': 'nguoi', 'gioi': 'nam', 'tuoi': 9, 'co': [32, 18, 125], 'mau': '#c99a74', 'ao': '#d9473a', 'toc': 'short02', 'mau_toc': '#141110', 'dang': ['dung_vung']},
@@ -45,7 +45,9 @@ khoi = {
     'Chai nước ngọt': {'hinh': 'hop', 'co': [7, 7, 24], 'mau': '#4a2a1a', 'mat': False},
     'Tiền thừa': {'hinh': 'hop', 'co': [10, 6, 2], 'mau': '#c9b96a', 'mat': False},
 }
-if os.environ.get('XV_KHOI') == '1': khoi.update(KHOI_NGUOI)
+if os.environ.get('XV_KHOI') == '1':
+    khoi.update(KHOI_NGUOI)
+    CHU[0] = -128   # khối LIỀN không nghiêng người được: đứng trong toa, mặt trước sát sau vách (x = -103) — đặt -95 như ma-nơ-canh thì khối đứng lơ lửng NGOÀI tàu
 # SỔ ĐỒ VẬT theo shot (khớp so_vat của sơ đồ cảnh): (món, người cầm lúc mở, người nhận lúc kết | None, hết sau shot này)
 DO = {
     '1': [('Tờ 5 nghìn', 'Chú', None, False)], '2': [('Tờ 5 nghìn', 'Chú', None, False)],
@@ -109,7 +111,7 @@ for ma, v in SD['shot'].items():
     vt.append(t)
     may[ma] = {'dat': [cm['dat'][0] * 100, cm['dat'][1] * 100, cm['cao'] * 100], 'nhin': [cm['nhin'][0] * 100, cm['nhin'][1] * 100, CAO_NHIN[sd['may']]],
                'ong_kinh': cm['ong'], 'vi_tri': vt, 'khung': sd.get('khung') or [x['ten'] for x in vt if x['ten'] != 'Tàu xanh']}
-    if not may[ma]['khung']: may[ma]['khung'] = ['Tàu xanh']
+    if not may[ma]['khung'] and ma != '6': may[ma]['khung'] = ['Tàu xanh']   # #6 chèn bánh xe: tâm khối tàu nằm sau vách — làm chủ thể thì máy bị giải quay sang thân tàu
     if ma == '6':   # chèn bánh xe: bánh nằm DƯỚI mặt sân ga → máy hạ sát mép sân ga, chúc xuống bánh
         may[ma].update({'dat': [-82, 470, 8], 'nhin': [-110, 640, 0], 'ong_kinh': 35})
     if ma == '4': may[ma]['nham'] = 'Nhóc'   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe

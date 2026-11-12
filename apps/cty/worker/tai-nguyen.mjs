@@ -244,7 +244,9 @@ export async function nhipTaiNguyen(nguoi, { ten = nguoi } = {}) {
   fs.writeFileSync(`${DATA()}/tai-nguyen.json`, JSON.stringify(s, null, 1));
   // số dư cổng API + báo cáo ngày (tai-nguyen-api.mjs) — đọc lỗi thì phần proxy / máy vẫn chạy
   let api = null; try { api = await (await import('./tai-nguyen-api.mjs')).nhipApi({ ten, tep: `${DATA()}/tai-nguyen-api.json` }); } catch (e) { console.error('✗ số dư API:', e.message); }
-  const cb = [...xetCanhBao(s), ...(api?.canhBao ?? [])], tep = `${DATA()}/tai-nguyen-tg.json`;
+  // CHUẨN SITE MỚI (site-chuan.mjs, anh 13/11/2026): tên miền chưa vào sổ / chưa gắn dự án / site thiếu logo · favicon · GA4 — kiểm lại mỗi 6 giờ, hỏng thì bỏ phần này
+  let site = []; try { site = await (await import('./site-chuan.mjs')).canhBaoSite(); } catch (e) { console.error('✗ chuẩn site:', e.message); }
+  const cb = [...xetCanhBao(s), ...(api?.canhBao ?? []), ...site], tep = `${DATA()}/tai-nguyen-tg.json`;
   let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
   const nhac = st.nhac ?? {}, bay = Date.now();
   const moi = cb.filter((c) => !nhac[c.khoa] || bay - nhac[c.khoa] > NGUONG.nhacLaiGio * 36e5);

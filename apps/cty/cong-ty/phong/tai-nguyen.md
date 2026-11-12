@@ -25,6 +25,12 @@ trang_thai: chạy một việc · Kiểm tài nguyên máy cào spy + số dư 
 3. **Báo cáo ngày** — nhịp đầu tiên sau 08:00 giờ VN, một tin / ngày: số dư từng cổng + mức tiêu + số ngày còn đủ, và tiền studio đã tiêu hôm qua theo cổng (sổ job `xv_job`, 26.000₫ ≈ $1).
 4. Tự kiểm: `node apps/cty/worker/tai-nguyen-api.mjs --tu-kiem`; xem tại chỗ (không gửi): `--in`.
 
+**Chuẩn site mới** (anh 13/11/2026: "domain mới tạo phải lưu vault, khi launch web phải có logo, favicon, GA4… rồi add vào mos2.on.tc — đã có bước chuẩn hoá mà sao tao cứ phải nhắc lại") — cùng nhịp, `apps/cty/worker/site-chuan.mjs`, kiểm lại mỗi 6 giờ, $0:
+1. Zone Cloudflare nào của nhà mà sổ hạ tầng mos2 (`infra_resources` kind=domain) chưa có dòng → báo "chưa vào sổ hạ tầng".
+2. Dòng tên miền chưa gắn dự án mos2 → báo.
+3. Site đang mở được (HTTPS 200, không phải trang đỗ) mà thiếu **logo · favicon · GA4** → báo đúng phần thiếu.
+Đường dựng site mới (phiên Claude nào dựng cũng đi đúng thứ tự): `~/bin/newdomain` (Cloudflare) → dòng sổ hạ tầng + dự án mos2 → logo + favicon + GA4 (property trong tk GA phù hợp qua service account box1 `/opt/cgg-report/ga4-sa.json`) → `~/bin/onboard-site <tên miền>` (GSC + Bing). Kiểm tay: `node apps/cty/worker/site-chuan.mjs --kiem <tên miền>`.
+
 **Cấm**: nạp tiền / mua credit bất kỳ cổng nào; gia hạn / mua / bật auto gia hạn khoá 2proxy (anh cấm 19/10/2026 — chỉ báo, anh quyết); đổi làn ↔ máy khi trưởng phòng Kỹ thuật chưa duyệt; tự bật làn đang tắt.
 
 **Kho tệp R2 + máy dọn rác** (anh 31/10/2026: "bổ sung report về trạng thái R2 và chi phí phát sinh" · "cần 1 con dọn rác tự động") — cùng nhịp, `apps/cty/worker/tai-nguyen-api.mjs`, $0:

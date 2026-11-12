@@ -85,5 +85,7 @@ for (const f of fs.readdirSync(path.join(R, '..', 'may')).filter((f) => f.endsWi
 const trongSo = new Set((so.viec ?? []).map((v) => v.nhan));
 for (const k of trongSo) if (!nenCua[k]) loi.push(`viec-nen.json: ${k} chưa thuộc quy trình nào — thêm vào "lich" của quy trình phòng (người chịu trách nhiệm + chi phí)`);
 for (const [l, qt] of Object.entries(nenCua)) if (/^(iMac|MacBook):/.test(l) && !trongSo.has(l) && !l.endsWith(`:${NHAN_DIEU_PHOI}`)) loi.push(`${qt}: lich ${l} không có trong cong-ty/viec-nen.json`);
+// chuẩn chung nút Góp ý "AI đang làm" (12/11/2026): ba bản chép (gói, spy, Astrolas) không được trôi — scripts/kiem-chuan-gop-y.mjs
+{ const { kiemMay } = await import('./kiem-chuan-gop-y.mjs'); const r = kiemMay(); for (const g of r.ghi) console.log(`· ${g}`); loi.push(...r.loi); }
 if (loi.length) { console.error('✗ tu-kiem cty:\n  ' + loi.join('\n  ')); process.exit(1); }
 console.log(`✓ tu-kiem cty: ${Object.keys(ns).length} nhân sự, ${Object.keys(phong).length} phòng, hồ sơ nhất quán`);

@@ -119,6 +119,15 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
   // hook dùng NGUYÊN VĂN → một hook chỉ một bài đang chờ đăng của máy (31/10/2026: 5 bài Front Porch cùng một câu → Phòng Nội dung chặn trùng tiêu đề)
   const dongHook = (await db.execute(sql`SELECT v.dang->'hook'->>'qc' AS qc, coalesce(v.da_dang, '{}'::jsonb) <> '{}'::jsonb AS dang FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false) AND v.dang->'hook'->>'qc' IS NOT NULL AND v.dang->'hook'->>'qc' NOT LIKE 'kenh:%'`)) as unknown as { qc: string; dang: boolean }[];
   const hookDaDung = new Set(dongHook.map((x) => x.qc));
+  // HOOK ĐÃ BỊ PHÒNG NỘI DUNG CHẶN vì lệch ngách / hứa điều thương hiệu không có (kể cả bài đã cất) → cấm hẳn cho máy, theo mã QC VÀ theo chữ.
+  // Trước chỉ loại hook của bài chưa cất: bài bị cất là hook về kho → ratesbyroom dùng "Booking a hotel in Osaka? Check prices first." 3 lần, bị chặn cả 3 (12/11/2026).
+  const biChan = (await db.execute(sql`SELECT v.dang->'hook'->>'qc' AS qc, v.dang->'hook'->>'goc' AS goc FROM xv_may_video v WHERE v.may_id = ${m.id} AND v.dang->'hook'->>'qc' IS NOT NULL
+    AND v.cham::text ~ '(mượn từ QC khác ngách|hứa điều thương hiệu không có)'`)) as unknown as { qc: string; goc: string | null }[];
+  const chuChan = new Set(biChan.map((x) => sachHook(x.goc ?? '').toLowerCase().replace(/[^a-z0-9à-ỹ ]/gi, '').trim()).filter(Boolean));
+  const hookBiChan = (h: HookDong) => biChan.some((x) => x.qc === h.id) || chuChan.has(h.chu.toLowerCase().replace(/[^a-z0-9à-ỹ ]/gi, '').trim());
+  hookNhom.splice(0, hookNhom.length, ...hookNhom.filter((h) => h.id.startsWith('kenh:') || !hookBiChan(h)));
+  for (const [k, h] of [...hookCuaQc]) if (hookBiChan(h)) hookCuaQc.delete(k);
+  if (biChan.length) console.log(`· loại ${biChan.length} hook Phòng Nội dung đã chặn lệch ngách / hứa sai`);
   // hook CHỈ nằm ở bài ĐÃ ĐĂNG (không ở bài đang chờ) → dùng lại khi kho cạn (anh duyệt 10/11/2026: militarycalc kẹt vì 8 hook nằm ở bài đã đăng). Đổi chủ thể + tiêu đề:
   // sinhDe nhận daDung (tiêu đề mọi bài chưa cất, gồm bài đã đăng), Phòng Nội dung vẫn chặn tiêu đề trùng. Một hook vẫn chỉ một bài ĐANG CHỜ.
   const hookCho = new Set(dongHook.filter((x) => !x.dang).map((x) => x.qc)), hookDaDangLai = new Set(dongHook.filter((x) => x.dang).map((x) => x.qc));
@@ -157,7 +166,7 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
     // Đệm 3 ngày / nhóm (~/.cache/hook-yt/<nhóm>.json). Ngọc lọc y như hook QC; một hook vẫn chỉ một bài; QC Meta luôn đứng trước.
     if (hookNhom.filter((h) => !hookDaDung.has(h.id)).length + hookCuaQc.size < 3) {
       const yt = hookTu((await hookYoutube(nhomHook.join('-'), cumNhom)).map((v) => ({ library_id: `yt:${v.id}`, dong: v.title, ngay: v.views, page_ten: 'YouTube' })))
-        .filter((h) => !hookDaDung.has(h.id) && !hookNhom.some((x) => x.chu.toLowerCase() === h.chu.toLowerCase())).slice(0, 40);
+        .filter((h) => !hookDaDung.has(h.id) && !hookBiChan(h) && !hookNhom.some((x) => x.chu.toLowerCase() === h.chu.toLowerCase())).slice(0, 40);
       const ytDat = await xet(hongYt(yt)); hookNhom.push(...ytDat);
       // ĐẨY CỤM CỦA NHÓM LÊN ĐẦU HÀNG CÀO META (spy-on-tc scripts/cao.sh › tu_ke): lượt cào đang chạy chen các cụm này ngay, lượt sau có hook QC thật
       try { const fs = await import('node:fs'), f = '/opt/spy/tep/uu-tien-tu.txt', co = new Set((fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '').split('\n').map((l) => l.split('\t')[0]));

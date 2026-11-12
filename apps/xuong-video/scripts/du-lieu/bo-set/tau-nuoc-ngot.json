@@ -2058,7 +2058,8 @@
      ],
      "huong": 30,
      "nhin_ai": "dau_ga",
-     "nhin_ai_den": "dau_ga"
+     "nhin_ai_den": "dau_ga",
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
     },
     {
      "ten": "Nhóc",
@@ -2069,7 +2070,8 @@
      ],
      "huong": -29,
      "nhin_ai": "cua_so",
-     "nhin_ai_den": "cua_so"
+     "nhin_ai_den": "cua_so",
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu"
     },
     {
      "ten": "Tàu xanh",

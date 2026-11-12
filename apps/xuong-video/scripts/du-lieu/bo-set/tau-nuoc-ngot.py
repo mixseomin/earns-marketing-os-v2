@@ -126,6 +126,7 @@ may = {}
 # MÁY HAI NGƯỜI (anh 12/11/2026 "các cảnh không rõ, xem không hiểu gì" — toàn ga 26 mm, người chỉ cao 15–20 % khung): đứng trên sân ga phía đông-nam ô cửa,
 # ống 32 mm, khung ôm cả ô cửa (chú) lẫn chỗ nhóc đứng — đọc được trao đồ, hướng mặt. Shot toàn ga giữ cho #11 (nhóc chạy xa) để thấy đường chạy.
 MAY_HAI = {'dat': [190, 330, 150], 'nhin': [-60, 520, 150], 'ong_kinh': 32}
+TRANG_PHUC = {'Chú': 'Bộ đi tàu: áo khoác xanh navy + áo thun xám', 'Nhóc': 'Bộ áo be sờn + quần soóc ô liu'}   # xv_bien_the #1492 #1493 (ảnh mẫu 13/11/2026)
 DUONG = []   # dây vàng đường đi (như reel): mỗi phần tử = vật tuỳ chọn, bật ở đúng shot qua may.them
 for ma, v in SD['shot'].items():
     sd, kt = v['sd'], v.get('sd_ket') or {}
@@ -161,6 +162,10 @@ for ma, v in SD['shot'].items():
     # bàn tay chạm bậu → đầu + vai nhô qua ô cửa. Shot chú chỉ nhìn theo (#1 #5 #7 #12) thì đứng thẳng trong toa.
     for x in vt:
         if x['ten'] == 'Chú' and ma in ('2b', '3a', '3', '4a', '5', '9a', '10', '11'): x['dien'] = ['chong_ban']   # #5: nhoài ra nhìn về tiệm — đứng thẳng trong toa thì máy phía nam không thấy chú
+    # SỔ TRANG PHỤC: khai ở lần xuất hiện đầu (shot thiết lập #0) — sổ tự nối sang mọi shot cùng ngày truyện (bo-set-3d.ts › noiHookup); tên = biến thể có ảnh
+    if ma == '0':
+        for x in vt:
+            if x['ten'] in TRANG_PHUC: x['trang_phuc'] = TRANG_PHUC[x['ten']]
     cho_nv = {x['ten']: x for x in vt}
     for mon, ai, nhan, het in DO.get(ma, []):
         a = cho_nv.get(ai)

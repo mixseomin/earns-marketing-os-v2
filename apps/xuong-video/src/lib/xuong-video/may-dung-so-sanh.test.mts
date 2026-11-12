@@ -15,7 +15,7 @@ assert.strictEqual(nhipSoSanh({ ...de, phai: { ...de.phai, dong: de.phai.dong.sl
 assert.strictEqual(nhipSoSanh({ ...de, trai: { ...de.trai, dong: [...de.trai.dong, 'a', 'b', 'c'] }, phai: { ...de.phai, dong: [...de.phai.dong, 'a', 'b', 'c'] } }).n, 4);
 const K = nhipSoSanh({ ...de, ket_luan: undefined }); assert.strictEqual(K.T_KET, K.T_KL);
 // ASS: tên hai bên, cả 6 dòng, kết luận, kết; nhãn
-const a = assSoSanh(de); for (const s of ['Booking site', 'Calling the desk', 'fees added at', 'knows the rooms', 'Check the site, then call', 'Compare before you book', 'ratesbyroom.com']) assert.ok(a.includes(s), s);
+const a = assSoSanh(de); for (const s of ['Booking site', 'Calling the desk', 'fees added at', 'knows the rooms', 'Check the site, then call', 'Compare before you book', 'ratesbyroom.com']) assert.ok(a.replace(/\\N/g, ' ').includes(s), s);
 // ảnh: X = nen, Y = nen_them[0]
 assert.strictEqual(truyVanSoSanh(de), 'laptop hotel booking website'); assert.deepStrictEqual(truyVanThemSoSanh(de), ['hotel receptionist phone']);
 // lệnh: 2 ảnh vào + vstack; thiếu ảnh Y thì lặp X; tiếng luồng [2:a]; khung = 1 ảnh; thiếu nen ném

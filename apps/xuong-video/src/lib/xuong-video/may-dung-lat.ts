@@ -5,7 +5,7 @@
 // MẪU CHUNG mọi ngách: đề = 1–3 câu (khẳng định · đúng/sai · lý do · từ khoá ảnh riêng). Mỗi câu một ẢNH THẬT (nen_url + nen_them qua may-dung-chuoi),
 // tiếng nền thu thật. THUẦN: đề → ASS + lệnh ffmpeg. Nhịp theo luật đọc (giayDoc): câu đứng đủ đọc, đếm 3s, đáp án + lý do đứng đủ đọc.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-lat.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, ngat, nhipDem, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, ketAss, mauAss, ngat, nhipDem, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 import { anhTheoMuc, chuoiAnh, locAmChuoi, type DoanAnh } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -81,10 +81,8 @@ export function assLat(de: DeLat): string {
   if (N.ket.length) {
     const t0 = N.T_DIEM;
     if (!N.diem) d.push([6, t0, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.6)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    // dòng kết phải NGẮT dòng: \q2 không tự xuống dòng, "Check the message before paying" cỡ 80px tràn mép 1080 (Ngọc chặn 10/11/2026)
-    const { dong: k0, co: co0 } = vua(N.ket[0]!, 20, 3, 64), y0 = 900 - 50 * (k0.length - 1), y1 = y0 + 100 * k0.length + 10;
-    d.push([7, t0, N.DAI, 'Den', `{\\an5\\pos(540,${y0})${fs(co0)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,0)}${k0.map(chu).join('\\N')}`]);
-    if (N.ket[1]) d.push([7, t0, N.DAI, 'Chu', `{\\an5\\pos(540,${y1})\\b1${fs(vua(N.ket[1], 34, 2, 40).co)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&\\fad(300,0)}${vua(N.ket[1], 34, 2, 40).dong.map(chu).join('\\N')}`]);
+    // dòng kết phải NGẮT dòng: \q2 không tự xuống dòng, "Check the message before paying" cỡ 80px tràn mép 1080 (Ngọc chặn 10/11/2026) — màn kết chung ketAss
+    ketAss(d, 7, t0, N.DAI, N.ket, { fs, trang: TRANG, co: 64 });
   }
   if (de.nhan) d.push([2, 0, N.DAI, 'Chu', `{\\an7\\pos(40,40)\\b1${fs(26)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&}${chu(de.nhan)}`]);
   return rapAss(W, H, d);

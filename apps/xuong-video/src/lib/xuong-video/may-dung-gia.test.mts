@@ -11,7 +11,7 @@ const N = nhipGia(de); assert.ok(N.T_DEM >= 3); assert.strictEqual(Number((N.T_L
 // không lý do / không kết vẫn chạy; lý do quá 3 chỉ lấy 3
 const M = nhipGia({ ...de, ly_do: [], ket: [] }); assert.ok(M.T_KET - M.T_LO >= 3 - 1e-9 && M.DAI > M.T_KET); assert.strictEqual(nhipGia({ ...de, ly_do: ['a', 'b', 'c', 'd'] }).lyDo.length, 3);
 // ASS: tiêu đề, hai thẻ A/B đủ dòng, đếm 7 → 1, FAKE trên thẻ giả + REAL trên thẻ thật, số khoanh 1 2 3, lý do, "B is the fake", kết
-const a = assGia(de); for (const s of ['One is fake', '}A', '}B', 'HV-48213', 'URGENT: confirm', '}7', '}1', 'FAKE', 'REAL', 'B is the fake', '1. A 2-hour deadline', '3. No real desk', 'Check the real rate first', 'Which one is fake?']) assert.ok(a.includes(s), s);
+const a = assGia(de); for (const s of ['One is fake', '}A', '}B', 'HV-48213', 'URGENT: confirm', '}7', '}1', 'FAKE', 'REAL', 'B is the fake', '1. A 2-hour deadline', '3. No real desk', 'Check the real rate first', 'Which one is fake?']) assert.ok(a.replace(/\\N/g, ' ').includes(s), s);
 assert.strictEqual((a.match(/FAKE/g) ?? []).length, 1, 'chỉ một thẻ FAKE'); assert.ok(assGia({ ...de, gia: 'a' }).includes('A is the fake'));
 assert.strictEqual(truyVanGia(de), 'hotel lobby laptop');
 // lệnh: một ảnh làm mờ, tiếng [1:a]; khung; thiếu nen ném

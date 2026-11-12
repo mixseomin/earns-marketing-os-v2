@@ -2,7 +2,7 @@
 // chia đôi màn dọc (trên = X, dưới = Y), mỗi bên một ẢNH THẬT riêng (nen_url = X, nen_them[0] = Y) lia chậm, tên bên + 2–4 dòng đối nhau hiện từng cặp,
 // kết luận một dòng, tiếng nền thu thật. THUẦN: đề → ASS + lệnh ffmpeg. Nhịp theo luật đọc (giayDoc): mỗi cặp dòng đứng đủ đọc cả hai vế.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-so-sanh.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, ketAss, mauAss, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 import { locAmChuoi } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -63,8 +63,7 @@ export function assSoSanh(de: DeSoSanh): string {
   }
   if (N.ket.length) {
     d.push([10, N.T_KET, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.62)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([11, N.T_KET, N.DAI, 'Den', `{\\an5\\pos(540,900)${fs(60)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,0)}${chu(N.ket[0]!)}`]);
-    if (N.ket[1]) d.push([11, N.T_KET, N.DAI, 'Chu', `{\\an5\\pos(540,1010)\\b1${fs(40)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&\\fad(300,0)}${chu(N.ket[1])}`]);
+    ketAss(d, 11, N.T_KET, N.DAI, N.ket, { fs, trang: TRANG });
   }
   if (de.nhan) d.push([3, 0, N.DAI, 'Chu', `{\\an9\\pos(1040,40)\\b1${fs(26)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&}${chu(de.nhan)}`]);
   return rapAss(W, H, d);

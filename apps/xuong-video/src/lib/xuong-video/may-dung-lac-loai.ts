@@ -2,7 +2,7 @@
 // 3×3 → 5×5 ô chữ / ký hiệu giống nhau (chữ, số, từ ngắn, ký tự Unicode có trong font), MỘT ô khác (O/Q, 6/9, CALM/CLAM…), đếm 7s, khoanh ô khác, câu móc
 // theo góc, trên cảnh thật làm tối + tiếng nền thu thật. THUẦN: đề → ASS + lệnh ffmpeg. Vị trí ô khác do đề quyết (máy sinh đề chọn ngẫu nhiên, kiểm trùng).
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-lac-loai.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, nhipDem, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, ketAss, mauAss, nhipDem, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 import { chuoiAnh, locAmChuoi } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -58,8 +58,7 @@ export function assLacLoai(de: DeLacLoai): string {
   d.push([2, N.T_LO, N.DAI, 'Chu', `{\\an5\\pos(540,1700)\\b1${fs(40)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\fad(150,0)}${chu(de.giong)} → ${chu(de.khac)}`]);
   if (N.ket.length) {
     d.push([6, N.T_KET, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.72)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([7, N.T_KET, N.DAI, 'Den', `{\\an5\\pos(540,900)${fs(60)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,0)}${chu(N.ket[0]!)}`]);
-    if (N.ket[1]) d.push([7, N.T_KET, N.DAI, 'Chu', `{\\an5\\pos(540,1010)\\b1${fs(40)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&\\fad(300,0)}${chu(N.ket[1])}`]);
+    ketAss(d, 7, N.T_KET, N.DAI, N.ket, { fs, trang: TRANG });
   }
   if (de.nhan) d.push([2, 0, N.DAI, 'Chu', `{\\an7\\pos(40,40)\\b1${fs(26)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&}${chu(de.nhan)}`]);
   return rapAss(W, H, d);

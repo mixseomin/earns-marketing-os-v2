@@ -3,7 +3,7 @@
 // mục sau — may.ts tự lấy Pexels theo `truy` của từng mục), lia máy chậm, chồng mờ giữa các mục, số lớn đếm ngược N → 1, mục 1 giữ lâu nhất,
 // tiếng nền thu thật (am-nen.ts). THUẦN: đề → ASS + lệnh ffmpeg. Nhịp theo luật đọc (giayDoc): mỗi mục đứng đủ thời gian đọc tên + dòng.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-top.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, ketAss, mauAss, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 import { anhTheoMuc, chuoiAnh, locAmChuoi, type DoanAnh } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -56,8 +56,7 @@ export function assTop(de: DeTop): string {
   if (de.nhan) d.push([2, 0, DAI, 'Chu', `{\\an8\\pos(540,40)\\b1${fs(26)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&}${chu(de.nhan)}`]);
   if (ket.length) {
     d.push([6, T_KET, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.5)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([7, T_KET, DAI, 'Den', `{\\an5\\pos(540,900)${fs(64)}\\1c&HFFFFFF&\\q2\\fad(400,0)}${chu(ket[0]!)}`]);
-    if (ket[1]) d.push([7, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1010)\\b1${fs(40)}\\1c${mauAss(TRANG)}\\1a&H30&\\fad(400,0)}${chu(ket[1])}`]);
+    ketAss(d, 7, T_KET, DAI, ket, { fs, trang: TRANG, co: 64, vien: false, fad: 400 });
   }
   return rapAss(W, H, d);
 }

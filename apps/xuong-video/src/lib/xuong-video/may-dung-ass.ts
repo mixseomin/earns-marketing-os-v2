@@ -36,6 +36,18 @@ export function vua(s: string, n: number, max: number, co: number): { dong: stri
 }
 /** Một dòng sự kiện: [lớp, từ giây, tới giây, kiểu chữ, nội dung đã gắn thẻ]. Kiểu: Ve (hình vẽ) · Den (Archivo Black) · Chu (Atkinson). */
 export type DongAss = [lop: number, tu: number, den: number, kieu: 'Ve' | 'Den' | 'Chu', text: string];
+/** MÀN KẾT CHUNG mọi mẫu Máy Dựng: ket[0] (thương hiệu / lời mời, ≤ 3 dòng × 20 ký tự ở cỡ `co`) + ket[1] (≤ 2 dòng × 34 ở cỡ 40), cả hai qua vua()
+ *  nên câu dài ngắt dòng + thu cỡ, không tràn mép; dòng 2 đẩy xuống theo số dòng dòng 1. CẤM chu(ket[…]) in thẳng (\q2 không tự xuống dòng —
+ *  "Explore your chart at astrolas.com" cỡ 80px tràn hai mép 1080, Ngọc chặn top-n astrolas 12/11/2026; máy kiểm: may-dung-ass.test.mts). */
+export function ketAss(d: DongAss[], lop: number, tu: number, den: number, ket: string[], o: { fs: (px: number) => string; trang: string; co?: number; vien?: boolean; fad?: number }): void {
+  if (!ket[0]) return;
+  const fad = `\\fad(${o.fad ?? 300},0)`, vien = o.vien !== false;
+  const k0 = vua(ket[0], 20, 3, o.co ?? 60), y0 = 900 - 50 * (k0.dong.length - 1), y1 = y0 + 100 * k0.dong.length + 10;
+  d.push([lop, tu, den, 'Den', `{\\an5\\pos(540,${y0})${o.fs(k0.co)}\\1c&HFFFFFF&${vien ? '\\3c&H000000&\\bord3' : ''}\\q2${fad}}${k0.dong.map(chu).join('\\N')}`]);
+  if (!ket[1]) return;
+  const k1 = vua(ket[1], 34, 2, 40);
+  d.push([lop, tu, den, 'Chu', `{\\an5\\pos(540,${y1})\\b1${o.fs(k1.co)}\\1c${mauAss(o.trang)}${vien ? '\\3c&H000000&\\bord2' : ''}\\1a&H30&${fad}}${k1.dong.map(chu).join('\\N')}`]);
+}
 /** Ráp tệp ASS từ các dòng (khung + 3 kiểu chữ chung). chuDam: kiểu Chu in đậm mặc định (đố chữ dùng). */
 export function rapAss(W: number, H: number, d: DongAss[], o: { chuDam?: boolean } = {}): string {
   return [

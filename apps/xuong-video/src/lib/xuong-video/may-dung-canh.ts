@@ -5,7 +5,7 @@
 // Nền video PHẢI có chuyển động thật (may-dung.ts › timVideoNenDong đo độ lệch khung, bỏ clip tĩnh) và tiếng PHẢI là bản thu thật (am-nen.ts) — 26/10/2026 anh chê
 // bản đầu "có mỗi cái ảnh kèm tiếng ồn": clip Pexels đứng yên + nhiễu tổng hợp.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-canh.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, ngat, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, ketAss, mauAss, ngat, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 
 import { amTheoTruy, type LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -48,8 +48,7 @@ export function assCanh(de: DeCanh): string {
   }
   if (ket.length) {
     d.push([3, CANH, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.45)}\\fad(500,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([4, CANH, DAI, 'Den', `{\\an5\\pos(540,900)${fs(64)}\\1c&HFFFFFF&\\q2\\fad(500,0)}${chu(ket[0]!)}`]);
-    if (ket[1]) d.push([4, CANH, DAI, 'Chu', `{\\an5\\pos(540,1010)\\b1${fs(40)}\\1c${mauAss(TRANG)}\\1a&H30&\\fad(500,0)}${chu(ket[1])}`]);
+    ketAss(d, 4, CANH, DAI, ket, { fs, trang: TRANG, co: 64, vien: false, fad: 500 });
   }
   return rapAss(W, H, d);
 }

@@ -4,7 +4,7 @@
 // đọc ba dòng + 1s nhìn chữ lạ. Chữ bản ngữ (Nhật / Hàn / Thái / Trung…) cần font trong máy dựng: container Cloudflare cài fonts-noto-cjk + fonts-noto-core
 // (cloudflare/dung-video/container/Dockerfile); libass tự rơi về font có ký tự đó qua fontconfig.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-cau-noi.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, ketAss, mauAss, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 import { chuoiAnh, locAmChuoi } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -53,8 +53,7 @@ export function assCauNoi(de: DeCauNoi): string {
   });
   if (N.ket.length) {
     d.push([6, N.T_KET, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.6)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([7, N.T_KET, N.DAI, 'Den', `{\\an5\\pos(540,900)${fs(60)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,0)}${chu(N.ket[0]!)}`]);
-    if (N.ket[1]) d.push([7, N.T_KET, N.DAI, 'Chu', `{\\an5\\pos(540,1010)\\b1${fs(40)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&\\fad(300,0)}${chu(N.ket[1])}`]);
+    ketAss(d, 7, N.T_KET, N.DAI, N.ket, { fs, trang: TRANG });
   }
   if (de.nhan) d.push([2, 0, N.DAI, 'Chu', `{\\an7\\pos(40,40)\\b1${fs(26)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&}${chu(de.nhan)}`]);
   return rapAss(W, H, d);

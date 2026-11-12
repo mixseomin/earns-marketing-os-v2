@@ -4,7 +4,7 @@
 // lệnh ffmpeg, 0đ. Tên người gửi / thương hiệu trong đề là tên BỊA, không dùng thương hiệu thật. Nhịp theo luật đọc (giayDoc): mở đủ đọc hai thẻ,
 // lý do đứng đủ đọc. Khác mẫu Scam or Real (một mẫu, khung tin nhắn theo kênh): ở đây hai mẫu đối nhau nên người xem SO sánh, không chỉ đoán.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-gia.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, nhipDem, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, ketAss, mauAss, nhipDem, rapAss, thoatLoc, vua, type DongAss } from './may-dung-ass';
 import { chuoiAnh, locAmChuoi } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 import { nenH264 } from './nen-video.mjs';
@@ -77,8 +77,7 @@ export function assGia(de: DeGia): string {
   }
   if (N.ket.length) {
     d.push([10, N.T_KET, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.72)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([11, N.T_KET, N.DAI, 'Den', `{\\an5\\pos(540,900)${fs(60)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,0)}${chu(N.ket[0]!)}`]);
-    if (N.ket[1]) d.push([11, N.T_KET, N.DAI, 'Chu', `{\\an5\\pos(540,1010)\\b1${fs(40)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&\\fad(300,0)}${chu(N.ket[1])}`]);
+    ketAss(d, 11, N.T_KET, N.DAI, N.ket, { fs, trang: TRANG });
   }
   if (de.nhan) d.push([5, 0, N.DAI, 'Chu', `{\\an7\\pos(40,40)\\b1${fs(26)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&}${chu(de.nhan)}`]);
   return rapAss(W, H, d);

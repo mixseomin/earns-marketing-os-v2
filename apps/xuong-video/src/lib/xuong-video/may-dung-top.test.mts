@@ -13,7 +13,7 @@ assert.ok(N.T_KET - N.tu[2]! > N.tu[1]! - N.tu[0]! - 1 || true); assert.ok(N.DAI
 // đề 6 mục chỉ lấy 5; 2 mục vẫn chạy
 assert.strictEqual(nhipTop({ ...de, muc: [...de.muc, ...de.muc] }).n, 5); assert.strictEqual(nhipTop({ ...de, muc: de.muc.slice(0, 2) }).n, 2);
 // ASS: số đếm ngược 3 → 1, tiêu đề, kết; tên mục đủ chữ
-const ass = assTop(de); for (const s of ['}3', '}2', '}1', 'before your plane', 'Land connected in Japan', 'Takes two minutes']) assert.ok(ass.includes(s), s);
+const ass = assTop(de), assLien = ass.replace(/\\N/g, ' '); for (const s of ['}3', '}2', '}1', 'before your plane', 'Land connected in Japan', 'Takes two minutes']) assert.ok(assLien.includes(s), s);
 assert.ok(ass.includes('Install the eSIM at home') || ass.includes('Install the eSIM at'), 'tên mục lên khung');
 // ảnh: mục đầu = nen, mục sau = nen_them
 assert.strictEqual(truyVanTop(de), 'phone settings hand'); assert.deepStrictEqual(truyVanThemTop(de), ['airplane window clouds', 'tokyo airport arrival']);

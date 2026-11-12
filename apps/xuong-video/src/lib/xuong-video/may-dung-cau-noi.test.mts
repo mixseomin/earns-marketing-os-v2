@@ -12,7 +12,7 @@ const N = nhipCauNoi(de); assert.strictEqual(N.n, 3); assert.ok(N.T_MO >= 2.2);
 for (let i = 0; i < 3; i++) { const den = i + 1 < 3 ? N.tu[i + 1]! : N.T_KET; const c = de.cau[i]!; assert.ok(den - N.tu[i]! >= giayDoc(c.ban_ngu, c.doc, c.nghia) + 1 - 1e-9, `câu ${i} đủ đọc + 1s nhìn chữ lạ`); }
 assert.ok(N.DAI > N.T_KET + 2); assert.strictEqual(nhipCauNoi({ ...de, cau: [...de.cau, ...de.cau] }).n, 5);
 // ASS: chữ bản ngữ giữ nguyên (không bị lọc), cách đọc, nghĩa, số thứ tự, mở, kết
-const a = assCauNoi(de); for (const s of ['チェックインをお願いします', 'yoyaku shite imasu', 'What is the Wi-Fi password?', '1/3', '3/3', 'Say this in Japanese', 'At hotel check-in', 'Land connected in Japan']) assert.ok(a.includes(s), s);
+const a = assCauNoi(de); for (const s of ['チェックインをお願いします', 'yoyaku shite imasu', 'What is the Wi-Fi password?', '1/3', '3/3', 'Say this in Japanese', 'At hotel check-in', 'Land connected in Japan']) assert.ok(a.replace(/\\N/g, ' ').includes(s), s);
 assert.strictEqual(truyVanCauNoi(de), 'tokyo hotel reception');
 // lệnh: một ảnh, tiếng luồng [1:a]; khung; thiếu nen ném
 const l = lenhCauNoi({ de, ass: 'a.ass', nen: '/t/a.jpg', am: '/t/am.mp3', fontsDir: '/f', ra: 'r.mp4' });

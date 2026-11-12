@@ -848,7 +848,7 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <span>$</span><input value={ns} onChange={(e) => setNs(e.target.value.replace(/\D/g, ''))} inputMode="numeric" style={o2} />
             <button disabled={!!dang || !ns || Number(ns) === c.ngan_sach} onClick={() => setCho({ o: 'ns', chu: `đổi ngân sách camp #${c.camp_id}: $${c.ngan_sach} → $${ns}${ep ? ' (ép)' : ''}`, f: () => campTay(c.camp_id, 'ns', { ns: Number(ns), nsDang: c.ngan_sach, ep, ghi }) })}
-              style={{ ...nut, borderColor: 'var(--accent, #60a5fa)' }}>{!ns || Number(ns) === c.ngan_sach ? 'chọn mức khác mức đang chạy' : `${Number(ns) > c.ngan_sach ? '↑ Tăng' : '↓ Giảm'} về $${ns}`}</button>
+              style={{ ...nut, borderColor: 'var(--accent, #60a5fa)' }}>{!ns || Number(ns) === c.ngan_sach ? 'chọn mức khác mức đang chạy' : `${Number(ns) > c.ngan_sach ? '↑ Tăng lên' : '↓ Giảm về'} $${ns}`}</button>{/* #1563 (anh 12/11/2026 "tăng hơn mức cũ phải là Tăng lên"): tăng = lên, giảm = về */}
           </div>
           {xacNhan('ns')}{o('ns')}
         </div> : null}

@@ -454,16 +454,20 @@ if (a.includes('--nap')) {
   const o = (await db.execute(sql`SELECT k.nen, k.dang, k.goc, k.dich FROM ke_hoach_goc k WHERE k.may = ${ma} AND k.ngay = ${ngay}::date AND k.dang IS NOT NULL`)) as unknown as { nen: string; dang: string; goc: { sp: number; id: number; loai: string; ten: string }; dich: string | null }[];
   const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.dang->>'dang_bai' AS dang, v.dang->>'title' AS title FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { goc: string | null; dang: string | null; title: string | null }[];
   const daDung = daCo.map((x) => x.title ?? '').filter(Boolean);
-  let vnd = 0, n = 0; const ra: string[] = [];
+  let vnd = 0, n = 0, kho: (Awaited<ReturnType<typeof khoGocHook>> & { xetHook: Awaited<ReturnType<typeof xetHookNhuCham>> }) | null = null; const ra: string[] = [];
   for (const oKe of o) {
     if (n >= toiDa) break;
     const mau = MAU_CUA_DANG[oKe.dang]; if (!mau || !MAU_SINH.has(mau)) { ra.push(`· ${oKe.nen} ${oKe.dang}: dạng chưa có mẫu sinh đề — máy đăng dùng bài kho`); continue; }
     if (daCo.some((x) => Number(x.goc) === Number(oKe.goc?.id) && x.dang === oKe.dang)) { ra.push(`· ${oKe.nen} ${oKe.dang} #${oKe.goc.id}: đã có bài đúng góc + dạng`); continue; }
     // tiền: sinhJson (claude.ts) gác từng lượt mô hình theo giá thật, cộng dồn cả lượt chạy — quá ngưỡng tự chạy thì cần DUYET_SINH_1_LAN=1 (trước 28/10 gác thêm 0,4¢ ở đây = tính hai lần)
-    const kq = await sinhDe({ sp, goc: oKe.goc, dang_bai: oKe.dang, dich: oKe.dich, daDung });
+    // HOOK QC như --sinh-kho / --lam-lai-sua (12/11/2026, sidecue: nhánh này gọi sinhDe KHÔNG kho hook → 4 bài một buổi "thiếu dang.hook", SỬA LẠI chắc chắn)
+    if (!kho) kho = { ...(await khoGocHook(ma, Number(m.id), sp)), xetHook: await xetHookNhuCham(ma) };
+    const hk = kho.hooksCho(kho.gocs.find((x) => x.id === Number(oKe.goc?.id)) ?? oKe.goc, n); if (!hk.length) { ra.push(`· hết hook QC chưa dùng — dừng lượt`); break; }
+    const kq = await sinhDe({ sp, goc: oKe.goc, dang_bai: oKe.dang, dich: oKe.dich, daDung, hooks: hk, xetHook: kho.xetHook });
     vnd += kq.vnd; n++;
     if (!kq.ok) { ra.push(`✗ ${oKe.nen} ${oKe.dang} #${oKe.goc.id}: ${kq.loi}`); continue; }
     await napVideo(db, ma, [kq.de]); daDung.push(kq.de.dang.title ?? ''); daCo.push({ goc: String(oKe.goc.id), dang: oKe.dang, title: kq.de.dang.title ?? null });
+    { const hq = (kq.de.dang as { hook?: { qc?: string } }).hook?.qc; if (hq) { kho.hookDaDung.add(hq); kho.hookCho.add(hq); } }
     let xuat = '';
     if (a.includes('--va-xuat')) { const v = ((await db.execute(sql`SELECT id FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${kq.de.slug}`)) as unknown as { id: number }[])[0]; const x = v ? await xuatVideo(db, Number(v.id)) : { ok: false as const, loi: 'không thấy dòng vừa nạp' }; xuat = x.ok ? ` · dựng ✓ ${x.url}` : ` · dựng ✗ ${x.loi}`; }
     ra.push(`✓ ${oKe.nen} ${oKe.dang} #${oKe.goc.id} → ${kq.de.slug} (${kq.model}, ${Math.round(kq.vnd)}₫) "${kq.de.dang.title}"${xuat}`);

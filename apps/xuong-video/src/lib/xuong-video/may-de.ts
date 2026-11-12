@@ -256,6 +256,8 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
   /** XÉT HOOK ĐÚNG NHƯ PHÒNG CHẤM trên đề vừa viết (tiêu đề + câu trên màn), trước khi trả đề đi dựng — trả lý do chặn hoặc null. Xem may-dung.mts › xetHookNhuCham. */
   xetHook?: (de: DeNapMay & { mau: MauMayDung }) => Promise<string | null> }): Promise<{ ok: true; de: DeNapMay & { mau: MauMayDung }; vnd: number; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string; vnd: number }> {
   const mau = MAU_CUA_DANG[o.dang_bai]; if (!mau || !MAU_SINH.has(mau)) return { ok: false, loi: `dạng ${o.dang_bai} chưa có mẫu sinh đề`, vnd: 0 };
+  // không kho hook QC = bài chắc chắn SỬA LẠI (cham-dang luật 8 "thiếu dang.hook") → từ chối trước khi tốn tiền (sidecue 12/11/2026)
+  if (!o.hooks?.length) return { ok: false, loi: 'không có hook QC spy nào đưa vào — bài hook tự viết bị Phòng Nội dung chặn', vnd: 0 };
   const { sinhJson } = await import('./claude');
   const schema = z.object({ de: mau === 'giai-thich' ? DeGiaiThichSchema : mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : mau === 'binh-chon' ? DePollSchema : mau === 'carousel' ? DeCarouselSchema : DeCanhSchema, chu: ChuDangSchema, hook_qc: z.string().describe('id of the proven ad hook you adapted (empty if none were given)') });
   // tiền: ckey báo VNĐ thật (tokens.vnd); không báo (Anthropic trực tiếp, hoặc ckey thiếu x_ckey.cost — 27/10 nhật ký ghi 0₫) thì ƯỚC theo token × bảng giá (26.000₫/$)

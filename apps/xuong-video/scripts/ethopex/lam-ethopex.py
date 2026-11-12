@@ -55,6 +55,14 @@ def tat_bao_lau(cid):
     try: return float(g)
     except (TypeError, ValueError): return None
 
+def ly_khong_bat(cid, ns=0):
+    """lý do camp KHÔNG được bật lại (None = bật được) — MỘT chỗ cho lệnh bat và cho máy thay creative bị Meta từ chối (thay-tu-choi.py hỏi TRƯỚC khi nộp lại:
+    12/11/2026 máy thay creative cho #81616 (tắt 48 giờ) và #88925 (lô ít nước) rồi không bật được — nộp lại Meta vô ích, chỉ thêm một vết từ chối cho Page)"""
+    if q(f"select 1 from etp.lich_tat where camp_id = {int(cid)}"): return None   # tạm dừng theo lịch giờ — lịch tự bật
+    tg = None if cid in CONG.camp_roas() else tat_bao_lau(cid)   # camp ROAS miễn luật 24 giờ (anh 26/10/2026: dạng riêng, review tay rồi bật)
+    if tg is not None and tg > 24: return f"camp đã tắt {tg:.0f} giờ (> 24 giờ) — luật: tắt quá 24 giờ không bao giờ bật lại"
+    return CONG.kiem("bat", cid, float(ns or 0), 0)
+
 def dang_lai(cid, t7=False):
     """camp còn lãi thì không tắt (anh 22/10/2026: "camp nào lãi hơn 20% thì bật lại", rồi "camp hơn 2 ngày có lãi sao lại đóng?"):
     hôm nay > 20% · hoặc 2 ngày gần nhất có lãi (> 0) · hoặc cộng dồn > 0 → trả câu lý do, không thì None"""
@@ -212,9 +220,7 @@ def main(a):
             if q(f"select 1 from etp.lich_tat where camp_id = {cid}"):
                 kq.update(ok=True, sau=truoc, loi=None, lich="đang tạm dừng theo lịch giờ — lịch tự bật lại khi tới khung BẬT"); ghi_nhat_ky(kq, luat, ai); print(json.dumps(kq, ensure_ascii=False)); return
             # TẮT QUÁ 24 GIỜ THÌ KHÔNG BAO GIỜ BẬT LẠI (anh 26/10/2026) — mọi đường bật đi qua đây (nút anh, máy thay creative bị từ chối…)
-            tg = None if cid in CONG.camp_roas() else tat_bao_lau(cid)   # camp ROAS miễn luật 24 giờ (anh 26/10/2026: dạng riêng, review tay rồi bật)
-            if tg is not None and tg > 24: raise ValueError(f"camp đã tắt {tg:.0f} giờ (> 24 giờ) — luật: tắt quá 24 giờ không bao giờ bật lại")
-            ly = CONG.kiem("bat", cid, float(truoc["ns"] or 0), 0)
+            ly = ly_khong_bat(cid, truoc["ns"])
             if ly: raise ValueError(ly)
             r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "active"}])
             d0 = (r.get("data") or [{}])[0]

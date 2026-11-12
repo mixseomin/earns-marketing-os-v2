@@ -10,7 +10,7 @@ Mỗi ad bị từ chối (delivery_status DISAPPROVED / error có DISAPPROVED):
   5. camp bị Ethopex dừng vì từ chối → bật lại ngay sau khi thay (anh 24/10/2026 "bật sau khi thay đi"), qua lam-ethopex.py bat + rào chắn etp
 Chạy trên box3: thay-tu-choi.py [--camp <id> …]   (không --camp = quét mọi camp đang chạy).
   thay-tu-choi.py --don-doan [--thu]   → dọn đoạn quá tải (> trần tran_trung camp, mặc định 20): camp dư không lãi thay sang góc khác cùng phim (--thu: chỉ in, không làm) Phòng Ethopex (cty ethopex.mjs) gọi khi luật báo tu_choi."""
-import datetime as dt, json, os, subprocess, sys, time, urllib.request
+import datetime as dt, json, os, re, subprocess, sys, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
@@ -44,6 +44,25 @@ def dong_bo_luc(a):
     try: return dt.datetime.fromisoformat(str(a.get("last_synced_at") or "").replace("Z", "+00:00")).timestamp()
     except ValueError: return 0
 
+# LỖI "SPAM" KHÔNG NẰM Ở VIDEO (12/11/2026, anh: "7 là nhiều — xử lý triệt để tự động"): 3/3 lần thay creative cho ad Meta gắn Spam (#68850, #81616, #88925)
+# đều bị từ chối tiếp với creative mới; cả 7 ad bị từ chối 30 ngày nằm ở bộ 2 (Page 1295499) trong khi bộ 1 lên 382 camp không ad nào bị → gốc ở Page / tài khoản.
+# Spam → KHÔNG nộp lại (mỗi lần nộp là một vết nữa cho Page), không cấm creative; canh-bao.py báo theo bộ. Lỗi nội dung (18+, bạo lực…) vẫn thay như cũ.
+_NOI_DUNG = re.compile(r"Adult|Sexual|Nudity|Violen|Graphic|Weapon|Dangerous", re.I)
+def la_spam(loi): return '"Spam"' in str(loi or "") and not _NOI_DUNG.search(str(loi or ""))
+_LAM = None
+def ly_khong_bat(camp, ns):
+    """cùng cổng lệnh bat (lam-ethopex.ly_khong_bat): camp không bao giờ được bật lại thì thay creative cũng vô ích"""
+    global _LAM
+    if _LAM is None:
+        import importlib.util as _iu
+        _s = _iu.spec_from_file_location("lam_ethopex", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lam-ethopex.py")); _LAM = _iu.module_from_spec(_s); _s.loader.exec_module(_LAM)
+    return _LAM.ly_khong_bat(camp, ns)
+def bo_qua(kq, camp, cu, cid, ly_meta, loi):
+    """không thay — báo MỘT lần mỗi camp (sổ ethopex_tu_choi_bo_qua), lượt sau im"""
+    if str(camp) in khoa("ethopex_tu_choi_bo_qua"): return {**kq, "ok": True, "viec": "da_bao"}
+    gop("ethopex_tu_choi_bo_qua", {str(camp): {"luc": vn(), "creative": cu, "ly": loi}})
+    return {**kq, "creative_cu": cu, "content": cid, "viec": "bo_qua", "ly_do": ly_meta, "loi": loi}
+
 def bi_tu_choi(a): return a.get("delivery_status") == "DISAPPROVED" or "DISAPPROVED" in str(a.get("error") or "").upper()
 
 DEM = {}
@@ -75,6 +94,12 @@ def mot(camp, tu_choi, dat):
     # #68850 (Spam 06:04 06/11) thay sang #60266, Ethopex đồng bộ lại 06:12 vẫn DISAPPROVED mà máy "chờ duyệt" im lặng 3 ngày. Giờ: Ethopex đồng bộ lại ad
     # ≥ CHO_PHUT phút sau lần thay mà ad vẫn bị từ chối = Meta từ chối CẢ creative mới → ghi sổ từ chối, thay ngay creative kế; thay TRAN_THAY lần vẫn bị
     # từ chối thì gốc không nằm ở video (link / Page / tài khoản) → dừng thay, báo một lần cho anh.
+    ly_meta = str(a.get("error") or a.get("delivery_status"))[:300]
+    if la_spam(a.get("error")):
+        return bo_qua(kq, camp, cu, cid, ly_meta, "Meta gắn Spam — thay video không gỡ được (3/3 lần thay trước vẫn bị từ chối), gốc ở Page / tài khoản → máy không nộp lại; canh-bao báo theo bộ")
+    if d["campaign"].get("state") == "PAUSED":
+        kb = ly_khong_bat(camp, d["campaign"].get("budget_daily"))
+        if kb: return bo_qua(kq, camp, cu, cid, ly_meta, f"không thay: camp sẽ không được bật lại ({kb}) — nộp lại Meta chỉ thêm vết từ chối")
     cho = cho_cua(camp)
     lan_thay = 0
     if not lan and cho and cho["cr"] == cu:

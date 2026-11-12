@@ -5,7 +5,7 @@ Ngày = ngày Ethopex (UTC). Các dò (ngưỡng ở đầu tệp):
   chi_vuot     camp chi hôm nay > CHI_VUOT × ngân sách ngày (Meta tiêu lố / ngân sách bị đổi ngoài máy)
   roi_sup      cả hệ thống: chi hôm nay ≥ $ROI_SUP_CHI mà ROI < ROI_SUP% (sau ≥ 6 giờ UTC để có số)
   bo_ngung     một bộ tài khoản: có camp đang bật, hôm qua chi ≥ $20, hôm nay 0 sau 4 giờ UTC → có thể tài khoản / Page bị khoá
-  tu_choi_loat ≥ TU_CHOI_LOAT ad bị Meta từ chối cùng lúc (khả năng Page / tên miền bị gắn cờ)
+  tu_choi_loat một bộ bị Meta từ chối ≥ TC_24 bài / 24 giờ hoặc ≥ TC_7 / 7 ngày (Page / tài khoản bị gắn cờ)
   dong_bo_tre  lượt đồng bộ gần nhất lỗi
   phim_bao_hoa  > 10 camp và ROI phim giảm 2 ngày liền (bảng etp.phim_bao_hoa: chan_nb cho luật NB, bao_hoa cho Telegram / etp / extension)
   roas_gan / roas_dat  camp ROI ≥ 50% ổn định 2–3 ngày: chi ≥ $70 sắp đủ, ≥ $100 đủ tiêu chí bid ROAS (một lần mỗi camp mỗi mức)
@@ -15,7 +15,8 @@ Ngày = ngày Ethopex (UTC). Các dò (ngưỡng ở đầu tệp):
   tran_phim_mo    phim đủ trần ở một tài khoản nhà và MỌI camp đang chạy lãi đều (3 ngày đã khép, ≥ 2 ngày có chi ≥ $1, ngày nào cũng thu > chi)
                   → đề xuất anh mở thêm chỗ (anh 02/11/2026: "khi nào tất cả 30 cùng lãi đều và ổn định mới đề xuất mở thêm slot")"""
 import datetime as dt, json, os, subprocess
-CHI_VUOT, ROI_SUP_CHI, ROI_SUP, TU_CHOI_LOAT = 1.6, 100, -35, 5
+CHI_VUOT, ROI_SUP_CHI, ROI_SUP = 1.6, 100, -35
+TC_24, TC_7 = 2, 4   # từ chối dồn một bộ: ≥ 2 trong 24 giờ hoặc ≥ 4 trong 7 ngày (đếm bài / creative, không đếm camp)
 ROAS_GAN, ROAS_DAT = 70, 100   # bid ROAS: báo sắp đủ từ $70 chi, đủ từ $100 (Support 24/10/2026)
 def q(s):
     r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=s, capture_output=True, text=True)
@@ -143,8 +144,16 @@ def main():
                        from etp.camp c where c.bo is not null group by c.bo""").splitlines():
             bo, chay, cq, cn = l.split("|")
             if int(chay) > 0 and float(cq) >= 20 and float(cn) == 0: bao("bo_ngung", "do", f"bo_ngung:{bo}:{nay}", f"Bộ tài khoản {bo}: {chay} camp đang bật, hôm qua chi ${float(cq):.0f} mà hôm nay $0 sau {now.hour}h UTC — kiểm tài khoản QC / Page có bị khoá không"); n += 1
-    tc = int(q("select count(*) from etp.camp where trang_thai = 'ACTIVE' and (giao = 'DISAPPROVED' or loi ilike '%disapprov%')") or 0)
-    if tc >= TU_CHOI_LOAT: bao("tu_choi_loat", "do", f"tu_choi_loat:{nay}:{tc // TU_CHOI_LOAT}", f"{tc} ad đang bị Meta từ chối cùng lúc — khả năng Page / tên miền bị gắn cờ; máy đang tự thay creative từng camp"); n += 1
+    # TỪ CHỐI DỒN THEO BỘ (12/11/2026, anh "7 là nhiều"): bản cũ đếm camp ACTIVE đang DISAPPROVED — mà Meta từ chối là Ethopex chuyển PAUSED ngay → đếm luôn 0, chưa kêu lần nào.
+    # Giờ đếm sổ phốt (etp.phot, ghi lúc phát hiện) theo bộ: một lần từ chối = một bài / creative (4 camp ROAS cùng bài đăng = 1). 24 giờ ≥ TC_24 hoặc 7 ngày ≥ TC_7 → đỏ,
+    # một lần / bộ / ngày. Spam dồn một bộ = Page / tài khoản bị gắn cờ (bộ 2 Page 1295499: 15/18 phốt 30 ngày), không phải video.
+    for l in q(f"""select coalesce(p.bo, '?'), coalesce(p.page_id::text, '?'), count(distinct (p.content_id, p.creative_id)) filter (where p.luc > now() - interval '24 hours'),
+                     count(distinct (p.content_id, p.creative_id)), count(distinct (p.content_id, p.creative_id)) filter (where p.nhom in ('spam', 'khac'))
+                   from etp.phot p where p.luc > now() - interval '7 days' group by 1, 2""").splitlines():
+        bo, page, d24, d7, sp = l.split("|"); d24, d7, sp = int(d24), int(d7), int(sp)
+        if d24 >= TC_24 or d7 >= TC_7:
+            bao("tu_choi_loat", "do", f"tu_choi_loat:{bo}:{nay}", f"Bộ {bo} (Page {page}): Meta từ chối {d24} bài / creative trong 24 giờ, {d7} trong 7 ngày ({sp} Spam / không rõ) — "
+                "Page / tài khoản đang bị gắn cờ, không phải video; máy KHÔNG nộp lại ad Spam (thay-tu-choi.la_spam), lỗi 18+ vẫn thay creative"); n += 1
     # BID ROAS (anh 24/10/2026: "camp nào gần đạt có cảnh báo; còn đạt thì cho vào một danh sách riêng"): ROI 30 ngày ≥ 50% và mọi ngày TRỌN có chi ≥ $1
     # trong 3 ngày gần nhất ROI ≥ 50% (≥ 2 ngày như vậy) — gần đạt = chi ≥ $ROAS_GAN, đạt = chi ≥ $ROAS_DAT. Báo MỘT lần mỗi camp mỗi mức.
     for l in q(f"""with t as (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay where ngay >= '{nay}'::date - 29 group by 1 having sum(chi) >= {ROAS_GAN} and sum(thu) >= 1.5 * sum(chi)),

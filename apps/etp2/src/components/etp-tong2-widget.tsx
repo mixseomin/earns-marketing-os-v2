@@ -6,12 +6,13 @@ import { SimpleTable, StatsStrip } from '@/components/ui';
 import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
-import { Dem } from '@/components/etp-so';
+import { Dem, KeToan } from '@/components/etp-so';
 import { congNgay as congN, doiChieu, heSo, hieuChinh, mauCpm, mocMau, nen, ngayThiTruong, saiSo, type NhatKyDuDoan, type SoNgay } from '@/lib/etp-thi-truong';
 
 type ST = { chi: number; thu: number };
 const cong = (rs: ST[]) => rs.reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 });
 const roi = (s: ST) => (s.chi >= 1 ? ((s.thu - s.chi) / s.chi) * 100 : null);
+// tien() chỉ cho CHỮ (câu, tiêu đề, ô số lớn). Ô TIỀN TRONG BẢNG dùng <KeToan> (etp-so): luôn 2 số lẻ, dấu phẩy nghìn, $ mép trái, âm trong ngoặc (anh 12/11/2026 #1565 "trình bày chuẩn kế toán")
 const tien = (v: number) => { const a = Math.abs(v); return `${v < 0 ? '−' : ''}$${a >= 10_000 ? `${(a / 1000).toFixed(1)}k` : a >= 100 ? a.toFixed(0) : a.toFixed(2)}`; };
 const pct = (r: number | null) => (r == null ? '—' : `${r > 0 ? '+' : ''}${r.toFixed(0)}%`);
 const XANH = 'var(--neon-lime, #4ade80)', DO = '#f87171', MO = 'var(--fg-3)';
@@ -92,7 +93,7 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
   }
   if (che === 'bang') return <div style={{ fontSize: 11 }}>{dauTrang}<SimpleTable rows={ds} getRowKey={(o) => o.d} rowStyle={(o) => (o.du ? { opacity: 0.75, fontStyle: 'italic' } : o.d === nay ? { fontWeight: 600 } : undefined)} columns={[
     { key: 'd', header: 'Ngày', cell: (o) => <span>{o.d.slice(8, 10)}/{o.d.slice(5, 7)}{o.d === nay ? ' (hôm nay)' : ''}{o.du ? ' · dự đoán' : ''}{o.le ? <b style={{ color: '#f59e0b' }}> · {o.le}</b> : null}</span> },
-    { key: 'chi', header: 'Chi', align: 'right', cell: (o) => (o.chi == null ? '—' : tien(o.chi)) },
+    { key: 'chi', header: 'Chi', align: 'right', cell: (o) => (o.chi == null ? '—' : <KeToan v={o.chi} />) },
     { key: 'cpm', header: 'CPM', align: 'right', cell: (o) => <span style={{ display: 'inline-block', minWidth: 52, padding: '0 6px', borderRadius: 4, background: mauCpm(o.cpm, nenCpm), fontVariantNumeric: 'tabular-nums' }}>{cpm$(o.cpm)}</span> },
     { key: 'so', header: 'So TB 30n', align: 'right', cell: (o) => (o.cpm == null || !nenCpm ? '—' : `${Math.round((o.cpm / nenCpm) * 100)}%`) },
     { key: 'sai', header: 'Biên sai', align: 'right', cell: (o) => (o.du ? (o.sai == null ? 'chưa đủ số' : `±${Math.round(o.sai)}%`) : '') },
@@ -176,10 +177,10 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
         <SimpleTable rows={pb.nhom} getRowKey={(k) => k.ma} columns={[
           { key: 'ten', header: 'Nhóm', cell: (k) => <span title="3 ngày đã khép gần nhất · camp mới < 3 ngày tính là test">{k.ten}</span> },
           { key: 'camp', header: 'Camp', align: 'right', cell: (k) => <Dem v={k.camp} /> },
-          { key: 'ns', header: 'Đang', align: 'right', cell: (k) => { const l = lech(k); return <b style={{ color: l === 'tren' ? DO : l === 'duoi' ? '#f59e0b' : undefined, fontVariantNumeric: 'tabular-nums' }} title={l === 'tren' ? 'cao hơn mục tiêu' : l === 'duoi' ? 'thấp hơn mục tiêu' : 'trong mục tiêu'}>{tien(k.ns)}</b>; } },
+          { key: 'ns', header: 'Đang', align: 'right', cell: (k) => { const l = lech(k); return <b style={{ color: l === 'tren' ? DO : l === 'duoi' ? '#f59e0b' : undefined, fontVariantNumeric: 'tabular-nums' }} title={l === 'tren' ? 'cao hơn mục tiêu' : l === 'duoi' ? 'thấp hơn mục tiêu' : 'trong mục tiêu'}><KeToan v={k.ns} mau={l === 'tren' ? DO : l === 'duoi' ? '#f59e0b' : undefined} /></b>; } },
           { key: 'muc', header: 'Mục tiêu', align: 'right', cell: (k) => (!k.muc ? '—' : k.muc[0] === k.muc[1] ? tien(k.muc[0]) : `${tien(k.muc[0])}–${tien(k.muc[1])}`) },
           { key: 'roi', header: 'ROI 3n', align: 'right', cell: (k) => { const r = roi({ chi: k.chi3, thu: k.thu3 }); return <span style={{ color: r == null ? MO : r >= 0 ? XANH : DO }}>{pct(r)}</span>; } },
-          { key: 'lai', header: 'Lãi/ngày', align: 'right', cell: (k) => <span style={{ color: mauLai(k.thu3 - k.chi3) }}>{tien((k.thu3 - k.chi3) / 3)}</span> },
+          { key: 'lai', header: 'Lãi/ngày', align: 'right', cell: (k) => <KeToan v={(k.thu3 - k.chi3) / 3} mau={mauLai(k.thu3 - k.chi3)} /> },
           { key: 'cach', header: 'Cách làm', cell: (k) => <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{k.cach}</span> },
         ]} />
       </div>;
@@ -206,8 +207,8 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
       if (!x) return cho;
       return <SimpleTable rows={x.nguoi} getRowKey={(p) => String(p.id)} rowStyle={(p) => (p.nha ? { fontWeight: 600 } : undefined)} columns={[
         { key: 'ten', header: 'Người', cell: (p) => <a href={`?t=camp${p.nha ? '' : `&ng=${p.id}`}`} style={{ color: 'inherit' }} title="xem camp của người này">{p.ten}{p.nha ? ' (nhà)' : ''}</a> },
-        { key: 'chi', header: 'Chi', align: 'right', cell: (p) => tien(p.k.chi) },
-        { key: 'lai', header: 'Lãi', align: 'right', cell: (p) => <span style={{ color: mauLai(p.k.thu - p.k.chi) }}>{tien(p.k.thu - p.k.chi)}</span> },
+        { key: 'chi', header: 'Chi', align: 'right', cell: (p) => <KeToan v={p.k.chi} /> },
+        { key: 'lai', header: 'Lãi', align: 'right', cell: (p) => <KeToan v={p.k.thu - p.k.chi} mau={mauLai(p.k.thu - p.k.chi)} /> },
         { key: 'roi', header: 'ROI', align: 'right', cell: (p) => { const r = roi(p.k), t = roi(p.t); return <span title={t == null ? undefined : `kỳ trước cùng độ dài: ${pct(t)}`}>{pct(r)}{r != null && t != null ? <small style={{ color: r >= t ? XANH : DO, marginLeft: 4 }}>{r >= t ? '▲' : '▼'}{Math.abs(r - t).toFixed(0)}</small> : null}</span>; } },
         { key: 'camp', header: 'Camp bật', align: 'right', title: 'camp ACTIVE lúc này · tổng ngân sách / ngày', cell: (p) => <span title={`ngân sách ${tien(p.ns)}/ngày`}><Dem v={p.camp} /></span> },
         { key: 'duong', header: 'ROI 7 ngày', title: 'ROI từng ngày, 7 ngày đã khép', cell: (p) => <DuongRoi v={p.duong} /> },

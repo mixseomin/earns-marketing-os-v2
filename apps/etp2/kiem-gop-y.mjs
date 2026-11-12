@@ -7,6 +7,10 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1565, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: "{ key: 'chi', header: 'Chi', align: 'right', cell: (p) => <KeToan v={p.k.chi} /> },", vi: 'widget Người (Tổng quan): cột Chi kiểu kế toán — 2 số lẻ, $ mép trái (anh 12/11/2026)' },
+  { card: 1565, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: "cell: (p) => <KeToan v={p.k.thu - p.k.chi} mau={mauLai(p.k.thu - p.k.chi)} /> },", vi: 'widget Người: cột Lãi kiểu kế toán, âm trong ngoặc' },
+  { card: 1565, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', cam: "cell: (p) => tien(p.k.chi)", vi: 'ô tiền trong bảng widget không in tien() làm tròn lệch số lẻ' },
+  { card: 1565, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', cam: "{tien((k.thu3 - k.chi3) / 3)}</span>", vi: 'widget Phân bổ: Lãi/ngày kiểu kế toán' },
   { card: 'ns-ngay-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'ns={[...nsCuoiNgay(c.ngan_sach, du.lsBac[c.camp_id], ngay6), c.ngan_sach]}', vi: 'ngăn camp: biểu đồ 7 ngày có vạch % ngân sách đã tiêu mỗi ngày (anh 10/11/2026)' },
   { card: 1553, tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "chay(['lam-ethopex.py', ...lenh, '--luat', luat, '--ai', AI", vi: 'bật / tắt / bậc ngân sách tay đi đúng máy Nhà lam-ethopex.py' },
   { card: 1553, tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "spawn('python3', ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that'", vi: 'nhân bản tay đi đúng nhan-ban.py' },

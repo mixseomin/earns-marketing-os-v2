@@ -33,7 +33,7 @@ type Dong = { loai: 'kenh'; k: KenhSp } | { loai: 'video'; k: KenhSp; v: VideoKe
 /** ô số của bảng thống kê mẫu: cột cố định, thẳng hàng giữa dòng nhóm (tên cột) và từng mẫu */
 const O_RONG = 74, O_CHU = 760;
 /** số dòng con mỗi trang của một khối trong cây (Hàng chờ ý tưởng 408 mục, Đã làm, Lá số…) */
-const CO_TRANG = 20;
+const CO_TRANG = 10;
 // tên kênh một ô rộng cố định (dài thì "…", rê chuột xem đủ) → nút ⋯ và trạng thái kênh thẳng một cột, không thò thụt theo độ dài tên (góp ý #1568)
 const O_TEN_KENH = 180;
 /** CÂY của một kênh: 📘 Sổ kênh + 🧩 Mẫu + 💡 Hàng chờ + 🧭 Lộ trình + 📂 Playlist (so-kenh.json, nếu kênh có khai) + ▶ Đang sản xuất + 🗓 Lịch (cayKeHoach — thuần, tự kiểm) rồi 🎬 Đã làm (chặng từng video).

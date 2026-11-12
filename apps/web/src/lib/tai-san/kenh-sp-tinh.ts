@@ -268,7 +268,7 @@ export function phanTrangNhom<T>(rows: T[], khoaNhom: (r: T) => string | null, t
   const ra: T[] = []; let k: string | null = null, con: T[] = [];
   const xa = () => { if (k == null) { ra.push(...con); return; } const tong = con.length, soTrang = Math.max(1, Math.ceil(tong / co));
     if (soTrang <= 1) { ra.push(...con); return; }
-    const t = Math.min(Math.max(0, trang(k)), soTrang - 1); ra.push(...con.slice(t * co, t * co + co), taoTrang(k, t, soTrang, tong)); };
+    const t = Math.min(Math.max(0, trang(k)), soTrang - 1); ra.push(taoTrang(k, t, soTrang, tong), ...con.slice(t * co, t * co + co)); };   // thanh trang ngay dưới dòng khối (góp ý #1569: để cuối trang thì nằm ngoài màn, nhìn như hiện hết)
   for (const r of rows) { const kn = khoaNhom(r); if (kn != null) { xa(); ra.push(r); k = kn; con = []; } else con.push(r); }
   xa(); return ra;
 }

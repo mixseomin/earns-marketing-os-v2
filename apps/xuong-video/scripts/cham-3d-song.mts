@@ -38,7 +38,9 @@ for (const c of ds) {
     console.log(`#${c.thu_tu}\n  blender: ${k1(b.kiem)} | ${t1(b.thay)}\n  song   : ${k1(s.kiem ?? [])} | ${t1(s.thay)}`); continue;
   }
   if (!tatCa && c.khung_xam?.ma === ma) { giu++; continue; }
-  const kx: KhungXam = { ma, luc: new Date().toISOString(), nguon: 'song', ...do3dSong(set, m, khoiCua, laNguoi, c.ky_thuat?.chuyen_dong, tiLe) } as KhungXam;
+  // khung three.js (ảnh màu / độ sâu) còn đúng mã: giữ ảnh, chỉ thay số đo — đo lại không được xoá ảnh keyframe đã xuất
+  const giuAnh = c.khung_xam?.nguon === 'three' && c.khung_xam.ma === ma ? c.khung_xam : null;
+  const kx: KhungXam = { ...(giuAnh ?? {}), ma, luc: new Date().toISOString(), nguon: giuAnh ? 'three' : 'song', ...do3dSong(set, m, khoiCua, laNguoi, c.ky_thuat?.chuyen_dong, tiLe) } as KhungXam;
   await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['khung_xam'], moTa: `đo khung 3D sống #${c.thu_tu}`, nguoi: 'cham-3d-song' });
   await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb WHERE id = ${c.id}`);
   doMoi++;

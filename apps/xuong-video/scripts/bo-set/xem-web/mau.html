@@ -339,6 +339,26 @@ DU.shot.forEach((s, i) => {
 const shotLuc = (x) => { let i = 0; while (i + 1 < batDau.length && x >= batDau[i + 1]) i++; return i; };
 const so = (x) => x.toFixed(1).replace('.', ',');
 function dungAm() { for (const a of dangPhat) { try { a.pause(); } catch (e) {} } dangPhat = []; }
+// XUẤT KHUNG CHO KEYFRAME — thay Blender (anh 13/11/2026: "không cần dựng khung xám Blender nữa, three.js ngon hơn"). Cùng cảnh, cùng máy, cùng dáng như
+// trang xem: khung MÀU (ẩn tia nhìn + dây đường đi) và bản đồ ĐỘ SÂU đúng quy ước Blender dung-set.py › ve_do_sau: khoảng cách tới máy, gần = 0,4 × khoảng
+// máy → điểm nhìn (trắng), xa = 3 × (đen) — FLUX depth đọc như ảnh Blender. Gọi từ scripts/bo-set/xem-web/xuat-khung.cjs.
+const DO_SAU_VL = new T3.ShaderMaterial({ uniforms: { gan: { value: 1 }, xa: { value: 10 } }, side: T3.DoubleSide,
+  vertexShader: 'varying float d; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); d = length(mv.xyz); gl_Position = projectionMatrix * mv; }',
+  fragmentShader: 'uniform float gan; uniform float xa; varying float d; void main(){ float v = clamp((xa - d) / (xa - gan), 0.0, 1.0); gl_FragColor = vec4(v, v, v, 1.0); }' });
+function xuatKhung(i, u, loai) {
+  const ht = hienTia; hienTia = false;
+  dungShot(i, u); veTia();
+  for (const [t, m] of Object.entries(tuyChon)) if (/^(Đường|Mũi tên)/.test(t)) m.visible = false;
+  let url;
+  if (loai === 'sau') {
+    const m = DU.shot[i].may; const d = Math.hypot(m.nhin[0] - m.dat[0], m.nhin[1] - m.dat[1], (m.nhin[2] ?? 0) - (m.dat[2] ?? 0)) / 100;
+    DO_SAU_VL.uniforms.gan.value = d * 0.4; DO_SAU_VL.uniforms.xa.value = d * 3;
+    const bg = canh.background; canh.background = new T3.Color(0x000000); canh.overrideMaterial = DO_SAU_VL;
+    ve.render(canh, may); url = ve.domElement.toDataURL('image/png');
+    canh.overrideMaterial = null; canh.background = bg;
+  } else { ve.render(canh, may); url = ve.domElement.toDataURL('image/jpeg', 0.92); }
+  hienTia = ht; return url;
+}
 function ve1() {
   const i = shotLuc(Math.min(t, tong - 1e-3)), s = DU.shot[i], tu = t - batDau[i], u = Math.min(1, tu / s.giay);
   dungShot(i, u); ve.render(canh, may);

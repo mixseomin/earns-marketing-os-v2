@@ -35,7 +35,7 @@ const O_RONG = 74, O_CHU = 760;
 /** số dòng con mỗi trang của một khối trong cây (Hàng chờ ý tưởng 408 mục, Đã làm, Lá số…) */
 const CO_TRANG = 20;
 // tên kênh một ô rộng cố định (dài thì "…", rê chuột xem đủ) → nút ⋯ và trạng thái kênh thẳng một cột, không thò thụt theo độ dài tên (góp ý #1568)
-const O_TEN_KENH = 190;
+const O_TEN_KENH = 180;
 /** CÂY của một kênh: 📘 Sổ kênh + 🧩 Mẫu + 💡 Hàng chờ + 🧭 Lộ trình + 📂 Playlist (so-kenh.json, nếu kênh có khai) + ▶ Đang sản xuất + 🗓 Lịch (cayKeHoach — thuần, tự kiểm) rồi 🎬 Đã làm (chặng từng video).
  *  Lịch tháng vẫn ở LỊCH NHỎ trong menu ⋯. */
 function cayKenh(k: KenhSp): Dong[] {
@@ -74,7 +74,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   const vd = (d: Dong): VideoKenh | null => (d.loai === 'video' ? d.v : null);
   const chiKenh = <R,>(f: (k: KenhSp) => R) => (d: Dong) => (laK(d) ? f(d.k) : null);
   const cot: DataColumn<Dong>[] = [
-    { key: 'kenh', header: 'Kênh', align: 'left', width: 320, sortValue: (d) => d.k.ten,
+    { key: 'kenh', header: 'Kênh', align: 'left', width: 440, sortValue: (d) => d.k.ten,
       cell: (d) => {
         // Pager chung tự canh phải + lề trên 12 — bọc khung co theo nội dung, kéo lên lại để thanh trang nằm gọn trong dòng, canh dưới chữ của khối
         if (d.loai === 'trang') return <span style={{ display: 'inline-block', marginLeft: THUT_MUC, marginTop: -12 }}>

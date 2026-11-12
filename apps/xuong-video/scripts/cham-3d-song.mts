@@ -17,6 +17,7 @@ const tatCa = process.argv.includes('--tat-ca');
 const db = getDb(); if (!db) { console.error('không có DATABASE_URL'); process.exit(1); }
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const tap = (await q(sql`SELECT phim_id, phan_canh FROM xv_tap WHERE id = ${tapId}`))[0]; if (!tap) { console.error('không thấy tập'); process.exit(1); }
+const tiLe = String((await q(sql`SELECT kinh_thanh->>'ti_le' AS t FROM xv_phim WHERE id = ${Number(tap.phim_id)}`))[0]?.t ?? '') || null;   // khung đo theo tỉ lệ của phim
 // nhân vật ĐỦ (khoi_3d + biến thể — dấu vết dan_3d vào mã khung): đúng danh sách cổng keyframe dùng (sinh-anh.ts › lyChanKeyframe)
 const nv = await kemBienThe(db, (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(tap.phim_id)} ORDER BY id`)).map(mapNhanVat));
 const sets = (await q(sql`SELECT * FROM xv_bo_set WHERE phim_id = ${Number(tap.phim_id)} OR phim_id IS NULL`)).map(mapBoSet);
@@ -31,13 +32,13 @@ for (const c of ds) {
   const ma = maKhungXam(set, m, nv, c.bieu_cam, c.ky_thuat?.chuyen_dong, c.ky_thuat?.anh_sang);
   if (process.argv.includes('--so')) {   // SO với khung Blender còn đúng mã — không ghi gì (kiểm độ tin của đo sống)
     if (c.khung_xam?.ma !== ma || c.khung_xam.nguon) continue;
-    const s = do3dSong(set, m, khoiCua, laNguoi, c.ky_thuat?.chuyen_dong); const b = c.khung_xam;
+    const s = do3dSong(set, m, khoiCua, laNguoi, c.ky_thuat?.chuyen_dong, tiLe); const b = c.khung_xam;
     const k1 = (x: KhungXam['kiem']) => x.filter((k) => k.bat_buoc).map((k) => `${k.nhan_vat}:${k.trong_khung ? 'trong' : 'NGOAI'}${k.bi_che_boi.length ? `/che ${k.bi_che_boi.join('+')}` : ''}/${Math.round(k.cao_khung_pt)}%`).join(' ');
     const t1 = (x: KhungXam['thay']) => (x ?? []).filter((t) => t.pt >= 3).slice(0, 5).map((t) => `${t.ten} ${Math.round(t.pt)}`).join(', ');
     console.log(`#${c.thu_tu}\n  blender: ${k1(b.kiem)} | ${t1(b.thay)}\n  song   : ${k1(s.kiem ?? [])} | ${t1(s.thay)}`); continue;
   }
   if (!tatCa && c.khung_xam?.ma === ma) { giu++; continue; }
-  const kx: KhungXam = { ma, luc: new Date().toISOString(), nguon: 'song', ...do3dSong(set, m, khoiCua, laNguoi, c.ky_thuat?.chuyen_dong) } as KhungXam;
+  const kx: KhungXam = { ma, luc: new Date().toISOString(), nguon: 'song', ...do3dSong(set, m, khoiCua, laNguoi, c.ky_thuat?.chuyen_dong, tiLe) } as KhungXam;
   await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['khung_xam'], moTa: `đo khung 3D sống #${c.thu_tu}`, nguoi: 'cham-3d-song' });
   await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb WHERE id = ${c.id}`);
   doMoi++;

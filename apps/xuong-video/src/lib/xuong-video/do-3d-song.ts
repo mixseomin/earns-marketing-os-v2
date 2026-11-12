@@ -16,7 +16,8 @@ const tenCua = (o: THREE.Object3D | null): THREE.Object3D | null => { let x = o;
 const hien = (o: THREE.Object3D | null): boolean => { for (let x = o; x; x = x.parent) if (!x.visible) return false; return true; };
 
 /** Đo một shot. may = máy ĐẦY ĐỦ (bo-set-3d.ts › mayDayDu — có đồ để lại), cùng máy cổng keyframe tính mã khung. */
-export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten: string) => KhoiNv | undefined, laNguoi: (ten: string) => boolean = () => false, chuyenDong?: string | null): Pick<KhungXam, 'thay' | 'kiem' | 'di'> {
+export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten: string) => KhoiNv | undefined, laNguoi: (ten: string) => boolean = () => false, chuyenDong?: string | null, /** tỉ lệ khung của phim (kinh_thanh.ti_le, vd '16:9') — trước 13/11/2026 cố định dọc 9:16: phim ngang đo hụt chiều ngang, báo 'ngoài khung' oan */ tiLe?: string | null): Pick<KhungXam, 'thay' | 'kiem' | 'di'> {
+  const [tw, th] = (tiLe ?? '9:16').split(':').map(Number); const asp = tw && th ? tw / th : 9 / 16; const doc = asp <= 1;
   const canh = new THREE.Scene();
   const vat = vatHien(set.du_lieu.vat, may.them);
   for (const v of vat) {
@@ -28,7 +29,7 @@ export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten:
   }
   const vt = may.vi_tri.filter((v) => !v.an);
   for (const v of vt) { const k = khoiCua(v.ten); if (!k) continue; const g = nhanVat(k, v); g.userData = { ten: v.ten, nguoi: laNguoi(v.ten), cam: v.cam }; canh.add(g); }
-  const cam = new THREE.PerspectiveCamera(fovMay(may.ong_kinh, true), 9 / 16, 0.2, 20000);
+  const cam = new THREE.PerspectiveCamera(fovMay(may.ong_kinh, doc), asp, 0.2, 20000);
   cam.position.copy(V(may.dat)); cam.lookAt(V(may.nhin)); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
   catLop(canh, cam);
   // CẮT LỚP cả VÁCH (không chỉ mặt nền): vách mỏng nằm giữa máy và lòng phòng thì ẩn — máy đứng ngoài tường trước nhìn vào (tập 135 #22: 'Tường trước 100%')
@@ -112,7 +113,7 @@ export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten:
   // ── di: chỗ trên màn lúc MỞ (máy mở) → lúc KẾT (máy cuối đường máy, người ở 'den') — như dung-set.py › chieu (tâm hộp, 0..1 gốc trên-trái).
   // Cổng chữ lệch 3D coi món ĐI VÀO khung (den trong khung) là thấy — thiếu di thì người đi vào khung bị báo "3D không thấy".
   const dm = duongMay(may, chuyenDong ?? null);
-  const camK = cam.clone(); if (dm) { camK.position.copy(V(dm.dat)); camK.fov = fovMay(dm.ong_kinh, true); camK.lookAt(V(dm.nhin)); camK.updateMatrixWorld(); camK.updateProjectionMatrix(); }
+  const camK = cam.clone(); if (dm) { camK.position.copy(V(dm.dat)); camK.fov = fovMay(dm.ong_kinh, doc); camK.lookAt(V(dm.nhin)); camK.updateMatrixWorld(); camK.updateProjectionMatrix(); }
   const pr = (c: THREE.Camera, p: THREE.Vector3) => { const q = p.clone().project(c); return [Math.round(((q.x + 1) / 2) * 1000) / 1000, Math.round(((1 - q.y) / 2) * 1000) / 1000]; };
   const di = vt.flatMap((v) => { const h = hopCua.get(v.ten); if (!h) return [];
     const c0 = h.getCenter(new THREE.Vector3()); const c1 = v.den ? c0.clone().add(V(v.den).sub(V(v.tam))) : c0;

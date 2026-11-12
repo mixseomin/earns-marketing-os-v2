@@ -223,6 +223,7 @@ for ma, v in SD['shot'].items():
     if ma == '3': may[ma].update(MAY_HAI)
     # VIDEO THÔ: máy đặt sao giữ vậy (khoa_nhin) — để Blender tự ngắm lại thì #9 quay về điểm giữa 4 chủ thể, #12 xoay dần ở khung kết trông như rung
     may[ma]['khoa_nhin'] = True
+    if ma == '0': may[ma].update({'dat': [450, 200, 200], 'nhin': [-60, 800, 150], 'ong_kinh': 26, 'khung': ['Chú', 'Nhóc']})   # thiết lập từ phía đông-nam sân ga: thấy đầu chú qua ô cửa (máy toàn ga dọc mép sân ga nhìn xiên vách toa → đầu chú bị vách che)
     if ma == '9': may[ma].update({'dat': [450, 420, 160], 'nhin': [118, 644, 130], 'ong_kinh': 26, 'khung': ['Nhóc', 'Chú']})   # tổng thể từ phía đông-nam, CÙNG PHÍA trục chú–nhóc lúc nhóc tới ô cửa (y < 500): thấy mặt chú nhìn nhóc về + mặt nhóc đi tới — máy cũ: mặt chú lệch 106°   # TỔNG THỂ cảnh "Quay về": đứng yên thấy cả chú ở ô cửa lẫn đường nhóc đi về (Murch: thiếu tổng thể + lệch hướng chủ 49° khi lia theo nhóc)
     if ma == '8': may[ma].update({'dat': [254, 960, 100], 'nhin': [90, 1150, 110], 'ong_kinh': 50})   # nhóc vừa đi vừa uống: máy phía đông-nam, hướng 130° (hướng chủ cảnh 150°) thấy 3/4 mặt
     if ma == '12': may[ma].update({'dat': [100, 800, 170], 'nhin': [-128, 520, 220], 'ong_kinh': 35})   # chú nhìn theo nhóc khi tàu chuyển bánh: máy phía bắc thấy mặt (theo_cua_so phía đông: nghiêng 90°)
@@ -238,7 +239,10 @@ for ma, v in SD['shot'].items():
                           'diem': [[b[0] - 40 * ux - 25 * uy, b[1] - 40 * uy + 25 * ux, 1], [b[0], b[1], 1], [b[0] - 40 * ux + 25 * uy, b[1] - 40 * uy - 25 * ux, 1]], 'bac': 1})
             may[ma].setdefault('them', []).extend([ten, f'Mũi tên nhóc #{ma}'])
     if ma == '4': may[ma]['nham'] = 'Nhóc'
-    if ma == '10': may[ma].update({'dat': [30, 420, 148], 'nhin': [-85, 500, 150], 'ong_kinh': 40, 'khung': ['Tiền thừa', 'Nhóc']})   # chủ thể cận tay = nắm tiền thừa + tay nhóc đang cầm (mặt chú ngoài khung là đúng)   # chủ thể cận tay = nắm tiền thừa (mặt chú ngoài khung là đúng)   # cận tay ở bậu cửa: ngang tầm hai bàn tay (nhóc giơ tới ~1,4 m, tay chú qua bậu 1,6 m)   # ma-nơ-canh: lùi máy 60 cm — sát quá thì thân đang nhoài choán hết khung (three.js 12/11)   # khối: đầu đứng thẳng cao hơn đầu ma-nơ-canh đang nhoài   # cận mặt chú đang NHOÀI (chong_ban): đầu thấp + ra trước so với lúc đứng thẳng   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
+    if ma == '10':   # cận tay ở bậu cửa: chủ thể = nắm tiền thừa; tiền đang được nhóc GIƠ lên (tay 0,55) ngang bậu — chỗ đứng của món theo tay giơ, không theo hông
+        may[ma].update({'dat': [30, 420, 148], 'nhin': [-85, 500, 150], 'ong_kinh': 40, 'khung': ['Tiền thừa']})
+        for x in vt:
+            if x['ten'] == 'Tiền thừa': x['tam'] = [x['tam'][0], x['tam'][1], 150]   # chủ thể cận tay = nắm tiền thừa (mặt chú ngoài khung là đúng)   # cận tay ở bậu cửa: ngang tầm hai bàn tay (nhóc giơ tới ~1,4 m, tay chú qua bậu 1,6 m)   # ma-nơ-canh: lùi máy 60 cm — sát quá thì thân đang nhoài choán hết khung (three.js 12/11)   # khối: đầu đứng thẳng cao hơn đầu ma-nơ-canh đang nhoài   # cận mặt chú đang NHOÀI (chong_ban): đầu thấp + ra trước so với lúc đứng thẳng   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
 # #13 CẬN PHẢN ỨNG chốt cảnh (anh 12/11/2026 "đoạn cuối cần shot mặt gần của Chú để rõ cảm xúc" — ngành: close-up reaction shot, kiểu hài double take /
 # slow burn, chốt cảnh = button): nối hướng nhìn từ cuối #12 (nhìn theo nhóc) → cúi nhìn nắm tiền thừa → ngẩng lên nhìn lại, mặt đứng hình; máy đẩy chậm vào mặt
 M['tay_chu'] = [CHU[0] + 30, CHU[1] - 6, CHU[2] + 125]   # nắm tiền đưa lên ngang ngực

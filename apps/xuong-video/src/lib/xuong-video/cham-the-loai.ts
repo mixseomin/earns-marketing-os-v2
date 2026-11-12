@@ -69,8 +69,9 @@ export function chamHai(ds: Canh[], phanCanh: PhanCanh[], laNv: (ten: string) =>
       out.push({ ma: 'chenh_tt', ten: 'Khán giả biết trước (chênh thông tin)', dat: lo.length > 0, ly: lo.length ? `${nhan}: #${lo.map((c) => c.thu_tu).join(', #')} cho khán giả thấy trước cú bùng` : `${nhan}: không có shot hé lộ (he_lo / POV / người thứ ba) trước bùng #${shot.thu_tu}`, nguon: 'Hitchcock — suspense vs surprise; dramatic irony', gag: g.ten });
     }
     if (kieu === 'mat_lanh') {
-      const ok = shot.ky_thuat?.vai === 'phan_ung' && CO_CAN.has(shot.ky_thuat?.co_canh ?? '') && giayPhat(shot) >= 2 && !(shot.thoai ?? []).some((d) => d.loi?.trim()) && !matQuayDi(shot, laNv).length;
-      out.push({ ma: 'mat_lanh', ten: 'Cận mặt lạnh giữ lâu, im lời', dat: ok, ly: `${nhan}: shot #${shot.thu_tu} ${shot.ky_thuat?.vai ?? '—'} · ${shot.ky_thuat?.co_canh ?? '—'} · ${giayPhat(shot)} s · ${(shot.thoai ?? []).length ? 'có lời' : 'im lời'} (cần cận phản ứng ≥ 2 s, không lời, thấy mặt)`, nguon: 'slow burn (Edgar Kennedy), deadpan (Keaton); button', gag: g.ten });
+      const pu = sau[0] ?? shot;   // cận phản ứng sau / tại cú bùng
+      const ok = pu.ky_thuat?.vai === 'phan_ung' && CO_CAN.has(pu.ky_thuat?.co_canh ?? '') && giayPhat(pu) >= 2 && !(pu.thoai ?? []).some((d) => d.loi?.trim()) && !matQuayDi(pu, laNv).length;
+      out.push({ ma: 'mat_lanh', ten: 'Cận mặt lạnh giữ lâu, im lời', dat: ok, ly: `${nhan}: shot #${pu.thu_tu} ${pu.ky_thuat?.vai ?? '—'} · ${pu.ky_thuat?.co_canh ?? '—'} · ${giayPhat(pu)} s · ${(pu.thoai ?? []).length ? 'có lời' : 'im lời'} (cần cận phản ứng ≥ 2 s, không lời, thấy mặt)`, nguon: 'slow burn (Edgar Kennedy), deadpan (Keaton); button', gag: g.ten });
       out.push({ ma: 'mat_lanh_nhac', ten: 'Không nhạc đè cú chốt', dat: pc.nhac === 'khong', ly: `${nhan}: nhạc cảnh "${pc.ten}" = ${pc.nhac || '—'}`, nguon: 'deadpan: im lặng làm cú chốt', gag: g.ten });
     }
     if (kieu === 'nhai') out.push({ ma: 'nhai', ten: 'Khai gốc đang nhại', dat: !!g.tham_chieu?.trim(), ly: `${nhan}: ${g.tham_chieu?.trim() || 'chưa khai tác phẩm / quy ước đang nhại'}`, nguon: 'parody: khán giả phải nhận ra gốc', gag: g.ten });

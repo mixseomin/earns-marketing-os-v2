@@ -32,11 +32,20 @@ phan = [
     p('sàn toa', -260, 600, 36, [320, 3200, 4], '#5a4a3a', 'train floor'),
     p('sọc vàng', -99, 600, 120, [2, 3200, 12], '#e8c84a', 'yellow stripe'),
 ] + [p(f'kính {y}', -99, y, 155, [2, 110, 80], KINH, 'closed train window') for y in (-700, -450, -200, 50, 250, 750, 1000, 1250, 1500, 1750, 2000)] \
-  + [p(f'bánh {y}', -110, y, -45, [12, 90, 90], GAM, 'train wheel') for y in (-800, -650, 620, 770, 1850, 2000)]
+  + [p(f'bánh {y}', -100, y, -45, [16, 90, 90], '#6a6a6a', 'train wheel') for y in (-800, -650, 620, 770, 1850, 2000)]   # lồi 10 cm khỏi thân, xám sáng: chèn #6 phải thấy bánh
 import os
 # KHỐI (XV_KHOI=1 — anh 12/11/2026, video thô như nửa dưới reel): người = khối trứng đứng có hai mắt chỉ hướng mặt, đúng chiều cao; chỉ để đọc nhịp máy, cỡ cảnh,
 # đường đi, hướng nhìn, đồ đổi tay — không ma-nơ-canh. Không khai thì người = ma-nơ-canh có khớp (bản cho keyframe sau này).
-KHOI_NGUOI = {'Chú': {'hinh': 'trung', 'co': [42, 42, 170], 'mau': '#3c5a78', 'mat': True}, 'Nhóc': {'hinh': 'trung', 'co': [34, 34, 125], 'mau': '#d9473a', 'mat': True}}   # tròn đều: dẹt thì nhìn nghiêng thành cái đĩa
+def nguoi_khoi(cao, rong, mau, chom=0):
+    """Người khối như reel: THÂN trứng + ĐẦU cầu ở đúng tầm mắt người + MŨI hộp lồi ra trước (−y cục bộ = hướng mặt) + hai mắt — nhìn từ mọi phía đọc
+    được hướng đầu. chom (cm) = đầu chồm ra trước (chú thò đầu ra ô cửa khi quay về phía nhóc). Phần: toạ độ so với đáy giữa khối, quay theo huong."""
+    d = round(cao * 0.15); z = cao - d   # đầu cao ~1/7 người
+    return {'hinh': 'trung', 'co': [rong, rong * 0.85, z], 'mau': mau, 'mat': False, 'phan': [
+        {'hinh': 'cau', 'co': [d, d, d], 'mau': mau, 'tam': [0, -chom, z - d * 0.15]},
+        {'hinh': 'hop', 'co': [d * 0.22, d * 0.45, d * 0.22], 'mau': '#f2d24a', 'tam': [0, -chom - d * 0.55, z + d * 0.25]},
+        *[{'hinh': 'cau', 'co': [d * 0.24] * 3, 'mau': '#ffffff', 'tam': [sx * d * 0.22, -chom - d * 0.42, z + d * 0.45]} for sx in (-1, 1)],
+        *[{'hinh': 'cau', 'co': [d * 0.12] * 3, 'mau': '#111111', 'tam': [sx * d * 0.22, -chom - d * 0.53, z + d * 0.5]} for sx in (-1, 1)]]}
+KHOI_NGUOI = {'Chú': nguoi_khoi(172, 40, '#3c5a78', chom=22), 'Nhóc': nguoi_khoi(125, 32, '#d9473a')}
 khoi = {
     'Chú': {'hinh': 'nguoi', 'gioi': 'nam', 'tuoi': 45, 'co': [46, 28, 170], 'mau': '#c99a74', 'ao': '#3c5a78', 'toc': 'short02', 'mau_toc': '#1a1612', 'dang': ['dung_vung']},
     'Nhóc': {'hinh': 'nguoi', 'gioi': 'nam', 'tuoi': 9, 'co': [32, 18, 125], 'mau': '#c99a74', 'ao': '#d9473a', 'toc': 'short02', 'mau_toc': '#141110', 'dang': ['dung_vung']},

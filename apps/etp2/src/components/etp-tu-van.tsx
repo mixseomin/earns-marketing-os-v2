@@ -8,6 +8,7 @@ const pc = (v: number | null | undefined) => (v == null ? '—' : `${v > 0 ? '+'
 const usd = (v: number | null | undefined) => (v == null ? '—' : `$${Math.abs(v) >= 10 ? Math.round(v).toLocaleString('en-US') : v.toFixed(2)}`);
 const mauRoi = (v: number | null | undefined) => (v == null ? 'var(--fg-3)' : v >= 30 ? '#34d399' : v >= 0 ? 'var(--fg-1)' : '#f87171');
 const NHOM: [keyof TuVan['du']['nen'], string, string][] = [['tat', '⏹ Nên tắt', '#f87171'], ['tang', '⬆️ Nên tăng', '#34d399'], ['roas', '★ Nên lên ROAS', '#fbbf24'], ['nhan', '⧉ Nên nhân bản', '#60a5fa']];
+const DU_BAO = { xanh: ['Dự báo: ngày bình thường', '#34d399'], vang: ['Dự báo: dễ yếu', '#fbbf24'], do: ['Dự báo: ngày yếu', '#f87171'] } as const;
 const tuoi = (luc: string) => { const p = Math.max(0, Math.round((Date.now() - Date.parse(luc.replace(' ', 'T'))) / 60_000)); return p < 1 ? 'vừa xong' : `${p} phút trước`; };
 
 export function NenLam({ ds, moCamp }: { ds: TuVan[]; moCamp: (id: number) => void }) {
@@ -33,6 +34,8 @@ export function NenLam({ ds, moCamp }: { ds: TuVan[]; moCamp: (id: number) => vo
       </div>
       {tt.roi_nay != null ? <div><b>Thị trường</b> cả đội {tt.gio_vn}: {pc(tt.roi_nay)} vs 7 ngày {pc(tt.roi_7)}
         <span style={{ color: (tt.lech ?? 0) <= -10 ? '#f87171' : (tt.lech ?? 0) >= 10 ? '#34d399' : 'var(--fg-3)' }}> → {(tt.lech ?? 0) <= -10 ? 'chợ kém hơn thường' : (tt.lech ?? 0) >= 10 ? 'chợ tốt hơn thường' : 'chợ bình thường'}</span></div> : null}
+      {d.du_bao ? <div><b style={{ color: DU_BAO[d.du_bao.muc][1] }}>{DU_BAO[d.du_bao.muc][0]}</b>{d.du_bao.ly.length ? ` — ${d.du_bao.ly.join(' · ')} → không tăng tổng ngân sách` : ''}</div> : null}
+      {d.du_bao?.bao_dong ? <div style={{ color: '#f87171', fontWeight: 600 }}>🚨 Chợ {pc(d.du_bao.bao_dong.roi)} trên {usd(d.du_bao.bao_dong.chi)} (07:00–{d.du_bao.bao_dong.toi_gio_vn}) → hoãn tăng / nhân bản camp thường</div> : null}
       {d.phien ? <div><b>Phiên {d.phien.gio}</b>: {[...d.phien.mo.map((m) => `mở ${m}`), ...d.phien.dong.map((m) => `đóng ${m}`)].join('; ') || 'không đổi khung'}</div> : null}
       {d.may_se_lam.length ? <div style={{ color: 'var(--fg-2)' }}><b style={{ color: 'var(--fg-1)' }}>Máy luật đang thấy</b>: {d.may_se_lam.map((m) => `${m.luat.split(' · ')[0]} ${m.dat} đủ${m.gan ? `/${m.gan} gần` : ''}`).join(' · ')}</div> : null}
       {NHOM.map(([k, ten, mau]) => d.nen[k].length ? <div key={k}>

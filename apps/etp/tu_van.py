@@ -12,7 +12,8 @@ Chỉ ĐỌC kho etp.* (không sửa camp, không gửi lệnh Ethopex). Mỗi n
 
   python3 apps/etp/tu_van.py --luu                 tính mọi người, ghi bản 'song' (trang Tổng quan đọc — dong-bo.py gọi mỗi 10 phút, không gọi AI)
   python3 apps/etp/tu_van.py --phien 06:45 --ai    tính + lời bình AI + ghi bản phiên → in JSON [{nguoi_id, nguoi, html}] cho worker gửi Telegram
-  python3 apps/etp/tu_van.py --xem [--nguoi 117]   in chữ ra màn, không ghi"""
+  python3 apps/etp/tu_van.py --xem [--nguoi 117]   in chữ ra màn, không ghi
+  python3 apps/etp/tu_van.py --bao-dong            JSON tin 🚨 khi dây báo động chợ đứt (rỗng khi chưa)"""
 import datetime as dt, html, json, os, re, subprocess, sys, urllib.request
 
 AI_TRAN_NGAY = 1000          # ₫ / ngày cho lời bình (anh duyệt plan 10/11/2026: ≤ 1.000₫ / ngày)
@@ -21,6 +22,8 @@ TANG_ROI3, TANG_CHI3, TANG_NS, TANG_ROI = 50, 10, 0.4, 30   # nên tăng: 3 ngà
 ROAS_CHI3, ROAS_ROI3 = 20, 50                    # Dol 09/11/2026: chi ≥ $20 & ROI 3 ngày khép ≥ 50% thì lên ROAS sớm
 NHAN_ROI3, NHAN_CHI3 = 100, 10                   # nên nhân bản: 3 ngày ROI ≥ 100% chi ≥ $10
 TOI_DA = 5                                        # mỗi danh sách tối đa 5 camp (xếp theo $ ảnh hưởng)
+DB_CHI, DB_TOI = 25, -15     # dự báo ngày yếu: ngày trước chi ≥ +25% so TB 7 ngày · ROI đêm trước (01:00–07:00 VN) ≤ −15 điểm so TB 7 đêm (đo 23 ngày, 12/11/2026)
+BD_ROI, BD_CHI = -15, 200    # dây báo động trong ngày: cả chợ cộng dồn từ 07:00 ROI ≤ −15% trên chi ≥ $200 (đủ 2 giờ số)
 VN = dt.timezone(dt.timedelta(hours=7))
 GOC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import ai_chu as AI
@@ -64,6 +67,32 @@ def doc_so():
                     where t.nha and s.ngay >= current_date - 7 and s.gio <= {gn} group by 1, 2""") if gn >= 0 else []
     tu_dong = {int(r["nguoi_id"]) for r in qj("select nguoi_id from etp.che_do_luat where che_do = 'tu_dong'")} if q("select to_regclass('etp.che_do_luat')") else set()
     return nguoi, ngay, camp, gio, tt, the, tu_dong, nha_gio
+
+# ---------- dự báo chợ ----------
+def du_bao(now):
+    """DỰ BÁO NGÀY YẾU + DÂY BÁO ĐỘNG (anh 12/11/2026, ngày cả chợ −23%: "tìm cách dự báo được tình hình này trước"). Chợ = đội + nhà (etp.so_gio_ngoai + etp.so_gio), ngày Ethopex 07:00 → 07:00 VN.
+    Đo 23 ngày: chi ngày trước ↔ ROI hôm sau −0,63 · ROI đêm trước ↔ ROI hôm sau +0,69; 0 tín hiệu → ROI hôm sau TB +27% (6 ngày), 1–2 tín hiệu → +9% (10 ngày).
+    Từ 06:00 VN (ngày sắp khép) ngày gốc là ngày đang chạy → tin 06:45 dự báo cho phiên 07:00 tới; dây báo động chỉ xét khi ngày mới đã có đủ 2 giờ số."""
+    u = now.astimezone(dt.timezone.utc); nay = u.date(); goc = nay if u.hour >= 23 else nay - dt.timedelta(days=1)
+    m = {r["ngay"]: r for r in qj("""select ngay::text, sum(chi)::float chi, sum(thu)::float thu, coalesce(sum(chi) filter (where gio >= 18), 0)::float chi_toi,
+        coalesce(sum(thu) filter (where gio >= 18), 0)::float thu_toi, max(gio)::int gio
+      from (select ngay, gio, chi, thu from etp.so_gio_ngoai union all select ngay, gio, chi, thu from etp.so_gio) x where ngay >= current_date - 9 group by 1""")}
+    g = m.get(goc.isoformat()); cu = [m[d] for d in ((goc - dt.timedelta(days=i)).isoformat() for i in range(1, 8)) if d in m]
+    if not g or len(cu) < 4 or not g["chi"]: return None
+    chi_vs = round(100 * (g["chi"] / (sum(r["chi"] for r in cu) / len(cu)) - 1))
+    toi = roi(g["chi_toi"], g["thu_toi"]); tc = [x for x in (roi(r["chi_toi"], r["thu_toi"]) for r in cu) if x is not None]
+    toi_vs = toi - round(sum(tc) / len(tc)) if toi is not None and tc else None
+    ly = ([f"ngày trước chi {usd(g['chi'])} ({chi_vs:+d}% so 7n)"] if chi_vs >= DB_CHI else []) + ([f"đêm trước ROI {pc(toi)} ({toi_vs:+d}đ so 7 đêm)"] if toi_vs is not None and toi_vs <= DB_TOI else [])
+    n = m.get(nay.isoformat()) if goc != nay else None; bd = None
+    if n and n["gio"] >= 1 and n["chi"] >= BD_CHI and roi(n["chi"], n["thu"]) <= BD_ROI:
+        bd = {"ngay": nay.isoformat(), "roi": roi(n["chi"], n["thu"]), "chi": round(n["chi"]), "toi_gio_vn": f"{(n['gio'] + 8) % 24:02d}:00"}
+    return {"muc": ("xanh", "vang", "do")[len(ly)], "ly": ly, "chi_vs": chi_vs, "toi": toi, "toi_vs": toi_vs, "bao_dong": bd}
+def chu_du_bao(db):
+    """hai dòng dùng chung cho tin 🧭 và tin 🚨"""
+    L = []
+    if db: L.append({"xanh": "🟢 Dự báo: ngày bình thường", "vang": "🟡 Dự báo: dễ yếu", "do": "🔴 Dự báo: ngày yếu"}[db["muc"]] + (" — " + " · ".join(db["ly"]) + " → không tăng tổng ngân sách" if db["ly"] else ""))
+    if db and db["bao_dong"]: b = db["bao_dong"]; L.append(f"🚨 Chợ <b>{pc(b['roi'])}</b> trên {usd(b['chi'])} (07:00–{b['toi_gio_vn']}) → hoãn tăng / nhân bản camp thường")
+    return L
 
 # ---------- phiên ----------
 TEN_KHUNG = {"tang": "tự tăng (đầu phiên · tăng bậc · T30)", "giam": "tự giảm / tắt (không tăng)", "sang": "nạp camp tiêu nhanh", "nhanh": "tăng nhanh", "len": "lên camp chạy ngay"}
@@ -184,6 +213,7 @@ def chu(du, phien=None):
         ln, lc = ht["roi"] - ht["roi_7"], tt["lech"]
         L.append(f"{'🌧' if lc <= -10 else '☀️' if lc >= 10 else '🌤'} chợ {lc:+d}đ · {e(du['nguoi'].split()[-1])} {ln:+d}đ → "
                  + ("kém hơn chợ" if ln <= lc - 10 else "tốt hơn chợ" if ln >= lc + 10 else "theo chợ"))
+    L += chu_du_bao(du.get("du_bao"))
     for k, tit, so in (("tat", "⏹ Tắt", lambda x: f"−{usd(-x['chi_nay'] * (x['roi_nay'] if x['roi_nay'] is not None else -100) / 100)}"),
                        ("tang", "⬆️ Tăng", lambda x: pc(x["roi_nay"])), ("roas", "★ ROAS", lambda x: pc(x["roi3"])), ("nhan", "⧉ Nhân", lambda x: pc(x["roi3"]))):
         xs = du["nen"][k]
@@ -208,11 +238,16 @@ def ghi(phien, ds):
 
 def main(a):
     now = dt.datetime.now(VN)
+    db = du_bao(now)
+    if "--bao-dong" in a:   # worker etp-tu-van.mjs gọi mỗi 5 phút: dây đứt → một tin 🚨 vào chủ đề của người nhà (một lần / ngày, worker giữ dấu)
+        nha = qj("select nguoi_id, nguoi from etp.tai_khoan where nha and nguoi_id is not null limit 1")
+        print(json.dumps({"ngay": db["bao_dong"]["ngay"], "nguoi_id": nha[0]["nguoi_id"], "nguoi": nha[0]["nguoi"], "html": "\n".join(chu_du_bao(db)[::-1])} if db and db["bao_dong"] and nha else {}, ensure_ascii=False)); return
     nguoi, ngay, camp, gio, tt, the, tu_dong, nha_gio = doc_so()
     chon = int(a[a.index("--nguoi") + 1]) if "--nguoi" in a else None
     ds = [mot_nguoi(int(n["nguoi_id"]), n["nguoi"], ngay, camp, gio, tt, the, tu_dong, nha_gio, now) for n in nguoi if chon in (None, int(n["nguoi_id"]))]
     ds = [d for d in ds if d["hien_trang"]["chi"] > 0 or d["hien_trang"]["chi_qua"]]   # người không chạy 2 ngày thì không báo
     dd = do_dung()
+    for d in ds: d["du_bao"] = db
     for d in ds: d["do_dung"] = sorted((x for x in dd if x["nguoi_id"] == d["nguoi_id"]), key=lambda x: ["tat", "tang", "roas", "nhan"].index(x["loai"]))
     if "--luu" in a: ghi("song", ds); print(f"tư vấn sống: {len(ds)} người"); return
     phien = a[a.index("--phien") + 1] if "--phien" in a else None

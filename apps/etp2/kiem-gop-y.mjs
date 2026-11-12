@@ -32,6 +32,7 @@ const LUAT = [
   { card: 'tpl-1011', tep: 'apps/etp2/src/components/etp-tong2.tsx', co: 'rong="Bố cục tự sửa"', cam: 'rong="Bố cục đang dùng"', vi: 'ô Template ghi tên bố cục đang hiện, không ghi chung chung (anh 10/11/2026)' },
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'BO_LOC.every(([kk, f]) => kk === k || f(c))', vi: 'mỗi widget breakdown tách trên tập camp qua mọi ô lọc TRỪ ô của chính nó' },
   { card: 'tu-van-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "nen_lam: () => <NenLam ds={du.tuVan ?? []}", vi: 'Tổng quan 2 có widget Nên làm gì bây giờ (tư vấn sống theo người, anh 10/11/2026)' },
+  { card: 'du-bao-1211', tep: 'apps/etp2/src/components/etp-tu-van.tsx', co: 'd.du_bao?.bao_dong ?', vi: 'ô Nên làm gì bây giờ hiện dự báo ngày yếu + báo động chợ (anh 12/11/2026)' },
   { card: 'tu-van-1011', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "from etp.tu_van where phien = 'song' and ${cuaNg(sql`nguoi_id`)}", vi: 'tư vấn đọc bản sống, người chỉ thấy bản của mình' },
   { card: 'da-lam-1211', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'theDaLam(r.xet, r.luc, lamR.filter((x) => Number(x.c) === Number(r.camp_id)))', vi: 'thẻ xét luật biết việc máy đã làm sau lúc ghi thẻ (anh 12/11/2026 #81648: đã lên ROAS 00:50, thẻ 00:27 vẫn ghi Đạt ⏳)' },
   { card: 'da-lam-1211', tep: 'apps/etp2/src/components/etp-view.tsx', co: "if ((l.ket !== 'dat' && l.ket !== 'gan') || l.da) return null;", vi: 'thẻ máy đã làm thôi đếm giờ, hiện ✓ đã làm HH:MM' },

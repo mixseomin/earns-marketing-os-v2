@@ -33,14 +33,29 @@ export async function xoaTin() {
   }
   return `đã xoá ${n} tin tư vấn`;
 }
+const chayTuVan = (...thamSo) => new Promise((ok, hong) => execFile('python3', [path.join(REPO, 'apps/etp/tu_van.py'), ...thamSo], { timeout: 300_000, maxBuffer: 8 << 20, env: process.env },
+  (e, o, err) => (e ? hong(new Error(`tu_van.py: ${(err || e.message).slice(-400)}`)) : ok(String(o)))));
+/** DÂY BÁO ĐỘNG CHỢ (anh 12/11/2026, ngày cả chợ −23%: "tìm cách dự báo được tình hình này trước"): ngoài mốc tư vấn, mỗi nhịp hỏi tu_van.py --bao-dong;
+ *  chợ cộng dồn từ 07:00 ≤ −15% trên chi ≥ $200 → MỘT tin 🚨 / ngày vào chủ đề tư vấn của người nhà (ngưỡng BD_ROI / BD_CHI trong tu_van.py). */
+async function baoDongCho() {
+  const b = JSON.parse((await chayTuVan('--bao-dong')).trim().split('\n').filter((l) => l.startsWith('{')).pop() || '{}');
+  if (!b.html) return 'chưa tới mốc';
+  let da = {}; try { da = JSON.parse(fs.readFileSync(tepDa(), 'utf8')); } catch { /* lần đầu */ }
+  if (da.baoDong === b.ngay) return 'chưa tới mốc · báo động chợ đã gửi';
+  da.baoDong = b.ngay; fs.writeFileSync(tepDa(), JSON.stringify(da));   // đánh dấu TRƯỚC khi gửi, như mốc tư vấn
+  const { tgNoiDung } = await import('./kiem-bai.mjs'); const { topicPhong } = await import('./tg-phong.mjs'); const { tg } = await tgNoiDung();
+  const topic = await topicPhong(`ethopex-tv-${b.nguoi_id}`, `🧭 Tư vấn · ${b.nguoi}`, tg, { duocTao: true });
+  const j = topic ? await tg('sendMessage', { message_thread_id: topic, text: b.html, parse_mode: 'HTML', link_preview_options: { is_disabled: true } }) : { ok: false, description: 'không có chủ đề' };
+  if (!j.ok) throw new Error(`báo động chợ: ${j.description ?? 'gửi hỏng'}`);
+  ghiTin(b.nguoi_id, j.result.message_id); return 'báo động chợ: đã gửi';
+}
 export async function nhipTuVan({ thu = false } = {}) {
   const moc = thu ? `${String(Math.floor(gioVn().phut / 60)).padStart(2, '0')}:${String(gioVn().phut % 60).padStart(2, '0')}` : mocToi();
-  if (!moc) return 'chưa tới mốc';
+  if (!moc) return baoDongCho();
   const { ngay } = gioVn(); let da = {}; try { da = JSON.parse(fs.readFileSync(tepDa(), 'utf8')); } catch { /* lần đầu */ }
   if (!thu && da[moc] === ngay) return `mốc ${moc} đã gửi`;
   if (!thu) { da[moc] = ngay; fs.writeFileSync(tepDa(), JSON.stringify(da)); }   // đánh dấu TRƯỚC khi gửi: lỗi giữa chừng không gửi lặp mỗi 5 phút
-  const out = await new Promise((ok, hong) => execFile('python3', [path.join(REPO, 'apps/etp/tu_van.py'), '--phien', moc, '--ai'], { timeout: 300_000, maxBuffer: 8 << 20, env: process.env },
-    (e, o, err) => (e ? hong(new Error(`tu_van.py: ${(err || e.message).slice(-400)}`)) : ok(o))));
+  const out = await chayTuVan('--phien', moc, '--ai');
   const ds = JSON.parse(String(out).trim().split('\n').filter((l) => l.startsWith('[')).pop() || '[]');
   const { tgNoiDung } = await import('./kiem-bai.mjs'); const { topicPhong } = await import('./tg-phong.mjs'); const { tg } = await tgNoiDung();
   let gui = 0, chi = 0; const loi = [];

@@ -96,7 +96,9 @@ export type TuVan = { nguoi_id: number; nguoi: string; luc: string; du: {
   tu_dong: boolean; hien_trang: { chi: number; thu: number; roi: number | null; camp: number; roi_qua: number | null; chi_qua: number | null; roi_7: number | null; chi_7tb: number | null; roi_qua_cung_gio?: number | null; roi_7_cung_gio?: number | null };
   thi_truong: { gio_vn: string | null; roi_nay: number | null; roi_7: number | null; lech: number | null };
   phien: { gio: string; mo: string[]; dong: string[] } | null; may_se_lam: { luat: string; dat: number; gan: number }[];
-  nen: Record<'tat' | 'tang' | 'roas' | 'nhan', TuVanCamp[]>; dem: Record<'tat' | 'tang' | 'roas' | 'nhan', number> } };
+  nen: Record<'tat' | 'tang' | 'roas' | 'nhan', TuVanCamp[]>; dem: Record<'tat' | 'tang' | 'roas' | 'nhan', number>;
+  /** dự báo ngày yếu + dây báo động chợ (tu_van.py du_bao, anh 12/11/2026) */
+  du_bao?: { muc: 'xanh' | 'vang' | 'do'; ly: string[]; bao_dong: { roi: number; chi: number; toi_gio_vn: string } | null } | null } };
 export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt — etp-view tải bù khi tab cần (taiNangEtp) */; luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[]; thuVien: ThuVienMuc[];
   cauHinh: { khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }[];
   nhatKy: { luc: string; viec: string; camp_id: number | null; truoc: string | null; sau: string | null; ok: boolean | null; loi: string | null; luat: string | null; ai: string | null }[];

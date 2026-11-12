@@ -15,7 +15,7 @@ const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
 export const MODEL_GIONG_MAC_DINH = () => (coElevenTrucTiep() ? 'elevenlabs:eleven_v3' : GIONG_MAC_DINH.model);
 export async function giongMacDinh(model: string): Promise<string> {
   const ds = await giongCua(model);
-  return ds.find((g) => g.id === GIONG_MAC_DINH.voice)?.id ?? ds[0]?.id ?? '';
+  return ds.find((g) => g.id === GIONG_MAC_DINH.voice || g.ten.split(' · ')[0] === GIONG_MAC_DINH.voice)?.id ?? ds[0]?.id ?? '';
 }
 
 export type TuyGiong = { model?: string; voice?: string; camXuc?: number; chiThieu?: boolean;

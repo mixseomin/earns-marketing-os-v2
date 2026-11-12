@@ -11,6 +11,15 @@ export type MoHinhGiong = { key: string; ten: string; nhom: string; giaCents: nu
 export type MoTaGiong = { truongChu: string; truongGiong: string[] | null; giong: string[]; truongNgonNgu: string | null; ngonNgu: string[] };
 
 const ELEVEN = 'https://api.elevenlabs.io/v1';
+/** Giọng thư viện ElevenLabs dùng được với khoá của anh (đã gọi text-to-speech 200, 12/11/2026). [voice_id, tên hiện]. George = giọng mặc định cũ (am-thanh.ts). */
+export const GIONG_ELEVEN_THU_VIEN: [string, string][] = [
+  ['JBFqnCBsd6RMkjVDRZzb', 'George · Anh, nam trung niên'],
+  ['2ZUpiKo5wCCuypvx2zaS', 'Việt · Tony Nguyễn, nam trung niên miền Bắc'],
+  ['1d5Bb0SMBPB10Gx6iQeu', 'Việt · DangTungDuy, nam miền Bắc'],
+  ['FSA98p0BgnTAzCpH8avM', 'Việt · Vinh, nam miền Trung, ấm'],
+  ['JxmKvRaNYFidf0N27Vng', 'Việt · Sơn Trần, nam trẻ miền Trung'],
+  ['Wzj3w9OuQFcoiuKPnk3j', 'Việt · Luci, nam dẫn chuyện'],
+];
 export const coElevenTrucTiep = () => !!process.env.ELEVENLABS_API_KEY;
 
 /** Giá TTS từ chữ fal: "$0.1 per 1000 characters" · "0.002 per generated audio seconds". */
@@ -101,11 +110,14 @@ async function moTaFal(id: string): Promise<MoTaGiong> {
 export async function giongCua(model: string): Promise<{ id: string; ten: string }[]> {
   if (model.startsWith('elevenlabs:')) {
     if (!coElevenTrucTiep()) return [];
+    // Khoá trong vault chỉ có quyền đọc giọng (text_to_speech), không có voices_read → /voices trả 401. Giọng thư viện ElevenLabs đã đọc thử 200 bằng khoá đó
+    // (12/11/2026) đứng đầu danh sách, để ô chọn không trống và giọng mặc định (George) vẫn tìm được; khoá có voices_read thì nối thêm giọng của tài khoản.
+    const coDinh = GIONG_ELEVEN_THU_VIEN.map(([id, ten]) => ({ id, ten }));
     try {
       const r = await fetch(`${ELEVEN}/voices`, { headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY! } });
       const j = (await r.json()) as { voices?: Array<{ voice_id: string; name: string; category?: string; labels?: Record<string, string> }> };
-      return (j.voices ?? []).map((v) => ({ id: v.voice_id, ten: `${v.name}${v.labels ? ` · ${Object.values(v.labels).filter(Boolean).slice(0, 3).join(', ')}` : ''}${v.category && v.category !== 'premade' ? ` (${v.category})` : ''}` }));
-    } catch { return []; }
+      return [...coDinh, ...(j.voices ?? []).filter((v) => !coDinh.some((g) => g.id === v.voice_id)).map((v) => ({ id: v.voice_id, ten: `${v.name}${v.labels ? ` · ${Object.values(v.labels).filter(Boolean).slice(0, 3).join(', ')}` : ''}${v.category && v.category !== 'premade' ? ` (${v.category})` : ''}` }))];
+    } catch { return coDinh; }
   }
   const fal = (await moTaFal(model)).giong.map((g) => ({ id: g, ten: g }));
   // MiniMax: fal chỉ ghi 17 giọng tiếng Anh làm ví dụ — thêm đủ giọng hệ thống chính thức (Hoa / Hàn / Nhật / Việt…), giữ thứ tự ví dụ fal đứng đầu.
@@ -131,7 +143,7 @@ export async function dauVaoGiongTheoModel(model: string, v: { text: string; voi
   const buon = v.theLoai === 'kinh_di' ? 'fearful' : 'sad';
   const emotion = v.cam && CAM_MINIMAX.has(v.cam) ? v.cam : v.camXuc >= 3 ? 'happy' : v.camXuc <= -3 ? buon : 'neutral';
   const the = /eleven/.test(model) && /v3/.test(model) ? (v.camXuc >= 3 ? '[excited] ' : v.camXuc <= -3 ? (v.theLoai === 'kinh_di' ? '[whispers] ' : '[sad] ') : '') : '';
-  if (model.startsWith('elevenlabs:')) return { text: the + v.text, voice_id: v.voice, model_id: model.slice('elevenlabs:'.length) };
+  if (model.startsWith('elevenlabs:')) return { text: the + v.text, voice_id: v.voice, model_id: model.slice('elevenlabs:'.length), language_code: v.ngonNgu === 'vi' ? 'vi' : 'en' };
   const mt = await moTaFal(model);
   const o: Record<string, unknown> = { [mt.truongChu]: the + v.text };
   if (mt.truongGiong && v.voice) {
@@ -148,10 +160,10 @@ export async function dauVaoGiongTheoModel(model: string, v: { text: string; voi
 }
 
 /** Gọi ElevenLabs trực tiếp (chạy được cả trong Worker): trả bytes mp3. */
-export async function ttsElevenTrucTiep(input: { text: string; voice_id: string; model_id: string }, key: string): Promise<{ ok: true; data: ArrayBuffer } | { ok: false; loi: string }> {
+export async function ttsElevenTrucTiep(input: { text: string; voice_id: string; model_id: string; language_code?: string }, key: string): Promise<{ ok: true; data: ArrayBuffer } | { ok: false; loi: string }> {
   const r = await fetch(`${ELEVEN}/text-to-speech/${encodeURIComponent(input.voice_id)}?output_format=mp3_44100_128`, {
     method: 'POST', headers: { 'xi-api-key': key, 'content-type': 'application/json', accept: 'audio/mpeg' },
-    body: JSON.stringify({ text: input.text, model_id: input.model_id }),
+    body: JSON.stringify({ text: input.text, model_id: input.model_id, ...(input.language_code ? { language_code: input.language_code } : {}) }),
   });
   if (!r.ok) return { ok: false, loi: `ElevenLabs ${r.status}: ${(await r.text()).slice(0, 200)}` };
   return { ok: true, data: await r.arrayBuffer() };

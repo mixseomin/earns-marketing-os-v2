@@ -23,6 +23,8 @@ import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { Khung3DSong } from './khung-3d-song';
 import { KhungDauKet } from './khung-dau-ket';
 import { ghiThamSoUrl } from '@/lib/ghi-url';
+import { OCongMay } from './cong-may';
+import { congVideoTho } from '@/lib/xuong-video/cong-video-tho';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
 const tenKt = (k: string | undefined, n: NhomKyThuat) => (k ? kyThuat(k, n)?.ten.replace(/\s*\(.*\)$/, '') ?? '' : '');
@@ -42,7 +44,7 @@ const vuaSinh = (c: { keyframe_luc?: string | null; video_luc?: string | null })
   return m && Date.now() - new Date(m).getTime() < VUA_SINH_PHUT * 60000 ? m : null;
 };
 
-export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChanged, laQc }: { canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'phan_canh' | 'khong_gian'>; tiLe?: string; onMo: (id: number) => void; moHinhChu: string; onChanged: () => Promise<void>; laQc?: boolean }) {
+export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChanged, laQc, videoTho }: { canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'phan_canh' | 'khong_gian'>; tiLe?: string; onMo: (id: number) => void; moHinhChu: string; onChanged: () => Promise<void>; laQc?: boolean; /** phim khai kinh_thanh.video_tho — ô 🚦 là cổng keyframe thật */ videoTho?: boolean }) {
   // 🔍 Kiểm khung (khung.ts): máy nhìn keyframe từng khối cảnh + cú chuyển từ cảnh trước — chưa kiểm / lệch thì video + animatic bị chặn.
   const [banKhung, setBanKhung] = useState(false); const [loiKhung, setLoiKhung] = useState('');
   const canKiem = khoiCanKiem(canh); const giaKhung = giaKiemKhung(moHinhChu, canKiem.map((k) => k.length));
@@ -114,6 +116,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
         {lechMat.length > 0 && <button type="button" className="xv-btn chinh" disabled={banMat} title={`Sửa mặt / hướng nhìn ${lechMat.length} shot: mặt lệch thì vẽ lại mặt theo ảnh mẫu, ánh mắt sai thì chỉ xoay mắt về phía người đối diện — mô hình sửa ảnh (ckey Nano Banana 2 ~${GIA_SUA_MAT_VND}₫ / lần; cổng hỏng thì Google ~874₫) nhận keyframe + ảnh sát mặt, chỉ thay mặt; máy soi lại — đạt thì thành keyframe (bản cũ còn trong dải), chưa đạt thử lại tối đa ${SUA_MAT_TOI_DA} lần.`} onClick={() => void suaMat(lechMat.map((c) => c.id))}>{`🩹 Sửa mặt / nhìn · ${lechMat.length} shot · ~${Math.round(lechMat.length * GIA_SUA_MAT_VND)}–${Math.round(lechMat.length * GIA_SUA_MAT_VND * SUA_MAT_TOI_DA)}₫`}</button>}
       </div>
       <Loi>{loiKhung}</Loi>
+      <OCongMay k={congVideoTho(canh, nhanVat, sets, tap, laQc)} chan={!!videoTho} onMo={onMo} />
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${rongThe}px, 1fr))`, gap: 8 }}>
         {khoi.flatMap((k, ki) => {
           const pc = tap.phan_canh?.find((x) => x.ten === k.ten); const mau = MAU[ki % MAU.length]!;

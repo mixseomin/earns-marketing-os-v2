@@ -19,8 +19,7 @@ import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './po
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
 import { bienTheTheoSo, boCauMay, boSetCuaShot, catMep, chanKhungXam, chuTheThay, doiTuongThieu, huongVoiMay, KHOA_LOOK, nhinCau, loiMachTap, moTaThay, PT_THAY, shotSoTruc, thayRo, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
-import { nguoiNoiKhongThayMat, thoaiToanCanh } from './bo-set-3d';
-import { diemMurchTap, diemMurchCanh, MURCH_TAP_DAT } from './diem-murch';
+import { congVideoTho, cauChanCong } from './cong-video-tho';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
 import { loiTrangThaiVat, boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, noiChonPhongCach, TU_TOI_DA_FLUX, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
 import { cauAnhSet, CHAT_LIEU, chuNguoi, ghep, goiTenEn, hanhDongTrongMoTa, khoi, KHONG_THEM_ANH, KHONG_THEM_FLUX, KHUON, soNguoiCau, tuTheEn, type DuongSinh, type Khoi } from './prompt-khoi';
@@ -674,12 +673,8 @@ export async function lyChanKeyframe(db: Db, canhId: number, /** THỬ ngoài qu
   // không tin được" + "đã có hệ chấm điểm"): cả tập phải qua (1) người nói thấy mặt + thoại không nằm trong toàn cảnh — đo trên máy ảo 3D (bo-set-3d.ts
   // › nguoiNoiKhongThayMat / thoaiToanCanh), (2) điểm Murch cả tập ≥ MURCH_TAP_DAT (diem-murch.ts). Lỗi liền mạch từng shot vẫn qua loiMachTap ở dưới.
   if (bc.kt.video_tho) {
-    const dsT = locNhanh(tatCa, bc.canh.nhanh || 'A');
-    const noi = dsT.flatMap((x) => [...nguoiNoiKhongThayMat(x), ...thoaiToanCanh(x)].map((s) => `#${x.thu_tu} ${s.replace(/^NGƯỜI NÓI: /, '')}`));
-    if (noi.length) chan.push(`Ngữ pháp shot chưa đạt (đo trên 3D): ${noi.join('; ')}`);
     const setsT = ((await db.execute(sql`SELECT * FROM xv_bo_set WHERE phim_id = ${tapQt.phim_id} OR phim_id IS NULL`)) as unknown as Row[]).map(mapBoSet);
-    const dmT = diemMurchCanh(dsT, diemMurchTap(dsT, nvPhim, setsT, { phanCanh: tapQt.phan_canh ?? [], kg: tapQt.khong_gian ?? null })).tap;
-    if (dmT < MURCH_TAP_DAT) chan.push(`Điểm Murch cả tập ${dmT} < ${MURCH_TAP_DAT} — sửa các shot điểm thấp trên timeline (lý do từng tiêu chí ở ô điểm) rồi mới sinh keyframe`);
+    chan.push(...cauChanCong(congVideoTho(locNhanh(tatCa, bc.canh.nhanh || 'A'), nvPhim, setsT, tapQt)));
   }
   // Bộ set 3D: shot thuộc set phải có máy ảo + khung xám đúng mã + qua kiểm hình học (trong khung, không bị che, không vượt trục).
   const sid = boSetCuaShot(bc.canh, nvPhim);

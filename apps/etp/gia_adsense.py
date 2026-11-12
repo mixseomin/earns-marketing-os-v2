@@ -11,11 +11,17 @@ dong-bo.py gọi chay(q) mỗi lượt (10 phút):
   2. HOÃN — Impression RPM Mỹ hôm nay < 85% trung bình 7 ngày trước → etp.cau_hinh 'hoan_rpm'.bat = true; về lại ≥ 90% → tắt (vùng đệm 85–90% chống lật).
      Hôm nay chưa đủ IMP_MIN lượt hiển thị AdSense Mỹ (sáng sớm) → giữ trạng thái cũ. cong.kiem đọc cờ: chặn TĂNG ngân sách + NHÂN BẢN (kể cả thang);
      vẫn chạy: giảm / tắt / camp mới $1 từ creative / camp thay camp bị phốt (--thay) / camp ★ ROAS / lệnh đích danh của anh.
+  2b. HỆ SỐ GIÁ — etp.cau_hinh 'he_so_rpm' {ngày UTC: Impression RPM cả hệ ngày đó / trung bình 7 ngày trước}, CHỈ ngày giá tụt (< 1), kẹp ≥ HS_SAN.
+     Mọi chỗ đọc dùng CHUNG đoạn SQL hs_sql(cột ngày) ở tệp này (ngày không có = 1). Luật cắt camp mới (T8 · T1 · T1 24 giờ · T2, luat-ethopex.py) và đếm
+     camp lãi của phim (cat_phim.py) chia thu ngày đó cho hệ số trước khi so ngưỡng: camp dò đường $1 không bị cắt / phim không bị cất chỉ vì giá AdSense cả chợ tụt.
+     Anh 13/11/2026: "nếu mai thị trường hồi lại, cú sụt giảm này khiến các camp dò đường $1 có được đánh giá đúng ko?" — đo: ngày 12/11 (hệ số 0,80) 12 / 106
+     camp mới chạm T8 / T1 24 giờ chỉ vì giá tụt. Ngày giá cao (> 1) KHÔNG bù ngược: ngưỡng luật đã đo trên số thô các ngày thường.
   3. BÁO — Telegram (etp.canh_bao 'rpm') khi cờ bật / tắt, và cảnh báo vàng một lần mỗi ngày khi RPM Mỹ < 85% nền.
 Tự kiểm: python3 apps/etp/gia_adsense.py"""
 import json, datetime as dt
 
 NGUONG_BAT, NGUONG_TAT, IMP_MIN, NUOC = 0.85, 0.90, 3000, "US"
+HS_SAN = 0.6   # hệ số giá thấp nhất được bù (giá tụt sâu hơn 40% vẫn chỉ bù tới 0,6 — không để một ngày lạ thổi thu lên quá tay)
 COT = ["geo", "cost", "revenue", "supply_impressions", "impressions", "ad_requests", "page_views"]
 
 def _ma(geo):   # "(US) United States" → "US"
@@ -51,6 +57,21 @@ def quyet(so, hn, cu):
           + (f" · hoà vốn {h['hoa_von']:.0f}" if h.get("hoa_von") else "") + (f" · Fill {h['fill']:.1f}%" if h.get("fill") else ""))
     return {"bat": moi, "irpm": h["irpm"], "nen": round(nen, 1), "ti": round(ti, 3), "ngay": hn, "ly_do": ly}
 
+def he_so(so):
+    """hàm thuần: sổ rpm_ngay → {ngày: hệ số giá} — Impression RPM cả hệ / trung bình 7 ngày trước, chỉ ngày < 1, kẹp ≥ HS_SAN; thiếu nền / ít lượt hiển thị → không ghi (= 1)"""
+    ks, ra = sorted(so), {}
+    for i, k in enumerate(ks):
+        nen = [so[x]["irpm"] for x in ks[max(0, i - 7):i] if so[x].get("irpm")]
+        v = so[k]
+        if len(nen) < 5 or not v.get("irpm") or (v.get("imp") or 0) < IMP_MIN: continue
+        t = v["irpm"] / (sum(nen) / len(nen))
+        if t < 1: ra[k] = round(max(HS_SAN, t), 3)
+    return ra
+
+def hs_sql(cot):
+    """biểu thức SQL hệ số giá của ngày ở cột `cot` — chia thu cho nó: f"s.thu / {GA.hs_sql('s.ngay')}" """
+    return f"coalesce((select nullif(gia_tri ->> ({cot})::text, '')::numeric from etp.cau_hinh where khoa = 'he_so_rpm'), 1)"
+
 def chay(q, luc=None):
     import ethopex_api as EA
     ch = lambda k, md: json.loads(q(f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{k}'), '{md}')") or md)
@@ -63,6 +84,7 @@ def chay(q, luc=None):
         if rows: so[d.isoformat()] = tong_ngay(rows)
     so = {k: so[k] for k in sorted(so)[-60:]}
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('rpm_ngay', $J${json.dumps(so)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
+    q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('he_so_rpm', $J${json.dumps(he_so(so))}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
     moi = quyet(so, hn.isoformat(), cu)
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('hoan_rpm', $J${json.dumps(moi, ensure_ascii=False)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
     if bool(moi.get("bat")) != bool(cu.get("bat")):
@@ -85,6 +107,10 @@ def _tu_kiem():
     t = tong_ngay([{"geo": "(US) United States", "cost": 100, "revenue": 90, "supply_impressions": 4000, "impressions": 600, "ad_requests": 900, "page_views": 700},
                    {"geo": "(CA) Canada", "cost": 10, "revenue": 5, "supply_impressions": 800, "impressions": 100, "ad_requests": 150, "page_views": 90}])
     assert t["nuoc"]["US"]["irpm"] == 150 and t["nuoc"]["US"]["hoa_von"] == 166.67 and t["chi"] == 110 and list(t["nuoc"]) == ["US", "CA"], t
-    print("✓ gia_adsense.py tự kiểm (bật < 85%, vùng đệm 85–90%, ít số giữ trạng thái, thiếu nền không bật, tính RPM / hoà vốn: 8 ca)")
+    hs = he_so({**{f"2026-11-0{i}": {"irpm": 120, "imp": 9000} for i in range(3, 10)}, "2026-11-10": {"irpm": 96, "imp": 9000}, "2026-11-11": {"irpm": 150, "imp": 9000},
+                "2026-11-12": {"irpm": 30, "imp": 9000}, "2026-11-13": {"irpm": 60, "imp": 100}})
+    assert hs == {"2026-11-10": 0.8, "2026-11-12": HS_SAN}, hs   # giá cao không bù ngược · kẹp sàn · ít lượt hiển thị không ghi
+    assert "gia_tri ->> (s.ngay)::text" in hs_sql("s.ngay")
+    print("✓ gia_adsense.py tự kiểm (bật < 85%, vùng đệm 85–90%, ít số giữ trạng thái, thiếu nền không bật, tính RPM / hoà vốn, hệ số giá: 10 ca)")
 
 if __name__ == "__main__": _tu_kiem()

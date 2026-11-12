@@ -38,7 +38,8 @@ def cau_hinh():
 
 def so_phim():
     """mỗi phim có camp nhà: chi / thu cộng dồn, có camp lãi không, các bộ đã thử, trạng thái thang · team 14 ngày"""
-    return _qj("""with c as (select c.content_id, c.camp_id, coalesce(c.bo, '') bo, coalesce((select r.dang from etp.creative r where r.creative_id = c.creative_id), '') dang, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu
+    import gia_adsense as GA
+    return _qj("""with c as (select c.content_id, c.camp_id, coalesce(c.bo, '') bo, coalesce((select r.dang from etp.creative r where r.creative_id = c.creative_id), '') dang, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu / {HS}), 0) thu   -- thu bù giá AdSense ngày giá chợ tụt (gia_adsense.hs_sql, anh 13/11/2026)
                              from etp.camp c left join etp.so_ngay n on n.camp_id = c.camp_id and n.ngay < (now() at time zone 'utc')::date   -- CHỈ NGÀY ĐÃ KHÉP (03/11/2026: phim test rộng 169553 lên 5 camp 16:12, vài giờ sau đã 'sắp cất 3/4 camp chưa lãi' vì đếm ngày đang chạy — chưa qua khung 0h–7h)
                              where coalesce(c.content_id, 0) > 0 group by 1, 2, 3, 4),
                        p as (select content_id, round(sum(chi), 2) chi, round(sum(thu), 2) thu, count(*) so_camp, count(*) filter (where chi >= 1) so_thu,
@@ -52,7 +53,7 @@ def so_phim():
                          (select count(*) from (select cn.camp_id from etp.camp_ngoai cn join etp.so_ngay_ngoai n using (camp_id) where cn.content_id = p.content_id and n.ngay >= current_date - 7
                             group by 1 having sum(n.chi) >= 3 and sum(n.thu) > sum(n.chi)) x) doi_camp_lai,   -- camp ĐỘI lãi 7 ngày (anh 09/11/2026 "đội vẫn có camp lãi… cơ hội vẫn còn")
                          (select string_agg('#' || h.camp_id || ' ROI ' || h.roi || '%', ', ' order by h.roi desc) from etp.camp_co_hoi h where h.content_id = p.content_id) lai   -- CAMP CƠ HỘI (migration 0437, anh 06/11/2026)
-                  from p left join etp.phim f using (content_id) left join t using (content_id)""")
+                  from p left join etp.phim f using (content_id) left join t using (content_id)""".replace("{HS}", GA.hs_sql("n.ngay")))
 
 def dat(content, vong, ly, that, bo=None):
     v = lambda x: "null" if x is None else f"'{s_(x)}'"

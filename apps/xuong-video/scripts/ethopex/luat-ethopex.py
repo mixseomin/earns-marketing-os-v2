@@ -593,6 +593,14 @@ tat7 = [(c, f"#{a['ten'][:70]} · 7 ngày đã khép: chi ${a['chi']:.2f} · lã
         for c, a in sorted(T7_DAT.items(), key=lambda x: x[1]["lai"]) if c in _dc]
 # DỪNG T7 (anh 27/10/2026: "Đặt 1 cái mới … Sau đó dừng T7") — thay bằng T2 bên dưới; giữ mã tính T7 để bật lại được, nhưng không đưa vào danh sách tắt / gần chạm
 tat7, gan_t7 = [], []
+# BÙ GIÁ ADSENSE CHO CAMP MỚI (anh 13/11/2026 "nếu mai thị trường hồi lại, cú sụt giảm này khiến các camp dò đường $1 có được đánh giá đúng ko?"):
+# T2 · T1 · T1 24 giờ · T8 chia thu ngày đó cho hệ số giá AdSense cả chợ (apps/etp/gia_adsense.py he_so → etp.cau_hinh 'he_so_rpm', chỉ ngày giá tụt, kẹp ≥ 0,6).
+# Đo 12/11/2026 (hệ số 0,80): 12 / 106 camp mới chạm T8 / T1 24 giờ chỉ vì giá tụt. Camp dò đường chỉ có 1–2 ngày số nên không bỏ ngày xấu được như camp chín (NGAY_XAU).
+import gia_adsense as GA
+_HS_S = GA.hs_sql("s.ngay")
+try: _HS = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'he_so_rpm'), '{}')") or "{}")
+except Exception: _HS = {}
+CHU_BU = " ROI tính trên thu đã bù giá AdSense ngày giá cả chợ tụt (etp.cau_hinh he_so_rpm, apps/etp/gia_adsense.py — anh 13/11/2026)."
 # T2 — CẮT SAU 2 NGÀY ĐẦU (anh 27/10/2026, chọn "2 ngày đầu ROI < −20%" và đặt tên T2): tín hiệu đo trên 255 camp 20–26/10 (apps/etp/phan-tich/som.py) —
 # ROI gộp 2 ngày có chi ĐẦU TIÊN < −20% → chỉ 6–12% thành lãi thực về sau (đúng ở cả hai nửa thời gian), 103 camp như vậy lỗ thêm $99 nếu để chạy.
 # Xét trên kho etp.so_ngay, CHỈ ngày đã khép (trước hôm nay): camp có 2–3 ngày đã khép có chi (vừa hết 2 ngày đầu — không quét lại camp già đã hồi),
@@ -607,7 +615,7 @@ tat2 = []
 try:
     _n2 = {}
     _ns2 = {}
-    for _l in q(f"select s.camp_id, s.chi, s.thu, coalesce(c.ngan_sach, 0), coalesce(c.ten, '') from {K_SO} s left join {K_CAMP} c using (camp_id) where s.ngay < '{d(0)}' and s.chi > 0 order by s.camp_id, s.ngay").splitlines():
+    for _l in q(f"select s.camp_id, s.chi, s.thu / {_HS_S}, coalesce(c.ngan_sach, 0), coalesce(c.ten, '') from {K_SO} s left join {K_CAMP} c using (camp_id) where s.ngay < '{d(0)}' and s.chi > 0 order by s.camp_id, s.ngay").splitlines():
         _p = _l.split("|", 4)
         if len(_p) == 5 and _p[0].isdigit(): _n2.setdefault(int(_p[0]), [_p[4], []])[1].append((float(_p[1]), float(_p[2]))); _ns2[int(_p[0])] = float(_p[3] or 0)
     for _c, (_ten, _ds) in _n2.items():
@@ -633,7 +641,7 @@ T1_CHO, T1_THA = 6, 30
 _gio_ngay = (vn.hour - 7) % 24
 def _t1_nay(c):
     h = hom.get(c) or hom.get(str(c)) or {}
-    return roi(h) if h.get("chi", 0) >= 0.3 else None
+    return roi({**h, "thu": float(h.get("thu") or 0) / float(_HS.get(d(0)) or 1)}) if h.get("chi", 0) >= 0.3 else None   # hôm nay cũng bù giá AdSense
 # T1 ĐÃ NHẬN (anh 05/11/2026 "T1 đến 3h chiều áp dụng thì cũng show để biết là có tiếp nhận, chỉ là chưa đến lúc"): trước T1_CHO giờ ngày mới camp đủ mọi
 # điều kiện ngày đầu → danh sách t1_cho (không có 'tat' ở sổ luật → worker không làm), tab Camp hiện chip; đủ giờ thì sang tat1 như cũ (tha nếu hôm nay lãi)
 T1_XET, T1_KHUNG = (7 + T1_CHO) % 24, BANG_LUAT["khung_doi"]["giam"]
@@ -667,8 +675,8 @@ try:
         r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-v", "ON_ERROR_STOP=1", "-tAc", cau], capture_output=True, text=True)   # -v trước -c: "-tAc" lấy đối số kế làm lệnh
         if r.returncode != 0: raise RuntimeError(r.stderr.strip()[:160])
         return r.stdout.strip()
-    for _l24 in _q_ktra("""with d as (select camp_id, min(ngay::timestamp + (gio || ' hours')::interval) t0 from etp.so_gio_camp where chi > 0 group by 1)
-        select s.camp_id, extract(epoch from (now() at time zone 'utc' - d.t0)) / 3600, sum(s.chi), sum(s.thu), coalesce(c.ngan_sach, 0), coalesce(c.ten, '')
+    for _l24 in _q_ktra(f"""with d as (select camp_id, min(ngay::timestamp + (gio || ' hours')::interval) t0 from etp.so_gio_camp where chi > 0 group by 1)
+        select s.camp_id, extract(epoch from (now() at time zone 'utc' - d.t0)) / 3600, sum(s.chi), sum(s.thu / {_HS_S}), coalesce(c.ngan_sach, 0), coalesce(c.ten, '')
         from d join etp.so_gio_camp s on s.camp_id = d.camp_id and (s.ngay::timestamp + (s.gio || ' hours')::interval) < d.t0 + interval '24 hours'
         join etp.camp c on c.camp_id = s.camp_id where d.t0 >= now() - interval '4 days' group by 1, 2, 5, 6""").splitlines():
         _p24 = _l24.split("|", 5)
@@ -699,7 +707,7 @@ tat_t8, _t8 = [], {}
 try:
     _t1_co = {int(x[0]) for x in tat1} | {int(x[0]) for x in tat2}
     for _l8 in _q_ktra(f"""with d as (select camp_id, min(ngay::timestamp + (gio || ' hours')::interval) t0 from etp.so_gio_camp where chi > 0 group by 1),
-        s as (select s.camp_id, (s.ngay::timestamp + (s.gio || ' hours')::interval) < d.t0 + interval '{T8_CUA} hours' cua, s.chi, s.thu, d.t0 from d join etp.so_gio_camp s on s.camp_id = d.camp_id
+        s as (select s.camp_id, (s.ngay::timestamp + (s.gio || ' hours')::interval) < d.t0 + interval '{T8_CUA} hours' cua, s.chi, s.thu / {_HS_S} thu, d.t0 from d join etp.so_gio_camp s on s.camp_id = d.camp_id
               where d.t0 >= (now() at time zone 'utc') - interval '48 hours')
         select s.camp_id, extract(epoch from (now() at time zone 'utc' - s.t0)) / 3600, sum(s.chi) filter (where cua), coalesce(sum(s.thu) filter (where cua), 0), sum(s.chi), sum(s.thu), coalesce(c.ten, '')
         from s join etp.camp c on c.camp_id = s.camp_id group by 1, 2, 7""").splitlines():
@@ -1301,7 +1309,7 @@ def _xet_luat():
             c1 = ds2[0][0] if ds2 else 0.0; r1 = (ds2[0][1] - c1) / c1 * 100 if c1 else None; ng1 = t1_chi(ns)
             ca1 = sum(x[0] for x in ds2[:2]); ra1 = (sum(x[1] for x in ds2[:2]) - ca1) / ca1 * 100 if ca1 else None
             rn1 = _t1_nay(cid)
-            _the1 = L("t1", "T1 · tắt sau ngày đầu", f"Camp có 1–2 ngày đã khép có chi, ngày đầu chi ≥ min(${T1_CHI:g}, {T1_PHAN:.0%} ngân sách) và ROI < {T1_ROI}% (không có thu = −100%), mọi ngày đã khép vẫn < {T1_ROI}% → máy tắt hẳn (cách Kim Kiên đóng camp — anh 02/11/2026); HOẶC 24 giờ chạy đầu (từ giờ có chi đầu, etp.so_gio_camp) ROI < {T1_24_ROI}% với chi ≥ {T1_24_PHAN:.0%} ngân sách → tắt ngay khi đủ {T1_24_TUOI} giờ tuổi, không chờ ngày khép (anh 05/11/2026). Xét từ {(7 + T1_CHO) % 24}:00 VN (ngày mới chạy đủ {T1_CHO} giờ); hôm nay ROI ≥ {T1_THA}% thì tha hôm đó.",
+            _the1 = L("t1", "T1 · tắt sau ngày đầu", f"Camp có 1–2 ngày đã khép có chi, ngày đầu chi ≥ min(${T1_CHI:g}, {T1_PHAN:.0%} ngân sách) và ROI < {T1_ROI}% (không có thu = −100%), mọi ngày đã khép vẫn < {T1_ROI}% → máy tắt hẳn (cách Kim Kiên đóng camp — anh 02/11/2026); HOẶC 24 giờ chạy đầu (từ giờ có chi đầu, etp.so_gio_camp) ROI < {T1_24_ROI}% với chi ≥ {T1_24_PHAN:.0%} ngân sách → tắt ngay khi đủ {T1_24_TUOI} giờ tuổi, không chờ ngày khép (anh 05/11/2026). Xét từ {(7 + T1_CHO) % 24}:00 VN (ngày mới chạy đủ {T1_CHO} giờ); hôm nay ROI ≥ {T1_THA}% thì tha hôm đó." + CHU_BU,
                 [["Số ngày đã khép có chi", f"{len(ds2)} ngày", "1–2 ngày", 1 <= len(ds2) <= 2], ["Chi ngày đầu", f(c1, "$"), f"≥ ${ng1:g}", c1 >= ng1],
                  ["ROI ngày đầu", f(r1, "%"), f"< {T1_ROI}%", r1 is not None and r1 < T1_ROI], ["ROI mọi ngày đã khép", f(ra1, "%"), f"< {T1_ROI}%", ra1 is not None and ra1 < T1_ROI],
                  ["ROI hôm nay (chi ≥ $0.3)", f(rn1, "%"), f"< {T1_THA}% (≥ {T1_THA}% thì tha hôm nay)", rn1 is None or rn1 < T1_THA]],
@@ -1314,7 +1322,7 @@ def _xet_luat():
             _the1["dk"] += [["Ngày mới đã chạy (giờ chờ, không tính điều kiện)", f"{_gio_ngay} giờ", f"≥ {T1_CHO} giờ ({T1_XET}:00 VN)", _gio_ngay >= T1_CHO], _d24]
             ls.append(_the1)
             _dk8, _lo8 = _t8_the(cid)
-            ls.append(L("t8", f"T8 · cắt sớm {T8_CUA} giờ đầu", f"{T8_CUA} giờ chạy đầu (từ giờ có chi đầu, etp.so_gio_camp) chi ≥ ${T8_CHI:g} mà không có thu hoặc ROI < {T8_ROI}%, ROI từ giờ đầu tới nay vẫn < {T8_ROI_NAY}% → báo trước một nhịp rồi máy tắt, KHÔNG chờ khung giảm / tắt (anh 06/11/2026: đóng nhanh camp âm để dành tiền cho camp mới — 115 camp lịch sử chạm luật, 0 camp về sau thắng). Xét ở tuổi {T8_TUOI}–48 giờ.",
+            ls.append(L("t8", f"T8 · cắt sớm {T8_CUA} giờ đầu", f"{T8_CUA} giờ chạy đầu (từ giờ có chi đầu, etp.so_gio_camp) chi ≥ ${T8_CHI:g} mà không có thu hoặc ROI < {T8_ROI}%, ROI từ giờ đầu tới nay vẫn < {T8_ROI_NAY}% → báo trước một nhịp rồi máy tắt, KHÔNG chờ khung giảm / tắt (anh 06/11/2026: đóng nhanh camp âm để dành tiền cho camp mới — 115 camp lịch sử chạm luật, 0 camp về sau thắng). Xét ở tuổi {T8_TUOI}–48 giờ." + CHU_BU,
                 _dk8, "tat_t8" if int(cid) in vao["tat_t8"] else None, lo=_lo8))
             _dkv, _lov = _tv_the(cid)
             ls.append(L("tv", f"TV · tiêu vống {TV_NGAY} ngày", f"{TV_NGAY} ngày đã khép liền (ngày Ethopex UTC) chi ≥ {TV_PHAN:.0%} ngân sách trước {TV_GIO}h UTC mà ngày đó lỗ → máy tắt luôn, mọi khung giờ (Dol 09/11/2026: mùa Ads đội Ecom lớn chạy, Meta phân phối lệch là hỏng camp; đo 02–08/11 nhóm tiêu sớm ROI −2%, tiêu đều +24%; anh: tắt luôn không chờ)",
@@ -1325,7 +1333,7 @@ def _xet_luat():
             c2 = sum(x[0] for x in ds2[:2]); t2_ = sum(x[1] for x in ds2[:2]); r2 = (t2_ - c2) / c2 * 100 if c2 else None
             ca = sum(x[0] for x in ds2); ra_ = (sum(x[1] for x in ds2) - ca) / ca * 100 if ca else None
             ng2 = t2_chi(ns)
-            ls.append(L("t2", "T2 · tắt sau 2 ngày đầu", f"Camp có 2–{T2_NGAY} ngày đã khép có chi, 2 ngày đầu chi ≥ min(${T2_CHI:g}, {T2_PHAN:.0%} ngân sách 2 ngày) và ROI < {T2_ROI}%, mọi ngày đã khép vẫn < {T2_ROI}% → máy tắt hẳn.",
+            ls.append(L("t2", "T2 · tắt sau 2 ngày đầu", f"Camp có 2–{T2_NGAY} ngày đã khép có chi, 2 ngày đầu chi ≥ min(${T2_CHI:g}, {T2_PHAN:.0%} ngân sách 2 ngày) và ROI < {T2_ROI}%, mọi ngày đã khép vẫn < {T2_ROI}% → máy tắt hẳn." + CHU_BU,
                 [["Số ngày đã khép có chi", f"{len(ds2)} ngày", f"2–{T2_NGAY} ngày", 2 <= len(ds2) <= T2_NGAY], ["Chi 2 ngày đầu", f(c2, "$"), f"≥ ${ng2:g}", c2 >= ng2],
                  ["ROI 2 ngày đầu", f(r2, "%"), f"< {T2_ROI}%", r2 is not None and r2 < T2_ROI], ["ROI mọi ngày đã khép", f(ra_, "%"), f"< {T2_ROI}%", ra_ is not None and ra_ < T2_ROI]],
                 "tat2" if int(cid) in vao["tat2"] else None, tien=1, lo=(r2 is not None and r2 < 0) or (ra_ is not None and ra_ < 0)))

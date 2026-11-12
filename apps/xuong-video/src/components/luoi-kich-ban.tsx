@@ -118,7 +118,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
         {lechMat.length > 0 && <button type="button" className="xv-btn chinh" disabled={banMat} title={`Sửa mặt / hướng nhìn ${lechMat.length} shot: mặt lệch thì vẽ lại mặt theo ảnh mẫu, ánh mắt sai thì chỉ xoay mắt về phía người đối diện — mô hình sửa ảnh (ckey Nano Banana 2 ~${GIA_SUA_MAT_VND}₫ / lần; cổng hỏng thì Google ~874₫) nhận keyframe + ảnh sát mặt, chỉ thay mặt; máy soi lại — đạt thì thành keyframe (bản cũ còn trong dải), chưa đạt thử lại tối đa ${SUA_MAT_TOI_DA} lần.`} onClick={() => void suaMat(lechMat.map((c) => c.id))}>{`🩹 Sửa mặt / nhìn · ${lechMat.length} shot · ~${Math.round(lechMat.length * GIA_SUA_MAT_VND)}–${Math.round(lechMat.length * GIA_SUA_MAT_VND * SUA_MAT_TOI_DA)}₫`}</button>}
       </div>
       <Loi>{loiKhung}</Loi>
-      <OCongMay k={congVideoTho(canh, nhanVat, sets, tap, laQc)} chan={!!videoTho} onMo={onMo} tenTl={THE_LOAI.find((x) => x.key === theLoai)?.ten} tl={chamTheLoai(theLoai, canh, tap.phan_canh ?? [], (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t))} />
+      <OCongMay tapId={tap.id} ky={canh.map((c) => `${c.id}:${c.thu_tu}:${c.trang_thai}:${c.keyframe_url ?? ''}`).join(',')} k={congVideoTho(canh, nhanVat, sets, tap, laQc)} chan={!!videoTho} onMo={onMo} tenTl={THE_LOAI.find((x) => x.key === theLoai)?.ten} tl={chamTheLoai(theLoai, canh, tap.phan_canh ?? [], (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t))} />
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${rongThe}px, 1fr))`, gap: 8 }}>
         {khoi.flatMap((k, ki) => {
           const pc = tap.phan_canh?.find((x) => x.ten === k.ten); const mau = MAU[ki % MAU.length]!;

@@ -57,7 +57,7 @@ import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, ma
 import { kgCua } from '@/lib/xuong-video/khong-gian';
 import { thanhPhanDuKien, type MucDuKien } from '@/lib/xuong-video/doi-chieu-khung';
 import type { BocTachCanh } from '@/lib/xuong-video/kieu';
-import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb, sinhAnhBienTheDb } from '@/lib/xuong-video/sinh-anh';
+import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb, sinhAnhBienTheDb, lyChanKeyframe } from '@/lib/xuong-video/sinh-anh';
 import { phanRaTapDb, baoCaoChuanBiDb, sinhAnhThieuDb, type KqPhanRa, type BaoCaoPhim } from '@/lib/xuong-video/phan-ra';
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
 import { docGocSpy, xepGocSpy, nhomCuaGoc, type GocSpy } from '@/lib/xuong-video/goc-spy';
@@ -1954,6 +1954,17 @@ export async function layTuLinkSanPham(phimId: number, link: string): Promise<Kq
 
 
 /** Bộ set các shot của tập đứng trên (chỉ vật) — lưới kịch bản cần chỗ vật cố định để đo chuỗi chú ý (bo-set-3d.ts › loiMachTap). */
+/** LÝ DO CHẶN KEYFRAME THẬT của từng shot trong tập — đúng hàm nút sinh keyframe gọi (sinh-anh.ts › lyChanKeyframe), 0đ. Ô 🚦 trên Lưới hiện từ đây:
+ *  trước 13/11/2026 ô chỉ tính cổng video thô và ghi "được sinh keyframe" trong khi cả 19 shot #3071 còn bị các cổng từng shot chặn. */
+export async function chanKeyframeTap(tapId: number): Promise<Kq<{ id: number; thu_tu: number; chan: string[] }[]>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const ids = (await db.execute(sql`SELECT id, thu_tu FROM xv_canh WHERE tap_id = ${tapId} AND coalesce(nhanh, '') IN ('', 'A') ORDER BY thu_tu, id`)) as unknown as Row[];
+  const out: { id: number; thu_tu: number; chan: string[] }[] = [];
+  for (const r of ids) { const g = await lyChanKeyframe(db, Number(r.id)); out.push({ id: Number(r.id), thu_tu: Number(r.thu_tu), chan: g?.chan ?? ['không đọc được bối cảnh shot'] }); }
+  return { ok: true, data: out };
+}
 export async function boSetCuaTap(tapId: number): Promise<Kq<Pick<BoSet, 'id' | 'du_lieu'>[]>> {
   const db = getDb();
   if (!db) return loi('no db');

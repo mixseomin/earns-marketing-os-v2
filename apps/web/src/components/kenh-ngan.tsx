@@ -11,7 +11,7 @@ const so = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleStri
 const ngayVn = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : '–');
 const STUDIO = 'https://studio.on.tc';
 export const CHANG_VIDEO: Record<VideoKenh['trangThai'], { chu: string; mau: string }> = {
-  chua_xuat: { chu: 'chưa xuất', mau: 'var(--fg-4)' }, cho_cham: { chu: 'chờ Phòng Nội dung chấm', mau: 'var(--warn)' }, duyet: { chu: 'DUYỆT · chờ đăng', mau: 'var(--accent)' },
+  chua_xuat: { chu: 'chưa xuất', mau: 'var(--fg-4)' }, cho_cham: { chu: 'chờ Phòng Nội dung chấm', mau: 'var(--warn)' }, duyet: { chu: 'chờ đăng', mau: 'var(--accent)' },
   sua_lai: { chu: 'SỬA LẠI', mau: 'var(--bad)' }, da_dang: { chu: 'đã đăng', mau: 'var(--ok)' },
 };
 const ytId = (u: string | null) => u?.match(/(?:youtu\.be\/|v=|shorts\/)([\w-]{11})/)?.[1] ?? null;

@@ -92,6 +92,11 @@ def du_bao(now):
                    where ngay >= current_date - 7 and gio in ({n['gio']}, {n['gio'] - 1}) group by 1""")
         g2 = next((roi(r["chi"], r["thu"]) for r in h if r["nay"]), None); g7 = next((roi(r["chi"], r["thu"]) for r in h if not r["nay"]), None)
         bd |= {"roi_2h": g2, "roi_2h_7": g7, "hoi": g2 is not None and g7 is not None and g2 >= max(0, g7 - HOI_LECH)}
+        # CPM cùng khung giờ (etp.cpm_gio, dong-bo.py — anh 12/11/2026 "Lưu CPM"): CPM tăng = Meta đắt lên; CPM thường mà ROI tụt = người xem không nạp
+        if q("select to_regclass('etp.cpm_gio')"):
+            cp = qj(f"""select (ngay = current_date) nay, sum(chi)::float chi, sum(hien_thi)::float ht from etp.cpm_gio where ngay >= current_date - 7 and gio <= {n['gio']} group by 1""")
+            cm = lambda r: round(r["chi"] / r["ht"] * 1000, 2) if r and r["ht"] else None
+            bd |= {"cpm": cm(next((r for r in cp if r["nay"]), None)), "cpm_7": cm(next((r for r in cp if not r["nay"]), None))}
     return {"muc": ("xanh", "vang", "do")[len(ly)], "ly": ly, "chi_vs": chi_vs, "toi": toi, "toi_vs": toi_vs, "bao_dong": bd}
 def chu_du_bao(db):
     """hai dòng dùng chung cho tin 🧭 và tin 🚨"""
@@ -99,6 +104,7 @@ def chu_du_bao(db):
     if db: L.append({"xanh": "🟢 Dự báo: ngày bình thường", "vang": "🟡 Dự báo: dễ yếu", "do": "🔴 Dự báo: ngày yếu"}[db["muc"]] + (" — " + " · ".join(db["ly"]) + " → không tăng tổng ngân sách" if db["ly"] else ""))
     if db and db["bao_dong"]:
         b = db["bao_dong"]; g = f"2 giờ gần nhất {pc(b.get('roi_2h'))} (thường {pc(b.get('roi_2h_7'))})"
+        if b.get("cpm") and b.get("cpm_7"): g += f" · CPM ${b['cpm']:.2f} (thường ${b['cpm_7']:.2f}, {round(100 * (b['cpm'] / b['cpm_7'] - 1)):+d}%)"
         L.append(f"🌤 Chợ đang hồi: {g} · cả ngày còn {pc(b['roi'])} → tăng / nhân bản lại theo luật thường" if b.get("hoi")
                  else f"🚨 Chợ <b>{pc(b['roi'])}</b> trên {usd(b['chi'])} (07:00–{b['toi_gio_vn']}) · {g} → hoãn tăng / nhân bản camp thường")
     return L

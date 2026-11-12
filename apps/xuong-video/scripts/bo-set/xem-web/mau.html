@@ -340,9 +340,9 @@ function ve1() {
   nhanShot.textContent = `#${s.so} · ${s.cd.replace('_', ' ')}`;
   ta.innerHTML = `<b>#${s.so}</b> ${s.tả}`;
   [...dai.children].forEach((b, j) => b.classList.toggle('dang', j === i));
-  const cau = s.thoai.filter((c) => tu >= c.tre && tu < c.tre + Math.max(1.4, c.loi.length * 0.07)).pop();
+  const cau = s.thoai.filter((c) => tu >= c.tre && tu < c.tre + (c.dai || Math.max(1.4, c.loi.length * 0.07))).pop();
   phuDe.hidden = !cau; if (cau) phuDe.textContent = `${cau.ai}: ${cau.loi}`;
-  if (chay) s.thoai.forEach((c, j) => { const k = `${i}:${j}`; if (tu >= c.tre && !daNoi.has(k)) { daNoi.add(k); const a = new Audio(c.am); a.playbackRate = toc; a.play().catch(() => {}); dangPhat.push(a); } });
+  if (chay) s.thoai.forEach((c, j) => { const k = `${i}:${j}`; if (tu >= c.tre && !daNoi.has(k)) { daNoi.add(k); const a = new Audio(c.am); a.playbackRate = toc * (c.toc || 1); a.play().catch(() => {}); dangPhat.push(a); } });
   tua.value = String(Math.round((t / tong) * 1000)); thoi.textContent = `${so(t)} / ${so(tong)} s`;
 }
 function vong(now) {
@@ -440,6 +440,9 @@ const PHAN = [], NOI = [];
       nhipVi.push(`${sg(0)}–${sg(1)} s: ${tenVi(v.ten)} ${chay ? 'chạy' : 'đi'} về phía ${tenVi(toi)}`); nhipEn.push(`${sgE(0)}-${sgE(1)}s: ${tenEn(v.ten)} ${chay ? 'runs' : 'walks'} toward ${tenEn(toi)}`); }
     for (const v of s.may.vi_tri || []) for (const d of v.dien || []) { const r = /^uong@([\d.]+)-([\d.]+)$/.exec(d); if (!r) continue;
       nhipVi.push(`${sg(+r[1])}–${sg(+r[2])} s: ${tenVi(v.ten)} đưa chai (tay trái) lên miệng hút một ngụm`); nhipEn.push(`${sgE(+r[1])}-${sgE(+r[2])}s: ${tenEn(v.ten)} lifts the bottle in his LEFT hand to his mouth and takes a sip through the straw`); }
+    // LỜI THOẠI xếp chung dòng nhịp — nhìn là thấy lời nào khiến động tác nào (nhân quả: hành động phản hồi lời chỉ bắt đầu SAU khi câu đó dứt)
+    for (const c of s.thoai || []) { const dai = c.dai || Math.max(1.2, c.loi.length * 0.07), ngoai = !(s.may.vi_tri || []).some((v) => v.ten === c.ai) || !(s.may.khung || []).includes(c.ai);
+      nhipVi.push(`${so(c.tre)}–${so(c.tre + dai)} s: ${c.ai}${ngoai ? ' (ngoài khung)' : ''} nói «${c.loi}»`); nhipEn.push(`${c.tre.toFixed(1)}-${(c.tre + dai).toFixed(1)}s: ${tenEn(c.ai)}${ngoai ? ' (off-screen)' : ''} says "${c.loi}"`); }
     const thu = (x) => parseFloat(x.replace(',', '.')); const xep = nhipVi.map((x, q) => [x, nhipEn[q]]).sort((a2, b2) => thu(a2[0].split(':')[0].split(' ')[0].split('–')[0].replace(/^.*?(\d)/, '$1')) - thu(b2[0].split('–')[0].replace(/^.*?(\d)/, '$1')));
     nhipVi.splice(0, nhipVi.length, ...xep.map((x) => x[0])); nhipEn.splice(0, nhipEn.length, ...xep.map((x) => x[1]));
     // DÒNG ĐỒ VẬT: ai cầm gì, tay nào, số lượng + trạng thái — model không phải đoán

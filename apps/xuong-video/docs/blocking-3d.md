@@ -66,3 +66,7 @@ Soát tốc độ: câu nhịp tự ghi "đi" / "chạy" theo m/giây — thấy
 ## 7. Cận phản ứng chốt cảnh (close-up reaction shot · double take / slow burn · button)
 
 Anh 12/11/2026: "đoạn cuối cần shot mặt gần của Chú để rõ cảm xúc". Cảnh hài / cảnh có cú lật chốt bằng CẬN MẶT người chịu hậu quả: nối hướng nhìn từ shot trước → cúi nhìn thứ gây chuyện (đưa vật lên trước ngực: `dien: ['xem@a-b']`, khung phải thấy vật) → ngẩng lên nhìn lại, mặt đứng hình; máy đẩy chậm vào mặt (`chuyen_dong: day_vao`). Ví dụ phim #3071 shot #13.
+
+## 8. Nhân quả lời → hành động
+
+Anh 12/11/2026: "giao tiền xong chưa nói việc gì đã thấy bé chạy. Sai". Hành động phản hồi một câu thoại (đi mua, chạy đi, quay lại) chỉ BẮT ĐẦU SAU khi câu đó dứt. Dòng NHỊP trên trang xếp lời thoại chung với động tác, theo đúng lịch phát của bản xuất (am-thanh.ts: câu sau = max(tre, câu trước dứt + 0,15 s), đọc nhanh ≤ 1,35 khi thiếu chỗ) — soát bằng mắt thứ tự trên dòng nhịp; shot không đủ chỗ cho cả lời lẫn động tác thì KÉO DÀI shot (phat_s), không cho người làm trước khi được bảo. Ví dụ #4 phim #3071: 0,3–2,8 s chú dặn → 2,8–3,3 s nhóc quay → 3,3–4,2 s chạy (shot 3,3 → 4,2 s).

@@ -68,7 +68,7 @@ export async function khopGiongTap(db: Db, tapId: number, nguoi: string): Promis
   // Shot có câu nói không co dưới sàn (trừ khi vốn đã ngắn hơn) — hình còn phải diễn: sàn = giây đọc của loại phim (nhip-hinh.ts › giayDoc).
   // Phim KHÔNG LỜI: âm hiệu (nửa giây "Hup!") không quyết định nhịp — chỉ kéo dài cho đủ tiếng, không bao giờ co hình theo nó
   // (Tango & Lint tập 1: co theo âm hiệu → shot 2s, người xem chưa hiểu đã cắt).
-  const phatMoi = d.ds.map((c, i) => { const can = canPhat(c, d.nv, (u) => dai.get(u) ?? null); if (can == null) { if (dongThoai(c, d.nv).some((x) => x.loi.trim())) thieu++; return phatCu[i]!; } return kt.khong_loi ? Math.max(phatCu[i]!, can) : Math.max(Math.min(phatCu[i]!, san), can); });
+  const phatMoi = d.ds.map((c, i) => { const can = canPhat(c, d.nv, (u) => dai.get(u) ?? null); if (can == null) { if (dongThoai(c, d.nv).some((x) => x.loi.trim())) thieu++; return phatCu[i]!; } const dt = Number((c.ky_thuat as { phat_toi_thieu?: number } | null)?.phat_toi_thieu) || 0; return Math.max(dt, kt.khong_loi ? Math.max(phatCu[i]!, can) : Math.max(Math.min(phatCu[i]!, san), can)); });   // dt = giây ĐỘNG TÁC cần (blocking: nghe dặn rồi quay + chạy) — co theo giọng không được cắt mất động tác (12/11/2026: #4 phim #3071 bị rút 4,2 → 2,8 s)
   // Ghi độ dài đo được vào từng dòng (DongThoai.dai) — máy kiểm tiếng (kiemTieng) đọc ở thanh 🎬 và cổng xuất mà không đo lại.
   for (const c of d.ds) {
     if (!c.thoai.some((x) => x.url && dai.get(x.url) != null && x.dai !== dai.get(x.url))) continue;

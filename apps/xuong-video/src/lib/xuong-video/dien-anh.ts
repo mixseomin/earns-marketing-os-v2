@@ -24,6 +24,8 @@ export const NHOM_CHUYEN_CANH: { key: NhomChuyenCanh; ten: string }[] = [
  *  keyframe của shot chính là mẫu nơi đó nên không cần anchor Bối cảnh (quy-trinh.ts › thieuMau); nơi lặp lại vẫn phải có anchor. */
 export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, string>> & { am_thanh?: string[]; giay_cc?: number; luat?: string[]; nen_ghep?: boolean;
   /** Sổ VideoExpress của shot (scripts/vx-tap.mts): uuid job đã gửi, xong = mp4 đã gắn. Có uuid = đã thử đường 0₫ (cổng videoTraPhi). */ vx?: { uuid?: string; media_id?: number; luc?: string; prompt?: string; xong?: string };
+  /** GIÂY ĐỘNG TÁC tối thiểu của shot (blocking — docs/blocking-3d.md mục 8): khớp giây theo giọng (hau-ky.ts › khopGiongTap) không co dưới mức này */
+  phat_toi_thieu?: number;
   /** Anh cho shot này đi video TRẢ PHÍ dù chưa thử VideoExpress (cổng videoTraPhi). */ tra_phi?: boolean;
   /** ĐIỂM VÀO CLIP (giây): bản dựng lấy đoạn phát bắt đầu từ đây thay vì đầu clip — mảnh ReelShort 1–2 s cắt đúng khoảnh khắc diễn trong clip 4–8 s
    *  (#322 #4: mắt chỉ liếc ở giây cuối). Không khai = bỏ ≤ 0,5 s đầu như cũ. */ vao_s?: number;

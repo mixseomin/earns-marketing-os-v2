@@ -70,3 +70,9 @@ Anh 12/11/2026: "đoạn cuối cần shot mặt gần của Chú để rõ cả
 ## 8. Nhân quả lời → hành động
 
 Anh 12/11/2026: "giao tiền xong chưa nói việc gì đã thấy bé chạy. Sai". Hành động phản hồi một câu thoại (đi mua, chạy đi, quay lại) chỉ BẮT ĐẦU SAU khi câu đó dứt. Dòng NHỊP trên trang xếp lời thoại chung với động tác, theo đúng lịch phát của bản xuất (am-thanh.ts: câu sau = max(tre, câu trước dứt + 0,15 s), đọc nhanh ≤ 1,35 khi thiếu chỗ) — soát bằng mắt thứ tự trên dòng nhịp; shot không đủ chỗ cho cả lời lẫn động tác thì KÉO DÀI shot (phat_s), không cho người làm trước khi được bảo. Ví dụ #4 phim #3071: 0,3–2,8 s chú dặn → 2,8–3,3 s nhóc quay → 3,3–4,2 s chạy (shot 3,3 → 4,2 s).
+
+## 9. Giọng theo cách diễn MỚI + soát giọng đúng cách
+
+Anh 12/11/2026: "voice dùng lại không ổn". Đổi blocking (ai đứng đâu, nói tận mặt hay gọi với theo, vừa làm gì) thì SỬA `dien_xuat` từng câu theo cảnh mới rồi sinh lại (`sinh-shot.mts --canh=<ids> --giong --giong-lai`); không dùng lại giọng thu cho cách diễn cũ. Cách diễn kiểu "nói nhanh, chột dạ" dễ làm TTS líu chữ — thêm "rõ chữ".
+Soát chữ bằng Whisper phải nghe CẢ ĐOẠN nối liền như bản xuất (các câu của shot + 0,15 s ngắt): câu dưới 1 giây đứng riêng thì Whisper hay tự bịa ("Chào tạm biệt") dù giọng đúng — 12/11 tốn 3 lượt sinh lại oan cho "Sao giờ mới về?".
+Khớp giây theo giọng (hau-ky.ts › khopGiongTap) không co shot dưới `ky_thuat.phat_toi_thieu` — đặt mức này cho shot có động tác sau lời (nghe dặn rồi chạy).

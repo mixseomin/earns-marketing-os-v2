@@ -225,6 +225,11 @@ function viTriLuc(v, u) {
   const kq = di ? em(u) : em(Math.min(1, Math.max(0, (u - 0.55) / 0.45)));
   return { p, h: gocTron(h0, h1, kq) };
 }
+function quangDi(v, u) {   // độ dài đường đã đi (cm) từ đầu shot tới u, lấy mẫu 24 nấc — nhịp bước chân theo quãng thật
+  let d = 0, truoc = viTriLuc(v, 0).p;
+  for (let k = 1; k <= 24; k++) { const p = viTriLuc(v, (u * k) / 24).p; d += Math.hypot(p[0] - truoc[0], p[1] - truoc[1]); truoc = p; }
+  return d;
+}
 const TRAO = (v) => v.trao || [0.35, 0.7];   // khoảng chuyền tay (u) của món đổi tay
 const tayLuc = (v, u) => { const k = v.tay; if (!k?.length) return 0; let i = 0; while (i + 1 < k.length - 1 && u > k[i + 1][0]) i++; const [a, b] = [k[i], k[Math.min(i + 1, k.length - 1)]]; return b[0] > a[0] ? a[1] + (b[1] - a[1]) * em(Math.min(1, Math.max(0, (u - a[0]) / (b[0] - a[0])))) : a[1]; };
 // DIỄN CHỒNG (overlapping action — anh 12/11/2026 "làm thế đi, lưu lại để chuẩn hoá"): hành động là MỘT dòng liên tục của cả cảnh, shot chỉ là cửa sổ máy.
@@ -260,7 +265,7 @@ function dungShot(i, u0) {
     const [vv, uu] = nguon(i, v, u0), t = viTriLuc(vv, uu); cho[v.ten] = t;
     const kk = khoi[v.ten], g = kk.g; g.visible = true; g.position.copy(P(t.p)); g.rotation.set(0, (t.h * Math.PI) / 180, 0);
     if (kk.ng) {
-      const di = vv.den ? Math.hypot(vv.den[0] - vv.tam[0], vv.den[1] - vv.tam[1]) * em(uu) : 0;
+      const di = quangDi(vv, uu);   // QUÃNG ĐÃ THỰC SỰ ĐI tới lúc này — đứng nghe thì chân đứng (trước: tính theo tam → den cả shot nên #4 chân bước cả lúc đứng nghe dặn)
       const vuon = Math.max(tayLuc(vv, uu), ...trao.map((x) => { const [a, b] = x.khoang; return x.dua === v.ten ? kep((u - (a - 0.2)) / 0.2) * kep((b + 0.15 - u) / 0.15) : x.nhan === v.ten ? kep((u - (a - 0.08)) / 0.15) * kep((b + 0.25 - u) / 0.15) : 0; }), 0);
       // 'uong@a-b' (thư viện diễn như Blender): lên miệng 25 % đầu khoảng, giữ, hạ 25 % cuối
       const uong = Math.max(0, ...(vv.dien || []).map((d) => /^uong@([\d.]+)-([\d.]+)$/.exec(d)).filter(Boolean).map((r) => { const a = +r[1], b = +r[2], w = (b - a) * 0.25; return kep((uu - a) / w) * kep((b - uu) / w); }));

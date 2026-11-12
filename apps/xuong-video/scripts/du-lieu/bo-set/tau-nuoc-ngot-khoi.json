@@ -1,0 +1,1257 @@
+{
+ "ten": "Sân ga tàu xanh (Tàu nước ngọt)",
+ "ghi_chu": "Đơn vị cm, x đông, y bắc, z lên; dựng từ sơ đồ cảnh mau/phim-mau-tau-nuoc-ngot-khong-gian.json bằng scripts/du-lieu/bo-set/tau-nuoc-ngot.py.",
+ "vat": [
+  {
+   "ten": "Sân ga",
+   "nen": true,
+   "hinh": "hop",
+   "tam": [
+    270,
+    1200,
+    -2
+   ],
+   "co": [
+    660,
+    4400,
+    2
+   ],
+   "mau": "#9a948a",
+   "en": "concrete railway platform",
+   "chat": "be_tong"
+  },
+  {
+   "ten": "Mép sân ga",
+   "nen": true,
+   "hinh": "hop",
+   "tam": [
+    -50,
+    1200,
+    -2
+   ],
+   "co": [
+    20,
+    4400,
+    3
+   ],
+   "mau": "#e8d24a",
+   "en": "yellow platform edge line"
+  },
+  {
+   "ten": "Nền đường ray",
+   "nen": true,
+   "hinh": "hop",
+   "tam": [
+    -500,
+    1200,
+    -100
+   ],
+   "co": [
+    800,
+    4400,
+    2
+   ],
+   "mau": "#5a5248",
+   "en": "gravel track bed below the platform"
+  },
+  {
+   "ten": "Tiệm nước",
+   "hinh": "hop",
+   "tam": [
+    120.0,
+    3150,
+    0
+   ],
+   "co": [
+    320,
+    220,
+    270
+   ],
+   "mau": "#b8743a",
+   "en": "small drinks kiosk at the far end of the platform",
+   "chat": "go"
+  },
+  {
+   "ten": "Mái tiệm",
+   "hinh": "hop",
+   "tam": [
+    120.0,
+    3110,
+    270
+   ],
+   "co": [
+    380,
+    300,
+    12
+   ],
+   "mau": "#c43a2e",
+   "en": "red kiosk awning"
+  },
+  {
+   "ten": "Ghế đá",
+   "hinh": "hop",
+   "tam": [
+    330,
+    1300,
+    0
+   ],
+   "co": [
+    60,
+    180,
+    45
+   ],
+   "mau": "#7a756c",
+   "en": "stone bench"
+  },
+  {
+   "ten": "Cột đèn",
+   "hinh": "hop",
+   "tam": [
+    330,
+    700,
+    0
+   ],
+   "co": [
+    12,
+    12,
+    380
+   ],
+   "mau": "#3a3a3a",
+   "en": "platform lamp post"
+  },
+  {
+   "ten": "Cột đèn 2",
+   "hinh": "hop",
+   "tam": [
+    330,
+    2100,
+    0
+   ],
+   "co": [
+    12,
+    12,
+    380
+   ],
+   "mau": "#3a3a3a",
+   "en": "platform lamp post"
+  }
+ ],
+ "vung": {
+  "Sân ga tàu xanh": [
+   100,
+   900,
+   0
+  ]
+ },
+ "khoi": {
+  "Chú": {
+   "hinh": "trung",
+   "co": [
+    46,
+    30,
+    170
+   ],
+   "mau": "#3c5a78",
+   "mat": true
+  },
+  "Nhóc": {
+   "hinh": "trung",
+   "co": [
+    34,
+    24,
+    125
+   ],
+   "mau": "#d9473a",
+   "mat": true
+  },
+  "Tàu xanh": {
+   "hinh": "hop",
+   "co": [
+    300,
+    3200,
+    40
+   ],
+   "mau": "#2a2a2a",
+   "mat": false,
+   "phan": [
+    {
+     "hinh": "hop",
+     "tam": [
+      157,
+      0,
+      40
+     ],
+     "co": [
+      6,
+      3200,
+      110
+     ],
+     "mau": "#2f7d4a",
+     "chat": "son",
+     "ten_phan": "vách đông dưới",
+     "en": "green train side"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      157,
+      0,
+      240
+     ],
+     "co": [
+      6,
+      3200,
+      140
+     ],
+     "mau": "#2f7d4a",
+     "chat": "son",
+     "ten_phan": "vách đông trên",
+     "en": "green train side"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      157,
+      -880,
+      150
+     ],
+     "co": [
+      6,
+      1440,
+      90
+     ],
+     "mau": "#2f7d4a",
+     "chat": "son",
+     "ten_phan": "vách đông nam",
+     "en": "green train side"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      157,
+      780,
+      150
+     ],
+     "co": [
+      6,
+      1640,
+      90
+     ],
+     "mau": "#2f7d4a",
+     "chat": "son",
+     "ten_phan": "vách đông bắc",
+     "en": "green train side"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      -157,
+      0,
+      40
+     ],
+     "co": [
+      6,
+      3200,
+      340
+     ],
+     "mau": "#2f7d4a",
+     "chat": "son",
+     "ten_phan": "vách tây",
+     "en": "green train side"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      0,
+      0,
+      380
+     ],
+     "co": [
+      330,
+      3200,
+      14
+     ],
+     "mau": "#d8d8d0",
+     "chat": "son",
+     "ten_phan": "mái",
+     "en": "train roof"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      0,
+      0,
+      36
+     ],
+     "co": [
+      320,
+      3200,
+      4
+     ],
+     "mau": "#5a4a3a",
+     "chat": "son",
+     "ten_phan": "sàn toa",
+     "en": "train floor"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      161,
+      0,
+      120
+     ],
+     "co": [
+      2,
+      3200,
+      12
+     ],
+     "mau": "#e8c84a",
+     "chat": "son",
+     "ten_phan": "sọc vàng",
+     "en": "yellow stripe"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      161,
+      -1300,
+      155
+     ],
+     "co": [
+      2,
+      110,
+      80
+     ],
+     "mau": "#1d2a30",
+     "chat": "son",
+     "ten_phan": "kính -700",
+     "en": "closed train window"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      161,
+      -1050,
+      155
+     ],
+     "co": [
+      2,
+      110,
+      80
+     ],
+     "mau": "#1d2a30",
+     "chat": "son",
+     "ten_phan": "kính -450",
+     "en": "closed train window"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      161,
+      -800,
+      155
+     ],
+     "co": [
+      2,
+      110,
+      80
+     ],
+     "mau": "#1d2a30",
+     "chat": "son",
+     "ten_phan": "kính -200",
+     "en": "closed train window"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      161,
+      -550,
+      155
+     ],
+     "co": [
+      2,
+      110,
+      80
+     ],
+     "mau": "#1d2a30",
+     "chat": "son",
+     "ten_phan": "kính 50",
+     "en": "closed train window"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      161,
+      -350,
+      155
+     ],
+     "co": [
+      2,
+      110,
+      80
+     ],
+     "mau": "#1d2a30",
+     "chat": "son",
+     "ten_phan": "kính 250",
+     "en": "closed train window"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      161,
+      150,
+      155
+     ],
+     "co": [
+      2,
+      110,
+      80
+     ],
+     "mau": "#1d2a30",
+     "chat": "son",
+     "ten_phan": "kính 750",
+     "en": "closed train window"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      161,
+      400,
+      155
+     ],
+     "co": [
+      2,
+      110,
+      80
+     ],
+     "mau": "#1d2a30",
+     "chat": "son",
+     "ten_phan": "kính 1000",
+     "en": "closed train window"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      161,
+      650,
+      155
+     ],
+     "co": [
+      2,
+      110,
+      80
+     ],
+     "mau": "#1d2a30",
+     "chat": "son",
+     "ten_phan": "kính 1250",
+     "en": "closed train window"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      161,
+      900,
+      155
+     ],
+     "co": [
+      2,
+      110,
+      80
+     ],
+     "mau": "#1d2a30",
+     "chat": "son",
+     "ten_phan": "kính 1500",
+     "en": "closed train window"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      161,
+      1150,
+      155
+     ],
+     "co": [
+      2,
+      110,
+      80
+     ],
+     "mau": "#1d2a30",
+     "chat": "son",
+     "ten_phan": "kính 1750",
+     "en": "closed train window"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      161,
+      1400,
+      155
+     ],
+     "co": [
+      2,
+      110,
+      80
+     ],
+     "mau": "#1d2a30",
+     "chat": "son",
+     "ten_phan": "kính 2000",
+     "en": "closed train window"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      150,
+      -1400,
+      -45
+     ],
+     "co": [
+      12,
+      90,
+      90
+     ],
+     "mau": "#2a2a2a",
+     "chat": "son",
+     "ten_phan": "bánh -800",
+     "en": "train wheel"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      150,
+      -1250,
+      -45
+     ],
+     "co": [
+      12,
+      90,
+      90
+     ],
+     "mau": "#2a2a2a",
+     "chat": "son",
+     "ten_phan": "bánh -650",
+     "en": "train wheel"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      150,
+      20,
+      -45
+     ],
+     "co": [
+      12,
+      90,
+      90
+     ],
+     "mau": "#2a2a2a",
+     "chat": "son",
+     "ten_phan": "bánh 620",
+     "en": "train wheel"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      150,
+      170,
+      -45
+     ],
+     "co": [
+      12,
+      90,
+      90
+     ],
+     "mau": "#2a2a2a",
+     "chat": "son",
+     "ten_phan": "bánh 770",
+     "en": "train wheel"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      150,
+      1250,
+      -45
+     ],
+     "co": [
+      12,
+      90,
+      90
+     ],
+     "mau": "#2a2a2a",
+     "chat": "son",
+     "ten_phan": "bánh 1850",
+     "en": "train wheel"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      150,
+      1400,
+      -45
+     ],
+     "co": [
+      12,
+      90,
+      90
+     ],
+     "mau": "#2a2a2a",
+     "chat": "son",
+     "ten_phan": "bánh 2000",
+     "en": "train wheel"
+    }
+   ]
+  },
+  "Tờ 5 nghìn": {
+   "hinh": "hop",
+   "co": [
+    14,
+    7,
+    1
+   ],
+   "mau": "#7fbf6a",
+   "mat": false
+  },
+  "Chai nước ngọt": {
+   "hinh": "hop",
+   "co": [
+    7,
+    7,
+    24
+   ],
+   "mau": "#4a2a1a",
+   "mat": false
+  },
+  "Tiền thừa": {
+   "hinh": "hop",
+   "co": [
+    10,
+    6,
+    2
+   ],
+   "mau": "#c9b96a",
+   "mat": false
+  }
+ },
+ "may": {
+  "1": {
+   "dat": [
+    100.0,
+    360.0,
+    190.0
+   ],
+   "nhin": [
+    -120.0,
+    500,
+    200
+   ],
+   "ong_kinh": 50,
+   "vi_tri": [
+    {
+     "ten": "Chú",
+     "tam": [
+      -95,
+      500,
+      40
+     ],
+     "huong": 154
+    },
+    {
+     "ten": "Tờ 5 nghìn",
+     "tam": [
+      -95,
+      500,
+      140
+     ],
+     "cam": "Chú"
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -260,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   ],
+   "khung": [
+    "Chú"
+   ]
+  },
+  "2": {
+   "dat": [
+    -110.00000000000001,
+    500,
+    229.99999999999997
+   ],
+   "nhin": [
+    100.0,
+    900,
+    110
+   ],
+   "ong_kinh": 35,
+   "vi_tri": [
+    {
+     "ten": "Nhóc",
+     "tam": [
+      100.0,
+      900,
+      0
+     ],
+     "huong": -29
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -260,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   ],
+   "khung": [
+    "Nhóc"
+   ]
+  },
+  "3": {
+   "dat": [
+    -40.0,
+    150.0,
+    160.0
+   ],
+   "nhin": [
+    -40.0,
+    1600,
+    150
+   ],
+   "ong_kinh": 26,
+   "vi_tri": [
+    {
+     "ten": "Chú",
+     "tam": [
+      -95,
+      500,
+      40
+     ],
+     "huong": 90
+    },
+    {
+     "ten": "Nhóc",
+     "tam": [
+      -20,
+      500,
+      0
+     ],
+     "huong": -90,
+     "nhay": "nhóc chạy từ giữa sân ga tới dưới cửa sổ giữa hai shot"
+    },
+    {
+     "ten": "Tờ 5 nghìn",
+     "tam": [
+      -95,
+      500,
+      140
+     ],
+     "cam": "Chú",
+     "den": [
+      -20,
+      500,
+      100
+     ]
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -260,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   ],
+   "khung": [
+    "Chú",
+    "Nhóc",
+    "Tờ 5 nghìn"
+   ]
+  },
+  "4": {
+   "dat": [
+    90.0,
+    300.0,
+    100.0
+   ],
+   "nhin": [
+    40.0,
+    500,
+    110
+   ],
+   "ong_kinh": 50,
+   "vi_tri": [
+    {
+     "ten": "Nhóc",
+     "tam": [
+      -20,
+      500,
+      0
+     ],
+     "huong": -90,
+     "den": [
+      100.0,
+      1800,
+      0
+     ],
+     "huong_den": 179
+    },
+    {
+     "ten": "Tờ 5 nghìn",
+     "tam": [
+      -20,
+      500,
+      100
+     ],
+     "cam": "Nhóc",
+     "het": true
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -260,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   ],
+   "khung": [
+    "Nhóc"
+   ],
+   "nham": "Nhóc"
+  },
+  "5": {
+   "dat": [
+    -40.0,
+    150.0,
+    160.0
+   ],
+   "nhin": [
+    -40.0,
+    1600,
+    150
+   ],
+   "ong_kinh": 26,
+   "vi_tri": [
+    {
+     "ten": "Chú",
+     "tam": [
+      -95,
+      500,
+      40
+     ],
+     "huong": 175
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -260,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   ],
+   "khung": [
+    "Chú"
+   ]
+  },
+  "6": {
+   "dat": [
+    -82,
+    470,
+    8
+   ],
+   "nhin": [
+    -110,
+    640,
+    0
+   ],
+   "ong_kinh": 35,
+   "vi_tri": [
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -260,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   ],
+   "khung": [
+    "Tàu xanh"
+   ]
+  },
+  "7": {
+   "dat": [
+    100.0,
+    360.0,
+    190.0
+   ],
+   "nhin": [
+    -120.0,
+    500,
+    200
+   ],
+   "ong_kinh": 50,
+   "vi_tri": [
+    {
+     "ten": "Chú",
+     "tam": [
+      -95,
+      500,
+      40
+     ],
+     "huong": 175
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -260,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   ],
+   "khung": [
+    "Chú"
+   ]
+  },
+  "8": {
+   "dat": [
+    60.0,
+    650.0,
+    100.0
+   ],
+   "nhin": [
+    80.0,
+    1200,
+    110
+   ],
+   "ong_kinh": 50,
+   "vi_tri": [
+    {
+     "ten": "Nhóc",
+     "tam": [
+      100,
+      1500,
+      0
+     ],
+     "huong": -24,
+     "nhay": "nhóc mua nước xong, quay lại đi về phía tàu (ngoài khung)",
+     "den": [
+      80.0,
+      950.0,
+      0
+     ],
+     "huong_den": -24
+    },
+    {
+     "ten": "Chai nước ngọt",
+     "tam": [
+      100,
+      1500,
+      100
+     ],
+     "cam": "Nhóc"
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -260,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   ],
+   "khung": [
+    "Nhóc"
+   ]
+  },
+  "9": {
+   "dat": [
+    -40.0,
+    150.0,
+    160.0
+   ],
+   "nhin": [
+    -40.0,
+    1600,
+    150
+   ],
+   "ong_kinh": 26,
+   "vi_tri": [
+    {
+     "ten": "Chú",
+     "tam": [
+      -95,
+      500,
+      40
+     ],
+     "huong": 90
+    },
+    {
+     "ten": "Nhóc",
+     "tam": [
+      80.0,
+      950.0,
+      0
+     ],
+     "huong": -90,
+     "den": [
+      -20,
+      500,
+      0
+     ],
+     "huong_den": -90
+    },
+    {
+     "ten": "Chai nước ngọt",
+     "tam": [
+      80.0,
+      950.0,
+      100
+     ],
+     "cam": "Nhóc"
+    },
+    {
+     "ten": "Tiền thừa",
+     "tam": [
+      80.0,
+      950.0,
+      100
+     ],
+     "cam": "Nhóc"
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -260,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   ],
+   "khung": [
+    "Chú",
+    "Nhóc",
+    "Chai nước ngọt",
+    "Tiền thừa"
+   ]
+  },
+  "10": {
+   "dat": [
+    40.0,
+    440.00000000000006,
+    200.0
+   ],
+   "nhin": [
+    -120.0,
+    500,
+    200
+   ],
+   "ong_kinh": 85,
+   "vi_tri": [
+    {
+     "ten": "Chú",
+     "tam": [
+      -95,
+      500,
+      40
+     ],
+     "huong": 90
+    },
+    {
+     "ten": "Nhóc",
+     "tam": [
+      -20,
+      500,
+      0
+     ],
+     "huong": -90
+    },
+    {
+     "ten": "Chai nước ngọt",
+     "tam": [
+      -20,
+      500,
+      100
+     ],
+     "cam": "Nhóc"
+    },
+    {
+     "ten": "Tiền thừa",
+     "tam": [
+      -20,
+      500,
+      100
+     ],
+     "cam": "Nhóc",
+     "den": [
+      -95,
+      500,
+      140
+     ]
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -260,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   ],
+   "khung": [
+    "Chú"
+   ]
+  },
+  "11": {
+   "dat": [
+    -40.0,
+    150.0,
+    160.0
+   ],
+   "nhin": [
+    -40.0,
+    1600,
+    150
+   ],
+   "ong_kinh": 26,
+   "vi_tri": [
+    {
+     "ten": "Chú",
+     "tam": [
+      -95,
+      500,
+      40
+     ],
+     "huong": 90
+    },
+    {
+     "ten": "Nhóc",
+     "tam": [
+      -20,
+      500,
+      0
+     ],
+     "huong": 177,
+     "den": [
+      100.0,
+      1800,
+      0
+     ],
+     "huong_den": 175
+    },
+    {
+     "ten": "Chai nước ngọt",
+     "tam": [
+      -20,
+      500,
+      100
+     ],
+     "cam": "Nhóc"
+    },
+    {
+     "ten": "Tiền thừa",
+     "tam": [
+      -95,
+      500,
+      140
+     ],
+     "cam": "Chú"
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -260,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   ],
+   "khung": [
+    "Chú",
+    "Nhóc",
+    "Chai nước ngọt",
+    "Tiền thừa"
+   ]
+  },
+  "12": {
+   "dat": [
+    300.0,
+    400.0,
+    170.0
+   ],
+   "nhin": [
+    -120.0,
+    550.0,
+    200
+   ],
+   "ong_kinh": 35,
+   "vi_tri": [
+    {
+     "ten": "Chú",
+     "tam": [
+      -95,
+      500,
+      40
+     ],
+     "huong": 171,
+     "den": [
+      -95,
+      465,
+      40
+     ],
+     "huong_den": 171
+    },
+    {
+     "ten": "Tiền thừa",
+     "tam": [
+      -95,
+      500,
+      140
+     ],
+     "cam": "Chú",
+     "den": [
+      -95,
+      465,
+      140
+     ]
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -260,
+      600,
+      0
+     ],
+     "huong": 0,
+     "den": [
+      -260,
+      565,
+      0
+     ]
+    }
+   ],
+   "khung": [
+    "Chú"
+   ]
+  }
+ }
+}

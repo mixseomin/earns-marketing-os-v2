@@ -1,6 +1,7 @@
 # BỘ SET 3D sân ga — phim mẫu "Tàu nước ngọt" (#2934 tập #2936), anh 12/11/2026: làm theo lối hybrid Blender (khối thô → AI vẽ lại).
 # Dựng từ sơ đồ cảnh mau/phim-mau-tau-nuoc-ngot-khong-gian.json (m, x đông, y bắc) → cm cùng trục; z lên. Tàu là KHỐI (đạo cụ 'Tàu xanh') để #12 lăn bánh.
 #   python3 scripts/du-lieu/bo-set/tau-nuoc-ngot.py > scripts/du-lieu/bo-set/tau-nuoc-ngot.json
+#   XV_KHOI=1 python3 scripts/du-lieu/bo-set/tau-nuoc-ngot.py > scripts/du-lieu/bo-set/tau-nuoc-ngot-khoi.json   (video thô khối, phim #3071)
 import json, math
 SD = json.load(open('mau/phim-mau-tau-nuoc-ngot-khong-gian.json'))
 C = SD['chung']['so_do']; M = {k: [v[0] * 100, v[1] * 100] for k, v in C['moc'].items()}
@@ -32,6 +33,10 @@ phan = [
     p('sọc vàng', -99, 600, 120, [2, 3200, 12], '#e8c84a', 'yellow stripe'),
 ] + [p(f'kính {y}', -99, y, 155, [2, 110, 80], KINH, 'closed train window') for y in (-700, -450, -200, 50, 250, 750, 1000, 1250, 1500, 1750, 2000)] \
   + [p(f'bánh {y}', -110, y, -45, [12, 90, 90], GAM, 'train wheel') for y in (-800, -650, 620, 770, 1850, 2000)]
+import os
+# KHỐI (XV_KHOI=1 — anh 12/11/2026, video thô như nửa dưới reel): người = khối trứng đứng có hai mắt chỉ hướng mặt, đúng chiều cao; chỉ để đọc nhịp máy, cỡ cảnh,
+# đường đi, hướng nhìn, đồ đổi tay — không ma-nơ-canh. Không khai thì người = ma-nơ-canh có khớp (bản cho keyframe sau này).
+KHOI_NGUOI = {'Chú': {'hinh': 'trung', 'co': [46, 30, 170], 'mau': '#3c5a78', 'mat': True}, 'Nhóc': {'hinh': 'trung', 'co': [34, 24, 125], 'mau': '#d9473a', 'mat': True}}
 khoi = {
     'Chú': {'hinh': 'nguoi', 'gioi': 'nam', 'tuoi': 45, 'co': [46, 28, 170], 'mau': '#c99a74', 'ao': '#3c5a78', 'toc': 'short02', 'mau_toc': '#1a1612', 'dang': ['dung_vung']},
     'Nhóc': {'hinh': 'nguoi', 'gioi': 'nam', 'tuoi': 9, 'co': [32, 18, 125], 'mau': '#c99a74', 'ao': '#d9473a', 'toc': 'short02', 'mau_toc': '#141110', 'dang': ['dung_vung']},
@@ -40,6 +45,7 @@ khoi = {
     'Chai nước ngọt': {'hinh': 'hop', 'co': [7, 7, 24], 'mau': '#4a2a1a', 'mat': False},
     'Tiền thừa': {'hinh': 'hop', 'co': [10, 6, 2], 'mau': '#c9b96a', 'mat': False},
 }
+if os.environ.get('XV_KHOI') == '1': khoi.update(KHOI_NGUOI)
 # SỔ ĐỒ VẬT theo shot (khớp so_vat của sơ đồ cảnh): (món, người cầm lúc mở, người nhận lúc kết | None, hết sau shot này)
 DO = {
     '1': [('Tờ 5 nghìn', 'Chú', None, False)], '2': [('Tờ 5 nghìn', 'Chú', None, False)],

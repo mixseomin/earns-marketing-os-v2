@@ -50,12 +50,15 @@ export function chayKySu(cfg) {
   from human_tasks where project_id='${cfg.duAn}' and prep_payload->>'source_platform'='feedback'${boQua}
   and coalesce(prep_payload->'site_status'->>'${cfg.duAn}', status) in ('pending','claimed','broken')) x`) || '[]');
   const card = kiem ? JSON.parse(sql(`select json_build_object('id', id, 'title', title, 'tin_nguoi', 0) from human_tasks where id=${kiem}`)) : ds.find((c) => { const d = daLam[c.id]; return !d || d.tin_nguoi < c.tin_nguoi || Date.now() - Date.parse(d.luc) > 24 * 36e5; });
+  // cây riêng dọn MỖI LƯỢT, kể cả khi không có card (13/11/2026: Đạt commit #1580 lúc 00:03, push bị từ chối vì main vừa đổi; bước tự đẩy commit kẹt
+  // trong cayRieng chỉ chạy khi có card mới → bản sửa nằm kẹt tới card kế). cfg.cayMoiLuot: chỉ người dùng cây riêng (Hiếu làm cây chính, kiểm box3 đắt hơn).
+  const cayDau = !thu && !kiem && cfg.cayMoiLuot ? cfg.cay() : null;
   if (!card) { log(`không có card mới (${ds.length} card mở, đã làm cả)`); process.exit(0); }
 
   ENV.BR_URL_NGUON = `card góp ý ${cfg.duAn} #${card.id} (trang lưu trong luồng card trên box3)`;   // luật br chống bịa URL: link trang lấy từ card là nguồn thật
   const luong = JSON.parse(sql(`select coalesce(prep_payload->'trao_doi','[]') from human_tasks where id=${Number(card.id)}`) || '[]');
   const cuoiNguoi = [...luong].reverse().find((t) => !laAi(t));
-  const cay = thu ? { dir: cfg.cayThu, do: [] } : cfg.cay();
+  const cay = thu ? { dir: cfg.cayThu, do: [] } : cayDau ?? cfg.cay();
   const dir = cay.dir;
   fs.mkdirSync(ANH, { recursive: true });
   const QUYEN = [...quyenChung(dir, ANH), ...cfg.quyen(dir)];

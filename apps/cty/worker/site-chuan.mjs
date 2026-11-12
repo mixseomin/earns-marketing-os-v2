@@ -18,7 +18,9 @@ const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 export function thieuTrang(html, faviconAnh) {
   const h = String(html || ''), thieu = [];
   if (!faviconAnh && !/<link[^>]+rel=["'][^"']*icon[^"']*["']/i.test(h)) thieu.push('favicon');
-  if (!/<(img|svg|a|div|span)[^>]*(class|id|alt|src|aria-label)=["'][^"']*logo[^"']*["']/i.test(h) && !/\/(logo|icon-\d+)\.(svg|png|webp|jpg)/i.test(h)) thieu.push('logo');
+  // logo: phần tử mang chữ logo / brand, tệp logo, hoặc ảnh / svg nằm trong <header> / <nav> (logo dạng hình ở đầu trang)
+  const dauTrang = (h.match(/<(header|nav)\b[\s\S]*?<\/\1>/i) || [''])[0];
+  if (!/<[a-z]+[^>]*(class|id|alt|src|aria-label)=["'][^"']*(logo|brand)[^"']*["']/i.test(h) && !/\/(logo|icon-\d+)\.(svg|png|webp|jpg)/i.test(h) && !/<(img|svg)\b/i.test(dauTrang)) thieu.push('logo');
   if (!/\bG-[A-Z0-9]{6,}\b/.test(h) && !/googletagmanager\.com\/gtag/i.test(h)) thieu.push('GA4');
   return thieu;
 }
@@ -87,7 +89,10 @@ if (process.argv[1]?.endsWith('site-chuan.mjs')) {
     a.deepStrictEqual(thieuTrang('<html><body>hi</body></html>', true), ['logo', 'GA4'], 'favicon.ico là ảnh thì đủ favicon dù thiếu thẻ link');
     a.deepStrictEqual(thieuTrang('<img alt="Acme logo" src="/a.png"> gtag G-ABCDEF12', false), ['favicon'], 'logo theo alt + GA theo mã G-');
     a.ok(laTrangDo('This domain is for sale!') && !laTrangDo(du), 'nhận trang đỗ');
-    console.log('site-chuan: 5/5 bài tự kiểm đạt');
+    a.deepStrictEqual(thieuTrang('<header><a href="/"><svg viewBox="0 0 10 10"></svg> Acme</a></header> G-ABCDEF12', true), [], 'svg trong header = có logo');
+    a.deepStrictEqual(thieuTrang('<header><a class="site-brand">Acme</a></header> G-ABCDEF12', true), [], 'class brand = có logo');
+    a.deepStrictEqual(thieuTrang('<header><a href="/">Acme</a></header> G-ABCDEF12', true), ['logo'], 'chỉ chữ trơn trong header = thiếu logo');
+    console.log('site-chuan: 8/8 bài tự kiểm đạt');
   } else if (process.argv.includes('--kiem')) {
     const ten = process.argv[process.argv.indexOf('--kiem') + 1];
     const t = await moTrang(ten);

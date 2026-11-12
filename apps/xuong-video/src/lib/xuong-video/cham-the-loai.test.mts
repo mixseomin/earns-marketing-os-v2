@@ -25,4 +25,8 @@ assert.equal(chamTheLoai('hai', ds, pc(), no)!.tieu_chi.find((x) => x.ma === 'ki
 assert.equal(chamTheLoai('hai', ds, [{ ten: 'A' }] as never, no)!.tieu_chi[0]!.ma, 'co_gag');
 // thể loại chưa có bộ chấm → null
 assert.equal(chamTheLoai('kinh_di', ds, pc(), no), null);
+// mặt lạnh: shot bùng là cận phản ứng (#4) — phản ứng tính chính nó; kiểu tình huống bùng ở #4 thì không có gì sau → đỏ
+const pcML = (kieu: string) => [{ ten: 'A' }, { ten: 'B', nhac: 'khong', gag: [{ ten: 'Đứng hình', gai: 'cháu một chai', bung: 'đứng hình', o_shot: 2, kieu }] }] as never;
+assert.equal(chamTheLoai('hai', ds, pcML('mat_lanh'), no)!.tieu_chi.find((x) => x.ma === 'phan_ung')?.dat, true);
+assert.equal(chamTheLoai('hai', ds, pcML('tinh_huong'), no)!.tieu_chi.find((x) => x.ma === 'phan_ung')?.dat, false);
 console.log('cham-the-loai.test: ok');

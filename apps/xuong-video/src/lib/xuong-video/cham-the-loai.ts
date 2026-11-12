@@ -40,7 +40,8 @@ export function chamHai(ds: Canh[], phanCanh: PhanCanh[], laNv: (ten: string) =>
     const kg = tu(g.gai); const thay = kg.filter((w) => truoc.some((c) => tu(chuShot(c)).includes(w))).length;
     out.push({ ma: 'gai_tra', ten: 'Gài trước, trả sau', dat: kg.length ? thay / kg.length >= 0.5 : false, ly: `${nhan}: ${thay}/${kg.length} từ của phần gài "${g.gai}" đã lên màn trước shot bùng #${shot.thu_tu}`, nguon: 'McKee — setup / payoff; Chekhov', gag: g.ten });
     // PHẢN ỨNG SAU BÙNG: trong ≤ 4 shot có cận phản ứng thấy mặt, giữ ≥ 1,5 s
-    const sau = ds.slice(i + 1, i + 5).filter((c) => c.ky_thuat?.vai === 'phan_ung' && CO_CAN.has(c.ky_thuat?.co_canh ?? '') && giayPhat(c) >= 1.5 && !matQuayDi(c, laNv).length);
+    // gag MẶT LẠNH: cú bùng CHÍNH LÀ cận phản ứng (slow burn) — tính cả shot bùng; kiểu khác: phản ứng phải đến SAU cú bùng
+    const sau = ds.slice(g.kieu === 'mat_lanh' ? i : i + 1, i + 5).filter((c) => c.ky_thuat?.vai === 'phan_ung' && CO_CAN.has(c.ky_thuat?.co_canh ?? '') && giayPhat(c) >= 1.5 && !matQuayDi(c, laNv).length);
     out.push({ ma: 'phan_ung', ten: 'Cận phản ứng sau cú bùng', dat: sau.length > 0, ly: sau.length ? `${nhan}: #${sau[0]!.thu_tu} cận phản ứng ${giayPhat(sau[0]!)} s` : `${nhan}: 4 shot sau bùng #${shot.thu_tu} không có cận phản ứng thấy mặt ≥ 1,5 s`, nguon: 'double take / slow burn (Oliver Hardy, Jack Benny); Murch — cảm xúc', gag: g.ten });
     const kieu = g.kieu;
     if (!kieu) { out.push({ ma: 'kieu', ten: 'Kiểu hài', dat: false, ly: `${nhan}: chưa khai kiểu hài — máy không biết áp bộ tiêu chí nào`, nguon: '', gag: g.ten }); continue; }

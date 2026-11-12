@@ -142,7 +142,10 @@ const CAM_MINIMAX = new Set(['happy', 'sad', 'angry', 'fearful', 'disgusted', 's
 export async function dauVaoGiongTheoModel(model: string, v: { text: string; voice: string; ngonNgu: string; camXuc: number; theLoai: string; toc?: number | null; cam?: string | null }): Promise<Record<string, unknown>> {
   const buon = v.theLoai === 'kinh_di' ? 'fearful' : 'sad';
   const emotion = v.cam && CAM_MINIMAX.has(v.cam) ? v.cam : v.camXuc >= 3 ? 'happy' : v.camXuc <= -3 ? buon : 'neutral';
-  const the = /eleven/.test(model) && /v3/.test(model) ? (v.camXuc >= 3 ? '[excited] ' : v.camXuc <= -3 ? (v.theLoai === 'kinh_di' ? '[whispers] ' : '[sad] ') : '') : '';
+  // ElevenLabs v3: thẻ cảm xúc là MỘT từ tiếng Anh ngắn ([cheerfully], [sad]…). Trước 12/11/2026 sinh-giong nhét nguyên câu cách diễn tiếng Việt vào
+  // ngoặc vuông → v3 ĐỌC TO cả câu đó ("Tận mặt thằng bé đang đứng chờ…", phim #3071 shot #9 phình 6 → 12,5 s). Cách diễn từng câu đi qua v.cam (docCachDien).
+  const THE_V3: Record<string, string> = { happy: '[cheerfully] ', sad: '[sad] ', angry: '[annoyed] ', surprised: '[surprised] ', fearful: '[nervous] ' };
+  const the = /eleven/.test(model) && /v3/.test(model) ? (v.cam && THE_V3[v.cam] ? THE_V3[v.cam]! : v.camXuc >= 3 ? '[excited] ' : v.camXuc <= -3 ? (v.theLoai === 'kinh_di' ? '[whispers] ' : '[sad] ') : '') : '';
   if (model.startsWith('elevenlabs:')) return { text: the + v.text, voice_id: v.voice, model_id: model.slice('elevenlabs:'.length), language_code: v.ngonNgu === 'vi' ? 'vi' : 'en' };
   const mt = await moTaFal(model);
   const o: Record<string, unknown> = { [mt.truongChu]: the + v.text };

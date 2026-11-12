@@ -15,7 +15,7 @@ import { chuoiCanDich, ganDich, theoNgonNgu, giongDong } from './ban-dich';
 import { chayXuat } from './xuat-chay';
 import { gonGiong } from './hau-ky';
 import { chayViecAm } from './viec-am';
-import { dauVaoGiongTheoModel } from './giong';
+import { dauVaoGiongTheoModel, docCachDien } from './giong';
 import { MODEL_GIONG_MAC_DINH, giongMacDinh } from './sinh-giong';
 import { docKinhThanh, locNhanh, type BanXuat } from './kieu';
 import { boiCanhTap, mapCanh, ghiTienChu, xongJob, type Db, type Row } from './doc-db';
@@ -79,11 +79,11 @@ export async function xuatLongTiengTap(db: Db, tapId: number, job: number, sang 
     if (cu?.url && cu.goc === d.loi && cu.loi === text) { giongDich.set(`${c.id}:${i}`, cu.url); continue; }
     const g = giongDong(d, bc.nhanVat, kt) ?? await (async () => { const m = MODEL_GIONG_MAC_DINH(); return { model: m, voice: await giongMacDinh(m) }; })();
     const camXuc = c.cam_xuc;
-    const loiDoc = d.dien_xuat && /eleven/.test(g.model) && /v3/.test(g.model) ? `[${d.dien_xuat}] ${text}` : text;
-    const key = `xuong-video/am/long-tieng/${sang}-${bam(JSON.stringify([g.model, g.voice, loiDoc, camXuc]))}.mp3`;
+    const loiDoc = text, cd = docCachDien(d.dien_xuat);   // cách diễn đi bằng toc/cam (giong.ts), KHÔNG nhét vào chữ: v3 đọc to cả câu ghi chú (12/11/2026)
+    const key = `xuong-video/am/long-tieng/${sang}-${bam(JSON.stringify([g.model, g.voice, loiDoc, d.dien_xuat ?? '', camXuc]))}.mp3`;
     let url = await coTep(key);
     if (!url) {
-      const kq = await chayViecAm({ kieu: 'am', job, model: g.model, input: await dauVaoGiongTheoModel(g.model, { text: loiDoc, voice: g.voice, ngonNgu: sang, camXuc, theLoai: kt.the_loai ?? '' }), thuMuc: `long-tieng/${c.id}-${i}` });
+      const kq = await chayViecAm({ kieu: 'am', job, model: g.model, input: await dauVaoGiongTheoModel(g.model, { text: loiDoc, voice: g.voice, ngonNgu: sang, camXuc, theLoai: kt.the_loai ?? '', toc: cd.toc, cam: cd.cam }), thuMuc: `long-tieng/${c.id}-${i}` });
       if (!kq.ok) { loiGiong.push(`#${c.thu_tu} dòng ${i + 1}: ${kq.loi}`); continue; }
       kyTu += loiDoc.length;
       // Gọn (cắt lặng đầu/cuối) như giọng gốc rồi lưu ở khoá nội dung để lần sau dùng lại.

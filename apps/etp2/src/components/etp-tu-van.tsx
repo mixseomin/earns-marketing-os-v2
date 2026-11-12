@@ -35,7 +35,9 @@ export function NenLam({ ds, moCamp }: { ds: TuVan[]; moCamp: (id: number) => vo
       {tt.roi_nay != null ? <div><b>Thị trường</b> cả đội {tt.gio_vn}: {pc(tt.roi_nay)} vs 7 ngày {pc(tt.roi_7)}
         <span style={{ color: (tt.lech ?? 0) <= -10 ? '#f87171' : (tt.lech ?? 0) >= 10 ? '#34d399' : 'var(--fg-3)' }}> → {(tt.lech ?? 0) <= -10 ? 'chợ kém hơn thường' : (tt.lech ?? 0) >= 10 ? 'chợ tốt hơn thường' : 'chợ bình thường'}</span></div> : null}
       {d.du_bao ? <div><b style={{ color: DU_BAO[d.du_bao.muc][1] }}>{DU_BAO[d.du_bao.muc][0]}</b>{d.du_bao.ly.length ? ` — ${d.du_bao.ly.join(' · ')} → không tăng tổng ngân sách` : ''}</div> : null}
-      {d.du_bao?.bao_dong ? <div style={{ color: '#f87171', fontWeight: 600 }}>🚨 Chợ {pc(d.du_bao.bao_dong.roi)} trên {usd(d.du_bao.bao_dong.chi)} (07:00–{d.du_bao.bao_dong.toi_gio_vn}) → hoãn tăng / nhân bản camp thường</div> : null}
+      {d.du_bao?.bao_dong ? (d.du_bao.bao_dong.hoi
+        ? <div style={{ color: '#34d399', fontWeight: 600 }}>🌤 Chợ đang hồi: 2 giờ gần nhất {pc(d.du_bao.bao_dong.roi_2h)} (thường {pc(d.du_bao.bao_dong.roi_2h_7)}) · cả ngày còn {pc(d.du_bao.bao_dong.roi)} → tăng / nhân bản lại theo luật thường</div>
+        : <div style={{ color: '#f87171', fontWeight: 600 }}>🚨 Chợ {pc(d.du_bao.bao_dong.roi)} trên {usd(d.du_bao.bao_dong.chi)} (07:00–{d.du_bao.bao_dong.toi_gio_vn}) · 2 giờ gần nhất {pc(d.du_bao.bao_dong.roi_2h)} (thường {pc(d.du_bao.bao_dong.roi_2h_7)}) → hoãn tăng / nhân bản camp thường</div>) : null}
       {d.phien ? <div><b>Phiên {d.phien.gio}</b>: {[...d.phien.mo.map((m) => `mở ${m}`), ...d.phien.dong.map((m) => `đóng ${m}`)].join('; ') || 'không đổi khung'}</div> : null}
       {d.may_se_lam.length ? <div style={{ color: 'var(--fg-2)' }}><b style={{ color: 'var(--fg-1)' }}>Máy luật đang thấy</b>: {d.may_se_lam.map((m) => `${m.luat.split(' · ')[0]} ${m.dat} đủ${m.gan ? `/${m.gan} gần` : ''}`).join(' · ')}</div> : null}
       {NHOM.map(([k, ten, mau]) => d.nen[k].length ? <div key={k}>

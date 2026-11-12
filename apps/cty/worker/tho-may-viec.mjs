@@ -31,14 +31,24 @@ export const LAP_TRAN = 3;
 const soLanXong = (hang, c, luc) => hang.filter((v) => v.khoa === c.khoa && v.tt === 'xong' && v.xong && luc - Date.parse(v.xong) < LAP_GIO * 36e5).length;
 /** Thuần — runner báo máy KẸT (vd Huy không kéo được bản mới nên đứng im): mỗi khoá tối đa MỘT tin / LAP_GIO giờ, không thành mỗi 5 phút một tin. */
 export const nenCanh = (st, k, luc = Date.now()) => !(st.canh?.[k] && luc - Date.parse(st.canh[k]) < LAP_GIO * 36e5);
+/** Thuần — MỘT GỐC TOẢ RA N VIỆC thì chỉ một phiên (12/11/2026: 09/11 một cú ssh iMac→box3 đứt → 6 lượt militarycalc hỏng cùng phút → 6 việc dang:lo → 6 phiên Mạnh,
+ *  6 kết luận y nhau). Khoá gộp = dòng "Lỗi:" bỏ số, bỏ tên máy / nền của khoá; không có dòng Lỗi: thì không gộp (mỗi việc một chuyện). */
+export function nhomLoi(khoa, chu) {
+  const l = (String(chu ?? '').match(/^Lỗi:\s*(.+)$/m) || [])[1]; if (!l) return null;
+  let s = l; for (const p of String(khoa).split(/[|:]/).slice(1)) if (p.length >= 3) s = s.split(p).join('');
+  return `${String(khoa).split('|')[0]}|${s.replace(/\d+/g, '').replace(/\s+/g, ' ').trim().slice(0, 160)}`;
+}
 export function themViec(st, ds, { luc = Date.now(), topic = null, msg = null } = {}) {
-  const hang = st.hang || [], dang = new Set(hang.filter((v) => v.tt === 'cho' || v.tt === 'dang').map((v) => v.khoa));
-  let them = 0, so = hang.reduce((a, v) => Math.max(a, v.id), 0);
+  const hang = st.hang || [], dang = new Set(hang.filter((v) => v.tt === 'cho' || v.tt === 'dang').flatMap((v) => [v.khoa, ...(v.gop ?? [])]));
+  let them = 0, so = hang.reduce((a, v) => Math.max(a, v.id), 0); const nhom = new Map();
   for (const c of ds) {
     const nXong = LOAI_SUA.test(c.khoa) ? soLanXong(hang, c, luc) : 0;
     if (!LOAI_SUA.test(c.khoa) || dang.has(c.khoa) || vuaKetKhongSua(hang, c, luc) || nXong >= LAP_TRAN) continue;
+    const g = nhomLoi(c.khoa, c.chu), goc = g && nhom.get(g);
+    if (goc) { goc.gop = [...(goc.gop ?? []), c.khoa]; goc.chu += `\n\n↳ CÙNG LỖI, cùng lô: ${c.khoa} — sửa một gốc cho cả nhóm, báo đủ các máy / nền trong một tin.`; dang.add(c.khoa); continue; }
     const chu = nXong >= LAP_TRAN - 1 ? `${c.chu}\n\n⚠ LẶP: lỗi này đã báo "đã sửa" ${nXong} lần trong ${LAP_GIO} giờ mà vẫn tái phát. Đừng sửa lại kiểu cũ: tìm gốc sâu hơn; không chắc thì KET: CAN_ANH để anh quyết. Đây là lượt cuối trong ${LAP_GIO} giờ.` : c.chu;
-    hang.push({ id: ++so, khoa: c.khoa, chu, ...(c.dau ? { dau: c.dau } : {}), luc: new Date(luc).toISOString(), tg: { topic, msg }, tt: 'cho' }); dang.add(c.khoa); them++;   // dau: dấu bộ việc (Khang — không xếp lại y nguyên)
+    const v = { id: ++so, khoa: c.khoa, chu, ...(c.dau ? { dau: c.dau } : {}), luc: new Date(luc).toISOString(), tg: { topic, msg }, tt: 'cho' };   // dau: dấu bộ việc (Khang — không xếp lại y nguyên)
+    hang.push(v); dang.add(c.khoa); them++; if (g) nhom.set(g, v);
   }
   return { st: { ...st, hang: hang.slice(-200) }, them };
 }
@@ -126,6 +136,14 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     assert.equal(st.ngay[ngayVN(t0)], 8, 'bộ đếm ngày vẫn đếm'); assert.equal(layViec(st, t0).ly_do, 'không có việc', 'hết việc thì nghỉ');
     { const s2 = { hang: [{ id: 1, khoa: 'lan:a', tt: 'cho' }, { id: 2, khoa: 'kenh:parody|x', tt: 'cho' }], ngay: {} }; assert.equal(layViec(s2, t0).viec.id, 2, 'việc kênh nhận trước'); }
     assert.strictEqual(themViec({ hang: [{ id: 1, khoa: 'lan:a', tt: 'xong' }] }, [{ khoa: 'lan:a', chu: 'tái phát' }]).them, 1, 'đã xong rồi tái phát: nhận lại');
+    { // một gốc toả N việc cùng lô → một việc (12/11/2026): dòng Lỗi: giống nhau sau khi bỏ số + máy / nền
+      const loi = (ma, nen, n) => ({ khoa: `dang:lo|${ma}|${nen}`, chu: `Máy đăng ${ma} ${nen} hỏng ở bước Kênh sẵn sàng — lượt #${n} (18:0${n % 10} giờ VN).\nLỗi: Command failed: ssh root@167.233.241.16 cd /opt/x && node day-studio.mjs --may-info ${ma}` });
+      const g = themViec({}, [loi('militarycalc', 'x_link', 757), loi('militarycalc', 'substack', 758), loi('yesterdays-news-tonight', 'facebook:597', 755), { khoa: 'dang:lo|m|youtube', chu: 'lỡ lượt — bài cuối 2026-11-01' }], { luc: t0 });
+      assert.strictEqual(g.them, 2, 'ba việc cùng Lỗi: → một; việc không có dòng Lỗi: đứng riêng');
+      assert.deepStrictEqual(g.st.hang[0].gop, ['dang:lo|militarycalc|substack', 'dang:lo|yesterdays-news-tonight|facebook:597']); assert.match(g.st.hang[0].chu, /CÙNG LỖI.*substack[\s\S]*CÙNG LỖI.*facebook:597/);
+      assert.strictEqual(themViec(g.st, [loi('militarycalc', 'substack', 760)], { luc: t0 }).them, 0, 'khoá đã gộp vào việc đang chờ: không xếp đôi');
+      assert.strictEqual(themViec({}, [loi('a', 'x', 1), { khoa: 'dang:lo|b|y', chu: 'hỏng\nLỗi: YouTube: không thấy nút Publish' }], { luc: t0 }).them, 2, 'Lỗi: khác nhau không gộp');
+      assert.strictEqual(nhomLoi('dang:lo|m|x', 'không có dòng lỗi'), null); }
     assert.ok(nenCanh({}, 'etp:keo-ban', t0), 'chưa báo: báo'); assert.ok(!nenCanh({ canh: { 'etp:keo-ban': new Date(t0 - 36e5).toISOString() } }, 'etp:keo-ban', t0), 'vừa báo 1 giờ trước: thôi');
     assert.ok(nenCanh({ canh: { 'etp:keo-ban': new Date(t0 - 25 * 36e5).toISOString() } }, 'etp:keo-ban', t0), 'quá 24 giờ: báo lại');
     { const xong = (n) => ({ hang: Array.from({ length: n }, (_, i) => ({ id: i + 1, khoa: 'etp:luat', tt: 'xong', xong: new Date(t0 - (i + 1) * 36e5).toISOString() })) });

@@ -67,7 +67,7 @@ import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 import { phimDangSx, tvChuaCr } from '@/lib/etp-sx';
-import { KD, KHUNG_TEN, chuLich, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucLam, type HuongLuat } from '@/lib/etp-khung';
+import { KD, KHUNG_TEN, chuCong, congTang, quaCong, chuLich, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucLam, type HuongLuat } from '@/lib/etp-khung';
 
 type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -411,7 +411,7 @@ function tinhLuat({ c, ba, bao, boThang, thangMuc, xet }: VaoLuat) {
   const xDat = (xet ?? []).find((x) => x.ket === 'dat' && x.ma !== 'roas'), xGan = (xet ?? []).find((x) => x.ket === 'gan');
   const chinh2 = daXep[0] ? chinh : xDat ? { chip: XET_CHIP[xDat.ma]?.[0] ?? xDat.ten, mau: XET_CHIP[xDat.ma]?.[1] ?? '#94a3b8', dac: true }
     : ganBao[0] ? chinh : xGan ? { chip: XET_CHIP[xGan.ma]?.[0] ?? xGan.ten, mau: XET_CHIP[xGan.ma]?.[1] ?? '#94a3b8', dac: false } : xet ? null : chinh;
-  const don = c.ngan_sach > 0 && c.nay.chi > 0 && c.nay.chi >= KD.nap_chi * c.ngan_sach && (c.nay.thu - c.nay.chi) / c.nay.chi * 100 >= KD.sang_roi;   // tiêu dồn → được nạp ở khung sáng
+  const don = quaCong(c.nay.chi, c.nay.thu, c.ngan_sach, KD.sang[0] + 2);   // qua cổng nạp sáng (sổ luật sang_nap: tiêu 50–75% + ROI ≥ 0) → được nạp ở khung sáng
   return { chinh: chinh2, daXep, ganBao, hien: [...du, ...gan.filter((l) => !du.includes(l))], xet, the: daXep[0] || ganBao[0] ? (xet ?? []).find((x) => x.vao === (daXep[0] ?? ganBao[0])!.nhom) : xDat ?? xGan, don };   // máy đã xếp → giờ của chính thẻ xét luật đó (12/11/2026 #81648: ô giờ trống)
 }
 // nho: cỡ gọn cho widget Theo luật (Tổng quan 2, anh 10/11/2026 "show màu và trạng thái giống trong tab camp nhưng nhỏ gọn hơn")
@@ -537,9 +537,9 @@ function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: bo
 // KHUNG ĐỔI CAMP — BẢN LỚN (anh 05/11/2026 "show trực quan hơn"): một hàng trọn chiều ngang trên tab Camp — trạng thái chữ to + đếm ngược,
 // thanh 24 giờ ghi chữ từng khung + kim giờ hiện tại, số camp đã đạt luật đang chờ khung (theo hướng, từ etp.bao — cùng nguồn chip ⏳)
 // nhịp tăng đọc sổ luật (khung_doi.nghi_gio / nghi_don_gio) — chữ không ghi cứng số (anh 05/11/2026: thẻ còn ghi "một bậc" sau khi đã cho tăng dồn)
-const NHIP_TANG = `mỗi lần lên bậc kế (≤ ×1,5); tăng tiếp sau ≥ ${KD.nghi_don_gio} giờ nếu vẫn tiêu ≥ ${KD.nap_chi * 100}% ngân sách mới + ROI hôm nay ≥ ${KD.sang_roi}%, không thì cách ≥ ${KD.nghi_gio} giờ`;
-const CHU_KHUNG: Record<string, string> = { tang: `máy tự TĂNG camp đã tiêu ≥ ${KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ ${KD.sang_roi}% (đầu phiên · tăng bậc · T30): ${NHIP_TANG} — không giảm, không tắt`, giam: 'máy tự GIẢM · TẮT camp theo luật — không tăng',
-  sang: `máy NẠP camp lãi lớn đã tiêu ≥ ${KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ ${KD.sang_roi}%: ${NHIP_TANG} — không giảm, không tắt`, bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung' };   // số lấy từ sổ luật chung khung_doi
+const NHIP_TANG = `mỗi lần lên bậc kế (≤ ×1,5); tăng tiếp sau ≥ ${KD.nghi_don_gio} giờ nếu vẫn qua cổng (ngân sách mới), không thì cách ≥ ${KD.nghi_gio} giờ`;
+const CHU_KHUNG: Record<string, string> = { tang: `máy tự TĂNG camp ${chuCong(KD.tang[0] + 1)} (đầu phiên · tăng bậc · T30): ${NHIP_TANG} — không giảm, không tắt`, giam: 'máy tự GIẢM · TẮT camp theo luật — không tăng',
+  sang: `máy NẠP camp ${chuCong(KD.sang[0] + 2)} — tiêu ≥ ${Math.round(congTang(KD.sang[0] + 2).den! * 100)}% buổi sáng là tiêu dồn, không tăng: ${NHIP_TANG} — không giảm, không tắt`, bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung' };   // số lấy từ sổ luật chung khung_doi
 function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   const noi = useNoi<{ id: 0 }>();   // gọi trước mọi lệnh return sớm (luật hook)
   const [h, setH] = useState<number | null>(null);

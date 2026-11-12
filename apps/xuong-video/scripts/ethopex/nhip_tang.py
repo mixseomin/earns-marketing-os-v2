@@ -34,12 +34,30 @@ def so_13h(cid, ngay_utc):
         (select min(nullif(regexp_replace(truoc, '[^0-9.]', '', 'g'), '')::numeric) from etp.nhat_ky where ok and viec = 'tang' and camp_id = {int(cid)} and (luc at time zone 'utc')::date = '{ngay_utc}')"""], capture_output=True, text=True)
     p = (r.stdout.strip().split("|") + [""])[:2]
     return (float(p[0]) if p[0] else None), (float(p[1]) if p[1] else None)
-def du_so(chi, thu, ns, chi_13h=None, ns_13h=None):
-    """đạt cổng tăng: hôm nay đã tiêu ≥ nap_chi × ngân sách đang chạy và ROI hôm nay ≥ sang_roi%; KHÔNG tiêu dồn (chi_13h / ns_13h — None = không xét)"""
-    if not trong_nhanh():   # khung tăng nhanh (anh 10/11/2026): không hoãn tiêu dồn; ngoài khung giữ nguyên
+# CỔNG KHUNG SÁNG (anh 12/11/2026 "làm theo đề xuất" — sổ luật chung khung_doi.sang_nap; đo có đối chứng apps/etp/phan-tich/bac-doi-chung.py): 07–15h VN
+# tăng khi đã tiêu 50–75% ngân sách + ROI hôm nay ≥ 0 (3 ngày sau +2,67/$ vs không tăng +0,06/$); tiêu ≥ 75% trước 15h = tiêu dồn, 3 ngày sau lỗ dù tăng hay không → không tăng.
+# Ngoài khung sáng giữ nap_chi + sang_roi. MỘT chỗ: máy luật (_nap_sang, _du_tang, khung nhanh), máy làm (du_don), nhịp (cho_tang) cùng gọi.
+SANG, SANG_NAP = tuple(KD["sang"]), KD["sang_nap"]
+SANG_MAU = dt.datetime(2026, 1, 1, (SANG[0] + 2 - 7) % 24, tzinfo=dt.timezone.utc)   # một giờ UTC nằm trong khung sáng (sáng + 2 giờ) — để in câu cổng sáng
+def trong_sang(bay_gio=None):
+    h = ((bay_gio or dt.datetime.now(dt.timezone.utc)) + dt.timedelta(hours=7)).hour
+    return SANG[0] <= h < SANG[1]
+def cong(bay_gio=None):
+    """cổng tăng lúc này: (chi từ, chi tới hoặc None, ROI hôm nay tối thiểu %) — chi tính theo × ngân sách đang chạy"""
+    if trong_sang(bay_gio): return float(SANG_NAP["chi"][0]), float(SANG_NAP["chi"][1]), float(SANG_NAP["roi"])
+    return float(KD["nap_chi"]), None, float(KD["sang_roi"])
+def chu_cong(bay_gio=None):
+    a, b, r = cong(bay_gio)
+    return (f"đã tiêu {a:.0%}–{b:.0%}" if b else f"đã tiêu ≥ {a:.0%}") + f" ngân sách đang chạy + ROI hôm nay ≥ {r:g}%"
+def qua_cong(chi, thu, ns, bay_gio=None):
+    """chỉ cổng chi + ROI (không xét tiêu dồn) — khung sáng có cả trần chi"""
+    a, b, r = cong(bay_gio); chi, thu, ns = float(chi or 0), float(thu or 0), float(ns or 0)
+    return ns > 0 and chi > 0 and chi >= a * ns and (b is None or chi < b * ns) and thu >= (1 + r / 100) * chi
+def du_so(chi, thu, ns, chi_13h=None, ns_13h=None, bay_gio=None):
+    """đạt cổng tăng: qua_cong (khung sáng: tiêu 50–75% + ROI ≥ 0 · ngoài: tiêu ≥ nap_chi + ROI ≥ sang_roi%); KHÔNG tiêu dồn (chi_13h / ns_13h — None = không xét)"""
+    if not trong_nhanh(bay_gio):   # khung tăng nhanh (anh 10/11/2026): không hoãn tiêu dồn; ngoài khung giữ nguyên
         if tieu_don(chi_13h, ns_13h or ns): return False
-    chi, thu, ns = float(chi or 0), float(thu or 0), float(ns or 0)
-    return ns > 0 and chi >= float(KD["nap_chi"]) * ns and thu >= (1 + float(KD["sang_roi"]) / 100) * chi
+    return qua_cong(chi, thu, ns, bay_gio)
 def du_don(api, cid, bay_gio=None):
     """đọc số HÔM NAY (ngày Ethopex = ngày UTC) + ngân sách đang chạy của camp từ API rồi chấm du_so — cho máy làm (lam-ethopex) khi không có sẵn số"""
     now = bay_gio or dt.datetime.now(dt.timezone.utc); d = now.date().isoformat()
@@ -105,7 +123,7 @@ def cho_tang(api, cid, bay_gio=None, du=None):
         if gap < NGHI_DON_GIO or not du:
             # mốc ghi kèm NGÀY (11/11/2026: nhịp 24 giờ → "vừa tăng lúc 07:02 — chờ tới 07:02" trông như vô lý; giống câu "vừa giảm" đã có ngày)
             # trong khung tăng nhanh: chưa đạt cổng là lý do duy nhất (đạt thì tăng ngay) — câu nói thẳng thế, không hẹn "được từ +3 giờ" sai
-            cong = f"đã tiêu ≥ {float(KD['nap_chi']):.0%} ngân sách đang chạy + ROI hôm nay ≥ {KD['sang_roi']}%"
+            cong = chu_cong(now)
             return ((f"vừa tăng lúc {vn(ls[0]):%H:%M %d/%m} — chờ tới {vn(ls[0] + dt.timedelta(hours=NGHI_GIO)):%H:%M %d/%m} (cách nhau ≥ {NGHI_GIO} giờ; "
                      + (f"đang khung tăng nhanh nhưng camp chưa đạt cổng: {cong} thì tăng ngay)" if trong_nhanh(now) else
                         f"{cong} thì được từ {vn(ls[0] + dt.timedelta(hours=NGHI_DON_GIO)):%H:%M %d/%m})")),
@@ -141,7 +159,13 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=False).startswith("vừa tăng"), "3–24 giờ mà KHÔNG đạt cổng thì chặn (nhịp 24 giờ)"
     assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=True) is None, "3 giờ + đạt cổng (tiêu ≥ nap_chi × NS mới, ROI ≥ 100%) → tăng dồn được"
     assert chan_tang(api, 1, u("2026-10-22T08:00:00"), du=False) is None, "đủ 24 giờ thì tăng, không cần cổng dồn"
-    _n = float(KD["nap_chi"]); assert du_so(_n + 0.01, 2 * (_n + 0.01), 1) and not du_so(_n - 0.01, 2, 1) and not du_so(1, 1.9, 1) and not du_so(1, 2, 0), "cổng: chi ≥ nap_chi × NS (sổ luật chung) + thu ≥ 2 × chi"
+    _n, _dem = float(KD["nap_chi"]), u("2026-10-21T16:00:00")   # 23h VN: ngoài khung sáng
+    assert du_so(_n + 0.01, 2 * (_n + 0.01), 1, bay_gio=_dem) and not du_so(_n - 0.01, 2, 1, bay_gio=_dem) and not du_so(1, 1.9, 1, bay_gio=_dem) and not du_so(1, 2, 0, bay_gio=_dem), "cổng ngoài khung sáng: chi ≥ nap_chi × NS (sổ luật chung) + thu ≥ 2 × chi"
+    _sg = u("2026-10-21T02:00:00")   # 09h VN: khung sáng — tiêu 50–75% + ROI ≥ 0 (anh 12/11/2026)
+    assert trong_sang(_sg) and not trong_sang(_dem) and not trong_sang(u("2026-10-21T08:00:00")), "khung sáng 07–15h VN"
+    assert du_so(0.6, 0.6, 1, bay_gio=_sg) and du_so(0.5, 0.5, 1, bay_gio=_sg) and not du_so(0.75, 3, 1, bay_gio=_sg) and not du_so(1, 3, 1, bay_gio=_sg), "sáng: 50% ≤ chi < 75% ngân sách — tiêu ≥ 75% (tiêu dồn) không tăng dù ROI cao"
+    assert not du_so(0.49, 2, 1, bay_gio=_sg) and not du_so(0.6, 0.59, 1, bay_gio=_sg) and not du_so(0, 0, 1, bay_gio=_sg), "sáng: dưới 50% / ROI âm / chưa chi → không"
+    assert "50%–75%" in chu_cong(_sg) and "≥ 0%" in chu_cong(_sg) and "≥ 40%" in chu_cong(_dem), "câu cổng theo giờ"
     assert chan_tang(api, 1, u("2026-10-22T01:30:00"), du=False).startswith("vừa tăng"), "18 giờ sau (8h30 VN hôm sau), không đạt cổng → còn chặn (nhịp 24 giờ, 05/11/2026)"
     assert chan_tang(api, 1, u("2026-10-22T01:30:00"), du=True) is None, "18 giờ sau + đạt cổng → được"
     _CACHE.clear()

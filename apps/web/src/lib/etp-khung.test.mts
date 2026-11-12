@@ -1,12 +1,12 @@
 import assert from 'node:assert';
 import { khungLuc, hetKhung, gioVnNay, docHoan, chuLich, lucTang } from './etp-khung';
-import { khungCua, roiNap } from '../../../cty/worker/ethopex.mjs';   // kiểm chéo: worker đọc cùng sổ luật khung_doi
+import { khungCua, congNap } from '../../../cty/worker/ethopex.mjs';   // kiểm chéo: worker đọc cùng sổ luật khung_doi
 
 assert.deepStrictEqual([0, 6.9, 7, 14.9, 15, 20.9, 21, 22.5, 23, 23.9].map(khungLuc), ['tang', 'tang', 'sang', 'sang', 'giam', 'giam', 'tang', 'tang', 'tang', 'tang']);   // 05/11/2026 đảo khung: tăng 21–07 (qua nửa đêm) · giảm/tắt 15–21 · nạp sáng 07–15
 assert.strictEqual(hetKhung(3), 7); assert.strictEqual(hetKhung(8), 15); assert.strictEqual(hetKhung(16), 21); assert.strictEqual(hetKhung(21.5), 7); assert.strictEqual(hetKhung(23.2), 7);
 // KIỂM CHÉO worker ↔ trang: cùng khung cho từng nửa giờ của ngày (một luật hai tầng phải ra một kết quả)
 for (let g = 0; g < 24; g += 0.5) assert.strictEqual(khungCua(g), khungLuc(g), `lệch khung lúc ${g}h`);
-assert.strictEqual(roiNap('sang'), 100); assert.strictEqual(roiNap('tang'), null); assert.strictEqual(roiNap('giam'), null); assert.strictEqual(roiNap('bang'), null);
+assert.deepStrictEqual(congNap('sang'), { tu: 0.5, den: 0.75, roi: 0 }); assert.strictEqual(congNap('tang'), null); assert.strictEqual(congNap('giam'), null); assert.strictEqual(congNap('bang'), null);   // nạp sáng 50–75% + ROI ≥ 0 (anh 12/11/2026)
 assert.strictEqual(Math.floor(gioVnNay(Date.UTC(2026, 10, 4, 17, 30))), 0);   // 17:30 UTC = 00:30 VN
 const now = Date.UTC(2026, 10, 5, 0, 0), luc = new Date(now - 20 * 60_000).toISOString();
 const h = docHoan([{ khoa: 'khung_hoan', gia_tri: { luc, tang: [1, 2], giam: [3], tat: [2] } }], now);

@@ -18,7 +18,13 @@ export const khungLuc = (h: number): KhungDoi => (trong(h, KD.giam) ? 'giam' : t
 // KHUNG TĂNG NHANH (anh 10/11/2026 — sổ luật chung khung_doi.nhanh, máy: nhip_tang.trong_nhanh): camp ROI hôm nay ≥ sang_roi% + tiêu ≥ nap_chi × ngân sách lên bậc ngay mỗi nhịp
 export const NHANH = ((BANG_LUAT.khung_doi as unknown as { nhanh?: [number, number][] }).nhanh ?? []);
 export const trongNhanh = (h: number) => NHANH.some((k) => trong(h, k));
-export const NHANH_TEN: [string, string, string] = ['⚡', `Tăng nhanh ${NHANH.map(([a, b]) => `${a}–${b}h`).join(' · ')}: ROI hôm nay ≥ ${KD.sang_roi}% + đã tiêu ≥ ${Math.round(KD.nap_chi * 100)}% ngân sách → lên bậc kế ngay mỗi nhịp, không chờ 24 giờ`, '#facc15'];
+// CỔNG TĂNG THEO GIỜ (anh 12/11/2026 — sổ luật khung_doi.sang_nap, máy: nhip_tang.cong): khung sáng 07–15h tăng khi đã tiêu 50–75% ngân sách + ROI hôm nay ≥ 0
+// (tiêu ≥ 75% buổi sáng = tiêu dồn → không tăng); ngoài khung sáng: tiêu ≥ nap_chi + ROI ≥ sang_roi%. Kiểm chéo với worker congNap ở etp-khung.test.mts.
+const SANG_NAP = (BANG_LUAT.khung_doi as unknown as { sang_nap: { chi: [number, number]; roi: number } }).sang_nap;
+export const congTang = (h = gioVnNay()): { tu: number; den: number | null; roi: number } => (trong(h, KD.sang) ? { tu: SANG_NAP.chi[0], den: SANG_NAP.chi[1], roi: SANG_NAP.roi } : { tu: KD.nap_chi, den: null, roi: KD.sang_roi });
+export const quaCong = (chi: number, thu: number, ns: number, h?: number) => { const c = congTang(h); return ns > 0 && chi > 0 && chi >= c.tu * ns && (c.den == null || chi < c.den * ns) && thu >= (1 + c.roi / 100) * chi; };
+export const chuCong = (h?: number) => { const c = congTang(h), p = (x: number) => `${Math.round(x * 100)}%`; return `${c.den == null ? `đã tiêu ≥ ${p(c.tu)}` : `đã tiêu ${p(c.tu)}–${p(c.den)}`} ngân sách + ROI hôm nay ≥ ${c.roi}%`; };
+export const NHANH_TEN: [string, string, string] = ['⚡', `Tăng nhanh ${NHANH.map(([a, b]) => `${a}–${b}h`).join(' · ')}: đạt cổng thì lên bậc kế ngay mỗi nhịp, không chờ 24 giờ — đêm ${chuCong(KD.tang[0] + 1)} · sáng ${chuCong(KD.sang[0] + 2)}`, '#facc15'];
 /** khung đang chạy kéo tới mấy giờ (giờ nguyên, 0–23) */
 export const hetKhung = (h: number) => { const k = khungLuc(h); for (let i = 1; i <= 24; i++) { const g = (Math.floor(h) + i) % 24; if (khungLuc(g) !== k) return g; } return Math.floor(h); };
 /** SỔ HOÃN của máy (etp.cau_hinh 'khung_hoan', worker ethopex.mjs ghi mỗi nhịp): camp máy ĐÃ đủ luật + đủ công tắc nhưng hoãn vì khung giờ.

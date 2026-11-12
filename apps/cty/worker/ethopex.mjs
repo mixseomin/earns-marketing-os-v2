@@ -81,8 +81,9 @@ export const chuChay = (ds, [a, b] = BANG_LUAT.khung_doi.len.map((x) => String(x
 /** loại bản nhân theo KẾT QUẢ nhan-ban.py (kq.bai_cu = mã bài đăng dùng lại, kq.ns = ngân sách thật) — anh 12/11/2026 #1561: tin ghi cứng "bản mới $1" nên anh tưởng máy không dùng used post */
 export const kieuNb = (ds) => { const ok = ds.filter((r) => r?.ok), bai = ok.filter((r) => r.bai_cu), moi = ok.filter((r) => !r.bai_cu), ns = (x, m) => [...new Set(x.map((r) => `$${r.ns ?? m}`))].join('/');
   return [bai.length ? `${bai.length} bản USED POST (dùng lại bài đăng camp gốc) ${ns(bai, '?')}` : '', moi.length ? `${moi.length} bản bài mới ${ns(moi, 1)} (đổi creative / khác bộ)` : ''].filter(Boolean).join(' · ') || 'không tạo được bản nào'; };
-/** ngưỡng ROI hôm nay để được nạp trong khung chỉ-nạp ('sang' 07–15h); null = khung không nạp (tang: tăng đủ luật · giam / bang: không tăng) */
-export const roiNap = (khung, KD = BANG_LUAT.khung_doi) => (khung === 'sang' ? Number(KD.sang_roi) : null);
+/** cổng nạp trong khung chỉ-nạp ('sang' 07–15h): {tu, den, roi} — chi hôm nay trong [tu, den) × ngân sách + ROI hôm nay ≥ roi% (sổ luật khung_doi.sang_nap, anh 12/11/2026: 50–75% + ROI ≥ 0,
+ *  cùng nhip_tang.cong); null = khung không nạp (tang: tăng đủ luật · giam / bang: không tăng) */
+export const congNap = (khung, KD = BANG_LUAT.khung_doi) => (khung === 'sang' ? { tu: Number(KD.sang_nap.chi[0]), den: Number(KD.sang_nap.chi[1]), roi: Number(KD.sang_nap.roi) } : null);
 export function gopCamp(ds) {
   const ra = new Map(), cua = new Map();
   for (const [k, nutCho, moi] of ds) for (const m of moi) {
@@ -415,14 +416,14 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const gioVn = new Date(Date.now() + 7 * 3600_000).getUTCHours(), yen = gioVn >= 3 && gioVn < 9;
   // KHUNG ĐỔI CAMP (anh 04/11/2026, cả 3 bộ): số cả team 14 ngày — 00–12h VN ROI +21…+39% (giờ vàng), 15–21h +2% / −10% (kém nhất); đổi giờ vàng thì Meta học lại
   // đúng lúc lãi nhất. 15–21h: mọi luật máy tự tăng / giảm / tắt · 21–23h: CHỈ tự tăng camp đã tiêu ≥ 95% ngân sách hôm nay + ROI hôm nay ≥ 30% (nạp tiền cho đêm —
-  // 00–07h VN là cuối ngày ngân sách UTC) · 07–15h: CHỈ tự tăng camp đã tiêu hết + ROI hôm nay ≥ sang_roi% (nạp sáng, anh 05/11/2026) · 23–07h: đóng băng. Ngoài khung luật vẫn chấm + báo, nút Telegram anh bấm vẫn chạy; dừng đêm (anh 25/10) giữ nguyên làm đường khẩn.
-  const KD = BANG_LUAT.khung_doi, khungDoi = khungCua(gioVn, KD), roiN = roiNap(khungDoi, KD);   // khung ở sổ luật chung — trang etp (tab Camp) đọc cùng chỗ · tang 21–07h tăng đủ luật · giam 15–21h giảm/tắt · sang 07–15h chỉ nạp ROI ≥ 100% (anh 05/11/2026 đảo khung)
+  // 00–07h VN là cuối ngày ngân sách UTC) · 07–15h: CHỈ tự tăng camp đã tiêu 50–75% ngân sách + ROI hôm nay ≥ 0 (nạp sáng — sổ luật sang_nap, anh 12/11/2026) · 23–07h: đóng băng. Ngoài khung luật vẫn chấm + báo, nút Telegram anh bấm vẫn chạy; dừng đêm (anh 25/10) giữ nguyên làm đường khẩn.
+  const KD = BANG_LUAT.khung_doi, khungDoi = khungCua(gioVn, KD), roiN = congNap(khungDoi, KD);   // khung ở sổ luật chung — trang etp (tab Camp) đọc cùng chỗ · tang 21–07h tăng đủ luật · giam 15–21h giảm/tắt · sang 07–15h chỉ nạp ROI ≥ 100% (anh 05/11/2026 đảo khung)
   // SỔ HOÃN (audit 05/11/2026: tab Camp tự đoán "chờ 15h" theo hướng luật → báo ↓26 cho 26 camp G10 chỉ đang theo dõi, và báo cả giảm khi công tắc tự giảm đang tắt):
   // chính máy làm việc ghi việc nó đã đủ luật + đủ công tắc nhưng hoãn vì khung giờ → etp.cau_hinh 'khung_hoan', trang etp chỉ đọc sổ này
   const HOAN = { tang: new Set(), giam: new Set(), tat: new Set() };
   const hoan = (k, m) => { HOAN[k].add(Number(m.id)); return true; };   // máy ĐỦ luật nhưng khung giờ chặn → ghi sổ hoãn (trang etp đọc), không làm
   // camp được NẠP trong khung chỉ-nạp: hôm nay đã tiêu ≥ nap_chi × ngân sách + ROI hôm nay ≥ ngưỡng của khung (21–23h nap_roi · 07–15h sang_roi)
-  const napDuoc = roiN == null ? new Set() : new Set(String(await chayPsql(`select camp_id from etp.so_ngay where ngay = (now() at time zone 'utc')::date and ngan_sach > 0 and chi >= ${Number(KD.nap_chi)} * ngan_sach and thu >= ${1 + roiN / 100} * chi`).catch((e) => { console.error('nạp (khung_doi):', e.message); return ''; })).split(/\s+/).filter(Boolean));
+  const napDuoc = roiN == null ? new Set() : new Set(String(await chayPsql(`select camp_id from etp.so_ngay where ngay = (now() at time zone 'utc')::date and ngan_sach > 0 and chi > 0 and chi >= ${roiN.tu} * ngan_sach and chi < ${roiN.den} * ngan_sach and thu >= ${1 + roiN.roi / 100} * chi`).catch((e) => { console.error('nạp (khung_doi):', e.message); return ''; })).split(/\s+/).filter(Boolean));
   const tt = docJ(path.join(DATA(), 'ethopex-tu-tang.json'), null);
   const tuTang = tt && Date.now() < Date.parse(tt.den) ? Number(tt.tran) || 0 : 0;
   const daTu = []; const lamRoi = new Set();
@@ -489,10 +490,15 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // luật T30 (5 ngày đã khép ROI ≥ 50%, chi TB ≥ $12) — gộp quyền, không nới ngưỡng
   if (tuTang) {
     for (const k of ['hoi_g10', 'dau_phien', 'tang', 'tang30']) for (const m of kq[k] || []) {   // G10 hồi trước (anh 04/11/2026)
-      const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id) || seTat.has(m.id) || (!(khungDoi === 'tang' || (khungDoi === 'sang' && napDuoc.has(String(m.id)))) && hoan('tang', m))) continue;
+      // A/B TĂNG (anh 12/11/2026 — AB06 tăng 15–21h · AB07 tăng khi mới tiêu < 25%): máy luật đánh dấu m.ab = [mã, nhánh]; thử → tăng (kể cả khung giảm / tắt), đối chứng → không tăng, ghi nhánh
+      const ab = k === 'tang' && Array.isArray(m.ab) && /^AB\d+$/.test(m.ab[0]) && ['thu', 'doi'].includes(m.ab[1]) ? m.ab : null;
+      const ghiAb = (nh) => chayPsql(`insert into etp.camp_ab (camp_id, ab, nhanh) values (${Number(m.id)}, '${ab[0]}', '${nh}') on conflict (camp_id) do nothing`).catch((e) => console.error('ghi A/B tăng:', e.message));
+      if (ab && ab[1] === 'doi') { if (!lamRoi.has(m.id) && !seTat.has(m.id)) { await ghiAb('doi'); if (khungDoi !== 'tang') hoan('tang', m); } continue; }
+      const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id) || seTat.has(m.id) || (!(ab || khungDoi === 'tang' || (khungDoi === 'sang' && napDuoc.has(String(m.id)))) && hoan('tang', m))) continue;
       lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), ...(k === 'hoi_g10' ? ['--ep'] : []), ...(k === 'tang' || k === 'dau_phien' ? ['--du-luat'] : []), '--luat', `${k === 'hoi_g10' ? 'G10 hồi' : TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', k === 'tang30' ? `máy tự tăng T30 (anh cho phép tự tăng, trần $${tuTang} — gộp 29/10/2026)` : `máy tự tăng (anh cho phép ${Date.parse(tt?.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daTu.push({ k, m, d, r });
+      if (ab && r?.ok) await ghiAb('thu');   // nhánh thử ghi SAU khi tăng thành công
       if (k === 'hoi_g10' && r?.ok) await chayPsql(`update etp.cau_hinh set gia_tri = gia_tri - '${Number(m.id)}' where khoa = 'g10'`).catch((e) => console.error('gỡ g10:', e.message));
       // lộ trình G10 hồi (anh 07/11/2026): chưa tới đích thì ghi sổ để máy luật xét bậc kế; tới đích thì gỡ
       if (k === 'hoi_g10' && r?.ok && m.dich) await chayPsql(d < m.dich ? `insert into etp.cau_hinh (khoa, gia_tri) values ('g10_lo_trinh', jsonb_build_object('${Number(m.id)}', jsonb_build_object('dich', ${Number(m.dich)}, 'luc', (now() at time zone 'UTC')::date))) on conflict (khoa) do update set gia_tri = etp.cau_hinh.gia_tri || excluded.gia_tri` : `update etp.cau_hinh set gia_tri = gia_tri - '${Number(m.id)}' where khoa = 'g10_lo_trinh'`).catch((e) => console.error('sổ lộ trình g10:', e.message));

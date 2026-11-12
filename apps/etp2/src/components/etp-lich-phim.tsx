@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { DongMoc, KhungNoi, TheChung, useNoi, type Moc, type TheNoi } from '@/components/etp-noi';
 import { ChuoiBuoc } from '@/components/etp-dong';
 import { MA_DANG, DANG_DONG } from '@/components/etp-so';
-import { chuLich, gioVnNay, KD, khungLuc } from '@/lib/etp-khung';
+import { chuCong, chuLich, congTang, gioVnNay, KD, khungLuc, quaCong } from '@/lib/etp-khung';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, xemBotCamp, type CampThang, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
 
@@ -41,14 +41,14 @@ const GON: React.CSSProperties = { whiteSpace: 'nowrap', overflow: 'hidden', tex
 const Dat = ({ ok }: { ok: boolean }) => <span style={{ color: ok ? '#4ade80' : 'var(--fg-3)' }}>{ok ? '✓' : '○'}</span>;
 /** lên bậc: bậc kế + cổng hôm nay + những gì đang chặn (nghỉ sau lần tăng, tiêu dồn, khung giảm / tắt, sổ hoãn) — cùng thứ tự cổng máy luật */
 function lenBac(c: CampThang, hoan: boolean, now = Date.now()) {
-  const ke = THANG_TU.find((b) => b > c.ns + 1e-9), can = KD.nap_chi * c.ns, rNay = phan(c.chi_nay, c.thu_nay);
-  const dat = c.ns > 0 && c.chi_nay >= can && c.thu_nay >= (1 + KD.sang_roi / 100) * c.chi_nay;
+  const h = gioVnNay(now), ke = THANG_TU.find((b) => b > c.ns + 1e-9), can = congTang(h).tu * c.ns, rNay = phan(c.chi_nay, c.thu_nay);   // cổng theo giờ (khung sáng 50–75% + ROI ≥ 0)
+  const dat = quaCong(c.chi_nay, c.thu_nay, c.ns, h), cong = chuCong(h);
   const chan: string[] = [];
   if (c.chi13 >= Number(BANG_LUAT.khung_doi.don_13h) * (c.ns13 ?? c.ns)) chan.push(`tiêu dồn: tới 13:00 đã chi ${tien(c.chi13)} → hoãn tăng tối nay`);
   const t = c.tang_luc ? Date.parse(c.tang_luc) : null, mo = t ? t + (dat ? KD.nghi_don_gio : KD.nghi_gio) * 3600_000 : null;
   if (t && mo! > now) chan.push(`đã tăng lúc ${gioVn(t)} → chờ tới ${gioVn(mo!)}${dat ? '' : ` (đạt cổng thì chỉ chờ ${KD.nghi_don_gio} giờ)`}`);
   if (khungLuc(gioVnNay(now)) === 'giam') chan.push(`${KD.giam[0]}–${KD.giam[1]}h chỉ giảm / tắt → mở lại từ ${KD.giam[1]}:00`);
-  return { ke, can, rNay, dat, chan, hoan, lo: ke ? THANG_TU.filter((b) => b >= ke) : [] };
+  return { ke, can, cong, rNay, dat, chan, hoan, lo: ke ? THANG_TU.filter((b) => b >= ke) : [] };
 }
 function KhoiThang({ c, hoan, H }: { c: CampThang; hoan: boolean; H: (n: React.ReactNode, con: React.ReactNode, tren?: boolean) => React.ReactNode }) {
   const b = lenBac(c, hoan), r30 = phan(c.chi30, c.thu30), r3 = phan(c.chi3, c.thu3), lai30 = c.thu30 - c.chi30;
@@ -60,7 +60,7 @@ function KhoiThang({ c, hoan, H }: { c: CampThang; hoan: boolean; H: (n: React.R
       {c.la_ban ? <span style={{ color: 'var(--fg-3)' }}> · bản nhân</span> : null}</div>
     {/* MỖI HÀNG MỘT DÒNG (anh 12/11/2026 #1560 "nhìn dài quá"): dòng chỉ còn bậc / vạch / ✓○, mọi câu giải thích (cổng, chặn, lộ trình, nấc) nằm ở chữ rê */}
     {H('Lên bậc', b.ke ? <div style={GON} title={[`🤖 máy tự tăng $${c.ns} → $${b.ke}`, b.hoan ? `đã vào sổ, tăng lúc ${KD.tang[0]}:00` : '',
-      `cổng tăng (nhip_tang.du_so): hôm nay chi ${tien(c.chi_nay)} / ${tien(b.can)} (≥ ${KD.nap_chi * 100}% ngân sách) · ROI ${pc(b.rNay)} / ≥ ${KD.sang_roi}% ${b.dat ? '✓' : '○'}`,
+      `cổng tăng lúc này (nhip_tang.du_so): ${b.cong} · hôm nay chi ${tien(c.chi_nay)} / ${tien(b.can)} · ROI ${pc(b.rNay)} ${b.dat ? '✓' : '○'}`,
       ...b.chan.map((x) => `⏳ ${x}`), !b.chan.length && b.dat && !b.hoan ? 'đạt cổng → máy tăng ở nhịp kế' : '',
       `Lộ trình: ${b.lo.map((x) => `$${x}`).join(' → ')}${c.co_roas ? '' : ' · $30 chỉ cho ★ ROAS'}`].filter(Boolean).join('\n')}>
         <b style={{ color: 'var(--fg-1)' }}>${c.ns} → ${b.ke}</b> <Thanh v={c.chi_nay / b.can} mau={b.dat ? '#4ade80' : '#facc15'} /><Dat ok={b.dat} />

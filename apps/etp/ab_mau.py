@@ -42,6 +42,19 @@ begin
 end $f$;
 drop trigger if exists ab_chan_ket_luan on etp.ab;
 create trigger ab_chan_ket_luan before update of ket_luan on etp.ab for each row execute function etp.ab_chan_ket_luan();
+-- A/B TĂNG (anh 12/11/2026 "làm theo đề xuất" — đo có đối chứng apps/etp/phan-tich/bac-doi-chung.py: 538 camp-ngày tăng vs 11.538 không tăng; hai chỗ số còn mỏng nên THỬ thay vì
+-- đổi luật thẳng). Máy luật (luat-ethopex.py _AB_TANG) đánh dấu ứng viên, chia nhánh sau mọi bộ lọc (nhánh đang ít camp hơn); worker (ethopex.mjs) thử → tăng, đối chứng → không
+-- tăng, ghi etp.camp_ab. Camp đã thuộc A/B khác đứng ngoài (AB06: theo luật thường, chờ 21h · AB07: không tăng). Đo ở etp.ab_so.
+insert into etp.ab (ma, kieu, ten, gia_thuyet, bat_dau, ket_thuc, cach_chia, nhanh, mau) values
+ ('AB06', 'tang_khung_giam', 'Tăng trong khung 15–21h',
+  'Camp đủ luật tăng, đã tiêu 50–75% ngân sách + ROI hôm nay ≥ 100% lúc 15–21h VN (khung chỉ giảm / tắt): tăng ngay có hơn chờ 21h? Số cũ: 28 camp-ngày tăng tay ca này, 3 ngày sau +2,82/$ ngân sách vs không tăng +0,60/$ — mẫu nhỏ, toàn camp anh tự chọn.',
+  '2026-11-12', '2026-11-26', 'ứng viên vào nhánh đang ít camp hơn (cặp), sau mọi bộ lọc tăng',
+  '{"thu": {"ten": "tăng ngay trong 15–21h", "cach": "tang_ngay"}, "doi": {"ten": "chờ khung tăng 21h như luật", "cach": "luat"}}', '{"camp": 10, "chi": 150, "ngay": 7}'),
+ ('AB07', 'tang_duoi25', 'Tăng khi mới tiêu < 25%',
+  'Khung tăng 21–07h, camp đủ mọi điều kiện Tăng bậc trừ spending — mới tiêu < 25% ngân sách hôm nay + ROI hôm nay ≥ 100%: tăng sớm có hơn giữ? Số cũ: chỉ 8 camp-ngày nhà từng tăng ở mức này, không kết luận được.',
+  '2026-11-12', '2026-11-26', 'ứng viên vào nhánh đang ít camp hơn (cặp), sau mọi bộ lọc tăng',
+  '{"thu": {"ten": "tăng một bậc", "cach": "tang"}, "doi": {"ten": "giữ ngân sách", "cach": "giu"}}', '{"camp": 10, "chi": 150, "ngay": 7}')
+on conflict (ma) do nothing;
 """
 
 # AB04 — điều kiện vào: ★ ROAS đang chạy $20, 3 ngày đã khép đủ ở $20, tiêu TB ≥ 90% ngân sách, ROI 3 ngày ≥ +30%, chưa thuộc A/B nào

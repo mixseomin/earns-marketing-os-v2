@@ -16,6 +16,8 @@ HQ_NHO, HQ_NHO_MIN = 0.5, 2.0   # sàn $2 (anh 28/10/2026 "cấm viết chung ch
 roi_min = float(ARGS[0]) if ARGS else 20; sp_min = float(ARGS[1]) if len(ARGS) > 1 else 50; JSON = '--json' in sys.argv
 BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))   # sổ luật chung (anh 01/11/2026)
 KD = BANG_LUAT["khung_doi"]   # khung máy tự đổi camp (anh 04/11/2026; 05/11 đảo: tang 21–07h · giam 15–21h · sang 07–15h) — mốc giờ luật GB / đuôi đọc từ đây, cùng worker ethopex.mjs + trang etp
+TN = BANG_LUAT["tang_ngay"]   # TĂNG TRONG NGÀY (anh 12/11/2026, sổ luật chung tang_ngay): chi ≥ 30% + ROI hôm nay ≥ 50%; chi còn dưới 50% ngân sách thì ROI ≥ 100%
+def tn_roi(chi, ns): return float(TN["roi_duoi"]) if ns and float(chi or 0) < float(TN["duoi"]) * float(ns) else float(TN["roi"])
 # NHỊP TĂNG (nhip_tang.py) nạp NGAY sau sổ luật: vòng xét tăng (khung tăng nhanh NT.trong_nhanh, 10/11/2026) chạy trước chỗ nạp cũ → NameError làm máy luật dừng
 import importlib.util as _iu
 _s = _iu.spec_from_file_location("nhip_tang", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhip_tang.py")); NT = _iu.module_from_spec(_s); _s.loader.exec_module(NT)
@@ -119,6 +121,29 @@ LD_SIET = bool(DUYET.get("ld_siet"))
 hqua = bc(d(1), d(1))
 ROAS_LAI = 75; assert ROAS_LAI == BANG_LUAT["roas_lai"], "ROAS_LAI lệch sổ luật chung roas_lai (popup đồng hồ phim đọc sổ)"; _ngay3 = {1: hqua, 2: bc(d(2), d(2)), 3: bc(d(3), d(3))}   # lãi 30 ngày tối thiểu để lên ROAS (anh 29/10/2026) · ngày trọn D−1..D−3 chỉ để hiện
 ROAS_LEN = BANG_LUAT["roas_len"]; ROAS_CHI, ROAS_ROI = float(ROAS_LEN["chi"]), float(ROAS_LEN["roi"])   # LÊN ROAS SỚM (Dol 09/11/2026, anh duyệt): chi 30 ngày ≥ $20 & ROI 3 ngày đã khép ≥ 50% (anh 10/11) — HOẶC với lãi ≥ $75
+# CHIA NHÁNH A/B DÙNG CHUNG (AB02 G10 hồi · AB06 / AB07 tăng — gom 12/11/2026): lần A/B kiểu `kieu` đang chạy hôm nay → hàm chọn(cid) → (mã, nhánh, tên nhánh) | None.
+# Camp đã mang mã A/B khác (etp.camp_ab một camp một mã) → None. Camp mới vào nhánh đang ÍT camp hơn (anh 05/11/2026 "AB phải cùng điểm xuất phát") — hai nhánh vào thành cặp.
+_AB_CO = {int(x.split("|")[0]): x.split("|", 1)[1] for x in q("select camp_id || '|' || ab || '|' || nhanh from etp.camp_ab").splitlines() if x}
+def _ab_lan(kieu):
+    so = json.loads(q(f"select row_to_json(a)::text from etp.ab a where trang_thai = 'dang' and kieu = '{kieu}' and '{vn.date()}'::date between bat_dau and coalesce(ket_thuc, bat_dau) order by ma limit 1") or "null")
+    dem = {n: sum(1 for v in _AB_CO.values() if v == f"{so['ma']}|{n}") for n in ("thu", "doi")} if so else {}
+    def chon(cid):
+        if not so: return None
+        co = _AB_CO.get(cid)
+        if co and not co.startswith(so["ma"] + "|"): return None
+        if co: nh = co.split("|")[1]
+        else: nh = "thu" if dem["thu"] <= dem["doi"] else "doi"; dem[nh] += 1; _AB_CO[cid] = f"{so['ma']}|{nh}"
+        return so["ma"], nh, so["nhanh"][nh]["ten"]
+    chon.dang = bool(so)
+    return chon
+# A/B TĂNG (anh 12/11/2026 "làm theo đề xuất" — đo có đối chứng apps/etp/phan-tich/bac-doi-chung.py; hai chỗ số còn mỏng nên THỬ thay vì đổi luật thẳng):
+#   tang_khung_giam (AB06): 15–21h VN (khung chỉ giảm / tắt), camp ĐÃ đủ luật tăng + đã tiêu 50–75% ngân sách + ROI hôm nay ≥ 100% → nhánh thử tăng ngay, đối chứng chờ 21h như luật
+#   tang_duoi25 (AB07): khung tăng 21–07h, camp đủ mọi điều kiện Tăng bậc TRỪ spending — mới tiêu < 25% ngân sách + ROI hôm nay ≥ 100% → nhánh thử tăng, đối chứng giữ
+# Luật đánh dấu ứng viên (_AB_UNG) trong vòng xét; nhánh chia ở đầu ra SAU mọi bộ lọc (nhịp, sau giảm, TS, tắt, H3) — camp bị lọc không chiếm chỗ nhánh.
+# Worker (ethopex.mjs) đọc m.ab: thử → tăng, đối chứng → không tăng; ghi etp.camp_ab → sổ etp.ab_so đo.
+_AB_TANG, _AB_UNG = {k: _ab_lan(k) for k in ("tang_khung_giam", "tang_duoi25")}, {}
+_GIAM_NAY = KD["giam"][0] <= vn.hour < KD["giam"][1]
+_TANG_NAY = (KD["tang"][0] <= vn.hour < KD["tang"][1]) if KD["tang"][0] <= KD["tang"][1] else (vn.hour >= KD["tang"][0] or vn.hour < KD["tang"][1])
 for cid, a in sorted(thang.items()):
     h = hom.get(cid, {"chi": 0.0, "budget": a["budget"]}); r = roi(a)
     if KHUNG_DEM:
@@ -135,7 +160,7 @@ for cid, a in sorted(thang.items()):
     _yq = hqua.get(cid); _ryq = roi(_yq) if _yq and _yq["chi"] >= 0.3 else None; _rh = roi(h) if h.get("chi", 0) >= 0.3 else None
     _hq_nho = _ryq is not None and _ryq < 0 and _yq["chi"] < max(HQ_NHO_MIN, HQ_NHO * a["budget"])
     # + ROI KHUNG DÀI ≥ 0% (anh 29/10/2026 "OK", bản luật: 11/523 lần tăng khi ROI khung dài đang âm → sau đó ROI −34%): chỉ nhờ ROI hôm nay thì không tăng
-    tb_ngay = TANG_CHOT and _rh is not None and _rh >= 50 and h["chi"] >= 0.3 * a["budget"] and (_ryq is None or _ryq >= 0 or _hq_nho) and r is not None and r >= 0
+    tb_ngay = TANG_CHOT and _rh is not None and _rh >= tn_roi(h["chi"], a["budget"]) and h["chi"] >= TN["chi"] * a["budget"] and (_ryq is None or _ryq >= 0 or _hq_nho) and r is not None and r >= 0
     if tb_ngay and not (r >= ROI_TANG and sp > sp_min and them_dk): dong += f" · ROI hôm nay (chốt chi) {_rh:+.0f}%, chi {h['chi'] / a['budget'] * 100:.0f}% ngân sách"
     if tb_ngay and _hq_nho: dong += f" · hôm qua {_ryq:+.0f}% nhưng chi ${_yq['chi']:.2f} < ${max(HQ_NHO_MIN, HQ_NHO * a['budget']):g} (max $2, 50% ngân sách) → bỏ qua (luật B1)"
     # KHÔNG TĂNG KHI HÔM NAY ĐANG LỖ (anh duyệt 23/10/2026 sau Step Back: #66055 −31% hôm nay vẫn được tăng $10 → $15 nhờ ROI tháng): ROI hôm nay
@@ -144,11 +169,16 @@ for cid, a in sorted(thang.items()):
     _g3 = roi(gan.get(cid) or {"chi": 0.0, "thu": 0.0}); _nap = nap_tang(_g3); _ke = ke(a["budget"])   # nắp ROI 3 ngày (Dol 09/11/2026)
     if _ke and _ke > _nap: dong += f" · nắp ROI 3 ngày {'—' if _g3 is None else f'{_g3:+.0f}%'} → trần ${_nap:g}, không lên ${_ke:g}"
     # KHUNG TĂNG NHANH (anh 10/11/2026, sổ luật chung khung_doi.nhanh 08–12h + 21–06h): ROI hôm nay ≥ sang_roi% + đã tiêu ≥ nap_chi × ngân sách → tăng, không xét ROI khung dài / hôm qua
-    tb_nhanh = NT.trong_nhanh() and _rh is not None and _rh >= float(KD["sang_roi"]) and h["chi"] >= float(KD["nap_chi"]) * a["budget"]
+    tb_nhanh = NT.trong_nhanh() and _rh is not None and NT.qua_cong(h["chi"], h.get("thu", 0), a["budget"])   # cổng theo giờ (08–12h nằm trong khung sáng → 50–75% + ROI ≥ 0)
     if tb_nhanh and not ((r >= ROI_TANG and sp > sp_min and them_dk) or tb_ngay): dong += f" · khung tăng nhanh: ROI hôm nay {_rh:+.0f}%, chi {h['chi'] / a['budget'] * 100:.0f}% ngân sách"
     if ((r >= ROI_TANG and sp > sp_min and them_dk) or tb_ngay or tb_nhanh) and not (_ke and _ke <= _nap and not lo_nay):
         _KHONG_TANG.setdefault(int(cid), "đã ở trần $20" if not _ke else "hôm nay đang lỗ" if lo_nay else f"nắp ROI 3 ngày {'—' if _g3 is None else f'{_g3:+.0f}%'} → trần ${_nap:g}, không lên ${_ke:g} (Dol 09/11)")
     if ((r >= ROI_TANG and sp > sp_min and them_dk) or tb_ngay or tb_nhanh) and _ke and _ke <= _nap and not lo_nay: dat.append((cid, dong))
+    _vao, _ti = bool(dat) and dat[-1][0] == cid, (h["chi"] / a["budget"] if a["budget"] else 0)   # A/B tăng — xem _AB_TANG
+    if _rh is not None and _rh >= 100 and not lo_nay:
+        if _vao and _GIAM_NAY and 0.5 <= _ti < 0.75 and _AB_TANG["tang_khung_giam"].dang: _AB_UNG[int(cid)] = "tang_khung_giam"
+        elif not _vao and _TANG_NAY and _ti < 0.25 and r >= ROI_TANG and them_dk and _ke and _ke <= _nap and _AB_TANG["tang_duoi25"].dang:
+            _AB_UNG[int(cid)] = "tang_duoi25"; dat.append((cid, dong + f" · A/B tăng sớm: mới tiêu {_ti:.0%} ngân sách, ROI hôm nay {_rh:+.0f}%"))
     elif r >= roi_min or sp > sp_min * 0.8: theo.append((cid, dong))
     # LD SIẾT (khi anh duyệt trên Telegram — DATA/ethopex-luat-duyet.json "ld_siet"): camp vừa lỗ hôm qua / lỗ cả tháng thì không tăng vì vài chục cent
     # lãi đầu phiên (22/10/2026: #65115 lên $2 nhờ lãi $0,36 buổi sáng trong khi hôm qua −86%, tháng −62%)
@@ -253,10 +283,10 @@ dau_phien = [(cid, chu) for cid, chu in dau_phien if _sau_giam_ok(cid)]
 TS_GIO, TS_HQ = tuple(KD.get("sang") or (7, 15)), 30
 def _nap_sang(cid):
     h = hom.get(cid) or {}; ns = float((thang.get(cid) or {}).get("budget") or 0); ch, th = float(h.get("chi") or 0), float(h.get("thu") or 0)
-    return ns > 0 and ch >= float(KD["nap_chi"]) * ns and th >= (1 + float(KD["sang_roi"]) / 100) * ch
+    return NT.qua_cong(ch, th, ns)   # khung sáng: tiêu 50–75% + ROI hôm nay ≥ 0 (anh 12/11/2026, sổ luật khung_doi.sang_nap) — ngoài sáng: nap_chi + sang_roi
 def _ts_ly(cid):
     if NT.trong_nhanh() and _nap_sang(cid): return None   # khung tăng nhanh: camp đạt cổng không bị Siết TS (anh 10/11/2026)
-    if TS_GIO[0] <= vn.hour < TS_GIO[1] and not _nap_sang(cid): return f"{vn:%H:%M} — ngày Ethopex mới chạy < 8 giờ, tăng từ {TS_GIO[1]}:00 (trừ camp đã tiêu hết + ROI hôm nay ≥ {KD['sang_roi']}%)"
+    if TS_GIO[0] <= vn.hour < TS_GIO[1] and not _nap_sang(cid): return f"{vn:%H:%M} — ngày Ethopex mới chạy < 8 giờ, tăng từ {TS_GIO[1]}:00 (trừ camp {NT.chu_cong()})"
     y = hqua.get(cid); ry = roi(y) if y and y["chi"] >= 0.3 else None
     if ry is not None and 0 <= ry < TS_HQ: return f"hôm qua {ry:+.0f}% (0–{TS_HQ}%)"
     return None
@@ -272,7 +302,7 @@ def _khoa_dol(the, cid):   # thẻ tăng của camp đang khoá L0 / H3: thêm d
     the["dk"].append([f"Khoá L0 / H3 (Dol 11/11): 3 / 7 ngày đã khép chi > ${DOL_CHI:g} mà ROI < {H3_ROI}%", ly[:40], "không chặn", False]); the["vao"] = None; the["mo"] = _h3_mo(cid)
     if the["ket"] != "khong_ap": th = sum(1 for x in the["dk"] if not x[3]); the["ket"] = "dat" if th == 0 else "gan" if th == 1 else "xa"
 def _ts_mo(cid):
-    can = f"chi ≥ {float(KD['nap_chi']):.0%} ngân sách + ROI hôm nay ≥ {KD['sang_roi']}%"
+    can_ = lambda t=None: NT.chu_cong(None if t is None else (t - dt.timedelta(hours=7)).replace(tzinfo=dt.timezone.utc)); can = can_()   # cổng theo giờ của mốc (sáng khác đêm)
     y = hqua.get(cid); ry = roi(y) if y and y["chi"] >= 0.3 else None; hq = ry is not None and 0 <= ry < TS_HQ
     goc = vn.replace(minute=0, second=0, microsecond=0)
     utc = lambda t: (t - dt.timedelta(hours=7)).replace(tzinfo=dt.timezone.utc).isoformat()
@@ -280,7 +310,7 @@ def _ts_mo(cid):
     if NT.trong_nhanh(): return {"luc": utc(vn), "can": can}
     for i in range(1, 25):
         t = goc + dt.timedelta(hours=i)
-        if NT.trong_nhanh(t - dt.timedelta(hours=7)): return {"luc": utc(t), "can": can}
+        if NT.trong_nhanh(t - dt.timedelta(hours=7)): return {"luc": utc(t), "can": can_(t)}
     return {"luc": utc((goc + dt.timedelta(days=1)).replace(hour=7)), "can": f"hôm nay chốt ROI ngoài 0–{TS_HQ}%"}
 dat = [(cid, chu) for cid, chu in dat if not _ts_ly(cid)]
 # LUẬT DOL (Dol 11/11/2026 "last 3, last 7 day có Cost > 10$ and ROIS < 20% là có thể Off" — anh duyệt bản chia ba phần: "làm thế đi, cả 3 phần").
@@ -997,17 +1027,7 @@ G10_NS, G10_DICH, G10_ROI, G10_THEO = 15, 10, 0, 2   # G10_ROI 15 → 0 (anh 05/
 G10_HOI = 30
 g10, tat_g10, _g10_theo, hoi_g10 = [], [], {}, []
 # A/B G10 hồi (AB02, migration 0429): lần A/B kieu g10_hoi đang chạy hôm nay → (mã, nhánh, tên nhánh) của camp; camp đã mang mã A/B khác (etp.camp_ab một camp một mã) → None = theo thang
-_ab_g10_so = json.loads(q(f"select row_to_json(a)::text from etp.ab a where trang_thai = 'dang' and kieu = 'g10_hoi' and '{(dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).date()}'::date between bat_dau and coalesce(ket_thuc, bat_dau) order by ma limit 1") or "null")
-_ab_g10_co = {int(x.split("|")[0]): x.split("|", 1)[1] for x in q("select camp_id || '|' || ab || '|' || nhanh from etp.camp_ab").splitlines() if x} if _ab_g10_so else {}
-_ab_g10_dem = {n: sum(1 for v in _ab_g10_co.values() if v == f"{_ab_g10_so['ma']}|{n}") for n in ("thu", "doi")} if _ab_g10_so else {}
-def _ab_g10(cid):
-    if not _ab_g10_so: return None
-    co = _ab_g10_co.get(cid)
-    if co and not co.startswith(_ab_g10_so["ma"] + "|"): return None
-    if co: nh = co.split("|")[1]
-    else:   # camp mới vào → nhánh đang ÍT camp hơn (anh 05/11/2026 "AB phải cùng điểm xuất phát"): hai nhánh vào thành cặp, không để đối chứng chờ may rủi chẵn/lẻ
-        nh = "thu" if _ab_g10_dem["thu"] <= _ab_g10_dem["doi"] else "doi"; _ab_g10_dem[nh] += 1
-    return _ab_g10_so["ma"], nh, _ab_g10_so["nhanh"][nh]["ten"]
+_ab_g10 = _ab_lan("g10_hoi")   # chia nhánh dùng chung _ab_lan (khai trước vòng xét camp)
 _d3s = {dt.date.fromisoformat(d(i)) for i in (1, 2, 3)}
 _d4s = {dt.date.fromisoformat(d(i)) for i in (4, 5, 6, 7)}
 try:
@@ -1164,7 +1184,7 @@ def _ly_tang(c):
     if c in _KHONG_TANG: return _KHONG_TANG[c]   # bước đầu (nắp ROI 3 ngày / hôm nay lỗ / trần) + nhịp tăng (_loc)
     if c in _SE_TAT: return "camp nằm trong danh sách tắt nhịp này"
     if c in _g10_cam: return "G10 đang khoá tăng"
-    if not _du_tang(c): return f"cổng tiêu chưa qua: chi hôm nay ≥ {float(KD['nap_chi']):.0%} ngân sách + ROI hôm nay ≥ {KD['sang_roi']}% (nhip_tang.du_so)"
+    if not _du_tang(c): return f"cổng tiêu chưa qua: {NT.chu_cong()} (nhip_tang.du_so)"
     if not _sau_giam_ok(c): return f"sau lần giảm: ROI từ ngày giảm chưa ≥ {ROI_TANG}%"
     if _ts_ly(c): return f"Siết TS: {_ts_ly(c)}"
     return None
@@ -1326,7 +1346,7 @@ def _xet_luat():
                        [f"{NHAN_HN} · chi ≥ $0.3", f(rh, "%"), "≥ 0%", rh is None or rh >= 0], ["Còn bậc trên", f"${ns:g}", "< $20", bool(ke(ns))]]
             cong_b2 = ["Cổng mở bản thang (bộ 2)", _thang_ly.get(int(cid), "mở được"), "mở được", int(cid) not in _thang_ly]
             if b2: dk_tang = dk_tang + [cong_b2]
-            _ts = _ts_ly(cid); dk_ts = [f"Siết tăng TS (02/11): sau {TS_GIO[1]}:00 (nạp sáng: tiêu hết + ROI hôm nay ≥ {KD['sang_roi']}% thì được) · hôm qua không lãi 0–50%", _ts or "qua", "không chặn", _ts is None]; dk_ts[0] = dk_ts[0].replace("0–50%", f"0–{TS_HQ}%")
+            _ts = _ts_ly(cid); dk_ts = [f"Siết tăng TS (02/11): sau {TS_GIO[1]}:00 (nạp sáng: {NT.chu_cong(NT.SANG_MAU)} thì được) · hôm qua không lãi 0–50%", _ts or "qua", "không chặn", _ts is None]; dk_ts[0] = dk_ts[0].replace("0–50%", f"0–{TS_HQ}%")
             dk_tang = dk_tang + [dk_ts] + ([] if b2 else [_don_dk(cid, ns)])
             _don_ghi = None if b2 or _don_dk(cid, ns)[3] else f"tiêu dồn (≥ {NT.DON_13H:.0%} ngân sách tới {7 + NT.DON_GIO}h) — hoãn tăng tối nay, hôm sau tiêu đều thì tăng như thường"
             # NHỊP TĂNG (anh 06/11/2026 "camp có thể tăng bậc thì ghi thêm bao lâu nữa sẽ thực sự tăng"): đúng cổng lệnh tăng dùng (nhip_tang.cho_tang — lịch sử ngân sách
@@ -1355,18 +1375,19 @@ def _xet_luat():
             if _ts: ls[-1]["mo"] = _ts_mo(cid)   # TS chặn → mốc sớm nhất thôi chặn (trang etp ghi ⏳)
             _khoa_dol(ls[-1], cid)
             # bộ 2 KHÔNG tăng ngân sách — đủ luật thì mở bản thang, nên cổng mở bản thang mới nằm trong bảng (anh 28/10/2026 #1464 "tăng trong ngày sao lại liên quan đến mở bản thang?": tên luật không nói điều đó)
-            dk_ngay = [[NHAN_HN, f(rh, "%"), "≥ 50%", rh is not None and rh >= 50], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 30%", bool(ns and h.get("chi", 0) >= 0.3 * ns)],
+            _tnr = tn_roi(h.get("chi", 0), ns)   # chi < 50% ngân sách → ROI hôm nay ≥ 100% (anh 12/11/2026)
+            dk_ngay = [[NHAN_HN, f(rh, "%"), f"≥ {_tnr:g}%" + (f" (chi < {TN['duoi']:.0%} ngân sách)" if _tnr != TN["roi"] else ""), rh is not None and rh >= _tnr], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", f"≥ {TN['chi']:.0%}", bool(ns and h.get("chi", 0) >= TN["chi"] * ns)],
                  ["ROI hôm qua", f(ry, "%") + (f" · chi ${y['chi']:.2f}" if y else ""), f"≥ 0% · bỏ qua khi chi < ${max(HQ_NHO_MIN, HQ_NHO * ns):g}", bool(ry is None or ry >= 0 or (y and y["chi"] < max(HQ_NHO_MIN, HQ_NHO * ns)))],
                  ["ROI " + rd(cid).replace("ROI ", ""), f(r, "%"), "≥ 0%", r is not None and r >= 0], dk_ts] + ([cong_b2] if b2 else [])
             if not b2 and all(x[3] for x in dk_ngay): dk_ngay = dk_ngay + [_nhip()[0]]   # cùng cổng nhịp với Tăng bậc (cùng lệnh tăng)
             dk_ngay = _kt(dk_ngay)
-            ls.append(L("tang_ngay", "Tăng trong ngày → mở bản thang (bộ 2)" if b2 else "Tăng trong ngày", ("Bộ 2 không tăng ngân sách: đủ luật này thì máy MỞ BẢN MỚI ở bậc kế (creative khác cùng phim), nên phải qua cổng mở bản thang. " if b2 else "") + "ROI hôm nay (chỉ cộng các giờ tới đợt chi gần nhất) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không âm (hôm qua âm mà chi hôm qua < max($2, 50% ngân sách) thì bỏ qua — luật B1), ROI khung dài ≥ 0% (29/10). ROI chỉ tính khi chi ≥ $0.3.",
+            ls.append(L("tang_ngay", "Tăng trong ngày → mở bản thang (bộ 2)" if b2 else "Tăng trong ngày", ("Bộ 2 không tăng ngân sách: đủ luật này thì máy MỞ BẢN MỚI ở bậc kế (creative khác cùng phim), nên phải qua cổng mở bản thang. " if b2 else "") + f"ROI hôm nay (chỉ cộng các giờ tới đợt chi gần nhất) ≥ {TN['roi']}% (chi còn dưới {TN['duoi']:.0%} ngân sách thì ≥ {TN['roi_duoi']}% — đo 12/11/2026), đã chi ≥ {TN['chi']:.0%} ngân sách, hôm qua không âm (hôm qua âm mà chi hôm qua < max($2, 50% ngân sách) thì bỏ qua — luật B1), ROI khung dài ≥ 0% (29/10). ROI chỉ tính khi chi ≥ $0.3.",
                 dk_ngay, ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] and (all(x[3] for x in dk_ngay) or NT.trong_nhanh()) else None)))
             if "d" in _nhip_o and _nhip_o["d"][1] and _nhip_o["d"][0] in dk_ngay: ls[-1]["cho_toi"] = _nhip_o["d"][1]
             if _ts: ls[-1]["mo"] = _ts_mo(cid)
             _khoa_dol(ls[-1], cid)
-            if not b2 and NT.trong_nhanh() and rh is not None and rh >= float(KD["sang_roi"]) and ns and h.get("chi", 0) >= float(KD["nap_chi"]) * ns:   # khung tăng nhanh (anh 10/11/2026)
-                ls[-1]["ghi"] = f"khung tăng nhanh (08–12h, 21–06h): ROI hôm nay ≥ {KD['sang_roi']}% + đã tiêu ≥ {float(KD['nap_chi']):.0%} ngân sách → máy tăng bậc kế ngay nhịp tới"
+            if not b2 and NT.trong_nhanh() and rh is not None and NT.qua_cong(h.get("chi", 0), h.get("thu", 0), ns):   # khung tăng nhanh (anh 10/11/2026) — cổng theo giờ
+                ls[-1]["ghi"] = f"khung tăng nhanh (08–12h, 21–06h): {NT.chu_cong()} → máy tăng bậc kế ngay nhịp tới"
             # GIẢM BẬC — đã bỏ (anh 29/10/2026 "làm 1+2"): không còn trong bản xét; camp lỗ liền xem luật L3
             ls.append(L_roas(cid, a, rg))
             if not b2:
@@ -1391,6 +1412,14 @@ def _xet_luat():
         except Exception as e:
             _LOI_THE.append(f"#{cid}: {type(e).__name__}: {str(e)[:120]}")
     return ra
+def _dat_ab():
+    """danh sách tăng cho worker: camp ứng viên A/B tăng (_AB_UNG) còn lại sau mọi bộ lọc → chia nhánh lúc này, mang {"ab": [mã, nhánh]}"""
+    ra = []
+    for c, s_ in dat:
+        k_ = _AB_UNG.get(int(c)); nh_ = _AB_TANG[k_](int(c)) if k_ else None
+        if k_ == "tang_duoi25" and not nh_: continue   # chỉ vào danh sách nhờ A/B — camp đã ở A/B khác thì không tăng
+        ra.append((c, s_ + f" · {nh_[0]} {nh_[2]}", {"ab": list(nh_[:2])}) if nh_ else (c, s_))
+    return ra
 if JSON:
     m = lambda ds: [{"id": i, "chu": s, **(x[0] if x else {}), **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {})} for i, s, *x in ds]   # phần tử thứ ba (tuỳ chọn) = trường thêm, vd G10 hồi {"ab": [mã, nhánh]}
     try:   # XÉT LUẬT TỪNG CAMP → etp.xet_luat (đi qua stdin psql: chuỗi lớn vượt giới hạn một tham số dòng lệnh)
@@ -1407,7 +1436,7 @@ if JSON:
         if _p.returncode: loi_may.append((0, f"ghi xét luật lỗi: {_p.stderr.strip()[:80]}"))
     except Exception as e:
         loi_may.append((0, f"xét luật lỗi: {str(e)[:80]}"))
-    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_l0": m(tat_l0), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat1": m(tat1), "tat_t8": m(tat_t8), "tat_tv": m(tat_tv), "t1_cho": m(t1_cho), "giu_cuoi": m(giu_cuoi), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "h3": m(h3), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7), "hoi_g10": m(hoi_g10)}
+    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_l0": m(tat_l0), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat1": m(tat1), "tat_t8": m(tat_t8), "tat_tv": m(tat_tv), "t1_cho": m(t1_cho), "giu_cuoi": m(giu_cuoi), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "h3": m(h3), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(_dat_ab()), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7), "hoi_g10": m(hoi_g10)}
     # SỔ LUẬT CHUNG (apps/web/src/lib/etp-bang-luat.json): mọi danh sách máy luật xuất ra phải có mục ở sổ — thiếu là trang etp / bộ lọc / worker không biết luật đó (gốc vụ G10 01/11/2026)
     _thieu = sorted(k for k in ra_ if k != "luc" and k not in BANG_LUAT["khoa"])
     if _thieu: ra_["loi_may"] = ra_.get("loi_may", []) + [{"id": 0, "chu": f"luật chưa có trong sổ luật chung etp-bang-luat.json: {', '.join(_thieu)}"}]

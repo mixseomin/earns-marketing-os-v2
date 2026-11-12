@@ -14,6 +14,9 @@ import { canPhat, coGianMoc, LOC_GON_GIONG, SHOT_TOI_THIEU } from './khop-giong'
 import { docKinhThanh, type KinhThanh } from './kieu';
 import { uploadToR2 } from '../r2';
 import { randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { writeFile, unlink } from 'node:fs/promises';
 import { doiLopTheoCat } from './nhip-nhac';
 import { giayClipCan } from './toc-do';
 import { nhipHanhDong } from './nhip-hanh-dong';
@@ -44,10 +47,12 @@ const quaFfmpeg = (vao: Buffer, loc: string) => new Promise<Buffer | null>((ok) 
   const p = execFile('ffmpeg', ['-v', 'error', '-i', 'pipe:0', '-af', loc, '-c:a', 'libmp3lame', '-b:a', '160k', '-f', 'mp3', 'pipe:1'], { encoding: 'buffer', maxBuffer: 1 << 26 }, (e, b) => ok(e ? null : (b as Buffer)));
   p.stdin?.end(vao);
 });
-const doDaiBuf = (b: Buffer) => new Promise<number | null>((ok) => {
-  const p = execFile('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', '-i', 'pipe:0'], (e, o) => ok(e ? null : Number(String(o).trim()) || null));
-  p.stdin?.end(b);
-});
+// ffprobe đọc mp3 qua đường ống trả "N/A" (không tua được để đếm khung) — phải ghi tệp tạm rồi đo (13/11/2026: kéo nhanh bị bỏ qua im lặng vì đo ra null)
+const doDaiBuf = async (b: Buffer): Promise<number | null> => {
+  const f = join(tmpdir(), `xv-gon-${randomUUID()}.mp3`); await writeFile(f, b);
+  try { return await new Promise<number | null>((ok) => execFile('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], (e, o) => ok(e ? null : Number(String(o).trim()) || null))); }
+  finally { await unlink(f).catch(() => {}); }
+};
 /** Gọn giọng: cắt lặng đầu / cuối, rút quãng ngắt. dong (chỉ lời tiếng Việt): câu thường đọc dưới SAN_TIENG_GIAY tiếng/giây thì KÉO NHANH giữ cao độ (atempo)
  *  tới TIENG_GIAY_DICH, tối đa KEO_TOI_DA — anh 12–13/11/2026 "giọng chú hơi chậm… liên quan tiết nhịp… ảnh hưởng cảm xúc": ElevenLabs Tony đọc 2,3–3,6 tiếng/giây
  *  kể cả speed 1,2 (trần của ElevenLabs). Câu khai cách diễn chậm (lí nhí, ngập ngừng…) giữ nguyên. */
@@ -58,6 +63,7 @@ export async function gonGiong(url: string, canhId: number, dong?: { loi: string
   if (!ra || ra.length < 1000) return null;
   if (dong && (docCachDien(dong.dien_xuat).toc ?? 1.1) >= 1) {
     const dai = await doDaiBuf(ra); const n = dong.loi.replace(/(\d+)k\b/gi, '$1 nghìn').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean).length;
+    if (!dai) console.error(`[gonGiong] không đo được độ dài giọng shot ${canhId} — bỏ kéo nhanh`);
     const rate = dai ? n / dai : null;
     if (rate && rate < SAN_TIENG_GIAY) { const k = Math.min(KEO_TOI_DA, TIENG_GIAY_DICH / rate); if (k > 1.05) { const nhanh = await quaFfmpeg(ra, `atempo=${k.toFixed(3)}`); if (nhanh && nhanh.length > 1000) ra = nhanh; } }
   }

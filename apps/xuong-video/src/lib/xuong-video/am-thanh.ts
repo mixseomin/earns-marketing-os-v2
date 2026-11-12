@@ -93,8 +93,11 @@ export function giaGiong(m: GiaGiongModel | undefined, soKyTu: number): number |
 export function giaGiongTheo(dm: (GiaGiongModel & { key: string })[], model: string, soKyTu: number): number | null {
   const g = giaGiong(dm.find((m) => m.key === model), soKyTu);
   if (g != null) return g;
-  const tay = moHinhAm(model);
-  return tay?.loai === 'giong' ? giaAm(model, soKyTu) : null;
+  // ElevenLabs trực tiếp (khoá tài khoản anh): ký tự trừ vào gói, không có bảng giá theo lượt → ước bằng giá eleven-v3 trên fal ($0,10 / 1k ký tự),
+  // mức trần an toàn để cổng tiền (chot-tien.ts) tính được thay vì chặn "không ước được giá" (12/11/2026, phim #3071 đổi giọng Chú sang ElevenLabs).
+  const m = model.startsWith('elevenlabs:') ? 'fal-ai/elevenlabs/tts/eleven-v3' : model;
+  const tay = moHinhAm(m);
+  return tay?.loai === 'giong' ? giaAm(m, soKyTu) : null;
 }
 
 /** Nhân vật (loại nhan_vat) xuất hiện ĐẦU TIÊN theo thứ tự của shot — không theo thứ tự danh sách nhân vật của phim. */

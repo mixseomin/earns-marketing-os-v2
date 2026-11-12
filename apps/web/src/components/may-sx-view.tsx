@@ -46,7 +46,8 @@ function GhiO({ chu, loi }: { chu: string; loi: boolean }) {
 const NG = (k: NguonSx) => NGUON.find((x) => x.k === k)!;
 const COT_VIEC: DataColumn<ViecSx>[] = [
   { key: 'nguon', header: 'Nguồn', align: 'left', width: 150, sortValue: (v) => v.nguon, cell: (v) => <span style={{ color: NG(v.nguon).mau, fontWeight: 600, whiteSpace: 'nowrap' }}>● {NG(v.nguon).ten}</span> },
-  { key: 'ten', header: 'Việc', align: 'left', sortValue: (v) => v.ten, cell: (v) => <><div style={{ fontWeight: 600 }}>{v.ten}</div>{v.cua ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>{v.cua}</div> : null}</> },
+  { key: 'ten', header: 'Việc', align: 'left', sortValue: (v) => v.ten, cellTitle: (v) => v.ten,   // tên dài xuống dòng (góp ý #1564: tên một dòng đẩy cột Ghi chú / lỗi ra ngoài màn)
+    cell: (v) => <div style={{ whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 200, maxWidth: 320, fontFamily: 'system-ui, -apple-system, sans-serif', lineHeight: 1.4 }}><div style={{ fontWeight: 600 }}>{v.ten}</div>{v.cua ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>{v.cua}</div> : null}</div> },
   // NHỊP (anh 12/11/2026 "SX thì làm sao chia thành các nhịp rõ ràng thế này"): mỗi dòng một chuỗi ô bước cùng khuôn bảng Sản xuất Ethopex —
   // Ethopex vẽ bằng chính ChuoiBuoc của bảng đó; nguồn khác bằng ChuoiNhip dùng chung (components/ui/chuoi-nhip). Chữ bước hiện tại ở thẻ rê chuột.
   { key: 'buoc', header: 'Nhịp', align: 'left', width: 400, sortValue: (v) => v.buoc, cellTitle: (v) => v.buoc,

@@ -704,7 +704,7 @@ function CheDoLuatO({ nguoiId, c }: { nguoiId: number; c: CheDoLuat }) {
   };
   const opts: Chon2Muc[] = [{ value: 'bao', label: 'Chỉ báo Telegram', title: 'máy chấm camp theo luật Nhà, đề xuất bậc nhắn riêng qua bot — không đụng camp' },
     ...(c.duoc.tuDong ? [{ value: 'tu_dong', label: 'Tự động', title: 'máy làm luôn trên camp như Nhà, bằng phiên Ethopex của bạn: tự tăng tới $30, hạ về $10 theo G10, tắt theo luật T2 / D24 / L3 / L4 / OFF / RL / G10 + dừng đêm (báo trước một nhịp); nhân bản / lên ROAS chưa áp' }] : [])];
-  return <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+  return <span style={{ display: 'inline-flex', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%', gap: 6, alignItems: 'center' }}>
     <Chon2 value={c.cheDo} onChange={doi} options={opts} anRong nhan="Luật máy" title="chế độ luật máy cho tài khoản này" />
     {c.cheDo === 'bao' ? (c.tg ? <span title="đề xuất bậc mới của máy nhắn riêng qua bot Telegram" style={{ fontSize: 11, color: '#4ade80' }}>✓ Telegram</span>
       : <button onClick={noiTg} disabled={dang} title="mở bot Telegram, bấm Start một lần — từ đó đề xuất bậc nhắn riêng cho bạn"
@@ -3085,7 +3085,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         {chiXem || du.nguoi.ngoai || du.nguoi.doi ? null : <NutLenCamp du={du} gon={hep} />}{/* chỉ khi đang xem tk David (Nhà) — anh 09/11/2026 'các thay đổi chỉ hiện ở tk David' */}
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}
-        <span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{!gon && coBo ? boSel() : null}{!gon && coKy ? kySel() : null}
+        {/* CỤM NGƯỜI XUỐNG DÒNG (#1575 anh 12/11/2026 "trên mobile phần này đang làm tràn màn hình"): cụm Người · Luật máy · Nối Telegram · chỉ xem là inline-flex không gói → màn hẹp đẩy tràn ngang; cho gói + co trong bề ngang màn */}
+        <span style={{ alignSelf: 'center', display: 'inline-flex', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%', gap: 6, alignItems: 'center' }}>{nguoiSel()}{!gon && coBo ? boSel() : null}{!gon && coKy ? kySel() : null}
           {du.nguoi.ngoai && quyen?.cheDo?.duoc.bao && du.nguoi.dang != null ? <CheDoLuatO nguoiId={du.nguoi.dang} c={quyen.cheDo} /> : null}
           {du.nguoi.ngoai && !(quyen?.sua != null && du.nguoi.dang === quyen.sua) ? <span title={du.nguoi.doi ? 'camp + số của CẢ ĐỘI (nhà + mọi người) gộp một — chỉ để theo dõi; luật / bật tắt không áp ở chế độ Team'
               : 'camp + số của tài khoản QC người này — chỉ để theo dõi / học; cột Luật = máy luật ĐỀ XUẤT cho camp người này (không thao tác), rê ô ngân sách xem lịch sử lên bậc + máy đề xuất trước bao lâu; nút bật / tắt không áp'}

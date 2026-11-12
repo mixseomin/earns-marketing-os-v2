@@ -120,13 +120,24 @@ async function tuSua(tap) { const kho = docKho().tai_san, ghi = [];
     for (const [k, v] of Object.entries(o)) { if (v && typeof v === 'object') await duyet(v); else o[k] = await doi(v); } };
   for (const c of tap.cau) await duyet(c.canh);
   if (ghi.length) { writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n'); console.log(`máy tự sửa: ${[...new Set(ghi)].join(' · ')}`); } return tap; }
+// TRẦN TỪ HIỆU LỰC = nhỏ hơn giữa trần khuôn (KENH.tu) và trần suy từ THỜI LƯỢNG kênh. Giọng dài hơn mức nén được vào toi_da_giay thì video vượt trần và
+// CHẾT ở bước dựng SAU KHI đã tốn tiền giọng + kho + tranh (12/11/2026, tập Zimmermann: ≤405 từ qua kiểm nhưng giọng gốc 211,6s, nén 1,18× + rút đuôi vẫn
+// 180,5s > 179s → exit 5). Gốc: trần TỪ của kênh (405) không khớp trần GIÂY (179). Chặn ngay ở kiểm (0đ) bằng cách hạ trần từ cho khớp số giây nén được:
+// giây gốc tối đa = (toi_da_giay − đuôi kết tối thiểu 1,2s) × tốc độ đọc tối đa 1,18× (hai hằng này khoá cứng trong dung-tap.mjs); quy giây → ký tự theo
+// ky_tu_giay (mặc định 12,3 — chừa biên so với ~12,75 đo được, phòng giọng đọc chậm hơn), rồi ký tự → từ theo tỉ lệ ký tự/từ của chính bản này. Lỗi "bỏ
+// ít nhất N từ" đi đúng đường rút gọn --chi-rut sẵn có. Kênh không có toi_da_giay (saga) → trả nguyên trần khuôn, không đổi gì.
+const tranTuHieu = (tap) => { const [t0, t1] = KENH.tu[nn] ?? KENH.tu.en; if (!KENH.toi_da_giay) return t1;
+  const ds = tap.cau, tu = ds.map((c) => c.chu).join(' ').split(/\s+/).length, kyTu = ds.map((c) => c.chu.trim()).join(' ').length; if (!tu || !kyTu) return t1;
+  const kyTuToiDa = (KENH.toi_da_giay - 1.2) * 1.18 * (KENH.ky_tu_giay ?? 12.3);
+  return kyTu > kyTuToiDa ? Math.min(t1, Math.max(t0, Math.floor((tu * kyTuToiDa) / kyTu))) : t1; };
 async function kiem(tap, nguonChu) {
   const loi = [], kho = docKho().tai_san, moi = Object.fromEntries((tap.tai_san_moi || []).map((t) => [t.id, t])), nguonP = phang(nguonChu);
-  const ds = tap.cau, tu = ds.map((c) => c.chu).join(' ').split(/\s+/).length, [t0, t1] = KENH.tu[nn] ?? KENH.tu.en, coMoc = !!KENH.cau_cuoi;
+  const ds = tap.cau, tu = ds.map((c) => c.chu).join(' ').split(/\s+/).length, [t0, t1c] = KENH.tu[nn] ?? KENH.tu.en, coMoc = !!KENH.cau_cuoi;
+  const t1 = tranTuHieu(tap), tranGio = t1 < t1c;   // trần TỪ hiệu lực: nhỏ hơn giữa trần khuôn và trần suy từ thời lượng (xem tranTuHieu)
   if (ds.length < KENH.cau[0] || ds.length > KENH.cau[1]) loi.push(`có ${ds.length} câu — khuôn kênh ${kenhId} là ${KENH.cau_noi} câu`);
   // DÀI QUÁ KHUÔN: nói rõ phải bỏ bao nhiêu từ + câu nào dài nhất (04/11/2026: chỉ báo tổng số từ thì máy viết rút 514 → 501 qua 2 lượt, không bao giờ tới 440)
   const dai = ds.map((c, k) => ({ k: k + 1, n: c.chu.split(/\s+/).length })).sort((a, b) => b.n - a.n).slice(0, 6).map((x) => `câu ${x.k} (${x.n} từ)`).join(', ');
-  if (tu > t1) loi.push(`tổng ${tu} từ — khuôn kênh ${kenhId} ${KENH.tu_noi[nn] ?? KENH.tu_noi.en} từ: PHẢI BỎ ÍT NHẤT ${tu - t1 + 10} từ (đích ~${t1 - 10}). Rút các câu dài nhất: ${dai}; bỏ hẳn một câu chuyển ý nếu cần — đừng chỉ đổi vài chữ`);
+  if (tu > t1) loi.push(`tổng ${tu} từ — ${tranGio ? `vượt TRẦN THỜI LƯỢNG kênh ${kenhId} (${KENH.toi_da_giay}s): giọng sẽ dài quá mức nén được vào trần` : `khuôn kênh ${kenhId} ${KENH.tu_noi[nn] ?? KENH.tu_noi.en} từ`}: PHẢI BỎ ÍT NHẤT ${tu - t1 + 10} từ (đích ~${t1 - 10}). Rút các câu dài nhất: ${dai}; bỏ hẳn một câu chuyển ý nếu cần — đừng chỉ đổi vài chữ`);
   else if (tu < t0) loi.push(`tổng ${tu} từ — khuôn kênh ${kenhId} ${KENH.tu_noi[nn] ?? KENH.tu_noi.en} từ: thêm ít nhất ${t0 - tu} từ`);
   // kênh có câu đùa (parody): câu không su_that được phép tới tỉ lệ khong_nguon_toi_da — vẫn cấm con số / so sánh nhất không nguồn trong câu đùa
   const khongNguon = ds.slice(0, coMoc ? -1 : undefined).filter((c) => !(c.su_that || []).length).length, choPhep = Math.floor(ds.length * (KENH.khong_nguon_toi_da || 0));
@@ -254,7 +265,7 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
     chiTiet(`lượt viết ${lan}/${TONG_LUOT}${loi.length ? ` · lượt trước ${loi.length} lỗi kiểm` : ''} · đang gọi máy viết`);
     // DÀI QUÁ KHUÔN → rút gọn riêng các câu dài (viet-tap --chi-rut), không bắt máy viết chép lại cả bản (nó trả y nguyên); rồi kiểm lại, còn lỗi khác mới viết lại
     if (loi.some((x) => /PHẢI BỎ ÍT NHẤT/.test(x))) {
-      const dich = (KENH.tu[nn] ?? KENH.tu.en)[1] - 10; len(tepTap, `${tmp}/tap.json`);
+      const dich = tranTuHieu(JSON.parse(readFileSync(tepTap, 'utf8'))) - 10; len(tepTap, `${tmp}/tap.json`);   // đích rút = trần từ hiệu lực (khớp trần giây), không chỉ trần khuôn
       try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/rut.json --id ${id} --nn ${nn} --kenh ${kenhId}${mauArg} --cu ${tmp}/tap.json --chi-rut ${dich}`)); ve(`${tmp}/rut.json`, tepTap); }
       catch (e) { console.log(`⚠ rút gọn chưa đạt đích: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ').slice(0, 300)}`);
         // viet-tap.mts ghi rut.json (bản đã rút một phần, luôn NGẮN HƠN bản cũ) rồi mới thoát mã 1 — giữ bản ngắn hơn đó làm nền cho lượt viết lại, đừng vứt về bản 695 từ

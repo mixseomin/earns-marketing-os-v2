@@ -10,7 +10,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapCanh, mapNhanVat, type Row } from '../src/lib/xuong-video/doc-db';
-import { gocNgang, gocMayLech, coCanhLech, GOC_NGANG, moTaThay, huongVoiMay, nhinCau, chuThe } from '../src/lib/xuong-video/bo-set-3d';
+import { gocNgang, gocMayLech, coCanhLech, GOC_NGANG, huongVoiMay, nhinCau, chuThe } from '../src/lib/xuong-video/bo-set-3d';
 import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
 const db = getDb()!; const tapId = Number(process.argv[2]); const ghi = process.argv.includes('--ghi');
 const tap = ((await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0]; if (!tap) { console.error('không thấy tập'); process.exit(1); }
@@ -32,7 +32,16 @@ for (const c of ds) {
   if (coCanhLech(c, laNv, laNguoi).length && RONG[kt.co_canh as string]) { ghiChu.push(`cỡ ${kt.co_canh} → ${RONG[kt.co_canh as string]}`); kt.co_canh = RONG[kt.co_canh as string]; }
   // 4. ô thẻ trống — từ 3D
   const dd = { ...(c.dan_dung ?? {}) } as Record<string, string>; const m = c.may_3d;
-  if (!dd.bo_cuc?.trim() && c.khung_xam?.thay?.length) { dd.bo_cuc = moTaThay(c.khung_xam.thay, undefined, c.khung_xam); ghiChu.push('điền bố cục từ 3D'); }
+  // BỐ CỤC 3 LỚP từ số đo: tiền cảnh = vật chắn trước chủ thể (thay.tien), trung = chủ thể của máy, hậu = phần còn lại theo % khung. KHÔNG dùng moTaThay
+  // (đó là lời dặn prompt "no extra cups, pens…" — điền vào thẻ thì bộ dò chữ đọc ra bút / cốc, 13/11/2026). Ô do máy điền lần trước (bản moTaThay) thì thay.
+  const tuMay = (x?: string) => !x?.trim() || /^Blocks in that layout image/.test(x);
+  if (tuMay(dd.bo_cuc) && c.khung_xam?.thay?.length) {
+    const ct = new Set(chuThe(m)); const ten = (t: { ten: string; en?: string; pt: number }) => `${t.en ?? t.ten} (${Math.round(t.pt)}%)`;
+    const th = [...c.khung_xam.thay].sort((a, b) => b.pt - a.pt);
+    const tien = th.filter((t) => t.tien && !ct.has(t.ten)), trung = th.filter((t) => ct.has(t.ten)), hau = th.filter((t) => !t.tien && !ct.has(t.ten) && t.pt >= 2);
+    dd.bo_cuc = [`foreground: ${tien.map(ten).join(', ') || 'clear'}`, `midground: ${trung.map(ten).join(', ') || 'none'}`, `background: ${hau.map(ten).join(', ') || 'sky'}`].join('; ');
+    ghiChu.push('điền bố cục 3 lớp từ 3D');
+  }
   if (!dd.huong?.trim()) {
     const nguoi = m.vi_tri.filter((v) => laNv(v.ten) && !v.an); const ct = chuThe(m).filter(laNv);
     const cau = nguoi.filter((v) => ct.includes(v.ten)).map((v) => { const h = huongVoiMay(m, v); const n = nhinCau(m, v, nguoi); return `${v.ten}: ${h?.chu ?? ''}${n ? `, ${n}` : ''}`; });

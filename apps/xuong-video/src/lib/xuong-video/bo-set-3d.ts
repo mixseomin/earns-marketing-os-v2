@@ -940,7 +940,7 @@ export function nhinCau(m: Pick<May3d, 'dat' | 'nhin'>, v: ViTri, nguoi: ViTri[]
 }
 
 /** Vai kể có GÓC RIÊNG (không tính vào hướng máy chủ): shot thiết lập mở cảnh (#12 trong chuỗi #11–#15 anh khen), người thứ ba rình, góc nhìn nhân vật. */
-export const VAI_GOC_RIENG = new Set(['thiet_lap', 'nguoi_thu_ba', 'chu_quan']);
+export const VAI_GOC_RIENG = new Set(['thiet_lap', 'nguoi_thu_ba', 'chu_quan', 'chi_tiet']);   // chi_tiet: cận chèn (insert / cutaway) — hậu cảnh gần như không thấy, góc theo vật (13/11/2026)
 export function nhipDan<T extends { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null; ky_thuat?: { vai?: string } | null }>(ds: T[]): Record<number, string[]> {
   const out: Record<number, string[]> = {}; const hg = (m: May3d) => (Math.atan2(m.nhin[1]! - m.dat[1]!, m.nhin[0]! - m.dat[0]!) * 180) / Math.PI;
   for (const pd of new Set(ds.map((c) => c.phan_doan ?? ''))) {

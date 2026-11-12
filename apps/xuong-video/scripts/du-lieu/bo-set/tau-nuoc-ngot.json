@@ -1871,7 +1871,8 @@
     }
    ],
    "khung": [
-    "Tiền thừa"
+    "Tiền thừa",
+    "Nhóc"
    ],
    "khoa_nhin": true
   },
@@ -2032,6 +2033,57 @@
    ],
    "khung": [
     "Chú"
+   ],
+   "khoa_nhin": true
+  },
+  "0": {
+   "dat": [
+    -40.0,
+    150.0,
+    160.0
+   ],
+   "nhin": [
+    -40.0,
+    1600,
+    150
+   ],
+   "ong_kinh": 26,
+   "vi_tri": [
+    {
+     "ten": "Chú",
+     "tam": [
+      -128,
+      500,
+      80
+     ],
+     "huong": 30,
+     "nhin_ai": "dau_ga",
+     "nhin_ai_den": "dau_ga"
+    },
+    {
+     "ten": "Nhóc",
+     "tam": [
+      100.0,
+      900,
+      0
+     ],
+     "huong": -29,
+     "nhin_ai": "cua_so",
+     "nhin_ai_den": "cua_so"
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -248,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   ],
+   "khung": [
+    "Chú",
+    "Nhóc"
    ],
    "khoa_nhin": true
   },

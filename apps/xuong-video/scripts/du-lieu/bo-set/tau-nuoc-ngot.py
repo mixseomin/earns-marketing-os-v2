@@ -11,6 +11,7 @@ M['dau_ga'] = [100, 100]   # đầu sân ga phía nam — chú nhìn quanh (#1) 
 # chuỗi NHÌN → THẤY → PHẢN ỨNG (POV structure: glance → object → reaction) và mỗi lượt nói một CẬN RIÊNG của người nói (single, shot / reverse shot).
 # Shot thêm ngoài sơ đồ mẫu (mau/…-khong-gian.json giữ nguyên cho phim mẫu #2934): mã chữ, xếp thứ tự bằng thu_tu trong DB.
 SD['shot'].update({
+    '0': {'sd': {'may': 'toan_ga', 'o': {'Chú': 'cua_so', 'Nhóc': 'giua_ga'}, 'nhin': {'Chú': 'dau_ga', 'Nhóc': 'cua_so'}}},   # THIẾT LẬP mở tập: sân ga chiều muộn, tàu đỗ, chú ở ô cửa, nhóc đứng giữa ga (vai thiet_lap)
     '2b': {'sd': {'may': 'chu_thay_nhoc', 'o': {'Chú': 'cua_so'}, 'nhin': {'Chú': 'giua_ga'}, 'khung': ['Chú']}},          # PHẢN ỨNG: thấy nhóc, gọi
     '2c': {'sd': {'may': 'mat_nhoc_xa', 'o': {'Nhóc': 'giua_ga'}, 'nhin': {'Nhóc': 'cua_so'}, 'khung': ['Nhóc']}},     # mặt nhóc nghe gọi → chạy lại
     '3a': {'sd': {'may': 'chu_tu_duoi', 'o': {'Chú': 'cua_so'}, 'nhin': {'Chú': 'duoi_cua_so'}, 'khung': ['Chú']}},       # cận chú: "Chú cho cháu 5k"
@@ -237,7 +238,7 @@ for ma, v in SD['shot'].items():
                           'diem': [[b[0] - 40 * ux - 25 * uy, b[1] - 40 * uy + 25 * ux, 1], [b[0], b[1], 1], [b[0] - 40 * ux + 25 * uy, b[1] - 40 * uy - 25 * ux, 1]], 'bac': 1})
             may[ma].setdefault('them', []).extend([ten, f'Mũi tên nhóc #{ma}'])
     if ma == '4': may[ma]['nham'] = 'Nhóc'
-    if ma == '10': may[ma].update({'dat': [30, 420, 148], 'nhin': [-85, 500, 150], 'ong_kinh': 40, 'khung': ['Tiền thừa']})   # chủ thể cận tay = nắm tiền thừa (mặt chú ngoài khung là đúng)   # cận tay ở bậu cửa: ngang tầm hai bàn tay (nhóc giơ tới ~1,4 m, tay chú qua bậu 1,6 m)   # ma-nơ-canh: lùi máy 60 cm — sát quá thì thân đang nhoài choán hết khung (three.js 12/11)   # khối: đầu đứng thẳng cao hơn đầu ma-nơ-canh đang nhoài   # cận mặt chú đang NHOÀI (chong_ban): đầu thấp + ra trước so với lúc đứng thẳng   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
+    if ma == '10': may[ma].update({'dat': [30, 420, 148], 'nhin': [-85, 500, 150], 'ong_kinh': 40, 'khung': ['Tiền thừa', 'Nhóc']})   # chủ thể cận tay = nắm tiền thừa + tay nhóc đang cầm (mặt chú ngoài khung là đúng)   # chủ thể cận tay = nắm tiền thừa (mặt chú ngoài khung là đúng)   # cận tay ở bậu cửa: ngang tầm hai bàn tay (nhóc giơ tới ~1,4 m, tay chú qua bậu 1,6 m)   # ma-nơ-canh: lùi máy 60 cm — sát quá thì thân đang nhoài choán hết khung (three.js 12/11)   # khối: đầu đứng thẳng cao hơn đầu ma-nơ-canh đang nhoài   # cận mặt chú đang NHOÀI (chong_ban): đầu thấp + ra trước so với lúc đứng thẳng   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
 # #13 CẬN PHẢN ỨNG chốt cảnh (anh 12/11/2026 "đoạn cuối cần shot mặt gần của Chú để rõ cảm xúc" — ngành: close-up reaction shot, kiểu hài double take /
 # slow burn, chốt cảnh = button): nối hướng nhìn từ cuối #12 (nhìn theo nhóc) → cúi nhìn nắm tiền thừa → ngẩng lên nhìn lại, mặt đứng hình; máy đẩy chậm vào mặt
 M['tay_chu'] = [CHU[0] + 30, CHU[1] - 6, CHU[2] + 125]   # nắm tiền đưa lên ngang ngực

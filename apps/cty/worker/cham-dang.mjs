@@ -253,11 +253,14 @@ async function ketNoi() {
  *  qua proxy công ty (~25₫ / ảnh). Lỗi CHẮC (chữ đè / tràn mép / không đọc được, nền phẳng, lỗi vẽ AI rõ, logo / watermark lạ, nhạy cảm) → chặn cứng;
  *  không chắc / lệch chủ đề → cảnh báo. Một bộ ảnh + tiêu đề chỉ xét MỘT lần (sổ xet-hinh.json); proxy / mô hình hỏng → không chặn, lượt sau xét lại.
  *  ds = [{ title, anh: [url] }] → [{ chan: [], canh: [] } | null]. */
+/** Phiên bản luật xét hình — tăng khi đổi câu hỏi: bài SỬA LẠI chấm bởi bản cũ được chấm lại (chamMoi). v2 12/11/2026: logo / tên miền của chính site nhà không phải
+ *  logo lạ (esimfares bị chặn oan vì nhãn esimfares.com góc khung). x.nha = tên miền / thương hiệu nhà. */
+export const HINH_V = 2;
 export async function xetHinhAi(ds) {
   if (!MODEL_NGOC) return ds.map(() => null);
   const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'xet-hinh.json');
   const so = docSoAnh(tep);
-  const { createHash } = await import('node:crypto'), khoa = (x) => createHash('md5').update(`${x.title}|${x.anh.join('|')}`).digest('hex');
+  const { createHash } = await import('node:crypto'), khoa = (x) => createHash('md5').update(`${x.nha ? `v2|${x.nha}|` : ''}${x.title}|${x.anh.join('|')}`).digest('hex');
   const system = 'You are the visual QA reviewer of a social video team. You see frames of ONE post (a short video or an image post). Reply with ONE JSON only: '
     + '{"chu_loi":true|false,"nen_phang":true|false,"loi_ai":true|false,"logo_la":true|false,"nhay_cam":true|false,"lech_chu_de":true|false,"chac":true|false,"ly_do":"one short sentence in Vietnamese naming the frame number"}. '
     + 'chu_loi = on-screen text overlaps other text / is cut off at the frame edge / is unreadable against its background. nen_phang = text on a flat colour background with no real image. '
@@ -269,7 +272,7 @@ export async function xetHinhAi(ds) {
     const k = khoa(x);
     if (!(k in so)) {
       const o = await hoiNgoc({ luot: 'xet-hinh', system, max_tokens: 300, cho: 120000, content: [
-        ...x.anh.flatMap((u, i) => [{ type: 'text', text: `Frame ${i + 1}:` }, { type: 'image', source: { type: 'url', url: u } }]), { type: 'text', text: `POST TITLE: ${x.title}` }] });
+        ...x.anh.flatMap((u, i) => [{ type: 'text', text: `Frame ${i + 1}:` }, { type: 'image', source: { type: 'url', url: u } }]), { type: 'text', text: `POST TITLE: ${x.title}${x.nha ? `\nOUR OWN BRAND (allowed, never logo_la): ${x.nha} — its name, domain or logo in the frames is intended.` : ''}` }] });
       if (o === undefined) { ra.push(null); continue; }   // hỏng = không chặn, không ghi sổ (hoiNgoc đã ghi log)
       so[k] = o; moi++;
     }
@@ -343,12 +346,13 @@ export async function xetThumbAi(ds) {
 /** Chấm mọi video đang dùng chưa chấm hoặc đã xuất lại sau lần chấm. Trả { cham, duyet, sua, theoMau: { mau: { n, loi: {lỗi: số} } } }. */
 export async function chamMoi(sql) {
   // chấm lại khi xuất lại (xuat) HOẶC chữ đăng đổi (dang = md5 của dang) — đổi tiêu đề mà không xuất lại vẫn phải qua phòng
-  const ds = await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, m.muc_dich, v.anh, v.khung,
+  const ds = await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, m.muc_dich, m.site_dich, v.anh, v.khung,
       true as can_goc,   -- 31/10/2026: mọi bài phải có góc (trước: chỉ bài tạo từ MOC_GOC)
       (select count(*)::int from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') as trung
     from xv_may_video v join xv_may m on m.id = v.may_id
     where not coalesce(v.luu_tru, false) and v.xuat_luc is not null
       and (v.cham is null or v.cham->>'xuat' is distinct from v.xuat_luc::text or v.cham->>'dang' is distinct from md5(v.dang::text)
+           or (v.cham->>'ket' = 'SUA_LAI' and coalesce((v.cham->>'hinh_v')::int, 1) < ${HINH_V} and v.cham::text like '%logo / watermark lạ%')   -- luật hình đổi: bài chặn theo bản cũ chấm lại
            or (m.mau = 'video-ngoai' and v.cham->>'thumb' is distinct from v.de->'thumb'->>'url')   -- thumbnail đổi là chấm lại
            or (v.dang->>'loai' = 'bai' and v.cham->>'ket' is distinct from 'DUYET')   -- bài viết chưa DUYỆT: xét lại mỗi lượt (bản gửi phòng có thể đã đổi)
            or (v.cham->>'ket' = 'DUYET' and (select count(*) from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') > 1))
@@ -358,7 +362,8 @@ export async function chamMoi(sql) {
   const suThat = new Map();   // tệp sự thật đã kiểm của từng máy (apps/xuong-video/su-that/<máy>.md) — không có thì null
   const suThatCua = (ma) => { if (!suThat.has(ma)) { try { suThat.set(ma, fs.readFileSync(new URL(`../../xuong-video/su-that/${ma}.md`, import.meta.url), 'utf8')); } catch { suThat.set(ma, null); } } return suThat.get(ma); };
   const loiHookNgach = await xetHookAi(ds.map((v) => ({ qc: v.dang?.loai !== 'bai' ? v.dang?.hook?.qc : null, ma: v.ma, nhan: v.ten, muc_dich: v.muc_dich, su_that: suThatCua(v.ma), goc: v.dang?.hook?.goc, luot_xem: v.dang?.hook?.luot_xem ?? (String(v.dang?.hook?.qc ?? '').startsWith('kenh:') ? v.dang?.hook?.ngay : undefined), dong: dongHookBai(v.dang?.title, v.de) })));
-  const hinh = await xetHinhAi(ds.map((v) => ({ title: String(v.dang?.title ?? ''), anh: [...(v.de?.soat ?? (v.khung?.length ? v.khung : v.anh) ?? [])].filter((u) => /^https:\/\//.test(u)).slice(0, 8) })));
+  const hinh = await xetHinhAi(ds.map((v) => ({ title: String(v.dang?.title ?? ''), anh: [...(v.de?.soat ?? (v.khung?.length ? v.khung : v.anh) ?? [])].filter((u) => /^https:\/\//.test(u)).slice(0, 8),
+    nha: [...new Set([v.site_dich, ...(String(v.muc_dich ?? '').match(/[a-z0-9-]+\.[a-z]{2,}/gi) ?? [])].filter(Boolean))].join(', ') || null })));
   // THUMBNAIL (02/11/2026, anh: "không dùng thumb YouTube tự sinh"): video full (mẫu video-ngoai, kênh lịch sử) bắt buộc có thumbnail thiết kế (de.thumb.url,
   // lich-su/thumb.mjs) và Ngọc chấm đạt — thiếu / không đạt là chặn cứng, máy đăng không lấy.
   const thumb = await xetThumbAi(ds.map((v) => ({ title: String(v.dang?.title ?? ''), url: v.mau === 'video-ngoai' ? v.de?.thumb?.url ?? null : null, chu_de: v.de?.tom_tat ?? null, nguon: v.de?.thumb?.nguon ?? null })));
@@ -372,7 +377,7 @@ export async function chamMoi(sql) {
       const k = await kiemBaiViet(v); if (k === 'CHO') continue; kiem = k;
     }
     const r = doBaiDang({ ...v, xuat_luc: v.xuat, goc_loi: loiGoc[i], hook_loi: loiHookNgach[i], hinh: hinh[i], su_that: suThatCua(v.ma), kiem }, '');
-    await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, dang: v.dang_md5, thumb: v.de?.thumb?.url ?? null, luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
+    await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, dang: v.dang_md5, thumb: v.de?.thumb?.url ?? null, hinh_v: HINH_V, luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
     kq.cham++; r.ket === 'DUYET' ? kq.duyet++ : kq.sua++;
     const t = (kq.theoMau[v.ma] ??= { ten: v.ten, n: 0, sua: 0, loi: {} }); t.n++;
     if (r.ket !== 'DUYET') { t.sua++; for (const l of r.chan_cung.length ? r.chan_cung : [`điểm ${r.diem}/10 < ${DIEM_DUYET}`]) t.loi[l] = (t.loi[l] ?? 0) + 1; }

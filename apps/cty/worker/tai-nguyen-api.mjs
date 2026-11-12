@@ -189,9 +189,15 @@ export async function docSoDu() {
     // Donk (anh 12/11/2026 "trạng thái của token donk phải chuyển cho phòng tài nguyên"): gói Claude trả trước của shopdonk.com, khoá DONK_API_KEY
     // (.env.production, vault #693). /api/token/check trả quota đơn vị nhà cung cấp (limit/used/remaining) → số dư quy ra ₫ của gói
     // (DONK_GOI_VND, mặc định 20.000₫ = gói 50M) để tieuNgay / cảnh báo "còn N ngày" dùng chung với cổng khác. Khoá không ACTIVE = lỗi.
-    thu('donk', async () => { if (!e.DONK_API_KEY) throw new Error('thiếu khoá DONK_API_KEY'); const j = await lay('https://shopdonk.com/api/token/check', { headers: { authorization: `Bearer ${e.DONK_API_KEY}`, 'user-agent': 'Mozilla/5.0' } });
-      const d = j?.data, qu = d?.quota; if (!d?.ok || d.status !== 'ACTIVE') throw new Error(`khoá ${d?.status ?? 'không đọc được'}`); if (!(qu?.limit > 0)) throw new Error('không có quota');
-      return Math.round((qu.remaining / qu.limit) * Number(e.DONK_GOI_VND || 20000)); }),
+    // GỐI ĐẦU (12/11/2026): DONK_API_KEY = nhiều khoá cách bằng dấu phẩy (gói cũ trước) → số dư = CỘNG mọi khoá còn ACTIVE; ₫ quy theo đơn giá đơn vị đo được
+    // (gói 20.000₫ = 7,5 triệu đơn vị, gói 197.000₫ = 75 triệu — cùng ~0,00266₫ / đơn vị). Khoá hết gói / khoá chết không làm cả dòng lỗi, chỉ khi KHÔNG khoá nào sống.
+    thu('donk', async () => { const ks = String(e.DONK_API_KEY ?? '').split(',').map((k) => k.trim()).filter(Boolean); if (!ks.length) throw new Error('thiếu khoá DONK_API_KEY');
+      let con = 0, song = 0; const loi = [];
+      for (const k of ks) { try { const j = await lay('https://shopdonk.com/api/token/check', { headers: { authorization: `Bearer ${k}`, 'user-agent': 'Mozilla/5.0' } });
+        const d = j?.data, qu = d?.quota; if (!d?.ok || d.status !== 'ACTIVE' || !(qu?.limit > 0)) { loi.push(`…${k.slice(-4)} ${d?.status ?? 'không đọc được'}`); continue; }
+        song++; con += qu.remaining; } catch (x) { loi.push(`…${k.slice(-4)} ${x.message}`); } }
+      if (!song) throw new Error(`không khoá donk nào sống: ${loi.join(' · ')}`);
+      return Math.round(con * Number(e.DONK_VND_DV || 20000 / 7_500_000)); }),
     thu('fal', async () => { if (!e.FAL_ADMIN_KEY) throw new Error('thiếu khoá FAL_ADMIN_KEY (quyền billing:usage:read)'); const j = await lay('https://rest.alpha.fal.ai/billing/user_balance', { headers: { authorization: `Key ${e.FAL_ADMIN_KEY}` } }); const v = Number(typeof j === 'object' ? j.balance ?? j.credits : j); if (!Number.isFinite(v)) throw new Error('trả lạ'); return Math.round(v * 100) / 100; }),
   ]);
   return { du, loi };

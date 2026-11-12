@@ -24,7 +24,11 @@ def _env_spy(ten):
     if v: return v
     try: return subprocess.run(["bash", "-c", f". /root/.secrets/spy.env 2>/dev/null; echo \"${ten}\""], capture_output=True, text=True, timeout=10).stdout.strip()
     except Exception: return ""
-def khoa_donk(): return "" if os.environ.get("AI_BO_DONK") else (os.environ.get("DONK_API_KEY") or _env_spy("DONK_KEY"))   # AI_BO_DONK=1: bỏ donk (thử đường ckey)
+def khoa_donk_ds():
+    """DONK GỐI ĐẦU (anh 12/11/2026): khoá cách bằng dấu phẩy, gói cũ TRƯỚC — khoá trước hết gói / lỗi thì lượt đi tiếp khoá sau. AI_BO_DONK=1: bỏ donk."""
+    if os.environ.get("AI_BO_DONK"): return []
+    return [k.strip() for k in (os.environ.get("DONK_API_KEY") or _env_spy("DONK_KEY")).split(",") if k.strip()]
+def khoa_donk(): return (khoa_donk_ds() or [""])[0]
 def khoa_ckey(): return _env_spy("CKEY_KEY")
 def tuyen_ckey(uu="haiku"):
     try: j = json.load(open("/var/lib/spy/ckey-tuyen.json"))["dong"]
@@ -61,8 +65,7 @@ def goi(noi, *, max_tokens=400, cong_cu=None, uu="haiku", kiem=None, timeout=180
     """cong: cổng được đi, theo thứ tự cố định donk → ckey (vd ("donk",) khi người gọi tự lo ckey)"""
     vnd, loi = 0.0, []
     # 1. donk
-    kd = khoa_donk() if "donk" in cong else ""
-    if kd:
+    for kd in (khoa_donk_ds() if "donk" in cong else []):
         for model, gia in DONK.get(uu, DONK["haiku"]):
             try:
                 body = {"model": model, "max_tokens": max_tokens, "messages": [{"role": "user", "content": _sang_anthropic(noi)}]}

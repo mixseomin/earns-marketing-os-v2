@@ -114,11 +114,13 @@ export type PhanCanhSinh = Omit<z.infer<typeof StoryboardSchema>['phan_canh'][nu
  *  → Anthropic trực tiếp. Đo 19/10/2026 một lượt Opus điển hình (6,8k vào / 3,5k ra): ckey ≈ 30–125₫ · ShopAIKey ≈ 315₫ · Anthropic ≈ 2.500₫.
  *  Bước nào lỗi / từ chối / trả sai khuôn → bước sau. r.model trả về mang tiền tố đường đã đi ('ckey:…', 'shopaikey:…'; Anthropic = tên trơn);
  *  ckey báo tiền thật mỗi lượt (usage.x_ckey.cost, VNĐ) → tkCua(r).vnd → ghiTienChu ghi đúng tiền. */
-type DuongChu = { ten: NguonChu; c: Anthropic; model: string; jsonTay: boolean };
+type DuongChu = { ten: NguonChu; c: Anthropic; model: string; jsonTay: boolean; nhan?: string };   // nhan: phân biệt nhiều khoá cùng cổng trong sổ cầu dao (donk gối đầu)
 /** DONK (shopdonk.com, anh mua thử 11/11/2026 gói Claude 50M = 20.000₫ trả trước — vault #693, khoá DONK_API_KEY): đứng ĐẦU chuỗi để "dùng nhanh cho hết" mà đo giá thật
  *  (20.000₫ / tổng token tới khi khoá trả 429). Chỉ có Opus 5 · Sonnet 5 · Haiku 4.5 → map theo DÒNG model. Cổng báo token vào sai (lời nhắc ~30 token ghi 1) → ước
  *  theo độ dài lời nhắc; tiền ghi theo giá niêm yết của shop (₫ / 1M token, cả vào + ra) = ƯỚC. Hỏng / hết gói → cầu dao (claude-duong.json) đẩy xuống cuối 20 phút. */
 const DONK_DONG: [RegExp, string, number][] = [[/haiku/i, 'claude-haiku-4-5', 105], [/sonnet/i, 'claude-sonnet-5', 235], [/opus/i, 'claude-opus-5', 400]];
+/** Các khoá donk theo thứ tự dùng (gói cũ trước) — DONK_API_KEY cách bằng dấu phẩy. */
+export const khoaDonk = (): string[] => (process.env.DONK_API_KEY ?? '').split(',').map((k) => k.trim()).filter(Boolean);
 export const donkCua = (model: string): { model: string; gia: number } | null => { const x = DONK_DONG.find(([re]) => re.test(model)); return x ? { model: x[1], gia: x[2] } : null; };
 /** NGƯỜI BÁN CKEY ĐANG CÓ cho một model Claude — đọc /v1/models (nhớ 10 phút): người bán trên chợ đổi tên / nghỉ liên tục (27/10/2026: cả hai người bán Haiku
  *  trong bảng gõ tay cũ đều 404 → lượt rơi thẳng về Anthropic giá gấp 30 lần). Chỉ còn là LƯỚI khi danh sách sống của Phòng Tài nguyên (ckey-tuyen.ts) chưa có dòng cho model; bảng người bán gõ tay đã bỏ 31/10/2026. Thuần phần khớp tên. */
@@ -139,8 +141,10 @@ const duongChu = async (model: string): Promise<DuongChu[]> => {
   // 18 phút ở bước viết vì 4 người bán ckey cùng treo.
   const ke = (key: string, baseURL: string) => new Anthropic({ apiKey: key, baseURL, defaultHeaders: { authorization: `Bearer ${key}` }, maxRetries: 0, timeout: 90_000 });
   // người bán: danh sách sống của Phòng Tài nguyên (ckey-tuyen.ts) trước; tự dò danh mục chỉ là lưới khi tệp chưa có dòng cho model này
-  const kd = process.env.DONK_API_KEY, dk = donkCua(model);
-  if (kd && dk) ds.push({ ten: 'donk', c: ke(kd, 'https://api.shopdonk.com'), model: dk.model, jsonTay: true });   // jsonTay: chưa đo cổng này với output_config → dặn khuôn trong system (an toàn như ckey)
+  // DONK GỐI ĐẦU (anh 12/11/2026 "khi nào cái kia hết quota thì đổi luôn sang cái này"): DONK_API_KEY = danh sách khoá cách bằng dấu phẩy, gói cũ TRƯỚC —
+  // mỗi khoá một đường riêng trong sổ cầu dao (nhan = 4 ký tự cuối), khoá cũ hết gói → lỗi → xuống cuối, khoá kế lên chạy ngay trong cùng lượt
+  const dk = donkCua(model);
+  if (dk) for (const kd of khoaDonk()) ds.push({ ten: 'donk', c: ke(kd, 'https://api.shopdonk.com'), model: dk.model, jsonTay: true, nhan: kd.slice(-4) });   // jsonTay: chưa đo cổng này với output_config → dặn khuôn trong system (an toàn như ckey)
   if (kc) { const co = nguoiBanTuyen(model), them = (await nguoiBanCkey(kc, model)).filter((m) => !co.includes(m)); for (const m of [...co, ...them]) ds.push({ ten: 'ckey', c: ke(kc, 'https://api.xah.io'), model: m, jsonTay: true }); }   // jsonTay: ckey trả JSON hỏng với output_config từ 28/10 ("Unterminated fractional number…") → mọi lượt rơi sang Anthropic ~7× giá; dặn khuôn trong system như ShopAIKey
   if (ks && /^claude-/.test(model)) ds.push({ ten: 'shopaikey', c: ke(ks, 'https://api.shopaikey.com'), model, jsonTay: true });
   if (ka) ds.push({ ten: 'anthropic', c: new Anthropic({ apiKey: ka }), model, jsonTay: false });
@@ -169,7 +173,7 @@ async function quaChuoi(p0: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu, sig?: Ab
   // đường vừa chạy tốt lên ĐẦU. Sổ dùng chung mọi tiến trình trên máy: /var/tmp/claude-duong.json { "<tên> <model>": { hong?: ms, tot?: ms } }.
   const SO = '/var/tmp/claude-duong.json', fs = await import('node:fs'); let so: Record<string, { hong?: number; tot?: number }> = {}; try { so = JSON.parse(fs.readFileSync(SO, 'utf8')); } catch { /* chưa có */ }
   const ghiSo = (k: string, v: { hong?: number; tot?: number }) => { try { const cu = (() => { try { return JSON.parse(fs.readFileSync(SO, 'utf8')); } catch { return {}; } })(); cu[k] = v; fs.writeFileSync(SO, JSON.stringify(cu)); } catch { /* phụ */ } };
-  const khoaD = (d: DuongChu) => `${d.ten} ${d.model}`, bay = Date.now();
+  const khoaD = (d: DuongChu) => `${d.ten}${d.nhan ? `#${d.nhan}` : ''} ${d.model}`, bay = Date.now();
   const hang = (d: DuongChu) => { const x = so[khoaD(d)] ?? {}; return x.hong && bay - x.hong < 20 * 60_000 && !(x.tot && x.tot > x.hong) ? 2 : x.tot && bay - x.tot < 60 * 60_000 ? 0 : 1; };
   const ds = (await duongChu(p.model)).map((d, i) => ({ d, i })).sort((a, b) => hang(a.d) - hang(b.d) || a.i - b.i).map((x) => x.d); const loi: string[] = [];
   if (!ds.length) throw new Error('Thiếu khoá Claude trên máy chủ (CKEY_API_KEY / SHOPAIKEY_API_KEY / ANTHROPIC_API_KEY)');

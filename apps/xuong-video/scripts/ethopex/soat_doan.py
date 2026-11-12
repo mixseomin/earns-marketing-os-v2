@@ -88,7 +88,7 @@ def goi_claude(jpg, hoi, max_tokens=300, kiem=None):   # jpg: một đường d�
     e = os.environ; duong = []
     # DONK ĐẦU CHUỖI (anh 11/11/2026): cùng khoá + tên model với apps/etp/ai_chu.py (một nguồn), khuôn Anthropic như chuỗi này
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import ai_chu as AI
-    if AI.khoa_donk(): duong += [("donk", AI.DONK_URL, AI.khoa_donk(), m) for m, _ in AI.DONK["sonnet" if "sonnet" in MO_HINH else "haiku"]]
+    duong += [("donk", AI.DONK_URL, k, m) for k in AI.khoa_donk_ds() for m, _ in AI.DONK["sonnet" if "sonnet" in MO_HINH else "haiku"]]   # mọi khoá donk, gói cũ trước
     if e.get("CKEY_API_KEY"): duong += [("ckey", "https://api.xah.io/v1/messages", e["CKEY_API_KEY"], m) for m in CKEY]
     if e.get("SHOPAIKEY_API_KEY"): duong.append(("shopaikey", "https://api.shopaikey.com/v1/messages", e["SHOPAIKEY_API_KEY"], MO_HINH))
     if e.get("ANTHROPIC_API_KEY"): duong.append(("anthropic", "https://api.anthropic.com/v1/messages", e["ANTHROPIC_API_KEY"], MO_HINH))

@@ -131,10 +131,13 @@ const vatDet = (set: Pick<BoSet, 'du_lieu'> | null | undefined) => new Set((set?
 /** Vật BẮT BUỘC thấy (may_3d.khung) mà chỉ là một mẩu ở cú CẬN (cu/ecu/insert/mcu): mỗi chủ thể ≥ 5% diện tích khung (15/10/2026 shot #32 tập 19:
  *  phích là chủ thể cú cận — "Foreground: the plug" — mà Tango đứng che, phích còn 3%; cổng chỉ hỏi "có trong khung" nên lọt, keyframe vẽ cảnh khác).
  *  Không chặn chuyện chạm mép: ở cú cận vật lớn (đế cắm 10 cm) đằng nào cũng tràn mép. Cỡ rộng không đo: nhân vật 5 cm trong toàn cảnh nhỏ là đúng ý. */
-export const chuTheQuaNho = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky_thuat'>>): string[] => {
+export const chuTheQuaNho = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky_thuat'>> & { may_3d?: May3d | null }): string[] => {
   if (!['cu', 'ecu', 'insert', 'mcu'].includes(c.ky_thuat?.co_canh ?? '')) return [];
   const thay = new Map((c.khung_xam?.thay ?? []).map((t) => [t.ten, t]));
-  return (c.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung).flatMap((k) => {
+  // NGƯỜI CẦM món chủ thể (cận trao / cận đồ cầm tay): khai vào khung để thấy AI cầm (kiem-ai-3d › vatDeoThieuNguoi) — chỉ cần lọt khung, không cần to
+  // (13/11/2026 #3071 #17: hai luật đá nhau — luật vật cầm bắt khai nhóc, luật này đòi nhóc ≥ 5% khung trong một cú cận nắm tiền)
+  const ct = new Set(c.may_3d?.khung ?? []); const nguoiCam = new Set((c.may_3d?.vi_tri ?? []).filter((v) => v.cam && ct.has(v.ten)).map((v) => v.cam!));
+  return (c.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung && !nguoiCam.has(k.nhan_vat)).flatMap((k) => {
     const t = thay.get(k.nhan_vat);
     // VẬT MẢNH / RỖNG (vòng tay, chuỗi hạt, dây): phủ ít điểm ảnh mà trải rộng giữa khung là đọc rõ — tập 122 #22 chuỗi hạt 1,8% điểm ảnh, trải 30% bề ngang
     const h = t?.hop; const giua = !!h && h[0]! > 0.01 && h[1]! > 0.01 && h[2]! < 0.99 && h[3]! < 0.99; const trai = h ? Math.max(h[2]! - h[0]!, h[3]! - h[1]!) : 0;

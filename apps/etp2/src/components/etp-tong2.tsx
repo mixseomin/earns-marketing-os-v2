@@ -38,7 +38,13 @@ export function Tong2({ ve: veNgoai, laChu, ky, dau }: { ve: Record<string, VeWi
     const doKt = () => {
       const r = el.getBoundingClientRect();
       if (!cha) { setKt({ w: Math.round(r.width), h: Math.max(420, Math.round(window.innerHeight - r.top - 16)) }); return; }
-      const pr = cha.getBoundingClientRect(), tren = r.top - pr.top + cha.scrollTop, duoi = cha.scrollHeight - (tren + r.height);
+      // phần nội dung DƯỚI lưới đo từ mép dưới thật của các con trong khung, KHÔNG lấy scrollHeight (etp2 #1573): nội dung ngắn hơn khung thì scrollHeight = clientHeight
+      // → khoảng trống dưới bị tính là "nội dung dưới lưới" → phóng to cửa sổ mà lưới đứng nguyên cỡ cũ, phải F5 mới phủ kín
+      const pr = cha.getBoundingClientRect(), tren = r.top - pr.top + cha.scrollTop;
+      let day = 0;
+      for (const c of Array.from(cha.children)) { const cs = getComputedStyle(c); if (cs.position === 'absolute' || cs.position === 'fixed' || cs.display === 'none') continue;
+        day = Math.max(day, c.getBoundingClientRect().bottom - pr.top + cha.scrollTop + (parseFloat(cs.marginBottom) || 0)); }
+      const duoi = day + (parseFloat(getComputedStyle(cha).paddingBottom) || 0) - (tren + r.height);
       setKt({ w: Math.round(r.width), h: Math.max(420, Math.floor(cha.clientHeight - tren - Math.max(0, duoi))) });
     };
     doKt(); const ro = new ResizeObserver(doKt); ro.observe(el); window.addEventListener('resize', doKt);

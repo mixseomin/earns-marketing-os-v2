@@ -1176,4 +1176,6 @@ export const LUAT = [
   { card: 1561, tep: 'apps/cty/worker/ethopex.mjs', co: '`\\n<i>${kieuNb(daNb.map(({ r }) => r))} · ', cam: '`\\n<i>bản mới $1 · ', vi: 'tin Telegram nhân bản camp thắng ghi loại bản theo kết quả nhan-ban (USED POST $2 / bài mới $1), không ghi cứng "bản mới $1" (anh 12/11/2026)' },
   { card: 1561, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '→ nhân 1 bản used post (dùng lại bài đăng camp gốc)', cam: '→ nhân 1 bản $1 (phim {p}:', vi: 'dòng luật NB nói rõ bản nhân dùng used post' },
   { card: 1561, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '→ bản USED POST (nhan-ban.py: ad dùng lại bài đăng của camp gốc', cam: '→ bản $1 GIỮ NGUYÊN creative', vi: 'mô tả luật NB (thẻ / trang) nói used post, không còn "bản $1 giữ creative"' },
+  { card: 1576, tep: 'apps/etp/dong-bo.py', co: "'(?:duplicate by|dup by|_d)[_", vi: 'bản dup team tên "…_D_85382" (gạch dưới sau D) vẫn nhận camp gốc → kế thừa creative, không rơi "Chưa rõ loại" (anh 12/11/2026)' },
+  { card: 1576, tep: 'apps/etp/dong-bo.py', co: 'group by goc_ten having count(distinct creative_id) = 1)', vi: 'bản dup không ghi id gốc (…_D3_Start-Today, ROAS1.3_…_D30, _ROAS-1.2, (ROAS)) kế thừa creative theo TÊN GỐC khi cả nhóm chung một creative' },
 ];

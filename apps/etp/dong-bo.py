@@ -85,7 +85,16 @@ def main():
                  creative_id = case when coalesce(n.creative_id, 0) = 0 then g.creative_id else n.creative_id end
                from (select camp_id, content_id, creative_id from etp.camp_ngoai union all select camp_id, content_id, creative_id from etp.camp) g
                where (coalesce(n.content_id, 0) = 0 or coalesce(n.creative_id, 0) = 0) and coalesce(g.content_id, 0) > 0
-                 and g.camp_id = substring(lower(n.ten) from '(?:duplicate by|dup by|_d)\\s*(\\d{5,})')::int""")
+                 and g.camp_id = substring(lower(n.ten) from '(?:duplicate by|dup by|_d)[_\\s]*(\\d{5,})')::int""")
+        # #1576 (12/11/2026 "sao vẫn còn 29 cái chưa phân loại"): team đặt tên dup "…_D_85382" (gạch dưới sau D) → mẫu cũ "_d\s*" trượt; bản dup
+        # không ghi id gốc ("…_V1_D3_Start-Today-12-11", "ROAS1.3_…_V1_D30", "…_x1_ROAS-1.2", "…_D2 (ROAS)") → Ethopex trả ad 0/0, camp mất creative
+        # → dạng "Chưa rõ loại". Khớp theo TÊN GỐC: bỏ tiền tố ROAS, đuôi Start-Today / ROAS / _D<số ngắn>; chỉ gán khi mọi camp cùng tên gốc chung MỘT creative
+        q(r"""with k as (select camp_id, content_id, creative_id, regexp_replace(regexp_replace(regexp_replace(ten, '^ROAS\s*[\d.]*_', '', 'i'),
+                    '(_Start-Today-\d+-\d+|_ROAS-?[\d.]*|\s*\(ROAS\)|_D\d{1,3})+$', '', 'i'), '\s+$', '') goc_ten
+                  from (select camp_id, content_id, creative_id, ten from etp.camp_ngoai union all select camp_id, content_id, creative_id, ten from etp.camp) a),
+              g as (select goc_ten, min(content_id) content_id, min(creative_id) creative_id from k where coalesce(creative_id, 0) > 0 group by goc_ten having count(distinct creative_id) = 1)
+            update etp.camp_ngoai n set content_id = case when coalesce(n.content_id, 0) = 0 then g.content_id else n.content_id end, creative_id = g.creative_id
+              from k join g using (goc_ten) where k.camp_id = n.camp_id and coalesce(n.creative_id, 0) = 0 and length(g.goc_ten) >= 12""")
         # tài khoản → người dùng (report theo người trên etp.on.tc, anh 28/10/2026)
         try:
             ghi("tai_khoan", [{"ad_account_id": int(x["id"]), "nguoi_id": x.get("used_by_user_id"), "nguoi": x.get("used_by_user_name") or x.get("user_name") or None, "nha": int(x["id"]) in EA.TK,

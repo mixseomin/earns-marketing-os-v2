@@ -79,6 +79,11 @@ export async function hoiNgoc({ luot, system, content, max_tokens = 200, cho = 6
   }));
   const coAnh = khoi.some((b) => b.type === 'image');
   if (coAnh) system += ' If no image reached you, reply {"thay_anh":false,"ly_do":"..."} and nothing else.';
+  // THỬ LẠI MỘT LẦN khi proxy / JSON hỏng (12/11/2026, militarycalc top-n-42942: lúc sinh "hỏi Ngọc (xet-hook): Unexpected end of JSON input" → xét hook bị bỏ qua,
+  // hook VAFastLoans "hứa sai" lọt tới phòng chấm, bài vừa dựng lại SỬA LẠI). Hỏng lần hai mới trả undefined như cũ.
+  for (let lan = 0; lan < 2; lan++) { const o = await hoiNgocMotLan({ luot, system, khoi, coAnh, max_tokens: lan ? max_tokens * 2 : max_tokens, cho }); if (o !== undefined || lan) return o; }
+}
+async function hoiNgocMotLan({ luot, system, khoi, coAnh, max_tokens, cho }) {
   try {
     const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ngoc', 'x-cty-luot': `${luot}-${Date.now()}`, 'x-cty-phong': 'noi-dung' },
       body: JSON.stringify({ model: MODEL_NGOC, max_tokens, temperature: 0, system, messages: [{ role: 'user', content: khoi }] }), signal: AbortSignal.timeout(cho) });

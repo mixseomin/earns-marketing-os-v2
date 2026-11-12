@@ -1032,7 +1032,10 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
   const khac = du.soLuat.filter((l) => !NHOM_LUAT.some(([, , ds]) => ds.includes(l.ma)));
   const NHOM = [...NHOM_LUAT, ...(khac.length ? [['khac', 'Luật khác', khac.map((l) => l.ma)] as [string, string, string[]]] : [])];
   // MỘT MÀN, CHIA TAB (YDNI) · MỖI SỐ MỘT CỘT (anh 29/10/2026 "dùng dạng ui.DataTable, các số nào vào cột được thì ra cột riêng")
-  const [nhom, setNhom] = useState('tang'); useEffect(() => { try { const v = localStorage.getItem('etp-luat-nhom'); if (v) setNhom(v); } catch { /* */ } }, []);   // đọc sau khi nạp: tránh lệch SSR
+  // nhóm luật đang xem nằm trên URL ?ln= (etp2 #1574: lựa chọn của tab này không lan sang tab khác) — localStorage chỉ là mặc định khi URL chưa có; rời tab Luật thì gỡ ?ln=
+  const [nhom, setNhom] = useState(() => { let v = new URL(location.href).searchParams.get('ln'); if (!v) try { v = localStorage.getItem('etp-luat-nhom'); } catch { /* */ } return v || 'tang'; });
+  useEffect(() => { const u = new URL(location.href); u.searchParams.set('ln', nhom); if (u.href !== location.href) history.replaceState(null, '', u); }, [nhom]);
+  useEffect(() => () => { const u = new URL(location.href); u.searchParams.delete('ln'); history.replaceState(null, '', u); }, []);
   const chon = (k: string) => { setNhom(k); try { localStorage.setItem('etp-luat-nhom', k); } catch { /* */ } };
   // THẺ NỔI CHUNG CỦA TRANG (useNoi + KhungNoi: trễ mở, ✕ / Esc, rê vào được) thay hover mặc định của trình duyệt (anh 29/10/2026 "show dạng format đẹp")
   const noi = useNoi<{ ma: string; kieu: 'dx' | 'dk' }>();
@@ -2617,7 +2620,7 @@ function NutLenCamp({ du, gon }: { du: DuLieuEtp; gon: boolean }) {
 }
 type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null; cheDo?: CheDoLuat | null };
 const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
-export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp = [] }: { du: DuLieuEtpGui; chiXem?: boolean; quyen?: QuyenXem; /** lệnh tay chờ áp (actions/etp-tay docChoAp) */ choAp?: ChoAp[]; /** mã phiên bản dữ liệu (lib/etp-phien) — tự làm mới chỉ khi đổi */ phien?: string; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string; ro?: string; ab?: string } }) {
+export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp = [] }: { du: DuLieuEtpGui; chiXem?: boolean; quyen?: QuyenXem; /** lệnh tay chờ áp (actions/etp-tay docChoAp) */ choAp?: ChoAp[]; /** mã phiên bản dữ liệu (lib/etp-phien) — tự làm mới chỉ khi đổi */ phien?: string; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string; ro?: string; ab?: string; /** kỳ số liệu (?k=) */ k?: string } }) {
   // TỰ TẢI LẠI KHI CÓ BẢN MỚI (anh 04/11/2026 "nút này đâu ở tab phim" — tab mở từ trước deploy chạy giao diện cũ): hỏi /etp/ban mỗi phút, mã bản dựng khác lúc nạp → tải lại
   // ngay khi không có form / ngăn đang mở (không làm mất chữ đang gõ)
   useEffect(() => { let dau = ''; const hoi = async () => { const m = await maBan(); if (!m) return;   // 503 / lỗi mạng → bỏ lượt, KHÔNG tải lại
@@ -2713,15 +2716,17 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const doiPhim = (id: number | null) => doi({ phim: id, ...(id ? { loc: 'all' as const } : {}) }, () => { setPhimLoc(id); if (id) setLoc('all'); });   // chọn phim = thấy mọi camp của phim (cả tạm dừng)
   useEffect(() => { if (!daDoc) return; if (!ghiLanDau.current) { ghiLanDau.current = true; if (new URL(location.href).searchParams.get('v')) return; } urlTu(hienTai);
     try { localStorage.setItem('etp-camp-xem', xemCamp); } catch { /* trình duyệt chặn */ } }, [tab, xemCamp, xemCr, loc, phimLoc, luatLoc, dangLoc, boLoc, roLoc, abLoc, nganCamp, nganPhim, daDoc]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const [kh, setKh] = useState<Kh>('7');
+  // KỲ SỐ LIỆU NẰM TRÊN URL ?k= (anh 12/11/2026 etp2 #1574 "các lựa chọn phải show lên URL để khi mở ở tab mới với option mới ko bị ảnh hưởng"): trước đây kỳ chỉ ở
+  // localStorage chung mọi tab → tab mới đổi kỳ thì tab cũ F5 / tự làm mới cũng nhảy theo. Giờ URL thắng; localStorage chỉ còn là mặc định cho trang mở không có ?k=
+  const [kh, setKh] = useState<Kh>(() => { let v = dauVao?.k ?? null; if (!v) try { v = localStorage.getItem('etp-kh'); } catch { /* trình duyệt chặn */ } return v ? KH_CU[v] ?? v : '7'; });
   const khK = khKhoang(kh, du.nay), khNay = khK.tu === du.nay && khK.den === du.nay, khNhan = khNhanCua(kh);
   const dinhRef = useRef<HTMLDivElement>(null);
   const cuonRef = useRef<HTMLDivElement>(null), heroRef = useRef<HTMLDivElement>(null); const [gonHero, setGonHero] = useState(false);
   useEffect(() => { const el = dinhRef.current; if (!el) return; const dat = () => document.documentElement.style.setProperty('--etp-dinh', `${el.offsetHeight}px`); dat();
     const ro = new ResizeObserver(dat); ro.observe(el); return () => { ro.disconnect(); document.documentElement.style.removeProperty('--etp-dinh'); }; }, []);
   const noiAnh = useNoi<{ anh: string; video: string | null; cr?: number }>(); const xem = noiAnh.v;   // ảnh to + video khi rê vào ảnh creative (thẻ nổi dùng chung: ✕ / Esc)
-  useEffect(() => { try { const v = localStorage.getItem('etp-kh'); if (v) setKh(KH_CU[v] ?? v); } catch { /* bỏ qua */ } }, []);
-  useEffect(() => { try { localStorage.setItem('etp-kh', kh); } catch { /* bỏ qua */ } }, [kh]);
+  useEffect(() => { const u = new URL(location.href); u.searchParams.set('k', kh); if (u.href !== location.href) history.replaceState(null, '', u);
+    try { localStorage.setItem('etp-kh', kh); } catch { /* bỏ qua */ } }, [kh]);
   const ngayKh = useMemo(() => { const { tu, den } = khKhoang(kh, du.nay); return (d: string) => d >= tu && d <= den; }, [kh, du.nay]);
   const khCamp = useMemo(() => { const m = new Map<number, SoTien>(); for (const r of du.soNgay) if (ngayKh(r.d)) { const a = m.get(r.c) ?? { chi: 0, thu: 0 }; a.chi += r.chi; a.thu += r.thu; m.set(r.c, a); } return m; }, [du.soNgay, ngayKh]);
   const KHONG: SoTien = { chi: 0, thu: 0 };

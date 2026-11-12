@@ -7,6 +7,10 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1574, tep: 'apps/etp2/src/components/etp-view.tsx', co: "u.searchParams.set('k', kh);", cam: "useEffect(() => { try { const v = localStorage.getItem('etp-kh'); if (v) setKh(", vi: 'kỳ số liệu nằm trên URL ?k=, tab mới đổi kỳ không làm tab cũ nhảy theo (anh 12/11/2026)' },
+  { card: 1574, tep: 'apps/etp2/src/app/etp/page.tsx', co: "k: mot('k')", vi: 'máy chủ đưa ?k= vào EtpView' },
+  { card: 1574, tep: 'apps/etp2/src/components/etp-tong2.tsx', co: "if (tpl) u.searchParams.set('tpl', tpl);", vi: 'Template Tổng quan nằm trên URL ?tpl=, thắng bố cục chung trong sổ' },
+  { card: 1574, tep: 'apps/etp2/src/components/etp-view.tsx', co: "u.searchParams.set('ln', nhom);", vi: 'nhóm luật (tab Luật) nằm trên URL ?ln=' },
   { card: 1567, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function HexBo({ bos, boTk }', vi: 'dãy bộ tài khoản của phim: ≥ 3 bộ xếp lưới 2x2 cho gọn (anh 12/11/2026)' },
   { card: 1567, tep: 'apps/etp2/src/components/etp-view.tsx', co: "gridTemplateColumns: 'repeat(2, auto)', gap: 1", vi: 'HexBo: lưới 2 cột khi nhiều bộ' },
   { card: 1567, tep: 'apps/etp2/src/components/etp-view.tsx', cam: '.map((c) => c.bo).filter(Boolean))].map((b) => <Hex', vi: 'không vẽ dãy lục giác bộ của phim thành một hàng dài nữa — đi qua HexBo' },

@@ -29,7 +29,11 @@ export function Tong2({ ve: veNgoai, laChu, ky, dau }: { ve: Record<string, VeWi
   const [kt, setKt] = useState({ w: 1200, h: 700 });
 
   const taiLai = () => docBoCuc().then((r) => { if (!('loi' in r)) setDoc(r); return r; });
-  useEffect(() => { taiLai().then((r) => { if (!('loi' in r)) setO(r.dang ?? r.team ?? MAC_DINH); }).catch(() => {}); }, []);
+  // TEMPLATE ĐANG XEM NẰM TRÊN URL ?tpl= (anh 12/11/2026 etp2 #1574 "các lựa chọn phải show lên URL để khi mở ở tab mới với option mới ko bị ảnh hưởng"): bố cục đang dùng lưu
+  // chung trong sổ (etp.bo_cuc) → tab mới chọn template khác thì tab cũ F5 cũng đổi theo. Giờ ?tpl= thắng sổ; sửa tay (kéo / thêm / bỏ ô) = bố cục tự sửa, gỡ ?tpl=
+  const tplSrc = (v: string, d: BoCucDoc | null) => (v.startsWith('m:') ? TEMPLATE[v.slice(2)]?.o : v === 'team' ? d?.team ?? undefined : d?.rieng.find((r) => `r:${r.ten}` === v)?.o);
+  useEffect(() => { taiLai().then((r) => { if ('loi' in r) return; const t = new URL(location.href).searchParams.get('tpl'), src = t ? tplSrc(t, r) : undefined;
+    setO(src ? src.map((x) => ({ ...x })) : r.dang ?? r.team ?? MAC_DINH); }).catch(() => {}); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   // lưới cao đúng phần màn còn lại dưới thanh trên (đo mép trên thật) → không cuộn dọc; bề ngang theo khung → không cuộn ngang
   useLayoutEffect(() => {
     const el = hop.current; if (!el) return;
@@ -54,8 +58,9 @@ export function Tong2({ ve: veNgoai, laChu, ky, dau }: { ve: Record<string, VeWi
   const cw = (kt.w - GAP * (COT - 1)) / COT, rh = (kt.h - GAP * (HANG - 1)) / HANG;
   const hien = keo ?? o, vuot = hien.some(traMan);
 
-  const ghi = (moi: O[]) => {
+  const ghi = (moi: O[], tpl = '') => {
     setO(moi);
+    { const u = new URL(location.href); if (tpl) u.searchParams.set('tpl', tpl); else u.searchParams.delete('tpl'); if (u.href !== location.href) history.replaceState(null, '', u); }
     if (!hopLe(moi)) { setBao('Ô viền đỏ thò ra ngoài màn: kéo lên hoặc thu nhỏ — bố cục chưa lưu'); return; }
     setBao(null); luuBoCuc(TEN_DANG, moi).then((r) => { if ('loi' in r) setBao(r.loi); }).catch(() => setBao('lưu không được'));
   };
@@ -80,8 +85,8 @@ export function Tong2({ ve: veNgoai, laChu, ky, dau }: { ve: Record<string, VeWi
     ...rieng.map((r) => ({ value: `r:${r.ten}`, label: r.ten, nhom: 'Template riêng' })),
   ];
   const moTpl = (v: string) => {
-    const src = v.startsWith('m:') ? TEMPLATE[v.slice(2)]?.o : v === 'team' ? doc?.team : rieng.find((r) => `r:${r.ten}` === v)?.o;
-    if (src) ghi(src.map((x) => ({ ...x })));   // mở template = chép vào bố cục đang dùng; sửa tiếp không đổi bản gốc
+    const src = tplSrc(v, doc);
+    if (src) ghi(src.map((x) => ({ ...x })), v);   // mở template = chép vào bố cục đang dùng + ghi ?tpl=; sửa tiếp không đổi bản gốc
   };
   // TÊN BỐ CỤC ĐANG HIỆN: so ô đang hiện với từng template (mặc định · team · riêng) — khớp thì ô Template ghi tên đó, sửa lệch thì ghi "Bố cục tự sửa"
   const khoaO = (ds: O[]) => [...ds].map((x) => `${x.ma}:${x.x}:${x.y}:${x.w}:${x.h}`).sort().join('|');

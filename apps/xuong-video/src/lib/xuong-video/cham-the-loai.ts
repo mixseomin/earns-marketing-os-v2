@@ -7,8 +7,17 @@ import type { Canh, KieuHai, PhanCanh } from './kieu';
 import { giayPhat } from './kieu';
 import { tiengGiay } from './toc-noi';
 import { nguoiNoiKhongThayMat, matQuayDi } from './bo-set-3d';
+import { tl, type TaiLieu } from './tai-lieu-nganh';
+/** Tài liệu theo mã tiêu chí — gắn một chỗ, mọi tiêu chí cùng mã cùng nguồn. */
+const TL_MA: Record<string, TaiLieu[]> = {
+  co_gag: tl('setup_payoff', 'chekhov'), asl: tl('asl', 'bordwell_asl'), toc_noi: tl('toc_noi', 'toc_viet', 'comic_timing'), o_shot: [], kieu: tl('slapstick', 'deadpan', 'trotreu', 'parody'),
+  gai_tra: tl('chekhov', 'chekhov_nfs', 'setup_payoff', 'bo_ba'), phan_ung: tl('reaction', 'double_take', 'slow_burn', 'kuleshov'),
+  vat_ly_toan: tl('chaplin_long', 'slapstick', 'keaton_mubi', 'carroll_keaton'), vat_ly_tron: tl('long_take', 'keaton_mubi', 'carroll_keaton'),
+  loi_ngat: tl('comic_timing', 'ngat_humor'), loi_can: tl('close_up', 'shot_reverse'), chenh_tt: tl('hitchcock_bom', 'hitchcock_truffaut', 'trotreu'),
+  mat_lanh: tl('deadpan', 'slow_burn', 'reaction'), mat_lanh_nhac: tl('deadpan', 'comic_timing'), nhai: tl('parody'),
+};
 
-export type TieuChiTl = { ma: string; ten: string; dat: boolean | null; ly: string; nguon: string; gag?: string };
+export type TieuChiTl = { ma: string; ten: string; dat: boolean | null; ly: string; nguon: string; gag?: string; /** tài liệu ngành đã mở thử (tai-lieu-nganh.ts) */ tai_lieu?: TaiLieu[] };
 export type KqTheLoai = { the_loai: string; diem: number; tieu_chi: TieuChiTl[] };
 export const KIEU_HAI: Record<KieuHai, { ten: string; mo_ta: string }> = {
   vat_ly: { ten: 'Hài vật lý (slapstick)', mo_ta: 'Gag bằng cơ thể / đồ vật: diễn trọn trong cỡ rộng thấy toàn thân, không cắt giữa gag' },
@@ -73,6 +82,6 @@ export function chamHai(ds: Canh[], phanCanh: PhanCanh[], laNv: (ten: string) =>
 export const BO_CHAM: Partial<Record<string, (ds: Canh[], pc: PhanCanh[], laNv: (t: string) => boolean) => TieuChiTl[]>> = { hai: chamHai };
 export function chamTheLoai(theLoai: string | undefined, ds: Canh[], pc: PhanCanh[], laNv: (t: string) => boolean): KqTheLoai | null {
   const f = theLoai ? BO_CHAM[theLoai] : undefined; if (!f) return null;
-  const tc = f(ds, pc, laNv); const co = tc.filter((x) => x.dat !== null);
+  const tc = f(ds, pc, laNv).map((x) => ({ ...x, tai_lieu: x.tai_lieu ?? TL_MA[x.ma] ?? [] })); const co = tc.filter((x) => x.dat !== null);
   return { the_loai: theLoai!, diem: co.length ? Math.round((100 * co.filter((x) => x.dat).length) / co.length) : 0, tieu_chi: tc };
 }

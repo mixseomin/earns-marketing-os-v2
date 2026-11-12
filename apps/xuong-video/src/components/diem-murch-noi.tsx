@@ -7,6 +7,7 @@ import { TRONG_SO, TEN_TIEU_CHI, mauDiem, diemMurchTap, diemMurchCanh, type Diem
 import { boSetCuaTap } from '@/lib/actions';
 import type { BoSet, Canh, NhanVat, Tap } from '@/lib/xuong-video/kieu';
 import { KY_MAY, type KqMay } from '@/lib/xuong-video/qc-cam-xuc';
+import { TL_MURCH } from '@/lib/xuong-video/tai-lieu-nganh';
 
 /** MỘT chỗ tính điểm Murch cho mọi nơi hiện chip (Lưới, Timeline) — cùng bộ set 3D, cùng cờ QC → cùng số ở mọi màn. */
 export function useDiemMurch(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'id' | 'phan_canh' | 'khong_gian'>, laQc?: boolean) {
@@ -40,6 +41,7 @@ export function ChipMurch({ d, canh, tap, soShot, viTri: vt, may }: { d: DiemMur
                 </div>
                 <div style={{ height: 4, borderRadius: 2, background: 'var(--bg-2)', overflow: 'hidden' }}><div style={{ width: `${Math.round(v * 100)}%`, height: '100%', background: mauDiem(v * 100) }} /></div>
                 {ly && <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>{ly}</div>}
+                <div style={{ fontSize: 10, color: 'var(--fg-4)' }}>📚 {(TL_MURCH[k] ?? []).map((t, i) => <span key={i}>{i ? ' · ' : ''}<a className="xv-lienket" href={`https://href.li/?${t.url}`} target="_blank" rel="noreferrer" title={t.ghi ?? t.ten}>{t.ten}</a></span>)}</div>
               </div>
             );
           })}

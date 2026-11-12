@@ -6,6 +6,9 @@ import { useState } from 'react';
 import { mauDiem } from '@/lib/xuong-video/diem-murch';
 import type { CongVideoTho } from '@/lib/xuong-video/cong-video-tho';
 import type { KqTheLoai } from '@/lib/xuong-video/cham-the-loai';
+import { tlChoLoi, TL, type TaiLieu } from '@/lib/xuong-video/tai-lieu-nganh';
+/** Link tài liệu ngành (qua href.li — bỏ referrer như mọi link ra ngoài). */
+const Ref = ({ ds }: { ds: TaiLieu[] }) => ds.length ? <span style={{ fontSize: 10 }}> 📚 {ds.map((t, i) => <span key={i}>{i ? ' · ' : ''}<a className="xv-lienket" href={`https://href.li/?${t.url}`} target="_blank" rel="noreferrer" title={t.ghi ?? t.ten}>{t.ten}</a></span>)}</span> : null;
 
 export function OCongMay({ k, chan, onMo, tl, tenTl }: { k: CongVideoTho; /** phim bật video thô: ô này LÀ cổng keyframe; không bật = chỉ để xem */ chan: boolean; onMo: (id: number) => void; /** chấm thể loại (cham-the-loai.ts) — null = thể loại chưa có bộ chấm */ tl?: KqTheLoai | null; tenTl?: string }) {
   const [mo, setMo] = useState(false);
@@ -21,6 +24,7 @@ export function OCongMay({ k, chan, onMo, tl, tenTl }: { k: CongVideoTho; /** ph
         <span title={trang.y} style={{ fontSize: 11, fontWeight: 700, color: trang.mau, border: `1px solid ${trang.mau}`, borderRadius: 3, padding: '0 6px' }}>{trang.chu}</span>
         <span className="xv-mono" style={{ fontSize: 11 }} title="Điểm Murch trung bình cả tập (diem-murch.ts — Rule of Six: cảm xúc 51 · truyện 23 · nhịp 10 · eye trace 7 · trục 5 · không gian 4)">
           Murch cả tập <b style={{ color: mauDiem(k.diem) }}>{k.diem}</b>/100 · cần ≥ {k.nguong}</span>
+        <Ref ds={[TL.murch_6!, TL.murch_ut!, TL.murch_sach!]} />
         <span className="xv-mono" style={{ fontSize: 11, color: k.loi.length ? 'var(--red)' : '#4ade80' }}>{k.loi.length ? `${k.loi.length} lỗi ở ${ds.length} shot` : 'không lỗi đo được'}</span>
         <span className="xv-mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>{trang.y}</span>
       </div>
@@ -28,7 +32,7 @@ export function OCongMay({ k, chan, onMo, tl, tenTl }: { k: CongVideoTho; /** ph
         <div key={id} style={{ display: 'flex', gap: 6, alignItems: 'baseline', fontSize: 11 }}>
           <button type="button" className="xv-btn" style={{ padding: '0 6px', flex: 'none' }} title="Mở shot" onClick={() => onMo(id)}>#{s.thu_tu}</button>
           <span style={{ display: 'grid', gap: 1 }}>{s.ly.map((l, i) => (
-            <span key={i} style={{ color: l.loai === 'nguoi_noi' ? 'var(--red)' : 'var(--amber)' }} title={l.ly}>{l.loai === 'nguoi_noi' ? '🗣 ' : '⛓ '}{l.ly}</span>
+            <span key={i} style={{ color: l.loai === 'nguoi_noi' ? 'var(--red)' : 'var(--amber)' }} title={l.ly}>{l.loai === 'nguoi_noi' ? '🗣 ' : '⛓ '}{l.ly}<Ref ds={tlChoLoi(l.ly)} /></span>
           ))}</span>
         </div>
       ))}
@@ -42,7 +46,7 @@ export function OCongMay({ k, chan, onMo, tl, tenTl }: { k: CongVideoTho; /** ph
           </div>
           {tl?.tieu_chi.map((x, i) => (
             <span key={i} style={{ fontSize: 11, color: x.dat ? '#4ade80' : x.dat === false ? 'var(--amber)' : 'var(--fg-3)' }} title={x.nguon ? `Nguồn ngành: ${x.nguon}` : undefined}>
-              {x.dat ? '✓' : x.dat === false ? '✗' : '?'} {x.ten}: {x.ly}</span>
+              {x.dat ? '✓' : x.dat === false ? '✗' : '?'} {x.ten}: {x.ly}<Ref ds={x.tai_lieu ?? []} /></span>
           ))}
         </div>
       )}

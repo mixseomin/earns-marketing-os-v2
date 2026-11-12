@@ -275,6 +275,9 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     // → viết "Set this up before takeoff", giữ 17%, 2/3 bài kẹt cả 2 lượt) → lượt sau khoá vào ĐÚNG hook đã chọn + đưa nguyên câu làm khuôn, thêm một lượt.
     const xa = !!hookCu && loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l)), hooksLuot = xa ? [hookCu as HookQc] : (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length && !boHook.has(h.id));
     khoaTruoc = xa;
+    // kho lọc hết trong lượt (hook trùng tiêu đề / mang từ máy / đã bị chặn) → kiemDe bỏ qua luật hook, rapDe không gắn hook, bài ra "thiếu dang.hook"
+    // (sidecue 12/11/2026: spot-the-fake-40162-…-emails làm lại vẫn SỬA LẠI) → dừng, không dựng bài chắc chắn bị chặn
+    if (!hooksLuot.length) return { ok: false, loi: `hết hook QC dùng được cho đề này${loiCu.length ? ` (lần trước: ${loiCu.join('; ')})` : ''}`, vnd };
     const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en', hooksLuot) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.${xa ? ` The title AND any on-screen hook line must be this exact sentence: "${(hookCu as HookQc).chu}". Copy it, swapping at most 2-3 words (the country, item or number) to fit the angle; keep every other word and the punctuation. hook_qc must be "${(hookCu as HookQc).id}".` : ''}` : ''), ten: 'de_bai' });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;

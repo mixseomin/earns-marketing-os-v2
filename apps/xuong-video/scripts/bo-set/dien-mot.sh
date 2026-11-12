@@ -22,6 +22,7 @@ N=$(ls "$D"/f*.png 2>/dev/null | wc -l | tr -d ' '); [ "$N" -ge 2 ] || { echo "L
 export XV_GAIN=$(cat "$D/gain.txt" 2>/dev/null || echo 1)   # keyframe cùng phơi sáng với clip (ghep-dien.sh)
 for i in 0 1 2 3 4; do f=$(python3 -c "print(1 + round([0, .25, .5, .75, 1][$i] * ($N - 1)))"); "$DIR/scripts/bo-set/ghep-dien.sh" --anh "$D/f$(printf %04d $f).png" "$D/khoa-$i.jpg"; done
 echo $N > "$D/so-khung.txt"
-ssh $BOX "rm -rf /tmp/dien-$MA && mkdir -p /tmp/dien-$MA" && rsync -aq "$D/dien.mp4" "$D"/khoa-*.jpg "$D/so-khung.txt" $(ls "$D/fps.txt" 2>/dev/null) $BOX:/tmp/dien-$MA/
+# tạo thư mục đích NGAY trong lượt rsync (--rsync-path), --delete dọn tệp cũ — trước đây một lượt ssh riêng chỉ để rm + mkdir, ~5 s mỗi shot (đo 12/11/2026)
+rsync -aq --delete --rsync-path="mkdir -p /tmp/dien-$MA && rsync" "$D/dien.mp4" "$D"/khoa-*.jpg "$D/so-khung.txt" $(ls "$D/fps.txt" 2>/dev/null) $BOX:/tmp/dien-$MA/
 ssh $BOX "cd $APP && set -a; . ../../.env.production; set +a; NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/bo-set/nap-dien.mts --canh=$MA --thu-muc=/tmp/dien-$MA" | grep -q '"ok":true' && echo "$DAU" > "$XONG" && echo "XONG $TEN ($N khung)" || echo "LOI nạp $TEN"
 grep -h "CANH BAO" "$D/log" | sed "s/^/  $TEN: /" | head -3

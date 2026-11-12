@@ -22,6 +22,7 @@ import { chupTruoc } from './hoan-tac';
 import { daDangMay, giayDoc } from './nhip-hinh';
 import { apNguPhapMay, diCm } from './ngu-phap-may';
 import { tranhDayVao } from './san-pham-shot';
+import { docCachDien, SAN_TIENG_GIAY } from './toc-noi';
 
 type Kq<T> = { ok: true; data: T } | { ok: false; loi: string };
 const doDai = (url: string) => new Promise<number | null>((ok) => execFile('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', url], { timeout: 30_000 }, (e, ra) => { const g = Number(String(ra).trim()); ok(e || !Number.isFinite(g) ? null : g); }));
@@ -37,22 +38,39 @@ async function docTap(db: Db, tapId: number) {
 const batDauCua = (phat: number[]) => phat.map((_, i) => phat.slice(0, i).reduce((a, b) => a + b, 0));
 
 /** Gọn một file giọng (LOC_GON_GIONG) → R2 mới; file cũ giữ nguyên. null = không gọn được (giữ url cũ). */
-export async function gonGiong(url: string, canhId: number): Promise<string | null> {
+/** Tiếng / giây đích khi kéo nhanh câu đọc chậm (đối thoại tiếng Việt tự nhiên 4,5–5,5) và mức kéo tối đa (atempo giữ cao độ; > 1,4 nghe máy). */
+export const TIENG_GIAY_DICH = 4.6, KEO_TOI_DA = 1.4;
+const quaFfmpeg = (vao: Buffer, loc: string) => new Promise<Buffer | null>((ok) => {
+  const p = execFile('ffmpeg', ['-v', 'error', '-i', 'pipe:0', '-af', loc, '-c:a', 'libmp3lame', '-b:a', '160k', '-f', 'mp3', 'pipe:1'], { encoding: 'buffer', maxBuffer: 1 << 26 }, (e, b) => ok(e ? null : (b as Buffer)));
+  p.stdin?.end(vao);
+});
+const doDaiBuf = (b: Buffer) => new Promise<number | null>((ok) => {
+  const p = execFile('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', '-i', 'pipe:0'], (e, o) => ok(e ? null : Number(String(o).trim()) || null));
+  p.stdin?.end(b);
+});
+/** Gọn giọng: cắt lặng đầu / cuối, rút quãng ngắt. dong (chỉ lời tiếng Việt): câu thường đọc dưới SAN_TIENG_GIAY tiếng/giây thì KÉO NHANH giữ cao độ (atempo)
+ *  tới TIENG_GIAY_DICH, tối đa KEO_TOI_DA — anh 12–13/11/2026 "giọng chú hơi chậm… liên quan tiết nhịp… ảnh hưởng cảm xúc": ElevenLabs Tony đọc 2,3–3,6 tiếng/giây
+ *  kể cả speed 1,2 (trần của ElevenLabs). Câu khai cách diễn chậm (lí nhí, ngập ngừng…) giữ nguyên. */
+export async function gonGiong(url: string, canhId: number, dong?: { loi: string; dien_xuat?: string }): Promise<string | null> {
   const r = await fetch(url, { signal: AbortSignal.timeout(60_000) }); if (!r.ok) return null;
   const vao = Buffer.from(await r.arrayBuffer());
-  const ra = await new Promise<Buffer | null>((ok) => {
-    const p = execFile('ffmpeg', ['-v', 'error', '-i', 'pipe:0', '-af', LOC_GON_GIONG, '-c:a', 'libmp3lame', '-b:a', '160k', '-f', 'mp3', 'pipe:1'], { encoding: 'buffer', maxBuffer: 1 << 26 }, (e, b) => ok(e ? null : (b as Buffer)));
-    p.stdin?.end(vao);
-  });
+  let ra = await quaFfmpeg(vao, LOC_GON_GIONG);
   if (!ra || ra.length < 1000) return null;
+  if (dong && (docCachDien(dong.dien_xuat).toc ?? 1.1) >= 1) {
+    const dai = await doDaiBuf(ra); const n = dong.loi.replace(/(\d+)k\b/gi, '$1 nghìn').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean).length;
+    const rate = dai ? n / dai : null;
+    if (rate && rate < SAN_TIENG_GIAY) { const k = Math.min(KEO_TOI_DA, TIENG_GIAY_DICH / rate); if (k > 1.05) { const nhanh = await quaFfmpeg(ra, `atempo=${k.toFixed(3)}`); if (nhanh && nhanh.length > 1000) ra = nhanh; } }
+  }
   return uploadToR2(`xuong-video/am/thoai/${canhId}-gon-${randomUUID()}.mp3`, ra, 'audio/mpeg');
 }
 export async function khopGiongTap(db: Db, tapId: number, nguoi: string): Promise<Kq<{ doi: number; tong: number; thieu: number }>> {
   const d = await docTap(db, tapId); if (!d) return { ok: false, loi: 'không thấy tập' };
-  // 1. Gọn giọng (một lần mỗi dòng): ghi url mới vào thoai, chụp trước để hoàn tác.
+  // 1. Gọn giọng (một lần mỗi dòng): ghi url mới vào thoai, chụp trước để hoàn tác. Lời tiếng Việt đọc chậm → kéo nhanh giữ cao độ (gonGiong › dong).
+  const ktGon = docKinhThanh(((await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${d.tap.phim_id}`)) as unknown as Row[])[0]?.kinh_thanh as KinhThanh);
+  const laViet = (ktGon.ngon_ngu ?? 'vi') === 'vi';
   for (const c of d.ds) {
     if (!c.thoai.some((x) => x.url && !x.gon)) continue;
-    const moi = await Promise.all(c.thoai.map(async (x) => { if (!x.url || x.gon) return x; const u = await gonGiong(x.url, c.id); return u ? { ...x, url: u, gon: true } : x; }));
+    const moi = await Promise.all(c.thoai.map(async (x) => { if (!x.url || x.gon) return x; const u = await gonGiong(x.url, c.id, laViet ? x : undefined); return u ? { ...x, url: u, gon: true } : x; }));
     if (JSON.stringify(moi) === JSON.stringify(c.thoai)) continue;
     await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['thoai', 'thoai_url'], moTa: 'gọn giọng (cắt lặng, rút quãng ngắt)', nguoi });
     await db.execute(sql`UPDATE xv_canh SET thoai = ${JSON.stringify(moi)}::jsonb, thoai_url = coalesce(${moi[0]?.url ?? null}, thoai_url), updated_at = now() WHERE id = ${c.id}`);

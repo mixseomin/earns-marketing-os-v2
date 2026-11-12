@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { cayHoacBao, MOS2_GOC } from './cay-rieng.mjs';
+import { chonMuc } from './chon-muc.mjs';
 
 if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`Huy chỉ chạy trên iMac (máy này: ${os.hostname()}) — Claude không giao diện bằng gói thuê bao chỉ iMac`); process.exit(3); }
 
@@ -117,9 +118,11 @@ const tuChoiCu = (() => { try { return JSON.parse(fs.readFileSync(TEP_TU_CHOI, '
 const loiGiaoDu = tuChoiCu.length ? `${loiGiao}\n\nLƯỢT TRƯỚC MÁY ĐÃ TỪ CHỐI các lệnh sau vì không khớp danh sách quyền (KHÔNG phải anh chặn, KHÔNG báo anh):\n${tuChoiCu.map((c) => `- ${c}`).join('\n')}\nGõ lại dạng khớp: mỗi lệnh bắt đầu bằng đúng tên lệnh được phép (git add apps/…, git commit …, git push origin HEAD:main, ssh ${BOX} '…'), không gán biến tạm, không cd sang thư mục khác.` : loiGiao;
 if (thu) { console.log(loiGiaoDu); process.exit(0); }
 try { viec(`--nhan ${v.id}`); } catch (e) { log(`báo nhận lỗi: ${e.message.split('\n')[0]}`); }
-log(`nhận việc #${v.id} ${v.khoa} · model ${model}${effort ? ` · effort ${effort}` : ''}`);
+// effort theo việc (may/chon-muc.mjs, anh 12/11/2026): không hạ dưới mức của người, leo lên khi việc nặng / lỗi LẶP / anh trả về lần nữa
+const muc = chonMuc({ chu: v.chu, lanLamLai: String(v.khoa).startsWith('anh:') ? 1 : 0, macDinh: effort || 'low' });
+log(`nhận việc #${v.id} ${v.khoa} · model ${model} · effort ${muc.effort} (${muc.ly_do.join(', ')})`);
 const truoc = git('rev-parse', 'HEAD');
-const r = spawnSync(CLAUDE, ['-p', loiGiaoDu, '--model', model, ...(effort ? ['--effort', effort] : []), '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
+const r = spawnSync(CLAUDE, ['-p', loiGiaoDu, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
   { cwd: MOS2, encoding: 'utf8', timeout: TRAN_PHUT * 60000, maxBuffer: 64 << 20, env: ENV });
 let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng / hết giờ */ }
 const tuChoi = [...new Set((kq.permission_denials || []).map((d) => String(d.tool_input?.command ?? d.tool_name ?? '').replace(/\s+/g, ' ').slice(0, 160)).filter(Boolean))].slice(0, 8);

@@ -8,6 +8,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
+import { chonMuc } from './chon-muc.mjs';
 
 // CHỈ iMAC (luật anh 23/10/2026) — script đến qua `ssh cat | node -` nên không import được tệp chung; cùng một dòng ở mọi script gọi Claude không giao diện
 if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`thợ máy chỉ chạy trên iMac (máy này: ${os.hostname()}) — Claude không giao diện bằng gói thuê bao chỉ iMac`); process.exit(3); }
@@ -164,9 +165,11 @@ const daChot = (v.quyet_gan ?? []).length ? `\n\nANH ĐÃ CHỐT CHO MÁY NÀY T
 const loiGiao = `${laAnh ? giaoLenh : laDang ? giaoDang : laKenh ? giaoKenh : giao}${daChot}`, quyen = laDang ? QUYEN_DANG : laKenh ? QUYEN_KENH : QUYEN, noiChay = laDang ? DANG : laKenh ? MOS2 : REPO;
 if (thu) { console.log(loiGiao); process.exit(0); }
 try { viec(`--nhan ${v.id}`); } catch (e) { log(`báo nhận lỗi: ${e.message.split('\n')[0]}`); }
-log(`nhận việc #${v.id} ${v.khoa} · model ${model}${effort ? ` · effort ${effort}` : ''}`);
+// effort theo việc (may/chon-muc.mjs, anh 12/11/2026): không hạ dưới mức của người, leo lên khi việc nặng / lỗi LẶP / anh trả về lần nữa
+const muc = chonMuc({ chu: v.chu, lanLamLai: String(v.khoa).startsWith('anh:') ? 1 : 0, macDinh: effort || 'low' });
+log(`nhận việc #${v.id} ${v.khoa} · model ${model} · effort ${muc.effort} (${muc.ly_do.join(', ')})`);
 const truoc = git('rev-parse', 'HEAD');
-const r = spawnSync(CLAUDE, ['-p', loiGiao, '--model', model, ...(effort ? ['--effort', effort] : []), '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...quyen, '--disallowedTools', ...CAM],
+const r = spawnSync(CLAUDE, ['-p', loiGiao, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...quyen, '--disallowedTools', ...CAM],
   { cwd: noiChay, encoding: 'utf8', timeout: TRAN_PHUT * 60000, maxBuffer: 64 << 20, env: ENV });
 let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng / hết giờ */ }
 const ra = String(kq.result || '').trim(), ketDong = (ra.match(/^\s*\**KET:\**\s*(DA_SUA|KHONG_SUA|CAN_ANH)\b.*$/gim) || []).pop();

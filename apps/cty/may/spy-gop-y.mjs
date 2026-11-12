@@ -31,9 +31,12 @@ const cayChinh = () => {
 chayKySu({
   nguoi: 'hieu', ten: 'Hiếu', duAn: 'spy', tranPhut: 40,
   cay: cayChinh, cayThu: SPY,
+  // ảnh / tệp anh đính kèm nằm ở box3 /opt/spy/tep/ (sau SSO): máy kéo thẳng bằng scp rồi đưa đường dẫn trên máy cho Claude Read
+  taiAnh: (urls, ANH) => urls.map((u) => (String(u).match(/\/tep\/([\w.-]+)$/) || [])[1]).filter(Boolean).map((ten) => {
+    const dich = path.join(ANH, ten); execFileSync('scp', ['-q', '-o', 'BatchMode=yes', '-o', 'ControlPath=none', `${BOX}:/opt/spy/tep/${ten}`, dich], { timeout: 120000 }); return dich; }),
   quyen: (dir) => [...DEPLOY.map((d) => path.join(dir, d)).flatMap((d) => [`Edit(/${d}/**)`, `Write(/${d}/**)`]),
     ...DEPLOY.map((d) => `Bash(git add ${d}/:*)`), `Bash(${SPY}/deploy.sh)`, 'Bash(node --test:*)', 'Bash(node server/:*)', 'Bash(node scripts/:*)', 'Bash(python3 -m py_compile:*)', 'Bash(bash -n:*)'],
-  loiGiao: ({ card, luong, cuoiNguoi, tin, moiAnh, ANH, dir, cay }) => `Bạn là Hiếu, kỹ sư hòm góp ý của Spy QC (spy.on.tc, công ty AI của anh Tuấn). Anh không ngồi máy: bạn xử tới khi xong, tự kiểm, tự deploy, tự trả lời trong card.
+  loiGiao: ({ card, luong, cuoiNguoi, tin, moiAnh, anhMay, ANH, dir, cay }) => `Bạn là Hiếu, kỹ sư hòm góp ý của Spy QC (spy.on.tc, công ty AI của anh Tuấn). Anh không ngồi máy: bạn xử tới khi xong, tự kiểm, tự deploy, tự trả lời trong card.
 
 LÀM ĐÚNG LỆNH /tasks-spy: đọc ${HOME}/.claude/commands/tasks-spy.md và luật đầy đủ nó trỏ tới (${HOME}/Me/GitHub/earns-marketing-os-v2/.claude/commands/tasks-studio.md) cho DUY NHẤT card #${card.id} "${card.title}". Bước nạp máy đã làm, luồng card ở dưới.
 ĐỀ BÀI = tin NGƯỜI mới nhất (#${luong.indexOf(cuoiNguoi) + 1}); tin trước đó đã xử ở lượt trước.
@@ -42,7 +45,7 @@ Lệnh hòm góp ý (chạy trên box3): ssh ${BOX} "${GOPY} claim ${card.id}" t
 LUỒNG CARD #${card.id}:
 ${tin}
 
-ĐỌC ĐỦ TRƯỚC KHI SỬA (bắt buộc, không bỏ cái nào): lời từng tin + "trang" + "ngữ cảnh" + MỌI ảnh / tệp đính kèm (${moiAnh.length} cái): tải từng cái curl -s -o ${ANH}/<tên> <url> rồi Read (ảnh spy.on.tc/tep/… nằm ở box3 /opt/spy/tep/, đọc qua ssh nếu curl bị SSO chặn).
+ĐỌC ĐỦ TRƯỚC KHI SỬA (bắt buộc, không bỏ cái nào): lời từng tin + "trang" + "ngữ cảnh" + MỌI ảnh / tệp đính kèm (${moiAnh.length} cái): ${anhMay.length ? `MÁY ĐÃ TẢI SẴN, Read từng tệp: ${anhMay.join(' · ')}.` : `tải từng cái curl -s -o ${ANH}/<tên> <url> rồi Read.`}${anhMay.length < moiAnh.length ? ` Còn ${moiAnh.length - anhMay.length} cái máy chưa tải được: curl -s -o ${ANH}/<tên> <url> rồi Read; không được thì ghi rõ trong trả lời.` : ''}
 NHÌN TRANG THẬT bằng br (profile riêng đã đăng nhập .on.tc, lệnh br tự đi profile đó): ${BR} goto <trang> → ${BR} look (in đường dẫn PNG, Read nó); sau khi deploy xong goto lại + look để so với ảnh của anh. Không bấm nút làm đổi dữ liệu hay chạy cào / AI.
 ĐỌC TRƯỚC: ${dir}/CLAUDE.md và docs/ phần liên quan màn trong "trang".
 REPO ${dir} (CÂY CHÍNH, không có remote git; bản chuẩn là box3 /opt/spy — máy đã kiểm bản này khớp box3 trước khi giao việc): git add đúng tệp bạn sửa (trong ${DEPLOY.join(', ')}), git commit (tiếng Việt: gốc + cách sửa, ghi "góp ý #${card.id}"). Deploy: ${SPY}/deploy.sh (rsync lên box3, tự đợi nếu đang có lượt AI chạy). KHÔNG rsync / scp tay.${cay.do.length ? `\nTệp đang sửa dở (chưa commit) có từ trước, KHÔNG phải của bạn, đã chạy trên box3: ${cay.do.join(', ')} — không git add, không sửa đè.` : ''}

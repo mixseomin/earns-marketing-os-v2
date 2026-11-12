@@ -62,7 +62,9 @@ export function chayKySu(cfg) {
 
   const moiAnh = luong.flatMap((t) => (t.anh || []).map(urlAnh)).filter(Boolean);
   const tin = luong.map((t, i) => `#${i + 1} ${laAi(t) ? 'AI' : 'NGƯỜI'} · ${String(t.luc || '').slice(0, 16)}${t.trang ? `\n  trang: ${t.trang}` : ''}${t.nguCanh ? `\n  ngữ cảnh: ${t.nguCanh}` : ''}${(t.anh || []).length ? `\n  ảnh / tệp: ${t.anh.map((a) => `${urlAnh(a)}${a?.ten ? ` (${a.ten})` : ''}`).join(' ')}` : ''}\n  ${String(t.noiDung || '').slice(0, 3000)}`).join('\n');
-  const ctx = { card, luong, cuoiNguoi, tin, moiAnh, ANH, dir, cay };
+  // ảnh nằm sau SSO (spy.on.tc/tep/…) thì Claude không curl được, scp lại bị cấm → MÁY tải sẵn về ANH trước khi giao (cfg.taiAnh, card spy #1426 12/11/2026)
+  const anhMay = (() => { try { return cfg.taiAnh ? cfg.taiAnh(moiAnh, ANH) : []; } catch (e) { log(`tải ảnh lỗi: ${String(e.message).split('\n')[0]}`); return []; } })();
+  const ctx = { card, luong, cuoiNguoi, tin, moiAnh, anhMay, ANH, dir, cay };
   const loiGiao = cfg.loiGiao(ctx);
   if (thu) { console.log(loiGiao); process.exit(0); }
   const giao = kiem ? `${loiGiao}\n\n${cfg.kiemThu(ctx)}` : loiGiao;

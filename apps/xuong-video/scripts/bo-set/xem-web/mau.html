@@ -77,7 +77,7 @@ button[aria-pressed="true"] { border-color: var(--chu); font-weight: 600; }
   <div class="nhin" id="nhinShot"></div>
   <div class="dai" id="dai"></div>
   <section class="noi">
-    <h2>Nối shot: chỗ đứng · hướng thân · hướng nhìn · đồ cầm · hướng trên màn</h2>
+    <h2>Nối shot: chỗ đứng · hướng thân · hướng nhìn · đồ cầm · hướng nhìn trên màn · trục 180° · hướng di chuyển</h2>
     <ol id="noi"></ol>
   </section>
   <div class="chu-giai">
@@ -358,13 +358,30 @@ function trangThai(i, u) {
   }
   const cam = {};
   for (const v of s.may.vi_tri || []) if (v.cam) { const tr = v.den ? (s.may.vi_tri.filter((x) => !x.cam && khoi[x.ten]?.ng && x.ten !== v.cam).sort((a, b) => Math.hypot(a.tam[0] - v.den[0], a.tam[1] - v.den[1]) - Math.hypot(b.tam[0] - v.den[0], b.tam[1] - v.den[1]))[0]) : null; cam[v.ten] = u >= TRAO(v)[1] && tr ? tr.ten : v.cam; }
-  return { ng: ra, cam };
+  // TRỤC 180° giữa hai người (cả khi một người ngoài khung): máy ở bên nào của đường chú–nhóc. Máy nằm sát trục (POV) → không xét
+  const vA = (s.may.vi_tri || []).find((v) => v.ten === 'Chú'), vB = (s.may.vi_tri || []).find((v) => v.ten === 'Nhóc');
+  let truc = null;
+  if (vA && vB) {
+    const A = viTriLuc(vA, u).p, B = viTriLuc(vB, u).p, C = [may.position.x * 100, -may.position.z * 100];
+    const cr = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]), dai = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1;
+    if (Math.abs(cr / dai) > 40) truc = cr > 0 ? 'trai' : 'phai';
+  }
+  // HƯỚNG DI CHUYỂN TRÊN MÀN của người đang đi (ra khỏi khung bên phải thì shot sau phải đi tiếp sang phải)
+  for (const v of s.may.vi_tri || []) {
+    if (!ra[v.ten]) continue;
+    const u1 = Math.max(0, u - 0.06), u2 = Math.min(1, u + 0.06), p1 = viTriLuc(v, u1).p, p2 = viTriLuc(v, u2).p;
+    if (Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) < 8) continue;
+    const x1 = P([p1[0], p1[1], p1[2] + 80]).project(may).x, x2 = P([p2[0], p2[1], p2[2] + 80]).project(may).x;
+    if (Math.abs(x2 - x1) > 0.01) ra[v.ten].di = x2 > x1 ? 'phai' : 'trai';
+  }
+  return { ng: ra, cam, truc };
 }
 const MAN_VI = { phai: 'sang phải màn', trai: 'sang trái màn', thang: 'thẳng về phía máy', xa: 'ra xa, quay lưng máy' }, MAN_EN = { phai: 'screen-right', trai: 'screen-left', thang: 'toward the camera', xa: 'away from the camera' };
 const BEN_VI = { trai: 'bên trái khung', phai: 'bên phải khung', giua: 'giữa khung' }, BEN_EN = { trai: 'frame left', phai: 'frame right', giua: 'frame center' };
 const PHAN = [], NOI = [];
 {
   const st = DU.shot.map((_, i) => [trangThai(i, 0), trangThai(i, 1)]);
+  let trucCanh = null;
   DU.shot.forEach((s, i) => {
     const [a, b] = st[i], vi = [], en = [];
     for (const [ten, x] of Object.entries(a.ng)) {
@@ -412,6 +429,10 @@ const PHAN = [], NOI = [];
       if (x.yaw != null && y.yaw != null && !v2?.nhay) { const dn = Math.abs(((((y.yaw - x.yaw) % 360) + 540) % 360) - 180); if (dn > 25) loi.push(`${tenVi(ten)} đang nhìn ${tenVi(x.nhin)} → shot sau mở ra nhìn ${tenVi(y.nhin)} (lệch ${Math.round(dn)}°)`); }
       if (x.yaw != null && y.yaw != null && Math.abs(((((y.yaw - x.yaw) % 360) + 540) % 360) - 180) <= 25 && x.man && y.man && ['phai', 'trai'].includes(x.man) && ['phai', 'trai'].includes(y.man) && x.man !== y.man) loi.push(`${tenVi(ten)} nhìn ${tenVi(x.nhin)} ${MAN_VI[x.man]} → shot sau ${MAN_VI[y.man]} (lật hướng trên màn, vượt trục)`);
     }
+    // trục giữ cho CẢ CẢNH: so với shot gần nhất trước đó có trục (shot POV / shot một người không có trục — chỉ so liền kề thì lọt vượt trục ở #3)
+    if (b.truc) trucCanh = { truc: b.truc, so: s.so };
+    if (c.truc && trucCanh && c.truc !== trucCanh.truc && !DU.shot[i + 1].may.qua_truc) loi.push(`máy nhảy sang bên kia trục chú – nhóc so với #${trucCanh.so} (luật 180°)`);
+    for (const [ten, x] of Object.entries(b.ng)) { const y = c.ng[ten]; if (x.di && y?.di && x.di !== y.di) loi.push(`${tenVi(ten)} đang đi ${MAN_VI[x.di]} → shot sau đi ${MAN_VI[y.di]} (đổi hướng di chuyển trên màn)`); }
     for (const [mon, ai] of Object.entries(b.cam)) if (c.cam[mon] && c.cam[mon] !== ai) loi.push(`${mon}: cuối shot ${tenVi(ai)} cầm → shot sau ${tenVi(c.cam[mon])} cầm`);
     NOI.push({ tu: s.so, den: DU.shot[i + 1].so, loi });
   });

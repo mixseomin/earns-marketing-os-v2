@@ -1867,9 +1867,12 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                 lech_h = d_quay0 * vao_h + d_quay1 * ra_h
             hh = math.radians(h0 + lech_h); ngang = Vector((math.cos(hh), math.sin(hh), 0)); toi = Vector((math.sin(hh), -math.cos(hh), 0))
             nghieng = (math.radians(8) * min(1.0, 4 * min(t, 1 - t)) if di and not ng_di else 0.0) - math.radians(dt['nga'])   # đất sét đi: chúi tới (người thật: thân theo mocap) · ngã ngồi: ngả ra sau
+            # KHỐI CỨNG (khoi_3d.cung — anh 12/11/2026, #12 đoàn tàu nhích 15 cm mà cả toa nghiêng qua lại): xe / tàu / đồ máy móc TRƯỢT thẳng, không chúi
+            # tới, không lắc lư như người đất sét đang bước
+            if (DL['nhan_vat_mau'].get(ten) or {}).get('cung'): nghieng = 0.0; lac = 0.0
             R = (Quaternion(ngang, nghieng) @ Quaternion(toi, math.radians(lac + dt['lan']) + q[1]) @ Quaternion((0, 0, 1), math.radians(lech_h + dt["xoay"]) + q[2]) @ Quaternion((1, 0, 0), q[0]))
             e.rotation_mode = 'QUATERNION'
-            cham = 1 - abs(math.sin(math.pi * buoc * k)) if di and 0 < t < 1 and ten not in NGUOI else 0.0   # 1 = chân vừa chạm đất (người thật không bẹp như đất nặn)
+            cham = 1 - abs(math.sin(math.pi * buoc * k)) if di and 0 < t < 1 and ten not in NGUOI and not (DL['nhan_vat_mau'].get(ten) or {}).get('cung') else 0.0   # 1 = chân vừa chạm đất (người thật không bẹp như đất nặn)
             bep = 0.035 * cham + dt['bep']; ph = dt['phong']
             Mt = Matrix.Translation(p * CM) @ R.to_matrix().to_4x4(); Pm = Matrix.Identity(4)
             if doi_dang:   # NGÃ / ĐỨNG DẬY trong shot = nội suy đúng phép nam_xuong (xoay 90° quanh trục ngang tại chân + dời thân lên mặt bàn)

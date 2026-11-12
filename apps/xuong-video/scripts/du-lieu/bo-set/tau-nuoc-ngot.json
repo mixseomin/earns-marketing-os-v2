@@ -168,6 +168,218 @@
    ],
    "mau": "#3a3a3a",
    "en": "platform lamp post"
+  },
+  {
+   "ten": "Đường nhóc #4",
+   "nen": true,
+   "tuy_chon": true,
+   "hinh": "day",
+   "ban_kinh": 2.5,
+   "mau": "#f2c200",
+   "en": "yellow path line on the floor",
+   "diem": [
+    [
+     -20,
+     500,
+     1
+    ],
+    [
+     40.0,
+     1150.0,
+     1
+    ],
+    [
+     100.0,
+     1800,
+     1
+    ]
+   ]
+  },
+  {
+   "ten": "Mũi tên nhóc #4",
+   "nen": true,
+   "tuy_chon": true,
+   "hinh": "day",
+   "ban_kinh": 2.5,
+   "mau": "#f2c200",
+   "en": "yellow arrow head",
+   "diem": [
+    [
+     71.429156055869,
+     1762.4672559447072,
+     1
+    ],
+    [
+     100.0,
+     1800,
+     1
+    ],
+    [
+     121.21749000676753,
+     1757.8714097338552,
+     1
+    ]
+   ],
+   "bac": 1
+  },
+  {
+   "ten": "Đường nhóc #8",
+   "nen": true,
+   "tuy_chon": true,
+   "hinh": "day",
+   "ban_kinh": 2.5,
+   "mau": "#f2c200",
+   "en": "yellow path line on the floor",
+   "diem": [
+    [
+     100,
+     1500,
+     1
+    ],
+    [
+     90.0,
+     1225.0,
+     1
+    ],
+    [
+     80.0,
+     950.0,
+     1
+    ]
+   ]
+  },
+  {
+   "ten": "Mũi tên nhóc #8",
+   "nen": true,
+   "tuy_chon": true,
+   "hinh": "day",
+   "ban_kinh": 2.5,
+   "mau": "#f2c200",
+   "en": "yellow arrow head",
+   "diem": [
+    [
+     106.43707217294653,
+     989.0650894651786,
+     1
+    ],
+    [
+     80.0,
+     950.0,
+     1
+    ],
+    [
+     56.470097275624916,
+     990.8820703705359,
+     1
+    ]
+   ],
+   "bac": 1
+  },
+  {
+   "ten": "Đường nhóc #9",
+   "nen": true,
+   "tuy_chon": true,
+   "hinh": "day",
+   "ban_kinh": 2.5,
+   "mau": "#f2c200",
+   "en": "yellow path line on the floor",
+   "diem": [
+    [
+     80.0,
+     950.0,
+     1
+    ],
+    [
+     30.0,
+     725.0,
+     1
+    ],
+    [
+     -20,
+     500,
+     1
+    ]
+   ]
+  },
+  {
+   "ten": "Mũi tên nhóc #9",
+   "nen": true,
+   "tuy_chon": true,
+   "hinh": "day",
+   "ban_kinh": 2.5,
+   "mau": "#f2c200",
+   "en": "yellow arrow head",
+   "diem": [
+    [
+     13.081894817345065,
+     533.6242209618916,
+     1
+    ],
+    [
+     -20,
+     500,
+     1
+    ],
+    [
+     -35.72745819185257,
+     544.4707438528245,
+     1
+    ]
+   ],
+   "bac": 1
+  },
+  {
+   "ten": "Đường nhóc #11",
+   "nen": true,
+   "tuy_chon": true,
+   "hinh": "day",
+   "ban_kinh": 2.5,
+   "mau": "#f2c200",
+   "en": "yellow path line on the floor",
+   "diem": [
+    [
+     -20,
+     500,
+     1
+    ],
+    [
+     40.0,
+     1150.0,
+     1
+    ],
+    [
+     100.0,
+     1800,
+     1
+    ]
+   ]
+  },
+  {
+   "ten": "Mũi tên nhóc #11",
+   "nen": true,
+   "tuy_chon": true,
+   "hinh": "day",
+   "ban_kinh": 2.5,
+   "mau": "#f2c200",
+   "en": "yellow arrow head",
+   "diem": [
+    [
+     71.429156055869,
+     1762.4672559447072,
+     1
+    ],
+    [
+     100.0,
+     1800,
+     1
+    ],
+    [
+     121.21749000676753,
+     1757.8714097338552,
+     1
+    ]
+   ],
+   "bac": 1
   }
  ],
  "vung": {
@@ -221,6 +433,7 @@
    ],
    "mau": "#2a2a2a",
    "mat": false,
+   "cung": true,
    "phan": [
     {
      "hinh": "hop",
@@ -843,7 +1056,8 @@
    ],
    "khung": [
     "Chú"
-   ]
+   ],
+   "khoa_nhin": true
   },
   "2": {
    "dat": [
@@ -856,7 +1070,7 @@
     900,
     110
    ],
-   "ong_kinh": 35,
+   "ong_kinh": 50,
    "vi_tri": [
     {
      "ten": "Nhóc",
@@ -879,20 +1093,21 @@
    ],
    "khung": [
     "Nhóc"
-   ]
+   ],
+   "khoa_nhin": true
   },
   "3": {
    "dat": [
-    -40.0,
-    150.0,
-    160.0
-   ],
-   "nhin": [
-    -40.0,
-    1600,
+    190,
+    330,
     150
    ],
-   "ong_kinh": 26,
+   "nhin": [
+    -60,
+    520,
+    150
+   ],
+   "ong_kinh": 32,
    "vi_tri": [
     {
      "ten": "Chú",
@@ -944,7 +1159,8 @@
     "Chú",
     "Nhóc",
     "Tờ 5 nghìn"
-   ]
+   ],
+   "khoa_nhin": true
   },
   "4": {
    "dat": [
@@ -997,20 +1213,25 @@
    "khung": [
     "Nhóc"
    ],
+   "khoa_nhin": true,
+   "them": [
+    "Đường nhóc #4",
+    "Mũi tên nhóc #4"
+   ],
    "nham": "Nhóc"
   },
   "5": {
    "dat": [
-    -40.0,
-    150.0,
-    160.0
-   ],
-   "nhin": [
-    -40.0,
-    1600,
+    190,
+    330,
     150
    ],
-   "ong_kinh": 26,
+   "nhin": [
+    -60,
+    520,
+    150
+   ],
+   "ong_kinh": 32,
    "vi_tri": [
     {
      "ten": "Chú",
@@ -1036,7 +1257,8 @@
    ],
    "khung": [
     "Chú"
-   ]
+   ],
+   "khoa_nhin": true
   },
   "6": {
    "dat": [
@@ -1100,7 +1322,8 @@
    ],
    "khung": [
     "Chú"
-   ]
+   ],
+   "khoa_nhin": true
   },
   "8": {
    "dat": [
@@ -1152,20 +1375,25 @@
    ],
    "khung": [
     "Nhóc"
+   ],
+   "khoa_nhin": true,
+   "them": [
+    "Đường nhóc #8",
+    "Mũi tên nhóc #8"
    ]
   },
   "9": {
    "dat": [
-    -40.0,
-    150.0,
-    160.0
-   ],
-   "nhin": [
-    -40.0,
-    1600,
+    190,
+    330,
     150
    ],
-   "ong_kinh": 26,
+   "nhin": [
+    80,
+    950,
+    120
+   ],
+   "ong_kinh": 32,
    "vi_tri": [
     {
      "ten": "Chú",
@@ -1223,10 +1451,14 @@
     }
    ],
    "khung": [
-    "Chú",
     "Nhóc",
-    "Chai nước ngọt",
-    "Tiền thừa"
+    "Chú"
+   ],
+   "khoa_nhin": true,
+   "nham": "Nhóc",
+   "them": [
+    "Đường nhóc #9",
+    "Mũi tên nhóc #9"
    ]
   },
   "10": {
@@ -1298,7 +1530,8 @@
    ],
    "khung": [
     "Chú"
-   ]
+   ],
+   "khoa_nhin": true
   },
   "11": {
    "dat": [
@@ -1373,6 +1606,11 @@
     "Nhóc",
     "Chai nước ngọt",
     "Tiền thừa"
+   ],
+   "khoa_nhin": true,
+   "them": [
+    "Đường nhóc #11",
+    "Mũi tên nhóc #11"
    ]
   },
   "12": {
@@ -1423,7 +1661,8 @@
    ],
    "khung": [
     "Chú"
-   ]
+   ],
+   "khoa_nhin": true
   }
  }
 }

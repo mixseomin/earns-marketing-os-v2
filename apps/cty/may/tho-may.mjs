@@ -24,7 +24,7 @@ const MOS2 = path.join(os.homedir(), 'Me/GitHub/earns-marketing-os-v2');
 // QUYỀN HẸP: đọc / sửa CHỈ trong repo spy-on-tc; lệnh: ssh tới box3 + VPS máy cào, git trong repo, deploy của repo, bài tự kiểm. Không web, không hỏi, không lan việc.
 const QUYEN = ['Read', 'Glob', 'Grep', `Edit(/${REPO}/**)`, `Write(/${REPO}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(ssh ${VPS}:*)`,
   `Bash(ssh -o BatchMode=yes ${VPS}:*)`, 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(./deploy.sh)',
-  'Bash(bash scripts/:*)', 'Bash(node scripts/:*)', 'Bash(node --check:*)', 'Bash(bash -n:*)', 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)'];
+  'Bash(bash scripts/*)', 'Bash(node scripts/*)', 'Bash(node --check:*)', 'Bash(bash -n:*)', 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)'];
 const CAM = ['AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate'];
 const ENV = { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}` };
 const thu = process.argv.includes('--thu');
@@ -73,7 +73,7 @@ const QUYEN_DANG = ['Read', 'Glob', 'Grep', `Edit(/${DANG}/**)`, `Write(/${DANG}
   // 08/11/2026: Mạnh vá xong examweight mà KHÔNG đăng bù được — "This command requires approval" cho `node /Users/htuan/puzzle-books/scripts/dang-may.mjs …`
   // (đường dẫn đủ không khớp `node scripts/`) và cho mọi lệnh có `| tail`, `2>&1`, `cd … &&` (mỗi đoạn cần quyền riêng). Phiên -p không ai bấm duyệt → treo rồi
   // nhắn anh "duyệt giúp". Nay mở cả hai dạng đường dẫn + các lệnh đọc hay nối sau ống; lời giao (bước 0) dặn chạy lệnh trần.
-  'Bash(node scripts/:*)', `Bash(node ${DANG}/scripts/:*)`, `Bash(cd ${DANG})`, 'Bash(node --check:*)', 'Bash(bash -n:*)', 'Bash(head:*)', 'Bash(wc:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(sed -n:*)',
+  'Bash(node scripts/*)', `Bash(node ${DANG}/scripts/*)`, `Bash(cd ${DANG})`, 'Bash(node --check:*)', 'Bash(bash -n:*)', 'Bash(head:*)', 'Bash(wc:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(sed -n:*)',
   `Bash(${os.homedir()}/bin/br status)`, `Bash(${os.homedir()}/bin/profile-locks)`, 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(diff:*)', 'Bash(md5:*)',
   `Bash(${os.homedir()}/bin/br status:*)`, `Bash(${os.homedir()}/bin/profile-locks:*)`];
 const giaoDang = `Bạn là Mạnh, thợ máy của công ty AI của anh Tuấn, nay quản lý cả MÁY ĐĂNG (đăng video / ảnh / link lên kênh social). Một lượt đăng vừa HỎNG (sổ Máy Đăng
@@ -119,8 +119,8 @@ KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" |
 lỗi gì · gốc ở đâu · đã sửa gì (tệp + commit) · đã đăng bù chưa (link bài) / vì sao không. Viết gọn, xưng "con", gọi "anh".`;
 const XV = `${MOS2}/apps/xuong-video`;
 const QUYEN_KENH = ['Read', 'Glob', 'Grep', `Edit(/${XV}/**)`, `Write(/${XV}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`,
-  'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add apps/xuong-video/:*)', 'Bash(git commit:*)', 'Bash(git push origin main)', `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`,
-  'Bash(node apps/xuong-video/scripts/:*)', 'Bash(node --check:*)', 'Bash(node_modules/.bin/tsx:*)', 'Bash(./node_modules/.bin/tsc -p apps/xuong-video/tsconfig.json --noEmit)',
+  'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add apps/xuong-video/*)', 'Bash(git commit:*)', 'Bash(git push origin main)', `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`,
+  'Bash(node apps/xuong-video/scripts/*)', 'Bash(node --check:*)', 'Bash(node_modules/.bin/tsx:*)', 'Bash(./node_modules/.bin/tsc -p apps/xuong-video/tsconfig.json --noEmit)',
   'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(ls:*)'];
 const giaoKenh = `Bạn là Mạnh, thợ máy của công ty AI của anh Tuấn, nay quản lý cả DÂY CHUYỀN KÊNH NỘI DUNG (video lịch sử tự động: viết → dựng → Studio → thumbnail → Phòng Nội dung chấm → máy đăng).
 Một lượt làm tập vừa HỎNG. Bạn phải tìm GỐC, sửa, kiểm, chạy lại cho tập lên được, rồi báo lại — anh không ngồi máy.

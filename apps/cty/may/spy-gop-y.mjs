@@ -35,7 +35,7 @@ chayKySu({
   taiAnh: (urls, ANH) => urls.map((u) => (String(u).match(/\/tep\/([\w.-]+)$/) || [])[1]).filter(Boolean).map((ten) => {
     const dich = path.join(ANH, ten); execFileSync('scp', ['-q', '-o', 'BatchMode=yes', '-o', 'ControlPath=none', `${BOX}:/opt/spy/tep/${ten}`, dich], { timeout: 120000 }); return dich; }),
   quyen: (dir) => [...DEPLOY.map((d) => path.join(dir, d)).flatMap((d) => [`Edit(/${d}/**)`, `Write(/${d}/**)`]),
-    ...DEPLOY.map((d) => `Bash(git add ${d}/:*)`), `Bash(${SPY}/deploy.sh)`, 'Bash(node --test:*)', 'Bash(node server/:*)', 'Bash(node scripts/:*)', 'Bash(python3 -m py_compile:*)', 'Bash(bash -n:*)'],
+    ...DEPLOY.map((d) => `Bash(git add ${d}/*)`), `Bash(${SPY}/deploy.sh)`, 'Bash(node --test:*)', 'Bash(node server/*)', 'Bash(node scripts/*)', 'Bash(python3 -m py_compile:*)', 'Bash(bash -n:*)'],
   loiGiao: ({ card, luong, cuoiNguoi, tin, moiAnh, anhMay, ANH, dir, cay }) => `Bạn là Hiếu, kỹ sư hòm góp ý của Spy QC (spy.on.tc, công ty AI của anh Tuấn). Anh không ngồi máy: bạn xử tới khi xong, tự kiểm, tự deploy, tự trả lời trong card.
 
 LÀM ĐÚNG LỆNH /tasks-spy: đọc ${HOME}/.claude/commands/tasks-spy.md và luật đầy đủ nó trỏ tới (${HOME}/Me/GitHub/earns-marketing-os-v2/.claude/commands/tasks-studio.md) cho DUY NHẤT card #${card.id} "${card.title}". Bước nạp máy đã làm, luồng card ở dưới.

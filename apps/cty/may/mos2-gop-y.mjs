@@ -17,8 +17,8 @@ chayKySu({
   boQuaUrl: ['https://etp%.on.tc/%'],
   cay: () => cayHoacBao('dat', { ten: 'Đạt', khoa: 'mos2:cay-rieng', phong: 'dung-san-pham', tep: 'mos2-gop-y.json' }), cayThu: MOS2_GOC,
   quyen: (MOS2) => [...['apps/web', 'packages'].map((d) => path.join(MOS2, d)).flatMap((d) => [`Edit(/${d}/**)`, `Write(/${d}/**)`]),
-    'Bash(git add apps/:*)', 'Bash(git add packages/:*)', 'Bash(git push origin HEAD:main)', `Bash(${HOME}/bin/gh-watch deploy.yml)`,
-    `Bash(${PLAY} reply:*)`, `Bash(${PLAY} show:*)`, `Bash(${PLAY} done:*)`, 'Bash(./node_modules/.bin/tsc:*)', 'Bash(node_modules/.bin/tsx:*)', 'Bash(node apps/:*)'],
+    'Bash(git add apps/*)', 'Bash(git add packages/*)', 'Bash(git push origin HEAD:main)', `Bash(${HOME}/bin/gh-watch deploy.yml)`,
+    `Bash(${PLAY} reply:*)`, `Bash(${PLAY} show:*)`, `Bash(${PLAY} done:*)`, 'Bash(./node_modules/.bin/tsc:*)', 'Bash(node_modules/.bin/tsx:*)', 'Bash(node apps/*)'],
   loiGiao: ({ card, luong, cuoiNguoi, tin, moiAnh, ANH, dir: MOS2, cay }) => `Bạn là Đạt, kỹ sư hòm góp ý của MOS2 (mos2.on.tc, công ty AI của anh Tuấn). Anh không ngồi máy: bạn xử tới khi xong, tự kiểm, tự deploy, tự trả lời trong card.
 
 LÀM ĐÚNG LỆNH /tasks-mos2: đọc ${HOME}/.claude/commands/tasks-mos2.md rồi làm theo mục 2 (Làm) và 3 (Trả lời + nộp Review) cho DUY NHẤT card #${card.id} "${card.title}". Mục 1 (nạp) máy đã làm, luồng card ở dưới.

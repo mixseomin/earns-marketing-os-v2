@@ -14,7 +14,7 @@ export const box = (cmd) => { for (let i = 1; ; i++) { try { return execFileSync
 export const sql = (q) => box(`cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -tA -c ${JSON.stringify(q.replace(/\s+/g, " ")).replace(/\$/g, '\\$')}`).trim();
 /** Quyền đọc + nhìn trang chung của mọi kỹ sư hòm góp ý; cấu hình cộng thêm quyền sửa / deploy / trả lời riêng. */
 const quyenChung = (dir, ANH) => ['Read', 'Glob', 'Grep', `Read(/${ANH}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${dir}:*)`, `Bash(git -C ${dir}:*)`,
-  `Bash(curl -s -o ${ANH}/:*)`, 'Bash(curl -s:*)', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git commit:*)', 'Bash(node --check:*)',
+  `Bash(curl -s -o ${ANH}/*)`, 'Bash(curl -s:*)', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git commit:*)', 'Bash(node --check:*)',
   'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(diff:*)',
   `Bash(${BR} goto:*)`, `Bash(${BR} look:*)`, `Bash(${BR} read:*)`, `Bash(${BR} scroll:*)`, `Bash(${BR} wait:*)`];
 const CAM = [...['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',

@@ -80,6 +80,8 @@ const so = JSON.parse(fs.readFileSync(path.join(R, 'viec-nen.json'), 'utf8'));
 // script cty gọi Claude không giao diện (có CLAUDE = '/opt/homebrew/bin/claude') → việc nền chạy nó phải xếp iMac (luật 23/10/2026)
 const claudeTep = fs.readdirSync(path.join(R, '..', 'may')).filter((f) => f.endsWith('.mjs') && /\/opt\/homebrew\/bin\/claude'/.test(fs.readFileSync(path.join(R, '..', 'may', f), 'utf8')));
 for (const l of kiemSo(so, { claudeTep })) loi.push(`viec-nen.json: ${l}`);
+// quyền Claude `Bash(x/:*)` = `Bash(x/ *)` (đòi dấu cách sau "/") → KHÔNG BAO GIỜ khớp `node x/a.mjs`; 12/11/2026 Mạnh bị chặn 200 lần, bỏ dở thumb YNT. Viết `Bash(x/*)`.
+for (const f of fs.readdirSync(path.join(R, '..', 'may')).filter((f) => f.endsWith('.mjs'))) if (/\/:\*\)/.test(fs.readFileSync(path.join(R, '..', 'may', f), 'utf8'))) loi.push(`may/${f}: quyền dạng "…/:*)" không khớp đường dẫn — đổi thành "…/*)"`);
 const trongSo = new Set((so.viec ?? []).map((v) => v.nhan));
 for (const k of trongSo) if (!nenCua[k]) loi.push(`viec-nen.json: ${k} chưa thuộc quy trình nào — thêm vào "lich" của quy trình phòng (người chịu trách nhiệm + chi phí)`);
 for (const [l, qt] of Object.entries(nenCua)) if (/^(iMac|MacBook):/.test(l) && !trongSo.has(l) && !l.endsWith(`:${NHAN_DIEU_PHOI}`)) loi.push(`${qt}: lich ${l} không có trong cong-ty/viec-nen.json`);

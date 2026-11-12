@@ -26,9 +26,9 @@ const SUA = ['apps/xuong-video/scripts', 'apps/xuong-video/src/lib/xuong-video',
 // gõ "cd <repo> && git add …", "git -C <repo> diff", ống "| wc / awk / head" → chế độ không giao diện TỪ CHỐI im lặng → Khang báo "bị chặn quyền git, cần anh" (2/2 lượt đầu CAN_ANH).
 // Mở đúng các dạng đó (vẫn là danh sách cụ thể, không mở Bash trọn); CAM_BASH chặn hoàn tác git, xoá, đẩy mã ngoài GHA, trình duyệt, cài gói.
 const QUYEN = ['Read', 'Glob', 'Grep', ...SUA.flatMap((d) => [`Edit(/${d}/**)`, `Write(/${d}/**)`]), `Edit(/${MOS2}/apps/cty/worker/cham-dang.mjs)`,
-  `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${MOS2}:*)`, `Bash(cd ${MOS2}/apps/:*)`, `Bash(git -C ${MOS2}:*)`,
-  'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git add apps/:*)', 'Bash(git commit:*)', 'Bash(git push origin HEAD:main)',
-  `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`, 'Bash(node --check:*)', 'Bash(node apps/cty/:*)', 'Bash(node apps/xuong-video/scripts/sx-may.mjs:*)', 'Bash(node_modules/.bin/tsx apps/xuong-video/:*)', 'Bash(../../node_modules/.bin/tsx:*)',
+  `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${MOS2}:*)`, `Bash(cd ${MOS2}/apps/*)`, `Bash(git -C ${MOS2}:*)`,
+  'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git add apps/*)', 'Bash(git commit:*)', 'Bash(git push origin HEAD:main)',
+  `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`, 'Bash(node --check:*)', 'Bash(node apps/cty/*)', 'Bash(node apps/xuong-video/scripts/sx-may.mjs:*)', 'Bash(node_modules/.bin/tsx apps/xuong-video/*)', 'Bash(../../node_modules/.bin/tsx:*)',
   'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(diff:*)'];
 const CAM_BASH = ['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
   'rm', 'rmdir', 'rsync', 'scp', 'br', 'open', 'npm install', 'npm i', 'npx', 'brew', 'pip', 'launchctl', 'crontab', 'sudo', 'kill', 'pkill'].map((c) => `Bash(${c}:*)`);

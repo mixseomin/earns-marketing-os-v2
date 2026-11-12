@@ -22,6 +22,7 @@ export const LUAT = [
   { card: 'tu-choi-1211', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'ly = ly_khong_bat(cid, truoc["ns"])', vi: 'một cổng "không bật lại" cho lệnh bat và máy thay creative' },
   { card: 'tu-choi-1211', tep: 'apps/etp/canh-bao.py', co: 'TC_24, TC_7 = 2, 4', vi: 'cảnh báo từ chối dồn theo bộ từ sổ phốt (bản cũ đếm camp ACTIVE → luôn 0)' },
   { card: 'tu-choi-1211', tep: 'apps/etp/canh-bao.py', cam: "where trang_thai = 'ACTIVE' and (giao = 'DISAPPROVED'", vi: 'không đếm từ chối trên camp ACTIVE (Ethopex đã PAUSED)' },
+  { card: 'tu-choi-1211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: "not in ('done', 'synced', 'error', 'DISAPPROVED')", vi: 'camp bị từ chối không tính là đang đồng bộ — không chặn camp thay thế' },
   { card: 'cpm-gio-1211', tep: 'apps/etp/dong-bo.py', co: 'ghi("cpm_gio", [{"ngay": d, "gio": h, "nha": n_,', vi: 'CPM + lượt bấm theo giờ lưu etp.cpm_gio (anh 12/11/2026 "Lưu CPM")' },
   { card: 'cx-1211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'CX_LECH, CX_CHI, CX_ROI3, CX_TOI_DA = 30, 3, 50, 10', vi: 'luật CX: chợ âm thì cắt camp tệ nhất trước (anh 12/11/2026)' },
   { card: 'cx-1211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if CX_CHO and not CX_CHO.get("hoi")', vi: 'CX chỉ cắt khi dây báo động chợ đứt và chợ chưa hồi' },

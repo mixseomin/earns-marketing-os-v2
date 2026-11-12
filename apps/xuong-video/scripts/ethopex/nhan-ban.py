@@ -290,7 +290,7 @@ def camp_moi_hom_nay(content_id):
     r = q(f"""select coalesce((select x->>'id' from xv_khoa_ngoai, jsonb_array_elements(gia_tri) x where ten = 'ethopex_nhat_ky' and x->>'viec' = 'tao_camp'
               and (x->>'ok')::boolean and x->>'nguoi' is null and (x->>'content')::text = '{int(content_id)}'
               and to_timestamp(x->>'luc', 'HH24:MI DD/MM/YYYY')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date order by x->>'luc' desc limit 1),
-              (select camp_id::text from etp.camp where content_id = {int(content_id)} and coalesce(dong_bo, '') not in ('done', 'synced', 'error') limit 1), '')""")
+              (select camp_id::text from etp.camp where content_id = {int(content_id)} and coalesce(dong_bo, '') not in ('done', 'synced', 'error', 'DISAPPROVED') limit 1), '')""")   # DISAPPROVED = Meta đã từ chối xong, không phải đang đồng bộ (12/11/2026: #68850 chặn chính camp thay thế của nó)
     return r or None
 def creative_khac(content_id, bo_qua):
     dat = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_cta_dat'") or "{}")

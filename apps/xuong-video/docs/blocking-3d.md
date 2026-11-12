@@ -80,3 +80,9 @@ Khớp giây theo giọng (hau-ky.ts › khopGiongTap) không co shot dưới `k
 ## 10. Một lượt nói liền = MỘT take
 
 Anh 12/11/2026: "giọng nó cứ lủng củng". Các câu LIỀN NHAU của cùng một người trong một shot phải sinh thành MỘT lần đọc (một take), cách diễn ghi thành một cung cảm xúc ("bực, hỏi dồn; câu cuối chậm lại, nghi — một hơi liền"). Sinh từng câu riêng rồi ghép cách 0,15 s thì ngữ điệu bắt đầu lại mỗi câu, nghe rời rạc. Gộp: `scripts/bo-set/gop-luot-noi.py` (bảng câu gộp theo phim), sao lưu `thoai` cũ trước khi ghi (phim #3071: `scripts/du-lieu/bo-set/tau-nuoc-ngot-thoai-truoc-gop.json`), rồi `sinh-shot.mts --giong`. Soát Whisper từng take (take dài → Whisper đáng tin hơn).
+
+## 11. Giọng tiếng Việt: ElevenLabs v3 với giọng người Việt
+
+Anh 12/11/2026: "Eleven vẫn chuẩn nhất". Giọng có sẵn của ElevenLabs là người nước ngoài nói tiếng Việt, nên lệch dấu ("chú" thành "chứ"). Phải dùng giọng thư viện của người Việt (danh sách đã thử: `GIONG_ELEVEN_THU_VIEN` trong `src/lib/xuong-video/giong.ts`, phim #3071 Chú = Tony Nguyễn). Khoá ElevenLabs của tài khoản: vault #130 → `ELEVENLABS_API_KEY` trong `.env.production` trên box3. Khoá này chỉ có quyền đọc giọng, không có quyền liệt kê giọng.
+Ghi chú cách diễn KHÔNG được nhét vào `[..]` trong chữ: v3 đọc to cả câu ghi chú. Cách diễn đi bằng thẻ một từ tiếng Anh (`docCachDien` → `[cheerfully]`, `[annoyed]`…).
+Mỗi lần sinh, v3 đọc một kiểu: câu có "nước ngọt" ba lần thì hai lần sai. Sinh lại từng câu cho tới khi Whisper (nghe cả đoạn nối liền) ra đúng chữ, tối đa 3 lần. ElevenLabs không có giọng bé trai tiếng Việt, nên vai trẻ con giữ MiniMax (Decent_Boy).

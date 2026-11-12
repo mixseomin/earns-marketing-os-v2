@@ -7,12 +7,12 @@
    "nen": true,
    "hinh": "hop",
    "tam": [
-    250,
+    270,
     1200,
     -2
    ],
    "co": [
-    700,
+    660,
     4400,
     2
    ],
@@ -25,7 +25,7 @@
    "nen": true,
    "hinh": "hop",
    "tam": [
-    -90,
+    -50,
     1200,
     -2
    ],
@@ -718,7 +718,8 @@
       500,
       0
      ],
-     "huong": -90
+     "huong": -90,
+     "nhay": "nhóc chạy từ giữa sân ga tới dưới cửa sổ giữa hai shot"
     },
     {
      "ten": "Tàu xanh",
@@ -815,14 +816,14 @@
   },
   "6": {
    "dat": [
-    0.0,
-    500.0,
-    40.0
+    -82,
+    470,
+    8
    ],
    "nhin": [
-    -150.0,
-    620.0,
-    45
+    -110,
+    640,
+    0
    ],
    "ong_kinh": 35,
    "vi_tri": [
@@ -892,11 +893,18 @@
     {
      "ten": "Nhóc",
      "tam": [
+      100,
+      1500,
+      0
+     ],
+     "huong": -24,
+     "nhay": "nhóc mua nước xong, quay lại đi về phía tàu (ngoài khung)",
+     "den": [
       80.0,
       950.0,
       0
      ],
-     "huong": -24
+     "huong_den": -24
     },
     {
      "ten": "Tàu xanh",
@@ -937,11 +945,17 @@
     {
      "ten": "Nhóc",
      "tam": [
+      80.0,
+      950.0,
+      0
+     ],
+     "huong": -90,
+     "den": [
       40.0,
       500,
       0
      ],
-     "huong": -90
+     "huong_den": -90
     },
     {
      "ten": "Tàu xanh",

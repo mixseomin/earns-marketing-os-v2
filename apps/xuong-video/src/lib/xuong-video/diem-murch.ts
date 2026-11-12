@@ -10,6 +10,7 @@ import { giayPhat } from './kieu';
 import { camXucDo, loiMachBieuCam } from './qc-cam-xuc';
 import { loiMachTap, matQuayDi, vuotTruc, shotSoTruc, chuThe, boSetCuaShot, loiHinhHoc, VAI_GOC_RIENG, PT_THAY, nguoiNoiKhongThayMat, thoaiToanCanh, nguoiNoiTrongKhung } from './bo-set-3d';
 import { giayDoc } from './nhip-hinh';
+import { tiengGiay, docCachDien, SAN_TIENG_GIAY } from './giong';
 import { coKhongGian, kgCua, nguoiKhung, thayMat, viTri, type KhongGianTap } from './khong-gian';
 
 export type TieuChi = 'cam_xuc' | 'truyen' | 'nhip' | 'eye_trace' | 'hai_chieu' | 'ba_chieu';
@@ -84,6 +85,9 @@ export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' |
     const giong = a && a.ky_thuat?.co_canh && a.ky_thuat.co_canh === kt.co_canh && (a.ky_thuat.chuyen_dong ?? 'tinh') === (kt.chuyen_dong ?? 'tinh');
     nh += giong ? 0 : 0.3; if (giong) thieuNh.push('cùng cỡ + cùng chuyển động máy với shot trước');
     nh += vai === 'phan_ung' && phat < 1.5 ? 0 : 0.2;
+    // TỐC ĐỘ NÓI (anh 12/11/2026: "giọng chú hơi chậm… liên quan tiết nhịp… ảnh hưởng cảm xúc người xem"): câu thường đọc dưới SAN_TIENG_GIAY tiếng/giây = lê thê
+    const cham = (c.thoai ?? []).map((d) => ({ d, r: tiengGiay(d) })).filter((x) => x.r != null && x.r < SAN_TIENG_GIAY && (docCachDien(x.d.dien_xuat).toc ?? 1.1) >= 1);
+    if (cham.length) { nh -= 0.3; thieuNh.push(...cham.map((x) => `${x.d.nhan_vat} đọc ${x.r} tiếng/giây (< ${SAN_TIENG_GIAY}) — chậm so với cách diễn`)); }
     const nhip = kep(nh); if (thieuNh.length) ly.nhip = thieuNh.join(' · ');
     // ── EYE TRACE (7): tâm chủ thể shot trước ↔ shot này (từ hộp bao 3D); góc riêng / thiếu số → 0,8 ──
     let et = 0.8; const kA = a ? kgc(a) : null;

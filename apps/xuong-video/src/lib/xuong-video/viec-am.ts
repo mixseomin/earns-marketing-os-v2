@@ -31,7 +31,7 @@ export async function chayViecAm(v: ViecAm): Promise<KqViecAm> {
     const k = process.env.ELEVENLABS_API_KEY;
     if (!k) return { job: v.job, ok: false, loi: 'Thiếu ELEVENLABS_API_KEY trên máy chủ' };
     try {
-      const r = await ttsElevenTrucTiep(v.input as { text: string; voice_id: string; model_id: string; language_code?: string }, k);
+      const r = await ttsElevenTrucTiep(v.input as { text: string; voice_id: string; model_id: string; language_code?: string; voice_settings?: { speed?: number } }, k);
       if (!r.ok) return { job: v.job, ok: false, loi: r.loi };
       const url = await uploadToR2(`xuong-video/am/${v.thuMuc}-${crypto.randomUUID()}.mp3`, Buffer.from(r.data), 'audio/mpeg');
       return url ? { job: v.job, ok: true, url, model: v.model } : { job: v.job, ok: false, loi: 'R2 không nhận file âm thanh' };

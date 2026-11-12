@@ -137,6 +137,14 @@ export function docCachDien(d?: string | null): { toc: number | null; cam: strin
     : co(['buồn', 'lí nhí', 'xin lỗi', 'nghẹn']) ? 'sad' : co(['vui', 'cười', 'hào phóng', 'ấm', 'thân mật', 'phấn khởi']) ? 'happy' : null;
   return { toc, cam };
 }
+/** TỐC ĐỘ NÓI ĐO ĐƯỢC của một câu đã sinh: tiếng / giây (tiếng Việt: mỗi chữ cách nhau là một tiếng; số viết tắt "5k" = hai tiếng). null = chưa đo độ dài. */
+export function tiengGiay(d: { loi?: string; dai?: number | null }): number | null {
+  if (!d.dai || !d.loi?.trim()) return null;
+  const n = d.loi.replace(/(\d+)k\b/gi, '$1 nghìn').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean).length;
+  return Math.round((n / d.dai) * 10) / 10;
+}
+/** Sàn tốc độ nói của lời thoại thường (tiếng / giây): đối thoại tiếng Việt tự nhiên ~4,5–5,5; dưới 4 là lê thê — trừ câu khai cách diễn chậm (lí nhí, ngập ngừng…). */
+export const SAN_TIENG_GIAY = 4;
 const CAM_MINIMAX = new Set(['happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised', 'neutral']);
 /** Đầu vào đúng khuôn của model: chữ + giọng + ngôn ngữ + cảm xúc (MiniMax có trường emotion; ElevenLabs v3 hiểu thẻ [sad]…). toc / cam: theo câu (docCachDien). */
 export async function dauVaoGiongTheoModel(model: string, v: { text: string; voice: string; ngonNgu: string; camXuc: number; theLoai: string; toc?: number | null; cam?: string | null }): Promise<Record<string, unknown>> {
@@ -146,7 +154,8 @@ export async function dauVaoGiongTheoModel(model: string, v: { text: string; voi
   // ngoặc vuông → v3 ĐỌC TO cả câu đó ("Tận mặt thằng bé đang đứng chờ…", phim #3071 shot #9 phình 6 → 12,5 s). Cách diễn từng câu đi qua v.cam (docCachDien).
   const THE_V3: Record<string, string> = { happy: '[cheerfully] ', sad: '[sad] ', angry: '[annoyed] ', surprised: '[surprised] ', fearful: '[nervous] ' };
   const the = /eleven/.test(model) && /v3/.test(model) ? (v.cam && THE_V3[v.cam] ? THE_V3[v.cam]! : v.camXuc >= 3 ? '[excited] ' : v.camXuc <= -3 ? (v.theLoai === 'kinh_di' ? '[whispers] ' : '[sad] ') : '') : '';
-  if (model.startsWith('elevenlabs:')) return { text: the + v.text, voice_id: v.voice, model_id: model.slice('elevenlabs:'.length), language_code: v.ngonNgu === 'vi' ? 'vi' : 'en' };
+  // tốc độ theo cách diễn (docCachDien) — ElevenLabs nhận voice_settings.speed 0,7–1,2 (đo 12/11/2026: 1,0 → 3,68 s · 1,2 → 3,20 s cùng câu); trước đây không gửi → chú đọc 3,3 tiếng/giây
+  if (model.startsWith('elevenlabs:')) return { text: the + v.text, voice_id: v.voice, model_id: model.slice('elevenlabs:'.length), language_code: v.ngonNgu === 'vi' ? 'vi' : 'en', ...(v.toc ? { voice_settings: { speed: Math.min(1.2, Math.max(0.7, v.toc)) } } : {}) };
   const mt = await moTaFal(model);
   const o: Record<string, unknown> = { [mt.truongChu]: the + v.text };
   if (mt.truongGiong && v.voice) {
@@ -163,10 +172,10 @@ export async function dauVaoGiongTheoModel(model: string, v: { text: string; voi
 }
 
 /** Gọi ElevenLabs trực tiếp (chạy được cả trong Worker): trả bytes mp3. */
-export async function ttsElevenTrucTiep(input: { text: string; voice_id: string; model_id: string; language_code?: string }, key: string): Promise<{ ok: true; data: ArrayBuffer } | { ok: false; loi: string }> {
+export async function ttsElevenTrucTiep(input: { text: string; voice_id: string; model_id: string; language_code?: string; voice_settings?: { speed?: number } }, key: string): Promise<{ ok: true; data: ArrayBuffer } | { ok: false; loi: string }> {
   const r = await fetch(`${ELEVEN}/text-to-speech/${encodeURIComponent(input.voice_id)}?output_format=mp3_44100_128`, {
     method: 'POST', headers: { 'xi-api-key': key, 'content-type': 'application/json', accept: 'audio/mpeg' },
-    body: JSON.stringify({ text: input.text, model_id: input.model_id, ...(input.language_code ? { language_code: input.language_code } : {}) }),
+    body: JSON.stringify({ text: input.text, model_id: input.model_id, ...(input.language_code ? { language_code: input.language_code } : {}), ...(input.voice_settings ? { voice_settings: input.voice_settings } : {}) }),
   });
   if (!r.ok) return { ok: false, loi: `ElevenLabs ${r.status}: ${(await r.text()).slice(0, 200)}` };
   return { ok: true, data: await r.arrayBuffer() };

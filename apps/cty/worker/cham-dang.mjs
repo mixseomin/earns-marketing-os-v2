@@ -65,11 +65,18 @@ const MODEL_NGOC = (() => { try { return (/^model:\s*(\S+)/m.exec(fs.readFileSyn
 export const khongThayAnh = (o) => o?.thay_anh === false || /không (tìm )?thấy (bất kỳ |bất cứ )?(hình|ảnh)|không có (hình|ảnh) (nào )?(được )?đính kèm|no image|cannot see (the|any) image/i.test(String(o?.ly_do ?? ''));
 /** sổ chấm ảnh của Ngọc, bỏ các mục "ảnh không tới" còn sót từ trước (để lượt này hỏi lại). */
 const docSoAnh = (tep) => { let so = {}; try { so = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* chưa có sổ */ } for (const k of Object.keys(so)) if (khongThayAnh(so[k])) delete so[k]; return so; };
-async function hoiNgoc({ luot, system, content, max_tokens = 200, cho = 60000 }) {
+export async function hoiNgoc({ luot, system, content, max_tokens = 200, cho = 60000 }) {
   // content nhận CẢ chuỗi lẫn mảng khối: xetHookAi truyền một chuỗi (hook chỉ có chữ), các chỗ chấm ảnh truyền mảng
   // [{type:'text'},{type:'image'}]. Trước đây gọi thẳng content.some() nên mọi lượt chấm có hook đều ném
   // "content.some is not a function" và DỪNG CẢ DÂY CHUYỀN chấm bài (10/11/2026).
-  const khoi = Array.isArray(content) ? content : [{ type: 'text', text: String(content) }];
+  // ẢNH GỬI BẰNG NỘI DUNG, KHÔNG BẰNG URL (12/11/2026, YNT 12/11): gửi URL thì fal/gemini tự tải, thỉnh thoảng trượt dù img.on.tc trả 200 → "ảnh không tới mô hình",
+  // bỏ cả tập. Máy tự tải rồi gửi base64 (proxy.mjs dịch sang data:). Tải hỏng thì giữ URL như cũ.
+  const khoi = await Promise.all((Array.isArray(content) ? content : [{ type: 'text', text: String(content) }]).map(async (b) => {
+    if (b.type !== 'image' || b.source?.type !== 'url') return b;
+    try { const r = await fetch(b.source.url, { signal: AbortSignal.timeout(30000) }); if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return { type: 'image', source: { type: 'base64', media_type: (r.headers.get('content-type') || 'image/jpeg').split(';')[0], data: Buffer.from(await r.arrayBuffer()).toString('base64') } };
+    } catch (e) { console.error(`hỏi Ngọc (${luot}): tự tải ảnh hỏng (${String(e.message).slice(0, 80)}) — gửi URL`); return b; }
+  }));
   const coAnh = khoi.some((b) => b.type === 'image');
   if (coAnh) system += ' If no image reached you, reply {"thay_anh":false,"ly_do":"..."} and nothing else.';
   try {
@@ -533,6 +540,18 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
     t.equal(ra[0].dau, 'a,b', 'dấu bộ bài để hàng việc chống xếp lại y nguyên'); }
   t.ok(khongThayAnh({ ly_do: 'Không tìm thấy hình ảnh thumbnail đính kèm để đánh giá.' }) && khongThayAnh({ thay_anh: false }), 'ảnh không tới = không phải lời chấm (09/11/2026)');
   t.ok(!khongThayAnh({ ly_do: 'Không thấy lỗi nào, chủ thể rõ.' }) && !khongThayAnh(null), 'lời chấm thật vẫn giữ');
+  { // ảnh gửi bằng nội dung (base64), tải hỏng thì giữ URL (12/11/2026, YNT 12/11)
+    const http = await import('node:http'); let nhan = null;
+    const sv = http.createServer((q, r) => { if (q.url === '/a.jpg') { r.writeHead(200, { 'content-type': 'image/jpeg' }); return r.end(Buffer.from([0xff, 0xd8, 1, 2])); }
+      if (q.url === '/v1/messages') { let d = ''; q.on('data', (c) => (d += c)); return q.on('end', () => { nhan = JSON.parse(d); r.writeHead(200, { 'content-type': 'application/json' }); r.end(JSON.stringify({ content: [{ type: 'text', text: '{"chac":true}' }] })); }); }
+      r.writeHead(404); r.end(); });
+    await new Promise((ok) => sv.listen(0, '127.0.0.1', ok)); const goc = `http://127.0.0.1:${sv.address().port}`, cu = process.env.CTY_PROXY_URL; process.env.CTY_PROXY_URL = goc;
+    const anh = (u) => [{ type: 'image', source: { type: 'url', url: u } }, { type: 'text', text: 'x' }];
+    t.ok(await hoiNgoc({ luot: 'thu', system: 's', content: anh(`${goc}/a.jpg`) }));
+    t.deepEqual(nhan.messages[0].content[0].source, { type: 'base64', media_type: 'image/jpeg', data: Buffer.from([0xff, 0xd8, 1, 2]).toString('base64') }, 'ảnh tải được → gửi base64');
+    await hoiNgoc({ luot: 'thu', system: 's', content: anh(`${goc}/mat.jpg`) });
+    t.deepEqual(nhan.messages[0].content[0].source, { type: 'url', url: `${goc}/mat.jpg` }, 'tải hỏng → giữ URL');
+    sv.close(); if (cu === undefined) delete process.env.CTY_PROXY_URL; else process.env.CTY_PROXY_URL = cu; }
   t.ok(doBaiDang({ ...tot, de: { ket: ['MilitaryCalc', 'Xem công cụ tại militarycalc.com'] } }).chan_cung.some((x) => x.includes('trên màn')), 'chữ trên màn tiếng Việt = chặn (#740, 02/11/2026)');
   t.equal(doBaiDang({ ...tot, ma: 'giochap-van-khan', de: { ket: ['Xem công cụ'] } }).chan_cung.some((x) => x.includes('trên màn')), false, 'máy tiếng Việt thì được');
   t.equal(doBaiDang({ ...tot, video_url: null, dang: { ...tot.dang, loai: 'link' } }).ket, 'DUYET', 'bài link không video vẫn DUYỆT');

@@ -86,3 +86,14 @@ Anh 12/11/2026: "giọng nó cứ lủng củng". Các câu LIỀN NHAU của c�
 Anh 12/11/2026: "Eleven vẫn chuẩn nhất". Giọng có sẵn của ElevenLabs là người nước ngoài nói tiếng Việt, nên lệch dấu ("chú" thành "chứ"). Phải dùng giọng thư viện của người Việt (danh sách đã thử: `GIONG_ELEVEN_THU_VIEN` trong `src/lib/xuong-video/giong.ts`, phim #3071 Chú = Tony Nguyễn). Khoá ElevenLabs của tài khoản: vault #130 → `ELEVENLABS_API_KEY` trong `.env.production` trên box3. Khoá này chỉ có quyền đọc giọng, không có quyền liệt kê giọng.
 Ghi chú cách diễn KHÔNG được nhét vào `[..]` trong chữ: v3 đọc to cả câu ghi chú. Cách diễn đi bằng thẻ một từ tiếng Anh (`docCachDien` → `[cheerfully]`, `[annoyed]`…).
 Mỗi lần sinh, v3 đọc một kiểu: câu có "nước ngọt" ba lần thì hai lần sai. Sinh lại từng câu cho tới khi Whisper (nghe cả đoạn nối liền) ra đúng chữ, tối đa 3 lần. ElevenLabs không có giọng bé trai tiếng Việt, nên vai trẻ con giữ MiniMax (Decent_Boy).
+
+## 12. Ngữ pháp shot cho cảm xúc: nhìn, thấy, phản ứng; mỗi người nói một cận riêng
+
+Anh 12/11/2026: "người nói thì phải có shot quay vào mặt người đó gần hơn, quay riêng… không phải lúc nào cũng toàn cảnh, khó tạo cảm xúc". Luật dựng `ngu_phap_shot_cam_xuc` (ngành: POV structure glance → object → reaction, shot / reverse shot, singles; Arijon, Branigan).
+
+- Ai nói thì có CẬN RIÊNG lúc nói. Lượt sau cắt sang cận người kia. Thoại không nằm trong toàn cảnh hay trong cận người nghe.
+- Tìm hoặc phát hiện phải đủ ba nhịp: người nhìn, rồi thứ được thấy, rồi mặt người đó phản ứng là đã thấy, rồi mới hành động. Người được gọi có cận mặt lúc nghe gọi.
+- Toàn cảnh chỉ để mở cảnh hoặc cho thấy quãng đường đi.
+- Máy cận đặt theo hướng MẶT. Người cúi nhìn xuống thì máy đặt thấp, ngang mắt người bên dưới. Người dưới ngước lên thì máy đặt qua vai người trên. Máy đặt cao trên sân ga chỉ thấy đỉnh đầu (phim #3071, lần dựng đầu). Soát bằng ảnh chụp trang three.js.
+
+Phim #3071 sau khi sửa có 19 shot: #1 chú nhìn quanh, #2 góc nhìn của chú thấy nhóc, #3 cận chú thấy nhóc và gọi, #4 cận nhóc nghe gọi rồi chạy lại, #5 cận chú "Chú cho cháu 5k", #6 hai người trao tiền, #7 cận chú dặn, #8 cận nhóc nghe xong rồi chạy, #14 cận chú hỏi dồn, #15 cận nhóc xin lỗi. Shot thêm mang mã chữ (2b, 3a…) trong tệp dựng cảnh; thứ tự do `thu_tu` trong DB quyết định.

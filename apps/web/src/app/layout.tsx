@@ -10,6 +10,7 @@ import { readTablePrefs } from '@/lib/table-prefs';
 import { getCurrentUser } from '@/lib/auth';
 import { GopYMos2 } from '@/components/gop-y-mos2';
 import { quyenEtp } from '@/lib/etp-quyen';
+import { NHIP_LAM_MOI_SCRIPT } from '@/lib/nhip-lam-moi';
 
 // Google Analytics 4 — property "MOS2" (mos2.on.tc). Public measurement ID, not a secret.
 const GA_ID = 'G-GBENC4P7CB';
@@ -64,6 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="vi" data-theme="dark" data-sidebar="shown" data-rightbar="hidden">
       <head>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: NHIP_LAM_MOI_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

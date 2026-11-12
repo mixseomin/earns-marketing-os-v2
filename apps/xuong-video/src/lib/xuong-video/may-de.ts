@@ -258,6 +258,11 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
   const schema = z.object({ de: mau === 'giai-thich' ? DeGiaiThichSchema : mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : mau === 'binh-chon' ? DePollSchema : mau === 'carousel' ? DeCarouselSchema : DeCanhSchema, chu: ChuDangSchema, hook_qc: z.string().describe('id of the proven ad hook you adapted (empty if none were given)') });
   // tiền: ckey báo VNĐ thật (tokens.vnd); không báo (Anthropic trực tiếp, hoặc ckey thiếu x_ckey.cost — 27/10 nhật ký ghi 0₫) thì ƯỚC theo token × bảng giá (26.000₫/$)
   let vnd = 0, loiCu: string[] = [], hookCu: HookQc | null = null, khoaTruoc = false; const tk = { in: 0, out: 0 }, boHook = new Set<string>();
+  // hook đã thành nguyên văn tiêu đề một bài có sẵn của máy → không đưa vào kho lượt này (examweight 12/11/2026: kho 2 hook, mô hình chép "EMT exams humbling everyone."
+  // = tiêu đề đã có, 3 lượt đều "tiêu đề trùng", 3/5 bài kẹt). Bỏ hết thì vẫn giữ kho cũ để không mất hook.
+  const tdChuan = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim(), daCo = new Set((o.daDung ?? []).map(tdChuan));
+  const hookTrung = (o.hooks ?? []).filter((h) => daCo.has(tdChuan(h.chu)));
+  if (hookTrung.length < (o.hooks ?? []).length) for (const h of hookTrung) boHook.add(h.id);
   for (let lan = 0; lan < 4; lan++) {
     // đã KHOÁ vào một hook mà vẫn trượt "sửa quá xa" → hook đó không hợp góc (ratesbyroom 12/11/2026: "Is PayLater Travel a scam?" khoá vẫn giữ 33%,
     // top-n-40712 kẹt) → bỏ hook đó, lượt sau mở lại phần kho còn lại (trượt nữa thì khoá hook kế), không khoá mãi một câu không bám được.

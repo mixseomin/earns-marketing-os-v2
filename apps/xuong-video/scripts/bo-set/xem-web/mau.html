@@ -109,12 +109,58 @@ function hinh(p) {
 const tuyChon = {};
 for (const v of DU.vat) { const m = hinh(v); canh.add(m); if (v.tuy_chon) { tuyChon[v.ten] = m; m.visible = false; } }
 // Khối nhân vật / đạo cụ: nhóm quay quanh trục đứng theo huong (0 = mặt nhìn −y)
+// NGƯỜI CÓ KHỚP (khoi.hinh = 'nguoi'): ma-nơ-canh FK dựng bằng mã — hông → thân → cổ → đầu, vai → cánh tay → khuỷu → cẳng tay → bàn tay, hông → đùi → gối → cẳng chân.
+// Tỉ lệ theo tuổi (trẻ con đầu to, chân ngắn). Mặt trước = +Z cục bộ (huong 0 = nhìn −y dữ liệu).
+function nguoi(k) {
+  const H = (k.co?.[2] ?? 170) / 100, tre = (k.tuoi ?? 30) < 14;
+  const da = new T3.MeshLambertMaterial({ color: mauCua(k.mau) }), ao = new T3.MeshLambertMaterial({ color: mauCua(k.ao || k.mau) }), toc = new T3.MeshLambertMaterial({ color: mauCua(k.mau_toc || '#222') });
+  const dau = H * (tre ? 0.17 : 0.13), chan = H * (tre ? 0.44 : 0.47), than = H - chan - dau - H * 0.03, vai = H * (tre ? 0.2 : 0.23);
+  const hop = (w, h, d, vl, y) => { const m = new T3.Mesh(new T3.BoxGeometry(w, h, d), vl); m.position.y = y; return m; };
+  const khop = (cha, x, y, z) => { const o = new T3.Object3D(); o.position.set(x, y, z); cha.add(o); return o; };
+  const g = new T3.Group(), hong = khop(g, 0, chan, 0), lung = khop(hong, 0, 0, 0);
+  lung.add(hop(vai * 0.8, than, H * 0.11, ao, than / 2));
+  const co = khop(lung, 0, than, 0); co.add(hop(H * 0.05, H * 0.03, H * 0.05, da, H * 0.015));
+  const dauK = khop(co, 0, H * 0.03, 0);
+  const s = new T3.Mesh(new T3.SphereGeometry(dau / 2, 16, 12), da); s.position.y = dau / 2; dauK.add(s);
+  const t = new T3.Mesh(new T3.SphereGeometry(dau / 2 * 1.04, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), toc); t.position.y = dau / 2; dauK.add(t);
+  const mui = hop(dau * 0.16, dau * 0.18, dau * 0.2, da, dau * 0.45); mui.position.z = dau / 2; dauK.add(mui);   // mũi = hướng mặt
+  const tay = (ben) => {
+    const v = khop(lung, ben * vai / 2, than * 0.94, 0), tren = H * 0.17, duoi = H * 0.16;
+    v.add(hop(H * 0.055, tren, H * 0.055, ao, -tren / 2));
+    const khuyu = khop(v, 0, -tren, 0); khuyu.add(hop(H * 0.045, duoi, H * 0.045, da, -duoi / 2));
+    const ban = khop(khuyu, 0, -duoi, 0); ban.add(hop(H * 0.05, H * 0.06, H * 0.03, da, -H * 0.03));
+    return { v, khuyu, ban };
+  };
+  const chanF = (ben) => {
+    const d = khop(hong, ben * vai * 0.22, 0, 0), dui = chan * 0.52, cang = chan * 0.48;
+    d.add(hop(H * 0.07, dui, H * 0.075, ao, -dui / 2));
+    const goi = khop(d, 0, -dui, 0); goi.add(hop(H * 0.055, cang, H * 0.06, ao, -cang / 2));
+    const ban = hop(H * 0.06, H * 0.025, H * 0.12, da, -cang); ban.position.z = H * 0.03; goi.add(ban);
+    return { d, goi };
+  };
+  return { g, H, j: { hong, lung, co, dau: dauK, tt: tay(1), tp: tay(-1), ct: chanF(1), cp: chanF(-1) } };
+}
 const khoi = {};
 for (const [ten, k] of Object.entries(DU.khoi)) {
+  if (k.hinh === 'nguoi') { const n = nguoi(k); n.g.visible = false; canh.add(n.g); khoi[ten] = { g: n.g, k, ng: n }; continue; }
   const g = new T3.Group();
   g.add(hinh({ ...k, tam: [0, 0, 0] }));
   for (const p of k.phan || []) g.add(hinh(p));
   g.visible = false; canh.add(g); khoi[ten] = { g, k };
+}
+// DÁNG theo khung: đứng · đi (bước theo quãng đã đi) · chống bậu nhoài người (dien chong_ban) · vươn tay trao / nhận đồ · tay cầm đồ
+function dang(n, o) {
+  const j = n.j; const z = (x) => x.rotation.set(0, 0, 0);
+  for (const x of [j.lung, j.co, j.dau, j.tt.v, j.tt.khuyu, j.tp.v, j.tp.khuyu, j.ct.d, j.ct.goi, j.cp.d, j.cp.goi]) z(x);
+  if (o.di > 0) {   // chu kỳ bước: sải ~0,75 chiều cao
+    const ph = (o.di / (n.H * 75)) * Math.PI * 2, a = Math.sin(ph) * 0.5;
+    j.ct.d.rotation.x = a; j.cp.d.rotation.x = -a; j.ct.goi.rotation.x = Math.max(0, -Math.sin(ph)) * 0.7; j.cp.goi.rotation.x = Math.max(0, Math.sin(ph)) * 0.7;
+    j.tt.v.rotation.x = -a * 0.8; j.tp.v.rotation.x = a * 0.8; j.lung.rotation.x = 0.06;
+  }
+  if (o.chong) { j.lung.rotation.x = 0.26; j.co.rotation.x = -0.18; j.tt.v.rotation.x = -0.55; j.tp.v.rotation.x = -0.55; j.tt.khuyu.rotation.x = -0.35; j.tp.khuyu.rotation.x = -0.35; }   // chống bậu: cúi ~15°, tay vừa chạm bậu (sàn toa + 80 cm)
+  if (o.cam) { j.tp.v.rotation.x = Math.min(j.tp.v.rotation.x, -0.25); j.tp.khuyu.rotation.x = -0.9; }
+  if (o.vuon > 0) { j.tp.v.rotation.x = -0.25 - 1.05 * o.vuon; j.tp.khuyu.rotation.x = -0.9 * (1 - o.vuon) - 0.15; }
+  j.tp.v.rotation.z = 0.08; j.tt.v.rotation.z = -0.08;
 }
 const cao = (ten) => (DU.khoi[ten]?.co?.[2] ?? 100) + Math.max(0, ...(DU.khoi[ten]?.phan || []).map((p) => (p.tam?.[2] ?? 0) + (p.co?.[2] ?? 0) - (DU.khoi[ten]?.co?.[2] ?? 0)));
 const em = (u) => u * u * (3 - 2 * u);
@@ -137,19 +183,37 @@ function dungShot(i, u) {
   const s = DU.shot[i], m = s.may, vt = m.vi_tri || [];
   for (const k of Object.values(khoi)) k.g.visible = false;
   for (const [ten, msh] of Object.entries(tuyChon)) msh.visible = (m.them || []).includes(ten);
-  const cho = {};
-  for (const v of vt) {   // người + tàu trước, đồ cầm sau (đồ bám tay người cầm)
+  const cho = {}, kep = (x) => Math.min(1, Math.max(0, x));
+  // đổi tay trong shot: đồ có 'cam' + 'den' → người đưa = cam, người nhận = người khác gần 'den' nhất
+  const trao = vt.filter((v) => v.cam && v.den).map((v) => {
+    const nhan = vt.filter((x) => !x.cam && khoi[x.ten]?.ng && x.ten !== v.cam).sort((a, b) => Math.hypot(a.tam[0] - v.den[0], a.tam[1] - v.den[1]) - Math.hypot(b.tam[0] - v.den[0], b.tam[1] - v.den[1]))[0];
+    return { mon: v.ten, dua: v.cam, nhan: nhan?.ten };
+  });
+  const dangCam = new Set(vt.filter((v) => v.cam && !v.den).map((v) => v.cam));
+  for (const v of vt) {   // người + tàu trước, đồ cầm sau (đồ bám bàn tay người cầm)
     if (v.cam || !khoi[v.ten]) continue;
     const t = viTriLuc(v, u); cho[v.ten] = t;
-    const g = khoi[v.ten].g; g.visible = true; g.position.copy(P(t.p)); g.rotation.set(0, (t.h * Math.PI) / 180, 0);
+    const kk = khoi[v.ten], g = kk.g; g.visible = true; g.position.copy(P(t.p)); g.rotation.set(0, (t.h * Math.PI) / 180, 0);
+    if (kk.ng) {
+      const di = v.den ? Math.hypot(v.den[0] - v.tam[0], v.den[1] - v.tam[1]) * em(u) : 0;
+      const vuon = Math.max(...trao.map((x) => (x.dua === v.ten ? kep((u - 0.12) / 0.25) * (u < 0.85 ? 1 : kep((1 - u) / 0.15)) : x.nhan === v.ten ? kep((u - 0.3) / 0.25) * (u < 0.9 ? 1 : kep((1 - u) / 0.1)) : 0)), 0);
+      dang(kk.ng, { di, chong: (v.dien || []).includes('chong_ban'), cam: dangCam.has(v.ten), vuon });
+    }
   }
-  for (const v of vt) {
-    if (!v.cam || !khoi[v.ten]) continue;
-    const ng = cho[v.cam]; if (!ng) continue;
+  canh.updateMatrixWorld(true);
+  const tayCua = (ten) => {
+    const kk = khoi[ten]; if (!kk) return null;
+    if (kk.ng) { const w = new T3.Vector3(); kk.ng.j.tp.ban.getWorldPosition(w); return w; }
+    const ng = cho[ten]; if (!ng) return null;
     const r = (ng.h * Math.PI) / 180, toi = [Math.sin(r), -Math.cos(r)], phai = [Math.cos(r), Math.sin(r)];
-    const tay = [ng.p[0] + toi[0] * 26 + phai[0] * 14, ng.p[1] + toi[1] * 26 + phai[1] * 14, ng.p[2] + cao(v.cam) * 0.55];
-    const p = v.den ? tron(tay, v.den, em(Math.min(1, Math.max(0, (u - 0.3) / 0.5)))) : tay;   // đổi tay: đưa trong khoảng 30–80 % shot
-    const g = khoi[v.ten].g; g.visible = true; g.position.copy(P(p)); g.rotation.set(0, r, 0);
+    return P([ng.p[0] + toi[0] * 26 + phai[0] * 14, ng.p[1] + toi[1] * 26 + phai[1] * 14, ng.p[2] + cao(ten) * 0.55]);
+  };
+  for (const v of vt) {
+    if (!v.cam || !khoi[v.ten] || !cho[v.cam]) continue;
+    const tr = trao.find((x) => x.mon === v.ten), a = tayCua(v.cam);
+    let p = a;
+    if (tr) { const b = tr.nhan && cho[tr.nhan] ? tayCua(tr.nhan) : P(v.den); p = a.clone().lerp(b, em(kep((u - 0.35) / 0.35))); }   // chuyền tay giữa hai bàn tay, 35–70 % shot
+    const g = khoi[v.ten].g; g.visible = true; g.position.copy(p); g.position.y -= ((khoi[v.ten].k.co?.[2] ?? 4) / 200); g.rotation.set(0, (cho[v.cam].h * Math.PI) / 180, 0);
   }
   // máy: đứng / đẩy / lùi / lia theo chủ thể / theo chủ thể
   let dat = [...m.dat], nhin = [...m.nhin];

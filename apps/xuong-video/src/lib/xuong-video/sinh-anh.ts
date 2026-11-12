@@ -537,7 +537,9 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const coDinh = thayDs.filter((x) => x.pt >= PT_THAY && LA_NHAN_DANG.test(x.en ?? '')).map((x) => x.en!);
       // KHUÔN bước 2 sửa nhân dạng (KHUON.sua_nhan_dang)
       const kS: Khoi[] = [
-        khoi('nguoi', `EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}.`),
+        // CHẤT LIỆU theo kinh thánh (kieu.ts › chatLieuPhim): trước 13/11/2026 câu cố định "a photograph" — phim anime 2D #3071 bước 1 vẽ anime, bước 2 Nano đọc
+        // "photograph" vẽ lại thành ảnh chụp người thật. Ảnh 1 là gì thì gọi đúng thứ đó + giữ nguyên chất liệu.
+        khoi('nguoi', `EDIT Image 1 (${({ ve_2d: 'a hand-drawn 2D animation frame', hoat_hinh: 'an animated film frame', nguoi_that: 'a photograph' } as const)[chatLieuPhim(bc.kt)]} of this exact frame — keep that exact medium and art style, do NOT turn it into ${chatLieuPhim(bc.kt) === 'nguoi_that' ? 'a drawing or 3D render' : 'a photograph or photorealistic image'}). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}.`),
         khoi('giu', 'Keep everything else exactly as Image 1 (camera, framing, every position, size and outline, background, light, colours); Image 2 is the 3D layout of this frame. Do not add, remove, move or resize anything.'),
         khoi('anh_set', set2 && cauAnhSet(set2, nhanSet)), khoi('khong_them', KHONG_THEM_ANH), khoi('boi_canh', boiCanhCoDinh),
         khoi('huong', chen ? '' : huongCau), khoi('so_nguoi', soNguoi), khoi('ngoai_khung', ngoaiCau), khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))),

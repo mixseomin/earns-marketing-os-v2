@@ -386,7 +386,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab, onMoNut }: {
           })() : xem === 'phan_canh' ? (
             <PhanCanhVe tap={tap} canh={locNhanh(canh, nhanh)} onMo={(id) => setXemShot(id)} />
           ) : xem === 'luoi' ? (
-            <LuoiKichBan canh={locNhanh(canh, nhanh)} nhanVat={nhanVat} tap={tap} tiLe={kt.ti_le} laQc={phim.loai === 'quang_cao'} videoTho={!!kt.video_tho} moHinhChu={kt.mo_hinh_chu} onChanged={async () => { await taiCanh(); await onChanged(); }} onMo={(id) => setXemShot(id)} />
+            <LuoiKichBan canh={locNhanh(canh, nhanh)} nhanVat={nhanVat} tap={tap} tiLe={kt.ti_le} laQc={phim.loai === 'quang_cao'} videoTho={!!kt.video_tho} theLoai={kt.the_loai} moHinhChu={kt.mo_hinh_chu} onChanged={async () => { await taiCanh(); await onChanged(); }} onMo={(id) => setXemShot(id)} />
           ) : (
             <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} kg={kgCua(tap.khong_gian, c)} sau={shotSau(c)} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} chanKf={chanKf.get(c.id)} />)}</div>
           )}

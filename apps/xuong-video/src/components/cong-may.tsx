@@ -5,8 +5,9 @@
 import { useState } from 'react';
 import { mauDiem } from '@/lib/xuong-video/diem-murch';
 import type { CongVideoTho } from '@/lib/xuong-video/cong-video-tho';
+import type { KqTheLoai } from '@/lib/xuong-video/cham-the-loai';
 
-export function OCongMay({ k, chan, onMo }: { k: CongVideoTho; /** phim bật video thô: ô này LÀ cổng keyframe; không bật = chỉ để xem */ chan: boolean; onMo: (id: number) => void }) {
+export function OCongMay({ k, chan, onMo, tl, tenTl }: { k: CongVideoTho; /** phim bật video thô: ô này LÀ cổng keyframe; không bật = chỉ để xem */ chan: boolean; onMo: (id: number) => void; /** chấm thể loại (cham-the-loai.ts) — null = thể loại chưa có bộ chấm */ tl?: KqTheLoai | null; tenTl?: string }) {
   const [mo, setMo] = useState(false);
   const theoShot = new Map<number, { thu_tu: number; ly: CongVideoTho['loi'] }>();
   for (const l of k.loi) (theoShot.get(l.id) ?? theoShot.set(l.id, { thu_tu: l.thu_tu, ly: [] }).get(l.id)!).ly.push(l);
@@ -31,6 +32,20 @@ export function OCongMay({ k, chan, onMo }: { k: CongVideoTho; /** phim bật vi
           ))}</span>
         </div>
       ))}
+      {tenTl && (
+        <div style={{ borderTop: '1px solid var(--line)', paddingTop: 4, display: 'grid', gap: 2 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <b style={{ fontSize: 12 }}>🎭 Chấm thể loại · {tenTl}</b>
+            {tl ? <span className="xv-mono" style={{ fontSize: 11 }} title="Tỉ lệ tiêu chí ngành của thể loại đạt (cham-the-loai.ts) — tham khảo, chưa chặn keyframe">
+              <b style={{ color: mauDiem(tl.diem) }}>{tl.diem}</b>/100 · {tl.tieu_chi.filter((x) => x.dat).length}/{tl.tieu_chi.filter((x) => x.dat !== null).length} tiêu chí đạt</span>
+              : <span className="xv-mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>chưa có bộ chấm cho thể loại này</span>}
+          </div>
+          {tl?.tieu_chi.map((x, i) => (
+            <span key={i} style={{ fontSize: 11, color: x.dat ? '#4ade80' : x.dat === false ? 'var(--amber)' : 'var(--fg-3)' }} title={x.nguon ? `Nguồn ngành: ${x.nguon}` : undefined}>
+              {x.dat ? '✓' : x.dat === false ? '✗' : '?'} {x.ten}: {x.ly}</span>
+          ))}
+        </div>
+      )}
       {ds.length > 4 && <button type="button" className="xv-btn" style={{ justifySelf: 'start', padding: '0 8px', fontSize: 11 }} onClick={() => setMo(!mo)}>{mo ? 'Thu gọn' : `Xem cả ${ds.length} shot lỗi`}</button>}
     </div>
   );

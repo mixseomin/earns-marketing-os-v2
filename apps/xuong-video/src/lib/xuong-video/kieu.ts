@@ -119,8 +119,11 @@ export const ghepThoai = (ds: DongThoai[]) => ds.filter((d) => d.loi.trim()).map
 /** Phân cảnh = một CẢNH của hồ sơ tiền kỳ chuẩn studio (14/10/2026, anh chốt từ Tango & Lint tập 1): ngoài mục tiêu/xung đột, mỗi cảnh mang
  *  phần của đạo diễn (giá trị đổi, điểm xoay, nhịp hành động–phản ứng), sản xuất (hiệu ứng — nhân vật/đạo cụ/bối cảnh rút từ anchor của shot),
  *  color script (ánh sáng + màu, mã thư viện) và nhạc. Bảy tài liệu của nút 📋 Hồ sơ của tập đọc từ đây + shot (ho-so.ts). */
+export type KieuHai = 'vat_ly' | 'loi' | 'tinh_huong' | 'mat_lanh' | 'nhai';
 export type PhanCanh = { ten: string; beat: string; muc_tieu: string; xung_dot: string; an_y: string; nhip: string; cam_xuc_dau: number; cam_xuc_cuoi: number;
-  /** gag của cảnh: gài → bùng, o_shot = shot thứ mấy TRONG cảnh có cú bùng (1-based) */ gag?: { ten: string; gai: string; bung: string; o_shot: number; /** MẠCH truyện nhỏ của gag trong cảnh (A, B…) — cảnh có ≥2 gag phải khai; đổi mạch thì cần NÚT ĐÓNG (nhip-hinh.ts › kiemNutDong) */ mach?: string }[];
+  /** gag của cảnh: gài → bùng, o_shot = shot thứ mấy TRONG cảnh có cú bùng (1-based) */ gag?: { ten: string; gai: string; bung: string; o_shot: number; /** MẠCH truyện nhỏ của gag trong cảnh (A, B…) — cảnh có ≥2 gag phải khai; đổi mạch thì cần NÚT ĐÓNG (nhip-hinh.ts › kiemNutDong) */ mach?: string;
+    /** KIỂU HÀI của gag (cham-the-loai.ts › KIEU_HAI): mỗi kiểu một bộ tiêu chí ngành riêng — vật lý / lời / tình huống / mặt lạnh / nhại */ kieu?: KieuHai;
+    /** gag nhại: tác phẩm / quy ước đang nhại (khán giả phải nhận ra gốc) */ tham_chieu?: string }[];
   /** cảnh mở series (chuỗi từ thế giới ngoài) — không tính vào độ dài chuẩn của tập */ intro?: boolean;
   /** NGÀY TRUYỆN (script supervisor: N1 = đêm thứ nhất, D2 = ngày thứ hai…) — sang ngày khác thì sổ liền mạch reset cả trạng thái cơ thể
    *  (ướt / xù / bẩn), quần áo, chỗ, dáng; trống = cùng ngày cảnh trước */ ngay?: string;

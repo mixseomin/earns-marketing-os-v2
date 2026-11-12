@@ -13,6 +13,13 @@ RA = arg[1]
 CHI = set(arg[2].split(',')) if len(arg) > 2 and arg[2] else None
 os.makedirs(RA, exist_ok=True)
 CM = 0.01  # Blender tính mét
+def khung_px(ngan):
+    """Kích thước khung (rộng, cao) theo TỈ LỆ PHIM (DL['ti_le'], vd '16:9' ngang · '9:16' dọc), cạnh NGẮN = ngan px. Trước 12/11/2026 luôn dọc 9:16 kể cả phim
+    16:9 → bản xuất cắt mất đầu người."""
+    try: a, b = [float(x) for x in str(DL.get('ti_le') or '9:16').split(':')]
+    except ValueError: a, b = 9.0, 16.0
+    dai = int(round(ngan * max(a, b) / min(a, b) / 2) * 2)
+    return (dai, ngan) if a >= b else (ngan, dai)
 CHI_MB = os.environ.get('XV_CHI_MAT_BANG') == '1'   # chỉ vẽ mặt bằng (lượt song song riêng), bỏ render từng shot
 BO_MB = os.environ.get('XV_BO_MAT_BANG') == '1'     # phần song song: mặt bằng vẽ tí hon cho nhanh (lượt mb vẽ bản đủ)
 NHANH = os.environ.get('XV_NHANH') == '1'
@@ -624,7 +631,7 @@ def dung_set():
     bpy.ops.object.light_add(type='SUN', location=(0, 0, 2)); bpy.context.object.data.energy = 3
     bpy.context.object.rotation_euler = Euler((math.radians(50), math.radians(-20), math.radians(20)))
     s.render.engine = 'CYCLES'; s.cycles.device = 'CPU'; s.cycles.samples = 10; s.cycles.use_denoising = True   # khung xám là khối phẳng màu: 10 mẫu + khử nhiễu ≈ 24 mẫu thô, nhanh ~2,5×
-    s.render.resolution_x, s.render.resolution_y = (540, 960) if THO else (1080, 1920)   # khung màu = keyframe: đủ lớn cho model video (540 bị phóng lên thành mềm) — nháp thô thì 540
+    s.render.resolution_x, s.render.resolution_y = khung_px(540 if THO else 1080)   # khung màu = keyframe: đủ lớn cho model video (540 bị phóng lên thành mềm) — nháp thô thì 540
     s.view_settings.view_transform = 'Standard'
     return s
 
@@ -1986,7 +1993,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
     if not chay: lay_net(cam, sh)
     s.view_settings.view_transform = 'AgX'
     # 1080×1920 (XV_RONG): model video nhận khung ≥ 720p — khung 540 bị phóng lên thành mềm.
-    rong = int(os.environ.get('XV_RONG', '1080')); s.render.resolution_x, s.render.resolution_y = rong, rong * 16 // 9
+    rong = int(os.environ.get('XV_RONG', '1080')); s.render.resolution_x, s.render.resolution_y = khung_px(rong)   # XV_RONG = cạnh ngắn
     if os.environ.get('XV_THU_KHUNG'): s.frame_start = s.frame_end = int(os.environ['XV_THU_KHUNG'])   # thử nét: một khung
     fm = s.render.image_settings; fm.file_format = 'PNG'; fm.color_mode = 'RGB'
     # NGƯỜI THẬT MPFB như khung màu đầu / kết (anh 19/10/2026: clip diễn tập 135 ra ma-nơ-canh khối — đường diễn chưa từng đổi khối ↔ người thật).

@@ -72,6 +72,8 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
   const t = (await db.execute(sql`SELECT phim_id, phan_canh FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
   if (!t[0]) return { ok: false, loi: 'không thấy tập' };
   const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(t[0].phim_id)} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
+  // TỈ LỆ KHUNG của phim (anh 12/11/2026: phim 16:9 mà Blender render dọc 9:16 → bản xuất cắt mất đầu người / ô cửa)
+  const tiLe = String(((await db.execute(sql`SELECT kinh_thanh->>'ti_le' AS ti_le FROM xv_phim WHERE id = ${Number(t[0].phim_id)}`)) as unknown as Row[])[0]?.ti_le || '9:16');
   const ds = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
   const sets = new Map<number, BoSet>();
   for (const id of new Set(ds.map((c) => boSetCuaShot(c, nv)).filter((x): x is number => !!x))) {
@@ -106,7 +108,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
   let dung = 0; const loi: string[] = []; const cu: string[] = [];
   for (const [sid, shots] of theoSet) {
     const set = sets.get(sid)!;
-    const b = bangDung(set, shots, nv);
+    const b = bangDung(set, shots, nv, tiLe);
     if (!b.ok) { loi.push(`${set.ten}: ${b.loi}`); continue; }
     // SONG SONG (anh 15/10/2026: "tối ưu rồi mà vẫn lâu"): chia shot cho tối đa 3 Blender chạy cùng lúc (box 4 nhân), thêm 1 Blender nhẹ chỉ vẽ
     // mặt bằng đủ đường đi cả tập. Mỗi phần một thư mục ra; gộp kết quả. Ràng buộc trục giữa hai phần dùng máy cũ của shot trước (dat_truoc).
@@ -115,7 +117,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     const soPhan = Math.max(1, Math.min(3, Math.ceil(shots.length / 3)));
     const phan = Array.from({ length: soPhan }, (_, k) => shots.filter((_s, i) => i % soPhan === k));
     const chay = async (ds0: typeof shots, ten: string, env: Record<string, string>) => {
-      const bb = bangDung(set, ds0, nv); if (!bb.ok) return { ok: false, log: bb.loi, ra: '' };
+      const bb = bangDung(set, ds0, nv, tiLe); if (!bb.ok) return { ok: false, log: bb.loi, ra: '' };
       if (o.che !== 'nhap') await writeFile(path.join(thu, `${ten}.json`), JSON.stringify(bb.bang));
       if (o.che === 'xuat') return { ok: true, log: '', ra: path.join(thu, ten) };
       if (o.che === 'nhap') return { ok: existsSync(path.join(thu, ten, ten === 'mb' ? 'mat-bang.png' : 'kiem.json')), log: `máy ngoài chưa trả kết quả ${ten}`, ra: path.join(thu, ten) };

@@ -668,6 +668,8 @@ export async function lyChanKeyframe(db: Db, canhId: number, /** THỬ ngoài qu
   const pq = phimQt(String(((await db.execute(sql`SELECT loai FROM xv_phim WHERE id = ${tapQt.phim_id}`)) as unknown as Row[])[0]?.loai ?? 'phim'), bc.kt);
   const qt = [...chanTienKy(tapQt, pq, locNhanh(tatCa, bc.canh.nhanh || 'A'), locNhanh(tatCa, 'A'), nvPhim.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(bc.canh, tapQt, nvPhim, { camXucQc: pq.camXucQc, ds: locNhanh(tatCa, bc.canh.nhanh || 'A'), theLoai: pq.the_loai })];
   if (qt.length && !thu) chan.push(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ')}`);
+  // VIDEO THÔ TRƯỚC (kieu.ts › KinhThanh.video_tho): không mở được bằng 'thử' — tiền hình chỉ tiêu sau khi video thô Blender đã duyệt
+  if (bc.kt.video_tho && !bc.kt.video_tho.duyet) chan.push('Phim này dựng VIDEO THÔ Blender trước: video thô chưa duyệt nên chưa sinh keyframe (duyệt: bo-set.mts --duyet-tho --phim=<id>)');
   // Bộ set 3D: shot thuộc set phải có máy ảo + khung xám đúng mã + qua kiểm hình học (trong khung, không bị che, không vượt trục).
   const sid = boSetCuaShot(bc.canh, nvPhim);
   // KHUNG ĐO TRÊN 3D SỐNG (do-3d-song.ts): đủ để chấm, không có ảnh độ sâu / khung màu → chưa sinh keyframe được

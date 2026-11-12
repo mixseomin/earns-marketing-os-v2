@@ -51,6 +51,19 @@ if (thamChieu) {
   process.exit(0);
 }
 const kx: KhungXam = { ...goc, mau: url[0]!, mau_ket: url[4]!, giua: url.slice(1, 4), ...(clip ? { dien: clip } : {}) };
+// VIDEO THÔ TRƯỚC (KinhThanh.video_tho chưa duyệt): clip thô là VIDEO của shot để xem / soát, KHÔNG gán khung đầu / cuối làm keyframe — keyframe chỉ có sau khi duyệt
+const kt0 = (r[0].kinh_thanh ?? {}) as KinhThanh;
+if (kt0.video_tho && !kt0.video_tho.duyet) {
+  await chupTruoc(db, { bang: 'xv_canh', id: canh, cot: ['khung_xam', 'video_url', 'video_phien_ban', 'nguon_video'], moTa: 'video thô Blender (chưa duyệt — không keyframe)', nguoi: 'script nap-dien' });
+  await taoJob(db, { nhan: `Video thô Blender (${khung.length} khung) · cảnh #${r[0].thu_tu}`, canh_id: canh, loai: 'video', provider: 'blender', model: 'blender:tho', request: { dich: 'video_tho', khoa: url, clip }, xong: true });
+  const job = (await db.execute(sql`SELECT max(id) AS id FROM xv_job WHERE canh_id = ${canh} AND model = 'blender:tho'`)) as unknown as { id: number }[];
+  const pb = JSON.stringify(clip ? [{ url: clip, ban: 'nhap', model: 'blender:tho', job: Number(job[0]?.id ?? 0), luc: new Date().toISOString() }] : []);
+  const nguon = { model: 'blender:tho', prompt: '', khung_dau: url[0], khung_cuoi: url[4], giay: khung.length / fps, job: Number(job[0]?.id ?? 0) };
+  await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb, video_url = ${clip}, video_phien_ban = video_phien_ban || ${pb}::jsonb, nguon_video = ${JSON.stringify(nguon)}::jsonb,
+    loi = '', updated_at = now() WHERE id = ${canh}`);
+  console.log(JSON.stringify({ ok: true, canh, khoa: url, clip, video_tho: true }));
+  process.exit(0);
+}
 await chupTruoc(db, { bang: 'xv_canh', id: canh, cot: ['keyframe_url', 'keyframe_uv', 'keyframe_ket', 'khung_xam', 'trang_thai', 'video_url', 'video_phien_ban', 'nguon_video'], moTa: 'keyframe + video = bản diễn Blender', nguoi: 'script nap-dien' });
 await taoJob(db, { nhan: `Keyframe · bản diễn Blender (${khung.length} khung) · cảnh #${r[0].thu_tu}`, canh_id: canh, loai: 'anh', provider: 'blender', model: 'blender:cycles', request: { dich: 'dien_3d', khoa: url, clip }, xong: true });
 await db.execute(sql`UPDATE xv_job SET output_url = ${url[0]!}, chi_phi_cents = 0 WHERE id = (SELECT max(id) FROM xv_job WHERE canh_id = ${canh} AND model = 'blender:cycles')`);

@@ -79,6 +79,13 @@ if (gia('nap')) {
   }
   console.log(JSON.stringify({ bo_set: setId, vung, khoi, may, thieu }));
 }
+// --duyet-tho --phim=<id> [--bo]: anh duyệt video thô Blender → mở cổng keyframe (KinhThanh.video_tho.duyet); --bo = gỡ duyệt
+if (process.argv.includes('--duyet-tho')) {
+  const phim = Number(gia('phim')); if (!phim) { console.error('--duyet-tho cần --phim=<id>'); process.exit(1); }
+  const v = process.argv.includes('--bo') ? null : new Date().toISOString();
+  await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{video_tho}', ${JSON.stringify({ duyet: v })}::jsonb) WHERE id = ${phim}`);
+  console.log(JSON.stringify({ phim, video_tho: { duyet: v } })); process.exit(0);
+}
 if (process.argv.includes('--dung')) {
   if (!tap) { console.error('--dung cần --tap=<id>'); process.exit(1); }
   const chi = gia('chi') ? gia('chi').split(',').map(Number) : undefined;   // --chi=<id,…>: chỉ dựng các shot này (thử nhanh)

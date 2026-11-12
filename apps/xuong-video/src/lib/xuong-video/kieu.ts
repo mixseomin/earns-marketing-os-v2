@@ -127,6 +127,10 @@ export type PhanCanh = { ten: string; beat: string; muc_tieu: string; xung_dot: 
   /** đoạn kịch bản (screenplay) của cảnh: hành động / âm / thoại / chuyển cảnh */ kich_ban?: DongKichBan[] };
 export type DongKichBan = { loai: 'hd' | 'am' | 'chuyen'; chu: string } | { loai: 'nv'; ten: string; dien: string; loi: string };
 export type KinhThanh = {
+  /** VIDEO THÔ TRƯỚC (anh 12/11/2026: "file mới chưa được sinh keyframe nếu video thô chưa ổn"): phim dựng cả tập bằng Blender dạng thô (dien-tap.sh, nap-dien.mts)
+   *  để soát hướng mặt / hướng đầu / chỗ đồ vật / chuyển động nối shot TRƯỚC khi tiêu tiền hình. Có khoá này mà chưa `duyet` → lyChanKeyframe chặn mọi keyframe AI,
+   *  nap-dien.mts chỉ gán clip thô làm video (không gán khung đầu / cuối làm keyframe). Duyệt: bo-set.mts --duyet-tho --phim=<id>. */
+  video_tho?: { duyet?: string | null } | null;
   /** Phim thể loại 'may_dung' (may-dung.ts): mẫu + đề + chữ đăng; nền = ảnh AI theo chủ đề (null = dải màu bìa). Nguồn đề: puzzle-books day-studio.mjs. */
   may_dung?: { mau: import('./may-dung-mau').MauMayDung; du_an: string; slug: string; chu_de: string; de: import('./may-dung-do-chu').DeMotDung;
     dang: { title?: string; description?: string; link?: string; book?: string; words?: string[] }; nen_url?: string | null; nen_prompt?: string | null } | null;
@@ -369,7 +373,7 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', chat_lieu: '', dung: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', goi: '', vat_dac_trung: '', vat_dac_trung_id: 0, logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
-  may_dung: null, may: '', kenh: '', giong_dan: null, nguoi_ke: '', cam_xuc_qc: false, series: null, luu_tru: false, nhip_stop_motion: false, phu_de: false, look: '', khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '', keyframe_sua_3d: true, keyframe_hai_buoc: true,
+  video_tho: null, may_dung: null, may: '', kenh: '', giong_dan: null, nguoi_ke: '', cam_xuc_qc: false, series: null, luu_tru: false, nhip_stop_motion: false, phu_de: false, look: '', khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '', keyframe_sua_3d: true, keyframe_hai_buoc: true,
 };
 /** Chất liệu hình của phim: khai tay trong kinh thánh, không thì đọc chữ phong cách. Không đoán được → 'hoat_hinh' an toàn (không bật cổng soi mặt
  *  trên phim chưa rõ) — phim người thật nào phong cách không nói rõ thì chọn tay. */

@@ -281,6 +281,12 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en', hooksLuot) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.${xa ? ` The title AND any on-screen hook line must be this exact sentence: "${(hookCu as HookQc).chu}". Copy it, swapping at most 2-3 words (the country, item or number) to fit the angle; keep every other word and the punctuation. hook_qc must be "${(hookCu as HookQc).id}".` : ''}` : ''), ten: 'de_bai' });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;
+    // lượt KHOÁ = kho chỉ còn đúng một hook: mô hình rẻ vẫn khai trống / sai mã, hoặc tự viết tiêu đề (militarycalc 12/11/2026 top-n-42942: kho 3 hook,
+    // cả 4 lượt "chưa chọn hook QC gốc") → máy tự gắn mã hook đã khoá; tiêu đề lệch hook thì dùng NGUYÊN VĂN câu hook (trừ khi trùng tiêu đề đã có).
+    if (xa && hookCu) {
+      if (!timHook(hooksLuot, r.data.hook_qc)) r.data.hook_qc = hookCu.id;
+      if (loiHook([r.data.chu.title], hookCu.chu).length && !daCo.has(tdChuan(hookCu.chu))) r.data.chu.title = hookCu.chu;
+    }
     const maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); hookCu = timHook(hooksLuot, maHook) ?? hookCu;
     // mô hình không khai mã hook nào trong kho (bỏ trống / tự viết hook) → lượt sau KHOÁ vào hook gần tiêu đề nhất, đưa nguyên câu làm khuôn
     // (militarycalc 12/11/2026: kho còn 1 hook, 3 lượt đều "chưa chọn hook QC gốc", bài lam-tuong-42929 kẹt SỬA LẠI)

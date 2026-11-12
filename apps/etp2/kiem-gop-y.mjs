@@ -7,6 +7,9 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1567, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function HexBo({ bos, boTk }', vi: 'dãy bộ tài khoản của phim: ≥ 3 bộ xếp lưới 2x2 cho gọn (anh 12/11/2026)' },
+  { card: 1567, tep: 'apps/etp2/src/components/etp-view.tsx', co: "gridTemplateColumns: 'repeat(2, auto)', gap: 1", vi: 'HexBo: lưới 2 cột khi nhiều bộ' },
+  { card: 1567, tep: 'apps/etp2/src/components/etp-view.tsx', cam: '.map((c) => c.bo).filter(Boolean))].map((b) => <Hex', vi: 'không vẽ dãy lục giác bộ của phim thành một hàng dài nữa — đi qua HexBo' },
   { card: 1565, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: "{ key: 'chi', header: 'Chi', align: 'right', cell: (p) => <KeToan v={p.k.chi} /> },", vi: 'widget Người (Tổng quan): cột Chi kiểu kế toán — 2 số lẻ, $ mép trái (anh 12/11/2026)' },
   { card: 1565, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: "cell: (p) => <KeToan v={p.k.thu - p.k.chi} mau={mauLai(p.k.thu - p.k.chi)} /> },", vi: 'widget Người: cột Lãi kiểu kế toán, âm trong ngoặc' },
   { card: 1565, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', cam: "cell: (p) => tien(p.k.chi)", vi: 'ô tiền trong bảng widget không in tien() làm tròn lệch số lẻ' },

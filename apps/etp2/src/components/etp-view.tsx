@@ -923,6 +923,16 @@ function Hex({ bo, info, co = 14 }: { bo: string | null; info?: { ten: string; t
     <polygon points="9,1 17,5.5 17,14.5 9,19 1,14.5 1,5.5" fill={MAU_BO[bo] ?? '#64748b'} /><text x="9" y="13.5" textAnchor="middle" fontSize="10" fontWeight="700" fill="#fff">{bo}</text></svg>;
 }
 
+// DÃY BỘ TÀI KHOẢN CỦA PHIM (anh 12/11/2026 #1567 "show thành dạng lưới 2x2 nếu cần cho gọn"): ≤ 2 bộ nằm một hàng; ≥ 3 bộ xếp lưới 2 cột (2x2), lục giác nhỏ hơn
+// — dòng phim không bị dãy 3–5 lục giác đẩy tên phim sang phải. Một hàm cho mọi chỗ vẽ bộ của phim (nhãn nhóm bảng cây, dòng phim máy tính + điện thoại)
+function HexBo({ bos, boTk }: { bos: (string | null)[]; boTk: DuLieuEtp['boTk'] }) {
+  const ds = [...new Set(bos.filter((b): b is string => !!b))].sort();
+  if (!ds.length) return null;
+  const luoi = ds.length > 2;
+  return <span data-o="hex-bo" style={luoi ? { display: 'inline-grid', gridTemplateColumns: 'repeat(2, auto)', gap: 1, flex: 'none', lineHeight: 0 } : { display: 'inline-flex', gap: 3, alignItems: 'center', flex: 'none' }}>
+    {ds.map((b) => <Hex key={b} bo={b} info={boTk[b]} co={luoi ? 11 : 14} />)}</span>;
+}
+
 // TÀI NGUYÊN (anh 24/10/2026 "etp cần thêm phần quản lý tài nguyên như bộ tk"): bộ tài khoản (tài khoản QC + Page) kèm số chạy · mọi tài khoản QC / Page / pixel
 // trên Ethopex (đang dùng ở bộ nào hay DỰ PHÒNG — dự phòng chỉ dùng khi anh cho) · máy thợ dây chuyền creative + hàng đợi
 function TabTaiNguyen({ du, khCamp }: { du: DuLieuEtp; kh: Kh; khCamp: Map<number, SoTien> }) {
@@ -2284,7 +2294,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   const phCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x])), [du.phims]);
   const bhCua = useMemo(() => new Map((du.baoHoa ?? []).map((x) => [x.content_id, x])), [du.baoHoa]);
   const nhanPhim = (k: string) => { const p = phimMap.get(k); if (!p) return `#${k}`;
-    return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>{[...new Set(p.all.map((c) => c.bo).filter(Boolean))].map((b) => <Hex key={b} bo={b} info={du.boTk[b!]} />)}
+    return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>{<HexBo bos={p.all.map((c) => c.bo)} boTk={du.boTk} />}
       <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 520 }} title={p.all[0]?.phim ?? ''}>{p.all[0]?.phim ?? `#${k}`}</b><NhomGoc g={nhomCua.get(Number(k))} /><MocPhim ph={phCua.get(Number(k))} chay={p.all.filter((c) => c.trang_thai === 'ACTIVE').length} />
 
       {p.b?.bao_hoa ? <span title={p.b.bao_hoa} style={{ color: '#f59e0b', fontWeight: 400 }}>⚠ bão hoà</span> : null}
@@ -2354,12 +2364,12 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
             {/* điện thoại (anh 27/10/2026 "đéo đọc được tên phim"): tên phim một dòng riêng trọn bề ngang, không cắt …; dòng dưới là số camp + ký hiệu + cột số */}
             {hep ? <span style={{ gridColumn: '1 / -1', display: 'flex', gap: 6, minWidth: 0, alignItems: 'flex-start' }}><span className="mui">▸</span><b style={{ whiteSpace: 'normal', lineHeight: 1.3 }}>{p.all[0]?.phim ?? `#${p.k}`}</b>
               {/* badge bộ tài khoản của phim (anh 27/10/2026) — mỗi bộ có camp một badge, cùng khuôn Hex của bảng camp */}
-              <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 3, flex: 'none', paddingTop: 2 }}>{[...new Set(p.all.map((c) => c.bo).filter(Boolean))].map((b) => <Hex key={b} bo={b} info={du.boTk[b!]} />)}</span></span> : null}
+              <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 3, flex: 'none', paddingTop: 2 }}>{<HexBo bos={p.all.map((c) => c.bo)} boTk={du.boTk} />}</span></span> : null}
             {/* THẲNG CỘT NGÂN SÁCH (anh 27/10/2026): ô đầu dòng phim dùng CÙNG lưới trong của dòng camp (LUOI_CAMP_HEP / LUOI_TRONG), cột 1 bù phần lề trái
                 dòng camp (4px điện thoại / 12px máy tính) → tổng $ đứng đúng cột $ của từng camp */}
             <span style={{ display: 'grid', gridTemplateColumns: hep ? LUOI_CAMP_HEP.replace(/^10px/, '14px') : LT.replace(/^12px/, '24px'), columnGap: hep ? 6 : 8, alignItems: 'center', minWidth: 0, whiteSpace: 'nowrap' }}>
             <span style={{ gridColumn: hep ? '1 / 3' : '1 / 4', display: 'flex', gap: hep ? 6 : 8, alignItems: 'center', minWidth: 0, overflow: 'hidden', paddingLeft: hep ? 18 : 0 }}>
-            {hep ? null : <><span className="mui">▸</span>{[...new Set(p.all.map((c) => c.bo).filter(Boolean))].map((b) => <Hex key={b} bo={b} info={du.boTk[b!]} />)}<b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.all[0]?.phim ?? `#${p.k}`}</b></>}
+            {hep ? null : <><span className="mui">▸</span>{<HexBo bos={p.all.map((c) => c.bo)} boTk={du.boTk} />}<b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.all[0]?.phim ?? `#${p.k}`}</b></>}
             <span title="camp" style={{ color: 'var(--fg-2)' }}>{p.all.filter((c) => c.trang_thai === 'ACTIVE').length}/{p.all.length}</span>
             <MocPhim ph={du.phims.find((x) => x.content_id === Number(p.k))} chay={p.all.filter((c) => c.trang_thai === 'ACTIVE').length} />
             {hep ? <DongHoPhim cid={Number(p.k)} m={du.moRong?.find((x) => x.content_id === Number(p.k))} ten={p.all[0]?.phim} /> : null}{hep ? <ChipPhim ph={phCua.get(Number(p.k))} bh={bhCua.get(Number(p.k))} /> : null}

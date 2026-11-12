@@ -49,6 +49,11 @@
    620.0,
    110
   ],
+  "tay_chu": [
+   -98,
+   494,
+   205
+  ],
   "Chú": [
    -103,
    500,
@@ -62,7 +67,8 @@
   "duoi_cua_so": "the platform just below the man's window",
   "giua_ga": "the middle of the platform",
   "nhoc_xa": "the far end of the platform",
-  "nhoc_ve": "the platform a few metres from the train"
+  "nhoc_ve": "the platform a few metres from the train",
+  "tay_chu": "the crumpled change in his own hand"
  },
  "ten": "Sân ga tàu xanh (Tàu nước ngọt)",
  "ghi_chu": "Đơn vị cm, x đông, y bắc, z lên; dựng từ sơ đồ cảnh mau/phim-mau-tau-nuoc-ngot-khong-gian.json bằng scripts/du-lieu/bo-set/tau-nuoc-ngot.py.",
@@ -2096,6 +2102,79 @@
     "Chú"
    ],
    "khoa_nhin": true
+  },
+  "13": {
+   "dat": [
+    -30,
+    468,
+    228
+   ],
+   "nhin": [
+    -125,
+    505,
+    222
+   ],
+   "ong_kinh": 42,
+   "khoa_nhin": true,
+   "khung": [
+    "Chú"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Chú",
+     "tam": [
+      -128,
+      500,
+      80
+     ],
+     "huong": 170,
+     "nhin_ai": "nhoc_xa",
+     "nhin_ai_den": "nhoc_xa",
+     "nhip": [
+      {
+       "u": 0,
+       "nhin": "nhoc_xa"
+      },
+      {
+       "u": 0.33,
+       "nhin": "nhoc_xa"
+      },
+      {
+       "u": 0.45,
+       "nhin": "tay_chu"
+      },
+      {
+       "u": 0.6,
+       "nhin": "tay_chu"
+      },
+      {
+       "u": 0.72,
+       "nhin": "nhoc_xa"
+      }
+     ],
+     "dien": [
+      "xem@0.3-0.76"
+     ]
+    },
+    {
+     "ten": "Tiền thừa",
+     "tam": [
+      -128,
+      500,
+      180
+     ],
+     "cam": "Chú"
+    },
+    {
+     "ten": "Tàu xanh",
+     "tam": [
+      -248,
+      585,
+      0
+     ],
+     "huong": 0
+    }
+   ]
   }
  }
 }

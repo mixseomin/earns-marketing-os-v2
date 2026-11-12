@@ -62,3 +62,7 @@ Anh hỏi 12/11/2026: "cầm chai vừa đi vừa uống thì ai có hiểu khô
 3. **Prompt**: câu NHỊP theo giây (ai làm gì lúc nào) + dòng ĐỒ (số lượng, tay nào, trạng thái: "exactly ONE half-drunk glass cola bottle with a straw in his LEFT hand") + câu cấm ("No other bottles, notes or props"). Cả hai dòng sinh tự động từ dữ liệu (`do_en` trong tệp dựng cảnh).
 
 Soát tốc độ: câu nhịp tự ghi "đi" / "chạy" theo m/giây — thấy "chạy" ở cảnh lẽ ra đi thong thả là dữ liệu sai quãng đường (bắt được ở #8: 5,5 m trong 1,5 s).
+
+## 7. Cận phản ứng chốt cảnh (close-up reaction shot · double take / slow burn · button)
+
+Anh 12/11/2026: "đoạn cuối cần shot mặt gần của Chú để rõ cảm xúc". Cảnh hài / cảnh có cú lật chốt bằng CẬN MẶT người chịu hậu quả: nối hướng nhìn từ shot trước → cúi nhìn thứ gây chuyện (đưa vật lên trước ngực: `dien: ['xem@a-b']`, khung phải thấy vật) → ngẩng lên nhìn lại, mặt đứng hình; máy đẩy chậm vào mặt (`chuyen_dong: day_vao`). Ví dụ phim #3071 shot #13.

@@ -11,7 +11,8 @@ CHU_THICH = {   # câu tả shot (người xem đọc được chuyện khi chư
     1: 'Chú ở cửa sổ toa, cầm tờ 5 nghìn, nhìn ra sân ga', 2: 'Góc nhìn của chú: nhóc giữa sân ga, đi lại phía cửa sổ',
     3: 'Chú gọi nhóc, nhoài ra đưa tờ 5 nghìn; nhóc nhận xong quay người về phía tiệm', 4: 'Nhóc quay nốt về phía tiệm rồi chạy lên tiệm cuối sân ga', 5: 'Chú dặn với theo',
     6: 'Bánh tàu đứng yên dưới gầm', 7: 'Chú nhìn về phía tiệm, sốt ruột', 8: 'Nhóc cầm một chai (tay trái), vừa đi về vừa hút hai ngụm',
-    9: 'Nhóc về tới cửa sổ, chú hỏi dồn; cuối shot nhóc giơ tiền thừa lên', 10: 'Cận tay ở bậu cửa: tay nhóc đưa tiền thừa, tay chú đón lấy', 11: 'Nhóc quay người về phía tiệm rồi chạy đi', 12: 'Tàu chuyển bánh, chú cầm tiền thừa nhìn theo'}
+    9: 'Nhóc về tới cửa sổ, chú hỏi dồn; cuối shot nhóc giơ tiền thừa lên', 10: 'Cận tay ở bậu cửa: tay nhóc đưa tiền thừa, tay chú đón lấy', 11: 'Nhóc quay người về phía tiệm rồi chạy đi', 12: 'Tàu chuyển bánh, chú cầm tiền thừa nhìn theo',
+    13: 'Cận mặt chú (phản ứng chốt cảnh): nhìn theo nhóc, cúi nhìn nắm tiền thừa, ngẩng lên — mặt đứng hình'}
 am = {}
 def tai(url):
     if url not in am:

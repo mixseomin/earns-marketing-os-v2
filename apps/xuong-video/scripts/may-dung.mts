@@ -182,6 +182,21 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
   return { tt, gocs, hookNhom, hookCuaQc, hookDaDung, hookCho, hooksCho };
 }
 
+/** XÉT HOOK CỦA ĐỀ VỪA VIẾT ĐÚNG NHƯ PHÒNG NỘI DUNG (cham-dang.mjs › chamMoi: cùng nhãn xv_may.ten, mục đích, tệp sự thật, dòng = dongHookBai(tiêu đề, đề)) → cùng khoá sổ
+ *  xet-hook.json, nên lúc chấm đọc lại đúng kết luận này thay vì hỏi Ngọc lần nữa rồi lật (ratesbyroom 12/11/2026). Bài viết (loai 'bai') / không hook thì không xét. Vài đồng một đề. */
+async function xetHookNhuCham(ma: string) {
+  const { xetHookAi } = await import('../../cty/worker/cham-dang.mjs');
+  const { dongHookBai } = await import('../src/lib/xuong-video/hook-qc.mjs');
+  const r = ((await db.execute(sql`SELECT ten, muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { ten: string; muc_dich: string | null }[])[0];
+  const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
+  return async (de: { dang: object; de: unknown }): Promise<string | null> => {
+    const d = de.dang as { title?: string; loai?: string; hook?: { qc?: string; goc?: string; ngay?: number; luot_xem?: number } }, h = d.hook;
+    if (!h?.qc || d.loai === 'bai') return null;
+    const [loi] = await xetHookAi([{ qc: h.qc, ma, nhan: r?.ten, muc_dich: r?.muc_dich ?? null, su_that: suThat, goc: h.goc, luot_xem: h.luot_xem ?? (String(h.qc).startsWith('kenh:') ? h.ngay : undefined), dong: dongHookBai(d.title, de.de) }]);
+    return (loi as string | null | undefined) ?? null;
+  };
+}
+
 if (a.includes('--nap')) {
   const ds = await docStdin();
   if (!Array.isArray(ds) || !ds.length) { console.error('stdin phải là mảng đề'); process.exit(1); }
@@ -258,7 +273,7 @@ if (a.includes('--nap')) {
   const DANG_TAT_CA = ['lam-tuong', 'dung-sai', 'top-n', 'so-sanh', 'spot-the-fake', 'cau-do-meo', 'vat-lac-loai', 'canh-dong', 'giai-thich-giong', ...(dl ? ['cau-noi-theo-nuoc'] : [])];
   const DANG_VIDEO = lay('--dang') ? DANG_TAT_CA.filter((d) => d === lay('--dang')) : DANG_TAT_CA;
   if (!DANG_VIDEO.length) { console.error(`--dang ${lay('--dang')} không phải dạng video (${DANG_TAT_CA.join(', ')})`); process.exit(1); }
-  const { tt, gocs, hooksCho, hookDaDung, hookCho } = await khoGocHook(ma, Number(m.id), sp);
+  const { tt, gocs, hooksCho, hookDaDung, hookCho } = await khoGocHook(ma, Number(m.id), sp), xetHook = await xetHookNhuCham(ma);
   if (tt.length && tt.every((t) => /^VN/i.test(t))) { (sp as { ngon_ngu?: 'vi' }).ngon_ngu = 'vi'; DANG_VIDEO.splice(0, DANG_VIDEO.length, ...DANG_VIDEO.filter((d) => d !== 'giai-thich-giong' && d !== 'cau-noi-theo-nuoc')); console.log('· máy thị trường VN: viết tiếng Việt'); }
   const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.dang->>'title' AS title FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { goc: string | null; title: string | null }[];
   const dem = new Map<number, number>(); for (const x of daCo) if (x.goc) dem.set(Number(x.goc), (dem.get(Number(x.goc)) ?? 0) + 1);
@@ -269,7 +284,7 @@ if (a.includes('--nap')) {
     if (n >= N) break;
     const d = DANG_VIDEO[i++ % DANG_VIDEO.length]!;
     const hk = hooksCho(g, n); if (!hk.length) { ra.push(`· hết hook QC chưa dùng (${hookDaDung.size} hook đều đã có bài chờ đăng) — dừng lượt`); break; }
-    const kq = await sinhDe({ sp, goc: g, dang_bai: d, daDung, hooks: hk }); vnd += kq.vnd;
+    const kq = await sinhDe({ sp, goc: g, dang_bai: d, daDung, hooks: hk, xetHook }); vnd += kq.vnd;
     // 3 đề hỏng liền nhau = lỗi hệ thống, không phải đề xấu → dừng, không đốt tiền tiếp (31/10/2026: 5/6 hỏng cùng một lỗi, 449₫)
     if (!kq.ok) { ra.push(`✗ #${g.id} ${d}: ${kq.loi}`); hongLien++; if (/TỐN TIỀN/.test(kq.loi) || hongLien >= 3) { if (hongLien >= 3) ra.push('· 3 đề hỏng liền — dừng lượt'); break; } continue; }
     hongLien = 0;
@@ -295,7 +310,7 @@ if (a.includes('--nap')) {
     .filter((v) => (v.chan ?? []).length && (v.chan ?? []).every((c) => SUA_DUOC.test(c)));
   if (!ds.length) { console.log(`làm lại ${ma}: không có bài SỬA LẠI sửa được bằng đề mới`); process.exit(0); }
   const { sinhDe } = await import('../src/lib/xuong-video/may-de');
-  const sp = await spCua(ma), { tt, gocs, hooksCho, hookDaDung, hookCho } = await khoGocHook(ma, Number(m.id), sp);
+  const sp = await spCua(ma), { tt, gocs, hooksCho, hookDaDung, hookCho } = await khoGocHook(ma, Number(m.id), sp), xetHook = await xetHookNhuCham(ma);
   if (tt.length && tt.every((t) => /^VN/i.test(t))) (sp as { ngon_ngu?: 'vi' }).ngon_ngu = 'vi';
   const daDung = ((await db.execute(sql`SELECT dang->>'title' AS t FROM xv_may_video WHERE may_id = ${m.id} AND NOT coalesce(luu_tru, false)`)) as unknown as { t: string | null }[]).map((x) => x.t ?? '').filter(Boolean);
   let vnd = 0, n = 0; const ra: string[] = [];
@@ -309,7 +324,7 @@ if (a.includes('--nap')) {
     // dang_bai = DẠNG (lam-tuong, vat-lac-loai…), KHÔNG phải MẪU (lat-dap-an, lac-loai…): v.mau là mẫu dựng nên sinhDe báo "chưa có mẫu sinh đề" (10/11/2026, 10/11 bài esimfares kẹt).
     const { MAU_CUA_DANG } = await import('../src/lib/xuong-video/may-de');
     const dangCu = String((v.dang as { dang_bai?: string } | null)?.dang_bai ?? '') || Object.keys(MAU_CUA_DANG).find((k) => v.slug.startsWith(`${k}-`)) || (v.mau && v.mau in MAU_CUA_DANG ? v.mau : '') || 'so-sanh';
-    const kq = await sinhDe({ sp, goc: g, dang_bai: dangCu, daDung, hooks: hk }); vnd += kq.vnd;
+    const kq = await sinhDe({ sp, goc: g, dang_bai: dangCu, daDung, hooks: hk, xetHook }); vnd += kq.vnd;
     if (!kq.ok) { ra.push(`✗ ${v.slug}: ${kq.loi}`); if (/TỐN TIỀN/.test(kq.loi)) break; continue; }
     (kq.de.dang as Record<string, unknown>).lam_lai = lan + 1;
     await napVideo(db, ma, [kq.de]); daDung.push(kq.de.dang.title ?? ''); const hq = (kq.de.dang as { hook?: { qc?: string } }).hook?.qc; if (hq) { hookDaDung.add(hq); hookCho.add(hq); }

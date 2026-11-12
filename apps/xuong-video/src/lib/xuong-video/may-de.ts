@@ -252,7 +252,9 @@ export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: Mau
 }
 
 /** Sinh một đề (gọi mô hình, tối đa 2 lượt nếu lượt đầu sai luật). Trả dòng nạp + tiền. */
-export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; dich?: string | null; daDung?: string[]; hooks?: HookQc[] }): Promise<{ ok: true; de: DeNapMay & { mau: MauMayDung }; vnd: number; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string; vnd: number }> {
+export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; dich?: string | null; daDung?: string[]; hooks?: HookQc[];
+  /** XÉT HOOK ĐÚNG NHƯ PHÒNG CHẤM trên đề vừa viết (tiêu đề + câu trên màn), trước khi trả đề đi dựng — trả lý do chặn hoặc null. Xem may-dung.mts › xetHookNhuCham. */
+  xetHook?: (de: DeNapMay & { mau: MauMayDung }) => Promise<string | null> }): Promise<{ ok: true; de: DeNapMay & { mau: MauMayDung }; vnd: number; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string; vnd: number }> {
   const mau = MAU_CUA_DANG[o.dang_bai]; if (!mau || !MAU_SINH.has(mau)) return { ok: false, loi: `dạng ${o.dang_bai} chưa có mẫu sinh đề`, vnd: 0 };
   const { sinhJson } = await import('./claude');
   const schema = z.object({ de: mau === 'giai-thich' ? DeGiaiThichSchema : mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : mau === 'binh-chon' ? DePollSchema : mau === 'carousel' ? DeCarouselSchema : DeCanhSchema, chu: ChuDangSchema, hook_qc: z.string().describe('id of the proven ad hook you adapted (empty if none were given)') });
@@ -283,6 +285,15 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     // tiêu đề trùng bài có sẵn của máy = Phòng Nội dung chặn chống spam → sinh lại ngay ở đây (31/10/2026: hook video thắng chép nguyên văn trùng chính video đó)
     const chuanTd = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
     if ((o.daDung ?? []).some((t) => chuanTd(t) === chuanTd(de.dang.title ?? ''))) loiCu.push(`tiêu đề trùng một bài có sẵn của máy: "${de.dang.title}" — KHÔNG dùng lại câu này, kể cả khi chép từ hook; viết tiêu đề khác hẳn (đổi con số, đối tượng, tình huống) mà vẫn giữ ý hook`);
+    // HOOK XÉT NHƯ LÚC CHẤM (12/11/2026, ratesbyroom "Booking a hotel in Osaka? Check prices first." lọc kho qua, bài sửa thành "…for two? Check prices first." bị chặn
+    // "khác ngách + hứa sai" — lỗi đã báo sửa 2 lần vẫn quay lại): lọc kho xét CÂU GỐC, phòng chấm xét TIÊU ĐỀ ĐÃ SỬA → hai khoá sổ, Ngọc xét lại từ đầu, kết luận lật.
+    // Xét ngay đề vừa viết bằng đúng đầu vào của phòng chấm (sổ xet-hook.json dùng chung → lúc chấm đọc lại đúng kết luận này): bị chặn thì bỏ hook đó, viết lại với hook khác,
+    // không dựng một bài chắc chắn SỬA LẠI.
+    if (!loiCu.length && o.xetHook) {
+      const chan = await o.xetHook(de);
+      if (chan) { const h = timHook(hooksLuot, maHook) ?? hookCu; if (h) boHook.add(h.id); hookCu = null; khoaTruoc = false;
+        loiCu = [`Phòng Nội dung chặn hook vừa dùng: ${chan} — KHÔNG dùng hook đó; chọn hook KHÁC trong danh sách, hợp đúng việc thương hiệu làm, không hứa điều thương hiệu không có`]; continue; }
+    }
     if (!loiCu.length) return { ok: true, de, vnd, model: r.model, tokens: { ...tk, vnd } };
   }
   return { ok: false, loi: `đề sai luật sau 3 lượt: ${loiCu.join('; ')}`, vnd };

@@ -132,7 +132,26 @@ for ma, v in SD['shot'].items():
         x = {'ten': mon, 'tam': [a['tam'][0], a['tam'][1], a['tam'][2] + 100], 'cam': ai}
         if nhan and nhan in cho_nv: b = cho_nv[nhan]; bt = b.get('den') or b['tam']; x['den'] = [bt[0], bt[1], bt[2] + 100]   # đổi tay: kết gần tay người nhận
         if het: x['het'] = True
+        if mon == 'Chai nước ngọt': x['tay_cam'] = 'trai'   # chai tay trái — tay phải để cầm / đưa tiền (#9 giơ tiền thừa, #10 đưa)
         vt.append(x)
+    # NỐI HÀNH ĐỘNG QUA CÚ CẮT (anh 12/11/2026: "đưa tiền lẻ thì quay gần tay đưa… bé nhận tiền xong phải quay đầu về hướng chạy… mọi thứ phải liền mạch"):
+    # nhip = mốc động tác trong shot (u 0..1), trao = khoảng chuyền tay, tay = mức giơ tay. Trang three.js dựng + soát + viết câu nhịp cho prompt từ đây.
+    nv_ = {x['ten']: x for x in vt}
+    D = lambda k: [M[k][0], M[k][1], 0]
+    if ma == '3' and 'Nhóc' in nv_:   # nhận tờ 5 nghìn xong → bắt đầu quay người về phía tiệm (cắt GIỮA cú quay)
+        nv_['Nhóc']['nhip'] = [{'u': 0, 'h': -90, 'nhin': 'Chú'}, {'u': 0.78, 'h': -90, 'nhin': 'Chú'}, {'u': 1, 'h': -135, 'nhin': 'tiem'}]
+        nv_['Tờ 5 nghìn']['trao'] = [0.35, 0.6]
+    if ma == '4' and 'Nhóc' in nv_:   # quay nốt về tiệm (0–22 %) RỒI mới chạy
+        nv_['Nhóc']['nhip'] = [{'u': 0, 'p': D('duoi_cua_so'), 'h': -135, 'nhin': 'tiem'}, {'u': 0.22, 'p': D('duoi_cua_so'), 'h': 180}, {'u': 1, 'p': D('nhoc_xa'), 'h': 180}]
+    if ma == '9' and 'Nhóc' in nv_:   # đi về sát cửa sổ, cuối shot giơ tay cầm tiền thừa lên (nối sang cận tay #10)
+        nv_['Nhóc']['nhip'] = [{'u': 0, 'p': D('nhoc_ve'), 'h': huong(D('nhoc_ve'), CHU), 'nhin': 'Chú'}, {'u': 0.8, 'p': D('duoi_cua_so'), 'h': -90}]
+        nv_['Nhóc']['tay'] = [[0.8, 0], [1, 0.55]]
+    if ma == '10':   # CẬN TAY ở bậu cửa: tay nhóc đưa tiền thừa, tay chú đón — thay cận mặt (không thấy được động tác trao)
+        may[ma] = may.get(ma, {})
+        if 'Nhóc' in nv_: nv_['Nhóc']['tay'] = [[0, 0.55]]
+        if 'Tiền thừa' in nv_: nv_['Tiền thừa']['trao'] = [0.15, 0.55]
+    if ma == '11' and 'Nhóc' in nv_:   # mở ra vẫn quay về chú → quay người về tiệm (0–25 %) rồi mới chạy
+        nv_['Nhóc']['nhip'] = [{'u': 0, 'h': -90, 'nhin': 'Chú'}, {'u': 0.25, 'h': 180, 'nhin': 'tiem'}, {'u': 1, 'p': D('nhoc_xa'), 'h': 180}]
     if ma == '12':   # mở ra chú vẫn quay về phía nhóc như kết #11, rồi xoay theo nhóc chạy xa (soát nối #11→#12: thân lệch 80°)
         for x in vt:
             if x['ten'] == 'Chú': x['huong_den'] = x['huong']; x['huong'] = 90
@@ -162,7 +181,7 @@ for ma, v in SD['shot'].items():
                           'diem': [[b[0] - 40 * ux - 25 * uy, b[1] - 40 * uy + 25 * ux, 1], [b[0], b[1], 1], [b[0] - 40 * ux + 25 * uy, b[1] - 40 * uy - 25 * ux, 1]], 'bac': 1})
             may[ma].setdefault('them', []).extend([ten, f'Mũi tên nhóc #{ma}'])
     if ma == '4': may[ma]['nham'] = 'Nhóc'
-    if ma == '10': may[ma].update({'dat': [20, 450, 235], 'nhin': [-106, 500, 235]} if os.environ.get('XV_KHOI') == '1' else {'dat': [70, 455, 232], 'nhin': [-100, 500, 230]})   # ma-nơ-canh: lùi máy 60 cm — sát quá thì thân đang nhoài choán hết khung (three.js 12/11)   # khối: đầu đứng thẳng cao hơn đầu ma-nơ-canh đang nhoài   # cận mặt chú đang NHOÀI (chong_ban): đầu thấp + ra trước so với lúc đứng thẳng   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
+    if ma == '10': may[ma].update({'dat': [30, 420, 148], 'nhin': [-85, 500, 150], 'ong_kinh': 40})   # cận tay ở bậu cửa: ngang tầm hai bàn tay (nhóc giơ tới ~1,4 m, tay chú qua bậu 1,6 m)   # ma-nơ-canh: lùi máy 60 cm — sát quá thì thân đang nhoài choán hết khung (three.js 12/11)   # khối: đầu đứng thẳng cao hơn đầu ma-nơ-canh đang nhoài   # cận mặt chú đang NHOÀI (chong_ban): đầu thấp + ra trước so với lúc đứng thẳng   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
 vat += DUONG
 MOC = {k: [v[0], v[1], 110] for k, v in M.items()}   # mốc nhìn (cm, tầm mắt người đứng sân ga) cho trang three.js
 MOC['Chú'] = [CHU[0] + 25, CHU[1], CHU[2] + 150]   # chú vắng khung (#4 #8) vẫn là đích nhìn: mặt chú ở ô cửa

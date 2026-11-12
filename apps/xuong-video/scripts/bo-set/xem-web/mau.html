@@ -200,22 +200,41 @@ for (const s of DU.shot) { batDau.push(tong); tong += s.giay; }
 document.getElementById('tong').textContent = `${DU.shot.length} shot · ${tong.toFixed(1).replace('.', ',')} s · khối ước lượng, chưa phải hình thật`;
 
 // Trạng thái một vị trí ở phần u của shot (đi: theo đường; đứng: quay ở 45 % cuối như bản Blender)
+// NHỊP ĐỘNG TÁC (vi_tri.nhip = [{u, p?, h?, nhin?}] — anh 12/11/2026 "nhận tiền xong phải quay đầu về hướng chạy… cụ thể vào"): mốc trong shot (u 0..1),
+// giữa hai mốc nội suy mượt; thiếu p / h thì giữ mốc trước. Không có nhip: đi đều tam → den, quay ở 45 % cuối như bản Blender.
+function mocNhip(v) {
+  if (!v.nhip?.length) return null;
+  const ds = [...v.nhip].sort((a, b) => a.u - b.u);
+  if (ds[0].u > 0) ds.unshift({ u: 0 });
+  if (ds[ds.length - 1].u < 1) ds.push({ u: 1 });
+  let p = v.tam, h = v.huong ?? 0, n = v.nhin_ai ?? null;
+  return ds.map((k, i) => { p = k.p ?? (i === ds.length - 1 && v.den && !ds.some((x) => x.p) ? v.den : p); h = k.h ?? h; n = k.nhin ?? n; return { u: k.u, p, h, nhin: n }; });
+}
 function viTriLuc(v, u) {
+  const ds = mocNhip(v);
+  if (ds) {
+    let i = 0; while (i + 1 < ds.length - 1 && u > ds[i + 1].u) i++;
+    const a = ds[i], b = ds[Math.min(i + 1, ds.length - 1)], k = b.u > a.u ? em(Math.min(1, Math.max(0, (u - a.u) / (b.u - a.u)))) : 1;
+    return { p: tron(a.p, b.p, k), h: gocTron(a.h, b.h, k), nhin: k < 0.5 ? a.nhin : b.nhin };
+  }
   const di = !!v.den;
   const p = di ? tron(v.tam, v.den, em(u)) : v.tam;
   const h0 = v.huong ?? 0, h1 = v.huong_den ?? h0;
   const kq = di ? em(u) : em(Math.min(1, Math.max(0, (u - 0.55) / 0.45)));
   return { p, h: gocTron(h0, h1, kq) };
 }
+const TRAO = (v) => v.trao || [0.35, 0.7];   // khoảng chuyền tay (u) của món đổi tay
+const tayLuc = (v, u) => { const k = v.tay; if (!k?.length) return 0; let i = 0; while (i + 1 < k.length - 1 && u > k[i + 1][0]) i++; const [a, b] = [k[i], k[Math.min(i + 1, k.length - 1)]]; return b[0] > a[0] ? a[1] + (b[1] - a[1]) * em(Math.min(1, Math.max(0, (u - a[0]) / (b[0] - a[0])))) : a[1]; };
 function dungShot(i, u) {
   const s = DU.shot[i], m = s.may, vt = m.vi_tri || [];
   for (const k of Object.values(khoi)) k.g.visible = false;
   for (const [ten, msh] of Object.entries(tuyChon)) msh.visible = (m.them || []).includes(ten);
   const cho = {}, kep = (x) => Math.min(1, Math.max(0, x));
+  const vuonCua = {};
   // đổi tay trong shot: đồ có 'cam' + 'den' → người đưa = cam, người nhận = người khác gần 'den' nhất
   const trao = vt.filter((v) => v.cam && v.den).map((v) => {
     const nhan = vt.filter((x) => !x.cam && khoi[x.ten]?.ng && x.ten !== v.cam).sort((a, b) => Math.hypot(a.tam[0] - v.den[0], a.tam[1] - v.den[1]) - Math.hypot(b.tam[0] - v.den[0], b.tam[1] - v.den[1]))[0];
-    return { mon: v.ten, dua: v.cam, nhan: nhan?.ten };
+    return { mon: v.ten, dua: v.cam, nhan: nhan?.ten, khoang: TRAO(v) };
   });
   const dangCam = new Set(vt.filter((v) => v.cam && !v.den).map((v) => v.cam));
   for (const v of vt) {   // người + tàu trước, đồ cầm sau (đồ bám bàn tay người cầm)
@@ -224,15 +243,27 @@ function dungShot(i, u) {
     const kk = khoi[v.ten], g = kk.g; g.visible = true; g.position.copy(P(t.p)); g.rotation.set(0, (t.h * Math.PI) / 180, 0);
     if (kk.ng) {
       const di = v.den ? Math.hypot(v.den[0] - v.tam[0], v.den[1] - v.tam[1]) * em(u) : 0;
-      const vuon = Math.max(...trao.map((x) => (x.dua === v.ten ? kep((u - 0.12) / 0.25) * (u < 0.85 ? 1 : kep((1 - u) / 0.15)) : x.nhan === v.ten ? kep((u - 0.3) / 0.25) * (u < 0.9 ? 1 : kep((1 - u) / 0.1)) : 0)), 0);
+      const vuon = Math.max(tayLuc(v, u), ...trao.map((x) => { const [a, b] = x.khoang; return x.dua === v.ten ? kep((u - (a - 0.2)) / 0.2) * kep((b + 0.15 - u) / 0.15) : x.nhan === v.ten ? kep((u - (a - 0.08)) / 0.15) * kep((b + 0.25 - u) / 0.15) : 0; }), 0);
       dang(kk.ng, { di, chong: (v.dien || []).includes('chong_ban'), cam: dangCam.has(v.ten), vuon });
+      const tr0 = trao.find((x) => x.dua === v.ten || x.nhan === v.ten); if (tr0 && vuon > 0) vuonCua[v.ten] = { vuon, doi: tr0.dua === v.ten ? tr0.nhan : tr0.dua };
     }
+  }
+  // TAY NHẮM TAY (trao / nhận): mỗi bên chĩa cánh tay phải về ĐIỂM GIỮA hai vai — người thấp giơ lên, người cao với xuống; trừ độ cúi của lưng
+  // (vươn khoá góc cố định: #10 tay nhóc 0,89 m, tay chú 1,92 m, không gặp nhau)
+  canh.updateMatrixWorld(true);
+  for (const [ten, x] of Object.entries(vuonCua)) {
+    const a = khoi[ten]?.ng, b = khoi[x.doi]?.ng; if (!a || !b) continue;
+    const va = new T3.Vector3(), vb = new T3.Vector3(); a.j.tp.v.getWorldPosition(va); b.j.tp.v.getWorldPosition(vb);
+    const giua = va.clone().add(vb).multiplyScalar(0.5), d = giua.clone().sub(va), e = Math.atan2(d.y, Math.hypot(d.x, d.z));
+    const goc = -(Math.PI / 2 + e) - a.j.lung.rotation.x;
+    a.j.tp.v.rotation.x += (goc - a.j.tp.v.rotation.x) * x.vuon; a.j.tp.khuyu.rotation.x *= 1 - x.vuon;
   }
   // ĐẦU NHÌN VỀ ĐÍCH (nhin_ai lúc mở → nhin_ai_den lúc kết, đổi trong 45 % cuối như quay người): đầu xoay độc lập thân, tối đa ±75°
   nhinCua = {};
   for (const v of vt) {
     const kk = khoi[v.ten]; if (!kk?.ng || !cho[v.ten] || !v.nhin_ai) continue;
-    const a = v.nhin_ai, b = v.nhin_ai_den || a, k = a === b ? 0 : em(kep((u - 0.45) / 0.45));
+    const nn = mocNhip(v) ? viTriLuc(v, u).nhin : null;
+    const a = nn ?? v.nhin_ai, b = nn ?? (v.nhin_ai_den || a), k = a === b ? 0 : em(kep((u - 0.45) / 0.45));
     const diem = (x) => (cho[x] ? [cho[x].p[0], cho[x].p[1], cho[x].p[2] + cao(x) * 0.93] : DU.moc?.[x] ? DU.moc[x] : null);
     const pa = diem(a), pb = diem(b); if (!pa) continue;
     const d = tron(pa, pb || pa, k), ng = cho[v.ten], mat = [ng.p[0], ng.p[1], ng.p[2] + cao(v.ten) * 0.93];
@@ -243,18 +274,18 @@ function dungShot(i, u) {
   }
   canh.updateMatrixWorld(true);
   veTia();
-  const tayCua = (ten) => {
+  const tayCua = (ten, ben) => {   // ben 'trai' = tay trái (đồ khai tay: 'trai' — chai nước của nhóc), còn lại tay phải
     const kk = khoi[ten]; if (!kk) return null;
-    if (kk.ng) { const w = new T3.Vector3(); kk.ng.j.tp.ban.getWorldPosition(w); return w; }
+    if (kk.ng) { const w = new T3.Vector3(); (ben === 'trai' ? kk.ng.j.tt : kk.ng.j.tp).ban.getWorldPosition(w); return w; }
     const ng = cho[ten]; if (!ng) return null;
     const r = (ng.h * Math.PI) / 180, toi = [Math.sin(r), -Math.cos(r)], phai = [Math.cos(r), Math.sin(r)];
     return P([ng.p[0] + toi[0] * 26 + phai[0] * 14, ng.p[1] + toi[1] * 26 + phai[1] * 14, ng.p[2] + cao(ten) * 0.55]);
   };
   for (const v of vt) {
     if (!v.cam || !khoi[v.ten] || !cho[v.cam]) continue;
-    const tr = trao.find((x) => x.mon === v.ten), a = tayCua(v.cam);
+    const tr = trao.find((x) => x.mon === v.ten), a = tayCua(v.cam, v.tay_cam);
     let p = a;
-    if (tr) { const b = tr.nhan && cho[tr.nhan] ? tayCua(tr.nhan) : P(v.den); p = a.clone().lerp(b, em(kep((u - 0.35) / 0.35))); }   // chuyền tay giữa hai bàn tay, 35–70 % shot
+    if (tr) { const b = tr.nhan && cho[tr.nhan] ? tayCua(tr.nhan) : P(v.den); const [ka, kb] = tr.khoang; p = a.clone().lerp(b, em(kep((u - ka) / (kb - ka)))); }   // chuyền tay giữa hai bàn tay, 35–70 % shot
     const g = khoi[v.ten].g; g.visible = true; g.position.copy(p); g.position.y -= ((khoi[v.ten].k.co?.[2] ?? 4) / 200); g.rotation.set(0, (cho[v.cam].h * Math.PI) / 180, 0);
   }
   // máy: đứng / đẩy / lùi / lia theo chủ thể / theo chủ thể
@@ -326,7 +357,7 @@ function trangThai(i, u) {
     ra[v.ten] = { p, yaw, h: viTriLuc(v, u).h, nhin: n?.ten ?? null, man, ben: pd.x < -0.33 ? 'trai' : pd.x > 0.33 ? 'phai' : 'giua', trong: Math.abs(pd.x) <= 1 && Math.abs(pd.y) <= 1 && pd.z < 1 };
   }
   const cam = {};
-  for (const v of s.may.vi_tri || []) if (v.cam) { const tr = v.den ? (s.may.vi_tri.filter((x) => !x.cam && khoi[x.ten]?.ng && x.ten !== v.cam).sort((a, b) => Math.hypot(a.tam[0] - v.den[0], a.tam[1] - v.den[1]) - Math.hypot(b.tam[0] - v.den[0], b.tam[1] - v.den[1]))[0]) : null; cam[v.ten] = u >= 0.7 && tr ? tr.ten : v.cam; }
+  for (const v of s.may.vi_tri || []) if (v.cam) { const tr = v.den ? (s.may.vi_tri.filter((x) => !x.cam && khoi[x.ten]?.ng && x.ten !== v.cam).sort((a, b) => Math.hypot(a.tam[0] - v.den[0], a.tam[1] - v.den[1]) - Math.hypot(b.tam[0] - v.den[0], b.tam[1] - v.den[1]))[0]) : null; cam[v.ten] = u >= TRAO(v)[1] && tr ? tr.ten : v.cam; }
   return { ng: ra, cam };
 }
 const MAN_VI = { phai: 'sang phải màn', trai: 'sang trái màn', thang: 'thẳng về phía máy', xa: 'ra xa, quay lưng máy' }, MAN_EN = { phai: 'screen-right', trai: 'screen-left', thang: 'toward the camera', xa: 'away from the camera' };
@@ -344,7 +375,30 @@ const PHAN = [], NOI = [];
       if (y.nhin !== x.nhin || y.man !== x.man) { cv += ` → cuối shot quay đầu nhìn về ${tenVi(y.nhin)}${y.man ? ` (${MAN_VI[y.man]})` : ''}`; ce += `; by the end of the shot he turns his head to look ${y.man ? MAN_EN[y.man] + ' ' : ''}at ${tenEn(y.nhin)}`; }
       vi.push(cv + '.'); en.push(ce + '.');
     }
-    PHAN.push(`<p>${vi.join(' ') || 'Không có người trong khung.'}</p><p class="en">${en.join(' ')}</p>`);
+    // NHỊP ĐỘNG TÁC theo giây (từ nhip + khoảng chuyền tay) — dòng này đi thẳng vào prompt
+    const sg = (x) => (x * s.giay).toFixed(1).replace('.', ','), sgE = (x) => (x * s.giay).toFixed(1);
+    const gan = (p) => Object.entries(DU.moc || {}).filter(([k]) => !TEN[k]).sort((a2, b2) => Math.hypot(a2[1][0] - p[0], a2[1][1] - p[1]) - Math.hypot(b2[1][0] - p[0], b2[1][1] - p[1]))[0]?.[0];
+    const nhipVi = [], nhipEn = [];
+    for (const v of s.may.vi_tri || []) {
+      const ds = mocNhip(v); if (!ds) continue;
+      for (let k = 1; k < ds.length; k++) {
+        const a2 = ds[k - 1], b2 = ds[k], dp = Math.hypot(b2.p[0] - a2.p[0], b2.p[1] - a2.p[1]), dh = Math.abs(((((b2.h - a2.h) % 360) + 540) % 360) - 180);
+        const tg = (b2.u - a2.u) * s.giay, chay = dp / 100 / Math.max(0.1, tg) > 2.2;
+        if (dp > 30) { nhipVi.push(`${sg(a2.u)}–${sg(b2.u)} s: ${tenVi(v.ten)} ${chay ? 'chạy' : 'đi'} tới ${tenVi(gan(b2.p))}`); nhipEn.push(`${sgE(a2.u)}-${sgE(b2.u)}s: ${tenEn(v.ten)} ${chay ? 'runs' : 'walks'} to ${tenEn(gan(b2.p))}`); }
+        else if (dh > 25) { nhipVi.push(`${sg(a2.u)}–${sg(b2.u)} s: ${tenVi(v.ten)} quay người${b2.nhin ? ` về phía ${tenVi(b2.nhin)}` : ''}`); nhipEn.push(`${sgE(a2.u)}-${sgE(b2.u)}s: ${tenEn(v.ten)} turns his body${b2.nhin ? ` toward ${tenEn(b2.nhin)}` : ''}`); }
+      }
+    }
+    for (const v of s.may.vi_tri || []) if (v.cam && v.den) {
+      const [ka, kb] = TRAO(v), nhan = (s.may.vi_tri.filter((x) => !x.cam && khoi[x.ten]?.ng && x.ten !== v.cam)[0] || {}).ten;
+      nhipVi.push(`${sg(ka)}–${sg(kb)} s: ${tenVi(v.cam)} đưa ${v.ten.toLowerCase()} cho ${tenVi(nhan)}`); nhipEn.push(`${sgE(ka)}-${sgE(kb)}s: ${tenEn(v.cam)} hands the ${({ 'Tờ 5 nghìn': '5,000-dong note', 'Tiền thừa': 'change', 'Chai nước ngọt': 'cola bottle' })[v.ten] || v.ten} to ${tenEn(nhan)}`);
+    }
+    for (const v of s.may.vi_tri || []) {   // giơ tay (tay) — nối sang cận tay shot sau
+      const k = v.tay || []; for (let q = 1; q < k.length; q++) if (k[q][1] - k[q - 1][1] > 0.3) { nhipVi.push(`${sg(k[q - 1][0])}–${sg(k[q][0])} s: ${tenVi(v.ten)} giơ tay${(s.may.vi_tri.find((x) => x.cam === v.ten && !x.den && x.tay_cam !== 'trai') || {}).ten ? ` cầm ${(s.may.vi_tri.find((x) => x.cam === v.ten && !x.den && x.tay_cam !== 'trai')).ten.toLowerCase()}` : ''} lên`); nhipEn.push(`${sgE(k[q - 1][0])}-${sgE(k[q][0])}s: ${tenEn(v.ten)} raises his hand${(s.may.vi_tri.find((x) => x.cam === v.ten && !x.den && x.tay_cam !== 'trai') || {}).ten === 'Tiền thừa' ? ' holding the change' : ''}`); }
+    }
+    const thu = (x) => parseFloat(x.replace(',', '.')); const xep = nhipVi.map((x, q) => [x, nhipEn[q]]).sort((a2, b2) => thu(a2[0].split(':')[0].split(' ')[0].split('–')[0].replace(/^.*?(\d)/, '$1')) - thu(b2[0].split('–')[0].replace(/^.*?(\d)/, '$1')));
+    nhipVi.splice(0, nhipVi.length, ...xep.map((x) => x[0])); nhipEn.splice(0, nhipEn.length, ...xep.map((x) => x[1]));
+    const nh = nhipVi.length ? `<p><b>Nhịp:</b> ${nhipVi.join(' · ')}</p><p class="en">${nhipEn.join('; ')}.</p>` : '';
+    PHAN.push(`<p>${vi.join(' ') || 'Không có người trong khung.'}</p><p class="en">${en.join(' ')}</p>${nh}`);
     if (i + 1 >= DU.shot.length) return;
     const c = st[i + 1][0], loi = [], vtSau = DU.shot[i + 1].may.vi_tri || [];
     for (const [ten, x] of Object.entries(b.ng)) {

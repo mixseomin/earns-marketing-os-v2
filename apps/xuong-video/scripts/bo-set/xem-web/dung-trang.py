@@ -9,9 +9,9 @@ set_, tap, ra = json.load(open(sys.argv[1])), json.load(open(sys.argv[2])), sys.
 ten = sys.argv[4] if len(sys.argv) > 4 else 'Video thô'
 CHU_THICH = {   # câu tả shot (người xem đọc được chuyện khi chưa có hình thật) — theo kịch bản tập
     1: 'Chú ở cửa sổ toa, cầm tờ 5 nghìn, nhìn ra sân ga', 2: 'Góc nhìn của chú: nhóc giữa sân ga, đi lại phía cửa sổ',
-    3: 'Chú gọi nhóc, nhoài ra đưa tờ 5 nghìn', 4: 'Nhóc cầm tiền, chạy lên tiệm cuối sân ga', 5: 'Chú dặn với theo',
+    3: 'Chú gọi nhóc, nhoài ra đưa tờ 5 nghìn; nhóc nhận xong quay người về phía tiệm', 4: 'Nhóc quay nốt về phía tiệm rồi chạy lên tiệm cuối sân ga', 5: 'Chú dặn với theo',
     6: 'Bánh tàu đứng yên dưới gầm', 7: 'Chú nhìn về phía tiệm, sốt ruột', 8: 'Nhóc cầm một chai, vừa đi về vừa uống',
-    9: 'Nhóc về tới cửa sổ, chú hỏi dồn', 10: 'Cận chú: nhóc trả tiền thừa', 11: 'Nhóc chạy đi', 12: 'Tàu chuyển bánh, chú cầm tiền thừa nhìn theo'}
+    9: 'Nhóc về tới cửa sổ, chú hỏi dồn; cuối shot nhóc giơ tiền thừa lên', 10: 'Cận tay ở bậu cửa: tay nhóc đưa tiền thừa, tay chú đón lấy', 11: 'Nhóc quay người về phía tiệm rồi chạy đi', 12: 'Tàu chuyển bánh, chú cầm tiền thừa nhìn theo'}
 am = {}
 def tai(url):
     if url not in am:

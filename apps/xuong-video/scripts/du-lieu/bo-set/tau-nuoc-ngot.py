@@ -102,6 +102,10 @@ for ma, v in SD['shot'].items():
         if ma == '8': x['nhay'] = 'nhóc mua nước xong, quay lại đi về phía tàu (ngoài khung)'
         if ma == '8': x['tam'] = [100, 1500, 0]; x['den'] = [M['nhoc_ve'][0], M['nhoc_ve'][1], 0]; x['huong_den'] = x.get('huong', 0)   # vừa đi về vừa uống
         if ma == '9': x['tam'] = [M['nhoc_ve'][0], M['nhoc_ve'][1], 0]; x['den'] = [M['duoi_cua_so'][0], M['duoi_cua_so'][1], 0]; x['huong_den'] = x['huong']
+    # CHÚ NHOÀI RA Ô CỬA khi nói / trao đồ với nhóc: dáng 'chong_ban' (thư viện DONG_TAC) — chống tay lên bậu cửa (mép trên vách, z 150), máy tự cúi cột sống tới khi
+    # bàn tay chạm bậu → đầu + vai nhô qua ô cửa. Shot chú chỉ nhìn theo (#1 #5 #7 #12) thì đứng thẳng trong toa.
+    for x in vt:
+        if x['ten'] == 'Chú' and ma in ('3', '9', '10', '11'): x['dien'] = ['chong_ban']
     cho_nv = {x['ten']: x for x in vt}
     for mon, ai, nhan, het in DO.get(ma, []):
         a = cho_nv.get(ai)

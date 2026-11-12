@@ -748,7 +748,10 @@
       500,
       40
      ],
-     "huong": 90
+     "huong": 90,
+     "dien": [
+      "chong_ban"
+     ]
     },
     {
      "ten": "Nhóc",
@@ -1012,7 +1015,10 @@
       500,
       40
      ],
-     "huong": 90
+     "huong": 90,
+     "dien": [
+      "chong_ban"
+     ]
     },
     {
      "ten": "Nhóc",
@@ -1084,7 +1090,10 @@
       500,
       40
      ],
-     "huong": 90
+     "huong": 90,
+     "dien": [
+      "chong_ban"
+     ]
     },
     {
      "ten": "Nhóc",
@@ -1152,7 +1161,10 @@
       500,
       40
      ],
-     "huong": 90
+     "huong": 90,
+     "dien": [
+      "chong_ban"
+     ]
     },
     {
      "ten": "Nhóc",

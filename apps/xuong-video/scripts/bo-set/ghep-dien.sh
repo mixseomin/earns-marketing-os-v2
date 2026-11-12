@@ -11,6 +11,8 @@ do_sang() { ffmpeg -nostdin -i "$1" -vf signalstats,metadata=print:key=lavfi.sig
 he_so() { python3 -c "import sys; y = float(sys.argv[1] or 0); print(round(min(3.0, 75 / y), 3) if 0 < y < 50 else 1)" "$1"; }
 nhan() { [ "$1" = 1 ] && echo "" || echo "lutrgb=r=val*$1:g=val*$1:b=val*$1,"; }   # colorchannelmixer chỉ nhận ≤ 2
 LOC="split[a][b];[b]curves=all='0/0 0.62/0 1/0.75',gblur=sigma=22[g];[a][g]blend=all_mode=screen:all_opacity=0.55,rgbashift=rh=2:bh=-2,vignette=angle=PI/5,noise=alls=6:allf=t+u"
+# XV_PHANG=1 (video thô khối — anh 12/11/2026): KHÔNG hậu kỳ ống kính — loá, viền màu, tối góc, hạt phim làm hình khối mờ bẩn; chỉ giữ nhân sáng
+[ "${XV_PHANG:-}" = 1 ] && LOC="null"
 if [ "$1" = "--anh" ]; then ffmpeg -y -loglevel error -i "$2" -vf "$(nhan "${XV_GAIN:-1}")$LOC,format=yuvj420p" -q:v 2 "$3"; exit; fi
 N=$(ls "$1"/f*.png | wc -l | tr -d ' '); G=${XV_GAIN:-$(he_so "$(do_sang "$1/f$(printf %04d $((N / 2 + 1))).png")")}; echo "$G" > "$1/gain.txt"
 ffmpeg -y -loglevel error -framerate "$(cat "$1/fps.txt" 2>/dev/null || echo 12)" -i "$1/f%04d.png" -vf "$(nhan "$G")$LOC,format=yuv420p" $(python3 "$NEN_PY" --crf 16) "${2:-$1/dien.mp4}"

@@ -5,4 +5,4 @@
 # Mã dựng = mọi thứ quyết định hình: dung-set.py, mesh/*.py, mocap/*.bvh, ghep-dien.sh. Chế độ = XV_MAY XV_NHAP XV_RONG XV_MAU XV_MESH_THAT XV_BOIL XV_FPS XV_THAN_LIEN (đổi người khối / ma-nơ-canh / nhịp khung là đổi hình).
 #   dau-shot.sh <thu-muc-shot>
 D=$1; S=$(cd "$(dirname "$0")" && pwd)
-{ cat "$D/vao.json"; cat "$S/dung-set.py" "$S"/mesh/*.py "$S/ghep-dien.sh"; for f in "$S"/mocap/*.bvh; do echo "$(wc -c < "$f") $(basename "$f")"; done; echo "$XV_MAY|$XV_NHAP|$XV_RONG|$XV_MAU|${XV_MESH_THAT:-1}|$XV_BOIL|$XV_FPS|$XV_THAN_LIEN"; } | shasum | cut -c1-16
+{ cat "$D/vao.json"; cat "$S/dung-set.py" "$S"/mesh/*.py "$S/ghep-dien.sh"; for f in "$S"/mocap/*.bvh; do echo "$(wc -c < "$f") $(basename "$f")"; done; echo "$XV_MAY|$XV_NHAP|$XV_RONG|$XV_MAU|${XV_MESH_THAT:-1}|$XV_BOIL|$XV_FPS|$XV_THAN_LIEN|$XV_DEN|$XV_PHANG"; } | shasum | cut -c1-16

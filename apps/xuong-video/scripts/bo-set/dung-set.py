@@ -396,7 +396,8 @@ def anh_sang_mau(s, sh, bat):
         ld = bpy.data.lights.new(ten, loai); ld.color = mau_; ld.energy = nl
         if loai == 'AREA': ld.size = co * CM
         o = bpy.data.objects.new(ten, ld); s.collection.objects.link(o); o.location = Vector(vt) * CM; o.rotation_euler = Euler(xoay)
-    if den_kieu(s, sh, sh.get('anh_sang') or '', den): return
+    # XV_DEN (video thô — anh 12/11/2026 "sao khung reel nét hơn"): đè bộ đèn của shot bằng một kiểu chung, vd sang_deu = sáng đều phẳng như blockout
+    if den_kieu(s, sh, os.environ.get('XV_DEN') or sh.get('anh_sang') or '', den): return
     if sh.get('den_ban'):
         dd = [o for o in bpy.data.objects if o.name.startswith('Desk Lamp ')]
         if dd:

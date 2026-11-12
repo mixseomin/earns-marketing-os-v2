@@ -8,7 +8,7 @@ import type { Canh, NhanVat, BoSet, PhanCanh } from './kieu';
 import { NGUONG_LECH } from './diem-nhin';
 import { giayPhat } from './kieu';
 import { camXucDo, loiMachBieuCam } from './qc-cam-xuc';
-import { loiMachTap, matQuayDi, vuotTruc, shotSoTruc, chuThe, boSetCuaShot, loiHinhHoc, VAI_GOC_RIENG, PT_THAY } from './bo-set-3d';
+import { loiMachTap, matQuayDi, vuotTruc, shotSoTruc, chuThe, boSetCuaShot, loiHinhHoc, VAI_GOC_RIENG, PT_THAY, nguoiNoiKhongThayMat, thoaiToanCanh, nguoiNoiTrongKhung } from './bo-set-3d';
 import { giayDoc } from './nhip-hinh';
 import { coKhongGian, kgCua, nguoiKhung, thayMat, viTri, type KhongGianTap } from './khong-gian';
 
@@ -34,7 +34,8 @@ export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' |
   const kgc = (c: Shot) => { const k = kgCua(p.kg, c); return !c.may_3d && coKhongGian(k, c) ? k : null; };
   const CHUA = 'chưa chấm: shot không có 3D lẫn sơ đồ cảnh';
   const machBieuCam = p.laQc ? loiMachBieuCam(ds, nhanVat) : {};
-  const loai = (s: string): TieuChi | 'truyen_chuoi' => /NHÌN|THẤY|LÀM|chuỗi chú ý/.test(s) ? 'truyen_chuoi' : /TỔNG THỂ|NẰM|ĐỨNG|thiếu động tác/.test(s) ? 'truyen' : /đứt mạch|quay ngoắt|đã chia|trạng thái|đang cầm|đảo \(|trục chuyển động/.test(s) ? 'ba_chieu' : /hướng máy chủ|qua trục liền nhau|đối mặt|cùng hướng/.test(s) ? 'hai_chieu' : 'ba_chieu';
+  // sổ trang phục = việc của bước keyframe (biến thể có ảnh), không phải đứt mạch KHÔNG GIAN — trước 12/11/2026 rơi vào ba_chieu: 17/19 shot #3071 bị trừ 'đứt mạch chỗ đứng'
+  const loai = (s: string): TieuChi | 'truyen_chuoi' | 'look' => /^sổ trang phục/.test(s) ? 'look' : /NHÌN|THẤY|LÀM|chuỗi chú ý/.test(s) ? 'truyen_chuoi' : /TỔNG THỂ|NẰM|ĐỨNG|thiếu động tác/.test(s) ? 'truyen' : /đứt mạch|quay ngoắt|đã chia|trạng thái|đang cầm|đảo \(|trục chuyển động/.test(s) ? 'ba_chieu' : /hướng máy chủ|qua trục liền nhau|đối mặt|cùng hướng/.test(s) ? 'hai_chieu' : 'ba_chieu';
   const giayChuan = giayDoc(p);
   const bungCua = new Map<string, Set<number>>(); for (const pc of p.phanCanh ?? []) for (const g of pc.gag ?? []) if (g.o_shot) (bungCua.get(pc.ten) ?? bungCua.set(pc.ten, new Set()).get(pc.ten)!).add(g.o_shot);
   const viTriTrongCanh = new Map<number, number>(); { let d = ''; let k = 0; for (const c of ds) { if (c.phan_doan !== d) { d = c.phan_doan; k = 0; } viTriTrongCanh.set(c.id, ++k); } }
@@ -49,8 +50,13 @@ export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' |
     const k2 = kgc(c); const coKg = !!c.may_3d || !!k2;
     const matOk = !coNv ? true : c.may_3d ? !matQuayDi(c, laNv).length : k2 ? (nguoiKhung(k2, c) ?? []).some((n) => thayMat(k2, c, n) !== false) : null;
     cx += coNv ? (matOk ? 0.3 : 0) : 0.15; if (coNv && matOk === false) thieuCx.push('máy không thấy mặt'); if (coNv && matOk === null) thieuCx.push(`${CHUA} (thấy mặt)`);
-    cx += ['phan_ung', 'tam_trang', 'chu_quan'].includes(vai) ? 0.25 : ['hanh_dong', 'chi_tiet', 'nguoi_thu_ba'].includes(vai) ? 0.15 : 0.08;
-    if (!['phan_ung', 'tam_trang', 'chu_quan'].includes(vai)) thieuCx.push('không phải shot cảm xúc (phản ứng / tâm trạng / POV)');
+    // CẬN NGƯỜI NÓI (single đối đáp, cỡ cận, thấy mặt người nói) cũng là shot cảm xúc — đọc từ thoại + 3D, không đợi ai gõ vai
+    const loiNoi = [...nguoiNoiKhongThayMat(c), ...thoaiToanCanh(c)];
+    const canNoi = !loiNoi.length && nguoiNoiTrongKhung(c).length > 0 && ['cu', 'mcu', 'ecu', 'ots'].includes(kt.co_canh ?? '');
+    const vaiCx = ['phan_ung', 'tam_trang', 'chu_quan'].includes(vai) || canNoi;
+    cx += vaiCx ? 0.25 : ['hanh_dong', 'chi_tiet', 'nguoi_thu_ba'].includes(vai) ? 0.15 : 0.08;
+    if (!vaiCx) thieuCx.push('không phải shot cảm xúc (phản ứng / tâm trạng / POV / cận người nói)');
+    if (loiNoi.length) { cx -= 0.3; thieuCx.push(...loiNoi.map((x) => x.replace(/^NGƯỜI NÓI: /, '').split(' — ')[0]!)); }
     const doiBac = a ? Math.abs((c.cam_xuc ?? 0) - (a.cam_xuc ?? 0)) >= 1 : (c.cam_xuc ?? 0) !== 0;
     cx += doiBac ? 0.2 : 0; if (!doiBac) thieuCx.push('cảm xúc khán giả không đổi bậc so với shot trước');
     const sauBung = a && bungCua.get(c.phan_doan)?.has(viTriTrongCanh.get(a.id)!) && vai === 'phan_ung';
@@ -124,5 +130,7 @@ export function diemMurchCanh(ds: Pick<Shot, 'id' | 'phan_doan'>[], diem: Record
   for (const k of Object.keys(canh)) canh[k] = Math.round(canh[k]! / dem[k]!);
   return { canh, tap: n ? Math.round(tong / n) : 0 };
 }
+/** Điểm Murch cả tập tối thiểu để cổng keyframe của phim làm video thô trước mở (sinh-anh.ts › lyChanKeyframe) — cùng mốc 'xanh' của mauDiem. */
+export const MURCH_TAP_DAT = 75;
 /** Màu điểm: ≥ 75 xanh · 55–74 vàng · < 55 đỏ. */
 export const mauDiem = (d: number) => (d >= 75 ? '#4ade80' : d >= 55 ? 'var(--amber)' : 'var(--red)');

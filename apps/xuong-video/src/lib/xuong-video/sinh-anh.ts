@@ -19,6 +19,8 @@ import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './po
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
 import { bienTheTheoSo, boCauMay, boSetCuaShot, catMep, chanKhungXam, chuTheThay, doiTuongThieu, huongVoiMay, KHOA_LOOK, nhinCau, loiMachTap, moTaThay, PT_THAY, shotSoTruc, thayRo, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
+import { nguoiNoiKhongThayMat, thoaiToanCanh } from './bo-set-3d';
+import { diemMurchTap, diemMurchCanh, MURCH_TAP_DAT } from './diem-murch';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
 import { loiTrangThaiVat, boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, noiChonPhongCach, TU_TOI_DA_FLUX, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
 import { cauAnhSet, CHAT_LIEU, chuNguoi, ghep, goiTenEn, hanhDongTrongMoTa, khoi, KHONG_THEM_ANH, KHONG_THEM_FLUX, KHUON, soNguoiCau, tuTheEn, type DuongSinh, type Khoi } from './prompt-khoi';
@@ -668,8 +670,17 @@ export async function lyChanKeyframe(db: Db, canhId: number, /** THỬ ngoài qu
   const pq = phimQt(String(((await db.execute(sql`SELECT loai FROM xv_phim WHERE id = ${tapQt.phim_id}`)) as unknown as Row[])[0]?.loai ?? 'phim'), bc.kt);
   const qt = [...chanTienKy(tapQt, pq, locNhanh(tatCa, bc.canh.nhanh || 'A'), locNhanh(tatCa, 'A'), nvPhim.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(bc.canh, tapQt, nvPhim, { camXucQc: pq.camXucQc, ds: locNhanh(tatCa, bc.canh.nhanh || 'A'), theLoai: pq.the_loai })];
   if (qt.length && !thu) chan.push(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ')}`);
-  // VIDEO THÔ TRƯỚC (kieu.ts › KinhThanh.video_tho): không mở được bằng 'thử' — tiền hình chỉ tiêu sau khi video thô Blender đã duyệt
-  if (bc.kt.video_tho && !bc.kt.video_tho.duyet) chan.push('Phim này dựng VIDEO THÔ Blender trước: video thô chưa duyệt nên chưa sinh keyframe (duyệt: bo-set.mts --duyet-tho --phim=<id>)');
+  // VIDEO THÔ TRƯỚC (kieu.ts › KinhThanh.video_tho): không mở được bằng 'thử'. MÁY mở cổng, không phải nút duyệt (anh 12/11/2026: "luật là não của mày thôi,
+  // không tin được" + "đã có hệ chấm điểm"): cả tập phải qua (1) người nói thấy mặt + thoại không nằm trong toàn cảnh — đo trên máy ảo 3D (bo-set-3d.ts
+  // › nguoiNoiKhongThayMat / thoaiToanCanh), (2) điểm Murch cả tập ≥ MURCH_TAP_DAT (diem-murch.ts). Lỗi liền mạch từng shot vẫn qua loiMachTap ở dưới.
+  if (bc.kt.video_tho) {
+    const dsT = locNhanh(tatCa, bc.canh.nhanh || 'A');
+    const noi = dsT.flatMap((x) => [...nguoiNoiKhongThayMat(x), ...thoaiToanCanh(x)].map((s) => `#${x.thu_tu} ${s.replace(/^NGƯỜI NÓI: /, '')}`));
+    if (noi.length) chan.push(`Ngữ pháp shot chưa đạt (đo trên 3D): ${noi.join('; ')}`);
+    const setsT = ((await db.execute(sql`SELECT * FROM xv_bo_set WHERE phim_id = ${tapQt.phim_id} OR phim_id IS NULL`)) as unknown as Row[]).map(mapBoSet);
+    const dmT = diemMurchCanh(dsT, diemMurchTap(dsT, nvPhim, setsT, { phanCanh: tapQt.phan_canh ?? [], kg: tapQt.khong_gian ?? null })).tap;
+    if (dmT < MURCH_TAP_DAT) chan.push(`Điểm Murch cả tập ${dmT} < ${MURCH_TAP_DAT} — sửa các shot điểm thấp trên timeline (lý do từng tiêu chí ở ô điểm) rồi mới sinh keyframe`);
+  }
   // Bộ set 3D: shot thuộc set phải có máy ảo + khung xám đúng mã + qua kiểm hình học (trong khung, không bị che, không vượt trục).
   const sid = boSetCuaShot(bc.canh, nvPhim);
   // KHUNG ĐO TRÊN 3D SỐNG (do-3d-song.ts): đủ để chấm, không có ảnh độ sâu / khung màu → chưa sinh keyframe được

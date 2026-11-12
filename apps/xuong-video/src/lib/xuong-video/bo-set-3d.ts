@@ -875,6 +875,24 @@ export function huongVoiMay(m: Pick<May3d, 'dat' | 'nhin'>, v: ViTri, ket = fals
   const chu = lech <= 35 ? 'facing the camera' : lech <= 70 ? `three-quarter view, turned toward ${ben}` : lech <= 110 ? `in profile, facing ${ben}` : lech <= 150 ? `three-quarter from behind, facing away toward ${ben}` : 'back to the camera (we see the back of the head, not the face)';
   return { lech: Math.round(lech), chu };
 }
+/** NGƯỜI NÓI PHẢI THẤY MẶT (anh 12/11/2026, phim #3071: "người nói thì phải có shot quay vào mặt người đó, gần hơn, quay riêng" — ngành: shot / reverse shot,
+ *  singles; Arijon): mỗi câu thoại (trừ dòng khai ngoai_mat) — người nói phải đứng trong khung (chủ thể của máy) và máy thấy ≥ 3/4 mặt (lệch ≤ 80°) lúc mở
+ *  hoặc lúc kết. Đo trên CÙNG máy ảo 3D (may_3d) mà khung xám / Murch / cổng keyframe đọc — không phải nhận định. */
+export function nguoiNoiKhongThayMat(c: { may_3d?: May3d | null } & Partial<Pick<Canh, 'thoai'>>): string[] {
+  const m = c.may_3d; const noi = [...new Set((c.thoai ?? []).filter((d) => d.loi?.trim() && !d.ngoai_mat).map((d) => d.nhan_vat.trim()))]; if (!noi.length) return [];
+  if (!m) return [`NGƯỜI NÓI: shot có thoại (${noi.join(', ')}) mà chưa có máy ảo 3D để đo mặt người nói`];
+  const ct = new Set(chuThe(m).map((t) => t.trim().toLowerCase()));
+  return noi.flatMap((t) => {
+    const v = m.vi_tri.find((x) => x.ten.trim().toLowerCase() === t.toLowerCase() && !x.an);
+    if (!v || !ct.has(t.toLowerCase())) return [`NGƯỜI NÓI: ${t} nói mà không có trong khung — cắt sang cận riêng của ${t} lúc nói (shot / reverse shot), hoặc khai ngoai_mat nếu cố ý nói ngoài khung`];
+    const a = huongVoiMay(m, v), b = huongVoiMay(m, v, true); const ng = 80;
+    return a && a.lech > ng && (!b || b.lech > ng) ? [`NGƯỜI NÓI: máy không thấy mặt ${t} lúc nói (lệch ${a.lech}°) — đặt máy trước mặt ${t} (tầm mắt người đối diện / qua vai)`] : [];
+  });
+}
+/** Cỡ cảnh RỘNG (toàn / viễn) — thoại đặt ở đây thì mặt người nói quá nhỏ để đọc cảm xúc. */
+export const CO_RONG = new Set(['ws', 'ews', 'els', 'ls', 'toan']);
+export const thoaiToanCanh = (c: Partial<Pick<Canh, 'thoai' | 'ky_thuat'>>): string[] =>
+  (c.thoai ?? []).some((d) => d.loi?.trim() && !d.ngoai_mat) && CO_RONG.has(c.ky_thuat?.co_canh ?? '') ? [`NGƯỜI NÓI: thoại nằm trong toàn cảnh (${c.ky_thuat!.co_canh}) — mặt người nói quá nhỏ để đọc cảm xúc: tách câu sang cận người nói`] : [];
 /** Shot PHẢN ỨNG mà máy không thấy ít nhất 3/4 mặt chủ thể (lệch > 80°) cả lúc mở lẫn lúc kết — cảm xúc nằm trên mặt. Shot hành động thấy lưng là bình thường
  *  (Lint bị hút lên về phía Mr. Wipe, #23), nên không đo. Hai nhân vật quay vào nhau: 'cheat to camera' (xoay cả hai ~30° về máy, như diễn viên thật). */
 export function matQuayDi(c: { may_3d?: May3d | null; ky_thuat?: Canh['ky_thuat'] | null }, laNhanVat: (ten: string) => boolean): string[] {
@@ -933,8 +951,16 @@ export function nhipDan<T extends { id: number; thu_tu: number; phan_doan?: stri
   for (const pd of new Set(ds.map((c) => c.phan_doan ?? ''))) {
     const cua = ds.filter((c) => (c.phan_doan ?? '') === pd && c.may_3d).sort((a, b) => xepPhat(a, b));
     const thuong = cua.filter((c) => !c.may_3d!.qua_truc && !VAI_GOC_RIENG.has(c.ky_thuat?.vai ?? '')); if (thuong.length < 3) continue;
-    const chu = thuong.map((c) => hg(c.may_3d!)).map((h, _, a) => ({ h, n: a.filter((x) => gocLech(x, h) <= NHIP_DAN).length })).sort((a, b) => b.n - a.n)[0]!.h;
-    for (const c of thuong) { const l = gocLech(hg(c.may_3d!), chu); if (l > NHIP_DAN) (out[c.id] ??= []).push(`máy lệch ${Math.round(l)}° khỏi hướng máy chủ của cảnh (${Math.round(chu)}°) — hậu cảnh đổi, mất dẫn dắt: đưa máy về trong ±${NHIP_DAN}°, hoặc khai qua_truc nếu là POV / chèn`); }
+    const chuCua = (ds2: T[]) => ds2.map((c) => hg(c.may_3d!)).map((h, _, a) => ({ h, n: a.filter((x) => gocLech(x, h) <= NHIP_DAN).length })).sort((a, b) => b.n - a.n)[0]!.h;
+    const chu = chuCua(thuong);
+    // CẬN ĐỐI ĐÁP (shot / reverse shot — anh 12/11/2026 phim #3071): cận riêng của từng người có hậu cảnh RIÊNG (ngược góc nhau); hướng máy chủ tính
+    // theo nhóm shot cùng một chủ thể đơn — hậu cảnh của cận A giữ nhau, cận B giữ nhau. Nhóm < 2 shot (không có gì để giữ) thì so hướng chủ cả cảnh.
+    const don = (c: T) => { const ct = chuThe(c.may_3d!); return ct.length === 1 ? ct[0]! : ''; };
+    const nhom = new Map<string, T[]>(); for (const c of thuong) { const k = don(c); if (k) (nhom.get(k) ?? nhom.set(k, []).get(k)!).push(c); }
+    for (const c of thuong) {
+      const g = don(c) ? nhom.get(don(c))! : null; const ref = g && g.length >= 2 ? chuCua(g) : chu; const l = gocLech(hg(c.may_3d!), ref);
+      if (l > NHIP_DAN) (out[c.id] ??= []).push(`máy lệch ${Math.round(l)}° khỏi hướng máy chủ ${g && g.length >= 2 ? `của các cận ${don(c)}` : 'của cảnh'} (${Math.round(ref)}°) — hậu cảnh đổi, mất dẫn dắt: đưa máy về trong ±${NHIP_DAN}°, hoặc khai qua_truc nếu là POV / chèn`);
+    }
     for (let i = 1; i < cua.length; i++) if (cua[i]!.may_3d!.qua_truc && cua[i - 1]!.may_3d!.qua_truc) (out[cua[i]!.id] ??= []).push(`hai shot qua trục liền nhau (#${cua[i - 1]!.thu_tu} → #${cua[i]!.thu_tu}) — người xem mất hướng: chen một shot ở hướng máy chủ, hoặc đưa shot này về hướng chủ`);
   }
   return out;

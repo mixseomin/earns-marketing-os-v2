@@ -109,7 +109,10 @@ export type DongThoai = { nhan_vat: string; dien_xuat: string; loi: string; url?
   dai?: number;
   /** bản LỒNG TIẾNG của dòng theo ngôn ngữ (long-tieng.ts): goc = câu gốc lúc dịch (lệch câu hiện tại = cũ, không dùng), loi = câu dịch,
    *  url = file giọng đọc câu dịch bằng giọng của người nói. */
-  dich?: Record<string, { goc: string; loi: string; url?: string | null }> };
+  dich?: Record<string, { goc: string; loi: string; url?: string | null }>;
+  /** câu nói khi KHÔNG cần thấy mặt người nói (vừa chạy đi vừa nói với lại, lời ngoài khung cố ý) — miễn luật "người nói có cận thấy mặt"
+   *  (bo-set-3d.ts › nguoiNoiKhongThayMat). Mặc định: người nói phải ở trong khung, thấy ≥ 3/4 mặt. */
+  ngoai_mat?: boolean };
 /** Ghép dòng thoại thành chuỗi loi_thoai (tương thích chỗ cũ: animatic, tìm người nói). */
 export const ghepThoai = (ds: DongThoai[]) => ds.filter((d) => d.loi.trim()).map((d) => `${d.nhan_vat ? `${d.nhan_vat}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ` : ''}"${d.loi.trim()}"`).join('\n');
 /** Một phân cảnh (scene): nhóm shot cùng phan_doan. Cảm xúc -5..5. */

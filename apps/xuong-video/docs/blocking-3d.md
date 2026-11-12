@@ -97,3 +97,15 @@ Anh 12/11/2026: "người nói thì phải có shot quay vào mặt người đ�
 - Máy cận đặt theo hướng MẶT. Người cúi nhìn xuống thì máy đặt thấp, ngang mắt người bên dưới. Người dưới ngước lên thì máy đặt qua vai người trên. Máy đặt cao trên sân ga chỉ thấy đỉnh đầu (phim #3071, lần dựng đầu). Soát bằng ảnh chụp trang three.js.
 
 Phim #3071 sau khi sửa có 19 shot: #1 chú nhìn quanh, #2 góc nhìn của chú thấy nhóc, #3 cận chú thấy nhóc và gọi, #4 cận nhóc nghe gọi rồi chạy lại, #5 cận chú "Chú cho cháu 5k", #6 hai người trao tiền, #7 cận chú dặn, #8 cận nhóc nghe xong rồi chạy, #14 cận chú hỏi dồn, #15 cận nhóc xin lỗi. Shot thêm mang mã chữ (2b, 3a…) trong tệp dựng cảnh; thứ tự do `thu_tu` trong DB quyết định.
+
+## 13. Máy chấm mở cổng, không phải người duyệt
+
+Anh 12–13/11/2026: "luật là não của mày thôi, không tin được… đã có hệ chấm điểm" + "studio phải thể hiện rõ những thông tin chấm và block này". Cổng keyframe của phim khai `video_tho` do `cong-video-tho.ts` quyết định. Cùng hàm đó vẽ ô 🚦 trên Storyboard › Lưới. Cổng mở khi:
+
+- Người nói thấy mặt, thoại không nằm trong toàn cảnh (`bo-set-3d.ts › nguoiNoiKhongThayMat / thoaiToanCanh`). Dòng thoại cố ý nói ngoài mặt (vừa chạy vừa nói với lại) khai `ngoai_mat`.
+- Không lỗi liền mạch (`loiMachTap`): hướng máy chủ tính theo nhóm cận cùng người, cùng hướng mặt; cú máy trung lập đầu trục khai `qua_truc`.
+- Điểm Murch cả tập ≥ 75. Tốc độ nói dưới 4 tiếng/giây bị trừ điểm nhịp.
+
+Số đo đọc từ khung đo trên 3D sống (`scripts/cham-3d-song.mts <tập> --tat-ca`): khung theo tỉ lệ của phim, người thấy đầu là thấy, dáng chống bậu nhô đầu ra trước. Bảng nối trên trang three.js chỉ để xem nhanh; số chính thức là ô 🚦.
+
+Chấm thể loại (`cham-the-loai.ts`, hiện dưới ô 🚦): Hài có tiêu chí chung (nhịp cắt, nhịp nói) cộng tiêu chí theo kiểu từng gag (`phan_canh[].gag[].kieu`: vật lý, lời, tình huống, mặt lạnh, nhại). Phim mới phải khai gag và kiểu ngay lúc tách cảnh. Thể loại khác (kinh dị, hành động, tình cảm) thêm một hàm cùng khuôn vào `BO_CHAM`.

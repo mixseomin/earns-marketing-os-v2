@@ -13,6 +13,7 @@ import { KhungNoi, ReThe, TheChung, useNoi, type Moc, type TheNoi } from '@/comp
 import { chuLich } from '@/lib/etp-khung';
 import { choGio, chuHen, dangChay, dangTao } from '@/lib/etp-chay';
 import { batDauCamp, chayDong, docChiTiet, docDong, dungDong, fixBuoc, formDong, lenCampCr, type CampDong, type CrDong, type DongPhim, type BuocDong, type LoaiNoiDung, type LocDong } from '@/lib/actions/etp-dong';
+import { nhip } from '@/lib/nhip';   // tự làm mới chỉ khi tab hiện (12/11/2026)
 
 const TEN_BUOC: Record<string, [string, string]> = {
   nhan: ['Nhận', 'Nhận phim: nhóm gốc Âu-Mỹ, không trong sổ cấm 18+, đội không giữ, phim chưa có camp → Nhà nhận'],
@@ -163,7 +164,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
   const [ct, setCt] = useState<{ camps: CampDong[]; crs: Record<string, CrDong>; tc: TieuChi[] } | null>(null);
   const [menuCr, setMenuCr] = useState<{ id: number; x: number; y: number } | null>(null);   // xử lý tay MỘT creative (#1520)
   useEffect(() => { if (!mo) return; let song = true; const tai = async () => { const r = await docChiTiet(d.id); if (song && !('loi' in r)) setCt(r); };
-    void tai(); const t = setInterval(() => void tai(), 15_000); return () => { song = false; clearInterval(t); }; }, [mo, d.id]);
+    void tai(); const t = nhip(() => void tai(), 15_000); return () => { song = false; t(); }; }, [mo, d.id]);
   const b = (k: string) => d.buoc.find((x) => x.buoc === k);
   const ttB = (x?: BuocDong) => (x ? (ket(x) ? 'loi' : x.trang_thai) : 'cho');
   const k1 = b('creative')?.ket_qua as ({ creative_id?: number; tu?: number; den?: number } & NonNullable<BuocDong['ket_qua']>) | null | undefined;
@@ -329,7 +330,7 @@ export function TabDong({ moCamp, phim }: { moCamp?: (id: number) => void; /** k
   useEffect(() => { if (phim) return; const u = new URL(location.href); if (lo) u.searchParams.set('sxlo', lo); else u.searchParams.delete('sxlo'); if (u.href !== location.href) history.replaceState(null, '', u); }, [lo, phim]);
   const tai = useCallback(async () => setDu(await docDong(loc, tim, trang, tl, lo)), [loc, tim, trang, tl, lo]);
   useEffect(() => { if (phim) return; const u = new URL(location.href); if (tim) u.searchParams.set('sxq', tim); else u.searchParams.delete('sxq'); if (u.href !== location.href) history.replaceState(null, '', u); }, [tim, phim]);
-  useEffect(() => { void tai(); const t = setInterval(() => void tai(), 10_000); return () => clearInterval(t); }, [tai]);
+  useEffect(() => { void tai(); const t = nhip(() => void tai(), 10_000); return () => t(); }, [tai]);
   if (!du) return <div style={{ padding: 16, color: 'var(--fg-2)' }}>Đang tải…</div>;
   if ('loi' in du) return <EmptyState icon="⚠" title={du.loi} />;
   const may = du.may[0]; const im = may ? (Date.now() - Date.parse(may.nhip)) / 1000 : null;

@@ -10,6 +10,7 @@ import { docLogs } from '@/lib/actions/etp-logs';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { khungLuc, KHUNG_TEN, trongNhanh, NHANH_TEN } from '@/lib/etp-khung';
 import { CHIEU_TK, demTk, locCamp, tenLuat, type DemTk, gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
+import { nhip } from '@/lib/nhip';   // tự làm mới chỉ khi tab hiện (12/11/2026)
 
 const U_KY = 'lgky', U_GOM = 'lggom', MAC_KY = 24, MAC_GOM = 60;
 const docUrl = (k: string, ds: readonly number[], mac: number) => {
@@ -57,7 +58,7 @@ export function TabLogs({ moCamp, hangLoc, campIds }: { moCamp: (id: number) => 
     catch (e) { setLoi(`không tải được nhật ký: ${String((e as Error)?.message ?? e).slice(0, 160)}`); }
     finally { setDangTai(false); }
   }, []);
-  useEffect(() => { const ids = khoaIds ? khoaIds.split(',').map(Number) : null; void tai(ky, ids); const id = window.setInterval(() => void tai(ky, ids), 60_000); return () => window.clearInterval(id); }, [ky, khoaIds, tai]);
+  useEffect(() => { const ids = khoaIds ? khoaIds.split(',').map(Number) : null; void tai(ky, ids); const id = nhip(() => void tai(ky, ids), 60_000); return () => id(); }, [ky, khoaIds, tai]);
   const loc = useMemo(() => (du ? locCamp(du, campIds) : null), [du, khoaIds]);   // eslint-disable-line react-hooks/exhaustive-deps
   const hang = useMemo(() => (loc ? gomLogs(loc, gom) : []), [loc, gom]);
 

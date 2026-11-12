@@ -10,6 +10,7 @@ import { HomGopY, type HanhDongGopY, type KhungHom } from '@mos2/gop-y/client';
 import { Drawer } from '@/components/ui';
 import { dsGopYCuaToi, guiGopYMos2, docTraoDoiCard, guiTraoDoiCard } from '@/lib/actions/gop-y-mos2';
 import { uploadImage, deleteImage } from '@/lib/actions/uploads';
+import { nhip } from '@/lib/nhip';   // tự làm mới chỉ khi tab hiện (12/11/2026)
 
 const Khung: KhungHom = ({ onClose, tieuDe, dau, children }) => (
   <Drawer onClose={onClose} width={560} padding={18}>
@@ -32,7 +33,7 @@ function useHuy() {
   useEffect(() => { let song = true;
     const hoi = async () => { try { const r = await fetch('/etp/huy', { cache: 'no-store' }); if (!r.ok) return; const j = await r.json() as { dang: unknown };
       if (!song) return; const d = !!j.dang; if (truoc.current && !d) setNhay((n) => n + 1); truoc.current = d; setDang(d); } catch { /* mạng chập: lượt sau hỏi lại */ } };
-    void hoi(); const t = setInterval(hoi, NHIP_HUY); return () => { song = false; clearInterval(t); }; }, []);
+    void hoi(); const t = nhip(hoi, NHIP_HUY); return () => { song = false; t(); }; }, []);
   return { dang, nhay };
 }
 export function GopYMos2({ hom = 'mos2', tren = false }: { hom?: 'mos2' | 'city'; tren?: boolean }) {

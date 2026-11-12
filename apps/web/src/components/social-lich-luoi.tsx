@@ -217,7 +217,7 @@ export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'th
     const nhan = `${x.gio === '—' ? '' : `${x.gio} `}${x.loai === 'da' ? '✓ ' : ''}${nhanNen(x.nen)}`, tip = `${x.mayTen} · ${nhanNen(x.nen)} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
     const st = { display: 'block', padding: '1px 6px', borderRadius: 6, lineHeight: '18px', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 11,
       ...(stBai(x.loai === 'da', mauMay[x.may]!)) };
-    return <button type="button" onClick={() => ct.mo(x)} title={`${tip}\n(bấm xem chi tiết)`} style={{ ...st, width: '100%', cursor: 'pointer', font: 'inherit', fontSize: 11, textAlign: 'left' }}>{nhan}<KenhGon ten={tenKenhGon(luoi, x)} /></button>;
+    return <button type="button" onClick={(e) => { e.stopPropagation(); ct.mo(x); }} title={`${tip}\n(bấm xem chi tiết)`} style={{ ...st, width: '100%', cursor: 'pointer', font: 'inherit', fontSize: 11, textAlign: 'left' }}>{nhan}<KenhGon ten={tenKenhGon(luoi, x)} /></button>;
   };
   return (
     <div style={{ margin: '4px 0 18px' }}>
@@ -235,8 +235,8 @@ export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'th
           {ngay.map((n) => {
             const bs = cua(n), homNay = n === luoi.hom, ngoaiThang = kieu === 'thang' && n.slice(0, 7) !== moc.slice(0, 7), da = bs.filter((x) => x.loai === 'da').length;
             return (
-              <div key={n} onClick={kieu === 'thang' ? () => setChon(chon === n ? null : n) : undefined} title={`${da} đã đăng · ${bs.length - da} sẽ đăng`}
-                style={{ padding: 5, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', minHeight: kieu === 'tuan' ? 180 : 74, cursor: kieu === 'thang' ? 'pointer' : undefined,
+              <div key={n} onClick={() => setChon(n)} title={`${da} đã đăng · ${bs.length - da} sẽ đăng\n(bấm ngày xem danh sách bài)`}
+                style={{ padding: 5, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', minHeight: kieu === 'tuan' ? 180 : 74, cursor: 'pointer',
                   background: chon === n ? 'var(--accent-soft, rgba(37,99,235,.14))' : homNay ? 'var(--accent-soft, rgba(37,99,235,.08))' : undefined, opacity: ngoaiThang ? .45 : 1, display: 'grid', alignContent: 'start', gap: 3 }}>
                 <span style={{ fontWeight: homNay ? 700 : 500, color: n < luoi.hom ? 'var(--fg-3)' : undefined }}>{homNay ? 'Hôm nay' : `${n.slice(8)}/${n.slice(5, 7)}`}{bs.length ? <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}> · {bs.length}</span> : null}</span>
                 {kieu === 'tuan' ? bs.map((x, i) => <Bai key={i} x={x} />)
@@ -246,11 +246,13 @@ export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'th
           })}
         </div>
       </div>
-      {kieu === 'thang' && chon && <div style={{ marginTop: 10, border: '1px solid var(--border)', borderRadius: 10, padding: 10 }}>
-        <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>{THU[thu(chon)]} {chon.slice(8)}/{chon.slice(5, 7)} · {cua(chon).length} bài</div>
-        <div style={{ display: 'grid', gap: 3, gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>{cua(chon).map((x, i) => <Bai key={i} x={x} />)}</div>
+      {/* bấm NGÀY = drawer danh sách bài của ngày; bấm bài trong đó = drawer chi tiết gốc ChiTietBai xếp chồng lên (góp ý #1572) */}
+      {chon && <Drawer onClose={() => setChon(null)} width={520}>
+        <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{THU[thu(chon)]} {chon.slice(8)}/{chon.slice(5, 7)}</div>
+        <div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 10 }}>{cua(chon).length} bài · {cua(chon).filter((x) => x.loai === 'da').length} đã đăng · bấm bài xem chi tiết</div>
+        <div style={{ display: 'grid', gap: 4 }}>{cua(chon).map((x, i) => <Bai key={i} x={x} />)}</div>
         {!cua(chon).length && <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không có bài nào.</span>}
-      </div>}
+      </Drawer>}
       {ct.drawer}
     </div>
   );

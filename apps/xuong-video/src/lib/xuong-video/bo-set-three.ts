@@ -176,6 +176,9 @@ export function catLop(canh: THREE.Scene, may: THREE.Camera): void {
       const ax = s.x <= s.y && s.x <= s.z ? 'x' : s.y <= s.z ? 'y' : 'z';
       if (s[ax] > 12) { t.visible = true; continue; }
       const p = may.position[ax];
+      // SÀN không bao giờ cắt khi máy ở trên nó: tấm ngang sát mặt đất (tâm ≤ 50 cm) — cảnh ngoài trời có nền thấp hơn sàn (nền đường ray dưới mặt sân ga)
+      // kéo tâm phòng xuống dưới sàn, sàn bị coi là TRẦN và ẩn → khung đo "trống 88%" (#3071 #8 #15, 13/11/2026)
+      if (ax === 'y' && (h.min.y + h.max.y) / 2 <= 50 && p > h.max.y) { t.visible = true; continue; }
       t.visible = (h.min[ax] + h.max[ax]) / 2 >= tam[ax] ? p < h.min[ax] : p > h.max[ax];
     }
   }

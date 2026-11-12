@@ -190,7 +190,7 @@ const tenGoi = (ten: string, set: Pick<BoSet, 'du_lieu'>) => {
 };
 
 /** KHỐI LẤP KHUNG: một khối (không phải mặt nền) chiếm ≥ 85% khung — máy dí sát / nằm trong vật, khung xám thành một mảng màu vô nghĩa. */
-export const khoiLapKhung = (c: Pick<Canh, 'khung_xam'>, set: Pick<BoSet, 'du_lieu'> | null) => { const nen = new Set((set?.du_lieu.vat ?? []).filter((v) => v.nen || laKinh(v)).map((v) => v.ten)); return (c.khung_xam?.thay ?? []).filter((t) => t.pt >= 85 && !nen.has(t.ten) && !laKinh(t)); };
+export const khoiLapKhung = (c: Pick<Canh, 'khung_xam'>, set: Pick<BoSet, 'du_lieu'> | null) => { const nen = new Set((set?.du_lieu.vat ?? []).filter((v) => v.nen || laKinh(v)).map((v) => v.ten)); return (c.khung_xam?.thay ?? []).filter((t) => t.pt >= 85 && !nen.has(t.ten) && !laKinh(t) && t.tien !== false); };   // tien = false: nằm SAU chủ thể (toa tàu sau lưng chú ở ô cửa) = hậu cảnh, không phải máy dí sát (13/11/2026)
 
 /** VẬT ĐƯỢC NHẮC MÀ KHÔNG THẤY: chữ tả khung (bố cục / mở / kết / prompt ảnh) nhắc một vật của set mà khung 3D không thấy nó (< 1% khung) — thử
  *  7.3 tập 19: bố cục "ấn tay lên đế cắm sát phích" mà máy đứng sau lưng Tango, đế cắm không có trong khung → keyframe vẽ một cảnh khác. */
@@ -240,13 +240,8 @@ export function loiNoiMay(c: Pick<Canh, 'may_3d'> & Partial<Pick<Canh, 'ky_thuat
   if (!c.may_3d) return out;
   out.push(...matQuayDi(c, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t)));
   if (c.may_3d.dat) out.push(...mayTrongNguoi(c.may_3d, (t) => { const k = (nhanVat as { ten: string; khoi_3d?: KhoiSet | null }[]).find((x) => x.ten === t)?.khoi_3d; return k?.hinh === 'nguoi' ? { co: k.co } : null; }));
-  // NỐI HƯỚNG MÁY: hai shot liền nhau CÙNG cảnh mà hướng nhìn của máy lệch > 100° → hậu cảnh + cỡ đổi hẳn, cắt như sang nơi khác (5.4 → 5.5
-  // tập 19: một máy nhìn về iMac từ góc sau, một máy nhìn rừng cáp từ bên trái). Cố ý (POV, lật trục) thì khai qua_truc.
-  if (!c.may_3d.qua_truc && truoc?.may_3d && c.phan_doan && truoc.phan_doan === c.phan_doan && boSetCuaShot(truoc, nhanVat) === set.id) {
-    const h = (m: May3d) => Math.atan2(m.nhin[1]! - m.dat[1]!, m.nhin[0]! - m.dat[0]!);
-    const lech = Math.abs(((((h(c.may_3d) - h(truoc.may_3d)) * 180) / Math.PI + 540) % 360) - 180);
-    if (lech > 100 && !doiDapCungPhia(truoc.may_3d, c.may_3d, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase()))) out.push(`máy đổi hướng nhìn ${Math.round(lech)}° so với shot trước cùng cảnh — hậu cảnh đổi hẳn, cắt như sang nơi khác: đặt máy gần hướng shot trước, hoặc khai qua_truc nếu cố ý`);
-  }
+  // HƯỚNG MÁY giữa các shot: MỘT luật — nhipDan (hướng máy chủ theo nhóm cận cùng người + hướng mặt, qua loiMachTap, cổng keyframe đọc). Luật trùng
+  // 'lệch > 100° so với shot trước' bỏ 13/11/2026: không biết cận đối đáp, chặn oan shot / reverse shot (#3071 #3 #8).
   if (!c.may_3d.qua_truc && truoc?.may_3d && boSetCuaShot(truoc, nhanVat) === set.id) { const v = vuotTruc(truoc.may_3d, c.may_3d, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())); if (v) out.push(v); }
   return out;
 }
@@ -878,14 +873,14 @@ export function huongVoiMay(m: Pick<May3d, 'dat' | 'nhin'>, v: ViTri, ket = fals
 /** NGƯỜI NÓI PHẢI THẤY MẶT (anh 12/11/2026, phim #3071: "người nói thì phải có shot quay vào mặt người đó, gần hơn, quay riêng" — ngành: shot / reverse shot,
  *  singles; Arijon): mỗi câu thoại (trừ dòng khai ngoai_mat) — người nói phải đứng trong khung (chủ thể của máy) và máy thấy ≥ 3/4 mặt (lệch ≤ 80°) lúc mở
  *  hoặc lúc kết. Đo trên CÙNG máy ảo 3D (may_3d) mà khung xám / Murch / cổng keyframe đọc — không phải nhận định. */
-export function nguoiNoiKhongThayMat(c: { may_3d?: May3d | null } & Partial<Pick<Canh, 'thoai'>>): string[] {
+export function nguoiNoiKhongThayMat(c: { may_3d?: May3d | null } & Partial<Pick<Canh, 'thoai'>>, o: { /** chỉ xét KHUNG MỞ (cổng keyframe: keyframe AI = khung mở) */ khungMo?: boolean; /** cỡ cảnh — toàn / hai người: ngưỡng 100° (nghiêng mặt vẫn đọc ai nói) */ coCanh?: string } = {}): string[] {
   const m = c.may_3d; const noi = [...new Set((c.thoai ?? []).filter((d) => d.loi?.trim() && !d.ngoai_mat).map((d) => d.nhan_vat.trim()))]; if (!noi.length) return [];
   if (!m) return [`NGƯỜI NÓI: shot có thoại (${noi.join(', ')}) mà chưa có máy ảo 3D để đo mặt người nói`];
   const ct = new Set(chuThe(m).map((t) => t.trim().toLowerCase()));
   return noi.flatMap((t) => {
     const v = m.vi_tri.find((x) => x.ten.trim().toLowerCase() === t.toLowerCase() && !x.an);
     if (!v || !ct.has(t.toLowerCase())) return [`NGƯỜI NÓI: ${t} nói mà không có trong khung — cắt sang cận riêng của ${t} lúc nói (shot / reverse shot), hoặc khai ngoai_mat nếu cố ý nói ngoài khung`];
-    const a = huongVoiMay(m, v), b = huongVoiMay(m, v, true); const ng = 80;
+    const a = huongVoiMay(m, v), b = o.khungMo ? null : huongVoiMay(m, v, true); const ng = ['ws', 'ews', 'two'].includes(o.coCanh ?? '') ? 100 : 80;
     return a && a.lech > ng && (!b || b.lech > ng) ? [`NGƯỜI NÓI: máy không thấy mặt ${t} lúc nói (lệch ${a.lech}°) — đặt máy trước mặt ${t} (tầm mắt người đối diện / qua vai)`] : [];
   });
 }

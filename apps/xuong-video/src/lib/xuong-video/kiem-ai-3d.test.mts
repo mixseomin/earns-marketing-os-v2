@@ -77,3 +77,9 @@ console.log('kiem-ai-3d: ok');
   const sh = (dat: number[], ong: number) => ({ hanh_dong: '', prompt_anh: '', may_3d: { ...may([{ ten: 'Hạ', tam: [0, 0, 0], den: [50, 0, 0], huong: 0 }, { ten: 'Thẻ', tam: [0, 0, 120], den: [80, 0, 110], huong: 0 }]), dat, nhin: [0, 0, 100], ong_kinh: ong } }) as never;
   assert.equal(monDoiTayNho(sh([0, -577, 160], 24), the).length, 1); assert.equal(monDoiTayNho(sh([0, -170, 150], 28), the).length, 0);
 }
+// cụm ghép không phải đồ vật (13/11/2026 #3071): 'cửa sổ' ≠ sổ tay, 'đút túi' ≠ túi xách — nhưng 'cầm cuốn sổ' / 'xách túi' vẫn bắt
+{ const { vatDuocNhacAi: v } = await import('./kiem-ai-3d');
+  const ma = (chu: string) => v({ hanh_dong: chu, prompt_anh: '' } as never).map((g) => g.ma);
+  assert.deepEqual(ma('chú thò đầu ra cửa sổ, tay đút túi'), []);
+  assert.ok(ma('chú cầm cuốn sổ').includes('so')); assert.ok(ma('cô xách túi đi').includes('tui'));
+  console.log('kiem-ai-3d (từ ghép): ok'); }

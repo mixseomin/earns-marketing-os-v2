@@ -8,24 +8,24 @@
 import { canTachNhip } from './tach-nhip';
 import { hopVat } from './duong-may';
 import type { BoSet, Canh, May3d, NhanVat } from './kieu';
-import { chuThe, huongVoiMay, nguoiNoiTrongKhung } from './bo-set-3d';
+import { chuThe, huongVoiMay, nguoiNoiTrongKhung, nguoiNoiKhongThayMat } from './bo-set-3d';
 import { vatHien, tenCoMat } from './kieu';
 import { theTrong } from './prompt-khoi';
 
 /** DANH MỤC VẬT: nhóm từ (Việt + Anh) chỉ cùng một loại đồ. KHÔNG dùng từ hai nghĩa (plant = đặt mình, watch = nhìn, key = then chốt, screen-left,
  *  cặp = đôi, tách = chia) — báo nhầm làm luật mất tin. Chữ của shot nhắc một từ → bản 3D phải có khối mà tên / mô tả chứa một từ cùng nhóm.
  *  Chỉ đồ cầm / đặt / treo (không quần áo — "no tie" không phải đồ). Thêm loại đồ mới: thêm một dòng. */
-export const TU_VAT: { ma: string; ten: string; tu: string[] }[] = [
+export const TU_VAT: { ma: string; ten: string; tu: string[]; /** cụm GHÉP chứa từ nhưng không phải vật đó — bỏ trước khi dò (13/11/2026 #3071: 'cửa sổ' bị đọc là sổ tay, 'đút túi' là túi xách) */ tru?: string[] }[] = [
   { ma: 'but', ten: 'bút', tu: ['bút', 'pen', 'pens'] },
   { ma: 'coc', ten: 'ly / cốc', tu: ['ly', 'cốc', 'cup', 'cups', 'mug', 'mugs', 'water glass', 'water glasses'] },
-  { ma: 'so', ten: 'sổ', tu: ['sổ', 'sổ tay', 'notebook', 'notebooks', 'notepad', 'notepads'] },
+  { ma: 'so', ten: 'sổ', tu: ['sổ', 'sổ tay', 'notebook', 'notebooks', 'notepad', 'notepads'], tru: ['cửa sổ', 'khung sổ', 'sổ sách'] },
   { ma: 'dien_thoai', ten: 'điện thoại', tu: ['điện thoại', 'phone', 'phones', 'smartphone'] },
   { ma: 'laptop', ten: 'laptop', tu: ['laptop', 'laptops', 'máy tính xách tay'] },
   { ma: 'giay', ten: 'giấy / tài liệu', tu: ['giấy', 'xấp giấy', 'tờ giấy', 'tài liệu', 'paper', 'papers', 'document', 'documents', 'sheet of paper', 'sheets'] },
   { ma: 'ho_so', ten: 'hồ sơ / bìa', tu: ['hồ sơ', 'bìa hồ sơ', 'folder', 'folders'] },
   { ma: 'thung', ten: 'thùng / hộp', tu: ['thùng', 'hộp', 'box', 'boxes'] },
   { ma: 'the', ten: 'thẻ', tu: ['thẻ', 'badge', 'lanyard', 'id card'] },
-  { ma: 'tui', ten: 'túi / cặp', tu: ['túi', 'cặp da', 'cặp tài liệu', 'bag', 'handbag', 'briefcase'] },
+  { ma: 'tui', ten: 'túi / cặp', tu: ['túi', 'cặp da', 'cặp tài liệu', 'bag', 'handbag', 'briefcase'], tru: ['đút túi', 'túi quần', 'túi áo', 'trong túi', 'vào túi', 'móc túi'] },
   { ma: 'chia_khoa', ten: 'chìa khoá', tu: ['chìa khoá', 'chìa khóa', 'keys', 'car key', 'door key'] },
   { ma: 'hoa', ten: 'hoa', tu: ['hoa', 'bình hoa', 'flower', 'flowers', 'orchid', 'orchids', 'vase'] },
   { ma: 'chai', ten: 'chai', tu: ['chai', 'bottle', 'bottles'] },
@@ -43,7 +43,7 @@ type NvAi = Pick<NhanVat, 'ten' | 'loai' | 'mo_ta'> & { bien_the?: { ten: string
 /** Chữ của shot mà model đọc / người viết dùng để tả khung — nơi một vật "được nhắc". */
 export const chuShot = (c: ShotAi) => [c.hanh_dong, c.hanh_dong_vi, c.prompt_anh, c.dan_dung?.bo_cuc, c.dan_dung?.mo, c.dan_dung?.ket, c.dan_dung?.dien].filter(Boolean).join(' \n ');
 /** Nhóm vật mà chữ của shot nhắc tới. */
-export const vatDuocNhacAi = (c: ShotAi) => { const chu = chuShot(c); return TU_VAT.filter((g) => coTu(g.tu, chu)); };
+export const vatDuocNhacAi = (c: ShotAi) => { const chu = chuShot(c); return TU_VAT.filter((g) => coTu(g.tu, (g.tru ?? []).reduce((s, t) => s.replace(new RegExp(t, 'giu'), ' '), chu))); };
 
 /** Các khối 3D của shot kèm chữ nhận dạng: đồ set (tên + en + anchor), món ở chỗ đứng (tên + mô tả anchor), người (đồ đeo + mô tả biến thể đang mặc). */
 function khoi3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): { ten: string; chu: string }[] {
@@ -85,14 +85,9 @@ export function thieuVat3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu
  *  khớp môi không có miệng để khớp (tập 122 #18: Hạ tuyên bố rút vốn mà máy sau lưng). Ngưỡng như luật mặt shot phản ứng: thấy ít nhất 3/4 mặt. */
 export function matNguoiNoi(c: ShotAi): string[] {
   // Shot CHỦ QUAN (mắt nhân vật A nhìn B đang nói) vẫn phải thấy mặt B — A không ở trong khung, B mới là chủ thể (tập 122 #7: POV Thần, Vivian quay lưng).
-  const m = c.may_3d; if (!m) return [];
-  return nguoiNoiTrongKhung(c).flatMap((t) => {
-    const v = m.vi_tri.find((x) => x.ten === t && !x.an); if (!v) return [];
-    // KHUNG MỞ phải thấy mặt: keyframe AI = khung mở; quay mặt về máy giữa shot không cứu được ảnh đầu (tập 122 #18: mở 115°, kết 45° → keyframe vẽ gáy)
-    const a = huongVoiMay(m, v);
-    const ng = ['ws', 'ews', 'two'].includes(c.ky_thuat?.co_canh ?? '') ? 100 : 80;   // toàn cảnh / hai người đối mặt (50/50): nghiêng mặt vẫn đọc được ai đang nói
-    return a && a.lech > ng ? [`${t} đang nói mà khung mở không thấy mặt (lệch ${a.lech}°) — đặt máy phía trước mặt, hoặc cho người quay về máy từ đầu shot`] : [];
-  });
+  // MỘT LUẬT người nói (13/11/2026): gọi đúng bo-set-3d.ts › nguoiNoiKhongThayMat (cổng 🚦 dùng chung) ở chế độ KHUNG MỞ — keyframe AI = khung mở
+  // (tập 122 #18: mở 115°, kết 45° → keyframe vẽ gáy); dòng khai ngoai_mat được miễn ở cả hai chỗ. Chỉ lấy lỗi mặt — người nói vắng khung là luật cổng.
+  return nguoiNoiKhongThayMat(c, { khungMo: true, coCanh: c.ky_thuat?.co_canh }).filter((x) => /không thấy mặt/.test(x)).map((x) => x.replace(/^NGƯỜI NÓI: /, ''));
 }
 
 /** VẬT ĐEO / CẦM là chủ thể cú cận thì khung phải có cả người đeo (bàn tay, cổ tay…) — chỉ có món đồ thì AI không biết nó nằm trên ai, ở đâu

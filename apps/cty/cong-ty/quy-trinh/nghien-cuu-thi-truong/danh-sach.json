@@ -35,6 +35,23 @@
     "iMac:tc.on.spy.doi-thu"
    ],
    "chi_phi": "0"
+  },
+  {
+   "id": "xu-gop-y-spy",
+   "ten": "Xử hòm góp ý Spy QC (Claude Code trên iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền; chỉ gọi Claude khi hòm góp ý spy có card mở",
+   "mo_ta": "Hiếu lấy card góp ý mở cũ nhất của spy.on.tc (plays mos2 project spy), chỉ nhận khi bản spy-on-tc trên iMac khớp box3, làm đúng /tasks-spy: sửa gốc, kiểm, deploy.sh, trả lời vào luồng card rồi nộp Review.",
+   "ma": "apps/cty/may/spy-gop-y.mjs (khung apps/cty/may/gop-y-ky-su.mjs) · lệnh ~/.claude/commands/tasks-spy.md",
+   "chu_tri": "hieu",
+   "lam": [
+    "may"
+   ],
+   "khi": "khi hòm góp ý spy có card mở",
+   "lich": [
+    "iMac:tc.on.cty.spy-gop-y"
+   ],
+   "chi_phi": "gói Claude thuê bao (không tính theo lượt)"
   }
  ]
 }

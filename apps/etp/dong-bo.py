@@ -183,6 +183,10 @@ def main():
     try:
         import du_doan_cpm as DD; kq["du_doan_cpm"] = DD.chay(q)
     except Exception as e: loi.append(f"du_doan_cpm: {e}")
+    # ── GIÁ ADSENSE + HOÃN TĂNG (apps/etp/gia_adsense.py, anh 12/11/2026): Impression RPM / Fill theo nước → etp.cau_hinh.rpm_ngay; RPM Mỹ < 85% nền 7 ngày → hoan_rpm (cong.kiem chặn tăng / nhân bản)
+    try:
+        import gia_adsense as GA; kq["gia_adsense"] = GA.chay(q)
+    except Exception as e: loi.append(f"gia_adsense: {e}")
     # ── TRẦN CAMP MỚI THEO LÃI + 3 CHỐT CHẶN (apps/etp/tran_len.py, anh 11/11/2026 "tăng theo lãi trước đó … đi từ dưới lên"): TRƯỚC mùa lễ — mua_le lấy số này làm trần gốc
     try:
         import tran_len as TL; kq["tran_len"] = TL.chay(q)

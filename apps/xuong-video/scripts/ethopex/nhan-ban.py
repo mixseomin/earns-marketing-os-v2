@@ -583,7 +583,7 @@ def main(a):
         tn = None if ep else ab_lay(kq, pl, lich, goc, moi, cr=ad0["creative_id"])   # sổ A/B etp.ab — đặt tham số nhánh trước khi tạo (anh 05/11/2026) · bài cũ cũng qua: A/B chỉ đổi Ad Set, ad0 vẫn giữ creative gốc để xếp định dạng
         # CỔNG đọc NGÂN SÁCH THẬT sẽ gửi (payload sau A/B), không phải số giả định — 08/11/2026 cổng nhận "1" trong khi payload mang $3 của nhánh AB01
         ns_gui = thang or float((pl["campaign"].get("source_payload") or {}).get("daily_budget") or 1)
-        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, ns_gui, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, lenh_anh=ep, bac=bool(thang), bai_cu=bool(bai))
+        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, ns_gui, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, lenh_anh=ep, bac=bool(thang), bai_cu=bool(bai), thay="--thay" in sys.argv)
         if ly and anh and "DỪNG KHẨN" not in ly: kq["anh_bo_qua"] = ly; ly = None   # anh nhân bản tay: luật mềm chỉ ghi lại, không chặn
         if ly: raise ChanLuat(ly)
         if not that:

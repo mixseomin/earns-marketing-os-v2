@@ -69,7 +69,7 @@ def tao_moi(kq, camp, d, cu, cid, ly_meta, vi_sao, tu_choi, dat):
         gop("ethopex_cho_dung_lai", {str(cu): {"goc": camp, "luc": vn(), "ten": d["campaign"]["name"].split(": ", 1)[-1], "content_id": cid, "tu_choi": True, "ly_do": ly_meta}})
         return bo_qua(kq, camp, cu, cid, ly_meta, f"{vi_sao} — chưa có creative sạch khác cùng phim, đã xếp hàng dựng góc mới (sua-cta.py); có creative thì máy tạo camp thay")
     moi_cr = ds[0]; ten = re.sub(r"\s*\(thay \d+ bi tu choi\)", "", d["campaign"]["name"].split(": ", 1)[-1])[:150] + f" (thay {camp} bi tu choi)"
-    r = subprocess.run(["python3", NB, str(camp), "--creative", str(moi_cr), "--content", str(cid), "--ten", ten, "--that",
+    r = subprocess.run(["python3", NB, str(camp), "--creative", str(moi_cr), "--content", str(cid), "--ten", ten, "--that", "--thay",
                         "--luat", f"camp #{camp} bị Meta từ chối ({vi_sao}) → camp mới thay thế, creative sạch khác cùng phim #{moi_cr}",
                         "--ai", "anh (chat 12/11/2026: camp bị phốt thì phải tạo cái mới thay thế để duyệt lại) — máy chạy"], capture_output=True, text=True, timeout=600)
     try: j = json.loads((r.stdout.strip().splitlines() or ["{}"])[-1])

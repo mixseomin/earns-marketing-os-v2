@@ -96,7 +96,7 @@ def phim_chan_len():
 # NHÂN BẢN BÀI CŨ (anh 11/11/2026, Dol: "chạy lại post cũ để $2 luôn cũng được" — anh chốt "$2 cho camp dùng bài cũ thắng"): bản nhân bản camp thắng thường
 # dùng LẠI bài đăng của camp gốc (Use existing post, ad chỉ mang effective_object_story_id) được lên tới NS_BAI_CU; mọi camp mới khác vẫn $1.
 NS_BAI_CU = 2
-def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False):
+def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False, thay=False):
     if viec not in TANG: return None
     try:
         ct = content_id if content_id is not None else (_q(f"select content_id from etp.camp where camp_id = {int(camp_id)}") or None) if camp_id else None
@@ -113,6 +113,11 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         ch = {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
         if viec == "bat" and camp_id and str(int(camp_id)) in _q(SQL_IT_NUOC).split(): return LY_IT_NUOC
         if ch.get("dung_khan"): return "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"
+        # HOÃN TĂNG THEO GIÁ ADSENSE (apps/etp/gia_adsense.py, anh 12/11/2026 "Làm phần hoãn"): Impression RPM Mỹ < 85% nền 7 ngày → không tăng ngân sách, không nhân bản (kể cả thang).
+        # Vẫn chạy: giảm / tắt / camp mới $1 từ creative / camp thay camp bị phốt (thay=True) / ★ ROAS / lệnh đích danh của anh (lenh_anh)
+        hr = ch.get("hoan_rpm") or {}
+        if hr.get("bat") and viec in ("tang", "nhan_ban") and not roas and not thay and not lenh_anh and not (camp_id and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") == "1"):
+            return f"HOÃN TĂNG theo giá AdSense — {hr.get('ly_do') or 'RPM Mỹ thấp'} (etp.cau_hinh.hoan_rpm, apps/etp/gia_adsense.py); tự mở khi RPM Mỹ về ≥ 90% nền"
         if viec == "tang" and not roas and (ch.get("mua_le") or {}).get("khoa_tang"):   # mùa lễ Mỹ (apps/etp/mua_le.py, anh 08/11/2026): Meta học lại đúng tuần giá cao là tốn nhất
             return f"mùa lễ Mỹ: khoá tăng bậc ({(ch.get('mua_le') or {}).get('ly_do') or '25–30/11'}) — giảm / tắt / camp mới vẫn chạy (etp.cau_hinh.mua_le, apps/etp/mua_le.py)"
         # CAMP MỚI = $1 (anh 08/11/2026: "Ai cho mày lên camp mới ngân sách hơn $1" · "AB test vẫn phải đi từ $1. Nếu khác thì phải xin phép"): tạo camp / nhân bản thường

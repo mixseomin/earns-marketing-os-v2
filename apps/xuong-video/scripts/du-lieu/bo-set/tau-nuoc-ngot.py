@@ -7,7 +7,7 @@ SD = json.load(open('mau/phim-mau-tau-nuoc-ngot-khong-gian.json'))
 C = SD['chung']['so_do']; M = {k: [v[0] * 100, v[1] * 100] for k, v in C['moc'].items()}
 M['duoi_cua_so'] = [-20, 500]   # nhóc đứng sát mép sân ga (mép x = -60) — tầm tay với chú ở ô cửa để trao tiền (sơ đồ 2D đặt 0,4 m: quá xa tay)
 TAU = [-260, 600, 0]          # tâm đáy khối tàu (cm); vách đông ở x = -103, cửa sổ của chú y 440–560, z 150–240
-CHU = [-95, 500, 40]          # chú NGHIÊNG NGƯỜI ra ô cửa (vách x = -103): đứng sâu trong toa thì vách che mất ở mọi góc chéo (video thô 12/11: #3 #5 #9 #11 không thấy chú)
+CHU = [-128, 500, 40]         # chú đứng TRONG toa sát sau vách (x = -103): vách che thân, đầu + tay qua ô cửa (z 150–240) — đặt -95 thì cả người đứng ngoài thành tàu (video thô có khớp 12/11)
 def huong(tu, den): return round(math.degrees(math.atan2(den[0] - tu[0], -(den[1] - tu[1]))))   # 0 = nhìn −y (về máy chính), 90 = nhìn +x
 def cho(ai, moc):
     if ai == 'Chú': return CHU
@@ -56,7 +56,6 @@ khoi = {
 }
 if os.environ.get('XV_KHOI') == '1':
     khoi.update(KHOI_NGUOI)
-    CHU[0] = -128   # khối LIỀN không nghiêng người được: đứng trong toa, mặt trước sát sau vách (x = -103) — đặt -95 như ma-nơ-canh thì khối đứng lơ lửng NGOÀI tàu
 # SỔ ĐỒ VẬT theo shot (khớp so_vat của sơ đồ cảnh): (món, người cầm lúc mở, người nhận lúc kết | None, hết sau shot này)
 DO = {
     '1': [('Tờ 5 nghìn', 'Chú', None, False)], '2': [('Tờ 5 nghìn', 'Chú', None, False)],
@@ -114,9 +113,8 @@ for ma, v in SD['shot'].items():
     t = {'ten': 'Tàu xanh', 'tam': TAU, 'huong': 0}
     if ma == '12':   # tàu VỪA chuyển bánh, nhích sang trái màn (máy phía đông nhìn sang tây → trái = nam) 35 cm trong 4 giây; chú ĐỨNG YÊN theo toa —
         # dời ≥ 40 cm thì máy gắn dáng đi bộ (video thô 12/11: chú bước đi trong toa)
-        t['den'] = [TAU[0], TAU[1] - 35, 0]
-        for x in vt:
-            if x['ten'] in ('Chú', 'Tiền thừa'): x['den'] = [x['tam'][0], x['tam'][1] - 35, x['tam'][2]]; x.setdefault('huong_den', x.get('huong', 0)) if x['ten'] == 'Chú' else None
+        # chú KHÔNG khai 'den': người có 'den' là máy cho bước đi (video thô có khớp 12/11: chú bước 35 cm trong toa) — tàu chỉ nhích 15 cm, ô cửa 120 cm vẫn ôm chú
+        t['den'] = [TAU[0], TAU[1] - 15, 0]
     vt.append(t)
     may[ma] = {'dat': [cm['dat'][0] * 100, cm['dat'][1] * 100, cm['cao'] * 100], 'nhin': [cm['nhin'][0] * 100, cm['nhin'][1] * 100, CAO_NHIN[sd['may']]],
                'ong_kinh': cm['ong'], 'vi_tri': vt, 'khung': sd.get('khung') or [x['ten'] for x in vt if x['ten'] != 'Tàu xanh']}

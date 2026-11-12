@@ -59,7 +59,11 @@ khoi = {
     'Nhóc': {'hinh': 'nguoi', 'gioi': 'nam', 'tuoi': 9, 'co': [32, 18, 125], 'mau': '#c99a74', 'ao': '#d9473a', 'toc': 'short02', 'mau_toc': '#141110', 'dang': ['dung_vung']},
     'Tàu xanh': {'hinh': 'hop', 'co': [90, 3000, 10], 'mau': GAM, 'mat': False, 'cung': True, 'phan': phan},   # cung: trượt thẳng, không chúi / lắc như người   # khối gốc = thanh dầm giữa toa (mỏng, nằm giữa hai ray): khung gầm rộng che mất bánh ở shot chèn #6
     'Tờ 5 nghìn': {'hinh': 'hop', 'co': [14, 7, 1], 'mau': '#7fbf6a', 'mat': False},
-    'Chai nước ngọt': {'hinh': 'hop', 'co': [7, 7, 24], 'mau': '#4a2a1a', 'mat': False},
+    # chai nước ngọt THỦY TINH có ống hút (anh 12/11/2026: "cầm chai vừa đi vừa uống thì ai có hiểu không") — khối nâu trơn thì model đoán bừa; dáng chai + cổ + ống hút
+    # trắng đọc được ngay trong clip tham chiếu
+    'Chai nước ngọt': {'hinh': 'hop', 'co': [6.5, 6.5, 15], 'mau': '#3a1f12', 'mat': False, 'phan': [
+        {'hinh': 'hop', 'co': [4.2, 4.2, 4], 'mau': '#3a1f12', 'tam': [0, 0, 15]}, {'hinh': 'hop', 'co': [2.4, 2.4, 3.5], 'mau': '#3a1f12', 'tam': [0, 0, 19]},
+        {'hinh': 'hop', 'co': [0.7, 0.7, 9], 'mau': '#f4f4f4', 'tam': [0.4, 0, 21]}, {'hinh': 'hop', 'co': [6.7, 6.7, 3], 'mau': '#c8202a', 'tam': [0, 0, 6]}]},
     'Tiền thừa': {'hinh': 'hop', 'co': [10, 6, 2], 'mau': '#c9b96a', 'mat': False},
 }
 if os.environ.get('XV_KHOI') == '1':
@@ -118,7 +122,7 @@ for ma, v in SD['shot'].items():
         if x['ten'] != 'Nhóc': continue
         if ma == '3': x['nhay'] = 'nhóc chạy từ giữa sân ga tới dưới cửa sổ giữa hai shot'
         if ma == '8': x['nhay'] = 'nhóc mua nước xong, quay lại đi về phía tàu (ngoài khung)'
-        if ma == '8': x['tam'] = [100, 1500, 0]; x['den'] = [M['nhoc_ve'][0], M['nhoc_ve'][1], 0]; x['huong_den'] = x.get('huong', 0)   # vừa đi về vừa uống
+        if ma == '8': x['tam'] = [100, 1250, 0]; x['den'] = [88, 1050, 0]; x['huong_den'] = x.get('huong', 0)   # vừa đi về vừa uống: 2 m trong 1,5 s (đi thong thả ~1,3 m/s; 5,5 m là chạy — câu nhịp tự ghi 'runs' làm lộ lỗi)
         if ma == '9': x['tam'] = [M['nhoc_ve'][0], M['nhoc_ve'][1], 0]; x['den'] = [M['duoi_cua_so'][0], M['duoi_cua_so'][1], 0]; x['huong'] = huong(x['tam'], CHU); x['huong_den'] = huong(x['den'], CHU)   # hướng thân tính từ CHỖ MỚI (soát nối #8→#9: lệch 66°)
         if ma == '11': x['huong'] = huong(x['tam'], CHU); x['nhin_ai'] = 'Chú'   # mở ra vẫn quay về chú như kết #10, rồi mới quay người chạy về tiệm (soát nối #10→#11: lệch 93°)
     # CHÚ NHOÀI RA Ô CỬA khi nói / trao đồ với nhóc: dáng 'chong_ban' (thư viện DONG_TAC) — chống tay lên bậu cửa (mép trên vách, z 150), máy tự cúi cột sống tới khi
@@ -143,8 +147,10 @@ for ma, v in SD['shot'].items():
         nv_['Tờ 5 nghìn']['trao'] = [0.35, 0.6]
     if ma == '4' and 'Nhóc' in nv_:   # quay nốt về tiệm (0–22 %) RỒI mới chạy
         nv_['Nhóc']['nhip'] = [{'u': 0, 'p': D('duoi_cua_so'), 'h': -135, 'nhin': 'tiem'}, {'u': 0.22, 'p': D('duoi_cua_so'), 'h': 180}, {'u': 1, 'p': D('nhoc_xa'), 'h': 180}]
+    if ma == '8' and 'Nhóc' in nv_:   # VỪA ĐI VỪA UỐNG: tay trái đưa chai lên miệng hút hai ngụm — hiện trong clip tham chiếu, câu nhịp ghi đúng giây
+        nv_['Nhóc']['dien'] = ['uong@0.12-0.4', 'uong@0.62-0.88']
     if ma == '9' and 'Nhóc' in nv_:   # đi về sát cửa sổ, cuối shot giơ tay cầm tiền thừa lên (nối sang cận tay #10)
-        nv_['Nhóc']['nhip'] = [{'u': 0, 'p': D('nhoc_ve'), 'h': huong(D('nhoc_ve'), CHU), 'nhin': 'Chú'}, {'u': 0.8, 'p': D('duoi_cua_so'), 'h': -90}]
+        nv_['Nhóc']['nhip'] = [{'u': 0, 'p': [88, 1050, 0], 'h': huong([88, 1050, 0], CHU), 'nhin': 'Chú'}, {'u': 0.8, 'p': D('duoi_cua_so'), 'h': -90}]   # đi tiếp từ đúng chỗ #8 dừng
         nv_['Nhóc']['tay'] = [[0.8, 0], [1, 0.55]]
     if ma == '10':   # CẬN TAY ở bậu cửa: tay nhóc đưa tiền thừa, tay chú đón — thay cận mặt (không thấy được động tác trao)
         may[ma] = may.get(ma, {})
@@ -183,7 +189,10 @@ for ma, v in SD['shot'].items():
     if ma == '4': may[ma]['nham'] = 'Nhóc'
     if ma == '10': may[ma].update({'dat': [30, 420, 148], 'nhin': [-85, 500, 150], 'ong_kinh': 40})   # cận tay ở bậu cửa: ngang tầm hai bàn tay (nhóc giơ tới ~1,4 m, tay chú qua bậu 1,6 m)   # ma-nơ-canh: lùi máy 60 cm — sát quá thì thân đang nhoài choán hết khung (three.js 12/11)   # khối: đầu đứng thẳng cao hơn đầu ma-nơ-canh đang nhoài   # cận mặt chú đang NHOÀI (chong_ban): đầu thấp + ra trước so với lúc đứng thẳng   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
 vat += DUONG
+# MÔ TẢ ĐỒ cho dòng đồ vật của prompt (số lượng + trạng thái — chặn model vẽ hai chai, tiền to, chai rỗng / đầy)
+DO_EN = {'Chai nước ngọt': ['MỘT chai nước ngọt thủy tinh đã uống dở, có ống hút', 'exactly ONE half-drunk glass cola bottle with a straw'],
+         'Tờ 5 nghìn': ['MỘT tờ 5 nghìn gấp đôi', 'exactly ONE folded 5,000-dong note'], 'Tiền thừa': ['vài tờ tiền lẻ nhàu', 'a few crumpled small change notes']}
 MOC = {k: [v[0], v[1], 110] for k, v in M.items()}   # mốc nhìn (cm, tầm mắt người đứng sân ga) cho trang three.js
 MOC['Chú'] = [CHU[0] + 25, CHU[1], CHU[2] + 150]   # chú vắng khung (#4 #8) vẫn là đích nhìn: mặt chú ở ô cửa
-print(json.dumps({'moc': MOC, 'ten_moc': C['ten'], 'ten': 'Sân ga tàu xanh (Tàu nước ngọt)', 'ghi_chu': 'Đơn vị cm, x đông, y bắc, z lên; dựng từ sơ đồ cảnh mau/phim-mau-tau-nuoc-ngot-khong-gian.json bằng scripts/du-lieu/bo-set/tau-nuoc-ngot.py.',
+print(json.dumps({'do_en': DO_EN, 'moc': MOC, 'ten_moc': C['ten'], 'ten': 'Sân ga tàu xanh (Tàu nước ngọt)', 'ghi_chu': 'Đơn vị cm, x đông, y bắc, z lên; dựng từ sơ đồ cảnh mau/phim-mau-tau-nuoc-ngot-khong-gian.json bằng scripts/du-lieu/bo-set/tau-nuoc-ngot.py.',
                   'vat': vat, 'vung': {'Sân ga tàu xanh': [100, 900, 0]}, 'khoi': khoi, 'may': may}, ensure_ascii=False, indent=1))

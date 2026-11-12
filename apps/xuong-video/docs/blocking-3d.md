@@ -52,3 +52,13 @@ Phim có `kinh_thanh.video_tho` chưa duyệt thì `sinh-anh.ts › lyChanKeyfra
 Seedance 2.0 reference-to-video qua fal `bytedance/seedance-2.0/fast/reference-to-video`: ≤ 9 ảnh mẫu, ≤ 3 video (tổng 2–15 giây), ≤ 3 âm thanh, prompt. Giá fal: $0,2419 / giây 720p, có video đầu vào nhân 0,6. Ảnh mẫu giống người thật có thể bị fal từ chối (lỗi 422, đã gặp 23/10/2026).
 
 Blender (`scripts/bo-set/dien-tap.sh`) vẫn dùng cho clip thô / bản đồ độ sâu nhưng **chưa đọc** `nhip` / `trao` / `tay` — clip tham chiếu đi từ three.js.
+
+## 6. Chi tiết nhỏ (uống, cầm, trao) — nói cùng một điều qua BA kênh
+
+Anh hỏi 12/11/2026: "cầm chai vừa đi vừa uống thì ai có hiểu không, làm sao hạn chế hiểu sai". Model đọc ba kênh; kênh nào thiếu thì nó đoán:
+
+1. **Hình chuyển động** (clip tham chiếu): động tác phải CÓ trong 3D — `dien: ['uong@a-b']` đưa chai lên miệng; đồ có dáng nhận ra được (chai: thân + cổ + nhãn + ống hút), không để khối trơn.
+2. **Ảnh mẫu** của đồ vật (anchor có ảnh).
+3. **Prompt**: câu NHỊP theo giây (ai làm gì lúc nào) + dòng ĐỒ (số lượng, tay nào, trạng thái: "exactly ONE half-drunk glass cola bottle with a straw in his LEFT hand") + câu cấm ("No other bottles, notes or props"). Cả hai dòng sinh tự động từ dữ liệu (`do_en` trong tệp dựng cảnh).
+
+Soát tốc độ: câu nhịp tự ghi "đi" / "chạy" theo m/giây — thấy "chạy" ở cảnh lẽ ra đi thong thả là dữ liệu sai quãng đường (bắt được ở #8: 5,5 m trong 1,5 s).

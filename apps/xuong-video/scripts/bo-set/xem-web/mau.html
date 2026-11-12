@@ -187,6 +187,7 @@ function dang(n, o) {
   }
   if (o.chong) { j.lung.rotation.x = 0.26; j.co.rotation.x = -0.18; j.tt.v.rotation.x = -0.55; j.tp.v.rotation.x = -0.55; j.tt.khuyu.rotation.x = -0.35; j.tp.khuyu.rotation.x = -0.35; }   // chống bậu: cúi ~15°, tay vừa chạm bậu (sàn toa + 80 cm)
   if (o.cam) { j.tp.v.rotation.x = Math.min(j.tp.v.rotation.x, -0.25); j.tp.khuyu.rotation.x = -0.9; }
+  if (o.uong > 0) { j.tt.v.rotation.x = -1.15 * o.uong - 0.1; j.tt.khuyu.rotation.x = -1.9 * o.uong; j.tt.v.rotation.z = -0.35 * o.uong; j.dau.rotation.x = -0.18 * o.uong; }   // đưa chai (tay trái) lên miệng
   if (o.vuon > 0) { j.tp.v.rotation.x = -0.25 - 1.05 * o.vuon; j.tp.khuyu.rotation.x = -0.9 * (1 - o.vuon) - 0.15; }
   j.tp.v.rotation.z = 0.08; j.tt.v.rotation.z = -0.08;
 }
@@ -260,7 +261,9 @@ function dungShot(i, u0) {
     if (kk.ng) {
       const di = vv.den ? Math.hypot(vv.den[0] - vv.tam[0], vv.den[1] - vv.tam[1]) * em(uu) : 0;
       const vuon = Math.max(tayLuc(vv, uu), ...trao.map((x) => { const [a, b] = x.khoang; return x.dua === v.ten ? kep((u - (a - 0.2)) / 0.2) * kep((b + 0.15 - u) / 0.15) : x.nhan === v.ten ? kep((u - (a - 0.08)) / 0.15) * kep((b + 0.25 - u) / 0.15) : 0; }), 0);
-      dang(kk.ng, { di, chong: (vv.dien || []).includes('chong_ban'), cam: dangCam.has(v.ten), vuon });
+      // 'uong@a-b' (thư viện diễn như Blender): lên miệng 25 % đầu khoảng, giữ, hạ 25 % cuối
+      const uong = Math.max(0, ...(vv.dien || []).map((d) => /^uong@([\d.]+)-([\d.]+)$/.exec(d)).filter(Boolean).map((r) => { const a = +r[1], b = +r[2], w = (b - a) * 0.25; return kep((uu - a) / w) * kep((b - uu) / w); }));
+      dang(kk.ng, { di, chong: (vv.dien || []).includes('chong_ban'), cam: dangCam.has(v.ten), vuon, uong });
       const tr0 = trao.find((x) => x.dua === v.ten || x.nhan === v.ten); if (tr0 && vuon > 0) vuonCua[v.ten] = { vuon, doi: tr0.dua === v.ten ? tr0.nhan : tr0.dua };
     }
   }
@@ -429,10 +432,20 @@ const PHAN = [], NOI = [];
     for (const v of s.may.vi_tri || []) {   // giơ tay (tay) — nối sang cận tay shot sau
       const k = v.tay || []; for (let q = 1; q < k.length; q++) if (k[q][1] - k[q - 1][1] > 0.3) { nhipVi.push(`${sg(k[q - 1][0])}–${sg(k[q][0])} s: ${tenVi(v.ten)} giơ tay${(s.may.vi_tri.find((x) => x.cam === v.ten && !x.den && x.tay_cam !== 'trai') || {}).ten ? ` cầm ${(s.may.vi_tri.find((x) => x.cam === v.ten && !x.den && x.tay_cam !== 'trai')).ten.toLowerCase()}` : ''} lên`); nhipEn.push(`${sgE(k[q - 1][0])}-${sgE(k[q][0])}s: ${tenEn(v.ten)} raises his hand${(s.may.vi_tri.find((x) => x.cam === v.ten && !x.den && x.tay_cam !== 'trai') || {}).ten === 'Tiền thừa' ? ' holding the change' : ''}`); }
     }
+    for (const v of s.may.vi_tri || []) if (!mocNhip(v) && v.den && khoi[v.ten]?.ng && Math.hypot(v.den[0] - v.tam[0], v.den[1] - v.tam[1]) > 30) {   // đi tam → den cả shot (không khai nhip)
+      const dp = Math.hypot(v.den[0] - v.tam[0], v.den[1] - v.tam[1]), chay = dp / 100 / s.giay > 2.2, toi = gan(v.den);
+      nhipVi.push(`${sg(0)}–${sg(1)} s: ${tenVi(v.ten)} ${chay ? 'chạy' : 'đi'} về phía ${tenVi(toi)}`); nhipEn.push(`${sgE(0)}-${sgE(1)}s: ${tenEn(v.ten)} ${chay ? 'runs' : 'walks'} toward ${tenEn(toi)}`); }
+    for (const v of s.may.vi_tri || []) for (const d of v.dien || []) { const r = /^uong@([\d.]+)-([\d.]+)$/.exec(d); if (!r) continue;
+      nhipVi.push(`${sg(+r[1])}–${sg(+r[2])} s: ${tenVi(v.ten)} đưa chai (tay trái) lên miệng hút một ngụm`); nhipEn.push(`${sgE(+r[1])}-${sgE(+r[2])}s: ${tenEn(v.ten)} lifts the bottle in his LEFT hand to his mouth and takes a sip through the straw`); }
     const thu = (x) => parseFloat(x.replace(',', '.')); const xep = nhipVi.map((x, q) => [x, nhipEn[q]]).sort((a2, b2) => thu(a2[0].split(':')[0].split(' ')[0].split('–')[0].replace(/^.*?(\d)/, '$1')) - thu(b2[0].split('–')[0].replace(/^.*?(\d)/, '$1')));
     nhipVi.splice(0, nhipVi.length, ...xep.map((x) => x[0])); nhipEn.splice(0, nhipEn.length, ...xep.map((x) => x[1]));
+    // DÒNG ĐỒ VẬT: ai cầm gì, tay nào, số lượng + trạng thái — model không phải đoán
+    const doVi = [], doEn = [];
+    for (const v of s.may.vi_tri || []) if (v.cam && DU.do_en?.[v.ten]) { const [dv, de] = DU.do_en[v.ten], tay = v.tay_cam === 'trai'; doVi.push(`${tenVi(v.cam)} cầm ${dv} (tay ${tay ? 'trái' : 'phải'})${v.den ? ', rồi đưa đi trong shot' : ''}`); doEn.push(`${tenEn(v.cam)} holds ${de} in his ${tay ? 'LEFT' : 'RIGHT'} hand${v.den ? ' and hands it over during the shot' : ''}`); }
+    const hoa = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+    const doDong = doVi.length ? `<p><b>Đồ:</b> ${doVi.join(' · ')}.</p><p class="en">${doEn.map(hoa).join('; ')}. No other bottles, notes or props.</p>` : '';
     const nh = nhipVi.length ? `<p><b>Nhịp:</b> ${nhipVi.join(' · ')}</p><p class="en">${nhipEn.join('; ')}.</p>` : '';
-    PHAN.push(`<p>${vi.join(' ') || 'Không có người trong khung.'}</p><p class="en">${en.join(' ')}</p>${nh}`);
+    PHAN.push(`<p>${vi.join(' ') || 'Không có người trong khung.'}</p><p class="en">${en.join(' ')}</p>${nh}${doDong}`);
     if (i + 1 >= DU.shot.length) return;
     const c = st[i + 1][0], loi = [], vtSau = DU.shot[i + 1].may.vi_tri || [];
     for (const [ten, x] of Object.entries(b.ng)) {

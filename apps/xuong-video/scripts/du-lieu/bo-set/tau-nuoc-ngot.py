@@ -11,7 +11,7 @@ M['dau_ga'] = [100, 100]   # đầu sân ga phía nam — chú nhìn quanh (#1) 
 # chuỗi NHÌN → THẤY → PHẢN ỨNG (POV structure: glance → object → reaction) và mỗi lượt nói một CẬN RIÊNG của người nói (single, shot / reverse shot).
 # Shot thêm ngoài sơ đồ mẫu (mau/…-khong-gian.json giữ nguyên cho phim mẫu #2934): mã chữ, xếp thứ tự bằng thu_tu trong DB.
 SD['shot'].update({
-    '2b': {'sd': {'may': 'chu_tu_duoi', 'o': {'Chú': 'cua_so'}, 'nhin': {'Chú': 'giua_ga'}, 'khung': ['Chú']}},          # PHẢN ỨNG: thấy nhóc, gọi
+    '2b': {'sd': {'may': 'chu_thay_nhoc', 'o': {'Chú': 'cua_so'}, 'nhin': {'Chú': 'giua_ga'}, 'khung': ['Chú']}},          # PHẢN ỨNG: thấy nhóc, gọi
     '2c': {'sd': {'may': 'mat_nhoc_xa', 'o': {'Nhóc': 'giua_ga'}, 'nhin': {'Nhóc': 'cua_so'}, 'khung': ['Nhóc']}},     # mặt nhóc nghe gọi → chạy lại
     '3a': {'sd': {'may': 'chu_tu_duoi', 'o': {'Chú': 'cua_so'}, 'nhin': {'Chú': 'duoi_cua_so'}, 'khung': ['Chú']}},       # cận chú: "Chú cho cháu 5k"
     '4a': {'sd': {'may': 'chu_tu_duoi', 'o': {'Chú': 'cua_so'}, 'nhin': {'Chú': 'duoi_cua_so'}, 'khung': ['Chú']}},       # cận chú dặn việc
@@ -22,12 +22,14 @@ SD['shot']['4']['sd']['may'] = 'mat_nhoc'   # nhóc nghe xong dặn: thấy MẶ
 SD['shot']['5']['sd']['may'] = 'chu_nhin_tiem'    # chú gọi với theo nhóc chạy về tiệm: cận vừa thấy mặt, không toàn ga
 SD['shot']['1']['sd']['may'] = 'chu_tu_duoi'      # nhìn quanh: thấy mặt chú đảo mắt từ đầu ga sang giữa ga
 C['may'].update({
-    'mat_nhoc_xa': {'dat': [0.9, 7.0], 'nhin': [1.0, 9], 'cao': 1.0, 'ong': 50},     # trước mặt nhóc ở giữa sân ga, cùng phía trục với mọi máy; lệch đông 0,5 m khỏi đường nhóc chạy về ô cửa
+    'mat_nhoc_xa': {'dat': [0.75, 7.3], 'nhin': [1.0, 9], 'cao': 1.0, 'ong': 50},   # hướng máy ≤ 45° với các cận nhóc khác (#8, #15) — hậu cảnh không nhảy     # trước mặt nhóc ở giữa sân ga, cùng phía trục với mọi máy; lệch đông 0,5 m khỏi đường nhóc chạy về ô cửa
     # QUA VAI CHÚ (reverse shot): máy lơ lửng ngay ngoài ô cửa, cao ngang vai chú, nhìn xuống mặt nhóc đang ngước lên — máy đặt dưới sân ga chỉ thấy gáy nhóc
     'mat_nhoc': {'dat': [-0.92, 4.45], 'nhin': [-0.2, 5], 'cao': 1.7, 'ong': 35},
     # CẬN CHÚ TỪ TẦM MẮT NHÓC: máy thấp trên sân ga cạnh chỗ nhóc, ngước lên mặt chú đang nhoài ra cúi nhìn xuống — máy cao (mat_chu 2,35 m) chỉ thấy đỉnh đầu
     'chu_tu_duoi': {'dat': [0.2, 4.35], 'nhin': [-1.1, 5], 'cao': 1.15, 'ong': 40},
     # chú nhìn theo nhóc về tiệm (phía bắc): máy phía đông-bắc ô cửa, thấy mặt — máy phía nam (can_chu) chỉ thấy gáy
+    # chú THẤY nhóc ở giữa ga (nhìn chéo lên phía đông-bắc): máy trước mặt theo hướng đó, cùng phía trục chú–nhóc — máy thấp cạnh ô cửa chỉ thấy má (lệch 84°)
+    'chu_thay_nhoc': {'dat': [0.3, 6.0], 'nhin': [-1.1, 5], 'cao': 1.9, 'ong': 50},
     'chu_nhin_tiem': {'dat': [0.6, 6.2], 'nhin': [-1.2, 5], 'cao': 1.9, 'ong': 50},
 })   # nhóc đứng sát mép sân ga (mép x = -60) — tầm tay với chú ở ô cửa để trao tiền (sơ đồ 2D đặt 0,4 m: quá xa tay)
 # KÍCH THƯỚC TOA (anh 12/11/2026 "tàu cao có đúng tỷ lệ không" — bản đầu nóc 3,94 m, rộng 3,2 m, sàn 0,4 m, bánh lơ lửng): theo toa khách khổ 1 m thường gặp
@@ -45,7 +47,7 @@ def cho(ai, moc):
 def dich(x):  # đích nhìn: tên người hoặc mốc
     return {'Chú': CHU, 'Nhóc': None}.get(x) or ([*M[x], 0] if x in M else None)
 MAT_CHU = SAN + 160           # tầm mặt chú (đứng trên sàn toa)
-CAO_NHIN = {'mat_nhoc_xa': 110, 'mat_nhoc': 105, 'chu_tu_duoi': MAT_CHU - 25, 'chu_nhin_tiem': MAT_CHU, 'can_chu': MAT_CHU, 'pov_chu': 110, 'toan_ga': 150, 'can_nhoc': 110, 'banh_xe': 10, 'nhoc_ve': 110, 'mat_chu': MAT_CHU, 'theo_cua_so': MAT_CHU}
+CAO_NHIN = {'chu_thay_nhoc': MAT_CHU - 10, 'mat_nhoc_xa': 110, 'mat_nhoc': 105, 'chu_tu_duoi': MAT_CHU - 25, 'chu_nhin_tiem': MAT_CHU, 'can_chu': MAT_CHU, 'pov_chu': 110, 'toan_ga': 150, 'can_nhoc': 110, 'banh_xe': 10, 'nhoc_ve': 110, 'mat_chu': MAT_CHU, 'theo_cua_so': MAT_CHU}
 CAO_MAY = {'can_chu': 210, 'pov_chu': MAT_CHU + 5, 'mat_chu': MAT_CHU - 5, 'theo_cua_so': 200}   # máy nhìn chú nâng theo sàn toa mới (cm)
 # sân ga chừa khe 40 cm trước thành tàu (mép x = -60): máy chèn bánh xe #6 đứng trong khe
 X0, Y0 = TAU[0], TAU[1]

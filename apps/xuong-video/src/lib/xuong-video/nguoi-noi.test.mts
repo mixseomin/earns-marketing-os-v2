@@ -21,4 +21,7 @@ assert.equal(thoaiToanCanh({ thoai: noi() as never, ky_thuat: { co_canh: 'cu' } 
 const s = (id: number, ten: string, dx: number, dy: number) => ({ id, thu_tu: id, phan_doan: 'c', ky_thuat: { vai: 'hanh_dong' }, may_3d: { dat: [0, 0, 150], nhin: [dx, dy, 150], khung: [ten], vi_tri: [] } as never });
 assert.deepEqual(nhipDan([s(1, 'A', 100, 0), s(2, 'B', -100, 10), s(3, 'A', 100, 10), s(4, 'B', -100, 0)]), {});
 assert.equal(Object.keys(nhipDan([s(1, 'A', 100, 0), s(2, 'B', -100, 10), s(3, 'A', 0, 100), s(4, 'B', -100, 0), s(5, 'A', 100, 5)])).join(), '3');
+// cùng chủ thể nhưng QUAY MẶT sang hướng khác (> 45°) = trục mới: máy theo mặt được phép đổi hậu cảnh
+const s2 = (id: number, ten: string, dx: number, dy: number, huong: number) => ({ ...s(id, ten, dx, dy), may_3d: { dat: [0, 0, 150], nhin: [dx, dy, 150], khung: [ten], vi_tri: [{ ten, tam: [0, 0, 0], huong }] } as never });
+assert.deepEqual(nhipDan([s2(1, 'A', 100, 0, 90), s2(2, 'A', 100, 10, 90), s2(3, 'A', 0, 100, 180), s2(4, 'A', 5, 100, 180)]), {});
 console.log('nguoi-noi.test: ok');

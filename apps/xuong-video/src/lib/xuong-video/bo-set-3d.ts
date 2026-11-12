@@ -955,11 +955,19 @@ export function nhipDan<T extends { id: number; thu_tu: number; phan_doan?: stri
     const chu = chuCua(thuong);
     // CẬN ĐỐI ĐÁP (shot / reverse shot — anh 12/11/2026 phim #3071): cận riêng của từng người có hậu cảnh RIÊNG (ngược góc nhau); hướng máy chủ tính
     // theo nhóm shot cùng một chủ thể đơn — hậu cảnh của cận A giữ nhau, cận B giữ nhau. Nhóm < 2 shot (không có gì để giữ) thì so hướng chủ cả cảnh.
-    const don = (c: T) => { const ct = chuThe(c.may_3d!); return ct.length === 1 ? ct[0]! : ''; };
-    const nhom = new Map<string, T[]>(); for (const c of thuong) { const k = don(c); if (k) (nhom.get(k) ?? nhom.set(k, []).get(k)!).push(c); }
+    // nhóm = chủ thể đơn + HƯỚNG MẶT của người đó (gom trong ±45°): quay sang nhìn chỗ khác là trục mới — chú nhìn xuống nhóc ≠ chú nhìn theo về tiệm (#3071)
+    const huongChu = (c: T) => { const ct = chuThe(c.may_3d!); const v = ct.length === 1 ? c.may_3d!.vi_tri.find((x) => x.ten === ct[0]) : undefined; return v?.huong; };
+    const nhom = new Map<string, T[]>(); const tamNhom: { ten: string; h: number; k: string }[] = [];
+    const donMap = new Map<number, string>();
+    for (const c of thuong) {
+      const ct = chuThe(c.may_3d!); if (ct.length !== 1) continue; const h = huongChu(c) ?? 0;
+      let g = tamNhom.find((x) => x.ten === ct[0] && gocLech(x.h, h) <= NHIP_DAN); if (!g) { g = { ten: ct[0]!, h, k: `${ct[0]}·${tamNhom.length}` }; tamNhom.push(g); }
+      donMap.set(c.id, g.k); (nhom.get(g.k) ?? nhom.set(g.k, []).get(g.k)!).push(c);
+    }
+    const don = (c: T) => donMap.get(c.id) ?? '';
     for (const c of thuong) {
       const g = don(c) ? nhom.get(don(c))! : null; const ref = g && g.length >= 2 ? chuCua(g) : chu; const l = gocLech(hg(c.may_3d!), ref);
-      if (l > NHIP_DAN) (out[c.id] ??= []).push(`máy lệch ${Math.round(l)}° khỏi hướng máy chủ ${g && g.length >= 2 ? `của các cận ${don(c)}` : 'của cảnh'} (${Math.round(ref)}°) — hậu cảnh đổi, mất dẫn dắt: đưa máy về trong ±${NHIP_DAN}°, hoặc khai qua_truc nếu là POV / chèn`);
+      if (l > NHIP_DAN) (out[c.id] ??= []).push(`máy lệch ${Math.round(l)}° khỏi hướng máy chủ ${g && g.length >= 2 ? `của các cận ${don(c).split('·')[0]} cùng hướng mặt` : 'của cảnh'} (${Math.round(ref)}°) — hậu cảnh đổi, mất dẫn dắt: đưa máy về trong ±${NHIP_DAN}°, hoặc khai qua_truc nếu là POV / chèn`);
     }
     for (let i = 1; i < cua.length; i++) if (cua[i]!.may_3d!.qua_truc && cua[i - 1]!.may_3d!.qua_truc) (out[cua[i]!.id] ??= []).push(`hai shot qua trục liền nhau (#${cua[i - 1]!.thu_tu} → #${cua[i]!.thu_tu}) — người xem mất hướng: chen một shot ở hướng máy chủ, hoặc đưa shot này về hướng chủ`);
   }

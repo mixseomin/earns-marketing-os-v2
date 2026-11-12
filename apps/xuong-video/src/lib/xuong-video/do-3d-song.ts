@@ -72,6 +72,11 @@ export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten:
     }
     const pd = diem.map(chieu); const pg = goc.map(chieu); const pc = doc.map(chieu);
     const laN = laNguoi(v.ten);
+    // NGƯỜI THẤY ĐẦU = THẤY NGƯỜI (12/11/2026, phim #3071): chú đứng trong toa, thân sau vách, đầu qua ô cửa — 9 điểm quanh tâm thân đều trúng vách nên
+    // trước đây mọi shot báo "Chú bị Tàu xanh che" (cổng tổng thể chặn oan cả 3 cảnh). Đầu (82 % / 92 % chiều cao) lọt khung + tia tới không vướng → thấy.
+    const dauHo = laN && doc.slice(4).some((p, i) => { const q = pc[4 + i]!; if (!(q.truoc && q.x >= 0 && q.x <= 1 && q.y >= 0 && q.y <= 1)) return false;
+      const d = p.clone().sub(cam.position); const t = tenCua(ban(d, d.length() - 0.05).tr?.object ?? null)?.userData.ten as string | undefined; return !t || t === v.ten; });
+    if (dauHo) for (const k of Object.keys(che)) delete che[k];
     // người: trong khung = một bộ phận lọt khung (đầu / ngực / tay…); món: tâm trong khung
     const trong = laN ? [...pd, ...pc].some((q) => q.truoc && q.x >= 0 && q.x <= 1 && q.y >= 0 && q.y <= 1) : (() => { const q = pd[0]!; return q.truoc && q.x >= 0 && q.x <= 1 && q.y >= 0 && q.y <= 1; })();
     const ys = pd.filter((q) => q.truoc).map((q) => Math.min(1, Math.max(0, q.y)));   // cao = 9 điểm (tâm + 70% về góc) như Blender, kẹp mép khung

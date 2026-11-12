@@ -174,7 +174,8 @@ async function quaChuoi(p0: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu, sig?: Ab
   const SO = '/var/tmp/claude-duong.json', fs = await import('node:fs'); let so: Record<string, { hong?: number; tot?: number }> = {}; try { so = JSON.parse(fs.readFileSync(SO, 'utf8')); } catch { /* chưa có */ }
   const ghiSo = (k: string, v: { hong?: number; tot?: number }) => { try { const cu = (() => { try { return JSON.parse(fs.readFileSync(SO, 'utf8')); } catch { return {}; } })(); cu[k] = v; fs.writeFileSync(SO, JSON.stringify(cu)); } catch { /* phụ */ } };
   const khoaD = (d: DuongChu) => `${d.ten}${d.nhan ? `#${d.nhan}` : ''} ${d.model}`, bay = Date.now();
-  const hang = (d: DuongChu) => { const x = so[khoaD(d)] ?? {}; return x.hong && bay - x.hong < 20 * 60_000 && !(x.tot && x.tot > x.hong) ? 2 : x.tot && bay - x.tot < 60 * 60_000 ? 0 : 1; };
+  // donk = gói TRẢ TRƯỚC (dùng cho hết): luôn hạng ĐẦU trừ khi vừa hỏng — khoá mới chưa có 'tot' trong sổ không bị xếp sau đường chợ vừa chạy tốt (12/11/2026: thử khoá gói 197k, lượt rơi thẳng sang ckey)
+  const hang = (d: DuongChu) => { const x = so[khoaD(d)] ?? {}; return x.hong && bay - x.hong < 20 * 60_000 && !(x.tot && x.tot > x.hong) ? 2 : d.ten === 'donk' || (x.tot && bay - x.tot < 60 * 60_000) ? 0 : 1; };
   const ds = (await duongChu(p.model)).map((d, i) => ({ d, i })).sort((a, b) => hang(a.d) - hang(b.d) || a.i - b.i).map((x) => x.d); const loi: string[] = [];
   if (!ds.length) throw new Error('Thiếu khoá Claude trên máy chủ (CKEY_API_KEY / SHOPAIKEY_API_KEY / ANTHROPIC_API_KEY)');
   const f = p.output_config?.format;

@@ -1,4 +1,5 @@
 {
+ "ngoai_troi": true,
  "do_en": {
   "Chai nước ngọt": [
    "MỘT chai nước ngọt thủy tinh đã uống dở, có ống hút",
@@ -232,6 +233,23 @@
    ],
    "mau": "#3a3a3a",
    "en": "platform lamp post"
+  },
+  {
+   "ten": "Bánh tàu",
+   "hinh": "hop",
+   "tam": [
+    -190,
+    620,
+    -30
+   ],
+   "co": [
+    3,
+    84,
+    84
+   ],
+   "mau": "#6a6a6a",
+   "en": "train wheel",
+   "chat": "son"
   },
   {
    "ten": "Cột đèn 2",
@@ -1562,7 +1580,7 @@
     }
    ],
    "khung": [
-    "Tàu xanh"
+    "Bánh tàu"
    ],
    "khoa_nhin": true
   },
@@ -1853,7 +1871,7 @@
     }
    ],
    "khung": [
-    "Chú"
+    "Tiền thừa"
    ],
    "khoa_nhin": true
   },
@@ -1952,13 +1970,12 @@
     }
    ],
    "khung": [
-    "Chú",
     "Nhóc",
-    "Chai nước ngọt",
-    "Tiền thừa"
+    "Chú"
    ],
    "khoa_nhin": true,
    "qua_truc": true,
+   "nham": "Nhóc",
    "them": [
     "Đường nhóc #11",
     "Mũi tên nhóc #11"
@@ -2364,8 +2381,8 @@
   },
   "13": {
    "dat": [
-    -45,
-    600,
+    -20,
+    610,
     228
    ],
    "nhin": [

@@ -440,7 +440,7 @@ export const tenCoMat = (vat: Pick<VatSet, 'ten' | 'tuy_chon' | 'thay_cho' | 'an
   const thay = vat.filter((v) => v.tuy_chon && v.thay_cho && t.has(v.ten)).flatMap((v) => (Array.isArray(v.thay_cho) ? v.thay_cho : [v.thay_cho!]));
   return new Set([...vatHien(vat, them).flatMap((v) => [v.ten, v.anchor ?? '']), ...thay].map((x) => x.trim().toLowerCase()).filter(Boolean));
 };
-export type BoSet = { id: number; project: string; phim_id: number | null; ten: string; mo_ta: string; du_lieu: { vat: VatSet[]; ghi_chu?: string }; mat_bang_url: string | null; trang_thai: string };
+export type BoSet = { id: number; project: string; phim_id: number | null; ten: string; mo_ta: string; du_lieu: { vat: VatSet[]; ghi_chu?: string; /** bộ set NGOÀI TRỜI: khung không trúng vật nào là bầu trời (vungTrong không chặn) */ ngoai_troi?: boolean }; mat_bang_url: string | null; trang_thai: string };
 /** Máy ảo + chỗ đứng nhân vật của một shot trong bộ set (cm): đầu vào dựng khung xám. nam = nằm sấp. */
 export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** KHOÁ HƯỚNG NHÌN: dat / nhin khai là đúng ý, Blender KHÔNG ngắm lại vào chủ thể (dung-set.py › ngam_lai) — shot chèn một phần của khối lớn (bánh tàu) */ khoa_nhin?: boolean; /** máy do datMayTuDong tính (phía ° quanh chủ thể) — bộ giải trong Blender được phép xoay / nâng / lùi máy cho chủ thể thấy rõ */ tu_dong?: { phia?: number; /** mã đầu vào lúc tính (chỗ đứng + phía + khung + cỡ/góc/ống) — nạp lại mà khớp thì GIỮ máy bộ giải đã tìm */ vao?: string };
   /** CỐ Ý vượt trục (POV chủ quan, cú lật trục có chủ đích): không kiểm trục shot này; shot sau so với shot thường gần nhất */ qua_truc?: boolean;

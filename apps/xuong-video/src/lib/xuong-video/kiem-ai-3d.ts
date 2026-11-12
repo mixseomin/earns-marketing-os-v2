@@ -209,13 +209,15 @@ export function datLat(c: ShotAi): string[] {
 /** VÙNG TRỐNG: khung 3D có > 8% không thuộc vật nào (máy trên trần, nhìn ra ngoài bộ set) — chỗ trống thì AI TỰ VẼ một thứ (tập 122 #14: máy cao 485 cm
  *  trên trần 300, nền lộ ảnh HDRI → keyframe mọc thêm một căn phòng có bàn, laptop). Đọc tổng % khung của khung_xam.thay. */
 export const TRONG_TOI_DA = 8;
-export function vungTrong(c: ShotAi): string[] {
+export function vungTrong(c: ShotAi, set?: Pick<BoSet, 'du_lieu'> | null): string[] {
   const t = c.khung_xam?.thay; if (!t?.length) return [];
+  // NGOÀI TRỜI (set khai ngoai_troi): phần không trúng vật là bầu trời — đúng cảnh, không phải máy lọt ra ngoài bộ set (#3071 sân ga, 13/11/2026)
+  if (set?.du_lieu.ngoai_troi) return [];
   const trong = 100 - t.reduce((a, x) => a + x.pt, 0);
   return trong > TRONG_TOI_DA ? [`khung 3D trống ${Math.round(trong)}% (không vật nào — máy trên trần / nhìn ra ngoài bộ set) — AI sẽ tự vẽ thứ không có: hạ máy dưới trần, đổi hướng, hoặc dựng thêm phần set`] : [];
 }
 
 /** Mọi luật của bộ kiểm AI cho một shot (rỗng = qua). Phần "thấy trong khung" chỉ chạy khi đã có khung 3D (khung_xam.thay). */
 export function loiAi3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): string[] {
-  return [...canTachNhip({ co_canh: c.ky_thuat?.co_canh, vi_tri: c.may_3d?.vi_tri ?? [], chuyen_toi: (c.may_3d as { chuyen_toi?: string } | null | undefined)?.chuyen_toi }, (t) => nhanVat.some((v) => v.ten === t && v.loai === 'nhan_vat')).map((x) => `cần tách shot: ${x}`), ...thieuVat3d(c, nhanVat, set), ...xuyenVat(c, set), ...monDoiTayNho(c, nhanVat), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c), ...datLat(c), ...theSai(c, nhanVat, set), ...boCucNguoiNgoai(c, nhanVat)];
+  return [...canTachNhip({ co_canh: c.ky_thuat?.co_canh, vi_tri: c.may_3d?.vi_tri ?? [], chuyen_toi: (c.may_3d as { chuyen_toi?: string } | null | undefined)?.chuyen_toi }, (t) => nhanVat.some((v) => v.ten === t && v.loai === 'nhan_vat')).map((x) => `cần tách shot: ${x}`), ...thieuVat3d(c, nhanVat, set), ...xuyenVat(c, set), ...monDoiTayNho(c, nhanVat), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c, set), ...datLat(c), ...theSai(c, nhanVat, set), ...boCucNguoiNgoai(c, nhanVat)];
 }

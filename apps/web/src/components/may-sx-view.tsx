@@ -37,6 +37,12 @@ const tuLuc = (iso?: string | null) => { const t = iso ? Date.parse(iso) : NaN; 
   const p = Math.max(0, Math.round((Date.now() - t) / 60000));
   return p < 60 ? `${p} phút` : p < 1440 ? `${Math.round(p / 60)} giờ` : `${Math.round(p / 1440)} ngày`; };
 
+/** Ô ghi chú / lỗi (góp ý #1564 "khó đọc quá"): trước là một dòng chữ đỏ bị cắt ngang mép bảng — nay xuống dòng (cả đường dẫn dài
+ *  không dấu cách nhờ overflowWrap anywhere), chữ thường cỡ 12, tối đa 3 dòng; đủ chữ ở thẻ rê chuột (cellTitle) và trong ngăn chi tiết. */
+function GhiO({ chu, loi }: { chu: string; loi: boolean }) {
+  return <div style={{ whiteSpace: 'normal', overflowWrap: 'anywhere', fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: 12, lineHeight: 1.45, minWidth: 260, maxWidth: 420,
+    color: loi ? 'var(--bad, #dc2626)' : 'var(--fg-2)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{chu}</div>;
+}
 const NG = (k: NguonSx) => NGUON.find((x) => x.k === k)!;
 const COT_VIEC: DataColumn<ViecSx>[] = [
   { key: 'nguon', header: 'Nguồn', align: 'left', width: 150, sortValue: (v) => v.nguon, cell: (v) => <span style={{ color: NG(v.nguon).mau, fontWeight: 600, whiteSpace: 'nowrap' }}>● {NG(v.nguon).ten}</span> },
@@ -47,7 +53,7 @@ const COT_VIEC: DataColumn<ViecSx>[] = [
     cell: (v) => <div style={{ width: v.etp ? 372 : undefined }}>{v.etp ? <ChuoiBuoc buoc={v.etp.buoc} loai={v.etp.loai} />
       : v.nhip?.length ? <ChuoiNhip nhip={v.nhip} rongO={v.nhip.length > 6 ? 44 : 60} /> : <span style={{ color: 'var(--fg-2)' }}>{v.buoc}</span>}</div> },
   { key: 'luc', header: 'Cập nhật', title: 'lần cập nhật gần nhất của việc này ở nguồn gốc', width: 110, sortValue: (v) => (v.luc ? Date.parse(v.luc) || 0 : 0), cell: (v) => <span style={{ whiteSpace: 'nowrap', color: 'var(--fg-2)' }}>{tuLuc(v.luc) === '—' ? '—' : `${tuLuc(v.luc)} trước`}</span> },
-  { key: 'ghi', header: 'Ghi chú / lỗi', align: 'left', sortValue: (v) => (v.loi ? 0 : 1), cell: (v) => <span style={{ color: v.loi ? 'var(--bad, #dc2626)' : 'var(--fg-2)' }}>{v.loi ? `✗ ${v.loi}` : v.ghi ?? ''}</span> },
+  { key: 'ghi', header: 'Ghi chú / lỗi', align: 'left', width: 420, sortValue: (v) => (v.loi ? 0 : 1), cellTitle: (v) => v.loi ?? v.ghi ?? '', cell: (v) => <GhiO chu={v.loi ? `✗ ${v.loi}` : v.ghi ?? ''} loi={!!v.loi} /> },
 ];
 const COT_LUOT: DataColumn<Luot>[] = [
   { key: 'luc', header: 'Lúc', width: 110, sortValue: (x) => Date.parse(x.luc), cell: (x) => <span style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{gioVn(x.luc)}</span> },
@@ -56,7 +62,7 @@ const COT_LUOT: DataColumn<Luot>[] = [
   { key: 'kieu', header: 'Dạng', align: 'left', width: 200, sortValue: (x) => x.kieu_ten ?? '', cell: (x) => x.kieu_ten ?? '—' },
   { key: 'ngay', header: 'Ngày đăng', width: 90, sortValue: (x) => x.ngay_dang ?? '', cell: (x) => ngayVn(x.ngay_dang) },
   { key: 'vnd', header: 'Tiền', width: 80, sortValue: (x) => x.vnd, total: (rs) => `${rs.reduce((t, x) => t + (x.vnd ?? 0), 0).toLocaleString('vi-VN')}₫`, cell: (x) => `${(x.vnd ?? 0).toLocaleString('vi-VN')}₫` },
-  { key: 'ghi', header: 'Ghi chú / lỗi', align: 'left', cell: (x) => <span style={{ color: x.trang_thai === 'hong' ? 'var(--bad, #dc2626)' : 'var(--fg-2)' }}>{x.trang_thai === 'hong' ? x.loi : x.ghi}<div style={{ color: 'var(--fg-3)', fontSize: 11 }}>{x.slug}</div></span> },
+  { key: 'ghi', header: 'Ghi chú / lỗi', align: 'left', width: 420, cellTitle: (x) => (x.trang_thai === 'hong' ? x.loi : x.ghi) ?? '', cell: (x) => <><GhiO chu={(x.trang_thai === 'hong' ? x.loi : x.ghi) ?? ''} loi={x.trang_thai === 'hong'} /><div style={{ color: 'var(--fg-3)', fontSize: 11, overflowWrap: 'anywhere' }}>{x.slug}</div></> },
   { key: 'tep', header: 'Tệp', width: 60, cell: (x) => (x.tep ? <span style={{ color: '#60a5fa' }}>xem</span> : '—') },   // tệp xem trong ngăn bài (bấm cả dòng), không mở tab mới
 ];
 

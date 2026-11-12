@@ -39,6 +39,8 @@ export interface SocialLive { /** true = trang chưa kèm lưới lịch đăng 
 export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: string; nen: string; title: string; url: string | null; loai: 'da' | 'du_kien';
   /** slug bài (xv_may_video) — tab Máy SX tìm đúng ô lịch của bài để mở CHÍNH ngăn bài này (anh 12/11/2026: cấm bịa ngăn mới khi đã có) */
   slug?: string | null;
+  /** lượt máy đã bấm đăng nhưng CHƯA xác nhận bài lên (sổ đăng chuaXacNhan, không url) = lý do — lịch hiện ⚠ chứ không ✓ (góp ý #1580) */
+  chuaXn?: string | null;
   /** video của bài (xv_may_video.video_url) — Reel do Máy SX dựng chỉ có video, không có ảnh khung: ngăn bài coi là ĐÃ DỰNG và phát video (12/11/2026) */
   video?: string | null;
   /** BẢNG NỘI DUNG (anh 25/10/2026 "show bảng đó vào đây · data thật"): ảnh thật của bài (khung video / ảnh tĩnh / ảnh nền studio), kênh (xv_may.dang[].tk),
@@ -430,7 +432,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
   const d = getDb(); if (!d) return rong;
   try {
     const [da, dk] = await Promise.all([
-      d.execute(sql`SELECT m.ma, v.slug, m.ten AS may_ten, e.key AS nen, e.value->>'ngay' AS ngay, e.value->>'luc' AS luc, e.value->>'url' AS url, coalesce(v.dang->>'title', v.chu_de) AS title,
+      d.execute(sql`SELECT m.ma, v.slug, m.ten AS may_ten, e.key AS nen, e.value->>'ngay' AS ngay, e.value->>'luc' AS luc, e.value->>'url' AS url, CASE WHEN e.value->>'chuaXacNhan' = 'true' AND coalesce(e.value->>'url', '') = '' THEN coalesce(e.value->>'loi', 'máy đã bấm đăng nhưng chưa thấy bài') END AS chua_xn, coalesce(v.dang->>'title', v.chu_de) AS title,
           coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh, v.video_url AS video, e.value->>'link' AS link, v.dang->>'nhom' AS nhom, v.dang->>'link' AS dich, v.dang->'goc' AS goc,
           v.dang->>'phim' AS phim, v.dang->>'y' AS huong, v.dang->>'description' AS mo_ta
         FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id CROSS JOIN LATERAL jsonb_each(v.da_dang) e
@@ -487,7 +489,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     }
     // giờ VN của lượt đăng thật: luc (ISO, UTC) + 7 giờ; sổ cũ không có luc thì không có giờ → xếp vào '—'
     const gioVn = (iso: string | null) => (iso ? new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(11, 16) : '—');
-    const o: StLuoiO[] = da.map((x) => ({ ngay: String(x.ngay), gio: gioVn(x.luc ?? null), may: String(x.ma), mayTen: String(x.may_ten), nen: String(x.nen), title: String(x.title ?? ''), url: x.url ?? null, loai: 'da' as const, slug: x.slug ?? null, video: x.video ?? null,
+    const o: StLuoiO[] = da.map((x) => ({ ngay: String(x.ngay), gio: gioVn(x.luc ?? null), may: String(x.ma), mayTen: String(x.may_ten), nen: String(x.nen), title: String(x.title ?? ''), url: x.url || null, loai: 'da' as const, chuaXn: x.chua_xn ?? null, slug: x.slug ?? null, video: x.video ?? null,
       anh: x.anh ?? null, tk: tkCua.get(`${x.ma}|${x.nen}`) ?? null, nhom: x.nhom ?? null, goc: x.goc ?? null, link: x.link == null ? null : x.link === 'true',
       thich: x.url ? soFb.get(maBai(x.url))?.thich ?? null : null, binhLuan: x.url ? soFb.get(maBai(x.url))?.binhLuan ?? null : null,
       xem: x.url ? xemCua.get(maBai(x.url)) ?? null : null,
@@ -503,7 +505,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     for (const x of hen) {
       const vn = new Date(Date.parse(x.luc) + 7 * 3600e3).toISOString(), qua = Date.parse(x.luc) <= Date.now(), nen = `${x.video ? 'facebook' : x.link ? 'fb_link' : 'fb_anh'}:${x.acct}`;
       // đã đăng: link thật lấy từ số đo theo mã bài (link lúc hẹn của bài ảnh là photo.php tạm); Reel giữ /reel/<id>/
-      const so = x.post_id ? soFb.get(x.post_id) : undefined, url = qua ? so?.url ?? x.url : null;
+      const so = x.post_id ? soFb.get(x.post_id) : undefined, url = qua ? so?.url || x.url || (x.post_id ? `https://www.facebook.com/${x.post_id}` : null) : null;   // góp ý #1580: thiếu số đo vẫn có link theo mã bài
       o.push({ ngay: vn.slice(0, 10), gio: vn.slice(11, 16), may: x.ke_hoach, mayTen: 'Page hoài cổ · kế hoạch tuần', nen, title: x.chu.split('\n')[0] ?? '', url, loai: qua ? 'da' : 'du_kien',
         anh: x.anh?.[0] || null, tk: tenPage.get(String(x.acct)) ?? x.ten, nhom: x.nhom, goc: x.goc, link: x.link != null, xem: qua ? so?.xem ?? (url ? xemCua.get(maBai(url)) ?? null : null) : null,
         thich: qua ? (so ?? (url ? soFb.get(maBai(url)) : undefined))?.thich ?? null : null, binhLuan: qua ? (so ?? (url ? soFb.get(maBai(url)) : undefined))?.binhLuan ?? null : null });

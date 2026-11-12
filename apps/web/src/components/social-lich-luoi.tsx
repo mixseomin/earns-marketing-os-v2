@@ -69,7 +69,7 @@ export function ChiTietBai({ x, onClose }: { x: StLuoiO; onClose: () => void }) 
     ['Kênh', x.tk ?? x.mayTen],
     ['Nơi đăng', nhanNen(x.nen)],
     ['Khi nào', `${x.ngay.slice(8)}/${x.ngay.slice(5, 7)}${x.gio === '—' ? '' : ` · ${x.gio}`} (GMT+7)`],
-    ['Trạng thái', x.loai === 'da' ? '✓ đã đăng' : x.anh || x.video ? 'máy sẽ đăng — đã dựng' : 'máy sẽ đăng — CHƯA dựng'],   // Reel Máy SX chỉ có video, không ảnh khung (12/11/2026)
+    ['Trạng thái', x.loai === 'da' ? (x.chuaXn ? `⚠ máy đã bấm đăng nhưng chưa thấy bài lên — ${x.chuaXn}` : x.url ? '✓ đã đăng' : '✓ đã đăng (sổ không ghi link bài)') : x.anh || x.video ? 'máy sẽ đăng — đã dựng' : 'máy sẽ đăng — CHƯA dựng'],   // Reel Máy SX chỉ có video, không ảnh khung (12/11/2026)
     ...(x.nhom ? [['Kiểu nội dung', x.nhom] as [string, React.ReactNode]] : []),
     ...(x.link != null ? [['Link trong bài', x.link ? 'có' : 'bài thường (không link)'] as [string, React.ReactNode]] : []),
   ];
@@ -168,7 +168,7 @@ export function LichLuoi({ luoi }: { luoi: StLuoi }) {
             ...ngay.map((n) => (
               <div key={`${g}${n}`} style={{ padding: 4, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 3, alignContent: 'flex-start', minHeight: 30, background: n === luoi.hom ? 'var(--accent-soft, rgba(37,99,235,.05))' : undefined }}>
                 {o(n, g).map((x, i) => {
-                  const nhan = `${x.loai === 'da' ? '✓ ' : ''}${nhanNen(x.nen)}`, tip = `${x.mayTen} · ${nhanNen(x.nen)} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
+                  const nhan = `${x.loai === 'da' ? (x.chuaXn ? '⚠ ' : '✓ ') : ''}${nhanNen(x.nen)}`, tip = `${x.mayTen} · ${nhanNen(x.nen)} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
                   const st = { display: 'inline-block', padding: '1px 6px', borderRadius: 6, lineHeight: '18px', whiteSpace: 'nowrap' as const,
                     ...(stBai(x.loai === 'da', mauMay[x.may]!)) };
                   return <button key={i} type="button" onClick={() => ct.mo(x)} title={`${tip}\n(bấm xem chi tiết)`} style={{ ...st, cursor: 'pointer', font: 'inherit', textAlign: 'left' }}>{nhan}<KenhGon ten={tenKenhGon(luoi, x)} /></button>;
@@ -214,7 +214,7 @@ export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'th
   const doi = (b: number) => { setChon(null); setMoc(kieu === 'tuan' ? cong(moc, b * 7) : (() => { const d = new Date(Date.parse(`${moc.slice(0, 8)}01T00:00:00Z`)); d.setUTCMonth(d.getUTCMonth() + b); return d.toISOString().slice(0, 10); })()); };
   const nut = { border: '1px solid var(--border)', background: 'var(--bg-1, transparent)', borderRadius: 8, padding: '3px 10px', cursor: 'pointer', color: 'inherit' } as const;
   const Bai = ({ x }: { x: StLuoiO }) => {
-    const nhan = `${x.gio === '—' ? '' : `${x.gio} `}${x.loai === 'da' ? '✓ ' : ''}${nhanNen(x.nen)}`, tip = `${x.mayTen} · ${nhanNen(x.nen)} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
+    const nhan = `${x.gio === '—' ? '' : `${x.gio} `}${x.loai === 'da' ? (x.chuaXn ? '⚠ ' : '✓ ') : ''}${nhanNen(x.nen)}`, tip = `${x.mayTen} · ${nhanNen(x.nen)} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
     const st = { display: 'block', padding: '1px 6px', borderRadius: 6, lineHeight: '18px', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 11,
       ...(stBai(x.loai === 'da', mauMay[x.may]!)) };
     return <button type="button" onClick={(e) => { e.stopPropagation(); ct.mo(x); }} title={`${tip}\n(bấm xem chi tiết)`} style={{ ...st, width: '100%', cursor: 'pointer', font: 'inherit', fontSize: 11, textAlign: 'left' }}>{nhan}<KenhGon ten={tenKenhGon(luoi, x)} /></button>;

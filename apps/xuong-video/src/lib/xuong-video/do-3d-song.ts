@@ -111,7 +111,7 @@ export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten:
   for (const [t, x] of dem) {
     const pt = Math.round((x.n * 1000) / (C * R)) / 10; if (pt < 0.5) continue;
     const ud = x.o.userData;
-    thay.push({ ten: t, ...(ud.en ? { en: ud.en } : {}), ...(ud.nguoi || laNguoi(t) ? { nguoi: true } : {}), pt, hop: hop(x), tien: !bb.has(t) && !ud.nen && x.gan < kcChu * 0.8 && x.mat < 0.8 * x.n } as VatThay);
+    thay.push({ ten: t, ...(ud.en ? { en: ud.en } : {}), ...(ud.nguoi || laNguoi(t) ? { nguoi: true } : {}), pt, hop: hop(x), gan: Math.round(x.gan), tien: !bb.has(t) && !ud.nen && x.gan < kcChu * 0.8 && x.mat < 0.8 * x.n } as VatThay);
   }
   for (const [t, x] of kinh) { const pt = Math.round((x.n * 1000) / (C * R)) / 10; if (pt >= 0.5 && !dem.has(t)) thay.push({ ten: t, ...(x.o.userData.en ? { en: x.o.userData.en } : {}), pt, hop: hop(x), tien: false } as VatThay); }
   // ── di: chỗ trên màn lúc MỞ (máy mở) → lúc KẾT (máy cuối đường máy, người ở 'den') — như dung-set.py › chieu (tâm hộp, 0..1 gốc trên-trái).

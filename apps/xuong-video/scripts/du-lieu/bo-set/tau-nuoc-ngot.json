@@ -2080,7 +2080,7 @@
     900,
     110
    ],
-   "ong_kinh": 50,
+   "ong_kinh": 85,
    "vi_tri": [
     {
      "ten": "Nhóc",
@@ -2183,7 +2183,8 @@
        1,
        0.6
       ]
-     ]
+     ],
+     "nhay": "nhóc đã chạy tới dưới cửa sổ (shot #4 xen giữa): chú quay xuống nhìn nhóc"
     },
     {
      "ten": "Tờ 5 nghìn",

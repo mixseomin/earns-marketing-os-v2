@@ -190,7 +190,7 @@ const tenGoi = (ten: string, set: Pick<BoSet, 'du_lieu'>) => {
 };
 
 /** KHỐI LẤP KHUNG: một khối (không phải mặt nền) chiếm ≥ 85% khung — máy dí sát / nằm trong vật, khung xám thành một mảng màu vô nghĩa. */
-export const khoiLapKhung = (c: Pick<Canh, 'khung_xam'>, set: Pick<BoSet, 'du_lieu'> | null) => { const nen = new Set((set?.du_lieu.vat ?? []).filter((v) => v.nen || laKinh(v)).map((v) => v.ten)); return (c.khung_xam?.thay ?? []).filter((t) => t.pt >= 85 && !nen.has(t.ten) && !laKinh(t) && t.tien !== false); };   // tien = false: nằm SAU chủ thể (toa tàu sau lưng chú ở ô cửa) = hậu cảnh, không phải máy dí sát (13/11/2026)
+export const khoiLapKhung = (c: Pick<Canh, 'khung_xam'>, set: Pick<BoSet, 'du_lieu'> | null) => { const nen = new Set((set?.du_lieu.vat ?? []).filter((v) => v.nen || laKinh(v)).map((v) => v.ten)); return (c.khung_xam?.thay ?? []).filter((t) => t.pt >= 85 && !nen.has(t.ten) && !laKinh(t) && t.tien !== false && (t.gan == null || t.gan < 80)); };   // tien = false: nằm SAU chủ thể = hậu cảnh; gan ≥ 80 cm: vật lớn bao quanh chủ thể (vách toa quanh ô cửa chú đứng) — không phải máy dí sát (13/11/2026)
 
 /** VẬT ĐƯỢC NHẮC MÀ KHÔNG THẤY: chữ tả khung (bố cục / mở / kết / prompt ảnh) nhắc một vật của set mà khung 3D không thấy nó (< 1% khung) — thử
  *  7.3 tập 19: bố cục "ấn tay lên đế cắm sát phích" mà máy đứng sau lưng Tango, đế cắm không có trong khung → keyframe vẽ một cảnh khác. */

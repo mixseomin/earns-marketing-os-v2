@@ -23,7 +23,7 @@ SD['shot']['5']['sd']['may'] = 'chu_nhin_tiem'    # chú gọi với theo nhóc 
 SD['shot']['7']['sd']['may'] = 'chu_nhin_tiem'     # chú sốt ruột chờ, nhìn về tiệm: máy trước mặt (can_chu phía nam chỉ thấy gáy — đo 116°)
 SD['shot']['1']['sd']['may'] = 'chu_thay_nhoc'    # nhìn quanh rồi thấy nhóc: CÙNG máy với cận phản ứng #3 (glance và reaction một góc — Murch: hướng máy chủ các cận chú)
 C['may'].update({
-    'mat_nhoc_xa': {'dat': [2.6, 7.1], 'nhin': [1.0, 9], 'cao': 1.0, 'ong': 50},   # phía đông-nam nhóc: hướng máy 130° nằm trong ±45° hướng chủ cảnh (153°) mà vẫn thấy 3/4 mặt nhóc nhìn về ô cửa   # hướng máy ≤ 45° với các cận nhóc khác (#8, #15) — hậu cảnh không nhảy     # trước mặt nhóc ở giữa sân ga, cùng phía trục với mọi máy; lệch đông 0,5 m khỏi đường nhóc chạy về ô cửa
+    'mat_nhoc_xa': {'dat': [2.6, 7.1], 'nhin': [1.0, 9], 'cao': 1.0, 'ong': 85},   # phía đông-nam nhóc: hướng máy 130° nằm trong ±45° hướng chủ cảnh (153°) mà vẫn thấy 3/4 mặt nhóc nhìn về ô cửa   # hướng máy ≤ 45° với các cận nhóc khác (#8, #15) — hậu cảnh không nhảy     # trước mặt nhóc ở giữa sân ga, cùng phía trục với mọi máy; lệch đông 0,5 m khỏi đường nhóc chạy về ô cửa
     # QUA VAI CHÚ (reverse shot): máy lơ lửng ngay ngoài ô cửa, cao ngang vai chú, nhìn xuống mặt nhóc đang ngước lên — máy đặt dưới sân ga chỉ thấy gáy nhóc
     'mat_nhoc': {'dat': [-0.92, 4.45], 'nhin': [-0.2, 5], 'cao': 1.7, 'ong': 35},
     # CẬN CHÚ TỪ TẦM MẮT NHÓC: máy thấp trên sân ga cạnh chỗ nhóc, ngước lên mặt chú đang nhoài ra cúi nhìn xuống — máy cao (mat_chu 2,35 m) chỉ thấy đỉnh đầu
@@ -196,6 +196,7 @@ for ma, v in SD['shot'].items():
         nv_['Nhóc']['den'] = [25, 650, 0]
     if ma == '3a' and 'Chú' in nv_:   # chìa tờ tiền ra theo lời "Chú cho cháu 5k" — nối sang hai người trao ở #3
         nv_['Chú']['tay'] = [[0.3, 0], [1, 0.6]]
+        nv_['Chú']['nhay'] = 'nhóc đã chạy tới dưới cửa sổ (shot #4 xen giữa): chú quay xuống nhìn nhóc'   # hướng mặt không nối từ #3 (đang nhìn nhóc ở giữa ga)
     if ma == '10':   # CẬN TAY ở bậu cửa: tay nhóc đưa tiền thừa, tay chú đón — thay cận mặt (không thấy được động tác trao)
         may[ma] = may.get(ma, {})
         if 'Nhóc' in nv_: nv_['Nhóc']['tay'] = [[0, 0.55]]

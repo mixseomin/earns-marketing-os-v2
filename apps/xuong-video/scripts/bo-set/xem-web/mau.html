@@ -225,8 +225,24 @@ function viTriLuc(v, u) {
 }
 const TRAO = (v) => v.trao || [0.35, 0.7];   // khoảng chuyền tay (u) của món đổi tay
 const tayLuc = (v, u) => { const k = v.tay; if (!k?.length) return 0; let i = 0; while (i + 1 < k.length - 1 && u > k[i + 1][0]) i++; const [a, b] = [k[i], k[Math.min(i + 1, k.length - 1)]]; return b[0] > a[0] ? a[1] + (b[1] - a[1]) * em(Math.min(1, Math.max(0, (u - a[0]) / (b[0] - a[0])))) : a[1]; };
-function dungShot(i, u) {
+// DIỄN CHỒNG (overlapping action — anh 12/11/2026 "làm thế đi, lưu lại để chuẩn hoá"): hành động là MỘT dòng liên tục của cả cảnh, shot chỉ là cửa sổ máy.
+// u < 0 (dư đầu) = đuôi hành động của shot TRƯỚC, u > 1 (dư cuối) = đầu hành động của shot SAU — đúng tốc độ thật. Người vắng ở shot liền kề, hoặc shot có
+// nhảy thời gian (vi_tri.nhay ở shot sau), thì giữ dáng ở mép shot.
+function nguon(i, v, u) {
+  if (u >= 0 && u <= 1) return [v, u];
+  const s = DU.shot[i];
+  if (u < 0) {
+    const tr = DU.shot[i - 1], vp = tr?.may.vi_tri?.find((x) => x.ten === v.ten && !x.cam);
+    if (vp && !v.nhay) return [vp, Math.max(0, 1 + (u * s.giay) / tr.giay)];
+    return [v, 0];
+  }
+  const sau = DU.shot[i + 1], vn = sau?.may.vi_tri?.find((x) => x.ten === v.ten && !x.cam);
+  if (vn && !vn.nhay) return [vn, Math.min(1, ((u - 1) * s.giay) / sau.giay)];
+  return [v, 1];
+}
+function dungShot(i, u0) {
   const s = DU.shot[i], m = s.may, vt = m.vi_tri || [];
+  const u = Math.min(1, Math.max(0, u0));   // máy, đồ chuyền tay, dây đường đi: theo khung chính của shot
   for (const k of Object.values(khoi)) k.g.visible = false;
   for (const [ten, msh] of Object.entries(tuyChon)) msh.visible = (m.them || []).includes(ten);
   const cho = {}, kep = (x) => Math.min(1, Math.max(0, x));
@@ -239,12 +255,12 @@ function dungShot(i, u) {
   const dangCam = new Set(vt.filter((v) => v.cam && !v.den).map((v) => v.cam));
   for (const v of vt) {   // người + tàu trước, đồ cầm sau (đồ bám bàn tay người cầm)
     if (v.cam || !khoi[v.ten]) continue;
-    const t = viTriLuc(v, u); cho[v.ten] = t;
+    const [vv, uu] = nguon(i, v, u0), t = viTriLuc(vv, uu); cho[v.ten] = t;
     const kk = khoi[v.ten], g = kk.g; g.visible = true; g.position.copy(P(t.p)); g.rotation.set(0, (t.h * Math.PI) / 180, 0);
     if (kk.ng) {
-      const di = v.den ? Math.hypot(v.den[0] - v.tam[0], v.den[1] - v.tam[1]) * em(u) : 0;
-      const vuon = Math.max(tayLuc(v, u), ...trao.map((x) => { const [a, b] = x.khoang; return x.dua === v.ten ? kep((u - (a - 0.2)) / 0.2) * kep((b + 0.15 - u) / 0.15) : x.nhan === v.ten ? kep((u - (a - 0.08)) / 0.15) * kep((b + 0.25 - u) / 0.15) : 0; }), 0);
-      dang(kk.ng, { di, chong: (v.dien || []).includes('chong_ban'), cam: dangCam.has(v.ten), vuon });
+      const di = vv.den ? Math.hypot(vv.den[0] - vv.tam[0], vv.den[1] - vv.tam[1]) * em(uu) : 0;
+      const vuon = Math.max(tayLuc(vv, uu), ...trao.map((x) => { const [a, b] = x.khoang; return x.dua === v.ten ? kep((u - (a - 0.2)) / 0.2) * kep((b + 0.15 - u) / 0.15) : x.nhan === v.ten ? kep((u - (a - 0.08)) / 0.15) * kep((b + 0.25 - u) / 0.15) : 0; }), 0);
+      dang(kk.ng, { di, chong: (vv.dien || []).includes('chong_ban'), cam: dangCam.has(v.ten), vuon });
       const tr0 = trao.find((x) => x.dua === v.ten || x.nhan === v.ten); if (tr0 && vuon > 0) vuonCua[v.ten] = { vuon, doi: tr0.dua === v.ten ? tr0.nhan : tr0.dua };
     }
   }
@@ -261,9 +277,10 @@ function dungShot(i, u) {
   // ĐẦU NHÌN VỀ ĐÍCH (nhin_ai lúc mở → nhin_ai_den lúc kết, đổi trong 45 % cuối như quay người): đầu xoay độc lập thân, tối đa ±75°
   nhinCua = {};
   for (const v of vt) {
-    const kk = khoi[v.ten]; if (!kk?.ng || !cho[v.ten] || !v.nhin_ai) continue;
-    const nn = mocNhip(v) ? viTriLuc(v, u).nhin : null;
-    const a = nn ?? v.nhin_ai, b = nn ?? (v.nhin_ai_den || a), k = a === b ? 0 : em(kep((u - 0.45) / 0.45));
+    const [vv, uu] = nguon(i, v, u0);
+    const kk = khoi[v.ten]; if (!kk?.ng || !cho[v.ten] || !vv.nhin_ai) continue;
+    const nn = mocNhip(vv) ? viTriLuc(vv, uu).nhin : null;
+    const a = nn ?? vv.nhin_ai, b = nn ?? (vv.nhin_ai_den || a), k = a === b ? 0 : em(kep((uu - 0.45) / 0.45));
     const diem = (x) => (cho[x] ? [cho[x].p[0], cho[x].p[1], cho[x].p[2] + cao(x) * 0.93] : DU.moc?.[x] ? DU.moc[x] : null);
     const pa = diem(a), pb = diem(b); if (!pa) continue;
     const d = tron(pa, pb || pa, k), ng = cho[v.ten], mat = [ng.p[0], ng.p[1], ng.p[2] + cao(v.ten) * 0.93];
@@ -293,7 +310,7 @@ function dungShot(i, u) {
   const chu = m.nham || (m.khung || [])[0]; const ct = vt.find((v) => v.ten === chu);
   if (s.cd === 'day_vao') dat = tron(m.dat, m.nhin, em(u) * 0.25);
   else if (s.cd === 'lui_ra') dat = tron(m.dat, m.nhin, -em(u) * 0.2);
-  else if (s.cd === 'lia' && ct && cho[chu]) { const p = cho[chu].p; nhin = [p[0], p[1], m.nhin[2]]; if (u === 0) nhin = tron(m.nhin, nhin, 0); }
+  else if (s.cd === 'lia' && ct && cho[chu]) { const p = cho[chu].p; nhin = [p[0], p[1], m.nhin[2]]; }   // luôn bám chủ thể — kể cả đoạn dư (trước có ngoại lệ ở u = 0 làm máy nhảy hướng đúng điểm vào)
   else if (s.cd === 'theo' && ct && cho[chu]) { const d = [cho[chu].p[0] - ct.tam[0], cho[chu].p[1] - ct.tam[1], 0]; dat = dat.map((x, j) => x + d[j]); nhin = nhin.map((x, j) => x + d[j]); }
   may.position.copy(P(dat)); may.lookAt(P(nhin));
   const hfov = 2 * Math.atan(18 / (m.ong_kinh || 35)); may.fov = (2 * Math.atan(Math.tan(hfov / 2) / may.aspect) * 180) / Math.PI; may.updateProjectionMatrix();

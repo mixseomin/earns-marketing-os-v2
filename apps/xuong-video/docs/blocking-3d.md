@@ -69,7 +69,7 @@ Anh 12/11/2026: "đoạn cuối cần shot mặt gần của Chú để rõ cả
 
 ## 8. Nhân quả lời → hành động
 
-Anh 12/11/2026: "giao tiền xong chưa nói việc gì đã thấy bé chạy. Sai". Hành động phản hồi một câu thoại (đi mua, chạy đi, quay lại) chỉ BẮT ĐẦU SAU khi câu đó dứt. Dòng NHỊP trên trang xếp lời thoại chung với động tác, theo đúng lịch phát của bản xuất (am-thanh.ts: câu sau = max(tre, câu trước dứt + 0,15 s), đọc nhanh ≤ 1,35 khi thiếu chỗ) — soát bằng mắt thứ tự trên dòng nhịp; shot không đủ chỗ cho cả lời lẫn động tác thì KÉO DÀI shot (phat_s), không cho người làm trước khi được bảo. Ví dụ #4 phim #3071: 0,3–2,8 s chú dặn → 2,8–3,3 s nhóc quay → 3,3–4,2 s chạy (shot 3,3 → 4,2 s).
+Anh 12/11/2026: "giao tiền xong chưa nói việc gì đã thấy bé chạy. Sai". Hành động phản hồi một câu thoại (đi mua, chạy đi, quay lại) chỉ BẮT ĐẦU SAU khi câu đó dứt. Dòng NHỊP trên trang xếp lời thoại chung với động tác, theo đúng lịch phát của bản xuất (am-thanh.ts: câu sau = max(tre, câu trước dứt + 0,15 s), đọc nhanh ≤ 1,35 khi thiếu chỗ) — soát bằng mắt thứ tự trên dòng nhịp; shot không đủ chỗ cho cả lời lẫn động tác thì KÉO DÀI shot (phat_s), không cho người làm trước khi được bảo. Lời dặn phải TRỌN trong shot trước khi người được dặn bỏ đi. Câu nói tiếp sau khi người đó đã đi chỉ được là câu gọi với theo ("Đi nhanh về nhanh nhé!"), không được là nội dung việc cần làm. Phim #3071, anh 12/11: "chưa giao xong đã thấy chạy đi", vì "Cháu một chai, chú một chai" nằm ở #5 sau khi nhóc đã chạy. Đã sửa: #4 gồm 0,3–3,9 s chú dặn trọn một hơi "Đi mua hai chai nước ngọt. Cháu một chai, chú một chai!", 3,9–4,5 s nhóc quay, 4,5–5,3 s nhóc chạy (`phat_toi_thieu` 5,3); #5 chỉ còn câu gọi với theo.
 
 ## 9. Giọng theo cách diễn MỚI + soát giọng đúng cách
 

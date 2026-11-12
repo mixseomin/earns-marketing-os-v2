@@ -143,13 +143,14 @@ for ma, v in SD['shot'].items():
     nv_ = {x['ten']: x for x in vt}
     D = lambda k: [M[k][0], M[k][1], 0]
     # NHÂN QUẢ LỜI → HÀNH ĐỘNG (anh 12/11/2026: "giao tiền xong chưa nói việc gì đã thấy bé chạy. Sai"): nhóc chỉ đi SAU khi nghe xong câu sai đi.
-    # Câu "Đi mua hai chai nước ngọt" ở #4 (0,3–2,8 s) → #3 nhận tiền xong vẫn đứng nhìn chú; #4 nghe hết câu rồi mới quay + chạy (#4 kéo 3,3 → 4,2 s)
+    # Lời dặn ở #4 = MỘT hơi "Đi mua hai chai nước ngọt. Cháu một chai, chú một chai!" (0,3–3,85 s) → #3 nhận tiền xong vẫn đứng nhìn chú; #4 nghe HẾT lời dặn rồi mới
+    # quay + chạy (shot 5,3 s, phat_toi_thieu). #5 chú chỉ gọi với theo "Đi nhanh về nhanh nhé!" khi nhóc đã chạy (anh 12/11/2026: "chưa giao xong đã thấy chạy đi")
     if ma == '3' and 'Nhóc' in nv_:
         nv_['Nhóc']['nhip'] = [{'u': 0, 'h': -90, 'nhin': 'Chú'}, {'u': 1, 'h': -90, 'nhin': 'Chú'}]
         nv_['Tờ 5 nghìn']['trao'] = [0.35, 0.6]
-    if ma == '4' and 'Nhóc' in nv_:   # 0–2,8 s đứng nghe chú dặn (nhìn chú) · 2,8–3,3 s quay về tiệm · 3,3–4,2 s chạy (~4 m/s, ra khỏi khung về phía tiệm)
-        nv_['Nhóc']['nhip'] = [{'u': 0, 'p': D('duoi_cua_so'), 'h': -90, 'nhin': 'Chú'}, {'u': 0.67, 'p': D('duoi_cua_so'), 'h': -90, 'nhin': 'Chú'},
-                               {'u': 0.79, 'p': D('duoi_cua_so'), 'h': 180, 'nhin': 'tiem'}, {'u': 1, 'p': [40, 880, 0], 'h': 180}]
+    if ma == '4' and 'Nhóc' in nv_:   # 0–3,95 s đứng nghe hết lời dặn (nhìn chú) · 3,95–4,45 s quay về tiệm · 4,45–5,3 s chạy (ra khỏi khung về phía tiệm)
+        nv_['Nhóc']['nhip'] = [{'u': 0, 'p': D('duoi_cua_so'), 'h': -90, 'nhin': 'Chú'}, {'u': 0.745, 'p': D('duoi_cua_so'), 'h': -90, 'nhin': 'Chú'},
+                               {'u': 0.84, 'p': D('duoi_cua_so'), 'h': 180, 'nhin': 'tiem'}, {'u': 1, 'p': [40, 880, 0], 'h': 180}]
         nv_['Nhóc']['den'] = [40, 880, 0]; nv_['Nhóc']['huong'] = -90; nv_['Nhóc']['nhin_ai'] = 'Chú'
     if ma == '8' and 'Nhóc' in nv_:   # VỪA ĐI VỪA UỐNG: tay trái đưa chai lên miệng hút hai ngụm — hiện trong clip tham chiếu, câu nhịp ghi đúng giây
         nv_['Nhóc']['dien'] = ['uong@0.12-0.4', 'uong@0.62-0.88']

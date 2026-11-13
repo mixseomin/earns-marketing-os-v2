@@ -31,7 +31,8 @@ export function banCpu(truoc, nay) {
 // MÁY CÀO NHÀ (06/11/2026, anh: "báo cho phòng tài nguyên về report định kỳ về HP này"): HP EliteDesk ở nhà, Ubuntu WSL2, nằm sau Deco nên box3 KHÔNG
 // ssh vào được → máy TỰ ĐẨY ảnh chụp 5 phút / lần (spy-on-tc scripts/bao-may-nha.py, timer spy-bao-may-nha) vào `tep`; cũ quá `tre` phút = mất liên lạc.
 // `ten` trùng may_cao_lan.may. Máy kiểu `tep` báo thêm từng dịch vụ (dv) và ổ C: Windows (Ubuntu nằm trong ổ ảo trên C:).
-export const VPS = { 'may-cao-vn': { ssh: 'root@116.118.28.214', daemon: 'spy-may-cao-daemon' },
+// Làn cao_chinh dùng daemon chính; làn nền (doi_thu, goc_*) dùng daemonNen (13/11/2026: cao_chinh về máy nhà từ 05/11, daemon chính VPS tắt chủ ý → báo sai).
+export const VPS = { 'may-cao-vn': { ssh: 'root@116.118.28.214', daemon: 'spy-may-cao-daemon', daemonNen: 'spy-may-cao-daemon-nen' },
   'may-cao-nha': { tep: '/var/lib/spy/may-nha.json', tre: 15, daemon: 'spy-may-cao-daemon' } };
 
 /** Thuần: ảnh chụp máy TỰ ĐẨY (scripts/bao-may-nha.py) → cùng khuôn với VPS ssh. Cũ quá v.tre phút / thiếu tệp = toi:false (cuPhut: bao lâu rồi).
@@ -121,7 +122,9 @@ export function xetCanhBao(s, bayGio = Date.now()) {
     if (!v.toi) { if (coLan) ra.push({ khoa: `vps:${v.ten}:toi`, chu: v.day ? `Máy cào nhà <b>${v.ten}</b> không gửi tình trạng ${v.cuPhut != null ? `${v.cuPhut} phút` : '(chưa từng gửi)'} — máy ngủ / mất mạng / mất điện? Làn cào giao cho nó đang đứng` : `VPS <b>${v.ten}</b> không ssh vào được — làn cào giao cho nó đang đứng` }); continue; }
     const chet = Object.entries(v.dv ?? {}).filter(([, t]) => t !== 'active').map(([u, t]) => `${u} (${t || '?'})`);
     if (chet.length) ra.push({ khoa: `vps:${v.ten}:dv`, chu: `Máy <b>${v.ten}</b>: dịch vụ không chạy — ${chet.join(', ')}` });
-    if (coLan && !v.daemon) ra.push({ khoa: `vps:${v.ten}:daemon`, chu: `VPS <b>${v.ten}</b>: trình duyệt máy cào không chạy trong khi có làn giao cho nó` });
+    const lanV = s.lan.filter((l) => l.may === v.ten), canChinh = v.daemonNen === undefined ? lanV.length > 0 : lanV.some((l) => l.lan === 'cao_chinh');
+    if (v.daemonNen === false && lanV.some((l) => l.lan !== 'cao_chinh')) ra.push({ khoa: `vps:${v.ten}:daemon-nen`, chu: `VPS <b>${v.ten}</b>: trình duyệt làn nền không chạy trong khi có làn nền giao cho nó` });
+    if (canChinh && !v.daemon) ra.push({ khoa: `vps:${v.ten}:daemon`, chu: `VPS <b>${v.ten}</b>: trình duyệt máy cào không chạy trong khi có làn giao cho nó` });
     if (v.ramMB != null && v.ramMB < NGUONG.vpsRamMB) ra.push({ khoa: `vps:${v.ten}:ram`, chu: `VPS <b>${v.ten}</b> thiếu RAM: còn ${v.ramMB} MB trống, swap đang dùng ${v.swapMB ?? '?'} MB` });
     if (v.dia >= NGUONG.diaPt) ra.push({ khoa: `vps:${v.ten}:dia`, chu: `VPS <b>${v.ten}</b> ổ cứng đầy ${v.dia}%` });
     if (v.ban >= NGUONG.cpuBan) ra.push({ khoa: `vps:${v.ten}:tai`, chu: `VPS <b>${v.ten}</b> quá tải: CPU bận ${v.ban}% suốt ${v.phut} phút qua${nang(v)}` });
@@ -202,7 +205,8 @@ export async function chupTaiNguyen() {
       const d = ssh(`systemctl is-active ${v.daemon} || true`);
       // RAM / swap / ổ cứng VPS (anh 28/10/2026: VPS cạn RAM — 286 MB trống, swap 2,2 GB — mà không ai báo; trước chỉ canh RAM box3)
       const [ramMB, swapMB, dia] = ssh(`awk '/^MemAvailable:/{a=$2}/^SwapTotal:/{t=$2}/^SwapFree:/{f=$2}END{print int(a/1024), int((t-f)/1024)}' /proc/meminfo; df --output=pcent / | tail -1 | tr -dc 0-9`).split(/\s+/).map(Number);
-      return { ten, toi: true, daemon: d === 'active', ramMB, swapMB, dia, ...doCpu(ten, ssh) };
+      const dn = v.daemonNen ? ssh(`systemctl is-active ${v.daemonNen} || true`) === 'active' : undefined;
+      return { ten, toi: true, daemon: d === 'active', ...(dn === undefined ? {} : { daemonNen: dn }), ramMB, swapMB, dia, ...doCpu(ten, ssh) };
     } catch { return { ten, toi: false }; }
   });
   fs.mkdirSync(DATA(), { recursive: true }); fs.writeFileSync(tepCpu, JSON.stringify(cpu));
@@ -320,6 +324,9 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     assert.deepStrictEqual(k({ lan: lanVps, khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: false }] }), ['vps:may-cao-vn:toi'], 'VPS mất kết nối khi có làn');
     assert.deepStrictEqual(k({ lan: [], khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: false }] }), [], 'VPS mất kết nối nhưng không có làn: im');
     assert.deepStrictEqual(k({ lan: lanVps, khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: true, daemon: false, ban: 97, phut: 30, nang: [] }] }), ['vps:may-cao-vn:daemon', 'vps:may-cao-vn:tai'], 'VPS daemon tắt + quá tải');
+    const lanNen = [{ lan: 'doi_thu', may: 'may-cao-vn', cuoi: gio(0) }];
+    assert.deepStrictEqual(k({ lan: lanNen, khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: true, daemon: false, daemonNen: true, ban: 40, phut: 30, nang: [] }] }), [], 'chỉ làn nền: daemon chính tắt chủ ý không báo');
+    assert.deepStrictEqual(k({ lan: lanNen, khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: true, daemon: true, daemonNen: false, ban: 40, phut: 30, nang: [] }] }), ['vps:may-cao-vn:daemon-nen'], 'daemon nền chết: báo');
     const ckT = (h, dong, chi_tiet = {}, truoc) => ({ lan: [], khoa: [], may, ckey: { cap_nhat: gio(h), dong, chi_tiet }, ckeyTruoc: truoc ? { dong: truoc } : null });
     assert.deepStrictEqual(k(ckT(2, { haiku: ['ckey:a/h'] })), [], 'ckey vừa bảo trì, đủ người bán: im');
     assert.deepStrictEqual(k({ lan: [], khoa: [], may, ckey: null }), ['box3:ckey'], 'chưa có tệp danh sách: báo (thợ máy nhận)');

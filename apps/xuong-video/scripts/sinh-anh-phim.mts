@@ -150,10 +150,12 @@ if (arg('keyframe') && canhThieu.length) {
   const loi = await q(sql`SELECT nhan, loi FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'loi'`);
   for (const l of loi) console.log(`  ✗ ${l.nhan}: ${String(l.loi).slice(0, 160)}`);
   // VÒNG TỰ-SỬA ngay sau khi sinh (anh 31/10/2026: "vị trí các nhân vật trong không gian thang máy cứ lung tung"): mỗi khung vừa sinh được bóc + đối chiếu
-  // với sơ đồ cảnh / look (vị trí màn, hướng nhìn / quay lưng, số người, áo, vết…) → lệch thì siết prompt nguồn và sinh lại (≤ --vong-sua vòng, mặc định 2),
+  // với sơ đồ cảnh / look (vị trí màn, hướng nhìn / quay lưng, số người, áo, vết…) → lệch thì siết prompt nguồn và sinh lại (≤ --vong-sua vòng),
   // giữ bản ít lệch nhất. Một lõi: scripts/vong-sua.mts --tap. --khong-sua = bỏ qua.
-  if (!arg('khong-sua') && tapId && jobs.length) {
-    const vongSua = Number((process.argv.find((a) => a.startsWith('--vong-sua=')) ?? '').slice(11) || 2);
+  // TẮT MẶC ĐỊNH (anh 13/11/2026, chuẩn docs/chuan-cham-diem.md): giám khảo AI của vòng này CHƯA được đo trên bộ ảnh gắn nhãn, mà vòng lại tự tiêu tiền sinh
+  // lại, tự thêm câu siết theo shot và tự đổi keyframe đang chọn — phim #3071 nó làm #11 #12 #17 #18 xấu đi. Chỉ chạy khi gọi rõ --vong-sua=<số vòng>.
+  const vongSua = Number((process.argv.find((a) => a.startsWith('--vong-sua=')) ?? '').slice(11) || 0);
+  if (vongSua > 0 && !arg('khong-sua') && tapId && jobs.length) {
     const chiSua = canhThieu.map((c) => Number(c.thu_tu)).join(',');
     console.log(`\n🔁 vòng tự-sửa ${canhThieu.length} shot (≤ ${vongSua} vòng/shot)…`);
     const { spawnSync } = await import('node:child_process');

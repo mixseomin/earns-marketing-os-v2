@@ -165,9 +165,10 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
             {v.nen?.length ? <span style={{ color: 'var(--fg-3)', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={`đã lên: ${v.nen.join(', ')}`}>📡 {v.nen.length} nền · {v.nen.join(' · ')}</span> : null}
             {v.playlist && <span style={{ color: 'var(--fg-3)', fontSize: 11, whiteSpace: 'nowrap' }} title="playlist của tập">📂 {d.k.playlist?.find((p) => p.ma === v.playlist)?.ten ?? v.playlist}</span>}</span>; }
         const k = d.k, n = k.videos.length;
-        return <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)' }}>
+        // góp ý #1594: ô ghim trái, chiếm đủ cột, chữ trạng thái co + "…" — dòng nào nội dung dài hơn cột cũng không bị đẩy lệch ▸/ảnh/tên/⋯
+        return <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 6, width: '100%', minWidth: 0, overflow: 'hidden', fontFamily: 'var(--font-sans)' }}>
           <button type="button" onClick={(e) => { e.stopPropagation(); doi(k.ma); }} title={`${moCay.has(k.ma) ? 'ẩn' : 'hiện'} ${n} video của kênh`}
-            style={{ width: 16, border: 'none', background: 'none', color: 'var(--fg-2)', cursor: 'pointer', padding: 0 }}>{moCay.has(k.ma) ? '▾' : '▸'}</button>
+            style={{ width: 16, flex: 'none', border: 'none', background: 'none', color: 'var(--fg-2)', cursor: 'pointer', padding: 0 }}>{moCay.has(k.ma) ? '▾' : '▸'}</button>
           {k.anh ? <img src={k.anh} alt="" width={22} height={22} style={{ borderRadius: '50%', flex: 'none' }} /> : <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg-3)', flex: 'none' }} />}
           <button type="button" onClick={(e) => { e.stopPropagation(); ngan.mo('kenh', k.ma); }} title={`${k.ten} — bấm mở hồ sơ kênh`}
             style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'inherit', font: 'inherit', fontWeight: 700,
@@ -182,11 +183,11 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
           {k.ke.dangLam.some((d) => !laDemo(d)) ? (() => { const that = k.ke.dangLam.filter((d) => !laDemo(d)), hong = that.filter((d) => d.loi).length, n = that.length;   // dòng kênh chỉ đếm tập thật — demo mẫu không tính (anh 05/11/2026)
             return <button type="button" onClick={(e) => { e.stopPropagation(); if (!moCay.has(k.ma)) doi(k.ma); }}
               title={that.map((d) => `${d.ten ?? d.id} · ${d.loi ? `✗ ${d.loi}` : `bước ${d.so ?? '?'}/${d.tong ?? 8}: ${d.buoc ?? 'khởi động'}`}`).join('\n')}
-              style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: hong ? 'var(--bad)' : 'var(--warn)', fontSize: 11, whiteSpace: 'nowrap' }}>
+              style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: hong ? 'var(--bad)' : 'var(--warn)', fontSize: 11, whiteSpace: 'nowrap', minWidth: 0, flex: '0 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
               ▶ {n} đang sx{hong ? ` · ${hong} hỏng` : ''}</button>; })()
             : k.so && tomLoTrinh(k.so).hienTai ? <button type="button" onClick={(e) => { e.stopPropagation(); if (!moCay.has(k.ma)) doi(k.ma); }} title="kênh đang theo lộ trình — bấm mở 🧭 Lộ trình"
-                style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: tomLoTrinh(k.so).mau, fontSize: 11, whiteSpace: 'nowrap' }}>{tomLoTrinh(k.so).chu}</button>
-            : <span style={{ color: k.chay ? 'var(--ok)' : 'var(--fg-4)', fontSize: 11 }}>{k.chay ? 'đang chạy' : 'chưa bật đăng'}</span>}
+                style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: tomLoTrinh(k.so).mau, fontSize: 11, whiteSpace: 'nowrap', minWidth: 0, flex: '0 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>{tomLoTrinh(k.so).chu}</button>
+            : <span style={{ color: k.chay ? 'var(--ok)' : 'var(--fg-4)', fontSize: 11, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.chay ? 'đang chạy' : 'chưa bật đăng'}</span>}
           {/* ICON NỀN TẢNG (anh 14/11/2026 "thêm platform icon"): mỗi họ nền kênh đang đăng một icon, rê chuột xem số bài */}
           {k.nen?.length ? <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center', flex: 'none' }}>{[...new Map(k.nen.filter((n) => n.bai || n.hen).map((n) => [pkCua(n.nen), n])).keys()].map((pk) => {
             const ds = k.nen!.filter((n) => pkCua(n.nen) === pk); return <SiteFavicon key={pk} platformKey={pk} size={14} title={ds.map((n) => `${n.ten}${n.tk && n.tk !== n.ten ? ` · ${n.tk}` : ''}: ${n.bai} bài`).join('\n')} />; })}</span> : null}</span>;

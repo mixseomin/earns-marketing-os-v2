@@ -62,7 +62,12 @@ phan = [
     p('vách đông trên', VD, 600, DINH, [6, 3200, NOC - DINH], XANH, 'green train side'),
     p('vách đông nam', VD, -280, BAU, [6, 1440, DINH - BAU], XANH, 'green train side'),
     p('vách đông bắc', VD, 1380, BAU, [6, 1640, DINH - BAU], XANH, 'green train side'),
-    p('vách tây', VT, 600, 50, [6, 3200, NOC - 50], XANH, 'green train side'),
+    # TRONG TOA KHÁC MÀU NGOÀI (13/11/2026: vách tây trong toa cùng xanh với vách đông ngoài → nhìn qua ô cửa chỉ thấy xanh, mép cửa biến mất, khung three.js
+    # đọc như chú đứng ĐÈ lên thành tàu; model ảnh vẽ chú đứng ngoài tàu ở 5 cận #2 #4 #8 #12 #15). Mặt trong toa = kem, ô cửa của chú có khung kim loại sáng.
+    p('vách tây', VT, 600, 50, [6, 3200, NOC - 50], '#d9cfb4', 'cream train interior wall'),
+    p('vách đông trong', VD - 5, 600, SAN, [2, 3200, BAU - SAN], '#d9cfb4', 'cream train interior wall'),
+    *[p(f'khung cửa {t}', VD + 5, y, z, co, '#c4c8cc', 'metal window frame') for t, y, z, co in (
+        ('dưới', 500, BAU - 4, [6, 128, 8]), ('trên', 500, DINH - 4, [6, 128, 8]), ('nam', 437, BAU, [6, 8, DINH - BAU]), ('bắc', 563, BAU, [6, 8, DINH - BAU]))],
     p('mái', XG, 600, NOC, [RONG + 10, 3200, 12], '#d8d8d0', 'train roof'),
     p('sàn toa', XG, 600, SAN - 4, [RONG - 6, 3200, 4], '#5a4a3a', 'train floor'),
     p('khung gầm', XG, 600, 54, [RONG - 60, 3000, SAN - 58], GAM, 'train underframe'),   # dưới sàn, lùi 30 cm khỏi hai vách: nhìn ngang sân ga thấy bánh bên dưới
@@ -162,8 +167,9 @@ for ma, v in SD['shot'].items():
     # bàn tay chạm bậu → đầu + vai nhô qua ô cửa. Shot chú chỉ nhìn theo (#1 #5 #7 #12) thì đứng thẳng trong toa.
     for x in vt:
         if x['ten'] == 'Chú' and ma in ('2b', '3a', '3', '4a', '5', '9a', '10', '11'): x['dien'] = ['chong_ban']   # #5: nhoài ra nhìn về tiệm — đứng thẳng trong toa thì máy phía nam không thấy chú
-    # SỔ TRANG PHỤC: khai ở lần xuất hiện đầu (shot thiết lập #0) — sổ tự nối sang mọi shot cùng ngày truyện (bo-set-3d.ts › noiHookup); tên = biến thể có ảnh
-    if ma == '0':
+    # SỔ TRANG PHỤC: cả phim một ngày, một bộ đồ — khai ở MỌI shot. Chỉ khai ở shot đầu thì shot có 'nhay' (dịch chuyển ngoài khung) làm sổ quên đồ (noiHookup coi nhay
+    # là cắt thời gian) → #7 bị chặn "Nhóc chưa có trang phục" (13/11/2026). Tên = biến thể có ảnh mẫu.
+    if True:
         for x in vt:
             if x['ten'] in TRANG_PHUC: x['trang_phuc'] = TRANG_PHUC[x['ten']]
     cho_nv = {x['ten']: x for x in vt}

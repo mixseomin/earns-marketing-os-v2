@@ -666,10 +666,95 @@
       3200,
       290
      ],
-     "mau": "#2f7d4a",
+     "mau": "#d9cfb4",
      "chat": "son",
      "ten_phan": "vách tây",
-     "en": "green train side"
+     "en": "cream train interior wall"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      140,
+      0,
+      80
+     ],
+     "co": [
+      2,
+      3200,
+      80
+     ],
+     "mau": "#d9cfb4",
+     "chat": "son",
+     "ten_phan": "vách đông trong",
+     "en": "cream train interior wall"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      150,
+      -100,
+      156
+     ],
+     "co": [
+      6,
+      128,
+      8
+     ],
+     "mau": "#c4c8cc",
+     "chat": "son",
+     "ten_phan": "khung cửa dưới",
+     "en": "metal window frame"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      150,
+      -100,
+      246
+     ],
+     "co": [
+      6,
+      128,
+      8
+     ],
+     "mau": "#c4c8cc",
+     "chat": "son",
+     "ten_phan": "khung cửa trên",
+     "en": "metal window frame"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      150,
+      -163,
+      160
+     ],
+     "co": [
+      6,
+      8,
+      90
+     ],
+     "mau": "#c4c8cc",
+     "chat": "son",
+     "ten_phan": "khung cửa nam",
+     "en": "metal window frame"
+    },
+    {
+     "hinh": "hop",
+     "tam": [
+      150,
+      -37,
+      160
+     ],
+     "co": [
+      6,
+      8,
+      90
+     ],
+     "mau": "#c4c8cc",
+     "chat": "son",
+     "ten_phan": "khung cửa bắc",
+     "en": "metal window frame"
     },
     {
      "hinh": "hop",
@@ -1245,6 +1330,7 @@
      "huong": 150,
      "nhin_ai": "dau_ga",
      "nhin_ai_den": "giua_ga",
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám",
      "nhip": [
       {
        "u": 0,
@@ -1310,7 +1396,8 @@
      ],
      "huong": -29,
      "nhin_ai": "cua_so",
-     "nhin_ai_den": "cua_so"
+     "nhin_ai_den": "cua_so",
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu"
     },
     {
      "ten": "Tàu xanh",
@@ -1352,7 +1439,8 @@
      "nhin_ai_den": "Nhóc",
      "dien": [
       "chong_ban"
-     ]
+     ],
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
     },
     {
      "ten": "Nhóc",
@@ -1365,6 +1453,7 @@
      "nhin_ai": "Chú",
      "nhin_ai_den": "Chú",
      "nhay": "nhóc chạy từ giữa sân ga tới dưới cửa sổ giữa hai shot",
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu",
      "nhip": [
       {
        "u": 0,
@@ -1442,6 +1531,7 @@
       0
      ],
      "huong_den": 179,
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu",
      "nhip": [
       {
        "u": 0,
@@ -1539,7 +1629,8 @@
      "nhin_ai_den": "tiem",
      "dien": [
       "chong_ban"
-     ]
+     ],
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
     },
     {
      "ten": "Tàu xanh",
@@ -1606,7 +1697,8 @@
      ],
      "huong": 174,
      "nhin_ai": "tiem",
-     "nhin_ai_den": "tiem"
+     "nhin_ai_den": "tiem",
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
     },
     {
      "ten": "Tàu xanh",
@@ -1653,6 +1745,7 @@
       0
      ],
      "huong_den": -24,
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu",
      "dien": [
       "uong@0.12-0.4",
       "uong@0.62-0.88"
@@ -1709,7 +1802,8 @@
      ],
      "huong": 90,
      "nhin_ai": "Nhóc",
-     "nhin_ai_den": "Nhóc"
+     "nhin_ai_den": "Nhóc",
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
     },
     {
      "ten": "Nhóc",
@@ -1727,6 +1821,7 @@
       0
      ],
      "huong_den": -90,
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu",
      "nhip": [
       {
        "u": 0,
@@ -1813,7 +1908,8 @@
      "nhin_ai_den": "Nhóc",
      "dien": [
       "chong_ban"
-     ]
+     ],
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
     },
     {
      "ten": "Nhóc",
@@ -1825,6 +1921,7 @@
      "huong": -90,
      "nhin_ai": "Chú",
      "nhin_ai_den": "Chú",
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu",
      "tay": [
       [
        0,
@@ -1901,7 +1998,8 @@
      "nhin_ai_den": "Nhóc",
      "dien": [
       "chong_ban"
-     ]
+     ],
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
     },
     {
      "ten": "Nhóc",
@@ -1919,6 +2017,7 @@
       0
      ],
      "huong_den": 175,
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu",
      "nhip": [
       {
        "u": 0,
@@ -2005,6 +2104,7 @@
      "huong": 90,
      "nhin_ai": "nhoc_xa",
      "nhin_ai_den": "nhoc_xa",
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám",
      "huong_den": 170
     },
     {
@@ -2114,7 +2214,8 @@
      "nhin_ai_den": "giua_ga",
      "dien": [
       "chong_ban"
-     ]
+     ],
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
     },
     {
      "ten": "Tờ 5 nghìn",
@@ -2163,6 +2264,7 @@
      "huong": -29,
      "nhin_ai": "cua_so",
      "nhin_ai_den": "cua_so",
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu",
      "nhip": [
       {
        "u": 0,
@@ -2245,6 +2347,7 @@
      "dien": [
       "chong_ban"
      ],
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám",
      "tay": [
       [
        0.3,
@@ -2306,7 +2409,8 @@
      "nhin_ai_den": "duoi_cua_so",
      "dien": [
       "chong_ban"
-     ]
+     ],
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
     },
     {
      "ten": "Tàu xanh",
@@ -2348,7 +2452,8 @@
      "nhin_ai_den": "duoi_cua_so",
      "dien": [
       "chong_ban"
-     ]
+     ],
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
     },
     {
      "ten": "Tàu xanh",
@@ -2388,6 +2493,7 @@
      "huong": -90,
      "nhin_ai": "Chú",
      "nhin_ai_den": "Chú",
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu",
      "tay": [
       [
        0.75,

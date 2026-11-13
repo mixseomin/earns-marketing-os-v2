@@ -8,13 +8,19 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import RAPIER from 'rapier';
 import * as T from './tex.js';
-import { taoNguoi, MAU_DA, MAU_AO } from './nhanvat.js';
+import { taoNguoi, MAU_DA, MAU_AO, phan, dangKyGoc, chotNguoi, veNguoi, LOD, DEM } from './nhanvat.js';
+import { dungCongTrinh, taoDongHo, taoSongDong } from './songdong.js';
 import { dungNhaQuan, nguoiQuan } from './quan.js';
 import { taoAmThanh } from './amthanh.js';
 
 const $ = (id) => document.getElementById(id);
 const thamSo = new URLSearchParams(location.search);
-const HAT = Number(thamSo.get('h')) || Math.floor(Math.random() * 1e6);
+// nhớ chỗ đang đứng: F5 / mở lại thì về đúng lâu đài, đúng chỗ, đúng hướng, đúng giờ (lưu trong trình duyệt người xem)
+const KHOA_LUU = 'castle-cho-dung-v1';
+const docLuu = () => { try { return JSON.parse(localStorage.getItem(KHOA_LUU) || 'null'); } catch { return null; } };
+const LUU = docLuu();
+const HAT = Number(thamSo.get('h')) || LUU?.hat || Math.floor(Math.random() * 1e6);
+if (!thamSo.get('h')) { thamSo.set('h', HAT); try { history.replaceState(null, '', '?' + thamSo.toString()); } catch {} }
 const r = T.rngTu(HAT);
 const giua = (a, b) => a + r() * (b - a);
 const THU = thamSo.has('thu'); // bộ kiểm tự động: đi bộ không cần khoá chuột
@@ -27,6 +33,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'hi
 let doNet = Math.min(devicePixelRatio, CHAM ? 1.1 : 1.25); // Retina 2–3x vẽ đủ điểm ảnh là nóng máy (MacBook 14/11/2026)
 renderer.setPixelRatio(doNet);
 renderer.setSize(innerWidth, innerHeight);
+renderer.info.autoReset = false; // đếm lệnh vẽ cả khung (nhiều lượt hậu kỳ)
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.prepend(renderer.domElement);
@@ -39,24 +46,29 @@ camera.position.set(70, 48, 150);
 const huongNang = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(70), THREE.MathUtils.degToRad(-140));
 const VL_TROI = new THREE.ShaderMaterial({
   side: THREE.BackSide, depthWrite: false, fog: false,
-  uniforms: { nang: { value: huongNang }, t: { value: 0 } },
+  uniforms: { nang: { value: huongNang }, t: { value: 0 }, dem: { value: 0 } },
   vertexShader: `varying vec3 vd; void main(){ vd = normalize(position); vec4 p = projectionMatrix*modelViewMatrix*vec4(position,1.); gl_Position = p.xyww; }`,
   fragmentShader: `
-    uniform vec3 nang; uniform float t; varying vec3 vd;
+    uniform vec3 nang; uniform float t; uniform float dem; varying vec3 vd;
     float h(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
     float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+1.),f.x), f.y); }
     float fbm(vec2 p){ float s=0., a=.5; for(int i=0;i<5;i++){ s+=a*n(p); p*=2.1; a*=.5; } return s; }
     void main(){
       vec3 d = normalize(vd); float y = d.y;
-      vec3 chan = vec3(.62,.30,.17), giua = vec3(.24,.13,.14), dinh = vec3(.06,.05,.09);
+      // ban ngày khói cam; ban đêm xanh đen, chân trời đỏ ánh dung nham (dem: 0 ngày → 1 đêm)
+      vec3 chan = mix(vec3(.72,.42,.28), vec3(.26,.08,.05), dem), giua = mix(vec3(.42,.34,.40), vec3(.05,.035,.06), dem), dinh = mix(vec3(.22,.26,.40), vec3(.008,.01,.028), dem);
       vec3 c = mix(chan, giua, smoothstep(0., .22, y)); c = mix(c, dinh, smoothstep(.2, .75, y));
       if (y < 0.) c = mix(chan, vec3(.35,.12,.05), smoothstep(0., -.2, y));
-      float sd = max(dot(d, normalize(nang)), 0.);
-      c += vec3(1.,.55,.25)*pow(sd, 12.)*.55 + vec3(1.,.8,.55)*pow(sd, 400.)*3.;
+      vec3 hn = normalize(nang);
+      float sd = max(dot(d, hn), 0.), tr = max(dot(d, -hn), 0.);
+      c += (vec3(1.,.55,.25)*pow(sd, 12.)*.55 + vec3(1.,.8,.55)*pow(sd, 400.)*3.) * (1.-dem*.9);
+      c += vec3(.75,.8,.95)*(pow(tr, 900.)*2.5 + pow(tr, 30.)*.08)*dem; // trăng
+      vec2 g = floor(vec2(atan(d.z, d.x), asin(clamp(y,-1.,1.)))*140.);
+      c += vec3(1.,.95,.9) * step(.9965, h(g)) * smoothstep(.06,.35,y) * dem * (.55+.45*sin(t*2.7+h(g+3.)*60.)); // sao
       vec2 uv = d.xz/(abs(y)+.12);
       float may = fbm(uv*1.4 + vec2(t*.006, t*.002));
       float lop = smoothstep(.45, .8, may) * smoothstep(-.02, .12, y) * (1.-smoothstep(.5,.9,y));
-      c = mix(c, vec3(.16,.09,.08) + vec3(.5,.22,.08)*smoothstep(.25,0.,y)*.6 + vec3(.6,.3,.15)*pow(sd,6.)*.6, lop*.75);
+      c = mix(c, mix(vec3(.16,.09,.08) + vec3(.5,.22,.08)*smoothstep(.25,0.,y)*.6 + vec3(.6,.3,.15)*pow(sd,6.)*.6, vec3(.03,.02,.025) + vec3(.25,.07,.02)*smoothstep(.25,0.,y), dem), lop*.75);
       gl_FragColor = vec4(c, 1.);
     }`,
 });
@@ -68,7 +80,7 @@ nang.shadow.mapSize.set(CHAM ? 1024 : 2048, CHAM ? 1024 : 2048);
 Object.assign(nang.shadow.camera, { left: -80, right: 80, top: 80, bottom: -80, near: 10, far: 400 });
 nang.shadow.bias = -0.0004; nang.shadow.normalBias = 0.04;
 scene.add(nang);
-scene.add(new THREE.HemisphereLight(0x9a8aa8, 0xb8501e, 1.1));
+const ban = new THREE.HemisphereLight(0x9a8aa8, 0xb8501e, 1.1); scene.add(ban);
 
 // ---------- vật liệu (bề mặt vẽ bằng mã)
 const vl = (t, o = {}) => new THREE.MeshStandardMaterial({ map: t.map, bumpMap: t.bump, bumpScale: o.bump ?? 2, roughness: o.ro ?? 0.9, metalness: 0, emissiveMap: t.emis || null, emissive: t.emis ? 0xffffff : 0x000000, emissiveIntensity: t.emis ? 2.2 : 0, ...(o.color ? { color: o.color } : {}) });
@@ -198,7 +210,7 @@ for (let i = 0; i < SO_THAP; i++) {
 // phố: hai vành nhà quanh vành đường r≈31, chừa 4 phố hướng tâm
 const PHO = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
 const GOC_QUAN = Math.PI / 2 + 0.42, R_QUAN = 41.5, TAM_QUAN = [Math.cos(GOC_QUAN) * R_QUAN, Math.sin(GOC_QUAN) * R_QUAN]; // quán rượu cạnh phố cổng
-const nhaVa = [];
+const nhaVa = [], ongKhoi = [];
 for (const hang of [19.5, 25.5, 37.8, 44.2]) { // bốn hàng nhà; vành phố chính r≈31 nằm giữa hàng 2 và 3
   {
     let a = r() * 0.2;
@@ -212,8 +224,8 @@ for (const hang of [19.5, 25.5, 37.8, 44.2]) { // bốn hàng nhà; vành phố 
         const x = Math.cos(am) * hang, z = Math.sin(am) * hang, ry = -am + Math.PI / 2;
         hop('vua', w, h, d, x, 0, z, ry); vaHop(w, h, d, x, 0, z, ry);
         maiDoc(r() < 0.8 ? 'ngoi' : 'ngoiXanh', w + 0.8, d + 1.2, giua(2, 3.2), x, h, z, ry);
-        if (r() < 0.5) { const o = giua(-w / 3, w / 3); hop('da', 0.7, 2.2, 0.7, x + Math.cos(-ry) * o, h + 0.6, z + Math.sin(-ry) * o, ry); }
-        nhaVa.push([x, z]);
+        if (r() < 0.5) { const o = giua(-w / 3, w / 3), ox = x + Math.cos(-ry) * o, oz = z + Math.sin(-ry) * o; hop('da', 0.7, 2.2, 0.7, ox, h + 0.6, oz, ry); ongKhoi.push([ox, h + 2.9, oz]); }
+        nhaVa.push([x, z, am, hang]);
       }
       a += da + giua(0.4, 1.8) / hang;
     }
@@ -222,14 +234,15 @@ for (const hang of [19.5, 25.5, 37.8, 44.2]) { // bốn hàng nhà; vành phố 
 
 // đèn đường dọc vành phố: cột gỗ + đèn lồng phát sáng, vài đèn thật đổ sáng
 const VL_DEN = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffb060, emissiveIntensity: 4 });
-const gDen = [];
+const gDen = [], denDuong = [];
 for (let k = 0; k < 28; k++) {
   const a = k / 28 * Math.PI * 2 + 0.06, x = Math.cos(a) * 31, z = Math.sin(a) * 31;
   hop('go', 0.22, 3.2, 0.22, x, 0, z); vaHop(0.22, 3.2, 0.22, x, 0, z);
   gDen.push(new THREE.BoxGeometry(0.42, 0.55, 0.42).translate(x, 3.45, z));
-  if (k % 7 === 0) { const l = new THREE.PointLight(0xffa050, 18, 16, 1.8); l.position.set(x, 3.6, z); scene.add(l); }
+  if (k % 7 === 0) { const l = new THREE.PointLight(0xffa050, 18, 16, 1.8); l.position.set(x, 3.6, z); scene.add(l); denDuong.push(l); }
 }
 scene.add(new THREE.Mesh(mergeGeometries(gDen), VL_DEN));
+const ct = dungCongTrinh({ hop, tru, non, vaHop, vaTru, scene, mergeGeometries });
 const quan = dungNhaQuan({ hop, tru, maiDoc, dat_, vaHop, vaTru, scene, mergeGeometries, chamLua: T.cham() }, GOC_QUAN, R_QUAN);
 dungLuoi();
 
@@ -292,7 +305,7 @@ for (let k = 0; k < 6; k++) { // tháp thùng chồng quanh quảng trường
   for (let t = 0; t < 3; t++) for (let i = 0; i < 3 - t; i++) thung(cx + (i - (2 - t) / 2) * 0.84, 0.41 + t * 0.81, cz);
   for (let i = 0; i < 3; i++) thungTron(cx + giua(-1.5, 1.5), 0.5, cz + giua(1, 2));
 }
-for (let k = 0; k < 10; k++) { const a = r() * Math.PI * 2; thung(Math.cos(a) * giua(29, 33), 0.41, Math.sin(a) * giua(29, 33)); }
+for (const a of [1.0, 1.55, 2.6, 4.2, 4.9, 5.4]) thung(Math.cos(a) * giua(29.2, 30.4), 0.41, Math.sin(a) * giua(29.2, 30.4)); // chừa chợ (đông), lò rèn (tây), lối quán
 for (let k = 0; k < 6; k++) thung(giua(-2, 2), 0.41 + k * 0.81, 70); // chồng thùng trên cầu
 
 const VL_SOI = VL.bazan; const soi = [];
@@ -320,7 +333,7 @@ function da() { // đá chân: hất thùng / làm ngã người trước mặt
     const p = than.translation(), f = new THREE.Vector3(Math.sin(huongToi), 0, Math.cos(huongToi));
     const truoc = new THREE.Vector3(p.x, p.y - 0.6, p.z).addScaledVector(f, 0.9);
     for (const { b } of dong) { const t = b.translation(); if (Math.hypot(t.x - truoc.x, t.z - truoc.z) < 1.1 && Math.abs(t.y - truoc.y) < 1.2) { const m = b.mass(); b.applyImpulse({ x: f.x * 7 * m, y: 3.5 * m, z: f.z * 7 * m }, true); } }
-    for (const d of dan) if (Math.hypot(d.x - truoc.x, d.z - truoc.z) < 1.1) d.n.lam('nga');
+    sd.biDa(truoc.x, truoc.z);
   });
 }
 
@@ -338,36 +351,16 @@ let gocNhin = 3, huongToi = 0, muonHuong = 0, tocToi = 0; // gocNhin 3 = sau lư
 const gocLerp = (a, b, t) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * t;
 const LOC_TINH = RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC | RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC;
 
-// dân trong phố: đi vòng phố chính, dừng ngó nghiêng, chào khi mình tới gần, trúng đá / bị đá thì ngã rồi dậy
-const dan = [];
-for (let i = 0; i < 14; i++) {
-  const n = taoNguoi({ da: MAU_DA[i % MAU_DA.length], ao: MAU_AO[i % MAU_AO.length], quan: [0x3a3530, 0x4a3a28, 0x2a2a3a][i % 3], toc: [0x2b1d14, 0x6a4a2a, 0x1a1a1a, 0x8a7a6a][i % 4], mu: i % 4 === 0 ? 0x5a3a20 : undefined, co: giua(0.92, 1.04) });
-  scene.add(n.goc);
-  const rr = i % 2 ? 29.6 : 32.6, a = r() * Math.PI * 2;
-  const b = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(Math.cos(a) * rr, 0.85, Math.sin(a) * rr));
-  world.createCollider(RAPIER.ColliderDesc.capsule(0.5, 0.3), b);
-  dan.push({ n, b, rr, a, chieu: r() < 0.5 ? 1 : -1, toc: giua(1.1, 1.6), dung: 0, hoiChao: 0, x: 0, z: 0 });
-}
+// đời sống: đồng hồ ngày–đêm + người dân có nhà/nghề/lịch, chợ, lò rèn, giếng, lính tuần, thú, chim, khói
+const gioGame = taoDongHo({ nang, ban, troi: VL_TROI, scene, VL, VL_DEN, denDuong, renderer }, 17.5);
 const quanNguoi = nguoiQuan({ taoNguoi, MAU_DA, MAU_AO, scene, world, RAPIER }, quan);
+const sd = taoSongDong({ scene, world, RAPIER, taoNguoi, MAU_DA, MAU_AO, phan, dangKyGoc, camera, quan, quanNguoi, nhaVa, ongKhoi, ct, dongHo: gioGame, R_QUAN, GOC_QUAN, chamLua: T.cham() });
+const cocToi = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.13, 10), new THREE.MeshStandardMaterial({ color: 0x6a4424 })); cocToi.position.set(0, -0.06, 0.05); cocToi.visible = false; toi.cam(cocToi);
+chotNguoi(scene); LOD.cam = camera;
 function buocDan(dt) {
   const p = than.translation();
   quanNguoi.capNhat(dt, cheDo === 'di' ? { x: p.x, z: p.z } : null);
-  for (const d of dan) {
-    d.hoiChao -= dt;
-    let v = 0;
-    const gan = cheDo === 'di' && Math.hypot(p.x - d.x, p.z - d.z) < 3.2;
-    if (d.n.viec === 'nga') v = 0;
-    else if (gan && d.hoiChao <= 0 && !d.n.viec) { d.dung = 2.6; d.hoiChao = 12; d.n.lam('chao'); d.nhin = Math.atan2(p.x - d.x, p.z - d.z); }
-    else if (d.dung > 0) d.dung -= dt;
-    else { v = d.toc; d.a += d.chieu * v * dt / d.rr; d.nhin = null; if (Math.random() < dt * 0.06) d.dung = 1.5 + Math.random() * 3; }
-    d.x = Math.cos(d.a) * d.rr; d.z = Math.sin(d.a) * d.rr;
-    const huong = d.nhin ?? Math.atan2(-Math.sin(d.a) * d.chieu, Math.cos(d.a) * d.chieu);
-    d.n.goc.rotation.y = gocLerp(d.n.goc.rotation.y, huong, 1 - Math.exp(-dt * 6));
-    d.n.goc.position.set(d.x, 0.02, d.z);
-    d.b.setNextKinematicTranslation({ x: d.x, y: 0.85, z: d.z });
-    for (const s of soi) { const t = s.translation(), lv = s.linvel(); if (Math.hypot(lv.x, lv.y, lv.z) > 4 && Math.hypot(t.x - d.x, t.z - d.z) < 0.55 && t.y < 2 && t.y > 0) d.n.lam('nga'); }
-    d.n.capNhat(dt, { toc: v, nen: true });
-  }
+  sd.capNhat(dt, { p, diBo: cheDo === 'di', soi, am, nhanh: gioGame.nhanh });
 }
 
 let cheDo = 'toan', yaw = Math.PI, pitch = 0, vy = 0, nen = false;
@@ -397,8 +390,9 @@ let am = null, tatAm = false;
 const batAm = () => { if (am || tatAm) return; try { am = taoAmThanh(); am.gan(quan); } catch (e) { console.warn('[castle] không bật được âm thanh', e); } };
 addEventListener('pointerdown', batAm); addEventListener('keydown', batAm);
 $('b-am').onclick = (e) => { e.stopPropagation(); tatAm = !tatAm; $('b-am').textContent = tatAm ? '🔇' : '🔊'; if (am) am.tat(tatAm); else batAm(); };
+$('b-gio').onclick = (e) => { e.stopPropagation(); gioGame.doiNhanh(); $('b-gio').textContent = `🕒 ${gioGame.chu()} ×${gioGame.nhanh}`; };
 let tuongTac = 0; for (const ev of ['pointermove', 'wheel', 'keydown', 'touchmove']) addEventListener(ev, () => { tuongTac = performance.now(); }, { passive: true });
-$('b-moi').onclick = () => { thamSo.set('h', Math.floor(Math.random() * 1e6)); location.search = thamSo.toString(); };
+$('b-moi').onclick = () => { try { localStorage.removeItem(KHOA_LUU); } catch {} thamSo.set('h', Math.floor(Math.random() * 1e6)); location.search = thamSo.toString(); };
 
 const tia = new THREE.Raycaster();
 renderer.domElement.addEventListener('dblclick', (e) => {
@@ -416,6 +410,7 @@ renderer.domElement.addEventListener('touchend', (e) => {
 document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && cheDo === 'di' && !CHAM) $('dung').style.display = 'grid'; });
 document.addEventListener('mousemove', (e) => { if (document.pointerLockElement !== renderer.domElement) return; yaw -= e.movementX * 0.0022; pitch = Math.max(-1.45, Math.min(1.45, pitch - e.movementY * 0.0022)); });
 renderer.domElement.addEventListener('mousedown', () => { if (cheDo === 'di' && document.pointerLockElement) nem(); });
+function noiChuyen() { if (cheDo !== 'di') return; const p = than.translation(); const kq = sd.noiChuyen(p, huongToi, am); if (!kq) sd.noi(toi.goc, 'Không có ai gần đây.', 1.5); }
 function doiGocNhin() { gocNhin = gocNhin === 3 ? 1 : 3; toi.goc.visible = cheDo === 'di' && gocNhin === 3; }
 addEventListener('keydown', (e) => {
   phim[e.code] = true; if (cheDo !== 'di' || e.repeat) return;
@@ -424,6 +419,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Digit1') toi.lam('chao');
   if (e.code === 'Digit2') toi.lam('mua');
   if (e.code === 'KeyF') da();
+  if (e.code === 'KeyE') noiChuyen();
 });
 addEventListener('keyup', (e) => { phim[e.code] = false; });
 
@@ -440,7 +436,7 @@ addEventListener('touchmove', (e) => {
 renderer.domElement.addEventListener('touchstart', (e) => { if (cheDo !== 'di') return; const t = e.changedTouches[0]; if (nhin.id === null) { nhin.id = t.identifier; nhin.x = t.clientX; nhin.y = t.clientY; } }, { passive: true });
 addEventListener('touchend', (e) => { for (const t of e.changedTouches) { if (t.identifier === can.id) { can.id = null; can.dx = can.dy = 0; cuc.style.transform = ''; } if (t.identifier === nhin.id) nhin.id = null; } });
 $('b-nhay').addEventListener('touchstart', (e) => { e.preventDefault(); if (nen) vy = 5.2; }, { passive: false });
-for (const [id, f] of [['b-nem', nem], ['b-chao', () => toi.lam('chao')], ['b-mua', () => toi.lam('mua')], ['b-da', da], ['b-goc', doiGocNhin]])
+for (const [id, f] of [['b-nem', nem], ['b-chao', () => toi.lam('chao')], ['b-mua', () => toi.lam('mua')], ['b-da', da], ['b-goc', doiGocNhin], ['b-noi', noiChuyen]])
   $(id).addEventListener('touchstart', (e) => { e.preventDefault(); f(); }, { passive: false });
 
 // ---------- hậu kỳ
@@ -474,7 +470,7 @@ function buocDiBo(dt) {
   nen = dk.computedGrounded();
   if (p.y < -6) vaoDiBo(); // rơi xuống dung nham → về đầu cầu
 }
-let lanVe = 0, demCham = 0, demKhung = 0, mocDo = 0;
+let veGio = -1, lanVe = 0, demCham = 0, demKhung = 0, mocDo = 0;
 function vong(now = 0) {
   requestAnimationFrame(vong);
   // trần khung hình: đi bộ / đang thao tác 60 · để yên toàn cảnh 30 · cửa sổ không được chọn 10 (màn 120 Hz không vẽ gấp đôi)
@@ -485,14 +481,18 @@ function vong(now = 0) {
   if (khoang < 20) { demKhung++; if (cach > 24) demCham++; if (now - mocDo > 2000) { if (demCham > demKhung * 0.3 && doNet > 0.7) { doNet = Math.max(0.7, doNet - 0.15); renderer.setPixelRatio(doNet); composer.setPixelRatio?.(doNet); } demCham = demKhung = 0; mocDo = now; } }
   const dt = Math.min(dongHo.getDelta(), 0.1), t = dongHo.elapsedTime;
   tichLuy += dt;
-  while (tichLuy >= BUOC) { if (cheDo === 'di') buocDiBo(BUOC); buocDan(BUOC); world.step(); tichLuy -= BUOC; }
+  renderer.info.reset();
+  gioGame.capNhat(dt); buocDan(dt);
+  if ((t * 2 | 0) !== (veGio | 0)) { veGio = t * 2; $('b-gio').textContent = `🕒 ${gioGame.chu()} ×${gioGame.nhanh}`; }
+  while (tichLuy >= BUOC) { if (cheDo === 'di') buocDiBo(BUOC); world.step(); tichLuy -= BUOC; }
   for (const { mesh, b } of dong) { const p = b.translation(), q = b.rotation(); mesh.position.set(p.x, p.y, p.z); mesh.quaternion.set(q.x, q.y, q.z, q.w); if (p.y < -9) { b.setTranslation({ x: p.x, y: -200, z: p.z }, false); b.sleep(); } }
   if (cheDo === 'di') {
     const p = than.translation(), chan = p.y - NGUOI_H - NGUOI_R;
     if (gocNhin === 1) muonHuong = yaw + Math.PI;
     huongToi = gocLerp(huongToi, muonHuong, 1 - Math.exp(-dt * 10));
     toi.goc.position.set(p.x, chan, p.z); toi.goc.rotation.y = huongToi;
-    toi.capNhat(dt, { toc: tocToi, nen, ngoi: !!phim.KeyC });
+    const uong = sd.dangUong(); cocToi.visible = uong;
+    toi.capNhat(dt, { toc: tocToi, nen, ngoi: !!phim.KeyC, loop: uong ? 'uong' : null });
     if (gocNhin === 1) { camera.position.set(p.x, chan + MAT, p.z); camera.rotation.set(pitch, yaw, 0, 'YXZ'); }
     else { // camera sau vai phải, lùi vào khi vướng tường
       const pt = Math.max(-1.1, Math.min(0.75, pitch));
@@ -512,8 +512,30 @@ function vong(now = 0) {
   anhDn.intensity = 20 + Math.sin(t * 2.1) * 6 + Math.sin(t * 5.3) * 3;
   quan.capNhat(dt, t);
   if (am) { const p = camera.position; am.capNhat(camera, quan.trong(p.x, p.z), Math.hypot(p.x - quan.tam[0], p.z - quan.tam[1])); }
+  veNguoi(); ghiLuu(now);
   composer.render();
 }
+// khôi phục chỗ đứng cũ (chỉ khi cùng lâu đài)
+if (LUU && LUU.hat === HAT && !THU) {
+  if (LUU.gio != null) gioGame.datGio(LUU.gio);
+  if (LUU.gocNhin && LUU.gocNhin !== gocNhin) doiGocNhin();
+  if (LUU.cheDo === 'di' && LUU.p) {
+    vaoDiBo(); than.setTranslation(LUU.p, true); yaw = LUU.yaw ?? yaw; pitch = LUU.pitch ?? pitch; huongToi = muonHuong = LUU.huong ?? yaw + Math.PI;
+    if (!CHAM) $('dung').style.display = 'grid'; // trình duyệt chỉ khoá chuột sau một cú bấm → hiện nút "Đi tiếp"
+  } else if (LUU.cam) { camera.position.fromArray(LUU.cam); orbit.target.fromArray(LUU.dich); orbit.update(); }
+}
+let lucLuu = 0;
+function ghiLuu(now) {
+  if (now - lucLuu < 1000 || THU) return; lucLuu = now;
+  const p = than.translation();
+  try { localStorage.setItem(KHOA_LUU, JSON.stringify({ hat: HAT, cheDo, gio: gioGame.gio, gocNhin, ...(cheDo === 'di' ? { p: { x: p.x, y: p.y + 0.05, z: p.z }, yaw, pitch, huong: huongToi } : { cam: camera.position.toArray(), dich: orbit.target.toArray() }) })); } catch {}
+}
+// bảng hướng dẫn nút: H hoặc ❔ để ẩn / hiện (nhớ lựa chọn)
+const hd = $('hd');
+try { if (localStorage.getItem('castle-an-hd') === '1') hd.classList.add('an'); } catch {}
+const doiHd = () => { hd.classList.toggle('an'); try { localStorage.setItem('castle-an-hd', hd.classList.contains('an') ? '1' : '0'); } catch {} };
+$('b-hd').onclick = (e) => { e.stopPropagation(); doiHd(); };
+addEventListener('keydown', (e) => { if (e.code === 'KeyH' && !e.repeat) doiHd(); });
 $('tai').remove();
-window.__lauDai = { hat: HAT, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; }, toi, dan, da, doiGocNhin, quan, quanNguoi, doNet: () => doNet };
+window.__lauDai = { hat: HAT, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; }, toi, dan: sd.dan, da, doiGocNhin, quan, quanNguoi, doNet: () => doNet, renderer, bloom, composer, sd, gioGame, ve: () => ({ lenh: renderer.info.render.calls, tamGiac: renderer.info.render.triangles, nguoi: { ...DEM } }) };
 vong();

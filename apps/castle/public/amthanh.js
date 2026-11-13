@@ -63,6 +63,14 @@ export function taoAmThanh() {
       loc.frequency.setTargetAtTime(trongQuan ? 16000 : 700, t, 0.15);
       quan.gain.setTargetAtTime(trongQuan ? 1 : Math.max(0, 1 - kcQuan / 40) * 0.8, t, 0.2);
     },
+    // tiếng ngắn có vị trí: 'ren' búa gõ đe (kim loại, các hoạ âm lệch) · 'ga' gà cục tác · 'cho' chó sủa
+    tieng(kieu, x, y, z) {
+      const t = C.currentTime, p = C.createPanner(); p.panningModel = 'HRTF'; p.refDistance = 2; p.rolloffFactor = 1.4; p.positionX.value = x; p.positionY.value = y; p.positionZ.value = z; p.connect(tong);
+      if (kieu === 'ren') for (const [f, a, d] of [[1180, 0.18, 0.9], [2630, 0.1, 0.6], [3870, 0.06, 0.4], [520, 0.08, 0.3]]) { const o = C.createOscillator(), g = C.createGain(); o.frequency.value = f * (0.98 + Math.random() * 0.04); g.gain.setValueAtTime(a, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g).connect(p); o.start(t); o.stop(t + d); }
+      else if (kieu === 'ga') for (let k = 0; k < 3; k++) { const o = C.createOscillator(), g = C.createGain(); o.type = 'square'; const t0 = t + k * 0.11; o.frequency.setValueAtTime(700 + Math.random() * 200, t0); o.frequency.exponentialRampToValueAtTime(420, t0 + 0.08); g.gain.setValueAtTime(0.04, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09); const f = C.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; o.connect(f).connect(g).connect(p); o.start(t0); o.stop(t0 + 0.1); }
+      else if (kieu === 'cho') for (let k = 0; k < 2; k++) { const o = C.createOscillator(), g = C.createGain(); o.type = 'sawtooth'; const t0 = t + k * 0.22; o.frequency.setValueAtTime(320, t0); o.frequency.exponentialRampToValueAtTime(180, t0 + 0.12); g.gain.setValueAtTime(0.09, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.14); const f = C.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400; o.connect(f).connect(g).connect(p); o.start(t0); o.stop(t0 + 0.15); }
+      setTimeout(() => p.disconnect(), 1500);
+    },
     tat(b) { tong.gain.setTargetAtTime(b ? 0 : 0.8, C.currentTime, 0.1); },
   };
 }

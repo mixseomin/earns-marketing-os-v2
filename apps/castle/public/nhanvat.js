@@ -3,9 +3,57 @@
 // Mặt nhân vật nhìn về +z cục bộ. Động tác: đứng thở · đi · chạy · nhảy · ngồi · ném · chào · múa · đá · ngã–dậy.
 import * as THREE from 'three';
 
-const VL = new Map();
-const vl = (mau, ro = 0.8) => { const k = mau + ':' + ro; if (!VL.has(k)) VL.set(k, new THREE.MeshStandardMaterial({ color: mau, roughness: ro })); return VL.get(k); };
-const nang = (r, h, mau, y = 0) => { const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, h, 4, 10), vl(mau)); m.position.y = y; m.castShadow = true; return m; };
+// VẼ HÀNG LOẠT: mỗi bộ phận (đầu, đùi, giày…) chỉ là một điểm neo trong khung xương; mọi người cùng loại bộ phận
+// vẽ chung MỘT lệnh (InstancedMesh, màu riêng từng người). 30 người × 30 bộ phận = ~20 lệnh vẽ thay vì ~900 → máy mát.
+const KHO = new Map(), GOC_DS = [];
+const VL_CHUNG = new THREE.MeshStandardMaterial({ roughness: 0.8 });
+export function phan(key, taoHinh, mau) {
+  let k = KHO.get(key); if (!k) { k = { geo: taoHinh(), ds: [], m: null }; KHO.set(key, k); }
+  const o = new THREE.Object3D(); o.userData.mau = new THREE.Color(mau); k.ds.push(o); return o;
+}
+export function dangKyGoc(g) { GOC_DS.push(g); g.traverse((o) => { o.userData.goc = g; }); }
+// Ai được vẽ chi tiết: chỉ người TRONG khung nhìn và GẦN (≤ 45 m). Xa hơn → một khối dáng người cùng màu áo (1 lệnh vẽ chung);
+// ngoài khung nhìn → không vẽ, không tính động tác. Thú ở xa / ngoài khung → ẩn.
+const GAN = 45, khung = new THREE.Frustum(), mPS = new THREE.Matrix4(), cau_ = new THREE.Sphere(), tamTam = new THREE.Vector3();
+let XA = null;
+export const DEM = { gan: 0, xa: 0, an: 0 };
+function xepLod(g) {
+  if (!g.visible) return 'an';
+  tamTam.copy(g.position); tamTam.y += 0.9; cau_.set(tamTam, 1.3);
+  if (!khung.intersectsSphere(cau_)) return 'an';
+  return g.position.distanceTo(LOD.cam.position) > GAN ? (g.userData.ao != null ? 'xa' : 'an') : 'gan';
+}
+export function trongKhung(g) { return !LOD.cam || g.userData.lod !== 'an'; }
+export function chotNguoi(scene) { // gọi một lần sau khi tạo xong mọi người / thú
+  const nguoi = GOC_DS.filter((g) => g.userData.ao != null);
+  XA = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.24, 1.15, 2, 6).translate(0, 0.83, 0), VL_CHUNG, nguoi.length);
+  XA.frustumCulled = false; XA.castShadow = true; nguoi.forEach((g, i) => { g.userData.xaI = i; XA.setColorAt(i, new THREE.Color(g.userData.ao)); }); scene.add(XA);
+  for (const k of KHO.values()) {
+    if (k.m) continue;
+    k.m = new THREE.InstancedMesh(k.geo, VL_CHUNG, k.ds.length); k.m.castShadow = true; k.m.frustumCulled = false;
+    k.ds.forEach((o, i) => k.m.setColorAt(i, o.userData.mau)); scene.add(k.m);
+  }
+}
+const KHONG = new THREE.Matrix4().makeScale(0, 0, 0);
+export function veNguoi() {
+  const cam = LOD.cam; cam.updateMatrixWorld(); mPS.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); khung.setFromProjectionMatrix(mPS);
+  DEM.gan = DEM.xa = DEM.an = 0;
+  for (const g of GOC_DS) {
+    const l = g.userData.lod = xepLod(g); DEM[l]++;
+    if (l === 'gan') g.updateMatrixWorld(true);
+    if (XA && g.userData.xaI != null) { if (l === 'xa') { g.updateMatrix(); XA.setMatrixAt(g.userData.xaI, g.matrix); } else XA.setMatrixAt(g.userData.xaI, KHONG); }
+  }
+  if (XA) XA.instanceMatrix.needsUpdate = true;
+  for (const k of KHO.values()) {
+    if (!k.m) continue;
+    k.ds.forEach((o, i) => k.m.setMatrixAt(i, o.userData.goc?.userData.lod === 'gan' && o.visible ? o.matrixWorld : KHONG));
+    k.m.instanceMatrix.needsUpdate = true;
+  }
+}
+export const LOD = { cam: null }; // ở xa thì cập nhật động tác thưa (35 m: 15 lần/giây, 60 m: 5 lần/giây)
+const vl = (mau) => mau;
+const nang = (r, h, mau, y = 0) => { const o = phan(`cap:${r}:${h}`, () => new THREE.CapsuleGeometry(r, h, 3, 8), mau); o.position.y = y; return o; };
+const cau = (key, taoHinh, mau) => phan(key, taoHinh, mau);
 const khop = (cha, x, y, z) => { const g = new THREE.Group(); g.position.set(x, y, z); cha.add(g); return g; };
 
 export const MAU_DA = [0xf1c7a3, 0xd9a07a, 0xb37a52, 0x8a5a3c, 0xf5d6bd];
@@ -22,35 +70,35 @@ export function taoNguoi(o = {}) {
   k.bung.add(nang(0.16, 0.14, ao, 0.12));
   k.nguc = khop(k.bung, 0, 0.24, 0);
   const nguc = nang(0.19, 0.16, ao, 0.1); nguc.scale.set(1.05, 1, 0.78); k.nguc.add(nguc);
-  const that = new THREE.Mesh(new THREE.TorusGeometry(0.155, 0.025, 6, 16), vl(0x3a2414)); that.rotation.x = Math.PI / 2; that.position.y = -0.2; k.nguc.add(that); // thắt lưng
+  const that = cau('that', () => new THREE.TorusGeometry(0.155, 0.025, 5, 14), 0x3a2414); that.rotation.x = Math.PI / 2; that.position.y = -0.2; k.nguc.add(that); // thắt lưng
   k.co = khop(k.nguc, 0, 0.3, 0);
   k.co.add(nang(0.055, 0.06, da, 0.04));
   k.dau = khop(k.co, 0, 0.1, 0);
-  const dau = new THREE.Mesh(new THREE.SphereGeometry(0.115, 18, 14), vl(da)); dau.scale.set(0.92, 1.08, 1); dau.position.y = 0.1; dau.castShadow = true; k.dau.add(dau);
-  const t = new THREE.Mesh(new THREE.SphereGeometry(0.122, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), vl(toc, 0.95)); t.position.set(0, 0.115, -0.012); t.rotation.x = -0.25; k.dau.add(t);
-  for (const x of [-0.04, 0.04]) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), vl(0x111111, 0.3)); m.position.set(x, 0.115, 0.1); k.dau.add(m); }
-  const mui = new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.04, 6), vl(da)); mui.rotation.x = Math.PI / 2; mui.position.set(0, 0.085, 0.115); k.dau.add(mui);
-  if (o.mu) { const m = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.2, 14), vl(o.mu)); m.position.y = 0.27; k.dau.add(m); }
+  const dau = cau('dau', () => new THREE.SphereGeometry(0.115, 14, 10), da); dau.scale.set(0.92, 1.08, 1); dau.position.y = 0.1; k.dau.add(dau);
+  const t = cau('toc', () => new THREE.SphereGeometry(0.122, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), toc); t.position.set(0, 0.115, -0.012); t.rotation.x = -0.25; k.dau.add(t);
+  for (const x of [-0.04, 0.04]) { const m = cau('mat', () => new THREE.SphereGeometry(0.014, 6, 4), 0x111111); m.position.set(x, 0.115, 0.1); k.dau.add(m); }
+  const mui = cau('mui', () => new THREE.ConeGeometry(0.016, 0.04, 5), da); mui.rotation.x = Math.PI / 2; mui.position.set(0, 0.085, 0.115); k.dau.add(mui);
+  if (o.mu) { const m = cau('mu', () => new THREE.ConeGeometry(0.15, 0.2, 12), o.mu); m.position.y = 0.27; k.dau.add(m); }
   for (const [ben, x] of [['T', 1], ['P', -1]]) { // T = trái nhân vật (+x), P = phải (-x)
     const vai = k['vai' + ben] = khop(k.nguc, x * 0.22, 0.24, 0);
     vai.add(nang(0.058, 0.2, ao, -0.14));
     const khuyu = k['khuyu' + ben] = khop(vai, 0, -0.29, 0);
     khuyu.add(nang(0.048, 0.18, da, -0.12));
     const tay = k['tay' + ben] = khop(khuyu, 0, -0.26, 0);
-    tay.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), vl(da)), { castShadow: true }));
+    tay.add(cau('tay', () => new THREE.SphereGeometry(0.05, 8, 6), da));
     const dui = k['dui' + ben] = khop(k.hong, x * 0.1, -0.03, 0);
     dui.add(nang(0.075, 0.28, quan, -0.22));
     const goi = k['goi' + ben] = khop(dui, 0, -0.45, 0);
     goi.add(nang(0.06, 0.28, quan, -0.21));
     const co = k['coChan' + ben] = khop(goi, 0, -0.44, 0);
-    const chan = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.24), vl(giay)); chan.position.set(0, -0.02, 0.05); chan.castShadow = true; co.add(chan);
+    const chan = cau('giay', () => new THREE.BoxGeometry(0.1, 0.07, 0.24), giay); chan.position.set(0, -0.02, 0.05); co.add(chan);
   }
-  goc.traverse((m) => { if (m.isMesh) m.castShadow = true; });
+  goc.userData.ao = ao; dangKyGoc(goc);
 
   // ---- tư thế: mỗi khớp một Euler đích, khớp thật trôi về đích (mượt khi đổi động tác)
   const TEN = Object.keys(k);
   const dich = Object.fromEntries(TEN.map((n) => [n, new THREE.Vector3()]));
-  let pha = 0, viec = null, tViec = 0, hongY = 0.95, hongYDich = 0.95, nghieng = 0, nghiengDich = 0;
+  let tichDt = 0, pha = 0, viec = null, tViec = 0, hongY = 0.95, hongYDich = 0.95, nghieng = 0, nghiengDich = 0;
   const DT = { nem: 0.75, chao: 2.2, mua: 3.2, da: 0.7, nga: 3.2, cungLy: 1.4 };
   const lech = Math.random() * 20; // mỗi người lệch nhịp, đám đông không cử động đồng loạt
   const xoa = () => { for (const n of TEN) dich[n].set(0, 0, 0); hongYDich = 0.95; nghiengDich = 0; };
@@ -60,7 +108,11 @@ export function taoNguoi(o = {}) {
     lam(ten, khiTha) { if (viec === 'nga') return false; if (!DT[ten]) { viec = null; return false; } viec = ten; tViec = 0; api.khiTha = khiTha || null; api.daTha = false; return true; },
     viTriTay(out) { return k.tayP.getWorldPosition(out); },
     cam(vat, noi = 'tayP') { k[noi].add(vat); return vat; }, // gắn đồ vào khớp (cốc, đàn, khay)
-    capNhat(dt, st) { // st = { toc: m/s ngang, nen, chay, ngoi }
+    capNhat(dt0, st) { // st = { toc: m/s ngang, nen, ngoi, ngoiGhe, loop }
+      if (!goc.visible) return;
+      if (LOD.cam) { tichDt += dt0; if (goc.userData.lod && goc.userData.lod !== 'gan') { if (tichDt > 1) tichDt = 1; return; } } // xa / ngoài khung: không tính động tác
+      else tichDt += dt0;
+      const dt = Math.min(tichDt, 0.25); tichDt = 0;
       xoa();
       const v = st.toc || 0;
       const ty = Math.min(v / 4.2, 1), chay = Math.max(0, Math.min((v - 4.5) / 3, 1));
@@ -111,6 +163,13 @@ export function taoNguoi(o = {}) {
         dich.bung.x += 0.25; dich.vaiP.x = -0.95 + Math.cos(tt * 3.2) * 0.12; dich.vaiP.z = -0.15 + Math.sin(tt * 3.2) * 0.3; dich.khuyuP.x = -0.55; dich.dau.x = 0.25; dich.vaiT.x = -0.3; dich.khuyuT.x = -0.4;
       } else if (L === 'khay') {
         dich.vaiT.x = dich.vaiP.x = -0.75; dich.khuyuT.x = dich.khuyuP.x = -0.85; dich.vaiT.z = 0.12; dich.vaiP.z = -0.12;
+      } else if (L === 'ren') { // vung búa rèn: nhấc chậm, đập nhanh (1,4 nhát/giây)
+        const c = (tt * 1.4) % 1, len = c < 0.7 ? c / 0.7 : 1 - (c - 0.7) / 0.3;
+        dich.vaiP.x = -0.5 - 1.9 * len; dich.khuyuP.x = -0.4 - 0.9 * len; dich.vaiP.z = -0.15; dich.bung.x += 0.2; dich.dau.x = 0.3;
+        dich.vaiT.x = -0.7; dich.khuyuT.x = -0.9; dich.duiT.x = -0.25; dich.goiP.x = 0.15;
+      } else if (L === 'keo') { // kéo dây gàu giếng: hai tay luân phiên
+        const k = Math.sin(tt * 2.4);
+        dich.vaiT.x = -1.3 - 0.5 * k; dich.khuyuT.x = -0.6 + 0.4 * k; dich.vaiP.x = -1.3 + 0.5 * k; dich.khuyuP.x = -0.6 - 0.4 * k; dich.bung.x += 0.25; dich.dau.x = 0.3;
       } else if (L === 'say') {
         dich.dau.z = Math.sin(tt * 1.3) * 0.28; dich.dau.x = 0.2; dich.nguc.z = Math.sin(tt * 0.9) * 0.14; dich.bung.x += 0.12;
         dich.vaiP.x = -0.6; dich.khuyuP.x = -1.2; dich.vaiT.z = 0.25 + Math.sin(tt * 1.1) * 0.15;

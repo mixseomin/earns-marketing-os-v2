@@ -20,6 +20,8 @@ const XANH = 'var(--neon-lime, #4ade80)', DO = '#f87171', MO = 'var(--fg-3)';
 const mauLai = (v: number) => (Math.abs(v) < 0.005 ? MO : v > 0 ? XANH : DO);
 const congNgay = (d: string, n: number) => { const t = new Date(`${d}T00:00:00Z`); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 const soNgayGiua = (tu: string, den: string) => Math.round((Date.parse(`${den}T00:00:00Z`) - Date.parse(`${tu}T00:00:00Z`)) / 86_400_000) + 1;
+/** ROI kỳ + ▲▼ so kỳ trước cùng độ dài — dùng chung cho dòng người và dòng Tổng */
+const roiSoTruoc = (k: ST, t: ST) => { const r = roi(k), tr = roi(t); return <span title={tr == null ? undefined : `kỳ trước cùng độ dài: ${pct(tr)}`}>{pct(r)}{r != null && tr != null ? <small style={{ color: r >= tr ? XANH : DO, marginLeft: 4 }}>{r >= tr ? '▲' : '▼'}{Math.abs(r - tr).toFixed(0)}</small> : null}</span>; };
 const diToi = (q: Record<string, string>) => { const u = new URL(location.href); for (const [k, v] of Object.entries(q)) { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); } location.href = u.href; };
 
 /** ROI theo ngày — đường mini (viz một lần, không primitive) */
@@ -205,12 +207,23 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
       ]} />;
     },
     nguoi: () => {
-      if (!x) return cho;
-      return <SimpleTable rows={x.nguoi} getRowKey={(p) => String(p.id)} rowStyle={(p) => (p.nha ? { fontWeight: 600 } : undefined)} columns={[
+      if (!x || !s) return cho;
+      // dòng Tổng (sticky đáy, #1581): cộng chi/thu kỳ + kỳ trước của mọi người đang hiện, ROI tính từ tổng (không cộng %), đường ROI 7 ngày từ tổng từng ngày
+      const tk = cong(x.nguoi.map((p) => p.k)), tt = cong(x.nguoi.map((p) => p.t));
+      const ids = new Set(x.nguoi.map((p) => p.id)), ngay7 = Array.from({ length: 7 }, (_, i) => congNgay(s.nay, i - 7));
+      const tong = {
+        ten: `Tổng (${x.nguoi.length} người)`,
+        chi: <KeToan v={tk.chi} />,
+        lai: <KeToan v={tk.thu - tk.chi} mau={mauLai(tk.thu - tk.chi)} />,
+        roi: roiSoTruoc(tk, tt),
+        camp: <span title={`ngân sách ${tien(x.nguoi.reduce((a, p) => a + p.ns, 0))}/ngày`}><Dem v={x.nguoi.reduce((a, p) => a + p.camp, 0)} /></span>,
+        duong: <DuongRoi v={ngay7.map((d) => roi(cong(s.nguoiNgay.filter((r) => r.d === d && ids.has(r.n)))))} />,
+      };
+      return <SimpleTable rows={x.nguoi} getRowKey={(p) => String(p.id)} tong={tong} rowStyle={(p) => (p.nha ? { fontWeight: 600 } : undefined)} columns={[
         { key: 'ten', header: 'Người', cell: (p) => <a href={`?t=camp${p.nha ? '' : `&ng=${p.id}`}`} style={{ color: 'inherit' }} title="xem camp của người này">{p.ten}{p.nha ? ' (nhà)' : ''}</a> },
         { key: 'chi', header: 'Chi', align: 'right', cell: (p) => <KeToan v={p.k.chi} /> },
         { key: 'lai', header: 'Lãi', align: 'right', cell: (p) => <KeToan v={p.k.thu - p.k.chi} mau={mauLai(p.k.thu - p.k.chi)} /> },
-        { key: 'roi', header: 'ROI', align: 'right', cell: (p) => { const r = roi(p.k), t = roi(p.t); return <span title={t == null ? undefined : `kỳ trước cùng độ dài: ${pct(t)}`}>{pct(r)}{r != null && t != null ? <small style={{ color: r >= t ? XANH : DO, marginLeft: 4 }}>{r >= t ? '▲' : '▼'}{Math.abs(r - t).toFixed(0)}</small> : null}</span>; } },
+        { key: 'roi', header: 'ROI', align: 'right', cell: (p) => roiSoTruoc(p.k, p.t) },
         { key: 'camp', header: 'Camp bật', align: 'right', title: 'camp ACTIVE lúc này · tổng ngân sách / ngày', cell: (p) => <span title={`ngân sách ${tien(p.ns)}/ngày`}><Dem v={p.camp} /></span> },
         { key: 'duong', header: 'ROI 7 ngày', title: 'ROI từng ngày, 7 ngày đã khép', cell: (p) => <DuongRoi v={p.duong} /> },
       ]} />;

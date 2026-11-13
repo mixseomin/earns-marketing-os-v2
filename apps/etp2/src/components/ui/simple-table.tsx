@@ -18,7 +18,7 @@ export interface SimpleColumn<T> {
 const thBase: CSSProperties = { padding: '6px 8px', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
 const tdBase: CSSProperties = { padding: '6px 8px', fontSize: 12, borderBottom: '1px solid var(--line)', verticalAlign: 'top' };
 
-export function SimpleTable<T>({ rows, columns, getRowKey, hideHeader, rowStyle, renderExpanded }: {
+export function SimpleTable<T>({ rows, columns, getRowKey, hideHeader, rowStyle, renderExpanded, tong }: {
   rows: T[];
   columns: SimpleColumn<T>[];
   getRowKey: (row: T, index: number) => string;
@@ -27,9 +27,12 @@ export function SimpleTable<T>({ rows, columns, getRowKey, hideHeader, rowStyle,
   rowStyle?: (row: T, index: number) => CSSProperties | undefined;
   /** Trả nội dung ≠ null → thêm một dòng full-width ngay dưới dòng đó (bảng con, chi tiết mở tại chỗ). */
   renderExpanded?: (row: T, index: number) => ReactNode;
+  /** Dòng Tổng dính đáy khung cuộn (sticky) — ô theo key cột, cột không có key để trống. Có tong thì vỏ không cuộn ngang
+   *  (overflow-x: clip) để sticky bám khung cuộn của ô widget bên ngoài thay vì bám vỏ bảng. */
+  tong?: Partial<Record<string, ReactNode>>;
 }) {
   return (
-    <div data-comp="ui.SimpleTable" style={{ overflowX: 'auto' }}>
+    <div data-comp="ui.SimpleTable" style={{ overflowX: tong ? 'clip' : 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         {!hideHeader && (
           <thead>
@@ -50,6 +53,11 @@ export function SimpleTable<T>({ rows, columns, getRowKey, hideHeader, rowStyle,
             ];
           })}
         </tbody>
+        {tong ? (
+          <tfoot>
+            <tr data-tong="1">{columns.map((c) => <td key={c.key} style={{ ...tdBase, position: 'sticky', bottom: 0, zIndex: 1, background: 'var(--bg-1)', borderTop: '1px solid var(--line)', borderBottom: 'none', fontWeight: 600, textAlign: c.align ?? 'left', width: c.width }}>{tong[c.key] ?? null}</td>)}</tr>
+          </tfoot>
+        ) : null}
       </table>
     </div>
   );

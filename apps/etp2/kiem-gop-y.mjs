@@ -74,6 +74,10 @@ const LUAT = [
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "(c) => (c.ban || c.giong ? [", vi: 'loại creative có dòng con theo biến thể (PO.1, ATT.KD…)' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-view.tsx', co: "if (!c.creative_id && / bai-cu /.test(c.ten)) return <span data-cot=\"creative\" title={`USED POST", vi: 'Cây: bản nhân dùng bài cũ hiện nhãn used post thay ô creative xám "chưa chấm" (anh 12/11/2026)' },
   { card: 1573, tep: 'apps/etp2/src/components/etp-tong2.tsx', co: "for (const c of Array.from(cha.children))", cam: 'duoi = cha.scrollHeight - (tren + r.height)', vi: 'lưới Tổng quan phủ kín màn khi phóng to cửa sổ — phần dưới lưới đo từ con thật, không lấy scrollHeight (bằng khung khi nội dung ngắn)' },
+  { card: 1581, tep: 'apps/etp2/src/components/ui/simple-table.tsx', co: "<tr data-tong=\"1\">{columns.map((c) => <td key={c.key} style={{ ...tdBase, position: 'sticky', bottom: 0", vi: 'SimpleTable có dòng Tổng dính đáy khung cuộn (anh 13/11/2026)' },
+  { card: 1581, tep: 'apps/etp2/src/components/ui/simple-table.tsx', co: "overflowX: tong ? 'clip' : 'auto'", vi: 'có dòng Tổng thì vỏ bảng không thành khung cuộn — sticky bám khung cuộn của widget' },
+  { card: 1581, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'getRowKey={(p) => String(p.id)} tong={tong}', vi: 'widget Người (Tổng quan) có dòng Tổng sticky ở dưới (anh 13/11/2026)' },
+  { card: 1581, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'roi: roiSoTruoc(tk, tt)', vi: 'ROI dòng Tổng tính từ tổng chi/thu, không cộng %' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },
 ];
 

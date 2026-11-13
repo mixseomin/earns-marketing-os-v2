@@ -39,7 +39,7 @@ export const NHA = {
 
 // Người bán ckey cho một model: danh sách đã kiểm của Phòng Tài nguyên (/var/lib/spy/ckey-tuyen.json) trước, rồi danh mục sống theo giá ra rẻ trước
 // (bảng trống cả dòng khi lần bảo trì gặp lúc lỗi, đo 07/11/2026, nên danh mục là lưới). Người hỏng nghỉ 20 phút; mỗi lượt thử tối đa 3 người trong 45 giây rồi về nhà gốc.
-const CKEY_TRAN_MS = 45_000, CKEY_NGHI_MS = 20 * 60_000;
+const CKEY_TRAN_MS = 45_000, CKEY_MOT_MS = 25_000, CKEY_NGHI_MS = 20 * 60_000;
 const hongLuc = new Map(); let khoCkey = null;
 const hongCkey = (id, loi) => { hongLuc.set(id, Date.now()); console.error(`ckey ${id}: ${String(loi).slice(0, 160)}`); };
 const duoiTen = (id) => id.split('/').pop().toLowerCase().replace(/\./g, '-');
@@ -53,8 +53,11 @@ async function nguoiBanCkey(ten, fetchFn) {
     } catch (e) { console.error(`ckey: không đọc được danh mục: ${e.message}`); }
     khoCkey = { luc: Date.now(), ds: [...new Set([...tuyen, ...danhMuc])] };
   }
-  const can = duoiTen(ten);
-  return khoCkey.ds.filter((id) => duoiTen(id) === can && Date.now() - (hongLuc.get(id) ?? 0) > CKEY_NGHI_MS).slice(0, 3);
+  // Cùng mô hình gồm cả bản mang đuôi mức suy luận (-low/-medium/-high…), xếp SAU bản đúng tên: 13/11/2026 chấm bài (Ngọc, gemini-3.8-flash) rơi về fal 7/13 lượt
+  // (~540₫ so với ~14₫ qua ckey) vì chỉ 3 người bán đúng tên mà người lỗi bị nghỉ 20 phút; bản -high của 2 người bán khác đo 3–7 giây, 12–13₫.
+  const can = duoiTen(ten), song = (id) => Date.now() - (hongLuc.get(id) ?? 0) > CKEY_NGHI_MS;
+  const dung = khoCkey.ds.filter((id) => duoiTen(id) === can), bien = khoCkey.ds.filter((id) => /^-(minimal|low|medium|high)$/.test(duoiTen(id).slice(can.length)) && duoiTen(id).startsWith(can));
+  return [...dung, ...bien].filter(song).slice(0, 3);
 }
 // Model qua fal (OpenRouter) mặc định SUY LUẬN NGẦM và tính phần đó vào max_tokens → lượt thật (500 token) trả RỖNG (đo 11/10/2026: 9/11 model).
 // Gọi đúng cấu hình đã dùng khi dò model (worker/do-model.mjs) để điểm đo áp được vào việc thật: tắt suy luận + trần ≥ 1000 token; model không
@@ -177,7 +180,8 @@ export async function xuLy(body, staff, so, fetchFn = fetch, phong = null) {
     for (const id of await nguoiBanCkey(ten, fetchFn)) {
       const con = het - Date.now(); if (con <= 0) break;
       try {
-        const [st, d] = await goiNha('ckey', clean, `ckey:${ten}`, id, (u, o) => fetchFn(u, { ...o, signal: AbortSignal.timeout(con) }));
+        // mỗi người bán tối đa CKEY_MOT_MS: người chậm (đo 13/11: cuzem3 -low 77 giây) không ăn hết 45 giây của cả lượt rồi đẩy về nhà gốc
+        const [st, d] = await goiNha('ckey', clean, `ckey:${ten}`, id, (u, o) => fetchFn(u, { ...o, signal: AbortSignal.timeout(Math.min(con, CKEY_MOT_MS)) }));
         if (st === 200 && d.content?.length) { d.model = model; d.tuyen = `ckey:${id}`; await so.ghi(staff, `ckey:${ten}`, d.usage || {}, phong); return luu(d); }
         hongCkey(id, st === 200 ? 'trả rỗng' : `http ${st}`);
       } catch (e) { hongCkey(id, String(e.message || e)); }
@@ -265,6 +269,8 @@ if (process.argv.includes('--tu-kiem')) {
   const g = { ...req, model: 'fal:google/gemini-3.8-flash' };
   [c, d] = await xuLy(g, 'ha', so); assert(c === 200 && d.content[0].text === 'qua ckey' && d.tuyen === 'ckey:a/gemini-3.8-flash' && d.usage.vnd === 7 && d.model === g.model && goiCkey.join() === 'b/gemini-3-8-flash,a/gemini-3.8-flash', `ca 10 rẻ trước, rỗng thì sang người kế, đúng tên đuôi (${goiCkey})`);
   goiCkey.length = 0; [c, d] = await xuLy(g, 'ha', so); assert(c === 200 && goiCkey.join() === 'a/gemini-3.8-flash', `ca 11 người hỏng nghỉ (${goiCkey})`);
+  hongLuc.set('a/gemini-3.8-flash', Date.now()); goiCkey.length = 0; [c, d] = await xuLy(g, 'ha', so);
+  assert(c === 200 && d.tuyen === 'ckey:c/gemini-3.8-flash-high' && goiCkey.join() === 'c/gemini-3.8-flash-high', `ca 11b người đúng tên nghỉ hết → bản đuôi mức suy luận, không về fal (${goiCkey})`);
   ckeyHong = true; [c, d] = await xuLy(g, 'ha', so); assert(c === 200 && d.content[0].text === 'chào Lan' && !d.tuyen, 'ca 12 ckey sập hết thì về fal');
   ckeyHong = false; hongLuc.clear(); goiCkey.length = 0; const n0 = nhan.length; [c, d] = await xuLy({ ...g, thang: true }, 'ha', so); assert(c === 200 && !goiCkey.length && nhan.length === n0 + 1 && !('thang' in nhan.at(-1)), 'ca 13 thang: đi đúng nhà, không gửi cờ ra ngoài');
   console.error = loiCu; fakeC.close();

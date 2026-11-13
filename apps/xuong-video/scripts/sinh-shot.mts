@@ -1,6 +1,7 @@
 // Sinh TỪNG BƯỚC cho vài shot chọn tay trên box (anh 09/10/2026: "cấm làm hàng loạt — tập trung 2 shot đầu xem ra thế nào"):
 //   --canh=73,74                 : id shot (bắt buộc). Mặc định chỉ ƯỚC LƯỢNG (0đ), không chạy gì.
 //   --xem                        : (0đ) in đúng prompt video sẽ gửi cho từng shot + cổng ngôn ngữ — kiểm trước khi tiêu tiền.
+//   --siet="…"                  : (kèm --keyframe) câu bắt buộc đúng nối vào prompt nguồn — sửa đúng lỗi đã soát.
 //   --mo-hinh=<key>              : model ảnh cho --keyframe (so A/B, vd gemini-nano-banana-2.1); mặc định theo kinh thánh.
 //   --video --thu                : sinh THỬ video ngoài quy trình (như nút 🧪 Sinh thử), ảnh cuối = keyframe kết nếu có
 //   --ghep-nen                   : (0đ) ghép lại nền ảnh kết / giữa từ ảnh Nano mới nhất (ghep-vung.ts › ghepNenKet)
@@ -43,6 +44,8 @@ const ids = ((process.argv.find((a) => a.startsWith('--canh=')) ?? '').split('='
 if (!ids.length) { console.error('thiếu --canh=<id,id>'); process.exit(1); }
 const urlChon = (process.argv.find((a) => a.startsWith('--chon=')) ?? '').slice(7);
 const moHinhAnh = (process.argv.find((a) => a.startsWith('--mo-hinh=')) ?? '').slice(10) || undefined;
+// --siet="…" (kèm --keyframe): khối ĐIỂM BẮT BUỘC ĐÚNG nối vào prompt nguồn (như vòng tự-sửa) — sửa đúng lỗi đã soát khi bộ đối chiếu không chạy được
+const siet = (process.argv.find((a) => a.startsWith('--siet=')) ?? '').slice(7);
 // --mo-hinh-video=fal:fal-ai/veo3.1/lite/image-to-video : cùng Veo 3.1 Lite qua fal (cùng giá) khi khoá Google hết hạn mức/tiền (10/10/2026).
 const moHinhVideo = (process.argv.find((a) => a.startsWith('--mo-hinh-video=')) ?? '').slice(16) || undefined;
 const db = getDb(); if (!db) { console.error('không có DATABASE_URL'); process.exit(1); }
@@ -85,7 +88,7 @@ if (!arg('keyframe') && !arg('keyframe-ket') && !arg('ghep-nen') && !arg('duyet'
 if (arg('keyframe')) {
   const jobs: number[] = [];
   // --thu: THỬ ngoài quy trình (cảnh mẫu một cảnh — bỏ cổng cấp tập / thẻ shot, giữ cổng prompt + ngôn ngữ + thành phần), như --video --thu
-  for (const bc of bcs) { const r = await sinhKeyframeCanh(db, bc.canh.id, 1, moHinhAnh, undefined, !!arg('thu')); if (r.ok) jobs.push(...r.data); else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`); }
+  for (const bc of bcs) { const r = await sinhKeyframeCanh(db, bc.canh.id, 1, moHinhAnh, undefined, !!arg('thu'), siet ? `MUST BE CORRECT IN THIS FRAME: ${siet}` : ''); if (r.ok) jobs.push(...r.data); else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`); }
   for (let i = 0; i < 120; i++) {
     const r = await q(sql`SELECT count(*) FILTER (WHERE trang_thai = 'cho') AS cho FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[])`);
     if (Number(r[0]?.cho) === 0) break; await doi(5000);

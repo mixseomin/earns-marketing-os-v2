@@ -1,0 +1,18 @@
+# castle.on.tc — Lâu đài dung nham (bản thử 3D sinh bằng mã, apps/castle/public, tệp tĩnh). SSO mos2 như mọi sub mới (khuôn yt.on.tc / city.on.tc).
+server { listen 80; server_name castle.on.tc; return 301 https://$host$request_uri; }
+server {
+  listen 443 ssl; http2 on;
+  server_name castle.on.tc;
+  include snippets/cloudflare-allow.conf;
+  ssl_certificate /etc/letsencrypt/live/on.tc/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/on.tc/privkey.pem;
+  root /opt/earns-marketing-os-v2/apps/castle/public;
+  add_header X-Robots-Tag "noindex, nofollow" always;
+  gzip on; gzip_types text/css application/javascript image/svg+xml; gzip_min_length 1024;
+  auth_request /_mos2auth;
+  error_page 401 = @login;
+  location = /_mos2auth { internal; proxy_pass http://127.0.0.1:3821/api/auth/verify; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header Cookie $http_cookie; proxy_set_header Host mos2.on.tc; }
+  location @login { return 302 https://mos2.on.tc/login?next=https://castle.on.tc$request_uri; }
+  location = /robots.txt { auth_request off; default_type text/plain; return 200 "User-agent: *\nDisallow: /\n"; }
+  location / { add_header Cache-Control "no-cache"; add_header X-Robots-Tag "noindex, nofollow" always; try_files $uri /index.html; }
+}

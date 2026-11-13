@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="robots" content="noindex,nofollow">
+<title>Lâu đài dung nham</title>
+<style>
+  :root { --nen: #120a08; --chu: #f4e6d8; --mo: #c9b3a1; --vien: rgba(255,170,110,.28); --o: rgba(24,14,10,.72); --nhan: #ff8a3d; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--nen); color: var(--chu); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; touch-action: none; }
+  canvas { display: block; }
+  .o { position: fixed; background: var(--o); border: 1px solid var(--vien); border-radius: 10px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  #dau { top: 12px; left: 12px; padding: 10px 12px; max-width: min(360px, calc(100vw - 24px)); }
+  #dau b { font-size: 15px; }
+  #dau .mo { color: var(--mo); font-size: 12.5px; margin-top: 4px; }
+  #nut { bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; padding: 6px; }
+  button { font: inherit; color: var(--chu); background: rgba(255,138,61,.16); border: 1px solid var(--vien); border-radius: 8px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+  button:hover { background: rgba(255,138,61,.3); }
+  button.chinh { background: var(--nhan); color: #1a0d06; border-color: var(--nhan); font-weight: 600; }
+  #tai { position: fixed; inset: 0; display: grid; place-items: center; background: var(--nen); z-index: 9; font-size: 15px; }
+  #tai .loi { color: #ff9a8a; max-width: 420px; text-align: center; }
+  #tam { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255,240,220,.8); display: none; pointer-events: none; }
+  #dung { inset: 0; display: none; place-items: center; background: rgba(10,5,3,.45); z-index: 5; border: 0; border-radius: 0; }
+  #dung > div { display: flex; flex-direction: column; gap: 10px; align-items: center; padding: 18px 20px; background: var(--o); border: 1px solid var(--vien); border-radius: 12px; }
+  #can { position: fixed; left: 24px; bottom: 90px; width: 120px; height: 120px; border-radius: 50%; border: 1px solid var(--vien); background: rgba(24,14,10,.35); display: none; touch-action: none; }
+  #can i { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; background: rgba(255,138,61,.45); }
+  #cham { position: fixed; right: 18px; bottom: 90px; display: none; flex-direction: column; gap: 10px; }
+  #cham button { width: 64px; height: 64px; border-radius: 50%; padding: 0; }
+  @media (max-width: 560px) { #dau .mo.pc { display: none; } }
+  @media (hover: hover) { #dau .mo.dt { display: none; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+  "rapier": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js"
+} }
+</script>
+</head>
+<body>
+<div id="tai">Đang dựng lâu đài từ mã…</div>
+<div id="dau" class="o">
+  <b>Lâu đài dung nham</b> <span style="color:var(--mo)">· bản thử</span>
+  <div class="mo">Không có tệp ảnh hay mô hình nào: tường, mái, đá, dung nham, bầu trời đều sinh bằng mã lúc mở trang. Mỗi hạt giống ra một lâu đài khác.</div>
+  <div class="mo pc" id="hd-pc">Toàn cảnh: kéo chuột để xoay · lăn để phóng · nhấp đúp xuống đất để đi bộ ở đó.</div>
+  <div class="mo dt" id="hd-dt">Toàn cảnh: 1 ngón xoay · 2 ngón chụm để phóng · chạm đúp xuống đất để đi bộ ở đó.</div>
+</div>
+<div id="nut" class="o">
+  <button id="b-di" class="chinh">🚶 Đi bộ</button>
+  <button id="b-toan" style="display:none">🗺 Toàn cảnh</button>
+  <button id="b-moi">🎲 Lâu đài khác</button>
+</div>
+<div id="tam"></div>
+<div id="dung" class="o"><div>
+  <b>Đang dừng</b>
+  <div style="color:var(--mo);font-size:13px;text-align:center">W A S D đi · chuột nhìn · Shift chạy · Space nhảy · nhấp để ném đá</div>
+  <button id="b-tiep" class="chinh">Đi tiếp</button>
+  <button id="b-ra">Về toàn cảnh</button>
+</div></div>
+<div id="can"><i></i></div>
+<div id="cham"><button id="b-nhay">Nhảy</button><button id="b-nem">Ném</button></div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

@@ -82,4 +82,5 @@ console.log('kiem-ai-3d: ok');
   const ma = (chu: string) => v({ hanh_dong: chu, prompt_anh: '' } as never).map((g) => g.ma);
   assert.deepEqual(ma('chú thò đầu ra cửa sổ, tay đút túi'), []);
   assert.ok(ma('chú cầm cuốn sổ').includes('so')); assert.ok(ma('cô xách túi đi').includes('tui'));
+  assert.deepEqual(ma('deep bottle-green train carriage'), []); assert.ok(ma('he holds a cola bottle').includes('chai'));   // màu xanh chai ≠ cái chai (#3071 #9)
   console.log('kiem-ai-3d (từ ghép): ok'); }

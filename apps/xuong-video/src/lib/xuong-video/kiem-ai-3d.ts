@@ -28,7 +28,7 @@ export const TU_VAT: { ma: string; ten: string; tu: string[]; /** cụm GHÉP ch
   { ma: 'tui', ten: 'túi / cặp', tu: ['túi', 'cặp da', 'cặp tài liệu', 'bag', 'handbag', 'briefcase'], tru: ['đút túi', 'túi quần', 'túi áo', 'trong túi', 'vào túi', 'móc túi'] },
   { ma: 'chia_khoa', ten: 'chìa khoá', tu: ['chìa khoá', 'chìa khóa', 'keys', 'car key', 'door key'] },
   { ma: 'hoa', ten: 'hoa', tu: ['hoa', 'bình hoa', 'flower', 'flowers', 'orchid', 'orchids', 'vase'] },
-  { ma: 'chai', ten: 'chai', tu: ['chai', 'bottle', 'bottles'] },
+  { ma: 'chai', ten: 'chai', tu: ['chai', 'bottle', 'bottles'], tru: ['bottle-green', 'bottle green', 'xanh chai', 'xanh cổ chai'] },   // tên MÀU, không phải cái chai (13/11/2026 #3071 #9: "bottle-green train" chặn keyframe)
   { ma: 'dong_ho', ten: 'đồng hồ', tu: ['đồng hồ', 'wristwatch', 'clock'] },
   { ma: 'vong', ten: 'vòng / chuỗi hạt', tu: ['vòng tay', 'chuỗi hạt', 'bracelet', 'bangle', 'beads'] },
   { ma: 'tranh', ten: 'tranh / khung ảnh', tu: ['tranh', 'khung ảnh', 'painting', 'paintings', 'picture frame', 'framed photo', 'artwork'] },

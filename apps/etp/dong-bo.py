@@ -183,7 +183,7 @@ def main():
     try:
         import du_doan_cpm as DD; kq["du_doan_cpm"] = DD.chay(q)
     except Exception as e: loi.append(f"du_doan_cpm: {e}")
-    # ── GIÁ ADSENSE + HOÃN TĂNG (apps/etp/gia_adsense.py, anh 12/11/2026): Impression RPM / Fill theo nước → etp.cau_hinh.rpm_ngay; RPM Mỹ < 85% nền 7 ngày → hoan_rpm (cong.kiem chặn tăng / nhân bản)
+    # ── GIÁ ADSENSE (apps/etp/gia_adsense.py, anh 12/11/2026): Impression RPM / Fill theo nước → etp.cau_hinh.rpm_ngay + hệ số giá he_so_rpm (bù giá luật cắt camp mới). Hoãn tăng đã bỏ 13/11/2026
     try:
         import gia_adsense as GA; kq["gia_adsense"] = GA.chay(q)
     except Exception as e: loi.append(f"gia_adsense: {e}")

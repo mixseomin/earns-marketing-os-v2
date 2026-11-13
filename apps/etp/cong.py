@@ -96,12 +96,6 @@ def phim_chan_len():
 # NHÂN BẢN BÀI CŨ (anh 11/11/2026, Dol: "chạy lại post cũ để $2 luôn cũng được" — anh chốt "$2 cho camp dùng bài cũ thắng"): bản nhân bản camp thắng thường
 # dùng LẠI bài đăng của camp gốc (Use existing post, ad chỉ mang effective_object_story_id) được lên tới NS_BAI_CU; mọi camp mới khác vẫn $1.
 NS_BAI_CU = 2
-HOAN_MIEN_ROI3 = 50
-SQL_LAI_NAY = "select case when sum(chi) > 0 and sum(thu) > sum(chi) then 1 end from etp.so_ngay where camp_id = {cid} and ngay = (now() at time zone 'utc')::date"
-def mien_hoan(cid):
-    """camp thắng thật: ROI 3 ngày khép ≥ HOAN_MIEN_ROI3 % và hôm nay vẫn lãi → hoãn theo giá AdSense không chặn lệnh tăng"""
-    r3 = _q(SQL_ROI3.format(cid=int(cid)))
-    return r3 not in ("", None) and float(r3) >= HOAN_MIEN_ROI3 and _q(SQL_LAI_NAY.format(cid=int(cid))) == "1"
 def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False, thay=False):
     if viec not in TANG: return None
     try:
@@ -119,13 +113,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         ch = {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
         if viec == "bat" and camp_id and str(int(camp_id)) in _q(SQL_IT_NUOC).split(): return LY_IT_NUOC
         if ch.get("dung_khan"): return "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"
-        # HOÃN TĂNG THEO GIÁ ADSENSE (apps/etp/gia_adsense.py, anh 12/11/2026 "Làm phần hoãn"): Impression RPM Mỹ < 85% nền 7 ngày → không tăng ngân sách, không nhân bản (kể cả thang).
-        # Vẫn chạy: giảm / tắt / camp mới $1 từ creative / camp thay camp bị phốt (thay=True) / ★ ROAS / lệnh đích danh của anh (lenh_anh)
-        hr = ch.get("hoan_rpm") or {}
-        # NGOẠI LỆ CAMP THẮNG THẬT (anh 12/11/2026 "vẫn thấy có camp $1 mới lãi đc"): lệnh TĂNG của camp ROI 3 ngày đã khép ≥ HOAN_MIEN_ROI3 % VÀ hôm nay vẫn lãi → qua (bậc / nắp ROI vẫn áp như thường)
-        if hr.get("bat") and viec in ("tang", "nhan_ban") and not roas and not thay and not lenh_anh and not (camp_id and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") == "1") \
-                and not (viec == "tang" and camp_id and mien_hoan(camp_id)):
-            return f"HOÃN TĂNG theo giá AdSense — {hr.get('ly_do') or 'RPM Mỹ thấp'} (etp.cau_hinh.hoan_rpm, apps/etp/gia_adsense.py); tự mở khi RPM Mỹ về ≥ 90% nền"
+        # HOÃN TĂNG THEO GIÁ ADSENSE: ĐÃ BỎ (anh 13/11/2026 "bỏ rule Hoãn đang áp dụng") — giá AdSense tụt không còn chặn tăng / nhân bản; máy đo giá
+        # (apps/etp/gia_adsense.py) vẫn đo và vẫn bù giá cho luật cắt camp mới. Tham số thay= giữ cho người gọi cũ (nhan-ban.py --thay), không còn tác dụng.
         if viec == "tang" and not roas and (ch.get("mua_le") or {}).get("khoa_tang"):   # mùa lễ Mỹ (apps/etp/mua_le.py, anh 08/11/2026): Meta học lại đúng tuần giá cao là tốn nhất
             return f"mùa lễ Mỹ: khoá tăng bậc ({(ch.get('mua_le') or {}).get('ly_do') or '25–30/11'}) — giảm / tắt / camp mới vẫn chạy (etp.cau_hinh.mua_le, apps/etp/mua_le.py)"
         # CAMP MỚI = $1 (anh 08/11/2026: "Ai cho mày lên camp mới ngân sách hơn $1" · "AB test vẫn phải đi từ $1. Nếu khác thì phải xin phép"): tạo camp / nhân bản thường

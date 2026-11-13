@@ -85,33 +85,46 @@ export function TaiSanKenhSp({ kenh, kySocial = 7, tieuDe = '📺 Kênh nội du
   const datTrang = (khoa: string, t: number) => { const n = new Map(trangCua); if (t > 0) n.set(khoa, t); else n.delete(khoa); datTrangUrl([...n].map(([k, v]) => `${k}:${v + 1}`).join(',')); };
   const ngan = useNganKenh();
   // góp ý #1591: cuộn xuống vẫn biết đang xem kênh nào — tiêu đề cột Kênh (dính mép trên) hiện tên kênh có dòng nằm ngay dưới tiêu đề, kèm nút mở / gập hết khối
-  const [dangXem, setDangXem] = useState<string | null>(null);
+  // góp ý #1592: các mục (khối) của kênh lên MENU DÍNH trong tiêu đề cột Kênh, mục đang xem sáng lên; mở hết / gập hết ở MỘT chỗ cố định (luôn hiện khi có kênh mở)
+  const [dangXem, setDangXem] = useState<{ ma: string; khoi: string | null } | null>(null);
   useEffect(() => {
     let raf = 0;
     const do_ = () => { raf = 0;
       const tds = Array.from(document.querySelectorAll<HTMLElement>('[data-kenh-tieu-de]')).map((e) => e.getBoundingClientRect()).filter((r) => r.height > 0);
       if (!tds.length) return setDangXem(null);
       const moc = Math.max(...tds.map((r) => r.bottom));
-      let ma: string | null = null, kenhTren = false;
+      let ma: string | null = null, khoi: string | null = null;
       for (const tr of Array.from(document.querySelectorAll<HTMLElement>('tr[data-kenh-ma]'))) { const r = tr.getBoundingClientRect(); if (!r.height) continue;
-        if (r.bottom > moc) { ma = tr.dataset.kenhMa ?? null; break; } if (tr.dataset.kenhDau === '1') kenhTren = true; }
-      // chỉ hiện khi dòng kênh đã trôi qua tiêu đề (đang ở giữa cây con của kênh)
-      const dau = ma ? document.querySelector<HTMLElement>(`tr[data-kenh-ma="${CSS.escape(ma)}"][data-kenh-dau="1"]`) : null;
-      setDangXem(ma && kenhTren && dau && dau.getBoundingClientRect().bottom <= moc ? ma : null); };
+        if (r.top > moc + 4) break;
+        if (tr.dataset.kenhMa !== ma) khoi = null;
+        ma = tr.dataset.kenhMa ?? null; if (tr.dataset.kenhKhoi) khoi = tr.dataset.kenhKhoi; }
+      setDangXem((c) => (c?.ma === ma && c?.khoi === khoi ? c : ma ? { ma, khoi } : null)); };
     const hen = () => { if (!raf) raf = requestAnimationFrame(do_); };
     window.addEventListener('scroll', hen, true); window.addEventListener('resize', hen); hen();
     return () => { window.removeEventListener('scroll', hen, true); window.removeEventListener('resize', hen); if (raf) cancelAnimationFrame(raf); };
   }, [moUrl, gapUrl, trangUrl]);
   if (!kenh.length) return null;
-  const kXem = dangXem ? kenh.find((k) => k.ma === dangXem) ?? null : null;
-  const khoiCua = (k: KenhSp) => cayKenh(k).flatMap((d) => (d.loai === 'ke' && d.nhom ? [`${k.ma}:${d.id}`] : []));
-  const moHetKhoi = (k: KenhSp, mo: boolean) => { const n = new Set(gap); for (const kh of khoiCua(k)) { if (mo) n.delete(kh); else n.add(kh); } datGapUrl([...n].join(',')); };
-  const nutTd: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-1)', color: 'var(--fg-2)', cursor: 'pointer', padding: '0 5px', fontSize: 10, textTransform: 'none', letterSpacing: 0 };
-  const tieuDeKenh = <span data-kenh-tieu-de style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Kênh
-    {kXem && <><span style={{ color: 'var(--accent)', fontWeight: 700, textTransform: 'none', letterSpacing: 0, fontSize: 11 }}>· {kXem.ten}</span>
-      <button type="button" style={nutTd} title={`mở hết các khối của ${kXem.ten}`} onClick={(e) => { e.stopPropagation(); moHetKhoi(kXem, true); }}>▾ mở hết</button>
-      <button type="button" style={nutTd} title={`gập hết các khối của ${kXem.ten}`} onClick={(e) => { e.stopPropagation(); moHetKhoi(kXem, false); }}>▸ gập hết</button>
-      <button type="button" style={nutTd} title={`thu cây ${kXem.ten} về một dòng`} onClick={(e) => { e.stopPropagation(); doi(kXem.ma); }}>✕ thu kênh</button></>}</span>;
+  // kênh của menu: kênh nằm dưới tiêu đề nếu đang mở cây, không thì kênh mở đầu tiên — nút không nhảy chỗ / biến mất khi cuộn
+  const kXem = (dangXem && moCay.has(dangXem.ma) ? kenh.find((k) => k.ma === dangXem.ma) : null) ?? kenh.find((k) => moCay.has(k.ma)) ?? null;
+  const khoiDs = (k: KenhSp) => cayKenh(k).filter((d): d is Extract<Dong, { loai: 'ke' }> => d.loai === 'ke' && !!d.nhom);
+  const moHetKhoi = (k: KenhSp, mo: boolean) => { const n = new Set(gap); for (const d of khoiDs(k)) { const kh = `${k.ma}:${d.id}`; if (mo) n.delete(kh); else n.add(kh); } datGapUrl([...n].join(',')); };
+  const toiKhoi = (k: KenhSp, id: string) => { const kh = `${k.ma}:${id}`; if (gap.has(kh)) doiGap(kh);
+    const tr = document.querySelector<HTMLElement>(`tr[data-kenh-ma="${CSS.escape(k.ma)}"][data-kenh-khoi="${CSS.escape(id)}"]`);
+    const td = Array.from(document.querySelectorAll<HTMLElement>('[data-kenh-tieu-de]')).map((e) => e.getBoundingClientRect().bottom).filter((x) => x > 0);
+    if (tr) window.scrollBy({ top: tr.getBoundingClientRect().top - (td.length ? Math.max(...td) : 0) - 2, behavior: 'smooth' }); };
+  const nutTd: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-1)', color: 'var(--fg-2)', cursor: 'pointer', padding: '0 5px', fontSize: 10, textTransform: 'none', letterSpacing: 0, flex: 'none', whiteSpace: 'nowrap' };
+  const tieuDeKenh = <span data-kenh-tieu-de style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>Kênh
+      {kXem && <><span style={{ color: 'var(--accent)', fontWeight: 700, textTransform: 'none', letterSpacing: 0, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {kXem.ten}</span>
+        <span style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+          <button type="button" style={nutTd} title={`mở hết các khối của ${kXem.ten}`} onClick={(e) => { e.stopPropagation(); moHetKhoi(kXem, true); }}>▾ mở hết</button>
+          <button type="button" style={nutTd} title={`gập hết các khối của ${kXem.ten}`} onClick={(e) => { e.stopPropagation(); moHetKhoi(kXem, false); }}>▸ gập hết</button>
+          <button type="button" style={nutTd} title={`thu cây ${kXem.ten} về một dòng`} onClick={(e) => { e.stopPropagation(); doi(kXem.ma); }}>✕ thu kênh</button></span></>}</span>
+    {kXem && <span style={{ display: 'flex', gap: 4, overflowX: 'auto', scrollbarWidth: 'none', textTransform: 'none', letterSpacing: 0 }}>
+      {khoiDs(kXem).map((d) => { const dang = dangXem?.ma === kXem.ma && dangXem.khoi === d.id, dong_ = gap.has(`${kXem.ma}:${d.id}`);
+        return <button key={d.id} type="button" title={`tới khối ${d.chu}${dong_ ? ' (đang gập — bấm để mở)' : ''}`} onClick={(e) => { e.stopPropagation(); toiKhoi(kXem, d.id); }}
+          style={{ ...nutTd, fontSize: 11, padding: '1px 6px', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis',
+            ...(dang ? { borderColor: 'var(--accent)', color: 'var(--accent)', fontWeight: 700 } : {}), ...(dong_ ? { opacity: 0.6 } : {}) }}>{d.chu}</button>; })}</span>}</span>;
   const doi = (ma: string) => { const n = new Set(moCay); if (n.has(ma)) n.delete(ma); else n.add(ma); datMoUrl([...n].join(',')); };
   const dong: Dong[] = kenh.flatMap((k) => [{ loai: 'kenh' as const, k },
     ...(moCay.has(k.ma) ? (() => { const nhom = (d: Dong) => (d.loai === 'ke' && d.nhom ? `${k.ma}:${d.id}` : null);
@@ -195,7 +208,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7, tieuDe = '📺 Kênh nội du
   return (
     <Panel title={tieuDe} subtitle={phuDe ?? 'kênh nội dung là sản phẩm (video trọn chuyện) · ▸ mở: đang sản xuất · lịch · đã làm · "–" = chưa đo (khác 0) · số đọc mỗi giờ từ trang YouTube công khai'}>
       <DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : d.loai === 'trang' ? `${d.khoa}/trang` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
-        rowData={(d) => ({ 'kenh-ma': d.k.ma, 'kenh-dau': laK(d) ? 1 : 0 })}
+        rowData={(d) => ({ 'kenh-ma': d.k.ma, 'kenh-dau': laK(d) ? 1 : 0, ...(d.loai === 'ke' && d.nhom ? { 'kenh-khoi': d.id } : {}) })}
         fullRow={(d) => d.loai === 'ke' || d.loai === 'trang'}
         minWidth={320 + 260 + 64 + 84 + 76 + 116 + 88 + 96 + 96 + 84 + 72} card />
       <KenhNgan kenh={kenh} />

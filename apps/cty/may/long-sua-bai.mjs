@@ -9,6 +9,7 @@
 // Phải chạy trong phiên đăng nhập của máy (bộ điều phối): qua ssh, Claude Code không mở được Keychain → "Not logged in".
 //   node long-sua-bai.mjs          một lượt          · node long-sua-bai.mjs --thu   in việc sẽ làm + lời giao, không gọi Claude, không deploy
 import { execFileSync, spawnSync } from 'node:child_process';
+import { chayClaude } from './claude-chay.mjs';   // spawnSync + báo lỗi API vào 🚨 (anh 13/11/2026)
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -127,7 +128,7 @@ if (thu) { console.log(`bài: ${x.url} · model ${model} · bản dựng ${tepDu
 
 kb(`--nhan ${q(x.url)} --nguoi ${NGUOI}`); log(`nhận ${x.url} · model ${model}`);
 const truoc = git('rev-parse', 'HEAD');
-const r = spawnSync(CLAUDE, ['-p', giao, '--model', model, '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
+const r = chayClaude(CLAUDE, ['-p', giao, '--model', model, '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
   { cwd: SITES, encoding: 'utf8', timeout: TRAN_PHUT * 60000, maxBuffer: 64 << 20, env: ENV });
 let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng */ }
 const u = kq.usage || {}, token = { vao: u.input_tokens || 0, ra: u.output_tokens || 0, cache_doc: u.cache_read_input_tokens || 0, cache_ghi: u.cache_creation_input_tokens || 0, gia_api_usd: kq.total_cost_usd || 0, model };

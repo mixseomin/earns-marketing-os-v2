@@ -8,6 +8,7 @@
 // Luật: Claude không giao diện bằng gói thuê bao CHỈ chạy trên iMac.
 //   node tai-nguyen-sua.mjs        một lượt      · node tai-nguyen-sua.mjs --thu   in lời giao cho việc đang chờ, không gọi Claude, không nhận việc
 import { execFileSync, spawnSync } from 'node:child_process';
+import { chayClaude } from './claude-chay.mjs';   // spawnSync + báo lỗi API vào 🚨 (anh 13/11/2026)
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -111,7 +112,7 @@ try { viec(`--nhan ${v.id}`); } catch (e) { log(`báo nhận lỗi: ${e.message.
 const muc = chonMuc({ chu: v.chu, lanLamLai: laAnh && v.goc ? 1 : 0, macDinh: effort || 'low' });
 log(`nhận việc #${v.id} ${v.khoa} · model ${model} · effort ${muc.effort} (${muc.ly_do.join(', ')})`);
 const truoc = { [SPY]: git(SPY, 'rev-parse', 'HEAD'), [MOS2]: git(MOS2, 'rev-parse', 'HEAD') };
-const r = spawnSync(CLAUDE, ['-p', loiGiaoDu, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', '--add-dir', SPY, '--add-dir', MOS2,
+const r = chayClaude(CLAUDE, ['-p', loiGiaoDu, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', '--add-dir', SPY, '--add-dir', MOS2,
   '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM], { cwd: KHO, encoding: 'utf8', timeout: TRAN_PHUT * 60000, maxBuffer: 64 << 20, env: ENV });
 let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng / hết giờ */ }
 const tuChoi = [...new Set((kq.permission_denials || []).map((d) => String(d.tool_input?.command ?? d.tool_name ?? '').replace(/\s+/g, ' ').slice(0, 160)).filter(Boolean))].slice(0, 8);

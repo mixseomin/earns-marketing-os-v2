@@ -79,6 +79,8 @@ export async function xuThuKy(tg, { hoi = hoiMoHinh, lay = fetch } = {}) {
     const nc = nguCanh(x); x.xong(); if (!nc) continue;
     try { await tg('setMessageReaction', { message_id: nc.from && x.message ? nc.mid : (x.callback_query?.message?.message_id ?? nc.mid), reaction: [{ type: 'emoji', emoji: '👀' }] }); } catch { /* cảm xúc hỏng không chặn */ }
     const tra0 = (text) => tg('sendMessage', { message_thread_id: nc.topic ?? undefined, parse_mode: 'HTML', text, reply_parameters: { message_id: nc.mid, allow_sending_without_reply: true } });
+    // việc giao kỹ sư: KHÔNG gửi tin "đã nhận" (anh 13/11/2026: "viết mấy cái của nợ kia làm gì, đang làm thì chỉ cần icon typing") — 👀 đã thả, tg-nghe giữ "đang gõ" tới khi có câu trả lời (tho-may-viec › topicDangLam)
+    const go = () => tg('sendChatAction', { action: 'typing', ...(nc.topic ? { message_thread_id: nc.topic } : {}) });
     // trả lời dưới tin của THỢ MÁY → lệnh cho đúng việc đó, về đúng người đang cầm (không qua trưởng phòng, không tốn lượt mô hình)
     // trả lời dưới tin báo của THÀNH (kỹ sư Astrolas) → làm lại đúng task đó ở lượt iMac kế tiếp
     const tk = taskCuaTin(nc.hoi_mid);
@@ -96,7 +98,7 @@ export async function xuThuKy(tg, { hoi = hoiMoHinh, lay = fetch } = {}) {
       fs.appendFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), `${JSON.stringify({ luc: new Date().toISOString(), phong: nc.phong, ai: k.ai, goc: vtKs.khoa, cau_hoi: String(vtKs.ket_qua ?? vtKs.chu).slice(0, 500), anh: nc.anh, quyet: bo ? 'khong' : 'co' })}\n`);
       if (bo) { await tra0(`🔧 <b>${k.ten}</b>: đã ghi anh không làm việc này (${esc(vtKs.khoa)}).`); n++; continue; }
       const moi = theoHang(k.hang, () => giaoAnh({ chu: `Anh trả lời về ${vtKs.khoa}: ${nc.anh}`, cau_hoi: String(vtKs.ket_qua ?? vtKs.chu), anh: nc.anh, goc: vtKs.goc ?? vtKs.khoa, phong: nc.phong, tg: { topic: nc.topic ?? null, msg: nc.mid } }));
-      await tra0(`🔧 <b>${k.ten}</b> nhận lệnh anh: <i>${esc(nc.anh.slice(0, 200))}</i> — việc #${moi.id}, bắt đầu trong ≤ 5 phút, xong báo ngay dưới tin này.`); n++; continue;
+      await go(); n++; continue;
     }
     const vt = viecCuaTin(nc.hoi_mid);
     if (vt) {
@@ -104,14 +106,14 @@ export async function xuThuKy(tg, { hoi = hoiMoHinh, lay = fetch } = {}) {
       fs.appendFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), `${JSON.stringify({ luc: new Date().toISOString(), phong: nc.phong, ai: 'manh', goc: vt.khoa, cau_hoi: String(vt.ket_qua ?? vt.chu).slice(0, 500), anh: nc.anh, quyet: bo ? 'khong' : 'co' })}\n`);
       if (bo) { await tra0(`🔧 <b>Mạnh</b>: đã ghi anh không làm việc này (${esc(vt.khoa)}).`); n++; continue; }
       const moi = giaoAnh({ chu: `Anh trả lời về ${vt.khoa}: ${nc.anh}`, cau_hoi: String(vt.ket_qua ?? vt.chu), anh: nc.anh, goc: vt.goc ?? vt.khoa, phong: nc.phong, tg: { topic: nc.topic ?? null, msg: nc.mid } });
-      await tra0(`🔧 <b>Mạnh</b> nhận lệnh anh: <i>${esc(nc.anh.slice(0, 200))}</i> — việc #${moi.id}, bắt đầu trong ≤ 5 phút, xong báo ngay dưới tin này.`); n++; continue;
+      await go(); n++; continue;
     }
     // PHÒNG CÓ KỸ SƯ NHẬN THẲNG (Tài nguyên → Tài): hỏi hiện trạng, nhắc tối ưu, trả lời dưới cảnh báo của phòng — kỹ sư đọc số thật rồi trả lời, không qua mô hình
     const ksThang = KY_SU.find((k) => k.thang && k.phong === nc.phong);
     if (ksThang) {
       fs.appendFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), `${JSON.stringify({ luc: new Date().toISOString(), phong: nc.phong, ai: ksThang.ai, cau_hoi: nc.cau_hoi.replace(/<[^>]+>/g, '').slice(0, 500), anh: nc.anh, quyet: 'khac' })}\n`);
       const moi = theoHang(ksThang.hang, () => giaoAnh({ chu: nc.cau_hoi ? `Anh trả lời tin trong chủ đề phòng: "${nc.anh}". Làm đúng ý anh với tin gốc.` : `Anh nhắn trong chủ đề phòng: ${nc.anh}`, cau_hoi: nc.cau_hoi.replace(/<[^>]+>/g, '').slice(0, 1500), anh: nc.anh, goc: null, phong: nc.phong, tg: { topic: nc.topic ?? null, msg: nc.mid } }));
-      await tra0(`🔧 <b>${ksThang.ten}</b> nhận: <i>${esc(nc.anh.slice(0, 200))}</i> — việc #${moi.id}, bắt đầu trong ≤ 5 phút, xong báo ngay dưới tin này.`); n++; continue;
+      await go(); n++; continue;
     }
     const t = nc.phong && truongPhong(nc.phong);
     const tra = (text) => tg('sendMessage', { message_thread_id: nc.topic ?? undefined, parse_mode: 'HTML', text, reply_parameters: { message_id: nc.mid, allow_sending_without_reply: true } });
@@ -120,7 +122,7 @@ export async function xuThuKy(tg, { hoi = hoiMoHinh, lay = fetch } = {}) {
     if (!t) {
       fs.appendFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), `${JSON.stringify({ luc: new Date().toISOString(), phong: null, ai: 'manh', cau_hoi: nc.cau_hoi.replace(/<[^>]+>/g, '').slice(0, 500), anh: nc.anh, quyet: 'khac' })}\n`);
       const moi = giaoAnh({ chu: nc.cau_hoi ? `Anh trả lời tin máy gửi ở chủ đề chung: "${nc.anh}". Làm đúng ý anh với câu hỏi gốc (đọc câu hỏi để biết máy/script nào hỏi và việc cần đổi).` : `Anh nhắn ở chủ đề chung: ${nc.anh}`, cau_hoi: nc.cau_hoi.replace(/<[^>]+>/g, '').slice(0, 1500), anh: nc.anh, phong: null, tg: { topic: nc.topic ?? null, msg: nc.mid } });
-      await tra(`🔧 <b>Mạnh</b> nhận: <i>${esc(nc.anh.slice(0, 200))}</i>${nc.cau_hoi ? ' (trả lời tin máy gửi)' : ''} — việc #${moi.id}, bắt đầu trong ≤ 5 phút, xong báo ngay dưới tin này.`); n++; continue;
+      await go(); n++; continue;
     }
     let kq; try { kq = await hoi(t, nc); } catch (e) { await tra(`📥 <b>${esc(t.ten)} [${esc(t.phongTen.replace(/^Phòng /, ''))}]</b> đã nhận: <i>${esc(nc.anh.slice(0, 200))}</i> — nhưng chưa đọc được (${esc(e.message.slice(0, 120))}). Đã ghi vào hàng việc phòng.`); kq = { tra_loi: '', quyet: 'khac', viec: `Đọc và xử câu anh: ${nc.anh}` }; }
     const luc = new Date().toISOString();
@@ -155,14 +157,14 @@ if (process.argv[1]?.endsWith('thu-ky.mjs') && process.argv.includes('--tu-kiem'
   const tin = gui.filter(([m]) => m === 'sendMessage').map(([, b]) => b);
   t.ok(tin[0].text.startsWith('<b>Thảo [Sách]</b>: Em ghi') && tin[0].text.includes('Đã giao <b>Mạnh</b>') && tin[0].reply_parameters.message_id === 700, 'trả lời dưới câu hỏi, giao thợ máy');
   const hang0 = JSON.parse(fs.readFileSync(path.join(DATA(), 'tho-may.json'), 'utf8')).hang; t.ok(hang0.some((v) => /^anh:/.test(v.khoa) && v.tt === 'cho' && v.anh === 'Đồng ý'), 'việc vào hàng thợ máy'); t.equal(fs.readFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), 'utf8').trim().split('\n').length, 4, 'sổ quyết định: cả mục không phòng (giao Mạnh) cũng ghi');
-  t.ok(tin.some((b) => b.text.includes('<b>Tài</b> nhận: <i>hiện trạng') && b.reply_parameters.message_id === 82), 'Tài báo nhận dưới tin anh'); t.ok(tin[2].text.includes('Mạnh</b> nhận') && JSON.parse(fs.readFileSync(path.join(DATA(), 'tho-may.json'), 'utf8')).hang.some((v) => v.anh === 'https://youtu.be/x'), 'chủ đề không phòng: giao thẳng thợ máy, không bỏ lửng'); t.ok(gui.some(([m]) => m === 'setMessageReaction'), 'thả 👀 khi nhận');
+  t.ok(!tin.some((b) => /nhận( lệnh anh)?: <i>/.test(b.text)), 'không gửi tin "đã nhận" rườm rà'); t.ok(gui.some(([m, b]) => m === 'sendChatAction' && b.action === 'typing' && b.message_thread_id === 2424), 'Tài: hiện đang gõ trong 🧰'); t.ok(JSON.parse(fs.readFileSync(path.join(DATA(), 'tho-may.json'), 'utf8')).hang.some((v) => v.anh === 'https://youtu.be/x'), 'chủ đề không phòng: giao thẳng thợ máy, không bỏ lửng'); t.ok(gui.some(([m]) => m === 'setMessageReaction'), 'thả 👀 khi nhận');
   { // trả lời dưới báo cáo của thợ máy → lệnh cho đúng việc, không hỏi mô hình; việc cùng máy đang chờ gộp lại
     const f = path.join(DATA(), 'tho-may.json'), s0 = JSON.parse(fs.readFileSync(f, 'utf8')); s0.hang.push({ id: 50, khoa: 'dang:lo|mil|facebook', tt: 'ket', chu: 'lỡ', ket_qua: 'Hết video, cần anh quyết', tin_bao: 777, luc: '2026-11-04T17:00:00Z', tg: {} }, { id: 51, khoa: 'dang:lo|mil|fb_anh', tt: 'cho', chu: 'lỡ', luc: '2026-11-04T17:00:00Z', tg: {} }, { id: 52, khoa: 'dang:lo|mil|x', tt: 'ket', chu: 'lỡ', ket_qua: 'x', tin_bao: 778, luc: '2026-11-04T17:00:00Z', tg: {} }); fs.writeFileSync(f, JSON.stringify(s0));
     fs.writeFileSync(path.join(hop, '10.json'), JSON.stringify({ update_id: 10, phong_goc: 'noi-dung', message: { message_id: 90, message_thread_id: 2307, text: 'Sx thêm video cho', from: { first_name: 'D' }, reply_to_message: { message_id: 777, from: { is_bot: true }, text: '🔧 Máy đăng tự sửa' } } }));
     fs.writeFileSync(path.join(hop, '11.json'), JSON.stringify({ update_id: 11, phong_goc: 'noi-dung', message: { message_id: 91, message_thread_id: 2307, text: 'ko', from: { first_name: 'D' }, reply_to_message: { message_id: 778, from: { is_bot: true }, text: '🔧' } } }));
     const dem = hoiDs.length; gui.length = 0; t.equal(await xuThuKy(tg, { hoi }), 2); t.equal(hoiDs.length, dem, 'không qua mô hình');
     const s1 = JSON.parse(fs.readFileSync(f, 'utf8')).hang, le = s1.filter((v) => v.goc === 'dang:lo|mil|facebook'); t.equal(le.length, 1); t.equal(le[0].anh, 'Sx thêm video cho'); t.equal(le[0].tg.msg, 90, 'kết quả báo dưới tin anh'); t.equal(s1.find((v) => v.id === 51).tt, 'gop', 'việc cùng máy không chạy để hỏi lại');
-    const m0 = gui.filter(([m]) => m === 'sendMessage').map(([, b]) => b.text); t.ok(m0[0].includes('Mạnh</b> nhận lệnh') && m0[1].includes('không làm')); }
+    const m0 = gui.filter(([m]) => m === 'sendMessage').map(([, b]) => b.text); t.equal(m0.length, 1, 'lệnh anh dưới báo cáo: chỉ đang gõ, không tin "nhận lệnh"'); t.ok(m0[0].includes('không làm')); t.ok(gui.some(([m]) => m === 'sendChatAction')); }
   { // anh trả lời dưới tin của Thành bằng PDF không kèm chữ → tải về, lệnh làm lại có đường dẫn tệp
     fs.writeFileSync(path.join(DATA(), 'astrolas-tasks.json'), JSON.stringify({ tin: { 555: 4517 }, phan_hoi: [] }));
     fs.writeFileSync(path.join(hop, '12.json'), JSON.stringify({ update_id: 12, phong_goc: 'astrolas', message: { message_id: 95, message_thread_id: 4241, document: { file_id: 'F1', file_name: 'Brennan ch16.pdf' }, from: { first_name: 'D' }, reply_to_message: { message_id: 555, from: { is_bot: true } } } }));

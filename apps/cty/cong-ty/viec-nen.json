@@ -831,7 +831,7 @@
    },
    "nhat_ky": "/Users/htuan/.cache/tai-nguyen-sua.log",
    "hen": {
-    "moi_giay": 300
+    "moi_giay": 60
    },
    "uu_tien_thap": true,
    "ghi_chu": "Anh duyệt 13/11/2026 (\"Có cho nó chạy\"); chỉ gọi Claude khi hàng có việc. Chạy từ CÂY RIÊNG của Tài (runner tự kéo origin/main mỗi lượt) — cây mos2 chính trên iMac hay lệch origin vì việc dở của phiên khác, chạy từ đó là chạy mã cũ"

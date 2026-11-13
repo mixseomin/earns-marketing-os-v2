@@ -38,7 +38,7 @@
    "id": "tai-sua",
    "ten": "Kỹ sư Tài nguyên: sửa máy cào + trả lời anh (Claude Code trên iMac)",
    "so_hoa": "co-dinh",
-   "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền; chỉ gọi Claude khi hàng tai-nguyen-sua.json có việc",
+   "kich_hoat": "iMac mỗi 1 phút — bộ điều phối việc nền; chỉ gọi Claude khi hàng tai-nguyen-sua.json có việc",
    "mo_ta": "Tài lấy một việc ở hàng riêng: cảnh báo máy móc Nguyên phát (làn cào đứng, box3 / VPS quá tải, RAM, daemon, ckey) hoặc tin anh gõ trong 🧰 Tài nguyên (hỏi hiện trạng, nhắc tối ưu). Đọc kho kiến thức ~/Me/GitHub/tai-nguyen-ky-su, đo, sửa gốc trong spy-on-tc / mã phòng mos2 hoặc trả lời bằng số thật, ghi bài học vào kho (máy commit), trả lời dưới tin.",
    "ma": "apps/cty/may/tai-nguyen-sua.mjs · hàng: apps/cty/worker/tho-may-viec.mjs (THO_MAY_TEP=tai-nguyen-sua.json) · tin anh: apps/cty/worker/thu-ky.mjs (KY_SU thang)",
    "chu_tri": "tai",

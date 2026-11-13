@@ -10,8 +10,8 @@ model: claude-code:opus effort:low   # cùng mức Khang / Thành; đổi ở đ
 room: dung-san-pham
 muc_quyet: 2
 approval: SMART
-heartbeat: sua-tai-nguyen   # việc trên MÁY MAC: bộ điều phối iMac gọi apps/cty/may/tai-nguyen-sua.mjs mỗi 5 phút, chỉ gọi Claude khi hàng có việc
-lich: mỗi 5 phút · iMac
+heartbeat: sua-tai-nguyen   # việc trên MÁY MAC: bộ điều phối iMac gọi apps/cty/may/tai-nguyen-sua.mjs mỗi 1 phút, chỉ gọi Claude khi hàng có việc
+lich: mỗi 1 phút · iMac
 skills: []
 data: [tai-nguyen-sua:hang, repo:tai-nguyen-ky-su (kho kiến thức, iMac), repo:spy-on-tc, repo:earns-marketing-os-v2 (phần Tài nguyên), may:box3, may:may-cao-vn]
 pay:

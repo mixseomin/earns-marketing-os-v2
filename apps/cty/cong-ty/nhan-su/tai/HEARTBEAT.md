@@ -1,6 +1,6 @@
 # HEARTBEAT — Tài
 
-> Trạng thái: **bật** từ 13/11/2026 — `sua-tai-nguyen` mỗi 5 phút trên iMac (bộ điều phối → apps/cty/may/tai-nguyen-sua.mjs), chỉ gọi Claude khi hàng có việc, mỗi lần một việc.
+> Trạng thái: **bật** từ 13/11/2026 — `sua-tai-nguyen` mỗi 1 phút trên iMac (bộ điều phối → apps/cty/may/tai-nguyen-sua.mjs), chỉ gọi Claude khi hàng có việc, mỗi lần một việc.
 
 Checklist mỗi vòng (không có việc → NO_REPLY):
 

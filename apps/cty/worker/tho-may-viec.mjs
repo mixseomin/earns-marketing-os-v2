@@ -107,6 +107,9 @@ export const HANG_KHANG = 'social-sua.json';
 /** Tài · Kỹ sư Tài nguyên (anh 13/11/2026: "Phòng Tài Nguyên có con CLI nào quản lý ko … trao đổi qua tele … phải có repo riêng để kế thừa kiến thức"):
  *  cảnh báo máy móc của Nguyên (làn cào, box3 / VPS, ckey…) + mọi tin anh gõ trong 🧰 Tài nguyên. Mạnh giữ phần phòng không có kỹ sư riêng. */
 export const HANG_TAI = 'tai-nguyen-sua.json';
+/** Chủ đề đang có lệnh anh chờ / đang làm ở mọi hàng kỹ sư → tg-nghe gửi "đang gõ" mỗi 4 giây tới khi có báo (anh 13/11/2026). Việc quá TREO_PHUT thôi gõ. */
+export const topicDangLam = (luc = Date.now()) => { const ra = new Set(); for (const tep of ['tho-may.json', HANG_HUY, HANG_KHANG, HANG_TAI]) { let st = {}; try { st = JSON.parse(fs.readFileSync(`${DATA()}/${tep}`, 'utf8')); } catch { continue; }
+  for (const v of st.hang || []) if (/^anh:/.test(v.khoa) && (v.tt === 'cho' || v.tt === 'dang') && v.tg?.topic && luc - Date.parse(v.bat_dau || v.luc) < TREO_PHUT * 6e4) ra.add(v.tg.topic); } return [...ra]; };
 export const giaoAnh = (x) => { const r = themAnh(doc(), x); ghi(r.st); return r.viec; };
 export const themTuCanhBao = (ds, tg) => { const r = themViec(doc(), ds, tg); if (r.them) ghi(r.st); return r.them; };
 
@@ -179,8 +182,9 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
   } else if (a[0] === '--lay') {
     const r = layViec(doc()); ghi(r.st); console.log(JSON.stringify(r.viec ? { viec: { ...r.viec, quyet_gan: quyetGan(r.st, r.viec), bac: bacViec(r.st, r.viec) } } : { ly_do: r.ly_do }));
   } else if (a[0] === '--nhan') {
+    // không gửi tin "đã nhận" (anh 13/11/2026) — tg-nghe giữ "đang gõ" trong chủ đề tới khi có báo (topicDangLam)
     const st = doc(), v = st.hang.find((x) => x.id === id); if (!v) throw new Error('không có việc ' + id);
-    const j = await traLoi(v, `<b>🔧 ${tenViec(v)}</b> đã nhận: ${esc(v.chu.replace(/<[^>]+>/g, '').slice(0, 200))} — ${/^anh:/.test(v.khoa) ? 'đang làm' : 'đang tìm gốc'} (tối đa 30 phút).`); v.tin_nhan = j?.result?.message_id ?? null; ghi(doc2(st, v)); console.log('ok');
+    if (v.tg?.topic) await tg('sendChatAction', { action: 'typing', message_thread_id: v.tg.topic }); console.log('ok');
   } else if (a[0] === '--bao') {
     const ket = KET[a[2]] ? a[2] : 'khong_sua', chu = fs.readFileSync(0, 'utf8').trim(), st = doc(), v = st.hang.find((x) => x.id === id); if (!v) throw new Error('không có việc ' + id);
     v.tt = ket === 'da_sua' ? 'xong' : 'ket'; v.ket = ket; v.xong = new Date().toISOString(); v.ket_qua = chu.slice(0, 2000);
@@ -193,6 +197,11 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     console.log(themTuCanhBao([{ khoa: a[1], chu: fs.readFileSync(0, 'utf8').trim().slice(0, 3000) }], { topic }));
   } else if (a[0] === '--ghi-them') {   // ghi chú bổ sung (mos2 /api/may-dang/so): --ghi-them <khoá>, chữ ở stdin → nối vào việc đang chờ cùng khoá hoặc xếp mới. In gop | moi | bo
     const r = ghiThem(doc(), a[1], fs.readFileSync(0, 'utf8').trim().slice(0, 3000)); if (r.kieu !== 'bo') ghi(r.st); console.log(r.kieu);
+  } else if (a[0] === '--loi-api') {   // --loi-api <người:loại>, chữ ở stdin: lỗi Claude / API mà máy không tự qua được (đăng nhập hết hạn, hết hạn mức, lỗi máy chủ lặp) → chủ đề riêng 🚨 Lỗi API (anh 13/11/2026). Mỗi khoá ≤ 1 tin / giờ. In gui | bo | loi
+    const f = `${DATA()}/loi-api.json`; let st = {}; try { st = JSON.parse(fs.readFileSync(f, 'utf8')); } catch { /* lần đầu */ }
+    if (st[a[1]] && Date.now() - Date.parse(st[a[1]]) < 36e5) console.log('bo');
+    else { const topic = await topicPhong('loi-api', '🚨 Lỗi API · cần anh', tg, { duocTao: true }); const j = await traLoi({ tg: { topic } }, `<b>🚨 ${esc(a[1])}</b>\n${esc(fs.readFileSync(0, 'utf8').trim().slice(0, 1500))}`);
+      if (j?.ok) { st[a[1]] = new Date().toISOString(); fs.writeFileSync(f, JSON.stringify(st)); } console.log(j?.ok ? 'gui' : 'loi'); }
   } else if (a[0] === '--canh') {   // --canh <khoá> <phòng>, chữ ở stdin: báo máy kẹt vào chủ đề phòng, mỗi khoá ≤ 1 tin / 24 giờ. In gui | bo | loi
     const st = doc(), luc = Date.now();
     if (!nenCanh(st, a[1], luc)) console.log('bo');

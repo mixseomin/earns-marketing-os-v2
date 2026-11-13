@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { gomTin } from './tg-phong.mjs';
+import { topicDangLam } from './tho-may-viec.mjs';
 import { xuNutPhim } from './phim-nut.mjs';
 import { xuThuKy } from './thu-ky.mjs';
 import { xuNutSp, baoKetLenh } from './sp-nut.mjs';
@@ -15,6 +16,8 @@ import { guiDuyet, xuNutDuyetCr } from './etp-duyet.mjs';
 
 const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env; if (!T || !C) { console.error('thiếu TG_BOT_TOKEN / TG_CHAT'); process.exit(1); }
 const tg = (await import('./tg-phong.mjs')).ghiNut(async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(m === 'getUpdates' ? 45_000 : 15_000) })).json(); if (!j.ok && m !== 'getUpdates') console.error(`✗ telegram ${m}: ${j.description}`); return j; });
+// "ĐANG GÕ" thay tin "đã nhận" (anh 13/11/2026): lệnh anh còn chờ / đang làm ở hàng kỹ sư → gửi typing mỗi 4 giây (Telegram tắt sau 5 giây) tới khi có báo
+setInterval(() => { try { for (const t of topicDangLam()) tg('sendChatAction', { action: 'typing', message_thread_id: t }).catch(() => {}); } catch (e) { console.error(`✗ đang gõ: ${e.message}`); } }, 4000);
 const tim = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'tg-hop', 'nghe.tim');
 for (;;) {
   try { fs.mkdirSync(path.dirname(tim), { recursive: true }); fs.writeFileSync(tim, new Date().toISOString()); const n = await gomTin(tg, { cho: 30 }); if (n) console.log(`${new Date().toISOString()} ${n} tin`); if (await xuNutPhim(tg)) console.log('xử nút phim');

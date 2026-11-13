@@ -56,7 +56,7 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
       count(v.id) FILTER (WHERE v.da_dang ? 'youtube')::int AS da_dang,
       max(v.da_dang->'youtube'->>'ngay') AS dang_cuoi
     FROM xv_may m LEFT JOIN xv_may_video v ON v.may_id = m.id AND ${loaiVid} WHERE ${chon} GROUP BY m.id ORDER BY m.id`)) as unknown as
-    { ma: string; ten: string; site_dich: string | null; chay: boolean; dang_lam: DangLam | null; dang_lam_ds: Record<string, DangLam> | null; tap_cho: TapCho[] | null; dang: { nen: string; ten?: string; tk?: string; kem?: string; gio_tu?: string; br?: { handle?: string } }[]; tap: number; cho_dang: number; da_dang: number; dang_cuoi: string | null }[];
+    { ma: string; ten: string; site_dich: string | null; chay: boolean; dang_lam: DangLam | null; dang_lam_ds: Record<string, DangLam> | null; tap_cho: TapCho[] | null; dang: { nen: string; ten?: string; tk?: string; kem?: string; gio_tu?: string; br?: { handle?: string; graph_id?: string } }[]; tap: number; cho_dang: number; da_dang: number; dang_cuoi: string | null }[];
   if (!may.length) return [];
   const so = (await d.execute(sql`SELECT san_pham, ngay::text AS ngay, hien, so_muc, chi_tiet->>'nguoi_dk' AS nguoi_dk FROM kenh_so_ngay
     WHERE kenh = ${loai === 'social' ? 'social' : 'youtube'} AND san_pham IN ${may.map((m) => `may:${m.ma}`)} AND ngay >= current_date - 30`)) as unknown as
@@ -83,6 +83,9 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
     // kênh social: chờ đăng / đã đăng / đăng cuối tính trên MỌI nền (cột SQL ở trên chỉ đếm YouTube — đúng cho kênh sản phẩm)
     const xa = loai === 'social' ? { ten: lt[m.ma]?.ten ?? m.ten, choDang: cua.filter((v) => v.tep && !v.da_dang).length, daDang: cua.filter((v) => v.da_dang).length,
       dangCuoi: cua.map((v) => v.nen?.length ? v.ngay : null).filter((x): x is string => !!x).sort().at(-1) ?? null, nen: tomNenDang(m.dang ?? [], cua, hom), siteDich: m.site_dich,
+      // ẢNH KÊNH: trang YouTube (máy đo); kênh không có YouTube (militarycalc) → ảnh Page Facebook đầu tiên của máy (Graph /<id>/picture công khai, không cần token)
+      ...(anh.find((a) => a.san_pham === `may:${m.ma}`) ? {} : (() => { const g = (m.dang ?? []).find((x) => /^(facebook|fb_)/.test(x.nen) && x.br?.graph_id)?.br?.graph_id;
+        return g ? { anh: `https://graph.facebook.com/${g}/picture?type=normal` } : {}; })()),
       // chưa có bản đo ngày nào (máy đo chạy mỗi giờ: chay-kenh › --so-kenh --social) → lượt xem cộng từ từng bài, 7 ngày để trống
       ...(ds.length ? {} : { xem: cua.some((v) => v.xem != null) ? cua.reduce((t, v) => t + (v.xem ?? 0), 0) : null }),
       dangTen: Object.fromEntries([...new Set(videos.map((v) => v.dangBai).filter((x): x is string => !!x && !!DANG_TEN[x]))].map((x) => [x, DANG_TEN[x]!])) } : null;

@@ -27,17 +27,17 @@ const PHU = { xetLuat: {}, xetChu: [], lsBac: {}, cham: {}, bao: [], ket: [], da
 export const KHOA_PHU = Object.keys(PHU) as (keyof typeof PHU)[];
 
 /** số liệu trang của người xem + mã phiên bản — trang, /etp/du và /etp/phien băm cùng một kiểu */
-// MỘT LƯỢT ĐỌC CHO MỌI NGƯỜI HỎI CÙNG LÚC + dùng lại trong 8 giây: trước đây mỗi lần tải lại / mỗi /etp/du trượt / mỗi /etp/phien đọc kho riêng (~1,5 s, 30 câu SQL)
-// → anh tải lại liên tục thì máy chủ đọc chồng chục lượt, lượt nào cũng chậm thêm (15:30 UTC 13/11: 12 lượt trong 65 giây, có lượt 22 s).
-const g2 = globalThis as unknown as { __etpDuDoc?: Map<string, { p: Promise<{ du: DuLieuEtp; phien: string }>; luc: number }> };
+// MỘT LƯỢT ĐỌC CHO MỌI NGƯỜI HỎI CÙNG LÚC: trước đây mỗi lần tải lại / mỗi /etp/du trượt / mỗi /etp/phien đọc kho riêng (~1,5 s, 30 câu SQL)
+// → tải lại liên tục thì máy chủ đọc chồng chục lượt, lượt nào cũng chậm thêm (15:30 UTC 13/11: 12 lượt trong 65 giây, có lượt 22 s).
+// CHỈ GỘP LƯỢT ĐANG CHẠY, KHÔNG DÙNG LẠI KẾT QUẢ ĐÃ XONG (/audit 13/11/2026): bản trước dùng lại 8 giây → bấm thao tác (bật lịch, lưu tiêu chí…) rồi router.refresh
+// trong 8 giây đó nhận lại số TRƯỚC thao tác, nút trông như không ăn. Lượt xong là bỏ khỏi sổ, lần hỏi sau đọc mới.
+const g2 = globalThis as unknown as { __etpDuDoc?: Map<string, Promise<{ du: DuLieuEtp; phien: string }>> };
 const DOC = (g2.__etpDuDoc ??= new Map());
-const DOC_MS = 8_000;
 export async function duTrang(quyen: QuyenEtp, ng?: string): Promise<{ du: DuLieuEtp; phien: string }> {
   const n = ngCua(quyen, ng) ?? '', co = DOC.get(n);
-  if (co && Date.now() - co.luc < DOC_MS) return co.p;
-  const p = docEtp(n || undefined, true).then((du) => ({ du, phien: phienDu(du) }));
-  DOC.set(n, { p, luc: Date.now() });
-  p.catch(() => DOC.delete(n));
+  if (co) return co;
+  const p = docEtp(n || undefined, true).then((du) => ({ du, phien: phienDu(du) })).finally(() => DOC.delete(n));
+  DOC.set(n, p);
   return p;
 }
 

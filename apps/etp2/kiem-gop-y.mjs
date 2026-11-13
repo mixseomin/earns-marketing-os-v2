@@ -7,13 +7,15 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 'so-nho-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', cam: 'caches.open(', vi: 'giữ số trong máy chỉ qua lib/so-nho, không dựng kho thứ hai (/audit 13/11/2026)' },
+  { card: 'so-nho-1311', tep: 'apps/etp2/src/lib/so-nho.ts', cam: 'localStorage', vi: 'một kho Cache API duy nhất cho số giữ trong máy' },
   { card: 'so-nho-1311', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: "useSoNho<SoTong2>('tong2', taiTong2, 120_000)", vi: 'widget Người / Tài khoản hiện ngay bản lần trước, không đứng "đang tải số…" (anh 13/11/2026 ảnh iPhone)' },
   { card: 'so-nho-1311', tep: 'apps/etp2/src/components/etp-insight.tsx', co: "useSoNho<DuInsight>('insight', docInsight)", vi: 'tab Insight hiện ngay bản lần trước' },
-  { card: 'so-nho-1311', tep: 'apps/etp2/src/components/etp-tong2.tsx', co: "const nho = docNho<BoCucDoc>('bocuc');", vi: 'bố cục Tổng quan vẽ ngay từ bản giữ trong máy' },
+  { card: 'so-nho-1311', tep: 'apps/etp2/src/components/etp-tong2.tsx', co: "void docNho('bocuc').then(", vi: 'bố cục Tổng quan vẽ ngay từ bản giữ trong máy' },
   { card: 'du-may-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', cam: 'Số liệu mới chưa tải được ({loi}) — đang hiện bản trước. <button', vi: 'trạng thái số liệu là nút tròn nhỏ góc dưới, không chiếm dòng (anh 13/11/2026 "Chỉ cần hiện gọn nút refresh. Tốn diện tích quá")' },
   { card: 'du-may-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: "position: 'fixed', left: 12, bottom: 12", vi: 'nút trạng thái số liệu nổi góc dưới trái' },
   { card: 'du-may-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: 'const may = await docMay(duUrl);', vi: 'mở / tải lại etp2 hiện ngay bản số giữ trong máy, bản mới tải ngầm (anh 13/11/2026 "Có giải pháp nào hợp lý và nhanh hơn?")' },
-  { card: 'du-rieng-1311', tep: 'apps/etp2/src/lib/etp-du-kho.ts', co: 'if (co && Date.now() - co.luc < DOC_MS) return co.p;', vi: 'một lượt đọc kho cho mọi lần hỏi cùng lúc, dùng lại 8 giây — tải lại liên tục không đọc chồng' },
+  { card: 'du-rieng-1311', tep: 'apps/etp2/src/lib/etp-du-kho.ts', co: '.finally(() => DOC.delete(n));', cam: 'DOC_MS', vi: 'gộp lượt đọc kho đang chạy, KHÔNG dùng lại kết quả đã xong — thao tác rồi làm mới phải thấy số mới (/audit 13/11/2026)' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/app/etp/page.tsx', cam: ' du={gonXet(', vi: 'số liệu trang KHÔNG đi làm props trong HTML — iPhone hết RAM với trang 11 MB, Safari tự tải lại (anh 13/11/2026 "Etp2 đang lỗi. Fix triệt để")' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/app/etp/page.tsx', co: 'await catDu(quyen, du, phien);', vi: 'trang cất bản nén theo mã phiên bản, trình duyệt tải /etp/du?p=<mã>' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: 'const r = await fetch(url);', vi: 'khung khach tải số liệu riêng, lỗi tải hiện ô đỏ + nút thử lại' },

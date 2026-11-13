@@ -29,15 +29,16 @@ export function Tong2({ ve: veNgoai, laChu, ky, dau }: { ve: Record<string, VeWi
   const [mot, setMot] = useState<string>(() => (typeof location === 'undefined' ? '' : new URL(location.href).searchParams.get('w2') ?? ''));
   const [kt, setKt] = useState({ w: 1200, h: 700 });
 
-  const taiLai = () => docBoCuc().then((r) => { if (!('loi' in r)) { setDoc(r); ghiNho('bocuc', r); } return r; });   // giữ trong máy — lần sau vẽ ngay (lib/so-nho, 13/11/2026)
+  const taiLai = () => docBoCuc().then((r) => { if (!('loi' in r)) { setDoc(r); void ghiNho('bocuc', r); } return r; });   // giữ trong máy — lần sau vẽ ngay (lib/so-nho, 13/11/2026)
   // TEMPLATE ĐANG XEM NẰM TRÊN URL ?tpl= (anh 12/11/2026 etp2 #1574 "các lựa chọn phải show lên URL để khi mở ở tab mới với option mới ko bị ảnh hưởng"): bố cục đang dùng lưu
   // chung trong sổ (etp.bo_cuc) → tab mới chọn template khác thì tab cũ F5 cũng đổi theo. Giờ ?tpl= thắng sổ; sửa tay (kéo / thêm / bỏ ô) = bố cục tự sửa, gỡ ?tpl=
   const tplSrc = (v: string, d: BoCucDoc | null) => (v.startsWith('m:') ? TEMPLATE[v.slice(2)]?.o : v === 'team' ? d?.team ?? undefined : d?.rieng.find((r) => `r:${r.ten}` === v)?.o);
   useEffect(() => { const ap = (r: BoCucDoc) => { const t = new URL(location.href).searchParams.get('tpl'), src = t ? tplSrc(t, r) : undefined;
       setO(src ? src.map((x) => ({ ...x })) : r.dang ?? r.team ?? MAC_DINH); };
     // BỐ CỤC LẦN TRƯỚC VẼ NGAY (anh 13/11/2026 ảnh iPhone: trang đứng chờ dù đã có số) — bản từ máy chủ về thì áp lại
-    const nho = docNho<BoCucDoc>('bocuc'); if (nho) { setDoc(nho); ap(nho); }
-    taiLai().then((r) => { if (!('loi' in r)) ap(r); }).catch(() => {}); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+    let moi = false;
+    void docNho('bocuc').then((b) => { if (!b || moi) return; try { const nho = JSON.parse(b.than) as BoCucDoc; setDoc(nho); ap(nho); } catch { /* bản hỏng — chờ máy chủ */ } });
+    taiLai().then((r) => { if (!('loi' in r)) { moi = true; ap(r); } }).catch((e) => console.warn('[etp2] đọc bố cục Tổng quan', e)); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   // lưới cao đúng phần màn còn lại dưới thanh trên (đo mép trên thật) → không cuộn dọc; bề ngang theo khung → không cuộn ngang
   useLayoutEffect(() => {
     const el = hop.current; if (!el) return;

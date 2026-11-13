@@ -26,7 +26,7 @@ export default async function EtpPage({ searchParams }: { searchParams: Promise<
   const t0 = Date.now();
   const [{ du, phien }, het, choAp] = await Promise.all([duTrang(quyen, mot('ng')), hetPhienEthopex(suaNguoi(quyen)), docChoAp()]);   // choAp: lệnh tay đã gửi, kho chưa đổi (#1553 vết chờ)
   await catDu(quyen, du, phien);   // số liệu KHÔNG đi trong HTML (iPhone hết RAM với trang 11 MB) — cất bản nén theo mã, trình duyệt tải /etp/du?p=<mã>
-  console.log(`[etp-do] docEtp ${Date.now() - t0}ms`);   // đo trang chậm (09/11/2026): thời gian đọc dữ liệu, phần còn lại của TTFB là dựng HTML
+  console.log(`[etp-do] đọc kho + nén số ${Date.now() - t0}ms`);   // đo trang chậm (09/11/2026): thời gian đọc dữ liệu, phần còn lại của TTFB là dựng HTML
   const cheDo = du.nguoi.ngoai ? await docCheDo(quyen, du.nguoi.dang) : null;   // chế độ luật máy của người đang xem (etp.che_do_luat)
   // key theo người đang xem: đổi người = dựng lại trang (bộ lọc, ô tìm, bảng nạp bộ đã lưu của người đó — anh 02/11/2026 "layout, filter, search… thì ko được thông nhau")
   return <EtpView key={du.nguoi.doi ? 'team' : `ng${du.nguoi.dang ?? 'nha'}`} chiXem={quyen.vai !== 'chu'} phien={phien} duUrl={`/etp/du?${new URLSearchParams({ p: phien, ...(mot('ng') ? { ng: mot('ng')! } : {}) })}`} choAp={choAp} quyen={{ vai: quyen.vai, sua: suaNguoi(quyen), het, cheDo }} dauVao={{ t: mot('t'), v: mot('v'), l: mot('l'), p: mot('p'), lu: mot('lu'), d: mot('d'), b: mot('b'), ll: mot('ll'), tu: mot('tu'), ngan: mot('ngan'), ro: mot('ro'), ab: mot('ab'), k: mot('k') }} />;

@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import type { EtpView as EtpViewGoc } from './etp-view';
 import type { DuLieuEtpGui } from '@/lib/etp-xet-gon';
+import { docNho, ghiNho } from '@/lib/so-nho';
 
 type Props = ComponentProps<typeof EtpViewGoc>;
 const EtpViewTre = dynamic(() => import('./etp-view').then((m) => m.EtpView), {
@@ -35,28 +36,17 @@ async function taiPhan(url: string, tien?: Tien): Promise<[Record<string, unknow
 const urlPhan = (duUrl: string, phan: 'chinh' | 'phu', ma?: string) => { const u = new URL(duUrl, location.origin); u.searchParams.set('phan', phan); if (ma) u.searchParams.set('p', ma); return `${u.pathname}${u.search}`; };
 
 // BẢN LẦN TRƯỚC GIỮ TRONG MÁY (anh 13/11/2026 "Có giải pháp nào hợp lý và nhanh hơn?" — mạng iPhone 20–200 KB/giây, mỗi lần tải lại kéo ~660 KB):
-// mở / tải lại trang → hiện NGAY bản lần trước (Cache API của trình duyệt, theo người đang xem), dòng trên đầu ghi số lúc mấy giờ; bản mới tải ngầm, về là thay.
-// Mã bản giữ = mã trang vừa nhận → số chưa đổi, không tải gì. Trình duyệt chặn / hết chỗ → lặng lẽ quay về tải thường (không mất số, chỉ chậm như cũ).
-const KHO_MAY = 'etp2-du-v1';
-const khoaMay = (duUrl: string, phan: string) => `/etp2-du-may/${new URL(duUrl, location.origin).searchParams.get('ng') || 'nha'}/${phan}`;
+// mở / tải lại trang → hiện NGAY bản lần trước (kho chung lib/so-nho, theo người đang xem), nút ↻ xoay góc dưới trái; bản mới tải ngầm, về là thay.
+// Mã bản giữ = mã trang vừa nhận → số chưa đổi, không tải gì.
+const khoaMay = (duUrl: string, phan: 'chinh' | 'phu') => `du/${new URL(duUrl, location.origin).searchParams.get('ng') || 'nha'}/${phan}`;
 async function docMay(duUrl: string): Promise<{ du: Record<string, unknown>; ma: string; luc: number } | null> {
-  try {
-    if (typeof caches === 'undefined') return null;
-    const c = await caches.open(KHO_MAY);
-    const [a, b] = await Promise.all([c.match(khoaMay(duUrl, 'chinh')), c.match(khoaMay(duUrl, 'phu'))]);
-    if (!a) return null;   // phần phụ có thể thiếu / lệch mã (trang bị tải lại trước khi phụ về) — vẫn hiện được, bản mới về sẽ thay
-    const dongBo = !!b && a.headers.get('x-phien') === b.headers.get('x-phien');
-    return { du: { ...(await a.json()), ...(b ? await b.json() : {}) }, ma: dongBo ? a.headers.get('x-phien') ?? '' : '', luc: Number(a.headers.get('x-luc')) || 0 };
-  } catch { return null; }
+  const [a, b] = await Promise.all([docNho(khoaMay(duUrl, 'chinh')), docNho(khoaMay(duUrl, 'phu'))]);
+  if (!a) return null;   // phần phụ có thể thiếu / lệch mã (trang bị tải lại trước khi phụ về) — vẫn hiện được, bản mới về sẽ thay
+  try { return { du: { ...JSON.parse(a.than), ...(b ? JSON.parse(b.than) : {}) }, ma: b && a.ma === b.ma ? a.ma : '', luc: a.luc }; }
+  catch (e) { console.warn('[etp2] bản số giữ trong máy hỏng, tải mới', e); return null; }
 }
 /** giữ TỪNG phần ngay khi về (phần chính không chờ phần phụ — trang hay bị tải lại giữa chừng trên mạng chậm) */
-async function ghiMay(duUrl: string, ma: string, phan: 'chinh' | 'phu', than: string) {
-  try {
-    if (typeof caches === 'undefined') return;
-    const c = await caches.open(KHO_MAY);
-    await c.put(khoaMay(duUrl, phan), new Response(than, { headers: { 'content-type': 'application/json', 'x-phien': ma, 'x-luc': String(Date.now()) } }));
-  } catch { /* hết chỗ / bị chặn — lần sau tải thường */ }
-}
+const ghiMay = (duUrl: string, ma: string, phan: 'chinh' | 'phu', than: string) => ghiNho(khoaMay(duUrl, phan), than, ma);
 const gioVn = (ms: number) => new Date(ms).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' });
 
 export function EtpView({ duUrl, ...p }: Omit<Props, 'du'> & { duUrl: string }) {

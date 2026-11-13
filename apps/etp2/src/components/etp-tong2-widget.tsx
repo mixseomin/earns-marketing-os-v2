@@ -9,6 +9,7 @@ import type { VeWidget } from '@/components/etp-tong2';
 import { Dem, KeToan } from '@/components/etp-so';
 import { congNgay as congN, doiChieu, heSo, hieuChinh, mauCpm, mocMau, nen, ngayThiTruong, saiSo, type NhatKyDuDoan, type SoNgay } from '@/lib/etp-thi-truong';
 import { nhip } from '@/lib/nhip';   // tự làm mới chỉ khi tab hiện (12/11/2026)
+import { useSoNho } from '@/lib/so-nho';
 
 type ST = { chi: number; thu: number };
 const cong = (rs: ST[]) => rs.reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 });
@@ -129,9 +130,7 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
 }
 
 export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidget> {
-  const [s, setS] = useState<SoTong2 | null>(null);
-  useEffect(() => { let huy = false; const tai = () => taiTong2().then((r) => { if (!huy && !('loi' in r)) setS(r); }).catch(() => {});
-    tai(); const t = nhip(tai, 120_000); return () => { huy = true; t(); }; }, []);
+  const { so: s } = useSoNho<SoTong2>('tong2', taiTong2, 120_000);   // bản lần trước hiện ngay, tải mới ngầm (anh 13/11/2026 widget Người đứng "đang tải số…")
 
   const x = useMemo(() => {
     if (!s) return null;

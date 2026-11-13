@@ -7,6 +7,9 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 'so-nho-1311', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: "useSoNho<SoTong2>('tong2', taiTong2, 120_000)", vi: 'widget Người / Tài khoản hiện ngay bản lần trước, không đứng "đang tải số…" (anh 13/11/2026 ảnh iPhone)' },
+  { card: 'so-nho-1311', tep: 'apps/etp2/src/components/etp-insight.tsx', co: "useSoNho<DuInsight>('insight', docInsight)", vi: 'tab Insight hiện ngay bản lần trước' },
+  { card: 'so-nho-1311', tep: 'apps/etp2/src/components/etp-tong2.tsx', co: "const nho = docNho<BoCucDoc>('bocuc');", vi: 'bố cục Tổng quan vẽ ngay từ bản giữ trong máy' },
   { card: 'du-may-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', cam: 'Số liệu mới chưa tải được ({loi}) — đang hiện bản trước. <button', vi: 'trạng thái số liệu là nút tròn nhỏ góc dưới, không chiếm dòng (anh 13/11/2026 "Chỉ cần hiện gọn nút refresh. Tốn diện tích quá")' },
   { card: 'du-may-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: "position: 'fixed', left: 12, bottom: 12", vi: 'nút trạng thái số liệu nổi góc dưới trái' },
   { card: 'du-may-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: 'const may = await docMay(duUrl);', vi: 'mở / tải lại etp2 hiện ngay bản số giữ trong máy, bản mới tải ngầm (anh 13/11/2026 "Có giải pháp nào hợp lý và nhanh hơn?")' },

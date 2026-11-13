@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Dem, KeToan, mauLai } from '@/components/etp-so';
 import { docInsight, docMoc, type DuInsight } from '@/lib/actions/etp-insight';
+import { useSoNho } from '@/lib/so-nho';
 import { DataTable, type DataColumn } from '@/components/ui/data-table';
 import { dongBang, giaiDong, kieuDong, moTuHang, nhanDinh, roiKhoi, NHAN_KIEU, TEN_LOAI, TOP_DON, DON_PHAN, MAU_IT, type DongMoc, type Khoi, type MocSo } from '@/lib/etp-moc';
 
@@ -105,8 +106,8 @@ function BangMoc({ ids, tu, den, nhan }: { ids: number[]; tu: string; den: strin
 }
 
 export function TabInsight({ ids, tu, den, nhan }: { ids: number[]; tu: string; den: string; nhan: string }) {
-  const [du, setDu] = useState<DuInsight | null>(null), [loi, setLoi] = useState<string | null>(null);
-  useEffect(() => { docInsight().then((r) => ('loi' in r ? setLoi(r.loi) : setDu(r))).catch((e) => setLoi(String(e?.message ?? e))); }, []);
+  const { so: du, loi: loiTai } = useSoNho<DuInsight>('insight', docInsight);   // bản lần trước hiện ngay, tải mới ngầm (13/11/2026)
+  const loi = du ? null : loiTai;   // đã có bản để hiện thì lỗi tải mới không thay cả tab
   const nguoi = useMemo(() => [...new Map((du?.ngay ?? []).map((x) => [x.nguoi, x.nha])).entries()].sort((a, b) => Number(b[1]) - Number(a[1])), [du]);
   const ngays = useMemo(() => [...new Set((du?.ngay ?? []).map((x) => x.ngay))].sort().reverse(), [du]);
   const khNgay = useMemo(() => [...new Set((du?.khung ?? []).map((x) => x.ngay))].sort().reverse(), [du]);

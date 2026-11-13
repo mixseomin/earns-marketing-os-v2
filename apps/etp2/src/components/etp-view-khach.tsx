@@ -44,15 +44,17 @@ async function docMay(duUrl: string): Promise<{ du: Record<string, unknown>; ma:
     if (typeof caches === 'undefined') return null;
     const c = await caches.open(KHO_MAY);
     const [a, b] = await Promise.all([c.match(khoaMay(duUrl, 'chinh')), c.match(khoaMay(duUrl, 'phu'))]);
-    if (!a || !b || a.headers.get('x-phien') !== b.headers.get('x-phien')) return null;
-    return { du: { ...(await a.json()), ...(await b.json()) }, ma: a.headers.get('x-phien') ?? '', luc: Number(a.headers.get('x-luc')) || 0 };
+    if (!a) return null;   // phần phụ có thể thiếu / lệch mã (trang bị tải lại trước khi phụ về) — vẫn hiện được, bản mới về sẽ thay
+    const dongBo = !!b && a.headers.get('x-phien') === b.headers.get('x-phien');
+    return { du: { ...(await a.json()), ...(b ? await b.json() : {}) }, ma: dongBo ? a.headers.get('x-phien') ?? '' : '', luc: Number(a.headers.get('x-luc')) || 0 };
   } catch { return null; }
 }
-async function ghiMay(duUrl: string, ma: string, chinh: string, phu: string) {
+/** giữ TỪNG phần ngay khi về (phần chính không chờ phần phụ — trang hay bị tải lại giữa chừng trên mạng chậm) */
+async function ghiMay(duUrl: string, ma: string, phan: 'chinh' | 'phu', than: string) {
   try {
     if (typeof caches === 'undefined') return;
-    const c = await caches.open(KHO_MAY), h = { 'content-type': 'application/json', 'x-phien': ma, 'x-luc': String(Date.now()) };
-    await Promise.all([c.put(khoaMay(duUrl, 'chinh'), new Response(chinh, { headers: h })), c.put(khoaMay(duUrl, 'phu'), new Response(phu, { headers: h }))]);
+    const c = await caches.open(KHO_MAY);
+    await c.put(khoaMay(duUrl, phan), new Response(than, { headers: { 'content-type': 'application/json', 'x-phien': ma, 'x-luc': String(Date.now()) } }));
   } catch { /* hết chỗ / bị chặn — lần sau tải thường */ }
 }
 const gioVn = (ms: number) => new Date(ms).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' });
@@ -69,7 +71,7 @@ export function EtpView({ duUrl, ...p }: Omit<Props, 'du'> & { duUrl: string }) 
     const bao = (e: unknown) => { if (!huy) setLoi(e instanceof Error ? e.message : String(e)); };
     const maTrang = new URL(duUrl, location.origin).searchParams.get('p') ?? '';
     const taiCa = () => Promise.all([taiPhan(urlPhan(duUrl, 'chinh')), taiPhan(urlPhan(duUrl, 'phu'))])
-      .then(([[chinh, ma, tc], [phu, , tp]]) => { if (huy) return; coDu.current = true; setCu(null); setDu({ ...chinh, ...phu } as DuLieuEtpGui); void ghiMay(duUrl, ma, tc, tp); });
+      .then(([[chinh, ma, tc], [phu, , tp]]) => { if (huy) return; coDu.current = true; setCu(null); setDu({ ...chinh, ...phu } as DuLieuEtpGui); void ghiMay(duUrl, ma, 'chinh', tc); void ghiMay(duUrl, ma, 'phu', tp); });
     void (async () => {
       try {
         if (!coDu.current) {
@@ -82,9 +84,10 @@ export function EtpView({ duUrl, ...p }: Omit<Props, 'du'> & { duUrl: string }) 
           }
           // máy chưa có bản nào: phần chính (có tiến độ) → dựng; phần phụ theo đúng mã của phần chính → ghép
           const [chinh, ma, tc] = await taiPhan(urlPhan(duUrl, 'chinh'), (a, b) => { if (!huy) setTien([a, b]); });
+          void ghiMay(duUrl, ma, 'chinh', tc);
           if (huy) return; coDu.current = true; setTien(null); setDu(chinh as DuLieuEtpGui);
           const [phu, , tp] = await taiPhan(urlPhan(duUrl, 'phu', ma));
-          if (huy) return; setDu((d) => ({ ...(d ?? chinh), ...phu }) as DuLieuEtpGui); void ghiMay(duUrl, ma, tc, tp);
+          if (huy) return; setDu((d) => ({ ...(d ?? chinh), ...phu }) as DuLieuEtpGui); void ghiMay(duUrl, ma, 'phu', tp);
         } else await taiCa();
       } catch (e) { bao(e); }
     })();

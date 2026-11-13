@@ -35,13 +35,19 @@ export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | nul
     const vet = s.slice(m.index).split(/;?\s*(?:no drips|no runs|the stain has exactly|in every shot)/i)[0]!.replace(/[;,\s]+$/, '').trim();
     return { chinh: chinh || s, vet };
   };
-  const viNguoi = (v: NhanVat) => { if (kg && nguoiKhung(kg, c, lucKg)?.includes(v.ten)) { const x = viTri(kg, c, v.ten, lucKg); return x == null ? '' : x < -0.33 ? 'trái' : x > 0.33 ? 'phải' : 'giữa'; } return ''; };
+  // VỊ TRÍ THEO KHUNG 3D TRƯỚC (13/11/2026 phim #3071): shot dựng bằng bộ set 3D thì hộp đo trên khung (khung_xam.kiem[].khung) là chuẩn — sơ đồ 2D cũ
+  // của tập lệch với set (thêm máy, dời máy) nên dự kiến 'phải' trong khi khung 3D đặt người ở giữa → bộ chấm báo lệch giả.
+  const vi3d = (v: NhanVat): string | null => { if (luc !== 'dau') return null; const k = c.khung_xam?.kiem?.find((x) => x.nhan_vat === v.ten && x.trong_khung && x.khung?.length === 4); if (!k) return null; const cx = (k.khung![0]! + k.khung![2]!) / 2; return cx < 0.33 ? 'trái' : cx > 0.67 ? 'phải' : 'giữa'; };
+  const viNguoi = (v: NhanVat) => { const v3 = vi3d(v); if (v3) return v3; if (kg && nguoiKhung(kg, c, lucKg)?.includes(v.ten)) { const x = viTri(kg, c, v.ten, lucKg); return x == null ? '' : x < -0.33 ? 'trái' : x > 0.33 ? 'phải' : 'giữa'; } return ''; };
   // HƯỚNG theo sơ đồ (anh 31/10/2026, phim #353: "vị trí các nhân vật trong không gian thang máy cứ lung tung"): quay lưng về máy / nhìn sang trái / phải màn —
   // enum khớp HUONG_NHIN của bóc tách (thuoc-tinh.ts) để apDungSoBang so bằng máy. Không khai nhìn đâu → không đẻ lá.
   const huongNguoi = (v: NhanVat) => { if (!kg || !nguoiKhung(kg, c, lucKg)?.includes(v.ten)) return ''; if (thayMat(kg, c, v.ten, lucKg) === false) return 'quay lưng'; const h = nhinCan(kg, c, v.ten, lucKg); return h ? (h < 0 ? 'trái' : 'phải') : ''; };
   const L: MucDuKien[] = [];
   L.push({ thanh_phan: 'Khung hình', du_kien: c.ky_thuat?.co_canh ?? 'ms' });
-  L.push({ thanh_phan: 'Bối cảnh', du_kien: c.phan_doan || c.canh || 'không khai' });
+  // BỐI CẢNH = mô tả đối tượng bối cảnh gắn trên shot (13/11/2026: trước ghi TÊN PHÂN CẢNH 'Giao tiền' — model so tên cảnh với ảnh, shot nào cũng 'lệch
+  // bối cảnh', lệch thật chìm trong lệch giả). Không gắn bối cảnh thì về tên cảnh như cũ.
+  const bc = nhanVat.find((v) => v.loai === 'boi_canh' && c.nhan_vat.includes(v.id) && v.mo_ta.trim());
+  L.push({ thanh_phan: 'Bối cảnh', du_kien: bc ? bc.mo_ta.split(/(?<=[.;])\s/)[0]!.slice(0, 300) : c.canh || c.phan_doan || 'không khai' });
   if (nguoi.length) L.push({ thanh_phan: 'Nhân vật có mặt', du_kien: nguoi.map((v) => v.ten).join(', ') });
   for (const v of nguoi) {
     const bc = (c.bieu_cam ?? []).find((x) => x.nv === v.ten);

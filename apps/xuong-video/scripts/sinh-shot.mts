@@ -95,9 +95,12 @@ if (arg('keyframe')) {
   }
   // Đường nhiều bước (ghép từng người, bước 1 + bước 2) đã tự chọn ảnh CUỐI (sinh-anh.ts › chonKeyframe); job giữa chừng (plate, ô mặt 1024²) chỉ là
   // bước trung gian — chọn đè từng job làm #3 / #15 (22/10/2026) nhận ô mặt vuông làm keyframe. Chỉ chọn khi shot chưa có ảnh nào.
-  const kq = await q(sql`SELECT j.canh_id, j.trang_thai, j.output_url, j.loi, j.chi_phi_cents, j.nhan, c.thu_tu, c.keyframe_url FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE j.id = ANY(${`{${jobs.join(',')}}`}::int[]) ORDER BY c.thu_tu, j.id`);
+  const kq = await q(sql`SELECT j.canh_id, j.trang_thai, j.output_url, j.loi, j.chi_phi_cents, j.nhan, c.thu_tu, c.keyframe_url, c.keyframe_uv FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE j.id = ANY(${`{${jobs.join(',')}}`}::int[]) ORDER BY c.thu_tu, j.id`);
   for (const r of kq) {
-    const chon = r.trang_thai === 'xong' && r.output_url && !r.keyframe_url;
+    // Chọn ảnh mới khi nó là ẢNH CUỐI (đã vào dải ứng viên keyframe_uv) — ảnh trung gian (plate, ô mặt) không vào dải nên không bị chọn đè.
+    // Trước 13/11/2026 chỉ chọn khi shot CHƯA có keyframe → sinh lại để sửa lỗi xong vẫn dùng ảnh cũ (phim #3071 #7 + 8 shot).
+    const uv = Array.isArray(r.keyframe_uv) ? (r.keyframe_uv as string[]) : [];
+    const chon = r.trang_thai === 'xong' && r.output_url && r.output_url !== r.keyframe_url && (!r.keyframe_url || uv.includes(String(r.output_url)));
     if (chon) await chonKf(Number(r.canh_id), String(r.output_url));
     console.log(`  #${r.thu_tu} ${r.trang_thai} ${String(r.nhan).replace(/ · cảnh #\d+.*$/, '')} ${r.output_url ?? r.loi} · ${tien(Number(r.chi_phi_cents))}${chon ? ' · ĐÃ CHỌN làm keyframe' : ''}`);
   }

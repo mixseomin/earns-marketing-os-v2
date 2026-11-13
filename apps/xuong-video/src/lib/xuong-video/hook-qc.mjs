@@ -12,6 +12,15 @@ export const giuHook = (moi, goc) => { const g = [...new Set(tuNoiDung(goc))]; i
 export const GIU_HOOK_TOI_THIEU = 0.35;
 /** Dòng đầu QC sạch: chữ kiểu Unicode in đậm (𝗡𝗘𝗪) về chữ thường (NFKC), bỏ đuôi nhãn của nền tảng ("| ad", "| Sponsored") — #851 mang nguyên "| ad?" lên tiêu đề. */
 export const sachHook = (v) => String(v ?? '').normalize('NFKC').replace(/\s+/g, ' ').replace(/\s*[|｜]\s*(ads?|sponsored|promoted|paid)\s*\??\s*$/i, '').trim();
+/** Trần một câu móc — cùng trần câu móc của kiemDe (may-de.ts). */
+export const TRAN_HOOK = 110;
+/** CÂU MÓC lấy từ dòng đầu QC: dòng đầu ≤ 110 ký tự thì giữ nguyên; dài hơn thì lấy CÂU ĐẦU (kết bằng . ? ! … rồi khoảng trắng) nếu 20–110 ký tự; không có thì ''.
+ *  14/11/2026, saidly: kho chỉ lấy NGUYÊN dòng đầu + trần 110 (825f6b7fc) nên mọi QC mở bằng câu hỏi hay rồi nối tiếp cùng dòng ("Sitting on a confidential
+ *  recording with nowhere safe to transcribe it? Upload it to…" — OpenWhispr, HiDock, SpeakON…) bị bỏ cả, kho còn 3 câu đã dùng 2–5 lần → --sinh-kho 0/4, 0/5 đề. */
+export function cauHook(dong) {
+  const s = sachHook(dong); if (s.length <= TRAN_HOOK) return s;
+  const m = /^(.{19,109}?[.?!…])(?=\s)/u.exec(s); return m ? m[1].trim() : '';
+}
 const cacSo = (v) => new Set(String(v ?? '').match(/\d+(?:[.,]\d+)?/g) ?? []);
 /** Dòng hook người xem thấy: tiêu đề bài + câu hook trên màn (de.moc, nếu mẫu có). */
 export const dongHookBai = (title, de) => [title, de?.moc].map((x) => String(x ?? '').trim()).filter(Boolean);
@@ -64,7 +73,13 @@ if (process.argv[1]?.endsWith('hook-qc.mjs') && process.argv.includes('--tu-kiem
   t.ok(CHU_VIET.test(chuManHinh({ cau: [{ khang_dinh: 'BAH chỉ phụ thuộc vào quân hàm', truy: 'military housing' }] })), 'câu trên màn tiếng Việt = lộ (#748)');
   t.ok(!CHU_VIET.test(chuManHinh({ san_bay: [{ ten: 'Dubrovnik Ruđer Bošković Airport', tp: "Paris (Roissy-en-France, Val-d'Oise)" }] })), 'tên riêng Pháp / Croatia không bắt oan');
   t.ok(!CHU_VIET.test(chuManHinh({ truy: 'chữ máy tiếng Việt', cau: [{ khang_dinh: 'BAH depends on rank' }] })), 'trường máy (truy ảnh) không tính');
-  console.log('hook-qc: 14 ca đạt'); process.exit(0);
+  // câu móc: dòng đầu dài → câu đầu; số thập phân không cắt; không có câu đầu vừa trần → ''; dòng ngắn giữ nguyên
+  t.equal(cauHook('Sitting on a confidential recording with nowhere safe to transcribe it? Upload it to OpenWhispr, where it transcribes on your own machine and never leaves it.'), 'Sitting on a confidential recording with nowhere safe to transcribe it?');
+  t.equal(cauHook('Realtime TTS-2 is $12.50 per 1M characters and it keeps getting cheaper every single month for every developer team. Compare that to what you pay.'), '');
+  t.equal(cauHook('Never miss a key idea. Capture meetings, conversations, and insights with Al-powered transcription and smart summaries.'), 'Never miss a key idea.');
+  t.equal(cauHook('Blind ranking ways to get words on screen. 📊'), 'Blind ranking ways to get words on screen. 📊');
+  t.ok(cauHook(`${'word '.repeat(30)}end.`) === '', 'không có dấu câu trước trần = bỏ');
+  console.log('hook-qc: 19 ca đạt'); process.exit(0);
 }
 
 /** BẰNG CHỨNG của một hook trong kho (dùng chung mọi chỗ đưa hook cho AI / người đọc): QC spy = số ngày chạy · 'kenh:' = video thắng của chính kênh ·

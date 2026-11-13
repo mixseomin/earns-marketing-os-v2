@@ -35,7 +35,7 @@ import { readFileSync } from 'node:fs';
 import { bucAnh, dsMay, dsVideoDang, ghiDang, ghiNguon, ghiNhatKy, mayTheoMa, napVideo, xuatVideo } from '../src/lib/xuong-video/may';
 import { BO_DUNG } from '../src/lib/xuong-video/mau-dung';
 import { CHU_VIET } from '../src/lib/xuong-video/may-de';
-import { sachHook } from '../src/lib/xuong-video/hook-qc.mjs';
+import { sachHook, cauHook, TRAN_HOOK } from '../src/lib/xuong-video/hook-qc.mjs';
 
 const a = process.argv.slice(2), lay = (k: string) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] ?? '' : null; };
 const db = getDb(); if (!db) { console.error('thiếu DATABASE_URL'); process.exit(1); }
@@ -104,8 +104,9 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
     || (s.toLowerCase().match(/\b(con|che|di|il|della|per|non|una|uno|les|des|une|est|avec|pour|der|die|und|das|mit|ist|für|los|las|el|para|del|com|você|não|het|een|och|e|y|et)(?![\w-])/g) ?? []).length >= 2;
   const hookTu = (rows: { library_id: string; dong: string; ngay: number; page_ten: string | null }[]) => { const thay = new Set<string>(), ra: HookDong[] = [];
     // hook KHÔNG THỂ ĐẠT kiemDe thì không vào kho (13/11/2026, esimfares so-sanh-19218: hook ByteSim 131 ký tự mang tên Page → giữ bản gốc thì dài > 110 + dính tên nhà QC, 3 lượt đều trượt):
-    // trần 110 = trần câu móc của kiemDe (may-de.ts), và chữ hook chứa cả cụm tên Page (≥ 5 ký tự) thì bỏ
-    for (const r of rows) { const chu = sachHook(r.dong), k = chu.toLowerCase(), ten = String(r.page_ten ?? '').trim().toLowerCase(); if (chu.length < 20 || chu.length > 110 || (ten.length >= 5 && k.includes(ten)) || thay.has(k) || /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu) !== vi || (!vi && ngoaiAnh(chu))) continue; thay.add(k); ra.push({ id: String(r.library_id), chu, ngay: Number(r.ngay) || 0, page: String(r.page_ten ?? '') }); }
+    // trần 110 = trần câu móc của kiemDe (may-de.ts), và chữ hook chứa cả cụm tên Page (≥ 5 ký tự) thì bỏ.
+    // Dòng đầu dài hơn trần → lấy CÂU ĐẦU của nó (cauHook, 14/11/2026: saidly bỏ hết QC mở bằng câu hỏi nối tiếp cùng dòng, kho còn 3 câu, --sinh-kho 0/4 đề)
+    for (const r of rows) { const chu = cauHook(r.dong), k = chu.toLowerCase(), ten = String(r.page_ten ?? '').trim().toLowerCase(); if (chu.length < 20 || chu.length > TRAN_HOOK || (ten.length >= 5 && k.includes(ten)) || thay.has(k) || /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu) !== vi || (!vi && ngoaiAnh(chu))) continue; thay.add(k); ra.push({ id: String(r.library_id), chu, ngay: Number(r.ngay) || 0, page: String(r.page_ten ?? '') }); }
     return ra; };
   // NHÓM CỦA MÁY TRƯỚC, NHÓM LÂN CẬN (hook_sp) SAU (12/11/2026, examweight): trước gộp chung rồi lấy 100 QC chạy lâu nhất → nhóm lân cận rộng
   // ("Luyện thi chứng chỉ nghề nói chung": PMP, bất động sản, Kinh Thánh…) chiếm hết 100 chỗ, QC đúng ngách (Prepia TEAS, Paramedic Gems NREMT) không vào kho,

@@ -39,9 +39,11 @@ export const NHA = {
 
 // Người bán ckey cho một model: danh sách đã kiểm của Phòng Tài nguyên (/var/lib/spy/ckey-tuyen.json) trước, rồi danh mục sống theo giá ra rẻ trước
 // (bảng trống cả dòng khi lần bảo trì gặp lúc lỗi, đo 07/11/2026, nên danh mục là lưới). Người hỏng nghỉ 20 phút; mỗi lượt thử tối đa 3 người trong 45 giây rồi về nhà gốc.
-const CKEY_TRAN_MS = 45_000, CKEY_MOT_MS = 25_000, CKEY_NGHI_MS = 20 * 60_000;
+// 13/11/2026 đo bài chấm cỡ thật (~12–18k token vào): người bán trả trong 10–21 giây, dồn lượt thì chậm hơn → trần 25 giây làm 12/45 lượt chấm rơi fal (9.470₫).
+// Mỗi người tối đa 40 giây, cả lượt 60 giây; người chỉ CHẬM (hết giờ) nghỉ 5 phút, người LỖI (http / rỗng) nghỉ 20 phút.
+const CKEY_TRAN_MS = 60_000, CKEY_MOT_MS = 40_000, CKEY_NGHI_MS = 20 * 60_000, CKEY_NGHI_CHAM_MS = 5 * 60_000;
 const hongLuc = new Map(); let khoCkey = null;
-const hongCkey = (id, loi) => { hongLuc.set(id, Date.now()); console.error(`ckey ${id}: ${String(loi).slice(0, 160)}`); };
+const hongCkey = (id, loi) => { hongLuc.set(id, /timeout|aborted/i.test(String(loi)) ? Date.now() - (CKEY_NGHI_MS - CKEY_NGHI_CHAM_MS) : Date.now()); console.error(`ckey ${id}: ${String(loi).slice(0, 160)}`); };
 const duoiTen = (id) => id.split('/').pop().toLowerCase().replace(/\./g, '-');
 async function nguoiBanCkey(ten, fetchFn) {
   if (!khoCkey || Date.now() - khoCkey.luc > 600_000) {

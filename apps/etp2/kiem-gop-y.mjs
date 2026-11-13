@@ -9,7 +9,7 @@ const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/app/etp/page.tsx', cam: ' du={gonXet(', vi: 'số liệu trang KHÔNG đi làm props trong HTML — iPhone hết RAM với trang 11 MB, Safari tự tải lại (anh 13/11/2026 "Etp2 đang lỗi. Fix triệt để")' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/app/etp/page.tsx', co: 'await catDu(quyen, du, phien);', vi: 'trang cất bản nén theo mã phiên bản, trình duyệt tải /etp/du?p=<mã>' },
-  { card: 'du-rieng-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: 'fetch(duUrl, { cache: \'no-store\' })', vi: 'khung khach tải số liệu riêng, lỗi tải hiện ô đỏ + nút thử lại' },
+  { card: 'du-rieng-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: 'const r = await fetch(url, { cache: \'no-store\' });', vi: 'khung khach tải số liệu riêng, lỗi tải hiện ô đỏ + nút thử lại' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/app/etp/du/route.ts', co: "'content-encoding': br ? 'br' : 'gzip'", vi: '/etp/du trả bản nén sẵn, brotli khi trình duyệt nhận (anh 13/11/2026 22:00 "Ko load nổi", mạng iPhone ~20 KB/giây)' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/lib/etp-du-kho.ts', co: '[Z.BROTLI_PARAM_QUALITY]: 11', vi: 'brotli mức 11 chạy nền cho mỗi phần số liệu' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: "taiPhan(urlPhan(duUrl, 'chinh'), (a, b) =>", vi: 'lần đầu tải phần chính có thanh tiến độ, dựng trang trước khi phần phụ về' },

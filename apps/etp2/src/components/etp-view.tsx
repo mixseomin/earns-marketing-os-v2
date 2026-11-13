@@ -2596,6 +2596,19 @@ const ngayCong = (d: string, n: number) => new Date(Date.parse(d + 'T00:00:00Z')
 function chuDongBo(dongBo: DuLieuEtp['dongBo']): string {
   return `kho đồng bộ ${vn(dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới khi số đổi (lúc kho đang đồng bộ thì chờ lượt xong)`;
 }
+/** TUỔI SỐ LIỆU cạnh tiêu đề (#1586 anh 13/11/2026 "3s, 1h … hiểu là 3s trước, 1h trước"): tính từ lượt đồng bộ kho xong gần nhất (dongBo.xong),
+ *  tự đếm — dưới 2 phút nhảy từng giây, sau đó 30 giây/lần (nhip: tab ẩn thì nghỉ). Chữ rê = chuDongBo. */
+const tuoiSo = (giay: number) => (giay < 60 ? `${giay}s` : giay < 3600 ? `${Math.floor(giay / 60)}m` : giay < 86_400 ? `${Math.floor(giay / 3600)}h` : `${Math.floor(giay / 86_400)}d`);
+const msIso = (iso: string) => Date.parse(iso.replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00'));   // timestamptz::text "2026-11-13 16:20:00.1+00" → ISO (Safari không đọc dạng gốc)
+function TuoiSo({ dongBo }: { dongBo: DuLieuEtp['dongBo'] }) {
+  const xong = dongBo?.xong ? msIso(dongBo.xong) : NaN;
+  const [bay, setBay] = useState<number | null>(null);   // null tới khi gắn trên máy khách — tránh lệch giờ máy chủ / máy khách lúc hydrate
+  const giay = bay != null && Number.isFinite(xong) ? Math.max(0, Math.floor((bay - xong) / 1000)) : null;
+  const nhanh = giay == null || giay < 120;
+  useEffect(() => { if (!Number.isFinite(xong)) return; setBay(Date.now());
+    const t = nhip(() => setBay(Date.now()), nhanh ? 1_000 : 30_000); return () => t(); }, [xong, nhanh]);
+  return <span title={chuDongBo(dongBo)} style={{ alignSelf: 'center', fontSize: 11, color: 'var(--fg-2)', cursor: 'help', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{giay == null ? '—' : tuoiSo(giay)}</span>;
+}
 function NutLamMoi({ dongBo, gon }: { dongBo: DuLieuEtp['dongBo']; gon: boolean }) {
   const router = useRouter();
   const [cho, setCho] = useState<{ lan: number; tu: number } | null>(null);
@@ -3087,7 +3100,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         {/* #1585 anh 13/11/2026 "ko show ngu thế này": dòng chữ phụ 'kho đồng bộ … · ngày Ethopex … · tự làm mới khi số đổi' cạnh tiêu đề GẬP vào chữ rê nút ↻ Làm mới (YDNI);
             chỉ LỖI đồng bộ còn hiện chữ đỏ (lỗi phải kêu to); chế độ chỉ xem không có nút → chữ rê nằm trên ô 🕒 nhỏ */}
         {du.dongBo?.loi ? <span title={du.dongBo.loi} style={{ fontSize: 11, color: '#f87171' }}>lỗi đồng bộ: {du.dongBo.loi.slice(0, 80)}</span> : null}
-        {chiXem ? <span title={chuDongBo(du.dongBo)} style={{ fontSize: 11, color: 'var(--fg-2)', cursor: 'help' }}>🕒</span> : <NutLamMoi dongBo={du.dongBo} gon={hep} />}
+        {/* #1586 tuổi số liệu ngay sau tiêu đề (3s / 5m / 1h = bấy lâu trước) — mang luôn chữ rê trạng thái kho, thay ô 🕒 của chế độ chỉ xem */}
+        <TuoiSo dongBo={du.dongBo} />
+        {chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={hep} />}
         {chiXem || du.nguoi.ngoai || du.nguoi.doi ? null : <NutLenCamp du={du} gon={hep} />}{/* chỉ khi đang xem tk David (Nhà) — anh 09/11/2026 'các thay đổi chỉ hiện ở tk David' */}
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}

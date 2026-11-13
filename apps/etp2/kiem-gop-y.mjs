@@ -7,6 +7,7 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 'du-may-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: 'const may = await docMay(duUrl);', vi: 'mở / tải lại etp2 hiện ngay bản số giữ trong máy, bản mới tải ngầm (anh 13/11/2026 "Có giải pháp nào hợp lý và nhanh hơn?")' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/lib/etp-du-kho.ts', co: 'if (co && Date.now() - co.luc < DOC_MS) return co.p;', vi: 'một lượt đọc kho cho mọi lần hỏi cùng lúc, dùng lại 8 giây — tải lại liên tục không đọc chồng' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/app/etp/page.tsx', cam: ' du={gonXet(', vi: 'số liệu trang KHÔNG đi làm props trong HTML — iPhone hết RAM với trang 11 MB, Safari tự tải lại (anh 13/11/2026 "Etp2 đang lỗi. Fix triệt để")' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/app/etp/page.tsx', co: 'await catDu(quyen, du, phien);', vi: 'trang cất bản nén theo mã phiên bản, trình duyệt tải /etp/du?p=<mã>' },

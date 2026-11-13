@@ -8,6 +8,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import RAPIER from 'rapier';
 import * as T from './tex.js';
+import { taoNguoi, MAU_DA, MAU_AO } from './nhanvat.js';
 
 const $ = (id) => document.getElementById(id);
 const thamSo = new URLSearchParams(location.search);
@@ -289,13 +290,32 @@ for (let k = 0; k < 10; k++) { const a = r() * Math.PI * 2; thung(Math.cos(a) * 
 for (let k = 0; k < 6; k++) thung(giua(-2, 2), 0.41 + k * 0.81, 70); // chồng thùng trên cầu
 
 const VL_SOI = VL.bazan; const soi = [];
-function nem() {
-  const d = new THREE.Vector3(); camera.getWorldDirection(d);
-  const o = camera.position.clone().addScaledVector(d, 0.8);
+function phongDa(o, d) {
   let s = soi.length >= 40 ? soi.shift() : null;
   if (!s) { const b = themDong(new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 10), VL_SOI), RAPIER.RigidBodyDesc.dynamic().setCcdEnabled(true).setTranslation(o.x, o.y, o.z), RAPIER.ColliderDesc.ball(0.22).setDensity(9)); s = b; }
   s.setTranslation(o, true); s.setLinvel({ x: d.x * 24, y: d.y * 24 + 1.5, z: d.z * 24 }, true); s.setAngvel({ x: 0, y: 0, z: 0 }, true);
   soi.push(s);
+}
+// hướng ngắm: tia từ camera qua tâm màn hình (bỏ thân mình) → điểm trúng; đá bay từ tay tới đó
+function huongNham(o) {
+  const d = new THREE.Vector3(); camera.getWorldDirection(d);
+  const c = camera.position, h = world.castRay(new RAPIER.Ray({ x: c.x, y: c.y, z: c.z }, { x: d.x, y: d.y, z: d.z }), 80, true, undefined, undefined, thanVa);
+  const dich = c.clone().addScaledVector(d, h ? Math.max(h.timeOfImpact, 2) : 80);
+  return dich.sub(o).normalize();
+}
+function nem() {
+  if (cheDo !== 'di' || toi.viec === 'nem' || toi.viec === 'da') return;
+  muonHuong = yaw + Math.PI; // quay người theo hướng ngắm
+  toi.lam('nem', () => { const o = toi.viTriTay(new THREE.Vector3()); const d = huongNham(o); phongDa(o.addScaledVector(d, 0.45), d); });
+}
+function da() { // đá chân: hất thùng / làm ngã người trước mặt
+  if (cheDo !== 'di' || toi.viec) return;
+  toi.lam('da', () => {
+    const p = than.translation(), f = new THREE.Vector3(Math.sin(huongToi), 0, Math.cos(huongToi));
+    const truoc = new THREE.Vector3(p.x, p.y - 0.6, p.z).addScaledVector(f, 0.9);
+    for (const { b } of dong) { const t = b.translation(); if (Math.hypot(t.x - truoc.x, t.z - truoc.z) < 1.1 && Math.abs(t.y - truoc.y) < 1.2) { const m = b.mass(); b.applyImpulse({ x: f.x * 7 * m, y: 3.5 * m, z: f.z * 7 * m }, true); } }
+    for (const d of dan) if (Math.hypot(d.x - truoc.x, d.z - truoc.z) < 1.1) d.n.lam('nga');
+  });
 }
 
 // ---------- người đi bộ: thân hình viên nang + bộ điều khiển nhân vật Rapier
@@ -305,6 +325,42 @@ const thanVa = world.createCollider(RAPIER.ColliderDesc.capsule(NGUOI_H, NGUOI_R
 const dk = world.createCharacterController(0.03);
 dk.enableAutostep(0.45, 0.25, false); dk.enableSnapToGround(0.4); dk.setMaxSlopeClimbAngle(0.9); dk.setApplyImpulsesToDynamicBodies(true); dk.setCharacterMass(70);
 const DIEM_VAO = new THREE.Vector3(0, 1.2, 108);
+// hình nhân vật của người chơi (khung xương + động tác sinh bằng mã)
+const toi = taoNguoi({ da: MAU_DA[1], ao: 0x8a2a1e, quan: 0x2e2a26, toc: 0x1c120c });
+toi.goc.visible = false; scene.add(toi.goc);
+let gocNhin = 3, huongToi = 0, muonHuong = 0, tocToi = 0; // gocNhin 3 = sau lưng, 1 = mắt nhân vật
+const gocLerp = (a, b, t) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * t;
+const LOC_TINH = RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC | RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC;
+
+// dân trong phố: đi vòng phố chính, dừng ngó nghiêng, chào khi mình tới gần, trúng đá / bị đá thì ngã rồi dậy
+const dan = [];
+for (let i = 0; i < 14; i++) {
+  const n = taoNguoi({ da: MAU_DA[i % MAU_DA.length], ao: MAU_AO[i % MAU_AO.length], quan: [0x3a3530, 0x4a3a28, 0x2a2a3a][i % 3], toc: [0x2b1d14, 0x6a4a2a, 0x1a1a1a, 0x8a7a6a][i % 4], mu: i % 4 === 0 ? 0x5a3a20 : undefined, co: giua(0.92, 1.04) });
+  scene.add(n.goc);
+  const rr = i % 2 ? 29.6 : 32.6, a = r() * Math.PI * 2;
+  const b = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(Math.cos(a) * rr, 0.85, Math.sin(a) * rr));
+  world.createCollider(RAPIER.ColliderDesc.capsule(0.5, 0.3), b);
+  dan.push({ n, b, rr, a, chieu: r() < 0.5 ? 1 : -1, toc: giua(1.1, 1.6), dung: 0, hoiChao: 0, x: 0, z: 0 });
+}
+function buocDan(dt) {
+  const p = than.translation();
+  for (const d of dan) {
+    d.hoiChao -= dt;
+    let v = 0;
+    const gan = cheDo === 'di' && Math.hypot(p.x - d.x, p.z - d.z) < 3.2;
+    if (d.n.viec === 'nga') v = 0;
+    else if (gan && d.hoiChao <= 0 && !d.n.viec) { d.dung = 2.6; d.hoiChao = 12; d.n.lam('chao'); d.nhin = Math.atan2(p.x - d.x, p.z - d.z); }
+    else if (d.dung > 0) d.dung -= dt;
+    else { v = d.toc; d.a += d.chieu * v * dt / d.rr; d.nhin = null; if (Math.random() < dt * 0.06) d.dung = 1.5 + Math.random() * 3; }
+    d.x = Math.cos(d.a) * d.rr; d.z = Math.sin(d.a) * d.rr;
+    const huong = d.nhin ?? Math.atan2(-Math.sin(d.a) * d.chieu, Math.cos(d.a) * d.chieu);
+    d.n.goc.rotation.y = gocLerp(d.n.goc.rotation.y, huong, 1 - Math.exp(-dt * 6));
+    d.n.goc.position.set(d.x, 0.02, d.z);
+    d.b.setNextKinematicTranslation({ x: d.x, y: 0.85, z: d.z });
+    for (const s of soi) { const t = s.translation(), lv = s.linvel(); if (Math.hypot(lv.x, lv.y, lv.z) > 4 && Math.hypot(t.x - d.x, t.z - d.z) < 0.55 && t.y < 2 && t.y > 0) d.n.lam('nga'); }
+    d.n.capNhat(dt, { toc: v, nen: true });
+  }
+}
 
 let cheDo = 'toan', yaw = Math.PI, pitch = 0, vy = 0, nen = false;
 const phim = {};
@@ -315,13 +371,13 @@ function vaoDiBo(dich) {
   const p = dich || DIEM_VAO;
   than.setTranslation({ x: p.x, y: p.y + NGUOI_H + NGUOI_R + 0.1, z: p.z }, true); vy = 0;
   yaw = dich ? Math.atan2(p.x, p.z) : 0; // nhìn về thành chính
-  pitch = 0; cheDo = 'di'; orbit.enabled = false;
+  pitch = -0.15; cheDo = 'di'; orbit.enabled = false; huongToi = muonHuong = yaw + Math.PI; toi.goc.visible = gocNhin === 3;
   $('b-di').style.display = 'none'; $('b-toan').style.display = ''; $('tam').style.display = 'block';
   if (CHAM) { $('can').style.display = 'block'; $('cham').style.display = 'flex'; }
   else renderer.domElement.requestPointerLock?.()?.catch?.(() => {});
 }
 function raToanCanh() {
-  cheDo = 'toan'; orbit.enabled = true; $('dung').style.display = 'none'; $('tam').style.display = 'none'; $('can').style.display = 'none'; $('cham').style.display = 'none';
+  cheDo = 'toan'; orbit.enabled = true; toi.goc.visible = false; $('dung').style.display = 'none'; $('tam').style.display = 'none'; $('can').style.display = 'none'; $('cham').style.display = 'none';
   $('b-di').style.display = ''; $('b-toan').style.display = 'none';
   const p = camera.position.clone(); orbit.target.copy(p).add(new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).multiplyScalar(20)); camera.position.add(new THREE.Vector3(Math.sin(yaw) * 30, 25, Math.cos(yaw) * 30));
   if (document.pointerLockElement) document.exitPointerLock();
@@ -346,7 +402,15 @@ renderer.domElement.addEventListener('touchend', (e) => {
 document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && cheDo === 'di' && !CHAM) $('dung').style.display = 'grid'; });
 document.addEventListener('mousemove', (e) => { if (document.pointerLockElement !== renderer.domElement) return; yaw -= e.movementX * 0.0022; pitch = Math.max(-1.45, Math.min(1.45, pitch - e.movementY * 0.0022)); });
 renderer.domElement.addEventListener('mousedown', () => { if (cheDo === 'di' && document.pointerLockElement) nem(); });
-addEventListener('keydown', (e) => { phim[e.code] = true; if (e.code === 'Space' && cheDo === 'di') e.preventDefault(); });
+function doiGocNhin() { gocNhin = gocNhin === 3 ? 1 : 3; toi.goc.visible = cheDo === 'di' && gocNhin === 3; }
+addEventListener('keydown', (e) => {
+  phim[e.code] = true; if (cheDo !== 'di' || e.repeat) return;
+  if (e.code === 'Space') e.preventDefault();
+  if (e.code === 'KeyV') doiGocNhin();
+  if (e.code === 'Digit1') toi.lam('chao');
+  if (e.code === 'Digit2') toi.lam('mua');
+  if (e.code === 'KeyF') da();
+});
 addEventListener('keyup', (e) => { phim[e.code] = false; });
 
 // cần điều khiển + kéo nhìn trên điện thoại
@@ -362,7 +426,8 @@ addEventListener('touchmove', (e) => {
 renderer.domElement.addEventListener('touchstart', (e) => { if (cheDo !== 'di') return; const t = e.changedTouches[0]; if (nhin.id === null) { nhin.id = t.identifier; nhin.x = t.clientX; nhin.y = t.clientY; } }, { passive: true });
 addEventListener('touchend', (e) => { for (const t of e.changedTouches) { if (t.identifier === can.id) { can.id = null; can.dx = can.dy = 0; cuc.style.transform = ''; } if (t.identifier === nhin.id) nhin.id = null; } });
 $('b-nhay').addEventListener('touchstart', (e) => { e.preventDefault(); if (nen) vy = 5.2; }, { passive: false });
-$('b-nem').addEventListener('touchstart', (e) => { e.preventDefault(); nem(); }, { passive: false });
+for (const [id, f] of [['b-nem', nem], ['b-chao', () => toi.lam('chao')], ['b-mua', () => toi.lam('mua')], ['b-da', da], ['b-goc', doiGocNhin]])
+  $(id).addEventListener('touchstart', (e) => { e.preventDefault(); f(); }, { passive: false });
 
 // ---------- hậu kỳ
 const composer = new EffectComposer(renderer);
@@ -382,22 +447,41 @@ function buocDiBo(dt) {
     const l = Math.hypot(fx, fz); if (l > 1) { fx /= l; fz /= l; }
     if (phim.Space && nen) vy = 5.2;
   }
-  const v = phim.ShiftLeft || phim.ShiftRight ? 8 : 4.2;
+  if (toi.viec === 'mua' || toi.viec === 'chao') { if (fx || fz) toi.lam('dung'); } // bước đi thì thôi múa / chào
+  const v = phim.KeyC ? 1.6 : phim.ShiftLeft || phim.ShiftRight ? 8 : 4.2;
+  if (fx || fz) muonHuong = Math.atan2(-Math.sin(yaw) * fz + Math.cos(yaw) * fx, -Math.cos(yaw) * fz - Math.sin(yaw) * fx);
   const sx = Math.sin(yaw), cz = Math.cos(yaw);
   const mx = (-sx * fz + cz * fx) * v * dt, mz = (-cz * fz - sx * fx) * v * dt;
   vy = nen && vy <= 0 ? -1 : vy - 9.81 * dt;
   dk.computeColliderMovement(thanVa, { x: mx, y: vy * dt, z: mz });
   const m = dk.computedMovement(), p = than.translation();
   than.setNextKinematicTranslation({ x: p.x + m.x, y: p.y + m.y, z: p.z + m.z });
+  tocToi += (Math.hypot(m.x, m.z) / dt - tocToi) * 0.25;
   nen = dk.computedGrounded();
   if (p.y < -6) vaoDiBo(); // rơi xuống dung nham → về đầu cầu
 }
 function vong() {
   const dt = Math.min(dongHo.getDelta(), 0.1), t = dongHo.elapsedTime;
   tichLuy += dt;
-  while (tichLuy >= BUOC) { if (cheDo === 'di') buocDiBo(BUOC); world.step(); tichLuy -= BUOC; }
+  while (tichLuy >= BUOC) { if (cheDo === 'di') buocDiBo(BUOC); buocDan(BUOC); world.step(); tichLuy -= BUOC; }
   for (const { mesh, b } of dong) { const p = b.translation(), q = b.rotation(); mesh.position.set(p.x, p.y, p.z); mesh.quaternion.set(q.x, q.y, q.z, q.w); if (p.y < -9) { b.setTranslation({ x: p.x, y: -200, z: p.z }, false); b.sleep(); } }
-  if (cheDo === 'di') { const p = than.translation(); camera.position.set(p.x, p.y + MAT - NGUOI_H - NGUOI_R + 0.1, p.z); camera.rotation.set(pitch, yaw, 0, 'YXZ'); }
+  if (cheDo === 'di') {
+    const p = than.translation(), chan = p.y - NGUOI_H - NGUOI_R;
+    if (gocNhin === 1) muonHuong = yaw + Math.PI;
+    huongToi = gocLerp(huongToi, muonHuong, 1 - Math.exp(-dt * 10));
+    toi.goc.position.set(p.x, chan, p.z); toi.goc.rotation.y = huongToi;
+    toi.capNhat(dt, { toc: tocToi, nen, ngoi: !!phim.KeyC });
+    if (gocNhin === 1) { camera.position.set(p.x, chan + MAT, p.z); camera.rotation.set(pitch, yaw, 0, 'YXZ'); }
+    else { // camera sau vai phải, lùi vào khi vướng tường
+      const pt = Math.max(-1.1, Math.min(0.75, pitch));
+      const dich = new THREE.Vector3(p.x + Math.cos(yaw) * 0.45, chan + (phim.KeyC ? 1.05 : 1.6), p.z - Math.sin(yaw) * 0.45);
+      const lui = new THREE.Vector3(Math.sin(yaw) * Math.cos(pt), -Math.sin(pt), Math.cos(yaw) * Math.cos(pt));
+      const h = world.castRay(new RAPIER.Ray(dich, lui), 3.6, true, LOC_TINH, undefined, thanVa);
+      const kc = h ? Math.max(0.4, h.timeOfImpact - 0.25) : 3.6;
+      camera.position.copy(dich).addScaledVector(lui, kc);
+      camera.lookAt(dich.x - lui.x, dich.y - lui.y, dich.z - lui.z);
+    }
+  }
   else orbit.update();
   VL_DN.uniforms.t.value = t; VL_TROI.uniforms.t.value = t; troi.position.copy(camera.position);
   for (let i = 0; i < SO_LUA; i++) { luaPos[i * 3 + 1] += luaV[i] * dt; luaPos[i * 3] += Math.sin(t * 0.7 + i) * dt * 0.4; if (luaPos[i * 3 + 1] > 30) datLua(i); }
@@ -408,5 +492,5 @@ function vong() {
   requestAnimationFrame(vong);
 }
 $('tai').remove();
-window.__lauDai = { hat: HAT, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; } };
+window.__lauDai = { hat: HAT, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; }, toi, dan, da, doiGocNhin };
 vong();

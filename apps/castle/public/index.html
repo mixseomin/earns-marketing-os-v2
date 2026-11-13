@@ -25,8 +25,8 @@
   #dung > div { display: flex; flex-direction: column; gap: 10px; align-items: center; padding: 18px 20px; background: var(--o); border: 1px solid var(--vien); border-radius: 12px; }
   #can { position: fixed; left: 24px; bottom: 90px; width: 120px; height: 120px; border-radius: 50%; border: 1px solid var(--vien); background: rgba(24,14,10,.35); display: none; touch-action: none; }
   #can i { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; background: rgba(255,138,61,.45); }
-  #cham { position: fixed; right: 18px; bottom: 90px; display: none; flex-direction: column; gap: 10px; }
-  #cham button { width: 64px; height: 64px; border-radius: 50%; padding: 0; }
+  #cham { position: fixed; right: 14px; bottom: 80px; display: none; flex-direction: column; flex-wrap: wrap-reverse; max-height: 260px; gap: 8px; }
+  #cham button { width: 56px; height: 56px; border-radius: 50%; padding: 0; }
   @media (max-width: 560px) { #dau .mo.pc { display: none; } }
   @media (hover: hover) { #dau .mo.dt { display: none; } }
 </style>
@@ -54,12 +54,12 @@
 <div id="tam"></div>
 <div id="dung" class="o"><div>
   <b>Đang dừng</b>
-  <div style="color:var(--mo);font-size:13px;text-align:center">W A S D đi · chuột nhìn · Shift chạy · Space nhảy · nhấp để ném đá</div>
+  <div style="color:var(--mo);font-size:13px;text-align:center">W A S D đi · chuột nhìn · Shift chạy · Space nhảy · C ngồi · nhấp ném đá<br>F đá chân · 1 chào · 2 múa · V đổi góc nhìn (sau lưng / mắt)</div>
   <button id="b-tiep" class="chinh">Đi tiếp</button>
   <button id="b-ra">Về toàn cảnh</button>
 </div></div>
 <div id="can"><i></i></div>
-<div id="cham"><button id="b-nhay">Nhảy</button><button id="b-nem">Ném</button></div>
+<div id="cham"><button id="b-goc">👁</button><button id="b-chao">Chào</button><button id="b-mua">Múa</button><button id="b-da">Đá</button><button id="b-nhay">Nhảy</button><button id="b-nem">Ném</button></div>
 <script type="module" src="./main.js"></script>
 </body>
 </html>

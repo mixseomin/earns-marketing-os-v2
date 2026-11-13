@@ -27,21 +27,29 @@ const PHU = { xetLuat: {}, xetChu: [], lsBac: {}, cham: {}, bao: [], ket: [], da
 export const KHOA_PHU = Object.keys(PHU) as (keyof typeof PHU)[];
 
 /** số liệu trang của người xem + mã phiên bản — trang, /etp/du và /etp/phien băm cùng một kiểu */
+// MỘT LƯỢT ĐỌC CHO MỌI NGƯỜI HỎI CÙNG LÚC + dùng lại trong 8 giây: trước đây mỗi lần tải lại / mỗi /etp/du trượt / mỗi /etp/phien đọc kho riêng (~1,5 s, 30 câu SQL)
+// → anh tải lại liên tục thì máy chủ đọc chồng chục lượt, lượt nào cũng chậm thêm (15:30 UTC 13/11: 12 lượt trong 65 giây, có lượt 22 s).
+const g2 = globalThis as unknown as { __etpDuDoc?: Map<string, { p: Promise<{ du: DuLieuEtp; phien: string }>; luc: number }> };
+const DOC = (g2.__etpDuDoc ??= new Map());
+const DOC_MS = 8_000;
 export async function duTrang(quyen: QuyenEtp, ng?: string): Promise<{ du: DuLieuEtp; phien: string }> {
-  const du = await docEtp(ngCua(quyen, ng), true);
-  return { du, phien: phienDu(du) };
+  const n = ngCua(quyen, ng) ?? '', co = DOC.get(n);
+  if (co && Date.now() - co.luc < DOC_MS) return co.p;
+  const p = docEtp(n || undefined, true).then((du) => ({ du, phien: phienDu(du) }));
+  DOC.set(n, { p, luc: Date.now() });
+  p.catch(() => DOC.delete(n));
+  return p;
 }
 
 const khoa = (q: QuyenEtp, phien: string) => `${q.vai}:${q.nguoiId ?? ''}:${phien}`;   // kèm vai: người thường nhận bản đã cắt
 
-// brotli mức 9 nén NGAY cùng gzip (~0,3 s / phần) — lượt tải đầu sau mỗi lần đồng bộ (mã đổi, trang tải lại số liền) đã có brotli; mức 11 (~10 % nhỏ hơn nữa, ~10 s) chạy nền rồi thay
+// brotli mức 9 nén cùng gzip (~0,3 s / phần). KHÔNG chạy mức 11 nền: 13/11/2026 22:30 mỗi lượt ~10 s chiếm luồng phụ zlib, trong lúc đồng bộ mỗi lần mở trang
+// lại đẻ hai lượt → trang chờ 13–22 s, anh tải lại càng chồng (anh: "giờ còn đéo load nổi nữa"). Mức 9 chỉ lớn hơn ~8 %.
 const brMuc = (s: Buffer, q: number) => nenBr(s, { params: { [Z.BROTLI_PARAM_QUALITY]: q, [Z.BROTLI_PARAM_SIZE_HINT]: s.length } });
 async function ban(v: unknown): Promise<Ban> {
   const s = Buffer.from(JSON.stringify(v));
   const [gz, br] = await Promise.all([nenGz(s, { level: 6 }), brMuc(s, 9).catch(() => null)]);
-  const b: Ban = { gz, br, tho: s.length };
-  void brMuc(s, 11).then((x) => { b.br = x; }).catch(() => { /* giữ bản mức 9 */ });
-  return b;
+  return { gz, br, tho: s.length };
 }
 
 /** cắt bản gửi làm hai phần, nén, cất theo mã (đã có thì chỉ gia hạn) → trả mã */

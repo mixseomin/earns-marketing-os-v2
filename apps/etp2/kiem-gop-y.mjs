@@ -7,11 +7,12 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 'du-rieng-1311', tep: 'apps/etp2/src/lib/etp-du-kho.ts', co: 'if (co && Date.now() - co.luc < DOC_MS) return co.p;', vi: 'một lượt đọc kho cho mọi lần hỏi cùng lúc, dùng lại 8 giây — tải lại liên tục không đọc chồng' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/app/etp/page.tsx', cam: ' du={gonXet(', vi: 'số liệu trang KHÔNG đi làm props trong HTML — iPhone hết RAM với trang 11 MB, Safari tự tải lại (anh 13/11/2026 "Etp2 đang lỗi. Fix triệt để")' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/app/etp/page.tsx', co: 'await catDu(quyen, du, phien);', vi: 'trang cất bản nén theo mã phiên bản, trình duyệt tải /etp/du?p=<mã>' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: 'const r = await fetch(url);', vi: 'khung khach tải số liệu riêng, lỗi tải hiện ô đỏ + nút thử lại' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/app/etp/du/route.ts', co: "'content-encoding': br ? 'br' : 'gzip'", vi: '/etp/du trả bản nén sẵn, brotli khi trình duyệt nhận (anh 13/11/2026 22:00 "Ko load nổi", mạng iPhone ~20 KB/giây)' },
-  { card: 'du-rieng-1311', tep: 'apps/etp2/src/lib/etp-du-kho.ts', co: 'void brMuc(s, 11).then', vi: 'brotli mức 9 nén ngay, mức 11 chạy nền rồi thay' },
+  { card: 'du-rieng-1311', tep: 'apps/etp2/src/lib/etp-du-kho.ts', cam: 'brMuc(s, 11)', vi: 'KHÔNG nén brotli 11 nền — chiếm luồng zlib, trang chờ 13–22 s (anh 13/11/2026 22:30)' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: "taiPhan(urlPhan(duUrl, 'chinh'), (a, b) =>", vi: 'lần đầu tải phần chính có thanh tiến độ, dựng trang trước khi phần phụ về' },
   { card: 1575, tep: 'apps/etp2/src/components/etp-view.tsx', co: "<span style={{ alignSelf: 'center', display: 'inline-flex', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%', gap: 6, alignItems: 'center' }}>{nguoiSel()}", cam: "<span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}", vi: 'cụm Người · Luật máy · Nối Telegram · chỉ xem tự xuống dòng, không tràn ngang trên điện thoại (anh 12/11/2026)' },
   { card: 1575, tep: 'apps/etp2/src/components/etp-view.tsx', co: "return <span style={{ display: 'inline-flex', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%', gap: 6, alignItems: 'center' }}>\n    <Chon2 value={c.cheDo}", vi: 'ô Luật máy + Nối Telegram gói dòng trong màn hẹp' },
@@ -84,7 +85,7 @@ const LUAT = [
   { card: 1581, tep: 'apps/etp2/src/components/ui/simple-table.tsx', co: "overflowX: tong ? 'clip' : 'auto'", vi: 'có dòng Tổng thì vỏ bảng không thành khung cuộn — sticky bám khung cuộn của widget' },
   { card: 1581, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'getRowKey={(p) => String(p.id)} tong={tong}', vi: 'widget Người (Tổng quan) có dòng Tổng sticky ở dưới (anh 13/11/2026)' },
   { card: 1581, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'roi: roiSoTruoc(tk, tt)', vi: 'ROI dòng Tổng tính từ tổng chi/thu, không cộng %' },
-  { card: 1582, tep: 'apps/etp2/src/app/etp/phien/route.ts', co: "(await dangDongBo()) ? 'dang' : phienDu(", vi: 'kho đang đồng bộ thì /etp/phien trả dang, không chạy docEtp (anh 13/11/2026 "load chậm quá": trang tải lại ~940 KB mỗi phút giữa lượt đồng bộ)' },
+  { card: 1582, tep: 'apps/etp2/src/app/etp/phien/route.ts', co: "(await dangDongBo()) ? 'dang' : (await duTrang(q, ng)).phien", vi: 'kho đang đồng bộ thì /etp/phien trả dang, không chạy docEtp (anh 13/11/2026 "load chậm quá": trang tải lại ~940 KB mỗi phút giữa lượt đồng bộ)' },
   { card: 1582, tep: 'apps/etp2/src/lib/etp-phien.ts', co: "where xong is null and bat_dau > now() - interval '12 minutes'", vi: 'lượt đồng bộ đang ghi = chưa xong, bắt đầu trong 12 phút (lượt chết không chặn làm mới mãi)' },
   { card: 1582, tep: 'apps/etp2/src/components/etp-view.tsx', co: "if (m && m !== 'dang' && m !== phien) await lamMoiAnToan(router);", cam: 'if (!m || m !== phien) await lamMoiAnToan(router);', vi: 'trang không tải lại khi kho đang đồng bộ hoặc hỏi mã lỗi mạng' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },

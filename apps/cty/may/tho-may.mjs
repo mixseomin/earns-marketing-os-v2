@@ -10,11 +10,15 @@ import { chayClaude } from './claude-chay.mjs';   // spawnSync + báo lỗi API 
 import os from 'node:os';
 import path from 'node:path';
 import { chonMuc } from './chon-muc.mjs';
+import { cayRieng } from './cay-rieng.mjs';
 
 // CHỈ iMAC (luật anh 23/10/2026) — script đến qua `ssh cat | node -` nên không import được tệp chung; cùng một dòng ở mọi script gọi Claude không giao diện
 if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`thợ máy chỉ chạy trên iMac (máy này: ${os.hostname()}) — Claude không giao diện bằng gói thuê bao chỉ iMac`); process.exit(3); }
 
 const BOX = 'root@167.233.241.16', VPS = 'root@116.118.28.214', APP = '/opt/earns-marketing-os-v2/apps/cty', DATA = '/var/lib/cty', NGUOI = 'manh';
+// Mạnh chạy từ cây riêng ~/may-ky-su/manh (13/11/2026: trước nạp tệp này từ box3 bằng data: URL → import './chon-muc.mjs' không phân giải được, Mạnh chết mọi lượt).
+// Đầu lượt kéo cây riêng lên origin/main để lượt sau chạy mã mới; kéo hỏng thì vẫn chạy bản đang có.
+try { cayRieng('manh'); } catch (e) { console.error(`cây riêng Mạnh chưa kéo được: ${e.message.split('\n')[0]}`); }
 const REPO = path.join(os.homedir(), 'Me/GitHub/spy-on-tc'), CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 30;
 // MÁY ĐĂNG (anh 25/10/2026 "cho Mạnh quản lý luôn"): việc `dang:lo|<máy>|<nền>` do Phòng Nội dung xếp — chạy trong bản puzzle-books của iMac (bản chạy lượt 20:00),
 // bản đó là repo GIT từ 25/10/2026 (anh: lượt máy không phụ thuộc MacBook) — sửa + commit ngay tại đây; đăng bù đúng MỘT bài qua đường thường (nhịp an toàn vẫn quyết).

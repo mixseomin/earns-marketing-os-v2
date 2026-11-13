@@ -206,6 +206,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     if (chay) void el.play().catch(() => { /* trình duyệt chặn tự phát khi chưa có tương tác — người dùng bấm ▶ là chạy */ }); else el.pause();
   };
   useEffect(() => {
+    // clip 3D của shot vừa rời (bể nạp sẵn) dừng lại — onPause tua nó về điểm vào cho lần sau
+    vidRef.current?.parentElement?.querySelectorAll<HTMLVideoElement>('video[data-clip3d]').forEach((v) => { if (v !== vidRef.current && !v.paused) v.pause(); });
     dongBo(vidRef.current, vtVid, true);
     if (c && vidRef.current && tTrong >= dur(c)) vidRef.current.pause();   // hết phần phát (phat_s) thì dừng dù clip còn
     dongBo(sfxRef.current, tTrong, true);
@@ -544,7 +546,14 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             {/* Hiệu ứng khung + chuyển cảnh + lớp phủ hiệu ứng: MỘT component cho timeline và màn toàn màn hình (KhungHieuUng, lop-ui.tsx). */}
             <KhungHieuUng lop={lop} t={t} rong={rongXem} tTrong={tTrong}
               chuyen={idx > 0 && c ? { anh: canh[idx - 1]!.keyframe_url, key: canh[idx - 1]!.ky_thuat?.chuyen_canh, giay: canh[idx - 1]!.ky_thuat?.giay_cc, phatTruoc: dur(canh[idx - 1]!), phatNay: dur(c) } : undefined}>
-              {c && (vid ? <video ref={vidRef} key={vid} src={vid} poster={anhNho(anhXem, 640) ?? undefined} playsInline preload="auto" onLoadedMetadata={(e) => setDaiVid(e.currentTarget.duration || 0)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {/* 3D: MỌI clip three.js của tập nạp sẵn + tua sẵn tới điểm vào (vài trăm KB mỗi clip) — sang shot chỉ đổi lớp hiện, không dựng trình phát mới.
+                  Trước đây mỗi shot một <video key> mới: tải + tua xong mới chạy trong khi đồng hồ rAF đi tiếp → hình trễ rồi giật, nhịp cảm nhận sai (anh 13/11/2026). */}
+              {cheDo === '3d' && canh.map((k, i) => { const cl = k.khung_xam?.clip && k.khung_xam.clip.ma === k.khung_xam.ma ? k.khung_xam.clip : null; return cl && (
+                <video key={`3d-${k.id}-${cl.url}`} data-clip3d="" ref={i === idx ? vidRef : undefined} src={cl.url} preload="auto" muted playsInline
+                  onLoadedMetadata={(e) => { if (i !== idx) e.currentTarget.currentTime = cl.vao; }}
+                  onPause={(e) => { if (i !== idx && Math.abs(e.currentTarget.currentTime - cl.vao) > 0.05) e.currentTarget.currentTime = cl.vao; }}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', visibility: i === idx ? 'visible' : 'hidden' }} />); })}
+              {c && cheDo === '3d' && clip3d ? null : c && (vid ? <video ref={vidRef} key={vid} src={vid} poster={anhNho(anhXem, 640) ?? undefined} playsInline preload="auto" onLoadedMetadata={(e) => setDaiVid(e.currentTarget.duration || 0)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : anhXem ? <img src={anhNho(anhXem, 640)} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: cheDo === '3d' ? undefined : kb }} />
                 : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} {cheDo === '3d' ? 'chưa có khung 3D' : 'chưa có hình'}</div>)}
               {c && cheDo === '3d' && !clip3d && <div style={{ position: 'absolute', left: 6, top: 6, padding: '2px 6px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: '#fbbf24', fontSize: 11 }}>chưa xuất clip 3D — đang hiện khung mở</div>}

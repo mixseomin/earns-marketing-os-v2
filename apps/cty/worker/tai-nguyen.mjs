@@ -34,6 +34,14 @@ export function banCpu(truoc, nay) {
 // Làn cao_chinh dùng daemon chính; làn nền (doi_thu, goc_*) dùng daemonNen (13/11/2026: cao_chinh về máy nhà từ 05/11, daemon chính VPS tắt chủ ý → báo sai).
 export const VPS = { 'may-cao-vn': { ssh: 'root@116.118.28.214', daemon: 'spy-may-cao-daemon', daemonNen: 'spy-may-cao-daemon-nen' },
   'may-cao-nha': { tep: '/var/lib/spy/may-nha.json', tre: 15, daemon: 'spy-may-cao-daemon' } };
+// MÁY CHỦ KHÁC (anh 13/11/2026 "bổ sung theo dõi trạng thái các box server và astrolas server"): box1 (as.on.tc, mos2 cũ + nhiều site), box2 (n8n,
+// govcalcs, site adfond), Astrolas (Laravel). Canh: ssh được không · CPU bận thật · RAM · ổ · unit systemd failed (bỏ not-found = unit đã gỡ) · web trả lời.
+// Khoá 'may:' KHÔNG vào hàng thợ máy (LOAI_SUA): máy của dự án khác, phòng chỉ báo. Astrolas: box3 chưa có khoá ssh vào 5.223.69.27 → chỉ canh web.
+export const MAY_CHU = {
+  box1: { ssh: 'root@5.78.65.158', web: ['https://mixseo.net/'] },
+  box2: { ssh: 'root@37.27.241.222', web: ['https://govcalcs.com/'] },
+  astrolas: { web: ['https://astrolas.com/', 'https://ai.astrolas.com/'] },
+};
 
 /** Thuần: ảnh chụp máy TỰ ĐẨY (scripts/bao-may-nha.py) → cùng khuôn với VPS ssh. Cũ quá v.tre phút / thiếu tệp = toi:false (cuPhut: bao lâu rồi).
  *  Ổ: lấy mức đầy hơn giữa ổ Ubuntu và ổ C: Windows (Ubuntu nằm trong ổ ảo trên C:). */
@@ -129,6 +137,15 @@ export function xetCanhBao(s, bayGio = Date.now()) {
     if (v.dia >= NGUONG.diaPt) ra.push({ khoa: `vps:${v.ten}:dia`, chu: `VPS <b>${v.ten}</b> ổ cứng đầy ${v.dia}%` });
     if (v.ban >= NGUONG.cpuBan) ra.push({ khoa: `vps:${v.ten}:tai`, chu: `VPS <b>${v.ten}</b> quá tải: CPU bận ${v.ban}% suốt ${v.phut} phút qua${nang(v)}` });
   }
+  for (const m of s.mayChu ?? []) {
+    const t = `Máy chủ <b>${m.ten}</b>`;
+    if (m.ssh === false) ra.push({ khoa: `may:${m.ten}:toi`, chu: `${t} không ssh vào được` });
+    if (m.ramMB != null && m.ramMB < NGUONG.vpsRamMB) ra.push({ khoa: `may:${m.ten}:ram`, chu: `${t} thiếu RAM: còn ${m.ramMB} MB trống, swap dùng ${m.swapMB ?? '?'} MB` });
+    if (m.dia >= NGUONG.diaPt) ra.push({ khoa: `may:${m.ten}:dia`, chu: `${t} ổ cứng đầy ${m.dia}% — còn ${m.diaConGB} GB` });
+    if (m.ban >= NGUONG.cpuBan) ra.push({ khoa: `may:${m.ten}:tai`, chu: `${t} quá tải: CPU bận ${m.ban}% suốt ${m.phut} phút qua${nang(m)}` });
+    if (m.hong?.length) ra.push({ khoa: `may:${m.ten}:dv:${[...m.hong].sort().join(',')}`, chu: `${t}: ${m.hong.length} dịch vụ hỏng — ${m.hong.slice(0, 8).join(', ')}${m.hong.length > 8 ? '…' : ''}` });
+    for (const w of m.web ?? []) if (!w.ok) ra.push({ khoa: `may:${m.ten}:web:${w.url}`, chu: `${t}: <b>${w.url}</b> không trả lời đúng (${w.ma || 'không kết nối'}${w.giay ? `, ${w.giay}s` : ''})` });
+  }
   return ra;
 }
 
@@ -209,6 +226,24 @@ export async function chupTaiNguyen() {
       return { ten, toi: true, daemon: d === 'active', ...(dn === undefined ? {} : { daemonNen: dn }), ramMB, swapMB, dia, ...doCpu(ten, ssh) };
     } catch { return { ten, toi: false }; }
   });
+  // máy chủ khác (MAY_CHU): ssh đo tài nguyên + unit failed; web đo bằng fetch từ box3 (2xx/3xx = sống)
+  const mayChu = [];
+  for (const [ten, v] of Object.entries(MAY_CHU)) {
+    const m = { ten };
+    if (v.ssh) try {
+      const ssh = (c) => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', v.ssh, c], { encoding: 'utf8', timeout: 20000 }).trim();
+      const [r, sw, cg, dp] = ssh(`awk '/^MemAvailable:/{a=$2}/^SwapTotal:/{t=$2}/^SwapFree:/{f=$2}END{print int(a/1024), int((t-f)/1024)}' /proc/meminfo; df -B1G --output=avail,pcent / | tail -1 | tr -d %`).split(/\s+/).map(Number);
+      const hong = ssh(`systemctl --failed --no-legend --plain | awk '$2=="loaded"{print $1}' || true`).split('\n').filter(Boolean).map((u) => u.replace(/\.service$/, ''));
+      Object.assign(m, { ssh: true, ramMB: r, swapMB: sw, diaConGB: cg, dia: dp, hong, ...doCpu(ten, ssh) });
+    } catch { m.ssh = false; }
+    m.web = [];
+    for (const url of v.web ?? []) {
+      const t0 = Date.now();
+      try { const res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15000) }); m.web.push({ url, ma: res.status, ok: res.status < 400, giay: +((Date.now() - t0) / 1000).toFixed(1) }); }
+      catch { m.web.push({ url, ma: 0, ok: false }); }
+    }
+    mayChu.push(m);
+  }
   fs.mkdirSync(DATA(), { recursive: true }); fs.writeFileSync(tepCpu, JSON.stringify(cpu));
   // NGƯỜI BÁN CKEY (anh 26/10/2026 "giao cho Nguyên"): spy-bao-tri-ckey.timer (box3, 6 giờ) ghi danh sách sống — Nguyên canh việc đó còn chạy, dòng nào hết người bán,
   // người bán nào đổi giá (cần anh bấm chấp nhận trên ckey.vn), danh sách đổi so với nhịp trước
@@ -221,7 +256,7 @@ export async function chupTaiNguyen() {
     const mayNha = docJson(VPS['may-cao-nha'].tep);
     phienLau = { chinhBat: lan.find((l) => l.lan === 'cao_chinh')?.may !== 'tat', tt, song, loi: docJson('/opt/spy/tep/luot-loi-cuoi.json'), napCuoi: napCuoi ? new Date(napCuoi).toISOString() : null, giaoDichGio: Number(gd) || 0, tho: mayNha?.phien?.['etp-tho-nha'] ? { ten: 'etp-tho-nha', ...mayNha.phien['etp-tho-nha'] } : null };
   } catch (e) { console.error('✗ giám sát phiên dài:', e.message.split('\n')[0]); }
-  return { luc: new Date().toISOString(), lan, khoa, may: { ...box3, ramMB, daemon, dia, diaConGB }, taiSan, vps, ckey, ckeyTruoc, ckeyGia, phienLau };
+  return { luc: new Date().toISOString(), lan, khoa, may: { ...box3, ramMB, daemon, dia, diaConGB }, taiSan, vps, mayChu, ckey, ckeyTruoc, ckeyGia, phienLau };
 }
 
 /** Thuần — tin Telegram: cảnh báo thường thành dòng •, mục ckey gom thành ba khối bảng <pre> (dòng ≤ 30 ký tự cho vừa màn điện thoại):
@@ -358,6 +393,13 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     assert.deepStrictEqual(vpsT({ ramMB: 850, swapMB: 2200, dia: 60 }), [], 'VPS còn 850 MB: im');
     assert.deepStrictEqual(vpsT({ ramMB: 850, dia: 91 }), ['vps:may-cao-vn:dia'], 'ổ 91%: báo');
     assert.deepStrictEqual(vpsT({}), [], 'ảnh chụp cũ chưa có RAM / ổ: không báo bừa');
+    const mc = (x) => k({ lan: [], khoa: [], may, mayChu: [{ ten: 'box1', ssh: true, ramMB: 1000, dia: 60, ban: 20, phut: 30, hong: [], web: [{ url: 'u', ok: true }], ...x }] });
+    assert.deepStrictEqual(mc({}), [], 'máy chủ khoẻ: im');
+    assert.deepStrictEqual(mc({ dia: 86, diaConGB: 5 }), ['may:box1:dia'], 'box1 ổ 86%: báo');
+    assert.deepStrictEqual(mc({ ssh: false, ramMB: null, dia: null, ban: null }), ['may:box1:toi'], 'không ssh được: báo');
+    assert.deepStrictEqual(mc({ hong: ['certbot'] }), ['may:box1:dv:certbot'], 'unit failed: báo');
+    assert.deepStrictEqual(mc({ ssh: undefined, ramMB: undefined, dia: undefined, ban: undefined, web: [{ url: 'https://a/', ma: 502, ok: false }] }), ['may:box1:web:https://a/'], 'chỉ canh web, web 502: báo');
+    assert.ok(!/^(lan|box3|vps|dang|kenh|anh|etp|social):/.test('may:box1:dia'), "khoá 'may:' không vào hàng thợ máy");
     const tin = soanTin('Nguyên', [{ chu: 'VPS <b>x</b> mất kết nối' },
       { nhom: 'ckey-vuot', model: 'tuanxedich28/claude-sonnet-5-5-ccmax', vao: '1.560 VND → 10.660 VND', ra: '14.300 VND → 53.300 VND', ly_do: 'tăng 583% (> 50%)', chu: 'x' },
       { nhom: 'ckey-doi', dong: 'gemini-3.8-flash', them: ['hungdt/om-gemini-3.8-flash'], bo: [], dau: 'hungdt/om-gemini-3.8-flash', chu: 'x' }]);

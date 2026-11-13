@@ -423,7 +423,12 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // DÁNG + ĐỒ CẦM cho đường Nano (19/10/2026 #13: câu Nano chỉ tả thẻ "trông như ảnh 4", không nói AI cầm, cầm thế nào → thẻ lơ lửng giữa không trung,
   // tay Vivian trống). Trước chỉ bước 1 FLUX nhận câu dáng; giờ plate Nano là đường chính của shot nhiều người.
   const dangChu = bc.nhanVat.filter((v) => v.loai === 'nhan_vat' && vtCua(v) && !vtCua(v)!.an).map((v) => { const t = tuTheEn(vtCua(v)!, monCam(v)); const d = monDeo(v); const ca = [t === 'standing' ? '' : t, ...d].filter(Boolean); return ca.length ? `${v.ten}: ${ca.join('; ')}` : ''; }).filter(Boolean);
-  const dangCau = dangChu.length ? `POSES, HELD AND WORN ITEMS, as Image 1 shows (every held item stays physically in its holder's hand, every worn item stays where it is worn — never floating in the air; a held item's reference image shows only what it looks like, not where it goes): ${dangChu.join('; ')}.` : '';
+  // CHỖ ĐỨNG từ bộ set (vi_tri.o_dau — CÙNG nguồn với bộ chấm đối chiếu mục "Chỗ đứng"): 13/11/2026 #14 chú ở ô cửa nhỏ xa trong khung 3D, model vẽ
+  // chú đứng sân ga cạnh nhóc 3 lần — câu lệnh không nói chú ở đâu. Nói thẳng chỗ của từng người trong khung.
+  const choChu = bc.nhanVat.filter((v) => v.loai === 'nhan_vat' && vtCua(v) && !vtCua(v)!.an && vtCua(v)!.o_dau).map((v) => `${v.ten} is ${vtCua(v)!.o_dau}`);
+  const choCau = choChu.length ? `WHERE EACH PERSON IS (fixed by the 3D set — never move anyone to another place): ${choChu.join('; ')}.` : '';
+  const dangCau0 = dangChu.length ? `POSES, HELD AND WORN ITEMS, as Image 1 shows (every held item stays physically in its holder's hand, every worn item stays where it is worn — never floating in the air; a held item's reference image shows only what it looks like, not where it goes): ${dangChu.join('; ')}.` : '';
+  const dangCau = [choCau, dangCau0].filter(Boolean).join(' ');
   // SỬA TỪ ẢNH 3D (anh 15/10/2026, #35 ba lần: "dựng lại cảnh theo ảnh 1" + 9 ảnh + đoạn chữ dài → model tự sắp lại: ngang tầm, nhìn thẳng máy,
   // thêm cáp / màn hình theo chữ). Ngành giữ hình học bằng img2img / restyle: ảnh màu 3D LÀ ảnh gốc, model chỉ vẽ lại bề mặt. Ảnh mẫu: 1 tấm
   // cho mỗi nhân vật / đạo cụ CÓ TRONG KHUNG. Không gửi chữ hành động của thẻ shot (dáng + chỗ đã ở 3D; chữ là nơi lọt "cable loop").

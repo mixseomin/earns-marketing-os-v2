@@ -209,6 +209,7 @@ for ma, v in SD['shot'].items():
         nv_['Nhóc']['nhip'] = [{'u': 0, 'p': D('duoi_cua_so'), 'h': -90, 'nhin': 'Chú'}, {'u': 0.27, 'p': D('duoi_cua_so'), 'h': -90, 'nhin': 'Chú'},
                                {'u': 0.45, 'p': D('duoi_cua_so'), 'h': 180, 'nhin': 'tiem'}, {'u': 1, 'p': [40, 880, 0], 'h': 180}]
         nv_['Nhóc']['den'] = [40, 880, 0]; nv_['Nhóc']['huong'] = -90; nv_['Nhóc']['nhin_ai'] = 'Chú'
+        nv_['Nhóc']['tay'] = [[0, 0.5], [0.3, 0.5], [0.45, 0]]   # mở shot: tờ tiền vừa nhận GIƠ ngang ngực (tay buông thì tờ tiền sát đáy khung — keyframe #9 vẽ rơi dưới đất 3 lần), quay đi thì hạ tay
     if ma == '8' and 'Nhóc' in nv_:   # VỪA ĐI VỪA UỐNG: tay trái đưa chai lên miệng hút hai ngụm — hiện trong clip tham chiếu, câu nhịp ghi đúng giây
         nv_['Nhóc']['dien'] = ['uong@0.12-0.4', 'uong@0.62-0.88']
     if ma == '9' and 'Nhóc' in nv_:   # đi về sát cửa sổ (tới nơi ở cuối shot); lời hỏi / xin lỗi tách ra cận riêng #9a / #9b

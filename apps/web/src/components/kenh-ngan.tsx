@@ -56,7 +56,7 @@ function NganMau({ k, ma, onClose, moVideo }: { k: KenhSp; ma: string; onClose: 
       cell: (r) => <span style={{ fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }} title={r.loai === 'video' ? r.v.ten : r.y.chu_de}>{r.loai === 'video' ? `🎬 ${r.v.ten}` : `💡 ${r.y.chu_de}`}</span> },
     { key: 'loai', header: 'Loại', width: 110, sortValue: (r) => r.loai, cell: (r) => <span style={{ color: 'var(--fg-3)', fontFamily: 'var(--font-sans)' }}>{r.loai === 'video' ? 'tập thật' : r.y.tu_sinh ? 'ý tưởng tự sinh' : 'ý tưởng'}</span> },
     { key: 'tt', header: 'Trạng thái', width: 170, sortValue: (r) => (r.loai === 'video' ? r.v.trangThai : r.y.tt),
-      cell: (r) => { const c = r.loai === 'video' ? CHANG_VIDEO[r.v.trangThai] : { chu: `${YT[r.y.tt].ic} ${YT[r.y.tt].chu}`, mau: YT[r.y.tt].mau }; return <span style={{ color: c.mau, fontFamily: 'var(--font-sans)' }}>{c.chu}</span>; } },
+      cell: (r) => { const c = r.loai === 'video' ? CHANG_VIDEO[r.v.trangThai] : { chu: `${YT[r.y.tt].ic} ${YT[r.y.tt].chu}`, mau: YT[r.y.tt].mau }; const sl = r.loai === 'video' ? r.v.suaLai : null; return <span style={{ color: c.mau, fontFamily: 'var(--font-sans)' }} title={sl?.chiTiet}>{c.chu}{sl && <span style={{ color: 'var(--fg-3)' }}> · {sl.ngan}</span>}</span>; } },
     { key: 'xem', header: 'Lượt xem', width: 90, sortValue: (r) => (r.loai === 'video' ? r.v.xem : null), cell: (r) => (r.loai === 'video' ? so(r.v.xem) : <span style={{ color: 'var(--fg-4)' }}>–</span>) },
   ];
   return <>

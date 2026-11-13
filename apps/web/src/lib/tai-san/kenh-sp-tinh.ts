@@ -7,6 +7,7 @@ export type SoNgayKenh = { ngay: string; xem: number; daDang: number; nguoiDk: n
 export type VideoKenh = { slug: string; ten: string; /** ngày làm xong (bản xuất, không có thì ngày nạp) */ ngayLam: string | null; trangThai: 'chua_xuat' | 'cho_cham' | 'duyet' | 'sua_lai' | 'da_dang'; ngayDang: string | null; url: string | null; xem: number | null; giay: number | null;
   /** BẢN XUẤT trên R2 (xv_may_video.video_url) — ngăn video phát thẳng tệp này khi tập chưa lên YouTube (DUYỆT chờ đăng vẫn xem được) */ tep?: string | null;
   /** mã playlist của tập (xv_may_video.dang.playlist — lam-tap ghi lúc nạp; G1) — null = tập cũ chưa chia playlist */ playlist?: string | null;
+  /** SỬA LẠI đang ở giai đoạn nào (góp ý #1584) — chỉ có khi trangThai = 'sua_lai' (suaLaiGiaiDoan) */ suaLai?: SuaLai | null;
   /** mẫu + ý tưởng trong sổ kênh (xv_may_video.dang.mau / y_tuong — lam-tap ghi lúc nạp) — null = kênh chưa có sổ / tập cũ */ mau?: string | null; yTuong?: string | null };
 export type KenhSp = {
   ma: string; ten: string; chay: boolean; kenhUrl: string | null;
@@ -58,6 +59,17 @@ export function tinhSoKenh(ds: SoNgayKenh[], hom: string): Pick<KenhSp, 'xem' | 
 /** Chặng của một video kênh — đã đăng thắng mọi thứ; chưa có bản xuất = chưa xuất; có bản xuất mà Phòng Nội dung chưa chấm = chờ chấm. */
 export const changVideo = (v: { daDang: boolean; xuat: boolean; cham: string | null }): VideoKenh['trangThai'] =>
   v.daDang ? 'da_dang' : !v.xuat ? 'chua_xuat' : v.cham === 'DUYET' ? 'duyet' : v.cham === 'SUA_LAI' ? 'sua_lai' : 'cho_cham';
+
+/** GIAI ĐOẠN của tập SỬA LẠI (góp ý #1584 "Sửa đang ở giai đoạn nào?") — theo đúng luật máy kênh apps/xuong-video/scripts/lich-su/chay-kenh.mjs:
+ *  tập demo (-demo-) không lên kênh → không máy nào sửa · chỉ bị chặn vì hook → lượt làm tập kế tự đổi hook (tối đa 5 lần) · lỗi khác → lượt kế làm lại tập (3 lần kẹt thì bỏ, làm đề khác). Thuần. */
+export type SuaLai = { ngan: string; chiTiet: string };
+export function suaLaiGiaiDoan(slug: string, chan: string[] | null, luc: string | null): SuaLai {
+  const ly = (chan ?? []).map(String), khi = luc ? new Date(luc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : null;
+  const [ngan, buoc] = /-demo-/.test(slug) ? ['demo · không sửa', 'tập DEMO mẫu, không lên kênh — không máy nào sửa, đứng yên']
+    : ly.length && ly.every((x) => /hook|gạch ngang dài/i.test(x)) ? ['chờ máy đổi hook', 'lượt làm tập kế của máy kênh tự đổi hook + tiêu đề rồi nạp lại chờ chấm (tối đa 5 lần)']
+    : ['chờ máy làm lại', 'lượt làm tập kế của máy kênh làm lại tập rồi nạp chờ chấm (3 lần vẫn kẹt thì bỏ, làm đề khác)'];
+  return { ngan, chiTiet: [`Phòng Nội dung chấm SỬA LẠI${khi ? ` lúc ${khi}` : ''}`, ...(ly.length ? [`lý do: ${ly.join(' · ')}`] : []), `giai đoạn: ${buoc}`].join('\n') };
+}
 
 const THU = ['', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ nhật'];
 /** Lịch làm tập: thứ (1 = Thứ Hai … 7 = Chủ nhật) + giờ VN → chữ lịch + n lượt kế từ hôm nay (YYYY-MM-DD), hôm nay còn giờ thì tính. Thuần. */

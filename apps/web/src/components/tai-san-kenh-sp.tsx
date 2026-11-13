@@ -102,7 +102,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
             <button type="button" onClick={(e) => { e.stopPropagation(); ngan.moVideo(d.k.ma, v.slug); }} title={`${v.ten} — bấm mở video`}
               style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'inherit', font: 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'underline dotted var(--fg-4)', width: 340, flex: 'none', textAlign: 'left' }}>{v.ten}</button>
             {/* trạng thái = cột riêng thẳng hàng, không dính đuôi tên (góp ý #1577) */}
-            <span style={{ color: c.mau, fontSize: 11, whiteSpace: 'nowrap', width: 150, flex: 'none', overflow: 'hidden', textOverflow: 'ellipsis' }} title={c.chu}>{c.chu}</span>
+            <span style={{ color: c.mau, fontSize: 11, whiteSpace: 'nowrap', width: 190, flex: 'none', overflow: 'hidden', textOverflow: 'ellipsis', cursor: v.suaLai ? 'help' : undefined }} title={v.suaLai?.chiTiet ?? c.chu}>{c.chu}{v.suaLai && <span style={{ color: 'var(--fg-3)' }}> · {v.suaLai.ngan}</span>}</span>
             {v.playlist && <span style={{ color: 'var(--fg-3)', fontSize: 11, whiteSpace: 'nowrap' }} title="playlist của tập">📂 {d.k.playlist?.find((p) => p.ma === v.playlist)?.ten ?? v.playlist}</span>}</span>; }
         const k = d.k, n = k.videos.length;
         return <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)' }}>

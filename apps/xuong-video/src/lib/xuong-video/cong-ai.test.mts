@@ -36,6 +36,9 @@ console.log('cong-ai.ts: ok');
   assert.strictEqual(chonNguoiBanCkey(dm, new Set(), undefined, new Set(), true)[0]!.model, 'wowztools/Nano-Banana-2');
   assert.strictEqual(chonNguoiBanCkey(dm, new Set(), undefined, new Set(), false)[0]!.model, 'dungcsnd113/gemini-3.1-flash-image');
   assert.strictEqual(chonNguoiBanCkey(dm, new Set(), 683, new Set(['wowztools/Nano-Banana-2']))[0]!.model, 'wowztools/Nano-Banana-2', 'người vừa đạt lên đầu');
+  // bản Pro tự vẽ lại bố cục (13/11/2026 #3071: lệch khung 3D 6/7) — lượt có ảnh tham chiếu không bao giờ đi qua Pro, kể cả khi bản flash đang nghỉ
+  assert.ok(!chonNguoiBanCkey(dm, new Set(['wowztools/Nano-Banana-2']), undefined, new Set(), true).some((x) => /nano-banana-pro$/i.test(x.model)));
+  assert.ok(chonNguoiBanCkey(dm, new Set(), undefined, new Set(), false).some((x) => x.model === 'wowztools/nano-banana-pro'), 'lượt không ảnh vẫn dùng Pro');
   console.log('cong-ai.test: người bán ckey ok'); }
 
 assert.strictEqual(TOI_DA_REF.ckey, 3, 'ckey nhận tối đa 3 ảnh tham chiếu (đo 15/10/2026)');

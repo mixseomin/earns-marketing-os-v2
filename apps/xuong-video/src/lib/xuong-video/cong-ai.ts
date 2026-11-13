@@ -104,9 +104,13 @@ export const RE_NANO_CKEY = /^[^/]+\/(nano-banana-2|gemini-3\.1-flash-image|nano
  *  (3/3). Lượt có ảnh tham chiếu (keyframe, sửa ảnh, giữ nhân vật) KHÔNG được đi qua họ — trước đây script chạy riêng chọn người rẻ nhất (65₫) và 44 lượt
  *  có ảnh tham chiếu đã đi qua người bán này (15–31/10). Lượt không ảnh vẫn dùng được. Thêm người bán mới vào đây khi đo thấy cùng lỗi. */
 export const CKEY_BO_THAM_CHIEU: ReadonlySet<string> = new Set(['dungcsnd113/gemini-3.1-flash-image']);
+/** BẢN PRO (gemini-3.0-pro-image) TỰ VẼ LẠI BỐ CỤC (đo 13/11/2026, phim #3071 tập #3074 — bộ chấm số đo cham-do/cham_do.py): keyframe qua
+ *  ckey:wowztools/nano-banana-pro lệch khung 3D 6/7 (cỡ cảnh, chú đứng ngoài toa), qua plenxai:nano-banana-2 lệch 3/13. Lượt CÓ ảnh tham chiếu không đi
+ *  qua bản Pro của bất kỳ người bán nào — rơi sang bản flash / PlenX. Lượt không ảnh vẫn dùng được. */
+export const laBanProBoBoCuc = (id: string) => /(^|\/)nano-banana-pro$/i.test(id);
 export function chonNguoiBanCkey(danhMuc: { id: string; vnd: number }[], nghi: Set<string>, tranVnd = 683, uuTien: Set<string> = new Set(), coThamChieu = false): { model: string; vnd: number }[] {
   const hang = (id: string) => (uuTien.has(id) ? 0 : 2) + (/pro$/i.test(id) ? 1 : 0);
-  return danhMuc.filter((m) => RE_NANO_CKEY.test(m.id) && m.vnd < tranVnd && !nghi.has(m.id) && !(coThamChieu && CKEY_BO_THAM_CHIEU.has(m.id)))
+  return danhMuc.filter((m) => RE_NANO_CKEY.test(m.id) && m.vnd < tranVnd && !nghi.has(m.id) && !(coThamChieu && (CKEY_BO_THAM_CHIEU.has(m.id) || laBanProBoBoCuc(m.id))))
     .sort((a, b) => hang(a.id) - hang(b.id) || a.vnd - b.vnd).map((m) => ({ model: m.id, vnd: m.vnd }));
 }
 /** Cầu dao từng người bán (trong bộ nhớ tiến trình): hỏng HONG_LIEN lần liền → nghỉ NGHI_PHUT phút; một lần đạt là mở lại. Tránh mỗi ảnh
@@ -219,6 +223,8 @@ export async function sinhAnhQuaCong(modelGoogle: string, o: { prompt: string; t
       chuoi = [...ban.map((b) => ({ cong: 'ckey' as const, model: b.model })), ...tinh.filter((x) => x.cong !== 'ckey')];
     }
   }
+  // chuỗi tĩnh (không đọc được danh mục ckey) cũng bỏ bản Pro khi có ảnh tham chiếu — cùng luật chonNguoiBanCkey
+  if (o.thamChieuUrl.length) chuoi = chuoi.filter((x) => !(x.cong === 'ckey' && laBanProBoBoCuc(x.model)));
   for (const b of chuoi) {
     // Cổng nhận ít ảnh tham chiếu hơn shot cần → BỎ QUA, không cắt bớt: prompt có bản đồ "ảnh N là gì" (xepThamChieu), cắt ảnh là bản đồ sai, ảnh ra sai.
     const toiDa = TOI_DA_REF[b.cong];

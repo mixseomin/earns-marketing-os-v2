@@ -2592,6 +2592,10 @@ const ngayCong = (d: string, n: number) => new Date(Date.parse(d + 'T00:00:00Z')
 // QUYỀN (etp.quyen, anh 31/10/2026): vai từ máy chủ (lib/etp-quyen.ts) — dữ liệu đã cắt trên máy chủ, đây chỉ bỏ tab / kiểu xem không còn dữ liệu.
 // sua = nguoi_id mà người xem sửa được camp (admin etp, vd Sơn #115); null = không sửa
 // NÚT LÀM MỚI (anh 01/11/2026 #1497): chạy ngay một lượt đồng bộ Ethopex → kho (lamMoiEtp), đọc lại trang mỗi 8 giây tới khi kho có lượt mới hơn lượt lúc bấm (tối đa 10 phút)
+/** chữ rê trạng thái kho (#1585): giờ đồng bộ cuối + ngày Ethopex — không hiện thành dòng chữ cạnh tiêu đề */
+function chuDongBo(dongBo: DuLieuEtp['dongBo']): string {
+  return `kho đồng bộ ${vn(dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới khi số đổi (lúc kho đang đồng bộ thì chờ lượt xong)`;
+}
 function NutLamMoi({ dongBo, gon }: { dongBo: DuLieuEtp['dongBo']; gon: boolean }) {
   const router = useRouter();
   const [cho, setCho] = useState<{ lan: number; tu: number } | null>(null);
@@ -2602,7 +2606,7 @@ function NutLamMoi({ dongBo, gon }: { dongBo: DuLieuEtp['dongBo']; gon: boolean 
   useEffect(() => { if (!bao) return; const t = setTimeout(() => setBao(null), 6_000); return () => clearTimeout(t); }, [bao]);
   const bam = async () => { const r = await lamMoiEtp(); if ('loi' in r) { alert(r.loi); return; } if (r.chay) setCho({ lan: r.lan ?? 0, tu: Date.now() });
     else setBao(r.ban != null ? `số đã là lượt ${vn(r.ban || null)} — máy đang chạy phần sau, lượt kế tự chạy khi xong` : 'kho vừa đồng bộ, đã đọc lại'); router.refresh(); };
-  return <button onClick={bam} disabled={!!cho} title={cho ? 'đang kéo số mới từ Ethopex — xong tự hiện (thường 1–3 phút)' : `kéo số mới từ Ethopex ngay (máy tự kéo 10 phút/lần) · lần cuối ${vn(dongBo?.xong ?? null)}`}
+  return <button onClick={bam} disabled={!!cho} title={cho ? 'đang kéo số mới từ Ethopex — xong tự hiện (thường 1–3 phút)' : `kéo số mới từ Ethopex ngay (máy tự kéo 10 phút/lần)\n${chuDongBo(dongBo)}`}
     style={{ alignSelf: 'center', border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: cho ? 'var(--fg-2)' : 'inherit', cursor: cho ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
     <span style={{ display: 'inline-block', animation: cho ? 'etpXoay 1s linear infinite' : undefined }}>↻</span>{gon ? '' : cho ? ' Đang làm mới…' : ' Làm mới'}{bao ? <span style={{ marginLeft: 6, color: 'var(--fg-2)' }}>{bao}</span> : null}</button>;
 }
@@ -3080,8 +3084,10 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     <div style={{ padding: hep ? '10px 10px 40px' : '16px 20px 40px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0, fontSize: hep ? 16 : 20 }}>ETP · quản lý camp</h1>
-        <span title={`kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới khi số đổi (lúc kho đang đồng bộ thì chờ lượt xong)`} style={{ fontSize: 11, color: 'var(--fg-2)' }}>{hep ? `đồng bộ ${vn(du.dongBo?.xong ?? null)}` : `kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới khi số đổi`}{du.dongBo?.loi ? ` · lỗi: ${du.dongBo.loi.slice(0, 80)}` : ''}</span>
-        {chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={hep} />}
+        {/* #1585 anh 13/11/2026 "ko show ngu thế này": dòng chữ phụ 'kho đồng bộ … · ngày Ethopex … · tự làm mới khi số đổi' cạnh tiêu đề GẬP vào chữ rê nút ↻ Làm mới (YDNI);
+            chỉ LỖI đồng bộ còn hiện chữ đỏ (lỗi phải kêu to); chế độ chỉ xem không có nút → chữ rê nằm trên ô 🕒 nhỏ */}
+        {du.dongBo?.loi ? <span title={du.dongBo.loi} style={{ fontSize: 11, color: '#f87171' }}>lỗi đồng bộ: {du.dongBo.loi.slice(0, 80)}</span> : null}
+        {chiXem ? <span title={chuDongBo(du.dongBo)} style={{ fontSize: 11, color: 'var(--fg-2)', cursor: 'help' }}>🕒</span> : <NutLamMoi dongBo={du.dongBo} gon={hep} />}
         {chiXem || du.nguoi.ngoai || du.nguoi.doi ? null : <NutLenCamp du={du} gon={hep} />}{/* chỉ khi đang xem tk David (Nhà) — anh 09/11/2026 'các thay đổi chỉ hiện ở tk David' */}
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}

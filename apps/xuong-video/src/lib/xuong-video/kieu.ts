@@ -452,6 +452,8 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** KHOÁ
      *  lienMachTap chặn shot sau mở khác trạng thái shot trước để lại; prompt STATE đè lên ảnh mẫu. */ trang?: string; trang_den?: string;
     /** SỔ NGƯỜI (phim người thật — bo-set-3d.ts › SO_NGUOI): bề ngoài lúc mở / kết, tiếng Anh cho prompt. Không khai = chưa biết (hookup lấy từ shot
      *  trước); '' ở _den = bỏ ra (cởi áo khoác, tháo nhẫn). Giữ tới khi sang ngày truyện khác — riêng vet (vết thương, băng, sẹo) không tự hết. */
+    /** CHỖ ĐỨNG trong set, tiếng Anh (vd 'inside the train carriage, behind the open window — not on the platform'): bộ đối chiếu ảnh so mục "Chỗ đứng"
+     *  (13/11/2026 #3071 #12: keyframe vẽ chú đứng ngoài sân ga mà không mục nào bắt — Vị trí chỉ là trái/giữa/phải trên màn) */ o_dau?: string;
     trang_phuc?: string; trang_phuc_den?: string; toc?: string; toc_den?: string; trang_diem?: string; trang_diem_den?: string; do_deo?: string; do_deo_den?: string; vet?: string; vet_den?: string;
     /** đang được nhân vật này CẦM (kẹo trong tay Tango): đi theo người cầm, không kiểm chỗ riêng */ cam?: string;
     /** ĐỒ NGHIÊNG / LẬT lúc mở / kết (độ quanh trục ngang — ly lật giữa không trung #17); không khai = đứng thẳng */ nghieng?: number; nghieng_den?: number;

@@ -59,6 +59,7 @@ export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | nul
     const ao = tachAo(mot('trang_phuc') || aoCua(v));   // áo: ưu tiên biến thể trang_phuc đã carry; không có look thì đường cũ
     const vetTxt = gop('vet') || ao.vet;                 // vết: ưu tiên biến thể nhóm `vet` RIÊNG (atomic, có ảnh anchor); phim cũ thì tách từ chữ áo
     L.push({ thanh_phan: `Vị trí ${v.ten}`, du_kien: viNguoi(v) || 'không khai' });
+    const oDau = luc === 'dau' ? (c.may_3d?.vi_tri ?? []).find((x) => x.ten === v.ten)?.o_dau : undefined; if (oDau) L.push({ thanh_phan: `Chỗ đứng ${v.ten}`, du_kien: oDau });
     const hg = huongNguoi(v); if (hg) L.push({ thanh_phan: `Hướng ${v.ten}`, du_kien: hg });
     L.push({ thanh_phan: `Áo ${v.ten}`, du_kien: ao.chinh || 'không tả' });
     if (vetTxt) L.push({ thanh_phan: `Vết áo ${v.ten}`, du_kien: vetTxt });   // vết/đặc điểm riêng — lá riêng để không bị gộp che (vụ vết cà phê)

@@ -175,6 +175,10 @@ for ma, v in SD['shot'].items():
         if ma == '11': x['huong'] = huong(x['tam'], CHU); x['nhin_ai'] = 'Chú'   # mở ra vẫn quay về chú như kết #10, rồi mới quay người chạy về tiệm (soát nối #10→#11: lệch 93°)
     # CHÚ NHOÀI RA Ô CỬA khi nói / trao đồ với nhóc: dáng 'chong_ban' (thư viện DONG_TAC) — chống tay lên bậu cửa (mép trên vách, z 150), máy tự cúi cột sống tới khi
     # bàn tay chạm bậu → đầu + vai nhô qua ô cửa. Shot chú chỉ nhìn theo (#1 #5 #7 #12) thì đứng thẳng trong toa.
+    # CHỖ ĐỨNG cho bộ đối chiếu ảnh (vi_tri.o_dau): chú luôn TRONG toa sau ô cửa sổ, nhóc luôn trên sân ga — #12 từng ra chú đứng sân ga mà không mục nào bắt
+    for x in vt:
+        if x['ten'] == 'Chú': x['o_dau'] = 'inside the train carriage, behind the open passenger window (not standing on the platform)'
+        if x['ten'] == 'Nhóc': x['o_dau'] = 'standing on the platform outside the train'
     for x in vt:
         if x['ten'] == 'Chú' and ma in ('1', '2b', '3a', '3', '4a', '5', '9a', '10', '11'): x['dien'] = ['chong_ban']   # '1' (13/11/2026): ngó tìm người = nhoài ra cửa sổ; đứng thẳng thì bậu sát mép khung, keyframe #2 ra cửa lên xuống 4 lần liền   # #5: nhoài ra nhìn về tiệm — đứng thẳng trong toa thì máy phía nam không thấy chú
     # SỔ TRANG PHỤC: cả phim một ngày, một bộ đồ — khai ở MỌI shot. Chỉ khai ở shot đầu thì shot có 'nhay' (dịch chuyển ngoài khung) làm sổ quên đồ (noiHookup coi nhay

@@ -50,7 +50,7 @@ console.log('sinh-anh.test: ok');
 {
   const { khungChu } = await import('./sinh-anh');
   const kx = { kiem: [{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 118, bi_che_boi: [] }, { nhan_vat: 'Lint', trong_khung: true, cao_khung_pt: 22, bi_che_boi: [] }],
-    thay: [{ ten: 'Tango', pt: 60, hop: [0.2, 0.05, 0.8, 0.95] }, { ten: 'Lint', pt: 4, hop: [0.7, 0.5, 0.9, 0.7] }] } as never;
+    thay: [{ ten: 'Tango', pt: 60, hop: [0.2, 0.05, 0.8, 0.95], nguoi: true }, { ten: 'Lint', pt: 4, hop: [0.7, 0.5, 0.9, 0.7], nguoi: true }] } as never;   // nguoi: do-3d-song.ts gắn cho nhân vật
   const c = khungChu(kx, ['Tango', 'Lint']);
   assert.ok(/Tango spans about 60% of the frame width and 90% of its height, middle centre — a close-up/.test(c), c);
   assert.ok(/Lint spans about 20% of the frame width and 20% of its height, middle right;?/.test(c) && !/Lint[^;]*close-up/.test(c), c);
@@ -63,6 +63,17 @@ console.log('sinh-anh.test: ok');
   const { khungChu } = await import('./sinh-anh');
   const c = khungChu({ thay: [{ ten: 'USB Hub', pt: 9, hop: [0, 0.9, 1, 1] }] } as never, ['USB Hub']);
   assert.ok(!/close-up/.test(c) && /cut off by the bottom edge — only a 10% strip/.test(c), c);
+}
+
+// Người chạm mép dưới = thân dưới ngoài khung; khối nền phủ kín không gọi là cận (#3071 #5: nhóc 65% chiều cao vẽ thành toàn thân, "close-up" gán cho toa tàu).
+{
+  const { khungChu } = await import('./sinh-anh');
+  const kx = { thay: [{ ten: 'Tàu xanh', pt: 92, hop: [0, 0, 1, 1] }, { ten: 'Nhóc', pt: 7, hop: [0.407, 0.375, 0.593, 1], nguoi: true }] } as never;
+  const c = khungChu(kx, ['Nhóc', 'Tàu xanh']);
+  assert.ok(/Nhóc spans .*cut off by the bottom edge of the frame .*do NOT show the legs or feet/.test(c), c);
+  assert.ok(/Tàu xanh fills the background behind the people/.test(c) && !/close-up: Tàu xanh/.test(c), c);
+  const dung = khungChu({ thay: [{ ten: 'Nhóc', pt: 4, hop: [0.4, 0.2, 0.5, 0.8], nguoi: true }] } as never, ['Nhóc']);
+  assert.ok(!/legs or feet/.test(dung), 'đứng trọn trong khung thì không nói bị cắt: ' + dung);
 }
 
 // Câu CAMERA từ máy 3D (#35: máy 1,2 cm ngước lên Mr. Wipe mà keyframe vẽ ngang tầm).

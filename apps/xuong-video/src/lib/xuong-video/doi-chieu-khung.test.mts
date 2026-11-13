@@ -18,4 +18,8 @@ const kx = { kiem: [{ nhan_vat: 'Nhóc', trong_khung: true, cao_khung_pt: 30, bi
 const c3 = canh({ khung_xam: kx as unknown as Canh['khung_xam'] });
 assert.strictEqual(muc(c3, 'Vị trí Nhóc'), 'giữa');
 assert.strictEqual(muc(c3, 'Vị trí Chú'), 'trái');
+// Chỗ đứng khai trong may_3d.vi_tri.o_dau → một mục riêng (13/11/2026 #12: chú đứng sân ga không mục nào bắt)
+const cO = canh({ may_3d: { vi_tri: [{ ten: 'Chú', tam: [0, 0, 0], o_dau: 'inside the train carriage' }] } as unknown as Canh['may_3d'] });
+assert.strictEqual(muc(cO, 'Chỗ đứng Chú'), 'inside the train carriage');
+assert.strictEqual(muc(cO, 'Chỗ đứng Nhóc'), undefined, 'không khai thì không đẻ mục');
 console.log('doi-chieu-khung: ok');

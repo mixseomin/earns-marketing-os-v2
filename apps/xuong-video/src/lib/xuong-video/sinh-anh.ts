@@ -630,8 +630,14 @@ export function khungChu(kx: Canh['khung_xam'] | null | undefined, ten: string[]
     const th = (kx.thay ?? []).find((x) => x.ten === t); if (!th) return '';
     const w = th.hop[2] - th.hop[0], h = th.hop[3] - th.hop[1]; const vt = vungEn((th.hop[0] + th.hop[2]) / 2, (th.hop[1] + th.hop[3]) / 2);
     const co = `spans about ${tron(w)}% of the frame width and ${tron(h)}% of its height, ${vt}`;
-    const cat = catMep(th.hop);
+    // NGƯỜI CHẠM MÉP DƯỚI (13/11/2026 phim #3071 #5 #9: "Nhóc 65% chiều cao, giữa dưới" mà không nói bị cắt — catMep chỉ báo khi còn một dải hẹp —
+    // model đọc thành đứng trọn người, vẽ toàn thân có dép, 2 vòng tự-sửa không gỡ được). Người chạm mép dưới = thân dưới nằm NGOÀI khung, nói thẳng.
+    const catDuoi = th.nguoi && th.hop[3] >= 0.985 && th.hop[1] > 0.02 && !catMep(th.hop).includes('bottom') ? `, cut off by the bottom edge of the frame — the rest of ${t}'s body is below the frame: do NOT show the legs or feet` : '';
+    const cat = catMep(th.hop) + catDuoi;
     // Cận = cao ≥ 85% khung hoặc chiếm > nửa diện tích (#9 Tango nằm tràn ngang cao 45%: w·h ≈ 0,36 → không; dải đế cắm tràn ngang cao 10% → không).
+    // Khối NỀN (không phải người) phủ kín khung — toa tàu sau lưng nhóc — KHÔNG gọi là "close-up": câu cũ "a close-up: Tàu xanh fills the frame" đặt
+    // chữ cận vào phông nền, còn người thì không được tả cỡ cận.
+    if (!th.nguoi && (h >= 0.85 || w * h >= 0.5)) return `${t} fills the background behind the people${cat}`;
     return h >= 0.85 || w * h >= 0.5 ? `${t} ${co} — a close-up: ${t} fills the frame and the frame edges crop the body${cat}` : `${t} ${co}${cat}`;
   }).filter(Boolean);
   return ds.length ? `FRAMING measured on Image 1 — keep the same subject size and position, do NOT zoom out or in: ${ds.join('; ')}.` : '';

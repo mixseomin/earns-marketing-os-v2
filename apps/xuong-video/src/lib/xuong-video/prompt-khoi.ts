@@ -244,3 +244,18 @@ export function thayTenNhan(t: string, ds: readonly { ten: string; nhan: string 
   }
   return o;
 }
+
+// ── MỘT NGUỒN SỰ THẬT cho "có gì trong khung" (chuẩn docs/chuan-cau-lenh-keyframe.md, anh 13/11/2026 phim #3071) ─────────────────────────────
+const TU_RONG = new Set(['with', 'that', 'this', 'from', 'like', 'exactly', 'its', 'their', 'reference', 'image', 'about', 'very', 'into', 'over', 'under', 'when', 'where', 'which', 'each', 'both', 'side', 'front', 'back', 'left', 'right', 'small', 'large', 'long', 'short']);
+/** Chữ RIÊNG của các vật NGOÀI KHUNG: từ ≥ 4 chữ cái ở câu đầu mô tả của chúng mà mô tả mọi thứ TRONG khung không dùng ("old passenger train" → passenger,
+ *  train; "worn … banknote" với áo "worn beige shirt" trong khung → banknote, bỏ worn). Dùng để gỡ / chặn chữ nhắc vật ngoài khung. Thuần. */
+export function tuRieng(moTaNgoai: string[], moTaTrong: string[]): string[] {
+  const tach = (t: string) => t.toLowerCase().match(/[a-z]{4,}/g) ?? [];
+  const trong = new Set(moTaTrong.flatMap(tach));
+  return [...new Set(moTaNgoai.flatMap((m) => tach((m.split(/[.:—]|\bexactly like\b/i)[0] ?? ''))))].filter((w) => !TU_RONG.has(w) && !trong.has(w) && !trong.has(`${w}s`) && !trong.has(w.replace(/s$/, '')));
+}
+const reTu = (w: string) => new RegExp(`(?<![\\w-])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}s?(?![\\w-])`, 'i');
+/** Vế đầu tiên của một đoạn chữ có nhắc một trong các từ (ranh giới từ, 'bottle' không khớp 'bottle-green') — null nếu không có. */
+export const veNhac = (chu: string, tu: string[]): string | null => chu.split(/\s*[,;.|]\s*/).find((ve) => tu.some((w) => reTu(w).test(ve))) ?? null;
+/** Bỏ khỏi câu phong cách mọi vế nhắc tới vật ngoài khung. */
+export const boVeNhac = (pc: string, tu: string[]): string => (tu.length ? pc.split(/\s*[,;]\s*/).filter((ve) => !tu.some((w) => reTu(w).test(ve))).join(', ') : pc);

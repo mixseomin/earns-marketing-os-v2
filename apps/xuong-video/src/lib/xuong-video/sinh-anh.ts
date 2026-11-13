@@ -22,7 +22,7 @@ import { mapBoSet } from './bo-set-3d-may';
 import { congVideoTho, cauChanCong } from './cong-video-tho';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
 import { loiTrangThaiVat, boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, noiChonPhongCach, TU_TOI_DA_FLUX, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
-import { cauAnhSet, CHAT_LIEU, chuNguoi, ghep, goiTenEn, hanhDongTrongMoTa, khoi, KHONG_THEM_ANH, KHONG_THEM_FLUX, KHUON, soNguoiCau, tuTheEn, type DuongSinh, type Khoi } from './prompt-khoi';
+import { boVeNhac, cauAnhSet, CHAT_LIEU, chuNguoi, ghep, goiTenEn, hanhDongTrongMoTa, khoi, KHONG_THEM_ANH, KHONG_THEM_FLUX, KHUON, soNguoiCau, tuRieng, tuTheEn, type DuongSinh, type Khoi } from './prompt-khoi';
 import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
 import { boiCanhCanh, canhDaThayThe, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
@@ -300,7 +300,16 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     return a === ten ? moTaNgan(v.mo_ta) : `${bc.canh.khung_xam?.thay?.find((t) => t.ten === ten)?.en ?? ten}, part of ${moTaNgan(v.mo_ta)}`;
   };
   const soKx = 1;
-  const kxChu = kx ? (kxMau ? `Image ${soKx} = a COLOUR 3D PREVIS render of THIS exact frame from the real set: camera, framing, horizon, every object's and character's position, size and overlap, the lighting direction and colours are all correct — ${CL.previs}, keeping everything exactly where it is; materials get real detail, and each character's exact look comes from its reference images (the previs shapes are only stand-ins). The previs HANDS are rough placeholders: keep where each hand is and what it touches, but draw natural, anatomically correct hands — five fingers, natural knuckles and wrist, never twisted or bent sideways like the stand-in.` : `Image ${soKx} = a grey-box 3D LAYOUT render from THIS shot's exact camera on the real set: every object and every character must sit EXACTLY where its block is, and NOTHING that is not a block may appear — same position, size, overlap, perspective, horizon and framing. It shows layout only: colours, materials and lighting come from the style and the other reference images, never grey blocks.`) + ` ${ket ? 'Image 1 shows where everything is at the END of the shot.' : moTaThay(bc.canh.khung_xam?.thay, goiVat, bc.canh.khung_xam)}` : '';
+  // MỘT DANH SÁCH cho "có gì trong khung" (chuẩn docs/chuan-cau-lenh-keyframe.md): món trong khung mà không đủ lớn thành khối (đồ đang cầm) vẫn phải có
+  // tên trong danh sách khối — nếu không câu "ngoài danh sách = ngoài khung" cãi câu FRAMING / câu thay hình bắt vẽ nó (#3071 #9).
+  const goiEnAll = goiTenEn([...bc.nhanVat, ...bc.nvPhim]);
+  const tenKhoi = new Set((bc.canh.khung_xam?.thay ?? []).filter((t) => thayRo(bc.canh.khung_xam, t)).flatMap((t) => [t.ten, bc.anchorCua?.[t.ten] ?? t.ten]));
+  const monNho = coKx && !ket ? bc.nhanVat.filter((v) => v.loai !== 'boi_canh' && !ngoaiKhung(v) && !tenKhoi.has(v.ten)) : [];
+  const nhanNho = (v: NhanVat) => { const c = (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.ten === v.ten)?.cam; return `${v.ten}${v.loai === 'nhan_vat' ? '' : ` = ${goiVat(v.ten) ?? goiEnAll(v.ten)}`}${c ? ` (in ${c}'s hand)` : ''}`; };
+  const themDs = monNho.map(nhanNho);
+  // anchor đạo cụ là một khối: danh sách gọi "<tên> = <mô tả>" — các câu sau (FRAMING, thay hình) gọi nó bằng TÊN, phải nối được về danh sách
+  const goiVatDs = (ten: string) => { const g = goiVat(ten); return g && bc.nhanVat.some((x) => x.ten === ten && x.loai !== 'nhan_vat') ? `${ten} = ${g}` : g; };
+  const kxChu = kx ? (kxMau ? `Image ${soKx} = a COLOUR 3D PREVIS render of THIS exact frame from the real set: camera, framing, horizon, every object's and character's position, size and overlap, the lighting direction and colours are all correct — ${CL.previs}, keeping everything exactly where it is; materials get real detail, and each character's exact look comes from its reference images (the previs shapes are only stand-ins). The previs HANDS are rough placeholders: keep where each hand is and what it touches, but draw natural, anatomically correct hands — five fingers, natural knuckles and wrist, never twisted or bent sideways like the stand-in.` : `Image ${soKx} = a grey-box 3D LAYOUT render from THIS shot's exact camera on the real set: every object and every character must sit EXACTLY where its block is, and NOTHING that is not a block may appear — same position, size, overlap, perspective, horizon and framing. It shows layout only: colours, materials and lighting come from the style and the other reference images, never grey blocks.`) + ` ${ket ? 'Image 1 shows where everything is at the END of the shot.' : moTaThay(bc.canh.khung_xam?.thay, goiVatDs, bc.canh.khung_xam, themDs)}` : '';
   // LIỀN MÁY: shot trước chọn chuyển cảnh 'lien_may' → clip của nó kết bằng ảnh này, nên ảnh này phải là giây kế tiếp của chính khung đó
   // (cùng nơi, cùng phía máy, vị trí + đồ vật + trạng thái nối tiếp) — keyframe shot trước làm ảnh tham chiếu cuối (Tango & Lint tập 1: 0/20
   // clip nối khung, shot sau không thấy liên quan shot trước).
@@ -392,10 +401,16 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // tên đưa model: nhân vật = tên, đạo cụ = mô tả en (tên đồ tiếng Việt "Ly cà phê" từng lọt vào câu ngoài khung)
   const ngoaiTen = kx && !ket ? bc.nhanVat.filter((v) => ngoaiKhung(v)).map((v) => (v.loai === 'nhan_vat' ? v.ten : goiTenEn([...bc.nhanVat, ...bc.nvPhim])(v.ten).replace(/^the /, ''))) : [];
   const ngoaiCau = ngoaiTen.length ? `OFF-SCREEN in this frame (part of the story, NOT visible right now): ${ngoaiTen.join(', ')} — do not draw them, their shadow or any part of them, even where the description mentions them.` : '';
+  // CÂU PHONG CÁCH không được gọi tên vật đang NGOÀI KHUNG (#3071 #9: tàu khai ngoài khung mà phong cách phim ghi "sun low behind the train, bottle-green
+  // train carriage" → model vẽ thêm tàu): bỏ vế nhắc tới chữ RIÊNG của vật ngoài khung (prompt-khoi.ts › tuRieng / boVeNhac); kiem-prompt › nhac_ngoai chặn phần sót.
+  const tuNgoai = kx && !ket ? tuRieng(bc.nhanVat.filter((v) => v.loai !== 'nhan_vat' && ngoaiKhung(v)).map((v) => v.mo_ta), bc.nhanVat.filter((v) => v.loai !== 'boi_canh' && !ngoaiKhung(v)).map((v) => `${v.mo_ta} ${btSo(v).map((b) => b.mo_ta).join(' ')}`)) : [];
+  const pcHinh = boVeNhac(phongCachHinh(bc.kt.phong_cach), tuNgoai);
   // GÓC MÁY bằng SỐ từ máy 3D (anh 15/10/2026, #35: 3D sát mặt bàn ngước lên Mr. Wipe, keyframe vẽ ngang tầm — prompt chỉ có cụm chung "low-angle").
   const mGoc = bc.mayDu ?? bc.canh.may_3d;
+  // THẾ GIỚI TÍ HON (nhân vật cao < 40 cm: búp bê trên mặt bàn) mới gọi mặt z = 0 là 'the desk'; phim người cỡ thật là mặt đất
+  const caoNv = bc.nhanVat.filter((n) => n.loai === 'nhan_vat').map((n) => n.khoi_3d?.co?.[2] ?? 0).filter((x) => x > 0); const tiHon = caoNv.length > 0 && Math.max(...caoNv) < 40;
   const chinh = mGoc ? mGoc.vi_tri.find((v) => trongKhungAnchor.includes(v.ten) && bc.nhanVat.some((n) => n.ten === v.ten && n.loai === 'nhan_vat')) ?? mGoc.vi_tri.find((v) => trongKhungAnchor.includes(v.ten)) : undefined;
-  const mayCau = kx && mGoc ? gocMayChu(mGoc, chinh ? { ten: chinh.ten, giuaZ: (chinh.tam[2] ?? 0) + (bc.nhanVat.find((n) => n.ten === chinh.ten)?.khoi_3d?.co?.[2] ?? 0) / 2 } : null, nguoiThat) : '';
+  const mayCau = kx && mGoc ? gocMayChu(mGoc, chinh ? { ten: chinh.ten, giuaZ: (chinh.tam[2] ?? 0) + (bc.nhanVat.find((n) => n.ten === chinh.ten)?.khoi_3d?.co?.[2] ?? 0) / 2 } : null, nguoiThat, tiHon ? 'the desk' : 'the ground') : '';
   // BỐI CẢNH: câu đầu mô tả anchor bối cảnh ("Boardroom in afternoon light") — có khung 3D thì KHÔNG gửi ảnh mẫu / mô tả dài (mời vẽ thêm đồ, #23
   // tập 19), nhưng phải nói ĐANG Ở ĐÂU: bỏ hẳn thì model không biết không gian (anh 17/10/2026: "không gian, bối cảnh chưa thấy prompt nhắc đến").
   const boiCanh = bc.nhanVat.filter((v) => v.loai === 'boi_canh').map((v) => dauBoiCanh(v.mo_ta)).filter(Boolean)[0] ?? '';
@@ -472,9 +487,9 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     // KHUÔN một bước (prompt-khoi.ts › KHUON.mot_buoc)
     const k1: Khoi[] = [
       khoi('anh_dich', `EDIT Image 1. Image 1 is a 3D previs render of this exact frame; turn it into ${CL.anh_dich(boiCanh)}. This is a RE-TEXTURING job, not a new picture: keep the camera position, height and tilt, the lens, the framing and horizon, and every object's and character's position, size, pose, facing, overlap and cut-off at the frame edges EXACTLY as in Image 1. Do not add, remove, move, rotate, enlarge or shrink anything.`),
-      khoi('may', mayCau), khoi('bo_tri', ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat, bc.canh.khung_xam)), khoi('boi_canh', boiCanhCoDinh), khoi('so_nguoi', soNguoi), khoi('huong', chen ? '' : huongCau), khoi('dien', dangCau), khoi('giu', dauCau), khoi('khung', framingCau), khoi('ngoai_khung', ngoaiCau), khoi('trang_thai', trang3d),
+      khoi('may', mayCau), khoi('bo_tri', ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVatDs, bc.canh.khung_xam, themDs)), khoi('boi_canh', boiCanhCoDinh), khoi('so_nguoi', soNguoi), khoi('huong', chen ? '' : huongCau), khoi('dien', dangCau), khoi('giu', dauCau), khoi('khung', framingCau), khoi('ngoai_khung', ngoaiCau), khoi('trang_thai', trang3d),
       khoi('nguoi', thay.length && `Replace each smooth stand-in shape with the real thing, in exactly the same place, size and pose: ${thay.join(' | ')}.`),
-      khoi('phong_cach', `Photo look: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}. Keep Image 1's light direction and colours.`),
+      khoi('phong_cach', `Photo look: ${pcHinh.replace(/[.\s]+$/, '')}. Keep Image 1's light direction and colours.`),
       khoi('anh_set', setSo && cauAnhSet(setSo, nhanSet)), khoi('khong_them', KHONG_THEM_ANH),
       khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('cam_chu', camChu(chuPhim)),
       khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')),
@@ -492,6 +507,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     // SOÁT CHỮ (kiem-prompt.ts) cho MỌI đường: người trong khung + bộ đồ sổ trang phục, đồ chủ thể đang thấy, chất liệu phim
     const chuThe3d = new Set((bc.canh.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung).map((k) => k.nhan_vat));
     const soat: SoatPrompt = { co_canh: bc.canh.ky_thuat?.co_canh, ten_rieng: bc.nhanVat.map((v) => v.ten), chat_lieu: cl,
+      ngoai_vat: tuNgoai, phai_co: ket ? [] : trongS.map((v) => ({ ten: v.ten, nhan: [v.ten, goiVat(v.ten) ?? '', goiEnAll(v.ten)].filter(Boolean) })),
       nguoi: trongS.filter((v) => v.loai === 'nhan_vat').map((v) => ({ ten: v.ten, trang_phuc: aoCua(v).map((x) => (chen ? boMat(x) : x)).join('; ') || undefined })),
       vat: trongS.filter((v) => v.loai !== 'nhan_vat' && chuThe3d.has(v.ten)).map((v) => ({ ten: v.ten, mo_ta: v.mo_ta })),
       // KHÔNG 3D: người ngoài khung của đúng khung này theo sơ đồ cảnh (khong-gian.ts) — chữ cho họ làm chủ ngữ là model vẽ thêm người
@@ -612,17 +628,17 @@ export function chamKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCa
 
 /** Câu CAMERA từ máy 3D: cao bao nhiêu cm trên mặt bàn và so với giữa chủ thể, ngước / chúc bao nhiêu độ, ống kính, và HỆ QUẢ thấy gì
  *  (ngước: thấy mặt dưới, nền là phần phía trên — không thấy mặt bàn; chúc: thấy mặt bàn quanh chủ thể). Thuần — kiểm ở sinh-anh.test. */
-export function gocMayChu(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh'>, chu: { ten: string; giuaZ: number } | null, nguoiThat = false): string {
+export function gocMayChu(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh'>, chu: { ten: string; giuaZ: number } | null, nguoiThat = false, /** mặt z = 0 của bộ set gọi là gì: 'the desk' CHỈ cho phim thế giới tí hon trên bàn; mặc định mặt đất (13/11/2026 phim #3071: "170 cm above the desk… see the desk surface" đi vào cảnh sân ga) */ mat = 'the ground'): string {
   const [dx, dy, dz] = [m.nhin[0]! - m.dat[0]!, m.nhin[1]! - m.dat[1]!, (m.nhin[2] ?? 0) - (m.dat[2] ?? 0)];
   const doc = Math.round((Math.atan2(dz, Math.hypot(dx, dy)) * 180) / Math.PI); const cao = Math.round((m.dat[2] ?? 0) * 10) / 10;
   // PHIM NGƯỜI THẬT: máy cao bao nhiêu cm so với SÀN, cỡ người thật — câu "lens 55 cm above the desk / tiny characters" của hoạt hình bàn làm việc
   // lọt vào phim người thật (tập 122, đường một bước); kiem-prompt.ts › chất liệu lệch chặn chữ hoạt hình.
   if (nguoiThat) return `CAMERA, exactly as the 3D set places it (do NOT change it): ${m.ong_kinh} mm lens, ${Math.round(cao)} cm above the floor, ${doc >= 8 ? `tilted UP ${doc}° — a LOW-ANGLE shot looking up at ${chu?.ten ?? 'the subject'}` : doc <= -8 ? `tilted DOWN ${-doc}° — a HIGH-ANGLE shot looking down at ${chu?.ten ?? 'the subject'}` : `level (${doc}°) — an EYE-LEVEL shot`}. Not a different angle.`;
   const so = chu ? (cao < chu.giuaZ - 0.5 ? `below the middle of ${chu.ten} (which is ${Math.round(chu.giuaZ * 10) / 10} cm up)` : cao > chu.giuaZ + 0.5 ? `above ${chu.ten} (whose middle is ${Math.round(chu.giuaZ * 10) / 10} cm up)` : `level with ${chu.ten}`) : '';
-  const dau = `CAMERA, exactly as the 3D set places it (do NOT change it): ${m.ong_kinh} mm lens, the lens ${cao} cm above the desk${so ? `, ${so}` : ''}, `;
-  if (doc >= 8) return `${dau}tilted UP ${doc}° — a LOW-ANGLE shot: we look up at ${chu?.ten ?? 'the subject'}${doc >= 15 ? ', seeing its underside' : ''}; the desk top is barely visible (only at the very bottom edge if at all); behind the subject is what is ABOVE and beyond the desk. Not eye-level, not from above.`;
-  if (doc <= -8) return `${dau}tilted DOWN ${-doc}° — a HIGH-ANGLE shot: we look down on ${chu?.ten ?? 'the subject'} and see the desk surface around and behind it. Not eye-level, not from below.`;
-  return `${dau}level (${doc}°) — an EYE-LEVEL shot at ${chu?.ten ?? 'the subject'}'s height: the horizon of the desk runs across the frame; not from above, not from below.`;
+  const dau = `CAMERA, exactly as the 3D set places it (do NOT change it): ${m.ong_kinh} mm lens, the lens ${cao} cm above ${mat}${so ? `, ${so}` : ''}, `;
+  if (doc >= 8) return `${dau}tilted UP ${doc}° — a LOW-ANGLE shot: we look up at ${chu?.ten ?? 'the subject'}${doc >= 15 ? ', seeing its underside' : ''}; ${mat} is barely visible (only at the very bottom edge if at all); behind the subject is what is ABOVE and beyond it. Not eye-level, not from above.`;
+  if (doc <= -8) return `${dau}tilted DOWN ${-doc}° — a HIGH-ANGLE shot: we look down on ${chu?.ten ?? 'the subject'} and see ${mat} around and behind it. Not eye-level, not from below.`;
+  return `${dau}level (${doc}°) — an EYE-LEVEL shot at ${chu?.ten ?? 'the subject'}'s height: the horizon runs across the frame; not from above, not from below.`;
 }
 
 const vungEn = (x: number, y: number) => `${y < 0.36 ? 'upper' : y > 0.64 ? 'lower' : 'middle'} ${x < 0.36 ? 'left' : x > 0.64 ? 'right' : 'centre'}`;

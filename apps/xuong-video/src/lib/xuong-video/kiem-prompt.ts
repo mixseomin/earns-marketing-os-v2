@@ -5,14 +5,14 @@
 // Mỗi lỗi có mức PHẠT; điểm = 100 − tổng phạt; lỗi phạt ≥ NGUONG_CHAN thì CHẶN sinh (lyChanKeyframe / cổng video), lỗi nhẹ chỉ trừ điểm.
 // Thuần, 0đ. Tự kiểm: kiem-prompt.test.mts
 import { coTiengViet } from './kieu';   // MỘT luật nhận tiếng Việt với cổng ngôn ngữ (kieu.ts › shotLechNgonNgu) — không bắt oan 'Café'
-import { CHAT_LIEU, ghep, KHUON, MAT, thieuKhoi, type ChatLieu, type DuongSinh, type Khoi } from './prompt-khoi';
+import { CHAT_LIEU, ghep, KHUON, MAT, thieuKhoi, veNhac, type ChatLieu, type DuongSinh, type Khoi } from './prompt-khoi';
 export { boDo, boMat, dauBoiCanh, MAT } from './prompt-khoi';
 
 /** Bước 1 FLUX đọc tối đa ~512 token T5: quá ~300 từ thì phần cuối (phong cách, "No text") bị cắt. */
 export const TU_TOI_DA_FLUX = 300;
 /** Lỗi phạt từ mức này trở lên thì chặn sinh. */
 export const NGUONG_CHAN = 20;
-const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10, the_tho: 40, noi_chon: 10, liet_ke_cam: 30, thieu_vat: 30, di_xa: 30 } as const;
+const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10, the_tho: 40, noi_chon: 10, liet_ke_cam: 30, thieu_vat: 30, di_xa: 30, ngoai_ds: 30, nhac_ngoai: 30 } as const;
 export type MaLoiPrompt = keyof typeof PHAT;
 /** ĐỒ CỦA MỘT NƠI trong câu PHONG CÁCH PHIM (anh 22/10/2026, phim #132: phong cách "daylight from floor-to-ceiling windows" đi vào mọi shot, kể cả sảnh
  *  thang máy đá đen không có cửa sổ → nền sau lưng người đổi giữa các shot). Phong cách chỉ nói chất ảnh / ống kính / tông; đồ đạc là của bối cảnh.
@@ -33,6 +33,8 @@ export type SoatPrompt = {
   /** tên riêng được phép giữ dấu (nhân vật, đạo cụ có tên) */ ten_rieng?: string[];
   /** nhân vật NGOÀI KHUNG cả shot (3D không thấy, không đi vào) — chữ diễn cho họ làm gì thì model vẽ họ vào */ ngoai?: string[];
   /** chuyển động trên màn đo từ khung 3D (khung_xam.di: dx > 0 = sang phải màn) — chữ "walks screen-left" ngược số này là lỗi */ di?: { ten: string; dx: number }[];
+  /** món câu lệnh BẮT VẼ (người + đồ trong khung): mỗi món phải có tên trong khối danh sách 3D (bo_tri) — nhan = các cách danh sách có thể gọi nó */ phai_co?: { ten: string; nhan: string[] }[];
+  /** chữ RIÊNG của vật đang NGOÀI KHUNG (prompt-khoi.ts › tuRieng) — khối phong cách / cảm xúc / bối cảnh nhắc tới là mời model vẽ thứ đã khai không có */ ngoai_vat?: string[];
   /** (chỉ đường VIDEO) shot đã có ảnh CUỐI cho model (keyframe kết / nối khung) — khai false thì luật DI_XA được soi */ khung_ket?: boolean;
 };
 export type LoiPrompt = { buoc: string; ma: MaLoiPrompt; phat: number; chu: string };
@@ -106,6 +108,16 @@ export function chamPrompt(buoc: BuocPrompt[], s: SoatPrompt): { diem: number; l
       const tat = (t.trim().split(/\s+/).pop() ?? t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const m = chuDien.match(new RegExp(`(?<!\\b(?:at|to|toward|towards|from|with|of|on|into|after|beside|near)\\s+(?:\\p{L}+\\s+)?)(?<!\\p{L})${tat}(?!\\p{L})(?:'s)?\\s+\\p{L}+`, 'iu'));
       if (m) them(b.ten, 'ngoai_khung', `chữ cho "${m[0]}" mà ${t} ngoài khung cả shot — model vẽ thêm người: chỉ tả người trong khung (hướng nhìn "looks at ${tat}" thì được)`);
+    }
+    // CÂU LỆNH TỰ MÂU THUẪN về "có gì trong khung" (anh 13/11/2026, phim #3071: 131 lượt sinh cho 20 shot). Danh sách khối 3D tự nhận là thẩm quyền duy
+    // nhất ("không có tên ở đây = ngoài khung, không vẽ") → (1) món nào câu lệnh bắt vẽ phải có tên trong danh sách; (2) vật đã khai ngoài khung thì các
+    // khối không-phải-dữ-liệu-vật (phong cách, cảm xúc, bối cảnh…) không được gọi tên nó. Chỉ chấm được khi bước đi theo khối.
+    if (b.khoi) {
+      const boTri = (b.khoi.find((x) => x.ma === 'bo_tri')?.chu ?? '').toLowerCase();
+      if (boTri) for (const p of s.phai_co ?? []) if (!p.nhan.some((n) => boTri.includes(n.toLowerCase()))) them(b.ten, 'ngoai_ds', `câu lệnh bắt vẽ "${p.ten}" mà danh sách khối 3D không có tên nó — danh sách ghi "không có tên = ngoài khung, không vẽ": hai lệnh ngược nhau, model đặt bừa. Thêm vào danh sách (bo-set-3d.ts › moTaThay tham số them) hoặc bỏ khỏi câu lệnh`);
+      if (s.ngoai_vat?.length) for (const x of b.khoi.filter((y) => ['phong_cach', 'cam_xuc', 'bieu_cam', 'boi_canh', 'khoanh_khac', 'hau_canh', 'khong_khi', 'khac'].includes(y.ma))) {
+        const ve = veNhac(x.chu, s.ngoai_vat); if (ve) them(b.ten, 'nhac_ngoai', `khối ${x.ma} nhắc "${ve.trim().slice(0, 80)}" mà vật đó đã khai NGOÀI KHUNG ở shot này — model vẽ thêm nó: bỏ vế đó (phong cách phim chỉ nói chất ảnh / tông, không gọi tên đồ vật)`);
+      }
     }
     // VẬT ĐI XA mà chưa có ảnh cuối (DI_XA): phim vẽ 2D, đường video
     if (s.khung_ket === false && s.chat_lieu === 've_2d') { const d = diXa(chuDien); if (d) them(b.ten, 'di_xa', `có vật / người đi xa trong khung ("…${d.slice(0, 90)}…") mà shot chưa có keyframe KẾT — video AI không giữ vật (xoá, nhân đôi, vẽ bản mới chạy ngược). Sinh keyframe kết (ảnh cuối, đúng hướng đầu vật) rồi mới sinh video`); }

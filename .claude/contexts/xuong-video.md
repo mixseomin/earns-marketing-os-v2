@@ -6,6 +6,8 @@ Dùng chung DB `mos2_prod` + `.env.production` + phiên SSO `mos2-session` (.on.
 - **Góp ý của anh** → card plays dự án `xuong-video` (mos2.on.tc/p/xuong-video/plays). Nhặt + xử bằng **`/tasks-studio`**
   (`ssh root@167.233.241.16 GOPY_PROJECT=xuong-video /opt/earns-marketing-os-v2/scripts/gop-y.sh list|show|claim|reply|submit`).
   Không đụng card của dự án khác; nộp Review, không tự đóng.
+- **Keyframe lệch khung 3D → `apps/xuong-video/docs/chuan-cau-lenh-keyframe.md` (BẮT BUỘC đọc trước khi sinh lại)**: đọc nguyên văn câu lệnh của lượt đó trước;
+  cấm vá theo shot (câu siết, chỉnh máy riêng); quá 3 lượt chưa đạt thì dừng sinh; lỗi câu lệnh sửa ở hàm dựng + thêm luật chặn vào `kiem-prompt.ts`.
 - Sinh ảnh chạy trên Cloudflare Worker `xv-worker` (tài khoản CF Astrolas, Workers Paid) qua queue `xv-jobs`; Worker báo về `/api/xv/xong`.
 - Luật: **CẤM tự sinh video bằng AI** (hook rule 23); mọi lượt sinh tốn tiền chỉ do anh bấm. Giá chỉ ghi dạng `$`. Giờ GMT+7.
 - File chính: `src/lib/actions.ts` (server actions), `src/lib/xuong-video/*` (provider, worker job), `worker/`. UI `src/components/` chia theo vai:

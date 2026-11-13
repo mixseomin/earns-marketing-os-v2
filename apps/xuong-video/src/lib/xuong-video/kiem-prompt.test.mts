@@ -107,3 +107,23 @@ console.log('kiem-prompt: ok');
   if (promptKetVe2d) { const p = promptKetVe2d('The van has driven out to the right', 'van moves left to right', 'Hand-painted'); assert.ok(/LAST frame/.test(p) && /exactly once/.test(p) && /left to right/.test(p), p); }
   console.log('kiem-prompt.test: ok (vật đi xa)');
 }
+
+// CÂU LỆNH TỰ MÂU THUẪN về "có gì trong khung" (13/11/2026 phim #3071 #9 — nguyên văn rút gọn của lượt #8255): tờ tiền không có trong danh sách khối mà
+// bị bắt vẽ; tàu khai ngoài khung mà phong cách nhắc "train". Cả hai phải bị CHẶN; bản đã sửa thì qua.
+{
+  const { tuRieng, boVeNhac } = await import('./prompt-khoi');
+  const tu = tuRieng(['The old passenger train: deep bottle-green carriages.'], ['Vietnamese street boy, worn beige shirt', 'A worn, once-folded Vietnamese dong banknote exactly like its reference image']);
+  assert.deepEqual(tu.sort(), ['passenger', 'train']);
+  assert.deepEqual(tuRieng(['A worn, once-folded Vietnamese dong banknote exactly like its reference image: portrait'], ['Vietnamese street boy, worn beige shirt']).sort(), ['banknote', 'dong', 'folded', 'once']);
+  const pc = 'Japanese 2D anime look: clean linework, golden-hour sun low behind the train, palette of deep bottle-green train carriage with a mustard stripe, honey gold light';
+  assert.equal(boVeNhac(pc, tu), 'Japanese 2D anime look: clean linework, honey gold light');
+  assert.equal(boVeNhac(pc, ['bottle']), pc, "'bottle' không khớp 'bottle-green'");
+  const k = (boTri: string, phongCach: string) => [khoi('anh_dich', 'EDIT Image 1.'), khoi('bo_tri', boTri), khoi('so_nguoi', 'Exactly 1 person.'), khoi('khung', 'Tờ 5 nghìn spans about 10%'), khoi('phong_cach', phongCach), khoi('cam_chu', 'No text.'), khoi('khong_them', 'WHITELIST: only what Image 1 shows.')];
+  const s = { nguoi: [{ ten: 'Nhóc' }], vat: [], ten_rieng: ['Nhóc', 'Tờ 5 nghìn'], phai_co: [{ ten: 'Nhóc', nhan: ['Nhóc'] }, { ten: 'Tờ 5 nghìn', nhan: ['Tờ 5 nghìn'] }], ngoai_vat: tu };
+  const xau = chamPrompt([{ ten: 'một bước', duong: 'mot_buoc', khoi: k('Blocks in that layout image, by name: concrete railway platform (middle-centre, 87%); Nhóc (bottom-centre, 11%).', pc) }], s);
+  assert.deepEqual(xau.loi.map((l) => l.ma).sort(), ['ngoai_ds', 'nhac_ngoai'], JSON.stringify(xau.loi));
+  assert.equal(loiPrompt([{ ten: 'một bước', duong: 'mot_buoc', khoi: k('Blocks in that layout image, by name: Nhóc (bottom-centre, 11%).', pc) }], s).length, 2, 'cả hai là lỗi CHẶN');
+  const tot = chamPrompt([{ ten: 'một bước', duong: 'mot_buoc', khoi: k("Blocks in that layout image, by name: Nhóc (bottom-centre, 11%). Also in this frame, too small to be a block of its own: Tờ 5 nghìn = banknote (in Nhóc's hand).", boVeNhac(pc, tu)) }], s);
+  assert.deepEqual(tot.loi, [], JSON.stringify(tot.loi));
+  console.log('kiem-prompt.test: ok (câu lệnh tự mâu thuẫn)');
+}

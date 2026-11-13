@@ -383,6 +383,9 @@ console.log('bo-set-3d.test: ok');
   assert.equal(catMep([0.2, 0.2, 0.8, 0.8]), '');
   const c = mt([{ ten: 'USB Hub', pt: 8.6, hop: [0, 0.9, 1, 1], tien: true } as never]);
   assert.match(c, /cut off by the bottom edge/); assert.match(c, /OFF-SCREEN at this instant/);
+  // câu khuôn không gọi tên đồ đạc của một bộ set cụ thể; món nhỏ đang cầm nằm ngay trong danh sách (13/11/2026 #3071 #9)
+  assert.ok(!/desk|shelf|monitor|computer|cups|notebooks/.test(c), c);
+  assert.match(mt([{ ten: 'USB Hub', pt: 8.6, hop: [0, 0.9, 1, 1], tien: true } as never], undefined, undefined, ["Tờ 5 nghìn = banknote (in Nhóc's hand)"]), /Also in this frame, too small to be a block of its own: Tờ 5 nghìn = banknote \(in Nhóc's hand\)\./);
 }
 
 // Chữ lệch 3D: chữ shot nhắc nhân vật mà khung không thấy → ⚐; nhân vật đi VÀO khung (di.den trong khung) → không báo.

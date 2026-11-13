@@ -79,7 +79,9 @@ console.log('sinh-anh.test: ok');
 // Câu CAMERA từ máy 3D (#35: máy 1,2 cm ngước lên Mr. Wipe mà keyframe vẽ ngang tầm).
 {
   const { gocMayChu } = await import('./sinh-anh');
-  const c = gocMayChu({ dat: [65.5, 49, 1.2], nhin: [59, 59.6, 6.0], ong_kinh: 40 }, { ten: 'Mr. Wipe', giuaZ: 5.5 });
+  const c = gocMayChu({ dat: [65.5, 49, 1.2], nhin: [59, 59.6, 6.0], ong_kinh: 40 }, { ten: 'Mr. Wipe', giuaZ: 5.5 }, false, 'the desk');
+  // mặc định là mặt đất: chữ 'desk' không được lọt vào phim không phải thế giới tí hon trên bàn (13/11/2026 #3071: cảnh sân ga nhận "above the desk")
+  for (const z of [[0, 0, 170, 0, 300, 30], [0, 0, 30, 0, 300, 170], [0, 0, 120, 0, 300, 120]]) assert.ok(!/desk/.test(gocMayChu({ dat: [z[0]!, z[1]!, z[2]!], nhin: [z[3]!, z[4]!, z[5]!], ong_kinh: 35 }, { ten: 'Nhóc', giuaZ: 62 })), 'mặc định không nhắc desk');
   assert.ok(/tilted UP 2\d° — a LOW-ANGLE shot/.test(c) && /1\.2 cm above the desk, below the middle of Mr\. Wipe/.test(c) && /seeing its underside/.test(c), c);
   assert.match(gocMayChu({ dat: [0, 0, 10], nhin: [0, 10, 0], ong_kinh: 35 }, null), /tilted DOWN 45° — a HIGH-ANGLE/);
   assert.match(gocMayChu({ dat: [0, 0, 1.3], nhin: [0, 10, 1.3], ong_kinh: 35 }, { ten: 'Tango', giuaZ: 1.3 }), /EYE-LEVEL/);

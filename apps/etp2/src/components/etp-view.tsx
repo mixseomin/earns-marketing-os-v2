@@ -21,7 +21,7 @@ import { openEntityDrawer } from '@/lib/entity-drawer';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { quetPhimEtp } from '@/lib/actions/etp-phim';
 import { docGioNgay, type SoGio } from '@/lib/actions/etp-gio';
-import { NutLichPhim } from '@/components/etp-lich-phim';
+import { NutLichPhim, PHA_HT } from '@/components/etp-lich-phim';
 import { DongHoSx, FormChayDong, MAU as MAU_DONG, NUT_SX, TabDong, xuLy } from '@/components/etp-dong';
 import { DongMoc, KhungNoi, ReThe, useNoi, type Moc, type Noi, type TheNoi } from '@/components/etp-noi';
 import type { CheDoLuat } from '@/lib/etp-quyen';
@@ -2077,9 +2077,6 @@ function BadgeSx({ cid, ds, kt }: { cid: number; ds: DuLieuEtp['dongChay']; /** 
 }
 /** ĐỒNG HỒ HẤP THỤ (anh 04/11/2026 "show thêm 1 đồng hồ nữa về các chỉ số này cho từng phim"): kim = ROI biên 14 ngày đã khép của phim (mỗi $1 chi thêm đem về bao nhiêu),
  *  dải −50…+50%; vùng đỏ < 0 quá bão hoà · vàng 0–15% gần đỉnh · xanh ≥ 15% còn hút. Số: apps/etp/mo_rong.py (etp.mo_rong.roi_bien / r2 / pha). */
-const PHA_HT: Record<string, [string, string, string]> = { hut: ['còn dư địa', '#22c55e', 'đang chi ≤ 50% mức tối ưu → tăng mạnh: nâng ngân sách / nhân bản / thêm camp'],
-  dinh: ['quanh mức tối ưu', '#facc15', 'đang chi 50–150% mức tối ưu → giữ; muốn thêm thì bằng creative MỚI (đoạn / góc khác), không nhân bản trùng'],
-  bao_hoa: ['vượt sức chứa', '#ef4444', 'đang chi ≥ 150% mức tối ưu → hạ / tắt camp lỗ nhất cho tới khi về quanh mức tối ưu; dồn tiền sang phim còn dư địa'], it_so: ['chưa đủ số', '#6b7280', 'cần ≥ 3 ngày đã khép có chi ≥ $5 (cả team) và tổng ≥ $100 trong 14 ngày'] };
 /** KHUÔN HOVER CHUẨN của độ hấp thụ — mọi chỗ (Cây camp, tab Phim) dùng chung (anh 04/11/2026 "có format chuẩn khi hover cho mọi người") */
 const theHapThu = (m: MoRong, ten?: string | null): TheNoi => { const [pha, mau, cach] = PHA_HT[m.pha ?? 'it_so'] ?? PHA_HT.it_so!; const v = m.roi_bien ?? 0;
   const sb = (m.so_ngay ?? 0) < 6;   // sơ bộ: 3–5 ngày đã khép

@@ -12,7 +12,41 @@ import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, xemBotCamp, type CampThang, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
 
 const GD = ['Thử dạng', 'Camp lãi', 'Scale', 'ROAS'];
-const PHA: Record<string, [string, string]> = { hut: ['còn dư địa', '#22c55e'], dinh: ['quanh tối ưu', '#facc15'], bao_hoa: ['vượt sức chứa', '#ef4444'], it_so: ['chưa đủ số', '#6b7280'] };
+/** PHA THỊ TRƯỜNG — MỘT sổ cho đồng hồ dòng phim (etp-view theHapThu) và bảng phim này: nhãn · màu · đề xuất (apps/etp/mo_rong.py etp.mo_rong.pha) */
+export const PHA_HT: Record<string, [string, string, string]> = { hut: ['còn dư địa', '#22c55e', 'đang chi ≤ 50% mức tối ưu → tăng mạnh: nâng ngân sách / nhân bản / thêm camp'],
+  dinh: ['quanh mức tối ưu', '#facc15', 'đang chi 50–150% mức tối ưu → giữ; muốn thêm thì bằng creative MỚI (đoạn / góc khác), không nhân bản trùng'],
+  bao_hoa: ['vượt sức chứa', '#ef4444', 'đang chi ≥ 150% mức tối ưu → hạ / tắt camp lỗ nhất cho tới khi về quanh mức tối ưu; dồn tiền sang phim còn dư địa'], it_so: ['chưa đủ số', '#6b7280', 'cần ≥ 3 ngày đã khép có chi ≥ $5 (cả team) và tổng ≥ $100 trong 14 ngày'] };
+const DANG_NUT = ['CC', 'KT', 'AT'];   // dạng có nút ＋ ở bảng này
+/** TIỀM NĂNG + HƯỚNG PHIM (anh 13/11/2026 #1589 "làm sao nhìn được tiềm năng, hướng mở rộng hoặc phát triển camp của mỗi phim tuỳ theo hiện trạng"):
+ *  chỉ GỘP số đang có — pha đồng hồ thị trường (mức chi tối ưu), giai đoạn, lãi / lỗ từng dạng 7 ngày, camp thắng — thành một câu hướng; không thêm ngưỡng mới.
+ *  Mỗi hàng một dòng, giải thích ở chữ rê (YDNI). */
+function huongPhim(l: LichPhim, gd: number) {
+  const pha = l.pha ?? 'it_so', [ten, mau, deXuat] = PHA_HT[pha] ?? PHA_HT.it_so!;
+  const ti = l.muc_hut && l.muc_hut > 0 && l.chi_gan != null ? l.chi_gan / l.muc_hut : null;
+  const tiem = ti == null ? `${ten} — chưa đo được mức chi tối ưu`
+    : ti < 1 ? `${ten} · chi $${Math.round(l.chi_gan!)} / tối ưu ~$${Math.round(l.muc_hut!)}/ngày → còn tăng được ×${(1 / Math.max(ti, 0.05)).toFixed(1)}`
+    : `${ten} · chi $${Math.round(l.chi_gan!)} = ${Math.round(ti * 100)}% mức tối ưu ~$${Math.round(l.muc_hut!)}/ngày`;
+  // từng dạng (bỏ ROAS / chưa rõ): lãi, lỗ, ROI 7 ngày — dạng mạnh = nhiều camp lãi nhất, hoà thì ROI cao hơn
+  const g = new Map<string, { lai: number; lo: number; chi: number; thu: number }>();
+  for (const d of l.dang) { if (d.dang === 'ROAS' || d.dang === '?') continue; const k = MA_DANG[d.dang] ?? d.dang, x = g.get(k) ?? { lai: 0, lo: 0, chi: 0, thu: 0 };
+    x.lai += d.lai; x.lo += d.lo; x.chi += d.chi7; x.thu += d.thu7; g.set(k, x); }
+  const roi = (x: { chi: number; thu: number }) => (x.chi >= 1 ? Math.round((x.thu - x.chi) / x.chi * 100) : null);
+  const ds = [...g.entries()].sort((a, b) => b[1].lai - a[1].lai || (roi(b[1]) ?? -999) - (roi(a[1]) ?? -999));
+  const manh = ds.filter(([, x]) => x.lai > 0).map(([k]) => k), yeu = ds.filter(([, x]) => !x.lai && x.lo).map(([k]) => k);
+  const daThu = new Set([...g.keys(), ...l.sx.map((d) => MA_DANG[DANG_DONG[d.loai] ?? ''] ?? d.loai)]), chuaThu = DANG_NUT.filter((x) => !daThu.has(x));
+  const lo = l.dang.reduce((a, d) => a + d.lo, 0), nThang = l.thang.length, thu = chuaThu.join(' / ');
+  const [dong, chu, mauH] = pha === 'bao_hoa' ? ['Gọt', lo ? `tắt dần ${lo} camp lỗ (− bớt camp lỗ), không thêm camp` : 'giữ, không thêm camp tới khi về quanh mức tối ưu', '#f87171']
+    : gd === 0 ? ['Thử dạng', `chưa có camp lãi → ${thu ? `thử ${thu}` : 'đổi góc / đoạn mới'} trước mốc cất $${l.moc_chi}`, '#facc15']
+    : pha === 'hut' ? ['Mở rộng', `thêm camp dạng ${manh[0] ?? 'đang lãi'}${nThang ? ` · ${nThang} camp thắng máy tự lên bậc / nhân bản` : ''}${thu ? ` · thử thêm ${thu}` : ''}`, '#4ade80']
+    : pha === 'dinh' ? ['Làm mới', `giữ mức chi${lo ? `, thay ${lo} camp lỗ` : ''} bằng creative MỚI dạng ${manh[0] ?? 'đang lãi'}${thu ? ` hoặc thử ${thu}` : ''}`, '#facc15']
+    : ['Đo thêm', `đồng hồ chưa đủ số → giữ camp lãi${manh.length ? ` (${manh.join(' / ')})` : ''}${thu ? `, thử ${thu}` : ''}`, '#94a3b8'];
+  const re = [`Thị trường: ${ten}${ti != null ? ` · đang chi ${Math.round(ti * 100)}% mức tối ưu` : ''}`, `Đề xuất theo đồng hồ: ${deXuat}`, `Giai đoạn: ${GD[gd]}`,
+    ...ds.map(([k, x]) => { const r = roi(x); return `${k}: ${x.lai} lãi · ${x.lo} lỗ${r != null ? ` · ROI 7 ngày ${r > 0 ? '+' : ''}${r}%` : ''}`; }),
+    manh.length ? `Dạng đang ăn: ${manh.join(' / ')}` : '', yeu.length ? `Dạng chưa ăn (chỉ có lỗ): ${yeu.join(' / ')}` : '', thu ? `Chưa thử: ${thu}` : '',
+    nThang ? `${nThang} camp thắng: lên bậc / nhân bản / ★ ROAS máy tự làm theo luật — xem khối CAMP THẮNG bên dưới` : '',
+    'Chỉ đọc số đang có, không đổi luật máy; thêm camp vẫn qua nút ＋ (có xác nhận).'].filter(Boolean).join('\n');
+  return { tiem, mau, dong, chu, mauH, re };
+}
 // giai đoạn theo camp ĐANG CHẠY, không theo lịch sử (anh 07/11/2026)
 const giaiDoan = (l: LichPhim) => { const lai = l.dang.reduce((a, d) => a + d.lai, 0); return l.roas > 0 ? 3 : lai >= 2 ? 2 : lai >= 1 ? 1 : 0; };
 const TEN_BUOC: Record<string, string> = { nhan: 'nhận phim', ws: 'vào workspace', poster: 'poster', cat: 'cắt', soat: 'soát', creative: 'làm creative', camp: 'lên camp', chay: 'chờ chạy' };
@@ -95,7 +129,7 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
     setKq('loi' in r ? `✕ ${r.loi}` : `✓ ${chu}`); if (!('loi' in r)) { tai(); router.refresh(); }
   };
   const nut: React.CSSProperties = { fontSize: 11.5, padding: '2px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: dang ? 'wait' : 'pointer' };
-  const gd = l ? giaiDoan(l) : 0, pha = PHA[l?.pha ?? 'it_so'] ?? PHA.it_so!, vuot = l?.pha === 'bao_hoa';
+  const gd = l ? giaiDoan(l) : 0, pha = PHA_HT[l?.pha ?? 'it_so'] ?? PHA_HT.it_so!, vuot = l?.pha === 'bao_hoa';
   const sapToi = l ? [
     l.thay ? `◌ ${l.thay.kieu === 'cho' ? 'camp chờ' : 'camp thay'} — ${({ chuan_bi: 'chọn creative', cat_goc: 'chờ cắt góc mới', cho_cham: 'chờ chấm', len_lich: 'đã lên, chờ chạy', chan: 'cổng chặn' } as Record<string, string>)[l.thay.buoc] ?? l.thay.buoc}` : null,
     ...l.hoan.slice(0, 2).map((h) => `${h.huong === 'tang' ? '⬆' : h.huong === 'giam' ? '⬇' : '✕'} #${h.camp_id} ${h.huong === 'tang' ? 'tăng bậc lúc 21:00' : h.huong === 'giam' ? 'giảm bậc lúc 15:00' : 'tắt lúc 15:00'}`),
@@ -139,6 +173,9 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
                 return <React.Fragment key={x}>{H(x, <div style={{ display: 'flex', gap: 2 }} title={`${L} lãi · ${X} lỗ · ${C} chưa đủ số · ${S} đang sản xuất`}>
                   {Array.from({ length: L }, (_, i) => <O key={'l' + i} mau="#4ade80" />)}{Array.from({ length: X }, (_, i) => <O key={'x' + i} mau="#f87171" />)}
                   {Array.from({ length: C }, (_, i) => <O key={'c' + i} mau="#6b7280" />)}{Array.from({ length: S }, (_, i) => <O key={'s' + i} mau="#facc15" net />)}</div>)}</React.Fragment>; })}
+              {(() => { const h = huongPhim(l, gd); return <>
+                {H('Tiềm năng', <div style={GON} title={h.re}><span style={{ color: h.mau }}>●</span> {h.tiem}</div>)}
+                {H('Hướng', <div style={GON} title={h.re}><b style={{ color: h.mauH }}>{h.dong}</b> · {h.chu}</div>)}</>; })()}
               {l.lt ? H('Thử dạng', <div style={chuoi} title="số camp có chi trên mức cần để luật cất kết luận">{Object.entries(l.lt.dang).map(([x, v]) => <span key={x}>{x} <b style={{ color: v.chi >= 2 ? 'var(--fg)' : 'var(--fg-3)' }}>{v.chi}/2</b>{v.bo ? ' đã bỏ' : x === 'CT' ? ' chưa có máy' : ''}</span>)}</div>) : null}
               {gd === 0 && !l.lt ? H('Mốc cất', <span title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>${Math.round(l.chi)} / ${l.moc_chi} · {l.so_thu}/{l.moc_thu} camp</span>) : null}
               {/* CAMP MỚI: kế hoạch → đang sản xuất → chờ lên. Kế hoạch etp.mo_rong chỉ là số đề xuất, chỉ phim_doi_lai máy mới tự xếp dòng — nói đúng ai làm bước kế */}

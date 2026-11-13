@@ -105,6 +105,9 @@ const LUAT = [
   { card: 1587, tep: 'apps/etp2/src/components/ui/chon2.tsx', mot: 'data-k="chon2-xem-rong" onClick={doiRong}', vi: 'nút ⤢ / ⤡ cạnh ô tìm, máy nhớ lựa chọn cho mọi ô chọn' },
   { card: 1588, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<span data-dinh-tuoi="1" style={{ display: \'inline-flex\', gap: 8, alignItems: \'center\', flex: \'none\' }}>{cumTuoi(true)}</span>', vi: 'dòng số gọn dính khi cuộn có cụm tuổi số · ↻ Làm mới · ▶ Lên camp (anh 13/11/2026 "Show cả khi sticky xuống")' },
   { card: 1588, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<NutLamMoi dongBo={du.dongBo} gon={g} />', vi: 'cụm tuổi số / Làm mới / Lên camp chỉ dựng ở MỘT hàm cumTuoi — tiêu đề và dòng dính dùng chung, không chép hai bản' },
+  { card: 1589, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', mot: "{H('Hướng', <div style={GON} title={h.re}>", vi: 'bảng phim có hàng Tiềm năng + Hướng (Gọt / Thử dạng / Mở rộng / Làm mới / Đo thêm) gộp từ đồng hồ thị trường + lãi lỗ từng dạng (anh 13/11/2026 "làm sao nhìn được tiềm năng, hướng mở rộng")' },
+  { card: 1589, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', mot: 'export const PHA_HT: Record<string, [string, string, string]>', vi: 'sổ pha thị trường MỘT nơi, đồng hồ dòng phim và bảng phim dùng chung' },
+  { card: 1589, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'const PHA_HT', vi: 'etp-view không khai lại sổ pha thị trường — import từ etp-lich-phim' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },
 ];
 

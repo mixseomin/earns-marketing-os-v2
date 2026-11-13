@@ -27,11 +27,17 @@ const W = 1080, H = 1920, TRANG = '#F4F6F8', NHAN = '#FCA311', DUNG = '#22C55E',
 const EM = 1.25, fs = (px: number) => `\\fs${Math.round(px * EM)}`;
 /** Nhãn lật theo dạng: lầm tưởng = MYTH/FACT (khẳng định sai = lầm tưởng), đúng-sai = TRUE/FALSE. */
 export const nhanLat = (kieu: KieuLat, dung: boolean) => (kieu === 'cau-do' ? 'ANSWER' : kieu === 'lam-tuong' ? (dung ? 'FACT' : 'MYTH') : dung ? 'TRUE' : 'FALSE');
-export function dongKhangDinh(s: string): { dong: string[]; co: number } {
-  const t = s.trim();
-  for (const [rong, co] of [[22, 76], [22, 68], [22, 60], [28, 52], [34, 44], [42, 36]] as const) { const dong = ngat(t, rong); if (dong.length <= (rong === 22 ? [1, 2, 3][[76, 68, 60].indexOf(co)]! + 1 : 4)) return { dong, co }; }
-  return vua(t, 42, 4, 36);
+/** Archivo Black rộng ~0,64 em / ký tự (chữ thường + hoa trộn); dòng ở giữa màn 1080 phải ≤ 940px kể cả viền.
+ *  Gốc lỗi 13/11/2026 (Ngọc chặn lam-tuong-40736): bảng cỡ cũ cho 22 ký tự ở cỡ 60–76 (75–95px) = 1050–1340px → cắt hai mép. */
+export const HS_DEN = 0.64, NGANG_MAX = 940;
+export const coVuaNgang = (dong: string[], coMax: number) => Math.min(coMax, Math.floor(NGANG_MAX / (Math.max(1, ...dong.map((x) => x.length)) * HS_DEN * EM)));
+/** Ngắt + chọn cỡ theo BỀ NGANG ĐO: thử mọi bề rộng dòng, giữ cách ≤ maxDong dòng cho chữ to nhất mà dòng dài nhất vẫn trong NGANG_MAX. Không bỏ chữ. */
+export function vuaDen(s: string, maxDong: number, coMax: number): { dong: string[]; co: number } {
+  const t = s.replace(/\s+/g, ' ').trim(); let tot: { dong: string[]; co: number } | null = null;
+  for (let r = 8; r <= Math.max(8, t.length); r++) { const dong = ngat(t, r); if (dong.length > maxDong) continue; const co = coVuaNgang(dong, coMax); if (!tot || co > tot.co) tot = { dong, co }; }
+  return tot ?? { dong: ngat(t, t.length), co: coVuaNgang([t], coMax) };
 }
+export function dongKhangDinh(s: string): { dong: string[]; co: number } { return vuaDen(s, 4, 76); }
 export const soCau = (de: DeLat) => (de.kieu === 'dung-sai' ? Math.min(3, Math.max(1, de.cau.length)) : 1);
 const CAU_HOI: Record<KieuLat, string> = { 'lam-tuong': 'Myth or fact?', 'dung-sai': 'True or false?', 'cau-do': 'Think before it flips' };
 
@@ -53,7 +59,8 @@ export function assLat(de: DeLat): string {
   const N = nhipLat(de), d: DongAss[] = [], tong = N.n;
   if (N.T_MO > 0) {
     d.push([1, 0, N.T_MO, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.45)}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([2, 0, N.T_MO, 'Den', `{\\an5\\pos(540,900)${fs(vua(de.tieu_de!, 20, 3, 78).co)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(200,250)}${vua(de.tieu_de!, 20, 3, 78).dong.map(chu).join('\\N')}`]);
+    const mo = vuaDen(de.tieu_de!, 3, 78);
+    d.push([2, 0, N.T_MO, 'Den', `{\\an5\\pos(540,900)${fs(mo.co)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(200,250)}${mo.dong.map(chu).join('\\N')}`]);
   }
   N.cau.forEach((c, i) => {
     // khẳng định lên khung ĐỦ CHỮ: ngắt 22 ký tự / dòng tối đa 4 dòng; dài hơn thì ngắt rộng hơn + thu cỡ chữ, không bao giờ cắt đuôi (27/10: đề AI 86 ký tự mất vế sau)

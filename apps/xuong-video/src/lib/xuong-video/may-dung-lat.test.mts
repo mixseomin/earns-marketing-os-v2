@@ -20,7 +20,8 @@ const M = nhipLat({ ...lt, cau: [...lt.cau, ...ds.cau] }); assert.strictEqual(M.
 // nhãn
 assert.deepStrictEqual([nhanLat('lam-tuong', false), nhanLat('lam-tuong', true), nhanLat('dung-sai', true), nhanLat('dung-sai', false)], ['MYTH', 'FACT', 'TRUE', 'FALSE']);
 // ASS: 3 câu đánh số, đếm 3·2·1, FALSE/TRUE, điểm, kết; lầm tưởng có MYTH + "Myth or fact?"
-const a = assLat(ds); for (const s of ['1/3', '3/3', '}3', '}2', '}1', 'FALSE', 'TRUE', 'How many did you get?', 'Check before you\\Nbook', 'True or false?', 'same price as the']) assert.ok(a.includes(s), s);
+const a = assLat(ds); for (const s of ['1/3', '3/3', '}3', '}2', '}1', 'FALSE', 'TRUE', 'How many did you get?', 'Check before you\\Nbook', 'True or false?']) assert.ok(a.includes(s), s);
+assert.ok(a.replace(/\\N/g, ' ').includes('same price as the'), 'câu khẳng định đủ chữ');
 assert.ok(!/comment/i.test(a), 'màn điểm không mời bình luận'); const b = assLat(lt); assert.ok(b.includes('MYTH') && b.includes('Myth or fact?') && !b.includes('How many') && !b.includes('1/1'));
 // ảnh: câu đầu = nen, câu sau = nen_them; thiếu thì dùng lại
 assert.strictEqual(truyVanLat(ds), 'hotel reception desk'); assert.deepStrictEqual(truyVanThemLat(ds), ['hotel room key card', 'resort pool palm trees']); assert.deepStrictEqual(truyVanThemLat(lt), []);
@@ -42,6 +43,8 @@ const c = assLat(cd); assert.ok(c.includes('ANSWER') && c.includes('A piano') &&
 assert.strictEqual(nhanLat('cau-do', true), 'ANSWER');
 // khẳng định dài (đề AI 86 ký tự) phải lên khung đủ chữ: thu cỡ, không cắt
 const dai = 'Most hotel booking apps have terrible customer service because OTA companies cut corners';
+// bề ngang đo: mọi dòng ≤ 940px ở Archivo Black (Ngọc chặn lam-tuong-40736 13/11/2026: 4 dòng cỡ 60 cắt hai mép)
+for (const s of ['A hotel-looking booking message must have come from the hotel', dai, 'Short myth']) { const k = dongKhangDinh(s); assert.strictEqual(k.dong.join(' '), s); assert.ok(k.dong.length <= 4); for (const x of k.dong) assert.ok(x.length * 0.64 * k.co * 1.25 <= 940, `tràn: ${x} @${k.co}`); }
 const L = dongKhangDinh(dai); assert.strictEqual(L.dong.join(' '), dai, 'không mất chữ'); assert.ok(L.co < 60);
 assert.ok(assLat({ ...lt, cau: [{ ...lt.cau[0]!, khang_dinh: dai }] }).includes('corners'), 'đuôi câu còn trên khung');
 // máy đề ghi kieu = dạng bài 'cau-do-meo' (Ngọc chặn 10/11/2026: chữ "undefined" trên hình) — cửa vào mẫu phải chuẩn hoá

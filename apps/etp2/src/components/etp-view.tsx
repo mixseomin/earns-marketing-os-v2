@@ -2684,7 +2684,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   useEffect(() => { const t = nhip(() => { void (async () => {
       const ng = new URL(location.href).searchParams.get('ng');
       const m = await fetch(`/etp/phien${ng ? `?ng=${encodeURIComponent(ng)}` : ''}`, { cache: 'no-store' }).then((r) => (r.ok ? r.text() : '')).catch(() => '');
-      if (!m || m !== phien) await lamMoiAnToan(router);
+      if (m && m !== 'dang' && m !== phien) await lamMoiAnToan(router);   // 'dang' = kho đang đồng bộ (#1582) · rỗng = lỗi mạng → bỏ lượt, không tải lại ~940 KB
     })(); }, 60_000); return () => t(); }, [router, phien]);
   // URL không ghi kiểu xem cây/bảng → dùng lựa chọn đã nhớ (localStorage). Cờ daDoc: lượt ghi URL / nhớ chỉ chạy SAU khi đã đọc xong — không đè bằng giá trị mặc định
   const [daDoc, setDaDoc] = useState(false);
@@ -3080,7 +3080,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     <div style={{ padding: hep ? '10px 10px 40px' : '16px 20px 40px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0, fontSize: hep ? 16 : 20 }}>ETP · quản lý camp</h1>
-        <span title={`kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`} style={{ fontSize: 11, color: 'var(--fg-2)' }}>{hep ? `đồng bộ ${vn(du.dongBo?.xong ?? null)}` : `kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`}{du.dongBo?.loi ? ` · lỗi: ${du.dongBo.loi.slice(0, 80)}` : ''}</span>
+        <span title={`kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới khi số đổi (lúc kho đang đồng bộ thì chờ lượt xong)`} style={{ fontSize: 11, color: 'var(--fg-2)' }}>{hep ? `đồng bộ ${vn(du.dongBo?.xong ?? null)}` : `kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới khi số đổi`}{du.dongBo?.loi ? ` · lỗi: ${du.dongBo.loi.slice(0, 80)}` : ''}</span>
         {chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={hep} />}
         {chiXem || du.nguoi.ngoai || du.nguoi.doi ? null : <NutLenCamp du={du} gon={hep} />}{/* chỉ khi đang xem tk David (Nhà) — anh 09/11/2026 'các thay đổi chỉ hiện ở tk David' */}
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}

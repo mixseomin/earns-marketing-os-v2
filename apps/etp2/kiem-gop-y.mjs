@@ -78,6 +78,9 @@ const LUAT = [
   { card: 1581, tep: 'apps/etp2/src/components/ui/simple-table.tsx', co: "overflowX: tong ? 'clip' : 'auto'", vi: 'có dòng Tổng thì vỏ bảng không thành khung cuộn — sticky bám khung cuộn của widget' },
   { card: 1581, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'getRowKey={(p) => String(p.id)} tong={tong}', vi: 'widget Người (Tổng quan) có dòng Tổng sticky ở dưới (anh 13/11/2026)' },
   { card: 1581, tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'roi: roiSoTruoc(tk, tt)', vi: 'ROI dòng Tổng tính từ tổng chi/thu, không cộng %' },
+  { card: 1582, tep: 'apps/etp2/src/app/etp/phien/route.ts', co: "(await dangDongBo()) ? 'dang' : phienDu(", vi: 'kho đang đồng bộ thì /etp/phien trả dang, không chạy docEtp (anh 13/11/2026 "load chậm quá": trang tải lại ~940 KB mỗi phút giữa lượt đồng bộ)' },
+  { card: 1582, tep: 'apps/etp2/src/lib/etp-phien.ts', co: "where xong is null and bat_dau > now() - interval '12 minutes'", vi: 'lượt đồng bộ đang ghi = chưa xong, bắt đầu trong 12 phút (lượt chết không chặn làm mới mãi)' },
+  { card: 1582, tep: 'apps/etp2/src/components/etp-view.tsx', co: "if (m && m !== 'dang' && m !== phien) await lamMoiAnToan(router);", cam: 'if (!m || m !== phien) await lamMoiAnToan(router);', vi: 'trang không tải lại khi kho đang đồng bộ hoặc hỏi mã lỗi mạng' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },
 ];
 

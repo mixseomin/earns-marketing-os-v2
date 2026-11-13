@@ -7,6 +7,8 @@ import { AnchoredPopover } from './anchored-popover';
 
 export interface Chon2Muc { value: string; label: ReactNode; nhom?: string; dem?: number; title?: string; tim?: string; /** nhãn gọn trên nút (danh sách vẫn hiện label đủ) */ ngan?: string }
 
+const KHO_RONG = 'etp2-chon2-xem-rong';
+
 export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', title, minWidth, align = 'left', anRong, href, chan, nhieu, tatCa = '' }: {
   value: string; onChange: (v: string) => void; options: Chon2Muc[];
   /** chữ đứng trước giá trị trên nút: "Luật", "Loại"… */ nhan?: string;
@@ -22,7 +24,12 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
   const [mo, setMo] = useState(false);
   const [q, setQ] = useState('');
   const [tro, setTro] = useState(0);
-  const ds = useMemo(() => (anRong ? options : [{ value: '', label: rong } as Chon2Muc, ...options]), [options, rong, anRong]);
+  // XEM RỘNG (anh 13/11/2026 etp2 #1587 "thêm option để xem các camp Đang chạm, Sắp tắt… rộng hơn"): nút ⤢ cạnh ô tìm → bảng nổi rộng + cao gần hết màn,
+  // nhãn dài không bị cắt; nhớ lựa chọn trong máy (localStorage, dùng chung mọi ô Chon2) — lần sau mở ô nào cũng rộng tới khi bấm ⤡ thu lại
+  const [xemRong, setXemRong] = useState(false);
+  useEffect(() => { if (mo) { try { setXemRong(localStorage.getItem(KHO_RONG) === '1'); } catch { /* máy chặn localStorage → giữ hẹp */ } } }, [mo]);
+  const doiRong = () => setXemRong((v) => { try { localStorage.setItem(KHO_RONG, v ? '0' : '1'); } catch { /* bỏ qua */ } return !v; });
+  const ds =useMemo(() => (anRong ? options : [{ value: '', label: rong } as Chon2Muc, ...options]), [options, rong, anRong]);
   const chu = (m: Chon2Muc) => (m.tim ?? (typeof m.label === 'string' ? m.label : m.value)).toLowerCase();
   const loc = useMemo(() => { const k = q.trim().toLowerCase(); return k ? ds.filter((m) => chu(m).includes(k) || (m.nhom ?? '').toLowerCase().includes(k)) : ds; }, [ds, q]);
   useEffect(() => { if (mo) { setQ(''); setTro(Math.max(0, ds.findIndex((m) => (nhieu ? m.value !== tatCa && value.split(',').includes(m.value) : m.value === value)))); } }, [mo]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -49,18 +56,22 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
         <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>▾</span>
       </button>
       <AnchoredPopover anchorRef={ref} open={mo} onClose={() => setMo(false)} align={align}>
-        <div onKeyDown={phim} style={{ width: 260, maxWidth: '92vw', background: 'var(--bg-0, #0b0d12)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.5)', color: 'var(--fg-1)', overflow: 'hidden' }}>
+        <div onKeyDown={phim} style={{ width: xemRong ? 560 : 260, maxWidth: '92vw', background: 'var(--bg-0, #0b0d12)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.5)', color: 'var(--fg-1)', overflow: 'hidden' }}>
           <div style={{ padding: 6, borderBottom: '1px solid var(--line)' }}>
             {/* KHÔNG tự focus ô tìm trên màn cảm ứng (anh 01/11/2026 etp #1502: mở ô chọn trên điện thoại là bật bàn phím che danh sách) — chỉ máy có chuột (pointer: fine) mới focus để gõ / ↑ ↓ ngay */}
-            <input autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches} value={q} onChange={(e) => { setQ(e.target.value); setTro(0); }} placeholder="Tìm…"
-              style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' }} />
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches} value={q} onChange={(e) => { setQ(e.target.value); setTro(0); }} placeholder="Tìm…"
+                style={{ flex: 1, minWidth: 0, boxSizing: 'border-box', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' }} />
+              <button type="button" data-k="chon2-xem-rong" onClick={doiRong} title={xemRong ? 'Thu bảng về cỡ gọn' : 'Xem rộng: bảng to hơn, nhãn dài không bị cắt, thấy nhiều mục hơn (máy nhớ cho mọi ô chọn)'}
+                style={{ flex: 'none', fontSize: 13, lineHeight: 1, padding: '0 8px', borderRadius: 6, border: `1px solid ${xemRong ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, background: xemRong ? 'var(--accent-soft, rgba(59,130,246,.15))' : 'var(--bg-1, #111)', color: 'inherit', cursor: 'pointer' }}>{xemRong ? '⤡' : '⤢'}</button>
+            </div>
             {nhieu ? <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
               {([['Chọn hết', () => datNhieu(new Set([...daChon, ...loc.filter((m) => m.value !== tatCa).map((m) => m.value)]))], ['Bỏ hết', () => onChange(tatCa)]] as const).map(([chu2, lam]) => (
                 <button key={chu2} type="button" onClick={lam} style={{ flex: 1, fontSize: 11.5, padding: '3px 0', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit', cursor: 'pointer' }}>{chu2}{chu2 === 'Chọn hết' && q.trim() ? ' (đang tìm)' : ''}</button>))}
               <span style={{ alignSelf: 'center', fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{daChon.size ? `${daChon.size} đã chọn` : 'tất cả'}</span>
             </div> : null}
           </div>
-          <div style={{ maxHeight: 340, overflowY: 'auto', padding: '4px 0' }}>
+          <div style={{ maxHeight: xemRong ? '72vh' : 340, overflowY: 'auto', padding: '4px 0' }}>
             {loc.length ? loc.map((m, i) => (
               <div key={m.value || '_'}>
                 {m.nhom && m.nhom !== loc[i - 1]?.nhom ? <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3, #777)', padding: '8px 10px 3px' }}>{m.nhom}</div> : null}

@@ -32,7 +32,7 @@ function docNguonYTuong(so: Record<string, SoKenh>): Record<string, { ma: string
 }
 
 /** loai 'sp' = kênh sản phẩm (xv_may.la_san_pham, tập 'video-ngoai', đếm theo YouTube) — tab Kênh nội dung;
- *  loai 'social' = máy social ĐÃ CHUYỂN (có mục loai 'social' trong so-kenh.json — lộ trình _chuyen_social): mọi bài của máy, đã đăng = lên ít nhất một nền — Social Traffic › 📺 Kênh. */
+ *  loai 'social' = máy social ĐÃ CHUYỂN (có mục loai 'social' trong so-kenh.json — lộ trình _chuyen_social): mọi bài của máy, đã đăng = lên ít nhất một nền — tab Kênh nội dung, cùng bảng với kênh sản phẩm. */
 type DaLen = { ngay?: string; url?: string };
 /** Thuần — một bài của máy social: các nền đã lên (bỏ bài hẹn giờ ngày > hôm nay), ngày lên SỚM nhất, link (YouTube trước), lượt xem cộng mọi nền. */
 const baiSocial = <T extends { dd: Record<string, unknown> | null; lx: Record<string, unknown> | null }>(v: T, hom: string) => {

@@ -66,8 +66,7 @@ function NgayLich({ k, ngay, children }: { k: KenhSp; ngay: string | [string, st
 }
 const ymd10 = (d: string | null | undefined) => (d ? d.slice(0, 10) : null);
 
-/** tieuDe / phuDe: cùng bảng cho kênh sản phẩm (tab Kênh nội dung) và kênh social đã chuyển (Social Traffic › 📺 Kênh) */
-export function TaiSanKenhSp({ kenh, kySocial = 7, tieuDe = '📺 Kênh nội dung', phuDe }: { kenh: KenhSp[]; kySocial?: number; tieuDe?: string; phuDe?: string }) {
+export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?: number }) {
   // cây mở / gập NẰM TRÊN URL (YDNI: F5 mở ra đúng như đang thấy) — ?kenh_mo=<mã>,<mã>
   const [moUrl, datMoUrl] = useShallowParam('kenh_mo', '');
   // TRỰC TIẾP: có tập đang trong lò (lam-tap ghi bước) → làm mới bảng 15 giây/lần; không có thì đứng yên
@@ -206,7 +205,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7, tieuDe = '📺 Kênh nội du
     { key: 'so', header: 'Số tới', width: 72, sortValue: (d) => d.k.ngaySo, cell: (d) => (!laK(d) ? null : d.k.ngaySo ? ngayVn(d.k.ngaySo) : <span style={mo}>chưa đo</span>) },
   ];
   return (
-    <Panel title={tieuDe} subtitle={phuDe ?? 'kênh nội dung là sản phẩm (video trọn chuyện) · ▸ mở: đang sản xuất · lịch · đã làm · "–" = chưa đo (khác 0) · số đọc mỗi giờ từ trang YouTube công khai'}>
+    <Panel title="📺 Kênh nội dung" subtitle={'kênh video trọn chuyện + kênh social đã chuyển (một máy đăng ra nhiều nền — khối 📡 Nền đăng) · ▸ mở: sổ kênh · lộ trình · đang sản xuất · lịch · đã làm · "–" = chưa đo (khác 0)'}>
       <DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : d.loai === 'trang' ? `${d.khoa}/trang` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
         rowData={(d) => ({ 'kenh-ma': d.k.ma, 'kenh-dau': laK(d) ? 1 : 0, ...(d.loai === 'ke' && d.nhom ? { 'kenh-khoi': d.id } : {}) })}
         fullRow={(d) => d.loai === 'ke' || d.loai === 'trang'}

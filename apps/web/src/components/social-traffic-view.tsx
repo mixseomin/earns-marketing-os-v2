@@ -71,8 +71,7 @@ function ThanhPhoTai() {
   return <SocialThanhPho mh={ban.mh} luc={ban.luc} />;
 }
 /** email: bảng list MailWizz dựng sẵn ở server (MailwizzListsPanel — cùng bảng tab Email trang chủ, chỉ xem; anh 29/10/2026 "vào MailWizz cho tập trung, thêm một bản ở đây để view"). */
-/** kenhSo: bảng kênh social ĐÃ CHUYỂN sang kiểu Kênh nội dung (KenhNoiDungTab loai 'social', dựng ở server) — đứng đầu mục 📺 Kênh */
-export function SocialTrafficView({ live, email, kenhSo }: { live: SocialLive; email?: React.ReactNode; kenhSo?: React.ReactNode }) {
+export function SocialTrafficView({ live, email }: { live: SocialLive; email?: React.ReactNode }) {
   const [cheDo, setCheDo] = useShallowParam('stm', 'live')   // LIVE mặc định (card #1408);
   const [muc, setMuc] = useShallowParam('sts', 'pho');   // mặc định thành phố (anh 22/10/2026 — màn chính của hệ sinh thái)
   const [locGoc, setLocGoc] = useShallowParam('stg', 'all');
@@ -331,7 +330,6 @@ export function SocialTrafficView({ live, email, kenhSo }: { live: SocialLive; e
           </div>
         : trong('Chưa có video nào đang làm', 'Hàng đợi đọc video của các máy trên studio.on.tc (cửa ⚙ Tự động). Máy ra video mới thì vào đây: Dựng → Lên lịch, đăng đủ mọi nền thì rời hàng đợi.'))}
 
-      {muc === 'kenh' && kenhSo && <div style={{ marginBottom: 14 }}>{kenhSo}</div>}
       {muc === 'kenh' && (d.kenh.length
         ? <>{(() => {
             const dem = (f: (k: StKenh) => string) => d.kenh.reduce<Record<string, number>>((a, k) => ({ ...a, [f(k)]: (a[f(k)] ?? 0) + 1 }), {});

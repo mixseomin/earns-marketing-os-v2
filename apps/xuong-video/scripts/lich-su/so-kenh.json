@@ -1637,7 +1637,7 @@
     }
   },
   "_chuyen_social": {
-    "ghi": "LỘ TRÌNH CHUYỂN KÊNH SOCIAL sang kiểu trình bày Kênh nội dung (anh 14/11/2026: \"lên lộ trình chuyển từng kênh để xem thế nào\"). Một máy social có mục trong sổ này (loai: social) = đã chuyển — mos2 › Social Traffic › 📺 Kênh hiện máy đó thành cây (sổ kênh · nền đăng · lộ trình · lịch · đã làm). Thứ tự = kênh nhiều nền + nhiều bài trước.",
+    "ghi": "LỘ TRÌNH CHUYỂN KÊNH SOCIAL sang kiểu trình bày Kênh nội dung (anh 14/11/2026: \"lên lộ trình chuyển từng kênh để xem thế nào\"). Một máy social có mục trong sổ này (loai: social) = đã chuyển — mos2 › tab 📺 Kênh nội dung hiện máy đó cùng bảng với kênh sản phẩm, thành cây (sổ kênh · nền đăng · lộ trình · lịch · đã làm). Thứ tự = kênh nhiều nền + nhiều bài trước.",
     "thu_tu": [
       {
         "may": "ratesbyroom-scam-or-real",
@@ -1705,7 +1705,7 @@
       {
         "ma": "G1",
         "ten": "Chuyển sang sổ kênh",
-        "viec": "Sổ kênh + khối Nền đăng trên mos2 › Social Traffic › 📺 Kênh (14/11/2026)",
+        "viec": "Sổ kênh + khối Nền đăng trong bảng mos2 › tab 📺 Kênh nội dung (14/11/2026; bản đầu đặt nhầm ở Social Traffic › Kênh, anh chỉ lại)",
         "anh": "xem và góp ý",
         "trang_thai": "cho_anh"
       },

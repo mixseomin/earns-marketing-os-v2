@@ -144,7 +144,7 @@ export const khungMau = (m: Pick<MauKenh, 'loai' | 'khung'>): '9:16' | '16:9' =>
 /** Ý TƯỞNG trong hàng chờ (so-kenh.json › hang_cho); trạng thái trong sổ bị tập thật đè (tập slug = mã ý tưởng: đã làm / đã đăng). */
 export type TrangThaiY = 'chua' | 'san_sang' | 'demo' | 'da_lam' | 'da_dang';
 export type YTuong = { ma: string; mau: string; chu_de: string; ngay?: string; trang_thai: TrangThaiY; /** ý tưởng máy tự sinh (so-kenh.json › nguon_y_tuong) — giờ UTC của sự kiện */ tu_sinh?: string; utc?: string };
-export type SoKenh = { /** 'social' = máy social đã chuyển sang kiểu trình bày kênh (mos2 › Social Traffic › 📺 Kênh) */ loai?: 'social'; ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[];
+export type SoKenh = { /** 'social' = máy social đã chuyển sang kiểu trình bày kênh (mos2 › tab Kênh nội dung) */ loai?: 'social'; ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[];
   dinh_vi?: { cho_ai?: string; dich?: string; cau_ket?: string; ngon_ngu?: string }; luat?: string[]; mau?: MauKenh[]; hang_cho?: YTuong[]; mo_dau?: string;
   nguon_y_tuong?: { mau: string; tep: string; ngay_toi?: number; ghi?: string }[]; /** sổ người nổi tiếng (giờ sinh + hạng Rodden), đường dưới lich-su/ */ nguoi_tep?: string };
 /** NGƯỜI NỔI TIẾNG trong sổ người (la-so/nguoi.json): giờ sinh + hạng Rodden; cung Mọc / nhà chỉ cho hạng trong rodden_dung_nha. */

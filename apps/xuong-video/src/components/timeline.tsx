@@ -553,13 +553,19 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           </div>
         </main>
   );
-  return (
-    <div ref={khungRef} className="xv-panel" style={{ marginTop: 8, padding: 0, overflow: 'clip', position: 'relative', ...(xemCanh ? { [boCuc === 'phai' ? 'paddingRight' : 'paddingLeft']: rongXem + 17 } : {}) }} data-ngu-canh={`timeline ${t.toFixed(1)}s/${tong}s · cảnh #${c?.thu_tu ?? '?'} đang ở đầu phát`}>
-      {xemCanh && <div style={{ position: 'absolute', top: 0, bottom: 0, [boCuc === 'phai' ? 'right' : 'left']: 0, width: rongXem + 17, [boCuc === 'phai' ? 'borderLeft' : 'borderRight']: '1px solid var(--line)', background: 'var(--bg-0, #0b0b0d)' }}>
+  const tranNgang = xemCanh && !doc916;
+  const cotXem = <div style={{ position: 'absolute', top: 0, bottom: 0, [boCuc === 'phai' ? 'right' : 'left']: 0, width: rongXem + 17, [boCuc === 'phai' ? 'borderLeft' : 'borderRight']: '1px solid var(--line)', background: 'var(--bg-0, #0b0b0d)' }}>
         <div style={{ position: 'sticky', top: 0 }}>{khungXem}</div>
         <TayKeo truc="x" onPointerDown={keoCot} onDoubleClick={() => { setCotTay(0); ghiLT(khoaCot, null); }} title="Kéo để đổi bề rộng màn xem · nhấp đúp = về tự động"
           style={{ position: 'absolute', top: 0, bottom: 0, [boCuc === 'phai' ? 'left' : 'right']: -2, width: 5, zIndex: 3 }} />
-      </div>}
+      </div>;
+  return (
+    <div ref={khungRef} className="xv-panel" style={{ marginTop: 8, padding: 0, overflow: 'clip', position: 'relative', ...(xemCanh && !tranNgang ? { [boCuc === 'phai' ? 'paddingRight' : 'paddingLeft']: rongXem + 17 } : {}) }} data-ngu-canh={`timeline ${t.toFixed(1)}s/${tong}s · cảnh #${c?.thu_tu ?? '?'} đang ở đầu phát`}>
+      {xemCanh && !tranNgang && cotXem}
+      {/* PHIM NGANG + màn xem cột (anh 13/11/2026: "video ngang thì phần timeline kéo dài hết sang ngang"): cột xem chỉ cao bằng khung 16:9, nên chỉ
+          thanh công cụ + hàng panel nằm cạnh nó; các làn timeline bên dưới chạy hết bề ngang. Phim dọc giữ cột cao hết màn như cũ. */}
+      <div style={tranNgang ? { position: 'relative', [boCuc === 'phai' ? 'paddingRight' : 'paddingLeft']: rongXem + 17, minHeight: caoXem + 50 } : undefined}>
+      {tranNgang && cotXem}
       {/* Bố cục kiểu After Effects (anh 11/10/2026): thanh công cụ · 3 panel CỐ ĐỊNH (Dự án | Khung hình | Thuộc tính) · timeline thứ tự lớp.
           Hàng panel cao cố định = khung hình, panel tự cuộn bên trong → chọn/bỏ chọn lớp chỉ đổi NỘI DUNG panel, không xô timeline (YDNI §bố cục đứng yên). */}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '6px 10px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
@@ -582,7 +588,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         {vuaXoa && <span style={mono}>{vuaXoa.chu} · <button type="button" className="xv-lienket" onClick={() => { const tr = vuaXoa.truoc; datLop(() => tr); setVuaXoa(null); }}>↶ Hoàn tác</button></span>}
         {loiLop ? <span className="xv-loi">{loiLop}</span> : <span style={{ ...mono, minWidth: 70, textAlign: 'right' }}>{luuLop === 'dang' ? 'đang lưu…' : luuLop === 'xong' ? '✓ đã lưu' : ''}</span>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: xemCanh ? `${panTrai.v}px 4px minmax(0, 1fr)` : `${panTrai.v}px 4px minmax(0, 1fr) 4px ${panPhai.v}px`, height: hangPan.v }}>
+      <div style={{ display: 'grid', gridTemplateColumns: xemCanh ? `${panTrai.v}px 4px minmax(0, 1fr)` : `${panTrai.v}px 4px minmax(0, 1fr) 4px ${panPhai.v}px`, height: tranNgang ? Math.max(hangPan.v, caoXem + 10) : hangPan.v }}>
         <aside style={{ overflowY: 'auto', padding: 8, display: 'grid', gap: 6, alignContent: 'start' }}>
           <div style={{ ...mono, letterSpacing: 0.5 }}>DỰ ÁN</div>
           {c && <div style={{ fontSize: 12 }}><b>#{c.thu_tu} {c.canh}</b></div>}
@@ -625,6 +631,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       </div>
 
       <TayKeo truc="y" onPointerDown={hangPan.keo('y')} onDoubleClick={hangPan.veMacDinh} title="Kéo để đổi chiều cao khung hình · nhấp đúp = mặc định" />
+      </div>
       {/* Các track */}
       {/* Không đệm TRÁI ở khung cuộn (#1413): cột nhãn dính left:0 bám mép trong lớp đệm → khe 10px bên trái nhãn để khối đang cuộn ló qua; đầu phát kéo cũng lệch 10px. */}
       {/* Khung cuộn CẢ HAI chiều, cao tối đa 78vh (#1418): overflowX đã biến nó thành hộp cuộn nên sticky-top không bám được trang —

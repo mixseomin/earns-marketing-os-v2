@@ -17,6 +17,8 @@ assert.deepStrictEqual(ngan, { dong: ['Short title'], co: 52 }, 'câu ngắn gi�
 assert.deepStrictEqual(vua('', 30, 2, 52).dong, []);
 const tuDai = vua('Supercalifragilisticexpialidocious', 10, 1, 40);
 assert.strictEqual(tuDai.dong.join(' '), 'Supercalifragilisticexpialidocious');
+// từ liền dài hơn bề ngang (link) phải THU CỠ theo dòng dài nhất (lam-tuong-40736 13/11/2026: link 33 ký tự giữ cỡ 64 → tràn hai mép)
+const link = vua('ratesbyroom.com/hotel-scam-check/', 18, 3, 64); assert.ok(link.co * 33 * 0.64 * 1.25 <= 940, `link thu cỡ: ${link.co}`);
 
 // MÁY GÁC cả lớp lỗi: không mẫu Máy Dựng nào được cắt dòng bằng ngat(…).slice(…) — phải đi qua vua()
 const thu = dirname(fileURLToPath(import.meta.url));

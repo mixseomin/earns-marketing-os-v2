@@ -32,7 +32,8 @@ export function ngat(s: string, n = 31): string[] {
  *  tự cắt k dòng → câu dài mất đuôi im lặng (spot-the-fake examweight mất "nursing career", Ngọc chặn "chữ bị cắt"), rồi vá từng mẫu một (veLua, #842, land, scam). */
 export function vua(s: string, n: number, max: number, co: number): { dong: string[]; co: number } {
   const t = s.replace(/\s+/g, ' ').trim();
-  for (let r = n; ; r = Math.ceil(r * 1.1)) { const dong = ngat(t, r); if (dong.length <= Math.max(1, max) || r >= t.length) return { dong, co: Math.round((co * n) / r) }; }
+  for (let r = n; ; r = Math.ceil(r * 1.1)) { const dong = ngat(t, r); if (dong.length <= Math.max(1, max) || r >= t.length) return { dong, co: Math.floor((co * n) / Math.max(r, ...dong.map((x) => x.length))) }; }
+  // thu cỡ theo dòng DÀI NHẤT thật, không theo r: một từ liền không ngắt được (link "ratesbyroom.com/hotel-scam-check/" 33 ký tự) dài hơn r → trước 13/11/2026 giữ nguyên cỡ, tràn hai mép (Ngọc chặn lam-tuong-40736)
 }
 /** Một dòng sự kiện: [lớp, từ giây, tới giây, kiểu chữ, nội dung đã gắn thẻ]. Kiểu: Ve (hình vẽ) · Den (Archivo Black) · Chu (Atkinson). */
 export type DongAss = [lop: number, tu: number, den: number, kieu: 'Ve' | 'Den' | 'Chu', text: string];
@@ -52,7 +53,7 @@ export function ketAss(d: DongAss[], lop: number, tu: number, den: number, ket: 
   if (!ket[0]) return;
   donManKet(d, tu);
   const fad = `\\fad(${o.fad ?? 300},0)`, vien = o.vien !== false;
-  const k0 = vua(ket[0], 20, 3, o.co ?? 60), y0 = 900 - 50 * (k0.dong.length - 1), y1 = y0 + 100 * k0.dong.length + 10;
+  const k0 = vua(ket[0], 18, 3, o.co ?? 60), y0 = 900 - 50 * (k0.dong.length - 1), y1 = y0 + 100 * k0.dong.length + 10;
   d.push([lop, tu, den, 'Den', `{\\an5\\pos(540,${y0})${o.fs(k0.co)}\\1c&HFFFFFF&${vien ? '\\3c&H000000&\\bord3' : ''}\\q2${fad}}${k0.dong.map(chu).join('\\N')}`]);
   if (!ket[1]) return;
   const k1 = vua(ket[1], 34, 2, 40);

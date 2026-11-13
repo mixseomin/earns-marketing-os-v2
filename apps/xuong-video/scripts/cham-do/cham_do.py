@@ -92,7 +92,9 @@ class May:
 
 def cham_shot(may: May, s: dict, nv: dict) -> dict:
     anh = tai(s['kf'])
-    thay = s.get('thay') or []
+    # hộp đo trên CHÍNH ảnh three.js (khung_xam.hop) thắng hộp đo 3D sống (thay — lệch ảnh tới 20 % chiều cao, #8)
+    hop3 = s.get('hop3') or {}
+    thay = [{**t, 'hop': hop3.get(t['ten'], t['hop'])} for t in (s.get('thay') or [])]
     can = []   # (tên, danh từ, hộp 3D, là người)
     t_pt = lambda ten: next((float(t.get('pt', 0)) for t in thay if t['ten'] == ten), 0.0)
     for t in thay:
@@ -191,7 +193,7 @@ def main():
     ap.add_argument('--ghi', action='store_true', help='kèm --ung-vien: đặt bản tốt nhất làm keyframe đang dùng (sinh-shot.mts --chon trên box3)')
     a = ap.parse_args()
     chi = {int(x) for x in a.chi.split(',') if x.strip()}
-    shots = sql(f"SELECT json_build_object('id', id, 'so', thu_tu::int, 'kf', keyframe_url, 'uv', keyframe_uv, 'sau', khung_xam->>'sau', 'thay', khung_xam->'thay', 'kiem', khung_xam->'kiem', 'vt', may_3d->'vi_tri') FROM xv_canh WHERE tap_id = {a.tap} AND coalesce(nhanh,'') IN ('','A') AND keyframe_url IS NOT NULL AND khung_xam ? 'thay' ORDER BY thu_tu")
+    shots = sql(f"SELECT json_build_object('id', id, 'so', thu_tu::int, 'kf', keyframe_url, 'uv', keyframe_uv, 'sau', khung_xam->>'sau', 'thay', khung_xam->'thay', 'kiem', khung_xam->'kiem', 'vt', may_3d->'vi_tri', 'hop3', khung_xam->'hop') FROM xv_canh WHERE tap_id = {a.tap} AND coalesce(nhanh,'') IN ('','A') AND keyframe_url IS NOT NULL AND khung_xam ? 'thay' ORDER BY thu_tu")
     nv = {r['ten']: r for r in sql(f"SELECT json_build_object('ten', ten, 'loai', loai, 'mo_ta', mo_ta) FROM xv_nhan_vat WHERE phim_id = (SELECT phim_id FROM xv_tap WHERE id = {a.tap})")}
     shots = [s for s in shots if not chi or s['so'] in chi]
     may = May()

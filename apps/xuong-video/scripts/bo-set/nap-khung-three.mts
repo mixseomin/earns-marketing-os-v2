@@ -22,7 +22,8 @@ for (const c of ds) {
   const [mau, giua, ket, sau] = await Promise.all([len('mau', 'jpg'), len('mau-giua', 'jpg'), len('mau-ket', 'jpg'), len('sau', 'png')]);
   if (!mau || !sau) { loi.push(`#${so}: thiếu ảnh mở / độ sâu trong ${thuMuc}`); continue; }
   const dong = (c.ky_thuat?.chuyen_dong ?? 'tinh') !== 'tinh' || (c.may_3d?.vi_tri ?? []).some((v) => v.den || (v as { nhip?: unknown[] }).nhip?.length);
-  const kx: KhungXam = { ...kx0, nguon: 'three', xam: mau, mau, sau, ...(giua ? { mau_giua: giua } : {}), ...(ket ? { mau_ket: ket, ket_dong: dong } : {}), luc: new Date().toISOString() } as KhungXam;
+  const fHop = path.join(thuMuc, `${so}-hop.json`); const hop = existsSync(fHop) ? (JSON.parse(await readFile(fHop, 'utf8')) as Record<string, number[]>) : undefined;
+  const kx: KhungXam = { ...kx0, nguon: 'three', xam: mau, mau, sau, ...(hop ? { hop } : {}), ...(giua ? { mau_giua: giua } : {}), ...(ket ? { mau_ket: ket, ket_dong: dong } : {}), luc: new Date().toISOString() } as KhungXam;
   await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['khung_xam'], moTa: `nạp khung three.js #${so}`, nguoi: 'nap-khung-three' });
   await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb, updated_at = now() WHERE id = ${c.id}`); nap++;
 }

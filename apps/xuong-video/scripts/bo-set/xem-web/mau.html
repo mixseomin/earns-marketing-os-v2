@@ -124,7 +124,8 @@ function hinh(p) {
 }
 // Vật của set (nền + đồ đạc); vật tuỳ chọn (dây đường đi) chỉ hiện ở shot khai trong may.them
 const tuyChon = {};
-for (const v of DU.vat) { const m = hinh(v); canh.add(m); if (v.tuy_chon) { tuyChon[v.ten] = m; m.visible = false; } }
+const vatMesh = {};   // vật set theo tên — hopKhung đo hộp trên màn
+for (const v of DU.vat) { const m = hinh(v); canh.add(m); vatMesh[v.ten] = m; if (v.tuy_chon) { tuyChon[v.ten] = m; m.visible = false; } }
 // Khối nhân vật / đạo cụ: nhóm quay quanh trục đứng theo huong (0 = mặt nhìn −y)
 // NGƯỜI CÓ KHỚP (khoi.hinh = 'nguoi'): ma-nơ-canh FK dựng bằng mã — hông → thân → cổ → đầu, vai → cánh tay → khuỷu → cẳng tay → bàn tay, hông → đùi → gối → cẳng chân.
 // Tỉ lệ theo tuổi (trẻ con đầu to, chân ngắn). Mặt trước = +Z cục bộ (huong 0 = nhìn −y dữ liệu).
@@ -355,6 +356,33 @@ const DO_SAU_VL = new T3.ShaderMaterial({ uniforms: { gan: { value: 1 }, xa: { v
   // như ở xa vô cực, FLUX vẽ lệch bố cục (#3071 #7, 13/11/2026)
   vertexShader: 'varying vec3 p; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); p = mv.xyz; gl_Position = projectionMatrix * mv; }',
   fragmentShader: 'uniform float gan; uniform float xa; varying vec3 p; void main(){ float v = clamp((xa - length(p)) / (xa - gan), 0.0, 1.0); gl_FragColor = vec4(v, v, v, 1.0); }' });
+/* HỘP TRÊN MÀN của từng khối (người / đồ / vật set) đo NGAY trên khung three.js vừa dựng — chuẩn cho bộ chấm keyframe (cham-do/cham_do.py).
+   13/11/2026: hộp của bộ đo 3D sống (khung_xam.thay) lệch ảnh three.js tới 20 % chiều cao (#8: đỉnh đầu chú 38 % trong thay, 18 % trên ảnh) → bộ chấm
+   kêu oan ảnh đúng. Chiếu 8 góc hộp hình học của từng mesh qua máy ảo; gồm cả phần bị che (vách, người khác). [x0, y0, x1, y1] 0..1, gốc trên-trái. */
+function hopVat(o) {
+  const v = new T3.Vector3(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, n = 0;
+  o.updateMatrixWorld(true);
+  o.traverse((m) => {
+    if (!m.isMesh || !m.visible) return;
+    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+    const b = m.geometry.boundingBox;
+    for (let k = 0; k < 8; k++) {
+      v.set(k & 1 ? b.max.x : b.min.x, k & 2 ? b.max.y : b.min.y, k & 4 ? b.max.z : b.min.z).applyMatrix4(m.matrixWorld).project(may);
+      if (v.z > 1) continue;
+      const sx = (v.x + 1) / 2, sy = (1 - v.y) / 2;
+      x0 = Math.min(x0, sx); y0 = Math.min(y0, sy); x1 = Math.max(x1, sx); y1 = Math.max(y1, sy); n++;
+    }
+  });
+  if (!n || x1 < 0 || y1 < 0 || x0 > 1 || y0 > 1) return null;
+  return [x0, y0, x1, y1].map((c) => Math.round(Math.min(1, Math.max(0, c)) * 1000) / 1000);
+}
+function hopKhung(i) {
+  dungShot(i, 0); canh.updateMatrixWorld(true);
+  const r = {};
+  for (const [t, k] of Object.entries(khoi)) if (k.g.visible) { const h = hopVat(k.g); if (h) r[t] = h; }
+  for (const [t, m] of Object.entries(vatMesh)) if (m.visible) { const h = hopVat(m); if (h) r[t] = h; }
+  return r;
+}
 function xuatKhung(i, u, loai) {
   const ht = hienTia; hienTia = false;
   dungShot(i, u); veTia();

@@ -487,7 +487,8 @@ export type KhungXam = { ma: string; /** 'song' = đo trên 3D sống (do-3d-son
   /** chuyển động trên màn: chỗ mở → chỗ kết của từng món (0..1, gốc trên-trái) — câu chuyển động cho video sinh từ đây */ di?: { ten: string; tu: number[]; den: number[] }[]; luc: string; kiem: { nhan_vat: string; bat_buoc?: boolean; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[]; /** hộp bao trên màn (0..1, gốc trên-trái, gồm phần bị che) */ khung?: number[]; /** dáng TỰA (chống bàn) ở khung mở mà điểm chạm cách mặt đỡ bấy nhiêu cm (dung-set.py › tua_hong) */ tua_hong?: number }[];
   /** THẤY GÌ trong khung (dung-set.py › nhin_thay, đo bằng lưới tia): tên vật / nhân vật · % khung · hộp bao [x0,y0,x1,y1] 0..1 gốc trên-trái ·
    *  tien = nằm trước chủ thể (vật chắn tiền cảnh). Lưới gắn nhãn, cổng bắt vật chắn, prompt keyframe gọi tên từng khối. */
-  thay?: VatThay[] };
+  thay?: VatThay[];
+  /** hộp trên màn từng khối đo trên CHÍNH ảnh three.js (mau.html › hopKhung, khung mở) — bộ chấm keyframe so với cái này, không so thay (đo sống, lệch ảnh) */ hop?: Record<string, number[]> };
 export type VatThay = { /** khoảng cách gần nhất từ máy tới vật (cm, đo 3D sống) — khoiLapKhung chỉ coi là 'máy dí sát' khi < 80 cm */ gan?: number; ten: string; /** khối là NGƯỜI (nhân vật / người phụ của set) — prompt đếm số người */ nguoi?: boolean; /** tên tiếng Anh cho prompt (vat.en) — mô hình ảnh không hiểu 'Mặt bàn', 'Tường phải' */ en?: string; /** trạng thái lúc dựng (đã chia mảnh…) — nhãn keyframe nói rõ, không để model vẽ theo ảnh mẫu nguyên vẹn */ trang?: string; pt: number; hop: [number, number, number, number]; tien: boolean };
 export type GiongThu = { model: string; voice: string; url: string; cau: string; luc: string };
 export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string;

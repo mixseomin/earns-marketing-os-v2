@@ -1,5 +1,5 @@
 // XUẤT KHUNG KEYFRAME TỪ three.js — thay 🧊 Dựng khung xám Blender (anh 13/11/2026). Mỗi shot: <so>-mau.jpg (khung mở), <so>-mau-giua.jpg, <so>-mau-ket.jpg,
-// <so>-sau.png (độ sâu, xám) đúng khổ phim. Sau đó máy chủ nạp vào khung_xam: scripts/bo-set/nap-khung-three.mts. 0đ.
+// <so>-sau.png (độ sâu, xám), <so>-hop.json (hộp trên màn từng khối) đúng khổ phim. Sau đó máy chủ nạp vào khung_xam: scripts/bo-set/nap-khung-three.mts. 0đ.
 //   XV_PLAYWRIGHT=… XV_CHROMIUM=… node scripts/bo-set/xem-web/xuat-khung.cjs <trang.html> <thư mục ra> [rộng=1365] [tỉ lệ=16:9]
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 const { chromium } = require(process.env.XV_PLAYWRIGHT || 'playwright');
@@ -18,6 +18,8 @@ const [tw, th] = (tlS || '16:9').split(':').map(Number); const rong = Number(ron
       const f = path.join(ra, `${ds[i]}-${duoi}.${loai === 'sau' ? 'png' : 'jpg'}`); fs.writeFileSync(f, Buffer.from(url.split(',')[1], 'base64'));
       if (loai === 'sau') execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', f, '-pix_fmt', 'gray', f + '.g.png']), fs.renameSync(f + '.g.png', f);
     }
+    // hộp trên màn của từng khối ở khung mở — bộ chấm keyframe so với chính ảnh này (mau.html › hopKhung)
+    fs.writeFileSync(path.join(ra, `${ds[i]}-hop.json`), JSON.stringify(await p.evaluate((i) => hopKhung(i), i)));
   }
   await b.close(); console.log(JSON.stringify({ loi, rong, cao, so: ds.length }));
 })();

@@ -261,7 +261,7 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
   const { sinhJson } = await import('./claude');
   const schema = z.object({ de: mau === 'giai-thich' ? DeGiaiThichSchema : mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : mau === 'binh-chon' ? DePollSchema : mau === 'carousel' ? DeCarouselSchema : DeCanhSchema, chu: ChuDangSchema, hook_qc: z.string().describe('id of the proven ad hook you adapted (empty if none were given)') });
   // tiền: ckey báo VNĐ thật (tokens.vnd); không báo (Anthropic trực tiếp, hoặc ckey thiếu x_ckey.cost — 27/10 nhật ký ghi 0₫) thì ƯỚC theo token × bảng giá (26.000₫/$)
-  let vnd = 0, loiCu: string[] = [], hookCu: HookQc | null = null, khoaTruoc = false; const tk = { in: 0, out: 0 }, boHook = new Set<string>();
+  let vnd = 0, loiCu: string[] = [], hookCu: HookQc | null = null, khoaTruoc = false, epNguyen = false; const tk = { in: 0, out: 0 }, boHook = new Set<string>(), daEpNguyen = new Set<string>();
   // hook đã thành nguyên văn tiêu đề một bài có sẵn của máy → không đưa vào kho lượt này (examweight 12/11/2026: kho 2 hook, mô hình chép "EMT exams humbling everyone."
   // = tiêu đề đã có, 3 lượt đều "tiêu đề trùng", 3/5 bài kẹt). Bỏ hết thì vẫn giữ kho cũ để không mất hook.
   const tdChuan = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim(), daCo = new Set((o.daDung ?? []).map(tdChuan));
@@ -273,8 +273,8 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     if (khoaTruoc && hookCu && loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l))) { boHook.add(hookCu.id); hookCu = null; loiCu = loiCu.filter((l) => !/sửa quá xa|chưa chọn hook/.test(l)); }
     // trượt "sửa quá xa": mô hình rẻ cầm cả kho thì không bám (esimfares 10/11/2026: hook kênh "Landing in Italy? Do this before your plane touches down"
     // → viết "Set this up before takeoff", giữ 17%, 2/3 bài kẹt cả 2 lượt) → lượt sau khoá vào ĐÚNG hook đã chọn + đưa nguyên câu làm khuôn, thêm một lượt.
-    const xa = !!hookCu && loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l)), hooksLuot = xa ? [hookCu as HookQc] : (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length && !boHook.has(h.id));
-    khoaTruoc = xa;
+    const xa = !!hookCu && (epNguyen || loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l))), hooksLuot = xa ? [hookCu as HookQc] : (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length && !boHook.has(h.id));
+    khoaTruoc = xa; epNguyen = false;
     // kho lọc hết trong lượt (hook trùng tiêu đề / mang từ máy / đã bị chặn) → kiemDe bỏ qua luật hook, rapDe không gắn hook, bài ra "thiếu dang.hook"
     // (sidecue 12/11/2026: spot-the-fake-40162-…-emails làm lại vẫn SỬA LẠI) → dừng, không dựng bài chắc chắn bị chặn
     if (!hooksLuot.length) return { ok: false, loi: `hết hook QC dùng được cho đề này${loiCu.length ? ` (lần trước: ${loiCu.join('; ')})` : ''}`, vnd };
@@ -302,7 +302,12 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     // không dựng một bài chắc chắn SỬA LẠI.
     if (!loiCu.length && o.xetHook) {
       const chan = await o.xetHook(de);
-      if (chan) { const h = timHook(hooksLuot, maHook) ?? hookCu; if (h) boHook.add(h.id); hookCu = null; khoaTruoc = false;
+      // "nhạt" mà hook GỐC đã qua Ngọc lúc lọc kho = mô hình viết lại thành câu hướng dẫn chung chung, không phải hook xấu (saidly 13/11/2026: kho 4 hook,
+      // mỗi đề cấm cả 4 vì tiêu đề viết lại "nhạt" → --sinh-kho 0/5) → lần đầu KHOÁ vào chính hook đó, chép gần nguyên câu; nguyên câu vẫn nhạt mới bỏ hook.
+      const hn = timHook(hooksLuot, maHook) ?? hookCu;
+      if (chan && hn && /nhạt/.test(chan) && !daEpNguyen.has(hn.id)) { daEpNguyen.add(hn.id); hookCu = hn; epNguyen = true; khoaTruoc = false;
+        loiCu = [`Phòng Nội dung chấm tiêu đề vừa viết là hook nhạt: ${chan} — tiêu đề phải gần NGUYÊN VĂN câu hook QC gốc đã chọn`]; continue; }
+      if (chan) { const h = hn; if (h) boHook.add(h.id); hookCu = null; khoaTruoc = false;
         loiCu = [`Phòng Nội dung chặn hook vừa dùng: ${chan} — KHÔNG dùng hook đó; chọn hook KHÁC trong danh sách, hợp đúng việc thương hiệu làm, không hứa điều thương hiệu không có`]; continue; }
     }
     if (!loiCu.length) return { ok: true, de, vnd, model: r.model, tokens: { ...tk, vnd } };

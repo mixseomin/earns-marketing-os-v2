@@ -10,7 +10,10 @@
 // KHO TỆP R2 (anh 31/10/2026: "bổ sung report về trạng thái R2 và chi phí phát sinh" + "cần 1 con dọn rác tự động"): dung lượng / số tệp / tăng mỗi
 //   ngày / ước chi phí tháng đọc từ Cloudflare GraphQL (CF_EMAIL + CF_API_KEY, bucket R2_BUCKET); máy dọn rác studio (xuong-video/scripts/don-rac-r2.mts)
 //   chạy một lần mỗi đêm sau GIO_DON — dời tệp không ai nhắc vào thùng rác 30 ngày, kết quả vào báo cáo sáng.
+//   Ngay sau đó MÁY CHUYỂN LẠNH R2 → Google Drive (anh duyệt 13/11/2026) — xem khối "CHUYỂN LẠNH" bên dưới.
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 const ENV_STUDIO = '/opt/earns-marketing-os-v2/.env.production';
@@ -88,7 +91,7 @@ export function dongR2(r, don) {
 }
 
 /** Thuần: tin báo cáo ngày (HTML Telegram). tieu = { provider: cents hôm qua } từ sổ job. */
-export function baoCaoNgay({ ten, ngay, du, lichSu, tieu, loiDoc, spy = null, r2 = undefined, don = null, ke = undefined, mayNha = undefined }) {
+export function baoCaoNgay({ ten, ngay, du, lichSu, tieu, loiDoc, spy = null, r2 = undefined, don = null, lanh = null, ke = undefined, mayNha = undefined }) {
   const dong = [];
   for (const k of Object.keys(SAN)) {
     const v = du[k]; const t = tieuNgay(lichSu, k);
@@ -97,7 +100,7 @@ export function baoCaoNgay({ ten, ngay, du, lichSu, tieu, loiDoc, spy = null, r2
   }
   const tong = Object.values(tieu).reduce((a, x) => a + x, 0);
   const tieuDong = Object.entries(tieu).sort((a, b) => b[1] - a[1]).map(([p, c]) => `${TEN[p] ?? p} ${so(c / 100 * 26000, 0)}₫`).join(' · ');
-  return `<b>${ten} · Phòng Tài nguyên — báo cáo API ${ngay.split('-').reverse().slice(0, 2).join('/')}</b>\n<b>Số dư</b>\n${dong.join('\n')}\n<b>Studio tiêu hôm qua</b> (sổ job, 26.000₫ ≈ $1): ${tong ? `${so(tong / 100 * 26000, 0)}₫ — ${tieuDong}` : 'không có lượt tốn tiền'}${spy ? `\n${dongSpy(spy)}` : ''}${ke !== undefined ? `\n${dongKe(ke)}` : ''}${r2 !== undefined ? `\n${dongR2(r2, don)}` : ''}${mayNha !== undefined ? `\n${dongMayNha(mayNha)}` : ''}`;
+  return `<b>${ten} · Phòng Tài nguyên — báo cáo API ${ngay.split('-').reverse().slice(0, 2).join('/')}</b>\n<b>Số dư</b>\n${dong.join('\n')}\n<b>Studio tiêu hôm qua</b> (sổ job, 26.000₫ ≈ $1): ${tong ? `${so(tong / 100 * 26000, 0)}₫ — ${tieuDong}` : 'không có lượt tốn tiền'}${spy ? `\n${dongSpy(spy)}` : ''}${ke !== undefined ? `\n${dongKe(ke)}` : ''}${r2 !== undefined ? `\n${dongR2(r2, don)}` : ''}${lanh ? `\n${dongLanh(lanh)}` : ''}${mayNha !== undefined ? `\n${dongMayNha(mayNha)}` : ''}`;
 }
 /** Thuần: dòng "Máy cào nhà (HP)" của báo cáo sáng (anh 06/11/2026) — ảnh chụp máy tự đẩy (spy-on-tc scripts/bao-may-nha.py → /var/lib/spy/may-nha.json).
  *  null = chưa từng gửi; cũ > 15 phút = mất liên lạc (in đậm); còn lại: RAM, ổ C:, CPU, giờ chạy liền, dịch vụ hỏng. */
@@ -239,6 +242,145 @@ export function chayDonRac() {
   } catch (x) { return { loi: String(x.stderr || x.message || x).trim().split('\n').pop().slice(0, 160) }; }
 }
 
+// ───────── CHUYỂN LẠNH R2 → GOOGLE DRIVE (anh duyệt 13/11/2026: xoá bản R2 sau khi đã chép, mốc 30 ngày) ─────────
+// Chạy tay trên box3: cd /opt/earns-marketing-os-v2/apps/cty && node worker/tai-nguyen-api.mjs --lanh [--chay]   (không --chay = chỉ đếm)
+//                     node worker/tai-nguyen-api.mjs --tra-lanh <khoá | tiền tố/>   trả tệp từ Drive về đúng khoá cũ trên R2
+// 1. Tệp LẠNH = cũ hơn LANH.tuoiNgay ngày (giờ sửa trên R2) + KHÔNG chỗ nào trên box3 còn nhắc (mọi DB qua pg_dumpall + tệp /opt, /var/lib/cty, /var/lib/spy;
+//    khớp khoá đầy đủ, kể cả trong URL img.on.tc, hoặc tên tệp ≥ 12 ký tự — cùng cách máy dọn rác). R2 không ghi lần đọc cuối → "ít dùng" = tuổi + không ai nhắc.
+//    Bỏ thùng rác xuong-video/rac/ (máy dọn rác tự xoá).
+// 2. rclone copy sang khodrive:kho-lanh/<khoá>, kiểm TỪNG tệp (cỡ bằng nhau, md5 bằng nhau khi hai bên có), ghi sổ LANH.so (jsonl, chỉ nối thêm).
+// 3. Sau LANH.giuNgay ngày mới xoá bản R2; trước khi xoá kiểm lại: Drive còn khớp, R2 chưa bị ghi đè (cùng cỡ + giờ), vẫn không ai nhắc.
+// 4. Tệp đã trả về không bị chuyển lại trong tuoiNgay ngày. Phanh: kho tham chiếu nhỏ / > 90% tệp cũ không ai nhắc = nghi quét hỏng → không làm gì.
+export const LANH = { tuoiNgay: 30, giuNgay: 7, tranGbDem: 40, drive: 'khodrive:kho-lanh', so: '/var/lib/cty/kho-lanh.jsonl', bo: ['xuong-video/rac/'], thamChieuToiThieu: 3000, tyLeToiDa: 0.9 };
+const tenTep = (k) => k.slice(k.lastIndexOf('/') + 1);
+const giaiUrl = (x) => { try { return decodeURIComponent(x); } catch { return x; } };
+
+/** Thuần: chuỗi nhặt từ dump DB + tệp → { khoa, ten }. Chuỗi có thể là URL công khai — cắt từ tiền tố đầu tiên khớp. */
+export function khoThamChieuLanh(chuoi, tienTo) {
+  const khoa = new Set(), ten = new Set();
+  for (const c of chuoi) {
+    let k = giaiUrl(String(c).trim()).replace(/[.,;:]+$/, '');
+    const i = Math.min(...tienTo.map((t) => { const j = k.indexOf(`${t}/`); return j < 0 ? Infinity : j; }));
+    if (!Number.isFinite(i)) continue; k = k.slice(i); khoa.add(k); const t = tenTep(k); if (t.length >= 12) ten.add(t);
+  }
+  return { khoa, ten };
+}
+/** Thuần: dòng sổ → trạng thái mới nhất theo khoá. Dòng: { key, size, luc_tep, md5, chep } | { key, xoa } | { key, tra }. */
+export function trangThaiLanh(dong) { const m = new Map(); for (const d of dong) if (d?.key) m.set(d.key, { ...(m.get(d.key) ?? {}), ...d }); return m; }
+/** Thuần: bản Drive có khớp bản R2 — cỡ bằng; md5 so khi cả hai có (R2 tệp tải nhiều phần không có md5). */
+export const khopLanh = (r2, dv) => !!r2 && !!dv && dv.size === r2.size && (!r2.md5 || !dv.md5 || r2.md5 === dv.md5);
+/** Thuần: danh sách R2 [{ key, size, luc, md5 }] + kho tham chiếu + sổ → việc phải làm đêm nay. */
+export function chonLanh(ds, ref, so, bay = Date.now()) {
+  const nguong = bay - LANH.tuoiNgay * 864e5, xoaTu = bay - LANH.giuNgay * 864e5;
+  const coRef = (k) => ref.khoa.has(k) || ref.ten.has(tenTep(k));
+  const vuaTra = (s) => s.tra && Date.parse(s.tra) > Math.max(nguong, Date.parse(s.chep || 0));
+  const pham = ds.filter((t) => !LANH.bo.some((b) => t.key.startsWith(b)));
+  const cu = pham.filter((t) => t.luc && t.luc < nguong), lanh = cu.filter((t) => !coRef(t.key)), r2 = new Map(ds.map((t) => [t.key, t]));
+  const chep = lanh.filter((t) => { const s = so.get(t.key); if (!s) return true; if (vuaTra(s)) return false; return !s.chep || s.size !== t.size || s.luc_tep !== t.luc; });
+  const xoa = [...so.values()].filter((s) => { if (!s.chep || s.xoa || vuaTra(s)) return false;
+    const t = r2.get(s.key); return !!t && Date.parse(s.chep) < xoaTu && t.size === s.size && t.luc === s.luc_tep && !coRef(s.key); });
+  let dung = null;
+  if (ref.khoa.size < LANH.thamChieuToiThieu) dung = `kho tham chiếu chỉ ${ref.khoa.size} khoá (< ${LANH.thamChieuToiThieu}) — quét DB / tệp hỏng, không chuyển`;
+  else if (cu.length >= 100 && lanh.length / cu.length > LANH.tyLeToiDa) dung = `${lanh.length}/${cu.length} tệp cũ không ai nhắc (> ${LANH.tyLeToiDa * 100}%) — nghi quét sót, không chuyển`;
+  let byte = 0; const chepDem = [];
+  for (const t of [...chep].sort((a, b) => b.size - a.size)) { if (byte + t.size > LANH.tranGbDem * 1e9) continue; chepDem.push(t); byte += t.size; }
+  const theoThuMuc = {};
+  for (const t of lanh) { const k = t.key.split('/').slice(0, 2).join('/'); const v = (theoThuMuc[k] ??= { n: 0, gb: 0 }); v.n++; v.gb += t.size / 1e9; }
+  return { quet: pham.length, cu: cu.length, lanh: lanh.length, lanhGb: lanh.reduce((a, t) => a + t.size, 0) / 1e9, theoThuMuc, dung,
+    chep: dung ? [] : chepDem, conLai: dung ? 0 : chep.length - chepDem.length, xoa: dung ? [] : xoa };
+}
+
+function moiTruongR2() {
+  const e = { ...docEnvTep(ENV_STUDIO), ...process.env };
+  if (!e.R2_ACCOUNT_ID || !e.R2_ACCESS_KEY_ID || !e.R2_SECRET_ACCESS_KEY || !e.R2_BUCKET) throw new Error('thiếu R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET');
+  return { r2: `r2x:${e.R2_BUCKET}`, env: { ...process.env, RCLONE_CONFIG_R2X_TYPE: 's3', RCLONE_CONFIG_R2X_PROVIDER: 'Cloudflare', RCLONE_CONFIG_R2X_ACCESS_KEY_ID: e.R2_ACCESS_KEY_ID,
+    RCLONE_CONFIG_R2X_SECRET_ACCESS_KEY: e.R2_SECRET_ACCESS_KEY, RCLONE_CONFIG_R2X_ENDPOINT: `https://${e.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`, RCLONE_CONFIG_R2X_NO_CHECK_BUCKET: 'true' } };
+}
+const rclone = (m, a, timeout = 3 * 36e5) => execFileSync('rclone', a, { env: m.env, encoding: 'utf8', maxBuffer: 1 << 30, timeout, stdio: ['ignore', 'pipe', 'pipe'] });
+const lietKeRc = (m, goc) => JSON.parse(rclone(m, ['lsjson', '-R', '--files-only', '--no-mimetype', '--hash', '--hash-type', 'MD5', goc], 40 * 6e4) || '[]')
+  .map((x) => ({ key: x.Path, size: x.Size, luc: Date.parse(x.ModTime), md5: x.Hashes?.md5 || x.Hashes?.MD5 || null }));
+const tepDs = (keys) => { const f = path.join(os.tmpdir(), `kho-lanh-${process.pid}-${keys.length}.txt`); fs.writeFileSync(f, keys.join('\n') + '\n'); return f; };
+const ghiSoLanh = (dong) => { if (dong.length) fs.appendFileSync(LANH.so, dong.map((d) => JSON.stringify(d)).join('\n') + '\n'); };
+const docSoLanh = () => { try { return fs.readFileSync(LANH.so, 'utf8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }); } catch { return []; } };
+function quetThamChieuLanh(tienTo) {
+  const RE = `(${tienTo.map((t) => t.replace(/[^A-Za-z0-9_-]/g, '')).filter(Boolean).join('|')})/[^[:space:]"'<>\\(),]+`;
+  const sh = (c) => execFileSync('sh', ['-c', c], { encoding: 'utf8', maxBuffer: 1 << 30, timeout: 20 * 6e4, env: { ...process.env, RE } });
+  return [...sh(`sudo -u postgres pg_dumpall -a 2>/dev/null | grep -aoE "$RE" | sort -u`).split('\n'),
+    ...sh(`grep -rIaohE --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.next --exclude-dir=.cache "$RE" /opt /var/lib/cty /var/lib/spy 2>/dev/null | sort -u || true`).split('\n')];
+}
+
+/** Một lượt chuyển lạnh. chay=false: chỉ đếm. Trả tóm tắt (hoặc ném lỗi — người gọi bọc). */
+export function chuyenLanh({ chay = false, bay = Date.now() } = {}) {
+  const m = moiTruongR2(), ds = lietKeRc(m, m.r2);
+  const tienTo = [...new Set(ds.map((t) => t.key.split('/')[0]).filter((x) => x && t_hopLe(x)))];
+  const ref = khoThamChieuLanh(quetThamChieuLanh(tienTo), tienTo), v = chonLanh(ds, ref, trangThaiLanh(docSoLanh()), bay);
+  let daChep = 0, chepB = 0, daXoa = 0, xoaB = 0, loi = 0;
+  if (chay && !v.dung) {
+    const luc = new Date(bay).toISOString();
+    if (v.chep.length) {
+      const f = tepDs(v.chep.map((t) => t.key));
+      try { rclone(m, ['copy', '--files-from-raw', f, '--transfers', '4', '--checkers', '8', '--retries', '3', m.r2, LANH.drive]); } catch { /* kiểm từng tệp bên dưới quyết định */ } finally { fs.rmSync(f, { force: true }); }
+      const dv = new Map(lietKeRc(m, LANH.drive).map((t) => [t.key, t])), dong = [];
+      for (const t of v.chep) { if (khopLanh(t, dv.get(t.key))) { dong.push({ key: t.key, size: t.size, luc_tep: t.luc, md5: t.md5, chep: luc }); daChep++; chepB += t.size; } else loi++; }
+      ghiSoLanh(dong);
+    }
+    if (v.xoa.length) {
+      const dv = new Map(lietKeRc(m, LANH.drive).map((t) => [t.key, t])), r2 = new Map(ds.map((t) => [t.key, t]));
+      const ok = v.xoa.filter((s) => khopLanh(r2.get(s.key), dv.get(s.key))); loi += v.xoa.length - ok.length;
+      if (ok.length) {
+        const f = tepDs(ok.map((s) => s.key));
+        try { rclone(m, ['delete', '--files-from-raw', f, m.r2]); } catch { /* đếm lại bên dưới */ } finally { fs.rmSync(f, { force: true }); }
+        const con = new Set(lietKeRc(m, m.r2).map((t) => t.key)), di = ok.filter((s) => !con.has(s.key));
+        ghiSoLanh(di.map((s) => ({ key: s.key, xoa: luc }))); daXoa = di.length; xoaB = di.reduce((a, s) => a + s.size, 0); loi += ok.length - di.length;
+      }
+    }
+  }
+  const tren = [...trangThaiLanh(docSoLanh()).values()].filter((s) => s.chep && !(s.tra && Date.parse(s.tra) > Date.parse(s.chep)));
+  const gb = (b) => Math.round(b / 1e7) / 100;
+  return { chay, quet: v.quet, cu: v.cu, lanh: v.lanh, lanh_gb: gb(v.lanhGb * 1e9), tham_chieu: ref.khoa.size, dung: v.dung,
+    chep: chay ? daChep : v.chep.length, chep_gb: gb(chay ? chepB : v.chep.reduce((a, t) => a + t.size, 0)), con_lai: v.conLai,
+    xoa: chay ? daXoa : v.xoa.length, xoa_gb: gb(chay ? xoaB : v.xoa.reduce((a, s) => a + s.size, 0)),
+    tren_drive: tren.length, tren_drive_gb: gb(tren.reduce((a, s) => a + s.size, 0)), da_xoa_r2: tren.filter((s) => s.xoa).length, loi_tep: loi,
+    theo_thu_muc: Object.fromEntries(Object.entries(v.theoThuMuc).sort((a, b) => b[1].gb - a[1].gb).slice(0, 5).map(([k, x]) => [k, { n: x.n, gb: gb(x.gb * 1e9) }])) };
+}
+const t_hopLe = (x) => /^[A-Za-z0-9_-]+$/.test(x);
+/** Trả tệp từ Drive về R2: một khoá, hoặc mọi khoá trong sổ bắt đầu bằng tiền tố (kết thúc "/"). */
+export function traLanh(khoa) {
+  const m = moiTruongR2(), tt = trangThaiLanh(docSoLanh());
+  const keys = khoa.endsWith('/') ? [...tt.values()].filter((s) => s.chep && s.key.startsWith(khoa)).map((s) => s.key) : tt.get(khoa)?.chep ? [khoa] : [];
+  if (!keys.length) throw new Error(`sổ không có ${khoa} trên Drive`);
+  const f = tepDs(keys);
+  try { rclone(m, ['copy', '--files-from-raw', f, '--transfers', '4', LANH.drive, m.r2]); } finally { fs.rmSync(f, { force: true }); }
+  const r2 = new Map(lietKeRc(m, m.r2).map((t) => [t.key, t])), luc = new Date().toISOString(), ve = keys.filter((k) => r2.get(k)?.size === tt.get(k).size);
+  ghiSoLanh(ve.map((k) => ({ key: k, tra: luc, xoa: null, luc_tep: r2.get(k).luc })));
+  return { tra: ve.length, hong: keys.length - ve.length };
+}
+/** Nhịp đêm: chép + kiểm có thể mất hàng chục phút, cty-nhip chạy tuần tự mọi phòng → KHÔNG chạy trong nhịp mà bật một unit có tên
+ *  (systemd-run --unit=cty-chuyen-lanh, tự dọn khi xong), một lần / đêm. Kết quả ghi LANH.ketQua, nhịp báo cáo sáng đọc lại (docKetQuaLanh). */
+export function chayChuyenLanh() {
+  try {
+    execFileSync('systemd-run', ['--unit=cty-chuyen-lanh', '--collect', '--description=Phong Tai nguyen: chuyen lanh R2 sang Google Drive', '--property=RuntimeMaxSec=5h',
+      '--working-directory=/opt/earns-marketing-os-v2/apps/cty', '/usr/bin/node', 'worker/tai-nguyen-api.mjs', '--lanh', '--chay', '--ghi'], { encoding: 'utf8', timeout: 20000, stdio: ['ignore', 'pipe', 'pipe'] });
+    return { bat: new Date().toISOString() };
+  } catch (x) { return { loi: `không bật được unit cty-chuyen-lanh: ${String(x.stderr || x.message).trim().split('\n').pop().slice(0, 120)}` }; }
+}
+LANH.ketQua = '/var/lib/cty/kho-lanh-dem.json';
+/** Kết quả đêm `ngay` cho báo cáo sáng: tệp kết quả cùng ngày · unit còn chạy = { dang } · không có = { loi }. */
+export function docKetQuaLanh(ngay, batLuc) {
+  try { const j = JSON.parse(fs.readFileSync(LANH.ketQua, 'utf8')); if (j.ngay === ngay) return j; } catch { /* chưa có */ }
+  let dang = false; try { dang = execFileSync('systemctl', ['is-active', 'cty-chuyen-lanh'], { encoding: 'utf8', timeout: 10000 }).trim() === 'active'; } catch { /* inactive → mã thoát ≠ 0 */ }
+  return dang ? { dang: true, bat: batLuc } : { bat: batLuc, loi: 'unit cty-chuyen-lanh đã dừng mà không ghi kết quả (journalctl -u cty-chuyen-lanh)' };
+}
+/** Thuần: dòng báo cáo sáng. */
+export function dongLanh(l) {
+  if (!l) return '';
+  if (l.loi) return `<b>Chuyển lạnh R2 → Drive đêm qua</b>: hỏng — ${l.loi}`;
+  if (l.dang) return '<b>Chuyển lạnh R2 → Drive đêm qua</b>: còn đang chép (unit cty-chuyen-lanh), số liệu vào báo cáo mai';
+  if (l.dung) return `<b>Chuyển lạnh R2 → Drive đêm qua</b>: phanh kéo, không chuyển — ${l.dung}`;
+  return `<b>Chuyển lạnh R2 → Drive đêm qua</b>: chép ${so(l.chep, 0)} tệp (${so(l.chep_gb, 2)} GB)${l.con_lai ? ` · còn ${so(l.con_lai, 0)} tệp đêm sau` : ''} · xoá bản R2 ${so(l.xoa, 0)} tệp (${so(l.xoa_gb, 2)} GB, đã giữ ≥ ${LANH.giuNgay} ngày)`
+    + ` · trên Drive ${so(l.tren_drive, 0)} tệp (${so(l.tren_drive_gb, 1)} GB)${l.loi_tep ? ` · <b>${l.loi_tep} tệp không khớp, giữ trên R2</b>` : ''}`;
+}
+
 /** Tiền studio đã tiêu theo cổng trong MỘT ngày VN (sổ job xv_job). */
 export function tieuTheoCong(ngay) {
   const url = docEnvTep(ENV_STUDIO).DATABASE_URL; if (!url) return {};
@@ -256,16 +398,21 @@ export async function nhipApi({ ten, tep, bay = Date.now() }) {
   const r2 = st.r2?.loi ? null : st.r2;
   // máy dọn rác: một lần mỗi đêm sau GIO_DON (trước báo cáo sáng) — ~3 phút quét DB + tệp
   if (st.donNgay !== ngay && gioVN(bay) >= GIO_DON) { st.don = { ngay, ...chayDonRac() }; st.donNgay = ngay; }
+  // chuyển lạnh R2 → Drive: nhịp KẾ SAU máy dọn rác (mỗi việc một nhịp, nhịp 30 phút không ôm cả hai)
+  else if (st.lanhNgay !== ngay && st.donNgay === ngay && gioVN(bay) >= GIO_DON && gioVN(bay) < GIO_BAO) { st.lanh = { ngay, ...chayChuyenLanh() }; st.lanhNgay = ngay; }
+  if (st.lanh?.ngay === ngay && st.lanh.bat && !st.lanh.chay) st.lanh = { ngay, ...docKetQuaLanh(ngay, st.lanh.bat) };
   let ke = null; try { ke = hoatDongKe(ngayVN(bay - 864e5)); } catch { /* sổ spy không đọc được: báo cáo ghi "chưa đọc được sổ" */ }
   const canhBao = [...xetCanhBaoApi(du, st.lich), ...xetCanhBaoR2(r2), ...xetKe(ke),
     ...(st.don?.ngay === ngay && st.don.loi ? [{ khoa: 'box3:don-rac', chu: `Máy dọn rác R2 (xuong-video/scripts/don-rac-r2.mts) hỏng đêm nay: ${st.don.loi}` }] : []),
-    ...(st.don?.ngay === ngay && st.don.dung ? [{ khoa: 'r2:don-phanh', chu: `Máy dọn rác R2 kéo phanh, không dọn: ${st.don.dung}` }] : [])];
+    ...(st.don?.ngay === ngay && st.don.dung ? [{ khoa: 'r2:don-phanh', chu: `Máy dọn rác R2 kéo phanh, không dọn: ${st.don.dung}` }] : []),
+    ...(st.lanh?.ngay === ngay && st.lanh.loi ? [{ khoa: 'box3:chuyen-lanh', chu: `Máy chuyển lạnh R2 → Drive (worker/tai-nguyen-api.mjs --lanh) hỏng đêm nay: ${st.lanh.loi}` }] : []),
+    ...(st.lanh?.ngay === ngay && st.lanh.dung ? [{ khoa: 'r2:lanh-phanh', chu: `Máy chuyển lạnh R2 → Drive kéo phanh: ${st.lanh.dung}` }] : [])];
   let bao = null;
   if (st.baoNgay !== ngay && gioVN(bay) >= GIO_BAO) {
     let tieu = {}; try { tieu = tieuTheoCong(ngayVN(bay - 864e5)); } catch { /* sổ job không đọc được: báo số dư vẫn gửi */ }
     let spy = null; try { spy = tieuSpy(ngayVN(bay - 864e5)); } catch { /* sổ spy không đọc được: phần còn lại vẫn gửi */ }
     let mayNha = null; try { mayNha = JSON.parse(fs.readFileSync('/var/lib/spy/may-nha.json', 'utf8')); } catch { /* chưa gửi: dòng ghi "chưa nhận được" */ }
-    bao = baoCaoNgay({ ten, ngay, du, lichSu: st.lich, tieu, loiDoc: loi, spy, r2, don: st.don?.ngay === ngay ? st.don : null, ke, mayNha });
+    bao = baoCaoNgay({ ten, ngay, du, lichSu: st.lich, tieu, loiDoc: loi, spy, r2, don: st.don?.ngay === ngay ? st.don : null, lanh: st.lanh?.ngay === ngay ? st.lanh : null, ke, mayNha });
   }
   return { st, du, loi, canhBao, bao, ghiBao: () => { st.baoNgay = ngay; } };
 }
@@ -307,6 +454,40 @@ if (process.argv[1]?.endsWith('tai-nguyen-api.mjs')) {
     assert.ok(dongMayNha(null).includes('chưa nhận được'), 'chưa từng gửi');
     assert.ok(baoCaoNgay({ ten: 'Nguyên', ngay: '2026-11-06', du: {}, lichSu: [], tieu: {}, mayNha: mn(3) }).includes('Máy cào nhà (HP)'), 'báo cáo sáng có dòng máy nhà');
     assert.ok(!baoCaoNgay({ ten: 'Nguyên', ngay: '2026-10-31', du: {}, lichSu: [], tieu: {} }).includes('Kho tệp R2'), 'gọi cũ không truyền r2: không thêm dòng');
+    // Chuyển lạnh R2 → Drive
+    {
+      const B = Date.parse('2026-12-20T00:00:00Z'), ng = (n) => B - n * 864e5, iso = (n) => new Date(ng(n)).toISOString();
+      const ref = khoThamChieuLanh(['https://img.on.tc/kho/ethopex/thanh-pham/2026-10/a-dang-dung-1.mp4', 'xuong-video/clip/b%20c.mp4', 'không khớp gì', ...Array.from({ length: 3000 }, (_, i) => `kho/x/${i}`)], ['kho', 'xuong-video']);
+      assert.ok(ref.khoa.has('kho/ethopex/thanh-pham/2026-10/a-dang-dung-1.mp4') && ref.khoa.has('xuong-video/clip/b c.mp4') && ref.khoa.size === 3002, 'URL công khai + mã hoá % → khoá');
+      const ds = [
+        { key: 'kho/ethopex/thanh-pham/2026-10/a-dang-dung-1.mp4', size: 5, luc: ng(40) },
+        { key: 'kho/ethopex/cache/lanh-khong-ai-nhac.mp4', size: 9, luc: ng(40), md5: 'aa' },
+        { key: 'kho/ethopex/cache/moi-khong-ai-nhac.mp4', size: 9, luc: ng(10) },
+        { key: 'xuong-video/rac/2026-11-01/clip/x-rac-cu-lam-roi.mp4', size: 9, luc: ng(50) },
+        { key: 'kho/ethopex/cache/da-chep-8-ngay-truoc.mp4', size: 7, luc: ng(45) },
+        { key: 'kho/ethopex/cache/da-chep-2-ngay-truoc.mp4', size: 7, luc: ng(45) },
+        { key: 'kho/ethopex/cache/bi-ghi-de-sau-khi-chep.mp4', size: 8, luc: ng(31) },
+        ...Array.from({ length: 3 }, (_, i) => ({ key: `kho/x/${i}`, size: 1, luc: ng(40) })),
+      ];
+      const so1 = trangThaiLanh([
+        { key: 'kho/ethopex/cache/da-chep-8-ngay-truoc.mp4', size: 7, luc_tep: ng(45), chep: iso(8) },
+        { key: 'kho/ethopex/cache/da-chep-2-ngay-truoc.mp4', size: 7, luc_tep: ng(45), chep: iso(2) },
+        { key: 'kho/ethopex/cache/bi-ghi-de-sau-khi-chep.mp4', size: 7, luc_tep: ng(60), chep: iso(9) }]);
+      const v = chonLanh(ds, ref, so1, B);
+      assert.strictEqual(v.dung, null, v.dung);
+      assert.deepStrictEqual(v.chep.map((t) => t.key).sort(), ['kho/ethopex/cache/bi-ghi-de-sau-khi-chep.mp4', 'kho/ethopex/cache/lanh-khong-ai-nhac.mp4'], 'chép: tệp lạnh mới + tệp R2 đổi sau lần chép; bỏ tệp có người nhắc, tệp mới, thùng rác');
+      assert.deepStrictEqual(v.xoa.map((s) => s.key), ['kho/ethopex/cache/da-chep-8-ngay-truoc.mp4'], 'xoá R2: chỉ tệp đã chép ≥ 7 ngày, R2 chưa đổi');
+      const so2 = trangThaiLanh([{ key: 'kho/ethopex/cache/da-chep-8-ngay-truoc.mp4', size: 7, luc_tep: ng(45), chep: iso(8) }, { key: 'kho/ethopex/cache/da-chep-8-ngay-truoc.mp4', tra: iso(1), xoa: null }]);
+      const v2 = chonLanh(ds, ref, so2, B);
+      assert.ok(!v2.xoa.length && !v2.chep.some((t) => t.key.includes('da-chep-8')), 'tệp vừa trả về: không xoá, không chép lại');
+      assert.ok(chonLanh(ds, khoThamChieuLanh(['kho/a'], ['kho']), so1, B).dung.includes('quét DB'), 'kho tham chiếu nhỏ → phanh');
+      assert.ok(chonLanh(Array.from({ length: 200 }, (_, i) => ({ key: `kho/y/tep-lanh-so-${i}.bin`, size: 1, luc: ng(40) })), ref, new Map(), B).dung.includes('nghi quét sót'), '> 90% không ai nhắc → phanh');
+      assert.ok(khopLanh({ size: 9, md5: 'aa' }, { size: 9, md5: 'aa' }) && khopLanh({ size: 9, md5: null }, { size: 9, md5: 'bb' }) && !khopLanh({ size: 9, md5: 'aa' }, { size: 9, md5: 'bb' }) && !khopLanh({ size: 9 }, { size: 8 }) && !khopLanh({ size: 9 }, undefined));
+      const dl = dongLanh({ chay: true, chep: 120, chep_gb: 2.1, con_lai: 0, xoa: 0, xoa_gb: 0, tren_drive: 120, tren_drive_gb: 2.1, loi_tep: 0 });
+      assert.ok(dl.includes('chép 120 tệp (2,1 GB)') && dl.includes('trên Drive 120 tệp'), dl);
+      assert.ok(dongLanh({ dang: true }).includes('còn đang chép') && dongLanh({ loi: 'x' }).includes('hỏng') && dongLanh(null) === '');
+      assert.ok(baoCaoNgay({ ten: 'Nguyên', ngay: '2026-12-20', du: {}, lichSu: [], tieu: {}, r2: null, lanh: { chay: true, chep: 1, chep_gb: 0, xoa: 0, xoa_gb: 0, tren_drive: 1, tren_drive_gb: 0 } }).includes('Chuyển lạnh'), 'báo cáo sáng có dòng chuyển lạnh');
+    }
     // Keywords Everywhere
     const kk = (hd) => xetKe(hd).map((c) => c.khoa);
     assert.deepStrictEqual(kk({ hom_nay: 10, tran: 3000, cuoi: [{ ok: true }, { ok: false }, { ok: false }] }), [], 'lượt cuối OK: im');
@@ -319,6 +500,14 @@ if (process.argv[1]?.endsWith('tai-nguyen-api.mjs')) {
     const tk = baoCaoNgay({ ten: 'Nguyên', ngay: '2026-11-02', du: { ke: 94549 }, lichSu: [], tieu: {}, ke: { qua_luot: 2, qua_credit: 11, qua_loi: 0 } });
     assert.ok(tk.includes('Keywords Everywhere: còn <b>94.549 credit</b>') && tk.includes('Keywords Everywhere hôm qua</b>: 2 lượt · 11 credit'), tk);
     console.log('tai-nguyen-api tu-kiem ok');
+  } else if (process.argv.includes('--tra-lanh')) {
+    const k = process.argv[process.argv.indexOf('--tra-lanh') + 1]; if (!k) { console.error('thiếu khoá'); process.exit(1); }
+    console.log(JSON.stringify(traLanh(k)));
+  } else if (process.argv.includes('--lanh')) {
+    let kq; try { kq = chuyenLanh({ chay: process.argv.includes('--chay') }); } catch (x) { kq = { loi: String(x.stderr || x.message || x).trim().split('\n').pop().slice(0, 160) }; }
+    kq = { ngay: ngayVN(), luc: new Date().toISOString(), ...kq };
+    if (process.argv.includes('--ghi')) fs.writeFileSync(LANH.ketQua, JSON.stringify(kq));
+    console.log(JSON.stringify(kq)); process.exit(kq.loi ? 1 : 0);
   } else if (process.argv.includes('--in')) {
     const { du, loi } = await docSoDu(); console.log(du, loi);
     let r2 = null; try { r2 = await docR2(); } catch (x) { console.error('✗ R2:', x.message); } console.log(r2, xetCanhBaoR2(r2));

@@ -149,7 +149,10 @@ export function tieuSpy(ngay) {
 }
 
 export const docEnvTep = (f) => { try { return Object.fromEntries(fs.readFileSync(f, 'utf8').split('\n').map((l) => l.match(/^([A-Z0-9_]+)=(.*)$/)).filter(Boolean).map((m) => [m[1], m[2].replace(/^["']|["']$/g, '')])); } catch { return {}; } };
-const lay = async (url, o = {}) => { const r = await fetch(url, { ...o, signal: AbortSignal.timeout(20000) }); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(`HTTP ${r.status}`); return j; };
+const lay = async (url, o = {}) => { const r = await fetch(url, { ...o, signal: AbortSignal.timeout(20000) }); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(lyDoHttp(r.status, j)); return j; };
+/** Lỗi HTTP kèm lý do cổng trả — 401 "khoá hỏng" khác 401 "khoá giới hạn thiếu quyền" (ElevenLabs 13/11/2026: khoá chỉ TTS, thiếu user_read). Bỏ mọi chuỗi giống khoá. */
+export const lyDoHttp = (st, j) => { const d = j?.detail ?? j?.error ?? j?.message; const m = typeof d === 'string' ? d : (d?.message || d?.status || ''); const q = /missing the permission (\w+)/.exec(m)?.[1];
+  return q ? `HTTP ${st} — khoá còn sống nhưng thiếu quyền ${q} (cần khoá có quyền đọc này)` : `HTTP ${st}${m ? ' — ' + String(m).replace(/\b(sk|key)[-_][A-Za-z0-9_-]{8,}/gi, '***').slice(0, 120) : ''}`; };
 
 /** KHOÁ CỔNG TỪ VAULT MOS2 (platform_accounts.api_token_enc, mã bằng MOS2_SECRET_KEY) — cổng anh đưa khoá ở chat (TokenHot #686, FlatKey #687, 04/11/2026)
  *  không cần ghi thêm biến vào .env; câu SQL đi qua stdin để khoá giải mã không nằm trên dòng lệnh. */

@@ -83,7 +83,34 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   const trangCua = new Map(trangUrl.split(',').filter(Boolean).map((x) => { const i = x.lastIndexOf(':'); return [x.slice(0, i), Math.max(0, Number(x.slice(i + 1)) - 1 || 0)] as const; }));
   const datTrang = (khoa: string, t: number) => { const n = new Map(trangCua); if (t > 0) n.set(khoa, t); else n.delete(khoa); datTrangUrl([...n].map(([k, v]) => `${k}:${v + 1}`).join(',')); };
   const ngan = useNganKenh();
+  // góp ý #1591: cuộn xuống vẫn biết đang xem kênh nào — tiêu đề cột Kênh (dính mép trên) hiện tên kênh có dòng nằm ngay dưới tiêu đề, kèm nút mở / gập hết khối
+  const [dangXem, setDangXem] = useState<string | null>(null);
+  useEffect(() => {
+    let raf = 0;
+    const do_ = () => { raf = 0;
+      const tds = Array.from(document.querySelectorAll<HTMLElement>('[data-kenh-tieu-de]')).map((e) => e.getBoundingClientRect()).filter((r) => r.height > 0);
+      if (!tds.length) return setDangXem(null);
+      const moc = Math.max(...tds.map((r) => r.bottom));
+      let ma: string | null = null, kenhTren = false;
+      for (const tr of Array.from(document.querySelectorAll<HTMLElement>('tr[data-kenh-ma]'))) { const r = tr.getBoundingClientRect(); if (!r.height) continue;
+        if (r.bottom > moc) { ma = tr.dataset.kenhMa ?? null; break; } if (tr.dataset.kenhDau === '1') kenhTren = true; }
+      // chỉ hiện khi dòng kênh đã trôi qua tiêu đề (đang ở giữa cây con của kênh)
+      const dau = ma ? document.querySelector<HTMLElement>(`tr[data-kenh-ma="${CSS.escape(ma)}"][data-kenh-dau="1"]`) : null;
+      setDangXem(ma && kenhTren && dau && dau.getBoundingClientRect().bottom <= moc ? ma : null); };
+    const hen = () => { if (!raf) raf = requestAnimationFrame(do_); };
+    window.addEventListener('scroll', hen, true); window.addEventListener('resize', hen); hen();
+    return () => { window.removeEventListener('scroll', hen, true); window.removeEventListener('resize', hen); if (raf) cancelAnimationFrame(raf); };
+  }, [moUrl, gapUrl, trangUrl]);
   if (!kenh.length) return null;
+  const kXem = dangXem ? kenh.find((k) => k.ma === dangXem) ?? null : null;
+  const khoiCua = (k: KenhSp) => cayKenh(k).flatMap((d) => (d.loai === 'ke' && d.nhom ? [`${k.ma}:${d.id}`] : []));
+  const moHetKhoi = (k: KenhSp, mo: boolean) => { const n = new Set(gap); for (const kh of khoiCua(k)) { if (mo) n.delete(kh); else n.add(kh); } datGapUrl([...n].join(',')); };
+  const nutTd: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-1)', color: 'var(--fg-2)', cursor: 'pointer', padding: '0 5px', fontSize: 10, textTransform: 'none', letterSpacing: 0 };
+  const tieuDeKenh = <span data-kenh-tieu-de style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Kênh
+    {kXem && <><span style={{ color: 'var(--accent)', fontWeight: 700, textTransform: 'none', letterSpacing: 0, fontSize: 11 }}>· {kXem.ten}</span>
+      <button type="button" style={nutTd} title={`mở hết các khối của ${kXem.ten}`} onClick={(e) => { e.stopPropagation(); moHetKhoi(kXem, true); }}>▾ mở hết</button>
+      <button type="button" style={nutTd} title={`gập hết các khối của ${kXem.ten}`} onClick={(e) => { e.stopPropagation(); moHetKhoi(kXem, false); }}>▸ gập hết</button>
+      <button type="button" style={nutTd} title={`thu cây ${kXem.ten} về một dòng`} onClick={(e) => { e.stopPropagation(); doi(kXem.ma); }}>✕ thu kênh</button></>}</span>;
   const doi = (ma: string) => { const n = new Set(moCay); if (n.has(ma)) n.delete(ma); else n.add(ma); datMoUrl([...n].join(',')); };
   const dong: Dong[] = kenh.flatMap((k) => [{ loai: 'kenh' as const, k },
     ...(moCay.has(k.ma) ? (() => { const nhom = (d: Dong) => (d.loai === 'ke' && d.nhom ? `${k.ma}:${d.id}` : null);
@@ -92,7 +119,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   const vd = (d: Dong): VideoKenh | null => (d.loai === 'video' ? d.v : null);
   const chiKenh = <R,>(f: (k: KenhSp) => R) => (d: Dong) => (laK(d) ? f(d.k) : null);
   const cot: DataColumn<Dong>[] = [
-    { key: 'kenh', header: 'Kênh', align: 'left', width: 440, sortValue: (d) => d.k.ten,
+    { key: 'kenh', header: tieuDeKenh, align: 'left', width: 440, sortValue: (d) => d.k.ten,
       cell: (d) => {
         // Pager chung tự canh phải + lề trên 12 — bọc khung co theo nội dung, kéo lên lại để thanh trang nằm gọn trong dòng, canh dưới chữ của khối
         if (d.loai === 'trang') return <span style={{ display: 'inline-block', marginLeft: THUT_MUC, marginTop: -12 }}>
@@ -166,6 +193,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   return (
     <Panel title="📺 Kênh nội dung" subtitle={'kênh nội dung là sản phẩm (video trọn chuyện) · ▸ mở: đang sản xuất · lịch · đã làm · "–" = chưa đo (khác 0) · số đọc mỗi giờ từ trang YouTube công khai'}>
       <DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : d.loai === 'trang' ? `${d.khoa}/trang` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
+        rowData={(d) => ({ 'kenh-ma': d.k.ma, 'kenh-dau': laK(d) ? 1 : 0 })}
         fullRow={(d) => d.loai === 'ke' || d.loai === 'trang'}
         minWidth={320 + 260 + 64 + 84 + 76 + 116 + 88 + 96 + 96 + 84 + 72} card />
       <KenhNgan kenh={kenh} />

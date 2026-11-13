@@ -10,14 +10,19 @@ import { extLinkProps } from '@/lib/external-url';
 export type OLichNho = { ngay: string; loai: string; so: number; chiTiet?: string[]; muc?: { chu: string; url?: string | null }[] };
 export type LoaiLichNho = Record<string, { ten: string; mau: string; ic?: string }>;
 
-export function LichNho({ o, loai, chan, itemNoun = 'mục', rong = 236 }: {
+export function LichNho({ o, loai, chan, itemNoun = 'mục', rong = 236, danhDau }: {
   o: OLichNho[]; loai: LoaiLichNho;
+  /** ngày (hoặc khoảng [từ, tới]) YYYY-MM-DD đánh dấu sẵn, lịch mở đúng tháng đó — lịch nổi khi rê ô ngày (góp ý #1590) */ danhDau?: string | [string, string] | null;
   /** dòng chữ nhỏ dưới chú thích (vd "làm tập Thứ Hai · Thứ Tư · Thứ Sáu · 09:30") */ chan?: React.ReactNode;
   itemNoun?: string; rong?: number;
 }) {
-  const [thang, datThang] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
-  const [chon, datChon] = useState<string | null>(null);
   const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const [tuDau, toiDau] = danhDau ? (Array.isArray(danhDau) ? danhDau : [danhDau, danhDau]) : [null, null];
+  const [thang, datThang] = useState(() => { const d = toiDau ? new Date(`${toiDau}T00:00:00`) : new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const [chon, datChon] = useState<string | null>(null);
+  const khoang = new Set<string>();
+  if (tuDau && toiDau) { const a = tuDau <= toiDau ? tuDau : toiDau, b = tuDau <= toiDau ? toiDau : tuDau;
+    for (let d = new Date(`${a}T00:00:00`), i = 0; ymd(d) <= b && i < 400; d.setDate(d.getDate() + 1), i++) khoang.add(ymd(d)); }
   const cuaNgay = chon ? o.filter((x) => x.ngay === chon && x.muc?.length) : [];
   const byDate = new Map<string, CalItem[]>(), soCua = new Map<string, number>();
   for (const x of o) { const l = loai[x.loai] ?? { ten: x.loai, mau: 'var(--accent)' }, id = `${x.ngay}-${x.loai}`;
@@ -25,7 +30,7 @@ export function LichNho({ o, loai, chan, itemNoun = 'mục', rong = 236 }: {
     byDate.set(x.ngay, [...(byDate.get(x.ngay) ?? []), { id, date: x.ngay, label: `${l.ic ? `${l.ic} ` : ''}${x.so} ${l.ten}`, title: x.chiTiet?.join('\n'), color: l.mau }]); }
   return (
     <div style={{ width: rong, fontFamily: 'var(--font-sans)' }}>
-      <MiniMonth month={thang} sel={new Set(chon ? [chon] : [])} byDate={byDate} onPick={(d) => datChon((c) => (c === ymd(d) ? null : ymd(d)))} onNavMonth={(d) => datThang((m) => new Date(m.getFullYear(), m.getMonth() + d, 1))}
+      <MiniMonth month={thang} sel={chon ? new Set([chon]) : khoang} byDate={byDate} onPick={(d) => datChon((c) => (c === ymd(d) ? null : ymd(d)))} onNavMonth={(d) => datThang((m) => new Date(m.getFullYear(), m.getMonth() + d, 1))}
         itemNoun={itemNoun} soTrenO={(it) => soCua.get(String(it.id)) ?? 0} />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 4, fontSize: 10, color: 'var(--fg-3)' }}>
         {Object.entries(loai).map(([k, l]) => <span key={k} style={{ whiteSpace: 'nowrap' }}><span style={{ color: l.mau }}>●</span> {l.ic ? `${l.ic} ` : ''}{l.ten}</span>)}

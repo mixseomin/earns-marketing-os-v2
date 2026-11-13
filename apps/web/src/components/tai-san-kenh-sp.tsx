@@ -10,7 +10,7 @@ import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { DongHo, nutTuanTu } from '@/components/ui/dong-ho';
 import { cayHangCho, cayKeHoach, laDemo, cayLoTrinh, cayMau, cayNguoi, caySoKenh, cayPlaylist, cayPlaylistThat, lichKenh, locGap, phanTrangNhom, thongKeMau, tomLoTrinh, COT_MAU, type DongKe, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
 import { CHANG_VIDEO as CHANG, KenhNgan, useNganKenh } from './kenh-ngan';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LichNho, type LoaiLichNho } from '@/components/ui/lich-nho';
 import { cotSocial, nhomSocial } from './tai-san-social';
@@ -49,6 +49,22 @@ function cayKenh(k: KenhSp): Dong[] {
 const LOAI_LICH: LoaiLichNho = {
   sx: { ic: '🛠', mau: '#f59e0b', ten: 'làm tập' }, lam: { ic: '🎬', mau: '#8b5cf6', ten: 'làm xong' }, hen: { ic: '🗓', mau: '#3c9bff', ten: 'hẹn đăng' }, dang: { ic: '✅', mau: '#22c55e', ten: 'đã đăng' },
 };
+
+/** góp ý #1590: rê chuột vào ô ngày → lịch nổi (LỊCH NHỎ của kênh) mở đúng tháng, đánh dấu ngày / khoảng ngày đó */
+function NgayLich({ k, ngay, children }: { k: KenhSp; ngay: string | [string, string] | null; children: React.ReactNode }) {
+  const [vt, datVt] = useState<{ x: number; y: number } | null>(null), hen = useRef<ReturnType<typeof setTimeout> | null>(null);
+  if (!ngay) return <>{children}</>;
+  const moRa = (e: React.MouseEvent<HTMLSpanElement>) => { if (hen.current) clearTimeout(hen.current); const r = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(8, Math.min(r.right - 252, window.innerWidth - 260)), duoi = window.innerHeight - r.bottom > 300;
+    datVt({ x, y: duoi ? r.bottom + 4 : Math.max(8, r.top - 304) }); };
+  const dong = () => { hen.current = setTimeout(() => datVt(null), 150); };
+  const giu = () => { if (hen.current) clearTimeout(hen.current); };
+  return <span onMouseEnter={moRa} onMouseLeave={dong} style={{ cursor: 'help' }}>{children}
+    {vt && <span onMouseEnter={giu} onMouseLeave={dong} onClick={(e) => e.stopPropagation()}
+      style={{ position: 'fixed', left: vt.x, top: vt.y, zIndex: 1000, display: 'block', padding: 8, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.4)', textAlign: 'left', fontStyle: 'normal', color: 'var(--fg-1)' }}>
+      <LichNho o={lichKenh(k)} loai={LOAI_LICH} itemNoun="video" danhDau={ngay} /></span>}</span>;
+}
+const ymd10 = (d: string | null | undefined) => (d ? d.slice(0, 10) : null);
 
 export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?: number }) {
   // cây mở / gập NẰM TRÊN URL (YDNI: F5 mở ra đúng như đang thấy) — ?kenh_mo=<mã>,<mã>
@@ -140,9 +156,11 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
     { key: 'xem7', header: 'Xem 7 ngày', width: 96, sortValue: (d) => d.k.xem7, cell: (d) => (laK(d) ? tang(d.k.xem7) : null) },
     { key: 'dang', header: 'Đăng', width: 84, sortValue: (d) => (laK(d) ? d.k.dangCuoi : vd(d)?.ngayDang ?? null), cellTitle: (d) => { if (laK(d)) return 'ngày đăng gần nhất'; const v = vd(d); const h = v && !v.ngayDang ? henDang(d.k, v.slug) : [];
         return h.length ? h.map((l) => `dự kiến đăng ${ngayVn(l.ngay)}${l.gio ? ` ${l.gio}` : ''} (giờ VN) · ${l.nen} · máy đăng sẽ tự đăng, chưa đặt lịch (scheduled) trên nền${l.tieuDe ? `\n${l.tieuDe}` : ''}`).join('\n\n') : 'ngày đăng video'; },
-      cell: (d) => { if (laK(d)) return ngayVn(d.k.dangCuoi); const v = vd(d); if (!v || v.ngayDang) return ngayVn(v?.ngayDang ?? null);
-        // góp ý #1583: tập chờ đăng có trong lịch máy đăng → hiện mờ ngày sẽ đăng (rê chuột: giờ + nền + trạng thái)
-        const h = henDang(d.k, v.slug)[0]; return h ? <span style={{ color: 'var(--fg-4)', fontStyle: 'italic' }}>{ngayVn(h.ngay)}</span> : ngayVn(null); } },
+      cell: (d) => { if (laK(d)) return <NgayLich k={d.k} ngay={ymd10(d.k.dangCuoi)}>{ngayVn(d.k.dangCuoi)}</NgayLich>; const v = vd(d); if (!v || v.ngayDang) return <NgayLich k={d.k} ngay={ymd10(v?.ngayDang)}>{ngayVn(v?.ngayDang ?? null)}</NgayLich>;
+        // góp ý #1583: tập chờ đăng có trong lịch máy đăng → hiện mờ ngày sẽ đăng; #1590: rê chuột = lịch nổi đánh dấu ngày / khoảng ngày hẹn
+        const hs = henDang(d.k, v.slug), h = hs[0]; if (!h) return ngayVn(null);
+        const ds = hs.map((x) => x.ngay.slice(0, 10)).sort(), kh: string | [string, string] = ds.length > 1 && ds[0] !== ds[ds.length - 1] ? [ds[0]!, ds[ds.length - 1]!] : ds[0]!;
+        return <NgayLich k={d.k} ngay={kh}><span style={{ color: 'var(--fg-4)', fontStyle: 'italic' }}>{ngayVn(h.ngay)}</span></NgayLich>; } },
     { key: 'so', header: 'Số tới', width: 72, sortValue: (d) => d.k.ngaySo, cell: (d) => (!laK(d) ? null : d.k.ngaySo ? ngayVn(d.k.ngaySo) : <span style={mo}>chưa đo</span>) },
   ];
   return (

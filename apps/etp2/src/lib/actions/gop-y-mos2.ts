@@ -22,6 +22,9 @@ export type TinTraoDoi = { nguoi: string; noiDung: string; xuLy: string | null; 
 
 /** HÒM góp ý dùng chung khuôn này: mos2 (nút 💬 mọi màn) và city (city.on.tc — anh 23/10/2026, xử bằng /tasks-city). Hòm = project_id của card = khoá site_status. */
 const HOM_GOP_Y = ['mos2', 'city'];
+/** Góp ý etp.on.tc / etp2.on.tc nằm CHUNG hòm mos2 (Huy nhận theo source_url, Đạt bỏ qua) nhưng tab "Của tôi" mỗi nơi chỉ hiện card gửi từ nơi đó
+ *  (anh 14/11/2026: góp ý MOS2 hiện ở etp2). Luật này có ở apps/web và apps/etp2 (bản tách) — sửa thì sửa cả hai. */
+const NGUON_ETP = '^https?://etp2?\\.on\\.tc(/|$)';
 const homCua = (x: unknown) => (typeof x === 'string' && HOM_GOP_Y.includes(x) ? x : 'mos2');
 
 /** NGƯỜI TRONG TEAM ETP (anh 02/11/2026 "bật phần góp ý cho tk của Sơn"): người có quyền etp (etp.quyen) gửi góp ý được — chỉ từ trang etp.on.tc,
@@ -93,6 +96,7 @@ export async function dsGopYCuaToi(homVao?: string): Promise<GopYCuaToi[]> {
   if (!me) return [];
   const db = getDb();
   if (!db) return [];
+  const laEtp = true;   // app etp2: chỉ card gửi từ etp / etp2
   const r = await db.execute(sql`
     SELECT id, created_at, updated_at,
            COALESCE(prep_payload->'site_status'->>${hom}, status) AS tt,
@@ -102,6 +106,7 @@ export async function dsGopYCuaToi(homVao?: string): Promise<GopYCuaToi[]> {
     FROM human_tasks
     WHERE project_id = ${hom} AND prep_payload->>'source_platform' = 'feedback'
       AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})
+      AND (COALESCE(prep_payload->>'source_url', '') ~ ${NGUON_ETP}) = ${laEtp}
       AND (COALESCE(prep_payload->'site_status'->>${hom}, status) IN ('pending','claimed','submitted','review','broken')
            OR updated_at >= now() - interval '7 days')
     ORDER BY updated_at DESC NULLS LAST, id DESC

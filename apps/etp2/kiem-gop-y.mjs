@@ -103,6 +103,8 @@ const LUAT = [
   { card: 1587, tep: 'apps/etp2/src/components/ui/chon2.tsx', co: "width: xemRong ? 560 : 260", cam: "style={{ width: 260, maxWidth: '92vw'", vi: 'ô chọn (Luật: Đang chạm / Sắp chạm…) có nút ⤢ xem rộng — bảng rộng 560 thay 260' },
   { card: 1587, tep: 'apps/etp2/src/components/ui/chon2.tsx', co: "maxHeight: xemRong ? '72vh' : 340", vi: 'xem rộng thì danh sách cao 72% màn, thấy nhiều mục hơn' },
   { card: 1587, tep: 'apps/etp2/src/components/ui/chon2.tsx', mot: 'data-k="chon2-xem-rong" onClick={doiRong}', vi: 'nút ⤢ / ⤡ cạnh ô tìm, máy nhớ lựa chọn cho mọi ô chọn' },
+  { card: 1588, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<span data-dinh-tuoi="1" style={{ display: \'inline-flex\', gap: 8, alignItems: \'center\', flex: \'none\' }}>{cumTuoi(true)}</span>', vi: 'dòng số gọn dính khi cuộn có cụm tuổi số · ↻ Làm mới · ▶ Lên camp (anh 13/11/2026 "Show cả khi sticky xuống")' },
+  { card: 1588, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<NutLamMoi dongBo={du.dongBo} gon={g} />', vi: 'cụm tuổi số / Làm mới / Lên camp chỉ dựng ở MỘT hàm cumTuoi — tiêu đề và dòng dính dùng chung, không chép hai bản' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },
 ];
 

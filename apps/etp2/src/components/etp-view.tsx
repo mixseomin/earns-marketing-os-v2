@@ -3049,6 +3049,12 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const kySel = () => <ChonKhoang tu={khK.tu} den={khK.den} ma={kh.includes('~') ? null : kh} homNay={du.nay} mocThem={[{ ma: 'tat_ca', nhan: 'All time' }]} title="kỳ số liệu (ngày Ethopex 07:00–07:00 VN)" onDoi={(v) => setKh('ma' in v ? v.ma : `${v.tu}~${v.den}`)} />;
   // ĐIỆN THOẠI CHỈ 1–2 DÒNG DÍNH (anh 01/11/2026 "trên mobile chỉ 1-2 dòng sticky trên top thôi" — đo: 5 hàng dính, 168px / 844): hàng tab · kỳ · kiểu xem · Lọc
   // nằm NGOÀI khung dính trên điện thoại (trôi theo trang); khung dính chỉ còn dòng số gọn khi đã cuộn, cộng tiêu đề cây có số tổng (#1498) dính ngay dưới. Máy tính giữ hàng tab dính
+  // CỤM TUỔI SỐ · LÀM MỚI · LÊN CAMP (#1586 / #1588): một hàm cho dòng tiêu đề VÀ dòng số gọn dính khi cuộn — sửa một chỗ, hai nơi cùng đổi
+  const cumTuoi = (g: boolean) => <>
+    <TuoiSo dongBo={du.dongBo} />
+    {chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={g} />}
+    {chiXem || du.nguoi.ngoai || du.nguoi.doi ? null : <NutLenCamp du={du} gon={g} />}{/* chỉ khi đang xem tk David (Nhà) — anh 09/11/2026 'các thay đổi chỉ hiện ở tk David' */}
+  </>;
   const thanhTren = (
       <div className={gon ? 'etp-dk' : 'etp-thanh'} style={{ display: 'flex', gap: gon ? 6 : 8, alignItems: 'center', flexWrap: !gon ? 'wrap' : thap && !moLoc ? 'nowrap' : 'wrap', overflowX: gon && thap && !moLoc ? 'auto' : undefined, scrollbarWidth: 'none', margin: '8px 0', position: gon ? undefined : 'sticky', top: 0, zIndex: 5, background: 'var(--bg-0, #0b0b0c)', padding: '6px 0', rowGap: 8 }}>
       {!gon ? <style>{'.etp-thanh [data-comp="ui.Segmented"] button,.etp-thanh [data-comp="ui.Segmented"] a{white-space:nowrap}.etp-thanh>*{flex-shrink:0}'}</style> : null}
@@ -3101,9 +3107,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
             chỉ LỖI đồng bộ còn hiện chữ đỏ (lỗi phải kêu to); chế độ chỉ xem không có nút → chữ rê nằm trên ô 🕒 nhỏ */}
         {du.dongBo?.loi ? <span title={du.dongBo.loi} style={{ fontSize: 11, color: '#f87171' }}>lỗi đồng bộ: {du.dongBo.loi.slice(0, 80)}</span> : null}
         {/* #1586 tuổi số liệu ngay sau tiêu đề (3s / 5m / 1h = bấy lâu trước) — mang luôn chữ rê trạng thái kho, thay ô 🕒 của chế độ chỉ xem */}
-        <TuoiSo dongBo={du.dongBo} />
-        {chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={hep} />}
-        {chiXem || du.nguoi.ngoai || du.nguoi.doi ? null : <NutLenCamp du={du} gon={hep} />}{/* chỉ khi đang xem tk David (Nhà) — anh 09/11/2026 'các thay đổi chỉ hiện ở tk David' */}
+        {cumTuoi(hep)}
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}
         {/* CỤM NGƯỜI XUỐNG DÒNG (#1575 anh 12/11/2026 "trên mobile phần này đang làm tràn màn hình"): cụm Người · Luật máy · Nối Telegram · chỉ xem là inline-flex không gói → màn hẹp đẩy tràn ngang; cho gói + co trong bề ngang màn */}
@@ -3138,6 +3142,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       {/* HERO GỌN DÍNH KHI CUỘN (anh 27/10/2026 "hero khi cuộn xuống vẫn sticky nhưng gọn lại"): cuộn qua dải số lớn thì một dòng số gọn dính trên hàng tab */}
       <div ref={dinhRef} data-comp="ui.StickyBar" style={{ position: 'sticky', top: 0, zIndex: 7, background: 'var(--bg-0, #0b0b0c)' }}>
       {gonHero ? <div style={{ display: 'flex', gap: gon ? 10 : 18, alignItems: gon ? 'baseline' : 'center', overflowX: 'auto', scrollbarWidth: 'none', whiteSpace: 'nowrap', fontSize: 12, padding: '6px 0 2px', borderBottom: '1px solid var(--line)' }}>
+        {/* #1588 anh 13/11/2026 "Show cả khi sticky xuống": cụm tuổi số · ↻ Làm mới · ▶ Lên camp (cumTuoi — cùng hàm với dòng tiêu đề) đứng ĐẦU dòng dính */}
+        <span data-dinh-tuoi="1" style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flex: 'none' }}>{cumTuoi(true)}</span>
         {([['Hôm nay', nay], ['Hôm qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, x], i) => <span key={i}><span style={{ color: 'var(--fg-2)' }}>{ten} </span><b style={{ fontSize: 14 }}><Lai s={x} /></b> <span style={{ fontSize: 11 }}><Roi s={x} /></span></span>)}
         <span><span style={{ color: 'var(--fg-2)' }}>Camp chạy </span><b style={{ fontSize: 14 }}>{chay.length}</b></span>
         <span><span style={{ color: 'var(--fg-2)' }}>Ngân sách </span><b style={{ fontSize: 14 }}>${[...chay, ...choChay].reduce((a, c) => a + c.ngan_sach, 0)}/ngày</b></span>

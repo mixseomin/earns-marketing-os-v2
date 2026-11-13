@@ -23,6 +23,8 @@ SD['shot']['4']['sd']['may'] = 'mat_nhoc'   # nhóc nghe xong dặn: thấy MẶ
 SD['shot']['5']['sd']['may'] = 'chu_nhin_tiem'    # chú gọi với theo nhóc chạy về tiệm: cận vừa thấy mặt, không toàn ga
 SD['shot']['7']['sd']['may'] = 'chu_nhin_tiem'     # chú sốt ruột chờ, nhìn về tiệm: máy trước mặt (can_chu phía nam chỉ thấy gáy — đo 116°)
 SD['shot']['1']['sd']['may'] = 'chu_thay_nhoc'    # nhìn quanh rồi thấy nhóc: CÙNG máy với cận phản ứng #3 (glance và reaction một góc — Murch: hướng máy chủ các cận chú)
+# MÁY THÊM Ở ĐÂY PHẢI VỀ SƠ ĐỒ TẬP: in ra 'may_so_do' → bo-set.mts --tap ghi vào xv_tap.khong_gian[*].so_do.may (13/11/2026: thiếu bước này, bộ đối
+# chiếu ảnh sập 'sơ đồ không có máy chu_tu_duoi' ở 10/20 shot — keyframe sai không ai chấm).
 C['may'].update({
     'mat_nhoc_xa': {'dat': [2.6, 7.1], 'nhin': [1.0, 9], 'cao': 1.0, 'ong': 85},   # phía đông-nam nhóc: hướng máy 130° nằm trong ±45° hướng chủ cảnh (153°) mà vẫn thấy 3/4 mặt nhóc nhìn về ô cửa   # hướng máy ≤ 45° với các cận nhóc khác (#8, #15) — hậu cảnh không nhảy     # trước mặt nhóc ở giữa sân ga, cùng phía trục với mọi máy; lệch đông 0,5 m khỏi đường nhóc chạy về ô cửa
     # QUA VAI CHÚ (reverse shot): máy lơ lửng ngay ngoài ô cửa, cao ngang vai chú, nhìn xuống mặt nhóc đang ngước lên — máy đặt dưới sân ga chỉ thấy gáy nhóc
@@ -281,5 +283,5 @@ DO_EN = {'Chai nước ngọt': ['MỘT chai nước ngọt thủy tinh đã u�
          'Tờ 5 nghìn': ['MỘT tờ 5 nghìn gấp đôi', 'exactly ONE folded 5,000-dong note'], 'Tiền thừa': ['vài tờ tiền lẻ nhàu', 'a few crumpled small change notes']}
 MOC = {k: (v if len(v) == 3 else [v[0], v[1], 110]) for k, v in M.items()}   # mốc nhìn (cm, tầm mắt người đứng sân ga) cho trang three.js
 MOC['Chú'] = [CHU[0] + 25, CHU[1], CHU[2] + 150]   # chú vắng khung (#4 #8) vẫn là đích nhìn: mặt chú ở ô cửa
-print(json.dumps({'ngoai_troi': True, 'do_en': DO_EN, 'moc': MOC, 'ten_moc': {**C['ten'], 'tay_chu': 'the crumpled change in his own hand', 'dau_ga': 'the near end of the platform'}, 'ten_moc_vi': {'dau_ga': 'đầu sân ga'}, 'ten': 'Sân ga tàu xanh (Tàu nước ngọt)', 'ghi_chu': 'Đơn vị cm, x đông, y bắc, z lên; dựng từ sơ đồ cảnh mau/phim-mau-tau-nuoc-ngot-khong-gian.json bằng scripts/du-lieu/bo-set/tau-nuoc-ngot.py.',
+print(json.dumps({'may_so_do': C['may'], 'ngoai_troi': True, 'do_en': DO_EN, 'moc': MOC, 'ten_moc': {**C['ten'], 'tay_chu': 'the crumpled change in his own hand', 'dau_ga': 'the near end of the platform'}, 'ten_moc_vi': {'dau_ga': 'đầu sân ga'}, 'ten': 'Sân ga tàu xanh (Tàu nước ngọt)', 'ghi_chu': 'Đơn vị cm, x đông, y bắc, z lên; dựng từ sơ đồ cảnh mau/phim-mau-tau-nuoc-ngot-khong-gian.json bằng scripts/du-lieu/bo-set/tau-nuoc-ngot.py.',
                   'vat': vat, 'vung': {'Sân ga tàu xanh': [100, 900, 0]}, 'khoi': khoi, 'may': may}, ensure_ascii=False, indent=1))

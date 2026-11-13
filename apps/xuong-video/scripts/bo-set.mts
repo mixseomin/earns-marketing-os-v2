@@ -1,6 +1,7 @@
 // 🧊 Bộ set 3D trên box (bo-set-3d.ts / bo-set-3d-may.ts) — 0đ:
 //   --nap=<set.json> --phim=<id> [--tap=<id>]  nạp bộ set: vat → xv_bo_set (cùng tên thì cập nhật), vung → anchor bối cảnh của phim,
-//                                              khoi → khối 3D nhân vật / đạo cụ, may (theo mã shot) → xv_canh.may_3d của tập
+//                                              khoi → khối 3D nhân vật / đạo cụ, may (theo mã shot) → xv_canh.may_3d của tập,
+//                                              may_so_do (máy 2D) → xv_tap.khong_gian[*].so_do.may
 //   --dung --tap=<id> [--tat-ca]               dựng khung xám (Blender) cho shot có may_3d mà khung xám thiếu / cũ
 // cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/bo-set.mts …
 import { ghiDiemPromptTap } from '../src/lib/xuong-video/diem-prompt';
@@ -40,6 +41,17 @@ if (gia('nap')) {
     const id = idTen(t); if (!id) { thieu.push(t); continue; }
     await chupTruoc(db, { bang: 'xv_nhan_vat', id: Number(id), cot: ['khoi_3d'], moTa: 'nạp bộ set 3D', nguoi: 'bo-set' });
     await db.execute(sql`UPDATE xv_nhan_vat SET khoi_3d = ${JSON.stringify(k)}::jsonb WHERE id = ${Number(id)}`); khoi++;
+  }
+  // MÁY 2D của bộ set → sơ đồ không gian của tập (mọi phân cảnh). Bộ set thêm máy mới (cận riêng, máy ngắm cửa sổ…) mà sơ đồ tập không có thì mọi luật
+  // đọc sơ đồ (đối chiếu ảnh ↔ dự kiến, hướng màn, trục) ném 'sơ đồ không có máy X' — 13/11/2026 phim #3071: 10/20 keyframe không được chấm, lỗi chỉ nằm
+  // trong nhật ký. Ghi đè đúng các máy bộ set khai, máy khác của sơ đồ giữ nguyên.
+  if (tap && d.may_so_do && typeof d.may_so_do === 'object') {
+    const kg = ((await db.execute(sql`SELECT khong_gian FROM xv_tap WHERE id = ${tap}`)) as unknown as Row[])[0]?.khong_gian as Record<string, { so_do?: { may?: Record<string, unknown> } }> | null;
+    if (kg) {
+      let doi = 0;
+      for (const p of Object.values(kg)) if (p?.so_do) { p.so_do.may = { ...(p.so_do.may ?? {}), ...d.may_so_do }; doi++; }
+      if (doi) { await db.execute(sql`UPDATE xv_tap SET khong_gian = ${JSON.stringify(kg)}::jsonb WHERE id = ${tap}`); console.log(`sơ đồ tập ${tap}: ${Object.keys(d.may_so_do).length} máy → ${doi} phân cảnh`); }
+    }
   }
   if (tap) for (const [ma, m] of Object.entries(d.may ?? {})) {
     const r = (await db.execute(sql`SELECT id, ky_thuat, may_3d FROM xv_canh WHERE tap_id = ${tap} AND dan_dung->>'ma' = ${ma}`)) as unknown as Row[];

@@ -73,6 +73,10 @@ console.log('sinh-anh.test: ok');
   assert.ok(/Nhóc spans .*cut off by the bottom edge of the frame .*do NOT show the legs or feet/.test(c), c);
   assert.ok(/Tàu xanh fills the background behind the people/.test(c) && !/close-up: Tàu xanh/.test(c), c);
   const dung = khungChu({ thay: [{ ten: 'Nhóc', pt: 4, hop: [0.4, 0.2, 0.5, 0.8], nguoi: true }] } as never, ['Nhóc']);
+  // người xa không có trong thay: lấy hộp three.js (hop) — không bỏ im lặng (13/11/2026 #3071 #18 vẽ người to gấp mấy lần)
+  const xa = khungChu({ thay: [{ ten: 'Tàu xanh', pt: 36, hop: [0.36, 0, 1, 1] }], hop: { Chú: [0.525, 0.384, 0.569, 0.565] }, kiem: [{ nhan_vat: 'Nhóc', trong_khung: true, khung: [0.431, 0.522, 0.451, 0.648] }] } as never, ['Chú', 'Nhóc'], false, new Set(['Chú', 'Nhóc']));
+  assert.match(xa, /Chú spans about 5% of the frame width and 20% of its height, middle centre/); assert.match(xa, /Nhóc spans about 5% of the frame width and 15% of its height/);
+  assert.ok(!/fills the background/.test(xa), xa);
   assert.ok(!/legs or feet/.test(dung), 'đứng trọn trong khung thì không nói bị cắt: ' + dung);
 }
 

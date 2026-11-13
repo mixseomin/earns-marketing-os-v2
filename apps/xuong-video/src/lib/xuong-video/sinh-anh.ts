@@ -395,7 +395,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // CỠ NHÂN VẬT TRONG KHUNG bằng SỐ (15/10/2026, kiểm khung tập 19: #9 / #30 3D là cận mặt Tango mà keyframe vẽ cỡ trung — prompt chỉ bảo
   // "theo bố cục ảnh 1", không nói chủ thể to bao nhiêu): chiều cao + vùng đo trên chính khung 3D (khung_xam.kiem / thay). Chỉ khung MỞ.
   const trongKhungAnchor = bc.nhanVat.filter((v) => v.loai !== 'boi_canh' && !ngoaiKhung(v)).map((v) => v.ten);
-  const framingCau = khungChu(bc.canh.khung_xam, kx ? trongKhungAnchor : nvKhung, ket);
+  const framingCau = khungChu(bc.canh.khung_xam, kx ? trongKhungAnchor : nvKhung, ket, new Set(bc.nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten)));
   // NGOÀI KHUNG gọi đích danh: anchor của shot (nhân vật / đạo cụ) mà 3D không thấy — chữ thẻ shot hay nhắc tới chúng ("Tango and Lint hiding
   // behind the orange card") nên phải nói thẳng là không vẽ.
   // tên đưa model: nhân vật = tên, đạo cụ = mô tả en (tên đồ tiếng Việt "Ly cà phê" từng lọt vào câu ngoài khung)
@@ -644,11 +644,18 @@ export function gocMayChu(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh'>, chu: { te
 const vungEn = (x: number, y: number) => `${y < 0.36 ? 'upper' : y > 0.64 ? 'lower' : 'middle'} ${x < 0.36 ? 'left' : x > 0.64 ? 'right' : 'centre'}`;
 /** Câu FRAMING: bề ngang + chiều cao PHẦN THẤY của từng nhân vật trên khung 3D (hộp thay, 0..1) + vùng. Đo cả hai chiều: nhân vật nằm bẹp
  *  (#9 tập 19) thấp mà tràn ngang khung — chỉ đo chiều cao thì câu nói "30%" trong khi 3D là cận mặt. Thuần — kiểm ở sinh-anh.test. */
-export function khungChu(kx: Canh['khung_xam'] | null | undefined, ten: string[], ket = false): string {
-  if (ket || !kx?.thay?.length || !ten.length) return '';
+export function khungChu(kx: Canh['khung_xam'] | null | undefined, ten: string[], ket = false, /** tên NGƯỜI — cho món không có trong thay */ nguoi: ReadonlySet<string> = new Set()): string {
+  if (ket || !kx || !ten.length) return '';
   const tron = (x: number) => Math.max(5, Math.round(x * 20) * 5);
+  // HỘP TRÊN MÀN: danh sách khối 'thay' chỉ có món đủ lớn / khai trong set; người đứng xa (13/11/2026 #3071 #18: Chú 18 %, Nhóc 13 % chiều cao, không có
+  // trong thay) bị bỏ IM LẶNG khỏi câu này → model vẽ người to gấp mấy lần. Không có trong thay thì lấy hộp đo trên chính ảnh three.js (hop), rồi hộp kiểm (kiem).
+  const hopCua = (t: string): { ten: string; hop: [number, number, number, number]; nguoi?: boolean } | undefined => {
+    const th = (kx.thay ?? []).find((x) => x.ten === t); if (th) return { ...th, hop: [th.hop[0]!, th.hop[1]!, th.hop[2]!, th.hop[3]!] };
+    const h = kx.hop?.[t] ?? (kx.kiem ?? []).find((k) => k.nhan_vat === t && k.trong_khung)?.khung;
+    return h && h.length === 4 ? { ten: t, hop: [h[0]!, h[1]!, h[2]!, h[3]!], nguoi: nguoi.has(t) } : undefined;
+  };
   const ds = ten.map((t) => {
-    const th = (kx.thay ?? []).find((x) => x.ten === t); if (!th) return '';
+    const th = hopCua(t); if (!th) return '';
     const w = th.hop[2] - th.hop[0], h = th.hop[3] - th.hop[1]; const vt = vungEn((th.hop[0] + th.hop[2]) / 2, (th.hop[1] + th.hop[3]) / 2);
     const co = `spans about ${tron(w)}% of the frame width and ${tron(h)}% of its height, ${vt}`;
     // NGƯỜI CHẠM MÉP DƯỚI (13/11/2026 phim #3071 #5 #9: "Nhóc 65% chiều cao, giữa dưới" mà không nói bị cắt — catMep chỉ báo khi còn một dải hẹp —

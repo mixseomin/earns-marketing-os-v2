@@ -38,6 +38,8 @@ export type KenhSp = {
   social?: import('./social-tro-ve-tinh').TroVe | null;
   /** KÊNH SOCIAL (máy không phải la_san_pham, có mục loai 'social' trong so-kenh.json): nơi đăng + trang đích của máy */
   nen?: NenKenh[]; siteDich?: string | null;
+  /** tiền từng nguồn trong KY_TIEN ngày (khoá = nguon_tien[].ma; null = nguồn chưa có máy đọc số) + tổng (null = không nguồn nào đo được) — trang tính từ sổ doanh thu */
+  tien?: { tong: number | null; nguon: Record<string, { usd: number; don: number } | null> } | null;
   /** tên + nhóm của dạng bài (kho scripts/ke-hoach-goc/dang-bai.json, server tra sẵn) — khối 🧩 Mẫu nội dung */ dangTen?: Record<string, { ten: string; nhom: string }>;
 };
 
@@ -149,7 +151,8 @@ export const khungMau = (m: Pick<MauKenh, 'loai' | 'khung'>): '9:16' | '16:9' =>
 export type TrangThaiY = 'chua' | 'san_sang' | 'demo' | 'da_lam' | 'da_dang';
 export type YTuong = { ma: string; mau: string; chu_de: string; ngay?: string; trang_thai: TrangThaiY; /** ý tưởng máy tự sinh (so-kenh.json › nguon_y_tuong) — giờ UTC của sự kiện */ tu_sinh?: string; utc?: string };
 export type SoKenh = { /** 'social' = máy social đã chuyển sang kiểu trình bày kênh (mos2 › tab Kênh nội dung) */ loai?: 'social';
-  /** kênh social: dạng bài gốc của máy (mã trong dang-bai.json) — bài cũ không ghi dạng tính vào đây */ dang_mac_dinh?: string; ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[];
+  /** kênh social: dạng bài gốc của máy (mã trong dang-bai.json) — bài cũ không ghi dạng tính vào đây */ dang_mac_dinh?: string;
+  /** NGUỒN TIỀN của kênh (anh 14/11/2026 "để có cột tiền phải thêm mục nguồn tiền"): mỗi nơi trả tiền một dòng — khối 💰 Nguồn tiền + cột Tiền 30 ngày */ nguon_tien?: NguonTien[]; ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[];
   dinh_vi?: { cho_ai?: string; dich?: string; cau_ket?: string; ngon_ngu?: string }; luat?: string[]; mau?: MauKenh[]; hang_cho?: YTuong[]; mo_dau?: string;
   nguon_y_tuong?: { mau: string; tep: string; ngay_toi?: number; ghi?: string }[]; /** sổ người nổi tiếng (giờ sinh + hạng Rodden), đường dưới lich-su/ */ nguoi_tep?: string };
 /** NGƯỜI NỔI TIẾNG trong sổ người (la-so/nguoi.json): giờ sinh + hạng Rodden; cung Mọc / nhà chỉ cho hạng trong rodden_dung_nha. */
@@ -368,4 +371,32 @@ export function cayMauSocial(videos: VideoKenh[], ten: Record<string, { ten: str
   return [{ id: 'mau', nhom: true, chu: `🧩 Mẫu nội dung (${ds.filter(([k]) => k).length} dạng bài)`, phu: 'dạng bài máy đã làm · kho dạng: Social › Góc › Dạng bài', o: o(videos), oTieuDe: COT_MAU_SOCIAL },
     ...ds.map(([k, vs]): DongKe => ({ id: `mau/${k || '_'}`, chu: k ? `${NHOM[ten[k]?.nhom ?? ''] ?? '•'} ${ten[k]?.ten ?? k}` : '• chưa ghi dạng', mau: k ? undefined : 'var(--fg-3)',
       phu: k ? (ten[k] ? k : `${k} · chưa có trong kho dạng bài`) : 'bài cũ không ghi dang_bai', o: o(vs), oTen: COT_MAU_SOCIAL }))];
+}
+
+/** NGUỒN TIỀN: nơi trả tiền cho kênh (đã dò link đối tác thật trên site đích). mang = sổ doanh thu đọc được nguồn này
+ *  (cj / awin: hoa hồng network theo site nhà · adsense: theo tên miền) — null = chưa có máy đọc số (tiền hiện "–", khác 0). */
+export type NguonTien = { ma: string; ten: string; mang: 'cj' | 'awin' | 'adsense' | null; merchant?: string; site: string; link?: string; ghi?: string };
+export const KY_TIEN = 30;
+/** Thuần — cộng tiền từng nguồn từ dòng sổ doanh thu (lib/revenue/by-day RevenueDayRow): affiliate khớp network + site nhà (+ tên merchant nếu khai),
+ *  adsense khớp tên miền. Nguồn mang null → null. */
+export function tinhTienKenh(nguon: NguonTien[], rows: { source: string; group?: string; channel: string; site?: string; amount: number }[]): { tong: number | null; nguon: Record<string, { usd: number; don: number } | null> } {
+  const ra: Record<string, { usd: number; don: number } | null> = {};
+  for (const n of nguon) {
+    if (!n.mang) { ra[n.ma] = null; continue; }
+    const m = n.merchant?.toLowerCase();
+    const ds = rows.filter((r) => (n.mang === 'adsense' ? r.source === 'adsense' && r.channel === n.site
+      : r.source === 'affiliate' && r.group === n.mang && r.site === n.site && (!m || r.channel.toLowerCase().includes(m))));
+    ra[n.ma] = { usd: ds.reduce((t, r) => t + r.amount, 0), don: ds.length };
+  }
+  const co = Object.values(ra).filter((x): x is { usd: number; don: number } => !!x);
+  return { tong: co.length ? co.reduce((t, x) => t + x.usd, 0) : null, nguon: ra };
+}
+/** Khối 💰 Nguồn tiền trong cây kênh: dòng nhóm (tổng KY_TIEN ngày) + mỗi nguồn một dòng (merchant · network · tiền · số đơn / "chưa có máy đọc số"). Thuần. */
+export function cayNguonTien(nguon: NguonTien[] | undefined, tien: KenhSp['tien']): DongKe[] {
+  if (!nguon?.length) return [];
+  const usd = (x: number) => `$${x.toFixed(2)}`, MANG: Record<string, string> = { cj: 'CJ', awin: 'Awin', adsense: 'AdSense' };
+  return [{ id: 'tien', nhom: true, chu: `💰 Nguồn tiền (${nguon.length})`, phu: `${KY_TIEN} ngày: ${tien?.tong == null ? '– (chưa nguồn nào có máy đọc số)' : usd(tien.tong)} · số từ sổ doanh thu (CJ · Awin · AdSense)` },
+    ...nguon.map((n): DongKe => { const t = tien?.nguon[n.ma];
+      return { id: `tien/${n.ma}`, chu: `${n.ten}${n.mang ? ` · ${MANG[n.mang]}` : ''}`, mau: n.mang ? undefined : 'var(--fg-3)',
+        phu: [n.mang ? (t ? `${usd(t.usd)} · ${t.don} đơn / ${KY_TIEN} ngày` : '–') : 'chưa có máy đọc số', n.link ? `link đối tác: ${n.link}` : '', n.ghi ?? ''].filter(Boolean).join(' · ') }; })];
 }

@@ -176,3 +176,13 @@ import { cayMauSocial } from './kenh-sp-tinh';
   assert.ok(/chưa có trong kho/.test(c.find((d) => d.id === 'mau/tra-loi')!.phu!));
   assert.deepStrictEqual(cayMauSocial([]), []);
 }
+import { tinhTienKenh, cayNguonTien } from './kenh-sp-tinh';
+{ // NGUỒN TIỀN: affiliate khớp network + site nhà (+ merchant), adsense khớp tên miền; nguồn không có mạng đọc số = null (khác $0); tổng bỏ qua null
+  const ng = [{ ma: 'trip', ten: 'Trip.com', mang: 'cj' as const, merchant: 'trip', site: 'a.com' }, { ma: 'ads', ten: 'AdSense', mang: 'adsense' as const, site: 'a.com' }, { ma: 'x', ten: 'Airalo', mang: null, site: 'b.com' }];
+  const t = tinhTienKenh(ng, [{ source: 'affiliate', group: 'cj', channel: 'Trip.com', site: 'a.com', amount: 19.75 }, { source: 'affiliate', group: 'cj', channel: 'Trip.com', site: 'c.com', amount: 5 },
+    { source: 'affiliate', group: 'awin', channel: 'Trip.com', site: 'a.com', amount: 7 }, { source: 'adsense', channel: 'a.com', amount: 1.25 }]);
+  assert.deepStrictEqual(t, { tong: 21, nguon: { trip: { usd: 19.75, don: 1 }, ads: { usd: 1.25, don: 1 }, x: null } });
+  assert.deepStrictEqual(tinhTienKenh([ng[2]!], []), { tong: null, nguon: { x: null } });
+  const c = cayNguonTien(ng, t); assert.ok(/\$21\.00/.test(c[0]!.phu!) && /\$19\.75 · 1 đơn/.test(c[1]!.phu!) && /chưa có máy đọc số/.test(c[3]!.phu!));
+  assert.deepStrictEqual(cayNguonTien(undefined, null), []);
+}

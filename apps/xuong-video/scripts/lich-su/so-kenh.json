@@ -1680,6 +1680,17 @@
   "ratesbyroom-scam-or-real": {
     "loai": "social",
     "dang_mac_dinh": "tin-lua-tuan",
+    "nguon_tien": [
+      {
+        "ma": "trip-com",
+        "ten": "Trip.com (hoa hồng đặt phòng)",
+        "mang": "cj",
+        "merchant": "trip",
+        "site": "ratesbyroom.com",
+        "link": "<thành phố>.ratesbyroom.com/go/<khách sạn>/ → trip.com",
+        "ghi": "CJ website-id 101871504 = ratesbyroom.com"
+      }
+    ],
     "ten": "Scam or Real? · Hotel Scam Alerts",
     "cap_nhat": "2026-11-14",
     "muc_tieu": "kênh tự vận hành: máy dựng video / ảnh câu đố \"tin nhắn khách sạn này thật hay lừa?\" → Phòng Nội dung chấm → máy đăng theo nhịp an toàn lên YouTube, Facebook, X, Dailymotion, Quora → khách vào ratesbyroom.com/hotel-scam-check/",
@@ -1742,6 +1753,16 @@
   "esimfares-before-you-land": {
     "loai": "social",
     "dang_mac_dinh": "n-buoc",
+    "nguon_tien": [
+      {
+        "ma": "airalo",
+        "ten": "Airalo (eSIM)",
+        "mang": null,
+        "site": "esimfares.com",
+        "link": "esimfares.com/go/<nước>/ → /r/?n=airalo → airalo.com",
+        "ghi": "chưa rõ mạng affiliate trả hoa hồng Airalo — sổ doanh thu (CJ · Awin · AdSense) chưa đọc được"
+      }
+    ],
     "ten": "Before You Land · eSIM theo nước",
     "cap_nhat": "2026-11-14",
     "muc_tieu": "kênh tự vận hành: máy dựng video / ảnh \"sắp hạ cánh ở nước X — nối mạng thế nào\" (cửa ngõ quốc tế + 3 bước eSIM) → Phòng Nội dung chấm → máy đăng theo nhịp an toàn lên YouTube Shorts, Facebook Reels, X → khách vào esimfares.com",
@@ -1804,6 +1825,16 @@
   "militarycalc": {
     "loai": "social",
     "dang_mac_dinh": "canh-dong",
+    "nguon_tien": [
+      {
+        "ma": "app-ios",
+        "ten": "App iOS MilitaryCalc (App Store id6813607786)",
+        "mang": null,
+        "site": "militarycalc.com",
+        "link": "nút App Store trên militarycalc.com",
+        "ghi": "site không có link đối tác nào (đã dò trang chủ + /pay); tiền app chưa nối vào sổ kênh"
+      }
+    ],
     "ten": "MilitaryCalc · Military Markdown",
     "cap_nhat": "2026-11-14",
     "muc_tieu": "kênh tự vận hành: máy làm bài lương & quyền lợi quân nhân Mỹ (video, ảnh, bình chọn, bài link, câu trả lời Quora, bài Substack) → Phòng Nội dung chấm → máy đăng theo nhịp an toàn lên Facebook, X, Quora, Substack → khách vào militarycalc.com",

@@ -165,3 +165,14 @@ import { tomNenDang, cayNenDang } from './kenh-sp-tinh';
   assert.ok(/xem –/.test(c[2]!.phu!) && /1 hẹn giờ/.test(c[2]!.phu!) && c[3]!.mau === 'var(--fg-3)');
   assert.deepStrictEqual(cayNenDang([]), []);
 }
+import { cayMauSocial } from './kenh-sp-tinh';
+{ // MẪU NỘI DUNG kênh social: gom theo dạng bài, dạng nhiều bài trước; lượt xem chưa đo = null; dạng ngoài kho vẫn hiện kèm ghi chú
+  const v = (dangBai: string | null, tt: 'da_dang' | 'duyet', xem: number | null, nen: string[] = []) => ({ slug: Math.random().toString(), ten: 'x', ngayLam: null, trangThai: tt, ngayDang: null, url: null, xem, giay: null, dangBai, nen });
+  const c = cayMauSocial([v('tin-lua-tuan', 'da_dang', 10, ['youtube', 'x']), v('tin-lua-tuan', 'duyet', null), v('lam-tuong', 'da_dang', null, ['x']), v('tra-loi', 'da_dang', null, ['quora'])],
+    { 'tin-lua-tuan': { ten: 'Thật hay giả?', nhom: 'video' }, 'lam-tuong': { ten: 'Lầm tưởng', nhom: 'video' } });
+  assert.strictEqual(c[0]!.chu, '🧩 Mẫu nội dung (3 dạng bài)'); assert.deepStrictEqual(c[0]!.o, [4, 3, 3, 10]);
+  assert.strictEqual(c[1]!.chu, '📱 Thật hay giả?'); assert.deepStrictEqual(c[1]!.o, [2, 1, 2, 10]);
+  assert.deepStrictEqual(c.find((d) => d.id === 'mau/lam-tuong')!.o, [1, 1, 1, null]);
+  assert.ok(/chưa có trong kho/.test(c.find((d) => d.id === 'mau/tra-loi')!.phu!));
+  assert.deepStrictEqual(cayMauSocial([]), []);
+}

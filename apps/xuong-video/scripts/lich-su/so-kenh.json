@@ -1679,6 +1679,7 @@
   },
   "ratesbyroom-scam-or-real": {
     "loai": "social",
+    "dang_mac_dinh": "tin-lua-tuan",
     "ten": "Scam or Real? · Hotel Scam Alerts",
     "cap_nhat": "2026-11-14",
     "muc_tieu": "kênh tự vận hành: máy dựng video / ảnh câu đố \"tin nhắn khách sạn này thật hay lừa?\" → Phòng Nội dung chấm → máy đăng theo nhịp an toàn lên YouTube, Facebook, X, Dailymotion, Quora → khách vào ratesbyroom.com/hotel-scam-check/",
@@ -1741,6 +1742,7 @@
   },
   "esimfares-before-you-land": {
     "loai": "social",
+    "dang_mac_dinh": "n-buoc",
     "ten": "Before You Land · eSIM theo nước",
     "cap_nhat": "2026-11-14",
     "muc_tieu": "kênh tự vận hành: máy dựng video / ảnh \"sắp hạ cánh ở nước X — nối mạng thế nào\" (cửa ngõ quốc tế + 3 bước eSIM) → Phòng Nội dung chấm → máy đăng theo nhịp an toàn lên YouTube Shorts, Facebook Reels, X → khách vào esimfares.com",

@@ -9,7 +9,8 @@ export type VideoKenh = { slug: string; ten: string; /** ngày làm xong (bản 
   /** mã playlist của tập (xv_may_video.dang.playlist — lam-tap ghi lúc nạp; G1) — null = tập cũ chưa chia playlist */ playlist?: string | null;
   /** SỬA LẠI đang ở giai đoạn nào (góp ý #1584) — chỉ có khi trangThai = 'sua_lai' (suaLaiGiaiDoan) */ suaLai?: SuaLai | null;
   /** mẫu + ý tưởng trong sổ kênh (xv_may_video.dang.mau / y_tuong — lam-tap ghi lúc nạp) — null = kênh chưa có sổ / tập cũ */ mau?: string | null; yTuong?: string | null
-  /** kênh social: các nơi đăng bài này đã lên (xv_may_video.da_dang, bỏ bài hẹn giờ chưa tới) */ nen?: string[] };
+  /** kênh social: các nơi đăng bài này đã lên (xv_may_video.da_dang, bỏ bài hẹn giờ chưa tới) */ nen?: string[];
+  /** kênh social: DẠNG BÀI (mẫu nội dung) của bài — dang.dang_bai / de.kieu, bài cũ không ghi = so.dang_mac_dinh của kênh */ dangBai?: string | null };
 export type KenhSp = {
   ma: string; ten: string; chay: boolean; kenhUrl: string | null;
   tap: number; choDang: number; daDang: number;
@@ -36,6 +37,7 @@ export type KenhSp = {
   social?: import('./social-tro-ve-tinh').TroVe | null;
   /** KÊNH SOCIAL (máy không phải la_san_pham, có mục loai 'social' trong so-kenh.json): nơi đăng + trang đích của máy */
   nen?: NenKenh[]; siteDich?: string | null;
+  /** tên + nhóm của dạng bài (kho scripts/ke-hoach-goc/dang-bai.json, server tra sẵn) — khối 🧩 Mẫu nội dung */ dangTen?: Record<string, { ten: string; nhom: string }>;
 };
 
 /** tập đang dở chưa nạp máy đăng (xv_may.nguon.tap_cho) */
@@ -101,7 +103,7 @@ export function lichKenh(k: Pick<KenhSp, 'videos' | 'ke'>): OLich[] {
 export type DongKe = { id: string; nhom?: boolean; chu: string; phu?: string; mau?: string;
   /** MỌI LINK RA NGĂN (anh 04/11/2026 "mọi link đều phải ra drawer"): nút trên dòng mở ngăn loại / mã — không có url mở tab ngoài */ ngan?: { loai: 'mau' | 'mo_dau' | 'nguoi' | 'playlist'; id: string }; nganChu?: string;
   /** ĐỒNG HỒ của tập đang sản xuất (anh 05/11/2026: "đồng hồ nằm ở dòng của video đang sx"): bước so / tong, hỏng thì đỏ */ dongHo?: { so: number; tong: number; loi: boolean };
-  /** ô số thẳng cột (bảng thống kê mẫu) + tên cột ở dòng nhóm */ o?: (number | null)[]; oTieuDe?: string[] };
+  /** ô số thẳng cột (bảng thống kê mẫu) + tên cột ở dòng nhóm; oTen = tên cột cho tooltip dòng mục (thiếu = COT_MAU) */ o?: (number | null)[]; oTieuDe?: string[]; oTen?: string[] };
 const gioVn = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
 const thuNgay = (ymd: string) => `${THU[new Date(`${ymd}T00:00:00Z`).getUTCDay() || 7]} ${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()): DongKe[] {
@@ -144,7 +146,8 @@ export const khungMau = (m: Pick<MauKenh, 'loai' | 'khung'>): '9:16' | '16:9' =>
 /** Ý TƯỞNG trong hàng chờ (so-kenh.json › hang_cho); trạng thái trong sổ bị tập thật đè (tập slug = mã ý tưởng: đã làm / đã đăng). */
 export type TrangThaiY = 'chua' | 'san_sang' | 'demo' | 'da_lam' | 'da_dang';
 export type YTuong = { ma: string; mau: string; chu_de: string; ngay?: string; trang_thai: TrangThaiY; /** ý tưởng máy tự sinh (so-kenh.json › nguon_y_tuong) — giờ UTC của sự kiện */ tu_sinh?: string; utc?: string };
-export type SoKenh = { /** 'social' = máy social đã chuyển sang kiểu trình bày kênh (mos2 › tab Kênh nội dung) */ loai?: 'social'; ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[];
+export type SoKenh = { /** 'social' = máy social đã chuyển sang kiểu trình bày kênh (mos2 › tab Kênh nội dung) */ loai?: 'social';
+  /** kênh social: dạng bài gốc của máy (mã trong dang-bai.json) — bài cũ không ghi dạng tính vào đây */ dang_mac_dinh?: string; ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[];
   dinh_vi?: { cho_ai?: string; dich?: string; cau_ket?: string; ngon_ngu?: string }; luat?: string[]; mau?: MauKenh[]; hang_cho?: YTuong[]; mo_dau?: string;
   nguon_y_tuong?: { mau: string; tep: string; ngay_toi?: number; ghi?: string }[]; /** sổ người nổi tiếng (giờ sinh + hạng Rodden), đường dưới lich-su/ */ nguoi_tep?: string };
 /** NGƯỜI NỔI TIẾNG trong sổ người (la-so/nguoi.json): giờ sinh + hạng Rodden; cung Mọc / nhà chỉ cho hạng trong rodden_dung_nha. */
@@ -348,4 +351,19 @@ export function cayNenDang(ds: NenKenh[]): DongKe[] {
   return [{ id: 'nen', nhom: true, chu: `📡 Nền đăng (${ds.length})`, phu: `${ds.reduce((t, n) => t + n.bai, 0)} bài đã lên · ${coSo}/${ds.length} nền có số lượt xem · "–" = chưa đo` },
     ...ds.map((n): DongKe => ({ id: `nen/${n.nen}`, chu: `${n.ten}${n.tk && n.tk !== n.ten ? ` · ${n.tk}` : ''}`, mau: n.bai ? undefined : 'var(--fg-3)',
       phu: [`${n.bai} bài`, n.hen ? `${n.hen} hẹn giờ` : '', `lần cuối ${ngay(n.cuoi)}`, `xem ${n.xem == null ? '–' : n.xem.toLocaleString('vi-VN')}`, n.kem ?? ''].filter(Boolean).join(' · ') }))];
+}
+
+/** 🧩 MẪU NỘI DUNG của kênh social (anh 14/11/2026 "Thiếu mẫu nội dung !!"): mỗi DẠNG BÀI máy đã làm một dòng — đã làm · đã đăng · số nền đã lên · lượt xem
+ *  (cộng mọi nền; null = chưa đo). Dạng lấy từ kho dang-bai.json (Social › Góc › Dạng bài); bài không có dạng = "chưa ghi dạng". Thuần. */
+export const COT_MAU_SOCIAL = ['Đã làm', 'Đã đăng', 'Nền', 'Lượt xem'];
+export function cayMauSocial(videos: VideoKenh[], ten: Record<string, { ten: string; nhom: string }> = {}): DongKe[] {
+  if (!videos.length) return [];
+  const nhom = new Map<string, VideoKenh[]>(); for (const v of videos) { const k = v.dangBai ?? ''; nhom.set(k, [...(nhom.get(k) ?? []), v]); }
+  const o = (ds: VideoKenh[]): (number | null)[] => { const xem = ds.filter((v) => v.xem != null);
+    return [ds.length, ds.filter((v) => v.trangThai === 'da_dang').length, new Set(ds.flatMap((v) => v.nen ?? [])).size, xem.length ? xem.reduce((a, v) => a + (v.xem ?? 0), 0) : null]; };
+  const NHOM: Record<string, string> = { video: '📱', anh: '🖼', 'tuong-tac': '💬', link: '🔗' };
+  const ds = [...nhom].sort((a, b) => b[1].length - a[1].length);
+  return [{ id: 'mau', nhom: true, chu: `🧩 Mẫu nội dung (${ds.filter(([k]) => k).length} dạng bài)`, phu: 'dạng bài máy đã làm · kho dạng: Social › Góc › Dạng bài', o: o(videos), oTieuDe: COT_MAU_SOCIAL },
+    ...ds.map(([k, vs]): DongKe => ({ id: `mau/${k || '_'}`, chu: k ? `${NHOM[ten[k]?.nhom ?? ''] ?? '•'} ${ten[k]?.ten ?? k}` : '• chưa ghi dạng', mau: k ? undefined : 'var(--fg-3)',
+      phu: k ? (ten[k] ? k : `${k} · chưa có trong kho dạng bài`) : 'bài cũ không ghi dang_bai', o: o(vs), oTen: COT_MAU_SOCIAL }))];
 }

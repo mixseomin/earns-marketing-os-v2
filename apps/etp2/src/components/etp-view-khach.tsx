@@ -93,6 +93,10 @@ export function EtpView({ duUrl, ...p }: Omit<Props, 'du'> & { duUrl: string }) 
     })();
     return () => { huy = true; };
   }, [duUrl, lan]);
+  // LỖI MẠNG TỰ THỬ LẠI (Safari "Load failed" khi mạng điện thoại chập chờn — 13/11/2026): 15 giây một lần + ngay khi quay lại tab, không chờ ai chạm
+  useEffect(() => { if (!loi) return; const t = window.setTimeout(() => setLan((n) => n + 1), 15_000);
+    const hien = () => { if (!document.hidden) setLan((n) => n + 1); }; document.addEventListener('visibilitychange', hien);
+    return () => { window.clearTimeout(t); document.removeEventListener('visibilitychange', hien); }; }, [loi]);
   if (!du) {
     if (!loi) return <div style={{ padding: 24, color: 'var(--fg-2)', fontSize: 13 }}>
       Đang tải số liệu etp…{tien ? ` ${tien[1] ? Math.min(99, Math.round((tien[0] / tien[1]) * 100)) + '% · ' : ''}${Math.round(tien[0] / 1024)} KB` : ''}
@@ -108,8 +112,15 @@ export function EtpView({ duUrl, ...p }: Omit<Props, 'du'> & { duUrl: string }) 
   }
   return (
     <>
-      {cu && !loi ? <div style={{ padding: '4px 12px', fontSize: 11.5, color: 'var(--fg-2)', borderBottom: '1px solid var(--line)' }}>Số lúc {gioVn(cu)} (bản giữ trong máy) — đang tải bản mới…</div> : null}
-      {loi ? <div style={{ padding: '6px 12px', fontSize: 12, color: '#f87171', borderBottom: '1px solid #f87171' }}>Số liệu mới chưa tải được ({loi}) — đang hiện bản trước. <button type="button" onClick={() => setLan((n) => n + 1)} style={{ fontSize: 12, background: 'transparent', border: '1px solid #f87171', color: 'inherit', borderRadius: 4, cursor: 'pointer' }}>Thử lại</button></div> : null}
+      {/* TRẠNG THÁI SỐ LIỆU = MỘT NÚT TRÒN NHỎ GÓC DƯỚI TRÁI (anh 13/11/2026 ảnh điện thoại: "Chỉ cần hiện gọn nút refresh là đc. Tốn diện tích quá. YDNI"):
+          không chiếm dòng nào của trang. Xoay = đang tải bản mới (đang hiện bản giữ trong máy) · đỏ = tải hỏng, chạm để thử lại · câu đầy đủ ở hover / title. */}
+      {cu || loi ? <button type="button" onClick={() => setLan((n) => n + 1)} aria-label={loi ? 'Tải lại số liệu' : 'Đang tải số liệu mới'}
+        title={loi ? `Số liệu mới chưa tải được (${loi}) — đang hiện bản trước, chạm để thử lại` : `Đang hiện số lúc ${gioVn(cu!)} (bản giữ trong máy) — đang tải bản mới`}
+        style={{ position: 'fixed', left: 12, bottom: 12, zIndex: 60, width: 30, height: 30, borderRadius: 15, display: 'grid', placeItems: 'center', padding: 0, cursor: 'pointer', fontSize: 15, lineHeight: 1,
+          background: 'var(--bg-1, #111)', color: loi ? '#f87171' : 'var(--fg-2)', border: `1px solid ${loi ? '#f87171' : 'var(--line)'}`, boxShadow: '0 2px 8px rgba(0,0,0,.35)' }}>
+        <span style={{ display: 'inline-block', animation: loi ? undefined : 'etpXoay 1s linear infinite' }}>↻</span>
+        <style>{'@keyframes etpXoay{to{transform:rotate(360deg)}}'}</style>
+      </button> : null}
       <EtpViewTre {...p} du={du} />
     </>
   );

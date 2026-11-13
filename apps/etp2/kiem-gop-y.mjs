@@ -7,6 +7,8 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 'du-may-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', cam: 'Số liệu mới chưa tải được ({loi}) — đang hiện bản trước. <button', vi: 'trạng thái số liệu là nút tròn nhỏ góc dưới, không chiếm dòng (anh 13/11/2026 "Chỉ cần hiện gọn nút refresh. Tốn diện tích quá")' },
+  { card: 'du-may-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: "position: 'fixed', left: 12, bottom: 12", vi: 'nút trạng thái số liệu nổi góc dưới trái' },
   { card: 'du-may-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: 'const may = await docMay(duUrl);', vi: 'mở / tải lại etp2 hiện ngay bản số giữ trong máy, bản mới tải ngầm (anh 13/11/2026 "Có giải pháp nào hợp lý và nhanh hơn?")' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/lib/etp-du-kho.ts', co: 'if (co && Date.now() - co.luc < DOC_MS) return co.p;', vi: 'một lượt đọc kho cho mọi lần hỏi cùng lúc, dùng lại 8 giây — tải lại liên tục không đọc chồng' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/app/etp/page.tsx', cam: ' du={gonXet(', vi: 'số liệu trang KHÔNG đi làm props trong HTML — iPhone hết RAM với trang 11 MB, Safari tự tải lại (anh 13/11/2026 "Etp2 đang lỗi. Fix triệt để")' },

@@ -1635,5 +1635,108 @@
       "ten": "History explained (map history videos & apps)",
       "so_goc": 66
     }
+  },
+  "_chuyen_social": {
+    "ghi": "LỘ TRÌNH CHUYỂN KÊNH SOCIAL sang kiểu trình bày Kênh nội dung (anh 14/11/2026: \"lên lộ trình chuyển từng kênh để xem thế nào\"). Một máy social có mục trong sổ này (loai: social) = đã chuyển — mos2 › Social Traffic › 📺 Kênh hiện máy đó thành cây (sổ kênh · nền đăng · lộ trình · lịch · đã làm). Thứ tự = kênh nhiều nền + nhiều bài trước.",
+    "thu_tu": [
+      {
+        "may": "ratesbyroom-scam-or-real",
+        "trang_thai": "dang"
+      },
+      {
+        "may": "esimfares-before-you-land",
+        "trang_thai": "chua"
+      },
+      {
+        "may": "militarycalc",
+        "trang_thai": "chua"
+      },
+      {
+        "may": "front-porch-only-one",
+        "trang_thai": "chua"
+      },
+      {
+        "may": "examweight-cau-hoi",
+        "trang_thai": "chua"
+      },
+      {
+        "may": "sidecue",
+        "trang_thai": "chua"
+      },
+      {
+        "may": "saidly",
+        "trang_thai": "chua"
+      },
+      {
+        "may": "mia-calloway",
+        "trang_thai": "chua"
+      },
+      {
+        "may": "giochap-van-khan",
+        "trang_thai": "chua"
+      }
+    ]
+  },
+  "ratesbyroom-scam-or-real": {
+    "loai": "social",
+    "ten": "Scam or Real? · Hotel Scam Alerts",
+    "cap_nhat": "2026-11-14",
+    "muc_tieu": "kênh tự vận hành: máy dựng video / ảnh câu đố \"tin nhắn khách sạn này thật hay lừa?\" → Phòng Nội dung chấm → máy đăng theo nhịp an toàn lên YouTube, Facebook, X, Dailymotion, Quora → khách vào ratesbyroom.com/hotel-scam-check/",
+    "dinh_vi": {
+      "cho_ai": "người đặt phòng khách sạn qua mạng nhận tin nhắn đòi trả tiền / xác minh — tiếng Anh, toàn cầu",
+      "dich": "ratesbyroom.com/hotel-scam-check/ (trang kiểm tin nhắn lừa khách sạn)",
+      "cau_ket": "check any hotel message free at ratesbyroom.com",
+      "ngon_ngu": "EN"
+    },
+    "luat": [
+      "Cách lừa và cách xử chỉ lấy từ tệp sự thật apps/xuong-video/su-that/ratesbyroom-scam-or-real.md — không nêu tên hãng đặt phòng bị lộ, không trích thống kê, không hứa hoàn tiền",
+      "Mỗi bài qua Phòng Nội dung chấm (cty worker/cham-dang.mjs) trước khi máy đăng lấy",
+      "Nhịp an toàn: trần mỗi nền mỗi ngày theo tuổi kênh, cách nhau ≥ 3 giờ trên cùng tài khoản, không cùng một chuyện lên hai nền của cùng tài khoản trong một ngày, mỗi bài một tiêu đề khác",
+      "Bài đăng có ảnh / video thật đúng chủ đề, chữ không đè nền màu phẳng"
+    ],
+    "giai_doan": [
+      {
+        "ma": "G0",
+        "ten": "Dựng máy + nền đăng",
+        "viec": "Máy chạy từ 17/10/2026: 11 nền đăng (YouTube @hotelscamalerts, Page Hotel Scam Alerts, X @hotelscamalerts, Dailymotion, Quora, Page Abandoned Lives) qua máy đăng chung",
+        "anh": "không",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G1",
+        "ten": "Chuyển sang sổ kênh",
+        "viec": "Sổ kênh + khối Nền đăng trên mos2 › Social Traffic › 📺 Kênh (14/11/2026)",
+        "anh": "xem và góp ý",
+        "trang_thai": "cho_anh"
+      },
+      {
+        "ma": "G2",
+        "ten": "Đo số theo nền",
+        "viec": "Người theo dõi + lượt xem từng tài khoản mỗi ngày vào kenh_so_ngay (hiện chỉ YouTube + Facebook có lượt xem từng bài)",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G3",
+        "ten": "Đang sản xuất sống",
+        "viec": "Máy dựng ghi dấu dang_lam_ds như máy làm tập → khối ▶ Đang sản xuất hiện từng bài trong lò",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G4",
+        "ten": "Nối góc spy",
+        "viec": "Mỗi bài ghi góc spy nó dùng → đếm khách về site theo góc, bỏ góc không ra khách",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G5",
+        "ten": "Tự vận hành",
+        "viec": "Máy tự chọn dạng bài + góc theo số khách, Claude chỉ vào khi Telegram báo kẹt",
+        "anh": "không",
+        "trang_thai": "chua"
+      }
+    ]
   }
 }

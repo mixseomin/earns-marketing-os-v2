@@ -153,3 +153,15 @@ import { thongKeMau, dongMau } from './kenh-sp-tinh';
   // bảng của mẫu: tập x (04/11) → tập b (đăng 03/11) → ý tưởng không ngày; ý tưởng b đã thành tập thì không lặp
   assert.deepStrictEqual(dongMau(cc).map((d) => (d.loai === 'video' ? `v:${d.v.slug}` : `y:${d.y.ma}`)), ['v:x', 'v:b', 'y:a', 'y:c']); }
 console.log('kenh-sp-tinh: số theo mẫu đạt');
+import { tomNenDang, cayNenDang } from './kenh-sp-tinh';
+{ // NỀN ĐĂNG kênh social: bài hẹn giờ (ngày > hôm nay) không tính đã lên; nền chưa có số xem → null (khác 0); nền không bài vẫn có dòng
+  const n = tomNenDang([{ nen: 'youtube', ten: 'YouTube', tk: '@a' }, { nen: 'x', tk: '@a' }, { nen: 'quora' }], [
+    { dd: { youtube: { ngay: '2026-11-10' }, x: { ngay: '2026-11-12T08:00' } }, lx: { youtube: 30 } },
+    { dd: { youtube: { ngay: '2026-11-13' }, x: { ngay: '2026-11-20' } }, lx: { youtube: 5, x: 9 } },
+    { dd: null, lx: null }], '2026-11-14');
+  assert.deepStrictEqual(n.map((x) => [x.nen, x.bai, x.hen, x.cuoi, x.xem]), [['youtube', 2, 0, '2026-11-13', 35], ['x', 1, 1, '2026-11-12', null], ['quora', 0, 0, null, null]]);
+  const c = cayNenDang(n);
+  assert.ok(c[0]!.nhom && c[0]!.chu === '📡 Nền đăng (3)' && /3 bài đã lên · 1\/3 nền/.test(c[0]!.phu!));
+  assert.ok(/xem –/.test(c[2]!.phu!) && /1 hẹn giờ/.test(c[2]!.phu!) && c[3]!.mau === 'var(--fg-3)');
+  assert.deepStrictEqual(cayNenDang([]), []);
+}

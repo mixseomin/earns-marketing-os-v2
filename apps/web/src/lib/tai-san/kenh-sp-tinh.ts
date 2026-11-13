@@ -8,7 +8,8 @@ export type VideoKenh = { slug: string; ten: string; /** ngày làm xong (bản 
   /** BẢN XUẤT trên R2 (xv_may_video.video_url) — ngăn video phát thẳng tệp này khi tập chưa lên YouTube (DUYỆT chờ đăng vẫn xem được) */ tep?: string | null;
   /** mã playlist của tập (xv_may_video.dang.playlist — lam-tap ghi lúc nạp; G1) — null = tập cũ chưa chia playlist */ playlist?: string | null;
   /** SỬA LẠI đang ở giai đoạn nào (góp ý #1584) — chỉ có khi trangThai = 'sua_lai' (suaLaiGiaiDoan) */ suaLai?: SuaLai | null;
-  /** mẫu + ý tưởng trong sổ kênh (xv_may_video.dang.mau / y_tuong — lam-tap ghi lúc nạp) — null = kênh chưa có sổ / tập cũ */ mau?: string | null; yTuong?: string | null };
+  /** mẫu + ý tưởng trong sổ kênh (xv_may_video.dang.mau / y_tuong — lam-tap ghi lúc nạp) — null = kênh chưa có sổ / tập cũ */ mau?: string | null; yTuong?: string | null
+  /** kênh social: các nơi đăng bài này đã lên (xv_may_video.da_dang, bỏ bài hẹn giờ chưa tới) */ nen?: string[] };
 export type KenhSp = {
   ma: string; ten: string; chay: boolean; kenhUrl: string | null;
   tap: number; choDang: number; daDang: number;
@@ -33,6 +34,8 @@ export type KenhSp = {
   nguoi?: { ds: NguoiLaSo[]; dungNha: string[] } | null;
   /** social trỏ về kênh (bài short dẫn link kênh) — tab Tài sản gắn theo khung ?ky= */
   social?: import('./social-tro-ve-tinh').TroVe | null;
+  /** KÊNH SOCIAL (máy không phải la_san_pham, có mục loai 'social' trong so-kenh.json): nơi đăng + trang đích của máy */
+  nen?: NenKenh[]; siteDich?: string | null;
 };
 
 /** tập đang dở chưa nạp máy đăng (xv_may.nguon.tap_cho) */
@@ -141,7 +144,7 @@ export const khungMau = (m: Pick<MauKenh, 'loai' | 'khung'>): '9:16' | '16:9' =>
 /** Ý TƯỞNG trong hàng chờ (so-kenh.json › hang_cho); trạng thái trong sổ bị tập thật đè (tập slug = mã ý tưởng: đã làm / đã đăng). */
 export type TrangThaiY = 'chua' | 'san_sang' | 'demo' | 'da_lam' | 'da_dang';
 export type YTuong = { ma: string; mau: string; chu_de: string; ngay?: string; trang_thai: TrangThaiY; /** ý tưởng máy tự sinh (so-kenh.json › nguon_y_tuong) — giờ UTC của sự kiện */ tu_sinh?: string; utc?: string };
-export type SoKenh = { ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[];
+export type SoKenh = { /** 'social' = máy social đã chuyển sang kiểu trình bày kênh (mos2 › Social Traffic › 📺 Kênh) */ loai?: 'social'; ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[];
   dinh_vi?: { cho_ai?: string; dich?: string; cau_ket?: string; ngon_ngu?: string }; luat?: string[]; mau?: MauKenh[]; hang_cho?: YTuong[]; mo_dau?: string;
   nguon_y_tuong?: { mau: string; tep: string; ngay_toi?: number; ghi?: string }[]; /** sổ người nổi tiếng (giờ sinh + hạng Rodden), đường dưới lich-su/ */ nguoi_tep?: string };
 /** NGƯỜI NỔI TIẾNG trong sổ người (la-so/nguoi.json): giờ sinh + hạng Rodden; cung Mọc / nhà chỉ cho hạng trong rodden_dung_nha. */
@@ -319,4 +322,30 @@ export function cayPlaylistThat(ds: PlaylistKenh[], so?: SoKenh | null): DongKe[
       phu: [kh.get(p.ma)?.trang_thai === 'de_xuat' && 'đề xuất · chờ anh duyệt', kh.get(p.ma)?.mau?.length && `mẫu: ${kh.get(p.ma)!.mau!.map((x) => tenMau.get(x) ?? x).join(' + ')}`, kh.get(p.ma)?.goc_spy?.length && `góc spy: ${kh.get(p.ma)!.goc_spy!.map((g) => g.ten).join(' · ')}`,
         p.lich && `làm tập ${p.lich}`, `${p.tap} tập · ${p.daDang} đã đăng · ${soDem(p.xem)} xem`, p.tienTo && `tiêu đề "${p.tienTo}: …"`, p.trangDich && `→ ${p.trangDich}`,
         p.ma && (p.coYt ? 'có playlist YouTube' : 'chưa có playlist YouTube (G7)')].filter(Boolean).join(' · ') }))];
+}
+
+/** NỀN ĐĂNG của một kênh social (anh 14/11/2026: chuyển kênh social sang kiểu trình bày Kênh nội dung) — một máy đổ ra nhiều nền / tài khoản:
+ *  mỗi nơi đăng (xv_may.dang[]) một dòng: số bài đã lên, bài hẹn giờ chưa tới, lần cuối, lượt xem cộng dồn (luot_xem_nen; null = nền chưa có máy đọc số). */
+export type NenKenh = { nen: string; ten: string; tk: string; kem: string | null; bai: number; hen: number; cuoi: string | null; xem: number | null };
+/** Thuần — gộp nơi đăng của máy với đã-đăng từng video. dd = xv_may_video.da_dang (nền → { ngay, hen? }), lx = luot_xem_nen. Bài ngày > hôm nay = hẹn. */
+export function tomNenDang(dang: { nen: string; ten?: string; tk?: string; kem?: string }[], vids: { dd: Record<string, unknown> | null; lx: Record<string, unknown> | null }[], hom: string): NenKenh[] {
+  return dang.map((n) => {
+    let bai = 0, hen = 0, cuoi: string | null = null, xem: number | null = null;
+    for (const v of vids) {
+      const o = v.dd?.[n.nen] as { ngay?: string } | undefined; if (!o || typeof o !== 'object') continue;
+      const ngay = o.ngay?.slice(0, 10) ?? null;
+      if (ngay && ngay > hom) { hen++; continue; }
+      bai++; if (ngay && (!cuoi || ngay > cuoi)) cuoi = ngay;
+      const x = Number(v.lx?.[n.nen]); if (v.lx?.[n.nen] != null && Number.isFinite(x)) xem = (xem ?? 0) + x;
+    }
+    return { nen: n.nen, ten: n.ten || n.nen, tk: n.tk ?? '', kem: n.kem ?? null, bai, hen, cuoi, xem };
+  }).sort((a, b) => b.bai - a.bai);
+}
+/** Khối 📡 Nền đăng trong cây kênh social: dòng nhóm (tổng bài, số nền có số đo) + mỗi nơi đăng một dòng. Thuần. */
+export function cayNenDang(ds: NenKenh[]): DongKe[] {
+  if (!ds.length) return [];
+  const ngay = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : 'chưa đăng'), coSo = ds.filter((n) => n.xem != null).length;
+  return [{ id: 'nen', nhom: true, chu: `📡 Nền đăng (${ds.length})`, phu: `${ds.reduce((t, n) => t + n.bai, 0)} bài đã lên · ${coSo}/${ds.length} nền có số lượt xem · "–" = chưa đo` },
+    ...ds.map((n): DongKe => ({ id: `nen/${n.nen}`, chu: `${n.ten}${n.tk && n.tk !== n.ten ? ` · ${n.tk}` : ''}`, mau: n.bai ? undefined : 'var(--fg-3)',
+      phu: [`${n.bai} bài`, n.hen ? `${n.hen} hẹn giờ` : '', `lần cuối ${ngay(n.cuoi)}`, `xem ${n.xem == null ? '–' : n.xem.toLocaleString('vi-VN')}`, n.kem ?? ''].filter(Boolean).join(' · ') }))];
 }

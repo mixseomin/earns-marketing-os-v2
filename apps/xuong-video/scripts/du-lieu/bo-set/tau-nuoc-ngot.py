@@ -31,13 +31,15 @@ C['may'].update({
     'chu_tu_duoi': {'dat': [0.2, 4.35], 'nhin': [-1.1, 5], 'cao': 1.15, 'ong': 40},
     # chú nhìn theo nhóc về tiệm (phía bắc): máy phía đông-bắc ô cửa, thấy mặt — máy phía nam (can_chu) chỉ thấy gáy
     # chú THẤY nhóc ở giữa ga (nhìn chéo lên phía đông-bắc): máy trước mặt theo hướng đó, cùng phía trục chú–nhóc — máy thấp cạnh ô cửa chỉ thấy má (lệch 84°)
-    'chu_thay_nhoc': {'dat': [0.3, 6.0], 'nhin': [-1.1, 5], 'cao': 1.9, 'ong': 50},
-    'chu_nhin_tiem': {'dat': [0.6, 6.2], 'nhin': [-1.2, 5], 'cao': 1.9, 'ong': 50},
+    'chu_thay_nhoc': {'dat': [0.3, 6.0], 'nhin': [-1.1, 5], 'cao': 1.9, 'ong': 35},
+    'chu_nhin_tiem': {'dat': [0.6, 6.2], 'nhin': [-1.2, 5], 'cao': 1.9, 'ong': 35},
 })   # nhóc đứng sát mép sân ga (mép x = -60) — tầm tay với chú ở ô cửa để trao tiền (sơ đồ 2D đặt 0,4 m: quá xa tay)
 # KÍCH THƯỚC TOA (anh 12/11/2026 "tàu cao có đúng tỷ lệ không" — bản đầu nóc 3,94 m, rộng 3,2 m, sàn 0,4 m, bánh lơ lửng): theo toa khách khổ 1 m thường gặp
 # (ƯỚC, chưa đối chiếu phụ lục khổ giới hạn TT 12/2015): rộng ~2,9 m, nóc ~3,75 m trên mặt ray, sàn ~1,1 m trên mặt ray. Sân ga thấp: mặt ray thấp hơn sân ga 30 cm.
 RAY = -30                     # mặt ray (cm, so với mặt sân ga)
-SAN, BAU, DINH, NOC = 80, 160, 250, 340   # sàn toa · bậu cửa sổ (sàn + 80) · đỉnh ô cửa · nóc (≈ 3,7 m trên ray)
+SAN, BAU, DINH, NOC = 80, 160, 250, 340   # sàn toa · bậu cửa sổ (sàn + 80 — dáng chong_ban của mau.html cho tay chạm đúng mức này) · đỉnh ô cửa · nóc (≈ 3,7 m trên ray)
+# Ô CỬA CỦA CHÚ rộng 100 cm (13/11/2026: bản 120 × 90 gần vuông — cận góc thấp ô cửa choán cả khung, model vẽ thành CỬA LÊN XUỐNG ở #2 #4 #20)
+CUA_Y0, CUA_Y1 = 450, 550
 VD, VT = -103, -393           # vách đông (phía sân ga) · vách tây — rộng 2,9 m
 TAU = [-248, 600, 0]          # tâm đáy khối tàu (cm); cửa sổ của chú y 440–560, z BAU–DINH
 CHU = [-128, 500, SAN]        # chú đứng TRÊN SÀN TOA sát sau vách đông: vách che thân, đầu + tay qua ô cửa — đặt ngoài vách thì cả người đứng ngoài thành tàu
@@ -49,7 +51,9 @@ def cho(ai, moc):
 def dich(x):  # đích nhìn: tên người hoặc mốc
     return {'Chú': CHU, 'Nhóc': None}.get(x) or ([*M[x], 0] if x in M else None)
 MAT_CHU = SAN + 160           # tầm mặt chú (đứng trên sàn toa)
-CAO_NHIN = {'chu_thay_nhoc': MAT_CHU - 10, 'mat_nhoc_xa': 110, 'mat_nhoc': 105, 'chu_tu_duoi': MAT_CHU - 25, 'chu_nhin_tiem': MAT_CHU, 'can_chu': MAT_CHU, 'pov_chu': 110, 'toan_ga': 150, 'can_nhoc': 110, 'banh_xe': 10, 'nhoc_ve': 110, 'mat_chu': MAT_CHU, 'theo_cua_so': MAT_CHU}
+# CẬN CHÚ QUA Ô CỬA PHẢI THẤY BẬU (13/11/2026): ngắm tầm mặt thì bậu (sàn + 90) rơi dưới mép khung — ô cửa không đáy đọc ra CỬA LÊN XUỐNG (#2 #4 #10 #12 #20).
+# Chú ĐỨNG THẲNG (không nhoài) thì ô cửa 90 cm cao hơn khung cận ống 50: dùng ống 35 + ngắm cằm (MAT_CHU − 25) — thấy cả đầu lẫn bậu cho bậu lọt mép dưới; #6 #8 #15 (chu_tu_duoi) vốn thấy bậu nên ảnh ra đúng ô cửa sổ.
+CAO_NHIN = {'chu_thay_nhoc': MAT_CHU - 25, 'mat_nhoc_xa': 110, 'mat_nhoc': 105, 'chu_tu_duoi': MAT_CHU - 25, 'chu_nhin_tiem': MAT_CHU - 25, 'can_chu': MAT_CHU, 'pov_chu': 110, 'toan_ga': 150, 'can_nhoc': 110, 'banh_xe': 10, 'nhoc_ve': 110, 'mat_chu': MAT_CHU, 'theo_cua_so': MAT_CHU}
 CAO_MAY = {'can_chu': 210, 'pov_chu': MAT_CHU + 5, 'mat_chu': MAT_CHU - 5, 'theo_cua_so': 200}   # máy nhìn chú nâng theo sàn toa mới (cm)
 # sân ga chừa khe 40 cm trước thành tàu (mép x = -60): máy chèn bánh xe #6 đứng trong khe
 X0, Y0 = TAU[0], TAU[1]
@@ -60,14 +64,14 @@ XG = (VD + VT) / 2; RONG = VD - VT
 phan = [
     p('vách đông dưới', VD, 600, 50, [6, 3200, BAU - 50], XANH, 'green train side'),
     p('vách đông trên', VD, 600, DINH, [6, 3200, NOC - DINH], XANH, 'green train side'),
-    p('vách đông nam', VD, -280, BAU, [6, 1440, DINH - BAU], XANH, 'green train side'),
-    p('vách đông bắc', VD, 1380, BAU, [6, 1640, DINH - BAU], XANH, 'green train side'),
+    p('vách đông nam', VD, (-1000 + CUA_Y0) / 2, BAU, [6, CUA_Y0 + 1000, DINH - BAU], XANH, 'green train side'),
+    p('vách đông bắc', VD, (CUA_Y1 + 2200) / 2, BAU, [6, 2200 - CUA_Y1, DINH - BAU], XANH, 'green train side'),
     # TRONG TOA KHÁC MÀU NGOÀI (13/11/2026: vách tây trong toa cùng xanh với vách đông ngoài → nhìn qua ô cửa chỉ thấy xanh, mép cửa biến mất, khung three.js
     # đọc như chú đứng ĐÈ lên thành tàu; model ảnh vẽ chú đứng ngoài tàu ở 5 cận #2 #4 #8 #12 #15). Mặt trong toa = kem, ô cửa của chú có khung kim loại sáng.
     p('vách tây', VT, 600, 50, [6, 3200, NOC - 50], '#d9cfb4', 'cream train interior wall'),
     p('vách đông trong', VD - 5, 600, SAN, [2, 3200, BAU - SAN], '#d9cfb4', 'cream train interior wall'),
     *[p(f'khung cửa {t}', VD + 5, y, z, co, '#c4c8cc', 'metal window frame') for t, y, z, co in (
-        ('dưới', 500, BAU - 4, [6, 128, 8]), ('trên', 500, DINH - 4, [6, 128, 8]), ('nam', 437, BAU, [6, 8, DINH - BAU]), ('bắc', 563, BAU, [6, 8, DINH - BAU]))],
+        ('dưới', 500, BAU - 4, [6, CUA_Y1 - CUA_Y0 + 8, 8]), ('trên', 500, DINH - 4, [6, CUA_Y1 - CUA_Y0 + 8, 8]), ('nam', CUA_Y0 - 3, BAU, [6, 8, DINH - BAU]), ('bắc', CUA_Y1 + 3, BAU, [6, 8, DINH - BAU]))],
     p('mái', XG, 600, NOC, [RONG + 10, 3200, 12], '#d8d8d0', 'train roof'),
     p('sàn toa', XG, 600, SAN - 4, [RONG - 6, 3200, 4], '#5a4a3a', 'train floor'),
     p('khung gầm', XG, 600, 54, [RONG - 60, 3000, SAN - 58], GAM, 'train underframe'),   # dưới sàn, lùi 30 cm khỏi hai vách: nhìn ngang sân ga thấy bánh bên dưới
@@ -121,6 +125,10 @@ vat = [
     {'ten': 'Ray xa', 'nen': True, 'hinh': 'hop', 'tam': [-298, 1200, RAY - 14], 'co': [7, 4400, 14], 'mau': '#8a8a8a', 'en': 'steel rail'},
     {'ten': 'Tiệm nước', 'hinh': 'hop', 'tam': [M['tiem'][0], M['tiem'][1] + 150, 0], 'co': [320, 220, 270], 'mau': '#b8743a', 'en': 'small drinks kiosk at the far end of the platform', 'chat': 'go'},
     {'ten': 'Mái tiệm', 'hinh': 'hop', 'tam': [M['tiem'][0], M['tiem'][1] + 110, 270], 'co': [380, 300, 12], 'mau': '#c43a2e', 'en': 'red kiosk awning'},
+    # MÁI CHE SÂN GA (13/11/2026: ảnh mẫu bối cảnh có mái tôn trên hàng cột sắt gỉ, 3D không có → mỗi keyframe tự vẽ nền một kiểu: #10 #12 #19 có mái,
+    # #1 #14 #18 sân trống). anchor = bối cảnh Sân ga (một phần của ảnh mẫu đó, không là đối tượng riêng). Mái lệch về phía xa tàu như ảnh mẫu (dải sát tàu để nắng chiều chiếu vào), cột cách 6 m.
+    {'ten': 'Mái che sân ga', 'hinh': 'hop', 'tam': [380, 1200, 360], 'co': [440, 4200, 10], 'mau': '#8a8f94', 'en': 'corrugated metal platform canopy', 'anchor': 'Sân ga tàu xanh'},
+    *[{'ten': f'Cột mái {y}', 'hinh': 'hop', 'tam': [440, y, 0], 'co': [18, 18, 360], 'mau': '#6b4a36', 'en': 'rusty iron canopy pillar', 'anchor': 'Sân ga tàu xanh'} for y in range(-700, 3200, 600)],
     {'ten': 'Ghế đá', 'hinh': 'hop', 'tam': [330, 1300, 0], 'co': [60, 180, 45], 'mau': '#7a756c', 'en': 'stone bench'},
     {'ten': 'Cột đèn', 'hinh': 'hop', 'tam': [330, 700, 0], 'co': [12, 12, 380], 'mau': '#3a3a3a', 'en': 'platform lamp post'},
     # BÁNH TÀU riêng một vật (mặt ngoài bánh gần, sát sân ga) — chủ thể của cận chèn #10; trước chủ thể là khối gốc 'Tàu xanh' (thanh dầm giữa ray) nằm ngoài khung
@@ -259,7 +267,8 @@ for ma, v in SD['shot'].items():
 # #13 CẬN PHẢN ỨNG chốt cảnh (anh 12/11/2026 "đoạn cuối cần shot mặt gần của Chú để rõ cảm xúc" — ngành: close-up reaction shot, kiểu hài double take /
 # slow burn, chốt cảnh = button): nối hướng nhìn từ cuối #12 (nhìn theo nhóc) → cúi nhìn nắm tiền thừa → ngẩng lên nhìn lại, mặt đứng hình; máy đẩy chậm vào mặt
 M['tay_chu'] = [CHU[0] + 30, CHU[1] - 6, CHU[2] + 125]   # nắm tiền đưa lên ngang ngực
-may['13'] = {'dat': [-20, 610, 228], 'nhin': [-125, 505, 222], 'ong_kinh': 42,   # trước mặt chú đang nhìn theo nhóc về phía bắc (máy cũ phía nam: mặt lệch 98°, cận phản ứng không thấy mặt)
+may['13'] = {'dat': [40, 600, 222], 'nhin': [-125, 505, 212], 'ong_kinh': 35,   # ngắm ngực: bậu cửa lọt mép dưới (xem CAO_NHIN)
+               # trước mặt chú đang nhìn theo nhóc về phía bắc (máy cũ phía nam: mặt lệch 98°, cận phản ứng không thấy mặt)
              'khoa_nhin': True, 'khung': ['Chú'],   # khung ôm mặt + nắm tiền khi chú đưa lên nhìn
              'vi_tri': [{'ten': 'Chú', 'tam': CHU, 'huong': 170, 'nhin_ai': 'nhoc_xa', 'nhin_ai_den': 'nhoc_xa',
                          'nhip': [{'u': 0, 'nhin': 'nhoc_xa'}, {'u': 0.33, 'nhin': 'nhoc_xa'}, {'u': 0.45, 'nhin': 'tay_chu'}, {'u': 0.6, 'nhin': 'tay_chu'}, {'u': 0.72, 'nhin': 'nhoc_xa'}],

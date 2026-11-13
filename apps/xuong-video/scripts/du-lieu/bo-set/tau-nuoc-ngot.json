@@ -203,6 +203,142 @@
    "en": "red kiosk awning"
   },
   {
+   "ten": "Mái che sân ga",
+   "hinh": "hop",
+   "tam": [
+    380,
+    1200,
+    360
+   ],
+   "co": [
+    440,
+    4200,
+    10
+   ],
+   "mau": "#8a8f94",
+   "en": "corrugated metal platform canopy",
+   "anchor": "Sân ga tàu xanh"
+  },
+  {
+   "ten": "Cột mái -700",
+   "hinh": "hop",
+   "tam": [
+    440,
+    -700,
+    0
+   ],
+   "co": [
+    18,
+    18,
+    360
+   ],
+   "mau": "#6b4a36",
+   "en": "rusty iron canopy pillar",
+   "anchor": "Sân ga tàu xanh"
+  },
+  {
+   "ten": "Cột mái -100",
+   "hinh": "hop",
+   "tam": [
+    440,
+    -100,
+    0
+   ],
+   "co": [
+    18,
+    18,
+    360
+   ],
+   "mau": "#6b4a36",
+   "en": "rusty iron canopy pillar",
+   "anchor": "Sân ga tàu xanh"
+  },
+  {
+   "ten": "Cột mái 500",
+   "hinh": "hop",
+   "tam": [
+    440,
+    500,
+    0
+   ],
+   "co": [
+    18,
+    18,
+    360
+   ],
+   "mau": "#6b4a36",
+   "en": "rusty iron canopy pillar",
+   "anchor": "Sân ga tàu xanh"
+  },
+  {
+   "ten": "Cột mái 1100",
+   "hinh": "hop",
+   "tam": [
+    440,
+    1100,
+    0
+   ],
+   "co": [
+    18,
+    18,
+    360
+   ],
+   "mau": "#6b4a36",
+   "en": "rusty iron canopy pillar",
+   "anchor": "Sân ga tàu xanh"
+  },
+  {
+   "ten": "Cột mái 1700",
+   "hinh": "hop",
+   "tam": [
+    440,
+    1700,
+    0
+   ],
+   "co": [
+    18,
+    18,
+    360
+   ],
+   "mau": "#6b4a36",
+   "en": "rusty iron canopy pillar",
+   "anchor": "Sân ga tàu xanh"
+  },
+  {
+   "ten": "Cột mái 2300",
+   "hinh": "hop",
+   "tam": [
+    440,
+    2300,
+    0
+   ],
+   "co": [
+    18,
+    18,
+    360
+   ],
+   "mau": "#6b4a36",
+   "en": "rusty iron canopy pillar",
+   "anchor": "Sân ga tàu xanh"
+  },
+  {
+   "ten": "Cột mái 2900",
+   "hinh": "hop",
+   "tam": [
+    440,
+    2900,
+    0
+   ],
+   "co": [
+    18,
+    18,
+    360
+   ],
+   "mau": "#6b4a36",
+   "en": "rusty iron canopy pillar",
+   "anchor": "Sân ga tàu xanh"
+  },
+  {
    "ten": "Ghế đá",
    "hinh": "hop",
    "tam": [
@@ -624,12 +760,12 @@
      "hinh": "hop",
      "tam": [
       145,
-      -880,
+      -875.0,
       160
      ],
      "co": [
       6,
-      1440,
+      1450,
       90
      ],
      "mau": "#2f7d4a",
@@ -641,12 +777,12 @@
      "hinh": "hop",
      "tam": [
       145,
-      780,
+      775.0,
       160
      ],
      "co": [
       6,
-      1640,
+      1650,
       90
      ],
      "mau": "#2f7d4a",
@@ -697,7 +833,7 @@
      ],
      "co": [
       6,
-      128,
+      108,
       8
      ],
      "mau": "#c4c8cc",
@@ -714,7 +850,7 @@
      ],
      "co": [
       6,
-      128,
+      108,
       8
      ],
      "mau": "#c4c8cc",
@@ -726,7 +862,7 @@
      "hinh": "hop",
      "tam": [
       150,
-      -163,
+      -153,
       160
      ],
      "co": [
@@ -743,7 +879,7 @@
      "hinh": "hop",
      "tam": [
       150,
-      -37,
+      -47,
       160
      ],
      "co": [
@@ -1316,9 +1452,9 @@
    "nhin": [
     -110.00000000000001,
     500,
-    230
+    215
    ],
-   "ong_kinh": 50,
+   "ong_kinh": 35,
    "vi_tri": [
     {
      "ten": "Chú",
@@ -1613,9 +1749,9 @@
    "nhin": [
     -120.0,
     500,
-    240
+    215
    ],
-   "ong_kinh": 50,
+   "ong_kinh": 35,
    "vi_tri": [
     {
      "ten": "Chú",
@@ -1684,9 +1820,9 @@
    "nhin": [
     -120.0,
     500,
-    240
+    215
    ],
-   "ong_kinh": 50,
+   "ong_kinh": 35,
    "vi_tri": [
     {
      "ten": "Chú",
@@ -2198,9 +2334,9 @@
    "nhin": [
     -110.00000000000001,
     500,
-    230
+    215
    ],
-   "ong_kinh": 50,
+   "ong_kinh": 35,
    "vi_tri": [
     {
      "ten": "Chú",
@@ -2541,16 +2677,16 @@
   },
   "13": {
    "dat": [
-    -20,
-    610,
-    228
+    40,
+    600,
+    222
    ],
    "nhin": [
     -125,
     505,
-    222
+    212
    ],
-   "ong_kinh": 42,
+   "ong_kinh": 35,
    "khoa_nhin": true,
    "khung": [
     "Chú"

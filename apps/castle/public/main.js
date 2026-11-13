@@ -12,6 +12,7 @@ import { taoNguoi, MAU_DA, MAU_AO, phan, dangKyGoc, chotNguoi, veNguoi, LOD, DEM
 import { dungCongTrinh, taoDongHo, taoSongDong } from './songdong.js';
 import { dungNhaQuan, nguoiQuan } from './quan.js';
 import { taoAmThanh } from './amthanh.js';
+import { taoBanDo } from './bando.js';
 
 const $ = (id) => document.getElementById(id);
 const thamSo = new URLSearchParams(location.search);
@@ -413,6 +414,7 @@ renderer.domElement.addEventListener('mousedown', () => { if (cheDo === 'di' && 
 function noiChuyen() { if (cheDo !== 'di') return; const p = than.translation(); const kq = sd.noiChuyen(p, huongToi, am); if (!kq) sd.noi(toi.goc, 'Không có ai gần đây.', 1.5); }
 function doiGocNhin() { gocNhin = gocNhin === 3 ? 1 : 3; toi.goc.visible = cheDo === 'di' && gocNhin === 3; }
 addEventListener('keydown', (e) => {
+  if (e.target.closest?.('textarea, input')) return; // đang gõ góp ý thì phím không điều khiển game
   phim[e.code] = true; if (cheDo !== 'di' || e.repeat) return;
   if (e.code === 'Space') e.preventDefault();
   if (e.code === 'KeyV') doiGocNhin();
@@ -456,6 +458,7 @@ function buocDiBo(dt) {
     fx = (phim.KeyD || phim.ArrowRight ? 1 : 0) - (phim.KeyA || phim.ArrowLeft ? 1 : 0) + can.dx;
     const l = Math.hypot(fx, fz); if (l > 1) { fx /= l; fz /= l; }
     if (phim.Space && nen) vy = 5.2;
+    yaw += ((phim.KeyZ ? 1 : 0) - (phim.KeyX ? 1 : 0)) * 2.4 * dt; // Z / X quay trái / phải (giữ phím), không cần chuột
   }
   if (toi.viec === 'mua' || toi.viec === 'chao') { if (fx || fz) toi.lam('dung'); } // bước đi thì thôi múa / chào
   const v = phim.KeyC ? 1.6 : phim.ShiftLeft || phim.ShiftRight ? 8 : 4.2;
@@ -512,7 +515,7 @@ function vong(now = 0) {
   anhDn.intensity = 20 + Math.sin(t * 2.1) * 6 + Math.sin(t * 5.3) * 3;
   quan.capNhat(dt, t);
   if (am) { const p = camera.position; am.capNhat(camera, quan.trong(p.x, p.z), Math.hypot(p.x - quan.tam[0], p.z - quan.tam[1])); }
-  veNguoi(); ghiLuu(now);
+  veNguoi(); ghiLuu(now); veBanDo(now);
   composer.render();
 }
 // khôi phục chỗ đứng cũ (chỉ khi cùng lâu đài)
@@ -535,7 +538,52 @@ const hd = $('hd');
 try { if (localStorage.getItem('castle-an-hd') === '1') hd.classList.add('an'); } catch {}
 const doiHd = () => { hd.classList.toggle('an'); try { localStorage.setItem('castle-an-hd', hd.classList.contains('an') ? '1' : '0'); } catch {} };
 $('b-hd').onclick = (e) => { e.stopPropagation(); doiHd(); };
-addEventListener('keydown', (e) => { if (e.code === 'KeyH' && !e.repeat) doiHd(); });
+addEventListener('keydown', (e) => { if (e.code === 'KeyH' && !e.repeat && !e.target.closest?.('textarea, input')) doiHd(); });
+// lưu ngay lúc trang sắp đóng / tải lại (F5): không mất bước đi trong giây cuối
+addEventListener('pagehide', () => { lucLuu = 0; ghiLuu(performance.now() + 5000); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { lucLuu = 0; ghiLuu(performance.now() + 5000); } });
+
+// bản đồ nhỏ + toạ độ
+const banDo = taoBanDo($('bd'), { nha: nhaVa, thap: cothap.slice(0, SO_THAP), quan: quan.tam, ren: [Math.cos(Math.PI + 0.3) * 33.8, Math.sin(Math.PI + 0.3) * 33.8], gieng: [13.6, 0], cho: [34, 0] });
+let lucBd = 0;
+function veBanDo(now) {
+  if (now - lucBd < 100) return; lucBd = now;
+  const p = cheDo === 'di' ? than.translation() : { x: orbit.target.x, z: orbit.target.z };
+  const gan = []; for (const d of sd.dan) if (!d.an && Math.hypot(d.x - p.x, d.z - p.z) < 30) gan.push([d.x, d.z]);
+  banDo.ve(p, cheDo === 'di' ? huongToi : Math.atan2(camera.position.x - orbit.target.x, camera.position.z - orbit.target.z) + Math.PI, gan);
+  $('toado').textContent = `📍 ${p.x.toFixed(1)}, ${p.z.toFixed(1)}${cheDo === 'di' ? '' : ' (tâm nhìn)'}`;
+}
+
+// góp ý: gửi về hòm mos2 qua /api/gop-y (cùng host, phiên SSO), kèm ảnh khung hình + ngữ cảnh chỗ đứng
+const gy = $('gy');
+function moGopY() { if (document.pointerLockElement) document.exitPointerLock(); $('dung').style.display = 'none'; gy.style.display = 'grid'; $('gy-kq').textContent = ''; $('gy-kq').className = 'kq'; setTimeout(() => $('gy-chu').focus(), 30); }
+function chupMan() {
+  composer.render(); // đọc ngay sau khi vẽ, cùng nhịp → khung hình còn nguyên
+  const src = renderer.domElement, k = Math.min(1, 1280 / src.width), c = document.createElement('canvas');
+  c.width = Math.round(src.width * k); c.height = Math.round(src.height * k); c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.82);
+}
+async function guiGopY() {
+  const chu = $('gy-chu').value.trim(), kq = $('gy-kq');
+  if (!chu) { kq.textContent = 'Chưa gõ nội dung.'; kq.className = 'kq loi'; return; }
+  $('gy-gui').disabled = true; kq.textContent = 'Đang gửi…'; kq.className = 'kq';
+  const p = than.translation();
+  const nguCanh = `Lâu đài h=${HAT} · ${cheDo === 'di' ? `đi bộ tại (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}) hướng ${(yaw * 180 / Math.PI).toFixed(0)}° · góc nhìn ${gocNhin === 3 ? 'sau lưng' : 'mắt'}` : 'toàn cảnh'} · giờ game ${gioGame.chu()} · ${quan.trong(p.x, p.z) ? 'trong quán · ' : ''}${innerWidth}×${innerHeight}${CHAM ? ' cảm ứng' : ''}`;
+  try {
+    const anh = gy.querySelector('#gy-anh').checked ? chupMan() : null;
+    const r = await fetch('/api/gop-y', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+      body: JSON.stringify({ noiDung: chu, loai: gy.querySelector('input[name=gy-loai]:checked').value, trang: location.href, nguCanh, anh }) });
+    const j = await r.json().catch(() => ({ ok: false, error: `máy chủ trả ${r.status}` }));
+    if (!j.ok) throw new Error(j.error || `máy chủ trả ${r.status}`);
+    kq.textContent = `Đã gửi góp ý #${j.id}. Cảm ơn!`; $('gy-chu').value = '';
+    setTimeout(() => { gy.style.display = 'none'; }, 1600);
+  } catch (e) { kq.textContent = 'Gửi không được: ' + (e.message || e); kq.className = 'kq loi'; console.error('[castle] góp ý', e); }
+  $('gy-gui').disabled = false;
+}
+$('b-gy').onclick = (e) => { e.stopPropagation(); moGopY(); };
+$('gy-dong').onclick = () => { gy.style.display = 'none'; };
+$('gy-gui').onclick = guiGopY;
+$('gy-chu').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) guiGopY(); if (e.key === 'Escape') gy.style.display = 'none'; });
 $('tai').remove();
 window.__lauDai = { hat: HAT, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; }, toi, dan: sd.dan, da, doiGocNhin, quan, quanNguoi, doNet: () => doNet, renderer, bloom, composer, sd, gioGame, ve: () => ({ lenh: renderer.info.render.calls, tamGiac: renderer.info.render.triangles, nguoi: { ...DEM } }) };
 vong();

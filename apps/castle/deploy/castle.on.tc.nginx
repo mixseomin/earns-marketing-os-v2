@@ -14,5 +14,7 @@ server {
   location = /_mos2auth { internal; proxy_pass http://127.0.0.1:3821/api/auth/verify; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header Cookie $http_cookie; proxy_set_header Host mos2.on.tc; }
   location @login { return 302 https://mos2.on.tc/login?next=https://castle.on.tc$request_uri; }
   location = /robots.txt { auth_request off; default_type text/plain; return 200 "User-agent: *\nDisallow: /\n"; }
+  # góp ý: trang tĩnh POST cùng host → route mos2 /api/gop-y-ngoai (cookie phiên SSO đi kèm), card vào hòm mos2, /tasks-castle xử
+  location = /api/gop-y { client_max_body_size 8m; proxy_pass http://127.0.0.1:3821/api/gop-y-ngoai; proxy_http_version 1.1; proxy_set_header Host mos2.on.tc; proxy_set_header Cookie $http_cookie; proxy_set_header X-Forwarded-Proto https; proxy_read_timeout 60s; }
   location / { add_header Cache-Control "no-cache"; add_header X-Robots-Tag "noindex, nofollow" always; try_files $uri /index.html; }
 }

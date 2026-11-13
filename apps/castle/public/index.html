@@ -37,6 +37,16 @@
   #hd .d { display: flex; gap: 6px; align-items: baseline; color: var(--mo); line-height: 1.75; }
   #hd .d span:first-child { flex: 0 0 92px; }
   #hd.an { display: none; }
+  #bd { position: fixed; left: 12px; bottom: 76px; width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 2px solid var(--vien); box-shadow: 0 4px 18px rgba(0,0,0,.5); cursor: zoom-in; z-index: 3; }
+  #bd canvas { width: 100%; height: 100%; display: block; }
+  #toado { position: fixed; left: 12px; bottom: 56px; font: 600 11.5px ui-monospace, monospace; color: var(--mo); text-shadow: 0 1px 2px #000; }
+  #gy { inset: 0; display: none; place-items: center; background: rgba(10,5,3,.5); z-index: 8; border: 0; border-radius: 0; }
+  #gy > div { width: min(440px, calc(100vw - 32px)); padding: 16px; background: var(--o); border: 1px solid var(--vien); border-radius: 12px; display: flex; flex-direction: column; gap: 10px; }
+  #gy textarea { width: 100%; min-height: 110px; resize: vertical; font: inherit; color: var(--chu); background: rgba(0,0,0,.35); border: 1px solid var(--vien); border-radius: 8px; padding: 8px 10px; }
+  #gy .hang { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--mo); font-size: 13px; }
+  #gy .kq { font-size: 13px; min-height: 18px; }
+  #gy .kq.loi { color: #ff9a8a; }
+  @media (hover: none) { #bd { left: auto; right: 10px; top: 10px; bottom: auto; width: 110px; height: 110px; } #toado { left: auto; right: 12px; top: 124px; bottom: auto; } }
   @media (max-width: 760px) { #hd { top: auto; bottom: 120px; right: 8px; left: 8px; width: auto; max-height: 34vh; } #dau .mo { display: none; } }
   @media (hover: none) { #hd .pc { display: none; } }
   @media (hover: hover) { #hd .dt { display: none; } }
@@ -64,6 +74,7 @@
     <b>Đi bộ</b>
     <div class="d"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>di chuyển</span></div>
     <div class="d"><span>chuột</span><span>nhìn quanh</span></div>
+    <div class="d"><span><kbd>Z</kbd><kbd>X</kbd></span><span>quay trái / phải</span></div>
     <div class="d"><span><kbd>Shift</kbd></span><span>chạy</span></div>
     <div class="d"><span><kbd>Space</kbd></span><span>nhảy</span></div>
     <div class="d"><span><kbd>C</kbd> giữ</span><span>ngồi xuống</span></div>
@@ -93,6 +104,8 @@
   <b>Nút dưới</b>
   <div class="d"><span>🕒</span><span>giờ trong lâu đài · bấm tua ×30</span></div>
   <div class="d"><span>🔊</span><span>tắt / mở âm thanh</span></div>
+  <div class="d"><span>💬</span><span>góp ý (kèm ảnh + toạ độ)</span></div>
+  <div class="d"><span>bản đồ</span><span>góc trái dưới, bấm để phóng to</span></div>
   <div class="d"><span>🎲</span><span>sinh lâu đài khác</span></div>
   <div class="d"><span><kbd>H</kbd> / ❔</span><span>ẩn / hiện bảng này</span></div>
   <div class="d" style="margin-top:4px"><span></span><span>Tải lại trang (F5) vẫn về đúng chỗ đang đứng.</span></div>
@@ -102,10 +115,21 @@
   <button id="b-toan" style="display:none">🗺 Toàn cảnh</button>
   <button id="b-moi">🎲 Lâu đài khác</button>
   <button id="b-am" title="Tắt / mở âm thanh">🔊</button>
+  <button id="b-gy" title="Góp ý (gửi kèm ảnh màn hình + chỗ đang đứng)">💬</button>
   <button id="b-hd" title="Bảng hướng dẫn nút (H)">❔</button>
   <button id="b-gio" title="Giờ trong lâu đài — bấm để tua nhanh ×30 / về ×1">🕒 17:30 ×1</button>
 </div>
 <div id="tam"></div>
+<div id="bd" title="Bản đồ — bấm để phóng to / thu nhỏ"><canvas></canvas></div>
+<div id="toado"></div>
+<div id="gy" class="o"><div>
+  <b>💬 Góp ý cho lâu đài</b>
+  <textarea id="gy-chu" placeholder="Thấy gì sai, muốn thêm gì… (Ctrl+Enter để gửi)"></textarea>
+  <div class="hang"><label><input type="checkbox" id="gy-anh" checked> Kèm ảnh màn hình lúc này</label>
+    <label><input type="radio" name="gy-loai" value="loi" checked> Lỗi / sửa</label><label><input type="radio" name="gy-loai" value="cau_hoi"> Hỏi</label></div>
+  <div class="kq" id="gy-kq"></div>
+  <div class="hang" style="justify-content:flex-end"><button id="gy-dong">Đóng</button><button id="gy-gui" class="chinh">Gửi</button></div>
+</div></div>
 <div id="dung" class="o"><div>
   <b>Đang dừng</b>
   <div style="color:var(--mo);font-size:13px;text-align:center">W A S D đi · chuột nhìn · Shift chạy · Space nhảy · C ngồi · nhấp ném đá<br>E nói chuyện / gọi rượu ở quầy · F đá chân · 1 chào · 2 múa · V đổi góc nhìn</div>

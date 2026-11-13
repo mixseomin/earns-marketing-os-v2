@@ -59,9 +59,9 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
     { ma: string; ten: string; site_dich: string | null; chay: boolean; dang_lam: DangLam | null; dang_lam_ds: Record<string, DangLam> | null; tap_cho: TapCho[] | null; dang: { nen: string; ten?: string; tk?: string; kem?: string; gio_tu?: string; br?: { handle?: string } }[]; tap: number; cho_dang: number; da_dang: number; dang_cuoi: string | null }[];
   if (!may.length) return [];
   const so = (await d.execute(sql`SELECT san_pham, ngay::text AS ngay, hien, so_muc, chi_tiet->>'nguoi_dk' AS nguoi_dk FROM kenh_so_ngay
-    WHERE kenh = 'youtube' AND san_pham IN ${may.map((m) => `may:${m.ma}`)} AND ngay >= current_date - 30`)) as unknown as
+    WHERE kenh = ${loai === 'social' ? 'social' : 'youtube'} AND san_pham IN ${may.map((m) => `may:${m.ma}`)} AND ngay >= current_date - 30`)) as unknown as
     { san_pham: string; ngay: string; hien: number; so_muc: number; nguoi_dk: string | null }[];
-  const anh = (await d.execute(sql`SELECT DISTINCT ON (san_pham) san_pham, chi_tiet->>'anh' AS anh FROM kenh_so_ngay WHERE kenh = 'youtube' AND san_pham IN ${may.map((m) => `may:${m.ma}`)}
+  const anh = (await d.execute(sql`SELECT DISTINCT ON (san_pham) san_pham, chi_tiet->>'anh' AS anh FROM kenh_so_ngay WHERE kenh = ${loai === 'social' ? 'social' : 'youtube'} AND san_pham IN ${may.map((m) => `may:${m.ma}`)}
     AND chi_tiet->>'anh' IS NOT NULL ORDER BY san_pham, ngay DESC`)) as unknown as { san_pham: string; anh: string }[];
   const phim = (await d.execute(sql`SELECT id, kinh_thanh->>'may' AS may FROM xv_phim WHERE kinh_thanh->>'may' IN ${may.map((m) => m.ma)} ORDER BY id`)) as unknown as { id: number; may: string }[];
   const vids = (await d.execute(sql`SELECT m.ma, v.slug, coalesce(v.dang->>'title', v.chu_de, v.slug) AS ten, v.xuat_luc IS NOT NULL AS xuat, v.cham->>'ket' AS cham, v.cham->'chan_cung' AS chan, v.cham->>'luc' AS cham_luc, v.giay, (coalesce(v.xuat_luc, v.created_at) AT TIME ZONE 'Asia/Ho_Chi_Minh')::date::text AS ngay_lam,
@@ -83,6 +83,8 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
     // kênh social: chờ đăng / đã đăng / đăng cuối tính trên MỌI nền (cột SQL ở trên chỉ đếm YouTube — đúng cho kênh sản phẩm)
     const xa = loai === 'social' ? { ten: lt[m.ma]?.ten ?? m.ten, choDang: cua.filter((v) => v.tep && !v.da_dang).length, daDang: cua.filter((v) => v.da_dang).length,
       dangCuoi: cua.map((v) => v.nen?.length ? v.ngay : null).filter((x): x is string => !!x).sort().at(-1) ?? null, nen: tomNenDang(m.dang ?? [], cua, hom), siteDich: m.site_dich,
+      // chưa có bản đo ngày nào (máy đo chạy mỗi giờ: chay-kenh › --so-kenh --social) → lượt xem cộng từ từng bài, 7 ngày để trống
+      ...(ds.length ? {} : { xem: cua.some((v) => v.xem != null) ? cua.reduce((t, v) => t + (v.xem ?? 0), 0) : null }),
       dangTen: Object.fromEntries([...new Set(videos.map((v) => v.dangBai).filter((x): x is string => !!x && !!DANG_TEN[x]))].map((x) => [x, DANG_TEN[x]!])) } : null;
     return { ma: m.ma, ten: m.ten.split('·').pop()!.trim(), chay: m.chay, kenhUrl: handle ? `https://www.youtube.com/${handle}` : null,
       tap: m.tap, choDang: m.cho_dang, daDang: m.da_dang, dangCuoi: m.dang_cuoi, ...tinhSoKenh(ds, hom),

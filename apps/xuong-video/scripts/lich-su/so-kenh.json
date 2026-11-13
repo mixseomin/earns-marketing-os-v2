@@ -1645,11 +1645,11 @@
       },
       {
         "may": "esimfares-before-you-land",
-        "trang_thai": "dang"
+        "trang_thai": "xong"
       },
       {
         "may": "militarycalc",
-        "trang_thai": "chua"
+        "trang_thai": "dang"
       },
       {
         "may": "front-porch-only-one",
@@ -1727,7 +1727,7 @@
       {
         "ma": "G4",
         "ten": "Nối góc spy",
-        "viec": "Mỗi bài ghi góc spy nó dùng → đếm khách về site theo góc, bỏ góc không ra khách",
+        "viec": "Bài đã ghi góc spy (dang.goc.id) → đếm khách về site theo góc, bỏ góc không ra khách",
         "anh": "không",
         "trang_thai": "chua"
       },
@@ -1790,7 +1790,70 @@
       {
         "ma": "G4",
         "ten": "Nối góc spy",
-        "viec": "Mỗi bài ghi góc spy nó dùng → đếm khách về site theo góc, bỏ góc không ra khách",
+        "viec": "Bài đã ghi góc spy (dang.goc.id) → đếm khách về site theo góc, bỏ góc không ra khách",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G5",
+        "ten": "Tự vận hành",
+        "viec": "Máy tự chọn dạng bài + góc theo số khách, Claude chỉ vào khi Telegram báo kẹt",
+        "anh": "không",
+        "trang_thai": "chua"
+      }
+    ]
+  },
+  "militarycalc": {
+    "loai": "social",
+    "dang_mac_dinh": "canh-dong",
+    "ten": "MilitaryCalc · Military Markdown",
+    "cap_nhat": "2026-11-14",
+    "muc_tieu": "kênh tự vận hành: máy làm bài lương & quyền lợi quân nhân Mỹ (video, ảnh, bình chọn, bài link, câu trả lời Quora, bài Substack) → Phòng Nội dung chấm → máy đăng theo nhịp an toàn lên Facebook, X, Quora, Substack → khách vào militarycalc.com",
+    "dinh_vi": {
+      "cho_ai": "quân nhân Mỹ đang tại ngũ / sắp nghỉ hưu và gia đình, muốn tính lương hưu, BAH, BRS — tiếng Anh, Mỹ",
+      "dich": "militarycalc.com (máy tính lương hưu, BAH, BRS)",
+      "cau_ket": "run your own numbers free at militarycalc.com",
+      "ngon_ngu": "EN"
+    },
+    "luat": [
+      "Quy tắc + con số chỉ lấy từ tệp sự thật apps/xuong-video/su-that/militarycalc.md — thiếu thì chỉ người đọc cách tự kiểm (DFAS, phòng tài chính binh chủng, bảng lương chính thức), không tự nêu số",
+      "Mỗi bài qua Phòng Nội dung chấm (cty worker/cham-dang.mjs) trước khi máy đăng lấy",
+      "Nhịp an toàn: trần mỗi nền mỗi ngày theo tuổi kênh, cách nhau ≥ 3 giờ trên cùng tài khoản, không cùng một chuyện lên hai nền của cùng tài khoản trong một ngày, mỗi bài một tiêu đề khác",
+      "Ảnh thật đúng chủ đề, chữ không đè nền màu phẳng"
+    ],
+    "giai_doan": [
+      {
+        "ma": "G0",
+        "ten": "Dựng máy + nền đăng",
+        "viec": "Máy chạy từ 28/10/2026: 10 nơi đăng (Page Military Markdown: Reels + ảnh + link; X @KilledWallet: video + ảnh + link + bình chọn; Quora Peter-Nohatan; Substack davidnht; Page Bigger Life) qua máy đăng chung",
+        "anh": "không",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G1",
+        "ten": "Chuyển sang sổ kênh",
+        "viec": "Sổ kênh + Mẫu nội dung + Nền đăng trong bảng mos2 › tab 📺 Kênh nội dung (14/11/2026)",
+        "anh": "xem và góp ý",
+        "trang_thai": "cho_anh"
+      },
+      {
+        "ma": "G2",
+        "ten": "Đo số theo nền",
+        "viec": "Người theo dõi Page / X + lượt xem từng tài khoản mỗi ngày (kênh không có YouTube nên cột Người đăng ký còn trống tới bước này)",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G3",
+        "ten": "Đang sản xuất sống",
+        "viec": "Máy dựng ghi dấu dang_lam_ds như máy làm tập → khối ▶ Đang sản xuất hiện từng bài trong lò",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G4",
+        "ten": "Nối góc spy",
+        "viec": "Bài đã ghi góc spy (dang.goc.id) → đếm khách về site theo góc, bỏ góc không ra khách",
         "anh": "không",
         "trang_thai": "chua"
       },

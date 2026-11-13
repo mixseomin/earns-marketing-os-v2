@@ -14,6 +14,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LichNho, type LoaiLichNho } from '@/components/ui/lich-nho';
 import { cotSocial, nhomSocial } from './tai-san-social';
+import { SiteFavicon } from '@/components/ui/site-favicon';
+import { pkCua } from '@/lib/ho-nen';
 
 const so = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleString('vi-VN'));
 const ngayVn = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '–');
@@ -140,6 +142,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
         if (d.loai === 'ke') return <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: d.nhom ? THUT_NHOM : THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0, whiteSpace: 'nowrap' }}>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, ...(d.o ? { width: O_CHU - (d.nhom ? THUT_NHOM : THUT_MUC), flex: 'none', overflow: 'hidden' } : { flex: 1 }) }}>
           {!d.nhom && <span style={{ color: 'var(--fg-4)' }}>└</span>}
+          {d.icon && <span style={{ alignSelf: 'center', flex: 'none', display: 'inline-flex' }}><SiteFavicon platformKey={d.icon} size={14} title={d.icon} /></span>}
           {d.dongHo && <span style={{ alignSelf: 'center', flex: 'none' }} title={d.phu}><DongHo nut={nutTuanTu(d.dongHo.tong, d.dongHo.so, d.dongHo.loi)} so={d.dongHo.so || '?'} ket={d.dongHo.loi ? 'loi' : undefined} co={22} /></span>}
           {d.nhom && (() => { const kh = `${d.k.ma}:${d.id}`, dong_ = gap.has(kh);
             return <button type="button" onClick={(e) => { e.stopPropagation(); doiGap(kh); }} title={dong_ ? 'mở khối' : 'gập khối'}
@@ -183,7 +186,10 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
               ▶ {n} đang sx{hong ? ` · ${hong} hỏng` : ''}</button>; })()
             : k.so && tomLoTrinh(k.so).hienTai ? <button type="button" onClick={(e) => { e.stopPropagation(); if (!moCay.has(k.ma)) doi(k.ma); }} title="kênh đang theo lộ trình — bấm mở 🧭 Lộ trình"
                 style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: tomLoTrinh(k.so).mau, fontSize: 11, whiteSpace: 'nowrap' }}>{tomLoTrinh(k.so).chu}</button>
-            : <span style={{ color: k.chay ? 'var(--ok)' : 'var(--fg-4)', fontSize: 11 }}>{k.chay ? 'đang chạy' : 'chưa bật đăng'}</span>}</span>;
+            : <span style={{ color: k.chay ? 'var(--ok)' : 'var(--fg-4)', fontSize: 11 }}>{k.chay ? 'đang chạy' : 'chưa bật đăng'}</span>}
+          {/* ICON NỀN TẢNG (anh 14/11/2026 "thêm platform icon"): mỗi họ nền kênh đang đăng một icon, rê chuột xem số bài */}
+          {k.nen?.length ? <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center', flex: 'none' }}>{[...new Map(k.nen.filter((n) => n.bai || n.hen).map((n) => [pkCua(n.nen), n])).keys()].map((pk) => {
+            const ds = k.nen!.filter((n) => pkCua(n.nen) === pk); return <SiteFavicon key={pk} platformKey={pk} size={14} title={ds.map((n) => `${n.ten}${n.tk && n.tk !== n.ten ? ` · ${n.tk}` : ''}: ${n.bai} bài`).join('\n')} />; })}</span> : null}</span>;
       } },
     ...cotSocial<Dong>(chiKenh((k) => k.social), kySocial),
     { key: 'tap', header: 'Tập', width: 64, sortValue: (d) => d.k.tap, cellTitle: (d) => (laK(d) ? `${d.k.tap} tập đã làm (không tính bản cất)` : undefined),

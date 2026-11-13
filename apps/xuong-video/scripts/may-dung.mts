@@ -21,7 +21,8 @@
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
 //   --goc-hook --may <mã> [--goc <id>]  in JSON { goc, hooks[], da_lam[] } cho tập kế của máy video ngoài (kênh lịch sử lam-tap.mjs) — cùng kho góc + hook với --sinh-kho
 //   --kho-hook --may <mã>              in JSON cả kho hook { gocs, nhom, qc_goc, da_dung } — máy viết tự chia hook cho từng tập (lich-su/hook-kenh.mjs)
-//   --so-kenh [--may <mã>]          SỐ KÊNH SẢN PHẨM (xv_may.la_san_pham): lượt xem từng video + người đăng ký YouTube → kenh_so_ngay 'may:<mã>' (mos2 › Tài sản), 0₫
+//   --so-kenh [--may <mã>] [--social]  SỐ KÊNH SẢN PHẨM (xv_may.la_san_pham): lượt xem từng video + người đăng ký YouTube → kenh_so_ngay 'may:<mã>' (mos2 › tab Kênh nội dung), 0₫;
+//                                   --social = kênh social đã chuyển (so-kenh.json loai social) → kenh 'social', lượt xem cộng mọi nền
 //   --luot-xem                     ĐO THEO DẠNG: đọc lại lượt xem YouTube + Facebook mọi video đã đăng (cũ hơn 12 giờ) → bảng trung bình máy × dạng, 0₫
 //   --sinh-game <N>                dạng game Only ONE: tiêu đề theo KHUNG video thắng của kênh (≥ 500 lượt sau 7 ngày, đọc lại lượt xem YouTube trước) + góc spy dùng ít nhất → nạp + dựng, 0₫
 //   --sinh-kho <N>                 lấp kho VIDEO cho máy: N đề theo góc spy chưa dùng, dạng ra MP4 xoay vòng → nạp + dựng (TỐN TIỀN chữ AI — lô lớn duyệt qua Telegram)
@@ -376,16 +377,25 @@ if (a.includes('--nap')) {
   // mos2 tính 7 ngày từ các bản ghi ngày (như video short). Không đọc được → để trống, không ghi 0 giả. 0₫.
   const { docLaiLuotXem } = await import('../src/lib/xuong-video/luot-xem-db'), { trangKenhYoutube } = await import('../src/lib/xuong-video/luot-xem');
   const hom = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
-  const ds = (await db.execute(sql`SELECT id, ma, ten, dang FROM xv_may WHERE la_san_pham ${lay('--may') ? sql`AND ma = ${ma}` : sql``}`)) as unknown as { id: number; ma: string; ten: string; dang: { nen: string; br?: { kenh_id?: string; handle?: string } }[] }[];
+  // KÊNH SOCIAL ĐÃ CHUYỂN (so-kenh.json loai 'social', anh 14/11/2026 "các chỉ số chưa hiện lên đầy đủ, thiếu icon kênh"): --social đo các máy đó — kenh 'social',
+  // hien = lượt xem cộng MỌI nền (luot_xem_nen), so_muc = số bài đã lên ít nhất một nền, nguoi_dk + ảnh = trang YouTube của máy (nếu máy có nền youtube)
+  const SOCIAL = a.includes('--social'), maSocial = Object.entries(JSON.parse(readFileSync(new URL('./lich-su/so-kenh.json', import.meta.url), 'utf8')) as Record<string, { loai?: string }>).filter(([, k]) => k?.loai === 'social').map(([x]) => x);
+  if (SOCIAL && !maSocial.length) { console.log('chưa có kênh social nào trong so-kenh.json'); process.exit(0); }
+  const ds = (await db.execute(sql`SELECT id, ma, ten, dang FROM xv_may WHERE ${SOCIAL ? sql`ma IN ${maSocial}` : sql`la_san_pham`} ${lay('--may') ? sql`AND ma = ${ma}` : sql``}`)) as unknown as { id: number; ma: string; ten: string; dang: { nen: string; br?: { kenh_id?: string; handle?: string } }[] }[];
   for (const m of ds) {
     await docLaiLuotXem(db, Number(m.id), 50);   // kênh nội dung đo mỗi giờ (việc nền chạy-kênh) — đọc lại số cũ hơn 50 phút
     const yt = (m.dang ?? []).find((x) => x.nen === 'youtube')?.br, trang = yt?.kenh_id ? await trangKenhYoutube(yt.kenh_id) : { nguoiDk: null, anh: null }, sub = trang.nguoiDk;
-    const vs = (await db.execute(sql`SELECT slug, dang->>'title' AS tieu_de, da_dang->'youtube'->>'url' AS url, da_dang->'youtube'->>'ngay' AS ngay, luot_xem_nen->>'youtube' AS xem
+    const vs = (SOCIAL
+      ? await db.execute(sql`SELECT slug, dang->>'title' AS tieu_de, coalesce(da_dang->'youtube'->>'url', (SELECT x.value->>'url' FROM jsonb_each(da_dang) x WHERE jsonb_typeof(x.value) = 'object' LIMIT 1)) AS url,
+          (SELECT min(x.value->>'ngay') FROM jsonb_each(da_dang) x WHERE jsonb_typeof(x.value) = 'object') AS ngay,
+          (SELECT sum((x.value)::text::numeric) FROM jsonb_each(coalesce(luot_xem_nen, '{}'::jsonb)) x WHERE jsonb_typeof(x.value) = 'number')::text AS xem
+        FROM xv_may_video WHERE may_id = ${m.id} AND NOT coalesce(luu_tru, false) AND coalesce(da_dang, '{}'::jsonb) <> '{}'::jsonb`)
+      : await db.execute(sql`SELECT slug, dang->>'title' AS tieu_de, da_dang->'youtube'->>'url' AS url, da_dang->'youtube'->>'ngay' AS ngay, luot_xem_nen->>'youtube' AS xem
       FROM xv_may_video WHERE may_id = ${m.id} AND da_dang ? 'youtube'`)) as unknown as { slug: string; tieu_de: string | null; url: string | null; ngay: string | null; xem: string | null }[];
     const videos = vs.filter((v) => v.xem != null).map((v) => ({ slug: v.slug, url: v.url ?? undefined, tieuDe: (v.tieu_de ?? v.slug).replace(/\s*#shorts\s*/i, ''), ngayDang: v.ngay ?? undefined, xem: Number(v.xem) }));
     const ten = m.ten.split('·').pop()!.trim(), chiTiet = { videos, nguoi_dk: sub, anh: trang.anh, kenh_url: yt?.handle ? `https://www.youtube.com/${yt.handle}` : null, ten, ma: m.ma };
     await db.execute(sql`INSERT INTO kenh_so_ngay (kenh, san_pham, ngay, hien, tuong_tac, click, so_muc, chi_tiet, nguon, cap_nhat)
-      VALUES ('youtube', ${`may:${m.ma}`}, ${hom}, ${videos.reduce((t, v) => t + v.xem, 0)}, 0, 0, ${vs.length}, ${JSON.stringify(chiTiet)}::jsonb, 'may-dung --so-kenh', now())
+      VALUES (${SOCIAL ? 'social' : 'youtube'}, ${`may:${m.ma}`}, ${hom}, ${videos.reduce((t, v) => t + v.xem, 0)}, 0, 0, ${vs.length}, ${JSON.stringify(chiTiet)}::jsonb, 'may-dung --so-kenh', now())
       ON CONFLICT (kenh, san_pham, ngay) DO UPDATE SET hien = EXCLUDED.hien, so_muc = EXCLUDED.so_muc, chi_tiet = EXCLUDED.chi_tiet, nguon = EXCLUDED.nguon, cap_nhat = now()`);
     console.log(`${m.ma}: ${vs.length} video đã đăng · ${videos.reduce((t, v) => t + v.xem, 0)} lượt xem · ${sub ?? '?'} người đăng ký`);
   }

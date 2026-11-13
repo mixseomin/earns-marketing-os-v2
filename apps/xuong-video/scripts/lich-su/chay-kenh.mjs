@@ -3,7 +3,7 @@
 // Việc nền iMac:com.earns.lich-su-lam-tap (apps/cty/cong-ty/viec-nen.json) gọi MỖI GIỜ (đo số kênh mỗi lượt; làm tập theo lịch). Với mỗi kênh trong kenh.json có `may` (máy Studio) + lịch (`lich_tap` của kênh, hoặc của từng playlist):
 //   1. hôm nay là ngày làm tập (lich_tap: thứ trong tuần, 1 = Thứ Hai … 7 = Chủ nhật, giờ VN) và chưa có tập hôm nay → lam-tap.mjs --kenh <k> --id <mã máy>-<ngày>
 //      (chủ đề + hook theo góc spy của máy, viết → kiểm → dựng → đẩy Studio → nạp máy đăng; Phòng Nội dung chấm, máy đăng tự đăng theo nhịp an toàn)
-//   2. mọi ngày: may-dung.mts --so-kenh (lượt xem + người đăng ký → mos2 › tab Kênh nội dung)
+//   2. mọi ngày: may-dung.mts --so-kenh (lượt xem + người đăng ký → mos2 › tab Kênh nội dung); cuối lượt đo luôn các kênh social đã chuyển (--so-kenh --social, so-kenh.json loai social)
 //   3. báo Telegram (kênh cty): tập mới + tiền thật của lượt, hoặc lỗi nguyên văn.
 //   node scripts/lich-su/chay-kenh.mjs [--kenh parody] [--ep [--playlist <mã>]]   (--ep: làm tập kể cả không phải ngày lịch)
 // PLAYLIST (G1, 02/11/2026): kênh có kenh.json › playlist thì lịch làm tập là lịch của từng playlist (playlist.mjs › lichHomNay) và lam-tap nhận --playlist;
@@ -206,6 +206,9 @@ for (const [k, K] of Object.entries(KENH)) {
   const chu = `📺 ${K.ten} · ${hom}\n${bao.join('\n')}`; console.log(chu);
   if (bao.some((x) => /tập mới|hỏng|tự làm lại/.test(x))) tele(chu);   // ngày chỉ đo số thì không làm ồn Telegram
 }
+
+// SỐ KÊNH SOCIAL ĐÃ CHUYỂN (anh 14/11/2026: chỉ số kênh social trong tab Kênh nội dung còn trống): cùng lượt mỗi giờ này, không tiến trình riêng — 0₫, chỉ đọc số công khai
+if (!process.argv.includes('--ep') && !arg('kenh')) { try { console.log(box('scripts/may-dung.mts --so-kenh --social')); } catch (e) { console.log(`⚠ đo số kênh social hỏng: ${String(e.stderr || e.message).trim().split('\n').pop()}`); } }
 
 // KÊNH CÓ SỔ MÁY VIẾT (G8 Astrolas, 07/11/2026): không qua lam-tap (máy viết + long-tieng + nap-tap riêng), cùng lượt mỗi giờ này, không có tiến trình nền riêng
 if (!process.argv.includes('--ep') && (!arg('kenh') || arg('kenh') === 'astrolas')) spawnSync(process.execPath, [join(DIR, 'chay-so-kenh.mjs')], { stdio: 'inherit', timeout: 150 * 60_000, killSignal: 'SIGKILL' });

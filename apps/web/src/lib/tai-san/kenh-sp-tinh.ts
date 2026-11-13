@@ -1,4 +1,5 @@
 // KÊNH SẢN PHẨM — phần TÍNH (thuần, client import được; tự kiểm: tsx kenh-sp-tinh.test.mts). Đọc DB ở kenh-sp.ts.
+import { pkCua } from '../ho-nen';
 // Kênh nội dung coi là SẢN PHẨM (xv_may.la_san_pham — anh 02/11/2026, kênh Yesterday's News Tonight): số đo hằng ngày ở kenh_so_ngay
 // (kenh youtube, san_pham 'may:<mã>', hien = lượt xem cộng dồn, so_muc = video đã đăng, chi_tiet.nguoi_dk) do may-dung.mts --so-kenh ghi.
 // 7 ngày = bản ghi mới nhất − bản ghi gần nhất có ngày ≤ hôm nay − 7; chưa có mốc đó = null ("–", chưa đo ≠ 0).
@@ -103,7 +104,8 @@ export function lichKenh(k: Pick<KenhSp, 'videos' | 'ke'>): OLich[] {
 export type DongKe = { id: string; nhom?: boolean; chu: string; phu?: string; mau?: string;
   /** MỌI LINK RA NGĂN (anh 04/11/2026 "mọi link đều phải ra drawer"): nút trên dòng mở ngăn loại / mã — không có url mở tab ngoài */ ngan?: { loai: 'mau' | 'mo_dau' | 'nguoi' | 'playlist'; id: string }; nganChu?: string;
   /** ĐỒNG HỒ của tập đang sản xuất (anh 05/11/2026: "đồng hồ nằm ở dòng của video đang sx"): bước so / tong, hỏng thì đỏ */ dongHo?: { so: number; tong: number; loi: boolean };
-  /** ô số thẳng cột (bảng thống kê mẫu) + tên cột ở dòng nhóm; oTen = tên cột cho tooltip dòng mục (thiếu = COT_MAU) */ o?: (number | null)[]; oTieuDe?: string[]; oTen?: string[] };
+  /** ô số thẳng cột (bảng thống kê mẫu) + tên cột ở dòng nhóm; oTen = tên cột cho tooltip dòng mục (thiếu = COT_MAU) */ o?: (number | null)[]; oTieuDe?: string[]; oTen?: string[];
+  /** khoá nền tảng (platform_key) → icon nền đầu dòng (khối 📡 Nền đăng) */ icon?: string };
 const gioVn = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
 const thuNgay = (ymd: string) => `${THU[new Date(`${ymd}T00:00:00Z`).getUTCDay() || 7]} ${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()): DongKe[] {
@@ -349,7 +351,7 @@ export function cayNenDang(ds: NenKenh[]): DongKe[] {
   if (!ds.length) return [];
   const ngay = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : 'chưa đăng'), coSo = ds.filter((n) => n.xem != null).length;
   return [{ id: 'nen', nhom: true, chu: `📡 Nền đăng (${ds.length})`, phu: `${ds.reduce((t, n) => t + n.bai, 0)} bài đã lên · ${coSo}/${ds.length} nền có số lượt xem · "–" = chưa đo` },
-    ...ds.map((n): DongKe => ({ id: `nen/${n.nen}`, chu: `${n.ten}${n.tk && n.tk !== n.ten ? ` · ${n.tk}` : ''}`, mau: n.bai ? undefined : 'var(--fg-3)',
+    ...ds.map((n): DongKe => ({ id: `nen/${n.nen}`, icon: pkCua(n.nen), chu: `${n.ten}${n.tk && n.tk !== n.ten ? ` · ${n.tk}` : ''}`, mau: n.bai ? undefined : 'var(--fg-3)',
       phu: [`${n.bai} bài`, n.hen ? `${n.hen} hẹn giờ` : '', `lần cuối ${ngay(n.cuoi)}`, `xem ${n.xem == null ? '–' : n.xem.toLocaleString('vi-VN')}`, n.kem ?? ''].filter(Boolean).join(' · ') }))];
 }
 

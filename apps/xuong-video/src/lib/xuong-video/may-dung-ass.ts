@@ -39,8 +39,18 @@ export type DongAss = [lop: number, tu: number, den: number, kieu: 'Ve' | 'Den' 
 /** MÀN KẾT CHUNG mọi mẫu Máy Dựng: ket[0] (thương hiệu / lời mời, ≤ 3 dòng × 20 ký tự ở cỡ `co`) + ket[1] (≤ 2 dòng × 34 ở cỡ 40), cả hai qua vua()
  *  nên câu dài ngắt dòng + thu cỡ, không tràn mép; dòng 2 đẩy xuống theo số dòng dòng 1. CẤM chu(ket[…]) in thẳng (\q2 không tự xuống dòng —
  *  "Explore your chart at astrolas.com" cỡ 80px tràn hai mép 1080, Ngọc chặn top-n astrolas 12/11/2026; máy kiểm: may-dung-ass.test.mts). */
+/** Lớp tối phủ cả khung (m 0 0 l W 0 l W H l 0 H, W ≥ 1000 và H ≥ 1000 — vạch chia cao 8px không tính) — nền của màn, không phải chữ. */
+const PHU_KHUNG = /\\p1\}m 0 0 l (\d+) 0 l \1 (\d+) l 0 \2\s*$/;
+const laPhuKhung = (x: DongAss) => { const m = x[3] === 'Ve' ? PHU_KHUNG.exec(x[4]) : null; return !!m && Number(m[1]) >= 1000 && Number(m[2]) >= 1000; };
+/** MÀN KẾT DỌN SẠCH: mọi chữ / thẻ của thân video còn chạy qua mốc `tu` bị cắt ở `tu` (trừ lớp tối phủ cả khung). Trước 13/11/2026 mẫu so-sanh giữ nhãn
+ *  hai bên + dòng so sánh tới hết video, chỉ phủ lớp tối 62% → "examweight.com" của màn kết đè nhãn "Proctored exam" (Ngọc chặn examweight
+ *  so-sanh-60893, báo sửa 2 lần vẫn quay lại); lac-loai (ô lưới + "Row…") và gia (bảng lý do) cùng kiểu. Dọn ở đây nên mọi mẫu dùng ketAss cùng hết. */
+export function donManKet(d: DongAss[], tu: number): void {
+  for (const x of d) if (x[1] < tu && x[2] > tu && !laPhuKhung(x)) x[2] = tu;
+}
 export function ketAss(d: DongAss[], lop: number, tu: number, den: number, ket: string[], o: { fs: (px: number) => string; trang: string; co?: number; vien?: boolean; fad?: number }): void {
   if (!ket[0]) return;
+  donManKet(d, tu);
   const fad = `\\fad(${o.fad ?? 300},0)`, vien = o.vien !== false;
   const k0 = vua(ket[0], 20, 3, o.co ?? 60), y0 = 900 - 50 * (k0.dong.length - 1), y1 = y0 + 100 * k0.dong.length + 10;
   d.push([lop, tu, den, 'Den', `{\\an5\\pos(540,${y0})${o.fs(k0.co)}\\1c&HFFFFFF&${vien ? '\\3c&H000000&\\bord3' : ''}\\q2${fad}}${k0.dong.map(chu).join('\\N')}`]);

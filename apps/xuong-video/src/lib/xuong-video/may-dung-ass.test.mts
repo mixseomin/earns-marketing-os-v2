@@ -35,6 +35,10 @@ assert.ok(go(dk[1]![4]).length <= 2 && Number(/\\pos\(540,(\d+)\)/.exec(dk[1]![4
 const dn: DongAss[] = []; ketAss(dn, 7, 0, 1, ['ExamWeight', 'examweight.com'], { fs: fsT, trang: '#F4F6F8' });
 assert.ok(dn[0]![4].includes('\\pos(540,900)') && dn[1]![4].includes('\\pos(540,1010)'), 'kết ngắn giữ đúng chỗ cũ');
 const dr: DongAss[] = []; ketAss(dr, 7, 0, 1, [], { fs: fsT, trang: '#F4F6F8' }); assert.strictEqual(dr.length, 0);
+// ketAss dọn màn: chữ / vạch của thân chạy qua mốc kết bị cắt ở mốc kết; lớp tối phủ cả khung giữ; dòng bắt đầu từ mốc kết giữ
+const dd: DongAss[] = [[1, 0, 20, 'Ve', '{\\p1}m 0 0 l 1080 0 l 1080 8 l 0 8'], [3, 0, 20, 'Den', 'Proctored exam'], [1, 0, 20, 'Ve', '{\\p1}m 0 0 l 1080 0 l 1080 1920 l 0 1920'], [2, 3, 8, 'Chu', 'xong trước'], [10, 15, 20, 'Ve', '{\\p1}m 0 0 l 1080 0 l 1080 1920 l 0 1920']];
+ketAss(dd, 11, 15, 20, ['Try a free practice test', 'examweight.com'], { fs: fsT, trang: '#F4F6F8' });
+assert.deepStrictEqual(dd.slice(0, 5).map((x) => x[2]), [15, 15, 20, 8, 20], 'ketAss phải cắt chữ / vạch thân ở mốc kết, giữ lớp phủ khung');
 
 // MÁY GÁC: không mẫu nào in thẳng chu(ket[…]) / chu(N.ket[…]) — màn kết đi qua ketAss
 const ketTho = readdirSync(thu).filter((f) => /^may-dung.*\.ts$/.test(f) && f !== 'may-dung-ass.ts').flatMap((f) =>

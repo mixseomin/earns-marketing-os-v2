@@ -31,7 +31,7 @@ C['may'].update({
     'chu_tu_duoi': {'dat': [0.2, 4.35], 'nhin': [-1.1, 5], 'cao': 1.15, 'ong': 40},
     # chú nhìn theo nhóc về tiệm (phía bắc): máy phía đông-bắc ô cửa, thấy mặt — máy phía nam (can_chu) chỉ thấy gáy
     # chú THẤY nhóc ở giữa ga (nhìn chéo lên phía đông-bắc): máy trước mặt theo hướng đó, cùng phía trục chú–nhóc — máy thấp cạnh ô cửa chỉ thấy má (lệch 84°)
-    'chu_thay_nhoc': {'dat': [0.3, 6.0], 'nhin': [-1.1, 5], 'cao': 1.9, 'ong': 35},
+    'chu_thay_nhoc': {'dat': [1.0, 6.3], 'nhin': [-1.1, 5], 'cao': 1.9, 'ong': 35},
     'chu_nhin_tiem': {'dat': [0.6, 6.2], 'nhin': [-1.2, 5], 'cao': 1.9, 'ong': 35},
 })   # nhóc đứng sát mép sân ga (mép x = -60) — tầm tay với chú ở ô cửa để trao tiền (sơ đồ 2D đặt 0,4 m: quá xa tay)
 # KÍCH THƯỚC TOA (anh 12/11/2026 "tàu cao có đúng tỷ lệ không" — bản đầu nóc 3,94 m, rộng 3,2 m, sàn 0,4 m, bánh lơ lửng): theo toa khách khổ 1 m thường gặp
@@ -174,7 +174,7 @@ for ma, v in SD['shot'].items():
     # CHÚ NHOÀI RA Ô CỬA khi nói / trao đồ với nhóc: dáng 'chong_ban' (thư viện DONG_TAC) — chống tay lên bậu cửa (mép trên vách, z 150), máy tự cúi cột sống tới khi
     # bàn tay chạm bậu → đầu + vai nhô qua ô cửa. Shot chú chỉ nhìn theo (#1 #5 #7 #12) thì đứng thẳng trong toa.
     for x in vt:
-        if x['ten'] == 'Chú' and ma in ('2b', '3a', '3', '4a', '5', '9a', '10', '11'): x['dien'] = ['chong_ban']   # #5: nhoài ra nhìn về tiệm — đứng thẳng trong toa thì máy phía nam không thấy chú
+        if x['ten'] == 'Chú' and ma in ('1', '2b', '3a', '3', '4a', '5', '9a', '10', '11'): x['dien'] = ['chong_ban']   # '1' (13/11/2026): ngó tìm người = nhoài ra cửa sổ; đứng thẳng thì bậu sát mép khung, keyframe #2 ra cửa lên xuống 4 lần liền   # #5: nhoài ra nhìn về tiệm — đứng thẳng trong toa thì máy phía nam không thấy chú
     # SỔ TRANG PHỤC: cả phim một ngày, một bộ đồ — khai ở MỌI shot. Chỉ khai ở shot đầu thì shot có 'nhay' (dịch chuyển ngoài khung) làm sổ quên đồ (noiHookup coi nhay
     # là cắt thời gian) → #7 bị chặn "Nhóc chưa có trang phục" (13/11/2026). Tên = biến thể có ảnh mẫu.
     if True:

@@ -1445,8 +1445,8 @@
  "may": {
   "1": {
    "dat": [
-    30.0,
-    600.0,
+    100.0,
+    630.0,
     190.0
    ],
    "nhin": [
@@ -1466,6 +1466,9 @@
      "huong": 150,
      "nhin_ai": "dau_ga",
      "nhin_ai_den": "giua_ga",
+     "dien": [
+      "chong_ban"
+     ],
      "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám",
      "nhip": [
       {
@@ -2327,8 +2330,8 @@
   },
   "2b": {
    "dat": [
-    30.0,
-    600.0,
+    100.0,
+    630.0,
     190.0
    ],
    "nhin": [

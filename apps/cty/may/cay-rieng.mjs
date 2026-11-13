@@ -38,7 +38,9 @@ export function cayRieng(nguoi, goc = MOS2_GOC) {
   //    rebase nên commit kẹt, nhánh lệch main → mọi lượt sau "Diverging branches", việc chờ đứng im). Máy đặt commit của kỹ sư lên main mới rồi đẩy (thử 3 lần).
   //    Xung đột → huỷ rebase (nhánh về nguyên trạng, commit vẫn còn) và ném lỗi để người gọi báo phòng.
   const kep = Number(git(dir, 'rev-list', '--count', 'origin/main..HEAD'));
+  let day = [];   // tiêu đề commit máy vừa đẩy hộ → người gọi nộp card tương ứng (etp-sua › nopCardDaDay, anh 14/11/2026 #1587 kẹt "Đang làm")
   if (kep > 0) {
+    day = git(dir, 'log', '--format=%s', 'origin/main..HEAD').split('\n').filter(Boolean);
     try { git(dir, 'rebase', '-q', 'origin/main'); } catch (e) { try { git(dir, 'rebase', '--abort'); } catch { /* không có rebase dở */ }
       throw new Error(`${kep} commit chưa lên main của ${nguoi} xung đột với main mới, cần làm lại: ${String(e.stderr || e.message).split('\n')[0]}`); }
     for (let i = 1; ; i++) { try { git(dir, 'push', '-q', 'origin', 'HEAD:main'); break; } catch (e) { if (i >= 3) throw e; git(dir, 'fetch', '-q', 'origin', 'main'); git(dir, 'rebase', '-q', 'origin/main'); } }
@@ -48,7 +50,7 @@ export function cayRieng(nguoi, goc = MOS2_GOC) {
   git(dir, 'merge', '-q', '--ff-only', 'origin/main');
   if (tep) { try { git(dir, 'apply', '--check', tep); git(dir, 'apply', tep); } catch { vat = tep; } }
   const doDo = git(dir, 'status', '--porcelain', '--untracked-files=no').split('\n').filter(Boolean).map((l) => l.slice(3));
-  return { dir, do: doDo, vat };
+  return { dir, do: doDo, vat, day };
 }
 
 if (process.argv[1]?.endsWith('cay-rieng.mjs') && process.argv[2]) { const r = cayRieng(process.argv[2]); console.log(JSON.stringify(r)); }

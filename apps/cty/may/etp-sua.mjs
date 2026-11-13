@@ -20,6 +20,19 @@ const CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 30, thu = process.argv.in
 // của các phiên khác. Kéo origin/main đầu lượt (chỉ fast-forward) — không được thì chưa nhận việc (việc vẫn chờ ở hàng).
 const cay = thu ? { dir: MOS2_GOC, do: [] } : cayHoacBao(NGUOI, { ten: 'Huy', khoa: 'etp:cay-rieng', phong: 'ethopex', tep: TEP });
 const MOS2 = cay.dir;
+// CARD GÓP Ý KHÔNG ĐƯỢC CHẾT Ở "ĐANG LÀM" (anh 14/11/2026 #1587: Huy sửa xong, push bị từ chối vì main vừa có commit, báo không sửa; lượt sau cây riêng
+// đẩy được commit nhưng không ai nộp card → kẹt "Đang làm" tới khi anh tự mở hòm thấy). Máy chốt card mỗi khi lượt dừng:
+//   commit đã lên main → nộp Review (gop-y.sh submit) · chưa xong / kẹt → ghi lý do vào luồng + trả về Chờ xử. Card đã review / xong thì để yên.
+const sqlBox = (q) => box(`cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -qtA -v ON_ERROR_STOP=1 -f -`, q).trim();
+const ttCard = (id) => { try { return sqlBox(`select coalesce(prep_payload->'site_status'->>'mos2', 'pending') from human_tasks where id = ${Number(id)} and project_id = 'mos2'`); } catch { return ''; } };
+export function chotCard(id, cach, chu) {
+  const tt = ttCard(id); if (!tt || ['review', 'completed', 'verified', 'dropped'].includes(tt)) return `#${id} để yên (${tt || 'không đọc được'})`;
+  const q = (x) => `'${String(x).replace(/'/g, `'\\''`)}'`;
+  if (cach === 'nop') { box(`/opt/earns-marketing-os-v2/scripts/gop-y.sh submit ${Number(id)} ${q(chu.slice(0, 3500))}`); return `#${id} → Review`; }
+  box(`/opt/earns-marketing-os-v2/scripts/gop-y.sh reply ${Number(id)} ${q(chu.slice(0, 3500))}`);
+  sqlBox(`update human_tasks set prep_payload = prep_payload || jsonb_build_object('site_status', coalesce(prep_payload->'site_status', '{}'::jsonb) || '{"mos2":"pending"}'::jsonb), updated_at = now() where id = ${Number(id)} and project_id = 'mos2' and prep_payload->>'source_platform' = 'feedback'`);
+  return `#${id} → Chờ xử`;
+}
 // QUYỀN HẸP: sửa CHỈ phần Ethopex của repo mos2 (máy chạy box3 apps/etp, máy luật / tạo camp apps/xuong-video/scripts/ethopex, worker Phát, trang etp / etp2,
 // danh sách điều kiện chống quay về bản cũ apps/etp/gop-y-luat.mjs); đọc box3 qua ssh; kiểm tĩnh; push (GHA deploy box3). Không web, không hỏi, không lan việc.
 const SUA = ['apps/etp', 'apps/xuong-video/scripts/ethopex', 'apps/etp2/src', 'apps/web/src/components', 'apps/web/src/lib'].map((d) => path.join(MOS2, d));
@@ -54,6 +67,8 @@ if (!thu) try {
     and coalesce(prep_payload->'site_status'->>'mos2', 'pending') not in ('completed', 'verified', 'dropped', 'broken', 'claimed', 'review') limit 10) x`).trim() || '[]');
   for (const x of gy) viec(`--them 'etp:gopy|${x.id}' ethopex`, `Góp ý ${String(x.url).startsWith('https://etp2.') ? 'etp2' : 'etp'} #${x.id}: ${x.tieu_de} — ${x.url}`);
 } catch (e) { log(`đọc hòm góp ý etp lỗi: ${e.message.split('\n')[0]}`); }
+if (!thu) for (const t of cay.day ?? []) { const m = t.match(/^etp2? #(\d{3,})\b/); if (!m) continue;
+  try { log(`commit kẹt đã lên main: ${chotCard(m[1], 'nop', `Máy đã đẩy bản sửa lên main (lượt trước push bị từ chối vì main vừa có commit khác): ${t}`)}`); } catch (e) { log(`nộp card #${m[1]} lỗi: ${e.message.split('\n')[0]}`); } }
 const r0 = thu ? (() => { const st = JSON.parse(box(`cat ${DATA}/${TEP} 2>/dev/null || echo '{"hang":[]}'`) || '{"hang":[]}'); const x = (st.hang || []).find((y) => y.tt === 'cho'); return x ? { viec: x } : { ly_do: 'không có việc' }; })()
   : JSON.parse(viec('--lay'));
 if (!r0.viec) { log(`không nhận việc: ${r0.ly_do}`); process.exit(0); }
@@ -142,3 +157,9 @@ const than = ((sauBao.length > 1 ? sauBao.pop().trim() : boKet.split('\n').slice
     const d = (k) => h.filter((x) => x.ket === k || (k === 'da_sua' && x.tt === 'xong')).length; return `\nHôm nay: ${h.length + 1} việc · ${d('da_sua') + (ket === 'da_sua' ? 1 : 0)} đã sửa · ${d('can_anh') + (ket === 'can_anh' ? 1 : 0)} cần anh`; } catch { return ''; } })();
 log(`xong #${v.id}: ${ket} · commit ${commit ? sau.slice(0, 8) : 'không'} · ${kq.num_turns ?? '?'} lượt`);
 viec(`--bao ${v.id} ${ket === 'treo' ? 'treo' : ket}`, than);
+if (gopY && !thu) try {
+  let lenMain = false; if (commit) { try { git('fetch', '-q', 'origin', 'main'); lenMain = !!git('branch', '-r', '--contains', sau).trim(); } catch { /* chưa lên */ } }
+  const r = ket === 'da_sua' && (lenMain || !commit) ? chotCard(gopY, 'nop', than)
+    : chotCard(gopY, 'tra', commit && !lenMain ? `Đã sửa (commit ${sau.slice(0, 9)}) nhưng chưa lên main — máy tự đẩy ở lượt sau rồi nộp card.\n\n${than}` : than);
+  log(`card góp ý ${r}`);
+} catch (e) { log(`chốt card #${gopY} lỗi: ${e.message.split('\n')[0]}`); }

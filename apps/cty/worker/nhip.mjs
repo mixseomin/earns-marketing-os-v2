@@ -82,6 +82,10 @@ export const VIEC_NHIP = {
     { ma: 'sua-social', ten: 'Social - làm lại bài bị chặn (Claude · Khang trên iMac)', lich: () => 'mỗi 30 phút · iMac', khop: null,
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/social-sua.mjs mỗi 30 phút: hàng riêng của Khang (worker/tho-may-viec.mjs, THO_MAY_TEP=social-sua.json — Phòng Nội dung xếp sau mỗi lượt chấm: máy có bài chưa đăng bị SỬA LẠI quá 1 giờ) có việc → báo nhận trong 📂 Social Traffic, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) làm lại bài bằng đề mới cùng góc + dạng (may-dung --lam-lai-sua) hoặc sửa gốc máy sinh bài, kiểm, push, chấm lại, rồi trả lời dưới tin (anh 10/11/2026 "Phải có 1 con CLI phụ trách việc này").' },
   ],
+  'sua-tai-nguyen': [
+    { ma: 'sua-tai-nguyen', ten: 'Tài nguyên - kỹ sư sửa máy + trả lời anh (Claude · Tài trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
+      mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/tai-nguyen-sua.mjs mỗi 5 phút: hàng riêng của Tài (worker/tho-may-viec.mjs, THO_MAY_TEP=tai-nguyen-sua.json — cảnh báo máy móc Nguyên phát mỗi nhịp + mọi tin anh gõ trong 🧰 Tài nguyên) có việc → báo nhận, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) đọc kho kiến thức ~/Me/GitHub/tai-nguyen-ky-su, đo, sửa gốc trong spy-on-tc / mã phòng mos2 hoặc trả lời bằng số thật, ghi bài học vào kho (máy commit), rồi trả lời dưới tin (anh 13/11/2026 "phải có repo riêng để còn kế thừa kiến thức").' },
+  ],
   'xu-gop-y-spy': [
     { ma: 'xu-gop-y-spy', ten: 'Spy - xử hòm góp ý (Claude · Hiếu trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/spy-gop-y.mjs mỗi 5 phút: hòm góp ý của spy.on.tc (card feedback project spy, pending / claimed / broken) có card chưa làm hoặc có tin mới của anh → chỉ khi bản spy-on-tc iMac khớp box3, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL, effort theo việc) chạy đúng /tasks-spy: sửa gốc, kiểm, deploy.sh, trả lời vào luồng card rồi nộp Review. Card đã làm mà chưa có tin mới thì không làm lại trong 24 giờ.' },

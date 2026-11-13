@@ -22,7 +22,7 @@
    "ten": "Spy - tự sửa máy cào (Claude Code trên iMac)",
    "so_hoa": "co-dinh",
    "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền; chỉ chạy khi hàng có việc",
-   "mo_ta": "Nhận cảnh báo máy móc từ hàng worker/tho-may-viec.mjs, tìm gốc + sửa + kiểm trong repo spy-on-tc, trả lời dưới tin cảnh báo trên Telegram. Không giới hạn số lượt, mỗi lần một việc, 30 phút / lượt.",
+   "mo_ta": "Từ 13/11/2026 cảnh báo máy của Nguyên sang hàng của Tài (kỹ sư Tài nguyên). Mạnh giữ hàng worker/tho-may-viec.mjs (tho-may.json) cho việc của các phòng không có kỹ sư riêng: máy đăng, kênh nội dung, lệnh anh ở chủ đề chung; việc spy cũ còn trong hàng thì làm nốt.",
    "ma": "apps/cty/may/tho-may.mjs · hàng: apps/cty/worker/tho-may-viec.mjs",
    "chu_tri": "manh",
    "lam": [
@@ -33,6 +33,23 @@
     "iMac:tc.on.spy.tu-sua-may-cao"
    ],
    "chi_phi": "gói Claude thuê bao (không tính theo lượt); không giới hạn số lượt"
+  },
+  {
+   "id": "tai-sua",
+   "ten": "Kỹ sư Tài nguyên: sửa máy cào + trả lời anh (Claude Code trên iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền; chỉ gọi Claude khi hàng tai-nguyen-sua.json có việc",
+   "mo_ta": "Tài lấy một việc ở hàng riêng: cảnh báo máy móc Nguyên phát (làn cào đứng, box3 / VPS quá tải, RAM, daemon, ckey) hoặc tin anh gõ trong 🧰 Tài nguyên (hỏi hiện trạng, nhắc tối ưu). Đọc kho kiến thức ~/Me/GitHub/tai-nguyen-ky-su, đo, sửa gốc trong spy-on-tc / mã phòng mos2 hoặc trả lời bằng số thật, ghi bài học vào kho (máy commit), trả lời dưới tin.",
+   "ma": "apps/cty/may/tai-nguyen-sua.mjs · hàng: apps/cty/worker/tho-may-viec.mjs (THO_MAY_TEP=tai-nguyen-sua.json) · tin anh: apps/cty/worker/thu-ky.mjs (KY_SU thang)",
+   "chu_tri": "tai",
+   "lam": [
+    "may"
+   ],
+   "khi": "khi hàng tai-nguyen-sua.json có việc",
+   "lich": [
+    "iMac:tc.on.cty.tai-nguyen-sua"
+   ],
+   "chi_phi": "gói Claude thuê bao (không tính theo lượt)"
   },
   {
    "id": "bao-tri-ckey",

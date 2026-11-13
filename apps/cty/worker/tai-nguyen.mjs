@@ -257,8 +257,9 @@ export async function nhipTaiNguyen(nguoi, { ten = nguoi } = {}) {
       if (!st.topic) { const j = await tg('createForumTopic', { name: '🧰 Tài nguyên' }); if (j.ok) st.topic = j.result.message_thread_id; }
       if (moi.length) { const j = await tg('sendMessage', { message_thread_id: st.topic, parse_mode: 'HTML', text: soanTin(ten, moi) });
         if (j.ok) for (const c of moi) nhac[c.khoa] = bay;
-        // THỢ MÁY (iMac, worker/tho-may-viec.mjs): cảnh báo máy móc mới thành việc, trả lời dưới đúng tin này — hỏng không ảnh hưởng phần báo
-        if (j.ok) try { (await import('./tho-may-viec.mjs')).themTuCanhBao(moi, { topic: st.topic, msg: j.result?.message_id }); } catch (e) { console.error('✗ hàng thợ máy:', e.message); } }
+        // KỸ SƯ TÀI NGUYÊN (Tài, apps/cty/may/tai-nguyen-sua.mjs trên iMac — anh 13/11/2026 "máy cào spy nếu liên quan đến tài nguyên thì phải fw cho kỹ sư mới"):
+        // cảnh báo máy móc mới thành việc ở hàng riêng của Tài, trả lời dưới đúng tin này — hỏng không ảnh hưởng phần báo
+        if (j.ok) try { const h = await import('./tho-may-viec.mjs'); h.theoHang(h.HANG_TAI, () => h.themTuCanhBao(moi, { topic: st.topic, msg: j.result?.message_id })); } catch (e) { console.error('✗ hàng kỹ sư Tài nguyên:', e.message); } }
       if (api?.bao) { const j = await tg('sendMessage', { message_thread_id: st.topic, parse_mode: 'HTML', text: api.bao }); if (j.ok) api.ghiBao(); }
     }
   }

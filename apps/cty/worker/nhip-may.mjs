@@ -8,5 +8,6 @@ export const NHIP_MAY = { 'don-nhat-ky': { may: 'MacBook', script: '~/bin/don-nh
   'xu-task-astrolas': { may: 'iMac', script: '~/bin/thanh/chay.mjs', launchd: 'tc.on.cty.astrolas-tasks' },
   'sua-may-etp': { may: 'iMac', script: 'apps/cty/may/etp-sua.mjs', launchd: 'tc.on.cty.etp-sua' },
   'sua-social': { may: 'iMac', script: 'apps/cty/may/social-sua.mjs', launchd: 'tc.on.cty.social-sua' },
+  'sua-tai-nguyen': { may: 'iMac', script: 'apps/cty/may/tai-nguyen-sua.mjs', launchd: 'tc.on.cty.tai-nguyen-sua' },   // Tài · Kỹ sư Tài nguyên (anh 13/11/2026)
   'xu-gop-y-mos2': { may: 'iMac', script: 'apps/cty/may/mos2-gop-y.mjs', launchd: 'tc.on.cty.mos2-gop-y' },
   'xu-gop-y-spy': { may: 'iMac', script: 'apps/cty/may/spy-gop-y.mjs', launchd: 'tc.on.cty.spy-gop-y' } };   // Đạt · hòm góp ý MOS2 (anh 12/11/2026)   // Khang · bài social bị chặn (anh 10/11/2026)   // Huy · Ethopex tự sửa lỗi máy (anh 10/11/2026)   // Spy - tự sửa máy cào (Claude trên iMac, 24/10/2026)

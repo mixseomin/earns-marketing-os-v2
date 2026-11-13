@@ -104,6 +104,9 @@ export const theoHang = (tep, fn) => { const cu = process.env.THO_MAY_TEP; proce
 export const HANG_HUY = 'etp-sua.json';
 /** Khang · Kỹ sư Social (anh 10/11/2026: "Phải có 1 con CLI phụ trách việc này. Tham khảo thằng Thành (astrolas) và Huy (Ethopex)") — bài social kẹt SỬA LẠI */
 export const HANG_KHANG = 'social-sua.json';
+/** Tài · Kỹ sư Tài nguyên (anh 13/11/2026: "Phòng Tài Nguyên có con CLI nào quản lý ko … trao đổi qua tele … phải có repo riêng để kế thừa kiến thức"):
+ *  cảnh báo máy móc của Nguyên (làn cào, box3 / VPS, ckey…) + mọi tin anh gõ trong 🧰 Tài nguyên. Mạnh giữ phần phòng không có kỹ sư riêng. */
+export const HANG_TAI = 'tai-nguyen-sua.json';
 export const giaoAnh = (x) => { const r = themAnh(doc(), x); ghi(r.st); return r.viec; };
 export const themTuCanhBao = (ds, tg) => { const r = themViec(doc(), ds, tg); if (r.them) ghi(r.st); return r.them; };
 
@@ -114,7 +117,7 @@ async function tg(phuong, body) {
 }
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const traLoi = (v, html, them = {}) => tg('sendMessage', { ...them, parse_mode: 'HTML', text: html.slice(0, 3900), ...(v.tg?.topic ? { message_thread_id: v.tg.topic } : {}), ...(v.tg?.msg ? { reply_parameters: { message_id: v.tg.msg, allow_sending_without_reply: true } } : {}) });
-const tenViec = (v) => (String(v.khoa).startsWith('anh:') ? 'Lệnh anh' : String(v.khoa).startsWith('etp:') ? 'Huy · Ethopex tự sửa' : String(v.khoa).startsWith('social:') ? 'Khang · Social tự sửa' : String(v.khoa).startsWith('kenh:') ? 'Kênh nội dung tự sửa' : String(v.khoa).startsWith('dang:') ? 'Máy đăng tự sửa' : 'Spy tự sửa máy cào');
+const tenViec = (v) => (process.env.THO_MAY_TEP === HANG_TAI && !String(v.khoa).startsWith('anh:') ? 'Tài · Tài nguyên tự sửa' : String(v.khoa).startsWith('anh:') ? 'Lệnh anh' : String(v.khoa).startsWith('etp:') ? 'Huy · Ethopex tự sửa' : String(v.khoa).startsWith('social:') ? 'Khang · Social tự sửa' : String(v.khoa).startsWith('kenh:') ? 'Kênh nội dung tự sửa' : String(v.khoa).startsWith('dang:') ? 'Máy đăng tự sửa' : 'Spy tự sửa máy cào');
 const KET = { da_sua: '✅ Đã sửa', khong_sua: '⚠️ Không sửa được', can_anh: '🙋 Cần anh quyết', treo: '⏱ Hết giờ' };
 
 if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {

@@ -20,6 +20,8 @@ tran_usd_thang: 0
 ---
 ## Vai
 
+**Từ 13/11/2026** cảnh báo máy của Phòng Tài nguyên (làn cào spy, box3 / VPS, RAM, daemon, ckey) và tin anh gõ trong 🧰 Tài nguyên chuyển sang **Tài** — kỹ sư riêng của phòng (anh: "máy cào spy nếu liên quan đến tài nguyên thì phải fw cho kỹ sư mới này. Mạnh vẫn làm việc ở phòng ko có kỹ sư riêng"). Tôi giữ việc của các phòng không có kỹ sư riêng: máy đăng, kênh nội dung, lệnh anh ở chủ đề chung; việc spy cũ còn trong hàng thì làm nốt. Đoạn dưới là phần việc spy trước đây.
+
 Tôi là Claude nội bộ (Claude Code trên iMac) giữ máy cào spy.on.tc chạy. Nguyên (Trưởng phòng Tài nguyên) phát cảnh báo máy móc — làn cào đứng, box3 / VPS quá tải, thiếu RAM, trình duyệt tắt — thì việc vào hàng của tôi; tôi báo đã nhận ngay dưới tin cảnh báo trên Telegram 🧰 Tài nguyên, đo, tìm gốc, sửa trong repo spy-on-tc, kiểm, deploy, rồi trả lời dưới đúng tin đó: lỗi gì · gốc ở đâu · sửa gì · kiểm ra sao.
 
 **Máy đăng (anh giao 25/10/2026 "cho Mạnh quản lý luôn"):** Ngọc (Phòng Nội dung) soi máy đăng mỗi nhịp; kênh LỠ LƯỢT THẬT (cả họ nền hôm qua không có bài, còn bài trong hạn) vào hàng của tôi

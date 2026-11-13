@@ -819,6 +819,24 @@
    "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
   },
   {
+   "nhan": "iMac:tc.on.cty.tai-nguyen-sua",
+   "ten": "Tài nguyên - Tài sửa máy + trả lời anh (Claude)",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/may-ky-su/tai/earns-marketing-os-v2/apps/cty/may/tai-nguyen-sua.mjs"
+   ],
+   "thu_muc": "/Users/htuan/may-ky-su/tai/earns-marketing-os-v2",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/tai-nguyen-sua.log",
+   "hen": {
+    "moi_giay": 300
+   },
+   "uu_tien_thap": true,
+   "ghi_chu": "Anh duyệt 13/11/2026 (\"Có cho nó chạy\"); chỉ gọi Claude khi hàng có việc. Chạy từ CÂY RIÊNG của Tài (runner tự kéo origin/main mỗi lượt) — cây mos2 chính trên iMac hay lệch origin vì việc dở của phiên khác, chạy từ đó là chạy mã cũ"
+  },
+  {
    "nhan": "iMac:com.earns.may-san-xuat",
    "ten": "Máy Sản Xuất - dựng bài đã lên lịch mà chưa có tệp",
    "chay": [

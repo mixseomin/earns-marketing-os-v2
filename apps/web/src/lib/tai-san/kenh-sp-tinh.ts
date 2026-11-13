@@ -18,7 +18,7 @@ export type KenhSp = {
   videos: VideoKenh[];
   /** KẾ HOẠCH kênh (anh 02/11/2026: "show plan cụ thể — lịch đăng bài, bài đã sx, đang sx"): lịch làm tập (kenh.json lich_tap + gio_tap), tập đang làm
    *  (xv_may.nguon.dang_lam_ds — mỗi tập một dấu, nhiều tập chạy song song được; chay-kenh / lam-tap ghi qua box3.mjs › dauDangLam), lịch đăng dự kiến của máy đăng (xv_lich_du_kien) */
-  ke: { lichTap: string | null; tapKe: string[]; dangLam: DangLam[]; lichDang: { ngay: string; gio: string | null; nen: string; tieuDe: string }[];
+  ke: { lichTap: string | null; tapKe: string[]; dangLam: DangLam[]; lichDang: { ngay: string; gio: string | null; nen: string; tieuDe: string; /** tập máy sẽ đăng (xv_lich_du_kien.slug) — cột Đăng của dòng video chờ đăng hiện mờ ngày này */ slug?: string | null }[];
     /** giờ VN sớm nhất máy đăng được đăng bài của kênh (xv_may.dang[].gio_tu) */ gioDang: string | null;
     /** tập đang dở chưa nạp máy đăng (xv_may.nguon.tap_cho — chay-kenh.mjs ghi mỗi lượt) */ tapCho?: TapCho[] };
   /** PLAYLIST THẬT của kênh (kenh.json › playlist — máy làm tập chạy theo đây; G1 tầng playlist chung): lịch + số từng playlist. [] = kênh chưa chia playlist */

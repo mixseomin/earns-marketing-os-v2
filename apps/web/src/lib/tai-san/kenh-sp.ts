@@ -51,7 +51,7 @@ export async function docKenhSp(hom: string): Promise<KenhSp[]> {
       v.da_dang ? 'youtube' AS da_dang, v.dang->>'playlist' AS playlist, v.dang->>'mau' AS mau, v.dang->>'y_tuong' AS y_tuong, v.da_dang->'youtube'->>'ngay' AS ngay, v.da_dang->'youtube'->>'url' AS url, (v.luot_xem_nen->>'youtube')::int AS xem, v.video_url AS tep
     FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.la_san_pham AND v.de->>'loai' = 'video-ngoai' AND NOT coalesce(v.luu_tru, false) ORDER BY v.created_at DESC`)) as unknown as
     { ma: string; slug: string; ten: string; xuat: boolean; cham: string | null; giay: string | null; ngay_lam: string | null; da_dang: boolean; playlist: string | null; mau: string | null; y_tuong: string | null; ngay: string | null; url: string | null; xem: number | null; tep: string | null }[];
-  const lich = ((await d.execute(sql`SELECT ds FROM xv_lich_du_kien`)) as unknown as { ds: { may: string; ngay: string; gio?: string; nen: string; title?: string }[] }[]).flatMap((r) => r.ds ?? []);
+  const lich = ((await d.execute(sql`SELECT ds FROM xv_lich_du_kien`)) as unknown as { ds: { may: string; ngay: string; gio?: string; nen: string; title?: string; slug?: string | null }[] }[]).flatMap((r) => r.ds ?? []);
   const hs = hoSoKenh(), lt = soKenh(), nguonY = docNguonYTuong(lt), gioNay = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
   return may.map((m) => {
     const ds: SoNgayKenh[] = so.filter((r) => r.san_pham === `may:${m.ma}`).map((r) => ({ ngay: r.ngay.slice(0, 10), xem: Number(r.hien), daDang: Number(r.so_muc), nguoiDk: r.nguoi_dk == null ? null : Number(r.nguoi_dk) }));
@@ -69,7 +69,7 @@ export async function docKenhSp(hom: string): Promise<KenhSp[]> {
       ke: (() => {
         return { lichTap: l.chu, tapKe: l.ke, dangLam: [...(m.dang_lam?.id ? [m.dang_lam] : []), ...Object.values(m.dang_lam_ds ?? {})].sort((a, b) => a.luc.localeCompare(b.luc)), tapCho: m.tap_cho ?? [], gioDang: (m.dang ?? []).find((x) => x.nen === 'youtube')?.gio_tu ?? null,
           lichDang: lich.filter((x) => x.may === m.ma && x.ngay >= hom).sort((a, b) => `${a.ngay}${a.gio ?? ''}`.localeCompare(`${b.ngay}${b.gio ?? ''}`)).slice(0, 10)
-            .map((x) => ({ ngay: x.ngay, gio: x.gio ?? null, nen: x.nen, tieuDe: x.title ?? '' })) }; })(),
+            .map((x) => ({ ngay: x.ngay, gio: x.gio ?? null, nen: x.nen, tieuDe: x.title ?? '', slug: x.slug ?? null })) }; })(),
       videos };
   });
 }

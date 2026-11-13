@@ -17,6 +17,8 @@ import { cotSocial, nhomSocial } from './tai-san-social';
 
 const so = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleString('vi-VN'));
 const ngayVn = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '–');
+/** lịch máy đăng (xv_lich_du_kien) của một tập, sớm nhất trước */
+const henDang = (k: KenhSp, slug: string) => k.ke.lichDang.filter((l) => l.slug === slug);
 const mo: React.CSSProperties = { color: 'var(--fg-4)' };
 const tang = (n: number | null) => (n == null ? <span style={mo}>–</span> : <span style={{ color: n > 0 ? 'var(--ok)' : 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{n > 0 ? '+' : ''}{so(n)}</span>);
 const STUDIO = 'https://studio.on.tc';
@@ -136,8 +138,11 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
     { key: 'xem', header: 'Lượt xem', width: 96, sortValue: (d) => (laK(d) ? d.k.xem : vd(d)?.xem ?? null), cellTitle: (d) => (laK(d) ? 'cộng dồn mọi video đã đăng' : 'lượt xem video này'),
       cell: (d) => (d.loai === 'ke' ? null : <span style={{ fontVariantNumeric: 'tabular-nums' }}>{so(laK(d) ? d.k.xem : vd(d)?.xem ?? null)}</span>) },
     { key: 'xem7', header: 'Xem 7 ngày', width: 96, sortValue: (d) => d.k.xem7, cell: (d) => (laK(d) ? tang(d.k.xem7) : null) },
-    { key: 'dang', header: 'Đăng', width: 84, sortValue: (d) => (laK(d) ? d.k.dangCuoi : vd(d)?.ngayDang ?? null), cellTitle: (d) => (laK(d) ? 'ngày đăng gần nhất' : 'ngày đăng video'),
-      cell: (d) => ngayVn(laK(d) ? d.k.dangCuoi : vd(d)?.ngayDang ?? null) },
+    { key: 'dang', header: 'Đăng', width: 84, sortValue: (d) => (laK(d) ? d.k.dangCuoi : vd(d)?.ngayDang ?? null), cellTitle: (d) => { if (laK(d)) return 'ngày đăng gần nhất'; const v = vd(d); const h = v && !v.ngayDang ? henDang(d.k, v.slug) : [];
+        return h.length ? h.map((l) => `dự kiến đăng ${ngayVn(l.ngay)}${l.gio ? ` ${l.gio}` : ''} (giờ VN) · ${l.nen} · máy đăng sẽ tự đăng, chưa đặt lịch (scheduled) trên nền${l.tieuDe ? `\n${l.tieuDe}` : ''}`).join('\n\n') : 'ngày đăng video'; },
+      cell: (d) => { if (laK(d)) return ngayVn(d.k.dangCuoi); const v = vd(d); if (!v || v.ngayDang) return ngayVn(v?.ngayDang ?? null);
+        // góp ý #1583: tập chờ đăng có trong lịch máy đăng → hiện mờ ngày sẽ đăng (rê chuột: giờ + nền + trạng thái)
+        const h = henDang(d.k, v.slug)[0]; return h ? <span style={{ color: 'var(--fg-4)', fontStyle: 'italic' }}>{ngayVn(h.ngay)}</span> : ngayVn(null); } },
     { key: 'so', header: 'Số tới', width: 72, sortValue: (d) => d.k.ngaySo, cell: (d) => (!laK(d) ? null : d.k.ngaySo ? ngayVn(d.k.ngaySo) : <span style={mo}>chưa đo</span>) },
   ];
   return (

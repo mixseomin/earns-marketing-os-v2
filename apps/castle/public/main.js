@@ -9,6 +9,8 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import RAPIER from 'rapier';
 import * as T from './tex.js';
 import { taoNguoi, MAU_DA, MAU_AO } from './nhanvat.js';
+import { dungNhaQuan, nguoiQuan } from './quan.js';
+import { taoAmThanh } from './amthanh.js';
 
 const $ = (id) => document.getElementById(id);
 const thamSo = new URLSearchParams(location.search);
@@ -22,7 +24,8 @@ try { await RAPIER.init(); } catch (e) { $('tai').innerHTML = '<div class="loi">
 
 // ---------- khung dựng
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, CHAM ? 1.25 : 1.6));
+let doNet = Math.min(devicePixelRatio, CHAM ? 1.1 : 1.25); // Retina 2–3x vẽ đủ điểm ảnh là nóng máy (MacBook 14/11/2026)
+renderer.setPixelRatio(doNet);
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -194,6 +197,7 @@ for (let i = 0; i < SO_THAP; i++) {
 
 // phố: hai vành nhà quanh vành đường r≈31, chừa 4 phố hướng tâm
 const PHO = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
+const GOC_QUAN = Math.PI / 2 + 0.42, R_QUAN = 41.5, TAM_QUAN = [Math.cos(GOC_QUAN) * R_QUAN, Math.sin(GOC_QUAN) * R_QUAN]; // quán rượu cạnh phố cổng
 const nhaVa = [];
 for (const hang of [19.5, 25.5, 37.8, 44.2]) { // bốn hàng nhà; vành phố chính r≈31 nằm giữa hàng 2 và 3
   {
@@ -203,7 +207,8 @@ for (const hang of [19.5, 25.5, 37.8, 44.2]) { // bốn hàng nhà; vành phố 
       const da = w / hang;
       const am = a + da / 2;
       const gan = PHO.some((p) => Math.abs(Math.atan2(Math.sin(am - p), Math.cos(am - p))) * hang < 4.2 + w / 2);
-      if (!gan && r() > 0.08) {
+      const choQuan = Math.hypot(Math.cos(am) * hang - TAM_QUAN[0], Math.sin(am) * hang - TAM_QUAN[1]) < 10.5;
+      if (!gan && !choQuan && r() > 0.08) {
         const x = Math.cos(am) * hang, z = Math.sin(am) * hang, ry = -am + Math.PI / 2;
         hop('vua', w, h, d, x, 0, z, ry); vaHop(w, h, d, x, 0, z, ry);
         maiDoc(r() < 0.8 ? 'ngoi' : 'ngoiXanh', w + 0.8, d + 1.2, giua(2, 3.2), x, h, z, ry);
@@ -222,9 +227,10 @@ for (let k = 0; k < 28; k++) {
   const a = k / 28 * Math.PI * 2 + 0.06, x = Math.cos(a) * 31, z = Math.sin(a) * 31;
   hop('go', 0.22, 3.2, 0.22, x, 0, z); vaHop(0.22, 3.2, 0.22, x, 0, z);
   gDen.push(new THREE.BoxGeometry(0.42, 0.55, 0.42).translate(x, 3.45, z));
-  if (k % 4 === 0) { const l = new THREE.PointLight(0xffa050, 18, 16, 1.8); l.position.set(x, 3.6, z); scene.add(l); }
+  if (k % 7 === 0) { const l = new THREE.PointLight(0xffa050, 18, 16, 1.8); l.position.set(x, 3.6, z); scene.add(l); }
 }
 scene.add(new THREE.Mesh(mergeGeometries(gDen), VL_DEN));
+const quan = dungNhaQuan({ hop, tru, maiDoc, dat_, vaHop, vaTru, scene, mergeGeometries, chamLua: T.cham() }, GOC_QUAN, R_QUAN);
 dungLuoi();
 
 // ---------- dung nham: shader nhiễu chảy, vỏ nguội nứt, sáng quá 1 để bloom bắt
@@ -342,8 +348,10 @@ for (let i = 0; i < 14; i++) {
   world.createCollider(RAPIER.ColliderDesc.capsule(0.5, 0.3), b);
   dan.push({ n, b, rr, a, chieu: r() < 0.5 ? 1 : -1, toc: giua(1.1, 1.6), dung: 0, hoiChao: 0, x: 0, z: 0 });
 }
+const quanNguoi = nguoiQuan({ taoNguoi, MAU_DA, MAU_AO, scene, world, RAPIER }, quan);
 function buocDan(dt) {
   const p = than.translation();
+  quanNguoi.capNhat(dt, cheDo === 'di' ? { x: p.x, z: p.z } : null);
   for (const d of dan) {
     d.hoiChao -= dt;
     let v = 0;
@@ -384,6 +392,12 @@ function raToanCanh() {
 }
 $('b-di').onclick = () => vaoDiBo(); $('b-toan').onclick = raToanCanh; $('b-ra').onclick = raToanCanh;
 $('b-tiep').onclick = () => { $('dung').style.display = 'none'; renderer.domElement.requestPointerLock?.()?.catch?.(() => {}); };
+// âm thanh: chỉ bật sau cú bấm đầu tiên (luật trình duyệt); nút 🔇 tắt/mở
+let am = null, tatAm = false;
+const batAm = () => { if (am || tatAm) return; try { am = taoAmThanh(); am.gan(quan); } catch (e) { console.warn('[castle] không bật được âm thanh', e); } };
+addEventListener('pointerdown', batAm); addEventListener('keydown', batAm);
+$('b-am').onclick = (e) => { e.stopPropagation(); tatAm = !tatAm; $('b-am').textContent = tatAm ? '🔇' : '🔊'; if (am) am.tat(tatAm); else batAm(); };
+let tuongTac = 0; for (const ev of ['pointermove', 'wheel', 'keydown', 'touchmove']) addEventListener(ev, () => { tuongTac = performance.now(); }, { passive: true });
 $('b-moi').onclick = () => { thamSo.set('h', Math.floor(Math.random() * 1e6)); location.search = thamSo.toString(); };
 
 const tia = new THREE.Raycaster();
@@ -460,7 +474,15 @@ function buocDiBo(dt) {
   nen = dk.computedGrounded();
   if (p.y < -6) vaoDiBo(); // rơi xuống dung nham → về đầu cầu
 }
-function vong() {
+let lanVe = 0, demCham = 0, demKhung = 0, mocDo = 0;
+function vong(now = 0) {
+  requestAnimationFrame(vong);
+  // trần khung hình: đi bộ / đang thao tác 60 · để yên toàn cảnh 30 · cửa sổ không được chọn 10 (màn 120 Hz không vẽ gấp đôi)
+  const khoang = !document.hasFocus() ? 100 : cheDo === 'di' || now - tuongTac < 4000 ? 1000 / 60 : 1000 / 30;
+  if (now - lanVe < khoang - 3) return;
+  const cach = now - lanVe; lanVe = now;
+  // tự hạ độ phân giải khi máy không kịp 60 (đo 2 giây một lần lúc đang ở nhịp 60)
+  if (khoang < 20) { demKhung++; if (cach > 24) demCham++; if (now - mocDo > 2000) { if (demCham > demKhung * 0.3 && doNet > 0.7) { doNet = Math.max(0.7, doNet - 0.15); renderer.setPixelRatio(doNet); composer.setPixelRatio?.(doNet); } demCham = demKhung = 0; mocDo = now; } }
   const dt = Math.min(dongHo.getDelta(), 0.1), t = dongHo.elapsedTime;
   tichLuy += dt;
   while (tichLuy >= BUOC) { if (cheDo === 'di') buocDiBo(BUOC); buocDan(BUOC); world.step(); tichLuy -= BUOC; }
@@ -488,9 +510,10 @@ function vong() {
   gLua.attributes.position.needsUpdate = true;
   for (const c of co) { const a = c.g.attributes.position.array; for (let i = 0; i < a.length; i += 3) { const x = c.goc[i]; a[i + 2] = Math.sin(x * 2.2 - t * 5 + c.pha) * 0.18 * x; a[i + 1] = c.goc[i + 1] - x * 0.06 + Math.sin(x * 1.7 - t * 3.3) * 0.05 * x; } c.g.attributes.position.needsUpdate = true; c.g.computeVertexNormals(); }
   anhDn.intensity = 20 + Math.sin(t * 2.1) * 6 + Math.sin(t * 5.3) * 3;
+  quan.capNhat(dt, t);
+  if (am) { const p = camera.position; am.capNhat(camera, quan.trong(p.x, p.z), Math.hypot(p.x - quan.tam[0], p.z - quan.tam[1])); }
   composer.render();
-  requestAnimationFrame(vong);
 }
 $('tai').remove();
-window.__lauDai = { hat: HAT, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; }, toi, dan, da, doiGocNhin };
+window.__lauDai = { hat: HAT, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; }, toi, dan, da, doiGocNhin, quan, quanNguoi, doNet: () => doNet };
 vong();

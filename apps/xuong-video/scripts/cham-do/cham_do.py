@@ -19,6 +19,7 @@ IOU_DO = 0.20         # đồ nhỏ (tờ tiền, chai): hộp nhỏ, lệch và
 PT_DO_TOI_THIEU = 0.3 # đồ chiếm dưới 0,3 % khung 3D thì không bắt tìm (quá nhỏ để máy dò)
 DO_SAU_TOI_THIEU = 0.45   # tương quan hạng độ sâu
 DIEM_PHAT_HIEN = 0.30
+BE_NGANG = 1.6       # bề ngang người ảnh / 3D trong [1/1,6 ; 1,6]
 DINH_DAU = 0.15      # đỉnh đầu người: lệch tối đa (tỉ lệ chiều cao khung)
 
 # Danh từ cho máy dò: rút từ mô tả tiếng Anh của đối tượng (từ đầu tiên khớp), không có thì dùng 'en' của khối 3D
@@ -134,9 +135,16 @@ def cham_shot(may: May, s: dict, nv: dict) -> dict:
         # ảnh 14 %; #9: 31 % / 11 %) lọt cả IoU lẫn mép cắt vì chân nhóc chạm đáy khung.
         if la_nguoi:
             hop_nguoi[ten] = tot[2]
+        # BỀ NGANG NGƯỜI (cỡ cảnh): vách / bậu chỉ che phần DƯỚI, không che bề ngang — đo được cả người bị che. #5: nhóc 3D rộng 31 % khung (cận), ảnh vẽ
+        # toàn thân rộng 13 % mà lọt đỉnh đầu + mép cắt.
+        if la_nguoi and not nho:
+            tl = (tot[2][2] - tot[2][0]) / max(1e-6, hop[2] - hop[0])
+            if tl < 1 / BE_NGANG or tl > BE_NGANG:
+                loi.append(f'{ten}: bề ngang {tot[2][2] - tot[2][0]:.0%} khung, khung 3D {hop[2] - hop[0]:.0%} — sai cỡ cảnh')
         if la_nguoi and not nho and abs(tot[2][1] - hop[1]) > DINH_DAU:
             loi.append(f'{ten}: đỉnh đầu ở {tot[2][1]:.0%} chiều cao khung, khung 3D {hop[1]:.0%} — sai cỡ cảnh / chỗ đứng')
-        if la_nguoi and i >= nguong:   # chỉ khi khớp bằng IoU — người bị vách che thì hộp 3D chạm mép dưới vì phần chân khuất, không phải cận
+        sau_vach = 'window' in (next((x.get('o_dau') for x in (s.get('vt') or []) if x.get('ten') == ten), '') or '')
+        if la_nguoi and i >= nguong and not sau_vach:   # người sau ô cửa: hộp 3D chạm đáy vì CHÂN BỊ VÁCH CHE, không phải cận — bỏ luật mép cắt; chỉ khi khớp bằng IoU — người bị vách che thì hộp 3D chạm mép dưới vì phần chân khuất, không phải cận
             for k, ten_mep in ((3, 'dưới'), (1, 'trên')):
                 cat3d = hop[k] >= 0.985 if k == 3 else hop[k] <= 0.015
                 cat_anh = tot[2][k] >= 0.95 if k == 3 else tot[2][k] <= 0.05

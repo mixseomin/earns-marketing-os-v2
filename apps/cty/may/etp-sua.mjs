@@ -5,7 +5,8 @@
 // deploy, rồi trả lời ngay dưới tin đó. Cùng khuôn thợ máy Mạnh (may/tho-may.mjs) — luật: Claude không giao diện bằng gói thuê bao CHỈ chạy trên iMac.
 //   node etp-sua.mjs        một lượt      · node etp-sua.mjs --thu   in lời giao cho việc đang chờ, không gọi Claude, không nhận việc
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chayClaude } from './claude-chay.mjs';   // spawnSync + báo lỗi API vào 🚨 (anh 13/11/2026)
+import { chayClaude } from './claude-chay.mjs';
+import { chotCard as chotChung, cardTuCommit } from './chot-card.mjs';   // spawnSync + báo lỗi API vào 🚨 (anh 13/11/2026)
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -22,17 +23,8 @@ const cay = thu ? { dir: MOS2_GOC, do: [] } : cayHoacBao(NGUOI, { ten: 'Huy', kh
 const MOS2 = cay.dir;
 // CARD GÓP Ý KHÔNG ĐƯỢC CHẾT Ở "ĐANG LÀM" (anh 14/11/2026 #1587: Huy sửa xong, push bị từ chối vì main vừa có commit, báo không sửa; lượt sau cây riêng
 // đẩy được commit nhưng không ai nộp card → kẹt "Đang làm" tới khi anh tự mở hòm thấy). Máy chốt card mỗi khi lượt dừng:
-//   commit đã lên main → nộp Review (gop-y.sh submit) · chưa xong / kẹt → ghi lý do vào luồng + trả về Chờ xử. Card đã review / xong thì để yên.
-const sqlBox = (q) => box(`cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -qtA -v ON_ERROR_STOP=1 -f -`, q).trim();
-const ttCard = (id) => { try { return sqlBox(`select coalesce(prep_payload->'site_status'->>'mos2', 'pending') from human_tasks where id = ${Number(id)} and project_id = 'mos2'`); } catch { return ''; } };
-export function chotCard(id, cach, chu) {
-  const tt = ttCard(id); if (!tt || ['review', 'completed', 'verified', 'dropped'].includes(tt)) return `#${id} để yên (${tt || 'không đọc được'})`;
-  const q = (x) => `'${String(x).replace(/'/g, `'\\''`)}'`;
-  if (cach === 'nop') { box(`/opt/earns-marketing-os-v2/scripts/gop-y.sh submit ${Number(id)} ${q(chu.slice(0, 3500))}`); return `#${id} → Review`; }
-  box(`/opt/earns-marketing-os-v2/scripts/gop-y.sh reply ${Number(id)} ${q(chu.slice(0, 3500))}`);
-  sqlBox(`update human_tasks set prep_payload = prep_payload || jsonb_build_object('site_status', coalesce(prep_payload->'site_status', '{}'::jsonb) || '{"mos2":"pending"}'::jsonb), updated_at = now() where id = ${Number(id)} and project_id = 'mos2' and prep_payload->>'source_platform' = 'feedback'`);
-  return `#${id} → Chờ xử`;
-}
+//   commit đã lên main → nộp Review · chưa xong / kẹt / chờ máy tự đẩy → ghi lý do + mục "Kẹt" (broken). Card đã review / xong thì để yên.
+const chotCard = (id, cach, chu) => chotChung({ duAn: 'mos2', id, cach: cach === 'tra' ? 'ket' : cach, chu });   // may/chot-card.mjs — dùng chung với Đạt / Hiếu
 // QUYỀN HẸP: sửa CHỈ phần Ethopex của repo mos2 (máy chạy box3 apps/etp, máy luật / tạo camp apps/xuong-video/scripts/ethopex, worker Phát, trang etp / etp2,
 // danh sách điều kiện chống quay về bản cũ apps/etp/gop-y-luat.mjs); đọc box3 qua ssh; kiểm tĩnh; push (GHA deploy box3). Không web, không hỏi, không lan việc.
 const SUA = ['apps/etp', 'apps/xuong-video/scripts/ethopex', 'apps/etp2/src', 'apps/web/src/components', 'apps/web/src/lib'].map((d) => path.join(MOS2, d));
@@ -67,7 +59,7 @@ if (!thu) try {
     and coalesce(prep_payload->'site_status'->>'mos2', 'pending') not in ('completed', 'verified', 'dropped', 'broken', 'claimed', 'review') limit 10) x`).trim() || '[]');
   for (const x of gy) viec(`--them 'etp:gopy|${x.id}' ethopex`, `Góp ý ${String(x.url).startsWith('https://etp2.') ? 'etp2' : 'etp'} #${x.id}: ${x.tieu_de} — ${x.url}`);
 } catch (e) { log(`đọc hòm góp ý etp lỗi: ${e.message.split('\n')[0]}`); }
-if (!thu) for (const t of cay.day ?? []) { const m = t.match(/^etp2? #(\d{3,})\b/); if (!m) continue;
+if (!thu) for (const t of cay.day ?? []) { const m = [null, cardTuCommit(t)]; if (!m[1]) continue;
   try { log(`commit kẹt đã lên main: ${chotCard(m[1], 'nop', `Máy đã đẩy bản sửa lên main (lượt trước push bị từ chối vì main vừa có commit khác): ${t}`)}`); } catch (e) { log(`nộp card #${m[1]} lỗi: ${e.message.split('\n')[0]}`); } }
 const r0 = thu ? (() => { const st = JSON.parse(box(`cat ${DATA}/${TEP} 2>/dev/null || echo '{"hang":[]}'`) || '{"hang":[]}'); const x = (st.hang || []).find((y) => y.tt === 'cho'); return x ? { viec: x } : { ly_do: 'không có việc' }; })()
   : JSON.parse(viec('--lay'));

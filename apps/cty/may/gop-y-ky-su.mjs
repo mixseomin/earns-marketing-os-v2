@@ -2,6 +2,7 @@
 // gọi chayKySu(cfg). Đạt = may/mos2-gop-y.mjs (mos2.on.tc), Hiếu = may/spy-gop-y.mjs (spy.on.tc). Phần chung ở đây: chọn card, chống lặp, effort theo việc,
 // phiên br đăng nhập, chạy Claude Code KHÔNG GIAO DIỆN, đọc kết quả, ghi tin khi hỏng, đóng br. Phần riêng (cây repo, quyền, lời giao, cách trả lời card) nằm ở cấu hình.
 import { execFileSync, spawnSync } from 'node:child_process';
+import { chotCard, cardTuCommit } from './chot-card.mjs';   // card dừng giữa chừng → mục Kẹt; commit kẹt đẩy hộ → nộp (anh 14/11/2026)
 import { chayClaude } from './claude-chay.mjs';   // spawnSync + báo lỗi API vào 🚨 (anh 13/11/2026)
 import fs from 'node:fs';
 import os from 'node:os';
@@ -54,6 +55,7 @@ export function chayKySu(cfg) {
   // cây riêng dọn MỖI LƯỢT, kể cả khi không có card (13/11/2026: Đạt commit #1580 lúc 00:03, push bị từ chối vì main vừa đổi; bước tự đẩy commit kẹt
   // trong cayRieng chỉ chạy khi có card mới → bản sửa nằm kẹt tới card kế). cfg.cayMoiLuot: chỉ người dùng cây riêng (Hiếu làm cây chính, kiểm box3 đắt hơn).
   const cayDau = !thu && !kiem && cfg.cayMoiLuot ? cfg.cay() : null;
+  for (const t of cayDau?.day ?? []) { const id = cardTuCommit(t); if (id) try { log(`commit kẹt đã lên main: ${chotCard({ duAn: cfg.duAn, id, cach: 'nop', chu: `Máy đã đẩy bản sửa lên main (lượt trước push bị từ chối vì main vừa đổi): ${t}` })}`); } catch (e) { log(`nộp card #${id} lỗi: ${String(e.message).split('\n')[0]}`); } }
   if (!card) { log(`không có card mới (${ds.length} card mở, đã làm cả)`); process.exit(0); }
 
   ENV.BR_URL_NGUON = `card góp ý ${cfg.duAn} #${card.id} (trang lưu trong luồng card trên box3)`;   // luật br chống bịa URL: link trang lấy từ card là nguồn thật
@@ -100,6 +102,8 @@ export function chayKySu(cfg) {
     const bao = (ra.split(/BÁO ANH:?/i).pop() || '').replace(/^\s*\**KET:.*$/gim, '').trim().slice(0, 1500) || `${TEN} chạy hỏng (${ket}, thoát ${r.status ?? r.signal}) — lượt sau có tin mới của anh thì làm lại.`;
     try { cfg.traLoi(card.id, `[${TEN} · ${ket}] ${bao}`, ENV); } catch (e) { log(`ghi tin lỗi: ${String(e.message).split('\n')[0]}`); }
   }
+  // card còn "Đang làm" khi lượt dừng = chết im (anh 14/11/2026) → mục Kẹt kèm lý do; Claude đã nộp / trả lời thì chotCard để yên
+  if (!kiem) try { log(`card ${chotCard({ duAn: cfg.duAn, id: card.id, cach: 'ket', chu: `[${TEN} · ${ket}] Lượt dừng mà card chưa nộp Review — con để ở mục Kẹt: lỗi / cần anh, hoặc commit chưa lên main (máy tự đẩy ở lượt sau rồi nộp).` }).replace(/^#\d+ /, '')}`); } catch (e) { log(`chốt card lỗi: ${String(e.message).split('\n')[0]}`); }
   try { execFileSync(BR, ['close', HO_SO], { encoding: 'utf8', env: ENV, timeout: 30000 }); } catch { /* chưa mở được thì thôi */ }   // xong là dọn: đóng ĐÍCH DANH profile của kỹ sư
 }
 

@@ -7,6 +7,9 @@
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { chayKySu, BOX, HOME, BR, log } from './gop-y-ky-su.mjs';
+import { cayRieng } from './cay-rieng.mjs';
+// Hiếu chạy mã từ cây riêng ~/may-ky-su/hieu (14/11/2026: trước chạy từ cây mos2 chính iMac — cây lệch main, mã cũ); đầu lượt kéo cây đó lên main cho lượt sau.
+try { cayRieng('hieu'); } catch (e) { console.error(`cây riêng Hiếu chưa kéo được: ${String(e.message).split('\n')[0]}`); }
 
 const SPY = path.join(HOME, 'Me/GitHub/spy-on-tc'), DEPLOY = ['server', 'web', 'db', 'scripts'];   // đúng bộ thư mục deploy.sh rsync lên /opt/spy
 const GOPY = 'GOPY_PROJECT=spy /opt/earns-marketing-os-v2/scripts/gop-y.sh';

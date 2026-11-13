@@ -863,9 +863,9 @@
    "ten": "MOS2 - Đạt xử hòm góp ý (Claude)",
    "chay": [
     "/opt/homebrew/bin/node",
-    "/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/cty/may/mos2-gop-y.mjs"
+    "/Users/htuan/may-ky-su/dat/earns-marketing-os-v2/apps/cty/may/mos2-gop-y.mjs"
    ],
-   "thu_muc": "/Users/htuan/Me/GitHub/earns-marketing-os-v2",
+   "thu_muc": "/Users/htuan/may-ky-su/dat/earns-marketing-os-v2",
    "moi_truong": {
     "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
    },
@@ -880,9 +880,9 @@
    "ten": "Spy - Hiếu xử hòm góp ý (Claude)",
    "chay": [
     "/opt/homebrew/bin/node",
-    "/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/cty/may/spy-gop-y.mjs"
+    "/Users/htuan/may-ky-su/hieu/earns-marketing-os-v2/apps/cty/may/spy-gop-y.mjs"
    ],
-   "thu_muc": "/Users/htuan/Me/GitHub/earns-marketing-os-v2",
+   "thu_muc": "/Users/htuan/may-ky-su/hieu/earns-marketing-os-v2",
    "moi_truong": {
     "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
    },

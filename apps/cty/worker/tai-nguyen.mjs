@@ -226,7 +226,7 @@ export async function chupTaiNguyen() {
       return { ten, toi: true, daemon: d === 'active', ...(dn === undefined ? {} : { daemonNen: dn }), ramMB, swapMB, dia, ...doCpu(ten, ssh) };
     } catch { return { ten, toi: false }; }
   });
-  // máy chủ khác (MAY_CHU): ssh đo tài nguyên + unit failed; web đo bằng fetch từ box3 (2xx/3xx = sống)
+  // máy chủ khác (MAY_CHU): ssh đo tài nguyên + unit failed; web đo bằng fetch từ box3 (dưới 500 = sống)
   const mayChu = [];
   for (const [ten, v] of Object.entries(MAY_CHU)) {
     const m = { ten };
@@ -239,7 +239,7 @@ export async function chupTaiNguyen() {
     m.web = [];
     for (const url of v.web ?? []) {
       const t0 = Date.now();
-      try { const res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15000) }); m.web.push({ url, ma: res.status, ok: res.status < 400, giay: +((Date.now() - t0) / 1000).toFixed(1) }); }
+      try { const res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15000) }); m.web.push({ url, ma: res.status, ok: res.status < 500,   /* 401/403 = Cloudflare chặn bot, máy vẫn trả lời (đo 13/11: mixseo.net, ai.astrolas.com 403) */ giay: +((Date.now() - t0) / 1000).toFixed(1) }); }
       catch { m.web.push({ url, ma: 0, ok: false }); }
     }
     mayChu.push(m);

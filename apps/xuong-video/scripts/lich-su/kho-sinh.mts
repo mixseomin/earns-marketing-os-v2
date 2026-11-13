@@ -6,7 +6,7 @@
 // iMac tách nền (shot-code/tach-lop.swift) rồi kho-day.mts đẩy lên R2 + Studio. Danh mục dáng: DANG bên dưới (thêm dáng = thêm một dòng).
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { sinhAnhMotCong, chuoiAnh } from '../../src/lib/xuong-video/cong-ai';
+import { sinhAnhQuaCong, type BuocNguon } from '../../src/lib/xuong-video/cong-ai';
 import { uploadToR2 } from '../../src/lib/r2';
 
 export const DANG: Record<string, string> = {
@@ -36,7 +36,11 @@ export const DANG: Record<string, string> = {
 const [ra, gocArg, ds, chanDung] = process.argv.slice(2);
 if (!ra || !gocArg || !ds) { console.error('tsx kho-sinh.mts <ra> <url-gốc|mota:loai:mô tả> <dáng,…>'); process.exit(2); }
 mkdirSync(ra, { recursive: true });
-const c = chuoiAnh('nano-banana-2')[0]!; let tong = 0; let goc = gocArg;
+// GỐC lỗi 13/11/2026: trước đây lấy chuoiAnh('nano-banana-2')[0] rồi gọi MỘT người bán cứng (wowztools) qua sinhAnhMotCong — người bán gỡ / đổi tên
+// model trên chợ ckey là cả bộ dáng chết, thử lại 4 lần vẫn chính người đã gỡ. Nay đi qua sinhAnhQuaCong: tự đọc danh mục ckey chọn người bán còn
+// sống (rẻ → đắt), rồi rơi sang plenxai / ShopAIKey — cùng đường dựng tập dùng. Giữ vòng thử-lại cho lỗi mạng chập chờn CẢ chuỗi.
+const loiThu = (thu: BuocNguon[]) => thu.map((b) => `${b.cong} ${b.model}: ${(b.loi ?? '').slice(0, 80)}`).filter(Boolean).join(' → ') || 'tất cả cổng ảnh đều hỏng';
+let tong = 0; let goc = gocArg;
 if (gocArg.startsWith('mota:')) {
   const [, loai, ...m] = gocArg.split(':'); const moTa = m.join(':');
   // KHO_TEP: kho của kênh khác (vd Astrolas brand/astrolas/nhan-vat/kho.json) — mỗi kênh một phong cách vẽ; mặc định kho kênh lịch sử
@@ -46,11 +50,12 @@ if (gocArg.startsWith('mota:')) {
     : loai === 'phuong_tien'
     ? `${pc.replace(/character/i, 'object').replace(/full body, /, '')}. Object: ${moTa}. Clean side view facing RIGHT, whole object visible, centered, plain pure white background, no people, no ground shadow, no text, letters or logos.`
     : `${pc}. Character: ${moTa}.${chanDung ? ' Image 1 is a real historical portrait of this exact person: match his real face closely (face shape, nose, brow, hairline, hair, expression) so viewers recognise him instantly, but redraw him entirely in the art style above, full body in period clothes.' : ''} Standing in a neutral relaxed pose, body turned slightly toward the right side of the picture, centered, no text, letters or logos.`;
-  let r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: chanDung ? [chanDung] : [], tiLe: loai === 'phuong_tien' || loai === 'sinh_vat' ? '3:2' : '2:3' });   // thú đứng nghiêng: khung ngang
+  const oGoc = { prompt, thamChieuUrl: chanDung ? [chanDung] : [], tiLe: (loai === 'phuong_tien' || loai === 'sinh_vat' ? '3:2' : '2:3') as const };   // thú đứng nghiêng: khung ngang
+  let r = await sinhAnhQuaCong('nano-banana-2', oGoc);
   // THỬ LẠI ảnh gốc (07/11/2026: cổng trả 500 một lượt → cả vai hỏng, các dáng thì đã có thử lại)
-  for (let lan = 2; !r.anh && lan <= 4; lan++) { console.log(`· goc: ${r.loi} — thử lại lần ${lan}`); await new Promise((o) => setTimeout(o, 6000 * lan)); r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: chanDung ? [chanDung] : [], tiLe: loai === 'phuong_tien' || loai === 'sinh_vat' ? '3:2' : '2:3' }); }
-  if (!r.anh) { console.error(`✗ goc: ${r.loi}`); process.exit(1); }
-  writeFileSync(join(ra, 'goc.jpg'), r.anh.data); tong += r.nguon.vnd || 0; console.log('✓ goc');
+  for (let lan = 2; !r.anh && lan <= 4; lan++) { console.log(`· goc: ${loiThu(r.thu)} — thử lại lần ${lan}`); await new Promise((o) => setTimeout(o, 6000 * lan)); r = await sinhAnhQuaCong('nano-banana-2', oGoc); }
+  if (!r.anh) { console.error(`✗ goc: ${loiThu(r.thu)}`); process.exit(1); }
+  writeFileSync(join(ra, 'goc.jpg'), r.anh.data); tong += r.nguon?.vnd || 0; console.log('✓ goc');
   goc = (await uploadToR2(`xuong-video/lich-su/tam/${Date.now()}-goc.jpg`, r.anh.data, 'image/jpeg'))!;
 }
 await Promise.all(ds.split(',').filter((d) => d !== 'goc').map(async (d) => {
@@ -59,9 +64,10 @@ await Promise.all(ds.split(',').filter((d) => d !== 'goc').map(async (d) => {
     ? `Edit Image 1: keep EXACTLY the same character — same face, hair, age, outfit, accessories, art style, line work and colours. Show him as a CLOSE-UP: head and shoulders only, the face large and filling the upper half of the picture, looking slightly toward the right side of the picture, shoulders cut off flat at the bottom edge. Expression: ${mo}. Plain pure white background, no shadow, no text, letters or logos.`
     : `Edit Image 1: keep EXACTLY the same character — same face, hair, age, outfit, accessories, art style, line work, colours and proportions. Change only the pose and expression: ${mo}. Full body, centered, on a plain pure white background, no ground shadow, no text, letters or logos.`;
   // THỬ LẠI dáng hỏng (04/11/2026: lam-tap sinh 3 nhân vật song song = ~27 lượt cổng ảnh cùng lúc → vài dáng TimeoutError, nhân vật thiếu dáng vĩnh viễn trong kho)
-  let r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [goc], tiLe: can ? '4:5' : '2:3' });
-  for (let lan = 2; !r.anh && lan <= 3; lan++) { console.log(`· ${d}: ${r.loi} — thử lại lần ${lan}`); await new Promise((o) => setTimeout(o, 5000 * lan)); r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [goc], tiLe: can ? '4:5' : '2:3' }); }
-  if (!r.anh) { console.log(`✗ ${d}: ${r.loi}`); return; }
-  writeFileSync(join(ra, `${d}.jpg`), r.anh.data); tong += r.nguon.vnd || 0; console.log(`✓ ${d}`);
+  const oDang = { prompt, thamChieuUrl: [goc], tiLe: (can ? '4:5' : '2:3') as const };
+  let r = await sinhAnhQuaCong('nano-banana-2', oDang);
+  for (let lan = 2; !r.anh && lan <= 3; lan++) { console.log(`· ${d}: ${loiThu(r.thu)} — thử lại lần ${lan}`); await new Promise((o) => setTimeout(o, 5000 * lan)); r = await sinhAnhQuaCong('nano-banana-2', oDang); }
+  if (!r.anh) { console.log(`✗ ${d}: ${loiThu(r.thu)}`); return; }
+  writeFileSync(join(ra, `${d}.jpg`), r.anh.data); tong += r.nguon?.vnd || 0; console.log(`✓ ${d}`);
 }));
 console.log(`tiền thật ~${Math.round(tong)}₫`);

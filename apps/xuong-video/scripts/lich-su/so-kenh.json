@@ -1641,11 +1641,11 @@
     "thu_tu": [
       {
         "may": "ratesbyroom-scam-or-real",
-        "trang_thai": "dang"
+        "trang_thai": "xong"
       },
       {
         "may": "esimfares-before-you-land",
-        "trang_thai": "chua"
+        "trang_thai": "dang"
       },
       {
         "may": "militarycalc",
@@ -1706,6 +1706,68 @@
         "ma": "G1",
         "ten": "Chuyển sang sổ kênh",
         "viec": "Sổ kênh + khối Nền đăng trong bảng mos2 › tab 📺 Kênh nội dung (14/11/2026; bản đầu đặt nhầm ở Social Traffic › Kênh, anh chỉ lại)",
+        "anh": "xem và góp ý",
+        "trang_thai": "cho_anh"
+      },
+      {
+        "ma": "G2",
+        "ten": "Đo số theo nền",
+        "viec": "Người theo dõi + lượt xem từng tài khoản mỗi ngày vào kenh_so_ngay (hiện chỉ YouTube + Facebook có lượt xem từng bài)",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G3",
+        "ten": "Đang sản xuất sống",
+        "viec": "Máy dựng ghi dấu dang_lam_ds như máy làm tập → khối ▶ Đang sản xuất hiện từng bài trong lò",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G4",
+        "ten": "Nối góc spy",
+        "viec": "Mỗi bài ghi góc spy nó dùng → đếm khách về site theo góc, bỏ góc không ra khách",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G5",
+        "ten": "Tự vận hành",
+        "viec": "Máy tự chọn dạng bài + góc theo số khách, Claude chỉ vào khi Telegram báo kẹt",
+        "anh": "không",
+        "trang_thai": "chua"
+      }
+    ]
+  },
+  "esimfares-before-you-land": {
+    "loai": "social",
+    "ten": "Before You Land · eSIM theo nước",
+    "cap_nhat": "2026-11-14",
+    "muc_tieu": "kênh tự vận hành: máy dựng video / ảnh \"sắp hạ cánh ở nước X — nối mạng thế nào\" (cửa ngõ quốc tế + 3 bước eSIM) → Phòng Nội dung chấm → máy đăng theo nhịp an toàn lên YouTube Shorts, Facebook Reels, X → khách vào esimfares.com",
+    "dinh_vi": {
+      "cho_ai": "người sắp bay ra nước ngoài cần mạng điện thoại lúc vừa hạ cánh — tiếng Anh, toàn cầu (30 nước du lịch phổ biến)",
+      "dich": "esimfares.com (so sánh eSIM theo nước)",
+      "cau_ket": "compare eSIMs for your trip at esimfares.com",
+      "ngon_ngu": "EN"
+    },
+    "luat": [
+      "Mỗi bài: tên nước + cửa ngõ quốc tế chính (OurAirports) + 3 bước eSIM — không nêu giá, không nêu nhà mạng (góc spy #19191, #19200)",
+      "Mỗi bài qua Phòng Nội dung chấm (cty worker/cham-dang.mjs) trước khi máy đăng lấy",
+      "Nhịp an toàn: trần mỗi nền mỗi ngày theo tuổi kênh, cách nhau ≥ 3 giờ trên cùng tài khoản, không cùng một chuyện lên hai nền của cùng tài khoản trong một ngày, mỗi bài một tiêu đề khác",
+      "Ảnh sân bay / nước thật đúng chủ đề, chữ không đè nền màu phẳng"
+    ],
+    "giai_doan": [
+      {
+        "ma": "G0",
+        "ten": "Dựng máy + nền đăng",
+        "viec": "Máy chạy từ 17/10/2026: 6 nơi đăng (YouTube Shorts @beforeyouland, Facebook Reels + bài ảnh Page Before You Land, X + bài ảnh @beforeyouland, Page Geological Wonders) qua máy đăng chung",
+        "anh": "không",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G1",
+        "ten": "Chuyển sang sổ kênh",
+        "viec": "Sổ kênh + khối Nền đăng trong bảng mos2 › tab 📺 Kênh nội dung (14/11/2026)",
         "anh": "xem và góp ý",
         "trang_thai": "cho_anh"
       },

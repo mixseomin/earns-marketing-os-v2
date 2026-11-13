@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { MultiSelect, Segmented, type MultiSelectOption } from '@/components/ui';
 import { LichLuoi, LichThangTuan, nhanNen } from '@/components/social-lich-luoi';
 import { taiLuoiSocial } from '@/lib/actions/social-traffic';
+import { urlVoiParam } from '@/lib/url-mo-tab';
 import type { StLuoi, StLuoiO } from '@/lib/social-traffic';
 
 type Kieu = 'tuan' | 'thang' | 'gio';
@@ -15,9 +16,11 @@ const KIEU: { value: Kieu; label: string; title?: string }[] = [
 const KHOA = ['da', 'kenh', 'nen', 'tk', 'tt', 'nhom'] as const;
 type Khoa = (typeof KHOA)[number];
 type Loc = Record<Khoa, string[]>;
-const TT: Record<string, string> = { da: '✓ đã đăng', du_kien: 'máy sẽ đăng' };
+// lượt máy đã bấm đăng mà sổ chưa xác nhận bài lên (chuaXn, góp ý #1580) là trạng thái RIÊNG — lịch hiện ⚠, nên lọc / đếm cũng không gộp vào ✓
+const TT: Record<string, string> = { da: '✓ đã đăng', chua_xn: '⚠ chưa thấy bài lên', du_kien: 'máy sẽ đăng' };
+const trangThai = (x: StLuoiO) => (x.loai === 'da' && x.chuaXn ? 'chua_xn' : x.loai);
 const GIA_TRI: Record<Khoa, (x: StLuoiO) => string> = {
-  da: (x) => x.duAn || '—', kenh: (x) => x.mayTen, nen: (x) => nhanNen(x.nen), tk: (x) => x.tk || '—', tt: (x) => x.loai, nhom: (x) => x.nhom || '—' };
+  da: (x) => x.duAn || '—', kenh: (x) => x.mayTen, nen: (x) => nhanNen(x.nen), tk: (x) => x.tk || '—', tt: trangThai, nhom: (x) => x.nhom || '—' };
 const NHAN: Record<Khoa, string> = { da: 'Dự án', kenh: 'Kênh', nen: 'Nền', tk: 'Tài khoản', tt: 'Trạng thái', nhom: 'Kiểu nội dung' };
 const trong = (): Loc => ({ da: [], kenh: [], nen: [], tk: [], tt: [], nhom: [] });
 
@@ -27,8 +30,6 @@ function docUrl() {
   const k = p.get('md_lk');
   return { kieu: (k === 'thang' || k === 'gio' ? k : 'tuan') as Kieu, loc };
 }
-/** URL hiện tại với một khoá đổi — cho ⌘/Ctrl-click mở tab mới (ui-conventions §1). */
-const hrefVoi = (k: string, v: string | null) => { if (typeof window === 'undefined') return null; const p = new URLSearchParams(window.location.search); if (v) p.set(k, v); else p.delete(k); return `${window.location.pathname}?${p}`; };
 
 export function MayDangLich() {
   const dau = useMemo(docUrl, []);
@@ -64,16 +65,17 @@ export function MayDangLich() {
     const may = new Set(o.map((x) => x.may));
     return { ...luoi, o, kho: luoi.kho.filter((x) => may.has(x.may)) };
   }, [luoi, loc, coLoc]);
-  const soDa = daLoc?.o.filter((x) => x.loai === 'da').length ?? 0, soSe = (daLoc?.o.length ?? 0) - soDa;
+  const dem = (t: string) => daLoc?.o.filter((x) => trangThai(x) === t).length ?? 0;
+  const soDa = dem('da'), soXn = dem('chua_xn'), soSe = dem('du_kien');
   const nho = { fontSize: 12, color: 'var(--fg-3)' } as const;
 
   return <div style={{ display: 'grid', gap: 8 }}>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-      <Segmented<Kieu> options={KIEU} value={kieu} onChange={setKieu} hrefFor={(v) => hrefVoi('md_lk', v === 'tuan' ? null : v)} />
+      <Segmented<Kieu> options={KIEU} value={kieu} onChange={setKieu} hrefFor={(v) => urlVoiParam('md_lk', v === 'tuan' ? null : v)} />
       {KHOA.map((k) => <MultiSelect key={k} label={NHAN[k]} options={opt[k]} selected={loc[k]} onChange={(v) => setLoc((c) => ({ ...c, [k]: v }))} compact />)}
       {coLoc && <button type="button" onClick={() => setLoc(trong())} style={{ border: 0, background: 'none', color: 'var(--accent, #60a5fa)', cursor: 'pointer', fontSize: 12 }}>bỏ lọc</button>}
       <span style={{ ...nho, marginLeft: 'auto', ...(loi ? { color: 'var(--danger, #dc2626)' } : {}) }} title="cùng dữ liệu với Social Traffic › Lịch đăng · tự làm mới 5 phút">
-        {loi ? `không tải được lịch: ${loi}` : tai && !luoi ? 'đang tải lịch…' : `${soDa} đã đăng · ${soSe} sẽ đăng`}
+        {loi ? `không tải được lịch: ${loi}` : tai && !luoi ? 'đang tải lịch…' : `${soDa} đã đăng${soXn ? ` · ⚠ ${soXn} chưa thấy bài` : ''} · ${soSe} sẽ đăng`}
       </span>
       <button type="button" onClick={() => void hoi()} disabled={tai} title="tải lại lịch" style={{ border: '1px solid var(--border)', background: 'none', borderRadius: 8, padding: '2px 8px', cursor: 'pointer', color: 'inherit', fontSize: 12 }}>↻</button>
     </div>

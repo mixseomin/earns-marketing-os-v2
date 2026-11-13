@@ -13,6 +13,7 @@ import { MayDangLich } from '@/components/may-dang-lich';
 import { pkCua } from '@/lib/ho-nen';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { useModalParam } from '@/lib/use-modal-param';
+import { urlVoiParam } from '@/lib/url-mo-tab';
 
 type T = 'ok' | 'loi' | 'dung' | 'bo';
 /** con = CHẶNG của bước (máy ghi từ 09/11/2026, puzzle-books luot-dang.mjs chang()): tìm nút, bấm nút, điền ô… — chặng cuối mang lỗi = đúng khâu kẹt */
@@ -239,8 +240,6 @@ function docUrl() {
   const md = p.get('md'), ngay = p.get('md_ngay');
   return { md: (md === 'luot' || md === 'loi' || md === 'may' ? md : 'lich') as Md, ngay: NGAY.some((x) => x.value === ngay) ? ngay! : '3', loc };
 }
-/** URL hiện tại với một khoá đổi — cho ⌘/Ctrl-click mở tab mới (ui-conventions §1). */
-const hrefVoi = (k: string, v: string | null) => { if (typeof window === 'undefined') return null; const p = new URLSearchParams(window.location.search); if (v) p.set(k, v); else p.delete(k); return `${window.location.pathname}?${p}`; };
 
 export function MayDangView() {
   const dau = useMemo(docUrl, []), modal = useModalParam();
@@ -336,7 +335,7 @@ export function MayDangView() {
 
   return <div style={{ display: 'grid', gap: 10 }}>
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-      <Segmented<Md> value={md} onChange={setMd} hrefFor={(v) => hrefVoi('md', v === 'lich' ? null : v)} options={[
+      <Segmented<Md> value={md} onChange={setMd} hrefFor={(v) => urlVoiParam('md', v === 'lich' ? null : v)} options={[
         { value: 'lich', label: 'Lịch', title: 'đã đăng + máy sẽ đăng theo tuần / tháng / giờ — cùng lịch với Social Traffic, lọc theo dự án, kênh, nền, tài khoản' },
         { value: 'luot', label: 'Lượt đăng', title: 'mỗi dòng một lượt máy đăng xét một kênh × một nền, mới nhất trên đầu, 7 bước thành 7 cột' },
         { value: 'loi', label: 'Lỗi hay gặp', title: 'gom theo bước dừng × khâu kẹt × nhóm lý do để tập trung sửa — bấm một dòng là lọc ra các lượt đó' },
@@ -344,7 +343,7 @@ export function MayDangView() {
       <span style={{ ...nho, color: 'var(--fg-3)' }}>Máy đăng iMac, mỗi 10 phút · phụ trách: Phòng Social Traffic · Pinterest Front Porch (pin-hang) chưa vào sổ · sổ cũ bai_hen (dừng 25/10) và publications (dừng tháng 5) không còn chạy</span>
     </div>
     {(md === 'luot' || md === 'loi') && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-      <Segmented<string> options={NGAY} value={ngay} onChange={setNgay} hrefFor={(v) => hrefVoi('md_ngay', v === '3' ? null : v)} />
+      <Segmented<string> options={NGAY} value={ngay} onChange={setNgay} hrefFor={(v) => urlVoiParam('md_ngay', v === '3' ? null : v)} />
       <MultiSelect label="Dự án" options={opt.da} selected={loc.da} onChange={(v) => dat('da', v)} compact />
       <MultiSelect label="Kênh" options={opt.km} selected={loc.km} onChange={(v) => dat('km', v)} compact />
       <MultiSelect label="Nền" options={opt.nen} selected={loc.nen} onChange={(v) => dat('nen', v)} compact />

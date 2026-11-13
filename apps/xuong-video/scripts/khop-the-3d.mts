@@ -1,6 +1,6 @@
 // KHỚP THẺ SHOT THEO 3D (13/11/2026, anh: "luật là não của mày, không tin được — phải dùng code"): sửa phần CHỮ của thẻ shot cho khớp máy ảo đã dựng,
 // thay vì người gõ tay từng shot. Ba việc, đều do hàm cổng đo ra (cùng hàm nút sinh keyframe đọc):
-//   1. nhan_vat: bỏ đồ vật (đạo cụ / sản phẩm) không có trong chỗ đứng 3D của shot — thẻ chép từ shot mẫu mang theo "Tờ 5 nghìn" ở shot sau khi đã trao
+//   1. nhan_vat: bỏ đồ vật (đạo cụ / sản phẩm) không có trong chỗ đứng 3D của shot, thêm đồ vật 3D đặt trong shot mà thẻ chưa gắn — thẻ chép từ shot mẫu mang theo "Tờ 5 nghìn" ở shot sau khi đã trao
 //   2. ky_thuat.goc: khai lại theo góc ngẩng THẬT của máy ảo (bo-set-3d.ts › gocNgang / GOC_NGANG) khi gocMayLech báo lệch
 //   3. ky_thuat.co_canh: nới một bậc (cu → mcu → ms → ws) khi coCanhLech báo nhân vật chính nhỏ hơn sàn của cỡ đang khai
 //   4. ô THẺ SHOT còn trống (bố cục 3 lớp · hướng · diễn): điền từ 3D — bố cục = moTaThay(khung_xam.thay), hướng = huongVoiMay + nhinCau từng người
@@ -25,9 +25,14 @@ let doi = 0;
 for (const c of ds) {
   if (!c.may_3d) continue;
   const coMat = new Set(c.may_3d.vi_tri.map((v) => v.ten));
-  const nvMoi = c.nhan_vat.filter((id) => { const v = nv.find((x) => x.id === id); return !v || !['dao_cu', 'san_pham'].includes(v.loai) || coMat.has(v.ten); });
+  const nvBo = c.nhan_vat.filter((id) => { const v = nv.find((x) => x.id === id); return !v || !['dao_cu', 'san_pham'].includes(v.loai) || coMat.has(v.ten); });
+  // CHIỀU NGƯỢC (13/11/2026 #3071 #17): món 3D đặt trong shot (cầm / đặt, không ẩn) mà thẻ chưa gắn → thêm. Thiếu thẻ thì sinh ảnh không có mô tả en
+  // lẫn ảnh mẫu của món: câu trao tay ra "the {Tiền thừa} is now in…" chữ Việt (cổng chặn), model tự bịa hình tiền.
+  const them = nv.filter((v) => ['dao_cu', 'san_pham'].includes(v.loai) && !nvBo.includes(v.id) && c.may_3d!.vi_tri.some((x) => x.ten === v.ten && !x.an)).map((v) => v.id);
+  const nvMoi = [...nvBo, ...them];
   const kt = { ...(c.ky_thuat ?? {}) } as Record<string, unknown>; const ghiChu: string[] = [];
-  if (nvMoi.length !== c.nhan_vat.length) ghiChu.push(`bỏ ${c.nhan_vat.filter((id) => !nvMoi.includes(id)).map((id) => nv.find((x) => x.id === id)?.ten).join(', ')}`);
+  if (nvBo.length !== c.nhan_vat.length) ghiChu.push(`bỏ ${c.nhan_vat.filter((id) => !nvBo.includes(id)).map((id) => nv.find((x) => x.id === id)?.ten).join(', ')}`);
+  if (them.length) ghiChu.push(`thêm ${them.map((id) => nv.find((x) => x.id === id)?.ten).join(', ')}`);
   if (gocMayLech(c.may_3d, kt.goc as string | undefined)) { const g = gocTheo(gocNgang(c.may_3d)); ghiChu.push(`góc ${kt.goc} → ${g} (máy ngẩng ${gocNgang(c.may_3d)}°)`); kt.goc = g; }
   if (coCanhLech(c, laNv, laNguoi).length && RONG[kt.co_canh as string]) { ghiChu.push(`cỡ ${kt.co_canh} → ${RONG[kt.co_canh as string]}`); kt.co_canh = RONG[kt.co_canh as string]; }
   // 4. ô thẻ trống — từ 3D

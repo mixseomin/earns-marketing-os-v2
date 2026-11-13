@@ -139,8 +139,16 @@ function nguoi(k) {
   const co = khop(lung, 0, than, 0); co.add(hop(H * 0.05, H * 0.03, H * 0.05, da, H * 0.015));
   const dauK = khop(co, 0, H * 0.03, 0);
   const s = new T3.Mesh(new T3.SphereGeometry(dau / 2, 16, 12), da); s.position.y = dau / 2; dauK.add(s);
-  const t = new T3.Mesh(new T3.SphereGeometry(dau / 2 * 1.04, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), toc); t.position.y = dau / 2; dauK.add(t);
-  const mui = hop(dau * 0.16, dau * 0.18, dau * 0.2, da, dau * 0.45); mui.position.z = dau / 2; dauK.add(mui);   // mũi = hướng mặt
+  const t = new T3.Mesh(new T3.SphereGeometry(dau / 2 * 1.04, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.3), toc); t.position.y = dau / 2; dauK.add(t);   // chỏm tóc, chừa trán + mắt (nửa cầu úp che mất mặt)
+  // MẶT ĐỌC ĐƯỢC HƯỚNG (13/11/2026 phim #3071: đầu chỉ có mũ tóc úp đều + mũi cùng màu da → mặt trước trông y gáy; cả người soát lẫn model ảnh đọc
+  // "quay lưng", 5 cận chú qua ô cửa ra cùng một khung bịa). Mặt: hai mắt + lông mày tối, mũi đậm hơn da. Gáy: tóc phủ kín nửa sau xuống tới cổ.
+  const toi = new T3.MeshLambertMaterial({ color: 0x141414 }), muiVl = new T3.MeshLambertMaterial({ color: mauCua(k.mau).clone().multiplyScalar(0.72) });
+  const mui = hop(dau * 0.16, dau * 0.18, dau * 0.2, muiVl, dau * 0.45); mui.position.z = dau / 2; dauK.add(mui);   // mũi = hướng mặt
+  for (const sx of [-1, 1]) {
+    const mat = hop(dau * 0.14, dau * 0.1, dau * 0.06, toi, dau * 0.6); mat.position.set(sx * dau * 0.19, dau * 0.6, dau * 0.47); dauK.add(mat);
+    const may = hop(dau * 0.2, dau * 0.045, dau * 0.06, toi, dau * 0.72); may.position.set(sx * dau * 0.19, dau * 0.72, dau * 0.46); dauK.add(may);
+  }
+  const gay = new T3.Mesh(new T3.SphereGeometry(dau / 2 * 1.03, 16, 12, Math.PI, Math.PI, 0, Math.PI * 0.8), toc); gay.position.y = dau / 2; dauK.add(gay);
   const tay = (ben) => {
     const v = khop(lung, ben * vai / 2, than * 0.94, 0), tren = H * 0.17, duoi = H * 0.16;
     v.add(hop(H * 0.055, tren, H * 0.055, ao, -tren / 2));

@@ -140,3 +140,15 @@ export async function suaTheoNguoiXemTap(db: Db, tapId: number, nguoi: string): 
   const canHinh = [...kh.capNhat.filter((u) => u.loi).map((u) => u.id), ...idMoi.values()];
   return { ok: true, data: { sua: kh.capNhat.length, them: kh.chen.length, canGiong, canHinh, ghi_chu: kq.data.ghi_chu } };
 }
+
+/** Người nhận kịch bản dù máy chấm "chưa hiểu" (máy chấm sai) — 0đ. Gắn mã kịch bản HIỆN TẠI: sửa kịch bản sau đó thì phải kiểm / nhận lại. */
+export async function duyetNguoiXemTay(db: Db, tapId: number, nguoi: string): Promise<{ ok: true } | { ok: false; loi: string }> {
+  const r0 = (await db.execute(sql`SELECT thu_nguoi_xem FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
+  const t = r0[0]?.thu_nguoi_xem as ThuNguoiXem | null;
+  if (!r0[0]) return { ok: false, loi: 'không thấy tập' };
+  if (!t) return { ok: false, loi: 'tập chưa được máy kiểm người xem — kiểm trước, đọc kết quả rồi mới nhận tay' };
+  const canh = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
+  if (!canh.length) return { ok: false, loi: 'tập chưa tách cảnh' };
+  await db.execute(sql`UPDATE xv_tap SET thu_nguoi_xem = ${JSON.stringify({ ...t, duyet_tay: { nguoi, ma: maKichBan(canh), luc: new Date().toISOString() } })}::jsonb, updated_at = now() WHERE id = ${tapId}`);
+  return { ok: true };
+}

@@ -29,7 +29,7 @@ import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from
 import { batDauNangCap, danhMucFal, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
 import { type DungChu } from '@/lib/xuong-video/claude';
 import { docTrangSanPham, doiChieuAnchor as doiChieuAnchorClaude } from '@/lib/xuong-video/claude';
-import { kiemNguoiXemTap, kiemNguoiXemCanh, suaTheoNguoiXemTap } from '@/lib/xuong-video/kiem-nguoi-xem';
+import { kiemNguoiXemTap, kiemNguoiXemCanh, suaTheoNguoiXemTap, duyetNguoiXemTay } from '@/lib/xuong-video/kiem-nguoi-xem';
 import { soiMatTap, duyetMatTay, suaMatCanh } from './xuong-video/soi-mat';
 import { kiemKhungTap, duyetKhungTay } from '@/lib/xuong-video/kiem-khung';
 import { chanKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
@@ -793,6 +793,13 @@ export async function duyetMatTayAction(canhId: number): Promise<Kq<true>> {
   if (!db || !me) return loi('không có quyền');
   await duyetMatTay(db, canhId, me.email);
   return { ok: true, data: true };
+}
+/** Người nhận kịch bản dù máy chấm người xem báo chưa hiểu (máy chấm sai) — 0đ; sửa kịch bản sau đó là hết hiệu lực. */
+export async function duyetNguoiXemTayAction(tapId: number): Promise<Kq<true>> {
+  const db = getDb(); const me = await admin();
+  if (!db || !me) return loi('không có quyền');
+  const r = await duyetNguoiXemTay(db, tapId, me.email);
+  return r.ok ? { ok: true, data: true } : r;
 }
 /** Người nhận một khung máy báo lệch (máy báo sai) — 0đ. */
 export async function duyetKhungTayAction(canhId: number): Promise<Kq<true>> {

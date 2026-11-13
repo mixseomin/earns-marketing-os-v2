@@ -2,10 +2,10 @@
 // 🧑 Thử người xem lần đầu (nguoi-xem.ts): nút có giá + kết quả — người xem kể lại, 5 câu hiểu, điểm, chỗ vấp theo shot (bấm = mở shot).
 // Bước bắt buộc: chưa đạt / kịch bản đổi sau lần thử → chặn sinh keyframe + xuất.
 import { Fragment, useState } from 'react';
-import { batDauNguoiXem, suaTheoNguoiXem } from '@/lib/actions';
+import { batDauNguoiXem, suaTheoNguoiXem, duyetNguoiXemTayAction } from '@/lib/actions';
 import { useViecNen, DongViecNen } from './viec-nen-ui';
 import { giaChuUoc, gioVN, tien, type Canh, type Tap } from '@/lib/xuong-video/kieu';
-import { chanNguoiXem, phuTheoCanh, tomTatNguoiXem, TEN_NUT_NGUOI_XEM, TEN_NUT_NGUOI_XEM_CANH } from '@/lib/xuong-video/nguoi-xem';
+import { chanNguoiXem, maKichBan, phuTheoCanh, tomTatNguoiXem, TEN_NUT_NGUOI_XEM, TEN_NUT_NGUOI_XEM_CANH } from '@/lib/xuong-video/nguoi-xem';
 import { Nut, Loi, mono, goiAction } from './ui';
 
 export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoShot }: { tap: Tap; canh: Canh[]; moHinhChu: string; coAnthropic: boolean; onChanged: () => Promise<void>; onMoShot?: (thuTu: number) => void }) {
@@ -40,6 +40,10 @@ export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoSho
   const lam = async () => { setLoi(''); await vTap.bat(() => batDauNguoiXem(tap.id)); };
   // Kết luận đạt / theo cảnh / khoảng điểm lấy từ MỘT chỗ (nguoi-xem.ts › tomTatNguoiXem) — cùng luật với cổng, không suy lại từ t.dat (#51).
   const kq = tomTatNguoiXem(t, canh);
+  // NHẬN TAY (docs/chuan-cham-diem.md): giám khảo người xem chưa đo trên bộ nhãn → chặn phải có cửa người bỏ qua; gắn mã kịch bản hiện tại.
+  const tay = !!t?.duyet_tay && t.duyet_tay.ma === maKichBan(canh);
+  const [banTay, setBanTay] = useState(false);
+  const nhanTay = async () => { setBanTay(true); setLoi(''); const { loi: l } = await goiAction(() => duyetNguoiXemTayAction(tap.id)); setLoi(l); setBanTay(false); await onChanged(); };
   const dat = kq.dat;
   const mau = !t ? 'var(--amber)' : cu ? 'var(--amber)' : dat ? '#4ade80' : 'var(--red)';
   return (
@@ -49,6 +53,8 @@ export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoSho
         <Nut chinh={!t || cu || !t.dat} ly={(!coAnthropic && 'thiếu ANTHROPIC_API_KEY') || (!canh.length && 'tách cảnh trước')} ban={ban} gia={gia} onClick={() => void lam()}>{ban ? '… đang kiểm' : `${TEN_NUT_NGUOI_XEM} · ~${tien(gia)}`}</Nut>
         {t && <b style={{ color: mau }}>{cu ? '⚠ kịch bản đã sửa sau lần kiểm — bấm kiểm lần nữa' : t.dat ? `✓ Hiểu ${t.diem}/10 · đúng ý tác giả` : kq.theoCanh ? `✓ ${kq.soCanh}/${kq.soCanh} cảnh đạt (kiểm riêng từng cảnh${kq.diem ? ` · ${kq.diem[0]}–${kq.diem[1]}/10` : ''})` : `✗ Hiểu ${t.diem}/10${t.khop ? '' : ' · lệch ý tác giả'}`}</b>}
         {t && <span style={mono}>{gioVN(t.luc)}</span>}
+        {tay && <b style={{ color: '#4ade80' }}>✋ người nhận tay ({t!.duyet_tay!.nguoi}, {gioVN(t!.duyet_tay!.luc)}) — máy chấm chưa đo, không chặn</b>}
+        {t && !tay && chan.length > 0 && <Nut ban={banTay} title="Máy chấm người xem chưa được đo độ đúng — anh đọc kể lại / chỗ vấp ở dưới, thấy máy chấm sai thì nhận tay. Sửa kịch bản sau đó là phải kiểm hoặc nhận lại." onClick={() => void nhanTay()}>{banTay ? '… đang ghi' : '✋ Nhận tay (máy chấm sai) · 0đ'}</Nut>}
         {/* Chưa đạt → sửa ngay tại đây: Claude sửa đúng các shot bị vấp theo các câu gợi ý bên dưới. */}
         {t && !dat && !cu && <Nut chinh ly={!coAnthropic && 'thiếu ANTHROPIC_API_KEY'} ban={banSua} gia={giaSua} title="Claude sửa đúng các shot người xem vấp (lời, chữ màn, hành động, prompt hình; chèn shot nếu cần cho thấy) — giữ phần còn lại; ↶ trả lại phần sửa, shot thêm bỏ bằng 🗑" onClick={() => void sua()}>{banSua ? '… đang sửa kịch bản' : `✍ Sửa kịch bản theo góp ý · ~${tien(giaSua)}`}</Nut>}
       </div>

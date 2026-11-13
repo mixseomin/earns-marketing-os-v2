@@ -48,7 +48,7 @@ Kết luận: cả hai chỉ được hiển thị. Bộ số đo dùng được
 | `scripts/vong-sua.mts` (sinh lại theo giám khảo trên, tự đổi keyframe) | dùng giám khảo chưa đo | – | **tắt mặc định** từ 13/11/2026, chỉ chạy khi gọi `--vong-sua=N` |
 | `scripts/cham-do/cham_do.py` (số đo keyframe ↔ khung 3D) | giám khảo (bộ dò vật + độ sâu) | đã đo, không đạt (bảng trên) | chỉ in kết quả; `--ghi` khoá |
 | Giám khảo 🔍 Kiểm khung (Claude, `kiem-khung.ts`) | giám khảo | chưa đo | chặn video (`khung.ts › chanKhung`), có nút người nhận tay (`duyet_tay`) – đúng dạng "cảnh báo, người bỏ qua được" |
-| Giám khảo người xem (Claude, `kiem-nguoi-xem.ts`) | giám khảo | chưa đo | chặn xuất tập (`nguoi-xem.ts › chanNguoiXem`) **không có đường người bỏ qua** – chỉ có chạy lại (tốn tiền) |
+| Giám khảo người xem (Claude, `kiem-nguoi-xem.ts`) | giám khảo | chưa đo | chặn xuất tập (`nguoi-xem.ts › chanNguoiXem`); có nút **✋ Nhận tay** (`thu_nguoi_xem.duyet_tay`, gắn mã kịch bản, sửa kịch bản là hết hiệu lực) từ 13/11/2026 |
 | Soát keyframe quảng cáo (`qc-cam-xuc.ts`) | giám khảo | chưa đo | chặn video phim QC |
 
 Tính ổn định: giám khảo Gemini 3 chạy ở nhiệt độ mặc định (Google khuyên giữ 1,0 cho dòng này), nên độ ổn định phải đo bằng chấm lặp cùng ảnh, không ép nhiệt độ.

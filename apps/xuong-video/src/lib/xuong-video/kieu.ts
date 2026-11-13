@@ -601,6 +601,9 @@ export type ThuNguoiXem = {
   ma_canh?: Record<string, string>;
   /** kết quả KIỂM RIÊNG từng cảnh (phan_doan → kết quả; ma = mã cảnh đó) — rẻ hơn kiểm cả tập khi chỉ sửa một cảnh */
   canh?: Record<string, ThuNguoiXem>;
+  /** NGƯỜI nhận kịch bản dù máy chấm chưa hiểu (giám khảo chưa đo trên bộ nhãn — docs/chuan-cham-diem.md: chặn phải có cửa người bỏ qua).
+   *  ma = mã kịch bản lúc nhận (maKichBan) — sửa kịch bản là hết hiệu lực. */
+  duyet_tay?: { nguoi: string; ma: string; luc: string };
 };
 /** Phần cấp TẬP của hồ sơ tiền kỳ (ho-so.ts): thời gian của cả tập, đường đi trong thế giới, motif, cung cảm xúc, chữ màn mở (tên tập). */
 export type TapHoSo = { thoi_gian?: string; duong_di?: string; motif?: string; cung?: string;

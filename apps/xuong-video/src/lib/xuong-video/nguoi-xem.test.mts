@@ -81,3 +81,12 @@ console.log('nguoi-xem.test: ok');
   if (!k4.dat || !k4.theoCanh) throw new Error(`nhãn: đạt theo cảnh: ${JSON.stringify(k4)}`);
   console.log('nguoi-xem.test: cảnh thay bản cả tập hỏng ok');
 }
+
+// NHẬN TAY (docs/chuan-cham-diem.md): người nhận đúng bản kịch bản hiện tại → qua; sửa kịch bản → hết hiệu lực
+{
+  const hong = kq({ dat: false, diem: 4, khop: false, lech: 'máy hiểu sai', cho_kho: [] });
+  if (!chanNguoiXem(hong, ds).length) throw new Error('chưa đạt, chưa nhận tay → chặn');
+  const tay = { ...hong, duyet_tay: { nguoi: 'a@b', ma: maKichBan(ds), luc: '2026-11-13T00:00:00Z' } };
+  assert.deepStrictEqual(chanNguoiXem(tay, ds), [], 'nhận tay đúng bản → qua');
+  assert.ok(chanNguoiXem(tay, [ds[0]!, { ...ds[1]!, chu_man: 'PLAN B' }]).length > 0, 'sửa kịch bản sau khi nhận tay → chặn lại');
+}

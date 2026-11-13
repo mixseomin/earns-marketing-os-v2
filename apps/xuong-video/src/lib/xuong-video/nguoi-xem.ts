@@ -61,6 +61,7 @@ export function phuTheoCanh(t: ThuNguoiXem | null | undefined, canh: ShotXem[]):
  *  Trước đây UI tự suy từ t.dat (vỏ bản cả tập) → phim #51 đạt nhờ 5 cảnh kiểm riêng mà nhãn ghi "✗ Hiểu 0/10 · lệch ý tác giả" (15/10/2026). */
 export function tomTatNguoiXem(t: ThuNguoiXem | null | undefined, canh: ShotXem[]): { dat: boolean; theoCanh: boolean; soCanh: number; diem: [number, number] | null; cu: boolean } {
   if (!t) return { dat: false, theoCanh: false, soCanh: 0, diem: null, cu: false };
+  if (t.duyet_tay && t.duyet_tay.ma === maKichBan(canh)) return { dat: true, theoCanh: false, soCanh: 0, diem: [t.diem, t.diem], cu: false };
   const chan = chanNguoiXem(t, canh);
   const cu = chan.some((x) => x.includes('đã sửa sau lần kiểm'));
   if (t.ma === maKichBan(canh) && !(!t.dat && canhVuotCaTap(t, canh))) return { dat: t.dat, theoCanh: false, soCanh: 0, diem: [t.diem, t.diem], cu };
@@ -84,6 +85,8 @@ export function chanNguoiXem(t: ThuNguoiXem | null | undefined, canh: ShotXem[])
   if (!canh.length) return [];
   const tien = TIEN_TO_NGUOI_XEM;
   if (!t) return [`${tien}chưa kiểm — bấm ${TEN_NUT_NGUOI_XEM}`];
+  // người nhận tay đúng bản kịch bản hiện tại → qua (máy chấm chưa đo, không được là lời cuối — docs/chuan-cham-diem.md)
+  if (t.duyet_tay && t.duyet_tay.ma === maKichBan(canh)) return [];
   if (t.ma !== maKichBan(canh)) {
     // Cả tập đã đổi từ lần kiểm: vẫn qua nếu MỌI cảnh đều được phủ (cảnh không đổi theo lần kiểm cả tập, cảnh đã sửa thì kiểm riêng cảnh đó).
     const ds = phuTheoCanh(t, canh);

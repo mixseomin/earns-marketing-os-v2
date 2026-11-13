@@ -553,28 +553,61 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     await ghiBq();   // bỏ mục quá 24 giờ trước khi đọc view
     const ds = JSON.parse((await chayPsql(`select coalesce(json_agg(x), '[]') from (select v.creative_id, v.content_id, v.lang, v.lo, coalesce(p.ten, '') ten, v.dang, v.tu, v.den,
         (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo, v.nhan, v.so_len
-      from etp.cho_len_v v left join etp.phim p using (content_id) where v.ly_do is null order by v.hang limit 4) x`)).trim() || '[]');
+      from etp.cho_len_v v left join etp.phim p using (content_id) where v.ly_do is null
+        -- CTA CŨ LỌC TRƯỚC (tiendo E24 bước 4, anh 13/11/2026 "triển khai đi"): creative không có trong sổ ethopex_cta_dat thì cổng kiem-cta.py chặn chắc chắn
+        -- → không cho chiếm lượt thử (13/11: 11 lượt thử / ngày rơi vào creative CTA cũ)
+        and v.creative_id::text in (select jsonb_object_keys(gia_tri) from xv_khoa_ngoai where ten = 'ethopex_cta_dat')
+        order by v.hang limit 40) x`)).trim() || '[]');
     const da = [];
+    // LẤY 40, LÊN TỐI ĐA 4 / NHỊP, THỬ TỐI ĐA 12 (tiendo E24 bước 2–3, anh 13/11/2026): trước lấy đúng 4 creative đầu hàng — 13/11 cả 4 đều rơi vào cùng 1–2 phim bị chặn
+    // (18+ chưa soát / chờ đồng bộ trang phim) nên 0 camp mới cả ngày dù hàng có 318 creative sẵn sàng. Phim bị chặn ở mức PHIM → bỏ mọi creative khác của phim đó trong nhịp.
+    const LEN_TOI_DA = 4, THU_TOI_DA = 12, phimChan = new Map();
+    // CHỜ ĐỒNG BỘ = 40 PHÚT, KHÔNG 24 GIỜ: lỗi "vừa thêm vào workspace / vừa điền mô tả — chờ đồng bộ trang phim" tự hết sau một lượt đồng bộ (10 phút); sổ bỏ qua 24 giờ làm
+    // 49 phim 11–13/11 không được thử lại trong cửa sổ chấm 3 ngày. View etp.cho_len_v tính hạn = luc + 24 giờ → ghi luc lùi về để hạn còn đúng CHO_DB_PHUT.
+    const CHO_DB_PHUT = 40, choDongBo = (loi) => /chờ đồng bộ trang phim/.test(String(loi || ''));
+    const lucBq = (loi) => new Date(Date.now() - (choDongBo(loi) ? 86_400_000 - CHO_DB_PHUT * 60_000 : 0)).toISOString();
+    // SOÁT 18+ BẰNG AI KHI PHIM CHƯA SOÁT (tiendo E24 bước 3): cùng đường dòng phim / nhận tự động (apps/etp/soat_18_ai.py --ghi, ≈ 550₫ / phim) — trần SOAT_NGAY phim / ngày
+    // (≈ 4.400₫ < ngưỡng tự chạy 5.000₫, anh 31/10/2026); quá trần thì phim chờ hôm sau. Cấm → kiem-phim-18 tự đưa vào danh sách cấm, phim không lên.
+    const SOAT_NGAY = 8, homNayUtc = new Date().toISOString().slice(0, 10);
+    const soatDem = JSON.parse((await chayPsql(`select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'soat_cho_len'), '{}')`)).trim() || '{}');
+    if (soatDem.ngay !== homNayUtc) { soatDem.ngay = homNayUtc; soatDem.so = 0; soatDem.vnd = 0; soatDem.phim = []; }
+    const daSoat = new Set();
     // PHIM ROI CAO CẢ ĐỘI → so_len camp MỘT LẦN (anh 06/11/2026 "Phim có roi cao của cả đội thì có thể lên cùng 5 camp mới mỗi lần"): view etp.phim_doi_lai, mức ở etp.cau_hinh 'len_doi_lai'
     for (const x0 of ds.flatMap((x) => Array.from({ length: Math.max(1, Number(x.so_len) || 1) }, (_, i) => ({ ...x, lan: i + 1 })))) {
+      if (da.filter((d) => d.r.ok).length >= LEN_TOI_DA || da.filter((d) => !d.boQuaPhim).length >= THU_TOI_DA) break;
+      if (phimChan.has(x0.content_id) && x0.lan === 1) { da.push({ x: x0, r: { ok: false, loi: phimChan.get(x0.content_id) }, boQuaPhim: true }); continue; }
       const x = x0, a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();
       const ten = `${x.lo} ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ${a_(x.dang).toLowerCase()} ${Math.round(x.tu)}-${Math.round(x.den)}s${x.so_len > 1 ? ` doi lai ${x.lan}/${x.so_len}` : ''}`.trim();
       if (x.lan > 1 && !da.some((d) => d.x.creative_id === x.creative_id && d.r.ok)) continue;   // camp đầu của creative lỗi → không thử 4 camp còn lại (cùng lỗi)
-      let r; try { r = JSON.parse((await chay(NB, [String(KHUON[x.lang] ?? KHUON.en), '--bo', String(x.bo), '--creative', String(x.creative_id), '--content', String(x.content_id), '--ten', ten,
+      const lenMot = async () => JSON.parse((await chay(NB, [String(KHUON[x.lang] ?? KHUON.en), '--bo', String(x.bo), '--creative', String(x.creative_id), '--content', String(x.content_id), '--ten', ten,
         // CAMP MỚI CHẠY THEO LỊCH (anh 04/11/2026 "áp dụng thêm việc lên camp mới theo lịch" — như Kiên): bắt đầu 00:00 UTC hôm sau (07:00 VN, đầu ngày Ethopex) → ngày đầu là ngày trọn
         '--that', '--luat', LEN_DANG[x.dang]?.[0] ?? 'phim mới chấm sạch → lên camp',   // giờ chạy do nhan-ban.lich_len quyết (tạo 07–12h VN chạy ngay, ngoài khung hẹn 07:00 hôm sau — anh 05/11/2026)
-        '--ai', (x.so_len > 1 ? `anh (chat 06/11/2026: phim ROI cao cả đội lên ${x.so_len} camp mỗi lần) · ` : '') + (LEN_DANG[x.dang]?.[1] ?? 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy')], 600)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+        '--ai', (x.so_len > 1 ? `anh (chat 06/11/2026: phim ROI cao cả đội lên ${x.so_len} camp mỗi lần) · ` : '') + (LEN_DANG[x.dang]?.[1] ?? 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy')], 600)).trim().split('\n').pop());
+      let r; try { r = await lenMot(); } catch (e) { r = { ok: false, loi: e.message }; }
+      // phim chưa soát hình 18+ → soát bằng AI ngay (một lần / phim / nhịp, trong trần ngày) rồi thử lại đúng creative này
+      if (!r.ok && /CHƯA SOÁT HÌNH 18\+/.test(String(r.loi || '')) && !daSoat.has(x.content_id) && soatDem.so < SOAT_NGAY) {
+        daSoat.add(x.content_id);
+        try {
+          const ra = String(await chay(path.join(REPO, 'apps/etp/soat_18_ai.py'), [String(x.content_id), '--ghi'], 300));
+          const vnd = Number((ra.match(/([\d.]+)\s*₫/) || [])[1] || 550);
+          soatDem.so += 1; soatDem.vnd = Math.round((soatDem.vnd || 0) + vnd); soatDem.phim.push(Number(x.content_id));
+          try { r = await lenMot(); } catch (e) { r = { ok: false, loi: e.message }; }
+        } catch (e) { r = { ok: false, loi: `soát 18+ bằng AI lỗi: ${e.message}`.slice(0, 300) }; }
+      }
+      // lỗi ở mức PHIM (18+ / trang phim / workspace) → các creative khác của phim này bỏ qua trong nhịp, cùng lý do
+      if (!r.ok && /CHƯA SOÁT HÌNH 18\+|soát hình KHÔNG ĐẠT|danh sách cấm 18\+|từ khoá 18\+|workspace Ethopex|trang phim \d+/.test(String(r.loi || ''))) phimChan.set(x.content_id, String(r.loi));
       da.push({ x, r });
     }
     const ok = da.filter((d) => d.r.ok);
     if (ok.length) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🎬 <b>PHIM MỚI LÊN CAMP</b> — chấm Sạch xong lên luôn ($1, ${chuChay(ok.map((d) => d.r))})\n` + ok.map((d) => `#${d.r.moi} · bộ ${esc(d.x.bo)} · ${esc(d.x.ten || 'phim ' + d.x.content_id)} (cr #${d.x.creative_id})`).join('\n') }); gui++; }
     for (const d of da.filter((d) => !d.r.ok && !da.some((e) => e.x.creative_id === d.x.creative_id && e.r.ok))) {   // creative đã lên được ít nhất 1 camp (phim đội lãi) thì không vào sổ bỏ qua
       // phim đang NHẬN không vào bỏ qua 24 giờ (lượt nhận chỉ 24 giờ: anh sửa xong — vd thêm phim vào workspace — thì nhịp sau thử lại ngay, lỗi hiện ở sổ nhận)
-      if (!d.x.nhan) bq[d.x.creative_id] = { luc: new Date().toISOString(), loi: String(d.r.loi || '').slice(0, 200) }; console.error(`lên camp phim mới #${d.x.creative_id}: ${String(d.r.loi).slice(0, 160)}`);
+      if (!d.x.nhan) bq[d.x.creative_id] = { luc: lucBq(d.r.loi), loi: String(d.r.loi || '').slice(0, 200) }; if (d.boQuaPhim) continue; console.error(`lên camp phim mới #${d.x.creative_id}: ${String(d.r.loi).slice(0, 160)}`);
       // phim đang được NHẬN (anh 02/11/2026 "có lỗi thì phải báo lại ở danh sách phim Nhận") → ghi lỗi vào sổ nhận, tab Phim / ngăn phim hiện ngay
       await chayPsql(`update etp.phim_nhan set loi = $L$lên camp lỗi: ${String(d.r.loi || 'không rõ').slice(0, 220).replace(/\$L\$/g, '')}$L$, loi_luc = now() where content_id = ${Number(d.x.content_id)} and tra_luc is null and het_luc > now()`).catch(() => {});
     }
     await ghiBq();
+    await chayPsql(`insert into etp.cau_hinh (khoa, gia_tri) values ('soat_cho_len', $J$${JSON.stringify(soatDem)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()`);
   } catch (e) { console.error('phim mới lên camp:', e.message); }
   // NUÔI BỘ ÍT CAMP (apps/etp/nuoi_bo.py, anh 11/11/2026 "lên thêm camp ở 2 bộ chưa lên camp nào để nuôi tài khoản" · "Ok thì làm"): nhân phim thắng ($1, creative gốc)
   // sang bộ trong etp.cau_hinh.tran_len.nuoi — phần chia của trần camp mới / ngày (tran_len.py); mọi cổng như nhân bản thường; ≤ 4 camp / nhịp

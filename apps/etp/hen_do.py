@@ -10,18 +10,22 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cong as C
 def _roi(c, t): return round((t - c) / c * 100) if c else None
 
 def do_ab(q, ma):
-    """kết quả một lần A/B (etp.ab + etp.camp_ab): chi · thu · ROI · số camp lãi theo nhánh, từ ngày bắt đầu tới hôm qua"""
+    """kết quả một lần A/B (etp.ab + etp.camp_ab): chi · thu · ROI · số camp lãi theo nhánh — mỗi camp chỉ tính các NGÀY ĐÃ KHÉP SAU NGÀY VÀO A/B
+    (camp_ab.tao), tới hôm qua. Trước 13/11/2026 tính từ ab.bat_dau → camp vào muộn mang theo số các ngày trước khi vào (AB04: báo ROI 38% vs 39%,
+    đo đúng ngày vào là +20% vs +41% — anh 13/11/2026 "xem có đủ số liệu để kết luận AB04 chưa", tiendo E24 bước 5)"""
     ab = json.loads(q(f"select row_to_json(a)::text from etp.ab a where ma = '{ma}'") or "null")
     if not ab: return f"{ma}: không có trong sổ etp.ab"
     rows = q(f"""select a.nhanh, count(distinct a.camp_id), coalesce(sum(n.chi), 0), coalesce(sum(n.thu), 0),
-                   count(distinct a.camp_id) filter (where a.camp_id in (select camp_id from etp.so_ngay where ngay >= '{ab['bat_dau']}' group by camp_id having sum(thu) > sum(chi) and sum(chi) >= 1))
-                 from etp.camp_ab a left join etp.so_ngay n on n.camp_id = a.camp_id and n.ngay >= '{ab['bat_dau']}' and n.ngay < (now() at time zone 'utc')::date
+                   count(distinct a.camp_id) filter (where a.camp_id in (select s.camp_id from etp.so_ngay s join etp.camp_ab b on b.camp_id = s.camp_id and b.ab = '{ma}'
+                     where s.ngay > (b.tao at time zone 'utc')::date and s.ngay < (now() at time zone 'utc')::date group by s.camp_id having sum(s.thu) > sum(s.chi) and sum(s.chi) >= 1)),
+                   count(n.ngay)
+                 from etp.camp_ab a left join etp.so_ngay n on n.camp_id = a.camp_id and n.ngay > (a.tao at time zone 'utc')::date and n.ngay < (now() at time zone 'utc')::date
                  where a.ab = '{ma}' and a.loai_tru is null group by 1 order by 1""").splitlines()
     ten = {k: (v or {}).get("ten", k) for k, v in (ab.get("nhanh") or {}).items()}
     dong = []
     for l in rows:
-        nh, n, c, t, lai = l.split("|"); c, t = float(c), float(t)
-        dong.append(f"  · {ten.get(nh, nh)} ({nh}): {n} camp · chi ${c:.0f} · thu ${t:.0f} · ROI {_roi(c, t)}% · {lai} camp lãi")
+        nh, n, c, t, lai, cn = l.split("|"); c, t = float(c), float(t)
+        dong.append(f"  · {ten.get(nh, nh)} ({nh}): {n} camp · {cn} camp-ngày · chi ${c:.0f} · thu ${t:.0f} · ROI {_roi(c, t)}% · {lai} camp lãi")
     if len(dong) < 2: return f"{ma} {ab.get('ten')}: chưa đủ hai nhánh có số ({len(dong)} nhánh) — chưa kết luận được"
     return f"{ma} · {ab.get('ten')} ({ab['bat_dau']} → {ab.get('ket_thuc')})\n  giả thuyết: {ab.get('gia_thuyet', '')[:220]}\n" + "\n".join(dong)
 
@@ -73,6 +77,7 @@ HEN = [
     ("cn_1611", "2026-11-16", "Hiệu ứng chủ nhật (4 tuần)", do_chu_nhat),
     ("ab03_2011", "2026-11-20", "Kết quả AB03 nhân đôi ROAS", do_ab03),
     ("ab01_2011", "2026-11-20", "Kết quả AB01 nhắm nước", do_ab01),
+    ("ab04_1911", "2026-11-19", "AB04 ROAS $30 — đọc giữa kỳ (nhánh $20 đủ ~$500 chi, anh 13/11/2026)", do_ab04),
     ("ab04_0812", "2026-12-08", "Kết quả AB04 ROAS $30", do_ab04),
 ]
 

@@ -10,9 +10,12 @@ CHỐT CHẶN (máy tự làm, không chờ anh):
   2. Lớp camp thử (camp thường ≤ 4 ngày tuổi) hôm qua lỗ quá CHAN_THU $ → trần ≤ một nửa trần cũ.
   3. Bộ nào 3 ngày đã khép chi ≥ BO_CHI và ROI < BO_ROI% → vào bo_dung: cổng chung (cong.kiem) chặn tạo camp / nhân bản vào bộ đó.
 Phần chia NUOI (bộ → tỉ lệ trần) để apps/etp/nuoi_bo.py nhân phim thắng sang bộ ít camp (anh 11/11/2026 "lên thêm camp ở 2 bộ chưa lên camp nào để nuôi tài khoản").
+BÙ GIÁ ADSENSE (anh 13/11/2026 "tạo roadmap cho plan này và triển khai đi", tiendo E24 bước 1): mọi số lãi / ROI ở đây (mức theo lãi, chốt 1, chốt 2, chốt 3)
+chia thu ngày đó cho hệ số giá AdSense cả chợ (gia_adsense.hs_sql — chỉ ngày giá tụt). 12/11/2026 lãi thô +$13 (ROI +0,1%) kéo trần 45 → 1; đã bù = +19%.
 Trạng thái: etp.cau_hinh.tran_len {ngay, tran, ly_do, bo_dung, nuoi}. Ghi tran_camp_moi_ngay. Telegram (etp.canh_bao 'tran_len') khi trần đổi.
 Tự kiểm: python3 apps/etp/tran_len.py"""
-import json, datetime as dt
+import json, os, sys, datetime as dt
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import gia_adsense as GA
 
 BAT_DAU, BUOC, TRAN_MAX = 35, 10, 75
 PHAN_LAI, GIA_THU = 0.15, 1.1
@@ -50,11 +53,11 @@ def chay(q, luc=None):
     if tt.get("ngay") == hn or luc.hour < GIO_QUYET: return {**tt, "da_quyet": tt.get("ngay") == hn}
     d1, d2, d3 = ((luc.date() - dt.timedelta(days=i)).isoformat() for i in (1, 2, 3))
     tong = [(l.split("|")[0], float(l.split("|")[1]), float(l.split("|")[2])) for l in q(
-        f"select ngay, sum(chi), sum(thu) from etp.so_ngay where ngay between '{d2}' and '{d1}' group by 1 order by 1").splitlines() if l.count("|") == 2]
-    lop = float(q(f"""select coalesce(sum(n.thu - n.chi), 0) from etp.so_ngay n join etp.camp c using (camp_id)
+        f"select ngay, sum(chi), sum(thu / {GA.hs_sql('ngay')}) from etp.so_ngay where ngay between '{d2}' and '{d1}' group by 1 order by 1").splitlines() if l.count("|") == 2]
+    lop = float(q(f"""select coalesce(sum(n.thu / {GA.hs_sql('n.ngay')} - n.chi), 0) from etp.so_ngay n join etp.camp c using (camp_id)
         where n.ngay = '{d1}' and not c.la_roas and n.ngay - (c.tao at time zone 'utc')::date <= 4""") or 0)
     bo3 = {l.split("|")[0]: (float(l.split("|")[1]), float(l.split("|")[2])) for l in q(
-        f"""select c.bo, sum(n.chi), sum(n.thu) from etp.so_ngay n join etp.camp c using (camp_id) where n.ngay between '{d3}' and '{d1}' and c.bo is not null group by 1""").splitlines() if l.count("|") == 2}
+        f"""select c.bo, sum(n.chi), sum(n.thu / {GA.hs_sql('n.ngay')}) from etp.so_ngay n join etp.camp c using (camp_id) where n.ngay between '{d3}' and '{d1}' and c.bo is not null group by 1""").splitlines() if l.count("|") == 2}
     cu = tt.get("tran") if tt else None
     kq = quyet(tong, lop, cu, bo3)
     moi = {"ngay": hn, "tran": kq["tran"], "ly_do": kq["ly_do"], "bo_dung": kq["bo_dung"], "nuoi": chia(kq["tran"], kq["bo_dung"])}

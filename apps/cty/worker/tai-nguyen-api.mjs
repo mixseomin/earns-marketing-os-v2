@@ -297,7 +297,9 @@ function moiTruongR2() {
     RCLONE_CONFIG_R2X_SECRET_ACCESS_KEY: e.R2_SECRET_ACCESS_KEY, RCLONE_CONFIG_R2X_ENDPOINT: `https://${e.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`, RCLONE_CONFIG_R2X_NO_CHECK_BUCKET: 'true' } };
 }
 const rclone = (m, a, timeout = 3 * 36e5) => execFileSync('rclone', a, { env: m.env, encoding: 'utf8', maxBuffer: 1 << 30, timeout, stdio: ['ignore', 'pipe', 'pipe'] });
-const lietKeRc = (m, goc) => JSON.parse(rclone(m, ['lsjson', '-R', '--files-only', '--no-mimetype', '--hash', '--hash-type', 'MD5', goc], 40 * 6e4) || '[]')
+// R2: KHÔNG --hash, có --use-server-modtime — không thì rclone HEAD từng tệp để đọc giờ / md5 (83k tệp > 15 phút, đo 13/11/2026); giờ = LastModified của bản liệt kê.
+// md5 chỉ đọc bên Drive (có sẵn trong liệt kê); chép thì rclone copy tự so hash sau khi tải lên.
+const lietKeRc = (m, goc) => (goc.startsWith('r2x:') || rclone(m, ['mkdir', goc], 6e4), true) && JSON.parse(rclone(m, ['lsjson', '-R', '--files-only', '--no-mimetype', ...(goc.startsWith('r2x:') ? ['--use-server-modtime'] : ['--hash', '--hash-type', 'MD5']), goc], 40 * 6e4) || '[]')
   .map((x) => ({ key: x.Path, size: x.Size, luc: Date.parse(x.ModTime), md5: x.Hashes?.md5 || x.Hashes?.MD5 || null }));
 const tepDs = (keys) => { const f = path.join(os.tmpdir(), `kho-lanh-${process.pid}-${keys.length}.txt`); fs.writeFileSync(f, keys.join('\n') + '\n'); return f; };
 const ghiSoLanh = (dong) => { if (dong.length) fs.appendFileSync(LANH.so, dong.map((d) => JSON.stringify(d)).join('\n') + '\n'); };

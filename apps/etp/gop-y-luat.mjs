@@ -27,6 +27,7 @@ export const LUAT = [
   { card: 'rpm-1211', tep: 'apps/etp/dong-bo.py', co: 'import gia_adsense as GA; kq["gia_adsense"] = GA.chay(q)', vi: 'đồng bộ 10 phút gọi máy đo giá AdSense' },
   { card: 'bo-hoan-1311', tep: 'apps/etp/cong.py', cam: 'hoan_rpm', vi: 'hoãn tăng theo giá AdSense đã bỏ (anh 13/11/2026 "bỏ rule Hoãn đang áp dụng") — cổng không đọc lại cờ hoan_rpm' },
   { card: 'bo-hoan-1311', tep: 'apps/etp/gia_adsense.py', cam: "'hoan_rpm'", vi: 'máy đo giá không bật lại cờ hoãn' },
+  { card: 'e24-1311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: "doi = \"team\" in (q(f\"select coalesce(lo, '') || '|' || coalesce(dang, '')", vi: 'nguồn đội đọc lo team, không chỉ dang (phan_loai_cr đổi dang từ 12/11)' },
   { card: 'e24-1311', tep: 'apps/etp/tran_len.py', co: "sum(thu / {GA.hs_sql('ngay')}) from etp.so_ngay where ngay between", vi: 'trần camp mới tính trên lãi đã bù giá AdSense (anh 13/11/2026 "tạo roadmap cho plan này và triển khai đi", tiendo E24 bước 1)' },
   { card: 'e24-1311', tep: 'apps/cty/worker/ethopex.mjs', co: "const LEN_TOI_DA = 4, THU_TOI_DA = 12, phimChan = new Map();", vi: 'máy lên phim mới lấy 40 creative, lên tối đa 4 / nhịp, phim bị chặn thì bỏ cả phim trong nhịp (E24 bước 2)' },
   { card: 'e24-1311', tep: 'apps/cty/worker/ethopex.mjs', co: "const CHO_DB_PHUT = 40,", vi: 'lỗi chờ đồng bộ trang phim chỉ bỏ qua 40 phút, không 24 giờ (E24 bước 2)' },

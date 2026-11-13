@@ -334,7 +334,9 @@ def _nap(ten, tep):
 def cong(content_id, creative_id, ten="", cta=True):
     """cổng phim 18+ (kiem-phim-18.py) + cổng CTA (kiem-cta.py) + sổ bài học (bai-hoc.py: không lên lại đúng đoạn/dạng đã lỗ) — anh 22/10/2026.
     Creative clone từ camp ĐỘI (etp.creative.dang='team') bỏ bước soát hình 18+ (anh 07/11/2026 "camp của đội clone sang thì không cần soát"): camp đội đã chạy thật trên Meta."""
-    doi = (q(f"select coalesce(dang, '') from etp.creative where creative_id = {int(creative_id)}") or "") == "team"
+    # NGUỒN ĐỘI = lo 'team' (nap-creative-ngoai.py ghi), KHÔNG đọc dang: từ 12/11/2026 phan_loai_cr.py đổi dang 'team' → dạng thật (ảnh tĩnh, cảnh thật…) nên
+    # creative đội mất dấu, bị đòi soát hình như creative nhà (tiendo E24 bước 6, anh 13/11/2026 "Fix triệt để cái đó")
+    doi = "team" in (q(f"select coalesce(lo, '') || '|' || coalesce(dang, '') from etp.creative where creative_id = {int(creative_id)}") or "").split("|")
     # cta=False: nhân bản BÀI CŨ — bài đăng đã chạy giữ CTA của nó, đòi CTA mới là mất kế thừa (anh 11/11/2026 "ko bắt buộc cta mới khi dùng bài cũ")
     chan = _nap("p18", "kiem-phim-18.py").kiem(content_id, soat_hinh=not doi) or (_nap("cta", "kiem-cta.py").kiem(creative_id, so=not NGOAI) if cta else None)
     if chan: return chan

@@ -17,5 +17,7 @@ export async function GET(req: Request) {
   const br = !!b.br && /\bbr\b/.test(req.headers.get('accept-encoding') ?? '');
   const than = br ? b.br! : b.gz;
   return new Response(new Uint8Array(than), { headers: { 'content-type': 'application/json; charset=utf-8', 'content-encoding': br ? 'br' : 'gzip', 'content-length': String(than.length),
-    'x-phien': ma, 'x-tho': String(b.tho), 'cache-control': 'no-store' } });
+    'x-phien': ma, 'x-tho': String(b.tho), vary: 'Accept-Encoding',
+    // đúng mã đã hỏi = nội dung cố định theo mã → trình duyệt giữ 20 phút, mở lại trang khi số chưa đổi không tải lại; bản đọc lại (mã khác) thì không giữ
+    'cache-control': ma === p ? 'private, max-age=1200, immutable' : 'no-store' } });
 }

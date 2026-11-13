@@ -23,7 +23,7 @@ const KHO = (g.__etpDuKho2 ??= new Map<string, O>());
 const TOI_DA = 6, SONG_MS = 20 * 60_000;
 
 /** khoá phần PHỤ — giá trị rỗng đúng dạng để phần chính dựng được trang trước khi phần phụ về */
-const PHU = { xetLuat: {}, xetChu: [], lsBac: {}, cham: {}, bao: [], ket: [], daLam: [], nhatKy: [] } satisfies Partial<Record<keyof DuLieuEtpGui, unknown>>;
+const PHU = { xetLuat: {}, xetChu: [], lsBac: {}, cham: {}, bao: [], ket: [], daLam: [], nhatKy: [], thuVien: [] } satisfies Partial<Record<keyof DuLieuEtpGui, unknown>>;
 export const KHOA_PHU = Object.keys(PHU) as (keyof typeof PHU)[];
 
 /** số liệu trang của người xem + mã phiên bản — trang, /etp/du và /etp/phien băm cùng một kiểu */
@@ -34,10 +34,13 @@ export async function duTrang(quyen: QuyenEtp, ng?: string): Promise<{ du: DuLie
 
 const khoa = (q: QuyenEtp, phien: string) => `${q.vai}:${q.nguoiId ?? ''}:${phien}`;   // kèm vai: người thường nhận bản đã cắt
 
+// brotli mức 9 nén NGAY cùng gzip (~0,3 s / phần) — lượt tải đầu sau mỗi lần đồng bộ (mã đổi, trang tải lại số liền) đã có brotli; mức 11 (~10 % nhỏ hơn nữa, ~10 s) chạy nền rồi thay
+const brMuc = (s: Buffer, q: number) => nenBr(s, { params: { [Z.BROTLI_PARAM_QUALITY]: q, [Z.BROTLI_PARAM_SIZE_HINT]: s.length } });
 async function ban(v: unknown): Promise<Ban> {
   const s = Buffer.from(JSON.stringify(v));
-  const b: Ban = { gz: await nenGz(s, { level: 6 }), br: null, tho: s.length };
-  void nenBr(s, { params: { [Z.BROTLI_PARAM_QUALITY]: 11, [Z.BROTLI_PARAM_SIZE_HINT]: s.length } }).then((x) => { b.br = x; }).catch(() => { /* thiếu brotli → vẫn còn gzip */ });
+  const [gz, br] = await Promise.all([nenGz(s, { level: 6 }), brMuc(s, 9).catch(() => null)]);
+  const b: Ban = { gz, br, tho: s.length };
+  void brMuc(s, 11).then((x) => { b.br = x; }).catch(() => { /* giữ bản mức 9 */ });
   return b;
 }
 

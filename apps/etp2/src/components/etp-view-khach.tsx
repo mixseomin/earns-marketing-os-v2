@@ -22,7 +22,7 @@ const EtpViewTre = dynamic(() => import('./etp-view').then((m) => m.EtpView), {
 type Tien = (nhan: number, tong: number) => void;
 /** tải một phần số liệu, đếm byte đã nhận (sau giải nén) so với x-tho để báo tiến độ → [JSON, mã phiên bản của bản trả về] */
 async function taiPhan(url: string, tien?: Tien): Promise<[Record<string, unknown>, string]> {
-  const r = await fetch(url, { cache: 'no-store' });
+  const r = await fetch(url);   // /etp/du?p=<mã> cố định theo mã — để trình duyệt dùng bản đã giữ
   if (!r.ok) throw new Error(`máy chủ trả ${r.status}: ${(await r.text().catch(() => '')).slice(0, 200)}`);
   const tong = Number(r.headers.get('x-tho')) || 0, ma = r.headers.get('x-phien') ?? '';
   if (!r.body || !tien) return [await r.json(), ma];

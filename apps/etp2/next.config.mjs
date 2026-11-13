@@ -7,6 +7,6 @@ export default {
   transpilePackages: ['@mos2/db', '@mos2/gop-y', '@mos2/bang'],
   serverExternalPackages: ['postgres'],
   async headers() {
-    return [{ source: '/((?!_next/static).*)', headers: [{ key: 'Cache-Control', value: 'private, no-cache, no-store, max-age=0, must-revalidate' }] }];
+    return [{ source: '/((?!_next/static|etp/du).*)', headers: [{ key: 'Cache-Control', value: 'private, no-cache, no-store, max-age=0, must-revalidate' }] }];
   },
 };

@@ -193,8 +193,9 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
     gd === 0 && l.vong !== 'cat' && !l.lt ? `✕ cất phim nếu chi tới $${l.moc_chi} / ${l.moc_thu} camp thử mà chưa lãi` : null,
   ].filter(Boolean).slice(0, 4) as string[] : [];
   const oTab = (k: 'camp' | 'lich' | 'toa' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
-  return <KhungNoi x={vi.x} y={vi.y} rong={480} cao={tab === 'toa' ? 600 : l?.thang.length ? 620 : 360} noi={noi}>
-      <div onClick={(e) => e.stopPropagation()} onPointerDown={ghimLai} style={{ padding: '10px 30px 10px 12px', width: 480, maxWidth: '92vw', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+  const RONG = tab === 'camp' ? 680 : 480;   // tab Camps 9 cột tiền kế toán — khung rộng hơn, không cắt cột
+  return <KhungNoi x={vi.x} y={vi.y} rong={RONG} cao={tab === 'toa' ? 600 : l?.thang.length ? 620 : 360} noi={noi}>
+      <div onClick={(e) => e.stopPropagation()} onPointerDown={ghimLai} style={{ padding: '10px 30px 10px 12px', width: RONG, maxWidth: '92vw', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', gap: 4 }}>{chiCamp ? null : oTab('lich', 'Lịch + điều khiển')}{oTab('camp', 'Camps')}{chiCamp ? null : <>{oTab('toa', 'Toà nhà')}{thiTruong ? oTab('tt', 'Thị trường') : null}{oTab('log', 'Log')}</>}</div>
         {tab === 'camp' ? (() => { const ds = dsCamp ?? (l ? { ten: l.ten ?? `#${cid}`, nguoi: 'nhà', laNha: true, camp: l.camp, tat: l.camp_tat } : null);
           if (!ds) return loi ? <div style={{ color: '#f87171' }}>{loi}</div> : <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div>;

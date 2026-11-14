@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Neuschwanstein thật</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="theme-color" content="#1a2230">
+<style>
+  :root { --chu: #eef2f7; --mo: #b9c4d2; --vien: rgba(170,200,255,.25); --o: rgba(14,20,30,.72); }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #a9c4dc; color: var(--chu); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  canvas { display: block; }
+  .o { position: fixed; background: var(--o); border: 1px solid var(--vien); border-radius: 10px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  #dau { top: 12px; left: 12px; padding: 10px 12px; max-width: min(420px, calc(100vw - 48px)); }
+  #dau b { font-size: 15px; } #dau .mo { color: var(--mo); font-size: 12.5px; margin-top: 4px; }
+  #nguon { bottom: 10px; right: 10px; padding: 4px 8px; font-size: 11px; color: var(--mo); }
+  #nguon a { color: var(--mo); }
+  a.ve { display: inline-block; margin-top: 6px; color: #ffd9a8; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div id="dau" class="o">
+  <b>Neuschwanstein</b> · bản khối thô từ số đo thật
+  <div class="mo" id="tt">Đang tải số đo…</div>
+  <div class="mo">Mặt bằng, chiều cao và kiểu mái lấy từ OpenStreetMap, địa hình EU-DEM 25 m. Chưa có cửa sổ, chi tiết, nội thất.</div>
+  <div class="mo">Kéo chuột để xoay · lăn để phóng · chuột phải kéo để dời.</div>
+  <a class="ve" href="./">← Lâu đài dung nham</a>
+</div>
+<div id="nguon" class="o">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> · EU-DEM (Copernicus)</div>
+<script>
+// cùng cách nạp theo dấu phiên bản như index.html (Cloudflare zone on.tc giữ .js 30 ngày): hỏi ETag rồi nạp ./x.js?v=<ETag>
+(async () => {
+  const TEP = ['ns.js'];
+  const lay = (f) => fetch(`./${f}?ban=${Date.now()}`, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' })
+    .then((r) => (r.ok && (r.headers.get('etag') || r.headers.get('last-modified')) || '').replace(/[^\w-]/g, '')).catch(() => '');
+  const dau = await Promise.all(TEP.map(lay));
+  const imports = {
+    three: 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js',
+    'three/addons/': 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/',
+  };
+  TEP.forEach((f, i) => { imports[new URL(`./${f}`, location.href).href] = `./${f}?v=${dau[i] || Date.now()}`; });
+  const m = document.createElement('script'); m.type = 'importmap'; m.textContent = JSON.stringify({ imports }); document.head.appendChild(m);
+  const s = document.createElement('script'); s.type = 'module'; s.src = imports[new URL('./ns.js', location.href).href]; document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>

@@ -60,7 +60,7 @@ export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mo
       const mauNhan = getComputedStyle(el).getPropertyValue('--fg-2').trim() || '#94a3b8';
       let y = 0;
       theoTang.forEach((ds, t) => {
-        const san = Math.max(1, Math.ceil(ds.length / O_TANG)), cao = ds.length ? san * CAO : 0.22;
+        const san = Math.max(1, Math.ceil(ds.length / O_TANG)), cao = ds.length ? san * CAO : 0.42;   // tầng trống vẫn đủ cao cho nhãn không chồng tầng kế
         // sàn kính của tầng
         const sanM = new T.Mesh(new T.BoxGeometry(RONG + 0.2, 0.04, SAU + 0.2), new T.MeshStandardMaterial({ color: t === 0 ? 0x475569 : 0x94a3b8, transparent: true, opacity: t === 0 ? 0.55 : 0.25 }));
         sanM.position.set(0, y, 0); canh.add(sanM);
@@ -83,7 +83,7 @@ export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mo
             bat.position.set(cx, cy, cz); canh.add(bat); khoi.push({ m: bat, id: null, chu: k.chu });
           }
         });
-        const n = ds.length, sp = nhan(`${TANG[t]}${n ? ` ${n}` : ''}`, t === 4 ? TIM : mauNhan, 0.9);
+        const n = t ? ds.length : camp.filter((c) => c.cho).length + mong.sx + mong.ke + mong.cho, sp = nhan(`${TANG[t]}${n ? ` ${n}` : ''}`, t === 4 ? TIM : mauNhan, 0.9);
         sp.position.set(-RONG / 2 - 0.25 - sp.scale.x / 2, y + Math.min(cao, CAO) / 2 + 0.05, SAU / 2 + 0.1); canh.add(sp);
         y += cao + 0.06;
       });
@@ -94,8 +94,8 @@ export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mo
       dat.rotation.x = -Math.PI / 2; dat.position.y = -0.03; canh.add(dat);
 
       // ── camera quỹ đạo quanh giữa toà
-      const tam = new T.Vector3(0, y / 2, 0);
-      let goc = -0.6, nghieng = 0.42, xa = Math.max(7, y * 1.25 + 4);
+      const tam = new T.Vector3(0, (y + 1.2) / 2, 0);
+      let goc = -0.6, nghieng = 0.42, xa = Math.max(8, y * 1.7 + 5);
       const dat3 = () => { cam.position.set(tam.x + xa * Math.cos(nghieng) * Math.sin(goc), tam.y + xa * Math.sin(nghieng), tam.z + xa * Math.cos(nghieng) * Math.cos(goc)); cam.lookAt(tam); };
       const vien0 = new Map<number, InstanceType<typeof T.LineSegments>>();
       const veChon = (id: number | null) => {

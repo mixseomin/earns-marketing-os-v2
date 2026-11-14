@@ -258,7 +258,7 @@
     },
     "phim_moi": {
       "ten": "Phim mới",
-      "mo_ta": "khả năng tìm ra phim hiệu quả: phim nhà theo tuần bắt đầu chạy — số phim thử, đủ thử (chi ≥ $20), thắng (lãi cả đời ≥ $30), tỷ lệ thắng, chi, lãi, ROI; tiền thử cho mỗi phim thắng; phim thắng mới 30 ngày",
+      "mo_ta": "khả năng tìm ra phim hiệu quả: phim nhà theo tuần bắt đầu chạy — số phim thử, đủ thử (chi ≥ $20), thắng (lãi cả đời ≥ $30), tỷ lệ thắng, chi, lãi, ROI; tiền thử cho mỗi phim thắng; phim thắng mới 21 ngày",
       "min": [
         5,
         6

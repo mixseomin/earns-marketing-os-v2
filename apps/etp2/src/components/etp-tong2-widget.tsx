@@ -35,7 +35,8 @@ function DuongRoi({ v }: { v: (number | null)[] }) {
 const gioVn = (g: number) => String((g + 7) % 24).padStart(2, '0');   // giờ UTC của ngày Ethopex → giờ VN (ngày Ethopex bắt đầu 07:00 VN = 00 UTC)
 const NHAN_LUAT = BANG_LUAT.khoa as Record<string, { nhan?: string[] }>;
 // PHIM MỚI: mốc "đủ thử" (chi cả đời) và "thắng" (lãi cả đời) — cùng mốc phân tích 14/11/2026 (phim thắng = lãi ≥ $30)
-const PM_DU = 20, PM_THANG = 30;
+// PM_NGAY = khung các ô tổng: 21 ngày (không phải 30) — lứa 19/10 là toàn bộ phim lúc hệ thống mới chạy, ôm vào thì "phim mới" trông đẹp hơn thật
+const PM_DU = 20, PM_THANG = 30, PM_NGAY = 21;
 const dauTuan = (d: string) => { const t = new Date(`${d}T00:00:00Z`); t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7)); return t.toISOString().slice(0, 10); };
 const ngayThang = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 const TEN_VIEC: Record<string, string> = { tat: '⏹ Tắt', giam: '↓ Hạ', tang: '↑ Tăng', nhan_ban: '⧉ Nhân bản' };
@@ -171,20 +172,20 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
       if (!s) return cho;
       if (!s.phimMoi) return <span style={{ color: MO, fontSize: 12 }}>số phim mới chỉ có ở tài khoản nhà</span>;
       type P = NonNullable<SoTong2['phimMoi']>[number];
-      const qua = congNgay(s.nay, -1), tu30 = congNgay(s.nay, -30), moc = congNgay(qua, -7);
+      const qua = congNgay(s.nay, -1), tuK = congNgay(s.nay, -PM_NGAY), moc = congNgay(qua, -7);
       const thang = (r: P) => r.thu - r.chi >= PM_THANG, du = (r: P) => r.chi >= PM_DU;
       const gom = (rs: P[]) => { const d = rs.filter(du).length, w = rs.filter(thang).length, thua = rs.filter((r) => !thang(r)).reduce((a, r) => a + r.chi, 0);
         return { n: rs.length, d, w, k: cong(rs), tile: d ? (w / d) * 100 : null, giaThang: w ? thua / w : null }; };
-      const g30 = gom(s.phimMoi.filter((r) => r.d0 >= tu30));
+      const g30 = gom(s.phimMoi.filter((r) => r.d0 >= tuK));
       const tuan = [...new Set(s.phimMoi.map((r) => dauTuan(r.d0)))].sort().reverse().slice(0, 8)
         .map((t) => ({ t, non: congNgay(t, 6) > moc, ...gom(s.phimMoi!.filter((r) => dauTuan(r.d0) === t)) }));
-      const moi = s.phimMoi.filter((r) => r.d0 >= tu30 && thang(r)).sort((a, b) => (b.thu - b.chi) - (a.thu - a.chi)).slice(0, 6);
+      const moi = s.phimMoi.filter((r) => r.d0 >= tuK && thang(r)).sort((a, b) => (b.thu - b.chi) - (a.thu - a.chi)).slice(0, 6);
       const tl = (v: number | null) => (v == null ? '—' : `${v.toFixed(0)}%`);
       return <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12 }}>
         <StatsStrip minColWidth={120} cards={[
-          { key: 'thu', label: 'Phim thử 30 ngày', value: String(g30.n), sub: `${g30.d} phim đủ thử (chi ≥ $${PM_DU})`, title: 'phim nhà bắt đầu chi trong 30 ngày gần nhất (ngày Ethopex đã khép)' },
+          { key: 'thu', label: `Phim thử ${PM_NGAY} ngày`, value: String(g30.n), sub: `${g30.d} phim đủ thử (chi ≥ $${PM_DU})`, title: `phim nhà bắt đầu chi trong ${PM_NGAY} ngày gần nhất (ngày Ethopex đã khép)` },
           { key: 'thang', label: 'Phim thắng', value: String(g30.w), color: g30.w ? XANH : DO, sub: `tỷ lệ ${tl(g30.tile)} phim đủ thử`, title: `lãi cả đời ≥ $${PM_THANG} (mọi bộ, cả ★ ROAS)` },
-          { key: 'lai', label: 'Lãi ròng phim mới', value: tien(g30.k.thu - g30.k.chi), color: mauLai(g30.k.thu - g30.k.chi), sub: `ROI ${pct(roi(g30.k))} · chi ${tien(g30.k.chi)}`, title: 'cộng mọi phim bắt đầu trong 30 ngày, kể cả phim thua' },
+          { key: 'lai', label: 'Lãi ròng phim mới', value: tien(g30.k.thu - g30.k.chi), color: mauLai(g30.k.thu - g30.k.chi), sub: `ROI ${pct(roi(g30.k))} · chi ${tien(g30.k.chi)}`, title: `cộng mọi phim bắt đầu trong ${PM_NGAY} ngày, kể cả phim thua` },
           { key: 'gia', label: 'Tiền thử / phim thắng', value: g30.giaThang == null ? '—' : tien(g30.giaThang), sub: 'chi của phim chưa thắng ÷ số phim thắng', title: 'mỗi phim thắng tìm được tốn bao nhiêu tiền thử các phim còn lại' },
         ]} />
         <SimpleTable rows={tuan} getRowKey={(r) => r.t} columns={[
@@ -198,12 +199,12 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
           { key: 'roi', header: 'ROI', align: 'right', cell: (r) => { const v = roi(r.k); return <span style={{ color: v == null ? MO : v >= 0 ? XANH : DO }}>{pct(v)}</span>; } },
         ]} />
         {moi.length ? <SimpleTable rows={moi} getRowKey={(r) => String(r.p)} columns={[
-          { key: 'p', header: 'Phim thắng mới (30 ngày)', cell: (r) => <span title={`${r.ten}${r.tl ? ` · ${r.tl}` : ''}${r.nn ? ` · ${r.nn}` : ''}`} style={{ display: 'inline-block', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }}>{r.ten}</span> },
+          { key: 'p', header: `Phim thắng mới (${PM_NGAY} ngày)`, cell: (r) => <span title={`${r.ten}${r.tl ? ` · ${r.tl}` : ''}${r.nn ? ` · ${r.nn}` : ''}`} style={{ display: 'inline-block', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }}>{r.ten}</span> },
           { key: 'd0', header: 'Bắt đầu', align: 'right', cell: (r) => ngayThang(r.d0) },
           { key: 'bo', header: 'Bộ', align: 'right', cell: (r) => r.bo ?? '—' },
           { key: 'lai', header: 'Lãi', align: 'right', cell: (r) => <KeToan v={r.thu - r.chi} mau={XANH} /> },
           { key: 'roi', header: 'ROI', align: 'right', cell: (r) => pct(roi(r)) },
-        ]} /> : <span style={{ color: MO }}>30 ngày qua chưa có phim mới nào lãi từ ${PM_THANG}</span>}
+        ]} /> : <span style={{ color: MO }}>{PM_NGAY} ngày qua chưa có phim mới nào lãi từ ${PM_THANG}</span>}
       </div>;
     },
     phan_bo: () => {

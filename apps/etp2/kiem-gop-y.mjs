@@ -117,6 +117,9 @@ const LUAT = [
   { card: 1589, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', mot: "{H('Hướng', <div style={GON} title={h.re}>", vi: 'bảng phim có hàng Tiềm năng + Hướng (Gọt / Thử dạng / Mở rộng / Làm mới / Đo thêm) gộp từ đồng hồ thị trường + lãi lỗ từng dạng (anh 13/11/2026 "làm sao nhìn được tiềm năng, hướng mở rộng")' },
   { card: 1589, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', mot: 'export const PHA_HT: Record<string, [string, string, string]>', vi: 'sổ pha thị trường MỘT nơi, đồng hồ dòng phim và bảng phim dùng chung' },
   { card: 1589, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'const PHA_HT', vi: 'etp-view không khai lại sổ pha thị trường — import từ etp-lich-phim' },
+  { card: 1597, tep: 'apps/etp2/src/components/etp-view.tsx', co: "Math.max(0, Math.floor(h) - 1)", cam: "'--etp-dinh', `${el.offsetHeight}px`", vi: '--etp-dinh đo số lẻ, làm tròn xuống, lùi 1px — hàng dính dưới không hở khe (offsetHeight làm tròn lên hở khe, anh 14/11/2026 "trên mobile lởm")' },
+  { card: 1597, tep: 'apps/etp2/src/components/etp-view.tsx', co: "boxShadow: gon && gonHero ? '0 3px 0 var(--bg-0, #0b0b0c)' : undefined", vi: 'thanh dính điện thoại có váy nền 3px che khe với đầu cây khi Safari cuộn quán tính' },
+  { card: 1597, tep: 'apps/etp2/src/components/etp-view.tsx', co: "borderBottom: '1px solid var(--line)', boxShadow: '0 6px 8px -4px rgba(0,0,0,.65)' }}>{/* #1597", vi: 'đầu cây dính có bóng dưới — dòng trôi vào dưới không lộ như bị cắt' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },
 ];
 

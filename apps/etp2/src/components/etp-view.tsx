@@ -2340,7 +2340,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         </>
       </div>}
       {bangCay ?? <>
-      <div style={{ position: 'sticky', top: 'var(--etp-dinh, 0px)', zIndex: 2, background: 'var(--bg-0, #0b0b0c)', display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, fontSize: 11, color: 'var(--fg-2)', padding: hep ? '4px 0' : '6px 0', alignItems: 'end', borderBottom: '1px solid var(--line)' }}>
+      <div style={{ position: 'sticky', top: 'var(--etp-dinh, 0px)', zIndex: 2, background: 'var(--bg-0, #0b0b0c)', display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, fontSize: 11, color: 'var(--fg-2)', padding: hep ? '4px 0' : '6px 0', alignItems: 'end', borderBottom: '1px solid var(--line)', boxShadow: '0 6px 8px -4px rgba(0,0,0,.65)' }}>{/* #1597: bóng dưới đầu dính — dòng trôi vào dưới thấy rõ là đang chui, không như bị cắt đứt */}
         {/* DÒNG TỔNG TRÊN ĐIỆN THOẠI (anh 01/11/2026 #1498 "thêm dòng tổng nhg bố trí chỉ 1 dòng sticky cho gọn"): số tổng nằm NGAY TRONG dòng tiêu đề dính —
             mỗi ô cột = nhãn nhỏ trên + ROI tổng dưới (O0, cùng khuôn ô số), ô đầu = số phim · tổng ngân sách đang bật; không thêm hàng dính thứ hai */}
         {hep ? <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, minWidth: 0 }}><span>Phim → camp</span>
@@ -2736,7 +2736,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const khK = khKhoang(kh, du.nay), khNay = khK.tu === du.nay && khK.den === du.nay, khNhan = khNhanCua(kh);
   const dinhRef = useRef<HTMLDivElement>(null);
   const cuonRef = useRef<HTMLDivElement>(null), heroRef = useRef<HTMLDivElement>(null); const [gonHero, setGonHero] = useState(false);
-  useEffect(() => { const el = dinhRef.current; if (!el) return; const dat = () => document.documentElement.style.setProperty('--etp-dinh', `${el.offsetHeight}px`); dat();
+  // --etp-dinh = chỗ các hàng dính bên dưới (đầu cây, lọc Quét, DataTable) bám vào. #1597 anh 14/11/2026 "trên mobile lởm": offsetHeight LÀM TRÒN (cao 30,6px → 31) nên hàng dưới
+  // đứng hở một khe dưới thanh dính, chữ dòng đang trôi lọt qua khe. Đo số lẻ thật, làm tròn XUỐNG rồi lùi 1px → hàng dưới luôn chui dưới mép thanh (thanh zIndex cao hơn che), không bao giờ hở
+  useEffect(() => { const el = dinhRef.current; if (!el) return; const dat = () => { const h = el.getBoundingClientRect().height; document.documentElement.style.setProperty('--etp-dinh', `${h > 0 ? Math.max(0, Math.floor(h) - 1) : 0}px`); }; dat();
     const ro = new ResizeObserver(dat); ro.observe(el); return () => { ro.disconnect(); document.documentElement.style.removeProperty('--etp-dinh'); }; }, []);
   const noiAnh = useNoi<{ anh: string; video: string | null; cr?: number }>(); const xem = noiAnh.v;   // ảnh to + video khi rê vào ảnh creative (thẻ nổi dùng chung: ✕ / Esc)
   useEffect(() => { const u = new URL(location.href); u.searchParams.set('k', kh); if (u.href !== location.href) history.replaceState(null, '', u);
@@ -3137,7 +3139,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       </div>
       {/* HÀNG TAB + PILL DÍNH KHI CUỘN (anh 26/10/2026 "các tabs pill phải sticky khi scroll xuống") — chiều cao vào --etp-dinh cho hàng dính bên dưới (lọc Quét nội dung, đầu cây camp) */}
       {/* HERO GỌN DÍNH KHI CUỘN (anh 27/10/2026 "hero khi cuộn xuống vẫn sticky nhưng gọn lại"): cuộn qua dải số lớn thì một dòng số gọn dính trên hàng tab */}
-      <div ref={dinhRef} data-comp="ui.StickyBar" style={{ position: 'sticky', top: 0, zIndex: 7, background: 'var(--bg-0, #0b0b0c)' }}>
+      {/* #1597: điện thoại đang dính → váy nền 3px dưới mép thanh (Safari iOS cuộn quán tính lệch vài px giữa hai lớp dính) — khe giữa thanh và đầu cây không bao giờ lộ chữ dòng đang trôi */}
+      <div ref={dinhRef} data-comp="ui.StickyBar" style={{ position: 'sticky', top: 0, zIndex: 7, background: 'var(--bg-0, #0b0b0c)', boxShadow: gon && gonHero ? '0 3px 0 var(--bg-0, #0b0b0c)' : undefined }}>
       {gonHero ? <div style={{ display: 'flex', gap: gon ? 10 : 18, alignItems: gon ? 'baseline' : 'center', overflowX: 'auto', scrollbarWidth: 'none', whiteSpace: 'nowrap', fontSize: 12, padding: '6px 0 2px', borderBottom: '1px solid var(--line)' }}>
         {/* #1588 anh 13/11/2026 "Show cả khi sticky xuống": cụm tuổi số · ↻ Làm mới · ▶ Lên camp (cumTuoi — cùng hàm với dòng tiêu đề) đứng ĐẦU dòng dính */}
         <span data-dinh-tuoi="1" style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flex: 'none' }}>{cumTuoi(true)}</span>

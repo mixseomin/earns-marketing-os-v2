@@ -1936,17 +1936,18 @@
     {
      "ten": "Chú",
      "tam": [
-      -128,
+      -115,
       500,
       80
      ],
-     "huong": 135,
+     "huong": 90,
      "nhin_ai": "tiem",
      "nhin_ai_den": "tiem",
      "o_dau": "inside the train carriage, behind the open passenger window (not standing on the platform)",
      "dien": [
       "chong_ban"
      ],
+     "huong_mat": 174,
      "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
     },
     {

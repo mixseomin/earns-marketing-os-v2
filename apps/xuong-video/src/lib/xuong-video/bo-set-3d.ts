@@ -958,7 +958,7 @@ export function nhipDan<T extends { id: number; thu_tu: number; phan_doan?: stri
     // CẬN ĐỐI ĐÁP (shot / reverse shot — anh 12/11/2026 phim #3071): cận riêng của từng người có hậu cảnh RIÊNG (ngược góc nhau); hướng máy chủ tính
     // theo nhóm shot cùng một chủ thể đơn — hậu cảnh của cận A giữ nhau, cận B giữ nhau. Nhóm < 2 shot (không có gì để giữ) thì so hướng chủ cả cảnh.
     // nhóm = chủ thể đơn + HƯỚNG MẶT của người đó (gom trong ±45°): quay sang nhìn chỗ khác là trục mới — chú nhìn xuống nhóc ≠ chú nhìn theo về tiệm (#3071)
-    const huongChu = (c: T) => { const ct = chuThe(c.may_3d!); const v = ct.length === 1 ? c.may_3d!.vi_tri.find((x) => x.ten === ct[0]) : undefined; return v?.huong_den ?? v?.huong; };   // hướng mặt lúc KẾT (#18 mở còn nhìn nhóc, quay theo nhóc chạy — khung giữ lâu nhất ở hướng cuối)
+    const huongChu = (c: T) => { const ct = chuThe(c.may_3d!); const v = ct.length === 1 ? c.may_3d!.vi_tri.find((x) => x.ten === ct[0]) : undefined; return v?.huong_mat ?? v?.huong_den ?? v?.huong; };   // hướng mặt lúc KẾT (#18 mở còn nhìn nhóc, quay theo nhóc chạy — khung giữ lâu nhất ở hướng cuối)
     const nhom = new Map<string, T[]>(); const tamNhom: { ten: string; h: number; k: string }[] = [];
     const donMap = new Map<number, string>();
     for (const c of thuong) {

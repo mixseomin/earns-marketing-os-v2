@@ -448,7 +448,7 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** KHOÁ
   /** máy chạy (ky_thuat.chuyen_dong) NHẮM vào ai: zoom / lia / theo / trượt bám tên này; trống = chủ thể đầu (duong-may.ts) */ nham?: string;
   /** CHUYỂN CHỦ THỂ (chuyen_dong 'chuyen_chu_the'): máy rời chủ thể mở, DỪNG trên người / vật này lúc kết; trống = chủ thể thứ hai của khung */ chuyen_toi?: string;
   /** CHỦ THỂ của khung: phải trong khung + không bị che (mặc định: hai vị trí đầu không 'an') */ khung?: string[]; vi_tri: { ten: string; /** chỗ ở lúc MỞ shot (cm) — khung xám dựng ở đây */ tam: number[]; /** chỗ ở lúc KẾT shot (đi / lăn / bay trong shot); không ghi = đứng yên */ den?: number[];
-    /** hướng mặt lúc mở / kết (độ, 0 = nhìn về phía người ngồi −y, 90 = nhìn sang phải +x) — mắt khối 3D quay theo */ huong?: number; huong_den?: number;
+    /** hướng mặt lúc mở / kết (độ, 0 = nhìn về phía người ngồi −y, 90 = nhìn sang phải +x) — mắt khối 3D quay theo */ huong?: number; huong_den?: number; /** HƯỚNG MẶT thật khi thân và đầu quay khác nhau (nhoài người ra ô cửa: thân ra cửa, đầu quay nhìn dọc sân ga, phim #3071 #10) — cổng hướng máy chủ (bo-set-3d.ts › nhipDan) đọc trước huong */ huong_mat?: number;
     /** TRẠNG THÁI NHÂN VẬT lúc mở / kết (sổ script supervisor — tiếng Anh cho prompt: 'frizzed stiff with static', 'soaking wet'); trống = bình thường.
      *  lienMachTap chặn shot sau mở khác trạng thái shot trước để lại; prompt STATE đè lên ảnh mẫu. */ trang?: string; trang_den?: string;
     /** SỔ NGƯỜI (phim người thật — bo-set-3d.ts › SO_NGUOI): bề ngoài lúc mở / kết, tiếng Anh cho prompt. Không khai = chưa biết (hookup lấy từ shot

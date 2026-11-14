@@ -26,8 +26,38 @@ export async function napNguoi3d(url = './tai-san/nguoi.glb') {
     const c = SkeletonUtils.clone(goc), m = new THREE.AnimationMixer(c); m.clipAction(clips[ten]).play(); m.update(0.01);
     c.updateMatrixWorld(true); let y = 0; c.traverse((o) => { if (o.isBone && o.name === 'pelvis') y = o.getWorldPosition(new THREE.Vector3()).y; }); return y * co;
   };
+  // LEO TƯỜNG lặp: bộ CC0 không có động tác leo liên tục → cắt đoạn "với tay bám — kéo người" của ClimbUp_2m (0,30–0,62 s), chạy qua lại
+  clips.leoLap = THREE.AnimationUtils.subclip(clips.len2m, 'leoLap', 9, 19, 30);
   MAU = { goc, clips, co, chau: { dung: doChau('dung'), ngoiGhe: doChau('ngoiGhe'), laiXe: doChau('laiXe'), boi: doChau('boi') } };
   return MAU;
+}
+
+// ÁO TRUNG CỔ: người mẫu gốc là hình nộm cam (M_Main) + khớp tím (M_Joints) → tô màu theo XƯƠNG chi phối từng đỉnh:
+// thân + vai + cánh tay = áo chẽn · cẳng tay = tay áo sẫm · tay / cổ / đầu = da · chậu + đùi = quần · cẳng chân + bàn chân = ủng
+// · đỉnh chia đôi chậu / thân (0,35–0,65) = thắt lưng. Giữ nguyên mọi động tác vì chỉ đổi màu, không đổi hình.
+export const AO = {
+  hiepSi: { ao: 0x7a2420, tay: 0x5a1a16, quan: 0x3a3028, ung: 0x2a1e16, da: 0xe0b48e, toc: 0x3a2618, that: 0x2a1a10 },
+  nongDan: { ao: 0x5a6a3a, tay: 0x46542e, quan: 0x6b5a44, ung: 0x3a2a1c, da: 0xd8a47c, toc: 0x2a1a10, that: 0x4a3420 },
+  thuongNhan: { ao: 0x2e4a7a, tay: 0x22385e, quan: 0x3a3a40, ung: 0x2a1e16, da: 0xc89670, toc: 0x1a120c, that: 0x6a4a1c },
+};
+const NHOM_XUONG = [[/^(Head|neck_01)$/, 'da'], [/^(hand_|index|middle|pinky|ring|thumb)/, 'da'], [/^lowerarm_/, 'tay'], [/^(spine_|clavicle_|upperarm_)/, 'ao'],
+  [/^(pelvis|thigh_)/, 'quan'], [/^(calf_|foot_|ball_)/, 'ung'], [/^root$/, 'quan']];
+function toMauAo(mesh, ao) {
+  const g = mesh.geometry.clone(), si = g.attributes.skinIndex, sw = g.attributes.skinWeight, pos = g.attributes.position, bones = mesh.skeleton.bones, c = new THREE.Color();
+  const mau = new Float32Array(si.count * 3);
+  let yDau = -1e9; for (let i = 0; i < pos.count; i++) yDau = Math.max(yDau, pos.getY(i));
+  for (let i = 0; i < si.count; i++) {
+    let tot = 0, w0 = -1; const wChau = [];
+    for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > w0) { w0 = w; tot = si.getComponent(i, k); } wChau.push([bones[si.getComponent(i, k)]?.name, w]); }
+    const ten = bones[tot]?.name || '';
+    let nhom = (NHOM_XUONG.find(([re]) => re.test(ten)) || [, 'ao'])[1];
+    const wPel = wChau.filter(([n]) => n === 'pelvis').reduce((s, [, w]) => s + w, 0), wSpi = wChau.filter(([n]) => n === 'spine_01').reduce((s, [, w]) => s + w, 0);
+    if (wPel > 0.3 && wSpi > 0.3) nhom = 'that';
+    if (nhom === 'da' && ten === 'Head' && pos.getY(i) > yDau - (yDau * 0.045)) nhom = 'toc'; // đỉnh đầu = tóc
+    c.set(ao[nhom]); mau.set([c.r, c.g, c.b], i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(mau, 3));
+  mesh.geometry = g; mesh.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
 }
 
 export function taoNguoi3d(o = {}) {
@@ -37,11 +67,12 @@ export function taoNguoi3d(o = {}) {
   let xuong = {};
   than.traverse((x) => {
     if (x.isBone) xuong[x.name] = x;
-    if (x.isMesh) { x.castShadow = true; x.frustumCulled = false; if (o.mau) { x.material = x.material.clone(); x.material.color = new THREE.Color(o.mau); } }
+    if (x.isMesh) { x.castShadow = true; x.frustumCulled = false; if (x.isSkinnedMesh) toMauAo(x, AO[o.ao || 'hiepSi'] || AO.hiepSi); }
   });
   const mixer = new THREE.AnimationMixer(than), hd = {};
   for (const [ten, clip] of Object.entries(MAU.clips)) hd[ten] = mixer.clipAction(clip);
   for (const t of ['nem', 'da', 'len1m', 'len2m', 'vuot', 'nga', 'gat']) { hd[t].setLoop(THREE.LoopOnce, 1); hd[t].clampWhenFinished = true; }
+  hd.leoLap.setLoop(THREE.LoopPingPong, Infinity);
   let dangChay = null, viec = null, tViec = 0, daTha = false, khiTha = null;
   function choi(ten, mo = 0.2, tocDo = 1) {
     const a = hd[ten]; a.timeScale = tocDo;
@@ -69,7 +100,7 @@ export function taoNguoi3d(o = {}) {
       }
       if (!viec) {
         const T = st.tuThe;
-        if (T === 'leo') choi('len2m', 0.15, Math.max(0.15, Math.min(1.4, (st.tocLeo ?? 1.2) / 1.2)));
+        if (T === 'leo') choi('leoLap', 0.15, Math.min(1.4, (st.tocLeo ?? 1.2) / 1.2)); // đứng im trên tường → động tác dừng (bám)
         else if (T === 'qua') choi('len1m', 0.1, 1.3);
         else if (T === 'boi') v > 0.3 ? choi('boi', 0.3, Math.max(0.6, Math.min(1.6, v / TOC_GOC.boi))) : choi('boiDung', 0.3);
         else if (T === 'cuoi') choi('ngoiGhe', 0.25);

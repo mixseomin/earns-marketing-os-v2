@@ -163,7 +163,7 @@ function ThanhPhoVe({ ds, nguoi, laNha, cao }: { ds: PhimThanhPho[]; nguoi: stri
     </div>
     <ThanhPho ds={xep} chon={chon} cao={Math.max(160, cao - 26)} onChon={(p, xy) => { setChon(p); if (p != null && xy) noi.moNgay({ id: p }, { clientX: xy.x, clientY: xy.y, currentTarget: null } as unknown as React.MouseEvent); else noi.dong(); }} />
     {noi.v ? (() => { const x = ds.find((d) => d.p === noi.v!.id);
-      return <BangPhim key={noi.v.id} cid={noi.v.id} noi={noi} vi={noi.v} dsCamp={x ? { ten: x.ten, nguoi, laNha, camp: x.camp, tat: x.tat } : undefined} />; })() : null}
+      return <BangPhim key={noi.v.id} ghim cid={noi.v.id} noi={noi} vi={noi.v} dsCamp={x ? { ten: x.ten, nguoi, laNha, camp: x.camp, tat: x.tat } : undefined} />; })() : null}
   </div>;
 }
 

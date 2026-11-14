@@ -154,18 +154,24 @@ function TabToa({ l, chon, onChon }: { l: LichPhim; chon: number | null; onChon:
 }
 
 export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruong: () => TheNoi; children: React.ReactNode }) {
-  const noi = useNoi<{ id: 0 }>();
-  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: 'inline-flex', cursor: 'pointer' }}>
-    {noi.v ? <BangPhim cid={cid} thiTruong={thiTruong} noi={noi} vi={noi.v} /> : null}{children}</span>;
+  const noi = useNoi<{ id: 0 }>(), ghim = useRef(false);
+  if (!noi.v) ghim.current = false;
+  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={() => { if (!ghim.current) noi.dongTre(); }} onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: 'inline-flex', cursor: 'pointer' }}>
+    {noi.v ? <BangPhim cid={cid} thiTruong={thiTruong} noi={noi} vi={noi.v} onGhim={() => { ghim.current = true; }} /> : null}{children}</span>;
 }
 
 /** BẢNG PHIM (Lịch + điều khiển · Toà nhà · Thị trường · Log) — MỘT ruột cho hai lối vào: rê đồng hồ dòng phim (NutLichPhim) và bấm một toà trong thành phố
  *  (anh 15/11/2026 "Nếu bấm vào thì cần show cái này ra"). Tab Thị trường chỉ có khi lối vào đưa thẻ thị trường. */
 /** Tab CAMPS (anh 15/11/2026 "vẫn phải hiện kiểu này nhưng thêm 1 tab là Camps"): bảng vẫn mở ở Lịch + điều khiển; Camps liệt kê camp của phim —
  *  dsCamp = camp của toà đã bấm trong thành phố (cùng nguồn với cây / cửa), không có thì lấy camp nhà của phim (docLichPhim). laNha = false (đang xem người khác) thì chỉ tab Camps, không nạp số nhà */
-export function BangPhim({ cid, thiTruong, noi, vi, dsCamp }: { cid: number; thiTruong?: () => TheNoi; noi: Noi; vi: { x: number; y: number };
+// GHIM (anh 15/11/2026 "bảng này ko cho tự đóng lại khi hover ra ngoài. Giờ bấm vào tab camp là trượt ra ngoài chuột là đóng lại luôn"): mở bằng bấm (ghim) hoặc đã bấm
+// bất kỳ chỗ nào trong bảng → rê ra ngoài KHÔNG đóng, chỉ × / Esc; chưa bấm gì (vừa rê vào xem nhanh) thì vẫn tự đóng như thẻ rê
+export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = false, onGhim }: { cid: number; thiTruong?: () => TheNoi; noi: Noi; vi: { x: number; y: number }; ghim?: boolean; onGhim?: () => void;
   dsCamp?: { ten: string; nguoi: string; laNha: boolean; camp: CampToa[]; tat: CampToa[] } }) {
   const chiCamp = !!dsCamp && !dsCamp.laNha;
+  const [ghim, setGhim] = useState(ghim0);
+  const noi: Noi = ghim ? { ...noi0, dongTre: noi0.giu } : noi0;
+  const ghimLai = () => { if (!ghim) { setGhim(true); noi0.giu(); onGhim?.(); } };
   const router = useRouter();
   const [l, setL] = useState<LichPhim | null>(null), [loi, setLoi] = useState<string | null>(null), [dang, setDang] = useState(false), [kq, setKq] = useState<string | null>(null);
   const [tab, setTab] = useState<'camp' | 'lich' | 'toa' | 'tt' | 'log'>(dsCamp && !dsCamp.laNha ? 'camp' : 'lich'), [chonToa, setChonToa] = useState<number | null>(null), [log, setLog] = useState<LogPhim[] | { loi: string } | null>(null);
@@ -188,7 +194,7 @@ export function BangPhim({ cid, thiTruong, noi, vi, dsCamp }: { cid: number; thi
   ].filter(Boolean).slice(0, 4) as string[] : [];
   const oTab = (k: 'camp' | 'lich' | 'toa' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
   return <KhungNoi x={vi.x} y={vi.y} rong={480} cao={tab === 'toa' ? 600 : l?.thang.length ? 620 : 360} noi={noi}>
-      <div onClick={(e) => e.stopPropagation()} style={{ padding: '10px 30px 10px 12px', width: 480, maxWidth: '92vw', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div onClick={(e) => e.stopPropagation()} onPointerDown={ghimLai} style={{ padding: '10px 30px 10px 12px', width: 480, maxWidth: '92vw', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', gap: 4 }}>{chiCamp ? null : oTab('lich', 'Lịch + điều khiển')}{oTab('camp', 'Camps')}{chiCamp ? null : <>{oTab('toa', 'Toà nhà')}{thiTruong ? oTab('tt', 'Thị trường') : null}{oTab('log', 'Log')}</>}</div>
         {tab === 'camp' ? (() => { const ds = dsCamp ?? (l ? { ten: l.ten ?? `#${cid}`, nguoi: 'nhà', laNha: true, camp: l.camp, tat: l.camp_tat } : null);
           if (!ds) return loi ? <div style={{ color: '#f87171' }}>{loi}</div> : <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div>;

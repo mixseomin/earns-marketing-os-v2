@@ -54,8 +54,8 @@ export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mo
         g.font = `600 ${fs}px system-ui, sans-serif`; cv.width = Math.ceil(g.measureText(chu).width) + 24; cv.height = fs + 20;
         g.font = `600 ${fs}px system-ui, sans-serif`; g.fillStyle = mau; g.textBaseline = 'middle'; g.fillText(chu, 12, cv.height / 2);
         const tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace;
-        const sp = new T.Sprite(new T.SpriteMaterial({ map: tx, depthTest: false, transparent: true })); sp.renderOrder = 10;
-        const h = 0.32 * to; sp.scale.set(h * cv.width / cv.height, h, 1); return sp;
+        const sp = new T.Sprite(new T.SpriteMaterial({ map: tx, depthTest: false, transparent: true, sizeAttenuation: false })); sp.renderOrder = 10;
+        /* cỡ cố định trên màn (sizeAttenuation tắt): toà cao kéo camera xa thì chữ không teo */ const h = 0.042 * to; sp.scale.set(h * cv.width / cv.height, h, 1); return sp;
       };
       const mauNhan = getComputedStyle(el).getPropertyValue('--fg-2').trim() || '#94a3b8';
       let y = 0;
@@ -84,18 +84,18 @@ export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mo
           }
         });
         const n = t ? ds.length : camp.filter((c) => c.cho).length + mong.sx + mong.ke + mong.cho, sp = nhan(`${TANG[t]}${n ? ` ${n}` : ''}`, t === 4 ? TIM : mauNhan, 0.9);
-        sp.position.set(-RONG / 2 - 0.25 - sp.scale.x / 2, y + Math.min(cao, CAO) / 2 + 0.05, SAU / 2 + 0.1); canh.add(sp);
+        sp.center.set(1, 0.5); sp.position.set(-RONG / 2 - 0.2, y + Math.min(cao, CAO) / 2 + 0.05, SAU / 2 + 0.1); canh.add(sp);
         y += cao + 0.06;
       });
       // mái + biển hướng đi (dòng "Hướng" của bảng phim) cắm trên nóc
       const cot = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.7), new T.MeshStandardMaterial({ color: 0x94a3b8 })); cot.position.set(RONG / 2 - 0.3, y + 0.35, 0); canh.add(cot);
-      if (bien) { const sp = nhan(bien.chu, bien.mau, 1.1); sp.position.set(RONG / 2 - 0.3, y + 0.95, 0); canh.add(sp); }
+      if (bien) { const sp = nhan(bien.chu, bien.mau, 1.1); sp.center.set(0.5, 0); sp.position.set(RONG / 2 - 0.3, y + 0.72, 0); canh.add(sp); }
       const dat = new T.Mesh(new T.CircleGeometry(Math.max(RONG, SAU) * 1.1, 48), new T.MeshStandardMaterial({ color: 0x1e293b, transparent: true, opacity: 0.35 }));
       dat.rotation.x = -Math.PI / 2; dat.position.y = -0.03; canh.add(dat);
 
       // ── camera quỹ đạo quanh giữa toà
       const tam = new T.Vector3(0, (y + 1.2) / 2, 0);
-      let goc = -0.6, nghieng = 0.42, xa = Math.max(8, y * 1.7 + 5);
+      let goc = -0.6, nghieng = 0.42, xa = Math.max(8, y * 1.45 + 5);
       const dat3 = () => { cam.position.set(tam.x + xa * Math.cos(nghieng) * Math.sin(goc), tam.y + xa * Math.sin(nghieng), tam.z + xa * Math.cos(nghieng) * Math.cos(goc)); cam.lookAt(tam); };
       const vien0 = new Map<number, InstanceType<typeof T.LineSegments>>();
       const veChon = (id: number | null) => {

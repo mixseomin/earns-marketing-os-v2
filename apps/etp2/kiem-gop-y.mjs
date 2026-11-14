@@ -93,6 +93,10 @@ const LUAT = [
   { card: 'thanh-pho-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', mot: 'function useCanh3D(', vi: 'MỘT cảnh 3D dùng chung cho toà phim + thành phố (không chép bộ điều khiển)' },
   { card: 'toa-nha-1511', tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: "{oTab('toa', 'Toà nhà')}", vi: 'khung phim có tab Toà nhà 3D (anh 15/11/2026 "giống kiểu hình một toà nhà")' },
   { card: 'toa-nha-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'c.cho ? 0 : c.roas ? 4 : c.ns > 1 ? 3 : lai ? 2 : 1', vi: 'tầng theo chặng camp: móng hẹn giờ · thử · lãi · scale · mái ★ ROAS' },
+  // anh 15/11/2026 chat: tầng ★ ROAS tường kính mịn khác tầng thường · số trên ô co vừa, không tràn · bảng Camps một lớp cuộn
+  { card: 'roas-min-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: "if (roas) than.material = new T.MeshStandardMaterial({ color: 0x4c1d95", vi: 'tầng ★ ROAS: tường kính liền tím sẫm nhẵn bóng' },
+  { card: 'roas-min-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'x.measureText(chu).width > 134', vi: 'số trên ô cửa tự co vừa ô (★$20 không tràn)' },
+  { card: 'mot-cuon-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', cam: "maxHeight: 360, overflowY: 'auto', fontSize: 11.5", vi: 'bảng Camps không tự cuộn (một lớp cuộn của khung)' },
   { card: 'phim-moi-1411', tep: 'apps/etp2/src/lib/actions/etp-tong2.ts', co: 'phimMoi: nha ?', vi: 'gói Tổng quan 2 mang số phim mới (chỉ nhà)' },
   { card: 'tran-30-1411', tep: 'apps/etp/ethopex_api.py', co: 'if float(v) > CG.TRAN_TUYET]', vi: 'cổng API Ethopex chặn mọi lệnh ngân sách > $30/camp (anh 14/11/2026 "Ko bao giờ tăng ngân sách vượt trần $30")' },
   { card: 'tran-30-1411', tep: 'apps/etp/cong.py', co: 'TRAN_TUYET = 30', vi: 'trần tuyệt đối $30 một nguồn ở cong.py' },

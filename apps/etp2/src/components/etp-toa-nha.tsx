@@ -67,19 +67,23 @@ function dungThan(T: T3, g: import('three').Group, o: { bienCo?: number; tat?: C
   for (let i = 0; i < o.mong.ke && theoTang[0]!.length < MONG_TOI_DA; i++) theoTang[0]!.push({ kieu: 'ke', chu: 'kế hoạch, chưa làm' });
   const vat: Vat[] = [];
   // CỬA SỔ: kính có khung chia ô + số; cửa sáng tự phát quang nhẹ (đèn trong phòng), cửa tối = kính phản chiếu trời. Vân kính dùng chung cả cảnh (kho).
-  const kinh = (mau: string | null, chu: string, net = false) => {
-    const k = `${mau}|${chu}|${net}`; let tx = o.kho.get(k);
+  // SỐ VỪA Ô + TẦNG ★ ROAS MỊN (anh 15/11/2026 "Tầng của ROAS tường phải khác, nhìn sang mịn hơn! Số trên đó cũng phải gọn lại giờ đang tràn cả ra ngoài"):
+  // chữ co cỡ tới khi vừa 84% bề ngang ô ("★$20" ở 56px tràn khung 160); min = kính liền không khung / đố, có ánh chéo — dùng cho tầng ROAS
+  const kinh = (mau: string | null, chu: string, net = false, min = false) => {
+    const k = `${mau}|${chu}|${net}|${min}`; let tx = o.kho.get(k);
     if (!tx) {
       const cv = document.createElement('canvas'); cv.width = 160; cv.height = 112; const x = cv.getContext('2d')!;
       if (mau) { x.fillStyle = mau; x.fillRect(0, 0, 160, 112); }
       else { const gr = x.createLinearGradient(0, 0, 160, 112); gr.addColorStop(0, '#334155'); gr.addColorStop(0.55, '#0f172a'); gr.addColorStop(1, '#1e293b'); x.fillStyle = gr; x.fillRect(0, 0, 160, 112); }
-      x.strokeStyle = 'rgba(15,23,42,0.55)'; x.lineWidth = 5; x.strokeRect(2.5, 2.5, 155, 107); x.beginPath(); x.moveTo(80, 0); x.lineTo(80, 112); x.stroke();   // khung + đố cửa
+      if (min) { const gl = x.createLinearGradient(0, 0, 160, 112); gl.addColorStop(0, 'rgba(255,255,255,0.28)'); gl.addColorStop(0.45, 'rgba(255,255,255,0)'); x.fillStyle = gl; x.fillRect(0, 0, 160, 112); }   // ánh kính chéo
+      else { x.strokeStyle = 'rgba(15,23,42,0.55)'; x.lineWidth = 5; x.strokeRect(2.5, 2.5, 155, 107); x.beginPath(); x.moveTo(80, 0); x.lineTo(80, 112); x.stroke(); }   // khung + đố cửa
       if (net) { x.setLineDash([12, 8]); x.strokeStyle = '#e2e8f0'; x.lineWidth = 4; x.strokeRect(8, 8, 144, 96); x.setLineDash([]); }
-      if (chu) { x.font = '800 56px system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = 7; x.strokeStyle = 'rgba(15,23,42,0.8)';
+      if (chu) { let fs = 52; x.font = `800 ${fs}px system-ui, sans-serif`; while (fs > 18 && x.measureText(chu).width > 134) { fs -= 2; x.font = `800 ${fs}px system-ui, sans-serif`; }
+        x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = Math.max(4, fs / 8); x.strokeStyle = 'rgba(15,23,42,0.8)';
         x.strokeText(chu, 80, 58); x.fillStyle = '#ffffff'; x.fillText(chu, 80, 58); }
       tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace; o.kho.set(k, tx);
     }
-    return new T.MeshStandardMaterial({ map: tx, emissiveMap: tx, emissive: mau ? 0xffffff : 0x000000, emissiveIntensity: mau ? 0.35 : 0, roughness: mau ? 0.5 : 0.15, metalness: mau ? 0 : 0.4 });
+    return new T.MeshStandardMaterial({ map: tx, emissiveMap: tx, emissive: mau ? 0xffffff : 0x000000, emissiveIntensity: mau ? 0.35 : 0, roughness: min ? 0.08 : mau ? 0.5 : 0.15, metalness: min ? 0.35 : mau ? 0 : 0.4 });
   };
   // vị trí ô (0..O_TANG-1) quanh thân: 3 mặt trước · 2 mặt phải · 2 mặt trái · 3 mặt sau; ra = khoảng nhô của mặt tường (đế rộng hơn thân)
   const o2 = (i: number, ra: number): [number, number, number] => {
@@ -92,11 +96,11 @@ function dungThan(T: T3, g: import('three').Group, o: { bienCo?: number; tat?: C
   const be = (rong: number, cao: number, sau: number, mau: number, yy: number, x = 0) => { const m = new T.Mesh(new T.BoxGeometry(rong, cao, sau), new T.MeshStandardMaterial({ color: mau, roughness: 0.85 })); m.position.set(x, yy, 0); g.add(m); return m; };
   const cap = capToa(o.camp).cap, THAN = [0xa47148, 0xb8b2a6, 0xd6c3a0, 0x9fb3c8, 0xcbd5e1, 0xeef2f6][cap]!, GO = cap === 5 ? 0xd4a017 : cap === 2 ? 0x9a6b3c : 0x94a3b8;
   /** một ô cửa: camp (sáng, in $) · việc móng (chờ / SX / KH) · trống (kính tối) */
-  const cua = (k: Khoi | undefined, i: number, cy: number, caoSan: number, ra: number) => {
-    const [cx, cz, quay] = o2(i, ra), geo = new T.PlaneGeometry(0.8, caoSan * 0.68);
+  const cua = (k: Khoi | undefined, i: number, cy: number, caoSan: number, ra: number, min = false) => {
+    const [cx, cz, quay] = o2(i, ra), geo = new T.PlaneGeometry(min ? 0.9 : 0.8, caoSan * (min ? 0.78 : 0.68));
     let m: import('three').Mesh;
-    if (!k) m = new T.Mesh(geo, kinh(null, ''));
-    else if (k.kieu === 'camp') { m = new T.Mesh(geo, kinh(mauCamp(k.c), k.c.cho ? 'hẹn' : `${k.c.roas ? '★' : ''}$${k.c.ns}`)); vat.push({ m, vien: m, id: k.c.id, chu: chuCamp(k.c) }); }
+    if (!k) m = new T.Mesh(geo, kinh(null, '', false, min));
+    else if (k.kieu === 'camp') { m = new T.Mesh(geo, kinh(mauCamp(k.c), k.c.cho ? 'hẹn' : `${k.c.roas ? '★' : ''}$${k.c.ns}`, false, min)); vat.push({ m, vien: m, id: k.c.id, chu: chuCamp(k.c) }); }
     else { m = new T.Mesh(geo, k.kieu === 'cho' ? kinh(LAM, 'chờ') : k.kieu === 'sx' ? kinh(VANG, 'SX') : kinh('#64748b', 'KH', true)); vat.push({ m, vien: m, id: null, chu: k.chu }); }
     m.position.set(cx, cy, cz); m.rotation.y = quay; g.add(m);
   };
@@ -156,9 +160,10 @@ function dungThan(T: T3, g: import('three').Group, o: { bienCo?: number; tat?: C
   let y = 0;
   theoTang.forEach((ds, t) => {
     const mong = t === 0, ra = mong ? 0.25 : 0, san = Math.max(1, Math.ceil(ds.length / O_TANG)), caoSan = ds.length ? CAO : CAO * 0.6, cao = san * caoSan;
-    be(RONG + 2 * ra, cao, SAU + 2 * ra, mong ? 0x475569 : THAN, y + cao / 2);   // thân (đế xám đậm · thân theo cấp)
-    be(RONG + 2 * ra + 0.08, 0.05, SAU + 2 * ra + 0.08, mong ? 0x334155 : GO, y + cao);   // gờ sàn giữa hai tầng
-    for (let s2 = 0; s2 < san; s2++) for (let i = 0; i < O_TANG; i++) cua(ds[s2 * O_TANG + i], i, y + s2 * caoSan + caoSan / 2, caoSan, ra);
+    const roas = t === 4, than = be(RONG + 2 * ra, cao, SAU + 2 * ra, mong ? 0x475569 : THAN, y + cao / 2);   // thân (đế xám đậm · thân theo cấp)
+    if (roas) than.material = new T.MeshStandardMaterial({ color: 0x4c1d95, roughness: 0.1, metalness: 0.7 });   // ★ ROAS: tường kính liền tím sẫm, nhẵn bóng
+    be(RONG + 2 * ra + 0.08, roas ? 0.03 : 0.05, SAU + 2 * ra + 0.08, mong ? 0x334155 : roas ? 0xa78bfa : GO, y + cao);   // gờ sàn giữa hai tầng (ROAS: viền tím mảnh)
+    for (let s2 = 0; s2 < san; s2++) for (let i = 0; i < O_TANG; i++) cua(ds[s2 * O_TANG + i], i, y + s2 * caoSan + caoSan / 2, caoSan, ra, roas);
     if (o.nhanTang) {
       const n = t ? ds.length : o.camp.filter((c) => c.cho).length + o.mong.sx + o.mong.ke + o.mong.cho, sp = nhan(T, `${TANG[t]}${n ? ` ${n}` : ''}`, t === 4 ? TIM : '#cbd5e1', 0.9);
       sp.center.set(1, 0.5); sp.position.set(-RONG / 2 - ra - 0.15, y + Math.min(cao, caoSan) / 2, SAU / 2 + ra + 0.05); g.add(sp);
@@ -464,9 +469,10 @@ export function DsCampToa({ camp, tat }: { camp: CampToa[]; tat: CampToa[] }) {
       <td style={{ padding: '3px 0 3px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: laOnDinh(c) ? XANH : 'var(--fg-2)' }}>{c.cho ? 'hẹn giờ' : c.tat ? 'đã tắt' : `${c.ngay_lai}/${c.ngay_chay}${laOnDinh(c) ? ' ổn định' : ''}`}</td>
     </tr>; };
   const xep = (a: CampToa, b: CampToa) => (b.thu7 - b.chi7) - (a.thu7 - a.chi7);
-  return <div style={{ maxHeight: 360, overflowY: 'auto', fontSize: 11.5, color: 'var(--fg-2)' }}>
+  // MỘT LỚP CUỘN (anh 15/11/2026 "làm sao để ko có 2 lớp scroll thế này"): bảng không tự cuộn nữa — khung bảng phim (KhungKeo / KhungNoi) cuộn; tiêu đề cột dính đầu
+  return <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>
     <table style={{ width: '100%', borderCollapse: 'collapse', fontVariantNumeric: 'tabular-nums' }}>
-      <thead><tr style={{ color: 'var(--fg-3)', fontSize: 10.5 }}><th style={{ textAlign: 'left', fontWeight: 400 }}>Camp</th><th style={{ textAlign: 'left', fontWeight: 400, padding: '0 6px' }}>Trạng thái</th><th style={{ textAlign: 'left', fontWeight: 400, padding: '0 6px' }}>Dạng</th>
+      <thead style={{ position: 'sticky', top: -10, zIndex: 1, background: 'var(--bg-1, #0f172a)' }}><tr style={{ color: 'var(--fg-3)', fontSize: 10.5 }}><th style={{ textAlign: 'left', fontWeight: 400 }}>Camp</th><th style={{ textAlign: 'left', fontWeight: 400, padding: '0 6px' }}>Trạng thái</th><th style={{ textAlign: 'left', fontWeight: 400, padding: '0 6px' }}>Dạng</th>
         <th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>NS/ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Chi 7 ngày</th>
         <th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Thu 7 ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Lãi 7 ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>ROI</th>
         <th style={{ textAlign: 'right', fontWeight: 400 }} title={`số ngày lãi / số ngày có chi ≥ $1 trong 7 ngày Ethopex đã khép · ổn định = lãi ≥ ${ON_DINH} ngày`}>Ngày lãi</th></tr></thead>

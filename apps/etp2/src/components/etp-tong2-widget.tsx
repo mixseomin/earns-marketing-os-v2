@@ -6,6 +6,8 @@ import { SimpleTable, StatsStrip, type SimpleColumn } from '@/components/ui';
 import { ThanhPho, laiPhim, xepTang, TANG, capToa, CAP, GIAI_CAP } from '@/components/etp-toa-nha';
 import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
 import { docThanhPho, type PhimThanhPho } from '@/lib/actions/etp-thanh-pho';
+import { BangPhim } from '@/components/etp-lich-phim';
+import { useNoi } from '@/components/etp-noi';
 import { useSearchParams } from 'next/navigation';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
@@ -145,6 +147,7 @@ function ThanhPhoO({ cao }: { cao: number }) {
 }
 function ThanhPhoVe({ ds, nguoi, cao }: { ds: PhimThanhPho[]; nguoi: string; cao: number }) {
   const [chon, setChon] = useState<number | null>(null);
+  const noi = useNoi<{ id: number }>();   // bấm một toà → bảng phim đó (cùng ruột với bảng rê đồng hồ dòng phim)
   // cấp toà trước (tháp đứng hàng đầu), cùng cấp thì lãi 7 ngày
   // cấp trước; cùng cấp thì toà có đèn xanh tín hiệu đứng sát khu trên (gần tâm hơn), rồi lãi 7 ngày
   const xep = useMemo(() => [...ds].map((x) => ({ x, k: capToa(x.camp) })).sort((a, b) => b.k.cap - a.k.cap || b.k.tinHieu - a.k.tinHieu || laiPhim(b.x) - laiPhim(a.x)).map((v) => v.x), [ds]);
@@ -158,7 +161,8 @@ function ThanhPhoVe({ ds, nguoi, cao }: { ds: PhimThanhPho[]; nguoi: string; cao
         {' · '}7 ngày lãi <b style={{ color: k.thu >= k.chi ? XANH : DO }}>{tien(k.thu - k.chi)}</b>{k.chi >= 1 ? ` (${pct(Math.round((k.thu - k.chi) / k.chi * 100))})` : ''}</>
         : <span style={{ cursor: 'help' }} title={GIAI_CAP}><b style={{ color: 'var(--fg-1)' }}>{nguoi}</b> · {xep.length} phim · {tong} camp · {[...CAP].map((t, i) => ({ t, n: demCap[i]! })).reverse().filter((v) => v.n).map((v) => `${v.t} ${v.n}`).join(' · ')} · bấm một toà để xem</span>}
     </div>
-    <ThanhPho ds={xep} chon={chon} onChon={setChon} cao={Math.max(160, cao - 26)} />
+    <ThanhPho ds={xep} chon={chon} cao={Math.max(160, cao - 26)} onChon={(p, xy) => { setChon(p); if (p != null && xy) noi.moNgay({ id: p }, { clientX: xy.x, clientY: xy.y, currentTarget: null } as unknown as React.MouseEvent); else noi.dong(); }} />
+    {noi.v ? <BangPhim key={noi.v.id} cid={noi.v.id} noi={noi} vi={noi.v} /> : null}
   </div>;
 }
 

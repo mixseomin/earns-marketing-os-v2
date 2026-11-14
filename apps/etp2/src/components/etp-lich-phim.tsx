@@ -4,7 +4,7 @@
 // giai đoạn · dạng đã thử · mốc cất · sản xuất + lỗi · sắp tới · nút ＋ CC / ＋ KT / − bớt camp lỗ nhất. Số: lib/actions/etp-lich-phim.ts (kiểm vai chủ trên máy chủ).
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DongMoc, KhungNoi, TheChung, useNoi, type Moc, type TheNoi } from '@/components/etp-noi';
+import { DongMoc, KhungNoi, TheChung, useNoi, type Moc, type Noi, type TheNoi } from '@/components/etp-noi';
 import { ChuoiBuoc } from '@/components/etp-dong';
 import { MA_DANG, DANG_DONG } from '@/components/etp-so';
 import { chuCong, chuLich, congTang, gioVnNay, KD, khungLuc, quaCong } from '@/lib/etp-khung';
@@ -153,12 +153,20 @@ function TabToa({ l, chon, onChon }: { l: LichPhim; chon: number | null; onChon:
 }
 
 export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruong: () => TheNoi; children: React.ReactNode }) {
-  const router = useRouter(), noi = useNoi<{ id: 0 }>();
+  const noi = useNoi<{ id: 0 }>();
+  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: 'inline-flex', cursor: 'pointer' }}>
+    {noi.v ? <BangPhim cid={cid} thiTruong={thiTruong} noi={noi} vi={noi.v} /> : null}{children}</span>;
+}
+
+/** BẢNG PHIM (Lịch + điều khiển · Toà nhà · Thị trường · Log) — MỘT ruột cho hai lối vào: rê đồng hồ dòng phim (NutLichPhim) và bấm một toà trong thành phố
+ *  (anh 15/11/2026 "Nếu bấm vào thì cần show cái này ra"). Tab Thị trường chỉ có khi lối vào đưa thẻ thị trường. */
+export function BangPhim({ cid, thiTruong, noi, vi }: { cid: number; thiTruong?: () => TheNoi; noi: Noi; vi: { x: number; y: number } }) {
+  const router = useRouter();
   const [l, setL] = useState<LichPhim | null>(null), [loi, setLoi] = useState<string | null>(null), [dang, setDang] = useState(false), [kq, setKq] = useState<string | null>(null);
   const [tab, setTab] = useState<'lich' | 'toa' | 'tt' | 'log'>('lich'), [chonToa, setChonToa] = useState<number | null>(null), [log, setLog] = useState<LogPhim[] | { loi: string } | null>(null);
-  useEffect(() => { if (tab === 'log' && noi.v) docLogPhim(cid).then(setLog).catch((e) => setLog({ loi: String(e?.message ?? e) })); }, [tab, !!noi.v, cid]);
-  const daTai = useRef(false);
-  useEffect(() => { if (noi.v && !daTai.current) { daTai.current = true; setKq(null); tai(); } if (!noi.v) daTai.current = false; }, [noi.v]);
+  useEffect(() => { if (tab === 'log') docLogPhim(cid).then(setLog).catch((e) => setLog({ loi: String(e?.message ?? e) })); }, [tab, cid]);
+  // bảng chỉ dựng khi đang mở → mở (hoặc đổi phim) là tải
+  useEffect(() => { setKq(null); setL(null); setLoi(null); tai(); }, [cid]);   // eslint-disable-line react-hooks/exhaustive-deps
   const tai = () => docLichPhim(cid).then((r) => ('loi' in r ? setLoi(r.loi) : setL(r))).catch((e) => setLoi(String(e?.message ?? e)));
   // BẤM KHÔNG CHẠY NGAY (anh 07/11/2026 "các thao tác khi bấm vào chạy luôn là đéo được"): nút chỉ mở hàng xác nhận nói rõ sẽ làm gì, tốn gì; bấm Xác nhận mới chạy
   const [hoi, setHoi] = useState<{ chu: string; lam: () => Promise<{ loi: string } | { ok: true }>; xong: string } | null>(null);
@@ -174,12 +182,11 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
     gd === 0 && l.vong !== 'cat' && !l.lt ? `✕ cất phim nếu chi tới $${l.moc_chi} / ${l.moc_thu} camp thử mà chưa lãi` : null,
   ].filter(Boolean).slice(0, 4) as string[] : [];
   const oTab = (k: 'lich' | 'toa' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
-  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: 'inline-flex', cursor: 'pointer' }}>
-    {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={480} cao={tab === 'toa' ? 600 : l?.thang.length ? 620 : 360} noi={noi}>
+  return <KhungNoi x={vi.x} y={vi.y} rong={480} cao={tab === 'toa' ? 600 : l?.thang.length ? 620 : 360} noi={noi}>
       <div onClick={(e) => e.stopPropagation()} style={{ padding: '10px 30px 10px 12px', width: 480, maxWidth: '92vw', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 4 }}>{oTab('lich', 'Lịch + điều khiển')}{oTab('toa', 'Toà nhà')}{oTab('tt', 'Thị trường')}{oTab('log', 'Log')}</div>
+        <div style={{ display: 'flex', gap: 4 }}>{oTab('lich', 'Lịch + điều khiển')}{oTab('toa', 'Toà nhà')}{thiTruong ? oTab('tt', 'Thị trường') : null}{oTab('log', 'Log')}</div>
         {tab === 'toa' ? (loi ? <div style={{ color: '#f87171' }}>{loi}</div> : !l ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : <TabToa l={l} chon={chonToa} onChon={setChonToa} />)
-          : tab === 'tt' ? <div style={{ margin: '-10px -30px -10px -12px' }}><TheChung t={thiTruong()} /></div> : tab === 'log' ? <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+          : tab === 'tt' && thiTruong ? <div style={{ margin: '-10px -30px -10px -12px' }}><TheChung t={thiTruong()} /></div> : tab === 'log' ? <div style={{ maxHeight: 420, overflowY: 'auto' }}>
           {!log ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : 'loi' in log ? <div style={{ color: '#f87171' }}>{log.loi}</div> : <DongMoc ds={log.map(mocLog)} rong="Phim chưa có log." />}</div> : <>
         {loi ? <div style={{ color: '#f87171' }}>{loi}</div> : !l ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : <>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
@@ -239,5 +246,5 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
           {kq ? <div style={{ fontSize: 11, color: kq.startsWith('✓') ? '#4ade80' : kq.startsWith('…') ? 'var(--fg-2)' : '#f87171' }}>{kq}</div> : null}
         </>}</>}
       </div>
-    </KhungNoi> : null}{children}</span>;
+    </KhungNoi>;
 }

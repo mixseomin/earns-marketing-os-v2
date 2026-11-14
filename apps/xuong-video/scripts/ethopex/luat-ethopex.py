@@ -1023,11 +1023,16 @@ try:
     if _ROAS & _bat:
         # anh 28/10/2026 (góp ý #1460 "mới chạy 1 hôm bị âm đã đòi tắt. Hôm sau lại dương"): bỏ nhánh MỘT ngày — chỉ báo khi 2 ngày đã khép
         # ĐỀU có chi và ĐỀU lỗ, cộng 2 ngày chi > $20 mà ROI < 0%. Một ngày âm rồi ngày sau dương = không báo.
-        _r1, _r2, _rg = bc(d(1), d(1)), bc(d(2), d(2)), bc(d(2), d(1))
+        # NHÁNH 3 NGÀY (anh 15/11/2026 #95961 $20 tiêu $2–6/ngày lỗ −43 / −62 / −56% mà không tắt: "nếu đợi chi hết $20 mới tắt trong khi tiêu mãi ko chạy thì sao?"):
+        # camp ROAS tiêu chậm không bao giờ chạm $20 / 2 ngày, L3 miễn ROAS, L4 đòi ≥ 4 ngày → lọt. Thêm: 3 ngày đã khép LIỀN ngày nào cũng chi ≥ min($1, 60% ngân sách)
+        # (cùng ngưỡng L3 camp thường) và ngày nào cũng lỗ → tắt, không đòi mốc $20. Ngày lịch như nhánh 2 ngày (RL chưa bao giờ bỏ ngày thị trường xấu).
+        _r1, _r2, _rg, _r3, _rg3 = bc(d(1), d(1)), bc(d(2), d(2)), bc(d(2), d(1)), bc(d(3), d(3)), bc(d(3), d(1))
         for cid in sorted(_ROAS & _bat):
-            a1, a2, a = (x.get(cid) or x.get(str(cid)) for x in (_r1, _r2, _rg))
+            a1, a2, a, a3, ag3 = (x.get(cid) or x.get(str(cid)) for x in (_r1, _r2, _rg, _r3, _rg3))
             if a and a1 and a2 and a1["chi"] > 0 and a2["chi"] > 0 and a["chi"] > ROAS_CHI and roi(a) < ROAS_ROI and roi(a1) < 0 and roi(a2) < 0:
                 tat_roas.append((cid, f"#{a['ten'][:80]} · 2 ngày đã khép ({d(2)[8:10]}/{d(2)[5:7]} {roi(a2):+.0f}% · {d(1)[8:10]}/{d(1)[5:7]} {roi(a1):+.0f}%): chi ${a['chi']:.2f} · thu ${a['thu']:.2f} · lãi ${a['thu'] - a['chi']:+.2f} · ROI {roi(a):+.0f}% → TẮT (luật RL)"))
+            elif ag3 and all(x and x["chi"] >= l3_chi(ag3["budget"]) and x["thu"] < x["chi"] for x in (a1, a2, a3)):
+                tat_roas.append((cid, f"#{ag3['ten'][:80]} · 3 ngày đã khép lỗ liền ({' · '.join(f'{d(i)[8:10]}/{d(i)[5:7]} {roi(x):+.0f}%' for i, x in ((3, a3), (2, a2), (1, a1)))}): chi ${ag3['chi']:.2f} · thu ${ag3['thu']:.2f} · lãi ${ag3['thu'] - ag3['chi']:+.2f} · ROI {roi(ag3):+.0f}% → TẮT (luật RL, nhánh 3 ngày)"))
 except Exception as e:
     loi_may.append((0, f"luật RL (ROAS lỗ) không đọc được Report: {str(e)[:80]}"))
 # R0 — ★ ROAS KHÔNG TIÊU (anh 02/11/2026 #72924: "camp ROAS này đang âm mà lại có 3 ngày liên tiếp ko tiêu tiền. Cần có cơ chế xử lý để dồn ngân sách sang việc khác"):
@@ -1287,11 +1292,13 @@ def _xet_luat():
             if int(cid) in _ROAS:
                 # RL — điều kiện hiện đủ trên thẻ xét luật (trước đây dk rỗng → thẻ ghi "Đạt" mà không nói đạt cái gì)
                 _g = lambda t: (globals().get(t) or {}).get(cid) or (globals().get(t) or {}).get(str(cid))
-                a1_, a2_, ag_ = _g("_r1"), _g("_r2"), _g("_rg")
-                r1_, r2_, rg_ = (roi(x) if x and x["chi"] > 0 else None for x in (a1_, a2_, ag_))
-                ls.append(L("rl", "RL · ROAS lỗ 2 ngày", f"Camp ★ ROAS (miễn luật camp thường, trừ L4 — 03/11/2026): 2 ngày đã khép ĐỀU có chi và ĐỀU lỗ, cộng 2 ngày chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}% → báo trước một nhịp rồi máy tự tắt.",
+                a1_, a2_, ag_, a3_, ag3_ = _g("_r1"), _g("_r2"), _g("_rg"), _g("_r3"), _g("_rg3")
+                r1_, r2_, rg_, r3_, rg3_ = (roi(x) if x and x["chi"] > 0 else None for x in (a1_, a2_, ag_, a3_, ag3_))
+                _m3 = l3_chi((ag3_ or {}).get("budget") or 0); _du3 = [x for x in (a3_, a2_, a1_) if x and x["chi"] >= _m3 and x["thu"] < x["chi"]]
+                ls.append(L("rl", "RL · ROAS lỗ liền", f"Camp ★ ROAS (miễn luật camp thường, trừ L4 — 03/11/2026): (a) 2 ngày đã khép ĐỀU có chi và ĐỀU lỗ, cộng 2 ngày chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}%; HOẶC (b) 3 ngày đã khép liền ngày nào cũng chi ≥ min(${L3_CHI:g}, {L3_PHAN:.0%} ngân sách) và ngày nào cũng lỗ (camp tiêu chậm không bao giờ chạm ${ROAS_CHI} — anh 15/11/2026) → báo trước một nhịp rồi máy tự tắt.",
                     [[f"ROI ngày {d(2)[8:10]}/{d(2)[5:7]}", f(r2_, "%"), "< 0%", r2_ is not None and r2_ < 0], [f"ROI ngày {d(1)[8:10]}/{d(1)[5:7]}", f(r1_, "%"), "< 0%", r1_ is not None and r1_ < 0],
-                     ["Chi 2 ngày", f((ag_ or {}).get("chi"), "$"), f"> ${ROAS_CHI}", bool(ag_) and ag_["chi"] > ROAS_CHI], ["ROI 2 ngày", f(rg_, "%"), f"< {ROAS_ROI}%", rg_ is not None and rg_ < ROAS_ROI]],
+                     ["(a) Chi 2 ngày", f((ag_ or {}).get("chi"), "$"), f"> ${ROAS_CHI}", bool(ag_) and ag_["chi"] > ROAS_CHI], ["(a) ROI 2 ngày", f(rg_, "%"), f"< {ROAS_ROI}%", rg_ is not None and rg_ < ROAS_ROI],
+                     [f"(b) Ngày lỗ, chi ≥ ${_m3:g} ({d(3)[8:10]}/{d(3)[5:7]}–{d(1)[8:10]}/{d(1)[5:7]})", f"{len(_du3)}/3", "3/3", len(_du3) == 3], ["(b) ROI 3 ngày", f(rg3_, "%"), "< 0%", rg3_ is not None and rg3_ < 0]],
                     "tat_roas" if int(cid) in vao["tat_roas"] else None, lo=None if rg_ is None else rg_ < 0))
                 _a0 = _g("_g0"); _t0 = _tao.get(cid); _tu0 = (dt.datetime.now(dt.timezone.utc) - _t0).days if _t0 else None
                 ls.append(L("r0", "R0 · ROAS không tiêu", f"Camp ★ ROAS đã lên > {R0_NGAY + 1} ngày, {R0_NGAY} ngày đã khép gần nhất cộng chi < max(${R0_CHI:g}, {R0_PHAN:.0%} ngân sách {R0_NGAY} ngày) (thầu ROAS không thắng) → báo trước một nhịp rồi máy tắt, trả ngân sách cho việc khác (anh 02/11/2026).",
@@ -1490,7 +1497,7 @@ trong = any(abs(((gio - m + 12) % 24) - 12) <= 1 for m in (21, 0, 8))
 in_ = lambda tieu, ds, rong="(không)": (print(tieu), print("\n".join("  " + s for _, s in ds) or "  " + rong))
 print(f"Giờ VN {vn:%H:%M %d/%m} · khung tăng ngân sách ~21h / ~24h / 8h: " + ("ĐANG TRONG KHUNG" if trong else f"mốc kế ~{int(moc) % 24}h") + " (ngân sách còn thấp $1–3 thì chưa cần canh giờ; không thu lại sau khung)")
 in_("CẦN TẮT — OFF (camp ≥ 7 ngày, tiêu > $10 từ trước tới nay, ROI < −50%) — MÁY TẮT (báo trước một nhịp):", tat_l)
-in_(f"LUẬT RL (camp ★ ROAS, 2 ngày đã khép đều lỗ, cộng chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}%) — BÁO TRƯỚC MỘT NHỊP RỒI MÁY TỰ TẮT:", tat_roas, "(không)")
+in_(f"LUẬT RL (camp ★ ROAS: 2 ngày đã khép đều lỗ, cộng chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}% — hoặc 3 ngày đã khép lỗ liền, mỗi ngày chi ≥ min(${L3_CHI:g}, {L3_PHAN:.0%} ngân sách)) — BÁO TRƯỚC MỘT NHỊP RỒI MÁY TỰ TẮT:", tat_roas, "(không)")
 in_(f"LUẬT G10 (ngân sách > ${G10_NS}, 3 ngày đã khép ROI < {G10_ROI}%, kể cả ★ ROAS) — MÁY HẠ THẲNG VỀ ${G10_DICH}:", g10, "(không)")
 in_(f"LUẬT G10 — ĐÃ HẠ VỀ ${G10_DICH}, {G10_THEO} NGÀY SAU VẪN ROI < {G10_ROI}% — BÁO TRƯỚC MỘT NHỊP RỒI MÁY TỰ TẮT:", tat_g10, "(không)")
 in_("LUẬT H2 (tăng bậc rồi 2 ngày đã khép lỗ liền) — MÁY HẠ VỀ $1:", h2, "(không)")

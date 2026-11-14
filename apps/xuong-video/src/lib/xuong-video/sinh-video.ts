@@ -307,7 +307,11 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const cuoiCho = (model: string) => (chuoiCuoi && hieuDaiNhip(model) ? chuoiCuoi : khungCuoi0);
   // Trần ký tự theo model (fal.ts › tranPrompt): Kling 2.500 → bỏ dần khối phụ (prompt-khoi.ts › ghepTrongTran); vẫn quá thì gửi nguyên — fal trả lỗi rõ, không tốn tiền
   const khoiV = khoiVideoCanh(bc);
-  const promptCho = (model: string) => { const t = tranPrompt(model.replace(/^fal:/, '')); const goc = t ? ghepTrongTran(khoiV, t, dangNhinVideo(bc).map((x) => [x.day, x.gon] as const)) ?? promptTron : promptTron; return chuoiCuoi && hieuDaiNhip(model) ? `${goc} ${cauChuoiCuoi(bc.canh.keyframe_giua ? 3 : 2)}` : goc; };
+  // Model 3D→VIDEO có clip 3D còn mới: vị trí / hướng nhìn / đường đi đã nằm trong clip — bỏ khối 'huong' khỏi chữ (14/11/2026 #3071 #1: các khối bắt buộc
+  // cộng 2.552 ký tự, H3 Max trần 2.000 → ghepTrongTran trả null, gửi nguyên prompt và bị cắt ngang câu).
+  const clipMoi = !!bc.canh.khung_xam?.clip && bc.canh.khung_xam.clip.ma === bc.canh.khung_xam.ma;
+  const khoiCho = (model: string) => (clipMoi && /3d-to-video/.test(model) ? khoiV.filter((k) => k.ma !== 'huong') : khoiV);
+  const promptCho = (model: string) => { const t = tranPrompt(model.replace(/^fal:/, '')); const goc = t ? ghepTrongTran(khoiCho(model), t, dangNhinVideo(bc).map((x) => [x.day, x.gon] as const)) ?? promptTron : promptTron; return chuoiCuoi && hieuDaiNhip(model) ? `${goc} ${cauChuoiCuoi(bc.canh.keyframe_giua ? 3 : 2)}` : goc; };
   const khungCuoi = cuoiCho(bc.kt.mo_hinh_video); const prompt = promptCho(bc.kt.mo_hinh_video);
   // Tiếng clip chỉ sinh khi shot có người nói trong khung chưa có giọng riêng — cùng luật bản xuất dùng tiếng clip (dungTiengClip).
   // Google Veo (Gemini API) không có công tắc tiếng: vẫn sinh, bản xuất tự bỏ.

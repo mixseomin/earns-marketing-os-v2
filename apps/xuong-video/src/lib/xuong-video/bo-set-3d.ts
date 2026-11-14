@@ -38,7 +38,8 @@ export const BAN_DUNG = 117;
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
 /** Phần máy ĐI VÀO HÌNH: bỏ các khai chỉ cổng kể chuyện đọc (lam) — khai thêm "Tango chạm phích" không làm khung đã dựng thành cũ. */
-const hinhMay = (m: May3d): May3d => (m.vi_tri.some((v) => v.lam || v.lam_o) ? { ...m, vi_tri: m.vi_tri.map(({ lam: _l, lam_o: _o, ...v }) => v) } : m);
+// huong_bau / huong_mat (14/11/2026): chỉ luật chấm đọc (dangChongBau, nhipDan) — không vào hình, khai thêm không làm khung cũ
+const hinhMay = (m: May3d): May3d => (m.vi_tri.some((v) => v.lam || v.lam_o || v.huong_bau != null || v.huong_mat != null) ? { ...m, vi_tri: m.vi_tri.map(({ lam: _l, lam_o: _o, huong_bau: _b, huong_mat: _m, ...v }) => v) } : m);
 /** NÉT MẶT ở khung mở + khung kết của từng người (bieu_cam[].dau / .cuoi) — mặt MPFB diễn theo (mesh/nguoi.py › BIEU_CAM_ARKIT); đổi nét là khung cũ
  *  hết hiệu lực. Từ BAN_DUNG 82 mọi shot dựng khung KẾT (storyboard đầu → kết) nên nét cuối cũng vào mã. */
 export const netMo = (bieu?: { nv: string; dau: string; cuoi?: string }[] | null) => (bieu ?? []).map((b) => [b.nv, b.dau, b.cuoi ?? b.dau]);
@@ -946,6 +947,18 @@ export function nhinCau(m: Pick<May3d, 'dat' | 'nhin'>, v: ViTri, nguoi: ViTri[]
   return sat ? `eyes on ${dich.ten}, just off the lens toward ${ben} — NOT looking into the camera` : `eyes on ${dich.ten} (${ben}), not at the camera`;
 }
 
+/** DÁNG CHỐNG BẬU NHOÀI RA (anh 14/11/2026, phim #3071 #10: "chú phải nhoài người ra cửa toa để gọi theo nhưng đang không vẽ đúng" → "sửa xong phải luôn cho các
+ *  phát sinh này vào luật chấm"): dáng chong_ban cúi về PHÍA TRƯỚC thân — thân quay lệch khỏi bậu thì cúi dọc vào trong, keyframe + video vẽ người đứng trong.
+ *  Bộ set khai hướng ra bậu (vi_tri.huong_bau); thân lệch > 45° khỏi đó → chặn. Đầu nhìn chỗ khác thì khai huong_mat, không xoay thân. Thuần. */
+export function dangChongBau<T extends { id: number; may_3d?: May3d | null }>(ds: T[]): Record<number, string[]> {
+  const out: Record<number, string[]> = {};
+  for (const c of ds) for (const v of c.may_3d?.vi_tri ?? []) {
+    if (!(v.dien ?? []).some((x) => String(x).startsWith('chong_ban')) || v.huong_bau == null || v.huong == null) continue;
+    const l = Math.abs((((v.huong - v.huong_bau) % 360) + 540) % 360 - 180);
+    if (l > 45) (out[c.id] ??= []).push(`${v.ten} chống bậu nhoài ra mà thân lệch ${Math.round(l)}° khỏi hướng ra bậu (${v.huong_bau}°) — dáng cúi vào trong, ảnh vẽ người đứng trong: xoay thân ra bậu, đầu nhìn chỗ khác thì khai huong_mat`);
+  }
+  return out;
+}
 /** Vai kể có GÓC RIÊNG (không tính vào hướng máy chủ): shot thiết lập mở cảnh (#12 trong chuỗi #11–#15 anh khen), người thứ ba rình, góc nhìn nhân vật. */
 export const VAI_GOC_RIENG = new Set(['thiet_lap', 'nguoi_thu_ba', 'chu_quan', 'chi_tiet']);   // chi_tiet: cận chèn (insert / cutaway) — hậu cảnh gần như không thấy, góc theo vật (13/11/2026)
 export function nhipDan<T extends { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null; ky_thuat?: { vai?: string } | null }>(ds: T[]): Record<number, string[]> {
@@ -1119,7 +1132,7 @@ export function loiMachTap<T extends ShotMach & { nhan_vat: number[]; canh?: str
   for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nhanVat)).filter((x): x is number => !!x))) {
     const cua = ds.filter((c) => boSetCuaShot(c, nhanVat) === sid);
     const laNv = (t: string) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t);
-    for (const r of [lienMachTap(cua, (t) => khoiCua(t, nhanVat), phanCanh), chuoiChuY(cua, choVatSet(sets.find((x) => x.id === sid))), nhipDan(cua), thieuTongThe(cua, laNv), huongDiChuyen(cua, laNv), doiMat(cua, laNv), lookChuaChuan(cua, nhanVat, phanCanh)]) for (const [k, v] of Object.entries(r)) (out[Number(k)] ??= []).push(...v);
+    for (const r of [lienMachTap(cua, (t) => khoiCua(t, nhanVat), phanCanh), chuoiChuY(cua, choVatSet(sets.find((x) => x.id === sid))), nhipDan(cua), dangChongBau(cua), thieuTongThe(cua, laNv), huongDiChuyen(cua, laNv), doiMat(cua, laNv), lookChuaChuan(cua, nhanVat, phanCanh)]) for (const [k, v] of Object.entries(r)) (out[Number(k)] ??= []).push(...v);
   }
   return out;
 }

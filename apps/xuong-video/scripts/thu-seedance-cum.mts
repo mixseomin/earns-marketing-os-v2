@@ -16,6 +16,8 @@ import { promptCumMoi, thamChieuCum, vaoTuCatThat } from '../src/lib/xuong-video
 import { catThat } from '../src/lib/xuong-video/cat-that';
 import { giayPhat } from '../src/lib/xuong-video/kieu';
 import { uploadToR2 } from '../src/lib/r2';
+import { loiPromptGui, loiClipThamChieu } from '../src/lib/xuong-video/chan-gui-video';
+import { dangChongBau } from '../src/lib/xuong-video/bo-set-3d';
 
 const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
 const ids = arg('canh').split(',').map(Number).filter(Boolean); const fileVideo = arg('video-file'); const dpg = arg('dpg', '480p') as '480p' | '720p';
@@ -37,6 +39,11 @@ const goiKf = kf.map((_, i) => `Reference image ${tc.anh.length + i + 1} is the 
 const than = promptCumMoi(cum, { tag: tc.tag, them: tc.them, giay: giayRa, tiLe: bcs[0]!.kt.ti_le });
 const prompt = `${tc.goi}. ${goiKf} Reference video 1 is a rough grey 3D blockout of this whole ${cum.length}-shot sequence with hard cuts: copy ONLY its cuts, camera angles, timing, where everyone stands and how they move — never its grey mannequin look; every shot must look like its reference image. ${than}`;
 console.log(`cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${tong.toFixed(1)} s → clip ${giayRa} s · ${model} ${dpg} · ${anh.length} ảnh · prompt ${prompt.length} ký tự`);
+// LUẬT CHẤM TRƯỚC KHI GỬI (chan-gui-video.ts — anh 14/11/2026): lỗi nào cũng chặn, không tốn tiền
+const loiGui = [...loiPromptGui(prompt, { tiLe: bcs[0]!.kt.ti_le, tenNhanVat: [...new Set(cum.flatMap((x) => x.nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten)))] }),
+  ...loiClipThamChieu(cum.map((x) => ({ so: x.canh.thu_tu, clip: x.canh.khung_xam?.clip }))),
+  ...Object.entries(dangChongBau(cum.map((x) => x.canh))).flatMap(([id, l]) => l.map((y) => `#${cum.find((x) => x.canh.id === Number(id))?.canh.thu_tu}: ${y}`))];
+if (loiGui.length) { console.error(`✗ CHẶN trước khi gửi (${loiGui.length} lỗi):\n  - ${loiGui.join('\n  - ')}`); process.exit(3); }
 if (xem) { console.log(prompt); console.log(anh.join('\n')); process.exit(0); }
 if (!process.env.DUYET_SINH_1_LAN) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1 ngay sau khi anh duyệt lượt này'); process.exit(2); }
 

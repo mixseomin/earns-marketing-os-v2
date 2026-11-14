@@ -30,7 +30,7 @@ const rong = Number(rongS || 1280), cao = Math.round((rong * 9) / 16 / 2) * 2, f
     const mp4 = path.join(ra, `shot-${String(ds[i].so).padStart(2, '0')}.mp4`);
     execFileSync('ffmpeg', ['-v', 'error', '-y', '-framerate', String(fps), '-i', path.join(tm, 'f%04d.png'), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', mp4]);
     fs.rmSync(tm, { recursive: true, force: true });
-    fs.writeFileSync(mp4.replace(/\.mp4$/, '.json'), JSON.stringify({ so: ds[i].so, giay_chinh: chinh, vao: +du.toFixed(3), ra: +du.toFixed(3), tong: +giay.toFixed(3), fps }));
+    fs.writeFileSync(mp4.replace(/\.mp4$/, '.json'), JSON.stringify({ so: ds[i].so, giay_chinh: chinh, vao: +du.toFixed(3), ra: +du.toFixed(3), tong: +giay.toFixed(3), fps, sach: true }));
     kq.push({ so: ds[i].so, chinh, du: +du.toFixed(2), giay: +giay.toFixed(2), khung: n, s: (Date.now() - t0) / 1000, mp4 });
   }
   await b.close();

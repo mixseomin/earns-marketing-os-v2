@@ -11,6 +11,8 @@ import { boiCanhCanh, taoJob, xongJob } from '../src/lib/xuong-video/doc-db';
 import { khoiVideoCanh } from '../src/lib/xuong-video/sinh-video';
 import { ghep } from '../src/lib/xuong-video/prompt-khoi';
 import { uploadToR2 } from '../src/lib/r2';
+import { loiPromptGui, loiClipThamChieu } from '../src/lib/xuong-video/chan-gui-video';
+import { dangChongBau } from '../src/lib/xuong-video/bo-set-3d';
 
 const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
 const canhId = Number(arg('canh')); const dpg = arg('dpg', '480p') as '480p' | '720p'; const model = arg('model', 'bytedance/seedance-2-fast');
@@ -27,6 +29,9 @@ const than = ghep(khoiVideoCanh(bc).filter((k) => k.ma !== 'huong'));
 const prompt = `@Image1 is the exact look of this shot: same drawing style, set, light, colours, framing and the same people in the same clothes. ${goi} @Video1 is a rough grey 3D blockout of this same shot: copy ONLY its camera, timing, where everyone stands and how they move — never its grey mannequin look. ${than}`;
 const giayRa = 5;   // Kie nhận 4–15 s; 5 s đủ phủ clip 3D (4 s) + điểm vào
 console.log(`shot #${bc.canh.thu_tu} · ${model} ${dpg} · ảnh ${anh.length} · video ${clip.url} · prompt ${prompt.length} ký tự`);
+// LUẬT CHẤM TRƯỚC KHI GỬI (chan-gui-video.ts — anh 14/11/2026): lỗi nào cũng chặn, không tốn tiền
+const loiGui = [...loiPromptGui(prompt, { tiLe: bc.kt.ti_le, tenNhanVat: bc.nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten) }), ...loiClipThamChieu([{ so: bc.canh.thu_tu, clip }]), ...(dangChongBau([bc.canh])[bc.canh.id] ?? [])];
+if (loiGui.length) { console.error(`✗ CHẶN trước khi gửi (${loiGui.length} lỗi):\n  - ${loiGui.join('\n  - ')}`); process.exit(3); }
 if (xem) { console.log(prompt); console.log(anh.join('\n')); process.exit(0); }
 if (!process.env.DUYET_SINH_1_LAN) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1 ngay sau khi anh duyệt lượt này'); process.exit(2); }
 

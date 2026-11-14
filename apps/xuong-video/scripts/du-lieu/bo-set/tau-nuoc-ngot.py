@@ -181,6 +181,7 @@ for ma, v in SD['shot'].items():
         if x['ten'] == 'Nhóc': x['o_dau'] = 'standing on the platform outside the train'
     for x in vt:
         if x['ten'] == 'Chú' and ma in ('1', '2b', '3a', '3', '4a', '5', '9a', '10', '11'): x['dien'] = ['chong_ban']   # '1' (13/11/2026): ngó tìm người = nhoài ra cửa sổ; đứng thẳng thì bậu sát mép khung, keyframe #2 ra cửa lên xuống 4 lần liền   # #5: nhoài ra nhìn về tiệm — đứng thẳng trong toa thì máy phía nam không thấy chú
+        if x['ten'] == 'Chú' and 'chong_ban' in x.get('dien', []): x['huong_bau'] = 90   # ô cửa của chú mở ra sân ga (+x) — luật dangChongBau (bo-set-3d.ts)
     # NHOÀI RA CỬA = THÂN HƯỚNG RA Ô CỬA (anh 14/11/2026, shot #10 = mã '5': "Chú vẫn phải nhoài người ra cửa toa để gọi theo nhưng đang không vẽ đúng"): dáng
     # chong_ban cúi về PHÍA TRƯỚC thân — thân quay dọc toa (174°, nhìn về tiệm) thì cúi dọc hành lang, nhìn như đứng trong toa. Thân ra cửa (90° = ra sân ga),
     # đầu xoay về phía nhìn (trang three.js: đầu ±75° độc lập thân). Mã '1' và '2b' (150°) cùng kiểu lệch — chờ anh chốt.

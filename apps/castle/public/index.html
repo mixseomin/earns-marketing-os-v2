@@ -59,7 +59,7 @@
 // hỏi máy gốc ETag từng tệp (HEAD kèm ?ban=<giờ> = luôn trượt cache biên), rồi nạp ./x.js?v=<ETag>: tệp đổi → địa chỉ đổi → không ai giữ bản cũ.
 // Thêm tệp .js mới vào trang = thêm tên vào TEP.
 (async () => {
-  const TEP = ['main.js', 'tex.js', 'nhanvat.js', 'songdong.js', 'quan.js', 'amthanh.js', 'bando.js', 'phuongtien.js', 'nguoi3d.js'];
+  const TEP = ['main.js', 'tex.js', 'nhanvat.js', 'songdong.js', 'quan.js', 'amthanh.js', 'bando.js', 'phuongtien.js', 'nguoi3d.js', 'dibo.js'];
   const lay = (f) => fetch(`./${f}?ban=${Date.now()}`, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' })
     .then((r) => (r.ok && (r.headers.get('etag') || r.headers.get('last-modified')) || '').replace(/[^\w-]/g, '')).catch(() => '');
   const dau = await Promise.all(TEP.map(lay));

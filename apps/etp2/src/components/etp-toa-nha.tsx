@@ -213,7 +213,7 @@ export function ThanhPho({ ds, chon, onChon, cao, bienToiDa = 6 }: { ds: ToaPhim
       const g = new T.Group(); canh.add(g);
       const ten = ph.ten.length > 22 ? `${ph.ten.slice(0, 21)}…` : ph.ten, ngan = ph.ten.length > 16 ? `${ph.ten.slice(0, 15)}…` : ph.ten, lai = laiPhim(ph);
       const r = dungToa(T, g, { camp: ph.camp, mong: { sx: 0, ke: 0, cho: 0 }, bien: dauBien.has(ph.p) ? { chu: ngan, mau: lai >= 0 ? XANH : DO } : null, nhanTang: false, bienTheoMan: false, kho });
-      g.position.set((i % cot - (cot - 1) / 2) * BX, 0, (Math.floor(i / cot) - (Math.ceil(n / cot) - 1) / 2) * BZ);
+      g.position.set((i % cot - (cot - 1) / 2) * BX, 0, ((Math.ceil(n / cot) - 1) / 2 - Math.floor(i / cot)) * BZ);   // hàng đầu (lãi nhất) ở phía camera (+z)
       caoMax = Math.max(caoMax, r.cao);
       for (const v of r.vat) vat.push({ m: v.m, vien: g, id: ph.p, chu: `${ten} · ${v.chu}` });
       // khối bấm vô hình lọt trong thân (cửa sáng nằm ngoài nên vẫn bắt tia trước): bấm vào tường / kính tối cũng chọn được toà

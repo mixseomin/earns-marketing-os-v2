@@ -33,6 +33,7 @@
   #hd kbd { display: inline-block; min-width: 18px; padding: 0 5px; margin-right: 2px; border: 1px solid var(--vien); border-bottom-width: 2px; border-radius: 4px; font: 600 11px/17px ui-monospace, monospace; text-align: center; color: var(--chu); background: rgba(255,255,255,.06); }
   #hd .d { display: flex; gap: 6px; align-items: baseline; color: var(--mo); line-height: 1.75; }
   #hd .d span:first-child { flex: 0 0 92px; }
+  #hd .nho { color: var(--mo); font-size: 11.5px; margin: -2px 0 4px; }
   #hd.an { display: none; }
   #bd { position: fixed; left: 12px; bottom: 76px; width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 2px solid var(--vien); box-shadow: 0 4px 18px rgba(0,0,0,.5); cursor: zoom-in; z-index: 3; }
   #bd canvas { width: 100%; height: 100%; display: block; }
@@ -81,41 +82,7 @@
   <div class="mo dt" id="hd-dt">Toàn cảnh: 1 ngón xoay · 2 ngón chụm để phóng · chạm đúp xuống đất để đi bộ ở đó.</div>
 </div>
 <div id="hd" class="o">
-  <div class="pc">
-    <b>Đi bộ</b>
-    <div class="d"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>di chuyển</span></div>
-    <div class="d"><span>giữ chuột + kéo</span><span>xoay camera</span></div>
-    <div class="d"><span><kbd>Z</kbd><kbd>X</kbd></span><span>xoay camera trái / phải</span></div>
-    <div class="d"><span><kbd>Shift</kbd></span><span>chạy</span></div>
-    <div class="d"><span><kbd>Space</kbd></span><span>nhảy</span></div>
-    <div class="d"><span><kbd>Space</kbd> sát tường</span><span>tường thấp: trèo qua · cao: bám leo</span></div>
-    <div class="d"><span>đang leo</span><span><kbd>W</kbd><kbd>S</kbd> lên xuống · <kbd>A</kbd><kbd>D</kbd> ngang · tới mép tự đu lên · <kbd>Space</kbd> bật ra</span></div>
-    <div class="d"><span><kbd>E</kbd> cạnh ngựa / xe</span><span>cưỡi ngựa · lái xe ngựa (bãi cỏ cạnh sân đầu cầu)</span></div>
-    <div class="d"><span>xuống nước</span><span>tự bơi · <kbd>Shift</kbd> bơi nhanh · bơi vào bờ tự trèo lên (hồ ở bãi cỏ cạnh sân đầu cầu)</span></div>
-    <div class="d"><span><kbd>C</kbd> giữ</span><span>ngồi xuống</span></div>
-    <b>Động tác</b>
-    <div class="d"><span>nhấp chuột</span><span>ném đá vào chỗ nhấp</span></div>
-    <div class="d"><span><kbd>F</kbd></span><span>đá chân (hất thùng, làm ngã)</span></div>
-    <div class="d"><span><kbd>E</kbd></span><span>nói chuyện · gọi rượu ở quầy</span></div>
-    <div class="d"><span><kbd>1</kbd></span><span>chào</span></div>
-    <div class="d"><span><kbd>2</kbd></span><span>múa</span></div>
-    <div class="d"><span><kbd>V</kbd></span><span>góc nhìn sau lưng / mắt</span></div>
-    <div class="d"><span><kbd>Esc</kbd></span><span>về toàn cảnh</span></div>
-    <b>Toàn cảnh</b>
-    <div class="d"><span>kéo chuột</span><span>xoay</span></div>
-    <div class="d"><span>lăn chuột</span><span>phóng to / nhỏ</span></div>
-    <div class="d"><span>nhấp đúp</span><span>xuống đi bộ tại đó</span></div>
-  </div>
-  <div class="dt">
-    <b>Đi bộ</b>
-    <div class="d"><span>cần trái</span><span>di chuyển</span></div>
-    <div class="d"><span>kéo bên phải</span><span>nhìn quanh</span></div>
-    <div class="d"><span>nút phải</span><span>Nói · Chào · Múa · Đá · Nhảy · Ném · 👁 góc nhìn</span></div>
-    <b>Toàn cảnh</b>
-    <div class="d"><span>1 ngón</span><span>xoay</span></div>
-    <div class="d"><span>2 ngón chụm</span><span>phóng to / nhỏ</span></div>
-    <div class="d"><span>chạm đúp</span><span>xuống đi bộ tại đó</span></div>
-  </div>
+  <div id="hd-nc"></div>
   <b>Nút dưới</b>
   <div class="d"><span>🕒</span><span>giờ trong lâu đài · bấm tua ×30</span></div>
   <div class="d"><span>🔊</span><span>tắt / mở âm thanh</span></div>

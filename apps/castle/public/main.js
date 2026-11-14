@@ -786,7 +786,7 @@ function vong(now = 0) {
   anhDn.intensity = 20 + Math.sin(t * 2.1) * 6 + Math.sin(t * 5.3) * 3;
   quan.capNhat(dt, t);
   if (am) { const p = camera.position; am.capNhat(camera, quan.trong(p.x, p.z), Math.hypot(p.x - quan.tam[0], p.z - quan.tam[1])); }
-  veNguoi(); ghiLuu(now); veBanDo(now);
+  veNguoi(); ghiLuu(now); veBanDo(now); capNhatHd(now);
   composer.render();
 }
 // khôi phục chỗ đứng cũ (chỉ khi cùng lâu đài)
@@ -812,6 +812,50 @@ addEventListener('keydown', (e) => { if (e.code === 'KeyH' && !e.repeat && !e.ta
 // lưu ngay lúc trang sắp đóng / tải lại (F5): không mất bước đi trong giây cuối
 addEventListener('pagehide', () => { lucLuu = 0; ghiLuu(performance.now() + 5000); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { lucLuu = 0; ghiLuu(performance.now() + 5000); } });
+
+// bảng phím THEO NGỮ CẢNH: chỉ hiện phím / nút dùng được ở chỗ đang đứng (toàn cảnh · đi bộ · leo · bơi · cưỡi ngựa · lái xe),
+// mục phụ (E cưỡi / lên xe / nói / gọi rượu, Space leo) chỉ hiện khi đứng cạnh đúng thứ đó. Nút cảm ứng ẩn / đổi chữ theo cùng ngữ cảnh.
+const K = (...k) => k.map((x) => `<kbd>${x}</kbd>`).join('');
+function nguCanh() {
+  if (cheDo !== 'di') return { ten: 'toan' };
+  if (cuoi) return { ten: cuoi.kieu };
+  if (tt === 'leo' || tt === 'qua') return { ten: 'leo' };
+  if (tt === 'boi') return { ten: 'boi' };
+  const p = than.translation(), X = ganXeNhat(p);
+  const h = huongToi, tuong = tiaN(p, 0.3, Math.sin(h), Math.cos(h), 1.0);
+  return { ten: 'dat', xe: X ? X.kieu : null, nguoi: X ? null : sd.ganNguoi(p, h), tuong: !!(tuong && tuong.timeOfImpact > 0.02 && Math.abs(tuong.normal.y) < 0.35) };
+}
+function dongHd(c) {
+  const pc = !CHAM, d = (a, b) => `<div class="d"><span>${a}</span><span>${b}</span></div>`;
+  const xoay = pc ? d('giữ chuột + kéo', 'xoay camera') + d(K('Z', 'X'), 'xoay camera trái / phải') : d('kéo bên phải', 'nhìn quanh');
+  if (c.ten === 'toan') return '<b>Toàn cảnh</b>' + (pc ? d('kéo chuột', 'xoay') + d('lăn chuột', 'phóng to / nhỏ') + d('nhấp đúp', 'xuống đi bộ tại đó') : d('1 ngón', 'xoay') + d('2 ngón chụm', 'phóng to / nhỏ') + d('chạm đúp', 'xuống đi bộ tại đó')) + d('🚶 Đi bộ', 'vào từ đầu cầu');
+  if (c.ten === 'leo') return '<b>Đang leo</b>' + (pc ? d(K('W', 'S'), 'leo lên / xuống') + d(K('A', 'D'), 'đi ngang theo tường') + d(K('W') + ' tới mép', 'tự đu người lên') + d(K('Space'), 'bật ra khỏi tường') + d(K('S') + ' chạm đất', 'thả tay') : d('cần trái', 'lên / xuống / ngang') + d('Bật ra', 'nhảy khỏi tường')) + xoay;
+  if (c.ten === 'boi') return '<b>Đang bơi</b>' + (pc ? d(K('W', 'A', 'S', 'D'), 'bơi theo hướng camera') + d(K('Shift'), 'bơi nhanh') : d('cần trái', 'bơi')) + d('bơi vào bờ', 'tự trèo lên') + xoay;
+  if (c.ten === 'ngua') return '<b>Cưỡi ngựa</b>' + (pc ? d(K('W', 'A', 'S', 'D'), 'đi theo hướng camera') + d(K('Shift'), 'phi nước đại') + d(K('C'), 'đi chậm') + d(K('Space'), 'nhảy') + d(K('E'), 'xuống ngựa') : d('cần trái', 'đi theo hướng camera') + d('Nhảy', 'nhảy') + d('Xuống', 'xuống ngựa')) + xoay;
+  if (c.ten === 'xe') return '<b>Lái xe ngựa</b>' + (pc ? d(K('W'), 'tiến') + d(K('S'), 'phanh, rồi lùi') + d(K('A', 'D'), 'bẻ lái') + d(K('Shift'), 'nhanh') + d(K('E'), 'xuống xe') : d('cần trái', 'lên tiến · xuống lùi · ngang bẻ lái') + d('Xuống', 'xuống xe')) + xoay;
+  let h = '<b>Đi bộ</b>' + (pc ? d(K('W', 'A', 'S', 'D'), 'đi') + d(K('Shift'), 'chạy') + d(K('Space'), 'nhảy') + d(K('C') + ' giữ', 'ngồi xuống') : d('cần trái', 'đi')) + xoay;
+  const them = [];
+  if (c.tuong) them.push(d(pc ? K('Space') : 'Leo', 'trèo qua (thấp) · bám leo (cao)'));
+  if (c.xe) them.push(d(pc ? K('E') : c.xe === 'xe' ? 'Lên xe' : 'Cưỡi', c.xe === 'xe' ? 'lên xe ngựa' : 'cưỡi ngựa'));
+  if (c.nguoi) them.push(d(pc ? K('E') : c.nguoi === 'ruou' ? 'Gọi rượu' : 'Nói', c.nguoi === 'ruou' ? 'gọi rượu ở quầy' : 'nói chuyện'));
+  if (them.length) h += '<b>Ở đây</b>' + them.join('');
+  h += '<b>Động tác</b>' + (pc ? d('nhấp chuột', 'ném đá vào chỗ nhấp') + d(K('F'), 'đá chân') + d(K('1') + ' ' + K('2'), 'chào · múa') + d(K('V'), 'góc nhìn sau lưng / mắt') + d(K('Esc'), 'về toàn cảnh') : d('nút phải', 'Ném · Đá · Chào · Múa · 👁 góc nhìn'));
+  return h;
+}
+// nút cảm ứng theo ngữ cảnh: [id, hiện?, chữ]
+function nutCham(c) {
+  const dat = c.ten === 'dat';
+  return [['b-goc', c.ten !== 'toan', '👁'], ['b-noi', (dat && (c.xe || c.nguoi)) || c.ten === 'ngua' || c.ten === 'xe', c.ten === 'ngua' || c.ten === 'xe' ? 'Xuống' : c.xe === 'xe' ? 'Lên xe' : c.xe ? 'Cưỡi' : c.nguoi === 'ruou' ? 'Gọi rượu' : 'Nói'],
+    ['b-chao', dat, 'Chào'], ['b-mua', dat, 'Múa'], ['b-da', dat, 'Đá'], ['b-nem', dat, 'Ném'], ['b-nhay', dat || c.ten === 'ngua' || c.ten === 'leo', c.ten === 'leo' ? 'Bật ra' : dat && c.tuong ? 'Leo' : 'Nhảy']];
+}
+let khoaHd = '', lucHd = 0;
+function capNhatHd(now) {
+  if (now - lucHd < 250) return; lucHd = now;
+  const c = nguCanh(), khoa = JSON.stringify(c);
+  if (khoa === khoaHd) return; khoaHd = khoa;
+  $('hd-nc').innerHTML = dongHd(c);
+  if (CHAM) for (const [id, hien, chu] of nutCham(c)) { const b = $(id); b.style.display = hien ? '' : 'none'; if (b.textContent !== chu) b.textContent = chu; }
+}
 
 // bản đồ nhỏ + toạ độ
 const banDo = taoBanDo($('bd'), { nha: nhaVa, thap: cothap.slice(0, SO_THAP), quan: quan.tam, ren: [Math.cos(Math.PI + 0.3) * 33.8, Math.sin(Math.PI + 0.3) * 33.8], gieng: [13.6, 0], cho: [34, 0] });
@@ -856,5 +900,5 @@ $('gy-dong').onclick = () => { gy.style.display = 'none'; };
 $('gy-gui').onclick = guiGopY;
 $('gy-chu').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) guiGopY(); if (e.key === 'Escape') gy.style.display = 'none'; });
 $('tai').remove();
-window.__lauDai = { hat: HAT, nhaVa, dbg: () => ({ nen, vy, vxH, vzH, tt }), tt: () => tt, XE, cuoi: () => cuoi, lenXe, xuongXe, thu: (f) => f({ world, RAPIER, tiaN, matTren, thanVa, LOC_TINH }), yaw: () => yaw, huong: () => huongToi, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; }, toi, dan: sd.dan, da, doiGocNhin, quan, quanNguoi, doNet: () => doNet, renderer, bloom, composer, sd, gioGame, ve: () => ({ lenh: renderer.info.render.calls, tamGiac: renderer.info.render.triangles, nguoi: { ...DEM } }) };
+window.__lauDai = { hat: HAT, nhaVa, nguCanh: () => nguCanh(), dbg: () => ({ nen, vy, vxH, vzH, tt }), tt: () => tt, XE, cuoi: () => cuoi, lenXe, xuongXe, thu: (f) => f({ world, RAPIER, tiaN, matTren, thanVa, LOC_TINH }), yaw: () => yaw, huong: () => huongToi, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; }, toi, dan: sd.dan, da, doiGocNhin, quan, quanNguoi, doNet: () => doNet, renderer, bloom, composer, sd, gioGame, ve: () => ({ lenh: renderer.info.render.calls, tamGiac: renderer.info.render.triangles, nguoi: { ...DEM } }) };
 vong();

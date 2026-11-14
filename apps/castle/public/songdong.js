@@ -212,11 +212,17 @@ export function taoSongDong(c) {
   const api = {
     dan, noi,
     // E: nói chuyện với người gần nhất trước mặt / gọi rượu ở quầy
-    noiChuyen(p, huong, am) {
+    // người trước mặt trong 2,6 m (E nói chuyện); 'chu' + trong quán = gọi rượu. Bảng phím dùng để chỉ hiện E khi có người.
+    timNguoi(p, huong) {
       const f = [Math.sin(huong), Math.cos(huong)];
       let tot = null, kc = 2.6;
       const ds = [...dan.filter((d) => !d.an).map((d) => ({ n: d.n, x: d.x, z: d.z, vai: d.vai, d })), ...quanNguoi.ds.map((d) => ({ n: d.n, x: d.x, z: d.z, vai: d.vai === 'dan' ? 'dan_' : d.vai, q: d }))];
       for (const o of ds) { const dx = o.x - p.x, dz = o.z - p.z, l = Math.hypot(dx, dz); if (l < kc && (dx * f[0] + dz * f[1]) / (l || 1) > 0.3) { kc = l; tot = o; } }
+      return tot;
+    },
+    ganNguoi(p, huong) { const t = this.timNguoi(p, huong); return !t ? null : t.vai === 'chu' && quan.trong(p.x, p.z) ? 'ruou' : 'noi'; },
+    noiChuyen(p, huong, am) {
+      const tot = this.timNguoi(p, huong);
       if (!tot) return null;
       if (tot.vai === 'chu' && quan.trong(p.x, p.z)) { noi(tot.n.goc, 'Rượu đây, hai đồng. Uống từ từ thôi!'); uongDen = performance.now() + 9000; return 'uong'; }
       noi(tot.n.goc, loiTheo(tot.vai, dongHo.gio));

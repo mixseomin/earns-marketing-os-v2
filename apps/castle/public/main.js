@@ -87,9 +87,9 @@ const ban = new THREE.HemisphereLight(0x9a8aa8, 0xb8501e, 1.1); scene.add(ban);
 const vl = (t, o = {}) => new THREE.MeshStandardMaterial({ map: t.map, bumpMap: t.bump, bumpScale: o.bump ?? 2, roughness: o.ro ?? 0.9, metalness: 0, emissiveMap: t.emis || null, emissive: t.emis ? 0xffffff : 0x000000, emissiveIntensity: t.emis ? 2.2 : 0, ...(o.color ? { color: o.color } : {}) });
 const VL = {
   da: vl(T.daXay(r, 30, 54)), daTrong: vl(T.daXay(r, 24, 46)), bazan: vl(T.bazan(r), { bump: 4 }), cuoi: vl(T.cuoi(r), { bump: 3 }),
-  ngoi: vl(T.ngoi(r, 10)), ngoiXanh: vl(T.ngoi(r, 205), { ro: 0.7 }), vua: vl(T.vuaGo(r)), go: vl(T.van(r)),
+  ngoi: vl(T.ngoi(r, 10)), ngoiXanh: vl(T.ngoi(r, 205), { ro: 0.7 }), vua: vl(T.vuaGo(r)), go: vl(T.van(r)), co: vl(T.co(r), { bump: 1.5 }),
 };
-const DO_UV = { da: 5, daTrong: 5, bazan: 9, cuoi: 4, ngoi: 3, ngoiXanh: 3, vua: 6, go: 2 };
+const DO_UV = { da: 5, daTrong: 5, bazan: 9, cuoi: 4, ngoi: 3, ngoiXanh: 3, vua: 6, go: 2, co: 5 };
 
 // ---------- gom hình theo vật liệu → mỗi vật liệu một lưới (nhẹ cho GPU)
 const xo = {}; const dat = []; // dat = lưới mặt đất để nhấp đúp
@@ -130,7 +130,7 @@ function maiDoc(vlk, w, d, h, x, y, z, ry) { // mái hai mái, nóc chạy theo 
 function dungLuoi() {
   for (const [k, gs] of Object.entries(xo)) {
     const m = new THREE.Mesh(mergeGeometries(gs), VL[k]); m.castShadow = m.receiveShadow = true; scene.add(m);
-    if (k === 'cuoi' || k === 'go') dat.push(m);
+    if (k === 'cuoi' || k === 'go' || k === 'co') dat.push(m);
   }
 }
 
@@ -243,6 +243,38 @@ for (let k = 0; k < 28; k++) {
   if (k % 7 === 0) { const l = new THREE.PointLight(0xffa050, 18, 16, 1.8); l.position.set(x, 3.6, z); scene.add(l); denDuong.push(l); }
 }
 scene.add(new THREE.Mesh(mergeGeometries(gDen), VL_DEN));
+// bãi cỏ cạnh sân đầu cầu (phía đông) + hồ nước sâu để bơi; chỗ cưỡi ngựa / lái xe ngựa
+const BAI = { x: 26.5, z: 110, r: 17 }, HO = { x: 30, z: 111, r: 6.5, mat: -0.3, day: -2.8 };
+{
+  const hinh = new THREE.Shape(); hinh.absarc(0, 0, BAI.r, 0, Math.PI * 2, false);
+  const lo = new THREE.Path(); lo.absarc(HO.x - BAI.x, -(HO.z - BAI.z), HO.r, 0, Math.PI * 2, true); hinh.holes.push(lo);
+  const g = new THREE.ShapeGeometry(hinh, 64); g.rotateX(-Math.PI / 2); g.translate(BAI.x, 0.02, BAI.z);
+  const v = g.attributes.position.array, idx = g.index.array;
+  world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(v), new Uint32Array(idx)), tinh);
+  dat_('co', g, 0, 0, 0);
+  { const g = new THREE.CylinderGeometry(BAI.r, BAI.r - 3, 12, 48, 1, true); uvTru(g, Math.PI * 2 * BAI.r, 12, DO_UV.bazan); dat_('bazan', g, BAI.x, -6, BAI.z, 0, 'tru'); } // vách đá, hở nắp (nắp kín sẽ che miệng hồ)
+  // lòng hồ: thành đá (nhìn từ trong), đáy, va chạm thành + đáy
+  const tg = new THREE.CylinderGeometry(HO.r, HO.r, -HO.day, 48, 1, true); tg.translate(HO.x, HO.day / 2, HO.z);
+  const vlThanh = VL.daTrong.clone(); vlThanh.side = THREE.BackSide;
+  const thanh = new THREE.Mesh(tg, vlThanh); thanh.receiveShadow = true; scene.add(thanh);
+  world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(tg.attributes.position.array), new Uint32Array(tg.index.array)), tinh);
+  dat_('daTrong', new THREE.CircleGeometry(HO.r, 48).rotateX(-Math.PI / 2), HO.x, HO.day, HO.z);
+  world.createCollider(RAPIER.ColliderDesc.cylinder(0.5, HO.r).setTranslation(HO.x, HO.day - 0.5, HO.z), tinh);
+  for (let k = 0; k < 28; k++) { const a = k / 28 * Math.PI * 2; hop('daTrong', 1.5, 0.25, 0.6, HO.x + Math.cos(a) * (HO.r + 0.3), 0, HO.z + Math.sin(a) * (HO.r + 0.3), -a + Math.PI / 2); } // bờ đá
+}
+const VL_NUOC = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false,
+  uniforms: { t: { value: 0 }, sang: { value: 1 } },
+  vertexShader: `varying vec3 vp; varying vec3 vv; void main(){ vec4 w = modelMatrix*vec4(position,1.); vp=w.xyz; vv=cameraPosition-w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
+  fragmentShader: `uniform float t; uniform float sang; varying vec3 vp; varying vec3 vv;
+    void main(){ vec2 p=vp.xz; float g = sin(p.x*2.1+t*1.7)*sin(p.y*1.7-t*1.3)+sin((p.x+p.y)*3.3+t*2.4)*.5;
+      vec3 n = normalize(vec3(cos(p.x*2.1+t*1.7)*.12, 1., cos((p.x+p.y)*3.3+t*2.4)*.1));
+      float fr = pow(1.-max(dot(normalize(vv), n),0.), 3.);
+      vec3 c = mix(vec3(.04,.22,.3), vec3(.28,.42,.5), fr) + vec3(.9,.85,.7)*pow(max(g,0.),8.)*.12;
+      gl_FragColor = vec4(c*sang, .9+fr*.08); }`,
+});
+{ const m = new THREE.Mesh(new THREE.CircleGeometry(HO.r, 48).rotateX(-Math.PI / 2), VL_NUOC); m.position.set(HO.x, HO.mat, HO.z); m.renderOrder = 2; scene.add(m); }
+const mucNuoc = (x, z) => Math.hypot(x - HO.x, z - HO.z) < HO.r ? HO.mat : null;
 const ct = dungCongTrinh({ hop, tru, non, vaHop, vaTru, scene, mergeGeometries });
 const quan = dungNhaQuan({ hop, tru, maiDoc, dat_, vaHop, vaTru, scene, mergeGeometries, chamLua: T.cham() }, GOC_QUAN, R_QUAN);
 dungLuoi();
@@ -374,7 +406,7 @@ orbit.target.set(0, 8, 0); orbit.enableDamping = true; orbit.minDistance = 10; o
 
 function vaoDiBo(dich) {
   const p = dich || DIEM_VAO;
-  than.setTranslation({ x: p.x, y: p.y + NGUOI_H + NGUOI_R + 0.1, z: p.z }, true); vy = 0;
+  than.setTranslation({ x: p.x, y: p.y + NGUOI_H + NGUOI_R + 0.1, z: p.z }, true); vy = 0; tt = 'dat';
   yaw = dich ? Math.atan2(p.x, p.z) : 0; // nhìn về thành chính
   pitch = -0.15; cheDo = 'di'; orbit.enabled = false; huongToi = muonHuong = yaw + Math.PI; toi.goc.visible = gocNhin === 3;
   $('b-di').style.display = 'none'; $('b-toan').style.display = ''; 
@@ -475,6 +507,28 @@ const VD = { di: 4.2, chay: 7.5, ngoi: 1.6, tang: 28, ham: 36, tangKhong: 7, qua
 let vxH = 0, vzH = 0, roiMep = 1, demNhay = 0, lucChuot = -1e9;
 addEventListener('keydown', (e) => { if (e.code === 'Space' && !e.repeat && cheDo === 'di' && !e.target.closest?.('textarea, input')) demNhay = VD.dem; });
 addEventListener('keyup', (e) => { if (e.code === 'Space' && vy > 0) vy *= 0.5; });
+// leo tường / trèo qua mép / vượt chướng ngại / bơi (khuôn Zelda BotW · Assassin's Creed · Uncharted):
+// - Space trước tường đứng: thấp ≤ 2 m thì trèo qua luôn (vượt); cao hơn thì bám vào leo. Đang nhảy mà giữ W đâm vào tường cũng bám.
+// - Leo: W/S lên xuống, A/D ngang theo tường; tới mép trên mà còn giữ W thì tự đu người lên; Space bật ra khỏi tường; S chạm đất thì thả.
+// - Xuống nước sâu tới ngực thì bơi: nổi đầu trên mặt nước, WASD theo camera, Shift bơi nhanh; bơi vào bờ thì tự trèo lên.
+let tt = 'dat', chamLeo = 0, tocLeo = 0, phaLeo = 0, phaBoi = 0;
+const leoN = { x: 0, z: 1 }, qua = { t: 0, dai: 0.5, a: null, b: null, c: null };
+const tiaN = (p, dy, dx, dz, dai) => (dx || dz) && world.castRayAndGetNormal(new RAPIER.Ray({ x: p.x, y: p.y + dy, z: p.z }, { x: dx, y: 0, z: dz }), dai, true, LOC_TINH, undefined, thanVa);
+function matTren(x, yTu, z, sau) { const h = world.castRay(new RAPIER.Ray({ x, y: yTu, z }, { x: 0, y: -1, z: 0 }), sau, true, LOC_TINH, undefined, thanVa); return h ? yTu - h.timeOfImpact : null; }
+function batDauQua(p, fx, fz, top) {
+  qua.t = 0; qua.a = { x: p.x, y: p.y, z: p.z }; qua.b = { x: p.x + fx * 0.1, y: top + 0.96, z: p.z + fz * 0.1 }; qua.c = { x: p.x + fx * 0.8, y: top + 0.96, z: p.z + fz * 0.8 };
+  qua.dai = Math.max(0.35, Math.min(0.95, (top + 0.96 - p.y) * 0.32)); tt = 'qua'; vy = 0; vxH = vzH = 0; huongToi = muonHuong = Math.atan2(fx, fz);
+}
+function thuBam(p, fx, fz) { // trước mặt có tường đứng → vượt (thấp) hoặc bám leo (cao)
+  const h = tiaN(p, 0.3, fx, fz, 0.9); if (!h || h.timeOfImpact < 0.02 || Math.abs(h.normal.y) > 0.35) return false; // tia bắt đầu trong vật → pháp tuyến 0, bỏ
+  let nx = h.normal.x, nz = h.normal.z; const l = Math.hypot(nx, nz); if (l < 0.5) return false; nx /= l; nz /= l;
+  if (!tiaN(p, 0.85, -nx, -nz, 1.0)) {
+    const top = matTren(p.x - nx * 0.75, p.y + 2.2, p.z - nz * 0.75, 2.6), chan = p.y - 0.9;
+    if (top != null && top - chan < 2.0 && top - chan > 0.2) { batDauQua(p, -nx, -nz, top); return true; }
+  }
+  leoN.x = nx; leoN.z = nz; tt = 'leo'; vy = 0; vxH = vzH = 0; huongToi = muonHuong = Math.atan2(-nx, -nz); return true;
+}
+const ease = (t) => t * t * (3 - 2 * t);
 function buocDiBo(dt) {
   const dang = cheDo === 'di';
   let fx = 0, fz = 0;
@@ -486,6 +540,56 @@ function buocDiBo(dt) {
     if (zx) { yaw += zx * 2.4 * dt; lucChuot = performance.now(); } // Z / X xoay camera (giữ phím), không cần chuột
   } else demNhay = 0;
   if (toi.viec === 'mua' || toi.viec === 'chao') { if (fx || fz) toi.lam('dung'); } // bước đi thì thôi múa / chào
+  if (dang && can.nhay) { demNhay = VD.dem; can.nhay = false; }
+  demNhay = Math.max(0, demNhay - dt); chamLeo = Math.max(0, chamLeo - dt);
+  const p0 = than.translation();
+  if (tt === 'qua') { // đu người qua mép: lên tới đỉnh rồi bước vào (theo kịch bản, không va chạm)
+    qua.t += dt / qua.dai; const u = Math.min(qua.t, 1), k1 = ease(Math.min(u / 0.65, 1)), k2 = ease(Math.max(0, (u - 0.65) / 0.35));
+    const A = k2 > 0 ? qua.b : qua.a, B = k2 > 0 ? qua.c : qua.b, k = k2 > 0 ? k2 : k1;
+    than.setNextKinematicTranslation({ x: A.x + (B.x - A.x) * k, y: A.y + (B.y - A.y) * k, z: A.z + (B.z - A.z) * k });
+    tocToi = 0; nen = true; if (u >= 1) { tt = 'dat'; vy = -1; } return;
+  }
+  if (tt === 'leo') {
+    const h = tiaN(p0, 0.3, -leoN.x, -leoN.z, 1.1);
+    if (!h) { tt = 'dat'; chamLeo = 0.3; return; }
+    { const l = Math.hypot(h.normal.x, h.normal.z); if (Math.abs(h.normal.y) < 0.5 && l > 0.5) { leoN.x = h.normal.x / l; leoN.z = h.normal.z / l; } }
+    huongToi = muonHuong = Math.atan2(-leoN.x, -leoN.z);
+    const dau = tiaN(p0, 0.85, -leoN.x, -leoN.z, 1.1);
+    if (!dau && fz > 0) { const top = matTren(p0.x - leoN.x * 0.75, p0.y + 1.9, p0.z - leoN.z * 0.75, 2.4); if (top != null) { batDauQua(p0, -leoN.x, -leoN.z, top); return; } }
+    if (demNhay > 0) { demNhay = 0; tt = 'dat'; chamLeo = 0.45; vy = 4.5; vxH = leoN.x * 3.2; vzH = leoN.z * 3.2; return; } // bật khỏi tường
+    const len = fz * 1.7, ngang = fx * 1.5, rx = leoN.z, rz = -leoN.x, hut = (h.timeOfImpact - 0.42) * Math.min(1, dt * 10);
+    dk.computeColliderMovement(thanVa, { x: rx * ngang * dt - leoN.x * hut, y: len * dt, z: rz * ngang * dt - leoN.z * hut });
+    const m = dk.computedMovement(); than.setNextKinematicTranslation({ x: p0.x + m.x, y: p0.y + m.y, z: p0.z + m.z });
+    tocLeo += (Math.hypot(m.x, m.y, m.z) / dt - tocLeo) * 0.3; tocToi = 0; nen = true;
+    if (fz < 0 && dk.computedGrounded()) { tt = 'dat'; chamLeo = 0.4; }
+    return;
+  }
+  const muc = mucNuoc(p0.x, p0.z);
+  if (tt === 'dat' && muc != null && p0.y < muc - 0.35) { tt = 'boi'; vy *= 0.2; }
+  if (tt === 'boi') {
+    if (muc == null || p0.y > muc - 0.2) { tt = 'dat'; }
+    else {
+      const sx = Math.sin(yaw), cz = Math.cos(yaw);
+      let wx = -sx * fz + cz * fx, wz = -cz * fz - sx * fx; const wl = Math.hypot(wx, wz); if (wl) { wx /= wl; wz /= wl; }
+      if (wl) { muonHuong = Math.atan2(wx, wz); const lech = Math.atan2(Math.sin(muonHuong - huongToi), Math.cos(muonHuong - huongToi)); huongToi += Math.sign(lech) * Math.min(Math.abs(lech), VD.quay * 0.6 * dt); }
+      if (wl && fz > 0 && chamLeo === 0 && thuBam(p0, Math.sin(huongToi), Math.cos(huongToi))) return; // bơi vào bờ → trèo lên
+      const v = (phim.ShiftLeft || phim.ShiftRight ? 3.4 : 2.0) * Math.min(1, Math.hypot(fx, fz));
+      const tx = Math.sin(huongToi) * v * (wl ? 1 : 0), tz = Math.cos(huongToi) * v * (wl ? 1 : 0);
+      vxH += (tx - vxH) * Math.min(1, dt * 3); vzH += (tz - vzH) * Math.min(1, dt * 3);
+      vy += (((muc - 0.5) - p0.y) * 10 - vy * 4) * dt; // nổi về mặt nước, dập dềnh
+      dk.computeColliderMovement(thanVa, { x: vxH * dt, y: vy * dt, z: vzH * dt });
+      const m = dk.computedMovement(); than.setNextKinematicTranslation({ x: p0.x + m.x, y: p0.y + m.y, z: p0.z + m.z });
+      tocToi += (Math.hypot(m.x, m.z) / dt - tocToi) * 0.25; nen = false; demNhay = 0;
+      return;
+    }
+  }
+  // trên cạn: Space trước tường → vượt / bám; đang nhảy giữ W đâm tường → bám
+  if (dang && chamLeo === 0) {
+    const sx = Math.sin(yaw), cz = Math.cos(yaw); let wx = -sx * fz + cz * fx, wz = -cz * fz - sx * fx; const wl = Math.hypot(wx, wz);
+    const hx = wl ? wx / wl : Math.sin(huongToi), hz = wl ? wz / wl : Math.cos(huongToi);
+    if (demNhay > 0 && (nen || roiMep < VD.coyote) && thuBam(p0, hx, hz)) { demNhay = 0; return; }
+    if (!nen && fz > 0 && vy < 3 && thuBam(p0, Math.sin(huongToi), Math.cos(huongToi))) return;
+  }
   const manh = Math.hypot(fx, fz);
   const v = (phim.KeyC ? VD.ngoi : phim.ShiftLeft || phim.ShiftRight ? VD.chay : VD.di) * manh;
   const sx = Math.sin(yaw), cz = Math.cos(yaw);
@@ -510,8 +614,7 @@ function buocDiBo(dt) {
   const dx = tx - vxH, dz = tz - vzH, dl = Math.hypot(dx, dz), buoc = gia * dt;
   if (dl <= buoc) { vxH = tx; vzH = tz; } else { vxH += dx / dl * buoc; vzH += dz / dl * buoc; }
   // nhảy: coyote + đệm bấm
-  roiMep = nen ? 0 : roiMep + dt; demNhay = Math.max(0, demNhay - dt);
-  if (dang && can.nhay) { demNhay = VD.dem; can.nhay = false; }
+  roiMep = nen ? 0 : roiMep + dt;
   if (demNhay > 0 && roiMep < VD.coyote && vy <= 0.5) { vy = VD.nhay; demNhay = 0; roiMep = 1; }
   else if (nen && vy <= 0) vy = -1;
   else vy -= (vy > 0 ? VD.g : VD.gRoi) * dt;
@@ -523,7 +626,7 @@ function buocDiBo(dt) {
   tocToi += (Math.hypot(m.x, m.z) / dt - tocToi) * 0.25;
   nen = dk.computedGrounded();
   if (nen && vy > 0 && m.y < vy * dt * 0.5) vy = 0; // đụng trần
-  if (p.y < -6) { vaoDiBo(); vxH = vzH = 0; } // rơi xuống dung nham → về đầu cầu
+  if (p.y < -6) { vaoDiBo(); vxH = vzH = 0; tt = 'dat'; } // rơi xuống dung nham → về đầu cầu
 }
 let camY = null, veGio = -1, lanVe = 0, demCham = 0, demKhung = 0, mocDo = 0;
 function vong(now = 0) {
@@ -545,13 +648,16 @@ function vong(now = 0) {
     const p = than.translation(), chan = p.y - NGUOI_H - NGUOI_R;
     if (gocNhin === 1) muonHuong = yaw + Math.PI;
     if (gocNhin === 1) huongToi = muonHuong;
-    toi.goc.position.set(p.x, chan, p.z); toi.goc.rotation.y = huongToi;
+    if (tt === 'boi') { toi.goc.position.set(p.x - Math.sin(huongToi) * 0.75, HO.mat - 0.32, p.z - Math.cos(huongToi) * 0.75); phaBoi += dt * (1.6 + tocToi * 1.4); }
+    else toi.goc.position.set(p.x, chan, p.z);
+    toi.goc.rotation.y = huongToi; if (tt === 'leo') phaLeo += dt * tocLeo * 3.2;
     const uong = sd.dangUong(); cocToi.visible = uong;
-    toi.capNhat(dt, { toc: tocToi, nen, ngoi: !!phim.KeyC, loop: uong ? 'uong' : null });
+    toi.capNhat(dt, { toc: tt === 'dat' ? tocToi : 0, nen: nen || tt !== 'dat', ngoi: tt === 'dat' && !!phim.KeyC, loop: uong ? 'uong' : null, tuThe: tt === 'dat' ? null : tt, phaLeo, phaBoi });
     if (gocNhin === 1) { camera.position.set(p.x, chan + MAT, p.z); camera.rotation.set(pitch, yaw, 0, 'YXZ'); }
     else { // camera sau vai phải, lùi vào khi vướng tường
       const pt = Math.max(-1.1, Math.min(0.75, pitch));
-      camY = camY == null || Math.abs(camY - chan) > 3 ? chan : camY + (chan - camY) * (1 - Math.exp(-dt * 12));
+      const camDich = tt === 'boi' ? HO.mat - 0.4 : chan; // bơi: camera cao hơn mặt nước, nhìn thấy người
+      camY = camY == null || Math.abs(camY - camDich) > 3 ? camDich : camY + (camDich - camY) * (1 - Math.exp(-dt * 12));
       const dich = new THREE.Vector3(p.x + Math.cos(yaw) * 0.45, camY + (phim.KeyC ? 1.05 : 1.6), p.z - Math.sin(yaw) * 0.45);
       const lui = new THREE.Vector3(Math.sin(yaw) * Math.cos(pt), -Math.sin(pt), Math.cos(yaw) * Math.cos(pt));
       const h = world.castRay(new RAPIER.Ray(dich, lui), 3.6, true, LOC_TINH, undefined, thanVa);
@@ -561,7 +667,7 @@ function vong(now = 0) {
     }
   }
   else orbit.update();
-  VL_DN.uniforms.t.value = t; VL_TROI.uniforms.t.value = t; troi.position.copy(camera.position);
+  VL_DN.uniforms.t.value = t; VL_NUOC.uniforms.t.value = t; VL_NUOC.uniforms.sang.value = 1 - 0.6 * gioGame.toi; VL_TROI.uniforms.t.value = t; troi.position.copy(camera.position);
   for (let i = 0; i < SO_LUA; i++) { luaPos[i * 3 + 1] += luaV[i] * dt; luaPos[i * 3] += Math.sin(t * 0.7 + i) * dt * 0.4; if (luaPos[i * 3 + 1] > 30) datLua(i); }
   gLua.attributes.position.needsUpdate = true;
   for (const c of co) { const a = c.g.attributes.position.array; for (let i = 0; i < a.length; i += 3) { const x = c.goc[i]; a[i + 2] = Math.sin(x * 2.2 - t * 5 + c.pha) * 0.18 * x; a[i + 1] = c.goc[i + 1] - x * 0.06 + Math.sin(x * 1.7 - t * 3.3) * 0.05 * x; } c.g.attributes.position.needsUpdate = true; c.g.computeVertexNormals(); }
@@ -637,5 +743,5 @@ $('gy-dong').onclick = () => { gy.style.display = 'none'; };
 $('gy-gui').onclick = guiGopY;
 $('gy-chu').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) guiGopY(); if (e.key === 'Escape') gy.style.display = 'none'; });
 $('tai').remove();
-window.__lauDai = { hat: HAT, yaw: () => yaw, huong: () => huongToi, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; }, toi, dan: sd.dan, da, doiGocNhin, quan, quanNguoi, doNet: () => doNet, renderer, bloom, composer, sd, gioGame, ve: () => ({ lenh: renderer.info.render.calls, tamGiac: renderer.info.render.triangles, nguoi: { ...DEM } }) };
+window.__lauDai = { hat: HAT, tt: () => tt, thu: (f) => f({ world, RAPIER, tiaN, matTren, thanVa, LOC_TINH }), yaw: () => yaw, huong: () => huongToi, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; }, toi, dan: sd.dan, da, doiGocNhin, quan, quanNguoi, doNet: () => doNet, renderer, bloom, composer, sd, gioGame, ve: () => ({ lenh: renderer.info.render.calls, tamGiac: renderer.info.render.triangles, nguoi: { ...DEM } }) };
 vong();

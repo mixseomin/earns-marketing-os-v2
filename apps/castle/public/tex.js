@@ -150,3 +150,13 @@ export function cham() { // hạt lửa tròn mờ
   g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
   return new THREE.CanvasTexture(c);
 }
+
+export function co(r) { // cỏ: nền xanh loang + nét lá ngắn
+  const [c, g] = bang();
+  g.fillStyle = hsl(92, 38, 30); g.fillRect(0, 0, N, N);
+  for (let k = 0; k < 90; k++) { g.fillStyle = hsl(80 + r() * 30, 30 + r() * 20, 22 + r() * 16); g.globalAlpha = 0.25; g.beginPath(); g.arc(r() * N, r() * N, 20 + r() * 60, 0, 7); g.fill(); }
+  g.globalAlpha = 1;
+  for (let k = 0; k < 5000; k++) { const x = r() * N, y = r() * N; g.strokeStyle = hsl(75 + r() * 40, 35 + r() * 25, 18 + r() * 30); g.lineWidth = 1; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 4, y - 3 - r() * 6); g.stroke(); }
+  hat(g, r, 16, 0.9);
+  return { map: tex(c), bump: tex(c, false) };
+}

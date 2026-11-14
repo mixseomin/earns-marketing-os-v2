@@ -144,6 +144,23 @@ export function taoNguoi(o = {}) {
         dich.duiT.x = dich.duiP.x = -1.5; dich.goiT.x = dich.goiP.x = 1.5; dich.coChanT.x = dich.coChanP.x = 0;
         dich.duiT.z = 0.06; dich.duiP.z = -0.06; hongYDich = st.ngoiGhe + 0.1;
       }
+      // tư thế vận động: leo tường · đu qua mép · bơi
+      const TT = st.tuThe;
+      if (TT === 'leo') {
+        const q = st.phaLeo || 0, a = Math.sin(q);
+        dich.vaiT.x = -2.5 - 0.45 * a; dich.vaiP.x = -2.5 + 0.45 * a; dich.vaiT.z = 0.25; dich.vaiP.z = -0.25;
+        dich.khuyuT.x = -0.4 - 0.6 * Math.max(0, -a); dich.khuyuP.x = -0.4 - 0.6 * Math.max(0, a);
+        dich.duiT.x = -0.6 - 0.6 * Math.max(0, a); dich.duiP.x = -0.6 - 0.6 * Math.max(0, -a); dich.goiT.x = 0.9 + 0.7 * Math.max(0, a); dich.goiP.x = 0.9 + 0.7 * Math.max(0, -a);
+        dich.coChanT.x = dich.coChanP.x = -0.3; dich.dau.x = -0.3; hongYDich = 0.95;
+      } else if (TT === 'qua') {
+        dich.vaiT.x = dich.vaiP.x = -1.1; dich.khuyuT.x = dich.khuyuP.x = -0.3; dich.duiT.x = -1.4; dich.goiT.x = 1.8; dich.duiP.x = -0.6; dich.goiP.x = 1.0; dich.bung.x = 0.45; dich.dau.x = -0.2;
+      } else if (TT === 'boi') { // bơi ếch: thân nằm sấp, ngẩng đầu, tay quạt, chân đạp
+        const q = st.phaBoi || 0, a = Math.sin(q), c = Math.cos(q);
+        nghiengDich = 1.3; dich.dau.x = -1.05; dich.co.x = -0.2;
+        dich.vaiT.x = dich.vaiP.x = -2.3 + 0.8 * a; dich.vaiT.z = 0.55 + 0.55 * c; dich.vaiP.z = -(0.55 + 0.55 * c); dich.khuyuT.x = dich.khuyuP.x = -0.35 - 0.5 * Math.max(0, -a);
+        dich.duiT.x = dich.duiP.x = -0.25 - 0.35 * Math.max(0, a); dich.duiT.z = 0.25 * Math.max(0, a); dich.duiP.z = -0.25 * Math.max(0, a); dich.goiT.x = dich.goiP.x = 0.2 + 1.1 * Math.max(0, a);
+        dich.coChanT.x = dich.coChanP.x = 0.6;
+      }
       // sinh hoạt lặp: uống · nói · cười · đàn · lau · khay · say
       const tt = performance.now() / 1000 + lech, L = st.loop;
       if (L === 'uong') {

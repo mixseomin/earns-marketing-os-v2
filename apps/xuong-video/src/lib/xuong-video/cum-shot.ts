@@ -2,7 +2,7 @@
 // mỗi shot một clip (A) đổi mặt / sảnh / vết áo ở MỌI đường cắt; quay rộng một lần + cận chèn (B) hỏng đúng chỗ cận sinh riêng; một clip có danh sách
 // góc + "hard cut" (C) giữ cùng người, cùng sảnh, cùng đồ qua 4 góc và tốn 1 clip thay 4. Ngành gọi là coverage trong một take / multi-cam:
 // liên tục do cùng một lần diễn, không do khớp từng shot rời. Module thuần: chia cụm, lịch giây trong clip, prompt, đổi điểm cắt đo được → vao_s.
-import { giayPhat, lienCon, phat, type Canh, type NhanVat } from './kieu';
+import { giayPhat, lienCon, phat, coTiengViet, type Canh, type NhanVat } from './kieu';
 import type { LookMang } from './bo-set-3d';
 import { nhanNhin, thayTenNhan } from './prompt-khoi';
 import { kyThuat } from './dien-anh';
@@ -69,7 +69,9 @@ export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[]; loo
   const gon = (t?: string) => (t ?? '').replace(/\s*(OBJECT STATE|BODY POSE|POSE)\b[\s\S]*$/, '').trim().replace(/[.\s]+$/, '');
   // câu máy ("Static camera.") tách khỏi hành động — mỗi shot nói máy MỘT lần, nhịp gộp không lặp
   const MAY = /\s*\b(?:static|locked[- ]off|handheld|slow push[- ]in|slow dolly[^.]*?)\s+camera\b[^.]*\.?/i;
-  const hanh = (c: Canh) => { const t = gon(c.dan_dung?.dien) || [gon(c.dan_dung?.mo), gon(c.dan_dung?.ket)].filter(Boolean).join(', then ') || gon(c.canh);
+  // câu diễn tiếng Việt (dan_dung.dien) KHÔNG vào prompt khi có mở / kết tiếng Anh — cùng luật prompt video một shot (sinh-video.ts › theVideo), 14/11/2026 #3071
+  const moKet = (c: Canh) => [gon(c.dan_dung?.mo), gon(c.dan_dung?.ket)].filter(Boolean).join(', then ');
+  const hanh = (c: Canh) => { const dien = gon(c.dan_dung?.dien); const t = (dien && !(coTiengViet(dien) && moKet(c)) ? dien : '') || moKet(c) || gon(c.canh);
     return { cau: gon(t.replace(MAY, ' ')).replace(/\s{2,}/g, ' '), may: (t.match(MAY)?.[0] ?? '').trim().replace(/\.$/, '') }; };
   // NHÃN người (prompt-khoi.ts › nhanNhin): bộ đồ từ sổ trang phục carry của shot đầu người đó xuất hiện
   const nguoi: { ten: string; moTaNv: string; ao?: string }[] = [];
@@ -144,5 +146,7 @@ export function thamChieuCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[],
   const tag: Record<string, string> = {}; nhan.forEach((t, i) => { if (i < anh.length - (rong ? 1 : 0)) tag[t] ??= `reference image ${i + 1}`; });
   // câu tả ảnh KHÔNG gọi tên (model video không biết tên, tên bị in lên hình — #353 19/10/2026): người → nhãn nhìn thấy (giới), 14/11/2026 #3071 lộ "is Chú"
   const nhanNguoi = new Map(nhanNhin(nguoi.map((n) => ({ ten: n.ten, moTaNv: cum.flatMap((x) => x.nhanVat).find((v) => v.ten === n.ten)?.mo_ta }))).map((x) => [x.ten, x.gon]));
-  return { anh, goi: nhan.map((t, i) => `Reference image ${i + 1} is ${nhanNguoi.get(t) ?? t}`).join('; '), tag, them: rong ? `Reference image ${anh.length} is the location (lighting, set, colours).` : '' };
+  // nhãn trùng nhau (hai người cùng giới, không có đồ) thì không phân biệt được → chỉ nói "a character sheet"; câu định nghĩa người (promptCumMoi, theo tag) nối ảnh với người
+  const nhanTrung = (t: string) => [...nhanNguoi.values()].filter((x) => x === nhanNguoi.get(t)).length > 1;
+  return { anh, goi: nhan.map((t, i) => `Reference image ${i + 1} is ${nhanNguoi.has(t) ? (nhanTrung(t) ? 'a character sheet' : nhanNguoi.get(t)) : t}`).join('; '), tag, them: rong ? `Reference image ${anh.length} is the location (lighting, set, colours).` : '' };
 }

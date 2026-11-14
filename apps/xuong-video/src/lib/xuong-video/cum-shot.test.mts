@@ -45,7 +45,7 @@ const vi = nv(2, 'Vivian', [], ['vi-mau', 'vi-phu']);
 const shot = (kf: string, co: string, bienThe: number[], ds: unknown[]) => ({ canh: { keyframe_url: kf, ky_thuat: { co_canh: co }, bien_the: bienThe, nhan_vat: (ds as { id: number }[]).map((v) => v.id) } as never, nhanVat: ds as never });
 const t1 = thamChieuCum([shot('kf-cu', 'cu', [160], [ha]), shot('kf-ws', 'ws', [], [vi, ha])]);
 assert.deepStrictEqual(t1.anh, ['ha-khong-the', 'vi-mau', 'ha-mau', 'vi-phu', 'kf-ws']);
-assert.ok(t1.goi.startsWith('Reference image 1 is Lâm Hạ; Reference image 2 is Vivian') && t1.goi.endsWith('the location (lighting, set, colours)'));
+assert.ok(!/Lâm Hạ|Vivian/.test(t1.goi) && t1.goi.startsWith('Reference image 1 is a character sheet; Reference image 2 is a character sheet') && t1.goi.endsWith('the location (lighting, set, colours)'));
 assert.deepStrictEqual(thamChieuCum([shot('kf-cu', 'cu', [160], [ha]), shot('kf-ws', 'ws', [], [vi])], 3).anh, ['ha-khong-the', 'vi-mau', 'kf-ws']);
 // nhãn ảnh: tên → 'reference image N' (ảnh danh tính đầu), ảnh cuối là bối cảnh
 assert.deepStrictEqual(t1.tag, { 'Lâm Hạ': 'reference image 1', Vivian: 'reference image 2' }); assert.ok(t1.them.startsWith(`Reference image ${t1.anh.length} is the location`));

@@ -44,6 +44,9 @@ const nhanNoi = new Map(nhanNhin(nguoiNoi.map((t) => ({ ten: t, moTaNv: cum.flat
 let mocShot = clip1 ? clip1.vao : 0; const cauAm: { url: string; t: number; ai: string; loi: string; so: number }[] = [];
 for (const [i, x] of cum.entries()) { for (const d of x.canh.thoai ?? []) if (d.url && d.loi?.trim()) cauAm.push({ url: d.url, t: mocShot + (d.tre ?? 0), ai: d.nhan_vat, loi: d.loi.trim(), so: i + 1 }); mocShot += giayPhat(x.canh); }
 const guiGiong = cachKhop?.cach === 'seedance_audio' && cauAm.length > 0;
+// ĐUÔI BÙ MIỆNG (luật 15/11/2026): Seedance vẽ miệng trễ 0,8–1,0 s so với giọng (đo #4, #6) — cụm có thoại sinh thêm 2 s cuối để bước đo miệng
+// (canh-mieng-tap.sh) dời điểm vào trong đoạn của shot mà không lấn shot kế / hết clip. +2 s × $0,034.
+const giayRaGiong = guiGiong ? Math.min(15, Math.max(4, Math.ceil(tong) + 2)) : giayRa;
 
 // ảnh: người + bối cảnh (thamChieuCum, ≤ 5) rồi keyframe từng shot (đúng nét vẽ / khung từng góc) — tổng ≤ 9
 const tc = thamChieuCum(cum, 5);
@@ -58,6 +61,8 @@ console.log(`cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${tong.to
 const loiGui = [...loiPromptGui(prompt, { tiLe: bcs[0]!.kt.ti_le, tenNhanVat: [...new Set(cum.flatMap((x) => x.nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten)))] }),
   ...loiClipThamChieu(cum.map((x) => ({ so: x.canh.thu_tu, clip: x.canh.khung_xam?.clip }))),
   ...Object.entries(dangChongBau(cum.map((x) => x.canh))).flatMap(([id, l]) => l.map((y) => `#${cum.find((x) => x.canh.id === Number(id))?.canh.thu_tu}: ${y}`))];
+// THIẾU GIỌNG (luật 15/11/2026: #6 sinh không kèm giọng → miệng không theo câu): shot có câu thoại có file giọng mà lượt này không gửi giọng → chặn
+if (cauAm.length && !guiGiong) loiGui.push(`cụm có thoại (${cauAm.map((c) => `#${cum[c.so - 1]!.canh.thu_tu}`).join(' ')}) mà không gửi giọng (cách khớp môi: ${cachKhop?.cach ?? '?'} — ${cachKhop?.vi ?? ''}) — tách cụm mỗi lần một người nói`);
 if (loiGui.length) { console.error(`✗ CHẶN trước khi gửi (${loiGui.length} lỗi):\n  - ${loiGui.join('\n  - ')}`); process.exit(3); }
 // CANH GIỌNG THEO MIỆNG (can-giong.ts, anh 15/11/2026 "chuẩn hoá cho mọi clip"): clip sinh kèm giọng → đo độ trễ tiếng clip so với từng câu đặt ở cauAm[].t,
 // dời điểm vào từng shot; đo không ra / không bù được → lỗi (shot không gắn, vào lượt sinh lại). PCM chỉ GIẢI MÃ âm (ffmpeg trên box, không mã hoá video).
@@ -83,7 +88,7 @@ if (xem) { console.log(prompt); console.log(anh.join('\n')); process.exit(0); }
 if (!process.env.DUYET_SINH_1_LAN) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1 ngay sau khi anh duyệt lượt này'); process.exit(2); }
 
 const giaVao = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', clip1 ? clip1.url : fileVideo], { encoding: 'utf8' }).trim());
-const cents = (dpg === '720p' ? 7.5 : 3.4) * (giaVao + giayRa);   // kie.ai/seedance-2-0 (14/11/2026): có video vào → tính giây vào + giây ra
+const cents = (dpg === '720p' ? 7.5 : 3.4) * (giaVao + giayRaGiong);   // kie.ai/seedance-2-0 (14/11/2026): có video vào → tính giây vào + giây ra
 const urlVideo = clip1 ? clip1.url : await uploadToR2(`xuong-video/khung-xam/cum-${ids.join('-')}-${randomUUID()}.mp4`, readFileSync(fileVideo), 'video/mp4');
 // file giọng Audio 1 (chỉ ghép ÂM trên box — không mã hoá video): lặng + từng câu đúng mốc, dài bằng clip ra (Kie: 2–15 s)
 let urlGiong: string | null = null;
@@ -97,7 +102,7 @@ if (guiGiong) { const f = `/tmp/seedance-giong-${ids.join('-')}.mp3`;
 if (!urlVideo) { console.error('đẩy clip 3D nối lên kho hỏng'); process.exit(1); }
 const job = await taoJob(db, { canh_id: ids[0], loai: 'video', provider: 'kie', model: `kie:${model}`, request: { thu: 'seedance-cum', cum: ids, prompt, anh, video: urlVideo, giong: urlGiong, dpg }, cents });
 const r = await fetch('https://api.kie.ai/api/v1/jobs/createTask', { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-  body: JSON.stringify({ model, input: { prompt, reference_image_urls: anh, reference_video_urls: [urlVideo], ...(urlGiong ? { reference_audio_urls: [urlGiong] } : {}), resolution: dpg, aspect_ratio: cum[0]!.canh && bcs[0]!.kt.ti_le === '9:16' ? '9:16' : '16:9', duration: giayRa, generate_audio: !!urlGiong } }) });
+  body: JSON.stringify({ model, input: { prompt, reference_image_urls: anh, reference_video_urls: [urlVideo], ...(urlGiong ? { reference_audio_urls: [urlGiong] } : {}), resolution: dpg, aspect_ratio: cum[0]!.canh && bcs[0]!.kt.ti_le === '9:16' ? '9:16' : '16:9', duration: giayRaGiong, generate_audio: !!urlGiong } }) });
 const j = (await r.json().catch(() => ({}))) as { code?: number; msg?: string; data?: { taskId?: string } };
 if (j.code !== 200 || !j.data?.taskId) { await xongJob(db, job, { loi: `Kie ${j.code}: ${j.msg}` }); console.error('Kie không nhận:', j.code, j.msg); process.exit(1); }
 console.log('gửi Kie', j.data.taskId, '· job', job);

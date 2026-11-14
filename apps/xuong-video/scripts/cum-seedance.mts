@@ -29,7 +29,12 @@ const conDung = (c: (typeof ds)[number]) => { const nv = c.nguon_video as { job?
 const giu = ds.filter(conDung);
 // đoạn CẦN SINH liền nhau (shot giữ cắt đôi đoạn) → chia cụm cân trong từng đoạn
 const doan: (typeof ds)[] = []; for (const c of ds) { if (conDung(c)) { doan.push([]); continue; } (doan.at(-1) ?? doan[doan.push([]) - 1]!).push(c); }
-const cum = doan.filter((d) => d.length).flatMap((d) => chiaCumCan(d, 15)).map((c, i) => {
+// MỖI CỤM MỘT NGƯỜI NÓI (luật 15/11/2026): Seedance nhép lẫn khi ≥ 2 người nói trong một lần sinh — cắt đoạn trước shot đổi người nói rồi mới chia cân
+const nguoiNoi = (c: (typeof ds)[number]) => [...new Set((c.thoai ?? []).filter((d) => d.url && d.loi?.trim()).map((d) => d.nhan_vat))];
+const tachNoi = (d: (typeof ds)): (typeof ds)[] => { const out: (typeof ds)[] = [[]]; let ai: string | null = null;
+  for (const c of d) { const n = nguoiNoi(c); const moi = n.find((x) => x !== ai) ?? null; if (n.length > 1 || (moi && ai && moi !== ai)) out.push([]); if (n.length) ai = n.length > 1 ? null : n[0]!; out.at(-1)!.push(c); }
+  return out.filter((x) => x.length); };
+const cum = doan.filter((d) => d.length).flatMap(tachNoi).flatMap((d) => chiaCumCan(d, 15)).map((c, i) => {
   const tong = c.reduce((a, x) => a + giayPhat(x), 0); const ra = Math.max(4, Math.ceil(tong));
   const thieu = c.filter((x) => !(x.khung_xam?.clip && x.khung_xam.clip.ma === x.khung_xam.ma) || !x.keyframe_url).map((x) => x.thu_tu);
   return { ten: String.fromCharCode(65 + i), phan_doan: c[0]!.phan_doan, shot: c.map((x) => ({ id: x.id, so: x.thu_tu, phat: giayPhat(x), clip: x.khung_xam?.clip?.url ?? null, vao: x.khung_xam?.clip?.vao ?? 0 })),

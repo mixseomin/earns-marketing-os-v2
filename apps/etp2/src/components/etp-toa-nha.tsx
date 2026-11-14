@@ -7,7 +7,7 @@
 // MỘT bộ dựng cho hai chỗ: dungToa (một toà) + useCanh3D (renderer · xoay · phóng · trượt · rê · bấm) — ToaNha (khung phim) và ThanhPho (widget Tổng quan) cùng gọi.
 // three nạp động khi mở (không nặng trang). Điều khiển như city.on.tc: kéo = xoay · Shift + lăn = phóng · chuột phải / Shift + kéo = trượt · điện thoại 1 ngón xoay, 2 ngón chụm phóng.
 import React, { useEffect, useRef, useState } from 'react';
-import type { CampToa } from '@/lib/actions/etp-lich-phim';
+import type { CampToa } from '@/lib/etp-toa-sql';
 
 type T3 = typeof import('three');
 export const TANG = ['Móng', 'Thử', 'Lãi', 'Scale', '★ ROAS'] as const;
@@ -21,8 +21,20 @@ export function xepTang(c: CampToa) {
 }
 export const mauCamp = (c: CampToa) => (c.cho ? LAM : c.chi7 < 1 ? XAM : c.thu7 > c.chi7 ? (c.roas ? TIM : XANH) : DO);
 export const roiCamp = (c: CampToa) => (c.chi7 >= 1 ? Math.round((c.thu7 - c.chi7) / c.chi7 * 100) : null);
+/** CẤP TOÀ (anh 15/11/2026 "mỗi toà nhà sẽ có hình dáng, level khác nhau nếu có nhiều camp ổn định hơn"): camp ổn định = lãi ≥ ON_DINH trong 7 ngày Ethopex đã khép.
+ *  Lán thử → Nhà phố (mái ngói) → Văn phòng (mái bằng + tum) → Cao ốc (đỉnh thụt cấp) → Tháp (hai cấp đỉnh + chóp vàng). */
+export const ON_DINH = 5;
+export const laOnDinh = (c: CampToa) => !c.cho && c.ngay_lai >= ON_DINH;
+export const CAP = ['Lán thử', 'Nhà phố', 'Văn phòng', 'Cao ốc', 'Tháp'] as const;
+export const GIAI_CAP = `Lán thử: chưa camp nào lãi 7 ngày · Nhà phố: có camp lãi · Văn phòng: có camp Scale (> $1) lãi · Cao ốc: có ★ ROAS lãi hoặc ≥ 3 camp ổn định · Tháp: ★ ROAS lãi + ≥ 5 camp ổn định\nCamp ổn định = lãi ≥ ${ON_DINH} trong 7 ngày Ethopex đã khép`;
+export function capToa(camp: CampToa[]) {
+  const lai = (c: CampToa) => !c.cho && c.chi7 >= 1 && c.thu7 > c.chi7, od = camp.filter(laOnDinh).length;
+  const roasLai = camp.some((c) => c.roas && lai(c)), scaleLai = camp.some((c) => !c.roas && c.ns > 1 && lai(c));
+  const cap = roasLai && od >= 5 ? 4 : roasLai || od >= 3 ? 3 : scaleLai ? 2 : camp.some(lai) ? 1 : 0;
+  return { cap, ten: CAP[cap]!, od };
+}
 const chuCamp = (c: CampToa) => { const r7 = roiCamp(c);
-  return `#${c.id} · ${c.roas ? '★ ROAS' : c.dang} · $${c.ns}/ngày${c.cho ? ' · hẹn giờ, chưa chạy' : ` · 7 ngày chi $${c.chi7.toFixed(0)} · thu $${c.thu7.toFixed(0)}${r7 != null ? ` · ROI ${r7 > 0 ? '+' : ''}${r7}%` : ' · chưa đủ số'}`}`; };
+  return `#${c.id} · ${c.roas ? '★ ROAS' : c.dang} · $${c.ns}/ngày${c.cho ? ' · hẹn giờ, chưa chạy' : ` · 7 ngày chi $${c.chi7.toFixed(0)} · thu $${c.thu7.toFixed(0)}${r7 != null ? ` · ROI ${r7 > 0 ? '+' : ''}${r7}%` : ' · chưa đủ số'}`}${c.cho ? '' : ` · lãi ${c.ngay_lai}/${c.ngay_chay} ngày đã khép${laOnDinh(c) ? ' (ổn định)' : ''}`}`; };
 
 type Khoi = { kieu: 'camp'; c: CampToa } | { kieu: 'sx' | 'ke' | 'cho'; chu: string };
 export type MongToa = { sx: number; ke: number; cho: number };   // đang sản xuất · kế hoạch · creative chờ lên chưa có camp
@@ -74,11 +86,12 @@ function dungToa(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: Mo
     return [RONG / 2 - 0.5 - (i - COT - 2 * HANG), -nz, Math.PI];
   };
   const be = (rong: number, cao: number, sau: number, mau: number, yy: number, x = 0) => { const m = new T.Mesh(new T.BoxGeometry(rong, cao, sau), new T.MeshStandardMaterial({ color: mau, roughness: 0.85 })); m.position.set(x, yy, 0); g.add(m); return m; };
+  const cap = capToa(o.camp).cap, THAN = [0x8a8f98, 0xd6c3a0, 0x9fb3c8, 0xcbd5e1, 0xeef2f6][cap]!, GO = cap === 4 ? 0xd4a017 : cap === 1 ? 0x9a6b3c : 0x94a3b8;
   let y = 0;
   theoTang.forEach((ds, t) => {
     const mong = t === 0, ra = mong ? 0.25 : 0, san = Math.max(1, Math.ceil(ds.length / O_TANG)), caoSan = ds.length ? CAO : CAO * 0.6, cao = san * caoSan;
-    be(RONG + 2 * ra, cao, SAU + 2 * ra, mong ? 0x475569 : 0xcbd5e1, y + cao / 2);   // thân (đế xám đậm · thân bê tông sáng)
-    be(RONG + 2 * ra + 0.08, 0.05, SAU + 2 * ra + 0.08, mong ? 0x334155 : 0x94a3b8, y + cao);   // gờ sàn giữa hai tầng
+    be(RONG + 2 * ra, cao, SAU + 2 * ra, mong ? 0x475569 : THAN, y + cao / 2);   // thân (đế xám đậm · thân bê tông sáng)
+    be(RONG + 2 * ra + 0.08, 0.05, SAU + 2 * ra + 0.08, mong ? 0x334155 : GO, y + cao);   // gờ sàn giữa hai tầng
     for (let s2 = 0; s2 < san; s2++) for (let i = 0; i < O_TANG; i++) {
       const k = ds[s2 * O_TANG + i], [cx, cz, quay] = o2(i, ra), cy = y + s2 * caoSan + caoSan / 2;
       const geo = new T.PlaneGeometry(0.8, caoSan * 0.68);
@@ -94,12 +107,35 @@ function dungToa(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: Mo
     }
     y += cao + 0.05;
   });
-  // mái: sàn mái nhô · tum kỹ thuật · cột ăng-ten cắm biển
-  be(RONG + 0.14, 0.1, SAU + 0.14, 0x64748b, y + 0.05);
-  be(1.0, 0.3, 0.8, 0x94a3b8, y + 0.25, -0.6);
-  const cot = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.9), new T.MeshStandardMaterial({ color: 0x94a3b8 })); cot.position.set(RONG / 2 - 0.4, y + 0.55, 0); g.add(cot);
-  if (o.bien) { const sp = nhan(T, o.bien.chu, o.bien.mau, 1.1, o.bienTheoMan ?? true); sp.center.set(0.5, 0); sp.position.set(RONG / 2 - 0.4, y + 1.02, 0); g.add(sp); }
-  return { cao: y + 1.0, vat };
+  // MÁI THEO CẤP — hình dáng toà nói cấp: lán mái tôn thấp · nhà phố mái ngói · văn phòng mái bằng + tum · cao ốc đỉnh thụt cấp · tháp hai cấp đỉnh + chóp vàng
+  let dinh = y;
+  if (cap === 0) { be(RONG + 0.1, 0.06, SAU + 0.1, 0x52525b, y + 0.03); dinh = y + 0.06; }
+  else if (cap === 1) {
+    const hinh = new T.Shape(); hinh.moveTo(-SAU / 2 - 0.12, 0); hinh.lineTo(SAU / 2 + 0.12, 0); hinh.lineTo(0, 0.6); hinh.closePath();
+    const ngoi = new T.Mesh(new T.ExtrudeGeometry(hinh, { depth: RONG + 0.2, bevelEnabled: false }), new T.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.8 }));
+    ngoi.rotation.y = Math.PI / 2; ngoi.position.set(-RONG / 2 - 0.1, y, 0); g.add(ngoi); dinh = y + 0.6;
+  } else {
+    be(RONG + 0.14, 0.1, SAU + 0.14, cap === 4 ? 0xd4a017 : 0x64748b, y + 0.05); dinh = y + 0.1;
+    if (cap === 2) { be(1.0, 0.3, 0.8, 0x94a3b8, dinh + 0.15, -0.6); }
+    else {
+      // đỉnh thụt cấp: khối nhỏ hơn có dải kính sáng (cao ốc 1 cấp, tháp 2 cấp)
+      const capDinh = cap === 4 ? 2 : 1;
+      for (let k = 0; k < capDinh; k++) {
+        const r = RONG - 0.7 - k * 0.6, d = SAU - 0.5 - k * 0.4, h = 0.5;
+        be(r, h, d, THAN, dinh + h / 2);
+        const dai = new T.Mesh(new T.BoxGeometry(r + 0.02, 0.12, d + 0.02), new T.MeshStandardMaterial({ color: cap === 4 ? 0xfacc15 : 0x93c5fd, emissive: cap === 4 ? 0xfacc15 : 0x60a5fa, emissiveIntensity: 0.6 }));
+        dai.position.set(0, dinh + h * 0.62, 0); g.add(dai);
+        dinh += h;
+      }
+      if (cap === 4) { const chop = new T.Mesh(new T.ConeGeometry(0.16, 1.5, 12), new T.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xd4a017, emissiveIntensity: 0.5, metalness: 0.6, roughness: 0.3 }));
+        chop.position.set(0, dinh + 0.75, 0); g.add(chop); }
+    }
+  }
+  // cột ăng-ten cắm biển (tháp: biển trên chóp)
+  const xCot = cap === 4 ? 0 : RONG / 2 - 0.4, cCot = cap === 4 ? 1.5 : 0.9, yCot = cap === 4 ? dinh : dinh;
+  if (cap !== 4) { const cot = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, cCot), new T.MeshStandardMaterial({ color: 0x94a3b8 })); cot.position.set(xCot, yCot + cCot / 2, cap === 1 ? 0 : 0); g.add(cot); }
+  if (o.bien) { const sp = nhan(T, o.bien.chu, o.bien.mau, 1.1, o.bienTheoMan ?? true); sp.center.set(0.5, 0); sp.position.set(xCot, yCot + cCot + 0.12, 0); g.add(sp); }
+  return { cao: yCot + cCot + 0.1, vat };
 }
 
 /** CẢNH 3D DÙNG CHUNG: renderer + đèn + camera quỹ đạo + chuột / chạm + thẻ rê 450 ms + khung chọn. dung() dựng vật vào cảnh, trả vật bấm được + tâm nhìn + khoảng xa. */

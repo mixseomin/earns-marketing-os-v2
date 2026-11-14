@@ -3,7 +3,7 @@
 // Khoá của VE_SO phải có trong sổ lib/etp-widget.json (check-etp-gop-y đối chiếu) — thêm widget = mục trong sổ + một hàm ở đây.
 import { useEffect, useMemo, useState } from 'react';
 import { SimpleTable, StatsStrip, type SimpleColumn } from '@/components/ui';
-import { ThanhPho, laiPhim, xepTang, TANG } from '@/components/etp-toa-nha';
+import { ThanhPho, laiPhim, xepTang, TANG, capToa, CAP, GIAI_CAP } from '@/components/etp-toa-nha';
 import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
@@ -137,15 +137,17 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
 /** ô widget Thành phố: cảnh 3D + một dòng tóm tắt phim đang chọn (đếm tầng, lãi 7 ngày) */
 function ThanhPhoO({ ds, cao }: { ds: NonNullable<SoTong2['toa']>; cao: number }) {
   const [chon, setChon] = useState<number | null>(null);
-  const xep = useMemo(() => [...ds].sort((a, b) => laiPhim(b) - laiPhim(a)), [ds]);
+  // cấp toà trước (tháp đứng hàng đầu), cùng cấp thì lãi 7 ngày
+  const xep = useMemo(() => [...ds].map((x) => ({ x, c: capToa(x.camp).cap })).sort((a, b) => b.c - a.c || laiPhim(b.x) - laiPhim(a.x)).map((v) => v.x), [ds]);
+  const demCap = useMemo(() => CAP.map((_, i) => xep.filter((x) => capToa(x.camp).cap === i).length), [xep]);
   const ph = xep.find((x) => x.p === chon) ?? null;
   const k = ph ? ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }) : null;
   const tong = xep.reduce((a, x) => a + x.camp.length, 0);
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 6, height: '100%' }}>
     <div style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-      {ph && k ? <><b style={{ color: 'var(--fg-1)' }}>{ph.ten}</b> · {[...TANG].map((t, i) => ({ t, n: ph.camp.filter((c) => xepTang(c) === i).length })).reverse().filter((x) => x.n).map((x) => `${x.t} ${x.n}`).join(' · ')}
+      {ph && k ? <><b style={{ color: 'var(--fg-1)' }}>{ph.ten}</b> · <b>{capToa(ph.camp).ten}</b> ({capToa(ph.camp).od} ổn định) · {[...TANG].map((t, i) => ({ t, n: ph.camp.filter((c) => xepTang(c) === i).length })).reverse().filter((x) => x.n).map((x) => `${x.t} ${x.n}`).join(' · ')}
         {' · '}7 ngày lãi <b style={{ color: k.thu >= k.chi ? XANH : DO }}>{tien(k.thu - k.chi)}</b>{k.chi >= 1 ? ` (${pct(Math.round((k.thu - k.chi) / k.chi * 100))})` : ''}</>
-        : <>{xep.length} phim · {tong} camp đang chạy · toà càng cao càng nhiều ★ ROAS · bấm một toà để xem</>}
+        : <span style={{ cursor: 'help' }} title={GIAI_CAP}>{xep.length} phim · {tong} camp · {[...CAP].map((t, i) => ({ t, n: demCap[i]! })).reverse().filter((v) => v.n).map((v) => `${v.t} ${v.n}`).join(' · ')} · bấm một toà để xem</span>}
     </div>
     <ThanhPho ds={xep} chon={chon} onChon={setChon} cao={Math.max(160, cao - 26)} />
   </div>;

@@ -10,7 +10,7 @@ import { quyenEtp, xemNha } from '@/lib/etp-quyen';
 import { luatDaLam } from '@/lib/etp-doc';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { NhatKyDuDoan, SoNgay } from '@/lib/etp-thi-truong';
-import type { CampToa } from '@/lib/actions/etp-lich-phim';
+import { campToaSql, docCampToa, type CampToa } from '@/lib/etp-toa-sql';
 
 export type SoTong2 = {
   nay: string; gio: number;   // ngày Ethopex hôm nay (UTC) + giờ UTC hiện tại
@@ -84,10 +84,7 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
       ph as (select content_id, min(ngay) filter (where chi > 0) d0, sum(chi) chi, sum(thu) thu from x group by 1 having sum(chi) > 0)
       select ph.content_id::int p, p.ten, p.the_loai tl, p.locale nn, (select x.bo from x where x.content_id = ph.content_id and x.chi > 0 order by x.ngay limit 1) bo,
         ph.d0::text d0, ph.chi, ph.thu from ph left join etp.phim p using (content_id) where ph.d0 >= current_date - 70`) : Promise.resolve([]),
-    nha ? run<CampToa & { p: number; ten: string | null }>(sql`select c.content_id::int p, max(p.ten) ten, c.camp_id::int id, case when c.la_roas then 'ROAS' else coalesce(r.dang, '?') end dang, c.la_roas roas,
-        coalesce(c.ngan_sach, 0)::float ns, coalesce(sum(n.chi), 0)::float chi7, coalesce(sum(n.thu), 0)::float thu7, coalesce(c.lich > now(), false) cho
-      from etp.camp c left join etp.creative r using (creative_id) left join etp.so_ngay n on n.camp_id = c.camp_id and n.ngay >= current_date - 6 left join etp.phim p on p.content_id = c.content_id
-      where c.trang_thai = 'ACTIVE' and c.content_id is not null group by c.content_id, c.camp_id, r.dang, c.la_roas, c.ngan_sach, c.lich order by c.camp_id`) : Promise.resolve([]),
+    nha ? run<Record<string, unknown> & { p: number; ten: string | null }>(campToaSql(sql`true`)) : Promise.resolve([]),
   ]);
   const boCua = new Map(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [Number(b.tk), k]));
   const tkN = new Map(tk.map((t) => [t.id, t.n]));
@@ -118,7 +115,7 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
     })() : null,
     toa: nha ? (() => {
       const m = new Map<number, { p: number; ten: string; camp: CampToa[] }>();
-      for (const r of toaCamp) { const x = m.get(r.p) ?? { p: r.p, ten: r.ten ?? `#${r.p}`, camp: [] }; x.camp.push({ id: r.id, dang: r.dang, roas: r.roas, ns: so(r.ns), chi7: so(r.chi7), thu7: so(r.thu7), cho: !!r.cho }); m.set(r.p, x); }
+      for (const r of toaCamp) { const x = m.get(r.p) ?? { p: r.p, ten: r.ten ?? `#${r.p}`, camp: [] }; x.camp.push(docCampToa(r)); m.set(r.p, x); }
       return [...m.values()];
     })() : null,
     phimMoi: nha ? phimMoi.map((r) => ({ p: r.p, ten: r.ten ?? `#${r.p}`, tl: r.tl, nn: r.nn, bo: r.bo, d0: r.d0, chi: so(r.chi), thu: so(r.thu) })) : null,

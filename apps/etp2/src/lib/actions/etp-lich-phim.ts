@@ -6,6 +6,7 @@
 // etp.dong_phim + dong_buoc (sản xuất) · etp.nhat_ky (cổng lên camp chặn 24 giờ) · etp.cau_hinh khung_hoan (sổ hoãn của máy luật).
 import { execFile } from 'node:child_process';
 import { sql } from 'drizzle-orm';
+import { campToaSql, docCampToa, type CampToa } from '@/lib/etp-toa-sql';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
@@ -29,7 +30,7 @@ export type LichPhim = {
   /** dạng dòng đang gác (etp.cau_hinh.gac_dang) — nút ＋ dạng đó tắt, chữ rê nói vì sao (#1598) */
   gac: string[];
 };
-export type CampToa = { id: number; dang: string; roas: boolean; ns: number; chi7: number; thu7: number; cho: boolean };
+export type { CampToa } from '@/lib/etp-toa-sql';   // kiểu + câu SQL camp của toà nhà ở MỘT chỗ (lib/etp-toa-sql.ts)
 /** một camp thắng: ngân sách · chi / thu 30 ngày (cửa sổ máy luật dùng cho nấc nhân bản + ROAS) · 3 ngày gần · hôm nay (ngày Ethopex = ngày UTC) · tới 13:00 VN · lần tăng gần nhất */
 export type CampThang = { camp_id: number; ten: string; ns: number; la_ban: boolean; co_roas: boolean; ban: number; chi30: number; thu30: number; chi7: number; thu7: number; chi3: number; thu3: number;
   chi_nay: number; thu_nay: number; chi13: number; ns13: number | null; tang_luc: string | null };
@@ -87,16 +88,13 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
         -- mo_rong 'cho_do': camp mới nhất chưa qua trọn 1 ngày khép → đo lại từ 00:00 UTC ngày thứ 2 sau ngày tạo (07:00 VN)
         (select to_char(((max(tao) at time zone 'utc')::date + 2)::timestamp at time zone 'utc' at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE' and not la_roas) do_toi
       from (select (select gia_tri from etp.cau_hinh where khoa = 'len_doi_lai') gia_tri) x`),
-    run<CampToa>(sql`select c.camp_id::int id, case when c.la_roas then 'ROAS' else coalesce(r.dang, '?') end dang, c.la_roas roas, coalesce(c.ngan_sach, 0)::float ns,
-        coalesce(sum(n.chi), 0)::float chi7, coalesce(sum(n.thu), 0)::float thu7, coalesce(c.lich > now(), false) cho
-      from etp.camp c left join etp.creative r using (creative_id) left join etp.so_ngay n on n.camp_id = c.camp_id and n.ngay >= current_date - 6
-      where c.content_id = ${id} and c.trang_thai = 'ACTIVE' group by c.camp_id, r.dang, c.la_roas, c.ngan_sach, c.lich order by c.camp_id`),
+    run<Record<string, unknown>>(campToaSql(sql`c.content_id = ${id}`)),
     dangGac(),
   ]);
   const ids = new Set((await run<{ camp_id: number }>(sql`select camp_id from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE'`)).map((x) => Number(x.camp_id)));
   const hoan = (['tang', 'giam', 'tat'] as const).flatMap((h) => ((kh?.g?.[h] as number[] | undefined) ?? []).filter((c) => ids.has(Number(c))).map((c) => ({ camp_id: Number(c), huong: h })));
   return { ...p!, dang, thay: thay ?? null, sx, hoan, moc_chi: mc?.chi ?? 25, moc_thu: mc?.so ?? 4, ke: ke ?? null, hen, tu_len: cho?.tu_len ?? 0, thieu: cho?.thieu ?? null, may_mo: !!cho?.may_mo, lt: lt?.g ?? null,
-    thang, cr: { san: kho?.san ?? 0, chan: kho?.chan ?? 0 }, doi_lai: { chi: kho?.chi ?? 30, roi: kho?.roi ?? 30, ngay: kho?.ngay ?? 3 }, do_toi: kho?.do_toi ?? null, camp, gac };
+    thang, cr: { san: kho?.san ?? 0, chan: kho?.chan ?? 0 }, doi_lai: { chi: kho?.chi ?? 30, roi: kho?.roi ?? 30, ngay: kho?.ngay ?? 3 }, do_toi: kho?.do_toi ?? null, camp: camp.map(docCampToa), gac };
 }
 
 /** LOG TỪNG PHIM (anh 07/11/2026 "các log của từng film nên để sang 1 tab riêng"): nhật ký máy + dòng phim, mới nhất trên. Lần cổng chặn (ok rỗng) gom theo câu lỗi. */

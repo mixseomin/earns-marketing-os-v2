@@ -4,6 +4,7 @@
 // giai đoạn · dạng đã thử · mốc cất · sản xuất + lỗi · sắp tới · nút ＋ CC / ＋ KT / − bớt camp lỗ nhất. Số: lib/actions/etp-lich-phim.ts (kiểm vai chủ trên máy chủ).
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { KhungKeo } from '@/components/etp-khung-keo';
 import { DongMoc, KhungNoi, TheChung, useNoi, type Moc, type Noi, type TheNoi } from '@/components/etp-noi';
 import { ChuoiBuoc } from '@/components/etp-dong';
 import { MA_DANG, DANG_DONG } from '@/components/etp-so';
@@ -194,8 +195,9 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
   ].filter(Boolean).slice(0, 4) as string[] : [];
   const oTab = (k: 'camp' | 'lich' | 'toa' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
   const RONG = tab === 'camp' ? 680 : 480;   // tab Camps 9 cột tiền kế toán — khung rộng hơn, không cắt cột
-  return <KhungNoi x={vi.x} y={vi.y} rong={RONG} cao={tab === 'toa' ? 600 : l?.thang.length ? 620 : 360} noi={noi}>
-      <div onClick={(e) => e.stopPropagation()} onPointerDown={ghimLai} style={{ padding: '10px 30px 10px 12px', width: RONG, maxWidth: '92vw', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+  const cao0 = tab === 'toa' ? 600 : l?.thang.length ? 620 : 360;
+  const ruot = (
+      <div onClick={(e) => { e.stopPropagation(); ghimLai(); }} style={{ padding: ghim ? '10px 12px' : '10px 30px 10px 12px', width: ghim ? '100%' : RONG, maxWidth: ghim ? undefined : '92vw', boxSizing: 'border-box', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', gap: 4 }}>{chiCamp ? null : oTab('lich', 'Lịch + điều khiển')}{oTab('camp', 'Camps')}{chiCamp ? null : <>{oTab('toa', 'Toà nhà')}{thiTruong ? oTab('tt', 'Thị trường') : null}{oTab('log', 'Log')}</>}</div>
         {tab === 'camp' ? (() => { const ds = dsCamp ?? (l ? { ten: l.ten ?? `#${cid}`, nguoi: 'nhà', laNha: true, camp: l.camp, tat: l.camp_tat } : null);
           if (!ds) return loi ? <div style={{ color: '#f87171' }}>{loi}</div> : <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div>;
@@ -264,6 +266,8 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
             </div>; })()}
           {kq ? <div style={{ fontSize: 11, color: kq.startsWith('✓') ? '#4ade80' : kq.startsWith('…') ? 'var(--fg-2)' : '#f87171' }}>{kq}</div> : null}
         </>}</>}
-      </div>
-    </KhungNoi>;
+      </div>);
+  // đã ghim → khung kéo (dời, đổi cỡ 8 hướng, nhớ F5); chưa ghim → thẻ rê như cũ
+  return ghim ? <KhungKeo khoa="etp2-bang-phim" x={vi.x} y={vi.y} rong={RONG} cao={cao0} ten={dsCamp?.ten ?? l?.ten ?? `#${cid}`} onDong={noi0.dong}>{ruot}</KhungKeo>
+    : <KhungNoi x={vi.x} y={vi.y} rong={RONG} cao={cao0} noi={noi}>{ruot}</KhungNoi>;
 }

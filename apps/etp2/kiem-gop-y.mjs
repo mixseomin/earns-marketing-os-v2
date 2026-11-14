@@ -85,6 +85,8 @@ const LUAT = [
   { card: 'camps-ketoan-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: '<KeToan v={c.thu7 - c.chi7} mau={c.thu7 >= c.chi7 ? XANH : DO} />', vi: 'tab Camps: tiền kiểu kế toán (anh 15/11/2026)' },
   { card: 'giu-goc-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'if (!docGoc()) datGoc();', vi: 'giữ góc nhìn 3D (zoom, xoay) qua F5 / đổi người / đổi tài khoản (anh 15/11/2026)' },
   { card: 'ghim-bang-1511', tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'const noi: Noi = ghim ? { ...noi0, dongTre: noi0.giu } : noi0;', vi: 'bảng phim mở bằng bấm / đã bấm trong bảng thì rê ra ngoài không đóng (anh 15/11/2026)' },
+  { card: 'khung-keo-1511', tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'return ghim ? <KhungKeo khoa="etp2-bang-phim"', vi: 'bảng phim ghim = khung kéo dời, đổi cỡ 4 cạnh + 4 góc, nhớ F5 (anh 15/11/2026)' },
+  { card: 'khung-keo-1511', tep: 'apps/etp2/src/components/etp-khung-keo.tsx', co: "const HUONG = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const;", vi: 'đổi cỡ đủ 8 hướng' },
   { card: 'tin-hieu-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'const tinHieu = cap < 4 ? camp.filter((c) => lai(c) && !laOnDinh(c)).length : 0;', vi: 'tín hiệu lãi chỉ bật đèn xanh, không đổi khu — lên cấp mới đổi khu (anh 15/11/2026)' },
   { card: 'phan-khu-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: "export const KHU = [{ ten: 'Khu thượng lưu'", vi: 'thành phố phân khu thượng lưu / trung lưu / ven + đường giữa các cụm (anh 15/11/2026)' },
   { card: 'thanh-pho-1511', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'thanh_pho: ({ cao }) =>', vi: 'widget Thành phố phim ở Tổng quan — mỗi phim một toà (anh 15/11/2026 bước 2)' },

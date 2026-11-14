@@ -161,13 +161,14 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
 
 /** BẢNG PHIM (Lịch + điều khiển · Toà nhà · Thị trường · Log) — MỘT ruột cho hai lối vào: rê đồng hồ dòng phim (NutLichPhim) và bấm một toà trong thành phố
  *  (anh 15/11/2026 "Nếu bấm vào thì cần show cái này ra"). Tab Thị trường chỉ có khi lối vào đưa thẻ thị trường. */
-/** dsCamp: camp của toà đã bấm trong thành phố (cùng nguồn với cây / cửa) — có thì tab Camp mở sẵn; laNha = false (đang xem người khác) thì chỉ tab Camp, không nạp số nhà */
+/** Tab CAMPS (anh 15/11/2026 "vẫn phải hiện kiểu này nhưng thêm 1 tab là Camps"): bảng vẫn mở ở Lịch + điều khiển; Camps liệt kê camp của phim —
+ *  dsCamp = camp của toà đã bấm trong thành phố (cùng nguồn với cây / cửa), không có thì lấy camp nhà của phim (docLichPhim). laNha = false (đang xem người khác) thì chỉ tab Camps, không nạp số nhà */
 export function BangPhim({ cid, thiTruong, noi, vi, dsCamp }: { cid: number; thiTruong?: () => TheNoi; noi: Noi; vi: { x: number; y: number };
   dsCamp?: { ten: string; nguoi: string; laNha: boolean; camp: CampToa[]; tat: CampToa[] } }) {
   const chiCamp = !!dsCamp && !dsCamp.laNha;
   const router = useRouter();
   const [l, setL] = useState<LichPhim | null>(null), [loi, setLoi] = useState<string | null>(null), [dang, setDang] = useState(false), [kq, setKq] = useState<string | null>(null);
-  const [tab, setTab] = useState<'camp' | 'lich' | 'toa' | 'tt' | 'log'>(dsCamp ? 'camp' : 'lich'), [chonToa, setChonToa] = useState<number | null>(null), [log, setLog] = useState<LogPhim[] | { loi: string } | null>(null);
+  const [tab, setTab] = useState<'camp' | 'lich' | 'toa' | 'tt' | 'log'>(dsCamp && !dsCamp.laNha ? 'camp' : 'lich'), [chonToa, setChonToa] = useState<number | null>(null), [log, setLog] = useState<LogPhim[] | { loi: string } | null>(null);
   useEffect(() => { if (tab === 'log') docLogPhim(cid).then(setLog).catch((e) => setLog({ loi: String(e?.message ?? e) })); }, [tab, cid]);
   // bảng chỉ dựng khi đang mở → mở (hoặc đổi phim) là tải
   useEffect(() => { setKq(null); setL(null); setLoi(null); if (!chiCamp) tai(); }, [cid, chiCamp]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -188,12 +189,14 @@ export function BangPhim({ cid, thiTruong, noi, vi, dsCamp }: { cid: number; thi
   const oTab = (k: 'camp' | 'lich' | 'toa' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
   return <KhungNoi x={vi.x} y={vi.y} rong={480} cao={tab === 'toa' ? 600 : l?.thang.length ? 620 : 360} noi={noi}>
       <div onClick={(e) => e.stopPropagation()} style={{ padding: '10px 30px 10px 12px', width: 480, maxWidth: '92vw', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 4 }}>{dsCamp ? oTab('camp', `Camp · ${dsCamp.camp.length}`) : null}{chiCamp ? null : <>{oTab('lich', 'Lịch + điều khiển')}{oTab('toa', 'Toà nhà')}{thiTruong ? oTab('tt', 'Thị trường') : null}{oTab('log', 'Log')}</>}</div>
-        {tab === 'camp' && dsCamp ? <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dsCamp.ten}</b>
-            <span style={{ color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{dsCamp.nguoi}</span></div>
-          <DsCampToa camp={dsCamp.camp} tat={dsCamp.tat} />
-          {chiCamp ? <div style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>Đang xem camp của {dsCamp.nguoi} — lịch, máy luật, toà nhà chi tiết chỉ có cho camp nhà.</div> : null}</>
+        <div style={{ display: 'flex', gap: 4 }}>{chiCamp ? null : oTab('lich', 'Lịch + điều khiển')}{oTab('camp', 'Camps')}{chiCamp ? null : <>{oTab('toa', 'Toà nhà')}{thiTruong ? oTab('tt', 'Thị trường') : null}{oTab('log', 'Log')}</>}</div>
+        {tab === 'camp' ? (() => { const ds = dsCamp ?? (l ? { ten: l.ten ?? `#${cid}`, nguoi: 'nhà', laNha: true, camp: l.camp, tat: l.camp_tat } : null);
+          if (!ds) return loi ? <div style={{ color: '#f87171' }}>{loi}</div> : <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div>;
+          return <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ds.ten}</b>
+            <span style={{ color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{ds.camp.length} chạy{ds.tat.length ? ` · ${ds.tat.length} đã tắt` : ''} · {ds.nguoi}</span></div>
+          <DsCampToa camp={ds.camp} tat={ds.tat} />
+          {chiCamp ? <div style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>Đang xem camp của {ds.nguoi} — lịch, máy luật, toà nhà chi tiết chỉ có cho camp nhà.</div> : null}</>; })()
         : tab === 'toa' ? (loi ? <div style={{ color: '#f87171' }}>{loi}</div> : !l ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : <TabToa l={l} chon={chonToa} onChon={setChonToa} />)
           : tab === 'tt' && thiTruong ? <div style={{ margin: '-10px -30px -10px -12px' }}><TheChung t={thiTruong()} /></div> : tab === 'log' ? <div style={{ maxHeight: 420, overflowY: 'auto' }}>
           {!log ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : 'loi' in log ? <div style={{ color: '#f87171' }}>{log.loi}</div> : <DongMoc ds={log.map(mocLog)} rong="Phim chưa có log." />}</div> : <>

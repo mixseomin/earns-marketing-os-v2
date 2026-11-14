@@ -8,6 +8,7 @@
 // three nạp động khi mở (không nặng trang). Điều khiển như city.on.tc: kéo = xoay · Shift + lăn = phóng · chuột phải / Shift + kéo = trượt · điện thoại 1 ngón xoay, 2 ngón chụm phóng.
 import React, { useEffect, useRef, useState } from 'react';
 import type { CampToa } from '@/lib/etp-toa-sql';
+import { KeToan } from '@/components/etp-so';
 
 type T3 = typeof import('three');
 export const TANG = ['Móng', 'Thử', 'Lãi', 'Scale', '★ ROAS'] as const;
@@ -441,9 +442,10 @@ export function DsCampToa({ camp, tat }: { camp: CampToa[]; tat: CampToa[] }) {
     return <tr key={c.id} style={{ borderTop: '1px solid var(--line)', opacity: c.tat ? 0.6 : 1 }}>
       <td style={{ padding: '3px 6px 3px 0', whiteSpace: 'nowrap' }}><span style={{ color: mau }}>●</span> <b style={{ color: 'var(--fg-1)' }}>#{c.id}</b></td>
       <td style={{ padding: '3px 6px', whiteSpace: 'nowrap' }}>{c.roas ? '★ ROAS' : c.dang}</td>
-      <td style={{ padding: '3px 6px', textAlign: 'right' }}>${c.ns}</td>
-      <td style={{ padding: '3px 6px', textAlign: 'right' }}>${c.chi7.toFixed(0)}</td>
-      <td style={{ padding: '3px 6px', textAlign: 'right', color: c.chi7 >= 1 ? (c.thu7 > c.chi7 ? XANH : DO) : 'var(--fg-3)' }}>{c.chi7 >= 1 ? `${c.thu7 - c.chi7 >= 0 ? '' : '−'}$${Math.abs(c.thu7 - c.chi7).toFixed(0)}` : '—'}</td>
+      <td style={{ padding: '3px 6px' }}><KeToan v={c.ns} /></td>
+      <td style={{ padding: '3px 6px' }}><KeToan v={c.chi7} /></td>
+      <td style={{ padding: '3px 6px' }}><KeToan v={c.thu7} /></td>
+      <td style={{ padding: '3px 6px' }}><KeToan v={c.thu7 - c.chi7} mau={c.thu7 >= c.chi7 ? XANH : DO} /></td>
       <td style={{ padding: '3px 6px', textAlign: 'right', color: r == null ? 'var(--fg-3)' : r >= 0 ? XANH : DO }}>{r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`}</td>
       <td style={{ padding: '3px 0 3px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: laOnDinh(c) ? XANH : 'var(--fg-2)' }}>{c.cho ? 'hẹn giờ' : c.tat ? 'đã tắt' : `${c.ngay_lai}/${c.ngay_chay}${laOnDinh(c) ? ' ổn định' : ''}`}</td>
     </tr>; };
@@ -452,9 +454,9 @@ export function DsCampToa({ camp, tat }: { camp: CampToa[]; tat: CampToa[] }) {
     <table style={{ width: '100%', borderCollapse: 'collapse', fontVariantNumeric: 'tabular-nums' }}>
       <thead><tr style={{ color: 'var(--fg-3)', fontSize: 10.5 }}><th style={{ textAlign: 'left', fontWeight: 400 }}>Camp</th><th style={{ textAlign: 'left', fontWeight: 400, padding: '0 6px' }}>Dạng</th>
         <th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>NS/ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Chi 7 ngày</th>
-        <th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Lãi 7 ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>ROI</th>
+        <th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Thu 7 ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Lãi 7 ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>ROI</th>
         <th style={{ textAlign: 'right', fontWeight: 400 }} title={`số ngày lãi / số ngày có chi ≥ $1 trong 7 ngày Ethopex đã khép · ổn định = lãi ≥ ${ON_DINH} ngày`}>Ngày lãi</th></tr></thead>
-      <tbody>{[...camp].sort(xep).map(dong)}{tat.length ? <tr><td colSpan={7} style={{ paddingTop: 8, color: 'var(--fg-3)', fontSize: 10.5 }}>Đã tắt (còn chi trong 30 ngày) · {tat.length}</td></tr> : null}{[...tat].sort(xep).map(dong)}</tbody>
+      <tbody>{[...camp].sort(xep).map(dong)}{tat.length ? <tr><td colSpan={8} style={{ paddingTop: 8, color: 'var(--fg-3)', fontSize: 10.5 }}>Đã tắt (còn chi trong 30 ngày) · {tat.length}</td></tr> : null}{[...tat].sort(xep).map(dong)}</tbody>
     </table>
     {!camp.length && !tat.length ? <div style={{ color: 'var(--fg-3)' }}>Không có camp.</div> : null}
   </div>;

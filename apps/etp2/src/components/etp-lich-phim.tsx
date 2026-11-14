@@ -10,7 +10,7 @@ import { ChuoiBuoc } from '@/components/etp-dong';
 import { MA_DANG, DANG_DONG } from '@/components/etp-so';
 import { chuCong, chuLich, congTang, gioVnNay, KD, khungLuc, quaCong } from '@/lib/etp-khung';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
-import { ToaNha, TANG, xepTang, mauCamp, roiCamp, capToa, GIAI_CAP, DsCampToa } from '@/components/etp-toa-nha';
+import { ToaNha, TANG, xepTang, mauCamp, roiCamp, capToa, GIAI_CAP, DsCampToa, baoToa } from '@/components/etp-toa-nha';
 import type { CampToa } from '@/lib/etp-toa-sql';
 import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, xemBotCamp, type CampThang, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
 
@@ -187,6 +187,8 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
   const tai = () => docLichPhim(cid).then((r) => ('loi' in r ? setLoi(r.loi) : setL(r))).catch((e) => setLoi(String(e?.message ?? e)));
   // BẤM KHÔNG CHẠY NGAY (anh 07/11/2026 "các thao tác khi bấm vào chạy luôn là đéo được"): nút chỉ mở hàng xác nhận nói rõ sẽ làm gì, tốn gì; bấm Xác nhận mới chạy
   const [hoi, setHoi] = useState<{ chu: string; lam: () => Promise<{ loi: string } | { ok: true }>; xong: string } | null>(null);
+  // xếp dòng SX xong → toà / thửa của phim trên thành phố cộng ngay n dòng SX (giàn giáo / cọc vàng), không chờ lượt tải số kế
+  const sxBao = async (x: Parameters<typeof themCampPhim>[1], n: number) => { const r = await themCampPhim(cid, x, n); if (!('loi' in r)) baoToa({ p: cid, sx: n }); return r; };
   const lam = async (f: () => Promise<{ loi: string } | { ok: true }>, chu: string) => {
     setHoi(null); setDang(true); setKq('… đang xử lý'); const r = await f(); setDang(false);
     setKq('loi' in r ? `✕ ${r.loi}` : `✓ ${chu}`); if (!('loi' in r)) { tai(); router.refresh(); }
@@ -263,10 +265,10 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
               {/* THAO TÁC DÍNH CHÂN (anh 15/11/2026 "thao tác cho sticky ở chân"): hàng Thao tác + ô Xác nhận nằm một khối trải hết lưới, dính đáy khung khi cuộn */}
               <div style={{ gridColumn: '1 / -1', position: 'sticky', bottom: -10, zIndex: 1, margin: '0 -12px', padding: '8px 12px 10px', background: 'var(--bg-1, #0f172a)', borderTop: '1px solid var(--line)',
                 display: 'grid', gridTemplateColumns: '58px 1fr', gap: '9px 10px', alignItems: 'center' }}>
-              {H('Thao tác', <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {(['CC', 'KT', 'AT'] as const).map((x) => <button key={x} disabled={dang || l.gac.includes(x)} style={{ ...nut, ...(l.gac.includes(x) ? GAC_ST : {}) }} title={l.gac.includes(x) ? chuGac(x) : `dòng phim ${x} lên 1 camp $1 — ${chuLich()}${vuot ? ' · đồng hồ báo vượt sức chứa' : ''}`}
-                  onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 1 camp ${x}, ngân sách $1/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => themCampPhim(cid, x, 1), xong: `đã xếp dòng ${x} × 1 camp` }); }}>＋ {x}</button>)}
-                <button disabled={dang || l.gac.includes('CC')} style={{ ...nut, ...(l.gac.includes('CC') ? GAC_ST : {}) }} title={l.gac.includes('CC') ? chuGac('CC') : `dòng phim CC lên 3 camp $1 — ${chuLich()}`} onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 3 camp CC, mỗi camp $1/ngày, tổng $3/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => themCampPhim(cid, 'CC', 3), xong: 'đã xếp dòng CC × 3 camp' }); }}>＋ 3 CC</button>
+              {H('Thao tác', <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }} onMouseLeave={() => baoToa({ p: cid, sang: false })}>
+                {(['CC', 'KT', 'AT'] as const).map((x) => <button key={x} onMouseEnter={() => baoToa({ p: cid, sang: true })} disabled={dang || l.gac.includes(x)} style={{ ...nut, ...(l.gac.includes(x) ? GAC_ST : {}) }} title={l.gac.includes(x) ? chuGac(x) : `dòng phim ${x} lên 1 camp $1 — ${chuLich()}${vuot ? ' · đồng hồ báo vượt sức chứa' : ''}`}
+                  onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 1 camp ${x}, ngân sách $1/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => sxBao(x, 1), xong: `đã xếp dòng ${x} × 1 camp` }); }}>＋ {x}</button>)}
+                <button onMouseEnter={() => baoToa({ p: cid, sang: true })} disabled={dang || l.gac.includes('CC')} style={{ ...nut, ...(l.gac.includes('CC') ? GAC_ST : {}) }} title={l.gac.includes('CC') ? chuGac('CC') : `dòng phim CC lên 3 camp $1 — ${chuLich()}`} onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 3 camp CC, mỗi camp $1/ngày, tổng $3/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => sxBao('CC', 3), xong: 'đã xếp dòng CC × 3 camp' }); }}>＋ 3 CC</button>
                 <button disabled={dang} style={{ ...nut, color: '#f87171' }} title="tắt camp Nhà ROI thấp nhất của phim (giữ camp cuối nếu lãi)"
                   onClick={async () => { setKq(null); const x = await xemBotCamp(cid); if ('loi' in x) { setKq(`✕ ${x.loi}`); return; } setHoi({ chu: `Tắt camp #${x.camp_id}: chi $${x.chi.toFixed(2)}, thu $${x.thu.toFixed(2)} cả đời. Không bật lại tự động.`, lam: async () => { const r = await botCampPhim(cid, x.camp_id); return 'loi' in r ? r : { ok: true as const }; }, xong: `đã tắt #${x.camp_id}` }); }}>− bớt camp lỗ</button></div>)}
               {hoi ? H('Xác nhận', <div style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #f59e0b' }}><div style={{ marginBottom: 6, color: 'var(--fg-1)' }}>{hoi.chu}</div>

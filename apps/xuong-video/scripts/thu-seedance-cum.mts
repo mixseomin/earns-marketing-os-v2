@@ -71,10 +71,16 @@ for (;;) {
   const url = await uploadToR2(`xuong-video/clip/cum-${ids.join('-')}-${randomUUID()}.mp4`, buf, 'video/mp4');
   if (!url) { await xongJob(db, job, { loi: 'đẩy kho hỏng' }); process.exit(1); }
   await xongJob(db, job, { output_url: url, chi_phi_cents: cents });
+  // LUẬT CHẤM SAU KHI SINH (anh 14/11/2026 — phát sinh nào cũng vào luật): model chia giờ sai (cụm #2–7 lần 2: #3 giữ 2,3 s, #4 còn 0,84 s < 2 s phát) → đoạn
+  // của shot ngắn hơn giây phát thì phát lố sang shot kế. Shot thiếu giờ (vaoTuCatThat › ngan) hoặc clip không đo đủ cú cắt → KHÔNG gắn, gỡ clip cũ của shot
+  // đó (video_url NULL) để kế hoạch cụm lần sau tự đưa vào sinh lại (cum-seedance.mts).
+  const hong = new Set(v.theoDo ? v.ngan : cum.map((x) => x.canh.thu_tu));
   for (const [i, x] of cum.entries()) {
+    if (hong.has(x.canh.thu_tu)) { await db.execute(sql`UPDATE xv_canh SET video_url = NULL, loi = ${v.theoDo ? `cụm Seedance job ${job}: đoạn của shot ngắn hơn giây phát — sinh lại` : `cụm Seedance job ${job}: không đo đủ cú cắt`}, updated_at = now() WHERE id = ${x.canh.id}`); continue; }
     await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt, job, cum: ids })}::jsonb, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);
     await db.execute(sql`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${JSON.stringify(v.vao[i])}::jsonb) WHERE id = ${x.canh.id}`);
   }
+  if (hong.size) console.log(`✗ KHÔNG GẮN (thiếu giờ / không đo đủ cú cắt): #${[...hong].join(' #')} — vào lượt sinh sau`);
   console.log(`xong ${Math.round((Date.now() - t0) / 1000)}s · ${url} · dài ${dai.toFixed(2)} s · cú cắt đo ${cat.map((c) => c.toFixed(2)).join(', ') || 'không thấy'} · ${v.theoDo ? 'điểm vào theo cú cắt đo' : 'điểm vào theo lịch (không đo đủ cú cắt)'} · vào ${v.vao.map((x) => x.toFixed(2)).join(', ')} · ~${cents.toFixed(1)}¢`);
   process.exit(0);
 }

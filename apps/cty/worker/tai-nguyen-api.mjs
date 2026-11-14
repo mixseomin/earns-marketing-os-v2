@@ -247,11 +247,12 @@ export function chayDonRac() {
 //                     node worker/tai-nguyen-api.mjs --tra-lanh <khoá | tiền tố/>   trả tệp từ Drive về đúng khoá cũ trên R2
 // 1. Tệp LẠNH = cũ hơn LANH.tuoiNgay ngày (giờ sửa trên R2) + KHÔNG chỗ nào trên box3 còn nhắc (mọi DB qua pg_dumpall + tệp /opt, /var/lib/cty, /var/lib/spy;
 //    khớp khoá đầy đủ, kể cả trong URL img.on.tc, hoặc tên tệp ≥ 12 ký tự — cùng cách máy dọn rác). R2 không ghi lần đọc cuối → "ít dùng" = tuổi + không ai nhắc.
-//    Bỏ thùng rác xuong-video/rac/ (máy dọn rác tự xoá).
+//    Bỏ thùng rác xuong-video/rac/ (máy dọn rác tự xoá) và mmk/ (ảnh wp-content/uploads YYYY/MM của site WordPress ngoài box3 — DB của site
+//    không nằm trên box3 nên quét tham chiếu luôn thấy "không ai nhắc"; chuyển đi = vỡ ảnh site. 14/11/2026: 34k tệp mmk/ làm phanh 90% chặn cả máy).
 // 2. rclone copy sang khodrive:kho-lanh/<khoá>, kiểm TỪNG tệp (cỡ bằng nhau, md5 bằng nhau khi hai bên có), ghi sổ LANH.so (jsonl, chỉ nối thêm).
 // 3. Sau LANH.giuNgay ngày mới xoá bản R2; trước khi xoá kiểm lại: Drive còn khớp, R2 chưa bị ghi đè (cùng cỡ + giờ), vẫn không ai nhắc.
 // 4. Tệp đã trả về không bị chuyển lại trong tuoiNgay ngày. Phanh: kho tham chiếu nhỏ / > 90% tệp cũ không ai nhắc = nghi quét hỏng → không làm gì.
-export const LANH = { tuoiNgay: 30, giuNgay: 7, tranGbDem: 40, drive: 'khodrive:kho-lanh', so: '/var/lib/cty/kho-lanh.jsonl', bo: ['xuong-video/rac/'], thamChieuToiThieu: 3000, tyLeToiDa: 0.9 };
+export const LANH = { tuoiNgay: 30, giuNgay: 7, tranGbDem: 40, drive: 'khodrive:kho-lanh', so: '/var/lib/cty/kho-lanh.jsonl', bo: ['xuong-video/rac/', 'mmk/'], thamChieuToiThieu: 3000, tyLeToiDa: 0.9 };
 const tenTep = (k) => k.slice(k.lastIndexOf('/') + 1);
 const giaiUrl = (x) => { try { return decodeURIComponent(x); } catch { return x; } };
 

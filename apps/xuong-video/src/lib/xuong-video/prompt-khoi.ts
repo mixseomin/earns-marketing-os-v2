@@ -222,7 +222,9 @@ export function chuNguoi(a: { ten: string; mo_ta: string; loai: string; khoi_3d?
  *  dangNhinVideo) và prompt cụm (cum-shot.ts › promptCumMoi). moTaNv tiếng Anh hoặc Việt. */
 export function nhanNhin(ds: readonly { ten: string; moTaNv?: string | null; ao?: string | null }[]): { ten: string; day: string; gon: string }[] {
   const x = ds.map((d) => {
-    const ao = (d.ao ?? '').split(/[,;.]| with | tucked /)[0]!.trim().toLowerCase();
+    // Bỏ tiền tố khuôn "Complete outfit of a Vietnamese man in his early 30s …:" (14/11/2026 phim #3071: nhãn thành "the man in the complete outfit of a
+    // vietnamese man … t-shirt", lặp ~10 lần, prompt 5.391 ký tự) — nhãn chỉ giữ món đồ nhìn thấy.
+    const ao = (d.ao ?? '').replace(/^\s*(the\s+)?complete outfit of [^:]*:\s*/i, '').split(/[,;.]| with | tucked /)[0]!.trim().toLowerCase();
     const m = d.moTaNv ?? '';
     // TRẺ EM tách khỏi người lớn (11/11/2026, phim #2934: chú + nhóc cùng ra "the man" khi không có đồ để phân biệt — prompt bảo "the man nhìn the man")
     const gioi = /\bgirl\b|(^|[^\p{L}])(bé gái|cô bé)([^\p{L}]|$)/iu.test(m) ? 'girl' : /\bwoman\b|(^|[^\p{L}])(nữ|cô gái|phụ nữ|chị)([^\p{L}]|$)/iu.test(m) ? 'woman'

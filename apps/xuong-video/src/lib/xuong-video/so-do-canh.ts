@@ -67,16 +67,21 @@ export function cauHuong(s: SoDo, m: ManhSoDo, nguoi: string[], tenEn: (t: strin
   // cận chèn (khung rỗng): tay / đồ của người vẫn trong khung — không ghi OFF SCREEN (câu ảnh của cận chèn tự nói phần nào thấy)
   const ngoai = m.khung?.length ? nguoi.filter((n) => m.o[n] != null && !m.khung!.includes(n)) : [];
   if (ngoai.length) out.push(`${ngoai.join(' and ')} ${ngoai.length > 1 ? 'are' : 'is'} OFF SCREEN — not visible anywhere in this frame`);
-  const ten = (b: string) => (nguoi.includes(b) ? b : tenEn(b) === b ? s.ten?.[b] ?? b : tenEn(b));
-  for (const [a, b] of Object.entries(m.nhin ?? {})) {
+  // Tên mốc cho câu: có tên tiếng Anh thì dùng; KHÔNG có thì null — trước 14/11/2026 mã nội bộ lọt thẳng vào prompt ("looks … at dau_ga", phim #3071 #1).
+  const ten = (b: string): string | null => (nguoi.includes(b) ? b : tenEn(b) !== b ? tenEn(b) : s.ten?.[b] && !/_/.test(s.ten[b]!) ? s.ten[b]! : null);
+  // Mốc đang có người đứng (m.o[người] = mốc) = nhìn NGƯỜI đó — trước đây coi là nhìn đồ vật nên ra câu tự mâu thuẫn "cửa sổ của chú nằm ngoài khung phía máy"
+  // trong khi chú đứng ngay ô cửa đó trong khung (phim #3071 #1).
+  const nguoiTai = (b: string) => (nguoi.includes(b) ? b : nguoi.find((n) => n !== b && m.o[n] === b) ?? b);
+  for (const [a, b0] of Object.entries(m.nhin ?? {})) { const b = nguoiTai(b0); const tb = ten(b);
+    if (!tb) { const sau0 = doSau(s, m, a, b) ?? 0; out.push(sau0 > NUA_LUNG ? `${a} is turned away from the camera, looking deeper into the frame` : `${a} looks ${PHIA(huongMan(s, m, a, b))}, not at the camera`); continue; }
     const sau = doSau(s, m, a, b) ?? 0; const la = !nguoi.includes(b); // nhìn vào MỐC / đồ: nói luôn mốc nằm trước hay sau người (model hay đặt ngược)
-    if (sau > 0.7) out.push(`${a} faces away from the camera toward ${ten(b)}, back half turned to us${la ? `; ${ten(b)} is in front of ${a}, deeper in the frame, never behind ${a}` : ''}`);
-    else if (sau > NUA_LUNG) out.push(`${a} is turned three-quarters away from the camera, looking ${PHIA(huongMan(s, m, a, b))} and deeper into the frame at ${ten(b)}; we see the back of ${a}'s head, ear and cheek line, not the full face${la ? `; ${ten(b)} is in front of ${a}, never behind ${a}` : ''}`);
-    else out.push(`${a} looks ${PHIA(huongMan(s, m, a, b))} at ${ten(b)}, eyes on ${la ? 'it' : 'them'}, not at the camera${la && sau < -NUA_LUNG ? `; ${ten(b)} is off screen on the camera side` : ''}`);
+    if (sau > 0.7) out.push(`${a} faces away from the camera toward ${tb}, back half turned to us${la ? `; ${tb} is in front of ${a}, deeper in the frame, never behind ${a}` : ''}`);
+    else if (sau > NUA_LUNG) out.push(`${a} is turned three-quarters away from the camera, looking ${PHIA(huongMan(s, m, a, b))} and deeper into the frame at ${tb}; we see the back of ${a}'s head, ear and cheek line, not the full face${la ? `; ${tb} is in front of ${a}, never behind ${a}` : ''}`);
+    else out.push(`${a} looks ${PHIA(huongMan(s, m, a, b))} at ${tb}, eyes on ${la ? 'it' : 'them'}, not at the camera${la && sau < -NUA_LUNG ? `; ${tb} is off screen on the camera side` : ''}`);
   }
   for (const [a, tu] of Object.entries(m.vao ?? {})) { const x = viTriMan(s, m, tu); const h = huongMan(s, m, tu, a); out.push(`${a} enters from ${x == null ? (h < 0 ? 'screen right' : 'screen left') : x < 0 ? 'screen left' : 'screen right'}, moving ${PHIA(h).replace(' past the lens', '')}`); }
   // ÁNH NHÌN DỌC (eyeline theo chiều cao): A nhìn người B cao / thấp hơn rõ → ngước lên / nhìn xuống
-  for (const [a, b] of Object.entries(m.nhin ?? {})) { const ha = s.mat_cao?.[a], hb = s.mat_cao?.[b]; if (ha == null || hb == null || !thay(a)) continue;
+  for (const [a, b0] of Object.entries(m.nhin ?? {})) { const b = nguoiTai(b0); const ha = s.mat_cao?.[a], hb = s.mat_cao?.[b]; if (ha == null || hb == null || !thay(a)) continue;
     if (hb - ha >= 0.08) out.push(`${a} tilts the eyes slightly UP to meet ${b}'s eyes (${b} is taller)`); else if (ha - hb >= 0.08) out.push(`${a} looks slightly DOWN at ${b} (${b} is shorter)`); }
   // GÓC MÁY THEO ĐỘ CAO (power angle): máy so với mắt chủ thể chính (người đầu tiên trong khung)
   { const may = s.may[m.may]; const chinh = nguoi.find((n) => thay(n) && !m.vao?.[n]); const hm = chinh ? s.mat_cao?.[chinh] : undefined;

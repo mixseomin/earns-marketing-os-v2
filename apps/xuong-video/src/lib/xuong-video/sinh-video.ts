@@ -2,7 +2,7 @@
 // (scripts/sinh-shot.mts) và server action (sinhVideoCanh / kiemVideo) dùng CÙNG một đường; actions chỉ kiểm quyền rồi gọi vào đây.
 import { raKhoiKhung, laDungLop, anhLopCua, cauDoMang, CAU_NEN_VIDEO_LOP, CAU_MAY_VIDEO_LOP, CAU_SONG_VIDEO_LOP, CAU_CHAN_VIDEO_LOP } from './dung-lop';
 import { chanDanDat } from './dan-dat';
-import { CHAT_LIEU, cauNhipGag, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, nhanNhin, tenNgonNguEn, thayTenNhan, type ChatLieu, type Khoi } from './prompt-khoi';
+import { CHAT_LIEU, cauNhipGag, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, nhanNhin, tenNgonNguEn, type ChatLieu, type Khoi } from './prompt-khoi';
 import { loiTrangThaiVat, chamPrompt, NGUONG_CHAN, type LoiPrompt } from './kiem-prompt';
 import { batCamXuc } from './qc-cam-xuc';
 import { moTaChuyenDong, bienTheTheoSo } from './bo-set-3d';
@@ -29,7 +29,7 @@ import { chupTruoc } from './hoan-tac';
 import { soiClipCanh, khungDauThieuSp } from './soi-clip';
 import { chamMayCanh } from './cham-may';
 import { sinhGiongShots } from './sinh-giong';
-import { type Canh, type TapHoSo, chatLieuPhim, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, lienCon, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
+import { type Canh, type TapHoSo, chatLieuPhim, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, lienCon, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, coTiengViet, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { cauKhongKhi } from './khan-gia';
 import { doiTayDo, cauDoiTayVideo, thieuCachThao } from './thao-do';
 import { boiCanhCanh, canhDaThayThe, taoJob, xongJob, mapJob, giaVideoSv, s, mapCanh, jobDangCho, type Db, type Row } from './doc-db';
@@ -44,7 +44,12 @@ const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
 // "squash and stretch" làm Veo kéo Tango chảy nhão, tay rối như sợi mì.
 // Lối diễn theo CHẤT LIỆU PHIM (prompt-khoi.ts › CHAT_LIEU.dien_video): trước đây ghi cứng "Cartoon acting… squash and stretch" — phim người thật tập 122 sẽ
 // diễn kiểu hoạt hình.
-const theVideo = (dd: Canh['dan_dung'], cl: ChatLieu, rendau = false): string => [cauNhipGag(dd?.nhip), dd?.mo?.trim() && dd?.ket?.trim() ? `The action runs completely from: ${dd.mo.trim()} — to: ${dd.ket.trim()}` : '', dd?.dien?.trim() ? `${CHAT_LIEU[cl].dien_video(rendau)}: ${dd.dien.trim().replace(/[.\s]+$/, '')}` : '', dd?.huong?.trim() ? `Keep screen direction: ${dd.huong.trim()}` : '', dd?.vao_ra?.trim() ? `Entrances and exits: ${dd.vao_ra.trim().replace(/[.\s]+$/, '')}` : ''].filter(Boolean).map((x) => `${x}.`).join(' ');
+// yen = trong 3D không ai / không vật nào dời chỗ (khung_xam.di: tu ≈ den) — lối diễn nhẹ, không "phóng đại cả người" (14/11/2026 phim #3071 #1: shot thiết lập
+// đứng yên mà prompt đòi diễn mạnh → model bịa chú bước xuống tàu). Câu diễn (dd.dien) tiếng Việt KHÔNG vào prompt khi đã có mở / kết tiếng Anh (cổng báo
+// "tiếng Việt trong prompt: CÓ", model đọc kém / vẽ chữ).
+const DIEN_YEN = 'Quiet, restrained acting: small natural movement only (breathing, a slight turn of the head, the eyes, hair and clothes stirring in the breeze)';
+const theVideo = (dd: Canh['dan_dung'], cl: ChatLieu, rendau = false, yen = false): string => [cauNhipGag(dd?.nhip), dd?.mo?.trim() && dd?.ket?.trim() ? `The action runs completely from: ${dd.mo.trim()} — to: ${dd.ket.trim()}` : '',
+  dd?.dien?.trim() && !(coTiengViet(dd.dien) && dd?.mo?.trim() && dd?.ket?.trim()) ? `${yen ? DIEN_YEN : CHAT_LIEU[cl].dien_video(rendau)}: ${dd.dien.trim().replace(/[.\s]+$/, '')}` : yen ? DIEN_YEN : '', dd?.huong?.trim() ? `Keep screen direction: ${dd.huong.trim()}` : '', dd?.vao_ra?.trim() ? `Entrances and exits: ${dd.vao_ra.trim().replace(/[.\s]+$/, '')}` : ''].filter(Boolean).map((x) => `${x}.`).join(' ');
 /** Bỏ câu đã nói ở khối khác (mở / kết của thẻ shot nằm cả trong prompt_video lẫn câu "from… to…" — bộ chấm báo lặp ở 9 shot tập 122). */
 const boCauTrung = (t: string, cum: (string | undefined)[]) => { const c = cum.map((x) => (x ?? '').trim().toLowerCase().replace(/[.\s]+$/, '')).filter((x) => x.split(/\s+/).length >= 3); return t.split(/(?<=[.!?])\s+/).filter((x) => !c.some((k) => x.toLowerCase().includes(k))).join(' '); };
 /** DÁNG NHÌN THẤY của từng nhân vật trong prompt video (không gọi tên — model không biết tên): đầy đủ "the woman in the fitted burgundy … dress" + GỌI GỌN
@@ -107,11 +112,17 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   const cl = chatLieuPhim(bc.kt);
   // GIỮ KHUNG ĐẦU theo chất liệu (CHAT_LIEU.giu_video): hoạt hình chỉ khi khung đầu là ảnh render 3D; người thật luôn (giữ mặt, đồ, bối cảnh).
   const giuAnh = CHAT_LIEU[cl].giu_video;
-  const chen = bc.canh.ky_thuat?.co_canh === 'insert';   // cận chèn: không đòi cử động cả người, không biểu cảm mặt (mặt ngoài khung)
+  const chen = bc.canh.ky_thuat?.co_canh === 'insert';
+  // ĐỨNG YÊN TRONG 3D: mọi đường đi của khối 3D có điểm đầu ≈ điểm cuối (< 3% khung) — clip giữ mọi người / vật ở đúng chỗ, chỉ cử động nhỏ.
+  const di3d = bc.canh.khung_xam?.di ?? [];
+  const yen3d = di3d.length > 0 && di3d.every((d) => Math.hypot((d.den[0] ?? 0) - (d.tu[0] ?? 0), (d.den[1] ?? 0) - (d.tu[1] ?? 0)) < 0.03);   // cận chèn: không đòi cử động cả người, không biểu cảm mặt (mặt ngoài khung)
   // KHÔNG GỌI TÊN trong prompt video (19/10/2026 #1): model video không biết tên ai — hai phụ nữ tóc đen chỉ gọi "Vivian" / "Hạ" thì Veo đảo vai, và
   // tên trong prompt bị in lên hình ("Vivian" ở góc khung). Mọi tên nhân vật (đầy đủ + tên gọi tắt) thay bằng DÁNG NHÌN THẤY: giới + bộ đồ của shot.
-  const nhanVideo = dangNhinVideo(bc).map((x) => ({ ten: x.ten, nhan: x.day }));
-  const thayTen = (t: string): string => thayTenNhan(t, nhanVideo);
+  // Lần nhắc ĐẦU dùng nhãn đầy đủ, các lần sau dùng nhãn gọn (14/11/2026 phim #3071: nhãn đầy đủ lặp ~10 lần, prompt phình 5.391 ký tự, H3 Max cắt ở 2.000).
+  const dang = dangNhinVideo(bc); const daGoi = new Set<string>();
+  const thayTen = (t: string): string => { let o = t; for (const x of [...dang].sort((p, q) => q.ten.length - p.ten.length)) { const goi = x.ten.trim().split(/\s+/);
+    for (const c of [x.ten.trim(), ...(goi.length >= 2 ? [goi[goi.length - 1]!] : [])]) o = o.replace(new RegExp(`(^|[^\\p{L}])${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=[^\\p{L}]|$)`, 'gu'),
+      (_m, tr: string) => { const n = daGoi.has(x.ten) ? x.gon : x.day; daGoi.add(x.ten); return `${tr}${n}`; }); } return o; };
   const ds: Khoi[] = [
     khoi('phong_cach', !rendau && phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : ''),
     // KHOẢNH KHẮC: prompt_video riêng của shot (nếu có); thẻ có mở / kết hoặc câu diễn (mảnh ReelShort một việc) thì khối diễn đã nói — không lấy hanh_dong (mô tả cho người đọc, có thể tiếng Việt)
@@ -124,16 +135,17 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
       bc.canh.ky_thuat?.sd_ket ? `By the end of the shot: ${cauHuong(bc.khongGian.so_do, sdLuc(bc.canh, 'ket')!, bc.khongGian.nguoi, (t) => bc.khongGian!.ten_en?.[t] ?? t)}` : ''].filter(Boolean).join(' ') : ''),
     khoi('vat', coKhongGian(bc.khongGian, bc.canh) && bc.khongGian.so_vat ? cauVat(bc.khongGian.so_vat, bc.canh.thu_tu, nguoiKhung(bc.khongGian, bc.canh, 'ket') ?? [], (t) => bc.khongGian!.ten_en?.[t] ?? t,
       bc.nhanVat.filter((v) => bc.canh.nhan_vat.includes(v.id)).map((v) => v.ten), 'ket') : ''),
-    khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di?.filter((d) => !bc.canh.may_3d?.vi_tri.some((v) => v.ten === d.ten && v.cam)), goiTenEn([...bc.nhanVat, ...bc.nvPhim]), (t) => [...bc.nhanVat, ...bc.nvPhim].some((v) => v.ten === t && v.loai === 'nhan_vat'), (t) => bc.canh.may_3d?.vi_tri.some((v) => v.ten === t && v.den && Math.hypot(v.den[0]! - v.tam[0]!, v.den[1]! - v.tam[1]!, (v.den[2] ?? 0) - (v.tam[2] ?? 0)) >= 15) ?? true)), khoi('khac', laDungLop(bc.kt) ? `${CAU_SONG_VIDEO_LOP} ${CAU_CHAN_VIDEO_LOP}` : lv.song(coMau(bc.kt.qc)) ? CHAT_LIEU[cl].song_video(chen) : ''), khoi('boi_canh', laDungLop(bc.kt) ? CAU_NEN_VIDEO_LOP : ''), khoi('vat', spTrongTam),
+    khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau, yen3d)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di?.filter((d) => !bc.canh.may_3d?.vi_tri.some((v) => v.ten === d.ten && v.cam)), goiTenEn([...bc.nhanVat, ...bc.nvPhim]), (t) => [...bc.nhanVat, ...bc.nvPhim].some((v) => v.ten === t && v.loai === 'nhan_vat'), (t) => bc.canh.may_3d?.vi_tri.some((v) => v.ten === t && v.den && Math.hypot(v.den[0]! - v.tam[0]!, v.den[1]! - v.tam[1]!, (v.den[2] ?? 0) - (v.tam[2] ?? 0)) >= 15) ?? true)), khoi('khac', laDungLop(bc.kt) ? `${CAU_SONG_VIDEO_LOP} ${CAU_CHAN_VIDEO_LOP}` : lv.song(coMau(bc.kt.qc)) ? (yen3d ? CAU_YEN_3D : CHAT_LIEU[cl].song_video(chen)) : ''), khoi('boi_canh', laDungLop(bc.kt) ? CAU_NEN_VIDEO_LOP : ''), khoi('vat', spTrongTam),
     khoi('thoai', thoaiVeo || imLang), khoi('noi_cat', catDongTac), khoi('giu', `${giuAnh} ${giuKhung} ${cauVatLy(bc.kt.the_loai)}`.trim()), khoi('khong_them', khongThem), khoi('cam_chu', 'No on-screen text, captions, subtitles or logos.'),
     khoi('trang_thai', [bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', cauDoMang(bc.nhanVat.filter((v) => bc.canh.nhan_vat.includes(v.id)))].filter(Boolean).join(' ')), khoi('may', laDungLop(bc.kt) ? CAU_MAY_VIDEO_LOP : promptKyThuatVideo(bc.canh.ky_thuat)),
     khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'video')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'video')),
     // Ý đồ khán giả → KHÔNG KHÍ (khan-gia.ts › cauKhongKhi): chỉ không khí / ánh sáng / nhịp, không đổi nét mặt đã khai ở khối bieu_cam.
     khoi('khong_khi', cauKhongKhi(bc.khanGia ?? [])),
-    khoi('thoai', coGiong ? (trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} speak their lines with natural lip movement; the dialogue audio is replaced by a separate voice recording in the edit.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.') : imLang   /* 19/10/2026: "audio must contain NO spoken words" + mấp máy môi nói → Veo báo 'unable to generate audio' (4 shot tập 122, hỏng lặp lại); bản xuất đã bỏ tiếng clip khi có giọng riêng */),
+    khoi('thoai', coGiong ? (trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} speak their lines with natural lip movement; the dialogue audio is replaced by a separate voice recording in the edit.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.') : ''   /* 19/10/2026: "audio must contain NO spoken words" + mấp máy môi nói → Veo báo 'unable to generate audio' (4 shot tập 122, hỏng lặp lại); bản xuất đã bỏ tiếng clip khi có giọng riêng */),
   ];
   return ds.map((k) => ({ ...k, chu: thayTen(k.chu) }));
 }
+const CAU_YEN_3D = 'Everyone and everything stays where it is in the first frame, exactly as in the 3D blocking: nobody walks, climbs, sits down or leaves their place; only small natural movement and background life (light, dust, cloth, hair).';
 export const promptVideoCanh = (bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): string => ghep(khoiVideoCanh(bc));
 /** CHẤM prompt video (kiem-prompt.ts, khuôn KHUON.video): chất liệu phim, tiếng Việt lọt vào, cận chèn tả mặt, lặp — chặn trước khi gửi model video. */
 export function chamVideo(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, /** có ảnh cuối gửi model (keyframe kết / nối khung shot sau) — mặc định theo keyframe_ket */ coKhungCuoi = !!bc.canh.keyframe_ket): { diem: number; loi: LoiPrompt[] } {
@@ -343,8 +355,13 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
     // Khung giữa chỉ khi keyframe là ảnh render 3D (cùng nguồn với khung giữa — keyframe AI không khớp khung giữa render).
     const kx = bc.canh.khung_xam; const khungGiua = kx && bc.canh.keyframe_url === kx.mau ? (kx.giua?.length ? kx.giua : kx.mau_giua ? [kx.mau_giua] : []) : [];
     // clip diễn Blender: model 3D→video chỉ khi keyframe cùng nguồn render; model REFERENCE-to-video thì clip chỉ là khuôn chuyển động (keyframe AI vẫn dùng được)
-    const videoNguon = kx && (bc.canh.keyframe_url === kx.mau || /reference-to-video|vace/.test(id)) ? kx.dien ?? null : null;
+    // CLIP 3D LÀM NGUỒN (14/11/2026 phim #3071): ưu tiên clip three.js còn mới (clip.ma = mã khung hiện tại) — trước đây chỉ đọc kx.dien (Blender, phim three.js
+    // để trống) nên model 3D→video được gửi KHÔNG có chuyển động 3D nào. Clip three.js luôn khớp khung 3D hiện tại → model 3D→video nhận cả khi keyframe là ảnh
+    // AI (keyframe làm ảnh tham chiếu nét vẽ). Clip three.js có đoạn dư đầu (clip.vao) — bản dựng cắt từ đó (ky_thuat.vao_s ghi lúc gửi).
+    const clip3 = kx?.clip && kx.clip.ma === kx.ma ? kx.clip : null;
+    const videoNguon = clip3 && /3d-to-video|reference-to-video|vace/.test(id) ? clip3.url : kx && (bc.canh.keyframe_url === kx.mau || /reference-to-video|vace/.test(id)) ? kx.dien ?? null : null;
     kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, khungGiua, videoNguon, giay: bc.canh.thoi_luong_s || giay, giayPhat: bc.canh.phat_s, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
+    if (kq.ok && clip3 && videoNguon === clip3.url) await db.execute(sql`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${JSON.stringify(clip3.vao)}::jsonb) WHERE id = ${canhId}`);
   } else {
     const anhDau = await taiAnhBase64(bc.canh.keyframe_url);
     if (!anhDau) { await xongJob(db, job, { loi: 'không tải được keyframe' }); return loi('không tải được keyframe'); }

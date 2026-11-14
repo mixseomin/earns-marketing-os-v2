@@ -81,3 +81,10 @@ console.log('so-do-canh.test: ok (kế thừa qua cận chèn, hết khi đổi 
   const caoMay = cauHuong({ ...k, may: { ...k.may, thap: { ...k.may.thap, cao: 1.9 } } }, { may: 'thap', o: { 'Hạ': [0, 5.8] } }, ['Hạ']); assert.ok(caoMay.includes('High angle'), caoMay);
   assert.ok(!cauHuong(s, { may: 'toan', o: { 'Hạ': 'ha' } }, ['Hạ']).includes('angle'), 'không khai độ cao → không câu góc'); }
 console.log('so-do-canh.test: ok (ánh nhìn dọc + góc máy + đèn)');
+// 14/11/2026 phim #3071 #1: (a) nhìn MỐC đang có người đứng = nhìn người đó, không ra câu "mốc nằm ngoài khung phía máy"; (b) mốc không có tên tiếng Anh
+// không lọt mã nội bộ ("at dau_ga") vào prompt.
+{ const g: SoDo = { moc: { cua_so: [-2, 5], giua_ga: [2, 4], dau_ga: [0, 30] }, may: { toan_ga: { dat: [0, 0], nhin: [0, 10] } } };
+  const c = cauHuong(g, { may: 'toan_ga', o: { 'Chú': 'cua_so', 'Nhóc': 'giua_ga' }, nhin: { 'Chú': 'dau_ga', 'Nhóc': 'cua_so' } }, ['Chú', 'Nhóc']);
+  assert.ok(!c.includes('dau_ga') && !c.includes('cua_so'), c);
+  assert.ok(/Nhóc looks toward screen left at Chú, eyes on them/.test(c), c); assert.ok(!/off screen on the camera side/.test(c), c); }
+console.log('so-do-canh.test: ok (mốc có người = người đó, mốc không tên không lọt mã)');

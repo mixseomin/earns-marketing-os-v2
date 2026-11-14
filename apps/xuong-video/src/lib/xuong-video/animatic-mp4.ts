@@ -12,6 +12,7 @@ import { giayPhat, type Canh } from './kieu';
 import { uploadToR2 } from '../r2';
 import { nenH264 } from './nen-video.mjs';
 import { khungXuat } from './xuat';
+import { dungFfmpeg } from './may-dung-cf';
 
 const ex = promisify(execFile);
 /** Tỉ lệ thời lượng từng khung theo số khung vẽ: đầu dài hơn giữa (người xem cần đọc khung mở), cuối giữ để thấy đuôi gieo cớ cắt. */
@@ -23,7 +24,11 @@ export async function clipAnimatic(c: Canh, thuMuc: string, tiLe: string | null 
   const phat = giayPhat(c); const ti = TI_KHUNG[ks.length] ?? ks.map(() => 1 / ks.length);
   const vao = ks.flatMap((k, i) => ['-loop', '1', '-t', (phat * ti[i]!).toFixed(3), '-i', k.url!]);
   const loc = `${ks.map((_, i) => `[${i}:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},setsar=1,fps=30,format=yuv420p[v${i}]`).join(';')};${ks.map((_, i) => `[v${i}]`).join('')}concat=n=${ks.length}:v=1:a=0[o]`;
-  await mkdir(thuMuc, { recursive: true }); const ra = join(thuMuc, `anim-${c.id}.mp4`);
-  await ex('ffmpeg', ['-loglevel', 'error', '-y', ...vao, '-filter_complex', loc, '-map', '[o]', '-r', '30', ...nenH264({ preset: 'veryfast' }), ra], { timeout: 180_000 });
+  // CẤM MÃ HOÁ TRÊN BOX3 (anh 03/11/2026; 14/11/2026 animatic 20 shot mã hoá thẳng trên box3 → hết RAM, OOM giết ffmpeg + tiến trình phiên): đi máy dựng
+  // Cloudflare, lỗi thì lùi về iMac (dungFfmpeg). Thư mục RIÊNG mỗi shot — máy dựng gửi kèm MỌI tệp trong thư mục, chung thư mục là gửi cả MP4 shot khác.
+  const thu = join(thuMuc, `s-${c.id}`); await mkdir(thu, { recursive: true }); const ra = join(thu, `anim-${c.id}.mp4`);
+  const args = ['-loglevel', 'error', '-y', ...vao, '-filter_complex', loc, '-map', '[o]', '-r', '30', ...nenH264({ preset: 'veryfast' }), ra];
+  const d = await dungFfmpeg(args, { thuMuc: thu, fontsDir: '/khong-dung-font', ra, chayTaiCho: () => ex('ffmpeg', args, { timeout: 180_000 }) });
+  console.log(`  animatic #${c.thu_tu}: dựng ở ${d.noi}${d.loiCf ? ` (cloudflare lỗi: ${d.loiCf})` : ''}`);
   return uploadToR2(`xuong-video/animatic/${c.id}-${randomUUID()}.mp4`, await readFile(ra), 'video/mp4');
 }

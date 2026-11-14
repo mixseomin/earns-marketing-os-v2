@@ -14,6 +14,7 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(__file__))
 FPS = 8
+NGUONG_MO = 0.27   # độ mở miệng (tỉ lệ điểm tối + độ động) — xem ghi chú trong main
 
 
 def khung(video: str, thu: str) -> list[str]:
@@ -75,7 +76,9 @@ def main():
             continue
         # ĐIỂM BẮT ĐẦU (15/11/2026: tương quan trên câu ngắn ~7 điểm chọn sai đỉnh — báo 0,125 s khi miệng trễ thật ~0,8 s): miệng mở = vượt nền (trung vị + 3 × MAD,
         # tối thiểu +0,04) lần đầu trong [t − 0,5 s, t + 1,5 s]; câu bắt đầu = âm lượng > 15 % đỉnh. phu = phần thời gian câu có miệng mở (sau khi bù trễ).
-        nen = float(np.median(mo)); mad = float(np.median(np.abs(mo - nen))) or 0.01; nguong = nen + max(3 * mad, 0.04)
+        # NGƯỠNG CỐ ĐỊNH 0,27 (15/11/2026): ngưỡng theo trung vị của chính clip báo sai shot nói gần suốt clip (#8 dặn dài, #10 gọi to — trung vị đã cao, ngưỡng 0,43).
+        # Hiệu chỉnh trên 4 shot phim #3071 soát bằng mắt: miệng khép 0,13–0,23, mở 0,28–0,50. CHƯA đo trên bộ nhãn lớn (chuẩn chấm điểm) — thêm shot thì đo lại.
+        nguong = NGUONG_MO
         bd_am = next((i for i, x in enumerate(al) if x > 0.15 * al.max()), 0) / FPS; t_cau = float(t) + bd_am
         i0, i1 = max(0, int((t_cau - 0.5) * FPS)), min(len(mo), int((t_cau + 1.5) * FPS))
         bd_m = next((i / FPS for i in range(i0, i1) if mo[i] > nguong), None)

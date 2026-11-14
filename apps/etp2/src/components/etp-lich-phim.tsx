@@ -48,6 +48,8 @@ function huongPhim(l: LichPhim, gd: number) {
     'Chỉ đọc số đang có, không đổi luật máy; thêm camp vẫn qua nút ＋ (có xác nhận).'].filter(Boolean).join('\n');
   return { tiem, mau, dong, chu, mauH, re };
 }
+/** dòng Hướng — MỘT chỗ cho tab Lịch và tab Toà nhà (#1589) */
+const ChuHuong = ({ h }: { h: ReturnType<typeof huongPhim> }) => <div style={GON} title={h.re}><b style={{ color: h.mauH }}>{h.dong}</b> · {h.chu}</div>;
 // giai đoạn theo camp ĐANG CHẠY, không theo lịch sử (anh 07/11/2026)
 const giaiDoan = (l: LichPhim) => { const lai = l.dang.reduce((a, d) => a + d.lai, 0); return l.roas > 0 ? 3 : lai >= 2 ? 2 : lai >= 1 ? 1 : 0; };
 const TEN_BUOC: Record<string, string> = { nhan: 'nhận phim', ws: 'vào workspace', poster: 'poster', cat: 'cắt', soat: 'soát', creative: 'làm creative', camp: 'lên camp', chay: 'chờ chạy' };
@@ -139,7 +141,7 @@ function TabToa({ l, chon, onChon }: { l: LichPhim; chon: number | null; onChon:
       {H('Tầng', <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', cursor: 'help' }} title={giai}>
         {TANG.map((t, i) => ({ t, n: i ? dem[i]! : dem[0]! + mong.sx + mong.ke + mong.cho })).reverse().map(({ t, n }) =>
           <span key={t} style={{ whiteSpace: 'nowrap' }}><span style={{ color: 'var(--fg-3)' }}>{t}</span> <b style={{ color: n ? 'var(--fg-1)' : 'var(--fg-3)' }}>{n}</b></span>)}</div>)}
-      {H('Hướng', <div style={GON} title={h.re}><b style={{ color: h.mauH }}>{h.dong}</b> · {h.chu}</div>)}
+      {H('Hướng', <ChuHuong h={h} />)}
       {c ? H(`#${c.id}`, <div style={GON}><span style={{ color: mauCamp(c) }}>●</span> {c.roas ? '★ ROAS' : c.dang} · ${c.ns}/ngày{c.cho ? ' · hẹn giờ, chưa chạy' : ` · 7 ngày chi $${c.chi7.toFixed(0)} · ${r7 != null ? `ROI ${r7 > 0 ? '+' : ''}${r7}%` : 'chưa đủ số'}`}</div>)
         : H('Chọn', <span style={{ color: 'var(--fg-3)' }}>bấm một khối để xem camp</span>)}
       {th ? <KhoiThang c={th} hoan={l.hoan.some((x) => x.camp_id === th.camp_id && x.huong === 'tang')} H={H} /> : null}
@@ -206,7 +208,7 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
                   {Array.from({ length: C }, (_, i) => <O key={'c' + i} mau="#6b7280" />)}{Array.from({ length: S }, (_, i) => <O key={'s' + i} mau="#facc15" net />)}</div>)}</React.Fragment>; })}
               {(() => { const h = huongPhim(l, gd); return <>
                 {H('Tiềm năng', <div style={GON} title={h.re}><span style={{ color: h.mau }}>●</span> {h.tiem}</div>)}
-                {H('Hướng', <div style={GON} title={h.re}><b style={{ color: h.mauH }}>{h.dong}</b> · {h.chu}</div>)}</>; })()}
+                {H('Hướng', <ChuHuong h={h} />)}</>; })()}
               {l.lt ? H('Thử dạng', <div style={chuoi} title="số camp có chi trên mức cần để luật cất kết luận">{Object.entries(l.lt.dang).map(([x, v]) => <span key={x}>{x} <b style={{ color: v.chi >= 2 ? 'var(--fg)' : 'var(--fg-3)' }}>{v.chi}/2</b>{v.bo ? ' đã bỏ' : x === 'CT' ? ' chưa có máy' : ''}</span>)}</div>) : null}
               {gd === 0 && !l.lt ? H('Mốc cất', <span title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>${Math.round(l.chi)} / ${l.moc_chi} · {l.so_thu}/{l.moc_thu} camp</span>) : null}
               {/* CAMP MỚI: kế hoạch → đang sản xuất → chờ lên. Kế hoạch etp.mo_rong chỉ là số đề xuất, chỉ phim_doi_lai máy mới tự xếp dòng — nói đúng ai làm bước kế */}

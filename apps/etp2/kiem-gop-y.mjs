@@ -70,6 +70,9 @@ const LUAT = [
   { card: 'cap-toa-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'export function capToa(camp: CampToa[])', vi: 'toà có cấp theo độ ổn định của camp (Lán thử → Tháp), hình dáng theo cấp (anh 15/11/2026)' },
   { card: 'cap-toa-1511', tep: 'apps/etp2/src/lib/etp-toa-sql.ts', co: 'export const campToaSql', vi: 'MỘT câu SQL camp của toà cho bảng phim + Tổng quan' },
   { card: 'cap-toa-1511', tep: 'apps/etp2/src/lib/actions/etp-tong2.ts', cam: 'left join etp.so_ngay n on n.camp_id = c.camp_id and n.ngay >= current_date - 6 left join etp.phim', vi: 'Tổng quan không chép lại câu SQL camp toà' },
+  { card: 'dieu-khien-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: "cv.addEventListener('dblclick', dup)", vi: 'điều khiển như city: nhấp đúp phóng, lăn thường trượt, Shift + lăn phóng vào con trỏ, 2 ngón chụm / vặn / cuộn (anh 15/11/2026)' },
+  { card: 'dieu-khien-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'title="thu nhỏ (hoặc Shift + lăn xuống / Shift + nhấp đúp)"', vi: 'nút + / − / ⟲ phóng tay' },
+  { card: 'phan-khu-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: "export const KHU = [{ ten: 'Khu thượng lưu'", vi: 'thành phố phân khu thượng lưu / trung lưu / ven + đường giữa các cụm (anh 15/11/2026)' },
   { card: 'thanh-pho-1511', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'thanh_pho: ({ cao }) =>', vi: 'widget Thành phố phim ở Tổng quan — mỗi phim một toà (anh 15/11/2026 bước 2)' },
   { card: 'thanh-pho-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', mot: 'function useCanh3D(', vi: 'MỘT cảnh 3D dùng chung cho toà phim + thành phố (không chép bộ điều khiển)' },
   { card: 'toa-nha-1511', tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: "{oTab('toa', 'Toà nhà')}", vi: 'khung phim có tab Toà nhà 3D (anh 15/11/2026 "giống kiểu hình một toà nhà")' },
@@ -148,5 +151,13 @@ for (const l of LUAT) {
 // SỔ LUẬT HAI BẢN (audit 10/11/2026: máy luật đọc apps/web, etp2 đọc bản chép — nap_chi 0.4 vs 0.5 lệch cả buổi, trang ghi cổng 50% trong khi máy dùng 40%)
 if (readFileSync(join(GOC, 'apps/etp2/src/lib/etp-bang-luat.json'), 'utf8') !== readFileSync(join(GOC, 'apps/web/src/lib/etp-bang-luat.json'), 'utf8'))
   loi.push('sổ luật etp2 lệch sổ máy luật — chép lại: cp apps/web/src/lib/etp-bang-luat.json apps/etp2/src/lib/etp-bang-luat.json');
+// TEMPLATE TRONG LƯỚI (anh 15/11/2026 "sao bố cục lại bị tràn ra ngoài màn hình": template Thành phố cao 20 hàng trong lưới 18) — mọi ô của mọi template nằm trong cot × hang, không chồng nhau
+{ const so = JSON.parse(readFileSync(join(GOC, 'apps/etp2/src/lib/etp-widget.json'), 'utf8'));
+  for (const [ma, t] of Object.entries(so.template)) for (const [i, o] of t.o.entries()) {
+    const w = so.widget[o.ma];
+    if (!w) loi.push(`template ${ma}: widget lạ ${o.ma}`);
+    if (o.x + o.w > so.cot || o.y + o.h > so.hang) loi.push(`template ${ma}: ô ${o.ma} tràn lưới (${o.x}+${o.w} / ${o.y}+${o.h} trong ${so.cot}×${so.hang})`);
+    for (const b of t.o.slice(i + 1)) if (o.x < b.x + b.w && b.x < o.x + o.w && o.y < b.y + b.h && b.y < o.y + o.h) loi.push(`template ${ma}: ${o.ma} chồng ${b.ma}`);
+  } }
 if (loi.length) { console.error(`✗ góp ý etp2 bị quay về bản cũ (${loi.length}):\n${loi.join('\n')}`); process.exit(1); }
 console.log(`✓ kiem-gop-y etp2: ${LUAT.length} điều kiện giữ nguyên`);

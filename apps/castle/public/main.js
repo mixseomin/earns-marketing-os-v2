@@ -113,9 +113,22 @@ function dat_(vlk, g, x, y, z, ry = 0, kieuUv = 'tg') {
   for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
   (xo[vlk] ||= []).push(g);
 }
-function hop(vlk, w, h, d, x, y, z, ry = 0) { dat_(vlk, new THREE.BoxGeometry(w, h, d), x, y + h / 2, z, ry); }
-function tru(vlk, rt, rb, h, x, y, z, seg = 24) { const g = new THREE.CylinderGeometry(rt, rb, h, seg, 1, false); uvTru(g, Math.PI * 2 * Math.max(rt, rb), h, DO_UV[vlk]); dat_(vlk, g, x, y + h / 2, z, 0, 'tru'); }
-function non(vlk, rr, h, x, y, z, seg = 24) { const g = new THREE.ConeGeometry(rr, h, seg, 1, true); uvTru(g, Math.PI * 2 * rr, Math.hypot(rr, h), DO_UV[vlk]); dat_(vlk, g, x, y + h / 2, z, 0, 'tru'); }
+// Dựng khối = vẽ + VA CHẠM cùng hình, trong một lệnh. Trước 15/11/2026 va chạm phải gọi tay riêng (vaHop / vaTru) nên mái nhà, mái tháp,
+// gờ răng cưa, ống khói không có va chạm: đi xuyên qua, trèo lên nóc thì bị đặt vào trong mái. TU_VA = false chỉ khi dựng đồ trong nhà
+// (quán, sạp chợ tự gọi vaHop cho đúng chỗ cần chặn; cốc, chai, ghế không chặn đường).
+let TU_VA = true;
+const vaLoi = (pts) => { const d = RAPIER.ColliderDesc.convexHull(new Float32Array(pts)); if (d) world.createCollider(d, tinh); };
+function hop(vlk, w, h, d, x, y, z, ry = 0) { dat_(vlk, new THREE.BoxGeometry(w, h, d), x, y + h / 2, z, ry); if (TU_VA) vaHop(w, h, d, x, y, z, ry); }
+function tru(vlk, rt, rb, h, x, y, z, seg = 24) {
+  const g = new THREE.CylinderGeometry(rt, rb, h, seg, 1, false); uvTru(g, Math.PI * 2 * Math.max(rt, rb), h, DO_UV[vlk]); dat_(vlk, g, x, y + h / 2, z, 0, 'tru');
+  if (!TU_VA) return;
+  if (Math.abs(rt - rb) < 0.05) vaTru(Math.max(rt, rb), h, x, y, z);
+  else { const pts = []; for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; pts.push(x + Math.cos(a) * rb, y, z + Math.sin(a) * rb, x + Math.cos(a) * rt, y + h, z + Math.sin(a) * rt); } vaLoi(pts); }
+}
+function non(vlk, rr, h, x, y, z, seg = 24) { // mái chóp: luôn có va chạm (cả mái sạp / quán)
+  const g = new THREE.ConeGeometry(rr, h, seg, 1, true); uvTru(g, Math.PI * 2 * rr, Math.hypot(rr, h), DO_UV[vlk]); dat_(vlk, g, x, y + h / 2, z, 0, 'tru');
+  world.createCollider(RAPIER.ColliderDesc.cone(h / 2, rr).setTranslation(x, y + h / 2, z), tinh);
+}
 function maiDoc(vlk, w, d, h, x, y, z, ry) { // mái hai mái, nóc chạy theo chiều w
   const a = w / 2, b = d / 2, P = [
     [-a, 0, b], [a, 0, b], [a, h, 0], [-a, 0, b], [a, h, 0], [-a, h, 0],
@@ -127,6 +140,9 @@ function maiDoc(vlk, w, d, h, x, y, z, ry) { // mái hai mái, nóc chạy theo 
   for (let i = 12; i < 18; i++) uv.push(P[i][2] / DO_UV[vlk], P[i][1] / DO_UV[vlk]);
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   dat_(vlk, g, x, y, z, ry, 'tay');
+  const c = Math.cos(ry), s_ = Math.sin(ry), pts = []; // mái hai mái: luôn có va chạm (khối lồi 6 đỉnh)
+  for (const [px, py, pz] of [[-a, 0, b], [a, 0, b], [-a, 0, -b], [a, 0, -b], [-a, h, 0], [a, h, 0]]) pts.push(x + px * c + pz * s_, y + py, z - px * s_ + pz * c);
+  vaLoi(pts);
 }
 function dungLuoi() {
   for (const [k, gs] of Object.entries(xo)) {
@@ -168,7 +184,6 @@ for (let i = 0; i < SO_THAP; i++) {
   tru('da', rt, rt + 0.4, h, x, 0, z);
   for (let k = 0; k < 12; k++) { const b = k / 12 * Math.PI * 2; hop('da', 1, 1.2, 0.9, x + Math.cos(b) * (rt + 0.1), h, z + Math.sin(b) * (rt + 0.1), -b); }
   const hr = giua(6, 9); non(i % 3 ? 'ngoi' : 'ngoiXanh', rt + 1, hr, x, h + 0.6, z);
-  vaTru(rt + 0.2, h, x, 0, z);
   cothap.push([x, z, h + 0.6 + hr]); // đỉnh mái → chỗ cắm cờ
 }
 for (let i = 0; i < SO_THAP; i++) {
@@ -180,31 +195,31 @@ for (let i = 0; i < SO_THAP; i++) {
   const doan = coCong ? [[-L / 2 + 3, -3.5], [3.5, L / 2 - 3]] : [[-L / 2 + 3, L / 2 - 3]];
   for (const [s0, s1] of doan) {
     const l = s1 - s0, m = (s0 + s1) / 2, x = cx + ux * m, z = cz + uz * m;
-    hop('da', l, CAO_TUONG, DAY_TUONG, x, 0, z, ry); vaHop(l, CAO_TUONG, DAY_TUONG, x, 0, z, ry);
+    hop('da', l, CAO_TUONG, DAY_TUONG, x, 0, z, ry);
     const nx = -uz, nz = ux; // pháp tuyến ngang của đoạn
     for (let s = s0 + 0.8; s < s1 - 0.5; s += 1.9) for (const bo of [-1, 1]) hop('da', 1, 1.3, 0.7, cx + ux * s + nx * bo * (DAY_TUONG / 2 - 0.35), CAO_TUONG, cz + uz * s + nz * bo * (DAY_TUONG / 2 - 0.35), ry);
   }
   if (coCong) { // vòm cổng + hai tháp canh nhỏ
     hop('daTrong', 7, 3, DAY_TUONG + 1, cx, CAO_TUONG - 3, cz, ry);
-    for (const bo of [-1, 1]) { const x = cx + ux * bo * 5, z = cz + uz * bo * 5; tru('daTrong', 2.2, 2.4, CAO_TUONG + 4, x, 0, z, 16); non('ngoi', 3, 4.5, x, CAO_TUONG + 4.4, z, 16); vaTru(2.4, CAO_TUONG + 4, x, 0, z); }
+    for (const bo of [-1, 1]) { const x = cx + ux * bo * 5, z = cz + uz * bo * 5; tru('daTrong', 2.2, 2.4, CAO_TUONG + 4, x, 0, z, 16); non('ngoi', 3, 4.5, x, CAO_TUONG + 4.4, z, 16); }
   }
 }
 
 // cầu đá ra khỏi đảo, kết bằng sân tròn (chỗ bắt đầu đi bộ)
 {
   const z0 = R_TUONG + 1, z1 = 104, L = z1 - z0, zc = (z0 + z1) / 2;
-  hop('daTrong', 6, 1.6, L, 0, -1.6, zc); vaHop(6, 1.6, L, 0, -1.6, zc);
+  hop('daTrong', 6, 1.6, L, 0, -1.6, zc);
   dat_('go', new THREE.BoxGeometry(5.2, 0.1, L), 0, 0.05, zc);
-  for (const bo of [-1, 1]) { hop('daTrong', 0.6, 1.1, L, bo * 2.8, 0, zc); vaHop(0.6, 1.1, L, bo * 2.8, 0, zc); }
+  for (const bo of [-1, 1]) { hop('daTrong', 0.6, 1.1, L, bo * 2.8, 0, zc); }
   for (let z = R_DAO + 10; z < z1; z += 11) tru('bazan', 1.6, 2.2, 10, 0, -11.5, z, 12);
-  tru('daTrong', 9, 9.5, 2, 0, -2, z1 + 6, 40); vaTru(9.5, 2, 0, -2, z1 + 6);
+  tru('daTrong', 9, 9.5, 2, 0, -2, z1 + 6, 40);
   dat_('cuoi', new THREE.CircleGeometry(8.9, 40).rotateX(-Math.PI / 2), 0, 0.03, z1 + 6);
 }
 
 // thành chính giữa đảo
 {
   const rk = 10, hk = 24;
-  tru('daTrong', rk, rk + 0.6, hk, 0, 0, 0, 40); vaTru(rk + 0.4, hk, 0, 0, 0);
+  tru('daTrong', rk, rk + 0.6, hk, 0, 0, 0, 40);
   for (let k = 0; k < 24; k++) { const b = k / 24 * Math.PI * 2; hop('daTrong', 1.2, 1.4, 1, Math.cos(b) * rk, hk, Math.sin(b) * rk, -b); }
   non('ngoiXanh', rk - 1.5, 12, 0, hk, 0, 40); tru('daTrong', rk - 1.4, rk - 1.4, 0.8, 0, hk, 0, 40);
   for (let k = 0; k < 4; k++) { const b = k / 4 * Math.PI * 2 + Math.PI / 4, x = Math.cos(b) * rk, z = Math.sin(b) * rk; tru('da', 2.6, 2.8, hk + 7, x, 0, z, 16); non('ngoi', 3.4, 6, x, hk + 7, z, 16); cothap.push([x, z, hk + 13]); }
@@ -226,7 +241,7 @@ for (const hang of [19.5, 25.5, 37.8, 44.2]) { // bốn hàng nhà; vành phố 
       const choQuan = Math.hypot(Math.cos(am) * hang - TAM_QUAN[0], Math.sin(am) * hang - TAM_QUAN[1]) < 10.5;
       if (!gan && !choQuan && r() > 0.08) {
         const x = Math.cos(am) * hang, z = Math.sin(am) * hang, ry = -am + Math.PI / 2;
-        hop('vua', w, h, d, x, 0, z, ry); vaHop(w, h, d, x, 0, z, ry);
+        hop('vua', w, h, d, x, 0, z, ry);
         maiDoc(r() < 0.8 ? 'ngoi' : 'ngoiXanh', w + 0.8, d + 1.2, giua(2, 3.2), x, h, z, ry);
         if (r() < 0.5) { const o = giua(-w / 3, w / 3), ox = x + Math.cos(-ry) * o, oz = z + Math.sin(-ry) * o; hop('da', 0.7, 2.2, 0.7, ox, h + 0.6, oz, ry); ongKhoi.push([ox, h + 2.9, oz]); }
         nhaVa.push([x, z, am, hang]);
@@ -241,7 +256,7 @@ const VL_DEN = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffb
 const gDen = [], denDuong = [];
 for (let k = 0; k < 28; k++) {
   const a = k / 28 * Math.PI * 2 + 0.06, x = Math.cos(a) * 31, z = Math.sin(a) * 31;
-  hop('go', 0.22, 3.2, 0.22, x, 0, z); vaHop(0.22, 3.2, 0.22, x, 0, z);
+  hop('go', 0.22, 3.2, 0.22, x, 0, z);
   gDen.push(new THREE.BoxGeometry(0.42, 0.55, 0.42).translate(x, 3.45, z));
   if (k % 7 === 0) { const l = new THREE.PointLight(0xffa050, 18, 16, 1.8); l.position.set(x, 3.6, z); scene.add(l); denDuong.push(l); }
 }
@@ -280,8 +295,10 @@ const VL_NUOC = new THREE.ShaderMaterial({
   world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(g.attributes.position.array), new Uint32Array(g.index.array)).setCollisionGroups(NHOM_RAO), tinh); }
 { const m = new THREE.Mesh(new THREE.CircleGeometry(HO.r, 48).rotateX(-Math.PI / 2), VL_NUOC); m.position.set(HO.x, HO.mat, HO.z); m.renderOrder = 2; scene.add(m); }
 const mucNuoc = (x, z) => Math.hypot(x - HO.x, z - HO.z) < HO.r ? HO.mat : null;
+TU_VA = false; // đồ trong nhà / sạp: tự gọi vaHop chỗ cần chặn
 const ct = dungCongTrinh({ hop, tru, non, vaHop, vaTru, scene, mergeGeometries });
 const quan = dungNhaQuan({ hop, tru, maiDoc, dat_, vaHop, vaTru, scene, mergeGeometries, chamLua: T.cham() }, GOC_QUAN, R_QUAN);
+TU_VA = true;
 dungLuoi();
 
 // ---------- dung nham: shader nhiễu chảy, vỏ nguội nứt, sáng quá 1 để bloom bắt
@@ -383,7 +400,7 @@ const NGUOI_R = 0.35, NGUOI_H = 0.55, MAT = 1.62;
 const than = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -50, 0));
 const thanVa = world.createCollider(RAPIER.ColliderDesc.capsule(NGUOI_H, NGUOI_R), than);
 const dk = world.createCharacterController(0.03);
-dk.enableAutostep(0.45, 0.25, false); dk.enableSnapToGround(0.4); dk.setMaxSlopeClimbAngle(0.9); dk.setApplyImpulsesToDynamicBodies(true); dk.setCharacterMass(70);
+dk.enableAutostep(0.45, 0.25, false); dk.enableSnapToGround(0.4); dk.setMaxSlopeClimbAngle(1.05); dk.setMinSlopeSlideAngle(1.1); // đi & đứng được trên mái dốc tới ~60° (mái nhà 35–48°) dk.setApplyImpulsesToDynamicBodies(true); dk.setCharacterMass(70);
 const DIEM_VAO = new THREE.Vector3(0, 1.2, 108);
 // hình nhân vật của người chơi (khung xương + động tác sinh bằng mã)
 const toi = taoNguoi({ da: MAU_DA[1], ao: 0x8a2a1e, quan: 0x2e2a26, toc: 0x1c120c });
@@ -635,6 +652,10 @@ function buocDiBo(dt) {
     const len = fz * 1.7, ngang = fx * 1.5, rx = leoN.z, rz = -leoN.x, hut = (h.timeOfImpact - 0.42) * Math.min(1, dt * 10);
     dk.computeColliderMovement(thanVa, { x: rx * ngang * dt - leoN.x * hut, y: len * dt, z: rz * ngang * dt - leoN.z * hut }, undefined, NHOM_NGUOI);
     const m = dk.computedMovement(); than.setNextKinematicTranslation({ x: p0.x + m.x, y: p0.y + m.y, z: p0.z + m.z });
+    if (fz > 0 && m.y < len * dt * 0.3) { // leo tới mái hiên / gờ nhô ra: tìm mặt trên phía trước rồi đu lên (không kẹt dưới mái)
+      const top = matTren(p0.x - leoN.x * 1.1, p0.y + 3.2, p0.z - leoN.z * 1.1, 3.6);
+      if (top != null && top > p0.y - 0.6) { batDauQua(p0, -leoN.x, -leoN.z, top); qua.c.x = p0.x - leoN.x * 1.3; qua.c.z = p0.z - leoN.z * 1.3; qua.b.x = p0.x + leoN.x * 0.35; qua.b.z = p0.z + leoN.z * 0.35; return; }
+    }
     tocLeo += (Math.hypot(m.x, m.y, m.z) / dt - tocLeo) * 0.3; tocToi = 0; nen = true;
     if (fz < 0 && dk.computedGrounded()) { tt = 'dat'; chamLeo = 0.4; }
     return;
@@ -696,8 +717,10 @@ function buocDiBo(dt) {
   dk.computeColliderMovement(thanVa, { x: vxH * dt, y: vy * dt, z: vzH * dt }, undefined, NHOM_NGUOI);
   const m = dk.computedMovement(), p = than.translation();
   than.setNextKinematicTranslation({ x: p.x + m.x, y: p.y + m.y, z: p.z + m.z });
-  if (Math.abs(m.x) < Math.abs(vxH * dt) * 0.5) vxH = m.x / dt; // đâm tường thì mất vận tốc phương đó (không "dính" vận tốc ảo)
-  if (Math.abs(m.z) < Math.abs(vzH * dt) * 0.5) vzH = m.z / dt;
+  { // đâm tường thì mất vận tốc phương đó (không "dính" vận tốc ảo) — tính cả phần được dốc nâng lên, không thì đi lên mái dốc bị coi là đâm tường
+    const muon = Math.hypot(vxH, vzH) * dt, duoc = Math.hypot(m.x, m.z) + Math.max(0, m.y - vy * dt);
+    if (muon > 1e-4 && duoc < muon * 0.5) { vxH = m.x / dt; vzH = m.z / dt; }
+  }
   tocToi += (Math.hypot(m.x, m.z) / dt - tocToi) * 0.25;
   nen = dk.computedGrounded();
   if (nen && vy > 0 && m.y < vy * dt * 0.5) vy = 0; // đụng trần
@@ -737,7 +760,7 @@ function vong(now = 0) {
       else { const v = new THREE.Vector3(0, cuoi.vo.ghe.y - 0.95 + 0.05, cuoi.vo.ghe.z); g.localToWorld(v); toi.goc.position.copy(v); tuTheXe = 'lai'; }
       huongToi = muonHuong = cuoi.huong; chan = toi.goc.position.y + 0.55; // camera / mắt theo chỗ ngồi
     } else if (tt === 'boi') { toi.goc.position.set(p.x - Math.sin(huongToi) * 0.75, HO.mat - 0.32, p.z - Math.cos(huongToi) * 0.75); phaBoi += dt * (1.6 + tocToi * 1.4); }
-    else toi.goc.position.set(p.x, chan, p.z);
+    else { if (tt === 'dat' && nen) { const m = matTren(p.x, p.y, p.z, 1.3); if (m != null && m > chan && m - chan < 0.4) chan = m; } toi.goc.position.set(p.x, chan, p.z); } // dốc: thân tròn chạm mái ở cạnh, chân hình người phải đặt lên mặt mái
     toi.goc.rotation.y = huongToi; if (tt === 'leo') phaLeo += dt * tocLeo * 3.2;
     const uong = sd.dangUong(); cocToi.visible = uong;
     toi.capNhat(dt, { toc: tt === 'dat' && !cuoi ? tocToi : 0, nen: nen || tt !== 'dat' || !!cuoi, ngoi: tt === 'dat' && !cuoi && !!phim.KeyC, loop: uong ? 'uong' : null, tuThe: tuTheXe || (tt === 'dat' ? null : tt), phaLeo, phaBoi, tocXe: tocToi });
@@ -833,5 +856,5 @@ $('gy-dong').onclick = () => { gy.style.display = 'none'; };
 $('gy-gui').onclick = guiGopY;
 $('gy-chu').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) guiGopY(); if (e.key === 'Escape') gy.style.display = 'none'; });
 $('tai').remove();
-window.__lauDai = { hat: HAT, tt: () => tt, XE, cuoi: () => cuoi, lenXe, xuongXe, thu: (f) => f({ world, RAPIER, tiaN, matTren, thanVa, LOC_TINH }), yaw: () => yaw, huong: () => huongToi, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; }, toi, dan: sd.dan, da, doiGocNhin, quan, quanNguoi, doNet: () => doNet, renderer, bloom, composer, sd, gioGame, ve: () => ({ lenh: renderer.info.render.calls, tamGiac: renderer.info.render.triangles, nguoi: { ...DEM } }) };
+window.__lauDai = { hat: HAT, nhaVa, dbg: () => ({ nen, vy, vxH, vzH, tt }), tt: () => tt, XE, cuoi: () => cuoi, lenXe, xuongXe, thu: (f) => f({ world, RAPIER, tiaN, matTren, thanVa, LOC_TINH }), yaw: () => yaw, huong: () => huongToi, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { yaw = y; pitch = p; }, toi, dan: sd.dan, da, doiGocNhin, quan, quanNguoi, doNet: () => doNet, renderer, bloom, composer, sd, gioGame, ve: () => ({ lenh: renderer.info.render.calls, tamGiac: renderer.info.render.triangles, nguoi: { ...DEM } }) };
 vong();

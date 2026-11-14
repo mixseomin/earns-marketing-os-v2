@@ -203,7 +203,7 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
   // LTX 2.3 REFERENCE VIDEO-TO-VIDEO (14/11/2026, phương án rẻ nhất nhận đủ khung đầu + clip: distilled ~$0,001/khung): clip three.js = nguồn chuyển động, keyframe
   // = khung đầu. video_strength 0,8 (1 = bám nguồn tuyệt đối, dễ giữ cả vẻ ma-nơ-canh xám) — đổi để so trong docs/so-sanh-mo-hinh-3d-video.md.
   if (co('video_url') && co('video_strength') && co('image_url') && v.videoNguon && v.anhDau) {
-    o.video_url = v.videoNguon; o.image_url = v.anhDau; o.video_strength = 0.8; o.prompt = catCau(`${CAU_DUNG_LAI_3D} ${v.prompt}`, toiDa);
+    o.video_url = v.videoNguon; o.image_url = v.anhDau; o.video_strength = Number(process.env.XV_LTX_BAM ?? 0.8);   // XV_LTX_BAM: lượt thử so mức bám (sổ so sánh) o.prompt = catCau(`${CAU_DUNG_LAI_3D} ${v.prompt}`, toiDa);
     if (co('match_video_length')) o.match_video_length = true;
     if (co('generate_audio')) o.generate_audio = false;
     if (co('enable_prompt_expansion')) o.enable_prompt_expansion = false;

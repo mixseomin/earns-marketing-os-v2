@@ -14,6 +14,7 @@ import { dungNhaQuan, nguoiQuan } from './quan.js';
 import { taoAmThanh } from './amthanh.js';
 import { taoBanDo } from './bando.js';
 import { dungNgua, dungXe } from './phuongtien.js';
+import { napNguoi3d, taoNguoi3d } from './nguoi3d.js';
 
 const $ = (id) => document.getElementById(id);
 const thamSo = new URLSearchParams(location.search);
@@ -403,7 +404,10 @@ const dk = world.createCharacterController(0.03);
 dk.enableAutostep(0.45, 0.25, false); dk.enableSnapToGround(0.4); dk.setMaxSlopeClimbAngle(1.05); dk.setMinSlopeSlideAngle(1.1); // đi & đứng được trên mái dốc tới ~60° (mái nhà 35–48°) dk.setApplyImpulsesToDynamicBodies(true); dk.setCharacterMass(70);
 const DIEM_VAO = new THREE.Vector3(0, 1.2, 108);
 // hình nhân vật của người chơi (khung xương + động tác sinh bằng mã)
-const toi = taoNguoi({ da: MAU_DA[1], ao: 0x8a2a1e, quan: 0x2e2a26, toc: 0x1c120c });
+// người chơi: người mẫu có xương + 24 động tác thật (nguoi3d.js, CC0 Quaternius); tải lỗi thì lùi về khung xương vẽ bằng mã
+let toi;
+try { await napNguoi3d(); toi = taoNguoi3d(); } catch (e) { console.warn('[castle] không nạp được người 3D, dùng khung xương vẽ bằng mã', e); toi = taoNguoi({ da: MAU_DA[1], ao: 0x8a2a1e, quan: 0x2e2a26, toc: 0x1c120c }); }
+const chauToi = (tuThe) => (toi.chau ? toi.chau(tuThe) : 0.95); // độ cao xương chậu theo tư thế (khung xương cũ: hông ở 0,95 m)
 toi.goc.visible = false; scene.add(toi.goc);
 let gocNhin = 3, huongToi = 0, muonHuong = 0, tocToi = 0; // gocNhin 3 = sau lưng, 1 = mắt nhân vật
 const gocLerp = (a, b, t) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * t;
@@ -756,14 +760,14 @@ function vong(now = 0) {
     let tuTheXe = null;
     if (cuoi) { // người ngồi trên yên / ghế xe
       const g = cuoi.vo.goc;
-      if (cuoi.kieu === 'ngua') { toi.goc.position.set(g.position.x, g.position.y + cuoi.vo.than.position.y + 0.5 - 0.95, g.position.z); tuTheXe = 'cuoi'; }
-      else { const v = new THREE.Vector3(0, cuoi.vo.ghe.y - 0.95 + 0.05, cuoi.vo.ghe.z); g.localToWorld(v); toi.goc.position.copy(v); tuTheXe = 'lai'; }
+      if (cuoi.kieu === 'ngua') { toi.goc.position.set(g.position.x, g.position.y + cuoi.vo.than.position.y + 0.5 - chauToi('cuoi'), g.position.z); tuTheXe = 'cuoi'; }
+      else { const v = new THREE.Vector3(0, cuoi.vo.ghe.y - chauToi('lai') + 0.05, cuoi.vo.ghe.z); g.localToWorld(v); toi.goc.position.copy(v); tuTheXe = 'lai'; }
       huongToi = muonHuong = cuoi.huong; chan = toi.goc.position.y + 0.55; // camera / mắt theo chỗ ngồi
-    } else if (tt === 'boi') { toi.goc.position.set(p.x - Math.sin(huongToi) * 0.75, HO.mat - 0.32, p.z - Math.cos(huongToi) * 0.75); phaBoi += dt * (1.6 + tocToi * 1.4); }
+    } else if (tt === 'boi') { if (toi.la3d) toi.goc.position.set(p.x, HO.mat - 0.12 - chauToi('boi'), p.z); else toi.goc.position.set(p.x - Math.sin(huongToi) * 0.75, HO.mat - 0.32, p.z - Math.cos(huongToi) * 0.75); phaBoi += dt * (1.6 + tocToi * 1.4); }
     else { if (tt === 'dat' && nen) { const m = matTren(p.x, p.y, p.z, 1.3); if (m != null && m > chan && m - chan < 0.4) chan = m; } toi.goc.position.set(p.x, chan, p.z); } // dốc: thân tròn chạm mái ở cạnh, chân hình người phải đặt lên mặt mái
     toi.goc.rotation.y = huongToi; if (tt === 'leo') phaLeo += dt * tocLeo * 3.2;
     const uong = sd.dangUong(); cocToi.visible = uong;
-    toi.capNhat(dt, { toc: tt === 'dat' && !cuoi ? tocToi : 0, nen: nen || tt !== 'dat' || !!cuoi, ngoi: tt === 'dat' && !cuoi && !!phim.KeyC, loop: uong ? 'uong' : null, tuThe: tuTheXe || (tt === 'dat' ? null : tt), phaLeo, phaBoi, tocXe: tocToi });
+    toi.capNhat(dt, { toc: tt === 'dat' && !cuoi ? tocToi : 0, nen: nen || tt !== 'dat' || !!cuoi, ngoi: tt === 'dat' && !cuoi && !!phim.KeyC, loop: uong ? 'uong' : null, tuThe: tuTheXe || (tt === 'dat' ? null : tt), phaLeo, phaBoi, tocXe: tocToi, tocLeo });
     if (gocNhin === 1) { camera.position.set(p.x, chan + MAT, p.z); camera.rotation.set(pitch, yaw, 0, 'YXZ'); }
     else { // camera sau vai phải, lùi vào khi vướng tường
       const pt = Math.max(-1.1, Math.min(0.75, pitch));

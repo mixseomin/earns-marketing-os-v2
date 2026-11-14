@@ -160,3 +160,35 @@ export function co(r) { // cỏ: nền xanh loang + nét lá ngắn
   hat(g, r, 16, 0.9);
   return { map: tex(c), bump: tex(c, false) };
 }
+
+// ---- lâu đài có thật (Neuschwanstein): đá vôi trắng, mặt tiền cửa sổ vòm, mái đá phiến, móng đá thô ----
+function khoiDa(g, r, hang, sangTB, bienDo, sac = 40, bao = 6) { // hàng khối đá so le phủ kín canvas
+  const cao = N / hang;
+  for (let y = 0; y < hang; y++) { let x = -r() * 60; while (x < N) { const w = 60 + r() * 90;
+    g.fillStyle = hsl(sac + (r() - 0.5) * 10, bao + r() * 6, sangTB - bienDo / 2 + r() * bienDo); g.fillRect(x + 1.5, y * cao + 1.5, Math.min(w, N - x) - 3, cao - 3);
+    if (x + w > N) g.fillRect(x + 1.5 - N, y * cao + 1.5, w - 3, cao - 3); x += w; } }
+}
+// 512 px = 4 m ngang × 4 m cao (một gian, một tầng): đá vôi + một cửa sổ vòm có khung
+export function matTien(r) {
+  const [c, g] = bang();
+  g.fillStyle = '#b9b2a4'; g.fillRect(0, 0, N, N); khoiDa(g, r, 14, 84, 10);
+  const cx = N / 2, w = 120, top = 150, bot = 400;
+  g.fillStyle = hsl(40, 10, 92); g.fillRect(cx - w / 2 - 14, top - 8, w + 28, bot - top + 22); g.beginPath(); g.arc(cx, top, w / 2 + 14, Math.PI, 0); g.fill(); // khung đá sáng
+  g.fillStyle = '#1d2229'; g.fillRect(cx - w / 2, top, w, bot - top); g.beginPath(); g.arc(cx, top, w / 2, Math.PI, 0); g.fill();         // kính tối
+  g.fillStyle = 'rgba(160,190,220,.18)'; g.fillRect(cx - w / 2 + 6, top + 6, w / 2 - 10, bot - top - 12);
+  g.fillStyle = hsl(40, 10, 88); g.fillRect(cx - 3, top - w / 2, 6, bot - top + w / 2); g.fillRect(cx - w / 2, top + 70, w, 6);              // song cửa
+  g.fillStyle = hsl(40, 8, 78); g.fillRect(cx - w / 2 - 22, bot + 12, w + 44, 12);                                                          // bậu cửa
+  g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(0, N - 10, N, 10);                                                                              // gờ tầng
+  hat(g, r, 10, 1);
+  return { map: tex(c), bump: tex(c, false) };
+}
+export function daVoi(r) { const [c, g] = bang(); g.fillStyle = '#a9a294'; g.fillRect(0, 0, N, N); khoiDa(g, r, 12, 82, 12); hat(g, r, 12, 1); return { map: tex(c), bump: tex(c, false) }; }
+export function mongDa(r) { const [c, g] = bang(); g.fillStyle = '#5d5850'; g.fillRect(0, 0, N, N); khoiDa(g, r, 7, 62, 22, 35, 8); hat(g, r, 30, 1); return { map: tex(c), bump: tex(c, false) }; }
+export function daPhien(r) { // mái đá phiến: vảy nhỏ xám xanh
+  const [c, g] = bang(); g.fillStyle = '#20252c'; g.fillRect(0, 0, N, N);
+  const w = 24, h = 16;
+  for (let y = N / h + 1; y >= -1; y--) for (let x = -1; x <= N / w; x++) { const cx = x * w + (y % 2) * w / 2, cy = y * h, l = 26 + r() * 12;
+    g.fillStyle = hsl(215, 10, l); g.beginPath(); g.moveTo(cx, cy - h); g.lineTo(cx + w - 1, cy - h); g.lineTo(cx + w - 1, cy - 4); g.quadraticCurveTo(cx + w / 2, cy + 3, cx, cy - 4); g.closePath(); g.fill(); }
+  hat(g, r, 14, 1);
+  return { map: tex(c), bump: tex(c, false) };
+}

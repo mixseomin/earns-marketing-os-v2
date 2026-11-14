@@ -8,7 +8,8 @@ server {
   ssl_certificate_key /etc/letsencrypt/live/on.tc/privkey.pem;
   root /opt/earns-marketing-os-v2/apps/castle/public;
   add_header X-Robots-Tag "noindex, nofollow" always;
-  gzip on; gzip_types text/css application/javascript image/svg+xml; gzip_min_length 1024;
+  gzip on; gzip_types text/css application/javascript image/svg+xml application/json model/gltf-binary; gzip_min_length 1024;
+  location ~ \.glb$ { types { model/gltf-binary glb; } add_header Cache-Control "no-cache"; add_header X-Robots-Tag "noindex, nofollow" always; } # người 3D 1,2 MB → ~0,3 MB khi nén
   auth_request /_mos2auth;
   error_page 401 = @login;
   location = /_mos2auth { internal; proxy_pass http://127.0.0.1:3821/api/auth/verify; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header Cookie $http_cookie; proxy_set_header Host mos2.on.tc; }

@@ -12,6 +12,16 @@ import path from 'node:path';
 import { cayRieng } from './cay-rieng.mjs';
 import { chonMuc } from './chon-muc.mjs';
 
+/** Việc sách coi là xong khi SỔ đã qua giai đoạn dựng (owner_review trở đi) và hết lý do kẹt — không tin lời kỹ sư tự báo. */
+export const sachXong = (s) => !!s && !s.loi && ['owner_review', 'ready', 'in_review', 'published'].includes(s.st) && !s.ket;
+if (process.argv.includes('--tu-kiem')) {
+  const a = await import('node:assert');
+  a.equal(sachXong({ st: 'owner_review', ket: null }), true); a.equal(sachXong({ st: 'published', ket: null }), true);
+  a.equal(sachXong({ st: 'draft', ket: null }), false, 'tự báo đã sửa mà sổ còn draft → chưa xong');
+  a.equal(sachXong({ st: 'owner_review', ket: 'chưa có bộ sinh' }), false, 'còn lý do kẹt → chưa xong');
+  a.equal(sachXong({ loi: 'ssh' }), false); a.equal(sachXong(null), false);
+  console.log('sach-sua: 6/6 ok'); process.exit(0);
+}
 if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`Thảo chỉ chạy trên iMac (máy này: ${os.hostname()}) — Claude không giao diện bằng gói thuê bao chỉ iMac`); process.exit(3); }
 
 const BOX = 'root@167.233.241.16', APP = '/opt/earns-marketing-os-v2/apps/cty', DATA = '/var/lib/cty', NGUOI = 'thao', TEP = 'sach-sua.json';
@@ -28,7 +38,10 @@ const QUYEN = ['Read', 'Glob', 'Grep', `Edit(/${SACH}/themes/**)`, `Write(/${SAC
 const CAM_BASH = ['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
   'rm', 'rmdir', 'rsync', 'scp', 'br', 'open', 'npm install', 'npm i', 'npx', 'brew', 'pip', 'launchctl', 'crontab', 'sudo', 'kill', 'pkill', 'ssh'].map((c) => `Bash(${c}:*)`);
 const CAM = [...CAM_BASH, 'AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate'];
-const ENV = { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}`, SANPHAM: path.join(SACH, '.cong-cu/sanpham') };
+// TÁC GIẢ RIÊNG (audit 15/11/2026): ~/puzzle-books dùng chung với Mạnh (việc dang:) — đếm commit theo khoảng HEAD thì lượt này nhận nhầm commit của người kia
+// (Mạnh #222 báo commit 2cba82f5 của Thảo). Commit của Thảo mang tên tác giả riêng, báo cáo chỉ đếm commit có tên đó.
+const TAC_GIA = 'Thảo (kỹ sư Phòng Sách)';
+const ENV = { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}`, SANPHAM: path.join(SACH, '.cong-cu/sanpham'), GIT_AUTHOR_NAME: TAC_GIA, GIT_COMMITTER_NAME: TAC_GIA };
 const box = (cmd, input) => { for (let i = 1; ; i++) { try { return execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', BOX, cmd], { encoding: 'utf8', timeout: 120000, input }); } catch (e) { if (i >= 3) throw e; } } };
 const viec = (args, input) => box(`cd ${APP} && CTY_DATA_DIR=${DATA} THO_MAY_TEP=${TEP} node worker/tho-may-viec.mjs ${args}`, input);
 const log = (s) => console.log(`${new Date().toISOString()} ${s}`);
@@ -78,11 +91,17 @@ const r = chayClaude(CLAUDE, ['-p', loiGiao, '--model', model, '--effort', muc.e
   { cwd: SACH, encoding: 'utf8', timeout: TRAN_PHUT * 60000, maxBuffer: 64 << 20, env: ENV });
 let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng / hết giờ */ }
 const ra = String(kq.result || '').trim(), ketDong = (ra.match(/^\s*\**KET:\**\s*(DA_SUA|KHONG_SUA|CAN_ANH)\b.*$/gim) || []).pop();
-const ket = ketDong ? ketDong.match(/DA_SUA|KHONG_SUA|CAN_ANH/i)[0].toLowerCase() : (r.signal || r.error ? 'treo' : 'khong_sua');
-const sau = git('rev-parse', 'HEAD'), commit = sau === truoc ? '' : git('log', '--format=%h %s', `${truoc}..${sau}`).split('\n').slice(0, 5).join('\n');
-const lan = sau === truoc ? [] : git('diff', '--name-only', `${truoc}..${sau}`).split('\n').filter((f) => doTruoc.has(f));
+const ket0 = ketDong ? ketDong.match(/DA_SUA|KHONG_SUA|CAN_ANH/i)[0].toLowerCase() : (r.signal || r.error ? 'treo' : 'khong_sua');
+// ĐÃ SỬA phải thấy được ở SỔ, không tin lời tự báo (audit 15/11/2026, mục 1e): dòng sổ của việc đã qua khỏi giai đoạn dựng (owner_review trở đi) và hết lý do kẹt.
+// Đọc sổ hỏng thì giữ lời báo nhưng ghi rõ chưa kiểm được.
+const idSo = (String(v.khoa).match(/^sach:ket\|(.+)$/) || [])[1] ?? null;
+const so = (() => { if (!idSo) return null; try { const d = JSON.parse(execFileSync(ENV.SANPHAM, ['show', idSo], { encoding: 'utf8', env: ENV, timeout: 60000 })).data; return { st: d.status, ket: d.listing_config?.ketSx?.ly ?? null }; } catch (e) { return { loi: e.message.split('\n')[0] }; } })();
+const ket = ket0 === 'da_sua' && so && !so.loi && !sachXong(so) ? 'khong_sua' : ket0;
+const sau = git('rev-parse', 'HEAD'), commit = sau === truoc ? '' : git('log', `--author=${TAC_GIA}`, '--format=%h %s', `${truoc}..${sau}`).split('\n').filter(Boolean).slice(0, 5).join('\n');
+const lan = !commit ? [] : git('log', `--author=${TAC_GIA}`, '--name-only', '--format=', `${truoc}..${sau}`).split('\n').filter((f) => f && doTruoc.has(f));
 const boKet = ra.replace(/^\s*\**KET:.*$/gim, '').trim(), sauBao = boKet.split(/^\s*[*#\s]*BÁO ANH:?\**\s*$/im);
 const than = ((sauBao.length > 1 ? sauBao.pop().trim() : boKet.split('\n').slice(-8).join('\n')) || `Claude thoát ${r.status ?? r.signal} không kèm báo cáo (${String(r.stderr || r.error?.message || '').slice(0, 200)})`)
+  + (ket !== ket0 ? `\n⚠ Báo đã sửa nhưng sổ chưa đổi (status ${so.st}${so.ket ? `, còn kẹt: ${so.ket}` : ''}) — tính là chưa sửa, máy đêm sẽ xếp lại.` : so?.loi ? `\n(chưa đọc được sổ để kiểm: ${so.loi})` : '')
   + (commit ? `\n\nCommit:\n${commit}` : '') + (lan.length ? `\n⚠ Commit có kèm tệp vốn đang dở từ trước (của việc nền khác trên iMac): ${lan.join(', ')} — anh xem lại.` : '') + `\n(${Math.round((kq.duration_ms || 0) / 6e4)} phút)`;
-log(`xong #${v.id}: ${ket} · commit ${commit ? sau.slice(0, 8) : 'không'} · ${kq.num_turns ?? '?'} lượt`);
+log(`xong #${v.id}: ${ket}${ket !== ket0 ? ` (tự báo ${ket0}, sổ ${so.st})` : ''} · commit ${commit ? commit.slice(0, 8) : 'không'} · ${kq.num_turns ?? '?'} lượt`);
 viec(`--bao ${v.id} ${ket === 'treo' ? 'treo' : ket}`, than);

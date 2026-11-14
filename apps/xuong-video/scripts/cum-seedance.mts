@@ -33,6 +33,10 @@ const cum = doan.filter((d) => d.length).flatMap((d) => chiaCumCan(d, 15)).map((
     tong: +tong.toFixed(2), ra, cents: +(gia * (tong + ra)).toFixed(1), thieu };
 });
 console.log(`giữ clip (không sinh lại): ${giu.length ? giu.map((c) => `#${c.thu_tu}`).join(' ') : 'không có'}`);
+// LUẬT KHỚP MÔI (anh 15/11/2026 "shot 4 có voice nhưng không thấy mồm nói"): clip Seedance câm — shot có clip + lời thoại có file giọng mà chưa qua bước khớp môi
+// (nguon_video.khop_moi) thì báo, chạy scripts/khop-moi-shot.mts --canh=<id>.
+const chuaKhop = ds.filter((c) => c.video_url && !(c.nguon_video as { khop_moi?: unknown } | null)?.khop_moi && (c.thoai ?? []).some((d) => d.url && d.loi?.trim() && !/ngoài khung|v\.?o\.?|lời dẫn|off/i.test(d.dien_xuat ?? '')));
+if (chuaKhop.length) console.log(`chưa khớp môi (có thoại, clip câm): ${chuaKhop.map((c) => `#${c.thu_tu} (id ${c.id})`).join(' ')} — khop-moi-shot.mts`);
 for (const c of cum) console.log(`cụm ${c.ten} · ${c.phan_doan} · #${c.shot.map((x) => x.so).join(' #')} · ${c.tong} s → clip ${c.ra} s · ~${c.cents}¢${c.thieu.length ? ` · THIẾU clip 3D / keyframe: #${c.thieu.join(' #')}` : ''}`);
 console.log(`tổng ~${cum.reduce((a, c) => a + c.cents, 0).toFixed(1)}¢ (${dpg})`);
 console.log(JSON.stringify(cum));

@@ -138,14 +138,15 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
 function ThanhPhoO({ ds, cao }: { ds: NonNullable<SoTong2['toa']>; cao: number }) {
   const [chon, setChon] = useState<number | null>(null);
   // cấp toà trước (tháp đứng hàng đầu), cùng cấp thì lãi 7 ngày
-  const xep = useMemo(() => [...ds].map((x) => ({ x, c: capToa(x.camp).cap })).sort((a, b) => b.c - a.c || laiPhim(b.x) - laiPhim(a.x)).map((v) => v.x), [ds]);
+  // cấp trước; cùng cấp thì toà có đèn xanh tín hiệu đứng sát khu trên (gần tâm hơn), rồi lãi 7 ngày
+  const xep = useMemo(() => [...ds].map((x) => ({ x, k: capToa(x.camp) })).sort((a, b) => b.k.cap - a.k.cap || b.k.tinHieu - a.k.tinHieu || laiPhim(b.x) - laiPhim(a.x)).map((v) => v.x), [ds]);
   const demCap = useMemo(() => CAP.map((_, i) => xep.filter((x) => capToa(x.camp).cap === i).length), [xep]);
   const ph = xep.find((x) => x.p === chon) ?? null;
   const k = ph ? ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }) : null;
   const tong = xep.reduce((a, x) => a + x.camp.length, 0);
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 6, height: '100%' }}>
     <div style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-      {ph && k ? <><b style={{ color: 'var(--fg-1)' }}>{ph.ten}</b> · <b>{capToa(ph.camp).ten}</b> ({capToa(ph.camp).od} ổn định) · {[...TANG].map((t, i) => ({ t, n: ph.camp.filter((c) => xepTang(c) === i).length })).reverse().filter((x) => x.n).map((x) => `${x.t} ${x.n}`).join(' · ')}
+      {ph && k ? <><b style={{ color: 'var(--fg-1)' }}>{ph.ten}</b> · <b>{capToa(ph.camp).ten}</b> ({capToa(ph.camp).od} ổn định{capToa(ph.camp).tinHieu ? <span style={{ color: XANH }}> · 🟢 {capToa(ph.camp).tinHieu} tín hiệu lãi</span> : null}) · {[...TANG].map((t, i) => ({ t, n: ph.camp.filter((c) => xepTang(c) === i).length })).reverse().filter((x) => x.n).map((x) => `${x.t} ${x.n}`).join(' · ')}
         {' · '}7 ngày lãi <b style={{ color: k.thu >= k.chi ? XANH : DO }}>{tien(k.thu - k.chi)}</b>{k.chi >= 1 ? ` (${pct(Math.round((k.thu - k.chi) / k.chi * 100))})` : ''}</>
         : <span style={{ cursor: 'help' }} title={GIAI_CAP}>{xep.length} phim · {tong} camp · {[...CAP].map((t, i) => ({ t, n: demCap[i]! })).reverse().filter((v) => v.n).map((v) => `${v.t} ${v.n}`).join(' · ')} · bấm một toà để xem</span>}
     </div>

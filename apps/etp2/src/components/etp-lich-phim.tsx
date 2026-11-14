@@ -144,7 +144,7 @@ function TabToa({ l, chon, onChon }: { l: LichPhim; chon: number | null; onChon:
       {H('Tầng', <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', cursor: 'help' }} title={giai}>
         {TANG.map((t, i) => ({ t, n: i ? dem[i]! : dem[0]! + mong.sx + mong.ke + mong.cho })).reverse().map(({ t, n }) =>
           <span key={t} style={{ whiteSpace: 'nowrap' }}><span style={{ color: 'var(--fg-3)' }}>{t}</span> <b style={{ color: n ? 'var(--fg-1)' : 'var(--fg-3)' }}>{n}</b></span>)}</div>)}
-      {(() => { const cp = capToa(l.camp); return H('Cấp', <span style={{ cursor: 'help' }} title={GIAI_CAP}><b style={{ color: 'var(--fg-1)' }}>{cp.ten}</b> · {cp.od} camp ổn định</span>); })()}
+      {(() => { const cp = capToa(l.camp); return H('Cấp', <span style={{ cursor: 'help' }} title={GIAI_CAP}><b style={{ color: 'var(--fg-1)' }}>{cp.ten}</b> · {cp.od} camp ổn định{cp.tinHieu ? <span style={{ color: '#4ade80' }}> · 🟢 {cp.tinHieu} tín hiệu lãi</span> : null}</span>); })()}
       {H('Hướng', <ChuHuong h={h} />)}
       {c ? H(`#${c.id}`, <div style={GON}><span style={{ color: mauCamp(c) }}>●</span> {c.roas ? '★ ROAS' : c.dang} · ${c.ns}/ngày{c.cho ? ' · hẹn giờ, chưa chạy' : ` · 7 ngày chi $${c.chi7.toFixed(0)} · ${r7 != null ? `ROI ${r7 > 0 ? '+' : ''}${r7}%` : 'chưa đủ số'}`}</div>)
         : H('Chọn', <span style={{ color: 'var(--fg-3)' }}>bấm một khối để xem camp</span>)}

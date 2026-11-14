@@ -26,13 +26,15 @@ export const roiCamp = (c: CampToa) => (c.chi7 >= 1 ? Math.round((c.thu7 - c.chi
 export const ON_DINH = 5;
 export const laOnDinh = (c: CampToa) => !c.cho && c.ngay_lai >= ON_DINH;
 export const CAP = ['Túp lều', 'Nhà cấp 4', 'Nhà phố', 'Văn phòng', 'Cao ốc', 'Tháp'] as const;
-export const GIAI_CAP = `Túp lều: phim mới, chưa camp nào chi đủ $1 / 7 ngày · Nhà cấp 4: đang chi mà chưa camp nào lãi · Nhà phố: có camp lãi · Văn phòng: có camp Scale (> $1) lãi · Cao ốc: có ★ ROAS lãi hoặc ≥ 3 camp ổn định · Tháp: ★ ROAS lãi + ≥ 5 camp ổn định\nCamp ổn định = lãi ≥ ${ON_DINH} trong 7 ngày Ethopex đã khép · thành phố: tháp ở trung tâm, cấp thấp dần ra ngoài`;
+export const GIAI_CAP = `Túp lều: phim mới, chưa camp nào chi đủ $1 / 7 ngày · Nhà cấp 4: đang chi, chưa camp nào ổn định · Nhà phố: ≥ 1 camp ổn định · Văn phòng: có camp Scale (> $1) ổn định · Cao ốc: có ★ ROAS lãi hoặc ≥ 3 camp ổn định · Tháp: ★ ROAS lãi + ≥ 5 camp ổn định\nCamp ổn định = lãi ≥ ${ON_DINH} trong 7 ngày Ethopex đã khép · 🟢 đèn xanh = có camp lãi 7 ngày nhưng chưa ổn định (tín hiệu) — toà đứng yên ở khu cũ, chỉ lên cấp mới chuyển khu`;
 export function capToa(camp: CampToa[]) {
+  // CẤP = điều đã chứng minh (camp ổn định / ★ ROAS lãi) — đổi khu; TÍN HIỆU = camp lãi 7 ngày mà chưa ổn định — chỉ bật đèn xanh, KHÔNG đổi khu
+  // (anh 15/11/2026 "các nhà có tín hiệu có lãi thì vẫn nằm ở đó và có đèn xanh riêng. Chỉ đến khi đạt level mới thì mới chuyển sang khu cao cấp hơn")
   const lai = (c: CampToa) => !c.cho && c.chi7 >= 1 && c.thu7 > c.chi7, od = camp.filter(laOnDinh).length;
-  const roasLai = camp.some((c) => c.roas && lai(c)), scaleLai = camp.some((c) => !c.roas && c.ns > 1 && lai(c));
-  // anh 15/11/2026 "phim mới, âm, chưa có cái nào lãi thì dùng nhà cấp 4, hoặc túp lều": chưa chi đủ = túp lều · có chi mà chưa lãi = nhà cấp 4
-  const cap = roasLai && od >= 5 ? 5 : roasLai || od >= 3 ? 4 : scaleLai ? 3 : camp.some(lai) ? 2 : camp.some((c) => !c.cho && c.chi7 >= 1) ? 1 : 0;
-  return { cap, ten: CAP[cap]!, od };
+  const roasLai = camp.some((c) => c.roas && lai(c)), scaleOD = camp.some((c) => !c.roas && c.ns > 1 && laOnDinh(c));
+  const cap = roasLai && od >= 5 ? 5 : roasLai || od >= 3 ? 4 : scaleOD ? 3 : od >= 1 ? 2 : camp.some((c) => !c.cho && c.chi7 >= 1) ? 1 : 0;
+  const tinHieu = cap < 5 ? camp.filter((c) => lai(c) && !laOnDinh(c)).length : 0;
+  return { cap, ten: CAP[cap]!, od, tinHieu };
 }
 const chuCamp = (c: CampToa) => { const r7 = roiCamp(c);
   return `#${c.id} · ${c.roas ? '★ ROAS' : c.dang} · $${c.ns}/ngày${c.cho ? ' · hẹn giờ, chưa chạy' : ` · 7 ngày chi $${c.chi7.toFixed(0)} · thu $${c.thu7.toFixed(0)}${r7 != null ? ` · ROI ${r7 > 0 ? '+' : ''}${r7}%` : ' · chưa đủ số'}`}${c.cho ? '' : ` · lãi ${c.ngay_lai}/${c.ngay_chay} ngày đã khép${laOnDinh(c) ? ' (ổn định)' : ''}`}`; };
@@ -55,7 +57,7 @@ function nhan(T: T3, chu: string, mau: string, to = 1, theoMan = true) {
 }
 
 /** DỰNG MỘT TOÀ vào nhóm g (gốc toà ở (0,0,0)). nhanTang: nhãn tầng bên trái (khung phim) · bien: biển trên cột ăng-ten. Trả chiều cao + các cửa bấm được. */
-function dungToa(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: MongToa; bien: { chu: string; mau: string } | null; nhanTang: boolean; bienTheoMan?: boolean; kho: Map<string, import('three').CanvasTexture> }) {
+function dungThan(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: MongToa; bien: { chu: string; mau: string } | null; nhanTang: boolean; bienTheoMan?: boolean; kho: Map<string, import('three').CanvasTexture> }) {
   const theoTang: Khoi[][] = TANG.map(() => []);
   for (const c of o.camp) theoTang[xepTang(c)]!.push({ kieu: 'camp', c });
   theoTang[1]!.sort((a, b) => (a.kieu === 'camp' && b.kieu === 'camp' ? (roiCamp(b.c) ?? -999) - (roiCamp(a.c) ?? -999) : 0));
@@ -154,6 +156,17 @@ function dungToa(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: Mo
     return { cao: dinh + 1.6, vat };
   }
   return { cao: cotBien(dinh, 0.9, RONG / 2 - 0.4), vat };
+}
+
+/** DỰNG TOÀ + ĐÈN XANH TÍN HIỆU: cột sáng xanh + đèn tròn trên mái khi toà có camp lãi chưa ổn định (đứng yên ở khu, chờ lên cấp) */
+function dungToa(...a: Parameters<typeof dungThan>) {
+  const [T, g, o] = a, r = dungThan(...a), { tinHieu } = capToa(o.camp);
+  if (!tinHieu) return r;
+  const x = -RONG / 2 + 0.35, z = SAU / 2 - 0.35, top = r.cao - 0.4;
+  const cot = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 1.4, 8), new T.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.55 })); cot.position.set(x, top + 0.7, z); g.add(cot);
+  const den = new T.Mesh(new T.SphereGeometry(0.2, 16, 12), new T.MeshStandardMaterial({ color: 0x4ade80, emissive: 0x22c55e, emissiveIntensity: 1.4 })); den.position.set(x, top + 1.45, z); g.add(den);
+  const quang = new T.Mesh(new T.SphereGeometry(0.42, 16, 12), new T.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.18, depthWrite: false })); quang.position.copy(den.position); g.add(quang);
+  return { ...r, cao: Math.max(r.cao, top + 1.7) };
 }
 
 /** CẢNH 3D DÙNG CHUNG: renderer + đèn + camera + điều khiển + thẻ rê 450 ms + khung chọn. dung() dựng vật vào cảnh, trả vật bấm được + tâm nhìn + khoảng xa.
@@ -345,7 +358,8 @@ export function ThanhPho({ ds, chon, onChon, cao, bienToiDa = 6 }: { ds: ToaPhim
       const k7 = ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }), caoBat = Math.max(0.5, r.cao - 1.0);
       const bat = new T.Mesh(new T.BoxGeometry(RONG, caoBat, SAU), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
       bat.position.set(0, caoBat / 2, 0); g.add(bat);
-      vat.push({ m: bat, vien: g, id: ph.p, chu: `${ten} · ${CAP[cap]} · ${KHU[kh]!.ten} · ${ph.camp.length} camp · 7 ngày lãi ${lai >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
+      const th = capToa(ph.camp).tinHieu;
+      vat.push({ m: bat, vien: g, id: ph.p, chu: `${ten} · ${CAP[cap]} · ${KHU[kh]!.ten}${th ? ` · 🟢 ${th} camp tín hiệu lãi` : ''} · ${ph.camp.length} camp · 7 ngày lãi ${lai >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
     });
     // lô còn trống ngoài rìa = công viên (cỏ + cây), không để ô đen trơ
     for (const [ox, oz] of lo.slice(ds.length)) { const sv = new T.Mesh(new T.PlaneGeometry(LX - 0.06, LZ - 0.06), new T.MeshStandardMaterial({ color: 0x1d3a24, roughness: 1 })); sv.rotation.x = -Math.PI / 2; sv.position.set(ox, 0, oz); canh.add(sv);

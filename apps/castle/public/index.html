@@ -53,12 +53,25 @@
   @media (max-width: 560px) { #dau .mo.pc { display: none; } }
   @media (hover: hover) { #dau .mo.dt { display: none; } }
 </style>
-<script type="importmap">
-{ "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
-  "rapier": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js"
-} }
+<script>
+// Nạp module theo DẤU PHIÊN BẢN của từng tệp. Zone on.tc có luật Cloudflare giữ mọi .js 30 ngày ở máy biên + 7 ngày ở trình duyệt
+// (đè no-cache của máy gốc) → nạp thẳng ./main.js là chạy bản cũ (F5 không giữ chỗ đứng 14/11/2026). Trang HTML không bị giữ, nên ở đây
+// hỏi máy gốc ETag từng tệp (HEAD kèm ?ban=<giờ> = luôn trượt cache biên), rồi nạp ./x.js?v=<ETag>: tệp đổi → địa chỉ đổi → không ai giữ bản cũ.
+// Thêm tệp .js mới vào trang = thêm tên vào TEP.
+(async () => {
+  const TEP = ['main.js', 'tex.js', 'nhanvat.js', 'songdong.js', 'quan.js', 'amthanh.js', 'bando.js'];
+  const lay = (f) => fetch(`./${f}?ban=${Date.now()}`, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' })
+    .then((r) => (r.ok && (r.headers.get('etag') || r.headers.get('last-modified')) || '').replace(/[^\w-]/g, '')).catch(() => '');
+  const dau = await Promise.all(TEP.map(lay));
+  const imports = {
+    three: 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js',
+    'three/addons/': 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/',
+    rapier: 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js',
+  };
+  TEP.forEach((f, i) => { imports[new URL(`./${f}`, location.href).href] = `./${f}?v=${dau[i] || Date.now()}`; });
+  const m = document.createElement('script'); m.type = 'importmap'; m.textContent = JSON.stringify({ imports }); document.head.appendChild(m);
+  const s = document.createElement('script'); s.type = 'module'; s.src = imports[new URL('./main.js', location.href).href]; document.body.appendChild(s);
+})();
 </script>
 </head>
 <body>
@@ -138,6 +151,5 @@
 </div></div>
 <div id="can"><i></i></div>
 <div id="cham"><button id="b-goc">👁</button><button id="b-noi">Nói</button><button id="b-chao">Chào</button><button id="b-mua">Múa</button><button id="b-da">Đá</button><button id="b-nhay">Nhảy</button><button id="b-nem">Ném</button></div>
-<script type="module" src="./main.js"></script>
 </body>
 </html>

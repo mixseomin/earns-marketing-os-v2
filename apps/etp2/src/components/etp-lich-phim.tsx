@@ -139,7 +139,7 @@ function TabToa({ l, chon, onChon }: { l: LichPhim; chon: number | null; onChon:
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
       <b style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.ten ?? `#${l.content_id}`}</b>
       <span style={{ color: pha[1], whiteSpace: 'nowrap' }}>● {pha[0]}</span></div>
-    <ToaNha camp={l.camp} mong={mong} bien={{ chu: `▲ ${h.dong}`, mau: h.mauH }} chon={chon} onChon={onChon} />
+    <ToaNha camp={l.camp} tat={l.camp_tat} mong={mong} bien={{ chu: `▲ ${h.dong}`, mau: h.mauH }} chon={chon} onChon={onChon} />
     <div style={{ display: 'grid', gridTemplateColumns: '58px 1fr', gap: '7px 10px', alignItems: 'center' }}>
       {H('Tầng', <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', cursor: 'help' }} title={giai}>
         {TANG.map((t, i) => ({ t, n: i ? dem[i]! : dem[0]! + mong.sx + mong.ke + mong.cho })).reverse().map(({ t, n }) =>

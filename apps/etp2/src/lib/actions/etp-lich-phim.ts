@@ -26,7 +26,7 @@ export type LichPhim = {
   // đủ số để trang chấm đúng cổng máy luật (lên bậc · nhân bản hai nấc · ★ ROAS) — ngưỡng đọc ở sổ luật chung, không ở đây
   thang: CampThang[]; cr: { san: number; chan: number }; doi_lai: { chi: number; roi: number; ngay: number }; do_toi: string | null;
   // TOÀ NHÀ (anh 15/11/2026 "giống kiểu hình một toà nhà"): MỌI camp đang chạy của phim, mỗi camp một khối — cùng cửa sổ 7 ngày + cùng tập camp với `dang`
-  camp: CampToa[];
+  camp: CampToa[]; camp_tat: CampToa[];   // camp_tat: camp đã tắt còn chi trong 30 ngày (cây héo ở thửa túp lều / nhà cấp 4)
   /** dạng dòng đang gác (etp.cau_hinh.gac_dang) — nút ＋ dạng đó tắt, chữ rê nói vì sao (#1598) */
   gac: string[];
 };
@@ -94,7 +94,7 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
   const ids = new Set((await run<{ camp_id: number }>(sql`select camp_id from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE'`)).map((x) => Number(x.camp_id)));
   const hoan = (['tang', 'giam', 'tat'] as const).flatMap((h) => ((kh?.g?.[h] as number[] | undefined) ?? []).filter((c) => ids.has(Number(c))).map((c) => ({ camp_id: Number(c), huong: h })));
   return { ...p!, dang, thay: thay ?? null, sx, hoan, moc_chi: mc?.chi ?? 25, moc_thu: mc?.so ?? 4, ke: ke ?? null, hen, tu_len: cho?.tu_len ?? 0, thieu: cho?.thieu ?? null, may_mo: !!cho?.may_mo, lt: lt?.g ?? null,
-    thang, cr: { san: kho?.san ?? 0, chan: kho?.chan ?? 0 }, doi_lai: { chi: kho?.chi ?? 30, roi: kho?.roi ?? 30, ngay: kho?.ngay ?? 3 }, do_toi: kho?.do_toi ?? null, camp: camp.map(docCampToa), gac };
+    thang, cr: { san: kho?.san ?? 0, chan: kho?.chan ?? 0 }, doi_lai: { chi: kho?.chi ?? 30, roi: kho?.roi ?? 30, ngay: kho?.ngay ?? 3 }, do_toi: kho?.do_toi ?? null, camp: camp.map(docCampToa).filter((x) => !x.tat), camp_tat: camp.map(docCampToa).filter((x) => x.tat), gac };
 }
 
 /** LOG TỪNG PHIM (anh 07/11/2026 "các log của từng film nên để sang 1 tab riêng"): nhật ký máy + dòng phim, mới nhất trên. Lần cổng chặn (ok rỗng) gom theo câu lỗi. */

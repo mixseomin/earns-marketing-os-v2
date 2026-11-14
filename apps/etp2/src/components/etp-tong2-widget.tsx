@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { SimpleTable, StatsStrip, type SimpleColumn } from '@/components/ui';
 import { ThanhPho, laiPhim, xepTang, TANG, capToa, CAP, GIAI_CAP } from '@/components/etp-toa-nha';
 import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
+import { docThanhPho, type PhimThanhPho } from '@/lib/actions/etp-thanh-pho';
+import { useSearchParams } from 'next/navigation';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
 import { Dem, KeToan } from '@/components/etp-so';
@@ -134,8 +136,14 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
   </div>;
 }
 
-/** ô widget Thành phố: cảnh 3D + một dòng tóm tắt phim đang chọn (đếm tầng, lãi 7 ngày) */
-function ThanhPhoO({ ds, cao }: { ds: NonNullable<SoTong2['toa']>; cao: number }) {
+/** ô widget Thành phố: tự tải số THEO NGƯỜI ĐANG XEM (?ng=) — cảnh 3D + một dòng tóm tắt phim đang chọn (đếm tầng, lãi 7 ngày) */
+function ThanhPhoO({ cao }: { cao: number }) {
+  const ng = useSearchParams().get('ng');
+  const { so: tp, loi } = useSoNho(`thanh-pho:${ng ?? 'nha'}`, () => docThanhPho(ng), 120_000);
+  if (!tp) return <span style={{ color: loi ? DO : MO, fontSize: 12 }}>{loi ?? 'đang tải số…'}</span>;
+  return <ThanhPhoVe ds={tp.ds} nguoi={tp.nguoi} cao={cao} />;
+}
+function ThanhPhoVe({ ds, nguoi, cao }: { ds: PhimThanhPho[]; nguoi: string; cao: number }) {
   const [chon, setChon] = useState<number | null>(null);
   // cấp toà trước (tháp đứng hàng đầu), cùng cấp thì lãi 7 ngày
   // cấp trước; cùng cấp thì toà có đèn xanh tín hiệu đứng sát khu trên (gần tâm hơn), rồi lãi 7 ngày
@@ -148,7 +156,7 @@ function ThanhPhoO({ ds, cao }: { ds: NonNullable<SoTong2['toa']>; cao: number }
     <div style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       {ph && k ? <><b style={{ color: 'var(--fg-1)' }}>{ph.ten}</b> · <b>{capToa(ph.camp).ten}</b> ({capToa(ph.camp).od} ổn định{capToa(ph.camp).tinHieu ? <span style={{ color: XANH }}> · 🟢 {capToa(ph.camp).tinHieu} tín hiệu lãi</span> : null}) · {[...TANG].map((t, i) => ({ t, n: ph.camp.filter((c) => xepTang(c) === i).length })).reverse().filter((x) => x.n).map((x) => `${x.t} ${x.n}`).join(' · ')}
         {' · '}7 ngày lãi <b style={{ color: k.thu >= k.chi ? XANH : DO }}>{tien(k.thu - k.chi)}</b>{k.chi >= 1 ? ` (${pct(Math.round((k.thu - k.chi) / k.chi * 100))})` : ''}</>
-        : <span style={{ cursor: 'help' }} title={GIAI_CAP}>{xep.length} phim · {tong} camp · {[...CAP].map((t, i) => ({ t, n: demCap[i]! })).reverse().filter((v) => v.n).map((v) => `${v.t} ${v.n}`).join(' · ')} · bấm một toà để xem</span>}
+        : <span style={{ cursor: 'help' }} title={GIAI_CAP}><b style={{ color: 'var(--fg-1)' }}>{nguoi}</b> · {xep.length} phim · {tong} camp · {[...CAP].map((t, i) => ({ t, n: demCap[i]! })).reverse().filter((v) => v.n).map((v) => `${v.t} ${v.n}`).join(' · ')} · bấm một toà để xem</span>}
     </div>
     <ThanhPho ds={xep} chon={chon} onChon={setChon} cao={Math.max(160, cao - 26)} />
   </div>;
@@ -192,9 +200,7 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
     // THÀNH PHỐ PHIM (anh 15/11/2026 "giống kiểu hình một toà nhà… show mô hình dạng 3D để xoay", bước 2): mỗi phim nhà đang có camp chạy = một toà; cửa = camp,
     // tầng theo chặng (thử → lãi → scale → ★ ROAS mái), xếp theo lãi 7 ngày. Bấm một toà → dòng tóm tắt phim đó bên dưới.
     thanh_pho: ({ cao }) => {
-      if (!s) return cho;
-      if (!s.toa) return <span style={{ color: MO, fontSize: 12 }}>thành phố phim chỉ có ở tài khoản nhà</span>;
-      return <ThanhPhoO ds={s.toa} cao={cao} />;
+      return <ThanhPhoO cao={cao} />;
     },
     phim_moi: ({ rong }) => {
       if (!s) return cho;

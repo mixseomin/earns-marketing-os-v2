@@ -57,7 +57,7 @@ function nhan(T: T3, chu: string, mau: string, to = 1, theoMan = true) {
 }
 
 /** DỰNG MỘT TOÀ vào nhóm g (gốc toà ở (0,0,0)). nhanTang: nhãn tầng bên trái (khung phim) · bien: biển trên cột ăng-ten. Trả chiều cao + các cửa bấm được. */
-function dungThan(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: MongToa; bien: { chu: string; mau: string } | null; nhanTang: boolean; bienTheoMan?: boolean; kho: Map<string, import('three').CanvasTexture> }) {
+function dungThan(T: T3, g: import('three').Group, o: { tat?: CampToa[]; camp: CampToa[]; mong: MongToa; bien: { chu: string; mau: string } | null; nhanTang: boolean; bienTheoMan?: boolean; kho: Map<string, import('three').CanvasTexture> }) {
   const theoTang: Khoi[][] = TANG.map(() => []);
   for (const c of o.camp) theoTang[xepTang(c)]!.push({ kieu: 'camp', c });
   theoTang[1]!.sort((a, b) => (a.kieu === 'camp' && b.kieu === 'camp' ? (roiCamp(b.c) ?? -999) - (roiCamp(a.c) ?? -999) : 0));
@@ -105,16 +105,50 @@ function dungThan(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: M
     return yCot + cCot + 0.1;
   };
 
-  // ── TÚP LỀU / NHÀ CẤP 4: một tầng thấp, mọi cửa (cả việc móng) chung một vòng tường, mái chóp — không tầng, không đế
+  // ── TÚP LỀU / NHÀ CẤP 4 = THỬA ĐẤT ĐANG TRỒNG CÂY (anh 15/11/2026 "Nhà kiểu túp lều phải bé và nằm trong 1 thửa đất trống đang trồng cây. Mỗi cây là 1 camp nhỏ.
+  //    Nếu xanh thì sáng. Đỏ thì khác đi. Còn đã tắt thì héo và để ở 1 góc"): nhà nhỏ góc sau-trái · cây = camp đang chạy (lãi: tán xanh sáng · lỗ: tán đỏ nhọn ·
+  //    chưa đủ số: tán xám nhỏ · hẹn giờ: cây non xanh lam) · việc móng = cọc (chờ xanh lam · SX vàng · KH xám) · camp đã tắt = cây héo nghiêng dồn góc trước-phải
   if (cap <= 1) {
-    const ds = theoTang.flat(), san = Math.max(1, Math.ceil(ds.length / O_TANG)), caoSan = CAO * 0.85, cao = san * caoSan;
-    be(RONG, cao, SAU, THAN, cao / 2);
-    for (let s2 = 0; s2 < san; s2++) for (let i = 0; i < O_TANG; i++) cua(ds[s2 * O_TANG + i], i, s2 * caoSan + caoSan / 2, caoSan, 0);
-    const caoMai = cap === 0 ? 0.75 : 0.42, R0 = Math.SQRT1_2 * (RONG + 0.4);
+    const dat = new T.Mesh(new T.BoxGeometry(RONG, 0.06, SAU), new T.MeshStandardMaterial({ color: 0x5b4127, roughness: 1 })); dat.position.y = 0.03; g.add(dat);
+    for (let k = 0; k < 4; k++) { const l = new T.Mesh(new T.BoxGeometry(RONG - 1.2, 0.012, 0.05), new T.MeshStandardMaterial({ color: 0x3f2c19 })); l.position.set(0.45, 0.066, -SAU / 2 + 0.45 + k * 0.38); g.add(l); }   // luống
+    const nw = 0.75, nd = 0.55, nh = cap === 0 ? 0.3 : 0.42, hx = -RONG / 2 + 0.5, hz = -SAU / 2 + 0.42;
+    be(nw, nh, nd, THAN, 0.06 + nh / 2, hx).position.z = hz;
+    const caoMai = cap === 0 ? 0.42 : 0.22, R0 = Math.SQRT1_2 * (nw + 0.16);
     const mai = new T.Mesh(new T.ConeGeometry(R0, caoMai, 4), new T.MeshStandardMaterial({ color: cap === 0 ? 0xc8a96a : 0x7c8794, roughness: cap === 0 ? 1 : 0.5, metalness: cap === 0 ? 0 : 0.4 }));
-    mai.rotation.y = Math.PI / 4; mai.scale.set(1, 1, (SAU + 0.4) / (RONG + 0.4)); mai.position.set(0, cao + caoMai / 2, 0); g.add(mai);
-    if (o.nhanTang) { const sp = nhan(T, `${CAP[cap]} · ${o.camp.length} camp`, '#cbd5e1', 0.9); sp.center.set(1, 0.5); sp.position.set(-RONG / 2 - 0.15, cao / 2, SAU / 2 + 0.05); g.add(sp); }
-    return { cao: cotBien(cao + caoMai, 0.5, 0), vat };
+    mai.rotation.y = Math.PI / 4; mai.scale.set(1, 1, (nd + 0.16) / (nw + 0.16)); mai.position.set(hx, 0.06 + nh + caoMai / 2, hz); g.add(mai);
+    const cuaNha = new T.Mesh(new T.PlaneGeometry(0.16, nh * 0.6), new T.MeshStandardMaterial({ color: 0x3f2c19 })); cuaNha.position.set(hx, 0.06 + nh * 0.3, hz + nd / 2 + 0.005); g.add(cuaNha);
+    // ô trồng: lưới 0,42 trên thửa, tránh nền nhà và góc héo
+    const GOC_HEO = (x: number, z: number) => x > RONG / 2 - 0.95 && z > SAU / 2 - 0.62, NEN = (x: number, z: number) => x < hx + nw / 2 + 0.15 && z < hz + nd / 2 + 0.15;
+    const o_: [number, number][] = [];
+    for (let z = -SAU / 2 + 0.25; z < SAU / 2 - 0.1; z += 0.42) for (let x = -RONG / 2 + 0.25; x < RONG / 2 - 0.1; x += 0.42) if (!GOC_HEO(x, z) && !NEN(x, z)) o_.push([x, z]);
+    const goc = new T.MeshStandardMaterial({ color: 0x6b4423, roughness: 1 });
+    const cay = (x: number, z: number, c: CampToa) => {
+      const lai = c.chi7 >= 1 && c.thu7 > c.chi7, lo = c.chi7 >= 1 && !lai, cao0 = c.cho ? 0.1 : 0.2;
+      const than = new T.Mesh(new T.CylinderGeometry(0.025, 0.035, cao0, 6), goc); than.position.set(x, 0.06 + cao0 / 2, z); g.add(than);
+      const tan = c.cho ? new T.Mesh(new T.SphereGeometry(0.07, 10, 8), new T.MeshStandardMaterial({ color: 0x93c5fd, emissive: 0x3b82f6, emissiveIntensity: 0.3 }))
+        : lai ? new T.Mesh(new T.SphereGeometry(0.16, 14, 10), new T.MeshStandardMaterial({ color: 0x4ade80, emissive: 0x22c55e, emissiveIntensity: 0.9 }))
+        : lo ? new T.Mesh(new T.ConeGeometry(0.14, 0.3, 8), new T.MeshStandardMaterial({ color: 0xef4444, emissive: 0x7f1d1d, emissiveIntensity: 0.4, roughness: 0.8 }))
+        : new T.Mesh(new T.SphereGeometry(0.11, 10, 8), new T.MeshStandardMaterial({ color: 0x7c8f80, roughness: 1 }));
+      tan.position.set(x, 0.06 + cao0 + (lo ? 0.13 : c.cho ? 0.05 : 0.11), z); g.add(tan);
+      vat.push({ m: tan, vien: tan, id: c.id, chu: chuCamp(c) });
+    };
+    const song = [...o.camp].sort((a, b) => Number(b.chi7 >= 1 && b.thu7 > b.chi7) - Number(a.chi7 >= 1 && a.thu7 > a.chi7));
+    song.slice(0, o_.length).forEach((c, k) => cay(o_[k]![0], o_[k]![1], c));
+    // việc móng: cọc nhỏ có màu sau các cây
+    const coc: [number, string][] = [...Array(o.mong.cho).fill([0x60a5fa, 'creative sạch chờ lên camp']), ...Array(o.mong.sx).fill([0xfacc15, 'đang sản xuất']), ...Array(o.mong.ke).fill([0x94a3b8, 'kế hoạch, chưa làm'])];
+    coc.slice(0, Math.max(0, o_.length - song.length)).forEach(([mau, chu], k) => { const [x, z] = o_[song.length + k]!;
+      const m = new T.Mesh(new T.BoxGeometry(0.05, 0.2, 0.05), new T.MeshStandardMaterial({ color: mau, emissive: mau, emissiveIntensity: 0.3 })); m.position.set(x, 0.16, z); g.add(m); vat.push({ m, vien: m, id: null, chu }); });
+    // góc héo: camp đã tắt (còn chi trong 30 ngày), tối đa 12 cây, thân nghiêng, tán nâu khô
+    const heo = (o.tat ?? []).slice(0, 12);
+    heo.forEach((c, k) => {
+      const x = RONG / 2 - 0.15 - (k % 4) * 0.2, z = SAU / 2 - 0.12 - Math.floor(k / 4) * 0.18;
+      const gh = new T.Group(); gh.position.set(x, 0.06, z); gh.rotation.z = (k % 2 ? 1 : -1) * 0.45; g.add(gh);
+      const than = new T.Mesh(new T.CylinderGeometry(0.018, 0.028, 0.16, 5), new T.MeshStandardMaterial({ color: 0x57534e, roughness: 1 })); than.position.y = 0.08; gh.add(than);
+      const tan = new T.Mesh(new T.ConeGeometry(0.07, 0.12, 5), new T.MeshStandardMaterial({ color: 0x78350f, roughness: 1 })); tan.position.y = 0.19; gh.add(tan);
+      vat.push({ m: tan, vien: tan, id: c.id, chu: `#${c.id} · ${c.roas ? '★ ROAS' : c.dang} · đã tắt (cây héo)` });
+    });
+    if (o.nhanTang) { const sp = nhan(T, `${CAP[cap]} · ${o.camp.length} cây · ${(o.tat ?? []).length} héo`, '#cbd5e1', 0.9); sp.center.set(1, 0.5); sp.position.set(-RONG / 2 - 0.15, 0.3, SAU / 2 + 0.05); g.add(sp); }
+    return { cao: cotBien(0.06 + nh + caoMai, 0.4, hx), vat, than: [RONG, 0.06 + nh + caoMai, SAU] as [number, number, number] };
   }
 
   let y = 0;
@@ -153,23 +187,22 @@ function dungThan(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: M
     const chop = new T.Mesh(new T.ConeGeometry(0.16, 1.5, 12), new T.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xd4a017, emissiveIntensity: 0.5, metalness: 0.6, roughness: 0.3 }));
     chop.position.set(0, dinh + 0.75, 0); g.add(chop);
     if (o.bien) { const sp = nhan(T, o.bien.chu, o.bien.mau, 1.1, o.bienTheoMan ?? true); sp.center.set(0.5, 0); sp.position.set(0, dinh + 1.62, 0); g.add(sp); }
-    return { cao: dinh + 1.6, vat };
+    return { cao: dinh + 1.6, vat, than: [RONG + 0.5, dinh, SAU + 0.5] as [number, number, number] };
   }
-  return { cao: cotBien(dinh, 0.9, RONG / 2 - 0.4), vat };
+  return { cao: cotBien(dinh, 0.9, RONG / 2 - 0.4), vat, than: [RONG + 0.5, dinh, SAU + 0.5] as [number, number, number] };
 }
 
 /** DỰNG TOÀ + ĐÈN XANH TÍN HIỆU: cột sáng xanh + đèn tròn trên mái khi toà có camp lãi chưa ổn định (đứng yên ở khu, chờ lên cấp) */
 function dungToa(...a: Parameters<typeof dungThan>) {
-  const [T, g, o] = a, r0 = dungThan(...a), { tinHieu, cap } = capToa(o.camp);
-  // CỠ THEO CẤP (anh 15/11/2026 "túp lều phải bé chứ ko thể to hơn cả nhà đc"): túp lều 0,5 · nhà cấp 4 0,75 · nhà tầng 1 — thu cả nhóm (mái, cửa, đèn); ty = hệ số để bên gọi đổi số đo trong nhóm
-  const ty = cap === 0 ? 0.5 : cap === 1 ? 0.75 : 1, r = { ...r0, cao: r0.cao * ty, ty };
-  g.scale.setScalar(ty);
+  const [T, g, o] = a, r0 = dungThan(...a), { tinHieu } = capToa(o.camp);
+  // túp lều / nhà cấp 4 giờ là nhà nhỏ trong thửa trồng cây (dungThan) — không thu cả nhóm nữa
+  const r = r0;
   if (!tinHieu) return r;
-  const x = -RONG / 2 + 0.35, z = SAU / 2 - 0.35, top = r0.cao - 0.4;   // số đo trong nhóm (trước thu)
+  const x = -RONG / 2 + 0.35, z = SAU / 2 - 0.35, top = r0.than[1];   // nóc thân
   const cot = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 1.4, 8), new T.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.55 })); cot.position.set(x, top + 0.7, z); g.add(cot);
   const den = new T.Mesh(new T.SphereGeometry(0.2, 16, 12), new T.MeshStandardMaterial({ color: 0x4ade80, emissive: 0x22c55e, emissiveIntensity: 1.4 })); den.position.set(x, top + 1.45, z); g.add(den);
   const quang = new T.Mesh(new T.SphereGeometry(0.42, 16, 12), new T.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.18, depthWrite: false })); quang.position.copy(den.position); g.add(quang);
-  return { ...r, cao: Math.max(r.cao, (top + 1.7) * ty) };
+  return { ...r, cao: Math.max(r.cao, top + 1.7) };
 }
 
 /** CẢNH 3D DÙNG CHUNG: renderer + đèn + camera + điều khiển + thẻ rê 450 ms + khung chọn. dung() dựng vật vào cảnh, trả vật bấm được + tâm nhìn + khoảng xa.
@@ -310,15 +343,15 @@ function KhungCanh({ hop, re, loi, cao, dk, kieu = 'pho', chuGiai }: { hop: Reac
 }
 
 /** MỘT TOÀ (khung phim, tab Toà nhà): có nhãn tầng + biển hướng đi; điều khiển kiểu trình xem 3D (OrbitControls) */
-export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mong: MongToa; bien: { chu: string; mau: string } | null; chon: number | null; onChon: (id: number | null) => void }) {
+export function ToaNha({ camp, tat, mong, bien, chon, onChon }: { camp: CampToa[]; tat?: CampToa[]; mong: MongToa; bien: { chu: string; mau: string } | null; chon: number | null; onChon: (id: number | null) => void }) {
   const hop = useRef<HTMLDivElement>(null);
   const { re, loi, dk } = useCanh3D(hop, (T, canh) => {
     const g = new T.Group(); canh.add(g);
-    const { cao, vat } = dungToa(T, g, { camp, mong, bien, nhanTang: true, kho: new Map() });
+    const { cao, vat } = dungToa(T, g, { camp, tat, mong, bien, nhanTang: true, kho: new Map() });
     const dat = new T.Mesh(new T.CircleGeometry(Math.max(RONG, SAU) * 1.2, 48), new T.MeshStandardMaterial({ color: 0x1e293b, transparent: true, opacity: 0.4 }));
     dat.rotation.x = -Math.PI / 2; dat.position.y = -0.01; canh.add(dat);
     return { vat, tam: [0, (cao + 0.2) / 2, 0], xa: Math.max(8, cao * 1.45 + 4) };
-  }, [camp, mong.sx, mong.ke, mong.cho, bien?.chu], chon, onChon, 'toa');
+  }, [camp, tat, mong.sx, mong.ke, mong.cho, bien?.chu], chon, onChon, 'toa');
   return <KhungCanh hop={hop} re={re} loi={loi} cao={340} dk={dk} kieu="toa" />;
 }
 
@@ -326,7 +359,7 @@ export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mo
  *  mỗi phim nhà đang có camp chạy = một toà trên một lô; lô gom thành cụm 2 × 2, giữa các cụm là đường (vạch giữa), ngoài cùng đường vành đai.
  *  Lô gần tâm nhất nhận toà cấp cao nhất → KHU THƯỢNG LƯU (Tháp, Cao ốc — nền lát đá) ở trung tâm · KHU TRUNG LƯU (Văn phòng, Nhà phố — nền cỏ, cây) vòng giữa ·
  *  KHU VEN (Nhà cấp 4, Túp lều — nền đất) ngoài rìa. Biển tên chỉ cắm trên các toà đứng đầu. Bấm toà = chọn phim. */
-export type ToaPhim = { p: number; ten: string; camp: CampToa[] };
+export type ToaPhim = { p: number; ten: string; camp: CampToa[]; tat?: CampToa[] };
 export const laiPhim = (x: ToaPhim) => x.camp.reduce((a, c) => a + c.thu7 - c.chi7, 0);
 export const KHU = [{ ten: 'Khu thượng lưu', cap: [4, 5], nen: 0x475569, mau: '#e2e8f0' }, { ten: 'Khu trung lưu', cap: [2, 3], nen: 0x1f3b2a, mau: '#86efac' },
   { ten: 'Khu ven', cap: [0, 1], nen: 0x4a3b28, mau: '#d6b98c' }] as const;
@@ -365,15 +398,15 @@ export function ThanhPho({ ds, chon, onChon, cao, bienToiDa = 6 }: { ds: ToaPhim
       lanKhu[kh]!.push([ox, oz]); if (kh === 1) cay.push([ox + LX / 2 - 0.25, oz + LZ / 2 - 0.25], [ox - LX / 2 + 0.25, oz + LZ / 2 - 0.25]);
       const g = new T.Group(); g.position.set(ox, 0, oz); canh.add(g);
       const ten = ph.ten.length > 22 ? `${ph.ten.slice(0, 21)}…` : ph.ten, ngan = ph.ten.length > 16 ? `${ph.ten.slice(0, 15)}…` : ph.ten, lai = laiPhim(ph);
-      const r = dungToa(T, g, { camp: ph.camp, mong: { sx: 0, ke: 0, cho: 0 }, bien: dauBien.has(ph.p) ? { chu: ngan, mau: lai >= 0 ? XANH : DO } : null, nhanTang: false, bienTheoMan: false, kho });
+      const r = dungToa(T, g, { camp: ph.camp, tat: ph.tat, mong: { sx: 0, ke: 0, cho: 0 }, bien: dauBien.has(ph.p) ? { chu: ngan, mau: lai >= 0 ? XANH : DO } : null, nhanTang: false, bienTheoMan: false, kho });
       caoMax = Math.max(caoMax, r.cao);
-      for (const v of r.vat) vat.push({ m: v.m, vien: g, id: ph.p, chu: `${ten} · ${v.chu}` });
-      // khối bấm vô hình lọt trong thân (cửa sáng nằm ngoài nên vẫn bắt tia trước): bấm vào tường / kính tối cũng chọn được toà
-      const k7 = ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }), caoBat = Math.max(0.5, r.cao / r.ty - 1.0);   // khối bấm nằm trong nhóm đã thu → đo theo cỡ gốc
-      const bat = new T.Mesh(new T.BoxGeometry(RONG, caoBat, SAU), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
-      bat.position.set(0, caoBat / 2, 0); g.add(bat);
+      // KHUNG CHỌN ÔM THÂN (anh 15/11/2026 "khi bấm chọn 1 toà, viền phải gọn lại"): khối bấm = đúng thân nhà / thửa, không gồm biển tên, ăng-ten, đèn
+      const [bw, bh, bd] = r.than, bat = new T.Mesh(new T.BoxGeometry(bw, Math.max(0.3, bh), bd), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+      bat.position.set(0, Math.max(0.3, bh) / 2, 0); g.add(bat);
+      for (const v of r.vat) vat.push({ m: v.m, vien: bat, id: ph.p, chu: `${ten} · ${v.chu}` });
+      const k7 = ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 });
       const th = capToa(ph.camp).tinHieu;
-      vat.push({ m: bat, vien: g, id: ph.p, chu: `${ten} · ${CAP[cap]} · ${KHU[kh]!.ten}${th ? ` · 🟢 ${th} camp tín hiệu lãi` : ''} · ${ph.camp.length} camp · 7 ngày lãi ${lai >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
+      vat.push({ m: bat, vien: bat, id: ph.p, chu: `${ten} · ${CAP[cap]} · ${KHU[kh]!.ten}${th ? ` · 🟢 ${th} camp tín hiệu lãi` : ''} · ${ph.camp.length} camp · 7 ngày lãi ${lai >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
     });
     // lô còn trống ngoài rìa = công viên (cỏ + cây), không để ô đen trơ
     for (const [ox, oz] of lo.slice(ds.length)) { const sv = new T.Mesh(new T.PlaneGeometry(LX - 0.06, LZ - 0.06), new T.MeshStandardMaterial({ color: 0x1d3a24, roughness: 1 })); sv.rotation.x = -Math.PI / 2; sv.position.set(ox, 0, oz); canh.add(sv);

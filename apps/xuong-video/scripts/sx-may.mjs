@@ -76,13 +76,16 @@ ORDER BY dang_tu;`);
 const KHO = SO._kho ?? null;
 /** Số cần sinh cho một máy: còn (DUYỆT chưa đăng nền nào + đang chờ chấm) < con_it_nhat → bù cho đủ len_toi; đủ thì 0. */
 const canSinh = (con, k = KHO) => (con < k.con_it_nhat ? Math.max(0, k.len_toi - con) : 0);
+/** Máy lấp kho bằng lệnh riêng (sổ _kho.rieng, vd Front Porch --sinh-game 0₫) — không có thì --sinh-kho với giá vnd_de chung. */
+const rieng = (may, k = KHO) => ({ lenh: '--sinh-kho', vnd_de: k.vnd_de, ...(k.rieng?.[may] ?? {}) });
 /** Chia lượt theo trần tiền: lấy máy theo thứ tự còn ít nhất trước, dừng khi ước cộng dồn chạm trần. */
 function keHoachKho(ton, k = KHO) {
   const ra = []; let uoc = 0;
   for (const [may, con] of [...ton.entries()].sort((a, b) => a[1] - b[1])) {
     let n = canSinh(con, k); if (!n) continue;
-    n = Math.min(n, Math.floor((k.tran_vnd_luot - uoc) / k.vnd_de)); if (n <= 0) break;
-    ra.push({ may, con, n }); uoc += n * k.vnd_de;
+    const gia = rieng(may, k).vnd_de;
+    if (gia > 0) n = Math.min(n, Math.floor((k.tran_vnd_luot - uoc) / gia)); if (n <= 0) continue;
+    ra.push({ may, con, n }); uoc += n * gia;
   }
   return ra;
 }
@@ -95,10 +98,10 @@ FROM xv_may m LEFT JOIN xv_may_video v ON v.may_id=m.id WHERE m.chay AND m.ma IN
 }
 /** Chạy --sinh-kho trên box3 (dựng Cloudflare; sinhJson tự gác ngưỡng tiền), trả số đề + tiền thật đọc từ dòng tổng của lệnh. */
 function sinhKho(may, n) {
-  const ra = execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/may-dung.mts --may ${shq(may)} --sinh-kho ${Number(n)} 2>&1`], { encoding: 'utf8', timeout: 1_800_000 });
+  const ra = execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/may-dung.mts --may ${shq(may)} ${rieng(may).lenh} ${Number(n)} 2>&1`], { encoding: 'utf8', timeout: 1_800_000 });
   return docTongKho(ra);
 }
-const docTongKho = (ra) => { const m = /sinh kho [^:]+: (\d+)\/(\d+) đề, ([\d.,]+)₫/.exec(ra); return m ? { so: Number(m[1]), xin: Number(m[2]), vnd: Number(m[3].replace(/[.,]/g, '')) } : { so: 0, xin: 0, vnd: 0, loi: ra.trim().split('\n').slice(-2).join(' · ').slice(0, 200) }; };
+const docTongKho = (ra) => { const m = /sinh (?:kho|game) [^:]+: (\d+)\/(\d+) (?:đề|video), ([\d.,]+)₫/.exec(ra); return m ? { so: Number(m[1]), xin: Number(m[2]), vnd: Number(m[3].replace(/[.,]/g, '')) } : { so: 0, xin: 0, vnd: 0, loi: ra.trim().split('\n').slice(-2).join(' · ').slice(0, 200) }; };
 
 /** Link trang phim để tải tập (thư viện Ethopex, schema `etp` — KHÔNG phải public). */
 function urlPhim(id) {
@@ -190,6 +193,12 @@ const main = async () => {
     a.ok(kh.reduce((t, x) => t + x.n * K.vnd_de, 0) <= K.tran_vnd_luot, 'tổng ước không vượt trần');
     a.ok(KHO && KHO.tran_vnd_luot < 5000 && KHO.may.length && !KHO.may.includes('mia-calloway'), 'sổ _kho: trần dưới ngưỡng tự chạy 5.000₫, Mia đi đường lịch bài');
     a.deepEqual(docTongKho('✓ #1 top-n → x (26₫)\nsinh kho militarycalc: 5/6 đề, 1.150₫'), { so: 5, xin: 6, vnd: 1150 });
+    // máy lấp bằng lệnh riêng 0₫ (Front Porch --sinh-game): trần tiền đã chạm vẫn lấp được; đọc đúng dòng tổng của --sinh-game
+    const K2 = { ...K, rieng: { g: { lenh: '--sinh-game', vnd_de: 0 } } };
+    a.deepEqual(keHoachKho(new Map([['b', 0], ['c', 0], ['g', 1]]), K2).map((x) => [x.may, x.n]), [['b', 6], ['c', 2], ['g', 5]], 'máy 0₫ không bị trần cắt');
+    a.equal(rieng('g', K2).lenh, '--sinh-game'); a.equal(rieng('b', K2).lenh, '--sinh-kho');
+    a.deepEqual(docTongKho('✓ game-1-apple\nsinh game front-porch-only-one: 4/5 video, 0₫'), { so: 4, xin: 5, vnd: 0 });
+    a.ok(KHO.may.includes('front-porch-only-one') && rieng('front-porch-only-one').lenh === '--sinh-game', 'sổ: Front Porch lấp kho bằng --sinh-game');
     a.equal(docTongKho('Error: mẫu lạ van-khan-ngoai').so, 0); a.ok(docTongKho('Error: mẫu lạ van-khan-ngoai').loi.includes('mẫu lạ'), 'lệnh hỏng không có dòng tổng → báo lỗi, không coi là xong');
     console.log(`sx-may: ${dang.length} dạng bài, sổ ↔ bảng hàm khớp · ${dang.length * 3 + 17}/${dang.length * 3 + 17} ok`);
     return;
@@ -224,7 +233,7 @@ const main = async () => {
   if (ds.length) console.log(`dựng ${ds.length - hong}/${ds.length} bài · ${tien}₫`);
   // lấp kho: trần tính trên tiền THẬT cộng dồn cả lượt (bài lịch + kho), không phải trên ước
   for (const k of kho) {
-    if (tien + k.n * KHO.vnd_de > KHO.tran_vnd_luot) { console.log(`· kho ${k.may}: dừng — cộng dồn ${tien}₫ sắp chạm trần ${KHO.tran_vnd_luot}₫`); break; }
+    if (tien + k.n * rieng(k.may).vnd_de > KHO.tran_vnd_luot) { console.log(`· kho ${k.may}: dừng — cộng dồn ${tien}₫ sắp chạm trần ${KHO.tran_vnd_luot}₫`); break; }
     // một dòng sổ lượt `kho:<máy>` — tab Máy SX hiện, hỏng thì Phòng Nội dung xếp việc social:sx|<máy> cho Khang (cham-dang.mjs › xepKhang)
     const b = { may: k.may, slug: `kho:${k.may}`, kieu: 'sinh_kho', dangTu: null }, id = moLuot(b);
     try {

@@ -27,7 +27,7 @@
     "mac_dinh": true
   },
   "_kho": {
-    "_ve": "LẤP KHO VIDEO (anh 12/11/2026 hỏi 'các nhóm cần sx đã đáp ứng đủ chưa' — đo ra 7 máy video social báo 'Hết video đã dựng chưa đăng' từ 00:20 12/11, lần lấp cuối 10/11 vì kho chỉ được lấp khi có người tạo tin xin duyệt chi). Mỗi lượt --het: máy trong `may` có (bài DUYỆT chưa đăng nền nào + bài đang chờ chấm) < `con_it_nhat` → may-dung.mts --sinh-kho cho đủ `len_toi`. Cộng dồn tiền cả lượt dừng trước `tran_vnd_luot` (dưới ngưỡng tự chạy 5.000₫ của luật nhà). Máy không có ở đây: mia-calloway (lịch bài persona — phần trên của máy), front-porch-only-one (puzzle-books --sinh-game 0₫), yesterdays-news-tonight (máy kênh lịch sử), giochap-van-khan (mẫu van-khan-ngoai chưa có trong --sinh-kho).",
+    "_ve": "LẤP KHO VIDEO (anh 12/11/2026 hỏi 'các nhóm cần sx đã đáp ứng đủ chưa' — đo ra 7 máy video social báo 'Hết video đã dựng chưa đăng' từ 00:20 12/11, lần lấp cuối 10/11 vì kho chỉ được lấp khi có người tạo tin xin duyệt chi). Mỗi lượt --het: máy trong `may` có (bài DUYỆT chưa đăng nền nào + bài đang chờ chấm) < `con_it_nhat` → may-dung.mts --sinh-kho cho đủ `len_toi`. Cộng dồn tiền cả lượt dừng trước `tran_vnd_luot` (dưới ngưỡng tự chạy 5.000₫ của luật nhà). Máy không có ở đây: mia-calloway (lịch bài persona — phần trên của máy), yesterdays-news-tonight (máy kênh lịch sử), giochap-van-khan (mẫu van-khan-ngoai chưa có trong --sinh-kho). `rieng`: máy lấp kho bằng LỆNH KHÁC --sinh-kho (anh 15/11/2026: Front Porch cạn kho từ 31/10 vì --sinh-game có sẵn mà không máy nào gọi theo lịch).",
     "con_it_nhat": 3,
     "len_toi": 6,
     "vnd_de": 45,
@@ -39,7 +39,15 @@
       "examweight-cau-hoi",
       "astrolas",
       "saidly",
-      "sidecue"
-    ]
+      "sidecue",
+      "front-porch-only-one"
+    ],
+    "rieng": {
+      "front-porch-only-one": {
+        "lenh": "--sinh-game",
+        "vnd_de": 0,
+        "ve": "dạng game Only ONE, 0₫, không gọi AI (may-dung.mts --sinh-game)"
+      }
+    }
   }
 }

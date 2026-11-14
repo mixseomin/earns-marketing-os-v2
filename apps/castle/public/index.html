@@ -38,6 +38,13 @@
   #hd.an { display: none; }
   #bd { position: fixed; left: 12px; bottom: 76px; width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 2px solid var(--vien); box-shadow: 0 4px 18px rgba(0,0,0,.5); cursor: zoom-in; z-index: 3; }
   #bd canvas { width: 100%; height: 100%; display: block; }
+  #bd.lon { border-radius: 14px; cursor: crosshair; z-index: 6; }
+  #bd .bd-phu { position: absolute; inset: 0; pointer-events: none; }
+  #bd .bd-phu button { pointer-events: auto; border: 1px solid var(--vien); background: rgba(20,12,8,.82); color: var(--chu); border-radius: 7px; font: 600 12px system-ui, sans-serif; padding: 3px 7px; cursor: pointer; }
+  #bd .bd-dong { position: absolute; top: 6px; right: 6px; }
+  #bd .bd-nhac { position: absolute; top: 9px; left: 10px; right: 40px; font: 600 12px system-ui, sans-serif; color: #ffe2b8; text-shadow: 0 1px 2px #000; }
+  #bd .bd-diem { position: absolute; left: 6px; right: 6px; top: 30px; display: flex; flex-wrap: wrap; gap: 4px; }
+  @media (hover: none) { #bd.lon { left: 12px; right: auto; top: 60px; } }
   #goiY { position: fixed; left: 50%; bottom: 66px; transform: translateX(-50%); display: none; padding: 6px 12px; border-radius: 8px; background: rgba(20,12,8,.72); color: #ffe2b8; font: 600 13px system-ui, sans-serif; pointer-events: none; white-space: nowrap; }
   #toado { position: fixed; left: 12px; bottom: 56px; font: 600 11.5px ui-monospace, monospace; color: var(--mo); text-shadow: 0 1px 2px #000; }
   #gy { inset: 0; display: none; place-items: center; background: rgba(10,5,3,.5); z-index: 8; border: 0; border-radius: 0; }
@@ -89,7 +96,7 @@
   <div class="d"><span>🕒</span><span>giờ trong lâu đài · bấm tua ×30</span></div>
   <div class="d"><span>🔊</span><span>tắt / mở âm thanh</span></div>
   <div class="d"><span>💬</span><span>góp ý (kèm ảnh + toạ độ)</span></div>
-  <div class="d"><span>bản đồ</span><span>góc trái dưới, bấm để phóng to</span></div>
+  <div class="d"><span>bản đồ</span><span>góc trái dưới · bấm để phóng to, bấm vào đâu là tới đó</span></div>
   <div class="d"><span>🎲</span><span>sinh lâu đài khác</span></div>
   <div class="d"><span><kbd>H</kbd> / ❔</span><span>ẩn / hiện bảng này</span></div>
   <div class="d" style="margin-top:4px"><span></span><span>Tải lại trang (F5) vẫn về đúng chỗ đang đứng.</span></div>

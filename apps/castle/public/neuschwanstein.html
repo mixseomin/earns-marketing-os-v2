@@ -30,6 +30,14 @@
   #hd kbd { display: inline-block; min-width: 18px; padding: 0 5px; margin-right: 2px; border: 1px solid var(--vien); border-bottom-width: 2px; border-radius: 4px; font: 600 11px/17px ui-monospace, monospace; text-align: center; background: rgba(255,255,255,.06); }
   #hd .d { display: flex; gap: 6px; align-items: baseline; color: var(--mo); line-height: 1.75; } #hd .d span:first-child { flex: 0 0 96px; }
   @media (max-width: 760px) { #hd { display: none !important; } }
+  #bd { position: fixed; right: 12px; bottom: 56px; width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 2px solid var(--vien); box-shadow: 0 4px 18px rgba(0,0,0,.5); cursor: zoom-in; z-index: 4; }
+  #bd canvas { width: 100%; height: 100%; display: block; }
+  #bd.lon { border-radius: 14px; cursor: crosshair; z-index: 6; }
+  #bd .bd-phu { position: absolute; inset: 0; pointer-events: none; }
+  #bd .bd-phu button { pointer-events: auto; border: 1px solid var(--vien); background: rgba(14,20,30,.85); color: var(--chu); border-radius: 7px; font: 600 12px system-ui, sans-serif; padding: 3px 7px; cursor: pointer; }
+  #bd .bd-dong { position: absolute; top: 6px; right: 6px; }
+  #bd .bd-nhac { position: absolute; top: 9px; left: 10px; right: 40px; font: 600 12px system-ui, sans-serif; color: #ffe2b8; text-shadow: 0 1px 2px #000; }
+  #bd .bd-diem { position: absolute; left: 6px; right: 6px; top: 30px; display: flex; flex-wrap: wrap; gap: 4px; }
   a.ve { display: inline-block; margin-top: 6px; color: #ffd9a8; font-size: 12.5px; }
 </style>
 </head>
@@ -43,6 +51,7 @@
 </div>
 <div id="nut" class="o"><button id="b-di" class="chinh">🚶 Đi bộ</button><button id="b-toan" style="display:none">🗺 Toàn cảnh</button></div>
 <div id="hd" class="o"></div>
+<div id="bd" title="Bản đồ — bấm để phóng to, rồi bấm vào đâu là tới đó"><canvas></canvas></div>
 <div id="so-khung"><img id="so-anh" alt="Ảnh thật để đối chiếu"></div>
 <div id="so" class="o">
   <b>So với ảnh thật</b> <span class="mo">(camera đặt đúng chỗ người chụp đứng)</span>
@@ -56,7 +65,7 @@
 <script>
 // cùng cách nạp theo dấu phiên bản như index.html (Cloudflare zone on.tc giữ .js 30 ngày): hỏi ETag rồi nạp ./x.js?v=<ETag>
 (async () => {
-  const TEP = ['ns.js', 'tex.js', 'nguoi3d.js', 'dibo.js'];
+  const TEP = ['ns.js', 'tex.js', 'nguoi3d.js', 'dibo.js', 'bando.js'];
   const lay = (f) => fetch(`./${f}?ban=${Date.now()}`, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' })
     .then((r) => (r.ok && (r.headers.get('etag') || r.headers.get('last-modified')) || '').replace(/[^\w-]/g, '')).catch(() => '');
   const dau = await Promise.all(TEP.map(lay));

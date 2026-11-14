@@ -9,6 +9,7 @@ import RAPIER from 'rapier';
 import * as T from './tex.js';
 import { napNguoi3d, taoNguoi3d } from './nguoi3d.js';
 import { taoDiBo } from './dibo.js';
+import { taoBanDo } from './bando.js';
 
 const $ = (id) => document.getElementById(id);
 const ten = new URLSearchParams(location.search).get('lau') || 'neuschwanstein';
@@ -272,7 +273,7 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
   const dt = Math.min(dongHo.getDelta(), 0.1);
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
   else if (!dangSo) orbit.update(); // chế độ so ảnh: camera do thông số ảnh quyết
-  capNhatHd(now);
+  capNhatHd(now); veBanDoNS(now);
   renderer.render(scene, camera);
 }
 // ---------- SO VỚI ẢNH THẬT (bước 3): camera đặt đúng chỗ người chụp đứng (toạ độ Commons), ảnh chồng mờ lên khung hình cùng tỉ lệ.
@@ -324,4 +325,49 @@ if (ANH.length) {
 addEventListener('resize', () => { if (dangSo) moSo(ANH.indexOf(dangSo)); });
 
 window.__ns = { D, dsKhoi, camera, orbit, caoDat, GOC_Y, scene, renderer, world, RAPIER, di: () => di, toi: () => toi, vaoCong, ANH, moSo, tatSo, cam: () => cam, datCam: (c) => { Object.assign(cam, c); datCamSo(); } };
+// ---------- cầu Marienbrücke (toạ độ hai đầu từ OpenStreetMap way "Marienbrücke"): sàn + lan can, đứng ngắm lâu đài như ảnh thật
+const CAU = [[47.554991, 10.7492138], [47.5549237, 10.7495946]].map(([la, ln]) => raMet(la, ln));
+{
+  const [[x1, z1], [x2, z2]] = CAU, L = Math.hypot(x2 - x1, z2 - z1) + 6, a = Math.atan2(z2 - z1, x2 - x1);
+  const y = Math.max(caoDat(x1, z1), caoDat(x2, z2)) - GOC_Y, cx = (x1 + x2) / 2, cz = (z1 + z2) / 2, q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -a);
+  const vl = new THREE.MeshStandardMaterial({ color: 0x5a5f66, roughness: 0.7, metalness: 0.4 });
+  for (const [w, h, d, oy, oz] of [[L, 0.3, 2.6, 0, 0], [L, 1.1, 0.08, 0.7, 1.25], [L, 1.1, 0.08, 0.7, -1.25]]) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), vl); m.position.set(cx - Math.sin(a) * oz, y + oy, cz + Math.cos(a) * oz); m.quaternion.copy(q); m.castShadow = true; scene.add(m);
+    world.createCollider(RAPIER.ColliderDesc.cuboid(w / 2, h / 2, d / 2).setTranslation(m.position.x, m.position.y, m.position.z).setRotation(q), tinh);
+  }
+}
+// ---------- BẢN ĐỒ + DI CHUYỂN NHANH (bando.js dùng chung): khối nhà OSM, rừng, cầu; bấm vào đâu là tới đó
+function diNhanhNS(x, z) {
+  if (!di) return false; if (dangSo) tatSo();
+  const doY = (xx, zz) => { const h = world.castRay(new RAPIER.Ray({ x: xx, y: 900, z: zz }, { x: 0, y: -1, z: 0 }), 3000, true); return h ? 900 - h.timeOfImpact : null; };
+  let tot = null; // trúng mái nhà thì dò vòng quanh tới 14 m tìm mặt đất / mặt cầu
+  for (let r = 0; r <= 14 && !tot; r += 1) for (let a = 0; a < Math.PI * 2 && !tot; a += r ? 0.6 / r + 0.2 : 7) {
+    const xx = x + Math.cos(a) * r, zz = z + Math.sin(a) * r, y = doY(xx, zz); if (y != null && y < caoDat(xx, zz) - GOC_Y + 2.5) tot = [xx, y, zz];
+  }
+  if (!tot) return false;
+  const h = Math.atan2(-tot[0], -tot[2]); // quay mặt về lâu đài
+  if (!di.dang) di.vao(tot[0], tot[1] + 0.1, tot[2], h); else di.datCho({ x: tot[0], y: tot[1] + 1.0, z: tot[2] }, h - Math.PI, -0.1, h);
+  return true;
+}
+const sanTrong = D.khoi.find((k) => k.tags.building === 'courtyard');
+const tamSan = sanTrong ? tamDa(sanTrong.ngoai[0]) : [0, 0];
+const banDoNS = taoBanDo($('bd'), {
+  phamVi: [110, 320], tam: [0, 60], khiChon: diNhanhNS,
+  diem: [['🚪 Cổng Torbau', (torbau ? Math.max(...torbau.v.map((p) => p[0])) : 30) + 10, torbau ? tamDa(torbau.v)[1] : 0], ['🏰 Sân trong', tamSan[0], tamSan[1]], ['🌉 Cầu Marienbrücke', (CAU[0][0] + CAU[1][0]) / 2, (CAU[0][1] + CAU[1][1]) / 2]],
+  veNen(g, S, p, k) {
+    g.fillStyle = '#3f5a33'; g.fillRect(0, 0, S, S);
+    for (const kk of dsKhoi) { if (kk.vo && kk.coPart) continue; g.fillStyle = kk.tags.name === 'Torbau' ? '#b5523a' : '#d8d0c0'; g.beginPath(); kk.v.forEach(([x, z], i) => { const [a, b] = p(x, z); i ? g.lineTo(a, b) : g.moveTo(a, b); }); g.closePath(); g.fill(); }
+    g.strokeStyle = '#8a8f96'; g.lineWidth = Math.max(2, 2.6 * k); g.beginPath(); g.moveTo(...p(...CAU[0])); g.lineTo(...p(...CAU[1])); g.stroke();
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `${Math.max(11, 6 * k)}px system-ui, sans-serif`;
+    g.fillText('🌉', ...p((CAU[0][0] + CAU[1][0]) / 2, (CAU[0][1] + CAU[1][1]) / 2 + 12));
+  },
+});
+let lucBd = 0;
+function veBanDoNS(now) {
+  if (now - lucBd < 120) return; lucBd = now;
+  const p = di?.dang ? di.viTri() : { x: orbit.target.x, z: orbit.target.z };
+  banDoNS.ve(p, di?.dang ? di.huong : Math.atan2(camera.position.x - orbit.target.x, camera.position.z - orbit.target.z) + Math.PI, []);
+}
+window.__ns.diNhanh = diNhanhNS;
+world.step(); // cập nhật bộ dò tia sau khi dựng xong mọi va chạm (chưa bước nào thì castRay không thấy gì → di chuyển nhanh từ toàn cảnh hỏng)
 ve();

@@ -60,6 +60,30 @@ function toMauAo(mesh, ao) {
   mesh.geometry = g; mesh.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
 }
 
+// LEO TỪNG BÊN (anh 15/11/2026: "bò như ếch không đẹp, phải lên từng bên"): bộ CC0 không có động tác leo tay chân lần lượt
+// → lấy tư thế đứng làm nền rồi XOAY XƯƠNG theo trục ngang của người (không cần biết trục riêng từng xương):
+// tay trái với cao trong khi tay phải kéo (khuỷu gập), chân phải bước lên cùng lúc tay trái với — rồi đổi bên; người đứng im thì giữ tư thế bám.
+const _q = new THREE.Quaternion(), _qp = new THREE.Quaternion(), _qw = new THREE.Quaternion(), _truc = new THREE.Vector3();
+function xoayTheGioi(x, truc, goc) { // xoay xương x quanh trục thế giới `truc` một góc, giữ nguyên phần còn lại của tư thế
+  if (!x) return;
+  x.parent.getWorldQuaternion(_qp); x.getWorldQuaternion(_qw);
+  _q.setFromAxisAngle(truc, goc).multiply(_qw); x.quaternion.copy(_qp.invert().multiply(_q)); x.updateMatrixWorld(true);
+}
+function tuTheLeo(goc, x, pha) {
+  const h = goc.rotation.y; _truc.set(-Math.cos(h), 0, Math.sin(h)); // trục ngang (sang phải người): xoay + = đưa chi ra trước / lên
+  goc.updateMatrixWorld(true);
+  const s = Math.sin(pha), tL = Math.max(0, s), tR = Math.max(0, -s);
+  xoayTheGioi(x.spine_02, _truc, 0.12); xoayTheGioi(x.Head, _truc, -0.35); // ngả vào tường, ngẩng nhìn lên
+  for (const [ben, voi, keo] of [['l', tL, tR], ['r', tR, tL]]) {
+    xoayTheGioi(x['upperarm_' + ben], _truc, 2.25 + 0.55 * voi - 0.25 * keo);   // tay với cao / hạ khi kéo
+    xoayTheGioi(x['lowerarm_' + ben], _truc, 0.25 + 0.9 * keo);                 // khuỷu gập khi kéo người lên
+  }
+  for (const [ben, len] of [['r', tL], ['l', tR]]) {                           // chân đối diện tay đang với: bước lên bậc
+    xoayTheGioi(x['thigh_' + ben], _truc, 0.35 + 0.85 * len);
+    xoayTheGioi(x['calf_' + ben], _truc, -(0.35 + 1.0 * len));
+  }
+}
+
 export function taoNguoi3d(o = {}) {
   if (!MAU) throw new Error('chưa napNguoi3d()');
   const goc = new THREE.Group();
@@ -100,7 +124,7 @@ export function taoNguoi3d(o = {}) {
       }
       if (!viec) {
         const T = st.tuThe;
-        if (T === 'leo') choi('leoLap', 0.15, Math.min(1.4, (st.tocLeo ?? 1.2) / 1.2)); // đứng im trên tường → động tác dừng (bám)
+        if (T === 'leo') choi('dung', 0.12); // nền đứng, tay chân do tuTheLeo xoay từng bên (sau mixer)
         else if (T === 'qua') choi('len1m', 0.1, 1.3);
         else if (T === 'boi') v > 0.3 ? choi('boi', 0.3, Math.max(0.6, Math.min(1.6, v / TOC_GOC.boi))) : choi('boiDung', 0.3);
         else if (T === 'cuoi') choi('ngoiGhe', 0.25);
@@ -114,6 +138,7 @@ export function taoNguoi3d(o = {}) {
         else choi('nuocRut', 0.2, Math.max(0.8, Math.min(1.5, v / TOC_GOC.nuocRut)));
       }
       mixer.update(dt);
+      if (!viec && st.tuThe === 'leo') tuTheLeo(goc, xuong, (st.phaLeo || 0) * 1.1);
     },
   };
   return api;

@@ -1,37 +1,41 @@
-// Bản đồ nhỏ: nền (đảo, tường, tháp, phố, nhà, quán, chợ, lò rèn, giếng, cầu) vẽ MỘT lần ra canvas phụ;
-// mỗi lần vẽ chỉ chồng người chơi (mũi tên theo hướng) + chấm người gần. Bắc ở trên. Bấm vào để phóng to / thu nhỏ.
-const PHAM_VI = 66; // mét từ tâm tới mép bản đồ
-
+// Bản đồ (dùng chung cho mọi cảnh): nền do cảnh vẽ MỘT lần ra canvas phụ (d.veNen), mỗi lần vẽ chỉ chồng người chơi (mũi tên theo
+// hướng) + chấm người gần. Bắc ở trên. Bấm bản đồ nhỏ → phóng to (phủ rộng hơn); trên bản đồ lớn bấm vào đâu là DI CHUYỂN NHANH tới
+// đó (d.khiChon(x, z)), nút ✕ thu nhỏ. Bản đồ lớn có dòng nhắc + điểm đến nhanh (d.diem: [[tên, x, z]]).
 export function taoBanDo(el, d) {
   const dpr = Math.min(devicePixelRatio || 1, 2);
   const nen = document.createElement('canvas'), g0 = nen.getContext('2d');
   const cv = el.querySelector('canvas'), g = cv.getContext('2d');
-  let co = 0;
-  const sang = (x, z, S) => [S / 2 + (x / PHAM_VI) * (S / 2), S / 2 + (z / PHAM_VI) * (S / 2)];
+  const [PV_NHO, PV_LON] = d.phamVi || [66, 66], TAM = d.tam || [0, 0];
+  let co = 0, lon = false, pv = PV_NHO;
+  const sang = (x, z, S) => [S / 2 + ((x - TAM[0]) / pv) * (S / 2), S / 2 + ((z - TAM[1]) / pv) * (S / 2)];
+  const raThe = (a, b, S) => [TAM[0] + (a - S / 2) / (S / 2) * pv, TAM[1] + (b - S / 2) / (S / 2) * pv];
+  // phần phụ của bản đồ lớn: nút ✕, dòng nhắc, điểm đến nhanh
+  const phu = document.createElement('div'); phu.className = 'bd-phu'; phu.style.display = 'none';
+  phu.innerHTML = `<button class="bd-dong" title="Thu nhỏ">✕</button><div class="bd-nhac">Bấm vào bản đồ để tới đó</div><div class="bd-diem">${(d.diem || []).map(([t], i) => `<button data-i="${i}">${t}</button>`).join('')}</div>`;
+  el.appendChild(phu);
   function veNen(S) {
-    nen.width = nen.height = S; const k = S / 2 / PHAM_VI;
+    nen.width = nen.height = S; const k = S / 2 / pv;
     g0.clearRect(0, 0, S, S);
-    g0.fillStyle = '#5a1a06'; g0.fillRect(0, 0, S, S);                                   // dung nham
-    const p = (x, z) => sang(x, z, S);
-    g0.fillStyle = '#3a3029'; g0.beginPath(); g0.arc(S / 2, S / 2, 62 * k, 0, 7); g0.fill();  // đảo
-    g0.fillStyle = '#4a3f36'; g0.fillRect(p(-3, 0)[0], p(0, 55)[1], 6 * k, (110 - 55) * k);   // cầu
-    g0.beginPath(); g0.arc(...p(0, 110), 9.5 * k, 0, 7); g0.fill();
-    g0.strokeStyle = '#6a5a4a'; g0.lineWidth = 3 * k;                                       // vành phố
-    for (const r of [15.6, 31.7, 48.6]) { g0.beginPath(); g0.arc(S / 2, S / 2, r * k, 0, 7); g0.stroke(); }
-    for (const a of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) { g0.beginPath(); g0.moveTo(...p(Math.cos(a) * 12, Math.sin(a) * 12)); g0.lineTo(...p(Math.cos(a) * 52, Math.sin(a) * 52)); g0.stroke(); }
-    g0.fillStyle = '#b08a6a';                                                               // nhà
-    for (const [x, z] of d.nha) { const [a, b] = p(x, z); g0.fillRect(a - 2.6 * k, b - 2.6 * k, 5.2 * k, 5.2 * k); }
-    g0.strokeStyle = '#8a8078'; g0.lineWidth = 3 * k; g0.beginPath();                       // tường thành + tháp
-    d.thap.forEach(([x, z], i) => { const [a, b] = p(x, z); i ? g0.lineTo(a, b) : g0.moveTo(a, b); }); g0.closePath(); g0.stroke();
-    g0.fillStyle = '#a09890'; for (const [x, z] of d.thap) { g0.beginPath(); g0.arc(...p(x, z), 4.4 * k, 0, 7); g0.fill(); }
-    g0.fillStyle = '#7a7a90'; g0.beginPath(); g0.arc(S / 2, S / 2, 10.4 * k, 0, 7); g0.fill(); // thành chính
-    const nhan = (x, z, chu) => { const [a, b] = p(x, z); g0.font = `${Math.max(11, 7 * k)}px system-ui, sans-serif`; g0.textAlign = 'center'; g0.textBaseline = 'middle'; g0.fillText(chu, a, b); };
-    nhan(d.quan[0], d.quan[1], '🍺'); nhan(...d.ren, '⚒️'); nhan(...d.gieng, '💧'); nhan(...d.cho, '🛒'); nhan(0, 52, '🚪');
+    d.veNen(g0, S, (x, z) => sang(x, z, S), k);
   }
-  function to(lon) { co = lon ? 260 : 150; el.style.width = el.style.height = co + 'px'; cv.width = cv.height = co * dpr; veNen(co * dpr); }
+  function to(l) {
+    lon = l; pv = l ? PV_LON : PV_NHO; co = l ? Math.min(420, innerWidth - 24, innerHeight - 150) : 150;
+    el.style.width = el.style.height = co + 'px'; el.classList.toggle('lon', l); phu.style.display = l ? '' : 'none';
+    cv.width = cv.height = co * dpr; veNen(co * dpr);
+  }
   to(false);
-  el.addEventListener('click', (e) => { e.stopPropagation(); to(co < 200); });
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const nut = e.target.closest('button');
+    if (nut?.classList.contains('bd-dong')) return to(false);
+    if (nut?.dataset.i != null) { const [, x, z] = d.diem[+nut.dataset.i]; d.khiChon?.(x, z); return to(false); }
+    if (!lon) return to(true);
+    if (e.target !== cv) return;
+    const r = cv.getBoundingClientRect(), S = cv.width, [x, z] = raThe((e.clientX - r.left) * S / r.width, (e.clientY - r.top) * S / r.height, S);
+    if (d.khiChon?.(x, z) !== false) to(false);
+  });
   return {
+    get lon() { return lon; },
     ve(nguoiChoi, huong, chamNguoi) {
       const S = cv.width; g.clearRect(0, 0, S, S); g.drawImage(nen, 0, 0);
       g.fillStyle = '#f3d6a8'; for (const [x, z] of chamNguoi) { const [a, b] = sang(x, z, S); g.fillRect(a - 1.5 * dpr, b - 1.5 * dpr, 3 * dpr, 3 * dpr); }

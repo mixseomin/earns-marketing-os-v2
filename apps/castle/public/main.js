@@ -688,7 +688,38 @@ function capNhatHd(now) {
 }
 
 // bản đồ nhỏ + toạ độ
-const banDo = taoBanDo($('bd'), { nha: nhaVa, thap: cothap.slice(0, SO_THAP), quan: quan.tam, ren: [Math.cos(Math.PI + 0.3) * 33.8, Math.sin(Math.PI + 0.3) * 33.8], gieng: [13.6, 0], cho: [34, 0] });
+const REN = [Math.cos(Math.PI + 0.3) * 33.8, Math.sin(Math.PI + 0.3) * 33.8];
+// DI CHUYỂN NHANH: tìm chỗ đứng trên mặt đất quanh điểm chọn (tia thẳng xuống; trúng mái / mặt thành / lòng hồ / dung nham thì dò vòng quanh tới 8 m)
+function diNhanh(x, z) {
+  const doY = (xx, zz) => { const h = world.castRay(new RAPIER.Ray({ x: xx, y: 80, z: zz }, { x: 0, y: -1, z: 0 }), 200, true, LOC_TINH, NHOM_NGUOI, thanVa); return h ? 80 - h.timeOfImpact : null; };
+  let tot = null;
+  for (let r = 0; r <= 8 && !tot; r++) for (let a = 0; a < Math.PI * 2 && !tot; a += r ? 0.6 / r + 0.25 : 7) {
+    const xx = x + Math.cos(a) * r, zz = z + Math.sin(a) * r, y = doY(xx, zz); if (y != null && y > -1 && y < 1.6) tot = [xx, y, zz];
+  }
+  if (!tot) return false; // bấm vào dung nham: không có chỗ đứng
+  if (cuoi) xuongXe();
+  if (cheDo !== 'di') vaoDiBo(new THREE.Vector3(tot[0], tot[1], tot[2])); else di.datCho({ x: tot[0], y: tot[1] + 0.95, z: tot[2] });
+  return true;
+}
+const banDo = taoBanDo($('bd'), {
+  phamVi: [66, 104], tam: [5, 20], khiChon: diNhanh,
+  diem: [['🚪 Cổng', 0, 60], ['🍺 Quán', TAM_QUAN[0] + 4, TAM_QUAN[1] - 6], ['⚒️ Lò rèn', REN[0] + 3, REN[1]], ['💧 Giếng', 16, 0], ['🛒 Chợ', 30, 0], ['🐴 Bãi cỏ + hồ', 16, 100], ['🌉 Đầu cầu', 0, 108]],
+  veNen(g, S, p, k) { // vẽ một lần: dung nham, đảo, cầu, sân đầu cầu, bãi cỏ + hồ, vành phố, nhà, tường + tháp, thành chính, nhãn
+    g.fillStyle = '#5a1a06'; g.fillRect(0, 0, S, S);
+    const tron = (x, z, r, mau) => { g.fillStyle = mau; g.beginPath(); g.arc(...p(x, z), r * k, 0, 7); g.fill(); };
+    tron(0, 0, 62, '#3a3029'); tron(0, 110, 9.5, '#4a3f36'); tron(BAI.x, BAI.z, BAI.r, '#4f6a2e'); tron(HO.x, HO.z, HO.r, '#2f6a86');
+    g.fillStyle = '#4a3f36'; { const [a, b] = p(-3, 55); g.fillRect(a, b, 6 * k, (104 - 55) * k); }
+    g.strokeStyle = '#6a5a4a'; g.lineWidth = 3 * k;
+    for (const r of [15.6, 31.7, 48.6]) { g.beginPath(); g.arc(...p(0, 0), r * k, 0, 7); g.stroke(); }
+    for (const a of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) { g.beginPath(); g.moveTo(...p(Math.cos(a) * 12, Math.sin(a) * 12)); g.lineTo(...p(Math.cos(a) * 52, Math.sin(a) * 52)); g.stroke(); }
+    g.fillStyle = '#b08a6a'; for (const [x, z] of nhaVa) { const [a, b] = p(x, z); g.fillRect(a - 2.6 * k, b - 2.6 * k, 5.2 * k, 5.2 * k); }
+    g.strokeStyle = '#8a8078'; g.lineWidth = 3 * k; g.beginPath(); cothap.slice(0, SO_THAP).forEach(([x, z], i) => { const [a, b] = p(x, z); i ? g.lineTo(a, b) : g.moveTo(a, b); }); g.closePath(); g.stroke();
+    for (const [x, z] of cothap.slice(0, SO_THAP)) tron(x, z, 4.4, '#a09890');
+    tron(0, 0, 10.4, '#7a7a90');
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `${Math.max(11, 7 * k)}px system-ui, sans-serif`;
+    for (const [chu, x, z] of [['🍺', ...quan.tam], ['⚒️', ...REN], ['💧', 13.6, 0], ['🛒', 34, 0], ['🚪', 0, 52], ['🐴', 19, 112]]) g.fillText(chu, ...p(x, z));
+  },
+});
 let lucBd = 0;
 function veBanDo(now) {
   if (now - lucBd < 100) return; lucBd = now;

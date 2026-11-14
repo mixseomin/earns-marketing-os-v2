@@ -33,6 +33,28 @@ export function chiaCum<T extends ShotCum>(ds: readonly T[], tran = DUNG_DUOC, n
   if (cur.length) kq.push(cur);
   return kq;
 }
+/** CHIA CỤM CÂN cho model sinh dài (Seedance 2.0 ≤ 15 s, anh 14/11/2026 "tổ chức lại cụm video để sinh"): trong mỗi phân cảnh lấy SỐ CỤM ÍT NHẤT
+ *  (⌈tổng / trần⌉, tăng dần nếu shot dài không xếp vừa) rồi chia liền nhau sao cho CỤM DÀI NHẤT ngắn nhất — tránh lối tham (chiaCum) để lại cụm đuôi 1 shot
+ *  (#3071 cảnh 1: tham ra 14,7 + 4,2 s; cân ra 9,8 + 9,1 s). Shot dài hơn trần đứng riêng. Thuần. */
+export function chiaCumCan<T extends ShotCum>(ds: readonly T[], tran = 15): T[][] {
+  const kq: T[][] = [];
+  for (let i = 0; i < ds.length;) {
+    let j = i; while (j < ds.length && ds[j]!.phan_doan === ds[i]!.phan_doan) j++;
+    const canh = ds.slice(i, j); const g = canh.map((c) => giayPhat(c)); i = j;
+    const n = canh.length; const pre = [0]; for (const x of g) pre.push(pre.at(-1)! + x);
+    const dai = (a: number, b: number) => pre[b]! - pre[a]!;   // tổng [a, b)
+    for (let k = Math.min(n, Math.max(1, Math.ceil(pre[n]! / tran - 1e-9))); k <= n; k++) {
+      // dp[m][b]: chia b shot đầu thành m cụm, cụm dài nhất nhỏ nhất (chỉ cụm ≤ trần, hoặc một shot đơn dài hơn trần)
+      const dp = Array.from({ length: k + 1 }, () => Array<number>(n + 1).fill(Infinity)); const tr = Array.from({ length: k + 1 }, () => Array<number>(n + 1).fill(-1)); dp[0]![0] = 0;
+      for (let m = 1; m <= k; m++) for (let b = 1; b <= n; b++) for (let a = m - 1; a < b; a++) {
+        const d = dai(a, b); if (d > tran + 1e-6 && b - a > 1) continue;
+        const v = Math.max(dp[m - 1]![a]!, d); if (v < dp[m]![b]!) { dp[m]![b] = v; tr[m]![b] = a; }
+      }
+      if (dp[k]![n]! < Infinity) { const cat: T[][] = []; for (let m = k, b = n; m > 0; m--) { const a = tr[m]![b]!; cat.unshift(canh.slice(a, b)); b = a; } kq.push(...cat); break; }
+    }
+  }
+  return kq;
+}
 /** Ảnh neo cuối của cụm: khung kết của shot cuối (đã duyệt) — chỉ khi cụm > 1 shot và shot cuối có khung kết. */
 export const anhNeoCuoi = (cum: readonly Pick<Canh, 'keyframe_ket'>[]): string | null => (cum.length > 1 ? cum.at(-1)!.keyframe_ket ?? null : null);
 

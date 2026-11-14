@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/cum-shot.test.mts
 import assert from 'node:assert';
-import { chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, promptCumMoi, DUNG_DUOC, VAO_DAU } from './cum-shot';
+import { chiaCumCan, chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, promptCumMoi, DUNG_DUOC, VAO_DAU } from './cum-shot';
 import { lienCon, noiKhungShot } from './kieu';
 
 // Cảnh Thang máy phim #353: giây phát 17 shot thật → 6 cụm theo nhịp (đến · giật thẻ · thang mở · đối đáp · quay đi · vào thang)
@@ -83,3 +83,11 @@ assert.ok(noiKhungShot(false, { thu_tu: 2 }, { thu_tu: 2.9 }) && noiKhungShot(fa
 // tập bật nối khung cả tập: #2.9 → #3.1 vẫn là cắt; shot thường #4 → #5 vẫn nối; shot tự chọn 'lien_may' thì nối
 assert.ok(!noiKhungShot(true, { thu_tu: 2.9 }, { thu_tu: 3.1 }) && noiKhungShot(true, { thu_tu: 4 }, { thu_tu: 5 }) && noiKhungShot(true, { thu_tu: 2.9, ky_thuat: { chuyen_canh: 'lien_may' } }, { thu_tu: 3.1 }));
 console.log('✓ cum-shot');
+
+// chiaCumCan (14/11/2026 #3071): cảnh 1 = 10 shot 18,9 s → 2 cụm cân 9,8 + 9,1 (tham ra 14,7 + 4,2); shot > trần đứng riêng; đổi phân cảnh = cụm mới
+{ const mk = (thu_tu: number, phat_s: number, phan_doan: string) => ({ id: thu_tu, thu_tu, phan_doan, phat_s, thoi_luong_s: 6 }) as never;
+  const g1 = [2, 1.2, 1.2, 2, 1.4, 2, 1.6, 3.3, 2.2, 2].map((p, i) => mk(i + 1, p, 'A'));
+  const g2 = [1.2, 1.2, 1.53, 3.5, 4, 5.2].map((p, i) => mk(i + 11, p, 'B'));
+  const c = chiaCumCan([...g1, ...g2, mk(17, 20, 'C')], 15).map((x) => x.map((y: { thu_tu: number }) => y.thu_tu));
+  assert.deepStrictEqual(c, [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10], [11, 12, 13, 14], [15, 16], [17]], JSON.stringify(c)); }
+console.log('✓ cum-shot chiaCumCan');

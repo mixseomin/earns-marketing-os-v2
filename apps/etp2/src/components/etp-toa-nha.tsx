@@ -156,14 +156,15 @@ function dungToa(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: Mo
   return { cao: cotBien(dinh, 0.9, RONG / 2 - 0.4), vat };
 }
 
-/** CẢNH 3D DÙNG CHUNG: renderer + đèn + camera quỹ đạo + điều khiển + thẻ rê 450 ms + khung chọn. dung() dựng vật vào cảnh, trả vật bấm được + tâm nhìn + khoảng xa.
- *  ĐIỀU KHIỂN THEO LUẬT CITY.ON.TC (anh 23/10/2026, chép luật không chép mã — mã city gắn MapControls r128 trong tệp cảnh 2.400 dòng; anh 15/11/2026 "thiếu các chức năng controller giống city à"):
- *  PC: kéo trái = xoay · chuột phải / Shift + kéo = trượt neo đất · lăn thường = trượt · Shift + lăn (hoặc chụm touchpad = ctrl + lăn) = phóng vào đúng điểm dưới con trỏ
- *      · nhấp đúp = phóng ×2 vào điểm đó, KHÔNG chọn vật (nhấp đơn hoãn 260 ms) · nút + / − / ⟲ (anh 15/11/2026 "ko có cách nào thu nhỏ thủ công").
- *  Điện thoại: 1 ngón = trượt neo đất (thành phố) / xoay (một toà) · 2 ngón chụm = phóng + xoay quanh điểm giữa · 2 ngón cùng cuộn dọc = nâng / hạ camera. */
+/** CẢNH 3D DÙNG CHUNG: renderer + đèn + camera + điều khiển + thẻ rê 450 ms + khung chọn. dung() dựng vật vào cảnh, trả vật bấm được + tâm nhìn + khoảng xa.
+ *  ĐIỀU KHIỂN CHUẨN APP LỚN (anh 15/11/2026 "controller đang hơi khó dùng. Các game, app lớn họ control kiểu gì thì kế thừa lại"): dùng thẳng bộ điều khiển chuẩn của three.js, không tự chế —
+ *  · thành phố = MapControls (kiểu Google Maps 3D / game xây thành phố): kéo trái = trượt · kéo phải = xoay + nghiêng · lăn / chụm touchpad = phóng vào con trỏ · WASD / mũi tên = đi · Q / E = xoay
+ *    · điện thoại 1 ngón trượt, 2 ngón chụm phóng + vặn xoay;
+ *  · một toà = OrbitControls (kiểu Sketchfab / trình xem 3D): kéo trái = xoay · kéo phải = trượt · lăn = phóng · điện thoại 1 ngón xoay, 2 ngón phóng + trượt.
+ *  Cả hai có quán tính (damping), nhấp đúp = phóng vào điểm đó (nhấp đơn hoãn 260 ms để không chọn nhầm), nút + / − / ⟲. */
 type DieuKhien = { phong: (f: number) => void; veGoc: () => void };
 function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, canh: import('three').Scene) => { vat: Vat[]; tam: [number, number, number]; xa: number },
-  deps: unknown[], chon: number | null, onChon: (id: number | null) => void, motNgon: 'truot' | 'xoay' = 'truot') {
+  deps: unknown[], chon: number | null, onChon: (id: number | null) => void, kieu: 'pho' | 'toa' = 'pho') {
   const [re, setRe] = useState<{ x: number; y: number; chu: string } | null>(null), [loi, setLoi] = useState<string | null>(null);
   const chonRef = useRef(chon); chonRef.current = chon;
   const onChonRef = useRef(onChon); onChonRef.current = onChon;
@@ -172,7 +173,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
   useEffect(() => { capNhatChon.current(chon); }, [chon]);
   useEffect(() => {
     let huy = false, don = () => {};
-    import('three').then((T) => {
+    Promise.all([import('three'), import('three/examples/jsm/controls/MapControls.js'), import('three/examples/jsm/controls/OrbitControls.js')]).then(([T, { MapControls }, { OrbitControls }]) => {
       if (huy || !hop.current) return;
       const el = hop.current, W = el.clientWidth || 456, Hh = el.clientHeight || 340;
       const r = new T.WebGLRenderer({ antialias: true, alpha: true });
@@ -181,10 +182,14 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
       canh.add(new T.HemisphereLight(0xffffff, 0x334155, 1.6));
       const den = new T.DirectionalLight(0xffffff, 1.4); den.position.set(5, 9, 6); canh.add(den);
       const { vat, tam: t0, xa: xa0 } = dung(T, canh);
-      const tam = new T.Vector3(...t0), GOC0 = -0.6, NGHIENG0 = 0.42;
-      let goc = GOC0, nghieng = NGHIENG0, xa = xa0;
-      const XA_MIN = 2.5, XA_MAX = xa0 * 3;
-      const dat3 = () => { cam.position.set(tam.x + xa * Math.cos(nghieng) * Math.sin(goc), tam.y + xa * Math.sin(nghieng), tam.z + xa * Math.cos(nghieng) * Math.cos(goc)); cam.lookAt(tam); cam.updateMatrixWorld(); };
+      const GOC0 = -0.6, NGHIENG0 = kieu === 'pho' ? 0.62 : 0.32;
+      const datGoc = () => { const t = new T.Vector3(...t0); cam.position.set(t.x + xa0 * Math.cos(NGHIENG0) * Math.sin(GOC0), t.y + xa0 * Math.sin(NGHIENG0), t.z + xa0 * Math.cos(NGHIENG0) * Math.cos(GOC0)); ctl.target.copy(t); ctl.update(); };
+      const cv = r.domElement;
+      const ctl = kieu === 'pho' ? new MapControls(cam, cv) : new OrbitControls(cam, cv);
+      ctl.enableDamping = true; ctl.dampingFactor = 0.12; ctl.zoomToCursor = true; ctl.minDistance = 2.5; ctl.maxDistance = xa0 * 3;
+      ctl.maxPolarAngle = Math.PI / 2 - 0.06;   // không chui xuống dưới mặt đất
+      if (kieu === 'pho') { ctl.screenSpacePanning = false; ctl.panSpeed = 1.1; ctl.rotateSpeed = 0.6; }
+      datGoc();
       let khung: import('three').BoxHelper | null = null;
       const veChon = (id: number | null) => {
         if (khung) { canh.remove(khung); khung.geometry.dispose(); khung = null; }
@@ -192,76 +197,65 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
         khung = new T.BoxHelper(k.vien, 0xffffff); canh.add(khung);
       };
       let can = true; const ve = () => { can = true; };
+      ctl.addEventListener('change', ve);
       capNhatChon.current = (id) => { veChon(id); ve(); };
       veChon(chonRef.current);
-      let raf = 0; const lap = () => { if (can) { can = false; dat3(); r.render(canh, cam); } raf = requestAnimationFrame(lap); }; lap();
+      // phím: WASD / mũi tên đi theo mặt đất, Q / E xoay quanh tâm nhìn (khung phải đang được chọn — bấm vào cảnh)
+      const phim = new Set<string>();
+      const buoc = new T.Vector3(), truoc = new T.Vector3(), phai = new T.Vector3(), len = new T.Vector3(0, 1, 0);
+      const diPhim = () => {
+        if (!phim.size) return;
+        cam.getWorldDirection(truoc); truoc.y = 0; truoc.normalize(); phai.crossVectors(truoc, len).normalize();
+        const k = cam.position.distanceTo(ctl.target) * 0.012; buoc.set(0, 0, 0);
+        if (phim.has('w') || phim.has('arrowup')) buoc.addScaledVector(truoc, k);
+        if (phim.has('s') || phim.has('arrowdown')) buoc.addScaledVector(truoc, -k);
+        if (phim.has('d') || phim.has('arrowright')) buoc.addScaledVector(phai, k);
+        if (phim.has('a') || phim.has('arrowleft')) buoc.addScaledVector(phai, -k);
+        cam.position.add(buoc); ctl.target.add(buoc);
+        const q = (phim.has('q') ? 1 : 0) - (phim.has('e') ? 1 : 0);
+        if (q) { const o = cam.position.clone().sub(ctl.target).applyAxisAngle(len, q * 0.025); cam.position.copy(ctl.target).add(o); }
+        ve();
+      };
+      let raf = 0; const lap = () => { diPhim(); const doi = ctl.update(); if (can || doi) { can = false; r.render(canh, cam); } raf = requestAnimationFrame(lap); }; lap();
 
       const ray = new T.Raycaster(), p2 = new T.Vector2(), mat = vat.map((k) => k.m), matDat = new T.Plane(new T.Vector3(0, 1, 0), 0), dd = new T.Vector3();
-      const tia = (cx: number, cy: number) => { dat3(); const b = r.domElement.getBoundingClientRect(); p2.set(((cx - b.left) / b.width) * 2 - 1, -((cy - b.top) / b.height) * 2 + 1); ray.setFromCamera(p2, cam); };
+      const tia = (cx: number, cy: number) => { const b = cv.getBoundingClientRect(); p2.set(((cx - b.left) / b.width) * 2 - 1, -((cy - b.top) / b.height) * 2 + 1); ray.setFromCamera(p2, cam); };
       const trung = (cx: number, cy: number) => { tia(cx, cy); const h = ray.intersectObjects(mat)[0]; return h ? vat.find((k) => k.m === h.object) ?? null : null; };
-      /** điểm mặt đất (y = 0) dưới toạ độ màn — không chạm (nhìn lên trời) thì lấy tâm nhìn */
-      const datDuoi = (cx: number, cy: number) => { tia(cx, cy); return ray.ray.intersectPlane(matDat, dd) ? dd.clone() : tam.clone(); };
-      /** phóng quanh điểm P: camera co / giãn đồng dạng quanh P → P đứng yên trên màn, hướng nhìn không đổi */
+      /** phóng quanh điểm P (camera và tâm cùng co về P) — P đứng yên trên màn */
       const phongQuanh = (P: import('three').Vector3, f: number) => {
-        const f2 = Math.max(XA_MIN / xa, Math.min(XA_MAX / xa, f)); xa *= f2;
-        tam.x = P.x + (tam.x - P.x) * f2; tam.z = P.z + (tam.z - P.z) * f2; ve();   // tâm giữ độ cao (P ở mặt đất)
+        const d = cam.position.distanceTo(ctl.target), f2 = Math.max(ctl.minDistance / d, Math.min(ctl.maxDistance / d, f));
+        cam.position.sub(P).multiplyScalar(f2).add(P); ctl.target.sub(P).multiplyScalar(f2).add(P); ctl.update(); ve();
       };
-      /** trượt neo đất: điểm đất dưới tay lúc trước về đúng dưới tay lúc này */
-      const truotTu = (x0: number, y0: number, x1: number, y1: number) => { const a = datDuoi(x0, y0), b = datDuoi(x1, y1); tam.x += a.x - b.x; tam.z += a.z - b.z; ve(); };
-      const xoay = (dx: number, dy: number) => { goc -= dx * 0.008; nghieng = Math.max(0.08, Math.min(1.35, nghieng + dy * 0.006)); ve(); };
-      dk.current = {
-        phong: (f) => { const b = r.domElement.getBoundingClientRect(); phongQuanh(datDuoi(b.left + b.width / 2, b.top + b.height / 2), f); },
-        veGoc: () => { tam.set(...t0); goc = GOC0; nghieng = NGHIENG0; xa = xa0; ve(); },
-      };
+      dk.current = { phong: (f) => phongQuanh(ctl.target.clone(), f), veGoc: () => { datGoc(); ve(); } };
 
-      const cham = new Map<number, { x: number; y: number }>(); let keo = 0, truot = false, hen: ReturnType<typeof setTimeout> | null = null, henBam: ReturnType<typeof setTimeout> | null = null;
-      let hai: { x: number; y: number; d: number; a: number } | null = null;
-      const doHai = () => { const [a, b] = [...cham.values()]; return { x: (a!.x + b!.x) / 2, y: (a!.y + b!.y) / 2, d: Math.hypot(a!.x - b!.x, a!.y - b!.y), a: Math.atan2(b!.y - a!.y, b!.x - a!.x) }; };
-      const xuong = (e: PointerEvent) => { r.domElement.setPointerCapture(e.pointerId); cham.set(e.pointerId, { x: e.clientX, y: e.clientY }); keo = 0;
-        truot = e.pointerType === 'touch' ? motNgon === 'truot' : e.button === 2 || e.shiftKey || e.ctrlKey || e.metaKey;
-        if (cham.size === 2) hai = doHai(); };
+      let x0 = 0, y0 = 0, keo = 0, hen: ReturnType<typeof setTimeout> | null = null, henBam: ReturnType<typeof setTimeout> | null = null;
+      const xuong = (e: PointerEvent) => { x0 = e.clientX; y0 = e.clientY; keo = 0; setRe(null); cv.focus({ preventScroll: true }); };
       const di = (e: PointerEvent) => {
-        const p = cham.get(e.pointerId);
-        if (p) {
-          const x0 = p.x, y0 = p.y; cham.set(e.pointerId, { x: e.clientX, y: e.clientY });
-          if (cham.size === 1) { keo += Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0); if (truot) truotTu(x0, y0, e.clientX, e.clientY); else xoay(e.clientX - x0, e.clientY - y0); }
-          else if (cham.size === 2 && hai) {   // chụm = phóng quanh điểm giữa · vặn = xoay · hai ngón cùng cuộn dọc (khoảng cách gần như không đổi) = nâng / hạ camera
-            const h = doHai(); keo += 10;
-            if (Math.abs(h.d - hai.d) < 2 && Math.abs(h.y - hai.y) > 0.5) nghieng = Math.max(0.08, Math.min(1.35, nghieng + (h.y - hai.y) * 0.005));
-            else if (h.d > 0 && hai.d > 0) phongQuanh(datDuoi(h.x, h.y), hai.d / h.d);
-            let da = h.a - hai.a; if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI; goc -= da;
-            hai = h; ve();
-          }
-          setRe(null); return;
-        }
-        // thẻ rê chỉ hiện khi chuột dừng 450 ms (giống city.on.tc)
-        if (hen) clearTimeout(hen); setRe(null);
+        if (e.buttons) { keo = Math.max(keo, Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0)); return; }
+        if (hen) clearTimeout(hen); setRe(null);   // thẻ rê chỉ hiện khi chuột dừng 450 ms
         const cx = e.clientX, cy = e.clientY;
         hen = setTimeout(() => { const k = trung(cx, cy); const b = el.getBoundingClientRect(); if (k) setRe({ x: cx - b.left, y: cy - b.top, chu: k.chu }); }, 450);
       };
-      const len = (e: PointerEvent) => { cham.delete(e.pointerId); if (cham.size < 2) hai = null;
-        if (keo < 6 && !cham.size) {   // nhấp đơn hoãn 260 ms — nhấp đúp tới trước thì chỉ phóng, không chọn
-          const cx = e.clientX, cy = e.clientY, cham1 = e.pointerType !== 'mouse';
-          if (henBam) clearTimeout(henBam);
-          henBam = setTimeout(() => { henBam = null; const k = trung(cx, cy); onChonRef.current(k?.id ?? null); if (k && cham1) { const b = el.getBoundingClientRect(); setRe({ x: cx - b.left, y: cy - b.top, chu: k.chu }); } }, 260);
-        } };
-      const dup = (e: MouseEvent) => { e.preventDefault(); if (henBam) { clearTimeout(henBam); henBam = null; } phongQuanh(datDuoi(e.clientX, e.clientY), e.shiftKey ? 2 : 0.5); };
-      const lan = (e: WheelEvent) => {
-        e.preventDefault(); setRe(null);
-        const k = e.deltaMode === 1 ? 16 : 1;
-        if (e.shiftKey || e.ctrlKey) { const d = (e.deltaY || e.deltaX) * k; phongQuanh(datDuoi(e.clientX, e.clientY), Math.exp(d * (e.ctrlKey ? 0.01 : 0.0025))); }
-        else truotTu(e.clientX, e.clientY, e.clientX - e.deltaX * k, e.clientY - e.deltaY * k);   // lăn thường = trượt (như city)
+      const tha = (e: PointerEvent) => {
+        if (keo >= 6 || e.button !== 0) return;
+        const cx = e.clientX, cy = e.clientY, cham1 = e.pointerType !== 'mouse';
+        if (henBam) clearTimeout(henBam);
+        henBam = setTimeout(() => { henBam = null; const k = trung(cx, cy); onChonRef.current(k?.id ?? null); if (k && cham1) { const b = el.getBoundingClientRect(); setRe({ x: cx - b.left, y: cy - b.top, chu: k.chu }); } }, 260);
       };
+      const dup = (e: MouseEvent) => { e.preventDefault(); if (henBam) { clearTimeout(henBam); henBam = null; }
+        tia(e.clientX, e.clientY); const h = ray.intersectObjects(mat)[0]?.point ?? (ray.ray.intersectPlane(matDat, dd) ? dd.clone() : ctl.target.clone()); phongQuanh(h, e.shiftKey ? 2 : 0.5); };
+      const phimXuong = (e: KeyboardEvent) => { const k = e.key.toLowerCase(); if (['w', 'a', 's', 'd', 'q', 'e', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { e.preventDefault(); phim.add(k); } };
+      const phimLen = (e: KeyboardEvent) => { phim.delete(e.key.toLowerCase()); };
       const roi = () => { if (hen) clearTimeout(hen); setRe(null); };
-      const menu = (e: Event) => e.preventDefault();
-      const cv = r.domElement; cv.style.touchAction = 'none'; cv.style.cursor = 'grab';
-      cv.addEventListener('pointerdown', xuong); cv.addEventListener('pointermove', di); cv.addEventListener('pointerup', len); cv.addEventListener('pointercancel', len);
-      cv.addEventListener('wheel', lan, { passive: false }); cv.addEventListener('pointerleave', roi); cv.addEventListener('contextmenu', menu); cv.addEventListener('dblclick', dup);
+      const boPhim = () => phim.clear();
+      cv.tabIndex = 0; cv.style.outline = 'none'; cv.style.touchAction = 'none';
+      cv.addEventListener('pointerdown', xuong); cv.addEventListener('pointermove', di); cv.addEventListener('pointerup', tha); cv.addEventListener('pointerleave', roi);
+      cv.addEventListener('dblclick', dup); cv.addEventListener('keydown', phimXuong); cv.addEventListener('keyup', phimLen); cv.addEventListener('blur', boPhim);
       // ô đổi cỡ (widget kéo giãn) → đổi khung vẽ, không dựng lại
       const doiCo = new ResizeObserver(() => { const w = el.clientWidth, h = el.clientHeight; if (!w || !h) return; r.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); ve(); }); doiCo.observe(el);
-      don = () => { cancelAnimationFrame(raf); if (hen) clearTimeout(hen); if (henBam) clearTimeout(henBam); doiCo.disconnect(); cv.removeEventListener('wheel', lan); cv.removeEventListener('dblclick', dup);
+      don = () => { cancelAnimationFrame(raf); if (hen) clearTimeout(hen); if (henBam) clearTimeout(henBam); doiCo.disconnect(); ctl.dispose();
         dk.current = { phong: () => {}, veGoc: () => {} };
-        canh.traverse((x0) => { const x = x0 as unknown as { geometry?: { dispose(): void }; material?: { dispose(): void; map?: { dispose(): void } } }; x.geometry?.dispose(); x.material?.map?.dispose(); x.material?.dispose(); });
+        canh.traverse((x) => { const o = x as unknown as { geometry?: { dispose(): void }; material?: { dispose(): void; map?: { dispose(): void } } }; o.geometry?.dispose(); o.material?.map?.dispose(); o.material?.dispose(); });
         r.dispose(); cv.remove(); };
     }).catch((e) => setLoi(`không mở được 3D: ${String(e?.message ?? e)}`));
     return () => { huy = true; don(); };
@@ -270,24 +264,25 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
   return { re, loi, dk };
 }
 
-function KhungCanh({ hop, re, loi, cao, dk, motNgon = 'truot' }: { hop: React.RefObject<HTMLDivElement | null>; re: { x: number; y: number; chu: string } | null; loi: string | null; cao: number | string;
-  dk: React.RefObject<DieuKhien>; motNgon?: 'truot' | 'xoay' }) {
+function KhungCanh({ hop, re, loi, cao, dk, kieu = 'pho', chuGiai }: { hop: React.RefObject<HTMLDivElement | null>; re: { x: number; y: number; chu: string } | null; loi: string | null; cao: number | string;
+  dk: React.RefObject<DieuKhien>; kieu?: 'pho' | 'toa'; chuGiai?: React.ReactNode }) {
   const nut: React.CSSProperties = { width: 28, height: 28, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #0f172a)', color: 'var(--fg-1)', fontSize: 15, lineHeight: '26px', cursor: 'pointer', padding: 0 };
   return <div style={{ position: 'relative', width: '100%', height: cao }}>
     <div ref={hop} style={{ position: 'absolute', inset: 0, borderRadius: 8, background: 'color-mix(in srgb, var(--fg-3) 6%, transparent)', overflow: 'hidden' }} />
     {loi ? <div style={{ position: 'absolute', inset: 0, padding: 12, color: DO }}>{loi}</div> : null}
+    {chuGiai ? <div style={{ position: 'absolute', left: 8, top: 8, pointerEvents: 'none' }}>{chuGiai}</div> : null}
     {re ? <div style={{ position: 'absolute', left: re.x + 10, top: re.y + 12, maxWidth: 240, padding: '4px 7px', borderRadius: 6, fontSize: 11, background: 'var(--bg-1, #0f172a)', border: '1px solid var(--line)', color: 'var(--fg-1)', pointerEvents: 'none', transform: re.x > 260 ? 'translateX(calc(-100% - 20px))' : undefined }}>{re.chu}</div> : null}
     <div style={{ position: 'absolute', right: 6, top: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <button style={nut} title="phóng to (hoặc Shift + lăn lên / nhấp đúp)" onClick={() => dk.current?.phong(0.7)}>+</button>
-      <button style={nut} title="thu nhỏ (hoặc Shift + lăn xuống / Shift + nhấp đúp)" onClick={() => dk.current?.phong(1.45)}>−</button>
+      <button style={nut} title="phóng to (hoặc lăn chuột / nhấp đúp)" onClick={() => dk.current?.phong(0.7)}>+</button>
+      <button style={nut} title="thu nhỏ (hoặc lăn chuột / Shift + nhấp đúp)" onClick={() => dk.current?.phong(1.45)}>−</button>
       <button style={{ ...nut, fontSize: 13 }} title="về góc nhìn ban đầu" onClick={() => dk.current?.veGoc()}>⟲</button>
     </div>
     <div style={{ position: 'absolute', right: 6, bottom: 4, fontSize: 10, color: 'var(--fg-3)', pointerEvents: 'none', textAlign: 'right' }}>
-      kéo = xoay · chuột phải / Shift + kéo = trượt · lăn = trượt · Shift + lăn = phóng · nhấp đúp = phóng{motNgon === 'truot' ? '' : ' · 1 ngón = xoay'}</div>
+      {kieu === 'pho' ? 'kéo = đi · chuột phải = xoay · lăn = phóng · WASD / mũi tên · Q E xoay' : 'kéo = xoay · chuột phải = trượt · lăn = phóng'}</div>
   </div>;
 }
 
-/** MỘT TOÀ (khung phim, tab Toà nhà): có nhãn tầng + biển hướng đi; điện thoại 1 ngón = xoay (toà đứng một chỗ) */
+/** MỘT TOÀ (khung phim, tab Toà nhà): có nhãn tầng + biển hướng đi; điều khiển kiểu trình xem 3D (OrbitControls) */
 export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mong: MongToa; bien: { chu: string; mau: string } | null; chon: number | null; onChon: (id: number | null) => void }) {
   const hop = useRef<HTMLDivElement>(null);
   const { re, loi, dk } = useCanh3D(hop, (T, canh) => {
@@ -296,8 +291,8 @@ export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mo
     const dat = new T.Mesh(new T.CircleGeometry(Math.max(RONG, SAU) * 1.2, 48), new T.MeshStandardMaterial({ color: 0x1e293b, transparent: true, opacity: 0.4 }));
     dat.rotation.x = -Math.PI / 2; dat.position.y = -0.01; canh.add(dat);
     return { vat, tam: [0, (cao + 0.2) / 2, 0], xa: Math.max(8, cao * 1.45 + 4) };
-  }, [camp, mong.sx, mong.ke, mong.cho, bien?.chu], chon, onChon, 'xoay');
-  return <KhungCanh hop={hop} re={re} loi={loi} cao={340} dk={dk} motNgon="xoay" />;
+  }, [camp, mong.sx, mong.ke, mong.cho, bien?.chu], chon, onChon, 'toa');
+  return <KhungCanh hop={hop} re={re} loi={loi} cao={340} dk={dk} kieu="toa" />;
 }
 
 /** THÀNH PHỐ PHÂN KHU (widget Tổng quan; anh 15/11/2026 "tổ chức thành các phân khu như khu người giàu, khu người nghèo... rồi bố trí các nhà và giao thông xung quanh"):
@@ -315,7 +310,7 @@ export function ThanhPho({ ds, chon, onChon, cao, bienToiDa = 6 }: { ds: ToaPhim
     const kho = new Map<string, import('three').CanvasTexture>(), vat: Vat[] = [];
     const n = ds.length, LX = RONG + 1.0, LZ = SAU + 1.0, D = 1.1;   // lô (có sân) · bề ngang đường
     const chan = (x: number) => x + (x % 2);
-    const cot = Math.max(2, chan(Math.ceil(Math.sqrt(n * 1.3)))), hang = Math.max(2, chan(Math.ceil(n / cot) + 1));
+    const cot = Math.max(2, chan(Math.ceil(Math.sqrt(n * 1.3)))), hang = Math.max(2, chan(Math.ceil(n / cot)));
     const W = D + (cot / 2) * (2 * LX + D), Z = D + (hang / 2) * (2 * LZ + D);
     const xLo = (c: number) => D + Math.floor(c / 2) * (2 * LX + D) + (c % 2) * LX + LX / 2 - W / 2;
     const zLo = (r: number) => D + Math.floor(r / 2) * (2 * LZ + D) + (r % 2) * LZ + LZ / 2 - Z / 2;
@@ -352,13 +347,18 @@ export function ThanhPho({ ds, chon, onChon, cao, bienToiDa = 6 }: { ds: ToaPhim
       bat.position.set(0, caoBat / 2, 0); g.add(bat);
       vat.push({ m: bat, vien: g, id: ph.p, chu: `${ten} · ${CAP[cap]} · ${KHU[kh]!.ten} · ${ph.camp.length} camp · 7 ngày lãi ${lai >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
     });
-    // cây khu trung lưu (InstancedMesh)
+    // lô còn trống ngoài rìa = công viên (cỏ + cây), không để ô đen trơ
+    for (const [ox, oz] of lo.slice(ds.length)) { const sv = new T.Mesh(new T.PlaneGeometry(LX - 0.06, LZ - 0.06), new T.MeshStandardMaterial({ color: 0x1d3a24, roughness: 1 })); sv.rotation.x = -Math.PI / 2; sv.position.set(ox, 0, oz); canh.add(sv);
+      cay.push([ox - 0.6, oz - 0.3], [ox + 0.5, oz + 0.2], [ox - 0.1, oz + 0.5]); }
+    // cây khu trung lưu + công viên (InstancedMesh)
     if (cay.length) { const cm = new T.InstancedMesh(new T.ConeGeometry(0.22, 0.6, 7), new T.MeshStandardMaterial({ color: 0x15803d }), cay.length);
       cay.forEach(([x, z], i) => { mt.position.set(x, 0.3, z); mt.rotation.set(0, 0, 0); mt.updateMatrix(); cm.setMatrixAt(i, mt.matrix); }); canh.add(cm); }
-    // biển tên khu: cắm ở lô gần camera nhất của khu (phía trước, +z), nằm trên đường
-    KHU.forEach((k, i) => { const ds2 = lanKhu[i]!; if (!ds2.length) return; const [x, z] = ds2.reduce((a, b) => (b[1] > a[1] ? b : a));
-      const sp = nhan(T, `${k.ten} · ${ds2.length}`, k.mau, 1.3, false); sp.center.set(0.5, 0); sp.position.set(x, 0.15, z + LZ / 2 + D / 2); canh.add(sp); });
     return { vat, tam: [0, 0, 0], xa: Math.max(12, Math.max(W, Z) * 1.05 + caoMax * 0.5) };
-  }, [ds], chon, onChon, 'truot');
-  return <KhungCanh hop={hop} re={re} loi={loi} cao={cao} dk={dk} />;
+  }, [ds], chon, onChon, 'pho');
+  // chú giải khu (chữ HTML góc trái — biển 3D ba khu từng đè nhau ở cùng một góc)
+  const dem = KHU.map((_, i) => ds.filter((x) => khuCua(capToa(x.camp).cap) === i).length);
+  const chuGiai = <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11, padding: '5px 8px', borderRadius: 6, background: 'rgba(15,23,42,.78)', color: '#cbd5e1' }}>
+    {KHU.map((k, i) => <span key={k.ten} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: `#${k.nen.toString(16).padStart(6, '0')}`, border: `1px solid ${k.mau}` }} />
+      <b style={{ color: k.mau }}>{k.ten}</b> {dem[i]} · {k.cap.map((c) => CAP[c]).reverse().join(' / ')}</span>)}</div>;
+  return <KhungCanh hop={hop} re={re} loi={loi} cao={cao} dk={dk} chuGiai={chuGiai} />;
 }

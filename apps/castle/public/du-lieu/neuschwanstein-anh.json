@@ -1,0 +1,66 @@
+[
+ {
+  "tieuDe": "Neuschwanstein Castle from Marienbrücke, 2011 May.jpg",
+  "tep": "anh/neuschwanstein-1.jpg",
+  "trang": "https://commons.wikimedia.org/wiki/File:Neuschwanstein_Castle_from_Marienbr%C3%BCcke,_2011_May.jpg",
+  "lat": 47.554949,
+  "lng": 10.749452,
+  "rong": 1920,
+  "cao": 1280,
+  "tacGia": "Ximonic, Simo Räsänen (post-processing) & Tauno Räsänen (photograph)",
+  "giayPhep": "CC BY-SA 3.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+  "camera": {
+   "y": 40.06,
+   "yaw": 0.0056,
+   "pitch": -0.078,
+   "fov": 26.4,
+   "ghi_chu": "khớp bằng 4 mốc: đỉnh tháp 65 m, chóp tháp mặt trước, tháp vuông, tháp tròn cổng"
+  }
+ },
+ {
+  "tieuDe": "Schloss Neuschwanstein 2013.jpg",
+  "tep": "anh/neuschwanstein-2.jpg",
+  "trang": "https://commons.wikimedia.org/wiki/File:Schloss_Neuschwanstein_2013.jpg",
+  "lat": 47.55492778,
+  "lng": 10.74973889,
+  "rong": 1920,
+  "cao": 1435,
+  "tacGia": "Thomas Wolf, www.foto-tw.de",
+  "giayPhep": "CC BY-SA 3.0 de",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/3.0/de/deed.en",
+  "camera": {
+   "y": 38.66,
+   "yaw": 0.0856,
+   "pitch": -0.0741,
+   "fov": 30,
+   "ghi_chu": "khớp bằng 4 mốc: chóp tháp 65 m, chóp tháp mặt trước, chóp tháp vuông, tháp tròn cổng"
+  }
+ },
+ {
+  "tieuDe": "SchlossNeuschwanstein2011.JPG",
+  "tep": "anh/neuschwanstein-3.jpg",
+  "trang": "https://commons.wikimedia.org/wiki/File:SchlossNeuschwanstein2011.JPG",
+  "lat": 47.55507222,
+  "lng": 10.74980833,
+  "rong": 1920,
+  "cao": 1280,
+  "tacGia": "Zeppelubil / Th. Haft, from Torgau / Elbe, Germany",
+  "giayPhep": "CC BY-SA 3.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+  "camera": null
+ },
+ {
+  "tieuDe": "Aerial image of Neuschwanstein Castle (view from the northwest).jpg",
+  "tep": "anh/neuschwanstein-4.jpg",
+  "trang": "https://commons.wikimedia.org/wiki/File:Aerial_image_of_Neuschwanstein_Castle_(view_from_the_northwest).jpg",
+  "lat": 47.560833,
+  "lng": 10.741944,
+  "rong": 1920,
+  "cao": 1195,
+  "tacGia": "Carsten Steger",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+  "camera": null
+ }
+]

@@ -8,6 +8,10 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 const $ = (id) => document.getElementById(id);
 const ten = new URLSearchParams(location.search).get('lau') || 'neuschwanstein';
 const D = await (await fetch(`./du-lieu/${ten}.json`, { cache: 'no-cache' })).json();
+// SỬA THEO ẢNH: số đo OSM lệch so với ảnh thật thì ghi phần chỉnh vào du-lieu/<ten>-sua.json ({ "way/…": { height, min_height, "roof:height", ly_do } }),
+// không sửa tệp số đo gốc — để biết khối nào là số OSM, khối nào đã chỉnh theo ảnh nào.
+const SUA = await fetch(`./du-lieu/${ten}-sua.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [a, b] of Object.entries(SUA[k.id])) if (a !== 'ly_do') k.tags[a] = String(b); }
 
 // ---------- cảnh
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -116,6 +120,7 @@ let caoNhat = null;
 for (const k of dsKhoi) {
   if (k.vo && k.coPart) continue;
   const r = dungKhoi(k);
+  k.hinh = [r.tuong, r.mai]; // giữ hình từng khối (công cụ đo đối chiếu ảnh tô màu theo khối)
   if (r.tuong.length) tuongG.push(toG(r.tuong, r.mauT));
   if (r.mai.length) maiG.push(toG(r.mai, r.mauM));
   if (!caoNhat || r.y2 > caoNhat.y2) caoNhat = r;
@@ -128,7 +133,55 @@ for (const [gs, vl] of [[tuongG, VL_T], [maiG, VL_M]]) if (gs.length) { const m 
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.target.set(0, 25, 0); camera.position.set(-170, 90, 230); orbit.enableDamping = true; orbit.maxPolarAngle = 1.52; orbit.minDistance = 15; orbit.maxDistance = 1500; orbit.update();
 $('tt').innerHTML = `${dsKhoi.filter((k) => !(k.vo && k.coPart)).length} khối từ OpenStreetMap · cao nhất ${caoNhat ? caoNhat.h + ' m' : '—'} · địa hình ${n}×${n} điểm, ô ${B} m`;
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+addEventListener('resize', () => { if (dangSo) return; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 let lan = 0;
-(function ve(now = 0) { requestAnimationFrame(ve); if (now - lan < (document.hasFocus() ? 1000 / 60 : 100) - 3) return; lan = now; orbit.update(); renderer.render(scene, camera); })();
-window.__ns = { D, dsKhoi, camera, orbit, caoDat, GOC_Y };
+(function ve(now = 0) { requestAnimationFrame(ve); if (now - lan < (document.hasFocus() ? 1000 / 60 : 100) - 3) return; lan = now; if (!dangSo) orbit.update(); renderer.render(scene, camera); })(); // chế độ so ảnh: camera do thông số ảnh quyết, orbit.update() sẽ kéo về hướng nhìn tâm
+// ---------- SO VỚI ẢNH THẬT (bước 3): camera đặt đúng chỗ người chụp đứng (toạ độ Commons), ảnh chồng mờ lên khung hình cùng tỉ lệ.
+// Tinh chỉnh: ← → quay · ↑ ↓ ngẩng / cúi · [ ] góc ống kính · PgUp/PgDn cao thấp (Shift = nhanh). Thông số khớp ghi vào du-lieu/<ten>-anh.json (camera).
+const ANH = await fetch(`./du-lieu/${ten}-anh.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
+const M_LAT = 111320, M_LNG = 111320 * Math.cos(D.tam[0] * Math.PI / 180);
+const raMet = (la, ln) => [(ln - D.tam[1]) * M_LNG, -(la - D.tam[0]) * M_LAT];
+let dangSo = null, cam = null;
+const hop = $('so-khung'), img = $('so-anh');
+function khungAnh(a) { // khung lớn nhất cùng tỉ lệ ảnh, giữa màn
+  const r = a.rong / a.cao; let w = innerWidth, h = w / r; if (h > innerHeight) { h = innerHeight; w = h * r; }
+  return { w: Math.round(w), h: Math.round(h), x: Math.round((innerWidth - w) / 2), y: Math.round((innerHeight - h) / 2) };
+}
+function datCamSo() {
+  const [x, z] = raMet(dangSo.lat, dangSo.lng);
+  camera.position.set(x, cam.y, z); camera.fov = cam.fov; camera.rotation.set(cam.pitch, cam.yaw, 0, 'YXZ'); camera.updateProjectionMatrix();
+  $('so-tt').textContent = `cao ${(cam.y + GOC_Y).toFixed(0)} m (so mặt biển) · quay ${(cam.yaw * 180 / Math.PI).toFixed(1)}° · ngẩng ${(cam.pitch * 180 / Math.PI).toFixed(1)}° · ống kính ${cam.fov.toFixed(1)}°`;
+}
+function moSo(i) {
+  dangSo = ANH[i]; if (!dangSo) return;
+  const [x, z] = raMet(dangSo.lat, dangSo.lng);
+  let yDat = -1e9; for (let dx = -15; dx <= 15; dx += 5) for (let dz = -15; dz <= 15; dz += 5) yDat = Math.max(yDat, caoDat(x + dx, z + dz) - GOC_Y); // đứng trên cầu / mép vực: lấy mặt cao nhất quanh chỗ chụp
+  const huong = Math.atan2(-(0 - x), -(0 - z)); // nhìn về tâm lâu đài
+  cam = dangSo.camera ? { ...dangSo.camera } : { y: yDat + 1.6, yaw: huong, pitch: Math.atan2(30 - (yDat + 1.6), Math.hypot(x, z)), fov: 30 };
+  const k = khungAnh(dangSo);
+  renderer.setSize(k.w, k.h); Object.assign(renderer.domElement.style, { position: 'fixed', left: k.x + 'px', top: k.y + 'px' }); camera.aspect = k.w / k.h;
+  Object.assign(hop.style, { display: 'block', left: k.x + 'px', top: k.y + 'px', width: k.w + 'px', height: k.h + 'px' });
+  img.src = `./du-lieu/${dangSo.tep}`; orbit.enabled = false; datCamSo();
+  $('so-nguon').innerHTML = `Ảnh: <a href="${dangSo.trang}" target="_blank" rel="noopener">${dangSo.tieuDe}</a> · ${dangSo.tacGia} · ${dangSo.giayPhep}`;
+  document.querySelectorAll('#so button[data-i]').forEach((b) => b.classList.toggle('chon', +b.dataset.i === i));
+}
+function tatSo() {
+  dangSo = null; hop.style.display = 'none'; renderer.setSize(innerWidth, innerHeight); Object.assign(renderer.domElement.style, { left: '0px', top: '0px' });
+  camera.aspect = innerWidth / innerHeight; camera.fov = 45; camera.updateProjectionMatrix(); orbit.enabled = true; camera.position.set(-170, 90, 230); orbit.target.set(0, 25, 0); orbit.update();
+  $('so-tt').textContent = ''; $('so-nguon').textContent = ''; document.querySelectorAll('#so button[data-i]').forEach((b) => b.classList.remove('chon'));
+}
+if (ANH.length) {
+  $('so').style.display = 'block';
+  $('so-ds').innerHTML = ANH.map((a, i) => `<button data-i="${i}" title="${a.tieuDe}">${i + 1}</button>`).join('') + '<button id="so-tat">Tắt</button>';
+  $('so-ds').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; b.id === 'so-tat' ? tatSo() : moSo(+b.dataset.i); });
+  $('so-mo').addEventListener('input', (e) => { img.style.opacity = e.target.value / 100; });
+  addEventListener('keydown', (e) => {
+    if (!dangSo) return; const k = e.shiftKey ? 10 : 1, d = Math.PI / 1800 * k;
+    const m = { ArrowLeft: () => (cam.yaw += d), ArrowRight: () => (cam.yaw -= d), ArrowUp: () => (cam.pitch += d), ArrowDown: () => (cam.pitch -= d), BracketLeft: () => (cam.fov = Math.max(5, cam.fov - 0.1 * k)), BracketRight: () => (cam.fov = Math.min(90, cam.fov + 0.1 * k)), PageUp: () => (cam.y += 0.5 * k), PageDown: () => (cam.y -= 0.5 * k) }[e.code];
+    if (m) { m(); datCamSo(); e.preventDefault(); }
+  });
+  const i = new URLSearchParams(location.search).get('anh'); if (i) moSo(+i - 1);
+}
+addEventListener('resize', () => { if (dangSo) moSo(ANH.indexOf(dangSo)); });
+
+window.__ns = { D, dsKhoi, camera, orbit, caoDat, GOC_Y, scene, renderer, ANH, moSo, tatSo, cam: () => cam, datCam: (c) => { Object.assign(cam, c); datCamSo(); } };

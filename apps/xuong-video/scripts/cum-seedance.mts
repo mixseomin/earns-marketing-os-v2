@@ -23,6 +23,8 @@ const jobs = new Map(((jobIds.length ? await db.execute(sql`SELECT id, request F
 // keyframe của CHÍNH shot lúc sinh: nguon_video.khung_dau (ghi khi gắn clip) — danh sách ảnh gửi đi (request.anh) bị trần 9 ảnh cắt bớt nên không dùng làm bằng chứng
 // (15/11/2026: cụm #2–7 thiếu keyframe #6 #7 trong request.anh, kế hoạch đòi sinh lại oan). Bản ghi cũ chưa có khung_dau → đọc request như trước.
 const conDung = (c: (typeof ds)[number]) => { const nv = c.nguon_video as { job?: number; khung_dau?: string } | null; const j = Number(nv?.job);
+  // đo miệng (canh-mieng-tap.sh) báo không đạt → sinh lại
+  if ((c.nguon_video as { mieng?: { dat?: boolean } } | null)?.mieng?.dat === false) return false;
   return !lai.has(c.thu_tu) && !!c.video_url && !!c.keyframe_url && (nv?.khung_dau ? nv.khung_dau === c.keyframe_url : !!jobs.get(j)?.includes(c.keyframe_url)); };
 const giu = ds.filter(conDung);
 // đoạn CẦN SINH liền nhau (shot giữ cắt đôi đoạn) → chia cụm cân trong từng đoạn

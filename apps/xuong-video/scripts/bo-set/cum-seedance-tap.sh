@@ -32,6 +32,8 @@ ffmpeg -v error -y -f concat -safe 0 -i "$TM/list.txt" -c copy "$TM/cum-3d.mp4"
 scp -q "$TM/cum-3d.mp4" "$BOX:/tmp/cum-3d-$TAP-$CUM.mp4"
 if [ "$CHAY" = "--chay" ]; then
   ssh "$BOX" "cd $RBOX && export DUYET_SINH_1_LAN=1; $TSX scripts/thu-seedance-cum.mts --canh=$IDS --video-file=/tmp/cum-3d-$TAP-$CUM.mp4 | grep -v '^Reference\|^https' | tail -3; rm -f /tmp/cum-3d-$TAP-$CUM.mp4"
+  # CANH MIỆNG sau mỗi lần sinh (luật chuẩn 15/11/2026): đo miệng bằng hình các shot có thoại của cụm → dời điểm vào / đánh dấu sinh lại
+  "$(dirname "$0")/canh-mieng-tap.sh" "$IDS" || true
 else
   ssh "$BOX" "cd $RBOX && $TSX scripts/thu-seedance-cum.mts --canh=$IDS --video-file=/tmp/cum-3d-$TAP-$CUM.mp4 --xem | head -1; rm -f /tmp/cum-3d-$TAP-$CUM.mp4"
 fi

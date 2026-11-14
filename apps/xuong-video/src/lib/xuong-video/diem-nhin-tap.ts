@@ -11,7 +11,7 @@ import { sql } from 'drizzle-orm';
 import { mapCanh, type Db, type Row } from './doc-db';
 import { soiAnh } from './soi-mat';
 import { giayPhat, type Canh } from './kieu';
-import { DUOI_CLIP_BO } from './xuat';
+import { diemVaoClip } from './toc-do';
 import { khungCanh, NEO_MAT, type Diem, type Hop, type KhungLai } from './diem-nhin';
 import { docKinhThanh, type KinhThanh } from './kieu';
 
@@ -33,7 +33,7 @@ export async function doDiemNhinTap(db: Db, tapId: number, o: { ghi?: boolean; l
   for (const c of ds) {
     const url = c.video_cuoi_url || c.video_url; if (!url || c.ky_thuat?.co_canh === 'insert') continue;   // cận đồ vật: không có mặt để đo
     const f = await tai(url); const d = await dai(f); const phat = giayPhat(c);
-    const v = c.ky_thuat?.vao_s; const boDau = v != null && v >= 0 ? Math.max(0, Math.min(v, d - phat - DUOI_CLIP_BO)) : Math.max(0, Math.min(0.5, d - phat - DUOI_CLIP_BO));
+    const boDau = diemVaoClip(c.ky_thuat?.vao_s, d, phat);
     const khoa = khoaCua(url, boDau, phat); const nho = (c.ky_thuat as { diem_nhin?: DiemNhinShot } | undefined)?.diem_nhin;
     if (!o.lamLai && nho?.khoa === khoa) { cu.set(c.id, nho); continue; }
     moi.set(c.id, khoa);

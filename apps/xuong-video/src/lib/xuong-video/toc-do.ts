@@ -43,3 +43,13 @@ export function nguonTai(kh: KeHoachToc, t: number): { vao: number; toc: number 
   const x = kh.doan.find((d) => t < d.denRa) ?? kh.doan[kh.doan.length - 1]!;
   return { vao: x.tuVao + (Math.min(t, x.denRa) - x.tuRa) * x.toc, toc: x.toc };
 }
+
+/** ĐUÔI CLIP AI KHÔNG DÙNG (giây): 0,4 s cuối clip AI hay hỏng (Kie Veo Lite chèn ô ảnh nhỏ ở góc — đo phim #353) — chuyển từ xuat.ts. */
+export const DUOI_CLIP_BO = 0.45;
+/** ĐIỂM VÀO CLIP của shot (giây trong clip bắt đầu phát) — MỘT luật cho bản xuất (xuat.ts), đo điểm nhìn (diem-nhin-tap.ts) và TIMELINE xem trước.
+ *  vao_s khai (clip cụm: điểm vào đo theo cú cắt) → kẹp để đoạn phát vẫn nằm trong clip; không khai → bỏ ≤ 0,5 s đầu (model khởi động chậm).
+ *  15/11/2026: timeline bỏ qua vao_s — shot dùng chung clip cụm (#3071 #5 vào 4,47 s) chiếu đoạn đầu clip (hình shot #2). daiClip chưa biết → dùng vao_s trơn. */
+export function diemVaoClip(vaoS: number | null | undefined, daiClip: number | null | undefined, phat: number): number {
+  if (!daiClip) return vaoS != null && vaoS >= 0 ? vaoS : 0;
+  return vaoS != null && vaoS >= 0 ? Math.max(0, Math.min(vaoS, daiClip - phat - DUOI_CLIP_BO)) : Math.max(0, Math.min(0.5, daiClip - phat - DUOI_CLIP_BO));
+}

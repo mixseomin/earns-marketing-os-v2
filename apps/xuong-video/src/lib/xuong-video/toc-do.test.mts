@@ -24,3 +24,9 @@ if (process.env.CLIP) {                               // ffmpeg thật: độ d�
 }
 { const { giayClipCan } = await import('./toc-do'); assert.strictEqual(giayClipCan(undefined, 3.15), 4); assert.strictEqual(giayClipCan('nhanh', 3.45), 6); assert.strictEqual(giayClipCan('cham', 4.2), 4); }
 console.log('toc-do.test: ok');
+// diemVaoClip (15/11/2026): một luật cho bản xuất + timeline — clip cụm vào 4,47 s giữ nguyên; kẹp khi vượt đuôi; không khai → ≤ 0,5 s; chưa biết dài clip → vao_s trơn
+{ const { diemVaoClip } = await import('./toc-do');
+  if (diemVaoClip(4.47, 10.04, 1.4) !== 4.47) throw new Error('vào clip cụm');
+  if (Math.abs(diemVaoClip(9, 10.04, 1.4) - (10.04 - 1.4 - 0.45)) > 1e-9) throw new Error('kẹp đuôi');
+  if (diemVaoClip(null, 8, 2) !== 0.5 || diemVaoClip(4.47, 0, 2) !== 4.47) throw new Error('mặc định / chưa biết dài');
+  console.log('toc-do.test: ok (diemVaoClip)'); }

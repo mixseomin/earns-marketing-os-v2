@@ -13,11 +13,11 @@ import type { Canh, KieuChu, LoaiPhim, Lop, NhanVat, PhanCanh, Tap, ThongTinQc, 
 import { mauAss, gioAss, lopAss, lopAnhLoc, lopHieuUngLoc } from './lop';
 import { chuyenCanhGiua } from './dien-anh';
 import { giayPhat, locNhanh, doanHien, coMau, assVaoChu, gopKieu } from './kieu';
-import { keHoachToc, bieuThucToc } from './toc-do';
+import { keHoachToc, bieuThucToc, diemVaoClip } from './toc-do';
 import { ngatDong, dongChuMan, boChamCuoi } from './ngat-dong';
 import { lichSfx, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, LUFS_CLIP_DUOI_GIONG } from './sfx';
 /** Đuôi clip AI bỏ khi chọn đoạn (giây) — xem chỗ dùng ở dựng từng shot. */
-export const DUOI_CLIP_BO = 0.45;
+export { DUOI_CLIP_BO } from './toc-do';
 export { doanChuMan, chuManHien } from './kieu';
 import { giayGiuKet, dongThoai, phatTiengClip, lichGiong } from './am-thanh';
 import { nenH264 } from './nen-video.mjs';
@@ -355,7 +355,7 @@ export function keHoachXuat(o: {
     const daiClip = laVideo ? nl.get(nguon)?.dai ?? null : null;
     const vao = c.ky_thuat?.vao_s;   // điểm vào clip khai tay (dien-anh.ts › KyThuatShot.vao_s) — kẹp để đoạn phát vẫn nằm trong clip
     // ĐUÔI CLIP AI KHÔNG DÙNG (DUOI_CLIP_BO): 0,4 s cuối clip AI hay hỏng — Kie Veo Lite chèn ô ảnh nhỏ ở góc (đo phim #353: mọi clip từ 7,6 s), model khựng / tan
-    const boDau = laVideo && daiClip ? (vao != null && vao >= 0 ? Math.max(0, Math.min(vao, daiClip - phat - DUOI_CLIP_BO)) : Math.max(0, Math.min(0.5, daiClip - phat - DUOI_CLIP_BO))) : 0;
+    const boDau = laVideo && daiClip ? diemVaoClip(vao, daiClip, phat) : 0;   // toc-do.ts › diemVaoClip — cùng luật với timeline
     // Đổi tốc (ky_thuat.toc_do, toc-do.ts): lấy đủ giây nguồn cho kế hoạch tốc rồi dựng lại thời gian bằng setpts từng đoạn.
     const toc = laVideo ? keHoachToc(c.ky_thuat?.toc_do, phat, dai, daiClip != null ? daiClip - boDau : 8) : null;
     const canNguon = toc ? toc.canVao : dai;

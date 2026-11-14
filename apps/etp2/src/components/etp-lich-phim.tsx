@@ -167,6 +167,10 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
  *  dsCamp = camp của toà đã bấm trong thành phố (cùng nguồn với cây / cửa), không có thì lấy camp nhà của phim (docLichPhim). laNha = false (đang xem người khác) thì chỉ tab Camps, không nạp số nhà */
 // GHIM (anh 15/11/2026 "bảng này ko cho tự đóng lại khi hover ra ngoài. Giờ bấm vào tab camp là trượt ra ngoài chuột là đóng lại luôn"): mở bằng bấm (ghim) hoặc đã bấm
 // bất kỳ chỗ nào trong bảng → rê ra ngoài KHÔNG đóng, chỉ × / Esc; chưa bấm gì (vừa rê vào xem nhanh) thì vẫn tự đóng như thẻ rê
+// NHỚ TAB GIỮA CÁC PHIM (anh 15/11/2026 "đang ở tab nào thì chọn phim khác ngay sau đó sẽ mở sẵn tab đó"): bảng dựng lại mỗi lần chọn phim →
+// tab vừa bấm giữ ở biến của trang (cùng phiên, không lưu máy). Phim người khác chỉ có tab Camps; Thị trường chỉ khi bảng có thẻ thị trường — thiếu thì về Lịch.
+type TabPhim = 'camp' | 'lich' | 'toa' | 'tt' | 'log';
+let tabCuoi: TabPhim | null = null;
 export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = false, onGhim }: { cid: number; thiTruong?: () => TheNoi; noi: Noi; vi: { x: number; y: number }; ghim?: boolean; onGhim?: () => void;
   dsCamp?: { ten: string; nguoi: string; laNha: boolean; camp: CampToa[]; tat: CampToa[] } }) {
   const chiCamp = !!dsCamp && !dsCamp.laNha;
@@ -175,7 +179,8 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
   const ghimLai = () => { if (!ghim) { setGhim(true); noi0.giu(); onGhim?.(); } };
   const router = useRouter();
   const [l, setL] = useState<LichPhim | null>(null), [loi, setLoi] = useState<string | null>(null), [dang, setDang] = useState(false), [kq, setKq] = useState<string | null>(null);
-  const [tab, setTab] = useState<'camp' | 'lich' | 'toa' | 'tt' | 'log'>(dsCamp && !dsCamp.laNha ? 'camp' : 'lich'), [chonToa, setChonToa] = useState<number | null>(null), [log, setLog] = useState<LogPhim[] | { loi: string } | null>(null);
+  const [tab, setTab0] = useState<TabPhim>(chiCamp ? 'camp' : tabCuoi === 'tt' && !thiTruong ? 'lich' : tabCuoi ?? 'lich'), [chonToa, setChonToa] = useState<number | null>(null), [log, setLog] = useState<LogPhim[] | { loi: string } | null>(null);
+  const setTab = (k: TabPhim) => { tabCuoi = k; setTab0(k); };
   useEffect(() => { if (tab === 'log') docLogPhim(cid).then(setLog).catch((e) => setLog({ loi: String(e?.message ?? e) })); }, [tab, cid]);
   // bảng chỉ dựng khi đang mở → mở (hoặc đổi phim) là tải
   useEffect(() => { setKq(null); setL(null); setLoi(null); if (!chiCamp) tai(); }, [cid, chiCamp]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -193,7 +198,7 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
     ...l.hoan.slice(0, 2).map((h) => `${h.huong === 'tang' ? '⬆' : h.huong === 'giam' ? '⬇' : '✕'} #${h.camp_id} ${h.huong === 'tang' ? 'tăng bậc lúc 21:00' : h.huong === 'giam' ? 'giảm bậc lúc 15:00' : 'tắt lúc 15:00'}`),
     gd === 0 && l.vong !== 'cat' && !l.lt ? `✕ cất phim nếu chi tới $${l.moc_chi} / ${l.moc_thu} camp thử mà chưa lãi` : null,
   ].filter(Boolean).slice(0, 4) as string[] : [];
-  const oTab = (k: 'camp' | 'lich' | 'toa' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
+  const oTab = (k: TabPhim, chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
   const RONG = tab === 'camp' ? 680 : 480;   // tab Camps 9 cột tiền kế toán — khung rộng hơn, không cắt cột
   const cao0 = tab === 'toa' ? 600 : l?.thang.length ? 620 : 360;
   const ruot = (
@@ -255,6 +260,9 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
               {l.hen.length || sapToi.length || l.thieu ? H('Sắp tới', <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {l.hen.map((h) => <div key={h.camp_id}>⏰ #{h.camp_id} chạy lúc {h.luc}</div>)}{sapToi.map((t, i) => <div key={i}>{t}</div>)}
                 {l.thieu ? <div style={{ color: '#f59e0b' }} title={l.thieu}>⚠ {m ? `Đợt trước lên ${m[1]}, thiếu ${m[2]} creative sạch` : l.thieu.slice(0, 70)}</div> : null}</div>, true) : null}
+              {/* THAO TÁC DÍNH CHÂN (anh 15/11/2026 "thao tác cho sticky ở chân"): hàng Thao tác + ô Xác nhận nằm một khối trải hết lưới, dính đáy khung khi cuộn */}
+              <div style={{ gridColumn: '1 / -1', position: 'sticky', bottom: -10, zIndex: 1, margin: '0 -12px', padding: '8px 12px 10px', background: 'var(--bg-1, #0f172a)', borderTop: '1px solid var(--line)',
+                display: 'grid', gridTemplateColumns: '58px 1fr', gap: '9px 10px', alignItems: 'center' }}>
               {H('Thao tác', <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {(['CC', 'KT', 'AT'] as const).map((x) => <button key={x} disabled={dang || l.gac.includes(x)} style={{ ...nut, ...(l.gac.includes(x) ? GAC_ST : {}) }} title={l.gac.includes(x) ? chuGac(x) : `dòng phim ${x} lên 1 camp $1 — ${chuLich()}${vuot ? ' · đồng hồ báo vượt sức chứa' : ''}`}
                   onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 1 camp ${x}, ngân sách $1/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => themCampPhim(cid, x, 1), xong: `đã xếp dòng ${x} × 1 camp` }); }}>＋ {x}</button>)}
@@ -263,6 +271,7 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
                   onClick={async () => { setKq(null); const x = await xemBotCamp(cid); if ('loi' in x) { setKq(`✕ ${x.loi}`); return; } setHoi({ chu: `Tắt camp #${x.camp_id}: chi $${x.chi.toFixed(2)}, thu $${x.thu.toFixed(2)} cả đời. Không bật lại tự động.`, lam: async () => { const r = await botCampPhim(cid, x.camp_id); return 'loi' in r ? r : { ok: true as const }; }, xong: `đã tắt #${x.camp_id}` }); }}>− bớt camp lỗ</button></div>)}
               {hoi ? H('Xác nhận', <div style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #f59e0b' }}><div style={{ marginBottom: 6, color: 'var(--fg-1)' }}>{hoi.chu}</div>
                 <div style={{ display: 'flex', gap: 6 }}><button disabled={dang} style={{ ...nut, background: '#f59e0b', color: '#111', borderColor: '#f59e0b', fontWeight: 600 }} onClick={() => lam(hoi.lam, hoi.xong)}>✓ Xác nhận</button><button style={nut} onClick={() => setHoi(null)}>Huỷ</button></div></div>, true) : null}
+              </div>
             </div>; })()}
           {kq ? <div style={{ fontSize: 11, color: kq.startsWith('✓') ? '#4ade80' : kq.startsWith('…') ? 'var(--fg-2)' : '#f87171' }}>{kq}</div> : null}
         </>}</>}

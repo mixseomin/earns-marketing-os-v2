@@ -96,6 +96,8 @@ const LUAT = [
   // anh 15/11/2026 chat: tầng ★ ROAS tường kính mịn khác tầng thường · số trên ô co vừa, không tràn · bảng Camps một lớp cuộn
   { card: 'roas-min-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: "if (roas) than.material = new T.MeshStandardMaterial({ color: 0x4c1d95", vi: 'tầng ★ ROAS: tường kính liền tím sẫm nhẵn bóng' },
   { card: 'roas-min-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'x.measureText(chu).width > 134', vi: 'số trên ô cửa tự co vừa ô (★$20 không tràn)' },
+  { card: 'nho-tab-1511', tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'const setTab = (k: TabPhim) => { tabCuoi = k; setTab0(k); };', vi: 'chọn phim khác mở sẵn tab vừa xem' },
+  { card: 'thao-tac-chan-1511', tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: "gridColumn: '1 / -1', position: 'sticky', bottom: -10", vi: 'hàng Thao tác dính chân bảng phim' },
   { card: 'mot-cuon-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', cam: "maxHeight: 360, overflowY: 'auto', fontSize: 11.5", vi: 'bảng Camps không tự cuộn (một lớp cuộn của khung)' },
   { card: 'phim-moi-1411', tep: 'apps/etp2/src/lib/actions/etp-tong2.ts', co: 'phimMoi: nha ?', vi: 'gói Tổng quan 2 mang số phim mới (chỉ nhà)' },
   { card: 'tran-30-1411', tep: 'apps/etp/ethopex_api.py', co: 'if float(v) > CG.TRAN_TUYET]', vi: 'cổng API Ethopex chặn mọi lệnh ngân sách > $30/camp (anh 14/11/2026 "Ko bao giờ tăng ngân sách vượt trần $30")' },

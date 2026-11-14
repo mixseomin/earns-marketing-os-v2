@@ -38,7 +38,7 @@ function nhan(T: T3, chu: string, mau: string, to = 1, theoMan = true) {
   const tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace;
   const sp = new T.Sprite(new T.SpriteMaterial({ map: tx, depthTest: !theoMan, transparent: true, sizeAttenuation: !theoMan })); sp.renderOrder = 10;
   /* theoMan: cỡ cố định trên màn (một toà) · không: cỡ theo thế giới, toà xa chữ nhỏ (thành phố — hàng chục biển không chồng thành mảng) */
-  const h = theoMan ? 0.042 * to : 0.5 * to; sp.scale.set(h * cv.width / cv.height, h, 1); return sp;
+  const h = theoMan ? 0.042 * to : 1.0 * to; sp.scale.set(h * cv.width / cv.height, h, 1); return sp;
 }
 
 /** DỰNG MỘT TOÀ vào nhóm g (gốc toà ở (0,0,0)). nhanTang: nhãn tầng bên trái (khung phim) · bien: biển trên cột ăng-ten. Trả chiều cao + các cửa bấm được. */
@@ -216,6 +216,11 @@ export function ThanhPho({ ds, chon, onChon, cao, bienToiDa = 6 }: { ds: ToaPhim
       g.position.set((i % cot - (cot - 1) / 2) * BX, 0, (Math.floor(i / cot) - (Math.ceil(n / cot) - 1) / 2) * BZ);
       caoMax = Math.max(caoMax, r.cao);
       for (const v of r.vat) vat.push({ m: v.m, vien: g, id: ph.p, chu: `${ten} · ${v.chu}` });
+      // khối bấm vô hình lọt trong thân (cửa sáng nằm ngoài nên vẫn bắt tia trước): bấm vào tường / kính tối cũng chọn được toà
+      const k7 = ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }), caoBat = Math.max(0.5, r.cao - 1.0);
+      const bat = new T.Mesh(new T.BoxGeometry(RONG, caoBat, SAU), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+      bat.position.set(0, caoBat / 2, 0); g.add(bat);
+      vat.push({ m: bat, vien: g, id: ph.p, chu: `${ten} · ${ph.camp.length} camp · 7 ngày lãi ${lai >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
     });
     const hang = Math.ceil(n / cot), rongTp = cot * BX, sauTp = hang * BZ;
     const dat = new T.Mesh(new T.PlaneGeometry(rongTp + 2, sauTp + 2), new T.MeshStandardMaterial({ color: 0x1e293b, transparent: true, opacity: 0.45 }));

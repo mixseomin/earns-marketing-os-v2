@@ -17,6 +17,6 @@ while read -r id video cau; do
   [ -z "$id" ] && continue
   R=$(~/.venvs/cham-do/bin/python "$APP/scripts/cham-do/do_mieng.py" --video "$video" $cau 2>/dev/null | tail -1)
   L=$(python3 -c "import json,sys; l=[x for x in json.loads(sys.argv[1])['lech']]; ok=[x['lech'] for x in l if x.get('lech') is not None and x.get('phu',0)>=0.5]; print(round(sum(ok)/len(ok),3) if ok and len(ok)==len(l) else 'x')" "$R")
-  ssh "$BOX" "cd $RBOX && $TSX scripts/mieng-ke.mts --canh=$id --ghi=$id:$L" | tail -1
+  ssh -n "$BOX" "cd $RBOX && $TSX scripts/mieng-ke.mts --canh=$id --ghi=$id:$L" | tail -1   # -n: ssh không nuốt stdin của vòng while
 done < /tmp/canh-mieng-$$.txt
 rm -f /tmp/canh-mieng-$$.txt

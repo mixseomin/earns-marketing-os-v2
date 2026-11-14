@@ -52,12 +52,13 @@ export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mo
       const nhan = (chu: string, mau: string, to = 1) => {
         const cv = document.createElement('canvas'), g = cv.getContext('2d')!; const fs = 44;
         g.font = `600 ${fs}px system-ui, sans-serif`; cv.width = Math.ceil(g.measureText(chu).width) + 24; cv.height = fs + 20;
+        g.fillStyle = 'rgba(15,23,42,0.88)'; g.beginPath(); g.roundRect(0, 0, cv.width, cv.height, 14); g.fill();   // nền tối: nhãn đọc được cả khi nằm trên sàn sáng
         g.font = `600 ${fs}px system-ui, sans-serif`; g.fillStyle = mau; g.textBaseline = 'middle'; g.fillText(chu, 12, cv.height / 2);
         const tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace;
         const sp = new T.Sprite(new T.SpriteMaterial({ map: tx, depthTest: false, transparent: true, sizeAttenuation: false })); sp.renderOrder = 10;
         /* cỡ cố định trên màn (sizeAttenuation tắt): toà cao kéo camera xa thì chữ không teo */ const h = 0.042 * to; sp.scale.set(h * cv.width / cv.height, h, 1); return sp;
       };
-      const mauNhan = getComputedStyle(el).getPropertyValue('--fg-2').trim() || '#94a3b8';
+      const mauNhan = '#cbd5e1';   // nhãn nằm trên nền tối riêng → chữ sáng cố định, không theo theme
       // MẶT TƯỜNG có cửa sổ + số (anh 15/11/2026 "nhìn ko giống toà nhà · ko thấy số như trong demo"): mỗi khối = một phòng, bốn mặt bên in ngân sách ($30 / ★$20) hoặc chữ móng
       const kho = new Map<string, InstanceType<typeof T.CanvasTexture>>();
       const mat = (mau: string, chu: string) => {

@@ -9,11 +9,11 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
-import { chayDong } from '@/lib/actions/etp-dong';
+import { chayDong, dangGac } from '@/lib/actions/etp-dong';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 
 export type LichDang = { dang: string; chay: number; lai: number; lo: number; chi7: number; thu7: number };   // CHỈ camp đang chạy, lãi / lỗ theo 7 ngày (anh 07/11/2026 "mục tiêu là camp active")
-export type LichSx = { id: number; trang_thai: string; loai: string; so_camp: number | null; buoc: { buoc: string; trang_thai: string; ghi: string | null; bat_dau: string | null; ket_qua: unknown }[]; tao: string };
+export type LichSx = { id: number; trang_thai: string; loai: string; so_camp: number | null; /** lý do dừng (etp.dong_phim.ly_do) */ ly_do: string | null; /** tạo trong 24 giờ — dòng dừng vẫn hiện kèm lý do, không biến mất (#1598) */ moi: boolean; buoc: { buoc: string; trang_thai: string; ghi: string | null; bat_dau: string | null; ket_qua: unknown }[]; tao: string };
 export type LichPhim = {
   content_id: number; ten: string | null; vong: string | null; ly: string | null; pha: string | null; muc_hut: number | null; chi_gan: number | null;
   chi: number; thu: number; moc_chi: number; so_thu: number; moc_thu: number; camp_lai: number; roas: number; dang: LichDang[];
@@ -26,6 +26,8 @@ export type LichPhim = {
   thang: CampThang[]; cr: { san: number; chan: number }; doi_lai: { chi: number; roi: number; ngay: number }; do_toi: string | null;
   // TOÀ NHÀ (anh 15/11/2026 "giống kiểu hình một toà nhà"): MỌI camp đang chạy của phim, mỗi camp một khối — cùng cửa sổ 7 ngày + cùng tập camp với `dang`
   camp: CampToa[];
+  /** dạng dòng đang gác (etp.cau_hinh.gac_dang) — nút ＋ dạng đó tắt, chữ rê nói vì sao (#1598) */
+  gac: string[];
 };
 export type CampToa = { id: number; dang: string; roas: boolean; ns: number; chi7: number; thu7: number; cho: boolean };
 /** một camp thắng: ngân sách · chi / thu 30 ngày (cửa sổ máy luật dùng cho nấc nhân bản + ROAS) · 3 ngày gần · hôm nay (ngày Ethopex = ngày UTC) · tới 13:00 VN · lần tăng gần nhất */
@@ -52,7 +54,7 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
       select dang, count(*)::int chay, count(*) filter (where chi >= 1 and thu > chi)::int lai, count(*) filter (where chi >= 1 and thu <= chi)::int lo, sum(chi)::float chi7, sum(thu)::float thu7
       from s group by 1 order by 2 desc`),
     run<LichPhim['thay']>(sql`select kieu, buoc, ghi from etp.thay_the where content_id = ${id} and buoc not in ('chay', 'huy') order by id desc limit 1`),
-    run<LichSx>(sql`select d.id, d.trang_thai, d.loai, d.so_camp, d.tao_luc::text tao, coalesce((select json_agg(json_build_object('buoc', b.buoc, 'trang_thai', b.trang_thai, 'ghi', left(b.ghi, 160), 'bat_dau', b.bat_dau, 'ket_qua', b.ket_qua) order by b.thu_tu)
+    run<LichSx>(sql`select d.id, d.trang_thai, d.loai, d.so_camp, left(d.ly_do, 200) ly_do, d.tao_luc > now() - interval '1 day' moi, d.tao_luc::text tao, coalesce((select json_agg(json_build_object('buoc', b.buoc, 'trang_thai', b.trang_thai, 'ghi', left(b.ghi, 160), 'bat_dau', b.bat_dau, 'ket_qua', b.ket_qua) order by b.thu_tu)
         from etp.dong_buoc b where b.dong_id = d.id), '[]') buoc from etp.dong_phim d where d.content_id = ${id} and d.trang_thai in ('chay', 'loi', 'dung') order by d.id desc limit 3`),
     run<{ g: Record<string, unknown> | null }>(sql`select gia_tri g from etp.cau_hinh where khoa = 'khung_hoan'`),
     run<{ chi: number; so: number }>(sql`select coalesce((gia_tri->>'chi')::float, 25) chi, coalesce((gia_tri->>'so_thu')::int, 4) so from etp.cau_hinh where khoa = 'cat_phim'`),
@@ -64,7 +66,7 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
     run<{ g: LichPhim['lt'] }>(sql`select gia_tri->${String(id)} g from etp.cau_hinh where khoa = 'lo_trinh_tt'`),
   ]);
   const DON_GIO = Number(BANG_LUAT.khung_doi.don_gio);
-  const [thang, [kho], camp] = await Promise.all([
+  const [thang, [kho], camp, gac] = await Promise.all([
     run<CampThang>(sql`with nay as (select (now() at time zone 'utc')::date d), c as (select camp_id, ten, ngan_sach from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE' and not la_roas),
         s as (select n.camp_id, sum(n.chi) filter (where n.ngay >= nay.d - 29) chi30, sum(n.thu) filter (where n.ngay >= nay.d - 29) thu30,
                 sum(n.chi) filter (where n.ngay >= nay.d - 6) chi7, sum(n.thu) filter (where n.ngay >= nay.d - 6) thu7, sum(n.chi) filter (where n.ngay >= nay.d - 2) chi3, sum(n.thu) filter (where n.ngay >= nay.d - 2) thu3,
@@ -89,11 +91,12 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
         coalesce(sum(n.chi), 0)::float chi7, coalesce(sum(n.thu), 0)::float thu7, coalesce(c.lich > now(), false) cho
       from etp.camp c left join etp.creative r using (creative_id) left join etp.so_ngay n on n.camp_id = c.camp_id and n.ngay >= current_date - 6
       where c.content_id = ${id} and c.trang_thai = 'ACTIVE' group by c.camp_id, r.dang, c.la_roas, c.ngan_sach, c.lich order by c.camp_id`),
+    dangGac(),
   ]);
   const ids = new Set((await run<{ camp_id: number }>(sql`select camp_id from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE'`)).map((x) => Number(x.camp_id)));
   const hoan = (['tang', 'giam', 'tat'] as const).flatMap((h) => ((kh?.g?.[h] as number[] | undefined) ?? []).filter((c) => ids.has(Number(c))).map((c) => ({ camp_id: Number(c), huong: h })));
   return { ...p!, dang, thay: thay ?? null, sx, hoan, moc_chi: mc?.chi ?? 25, moc_thu: mc?.so ?? 4, ke: ke ?? null, hen, tu_len: cho?.tu_len ?? 0, thieu: cho?.thieu ?? null, may_mo: !!cho?.may_mo, lt: lt?.g ?? null,
-    thang, cr: { san: kho?.san ?? 0, chan: kho?.chan ?? 0 }, doi_lai: { chi: kho?.chi ?? 30, roi: kho?.roi ?? 30, ngay: kho?.ngay ?? 3 }, do_toi: kho?.do_toi ?? null, camp };
+    thang, cr: { san: kho?.san ?? 0, chan: kho?.chan ?? 0 }, doi_lai: { chi: kho?.chi ?? 30, roi: kho?.roi ?? 30, ngay: kho?.ngay ?? 3 }, do_toi: kho?.do_toi ?? null, camp, gac };
 }
 
 /** LOG TỪNG PHIM (anh 07/11/2026 "các log của từng film nên để sang 1 tab riêng"): nhật ký máy + dòng phim, mới nhất trên. Lần cổng chặn (ok rỗng) gom theo câu lỗi. */

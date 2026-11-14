@@ -85,10 +85,20 @@ export async function formDong(contentId: number): Promise<{ loai: LoaiNoiDung[]
       return { dangChay: x?.n ?? 0, kPlan: x?.k ?? null, sanCr: x?.san ?? 0, lyPlan: x?.ly ?? null }; })()) };
 }
 
+/** dạng dòng phim anh đang gác — CÙNG luật apps/etp/dong_phim.py gac_dang(): etp.cau_hinh.gac_dang (mảng mã) + gac_kt = true tính như có 'KT' */
+export async function dangGac(): Promise<string[]> {
+  const [g] = await run<{ ds: unknown; kt: boolean | null }>(sql`select (select gia_tri from etp.cau_hinh where khoa = 'gac_dang') ds,
+    (select gia_tri::text = 'true' from etp.cau_hinh where khoa = 'gac_kt') kt`).catch(() => [] as { ds: unknown; kt: boolean | null }[]);
+  const ds = Array.isArray(g?.ds) ? (g!.ds as unknown[]).map(String) : [];
+  return g?.kt ? [...new Set([...ds, 'KT'])] : ds;
+}
+
 export async function chayDong(contentId: number, loai: string, theLoai: string, soCamp?: number): Promise<{ ok: true; id: number } | { loi: string }> {
   const me = await quyen(); if (!me) return { loi: 'chỉ chủ / admin chạy dòng phim tự động' };
   const id = Math.trunc(Number(contentId)); if (!(id > 0)) return { loi: 'mã phim không hợp lệ' };
   const l = LOAI.find((x) => x.ma === loai); if (!l) return { loi: 'loại nội dung lạ' }; if (!l.chay) return { loi: `${l.ten}: ${l.khoa}` };
+  // DẠNG ĐANG GÁC (#1598): máy dòng phim (dong_phim.py gac_dang) dừng ngay dòng dạng gác trong ~15 s → dòng anh vừa bấm biến mất không lời. Chặn từ lúc bấm, nói rõ vì sao.
+  if ((await dangGac()).includes(loai)) return { loi: `dòng ${loai} đang tạm gác (anh 08/11/2026 ưu tiên poster động, etp.cau_hinh.gac_dang) — máy dừng ngay nên không tạo. Muốn chạy ${loai}: bỏ '${loai}' khỏi gac_dang trước` };
   const [ph] = await run<{ ten: string | null; nhom_goc: string | null }>(sql`select coalesce(p.ten, v.ten) ten, p.nhom_goc from (select ${id}::int content_id) k
     left join etp.phim p using (content_id) left join etp.thu_vien_phim v using (content_id)`);
   if (ph?.nhom_goc && ph.nhom_goc !== 'au_my') return { loi: `phim nhóm gốc '${ph.nhom_goc}' — chỉ chạy phim Âu-Mỹ` };   // chưa có nhóm gốc: bước Nhận của dòng tự chấm poster (anh 04/11/2026 "chạy đủ các bước")

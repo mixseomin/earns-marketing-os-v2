@@ -1024,7 +1024,7 @@ export const LUAT = [
   { card: 0, tep: 'apps/web/src/lib/etp-bang-luat.json', mot: '"tep": "ethopex-tat-rl.json"', vi: 'RL đi đường báo trước một nhịp rồi máy tắt (sổ luật chung)' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', cam: 'Máy không tự tắt — anh quyết', vi: 'không còn luật ROAS chỉ báo chờ anh' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', cam: 'Camp ROI cộng dồn &gt; 20% máy không tắt', vi: 'tin sắp tắt không hứa cổng không có' },
-  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls.append(L("rl", "RL · ROAS lỗ 2 ngày"', vi: 'thẻ xét luật camp ROAS có điều kiện RL' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls.append(L("rl", "RL · ROAS lỗ liền"', vi: 'thẻ xét luật camp ROAS có điều kiện RL (nhãn đổi "lỗ 2 ngày" → "lỗ liền" khi thêm nhánh 3 ngày, commit 3be913c1b, anh 15/11/2026)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'ls.append(L("roas", "Luật ROAS (camp ★)"', vi: 'không còn luật ROAS dk rỗng ghi Đạt' },
   { card: 0, tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"rl":        ["✕ RL", "#f87171", "tat"', vi: 'bản luật nhóm Tắt có RL' },
   // anh 31/10/2026 G10 theo hướng dẫn team (ảnh bộ lọc Ethopex: Active · Budget Daily > 15 · ROI < 15): hạ thẳng về $10, 2 ngày đã khép sau đó vẫn < 15% thì tắt, áp cả ★ ROAS

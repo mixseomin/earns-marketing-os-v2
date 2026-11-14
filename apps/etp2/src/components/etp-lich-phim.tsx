@@ -63,6 +63,9 @@ function campMoi(l: LichPhim) {
   const ke = l.ke, them = ke?.trang_thai === 'them' || ke?.trang_thai === 'cho_do', cho = l.hen.length + Math.max(ke?.san ?? 0, l.tu_len), k = l.lt ? l.lt.ke : them ? ke!.k : 0;
   return { sx, tongSx, ke, them, cho, k };
 }
+// DẠNG GÁC (#1598): nút ＋ của dạng anh đang gác (etp.cau_hinh.gac_dang) mờ + tắt — máy dòng phim dừng dạng gác ngay, bấm chỉ ra một dòng biến mất
+const GAC_ST: React.CSSProperties = { opacity: 0.4, cursor: 'not-allowed', textDecoration: 'line-through' };
+const chuGac = (x: string) => `dòng ${x} đang tạm gác (anh 08/11/2026 ưu tiên poster động) — máy dừng ngay nên nút tắt. Mở lại: bỏ '${x}' khỏi etp.cau_hinh.gac_dang`;
 const O = ({ mau, net }: { mau: string; net?: boolean }) => <span style={{ flex: '1 1 0', maxWidth: 22, minWidth: 3, height: 12, borderRadius: 2, background: net ? 'transparent' : mau, border: net ? `1px dashed ${mau}` : undefined }} />;
 
 // một dòng log thành một mốc: chữ thường, bỏ tên camp lặp trong câu luật
@@ -216,15 +219,17 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
               {buocKe ? H('Mở rộng', buocKe, true) : null}
               {l.thang.slice(0, 3).map((c) => <KhoiThang key={c.camp_id} c={c} hoan={l.hoan.some((h) => h.camp_id === c.camp_id && h.huong === 'tang')} H={H} />)}
               {l.thang.length > 3 ? <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--fg-3)' }}>+{l.thang.length - 3} camp thắng khác — xem thẻ xét luật từng camp ở bảng Camp</div> : null}
-              {sx.map((d) => { const b = buocHien(d), hong = b?.trang_thai === 'loi' || b?.trang_thai === 'dung', phut = b?.bat_dau && b.trang_thai === 'dang' ? Math.round((Date.now() - Date.parse(b.bat_dau)) / 60000) : null;
-                return <React.Fragment key={d.id}>{H(<>{d.loai} × {d.so_camp ?? 1}{phut != null ? <><br />{phut} phút</> : null}</>, <><ChuoiBuoc buoc={d.buoc} loai={d.loai} />{hong && b?.ghi ? <div style={{ fontSize: 11, color: '#f87171', marginTop: 3 }}>{TEN_BUOC[b.buoc] ?? b.buoc} lỗi: {b.ghi.slice(0, 110)}</div> : null}</>, true)}</React.Fragment>; })}
+              {/* dòng DỪNG trong 24 giờ vẫn hiện kèm lý do (#1598: anh bấm ＋ CC, máy dừng dòng vì dạng gác sau 17 s, dòng biến mất không lời) — chỉ không tính vào "đang SX" */}
+              {l.sx.filter((d) => conSx(d) || (d.trang_thai === 'dung' && d.moi)).map((d) => { const b = buocHien(d), dung = d.trang_thai === 'dung', hong = b?.trang_thai === 'loi' || b?.trang_thai === 'dung', phut = b?.bat_dau && b.trang_thai === 'dang' ? Math.round((Date.now() - Date.parse(b.bat_dau)) / 60000) : null;
+                const chuLoi = hong && b?.ghi ? `${TEN_BUOC[b.buoc] ?? b.buoc} lỗi: ${b.ghi}` : dung ? `đã dừng: ${d.ly_do ?? 'không ghi lý do'}` : null;
+                return <React.Fragment key={d.id}>{H(<>{d.loai} × {d.so_camp ?? 1}{dung ? <><br />dừng</> : phut != null ? <><br />{phut} phút</> : null}</>, <>{d.buoc.length ? <ChuoiBuoc buoc={d.buoc} loai={d.loai} /> : null}{chuLoi ? <div style={{ fontSize: 11, color: '#f87171', marginTop: d.buoc.length ? 3 : 0 }} title={chuLoi}>{chuLoi.slice(0, 120)}</div> : null}</>, true)}</React.Fragment>; })}
               {l.hen.length || sapToi.length || l.thieu ? H('Sắp tới', <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {l.hen.map((h) => <div key={h.camp_id}>⏰ #{h.camp_id} chạy lúc {h.luc}</div>)}{sapToi.map((t, i) => <div key={i}>{t}</div>)}
                 {l.thieu ? <div style={{ color: '#f59e0b' }} title={l.thieu}>⚠ {m ? `Đợt trước lên ${m[1]}, thiếu ${m[2]} creative sạch` : l.thieu.slice(0, 70)}</div> : null}</div>, true) : null}
               {H('Thao tác', <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {(['CC', 'KT', 'AT'] as const).map((x) => <button key={x} disabled={dang} style={nut} title={`dòng phim ${x} lên 1 camp $1 — ${chuLich()}${vuot ? ' · đồng hồ báo vượt sức chứa' : ''}`}
+                {(['CC', 'KT', 'AT'] as const).map((x) => <button key={x} disabled={dang || l.gac.includes(x)} style={{ ...nut, ...(l.gac.includes(x) ? GAC_ST : {}) }} title={l.gac.includes(x) ? chuGac(x) : `dòng phim ${x} lên 1 camp $1 — ${chuLich()}${vuot ? ' · đồng hồ báo vượt sức chứa' : ''}`}
                   onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 1 camp ${x}, ngân sách $1/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => themCampPhim(cid, x, 1), xong: `đã xếp dòng ${x} × 1 camp` }); }}>＋ {x}</button>)}
-                <button disabled={dang} style={nut} title={`dòng phim CC lên 3 camp $1 — ${chuLich()}`} onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 3 camp CC, mỗi camp $1/ngày, tổng $3/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => themCampPhim(cid, 'CC', 3), xong: 'đã xếp dòng CC × 3 camp' }); }}>＋ 3 CC</button>
+                <button disabled={dang || l.gac.includes('CC')} style={{ ...nut, ...(l.gac.includes('CC') ? GAC_ST : {}) }} title={l.gac.includes('CC') ? chuGac('CC') : `dòng phim CC lên 3 camp $1 — ${chuLich()}`} onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 3 camp CC, mỗi camp $1/ngày, tổng $3/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => themCampPhim(cid, 'CC', 3), xong: 'đã xếp dòng CC × 3 camp' }); }}>＋ 3 CC</button>
                 <button disabled={dang} style={{ ...nut, color: '#f87171' }} title="tắt camp Nhà ROI thấp nhất của phim (giữ camp cuối nếu lãi)"
                   onClick={async () => { setKq(null); const x = await xemBotCamp(cid); if ('loi' in x) { setKq(`✕ ${x.loi}`); return; } setHoi({ chu: `Tắt camp #${x.camp_id}: chi $${x.chi.toFixed(2)}, thu $${x.thu.toFixed(2)} cả đời. Không bật lại tự động.`, lam: async () => { const r = await botCampPhim(cid, x.camp_id); return 'loi' in r ? r : { ok: true as const }; }, xong: `đã tắt #${x.camp_id}` }); }}>− bớt camp lỗ</button></div>)}
               {hoi ? H('Xác nhận', <div style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #f59e0b' }}><div style={{ marginBottom: 6, color: 'var(--fg-1)' }}>{hoi.chu}</div>

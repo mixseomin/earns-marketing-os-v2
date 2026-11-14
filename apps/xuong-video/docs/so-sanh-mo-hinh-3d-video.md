@@ -65,3 +65,20 @@ TRẠNG THÁI: GIẢ ĐỊNH theo đặc tính hai cách, chưa đo. Kết quả
 
 Dự phòng: shot nào soát thấy miệng lệch câu → Sync v2 riêng shot đó (giọng đệm lặng = điểm vào clip + trễ câu).
 Nguồn: Scenario, cutout.pro, OpenArt (audio tham chiếu 3–8 s, mp3, ghi kèm nguyên văn câu), Artlist, Replicate — 15/11/2026.
+
+## Canh miệng bằng hình — bước chuẩn sau mỗi lần sinh (15/11/2026)
+
+Máy: `scripts/bo-set/canh-mieng-tap.sh <id,…>` (iMac; `cum-seedance-tap.sh --chay` tự gọi) → `scripts/cham-do/do_mieng.py` (Grounding DINO tìm miệng, đường mở
+miệng 8 điểm / giây, ngưỡng mở 0,27) → `scripts/mieng-ke.mts` ghi: dời điểm vào theo độ trễ miệng TRONG ĐOẠN của shot (nguon_video.doan), không bù được
+(> 0,25 s) hoặc không thấy miệng mở → nguon_video.mieng.dat = false, kế hoạch cụm đưa vào sinh lại.
+
+Vì sao không canh theo TIẾNG clip: Seedance chép giọng tham chiếu đúng mốc (đo trễ −0,01 s) nhưng miệng vẽ trễ ~0,8 s — tiếng và miệng trong clip không khớp nhau.
+Ngưỡng 0,27 hiệu chỉnh trên 4 shot soát bằng mắt (khép 0,13–0,23, mở 0,28–0,50); ngưỡng theo trung vị clip báo sai shot nói gần suốt clip. Chưa đo bộ nhãn lớn.
+
+| Shot (phim #3071) | Đo | Kết quả |
+|---|---|---|
+| #4 (Seedance + giọng, lần 2) | miệng trễ 0,79 s (mắt: ~0,8 s) | dời điểm vào 0,99 → 1,65 ✓ |
+| #4 lần 1 | không thấy miệng mở (mắt: giữ nụ cười) | đúng |
+| #6 (cụm #2–7, không gửi giọng) | miệng mở cuối đoạn, trễ ~1,2 s | không bù được trong đoạn → sinh lại |
+| #8 (cụm #8–10) | sớm 0,30 s | dời 0,2 → 0,0 ✓ |
+| #10 | sớm 0,07 s | dời 0,2 → 0,13 ✓ |

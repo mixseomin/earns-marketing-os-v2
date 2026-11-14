@@ -63,7 +63,7 @@ const CO_CANH: Record<string, string> = { ews: 'extreme wide shot', ws: 'wide sh
  *  4. Ít góc mỗi clip: shot con (#2.9 / #3.1) MẶC ĐỊNH gộp vào câu shot cha — bài thử A/B #2→#3 01/11 (VideoExpress): 4 góc trong clip 5 s đổi mặt Hạ,
  *     sảnh trống rồi nhảy; 2 góc giữ mặt, liền mạch. Prompt cũ 5.052 ký tự còn bị in phụ đề chữ Hán.
  *  5. Thoại: "<người> says: <câu>" không ngoặc kép (Google: ngoặc kép làm model in chữ lên hình). Kết bằng ràng buộc: không phụ đề, chữ, logo, watermark. */
-export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[]; look?: Map<string, LookMang> | null }[], o: { tag?: Record<string, string>; gopCon?: boolean; them?: string; giay?: number } = {}): string {
+export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[]; look?: Map<string, LookMang> | null }[], o: { tag?: Record<string, string>; gopCon?: boolean; them?: string; giay?: number; /** tỉ lệ khung phim — trước 14/11/2026 ghi cứng 'vertical', phim 16:9 (#3071) bị bảo là phim dọc */ tiLe?: string | null } = {}): string {
   const gopCon = o.gopCon ?? true;
   // o.giay = độ dài clip model sinh (giây): giãn thời lượng shot cho đầy clip như lichCum; không truyền thì giữ giây phát thật
   const gon = (t?: string) => (t ?? '').replace(/\s*(OBJECT STATE|BODY POSE|POSE)\b[\s\S]*$/, '').trim().replace(/[.\s]+$/, '');
@@ -100,7 +100,7 @@ export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[]; loo
     return thay(`Shot ${i + 1} (about ${nua(giay * k)} s): ${co[0]!.toUpperCase()}${co.slice(1)}${lien ? ', continuous from the last frame of the previous shot, no cut' : ''}${may ? `, ${may}` : ''} — ${cau.join('; then ')}${loi ? `; ${loi}` : ''}.`);
   });
   const dinh = nhan.length ? `Throughout: ${nhan.map((n) => `${n.day}${o.tag?.[n.ten] ? ` (${o.tag[n.ten]})` : ''}`).join(' and ')} keep the same face, hair, wardrobe and props in every shot; same location and light.` : 'Same location and light in every shot.';
-  return [`A ${nua(tongGiay * k)}-second, ${nhom.length}-shot vertical film sequence${nhom.length > 1 ? ' cutting between angles' : ''}, one continuous moment.`, dinh, ...shot,
+  return [`A ${nua(tongGiay * k)}-second, ${nhom.length}-shot ${o.tiLe === '16:9' ? 'widescreen' : 'vertical'} film sequence${nhom.length > 1 ? ' cutting between angles' : ''}, one continuous moment.`, dinh, ...shot,
     'Keep it subtitle-free: no on-screen text, captions, logo or watermark.', o.them ?? ''].filter(Boolean).join(' ');
 }
 
@@ -142,5 +142,7 @@ export function thamChieuCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[],
   if (rong) { anh.push(rong); nhan.push('the location (lighting, set, colours)'); }
   // tag: tên → "reference image N" (ảnh danh tính đầu của người đó) — promptCumMoi gắn vào câu định nghĩa bằng dáng nhìn thấy, không gọi tên
   const tag: Record<string, string> = {}; nhan.forEach((t, i) => { if (i < anh.length - (rong ? 1 : 0)) tag[t] ??= `reference image ${i + 1}`; });
-  return { anh, goi: nhan.map((t, i) => `Reference image ${i + 1} is ${t}`).join('; '), tag, them: rong ? `Reference image ${anh.length} is the location (lighting, set, colours).` : '' };
+  // câu tả ảnh KHÔNG gọi tên (model video không biết tên, tên bị in lên hình — #353 19/10/2026): người → nhãn nhìn thấy (giới), 14/11/2026 #3071 lộ "is Chú"
+  const nhanNguoi = new Map(nhanNhin(nguoi.map((n) => ({ ten: n.ten, moTaNv: cum.flatMap((x) => x.nhanVat).find((v) => v.ten === n.ten)?.mo_ta }))).map((x) => [x.ten, x.gon]));
+  return { anh, goi: nhan.map((t, i) => `Reference image ${i + 1} is ${nhanNguoi.get(t) ?? t}`).join('; '), tag, them: rong ? `Reference image ${anh.length} is the location (lighting, set, colours).` : '' };
 }

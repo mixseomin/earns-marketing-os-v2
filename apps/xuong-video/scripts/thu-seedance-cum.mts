@@ -34,7 +34,7 @@ const tc = thamChieuCum(cum, 5);
 const kf = cum.map((x) => x.canh.keyframe_url!).slice(0, 9 - tc.anh.length);
 const anh = [...tc.anh, ...kf];
 const goiKf = kf.map((_, i) => `Reference image ${tc.anh.length + i + 1} is the exact look of shot ${i + 1} (its framing, drawing style and the people's clothes).`).join(' ');
-const than = promptCumMoi(cum, { tag: tc.tag, them: tc.them, giay: giayRa });
+const than = promptCumMoi(cum, { tag: tc.tag, them: tc.them, giay: giayRa, tiLe: bcs[0]!.kt.ti_le });
 const prompt = `${tc.goi}. ${goiKf} Reference video 1 is a rough grey 3D blockout of this whole ${cum.length}-shot sequence with hard cuts: copy ONLY its cuts, camera angles, timing, where everyone stands and how they move — never its grey mannequin look; every shot must look like its reference image. ${than}`;
 console.log(`cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${tong.toFixed(1)} s → clip ${giayRa} s · ${model} ${dpg} · ${anh.length} ảnh · prompt ${prompt.length} ký tự`);
 if (xem) { console.log(prompt); console.log(anh.join('\n')); process.exit(0); }

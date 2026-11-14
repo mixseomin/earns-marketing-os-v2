@@ -174,7 +174,7 @@ function dungToa(...a: Parameters<typeof dungThan>) {
  *  · thành phố = MapControls (kiểu Google Maps 3D / game xây thành phố): kéo trái = trượt · kéo phải = xoay + nghiêng · lăn / chụm touchpad = phóng vào con trỏ · WASD / mũi tên = đi · Q / E = xoay
  *    · điện thoại 1 ngón trượt, 2 ngón chụm phóng + vặn xoay;
  *  · một toà = OrbitControls (kiểu Sketchfab / trình xem 3D): kéo trái = xoay · kéo phải = trượt · lăn = phóng · điện thoại 1 ngón xoay, 2 ngón phóng + trượt.
- *  Cả hai có quán tính (damping), nhấp đúp = phóng vào điểm đó (nhấp đơn hoãn 260 ms để không chọn nhầm), nút + / − / ⟲. */
+ *  Shift + vuốt 2 ngón touchpad / Shift + lăn = xoay quanh tâm (anh 15/11/2026). Cả hai có quán tính (damping), nhấp đúp = phóng vào điểm đó (nhấp đơn hoãn 260 ms để không chọn nhầm), nút + / − / ⟲. */
 type DieuKhien = { phong: (f: number) => void; veGoc: () => void };
 function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, canh: import('three').Scene) => { vat: Vat[]; tam: [number, number, number]; xa: number },
   deps: unknown[], chon: number | null, onChon: (id: number | null) => void, kieu: 'pho' | 'toa' = 'pho') {
@@ -261,12 +261,21 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
       const phimLen = (e: KeyboardEvent) => { phim.delete(e.key.toLowerCase()); };
       const roi = () => { if (hen) clearTimeout(hen); setRe(null); };
       const boPhim = () => phim.clear();
+      // SHIFT + VUỐT 2 NGÓN (touchpad) / SHIFT + LĂN = XOAY quanh tâm nhìn (anh 15/11/2026 "khi giữ shift + dùng 2 ngón thì cho xoay"):
+      // bắt ở pha capture của khung chứa → bộ điều khiển không nhận lần lăn này (không phóng); macOS đổi trục khi giữ Shift nên lấy trục nào lớn hơn
+      const xoayShift = (e: WheelEvent) => {
+        if (!e.shiftKey) return;
+        e.preventDefault(); e.stopPropagation(); setRe(null);
+        const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+        const o = cam.position.clone().sub(ctl.target).applyAxisAngle(len, -d * 0.004); cam.position.copy(ctl.target).add(o); ctl.update(); ve();
+      };
+      el.addEventListener('wheel', xoayShift, { passive: false, capture: true });
       cv.tabIndex = 0; cv.style.outline = 'none'; cv.style.touchAction = 'none';
       cv.addEventListener('pointerdown', xuong); cv.addEventListener('pointermove', di); cv.addEventListener('pointerup', tha); cv.addEventListener('pointerleave', roi);
       cv.addEventListener('dblclick', dup); cv.addEventListener('keydown', phimXuong); cv.addEventListener('keyup', phimLen); cv.addEventListener('blur', boPhim);
       // ô đổi cỡ (widget kéo giãn) → đổi khung vẽ, không dựng lại
       const doiCo = new ResizeObserver(() => { const w = el.clientWidth, h = el.clientHeight; if (!w || !h) return; r.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); ve(); }); doiCo.observe(el);
-      don = () => { cancelAnimationFrame(raf); if (hen) clearTimeout(hen); if (henBam) clearTimeout(henBam); doiCo.disconnect(); ctl.dispose();
+      don = () => { cancelAnimationFrame(raf); if (hen) clearTimeout(hen); if (henBam) clearTimeout(henBam); doiCo.disconnect(); ctl.dispose(); el.removeEventListener('wheel', xoayShift, { capture: true });
         dk.current = { phong: () => {}, veGoc: () => {} };
         canh.traverse((x) => { const o = x as unknown as { geometry?: { dispose(): void }; material?: { dispose(): void; map?: { dispose(): void } } }; o.geometry?.dispose(); o.material?.map?.dispose(); o.material?.dispose(); });
         r.dispose(); cv.remove(); };
@@ -291,7 +300,7 @@ function KhungCanh({ hop, re, loi, cao, dk, kieu = 'pho', chuGiai }: { hop: Reac
       <button style={{ ...nut, fontSize: 13 }} title="về góc nhìn ban đầu" onClick={() => dk.current?.veGoc()}>⟲</button>
     </div>
     <div style={{ position: 'absolute', right: 6, bottom: 4, fontSize: 10, color: 'var(--fg-3)', pointerEvents: 'none', textAlign: 'right' }}>
-      {kieu === 'pho' ? 'kéo = đi · chuột phải = xoay · lăn = phóng · WASD / mũi tên · Q E xoay' : 'kéo = xoay · chuột phải = trượt · lăn = phóng'}</div>
+      {kieu === 'pho' ? 'kéo = đi · chuột phải / Shift + 2 ngón = xoay · lăn = phóng · WASD / mũi tên · Q E xoay' : 'kéo = xoay · Shift + 2 ngón = xoay · chuột phải = trượt · lăn = phóng'}</div>
   </div>;
 }
 

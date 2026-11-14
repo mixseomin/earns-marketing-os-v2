@@ -123,7 +123,8 @@ for (;;) {
     cg.loi.forEach((l, i) => { if (l) hong.add(cum[i]!.canh.thu_tu); }); }
   for (const [i, x] of cum.entries()) {
     if (hong.has(x.canh.thu_tu)) { await db.execute(sql`UPDATE xv_canh SET video_url = NULL, loi = ${v.theoDo ? `cụm Seedance job ${job}: đoạn của shot ngắn hơn giây phát — sinh lại` : `cụm Seedance job ${job}: không đo đủ cú cắt`}, updated_at = now() WHERE id = ${x.canh.id}`); continue; }
-    await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt, job, cum: ids, khung_dau: x.canh.keyframe_url, ...(urlGiong && cauAm.some((c) => c.so === i + 1) ? { khop_moi: { cach: 'seedance_audio', giong: urlGiong } } : {}) })}::jsonb, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);
+    await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt, job, cum: ids, khung_dau: x.canh.keyframe_url, doan: [i === 0 ? 0 : v.vao[i], i + 1 < cum.length ? +(v.vao[i + 1]! - 0.05).toFixed(2) : +(dai - 0.45).toFixed(2)],   // đoạn của shot trong clip (cú cắt đo) — canh miệng không dời lấn sang shot kế
+         ...(urlGiong && cauAm.some((c) => c.so === i + 1) ? { khop_moi: { cach: 'seedance_audio', giong: urlGiong } } : {}) })}::jsonb, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);
     await db.execute(sql`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${JSON.stringify(v.vao[i])}::jsonb) WHERE id = ${x.canh.id}`);
   }
   if (hong.size) console.log(`✗ KHÔNG GẮN (thiếu giờ / không đo đủ cú cắt): #${[...hong].join(' #')} — vào lượt sinh sau`);

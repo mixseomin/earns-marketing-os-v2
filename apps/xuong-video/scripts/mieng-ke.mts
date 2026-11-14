@@ -25,7 +25,9 @@ const ghi = arg('ghi');
 if (ghi) {
   const [idS, lS] = ghi.split(':'); const c = ds.find((x) => x.id === Number(idS)); if (!c?.video_url) { console.error('không thấy shot / clip'); process.exit(1); }
   const vao = Number(c.ky_thuat?.vao_s ?? 0); const d = dai(c.video_url); const phat = giayPhat(c);
-  const khongMo = lS === 'x'; const l = khongMo ? 0 : Number(lS); const muon = vao + l; const kep = Math.max(0, Math.min(muon, d - phat - DUOI_CLIP_BO));
+  const khongMo = lS === 'x'; const l = khongMo ? 0 : Number(lS); // clip CỤM: chỉ dời trong ĐOẠN của shot (nguon_video.doan — cú cắt đo lúc gắn), không lấn hình shot kế (15/11/2026 #6: trễ 1,2 s, dời theo cả clip sẽ chiếu hình #7)
+  const doan = (c.nguon_video as { doan?: [number, number] } | null)?.doan;
+  const muon = vao + l; const kep = Math.max(doan ? doan[0] : 0, Math.min(muon, (doan ? doan[1] : d - DUOI_CLIP_BO) - phat));
   const dat = !khongMo && Math.abs(kep - muon) <= 0.25;
   const ly = khongMo ? 'không thấy miệng mở trong lúc câu thoại' : dat ? `miệng trễ ${l.toFixed(2)} s — dời điểm vào ${vao} → ${kep.toFixed(2)}` : `miệng trễ ${l.toFixed(2)} s, clip ${d.toFixed(2)} s không đủ để bù (thiếu ${Math.abs(kep - muon).toFixed(2)} s)`;
   await db.execute(sql`UPDATE xv_canh SET nguon_video = coalesce(nguon_video, '{}'::jsonb) || ${JSON.stringify({ mieng: { dat, lech: l, ly, luc: new Date().toISOString() } })}::jsonb,

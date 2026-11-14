@@ -19,6 +19,9 @@ const tapId = Number(gia('tap'));
 if (!tapId) { console.error('cần --tap=<id tập>'); process.exit(1); }
 const loc = gia('so').split(',').map(Number).filter(Boolean);
 const lai = new Set(gia('lai').split(',').map(Number).filter(Boolean));   // --lai=12: gửi lại shot đó dù đã có clip
+// --cam=6,8: shot có thoại sinh CLIP CÂM (không chế độ khớp môi narration) — 14/11/2026 tập #3074: narration nhân đôi người nói 6/6 lượt (#6 #8 #15 #16),
+// shot không thoại đạt 16/17. Cách ngành: clip diễn trước, khớp môi sau bằng mô hình chỉ sửa vùng miệng (KHOP_MIENG — kieu.ts).
+const cam = new Set(gia('cam').split(',').map(Number).filter(Boolean));
 const SONG_SONG = 5, HAN_PHUT = Number(gia('phut') || 45);
 const thu = join(tmpdir(), `vx-tap-${tapId}`); mkdirSync(thu, { recursive: true });
 
@@ -66,7 +69,7 @@ for (const s of ds) if (lai.has(s.so)) s.vx = null;
 // Câu ngoài khung / lời dẫn không cần khớp môi — clip câm, chỉ lồng giọng.
 const trongKhung = (d: Dong) => !!d.nhan_vat?.trim() && !/ngoài khung|v\.?o\.?|lời dẫn|off/i.test(d.dien_xuat ?? '');
 const coThoai = (s: Shot) => (s.thoai ?? []).some((d) => d.url);
-const canKhopMoi = (s: Shot) => (s.thoai ?? []).some(trongKhung) && (s.thoai ?? []).every((d) => d.url);
+const canKhopMoi = (s: Shot) => !cam.has(s.so) && (s.thoai ?? []).some(trongKhung) && (s.thoai ?? []).every((d) => d.url);
 const daiAm = (f: string) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim());
 function giongShot(s: Shot): string {
   const phat = s.phat ?? 4; let t = 0; const vao: string[] = [], loc: string[] = [];
@@ -91,7 +94,7 @@ function gan(s: Shot, mp4Url: string): string {
   execFileSync('ssh', [BOX, `mkdir -p ${dich}`]);
   execFileSync('scp', ['-q', v, a, n, `${BOX}:${dich}/`]);
   const ra = execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/gan-clip-ngoai.mts --canh=${s.id} --video=${dich}/vx-${s.so}.mp4 ${coThoai(s) ? '' : `--am=${dich}/vx-${s.so}.wav `}--nguon=${dich}/vx-${s.so}.json --giu-nhip && rm -f ${dich}/vx-${s.so}.*`], { encoding: 'utf8', timeout: 300e3 }).trim();
-  if (coThoai(s)) psql(`UPDATE xv_canh SET am_thanh_url = NULL${canKhopMoi(s) ? `, ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', '0'::jsonb)` : ''} WHERE id = ${s.id};`);
+  if (coThoai(s)) psql(`UPDATE xv_canh SET am_thanh_url = NULL${canKhopMoi(s) || cam.has(s.so) ? `, ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', '0'::jsonb)` : ''} WHERE id = ${s.id};`);
   return ra.split('\n').pop() ?? '';
 }
 

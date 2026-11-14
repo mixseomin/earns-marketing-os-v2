@@ -190,20 +190,20 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
           { key: 'gia', label: 'Tiền thử / phim thắng', value: g30.giaThang == null ? '—' : tien(g30.giaThang), sub: 'chi của phim chưa thắng ÷ số phim thắng', title: 'mỗi phim thắng tìm được tốn bao nhiêu tiền thử các phim còn lại' },
         ]} />
         <SimpleTable rows={tuan} getRowKey={(r) => r.t} columns={([
-          { key: 't', header: 'Tuần bắt đầu', cell: (r) => <span title={`phim nhà chi lần đầu từ ${ngayThang(r.t)} tới ${ngayThang(congNgay(r.t, 6))}`}>{ngayThang(r.t)}{r.non ? <small style={{ color: MO, marginLeft: 4 }}>đang thử</small> : null}</span> },
+          { key: 't', header: 'Tuần bắt đầu', cell: (r) => <span title={`phim nhà chi lần đầu từ ${ngayThang(r.t)} tới ${ngayThang(congNgay(r.t, 6))}`}>{ngayThang(r.t)}{r.non ? <small style={{ color: MO, marginLeft: 4 }} title="tuần kết thúc trong 7 ngày gần nhất — phim còn non, số chưa chốt">{hep ? '⏳' : 'đang thử'}</small> : null}</span> },
           { key: 'n', header: 'Phim', align: 'right', cell: (r) => <Dem v={r.n} /> },
           { key: 'd', header: 'Đủ thử', align: 'right', cell: (r) => <Dem v={r.d} /> },
           { key: 'w', header: 'Thắng', align: 'right', cell: (r) => <b style={{ color: r.w ? XANH : MO }}>{r.w}</b> },
           { key: 'tl', header: 'Tỷ lệ', align: 'right', cell: (r) => tl(r.tile) },
           { key: 'chi', header: 'Chi', align: 'right', cell: (r) => <KeToan v={r.k.chi} /> },
-          { key: 'lai', header: 'Lãi', align: 'right', cell: (r) => <KeToan v={r.k.thu - r.k.chi} mau={mauLai(r.k.thu - r.k.chi)} /> },
+          { key: 'lai', header: 'Lãi', align: 'right', cell: (r) => (hep ? <span style={{ color: mauLai(r.k.thu - r.k.chi), fontVariantNumeric: 'tabular-nums' }}>{tien(r.k.thu - r.k.chi)}</span> : <KeToan v={r.k.thu - r.k.chi} mau={mauLai(r.k.thu - r.k.chi)} />) },
           { key: 'roi', header: 'ROI', align: 'right', cell: (r) => { const v = roi(r.k); return <span style={{ color: v == null ? MO : v >= 0 ? XANH : DO }}>{pct(v)}</span>; } },
         ] satisfies SimpleColumn<(typeof tuan)[number]>[]).filter((c) => !hep || (c.key !== 'chi' && c.key !== 'd'))} />
         {moi.length ? <SimpleTable rows={moi} getRowKey={(r) => String(r.p)} columns={([
           { key: 'p', header: `Phim thắng mới (${PM_NGAY} ngày)`, cell: (r) => <span title={`${r.ten}${r.tl ? ` · ${r.tl}` : ''}${r.nn ? ` · ${r.nn}` : ''}`} style={{ display: 'inline-block', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }}>{r.ten}</span> },
           { key: 'd0', header: 'Bắt đầu', align: 'right', cell: (r) => ngayThang(r.d0) },
           { key: 'bo', header: 'Bộ', align: 'right', cell: (r) => r.bo ?? '—' },
-          { key: 'lai', header: 'Lãi', align: 'right', cell: (r) => <KeToan v={r.thu - r.chi} mau={XANH} /> },
+          { key: 'lai', header: 'Lãi', align: 'right', cell: (r) => (hep ? <span style={{ color: XANH, fontVariantNumeric: 'tabular-nums' }}>{tien(r.thu - r.chi)}</span> : <KeToan v={r.thu - r.chi} mau={XANH} />) },
           { key: 'roi', header: 'ROI', align: 'right', cell: (r) => pct(roi(r)) },
         ] satisfies SimpleColumn<P>[]).filter((c) => !hep || c.key !== 'bo')} /> : <span style={{ color: MO }}>{PM_NGAY} ngày qua chưa có phim mới nào lãi từ ${PM_THANG}</span>}
       </div>;

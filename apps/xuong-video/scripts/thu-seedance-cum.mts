@@ -50,7 +50,7 @@ const kf = cum.map((x) => x.canh.keyframe_url!).slice(0, 9 - tc.anh.length);
 const anh = [...tc.anh, ...kf];
 const goiKf = kf.map((_, i) => `Reference image ${tc.anh.length + i + 1} is the exact look of shot ${i + 1} (its framing, drawing style and the people's clothes).`).join(' ');
 const than = promptCumMoi(cum, { tag: tc.tag, them: tc.them, giay: giayRa, tiLe: bcs[0]!.kt.ti_le });
-const cauGiong = guiGiong ? ` Audio 1 is the dialogue track: lip movement follows Audio 1 exactly, mouths closed when it is silent. ${cauAm.map((c) => `In shot ${c.so}, ${nhanNoi.get(c.ai) ?? 'the speaker'} says: ${c.loi.replace(/["“”]/g, '')}.`).join(' ')}` : '';
+const cauGiong = guiGiong ? ` Audio 1 is the dialogue track — lip-sync to Audio 1: while Audio 1 has speech the speaker clearly opens the mouth and the lips visibly form every syllable, loud and expressive; the mouth is closed when Audio 1 is silent. ${cauAm.map((c) => `In shot ${c.so}, ${nhanNoi.get(c.ai) ?? 'the speaker'} speaks out loud and says: ${c.loi.replace(/["“”]/g, '')}.`).join(' ')}` : '';
 const prompt = `${tc.goi}. ${goiKf} Reference video 1 is a rough grey 3D blockout of this whole ${cum.length}-shot sequence with hard cuts: copy ONLY its cuts, camera angles, timing, where everyone stands and how they move — never its grey mannequin look; every shot must look like its reference image. ${than} ${cauNgoaiCua(cum.map((x) => x.canh))}${cauGiong}`.trim();
 console.log(`cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${tong.toFixed(1)} s → clip ${giayRa} s · ${model} ${dpg} · ${anh.length} ảnh · prompt ${prompt.length} ký tự`);
 // LUẬT CHẤM TRƯỚC KHI GỬI (chan-gui-video.ts — anh 14/11/2026): lỗi nào cũng chặn, không tốn tiền
@@ -66,8 +66,12 @@ const cents = (dpg === '720p' ? 7.5 : 3.4) * (giaVao + giayRa);   // kie.ai/seed
 const urlVideo = clip1 ? clip1.url : await uploadToR2(`xuong-video/khung-xam/cum-${ids.join('-')}-${randomUUID()}.mp4`, readFileSync(fileVideo), 'video/mp4');
 // file giọng Audio 1 (chỉ ghép ÂM trên box — không mã hoá video): lặng + từng câu đúng mốc, dài bằng clip ra (Kie: 2–15 s)
 let urlGiong: string | null = null;
+// file giọng NGẮN (15/11/2026, shot #4 lần 1: giọng 4 s có 1,1 s lặng đầu + 2 s lặng cuối → miệng gần như không nhép): giữ lặng ĐẦU (mốc câu), cắt lặng đuôi —
+// dài = hết câu cuối + 0,2 s, tối thiểu 2 s (sàn Kie). Độ dài từng câu đọc bằng ffprobe.
+const daiCau = (u: string) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', u], { encoding: 'utf8' }).trim());
+const daiGiong = guiGiong ? Math.min(15, Math.max(2, ...cauAm.map((c) => c.t + daiCau(c.url) + 0.2))) : 0;
 if (guiGiong) { const f = `/tmp/seedance-giong-${ids.join('-')}.mp3`;
-  execFileSync('ffmpeg', ['-v', 'error', '-y', ...cauAm.flatMap((c) => ['-i', c.url]), '-filter_complex', `${cauAm.map((c, i) => `[${i}:a]aresample=48000,adelay=${Math.round(c.t * 1000)}|${Math.round(c.t * 1000)}[a${i}]`).join(';')};${cauAm.map((_, i) => `[a${i}]`).join('')}amix=inputs=${cauAm.length}:normalize=0,apad=whole_dur=${giayRa},atrim=0:${giayRa}[o]`, '-map', '[o]', '-ac', '2', '-b:a', '192k', f]);
+  execFileSync('ffmpeg', ['-v', 'error', '-y', ...cauAm.flatMap((c) => ['-i', c.url]), '-filter_complex', `${cauAm.map((c, i) => `[${i}:a]aresample=48000,adelay=${Math.round(c.t * 1000)}|${Math.round(c.t * 1000)}[a${i}]`).join(';')};${cauAm.map((_, i) => `[a${i}]`).join('')}amix=inputs=${cauAm.length}:normalize=0,apad=whole_dur=${daiGiong.toFixed(2)},atrim=0:${daiGiong.toFixed(2)}[o]`, '-map', '[o]', '-ac', '2', '-b:a', '192k', f]);
   urlGiong = await uploadToR2(`xuong-video/am/thoai/seedance-${ids.join('-')}-${randomUUID()}.mp3`, readFileSync(f), 'audio/mpeg'); if (!urlGiong) { console.error('đẩy file giọng hỏng'); process.exit(1); } }
 if (!urlVideo) { console.error('đẩy clip 3D nối lên kho hỏng'); process.exit(1); }
 const job = await taoJob(db, { canh_id: ids[0], loai: 'video', provider: 'kie', model: `kie:${model}`, request: { thu: 'seedance-cum', cum: ids, prompt, anh, video: urlVideo, giong: urlGiong, dpg }, cents });

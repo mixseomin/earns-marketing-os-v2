@@ -16,6 +16,7 @@ import { chiaCum, anhNeoCuoi, anhBoiCanh, promptCumMoi, thamChieuCum, vaoTuCatTh
 import { uploadToR2 } from '../src/lib/r2';
 import { guiFal, docFal } from '../src/lib/xuong-video/fal';
 import { giayPhat } from '../src/lib/xuong-video/kieu';
+import { catThat } from '../src/lib/xuong-video/cat-that';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const tap = Number(gia('tap')); const tu = Number(gia('tu') || 0), den = Number(gia('den') || 9999); const thu = process.argv.includes('--thu');
@@ -46,19 +47,6 @@ if (thu) process.exit(0);
 
 const ff = (args: string[]) => execFileSync('ffmpeg', ['-hide_banner', ...args], { timeout: 300_000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 const dai = (f: string) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim());
-/** Cú cắt cứng trong clip: thử ngưỡng scene từ chặt tới lỏng, lấy lần ra đúng n−1 cú (bỏ cú dính đầu / đuôi, gộp cú sát nhau). */
-function catThat(f: string, n: number, d: number): number[] {
-  let tot: number[] = [];
-  for (const nguong of [0.3, 0.22, 0.4, 0.15, 0.5]) {
-    // showinfo ghi ra stderr — gộp vào stdout để đọc
-    let out = ''; try { out = execFileSync('sh', ['-c', `ffmpeg -hide_banner -i '${f}' -vf "select='gt(scene,${nguong})',showinfo" -f null - 2>&1`], { encoding: 'utf8', timeout: 120_000 }); } catch { /* clip hỏng → không có cú cắt, theo lịch prompt */ }
-    const t = [...out.matchAll(/pts_time:([\d.]+)/g)].map((m) => Number(m[1])).filter((x) => x > VAO_DAU + 0.3 && x < d - BO_DUOI - 0.2)
-      .reduce<number[]>((a, x) => (a.length && x - a.at(-1)! < 0.4 ? a : [...a, x]), []);
-    if (t.length === n - 1) return t;
-    if (!tot.length || Math.abs(t.length - (n - 1)) < Math.abs(tot.length - (n - 1))) tot = t;
-  }
-  return tot;
-}
 async function sinh(i: number): Promise<string | null> {
   const c = cacCum[i]!; const nhan = `${c[0]!.thu_tu}-${c.at(-1)!.thu_tu}`;
   if (tc[i]) {   // Vidu Q2 tham chiếu — duration là SỐ (422 với chuỗi); lỗi gửi chưa tính tiền

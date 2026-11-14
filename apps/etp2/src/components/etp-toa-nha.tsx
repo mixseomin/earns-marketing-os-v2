@@ -223,14 +223,14 @@ function dungToa(...a: Parameters<typeof dungThan>) {
  *    · điện thoại 1 ngón trượt, 2 ngón chụm phóng + vặn xoay;
  *  · một toà = OrbitControls (kiểu Sketchfab / trình xem 3D): kéo trái = xoay · kéo phải = trượt · lăn = phóng · điện thoại 1 ngón xoay, 2 ngón phóng + trượt.
  *  Shift + vuốt 2 ngón touchpad / Shift + lăn = xoay quanh tâm (anh 15/11/2026). Cả hai có quán tính (damping), nhấp đúp = phóng vào điểm đó (nhấp đơn hoãn 260 ms để không chọn nhầm), nút + / − / ⟲. */
-type DieuKhien = { phong: (f: number) => void; veGoc: () => void; ve: () => void };
-function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, canh: import('three').Scene) => { vat: Vat[]; tam: [number, number, number]; xa: number },
+type DieuKhien = { phong: (f: number) => void; veGoc: () => void; ve: () => void; tieuDiem: (id: number | null) => void };
+function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, canh: import('three').Scene) => { vat: Vat[]; tam: [number, number, number]; xa: number; nhom?: { id: number; g: import('three').Object3D }[] },
   deps: unknown[], chon: number | null, onChon: (id: number | null, xy?: { x: number; y: number }) => void, kieu: 'pho' | 'toa' = 'pho') {
   const [re, setRe] = useState<{ x: number; y: number; chu: string } | null>(null), [loi, setLoi] = useState<string | null>(null);
   const chonRef = useRef(chon); chonRef.current = chon;
   const onChonRef = useRef(onChon); onChonRef.current = onChon;
   const capNhatChon = useRef<(id: number | null) => void>(() => {});
-  const dk = useRef<DieuKhien>({ phong: () => {}, veGoc: () => {}, ve: () => {} });
+  const dk = useRef<DieuKhien>({ phong: () => {}, veGoc: () => {}, ve: () => {}, tieuDiem: () => {} });
   useEffect(() => { capNhatChon.current(chon); }, [chon]);
   useEffect(() => {
     let huy = false, don = () => {};
@@ -242,7 +242,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
       const canh = new T.Scene(), cam = new T.PerspectiveCamera(38, W / Hh, 0.1, 600);
       canh.add(new T.HemisphereLight(0xffffff, 0x334155, 1.6));
       const den = new T.DirectionalLight(0xffffff, 1.4); den.position.set(5, 9, 6); canh.add(den);
-      const { vat, tam: t0, xa: xa0 } = dung(T, canh);
+      const { vat, tam: t0, xa: xa0, nhom = [] } = dung(T, canh);
       const GOC0 = -0.6, NGHIENG0 = kieu === 'pho' ? 0.62 : 0.32;
       const datGoc = () => { const t = new T.Vector3(...t0); cam.position.set(t.x + xa0 * Math.cos(NGHIENG0) * Math.sin(GOC0), t.y + xa0 * Math.sin(NGHIENG0), t.z + xa0 * Math.cos(NGHIENG0) * Math.cos(GOC0)); ctl.target.copy(t); ctl.update(); };
       const cv = r.domElement;
@@ -285,7 +285,24 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
         if (q) { const o = cam.position.clone().sub(ctl.target).applyAxisAngle(len, q * 0.025); cam.position.copy(ctl.target).add(o); }
         ve();
       };
-      let raf = 0; const lap = () => { diPhim(); const doi = ctl.update(); if (can || doi) { can = false; r.render(canh, cam); } raf = requestAnimationFrame(lap); }; lap();
+      // XUYÊN THẤU (anh 15/11/2026 "Toà kiểu này rất khó nhìn thấy phần bên dưới chân" → chọn "Kết hợp xuyên thấu"): toà tiêu điểm = toà đang rê (ưu tiên) / bảng phim báo /
+      // toà đang chọn; nhóm khác mà tia từ camera tới móng hoặc giữa thân toà tiêu điểm cắt qua → mờ 22%, bỏ tiêu điểm thì trở lại. Hộp bao tính một lần lúc dựng.
+      const hop3 = nhom.map((n) => ({ ...n, b: new T.Box3().setFromObject(n.g) })), mo = new Set<import('three').Object3D>();
+      let diemRe: number | null = null, diemNgoai: number | null = null;
+      const datMo = (g: import('three').Object3D, bat: boolean) => g.traverse((o) => { const m = (o as import('three').Mesh).material as import('three').Material | undefined;
+        if (!m || (o as import('three').Mesh).isMesh !== true) return;
+        if (bat) { if (m.userData.mo0 === undefined) m.userData.mo0 = [m.transparent, m.opacity, m.depthWrite]; m.transparent = true; m.opacity = Math.min(m.userData.mo0[1] as number, 0.22); m.depthWrite = false; }
+        else if (m.userData.mo0 !== undefined) { [m.transparent, m.opacity, m.depthWrite] = m.userData.mo0 as [boolean, number, boolean]; delete m.userData.mo0; }
+        m.needsUpdate = true; });
+      const xuyen = () => {
+        const id = diemRe ?? diemNgoai ?? chonRef.current, dich = id == null ? null : hop3.find((n) => n.id === id), moi = new Set<import('three').Object3D>();
+        if (dich) { const c = dich.b.getCenter(new T.Vector3()), diem = [new T.Vector3(c.x, dich.b.min.y + 0.15, c.z), c];
+          for (const d of diem) { const tia3 = new T.Ray(cam.position.clone(), d.clone().sub(cam.position).normalize()), xa = cam.position.distanceTo(d), cham = new T.Vector3();
+            for (const n of hop3) if (n !== dich && tia3.intersectBox(n.b, cham) && cam.position.distanceTo(cham) < xa) moi.add(n.g); } }
+        for (const g of mo) if (!moi.has(g)) { datMo(g, false); mo.delete(g); }
+        for (const g of moi) if (!mo.has(g)) { datMo(g, true); mo.add(g); }
+      };
+      let raf = 0; const lap = () => { diPhim(); const doi = ctl.update(); if (can || doi) { can = false; if (hop3.length) xuyen(); r.render(canh, cam); } raf = requestAnimationFrame(lap); }; lap();
 
       const ray = new T.Raycaster(), p2 = new T.Vector2(), mat = vat.map((k) => k.m), matDat = new T.Plane(new T.Vector3(0, 1, 0), 0), dd = new T.Vector3();
       const tia = (cx: number, cy: number) => { const b = cv.getBoundingClientRect(); p2.set(((cx - b.left) / b.width) * 2 - 1, -((cy - b.top) / b.height) * 2 + 1); ray.setFromCamera(p2, cam); };
@@ -295,7 +312,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
         const d = cam.position.distanceTo(ctl.target), f2 = Math.max(ctl.minDistance / d, Math.min(ctl.maxDistance / d, f));
         cam.position.sub(P).multiplyScalar(f2).add(P); ctl.target.sub(P).multiplyScalar(f2).add(P); ctl.update(); ve();
       };
-      dk.current = { phong: (f) => phongQuanh(ctl.target.clone(), f), veGoc: () => { datGoc(); ve(); luuGoc(); }, ve };
+      dk.current = { phong: (f) => phongQuanh(ctl.target.clone(), f), veGoc: () => { datGoc(); ve(); luuGoc(); }, ve, tieuDiem: (id) => { diemNgoai = id; ve(); } };
 
       // biển tên mờ mặc định (đặt ở nơi dựng); toà đang rê → biển sáng rõ, nổi lên trên các biển khác
       let bienSang: import('three').Sprite | null = null;
@@ -309,7 +326,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
         if (e.buttons) { keo = Math.max(keo, Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0)); return; }
         if (hen) clearTimeout(hen); setRe(null);   // thẻ rê chỉ hiện khi chuột dừng 450 ms
         const cx = e.clientX, cy = e.clientY;
-        hen = setTimeout(() => { const k = trung(cx, cy); const b = el.getBoundingClientRect(); sangBien(k?.bien ?? null); if (k) setRe({ x: cx - b.left, y: cy - b.top, chu: k.chu }); }, 450);
+        hen = setTimeout(() => { const k = trung(cx, cy); const b = el.getBoundingClientRect(); sangBien(k?.bien ?? null); if (diemRe !== (k?.id ?? null)) { diemRe = k?.id ?? null; ve(); } if (k) setRe({ x: cx - b.left, y: cy - b.top, chu: k.chu }); }, 450);
       };
       const tha = (e: PointerEvent) => {
         if (keo >= 6 || e.button !== 0) return;
@@ -321,7 +338,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
         tia(e.clientX, e.clientY); const h = ray.intersectObjects(mat)[0]?.point ?? (ray.ray.intersectPlane(matDat, dd) ? dd.clone() : ctl.target.clone()); phongQuanh(h, e.shiftKey ? 2 : 0.5); };
       const phimXuong = (e: KeyboardEvent) => { const k = e.key.toLowerCase(); if (['w', 'a', 's', 'd', 'q', 'e', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { e.preventDefault(); phim.add(k); } };
       const phimLen = (e: KeyboardEvent) => { phim.delete(e.key.toLowerCase()); };
-      const roi = () => { if (hen) clearTimeout(hen); setRe(null); sangBien(null); };
+      const roi = () => { if (hen) clearTimeout(hen); setRe(null); sangBien(null); if (diemRe != null) { diemRe = null; ve(); } };
       const boPhim = () => phim.clear();
       // SHIFT + VUỐT 2 NGÓN (touchpad) / SHIFT + LĂN = XOAY quanh tâm nhìn (anh 15/11/2026 "khi giữ shift + dùng 2 ngón thì cho xoay"):
       // bắt ở pha capture của khung chứa → bộ điều khiển không nhận lần lăn này (không phóng); macOS đổi trục khi giữ Shift nên lấy trục nào lớn hơn
@@ -341,7 +358,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
       // ô đổi cỡ (widget kéo giãn) → đổi khung vẽ, không dựng lại
       const doiCo = new ResizeObserver(() => { const w = el.clientWidth, h = el.clientHeight; if (!w || !h) return; r.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); ve(); }); doiCo.observe(el);
       don = () => { cancelAnimationFrame(raf); if (hen) clearTimeout(hen); if (henLuu) { clearTimeout(henLuu); try { localStorage.setItem(KHOA_GOC, JSON.stringify({ p: cam.position.toArray(), t: ctl.target.toArray() })); } catch { /* kho bị chặn */ } } if (henBam) clearTimeout(henBam); doiCo.disconnect(); ctl.dispose(); el.removeEventListener('wheel', xoayShift, { capture: true });
-        dk.current = { phong: () => {}, veGoc: () => {}, ve: () => {} };
+        dk.current = { phong: () => {}, veGoc: () => {}, ve: () => {}, tieuDiem: () => {} };
         canh.traverse((x) => { const o = x as unknown as { geometry?: { dispose(): void }; material?: { dispose(): void; map?: { dispose(): void } } }; o.geometry?.dispose(); o.material?.map?.dispose(); o.material?.dispose(); });
         r.dispose(); cv.remove(); };
     }).catch((e) => setLoi(`không mở được 3D: ${String(e?.message ?? e)}`));
@@ -397,21 +414,23 @@ export function ThanhPho({ ds: ds0, chon, onChon, cao }: { ds: ToaPhim[]; chon: 
   const [themSx, setThemSx] = useState<Record<number, number>>({});
   useEffect(() => { setThemSx({}); }, [ds0]);
   const ds = useMemo(() => Object.keys(themSx).length ? ds0.map((x) => themSx[x.p] ? { ...x, sx: (x.sx ?? 0) + themSx[x.p]! } : x) : ds0, [ds0, themSx]);
-  const vungRef = useRef(new Map<number, { g: import('three').Group; mong: [number, number, number, number]; T: T3; sang?: import('three').Mesh }>());
+  const vungRef = useRef(new Map<number, { T: T3; thap: { g: import('three').Group; mong: [number, number, number, number] }[]; sang: import('three').Mesh[] }>());
   useEffect(() => {
     const nghe = (e: Event) => { const x = (e as CustomEvent<BaoToa>).detail;
       if ('sx' in x) { setThemSx((m) => ({ ...m, [x.p]: (m[x.p] ?? 0) + x.sx })); return; }
-      for (const [p, v] of vungRef.current) if (v.sang && (p !== x.p || !x.sang)) { v.g.remove(v.sang); v.sang = undefined; }
+      for (const [p, v] of vungRef.current) if (v.sang.length && (p !== x.p || !x.sang)) { for (const m of v.sang) m.parent?.remove(m); v.sang = []; }
       const v = vungRef.current.get(x.p);
-      if (x.sang && v && !v.sang) { const [y0, y1, w, d] = v.mong, h = Math.max(0.12, y1 - y0);
-        v.sang = new v.T.Mesh(new v.T.BoxGeometry(w + 0.16, h + 0.08, d + 0.16), new v.T.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.38, depthWrite: false }));
-        v.sang.position.set(0, y0 + h / 2, 0); v.g.add(v.sang); }
-      dk.current.ve(); };
+      if (x.sang && v && !v.sang.length) for (const t of v.thap) { const [y0, y1, w, d] = t.mong, h = Math.max(0.12, y1 - y0);   // mọi tháp của phim: máy chọn bộ lúc lên camp
+        const m = new v.T.Mesh(new v.T.BoxGeometry(w + 0.16, h + 0.08, d + 0.16), new v.T.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.38, depthWrite: false }));
+        m.position.set(0, y0 + h / 2, 0); t.g.add(m); v.sang.push(m); }
+      dk.current.tieuDiem(x.sang ? x.p : null); dk.current.ve(); };
     window.addEventListener('etp-toa', nghe); return () => window.removeEventListener('etp-toa', nghe);
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const { re, loi, dk } = useCanh3D(hop, (T, canh) => {
     const kho = new Map<string, import('three').CanvasTexture>(), vat: Vat[] = []; vungRef.current.clear();
-    const n = ds.length, LX = RONG + 1.0, LZ = SAU + 1.0, D = 1.1;   // lô (có sân) · bề ngang đường
+    // KHU PHỨC HỢP (anh 15/11/2026 "bố cục lại toà nhà cần trở thành khu phức hợp với diện tích xung quanh rộng hơn! Giống ở túp lều nhưng hiện đại hơn" + nhiều bộ tk → "Khu phức hợp"):
+    // lô gấp đôi (sân lát, bồn cây, lối vào) · mỗi BỘ TÀI KHOẢN một tháp riêng đứng chung lô, cấp tháp theo camp của bộ đó, biển "Bộ N" · tên phim một biển ở mép lô
+    const n = ds.length, LX = 2 * RONG + 2.4, LZ = 2 * SAU + 2.6, D = 1.3, nhom: { id: number; g: import('three').Object3D }[] = [];   // lô (có sân) · bề ngang đường
     const chan = (x: number) => x + (x % 2);
     const cot = Math.max(2, chan(Math.ceil(Math.sqrt(n * 1.3)))), hang = Math.max(2, chan(Math.ceil(n / cot)));
     const W = D + (cot / 2) * (2 * LX + D), Z = D + (hang / 2) * (2 * LZ + D);
@@ -438,21 +457,50 @@ export function ThanhPho({ ds: ds0, chon, onChon, cao }: { ds: ToaPhim[]; chon: 
     ds.forEach((ph, i) => {
       const [ox, oz] = lo[i]!, cap = capToa(ph.camp).cap, kh = khuCua(cap);
       const san = new T.Mesh(new T.PlaneGeometry(LX - 0.06, LZ - 0.06), new T.MeshStandardMaterial({ color: KHU[kh]!.nen, roughness: 1 })); san.rotation.x = -Math.PI / 2; san.position.set(ox, 0, oz); canh.add(san);
-      lanKhu[kh]!.push([ox, oz]); if (kh === 1) cay.push([ox + LX / 2 - 0.25, oz + LZ / 2 - 0.25], [ox - LX / 2 + 0.25, oz + LZ / 2 - 0.25]);
-      const g = new T.Group(); g.position.set(ox, 0, oz); canh.add(g);
-      const ten = ph.ten.length > 22 ? `${ph.ten.slice(0, 21)}…` : ph.ten, ngan = ph.ten.length > 16 ? `${ph.ten.slice(0, 15)}…` : ph.ten, lai = laiPhim(ph);
-      const r = dungToa(T, g, { camp: ph.camp, tat: ph.tat, mong: { sx: ph.sx ?? 0, ke: 0, cho: 0 }, bien: { chu: ngan, mau: lai >= 0 ? XANH : DO }, bienCo: 0.42, nhanTang: false, bienTheoMan: true, kho });
-      vungRef.current.set(ph.p, { g, mong: r.mong, T });
-      // TÊN PHIM NHỎ + MỜ, rê vào toà mới rõ (anh 15/11/2026 "Tên phim thì nhỏ, opacity, hover vào mới rõ")
-      if (r.bienSp) { (r.bienSp.material as import('three').SpriteMaterial).opacity = 0.2; r.bienSp.userData.mo = 0.2; }
-      caoMax = Math.max(caoMax, r.cao);
-      // KHUNG CHỌN ÔM THÂN (anh 15/11/2026 "khi bấm chọn 1 toà, viền phải gọn lại"): khối bấm = đúng thân nhà / thửa, không gồm biển tên, ăng-ten, đèn
-      const [bw, bh, bd] = r.than, bat = new T.Mesh(new T.BoxGeometry(bw, Math.max(0.3, bh), bd), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
-      bat.position.set(0, Math.max(0.3, bh) / 2, 0); g.add(bat);
-      for (const v of r.vat) vat.push({ m: v.m, vien: bat, id: ph.p, chu: `${ten} · ${v.chu}`, bien: r.bienSp });
+      lanKhu[kh]!.push([ox, oz]); if (kh === 1) cay.push([ox + LX / 2 - 0.3, oz + LZ / 2 - 0.3], [ox - LX / 2 + 0.3, oz + LZ / 2 - 0.3]);
+      const lg = new T.Group(); lg.position.set(ox, 0, oz); canh.add(lg); nhom.push({ id: ph.p, g: lg });
+      // sân lát hiện đại: nền sáng hơn đất lô, mạch lát, bồn cây bốn góc, lối vào nhìn ra đường phía trước
+      const PX = LX - 0.5, PZ = LZ - 0.5, nenSan = new T.Mesh(new T.BoxGeometry(PX, 0.04, PZ), new T.MeshStandardMaterial({ color: 0x4b5563, roughness: 0.9 })); nenSan.position.y = 0.02; lg.add(nenSan);
+      const matMach = new T.MeshBasicMaterial({ color: 0x374151 });
+      for (let x = -PX / 2 + 0.8; x < PX / 2; x += 0.8) { const m = new T.Mesh(new T.PlaneGeometry(0.02, PZ), matMach); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.042, 0); lg.add(m); }
+      for (let z = -PZ / 2 + 0.8; z < PZ / 2; z += 0.8) { const m = new T.Mesh(new T.PlaneGeometry(PX, 0.02), matMach); m.rotation.x = -Math.PI / 2; m.position.set(0, 0.042, z); lg.add(m); }
+      const matBon = new T.MeshStandardMaterial({ color: 0x9ca3af, roughness: 0.7 }), matLa = new T.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.9 });
+      for (const [bx, bz] of [[-PX / 2 + 0.3, -PZ / 2 + 0.3], [PX / 2 - 0.3, -PZ / 2 + 0.3], [-PX / 2 + 0.3, PZ / 2 - 0.3], [PX / 2 - 0.3, PZ / 2 - 0.3]] as [number, number][]) {
+        const bon = new T.Mesh(new T.BoxGeometry(0.36, 0.14, 0.36), matBon); bon.position.set(bx, 0.11, bz); lg.add(bon);
+        const la = new T.Mesh(new T.SphereGeometry(0.2, 10, 8), matLa); la.position.set(bx, 0.3, bz); lg.add(la); }
+      const loi = new T.Mesh(new T.PlaneGeometry(0.9, 0.5), new T.MeshStandardMaterial({ color: 0x6b7280 })); loi.rotation.x = -Math.PI / 2; loi.position.set(0, 0.043, PZ / 2 - 0.25); lg.add(loi);
+      // tháp theo bộ: nhóm camp theo bo (đã tắt đi theo bộ của nó); xếp bộ số nhỏ trước
+      const boMap = new Map<string, { ten: string; camp: CampToa[]; tat: CampToa[] }>();
+      for (const c of ph.camp) { const b = boMap.get(c.bo) ?? { ten: c.bo_ten, camp: [], tat: [] }; b.camp.push(c); boMap.set(c.bo, b); }
+      for (const c of ph.tat ?? []) { const b = boMap.get(c.bo); if (b) b.tat.push(c); }
+      const thap = [...boMap.entries()].sort((a, b) => a[0].localeCompare(b[0], 'vi', { numeric: true })).map(([, v]) => v), k = thap.length;
+      // lưới tháp trong sân: 1 → giữa, sân rộng quanh · 2 → hai tháp ngang · 3–4 → 2 × 2 · 5+ → 3 cột; co tỉ lệ cho vừa sân
+      const cot2 = k <= 1 ? 1 : k <= 2 ? 2 : k <= 4 ? 2 : 3, hang2 = Math.ceil(k / cot2), oW = (PX - 0.4) / cot2, oD = (PZ - 0.4) / hang2;
+      const ti = Math.min(1, oW / (RONG + 0.9), oD / (SAU + 0.9)), ten = ph.ten.length > 22 ? `${ph.ten.slice(0, 21)}…` : ph.ten, lai = laiPhim(ph);
+      const v0 = { T, thap: [] as { g: import('three').Group; mong: [number, number, number, number] }[], sang: [] as import('three').Mesh[] };
+      let caoLo = 0, bien0: import('three').Sprite | null = null;
+      const bat = new T.Mesh(new T.BoxGeometry(PX, 1, PZ), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })); lg.add(bat);
+      thap.forEach((b, j) => {
+        const g = new T.Group(); g.scale.setScalar(ti); g.position.set(-PX / 2 + 0.2 + oW * ((j % cot2) + 0.5), 0.04, -PZ / 2 + 0.2 + oD * (Math.floor(j / cot2) + 0.5)); lg.add(g);
+        const nhieuBo = k > 1, laiB = b.camp.reduce((a, c) => a + c.thu7 - c.chi7, 0);
+        const r = dungToa(T, g, { camp: b.camp, tat: b.tat, mong: { sx: j === 0 ? ph.sx ?? 0 : 0, ke: 0, cho: 0 }, bien: nhieuBo ? { chu: b.ten, mau: laiB >= 0 ? XANH : DO } : null, bienCo: 0.36, nhanTang: false, bienTheoMan: true, kho });
+        v0.thap.push({ g, mong: r.mong });
+        if (r.bienSp) { (r.bienSp.material as import('three').SpriteMaterial).opacity = 0.35; r.bienSp.userData.mo = 0.35; }
+        caoLo = Math.max(caoLo, r.cao * ti);
+        for (const v of r.vat) vat.push({ m: v.m, vien: bat, id: ph.p, chu: `${ten}${nhieuBo ? ` · ${b.ten}` : ''} · ${v.chu}`, bien: bien0 });
+      });
+      vungRef.current.set(ph.p, v0);
+      // TÊN PHIM NHỎ + MỜ ở mép trước lô, rê vào toà mới rõ (anh 15/11/2026 "Tên phim thì nhỏ, opacity, hover vào mới rõ")
+      const ngan = ph.ten.length > 16 ? `${ph.ten.slice(0, 15)}…` : ph.ten;
+      bien0 = nhan(T, k > 1 ? `${ngan} · ${k} bộ` : ngan, lai >= 0 ? XANH : DO, 0.5, true); bien0.center.set(0.5, 0); bien0.position.set(0, Math.max(0.6, caoLo) + 0.35, 0);
+      (bien0.material as import('three').SpriteMaterial).opacity = 0.2; bien0.userData.mo = 0.2; lg.add(bien0);
+      for (const x of vat) if (x.id === ph.p && !x.bien) x.bien = bien0;
+      caoMax = Math.max(caoMax, caoLo);
+      // KHUNG CHỌN = cả sân phức hợp (mọi tháp của phim)
+      bat.scale.y = Math.max(0.3, caoLo); bat.position.y = Math.max(0.3, caoLo) / 2;
       const k7 = ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 });
       const th = capToa(ph.camp).tinHieu;
-      vat.push({ bien: r.bienSp, m: bat, vien: bat, id: ph.p, chu: `${ten} · ${CAP[cap]} · ${KHU[kh]!.ten}${th ? ` · 🟢 ${th} camp tín hiệu lãi` : ''} · ${ph.camp.length} camp · 7 ngày lãi ${lai >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
+      vat.push({ bien: bien0, m: bat, vien: bat, id: ph.p, chu: `${ten} · ${CAP[cap]} · ${KHU[kh]!.ten}${k > 1 ? ` · ${k} bộ: ${thap.map((b) => b.ten).join(', ')}` : ''}${th ? ` · 🟢 ${th} camp tín hiệu lãi` : ''} · ${ph.camp.length} camp · 7 ngày lãi ${lai >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
     });
     // lô còn trống ngoài rìa = công viên (cỏ + cây), không để ô đen trơ
     for (const [ox, oz] of lo.slice(ds.length)) { const sv = new T.Mesh(new T.PlaneGeometry(LX - 0.06, LZ - 0.06), new T.MeshStandardMaterial({ color: 0x1d3a24, roughness: 1 })); sv.rotation.x = -Math.PI / 2; sv.position.set(ox, 0, oz); canh.add(sv);
@@ -460,7 +508,7 @@ export function ThanhPho({ ds: ds0, chon, onChon, cao }: { ds: ToaPhim[]; chon: 
     // cây khu trung lưu + công viên (InstancedMesh)
     if (cay.length) { const cm = new T.InstancedMesh(new T.ConeGeometry(0.22, 0.6, 7), new T.MeshStandardMaterial({ color: 0x15803d }), cay.length);
       cay.forEach(([x, z], i) => { mt.position.set(x, 0.3, z); mt.rotation.set(0, 0, 0); mt.updateMatrix(); cm.setMatrixAt(i, mt.matrix); }); canh.add(cm); }
-    return { vat, tam: [0, 0, 0], xa: Math.max(12, Math.max(W, Z) * 1.05 + caoMax * 0.5) };
+    return { vat, tam: [0, 0, 0], xa: Math.max(12, Math.max(W, Z) * 1.05 + caoMax * 0.5), nhom };
   }, [ds], chon, onChon, 'pho');
   // chú giải khu (chữ HTML góc trái — biển 3D ba khu từng đè nhau ở cùng một góc)
   const dem = KHU.map((_, i) => ds.filter((x) => khuCua(capToa(x.camp).cap) === i).length);

@@ -444,6 +444,31 @@ if (a.includes('--nap')) {
     const kq = v ? await xuatVideo(db, Number(v.id)) : { ok: false as const, loi: 'không thấy dòng vừa nạp' };
     ra.push(`${kq.ok ? '✓' : '⚠'} ${slug} ← khung #${h.id} (${h.luot_xem} lượt)${kq.ok ? '' : ` · dựng ✗ ${kq.loi}`}`);
   }
+  // PAGE NGÁCH RIÊNG (nền có `uu_tien`, vd Page xe 580 / 589 / 591): từ sách đố chữ không đúng ngách → Page đó ghi "Hết video" mỗi 10 phút (94 lượt / tuần, 15/11/2026).
+  // Giữ mỗi Page ngách ≥ 2 video chủ đề chưa lên Page nào trong nhóm: từ đúng ngách + ô sai sinh bằng mã (game-chu-de.mjs), 0₫, slug mang tên chủ đề để khớp uu_tien.
+  const { CHU_DE, deGame } = await import('../src/lib/xuong-video/game-chu-de.mjs');
+  const pageNgach = ((m as unknown as { dang?: { nen: string; uu_tien?: string }[] }).dang ?? []).filter((d) => d.uu_tien);
+  for (const [cd, C] of Object.entries(CHU_DE)) {
+    const pg = pageNgach.filter((d) => new RegExp(d.uu_tien!).test(`x-${cd}-x`)); if (!pg.length) continue;
+    const nenPg = pg.map((d) => d.nen);
+    const con = ((await db.execute(sql`SELECT count(*)::int AS n FROM xv_may_video WHERE may_id = ${m.id} AND NOT coalesce(luu_tru, false) AND slug ~ ${`-${cd}-`}
+      AND NOT (coalesce(da_dang, '{}'::jsonb) ?| ${nenPg}::text[])`)) as unknown as { n: number }[])[0]?.n ?? 0;
+    const can = Math.max(0, 2 * pg.length - con); if (!can) { console.log(`· chủ đề ${cd}: còn ${con} video cho ${nenPg.join(', ')} — đủ`); continue; }
+    const daCoTu = new Set(((await db.execute(sql`SELECT DISTINCT de->>'dich' AS d FROM xv_may_video WHERE may_id = ${m.id} AND de ? 'dich'`)) as unknown as { d: string }[]).map((x) => x.d));
+    const mauCu = ((await db.execute(sql`SELECT de->'mau' AS mau FROM xv_may_video WHERE may_id = ${m.id} AND slug ~ ${`^${cd}-`} AND de ? 'mau' LIMIT 1`)) as unknown as { mau: unknown }[])[0]?.mau ?? C.mau;
+    const tuMoi = C.tu.filter((w) => !daCoTu.has(w)).sort(() => Math.random() - 0.5).slice(0, can);
+    if (!tuMoi.length) console.error(`⚠ chủ đề ${cd}: hết từ chưa dùng (${C.tu.length} từ trong game-chu-de.mjs) — thêm từ`);
+    for (const [k, dich] of tuMoi.entries()) {
+      const h = thang[k % thang.length]!, g = thuTu[k % thuTu.length]!, d = deGame(dich);
+      const slug = `game-${g.id}-${cd}-${dich.toLowerCase()}`;
+      await napVideo(db, ma, [{ slug, chu_de: C.goi, de: { ...d, goi: C.goi, mau: mauCu }, dang: { title: h.title.replace(/^Only ONE says [A-Z]+\./, `Only ONE says ${dich}.`),
+        description: `35 of these are misspelled by one letter. Only one says ${dich}.\n${C.mo_ta}`, link: C.link, book: 'nostalgia', words: [dich], nhom: 'Góc spy', dang_bai: 'only-one', chu_de_page: cd,
+        goc: { sp: g.sp, id: g.id, loai: g.loai, ten: g.ten }, hook: { qc: `kenh:${h.id}`, goc: h.title, page: 'video thắng của kênh', ngay: 0, nguon: 'kenh', luot_xem: h.luot_xem } } } as never]);
+      const v = ((await db.execute(sql`SELECT id FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${slug}`)) as unknown as { id: number }[])[0];
+      const kq = v ? await xuatVideo(db, Number(v.id)) : { ok: false as const, loi: 'không thấy dòng vừa nạp' };
+      ra.push(`${kq.ok ? '✓' : '⚠'} ${slug} (chủ đề ${cd} cho ${nenPg.join(', ')})${kq.ok ? '' : ` · dựng ✗ ${kq.loi}`}`);
+    }
+  }
   console.log(ra.join('\n')); console.log(`sinh game ${ma}: ${ra.filter((x) => x.startsWith('✓')).length}/${N} video, 0₫`);
 } else if (a.includes('--tu-khoa') || a.includes('--viet-bai')) {
   // BÀI VIẾT bằng chữ AI rẻ (followup #1470): stdin { goc: { sp, id, loai, ten } [, cau_hoi, link] } → JSON. Một bài ~1¢ trở xuống (Haiku qua ckey) — dưới ngưỡng tự chạy;

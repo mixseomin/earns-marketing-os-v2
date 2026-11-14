@@ -154,6 +154,14 @@ export function taoNguoi(o = {}) {
         dich.coChanT.x = dich.coChanP.x = -0.3; dich.dau.x = -0.3; hongYDich = 0.95;
       } else if (TT === 'qua') {
         dich.vaiT.x = dich.vaiP.x = -1.1; dich.khuyuT.x = dich.khuyuP.x = -0.3; dich.duiT.x = -1.4; dich.goiT.x = 1.8; dich.duiP.x = -0.6; dich.goiP.x = 1.0; dich.bung.x = 0.45; dich.dau.x = -0.2;
+      } else if (TT === 'cuoi') { // ngồi yên ngựa: hai chân dạng ôm bụng ngựa, tay cầm cương, nhún theo nước đi
+        const v = st.tocXe || 0, n = Math.sin(performance.now() / 1000 * (4 + v * 0.9)) * Math.min(1, v / 6);
+        dich.duiT.x = dich.duiP.x = -0.55; dich.duiT.z = 0.62; dich.duiP.z = -0.62; dich.goiT.x = dich.goiP.x = 1.05; dich.coChanT.x = dich.coChanP.x = -0.3;
+        dich.vaiT.x = dich.vaiP.x = -0.65; dich.khuyuT.x = dich.khuyuP.x = -0.85; dich.bung.x = 0.1 + Math.min(0.35, v * 0.03); dich.dau.x = -0.1 - Math.min(0.25, v * 0.02);
+        hongYDich = 0.95 + n * 0.05;
+      } else if (TT === 'lai') { // ngồi ghế xe, tay giữ cương
+        dich.duiT.x = dich.duiP.x = -1.45; dich.goiT.x = dich.goiP.x = 1.0; dich.duiT.z = 0.08; dich.duiP.z = -0.08;
+        dich.vaiT.x = dich.vaiP.x = -0.75; dich.khuyuT.x = dich.khuyuP.x = -0.7; dich.bung.x = 0.12; hongYDich = 0.95;
       } else if (TT === 'boi') { // bơi ếch: thân nằm sấp, ngẩng đầu, tay quạt, chân đạp
         const q = st.phaBoi || 0, a = Math.sin(q), c = Math.cos(q);
         nghiengDich = 1.3; dich.dau.x = -1.05; dich.co.x = -0.2;

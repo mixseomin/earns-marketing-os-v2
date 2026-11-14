@@ -36,6 +36,7 @@
   #hd.an { display: none; }
   #bd { position: fixed; left: 12px; bottom: 76px; width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 2px solid var(--vien); box-shadow: 0 4px 18px rgba(0,0,0,.5); cursor: zoom-in; z-index: 3; }
   #bd canvas { width: 100%; height: 100%; display: block; }
+  #goiY { position: fixed; left: 50%; bottom: 66px; transform: translateX(-50%); display: none; padding: 6px 12px; border-radius: 8px; background: rgba(20,12,8,.72); color: #ffe2b8; font: 600 13px system-ui, sans-serif; pointer-events: none; white-space: nowrap; }
   #toado { position: fixed; left: 12px; bottom: 56px; font: 600 11.5px ui-monospace, monospace; color: var(--mo); text-shadow: 0 1px 2px #000; }
   #gy { inset: 0; display: none; place-items: center; background: rgba(10,5,3,.5); z-index: 8; border: 0; border-radius: 0; }
   #gy > div { width: min(440px, calc(100vw - 32px)); padding: 16px; background: var(--o); border: 1px solid var(--vien); border-radius: 12px; display: flex; flex-direction: column; gap: 10px; }
@@ -56,7 +57,7 @@
 // hỏi máy gốc ETag từng tệp (HEAD kèm ?ban=<giờ> = luôn trượt cache biên), rồi nạp ./x.js?v=<ETag>: tệp đổi → địa chỉ đổi → không ai giữ bản cũ.
 // Thêm tệp .js mới vào trang = thêm tên vào TEP.
 (async () => {
-  const TEP = ['main.js', 'tex.js', 'nhanvat.js', 'songdong.js', 'quan.js', 'amthanh.js', 'bando.js'];
+  const TEP = ['main.js', 'tex.js', 'nhanvat.js', 'songdong.js', 'quan.js', 'amthanh.js', 'bando.js', 'phuongtien.js'];
   const lay = (f) => fetch(`./${f}?ban=${Date.now()}`, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' })
     .then((r) => (r.ok && (r.headers.get('etag') || r.headers.get('last-modified')) || '').replace(/[^\w-]/g, '')).catch(() => '');
   const dau = await Promise.all(TEP.map(lay));
@@ -89,6 +90,7 @@
     <div class="d"><span><kbd>Space</kbd></span><span>nhảy</span></div>
     <div class="d"><span><kbd>Space</kbd> sát tường</span><span>tường thấp: trèo qua · cao: bám leo</span></div>
     <div class="d"><span>đang leo</span><span><kbd>W</kbd><kbd>S</kbd> lên xuống · <kbd>A</kbd><kbd>D</kbd> ngang · tới mép tự đu lên · <kbd>Space</kbd> bật ra</span></div>
+    <div class="d"><span><kbd>E</kbd> cạnh ngựa / xe</span><span>cưỡi ngựa · lái xe ngựa (bãi cỏ cạnh sân đầu cầu)</span></div>
     <div class="d"><span>xuống nước</span><span>tự bơi · <kbd>Shift</kbd> bơi nhanh · bơi vào bờ tự trèo lên (hồ ở bãi cỏ cạnh sân đầu cầu)</span></div>
     <div class="d"><span><kbd>C</kbd> giữ</span><span>ngồi xuống</span></div>
     <b>Động tác</b>
@@ -142,6 +144,7 @@
   <div class="kq" id="gy-kq"></div>
   <div class="hang" style="justify-content:flex-end"><button id="gy-dong">Đóng</button><button id="gy-gui" class="chinh">Gửi</button></div>
 </div></div>
+<div id="goiY"></div>
 <div id="can"><i></i></div>
 <div id="cham"><button id="b-goc">👁</button><button id="b-noi">Nói</button><button id="b-chao">Chào</button><button id="b-mua">Múa</button><button id="b-da">Đá</button><button id="b-nhay">Nhảy</button><button id="b-nem">Ném</button></div>
 </body>

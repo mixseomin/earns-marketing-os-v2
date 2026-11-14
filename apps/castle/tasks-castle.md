@@ -26,13 +26,14 @@ $S submit <id> "<lời>" [url]  # → Review (nộp cho anh duyệt)
 
 | Phần | Tệp |
 |---|---|
-| Dựng lâu đài (đảo, tường, tháp, phố, nhà, cầu), vật lý Rapier, người chơi, camera, vòng vẽ, trần khung hình, lưu chỗ đứng (F5), góp ý | `main.js` |
+| Dựng lâu đài (đảo, tường, tháp, phố, nhà, cầu, bãi cỏ + hồ), vật lý Rapier, người chơi, camera, vòng vẽ, trần khung hình, lưu chỗ đứng (F5), góp ý | `main.js` |
 | Bề mặt vẽ bằng canvas (đá, ngói, vữa gỗ, cuội, ván) | `tex.js` |
 | Khung xương người + mọi động tác; vẽ hàng loạt; chỉ vẽ chi tiết người trong khung nhìn & gần 45 m | `nhanvat.js` |
 | Quán Lửa Đỏ: nhà + nội thất + 14 người trong quán | `quan.js` |
 | Ngày–đêm, lịch người dân, đường phố, chợ, lò rèn, giếng, lính tuần, lời thoại (E), gà, chó, chim, khói | `songdong.js` |
 | Âm thanh Web Audio (không tệp) | `amthanh.js` |
 | Bản đồ nhỏ | `bando.js` |
+| Ngựa + xe ngựa (hình, dáng đi); cưỡi / lái / leo / bơi nằm trong `main.js` (`buocXe`, `buocDiBo`) | `phuongtien.js` |
 | Giao diện (nút, bảng hướng dẫn, hộp góp ý) | `index.html` |
 | nginx castle.on.tc (SSO mos2 + `/api/gop-y`) | `apps/castle/deploy/castle.on.tc.nginx` — cài tay lên box3 sau deploy (chép vào `/etc/nginx/sites-enabled/castle.on.tc`, `nginx -t`, reload); deploy.sh chưa tự cài vhost này |
 

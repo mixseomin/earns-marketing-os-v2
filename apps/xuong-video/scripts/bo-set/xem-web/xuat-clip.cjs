@@ -24,7 +24,7 @@ const rong = Number(rongS || 1280), cao = Math.round((rong * 9) / 16 / 2) * 2, f
     const t0 = Date.now();
     for (let f = 0; f < n; f++) {
       const tg = -du + (f / fps);   // giây so với điểm vào khung chính (âm = dư đầu)
-      const url = await p.evaluate(([i, u]) => { dungShot(i, u); ve.render(canh, may); return ve.domElement.toDataURL('image/png'); }, [i, tg / chinh]);
+      const url = await p.evaluate(([i, u]) => { dungSach(i, u); ve.render(canh, may); return ve.domElement.toDataURL('image/png'); }, [i, tg / chinh]);   // khung SẠCH (mau.html › dungSach): không tia nhìn / dây đường đi — model video chép cả chúng
       fs.writeFileSync(path.join(tm, `f${String(f + 1).padStart(4, '0')}.png`), Buffer.from(url.split(',')[1], 'base64'));
     }
     const mp4 = path.join(ra, `shot-${String(ds[i].so).padStart(2, '0')}.mp4`);

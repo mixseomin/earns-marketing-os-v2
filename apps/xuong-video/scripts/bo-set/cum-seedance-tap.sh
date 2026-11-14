@@ -10,7 +10,7 @@ TAP=$1; CUM=${2:-}; CHAY=${3:-}
 BOX=root@167.233.241.16; RBOX=/opt/earns-marketing-os-v2/apps/xuong-video
 TSX="set -a; . ../../.env.production; set +a; NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx"
 TM=$(mktemp -d); trap 'rm -rf "$TM"' EXIT
-ssh "$BOX" "cd $RBOX && $TSX scripts/cum-seedance.mts --tap=$TAP" > "$TM/ke.txt"
+ssh "$BOX" "cd $RBOX && $TSX scripts/cum-seedance.mts --tap=$TAP ${LAI:+--lai=$LAI}" > "$TM/ke.txt"   # LAI=2,3: sinh lại các shot đó dù clip còn khớp keyframe (clip lỗi)
 if [ -z "$CUM" ]; then sed '$d' "$TM/ke.txt"; exit 0; fi
 tail -1 "$TM/ke.txt" > "$TM/ke.json"
 python3 - "$TM/ke.json" "$CUM" "$TM" <<'PY'

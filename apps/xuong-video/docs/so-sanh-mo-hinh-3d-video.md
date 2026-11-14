@@ -46,4 +46,4 @@ Kling 3.0 Motion Control $0,1135; APIMaster Kling V4 Flash $0,094 · Kling V3 Om
 | Ngày | Phương án | Shot | Tham số | Giá thật | Kết quả |
 |---|---|---|---|---|---|
 | 14/11/2026 | Luma Ray 3.2 v2v | #1 (id 9216) | keyframe ghim khung `vao×24`, edit_strength flex_2, 540p, 5s | — | KHÔNG CHẠY: cổng tiền chặn (giá thật $0,72 > ngưỡng tự chạy) — chờ anh duyệt |
-| 14/11/2026 | LTX 2.3 distilled ref v2v | #1 (id 9216) | keyframe = image_url, video_strength 0,8, không tiếng, dài theo clip | | |
+| 14/11/2026 | LTX 2.3 distilled ref v2v | #1 (id 9216) · job 8293 | keyframe = image_url, video_strength 0,8, không tiếng, dài theo clip (4 s, 1376×768) | sổ ước 17,5¢; tính theo khung ~11¢ (~2.900₫) | ĐẠT bố cục: máy, tàu, cột, ki-ốt, chỗ đứng 2 người bám đúng clip 3D cả 4 s; không bịa hành động; nét anime giữ. CHƯA ĐẠT người: nhóc mặc sai đồ (áo xanh trắng thay áo be + quần kaki), mặt nhỏ mờ; áo chú thêm viền vàng. Khung lệch nhẹ so với keyframe (theo khung 3D). Clip: https://img.on.tc/xuong-video/clip/9216-c47835ba-64ba-4d2b-b69c-327c6511fff4.mp4 |

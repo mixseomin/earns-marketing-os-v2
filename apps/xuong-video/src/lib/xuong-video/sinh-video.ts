@@ -366,7 +366,9 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
     const clip3 = kx?.clip && kx.clip.ma === kx.ma ? kx.clip : null;
     const videoNguon = clip3 && /3d-to-video|reference-to-video|video-to-video|vace/.test(id) ? clip3.url : kx && (bc.canh.keyframe_url === kx.mau || /reference-to-video|vace/.test(id)) ? kx.dien ?? null : null;
     kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, khungGiua, videoNguon, vaoNguon: videoNguon && clip3 && videoNguon === clip3.url ? clip3.vao : undefined, giay: bc.canh.thoi_luong_s || giay, giayPhat: bc.canh.phat_s, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
-    if (kq.ok && clip3 && videoNguon === clip3.url) await db.execute(sql`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${JSON.stringify(clip3.vao)}::jsonb) WHERE id = ${canhId}`);
+    // Điểm vào = đoạn dư đầu của clip 3D nguồn: GHI VÀO JOB, gắn vào shot cùng câu lệnh gắn clip (trigger xv_canh_doi_clip — migration 0328 — xoá vao_s cũ khi
+    // đổi clip; ghi lúc gửi thì clip về là mất, 14/11/2026 #3071 #1).
+    if (kq.ok && clip3 && videoNguon === clip3.url) await db.execute(sql`UPDATE xv_job SET request = request || ${JSON.stringify({ vaoNguon: clip3.vao })}::jsonb WHERE id = ${job}`);
   } else {
     const anhDau = await taiAnhBase64(bc.canh.keyframe_url);
     if (!anhDau) { await xongJob(db, job, { loi: 'không tải được keyframe' }); return loi('không tải được keyframe'); }
@@ -446,7 +448,7 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
       continue;
     }
     const req = (await db.execute(sql`SELECT request, model FROM xv_job WHERE id = ${r.id}`)) as unknown as Row[];
-    const rq = (req[0]?.request ?? {}) as { giay?: number; doPhanGiai?: '720p' | '1080p'; ban?: 'nhap' | 'cuoi'; nangCap?: boolean; khopMieng?: boolean; prompt?: string; khungDau?: string; khungCuoi?: string | null; tieng?: boolean };
+    const rq = (req[0]?.request ?? {}) as { giay?: number; doPhanGiai?: '720p' | '1080p'; ban?: 'nhap' | 'cuoi'; nangCap?: boolean; khopMieng?: boolean; prompt?: string; khungDau?: string; khungCuoi?: string | null; tieng?: boolean; vaoNguon?: number };
     const cong = (r.nguon?.cents != null && laCong) ? r.nguon.cents : null;
     const gia = cong != null ? cong : rq.nangCap ? NANG_CAP.giaGiayCents * (rq.giay ?? 8) : rq.khopMieng ? KHOP_MIENG.giaGiayCents * (rq.giay ?? 8) : await giaVideoSv(s(req[0]?.model), rq.doPhanGiai ?? '720p', rq.giay ?? 8, rq.tieng !== false);
     await xongJob(db, r.id, { output_url: url, chi_phi_cents: gia });
@@ -460,7 +462,10 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     } else {
       // Nháp: lưu NGUỒN để bản cuối tái lập đúng (model, prompt, khung đầu/cuối).
       const nguon = { model: s(req[0]?.model), prompt: rq.prompt ?? '', khung_dau: rq.khungDau ?? null, khung_cuoi: rq.khungCuoi ?? null, giay: rq.giay ?? null, job: r.id };
-      await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify(nguon)}::jsonb, trang_thai = 'xong', loi = '', chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${r.canh_id}`);
+      // clip dựng từ clip 3D có đoạn dư đầu → điểm vào ghi CÙNG câu lệnh đổi clip (trigger giữ giá trị mới)
+      const vao = typeof rq.vaoNguon === 'number' ? JSON.stringify(rq.vaoNguon) : null;
+      await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify(nguon)}::jsonb, trang_thai = 'xong', loi = '', chi_phi_cents = chi_phi_cents + ${gia},
+        ky_thuat = CASE WHEN ${vao}::text IS NULL THEN ky_thuat ELSE jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${vao}::jsonb) END, updated_at = now() WHERE id = ${r.canh_id}`);
     }
     // Máy soi clip (soi-clip.ts, 0đ): chữ lạ model tự in + sản phẩm còn trong khung — lỗi hiện trên thẻ shot, bản xuất không nhận clip lỗi.
     // ĐIỂM CẮT CUỐI (ảnh thứ 2 có dải nhịp): dò lúc dải nhịp hiện ra → cat_cuoi_s; bản xuất không phát quá điểm này.

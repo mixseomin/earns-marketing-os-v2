@@ -51,3 +51,17 @@ Kling 3.0 Motion Control $0,1135; APIMaster Kling V4 Flash $0,094 · Kling V3 Om
 | 14/11/2026 | Wan VACE 14B | #1 (id 9216) · job 8297 | task depth + preprocess, first_frame = keyframe, ref = keyframe, khớp khung/fps clip 3D, 480p (832×480), negative_prompt ghi đè | sổ ước 48¢; trang fal 480p $0,04/s × 4 s ≈ $0,16 (~4.200₫) | KÉM NHẤT: hình nhoè, vân bệt; chú biến khỏi cửa sổ ở giây 1–3; toa tàu méo hình. Chỉ nhóc đứng đúng chỗ. Clip: https://img.on.tc/xuong-video/clip/9216-e1e89aa7-3d1b-4732-beb8-b4847c0e3b4b.mp4 |
 | 14/11/2026 | Kie Seedance 2.0 Fast reference-to-video (`scripts/thu-seedance-kie.mts`) | #1 (id 9216) · job 8305 | ảnh tham chiếu: keyframe (@Image1) + tờ chân dung chú + nhóc (anh_ref[0]); video tham chiếu: clip 3D (@Video1, chỉ lấy chuyển động); 480p (864×496), 5 s, không tiếng | ~30,6¢ (~8.000₫) theo bảng Kie: $0,034/s × (4 s vào + 5 s ra) | TỐT NHẤT tới giờ: người ĐÚNG keyframe (mặt + áo khoác chú, áo be quần kaki nhóc), nét vẽ y keyframe, bố cục + chỗ đứng bám clip 3D, nhóc nhìn chú, không bịa hành động. 200 s. Clip: https://img.on.tc/xuong-video/clip/9216-e2f6d0cd-c869-4d95-80b4-716935529287.mp4 |
 | 14/11/2026 | Kie Seedance 2.0 Fast — CỤM (`scripts/thu-seedance-cum.mts`) | cụm B #8–10 (9213, 9198, 9199) · job 8306 | video tham chiếu = clip 3D nối 3 shot (cắt đúng đoạn phát, 7,54 s, dựng trên iMac); 8 ảnh: 2 người × 2 tờ chân dung + bối cảnh + 3 keyframe; promptCumMoi; 480p, 8 s | ~52,8¢ (~13.700₫) = $0,034 × (7,54 + 8) | ĐẠT: cú cắt đo 3,33 / 5,54 s khớp mốc 3D (3,3 / 5,5); máy lia theo nhóc chạy đúng 3D; 3 góc đúng keyframe; người nhất quán cả 3 shot, không nhân đôi. Lỗi nhỏ: shot #9 nền xa có 1–2 người + tàu đường bên (3D không có). Rẻ ~½ so với sinh từng shot. Clip: https://img.on.tc/xuong-video/clip/cum-9213-9198-9199-b45b860e-fe24-4cf1-947e-d4f765340568.mp4 |
+
+## Khớp môi — chọn cách theo loại phim (máy: `src/lib/xuong-video/khop-moi-cach.ts`, hiện trong kế hoạch cụm)
+
+TRẠNG THÁI: GIẢ ĐỊNH theo đặc tính hai cách, chưa đo. Kết quả A/B (shot #4 phim #3071) ghi ở nhật ký thử rồi sửa bảng + hàm `chonCachKhopMoi`.
+
+| Loại phim | Người nói trong một lần sinh | Cách | Vì sao |
+|---|---|---|---|
+| Vẽ 2D / anime / hoạt hình | 1 | Seedance gửi kèm giọng (@Audio1 + nguyên văn câu) | giữ nét vẽ, mặt + thân diễn theo câu, gần như 0đ thêm |
+| Người thật, tiếng Trung / Anh | 1 | Seedance gửi kèm giọng | Seedance khớp tốt nhất hai tiếng này (hướng dẫn công khai) |
+| Người thật, tiếng Việt / tiếng khác | 1 | Sinh câm → Sync Lipsync v2 (`scripts/khop-moi-shot.mts`, $3/phút) | Seedance chưa đo tiếng này; khớp sau bám âm vị |
+| Mọi loại | ≥ 2 | Tách cụm mỗi lần một người nói, hoặc Sync v2 từng shot | Seedance nhép lẫn người (ByteDance tự nhận) |
+
+Dự phòng: shot nào soát thấy miệng lệch câu → Sync v2 riêng shot đó (giọng đệm lặng = điểm vào clip + trễ câu).
+Nguồn: Scenario, cutout.pro, OpenArt (audio tham chiếu 3–8 s, mp3, ghi kèm nguyên văn câu), Artlist, Replicate — 15/11/2026.

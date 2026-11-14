@@ -8,17 +8,28 @@ import { mapCanh, type Row } from '../src/lib/xuong-video/doc-db';
 import { chiaCumCan } from '../src/lib/xuong-video/cum-shot';
 import { giayPhat } from '../src/lib/xuong-video/kieu';
 
-const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
+const arg = (k: string, d = ''): string => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
 const tap = Number(arg('tap')); const dpg = arg('dpg', '480p'); if (!tap) { console.error('cần --tap'); process.exit(1); }
 const db = getDb()!;
 const ds = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tap} AND coalesce(nhanh, '') IN ('', 'A') ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
 const gia = dpg === '720p' ? 7.5 : 3.4;
-const cum = chiaCumCan(ds, 15).map((c, i) => {
+// KHÔNG SINH LẠI ĐOẠN ĐÃ CÓ (anh 14/11/2026: "đoạn nào sinh rồi thì không sinh lại vì phí, chỉ sinh lại đoạn lỗi"): shot có clip mà job sinh ra nó đã dùng ĐÚNG
+// keyframe hiện tại (request.anh / request.khungDau chứa keyframe_url) thì giữ. Keyframe đổi sau lần sinh (vd #10 sửa dáng) = clip cũ → sinh lại. Anh muốn bỏ một
+// clip đạt-về-máy nhưng sai ý → gỡ video_url của shot đó (hoặc --lai=<số shot>) rồi chạy lại.
+const lai = new Set(arg('lai').split(',').map(Number).filter(Boolean));
+const jobIds = ds.map((c) => Number((c.nguon_video as { job?: number } | null)?.job)).filter((x) => x > 0);
+const jobs = new Map(((jobIds.length ? await db.execute(sql`SELECT id, request FROM xv_job WHERE id = ANY(${`{${jobIds.join(',')}}`}::int[]) AND output_url IS NOT NULL`) : []) as unknown as Row[]).map((r) => [Number(r.id), JSON.stringify(r.request ?? {})]));
+const conDung = (c: (typeof ds)[number]) => { const j = Number((c.nguon_video as { job?: number } | null)?.job); return !lai.has(c.thu_tu) && !!c.video_url && !!c.keyframe_url && !!jobs.get(j)?.includes(c.keyframe_url); };
+const giu = ds.filter(conDung);
+// đoạn CẦN SINH liền nhau (shot giữ cắt đôi đoạn) → chia cụm cân trong từng đoạn
+const doan: (typeof ds)[] = []; for (const c of ds) { if (conDung(c)) { doan.push([]); continue; } (doan.at(-1) ?? doan[doan.push([]) - 1]!).push(c); }
+const cum = doan.filter((d) => d.length).flatMap((d) => chiaCumCan(d, 15)).map((c, i) => {
   const tong = c.reduce((a, x) => a + giayPhat(x), 0); const ra = Math.max(4, Math.ceil(tong));
   const thieu = c.filter((x) => !(x.khung_xam?.clip && x.khung_xam.clip.ma === x.khung_xam.ma) || !x.keyframe_url).map((x) => x.thu_tu);
   return { ten: String.fromCharCode(65 + i), phan_doan: c[0]!.phan_doan, shot: c.map((x) => ({ id: x.id, so: x.thu_tu, phat: giayPhat(x), clip: x.khung_xam?.clip?.url ?? null, vao: x.khung_xam?.clip?.vao ?? 0 })),
     tong: +tong.toFixed(2), ra, cents: +(gia * (tong + ra)).toFixed(1), thieu };
 });
+console.log(`giữ clip (không sinh lại): ${giu.length ? giu.map((c) => `#${c.thu_tu}`).join(' ') : 'không có'}`);
 for (const c of cum) console.log(`cụm ${c.ten} · ${c.phan_doan} · #${c.shot.map((x) => x.so).join(' #')} · ${c.tong} s → clip ${c.ra} s · ~${c.cents}¢${c.thieu.length ? ` · THIẾU clip 3D / keyframe: #${c.thieu.join(' #')}` : ''}`);
 console.log(`tổng ~${cum.reduce((a, c) => a + c.cents, 0).toFixed(1)}¢ (${dpg})`);
 console.log(JSON.stringify(cum));

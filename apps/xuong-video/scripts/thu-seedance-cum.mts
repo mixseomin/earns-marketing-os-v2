@@ -21,7 +21,7 @@ const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}
 const ids = arg('canh').split(',').map(Number).filter(Boolean); const fileVideo = arg('video-file'); const dpg = arg('dpg', '480p') as '480p' | '720p';
 const model = arg('model', 'bytedance/seedance-2-fast'); const xem = process.argv.includes('--xem');
 const key = process.env.KIE_API_KEY; if (!key) { console.error('thiếu KIE_API_KEY'); process.exit(1); }
-if (ids.length < 2 || !fileVideo) { console.error('cần --canh=<id,id,…> (≥ 2 shot liền nhau) và --video-file=<clip 3D nối của cụm>'); process.exit(1); }
+if (!ids.length || !fileVideo) { console.error('cần --canh=<id,…> (shot liền nhau, một shot cũng được) và --video-file=<clip 3D nối của cụm>'); process.exit(1); }
 const db = getDb()!;
 const bcs = await Promise.all(ids.map((id) => boiCanhCanh(db, id))); if (bcs.some((b) => !b?.canh.keyframe_url)) { console.error('có shot thiếu keyframe'); process.exit(1); }
 const cum = bcs.map((b) => ({ canh: b!.canh, nhanVat: b!.nhanVat, look: b!.look }));

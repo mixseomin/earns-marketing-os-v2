@@ -23,9 +23,6 @@
   button.chinh { background: var(--nhan); color: #1a0d06; border-color: var(--nhan); font-weight: 600; }
   #tai { position: fixed; inset: 0; display: grid; place-items: center; background: var(--nen); z-index: 9; font-size: 15px; }
   #tai .loi { color: #ff9a8a; max-width: 420px; text-align: center; }
-  #tam { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255,240,220,.8); display: none; pointer-events: none; }
-  #dung { inset: 0; display: none; place-items: center; background: rgba(10,5,3,.45); z-index: 5; border: 0; border-radius: 0; }
-  #dung > div { display: flex; flex-direction: column; gap: 10px; align-items: center; padding: 18px 20px; background: var(--o); border: 1px solid var(--vien); border-radius: 12px; }
   #can { position: fixed; left: 24px; bottom: 90px; width: 120px; height: 120px; border-radius: 50%; border: 1px solid var(--vien); background: rgba(24,14,10,.35); display: none; touch-action: none; }
   #can i { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; background: rgba(255,138,61,.45); }
   #cham { position: fixed; right: 14px; bottom: 80px; display: none; flex-direction: column; flex-wrap: wrap-reverse; max-height: 260px; gap: 8px; }
@@ -86,19 +83,19 @@
   <div class="pc">
     <b>Đi bộ</b>
     <div class="d"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>di chuyển</span></div>
-    <div class="d"><span>chuột</span><span>nhìn quanh</span></div>
-    <div class="d"><span><kbd>Z</kbd><kbd>X</kbd></span><span>quay trái / phải</span></div>
+    <div class="d"><span>giữ chuột + kéo</span><span>xoay camera</span></div>
+    <div class="d"><span><kbd>Z</kbd><kbd>X</kbd></span><span>xoay camera trái / phải</span></div>
     <div class="d"><span><kbd>Shift</kbd></span><span>chạy</span></div>
     <div class="d"><span><kbd>Space</kbd></span><span>nhảy</span></div>
     <div class="d"><span><kbd>C</kbd> giữ</span><span>ngồi xuống</span></div>
     <b>Động tác</b>
-    <div class="d"><span>nhấp chuột</span><span>ném đá</span></div>
+    <div class="d"><span>nhấp chuột</span><span>ném đá vào chỗ nhấp</span></div>
     <div class="d"><span><kbd>F</kbd></span><span>đá chân (hất thùng, làm ngã)</span></div>
     <div class="d"><span><kbd>E</kbd></span><span>nói chuyện · gọi rượu ở quầy</span></div>
     <div class="d"><span><kbd>1</kbd></span><span>chào</span></div>
     <div class="d"><span><kbd>2</kbd></span><span>múa</span></div>
     <div class="d"><span><kbd>V</kbd></span><span>góc nhìn sau lưng / mắt</span></div>
-    <div class="d"><span><kbd>Esc</kbd></span><span>dừng, hiện chuột</span></div>
+    <div class="d"><span><kbd>Esc</kbd></span><span>về toàn cảnh</span></div>
     <b>Toàn cảnh</b>
     <div class="d"><span>kéo chuột</span><span>xoay</span></div>
     <div class="d"><span>lăn chuột</span><span>phóng to / nhỏ</span></div>
@@ -132,7 +129,6 @@
   <button id="b-hd" title="Bảng hướng dẫn nút (H)">❔</button>
   <button id="b-gio" title="Giờ trong lâu đài — bấm để tua nhanh ×30 / về ×1">🕒 17:30 ×1</button>
 </div>
-<div id="tam"></div>
 <div id="bd" title="Bản đồ — bấm để phóng to / thu nhỏ"><canvas></canvas></div>
 <div id="toado"></div>
 <div id="gy" class="o"><div>
@@ -142,12 +138,6 @@
     <label><input type="radio" name="gy-loai" value="loi" checked> Lỗi / sửa</label><label><input type="radio" name="gy-loai" value="cau_hoi"> Hỏi</label></div>
   <div class="kq" id="gy-kq"></div>
   <div class="hang" style="justify-content:flex-end"><button id="gy-dong">Đóng</button><button id="gy-gui" class="chinh">Gửi</button></div>
-</div></div>
-<div id="dung" class="o"><div>
-  <b>Đang dừng</b>
-  <div style="color:var(--mo);font-size:13px;text-align:center">W A S D đi · chuột nhìn · Shift chạy · Space nhảy · C ngồi · nhấp ném đá<br>E nói chuyện / gọi rượu ở quầy · F đá chân · 1 chào · 2 múa · V đổi góc nhìn</div>
-  <button id="b-tiep" class="chinh">Đi tiếp</button>
-  <button id="b-ra">Về toàn cảnh</button>
 </div></div>
 <div id="can"><i></i></div>
 <div id="cham"><button id="b-goc">👁</button><button id="b-noi">Nói</button><button id="b-chao">Chào</button><button id="b-mua">Múa</button><button id="b-da">Đá</button><button id="b-nhay">Nhảy</button><button id="b-nem">Ném</button></div>

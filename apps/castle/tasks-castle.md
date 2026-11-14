@@ -34,7 +34,7 @@ $S submit <id> "<lời>" [url]  # → Review (nộp cho anh duyệt)
 | Âm thanh Web Audio (không tệp) | `amthanh.js` |
 | Bản đồ nhỏ | `bando.js` |
 | Người chơi có xương + 24 động tác thật (Quaternius CC0, `tai-san/nguoi.glb` dựng bằng `scripts/tai-nhan-vat.mjs`) | `nguoi3d.js` |
-| Mô-đun đi bộ dùng chung (đi / leo / đu mép / camera) — Neuschwanstein dùng; main.js còn bản riêng có bơi + ngựa + xe | `dibo.js` |
+| Mô-đun đi bộ dùng chung cho cả hai cảnh (đi / leo / đu mép / bơi / camera / đẩy vật; ngựa + xe móc vào qua `ngoai.buoc` / `ngoai.khung` trong main.js) | `dibo.js` |
 | Neuschwanstein thật (số đo OSM + địa hình, so ảnh thật, vật liệu, rừng, đi bộ) — trang `neuschwanstein.html`, dữ liệu `du-lieu/`, chỉnh theo ảnh `du-lieu/neuschwanstein-sua.json` | `ns.js` |
 | Ngựa + xe ngựa (hình, dáng đi); cưỡi / lái / leo / bơi nằm trong `main.js` (`buocXe`, `buocDiBo`) | `phuongtien.js` |
 | Giao diện (nút, bảng hướng dẫn, hộp góp ý) | `index.html` |

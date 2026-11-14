@@ -8,6 +8,7 @@ export default {
   serverExternalPackages: ['postgres'],
   experimental: { serverActions: { bodySizeLimit: '2mb' } },
   async headers() {
-    return [{ source: '/((?!_next/static).*)', headers: [{ key: 'Cache-Control', value: 'private, no-cache, no-store, max-age=0, must-revalidate' }] }];
+    // Trừ /api/xv/nho (14/11/2026): chuyển hướng ảnh nhỏ tự đặt "nhớ 1 năm" — luật no-store chung đè mất, mỗi lần timeline sang shot lại tốn ~0,4 s gọi máy chủ.
+    return [{ source: '/((?!_next/static|api/xv/nho).*)', headers: [{ key: 'Cache-Control', value: 'private, no-cache, no-store, max-age=0, must-revalidate' }] }];
   },
 };

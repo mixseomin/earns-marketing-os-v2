@@ -148,13 +148,17 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const c = canh[idx];
   const tTrong = c ? t - batDau[idx]! : 0;
   // Đổi tốc + tiếng hiệu ứng thật — CÙNG kế hoạch với bản xuất (toc-do.ts, sfx.ts).
-  const [daiVid, setDaiVid] = useState(0);
+  // ĐỘ DÀI CLIP THEO URL (15/11/2026): một số trơn giữ độ dài clip TRƯỚC khi clip mới nạp xong — sang shot dùng clip cụm, điểm vào bị kẹp theo clip cũ (4 s)
+  // → #5 phát ở 2,99 s thay vì 5,27 s. Nhớ theo url, nạp cả từ thẻ video tải trước của shot kề.
+  const [daiCua, setDaiCua] = useState<Record<string, number>>({});
+  const ghiDai = (u: string, d: number) => { if (d > 0) setDaiCua((m) => (m[u] === d ? m : { ...m, [u]: d })); };
   // CHẾ ĐỘ XEM (anh 13/11/2026: "film dạng 3D có đủ chuyển động, rồi các keyframe, sau đó mới đến video"): 3D = clip three.js của shot (khung_xam.clip,
   // bỏ dư đầu vao) · Keyframe = ảnh keyframe · Video = clip AI. Clip Blender thô gán tạm vào video_url (nguon_video.model 'blender:tho') KHÔNG tính là video.
   const [cheDo, setCheDo] = useNho<'3d' | 'keyframe' | 'video'>(`xv-tl-che-do-${tap.phim_id}`, 'video', ['3d', 'keyframe', 'video'], 'tlx');
   const clip3d = c?.khung_xam?.clip && c.khung_xam.clip.ma === c.khung_xam.ma ? c.khung_xam.clip : null;
   const vidAi = c && !String(c.nguon_video?.model ?? '').startsWith('blender') ? c.video_cuoi_url || c.video_url : null;
   const vid = !c ? null : cheDo === '3d' ? clip3d?.url ?? null : cheDo === 'keyframe' ? null : vidAi;
+  const daiVid = vid ? daiCua[vid] ?? 0 : 0;
   const anhCua = (k: Canh): string | null => (cheDo === '3d' ? k.khung_xam?.mau ?? null : k.keyframe_url);
   const anhXem = c ? anhCua(c) : null;
   // NẠP SẴN ẢNH MỌI SHOT của chế độ đang xem (anh 14/11/2026: "play chế độ keyframe rất chậm, chạy qua mới thấy hình"): trước đây chỉ clip video của
@@ -562,7 +566,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                   onLoadedMetadata={(e) => { if (i !== idx) e.currentTarget.currentTime = cl.vao; }}
                   onPause={(e) => { if (i !== idx && Math.abs(e.currentTarget.currentTime - cl.vao) > 0.05) e.currentTarget.currentTime = cl.vao; }}
                   style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', visibility: i === idx ? 'visible' : 'hidden' }} />); })}
-              {c && cheDo === '3d' && clip3d ? null : c && (vid ? <video ref={vidRef} key={vid} src={vid} poster={anhNho(anhXem, 640) ?? undefined} playsInline preload="auto" onLoadedMetadata={(e) => setDaiVid(e.currentTarget.duration || 0)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {c && cheDo === '3d' && clip3d ? null : c && (vid ? <video ref={vidRef} key={vid} src={vid} poster={anhNho(anhXem, 640) ?? undefined} playsInline preload="auto" onLoadedMetadata={(e) => ghiDai(vid, e.currentTarget.duration || 0)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : anhXem ? <img src={anhNho(anhXem, 640)} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: cheDo === '3d' ? undefined : kb }} />
                 : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} {cheDo === '3d' ? 'chưa có khung 3D' : 'chưa có hình'}</div>)}
               {c && cheDo === '3d' && !clip3d && <div style={{ position: 'absolute', left: 6, top: 6, padding: '2px 6px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: '#fbbf24', fontSize: 11 }}>chưa xuất clip 3D — đang hiện khung mở</div>}
@@ -570,7 +574,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             </KhungHieuUng>
             {c?.chu_man && !anChuMan && <ChuManXem chu={c.chu_man} giay={tTrong} rong={rongXem} qc={qc} kieu={c.kieu_chu} phat={giayPhat(c)} />}
             {/* Tải trước clip shot trước / sau (#1366): bấm sang shot kề là hình có ngay; shot xa thì ảnh chờ (poster = keyframe nhỏ) hiện tức thì trong lúc clip tải. */}
-            {[canh[idx - 1], canh[idx + 1]].map((k) => k && (k.video_cuoi_url || k.video_url)).filter((u): u is string => !!u).map((u) => <video key={`truoc-${u}`} src={u} preload="auto" muted playsInline style={{ display: 'none' }} />)}
+            {[canh[idx - 1], canh[idx + 1]].map((k) => k && (k.video_cuoi_url || k.video_url)).filter((u): u is string => !!u).map((u) => <video key={`truoc-${u}`} src={u} preload="auto" muted playsInline onLoadedMetadata={(e) => ghiDai(u, e.currentTarget.duration || 0)} style={{ display: 'none' }} />)}
             {giongNay && <audio ref={thoaiRef} key={khoaGiong} src={giongNay.url} preload="auto" />}
             {c?.am_thanh_url && <audio ref={sfxRef} key={c.am_thanh_url} src={c.am_thanh_url} preload="auto" />}
             {tap.nhac_url && <audio ref={nhacRef} src={tap.nhac_url} preload="auto" />}

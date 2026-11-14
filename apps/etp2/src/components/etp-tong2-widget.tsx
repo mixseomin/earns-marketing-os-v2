@@ -3,6 +3,7 @@
 // Khoá của VE_SO phải có trong sổ lib/etp-widget.json (check-etp-gop-y đối chiếu) — thêm widget = mục trong sổ + một hàm ở đây.
 import { useEffect, useMemo, useState } from 'react';
 import { SimpleTable, StatsStrip, type SimpleColumn } from '@/components/ui';
+import { ThanhPho, laiPhim, xepTang, TANG } from '@/components/etp-toa-nha';
 import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
@@ -133,6 +134,23 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
   </div>;
 }
 
+/** ô widget Thành phố: cảnh 3D + một dòng tóm tắt phim đang chọn (đếm tầng, lãi 7 ngày) */
+function ThanhPhoO({ ds, cao }: { ds: NonNullable<SoTong2['toa']>; cao: number }) {
+  const [chon, setChon] = useState<number | null>(null);
+  const xep = useMemo(() => [...ds].sort((a, b) => laiPhim(b) - laiPhim(a)), [ds]);
+  const ph = xep.find((x) => x.p === chon) ?? null;
+  const k = ph ? ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }) : null;
+  const tong = xep.reduce((a, x) => a + x.camp.length, 0);
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 6, height: '100%' }}>
+    <div style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      {ph && k ? <><b style={{ color: 'var(--fg-1)' }}>{ph.ten}</b> · {[...TANG].map((t, i) => ({ t, n: ph.camp.filter((c) => xepTang(c) === i).length })).reverse().filter((x) => x.n).map((x) => `${x.t} ${x.n}`).join(' · ')}
+        {' · '}7 ngày lãi <b style={{ color: k.thu >= k.chi ? XANH : DO }}>{tien(k.thu - k.chi)}</b>{k.chi >= 1 ? ` (${pct(Math.round((k.thu - k.chi) / k.chi * 100))})` : ''}</>
+        : <>{xep.length} phim · {tong} camp đang chạy · toà càng cao càng nhiều ★ ROAS · bấm một toà để xem</>}
+    </div>
+    <ThanhPho ds={xep} chon={chon} onChon={setChon} cao={Math.max(160, cao - 26)} />
+  </div>;
+}
+
 export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidget> {
   const { so: s } = useSoNho<SoTong2>('tong2', taiTong2, 120_000);   // bản lần trước hiện ngay, tải mới ngầm (anh 13/11/2026 widget Người đứng "đang tải số…")
 
@@ -168,6 +186,13 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
     // (nhóm tính sống trên máy chủ theo 3 ngày đã khép; mục tiêu / cách làm = etp.cau_hinh 'phan_bo', sửa không cần deploy)
     // PHIM MỚI — KHẢ NĂNG TÌM RA PHIM HIỆU QUẢ (anh 14/11/2026): phim xếp theo ngày nhà chi đầu tiên; đủ thử = chi cả đời ≥ $PM_DU, thắng = lãi cả đời ≥ $PM_THANG
     // (mọi bộ, cả ★ ROAS, chỉ ngày đã khép). Tỷ lệ thắng tính trên phim đủ thử. Tuần kết thúc trong 7 ngày gần nhất → phim còn non, ghi "đang thử".
+    // THÀNH PHỐ PHIM (anh 15/11/2026 "giống kiểu hình một toà nhà… show mô hình dạng 3D để xoay", bước 2): mỗi phim nhà đang có camp chạy = một toà; cửa = camp,
+    // tầng theo chặng (thử → lãi → scale → ★ ROAS mái), xếp theo lãi 7 ngày. Bấm một toà → dòng tóm tắt phim đó bên dưới.
+    thanh_pho: ({ cao }) => {
+      if (!s) return cho;
+      if (!s.toa) return <span style={{ color: MO, fontSize: 12 }}>thành phố phim chỉ có ở tài khoản nhà</span>;
+      return <ThanhPhoO ds={s.toa} cao={cao} />;
+    },
     phim_moi: ({ rong }) => {
       if (!s) return cho;
       const hep = rong < 560;   // điện thoại: bỏ cột Chi / Đủ thử / Bộ để Lãi + ROI không bị cắt mép (số đủ thử vẫn ở ô tổng và trong tỷ lệ)

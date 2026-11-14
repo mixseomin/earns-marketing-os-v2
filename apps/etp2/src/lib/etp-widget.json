@@ -267,6 +267,18 @@
         7,
         12
       ]
+    },
+    "thanh_pho": {
+      "ten": "Thành phố phim",
+      "mo_ta": "mỗi phim nhà đang có camp chạy = một toà 3D: cửa sổ = camp (in ngân sách, màu lãi / lỗ 7 ngày), tầng theo chặng thử → lãi → scale → ★ ROAS trên mái; toà càng cao càng nhiều camp thắng; xoay / phóng / bấm toà xem tóm tắt",
+      "min": [
+        4,
+        8
+      ],
+      "mac": [
+        8,
+        16
+      ]
     }
   },
   "template": {
@@ -661,6 +673,19 @@
           "y": 6,
           "w": 5,
           "h": 12
+        }
+      ]
+    },
+    "thanh_pho": {
+      "ten": "Thành phố",
+      "muc": "nhìn cả danh mục phim như một thành phố: phim nào đang lên cao (★ ROAS), phim nào còn ở tầng thử",
+      "o": [
+        {
+          "ma": "thanh_pho",
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 20
         }
       ]
     }

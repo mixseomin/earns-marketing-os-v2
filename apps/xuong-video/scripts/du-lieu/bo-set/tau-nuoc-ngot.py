@@ -181,6 +181,12 @@ for ma, v in SD['shot'].items():
         if x['ten'] == 'Nhóc': x['o_dau'] = 'standing on the platform outside the train'
     for x in vt:
         if x['ten'] == 'Chú' and ma in ('1', '2b', '3a', '3', '4a', '5', '9a', '10', '11'): x['dien'] = ['chong_ban']   # '1' (13/11/2026): ngó tìm người = nhoài ra cửa sổ; đứng thẳng thì bậu sát mép khung, keyframe #2 ra cửa lên xuống 4 lần liền   # #5: nhoài ra nhìn về tiệm — đứng thẳng trong toa thì máy phía nam không thấy chú
+    # NHOÀI RA CỬA = THÂN HƯỚNG RA Ô CỬA (anh 14/11/2026, shot #10 = mã '5': "Chú vẫn phải nhoài người ra cửa toa để gọi theo nhưng đang không vẽ đúng"): dáng
+    # chong_ban cúi về PHÍA TRƯỚC thân — thân quay dọc toa (174°, nhìn về tiệm) thì cúi dọc hành lang, nhìn như đứng trong toa. Thân ra cửa (90° = ra sân ga),
+    # chỉ xoay nghiêng ≤ 45° về phía nhìn; phần còn lại đầu xoay (trang three.js: đầu ±75° độc lập thân). Mã '1' và '2b' (150°) cùng kiểu lệch — chờ anh chốt.
+    for x in vt:
+        if x['ten'] == 'Chú' and ma == '5' and 'chong_ban' in x.get('dien', []) and 'huong' in x:
+            x['huong'] = 90 + max(-45, min(45, ((x['huong'] - 90 + 180) % 360) - 180))
     # SỔ TRANG PHỤC: cả phim một ngày, một bộ đồ — khai ở MỌI shot. Chỉ khai ở shot đầu thì shot có 'nhay' (dịch chuyển ngoài khung) làm sổ quên đồ (noiHookup coi nhay
     # là cắt thời gian) → #7 bị chặn "Nhóc chưa có trang phục" (13/11/2026). Tên = biến thể có ảnh mẫu.
     if True:

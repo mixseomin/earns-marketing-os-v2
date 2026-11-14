@@ -33,7 +33,7 @@ export function capToa(camp: CampToa[]) {
   const lai = (c: CampToa) => !c.cho && c.chi7 >= 1 && c.thu7 > c.chi7, od = camp.filter(laOnDinh).length;
   const roasLai = camp.some((c) => c.roas && lai(c)), scaleOD = camp.some((c) => !c.roas && c.ns > 1 && laOnDinh(c));
   const cap = roasLai && od >= 5 ? 5 : roasLai || od >= 3 ? 4 : scaleOD ? 3 : od >= 1 ? 2 : camp.some((c) => !c.cho && c.chi7 >= 1) ? 1 : 0;
-  const tinHieu = cap < 5 ? camp.filter((c) => lai(c) && !laOnDinh(c)).length : 0;
+  const tinHieu = cap < 4 ? camp.filter((c) => lai(c) && !laOnDinh(c)).length : 0;   // khu thượng lưu (Cao ốc, Tháp) không bật đèn — đèn chỉ báo nhà ở khu ven / trung lưu đang có lãi
   return { cap, ten: CAP[cap]!, od, tinHieu };
 }
 const chuCamp = (c: CampToa) => { const r7 = roiCamp(c);
@@ -53,7 +53,7 @@ function nhan(T: T3, chu: string, mau: string, to = 1, theoMan = true) {
   const tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace;
   const sp = new T.Sprite(new T.SpriteMaterial({ map: tx, depthTest: !theoMan, transparent: true, sizeAttenuation: !theoMan })); sp.renderOrder = 10;
   /* theoMan: cỡ cố định trên màn (một toà) · không: cỡ theo thế giới, toà xa chữ nhỏ (thành phố — hàng chục biển không chồng thành mảng) */
-  const h = theoMan ? 0.042 * to : 1.0 * to; sp.scale.set(h * cv.width / cv.height, h, 1); return sp;
+  const h = theoMan ? 0.042 * to : 0.65 * to; sp.scale.set(h * cv.width / cv.height, h, 1); return sp;
 }
 
 /** DỰNG MỘT TOÀ vào nhóm g (gốc toà ở (0,0,0)). nhanTang: nhãn tầng bên trái (khung phim) · bien: biển trên cột ăng-ten. Trả chiều cao + các cửa bấm được. */

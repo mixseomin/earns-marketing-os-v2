@@ -93,7 +93,13 @@ export async function dangGac(): Promise<string[]> {
   return g?.kt ? [...new Set([...ds, 'KT'])] : ds;
 }
 
-export async function chayDong(contentId: number, loai: string, theLoai: string, soCamp?: number): Promise<{ ok: true; id: number } | { loi: string }> {
+/** DẠNG MÁY LÀM ĐƯỢC cho hàng Thao tác của bảng phim (anh 15/11/2026 "sao thao tác chỉ có vài loại?"): cùng sổ LOAI của form dòng phim — chay = máy dòng phim làm được;
+ *  LT (lộ trình test) là đường riêng, không phải một dạng creative → không đưa vào Thao tác */
+export async function loaiThaoTac(): Promise<{ ma: string; ten: string; chay: boolean; khoa: string | null }[]> {
+  if (!(await quyen())) return [];
+  return LOAI.filter((l) => l.ma !== 'LT').map((l) => ({ ma: l.ma, ten: l.ten, chay: l.chay, khoa: l.khoa ?? null }));
+}
+export async function chayDong(contentId: number, loai: string, theLoai: string, soCamp?: number, bo?: string | null): Promise<{ ok: true; id: number } | { loi: string }> {
   const me = await quyen(); if (!me) return { loi: 'chỉ chủ / admin chạy dòng phim tự động' };
   const id = Math.trunc(Number(contentId)); if (!(id > 0)) return { loi: 'mã phim không hợp lệ' };
   const l = LOAI.find((x) => x.ma === loai); if (!l) return { loi: 'loại nội dung lạ' }; if (!l.chay) return { loi: `${l.ten}: ${l.khoa}` };
@@ -106,8 +112,9 @@ export async function chayDong(contentId: number, loai: string, theLoai: string,
   if (dang) return { loi: `phim đang có dòng #${dang.id} loại ${loai} chạy` };
   if (theLoai) await db().execute(sql`update xv_khoa_ngoai set gia_tri = jsonb_set(coalesce(gia_tri, '{}'::jsonb), ${'{' + id + '}'}::text[],
       jsonb_build_object('tl', ${theLoai}::text, 'ten', ${ph?.ten ?? ''}::text, 'nguon', 'anh'), true) where ten = 'ethopex_the_loai'`);   // thể loại anh chọn đè máy đoán (the-loai.py đọc cùng sổ)
-  const so = soCamp ? Math.trunc(Number(soCamp)) : null; if (so != null && !(so >= 1 && so <= 30)) return { loi: 'số camp mới phải từ 1 tới 30' };   // MỞ RỘNG phim đang chạy (0416, anh 04/11/2026)
-  const [r] = await run<{ id: number }>(sql`insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp) values (${id}, ${ph?.ten ?? null}, ${theLoai || null}, ${loai}, ${me.displayName ?? me.email ?? 'admin'}, ${so}) returning id`);
+  const so = soCamp ? Math.trunc(Number(soCamp)) : null; if (so != null && !(so >= 1 && so <= 30)) return { loi: 'số camp mới phải từ 1 tới 30' };
+  const b = bo ? String(bo) : null; if (b != null && !/^[1-5]$/.test(b)) return { loi: 'bộ tài khoản phải là 1–5' };   // null = máy chọn bộ (cong.SQL_BO_PHIM)   // MỞ RỘNG phim đang chạy (0416, anh 04/11/2026)
+  const [r] = await run<{ id: number }>(sql`insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp, bo) values (${id}, ${ph?.ten ?? null}, ${theLoai || null}, ${loai}, ${me.displayName ?? me.email ?? 'admin'}, ${so}, ${b}) returning id`);
   return r ? { ok: true, id: r.id } : { loi: 'không ghi được' };
 }
 

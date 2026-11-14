@@ -11,6 +11,7 @@ import { MA_DANG, DANG_DONG } from '@/components/etp-so';
 import { chuCong, chuLich, congTang, gioVnNay, KD, khungLuc, quaCong } from '@/lib/etp-khung';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { ToaNha, TANG, xepTang, mauCamp, roiCamp, capToa, GIAI_CAP, DsCampToa, baoToa } from '@/components/etp-toa-nha';
+import { loaiThaoTac } from '@/lib/actions/etp-dong';
 import type { CampToa } from '@/lib/etp-toa-sql';
 import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, xemBotCamp, type CampThang, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
 
@@ -171,7 +172,9 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
 // tab vừa bấm giữ ở biến của trang (cùng phiên, không lưu máy). Phim người khác chỉ có tab Camps; Thị trường chỉ khi bảng có thẻ thị trường — thiếu thì về Lịch.
 type TabPhim = 'camp' | 'lich' | 'toa' | 'tt' | 'log';
 let tabCuoi: TabPhim | null = null;
-export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = false, onGhim }: { cid: number; thiTruong?: () => TheNoi; noi: Noi; vi: { x: number; y: number }; ghim?: boolean; onGhim?: () => void;
+// DẠNG CHO THAO TÁC (máy chủ: loaiThaoTac — cùng sổ LOAI form dòng phim) — tải một lần cho cả trang
+let loaiTT: Promise<{ ma: string; ten: string; chay: boolean; khoa: string | null }[]> | null = null;
+export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = false, onGhim, bo: bo0 = null }: { cid: number; thiTruong?: () => TheNoi; noi: Noi; vi: { x: number; y: number }; ghim?: boolean; onGhim?: () => void; bo?: string | null;
   dsCamp?: { ten: string; nguoi: string; laNha: boolean; camp: CampToa[]; tat: CampToa[] } }) {
   const chiCamp = !!dsCamp && !dsCamp.laNha;
   const [ghim, setGhim] = useState(ghim0);
@@ -181,6 +184,11 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
   const [l, setL] = useState<LichPhim | null>(null), [loi, setLoi] = useState<string | null>(null), [dang, setDang] = useState(false), [kq, setKq] = useState<string | null>(null);
   const [tab, setTab0] = useState<TabPhim>(chiCamp ? 'camp' : tabCuoi === 'tt' && !thiTruong ? 'lich' : tabCuoi ?? 'lich'), [chonToa, setChonToa] = useState<number | null>(null), [log, setLog] = useState<LogPhim[] | { loi: string } | null>(null);
   const setTab = (k: TabPhim) => { tabCuoi = k; setTab0(k); };
+  // THAO TÁC LINH HOẠT (anh 15/11/2026 "sao thao tác chỉ có vài loại? số lượng cũng ko được thay đổi, chưa hiện bộ tk được chọn"): dạng · số camp 1–30 · bộ 1–5 (hoặc máy chọn);
+  // mở từ tháp một bộ trên thành phố → chọn sẵn bộ đó
+  const [dsLoai, setDsLoai] = useState<{ ma: string; ten: string; chay: boolean; khoa: string | null }[]>([]);
+  const [loaiTT0, setLoaiTT0] = useState('CC'), [soTT, setSoTT] = useState(1), [boTT, setBoTT] = useState<string>(bo0 && /^[1-5]$/.test(bo0) ? bo0 : '');
+  useEffect(() => { (loaiTT ??= loaiThaoTac()).then(setDsLoai).catch(() => {}); }, []);
   useEffect(() => { if (tab === 'log') docLogPhim(cid).then(setLog).catch((e) => setLog({ loi: String(e?.message ?? e) })); }, [tab, cid]);
   // bảng chỉ dựng khi đang mở → mở (hoặc đổi phim) là tải
   useEffect(() => { setKq(null); setL(null); setLoi(null); if (!chiCamp) tai(); }, [cid, chiCamp]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -188,7 +196,7 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
   // BẤM KHÔNG CHẠY NGAY (anh 07/11/2026 "các thao tác khi bấm vào chạy luôn là đéo được"): nút chỉ mở hàng xác nhận nói rõ sẽ làm gì, tốn gì; bấm Xác nhận mới chạy
   const [hoi, setHoi] = useState<{ chu: string; lam: () => Promise<{ loi: string } | { ok: true }>; xong: string } | null>(null);
   // xếp dòng SX xong → toà / thửa của phim trên thành phố cộng ngay n dòng SX (giàn giáo / cọc vàng), không chờ lượt tải số kế
-  const sxBao = async (x: Parameters<typeof themCampPhim>[1], n: number) => { const r = await themCampPhim(cid, x, n); if (!('loi' in r)) baoToa({ p: cid, sx: n }); return r; };
+  const sxBao = async (x: string, n: number, bo: string) => { const r = await themCampPhim(cid, x, n, bo || null); if (!('loi' in r)) baoToa({ p: cid, sx: n, bo: bo || null }); return r; };
   const lam = async (f: () => Promise<{ loi: string } | { ok: true }>, chu: string) => {
     setHoi(null); setDang(true); setKq('… đang xử lý'); const r = await f(); setDang(false);
     setKq('loi' in r ? `✕ ${r.loi}` : `✓ ${chu}`); if (!('loi' in r)) { tai(); router.refresh(); }
@@ -266,11 +274,28 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
               <div style={{ gridColumn: '1 / -1', position: 'sticky', bottom: -10, zIndex: 1, margin: '0 -12px', padding: '8px 12px 10px', background: 'var(--bg-1, #0f172a)', borderTop: '1px solid var(--line)',
                 display: 'grid', gridTemplateColumns: '58px 1fr', gap: '9px 10px', alignItems: 'center' }}>
               {H('Thao tác', <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }} onMouseLeave={() => baoToa({ p: cid, sang: false })}>
-                {(['CC', 'KT', 'AT'] as const).map((x) => <button key={x} onMouseEnter={() => baoToa({ p: cid, sang: true })} disabled={dang || l.gac.includes(x)} style={{ ...nut, ...(l.gac.includes(x) ? GAC_ST : {}) }} title={l.gac.includes(x) ? chuGac(x) : `dòng phim ${x} lên 1 camp $1 — ${chuLich()}${vuot ? ' · đồng hồ báo vượt sức chứa' : ''}`}
-                  onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 1 camp ${x}, ngân sách $1/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => sxBao(x, 1), xong: `đã xếp dòng ${x} × 1 camp` }); }}>＋ {x}</button>)}
-                <button onMouseEnter={() => baoToa({ p: cid, sang: true })} disabled={dang || l.gac.includes('CC')} style={{ ...nut, ...(l.gac.includes('CC') ? GAC_ST : {}) }} title={l.gac.includes('CC') ? chuGac('CC') : `dòng phim CC lên 3 camp $1 — ${chuLich()}`} onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 3 camp CC, mỗi camp $1/ngày, tổng $3/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => sxBao('CC', 3), xong: 'đã xếp dòng CC × 3 camp' }); }}>＋ 3 CC</button>
+                {(() => { const lx = dsLoai.find((x) => x.ma === loaiTT0), gacX = l.gac.includes(loaiTT0), khoaX = lx && !lx.chay ? lx.khoa ?? 'máy chưa làm được dạng này' : gacX ? chuGac(loaiTT0) : null;
+                  const oChon = (on: boolean): React.CSSProperties => ({ ...nut, padding: '1px 7px', borderColor: on ? 'var(--accent, #60a5fa)' : 'var(--line)', color: on ? 'var(--fg-1)' : 'var(--fg-3)' });
+                  return <div style={{ display: 'flex', flexDirection: 'column', gap: 5, width: '100%' }}>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{(dsLoai.length ? dsLoai : [{ ma: 'CC', ten: 'CC', chay: true, khoa: null }]).map((x) => {
+                      const gac = l.gac.includes(x.ma), tat = !x.chay || gac;
+                      return <button key={x.ma} onClick={() => setLoaiTT0(x.ma)} title={!x.chay ? `${x.ten} — ${x.khoa ?? 'máy chưa làm được'}` : gac ? chuGac(x.ma) : x.ten}
+                        style={{ ...oChon(loaiTT0 === x.ma), ...(tat ? GAC_ST : {}) }}>{x.ma}</button>; })}</div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title="số camp $1 sẽ lên (1–30)">
+                        <button style={{ ...nut, padding: '1px 7px' }} disabled={soTT <= 1} onClick={() => setSoTT((n) => Math.max(1, n - 1))}>−</button>
+                        <input value={soTT} onChange={(e) => { const n = Math.trunc(Number(e.target.value)); if (Number.isFinite(n)) setSoTT(Math.max(1, Math.min(30, n))); }}
+                          style={{ width: 34, textAlign: 'center', fontSize: 11.5, padding: '2px 0', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-1)' }} />
+                        <button style={{ ...nut, padding: '1px 7px' }} disabled={soTT >= 30} onClick={() => setSoTT((n) => Math.min(30, n + 1))}>＋</button> camp</span>
+                      <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}><span style={{ color: 'var(--fg-3)', fontSize: 11 }}>bộ</span>
+                        <button style={oChon(boTT === '')} title="máy chọn bộ: bộ đổi của phim, không có thì bộ cho phim mới (etp.cau_hinh.bo_phim_moi)" onClick={() => setBoTT('')}>máy</button>
+                        {['1', '2', '3', '4', '5'].map((b) => <button key={b} style={oChon(boTT === b)} onClick={() => setBoTT(b)}>{b}</button>)}</span>
+                      <button disabled={dang || !!khoaX} onMouseEnter={() => baoToa({ p: cid, sang: true, bo: boTT || null })} style={{ ...nut, color: khoaX ? undefined : '#4ade80', borderColor: khoaX ? 'var(--line)' : '#4ade80', ...(khoaX ? GAC_ST : {}) }}
+                        title={khoaX ?? `dòng phim ${loaiTT0} lên ${soTT} camp $1 — ${boTT ? `bộ ${boTT}` : 'bộ máy chọn'} — ${chuLich()}`}
+                        onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên ${soTT} camp ${loaiTT0}, mỗi camp $1/ngày${soTT > 1 ? `, tổng $${soTT}/ngày` : ''}, ${boTT ? `bộ ${boTT}` : 'bộ máy chọn'}. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`,
+                          lam: () => sxBao(loaiTT0, soTT, boTT), xong: `đã xếp dòng ${loaiTT0} × ${soTT} camp${boTT ? ` · bộ ${boTT}` : ''}` }); }}>＋ Lên {soTT} {loaiTT0}</button>
                 <button disabled={dang} style={{ ...nut, color: '#f87171' }} title="tắt camp Nhà ROI thấp nhất của phim (giữ camp cuối nếu lãi)"
-                  onClick={async () => { setKq(null); const x = await xemBotCamp(cid); if ('loi' in x) { setKq(`✕ ${x.loi}`); return; } setHoi({ chu: `Tắt camp #${x.camp_id}: chi $${x.chi.toFixed(2)}, thu $${x.thu.toFixed(2)} cả đời. Không bật lại tự động.`, lam: async () => { const r = await botCampPhim(cid, x.camp_id); return 'loi' in r ? r : { ok: true as const }; }, xong: `đã tắt #${x.camp_id}` }); }}>− bớt camp lỗ</button></div>)}
+                  onClick={async () => { setKq(null); const x = await xemBotCamp(cid); if ('loi' in x) { setKq(`✕ ${x.loi}`); return; } setHoi({ chu: `Tắt camp #${x.camp_id}: chi $${x.chi.toFixed(2)}, thu $${x.thu.toFixed(2)} cả đời. Không bật lại tự động.`, lam: async () => { const r = await botCampPhim(cid, x.camp_id); return 'loi' in r ? r : { ok: true as const }; }, xong: `đã tắt #${x.camp_id}` }); }}>− bớt camp lỗ</button></div></div>; })()}</div>)}
               {hoi ? H('Xác nhận', <div style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #f59e0b' }}><div style={{ marginBottom: 6, color: 'var(--fg-1)' }}>{hoi.chu}</div>
                 <div style={{ display: 'flex', gap: 6 }}><button disabled={dang} style={{ ...nut, background: '#f59e0b', color: '#111', borderColor: '#f59e0b', fontWeight: 600 }} onClick={() => lam(hoi.lam, hoi.xong)}>✓ Xác nhận</button><button style={nut} onClick={() => setHoi(null)}>Huỷ</button></div></div>, true) : null}
               </div>

@@ -146,7 +146,7 @@ function ThanhPhoO({ cao }: { cao: number }) {
   return <ThanhPhoVe ds={tp.ds} nguoi={tp.nguoi} laNha={tp.laNha} cao={cao} />;
 }
 function ThanhPhoVe({ ds, nguoi, laNha, cao }: { ds: PhimThanhPho[]; nguoi: string; laNha: boolean; cao: number }) {
-  const [chon, setChon] = useState<number | null>(null);
+  const [chon, setChon] = useState<number | null>(null), [chonBo, setChonBo] = useState<string | null>(null);
   const noi = useNoi<{ id: number }>();   // bấm một toà → bảng phim đó (cùng ruột với bảng rê đồng hồ dòng phim)
   // cấp toà trước (tháp đứng hàng đầu), cùng cấp thì lãi 7 ngày
   // cấp trước; cùng cấp thì toà có đèn xanh tín hiệu đứng sát khu trên (gần tâm hơn), rồi lãi 7 ngày
@@ -161,9 +161,13 @@ function ThanhPhoVe({ ds, nguoi, laNha, cao }: { ds: PhimThanhPho[]; nguoi: stri
         {' · '}7 ngày lãi <b style={{ color: k.thu >= k.chi ? XANH : DO }}>{tien(k.thu - k.chi)}</b>{k.chi >= 1 ? ` (${pct(Math.round((k.thu - k.chi) / k.chi * 100))})` : ''}</>
         : <span style={{ cursor: 'help' }} title={GIAI_CAP}><b style={{ color: 'var(--fg-1)' }}>{nguoi}</b> · {xep.length} phim · {tong} camp · {[...CAP].map((t, i) => ({ t, n: demCap[i]! })).reverse().filter((v) => v.n).map((v) => `${v.t} ${v.n}`).join(' · ')} · bấm một toà để xem</span>}
     </div>
-    <ThanhPho ds={xep} chon={chon} cao={Math.max(160, cao - 26)} onChon={(p, xy) => { setChon(p); if (p != null && xy) noi.moNgay({ id: p }, { clientX: xy.x, clientY: xy.y, currentTarget: null } as unknown as React.MouseEvent); else noi.dong(); }} />
+    <ThanhPho ds={xep} chon={chon} chonBo={chonBo} cao={Math.max(160, cao - 26)} onChon={(p, xy, bo) => { setChon(p); setChonBo(bo ?? null); if (p != null && xy) noi.moNgay({ id: p }, { clientX: xy.x, clientY: xy.y, currentTarget: null } as unknown as React.MouseEvent); else noi.dong(); }} />
     {noi.v ? (() => { const x = ds.find((d) => d.p === noi.v!.id);
-      return <BangPhim key={noi.v.id} ghim cid={noi.v.id} noi={noi} vi={noi.v} dsCamp={x ? { ten: x.ten, nguoi, laNha, camp: x.camp, tat: x.tat } : undefined} />; })() : null}
+      // tháp một bộ của phim nhiều bộ → bảng Camps chỉ camp bộ đó, Thao tác chọn sẵn bộ đó (anh 15/11/2026)
+      const nhieu = !!x && new Set(x.camp.map((c) => c.bo)).size > 1, boTen = chonBo ? x?.camp.find((c) => c.bo === chonBo)?.bo_ten : null;
+      const camp = x && nhieu && chonBo ? x.camp.filter((c) => c.bo === chonBo) : x?.camp ?? [], tat = x && nhieu && chonBo ? x.tat.filter((c) => c.bo === chonBo) : x?.tat ?? [];
+      return <BangPhim key={`${noi.v.id}|${chonBo ?? ''}`} ghim cid={noi.v.id} noi={noi} vi={noi.v} bo={laNha ? chonBo : null}
+        dsCamp={x ? { ten: nhieu && boTen ? `${x.ten} · ${boTen}` : x.ten, nguoi, laNha, camp, tat } : undefined} />; })() : null}
   </div>;
 }
 

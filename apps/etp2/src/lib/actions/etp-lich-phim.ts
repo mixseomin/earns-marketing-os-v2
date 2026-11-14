@@ -113,11 +113,11 @@ export async function docLogPhim(contentId: number): Promise<LogPhim[] | { loi: 
 }
 
 /** ＋ camp loại A / B: một dòng phim (CC cảnh cuối · KT kể chuyện) lên `so` camp — đường dòng phim (dùng lại creative sạch, thiếu thì cắt / sinh). Bấm = anh duyệt tiền camp $1 × so. */
-export async function themCampPhim(contentId: number, loai: 'CC' | 'KT' | 'AT', so: number): Promise<{ ok: true; id: number } | { loi: string }> {
+// MỌI DẠNG MÁY LÀM ĐƯỢC + SỐ CAMP + BỘ (anh 15/11/2026): loại / dạng gác / số 1–30 / bộ 1–5 do chayDong kiểm (cùng cổng form dòng phim); bo null = máy chọn bộ
+export async function themCampPhim(contentId: number, loai: string, so: number, bo?: string | null): Promise<{ ok: true; id: number } | { loi: string }> {
   if (!(await laChu())) return { loi: 'chỉ chủ điều khiển phim' };
-  if (!['CC', 'KT', 'AT'].includes(loai)) return { loi: 'loại lạ' };
-  const n = Math.trunc(Number(so)); if (!(n >= 1 && n <= 10)) return { loi: 'số camp 1–10' };
-  return chayDong(contentId, loai, '', n);
+  const n = Math.trunc(Number(so)); if (!(n >= 1 && n <= 30)) return { loi: 'số camp 1–30' };
+  return chayDong(contentId, String(loai), '', n, bo ?? null);
 }
 
 /** − BỚT CAMP LỖ NHẤT của phim (camp Nhà đang chạy, không ★ ROAS, ROI cả đời thấp nhất) — giữ camp cuối nếu nó lãi. Tắt qua lam-ethopex.py (đường nút Telegram). */

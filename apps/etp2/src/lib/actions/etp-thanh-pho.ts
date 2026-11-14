@@ -8,7 +8,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 import { campToaSql, docCampToa, type CampToa, type NguonToa } from '@/lib/etp-toa-sql';
 
-export type PhimThanhPho = { p: number; ten: string; camp: CampToa[]; tat: CampToa[]; sx: number };
+export type PhimThanhPho = { p: number; ten: string; camp: CampToa[]; tat: CampToa[]; /** dòng SX đang chạy theo bộ ('' = máy chọn bộ) */ sx: Record<string, number> };
 
 export async function docThanhPho(ng?: string | null): Promise<{ ds: PhimThanhPho[]; nguoi: string; laNha: boolean } | { loi: string }> {
   const q = await quyenEtp(await getCurrentUser());
@@ -25,9 +25,9 @@ export async function docThanhPho(ng?: string | null): Promise<{ ds: PhimThanhPh
   else { nguon = { kieu: 'nha' }; ten = `${ds.find((x) => x.nha)?.ten ?? 'Nhà'} (nhà)`; }
   const rows = await run<Record<string, unknown> & { p: number; ten: string | null }>(campToaSql(sql`true`, nguon));
   const m = new Map<number, PhimThanhPho>();
-  for (const r of rows) { const x = m.get(r.p) ?? { p: r.p, ten: r.ten ?? `#${r.p}`, camp: [], tat: [], sx: 0 }; const c = docCampToa(r); (c.tat ? x.tat : x.camp).push(c); m.set(r.p, x); }
+  for (const r of rows) { const x = m.get(r.p) ?? { p: r.p, ten: r.ten ?? `#${r.p}`, camp: [], tat: [], sx: {} }; const c = docCampToa(r); (c.tat ? x.tat : x.camp).push(c); m.set(r.p, x); }
   // DÒNG SX ĐANG CHẠY (etp.dong_phim, chỉ nhà) → giàn giáo vàng ở móng / cọc vàng trên thửa (anh 15/11/2026 "bấm vào sx thì update ngay trên toà nhà tương ứng")
-  if (nguon.kieu === 'nha') for (const r of await run<{ p: number; n: number }>(sql`select content_id::int p, sum(coalesce(so_camp, 1))::int n from etp.dong_phim where trang_thai = 'chay' group by 1`)) { const x = m.get(r.p); if (x) x.sx = r.n; }
+  if (nguon.kieu === 'nha') for (const r of await run<{ p: number; bo: string; n: number }>(sql`select content_id::int p, coalesce(bo, '') bo, sum(coalesce(so_camp, 1))::int n from etp.dong_phim where trang_thai = 'chay' group by 1, 2`)) { const x = m.get(r.p); if (x) x.sx[r.bo] = r.n; }
   // phim chỉ còn camp đã tắt (không camp nào chạy) không dựng thành nhà
   return { ds: [...m.values()].filter((x) => x.camp.length), nguoi: ten, laNha: nguon.kieu === 'nha' };
 }

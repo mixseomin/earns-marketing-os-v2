@@ -410,7 +410,8 @@ def b_camp_mr(d, truoc):
     cu = camp_co_san(moi)   # creative của chính dòng đã có camp (lượt trước bị huỷ giữa chừng / máy luật lấy thay) = đã lên, tính vào số camp
     ds = [c for c in dict.fromkeys(moi + san) if c not in cu][:max(0, int(d["so_camp"]) - len(cu))]
     if not ds and not cu: return "dung", "không có creative sạch nào để lên camp", None
-    bo = sql(CG.SQL_BO_PHIM.format(cid=int(d['content_id'])))   # phim đã có bộ → bộ đó; phim mới → etp.cau_hinh.bo_phim_moi (cong.SQL_BO_PHIM)
+    # bộ anh chọn ở Thao tác bảng phim (etp.dong_phim.bo, anh 15/11/2026) → bộ đó; không chọn → phim đã có bộ → bộ đó; phim mới → etp.cau_hinh.bo_phim_moi (cong.SQL_BO_PHIM)
+    bo = str(d.get("bo") or "").strip() or sql(CG.SQL_BO_PHIM.format(cid=int(d['content_id'])))
     if not bo: return "loi", "không đọc được bộ của phim (ethopex_phim_tk / etp.cau_hinh.bo_phim_moi)", None
     xong, loi, may_ = [], [], False
     for i_, c in enumerate(ds):
@@ -538,7 +539,7 @@ def dung_imac():
 
 # ---------------- vòng chính ----------------
 def doc_dong():
-    j = sql("""select coalesce(json_agg(x), '[]') from (select p.id, p.content_id, p.ten, p.trang_thai, p.camp_id, p.loai, p.so_camp, p.ai,
+    j = sql("""select coalesce(json_agg(x), '[]') from (select p.id, p.content_id, p.ten, p.trang_thai, p.camp_id, p.loai, p.so_camp, p.ai, p.bo,
                (select json_object_agg(b.buoc, json_build_object('trang_thai', b.trang_thai, 'ket_qua', b.ket_qua, 'lan', b.lan, 'fix', b.fix, 'huy', b.huy,
                        'tuoi', extract(epoch from now() - coalesce(b.nhip, b.bat_dau))::int)) from etp.dong_buoc b where b.dong_id = p.id) buoc
                from etp.dong_phim p where p.trang_thai = 'chay' or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.fix)

@@ -462,10 +462,10 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     } else {
       // Nháp: lưu NGUỒN để bản cuối tái lập đúng (model, prompt, khung đầu/cuối).
       const nguon = { model: s(req[0]?.model), prompt: rq.prompt ?? '', khung_dau: rq.khungDau ?? null, khung_cuoi: rq.khungCuoi ?? null, giay: rq.giay ?? null, job: r.id };
-      // clip dựng từ clip 3D có đoạn dư đầu → điểm vào ghi CÙNG câu lệnh đổi clip (trigger giữ giá trị mới)
-      const vao = typeof rq.vaoNguon === 'number' ? JSON.stringify(rq.vaoNguon) : null;
-      await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify(nguon)}::jsonb, trang_thai = 'xong', loi = '', chi_phi_cents = chi_phi_cents + ${gia},
-        ky_thuat = CASE WHEN ${vao}::text IS NULL THEN ky_thuat ELSE jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${vao}::jsonb) END, updated_at = now() WHERE id = ${r.canh_id}`);
+      await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify(nguon)}::jsonb, trang_thai = 'xong', loi = '', chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${r.canh_id}`);
+      // clip dựng từ clip 3D có đoạn dư đầu → điểm vào ghi bằng câu lệnh RIÊNG sau khi đổi clip: trigger xv_canh_doi_clip (0328) xoá vao_s khi đổi clip, kể cả khi
+      // câu lệnh đổi clip đặt lại ĐÚNG giá trị cũ (coi trùng = cũ) — 14/11/2026 #3071 #1 mất vao_s hai lần. Câu riêng không đụng cột video → trigger không chạy.
+      if (typeof rq.vaoNguon === 'number') await db.execute(sql`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${JSON.stringify(rq.vaoNguon)}::jsonb) WHERE id = ${r.canh_id}`);
     }
     // Máy soi clip (soi-clip.ts, 0đ): chữ lạ model tự in + sản phẩm còn trong khung — lỗi hiện trên thẻ shot, bản xuất không nhận clip lỗi.
     // ĐIỂM CẮT CUỐI (ảnh thứ 2 có dải nhịp): dò lúc dải nhịp hiện ra → cat_cuoi_s; bản xuất không phát quá điểm này.

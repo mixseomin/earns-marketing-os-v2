@@ -25,7 +25,7 @@ const thu = join(tmpdir(), `vx-tap-${tapId}`); mkdirSync(thu, { recursive: true 
 const psql = (cau: string): string => execFileSync('ssh', [BOX, 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -tA'], { input: cau, encoding: 'utf8', timeout: 60e3 }).trim();
 const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
 
-type Vx = { uuid?: string; media_id?: number; luc?: string; prompt?: string; xong?: string };
+type Vx = { uuid?: string; media_id?: number; luc?: string; prompt?: string; xong?: string; /** keyframe làm khung đầu lúc gửi — keyframe đổi thì bản ghi này là của ảnh cũ */ kf?: string };
 type Dong = { nhan_vat?: string; dien_xuat?: string; tre?: number; url?: string };
 type Shot = { id: number; so: number; kf: string | null; pv: string | null; hd: string | null; vx: Vx | null; thoai: Dong[] | null; phat: number | null };
 const ttPhim = JSON.parse(psql(`SELECT json_build_object('ti_le', p.kinh_thanh->>'ti_le', 'chat', p.kinh_thanh->>'chat_lieu', 'pc', p.kinh_thanh->>'phong_cach')
@@ -55,6 +55,9 @@ await canPhien();
 const catDefault = catId('default'), catVideo = catId('my_ai_videos');
 const batDau = Date.now();
 const canGui = (s: Shot) => s.kf && (lai.has(s.so) || (!s.vx?.uuid && !s.vx?.xong));
+// SỔ GẮN KEYFRAME (14/11/2026, tập #3074: 13 shot còn sổ VX 11/11 của keyframe CŨ — sinh lại keyframe 13/11 xong, máy vẫn coi "đã có clip" và bỏ qua):
+// bản ghi không mang kf, hoặc kf khác keyframe đang chọn → clip của ảnh cũ, gửi lại.
+for (const s of ds) if (s.vx && s.kf && s.vx.kf !== s.kf) { console.log(`#${s.so}: sổ VX của keyframe cũ — gửi lại`); s.vx = null; }
 for (const s of ds) if (lai.has(s.so)) s.vx = null;
 
 // KHỚP MÔI THEO GIỌNG STUDIO (anh 11/11/2026 "voice làm sao khớp môi" → "làm giọng thế đi"): shot có người NÓI TRONG KHUNG và mọi dòng đã có file giọng
@@ -123,7 +126,7 @@ while (Date.now() - batDau < HAN_PHUT * 60e3) {
     if (canKhopMoi(s)) { try { amId = (await napKhung(giongShot(s), catId('audio'))) ?? 0; } catch (e) { console.log(`#${s.so}: ! nạp giọng lỗi — ${String(e).split('\n')[0]!.slice(0, 160)}`); } if (!amId) { console.log(`#${s.so}: ✗ không nạp được giọng — bỏ shot này`); continue; } }
     const uuid = guiShot(mediaId, prompt, false, 0, 0, kho, amId);
     if (!uuid) { console.log(`#${s.so}: ✗ VideoExpress từ chối (có thể hết lượt ngày) — DỪNG gửi`); hetLuot = true; break; }
-    s.vx = { uuid, media_id: mediaId, luc: new Date().toISOString(), prompt }; ghiVx(s.id, s.vx); lai.delete(s.so);
+    s.vx = { uuid, media_id: mediaId, luc: new Date().toISOString(), prompt, kf: s.kf! }; ghiVx(s.id, s.vx); lai.delete(s.so);
     console.log(`#${s.so}: → gửi job ${uuid.slice(0, 8)}${amId ? ' (khớp môi theo giọng)' : ''}`); cho++;
     await ngu(1500);
   }

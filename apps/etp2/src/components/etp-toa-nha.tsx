@@ -110,7 +110,7 @@ function dungThan(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: M
     const ds = theoTang.flat(), san = Math.max(1, Math.ceil(ds.length / O_TANG)), caoSan = CAO * 0.85, cao = san * caoSan;
     be(RONG, cao, SAU, THAN, cao / 2);
     for (let s2 = 0; s2 < san; s2++) for (let i = 0; i < O_TANG; i++) cua(ds[s2 * O_TANG + i], i, s2 * caoSan + caoSan / 2, caoSan, 0);
-    const caoMai = cap === 0 ? 1.15 : 0.42, R0 = Math.SQRT1_2 * (RONG + 0.4);
+    const caoMai = cap === 0 ? 0.75 : 0.42, R0 = Math.SQRT1_2 * (RONG + 0.4);
     const mai = new T.Mesh(new T.ConeGeometry(R0, caoMai, 4), new T.MeshStandardMaterial({ color: cap === 0 ? 0xc8a96a : 0x7c8794, roughness: cap === 0 ? 1 : 0.5, metalness: cap === 0 ? 0 : 0.4 }));
     mai.rotation.y = Math.PI / 4; mai.scale.set(1, 1, (SAU + 0.4) / (RONG + 0.4)); mai.position.set(0, cao + caoMai / 2, 0); g.add(mai);
     if (o.nhanTang) { const sp = nhan(T, `${CAP[cap]} · ${o.camp.length} camp`, '#cbd5e1', 0.9); sp.center.set(1, 0.5); sp.position.set(-RONG / 2 - 0.15, cao / 2, SAU / 2 + 0.05); g.add(sp); }
@@ -160,13 +160,16 @@ function dungThan(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: M
 
 /** DỰNG TOÀ + ĐÈN XANH TÍN HIỆU: cột sáng xanh + đèn tròn trên mái khi toà có camp lãi chưa ổn định (đứng yên ở khu, chờ lên cấp) */
 function dungToa(...a: Parameters<typeof dungThan>) {
-  const [T, g, o] = a, r = dungThan(...a), { tinHieu } = capToa(o.camp);
+  const [T, g, o] = a, r0 = dungThan(...a), { tinHieu, cap } = capToa(o.camp);
+  // CỠ THEO CẤP (anh 15/11/2026 "túp lều phải bé chứ ko thể to hơn cả nhà đc"): túp lều 0,5 · nhà cấp 4 0,75 · nhà tầng 1 — thu cả nhóm (mái, cửa, đèn); ty = hệ số để bên gọi đổi số đo trong nhóm
+  const ty = cap === 0 ? 0.5 : cap === 1 ? 0.75 : 1, r = { ...r0, cao: r0.cao * ty, ty };
+  g.scale.setScalar(ty);
   if (!tinHieu) return r;
-  const x = -RONG / 2 + 0.35, z = SAU / 2 - 0.35, top = r.cao - 0.4;
+  const x = -RONG / 2 + 0.35, z = SAU / 2 - 0.35, top = r0.cao - 0.4;   // số đo trong nhóm (trước thu)
   const cot = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 1.4, 8), new T.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.55 })); cot.position.set(x, top + 0.7, z); g.add(cot);
   const den = new T.Mesh(new T.SphereGeometry(0.2, 16, 12), new T.MeshStandardMaterial({ color: 0x4ade80, emissive: 0x22c55e, emissiveIntensity: 1.4 })); den.position.set(x, top + 1.45, z); g.add(den);
   const quang = new T.Mesh(new T.SphereGeometry(0.42, 16, 12), new T.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.18, depthWrite: false })); quang.position.copy(den.position); g.add(quang);
-  return { ...r, cao: Math.max(r.cao, top + 1.7) };
+  return { ...r, cao: Math.max(r.cao, (top + 1.7) * ty) };
 }
 
 /** CẢNH 3D DÙNG CHUNG: renderer + đèn + camera + điều khiển + thẻ rê 450 ms + khung chọn. dung() dựng vật vào cảnh, trả vật bấm được + tâm nhìn + khoảng xa.
@@ -364,7 +367,7 @@ export function ThanhPho({ ds, chon, onChon, cao, bienToiDa = 6 }: { ds: ToaPhim
       caoMax = Math.max(caoMax, r.cao);
       for (const v of r.vat) vat.push({ m: v.m, vien: g, id: ph.p, chu: `${ten} · ${v.chu}` });
       // khối bấm vô hình lọt trong thân (cửa sáng nằm ngoài nên vẫn bắt tia trước): bấm vào tường / kính tối cũng chọn được toà
-      const k7 = ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }), caoBat = Math.max(0.5, r.cao - 1.0);
+      const k7 = ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }), caoBat = Math.max(0.5, r.cao / r.ty - 1.0);   // khối bấm nằm trong nhóm đã thu → đo theo cỡ gốc
       const bat = new T.Mesh(new T.BoxGeometry(RONG, caoBat, SAU), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
       bat.position.set(0, caoBat / 2, 0); g.add(bat);
       const th = capToa(ph.camp).tinHieu;

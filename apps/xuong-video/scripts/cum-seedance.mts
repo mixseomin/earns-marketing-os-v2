@@ -19,7 +19,10 @@ const gia = dpg === '720p' ? 7.5 : 3.4;
 const lai = new Set(arg('lai').split(',').map(Number).filter(Boolean));
 const jobIds = ds.map((c) => Number((c.nguon_video as { job?: number } | null)?.job)).filter((x) => x > 0);
 const jobs = new Map(((jobIds.length ? await db.execute(sql`SELECT id, request FROM xv_job WHERE id = ANY(${`{${jobIds.join(',')}}`}::int[]) AND output_url IS NOT NULL`) : []) as unknown as Row[]).map((r) => [Number(r.id), JSON.stringify(r.request ?? {})]));
-const conDung = (c: (typeof ds)[number]) => { const j = Number((c.nguon_video as { job?: number } | null)?.job); return !lai.has(c.thu_tu) && !!c.video_url && !!c.keyframe_url && !!jobs.get(j)?.includes(c.keyframe_url); };
+// keyframe của CHÍNH shot lúc sinh: nguon_video.khung_dau (ghi khi gắn clip) — danh sách ảnh gửi đi (request.anh) bị trần 9 ảnh cắt bớt nên không dùng làm bằng chứng
+// (15/11/2026: cụm #2–7 thiếu keyframe #6 #7 trong request.anh, kế hoạch đòi sinh lại oan). Bản ghi cũ chưa có khung_dau → đọc request như trước.
+const conDung = (c: (typeof ds)[number]) => { const nv = c.nguon_video as { job?: number; khung_dau?: string } | null; const j = Number(nv?.job);
+  return !lai.has(c.thu_tu) && !!c.video_url && !!c.keyframe_url && (nv?.khung_dau ? nv.khung_dau === c.keyframe_url : !!jobs.get(j)?.includes(c.keyframe_url)); };
 const giu = ds.filter(conDung);
 // đoạn CẦN SINH liền nhau (shot giữ cắt đôi đoạn) → chia cụm cân trong từng đoạn
 const doan: (typeof ds)[] = []; for (const c of ds) { if (conDung(c)) { doan.push([]); continue; } (doan.at(-1) ?? doan[doan.push([]) - 1]!).push(c); }

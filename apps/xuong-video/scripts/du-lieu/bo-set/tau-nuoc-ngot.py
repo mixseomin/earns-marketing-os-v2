@@ -184,9 +184,9 @@ for ma, v in SD['shot'].items():
         if x['ten'] == 'Chú' and 'chong_ban' in x.get('dien', []): x['huong_bau'] = 90   # ô cửa của chú mở ra sân ga (+x) — luật dangChongBau (bo-set-3d.ts)
     # NHOÀI RA CỬA = THÂN HƯỚNG RA Ô CỬA (anh 14/11/2026, shot #10 = mã '5': "Chú vẫn phải nhoài người ra cửa toa để gọi theo nhưng đang không vẽ đúng"): dáng
     # chong_ban cúi về PHÍA TRƯỚC thân — thân quay dọc toa (174°, nhìn về tiệm) thì cúi dọc hành lang, nhìn như đứng trong toa. Thân ra cửa (90° = ra sân ga),
-    # đầu xoay về phía nhìn (trang three.js: đầu ±75° độc lập thân). Mã '1' và '2b' (150°) cùng kiểu lệch — chờ anh chốt.
+    # đầu xoay về phía nhìn (trang three.js: đầu ±75° độc lập thân). Áp mọi shot (luật dangChongBau 15/11/2026 bắt thêm mã '1', '2b' = shot #2 #4).
     for x in vt:
-        if x['ten'] == 'Chú' and ma == '5' and 'chong_ban' in x.get('dien', []) and 'huong' in x:
+        if x['ten'] == 'Chú' and 'chong_ban' in x.get('dien', []) and 'huong' in x and abs((x['huong'] - 90 + 180) % 360 - 180) > 45:   # mọi shot nhoài ra mà thân lệch bậu (#2 #4 #10 — luật dangChongBau chặn)
             # thân thẳng ra ô cửa (90° = ra sân ga) + đứng sát vách (12 cm sau vách đông thay 25 cm): dáng chống bậu cúi ~15° → đầu + vai nhô ~30 cm ra ngoài
             # mặt cửa sổ; đầu tự xoay về tiệm (±75°). Bản xoay thân 135° vẫn đứng sau khung cửa (khung 3D 14/11/2026).
             x['huong_mat'] = x['huong']; x['huong'] = 90; x['tam'] = [VD - 12, CHU[1], CHU[2]]   # huong_mat: mặt vẫn nhìn về tiệm — cổng hướng máy chủ xếp nhóm theo mặt, không theo thân

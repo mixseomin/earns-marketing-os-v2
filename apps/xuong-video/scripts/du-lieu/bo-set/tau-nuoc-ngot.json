@@ -1617,11 +1617,11 @@
     {
      "ten": "Chú",
      "tam": [
-      -128,
+      -115,
       500,
       80
      ],
-     "huong": 150,
+     "huong": 90,
      "nhin_ai": "dau_ga",
      "nhin_ai_den": "giua_ga",
      "o_dau": "inside the train carriage, behind the open passenger window (not standing on the platform)",
@@ -1629,6 +1629,7 @@
       "chong_ban"
      ],
      "huong_bau": 90,
+     "huong_mat": 150,
      "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám",
      "nhip": [
       {
@@ -1652,7 +1653,7 @@
     {
      "ten": "Tờ 5 nghìn",
      "tam": [
-      -128,
+      -115,
       500,
       180
      ],
@@ -2539,11 +2540,11 @@
     {
      "ten": "Chú",
      "tam": [
-      -128,
+      -115,
       500,
       80
      ],
-     "huong": 150,
+     "huong": 90,
      "nhin_ai": "giua_ga",
      "nhin_ai_den": "giua_ga",
      "o_dau": "inside the train carriage, behind the open passenger window (not standing on the platform)",
@@ -2551,12 +2552,13 @@
       "chong_ban"
      ],
      "huong_bau": 90,
+     "huong_mat": 150,
      "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
     },
     {
      "ten": "Tờ 5 nghìn",
      "tam": [
-      -128,
+      -115,
       500,
       180
      ],

@@ -203,7 +203,7 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
           { key: 'bo', header: 'Bộ', align: 'right', cell: (r) => r.bo ?? '—' },
           { key: 'lai', header: 'Lãi', align: 'right', cell: (r) => (hep ? <span style={{ color: XANH, fontVariantNumeric: 'tabular-nums' }}>{tien(r.thu - r.chi)}</span> : <KeToan v={r.thu - r.chi} mau={XANH} />) },
           { key: 'roi', header: 'ROI', align: 'right', cell: (r) => pct(roi(r)) },
-        ] satisfies SimpleColumn<P>[]).filter((c) => !hep || c.key !== 'bo')} /> : <span style={{ color: MO }}>{PM_NGAY} ngày qua chưa có phim mới nào lãi từ ${PM_THANG}</span>}
+        ] satisfies SimpleColumn<P>[]).filter((c) => !hep || (c.key !== 'bo' && c.key !== 'd0'))} /> : <span style={{ color: MO }}>{PM_NGAY} ngày qua chưa có phim mới nào lãi từ ${PM_THANG}</span>}
       </div>;
     },
     phan_bo: () => {

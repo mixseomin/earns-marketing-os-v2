@@ -9,6 +9,7 @@ import { ChuoiBuoc } from '@/components/etp-dong';
 import { MA_DANG, DANG_DONG } from '@/components/etp-so';
 import { chuCong, chuLich, congTang, gioVnNay, KD, khungLuc, quaCong } from '@/lib/etp-khung';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
+import { ToaNha, TANG, xepTang, mauCamp, roiCamp } from '@/components/etp-toa-nha';
 import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, xemBotCamp, type CampThang, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
 
 const GD = ['Thử dạng', 'Camp lãi', 'Scale', 'ROAS'];
@@ -53,6 +54,13 @@ const TEN_BUOC: Record<string, string> = { nhan: 'nhận phim', ws: 'vào worksp
 // dòng còn phải tạo camp: bước camp chưa xong; đã lên camp thì camp đó đã đếm ở phần đang chạy
 const conSx = (d: LichPhim['sx'][number]) => d.trang_thai !== 'dung' && !d.buoc.some((b) => b.buoc === 'camp' && b.trang_thai === 'xong');
 const buocHien = (d: LichPhim['sx'][number]) => d.buoc.find((b) => b.trang_thai === 'loi' || b.trang_thai === 'dung') ?? d.buoc.find((b) => b.trang_thai === 'dang') ?? d.buoc.find((b) => b.trang_thai === 'cho');
+const maSx = (loai: string) => MA_DANG[DANG_DONG[loai] ?? ''] ?? loai;   // mã dòng (LT / PO…) → mã badge cùng sổ dạng
+/** CAMP MỚI — một chỗ tính cho bảng chữ và toà nhà: kế hoạch (k) → đang sản xuất (tongSx) → chờ lên (cho = hẹn giờ + creative sạch / hàng máy tự lên) */
+function campMoi(l: LichPhim) {
+  const sx = l.sx.filter(conSx), tongSx = sx.reduce((a, d) => a + (d.so_camp ?? 1), 0);
+  const ke = l.ke, them = ke?.trang_thai === 'them' || ke?.trang_thai === 'cho_do', cho = l.hen.length + Math.max(ke?.san ?? 0, l.tu_len), k = l.lt ? l.lt.ke : them ? ke!.k : 0;
+  return { sx, tongSx, ke, them, cho, k };
+}
 const O = ({ mau, net }: { mau: string; net?: boolean }) => <span style={{ flex: '1 1 0', maxWidth: 22, minWidth: 3, height: 12, borderRadius: 2, background: net ? 'transparent' : mau, border: net ? `1px dashed ${mau}` : undefined }} />;
 
 // một dòng log thành một mốc: chữ thường, bỏ tên camp lặp trong câu luật
@@ -114,10 +122,34 @@ function KhoiThang({ c, hoan, H }: { c: CampThang; hoan: boolean; H: (n: React.R
   </>;
 }
 
+/** TAB TOÀ NHÀ (anh 15/11/2026): cùng số với tab Lịch — tầng theo chặng camp, móng = camp mới, biển nóc = dòng Hướng (huongPhim); bấm khối camp thắng → khối CAMP THẮNG dùng lại */
+function TabToa({ l, chon, onChon }: { l: LichPhim; chon: number | null; onChon: (id: number | null) => void }) {
+  const gd = giaiDoan(l), h = huongPhim(l, gd), m = campMoi(l), pha = PHA_HT[l.pha ?? 'it_so'] ?? PHA_HT.it_so!;
+  const mong = React.useMemo(() => ({ sx: m.tongSx, ke: m.k, cho: Math.max(0, m.cho - l.hen.length) }), [m.tongSx, m.k, m.cho, l.hen.length]);
+  const dem = TANG.map((_, t) => l.camp.filter((c) => xepTang(c) === t).length);
+  const c = l.camp.find((x) => x.id === chon) ?? null, th = c ? l.thang.find((x) => x.camp_id === c.id) : undefined, r7 = c ? roiCamp(c) : null;
+  const H = (nhan: React.ReactNode, con: React.ReactNode) => <><span style={{ fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{nhan}</span><div style={{ minWidth: 0, fontSize: 11.5, color: 'var(--fg-2)' }}>{con}</div></>;
+  const giai = 'Móng: camp hẹn giờ (khối xanh mờ) · đang sản xuất (giàn giáo vàng) · kế hoạch (khung nét đứt)\nThử: camp $1 chưa lãi 7 ngày · Lãi: camp $1 lãi 7 ngày · Scale: camp đã lên bậc > $1 · ★ ROAS: mái — càng nhiều ★ toà càng cao\nKhối rộng theo ngân sách ($1 nhỏ → $30 kín ô) · màu: xanh lãi / tím ★ lãi / đỏ lỗ / xám chưa đủ số (7 ngày)';
+  return <>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+      <b style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.ten ?? `#${l.content_id}`}</b>
+      <span style={{ color: pha[1], whiteSpace: 'nowrap' }}>● {pha[0]}</span></div>
+    <ToaNha camp={l.camp} mong={mong} bien={{ chu: `▲ ${h.dong}`, mau: h.mauH }} chon={chon} onChon={onChon} />
+    <div style={{ display: 'grid', gridTemplateColumns: '58px 1fr', gap: '7px 10px', alignItems: 'center' }}>
+      {H('Tầng', <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', cursor: 'help' }} title={giai}>
+        {TANG.map((t, i) => ({ t, n: i ? dem[i]! : dem[0]! + mong.sx + mong.ke + mong.cho })).reverse().map(({ t, n }) =>
+          <span key={t} style={{ whiteSpace: 'nowrap' }}><span style={{ color: 'var(--fg-3)' }}>{t}</span> <b style={{ color: n ? 'var(--fg-1)' : 'var(--fg-3)' }}>{n}</b></span>)}</div>)}
+      {H('Hướng', <div style={GON} title={h.re}><b style={{ color: h.mauH }}>{h.dong}</b> · {h.chu}</div>)}
+      {c ? H(`#${c.id}`, <div style={GON}><span style={{ color: mauCamp(c) }}>●</span> {c.roas ? '★ ROAS' : c.dang} · ${c.ns}/ngày{c.cho ? ' · hẹn giờ, chưa chạy' : ` · 7 ngày chi $${c.chi7.toFixed(0)} · ${r7 != null ? `ROI ${r7 > 0 ? '+' : ''}${r7}%` : 'chưa đủ số'}`}</div>)
+        : H('Chọn', <span style={{ color: 'var(--fg-3)' }}>bấm một khối để xem camp</span>)}
+      {th ? <KhoiThang c={th} hoan={l.hoan.some((x) => x.camp_id === th.camp_id && x.huong === 'tang')} H={H} /> : null}
+    </div></>;
+}
+
 export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruong: () => TheNoi; children: React.ReactNode }) {
   const router = useRouter(), noi = useNoi<{ id: 0 }>();
   const [l, setL] = useState<LichPhim | null>(null), [loi, setLoi] = useState<string | null>(null), [dang, setDang] = useState(false), [kq, setKq] = useState<string | null>(null);
-  const [tab, setTab] = useState<'lich' | 'tt' | 'log'>('lich'), [log, setLog] = useState<LogPhim[] | { loi: string } | null>(null);
+  const [tab, setTab] = useState<'lich' | 'toa' | 'tt' | 'log'>('lich'), [chonToa, setChonToa] = useState<number | null>(null), [log, setLog] = useState<LogPhim[] | { loi: string } | null>(null);
   useEffect(() => { if (tab === 'log' && noi.v) docLogPhim(cid).then(setLog).catch((e) => setLog({ loi: String(e?.message ?? e) })); }, [tab, !!noi.v, cid]);
   const daTai = useRef(false);
   useEffect(() => { if (noi.v && !daTai.current) { daTai.current = true; setKq(null); tai(); } if (!noi.v) daTai.current = false; }, [noi.v]);
@@ -135,12 +167,13 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
     ...l.hoan.slice(0, 2).map((h) => `${h.huong === 'tang' ? '⬆' : h.huong === 'giam' ? '⬇' : '✕'} #${h.camp_id} ${h.huong === 'tang' ? 'tăng bậc lúc 21:00' : h.huong === 'giam' ? 'giảm bậc lúc 15:00' : 'tắt lúc 15:00'}`),
     gd === 0 && l.vong !== 'cat' && !l.lt ? `✕ cất phim nếu chi tới $${l.moc_chi} / ${l.moc_thu} camp thử mà chưa lãi` : null,
   ].filter(Boolean).slice(0, 4) as string[] : [];
-  const oTab = (k: 'lich' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
+  const oTab = (k: 'lich' | 'toa' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
   return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: 'inline-flex', cursor: 'pointer' }}>
-    {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={480} cao={l?.thang.length ? 620 : 360} noi={noi}>
+    {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={480} cao={tab === 'toa' ? 600 : l?.thang.length ? 620 : 360} noi={noi}>
       <div onClick={(e) => e.stopPropagation()} style={{ padding: '10px 30px 10px 12px', width: 480, maxWidth: '92vw', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 4 }}>{oTab('lich', 'Lịch + điều khiển')}{oTab('tt', 'Thị trường')}{oTab('log', 'Log')}</div>
-        {tab === 'tt' ? <div style={{ margin: '-10px -30px -10px -12px' }}><TheChung t={thiTruong()} /></div> : tab === 'log' ? <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+        <div style={{ display: 'flex', gap: 4 }}>{oTab('lich', 'Lịch + điều khiển')}{oTab('toa', 'Toà nhà')}{oTab('tt', 'Thị trường')}{oTab('log', 'Log')}</div>
+        {tab === 'toa' ? (loi ? <div style={{ color: '#f87171' }}>{loi}</div> : !l ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : <TabToa l={l} chon={chonToa} onChon={setChonToa} />)
+          : tab === 'tt' ? <div style={{ margin: '-10px -30px -10px -12px' }}><TheChung t={thiTruong()} /></div> : tab === 'log' ? <div style={{ maxHeight: 420, overflowY: 'auto' }}>
           {!log ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : 'loi' in log ? <div style={{ color: '#f87171' }}>{log.loi}</div> : <DongMoc ds={log.map(mocLog)} rong="Phim chưa có log." />}</div> : <>
         {loi ? <div style={{ color: '#f87171' }}>{loi}</div> : !l ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : <>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
@@ -151,10 +184,8 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
           {(() => {
             const chay = l.dang.reduce((a, d) => a + d.chay, 0), lai = l.dang.reduce((a, d) => a + d.lai, 0), lo = l.dang.reduce((a, d) => a + d.lo, 0);
             const chi7 = l.dang.reduce((a, d) => a + d.chi7, 0), thu7 = l.dang.reduce((a, d) => a + d.thu7, 0);
-            const maSx = (loai: string) => MA_DANG[DANG_DONG[loai] ?? ''] ?? loai;   // mã dòng (LT / PO…) → mã badge cùng sổ dạng
-            const sx = l.sx.filter(conSx), soSx = (k: string) => sx.filter((d) => maSx(d.loai) === k).reduce((a, d) => a + (d.so_camp ?? 1), 0), tongSx = sx.reduce((a, d) => a + (d.so_camp ?? 1), 0);
+            const { sx, tongSx, ke, them, cho, k } = campMoi(l), soSx = (x: string) => sx.filter((d) => maSx(d.loai) === x).reduce((a, d) => a + (d.so_camp ?? 1), 0);
             const ma = [...new Set([...l.dang.map((d) => MA_DANG[d.dang] ?? d.dang), ...sx.map((d) => maSx(d.loai))])];
-            const ke = l.ke, them = ke?.trang_thai === 'them' || ke?.trang_thai === 'cho_do', cho = l.hen.length + Math.max(ke?.san ?? 0, l.tu_len), k = l.lt ? l.lt.ke : them ? ke!.k : 0;
             const m = l.thieu?.match(/(\d+\/\d+) camp.*thiếu (\d+)/);
             // MỞ RỘNG: +k của etp.mo_rong chỉ là số tham khảo; máy chỉ tự xếp dòng cho phim cả đội lãi (etp.phim_doi_lai) — nói rõ ai làm + creative có đủ không (anh 07/11/2026)
             const buocKe = l.lt ? (l.lt.ma === 'sx' ? null : `🤖 ${l.lt.chu}`) : !ke ? 'Chưa có kế hoạch: phim chưa có camp Nhà đang chạy' : !them ? <span style={{ cursor: 'help' }} title={ke.ly}>Chưa thêm <span style={{ color: 'var(--fg-3)' }}>ⓘ</span></span>

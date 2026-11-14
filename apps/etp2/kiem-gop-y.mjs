@@ -64,6 +64,8 @@ const LUAT = [
   { card: 'phim-moi-1411', tep: 'apps/etp2/src/lib/etp-widget.json', co: '"phim_moi"', vi: 'Tổng quan có widget Phim mới — khả năng tìm ra phim hiệu quả (anh 14/11/2026)' },
   { card: 'phim-moi-1411', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'phim_moi: ({ rong }) =>', vi: 'hàm vẽ widget Phim mới' },
   { card: 'phim-moi-gon-1411', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', cam: "label: `Phim thử ${PM_NGAY} ngày`", vi: 'widget Phim mới gọn: một dòng tổng chữ nhỏ, không ô số to (anh 14/11/2026 "cần gọn nhất")' },
+  { card: 'toa-nha-1511', tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: "{oTab('toa', 'Toà nhà')}", vi: 'khung phim có tab Toà nhà 3D (anh 15/11/2026 "giống kiểu hình một toà nhà")' },
+  { card: 'toa-nha-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'c.cho ? 0 : c.roas ? 4 : c.ns > 1 ? 3 : lai ? 2 : 1', vi: 'tầng theo chặng camp: móng hẹn giờ · thử · lãi · scale · mái ★ ROAS' },
   { card: 'phim-moi-1411', tep: 'apps/etp2/src/lib/actions/etp-tong2.ts', co: 'phimMoi: nha ?', vi: 'gói Tổng quan 2 mang số phim mới (chỉ nhà)' },
   { card: 'tran-30-1411', tep: 'apps/etp/ethopex_api.py', co: 'if float(v) > CG.TRAN_TUYET]', vi: 'cổng API Ethopex chặn mọi lệnh ngân sách > $30/camp (anh 14/11/2026 "Ko bao giờ tăng ngân sách vượt trần $30")' },
   { card: 'tran-30-1411', tep: 'apps/etp/cong.py', co: 'TRAN_TUYET = 30', vi: 'trần tuyệt đối $30 một nguồn ở cong.py' },

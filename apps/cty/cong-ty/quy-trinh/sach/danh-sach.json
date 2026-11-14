@@ -69,6 +69,23 @@
    "chi_phi": "0 tiền mô hình (máy dựng trên iMac)"
   },
   {
+   "id": "sua-sach-ket",
+   "ten": "Bổ sung sách máy không dựng được (Claude Code trên iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 30 phút — bộ điều phối việc nền; chỉ gọi Claude khi hàng sach-sua.json có việc",
+   "mo_ta": "Máy dựng đêm (puzzle-books may-chay.mjs quetKet) đọc SỔ: cuốn kdp/etsy tới đợt (≤ 21 ngày hoặc đã quá) mà chưa có hồ sơ dựng / bộ sinh → ghi lý do vào sổ (listing_config.ketSx, hiện đỏ ở tab Máy SX) và xếp việc sach:ket|<id>. Thảo viết đúng thứ thiếu (hồ sơ themes/<tên>.json chép từ cuốn cùng loại, bộ sinh scripts/loai/<loại>.mjs khi loại mới), còn lại gọi quy-trinh.mjs --den het, tới khi cuốn chờ anh duyệt; báo dưới tin trong 📂 Sách.",
+   "ma": "apps/cty/may/sach-sua.mjs · hàng: apps/cty/worker/tho-may-viec.mjs (THO_MAY_TEP=sach-sua.json) · xếp việc: puzzle-books scripts/may-chay.mjs (sx | ket)",
+   "chu_tri": "thao",
+   "lam": [
+    "may"
+   ],
+   "khi": "khi hàng sach-sua.json có việc",
+   "lich": [
+    "iMac:tc.on.cty.sach-sua"
+   ],
+   "chi_phi": "gói Claude thuê bao (không tính theo lượt); dựng sách bằng script 0₫"
+  },
+  {
    "id": "bat-ban-etsy",
    "ten": "Bật bán Etsy",
    "so_hoa": "co-dinh",

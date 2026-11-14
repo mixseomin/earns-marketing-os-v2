@@ -215,8 +215,8 @@ const main = async () => {
   if (co('--xem')) {
     for (const b of ds) console.log(`→ ${b.dangTu} ${b.slug.padEnd(34)} ${b.nen.padEnd(9)} ${b.kieu ?? '(KHÔNG BIẾT DẠNG)'} · ${SO[b.kieu]?.vnd ?? '?'}₫ · ${b.huong || '(chưa có hướng)'}`);
     if (ds.length) console.log(`tổng ước: ${ds.reduce((t, b) => t + (SO[b.kieu]?.vnd ?? 0), 0)}₫ cho ${ds.length} bài`);
-    for (const k of kho) console.log(`→ kho ${k.may.padEnd(28)} còn ${k.con} → sinh ${k.n} đề · ước ${k.n * KHO.vnd_de}₫`);
-    if (KHO && !slug) console.log(kho.length ? `kho: ước ${kho.reduce((t, k) => t + k.n * KHO.vnd_de, 0)}₫ (trần lượt ${KHO.tran_vnd_luot}₫)` : `kho: mọi máy còn ≥ ${KHO.con_it_nhat} bài`);
+    for (const k of kho) console.log(`→ kho ${k.may.padEnd(28)} còn ${k.con} → ${rieng(k.may).lenh} ${k.n} · ước ${k.n * rieng(k.may).vnd_de}₫`);
+    if (KHO && !slug) console.log(kho.length ? `kho: ước ${kho.reduce((t, k) => t + k.n * rieng(k.may).vnd_de, 0)}₫ (trần lượt ${KHO.tran_vnd_luot}₫)` : `kho: mọi máy còn ≥ ${KHO.con_it_nhat} bài`);
     return;
   }
   if (!ds.length && !kho.length) return;

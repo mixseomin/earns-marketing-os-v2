@@ -30,18 +30,19 @@ export type MongToa = { sx: number; ke: number; cho: number };   // đang sản 
 type Vat = { m: import('three').Object3D; vien: import('three').Object3D; id: number | null; chu: string };
 
 /** nhãn chữ cỡ cố định trên màn (sizeAttenuation tắt), nền tối để đọc được trên mọi mặt tường */
-function nhan(T: T3, chu: string, mau: string, to = 1) {
+function nhan(T: T3, chu: string, mau: string, to = 1, theoMan = true) {
   const cv = document.createElement('canvas'), g = cv.getContext('2d')!; const fs = 44;
   g.font = `600 ${fs}px system-ui, sans-serif`; cv.width = Math.ceil(g.measureText(chu).width) + 24; cv.height = fs + 20;
   g.fillStyle = 'rgba(15,23,42,0.88)'; g.beginPath(); g.roundRect(0, 0, cv.width, cv.height, 14); g.fill();
   g.font = `600 ${fs}px system-ui, sans-serif`; g.fillStyle = mau; g.textBaseline = 'middle'; g.fillText(chu, 12, cv.height / 2);
   const tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace;
-  const sp = new T.Sprite(new T.SpriteMaterial({ map: tx, depthTest: false, transparent: true, sizeAttenuation: false })); sp.renderOrder = 10;
-  const h = 0.042 * to; sp.scale.set(h * cv.width / cv.height, h, 1); return sp;
+  const sp = new T.Sprite(new T.SpriteMaterial({ map: tx, depthTest: !theoMan, transparent: true, sizeAttenuation: !theoMan })); sp.renderOrder = 10;
+  /* theoMan: cỡ cố định trên màn (một toà) · không: cỡ theo thế giới, toà xa chữ nhỏ (thành phố — hàng chục biển không chồng thành mảng) */
+  const h = theoMan ? 0.042 * to : 0.5 * to; sp.scale.set(h * cv.width / cv.height, h, 1); return sp;
 }
 
 /** DỰNG MỘT TOÀ vào nhóm g (gốc toà ở (0,0,0)). nhanTang: nhãn tầng bên trái (khung phim) · bien: biển trên cột ăng-ten. Trả chiều cao + các cửa bấm được. */
-function dungToa(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: MongToa; bien: { chu: string; mau: string } | null; nhanTang: boolean; kho: Map<string, import('three').CanvasTexture> }) {
+function dungToa(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: MongToa; bien: { chu: string; mau: string } | null; nhanTang: boolean; bienTheoMan?: boolean; kho: Map<string, import('three').CanvasTexture> }) {
   const theoTang: Khoi[][] = TANG.map(() => []);
   for (const c of o.camp) theoTang[xepTang(c)]!.push({ kieu: 'camp', c });
   theoTang[1]!.sort((a, b) => (a.kieu === 'camp' && b.kieu === 'camp' ? (roiCamp(b.c) ?? -999) - (roiCamp(a.c) ?? -999) : 0));
@@ -97,7 +98,7 @@ function dungToa(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: Mo
   be(RONG + 0.14, 0.1, SAU + 0.14, 0x64748b, y + 0.05);
   be(1.0, 0.3, 0.8, 0x94a3b8, y + 0.25, -0.6);
   const cot = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.9), new T.MeshStandardMaterial({ color: 0x94a3b8 })); cot.position.set(RONG / 2 - 0.4, y + 0.55, 0); g.add(cot);
-  if (o.bien) { const sp = nhan(T, o.bien.chu, o.bien.mau, 1.1); sp.center.set(0.5, 0); sp.position.set(RONG / 2 - 0.4, y + 1.02, 0); g.add(sp); }
+  if (o.bien) { const sp = nhan(T, o.bien.chu, o.bien.mau, 1.1, o.bienTheoMan ?? true); sp.center.set(0.5, 0); sp.position.set(RONG / 2 - 0.4, y + 1.02, 0); g.add(sp); }
   return { cao: y + 1.0, vat };
 }
 
@@ -201,7 +202,7 @@ export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mo
  *  Không có nhãn tầng (rối); biển tên chỉ cắm trên các toà đứng đầu. Bấm một cửa = chọn phim của toà đó. */
 export type ToaPhim = { p: number; ten: string; camp: CampToa[] };
 export const laiPhim = (x: ToaPhim) => x.camp.reduce((a, c) => a + c.thu7 - c.chi7, 0);
-export function ThanhPho({ ds, chon, onChon, cao, bienToiDa = 8 }: { ds: ToaPhim[]; chon: number | null; onChon: (p: number | null) => void; cao: number; bienToiDa?: number }) {
+export function ThanhPho({ ds, chon, onChon, cao, bienToiDa = 6 }: { ds: ToaPhim[]; chon: number | null; onChon: (p: number | null) => void; cao: number; bienToiDa?: number }) {
   const hop = useRef<HTMLDivElement>(null);
   const { re, loi } = useCanh3D(hop, (T, canh) => {
     const kho = new Map<string, import('three').CanvasTexture>(), vat: Vat[] = [];
@@ -210,8 +211,8 @@ export function ThanhPho({ ds, chon, onChon, cao, bienToiDa = 8 }: { ds: ToaPhim
     let caoMax = 1;
     ds.forEach((ph, i) => {
       const g = new T.Group(); canh.add(g);
-      const ten = ph.ten.length > 22 ? `${ph.ten.slice(0, 21)}…` : ph.ten, lai = laiPhim(ph);
-      const r = dungToa(T, g, { camp: ph.camp, mong: { sx: 0, ke: 0, cho: 0 }, bien: dauBien.has(ph.p) ? { chu: ten, mau: lai >= 0 ? XANH : DO } : null, nhanTang: false, kho });
+      const ten = ph.ten.length > 22 ? `${ph.ten.slice(0, 21)}…` : ph.ten, ngan = ph.ten.length > 16 ? `${ph.ten.slice(0, 15)}…` : ph.ten, lai = laiPhim(ph);
+      const r = dungToa(T, g, { camp: ph.camp, mong: { sx: 0, ke: 0, cho: 0 }, bien: dauBien.has(ph.p) ? { chu: ngan, mau: lai >= 0 ? XANH : DO } : null, nhanTang: false, bienTheoMan: false, kho });
       g.position.set((i % cot - (cot - 1) / 2) * BX, 0, (Math.floor(i / cot) - (Math.ceil(n / cot) - 1) / 2) * BZ);
       caoMax = Math.max(caoMax, r.cao);
       for (const v of r.vat) vat.push({ m: v.m, vien: g, id: ph.p, chu: `${ten} · ${v.chu}` });

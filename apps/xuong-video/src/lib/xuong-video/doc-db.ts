@@ -173,6 +173,9 @@ export async function giaVideoSv(model: string, dpg: '720p' | '1080p', giay: num
     const m = await modelFal(model.slice(4));
     const g = (!tieng ? m?.gia.khongTieng?.[dpg] : null) ?? m?.gia.chinh[dpg]; if (g != null) return g * Math.max(giay, m?.gia.giayToiThieu ?? 0);   // tính tối thiểu (Pikaframes 5 s)
     const clip = m?.gia.clip[dpg]; if (clip) return clip[1];
+    // Model video tính theo KHUNG / megapixel (LTX 2.3 reference video-to-video: "$0.001/ảnh"): giá một khung × số khung (24 fps), tính trên trần 1 megapixel /
+    // khung (720p = 0,92 MP → ước dư). Trước 14/11/2026 rơi xuống giá mặc định 60¢ — cổng tiền chặn oan một lượt thật ~11¢.
+    const k = m?.gia.anh; if (k) return k[1] * Math.ceil(giay * 24 + 1);
   }
   return giaVideoCents(model, dpg, giay);
 }

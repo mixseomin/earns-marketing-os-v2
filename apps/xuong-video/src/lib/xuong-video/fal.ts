@@ -220,24 +220,25 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
     if (co('resolution')) o.resolution = '540p';
     return o;
   }
+  // WAN VACE (độ sâu / khung xương từ video nguồn): clip 3D lái hình học + chuyển động TỪNG KHUNG, keyframe đã duyệt làm khung đầu (ngoại hình, sảnh) — đường
+  // "render pass control" của ngành (flick.art › Wan 2.2 VACE). Đặt TRƯỚC nhánh H3 Max: trước 14/11/2026 nhánh H3 (video_url + clip) nuốt mọi model có
+  // video_url nên nhánh này không bao giờ chạy. negative_prompt mặc định của fal có "style, artwork, painting" — phim vẽ tay bị đẩy ra ảnh thật, phải ghi đè.
+  if (co('video_url') && co('first_frame_url') && co('preprocess') && v.videoNguon && v.anhDau) {
+    o.video_url = v.videoNguon; o.first_frame_url = v.anhDau; o.preprocess = true;
+    if (co('task')) o.task = process.env.XV_VACE_TASK ?? 'depth';   // depth giữ hình khối + máy; 'pose' chỉ dáng người — đổi để so (sổ so sánh)
+    if (co('ref_image_urls')) o.ref_image_urls = [v.anhDau];
+    if (co('match_input_num_frames')) o.match_input_num_frames = true;
+    if (co('match_input_frames_per_second')) o.match_input_frames_per_second = true;
+    if (co('resolution')) o.resolution = '480p';
+    if (co('negative_prompt')) o.negative_prompt = 'letterboxing, borders, black bars, subtitles, text, watermark, overexposed, blurred details, worst quality, low quality, JPEG artifacts, deformed, disfigured, extra fingers, poorly drawn hands, poorly drawn faces, extra people, duplicated person, walking backwards';
+    if (v.tiLe && co('aspect_ratio')) o.aspect_ratio = enumCua(p.aspect_ratio).map(String).includes(v.tiLe) ? v.tiLe : 'auto';
+    return o;
+  }
   if (co('video_url') && v.videoNguon) {
     // H3 Max kiểm prompt ≤ 2000 ký tự LÚC CHẠY (schema không khai maxLength, lỗi 422 về qua docFal chứ không lúc gửi — #23 16/10/2026).
     o.video_url = v.videoNguon; o.prompt = catCau(v.prompt, toiDa ?? 2000);
     if (khung.length && co('reference_image_urls')) o.reference_image_urls = khung.slice(0, 8);
     if (co('resolution')) { const en = enumCua(p.resolution).map(String); const chon = en.find((x) => /768|720/.test(x)) ?? en[0]; if (chon) o.resolution = chon; }
-    return o;
-  }
-  // WAN VACE (độ sâu / khung xương từ video nguồn): clip diễn Blender lái hình học + chuyển động TỪNG KHUNG, keyframe đã duyệt làm khung đầu (ngoại hình, sảnh)
-  // — đường "render pass control" của ngành (flick.art › Wan 2.2 VACE "accepts depth and pose control video directly for frame-exact restyling").
-  // Seedance reference-to-video từ chối ảnh người thật (fal 422 "likenesses of real people", #132 #15a 23/10/2026).
-  if (co('video_url') && co('first_frame_url') && co('preprocess') && v.videoNguon && v.anhDau) {
-    o.video_url = v.videoNguon; o.first_frame_url = v.anhDau; o.preprocess = true;
-    if (co('ref_image_urls')) o.ref_image_urls = [v.anhDau];
-    if (co('match_input_num_frames')) o.match_input_num_frames = false;
-    if (co('num_frames')) o.num_frames = Math.max(81, Math.min(241, Math.round((v.giay ?? 5) * 16) + 1));
-    if (co('frames_per_second')) o.frames_per_second = 16;
-    if (co('resolution')) o.resolution = '720p';
-    if (v.tiLe && co('aspect_ratio')) o.aspect_ratio = enumCua(p.aspect_ratio).map(String).includes(v.tiLe) ? v.tiLe : 'auto';
     return o;
   }
   // CLIP DIỄN BLENDER LÀM KHUÔN CHUYỂN ĐỘNG (reference-to-video: video_urls + image_urls — Seedance 2.0; anh 23/10/2026 "tìm xem họ đang làm thế nào": ngành

@@ -406,9 +406,9 @@ export function ThanhPho({ ds, chon, onChon, cao }: { ds: ToaPhim[]; chon: numbe
       lanKhu[kh]!.push([ox, oz]); if (kh === 1) cay.push([ox + LX / 2 - 0.25, oz + LZ / 2 - 0.25], [ox - LX / 2 + 0.25, oz + LZ / 2 - 0.25]);
       const g = new T.Group(); g.position.set(ox, 0, oz); canh.add(g);
       const ten = ph.ten.length > 22 ? `${ph.ten.slice(0, 21)}…` : ph.ten, ngan = ph.ten.length > 16 ? `${ph.ten.slice(0, 15)}…` : ph.ten, lai = laiPhim(ph);
-      const r = dungToa(T, g, { camp: ph.camp, tat: ph.tat, mong: { sx: 0, ke: 0, cho: 0 }, bien: { chu: ngan, mau: lai >= 0 ? XANH : DO }, bienCo: 0.5, nhanTang: false, bienTheoMan: true, kho });
+      const r = dungToa(T, g, { camp: ph.camp, tat: ph.tat, mong: { sx: 0, ke: 0, cho: 0 }, bien: { chu: ngan, mau: lai >= 0 ? XANH : DO }, bienCo: 0.42, nhanTang: false, bienTheoMan: true, kho });
       // TÊN PHIM NHỎ + MỜ, rê vào toà mới rõ (anh 15/11/2026 "Tên phim thì nhỏ, opacity, hover vào mới rõ")
-      if (r.bienSp) { (r.bienSp.material as import('three').SpriteMaterial).opacity = 0.35; r.bienSp.userData.mo = 0.35; }
+      if (r.bienSp) { (r.bienSp.material as import('three').SpriteMaterial).opacity = 0.2; r.bienSp.userData.mo = 0.2; }
       caoMax = Math.max(caoMax, r.cao);
       // KHUNG CHỌN ÔM THÂN (anh 15/11/2026 "khi bấm chọn 1 toà, viền phải gọn lại"): khối bấm = đúng thân nhà / thửa, không gồm biển tên, ăng-ten, đèn
       const [bw, bh, bd] = r.than, bat = new T.Mesh(new T.BoxGeometry(bw, Math.max(0.3, bh), bd), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));

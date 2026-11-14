@@ -438,9 +438,15 @@ export function ThanhPho({ ds, chon, onChon, cao }: { ds: ToaPhim[]; chon: numbe
 /** DANH SÁCH CAMP của một toà — CÙNG nguồn số với cây / cửa sổ đã dựng (anh 15/11/2026 "Bấm vào tưởng có camp lãi, mở ra đéo thấy cái lồn gì… Danh sách camp phải hiện ra cho khớp"):
  *  đang chạy (màu đúng màu cây / cửa: xanh lãi · tím ★ lãi · đỏ lỗ · xám chưa đủ số · lam hẹn giờ) rồi đã tắt (héo). Số 7 ngày + ngày lãi trong 7 ngày đã khép. */
 export function DsCampToa({ camp, tat }: { camp: CampToa[]; tat: CampToa[] }) {
-  const dong = (c: CampToa) => { const r = roiCamp(c), mau = c.tat ? '#78716c' : mauCamp(c);
+  // TRẠNG THÁI BẰNG CHỮ (anh 15/11/2026 "cái này hiểu là thế đéo nào" — chấm xám không nói gì): cùng màu với cây / cửa sổ
+  const trangThai = (c: CampToa) => c.tat ? { chu: 'Đã tắt', giai: 'camp đã tắt, còn chi trong 30 ngày (cây héo)' }
+    : c.cho ? { chu: 'Hẹn giờ', giai: 'camp đã tạo, chờ tới giờ chạy (cây non)' }
+    : c.chi7 < 1 ? { chu: 'Chưa chi', giai: 'đang chạy nhưng 7 ngày chi chưa tới $1 — chưa đủ số để biết lãi / lỗ (cây xám)' }
+    : c.thu7 > c.chi7 ? { chu: c.roas ? '★ Lãi' : 'Lãi', giai: 'thu 7 ngày > chi 7 ngày (cây xanh sáng)' } : { chu: 'Lỗ', giai: 'thu 7 ngày ≤ chi 7 ngày (cây đỏ)' };
+  const dong = (c: CampToa) => { const r = roiCamp(c), mau = c.tat ? '#a8a29e' : mauCamp(c), tt = trangThai(c);
     return <tr key={c.id} style={{ borderTop: '1px solid var(--line)', opacity: c.tat ? 0.6 : 1 }}>
-      <td style={{ padding: '3px 6px 3px 0', whiteSpace: 'nowrap' }}><span style={{ color: mau }}>●</span> <b style={{ color: 'var(--fg-1)' }}>#{c.id}</b></td>
+      <td style={{ padding: '3px 6px 3px 0', whiteSpace: 'nowrap' }}><b style={{ color: 'var(--fg-1)' }}>#{c.id}</b></td>
+      <td style={{ padding: '3px 6px', whiteSpace: 'nowrap' }}><span title={tt.giai} style={{ cursor: 'help', color: mau, border: `1px solid ${mau}`, borderRadius: 4, padding: '0 5px', fontSize: 10.5 }}>{tt.chu}</span></td>
       <td style={{ padding: '3px 6px', whiteSpace: 'nowrap' }}>{c.roas ? '★ ROAS' : c.dang}</td>
       <td style={{ padding: '3px 6px' }}><KeToan v={c.ns} /></td>
       <td style={{ padding: '3px 6px' }}><KeToan v={c.chi7} /></td>
@@ -452,11 +458,11 @@ export function DsCampToa({ camp, tat }: { camp: CampToa[]; tat: CampToa[] }) {
   const xep = (a: CampToa, b: CampToa) => (b.thu7 - b.chi7) - (a.thu7 - a.chi7);
   return <div style={{ maxHeight: 360, overflowY: 'auto', fontSize: 11.5, color: 'var(--fg-2)' }}>
     <table style={{ width: '100%', borderCollapse: 'collapse', fontVariantNumeric: 'tabular-nums' }}>
-      <thead><tr style={{ color: 'var(--fg-3)', fontSize: 10.5 }}><th style={{ textAlign: 'left', fontWeight: 400 }}>Camp</th><th style={{ textAlign: 'left', fontWeight: 400, padding: '0 6px' }}>Dạng</th>
+      <thead><tr style={{ color: 'var(--fg-3)', fontSize: 10.5 }}><th style={{ textAlign: 'left', fontWeight: 400 }}>Camp</th><th style={{ textAlign: 'left', fontWeight: 400, padding: '0 6px' }}>Trạng thái</th><th style={{ textAlign: 'left', fontWeight: 400, padding: '0 6px' }}>Dạng</th>
         <th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>NS/ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Chi 7 ngày</th>
         <th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Thu 7 ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Lãi 7 ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>ROI</th>
         <th style={{ textAlign: 'right', fontWeight: 400 }} title={`số ngày lãi / số ngày có chi ≥ $1 trong 7 ngày Ethopex đã khép · ổn định = lãi ≥ ${ON_DINH} ngày`}>Ngày lãi</th></tr></thead>
-      <tbody>{[...camp].sort(xep).map(dong)}{tat.length ? <tr><td colSpan={8} style={{ paddingTop: 8, color: 'var(--fg-3)', fontSize: 10.5 }}>Đã tắt (còn chi trong 30 ngày) · {tat.length}</td></tr> : null}{[...tat].sort(xep).map(dong)}</tbody>
+      <tbody>{[...camp].sort(xep).map(dong)}{tat.length ? <tr><td colSpan={9} style={{ paddingTop: 8, color: 'var(--fg-3)', fontSize: 10.5 }}>Đã tắt (còn chi trong 30 ngày) · {tat.length}</td></tr> : null}{[...tat].sort(xep).map(dong)}</tbody>
     </table>
     {!camp.length && !tat.length ? <div style={{ color: 'var(--fg-3)' }}>Không có camp.</div> : null}
   </div>;

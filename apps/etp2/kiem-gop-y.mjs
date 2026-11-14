@@ -62,7 +62,7 @@ const LUAT = [
   { card: 'thi-truong-1111', tep: 'apps/etp2/src/lib/etp-thi-truong.ts', co: 'export function saiSo(', vi: 'dự đoán kèm biên sai máy tự đo trên số thật, ngày lễ có nguồn / giả định ghi rõ, không đoán ROI (anh 11/11/2026 "thông tin đúng hơn")' },
   { card: 'tach-1011', tep: 'apps/etp2/src/lib/etp-widget.json', co: '"phan_tach"', vi: 'Tổng quan 2 có bố cục Breakdown theo bộ lọc (anh 10/11/2026)' },
   { card: 'phim-moi-1411', tep: 'apps/etp2/src/lib/etp-widget.json', co: '"phim_moi"', vi: 'Tổng quan có widget Phim mới — khả năng tìm ra phim hiệu quả (anh 14/11/2026)' },
-  { card: 'phim-moi-1411', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'phim_moi: () =>', vi: 'hàm vẽ widget Phim mới' },
+  { card: 'phim-moi-1411', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'phim_moi: ({ rong }) =>', vi: 'hàm vẽ widget Phim mới' },
   { card: 'phim-moi-1411', tep: 'apps/etp2/src/lib/actions/etp-tong2.ts', co: 'phimMoi: nha ?', vi: 'gói Tổng quan 2 mang số phim mới (chỉ nhà)' },
   { card: 'tran-30-1411', tep: 'apps/etp/ethopex_api.py', co: 'if float(v) > CG.TRAN_TUYET]', vi: 'cổng API Ethopex chặn mọi lệnh ngân sách > $30/camp (anh 14/11/2026 "Ko bao giờ tăng ngân sách vượt trần $30")' },
   { card: 'tran-30-1411', tep: 'apps/etp/cong.py', co: 'TRAN_TUYET = 30', vi: 'trần tuyệt đối $30 một nguồn ở cong.py' },

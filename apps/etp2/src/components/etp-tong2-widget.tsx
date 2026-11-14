@@ -2,7 +2,7 @@
 // WIDGET SỐ của Tổng quan 2 etp (anh 01/11/2026 "cụm nhóm Insight dựa vào Người, Tài khoản và Time"): đọc gói taiTong2 (actions/etp-tong2.ts), theo kỳ đang chọn trên trang.
 // Khoá của VE_SO phải có trong sổ lib/etp-widget.json (check-etp-gop-y đối chiếu) — thêm widget = mục trong sổ + một hàm ở đây.
 import { useEffect, useMemo, useState } from 'react';
-import { SimpleTable, StatsStrip } from '@/components/ui';
+import { SimpleTable, StatsStrip, type SimpleColumn } from '@/components/ui';
 import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
@@ -168,8 +168,9 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
     // (nhóm tính sống trên máy chủ theo 3 ngày đã khép; mục tiêu / cách làm = etp.cau_hinh 'phan_bo', sửa không cần deploy)
     // PHIM MỚI — KHẢ NĂNG TÌM RA PHIM HIỆU QUẢ (anh 14/11/2026): phim xếp theo ngày nhà chi đầu tiên; đủ thử = chi cả đời ≥ $PM_DU, thắng = lãi cả đời ≥ $PM_THANG
     // (mọi bộ, cả ★ ROAS, chỉ ngày đã khép). Tỷ lệ thắng tính trên phim đủ thử. Tuần kết thúc trong 7 ngày gần nhất → phim còn non, ghi "đang thử".
-    phim_moi: () => {
+    phim_moi: ({ rong }) => {
       if (!s) return cho;
+      const hep = rong < 560;   // điện thoại: bỏ cột Chi / Đủ thử / Bộ để Lãi + ROI không bị cắt mép (số đủ thử vẫn ở ô tổng và trong tỷ lệ)
       if (!s.phimMoi) return <span style={{ color: MO, fontSize: 12 }}>số phim mới chỉ có ở tài khoản nhà</span>;
       type P = NonNullable<SoTong2['phimMoi']>[number];
       const qua = congNgay(s.nay, -1), tuK = congNgay(s.nay, -PM_NGAY), moc = congNgay(qua, -7);
@@ -188,7 +189,7 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
           { key: 'lai', label: 'Lãi ròng phim mới', value: tien(g30.k.thu - g30.k.chi), color: mauLai(g30.k.thu - g30.k.chi), sub: `ROI ${pct(roi(g30.k))} · chi ${tien(g30.k.chi)}`, title: `cộng mọi phim bắt đầu trong ${PM_NGAY} ngày, kể cả phim thua` },
           { key: 'gia', label: 'Tiền thử / phim thắng', value: g30.giaThang == null ? '—' : tien(g30.giaThang), sub: 'chi của phim chưa thắng ÷ số phim thắng', title: 'mỗi phim thắng tìm được tốn bao nhiêu tiền thử các phim còn lại' },
         ]} />
-        <SimpleTable rows={tuan} getRowKey={(r) => r.t} columns={[
+        <SimpleTable rows={tuan} getRowKey={(r) => r.t} columns={([
           { key: 't', header: 'Tuần bắt đầu', cell: (r) => <span title={`phim nhà chi lần đầu từ ${ngayThang(r.t)} tới ${ngayThang(congNgay(r.t, 6))}`}>{ngayThang(r.t)}{r.non ? <small style={{ color: MO, marginLeft: 4 }}>đang thử</small> : null}</span> },
           { key: 'n', header: 'Phim', align: 'right', cell: (r) => <Dem v={r.n} /> },
           { key: 'd', header: 'Đủ thử', align: 'right', cell: (r) => <Dem v={r.d} /> },
@@ -197,14 +198,14 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
           { key: 'chi', header: 'Chi', align: 'right', cell: (r) => <KeToan v={r.k.chi} /> },
           { key: 'lai', header: 'Lãi', align: 'right', cell: (r) => <KeToan v={r.k.thu - r.k.chi} mau={mauLai(r.k.thu - r.k.chi)} /> },
           { key: 'roi', header: 'ROI', align: 'right', cell: (r) => { const v = roi(r.k); return <span style={{ color: v == null ? MO : v >= 0 ? XANH : DO }}>{pct(v)}</span>; } },
-        ]} />
-        {moi.length ? <SimpleTable rows={moi} getRowKey={(r) => String(r.p)} columns={[
+        ] satisfies SimpleColumn<(typeof tuan)[number]>[]).filter((c) => !hep || (c.key !== 'chi' && c.key !== 'd'))} />
+        {moi.length ? <SimpleTable rows={moi} getRowKey={(r) => String(r.p)} columns={([
           { key: 'p', header: `Phim thắng mới (${PM_NGAY} ngày)`, cell: (r) => <span title={`${r.ten}${r.tl ? ` · ${r.tl}` : ''}${r.nn ? ` · ${r.nn}` : ''}`} style={{ display: 'inline-block', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }}>{r.ten}</span> },
           { key: 'd0', header: 'Bắt đầu', align: 'right', cell: (r) => ngayThang(r.d0) },
           { key: 'bo', header: 'Bộ', align: 'right', cell: (r) => r.bo ?? '—' },
           { key: 'lai', header: 'Lãi', align: 'right', cell: (r) => <KeToan v={r.thu - r.chi} mau={XANH} /> },
           { key: 'roi', header: 'ROI', align: 'right', cell: (r) => pct(roi(r)) },
-        ]} /> : <span style={{ color: MO }}>{PM_NGAY} ngày qua chưa có phim mới nào lãi từ ${PM_THANG}</span>}
+        ] satisfies SimpleColumn<P>[]).filter((c) => !hep || c.key !== 'bo')} /> : <span style={{ color: MO }}>{PM_NGAY} ngày qua chưa có phim mới nào lãi từ ${PM_THANG}</span>}
       </div>;
     },
     phan_bo: () => {

@@ -14,6 +14,9 @@ import { mauBo } from '@/lib/etp-mau-bo';
 type T3 = typeof import('three');
 export const TANG = ['Móng', 'Thử', 'Lãi', 'Scale', '★ ROAS'] as const;
 const XANH = '#4ade80', DO = '#f87171', XAM = '#6b7280', TIM = '#a78bfa', VANG = '#facc15', LAM = '#60a5fa';
+/** TRANG TRÍ (bồn cây sân lô, cây công viên / khu trung lưu) — MỘT bảng màu TRẦM, không phát sáng, không tán cầu tròn (anh 15/11/2026 #1600 "dễ lẫn với đèn… cái nào lẫn với
+ *  các dấu hiệu chính thì ko nên cho quá nổi"): màu dấu hiệu (xanh lãi / đỏ lỗ / tím ★ / lam hẹn giờ / vàng SX) chỉ dành cho camp + đèn tín hiệu, cảnh nền không được dùng */
+const TRANG_TRI = { bon: 0x3f3a36, la: 0x34483b, cay: 0x2c4234 } as const;
 const COT = 3, HANG = 2, O_TANG = 2 * COT + 2 * HANG, CAO = 0.7, MONG_TOI_DA = O_TANG, RONG = COT * 1.0, SAU = HANG * 1.0;
 
 /** tầng của camp: hẹn giờ → Móng · ★ ROAS → mái · đã lên bậc (> $1) → Scale · $1 lãi 7 ngày → Lãi · còn lại → Thử */
@@ -482,10 +485,11 @@ export function ThanhPho({ ds: ds0, chon: chonP, chonBo, onChon, cao }: { ds: To
       const matMach = new T.MeshBasicMaterial({ color: 0x374151 });
       for (let x = -PX / 2 + 0.8; x < PX / 2; x += 0.8) { const m = new T.Mesh(new T.PlaneGeometry(0.02, PZ), matMach); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.042, 0); lg.add(m); }
       for (let z = -PZ / 2 + 0.8; z < PZ / 2; z += 0.8) { const m = new T.Mesh(new T.PlaneGeometry(PX, 0.02), matMach); m.rotation.x = -Math.PI / 2; m.position.set(0, 0.042, z); lg.add(m); }
-      const matBon = new T.MeshStandardMaterial({ color: 0x9ca3af, roughness: 0.7 }), matLa = new T.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.9 });
+      const matBon = new T.MeshStandardMaterial({ color: TRANG_TRI.bon, roughness: 0.9 }), matLa = new T.MeshStandardMaterial({ color: TRANG_TRI.la, roughness: 1, flatShading: true });
       for (const [bx, bz] of [[-PX / 2 + 0.3, -PZ / 2 + 0.3], [PX / 2 - 0.3, -PZ / 2 + 0.3], [-PX / 2 + 0.3, PZ / 2 - 0.3], [PX / 2 - 0.3, PZ / 2 - 0.3]] as [number, number][]) {
-        const bon = new T.Mesh(new T.BoxGeometry(0.36, 0.14, 0.36), matBon); bon.position.set(bx, 0.11, bz); lg.add(bon);
-        const la = new T.Mesh(new T.SphereGeometry(0.2, 10, 8), matLa); la.position.set(bx, 0.3, bz); lg.add(la); }
+        const bon = new T.Mesh(new T.BoxGeometry(0.4, 0.1, 0.4), matBon); bon.position.set(bx, 0.09, bz); lg.add(bon);
+        // bụi thấp phẳng sát mép bồn (không phải quả cầu trên bệ — hình đó là đèn tín hiệu)
+        const la = new T.Mesh(new T.BoxGeometry(0.32, 0.08, 0.32), matLa); la.position.set(bx, 0.18, bz); lg.add(la); }
       const loi = new T.Mesh(new T.PlaneGeometry(0.9, 0.5), new T.MeshStandardMaterial({ color: 0x6b7280 })); loi.rotation.x = -Math.PI / 2; loi.position.set(0, 0.043, PZ / 2 - 0.25); lg.add(loi);
       // tháp theo bộ (thapCua: cao đứng sau, thấp đứng trước); lưới: 1 → giữa · 2 → ngang · 3–4 → 2 × 2 · 5+ → 3 cột; co tỉ lệ cho vừa sân
       const thap = thapCua(ph), k = thap.length;
@@ -527,7 +531,7 @@ export function ThanhPho({ ds: ds0, chon: chonP, chonBo, onChon, cao }: { ds: To
     for (const [ox, oz] of lo.slice(ds.length)) { const sv = new T.Mesh(new T.PlaneGeometry(LX - 0.06, LZ - 0.06), new T.MeshStandardMaterial({ color: 0x1d3a24, roughness: 1 })); sv.rotation.x = -Math.PI / 2; sv.position.set(ox, 0, oz); canh.add(sv);
       cay.push([ox - 0.6, oz - 0.3], [ox + 0.5, oz + 0.2], [ox - 0.1, oz + 0.5]); }
     // cây khu trung lưu + công viên (InstancedMesh)
-    if (cay.length) { const cm = new T.InstancedMesh(new T.ConeGeometry(0.22, 0.6, 7), new T.MeshStandardMaterial({ color: 0x15803d }), cay.length);
+    if (cay.length) { const cm = new T.InstancedMesh(new T.ConeGeometry(0.22, 0.6, 7), new T.MeshStandardMaterial({ color: TRANG_TRI.cay, roughness: 1 }), cay.length);
       cay.forEach(([x, z], i) => { mt.position.set(x, 0.3, z); mt.rotation.set(0, 0, 0); mt.updateMatrix(); cm.setMatrixAt(i, mt.matrix); }); canh.add(cm); }
     return { vat, tam: [0, 0, 0], xa: Math.max(12, Math.max(W, Z) * 1.05 + caoMax * 0.5), nhom };
   }, [ds], chon, (ma, xy) => { const t = ma == null ? null : boCuaMa.current.get(ma); onChon(t?.p ?? null, xy, t?.bo ?? null); }, 'pho');

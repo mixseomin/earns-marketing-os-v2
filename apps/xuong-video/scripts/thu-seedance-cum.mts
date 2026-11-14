@@ -17,6 +17,7 @@ import { catThat } from '../src/lib/xuong-video/cat-that';
 import { giayPhat, chatLieuPhim } from '../src/lib/xuong-video/kieu';
 import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
 import { nhanNhin } from '../src/lib/xuong-video/prompt-khoi';
+import { duongAmLuong, doLech, vaoSauCanh } from '../src/lib/xuong-video/can-giong';
 import { uploadToR2 } from '../src/lib/r2';
 import { loiPromptGui, loiClipThamChieu } from '../src/lib/xuong-video/chan-gui-video';
 import { dangChongBau } from '../src/lib/xuong-video/bo-set-3d';
@@ -58,6 +59,26 @@ const loiGui = [...loiPromptGui(prompt, { tiLe: bcs[0]!.kt.ti_le, tenNhanVat: [.
   ...loiClipThamChieu(cum.map((x) => ({ so: x.canh.thu_tu, clip: x.canh.khung_xam?.clip }))),
   ...Object.entries(dangChongBau(cum.map((x) => x.canh))).flatMap(([id, l]) => l.map((y) => `#${cum.find((x) => x.canh.id === Number(id))?.canh.thu_tu}: ${y}`))];
 if (loiGui.length) { console.error(`✗ CHẶN trước khi gửi (${loiGui.length} lỗi):\n  - ${loiGui.join('\n  - ')}`); process.exit(3); }
+// CANH GIỌNG THEO MIỆNG (can-giong.ts, anh 15/11/2026 "chuẩn hoá cho mọi clip"): clip sinh kèm giọng → đo độ trễ tiếng clip so với từng câu đặt ở cauAm[].t,
+// dời điểm vào từng shot; đo không ra / không bù được → lỗi (shot không gắn, vào lượt sinh lại). PCM chỉ GIẢI MÃ âm (ffmpeg trên box, không mã hoá video).
+const pcm = (u: string) => { const b = execFileSync('ffmpeg', ['-v', 'error', '-i', u, '-vn', '-ac', '1', '-ar', '8000', '-f', 's16le', '-'], { maxBuffer: 64 << 20 }); return duongAmLuong(new Int16Array(b.buffer, b.byteOffset, Math.floor(b.length / 2)), 8000); };
+function canhGiong(fClip: string, daiClip: number, vao: number[]): { vao: number[]; loi: (string | null)[]; bao: string } {
+  if (!cauAm.length) return { vao, loi: vao.map(() => null), bao: '' };
+  const tieng = pcm(fClip); const kq = cum.map((x, i) => {
+    const cau = cauAm.filter((c) => c.so === i + 1); if (!cau.length) return { vao: vao[i]!, loi: null, lech: 0 };
+    const r = vaoSauCanh(vao[i]!, cau.map((c) => doLech(tieng, pcm(c.url), c.t)), daiClip, giayPhat(x.canh)); return r;
+  });
+  return { vao: kq.map((r) => r.vao), loi: kq.map((r) => r.loi), bao: kq.map((r, i) => (cauAm.some((c) => c.so === i + 1) ? `#${cum[i]!.canh.thu_tu}: trễ ${r.lech}s → vào ${r.vao}${r.loi ? ` ✗ ${r.loi}` : ''}` : '')).filter(Boolean).join(' · ') };
+}
+// --chinh-giong: canh lại clip ĐANG gắn của cụm một shot (0đ, không sinh)
+if (process.argv.includes('--chinh-giong')) {
+  const x = cum[0]!.canh; if (cum.length !== 1 || !x.video_url) { console.error('--chinh-giong: một shot đã có clip'); process.exit(1); }
+  const daiC = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', x.video_url], { encoding: 'utf8' }).trim());
+  const c = canhGiong(x.video_url, daiC, [clip1 ? clip1.vao : Number(x.ky_thuat?.vao_s ?? 0)]); console.log(c.bao || 'shot không có thoại');
+  if (c.loi[0]) { console.error(`✗ ${c.loi[0]}`); process.exit(4); }
+  await db.execute(sql`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${JSON.stringify(c.vao[0])}::jsonb) WHERE id = ${x.id}`);
+  process.exit(0);
+}
 if (xem) { console.log(prompt); console.log(anh.join('\n')); process.exit(0); }
 if (!process.env.DUYET_SINH_1_LAN) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1 ngay sau khi anh duyệt lượt này'); process.exit(2); }
 
@@ -98,6 +119,8 @@ for (;;) {
   // của shot ngắn hơn giây phát thì phát lố sang shot kế. Shot thiếu giờ (vaoTuCatThat › ngan) hoặc clip không đo đủ cú cắt → KHÔNG gắn, gỡ clip cũ của shot
   // đó (video_url NULL) để kế hoạch cụm lần sau tự đưa vào sinh lại (cum-seedance.mts).
   const hong = new Set(v.theoDo ? v.ngan : cum.map((x) => x.canh.thu_tu));
+  if (urlGiong && v.theoDo) { const cg = canhGiong(f, dai, v.vao); v.vao.splice(0, v.vao.length, ...cg.vao); console.log(`canh giọng: ${cg.bao}`);
+    cg.loi.forEach((l, i) => { if (l) hong.add(cum[i]!.canh.thu_tu); }); }
   for (const [i, x] of cum.entries()) {
     if (hong.has(x.canh.thu_tu)) { await db.execute(sql`UPDATE xv_canh SET video_url = NULL, loi = ${v.theoDo ? `cụm Seedance job ${job}: đoạn của shot ngắn hơn giây phát — sinh lại` : `cụm Seedance job ${job}: không đo đủ cú cắt`}, updated_at = now() WHERE id = ${x.canh.id}`); continue; }
     await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt, job, cum: ids, khung_dau: x.canh.keyframe_url, ...(urlGiong && cauAm.some((c) => c.so === i + 1) ? { khop_moi: { cach: 'seedance_audio', giong: urlGiong } } : {}) })}::jsonb, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);

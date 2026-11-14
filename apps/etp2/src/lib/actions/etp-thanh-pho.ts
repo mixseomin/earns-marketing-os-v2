@@ -10,7 +10,7 @@ import { campToaSql, docCampToa, type CampToa, type NguonToa } from '@/lib/etp-t
 
 export type PhimThanhPho = { p: number; ten: string; camp: CampToa[]; tat: CampToa[] };
 
-export async function docThanhPho(ng?: string | null): Promise<{ ds: PhimThanhPho[]; nguoi: string } | { loi: string }> {
+export async function docThanhPho(ng?: string | null): Promise<{ ds: PhimThanhPho[]; nguoi: string; laNha: boolean } | { loi: string }> {
   const q = await quyenEtp(await getCurrentUser());
   if (!q) return { loi: 'không có quyền' };
   const run = async <T,>(x: ReturnType<typeof sql>) => (await getDb()!.execute(x)) as unknown as T[];
@@ -27,5 +27,5 @@ export async function docThanhPho(ng?: string | null): Promise<{ ds: PhimThanhPh
   const m = new Map<number, PhimThanhPho>();
   for (const r of rows) { const x = m.get(r.p) ?? { p: r.p, ten: r.ten ?? `#${r.p}`, camp: [], tat: [] }; const c = docCampToa(r); (c.tat ? x.tat : x.camp).push(c); m.set(r.p, x); }
   // phim chỉ còn camp đã tắt (không camp nào chạy) không dựng thành nhà
-  return { ds: [...m.values()].filter((x) => x.camp.length), nguoi: ten };
+  return { ds: [...m.values()].filter((x) => x.camp.length), nguoi: ten, laNha: nguon.kieu === 'nha' };
 }

@@ -143,9 +143,9 @@ function ThanhPhoO({ cao }: { cao: number }) {
   const ng = useSearchParams().get('ng');
   const { so: tp, loi } = useSoNho(`thanh-pho:${ng ?? 'nha'}`, () => docThanhPho(ng), 120_000);
   if (!tp) return <span style={{ color: loi ? DO : MO, fontSize: 12 }}>{loi ?? 'đang tải số…'}</span>;
-  return <ThanhPhoVe ds={tp.ds} nguoi={tp.nguoi} cao={cao} />;
+  return <ThanhPhoVe ds={tp.ds} nguoi={tp.nguoi} laNha={tp.laNha} cao={cao} />;
 }
-function ThanhPhoVe({ ds, nguoi, cao }: { ds: PhimThanhPho[]; nguoi: string; cao: number }) {
+function ThanhPhoVe({ ds, nguoi, laNha, cao }: { ds: PhimThanhPho[]; nguoi: string; laNha: boolean; cao: number }) {
   const [chon, setChon] = useState<number | null>(null);
   const noi = useNoi<{ id: number }>();   // bấm một toà → bảng phim đó (cùng ruột với bảng rê đồng hồ dòng phim)
   // cấp toà trước (tháp đứng hàng đầu), cùng cấp thì lãi 7 ngày
@@ -162,7 +162,8 @@ function ThanhPhoVe({ ds, nguoi, cao }: { ds: PhimThanhPho[]; nguoi: string; cao
         : <span style={{ cursor: 'help' }} title={GIAI_CAP}><b style={{ color: 'var(--fg-1)' }}>{nguoi}</b> · {xep.length} phim · {tong} camp · {[...CAP].map((t, i) => ({ t, n: demCap[i]! })).reverse().filter((v) => v.n).map((v) => `${v.t} ${v.n}`).join(' · ')} · bấm một toà để xem</span>}
     </div>
     <ThanhPho ds={xep} chon={chon} cao={Math.max(160, cao - 26)} onChon={(p, xy) => { setChon(p); if (p != null && xy) noi.moNgay({ id: p }, { clientX: xy.x, clientY: xy.y, currentTarget: null } as unknown as React.MouseEvent); else noi.dong(); }} />
-    {noi.v ? <BangPhim key={noi.v.id} cid={noi.v.id} noi={noi} vi={noi.v} /> : null}
+    {noi.v ? (() => { const x = ds.find((d) => d.p === noi.v!.id);
+      return <BangPhim key={noi.v.id} cid={noi.v.id} noi={noi} vi={noi.v} dsCamp={x ? { ten: x.ten, nguoi, laNha, camp: x.camp, tat: x.tat } : undefined} />; })() : null}
   </div>;
 }
 

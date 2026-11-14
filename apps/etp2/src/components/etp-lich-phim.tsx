@@ -9,7 +9,8 @@ import { ChuoiBuoc } from '@/components/etp-dong';
 import { MA_DANG, DANG_DONG } from '@/components/etp-so';
 import { chuCong, chuLich, congTang, gioVnNay, KD, khungLuc, quaCong } from '@/lib/etp-khung';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
-import { ToaNha, TANG, xepTang, mauCamp, roiCamp, capToa, GIAI_CAP } from '@/components/etp-toa-nha';
+import { ToaNha, TANG, xepTang, mauCamp, roiCamp, capToa, GIAI_CAP, DsCampToa } from '@/components/etp-toa-nha';
+import type { CampToa } from '@/lib/etp-toa-sql';
 import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, xemBotCamp, type CampThang, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
 
 const GD = ['Thử dạng', 'Camp lãi', 'Scale', 'ROAS'];
@@ -160,13 +161,16 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
 
 /** BẢNG PHIM (Lịch + điều khiển · Toà nhà · Thị trường · Log) — MỘT ruột cho hai lối vào: rê đồng hồ dòng phim (NutLichPhim) và bấm một toà trong thành phố
  *  (anh 15/11/2026 "Nếu bấm vào thì cần show cái này ra"). Tab Thị trường chỉ có khi lối vào đưa thẻ thị trường. */
-export function BangPhim({ cid, thiTruong, noi, vi }: { cid: number; thiTruong?: () => TheNoi; noi: Noi; vi: { x: number; y: number } }) {
+/** dsCamp: camp của toà đã bấm trong thành phố (cùng nguồn với cây / cửa) — có thì tab Camp mở sẵn; laNha = false (đang xem người khác) thì chỉ tab Camp, không nạp số nhà */
+export function BangPhim({ cid, thiTruong, noi, vi, dsCamp }: { cid: number; thiTruong?: () => TheNoi; noi: Noi; vi: { x: number; y: number };
+  dsCamp?: { ten: string; nguoi: string; laNha: boolean; camp: CampToa[]; tat: CampToa[] } }) {
+  const chiCamp = !!dsCamp && !dsCamp.laNha;
   const router = useRouter();
   const [l, setL] = useState<LichPhim | null>(null), [loi, setLoi] = useState<string | null>(null), [dang, setDang] = useState(false), [kq, setKq] = useState<string | null>(null);
-  const [tab, setTab] = useState<'lich' | 'toa' | 'tt' | 'log'>('lich'), [chonToa, setChonToa] = useState<number | null>(null), [log, setLog] = useState<LogPhim[] | { loi: string } | null>(null);
+  const [tab, setTab] = useState<'camp' | 'lich' | 'toa' | 'tt' | 'log'>(dsCamp ? 'camp' : 'lich'), [chonToa, setChonToa] = useState<number | null>(null), [log, setLog] = useState<LogPhim[] | { loi: string } | null>(null);
   useEffect(() => { if (tab === 'log') docLogPhim(cid).then(setLog).catch((e) => setLog({ loi: String(e?.message ?? e) })); }, [tab, cid]);
   // bảng chỉ dựng khi đang mở → mở (hoặc đổi phim) là tải
-  useEffect(() => { setKq(null); setL(null); setLoi(null); tai(); }, [cid]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setKq(null); setL(null); setLoi(null); if (!chiCamp) tai(); }, [cid, chiCamp]);   // eslint-disable-line react-hooks/exhaustive-deps
   const tai = () => docLichPhim(cid).then((r) => ('loi' in r ? setLoi(r.loi) : setL(r))).catch((e) => setLoi(String(e?.message ?? e)));
   // BẤM KHÔNG CHẠY NGAY (anh 07/11/2026 "các thao tác khi bấm vào chạy luôn là đéo được"): nút chỉ mở hàng xác nhận nói rõ sẽ làm gì, tốn gì; bấm Xác nhận mới chạy
   const [hoi, setHoi] = useState<{ chu: string; lam: () => Promise<{ loi: string } | { ok: true }>; xong: string } | null>(null);
@@ -181,11 +185,16 @@ export function BangPhim({ cid, thiTruong, noi, vi }: { cid: number; thiTruong?:
     ...l.hoan.slice(0, 2).map((h) => `${h.huong === 'tang' ? '⬆' : h.huong === 'giam' ? '⬇' : '✕'} #${h.camp_id} ${h.huong === 'tang' ? 'tăng bậc lúc 21:00' : h.huong === 'giam' ? 'giảm bậc lúc 15:00' : 'tắt lúc 15:00'}`),
     gd === 0 && l.vong !== 'cat' && !l.lt ? `✕ cất phim nếu chi tới $${l.moc_chi} / ${l.moc_thu} camp thử mà chưa lãi` : null,
   ].filter(Boolean).slice(0, 4) as string[] : [];
-  const oTab = (k: 'lich' | 'toa' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
+  const oTab = (k: 'camp' | 'lich' | 'toa' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
   return <KhungNoi x={vi.x} y={vi.y} rong={480} cao={tab === 'toa' ? 600 : l?.thang.length ? 620 : 360} noi={noi}>
       <div onClick={(e) => e.stopPropagation()} style={{ padding: '10px 30px 10px 12px', width: 480, maxWidth: '92vw', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 4 }}>{oTab('lich', 'Lịch + điều khiển')}{oTab('toa', 'Toà nhà')}{thiTruong ? oTab('tt', 'Thị trường') : null}{oTab('log', 'Log')}</div>
-        {tab === 'toa' ? (loi ? <div style={{ color: '#f87171' }}>{loi}</div> : !l ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : <TabToa l={l} chon={chonToa} onChon={setChonToa} />)
+        <div style={{ display: 'flex', gap: 4 }}>{dsCamp ? oTab('camp', `Camp · ${dsCamp.camp.length}`) : null}{chiCamp ? null : <>{oTab('lich', 'Lịch + điều khiển')}{oTab('toa', 'Toà nhà')}{thiTruong ? oTab('tt', 'Thị trường') : null}{oTab('log', 'Log')}</>}</div>
+        {tab === 'camp' && dsCamp ? <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dsCamp.ten}</b>
+            <span style={{ color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{dsCamp.nguoi}</span></div>
+          <DsCampToa camp={dsCamp.camp} tat={dsCamp.tat} />
+          {chiCamp ? <div style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>Đang xem camp của {dsCamp.nguoi} — lịch, máy luật, toà nhà chi tiết chỉ có cho camp nhà.</div> : null}</>
+        : tab === 'toa' ? (loi ? <div style={{ color: '#f87171' }}>{loi}</div> : !l ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : <TabToa l={l} chon={chonToa} onChon={setChonToa} />)
           : tab === 'tt' && thiTruong ? <div style={{ margin: '-10px -30px -10px -12px' }}><TheChung t={thiTruong()} /></div> : tab === 'log' ? <div style={{ maxHeight: 420, overflowY: 'auto' }}>
           {!log ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : 'loi' in log ? <div style={{ color: '#f87171' }}>{log.loi}</div> : <DongMoc ds={log.map(mocLog)} rong="Phim chưa có log." />}</div> : <>
         {loi ? <div style={{ color: '#f87171' }}>{loi}</div> : !l ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : <>

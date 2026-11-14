@@ -139,14 +139,14 @@ function dungThan(T: T3, g: import('three').Group, o: { bienCo?: number; tat?: C
     const coc: [number, string][] = [...Array(o.mong.cho).fill([0x60a5fa, 'creative sạch chờ lên camp']), ...Array(o.mong.sx).fill([0xfacc15, 'đang sản xuất']), ...Array(o.mong.ke).fill([0x94a3b8, 'kế hoạch, chưa làm'])];
     coc.slice(0, Math.max(0, o_.length - song.length)).forEach(([mau, chu], k) => { const [x, z] = o_[song.length + k]!;
       const m = new T.Mesh(new T.BoxGeometry(0.05, 0.2, 0.05), new T.MeshStandardMaterial({ color: mau, emissive: mau, emissiveIntensity: 0.3 })); m.position.set(x, 0.16, z); g.add(m); vat.push({ m, vien: m, id: null, chu }); });
-    // góc héo: camp đã tắt (còn chi trong 30 ngày), tối đa 12 cây, thân nghiêng, tán nâu khô
+    // góc héo: camp đã tắt (còn chi trong 30 ngày), tối đa 12 cây — THÂN TRƠ + 2 CÀNH KHÔ, KHÔNG TÁN (anh 15/11/2026 "Cây héo thì hiện tán làm đéo gì")
     const heo = (o.tat ?? []).slice(0, 12);
     heo.forEach((c, k) => {
       const x = RONG / 2 - 0.15 - (k % 4) * 0.2, z = SAU / 2 - 0.12 - Math.floor(k / 4) * 0.18;
       const gh = new T.Group(); gh.position.set(x, 0.06, z); gh.rotation.z = (k % 2 ? 1 : -1) * 0.45; g.add(gh);
       const than = new T.Mesh(new T.CylinderGeometry(0.018, 0.028, 0.16, 5), new T.MeshStandardMaterial({ color: 0x57534e, roughness: 1 })); than.position.y = 0.08; gh.add(than);
-      const tan = new T.Mesh(new T.ConeGeometry(0.07, 0.12, 5), new T.MeshStandardMaterial({ color: 0x78350f, roughness: 1 })); tan.position.y = 0.19; gh.add(tan);
-      vat.push({ m: tan, vien: tan, id: c.id, chu: `#${c.id} · ${c.roas ? '★ ROAS' : c.dang} · đã tắt (cây héo)` });
+      for (const [yy, rz] of [[0.11, 0.9], [0.14, -0.8]] as const) { const canh = new T.Mesh(new T.CylinderGeometry(0.006, 0.01, 0.07, 4), than.material); canh.position.set(rz > 0 ? -0.02 : 0.02, yy, 0); canh.rotation.z = rz; gh.add(canh); }
+      vat.push({ m: than, vien: than, id: c.id, chu: `#${c.id} · ${c.roas ? '★ ROAS' : c.dang} · đã tắt (cây héo)` });
     });
     if (o.nhanTang) { const sp = nhan(T, `${CAP[cap]} · ${o.camp.length} cây · ${(o.tat ?? []).length} héo`, '#cbd5e1', 0.9); sp.center.set(1, 0.5); sp.position.set(-RONG / 2 - 0.15, 0.3, SAU / 2 + 0.05); g.add(sp); }
     return { cao: cotBien(0.06 + nh + caoMai, 0.4, hx), vat, bienSp: spBien, than: [RONG, 0.06 + nh + caoMai, SAU] as [number, number, number] };
@@ -432,4 +432,30 @@ export function ThanhPho({ ds, chon, onChon, cao }: { ds: ToaPhim[]; chon: numbe
     {KHU.map((k, i) => <span key={k.ten} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: `#${k.nen.toString(16).padStart(6, '0')}`, border: `1px solid ${k.mau}` }} />
       <b style={{ color: k.mau }}>{k.ten}</b> {dem[i]} · {k.cap.map((c) => CAP[c]).reverse().join(' / ')}</span>)}</div>;
   return <KhungCanh hop={hop} re={re} loi={loi} cao={cao} dk={dk} chuGiai={chuGiai} />;
+}
+
+/** DANH SÁCH CAMP của một toà — CÙNG nguồn số với cây / cửa sổ đã dựng (anh 15/11/2026 "Bấm vào tưởng có camp lãi, mở ra đéo thấy cái lồn gì… Danh sách camp phải hiện ra cho khớp"):
+ *  đang chạy (màu đúng màu cây / cửa: xanh lãi · tím ★ lãi · đỏ lỗ · xám chưa đủ số · lam hẹn giờ) rồi đã tắt (héo). Số 7 ngày + ngày lãi trong 7 ngày đã khép. */
+export function DsCampToa({ camp, tat }: { camp: CampToa[]; tat: CampToa[] }) {
+  const dong = (c: CampToa) => { const r = roiCamp(c), mau = c.tat ? '#78716c' : mauCamp(c);
+    return <tr key={c.id} style={{ borderTop: '1px solid var(--line)', opacity: c.tat ? 0.6 : 1 }}>
+      <td style={{ padding: '3px 6px 3px 0', whiteSpace: 'nowrap' }}><span style={{ color: mau }}>●</span> <b style={{ color: 'var(--fg-1)' }}>#{c.id}</b></td>
+      <td style={{ padding: '3px 6px', whiteSpace: 'nowrap' }}>{c.roas ? '★ ROAS' : c.dang}</td>
+      <td style={{ padding: '3px 6px', textAlign: 'right' }}>${c.ns}</td>
+      <td style={{ padding: '3px 6px', textAlign: 'right' }}>${c.chi7.toFixed(0)}</td>
+      <td style={{ padding: '3px 6px', textAlign: 'right', color: c.chi7 >= 1 ? (c.thu7 > c.chi7 ? XANH : DO) : 'var(--fg-3)' }}>{c.chi7 >= 1 ? `${c.thu7 - c.chi7 >= 0 ? '' : '−'}$${Math.abs(c.thu7 - c.chi7).toFixed(0)}` : '—'}</td>
+      <td style={{ padding: '3px 6px', textAlign: 'right', color: r == null ? 'var(--fg-3)' : r >= 0 ? XANH : DO }}>{r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`}</td>
+      <td style={{ padding: '3px 0 3px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: laOnDinh(c) ? XANH : 'var(--fg-2)' }}>{c.cho ? 'hẹn giờ' : c.tat ? 'đã tắt' : `${c.ngay_lai}/${c.ngay_chay}${laOnDinh(c) ? ' ổn định' : ''}`}</td>
+    </tr>; };
+  const xep = (a: CampToa, b: CampToa) => (b.thu7 - b.chi7) - (a.thu7 - a.chi7);
+  return <div style={{ maxHeight: 360, overflowY: 'auto', fontSize: 11.5, color: 'var(--fg-2)' }}>
+    <table style={{ width: '100%', borderCollapse: 'collapse', fontVariantNumeric: 'tabular-nums' }}>
+      <thead><tr style={{ color: 'var(--fg-3)', fontSize: 10.5 }}><th style={{ textAlign: 'left', fontWeight: 400 }}>Camp</th><th style={{ textAlign: 'left', fontWeight: 400, padding: '0 6px' }}>Dạng</th>
+        <th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>NS/ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Chi 7 ngày</th>
+        <th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>Lãi 7 ngày</th><th style={{ textAlign: 'right', fontWeight: 400, padding: '0 6px' }}>ROI</th>
+        <th style={{ textAlign: 'right', fontWeight: 400 }} title={`số ngày lãi / số ngày có chi ≥ $1 trong 7 ngày Ethopex đã khép · ổn định = lãi ≥ ${ON_DINH} ngày`}>Ngày lãi</th></tr></thead>
+      <tbody>{[...camp].sort(xep).map(dong)}{tat.length ? <tr><td colSpan={7} style={{ paddingTop: 8, color: 'var(--fg-3)', fontSize: 10.5 }}>Đã tắt (còn chi trong 30 ngày) · {tat.length}</td></tr> : null}{[...tat].sort(xep).map(dong)}</tbody>
+    </table>
+    {!camp.length && !tat.length ? <div style={{ color: 'var(--fg-3)' }}>Không có camp.</div> : null}
+  </div>;
 }

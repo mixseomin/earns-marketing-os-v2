@@ -82,6 +82,7 @@ export const MO_HINH_VIDEO = [
   { key: 'fal:fal-ai/pika/v2.2/pikaframes', label: 'Pikaframes · fal (chuyển động giữa nhiều keyframe, $0,04/s, tối thiểu 5s, không tiếng)', giaGiay: { '720p': 4, '1080p': 6 } },
   // Hai model nhận chuyển động 3D (anh 16/10/2026: "còn AI nào khác cho gửi nhiều khung hình"): H3 Max nhận THẲNG clip diễn Blender (khung_xam.dien) —
   // máy, đường đi, nhịp, số vật giữ theo clip; FLUX 3 ghim tới 10 khung khoá vào đúng số khung (24 khung/giây). Cả hai tối thiểu 5 giây.
+  { key: 'fal:luma/agent/ray/v3.2/video-to-video', label: 'Luma Ray 3.2 Video→Video · fal (clip 3D làm nguồn + keyframe ghim, $0,03/s 540p, 5 / 10s)', giaGiay: { '720p': 3, '1080p': 3 } },
   { key: 'fal:minimax/h3-max/3d-to-video', label: 'H3 Max 3D→Video · fal (nhận clip diễn Blender, ~$0,08/s 768p, tối thiểu 5s)', giaGiay: { '720p': 8, '1080p': 16 } },
   { key: 'fal:blackforestlabs/flux-3/keyframes-to-video/draft', label: 'FLUX 3 Keyframes nháp · fal (≤10 khung khoá ghim theo khung, $0,06/s, tối thiểu 5s)', giaGiay: { '720p': 6, '1080p': 6 } },
   { key: 'fal:bytedance/seedance-2.5/image-to-video', label: 'Seedance 2.5 · fal (ByteDance, ~$0,47/s 720p)', giaGiay: { '720p': 47, '1080p': 116 } },

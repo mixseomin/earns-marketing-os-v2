@@ -310,7 +310,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   // Model 3D→VIDEO có clip 3D còn mới: vị trí / hướng nhìn / đường đi đã nằm trong clip — bỏ khối 'huong' khỏi chữ (14/11/2026 #3071 #1: các khối bắt buộc
   // cộng 2.552 ký tự, H3 Max trần 2.000 → ghepTrongTran trả null, gửi nguyên prompt và bị cắt ngang câu).
   const clipMoi = !!bc.canh.khung_xam?.clip && bc.canh.khung_xam.clip.ma === bc.canh.khung_xam.ma;
-  const khoiCho = (model: string) => (clipMoi && /3d-to-video/.test(model) ? khoiV.filter((k) => k.ma !== 'huong') : khoiV);
+  const khoiCho = (model: string) => (clipMoi && /3d-to-video|video-to-video/.test(model) ? khoiV.filter((k) => k.ma !== 'huong') : khoiV);
   const promptCho = (model: string) => { const t = tranPrompt(model.replace(/^fal:/, '')); const goc = t ? ghepTrongTran(khoiCho(model), t, dangNhinVideo(bc).map((x) => [x.day, x.gon] as const)) ?? promptTron : promptTron; return chuoiCuoi && hieuDaiNhip(model) ? `${goc} ${cauChuoiCuoi(bc.canh.keyframe_giua ? 3 : 2)}` : goc; };
   const khungCuoi = cuoiCho(bc.kt.mo_hinh_video); const prompt = promptCho(bc.kt.mo_hinh_video);
   // Tiếng clip chỉ sinh khi shot có người nói trong khung chưa có giọng riêng — cùng luật bản xuất dùng tiếng clip (dungTiengClip).
@@ -364,8 +364,8 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
     // để trống) nên model 3D→video được gửi KHÔNG có chuyển động 3D nào. Clip three.js luôn khớp khung 3D hiện tại → model 3D→video nhận cả khi keyframe là ảnh
     // AI (keyframe làm ảnh tham chiếu nét vẽ). Clip three.js có đoạn dư đầu (clip.vao) — bản dựng cắt từ đó (ky_thuat.vao_s ghi lúc gửi).
     const clip3 = kx?.clip && kx.clip.ma === kx.ma ? kx.clip : null;
-    const videoNguon = clip3 && /3d-to-video|reference-to-video|vace/.test(id) ? clip3.url : kx && (bc.canh.keyframe_url === kx.mau || /reference-to-video|vace/.test(id)) ? kx.dien ?? null : null;
-    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, khungGiua, videoNguon, giay: bc.canh.thoi_luong_s || giay, giayPhat: bc.canh.phat_s, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
+    const videoNguon = clip3 && /3d-to-video|reference-to-video|video-to-video|vace/.test(id) ? clip3.url : kx && (bc.canh.keyframe_url === kx.mau || /reference-to-video|vace/.test(id)) ? kx.dien ?? null : null;
+    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, khungGiua, videoNguon, vaoNguon: videoNguon && clip3 && videoNguon === clip3.url ? clip3.vao : undefined, giay: bc.canh.thoi_luong_s || giay, giayPhat: bc.canh.phat_s, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
     if (kq.ok && clip3 && videoNguon === clip3.url) await db.execute(sql`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${JSON.stringify(clip3.vao)}::jsonb) WHERE id = ${canhId}`);
   } else {
     const anhDau = await taiAnhBase64(bc.canh.keyframe_url);

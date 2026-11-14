@@ -1,0 +1,45 @@
+# So sánh mô hình VIDEO BÁM CLIP 3D (khung đầu + clip chuyển động + prompt)
+
+Mở 14/11/2026 (phim #3071 "Hai chai nước ngọt ở sân ga", tập #3074). Anh: "Thử đi. Nhớ rõ các phương án để còn so sánh".
+Mục đích: clip AI đi đúng máy quay / chỗ đứng / nhịp của clip three.js (`khung_xam.clip`), nét vẽ và người lấy từ keyframe đã duyệt.
+Luật thử: mỗi phương án MỘT shot (shot #1 trước), soát rồi báo anh, anh gật mới chạy thêm.
+
+## Vì sao không dùng VideoExpress cho việc này
+
+Đo 14/11/2026 trên tập #3074: VideoExpress (image→video, không nhận clip chuyển động) tự bịa hành động — chú bước xuống tàu, máy lia, nhân đôi người nói
+(6/6 lượt shot có thoại, kể cả clip câm). 40 clip đã xoá theo lệnh anh.
+
+## Danh sách phương án (giá fal lấy bằng API giá chính thức 14/11/2026)
+
+Nhận ĐỦ khung đầu + clip chuyển động + prompt:
+
+| Mô hình | Trường ảnh | Trường clip | Giá | 5 s |
+|---|---|---|---|---|
+| fal `luma/agent/ray/v3.2/video-to-video` | `start_image_url` hoặc `keyframes` + `keyframe_indexes` (≤ 64) | `video_url` | $0,03/s (540p) | $0,15 |
+| fal `fal-ai/wan-vace-14b` | `first_frame_url`, `last_frame_url` | `video_url` (độ sâu / khung xương) | $0,08/s | $0,40 |
+| fal `kling/v4/flash/reference-to-video` | `start_image_url`, `image_urls` | `video_urls` | $0,094/s | $0,47 |
+| fal `kling/v4/reference-to-video` | `start_image_url`, `middle_image_urls`, `end_image_url` | `video_urls` | $0,157/s | $0,79 |
+| fal `fal-ai/ltx-2.3-22b/reference-video-to-video` | `image_url`, `end_image_url` | `video_url` | $0,0016/megapixel | chưa quy |
+| fal `moonvalley/marey/motion-transfer` | `first_frame_image_url` | `video_url` | $2/clip | $2 |
+
+Nhận ảnh THAM CHIẾU (không phải khung đầu) + clip:
+
+| Mô hình | Giá |
+|---|---|
+| fal `alibaba/wan-3.0/reference-to-video` | $0,05/s |
+| fal `wan/v2.6/reference-to-video/flash` | $0,10 |
+| fal `fal-ai/kling-video/o1/standard/video-to-video/reference` / `o3/…` | $0,126 / $0,14/s |
+| fal `bytedance/seedance-2.0/(fast/)reference-to-video` | $0,014 ($0,0112) / 1.000 token |
+| fal `minimax/h3-max/3d-to-video` (làm ẢNH THẬT, dễ mất nét anime) | $0,05/đơn vị |
+| dola.com Seedance 2.0 Fast (giao diện, nhận .mp4 tham chiếu, lái trình duyệt) | gói tài khoản |
+
+Không hợp (chuyển dáng MỘT người, không chuyển máy / bối cảnh): Kling Motion Control ($0,07–0,126/s), DreamActor v2 ($0,05/s).
+
+Cổng khác (giá "from" trên trang, chưa kiểm đơn vị / đường gửi clip): Kie.ai Seedance 2.0 $0,057 · Seedance 2.0 Fast $0,034 · Kling 3.0 Omni $0,0755 ·
+Kling 3.0 Motion Control $0,1135; APIMaster Kling V4 Flash $0,094 · Kling V3 Omni $0,084.
+
+## Nhật ký thử (mỗi dòng một lượt — điền kết quả sau khi soát)
+
+| Ngày | Phương án | Shot | Tham số | Giá thật | Kết quả |
+|---|---|---|---|---|---|
+| 14/11/2026 | Luma Ray 3.2 v2v | #1 (id 9216) | keyframe ghim khung `vao×24`, edit_strength flex_2, 540p, 5s | | |

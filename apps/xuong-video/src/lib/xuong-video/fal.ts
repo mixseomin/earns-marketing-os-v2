@@ -185,7 +185,7 @@ export function catCau(chu: string, toiDa?: number): string {
   return (i > toiDa * 0.5 ? cat.slice(0, i + 1) : cat.slice(0, cat.lastIndexOf(' '))).trim();
 }
 
-export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; /** khung khoá giữa (model nhiều khung: Pikaframes) */ khungGiua?: string[]; /** clip diễn Blender cả shot (model 3D→video: H3 Max) */ videoNguon?: string | null; anhThamChieu?: string[]; giay?: number; /** số giây shot THỰC PHÁT (phat_s) — model sinh theo SỐ KHUNG (Wan 2.2: num_frames 17–161) chỉ sinh đủ chừng đó + 0,5 s dư, trả tiền theo giây */ giayPhat?: number | null; tiLe?: string; tieng?: boolean; /** danh từ cần loại (negative prompt) */ loai?: string }): Promise<Record<string, unknown>> {
+export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; /** khung khoá giữa (model nhiều khung: Pikaframes) */ khungGiua?: string[]; /** clip diễn Blender cả shot (model 3D→video: H3 Max) */ videoNguon?: string | null; /** giây dư đầu của clip nguồn (clip three.js: khung_xam.clip.vao) — khung khoá ghim đúng khung nguồn ứng với keyframe */ vaoNguon?: number; anhThamChieu?: string[]; giay?: number; /** số giây shot THỰC PHÁT (phat_s) — model sinh theo SỐ KHUNG (Wan 2.2: num_frames 17–161) chỉ sinh đủ chừng đó + 0,5 s dư, trả tiền theo giây */ giayPhat?: number | null; tiLe?: string; tieng?: boolean; /** danh từ cần loại (negative prompt) */ loai?: string }): Promise<Record<string, unknown>> {
   const p = await schemaVao(id);
   const co = (k: string) => k in p;
   // Độ dài prompt theo GIỚI HẠN CỦA CHÍNH MODEL (schema maxLength): Kling 2.1 Pro nhận ≤ 2500 ký tự → 422 (#23, 16/10/2026). Cắt ở ranh giới câu
@@ -198,6 +198,17 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
   const khung = [v.anhDau, ...(v.khungGiua ?? []), v.anhCuoi].filter((x): x is string => !!x);
   // CLIP 3D LÀM NGUỒN (H3 Max 3D→Video: video_url = clip diễn Blender): máy / đường đi / nhịp / số vật lấy từ clip; các khung khoá làm ảnh tham chiếu
   // ngoại hình (có tham chiếu thì model không tự sinh ảnh ngoại hình mới). Thời lượng theo clip.
+  // LUMA RAY 3.2 VIDEO-TO-VIDEO (14/11/2026 phim #3071, thử phương án bám clip 3D): clip three.js = nguồn (máy / chỗ đứng / nhịp), keyframe đã duyệt GHIM
+  // đúng khung nguồn ứng với nó (keyframes + keyframe_indexes; clip có vao giây dư đầu, xuất 24 fps) để nét vẽ / người / bối cảnh lấy từ keyframe chứ không
+  // từ ma-nơ-canh xám. edit_strength 'flex_2' (giữa bám nguồn và vẽ lại) — đổi để so trong docs/so-sanh-mo-hinh-3d-video.md.
+  if (co('video_url') && co('keyframes') && co('keyframe_indexes') && v.videoNguon && v.anhDau) {
+    o.video_url = v.videoNguon; o.keyframes = [v.anhDau]; o.keyframe_indexes = [Math.max(0, Math.round((v.vaoNguon ?? 0) * 24))];
+    o.prompt = catCau(`Restyle this rough grey 3D blockout into the finished shot. Keep EXACTLY its camera, framing, timing, where everyone stands and how they move. Everything you see — people, faces, hair, clothes, the set, light, colours and drawing style — comes from the keyframe image. ${v.prompt}`, toiDa);
+    if (co('edit_strength')) o.edit_strength = 'flex_2';
+    if (co('duration')) o.duration = (v.giayPhat ?? v.giay ?? 5) > 5 ? '10s' : '5s';
+    if (co('resolution')) o.resolution = '540p';
+    return o;
+  }
   if (co('video_url') && v.videoNguon) {
     // H3 Max kiểm prompt ≤ 2000 ký tự LÚC CHẠY (schema không khai maxLength, lỗi 422 về qua docFal chứ không lúc gửi — #23 16/10/2026).
     o.video_url = v.videoNguon; o.prompt = catCau(v.prompt, toiDa ?? 2000);

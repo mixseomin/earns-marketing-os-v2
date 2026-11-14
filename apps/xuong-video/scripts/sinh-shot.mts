@@ -73,7 +73,8 @@ const chuaVx = bcs.filter((b) => !b.canh.ky_thuat?.vx?.uuid && !b.canh.ky_thuat?
 console.log(`  ước: keyframe ${bcs.length} × ${tien(giaAnh)} = ${tien(giaAnh * bcs.length)} · video VideoExpress 0₫ (scripts/vx-tap.mts --tap=${tapId}${chuaVx ? `, ${chuaVx} shot chưa thử` : ''}) · dự phòng trả phí ${[...dsModelVideo].join(' + ')} ${kt.do_phan_giai} ≈ ${tien(uocVideo)} · giọng ≈ ${tien(uocGiong)}`);
 // --prompt-json (0đ): prompt video CHUẨN của studio (promptVideoCanh — thẻ shot, sơ đồ cảnh, sổ đồ vật, whitelist) cho từng shot, một dòng JSON {id: prompt}.
 // Đường VideoExpress (vx-tap.mts trên iMac) lấy prompt ở đây — không tự ghép prompt riêng (11/11/2026: bản tự ghép bỏ sót bố cục / trạng thái → tàu đỗ tự chạy).
-if (arg('prompt-json')) { console.log(JSON.stringify(Object.fromEntries(bcs.map((bc) => [bc.canh.id, promptVideoCanh(bc)])))); process.exit(0); }
+// Ghi xong mới thoát (14/11/2026, tập #3074 19 shot ≈ 70 KB): stdout là ống (ssh) thì ghi bất đồng bộ — console.log + process.exit cắt JSON ở 64 KB, vx-tap gãy JSON.parse.
+if (arg('prompt-json')) { process.stdout.write(JSON.stringify(Object.fromEntries(bcs.map((bc) => [bc.canh.id, promptVideoCanh(bc)]))) + '\n', () => process.exit(0)); await new Promise(() => {}); }
 if (arg('xem')) {
   for (const bc of bcs) {
     const p = promptVideoCanh(bc);

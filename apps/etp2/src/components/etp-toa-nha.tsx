@@ -22,15 +22,16 @@ export function xepTang(c: CampToa) {
 export const mauCamp = (c: CampToa) => (c.cho ? LAM : c.chi7 < 1 ? XAM : c.thu7 > c.chi7 ? (c.roas ? TIM : XANH) : DO);
 export const roiCamp = (c: CampToa) => (c.chi7 >= 1 ? Math.round((c.thu7 - c.chi7) / c.chi7 * 100) : null);
 /** CẤP TOÀ (anh 15/11/2026 "mỗi toà nhà sẽ có hình dáng, level khác nhau nếu có nhiều camp ổn định hơn"): camp ổn định = lãi ≥ ON_DINH trong 7 ngày Ethopex đã khép.
- *  Lán thử → Nhà phố (mái ngói) → Văn phòng (mái bằng + tum) → Cao ốc (đỉnh thụt cấp) → Tháp (hai cấp đỉnh + chóp vàng). */
+ *  Túp lều (mái tranh nhọn) → Nhà cấp 4 (một tầng, mái tôn) → Nhà phố (mái ngói) → Văn phòng (mái bằng + tum) → Cao ốc (đỉnh thụt cấp) → Tháp (hai cấp đỉnh + chóp vàng). */
 export const ON_DINH = 5;
 export const laOnDinh = (c: CampToa) => !c.cho && c.ngay_lai >= ON_DINH;
-export const CAP = ['Lán thử', 'Nhà phố', 'Văn phòng', 'Cao ốc', 'Tháp'] as const;
-export const GIAI_CAP = `Lán thử: chưa camp nào lãi 7 ngày · Nhà phố: có camp lãi · Văn phòng: có camp Scale (> $1) lãi · Cao ốc: có ★ ROAS lãi hoặc ≥ 3 camp ổn định · Tháp: ★ ROAS lãi + ≥ 5 camp ổn định\nCamp ổn định = lãi ≥ ${ON_DINH} trong 7 ngày Ethopex đã khép`;
+export const CAP = ['Túp lều', 'Nhà cấp 4', 'Nhà phố', 'Văn phòng', 'Cao ốc', 'Tháp'] as const;
+export const GIAI_CAP = `Túp lều: phim mới, chưa camp nào chi đủ $1 / 7 ngày · Nhà cấp 4: đang chi mà chưa camp nào lãi · Nhà phố: có camp lãi · Văn phòng: có camp Scale (> $1) lãi · Cao ốc: có ★ ROAS lãi hoặc ≥ 3 camp ổn định · Tháp: ★ ROAS lãi + ≥ 5 camp ổn định\nCamp ổn định = lãi ≥ ${ON_DINH} trong 7 ngày Ethopex đã khép · thành phố: tháp ở trung tâm, cấp thấp dần ra ngoài`;
 export function capToa(camp: CampToa[]) {
   const lai = (c: CampToa) => !c.cho && c.chi7 >= 1 && c.thu7 > c.chi7, od = camp.filter(laOnDinh).length;
   const roasLai = camp.some((c) => c.roas && lai(c)), scaleLai = camp.some((c) => !c.roas && c.ns > 1 && lai(c));
-  const cap = roasLai && od >= 5 ? 4 : roasLai || od >= 3 ? 3 : scaleLai ? 2 : camp.some(lai) ? 1 : 0;
+  // anh 15/11/2026 "phim mới, âm, chưa có cái nào lãi thì dùng nhà cấp 4, hoặc túp lều": chưa chi đủ = túp lều · có chi mà chưa lãi = nhà cấp 4
+  const cap = roasLai && od >= 5 ? 5 : roasLai || od >= 3 ? 4 : scaleLai ? 3 : camp.some(lai) ? 2 : camp.some((c) => !c.cho && c.chi7 >= 1) ? 1 : 0;
   return { cap, ten: CAP[cap]!, od };
 }
 const chuCamp = (c: CampToa) => { const r7 = roiCamp(c);
@@ -86,56 +87,73 @@ function dungToa(T: T3, g: import('three').Group, o: { camp: CampToa[]; mong: Mo
     return [RONG / 2 - 0.5 - (i - COT - 2 * HANG), -nz, Math.PI];
   };
   const be = (rong: number, cao: number, sau: number, mau: number, yy: number, x = 0) => { const m = new T.Mesh(new T.BoxGeometry(rong, cao, sau), new T.MeshStandardMaterial({ color: mau, roughness: 0.85 })); m.position.set(x, yy, 0); g.add(m); return m; };
-  const cap = capToa(o.camp).cap, THAN = [0x8a8f98, 0xd6c3a0, 0x9fb3c8, 0xcbd5e1, 0xeef2f6][cap]!, GO = cap === 4 ? 0xd4a017 : cap === 1 ? 0x9a6b3c : 0x94a3b8;
+  const cap = capToa(o.camp).cap, THAN = [0xa47148, 0xb8b2a6, 0xd6c3a0, 0x9fb3c8, 0xcbd5e1, 0xeef2f6][cap]!, GO = cap === 5 ? 0xd4a017 : cap === 2 ? 0x9a6b3c : 0x94a3b8;
+  /** một ô cửa: camp (sáng, in $) · việc móng (chờ / SX / KH) · trống (kính tối) */
+  const cua = (k: Khoi | undefined, i: number, cy: number, caoSan: number, ra: number) => {
+    const [cx, cz, quay] = o2(i, ra), geo = new T.PlaneGeometry(0.8, caoSan * 0.68);
+    let m: import('three').Mesh;
+    if (!k) m = new T.Mesh(geo, kinh(null, ''));
+    else if (k.kieu === 'camp') { m = new T.Mesh(geo, kinh(mauCamp(k.c), k.c.cho ? 'hẹn' : `${k.c.roas ? '★' : ''}$${k.c.ns}`)); vat.push({ m, vien: m, id: k.c.id, chu: chuCamp(k.c) }); }
+    else { m = new T.Mesh(geo, k.kieu === 'cho' ? kinh(LAM, 'chờ') : k.kieu === 'sx' ? kinh(VANG, 'SX') : kinh('#64748b', 'KH', true)); vat.push({ m, vien: m, id: null, chu: k.chu }); }
+    m.position.set(cx, cy, cz); m.rotation.y = quay; g.add(m);
+  };
+  const cotBien = (yCot: number, cCot: number, xCot: number) => {
+    const cot = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, cCot), new T.MeshStandardMaterial({ color: 0x94a3b8 })); cot.position.set(xCot, yCot + cCot / 2, 0); g.add(cot);
+    if (o.bien) { const sp = nhan(T, o.bien.chu, o.bien.mau, 1.1, o.bienTheoMan ?? true); sp.center.set(0.5, 0); sp.position.set(xCot, yCot + cCot + 0.12, 0); g.add(sp); }
+    return yCot + cCot + 0.1;
+  };
+
+  // ── TÚP LỀU / NHÀ CẤP 4: một tầng thấp, mọi cửa (cả việc móng) chung một vòng tường, mái chóp — không tầng, không đế
+  if (cap <= 1) {
+    const ds = theoTang.flat(), san = Math.max(1, Math.ceil(ds.length / O_TANG)), caoSan = CAO * 0.85, cao = san * caoSan;
+    be(RONG, cao, SAU, THAN, cao / 2);
+    for (let s2 = 0; s2 < san; s2++) for (let i = 0; i < O_TANG; i++) cua(ds[s2 * O_TANG + i], i, s2 * caoSan + caoSan / 2, caoSan, 0);
+    const caoMai = cap === 0 ? 1.15 : 0.42, R0 = Math.SQRT1_2 * (RONG + 0.4);
+    const mai = new T.Mesh(new T.ConeGeometry(R0, caoMai, 4), new T.MeshStandardMaterial({ color: cap === 0 ? 0xc8a96a : 0x7c8794, roughness: cap === 0 ? 1 : 0.5, metalness: cap === 0 ? 0 : 0.4 }));
+    mai.rotation.y = Math.PI / 4; mai.scale.set(1, 1, (SAU + 0.4) / (RONG + 0.4)); mai.position.set(0, cao + caoMai / 2, 0); g.add(mai);
+    if (o.nhanTang) { const sp = nhan(T, `${CAP[cap]} · ${o.camp.length} camp`, '#cbd5e1', 0.9); sp.center.set(1, 0.5); sp.position.set(-RONG / 2 - 0.15, cao / 2, SAU / 2 + 0.05); g.add(sp); }
+    return { cao: cotBien(cao + caoMai, 0.5, 0), vat };
+  }
+
   let y = 0;
   theoTang.forEach((ds, t) => {
     const mong = t === 0, ra = mong ? 0.25 : 0, san = Math.max(1, Math.ceil(ds.length / O_TANG)), caoSan = ds.length ? CAO : CAO * 0.6, cao = san * caoSan;
-    be(RONG + 2 * ra, cao, SAU + 2 * ra, mong ? 0x475569 : THAN, y + cao / 2);   // thân (đế xám đậm · thân bê tông sáng)
+    be(RONG + 2 * ra, cao, SAU + 2 * ra, mong ? 0x475569 : THAN, y + cao / 2);   // thân (đế xám đậm · thân theo cấp)
     be(RONG + 2 * ra + 0.08, 0.05, SAU + 2 * ra + 0.08, mong ? 0x334155 : GO, y + cao);   // gờ sàn giữa hai tầng
-    for (let s2 = 0; s2 < san; s2++) for (let i = 0; i < O_TANG; i++) {
-      const k = ds[s2 * O_TANG + i], [cx, cz, quay] = o2(i, ra), cy = y + s2 * caoSan + caoSan / 2;
-      const geo = new T.PlaneGeometry(0.8, caoSan * 0.68);
-      let m: import('three').Mesh;
-      if (!k) m = new T.Mesh(geo, kinh(null, ''));
-      else if (k.kieu === 'camp') { m = new T.Mesh(geo, kinh(mauCamp(k.c), k.c.cho ? 'hẹn' : `${k.c.roas ? '★' : ''}$${k.c.ns}`)); vat.push({ m, vien: m, id: k.c.id, chu: chuCamp(k.c) }); }
-      else { m = new T.Mesh(geo, k.kieu === 'cho' ? kinh(LAM, 'chờ') : k.kieu === 'sx' ? kinh(VANG, 'SX') : kinh('#64748b', 'KH', true)); vat.push({ m, vien: m, id: null, chu: k.chu }); }
-      m.position.set(cx, cy, cz); m.rotation.y = quay; g.add(m);
-    }
+    for (let s2 = 0; s2 < san; s2++) for (let i = 0; i < O_TANG; i++) cua(ds[s2 * O_TANG + i], i, y + s2 * caoSan + caoSan / 2, caoSan, ra);
     if (o.nhanTang) {
       const n = t ? ds.length : o.camp.filter((c) => c.cho).length + o.mong.sx + o.mong.ke + o.mong.cho, sp = nhan(T, `${TANG[t]}${n ? ` ${n}` : ''}`, t === 4 ? TIM : '#cbd5e1', 0.9);
       sp.center.set(1, 0.5); sp.position.set(-RONG / 2 - ra - 0.15, y + Math.min(cao, caoSan) / 2, SAU / 2 + ra + 0.05); g.add(sp);
     }
     y += cao + 0.05;
   });
-  // MÁI THEO CẤP — hình dáng toà nói cấp: lán mái tôn thấp · nhà phố mái ngói · văn phòng mái bằng + tum · cao ốc đỉnh thụt cấp · tháp hai cấp đỉnh + chóp vàng
+  // MÁI THEO CẤP — nhà phố mái ngói · văn phòng mái bằng + tum · cao ốc đỉnh thụt cấp · tháp hai cấp đỉnh + chóp vàng
   let dinh = y;
-  if (cap === 0) { be(RONG + 0.1, 0.06, SAU + 0.1, 0x52525b, y + 0.03); dinh = y + 0.06; }
-  else if (cap === 1) {
+  if (cap === 2) {
     const hinh = new T.Shape(); hinh.moveTo(-SAU / 2 - 0.12, 0); hinh.lineTo(SAU / 2 + 0.12, 0); hinh.lineTo(0, 0.6); hinh.closePath();
     const ngoi = new T.Mesh(new T.ExtrudeGeometry(hinh, { depth: RONG + 0.2, bevelEnabled: false }), new T.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.8 }));
     ngoi.rotation.y = Math.PI / 2; ngoi.position.set(-RONG / 2 - 0.1, y, 0); g.add(ngoi); dinh = y + 0.6;
   } else {
-    be(RONG + 0.14, 0.1, SAU + 0.14, cap === 4 ? 0xd4a017 : 0x64748b, y + 0.05); dinh = y + 0.1;
-    if (cap === 2) { be(1.0, 0.3, 0.8, 0x94a3b8, dinh + 0.15, -0.6); }
+    be(RONG + 0.14, 0.1, SAU + 0.14, cap === 5 ? 0xd4a017 : 0x64748b, y + 0.05); dinh = y + 0.1;
+    if (cap === 3) { be(1.0, 0.3, 0.8, 0x94a3b8, dinh + 0.15, -0.6); }
     else {
       // đỉnh thụt cấp: khối nhỏ hơn có dải kính sáng (cao ốc 1 cấp, tháp 2 cấp)
-      const capDinh = cap === 4 ? 2 : 1;
-      for (let k = 0; k < capDinh; k++) {
+      for (let k = 0; k < (cap === 5 ? 2 : 1); k++) {
         const r = RONG - 0.7 - k * 0.6, d = SAU - 0.5 - k * 0.4, h = 0.5;
         be(r, h, d, THAN, dinh + h / 2);
-        const dai = new T.Mesh(new T.BoxGeometry(r + 0.02, 0.12, d + 0.02), new T.MeshStandardMaterial({ color: cap === 4 ? 0xfacc15 : 0x93c5fd, emissive: cap === 4 ? 0xfacc15 : 0x60a5fa, emissiveIntensity: 0.6 }));
+        const dai = new T.Mesh(new T.BoxGeometry(r + 0.02, 0.12, d + 0.02), new T.MeshStandardMaterial({ color: cap === 5 ? 0xfacc15 : 0x93c5fd, emissive: cap === 5 ? 0xfacc15 : 0x60a5fa, emissiveIntensity: 0.6 }));
         dai.position.set(0, dinh + h * 0.62, 0); g.add(dai);
         dinh += h;
       }
-      if (cap === 4) { const chop = new T.Mesh(new T.ConeGeometry(0.16, 1.5, 12), new T.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xd4a017, emissiveIntensity: 0.5, metalness: 0.6, roughness: 0.3 }));
-        chop.position.set(0, dinh + 0.75, 0); g.add(chop); }
     }
   }
-  // cột ăng-ten cắm biển (tháp: biển trên chóp)
-  const xCot = cap === 4 ? 0 : RONG / 2 - 0.4, cCot = cap === 4 ? 1.5 : 0.9, yCot = cap === 4 ? dinh : dinh;
-  if (cap !== 4) { const cot = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, cCot), new T.MeshStandardMaterial({ color: 0x94a3b8 })); cot.position.set(xCot, yCot + cCot / 2, cap === 1 ? 0 : 0); g.add(cot); }
-  if (o.bien) { const sp = nhan(T, o.bien.chu, o.bien.mau, 1.1, o.bienTheoMan ?? true); sp.center.set(0.5, 0); sp.position.set(xCot, yCot + cCot + 0.12, 0); g.add(sp); }
-  return { cao: yCot + cCot + 0.1, vat };
+  if (cap === 5) {   // tháp: chóp vàng, biển cắm trên chóp
+    const chop = new T.Mesh(new T.ConeGeometry(0.16, 1.5, 12), new T.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xd4a017, emissiveIntensity: 0.5, metalness: 0.6, roughness: 0.3 }));
+    chop.position.set(0, dinh + 0.75, 0); g.add(chop);
+    if (o.bien) { const sp = nhan(T, o.bien.chu, o.bien.mau, 1.1, o.bienTheoMan ?? true); sp.center.set(0.5, 0); sp.position.set(0, dinh + 1.62, 0); g.add(sp); }
+    return { cao: dinh + 1.6, vat };
+  }
+  return { cao: cotBien(dinh, 0.9, RONG / 2 - 0.4), vat };
 }
 
 /** CẢNH 3D DÙNG CHUNG: renderer + đèn + camera quỹ đạo + chuột / chạm + thẻ rê 450 ms + khung chọn. dung() dựng vật vào cảnh, trả vật bấm được + tâm nhìn + khoảng xa. */
@@ -243,13 +261,17 @@ export function ThanhPho({ ds, chon, onChon, cao, bienToiDa = 6 }: { ds: ToaPhim
   const { re, loi } = useCanh3D(hop, (T, canh) => {
     const kho = new Map<string, import('three').CanvasTexture>(), vat: Vat[] = [];
     const n = ds.length, cot = Math.max(1, Math.ceil(Math.sqrt(n * 1.4))), BX = RONG + 1.6, BZ = SAU + 1.8;
+    // các ô lưới xếp theo khoảng cách tới tâm (hình elip cho vừa khung ngang) — ô gần tâm nhất nhận toà cấp cao nhất
+    const hang0 = Math.ceil(n / cot), o_: [number, number][] = [];
+    for (let r = 0; r < hang0 + 2; r++) for (let c = 0; c < cot; c++) o_.push([c - (cot - 1) / 2, r - (hang0 + 1) / 2]);
+    o_.sort((a, b) => Math.hypot(a[0] * BX, a[1] * BZ * 1.2) - Math.hypot(b[0] * BX, b[1] * BZ * 1.2) || a[1] - b[1] || a[0] - b[0]);
     const dauBien = new Set(ds.slice(0, bienToiDa).map((x) => x.p));
     let caoMax = 1;
     ds.forEach((ph, i) => {
       const g = new T.Group(); canh.add(g);
       const ten = ph.ten.length > 22 ? `${ph.ten.slice(0, 21)}…` : ph.ten, ngan = ph.ten.length > 16 ? `${ph.ten.slice(0, 15)}…` : ph.ten, lai = laiPhim(ph);
       const r = dungToa(T, g, { camp: ph.camp, mong: { sx: 0, ke: 0, cho: 0 }, bien: dauBien.has(ph.p) ? { chu: ngan, mau: lai >= 0 ? XANH : DO } : null, nhanTang: false, bienTheoMan: false, kho });
-      g.position.set((i % cot - (cot - 1) / 2) * BX, 0, ((Math.ceil(n / cot) - 1) / 2 - Math.floor(i / cot)) * BZ);   // hàng đầu (lãi nhất) ở phía camera (+z)
+      const [ox, oz] = o_[i]!; g.position.set(ox * BX, 0, oz * BZ);   // ô thứ i tính từ tâm: ds đã xếp cấp cao → thấp nên tháp ở giữa, lều ở rìa
       caoMax = Math.max(caoMax, r.cao);
       for (const v of r.vat) vat.push({ m: v.m, vien: g, id: ph.p, chu: `${ten} · ${v.chu}` });
       // khối bấm vô hình lọt trong thân (cửa sáng nằm ngoài nên vẫn bắt tia trước): bấm vào tường / kính tối cũng chọn được toà
@@ -258,7 +280,7 @@ export function ThanhPho({ ds, chon, onChon, cao, bienToiDa = 6 }: { ds: ToaPhim
       bat.position.set(0, caoBat / 2, 0); g.add(bat);
       vat.push({ m: bat, vien: g, id: ph.p, chu: `${ten} · ${ph.camp.length} camp · 7 ngày lãi ${lai >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
     });
-    const hang = Math.ceil(n / cot), rongTp = cot * BX, sauTp = hang * BZ;
+    const hang = Math.ceil(n / cot) + 2, rongTp = cot * BX, sauTp = hang * BZ;   // lưới có 2 hàng dư để xếp vòng quanh tâm
     const dat = new T.Mesh(new T.PlaneGeometry(rongTp + 2, sauTp + 2), new T.MeshStandardMaterial({ color: 0x1e293b, transparent: true, opacity: 0.45 }));
     dat.rotation.x = -Math.PI / 2; dat.position.y = -0.01; canh.add(dat);
     return { vat, tam: [0, caoMax * 0.3, 0], xa: Math.max(10, Math.max(rongTp, sauTp) * 1.15 + caoMax * 0.6) };

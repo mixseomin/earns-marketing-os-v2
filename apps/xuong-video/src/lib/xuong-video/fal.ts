@@ -185,6 +185,8 @@ export function catCau(chu: string, toiDa?: number): string {
   return (i > toiDa * 0.5 ? cat.slice(0, i + 1) : cat.slice(0, cat.lastIndexOf(' '))).trim();
 }
 
+/** Câu mở cho model DỰNG LẠI clip 3D (video-to-video): bám máy / chỗ đứng / nhịp của clip, mọi vẻ ngoài lấy từ keyframe — một nguồn cho Luma, LTX. */
+const CAU_DUNG_LAI_3D = 'Restyle this rough grey 3D blockout into the finished shot. Keep EXACTLY its camera, framing, timing, where everyone stands and how they move. Everything you see — people, faces, hair, clothes, the set, light, colours and drawing style — comes from the keyframe image.';
 export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; /** khung khoá giữa (model nhiều khung: Pikaframes) */ khungGiua?: string[]; /** clip diễn Blender cả shot (model 3D→video: H3 Max) */ videoNguon?: string | null; /** giây dư đầu của clip nguồn (clip three.js: khung_xam.clip.vao) — khung khoá ghim đúng khung nguồn ứng với keyframe */ vaoNguon?: number; anhThamChieu?: string[]; giay?: number; /** số giây shot THỰC PHÁT (phat_s) — model sinh theo SỐ KHUNG (Wan 2.2: num_frames 17–161) chỉ sinh đủ chừng đó + 0,5 s dư, trả tiền theo giây */ giayPhat?: number | null; tiLe?: string; tieng?: boolean; /** danh từ cần loại (negative prompt) */ loai?: string }): Promise<Record<string, unknown>> {
   const p = await schemaVao(id);
   const co = (k: string) => k in p;
@@ -198,12 +200,21 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
   const khung = [v.anhDau, ...(v.khungGiua ?? []), v.anhCuoi].filter((x): x is string => !!x);
   // CLIP 3D LÀM NGUỒN (H3 Max 3D→Video: video_url = clip diễn Blender): máy / đường đi / nhịp / số vật lấy từ clip; các khung khoá làm ảnh tham chiếu
   // ngoại hình (có tham chiếu thì model không tự sinh ảnh ngoại hình mới). Thời lượng theo clip.
+  // LTX 2.3 REFERENCE VIDEO-TO-VIDEO (14/11/2026, phương án rẻ nhất nhận đủ khung đầu + clip: distilled ~$0,001/khung): clip three.js = nguồn chuyển động, keyframe
+  // = khung đầu. video_strength 0,8 (1 = bám nguồn tuyệt đối, dễ giữ cả vẻ ma-nơ-canh xám) — đổi để so trong docs/so-sanh-mo-hinh-3d-video.md.
+  if (co('video_url') && co('video_strength') && co('image_url') && v.videoNguon && v.anhDau) {
+    o.video_url = v.videoNguon; o.image_url = v.anhDau; o.video_strength = 0.8; o.prompt = catCau(`${CAU_DUNG_LAI_3D} ${v.prompt}`, toiDa);
+    if (co('match_video_length')) o.match_video_length = true;
+    if (co('generate_audio')) o.generate_audio = false;
+    if (co('enable_prompt_expansion')) o.enable_prompt_expansion = false;
+    return o;
+  }
   // LUMA RAY 3.2 VIDEO-TO-VIDEO (14/11/2026 phim #3071, thử phương án bám clip 3D): clip three.js = nguồn (máy / chỗ đứng / nhịp), keyframe đã duyệt GHIM
   // đúng khung nguồn ứng với nó (keyframes + keyframe_indexes; clip có vao giây dư đầu, xuất 24 fps) để nét vẽ / người / bối cảnh lấy từ keyframe chứ không
   // từ ma-nơ-canh xám. edit_strength 'flex_2' (giữa bám nguồn và vẽ lại) — đổi để so trong docs/so-sanh-mo-hinh-3d-video.md.
   if (co('video_url') && co('keyframes') && co('keyframe_indexes') && v.videoNguon && v.anhDau) {
     o.video_url = v.videoNguon; o.keyframes = [v.anhDau]; o.keyframe_indexes = [Math.max(0, Math.round((v.vaoNguon ?? 0) * 24))];
-    o.prompt = catCau(`Restyle this rough grey 3D blockout into the finished shot. Keep EXACTLY its camera, framing, timing, where everyone stands and how they move. Everything you see — people, faces, hair, clothes, the set, light, colours and drawing style — comes from the keyframe image. ${v.prompt}`, toiDa);
+    o.prompt = catCau(`${CAU_DUNG_LAI_3D} ${v.prompt}`, toiDa);
     if (co('edit_strength')) o.edit_strength = 'flex_2';
     if (co('duration')) o.duration = (v.giayPhat ?? v.giay ?? 5) > 5 ? '10s' : '5s';
     if (co('resolution')) o.resolution = '540p';

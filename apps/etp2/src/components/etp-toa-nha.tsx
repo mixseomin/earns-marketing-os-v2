@@ -1,7 +1,7 @@
 'use client';
 // TOÀ NHÀ PHIM (anh 15/11/2026: "giống kiểu hình một toà nhà. Nếu nhiều camp ROAS thắng thì sẽ cao hơn. Các camp thử nghiệm nằm ở tầng đáy,
 // đến khi có lãi thì lên dần… Các hướng đi, đề xuất cũng show gọn trong đó… mô hình 3D để xoay").
-// Mỗi camp đang chạy = một khối; tầng = chặng của camp (xepTang). Khối rộng theo ngân sách ($1 nhỏ → $30 kín ô), màu theo lãi / lỗ 7 ngày.
+// Mỗi camp đang chạy = một khối; tầng = chặng của camp (xepTang). Mặt khối in ngân sách ($30 / ★$20) trên tường có cửa sổ, màu theo lãi / lỗ 7 ngày.
 // Móng = việc chưa chạy: camp hẹn giờ (khối mờ) · đang sản xuất (giàn giáo vàng) · kế hoạch (khung nét đứt). Mỗi tầng chứa ≤ O_TANG khối, nhiều hơn thì thêm tầng → toà cao lên.
 // three nạp động khi mở tab (không nặng trang). Điều khiển: kéo = xoay · Shift + lăn = phóng (giống city.on.tc) · điện thoại 1 ngón xoay, 2 ngón chụm phóng.
 import React, { useEffect, useRef, useState } from 'react';
@@ -47,7 +47,7 @@ export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mo
       for (let i = 0; i < mong.cho && theoTang[0]!.length < MONG_TOI_DA; i++) theoTang[0]!.push({ kieu: 'cho', chu: 'creative sạch chờ lên camp' });
       for (let i = 0; i < mong.sx && theoTang[0]!.length < MONG_TOI_DA; i++) theoTang[0]!.push({ kieu: 'sx', chu: 'đang sản xuất' });
       for (let i = 0; i < mong.ke && theoTang[0]!.length < MONG_TOI_DA; i++) theoTang[0]!.push({ kieu: 'ke', chu: 'kế hoạch, chưa làm' });
-      const RONG = COT * 1.1, SAU = HANG * 1.1, x0 = -RONG / 2 + 0.55, z0 = -SAU / 2 + 0.55;
+      const RONG = COT * 1.0, SAU = HANG * 1.0, x0 = -RONG / 2 + 0.5, z0 = -SAU / 2 + 0.5;   // khối kín ô (khe 0.04) → mặt toà liền như tường
       const khoi: { m: InstanceType<typeof T.Mesh>; id: number | null; chu: string }[] = [];
       const nhan = (chu: string, mau: string, to = 1) => {
         const cv = document.createElement('canvas'), g = cv.getContext('2d')!; const fs = 44;
@@ -58,40 +58,65 @@ export function ToaNha({ camp, mong, bien, chon, onChon }: { camp: CampToa[]; mo
         /* cỡ cố định trên màn (sizeAttenuation tắt): toà cao kéo camera xa thì chữ không teo */ const h = 0.042 * to; sp.scale.set(h * cv.width / cv.height, h, 1); return sp;
       };
       const mauNhan = getComputedStyle(el).getPropertyValue('--fg-2').trim() || '#94a3b8';
+      // MẶT TƯỜNG có cửa sổ + số (anh 15/11/2026 "nhìn ko giống toà nhà · ko thấy số như trong demo"): mỗi khối = một phòng, bốn mặt bên in ngân sách ($30 / ★$20) hoặc chữ móng
+      const kho = new Map<string, InstanceType<typeof T.CanvasTexture>>();
+      const mat = (mau: string, chu: string) => {
+        const k = mau + chu; let tx = kho.get(k);
+        if (!tx) {
+          const cv = document.createElement('canvas'); cv.width = 160; cv.height = 128; const g = cv.getContext('2d')!;
+          g.fillStyle = mau; g.fillRect(0, 0, 160, 128);
+          g.fillStyle = 'rgba(15,23,42,0.28)'; for (const x of [14, 62, 110]) for (const yy of [12, 72]) g.fillRect(x, yy, 36, 44);   // cửa sổ
+          g.font = '800 58px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 7; g.strokeStyle = 'rgba(15,23,42,0.75)';
+          g.strokeText(chu, 80, 66); g.fillStyle = '#ffffff'; g.fillText(chu, 80, 66);
+          tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace; kho.set(k, tx);
+        }
+        return tx;
+      };
+      const phong = (mau: string, chu: string, mo = 1) => {
+        const ben = new T.MeshStandardMaterial({ map: mat(mau, chu), roughness: 0.6, transparent: mo < 1, opacity: mo }), tran = new T.MeshStandardMaterial({ color: mau, roughness: 0.6, transparent: mo < 1, opacity: mo });
+        return [ben, ben, tran, tran, ben, ben];
+      };
+      const XAM_KHUNG = 0x64748b;
       let y = 0;
       theoTang.forEach((ds, t) => {
-        const san = Math.max(1, Math.ceil(ds.length / O_TANG)), cao = ds.length ? san * CAO : 0.42;   // tầng trống vẫn đủ cao cho nhãn không chồng tầng kế
-        // sàn kính của tầng
-        const sanM = new T.Mesh(new T.BoxGeometry(RONG + 0.2, 0.04, SAU + 0.2), new T.MeshStandardMaterial({ color: t === 0 ? 0x475569 : 0x94a3b8, transparent: true, opacity: t === 0 ? 0.55 : 0.25 }));
-        sanM.position.set(0, y, 0); canh.add(sanM);
+        const san = Math.max(1, Math.ceil(ds.length / O_TANG)), cao = ds.length ? san * CAO : 0.42;   // tầng trống: tầng hở (chỉ sàn + cột), vẫn đủ cao cho nhãn
+        // sàn bê tông của tầng, nhô ra mép như sàn nhà thật
+        const sanM = new T.Mesh(new T.BoxGeometry(RONG + 0.16, 0.06, SAU + 0.16), new T.MeshStandardMaterial({ color: t === 0 ? 0x334155 : 0x94a3b8, roughness: 0.9 }));
+        sanM.position.set(0, y - 0.03, 0); canh.add(sanM);
         ds.forEach((k, i) => {
-          const s = Math.floor(i / O_TANG), o = i % O_TANG, cx = x0 + (o % COT) * 1.1, cz = z0 + Math.floor(o / COT) * 1.1, cy = y + s * CAO + CAO / 2 + 0.03;
+          const s = Math.floor(i / O_TANG), o = i % O_TANG, cx = x0 + (o % COT), cz = z0 + Math.floor(o / COT), cy = y + s * CAO + CAO / 2;
+          const g = new T.BoxGeometry(0.96, CAO - 0.04, 0.96);
           if (k.kieu === 'camp') {
-            const c = k.c, w = 0.5 + 0.45 * Math.min(1, c.ns / 30), mau = new T.Color(mauCamp(c));
-            const m = new T.Mesh(new T.BoxGeometry(w, CAO * 0.86, w), new T.MeshStandardMaterial({ color: mau, transparent: c.cho, opacity: c.cho ? 0.45 : 1, roughness: 0.55 }));
-            m.position.set(cx, cy, cz); canh.add(m);
-            const r7 = roiCamp(c);
+            const c = k.c, r7 = roiCamp(c);
+            const m = new T.Mesh(g, phong(mauCamp(c), c.cho ? 'hẹn' : `${c.roas ? '★' : ''}$${c.ns}`, c.cho ? 0.55 : 1)); m.position.set(cx, cy, cz); canh.add(m);
             khoi.push({ m, id: c.id, chu: `#${c.id} · ${c.roas ? '★ ROAS' : c.dang} · $${c.ns}/ngày${c.cho ? ' · hẹn giờ, chưa chạy' : ` · 7 ngày chi $${c.chi7.toFixed(0)} · thu $${c.thu7.toFixed(0)}${r7 != null ? ` · ROI ${r7 > 0 ? '+' : ''}${r7}%` : ' · chưa đủ số'}`}` });
           } else {
-            const g = new T.BoxGeometry(0.7, CAO * 0.8, 0.7), vien = new T.EdgesGeometry(g);
-            const dong = k.kieu === 'ke' ? new T.LineSegments(vien, new T.LineDashedMaterial({ color: XAM, dashSize: 0.08, gapSize: 0.06 }))
-              : new T.LineSegments(vien, new T.LineBasicMaterial({ color: k.kieu === 'sx' ? VANG : LAM }));
+            // móng: chờ lên (xanh mờ) · đang sản xuất (giàn giáo vàng) · kế hoạch (khung nét đứt) — khối mờ có chữ, viền theo loại
+            const [mau, chu, mo] = k.kieu === 'cho' ? [LAM, 'chờ', 0.35] : k.kieu === 'sx' ? [VANG, 'SX', 0.3] : ['#475569', 'KH', 0.22];
+            const m = new T.Mesh(g, phong(mau, chu, mo)); m.position.set(cx, cy, cz); canh.add(m);
+            const vien = new T.EdgesGeometry(g), dong = k.kieu === 'ke' ? new T.LineSegments(vien, new T.LineDashedMaterial({ color: XAM, dashSize: 0.08, gapSize: 0.06 }))
+              : new T.LineSegments(vien, new T.LineBasicMaterial({ color: mau }));
             if (k.kieu === 'ke') dong.computeLineDistances();
-            dong.position.set(cx, cy, cz); canh.add(dong);
-            if (k.kieu === 'sx') { const cheo = new T.LineSegments(new T.WireframeGeometry(new T.BoxGeometry(0.7, CAO * 0.8, 0.7, 1, 2, 1)), new T.LineBasicMaterial({ color: VANG, transparent: true, opacity: 0.5 })); cheo.position.copy(dong.position); canh.add(cheo); }
-            const bat = new T.Mesh(g, new T.MeshBasicMaterial({ transparent: true, opacity: k.kieu === 'cho' ? 0.18 : 0.04, color: k.kieu === 'cho' ? LAM : 0xffffff, depthWrite: false }));
-            bat.position.set(cx, cy, cz); canh.add(bat); khoi.push({ m: bat, id: null, chu: k.chu });
+            dong.position.copy(m.position); canh.add(dong);
+            if (k.kieu === 'sx') { const cheo = new T.LineSegments(new T.WireframeGeometry(new T.BoxGeometry(0.96, CAO - 0.04, 0.96, 1, 2, 1)), new T.LineBasicMaterial({ color: VANG, transparent: true, opacity: 0.6 })); cheo.position.copy(m.position); canh.add(cheo); }
+            khoi.push({ m, id: null, chu: k.chu });
           }
         });
         const n = t ? ds.length : camp.filter((c) => c.cho).length + mong.sx + mong.ke + mong.cho, sp = nhan(`${TANG[t]}${n ? ` ${n}` : ''}`, t === 4 ? TIM : mauNhan, 0.9);
-        sp.center.set(1, 0.5); sp.position.set(-RONG / 2 - 0.2, y + Math.min(cao, CAO) / 2 + 0.05, SAU / 2 + 0.1); canh.add(sp);
+        sp.center.set(1, 0.5); sp.position.set(-RONG / 2 - 0.2, y + Math.min(cao, CAO) / 2, SAU / 2 + 0.1); canh.add(sp);
         y += cao + 0.06;
       });
-      // mái + biển hướng đi (dòng "Hướng" của bảng phim) cắm trên nóc
-      const cot = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.7), new T.MeshStandardMaterial({ color: 0x94a3b8 })); cot.position.set(RONG / 2 - 0.3, y + 0.35, 0); canh.add(cot);
-      if (bien) { const sp = nhan(bien.chu, bien.mau, 1.1); sp.center.set(0.5, 0); sp.position.set(RONG / 2 - 0.3, y + 0.72, 0); canh.add(sp); }
+      // khung toà: bốn cột góc từ đất lên mái · mái bê tông có lan can · cột ăng-ten cắm biển hướng đi (dòng "Hướng" của bảng phim)
+      for (const [px, pz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+        const cotG = new T.Mesh(new T.BoxGeometry(0.08, y, 0.08), new T.MeshStandardMaterial({ color: XAM_KHUNG, roughness: 0.8 }));
+        cotG.position.set(px * (RONG / 2 + 0.04), y / 2 - 0.03, pz * (SAU / 2 + 0.04)); canh.add(cotG);
+      }
+      const mai = new T.Mesh(new T.BoxGeometry(RONG + 0.24, 0.12, SAU + 0.24), new T.MeshStandardMaterial({ color: 0x475569, roughness: 0.9 })); mai.position.set(0, y + 0.03, 0); canh.add(mai);
+      const lanCan = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(RONG + 0.2, 0.16, SAU + 0.2)), new T.LineBasicMaterial({ color: 0x94a3b8 })); lanCan.position.set(0, y + 0.17, 0); canh.add(lanCan);
+      const cot = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.8), new T.MeshStandardMaterial({ color: 0x94a3b8 })); cot.position.set(RONG / 2 - 0.3, y + 0.5, 0); canh.add(cot);
+      if (bien) { const sp = nhan(bien.chu, bien.mau, 1.1); sp.center.set(0.5, 0); sp.position.set(RONG / 2 - 0.3, y + 0.92, 0); canh.add(sp); }
       const dat = new T.Mesh(new T.CircleGeometry(Math.max(RONG, SAU) * 1.1, 48), new T.MeshStandardMaterial({ color: 0x1e293b, transparent: true, opacity: 0.35 }));
-      dat.rotation.x = -Math.PI / 2; dat.position.y = -0.03; canh.add(dat);
+      dat.rotation.x = -Math.PI / 2; dat.position.y = -0.07; canh.add(dat);
 
       // ── camera quỹ đạo quanh giữa toà
       const tam = new T.Vector3(0, (y + 1.2) / 2, 0);

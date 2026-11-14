@@ -131,7 +131,7 @@ function TabToa({ l, chon, onChon }: { l: LichPhim; chon: number | null; onChon:
   const dem = TANG.map((_, t) => l.camp.filter((c) => xepTang(c) === t).length);
   const c = l.camp.find((x) => x.id === chon) ?? null, th = c ? l.thang.find((x) => x.camp_id === c.id) : undefined, r7 = c ? roiCamp(c) : null;
   const H = (nhan: React.ReactNode, con: React.ReactNode) => <><span style={{ fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{nhan}</span><div style={{ minWidth: 0, fontSize: 11.5, color: 'var(--fg-2)' }}>{con}</div></>;
-  const giai = 'Móng: camp hẹn giờ (khối xanh mờ) · đang sản xuất (giàn giáo vàng) · kế hoạch (khung nét đứt)\nThử: camp $1 chưa lãi 7 ngày · Lãi: camp $1 lãi 7 ngày · Scale: camp đã lên bậc > $1 · ★ ROAS: mái — càng nhiều ★ toà càng cao\nKhối rộng theo ngân sách ($1 nhỏ → $30 kín ô) · màu: xanh lãi / tím ★ lãi / đỏ lỗ / xám chưa đủ số (7 ngày)';
+  const giai = 'Móng: camp hẹn giờ (khối xanh mờ) · đang sản xuất (giàn giáo vàng) · kế hoạch (khung nét đứt)\nThử: camp $1 chưa lãi 7 ngày · Lãi: camp $1 lãi 7 ngày · Scale: camp đã lên bậc > $1 · ★ ROAS: mái — càng nhiều ★ toà càng cao\nSố trên mặt khối = ngân sách/ngày (★ = ROAS) · màu: xanh lãi / tím ★ lãi / đỏ lỗ / xám chưa đủ số (7 ngày)';
   return <>
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
       <b style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.ten ?? `#${l.content_id}`}</b>

@@ -155,7 +155,14 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const clip3d = c?.khung_xam?.clip && c.khung_xam.clip.ma === c.khung_xam.ma ? c.khung_xam.clip : null;
   const vidAi = c && !String(c.nguon_video?.model ?? '').startsWith('blender') ? c.video_cuoi_url || c.video_url : null;
   const vid = !c ? null : cheDo === '3d' ? clip3d?.url ?? null : cheDo === 'keyframe' ? null : vidAi;
-  const anhXem = !c ? null : cheDo === '3d' ? c.khung_xam?.mau ?? null : c.keyframe_url;
+  const anhCua = (k: Canh): string | null => (cheDo === '3d' ? k.khung_xam?.mau ?? null : k.keyframe_url);
+  const anhXem = c ? anhCua(c) : null;
+  // NẠP SẴN ẢNH MỌI SHOT của chế độ đang xem (anh 14/11/2026: "play chế độ keyframe rất chậm, chạy qua mới thấy hình"): trước đây chỉ clip video của
+  // shot kề được tải trước, ảnh thì mỗi lần sang shot mới gọi /api/xv/nho (chuyển hướng + lần đầu còn thu nhỏ) rồi mới tải — đồng hồ đã chạy qua shot.
+  // Nạp trước đúng url ảnh nhỏ thẻ <img> dùng → sang shot là ảnh đã trong bộ nhớ đệm trình duyệt.
+  const dsAnh = canh.map(anhCua).filter((u): u is string => !!u).map((u) => anhNho(u, 640)).join('\n');
+  const giuAnh = useRef<HTMLImageElement[]>([]);
+  useEffect(() => { giuAnh.current = dsAnh ? dsAnh.split('\n').map((u) => { const im = new Image(); im.decoding = 'async'; im.src = u; return im; }) : []; }, [dsAnh]);
   const tocNay = useMemo(() => (c && vid && cheDo === 'video' ? keHoachToc(c.ky_thuat?.toc_do, dur(c), dur(c), daiVid || 8) : null), [c, daiVid, giayTam]); // eslint-disable-line react-hooks/exhaustive-deps
   const vtVid = tocNay ? nguonTai(tocNay, tTrong).vao : cheDo === '3d' && clip3d ? clip3d.vao + tTrong : tTrong;
   const lichHu = useMemo(() => lichSfx(canh.map((cc, i) => ({ am: cc.ky_thuat?.am_thanh, tu: batDau[i]!, phat: dur(cc) }))), [canh, batDau]); // eslint-disable-line react-hooks/exhaustive-deps

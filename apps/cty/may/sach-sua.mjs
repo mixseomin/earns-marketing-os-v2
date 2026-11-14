@@ -20,8 +20,9 @@ const CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 45, thu = process.argv.in
 if (!thu) { try { cayRieng(NGUOI); } catch (e) { console.error(`cây riêng Thảo chưa kéo được: ${e.message.split('\n')[0]}`); } }
 // NƠI LÀM = bản puzzle-books của iMac (máy đêm may-chay.mjs chạy ở đây). Repo dùng chung với các việc nền khác → chỉ commit tệp mình sửa (doTruoc).
 const SACH = path.join(os.homedir(), 'puzzle-books');
-const QUYEN = ['Read', 'Glob', 'Grep', `Edit(/${SACH}/themes/**)`, `Write(/${SACH}/themes/**)`, `Edit(/${SACH}/scripts/**)`, `Write(/${SACH}/scripts/**)`,
-  `Bash(cd ${SACH}:*)`, `Bash(git -C ${SACH}:*)`, 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add themes/*)', 'Bash(git add scripts/*)', 'Bash(git commit:*)', 'Bash(git push:*)',
+// kdp-<tên>.json = mô tả bán hàng (trạm 'mo-ta' của quy-trinh đọc tệp này) — lượt đầu 15/11/2026 Thảo kẹt vì thiếu quyền ghi tệp này
+const QUYEN = ['Read', 'Glob', 'Grep', `Edit(/${SACH}/themes/**)`, `Write(/${SACH}/themes/**)`, `Edit(/${SACH}/scripts/**)`, `Write(/${SACH}/scripts/**)`, `Edit(/${SACH}/kdp-*.json)`, `Write(/${SACH}/kdp-*.json)`,
+  `Bash(cd ${SACH}:*)`, `Bash(git -C ${SACH}:*)`, 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add themes/*)', 'Bash(git add scripts/*)', 'Bash(git add kdp-*)', 'Bash(git commit:*)',
   'Bash(node scripts/*)', 'Bash(node --check:*)', `Bash(${os.homedir()}/bin/sanpham:*)`, `Bash(${SACH}/.cong-cu/sanpham:*)`,
   'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(diff:*)', 'Bash(pdfinfo:*)'];
 const CAM_BASH = ['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
@@ -58,8 +59,10 @@ CÁCH LÀM:
 1. Đọc lý do kẹt trong việc (đã có trong sổ). Xác định loại sách → có bộ sinh chưa → có hồ sơ chưa.
 2. Thiếu bộ sinh → viết + node scripts/loai/<loại>.mjs --tu-kiem đạt. Thiếu hồ sơ → chép mẫu + sửa. Thiếu loại trong sổ → ghi.
 3. node scripts/quy-trinh.mjs <tên> --den het → đọc kết quả. Trạm hỏng thì sửa đúng chỗ rồi chạy lại. Xong khi sổ sang owner_review (bot tự báo anh "Sản xuất xong").
-4. node scripts/may-chay.mjs ket (xoá lý do kẹt khỏi sổ). git add đúng tệp bạn tạo / sửa (themes/…, scripts/loai/…) + git commit (tiếng Việt) + git push. Không add tệp người khác đang dở.
+4. node scripts/may-chay.mjs ket (xoá lý do kẹt khỏi sổ). git add đúng tệp bạn tạo / sửa (themes/…, scripts/loai/…, kdp-<tên>.json) + git commit (tiếng Việt). Repo này KHÔNG có remote (bản máy chạy của iMac) — commit là xong, không push. Không add tệp người khác đang dở.
+   Mô tả bán hàng: viết kdp-<tên>.json theo khuôn kdp-<cuốn cùng loại>.json (description + gumroad.description, không tên thương hiệu, không link ra ngoài sàn).
 TỰ QUYẾT, KHÔNG HỎI: tên tệp hồ sơ, chủ đề, số câu đố, độ khó, cấu trúc bộ sinh, sửa trạm hỏng của quy-trinh. Lệnh bị từ chối thì gõ lại dạng đơn giản (một lệnh một dòng), không báo anh.
+Thiếu thư viện / công cụ trên máy (pypdf, …) hay một lệnh bị từ chối KHÔNG phải việc của anh: ghi rõ vào BÁO ANH và kết KHONG_SUA (máy tự sửa hạ tầng), không hỏi anh.
 CAN_ANH CHỈ khi: phải tiêu tiền (AI trả phí trên 5.000₫, mua gì) · phải xoá dữ liệu · phải đổi ngày đăng / bỏ cuốn khỏi lịch.
 
 CẤM: đăng / bấm Publish / bật bán (máy đăng tự làm sau khi anh duyệt) · tự duyệt thay anh · xoá dữ liệu · git revert / reset / checkout / stash · sửa ngoài ${SACH}/themes và ${SACH}/scripts · in khoá / token.

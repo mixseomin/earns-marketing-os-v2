@@ -15,7 +15,8 @@ const TEP = () => `${DATA()}/${process.env.THO_MAY_TEP || 'tho-may.json'}`;
 export const TREO_PHUT = 45;
 // kenh: = dây chuyền KÊNH NỘI DUNG (kênh lịch sử, apps/xuong-video/scripts/lich-su — anh 03/11/2026: "thế này mà cho tự chạy … không có ai sửa à?"):
 // chay-kenh.mjs xếp `kenh:<kênh>|<tập>` khi một lượt làm tập hỏng
-export const LOAI_SUA = /^(lan|box3|vps|dang|kenh|anh|etp|social):/;   // social: = bài social kẹt SỬA LẠI — hàng của Khang (THO_MAY_TEP=social-sua.json), Phòng Nội dung xếp sau mỗi lượt chấm (anh 10/11/2026)
+export const LOAI_SUA = /^(lan|box3|vps|dang|kenh|anh|etp|social|sach):/;   // sach: = sách tới đợt mà máy đêm không dựng được — hàng của Thảo (THO_MAY_TEP=sach-sua.json), puzzle-books may-chay.mjs quetKet xếp (anh 15/11/2026)
+//   // social: = bài social kẹt SỬA LẠI — hàng của Khang (THO_MAY_TEP=social-sua.json), Phòng Nội dung xếp sau mỗi lượt chấm (anh 10/11/2026)
 // etp: = lỗi máy Ethopex — hàng của Huy (THO_MAY_TEP=etp-sua.json), Phát xếp mỗi nhịp   // khoá cảnh báo thợ máy được nhận (xetCanhBao trong tai-nguyen.mjs · soiMayDang trong cham-dang.mjs · chay-kenh.mjs)
 const ngayVN = (t = Date.now()) => new Date(t + 7 * 36e5).toISOString().slice(0, 10);
 

@@ -817,6 +817,24 @@
    "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
   },
   {
+   "nhan": "iMac:tc.on.cty.sach-sua",
+   "ten": "Sách - Thảo bổ sung sách máy không dựng được (Claude)",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/may-ky-su/thao/earns-marketing-os-v2/apps/cty/may/sach-sua.mjs"
+   ],
+   "thu_muc": "/Users/htuan/may-ky-su/thao/earns-marketing-os-v2",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/sach-sua.log",
+   "hen": {
+    "moi_giay": 1800
+   },
+   "uu_tien_thap": true,
+   "ghi_chu": "Chỉ gọi Claude khi hàng sach-sua.json có việc; mỗi lượt một cuốn (anh 15/11/2026)"
+  },
+  {
    "nhan": "iMac:tc.on.cty.tai-nguyen-sua",
    "ten": "Tài nguyên - Tài sửa máy + trả lời anh (Claude)",
    "chay": [

@@ -111,11 +111,12 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   const rendau = !!bc.canh.khung_xam?.mau && bc.canh.keyframe_url === bc.canh.khung_xam.mau;
   const cl = chatLieuPhim(bc.kt);
   // GIỮ KHUNG ĐẦU theo chất liệu (CHAT_LIEU.giu_video): hoạt hình chỉ khi khung đầu là ảnh render 3D; người thật luôn (giữ mặt, đồ, bối cảnh).
-  const giuAnh = CHAT_LIEU[cl].giu_video;
-  const chen = bc.canh.ky_thuat?.co_canh === 'insert';
   // ĐỨNG YÊN TRONG 3D: mọi đường đi của khối 3D có điểm đầu ≈ điểm cuối (< 3% khung) — clip giữ mọi người / vật ở đúng chỗ, chỉ cử động nhỏ.
   const di3d = bc.canh.khung_xam?.di ?? [];
-  const yen3d = di3d.length > 0 && di3d.every((d) => Math.hypot((d.den[0] ?? 0) - (d.tu[0] ?? 0), (d.den[1] ?? 0) - (d.tu[1] ?? 0)) < 0.03);   // cận chèn: không đòi cử động cả người, không biểu cảm mặt (mặt ngoài khung)
+  const yen3d = di3d.length > 0 && di3d.every((d) => Math.hypot((d.den[0] ?? 0) - (d.tu[0] ?? 0), (d.den[1] ?? 0) - (d.tu[1] ?? 0)) < 0.03);   // shot đứng yên trong 3D: chỉ giữ câu NÉT VẼ, bỏ vế "mặt và thân cử động tự do, biểu cảm" (đá với câu diễn nhẹ)
+  const giuAnh = yen3d ? CHAT_LIEU[cl].giu_video.split(/(?<=\.)\s+/)[0]! : CHAT_LIEU[cl].giu_video;
+  const chen = bc.canh.ky_thuat?.co_canh === 'insert';
+  // cận chèn: không đòi cử động cả người, không biểu cảm mặt (mặt ngoài khung)
   // KHÔNG GỌI TÊN trong prompt video (19/10/2026 #1): model video không biết tên ai — hai phụ nữ tóc đen chỉ gọi "Vivian" / "Hạ" thì Veo đảo vai, và
   // tên trong prompt bị in lên hình ("Vivian" ở góc khung). Mọi tên nhân vật (đầy đủ + tên gọi tắt) thay bằng DÁNG NHÌN THẤY: giới + bộ đồ của shot.
   // Lần nhắc ĐẦU dùng nhãn đầy đủ, các lần sau dùng nhãn gọn (14/11/2026 phim #3071: nhãn đầy đủ lặp ~10 lần, prompt phình 5.391 ký tự, H3 Max cắt ở 2.000).

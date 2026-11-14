@@ -90,7 +90,7 @@ export function cauHuong(s: SoDo, m: ManhSoDo, nguoi: string[], tenEn: (t: strin
   // ĐÈN CHÍNH (lighting continuity): phía sáng trên màn tính từ chỗ đèn so với chủ thể — mọi góc máy cùng cảnh giữ đúng một phía
   if (s.den) { const ps = phiaSang(s, m, nguoi);
     if (ps) { const phia = Math.abs(ps.ngang) < 0.25 ? (ps.sau > 0 ? 'from behind the subjects (backlight, rim on hair and shoulders)' : 'from the camera side, frontal') : `from screen ${ps.ngang < 0 ? 'left' : 'right'}${ps.sau > 0.4 ? ' and slightly behind (rim light)' : ''}`;
-      out.push(`Key light${s.den.ten ? ` (${s.den.ten})` : ''} comes ${phia} — faces are lit on that side; keep this light direction`); } }
+      out.push(`Key light${s.den.ten ? ` (${s.den.ten.replace(/\s*\([^()]*\)\s*$/, '')})` : ''} comes ${phia} — faces are lit on that side; keep this light direction`); } }
   return out.join('; ');
 }
 /** Thay ký hiệu {A→B} trong câu đầu / đuôi bằng phía màn tính từ sơ đồ ('toward screen left'…) — hướng trong chữ không viết tay. */

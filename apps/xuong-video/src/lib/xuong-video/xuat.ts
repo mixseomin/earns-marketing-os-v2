@@ -47,6 +47,8 @@ function docM05(metadata: string): Map<number, number> {
  *  to nhất vẫn dưới ngưỡng = khoảng im/đứt nền. QC mẫu Jett không có ô nào dưới -21 LUFS; bản #5 cũ có 9 ô -120 (10/10/2026).
  *  Bỏ 0,5s đầu (nhạc fade vào) và 0,5s cuối. Trả các đoạn đã gộp liền nhau, giây bắt đầu–kết thúc. */
 export const NGUONG_IM_LUFS = -40;
+/** Kích thước khung xuất theo tỉ lệ phim (kinh_thanh.ti_le) — MỘT nguồn cho bản dựng phim lẫn animatic (14/11/2026: animatic cố định 1080×1920, phim 16:9 bị cắt mất hai bên). */
+export const khungXuat = (tiLe?: string | null): { w: number; h: number; doc: boolean } => (tiLe === '16:9' ? { w: 1920, h: 1080, doc: false } : { w: 1080, h: 1920, doc: true });
 export function khoangIm(metadata: string, giay: number): [number, number][] {
   const o = docM05(metadata);
   const im = [...o.entries()].filter(([k, v]) => k >= 0.5 && k + 0.5 <= giay - 0.5 && v < NGUONG_IM_LUFS).map(([k]) => k).sort((x, y) => x - y);
@@ -223,8 +225,7 @@ export function keHoachXuat(o: {
   /** tông màu chung cả phim (kinh_thanh.look) — look.ts › lookShot, áp sau cân sáng */
   look?: string;
 }): KeHoachXuat {
-  const doc = o.tiLe !== '16:9';
-  const W = doc ? 1080 : 1920, H = doc ? 1920 : 1080;
+  const { w: W, h: H, doc } = khungXuat(o.tiLe);
   const ds = locNhanh(o.canh, o.nhanh).slice().sort((a, b) => xepPhat(a, b)).filter((c) => !o.chiThuTu?.length || o.chiThuTu.includes(c.thu_tu));
   const nl = new Map(o.nguyenLieu.map((x) => [x.url, x]));
   const canhBao = kiemGiongLoiDan(ds, o.nhanVat);

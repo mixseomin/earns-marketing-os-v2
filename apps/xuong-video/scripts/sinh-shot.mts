@@ -216,9 +216,13 @@ if (arg('animatic')) {
   const phim = (await q(sql`SELECT p.loai FROM xv_phim p JOIN xv_tap t ON t.phim_id = p.id WHERE t.id = ${tapId}`))[0]!;
   const nhanVat = (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${tap.phim_id} ORDER BY id`)).map(mapNhanVat);
   const chon = new Set(bcs.map((b) => b.canh.id)); const thuMuc = `/tmp/animatic-${tapId}`;
-  const canhTap = await Promise.all((await q(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)).map(mapCanh).map(async (c) => {
-    if (!chon.has(c.id)) return c; const u = await clipAnimatic(c, thuMuc).catch((e: unknown) => { console.log(`  ! #${c.thu_tu}: ${e instanceof Error ? e.message : e}`); return null; });
-    return u ? { ...c, video_url: u, video_cuoi_url: null, ky_thuat: { ...(c.ky_thuat ?? {}), vao_s: 0, toc_do: undefined } } : c; }));
+  // TỐI ĐA 4 ffmpeg một lúc + thử lại một lần (14/11/2026, tập #3074: Promise.all 20 shot cùng lúc trên box3 → #14 #18 gãy, ảnh vẫn tải bình thường).
+  const dsCanh = (await q(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)).map(mapCanh); const canhTap = [...dsCanh];
+  const dung1 = async (c: (typeof dsCanh)[number]) => { try { return await clipAnimatic(c, thuMuc, kt.ti_le); } catch { return clipAnimatic(c, thuMuc, kt.ti_le); } };
+  const hang = dsCanh.map((c, i) => [c, i] as const).filter(([c]) => chon.has(c.id));
+  await Promise.all(Array.from({ length: 4 }, async () => { for (let x = hang.shift(); x; x = hang.shift()) { const [c, i] = x;
+    const u = await dung1(c).catch((e: unknown) => { console.log(`  ! #${c.thu_tu}: ${(e instanceof Error ? e.message : String(e)).slice(-400)}`); return null; });
+    if (u) canhTap[i] = { ...c, video_url: u, video_cuoi_url: null, ky_thuat: { ...(c.ky_thuat ?? {}), vao_s: 0, toc_do: undefined } }; } }));
   const r = await chayXuat({ loai: String(phim.loai) as never, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, look: lookPhim(kt), canh: canhTap as never, nhanVat, tap, qc: kt.qc, nhanh: null, chiThuTu: bcs.map((b) => b.canh.thu_tu), boQuaSoi: true, phuDe: kt.phu_de });
   console.log(r.ok ? `  ✓ ANIMATIC ${r.giay}s → ${r.url}${r.canhThieu.length ? ` · thiếu ${r.canhThieu.join(', ')}` : ''}` : `  ✗ ${r.loi}`);
 }

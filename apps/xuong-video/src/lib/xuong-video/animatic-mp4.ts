@@ -11,11 +11,14 @@ import { khungDoc } from './khung-doc';
 import { giayPhat, type Canh } from './kieu';
 import { uploadToR2 } from '../r2';
 import { nenH264 } from './nen-video.mjs';
+import { khungXuat } from './xuat';
 
 const ex = promisify(execFile);
 /** Tỉ lệ thời lượng từng khung theo số khung vẽ: đầu dài hơn giữa (người xem cần đọc khung mở), cuối giữ để thấy đuôi gieo cớ cắt. */
 export const TI_KHUNG: Record<number, number[]> = { 1: [1], 2: [0.5, 0.5], 3: [0.35, 0.3, 0.35] };
-export async function clipAnimatic(c: Canh, thuMuc: string, w = 1080, h = 1920): Promise<string | null> {
+/** tiLe = tỉ lệ khung của PHIM (kinh_thanh.ti_le) — trước 14/11/2026 cố định 1080×1920: phim 16:9 (#3071) bị cắt dọc rồi bộ dựng phóng lại, mất hai bên khung. */
+export async function clipAnimatic(c: Canh, thuMuc: string, tiLe: string | null | undefined): Promise<string | null> {
+  const { w, h } = khungXuat(tiLe);
   const ks = khungDoc(c).filter((k) => !!k.url); if (!ks.length) return null;
   const phat = giayPhat(c); const ti = TI_KHUNG[ks.length] ?? ks.map(() => 1 / ks.length);
   const vao = ks.flatMap((k, i) => ['-loop', '1', '-t', (phat * ti[i]!).toFixed(3), '-i', k.url!]);

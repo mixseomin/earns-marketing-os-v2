@@ -164,6 +164,11 @@ def _id_cham(duong, body):
 def api(duong, body=None, timeout=90):
     if isinstance(body, (str, bytes)): body = json.loads(body)
     if XEM and body is not None and not duong.startswith("/api/v1/report"): raise NgoaiNha(f"chế độ xem người #{XEM}: chỉ đọc — không gửi {duong}")
+    # TRẦN TUYỆT ĐỐI $30 / CAMP (anh 14/11/2026 "Ko bao giờ tăng ngân sách vượt trần $30"): đọc trên CHÍNH lệnh gửi đi (mọi tầng, mọi đường: tạo, nhân bản, ROAS, tăng,
+    # sửa camp team) — không tin số người gọi khai; cùng số với cong.TRAN_TUYET
+    if body is not None and not duong.startswith("/api/v1/report"):
+        vuot = [float(v) for v in re.findall(r'"daily_budget":\s*"?([\d.]+)', json.dumps(body)) if float(v) > CG.TRAN_TUYET]
+        if vuot: raise CamNganSach(f"ngân sách ${max(vuot):g} vượt trần tuyệt đối ${CG.TRAN_TUYET:g}/camp (anh 14/11/2026: không bao giờ vượt $30) — không gửi {duong}")
     if duong.startswith("/api/v1/campaigns?") and body is None:
         return {"data": _ds_nha(duong.split("?", 1)[1]) if duong != "/api/v1/campaigns?" else _ds_nha()}
     if duong.startswith("/api/v1/report"):
@@ -216,6 +221,9 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
     try: api("/api/v1/campaigns/update", {"campaign": {"campaign_id": 999999999, "source_payload": {"daily_budget": 3}}}); raise SystemExit("LỌT: đặt $3 cho camp vừa tạo")
     except CamNganSach as e: print("chặn đúng: đặt lại >$1 camp vừa tạo ·", str(e)[:70])
     _TRAN_TAO.pop(999999999)
+    for body in ({"campaign": {"campaign_id": 999999998, "source_payload": {"daily_budget": 31}}}, {"campaign": {"campaign_id": 999999998, "source_payload": {"daily_budget": "45"}}}):   # trần tuyệt đối $30 (anh 14/11/2026)
+        try: api("/api/v1/campaigns/update", body); raise SystemExit(f"LỌT: đặt ngân sách vượt $30 · {body}")
+        except CamNganSach as e: print("chặn đúng: vượt trần tuyệt đối ·", str(e)[:70])
     n = camp_nha(); print("camp nhà", len(n), "· tài khoản", sorted(TK))
     sach = next(((int(i), int(c["ad_id"])) for i, c in n.items() if c.get("ad_id") and c.get("state") == "ACTIVE"), None)
     if sach:   # ad đang chạy, không bị từ chối → lệnh đổi creative phải bị chặn

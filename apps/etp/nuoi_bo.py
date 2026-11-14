@@ -2,7 +2,8 @@
 """NUÔI BỘ TÀI KHOẢN ÍT CAMP (anh 11/11/2026: "Cần lên thêm camp ở 2 bộ chưa lên camp nào để nuôi tài khoản … bộ nào có hiệu suất tốt" · "Ok thì làm").
 Worker ethopex.mjs gọi mỗi nhịp. Nhân bản ($1, GIỮ creative gốc — nhan-ban.py --bo) camp thắng của PHIM THẮNG sang bộ trong etp.cau_hinh.tran_len.nuoi
 (apps/etp/tran_len.py chia phần trần camp mới / ngày: bộ 3 · 4 · 5), đi qua mọi cổng như nhân bản thường (cong.kiem: trần camp mới / ngày, bộ đang dừng — chốt 3, $1, phim cất…).
-  phim thắng = 7 ngày đã khép chi ≥ PHIM_CHI, ROI 7 ngày ≥ PHIM_ROI% VÀ ROI 3 ngày ≥ PHIM_ROI% (camp nhà, mọi bộ, không tính ★ ROAS)
+  phim thắng = 7 ngày đã khép chi ≥ PHIM_CHI, ROI 7 ngày ≥ PHIM_ROI% VÀ ROI 3 ngày ≥ PHIM_ROI% (camp nhà, mọi bộ, TÍNH CẢ ★ ROAS — anh 14/11/2026 "Mở bộ 3 scale":
+               phim thắng lớn lãi chủ yếu ở ROAS, bản cũ chỉ đếm camp thường nên 14/11 chỉ 1 phim đủ chuẩn, Number One · Nobody (ROI 7 ngày 28%) bị bỏ)
   camp gốc   = camp thường đang bật của phim có ROI 7 ngày cao nhất (chi 7 ngày ≥ GOC_CHI)
   mỗi phim ≤ PHIM_BO camp nuôi / bộ / ngày VN; mỗi nhịp ≤ MOI_NHIP camp (dàn đều trong ngày); bộ đủ phần thì thôi.
 Không chép camp KHÔNG tiêu / đang lỗ (bài học bộ 4, 08/11/2026: 43 bản chép camp bộ 2 không tiêu → ROI −60%).
@@ -31,7 +32,7 @@ def ke_hoach():
         if b: da[(b, p)] = da.get((b, p), 0) + 1
     phim = [l.split("|") for l in q(f"""with d as (select (now() at time zone 'utc')::date d0),
         s as (select c.content_id, sum(n.chi) c7, sum(n.thu) t7, sum(n.chi) filter (where n.ngay >= d0 - 3) c3, sum(n.thu) filter (where n.ngay >= d0 - 3) t3
-              from etp.so_ngay n join etp.camp c using (camp_id) cross join d where n.ngay between d0 - 7 and d0 - 1 and not c.la_roas and c.content_id is not null group by 1),
+              from etp.so_ngay n join etp.camp c using (camp_id) cross join d where n.ngay between d0 - 7 and d0 - 1 and c.content_id is not null group by 1),
         g as (select distinct on (c.content_id) c.content_id, c.camp_id, (sum(n.thu) - sum(n.chi)) / nullif(sum(n.chi), 0) * 100 r
               from etp.camp c join etp.so_ngay n using (camp_id) cross join d where c.trang_thai = 'ACTIVE' and not c.la_roas and n.ngay between d0 - 7 and d0 - 1
               group by c.content_id, c.camp_id having sum(n.chi) >= {GOC_CHI} order by c.content_id, r desc)

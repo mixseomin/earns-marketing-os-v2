@@ -96,6 +96,7 @@ def phim_chan_len():
 # NHÂN BẢN BÀI CŨ (anh 11/11/2026, Dol: "chạy lại post cũ để $2 luôn cũng được" — anh chốt "$2 cho camp dùng bài cũ thắng"): bản nhân bản camp thắng thường
 # dùng LẠI bài đăng của camp gốc (Use existing post, ad chỉ mang effective_object_story_id) được lên tới NS_BAI_CU; mọi camp mới khác vẫn $1.
 NS_BAI_CU = 2
+TRAN_TUYET = 30   # trần tuyệt đối $/camp/ngày (anh 14/11/2026) — kiem() chặn trước mọi miễn trừ
 def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False, thay=False):
     if viec not in TANG: return None
     try:
@@ -113,6 +114,9 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         ch = {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
         if viec == "bat" and camp_id and str(int(camp_id)) in _q(SQL_IT_NUOC).split(): return LY_IT_NUOC
         if ch.get("dung_khan"): return "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"
+        # TRẦN TUYỆT ĐỐI $30 / CAMP (anh 14/11/2026: "Ko bao giờ tăng ngân sách vượt trần $30") — đứng trước mọi miễn trừ (ROAS, A/B, lệnh anh, bản thang):
+        # không đường nào trong máy đặt một camp nhà / team quá TRAN_TUYET, kể cả khi tran_camp trong cấu hình bị sửa cao hơn
+        if ns_moi is not None and float(ns_moi) > TRAN_TUYET: return f"vượt trần tuyệt đối ${TRAN_TUYET:g}/camp (anh 14/11/2026: không bao giờ vượt $30) — đang gửi ${float(ns_moi):g}"
         # HOÃN TĂNG THEO GIÁ ADSENSE: ĐÃ BỎ (anh 13/11/2026 "bỏ rule Hoãn đang áp dụng") — giá AdSense tụt không còn chặn tăng / nhân bản; máy đo giá
         # (apps/etp/gia_adsense.py) vẫn đo và vẫn bù giá cho luật cắt camp mới. Tham số thay= giữ cho người gọi cũ (nhan-ban.py --thay), không còn tác dụng.
         if viec == "tang" and not roas and (ch.get("mua_le") or {}).get("khoa_tang"):   # mùa lễ Mỹ (apps/etp/mua_le.py, anh 08/11/2026): Meta học lại đúng tuần giá cao là tốn nhất

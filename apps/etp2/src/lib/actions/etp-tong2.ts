@@ -28,6 +28,9 @@ export type SoTong2 = {
   phanBo: { tran: number | null; tong: number; nhom: { ma: string; ten: string; camp: number; ns: number; chi3: number; thu3: number; muc: [number, number] | null; cach: string }[] } | null;
   /** THỊ TRƯỜNG (anh 11/11/2026): CPM / CPC / ROI từng ngày Ethopex của nhà (etp.cau_hinh.cpm_ngay, dong-bo.py ghi) + trần camp mới đang áp (tran_len) — chỉ nhà */
   thiTruong: { so: Record<string, SoNgay>; tranMoi: { tran: number; ly_do: string } | null; nk: NhatKyDuDoan } | null;
+  /** PHIM MỚI (anh 14/11/2026 "thêm 1 widget về performance của phim mới để xem về khả năng tìm ra phim hiệu quả"): mỗi phim nhà bắt đầu chạy trong 70 ngày —
+   *  ngày chi đầu tiên (d0, ngày Ethopex) + chi / thu cả đời tới hết ngày đã khép gần nhất (camp nhà, mọi bộ, cả ★ ROAS) + bộ của camp chi đầu tiên — chỉ nhà */
+  phimMoi: { p: number; ten: string; tl: string | null; nn: string | null; bo: string | null; d0: string; chi: number; thu: number }[] | null;
 };
 
 const so = (v: unknown) => Number(v ?? 0) || 0;
@@ -37,7 +40,7 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
   if (!q) return { loi: 'không có quyền' };
   const db = getDb()!, run = async <T,>(x: ReturnType<typeof sql>) => (await db.execute(x)) as unknown as T[];
   const nha = xemNha(q), chiNg = q.vai === 'nguoi' ? q.nguoiId : null;
-  const [nguoi, nguoiNgay, tk, tkNgay, tkNay, gioNgay, bao, phim, boRow, lam, pbNhom, pbCh] = await Promise.all([
+  const [nguoi, nguoiNgay, tk, tkNgay, tkNay, gioNgay, bao, phim, boRow, lam, pbNhom, pbCh, phimMoi] = await Promise.all([
     run<{ id: number; ten: string; nha: boolean }>(sql`select distinct on (nguoi_id) nguoi_id::int id, nguoi ten, nha from etp.so_nguoi order by nguoi_id, ngay desc`),
     run<{ n: number; d: string; chi: string; thu: string; camp: number }>(sql`select nguoi_id::int n, ngay::text d, chi, thu, camp::int camp from etp.so_nguoi where ngay >= current_date - 40`),
     run<{ id: number; ten: string | null; n: number; nha: boolean }>(sql`select t.ad_account_id::int id, r.ten, t.nguoi_id::int n, t.nha from etp.tai_khoan t left join etp.tai_nguyen r on r.loai = 'tk_qc' and r.id = t.ad_account_id`),
@@ -72,6 +75,12 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
       select case when tao > now() - interval '3 days' then 'test' when chi3 >= 1 and thu3 >= chi3 * 1.3 then 'lai_cao' when chi3 >= 1 and thu3 >= chi3 then 'lai_mong'
         when chi3 >= 1 and thu3 >= chi3 * 0.85 then 'lo_nhe' when chi3 >= 1 then 'lo_nang' else 'chua_so' end ma, count(*)::int camp, sum(ns) ns, sum(chi3) chi3, sum(thu3) thu3 from x group by 1`) : Promise.resolve([]),
     nha ? run<{ khoa: string; gia_tri: unknown }>(sql`select khoa, gia_tri from etp.cau_hinh where khoa in ('phan_bo', 'tran_ngay', 'cpm_ngay', 'tran_len', 'cpm_du_doan')`) : Promise.resolve([]),
+    // phim nhà theo ngày chi đầu tiên — chỉ ngày đã khép (ngày Ethopex = ngày UTC, hôm nay chưa khép), bộ = bộ của camp chi sớm nhất
+    nha ? run<{ p: number; ten: string | null; tl: string | null; nn: string | null; bo: string | null; d0: string; chi: string; thu: string }>(sql`
+      with x as (select c.content_id, c.bo, s.ngay, s.chi, s.thu from etp.so_ngay s join etp.camp c using (camp_id) where s.ngay < current_date and c.content_id is not null),
+      ph as (select content_id, min(ngay) filter (where chi > 0) d0, sum(chi) chi, sum(thu) thu from x group by 1 having sum(chi) > 0)
+      select ph.content_id::int p, p.ten, p.the_loai tl, p.locale nn, (select x.bo from x where x.content_id = ph.content_id and x.chi > 0 order by x.ngay limit 1) bo,
+        ph.d0::text d0, ph.chi, ph.thu from ph left join etp.phim p using (content_id) where ph.d0 >= current_date - 70`) : Promise.resolve([]),
   ]);
   const boCua = new Map(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [Number(b.tk), k]));
   const tkN = new Map(tk.map((t) => [t.id, t.n]));
@@ -100,6 +109,7 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
         ...(v.nuoc ? { nuoc: Object.fromEntries(Object.entries(v.nuoc).map(([k, x]) => [k, { chi: so(x.chi), cpm: x.cpm == null ? null : so(x.cpm), roi: x.roi == null ? null : so(x.roi) }])) } : {}) };
       return { so: so_, tranMoi: ch.tran_len?.tran == null ? null : { tran: so(ch.tran_len.tran), ly_do: String(ch.tran_len.ly_do ?? '') }, nk: ch.cpm_du_doan ?? {} };
     })() : null,
+    phimMoi: nha ? phimMoi.map((r) => ({ p: r.p, ten: r.ten ?? `#${r.p}`, tl: r.tl, nn: r.nn, bo: r.bo, d0: r.d0, chi: so(r.chi), thu: so(r.thu) })) : null,
     phanBo: nha ? (() => {
       const ch = Object.fromEntries(pbCh.map((r) => [r.khoa, r.gia_tri])) as { phan_bo?: { nhom?: { ma: string; ten: string; muc?: [number, number] | null; cach?: string }[] }; tran_ngay?: number | null };
       const dem = new Map(pbNhom.map((r) => [r.ma, r]));

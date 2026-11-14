@@ -150,6 +150,8 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
           <span style={{ fontWeight: d.nhom ? 700 : 400, color: d.mau ?? (d.nhom ? 'var(--fg-1)' : undefined) }}>{d.chu}</span>
           {d.ngan && <button type="button" onClick={(e) => { e.stopPropagation(); ngan.mo(d.ngan!.loai, d.k.ma, d.ngan!.id); }}
             style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontSize: 11, whiteSpace: 'nowrap', flex: 'none' }}>{d.nganChu ?? 'mở'}</button>}
+          {d.xemTruoc && <button type="button" onClick={(e) => { e.stopPropagation(); ngan.moVideo(d.k.ma, d.xemTruoc!); }} title="xem trước một bài mẫu của dạng này"
+            style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontSize: 11, whiteSpace: 'nowrap', flex: 'none' }}>▶ xem mẫu</button>}
           {d.phu && <span style={{ color: 'var(--fg-3)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', flex: '1 1 0', minWidth: 0 }} title={d.phu}>{d.phu}</span>}</span>
           {d.o && <span style={{ display: 'flex', flex: 'none' }}>{d.o.map((x, i) => <span key={i} data-cot={`mau-${i}`} data-cot-can="phai"
             title={d.oTieuDe ? undefined : (d.oTen ?? COT_MAU)[i]} style={{ width: O_RONG, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 11,

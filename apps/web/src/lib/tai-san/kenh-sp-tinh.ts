@@ -107,7 +107,8 @@ export type DongKe = { id: string; nhom?: boolean; chu: string; phu?: string; ma
   /** MỌI LINK RA NGĂN (anh 04/11/2026 "mọi link đều phải ra drawer"): nút trên dòng mở ngăn loại / mã — không có url mở tab ngoài */ ngan?: { loai: 'mau' | 'mo_dau' | 'nguoi' | 'playlist'; id: string }; nganChu?: string;
   /** ĐỒNG HỒ của tập đang sản xuất (anh 05/11/2026: "đồng hồ nằm ở dòng của video đang sx"): bước so / tong, hỏng thì đỏ */ dongHo?: { so: number; tong: number; loi: boolean };
   /** ô số thẳng cột (bảng thống kê mẫu) + tên cột ở dòng nhóm; oTen = tên cột cho tooltip dòng mục (thiếu = COT_MAU) */ o?: (number | null)[]; oTieuDe?: string[]; oTen?: string[];
-  /** khoá nền tảng (platform_key) → icon nền đầu dòng (khối 📡 Nền đăng) */ icon?: string };
+  /** khoá nền tảng (platform_key) → icon nền đầu dòng (khối 📡 Nền đăng) */ icon?: string;
+  /** XEM TRƯỚC (góp ý #1596 "mẫu thì cần có preview"): slug một bài mẫu của dòng → nút ▶ mở ngăn video */ xemTruoc?: string };
 const gioVn = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
 const thuNgay = (ymd: string) => `${THU[new Date(`${ymd}T00:00:00Z`).getUTCDay() || 7]} ${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()): DongKe[] {
@@ -360,6 +361,11 @@ export function cayNenDang(ds: NenKenh[]): DongKe[] {
 
 /** 🧩 MẪU NỘI DUNG của kênh social (anh 14/11/2026 "Thiếu mẫu nội dung !!"): mỗi DẠNG BÀI máy đã làm một dòng — đã làm · đã đăng · số nền đã lên · lượt xem
  *  (cộng mọi nền; null = chưa đo). Dạng lấy từ kho dang-bai.json (Social › Góc › Dạng bài); bài không có dạng = "chưa ghi dạng". Thuần. */
+/** bài đại diện để xem trước một dạng: chỉ bài có tệp/link xem được, nhiều lượt xem nhất rồi mới nhất. Thuần. */
+export function mauXem(vs: VideoKenh[]): string | undefined {
+  const co = vs.filter((v) => v.tep || v.url); if (!co.length) return undefined;
+  return [...co].sort((a, b) => (b.xem ?? -1) - (a.xem ?? -1) || (b.ngayLam ?? '').localeCompare(a.ngayLam ?? ''))[0]!.slug;
+}
 export const COT_MAU_SOCIAL = ['Đã làm', 'Đã đăng', 'Nền', 'Lượt xem'];
 export function cayMauSocial(videos: VideoKenh[], ten: Record<string, { ten: string; nhom: string }> = {}): DongKe[] {
   if (!videos.length) return [];
@@ -370,7 +376,7 @@ export function cayMauSocial(videos: VideoKenh[], ten: Record<string, { ten: str
   const ds = [...nhom].sort((a, b) => b[1].length - a[1].length);
   return [{ id: 'mau', nhom: true, chu: `🧩 Mẫu nội dung (${ds.filter(([k]) => k).length} dạng bài)`, phu: 'dạng bài máy đã làm · kho dạng: Social › Góc › Dạng bài', o: o(videos), oTieuDe: COT_MAU_SOCIAL },
     ...ds.map(([k, vs]): DongKe => ({ id: `mau/${k || '_'}`, chu: k ? `${NHOM[ten[k]?.nhom ?? ''] ?? '•'} ${ten[k]?.ten ?? k}` : '• chưa ghi dạng', mau: k ? undefined : 'var(--fg-3)',
-      phu: k ? (ten[k] ? k : `${k} · chưa có trong kho dạng bài`) : 'bài cũ không ghi dang_bai', o: o(vs), oTen: COT_MAU_SOCIAL }))];
+      phu: k ? (ten[k] ? k : `${k} · chưa có trong kho dạng bài`) : 'bài cũ không ghi dang_bai', o: o(vs), oTen: COT_MAU_SOCIAL, xemTruoc: mauXem(vs) }))];
 }
 
 /** NGUỒN TIỀN: nơi trả tiền cho kênh (đã dò link đối tác thật trên site đích). mang = sổ doanh thu đọc được nguồn này

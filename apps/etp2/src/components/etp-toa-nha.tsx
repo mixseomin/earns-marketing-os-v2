@@ -240,7 +240,15 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
       ctl.enableDamping = true; ctl.dampingFactor = 0.12; ctl.zoomToCursor = true; ctl.minDistance = 2.5; ctl.maxDistance = xa0 * 3;
       ctl.maxPolarAngle = Math.PI / 2 - 0.06;   // không chui xuống dưới mặt đất
       if (kieu === 'pho') { ctl.screenSpacePanning = false; ctl.panSpeed = 1.1; ctl.rotateSpeed = 0.6; }
-      datGoc();
+      // GIỮ GÓC NHÌN (anh 15/11/2026 "phải lưu vị trí đang xem như zoom, xoay... ngay cả khi F5, đổi tk"): camera + tâm nhìn nhớ trong máy, MỘT khoá cho mỗi kiểu cảnh
+      // (thành phố / toà một phim) — đổi người (?ng=), đổi tài khoản, F5 vẫn mở đúng góc cũ; ⟲ về góc ban đầu. Trình duyệt chặn kho → dùng góc ban đầu, không lỗi.
+      const KHOA_GOC = `etp2-goc-3d-${kieu}`;
+      const docGoc = () => { try { const v = JSON.parse(localStorage.getItem(KHOA_GOC) ?? 'null') as { p: number[]; t: number[] } | null;
+        if (!v || v.p?.length !== 3 || v.t?.length !== 3 || ![...v.p, ...v.t].every(Number.isFinite)) return false;
+        cam.position.fromArray(v.p); ctl.target.fromArray(v.t); ctl.update(); return true; } catch { return false; } };
+      let henLuu: ReturnType<typeof setTimeout> | null = null;
+      const luuGoc = () => { if (henLuu) clearTimeout(henLuu); henLuu = setTimeout(() => { try { localStorage.setItem(KHOA_GOC, JSON.stringify({ p: cam.position.toArray(), t: ctl.target.toArray() })); } catch { /* kho bị chặn */ } }, 400); };
+      if (!docGoc()) datGoc();
       let khung: import('three').BoxHelper | null = null;
       const veChon = (id: number | null) => {
         if (khung) { canh.remove(khung); khung.geometry.dispose(); khung = null; }
@@ -248,7 +256,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
         khung = new T.BoxHelper(k.vien, 0xffffff); canh.add(khung);
       };
       let can = true; const ve = () => { can = true; };
-      ctl.addEventListener('change', ve);
+      ctl.addEventListener('change', ve); ctl.addEventListener('change', luuGoc);
       capNhatChon.current = (id) => { veChon(id); ve(); };
       veChon(chonRef.current);
       // phím: WASD / mũi tên đi theo mặt đất, Q / E xoay quanh tâm nhìn (khung phải đang được chọn — bấm vào cảnh)
@@ -277,7 +285,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
         const d = cam.position.distanceTo(ctl.target), f2 = Math.max(ctl.minDistance / d, Math.min(ctl.maxDistance / d, f));
         cam.position.sub(P).multiplyScalar(f2).add(P); ctl.target.sub(P).multiplyScalar(f2).add(P); ctl.update(); ve();
       };
-      dk.current = { phong: (f) => phongQuanh(ctl.target.clone(), f), veGoc: () => { datGoc(); ve(); } };
+      dk.current = { phong: (f) => phongQuanh(ctl.target.clone(), f), veGoc: () => { datGoc(); ve(); luuGoc(); } };
 
       // biển tên mờ mặc định (đặt ở nơi dựng); toà đang rê → biển sáng rõ, nổi lên trên các biển khác
       let bienSang: import('three').Sprite | null = null;
@@ -322,7 +330,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
       cv.addEventListener('dblclick', dup); cv.addEventListener('keydown', phimXuong); cv.addEventListener('keyup', phimLen); cv.addEventListener('blur', boPhim);
       // ô đổi cỡ (widget kéo giãn) → đổi khung vẽ, không dựng lại
       const doiCo = new ResizeObserver(() => { const w = el.clientWidth, h = el.clientHeight; if (!w || !h) return; r.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); ve(); }); doiCo.observe(el);
-      don = () => { cancelAnimationFrame(raf); if (hen) clearTimeout(hen); if (henBam) clearTimeout(henBam); doiCo.disconnect(); ctl.dispose(); el.removeEventListener('wheel', xoayShift, { capture: true });
+      don = () => { cancelAnimationFrame(raf); if (hen) clearTimeout(hen); if (henLuu) { clearTimeout(henLuu); try { localStorage.setItem(KHOA_GOC, JSON.stringify({ p: cam.position.toArray(), t: ctl.target.toArray() })); } catch { /* kho bị chặn */ } } if (henBam) clearTimeout(henBam); doiCo.disconnect(); ctl.dispose(); el.removeEventListener('wheel', xoayShift, { capture: true });
         dk.current = { phong: () => {}, veGoc: () => {} };
         canh.traverse((x) => { const o = x as unknown as { geometry?: { dispose(): void }; material?: { dispose(): void; map?: { dispose(): void } } }; o.geometry?.dispose(); o.material?.map?.dispose(); o.material?.dispose(); });
         r.dispose(); cv.remove(); };

@@ -83,6 +83,7 @@ const LUAT = [
   { card: 'ds-camp-1511', tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: "{chiCamp ? null : oTab('lich', 'Lịch + điều khiển')}{oTab('camp', 'Camps')}", vi: 'bấm toà → tab Camp liệt kê đúng camp đã dựng cây / cửa; xem người khác chỉ tab Camp, không lẫn số nhà (anh 15/11/2026)' },
   { card: 'ds-camp-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', cam: 'const tan = new T.Mesh(new T.ConeGeometry(0.07, 0.12, 5)', vi: 'cây héo không có tán (anh 15/11/2026)' },
   { card: 'camps-ketoan-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: '<KeToan v={c.thu7 - c.chi7} mau={c.thu7 >= c.chi7 ? XANH : DO} />', vi: 'tab Camps: tiền kiểu kế toán (anh 15/11/2026)' },
+  { card: 'giu-goc-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'if (!docGoc()) datGoc();', vi: 'giữ góc nhìn 3D (zoom, xoay) qua F5 / đổi người / đổi tài khoản (anh 15/11/2026)' },
   { card: 'tin-hieu-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'const tinHieu = cap < 4 ? camp.filter((c) => lai(c) && !laOnDinh(c)).length : 0;', vi: 'tín hiệu lãi chỉ bật đèn xanh, không đổi khu — lên cấp mới đổi khu (anh 15/11/2026)' },
   { card: 'phan-khu-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: "export const KHU = [{ ten: 'Khu thượng lưu'", vi: 'thành phố phân khu thượng lưu / trung lưu / ven + đường giữa các cụm (anh 15/11/2026)' },
   { card: 'thanh-pho-1511', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: 'thanh_pho: ({ cao }) =>', vi: 'widget Thành phố phim ở Tổng quan — mỗi phim một toà (anh 15/11/2026 bước 2)' },

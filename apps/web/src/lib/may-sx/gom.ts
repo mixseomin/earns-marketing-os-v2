@@ -112,8 +112,12 @@ export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi
     doc('Puzzle / Tài sản', async () => {
       const t = await docTaiSanBan();
       if (t.loi.length) loi.push(...t.loi.map((l) => `Tài sản: ${l}`));
-      return t.shops.flatMap((s) => s.sp.filter((p) => TT_DANG.has(p.trangThai)).map((p): ViecSx => {
+      // + sách TỚI ĐỢT mà máy không dựng được (ketSx — máy ghi lý do vào sổ; anh 15/11/2026: 15 cuốn trễ tới 13 ngày mà Máy SX không thấy cuốn nào)
+      return t.shops.flatMap((s) => s.sp.filter((p) => TT_DANG.has(p.trangThai) || p.ketSx).map((p): ViecSx => {
         const m = p.tienDo?.match(/^(\d+)\/(\d+)$/);
+        if (p.ketSx) return { nguon: 'puzzle', khoa: `p-${p.khoa}`, ten: p.ten, cua: s.ten, buoc: 'Làm kẹt', loi: `máy không dựng được: ${p.ketSx}`,
+          ghi: p.dangDuKien ? `đăng ${p.dangDuKien.slice(8, 10)}/${p.dangDuKien.slice(5, 7)}` : null, mo: { sp: { s: { ...s, sp: [] }, x: p } },
+          nhip: ['Làm', 'Anh duyệt', 'Nộp sàn', 'Sàn duyệt', 'Bán'].map((ten, i) => ({ ten, tt: i === 0 ? 'loi' : 'cho', ghi: i === 0 ? p.ketSx : null })) };
         return { nguon: 'puzzle', khoa: `p-${p.khoa}`, ten: p.ten, cua: s.ten, buoc: TT_SP.find((x) => x.key === p.trangThai)?.chu ?? p.trangThai,
           so: m ? Number(m[1]) : null, tong: m ? Number(m[2]) : null, ghi: p.ke ? `bước kế: ${p.ke}` : null, mo: { sp: { s: { ...s, sp: [] }, x: p } },
           // vòng đời sản phẩm (lib/tai-san/kieu.ts): làm → anh duyệt bản xem → nộp sàn → sàn duyệt → bán

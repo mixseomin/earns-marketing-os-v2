@@ -38,6 +38,8 @@ export interface ProductRow {
   duyetBam: string | null;
   /** Ngày đăng dự kiến theo lịch đăng giãn (listing_config.dangDuKien, YYYY-MM-DD) — shop mới không đăng ồ ạt. */
   dangDuKien: string | null;
+  /** Máy sản xuất KHÔNG dựng được dòng này dù đã tới đợt (listing_config.ketSx.ly — puzzle-books may-chay.mjs quetKet ghi, tự xoá khi vào dây chuyền). */
+  ketSx: string | null;
   /** Bộ sách (listing_config.series = { ten, so }) — tập mấy của bộ nào; null = sách lẻ. */
   series: import('@/lib/tai-san/kieu').BoSach | null;
   /** Thực nhận trong cửa sổ đang xem. null = chưa có nguồn đo, KHÔNG phải 0. */
@@ -162,6 +164,7 @@ export async function getProductsView(windowDays = 30): Promise<ProductsView> {
       store: (p.store as string) || null, category: (p.category as string) || null, currency: (p.currency as string) || null, cover: (p.cover as string) || null, notes: (p.notes as string) || null, xem: (p.listing_config as { xem?: unknown } | null)?.xem && typeof (p.listing_config as { xem?: unknown }).xem === 'object' ? (p.listing_config as { xem: import('@/lib/tai-san/kieu').XemDuyet }).xem : null, duyet: (p.listing_config as { duyetLuc?: string; duyet?: string } | null)?.duyetLuc || (p.listing_config as { duyet?: string } | null)?.duyet || null, // thời điểm duyệt (ISO); bản cũ chỉ có ngày
       duyetBam: (p.listing_config as { duyetBam?: string } | null)?.duyetBam || null,
       dangDuKien: (p.listing_config as { dangDuKien?: string } | null)?.dangDuKien || null,
+      ketSx: (p.listing_config as { ketSx?: { ly?: string } | null } | null)?.ketSx?.ly || null,
       series: ((b) => (b?.ten ? { ten: String(b.ten), so: b.so == null ? null : Number(b.so) } : null))((p.listing_config as { series?: { ten?: string; so?: number } } | null)?.series),
       net: a?.hasRevenue ? a.net : null,
       gross: a?.hasRevenue ? a.gross : null,

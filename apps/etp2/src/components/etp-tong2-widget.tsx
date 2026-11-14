@@ -183,12 +183,10 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
       const moi = s.phimMoi.filter((r) => r.d0 >= tuK && thang(r)).sort((a, b) => (b.thu - b.chi) - (a.thu - a.chi)).slice(0, 6);
       const tl = (v: number | null) => (v == null ? '—' : `${v.toFixed(0)}%`);
       return <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12 }}>
-        <StatsStrip minColWidth={120} cards={[
-          { key: 'thu', label: `Phim thử ${PM_NGAY} ngày`, value: String(g30.n), sub: `${g30.d} phim đủ thử (chi ≥ $${PM_DU})`, title: `phim nhà bắt đầu chi trong ${PM_NGAY} ngày gần nhất (ngày Ethopex đã khép)` },
-          { key: 'thang', label: 'Phim thắng', value: String(g30.w), color: g30.w ? XANH : DO, sub: `tỷ lệ ${tl(g30.tile)} phim đủ thử`, title: `lãi cả đời ≥ $${PM_THANG} (mọi bộ, cả ★ ROAS)` },
-          { key: 'lai', label: 'Lãi ròng phim mới', value: tien(g30.k.thu - g30.k.chi), color: mauLai(g30.k.thu - g30.k.chi), sub: `ROI ${pct(roi(g30.k))} · chi ${tien(g30.k.chi)}`, title: `cộng mọi phim bắt đầu trong ${PM_NGAY} ngày, kể cả phim thua` },
-          { key: 'gia', label: 'Tiền thử / phim thắng', value: g30.giaThang == null ? '—' : tien(g30.giaThang), sub: 'chi của phim chưa thắng ÷ số phim thắng', title: 'mỗi phim thắng tìm được tốn bao nhiêu tiền thử các phim còn lại' },
-        ]} />
+        {/* GỌN (anh 14/11/2026: "Widget này cần gọn nhất" — bỏ 4 ô số to): một dòng tổng chữ nhỏ, bảng tuần ngay dưới */}
+        <div style={{ color: 'var(--fg-2)', lineHeight: 1.5 }} title={`phim nhà bắt đầu chi trong ${PM_NGAY} ngày gần nhất (ngày Ethopex đã khép) · đủ thử = chi cả đời ≥ $${PM_DU} · thắng = lãi cả đời ≥ $${PM_THANG} (mọi bộ, cả ★ ROAS) · tiền thử / phim thắng = chi của phim chưa thắng ÷ số phim thắng`}>
+          {PM_NGAY} ngày: <b style={{ color: 'var(--fg-1)' }}>{g30.n}</b> phim thử · {g30.d} đủ thử · <b style={{ color: g30.w ? XANH : DO }}>{g30.w} thắng ({tl(g30.tile)})</b> · lãi <b style={{ color: mauLai(g30.k.thu - g30.k.chi) }}>{tien(g30.k.thu - g30.k.chi)}</b> ({pct(roi(g30.k))}) · <b style={{ color: 'var(--fg-1)' }}>{g30.giaThang == null ? '—' : tien(g30.giaThang)}</b> tiền thử / phim thắng
+        </div>
         <SimpleTable rows={tuan} getRowKey={(r) => r.t} columns={([
           { key: 't', header: 'Tuần bắt đầu', cell: (r) => <span title={`phim nhà chi lần đầu từ ${ngayThang(r.t)} tới ${ngayThang(congNgay(r.t, 6))}`}>{ngayThang(r.t)}{r.non ? <small style={{ color: MO, marginLeft: 4 }} title="tuần kết thúc trong 7 ngày gần nhất — phim còn non, số chưa chốt">{hep ? '⏳' : 'đang thử'}</small> : null}</span> },
           { key: 'n', header: 'Phim', align: 'right', cell: (r) => <Dem v={r.n} /> },

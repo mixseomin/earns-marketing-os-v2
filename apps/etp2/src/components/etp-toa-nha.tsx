@@ -9,6 +9,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { CampToa } from '@/lib/etp-toa-sql';
 import { KeToan } from '@/components/etp-so';
+import { mauBo } from '@/lib/etp-mau-bo';
 
 type T3 = typeof import('three');
 export const TANG = ['Móng', 'Thử', 'Lãi', 'Scale', '★ ROAS'] as const;
@@ -500,13 +501,19 @@ export function ThanhPho({ ds: ds0, chon: chonP, chonBo, onChon, cao }: { ds: To
         const nhieuBo = k > 1, laiB = b.camp.reduce((a, c) => a + c.thu7 - c.chi7, 0), ma = maThap(ph.p, j);
         // SX theo bộ: dòng anh chọn bộ → tháp bộ đó; dòng máy chọn bộ ('') → tháp đầu
         const sx = (ph.sx?.[b.bo] ?? 0) + (j === 0 ? ph.sx?.[''] ?? 0 : 0);
-        const r = dungToa(T, g, { camp: b.camp, tat: b.tat, mong: { sx, ke: 0, cho: 0 }, bien: nhieuBo ? { chu: b.ten, mau: laiB >= 0 ? XANH : DO } : null, bienCo: 0.36, nhanTang: false, bienTheoMan: true, kho });
+        const r = dungToa(T, g, { camp: b.camp, tat: b.tat, mong: { sx, ke: 0, cho: 0 }, bien: nhieuBo ? { chu: b.ten, mau: mauBo(b.bo, j) } : null, bienCo: 0.36, nhanTang: false, bienTheoMan: true, kho });
         v0.thap.push({ g, mong: r.mong, bo: b.bo, ma }); boCuaMa.current.set(ma, { p: ph.p, bo: b.bo }); nhom.push({ id: ma, g });
         if (r.bienSp) { (r.bienSp.material as import('three').SpriteMaterial).opacity = 0.35; r.bienSp.userData.mo = 0.35; }
         caoLo = Math.max(caoLo, r.cao * ti);
         // KHUNG CHỌN ÔM TỪNG THÁP (anh 15/11/2026 "ko chọn được khu trong từng bộ tk"): mỗi tháp / thửa một khối bấm riêng, mở bảng phim đúng bộ đó
         const [bw, bh, bd] = r.than, bat = new T.Mesh(new T.BoxGeometry(bw, Math.max(0.3, bh), bd), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
         bat.position.set(0, Math.max(0.3, bh) / 2, 0); g.add(bat);
+        // VIỀN MÀU BỘ: khung cạnh ôm thân tháp + gờ đế dày cùng màu (cùng bảng màu huy hiệu bộ) — phim nhiều bộ mới có, một bộ thì không cần phân biệt
+        if (nhieuBo) { const mb = new T.Color(mauBo(b.bo, j)), H0 = Math.max(0.3, bh);
+          const vien = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(bw + 0.06, H0 + 0.04, bd + 0.06)), new T.LineBasicMaterial({ color: mb })); vien.position.y = H0 / 2; g.add(vien);
+          const matGo = new T.MeshStandardMaterial({ color: mb, emissive: mb, emissiveIntensity: 0.45 }), W2 = bw + 0.3, D2 = bd + 0.3;
+          for (const [x, z, w, d] of [[0, D2 / 2, W2, 0.12], [0, -D2 / 2, W2, 0.12], [W2 / 2, 0, 0.12, D2], [-W2 / 2, 0, 0.12, D2]] as [number, number, number, number][]) {
+            const go = new T.Mesh(new T.BoxGeometry(w, 0.08, d), matGo); go.position.set(x, 0.04, z); g.add(go); } }
         const nhanBo = nhieuBo ? ` · ${b.ten}` : '';
         for (const v of r.vat) vat.push({ m: v.m, vien: bat, id: ma, chu: `${ten}${nhanBo} · ${v.chu}`, bien: bien0 });
         const k7 = b.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }), cb = capToa(b.camp);

@@ -1,5 +1,6 @@
 'use client';
 // etp.on.tc — QUẢN LÝ CAMP / CREATIVE / ROI TẬP TRUNG (anh 24/10/2026). Đọc kho `etp` (lib/etp-doc), làm mới mỗi phút; ngày = ngày Ethopex (07:00–07:00 VN).
+import { MAU_BO } from '@/lib/etp-mau-bo';
 import { dangTao, choGio, dangChay } from '@/lib/etp-chay';
 import { createContext, Fragment, startTransition, useCallback, useContext, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -926,7 +927,6 @@ const khKhoang = (kh: Kh, homNay: string) => { if (kh === 'tat_ca') return { tu:
   return m ? { tu: m[1]!, den: m[2]! } : khoangCuaMoc(kh, homNay) ?? khoangCuaMoc('7', homNay)!; };
 const khNhanCua = (kh: Kh) => (kh === 'tat_ca' ? 'All time' : kh.includes('~') ? kh.split('~').map((d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`).join(' – ') : nhanCuaMoc(kh));
 // KHỐI LỤC GIÁC BỘ TÀI KHOẢN (giống extension): số bộ trong khối, rê vào ra tài khoản QC + Page
-const MAU_BO: Record<string, string> = { '1': '#3b82f6', '2': '#a855f7', '3': '#f59e0b', '4': '#10b981', '5': '#ef4444' };
 function Hex({ bo, info, co = 14 }: { bo: string | null; info?: { ten: string; tk: string; page: string; chi_phim_moi?: boolean }; co?: number }) {   // co = rộng px (anh 28/10/2026 "icon nhỏ hơn": 18 → 14, dòng camp 12)
   if (!bo) return null;
   return <svg width={co} height={(co * 20) / 18} viewBox="0 0 18 20" style={{ verticalAlign: 'middle', flex: 'none' }}><title>{`Bộ ${bo}${info ? ` · ${info.ten} · tài khoản QC ${info.tk}${info.page ? ` · Page #${info.page}` : ''}${info.chi_phim_moi ? ' · chỉ phim mới' : ''}` : ''}`}</title>

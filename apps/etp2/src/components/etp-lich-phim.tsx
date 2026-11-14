@@ -12,6 +12,7 @@ import { chuCong, chuLich, congTang, gioVnNay, KD, khungLuc, quaCong } from '@/l
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { ToaNha, TANG, xepTang, mauCamp, roiCamp, capToa, GIAI_CAP, DsCampToa, baoToa } from '@/components/etp-toa-nha';
 import { loaiThaoTac } from '@/lib/actions/etp-dong';
+import { mauBo } from '@/lib/etp-mau-bo';
 import type { CampToa } from '@/lib/etp-toa-sql';
 import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, xemBotCamp, type CampThang, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
 
@@ -289,7 +290,7 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
                         <button style={{ ...nut, padding: '1px 7px' }} disabled={soTT >= 30} onClick={() => setSoTT((n) => Math.min(30, n + 1))}>＋</button> camp</span>
                       <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}><span style={{ color: 'var(--fg-3)', fontSize: 11 }}>bộ</span>
                         <button style={oChon(boTT === '')} title="máy chọn bộ: bộ đổi của phim, không có thì bộ cho phim mới (etp.cau_hinh.bo_phim_moi)" onClick={() => setBoTT('')}>máy</button>
-                        {['1', '2', '3', '4', '5'].map((b) => <button key={b} style={oChon(boTT === b)} onClick={() => setBoTT(b)}>{b}</button>)}</span>
+                        {['1', '2', '3', '4', '5'].map((b) => <button key={b} style={{ ...oChon(boTT === b), borderColor: mauBo(b), color: boTT === b ? '#fff' : mauBo(b), background: boTT === b ? mauBo(b) : 'transparent' }} onClick={() => setBoTT(b)}>{b}</button>)}</span>
                       <button disabled={dang || !!khoaX} onMouseEnter={() => baoToa({ p: cid, sang: true, bo: boTT || null })} style={{ ...nut, color: khoaX ? undefined : '#4ade80', borderColor: khoaX ? 'var(--line)' : '#4ade80', ...(khoaX ? GAC_ST : {}) }}
                         title={khoaX ?? `dòng phim ${loaiTT0} lên ${soTT} camp $1 — ${boTT ? `bộ ${boTT}` : 'bộ máy chọn'} — ${chuLich()}`}
                         onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên ${soTT} camp ${loaiTT0}, mỗi camp $1/ngày${soTT > 1 ? `, tổng $${soTT}/ngày` : ''}, ${boTT ? `bộ ${boTT}` : 'bộ máy chọn'}. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`,

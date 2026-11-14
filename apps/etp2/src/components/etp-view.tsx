@@ -2607,16 +2607,18 @@ function chuDongBo(dongBo: DuLieuEtp['dongBo']): string {
  *  tự đếm — dưới 2 phút nhảy từng giây, sau đó 30 giây/lần (nhip: tab ẩn thì nghỉ). Chữ rê = chuDongBo. */
 const tuoiSo = (giay: number) => (giay < 60 ? `${giay}s` : giay < 3600 ? `${Math.floor(giay / 60)}m` : giay < 86_400 ? `${Math.floor(giay / 3600)}h` : `${Math.floor(giay / 86_400)}d`);
 const msIso = (iso: string) => Date.parse(iso.replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00'));   // timestamptz::text "2026-11-13 16:20:00.1+00" → ISO (Safari không đọc dạng gốc)
-function TuoiSo({ dongBo }: { dongBo: DuLieuEtp['dongBo'] }) {
+function TuoiSo({ dongBo, trong }: { dongBo: DuLieuEtp['dongBo']; trong?: boolean }) {   // trong = nằm trong nút làm mới (#1599): chữ rê + con trỏ do nút giữ
   const xong = dongBo?.xong ? msIso(dongBo.xong) : NaN;
   const [bay, setBay] = useState<number | null>(null);   // null tới khi gắn trên máy khách — tránh lệch giờ máy chủ / máy khách lúc hydrate
   const giay = bay != null && Number.isFinite(xong) ? Math.max(0, Math.floor((bay - xong) / 1000)) : null;
   const nhanh = giay == null || giay < 120;
   useEffect(() => { if (!Number.isFinite(xong)) return; setBay(Date.now());
     const t = nhip(() => setBay(Date.now()), nhanh ? 1_000 : 30_000); return () => t(); }, [xong, nhanh]);
-  return <span title={chuDongBo(dongBo)} style={{ alignSelf: 'center', fontSize: 11, color: 'var(--fg-2)', cursor: 'help', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{giay == null ? '—' : tuoiSo(giay)}</span>;
+  return <span title={trong ? undefined : chuDongBo(dongBo)} style={{ alignSelf: 'center', fontSize: 11, color: 'var(--fg-2)', cursor: trong ? undefined : 'help', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{giay == null ? '—' : tuoiSo(giay)}</span>;
 }
-function NutLamMoi({ dongBo, gon }: { dongBo: DuLieuEtp['dongBo']; gon: boolean }) {
+/** #1599 anh 15/11/2026 "Thêm 1 icon làm mới bên cạnh 9m. Bấm vào đó hoặc số 9m cũng đều làm mới cho gọn": tuổi số + ↻ là MỘT nút không viền —
+ *  bỏ nút có chữ "Làm mới" riêng; đang kéo thì ↻ xoay, chữ rê nói đang chờ */
+function NutLamMoi({ dongBo }: { dongBo: DuLieuEtp['dongBo'] }) {
   const router = useRouter();
   const [cho, setCho] = useState<{ lan: number; tu: number } | null>(null);
   const lanNay = dongBo?.lan ?? 0;
@@ -2627,8 +2629,8 @@ function NutLamMoi({ dongBo, gon }: { dongBo: DuLieuEtp['dongBo']; gon: boolean 
   const bam = async () => { const r = await lamMoiEtp(); if ('loi' in r) { alert(r.loi); return; } if (r.chay) setCho({ lan: r.lan ?? 0, tu: Date.now() });
     else setBao(r.ban != null ? `số đã là lượt ${vn(r.ban || null)} — máy đang chạy phần sau, lượt kế tự chạy khi xong` : 'kho vừa đồng bộ, đã đọc lại'); router.refresh(); };
   return <button onClick={bam} disabled={!!cho} title={cho ? 'đang kéo số mới từ Ethopex — xong tự hiện (thường 1–3 phút)' : `kéo số mới từ Ethopex ngay (máy tự kéo 10 phút/lần)\n${chuDongBo(dongBo)}`}
-    style={{ alignSelf: 'center', border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: cho ? 'var(--fg-2)' : 'inherit', cursor: cho ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
-    <span style={{ display: 'inline-block', animation: cho ? 'etpXoay 1s linear infinite' : undefined }}>↻</span>{gon ? '' : cho ? ' Đang làm mới…' : ' Làm mới'}{bao ? <span style={{ marginLeft: 6, color: 'var(--fg-2)' }}>{bao}</span> : null}</button>;
+    aria-label="Làm mới số liệu" style={{ alignSelf: 'center', display: 'inline-flex', alignItems: 'center', gap: 4, border: 'none', padding: '1px 2px', fontSize: 11, background: 'transparent', color: 'var(--fg-2)', cursor: cho ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+    <TuoiSo dongBo={dongBo} trong /><span style={{ display: 'inline-block', fontSize: 13, lineHeight: 1, animation: cho ? 'etpXoay 1s linear infinite' : undefined }}>↻</span>{bao ? <span style={{ marginLeft: 6, color: 'var(--fg-2)' }}>{bao}</span> : null}</button>;
 }
 /** CÔNG TẮC LÊN CAMP MỚI ở dòng tiêu đề (anh 09/11/2026): TẮT = etp.cau_hinh.dung_camp_moi true — máy ngưng tạo camp $1 mới từ creative (cong.kiem tao_camp) + nuôi bộ (apps/etp/nuoi_bo.py);
  *  nhân bản camp thắng, ROAS, tăng / giảm / tắt vẫn chạy (anh 10/11/2026) */
@@ -3067,8 +3069,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   // nằm NGOÀI khung dính trên điện thoại (trôi theo trang); khung dính chỉ còn dòng số gọn khi đã cuộn, cộng tiêu đề cây có số tổng (#1498) dính ngay dưới. Máy tính giữ hàng tab dính
   // CỤM TUỔI SỐ · LÀM MỚI · LÊN CAMP (#1586 / #1588): một hàm cho dòng tiêu đề VÀ dòng số gọn dính khi cuộn — sửa một chỗ, hai nơi cùng đổi
   const cumTuoi = (g: boolean) => <>
-    <TuoiSo dongBo={du.dongBo} />
-    {chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={g} />}
+    {chiXem ? <TuoiSo dongBo={du.dongBo} /> : <NutLamMoi dongBo={du.dongBo} />}{/* #1599: tuổi số + ↻ chung một nút, bấm chỗ nào cũng làm mới */}
     {chiXem || du.nguoi.ngoai || du.nguoi.doi ? null : <NutLenCamp du={du} gon={g} />}{/* chỉ khi đang xem tk David (Nhà) — anh 09/11/2026 'các thay đổi chỉ hiện ở tk David' */}
   </>;
   const thanhTren = (

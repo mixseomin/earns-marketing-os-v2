@@ -118,7 +118,7 @@ export function Tong2({ ve: veNgoai, laChu, ky, dau }: { ve: Record<string, VeWi
         </div>
         <div ref={hop} style={{ height: kt.h, overflow: 'hidden' }}>
           {chon ? <Panel pad={PAD} title={WIDGET[chon.ma]?.ten} actions={dau?.[chon.ma]} style={{ height: kt.h, marginBottom: 0, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-            <div style={{ flex: 1, minHeight: 0, marginTop: -6, overflowY: 'auto', overflowX: 'hidden' }}>{v ? v({ rong: kt.w - PAD * 2 - 2, cao: kt.h - DAU - PAD * 2 }) : null}</div>
+            <div style={{ flex: 1, minHeight: 0, marginTop: -6, overflowY: 'auto', overflowX: 'auto' }}>{v ? v({ rong: kt.w - PAD * 2 - 2, cao: kt.h - DAU - PAD * 2 }) : null}</div>
           </Panel> : null}
         </div>
       </div>
@@ -151,7 +151,7 @@ export function Tong2({ ve: veNgoai, laChu, ky, dau }: { ve: Record<string, VeWi
               border: `1px solid ${ra ? '#f87171' : sua ? 'var(--accent)' : 'var(--line)'}`, transition: keo ? 'none' : 'left .15s, top .15s, width .15s, height .15s' }}
               title={<span onPointerDown={(e) => batDau(e, x, 'doi')} title={WIDGET[x.ma]?.mo_ta} style={{ fontSize: 12, cursor: sua ? 'move' : 'default', userSelect: 'none', touchAction: sua ? 'none' : undefined }}>{sua ? '⠿ ' : ''}{WIDGET[x.ma]?.ten ?? x.ma}</span>}
               actions={sua ? <button type="button" onClick={() => ghi(o.filter((y) => y.ma !== x.ma))} title="bỏ widget này" style={{ border: 0, background: 'none', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 12, padding: 0 }}>✕</button> : dau?.[x.ma]}>
-              <div style={{ flex: 1, minHeight: 0, marginTop: -6, overflowY: 'auto', overflowX: 'hidden', pointerEvents: sua ? 'none' : undefined, opacity: sua ? 0.55 : 1 }}>
+              <div style={{ flex: 1, minHeight: 0, marginTop: -6, overflowY: 'auto', overflowX: 'auto', pointerEvents: sua ? 'none' : undefined, opacity: sua ? 0.55 : 1 }}>
                 {v ? v({ rong: Math.max(0, w - PAD * 2 - 2), cao: Math.max(0, h - DAU - PAD * 2) }) : <span style={{ color: '#f87171', fontSize: 12 }}>widget {x.ma} chưa có hàm vẽ</span>}
               </div>
               {sua ? <div onPointerDown={(e) => batDau(e, x, 'co')} title="kéo để đổi cỡ" style={{ position: 'absolute', right: 1, bottom: 1, width: 16, height: 16, cursor: 'nwse-resize', touchAction: 'none', fontSize: 11, lineHeight: '16px', textAlign: 'center', color: 'var(--accent)' }}>◢</div> : null}

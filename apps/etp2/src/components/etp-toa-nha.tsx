@@ -269,8 +269,10 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
       const xoayShift = (e: WheelEvent) => {
         if (!e.shiftKey) return;
         e.preventDefault(); e.stopPropagation(); setRe(null);
-        const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-        const o = cam.position.clone().sub(ctl.target).applyAxisAngle(len, -d * 0.004); cam.position.copy(ctl.target).add(o); ctl.update(); ve();
+        // như kéo 2 ngón bấm (chuột phải): vuốt ngang = xoay quanh 360°, vuốt dọc = nghiêng (giữ trong [0,05 rad, trần nghiêng của bộ điều khiển])
+        const k = e.deltaMode === 1 ? 16 : 1, cau = new T.Spherical().setFromVector3(cam.position.clone().sub(ctl.target));
+        cau.theta -= e.deltaX * k * 0.005; cau.phi = Math.max(0.05, Math.min(ctl.maxPolarAngle, cau.phi + e.deltaY * k * 0.004));
+        cam.position.copy(ctl.target).add(new T.Vector3().setFromSpherical(cau)); ctl.update(); ve();
       };
       el.addEventListener('wheel', xoayShift, { passive: false, capture: true });
       cv.tabIndex = 0; cv.style.outline = 'none'; cv.style.touchAction = 'none';

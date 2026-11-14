@@ -27,12 +27,13 @@ export function SimpleTable<T>({ rows, columns, getRowKey, hideHeader, rowStyle,
   rowStyle?: (row: T, index: number) => CSSProperties | undefined;
   /** Trả nội dung ≠ null → thêm một dòng full-width ngay dưới dòng đó (bảng con, chi tiết mở tại chỗ). */
   renderExpanded?: (row: T, index: number) => ReactNode;
-  /** Dòng Tổng dính đáy khung cuộn (sticky) — ô theo key cột, cột không có key để trống. Có tong thì vỏ không cuộn ngang
-   *  (overflow-x: clip) để sticky bám khung cuộn của ô widget bên ngoài thay vì bám vỏ bảng. */
+  /** Dòng Tổng dính đáy khung cuộn (sticky) — ô theo key cột, cột không có key để trống. Có tong thì vỏ KHÔNG là khung cuộn (để sticky bám khung cuộn
+   *  của ô widget bên ngoài) mà nở theo bề rộng thật của bảng (max-content, tối thiểu 100%) → bảng rộng hơn khung thì khung ngoài cuộn ngang.
+   *  Trước (#1581) vỏ đặt overflow-x: clip → bảng bị ép vừa khung rồi cắt mất cột phải, không vuốt ngang được (etp2 #1595 iPhone 393px). */
   tong?: Partial<Record<string, ReactNode>>;
 }) {
   return (
-    <div data-comp="ui.SimpleTable" style={{ overflowX: tong ? 'clip' : 'auto' }}>
+    <div data-comp="ui.SimpleTable" style={tong ? { width: 'max-content', minWidth: '100%' } : { overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         {!hideHeader && (
           <thead>

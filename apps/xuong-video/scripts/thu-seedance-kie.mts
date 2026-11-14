@@ -11,6 +11,7 @@ import { boiCanhCanh, taoJob, xongJob } from '../src/lib/xuong-video/doc-db';
 import { khoiVideoCanh } from '../src/lib/xuong-video/sinh-video';
 import { ghep } from '../src/lib/xuong-video/prompt-khoi';
 import { uploadToR2 } from '../src/lib/r2';
+import { cauNgoaiCua } from '../src/lib/xuong-video/cum-shot';
 import { loiPromptGui, loiClipThamChieu } from '../src/lib/xuong-video/chan-gui-video';
 import { dangChongBau } from '../src/lib/xuong-video/bo-set-3d';
 
@@ -26,7 +27,7 @@ const nguoi = bc.nhanVat.filter((v) => v.loai === 'nhan_vat' && bc.canh.nhan_vat
 const anh = [bc.canh.keyframe_url, ...nguoi.map((v) => v.anh_ref[0]!)];
 const goi = nguoi.map((v, i) => `@Image${i + 2} is the character sheet of ${v.ten === 'Chú' ? 'the man' : v.ten === 'Nhóc' ? 'the boy' : v.ten}: keep exactly that face, hair and outfit.`).join(' ');
 const than = ghep(khoiVideoCanh(bc).filter((k) => k.ma !== 'huong'));
-const prompt = `@Image1 is the exact look of this shot: same drawing style, set, light, colours, framing and the same people in the same clothes. ${goi} @Video1 is a rough grey 3D blockout of this same shot: copy ONLY its camera, timing, where everyone stands and how they move — never its grey mannequin look. ${than}`;
+const prompt = `@Image1 is the exact look of this shot: same drawing style, set, light, colours, framing and the same people in the same clothes. ${goi} @Video1 is a rough grey 3D blockout of this same shot: copy ONLY its camera, timing, where everyone stands and how they move — never its grey mannequin look. ${than} ${cauNgoaiCua([bc.canh])}`.trim();
 const giayRa = 5;   // Kie nhận 4–15 s; 5 s đủ phủ clip 3D (4 s) + điểm vào
 console.log(`shot #${bc.canh.thu_tu} · ${model} ${dpg} · ảnh ${anh.length} · video ${clip.url} · prompt ${prompt.length} ký tự`);
 // LUẬT CHẤM TRƯỚC KHI GỬI (chan-gui-video.ts — anh 14/11/2026): lỗi nào cũng chặn, không tốn tiền

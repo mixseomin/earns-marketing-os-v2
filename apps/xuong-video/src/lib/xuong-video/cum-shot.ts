@@ -33,6 +33,13 @@ export function chiaCum<T extends ShotCum>(ds: readonly T[], tran = DUNG_DUOC, n
   if (cur.length) kq.push(cur);
   return kq;
 }
+/** NGƯỜI SAU Ô CỬA, MÁY Ở NGOÀI (15/11/2026, phim #3071 shot #4: 3D chỉ đẩy máy nhẹ, khung cửa luôn trong hình — Seedance đẩy máy xuyên ô cửa vào trong toa, nền
+ *  thành ghế toa): người có chỗ đứng (vi_tri.o_dau) "behind … window" → câu giữ máy ở ngoài + khung cửa bao quanh người suốt shot. so = số shot trong cụm. Thuần. */
+export function cauNgoaiCua(cum: readonly Pick<Canh, 'may_3d'>[]): string {
+  const so = cum.map((c, i) => ((c.may_3d?.vi_tri ?? []).some((v) => /behind[^.]*window/i.test((v as { o_dau?: string }).o_dau ?? '')) ? i + 1 : 0)).filter(Boolean);
+  if (!so.length) return '';
+  return `${cum.length > 1 ? `In shot${so.length > 1 ? 's' : ''} ${so.join(', ')}` : 'In this shot'}, the camera stays OUTSIDE the train the whole time: the window frame stays in view around the person at the window, and the camera never moves through the window into the carriage.`;
+}
 /** CHIA CỤM CÂN cho model sinh dài (Seedance 2.0 ≤ 15 s, anh 14/11/2026 "tổ chức lại cụm video để sinh"): trong mỗi phân cảnh lấy SỐ CỤM ÍT NHẤT
  *  (⌈tổng / trần⌉, tăng dần nếu shot dài không xếp vừa) rồi chia liền nhau sao cho CỤM DÀI NHẤT ngắn nhất — tránh lối tham (chiaCum) để lại cụm đuôi 1 shot
  *  (#3071 cảnh 1: tham ra 14,7 + 4,2 s; cân ra 9,8 + 9,1 s). Shot dài hơn trần đứng riêng. Thuần. */

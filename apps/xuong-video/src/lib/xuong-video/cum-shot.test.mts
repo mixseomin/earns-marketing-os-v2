@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/cum-shot.test.mts
 import assert from 'node:assert';
-import { chiaCumCan, chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, promptCumMoi, DUNG_DUOC, VAO_DAU } from './cum-shot';
+import { chiaCumCan, cauNgoaiCua, chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, promptCumMoi, DUNG_DUOC, VAO_DAU } from './cum-shot';
 import { lienCon, noiKhungShot } from './kieu';
 
 // Cảnh Thang máy phim #353: giây phát 17 shot thật → 6 cụm theo nhịp (đến · giật thẻ · thang mở · đối đáp · quay đi · vào thang)
@@ -91,3 +91,10 @@ console.log('✓ cum-shot');
   const c = chiaCumCan([...g1, ...g2, mk(17, 20, 'C')], 15).map((x) => x.map((y: { thu_tu: number }) => y.thu_tu));
   assert.deepStrictEqual(c, [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10], [11, 12, 13, 14], [15, 16], [17]], JSON.stringify(c)); }
 console.log('✓ cum-shot chiaCumCan');
+
+// cauNgoaiCua: người sau ô cửa → câu giữ máy ngoài toa; không ai sau cửa → rỗng (phá thử: bỏ o_dau thì phải rỗng)
+{ const sh = (o?: string) => ({ may_3d: { vi_tri: [{ ten: 'Chú', o_dau: o }] } }) as never;
+  assert.ok(cauNgoaiCua([sh('inside the train carriage, behind the open passenger window')]).startsWith('In this shot, the camera stays OUTSIDE'));
+  assert.ok(cauNgoaiCua([sh(), sh('behind the open passenger window')]).startsWith('In shot 2,'));
+  assert.strictEqual(cauNgoaiCua([sh('standing on the platform')]), ''); }
+console.log('✓ cum-shot cauNgoaiCua');

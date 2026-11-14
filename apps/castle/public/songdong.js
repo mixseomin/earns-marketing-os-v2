@@ -52,7 +52,7 @@ export function dungCongTrinh(c) {
 export function taoDongHo(L, gioDau = 17.5) {
   let gio = gioDau, nhanh = 1;
   const MAT_TROI = new THREE.Color(0xffc08a), TRANG = new THREE.Color(0x8fa0d8), tam = new THREE.Vector3();
-  const DAY_SUONG = new THREE.Color(0x9a6a50), DEM_SUONG = new THREE.Color(0x1e1418), DAY_TROI = new THREE.Color(0xb0a4b8), DEM_TROI = new THREE.Color(0x2a2a48);
+  const DAY_SUONG = new THREE.Color(0x9a6a50), DEM_SUONG = new THREE.Color(0x30283a), DAY_TROI = new THREE.Color(0xb0a4b8), DEM_TROI = new THREE.Color(0x5a5a8a);
   const api = {
     get gio() { return gio; }, get nhanh() { return nhanh; },
     doiNhanh() { nhanh = nhanh === 1 ? 30 : 1; return nhanh; },
@@ -67,15 +67,15 @@ export function taoDongHo(L, gioDau = 17.5) {
       const huong = cao > -0.05 ? tam : tam.clone().negate();   // đêm: trăng ở phía đối diện
       L.nang.position.copy(huong).multiplyScalar(160);
       L.nang.color.copy(MAT_TROI).lerp(TRANG, api.toi);
-      L.nang.intensity = cao > -0.05 ? 0.3 + 2.4 * THREE.MathUtils.smoothstep(cao, -0.05, 0.35) : 0.45;
-      L.ban.intensity = 0.4 + 0.75 * ngay; L.ban.color.copy(DEM_TROI).lerp(DAY_TROI, ngay);
+      L.nang.intensity = cao > -0.05 ? 0.7 + 2.5 * THREE.MathUtils.smoothstep(cao, -0.05, 0.35) : 0.9; // trăng đủ sáng để thấy đường
+      L.ban.intensity = 0.85 + 0.85 * ngay; L.ban.color.copy(DEM_TROI).lerp(DAY_TROI, ngay);
       L.troi.uniforms.nang.value.copy(tam); L.troi.uniforms.dem.value = api.toi;
       L.scene.fog.color.copy(DEM_SUONG).lerp(DAY_SUONG, ngay);
       const muon = gio >= 23 || gio < 5 ? 0.45 : 1; // khuya: nhà tắt bớt đèn
       L.VL.vua.emissiveIntensity = 0.15 + 2.1 * Math.pow(api.toi, 1.5) * muon;
       L.VL_DEN.emissiveIntensity = 0.2 + 4 * api.toi;
       for (const l of L.denDuong) l.intensity = 18 * api.toi;
-      L.renderer.toneMappingExposure = 1 + 0.15 * api.toi;
+      L.renderer.toneMappingExposure = 1.35 + 0.1 * api.toi; // 14/11: anh thấy nền tối quá (TB 56/255 lúc 13h, 32/255 đêm)
     },
     chu() { const h = Math.floor(gio), m = Math.floor((gio - h) * 60); return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`; },
   };

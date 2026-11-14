@@ -1019,17 +1019,22 @@ T30_THUONG_DUNG, T30_ROAS_DUNG = True, False
 if T30_THUONG_DUNG: tang30 = []
 tang30 += [] if T30_ROAS_DUNG else [(cid, "★ ROAS thắng · " + s_) for cid, s_ in _tang30_goc if int(cid or 0) in _ROAS]
 tat_roas = []
+_rl1, _rl2 = [x for x in (d(i) for i in range(1, 10)) if dt.date.fromisoformat(x) not in NGAY_XAU][:2]   # 2 ngày đã khép gần nhất không xấu cho RL (thẻ xét luật dùng chung)
 try:
     if _ROAS & _bat:
         # anh 28/10/2026 (góp ý #1460 "mới chạy 1 hôm bị âm đã đòi tắt. Hôm sau lại dương"): bỏ nhánh MỘT ngày — chỉ báo khi 2 ngày đã khép
         # ĐỀU có chi và ĐỀU lỗ, cộng 2 ngày chi > $20 mà ROI < 0%. Một ngày âm rồi ngày sau dương = không báo.
         # KHÔNG hạ mốc $20 / không thêm nhánh 3 ngày lỗ liền (đo 15/11/2026, 189 camp ROAS 26/10–14/11: camp lỗ 2 ngày chi < $20 thì 7 ngày sau lãi
         # +11…+32%, lỗ 3 ngày liền +27% — tắt sớm mất ~$360 lãi; anh chốt xoá RL3).
-        _r1, _r2, _rg = bc(d(1), d(1)), bc(d(2), d(2)), bc(d(2), d(1))
+        # BỎ NGÀY THỊ TRƯỜNG XẤU (anh 15/11/2026 "Sao camp ROAS này bị tắt?" #87792 7 ngày +18%: RL tắt 15:56 14/11 bằng 12/11 — ngày xấu, giá AdSense tụt — cộng 13/11;
+        # cùng lượt tắt #93812 7 ngày trước +87% và #96184): luật 09/11 "★ ROAS bỏ ngày xấu" đã áp L3 / L4 / G10 mà RL sót → RL lấy 2 ngày đã khép gần nhất KHÔNG xấu.
+        _r1, _r2 = bc(_rl1, _rl1), bc(_rl2, _rl2)
+        _rg = {k: {"ten": v["ten"], "budget": v["budget"], "chi": v["chi"] + (_r2.get(k) or {}).get("chi", 0.0), "thu": v["thu"] + (_r2.get(k) or {}).get("thu", 0.0)} for k, v in _r1.items()}
+        for k, v in _r2.items(): _rg.setdefault(k, dict(v))
         for cid in sorted(_ROAS & _bat):
             a1, a2, a = (x.get(cid) or x.get(str(cid)) for x in (_r1, _r2, _rg))
             if a and a1 and a2 and a1["chi"] > 0 and a2["chi"] > 0 and a["chi"] > ROAS_CHI and roi(a) < ROAS_ROI and roi(a1) < 0 and roi(a2) < 0:
-                tat_roas.append((cid, f"#{a['ten'][:80]} · 2 ngày đã khép ({d(2)[8:10]}/{d(2)[5:7]} {roi(a2):+.0f}% · {d(1)[8:10]}/{d(1)[5:7]} {roi(a1):+.0f}%): chi ${a['chi']:.2f} · thu ${a['thu']:.2f} · lãi ${a['thu'] - a['chi']:+.2f} · ROI {roi(a):+.0f}% → TẮT (luật RL)"))
+                tat_roas.append((cid, f"#{a['ten'][:80]} · 2 ngày đã khép không xấu ({_rl2[8:10]}/{_rl2[5:7]} {roi(a2):+.0f}% · {_rl1[8:10]}/{_rl1[5:7]} {roi(a1):+.0f}%): chi ${a['chi']:.2f} · thu ${a['thu']:.2f} · lãi ${a['thu'] - a['chi']:+.2f} · ROI {roi(a):+.0f}% → TẮT (luật RL)"))
 except Exception as e:
     loi_may.append((0, f"luật RL (ROAS lỗ) không đọc được Report: {str(e)[:80]}"))
 # R0 — ★ ROAS KHÔNG TIÊU (anh 02/11/2026 #72924: "camp ROAS này đang âm mà lại có 3 ngày liên tiếp ko tiêu tiền. Cần có cơ chế xử lý để dồn ngân sách sang việc khác"):
@@ -1291,8 +1296,8 @@ def _xet_luat():
                 _g = lambda t: (globals().get(t) or {}).get(cid) or (globals().get(t) or {}).get(str(cid))
                 a1_, a2_, ag_ = _g("_r1"), _g("_r2"), _g("_rg")
                 r1_, r2_, rg_ = (roi(x) if x and x["chi"] > 0 else None for x in (a1_, a2_, ag_))
-                ls.append(L("rl", "RL · ROAS lỗ 2 ngày", f"Camp ★ ROAS (miễn luật camp thường, trừ L4 — 03/11/2026): 2 ngày đã khép ĐỀU có chi và ĐỀU lỗ, cộng 2 ngày chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}% → báo trước một nhịp rồi máy tự tắt.",
-                    [[f"ROI ngày {d(2)[8:10]}/{d(2)[5:7]}", f(r2_, "%"), "< 0%", r2_ is not None and r2_ < 0], [f"ROI ngày {d(1)[8:10]}/{d(1)[5:7]}", f(r1_, "%"), "< 0%", r1_ is not None and r1_ < 0],
+                ls.append(L("rl", "RL · ROAS lỗ 2 ngày", f"Camp ★ ROAS (miễn luật camp thường, trừ L4 — 03/11/2026): 2 ngày đã khép ĐỀU có chi và ĐỀU lỗ, cộng 2 ngày chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}% (bỏ ngày thị trường xấu, 15/11/2026) → báo trước một nhịp rồi máy tự tắt.",
+                    [[f"ROI ngày {_rl2[8:10]}/{_rl2[5:7]}", f(r2_, "%"), "< 0%", r2_ is not None and r2_ < 0], [f"ROI ngày {_rl1[8:10]}/{_rl1[5:7]}", f(r1_, "%"), "< 0%", r1_ is not None and r1_ < 0],
                      ["Chi 2 ngày", f((ag_ or {}).get("chi"), "$"), f"> ${ROAS_CHI}", bool(ag_) and ag_["chi"] > ROAS_CHI], ["ROI 2 ngày", f(rg_, "%"), f"< {ROAS_ROI}%", rg_ is not None and rg_ < ROAS_ROI]],
                     "tat_roas" if int(cid) in vao["tat_roas"] else None, lo=None if rg_ is None else rg_ < 0))
                 _a0 = _g("_g0"); _t0 = _tao.get(cid); _tu0 = (dt.datetime.now(dt.timezone.utc) - _t0).days if _t0 else None

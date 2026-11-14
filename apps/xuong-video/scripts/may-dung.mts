@@ -56,11 +56,13 @@ async function spCua(ma: string) {
 
 /** Video YouTube nhiều lượt xem theo các cụm tìm (yt-dlp trên box3, không cần khoá API). Đệm 3 ngày theo khoá nhóm. Trả [{ id, title, views }] ≥ 300.000 lượt (ngách hẹp hạ 100.000 / 50.000), nhiều trước. */
 async function hookYoutube(khoa: string, cum: string[]): Promise<{ id: string; title: string; views: number }[]> {
-  const fs = await import('node:fs'), { execFileSync } = await import('node:child_process'), dir = `${process.env.HOME}/.cache/hook-yt-4`, tep = `${dir}/${khoa}.json`;
+  // khoá đệm gồm cả CỤM TÌM: đổi cụm của nhóm (goc_sp.cum) thì lượt sau tìm lại ngay, không đọc đệm 3 ngày của cụm cũ (militarycalc 15/11/2026)
+  const fs = await import('node:fs'), { execFileSync } = await import('node:child_process'), { createHash } = await import('node:crypto'), dir = `${process.env.HOME}/.cache/hook-yt-4`,
+    tep = `${dir}/${khoa}-${createHash('sha1').update(cum.slice(0, 8).join('|')).digest('hex').slice(0, 8)}.json`;
   try { const c = JSON.parse(fs.readFileSync(tep, 'utf8')); if (Date.now() - c.luc < 3 * 86_400_000 && c.ds?.length) return c.ds; } catch { /* chưa có đệm */ }
   const ra = new Map<string, { id: string; title: string; views: number }>();
   // tìm cả biến thể câu hỏi của cụm ("why … ") — tiêu đề nhiều lượt xem nhất thường là NHÃN chủ đề ("WW1 - Oversimplified"), Ngọc loại 39/40 vì nhạt (02/11/2026)
-  for (const q of cum.slice(0, 6).flatMap((c) => [c, `why ${c}`])) {
+  for (const q of cum.slice(0, 8).flatMap((c) => [c, `why ${c}`])) {
     try {
       const j = JSON.parse(execFileSync('yt-dlp', ['--flat-playlist', '-J', `ytsearch40:${q}`], { encoding: 'utf8', timeout: 90_000, maxBuffer: 32 << 20 }));
       for (const e of j.entries ?? []) if (e.id && e.title && Number(e.view_count) >= 50_000) ra.set(e.id, { id: e.id, title: e.title, views: Number(e.view_count) });
@@ -150,7 +152,10 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
     const lai = [...(g.qc_ids ?? []).map((id) => hookCuaQc.get(String(id))).filter((x): x is HookDong => !!x), ...hookNhom].filter((h, k, ds) => hookDaDangLai.has(h.id) && !hookCho.has(h.id) && ds.findIndex((x) => x.id === h.id) === k);
     return Array.from({ length: Math.min(6, lai.length) }, (_, k) => lai[(i * 3 + k) % lai.length]!).filter((h, k, ds) => ds.findIndex((x) => x.id === h.id) === k); };
   // cụm tìm của nhóm (nguồn hook YouTube dưới — chỉ dùng khi kho QC Meta SAU khi Ngọc lọc còn mỏng)
-  const cumNhom = ((await spy`select cum from goc_sp where id = any(${nhomHook})`) as unknown as { cum: string[] | null }[]).flatMap((x) => x.cum ?? []);
+  // cụm của NHÓM MÁY trước, nhóm lân cận (hook_sp) sau — trước lấy theo thứ tự id nên 6 lượt tìm đầu có thể rơi vào nhóm lân cận rộng
+  // (militarycalc 15/11/2026: cụm VA vay / trợ cấp của 2442 chen chỗ, Ngọc loại 14/14 vì khác ngách lương quân nhân)
+  const cumRows = (await spy`select id, cum from goc_sp where id = any(${nhomHook})`) as unknown as { id: number; cum: string[] | null }[];
+  const cumNhom = [...new Set([...cumRows.filter((x) => nhom.includes(Number(x.id))), ...cumRows.filter((x) => !nhom.includes(Number(x.id)))].flatMap((x) => x.cum ?? []))];
   await spy.end();
   // NGỌC LỌC KHO HOOK TRƯỚC KHI SINH (31/10/2026): cùng phép xét của Phòng Nội dung (cham-dang.mjs › xetHookAi — lệch ngách / hứa điều thương hiệu không có),
   // hook bị chặn thì không đưa cho AI viết — sinh ra là bài SỬA LẠI, đốt tiền. Xét 100 hook nhóm chạy lâu nhất (câu đã xét đọc sổ xet-hook.json, không tốn lại) + QC gắn góc; vài đồng một hook.

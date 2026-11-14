@@ -13,10 +13,11 @@ import json, sys
 for s in json.loads(sys.argv[1]):
     print(s['id'], s['video'], ' '.join(f"--cau {c['url']}@{c['t']}" for c in s['cau']))
 PY
-while read -r id video cau; do
+# đọc danh sách qua fd 3, mọi lệnh con đọc /dev/null — python / ssh trong vòng không được ăn mất dòng của danh sách (15/11/2026: dòng sau bị cắt, ghi nhầm shot)
+while read -r id video cau <&3; do
   [ -z "$id" ] && continue
-  R=$(~/.venvs/cham-do/bin/python "$APP/scripts/cham-do/do_mieng.py" --video "$video" $cau 2>/dev/null | tail -1)
+  R=$(~/.venvs/cham-do/bin/python "$APP/scripts/cham-do/do_mieng.py" --video "$video" $cau 2>/dev/null </dev/null | tail -1)
   L=$(python3 -c "import json,sys; l=[x for x in json.loads(sys.argv[1])['lech']]; ok=[x['lech'] for x in l if x.get('lech') is not None and x.get('phu',0)>=0.5]; print(round(sum(ok)/len(ok),3) if ok and len(ok)==len(l) else 'x')" "$R")
   ssh -n "$BOX" "cd $RBOX && $TSX scripts/mieng-ke.mts --canh=$id --ghi=$id:$L" | tail -1   # -n: ssh không nuốt stdin của vòng while
-done < /tmp/canh-mieng-$$.txt
+done 3< /tmp/canh-mieng-$$.txt
 rm -f /tmp/canh-mieng-$$.txt

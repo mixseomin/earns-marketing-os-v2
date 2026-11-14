@@ -33,6 +33,9 @@ $S submit <id> "<lời>" [url]  # → Review (nộp cho anh duyệt)
 | Ngày–đêm, lịch người dân, đường phố, chợ, lò rèn, giếng, lính tuần, lời thoại (E), gà, chó, chim, khói | `songdong.js` |
 | Âm thanh Web Audio (không tệp) | `amthanh.js` |
 | Bản đồ nhỏ | `bando.js` |
+| Người chơi có xương + 24 động tác thật (Quaternius CC0, `tai-san/nguoi.glb` dựng bằng `scripts/tai-nhan-vat.mjs`) | `nguoi3d.js` |
+| Mô-đun đi bộ dùng chung (đi / leo / đu mép / camera) — Neuschwanstein dùng; main.js còn bản riêng có bơi + ngựa + xe | `dibo.js` |
+| Neuschwanstein thật (số đo OSM + địa hình, so ảnh thật, vật liệu, rừng, đi bộ) — trang `neuschwanstein.html`, dữ liệu `du-lieu/`, chỉnh theo ảnh `du-lieu/neuschwanstein-sua.json` | `ns.js` |
 | Ngựa + xe ngựa (hình, dáng đi); cưỡi / lái / leo / bơi nằm trong `main.js` (`buocXe`, `buocDiBo`) | `phuongtien.js` |
 | Giao diện (nút, bảng hướng dẫn, hộp góp ý) | `index.html` |
 | nginx castle.on.tc (SSO mos2 + `/api/gop-y`) | `apps/castle/deploy/castle.on.tc.nginx` — cài tay lên box3 sau deploy (chép vào `/etc/nginx/sites-enabled/castle.on.tc`, `nginx -t`, reload); deploy.sh chưa tự cài vhost này |

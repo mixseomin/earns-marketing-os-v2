@@ -649,6 +649,7 @@ let lan = 0, tichLuy = 0, lucCham = 0;
 // lăn chuột thật (bánh xe: bước nguyên, không có trục ngang) vẫn phóng. Bắt ở pha capture trên khung vẽ, trước OrbitControls.
 const laTouchpad = (e) => !e.ctrlKey && e.deltaMode === 0 && (e.deltaX !== 0 || !Number.isInteger(e.deltaY) || Math.abs(e.deltaY) < 40);
 renderer.domElement.addEventListener('wheel', (e) => {
+  if (di?.dang && !dangSo && !laTouchpad(e)) { e.preventDefault(); e.stopImmediatePropagation(); di.phong(e.deltaY * (e.ctrlKey ? 0.02 : 0.0015)); return; } // đi bộ: chụm / mở hai ngón (ctrl + wheel) hoặc lăn chuột = kéo camera gần / xa
   if (!laTouchpad(e) || dangSo) return;
   e.preventDefault(); e.stopImmediatePropagation();
   if (di?.dang) { di.yaw -= e.deltaX * 0.004; di.pitch = Math.max(-1.4, Math.min(1.4, di.pitch - e.deltaY * 0.004)); di.lucChuot = performance.now(); return; }

@@ -20,6 +20,7 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
   const TINH = RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC | RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC;
   const VD = { di: 4.2, chay: 7.5, ngoi: 1.6, tang: 28, ham: 36, tangKhong: 7, quay: 12.5, nhay: 5.4, g: 18, gRoi: 26, coyote: 0.12, dem: 0.12 };
   let dang = false, tt = 'dat', yaw = 0, pitch = -0.12, huong = 0, muon = 0, vx = 0, vz = 0, vy = 0, nen = false, roiMep = 1, demNhay = 0, chamLeo = 0;
+  let camXa = 3.6; // khoảng camera sau lưng — chụm / mở hai ngón touchpad (hoặc lăn chuột) để đổi, 1,2–14 m
   let toc = 0, tocLeo = 0, phaLeo = 0, phaBoi = 0, lucChuot = -1e9, gocNhin = 3, camY = null, camNang = 0, camKc = 3.6, camDoc = 0;
   const leoN = { x: 0, z: 1 }, qua = { t: 0, dai: 0.5, a: null, b: null, c: null };
   const tiaN = (p, dy, dx, dz, dai) => (dx || dz) && world.castRayAndGetNormal(new RAPIER.Ray({ x: p.x, y: p.y + dy, z: p.z }, { x: dx, y: 0, z: dz }), dai, true, TINH, nhomVa, va);
@@ -177,7 +178,7 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
       } else if (performance.now() - lucChuot <= 1500) muonDoc = camDoc; // đang chỉnh tay: giữ nguyên phần nghiêng hiện có
       camDoc += (muonDoc - camDoc) * (1 - Math.exp(-dt * 3));
     }
-    const pt = Math.max(-1.1, Math.min(0.75, pitch + camDoc)), kcMax = ng?.kcMax ?? 3.6;
+    const pt = Math.max(-1.1, Math.min(0.75, pitch + camDoc)), kcMax = ng?.kcMax ?? camXa;
     // camera sau lưng, gần tường KHÔNG dí sát vào gáy (anh 15/11/2026 "ở quá gần tường thì view bị sát vào, không quan sát nổi"):
     // 1) điểm nhìn lệch vai chỉ lệch tới chỗ còn trống (đứng sát tường bên cạnh thì điểm lệch cũ nằm TRONG tường → tia bắt đầu trong vật → camera 0,4 m);
     // 2) phía sau bị chắn thì nâng camera lên nhìn chéo xuống (tối đa ~49°, dốc hơn là chỉ thấy đỉnh đầu) tới khi có ≥ 2 m, chọn góc xa nhất;
@@ -207,6 +208,7 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
     quayVe(h) { muon = h; }, // đứng yên quay người dần về hướng h (ném đá về chỗ nhấp)
     doiGocNhin() { gocNhin = gocNhin === 3 ? 1 : 3; toi.goc.visible = dang && gocNhin === 3; },
     buoc, khung,
+    phong(d) { camXa = Math.max(1.2, Math.min(14, camXa * Math.exp(d))); }, get camXa() { return camXa; },
     nguCanh() { if (!dang) return 'toan'; if (tt === 'leo' || tt === 'qua') return 'leo'; if (tt === 'boi') return 'boi'; const p = than.translation(), t = tiaN(p, 0.3, Math.sin(huong), Math.cos(huong), 1.0); return t && t.timeOfImpact > 0.02 && Math.abs(t.normal.y) < 0.35 ? 'tuong' : 'dat'; },
     viTri: () => than.translation(),
   };

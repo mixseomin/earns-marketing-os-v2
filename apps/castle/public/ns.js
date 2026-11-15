@@ -16,6 +16,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
 import { taoCamUng, CHAM } from './camung.js';
 import { datMatTien } from './mattien.js';
+import { taoNhieuNguoi } from './nhieunguoi.js';
 
 const $ = (id) => document.getElementById(id);
 const ten = new URLSearchParams(location.search).get('lau') || 'neuschwanstein';
@@ -411,7 +412,7 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
   else if (!dangSo) orbit.update(); // chế độ so ảnh: camera do thông số ảnh quyết
   if (noiThat) { const p = di?.dang ? di.viTri() : null; noiThat.hien(!!p && Math.hypot(p.x - noiThat.tam[0], p.z - noiThat.tam[1]) < 75); }
-  noiThat?.capNhat(dt); timTuongTac(now); camUng?.capNhat(); anCayXa(now); capNhatAnh3d();
+  noiThat?.capNhat(dt); timTuongTac(now); camUng?.capNhat(); anCayXa(now); nhieuNguoi?.capNhat(dt); capNhatAnh3d();
   capNhatHd(now); veBanDoNS(now);
   renderer.render(scene, camera);
 }
@@ -577,6 +578,10 @@ const camUng = di ? taoCamUng({ dom: renderer.domElement, di, nut: [
   { id: 'da', chu: () => (!dangNgoi && !dangCam && phongHienTai() ? 'Đá' : null), bam: () => daDo() },
   { id: 'goc', chu: () => '👁', bam: () => di.doiGocNhin() },
 ] }) : null;
+// ---------- NHIỀU NGƯỜI: kênh trên máy chủ castle-kenh (nhieunguoi.js) — nút 👥 chọn kênh / phòng riêng / chat; người khác hiện bằng cùng bộ nhân vật
+$('nut').insertAdjacentHTML('beforeend', '<button id="b-nn" title="Kênh nhiều người: chọn kênh, phòng riêng theo mã, chat">👥</button>');
+const nhieuNguoi = di ? taoNhieuNguoi({ THREE, scene, lau: 'neuschwanstein', nut: $('b-nn'), taoNguoi: (ao) => taoNguoi3d({ ao }),
+  layTrangThai: () => (di.dang ? { p: di.viTri(), h: di.huong, s: { tt: di.tt, toc: di.toc, nen: di.nen, ngoi: !!dangNgoi } } : null) }) : null;
 function phongHienTai() { if (!noiThat || !di?.dang) return null; const p = di.viTri(); return noiThat.phongTai(p.x, p.y - 0.9, p.z); }
 window.__ns.camUng = () => camUng; window.__ns.diNhanh = diNhanhNS; window.__ns.noiThat = noiThat; window.__ns.NOI = NOI; window.__ns.cao3d = (x, z) => { if (!anh3d) return null; const h = new THREE.Raycaster(new THREE.Vector3(x, 600, z), new THREE.Vector3(0, -1, 0)).intersectObject(anh3d.t.group, true)[0]; return h ? h.point.y : null; }; window.__ns.anh3d = () => anh3d; window.__ns.anh3dTk = () => anh3d_tk; window.__ns.khuTai = khuTai; window.__ns.thuKhu = () => [...DA_KHU.map((k) => [...tamDa(k.v), k.khoa]), [(CAU[0][0] + CAU[1][0]) / 2, (CAU[0][1] + CAU[1][1]) / 2, 'Marienbruecke']]; window.__ns.tt = { nutE, daDo, nemDoDangCam, trangThai: () => ({ ngoi: !!dangNgoi, cam: !!dangCam, gan: ganNhat?.loai || null }) };
 // ---------- ẢNH THẬT 3D: Google Photorealistic 3D Tiles qua Cesium ion (tài khoản htuan82, vault #697) — thư viện 3DTilesRendererJS (NASA-AMMOS, Apache-2.0).

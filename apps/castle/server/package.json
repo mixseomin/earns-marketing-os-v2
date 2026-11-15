@@ -1,0 +1,9 @@
+{
+  "name": "castle-kenh",
+  "private": true,
+  "description": "Máy chủ kênh nhiều người cho castle.on.tc (systemd castle-kenh, cổng 127.0.0.1:3891). postgres lấy từ node_modules gốc của monorepo.",
+  "type": "module",
+  "dependencies": {
+    "ws": "8.22.1"
+  }
+}

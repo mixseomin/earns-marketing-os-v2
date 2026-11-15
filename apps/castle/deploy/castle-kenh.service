@@ -1,0 +1,18 @@
+# Cài: cp /opt/earns-marketing-os-v2/apps/castle/deploy/castle-kenh.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now castle-kenh
+# Thư viện: cd /opt/earns-marketing-os-v2/apps/castle/server && npm install --omit=dev  (node_modules không vào git, deploy git reset --hard không xoá)
+# Sửa kenh.mjs xong: systemctl restart castle-kenh (deploy.sh chỉ khởi động lại mos2-web)
+[Unit]
+Description=Castle kênh nhiều người (apps/castle/server/kenh.mjs, cổng 3891) — castle.on.tc /mp/
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/earns-marketing-os-v2/apps/castle/server
+ExecStart=/usr/bin/node /opt/earns-marketing-os-v2/apps/castle/server/kenh.mjs
+Restart=always
+RestartSec=3
+Environment=NODE_ENV=production
+SyslogIdentifier=castle-kenh
+
+[Install]
+WantedBy=multi-user.target

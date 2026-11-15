@@ -27,9 +27,16 @@ export function doLech(clip: Float32Array, mau: Float32Array, t: number, khoang 
 }
 
 /** Điểm vào mới của shot sau khi canh: vao + trung bình độ trễ các câu (chỉ câu tương quan ≥ 0,3). Kẹp trong clip; kẹp lệch > 0,25 s hoặc không câu nào đo được → lỗi. */
-export function vaoSauCanh(vao: number, lech: { lech: number; tq: number }[], daiClip: number, phat: number, duoi = 0.45): { vao: number; loi: string | null; lech: number } {
+/** ĐOẠN của từng shot trong clip cụm, MỘT nguồn cho cả canh giọng, đo miệng (mieng-ke.mts) và nguon_video.doan: từ điểm vào đo theo cú cắt (TRƯỚC khi canh)
+ *  — shot đầu từ 0 (clip có thể lệch giờ, cho phép dời lùi về đầu), shot kế tới cú cắt sau − 0,05 s, shot cuối tới hết clip − đuôi. */
+export function doanShot(vaoCat: number[], daiClip: number, duoi = 0.45): [number, number][] {
+  return vaoCat.map((v, i) => [i === 0 ? 0 : v, i + 1 < vaoCat.length ? +(vaoCat[i + 1]! - 0.05).toFixed(2) : +(daiClip - duoi).toFixed(2)]);
+}
+
+/** doan = đoạn của shot (doanShot): điểm vào mới phải để shot phát trọn trong đoạn, không lấn hình shot kế. Không truyền = cả clip trừ đuôi. */
+export function vaoSauCanh(vao: number, lech: { lech: number; tq: number }[], daiClip: number, phat: number, duoi = 0.45, doan?: [number, number]): { vao: number; loi: string | null; lech: number } {
   const tot = lech.filter((x) => x.tq >= 0.3);
   if (!tot.length) return { vao, lech: 0, loi: `không đo được độ trễ giọng (tương quan tốt nhất ${Math.max(...lech.map((x) => x.tq), 0).toFixed(2)} < 0,3) — model không đọc lại giọng, miệng có thể không theo câu: sinh lại` };
-  const l = tot.reduce((a, x) => a + x.lech, 0) / tot.length; const muon = vao + l; const kep = Math.max(0, Math.min(muon, daiClip - phat - duoi));
+  const l = tot.reduce((a, x) => a + x.lech, 0) / tot.length; const muon = vao + l; const [lo, hi] = doan ?? [0, daiClip - duoi]; const kep = Math.max(lo, Math.min(muon, hi - phat));
   return { vao: +kep.toFixed(2), lech: +l.toFixed(2), loi: Math.abs(kep - muon) > 0.25 ? `miệng lệch ${l.toFixed(2)} s so với câu, clip không đủ dài để bù (thiếu ${Math.abs(kep - muon).toFixed(2)} s) — sinh lại` : null };
 }

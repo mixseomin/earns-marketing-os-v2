@@ -14,7 +14,7 @@ import { dungNoiThat } from './noithat.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
-import { taoCamUng } from './camung.js';
+import { taoCamUng, CHAM } from './camung.js';
 import { datMatTien } from './mattien.js';
 
 const $ = (id) => document.getElementById(id);
@@ -28,14 +28,15 @@ for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [
 
 // ---------- cảnh
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.setSize(innerWidth, innerHeight);
-renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// điện thoại (CHAM) vẽ đúng 1 điểm ảnh: màn Retina 3x vẽ đủ điểm là GPU chạy hết sức → nóng máy, tụt pin (anh 15/11/2026); máy tính tới 1,5
+renderer.setPixelRatio(Math.min(devicePixelRatio, CHAM ? 1 : 1.5)); renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1; renderer.shadowMap.enabled = true; renderer.shadowMap.type = CHAM ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0xa9c4dc); scene.fog = new THREE.Fog(0xa9c4dc, 600, 2200);
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.5, 5000);
 scene.add(new THREE.HemisphereLight(0xdfe9f5, 0x55603a, 1.3));
 const nang = new THREE.DirectionalLight(0xfff1dc, 2.6); nang.position.set(-260, 380, 180); nang.castShadow = true;
-nang.shadow.mapSize.set(2048, 2048); Object.assign(nang.shadow.camera, { left: -200, right: 200, top: 200, bottom: -200, near: 50, far: 1200 }); nang.shadow.bias = -0.0004; scene.add(nang);
+nang.shadow.mapSize.set(CHAM ? 1024 : 2048, CHAM ? 1024 : 2048); Object.assign(nang.shadow.camera, { left: -200, right: 200, top: 200, bottom: -200, near: 50, far: 1200 }); nang.shadow.bias = -0.0004; scene.add(nang);
 
 // ---------- địa hình: lưới độ cao, gốc toạ độ = độ cao tâm lâu đài
 const G = D.diaHinh, n = G.n, B = G.buoc, NUA = G.nua;
@@ -252,7 +253,7 @@ for (const [ten, G] of Object.entries(NHOM)) {
 }
 { // mặt tiền chi tiết: cửa sổ 3D + gờ tầng (một mặt tường bị khối khác áp vào ở tầng nào thì bỏ tầng đó)
   const biChe = (x, y, z) => dsKhoi.some((k) => k.yDuoi != null && y > k.yDuoi && y < k.yTren && trongDa(x, z, k.v));
-  const { ra, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe });
+  const { ra, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe, nhe: CHAM });
   for (const m of ra) { scene.add(m); LOP_OSM.push(m); }
   console.info('[ns] mặt tiền chi tiết:', JSON.stringify(dem));
 }
@@ -292,12 +293,12 @@ const RUNG = []; // ẩn khi so ảnh thật (cây mọc ở mép vực che tầ
     viTri.push([x, caoDat(x, z) - GOC_Y - 0.3, z, 0.7 + r2() * 0.6, r2() * 6.28]);
   }
   const tan = new THREE.ConeGeometry(2.6, 11, 7); tan.translate(0, 9.5, 0);
-  const goc = new THREE.CylinderGeometry(0.25, 0.4, 5, 5); goc.translate(0, 2.5, 0);
+  const goc = new THREE.CylinderGeometry(0.25, 0.4, 5, 4, 1, true); goc.translate(0, 2.5, 0); // thân 4 mặt không nắp: 8 tam giác/cây thay 20 (2.600 cây; phần lớn thân nằm dưới tán)
   const iT = new THREE.InstancedMesh(tan, new THREE.MeshStandardMaterial({ color: 0x2f4a2c, roughness: 0.95, flatShading: true }), viTri.length);
   const iG = new THREE.InstancedMesh(goc, new THREE.MeshStandardMaterial({ color: 0x4a3626, roughness: 1 }), viTri.length);
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
   viTri.forEach(([x, y, z, s, a], i) => { m4.compose(new THREE.Vector3(x, y, z), q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a), new THREE.Vector3(s, s * (0.9 + (i % 5) * 0.06), s)); iT.setMatrixAt(i, m4); iG.setMatrixAt(i, m4); iT.setColorAt(i, c.setHSL(0.3 + (i % 7) * 0.008, 0.3, 0.17 + (i % 11) * 0.008)); });
-  iT.castShadow = true; iT.receiveShadow = true; scene.add(iT, iG);
+  iT.castShadow = !CHAM; iT.receiveShadow = true; scene.add(iT, iG); // điện thoại: 2.600 tán cây không đổ bóng (lượt vẽ bóng vẽ lại cả rừng)
   // thân cây có va chạm (trụ) từ gốc tới gần ngọn: đi không xuyên cây nữa, và bộ leo dibo (bám mọi mặt đứng) trèo được lên tới ngọn tán rồi đu lên đứng ở chạc ngọn
   for (const [x, y, z, s] of viTri) { const h = 12 * s; CAY_VA.push(world.createCollider(RAPIER.ColliderDesc.cylinder(h / 2, 0.32 * s).setTranslation(x, y + h / 2, z).setFriction(0.8), tinh));
     CAY_VA.push(world.createCollider(RAPIER.ColliderDesc.cylinder(0.06, 0.8).setTranslation(x, y + h, z), tinh)); } // chạc ngọn: leo tới đỉnh thì đu lên đứng được, không tuột rơi
@@ -381,11 +382,14 @@ ganGopY({ nut: $('b-gy'), tieuDe: 'Góp ý cho Neuschwanstein', chupAnh: () => c
   const p = di?.dang ? di.viTri() : null, ph = p && noiThat ? noiThat.phongTai(p.x, p.y - 0.9, p.z) : null;
   return `Neuschwanstein · ${p ? `đi bộ tại (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}) hướng ${(di.huong * 180 / Math.PI).toFixed(0)}° · khu ${ph ? ph.ten : khuTai(p.x, p.z)}` : dangSo ? 'so ảnh thật' : 'toàn cảnh'} · ${innerWidth}×${innerHeight}`;
 } });
-let lan = 0, tichLuy = 0;
+let lan = 0, tichLuy = 0, lucCham = 0;
+for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart', 'touchmove']) addEventListener(ev, () => { lucCham = performance.now(); }, { passive: true }); // có thao tác → vẽ đủ nhịp
 const dongHo = new THREE.Clock();
 function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ so ảnh)
   requestAnimationFrame(ve);
-  if (now - lan < (!document.hasFocus() ? 100 : di?.dang ? 1000 / 60 : 1000 / 30) - 3) return; lan = now; // trần khung hình: đi bộ 60 · xem 30 · mất tiêu điểm 10
+  // trần khung hình: đi bộ 60 (điện thoại 30) · xem toàn cảnh 30, không chạm gì quá 2,5 s thì 10 · mất tiêu điểm 10 — bớt vẽ thừa là bớt nóng máy
+  const nghi = !di?.dang && now - lucCham > 2500;
+  if (now - lan < (!document.hasFocus() || nghi ? 100 : di?.dang ? (CHAM ? 1000 / 30 : 1000 / 60) : 1000 / 30) - 3) return; lan = now;
   const dt = Math.min(dongHo.getDelta(), 0.1);
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
   else if (!dangSo) orbit.update(); // chế độ so ảnh: camera do thông số ảnh quyết
@@ -589,7 +593,7 @@ function apDungAnh3d() {
     t.registerPlugin(new P.GLTFExtensionsPlugin({ dracoLoader: draco }));
     t.registerPlugin(new P.TileCompressionPlugin()); t.registerPlugin(new P.TilesFadePlugin());
     t.registerPlugin(new P.ReorientationPlugin({ lat: D.tam[0] * Math.PI / 180, lon: D.tam[1] * Math.PI / 180, height: GOC_Y + (cfg.geoid ?? 47.6), recenter: true }));
-    t.errorTarget = cfg.errorTarget ?? 8;
+    t.errorTarget = CHAM ? 16 : cfg.errorTarget ?? 8; // điện thoại: ô thô hơn một nấc (ít tải, ít tam giác)
     // ảnh chụp đã có sáng tối thật → vẽ không đổ bóng / không chịu đèn cảnh (đèn cảnh làm mặt khuất tối thêm lần nữa)
     t.addEventListener('load-model', ({ scene: sc }) => sc.traverse((o) => { if (o.isMesh && o.material?.map) { const m = new THREE.MeshBasicMaterial({ map: o.material.map }); o.material.dispose(); o.material = m; } }));
     t.setCamera(camera); t.setResolutionFromRenderer(camera, renderer);
@@ -625,7 +629,8 @@ function apDungAnh3d() {
     anh3d = { t, goc, bat: false, hien: null, bu: null, va, thanVa };
     $('nut').insertAdjacentHTML('beforeend', '<button id="b-anh3d"></button>');
     $('b-anh3d').onclick = () => datAnh3d(!anh3d.bat);
-    let nho = '1'; try { nho = localStorage.getItem('ns-anh3d') ?? '1'; } catch {}
+    // điện thoại: mặc định TẮT ảnh thật (18 MB ô 3D trong 15 s đầu + ~200 nghìn tam giác mỗi khung → nóng máy); bấm 🌍 để bật. Máy tính mặc định bật
+    let nho = CHAM ? '0' : '1'; try { nho = localStorage.getItem('ns-anh3d') ?? nho; } catch {}
     datAnh3d(nho === '1');
   } catch (e) { console.warn('[ns] không nạp được ảnh thật 3D', e); }
 })();

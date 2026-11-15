@@ -25,6 +25,8 @@ CAT = {
     'lam-tranh-trai': ('lamViec.jpg', (0, 80, 270, 660), 512),
     'khach-lohengrin': ('phongKhach.jpg', (70, 210, 530, 530), 768),  # Lohengrin
 }
+# trần cạnh dài 512 px + JPEG 74: tranh chỉ phủ vài mét tường, 768–1024 px tải 1,5 MB cho 14 tranh mà không nét hơn trên màn điện thoại (15/11/2026)
+CANH_TOI_DA = 512
 os.makedirs(RA, exist_ok=True)
 nguon = {o['tep']: o for o in json.load(open(os.path.join(GOC, 'nguon.json')))}
 ghi = {}
@@ -32,9 +34,9 @@ for ten, (tep, hop, canh) in CAT.items():
     im = Image.open(os.path.join(GOC, tep)).convert('RGB')
     k = im.width / 1600
     c = im.crop(tuple(int(v * k) for v in hop))
-    s = canh / max(c.size)
+    s = min(canh, CANH_TOI_DA) / max(c.size)
     c = c.resize((max(1, int(c.width * s)), max(1, int(c.height * s))), Image.LANCZOS)
-    c.save(os.path.join(RA, ten + '.jpg'), quality=84)
+    c.save(os.path.join(RA, ten + '.jpg'), quality=74, optimize=True, progressive=True)
     ghi[ten] = {'rong': c.width, 'cao': c.height, 'tu': nguon[tep]['tieuDe'], 'trang': nguon[tep]['trang']}
     print(ten, c.size)
 json.dump(ghi, open(os.path.join(RA, 'nguon.json'), 'w'), ensure_ascii=False, indent=1)

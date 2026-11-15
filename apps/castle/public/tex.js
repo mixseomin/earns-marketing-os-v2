@@ -182,6 +182,13 @@ export function matTien(r) {
   hat(g, r, 10, 1);
   return { map: tex(c), bump: tex(c, false) };
 }
+// mặt tiền TRƠN (đá vôi sáng, mạch đá + gờ tầng mờ) — cửa sổ là hình 3D thật của mattien.js, không vẽ lên vân nữa
+export function matTron(r) {
+  const [c, g] = bang();
+  g.fillStyle = '#c9c3b6'; g.fillRect(0, 0, N, N); khoiDa(g, r, 14, 86, 8);
+  hat(g, r, 10, 1);
+  return { map: tex(c), bump: tex(c, false) };
+}
 export function daVoi(r) { const [c, g] = bang(); g.fillStyle = '#a9a294'; g.fillRect(0, 0, N, N); khoiDa(g, r, 12, 82, 12); hat(g, r, 12, 1); return { map: tex(c), bump: tex(c, false) }; }
 export function mongDa(r) { const [c, g] = bang(); g.fillStyle = '#5d5850'; g.fillRect(0, 0, N, N); khoiDa(g, r, 7, 62, 22, 35, 8); hat(g, r, 30, 1); return { map: tex(c), bump: tex(c, false) }; }
 export function daPhien(r) { // mái đá phiến: vảy nhỏ xám xanh

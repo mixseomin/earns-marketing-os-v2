@@ -15,6 +15,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
 import { taoCamUng } from './camung.js';
+import { datMatTien } from './mattien.js';
 
 const $ = (id) => document.getElementById(id);
 const ten = new URLSearchParams(location.search).get('lau') || 'neuschwanstein';
@@ -226,10 +227,12 @@ function dungKhoi(k, G) {
 
 const NHOM = nhomMoi();
 let caoNhat = null;
+const TUONG_MT = []; // tường từng khối cho mặt tiền chi tiết (mattien.js)
 for (const k of dsKhoi) {
   if (k.vo && k.coPart) continue;
   const truoc = { mong: NHOM.mong.p.length, mat: NHOM.mat.p.length };
   const r = dungKhoi(k, NHOM);
+  k.yDuoi = r.y0; k.yTren = r.y2; TUONG_MT.push({ ten: k.tags.name || (k.la ? (() => { const [cx, cz] = tamDa(k.v); return dsKhoi.find((q) => q.vo && q.tags.name && trongDa(cx, cz, q.v))?.tags.name; })() : null), v: k.v, yMong: r.yMong, y1: r.y1, lo: (i, x1, z1, x2, z2) => loCanh(k, i, x1, z1, x2, z2) });
   // hình từng khối: tường (móng + mặt tiền vừa thêm) + mái + nắp — cho va chạm và công cụ đo đối chiếu ảnh
   k.hinh = [[...NHOM.mong.p.slice(truoc.mong), ...NHOM.mat.p.slice(truoc.mat), ...r.da], r.mai];
   const pos = [...k.hinh[0], ...k.hinh[1]];
@@ -238,13 +241,20 @@ for (const k of dsKhoi) {
 }
 const r1 = T.rngTu(5);
 const vlTu = (t, o = {}) => { for (const x of [t.map, t.bump]) x && x.wrapS && (x.wrapS = x.wrapT = THREE.RepeatWrapping); return new THREE.MeshStandardMaterial({ map: t.map, bumpMap: t.bump, bumpScale: o.bump ?? 1.5, roughness: o.ro ?? 0.85, side: THREE.DoubleSide, vertexColors: !!o.mau }); };
-const VL = { mong: vlTu(T.mongDa(r1), { bump: 3 }), mat: vlTu(T.matTien(r1), { mau: true }), da: vlTu(T.daVoi(r1), { mau: true }), mai: vlTu(T.daPhien(r1), { ro: 0.5, mau: true }) };
+// mặt tiền: vân TRƠN (matTron) — cửa sổ là hình 3D của mattien.js, không vẽ lên vân nữa
+const VL = { mong: vlTu(T.mongDa(r1), { bump: 3 }), mat: vlTu(T.matTron(r1), { mau: true }), da: vlTu(T.daVoi(r1), { mau: true }), mai: vlTu(T.daPhien(r1), { ro: 0.5, mau: true }) };
 for (const [ten, G] of Object.entries(NHOM)) {
   if (!G.p.length) continue;
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(G.p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(G.uv, 2));
   if (G.c) g.setAttribute('color', new THREE.Float32BufferAttribute(G.c, 3));
   g.computeVertexNormals();
   const m = new THREE.Mesh(g, VL[ten]); m.castShadow = m.receiveShadow = true; scene.add(m); LOP_OSM.push(m);
+}
+{ // mặt tiền chi tiết: cửa sổ 3D + gờ tầng (một mặt tường bị khối khác áp vào ở tầng nào thì bỏ tầng đó)
+  const biChe = (x, y, z) => dsKhoi.some((k) => k.yDuoi != null && y > k.yDuoi && y < k.yTren && trongDa(x, z, k.v));
+  const { ra, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe });
+  for (const m of ra) { scene.add(m); LOP_OSM.push(m); }
+  console.info('[ns] mặt tiền chi tiết:', JSON.stringify(dem));
 }
 
 // ---- NỘI THẤT Palas (noithat.js): sàn, phòng theo bản vẽ, cầu thang xoắn, đồ đạc, đèn chùm
@@ -414,7 +424,7 @@ function moSo(i) {
   document.querySelectorAll('#so button[data-i]').forEach((b) => b.classList.toggle('chon', +b.dataset.i === i));
 }
 function tatSo() {
-  dangSo = null; for (const r of RUNG) r.visible = !anh3d?.bat; hop.style.display = 'none'; renderer.setSize(innerWidth, innerHeight); Object.assign(renderer.domElement.style, { left: '0px', top: '0px' });
+  dangSo = null; for (const r of RUNG) r.visible = !anh3d?.hien; hop.style.display = 'none'; renderer.setSize(innerWidth, innerHeight); Object.assign(renderer.domElement.style, { left: '0px', top: '0px' });
   camera.aspect = innerWidth / innerHeight; camera.fov = 45; camera.updateProjectionMatrix(); orbit.enabled = true; camera.position.set(-170, 90, 230); orbit.target.set(0, 25, 0); orbit.update();
   $('so-tt').textContent = ''; $('so-nguon').textContent = ''; document.querySelectorAll('#so button[data-i]').forEach((b) => b.classList.remove('chon'));
 }
@@ -553,13 +563,22 @@ window.__ns.camUng = () => camUng; window.__ns.diNhanh = diNhanhNS; window.__ns.
 // Bật thì ẩn lớp dựng-từ-số-đo (LOP_OSM) + tắt va chạm thân cây giả (CAY_VA, cây thật trong ảnh mọc chỗ khác); giữ va chạm địa hình / khối nhà / cầu,
 // nội thất, người, bản đồ. Độ cao: mô hình Google theo ellipsoid → dò mặt đất mô hình ở vài chỗ trống rồi bù cho khớp lưới EU-DEM đang dùng làm va chạm.
 let anh3d = null, anh3d_tk = null;
+// anh3d.bat = lựa chọn của người xem (nút 🌍 / 🧱); anh3d.hien = đang thật sự hiện ảnh thật. Đi bộ gần lâu đài (≤ 260 m) thì TỰ về mô hình dựng có mặt tiền
+// chi tiết — ảnh Google chụp từ máy bay, đứng sát đất tường bị kéo giãn méo (anh 15/11/2026 "tởm quá"); xem toàn cảnh / đứng xa thì ảnh thật.
 const datAnh3d = (bat) => {
-  if (!anh3d) return; anh3d.bat = bat; anh3d.goc.visible = bat && !dangSo; if (!bat) $('nguon-3d').textContent = '';
-  for (const m of LOP_OSM) m.visible = !bat; for (const c of CAY_VA) c.setEnabled(!bat);
-  if (!bat) LOP_OSM.vaDat?.setEnabled(true); for (const c of anh3d.va.values()) for (const k of c) k.setEnabled(bat); // lưới đất: capNhatAnh3d chỉ tắt khi dưới chân đã có va chạm ô
-  $('b-anh3d').textContent = bat ? '🧱 Mô hình' : '🌍 Ảnh thật 3D'; $('b-anh3d').title = bat ? 'Về mô hình dựng từ số đo' : 'Hiện lâu đài ảnh thật 3D (Google)';
+  if (!anh3d) return; anh3d.bat = bat;
+  $('b-anh3d').textContent = bat ? '🧱 Mô hình' : '🌍 Ảnh thật 3D'; $('b-anh3d').title = bat ? 'Về mô hình dựng từ số đo' : 'Hiện lâu đài ảnh thật 3D (Google) khi xem toàn cảnh / từ xa';
   try { localStorage.setItem('ns-anh3d', bat ? '1' : '0'); } catch {}
+  apDungAnh3d();
 };
+function apDungAnh3d() {
+  if (!anh3d) return;
+  const p = di?.dang ? di.viTri() : null, gan = !!p && Math.hypot(p.x + 30, p.z - 30) < 260;
+  const hien = anh3d.bat && !dangSo && !gan; if (hien === anh3d.hien) return; anh3d.hien = hien;
+  anh3d.goc.visible = hien; if (!hien) $('nguon-3d').textContent = '';
+  for (const m of LOP_OSM) m.visible = !hien; for (const c of CAY_VA) c.setEnabled(!hien);
+  if (!hien) LOP_OSM.vaDat?.setEnabled(true); for (const c of anh3d.va.values()) for (const k of c) k.setEnabled(hien); // lưới đất: capNhatAnh3d chỉ tắt khi dưới chân đã có va chạm ô
+}
 (async () => { // chạy NỀN: không chặn vòng vẽ / vật lý chờ tải thư viện (trước đây trang đứng mấy giây đầu)
   const cfg = await fetch('./du-lieu/google3d.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   if (cfg?.token) try {
@@ -597,13 +616,13 @@ const datAnh3d = (bat) => {
         for (let i = 0; i < n; i += 3) { const a = idx ? idx.getX(i) : i, b = idx ? idx.getX(i + 1) : i + 1, c = idx ? idx.getX(i + 2) : i + 2;
           const cx = -(vs[a * 3] + vs[b * 3] + vs[c * 3]) / 3, cz = -(vs[a * 3 + 2] + vs[b * 3 + 2] + vs[c * 3 + 2]) / 3; // toạ độ cảnh = xoay 180° của khung ô
           if (trongNha(cx, cz)) continue; giu.push(a, b, c); }
-        if (giu.length) ds.push(world.createCollider(RAPIER.ColliderDesc.trimesh(vs, Uint32Array.from(giu)).setEnabled(anh3d?.bat ?? false), thanVa));
+        if (giu.length) ds.push(world.createCollider(RAPIER.ColliderDesc.trimesh(vs, Uint32Array.from(giu)).setEnabled(anh3d?.hien ?? false), thanVa));
       });
       if (ds.length) va.set(tile, ds);
       } catch (e) { console.warn('[ns] dựng va chạm ô 3D lỗi', e); }
     });
     t.addEventListener('dispose-model', ({ tile }) => { for (const c of va.get(tile) || []) world.removeCollider(c, false); va.delete(tile); });
-    anh3d = { t, goc, bat: false, bu: null, va, thanVa };
+    anh3d = { t, goc, bat: false, hien: null, bu: null, va, thanVa };
     $('nut').insertAdjacentHTML('beforeend', '<button id="b-anh3d"></button>');
     $('b-anh3d').onclick = () => datAnh3d(!anh3d.bat);
     let nho = '1'; try { nho = localStorage.getItem('ns-anh3d') ?? '1'; } catch {}
@@ -612,7 +631,7 @@ const datAnh3d = (bat) => {
 })();
 function capNhatAnh3d() {
   if (!anh3d) return; const { t } = anh3d;
-  anh3d.goc.visible = anh3d.bat && !dangSo; if (!anh3d.goc.visible) return;
+  apDungAnh3d(); if (!anh3d.hien) return;
   camera.updateMatrixWorld(); t.setResolutionFromRenderer(camera, renderer); t.update();
   if (!anh3d.lucNguon || performance.now() - anh3d.lucNguon > 3000) { // ghi nguồn dữ liệu 3D đang hiện (điều khoản Google: luôn hiện tên nguồn)
     anh3d.lucNguon = performance.now();

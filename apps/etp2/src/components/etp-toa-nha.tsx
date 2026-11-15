@@ -51,7 +51,18 @@ export type MongToa = { sx: number; ke: number; cho: number };
 export type BaoToa = { p: number; sang: boolean; bo?: string | null } | { p: number; sx: number; bo?: string | null };   // bo: bộ anh chọn ở Thao tác (không có = máy chọn → mọi tháp)
 export const baoToa = (x: BaoToa) => { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent<BaoToa>('etp-toa', { detail: x })); };   // đang sản xuất · kế hoạch · creative chờ lên chưa có camp
 /** vật bấm / rê được trong cảnh: m = mặt bị tia chạm · vien = vật để vẽ khung chọn · id = thứ trả về khi bấm */
-type Vat = { m: import('three').Object3D; vien: import('three').Object3D; id: number | null; chu: string; bien?: import('three').Sprite | null };
+type Vat = { m: import('three').Object3D; vien: import('three').Object3D; id: number | null; chu: string; bien?: import('three').Sprite | import('three').Mesh | null };
+
+/** CHỮ VẼ THẲNG LÊN NỀN (thành phố, #1610 anh 15/11/2026 "Tên phim viết luôn trên nền này !! Mờ hơn !!"): tấm phẳng nằm sát mặt sân, không nền tối,
+ *  đầu chữ quay về phía sau lô (đọc xuôi từ góc nhìn mặc định) · rong: bề ngang tối đa (đơn vị thế giới) · cao: chiều cao dòng chữ · mo: độ mờ khi không rê */
+function chuNen(T: T3, chu: string, mau: string, rong: number, cao: number, mo: number) {
+  const cv = document.createElement('canvas'), g = cv.getContext('2d')!, fs = 96, font = `700 ${fs}px system-ui, sans-serif`;
+  g.font = font; cv.width = Math.ceil(g.measureText(chu).width) + 24; cv.height = fs + 24;
+  g.font = font; g.fillStyle = mau; g.textBaseline = 'middle'; g.fillText(chu, 12, cv.height / 2);
+  const tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace;
+  const h = Math.min(cao, rong * cv.height / cv.width), m = new T.Mesh(new T.PlaneGeometry(h * cv.width / cv.height, h), new T.MeshBasicMaterial({ map: tx, transparent: true, opacity: mo, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.renderOrder = 5; m.userData.mo = mo; return m;
+}
 
 /** nhãn chữ cỡ cố định trên màn (sizeAttenuation tắt), nền tối để đọc được trên mọi mặt tường */
 function nhan(T: T3, chu: string, mau: string, to = 1, theoMan = true) {
@@ -367,10 +378,10 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
       dk.current = { phong: (f) => phongQuanh(ctl.target.clone(), f), veGoc: () => { datGoc(); ve(); luuGoc(); }, ve, tieuDiem: (id) => { diemNgoai = id; ve(); } };
 
       // biển tên mờ mặc định (đặt ở nơi dựng); toà đang rê → biển sáng rõ, nổi lên trên các biển khác
-      let bienSang: import('three').Sprite | null = null;
-      const sangBien = (sp: import('three').Sprite | null) => { if (sp === bienSang) return;
-        if (bienSang) { (bienSang.material as import('three').SpriteMaterial).opacity = (bienSang.userData.mo as number) ?? 1; bienSang.renderOrder = 10; }
-        if (sp) { (sp.material as import('three').SpriteMaterial).opacity = 1; sp.renderOrder = 20; }
+      let bienSang: import('three').Sprite | import('three').Mesh | null = null, bac0 = 10;
+      const sangBien = (sp: import('three').Sprite | import('three').Mesh | null) => { if (sp === bienSang) return;
+        if (bienSang) { (bienSang.material as import('three').Material).opacity = (bienSang.userData.mo as number) ?? 1; bienSang.renderOrder = bac0; }
+        if (sp) { bac0 = sp.renderOrder; (sp.material as import('three').Material).opacity = 1; sp.renderOrder = 20; }
         bienSang = sp; ve(); };
       let x0 = 0, y0 = 0, keo = 0, hen: ReturnType<typeof setTimeout> | null = null, henBam: ReturnType<typeof setTimeout> | null = null;
       const xuong = (e: PointerEvent) => { x0 = e.clientX; y0 = e.clientY; keo = 0; setRe(null); cv.focus({ preventScroll: true }); };
@@ -586,9 +597,8 @@ export function ThanhPho({ ds: ds0, an, chon: chonP, chonBo, onChon, cao }: { ds
       const cot2 = oBo.so <= 1 ? 1 : oBo.so <= 4 ? 2 : 3, hang2 = Math.ceil(oBo.so / cot2), oW = (PX - 0.4) / cot2, oD = (PZ - 0.4) / hang2;
       const ti = Math.min(1, oW / (RONG + 0.9), oD / (SAU + 0.9)), ten = ph.ten.length > 22 ? `${ph.ten.slice(0, 21)}…` : ph.ten, lai = laiPhim(ph);
       const v0 = { T, lg, thap: [] as { g: import('three').Group; mong: [number, number, number, number]; bo: string; ma: number }[], sang: [] as import('three').Mesh[] };
-      const ngan = ph.ten.length > 16 ? `${ph.ten.slice(0, 15)}…` : ph.ten;
-      // TÊN PHIM NHỎ + MỜ ở lô, rê vào tháp mới rõ (anh 15/11/2026 "Tên phim thì nhỏ, opacity, hover vào mới rõ")
-      const bien0 = nhan(T, k > 1 ? `${ngan} · ${k} bộ` : ngan, lai >= 0 ? XANH : DO, 0.5, true); bien0.center.set(0.5, 0);
+      // TÊN PHIM VẼ THẲNG LÊN NỀN SÂN, nửa trước lô, rất mờ — rê vào tháp mới rõ (anh 15/11/2026 "Tên phim thì nhỏ, opacity, hover vào mới rõ" → #1610 "viết luôn trên nền này !! Mờ hơn !!"; không còn biển nổi trên nóc)
+      const bien0 = chuNen(T, k > 1 ? `${ten} · ${k} bộ` : ten, lai >= 0 ? XANH : DO, PX - 1.2, 0.8, 0.14); bien0.position.set(0, 0.046, PZ / 4); lg.add(bien0);
       let caoLo = 0;
       thap.forEach((b, j) => {
         const s = oBo.o(b.bo), g = new T.Group(); g.scale.setScalar(ti); g.position.set(-PX / 2 + 0.2 + oW * ((s % cot2) + 0.5), 0.04, -PZ / 2 + 0.2 + oD * (Math.floor(s / cot2) + 0.5)); lg.add(g);
@@ -618,7 +628,6 @@ export function ThanhPho({ ds: ds0, an, chon: chonP, chonBo, onChon, cao }: { ds
         vat.push({ bien: bien0, m: bat, vien: bat, id: ma, chu: `${ten}${nhanBo} · ${CAP[cb.cap]} · ${KHU[kh]!.ten}${k > 1 ? ` · phim có ${k} bộ` : ''}${cb.tinHieu ? ` · 🟢 ${cb.tinHieu} camp tín hiệu lãi` : ''}${loiSx ? ` · 💨 SX lỗi: ${loiSx}` : sx > 0 ? ` · 🏗 ${sx} SX đang chạy ổn` : ''} · ${b.camp.length} camp · 7 ngày lãi ${k7.thu - k7.chi >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
       });
       vungRef.current.set(ph.p, v0);
-      bien0.position.set(0, Math.max(0.6, caoLo) + 0.35, 0); (bien0.material as import('three').SpriteMaterial).opacity = 0.2; bien0.userData.mo = 0.2; lg.add(bien0);
       caoMax = Math.max(caoMax, caoLo);
     });
     // lô còn trống ngoài rìa = công viên (cỏ + cây), không để ô đen trơ

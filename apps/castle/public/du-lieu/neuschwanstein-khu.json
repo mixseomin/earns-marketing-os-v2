@@ -3,7 +3,7 @@
  "khu": {
   "chung": {
    "ten": "Quanh lâu đài",
-   "chu": "Lâu đài vua Ludwig II của Bavaria cho xây trên mỏm đá phía trên hẻm Pöllat. Đá móng đặt ngày 5/9/1869. Đi tới gần toà nào thì bảng này hiện giới thiệu toà đó.",
+   "chu": "Lâu đài vua Ludwig II của Bavaria cho xây trên mỏm đá phía trên hẻm Pöllat. Đá móng đặt ngày 5/9/1869.",
    "nguon": "https://www.neuschwanstein.de/englisch/palace/history.htm"
   },
   "Torbau": {
@@ -23,7 +23,7 @@
   },
   "Treppenturm": {
    "ten": "Tháp cầu thang",
-   "chu": "Tháp tròn ở mặt bắc Palas, bên trong là cầu thang xoắn lên các tầng. Trong mô hình này cửa vào ở chân tháp, cầu thang dẫn lên tầng ba (phòng ngai vàng) và tầng bốn (Phòng hát).",
+   "chu": "Tháp tròn ở mặt bắc Palas, bên trong là cầu thang xoắn nối các tầng, lên tới tầng ba (phòng ngai vàng) và tầng bốn (Phòng hát).",
    "nguon": ""
   },
   "Kemenate": {
@@ -43,7 +43,7 @@
   },
   "Wintergarten": {
    "ten": "Vườn mùa đông",
-   "chu": "Nhà kính nhỏ cạnh hang động nhân tạo ở tầng ba Palas. Muốn đọc giới thiệu bên trong thì vào hang động rồi bấm E ở bục đọc.",
+   "chu": "Nhà kính nhỏ cạnh hang động nhân tạo ở tầng ba Palas.",
    "nguon": "https://www.neuschwanstein.de/englisch/palace/grotte.htm"
   },
   "Marienbruecke": {

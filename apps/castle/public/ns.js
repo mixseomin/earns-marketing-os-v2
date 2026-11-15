@@ -15,7 +15,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
 import { taoCamUng, CHAM } from './camung.js';
-import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO } from './mattien.js';
+import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 
 const $ = (id) => document.getElementById(id);
@@ -25,6 +25,8 @@ const D = await (await fetch(`./du-lieu/${ten}.json`, { cache: 'no-cache' })).js
 // thêm: phong = phóng mặt bằng quanh tâm (×), thap_goc = tháp góc treo trên con-xon — mattien.js datThapGoc dựng con-xon, gờ, cửa sổ, răng cưa),
 // không sửa tệp số đo gốc — để biết khối nào là số OSM, khối nào đã chỉnh theo ảnh nào.
 const SUA = await fetch(`./du-lieu/${ten}-sua.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+// bố cục mặt Palas hướng sân đo từ ảnh (điểm ảnh thô; kiểm với ảnh: apps/castle/scripts/kiem-mat-tien.py) — mattien.js quyDoiMat đổi ra mét
+const MAT_BO = await fetch(`./du-lieu/${ten}-mat-palas-san.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const NT = await fetch(`./du-lieu/${ten}-noi-that.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // nội thất (có thì dựng)
 for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [a, b] of Object.entries(SUA[k.id])) if (a !== 'ly_do') k.tags[a] = String(b); }
 
@@ -282,6 +284,7 @@ const MAT_PALAS = (() => {
       if (dinh > tot.y1 + 1 && (!P || dinh > Math.max(...P.map((p) => p[1])))) P = q; }
     if (P) { const s = P.map(([x, y, z]) => [(x - mx) * ux + (z - mz) * uz, y]).sort((a, b) => b[1] - a[1]), chan = s.slice(1).sort((a, b) => a[0] - b[0]);
       tot.hoi = { sD: s[0][0], yD: s[0][1], sA: chan[0][0], sB: chan[1][0], yC: Math.min(chan[0][1], chan[1][1]) }; }
+    tot.bo = MAT_BO ? quyDoiMat(MAT_BO) : null;
   } // cả mặt dựng riêng theo ảnh (mattien.js datMatPalas)
   return tot;
 })();

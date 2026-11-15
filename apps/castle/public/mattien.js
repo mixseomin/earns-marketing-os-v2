@@ -71,7 +71,7 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
 // CỤM CỬA kiểu Roman như ảnh sân trên: n ô vòm nhỏ đứng sát nhau, giữa các ô là cột nhỏ có đầu cột, mỗi ô một vòm đá mảnh;
 // vom = true thì cả cụm nằm dưới một VÒM LỚN (vòm mù) có má tường hai bên. Toạ độ cục bộ: x dọc tường (tâm cụm x = 0), y lên (bậu y = 0), z ra ngoài.
 // → { da: [hình], toi: [hình] } (không chỉ số, không uv — gộp được ngay)
-export function nhomCua(THREE, { n = 3, w = 0.5, h = 2, vom = true, nhe = false, k = 0.14, cot = 0.06 }) { // k: bề ngang trụ giữa hai ô · cot: bán kính cột nhỏ
+export function nhomCua(THREE, { n = 3, w = 0.5, h = 2, vom = true, nhe = false, k = 0.14, cot = 0.06, vomR = null, vomDinh = null }) { // k: bề ngang trụ giữa hai ô · cot: bán kính cột nhỏ · vomR / vomDinh: mép ngoài vòm lớn + đỉnh vòm trên bậu (đo từ ảnh)
   const da = [], toi = [], W = n * w + (n - 1) * k, yV = h - w / 2, cb = (g) => { g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); return g; };
   const sh = new THREE.Shape(); sh.moveTo(-w / 2, 0); sh.lineTo(w / 2, 0); sh.lineTo(w / 2, yV); sh.absarc(0, yV, w / 2, 0, Math.PI, false); sh.lineTo(-w / 2, 0);
   for (let i = 0; i < n; i++) {
@@ -87,12 +87,33 @@ export function nhomCua(THREE, { n = 3, w = 0.5, h = 2, vom = true, nhe = false,
   }
   const bau = cb(new THREE.BoxGeometry(W + 0.6, 0.16, 0.34)); bau.translate(0, -0.08, 0.17); da.push(bau);
   if (vom) { // vòm lớn bè: chân vòm ngang đầu cột, bán kính ~ nửa cụm, hai vành gờ; má tường hai bên từ bậu lên chân vòm
-    const R = W / 2 + 0.28, yC = yV + 0.02;
+    const R = vomR ? vomR - 0.27 : W / 2 + 0.28, yC = vomDinh ? Math.max(yV, vomDinh - vomR) : yV + 0.02;
     const r1 = cb(new THREE.TorusGeometry(R + 0.12, 0.15, 4, nhe ? 9 : 18, Math.PI)); r1.translate(0, yC, 0.12); da.push(r1);
     const r2 = cb(new THREE.TorusGeometry(R - 0.1, 0.07, 4, nhe ? 9 : 18, Math.PI)); r2.translate(0, yC, 0.07); da.push(r2);
     for (const s of [-1, 1]) { const m = cb(new THREE.BoxGeometry(0.26, yC, 0.26)); m.translate(s * (R + 0.12), yC / 2, 0.12); da.push(m); }
   }
-  return { da, toi, rong: vom ? W + 1.1 : W + 0.4 };
+  return { da, toi, rong: vom ? (vomR ? 2 * vomR : W + 1.1) : W + 0.4 };
+}
+
+// QUY ĐỔI tệp bố cục (điểm ảnh thô đo trên ảnh, du-lieu/<lau>-mat-*.json) → mét: x = mét sang PHẢI của ảnh tính từ trục mặt, duoi = mét DƯỚI mái (chân đầu hồi).
+// Ảnh phụ (phần ảnh chính bị cắt) neo vào ảnh chính bằng một mốc chung (mocY ↔ mocYChinh, mocX ↔ mocXChinh). Không có số đo nào viết tay trong mã.
+export function quyDoiMat(bo) {
+  const T = bo.tiLe, X = (x) => (x - T.trucX) / T.pxNgang, Du = (y) => (y - T.maiY) / T.pxDung, tb = (a) => a.reduce((p, q) => p + q, 0) / a.length;
+  const cum = bo.cum.map((c) => { const tam = c.o.map(([a, b]) => (a + b) / 2), rong = c.o.map(([a, b]) => b - a);
+    return { ten: c.ten, x: X(tb(tam)), duoi: Du(c.bau), n: c.o.length, w: tb(rong) / T.pxNgang, buoc: c.o.length > 1 ? (tam.at(-1) - tam[0]) / (c.o.length - 1) / T.pxNgang : tb(rong) / T.pxNgang + 0.2,
+      h: (c.bau - c.dinhO) / T.pxDung, vomR: c.vom ? (c.vom[1] - c.vom[0]) / 2 / T.pxNgang : null, vomDinh: c.vom ? (c.bau - c.vom[2]) / T.pxDung : null }; });
+  const tranh = (bo.tranh || []).map((t) => ({ ten: t.ten, x: X((t.hop[0] + t.hop[2]) / 2), rong: (t.hop[2] - t.hop[0]) / T.pxNgang, duoi: Du(t.hop[1]), cao: (t.hop[3] - t.hop[1]) / T.pxDung }));
+  const b = bo.banCong, banCong = b && { x: X((b.trai + b.phai) / 2), rong: (b.phai - b.trai) / T.pxNgang, duoiLanCan: Du(b.lanCan), duoiSan: Du(b.san), duoiDay: Du(b.dayBan), duoiConXon: Du(b.conXon) };
+  const go = (bo.go || []).map((g) => Du(g.y));
+  let cuaDon = [], duoiSan = null;
+  const P = bo.anhPhu;
+  if (P) {
+    const XP = (x) => X(P.mocXChinh) + (x - P.mocX) / P.pxNgang, DP = (y) => Du(P.mocYChinh) + (y - P.mocY) / P.pxDung;
+    cuaDon = P.cuaDon.map((c) => ({ x: XP((c.o[0] + c.o[1]) / 2), w: (c.o[1] - c.o[0]) / P.pxNgang, duoi: DP(c.bau), h: (c.bau - c.dinh) / P.pxDung }));
+    if (P.doiXung) cuaDon = [...cuaDon, ...cuaDon.map((c) => ({ ...c, x: -c.x, giaDinh: true }))];
+    if (P.matSan != null) duoiSan = DP(P.matSan);
+  }
+  return { cum, tranh, banCong, go, cuaDon, duoiSan };
 }
 
 // MẶT PALAS HƯỚNG SÂN TRÊN: hai bức tranh tường (thánh George trái, Đức Mẹ Bavaria phải — cắt từ ảnh Commons CC BY-SA 4.0, Naturliebhaberin) ở tầng trên
@@ -110,33 +131,28 @@ export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {} }) {
   const cuaSo = []; // ô cửa của mặt này (toạ độ thế giới) — ns.js dùng cho mở cửa trèo vào
   const KINH = new THREE.MeshStandardMaterial({ color: '#7d8691', roughness: 0.3, metalness: 0.2, emissive: '#3a4048' }); // kính chì xám như ảnh, không đen đặc
   const cum = (o, s, y) => { const c = nhomCua(THREE, { k: 0.23, cot: 0.125, ...o }); cuaSo.push({ x: mx + ux * s, y, z: mz + uz * s, nx, nz, nua: c.rong / 2, cao: o.h, ten: 'Palas' }); for (const g of c.da) dat(new THREE.Mesh(g, DA), s, y, 0); for (const g of c.toi) dat(new THREE.Mesh(g, KINH), s, y, 0); };
-  // BỐ CỤC ĐO TỪ ẢNH (Naturliebhaberin, 1600 × 1200): khoảng giữa hai tháp góc ~410 px ≈ 10,6 m → ~38,7 px/m, mốc đứng là mái (chân đầu hồi, y1).
-  // Mặt thật chạy từ tháp góc này tới tháp góc kia = bề ngang chân đầu hồi (tuong.hoi.sA → sB), tâm C lệch khỏi giữa đoạn tường OSM đã chọn.
-  const C = tuong.hoi ? (tuong.hoi.sA + tuong.hoi.sB) / 2 : 0, RONG = tuong.hoi ? tuong.hoi.sB - tuong.hoi.sA : L;
+  // BỐ CỤC lấy TỪ TỆP ĐO ẢNH (tuong.bo = quyDoiMat(du-lieu/neuschwanstein-mat-palas-san.json)): x sang phải ảnh → s = C − x (trục x cục bộ của khung ngược ux:
+  // bên trái ảnh là phía +s), duoi dưới mái → y = y1 − duoi. Mặt chạy từ tháp góc tới tháp góc = chân đầu hồi (hoi.sA → sB), tâm C.
+  const C = tuong.hoi ? (tuong.hoi.sA + tuong.hoi.sB) / 2 : 0, RONG = tuong.hoi ? tuong.hoi.sB - tuong.hoi.sA : L, bo = tuong.bo;
   const go = (y, rong = RONG) => dat(new THREE.Mesh(new THREE.BoxGeometry(rong, 0.2, 0.22), DA), C, y, 0.11); // gờ đá ngang cả mặt
-  // tranh: trái thánh George, phải Đức Mẹ — ảnh: rộng ~3,1 m, cao ~5,4 m, tâm cách giữa ~3,45 m, đỉnh ngang mái
-  for (const [ten, k] of [['palas-thanh-george', 1], ['palas-duc-me', -1]]) { // trục dọc tường của khung (x cục bộ) chạy ngược ux → tranh trái ở phía +s
-    const t = tranh[ten]; if (!t) continue; const cao = 5.4, rong = Math.min(3.1, cao * t.image.width / t.image.height);
-    const vl = new THREE.MeshStandardMaterial({ map: t, roughness: 0.9, emissive: '#ffffff', emissiveMap: t, emissiveIntensity: 0.18 }); // tranh tường hơi sáng hơn đá như ảnh, không chìm vào bóng
-    dat(new THREE.Mesh(new THREE.PlaneGeometry(rong, cao), vl), C + k * 3.45, y1 - cao / 2, 0.03);
-  }
-  // giữa hai tranh, sát mái: hai cụm cửa đôi có cột (ảnh: bậu ~1,8 m dưới mái, tâm cách giữa ~1,4 m)
-  for (const k of [-1.4, 1.4]) cum({ n: 2, w: 0.42, h: 1.8 }, C + k, y1 - 1.8);
-  // ban công (ảnh: sàn ~7,3 m dưới mái, rộng ~5,8 m) + cửa ra ban công: cụm ba ô cao dưới vòm lớn (đỉnh vòm ~3,1 m dưới mái)
-  const yB = y1 - 7.3;
-  cum({ n: 3, w: 0.47, h: 2.4 }, C, yB + 0.14);
-  dat(new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.28, 1.2), DA), C, yB, 0.6);
-  dat(new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.95, 0.14), DA), C, yB + 0.6, 1.13);
-  dat(new THREE.Mesh(new THREE.BoxGeometry(5.98, 0.1, 0.26), DA), C, yB + 1.12, 1.13);
-  for (const k of [-1, 1]) dat(new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.95, 1.2), DA), C + k * 2.83, yB + 0.6, 0.6);
-  for (let k = -2.4; k <= 2.41; k += 1.2) dat(new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.8, 1.0), DA), C + k, yB - 0.54, 0.5); // con-xon đỡ
-  go(yB - 0.75);
-  // hai tầng dưới ban công (ảnh: bậu tầng hai ~12,4 m, tầng trệt ~18,1 m dưới mái; tầng cao ~5,7 m): mỗi tầng ba cụm 4 · 3 · 4 ô cao ~2,5 m dưới vòm mù
-  // (vòm ngoài bán kính ~1,55 m), gờ đá dưới bậu và ngang đỉnh vòm; dưới nữa còn tường thì lặp cùng nhịp tới sát mặt sân
-  const yDat = Number.isFinite(tuong.yDat) ? tuong.yDat : y1 - 30;
-  for (let y = y1 - 12.4; y > yDat + 0.7; y -= 5.7) {
-    go(y - 0.3);
-    for (const [n, k] of [[4, -3.55], [3, 0], [4, 3.55]]) cum({ n, w: 0.47, h: 2.1 }, C + k, y); // ảnh: ô 0,47 m, trụ 0,23 m, cao tới đỉnh vòm nhỏ ~2,1 m; cụm 4 ô ~3,2 m
+  if (!bo) console.warn('[mattien] thiếu tệp bố cục mặt Palas — không dựng chi tiết mặt'); else {
+    for (const t of bo.tranh) {
+      const tx = tranh[t.ten]; if (!tx) continue;
+      const vl = new THREE.MeshStandardMaterial({ map: tx, roughness: 0.9, emissive: '#ffffff', emissiveMap: tx, emissiveIntensity: 0.18 }); // tranh tường hơi sáng hơn đá như ảnh
+      dat(new THREE.Mesh(new THREE.PlaneGeometry(t.rong, t.cao), vl), C - t.x, y1 - t.duoi - t.cao / 2, 0.03);
+    }
+    for (const c of bo.cum) cum({ n: c.n, w: c.w, h: c.h, k: c.buoc - c.w, cot: Math.min(0.13, (c.buoc - c.w) * 0.45), vomR: c.vomR, vomDinh: c.vomDinh }, C - c.x, y1 - c.duoi);
+    for (const c of bo.cuaDon) cum({ n: 1, w: c.w, h: c.h, vom: false, cot: 0.08 }, C - c.x, y1 - c.duoi);
+    for (const d of bo.go) go(y1 - d);
+    const b = bo.banCong;
+    if (b) { // sàn, lan can, tay vịn, hai đầu, con-xon đỡ — theo hộp đo trên ảnh
+      const yS = y1 - b.duoiSan, day = b.duoiDay - b.duoiSan, lc = b.duoiSan - b.duoiLanCan, cx = b.duoiConXon - b.duoiDay, s0 = C - b.x;
+      dat(new THREE.Mesh(new THREE.BoxGeometry(b.rong, day, 1.2), DA), s0, yS - day / 2, 0.6);
+      dat(new THREE.Mesh(new THREE.BoxGeometry(b.rong, lc, 0.14), DA), s0, yS + lc / 2, 1.13);
+      dat(new THREE.Mesh(new THREE.BoxGeometry(b.rong + 0.18, 0.1, 0.26), DA), s0, yS + lc, 1.13);
+      for (const k of [-1, 1]) dat(new THREE.Mesh(new THREE.BoxGeometry(0.14, lc, 1.2), DA), s0 + k * (b.rong / 2 - 0.07), yS + lc / 2, 0.6);
+      const nCx = Math.max(2, Math.round(b.rong / 1.1)); for (let i = 0; i < nCx; i++) dat(new THREE.Mesh(new THREE.BoxGeometry(0.26, cx, 1.0), DA), s0 - b.rong / 2 + (i + 0.5) * b.rong / nCx, yS - day - cx / 2, 0.5);
+    }
   }
   // ĐẦU HỒI — tam giác thật lấy từ hình khối đã dựng (tuong.hoi = { sD, yD: đỉnh · sA, sB: hai chân · yC: chân }, s đo dọc tường từ giữa theo ux;
   // đỉnh không nhất thiết ở giữa bức tường): gờ đá viền hai mép, diềm răng cưa bậc song song hai mép, cửa sổ tròn, lỗ tròn nhỏ, bệ + tượng sư tử trên đỉnh — như ảnh

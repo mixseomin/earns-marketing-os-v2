@@ -1,0 +1,291 @@
+{
+ "ghi_chu": "BỐ CỤC MẶT PALAS HƯỚNG SÂN TRÊN — số đo ĐIỂM ẢNH THÔ đọc trên ảnh (lưới 10 px), mattien.js tự quy đổi ra mét. Sửa mặt tiền = sửa tệp này, không sửa số trong mã. Kiểm số ô / vị trí ô với ảnh: python3 apps/castle/scripts/kiem-mat-tien.py",
+ "anh": {
+  "tep": "du-lieu-goc/anh-ngoai/san-tren-naturliebhaberin.jpg",
+  "rong": 1600,
+  "cao": 1200,
+  "nguon": "https://commons.wikimedia.org/wiki/File:Oberer_Schlosshof_Neuschwanstein.jpg",
+  "tacGia": "Naturliebhaberin",
+  "giayPhep": "CC BY-SA 4.0"
+ },
+ "tiLe": {
+  "ghi_chu": "ảnh gần chính diện (cùng bề ngang ở tầng hai và tầng trệt lệch 1%) → tỉ lệ không đổi. Ngang: khoảng tường giữa hai tháp góc 550 → 1050 px = 10,6 m (khoảng trong giữa hai tháp góc của mô hình). Đứng: vòm bán nguyệt cao/rộng đo được 0,95 → 44,8 px/m. Trục giữa mặt: tâm các cụm giữa / cửa ban công. Mốc đứng: chân đầu hồi (mép mái chạm tháp góc) = y1 của mô hình",
+  "pxNgang": 47.2,
+  "pxDung": 44.8,
+  "trucX": 799,
+  "maiY": 405
+ },
+ "cum": [
+  {
+   "ten": "cửa đôi sát mái trái",
+   "o": [
+    [
+     707,
+     735
+    ],
+    [
+     747,
+     775
+    ]
+   ],
+   "dinhO": 461,
+   "bau": 521,
+   "vom": [
+    697,
+    790,
+    431
+   ]
+  },
+  {
+   "ten": "cửa đôi sát mái phải",
+   "o": [
+    [
+     812,
+     840
+    ],
+    [
+     852,
+     880
+    ]
+   ],
+   "dinhO": 464,
+   "bau": 522,
+   "vom": [
+    800,
+    892,
+    435
+   ]
+  },
+  {
+   "ten": "cửa ra ban công",
+   "o": [
+    [
+     727,
+     760
+    ],
+    [
+     778,
+     813
+    ],
+    [
+     832,
+     865
+    ]
+   ],
+   "dinhO": 622,
+   "bau": 730,
+   "vom": [
+    718,
+    882,
+    567
+   ]
+  },
+  {
+   "ten": "tầng hai trái",
+   "o": [
+    [
+     587,
+     610
+    ],
+    [
+     625,
+     647
+    ],
+    [
+     662,
+     685
+    ]
+   ],
+   "dinhO": 835,
+   "bau": 922,
+   "vom": [
+    560,
+    702,
+    789
+   ]
+  },
+  {
+   "ten": "tầng hai giữa",
+   "o": [
+    [
+     770,
+     790
+    ],
+    [
+     807,
+     830
+    ]
+   ],
+   "dinhO": 840,
+   "bau": 922,
+   "vom": [
+    750,
+    847,
+    810
+   ]
+  },
+  {
+   "ten": "tầng hai phải",
+   "o": [
+    [
+     910,
+     935
+    ],
+    [
+     947,
+     972
+    ],
+    [
+     985,
+     1010
+    ]
+   ],
+   "dinhO": 842,
+   "bau": 925,
+   "vom": [
+    900,
+    1040,
+    795
+   ]
+  },
+  {
+   "ten": "tầng trệt trái",
+   "o": [
+    [
+     577,
+     602
+    ],
+    [
+     620,
+     645
+    ],
+    [
+     660,
+     682
+    ]
+   ],
+   "dinhO": 1055,
+   "bau": 1150,
+   "vom": [
+    560,
+    700,
+    1002
+   ]
+  },
+  {
+   "ten": "tầng trệt giữa",
+   "o": [
+    [
+     770,
+     792
+    ],
+    [
+     810,
+     832
+    ]
+   ],
+   "dinhO": 1060,
+   "bau": 1152,
+   "vom": [
+    755,
+    845,
+    1025
+   ]
+  },
+  {
+   "ten": "tầng trệt phải",
+   "o": [
+    [
+     915,
+     940
+    ],
+    [
+     955,
+     980
+    ],
+    [
+     995,
+     1020
+    ]
+   ],
+   "dinhO": 1060,
+   "bau": 1150,
+   "vom": [
+    890,
+    1045,
+    1005
+   ]
+  }
+ ],
+ "tranh": [
+  {
+   "ten": "palas-thanh-george",
+   "hop": [
+    600,
+    470,
+    715,
+    650
+   ]
+  },
+  {
+   "ten": "palas-duc-me",
+   "hop": [
+    880,
+    475,
+    995,
+    680
+   ]
+  }
+ ],
+ "banCong": {
+  "trai": 690,
+  "phai": 913,
+  "lanCan": 687,
+  "san": 730,
+  "dayBan": 742,
+  "conXon": 780
+ },
+ "go": [
+  {
+   "ten": "gờ dưới tầng hai",
+   "y": 930
+  },
+  {
+   "ten": "gờ dưới tầng trệt",
+   "y": 1158
+  }
+ ],
+ "anhPhu": {
+  "ghi_chu": "ảnh thứ hai cho phần ảnh chính bị cắt (dưới hàng 3·2·3 tới mặt sân). Neo vào ảnh chính: mocY = bậu hàng 3·2·3 (ảnh chính bau 1150), mocX = tâm cụm giữa hàng đó (ảnh chính x 800). Tỉ lệ: đứng 23,6 px/m (bậu tầng hai → bậu hàng 3·2·3 = 120 px = 5,09 m của ảnh chính), ngang 25,1 px/m (tâm cụm trái → giữa 90 px = 3,58 m). Ảnh chụp lúc đang xây, giàn giáo che nửa phải → cửa đơn phía phải lấy đối xứng (GIẢ ĐỊNH, chưa thấy trên ảnh)",
+  "tep": "du-lieu-goc/anh-ngoai/san-tren-albert.jpg",
+  "nguon": "https://commons.wikimedia.org/wiki/File:Neuschwanstein_-_Blick_in_den_oberen_Schlosshof.jpg",
+  "tacGia": "Josef Albert",
+  "giayPhep": "Phạm vi công cộng",
+  "pxNgang": 25.1,
+  "pxDung": 23.6,
+  "mocY": 950,
+  "mocYChinh": 1150,
+  "mocX": 825,
+  "mocXChinh": 800,
+  "cuaDon": [
+   {
+    "o": [
+     700,
+     718
+    ],
+    "dinh": 1020,
+    "bau": 1067
+   },
+   {
+    "o": [
+     742,
+     762
+    ],
+    "dinh": 1020,
+    "bau": 1067
+   }
+  ],
+  "doiXung": true,
+  "matSan": 1085
+ }
+}

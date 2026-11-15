@@ -515,6 +515,8 @@ function dungSx(T: T3, g: import('three').Group, y: number, loi: boolean, hoat: 
 }
 /** mã một tháp trong cảnh (vật bấm, khung chọn, xuyên thấu): phim × 100 + thứ tự tháp */
 const maThap = (p: number, j: number) => p * 100 + j + 1;
+/** mã cả LÔ của phim (bấm nền sân / tên phim / lối vào = bảng cả phim, không riêng bộ nào — #1618) */
+const maLo = (p: number) => p * 100;
 export const laiPhim = (x: ToaPhim) => x.camp.reduce((a, c) => a + c.thu7 - c.chi7, 0);
 export const KHU = [{ ten: 'Khu thượng lưu', cap: [4, 5], nen: 0x475569, mau: '#e2e8f0' }, { ten: 'Khu trung lưu', cap: [2, 3], nen: 0x1f3b2a, mau: '#86efac' },
   { ten: 'Khu ven', cap: [0, 1], nen: 0x4a3b28, mau: '#d6b98c' }] as const;
@@ -529,8 +531,9 @@ export function ThanhPho({ ds: ds0, an, chon: chonP, chonBo, onChon, cao }: { ds
     return doi ? { ...x, sx } : x; }), [ds0, themSx]);
   // tháp đang chọn → mã trong cảnh (chọn phim mà không nói bộ = tháp đầu)
   const chon = useMemo(() => { if (chonP == null) return null; const ph = ds.find((x) => x.p === chonP); if (!ph) return null;
+    if (chonBo == null) return maLo(chonP);   // chọn cả phim (bấm nền lô, #1618) → khung chọn ôm cả lô
     const j = thapCua(ph).findIndex((t) => t.bo === chonBo); return maThap(chonP, Math.max(0, j)); }, [chonP, chonBo, ds]);
-  const boCuaMa = useRef(new Map<number, { p: number; bo: string }>());
+  const boCuaMa = useRef(new Map<number, { p: number; bo: string | null }>());
   const vungRef = useRef(new Map<number, { T: T3; lg: import('three').Group; thap: { g: import('three').Group; mong: [number, number, number, number]; bo: string; ma: number }[]; sang: import('three').Mesh[] }>());
   useEffect(() => {
     const nghe = (e: Event) => { const x = (e as CustomEvent<BaoToa>).detail;
@@ -629,6 +632,12 @@ export function ThanhPho({ ds: ds0, an, chon: chonP, chonBo, onChon, cao }: { ds
         const k7 = b.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }), cb = capToa(b.camp);
         vat.push({ bien: bien0, m: bat, vien: bat, id: ma, chu: `${ten}${nhanBo} · ${CAP[cb.cap]} · ${KHU[kh]!.ten}${k > 1 ? ` · phim có ${k} bộ` : ''}${cb.tinHieu ? ` · 🟢 ${cb.tinHieu} camp tín hiệu lãi` : ''}${loiSx ? ` · 💨 SX lỗi: ${loiSx}` : sx > 0 ? ` · 🏗 ${sx} SX đang chạy ổn` : ''} · ${b.camp.length} camp · 7 ngày lãi ${k7.thu - k7.chi >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
       });
+      // KHỐI BẤM CẢ LÔ (anh 15/11/2026 #1618 "Bấm vào đây thì hiện widget của cả phim !!"): nền sân / tên phim / lối vào trước đây không phải vật bấm → lô bị lọc ẩn tháp
+      // (#1617) bấm vào chỉ bỏ chọn. Khối tàng hình phủ sân, con trực tiếp của lg (lọc không ẩn) → bấm = bảng CẢ PHIM (bo null); tháp đứng trên nên tia chạm tháp trước
+      { const ml = maLo(ph.p), batLo = new T.Mesh(new T.BoxGeometry(PX, 0.06, PZ), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+        batLo.position.y = 0.05; lg.add(batLo); boCuaMa.current.set(ml, { p: ph.p, bo: null });
+        const k7 = ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 });
+        vat.push({ bien: bien0, m: batLo, vien: batLo, id: ml, chu: `${ten} · cả phim${k > 1 ? ` · ${k} bộ` : ''} · ${KHU[kh]!.ten} · ${ph.camp.length} camp · 7 ngày lãi ${k7.thu - k7.chi >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` }); }
       vungRef.current.set(ph.p, v0);
       caoMax = Math.max(caoMax, caoLo);
     });

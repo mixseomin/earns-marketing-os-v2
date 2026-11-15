@@ -904,7 +904,7 @@ let anh3d = null, anh3d_tk = null;
 const datAnh3d = (bat) => {
   if (!anh3d) return; anh3d.bat = bat;
   $('b-anh3d').textContent = bat ? '🧱 Mô hình' : '🌍 Ảnh thật 3D'; $('b-anh3d').title = bat ? 'Về mô hình dựng từ số đo' : 'Hiện lâu đài ảnh thật 3D (Google) khi xem toàn cảnh / từ xa';
-  try { localStorage.setItem('ns-anh3d', bat ? '1' : '0'); } catch {}
+  try { localStorage.setItem('ns-anh3d-v2', bat ? '1' : '0'); } catch {} // khoá mới: lựa chọn cũ (mặc định bật trên máy tính) không kéo sang
   apDungAnh3d();
 };
 function apDungAnh3d() {
@@ -963,9 +963,9 @@ function apDungAnh3d() {
     $('nut').insertAdjacentHTML('beforeend', '<button id="b-anh3d"></button>');
     $('b-anh3d').onclick = () => datAnh3d(!anh3d.bat);
     // điện thoại: mặc định TẮT ảnh thật (18 MB ô 3D trong 15 s đầu + ~200 nghìn tam giác mỗi khung → nóng máy); bấm 🌍 để bật. Máy tính mặc định bật
-    // ẢNH 3D GOOGLE KHÔNG HIỆN CHO KHÁCH (anh 16/11/2026: 'ảnh 3D nhìn giả tạo', không dán ảnh lên khối) — chỉ công cụ đo bật (localStorage ns-anh3d-cong-cu = 1, scripts/chung.mjs)
-    let nho = '0', congCu = false; try { congCu = localStorage.getItem('ns-anh3d-cong-cu') === '1'; if (congCu) nho = localStorage.getItem('ns-anh3d') ?? '1'; } catch {}
-    if (!congCu) $('b-anh3d').style.display = 'none';
+    // ẢNH THẬT 3D (Google) = NÚT SO SÁNH, mặc định TẮT (anh 16/11/2026: mô hình là khối 3D, ảnh 3D nhìn giả — nhưng vẫn cần nút để xoay toàn cảnh so với ảnh thật,
+    // tìm chỗ mô hình sai). Bấm 🌍 bật / tắt, nhớ lựa chọn của người xem; công cụ đo (scripts/chung.mjs) đặt sẵn qua ns-anh3d
+    let nho = '0'; try { nho = localStorage.getItem('ns-anh3d-v2') ?? (localStorage.getItem('ns-anh3d-cong-cu') === '1' ? localStorage.getItem('ns-anh3d') ?? '0' : '0'); } catch {}
     datAnh3d(nho === '1');
   } catch (e) { console.warn('[ns] không nạp được ảnh thật 3D', e); }
 })();

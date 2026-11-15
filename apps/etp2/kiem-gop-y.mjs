@@ -112,6 +112,7 @@ const LUAT = [
   { card: 'mau-bo-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'new T.EdgesGeometry(new T.BoxGeometry(bw + 0.06, H0 + 0.04, bd + 0.06)), new T.LineBasicMaterial({ color: mb })', vi: 'tháp bộ có viền + gờ đế màu bộ' },
   { card: 'mau-bo-1511', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "const MAU_BO: Record<string, string> =", vi: 'màu bộ một bảng chung lib/etp-mau-bo.ts' },
   { card: 'loc-tp-1511', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: "{ ma: 'sx', ten: '🏗 Đang SX'", vi: 'bộ lọc hiển thị thành phố (đang SX, lãi, lỗ, ROAS, hẹn, nhiều bộ, tín hiệu)' },
+  { card: 'xem-full-1604', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: "return full ? <>{createPortal(ruot, document.body)}", vi: 'thành phố có nút xem full: lớp phủ kín cửa sổ (portal ra body, chạy cả iPhone Safari), Esc / ✕ thoát (anh 15/11/2026 #1604)' },
   { card: 'sx-khoi-1601', tep: 'apps/etp2/src/lib/actions/etp-thanh-pho.ts', co: "x.sxLoi[r.bo] = x.sxLoi[r.bo] ?", vi: 'thành phố đọc dòng SX lỗi / kẹt theo bộ' },
   { card: 'sx-khoi-1601', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'if (loiSx || sx > 0) dungSx(T, g,', vi: 'toà SX lỗi bốc khói, SX ổn có cần cẩu quay' },
   { card: 'sx-khoi-1601', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'if (p.userData.dong) return;', vi: 'vật chuyển động SX không bị gopVe gộp đứng im' },

@@ -1,7 +1,8 @@
 'use client';
 // WIDGET SỐ của Tổng quan 2 etp (anh 01/11/2026 "cụm nhóm Insight dựa vào Người, Tài khoản và Time"): đọc gói taiTong2 (actions/etp-tong2.ts), theo kỳ đang chọn trên trang.
 // Khoá của VE_SO phải có trong sổ lib/etp-widget.json (check-etp-gop-y đối chiếu) — thêm widget = mục trong sổ + một hàm ở đây.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { SimpleTable, StatsStrip, type SimpleColumn } from '@/components/ui';
 import { ThanhPho, laiPhim, xepTang, TANG, capToa, CAP, GIAI_CAP } from '@/components/etp-toa-nha';
 import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
@@ -175,18 +176,33 @@ function ThanhPhoVe({ ds, nguoi, laNha, cao }: { ds: PhimThanhPho[]; nguoi: stri
   const ph = xep.find((x) => x.p === chon) ?? null;
   const k = ph ? ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }) : null;
   const tong = xep.reduce((a, x) => a + x.camp.length, 0);
-  return <div style={{ display: 'flex', flexDirection: 'column', gap: 6, height: '100%' }}>
-    <div style={{ display: 'flex', gap: 4, flexWrap: 'nowrap', overflowX: 'auto', fontSize: 11 }}>
+  // XEM FULL (anh 15/11/2026 #1604 "Thành phố thêm nút xem full"): phủ kín cửa sổ (portal ra <body>, thoát khung widget), cao theo cửa sổ thật — iPhone Safari không có
+  // requestFullscreen cho thẻ thường nên dùng lớp phủ cố định; Esc / nút ✕ thoát (bảng phim đang mở thì Esc đóng bảng trước). Bảng phim zIndex 60 nổi trên lớp phủ (50).
+  const [full, setFull] = useState(false), [caoCs, setCaoCs] = useState(0), moBang = useRef(false);
+  moBang.current = !!noi.v;
+  useEffect(() => { if (!full) return; const doi = () => setCaoCs(window.visualViewport?.height ?? window.innerHeight); doi();
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && !moBang.current) setFull(false); };
+    const truoc = document.body.style.overflow; document.body.style.overflow = 'hidden';
+    window.addEventListener('resize', doi); window.visualViewport?.addEventListener('resize', doi); window.addEventListener('keydown', esc);
+    return () => { document.body.style.overflow = truoc; window.removeEventListener('resize', doi); window.visualViewport?.removeEventListener('resize', doi); window.removeEventListener('keydown', esc); }; }, [full]);
+  const caoVe = full ? Math.max(160, (caoCs || 600) - 16 - 52) : Math.max(160, cao - 52);
+  const ruot = <div style={full ? { position: 'fixed', inset: 0, zIndex: 50, background: 'var(--bg-0, #020617)', padding: 8, display: 'flex', flexDirection: 'column', gap: 6, boxSizing: 'border-box', height: caoCs || '100dvh' }
+    : { display: 'flex', flexDirection: 'column', gap: 6, height: '100%' }}>
+    <div style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 11 }}>
+    <div style={{ display: 'flex', gap: 4, flexWrap: 'nowrap', overflowX: 'auto', flex: 1, minWidth: 0 }}>
       {LOC_TP.map((l, i) => <button key={l.ma} title={l.giai} onClick={() => setLoc(l.ma)} disabled={!demLoc[i] && loc !== l.ma}
         style={{ padding: '1px 8px', borderRadius: 999, border: `1px solid ${loc === l.ma ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, background: loc === l.ma ? 'rgba(96,165,250,0.15)' : 'transparent',
           color: loc === l.ma ? 'var(--fg-1)' : 'var(--fg-3)', cursor: 'pointer', whiteSpace: 'nowrap', opacity: !demLoc[i] && loc !== l.ma ? 0.4 : 1 }}>{l.ten} <span style={{ opacity: 0.7 }}>{demLoc[i]}</span></button>)}
+    </div>
+    <button type="button" onClick={() => setFull((v) => !v)} title={full ? 'thoát xem full (Esc)' : 'xem full — thành phố phủ kín màn hình'} aria-label={full ? 'Thoát xem full' : 'Xem full'}
+      style={{ flex: '0 0 auto', padding: '1px 8px', borderRadius: 999, border: '1px solid var(--line)', background: full ? 'rgba(96,165,250,0.15)' : 'transparent', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' }}>{full ? '✕ Thoát' : '⛶ Full'}</button>
     </div>
     <div style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       {ph && k ? <><b style={{ color: 'var(--fg-1)' }}>{ph.ten}</b> · <b>{capToa(ph.camp).ten}</b> ({capToa(ph.camp).od} ổn định{capToa(ph.camp).tinHieu ? <span style={{ color: XANH }}> · 🟢 {capToa(ph.camp).tinHieu} tín hiệu lãi</span> : null}) · {[...TANG].map((t, i) => ({ t, n: ph.camp.filter((c) => xepTang(c) === i).length })).reverse().filter((x) => x.n).map((x) => `${x.t} ${x.n}`).join(' · ')}
         {' · '}7 ngày lãi <b style={{ color: k.thu >= k.chi ? XANH : DO }}>{tien(k.thu - k.chi)}</b>{k.chi >= 1 ? ` (${pct(Math.round((k.thu - k.chi) / k.chi * 100))})` : ''}</>
         : <span style={{ cursor: 'help' }} title={GIAI_CAP}><b style={{ color: 'var(--fg-1)' }}>{nguoi}</b> · {xep.length} phim · {tong} camp · {[...CAP].map((t, i) => ({ t, n: demCap[i]! })).reverse().filter((v) => v.n).map((v) => `${v.t} ${v.n}`).join(' · ')} · bấm một toà để xem</span>}
     </div>
-    <ThanhPho ds={day} an={an} chon={chon} chonBo={chonBo} cao={Math.max(160, cao - 52)} onChon={(p, xy, bo) => { setChon(p); setChonBo(bo ?? null); if (p != null && xy) noi.moNgay({ id: p }, { clientX: xy.x, clientY: xy.y, currentTarget: null } as unknown as React.MouseEvent); else noi.dong(); }} />
+    <ThanhPho ds={day} an={an} chon={chon} chonBo={chonBo} cao={caoVe}onChon={(p, xy, bo) => { setChon(p); setChonBo(bo ?? null); if (p != null && xy) noi.moNgay({ id: p }, { clientX: xy.x, clientY: xy.y, currentTarget: null } as unknown as React.MouseEvent); else noi.dong(); }} />
     {noi.v ? (() => { const x = ds.find((d) => d.p === noi.v!.id);
       // tháp một bộ của phim nhiều bộ → bảng Camps chỉ camp bộ đó, Thao tác chọn sẵn bộ đó (anh 15/11/2026)
       const nhieu = !!x && new Set(x.camp.map((c) => c.bo)).size > 1, boTen = chonBo ? x?.camp.find((c) => c.bo === chonBo)?.bo_ten : null;
@@ -194,6 +210,7 @@ function ThanhPhoVe({ ds, nguoi, laNha, cao }: { ds: PhimThanhPho[]; nguoi: stri
       return <BangPhim key={`${noi.v.id}|${chonBo ?? ''}`} ghim cid={noi.v.id} noi={noi} vi={noi.v} bo={laNha ? chonBo : null}
         dsCamp={x ? { ten: nhieu && boTen ? `${x.ten} · ${boTen}` : x.ten, nguoi, laNha, camp, tat } : undefined} />; })() : null}
   </div>;
+  return full ? <>{createPortal(ruot, document.body)}<div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MO, fontSize: 12 }}>đang xem full</div></> : ruot;
 }
 
 export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidget> {

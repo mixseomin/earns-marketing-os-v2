@@ -99,7 +99,12 @@ def doc(video, tu, den):
         anh = [f"{t}/{a}" for a in sorted(os.listdir(t))]
         if sys.platform != "darwin": return [(tu + i, c) for i, c in enumerate(doc_linux(anh))]   # box3: không có Vision → tesseract
         # hạn theo số khung (03/11/2026: lô kiểu tập đọc cả phim 169553 = 2242 khung, hạn cứng 600s cắt ngang → lô ra 0 đoạn); ~0,5s/khung, tối thiểu 600s
-        r = subprocess.run([may_doc()] + anh, capture_output=True, text=True, check=True, timeout=max(600, int(0.6 * len(anh)) + 300))   # +300 s: doc-chu đợi ANE ấm tới 3 phút
+        # LỖI ĐỌC CHỮ PHẢI ĐỌC ĐƯỢC (15/11/2026 #1608): CalledProcessError / TimeoutExpired in nguyên lệnh = hàng trăm đường dẫn khung, người gọi cắt đuôi 300 ký tự
+        # → chỉ còn tên ảnh, mất câu lỗi thật của doc-chu (stderr). Gói lại: số khung + mã thoát + đuôi stderr; giữ chữ "Timeout" để loi_ky_thuat coi là kỹ thuật
+        han = max(600, int(0.6 * len(anh)) + 300)   # +300 s: doc-chu đợi ANE ấm tới 3 phút
+        try: r = subprocess.run([may_doc()] + anh, capture_output=True, text=True, check=True, timeout=han)
+        except subprocess.TimeoutExpired: raise RuntimeError(f"đọc chữ Vision Timeout sau {han}s ({len(anh)} khung, giây {tu:.0f}–{den:.0f})") from None
+        except subprocess.CalledProcessError as e: raise RuntimeError(f"đọc chữ Vision lỗi mã {e.returncode} ({len(anh)} khung, giây {tu:.0f}–{den:.0f}): {re.sub(r'/[^ ]*/', '', (e.stderr or '').strip())[-200:] or 'không có stderr'}") from None
         return [(tu + i, json.loads(l)["chu"]) for i, l in enumerate(r.stdout.splitlines())]
 
 

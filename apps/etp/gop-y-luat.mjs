@@ -1208,5 +1208,7 @@ export const LUAT = [
   { tep: 'apps/xuong-video/scripts/ethopex/tinh-ba-kieu.py', co: "{' --lop-free' if AT.CO_FREE else ''}", vi: 'bản tĩnh có lớp Free ghi dấu vào thư viện (anh 15/11/2026)' },
   { tep: 'apps/etp/dong_phim.py', co: 'not khe_nang(d["id"], ke, cho_nang)', vi: 'khe nặng iMac chia công bằng cắt CC / creative tĩnh — dòng tĩnh không chiếm trọn khe khi CC đang chờ (anh 15/11/2026)' },
   { tep: 'apps/etp/dong_phim.py', co: 'DÙNG LẠI BẢN SẴN SÀNG TRƯỚC KHI SINH MỚI', vi: 'creative tĩnh dùng lại bản thư viện sẵn sàng của phim trước khi sinh mới (anh 15/11/2026)' },
+  { card: 'gop-y-1608', tep: 'apps/etp/dong_phim.py', co: `(trang_thai = 'cho' or (trang_thai = 'dang' and may is distinct from '{MAY}'))`, vi: 'thợ máy này lỗi kỹ thuật trả lô về hàng chung → dòng chờ máy khác cắt lại, không báo "cắt lỗi" ngay (anh 15/11/2026 #1608)' },
+  { card: 'gop-y-1608', tep: 'apps/xuong-video/scripts/ethopex/kiem-thoai.py', co: 'raise RuntimeError(f"đọc chữ Vision lỗi mã {e.returncode}', vi: 'lỗi đọc chữ Vision ghi mã thoát + câu lỗi thật, không ghi danh sách đường dẫn khung (anh 15/11/2026 #1608)' },
   { tep: 'apps/etp/dong_phim.py', co: 'CAT_NGOAI.add(d["id"])', vi: 'iMac đủ khe thì việc cắt CC vẫn xếp vào hàng chung cho máy thợ khác (HP / VPS) nhận — không chỉ dùng iMac (anh 15/11/2026)' },
 ];

@@ -230,9 +230,11 @@ def b_cat(d):
         finally: CAT_NGOAI.discard(d["id"])
     rc, out = chay_tien_trinh(d["id"], "cat", ["python3", os.path.join(R, "tho.py"), "--lo", lo, "--so-tho", "1"], dict(BUOC)["cat"] - 60)
     # THỢ MÁY KHÁC ĐÃ NHẬN LÔ (07/11/2026 dòng #112: VPS may-cao-vn nhận trước, thợ iMac "hết việc — đã làm 0 việc" → dòng ghi lỗi trong khi VPS đang cắt) → chờ máy đó xong
+    # THỢ MÁY NÀY TRẢ LÔ VỀ HÀNG CHUNG (15/11/2026 #1608: Vision iMac lỗi → tho.xong 'tra_lai', lô về 'cho' cho HP / VPS cắt) → cũng chờ; trước chỉ chờ 'dang'
+    # nên dòng báo "cắt lỗi" ngay trong khi lô còn đang được máy khác làm lại (dòng #4525 #4287 #4279)
     t0 = time.time()
-    while sql(f"select may from etp.viec where lo = '{lo}' and trang_thai = 'dang' and may is distinct from '{MAY}' limit 1") and time.time() - t0 < dict(BUOC)["cat"]:
-        sql(f"update etp.dong_buoc set nhip = now(), ghi = {s('máy khác đang cắt lô này — chờ kết quả')} where dong_id = {d['id']} and buoc = 'cat'"); time.sleep(30)
+    while (tt := sql(f"select trang_thai from etp.viec where lo = '{lo}' and (trang_thai = 'cho' or (trang_thai = 'dang' and may is distinct from '{MAY}')) order by id desc limit 1")) and time.time() - t0 < dict(BUOC)["cat"]:
+        sql(f"update etp.dong_buoc set nhip = now(), ghi = {s('máy khác đang cắt lô này — chờ kết quả' if tt == 'dang' else 'máy này lỗi kỹ thuật — lô đã trả về hàng chung, chờ máy khác (HP / VPS) cắt lại')} where dong_id = {d['id']} and buoc = 'cat'"); time.sleep(30)
     kq = json.loads(sql(f"select coalesce(ket_qua, '[]'::jsonb)::text || chr(9) || coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1").split("\t")[0] or "[]")
     loi = sql(f"select coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1")
     ok = [x for x in kq if x.get("file") and not x.get("loi") and os.path.exists(x["file"])]

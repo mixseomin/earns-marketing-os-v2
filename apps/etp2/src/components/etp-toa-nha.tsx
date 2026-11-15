@@ -241,6 +241,7 @@ function gopVe(T: T3, gop: (g: import('three').BufferGeometry[], nhom?: boolean)
   const xo = new Map<string, { r: import('three').Object3D; ds: import('three').Mesh[] }>();
   canh.traverse((o) => { const m = o as import('three').Mesh;
     if (m.isMesh !== true || (m as unknown as { isInstancedMesh?: boolean }).isInstancedMesh || Array.isArray(m.material) || !m.geometry?.attributes.position) return;
+    for (let p: import('three').Object3D | null = m; p; p = p.parent) if (p.userData.dong) return;   // vật chuyển động (cần cẩu / khói SX) giữ riêng, không gộp
     const mv = m.material as import('three').Material; if (mv.transparent && mv.opacity === 0) { m.layers.set(1); return; }   // khối bấm tàng hình: khỏi vẽ
     let r: import('three').Object3D = canh; for (let p = m.parent; p; p = p.parent) if (goc.has(p)) { r = p; break; }
     const k = `${r.uuid}#${khoa(m.material as import('three').Material)}`; const b = xo.get(k); if (b) b.ds.push(m); else xo.set(k, { r, ds: [m] }); });
@@ -260,7 +261,8 @@ function gopVe(T: T3, gop: (g: import('three').BufferGeometry[], nhom?: boolean)
   }
 }
 type DieuKhien = { phong: (f: number) => void; veGoc: () => void; ve: () => void; tieuDiem: (id: number | null) => void };
-function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, canh: import('three').Scene) => { vat: Vat[]; tam: [number, number, number]; xa: number; nhom?: { id: number; g: import('three').Object3D }[] },
+/** hoat: hàm chuyển động theo giây (cần cẩu SX quay · khói SX lỗi) — có thì cảnh vẽ liên tục ~24 khung/giây, không có thì chỉ vẽ khi đổi góc như cũ */
+function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, canh: import('three').Scene) => { vat: Vat[]; tam: [number, number, number]; xa: number; nhom?: { id: number; g: import('three').Object3D }[]; hoat?: ((t: number) => void)[] },
   deps: unknown[], chon: number | null, onChon: (id: number | null, xy?: { x: number; y: number }) => void, kieu: 'pho' | 'toa' = 'pho') {
   const [re, setRe] = useState<{ x: number; y: number; chu: string } | null>(null), [loi, setLoi] = useState<string | null>(null);
   const chonRef = useRef(chon); chonRef.current = chon;
@@ -278,7 +280,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
       const canh = new T.Scene(), cam = new T.PerspectiveCamera(38, W / Hh, 0.1, 600);
       canh.add(new T.HemisphereLight(0xffffff, 0x334155, 1.6));
       const den = new T.DirectionalLight(0xffffff, 1.4); den.position.set(5, 9, 6); canh.add(den);
-      const { vat, tam: t0, xa: xa0, nhom = [] } = dung(T, canh);
+      const { vat, tam: t0, xa: xa0, nhom = [], hoat = [] } = dung(T, canh);
       gopVe(T, mergeGeometries, canh, vat, nhom);
       const GOC0 = -0.6, NGHIENG0 = kieu === 'pho' ? 0.62 : 0.32;
       const datGoc = () => { const t = new T.Vector3(...t0); cam.position.set(t.x + xa0 * Math.cos(NGHIENG0) * Math.sin(GOC0), t.y + xa0 * Math.sin(NGHIENG0), t.z + xa0 * Math.cos(NGHIENG0) * Math.cos(GOC0)); ctl.target.copy(t); ctl.update(); };
@@ -339,7 +341,9 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
         for (const g of mo) if (!moi.has(g)) { datMo(g, false); mo.delete(g); }
         for (const g of moi) if (!mo.has(g)) { datMo(g, true); mo.add(g); }
       };
-      let raf = 0; const lap = () => { diPhim(); const doi = ctl.update(); if (can || doi) { can = false; if (hop3.length) xuyen(); r.render(canh, cam); } raf = requestAnimationFrame(lap); }; lap();
+      let raf = 0, tHoat = 0; const lap = () => { diPhim(); const doi = ctl.update();
+        if (hoat.length) { const t = performance.now(); if (t - tHoat > 40) { tHoat = t; for (const f of hoat) f(t / 1000); can = true; } }   // chuyển động SX: ≤ 25 khung/giây cho nhẹ
+        if (can || doi) { can = false; if (hop3.length) xuyen(); r.render(canh, cam); } raf = requestAnimationFrame(lap); }; lap();
 
       const ray = new T.Raycaster(), p2 = new T.Vector2(); ray.layers.enableAll();   // vật bấm gốc nằm ở lớp 1 (không vẽ — gopVe), tia vẫn chạm
       const mat = vat.map((k) => k.m), matDat = new T.Plane(new T.Vector3(0, 1, 0), 0), dd = new T.Vector3();
@@ -442,7 +446,7 @@ export function ToaNha({ camp, tat, mong, bien, chon, onChon }: { camp: CampToa[
  *  mỗi phim nhà đang có camp chạy = một toà trên một lô; lô gom thành cụm 2 × 2, giữa các cụm là đường (vạch giữa), ngoài cùng đường vành đai.
  *  Lô gần tâm nhất nhận toà cấp cao nhất → KHU THƯỢNG LƯU (Tháp, Cao ốc — nền lát đá) ở trung tâm · KHU TRUNG LƯU (Văn phòng, Nhà phố — nền cỏ, cây) vòng giữa ·
  *  KHU VEN (Nhà cấp 4, Túp lều — nền đất) ngoài rìa. Biển tên chỉ cắm trên các toà đứng đầu. Bấm toà = chọn phim. */
-export type ToaPhim = { p: number; ten: string; camp: CampToa[]; tat?: CampToa[]; sx?: Record<string, number> };
+export type ToaPhim = { p: number; ten: string; camp: CampToa[]; tat?: CampToa[]; sx?: Record<string, number>; sxLoi?: Record<string, string> };
 /** THÁP CỦA KHU PHỨC HỢP — mỗi bộ tài khoản một tháp; tháp nhiều camp (cao) đứng hàng sau, thấp đứng trước để không che nhau. MỘT thứ tự cho dựng cảnh + mã chọn tháp */
 export const thapCua = (ph: ToaPhim) => {
   const m = new Map<string, { bo: string; ten: string; camp: CampToa[]; tat: CampToa[] }>();
@@ -450,6 +454,37 @@ export const thapCua = (ph: ToaPhim) => {
   for (const c of ph.tat ?? []) m.get(c.bo)?.tat.push(c);
   return [...m.values()].sort((a, b) => b.camp.length - a.camp.length || a.bo.localeCompare(b.bo, 'vi', { numeric: true }));
 };
+/** SX TRÊN TOÀ (anh 15/11/2026 #1601 "Nếu đang sx mà bị lỗi thì bốc khói !! Nếu hoạt động ổn thì có animation"): đặt trên nóc thân tháp (gốc g, cao y)
+ *  · dòng SX lỗi / kẹt → cột khói xám bốc lên + đốm lửa đỏ nhấp nháy · dòng SX chạy ổn → cần cẩu vàng quay tay cẩu, móc lên xuống, đèn đỉnh nhấp nháy.
+ *  Nhóm mang userData.dong → gopVe không gộp; trả hàm chuyển động cho useCanh3D. */
+function dungSx(T: T3, g: import('three').Group, y: number, loi: boolean, hoat: ((t: number) => void)[], pha: number) {
+  const n = new T.Group(); n.userData.dong = true; n.position.set(RONG / 2 - 0.45, y, -SAU / 2 + 0.4); g.add(n);
+  if (loi) {
+    const lua = new T.Mesh(new T.SphereGeometry(0.12, 10, 8), new T.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.9 })); lua.position.y = 0.08; n.add(lua);
+    const khoi = Array.from({ length: 7 }, () => { const m = new T.Mesh(new T.SphereGeometry(0.16, 10, 8), new T.MeshBasicMaterial({ color: 0x6b7280, transparent: true, opacity: 0.6, depthWrite: false })); n.add(m); return m; });
+    hoat.push((t) => {
+      (lua.material as import('three').MeshBasicMaterial).opacity = 0.55 + 0.45 * Math.abs(Math.sin(t * 7 + pha)); lua.scale.setScalar(0.8 + 0.35 * Math.abs(Math.sin(t * 5 + pha)));
+      khoi.forEach((m, i) => { const k = ((t * 0.35 + pha + i / khoi.length) % 1);   // 0 → 1: từ nóc bay lên, nở to, nhạt dần
+        m.position.set(Math.sin(k * 5 + i) * 0.18 + k * 0.35, 0.15 + k * 2.4, Math.cos(k * 4 + i) * 0.14);
+        m.scale.setScalar(0.6 + k * 2.2); (m.material as import('three').MeshBasicMaterial).opacity = 0.65 * (1 - k); });
+    });
+    return;
+  }
+  const vang = new T.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xa16207, emissiveIntensity: 0.35, roughness: 0.6 });
+  const cot = new T.Mesh(new T.BoxGeometry(0.09, 1.1, 0.09), vang); cot.position.y = 0.55; n.add(cot);
+  const tay = new T.Group(); tay.position.y = 1.12; n.add(tay);
+  const can = new T.Mesh(new T.BoxGeometry(1.5, 0.07, 0.07), vang); can.position.x = -0.45; tay.add(can);
+  const doi = new T.Mesh(new T.BoxGeometry(0.2, 0.14, 0.14), new T.MeshStandardMaterial({ color: 0x475569 })); doi.position.x = 0.22; tay.add(doi);
+  const day = new T.Mesh(new T.BoxGeometry(0.012, 1, 0.012), new T.MeshBasicMaterial({ color: 0x1f2937 })); tay.add(day);
+  const moc = new T.Mesh(new T.BoxGeometry(0.1, 0.08, 0.1), new T.MeshStandardMaterial({ color: 0xf59e0b })); tay.add(moc);
+  const den = new T.Mesh(new T.SphereGeometry(0.05, 8, 6), new T.MeshBasicMaterial({ color: 0xef4444, transparent: true })); den.position.y = 0.08; tay.add(den);
+  hoat.push((t) => {
+    tay.rotation.y = t * 0.6 + pha;
+    const h = 0.35 + 0.3 * (1 + Math.sin(t * 1.3 + pha)) / 2;   // móc lên xuống
+    day.scale.y = h; day.position.set(-1.1, -h / 2, 0); moc.position.set(-1.1, -h - 0.04, 0);
+    (den.material as import('three').MeshBasicMaterial).opacity = Math.sin(t * 4 + pha) > 0 ? 1 : 0.15;
+  });
+}
 /** mã một tháp trong cảnh (vật bấm, khung chọn, xuyên thấu): phim × 100 + thứ tự tháp */
 const maThap = (p: number, j: number) => p * 100 + j + 1;
 export const laiPhim = (x: ToaPhim) => x.camp.reduce((a, c) => a + c.thu7 - c.chi7, 0);
@@ -482,7 +517,7 @@ export function ThanhPho({ ds: ds0, chon: chonP, chonBo, onChon, cao }: { ds: To
     window.addEventListener('etp-toa', nghe); return () => window.removeEventListener('etp-toa', nghe);
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const { re, loi, dk } = useCanh3D(hop, (T, canh) => {
-    const kho = new Map<string, import('three').CanvasTexture>(), vat: Vat[] = []; vungRef.current.clear(); boCuaMa.current.clear();
+    const kho = new Map<string, import('three').CanvasTexture>(), vat: Vat[] = [], hoat: ((t: number) => void)[] = []; vungRef.current.clear(); boCuaMa.current.clear();
     // KHU PHỨC HỢP (anh 15/11/2026 "bố cục lại toà nhà cần trở thành khu phức hợp với diện tích xung quanh rộng hơn! Giống ở túp lều nhưng hiện đại hơn" + nhiều bộ tk → "Khu phức hợp"):
     // lô gấp đôi (sân lát, bồn cây, lối vào) · mỗi BỘ TÀI KHOẢN một tháp riêng đứng chung lô, cấp tháp theo camp của bộ đó, biển "Bộ N" · tên phim một biển ở mép lô
     const n = ds.length, LX = 2 * RONG + 2.4, LZ = 2 * SAU + 2.6, D = 1.3, nhom: { id: number; g: import('three').Object3D }[] = [];   // lô (có sân) · bề ngang đường
@@ -538,9 +573,12 @@ export function ThanhPho({ ds: ds0, chon: chonP, chonBo, onChon, cao }: { ds: To
         const g = new T.Group(); g.scale.setScalar(ti); g.position.set(-PX / 2 + 0.2 + oW * ((j % cot2) + 0.5), 0.04, -PZ / 2 + 0.2 + oD * (Math.floor(j / cot2) + 0.5)); lg.add(g);
         const nhieuBo = k > 1, laiB = b.camp.reduce((a, c) => a + c.thu7 - c.chi7, 0), ma = maThap(ph.p, j);
         // SX theo bộ: dòng anh chọn bộ → tháp bộ đó; dòng máy chọn bộ ('') → tháp đầu
-        const sx = (ph.sx?.[b.bo] ?? 0) + (j === 0 ? ph.sx?.[''] ?? 0 : 0);
+        const sx = (ph.sx?.[b.bo] ?? 0) + (j === 0 ? ph.sx?.[''] ?? 0 : 0), cb0 = capToa(b.camp).cap;
         const r = dungToa(T, g, { camp: b.camp, tat: b.tat, mong: { sx, ke: 0, cho: 0 }, bien: nhieuBo ? { chu: b.ten, mau: mauBo(b.bo, j) } : null, bienCo: 0.36, nhanTang: false, bienTheoMan: true, kho });
         v0.thap.push({ g, mong: r.mong, bo: b.bo, ma }); boCuaMa.current.set(ma, { p: ph.p, bo: b.bo }); nhom.push({ id: ma, g });
+        // SX lỗi → khói · SX chạy ổn → cần cẩu quay (#1601); cùng luật chia bộ với sx: dòng máy chọn bộ ('') về tháp đầu. Thửa (cấp ≤ 1) đặt sát đất.
+        const loiSx = [ph.sxLoi?.[b.bo], j === 0 ? ph.sxLoi?.[''] : undefined].filter(Boolean).join(' · ');
+        if (loiSx || sx > 0) dungSx(T, g, cb0 <= 1 ? 0.06 : r.than[1], !!loiSx, hoat, (ph.p % 13) * 0.29 + j * 0.5);
         if (r.bienSp) { (r.bienSp.material as import('three').SpriteMaterial).opacity = 0.35; r.bienSp.userData.mo = 0.35; }
         caoLo = Math.max(caoLo, r.cao * ti);
         // KHUNG CHỌN ÔM TỪNG THÁP (anh 15/11/2026 "ko chọn được khu trong từng bộ tk"): mỗi tháp / thửa một khối bấm riêng, mở bảng phim đúng bộ đó
@@ -555,7 +593,7 @@ export function ThanhPho({ ds: ds0, chon: chonP, chonBo, onChon, cao }: { ds: To
         const nhanBo = nhieuBo ? ` · ${b.ten}` : '';
         for (const v of r.vat) vat.push({ m: v.m, vien: bat, id: ma, chu: `${ten}${nhanBo} · ${v.chu}`, bien: bien0 });
         const k7 = b.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }), cb = capToa(b.camp);
-        vat.push({ bien: bien0, m: bat, vien: bat, id: ma, chu: `${ten}${nhanBo} · ${CAP[cb.cap]} · ${KHU[kh]!.ten}${k > 1 ? ` · phim có ${k} bộ` : ''}${cb.tinHieu ? ` · 🟢 ${cb.tinHieu} camp tín hiệu lãi` : ''} · ${b.camp.length} camp · 7 ngày lãi ${k7.thu - k7.chi >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
+        vat.push({ bien: bien0, m: bat, vien: bat, id: ma, chu: `${ten}${nhanBo} · ${CAP[cb.cap]} · ${KHU[kh]!.ten}${k > 1 ? ` · phim có ${k} bộ` : ''}${cb.tinHieu ? ` · 🟢 ${cb.tinHieu} camp tín hiệu lãi` : ''}${loiSx ? ` · 💨 SX lỗi: ${loiSx}` : sx > 0 ? ` · 🏗 ${sx} SX đang chạy ổn` : ''} · ${b.camp.length} camp · 7 ngày lãi ${k7.thu - k7.chi >= 0 ? '' : '−'}$${Math.abs(k7.thu - k7.chi).toFixed(0)}` });
       });
       vungRef.current.set(ph.p, v0);
       bien0.position.set(0, Math.max(0.6, caoLo) + 0.35, 0); (bien0.material as import('three').SpriteMaterial).opacity = 0.2; bien0.userData.mo = 0.2; lg.add(bien0);
@@ -567,7 +605,7 @@ export function ThanhPho({ ds: ds0, chon: chonP, chonBo, onChon, cao }: { ds: To
     // cây khu trung lưu + công viên (InstancedMesh)
     if (cay.length) { const cm = new T.InstancedMesh(new T.ConeGeometry(0.22, 0.6, 7), new T.MeshStandardMaterial({ color: TRANG_TRI.cay, roughness: 1 }), cay.length);
       cay.forEach(([x, z], i) => { mt.position.set(x, 0.3, z); mt.rotation.set(0, 0, 0); mt.updateMatrix(); cm.setMatrixAt(i, mt.matrix); }); canh.add(cm); }
-    return { vat, tam: [0, 0, 0], xa: Math.max(12, Math.max(W, Z) * 1.05 + caoMax * 0.5), nhom };
+    return { vat, tam: [0, 0, 0], xa: Math.max(12, Math.max(W, Z) * 1.05 + caoMax * 0.5), nhom, hoat };
   }, [ds], chon, (ma, xy) => { const t = ma == null ? null : boCuaMa.current.get(ma); onChon(t?.p ?? null, xy, t?.bo ?? null); }, 'pho');
   // chú giải khu (chữ HTML góc trái — biển 3D ba khu từng đè nhau ở cùng một góc)
   const dem = KHU.map((_, i) => ds.filter((x) => khuCua(capToa(x.camp).cap) === i).length);

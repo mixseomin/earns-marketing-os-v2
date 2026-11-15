@@ -149,6 +149,7 @@ function ThanhPhoO({ cao }: { cao: number }) {
 const LOC_TP: { ma: string; ten: string; giai: string; khop: (x: PhimThanhPho) => boolean }[] = [
   { ma: '', ten: 'Tất cả', giai: 'mọi phim', khop: () => true },
   { ma: 'sx', ten: '🏗 Đang SX', giai: 'phim có dòng sản xuất đang chạy', khop: (x) => Object.values(x.sx ?? {}).some((n) => n > 0) },
+  { ma: 'sx_loi', ten: '💨 SX lỗi', giai: 'phim có dòng sản xuất lỗi / kẹt (toà bốc khói)', khop: (x) => Object.keys(x.sxLoi ?? {}).length > 0 },
   { ma: 'lai', ten: 'Lãi 7 ngày', giai: 'tổng thu − chi 7 ngày ≥ 0', khop: (x) => x.camp.length > 0 && laiPhim(x) >= 0 },
   { ma: 'lo', ten: 'Lỗ 7 ngày', giai: 'tổng thu − chi 7 ngày < 0', khop: (x) => laiPhim(x) < 0 },
   { ma: 'roas', ten: '★ ROAS', giai: 'có camp ROAS', khop: (x) => x.camp.some((c) => c.roas) },
@@ -161,8 +162,9 @@ function ThanhPhoVe({ ds, nguoi, laNha, cao }: { ds: PhimThanhPho[]; nguoi: stri
   const noi = useNoi<{ id: number }>();   // bấm một toà → bảng phim đó (cùng ruột với bảng rê đồng hồ dòng phim)
   // cấp toà trước (tháp đứng hàng đầu), cùng cấp thì lãi 7 ngày
   // cấp trước; cùng cấp thì toà có đèn xanh tín hiệu đứng sát khu trên (gần tâm hơn), rồi lãi 7 ngày
-  const [loc, setLoc0] = useState(''); useEffect(() => { try { const v = localStorage.getItem('etp2-loc-tp') ?? ''; if (LOC_TP.some((l) => l.ma === v)) setLoc0(v); } catch { /* kho bị chặn */ } }, []);
-  const setLoc = (v: string) => { setLoc0(v); setChon(null); try { localStorage.setItem('etp2-loc-tp', v); } catch { /* kho bị chặn */ } };
+  // LỌC ĐI CÙNG URL (anh 15/11/2026 #1601 "Các bộ filter phải đi cùng với URL"): ?loc_tp=<mã> — gửi link / F5 / mở tab mới đúng lọc đang xem; 'Tất cả' thì bỏ khỏi URL
+  const [loc, setLoc0] = useState(''); useEffect(() => { const v = new URL(location.href).searchParams.get('loc_tp') ?? ''; if (LOC_TP.some((l) => l.ma === v)) setLoc0(v); }, []);
+  const setLoc = (v: string) => { setLoc0(v); setChon(null); const u = new URL(location.href); if (v) u.searchParams.set('loc_tp', v); else u.searchParams.delete('loc_tp'); if (u.href !== location.href) history.replaceState(null, '', u); };
   const demLoc = useMemo(() => LOC_TP.map((l) => ds.filter(l.khop).length), [ds]);
   const xep = useMemo(() => [...ds].filter((LOC_TP.find((l) => l.ma === loc) ?? LOC_TP[0]!).khop).map((x) => ({ x, k: capToa(x.camp) })).sort((a, b) => b.k.cap - a.k.cap || b.k.tinHieu - a.k.tinHieu || laiPhim(b.x) - laiPhim(a.x)).map((v) => v.x), [ds, loc]);
   const demCap = useMemo(() => CAP.map((_, i) => xep.filter((x) => capToa(x.camp).cap === i).length), [xep]);

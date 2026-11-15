@@ -8,7 +8,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 import { campToaSql, docCampToa, type CampToa, type NguonToa } from '@/lib/etp-toa-sql';
 
-export type PhimThanhPho = { p: number; ten: string; camp: CampToa[]; tat: CampToa[]; /** dòng SX đang chạy theo bộ ('' = máy chọn bộ) */ sx: Record<string, number> };
+export type PhimThanhPho = { p: number; ten: string; camp: CampToa[]; tat: CampToa[]; /** dòng SX đang chạy theo bộ ('' = máy chọn bộ) */ sx: Record<string, number>;
+  /** dòng SX đang lỗi theo bộ → lý do (bước lỗi / dừng / kẹt quá hạn; dòng kết thúc 'loi' 24 giờ chưa có dòng mới) — toà bốc khói (#1601) */ sxLoi: Record<string, string> };
 
 export async function docThanhPho(ng?: string | null): Promise<{ ds: PhimThanhPho[]; nguoi: string; laNha: boolean } | { loi: string }> {
   const q = await quyenEtp(await getCurrentUser());
@@ -25,9 +26,18 @@ export async function docThanhPho(ng?: string | null): Promise<{ ds: PhimThanhPh
   else { nguon = { kieu: 'nha' }; ten = `${ds.find((x) => x.nha)?.ten ?? 'Nhà'} (nhà)`; }
   const rows = await run<Record<string, unknown> & { p: number; ten: string | null }>(campToaSql(sql`true`, nguon));
   const m = new Map<number, PhimThanhPho>();
-  for (const r of rows) { const x = m.get(r.p) ?? { p: r.p, ten: r.ten ?? `#${r.p}`, camp: [], tat: [], sx: {} }; const c = docCampToa(r); (c.tat ? x.tat : x.camp).push(c); m.set(r.p, x); }
+  for (const r of rows) { const x = m.get(r.p) ?? { p: r.p, ten: r.ten ?? `#${r.p}`, camp: [], tat: [], sx: {}, sxLoi: {} }; const c = docCampToa(r); (c.tat ? x.tat : x.camp).push(c); m.set(r.p, x); }
   // DÒNG SX ĐANG CHẠY (etp.dong_phim, chỉ nhà) → giàn giáo vàng ở móng / cọc vàng trên thửa (anh 15/11/2026 "bấm vào sx thì update ngay trên toà nhà tương ứng")
   if (nguon.kieu === 'nha') for (const r of await run<{ p: number; bo: string; n: number }>(sql`select content_id::int p, coalesce(bo, '') bo, sum(coalesce(so_camp, 1))::int n from etp.dong_phim where trang_thai = 'chay' group by 1, 2`)) { const x = m.get(r.p); if (x) x.sx[r.bo] = r.n; }
+  // DÒNG SX LỖI (anh 15/11/2026 #1601 "Nếu đang sx mà bị lỗi thì bốc khói !! Nếu hoạt động ổn thì có animation"): cùng định nghĩa lỗi / kẹt của bảng Dòng phim (etp-dong.tsx ket():
+  // bước 'dang' quá han_giay hoặc im nhịp > 10 phút) + bước 'loi' / 'dung' của dòng đang chạy + dòng kết thúc 'loi' trong 24 giờ mà chưa có dòng mới cùng phim × loại
+  if (nguon.kieu === 'nha') for (const r of await run<{ p: number; bo: string; chu: string }>(sql`select d.content_id::int p, coalesce(d.bo, '') bo,
+      left(regexp_replace(coalesce(nullif(d.ly_do, ''), b.buoc || ': ' || coalesce(nullif(b.ghi, ''), case when b.trang_thai = 'dang' then 'kẹt quá hạn' else b.trang_thai end), 'lỗi'), '[[:space:]]+', ' ', 'g'), 160) chu
+    from etp.dong_phim d left join lateral (select b.buoc, b.ghi, b.trang_thai from etp.dong_buoc b where b.dong_id = d.id and (b.trang_thai in ('loi', 'dung')
+        or (b.trang_thai = 'dang' and (now() - b.bat_dau > make_interval(secs => b.han_giay) or now() - coalesce(b.nhip, b.bat_dau) > interval '10 minutes'))) order by b.thu_tu limit 1) b on true
+    where (d.trang_thai = 'chay' and b.buoc is not null)
+      or (d.trang_thai = 'loi' and d.xong_luc > now() - interval '24 hours' and not exists (select 1 from etp.dong_phim d2 where d2.content_id = d.content_id and d2.loai = d.loai and d2.id > d.id))
+    order by d.id`)) { const x = m.get(r.p); if (x) x.sxLoi[r.bo] = x.sxLoi[r.bo] ? `${x.sxLoi[r.bo]} · ${r.chu}` : r.chu; }
   // phim chỉ còn camp đã tắt (không camp nào chạy) không dựng thành nhà
   return { ds: [...m.values()].filter((x) => x.camp.length), nguoi: ten, laNha: nguon.kieu === 'nha' };
 }

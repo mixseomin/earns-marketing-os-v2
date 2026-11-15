@@ -227,6 +227,38 @@ function dungToa(...a: Parameters<typeof dungThan>) {
  *    · điện thoại 1 ngón trượt, 2 ngón chụm phóng + vặn xoay;
  *  · một toà = OrbitControls (kiểu Sketchfab / trình xem 3D): kéo trái = xoay · kéo phải = trượt · lăn = phóng · điện thoại 1 ngón xoay, 2 ngón phóng + trượt.
  *  Shift + vuốt 2 ngón touchpad / Shift + lăn = xoay quanh tâm (anh 15/11/2026). Cả hai có quán tính (damping), nhấp đúp = phóng vào điểm đó (nhấp đơn hoãn 260 ms để không chọn nhầm), nút + / − / ⟲. */
+/** GỘP LỆNH VẼ (anh 15/11/2026 "trên PC phần thành phố đang bị nặng khi pan"): mỗi ô cửa / mạch lát / bồn cây là một vật riêng → ~4.700 lệnh vẽ mỗi khung.
+ *  Gộp mọi mesh tĩnh CÙNG chất liệu trong cùng một gốc (tháp trong `nhom` — để xuyên thấu vẫn làm mờ được từng tháp; còn lại gộp chung cả cảnh) thành một mesh.
+ *  Vật bấm / rê (vat.m, vat.vien) giữ nguyên nhưng chuyển sang lớp 1: camera không vẽ, tia chuột (layers.enableAll) vẫn chạm. */
+function gopVe(T: T3, gop: (g: import('three').BufferGeometry[], nhom?: boolean) => import('three').BufferGeometry | null, canh: import('three').Scene,
+  vat: Vat[], nhom: { id: number; g: import('three').Object3D }[]) {
+  canh.updateMatrixWorld(true);
+  const bam = new Set<import('three').Object3D>(); for (const v of vat) { bam.add(v.m); bam.add(v.vien); }
+  const goc = new Set<import('three').Object3D>(nhom.map((n) => n.g));
+  const rH = (c: unknown) => (c && typeof (c as { getHex?: unknown }).getHex === 'function' ? (c as import('three').Color).getHex() : null);
+  const khoa = (m: import('three').Material) => { const x = m as import('three').MeshStandardMaterial;
+    return [m.type, rH(x.color), rH(x.emissive), x.emissiveIntensity, x.roughness, x.metalness, x.map?.uuid, x.emissiveMap?.uuid, m.transparent, m.opacity, m.side, x.flatShading, m.depthWrite, m.depthTest].join('|'); };
+  const xo = new Map<string, { r: import('three').Object3D; ds: import('three').Mesh[] }>();
+  canh.traverse((o) => { const m = o as import('three').Mesh;
+    if (m.isMesh !== true || (m as unknown as { isInstancedMesh?: boolean }).isInstancedMesh || Array.isArray(m.material) || !m.geometry?.attributes.position) return;
+    const mv = m.material as import('three').Material; if (mv.transparent && mv.opacity === 0) { m.layers.set(1); return; }   // khối bấm tàng hình: khỏi vẽ
+    let r: import('three').Object3D = canh; for (let p = m.parent; p; p = p.parent) if (goc.has(p)) { r = p; break; }
+    const k = `${r.uuid}#${khoa(m.material as import('three').Material)}`; const b = xo.get(k); if (b) b.ds.push(m); else xo.set(k, { r, ds: [m] }); });
+  const nghich = new T.Matrix4(), mt = new T.Matrix4();
+  for (const { r, ds } of xo.values()) {
+    if (ds.length < 2) continue;
+    nghich.copy(r.matrixWorld).invert(); const coIdx = ds.every((m) => m.geometry.index), hinh: import('three').BufferGeometry[] = [];
+    for (const m of ds) { let g = m.geometry.clone(); if (!coIdx && g.index) g = g.toNonIndexed();
+      for (const a of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(a)) g.deleteAttribute(a);
+      if (!g.attributes.normal) g.computeVertexNormals();
+      g.applyMatrix4(mt.multiplyMatrices(nghich, m.matrixWorld)); hinh.push(g); }
+    const uv = hinh.every((g) => g.attributes.uv); if (!uv) for (const g of hinh) if (g.attributes.uv) g.deleteAttribute('uv');
+    const gg = gop(hinh, false); for (const g of hinh) g.dispose();
+    if (!gg) continue;
+    const mm = new T.Mesh(gg, (ds[0]!.material as import('three').Material).clone()); mm.renderOrder = ds[0]!.renderOrder; r.add(mm);
+    for (const m of ds) { if (bam.has(m)) m.layers.set(1); else { m.parent?.remove(m); m.geometry.dispose(); } }
+  }
+}
 type DieuKhien = { phong: (f: number) => void; veGoc: () => void; ve: () => void; tieuDiem: (id: number | null) => void };
 function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, canh: import('three').Scene) => { vat: Vat[]; tam: [number, number, number]; xa: number; nhom?: { id: number; g: import('three').Object3D }[] },
   deps: unknown[], chon: number | null, onChon: (id: number | null, xy?: { x: number; y: number }) => void, kieu: 'pho' | 'toa' = 'pho') {
@@ -238,7 +270,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
   useEffect(() => { capNhatChon.current(chon); }, [chon]);
   useEffect(() => {
     let huy = false, don = () => {};
-    Promise.all([import('three'), import('three/examples/jsm/controls/MapControls.js'), import('three/examples/jsm/controls/OrbitControls.js')]).then(([T, { MapControls }, { OrbitControls }]) => {
+    Promise.all([import('three'), import('three/examples/jsm/controls/MapControls.js'), import('three/examples/jsm/controls/OrbitControls.js'), import('three/examples/jsm/utils/BufferGeometryUtils.js')]).then(([T, { MapControls }, { OrbitControls }, { mergeGeometries }]) => {
       if (huy || !hop.current) return;
       const el = hop.current, W = el.clientWidth || 456, Hh = el.clientHeight || 340;
       const r = new T.WebGLRenderer({ antialias: true, alpha: true });
@@ -247,6 +279,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
       canh.add(new T.HemisphereLight(0xffffff, 0x334155, 1.6));
       const den = new T.DirectionalLight(0xffffff, 1.4); den.position.set(5, 9, 6); canh.add(den);
       const { vat, tam: t0, xa: xa0, nhom = [] } = dung(T, canh);
+      gopVe(T, mergeGeometries, canh, vat, nhom);
       const GOC0 = -0.6, NGHIENG0 = kieu === 'pho' ? 0.62 : 0.32;
       const datGoc = () => { const t = new T.Vector3(...t0); cam.position.set(t.x + xa0 * Math.cos(NGHIENG0) * Math.sin(GOC0), t.y + xa0 * Math.sin(NGHIENG0), t.z + xa0 * Math.cos(NGHIENG0) * Math.cos(GOC0)); ctl.target.copy(t); ctl.update(); };
       const cv = r.domElement;
@@ -308,7 +341,8 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
       };
       let raf = 0; const lap = () => { diPhim(); const doi = ctl.update(); if (can || doi) { can = false; if (hop3.length) xuyen(); r.render(canh, cam); } raf = requestAnimationFrame(lap); }; lap();
 
-      const ray = new T.Raycaster(), p2 = new T.Vector2(), mat = vat.map((k) => k.m), matDat = new T.Plane(new T.Vector3(0, 1, 0), 0), dd = new T.Vector3();
+      const ray = new T.Raycaster(), p2 = new T.Vector2(); ray.layers.enableAll();   // vật bấm gốc nằm ở lớp 1 (không vẽ — gopVe), tia vẫn chạm
+      const mat = vat.map((k) => k.m), matDat = new T.Plane(new T.Vector3(0, 1, 0), 0), dd = new T.Vector3();
       const tia = (cx: number, cy: number) => { const b = cv.getBoundingClientRect(); p2.set(((cx - b.left) / b.width) * 2 - 1, -((cy - b.top) / b.height) * 2 + 1); ray.setFromCamera(p2, cam); };
       // toà đang mờ (xuyên thấu) không chặn chuột — rê / bấm đi xuyên qua tới tháp phía sau (anh 15/11/2026 "ko chọn được khu trong từng bộ, bị toà nhà cao hơn đè")
       const trung = (cx: number, cy: number) => { tia(cx, cy); const h = ray.intersectObjects(mat).find((x) => ((x.object as import('three').Mesh).material as import('three').Material | undefined)?.userData?.mo0 === undefined); return h ? vat.find((k) => k.m === h.object) ?? null : null; };

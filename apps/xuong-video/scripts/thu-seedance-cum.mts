@@ -46,7 +46,9 @@ for (const [i, x] of cum.entries()) { for (const d of x.canh.thoai ?? []) if (d.
 const guiGiong = cachKhop?.cach === 'seedance_audio' && cauAm.length > 0;
 // ĐUÔI BÙ MIỆNG (luật 15/11/2026): Seedance vẽ miệng trễ 0,8–1,0 s so với giọng (đo #4, #6) — cụm có thoại sinh thêm 2 s cuối để bước đo miệng
 // (canh-mieng-tap.sh) dời điểm vào trong đoạn của shot mà không lấn shot kế / hết clip. +2 s × $0,034.
-const giayRaGiong = guiGiong ? Math.min(15, Math.max(4, Math.ceil(tong) + 2)) : giayRa;
+// Đuôi tính từ CUỐI shot cuối TRONG clip (mocShot), không từ tổng giây phát: shot lẻ < 4 s lấy clip 3D đầy đủ, shot bắt đầu ở clip.vao (#6: vào 1,65 + 2 s = 3,65 —
+// tính theo tổng 2 s ra clip 4 s, chỉ còn 0,45 s đuôi, miệng trễ 1,21 s không bù được; 15/11/2026).
+const giayRaGiong = guiGiong ? Math.min(15, Math.max(4, Math.ceil(mocShot) + 2)) : giayRa;
 
 // ảnh: người + bối cảnh (thamChieuCum, ≤ 5) rồi keyframe từng shot (đúng nét vẽ / khung từng góc) — tổng ≤ 9
 const tc = thamChieuCum(cum, 5);

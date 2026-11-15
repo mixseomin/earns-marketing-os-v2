@@ -280,7 +280,7 @@ if (NOI) {
   } catch (e) { console.warn('[ns] không nạp được tranh tường', e); }
   noiThat = dungNoiThat({ RAPIER, world, tinh, scene, NT, yDay: NOI.palas.day, vienPalas: NOI.palas.v, thapV: NOI.thap.v, yCua: NOI.yCua, vanSan, vanTran, DO, TRANH });
 }
-const RUNG = []; // ẩn khi so ảnh thật (cây mọc ở mép vực che tầm nhìn từ cầu Marienbrücke; so ảnh chỉ đối chiếu lâu đài)
+const RUNG = []; let RUNG_O = []; // ẩn khi so ảnh thật (cây mọc ở mép vực che tầm nhìn từ cầu Marienbrücke; so ảnh chỉ đối chiếu lâu đài)
 // ---------- rừng: vân sam (thân + tán nón) vẽ hàng loạt; chừa nhà (+6 m), vách dốc, mép lưới
 {
   const r2 = T.rngTu(23), viTri = [];
@@ -294,15 +294,23 @@ const RUNG = []; // ẩn khi so ảnh thật (cây mọc ở mép vực che tầ
   }
   const tan = new THREE.ConeGeometry(2.6, 11, 7); tan.translate(0, 9.5, 0);
   const goc = new THREE.CylinderGeometry(0.25, 0.4, 5, 4, 1, true); goc.translate(0, 2.5, 0); // thân 4 mặt không nắp: 8 tam giác/cây thay 20 (2.600 cây; phần lớn thân nằm dưới tán)
-  const iT = new THREE.InstancedMesh(tan, new THREE.MeshStandardMaterial({ color: 0x2f4a2c, roughness: 0.95, flatShading: true }), viTri.length);
-  const iG = new THREE.InstancedMesh(goc, new THREE.MeshStandardMaterial({ color: 0x4a3626, roughness: 1 }), viTri.length);
+  // CHIA Ô 140 m (cân số lệnh vẽ với lượng loại bỏ): mỗi ô một cặp InstancedMesh có khối bao riêng → ô ngoài khung nhìn bị loại sẵn (frustum culling), ô ở xa tắt hẳn (anCayXa, 4 lần/giây).
+  // Trước đây cả rừng một khối: cây sau lưng / tận chân núi vẫn vẽ (anh 15/11/2026 "cái nào ở xa không cần render").
+  const vlT = new THREE.MeshStandardMaterial({ color: 0x2f4a2c, roughness: 0.95, flatShading: true }), vlG = new THREE.MeshStandardMaterial({ color: 0x4a3626, roughness: 1 });
+  const rung = new THREE.Group(), O = 140, nhomO = new Map();
+  viTri.forEach((v, i) => { const k = Math.floor(v[0] / O) + ',' + Math.floor(v[2] / O); if (!nhomO.has(k)) nhomO.set(k, []); nhomO.get(k).push([...v, i]); });
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
-  viTri.forEach(([x, y, z, s, a], i) => { m4.compose(new THREE.Vector3(x, y, z), q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a), new THREE.Vector3(s, s * (0.9 + (i % 5) * 0.06), s)); iT.setMatrixAt(i, m4); iG.setMatrixAt(i, m4); iT.setColorAt(i, c.setHSL(0.3 + (i % 7) * 0.008, 0.3, 0.17 + (i % 11) * 0.008)); });
-  iT.castShadow = !CHAM; iT.receiveShadow = true; scene.add(iT, iG); // điện thoại: 2.600 tán cây không đổ bóng (lượt vẽ bóng vẽ lại cả rừng)
+  for (const ds of nhomO.values()) {
+    const iT = new THREE.InstancedMesh(tan, vlT, ds.length), iG = new THREE.InstancedMesh(goc, vlG, ds.length);
+    ds.forEach(([x, y, z, s, a, i], j) => { m4.compose(new THREE.Vector3(x, y, z), q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a), new THREE.Vector3(s, s * (0.9 + (i % 5) * 0.06), s)); iT.setMatrixAt(j, m4); iG.setMatrixAt(j, m4); iT.setColorAt(j, c.setHSL(0.3 + (i % 7) * 0.008, 0.3, 0.17 + (i % 11) * 0.008)); });
+    iT.computeBoundingSphere(); iG.computeBoundingSphere(); iT.castShadow = !CHAM; iT.receiveShadow = true; // điện thoại: tán cây không đổ bóng
+    const o = new THREE.Group(); o.add(iT, iG); o.userData.tam = iT.boundingSphere.center.clone(); rung.add(o);
+  }
+  scene.add(rung); RUNG_O = rung.children;
   // thân cây có va chạm (trụ) từ gốc tới gần ngọn: đi không xuyên cây nữa, và bộ leo dibo (bám mọi mặt đứng) trèo được lên tới ngọn tán rồi đu lên đứng ở chạc ngọn
   for (const [x, y, z, s] of viTri) { const h = 12 * s; CAY_VA.push(world.createCollider(RAPIER.ColliderDesc.cylinder(h / 2, 0.32 * s).setTranslation(x, y + h / 2, z).setFriction(0.8), tinh));
     CAY_VA.push(world.createCollider(RAPIER.ColliderDesc.cylinder(0.06, 0.8).setTranslation(x, y + h, z), tinh)); } // chạc ngọn: leo tới đỉnh thì đu lên đứng được, không tuột rơi
-  RUNG.push(iT, iG); LOP_OSM.push(iT, iG);
+  RUNG.push(rung); LOP_OSM.push(rung); // bật / tắt (ảnh thật, so ảnh) tác động nhóm cha; anCayXa tác động từng ô bên trong
 }
 
 // ---------- điều khiển + nhãn
@@ -382,6 +390,15 @@ ganGopY({ nut: $('b-gy'), tieuDe: 'Góp ý cho Neuschwanstein', chupAnh: () => c
   const p = di?.dang ? di.viTri() : null, ph = p && noiThat ? noiThat.phongTai(p.x, p.y - 0.9, p.z) : null;
   return `Neuschwanstein · ${p ? `đi bộ tại (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}) hướng ${(di.huong * 180 / Math.PI).toFixed(0)}° · khu ${ph ? ph.ten : khuTai(p.x, p.z)}` : dangSo ? 'so ảnh thật' : 'toàn cảnh'} · ${innerWidth}×${innerHeight}`;
 } });
+// VẬT Ở XA KHÔNG VẼ: đi bộ thì sương mù kéo về 180–520 m + camera chỉ vẽ tới 600 m, ô rừng xa hơn 560 m tắt; xem toàn cảnh thì tầm theo độ cao / khoảng cách camera
+let lucXa = 0;
+function anCayXa(now) {
+  if (now - lucXa < 250) return; lucXa = now;
+  const dang = !!di?.dang, c = camera.position, xa = dang ? 560 : Math.max(900, c.length() * 2.2);
+  const fog = scene.fog, near = dang ? 180 : 600, far = dang ? 520 : 2200; if (fog.near !== near) { fog.near = near; fog.far = far; }
+  const cf = dang ? 600 : 5000; if (camera.far !== cf) { camera.far = cf; camera.updateProjectionMatrix(); }
+  for (const o of RUNG_O) o.visible = o.userData.tam.distanceTo(c) < xa;
+}
 let lan = 0, tichLuy = 0, lucCham = 0;
 for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart', 'touchmove']) addEventListener(ev, () => { lucCham = performance.now(); }, { passive: true }); // có thao tác → vẽ đủ nhịp
 const dongHo = new THREE.Clock();
@@ -394,7 +411,7 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
   else if (!dangSo) orbit.update(); // chế độ so ảnh: camera do thông số ảnh quyết
   if (noiThat) { const p = di?.dang ? di.viTri() : null; noiThat.hien(!!p && Math.hypot(p.x - noiThat.tam[0], p.z - noiThat.tam[1]) < 75); }
-  noiThat?.capNhat(dt); timTuongTac(now); camUng?.capNhat(); capNhatAnh3d();
+  noiThat?.capNhat(dt); timTuongTac(now); camUng?.capNhat(); anCayXa(now); capNhatAnh3d();
   capNhatHd(now); veBanDoNS(now);
   renderer.render(scene, camera);
 }

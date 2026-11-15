@@ -56,7 +56,8 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
       q.setFromAxisAngle(Y, goc);
       const doTu = cuaSo[`${t.k?.id}#${i}`], coAnh = !!matAnh[`${t.k?.id}#${i}`];
       if (coAnh && !doTu?.hang?.length) continue; // mặt có ảnh dán thật (đã có cửa, gờ thật trong ảnh) → không dựng cửa 3D đoán đè lên
-      if (doTu?.hang?.length) { // MẶT CÓ SỐ ĐO TỪ ẢNH: hàng / cụm / số ô đúng ảnh, ô trong dải phòng có lỗ thật thì không kính (mở được)
+      if (doTu?.hang?.length && coVom && !palas) { /* mặt nhìn ra sân trong: giữ dãy vòm tầng trệt theo ảnh Josef Albert (số đo ảnh 3D không thấy vòm) — bỏ số đo */ }
+      else if (doTu?.hang?.length) { // MẶT CÓ SỐ ĐO TỪ ẢNH: hàng / cụm / số ô đúng ảnh, ô trong dải phòng có lỗ thật thì không kính (mở được)
         for (const h of doTu.hang) {
           if (!coAnh) go.push([x1, z1, ux, uz, nx, nz, L, h.y0 - 0.35]); // mặt có ảnh dán: gờ đã có trong ảnh
           for (const c of h.cum) {

@@ -36,5 +36,13 @@
   "phong": 0.85,
   "roof:colour": "#4a4f57",
   "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà"
+ },
+ "way/951894999": {
+  "dau_hoi_bac": "yes",
+  "ly_do": "cổng Torbau: đầu hồi gạch đỏ hình bậc (ảnh 3D Google anh gửi 16/11/2026)"
+ },
+ "way/223110820": {
+  "dau_hoi_bac": "yes",
+  "ly_do": "cổng Torbau: đầu hồi gạch đỏ hình bậc (ảnh 3D Google anh gửi 16/11/2026)"
  }
 }

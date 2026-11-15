@@ -36,7 +36,8 @@ for (const k of ds) {
       cum.push({ x: +(c.reduce((s, q) => s + q.x, 0) / c.length).toFixed(2), z: +(c.reduce((s, q) => s + q.z, 0) / c.length).toFixed(2), y: +(top.m).toFixed(2), rong: +rong.toFixed(2), nho: +nho.toFixed(2), loai: nho > 4 && rong < 3.5 ? 'chop' : 'cuaMai', huong: +Math.atan2(nn[0] / hl, nn[2] / hl).toFixed(3), diem: c.length }); }
     return { lech: +lech.toFixed(2), so: pts.length, cum };
   }, k.id);
-  if (r) { kq[k.id] = r.cum; console.log(`${k.id}: ${r.so} điểm, lệch nền ${r.lech} m → ${r.cum.filter((c) => c.loai === 'cuaMai').length} cửa mái, ${r.cum.filter((c) => c.loai === 'chop').length} chóp`); }
+  // mái mô hình lệch ảnh 3D > 3 m: số đo cửa mái không tin được → bỏ (khu cổng Torbau lệch 8–10 m)
+  if (r) { kq[k.id] = Math.abs(r.lech) > 3 ? [] : r.cum; console.log(`${k.id}: ${r.so} điểm, lệch nền ${r.lech} m → ${r.cum.filter((c) => c.loai === 'cuaMai').length} cửa mái, ${r.cum.filter((c) => c.loai === 'chop').length} chóp`); }
 }
 writeFileSync(du('mai'), JSON.stringify({ ghi_chu: 'cửa mái / chóp nhỏ trên mái đo trên ảnh 3D Google (scripts/do-mai.mjs): phần nhô > 1 m khỏi mặt mái của khối mô hình; x, z tâm, y mặt mái tại đỉnh cụm, rong (m), nho (m nhô), huong (hướng mặt mái, rad)', khoi: kq }, null, 1) + '\n');
 console.log('ghi', du('mai')); await dong();

@@ -47,12 +47,6 @@
   @media (hover: none) { #bd.lon { left: 12px; right: auto; top: 60px; } }
   #goiY { position: fixed; left: 50%; bottom: 66px; transform: translateX(-50%); display: none; padding: 6px 12px; border-radius: 8px; background: rgba(20,12,8,.72); color: #ffe2b8; font: 600 13px system-ui, sans-serif; pointer-events: none; white-space: nowrap; }
   #toado { position: fixed; left: 12px; bottom: 56px; font: 600 11.5px ui-monospace, monospace; color: var(--mo); text-shadow: 0 1px 2px #000; }
-  #gy { inset: 0; display: none; place-items: center; background: rgba(10,5,3,.5); z-index: 8; border: 0; border-radius: 0; }
-  #gy > div { width: min(440px, calc(100vw - 32px)); padding: 16px; background: var(--o); border: 1px solid var(--vien); border-radius: 12px; display: flex; flex-direction: column; gap: 10px; }
-  #gy textarea { width: 100%; min-height: 110px; resize: vertical; font: inherit; color: var(--chu); background: rgba(0,0,0,.35); border: 1px solid var(--vien); border-radius: 8px; padding: 8px 10px; }
-  #gy .hang { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--mo); font-size: 13px; }
-  #gy .kq { font-size: 13px; min-height: 18px; }
-  #gy .kq.loi { color: #ff9a8a; }
   @media (hover: none) { #bd { left: auto; right: 10px; top: 10px; bottom: auto; width: 110px; height: 110px; } #toado { left: auto; right: 12px; top: 124px; bottom: auto; } }
   @media (max-width: 760px) { #hd { top: auto; bottom: 120px; right: 8px; left: 8px; width: auto; max-height: 34vh; } #dau .mo { display: none; } }
   @media (hover: none) { #hd .pc { display: none; } }
@@ -66,7 +60,7 @@
 // hỏi máy gốc ETag từng tệp (HEAD kèm ?ban=<giờ> = luôn trượt cache biên), rồi nạp ./x.js?v=<ETag>: tệp đổi → địa chỉ đổi → không ai giữ bản cũ.
 // Thêm tệp .js mới vào trang = thêm tên vào TEP.
 (async () => {
-  const TEP = ['main.js', 'tex.js', 'nhanvat.js', 'songdong.js', 'quan.js', 'amthanh.js', 'bando.js', 'phuongtien.js', 'nguoi3d.js', 'dibo.js'];
+  const TEP = ['main.js', 'tex.js', 'nhanvat.js', 'songdong.js', 'quan.js', 'amthanh.js', 'bando.js', 'phuongtien.js', 'nguoi3d.js', 'dibo.js', 'gopy.js'];
   const lay = (f) => fetch(`./${f}?ban=${Date.now()}`, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' })
     .then((r) => (r.ok && (r.headers.get('etag') || r.headers.get('last-modified')) || '').replace(/[^\w-]/g, '')).catch(() => '');
   const dau = await Promise.all(TEP.map(lay));
@@ -112,14 +106,6 @@
 </div>
 <div id="bd" title="Bản đồ — bấm để phóng to / thu nhỏ"><canvas></canvas></div>
 <div id="toado"></div>
-<div id="gy" class="o"><div>
-  <b>💬 Góp ý cho lâu đài</b>
-  <textarea id="gy-chu" placeholder="Thấy gì sai, muốn thêm gì… (Ctrl+Enter để gửi)"></textarea>
-  <div class="hang"><label><input type="checkbox" id="gy-anh" checked> Kèm ảnh màn hình lúc này</label>
-    <label><input type="radio" name="gy-loai" value="loi" checked> Lỗi / sửa</label><label><input type="radio" name="gy-loai" value="cau_hoi"> Hỏi</label></div>
-  <div class="kq" id="gy-kq"></div>
-  <div class="hang" style="justify-content:flex-end"><button id="gy-dong">Đóng</button><button id="gy-gui" class="chinh">Gửi</button></div>
-</div></div>
 <div id="goiY"></div>
 <div id="can"><i></i></div>
 <div id="cham"><button id="b-goc">👁</button><button id="b-noi">Nói</button><button id="b-chao">Chào</button><button id="b-mua">Múa</button><button id="b-da">Đá</button><button id="b-nhay">Nhảy</button><button id="b-nem">Ném</button></div>

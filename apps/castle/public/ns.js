@@ -13,6 +13,7 @@ import { taoBanDo } from './bando.js';
 import { dungNoiThat } from './noithat.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { ganGopY, chupCanvas } from './gopy.js';
 
 const $ = (id) => document.getElementById(id);
 const ten = new URLSearchParams(location.search).get('lau') || 'neuschwanstein';
@@ -299,7 +300,7 @@ try { await napNguoi3d(); toi = taoNguoi3d(); } catch (e) { console.warn('[ns] k
 if (toi) {
   toi.goc.visible = false; scene.add(toi.goc);
   di = taoDiBo({ RAPIER, world, camera, dom: renderer.domElement, toi, khiNhap: (x, y) => nemDoDangCam(x, y), ngoai: { buoc: (dt, tr) => buocNgoi(tr), khung: () => khungNgoi() }, khiDoi: (dang) => {
-    orbit.enabled = !dang; $('so').style.display = dang || !ANH.length ? 'none' : 'block'; $('b-di').style.display = dang ? 'none' : ''; $('b-toan').style.display = dang ? '' : 'none'; khoaHd = '';
+    if (!dang) boTuongTac(); orbit.enabled = !dang; $('so').style.display = dang || !ANH.length ? 'none' : 'block'; $('b-di').style.display = dang ? 'none' : ''; $('b-toan').style.display = dang ? '' : 'none'; khoaHd = '';
   } });
 }
 const torbau = dsKhoi.find((k) => k.tags.name === 'Torbau');
@@ -326,6 +327,7 @@ let khoaHd = '', lucHd = 0;
 function capNhatHd(now) {
   if (now - lucHd < 250) return; lucHd = now;
   const c = dangSo ? 'so' : di ? di.nguCanh() : 'toan', pv = di?.dang && noiThat ? di.viTri() : null, phong = pv ? noiThat.phongTai(pv.x, pv.y - 0.9, pv.z) : null;
+  capNhatKhu(phong);
   const khoa = c + (phong?.so || ''); if (khoa === khoaHd) return; khoaHd = khoa;
   const xoay = dg('giữ chuột + kéo', 'xoay camera') + dg(K('Z', 'X'), 'xoay trái / phải') + dg(K('V'), 'góc nhìn sau lưng / mắt') + dg(K('Esc'), 'về toàn cảnh');
   $('hd').innerHTML = c === 'so' ? '' : c === 'toan' ? '<b>Toàn cảnh</b>' + dg('kéo chuột', 'xoay') + dg('lăn chuột', 'phóng to / nhỏ') + dg('nhấp đúp', 'xuống đi bộ tại đó') + dg('🚶 Đi bộ', 'vào ở cổng Torbau')
@@ -336,6 +338,33 @@ function capNhatHd(now) {
       + (c === 'tuong' ? '<b>Ở đây</b>' + dg(K('Space'), 'tường thấp: trèo qua · cao: bám leo') : '') + xoay;
   $('hd').style.display = c === 'so' ? 'none' : '';
 }
+// bảng đầu trang = giới thiệu ngắn KHU đang đứng (trong phòng: gioiThieu của phòng; ngoài trời: du-lieu/neuschwanstein-khu.json theo khối OSM có tên)
+const KHU = await (await fetch('./du-lieu/neuschwanstein-khu.json', { cache: 'no-cache' })).json().then((j) => j.khu).catch((e) => { console.warn('[ns] không nạp được giới thiệu khu', e); return {}; });
+const DA_KHU = D.khoi.map((k) => ({ khoa: k.tags.building === 'courtyard' ? 'courtyard' : k.tags.name, v: k.ngoai[0] })).filter((k) => KHU[k.khoa] && k.v.length >= 3);
+function khuTai(x, z) { // trong khối có tên → khối đó (khối nhỏ trước: tháp nằm trong Palas); sát cầu ≤ 6 m → cầu; sát khối ≤ 18 m (chỗ vào trước cổng cách Torbau 16,6 m) → khối gần nhất; còn lại → quanh lâu đài
+  if (kcDoan(x, z, CAU[0], CAU[1]) < 6) return 'Marienbruecke';
+  const trong = DA_KHU.filter((k) => trongDa(x, z, k.v)).sort((a, b) => Math.abs(dienTich(a.v)) - Math.abs(dienTich(b.v)))[0];
+  if (trong) return trong.khoa;
+  let tot = null, kc = 18; for (const k of DA_KHU) { const d = kcVien(x, z, k.v); if (d < kc) { kc = d; tot = k.khoa; } }
+  return tot || 'chung';
+}
+let khoaKhu = '';
+function capNhatKhu(phong) {
+  const pv = di?.dang ? di.viTri() : null;
+  const g = phong ? { ...(NT?.gioiThieu?.[phong.gioiThieu] || {}), ten: phong.ten } : pv ? KHU[khuTai(pv.x, pv.z)] : KHU.chung;
+  const khoa = phong ? 'p' + phong.so : g?.ten || ''; if (khoa === khoaKhu) return; khoaKhu = khoa;
+  $('khu-ten').textContent = g?.ten || 'dựng từ số đo thật'; $('khu-chu').textContent = g?.chu || '';
+  $('khu-nguon').innerHTML = !g?.chu ? '' : g.nguon ? `Nguồn: <a href="${g.nguon}" target="_blank" rel="noopener">${new URL(g.nguon).hostname.replace(/^www\./, '')}</a>` : 'Theo mô hình phỏng dựng';
+}
+{ // thu nhỏ / mở bảng, nhớ theo trình duyệt
+  const dau = $('dau'), dat = (thu) => { dau.classList.toggle('thu', thu); $('b-thu').textContent = thu ? '+' : '–'; };
+  let v = null; try { v = localStorage.getItem('ns-dau-thu'); } catch {} dat(v == null ? innerWidth < 560 : v === '1'); // chưa chọn: màn hẹp thì thu sẵn
+  $('b-thu').onclick = () => { const thu = !dau.classList.contains('thu'); dat(thu); try { localStorage.setItem('ns-dau-thu', thu ? '1' : '0'); } catch {} };
+}
+ganGopY({ nut: $('b-gy'), tieuDe: 'Góp ý cho Neuschwanstein', chupAnh: () => chupCanvas(renderer.domElement, () => renderer.render(scene, camera)), nguCanh: () => {
+  const p = di?.dang ? di.viTri() : null, ph = p && noiThat ? noiThat.phongTai(p.x, p.y - 0.9, p.z) : null;
+  return `Neuschwanstein · ${p ? `đi bộ tại (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}) hướng ${(di.huong * 180 / Math.PI).toFixed(0)}° · khu ${ph ? ph.ten : khuTai(p.x, p.z)}` : dangSo ? 'so ảnh thật' : 'toàn cảnh'} · ${innerWidth}×${innerHeight}`;
+} });
 let lan = 0, tichLuy = 0;
 const dongHo = new THREE.Clock();
 function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ so ảnh)
@@ -345,7 +374,7 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
   else if (!dangSo) orbit.update(); // chế độ so ảnh: camera do thông số ảnh quyết
   if (noiThat) { const p = di?.dang ? di.viTri() : null; noiThat.hien(!!p && Math.hypot(p.x - noiThat.tam[0], p.z - noiThat.tam[1]) < 75); }
-  noiThat?.capNhat(1 / 60); timTuongTac(now);
+  noiThat?.capNhat(dt); timTuongTac(now);
   capNhatHd(now); veBanDoNS(now);
   renderer.render(scene, camera);
 }
@@ -411,7 +440,7 @@ const CAU = [[47.554991, 10.7492138], [47.5549237, 10.7495946]].map(([la, ln]) =
 }
 // ---------- BẢN ĐỒ + DI CHUYỂN NHANH (bando.js dùng chung): khối nhà OSM, rừng, cầu; bấm vào đâu là tới đó
 function diNhanhNS(x, z, yTang) {
-  if (!di) return false; if (dangSo) tatSo();
+  if (!di) return false; if (dangSo) tatSo(); boTuongTac();
   if (yTang != null) { const h = di.dang ? di.huong : 0; if (!di.dang) di.vao(x, yTang + 0.05, z, h); else di.datCho({ x, y: yTang + 1.0, z }, h - Math.PI, -0.1, h); return true; } // vào thẳng trong nhà
   const doY = (xx, zz) => { const h = world.castRay(new RAPIER.Ray({ x: xx, y: 900, z: zz }, { x: 0, y: -1, z: 0 }), 3000, true); return h ? 900 - h.timeOfImpact : null; };
   let tot = null; // trúng mái nhà thì dò vòng quanh tới 14 m tìm mặt đất / mặt cầu
@@ -446,9 +475,10 @@ function veBanDoNS(now) {
 let dangNgoi = null, dangCam = null, ganNhat = null, lucTim = 0;
 function buocNgoi(tr) { if (!dangNgoi) return false; if (tr.fx || tr.fz) dungDay(); return !!dangNgoi; } // đi một bước là đứng dậy
 function khungNgoi() { if (!dangNgoi) return null; const y = dangNgoi.cao - toi.chau('cuoi'); return { x: dangNgoi.o.position.x, y, z: dangNgoi.o.position.z, huong: dangNgoi.huong, tuThe: 'cuoi', chanCam: dangNgoi.cao - 0.2, kcMax: 3 }; }
-function dungDay() { const t = dangNgoi; dangNgoi = null; if (!t) return; const h = t.huong, p = t.o.position; di.datCho({ x: p.x + Math.sin(h) * 0.7, y: t.cao - 0.48 + 1.0, z: p.z + Math.cos(h) * 0.7 }); }
+function dungDay(datLai = true) { const t = dangNgoi; dangNgoi = null; if (!t || !datLai) return; const h = t.huong, p = t.o.position; di.datCho({ x: p.x + Math.sin(h) * 0.7, y: t.cao - 0.48 + 1.0, z: p.z + Math.cos(h) * 0.7 }); }
+function boTuongTac() { dungDay(false); thaDo(); dongDoc(); } // dịch chuyển nhanh / rời đi bộ: thôi ngồi (không đặt lại chỗ), thả đồ đang cầm, đóng bảng
 function camLen(t) { // gắn đồ vào tay phải, tắt thân vật lý
-  const v = noiThat.dongVat.find((x) => x.goc === t.o); if (!v) return;
+  const v = t.vat; if (!v) return;
   v.cam = true; v.b.setEnabled(false); v.coGoc = v.goc.scale.x; v.goc.position.set(0, 0, 0); v.goc.quaternion.identity(); toi.cam(v.goc); dangCam = v;
 }
 function thaDo(nem = null) {
@@ -464,10 +494,10 @@ function daDo() { // F: đá đồ vật lý trước mặt
   setTimeout(() => { for (const v of noiThat.dongVat) { if (v.cam) continue; const t = v.b.translation(), dx = t.x - (p.x + f.x * 0.8), dz = t.z - (p.z + f.z * 0.8); if (Math.hypot(dx, dz) < 1.0 && Math.abs(t.y - (p.y - 0.6)) < 1.2) { const m = v.b.mass(); v.b.applyImpulse({ x: f.x * 5 * m, y: 2.5 * m, z: f.z * 5 * m }, true); } } }, 260);
 }
 function moDoc(phong) {
-  const k = phong.kieu === 'sanh' ? (phong.tang === 4 ? 'sanh4' : 'sanh3') : phong.kieu === 'nhaKinh' ? 'hangDong' : phong.kieu, g = NT.gioiThieu?.[k];
-  if (!g) return; const el = $('doc'); el.querySelector('b').textContent = g.ten; el.querySelector('.chu').textContent = g.chu; el.querySelector('a').href = g.nguon; el.style.display = 'block';
+  const g = NT.gioiThieu?.[phong.gioiThieu]; // mỗi phòng trong JSON trỏ khoá giới thiệu của nó
+  if (!g) { console.warn('[ns] phòng thiếu giới thiệu', phong.ten, phong.gioiThieu); return; } const el = $('doc'); el.querySelector('b').textContent = g.ten; el.querySelector('.chu').textContent = g.chu; el.querySelector('a').href = g.nguon; el.style.display = 'block';
 }
-const dongDoc = () => { $('doc').style.display = 'none'; };
+function dongDoc() { $('doc').style.display = 'none'; } // khai báo hàm (được nâng): boTuongTac gọi được cả khi khôi phục chỗ đứng lúc F5
 function nutE() {
   if (!noiThat || !di?.dang) return;
   if ($('doc').style.display === 'block') return dongDoc();
@@ -490,7 +520,7 @@ function timTuongTac(now) { // món gần nhất (≤ 1,8 m, cùng tầng, ưu t
     else {
       const p = di.viTri(), h = di.huong; let tot = null, diem = 1e9;
       for (const t of noiThat.tuongTac) {
-        if (t.loai === 'cam' && noiThat.dongVat.find((v) => v.goc === t.o)?.cam) continue;
+        if (t.vat?.cam) continue;
         const q = t.o.position, dx = q.x - p.x, dz = q.z - p.z, kc = Math.hypot(dx, dz); if (kc > 1.8 || Math.abs(q.y - (p.y - 0.9)) > 1.6) continue;
         const truoc = (dx * Math.sin(h) + dz * Math.cos(h)) / (kc || 1), d = kc - truoc * 0.6; if (d < diem) { diem = d; tot = t; }
       }
@@ -501,6 +531,6 @@ function timTuongTac(now) { // món gần nhất (≤ 1,8 m, cùng tầng, ưu t
   }
   const g = $('goiY'); if (g.textContent !== chu) { g.textContent = chu; g.style.display = chu ? 'block' : 'none'; }
 }
-window.__ns.diNhanh = diNhanhNS; window.__ns.noiThat = noiThat; window.__ns.NOI = NOI; window.__ns.tt = { nutE, daDo, nemDoDangCam, trangThai: () => ({ ngoi: !!dangNgoi, cam: !!dangCam, gan: ganNhat?.loai || null }) };
+window.__ns.diNhanh = diNhanhNS; window.__ns.noiThat = noiThat; window.__ns.NOI = NOI; window.__ns.khuTai = khuTai; window.__ns.thuKhu = () => [...DA_KHU.map((k) => [...tamDa(k.v), k.khoa]), [(CAU[0][0] + CAU[1][0]) / 2, (CAU[0][1] + CAU[1][1]) / 2, 'Marienbruecke']]; window.__ns.tt = { nutE, daDo, nemDoDangCam, trangThai: () => ({ ngoi: !!dangNgoi, cam: !!dangCam, gan: ganNhat?.loai || null }) };
 world.step(); // cập nhật bộ dò tia sau khi dựng xong mọi va chạm (chưa bước nào thì castRay không thấy gì → di chuyển nhanh từ toàn cảnh hỏng)
 ve();

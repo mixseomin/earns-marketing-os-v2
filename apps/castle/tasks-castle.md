@@ -26,7 +26,9 @@ $S submit <id> "<lời>" [url]  # → Review (nộp cho anh duyệt)
 
 | Phần | Tệp |
 |---|---|
-| Dựng lâu đài (đảo, tường, tháp, phố, nhà, cầu, bãi cỏ + hồ), vật lý Rapier, người chơi, camera, vòng vẽ, trần khung hình, lưu chỗ đứng (F5), góp ý | `main.js` |
+| Dựng lâu đài (đảo, tường, tháp, phố, nhà, cầu, bãi cỏ + hồ), vật lý Rapier, người chơi, camera, vòng vẽ, trần khung hình, lưu chỗ đứng (F5) | `main.js` |
+| Góp ý dùng chung cả hai trang (nút 💬 → hộp gõ → `/api/gop-y` kèm ảnh + ngữ cảnh; hộp tự dựng DOM + CSS) | `gopy.js` |
+| Bảng đầu trang Neuschwanstein = giới thiệu khu đang đứng (phòng: `gioiThieu` của phòng; ngoài trời: `du-lieu/neuschwanstein-khu.json` theo khối OSM có tên), thu nhỏ được | `ns.js` (`khuTai`, `capNhatKhu`) |
 | Bề mặt vẽ bằng canvas (đá, ngói, vữa gỗ, cuội, ván) | `tex.js` |
 | Khung xương người + mọi động tác; vẽ hàng loạt; chỉ vẽ chi tiết người trong khung nhìn & gần 45 m | `nhanvat.js` |
 | Quán Lửa Đỏ: nhà + nội thất + 14 người trong quán | `quan.js` |

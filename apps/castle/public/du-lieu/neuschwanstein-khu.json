@@ -1,0 +1,55 @@
+{
+ "_ghiChu": "Giới thiệu ngắn từng khu NGOÀI TRỜI cho bảng đầu trang (ns.js capNhatKhu). Khoá = tags.name của khối OSM (đứng trong / sát khối đó), 'courtyard' = sân trong, 'Marienbruecke' = cầu, 'chung' = quanh lâu đài. Trong phòng thì bảng dùng gioiThieu của neuschwanstein-noi-that.json. Chỉ ghi dữ kiện đã đối chiếu nguồn.",
+ "khu": {
+  "chung": {
+   "ten": "Quanh lâu đài",
+   "chu": "Lâu đài vua Ludwig II của Bavaria cho xây trên mỏm đá phía trên hẻm Pöllat. Đá móng đặt ngày 5/9/1869. Đi tới gần toà nào thì bảng này hiện giới thiệu toà đó.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/history.htm"
+  },
+  "Torbau": {
+   "ten": "Cổng Torbau",
+   "chu": "Toà cổng là phần xây xong đầu tiên: cất nóc ngày 11/6/1872, ở được từ cuối năm 1873. Suốt nhiều năm Ludwig II dùng tầng trên làm chỗ ở tạm mỗi lần tới xem công trường.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/history.htm"
+  },
+  "courtyard": {
+   "ten": "Sân trong",
+   "chu": "Qua cổng Torbau là sân dưới, đi tiếp lên sân trên trước Palas. Thiết kế ban đầu có một tháp giữ cao khoảng 90 m, chân tháp là nhà nguyện Gothic, đứng giữa sân trên; tháp này không bao giờ được xây.",
+   "nguon": "https://www.archdaily.com/784891/ad-classics-neuschwanstein-castle-eduard-riedel"
+  },
+  "Palas": {
+   "ten": "Palas",
+   "chu": "Toà chính, chứa các phòng ở của vua. Khởi công tháng 9/1872, cất nóc ngày 29/1/1880; trang trí và máy móc bên trong tới giữa năm 1884 mới xong, vẫn còn thiếu chi tiết. Phòng ngai vàng và Phòng hát ở tầng trên, đi vào qua tháp cầu thang mặt bắc.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/history.htm"
+  },
+  "Treppenturm": {
+   "ten": "Tháp cầu thang",
+   "chu": "Tháp tròn ở mặt bắc Palas, bên trong là cầu thang xoắn lên các tầng. Trong mô hình này cửa vào ở chân tháp, cầu thang dẫn lên tầng ba (phòng ngai vàng) và tầng bốn (Phòng hát).",
+   "nguon": ""
+  },
+  "Kemenate": {
+   "ten": "Toà Kemenate (Bower)",
+   "chu": "Toà ở phía bên sân trên. Kemenate và Tháp vuông là bản giản lược của thiết kế ban đầu, tới năm 1892 mới xong, tức sáu năm sau khi Ludwig II mất.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/history.htm"
+  },
+  "Viereckturm": {
+   "ten": "Tháp vuông",
+   "chu": "Tháp vuông cạnh sân trên. Giống Kemenate, tháp được xây giản lược so với bản vẽ và tới năm 1892 mới xong.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/history.htm"
+  },
+  "Ritterhaus": {
+   "ten": "Toà Hiệp sĩ (Ritterhaus)",
+   "chu": "Toà dài cạnh sân trên, có trong bản vẽ tổng thể của lâu đài. Toà này cũng bị làm gọn lại: theo ý vua, cột hành lang định tạo hình thân cây với tán lá làm đầu cột.",
+   "nguon": "https://www.archdaily.com/784891/ad-classics-neuschwanstein-castle-eduard-riedel"
+  },
+  "Wintergarten": {
+   "ten": "Vườn mùa đông",
+   "chu": "Nhà kính nhỏ cạnh hang động nhân tạo ở tầng ba Palas. Muốn đọc giới thiệu bên trong thì vào hang động rồi bấm E ở bục đọc.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/grotte.htm"
+  },
+  "Marienbruecke": {
+   "ten": "Cầu Marienbrücke",
+   "chu": "Cầu sắt bắc qua hẻm Pöllat, cao khoảng 90 m trên thác nước. Năm 1845 vua Maximilian II dựng ở đây một cầu gỗ; năm 1866 Ludwig II thay bằng cầu sắt, đặt theo tên mẹ là hoàng hậu Marie. Đứng giữa cầu nhìn được toàn mặt bên lâu đài.",
+   "nguon": "https://www.hohenschwangau.de/en/nature-surroundings/marys-bridge"
+  }
+ }
+}

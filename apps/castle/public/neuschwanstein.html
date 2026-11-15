@@ -14,6 +14,10 @@
   .o { position: fixed; background: var(--o); border: 1px solid var(--vien); border-radius: 10px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   #dau { top: 12px; left: 12px; padding: 10px 12px; max-width: min(420px, calc(100vw - 48px)); }
   #dau b { font-size: 15px; } #dau .mo { color: var(--mo); font-size: 12.5px; margin-top: 4px; }
+  #dau .dau-tren { display: flex; align-items: baseline; gap: 8px; } #dau #khu-ten { flex: 1; color: #ffd9a8; font-weight: 600; font-size: 13.5px; }
+  #dau #b-thu { padding: 0 8px; min-width: 28px; line-height: 22px; } #dau.thu #dau-than { display: none; }
+  #dau .chu { margin-top: 6px; font-size: 13px; line-height: 1.55; } #dau .chu:empty { display: none; }
+  #dau a { color: var(--mo); } #dau details summary { cursor: pointer; } #dau details[open] { line-height: 1.5; }
   #nguon { bottom: 10px; right: 10px; padding: 4px 8px; font-size: 11px; color: var(--mo); }
   #nguon a { color: var(--mo); }
   #so { display: none; bottom: 10px; left: 10px; padding: 8px 10px; max-width: min(520px, calc(100vw - 40px)); font-size: 12.5px; }
@@ -46,13 +50,15 @@
 </head>
 <body>
 <div id="dau" class="o">
-  <b>Neuschwanstein</b> · dựng từ số đo thật
-  <div class="mo" id="tt">Đang tải số đo…</div>
-  <div class="mo">Mặt bằng, chiều cao và kiểu mái lấy từ OpenStreetMap (chỉnh theo ảnh thật), địa hình EU-DEM 25 m. Cửa sổ, đá, mái là vân dựng bằng mã. Nội thất Palas tầng ba + Phòng hát theo mặt bằng Commons (CC BY 3.0, PodracerHH); tranh tường cắt từ ảnh màu ~1900, đồ đạc phỏng dựng — bấm E để ngồi, mở rương, cầm đồ, bật đèn, đọc giới thiệu.</div>
-  <div class="mo">Kéo chuột để xoay · lăn để phóng · chuột phải kéo để dời.</div>
-  <a class="ve" href="./">← Lâu đài dung nham</a>
+  <div class="dau-tren"><b>Neuschwanstein</b><span id="khu-ten">dựng từ số đo thật</span><button id="b-thu" title="Thu nhỏ / mở bảng giới thiệu">–</button></div>
+  <div id="dau-than">
+    <div class="chu" id="khu-chu"></div>
+    <div class="mo" id="khu-nguon"></div>
+    <details class="mo"><summary>Mô hình dựng từ đâu</summary><div id="tt">Đang tải số đo…</div>Mặt bằng, chiều cao và kiểu mái lấy từ OpenStreetMap (chỉnh theo ảnh thật), địa hình EU-DEM 25 m. Cửa sổ, đá, mái là vân dựng bằng mã. Nội thất Palas tầng ba + Phòng hát theo mặt bằng Commons (CC BY 3.0, PodracerHH); tranh tường cắt từ ảnh màu ~1900, đồ đạc phỏng dựng: bấm E để ngồi, mở rương, cầm đồ, bật đèn, đọc giới thiệu.</details>
+    <a class="ve" href="./">← Lâu đài dung nham</a>
+  </div>
 </div>
-<div id="nut" class="o"><button id="b-di" class="chinh">🚶 Đi bộ</button><button id="b-toan" style="display:none">🗺 Toàn cảnh</button></div>
+<div id="nut" class="o"><button id="b-di" class="chinh">🚶 Đi bộ</button><button id="b-toan" style="display:none">🗺 Toàn cảnh</button><button id="b-gy" title="Góp ý (gửi kèm ảnh màn hình + chỗ đang đứng)">💬</button></div>
 <div id="hd" class="o"></div>
 <div id="goiY"></div>
 <div id="doc" class="o"><b></b><div class="chu"></div><div class="mo">Nguồn: <a target="_blank" rel="noopener">trang chính thức Neuschwanstein</a> · E hoặc Esc để đóng</div></div>
@@ -70,7 +76,7 @@
 <script>
 // cùng cách nạp theo dấu phiên bản như index.html (Cloudflare zone on.tc giữ .js 30 ngày): hỏi ETag rồi nạp ./x.js?v=<ETag>
 (async () => {
-  const TEP = ['ns.js', 'tex.js', 'nguoi3d.js', 'dibo.js', 'bando.js', 'noithat.js'];
+  const TEP = ['ns.js', 'tex.js', 'nguoi3d.js', 'dibo.js', 'bando.js', 'noithat.js', 'gopy.js'];
   const lay = (f) => fetch(`./${f}?ban=${Date.now()}`, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' })
     .then((r) => (r.ok && (r.headers.get('etag') || r.headers.get('last-modified')) || '').replace(/[^\w-]/g, '')).catch(() => '');
   const dau = await Promise.all(TEP.map(lay));

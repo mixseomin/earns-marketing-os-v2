@@ -16,6 +16,7 @@ import { taoBanDo } from './bando.js';
 import { dungNgua, dungXe } from './phuongtien.js';
 import { napNguoi3d, taoNguoi3d } from './nguoi3d.js';
 import { taoDiBo } from './dibo.js';
+import { ganGopY, chupCanvas } from './gopy.js';
 
 const $ = (id) => document.getElementById(id);
 const thamSo = new URLSearchParams(location.search);
@@ -489,7 +490,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Digit2') toi.lam('mua');
   if (e.code === 'KeyF') da();
   if (e.code === 'KeyE') nutE();
-  if (e.code === 'Escape' && gy.style.display !== 'grid') raToanCanh();
+  if (e.code === 'Escape' && !gopY.dangMo()) raToanCanh();
 });
 addEventListener('keyup', (e) => { phim[e.code] = false; });
 
@@ -730,36 +731,11 @@ function veBanDo(now) {
   $('toado').textContent = `📍 ${p.x.toFixed(1)}, ${p.z.toFixed(1)}${cheDo === 'di' ? '' : ' (tâm nhìn)'}`;
 }
 
-// góp ý: gửi về hòm mos2 qua /api/gop-y (cùng host, phiên SSO), kèm ảnh khung hình + ngữ cảnh chỗ đứng
-const gy = $('gy');
-function moGopY() { gy.style.display = 'grid'; $('gy-kq').textContent = ''; $('gy-kq').className = 'kq'; setTimeout(() => $('gy-chu').focus(), 30); }
-function chupMan() {
-  composer.render(); // đọc ngay sau khi vẽ, cùng nhịp → khung hình còn nguyên
-  const src = renderer.domElement, k = Math.min(1, 1280 / src.width), c = document.createElement('canvas');
-  c.width = Math.round(src.width * k); c.height = Math.round(src.height * k); c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
-  return c.toDataURL('image/jpeg', 0.82);
-}
-async function guiGopY() {
-  const chu = $('gy-chu').value.trim(), kq = $('gy-kq');
-  if (!chu) { kq.textContent = 'Chưa gõ nội dung.'; kq.className = 'kq loi'; return; }
-  $('gy-gui').disabled = true; kq.textContent = 'Đang gửi…'; kq.className = 'kq';
+// góp ý: mô-đun chung gopy.js (cùng hộp với Neuschwanstein), kèm ảnh khung hình + ngữ cảnh chỗ đứng
+const gopY = ganGopY({ nut: $('b-gy'), tieuDe: 'Góp ý cho lâu đài', chupAnh: () => chupCanvas(renderer.domElement, () => composer.render()), nguCanh: () => {
   const p = than.translation();
-  const nguCanh = `Lâu đài h=${HAT} · ${cheDo === 'di' ? `đi bộ tại (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}) hướng ${(di.yaw * 180 / Math.PI).toFixed(0)}° · góc nhìn ${di.gocNhin === 3 ? 'sau lưng' : 'mắt'}` : 'toàn cảnh'} · giờ game ${gioGame.chu()} · ${quan.trong(p.x, p.z) ? 'trong quán · ' : ''}${innerWidth}×${innerHeight}${CHAM ? ' cảm ứng' : ''}`;
-  try {
-    const anh = gy.querySelector('#gy-anh').checked ? chupMan() : null;
-    const r = await fetch('/api/gop-y', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-      body: JSON.stringify({ noiDung: chu, loai: gy.querySelector('input[name=gy-loai]:checked').value, trang: location.href, nguCanh, anh }) });
-    const j = await r.json().catch(() => ({ ok: false, error: `máy chủ trả ${r.status}` }));
-    if (!j.ok) throw new Error(j.error || `máy chủ trả ${r.status}`);
-    kq.textContent = `Đã gửi góp ý #${j.id}. Cảm ơn!`; $('gy-chu').value = '';
-    setTimeout(() => { gy.style.display = 'none'; }, 1600);
-  } catch (e) { kq.textContent = 'Gửi không được: ' + (e.message || e); kq.className = 'kq loi'; console.error('[castle] góp ý', e); }
-  $('gy-gui').disabled = false;
-}
-$('b-gy').onclick = (e) => { e.stopPropagation(); moGopY(); };
-$('gy-dong').onclick = () => { gy.style.display = 'none'; };
-$('gy-gui').onclick = guiGopY;
-$('gy-chu').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) guiGopY(); if (e.key === 'Escape') gy.style.display = 'none'; });
+  return `Lâu đài h=${HAT} · ${cheDo === 'di' ? `đi bộ tại (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}) hướng ${(di.yaw * 180 / Math.PI).toFixed(0)}° · góc nhìn ${di.gocNhin === 3 ? 'sau lưng' : 'mắt'}` : 'toàn cảnh'} · giờ game ${gioGame.chu()} · ${quan.trong(p.x, p.z) ? 'trong quán · ' : ''}${innerWidth}×${innerHeight}${CHAM ? ' cảm ứng' : ''}`;
+} });
 $('tai').remove();
 window.__lauDai = { hat: HAT, nhaVa, nguCanh: () => nguCanh(), dbg: () => ({ nen: di.nen, tt: di.tt, toc: di.toc }), tt: () => di.tt, di, XE, cuoi: () => cuoi, lenXe, xuongXe, thu: (f) => f({ world, RAPIER, tiaN: di.tiaN, matTren: di.matTren, thanVa, LOC_TINH }), yaw: () => di.yaw, huong: () => di.huong, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { di.yaw = y; di.pitch = p; }, toi, dan: sd.dan, da, doiGocNhin, quan, quanNguoi, doNet: () => doNet, renderer, bloom, composer, sd, gioGame, ve: () => ({ lenh: renderer.info.render.calls, tamGiac: renderer.info.render.triangles, nguoi: { ...DEM } }) };
 vong();

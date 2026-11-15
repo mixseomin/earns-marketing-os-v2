@@ -56,18 +56,18 @@ export function dungNoiThat({ RAPIER, world, tinh, scene, NT, yDay, vienPalas, t
     const tam = _box.getCenter(new THREE.Vector3()).multiplyScalar(k);
     const p = W(px, py, dx, dz), q = quayY.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), xoay));
     const o = g.clone(true); o.scale.setScalar(k);
-    let goc = o;
+    let goc = o, vat = null;
     if (loai === 'dong') { // vật lý: bọc vào nhóm có tâm = tâm hộp, thân Rapier động
       goc = new THREE.Group(); o.position.set(-tam.x, -tam.y, -tam.z); goc.add(o); goc.position.set(p.x, y + kt.y / 2 + 0.02, p.z); goc.quaternion.copy(q);
       const b = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(goc.position.x, goc.position.y, goc.position.z).setRotation(q).setLinearDamping(0.3).setAngularDamping(0.6));
       world.createCollider(RAPIER.ColliderDesc.cuboid(Math.max(0.03, kt.x / 2), Math.max(0.02, kt.y / 2), Math.max(0.03, kt.z / 2)).setMass(khoiLuong).setFriction(0.7).setRestitution(0.15), b);
-      dongVat.push({ goc, b }); goc.userData.than = b;
+      vat = { goc, b }; dongVat.push(vat); goc.userData.than = b;
     } else { o.position.set(p.x, y - day, p.z); o.quaternion.copy(q); }
     goc.updateMatrixWorld(true);
     if (loai === 'tinh' || loai === 'tinhVa') o.traverse((m) => { if (m.isMesh) tinhMesh.push(m); });
     else { nhom.add(goc); goc.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }); }
     if (loai === 'tinhVa' || loai === 'rieng') world.createCollider(RAPIER.ColliderDesc.cuboid(kt.x / 2, kt.y / 2, kt.z / 2).setTranslation(p.x, y + kt.y / 2, p.z).setRotation(q), tinh);
-    if (tt) { const t = { ten, o: goc, mo: o, ...tt }; if (tt.loai === 'mo') o.traverse((x) => { if (!t.nap && /lid/i.test(x.name)) t.nap = x; }); tuongTac.push(t); }
+    if (tt) { const t = { ten, o: goc, mo: o, vat, ...tt }; if (tt.loai === 'mo') o.traverse((x) => { if (!t.nap && /lid/i.test(x.name)) t.nap = x; }); tuongTac.push(t); }
     return goc;
   }
   const VL_TRANH = {};
@@ -302,7 +302,7 @@ export function dungNoiThat({ RAPIER, world, tinh, scene, NT, yDay, vienPalas, t
     nhom, y3, y4, tam: [tx, tz], gocCua,
     tamPhong(so) { const p = NT.phong.find((x) => x.so === so); if (!p) return null; const w = W((p.o[0] + p.o[2]) / 2, (p.o[1] + p.o[3]) / 2); return [w.x, sanPhong(p), w.z]; },
     diem: [['👑 Phòng ngai vàng', pNV.x, pNV.z, y3], ['🎵 Phòng hát', pPH.x, pPH.z, y4]], // [tên, x, z, y sàn] (khuôn bando.js)
-    hien(b) { if (nhom.visible === b) return; nhom.visible = b; for (const l of den) l.visible = b && !l.userData.tat; for (const v of dongVat) v.b.setEnabled(b); },
+    hien(b) { if (nhom.visible === b) return; nhom.visible = b; for (const l of den) l.visible = b && !l.userData.tat; for (const v of dongVat) v.b.setEnabled(b && !v.cam); }, // đồ đang cầm trên tay giữ thân vật lý tắt
     tuongTac, dongVat,
     capNhat(dt) { // đồng bộ đồ vật lý + nắp rương đang mở / đóng
       if (!nhom.visible) return;

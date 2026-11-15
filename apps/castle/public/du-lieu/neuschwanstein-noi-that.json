@@ -44,6 +44,7 @@
    "so": 1,
    "ten": "Phòng ngai vàng",
    "kieu": "ngaiVang",
+   "gioiThieu": "ngaiVang",
    "o": [
     28,
     108,
@@ -57,6 +58,7 @@
    "so": 2,
    "ten": "Sân trước (Vorplatz)",
    "kieu": "sanh",
+   "gioiThieu": "sanh3",
    "o": [
     178,
     86,
@@ -70,6 +72,7 @@
    "so": 4,
    "ten": "Tiền sảnh",
    "kieu": "tienSanh",
+   "gioiThieu": "tienSanh",
    "o": [
     255,
     98,
@@ -83,6 +86,7 @@
    "so": 5,
    "ten": "Phòng làm việc",
    "kieu": "lamViec",
+   "gioiThieu": "lamViec",
    "o": [
     355,
     98,
@@ -96,6 +100,7 @@
    "so": 12,
    "ten": "Hang động",
    "kieu": "hangDong",
+   "gioiThieu": "hangDong",
    "o": [
     430,
     98,
@@ -109,6 +114,7 @@
    "so": 6,
    "ten": "Phòng khách",
    "kieu": "phongKhach",
+   "gioiThieu": "phongKhach",
    "o": [
     495,
     98,
@@ -122,6 +128,7 @@
    "so": 7,
    "ten": "Tiền sảnh",
    "kieu": "tienSanh",
+   "gioiThieu": "tienSanh",
    "o": [
     255,
     170,
@@ -135,6 +142,7 @@
    "so": 8,
    "ten": "Phòng ăn",
    "kieu": "phongAn",
+   "gioiThieu": "phongAn",
    "o": [
     355,
     170,
@@ -148,6 +156,7 @@
    "so": 9,
    "ten": "Phòng ngủ",
    "kieu": "phongNgu",
+   "gioiThieu": "phongNgu",
    "o": [
     430,
     165,
@@ -161,6 +170,7 @@
    "so": 10,
    "ten": "Phòng thay đồ",
    "kieu": "thayDo",
+   "gioiThieu": "thayDo",
    "o": [
     495,
     170,
@@ -174,6 +184,7 @@
    "so": 11,
    "ten": "Nhà kính",
    "kieu": "nhaKinh",
+   "gioiThieu": "hangDong",
    "o": [
     470,
     62,
@@ -187,6 +198,7 @@
    "so": 13,
    "ten": "Nhà nguyện riêng",
    "kieu": "nhaNguyen",
+   "gioiThieu": "nhaNguyen",
    "o": [
     495,
     235,
@@ -200,6 +212,7 @@
    "so": 14,
    "ten": "Sân trước tầng bốn",
    "kieu": "sanh",
+   "gioiThieu": "sanh4",
    "o": [
     178,
     86,
@@ -213,6 +226,7 @@
    "so": 15,
    "ten": "Phòng hát (Sängersaal)",
    "kieu": "phongHat",
+   "gioiThieu": "phongHat",
    "o": [
     255,
     98,

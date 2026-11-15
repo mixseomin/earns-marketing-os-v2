@@ -11,6 +11,8 @@ import { napNguoi3d, taoNguoi3d } from './nguoi3d.js';
 import { taoDiBo } from './dibo.js';
 import { taoBanDo } from './bando.js';
 import { dungNoiThat } from './noithat.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 const $ = (id) => document.getElementById(id);
 const ten = new URLSearchParams(location.search).get('lau') || 'neuschwanstein';
@@ -255,7 +257,14 @@ if (NOI) {
   const vanTran = veCanvas((g) => { g.fillStyle = '#1e3a7a'; g.fillRect(0, 0, 512, 512); g.fillStyle = '#f0d070'; for (let i = 0; i < 160; i++) { const x = (i * 97) % 512, y = (i * 173) % 512; g.beginPath(); g.arc(x, y, 3 + (i % 3), 0, 7); g.fill(); } });
   vanTran.repeat.set(3, 3);
   const vanSan = T.van(T.rngTu(9)).map; vanSan.repeat?.set(1, 1);
-  noiThat = dungNoiThat({ RAPIER, world, tinh, scene, NT, yDay: NOI.palas.day, vienPalas: NOI.palas.v, thapV: NOI.thap.v, yCua: NOI.yCua, vanSan, vanTran });
+  // đồ đạc KayKit (một tệp, mỗi món một Scene) + tranh tường thật cắt từ photochrom ~1900 — lỗi tải thì vẫn dựng phòng (thiếu đồ / tranh)
+  let DO = null; const TRANH = {};
+  try { const ld = new GLTFLoader(); ld.setMeshoptDecoder(MeshoptDecoder); const g = await ld.loadAsync('./tai-san/do-noi-that.glb'); DO = Object.fromEntries(g.scenes.map((sc) => [sc.name, sc])); } catch (e) { console.warn('[ns] không nạp được đồ nội thất', e); }
+  try {
+    const ds = await (await fetch('./du-lieu/anh/noi-that/nguon.json', { cache: 'no-cache' })).json(), tl = new THREE.TextureLoader();
+    await Promise.all(Object.keys(ds).map(async (k) => { const t = await tl.loadAsync(`./du-lieu/anh/noi-that/${k}.jpg`); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; TRANH[k] = t; }));
+  } catch (e) { console.warn('[ns] không nạp được tranh tường', e); }
+  noiThat = dungNoiThat({ RAPIER, world, tinh, scene, NT, yDay: NOI.palas.day, vienPalas: NOI.palas.v, thapV: NOI.thap.v, yCua: NOI.yCua, vanSan, vanTran, DO, TRANH });
 }
 const RUNG = []; // ẩn khi so ảnh thật (cây mọc ở mép vực che tầm nhìn từ cầu Marienbrücke; so ảnh chỉ đối chiếu lâu đài)
 // ---------- rừng: vân sam (thân + tán nón) vẽ hàng loạt; chừa nhà (+6 m), vách dốc, mép lưới
@@ -289,7 +298,7 @@ let toi = null, di = null;
 try { await napNguoi3d(); toi = taoNguoi3d(); } catch (e) { console.warn('[ns] không nạp được người 3D', e); }
 if (toi) {
   toi.goc.visible = false; scene.add(toi.goc);
-  di = taoDiBo({ RAPIER, world, camera, dom: renderer.domElement, toi, khiDoi: (dang) => {
+  di = taoDiBo({ RAPIER, world, camera, dom: renderer.domElement, toi, khiNhap: (x, y) => nemDoDangCam(x, y), ngoai: { buoc: (dt, tr) => buocNgoi(tr), khung: () => khungNgoi() }, khiDoi: (dang) => {
     orbit.enabled = !dang; $('so').style.display = dang || !ANH.length ? 'none' : 'block'; $('b-di').style.display = dang ? 'none' : ''; $('b-toan').style.display = dang ? '' : 'none'; khoaHd = '';
   } });
 }
@@ -301,7 +310,7 @@ function vaoCong() { // trước cổng Torbau, phía đông, quay mặt vào c�
 }
 $('b-di').onclick = vaoCong;
 $('b-toan').onclick = () => { di?.ra(); camera.position.set(-170, 90, 230); orbit.target.set(0, 25, 0); orbit.update(); };
-addEventListener('keydown', (e) => { if (e.code === 'Escape' && di?.dang) $('b-toan').click(); });
+addEventListener('keydown', (e) => { if (e.code === 'Escape' && di?.dang && $('doc').style.display !== 'block') $('b-toan').click(); }); // đang mở bảng giới thiệu thì Esc chỉ đóng bảng
 { // nhấp đúp xuống đất / mái khi đang xem toàn cảnh → đi bộ tại đó
   const tia = new THREE.Raycaster();
   renderer.domElement.addEventListener('dblclick', (e) => {
@@ -322,6 +331,7 @@ function capNhatHd(now) {
   $('hd').innerHTML = c === 'so' ? '' : c === 'toan' ? '<b>Toàn cảnh</b>' + dg('kéo chuột', 'xoay') + dg('lăn chuột', 'phóng to / nhỏ') + dg('nhấp đúp', 'xuống đi bộ tại đó') + dg('🚶 Đi bộ', 'vào ở cổng Torbau')
     : c === 'leo' ? '<b>Đang leo</b>' + dg(K('W', 'S'), 'lên / xuống') + dg(K('A', 'D'), 'ngang theo tường') + dg(K('W') + ' tới mép', 'tự đu lên') + dg(K('Space'), 'bật ra') + xoay
     : '<b>Đi bộ</b>' + dg(K('W', 'A', 'S', 'D'), 'đi theo hướng camera') + dg(K('Shift'), 'chạy') + dg(K('Space'), 'nhảy') + dg(K('C') + ' giữ', 'ngồi xổm')
+      + (phong ? dg(K('E'), 'ngồi · mở rương · cầm đồ · bật đèn · đọc') + dg(K('F') + ' · nhấp', 'đá đồ · ném đồ đang cầm') : '')
       + (phong ? `<b>Ở đây</b><div class="d"><span>📍 ${phong.ten}</span><span>tầng ${phong.tang} · phỏng dựng theo mặt bằng</span></div>` : '')
       + (c === 'tuong' ? '<b>Ở đây</b>' + dg(K('Space'), 'tường thấp: trèo qua · cao: bám leo') : '') + xoay;
   $('hd').style.display = c === 'so' ? 'none' : '';
@@ -335,6 +345,7 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
   else if (!dangSo) orbit.update(); // chế độ so ảnh: camera do thông số ảnh quyết
   if (noiThat) { const p = di?.dang ? di.viTri() : null; noiThat.hien(!!p && Math.hypot(p.x - noiThat.tam[0], p.z - noiThat.tam[1]) < 75); }
+  noiThat?.capNhat(1 / 60); timTuongTac(now);
   capNhatHd(now); veBanDoNS(now);
   renderer.render(scene, camera);
 }
@@ -431,6 +442,65 @@ function veBanDoNS(now) {
   const p = di?.dang ? di.viTri() : { x: orbit.target.x, z: orbit.target.z };
   banDoNS.ve(p, di?.dang ? di.huong : Math.atan2(camera.position.x - orbit.target.x, camera.position.z - orbit.target.z) + Math.PI, []);
 }
-window.__ns.diNhanh = diNhanhNS; window.__ns.noiThat = noiThat; window.__ns.NOI = NOI;
+// ---------- TƯƠNG TÁC đồ trong phòng (E): ngồi ghế · mở / đóng rương · cầm / thả (nhấp chuột = ném, F = đá) · bật / tắt đèn · đọc giới thiệu phòng
+let dangNgoi = null, dangCam = null, ganNhat = null, lucTim = 0;
+function buocNgoi(tr) { if (!dangNgoi) return false; if (tr.fx || tr.fz) dungDay(); return !!dangNgoi; } // đi một bước là đứng dậy
+function khungNgoi() { if (!dangNgoi) return null; const y = dangNgoi.cao - toi.chau('cuoi'); return { x: dangNgoi.o.position.x, y, z: dangNgoi.o.position.z, huong: dangNgoi.huong, tuThe: 'cuoi', chanCam: dangNgoi.cao - 0.2, kcMax: 3 }; }
+function dungDay() { const t = dangNgoi; dangNgoi = null; if (!t) return; const h = t.huong, p = t.o.position; di.datCho({ x: p.x + Math.sin(h) * 0.7, y: t.cao - 0.48 + 1.0, z: p.z + Math.cos(h) * 0.7 }); }
+function camLen(t) { // gắn đồ vào tay phải, tắt thân vật lý
+  const v = noiThat.dongVat.find((x) => x.goc === t.o); if (!v) return;
+  v.cam = true; v.b.setEnabled(false); v.coGoc = v.goc.scale.x; v.goc.position.set(0, 0, 0); v.goc.quaternion.identity(); toi.cam(v.goc); dangCam = v;
+}
+function thaDo(nem = null) {
+  const v = dangCam; if (!v) return; dangCam = null;
+  noiThat.nhom.attach(v.goc); v.goc.scale.setScalar(v.coGoc); v.cam = false;
+  const p = v.goc.getWorldPosition(new THREE.Vector3()); v.b.setTranslation({ x: p.x, y: p.y, z: p.z }, true); v.b.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true); v.b.setEnabled(true);
+  v.b.setLinvel(nem ? { x: nem.x * 9, y: nem.y * 9 + 2.2, z: nem.z * 9 } : { x: 0, y: 0, z: 0 }, true); v.b.setAngvel(nem ? { x: 3, y: 1, z: 2 } : { x: 0, y: 0, z: 0 }, true);
+}
+function nemDoDangCam(x, y) { if (!dangCam) return; const d = new THREE.Vector3(); const r = renderer.domElement.getBoundingClientRect(); const tia = new THREE.Raycaster(); tia.setFromCamera(new THREE.Vector2((x - r.left) / r.width * 2 - 1, -(y - r.top) / r.height * 2 + 1), camera); d.copy(tia.ray.direction); toi.lam('nem'); setTimeout(() => thaDo(d), 300); }
+function daDo() { // F: đá đồ vật lý trước mặt
+  if (!noiThat || !di?.dang || dangNgoi) return; toi.lam('da');
+  const p = di.viTri(), h = di.huong, f = { x: Math.sin(h), z: Math.cos(h) };
+  setTimeout(() => { for (const v of noiThat.dongVat) { if (v.cam) continue; const t = v.b.translation(), dx = t.x - (p.x + f.x * 0.8), dz = t.z - (p.z + f.z * 0.8); if (Math.hypot(dx, dz) < 1.0 && Math.abs(t.y - (p.y - 0.6)) < 1.2) { const m = v.b.mass(); v.b.applyImpulse({ x: f.x * 5 * m, y: 2.5 * m, z: f.z * 5 * m }, true); } } }, 260);
+}
+function moDoc(phong) {
+  const k = phong.kieu === 'sanh' ? (phong.tang === 4 ? 'sanh4' : 'sanh3') : phong.kieu === 'nhaKinh' ? 'hangDong' : phong.kieu, g = NT.gioiThieu?.[k];
+  if (!g) return; const el = $('doc'); el.querySelector('b').textContent = g.ten; el.querySelector('.chu').textContent = g.chu; el.querySelector('a').href = g.nguon; el.style.display = 'block';
+}
+const dongDoc = () => { $('doc').style.display = 'none'; };
+function nutE() {
+  if (!noiThat || !di?.dang) return;
+  if ($('doc').style.display === 'block') return dongDoc();
+  if (dangNgoi) return dungDay();
+  if (dangCam) return thaDo();
+  const t = ganNhat; if (!t) return;
+  if (t.loai === 'ngoi') { dangNgoi = t; }
+  else if (t.loai === 'mo') t.dangMo = !t.dangMo;
+  else if (t.loai === 'cam') camLen(t);
+  else if (t.loai === 'den') { t.den.userData.tat = !t.den.userData.tat; t.den.visible = !t.den.userData.tat; }
+  else if (t.loai === 'doc') moDoc(t.phong);
+}
+addEventListener('keydown', (e) => { if (!di?.dang || e.repeat || e.target.closest?.('textarea, input')) return; if (e.code === 'KeyE') nutE(); if (e.code === 'KeyF') daDo(); if (e.code === 'Escape') dongDoc(); });
+function timTuongTac(now) { // món gần nhất (≤ 1,8 m, cùng tầng, ưu tiên trước mặt) → dòng nhắc phím
+  if (now - lucTim < 150) return; lucTim = now;
+  let chu = '';
+  if (noiThat && di?.dang && noiThat.nhom.visible) {
+    if (dangNgoi) chu = 'E / W A S D đứng dậy';
+    else if (dangCam) chu = 'E thả xuống · nhấp chuột ném';
+    else {
+      const p = di.viTri(), h = di.huong; let tot = null, diem = 1e9;
+      for (const t of noiThat.tuongTac) {
+        if (t.loai === 'cam' && noiThat.dongVat.find((v) => v.goc === t.o)?.cam) continue;
+        const q = t.o.position, dx = q.x - p.x, dz = q.z - p.z, kc = Math.hypot(dx, dz); if (kc > 1.8 || Math.abs(q.y - (p.y - 0.9)) > 1.6) continue;
+        const truoc = (dx * Math.sin(h) + dz * Math.cos(h)) / (kc || 1), d = kc - truoc * 0.6; if (d < diem) { diem = d; tot = t; }
+      }
+      ganNhat = tot;
+      const TEN = { ngoi: 'E ngồi xuống', mo: tot?.dangMo ? 'E đóng rương' : 'E mở rương', cam: 'E cầm lên · F đá', den: tot?.den?.userData.tat ? 'E bật đèn' : 'E tắt đèn', doc: 'E đọc giới thiệu phòng' };
+      chu = tot ? TEN[tot.loai] : '';
+    }
+  }
+  const g = $('goiY'); if (g.textContent !== chu) { g.textContent = chu; g.style.display = chu ? 'block' : 'none'; }
+}
+window.__ns.diNhanh = diNhanhNS; window.__ns.noiThat = noiThat; window.__ns.NOI = NOI; window.__ns.tt = { nutE, daDo, nemDoDangCam, trangThai: () => ({ ngoi: !!dangNgoi, cam: !!dangCam, gan: ganNhat?.loai || null }) };
 world.step(); // cập nhật bộ dò tia sau khi dựng xong mọi va chạm (chưa bước nào thì castRay không thấy gì → di chuyển nhanh từ toàn cảnh hỏng)
 ve();

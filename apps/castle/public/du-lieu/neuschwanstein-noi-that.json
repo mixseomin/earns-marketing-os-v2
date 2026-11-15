@@ -1,7 +1,38 @@
 {
  "nguon": "Mặt bằng tầng ba: Wikimedia Commons File:NeuschwansteinGrundriss.PNG (PodracerHH, CC BY 3.0). Vùng đỏ trên bản vẽ = Phòng hát (Sängersaal) ở tầng bốn. Kích thước phòng theo bản vẽ; chiều cao tầng, màu tường, đồ đạc là PHỎNG DỰNG (bên trong lâu đài cấm chụp ảnh, không có ảnh đối chiếu).",
  "ghi_chu_moc": "3 mốc bản vẽ (px) → mô hình (m): tâm tháp cầu thang số 3 = khối OSM Treppenturm; hai tháp tròn góc đông bắc / đông nam của Palas. Tỉ lệ đo được 0,104 / 0,102 m/px.",
- "moc": [[[210, 52], [-73.7, 18.1]], [[568, 95], [-38.0, 6.7]], [[568, 238], [-32.1, 20.1]]],
+ "moc": [
+  [
+   [
+    210,
+    52
+   ],
+   [
+    -73.7,
+    18.1
+   ]
+  ],
+  [
+   [
+    568,
+    95
+   ],
+   [
+    -38.0,
+    6.7
+   ]
+  ],
+  [
+   [
+    568,
+    238
+   ],
+   [
+    -32.1,
+    20.1
+   ]
+  ]
+ ],
  "thap": "way/1573767747",
  "palas": "Palas",
  "tang3": 17.0,
@@ -9,38 +40,397 @@
  "caoTang4": 7.0,
  "caoNgaiVang": 12.5,
  "phong": [
-  { "so": 1, "ten": "Phòng ngai vàng", "kieu": "ngaiVang", "o": [28, 108, 172, 270], "tang": 3, "mau": "#2a4a8c" },
-  { "so": 2, "ten": "Sân trước (Vorplatz)", "kieu": "sanh", "o": [178, 86, 255, 245], "tang": 3, "mau": "#b8a27a" },
-  { "so": 4, "ten": "Tiền sảnh", "kieu": "tienSanh", "o": [255, 98, 355, 170], "tang": 3, "mau": "#7a5a3a" },
-  { "so": 5, "ten": "Phòng làm việc", "kieu": "lamViec", "o": [355, 98, 430, 170], "tang": 3, "mau": "#5a3a24" },
-  { "so": 12, "ten": "Hang động", "kieu": "hangDong", "o": [430, 98, 495, 165], "tang": 3, "mau": "#4a5a52" },
-  { "so": 6, "ten": "Phòng khách", "kieu": "phongKhach", "o": [495, 98, 565, 170], "tang": 3, "mau": "#5a6a3a" },
-  { "so": 7, "ten": "Tiền sảnh", "kieu": "tienSanh", "o": [255, 170, 355, 235], "tang": 3, "mau": "#7a5a3a" },
-  { "so": 8, "ten": "Phòng ăn", "kieu": "phongAn", "o": [355, 170, 430, 235], "tang": 3, "mau": "#7a2a24" },
-  { "so": 9, "ten": "Phòng ngủ", "kieu": "phongNgu", "o": [430, 165, 495, 235], "tang": 3, "mau": "#2a3a6a" },
-  { "so": 10, "ten": "Phòng thay đồ", "kieu": "thayDo", "o": [495, 170, 565, 235], "tang": 3, "mau": "#6a4a6a" },
-  { "so": 11, "ten": "Nhà kính", "kieu": "nhaKinh", "o": [470, 62, 535, 98], "tang": 3, "mau": "#6a8a6a" },
-  { "so": 13, "ten": "Nhà nguyện riêng", "kieu": "nhaNguyen", "o": [495, 235, 528, 262], "tang": 3, "mau": "#8a6a2a" },
-  { "so": 14, "ten": "Sân trước tầng bốn", "kieu": "sanh", "o": [178, 86, 255, 245], "tang": 4, "mau": "#b8a27a" },
-  { "so": 15, "ten": "Phòng hát (Sängersaal)", "kieu": "phongHat", "o": [255, 98, 565, 235], "tang": 4, "mau": "#8a6a3a" }
+  {
+   "so": 1,
+   "ten": "Phòng ngai vàng",
+   "kieu": "ngaiVang",
+   "o": [
+    28,
+    108,
+    172,
+    270
+   ],
+   "tang": 3,
+   "mau": "#2a4a8c"
+  },
+  {
+   "so": 2,
+   "ten": "Sân trước (Vorplatz)",
+   "kieu": "sanh",
+   "o": [
+    178,
+    86,
+    255,
+    245
+   ],
+   "tang": 3,
+   "mau": "#b8a27a"
+  },
+  {
+   "so": 4,
+   "ten": "Tiền sảnh",
+   "kieu": "tienSanh",
+   "o": [
+    255,
+    98,
+    355,
+    170
+   ],
+   "tang": 3,
+   "mau": "#7a5a3a"
+  },
+  {
+   "so": 5,
+   "ten": "Phòng làm việc",
+   "kieu": "lamViec",
+   "o": [
+    355,
+    98,
+    430,
+    170
+   ],
+   "tang": 3,
+   "mau": "#5a3a24"
+  },
+  {
+   "so": 12,
+   "ten": "Hang động",
+   "kieu": "hangDong",
+   "o": [
+    430,
+    98,
+    495,
+    165
+   ],
+   "tang": 3,
+   "mau": "#4a5a52"
+  },
+  {
+   "so": 6,
+   "ten": "Phòng khách",
+   "kieu": "phongKhach",
+   "o": [
+    495,
+    98,
+    565,
+    170
+   ],
+   "tang": 3,
+   "mau": "#5a6a3a"
+  },
+  {
+   "so": 7,
+   "ten": "Tiền sảnh",
+   "kieu": "tienSanh",
+   "o": [
+    255,
+    170,
+    355,
+    235
+   ],
+   "tang": 3,
+   "mau": "#7a5a3a"
+  },
+  {
+   "so": 8,
+   "ten": "Phòng ăn",
+   "kieu": "phongAn",
+   "o": [
+    355,
+    170,
+    430,
+    235
+   ],
+   "tang": 3,
+   "mau": "#7a2a24"
+  },
+  {
+   "so": 9,
+   "ten": "Phòng ngủ",
+   "kieu": "phongNgu",
+   "o": [
+    430,
+    165,
+    495,
+    235
+   ],
+   "tang": 3,
+   "mau": "#2a3a6a"
+  },
+  {
+   "so": 10,
+   "ten": "Phòng thay đồ",
+   "kieu": "thayDo",
+   "o": [
+    495,
+    170,
+    565,
+    235
+   ],
+   "tang": 3,
+   "mau": "#6a4a6a"
+  },
+  {
+   "so": 11,
+   "ten": "Nhà kính",
+   "kieu": "nhaKinh",
+   "o": [
+    470,
+    62,
+    535,
+    98
+   ],
+   "tang": 3,
+   "mau": "#6a8a6a"
+  },
+  {
+   "so": 13,
+   "ten": "Nhà nguyện riêng",
+   "kieu": "nhaNguyen",
+   "o": [
+    495,
+    235,
+    528,
+    262
+   ],
+   "tang": 3,
+   "mau": "#8a6a2a"
+  },
+  {
+   "so": 14,
+   "ten": "Sân trước tầng bốn",
+   "kieu": "sanh",
+   "o": [
+    178,
+    86,
+    255,
+    245
+   ],
+   "tang": 4,
+   "mau": "#b8a27a"
+  },
+  {
+   "so": 15,
+   "ten": "Phòng hát (Sängersaal)",
+   "kieu": "phongHat",
+   "o": [
+    255,
+    98,
+    565,
+    235
+   ],
+   "tang": 4,
+   "mau": "#8a6a3a"
+  }
  ],
  "cua": [
-  { "p": [175, 150], "huong": "doc", "tang": 3, "rong": 2.2, "cao": 3.6 },
-  { "p": [175, 220], "huong": "doc", "tang": 3, "rong": 2.2, "cao": 3.6 },
-  { "p": [210, 86], "huong": "ngang", "tang": 3, "rong": 1.8 },
-  { "p": [255, 130], "huong": "doc", "tang": 3 },
-  { "p": [255, 205], "huong": "doc", "tang": 3 },
-  { "p": [355, 134], "huong": "doc", "tang": 3 },
-  { "p": [430, 130], "huong": "doc", "tang": 3 },
-  { "p": [495, 130], "huong": "doc", "tang": 3 },
-  { "p": [355, 202], "huong": "doc", "tang": 3 },
-  { "p": [430, 200], "huong": "doc", "tang": 3 },
-  { "p": [495, 200], "huong": "doc", "tang": 3 },
-  { "p": [305, 170], "huong": "ngang", "tang": 3 },
-  { "p": [530, 170], "huong": "ngang", "tang": 3 },
-  { "p": [500, 98], "huong": "ngang", "tang": 3 },
-  { "p": [511, 235], "huong": "ngang", "tang": 3, "rong": 1.2 },
-  { "p": [210, 86], "huong": "ngang", "tang": 4, "rong": 1.8 },
-  { "p": [255, 165], "huong": "doc", "tang": 4, "rong": 2.4, "cao": 3.6 }
- ]
+  {
+   "p": [
+    175,
+    150
+   ],
+   "huong": "doc",
+   "tang": 3,
+   "rong": 2.2,
+   "cao": 3.6
+  },
+  {
+   "p": [
+    175,
+    220
+   ],
+   "huong": "doc",
+   "tang": 3,
+   "rong": 2.2,
+   "cao": 3.6
+  },
+  {
+   "p": [
+    210,
+    86
+   ],
+   "huong": "ngang",
+   "tang": 3,
+   "rong": 1.8
+  },
+  {
+   "p": [
+    255,
+    130
+   ],
+   "huong": "doc",
+   "tang": 3
+  },
+  {
+   "p": [
+    255,
+    205
+   ],
+   "huong": "doc",
+   "tang": 3
+  },
+  {
+   "p": [
+    355,
+    134
+   ],
+   "huong": "doc",
+   "tang": 3
+  },
+  {
+   "p": [
+    430,
+    130
+   ],
+   "huong": "doc",
+   "tang": 3
+  },
+  {
+   "p": [
+    495,
+    130
+   ],
+   "huong": "doc",
+   "tang": 3
+  },
+  {
+   "p": [
+    355,
+    202
+   ],
+   "huong": "doc",
+   "tang": 3
+  },
+  {
+   "p": [
+    430,
+    200
+   ],
+   "huong": "doc",
+   "tang": 3
+  },
+  {
+   "p": [
+    495,
+    200
+   ],
+   "huong": "doc",
+   "tang": 3
+  },
+  {
+   "p": [
+    305,
+    170
+   ],
+   "huong": "ngang",
+   "tang": 3
+  },
+  {
+   "p": [
+    530,
+    170
+   ],
+   "huong": "ngang",
+   "tang": 3
+  },
+  {
+   "p": [
+    500,
+    98
+   ],
+   "huong": "ngang",
+   "tang": 3
+  },
+  {
+   "p": [
+    511,
+    235
+   ],
+   "huong": "ngang",
+   "tang": 3,
+   "rong": 1.2
+  },
+  {
+   "p": [
+    210,
+    86
+   ],
+   "huong": "ngang",
+   "tang": 4,
+   "rong": 1.8
+  },
+  {
+   "p": [
+    255,
+    165
+   ],
+   "huong": "doc",
+   "tang": 4,
+   "rong": 2.4,
+   "cao": 3.6
+  }
+ ],
+ "gioiThieu": {
+  "sanh3": {
+   "ten": "Sảnh dưới (tầng ba)",
+   "chu": "Tranh tường kể truyền thuyết Sigurd trong tập Edda Bắc Âu cổ. Sigurd chính là Siegfried trong bản Nibelungenlied tiếng Đức trung đại. Các cửa vòm đá cẩm thạch mở sang Phòng ngai vàng ở phía tây và sang dãy phòng riêng của vua ở phía đối diện.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/vor_og3.htm"
+  },
+  "ngaiVang": {
+   "ten": "Phòng ngai vàng",
+   "chu": "Phòng chiếm hai tầng ba, bốn, phỏng theo nhà thờ Byzantine, nhất là Nhà thờ Các Thánh ở München. Vòm trần gắn sao, sàn khảm vẽ trái đất cùng cây cỏ và muông thú, đèn chùm cao khoảng bốn mét. Ngai vàng định đặt ở hậu cung phía bắc nhưng chưa từng được làm.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/thron.htm"
+  },
+  "phongAn": {
+   "ten": "Phòng ăn",
+   "chu": "Tranh tường vẽ Wolfram von Eschenbach cùng các nhà thơ hát tình ca thời trung cổ, đóng trong khung gỗ sồi chạm phù điêu. Vật trang trí giữa bàn bằng đá cẩm thạch và đồng mạ vàng, tả cảnh Siegfried đánh rồng. Năm 1885 lắp hệ thống chuông điện để gọi người hầu từ mọi phòng.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/speise.htm"
+  },
+  "phongNgu": {
+   "ten": "Phòng ngủ",
+   "chu": "Truyền thuyết Tristan và Isolde là chủ đề chính, có trên tranh tường, trên chạm khắc cửa và trên tượng gốm của lò sưởi lát gạch. Giường kiểu tân Gothic phủ lụa xanh, thêu sư tử, thiên nga, vương miện, hoa huệ và huy hiệu Bayern. Bồn rửa có vòi phun hình thiên nga mạ bạc.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/schlaf.htm"
+  },
+  "nhaNguyen": {
+   "ten": "Nhà nguyện nhỏ",
+   "chu": "Nhà nguyện kiểu tân Gothic nằm sát phòng ngủ. Tranh tường, cửa kính màu và tranh giữa bàn thờ đều vẽ Thánh Louis IX của Pháp, vị thánh bổn mạng của nhà vua. Vua Louis XVI, hậu duệ trực hệ của Louis IX, là cha đỡ đầu của Ludwig I, ông nội Ludwig II.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/hauskap.htm"
+  },
+  "thayDo": {
+   "ten": "Phòng thay đồ",
+   "chu": "Phòng trang trí như một sảnh vườn, trần vẽ giàn nho như mở ra bầu trời. Giữa các tấm ốp là cảnh đời và thơ của Walther von der Vogelweide và Hans Sachs. Rèm và đệm ghế bằng lụa tím thêu vàng lá, dây leo và từng cặp công; hộp trang sức của vua đặt trong hốc cửa sổ lồi.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/ankleide.htm"
+  },
+  "phongKhach": {
+   "ten": "Phòng khách",
+   "chu": "Phòng hình chữ L, có góc ngồi ngăn bằng hàng cột. Tranh tường kể truyền thuyết Lohengrin, hiệp sĩ Chén Thánh gắn với thiên nga, con vật trên huy hiệu của Ludwig với tư cách Hiệp sĩ Schwangau. Rèm lụa xanh thêu thiên nga và hoa huệ, có một con thiên nga gốm majolica lớn của Villeroy & Boch.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/wohnzim.htm"
+  },
+  "hangDong": {
+   "ten": "Hang động và nhà kính",
+   "chu": "Nhà dựng cảnh August Dirigl làm hang động nhân tạo có nhũ đá, phỏng theo núi Hörselberg trong truyền thuyết Tannhäuser; ban đầu có đèn màu và thác nước. Một cửa kính trượt xuống trong lòng \"đá\" dẫn sang nhà kính, nơi có tấm kính lớn nhìn ra chân núi Alps và đài phun nhỏ vốn dành cho Sảnh Moorish chưa xây.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/grotte.htm"
+  },
+  "lamViec": {
+   "ten": "Phòng làm việc",
+   "chu": "Tranh tường kể truyền thuyết Tannhäuser và cuộc thi hát ở lâu đài Wartburg, như trong vở opera cùng tên. Vua làm việc bên chiếc bàn lớn giữa phòng, bộ đồ viết vẫn còn trên bàn. Một tủ đựng bản vẽ và bản phác thảo lâu đài; dầm trần và con sơn chạm khắc công phu.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/arbeitsz.htm"
+  },
+  "tienSanh": {
+   "ten": "Tiền sảnh (phòng sĩ quan hầu cận)",
+   "chu": "Phòng ốp gỗ sồi, đặt bàn, ghế và một lò sưởi lát gạch. Có một chiếc giường nằm cho người hầu túc trực bên vua ban đêm.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/vorzim.htm"
+  },
+  "sanh4": {
+   "ten": "Sảnh trên (tầng bốn)",
+   "chu": "Tranh tường kể truyền thuyết Gudrun trong tập Edda Bắc Âu cổ, phần nối tiếp truyền thuyết Sigurd. Cửa vòm đá cẩm thạch phía tây dẫn ra ban công Phòng ngai vàng, hai cửa vòm đá cẩm thạch phía đông dẫn vào Phòng hát.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/vor_og4.htm"
+  },
+  "phongHat": {
+   "ten": "Phòng hát",
+   "chu": "Phòng chiếm trọn tầng bốn phía đông, ghép theo Sảnh hội và Phòng hát của lâu đài Wartburg. Tranh tường kể truyền thuyết Parzival và Chén Thánh, khép lại bằng Lohengrin, Hiệp sĩ Thiên nga. Trần ô kẽ vẽ mười hai cung hoàng đạo; góc sân khấu vẽ khu rừng thiêng quanh lâu đài Chén Thánh.",
+   "nguon": "https://www.neuschwanstein.de/englisch/palace/saenger.htm"
+  }
+ },
+ "nguon_noi_that": "Đồ đạc: KayKit Dungeon Remastered (Kay Lousberg, CC0). Tranh tường: ảnh photochrom ~1900 của Josef Albert / Photoglob, Library of Congress (phạm vi công cộng). Chữ giới thiệu tóm từ trang chính thức neuschwanstein.de."
 }

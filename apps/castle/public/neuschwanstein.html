@@ -38,6 +38,9 @@
   #bd .bd-dong { position: absolute; top: 6px; right: 6px; }
   #bd .bd-nhac { position: absolute; top: 9px; left: 10px; right: 40px; font: 600 12px system-ui, sans-serif; color: #ffe2b8; text-shadow: 0 1px 2px #000; }
   #bd .bd-diem { position: absolute; left: 6px; right: 6px; top: 30px; display: flex; flex-wrap: wrap; gap: 4px; }
+  #goiY { position: fixed; left: 50%; bottom: 62px; transform: translateX(-50%); display: none; padding: 6px 12px; border-radius: 8px; background: rgba(14,20,30,.78); color: #ffe2b8; font: 600 13px system-ui, sans-serif; pointer-events: none; white-space: nowrap; z-index: 5; }
+  #doc { display: none; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100vw - 40px)); padding: 16px 18px; z-index: 7; }
+  #doc b { font-size: 16px; color: #ffd9a8; } #doc .chu { margin: 8px 0; line-height: 1.6; } #doc .mo { font-size: 12px; color: var(--mo); } #doc a { color: var(--mo); }
   a.ve { display: inline-block; margin-top: 6px; color: #ffd9a8; font-size: 12.5px; }
 </style>
 </head>
@@ -45,12 +48,14 @@
 <div id="dau" class="o">
   <b>Neuschwanstein</b> · dựng từ số đo thật
   <div class="mo" id="tt">Đang tải số đo…</div>
-  <div class="mo">Mặt bằng, chiều cao và kiểu mái lấy từ OpenStreetMap (chỉnh theo ảnh thật), địa hình EU-DEM 25 m. Cửa sổ, đá, mái là vân dựng bằng mã. Nội thất Palas tầng ba + Phòng hát theo mặt bằng Commons (CC BY 3.0, PodracerHH), đồ đạc phỏng dựng.</div>
+  <div class="mo">Mặt bằng, chiều cao và kiểu mái lấy từ OpenStreetMap (chỉnh theo ảnh thật), địa hình EU-DEM 25 m. Cửa sổ, đá, mái là vân dựng bằng mã. Nội thất Palas tầng ba + Phòng hát theo mặt bằng Commons (CC BY 3.0, PodracerHH); tranh tường cắt từ ảnh màu ~1900, đồ đạc phỏng dựng — bấm E để ngồi, mở rương, cầm đồ, bật đèn, đọc giới thiệu.</div>
   <div class="mo">Kéo chuột để xoay · lăn để phóng · chuột phải kéo để dời.</div>
   <a class="ve" href="./">← Lâu đài dung nham</a>
 </div>
 <div id="nut" class="o"><button id="b-di" class="chinh">🚶 Đi bộ</button><button id="b-toan" style="display:none">🗺 Toàn cảnh</button></div>
 <div id="hd" class="o"></div>
+<div id="goiY"></div>
+<div id="doc" class="o"><b></b><div class="chu"></div><div class="mo">Nguồn: <a target="_blank" rel="noopener">trang chính thức Neuschwanstein</a> · E hoặc Esc để đóng</div></div>
 <div id="bd" title="Bản đồ — bấm để phóng to, rồi bấm vào đâu là tới đó"><canvas></canvas></div>
 <div id="so-khung"><img id="so-anh" alt="Ảnh thật để đối chiếu"></div>
 <div id="so" class="o">
@@ -61,7 +66,7 @@
   <div class="mo" id="so-tt"></div>
   <div class="mo" id="so-nguon"></div>
 </div>
-<div id="nguon" class="o">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> · EU-DEM (Copernicus) · người: Quaternius (CC0)</div>
+<div id="nguon" class="o">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> · EU-DEM (Copernicus) · người: Quaternius (CC0) · đồ đạc: KayKit (Kay Lousberg, CC0) · tranh tường: photochrom ~1900, Josef Albert / Library of Congress</div>
 <script>
 // cùng cách nạp theo dấu phiên bản như index.html (Cloudflare zone on.tc giữ .js 30 ngày): hỏi ETag rồi nạp ./x.js?v=<ETag>
 (async () => {

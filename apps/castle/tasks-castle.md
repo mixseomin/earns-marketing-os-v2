@@ -35,6 +35,7 @@ $S submit <id> "<lời>" [url]  # → Review (nộp cho anh duyệt)
 | Bản đồ nhỏ | `bando.js` |
 | Người chơi có xương + 24 động tác thật (Quaternius CC0, `tai-san/nguoi.glb` dựng bằng `scripts/tai-nhan-vat.mjs`) | `nguoi3d.js` |
 | Mô-đun đi bộ dùng chung cho cả hai cảnh (đi / leo / đu mép / bơi / camera / đẩy vật; ngựa + xe móc vào qua `ngoai.buoc` / `ngoai.khung` trong main.js) | `dibo.js` |
+| Đồ đạc KayKit (`tai-san/do-noi-that.glb` dựng bằng `scripts/tai-do-noi-that.mjs`) + tranh tường cắt từ photochrom (`scripts/cat-tranh-noi-that.py` → `du-lieu/anh/noi-that/`) + tương tác E (ngồi / mở / cầm / đèn / đọc) trong `ns.js` | `noithat.js`, `ns.js` |
 | Nội thất Palas (tầng ba 13 phòng theo mặt bằng Commons CC BY 3.0 + Phòng hát tầng bốn, cầu thang xoắn, đồ đạc phỏng dựng) — dữ liệu `du-lieu/neuschwanstein-noi-that.json`, bản vẽ gốc `apps/castle/du-lieu-goc/` | `noithat.js` |
 | Neuschwanstein thật (số đo OSM + địa hình, so ảnh thật, vật liệu, rừng, đi bộ) — trang `neuschwanstein.html`, dữ liệu `du-lieu/`, chỉnh theo ảnh `du-lieu/neuschwanstein-sua.json` | `ns.js` |
 | Ngựa + xe ngựa (hình, dáng đi); cưỡi / lái / leo / bơi nằm trong `main.js` (`buocXe`, `buocDiBo`) | `phuongtien.js` |

@@ -20,7 +20,7 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
   const TINH = RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC | RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC;
   const VD = { di: 4.2, chay: 7.5, ngoi: 1.6, tang: 28, ham: 36, tangKhong: 7, quay: 12.5, nhay: 5.4, g: 18, gRoi: 26, coyote: 0.12, dem: 0.12 };
   let dang = false, tt = 'dat', yaw = 0, pitch = -0.12, huong = 0, muon = 0, vx = 0, vz = 0, vy = 0, nen = false, roiMep = 1, demNhay = 0, chamLeo = 0;
-  let toc = 0, tocLeo = 0, phaLeo = 0, phaBoi = 0, lucChuot = -1e9, gocNhin = 3, camY = null, camNang = 0, camKc = 3.6;
+  let toc = 0, tocLeo = 0, phaLeo = 0, phaBoi = 0, lucChuot = -1e9, gocNhin = 3, camY = null, camNang = 0, camKc = 3.6, camDoc = 0;
   const leoN = { x: 0, z: 1 }, qua = { t: 0, dai: 0.5, a: null, b: null, c: null };
   const tiaN = (p, dy, dx, dz, dai) => (dx || dz) && world.castRayAndGetNormal(new RAPIER.Ray({ x: p.x, y: p.y + dy, z: p.z }, { x: dx, y: 0, z: dz }), dai, true, TINH, nhomVa, va);
   const matTren = (x, yTu, z, sau) => { const h = world.castRay(new RAPIER.Ray({ x, y: yTu, z }, { x: 0, y: -1, z: 0 }), sau, true, TINH, nhomVa, va); return h ? yTu - h.timeOfImpact : null; };
@@ -156,7 +156,18 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
     toi.capNhat(dt, { toc: tt === 'dat' && !ng ? toc : 0, nen: nen || tt !== 'dat' || !!ng, ngoi: tt === 'dat' && !ng && !!phim.KeyC, tuThe, phaLeo, phaBoi, tocLeo, tocXe: toc, ...stThem() });
     if (gocNhin === 1) { camera.position.set(p.x, (ng ? chan + 0.9 : chan + MAT), p.z); camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; }
     camY = camY == null || Math.abs(camY - chan) > 3 ? chan : camY + (chan - camY) * (1 - Math.exp(-dt * 12));
-    const pt = Math.max(-1.1, Math.min(0.75, pitch)), kcMax = ng?.kcMax ?? 3.6;
+    // camera NGHIÊNG THEO DỐC phía trước (anh 15/11/2026 "đứng ở sườn dốc / lúc chạy cứ bị cắm mặt về phía trước"): góc cúi cố định thì quay lên dốc
+    // camera nhìn thẳng vào sườn (cỏ kín màn), xuống dốc không thấy đường. Dò mặt đất 4 m trước hướng nhìn → lên dốc ngẩng, xuống dốc cúi (70% độ dốc, trơn);
+    // vừa kéo chuột (< 1,5 s) thì không tự nghiêng đè tay người chơi. Chỉ khi đứng trên đất, không cưỡi / leo.
+    {
+      let muonDoc = 0;
+      if (!ng && tt === 'dat' && nen && performance.now() - lucChuot > 1500) {
+        const fx = -Math.sin(yaw), fz = -Math.cos(yaw), h1 = matTren(p.x + fx * 4, chan + 5, p.z + fz * 4, 12);
+        if (h1 != null && Math.abs(h1 - chan) < 4) muonDoc = Math.max(-0.5, Math.min(0.5, Math.atan2(h1 - chan, 4) * 0.7));
+      } else if (performance.now() - lucChuot <= 1500) muonDoc = camDoc; // đang chỉnh tay: giữ nguyên phần nghiêng hiện có
+      camDoc += (muonDoc - camDoc) * (1 - Math.exp(-dt * 3));
+    }
+    const pt = Math.max(-1.1, Math.min(0.75, pitch + camDoc)), kcMax = ng?.kcMax ?? 3.6;
     // camera sau lưng, gần tường KHÔNG dí sát vào gáy (anh 15/11/2026 "ở quá gần tường thì view bị sát vào, không quan sát nổi"):
     // 1) điểm nhìn lệch vai chỉ lệch tới chỗ còn trống (đứng sát tường bên cạnh thì điểm lệch cũ nằm TRONG tường → tia bắt đầu trong vật → camera 0,4 m);
     // 2) phía sau bị chắn thì nâng camera lên nhìn chéo xuống (tối đa ~49°, dốc hơn là chỉ thấy đỉnh đầu) tới khi có ≥ 2 m, chọn góc xa nhất;

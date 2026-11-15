@@ -12,6 +12,7 @@ import { quyenEtp } from '@/lib/etp-quyen';
 import type { TieuChi } from '@/lib/etp-chan';
 import { chuLich } from '@/lib/etp-khung';
 import { dangChay } from '@/lib/etp-chay';
+import { DS_DANG } from '@/lib/etp-dang';
 
 export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string; cach: string; gia: string; thoi_gian: string; chay: boolean; khoa?: string;
   vi_du: { creative_id: number; video: string; phim: string | null; lai: number; chi: number }[] };
@@ -93,11 +94,19 @@ export async function dangGac(): Promise<string[]> {
   return g?.kt ? [...new Set([...ds, 'KT'])] : ds;
 }
 
-/** DẠNG MÁY LÀM ĐƯỢC cho hàng Thao tác của bảng phim (anh 15/11/2026 "sao thao tác chỉ có vài loại?"): cùng sổ LOAI của form dòng phim — chay = máy dòng phim làm được;
- *  LT (lộ trình test) là đường riêng, không phải một dạng creative → không đưa vào Thao tác */
+/** THỂ LOẠI cho hàng Thao tác của bảng phim — ĐỦ MỌI DẠNG trong SỔ DẠNG lib/etp-dang.json (anh 15/11/2026 #1616 "show hết các thể loại ra đây"; trước lấy từ LOAI
+ *  form dòng phim nên gộp 5 kiểu mới thành KM và thiếu TN / PD / LM). Dạng có mục LOAI → mã dòng + chay của máy dòng phim; dạng máy chưa làm → hiện, khoá kèm lý do. */
 export async function loaiThaoTac(): Promise<{ ma: string; ten: string; chay: boolean; khoa: string | null }[]> {
   if (!(await quyen())) return [];
-  return LOAI.filter((l) => l.ma !== 'LT').map((l) => ({ ma: l.ma, ten: l.ten, chay: l.chay, khoa: l.khoa ?? null }));
+  const km = LOAI.find((l) => l.ma === 'KM');
+  const ds = DS_DANG.map((d) => {
+    const l = LOAI.find((x) => x.ma !== 'LT' && x.ma !== 'KM' && x.dang === d.dang);
+    if (l) return { ma: l.ma, ten: l.ten, chay: l.chay, khoa: l.khoa ?? null };
+    const khoa = d.dong === 'LT' ? 'lộ trình test (LT) là đường riêng — chạy ở form dòng phim (＋ dòng), không lên lẻ từ Thao tác'
+      : d.kieu && km ? `kiểu mới (kieu-moi.py) — ${km.khoa}` : 'máy dòng phim chưa làm được dạng này';
+    return { ma: d.ma, ten: `${d.ma} — ${d.dang}`, chay: false, khoa };
+  });
+  return [...ds.filter((x) => x.chay), ...ds.filter((x) => !x.chay)];   // máy làm được đứng trước, dạng khoá theo thứ tự sổ
 }
 export async function chayDong(contentId: number, loai: string, theLoai: string, soCamp?: number, bo?: string | null): Promise<{ ok: true; id: number } | { loi: string }> {
   const me = await quyen(); if (!me) return { loi: 'chỉ chủ / admin chạy dòng phim tự động' };

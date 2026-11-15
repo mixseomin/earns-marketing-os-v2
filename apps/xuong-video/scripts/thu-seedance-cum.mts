@@ -79,7 +79,9 @@ if (loiGui.length) { console.error(`✗ CHẶN trước khi gửi (${loiGui.leng
 // KHỚP THOẠI THEO TIẾNG CLIP (can-giong.ts › khopTheoTiengClip — luật chuẩn 15/11/2026, thay tương quan âm lượng + đo miệng bằng hình): điểm vào shot = lúc clip
 // bắt đầu nói trong đoạn của shot − lúc câu bắt đầu nghe thấy trong shot. Clip không nói / nói lặp / không bù được → lỗi (shot không gắn, vào lượt sinh lại).
 // PCM chỉ GIẢI MÃ âm (ffmpeg trên box, không mã hoá video).
-const pcm = (u: string) => { const b = execFileSync('ffmpeg', ['-v', 'error', '-i', u, '-vn', '-ac', '1', '-ar', '8000', '-f', 's16le', '-'], { maxBuffer: 64 << 20 }); return duongAmLuong(new Int16Array(b.buffer, b.byteOffset, Math.floor(b.length / 2)), 8000); };
+// clip KHÔNG có rãnh tiếng (sinh trước luật gửi giọng, vd cụm #8–#10 phim #3071) → mảng rỗng → khớp thoại báo "không có tiếng nói", vào lượt sinh lại (trước: ffmpeg văng lỗi)
+const coTieng = (u: string) => execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', u], { encoding: 'utf8' }).trim() !== '';
+const pcm = (u: string) => { if (!coTieng(u)) return new Float32Array(0); const b = execFileSync('ffmpeg', ['-v', 'error', '-i', u, '-vn', '-ac', '1', '-ar', '8000', '-f', 's16le', '-'], { maxBuffer: 64 << 20 }); return duongAmLuong(new Int16Array(b.buffer, b.byteOffset, Math.floor(b.length / 2)), 8000); };
 function khopThoai(fClip: string, vao: number[], doan: [number, number][]): { vao: number[]; toc: number[]; loi: (string | null)[]; bao: string } {
   if (!cauAm.length) return { vao, toc: vao.map(() => 1), loi: vao.map(() => null), bao: '' };
   const tieng = pcm(fClip); const kq = cum.map((x, i) => {

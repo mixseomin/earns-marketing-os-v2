@@ -96,6 +96,59 @@ def cat(v):
     ok = [x for x in kq if x.get("file") and not x.get("loi")]
     return kq, (None if ok else (" ".join(str(x.get("loi")) for x in kq)[:300] or "không ra đoạn nào"))
 
+# DỌN MÁY THỢ (15/11/2026, VPS may-cao-vn đầy 92%: 15 GB nguon/ + ra/ tích từ 06/11, ~9 GB/ngày). Máy KHÁC iMac chỉ là chỗ cắt tạm: đoạn cắt đã rsync về
+# iMac, tập phim tải lại được → xong việc (bất kể đạt / lỗi / trả lại) là xoá nguon/<phim> + ra/<lô>/p-<phim> của việc đó. iMac giữ nguyên (don-kho.py lo).
+# DUNG = phim luồng khác trong tiến trình đang cắt → không xoá dưới chân nó. don_ton() lúc khởi động dọn phần sót (thợ bị giết, mã cũ), chừa thư mục mới hơn 3 giờ.
+DUNG = {}; KHOA = threading.Lock()
+def _xoa(d):
+    import shutil; shutil.rmtree(d, ignore_errors=True)
+    cha = os.path.dirname(d)
+    if os.path.basename(os.path.dirname(cha)) == "ra":
+        try: os.rmdir(cha)   # ra/<lô>/ rỗng thì bỏ luôn
+        except OSError: pass
+def don_viec(v):
+    if MAY == TRUNG_TAM: return
+    cid = str(v["content_id"])
+    with KHOA:
+        DUNG[cid] -= 1
+        if DUNG[cid] > 0: return
+        del DUNG[cid]
+    _xoa(os.path.join(N, cid)); _xoa(os.path.join(C, "ra", v["lo"], f"p-{cid}"))
+def moi_nhat(d):
+    t = os.path.getmtime(d)
+    for g, _, ts in os.walk(d):
+        for f in ts:
+            try: t = max(t, os.path.getmtime(os.path.join(g, f)))
+            except OSError: pass
+    return t
+def don_ton(goc=C, gio=3):
+    if MAY == TRUNG_TAM and goc == C: return 0, 0
+    han = time.time() - gio * 3600; so = n = 0
+    ds = [os.path.join(goc, "nguon", x) for x in (os.listdir(os.path.join(goc, "nguon")) if os.path.isdir(os.path.join(goc, "nguon")) else [])]
+    r = os.path.join(goc, "ra")
+    for lo in (os.listdir(r) if os.path.isdir(r) else []):
+        if os.path.isdir(os.path.join(r, lo)): ds += [os.path.join(r, lo, x) for x in os.listdir(os.path.join(r, lo))]
+    for d in ds:
+        if os.path.isdir(d) and moi_nhat(d) < han:
+            n += sum(os.path.getsize(os.path.join(g, f)) for g, _, ts in os.walk(d) for f in ts if os.path.isfile(os.path.join(g, f))); _xoa(d); so += 1
+    return so, n
+def tu_kiem():
+    import tempfile
+    with tempfile.TemporaryDirectory() as g:
+        cu = time.time() - 5 * 3600
+        def tao(p, cu_=True):
+            p = os.path.join(g, p); os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "wb").write(b"x" * 10)
+            for x in (p, os.path.dirname(p)):
+                if cu_: os.utime(x, (cu, cu))
+            return p
+        a = tao("nguon/11/tap1.mp4"); b = tao("ra/dp1/p-11/c-1.mp4"); c = tao("nguon/12/tap1.mp4", False); e = tao("ra/dp2/p-12/c-1.mp4", False)
+        assert don_ton(g) == (2, 20), "đếm sai"
+        assert not os.path.exists(a) and not os.path.exists(b) and not os.path.isdir(os.path.join(g, "ra", "dp1")), "còn sót thư mục cũ"
+        assert os.path.exists(c) and os.path.exists(e), "xoá nhầm việc đang chạy"
+        assert don_ton(g) == (0, 0), "lần hai phải rỗng"
+        assert don_ton(os.path.join(g, "khong-co")) == (0, 0), "thư mục không có phải im"
+    print("tự kiểm 5/5")
+
 def giu_nhip(vid, dung):
     """ghi nhịp sống mỗi phút tới khi việc xong (dung.set); mạng hỏng một nhịp thì bỏ qua — 10 nhịp liền mới bị coi là chết"""
     while not dung.wait(60):
@@ -114,15 +167,23 @@ def tho(lo):
             if DANG[0] > 0: time.sleep(30); continue
             return n
         DANG[0] += 1
+        with KHOA: DUNG[str(v["content_id"])] = DUNG.get(str(v["content_id"]), 0) + 1
         t0 = time.time(); dung = threading.Event(); threading.Thread(target=giu_nhip, args=(v["id"], dung), daemon=True).start()
         try: kq, loi = cat(v) if v["loai"] == "cat" else ([], f"loại việc lạ {v['loai']}")
         except Exception as e: kq, loi = [], f"{type(e).__name__}: {str(e)[:200]}"
         finally: dung.set()
         r = xong(v, kq, loi); n += 1; DANG[0] -= 1
+        try: don_viec(v)
+        except Exception as e: print(f"[{MAY}] dọn phim {v['content_id']} lỗi: {e}", flush=True)
         print(f"[{MAY}] #{v['id']} {v['loai']} phim {v['content_id']}: {r} · {sum(1 for x in kq if x.get('file') and not x.get('loi'))} đoạn · {time.time() - t0:.0f}s{(' · ' + str(loi)[:100]) if loi else ''}", flush=True)
 
 if __name__ == "__main__":
     a = sys.argv[1:]; so = int(a[a.index("--so-tho") + 1]) if "--so-tho" in a else 2; lo = a[a.index("--lo") + 1] if "--lo" in a else None
+    if "--tu-kiem" in a: tu_kiem(); sys.exit()
+    try:
+        so_d, n_d = don_ton()
+        if so_d: print(f"[{MAY}] dọn tồn: {so_d} thư mục · {n_d / 1e9:.1f} GB", flush=True)
+    except Exception as e: print("dọn tồn lỗi:", e, flush=True)
     try: quet_chet()
     except Exception as e: print("quét việc kẹt lỗi:", e, flush=True)
     with ThreadPoolExecutor(so) as ex: tong = sum(ex.map(lambda _: tho(lo), range(so)))

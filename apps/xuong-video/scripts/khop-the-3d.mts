@@ -10,12 +10,14 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapCanh, mapNhanVat, type Row } from '../src/lib/xuong-video/doc-db';
-import { gocNgang, gocMayLech, coCanhLech, GOC_NGANG, huongVoiMay, nhinCau, chuThe } from '../src/lib/xuong-video/bo-set-3d';
+import { gocNgang, gocMayLech, coCanhLech, GOC_NGANG, huongVoiMay, nhinCau, chuThe, boSetCuaShot } from '../src/lib/xuong-video/bo-set-3d';
 import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
 const db = getDb()!; const tapId = Number(process.argv[2]); const ghi = process.argv.includes('--ghi');
 const tap = ((await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0]; if (!tap) { console.error('không thấy tập'); process.exit(1); }
 const nv = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(tap.phim_id)}`)) as unknown as Row[]).map(mapNhanVat);
 const ds = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
+// MỐC NHÌN của bộ set (du_lieu.moc) — hướng ĐẦU về đích nhìn ngoài người (bo-set-3d.ts › huongDau), cùng nguồn khung 3D
+const mocSet = new Map(((await db.execute(sql`SELECT id, du_lieu->'moc' AS moc FROM xv_bo_set WHERE phim_id = ${Number(tap.phim_id)} OR id IN (SELECT bo_set_id FROM xv_nhan_vat WHERE phim_id = ${Number(tap.phim_id)} AND bo_set_id IS NOT NULL)`)) as unknown as Row[]).map((r) => [Number(r.id), (r.moc ?? null) as Record<string, number[]> | null]));
 const laNv = (t: string) => nv.some((x) => x.loai === 'nhan_vat' && x.ten === t);
 const laNguoi = (t: string) => nv.some((x) => x.ten === t && x.loai === 'nhan_vat' && (x.khoi_3d as { hinh?: string } | null)?.hinh === 'nguoi');
 const RONG: Record<string, string> = { ecu: 'cu', cu: 'mcu', mcu: 'ms', ms: 'ws', two: 'ws', ots: 'ms' };
@@ -47,10 +49,14 @@ for (const c of ds) {
     dd.bo_cuc = [`foreground: ${tien.map(ten).join(', ') || 'clear'}`, `midground: ${trung.map(ten).join(', ') || 'none'}`, `background: ${hau.map(ten).join(', ') || 'sky'}`].join('; ');
     ghiChu.push('điền bố cục 3 lớp từ 3D');
   }
-  if (!dd.huong?.trim()) {
+  // Ô hướng do MÁY điền lần trước ("Chú: facing the camera, …") thì tính lại mỗi lần (16/11/2026: chữ cũ tính theo THÂN nằm lại ở #1 #4 #6 #8 #15 phim #3071 sau khi
+  // hàm đổi sang hướng ĐẦU — #1 nghiêng phải, #2 nhìn trái, lệch qua cú cắt). Chữ người viết thì giữ.
+  const huongMay = (x?: string) => !x?.trim() || x.split(/;\s*/).every((p) => /^[^:]+: (facing the camera|three-quarter|in profile|back to the camera)/.test(p.trim()));
+  if (huongMay(dd.huong)) {
+    const moc = mocSet.get(boSetCuaShot(c, nv) ?? -1) ?? null;
     const nguoi = m.vi_tri.filter((v) => laNv(v.ten) && !v.an); const ct = chuThe(m).filter(laNv);
-    const cau = nguoi.filter((v) => ct.includes(v.ten)).map((v) => { const h = huongVoiMay(m, v); const n = nhinCau(m, v, nguoi); return `${v.ten}: ${h?.chu ?? ''}${n ? `, ${n}` : ''}`; });
-    if (cau.length) { dd.huong = cau.join('; '); ghiChu.push('điền hướng từ 3D'); }
+    const cau = nguoi.filter((v) => ct.includes(v.ten)).map((v) => { const h = huongVoiMay(m, v, false, moc); const n = nhinCau(m, v, nguoi, false, moc); return `${v.ten}: ${h?.chu ?? ''}${n ? `, ${n}` : ''}`; });
+    if (cau.length && cau.join('; ') !== dd.huong) { dd.huong = cau.join('; '); ghiChu.push('điền hướng từ 3D (hướng đầu)'); }
   }
   if (!dd.dien?.trim()) { const d = [...(c.thoai ?? []).filter((x) => x.dien_xuat?.trim()).map((x) => `${x.nhan_vat}: ${x.dien_xuat}`), c.hanh_dong?.trim()].filter(Boolean).join('; '); if (d) { dd.dien = d; ghiChu.push('điền diễn từ thoại + hành động'); } }
   if (!ghiChu.length) continue;

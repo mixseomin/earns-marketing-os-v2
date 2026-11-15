@@ -55,7 +55,9 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
       select dang, count(*)::int chay, count(*) filter (where chi >= 1 and thu > chi)::int lai, count(*) filter (where chi >= 1 and thu <= chi)::int lo, sum(chi)::float chi7, sum(thu)::float thu7
       from s group by 1 order by 2 desc`),
     run<LichPhim['thay']>(sql`select kieu, buoc, ghi from etp.thay_the where content_id = ${id} and buoc not in ('chay', 'huy') order by id desc limit 1`),
-    run<LichSx>(sql`select d.id, d.trang_thai, d.loai, d.so_camp, left(d.ly_do, 200) ly_do, d.tao_luc > now() - interval '1 day' moi, d.tao_luc::text tao, coalesce((select json_agg(json_build_object('buoc', b.buoc, 'trang_thai', b.trang_thai, 'ghi', left(b.ghi, 160), 'bat_dau', b.bat_dau, 'ket_qua', b.ket_qua) order by b.thu_tu)
+    run<LichSx>(sql`select d.id, d.trang_thai, d.loai, d.so_camp, left(d.ly_do, 200) ly_do,
+        -- dòng dừng chỉ còn "mới" khi còn đúng: chưa có dòng cùng dạng tạo sau nó (dòng sau thay chỗ) (#1612)
+        d.tao_luc > now() - interval '1 day' and not exists (select 1 from etp.dong_phim d2 where d2.content_id = d.content_id and d2.loai = d.loai and d2.id > d.id) moi, d.tao_luc::text tao, coalesce((select json_agg(json_build_object('buoc', b.buoc, 'trang_thai', b.trang_thai, 'ghi', left(b.ghi, 160), 'bat_dau', b.bat_dau, 'ket_qua', b.ket_qua) order by b.thu_tu)
         from etp.dong_buoc b where b.dong_id = d.id), '[]') buoc from etp.dong_phim d where d.content_id = ${id} and d.trang_thai in ('chay', 'loi', 'dung') order by d.id desc limit 3`),
     run<{ g: Record<string, unknown> | null }>(sql`select gia_tri g from etp.cau_hinh where khoa = 'khung_hoan'`),
     run<{ chi: number; so: number }>(sql`select coalesce((gia_tri->>'chi')::float, 25) chi, coalesce((gia_tri->>'so_thu')::int, 4) so from etp.cau_hinh where khoa = 'cat_phim'`),
@@ -93,7 +95,10 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
   ]);
   const ids = new Set((await run<{ camp_id: number }>(sql`select camp_id from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE'`)).map((x) => Number(x.camp_id)));
   const hoan = (['tang', 'giam', 'tat'] as const).flatMap((h) => ((kh?.g?.[h] as number[] | undefined) ?? []).filter((c) => ids.has(Number(c))).map((c) => ({ camp_id: Number(c), huong: h })));
-  return { ...p!, dang, thay: thay ?? null, sx, hoan, moc_chi: mc?.chi ?? 25, moc_thu: mc?.so ?? 4, ke: ke ?? null, hen, tu_len: cho?.tu_len ?? 0, thieu: cho?.thieu ?? null, may_mo: !!cho?.may_mo, lt: lt?.g ?? null,
+  // DỪNG VÌ GÁC MÀ GÁC ĐÃ MỞ (#1612): anh mở lại mọi dạng 15/11/2026, dòng dừng "tạm gác dòng CC … mở lại: bỏ 'CC' khỏi gac_dang" vẫn hiện 24 giờ, nói sai hiện trạng.
+  // Lý do gác chỉ còn đúng khi dạng đó VẪN trong gac → hết gác thì thôi hiện (cùng một chỗ cho mọi dạng, KT gồm gac_kt qua dangGac)
+  const sxDung = sx.map((d) => d.trang_thai === 'dung' && (d.ly_do ?? '').startsWith('tạm gác dòng') && !gac.includes(d.loai) ? { ...d, moi: false } : d);
+  return { ...p!, dang, thay: thay ?? null, sx: sxDung, hoan, moc_chi: mc?.chi ?? 25, moc_thu: mc?.so ?? 4, ke: ke ?? null, hen, tu_len: cho?.tu_len ?? 0, thieu: cho?.thieu ?? null, may_mo: !!cho?.may_mo, lt: lt?.g ?? null,
     thang, cr: { san: kho?.san ?? 0, chan: kho?.chan ?? 0 }, doi_lai: { chi: kho?.chi ?? 30, roi: kho?.roi ?? 30, ngay: kho?.ngay ?? 3 }, do_toi: kho?.do_toi ?? null, camp: camp.map(docCampToa).filter((x) => !x.tat), camp_tat: camp.map(docCampToa).filter((x) => x.tat), gac };
 }
 

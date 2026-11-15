@@ -12,14 +12,14 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { boiCanhCanh, taoJob, xongJob } from '../src/lib/xuong-video/doc-db';
-import { promptCumMoi, thamChieuCum, vaoTuCatThat, cauNgoaiCua } from '../src/lib/xuong-video/cum-shot';
+import { promptCumMoi, thamChieuCum, vaoTuCatThat, cauNgoaiCua, giayClipSeedance } from '../src/lib/xuong-video/cum-shot';
 import { catThat } from '../src/lib/xuong-video/cat-that';
 import { giayPhat, chatLieuPhim } from '../src/lib/xuong-video/kieu';
 import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
 import { nhanNhin } from '../src/lib/xuong-video/prompt-khoi';
 import { duongAmLuong, khopTheoTiengClip, doanShot } from '../src/lib/xuong-video/can-giong';
 import { uploadToR2 } from '../src/lib/r2';
-import { loiPromptGui, loiClipThamChieu, loiThoaiPrompt } from '../src/lib/xuong-video/chan-gui-video';
+import { loiPromptGui, loiClipThamChieu, loiThoaiPrompt, loiShotPrompt, loiAnhCum } from '../src/lib/xuong-video/chan-gui-video';
 import { dangChongBau } from '../src/lib/xuong-video/bo-set-3d';
 
 const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
@@ -32,7 +32,6 @@ const bcs = await Promise.all(ids.map((id) => boiCanhCanh(db, id))); if (bcs.som
 const cum = bcs.map((b) => ({ canh: b!.canh, nhanVat: b!.nhanVat, look: b!.look }));
 const tong = cum.reduce((a, x) => a + giayPhat(x.canh), 0);
 if (tong > 15) { console.error(`cụm dài ${tong.toFixed(1)} s > 15 s (trần Seedance)`); process.exit(1); }
-const giayRa = Math.max(4, Math.ceil(tong));
 // MỘT SHOT NGẮN HƠN 4 s (sàn thời lượng Seedance, anh 15/11/2026): gửi NGUYÊN clip 3D của shot (có đoạn dư đầu / cuối clip.vao / clip.ra) — clip ra có phần đệm hai
 // đầu để cắt, điểm vào = clip.vao. Không cần clip nối từ iMac. Nhiều shot → clip 3D nối của cụm (--video-file, cum-seedance-tap.sh).
 // LUẬT 15/11/2026 (#6 phim #3071): có --video-file thì LUÔN dùng clip đã cắt đúng đoạn phát (shot bắt đầu ở giây 0). Clip nguyên có đoạn dư đầu 1,65 s im lặng
@@ -46,22 +45,25 @@ const nhanNoi = new Map(nhanNhin(nguoiNoi.map((t) => ({ ten: t, moTaNv: cum.flat
 let mocShot = clip1 ? clip1.vao : 0; const cauAm: { url: string; t: number; tre: number; ai: string; loi: string; so: number }[] = [];
 for (const [i, x] of cum.entries()) { for (const d of x.canh.thoai ?? []) if (d.url && d.loi?.trim()) cauAm.push({ url: d.url, t: mocShot + (d.tre ?? 0), tre: d.tre ?? 0, ai: d.nhan_vat, loi: d.loi.trim(), so: i + 1 }); mocShot += giayPhat(x.canh); }
 const guiGiong = cachKhop?.cach === 'seedance_audio' && cauAm.length > 0;
-// ĐUÔI BÙ MIỆNG (luật 15/11/2026): Seedance vẽ miệng trễ 0,8–1,0 s so với giọng (đo #4, #6) — cụm có thoại sinh thêm 2 s cuối để bước đo miệng
-// (canh-mieng-tap.sh) dời điểm vào trong đoạn của shot mà không lấn shot kế / hết clip. +2 s × $0,034.
+// ĐUÔI BÙ GIỜ NÓI (luật 15/11/2026): Seedance tự chọn lúc nói, thường trễ 0,4–0,8 s và đọc chậm hơn giọng (đo #4, #6) — cụm có thoại sinh thêm 2 s cuối để
+// khớp thoại (khopTheoTiengClip) dời điểm vào trong đoạn của shot mà không lấn shot kế / hết clip. +2 s × $0,034.
 // Đuôi tính từ CUỐI shot cuối TRONG clip (mocShot), không từ tổng giây phát: shot lẻ < 4 s lấy clip 3D đầy đủ, shot bắt đầu ở clip.vao (#6: vào 1,65 + 2 s = 3,65 —
 // tính theo tổng 2 s ra clip 4 s, chỉ còn 0,45 s đuôi, miệng trễ 1,21 s không bù được; 15/11/2026).
-const giayRaGiong = guiGiong ? Math.min(15, Math.max(4, Math.ceil(mocShot) + 2)) : giayRa;
+// giây clip = cum-shot.ts › giayClipSeedance (MỘT nguồn với báo giá kế hoạch cụm); đuôi chỉ khi shot CUỐI có thoại gửi giọng
+const giayRaGiong = giayClipSeedance(cum.map((x) => giayPhat(x.canh)), { vaoDau: clip1 ? clip1.vao : 0, cuoiCoThoai: guiGiong && cauAm.some((c) => c.so === cum.length) });
 
 // ảnh: người + bối cảnh (thamChieuCum, ≤ 5) rồi keyframe từng shot (đúng nét vẽ / khung từng góc) — tổng ≤ 9
-const tc = thamChieuCum(cum, 5);
+// ảnh khung MỌI shot vào trước, ảnh người + bối cảnh lấy phần còn lại (cụm C 5 shot: trước đây 5 + 4 khung, shot 5 có thoại mất khung — chan-gui-video.ts › loiAnhCum)
+const tc = thamChieuCum(cum, Math.max(2, Math.min(5, 9 - cum.length)));
 const kf = cum.map((x) => x.canh.keyframe_url!).slice(0, 9 - tc.anh.length);
 const anh = [...tc.anh, ...kf];
 const goiKf = kf.map((_, i) => `Reference image ${tc.anh.length + i + 1} is the exact look of shot ${i + 1} (its framing, drawing style and the people's clothes).`).join(' ');
 // THỜI LƯỢNG NÓI THẬT (15/11/2026 #3071 #6): shot 2 s, clip 3D + giọng gửi đi 2 s mà câu lệnh ghi "Shot 1 (about 4 s)" (giãn cho đầy sàn 4 s của Seedance) —
 // model rải diễn xuất + câu thoại ra 4 s, bản dựng chỉ cắt 2 s. Câu lệnh ghi giây phát thật; phần clip dư (sàn 4 s / đuôi bù miệng) = giữ dáng cuối, im.
-const giayNoi = Math.ceil(tong); const giayGui = guiGiong ? giayRaGiong : giayRa;
+// câu lệnh ghi giây phát THẬT (làm tròn 0,5 như promptCumMoi), không làm tròn lên số nguyên: #8 3,3 s trước ghi "about 4 s"
+const giayNoi = Math.max(0.5, Math.round(tong * 2) / 2); const giayGui = giayRaGiong;
 const cauDu = giayGui - giayNoi >= 1 ? ` The clip runs ${giayGui} s but the action above ends at about ${giayNoi} s: for the remaining time everyone just holds the final pose in the same framing — silent, mouths closed, no new action, no new line, no cut.` : '';
-const than = promptCumMoi(cum, { tag: tc.tag, them: tc.them, giay: giayNoi, tiLe: bcs[0]!.kt.ti_le });
+const than = promptCumMoi(cum, { tag: tc.tag, them: tc.them, tiLe: bcs[0]!.kt.ti_le });
 // Câu thoại nói MỘT lần trong câu lệnh: câu shot (promptCumMoi) đã có "<người> says: <câu>" thì ở đây không nhắc lại — nhắc hai lần model nói hai lần (#6: tiếng
 // ở 1,2 s và 2,6 s). Chỉ câu nào chưa có nguyên văn trong câu shot mới ghi thêm. Luật chặn: chan-gui-video.ts › loiThoaiPrompt.
 const cauThieu = cauAm.filter((c) => !than.includes(c.loi.replace(/["“”]/g, '').replace(/[.\s]+$/, '')));
@@ -70,7 +72,7 @@ const prompt = `${tc.goi}. ${goiKf} Reference video 1 is a rough grey 3D blockou
 console.log(`cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${tong.toFixed(1)} s → clip ${giayGui} s · ${model} ${dpg} · ${anh.length} ảnh · prompt ${prompt.length} ký tự`);
 // LUẬT CHẤM TRƯỚC KHI GỬI (chan-gui-video.ts — anh 14/11/2026): lỗi nào cũng chặn, không tốn tiền
 const loiGui = [...loiPromptGui(prompt, { tiLe: bcs[0]!.kt.ti_le, tenNhanVat: [...new Set(cum.flatMap((x) => x.nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten)))] }),
-  ...loiThoaiPrompt(prompt, cauAm.map((c) => c.loi)),
+  ...loiThoaiPrompt(prompt, cauAm.map((c) => c.loi)), ...loiShotPrompt(prompt), ...loiAnhCum(cum.length, kf.length),
   ...loiClipThamChieu(cum.map((x) => ({ so: x.canh.thu_tu, clip: x.canh.khung_xam?.clip }))),
   ...Object.entries(dangChongBau(cum.map((x) => x.canh))).flatMap(([id, l]) => l.map((y) => `#${cum.find((x) => x.canh.id === Number(id))?.canh.thu_tu}: ${y}`))];
 // THIẾU GIỌNG (luật 15/11/2026: #6 sinh không kèm giọng → miệng không theo câu): shot có câu thoại có file giọng mà lượt này không gửi giọng → chặn

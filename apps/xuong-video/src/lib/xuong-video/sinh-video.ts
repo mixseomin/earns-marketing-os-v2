@@ -2,7 +2,7 @@
 // (scripts/sinh-shot.mts) và server action (sinhVideoCanh / kiemVideo) dùng CÙNG một đường; actions chỉ kiểm quyền rồi gọi vào đây.
 import { raKhoiKhung, laDungLop, anhLopCua, cauDoMang, CAU_NEN_VIDEO_LOP, CAU_MAY_VIDEO_LOP, CAU_SONG_VIDEO_LOP, CAU_CHAN_VIDEO_LOP } from './dung-lop';
 import { chanDanDat } from './dan-dat';
-import { CHAT_LIEU, cauNhipGag, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, nhanNhin, giuNguyenVan, tenNgonNguEn, type ChatLieu, type Khoi } from './prompt-khoi';
+import { CHAT_LIEU, cauNhipGag, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, nhanNhin, giuNguyenVan, laDienRong, tenNgonNguEn, type ChatLieu, type Khoi } from './prompt-khoi';
 import { loiTrangThaiVat, chamPrompt, NGUONG_CHAN, type LoiPrompt } from './kiem-prompt';
 import { batCamXuc } from './qc-cam-xuc';
 import { moTaChuyenDong, bienTheTheoSo } from './bo-set-3d';
@@ -49,7 +49,7 @@ const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
 // "tiếng Việt trong prompt: CÓ", model đọc kém / vẽ chữ).
 const DIEN_YEN = 'Quiet, restrained acting: small natural movement only (breathing, a slight turn of the head, the eyes, hair and clothes stirring in the breeze)';
 const theVideo = (dd: Canh['dan_dung'], cl: ChatLieu, rendau = false, yen = false): string => [cauNhipGag(dd?.nhip), dd?.mo?.trim() && dd?.ket?.trim() ? `The action runs completely from: ${dd.mo.trim()} — to: ${dd.ket.trim()}` : '',
-  dd?.dien?.trim() && !(coTiengViet(dd.dien) && dd?.mo?.trim() && dd?.ket?.trim()) ? `${yen ? DIEN_YEN : CHAT_LIEU[cl].dien_video(rendau)}: ${dd.dien.trim().replace(/[.\s]+$/, '')}` : yen ? DIEN_YEN : '', dd?.huong?.trim() ? `Keep screen direction: ${dd.huong.trim()}` : '', dd?.vao_ra?.trim() ? `Entrances and exits: ${dd.vao_ra.trim().replace(/[.\s]+$/, '')}` : ''].filter(Boolean).map((x) => `${x}.`).join(' ');
+  dd?.dien?.trim() && !laDienRong(dd.dien) && !(coTiengViet(dd.dien) && dd?.mo?.trim() && dd?.ket?.trim()) ? `${yen ? DIEN_YEN : CHAT_LIEU[cl].dien_video(rendau)}: ${dd.dien.trim().replace(/[.\s]+$/, '')}` : yen ? DIEN_YEN : '', dd?.huong?.trim() ? `Keep screen direction: ${dd.huong.trim()}` : '', dd?.vao_ra?.trim() ? `Entrances and exits: ${dd.vao_ra.trim().replace(/[.\s]+$/, '')}` : ''].filter(Boolean).map((x) => `${x}.`).join(' ');
 /** Bỏ câu đã nói ở khối khác (mở / kết của thẻ shot nằm cả trong prompt_video lẫn câu "from… to…" — bộ chấm báo lặp ở 9 shot tập 122). */
 const boCauTrung = (t: string, cum: (string | undefined)[]) => { const c = cum.map((x) => (x ?? '').trim().toLowerCase().replace(/[.\s]+$/, '')).filter((x) => x.split(/\s+/).length >= 3); return t.split(/(?<=[.!?])\s+/).filter((x) => !c.some((k) => x.toLowerCase().includes(k))).join(' '); };
 /** DÁNG NHÌN THẤY của từng nhân vật trong prompt video (không gọi tên — model không biết tên): đầy đủ "the woman in the fitted burgundy … dress" + GỌI GỌN
@@ -127,7 +127,7 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   const ds: Khoi[] = [
     khoi('phong_cach', !rendau && phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : ''),
     // KHOẢNH KHẮC: prompt_video riêng của shot (nếu có); thẻ có mở / kết hoặc câu diễn (mảnh ReelShort một việc) thì khối diễn đã nói — không lấy hanh_dong (mô tả cho người đọc, có thể tiếng Việt)
-    khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('khoanh_khac', boCauTrung(boThoaiTrongPrompt(bc.canh.prompt_video.trim() || ((bc.canh.dan_dung?.mo && bc.canh.dan_dung?.ket) || bc.canh.dan_dung?.dien?.trim() ? '' : bc.canh.hanh_dong)), [bc.canh.dan_dung?.mo, bc.canh.dan_dung?.ket])),
+    khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('khoanh_khac', boCauTrung(boThoaiTrongPrompt(bc.canh.prompt_video.trim() || ((bc.canh.dan_dung?.mo && bc.canh.dan_dung?.ket) || (bc.canh.dan_dung?.dien?.trim() && !laDienRong(bc.canh.dan_dung.dien)) ? '' : bc.canh.hanh_dong)), [bc.canh.dan_dung?.mo, bc.canh.dan_dung?.ket])),
     // đường đi: đồ đang cầm / đeo (vi_tri.cam) đi theo người, không tả riêng — tả riêng làm video phô món đó (#12 tổng tài: vòng ngọc gài lộ trước cú trả #25)
     // SƠ ĐỒ CẢNH + SỔ ĐỒ VẬT cho phim KHÔNG 3D (anh 11/11/2026, phim #2934: "thiếu bố cục trong từng shot… sao không dùng chuẩn" — tàu đang đỗ tự chạy, chú nhìn
     // ngược hướng nhóc chạy): trước đây hai sổ này chỉ vào prompt KEYFRAME + bộ chấm; prompt video không nói ai bên nào màn / nhìn về đâu / đồ đang ở trạng thái

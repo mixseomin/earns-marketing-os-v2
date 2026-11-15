@@ -5,9 +5,10 @@
 //   - tả khung ngược tỉ lệ phim ("vertical film" cho phim 16:9 — promptCumMoi ghi cứng trước đây)
 //   - clip 3D tham chiếu không phải bản xuất SẠCH (còn tia nhìn / dây đường đi vàng — Seedance chép nguyên vào phim, cụm #2–7)
 import { coTiengViet } from './kieu';
+import { DIEN_RONG } from './prompt-khoi';
 
 /** Bỏ lời thoại ("<ai> says: <câu>") — lời thoại tiếng Việt là ĐÚNG (miệng nhép theo), không tính vào luật chữ. Câu thoại kết ở dấu chấm trước một câu tiếng Anh mới. */
-export const boLoiThoai = (p: string): string => p.replace(/says:\s[\s\S]*?(?=\.\s+(?:Shot \d|Keep|No |Reference|Every|The |A |An |Camera|Throughout|Static|Nobody|Real|WHITELIST|Emotional|EXPRESSION)|\.?$)/g, 'says: …');
+export const boLoiThoai = (p: string): string => p.replace(/says:\s[\s\S]*?(?=[.!?…]\s+(?:Shot \d|Keep|No |Reference|Every|The |A |An |Camera|Throughout|Static|Nobody|Real|WHITELIST|Emotional|EXPRESSION)|[.!?…]?$)/g, 'says: …');
 
 export function loiPromptGui(prompt: string, o: { tiLe?: string | null; tenNhanVat?: string[] }): string[] {
   const loi: string[] = []; const p = boLoiThoai(prompt);
@@ -39,3 +40,20 @@ export function loiClipThamChieu(ds: { so: number; clip?: { sach?: boolean } | n
   const cu = ds.filter((x) => x.clip && x.clip.sach !== true).map((x) => `#${x.so}`);
   return cu.length ? [`clip 3D tham chiếu ${cu.join(' ')} chưa phải bản xuất sạch (còn tia nhìn / dây đường đi) — chạy lại clip-three-tap.sh`] : [];
 }
+
+/** TỪNG SHOT TRONG CÂU LỆNH CỤM (15/11/2026, soát cụm C / E phim #3071 trước khi sinh):
+ *  - shot ghi "nobody speaks" mà động tác lại là NÓI ("man frowns and fires questions" — câu hỏi thật nằm ở shot sau) → model sinh tiếng / nhép miệng bịa;
+ *  - câu diễn rỗng mặc định (prompt-khoi.ts › DIEN_RONG) còn lọt → shot không có động tác nào, model tự bịa. Thuần. */
+export function loiShotPrompt(prompt: string): string[] {
+  const NOI = /\b(?:says?|said|asks?|asking|questions?|shouts?|yells?|calls? (?:out|to)|talk(?:s|ing)?|tells?|repl(?:y|ies)|answers?|whispers?|mutters?|scolds?|argues?|chats?)\b/i;
+  return [...prompt.matchAll(/Shot (\d+) \(about [^)]*\):([\s\S]*?)(?=Shot \d+ \(about|Keep it subtitle-free|$)/g)].flatMap(([, so, t]) => {
+    const loi: string[] = []; const cau = t!.replace(/says:[\s\S]*$/, '');
+    if (/nobody speaks/i.test(cau)) { const m = cau.replace(/nobody speaks[\s\S]*$/i, '').match(NOI); if (m) loi.push(`shot ${so} ghi "nobody speaks" mà động tác có «${m[0]}» — model sẽ sinh tiếng nói / nhép miệng bịa: viết lại câu diễn thành động tác câm`); }
+    for (const r of DIEN_RONG) if (cau.toLowerCase().includes(r)) loi.push(`shot ${so} còn câu diễn rỗng «${r}» — không có động tác: viết câu diễn / mở → kết`);
+    return loi;
+  });
+}
+
+/** ẢNH KHUNG TỪNG SHOT (15/11/2026 cụm C phim #3071: 5 ảnh người + bối cảnh + 4 khung = trần 9 → shot 5, shot CÓ THOẠI, không có ảnh khung): mỗi shot của cụm phải
+ *  có keyframe của nó trong ảnh tham chiếu — thiếu thì bớt ảnh người phụ (thamChieuCum toiDa), không bớt khung shot. */
+export const loiAnhCum = (soShot: number, soKhung: number): string[] => (soKhung < soShot ? [`chỉ ${soKhung}/${soShot} shot có ảnh khung trong tham chiếu (trần 9 ảnh) — bớt ảnh người phụ`] : []);

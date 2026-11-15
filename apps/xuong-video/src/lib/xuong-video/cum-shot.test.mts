@@ -1,7 +1,7 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/cum-shot.test.mts
 import assert from 'node:assert';
 import { giuNguyenVan } from './prompt-khoi';
-import { chiaCumCan, cauNgoaiCua, chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, promptCumMoi, DUNG_DUOC, VAO_DAU } from './cum-shot';
+import { chiaCumCan, cauNgoaiCua, chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, promptCumMoi, giayClipSeedance, DUNG_DUOC, VAO_DAU } from './cum-shot';
 import { lienCon, noiKhungShot } from './kieu';
 
 // Cảnh Thang máy phim #353: giây phát 17 shot thật → 6 cụm theo nhịp (đến · giật thẻ · thang mở · đối đáp · quay đi · vào thang)
@@ -106,4 +106,13 @@ console.log('✓ cum-shot chiaCumCan');
   assert.ok(cauNgoaiCua([sh('inside the train carriage, behind the open passenger window')]).startsWith('In this shot, the camera stays OUTSIDE'));
   assert.ok(cauNgoaiCua([sh(), sh('behind the open passenger window')]).startsWith('In shot 2,'));
   assert.strictEqual(cauNgoaiCua([sh('standing on the platform')]), ''); }
+// giây clip Seedance (một nguồn cho báo giá + lượt gửi, 15/11/2026): cụm C #11–15 (shot cuối có thoại) 11,43 s → 14; cụm E (thoại ở shot giữa) 9,6 s → 10, không đuôi;
+// shot lẻ #10 2 s → ⌈2⌉ + 2 = 4; #8 3,3 s → 6; clip lẻ có đoạn dư đầu 1,65 s → 6; trần 15
+assert.strictEqual(giayClipSeedance([1.5, 1.5, 1.43, 3.5, 3.5], { cuoiCoThoai: true }), 14);
+assert.strictEqual(giayClipSeedance([1.5, 2, 3, 3.1]), 10);
+assert.strictEqual(giayClipSeedance([2], { cuoiCoThoai: true }), 4);
+assert.strictEqual(giayClipSeedance([3.3], { cuoiCoThoai: true }), 6);
+assert.strictEqual(giayClipSeedance([2], { vaoDau: 1.65, cuoiCoThoai: true }), 6);
+assert.strictEqual(giayClipSeedance([14.5], { cuoiCoThoai: true }), 15);
+assert.strictEqual(giayClipSeedance([4]), 4);
 console.log('✓ cum-shot cauNgoaiCua');

@@ -270,3 +270,9 @@ const reTu = (w: string) => new RegExp(`(?<![\\w-])${w.replace(/[.*+?^${}()|[\]\
 export const veNhac = (chu: string, tu: string[]): string | null => chu.split(/\s*[,;.|]\s*/).find((ve) => tu.some((w) => reTu(w).test(ve))) ?? null;
 /** Bỏ khỏi câu phong cách mọi vế nhắc tới vật ngoài khung. */
 export const boVeNhac = (pc: string, tu: string[]): string => (tu.length ? pc.split(/\s*[,;]\s*/).filter((ve) => !tu.some((w) => reTu(w).test(ve))).join(', ') : pc);
+
+/** CÂU DIỄN RỖNG (15/11/2026 phim #3071 #11, #19): câu diễn mặc định "hold the action clear and readable, settle at the end" (34 shot trong DB) không tả động tác
+ *  nào — dùng nó thay cho mở / kết thì câu lệnh shot không còn hành động, model tự bịa. Câu diễn rỗng = coi như không có, đi tiếp mở → kết / hành động.
+ *  Cổng: chan-gui-video.ts › loiShotPrompt chặn câu lệnh còn chứa nó. */
+export const DIEN_RONG = ['hold the action clear and readable, settle at the end'];
+export const laDienRong = (t?: string | null): boolean => { const x = (t ?? '').trim().toLowerCase().replace(/[.\s]+$/, ''); return !!x && DIEN_RONG.includes(x); };

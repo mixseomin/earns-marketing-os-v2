@@ -63,22 +63,32 @@ TRẠNG THÁI: GIẢ ĐỊNH theo đặc tính hai cách, chưa đo. Kết quả
 | Người thật, tiếng Việt / tiếng khác | 1 | Sinh câm → Sync Lipsync v2 (`scripts/khop-moi-shot.mts`, $3/phút) | Seedance chưa đo tiếng này; khớp sau bám âm vị |
 | Mọi loại | ≥ 2 | Tách cụm mỗi lần một người nói, hoặc Sync v2 từng shot | Seedance nhép lẫn người (ByteDance tự nhận) |
 
-Dự phòng: shot nào soát thấy miệng lệch câu → Sync v2 riêng shot đó (giọng đệm lặng = điểm vào clip + trễ câu).
+Shot nào khớp thoại không đạt → sinh lại (anh 15/11/2026 không dùng Sync Lipsync hậu kỳ cho phim này).
 Nguồn: Scenario, cutout.pro, OpenArt (audio tham chiếu 3–8 s, mp3, ghi kèm nguyên văn câu), Artlist, Replicate — 15/11/2026.
 
-## Canh miệng bằng hình — bước chuẩn sau mỗi lần sinh (15/11/2026)
+## Khớp thoại theo tiếng clip — bước chuẩn sau mỗi lần sinh (15/11/2026)
 
-Máy: `scripts/bo-set/canh-mieng-tap.sh <id,…>` (iMac; `cum-seedance-tap.sh --chay` tự gọi) → `scripts/cham-do/do_mieng.py` (Grounding DINO tìm miệng, đường mở
-miệng 8 điểm / giây, ngưỡng mở 0,27) → `scripts/mieng-ke.mts` ghi: dời điểm vào theo độ trễ miệng TRONG ĐOẠN của shot (nguon_video.doan), không bù được
-(> 0,25 s) hoặc không thấy miệng mở → nguon_video.mieng.dat = false, kế hoạch cụm đưa vào sinh lại.
+Luật trong máy: `src/lib/xuong-video/luat-dung.ts › thoai_sinh_kem_giong`. Mã: `can-giong.ts › khopTheoTiengClip`, gọi trong `scripts/thu-seedance-cum.mts`
+ngay sau khi sinh (và `--chinh-giong` cho clip đang gắn). Tự kiểm bằng số đo thật: `can-giong.test.mts`.
 
-Vì sao không canh theo TIẾNG clip: Seedance chép giọng tham chiếu đúng mốc (đo trễ −0,01 s) nhưng miệng vẽ trễ ~0,8 s — tiếng và miệng trong clip không khớp nhau.
-Ngưỡng 0,27 hiệu chỉnh trên 4 shot soát bằng mắt (khép 0,13–0,23, mở 0,28–0,50); ngưỡng theo trung vị clip báo sai shot nói gần suốt clip. Chưa đo bộ nhãn lớn.
+Điều đã đo bằng mắt (khung 8 / giây):
+- Seedance TỰ chọn lúc nói, không theo giây đặt câu trong file giọng; nhưng miệng nó vẽ KHỚP với tiếng chính nó sinh trong clip.
+- Nó đọc chậm hơn giọng gốc (#6: 1,4 s cho câu 1,19 s; #4: 1,0 s cho 0,8 s).
 
-| Shot (phim #3071) | Đo | Kết quả |
-|---|---|---|
-| #4 (Seedance + giọng, lần 2) | miệng trễ 0,79 s (mắt: ~0,8 s) | dời điểm vào 0,99 → 1,65 ✓ |
-| #4 lần 1 | không thấy miệng mở (mắt: giữ nụ cười) | đúng |
-| #6 (cụm #2–7, không gửi giọng) | miệng mở cuối đoạn, trễ ~1,2 s | không bù được trong đoạn → sinh lại |
-| #8 (cụm #8–10) | sớm 0,30 s | dời 0,2 → 0,0 ✓ |
-| #10 | sớm 0,07 s | dời 0,2 → 0,13 ✓ |
+Nên: điểm vào = lúc clip bắt đầu nói trong đoạn của shot − lúc câu bắt đầu nghe thấy (× tốc); tốc khớp = độ dài tiếng clip ÷ độ dài câu
+(`ky_thuat.toc_khop`, bản xuất + timeline chạy clip shot đó nhanh đúng tốc). Không gắn, vào lượt sinh lại khi: đoạn của shot không có tiếng nói (kể cả clip
+không có rãnh tiếng), tiếng dài ngoài 0,75–1,4 lần câu (nói lặp / nói câu khác), hoặc điểm vào lố khỏi đoạn.
+
+Đã bỏ (sai 0,2–0,55 s trên chính các clip soát bằng mắt, xoá khỏi repo 15/11/2026): tương quan đường âm lượng clip ↔ giọng gốc, và đo độ mở miệng bằng hình
+(Grounding DINO, ngưỡng hiệu chỉnh trên 4 shot). Cả hai được dùng để quyết khi chưa đo trên bộ nhãn — trái `docs/chuan-cham-diem.md` luật 4.
+
+| Shot (phim #3071) | Mắt soát | Máy cũ | Luật mới |
+|---|---|---|---|
+| #4 lần 2 (job 8326) | miệng mở 0,75–1,8 s | điểm vào 0,15 | vào 0,65 · tốc ×1,21 ✓ |
+| #6 lần 4 (job 8325) | miệng mở 0,6–2,0 s | 0,62 rồi 0,15 | vào 0,37 · tốc ×1,2 ✓ |
+| #6 lần 3 (job 8322, câu lệnh ghi câu thoại hai lần) | nói hai lần | – | chặn "nói lặp" ✓ |
+| #6 lần 2 (clip 3D nguyên, đuôi trống) | nói ở 3,7 s, đoạn shot im | – | chặn "lố khỏi đoạn" ✓ |
+| #8, #10 (cụm #8–10, sinh trước luật gửi giọng) | – | dời 0,0 / 0,13 | clip không có rãnh tiếng → sinh lại |
+
+Ba lần hỏng đầu của #6 là lỗi CÂU LỆNH, không phải model: đổi tên nhân vật "Chú" chạm vào câu thoại, câu thoại ghi hai lần, ghi "about 4 s" cho shot 2 s.
+Chặn trước khi gửi: `chan-gui-video.ts › loiThoaiPrompt`.

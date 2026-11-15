@@ -5,7 +5,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapCanh, type Row } from '../src/lib/xuong-video/doc-db';
-import { chiaCumCan } from '../src/lib/xuong-video/cum-shot';
+import { chiaCumCan, giayClipSeedance } from '../src/lib/xuong-video/cum-shot';
 import { giayPhat, chatLieuPhim, docKinhThanh, type KinhThanh } from '../src/lib/xuong-video/kieu';
 import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
 
@@ -34,8 +34,14 @@ const nguoiNoi = (c: (typeof ds)[number]) => [...new Set((c.thoai ?? []).filter(
 const tachNoi = (d: (typeof ds)): (typeof ds)[] => { const out: (typeof ds)[] = [[]]; let ai: string | null = null;
   for (const c of d) { const n = nguoiNoi(c); const moi = n.find((x) => x !== ai) ?? null; if (n.length > 1 || (moi && ai && moi !== ai)) out.push([]); if (n.length) ai = n.length > 1 ? null : n[0]!; out.at(-1)!.push(c); }
   return out.filter((x) => x.length); };
+// CÁCH KHỚP MÔI theo loại phim (khop-moi-cach.ts) — mỗi cụm có thoại: một người nói → theo chất liệu / ngôn ngữ; nhiều người → khớp sau / tách cụm
+const kt = docKinhThanh(((await db.execute(sql`SELECT p.kinh_thanh FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tap}`)) as unknown as Row[])[0]?.kinh_thanh as KinhThanh);
+const cachCua = (ids: number[]) => { const noi = new Set(ds.filter((c) => ids.includes(c.id)).flatMap((c) => (c.thoai ?? []).filter((d) => d.url && d.loi?.trim()).map((d) => d.nhan_vat)));
+  return noi.size ? chonCachKhopMoi({ chatLieu: chatLieuPhim(kt), ngonNgu: kt.ngon_ngu, soNguoiNoi: noi.size }) : null; };
 const cum = doan.filter((d) => d.length).flatMap(tachNoi).flatMap((d) => chiaCumCan(d, 15)).map((c, i) => {
-  const tong = c.reduce((a, x) => a + giayPhat(x), 0); const ra = Math.max(4, Math.ceil(tong));
+  // giây clip = cum-shot.ts › giayClipSeedance (MỘT nguồn với lượt gửi thu-seedance-cum.mts): đuôi 2 s khi shot cuối có thoại gửi giọng — trước 15/11/2026 báo giá thiếu đuôi
+  const cuoi = c.at(-1)!; const cuoiNoi = cachCua(c.map((x) => x.id))?.cach === 'seedance_audio' && (cuoi.thoai ?? []).some((d) => d.url && d.loi?.trim());
+  const tong = c.reduce((a, x) => a + giayPhat(x), 0); const ra = giayClipSeedance(c.map((x) => giayPhat(x)), { cuoiCoThoai: cuoiNoi });
   const thieu = c.filter((x) => !(x.khung_xam?.clip && x.khung_xam.clip.ma === x.khung_xam.ma) || !x.keyframe_url).map((x) => x.thu_tu);
   return { ten: String.fromCharCode(65 + i), phan_doan: c[0]!.phan_doan, shot: c.map((x) => ({ id: x.id, so: x.thu_tu, phat: giayPhat(x), clip: x.khung_xam?.clip?.url ?? null, vao: x.khung_xam?.clip?.vao ?? 0 })),
     tong: +tong.toFixed(2), ra, cents: +(gia * (tong + ra)).toFixed(1), thieu };
@@ -46,10 +52,6 @@ console.log(`giữ clip (không sinh lại): ${giu.length ? giu.map((c) => `#${c
 const chuaKhop = ds.filter((c) => c.video_url && (c.nguon_video as { mieng?: { dat?: boolean } } | null)?.mieng?.dat == null &&   // dat === false đã vào cụm sinh lại ở dưới
   (c.thoai ?? []).some((d) => d.url && d.loi?.trim() && !/ngoài khung|v\.?o\.?|lời dẫn|off/i.test(d.dien_xuat ?? '')));
 if (chuaKhop.length) console.log(`chưa qua khớp thoại (có thoại): ${chuaKhop.map((c) => `#${c.thu_tu} (id ${c.id})`).join(' ')} — chạy khớp thoại cho clip đang gắn: thu-seedance-cum.mts --canh=<id> --chinh-giong (0đ)`);
-// CÁCH KHỚP MÔI theo loại phim (khop-moi-cach.ts) — mỗi cụm có thoại: một người nói → theo chất liệu / ngôn ngữ; nhiều người → khớp sau / tách cụm
-const kt = docKinhThanh(((await db.execute(sql`SELECT p.kinh_thanh FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tap}`)) as unknown as Row[])[0]?.kinh_thanh as KinhThanh);
-const cachCua = (ids: number[]) => { const noi = new Set(ds.filter((c) => ids.includes(c.id)).flatMap((c) => (c.thoai ?? []).filter((d) => d.url && d.loi?.trim()).map((d) => d.nhan_vat)));
-  return noi.size ? chonCachKhopMoi({ chatLieu: chatLieuPhim(kt), ngonNgu: kt.ngon_ngu, soNguoiNoi: noi.size }) : null; };
 for (const c of cum) console.log(`cụm ${c.ten} · ${c.phan_doan} · #${c.shot.map((x) => x.so).join(' #')} · ${c.tong} s → clip ${c.ra} s · ~${c.cents}¢${c.thieu.length ? ` · THIẾU clip 3D / keyframe: #${c.thieu.join(' #')}` : ''}${(() => { const k = cachCua(c.shot.map((x) => x.id)); return k ? ` · khớp môi: ${k.cach} (${k.vi})` : ''; })()}`);
 console.log(`tổng ~${cum.reduce((a, c) => a + c.cents, 0).toFixed(1)}¢ (${dpg})`);
 console.log(JSON.stringify(cum));

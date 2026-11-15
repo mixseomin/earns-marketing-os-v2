@@ -4,7 +4,7 @@
 // liên tục do cùng một lần diễn, không do khớp từng shot rời. Module thuần: chia cụm, lịch giây trong clip, prompt, đổi điểm cắt đo được → vao_s.
 import { giayPhat, lienCon, phat, coTiengViet, type Canh, type NhanVat } from './kieu';
 import type { LookMang } from './bo-set-3d';
-import { nhanNhin, thayTenNhan, giuNguyenVan } from './prompt-khoi';
+import { nhanNhin, thayTenNhan, giuNguyenVan, laDienRong } from './prompt-khoi';
 import { kyThuat } from './dien-anh';
 import { dongThoai, laLoiDan } from './am-thanh';
 
@@ -78,6 +78,8 @@ export function cauMiengShot(c: Canh, nv: NhanVat[]): string {
   const noi = [...new Set(dong.filter((d) => d.nhan_vat.trim() && !laLoiDan(d.dien_xuat)).map((d) => d.nhan_vat))];
   if (noi.length) return `${noi.join(' and ')} ${noi.length > 1 ? 'speak' : 'speaks'} with natural lip movement, others keep mouths closed`;
   if (c.ky_thuat?.co_canh === 'insert' || !nv.some((v) => v.loai === 'nhan_vat')) return '';
+  // shot câm mà động tác có HÁ MIỆNG (sững sờ, há hốc — #17 phim #3071 "mouth falls open slightly"): "mouths closed" mâu thuẫn câu diễn → chỉ cấm cử động nói
+  const dd = c.dan_dung; if (/\bmouth\b[^.;]*\bopen|\bjaw\b[^.;]*\bdrop|\bgasp|\bopen[- ]mouth/i.test([dd?.mo, dd?.dien, dd?.ket].filter(Boolean).join(' '))) return 'nobody speaks, no talking lip movement';
   return 'nobody speaks, mouths closed';
 }
 
@@ -100,7 +102,7 @@ export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[]; loo
   const MAY = /\s*\b(?:static|locked[- ]off|handheld|slow push[- ]in|slow dolly[^.]*?)\s+camera\b[^.]*\.?/i;
   // câu diễn tiếng Việt (dan_dung.dien) KHÔNG vào prompt khi có mở / kết tiếng Anh — cùng luật prompt video một shot (sinh-video.ts › theVideo), 14/11/2026 #3071
   const moKet = (c: Canh) => [gon(c.dan_dung?.mo), gon(c.dan_dung?.ket)].filter(Boolean).join(', then ');
-  const hanh = (c: Canh) => { const dien = gon(c.dan_dung?.dien); const t = (dien && !(coTiengViet(dien) && moKet(c)) ? dien : '') || moKet(c) || gon(c.canh);
+  const hanh = (c: Canh) => { const dien = laDienRong(c.dan_dung?.dien) ? '' : gon(c.dan_dung?.dien); const t = (dien && !(coTiengViet(dien) && moKet(c)) ? dien : '') || moKet(c) || gon(c.canh);
     return { cau: gon(t.replace(MAY, ' ')).replace(/\s{2,}/g, ' '), may: (t.match(MAY)?.[0] ?? '').trim().replace(/\.$/, '') }; };
   // NHÃN người (prompt-khoi.ts › nhanNhin): bộ đồ từ sổ trang phục carry của shot đầu người đó xuất hiện
   const nguoi: { ten: string; moTaNv: string; ao?: string }[] = [];
@@ -130,7 +132,9 @@ export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[]; loo
     // NGUYÊN VĂN câu thoại không qua đổi tên → nhãn (prompt-khoi.ts › giuNguyenVan, 15/11/2026 #3071 #6): chỉ người nói đổi sang nhãn, chữ trong câu giữ từng ký tự
     const cauNoi = dong.map((d) => d.loi.trim().replace(/["“”]/g, ''));
     const loi = dong.length ? dong.map((d, j) => `${d.nhan_vat} says: ${cauNoi[j]}`).join('; ') : cauMiengShot(c, nhanVat);
-    return giuNguyenVan(`Shot ${i + 1} (about ${nua(giay * k)} s): ${co[0]!.toUpperCase()}${co.slice(1)}${lien ? ', continuous from the last frame of the previous shot, no cut' : ''}${may ? `, ${may}` : ''} — ${cau.join('; then ')}${loi ? `; ${loi}` : ''}.`, cauNoi, thay);
+    // chấm hết câu shot chỉ khi câu chưa có dấu kết (câu thoại "… nhé!" + "." ra "nhé!." — 15/11/2026)
+    const than = `Shot ${i + 1} (about ${nua(giay * k)} s): ${co[0]!.toUpperCase()}${co.slice(1)}${lien ? ', continuous from the last frame of the previous shot, no cut' : ''}${may ? `, ${may}` : ''} — ${cau.join('; then ')}${loi ? `; ${loi}` : ''}`;
+    return giuNguyenVan(/[.!?…]$/.test(than) ? than : `${than}.`, cauNoi, thay);
   });
   const dinh = nhan.length ? `Throughout: ${nhan.map((n) => `${n.day}${o.tag?.[n.ten] ? ` (${o.tag[n.ten]})` : ''}`).join(' and ')} keep the same face, hair, wardrobe and props in every shot; same location and light.` : 'Same location and light in every shot.';
   return [`A ${nua(tongGiay * k)}-second, ${nhom.length}-shot ${o.tiLe === '16:9' ? 'widescreen' : 'vertical'} film sequence${nhom.length > 1 ? ' cutting between angles' : ''}, one continuous moment.`, dinh, ...shot,
@@ -180,4 +184,14 @@ export function thamChieuCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[],
   // nhãn trùng nhau (hai người cùng giới, không có đồ) thì không phân biệt được → chỉ nói "a character sheet"; câu định nghĩa người (promptCumMoi, theo tag) nối ảnh với người
   const nhanTrung = (t: string) => [...nhanNguoi.values()].filter((x) => x === nhanNguoi.get(t)).length > 1;
   return { anh, goi: nhan.map((t, i) => `Reference image ${i + 1} is ${nhanNguoi.has(t) ? (nhanTrung(t) ? 'a character sheet' : nhanNguoi.get(t)) : t}`).join('; '), tag, them: rong ? `Reference image ${anh.length} is the location (lighting, set, colours).` : '' };
+}
+
+/** GIÂY CLIP SEEDANCE của một cụm — MỘT nguồn cho kế hoạch cụm (cum-seedance.mts, báo giá) và lượt gửi (thu-seedance-cum.mts). Trước 15/11/2026 kế hoạch tính
+ *  max(4, ⌈tổng⌉) còn lượt gửi cộng đuôi 2 s → giá báo anh thấp hơn giá thật (cụm C báo clip 12 s, gửi 14 s).
+ *  - sàn 4 s, trần 15 s (Seedance); vaoDau = giây shot đầu bắt đầu trong clip 3D gửi đi (clip lẻ có đoạn dư đầu, clip nối = 0).
+ *  - ĐUÔI 2 s chỉ khi SHOT CUỐI có thoại gửi giọng: model nói trễ / chậm hơn giọng, khớp thoại (can-giong.ts) cần chỗ dời điểm vào; shot có thoại ở giữa cụm
+ *    nói trễ thì lấn shot kế → khớp thoại chặn, đuôi không cứu được — không trả tiền đuôi vô ích. */
+export function giayClipSeedance(phat: readonly number[], o: { vaoDau?: number; cuoiCoThoai?: boolean } = {}): number {
+  const het = (o.vaoDau ?? 0) + phat.reduce((a, x) => a + x, 0);
+  return Math.min(15, Math.max(4, Math.ceil(het - 1e-6) + (o.cuoiCoThoai ? 2 : 0)));
 }

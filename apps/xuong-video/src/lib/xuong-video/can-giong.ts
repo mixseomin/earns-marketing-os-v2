@@ -4,8 +4,9 @@
 //   - Model TỰ chọn lúc nói, KHÔNG nói đúng giây ta đặt câu trong file giọng (#6 lần 4: đặt 0,2 s → nói 0,6 s; #4 lần 2: đặt 0,1 s → nói 0,8 s).
 //   - Miệng model vẽ KHỚP với TIẾNG CHÍNH NÓ sinh trong clip (#4, #6 lần 4: miệng mở đúng bin tiếng đầu tiên, ngậm khi hết tiếng).
 //   => Điểm vào shot = lúc clip BẮT ĐẦU NÓI − lúc câu bắt đầu nghe thấy trong shot (trễ câu + khoảng lặng đầu file giọng). Bản dựng phát giọng gốc đúng giây đó.
-//   - Hai cách cũ đã bỏ: tương quan đường âm lượng (giọng model đọc lại khác nhịp giọng gốc, độ khớp chỉ 0,4–0,66, bắt nhầm đỉnh) và đo độ mở miệng
-//     bằng hình (scripts/cham-do/do_mieng.py, ngưỡng 0,27 hiệu chỉnh trên 4 shot) — cả hai sai 0,2–0,55 s trên chính các clip đã soát.
+//   - Hai cách cũ đã bỏ + xoá khỏi repo: tương quan đường âm lượng (giọng model đọc lại khác nhịp giọng gốc, độ khớp chỉ 0,4–0,66, bắt nhầm đỉnh) và đo độ mở
+//     miệng bằng hình (Grounding DINO, ngưỡng hiệu chỉnh trên 4 shot) — cả hai sai 0,2–0,55 s trên chính các clip đã soát (docs/chuan-cham-diem.md luật 4).
+//   - Mỗi clip có thoại soát bằng mắt → thêm ca vào can-giong.test.mts (bộ nhãn lớn dần; chưa đủ 40 ca thì máy chỉ chặn gắn, sinh lại vẫn qua soát mắt + anh duyệt tiền).
 //
 // Kiểm KÈM (clip hỏng thì không gắn, vào lượt sinh lại):
 //   - đoạn của shot không có tiếng nói → model không nói;

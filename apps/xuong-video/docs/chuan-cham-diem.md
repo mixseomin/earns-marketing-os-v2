@@ -50,6 +50,9 @@ Kết luận: cả hai chỉ được hiển thị. Bộ số đo dùng được
 | Giám khảo 🔍 Kiểm khung (Claude, `kiem-khung.ts`) | giám khảo | chưa đo | chặn video (`khung.ts › chanKhung`), có nút người nhận tay (`duyet_tay`) – đúng dạng "cảnh báo, người bỏ qua được" |
 | Giám khảo người xem (Claude, `kiem-nguoi-xem.ts`) | giám khảo | chưa đo | chặn xuất tập (`nguoi-xem.ts › chanNguoiXem`); có nút **✋ Nhận tay** (`thu_nguoi_xem.duyet_tay`, gắn mã kịch bản, sửa kịch bản là hết hiệu lực) từ 13/11/2026 |
 | Soát keyframe quảng cáo (`qc-cam-xuc.ts`) | giám khảo | chưa đo | chặn video phim QC |
+| Soát thoại trong câu lệnh (`chan-gui-video.ts › loiThoaiPrompt`) | luật | test từ ca thật (job 8322: câu ghi hai lần, nhân vật "Chú" bị đổi tên trong câu) | chặn gửi Seedance |
+| Khớp thoại theo tiếng clip (`can-giong.ts › khopTheoTiengClip`) | đo (âm lượng clip) | 4 ca soát bằng mắt (`can-giong.test.mts`) — chưa đủ 40 | chặn GẮN clip, đề xuất sinh lại; Claude soát khung bằng mắt trước khi xin tiền sinh lại, mỗi ca soát thêm vào test |
+| ~~Đo miệng bằng hình (`do_mieng.py`) + tương quan âm lượng~~ | giám khảo | hiệu chỉnh trên 4 shot rồi dùng luôn — sai 0,2–0,55 s | **đã xoá 15/11/2026**; lỗi đúng luật 4 ở trên |
 
 Tính ổn định: giám khảo Gemini 3 chạy ở nhiệt độ mặc định (Google khuyên giữ 1,0 cho dòng này), nên độ ổn định phải đo bằng chấm lặp cùng ảnh, không ép nhiệt độ.
 

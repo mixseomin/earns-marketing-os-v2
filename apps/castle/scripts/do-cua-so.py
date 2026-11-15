@@ -72,12 +72,32 @@ for k, m in enumerate(json.loads((thu / f'mat-{NHAN}.json').read_text())):
         f = [sum(1 for y in range(y0, y1 + 1) for x in range(a, b + 1) if toi[y][x]) / ((y1 - y0 + 1) * (b - a + 1)) for a, b in cot]
         if not f or max(f) < 0.08: continue
         co = [c for c, v in zip(cot, f) if v >= 0.35 * max(f)]
+        # cột riêng của hàng (các tầng không xếp cùng cột — vd hàng dưới mặt tây Palas): hồ sơ tối theo x trong hàng, hợp với cột chung
+        hoR = [sum(1 for y in range(y0, y1 + 1) if toi[y][x]) / (y1 - y0 + 1) for x in range(W)]
+        for a, b in doan(hoR, max(0.12, 0.35 * max(hoR))):
+            if 0.15 * P <= b - a + 1 <= 1.3 * P and not any(a <= d and b >= c for c, d in co): co.append((a, b))
+        co.sort()
         cum = []
         for a, b in co:
-            if cum and a - cum[-1][1] - 1 < 0.5 * P: cum[-1][1] = b; cum[-1][2] += 1
+            if cum and a - cum[-1][1] - 1 < 0.9 * P: cum[-1][1] = b; cum[-1][2] += 1
             else: cum.append([a, b, 1])
         cum = [[round(a / P, 2), round((b + 1) / P, 2), n] for a, b, n in cum]
         if cum: hang.append({'y0': round(m['y1'] - (y1 + 1) / P, 2), 'y1': round(m['y1'] - y0 / P, 2), 'cum': cum, '_py': (y0, y1)})
+    # BỔ SUNG THEO CỘT (luật kiến trúc: cụm cửa xếp thẳng cột qua các tầng): cụm có ở ≥ 2 hàng là một cột cụm; hàng nào thiếu mà ô đó
+    # vẫn tối ≥ 25 % mức tối nhất của hàng thì thêm (số ô = số ô hay gặp nhất của cột). Ghi bo_sung để soát.
+    cotCum = []
+    for h in hang:
+        for s0, s1, nn in h['cum']:
+            g = next((c for c in cotCum if s0 < c['s1'] and s1 > c['s0']), None)
+            if g: g['s0'] = min(g['s0'], s0); g['s1'] = max(g['s1'], s1); g['n'].append(nn); g['so'] += 1
+            else: cotCum.append({'s0': s0, 's1': s1, 'n': [nn], 'so': 1})
+    for h in hang:
+        y0, y1 = h['_py']; mx = max((sum(1 for y in range(y0, y1 + 1) for x in range(int(a0 * P), int(a1 * P)) if toi[y][x]) / ((y1 - y0 + 1) * max(1, int(a1 * P) - int(a0 * P))) for a0, a1, _ in h['cum']), default=0)
+        for c in cotCum:
+            if c['so'] < 2 or any(s0 < c['s1'] and s1 > c['s0'] for s0, s1, _ in h['cum']): continue
+            a, b = int(c['s0'] * P), int(c['s1'] * P); f = sum(1 for y in range(y0, y1 + 1) for x in range(a, b) if toi[y][x]) / ((y1 - y0 + 1) * max(1, b - a))
+            if mx and f >= 0.25 * mx: h['cum'].append([c['s0'], c['s1'], max(set(c['n']), key=c['n'].count)]); h.setdefault('bo_sung', 0); h['bo_sung'] += 1
+        h['cum'].sort()
     # cửa mái: trên dải mái (giữa trời và mái hiên) khối sáng
     mai = []
     if yMai > P:
@@ -85,7 +105,7 @@ for k, m in enumerate(json.loads((thu / f'mat-{NHAN}.json').read_text())):
         for x0, x1 in doan(hoM, 0.18, gop=int(0.2 * P)):
             if 0.6 * P <= x1 - x0 + 1 <= 3 * P: mai.append([round(x0 / P, 2), round((x1 + 1) / P, 2)])
     khoa = f"{m['khoi']}#{m['canh']}"
-    cu[khoa] = {'hang': [{kk: v for kk, v in h.items() if kk != '_py'} for h in hang], 'mai': mai, 'yHien': round(m['y1'] - yMai / P, 2)}
+    cu[khoa] = {'hang': [{kk: v for kk, v in h.items() if kk != '_py'} for h in hang], 'mai': mai, 'yHien': round(m['y1'] - yMai / P, 2) if yMai > 0 else None}  # không thấy mái hiên trên ảnh → None (không dùng)
     so = sum(c[2] for h in hang for c in h['cum']); tong += so
     if '--anh' in sys.argv:
         v = im.convert('RGB'); d = ImageDraw.Draw(v)

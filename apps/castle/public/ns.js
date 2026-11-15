@@ -15,7 +15,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
 import { taoCamUng, CHAM } from './camung.js';
-import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, tiLeDung, datChop } from './mattien.js';
+import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, tiLeDung, datChop, oCum } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 
 const $ = (id) => document.getElementById(id);
@@ -30,6 +30,7 @@ const MAT_BO = await fetch(`./du-lieu/${ten}-mat-palas-san.json`, { cache: 'no-c
 // ĐO TRÊN ẢNH 3D GOOGLE (scripts/do-khoi-google.mjs): mặt đất quanh lâu đài, mặt sân trên, đỉnh từng khối — mốc chân nhà + mặt đất thật
 const NEN = await fetch(`./du-lieu/${ten}-nen.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const CHOP = await fetch(`./du-lieu/${ten}-chop.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // chóp / tháp nhỏ OSM không có (scripts/them-chop.mjs)
+const CUA_SO = await fetch(`./du-lieu/${ten}-cua-so.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})); // cửa sổ đo từ ảnh từng mặt (scripts/nan-google.mjs + do-cua-so.py)
 const NT = await fetch(`./du-lieu/${ten}-noi-that.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // nội thất (có thì dựng)
 for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [a, b] of Object.entries(SUA[k.id])) if (a !== 'ly_do') k.tags[a] = String(b); }
 
@@ -136,10 +137,18 @@ if (!GOC_OSM) {
   for (const k of dsKhoi) { if (k.ref == null) k.ref = Math.max(k.day, ...k.v.map(([x, z]) => datThat(x, z)));
     if (doTot(k) && (k.la || !k.coPart)) { const r = k.day + lechK(k) - k.ref; if (Math.abs(r) > 2.5) { k.suaGoogle = +r.toFixed(1); k.tags.height = String(chieuCao(k.tags) + r); } } }
 }
+// MÁI HIÊN ĐO TRÊN ẢNH CHÍNH DIỆN (cua-so.json yHien, trung vị các mặt của khối): chân mái = đó, đỉnh giữ nguyên → mái cao đúng, tường không cao thừa
+if (!GOC_OSM) for (const k of dsKhoi) {
+  const ds = Object.entries(CUA_SO).filter(([key, v]) => key.startsWith(k.id + '#') && Number.isFinite(v?.yHien)).map(([, v]) => v.yHien);
+  if (!ds.length || (k.tags['roof:shape'] || 'flat') === 'flat' || k.ref == null || k.id === MAT_BO?.neo?.khoi) continue; // khối neo mặt sân: mái do tệp bố cục mặt sân quyết
+  const dinh = k.ref + chieuCao(k.tags), rh = dinh - giua(ds); if (rh > 1 && rh < chieuCao(k.tags) - 3) { k.tags['roof:height'] = String(rh); k.maiHienDo = +giua(ds).toFixed(1); }
+}
 // MẶT PALAS HƯỚNG SÂN đo trên ảnh (tệp bố cục): tỉ lệ đứng từ hai mốc Google (đỉnh khối neo + mặt sân trên) → đầu hồi (roof:height khối neo),
 // cao độ hai tháp góc theo ảnh; sàn nội thất tầng ba = bậu hàng cửa tầng hai của mặt này
 const MAT_SAN = NEN?.san ?? null;
 const KHOI_NEO = !GOC_OSM && MAT_BO?.neo ? dsKhoi.find((k) => k.id === MAT_BO.neo.khoi && k.ref != null) : null, DINH_NEO = KHOI_NEO ? KHOI_NEO.ref + chieuCao(KHOI_NEO.tags) : null; // đỉnh khối neo sau khi khớp ảnh 3D
+// tỉ lệ đứng mặt sân: hai mốc đỉnh khối neo + mặt sân. CHƯA NHẤT QUÁN (15/11/2026): ra 31,8 px/m trong khi ngang 41,2 px/m (ảnh gần chính diện → phải xấp xỉ);
+// neo bằng mái hiên đo trên ảnh 3D ra 20,1 px/m — tệ hơn → giữ cách này, mặt neo không dùng mái hiên đo
 const PX_DUNG = DINH_NEO != null && MAT_SAN != null ? tiLeDung(MAT_BO, DINH_NEO, MAT_SAN) : null;
 const BO_MET = PX_DUNG ? quyDoiMat(MAT_BO, PX_DUNG) : null;
 const MAI_SAN = BO_MET ? DINH_NEO - BO_MET.gableCao : null; // chân đầu hồi mặt sân (= y1 khối neo)
@@ -195,8 +204,9 @@ function loCanh(k, i, x1, z1, x2, z2) {
   if (k.trongPalas || k === NOI.thap) { const mx = (x1 + x2) / 2, mz = (z1 + z2) / 2; if (trongDa(mx, mz, NOI.palas.v) && kcVien(mx, mz, NOI.palas.v) > 0.6) lo.push({ s0: -1, s1: L + 1, y0: NOI.dai[0], y1: NOI.dai[1] }); }
   // cửa sổ mở được: tường ngoài Palas, hàng cửa nằm gọn trong phòng tầng ba → khoét lỗ thật ở ô giữa (bố cục chung với khung cửa 3D: mattien.js bocCuc)
   if (k.trongPalas && k._yMong != null && kcVien((x1 + x2) / 2, (z1 + z2) / 2, NOI.palas.v) <= 0.6 && !huongRaSan(x1, z1, x2, z2)) { // mặt hướng sân trên dựng riêng theo ảnh (datMatPalas) → không khoét theo bố cục chung
-    const [mNua, mCao] = O_MO.ba;
-    for (const h of bocCuc({ L, yMong: k._yMong, y1: k._y1, palas: true, neo: NEO_HANG })) if (h.y >= NOI.y3 - 0.3 && h.y + mCao <= NOI.y3 + NT.caoTang3 - 0.2) for (const s of h.ds) lo.push({ s0: s - mNua, s1: s + mNua, y0: h.y, y1: h.y + mCao, cuaSo: true });
+    const [mNua, mCao] = O_MO.ba, doTu = CUA_SO[`${k.id}#${i}`];
+    if (doTu?.hang?.length) { for (const h of doTu.hang) for (const c of h.cum) for (const o of oCum(c, h).o) if (o.y0 >= NOI.y3 - 0.6 && o.y1 <= NOI.y3 + NT.caoTang3 - 0.2) lo.push({ ...o, cuaSo: true }); }
+    else for (const h of bocCuc({ L, yMong: k._yMong, y1: k._y1, palas: true, neo: NEO_HANG })) if (h.y >= NOI.y3 - 0.3 && h.y + mCao <= NOI.y3 + NT.caoTang3 - 0.2) for (const s of h.ds) lo.push({ s0: s - mNua, s1: s + mNua, y0: h.y, y1: h.y + mCao, cuaSo: true });
   }
   if (k === NOI.thap && i === NOI.canhCua) lo.push({ s0: L / 2 - 0.95, s1: L / 2 + 0.95, y0: NOI.yCua - 0.5, y1: NOI.yCua + 2.7 });
   if (k !== NOI.thap) { // tường khối khác chạy xuyên lòng tháp cầu thang → khoét suốt chiều cao thang (dò 48 điểm dọc cạnh)
@@ -351,7 +361,7 @@ const MAT_PALAS = (() => {
 const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3D) quanh lâu đài
 { // mặt tiền chi tiết: cửa sổ 3D + gờ tầng (một mặt tường bị khối khác áp vào ở tầng nào thì bỏ tầng đó)
   const biChe = (x, y, z) => dsKhoi.some((k) => k.yDuoi != null && y > k.yDuoi && y < k.yTren && trongDa(x, z, k.v));
-  const { ra, cua, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe, nhe: CHAM,
+  const { ra, cua, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe, nhe: CHAM, cuaSo: CUA_SO,
     matNgoai: (x, z, nx, nz) => { // mép sân OSM có chỗ cách chân tường vài mét → dò 2 / 5 / 8 m trước mặt tường; độ cao lấy ngay trước chân tường
       const san = !!SAN_TRONG && [2, 5, 8].some((d) => trongDa(x + nx * d, z + nz * d, SAN_TRONG)); return { san, yDat: matDat(x + nx * 1.5, z + nz * 1.5) }; } });
   for (const m of ra) { scene.add(m); LOP_OSM.push(m); }

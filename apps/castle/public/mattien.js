@@ -16,7 +16,15 @@ export function bocCuc({ L, yMong, y1, palas = false, coVom = false, yDat = 0, n
   }
   return ra;
 }
-export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, matNgoai = () => ({ san: false }) }) { // matNgoai(x, z, nx, nz) → { san: mặt tường nhìn ra sân trong?, yDat: độ cao mặt sân trước tường } // nhe: điện thoại — vòm ít cạnh hơn
+// CỤM CỬA ĐO TỪ ẢNH (du-lieu/<lâu>-cua-so.json, scripts/do-cua-so.py): một cụm [s0, s1, n] của hàng { y0, y1 } (vùng kính tối dò được) → kích thước dựng
+// + các ô mở (dùng chung: mattien.js dựng khung · ns.js khoét lỗ thật cho ô trong dải phòng có nội thất — hai bên phải trùng nhau)
+export function oCum([s0, s1, n], hang) {
+  // ảnh 3D nhoè: phần kính dò được hẹp hơn ô thật (~0,25 m so với 0,6–0,8 m) → ô tối thiểu 0,55 × 1,7 m theo cửa thật Palas, giữ tâm cụm + số ô đo được
+  const k = 0.2, w = Math.max(0.55, Math.min(0.9, (s1 - s0 + 0.2 - (n - 1) * k) / n)), h = Math.max(1.7, Math.min(3, hang.y1 - hang.y0 + 0.4)), s = (s0 + s1) / 2, y = (hang.y0 + hang.y1) / 2 - h / 2;
+  const o = []; for (let i = 0; i < n; i++) { const c = s + (i - (n - 1) / 2) * (w + k); o.push({ s0: c - w / 2, s1: c + w / 2, y0: y, y1: y + h - w / 2 }); }
+  return { n, w, h, k, s, y, o };
+}
+export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, matNgoai = () => ({ san: false }), cuaSo = {} }) { // cuaSo: cửa đo từ ảnh theo "<khối>#<cạnh>" — mặt có số đo dựng theo số đo // matNgoai(x, z, nx, nz) → { san: mặt tường nhìn ra sân trong?, yDat: độ cao mặt sân trước tường } // nhe: điện thoại — vòm ít cạnh hơn
   const DA = new THREE.Color('#ece6da'), TOI = new THREE.Color('#1b1f27'), LONG = new THREE.Color('#8f8a80'), _c = new THREE.Color();
   const hop = (w, h, d, x, y, z, mau) => { const g = new THREE.BoxGeometry(w, h, d).toNonIndexed(); g.translate(x, y, z); return mau_(g, mau); };
   const mau_ = (g, mau) => { const n = g.attributes.position.count, c = new Float32Array(n * 3); for (let i = 0; i < n; i++) { c[i * 3] = mau.r; c[i * 3 + 1] = mau.g; c[i * 3 + 2] = mau.b; } g.setAttribute('color', new THREE.BufferAttribute(c, 3)); g.deleteAttribute('uv'); return g; };
@@ -37,7 +45,7 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
   const ba = taoBa(false), baMo = taoBa(true);
   // dãy vòm tầng trệt (Toà Hiệp sĩ, theo ảnh Josef Albert ~1885): ô vòm cao lòng tối, hai cột tròn hai bên, khung vòm đá
   const dayVom = mergeGeometries([...oCua(1.9, 2.5, 0), ...[-1.12, 1.12].map((cx) => { const g = new THREE.CylinderGeometry(0.16, 0.18, 2.5, nhe ? 6 : 10).toNonIndexed(); g.translate(cx, 1.25, 0.2); return mau_(g, DA); }), hop(2.6, 0.18, 0.36, 0, 0.09, 0.18, DA)]);
-  const viTri = { mot: [], ba: [], baMo: [], vom: [] }, go = [], cua = [];
+  const viTri = { mot: [], ba: [], baMo: [], vom: [] }, go = [], cua = [], doDa = [], doToi = [], dem = { do: 0 };
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), Y = new THREE.Vector3(0, 1, 0), mot1 = new THREE.Vector3(1, 1, 1);
   for (const t of tuong) {
     const palas = t.ten === 'Palas';
@@ -46,6 +54,21 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
       const ux = (x2 - x1) / L, uz = (z2 - z1) / L, nx = uz, nz = -ux, goc = Math.atan2(nx, nz); // pháp tuyến RA NGOÀI (đa giác ngược chiều kim nhìn từ trên)
       const lo = t.lo(i, x1, z1, x2, z2), mn = palas ? { san: false } : matNgoai((x1 + x2) / 2, (z1 + z2) / 2, nx, nz), coVom = mn.san && Number.isFinite(mn.yDat);
       q.setFromAxisAngle(Y, goc);
+      const doTu = cuaSo[`${t.k?.id}#${i}`];
+      if (doTu?.hang?.length) { // MẶT CÓ SỐ ĐO TỪ ẢNH: hàng / cụm / số ô đúng ảnh, ô trong dải phòng có lỗ thật thì không kính (mở được)
+        for (const h of doTu.hang) {
+          go.push([x1, z1, ux, uz, nx, nz, L, h.y0 - 0.35]);
+          for (const c of h.cum) {
+            const d = oCum(c, h), coLo = d.o.map((o) => lo.some((l) => l.cuaSo && Math.abs(l.s0 - o.s0) < 0.05 && Math.abs(l.y0 - o.y0) < 0.05));
+            const g = nhomCua(THREE, { n: d.n, w: d.w, h: d.h, k: d.k, cot: 0.06, vom: false, nhe });
+            const dat = (gg) => { gg.rotateY(goc); gg.translate(x1 + ux * d.s, d.y, z1 + uz * d.s); return gg; };
+            for (const gg of g.da) doDa.push(dat(gg)); g.toi.forEach((gg, j) => { if (!coLo[j]) doToi.push(dat(gg)); });
+            d.o.forEach((o, j) => cua.push({ x: x1 + ux * (o.s0 + o.s1) / 2, y: o.y0, z: z1 + uz * (o.s0 + o.s1) / 2, nx, nz, nua: d.w / 2, cao: o.y1 - o.y0, coLo: coLo[j], ten: t.ten }));
+            dem.do += d.n;
+          }
+        }
+        continue;
+      }
       // tầng trệt mọi toà (trừ Palas) NHÌN RA SÂN TRONG là dãy vòm (như dãy hiên Toà Hiệp sĩ trong ảnh Josef Albert), chân vòm đứng trên mặt sân trước tường;
       // mặt sân OSM của Toà Hiệp sĩ là khối không tên đứng trước khối mang tên, nên không lọc theo tên
       for (const { y, kieu, nua, cao, ds } of bocCuc({ L, yMong: t.yMong, y1: t.y1, palas, coVom, yDat: mn.yDat, neo: palas ? t.neoHang : null })) {
@@ -65,7 +88,9 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
   for (const [ten, g] of [['mot', mot], ['ba', ba], ['baMo', baMo], ['vom', dayVom]]) { const ds = viTri[ten]; if (!ds.length) continue; const im = new THREE.InstancedMesh(g, vl, ds.length); ds.forEach((m, i) => im.setMatrixAt(i, m)); im.receiveShadow = true; ra.push(im); } // chi tiết nhỏ không đổ bóng: lượt vẽ bóng tốn gấp đôi mà bóng khung cửa gần như không thấy
   if (go.length) { const gs = go.map(([x1, z1, ux, uz, nx, nz, L, y]) => { const g = hop(L, 0.22, 0.2, 0, 0, 0, _c.copy(DA)); g.rotateY(Math.atan2(nx, nz)); g.translate(x1 + ux * L / 2 + nx * 0.1, y, z1 + uz * L / 2 + nz * 0.1); return g; });
     const m = new THREE.Mesh(mergeGeometries(gs), vl); m.receiveShadow = true; ra.push(m); }
-  return { ra, cua, dem: { cua: viTri.mot.length, cuaBa: viTri.ba.length, cuaMo: viTri.baMo.length, vom: viTri.vom.length, go: go.length } };
+  if (doDa.length) { const m = new THREE.Mesh(mergeGeometries(doDa), new THREE.MeshStandardMaterial({ color: '#ece6da', roughness: 0.8 })); m.receiveShadow = true; ra.push(m); }
+  if (doToi.length) { const m = new THREE.Mesh(mergeGeometries(doToi), new THREE.MeshStandardMaterial({ color: '#2a3038', roughness: 0.35, metalness: 0.2 })); ra.push(m); }
+  return { ra, cua, dem: { oDo: dem.do, cua: viTri.mot.length, cuaBa: viTri.ba.length, cuaMo: viTri.baMo.length, vom: viTri.vom.length, go: go.length } };
 }
 
 // CỤM CỬA kiểu Roman như ảnh sân trên: n ô vòm nhỏ đứng sát nhau, giữa các ô là cột nhỏ có đầu cột, mỗi ô một vòm đá mảnh;

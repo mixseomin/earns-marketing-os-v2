@@ -16,7 +16,7 @@ const JS = `(() => {
     khung.src = GOC + '/nhung/gop-y?trang=' + encodeURIComponent(location.href);
     khung.title = 'Góp ý / báo lỗi';
     khung.allow = 'display-capture; clipboard-read; clipboard-write';
-    khung.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:2147483000;background:transparent;color-scheme:dark';
+    khung.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:2147483000;background:transparent;color-scheme:normal'; // phải TRÙNG color-scheme của trang trong iframe (normal), lệch là trình duyệt tô nền trắng đục
     document.body.appendChild(khung);
     khung.focus();
   }

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# BỎ KHỎI QUY TRÌNH 15/11/2026: đo sai 0,2–0,55 s trên chính các clip đã soát bằng mắt (#4, #6 phim #3071). Luật thay: can-giong.ts › khopTheoTiengClip (thu-seedance-cum.mts). Giữ tệp để tra cứu, không gọi nữa.
 # CANH MIỆNG các shot có thoại (anh 15/11/2026 "chuẩn hoá cho mọi clip về sau"): box in mốc câu trong clip (mieng-ke.mts --ke) → iMac đo miệng bằng hình
 # (cham-do/do_mieng.py, Grounding DINO, 0đ) → box ghi: dời điểm vào theo độ trễ miệng, hoặc đánh dấu sinh lại (không thấy miệng mở / không bù được).
 # cum-seedance-tap.sh gọi tự động sau mỗi lần sinh. Chạy trên iMac.

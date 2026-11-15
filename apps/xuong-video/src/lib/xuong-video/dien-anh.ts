@@ -29,6 +29,8 @@ export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, strin
   /** Anh cho shot này đi video TRẢ PHÍ dù chưa thử VideoExpress (cổng videoTraPhi). */ tra_phi?: boolean;
   /** ĐIỂM VÀO CLIP (giây): bản dựng lấy đoạn phát bắt đầu từ đây thay vì đầu clip — mảnh ReelShort 1–2 s cắt đúng khoảnh khắc diễn trong clip 4–8 s
    *  (#322 #4: mắt chỉ liếc ở giây cuối). Không khai = bỏ ≤ 0,5 s đầu như cũ. */ vao_s?: number;
+  /** Tốc khớp thoại (máy ghi, can-giong.ts › khopTheoTiengClip): clip sinh kèm giọng đọc chậm hơn giọng gốc → chạy clip shot đó nhanh đúng hệ số này
+   *  để miệng nói xong cùng giọng (bản xuất + timeline qua toc-do.ts › kieuTocShot). Tốc sáng tạo toc_do thắng nếu có. */ toc_khop?: number;
   /** KHUNG DỰNG LẠI (diem-nhin.ts › khungCanh, scripts/diem-nhin.mts): phóng s quanh tâm (cx, cy) để chủ thể mở shot nằm chỗ mắt người xem vừa rời shot trước */
   khung_lai?: { s: number; cx: number; cy: number };
   /** Người dựng TẮT khung dựng lại ở shot này (giữ khung gốc) — nút trên timeline */ khung_lai_tat?: boolean;

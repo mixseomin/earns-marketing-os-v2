@@ -1,7 +1,7 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/toc-do.test.mts  (CLIP=<mp4> để thử thật bằng ffmpeg)
 import assert from 'node:assert';
 import { execFileSync } from 'node:child_process';
-import { bieuThucToc, keHoachToc, nguonTai } from './toc-do';
+import { bieuThucToc, keHoachToc, nguonTai, kieuTocShot } from './toc-do';
 
 assert.strictEqual(keHoachToc(undefined, 2, 2, 8), null);
 assert.strictEqual(keHoachToc('khong_co', 2, 2, 8), null);
@@ -30,3 +30,9 @@ console.log('toc-do.test: ok');
   if (Math.abs(diemVaoClip(9, 10.04, 1.4) - (10.04 - 1.4 - 0.45)) > 1e-9) throw new Error('kẹp đuôi');
   if (diemVaoClip(null, 8, 2) !== 0.5 || diemVaoClip(4.47, 0, 2) !== 4.47) throw new Error('mặc định / chưa biết dài');
   console.log('toc-do.test: ok (diemVaoClip)'); }
+// tốc khớp thoại: "x1.18" = cả shot nhanh 1,18; tốc sáng tạo thắng; lệch < 5 % bỏ qua
+assert.deepStrictEqual(keHoachToc('x1.18', 2, 2, 8)?.canVao, 2.36);
+assert.strictEqual(kieuTocShot({ toc_khop: 1.18 }), 'x1.18');
+assert.strictEqual(kieuTocShot({ toc_do: 'cham', toc_khop: 1.18 }), 'cham');
+assert.strictEqual(kieuTocShot({ toc_khop: 1.03 }), undefined);
+console.log('✓ toc-do (tốc khớp thoại)');

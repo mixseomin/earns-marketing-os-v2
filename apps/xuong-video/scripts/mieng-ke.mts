@@ -1,3 +1,4 @@
+// BỎ KHỎI QUY TRÌNH 15/11/2026: đo sai 0,2–0,55 s trên chính các clip đã soát bằng mắt (#4, #6 phim #3071). Luật thay: can-giong.ts › khopTheoTiengClip (thu-seedance-cum.mts). Giữ tệp để tra cứu, không gọi nữa.
 // CANH MIỆNG — PHẦN BOX (anh 15/11/2026 "chuẩn hoá cho mọi clip"): đo miệng bằng hình chạy trên iMac (scripts/cham-do/do_mieng.py, Grounding DINO), box chỉ đọc / ghi DB.
 //   --ke --canh=<id,…>                 in JSON các shot có thoại + clip: mốc từng câu TRONG CLIP (= điểm vào + trễ câu), độ dài clip, giây phát
 //   --ghi=<id>:<lệch s>|x --canh=<id>  ghi kết quả đo: dời điểm vào += lệch (kẹp trong clip); không bù được (> 0,25 s) hoặc "x" (không thấy miệng mở) → đánh dấu

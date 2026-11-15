@@ -16,7 +16,7 @@ import { theTenTap } from '@/lib/xuong-video/the-ten';
 import { nhipCat } from '@/lib/xuong-video/nhip-cat';
 import { lichSfx, urlSfx, amLuongXem, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, DU_XEM } from '@/lib/xuong-video/sfx';
 import { doLufsAm } from '@/lib/actions';
-import { keHoachToc, nguonTai, diemVaoClip } from '@/lib/xuong-video/toc-do';
+import { keHoachToc, kieuTocShot, nguonTai, diemVaoClip } from '@/lib/xuong-video/toc-do';
 import { NutChuyenCanh } from './chuyen-canh-ui';
 import { dongThoai, phatTiengClip, tenNoi, cungTen, timNv, lichGiong, giayGiuKet } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
@@ -167,7 +167,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const dsAnh = canh.map(anhCua).filter((u): u is string => !!u).map((u) => anhNho(u, 640)).join('\n');
   const giuAnh = useRef<HTMLImageElement[]>([]);
   useEffect(() => { giuAnh.current = dsAnh ? dsAnh.split('\n').map((u) => { const im = new Image(); im.decoding = 'async'; im.src = u; return im; }) : []; }, [dsAnh]);
-  const tocNay = useMemo(() => (c && vid && cheDo === 'video' ? keHoachToc(c.ky_thuat?.toc_do, dur(c), dur(c), daiVid || 8) : null), [c, daiVid, giayTam]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tocNay = useMemo(() => (c && vid && cheDo === 'video' ? keHoachToc(kieuTocShot(c.ky_thuat), dur(c), dur(c), daiVid || 8) : null), [c, daiVid, giayTam]); // eslint-disable-line react-hooks/exhaustive-deps
   // điểm vào clip (ky_thuat.vao_s, clip cụm) — CÙNG luật với bản xuất (toc-do.ts › diemVaoClip); trước 15/11/2026 timeline bỏ qua, shot chung clip cụm chiếu sai đoạn
   const vaoVid = c && cheDo === 'video' && vid ? diemVaoClip(c.ky_thuat?.vao_s, daiVid || null, dur(c)) : 0;
   const vtVid = tocNay ? vaoVid + nguonTai(tocNay, tTrong).vao : cheDo === '3d' && clip3d ? clip3d.vao + tTrong : vaoVid + tTrong;

@@ -17,7 +17,7 @@ import { catThat } from '../src/lib/xuong-video/cat-that';
 import { giayPhat, chatLieuPhim } from '../src/lib/xuong-video/kieu';
 import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
 import { nhanNhin } from '../src/lib/xuong-video/prompt-khoi';
-import { duongAmLuong, doLech, vaoSauCanh, doanShot } from '../src/lib/xuong-video/can-giong';
+import { duongAmLuong, khopTheoTiengClip, doanShot } from '../src/lib/xuong-video/can-giong';
 import { uploadToR2 } from '../src/lib/r2';
 import { loiPromptGui, loiClipThamChieu, loiThoaiPrompt } from '../src/lib/xuong-video/chan-gui-video';
 import { dangChongBau } from '../src/lib/xuong-video/bo-set-3d';
@@ -76,27 +76,32 @@ const loiGui = [...loiPromptGui(prompt, { tiLe: bcs[0]!.kt.ti_le, tenNhanVat: [.
 // THIẾU GIỌNG (luật 15/11/2026: #6 sinh không kèm giọng → miệng không theo câu): shot có câu thoại có file giọng mà lượt này không gửi giọng → chặn
 if (cauAm.length && !guiGiong) loiGui.push(`cụm có thoại (${cauAm.map((c) => `#${cum[c.so - 1]!.canh.thu_tu}`).join(' ')}) mà không gửi giọng (cách khớp môi: ${cachKhop?.cach ?? '?'} — ${cachKhop?.vi ?? ''}) — tách cụm mỗi lần một người nói`);
 if (loiGui.length) { console.error(`✗ CHẶN trước khi gửi (${loiGui.length} lỗi):\n  - ${loiGui.join('\n  - ')}`); process.exit(3); }
-// CANH GIỌNG THEO MIỆNG (can-giong.ts, anh 15/11/2026 "chuẩn hoá cho mọi clip"): clip sinh kèm giọng → đo độ trễ tiếng clip so với từng câu đặt ở cauAm[].t,
-// dời điểm vào từng shot; đo không ra / không bù được → lỗi (shot không gắn, vào lượt sinh lại). PCM chỉ GIẢI MÃ âm (ffmpeg trên box, không mã hoá video).
+// KHỚP THOẠI THEO TIẾNG CLIP (can-giong.ts › khopTheoTiengClip — luật chuẩn 15/11/2026, thay tương quan âm lượng + đo miệng bằng hình): điểm vào shot = lúc clip
+// bắt đầu nói trong đoạn của shot − lúc câu bắt đầu nghe thấy trong shot. Clip không nói / nói lặp / không bù được → lỗi (shot không gắn, vào lượt sinh lại).
+// PCM chỉ GIẢI MÃ âm (ffmpeg trên box, không mã hoá video).
 const pcm = (u: string) => { const b = execFileSync('ffmpeg', ['-v', 'error', '-i', u, '-vn', '-ac', '1', '-ar', '8000', '-f', 's16le', '-'], { maxBuffer: 64 << 20 }); return duongAmLuong(new Int16Array(b.buffer, b.byteOffset, Math.floor(b.length / 2)), 8000); };
-// dò độ trễ trên CẢ clip, không ±1,5 s: câu bị dời xa (#6: +3 s) mà dò hẹp thì bắt nhầm đỉnh, báo lệch sai (15/11/2026)
-// MỘT BƯỚC KHỚP THOẠI (15/11/2026, gộp các luật lẻ): không giả định model nói đúng giây đã đặt — tìm câu trên CẢ tiếng clip quanh chỗ shot đang bắt đầu (điểm vào đo theo
-// cú cắt + trễ câu), điểm vào mới = chỗ clip nói thật − trễ câu, phải nằm trọn trong ĐOẠN của shot (doanShot, cùng nguồn với đo miệng) — không thì sinh lại.
-function canhGiong(fClip: string, daiClip: number, vao: number[], doan: [number, number][]): { vao: number[]; loi: (string | null)[]; bao: string } {
-  if (!cauAm.length) return { vao, loi: vao.map(() => null), bao: '' };
+function khopThoai(fClip: string, vao: number[], doan: [number, number][]): { vao: number[]; toc: number[]; loi: (string | null)[]; bao: string } {
+  if (!cauAm.length) return { vao, toc: vao.map(() => 1), loi: vao.map(() => null), bao: '' };
   const tieng = pcm(fClip); const kq = cum.map((x, i) => {
-    const cau = cauAm.filter((c) => c.so === i + 1); if (!cau.length) return { vao: vao[i]!, loi: null, lech: 0 };
-    const r = vaoSauCanh(vao[i]!, cau.map((c) => doLech(tieng, pcm(c.url), vao[i]! + c.tre, daiClip)), daiClip, giayPhat(x.canh), 0.45, doan[i]); return r;
+    const cau = cauAm.filter((c) => c.so === i + 1); if (!cau.length) return { vao: vao[i]!, toc: 1, loi: null, noi: null };
+    return khopTheoTiengClip({ clip: tieng, doan: doan[i]!, phat: giayPhat(x.canh), cau: cau.map((c) => ({ giong: pcm(c.url), tre: c.tre })) });
   });
-  return { vao: kq.map((r) => r.vao), loi: kq.map((r) => r.loi), bao: kq.map((r, i) => (cauAm.some((c) => c.so === i + 1) ? `#${cum[i]!.canh.thu_tu}: trễ ${r.lech}s → vào ${r.vao}${r.loi ? ` ✗ ${r.loi}` : ''}` : '')).filter(Boolean).join(' · ') };
+  return { vao: kq.map((r) => r.vao), toc: kq.map((r) => r.toc), loi: kq.map((r) => r.loi), bao: kq.map((r, i) => (cauAm.some((c) => c.so === i + 1) ? `#${cum[i]!.canh.thu_tu}: clip nói ${r.noi ? `${r.noi.bd}–${r.noi.kt} s` : '—'} → vào ${r.vao}${r.toc !== 1 ? ` · tốc ×${r.toc}` : ''}${r.loi ? ` ✗ ${r.loi}` : ''}` : '')).filter(Boolean).join(' · ') };
 }
+/** ky_thuat sau khớp thoại: điểm vào + tốc khớp (1 = bỏ khoá) — một câu UPDATE riêng sau khi gắn clip (trigger 0328 xoá vao_s khi đổi video_url). */
+const ghiVaoToc = (id: number, vao: number, toc: number) => getDb()!.execute(sql`UPDATE xv_canh SET ky_thuat = (jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${JSON.stringify(vao)}::jsonb) - 'toc_khop') || ${JSON.stringify(toc !== 1 ? { toc_khop: toc } : {})}::jsonb WHERE id = ${id}`);
+
+/** Bản ghi khớp thoại trong nguon_video.mieng (kế hoạch cụm cum-seedance.mts đọc dat). */
+const ghiMieng = (dat: boolean, ly: string) => ({ mieng: { dat, ly, cach: 'tieng_clip', luc: new Date().toISOString() } });
 // --chinh-giong: canh lại clip ĐANG gắn của cụm một shot (0đ, không sinh)
 if (process.argv.includes('--chinh-giong')) {
   const x = cum[0]!.canh; if (cum.length !== 1 || !x.video_url) { console.error('--chinh-giong: một shot đã có clip'); process.exit(1); }
   const daiC = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', x.video_url], { encoding: 'utf8' }).trim());
-  const c = canhGiong(x.video_url, daiC, [clip1 ? clip1.vao : Number(x.ky_thuat?.vao_s ?? 0)], [(x.nguon_video as { doan?: [number, number] } | null)?.doan ?? [0, +(daiC - 0.45).toFixed(2)]]); console.log(c.bao || 'shot không có thoại');
+  const c = khopThoai(x.video_url, [Number(x.ky_thuat?.vao_s ?? 0)], [(x.nguon_video as { doan?: [number, number] } | null)?.doan ?? [0, +(daiC - 0.45).toFixed(2)]]); console.log(c.bao || 'shot không có thoại');
+  if (!c.bao) process.exit(0);
+  await db.execute(sql`UPDATE xv_canh SET nguon_video = coalesce(nguon_video, '{}'::jsonb) || ${JSON.stringify(ghiMieng(!c.loi[0], c.bao))}::jsonb, loi = ${c.loi[0] ? `khớp thoại: ${c.loi[0]} — sinh lại` : ''} WHERE id = ${x.id}`);
   if (c.loi[0]) { console.error(`✗ ${c.loi[0]}`); process.exit(4); }
-  await db.execute(sql`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${JSON.stringify(c.vao[0])}::jsonb) WHERE id = ${x.id}`);
+  await ghiVaoToc(x.id, c.vao[0]!, c.toc[0]!);
   process.exit(0);
 }
 if (xem) { console.log(prompt); console.log(anh.join('\n')); process.exit(0); }
@@ -140,13 +145,14 @@ for (;;) {
   // đó (video_url NULL) để kế hoạch cụm lần sau tự đưa vào sinh lại (cum-seedance.mts).
   const doan = doanShot(v.vao, dai);   // đoạn theo cú cắt, lấy TRƯỚC khi canh giọng dời điểm vào
   const hong = new Map<number, string>((v.theoDo ? v.ngan : cum.map((x) => x.canh.thu_tu)).map((so) => [so, v.theoDo ? 'đoạn của shot ngắn hơn giây phát' : 'không đo đủ cú cắt']));
-  if (urlGiong && v.theoDo) { const cg = canhGiong(f, dai, v.vao, doan); v.vao.splice(0, v.vao.length, ...cg.vao); console.log(`khớp thoại: ${cg.bao}`);
+  let cg: ReturnType<typeof khopThoai> | null = null;
+  if (urlGiong && v.theoDo) { cg = khopThoai(f, v.vao, doan); v.vao.splice(0, v.vao.length, ...cg.vao); console.log(`khớp thoại: ${cg.bao}`);
     cg.loi.forEach((l, i) => { if (l && !hong.has(cum[i]!.canh.thu_tu)) hong.set(cum[i]!.canh.thu_tu, l); }); }
   for (const [i, x] of cum.entries()) {
     if (hong.has(x.canh.thu_tu)) { await db.execute(sql`UPDATE xv_canh SET video_url = NULL, loi = ${`cụm Seedance job ${job}: ${hong.get(x.canh.thu_tu)} — sinh lại`}, updated_at = now() WHERE id = ${x.canh.id}`); continue; }
     await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt, job, cum: ids, khung_dau: x.canh.keyframe_url, doan: doan[i],   // đoạn của shot trong clip (cú cắt đo) — canh miệng không dời lấn sang shot kế
-         ...(urlGiong && cauAm.some((c) => c.so === i + 1) ? { khop_moi: { cach: 'seedance_audio', giong: urlGiong } } : {}) })}::jsonb, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);
-    await db.execute(sql`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${JSON.stringify(v.vao[i])}::jsonb) WHERE id = ${x.canh.id}`);
+         ...(urlGiong && cauAm.some((c) => c.so === i + 1) ? { khop_moi: { cach: 'seedance_audio', giong: urlGiong }, ...ghiMieng(true, cg?.bao.split(' · ').find((b) => b.startsWith(`#${x.canh.thu_tu}:`)) ?? '') } : {}) })}::jsonb, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);
+    await ghiVaoToc(x.canh.id, v.vao[i]!, cg?.toc[i] ?? 1);
   }
   if (hong.size) console.log(`✗ KHÔNG GẮN: ${[...hong].map(([so, l]) => `#${so} ${l}`).join(' · ')} — vào lượt sinh sau`);
   console.log(`xong ${Math.round((Date.now() - t0) / 1000)}s · ${url} · dài ${dai.toFixed(2)} s · cú cắt đo ${cat.map((c) => c.toFixed(2)).join(', ') || 'không thấy'} · ${v.theoDo ? 'điểm vào theo cú cắt đo' : 'điểm vào theo lịch (không đo đủ cú cắt)'} · vào ${v.vao.map((x) => x.toFixed(2)).join(', ')} · ~${cents.toFixed(1)}¢`);

@@ -13,7 +13,7 @@ import type { Canh, KieuChu, LoaiPhim, Lop, NhanVat, PhanCanh, Tap, ThongTinQc, 
 import { mauAss, gioAss, lopAss, lopAnhLoc, lopHieuUngLoc } from './lop';
 import { chuyenCanhGiua } from './dien-anh';
 import { giayPhat, locNhanh, doanHien, coMau, assVaoChu, gopKieu } from './kieu';
-import { keHoachToc, bieuThucToc, diemVaoClip } from './toc-do';
+import { keHoachToc, kieuTocShot, bieuThucToc, diemVaoClip } from './toc-do';
 import { ngatDong, dongChuMan, boChamCuoi } from './ngat-dong';
 import { lichSfx, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, LUFS_CLIP_DUOI_GIONG } from './sfx';
 /** Đuôi clip AI bỏ khi chọn đoạn (giây) — xem chỗ dùng ở dựng từng shot. */
@@ -357,7 +357,7 @@ export function keHoachXuat(o: {
     // ĐUÔI CLIP AI KHÔNG DÙNG (DUOI_CLIP_BO): 0,4 s cuối clip AI hay hỏng — Kie Veo Lite chèn ô ảnh nhỏ ở góc (đo phim #353: mọi clip từ 7,6 s), model khựng / tan
     const boDau = laVideo && daiClip ? diemVaoClip(vao, daiClip, phat) : 0;   // toc-do.ts › diemVaoClip — cùng luật với timeline
     // Đổi tốc (ky_thuat.toc_do, toc-do.ts): lấy đủ giây nguồn cho kế hoạch tốc rồi dựng lại thời gian bằng setpts từng đoạn.
-    const toc = laVideo ? keHoachToc(c.ky_thuat?.toc_do, phat, dai, daiClip != null ? daiClip - boDau : 8) : null;
+    const toc = laVideo ? keHoachToc(kieuTocShot(c.ky_thuat), phat, dai, daiClip != null ? daiClip - boDau : 8) : null;
     const canNguon = toc ? toc.canVao : dai;
     const cuoiThat = laVideo ? Math.min(daiClip ?? boDau + canNguon, boDau + canNguon) : 0; const dem = laVideo ? Math.max(0, boDau + canNguon - cuoiThat) : 0;
     const dungClip = phatTiengClip(c, o.nhanVat);

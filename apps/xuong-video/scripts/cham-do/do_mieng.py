@@ -1,4 +1,5 @@
-"""ĐO MIỆNG BẰNG HÌNH — canh giọng theo miệng THẬT trong clip (anh 15/11/2026, phim #3071 shot #4: Seedance chép tiếng đúng chỗ nhưng miệng vẽ trễ ~0,8 s;
+"""BỎ KHỎI QUY TRÌNH 15/11/2026: đo sai 0,2–0,55 s trên chính các clip đã soát bằng mắt (#4, #6 phim #3071). Luật thay: can-giong.ts › khopTheoTiengClip (thu-seedance-cum.mts). Giữ tệp để tra cứu, không gọi nữa.
+ĐO MIỆNG BẰNG HÌNH — canh giọng theo miệng THẬT trong clip (anh 15/11/2026, phim #3071 shot #4: Seedance chép tiếng đúng chỗ nhưng miệng vẽ trễ ~0,8 s;
 canh theo tiếng clip không bắt được). Chạy trên iMac (Grounding DINO của cham_do.py, 0đ):
   1. tách khung clip 8 / giây (ffmpeg, iMac)
   2. mỗi khung: Grounding DINO tìm "mouth" (không thấy thì nửa dưới hộp "face"), cắt vùng miệng → độ MỞ MIỆNG = tỉ lệ điểm ảnh tối trong vùng (lòng miệng tối)

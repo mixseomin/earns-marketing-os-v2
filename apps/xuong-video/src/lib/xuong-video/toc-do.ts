@@ -11,6 +11,10 @@ export const DOAN_TOC: Record<string, [number, number][]> = {
   ramp_treo: [[0.55, 1.4], [0.45, 0.32]],          // nhanh rồi treo chậm tới điểm cắt (trước cắt sốc)
   ramp_bung: [[0.45, 0.32], [0.55, 1.5]],          // mở bằng chậm hẳn rồi bung tốc
 };
+/** Kiểu tốc của shot cho keHoachToc — MỘT nguồn cho bản xuất + timeline: tốc sáng tạo (ky_thuat.toc_do) thắng; không có thì tốc khớp thoại
+ *  (ky_thuat.toc_khop, can-giong.ts › khopTheoTiengClip — clip đọc chậm hơn giọng gốc thì chạy nhanh cho miệng xong cùng giọng) dạng "x1.18". */
+export const kieuTocShot = (kt: { toc_do?: string; toc_khop?: number } | null | undefined): string | undefined =>
+  kt?.toc_do || (kt?.toc_khop && Math.abs(kt.toc_khop - 1) >= 0.05 ? `x${kt.toc_khop}` : undefined);
 export type DoanToc = { tuRa: number; denRa: number; tuVao: number; denVao: number; toc: number };
 export type KeHoachToc = { doan: DoanToc[]; canVao: number };
 const r3 = (x: number) => Math.round(x * 1000) / 1000;
@@ -18,7 +22,7 @@ const r3 = (x: number) => Math.round(x * 1000) / 1000;
 /** phat = giây phát, dai = phat + đuôi chuyển cảnh, conLai = giây clip nguồn còn dùng được (sau phần bỏ đầu).
  *  Nguồn không đủ cho mọi tốc → giảm đều mọi tốc theo cùng tỉ lệ (giữ hình dạng nhanh/chậm). Kiểu lạ → null (tốc thường). */
 export function keHoachToc(kieu: string | undefined, phat: number, dai: number, conLai: number): KeHoachToc | null {
-  const mau = kieu ? DOAN_TOC[kieu] : undefined;
+  const x = kieu?.match(/^x(\d+(?:\.\d+)?)$/); const mau = x ? [[1, Number(x[1])] as [number, number]] : kieu ? DOAN_TOC[kieu] : undefined;
   if (!mau || phat <= 0) return null;
   const lenRa = mau.map(([p], i) => (i === mau.length - 1 ? dai - mau.slice(0, -1).reduce((a, [q]) => a + q * phat, 0) : p * phat));
   const can = lenRa.reduce((a, l, i) => a + l * mau[i]![1], 0);

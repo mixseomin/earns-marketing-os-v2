@@ -15,6 +15,7 @@ const q = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
 const ssh = (cmd) => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', BOX, cmd], { encoding: 'utf8', timeout: 60000 });
 chayKySu({
   nguoi: 'vinh', ten: 'Vinh', duAn: 'xuong-video', tranPhut: 40,
+  tmux: true,   // Claude Code thật trong tmux 'vinh' — xem trực tiếp: tmux attach -t vinh (iMac), như Thành (anh 15/11/2026)
   cayMoiLuot: true,   // commit kẹt (push bị từ chối) được máy đẩy ngay lượt 5 phút kế, không chờ card mới
   cay: () => cayHoacBao('vinh', { ten: 'Vinh', khoa: 'studio:cay-rieng', phong: 'dung-san-pham', tep: 'studio-gop-y.json' }), cayThu: MOS2_GOC,
   // ảnh của studio nằm ở img.on.tc (công khai) — máy tải sẵn, Claude chỉ việc Read

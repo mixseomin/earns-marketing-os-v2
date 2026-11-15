@@ -3,7 +3,8 @@
 // phiên br đăng nhập, chạy Claude Code KHÔNG GIAO DIỆN, đọc kết quả, ghi tin khi hỏng, đóng br. Phần riêng (cây repo, quyền, lời giao, cách trả lời card) nằm ở cấu hình.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { chotCard, cardTuCommit } from './chot-card.mjs';   // card dừng giữa chừng → mục Kẹt; commit kẹt đẩy hộ → nộp (anh 14/11/2026)
-import { chayClaude } from './claude-chay.mjs';   // spawnSync + báo lỗi API vào 🚨 (anh 13/11/2026)
+import { chayClaude } from './claude-chay.mjs';
+import { chayTmux } from './claude-tmux.mjs';   // cfg.tmux: phiên Claude thật trong tmux tên kỹ sư, xem trực tiếp bằng tmux attach -t <tên> (anh 15/11/2026, như Thành)   // spawnSync + báo lỗi API vào 🚨 (anh 13/11/2026)
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -99,7 +100,7 @@ export function chayKySu(cfg) {
   log(`nhận card #${card.id} ${card.title} · model ${model} · effort ${muc.effort} (${muc.ly_do.join(', ')})`);
   if (!kiem) daLam[card.id] = { tin_nguoi: card.tin_nguoi, luc: new Date().toISOString() };   // ghi TRƯỚC khi chạy: lượt treo / chết cũng không chạy lại liền mỗi 5 phút
   fs.writeFileSync(TEP_DA, JSON.stringify(daLam));
-  const r = chayClaude(CLAUDE, ['-p', giao, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
+  const r = (cfg.tmux ? (c, a, o) => chayTmux(c, a, { ...o, ten: NGUOI }) : chayClaude)(CLAUDE, ['-p', giao, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
     { cwd: dir, encoding: 'utf8', timeout: (cfg.tranPhut || 40) * 60000, maxBuffer: 64 << 20, env: ENV });
   // đẩy NGAY trong lượt này commit mà Claude không push được (trước: chờ lượt 5 phút sau, card nằm Kẹt + một tin "can_anh" thừa giữa chừng)
   if (!kiem && cfg.cayMoiLuot) nopCommitDay(cfg.cay(), 'đẩy ngay commit Claude không push được');

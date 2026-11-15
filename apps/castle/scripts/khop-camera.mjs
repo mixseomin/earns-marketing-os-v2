@@ -10,7 +10,7 @@ import { join } from 'node:path';
 const TEP = du('anh');
 const { pg, dong } = await moTrang({ anh3d: true, khung: { width: 1600, height: 1200 } });
 const ANH = JSON.parse(readFileSync(TEP, 'utf8'));
-const chon = doiSo.map(Number); const ds = ANH.map((a, i) => i).filter((i) => ANH[i].camera && (!chon.length || chon.includes(i)));
+const chon = doiSo.map(Number); const ds = ANH.map((a, i) => i).filter((i) => (chon.length ? chon.includes(i) : ANH[i].camera)); // chỉ định chỉ số thì khớp cả ảnh chưa có camera (dò thô trước)
 
 // trong trang: viền ảnh thật (một lần) + hàm chấm một camera (vẽ riêng lớp ảnh 3D, chờ ô tải, đọc điểm ảnh)
 await pg.evaluate(() => {
@@ -35,18 +35,30 @@ for (const i of ds) {
   const a = ANH[i];
   const vA = await pg.evaluate(async ([i, src, w, h]) => { window.__ns.moSo(i); return window.__vienAnh(src, w, h); }, [i, `./du-lieu/${a.tep}`, 1600, Math.round(1600 * a.cao / a.rong)]);
   const nen = [169, 196, 220];
-  let cam = { y: a.camera.y, yaw: a.camera.yaw, pitch: a.camera.pitch, fov: a.camera.fov }, tot = 999;
-  for (let k = 0; k < 4; k++) tot = await pg.evaluate(([c, v, nen]) => window.__cham(c, v, nen), [cam, vA, nen]); // làm nóng: lần đầu ô ảnh 3D chưa tải đủ chi tiết ở chỗ đứng này → điểm sai
+  let cam, tot = 999;
+  const cham = (c) => pg.evaluate(([c, v, nen]) => window.__cham(c, v, nen), [c, vA, nen]);
+  if (a.camera) { cam = { y: a.camera.y, yaw: a.camera.yaw, pitch: a.camera.pitch, fov: a.camera.fov }; for (let k = 0; k < 4; k++) tot = await cham(cam); } // làm nóng: lần đầu ô ảnh 3D chưa tải đủ chi tiết ở chỗ đứng này → điểm sai
+  else { // ẢNH CHƯA CÓ CAMERA: đứng 1,6 m trên mặt đất thật ở toạ độ ảnh, hướng về lâu đài (tâm các khối), dò thô lưới hướng × ngẩng × ống kính
+    const g = await pg.evaluate(([la, ln]) => { const n = window.__ns, M = 111320, x = (ln - n.D.tam[1]) * M * Math.cos(n.D.tam[0] * Math.PI / 180), z = -(la - n.D.tam[0]) * M;
+      return { y: n.matDat(x, z) + 1.6, yaw: Math.atan2(-(-30 - x), -(15 - z)) }; }, [a.lat, a.lng]);
+    for (let k = 0; k < 3; k++) tot = await cham({ y: g.y, yaw: g.yaw, pitch: 0.2, fov: 50 });
+    tot = 999;
+    // biên rộng: ảnh gần chụp ngửa (ngẩng tới 0,8 rad) bằng ống kính rộng (tới 84°) — lần đầu biên 0,4 / 66° bị chạm biên, lệch 107 px
+    for (const fov of [40, 58, 76, 84]) for (const pitch of [0, 0.25, 0.5, 0.75]) for (let d = -0.9; d <= 0.91; d += 0.12) {
+      const c = { y: g.y, yaw: g.yaw + d, pitch, fov }, e = await cham(c); if (e < tot) { tot = e; cam = c; }
+    }
+    console.log(`  dò thô: lệch ${tot.toFixed(1)} px`, JSON.stringify(cam));
+  }
   console.log(`ảnh ${i}: bắt đầu lệch ${tot.toFixed(1)} px`, JSON.stringify(cam));
-  const buoc = { y: 6, yaw: 0.02, pitch: 0.02, fov: 2 };
+  const buoc = a.camera ? { y: 6, yaw: 0.02, pitch: 0.02, fov: 2 } : { y: 4, yaw: 0.05, pitch: 0.05, fov: 4 }; // ảnh mới: bước lớn hơn (từ kết quả dò thô)
   for (let vong = 0; vong < 5; vong++) {
     for (const k of Object.keys(buoc)) for (const dau of [1, -1]) {
-      for (;;) { const thu = { ...cam, [k]: cam[k] + dau * buoc[k] }, e = await pg.evaluate(([c, v, nen]) => window.__cham(c, v, nen), [thu, vA, nen]); if (e < tot - 0.2) { cam = thu; tot = e; } else break; }
+      for (;;) { const thu = { ...cam, [k]: cam[k] + dau * buoc[k] }, e = await cham(thu); if (e < tot - 0.2) { cam = thu; tot = e; } else break; }
     }
     for (const k of Object.keys(buoc)) buoc[k] /= 2;
     console.log(`  vòng ${vong + 1}: lệch ${tot.toFixed(1)} px`, JSON.stringify(Object.fromEntries(Object.entries(cam).map(([k, v]) => [k, +v.toFixed(4)]))));
   }
-  a.camera = { ...a.camera, y: +cam.y.toFixed(2), yaw: +cam.yaw.toFixed(4), pitch: +cam.pitch.toFixed(4), fov: +cam.fov.toFixed(2),
+  a.camera = { ...(a.camera || {}), y: +cam.y.toFixed(2), yaw: +cam.yaw.toFixed(4), pitch: +cam.pitch.toFixed(4), fov: +cam.fov.toFixed(2),
     ghi_chu: `khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, ${new Date().toISOString().slice(0, 10)}): trung vị lệch viền ${tot.toFixed(1)} px trên khung 1600 px` };
 }
 writeFileSync(TEP, JSON.stringify(ANH, null, 1) + '\n'); console.log('ghi', TEP);

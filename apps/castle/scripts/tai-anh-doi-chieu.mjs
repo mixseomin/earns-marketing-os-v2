@@ -2,7 +2,7 @@
 // Tải ẢNH THẬT có toạ độ chỗ đứng chụp (Wikimedia Commons, ghi tác giả + giấy phép) để đối chiếu mô hình: đặt camera đúng chỗ chụp, chồng ảnh.
 // Ghi vào apps/castle/public/du-lieu/<ten>-anh.json + du-lieu/anh/<ten>-<k>.jpg (bản 1920 px của Commons).
 // Dùng: node apps/castle/scripts/tai-anh-doi-chieu.mjs neuschwanstein "File:A.jpg" "File:B.jpg" …
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,12 +12,14 @@ const UA = { 'User-Agent': 'castle-lau-dai-that/1.0' };
 const goc = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'du-lieu');
 mkdirSync(join(goc, 'anh'), { recursive: true });
 const u = new URL('https://commons.wikimedia.org/w/api.php');
-for (const [k, v] of Object.entries({ action: 'query', format: 'json', titles: tep.join('|'), prop: 'coordinates|imageinfo', coprop: 'type', iiprop: 'url|size|extmetadata', iiurlwidth: '1920', iiextmetadatafilter: 'LicenseShortName|Artist|LicenseUrl' })) u.searchParams.set(k, v);
+for (const [k, v] of Object.entries({ action: 'query', format: 'json', titles: tep.join('|'), prop: 'coordinates|imageinfo', coprop: 'type', iiprop: 'url|size|extmetadata', iiurlwidth: '2400', iiextmetadatafilter: 'LicenseShortName|Artist|LicenseUrl' })) u.searchParams.set(k, v);
 const d = await (await fetch(u, { headers: UA })).json();
 const boThe = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').trim();
-const ra = [];
-let k = 0;
+// THÊM VÀO danh sách đang có (không ghi đè: ảnh cũ giữ nguyên camera đã khớp), bỏ ảnh đã có, đánh số tiếp
+const tepDs = join(goc, `${ten}-anh.json`), ra = existsSync(tepDs) ? JSON.parse(readFileSync(tepDs, 'utf8')) : [];
+let k = ra.reduce((m, a) => Math.max(m, +(/-(\d+)\.jpg$/.exec(a.tep)?.[1] || 0)), 0);
 for (const t of tep) {
+  if (ra.some((a) => a.tieuDe === t.replace(/^File:/, ''))) { console.log('đã có:', t); continue; }
   const p = Object.values(d.query.pages).find((x) => x.title === t);
   if (!p?.coordinates?.[0] || !p.imageinfo?.[0]) { console.log('bỏ (thiếu toạ độ / ảnh):', t); continue; }
   const c = p.coordinates[0], ii = p.imageinfo[0], m = ii.extmetadata || {};
@@ -30,5 +32,5 @@ for (const t of tep) {
     camera: null }); // camera = { y, yaw, pitch, fov } chỉnh tay cho khớp ảnh, ghi lại vào tệp này
   console.log('đã tải', file, '←', t);
 }
-writeFileSync(join(goc, `${ten}-anh.json`), JSON.stringify(ra, null, 1));
+writeFileSync(tepDs, JSON.stringify(ra, null, 1) + '\n');
 console.log(`đã ghi du-lieu/${ten}-anh.json: ${ra.length} ảnh`);

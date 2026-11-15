@@ -34,7 +34,8 @@ for m in json.loads((thu / 'mat-g.json').read_text()):
             if not 0 <= gy < H: continue
             for x in range(min(W, pc.size[0])):
                 r, g, b, a = qx[x, py]
-                if a == 255 and not (r == g == b == 128): px[x, gy] = (r, g, b, 255)
+                troi = b > r + 20 and b > 90; cay = g > r + 10 and g > b + 5  # ảnh chụp: trời / cây không phải tường (bị rừng che, hoặc ra ngoài viền thật) → không chép
+                if a == 255 and not (r == g == b == 128) and not troi and not cay: px[x, gy] = (r, g, b, 255)
     # ẢNH HỎNG: mặt ảnh 3D không có ảnh thật (màu bị kéo dãn thành sọc ngang) → độ chênh theo chiều dọc gấp > 1,5 lần chiều ngang → không dán
     if True:  # kể cả sau khi ghép ảnh chụp (mặt nhìn quá xiên từ chỗ chụp cũng kéo thành sọc)
         L_ = im.convert('L'); q = L_.load(); dx = sum(abs(q[x, y] - q[x + 1, y]) for y in range(0, H, 2) for x in range(W - 1)) / max(1, (W - 1) * (H // 2)); dy = sum(abs(q[x, y] - q[x, y + 1]) for y in range(H - 1) for x in range(0, W, 2)) / max(1, (H - 1) * (W // 2))

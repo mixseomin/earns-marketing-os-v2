@@ -86,5 +86,96 @@
    "ghi_chu": "sân trên nhìn mặt Palas hướng sân; khớp ước lượng bằng mắt (tháp góc, ban công, đầu hồi), chưa khớp máy — nền sân DEM thấp hơn thật ~7 m nên mô hình thừa một tầng dưới cùng"
   },
   "nhan": "Sân trên"
+ },
+ {
+  "tieuDe": "Neuschwansteincastle19092015 01.JPG",
+  "tep": "anh/neuschwanstein-5.jpg",
+  "trang": "https://commons.wikimedia.org/wiki/File:Neuschwansteincastle19092015_01.JPG",
+  "lat": 47.5575,
+  "lng": 10.75,
+  "rong": 2400,
+  "cao": 1598,
+  "tacGia": "Arunkporathoor",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+  "camera": null
+ },
+ {
+  "tieuDe": "Neuschwansteincastle19092015 02.JPG",
+  "tep": "anh/neuschwanstein-6.jpg",
+  "trang": "https://commons.wikimedia.org/wiki/File:Neuschwansteincastle19092015_02.JPG",
+  "lat": 47.5575,
+  "lng": 10.75,
+  "rong": 2400,
+  "cao": 1598,
+  "tacGia": "Arunkporathoor",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+  "camera": null
+ },
+ {
+  "tieuDe": "02.10.2010. Hohenschwangau - panoramio (4).jpg",
+  "tep": "anh/neuschwanstein-7.jpg",
+  "trang": "https://commons.wikimedia.org/wiki/File:02.10.2010._Hohenschwangau_-_panoramio_(4).jpg",
+  "lat": 47.557663,
+  "lng": 10.75009,
+  "rong": 2400,
+  "cao": 3200,
+  "tacGia": "Sandor Bordas",
+  "giayPhep": "CC BY-SA 3.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+  "camera": null
+ },
+ {
+  "tieuDe": "Schloss Neuschwanstein - panoramio - Ainars Brūvelis (2).jpg",
+  "tep": "anh/neuschwanstein-8.jpg",
+  "trang": "https://commons.wikimedia.org/wiki/File:Schloss_Neuschwanstein_-_panoramio_-_Ainars_Br%C5%ABvelis_(2).jpg",
+  "lat": 47.557541,
+  "lng": 10.750149,
+  "rong": 2400,
+  "cao": 3200,
+  "tacGia": "Ainars Brūvelis",
+  "giayPhep": "CC BY-SA 3.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+  "camera": null
+ },
+ {
+  "tieuDe": "Il castello di Neuschwanstein - panoramio (3).jpg",
+  "tep": "anh/neuschwanstein-9.jpg",
+  "trang": "https://commons.wikimedia.org/wiki/File:Il_castello_di_Neuschwanstein_-_panoramio_(3).jpg",
+  "lat": 47.557548,
+  "lng": 10.750344,
+  "rong": 2400,
+  "cao": 1800,
+  "tacGia": "Itto Ogami",
+  "giayPhep": "CC BY 3.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by/3.0",
+  "camera": null
+ },
+ {
+  "tieuDe": "Schloss Neuschwanstein - panoramio - Ainars Brūvelis (1).jpg",
+  "tep": "anh/neuschwanstein-10.jpg",
+  "trang": "https://commons.wikimedia.org/wiki/File:Schloss_Neuschwanstein_-_panoramio_-_Ainars_Br%C5%ABvelis_(1).jpg",
+  "lat": 47.557719,
+  "lng": 10.750331,
+  "rong": 2400,
+  "cao": 3200,
+  "tacGia": "Ainars Brūvelis",
+  "giayPhep": "CC BY-SA 3.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+  "camera": null
+ },
+ {
+  "tieuDe": "Neuschwanstein Castle (25054233902).jpg",
+  "tep": "anh/neuschwanstein-11.jpg",
+  "trang": "https://commons.wikimedia.org/wiki/File:Neuschwanstein_Castle_(25054233902).jpg",
+  "lat": 47.558522,
+  "lng": 10.750551,
+  "rong": 2400,
+  "cao": 1600,
+  "tacGia": "Ștefan Jurcă from Munich, Germany",
+  "giayPhep": "CC BY 2.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by/2.0",
+  "camera": null
  }
 ]

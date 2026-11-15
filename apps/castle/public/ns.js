@@ -16,6 +16,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
 import { taoCamUng, CHAM } from './camung.js';
 import { taoChieuAnh } from './chieuanh.js';
+import { datDuong } from './duong.js';
 import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, tiLeDung, datChop, oCum } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 
@@ -33,6 +34,7 @@ const NEN = await fetch(`./du-lieu/${ten}-nen.json`, { cache: 'no-cache' }).then
 const CHOP = await fetch(`./du-lieu/${ten}-chop.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // chóp / tháp nhỏ OSM không có (scripts/them-chop.mjs)
 const CUA_SO = await fetch(`./du-lieu/${ten}-cua-so.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})); // cửa sổ đo từ ảnh từng mặt (scripts/nan-google.mjs + do-cua-so.py)
 const MAT_ANH = await fetch(`./du-lieu/${ten}-mat-anh.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})); // ảnh dán mặt tường (scripts/nan-google.mjs PX=16 + dan-mat.py)
+const DUONG = await fetch(`./du-lieu/${ten}-duong.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // đường + cầu thang OSM (scripts/tai-duong.mjs)
 const NT = await fetch(`./du-lieu/${ten}-noi-that.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // nội thất (có thì dựng)
 for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [a, b] of Object.entries(SUA[k.id])) if (a !== 'ly_do') k.tags[a] = String(b); }
 
@@ -441,6 +443,18 @@ if (NEN_LUOI) {
   }
 }
 
+// ---- ĐƯỜNG ĐI + CẦU THANG OSM (duong.js): mặt đường bám đất thật, bậc đá có va chạm
+if (DUONG?.duong?.length) {
+  const tx = (t, lap) => { for (const x of [t.map, t.bump]) if (x) { x.wrapS = x.wrapT = THREE.RepeatWrapping; } return t; };
+  const nhua = tx(T.daXay(T.rngTu(61), 34, 50)), dat = tx(T.cuoi(T.rngTu(62))), bac = tx(T.daXay(T.rngTu(63), 30, 60));
+  const { ra, dem } = datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds: DUONG.duong, cao: datThat,
+    vl: { nhua: new THREE.MeshStandardMaterial({ map: nhua.map, bumpMap: nhua.bump, bumpScale: 0.8, roughness: 0.92, color: '#b9b3a8' }),
+      dat: new THREE.MeshStandardMaterial({ map: dat.map || null, roughness: 0.95, color: '#9c8c72' }),
+      bac: new THREE.MeshStandardMaterial({ map: bac.map, bumpMap: bac.bump, bumpScale: 1, roughness: 0.9, color: '#d6d0c4' }) } });
+  for (const m of ra) { scene.add(m); LOP_OSM.push(m); }
+  console.info('[ns] đường đi:', JSON.stringify({ ...dem, m: Math.round(dem.m) }));
+}
+
 // ---- NỘI THẤT Palas (noithat.js): sàn, phòng theo bản vẽ, cầu thang xoắn, đồ đạc, đèn chùm
 let noiThat = null;
 if (NOI) {
@@ -608,15 +622,18 @@ const raMet = (la, ln) => [(ln - D.tam[1]) * M_LNG, -(la - D.tam[0]) * M_LAT];
 // ẢNH CHỤP CHIẾU LÊN MÁI + THÁP (chieuanh.js): ảnh so khớp camera tốt nhất (ghi chú khớp tự động, lệch viền ≤ 10 px) → cửa mái, ống khói, chóp, hoa văn trên mái
 // hiện đúng chỗ như ảnh. Chỉ tô chỗ ảnh nhìn thấy; tải nền sau khi cảnh dựng xong
 (async () => {
-  const tot = ANH.map((a, i) => ({ a, i, lech: +(/lệch viền ([\d.]+) px/.exec(a.camera?.ghi_chu || '')?.[1] ?? 999) })).filter((x) => x.a.camera && x.lech <= 10).sort((p, q) => p.lech - q.lech)[0];
-  if (!tot) return;
-  const nha = LOP_OSM.filter((m) => m.isMesh && m.userData.nha); if (!nha.length) return;
-  const [x, z] = raMet(tot.a.lat, tot.a.lng), c = tot.a.camera, quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(c.pitch, c.yaw, 0, 'YXZ'));
-  try {
-    const phu = await taoChieuAnh({ THREE, renderer, anh: { url: `./du-lieu/${tot.a.tep}`, w: tot.a.rong, h: tot.a.cao }, cam: { pos: new THREE.Vector3(x, c.y, z), quat, fov: c.fov }, che: nha, nhan: nha });
-    for (const p of phu) { p.visible = !LOP_OSM.dangAn; scene.add(p); LOP_OSM.push(p); }
-    console.info('[ns] chiếu ảnh', tot.a.tieuDe, 'lên', phu.length, 'lưới nhà');
-  } catch (e) { console.warn('[ns] chiếu ảnh lỗi', e); }
+  // mọi ảnh khớp camera tốt (lệch viền ≤ 10 px) đều chiếu; ảnh chụp GẦN hơn vẽ sau (đè) ở chỗ cùng thấy — nét hơn
+  const ds = ANH.map((a, i) => ({ a, i, lech: +(/lệch viền ([\d.]+) px/.exec(a.camera?.ghi_chu || '')?.[1] ?? 999) })).filter((x) => x.a.camera && x.lech <= 10)
+    .map((x) => { const [px, pz] = raMet(x.a.lat, x.a.lng); return { ...x, px, pz, xa: Math.hypot(px + 30, pz - 15) }; }).sort((p, q) => q.xa - p.xa);
+  const nha = LOP_OSM.filter((m) => m.isMesh && m.userData.nha); if (!ds.length || !nha.length) return;
+  for (const [k, x] of ds.entries()) {
+    const c = x.a.camera, quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(c.pitch, c.yaw, 0, 'YXZ'));
+    try {
+      const phu = await taoChieuAnh({ THREE, renderer, anh: { url: `./du-lieu/${x.a.tep}`, w: x.a.rong, h: x.a.cao }, cam: { pos: new THREE.Vector3(x.px, c.y, x.pz), quat, fov: c.fov }, che: nha, nhan: nha, thu: k });
+      for (const p of phu) { p.visible = !LOP_OSM.dangAn; scene.add(p); LOP_OSM.push(p); }
+      console.info('[ns] chiếu ảnh', x.a.tieuDe, `(cách ${x.xa.toFixed(0)} m, lệch ${x.lech} px) lên`, phu.length, 'lưới nhà');
+    } catch (e) { console.warn('[ns] chiếu ảnh lỗi', x.a.tieuDe, e); }
+  }
 })();
 let dangSo = null, cam = null;
 const hop = $('so-khung'), img = $('so-anh');

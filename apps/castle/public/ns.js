@@ -286,6 +286,9 @@ const RUNG = []; // ẩn khi so ảnh thật (cây mọc ở mép vực che tầ
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
   viTri.forEach(([x, y, z, s, a], i) => { m4.compose(new THREE.Vector3(x, y, z), q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a), new THREE.Vector3(s, s * (0.9 + (i % 5) * 0.06), s)); iT.setMatrixAt(i, m4); iG.setMatrixAt(i, m4); iT.setColorAt(i, c.setHSL(0.3 + (i % 7) * 0.008, 0.3, 0.17 + (i % 11) * 0.008)); });
   iT.castShadow = true; iT.receiveShadow = true; scene.add(iT, iG);
+  // thân cây có va chạm (trụ) từ gốc tới gần ngọn: đi không xuyên cây nữa, và bộ leo dibo (bám mọi mặt đứng) trèo được lên tới ngọn tán rồi đu lên đứng ở chạc ngọn
+  for (const [x, y, z, s] of viTri) { const h = 12 * s; world.createCollider(RAPIER.ColliderDesc.cylinder(h / 2, 0.32 * s).setTranslation(x, y + h / 2, z).setFriction(0.8), tinh);
+    world.createCollider(RAPIER.ColliderDesc.cylinder(0.06, 0.8).setTranslation(x, y + h, z), tinh); } // chạc ngọn: leo tới đỉnh thì đu lên đứng được, không tuột rơi
   RUNG.push(iT, iG);
 }
 

@@ -71,7 +71,13 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
     if (tt === 'leo') {
       const h = tiaN(p, 0.3, -leoN.x, -leoN.z, 1.1);
       if (!h) { tt = 'dat'; chamLeo = 0.3; return; }
-      { const l = Math.hypot(h.normal.x, h.normal.z); if (Math.abs(h.normal.y) < 0.5 && l > 0.5) { leoN.x = h.normal.x / l; leoN.z = h.normal.z / l; } }
+      { // hướng bám = từ điểm GẦN NHẤT trên chính vật đang bám ra người (ổn định trên mặt cong: thân cây, tháp tròn); pháp tuyến tia chỉ là dự phòng —
+        // lấy pháp tuyến tia làm hướng tia kế tiếp trên trụ mảnh thì lệch khuếch đại mỗi bước (đo được 0,05 → 0,46 rồi trượt khỏi thân)
+        const c = { x: p.x, y: p.y + 0.3, z: p.z }, pr = world.projectPoint(c, true, TINH, nhomVa, va);
+        let nx = h.normal.x, nz = h.normal.z, ny = h.normal.y;
+        if (pr && !pr.isInside && pr.collider.handle === h.collider.handle) { nx = c.x - pr.point.x; nz = c.z - pr.point.z; ny = 0; }
+        const l = Math.hypot(nx, nz); if (Math.abs(ny) < 0.5 && l > 0.05) { leoN.x = nx / l; leoN.z = nz / l; }
+      }
       huong = muon = Math.atan2(-leoN.x, -leoN.z);
       const dau = tiaN(p, 0.85, -leoN.x, -leoN.z, 1.1);
       if (!dau && fz > 0) { const top = matTren(p.x - leoN.x * 0.75, p.y + 1.9, p.z - leoN.z * 0.75, 2.4); if (top != null) { batDauQua(p, -leoN.x, -leoN.z, top); return; } }

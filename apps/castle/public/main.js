@@ -16,6 +16,7 @@ import { taoBanDo } from './bando.js';
 import { dungNgua, dungXe } from './phuongtien.js';
 import { napNguoi3d, taoNguoi3d } from './nguoi3d.js';
 import { taoDiBo } from './dibo.js';
+import { ganGopY, chupCanvas } from './gopy.js';
 
 const $ = (id) => document.getElementById(id);
 const thamSo = new URLSearchParams(location.search);
@@ -489,7 +490,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Digit2') toi.lam('mua');
   if (e.code === 'KeyF') da();
   if (e.code === 'KeyE') nutE();
-  if (e.code === 'Escape') raToanCanh();
+  if (e.code === 'Escape' && !gopY.dangMo()) raToanCanh();
 });
 addEventListener('keyup', (e) => { phim[e.code] = false; });
 
@@ -730,12 +731,11 @@ function veBanDo(now) {
   $('toado').textContent = `📍 ${p.x.toFixed(1)}, ${p.z.toFixed(1)}${cheDo === 'di' ? '' : ' (tâm nhìn)'}`;
 }
 
-// góp ý: hòm CHUẨN mos2 (nút 💬 data-gop-y-mo, script mos2.on.tc/api/gop-y-ngoai/nut trong index.html) — trang khai ngữ cảnh chỗ đứng + ảnh khung hình, đọc lúc bấm mở
-window.__nguCanhTrang = () => {
+// góp ý: hộp gopy.js, kèm ảnh khung hình + ngữ cảnh chỗ đứng
+const gopY = ganGopY({ nut: $('b-gy'), tieuDe: 'Góp ý cho lâu đài', chupAnh: () => chupCanvas(renderer.domElement, () => composer.render()), nguCanh: () => {
   const p = than.translation();
   return `Lâu đài h=${HAT} · ${cheDo === 'di' ? `đi bộ tại (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}) hướng ${(di.yaw * 180 / Math.PI).toFixed(0)}° · góc nhìn ${di.gocNhin === 3 ? 'sau lưng' : 'mắt'}` : 'toàn cảnh'} · giờ game ${gioGame.chu()} · ${quan.trong(p.x, p.z) ? 'trong quán · ' : ''}${innerWidth}×${innerHeight}${CHAM ? ' cảm ứng' : ''}`;
-};
-window.__chupTrang = () => ((ve) => { ve(); const src = renderer.domElement, k = Math.min(1, 1280 / src.width), c = document.createElement('canvas'); c.width = Math.round(src.width * k); c.height = Math.round(src.height * k); c.getContext('2d').drawImage(src, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.82); })(() => composer.render()); // đọc ngay sau khi vẽ, cùng nhịp → khung hình còn nguyên
+} });
 $('tai').remove();
 window.__lauDai = { hat: HAT, nhaVa, nguCanh: () => nguCanh(), dbg: () => ({ nen: di.nen, tt: di.tt, toc: di.toc }), tt: () => di.tt, di, XE, cuoi: () => cuoi, lenXe, xuongXe, thu: (f) => f({ world, RAPIER, tiaN: di.tiaN, matTren: di.matTren, thanVa, LOC_TINH }), yaw: () => di.yaw, huong: () => di.huong, soLuoi: scene.children.length, soVatDong: dong.length, soNha: nhaVa.length, vaoDiBo, raToanCanh, camera, than, nem, phim, dong, datHuong: (y, p) => { di.yaw = y; di.pitch = p; }, toi, dan: sd.dan, da, doiGocNhin, quan, quanNguoi, doNet: () => doNet, renderer, bloom, composer, sd, gioGame, ve: () => ({ lenh: renderer.info.render.calls, tamGiac: renderer.info.render.triangles, nguoi: { ...DEM } }) };
 vong();

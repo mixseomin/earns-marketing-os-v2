@@ -27,7 +27,7 @@ $S submit <id> "<lời>" [url]  # → Review (nộp cho anh duyệt)
 | Phần | Tệp |
 |---|---|
 | Dựng lâu đài (đảo, tường, tháp, phố, nhà, cầu, bãi cỏ + hồ), vật lý Rapier, người chơi, camera, vòng vẽ, trần khung hình, lưu chỗ đứng (F5) | `main.js` |
-| Góp ý = hòm CHUẨN mos2: nút 💬 `data-gop-y-mo` + `<script src="https://mos2.on.tc/api/gop-y-ngoai/nut">` (mở mos2 `/nhung/gop-y` trong iframe); trang khai `window.__nguCanhTrang` + `window.__chupTrang` | `main.js`, `ns.js` (mã hòm ở `packages/gop-y`, `apps/web/src/app/nhung/gop-y`) |
+| Góp ý dùng chung cả hai trang (nút 💬 → hộp gõ → `/api/gop-y` kèm ảnh + ngữ cảnh; hộp tự dựng DOM + CSS) | `gopy.js` |
 | Bảng đầu trang Neuschwanstein = giới thiệu khu đang đứng (phòng: `gioiThieu` của phòng; ngoài trời: `du-lieu/neuschwanstein-khu.json` theo khối OSM có tên), thu nhỏ được | `ns.js` (`khuTai`, `capNhatKhu`) |
 | Bề mặt vẽ bằng canvas (đá, ngói, vữa gỗ, cuội, ván) | `tex.js` |
 | Khung xương người + mọi động tác; vẽ hàng loạt; chỉ vẽ chi tiết người trong khung nhìn & gần 45 m | `nhanvat.js` |

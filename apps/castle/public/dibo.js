@@ -20,7 +20,7 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
   const TINH = RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC | RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC;
   const VD = { di: 4.2, chay: 7.5, ngoi: 1.6, tang: 28, ham: 36, tangKhong: 7, quay: 12.5, nhay: 5.4, g: 18, gRoi: 26, coyote: 0.12, dem: 0.12 };
   let dang = false, tt = 'dat', yaw = 0, pitch = -0.12, huong = 0, muon = 0, vx = 0, vz = 0, vy = 0, nen = false, roiMep = 1, demNhay = 0, chamLeo = 0;
-  let toc = 0, tocLeo = 0, phaLeo = 0, phaBoi = 0, lucChuot = -1e9, gocNhin = 3, camY = null;
+  let toc = 0, tocLeo = 0, phaLeo = 0, phaBoi = 0, lucChuot = -1e9, gocNhin = 3, camY = null, camNang = 0, camKc = 3.6;
   const leoN = { x: 0, z: 1 }, qua = { t: 0, dai: 0.5, a: null, b: null, c: null };
   const tiaN = (p, dy, dx, dz, dai) => (dx || dz) && world.castRayAndGetNormal(new RAPIER.Ray({ x: p.x, y: p.y + dy, z: p.z }, { x: dx, y: 0, z: dz }), dai, true, TINH, nhomVa, va);
   const matTren = (x, yTu, z, sau) => { const h = world.castRay(new RAPIER.Ray({ x, y: yTu, z }, { x: 0, y: -1, z: 0 }), sau, true, TINH, nhomVa, va); return h ? yTu - h.timeOfImpact : null; };
@@ -157,10 +157,22 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
     if (gocNhin === 1) { camera.position.set(p.x, (ng ? chan + 0.9 : chan + MAT), p.z); camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; }
     camY = camY == null || Math.abs(camY - chan) > 3 ? chan : camY + (chan - camY) * (1 - Math.exp(-dt * 12));
     const pt = Math.max(-1.1, Math.min(0.75, pitch)), kcMax = ng?.kcMax ?? 3.6;
-    const dich = new THREE.Vector3(p.x + Math.cos(yaw) * 0.45, camY + (phim.KeyC && !ng ? 1.05 : 1.6), p.z - Math.sin(yaw) * 0.45);
-    const lui = new THREE.Vector3(Math.sin(yaw) * Math.cos(pt), -Math.sin(pt), Math.cos(yaw) * Math.cos(pt));
-    const h = world.castRay(new RAPIER.Ray(dich, lui), kcMax, true, TINH, nhomVa, va);
-    camera.position.copy(dich).addScaledVector(lui, h ? Math.max(0.4, h.timeOfImpact - 0.25) : kcMax);
+    // camera sau lưng, gần tường KHÔNG dí sát vào gáy (anh 15/11/2026 "ở quá gần tường thì view bị sát vào, không quan sát nổi"):
+    // 1) điểm nhìn lệch vai chỉ lệch tới chỗ còn trống (đứng sát tường bên cạnh thì điểm lệch cũ nằm TRONG tường → tia bắt đầu trong vật → camera 0,4 m);
+    // 2) phía sau bị chắn thì nâng camera lên nhìn chéo xuống (tối đa ~49°, dốc hơn là chỉ thấy đỉnh đầu) tới khi có ≥ 2 m, chọn góc xa nhất;
+    // 3) khoảng cách co ngay (không xuyên tường) nhưng giãn ra từ từ, góc nâng cũng trơn — hết giật.
+    const dau = { x: p.x, y: camY + (phim.KeyC && !ng ? 1.05 : 1.6), z: p.z }, vai = { x: Math.cos(yaw), y: 0, z: -Math.sin(yaw) };
+    const hv = world.castRay(new RAPIER.Ray(dau, vai), 0.45, true, TINH, nhomVa, va), lech = hv ? Math.max(0, hv.timeOfImpact - 0.2) : 0.45;
+    const dich = new THREE.Vector3(dau.x + vai.x * lech, dau.y, dau.z + vai.z * lech);
+    const tia = (g) => { const l = new THREE.Vector3(Math.sin(yaw) * Math.cos(g), -Math.sin(g), Math.cos(yaw) * Math.cos(g)); const h = world.castRay(new RAPIER.Ray(dich, l), kcMax, true, TINH, nhomVa, va); return { g, l, kc: h ? Math.max(0.4, h.timeOfImpact - 0.25) : kcMax }; };
+    let tot = tia(pt);
+    for (let g = pt - 0.15; tot.kc < Math.min(2, kcMax) && g >= -0.85; g -= 0.15) { const t = tia(g); if (t.kc > tot.kc + 0.05) tot = t; }
+    camNang += ((pt - tot.g) - camNang) * (1 - Math.exp(-dt * 6)); // góc nâng thêm, trơn
+    const cuoi = tia(Math.max(-0.85, Math.min(pt, pt - camNang)));
+    camKc = cuoi.kc < camKc ? cuoi.kc : camKc + (cuoi.kc - camKc) * (1 - Math.exp(-dt * 4));
+    const lui = cuoi.l;
+    camera.position.copy(dich).addScaledVector(lui, camKc);
+    toi.goc.visible = camKc > 1.3; // vẫn buộc phải sát (phòng thấp, góc kẹt): ẩn người cho khỏi che kín màn — nhìn như góc mắt, ra chỗ rộng tự hiện lại
     camera.lookAt(dich.x - lui.x, dich.y - lui.y, dich.z - lui.z);
   }
   const api = {

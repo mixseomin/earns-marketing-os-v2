@@ -13,6 +13,7 @@ import { taoBanDo } from './bando.js';
 import { dungNoiThat } from './noithat.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { ganGopY, chupCanvas } from './gopy.js';
 
 const $ = (id) => document.getElementById(id);
 const ten = new URLSearchParams(location.search).get('lau') || 'neuschwanstein';
@@ -363,12 +364,11 @@ function capNhatKhu(phong) {
   let v = null; try { v = localStorage.getItem('ns-dau-thu'); } catch {} dat(v == null ? innerWidth < 560 : v === '1'); // chưa chọn: màn hẹp thì thu sẵn
   $('b-thu').onclick = () => { const thu = !dau.classList.contains('thu'); dat(thu); try { localStorage.setItem('ns-dau-thu', thu ? '1' : '0'); } catch {} };
 }
-// góp ý: hòm CHUẨN mos2 (nút 💬 data-gop-y-mo, script mos2.on.tc/api/gop-y-ngoai/nut trong neuschwanstein.html) — trang khai ngữ cảnh + ảnh khung hình
-window.__nguCanhTrang = () => {
+// góp ý: hộp gopy.js, kèm ảnh khung hình + ngữ cảnh chỗ đứng
+ganGopY({ nut: $('b-gy'), tieuDe: 'Góp ý cho Neuschwanstein', chupAnh: () => chupCanvas(renderer.domElement, () => renderer.render(scene, camera)), nguCanh: () => {
   const p = di?.dang ? di.viTri() : null, ph = p && noiThat ? noiThat.phongTai(p.x, p.y - 0.9, p.z) : null;
   return `Neuschwanstein · ${p ? `đi bộ tại (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}) hướng ${(di.huong * 180 / Math.PI).toFixed(0)}° · khu ${ph ? ph.ten : khuTai(p.x, p.z)}` : dangSo ? 'so ảnh thật' : 'toàn cảnh'} · ${innerWidth}×${innerHeight}`;
-};
-window.__chupTrang = () => ((ve) => { ve(); const src = renderer.domElement, k = Math.min(1, 1280 / src.width), c = document.createElement('canvas'); c.width = Math.round(src.width * k); c.height = Math.round(src.height * k); c.getContext('2d').drawImage(src, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.82); })(() => renderer.render(scene, camera));
+} });
 let lan = 0, tichLuy = 0;
 const dongHo = new THREE.Clock();
 function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ so ảnh)

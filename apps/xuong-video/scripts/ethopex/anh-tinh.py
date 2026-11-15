@@ -417,3 +417,4 @@ if __name__ == "__main__":
     if tv: subprocess.run(["python3", os.path.join(D, "thu-vien-len.py"), *tv])   # thư viện → creative; chấm Sạch thì nhịp ethopex lên camp theo lịch chung
     for x in kq:
         if x.get("tv"): print(f"dấu giọng tv{x['tv']} {x['giong']} → creative", danh_dau(x["tv"], x["giong"], x["lang"], x["ten"], x.get("mau", 0), x) or "(chưa thành creative)")
+    subprocess.run(["python3", os.path.join(D, "don-kho.py")])   # dọn tập tải về để chọn khung (anh 15/11/2026: iMac cấm đầy ổ)

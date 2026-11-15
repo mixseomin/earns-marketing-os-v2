@@ -45,3 +45,5 @@ for gi, (dang, lo) in enumerate(nhom.items()):
             sql(f"update etp.thu_vien set creative_id = {int(cr)}, trang_thai = 'da_len', cap_nhat = now() where id = {x['tv']}")
             print(f"✓ tv{x['tv']} → creative #{cr} (chấm Sạch thì nhịp ethopex tự lên camp KT $1 — anh 29/10/2026)")
         else: print(f"✗ tv{x['tv']}: {l.get('loi') or 'không tạo được creative'}")
+# dọn bản đầu vào tải lại được (tv*.mp4, tập tải về) — anh 15/11/2026: iMac cấm đầy ổ; don-kho.py giữ bản ra + tệp dưới 24 giờ
+subprocess.run(["python3", os.path.join(D, "don-kho.py")])

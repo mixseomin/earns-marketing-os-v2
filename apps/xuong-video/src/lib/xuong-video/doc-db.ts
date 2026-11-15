@@ -77,7 +77,9 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   // BỘ SET của shot (nếu có 3D): vật trong set khai anchor = nó là MỘT PHẦN của anchor đó (Card Window → Orange Card, Cable Plug → White Cable).
   const nvPhim = canh.may_3d ? ((await db.execute(sql`SELECT id, ten, loai, bo_set_id, mo_ta FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)}`)) as unknown as Row[]).map((x) => ({ id: n(x.id), ten: s(x.ten), loai: s(x.loai) as LoaiNhanVat, bo_set_id: x.bo_set_id == null ? null : n(x.bo_set_id), mo_ta: s(x.mo_ta) })) : [];
   const sid = canh.may_3d ? boSetCuaShot(canh, nvPhim) : null;
-  const vatSet = sid ? ((((await db.execute(sql`SELECT du_lieu->'vat' AS vat FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[])[0]?.vat ?? []) as { ten: string; anchor?: string; en?: string }[]) : [];
+  const setRow = sid ? (((await db.execute(sql`SELECT du_lieu->'vat' AS vat, du_lieu->'moc' AS moc FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[])[0] ?? null) : null;
+  const vatSet = (setRow?.vat ?? []) as { ten: string; anchor?: string; en?: string }[];
+  /** mốc nhìn của bộ set — đích nhin_ai ngoài người (bo-set-3d.ts › huongDau) */ const mocSet = (setRow?.moc ?? null) as Record<string, number[]> | null;
   const anchorCua: Record<string, string> = Object.fromEntries(vatSet.filter((v) => v.anchor && v.anchor !== v.ten).map((v) => [v.ten, v.anchor!]));
   // PHẦN TRĂM KHUNG 3D theo ANCHOR (cộng các phần của nó): 15/10/2026 shot #32 tập 19 — cửa sổ thẻ chiếm 34% khung, ví da cam (anchor) 0.7% vì
   // Tango đứng trên → ví không kèm ảnh mẫu, keyframe vẽ mặt xám bất kỳ.
@@ -128,7 +130,7 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   const nvLook = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)} AND loai = 'nhan_vat' ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
   const tLook = ((await db.execute(sql`SELECT so, phan_canh FROM xv_tap WHERE id = ${canh.tap_id}`)) as unknown as Row[])[0];
   const look = lookMang(dsLook, nvLook, (tLook?.phan_canh ?? []) as PhanCanh[], tLook?.so == null ? undefined : n(tLook.so)).get(canh.id) ?? null;
-  return { canh, kt, nhanVat: nv, truoc, master, anhSet, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null, nvPhim, loai: s(r[0].p_loai || 'phim') as LoaiPhim, vatSet, khanGia, look,
+  return { canh, kt, nhanVat: nv, truoc, master, anhSet, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null, nvPhim, loai: s(r[0].p_loai || 'phim') as LoaiPhim, vatSet, mocSet, khanGia, look,
     /** sơ đồ cảnh 2D của shot (phim không 3D — khong-gian.ts) */ khongGian: kgCua(r[0].t_khong_gian as KhongGianTap | null, canh) };
 }
 

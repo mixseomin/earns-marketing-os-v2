@@ -379,8 +379,8 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const nhinMay = /into the (lens|camera)|to camera|at the camera/i.test(String(bc.canh.dan_dung?.huong ?? ''));
   const laNv = (t: string) => bc.nhanVat.some((n) => n.ten === t && n.loai === 'nhan_vat');
   const huongNhin = (m: NonNullable<typeof bc.canh.may_3d>, v: NonNullable<typeof bc.canh.may_3d>['vi_tri'][number]) => {
-    const h = huongVoiMay(m, v, ket)?.chu; if (!h) return undefined;
-    const e = nhinMay ? '' : nhinCau(m, v, m.vi_tri.filter((x) => laNv(x.ten)), ket);
+    const h = huongVoiMay(m, v, ket, bc.mocSet)?.chu; if (!h) return undefined;   // hướng ĐẦU (đích nhìn: người hoặc mốc bộ set), cùng công thức khung 3D
+    const e = nhinMay ? '' : nhinCau(m, v, m.vi_tri.filter((x) => laNv(x.ten)), ket, bc.mocSet);
     return e ? `${h}, ${e}` : h;
   };
   // chữ phim khai ở mô tả vật set trong khung VÀ ở mô tả đối tượng đang thấy (đối tượng xuyên suốt: logo, bảng số tầng — mô tả đối tượng là nguồn chuẩn)

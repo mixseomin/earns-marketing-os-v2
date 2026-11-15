@@ -26,7 +26,8 @@ if (gia('nap')) {
   const project = String(((await db.execute(sql`SELECT project FROM xv_phim WHERE id = ${phim}`)) as unknown as Row[])[0]?.project ?? 'studio');
   // cùng tên có thể có nhiều bộ (phim nhân bản mang bản sao bộ set) → lấy bộ CỦA PHIM ĐANG NẠP trước; trước 12/11/2026 không xếp thứ tự nên lúc vớ bộ phim gốc (#14) lúc bộ bản sao (#15)
   const co = (await db.execute(sql`SELECT id FROM xv_bo_set WHERE project = ${project} AND ten = ${d.ten} ORDER BY (phim_id = ${phim}) DESC, id DESC`)) as unknown as Row[];
-  const du = { vat: d.vat, ghi_chu: d.ghi_chu, ...(d.ngoai_troi ? { ngoai_troi: true } : {}) };
+  // moc (mốc nhìn): trước 16/11/2026 bị bỏ khi nạp → khung 3D (đọc tệp) xoay đầu đúng đích, câu lệnh keyframe (đọc DB) không biết đầu nhìn đâu, tả theo thân → vẽ ngược hướng (#2, #19 phim #3071)
+  const du = { vat: d.vat, ghi_chu: d.ghi_chu, ...(d.ngoai_troi ? { ngoai_troi: true } : {}), ...(d.moc ? { moc: d.moc } : {}) };
   const setId = co[0] ? Number(co[0].id) : Number(((await db.execute(sql`INSERT INTO xv_bo_set (project, phim_id, ten, du_lieu) VALUES (${project}, ${phim}, ${d.ten}, ${JSON.stringify(du)}::jsonb) RETURNING id`)) as unknown as Row[])[0]!.id);
   if (co[0]) await db.execute(sql`UPDATE xv_bo_set SET du_lieu = ${JSON.stringify(du)}::jsonb, updated_at = now() WHERE id = ${setId}`);
   const nv = (await db.execute(sql`SELECT id, ten FROM xv_nhan_vat WHERE phim_id = ${phim}`)) as unknown as Row[];

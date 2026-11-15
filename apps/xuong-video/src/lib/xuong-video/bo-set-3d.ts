@@ -869,13 +869,39 @@ export const choVatSet = (set: Pick<BoSet, 'du_lieu'> | null | undefined) => (te
 // ── HƯỚNG NHÂN VẬT SO VỚI MÁY (15/10/2026 #38 tập 19: 3D thấy LƯNG Tango — hai bạn quay về Mr. Wipe, máy đặt sau lưng — mà prompt không nói hướng,
 // model vẽ mặt nhìn thẳng máy theo ảnh mẫu; 3D và keyframe lệch hẳn bố cục). Số 3D → chữ cho prompt + cổng chặn shot phản ứng / cận thấy lưng.
 type ViTri = May3d['vi_tri'][number];
+/** HƯỚNG ĐẦU lúc mở (u = 0) / kết (u = 1) — CÙNG công thức khung 3D (scripts/bo-set/xem-web/mau.html › mocNhip + viTriLuc + "ĐẦU NHÌN VỀ ĐÍCH"): thân theo nhip
+ *  (hoặc huong → huong_den), đầu xoay về đích nhìn (nhip.nhin ?? nhin_ai, kết: nhin_ai_den) tối đa ±75° khỏi thân. Đích = người trong shot hoặc mốc bộ set (moc).
+ *  Không có đích / không tra được → hướng thân. 16/11/2026 phim #3071 #2 / #19: câu lệnh tả THÂN (ra cửa sổ) trong khi khung 3D vẽ ĐẦU nhìn dọc sân ga → keyframe
+ *  vẽ ngược hướng mặt. Sửa một chỗ: mọi câu / cổng hướng mặt (huongVoiMay, nhinCau, dichNhin) đọc hàm này. */
+export function huongDau(v: ViTri, nguoi: readonly ViTri[], moc?: Record<string, number[]> | null, ket = false): number | null { return dauNhin(v, nguoi, moc, ket)?.h ?? null; }
+/** Hướng đầu + đích nhìn đã tra (q = toạ độ; laNguoi = đích là người trong shot). */
+export function dauNhin(v: ViTri, nguoi: readonly ViTri[], moc?: Record<string, number[]> | null, ket = false): { h: number; ten?: string; q?: number[]; laNguoi?: boolean } | null {
+  let p = ket ? v.den ?? v.tam : v.tam, h = ket ? v.huong_den ?? v.huong : v.huong, dich = ket ? v.nhin_ai_den || v.nhin_ai : v.nhin_ai;
+  if (v.nhip?.length) {
+    const ds = [...v.nhip].sort((a, b) => a.u - b.u); let pp = v.tam, hh = v.huong ?? 0, nn = v.nhin_ai ?? undefined;
+    const tai = ket ? ds : ds.filter((k) => k.u <= 0); for (const k of tai) { pp = k.p ?? pp; hh = k.h ?? hh; nn = k.nhin ?? nn; }
+    if (ket && v.den && !ds.some((x) => x.p)) pp = v.den;
+    p = pp; h = hh; dich = nn;
+  }
+  if (h == null) return null; if (!dich) return { h };
+  const ng = nguoi.find((x) => x.ten === dich && x.ten !== v.ten); const q = ng ? (ket ? ng.den ?? ng.tam : ng.tam) : moc?.[dich];
+  if (!q) return { h };
+  const rel = Math.max(-75, Math.min(75, ((((huongToi(p, q) - h) % 360) + 540) % 360) - 180));
+  return { h: h + rel, ten: dich, q, laNguoi: !!ng };
+}
+/** Vị trí với hướng ĐẦU thay hướng thân — cho các câu / cổng tả mặt nhìn đâu. */
+const theoDau = (v: ViTri, nguoi: readonly ViTri[], moc?: Record<string, number[]> | null): ViTri => {
+  const a = huongDau(v, nguoi, moc), b = huongDau(v, nguoi, moc, true); return a == null ? v : { ...v, huong: a, huong_den: b ?? a };
+};
 /** Nhân vật lệch bao nhiêu độ khỏi hướng nhìn thẳng máy (0 = nhìn máy, 180 = quay lưng) + chữ tả cho model hình. */
-export function huongVoiMay(m: Pick<May3d, 'dat' | 'nhin'>, v: ViTri, ket = false): { lech: number; chu: string } | null {
+export function huongVoiMay(m: Pick<May3d, 'dat' | 'nhin'> & { vi_tri?: May3d['vi_tri'] }, v0: ViTri, ket = false, moc?: Record<string, number[]> | null): { lech: number; chu: string } | null {
+  const v = theoDau(v0, m.vi_tri ?? [], moc);   // hướng ĐẦU (huongDau), không phải thân
   const h = ket ? v.huong_den ?? v.huong : v.huong; if (h == null) return null;
   const p = ket ? v.den ?? v.tam : v.tam; const lech = gocLech(h, huongToi(p, m.dat));
   const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const r = Math.sin((h * Math.PI) / 180) * fy + Math.cos((h * Math.PI) / 180) * fx;
   const ben = r >= 0 ? 'screen-right' : 'screen-left';
-  const chu = lech <= 35 ? 'facing the camera' : lech <= 70 ? `three-quarter view, turned toward ${ben}` : lech <= 110 ? `in profile, facing ${ben}` : lech <= 150 ? `three-quarter from behind, facing away toward ${ben}` : 'back to the camera (we see the back of the head, not the face)';
+  // 15–35°: vẫn thấy cả mặt nhưng đầu nghiêng về một bên — phải nói bên nào (#19 phim #3071: đầu lệch máy 22° về phải, câu chỉ ghi 'facing the camera', model vẽ nghiêng trái)
+  const chu = lech <= 15 ? 'facing the camera' : lech <= 35 ? `facing the camera, head turned slightly toward ${ben}` : lech <= 70 ? `three-quarter view, turned toward ${ben}` : lech <= 110 ? `in profile, facing ${ben}` : lech <= 150 ? `three-quarter from behind, facing away toward ${ben}` : 'back to the camera (we see the back of the head, not the face)';
   return { lech: Math.round(lech), chu };
 }
 /** NGƯỜI NÓI PHẢI THẤY MẶT (anh 12/11/2026, phim #3071: "người nói thì phải có shot quay vào mặt người đó, gần hơn, quay riêng" — ngành: shot / reverse shot,
@@ -918,8 +944,8 @@ export const NHIP_DAN = 45;
  *  (kể cả người ngoài khung) gần hướng mặt nhất (< 75°); phía trên màn = đích nằm bên nào của người đó trên khung. Không có đích → vẫn cấm nhìn máy. */
 /** NGƯỜI ĐƯỢC NHÌN của v (lúc mở / kết): người khác gần hướng mặt nhất (< 75°), kể cả ngoài khung. MỘT luật cho chữ ánh mắt trong prompt (nhinCau)
  *  và mắt ma-nơ-canh 3D (bangDung › nhin_mat — dung-set.py xoay mắt bằng khoá eyeLook*), để ảnh 3D và chữ cùng nói một hướng nhìn. */
-export function dichNhin(v: ViTri, nguoi: ViTri[], ket = false): { ten: string; q: number[]; lech: number } | undefined {
-  const h = ket ? v.huong_den ?? v.huong : v.huong; if (h == null) return undefined;
+export function dichNhin(v0: ViTri, nguoi: ViTri[], ket = false, moc?: Record<string, number[]> | null): { ten: string; q: number[]; lech: number } | undefined {
+  const v = theoDau(v0, nguoi, moc); const h = ket ? v.huong_den ?? v.huong : v.huong; if (h == null) return undefined;
   const p = ket ? v.den ?? v.tam : v.tam;
   return nguoi.filter((x) => x.ten !== v.ten).map((x) => { const q = ket ? x.den ?? x.tam : x.tam; return { ten: x.ten, q, lech: gocLech(h, huongToi(p, q)) }; })
     .filter((x) => x.lech < 75).sort((a, b) => a.lech - b.lech)[0];
@@ -936,12 +962,15 @@ export function canNhin(m: Pick<May3d, 'dat' | 'nhin' | 'vi_tri'>, ten: string, 
  *  "NOT looking into the camera" → bộ chấm prompt trừ lặp, bước 1 FLUX vượt 300 từ). Giữ phần "eyes on X, just off the lens toward …". */
 export const boCauMay = (s: string): string => s.replace(/\s*—\s*NOT looking into the camera/gi, '').replace(/,?\s*(?:eyes just off the lens,\s*)?NOT looking (?:into|at) the camera/gi, '')
   .replace(/,\s*not at the camera/gi, '').replace(/^\s*,\s*|\s*,\s*$/g, '').trim();
-export function nhinCau(m: Pick<May3d, 'dat' | 'nhin'>, v: ViTri, nguoi: ViTri[], ket = false): string {
-  const h = ket ? v.huong_den ?? v.huong : v.huong; if (h == null) return '';
+export function nhinCau(m: Pick<May3d, 'dat' | 'nhin'>, v0: ViTri, nguoi: ViTri[], ket = false, moc?: Record<string, number[]> | null): string {
+  const v = theoDau(v0, nguoi, moc); const h = ket ? v.huong_den ?? v.huong : v.huong; if (h == null) return '';
   const p = ket ? v.den ?? v.tam : v.tam;
   const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const rx = fy, ry = -fx;   // vectơ phải-màn-hình của máy
-  const dich = dichNhin(v, nguoi, ket);
+  const dich = dichNhin(v0, nguoi, ket, moc);
   const sat = gocLech(h, huongToi(p, m.dat)) <= 35;
+  // đích nhìn là MỐC bộ set (đầu ga, chỗ thằng bé chạy tới…) chứ không phải người: nói mắt nhìn về bên nào của màn — cùng đích khung 3D xoay đầu
+  const dm = dich ? null : dauNhin(v0, nguoi, moc, ket);
+  if (!dich && dm?.q && !dm.laNguoi) { const bm = (dm.q[0]! - p[0]!) * rx + (dm.q[1]! - p[1]!) * ry >= 0 ? 'screen-right' : 'screen-left'; return `eyes looking off toward ${bm}, NOT looking into the camera`; }
   if (!dich) return sat ? 'eyes just off the lens, NOT looking into the camera' : 'NOT looking at the camera';
   const ben = (dich.q[0]! - p[0]!) * rx + (dich.q[1]! - p[1]!) * ry >= 0 ? 'screen-right' : 'screen-left';
   return sat ? `eyes on ${dich.ten}, just off the lens toward ${ben} — NOT looking into the camera` : `eyes on ${dich.ten} (${ben}), not at the camera`;

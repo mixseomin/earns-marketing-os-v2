@@ -105,14 +105,23 @@ const NEN_LUOI = (() => {
   for (const [x, z, y] of NEN.diem) { const i = Math.round((x - x0) / B), j = Math.round((z - z0) / B); if (i >= 0 && i < W && j >= 0 && j < H && y <= tran) R[id(i, j)] = y; }
   const loc = (A, f, r) => { const O = new Float32Array(N).fill(NaN); for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { let v = A[id(i, j)]; if (Number.isNaN(v)) continue;
     for (let b = -r; b <= r; b++) for (let a = -r; a <= r; a++) { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) continue; const q = A[id(ii, jj)]; if (!Number.isNaN(q)) v = f(v, q); } O[id(i, j)] = v; } return O; };
-  let C = loc(loc(R, Math.min, 2), Math.max, 2);
+  // TRUNG VỊ 5 × 5 (thay lọc mở min → max: ở mép vực, min kéo mặt đất tụt xuống đáy vực — chân cầu thang sân dưới thấp hơn ảnh 3D 7 m, cổng Torbau mọc
+  // một bức tường đá cao vút, anh 16/11/2026). Trung vị vẫn bỏ cây / mép mái lẻ mà giữ mép bậc.
+  const giuaO = (A, r) => { const O = new Float32Array(N).fill(NaN); for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { if (Number.isNaN(A[id(i, j)])) continue; const v = [];
+    for (let b = -r; b <= r; b++) for (let a = -r; a <= r; a++) { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) continue; const q = A[id(ii, jj)]; if (!Number.isNaN(q)) v.push(q); }
+    v.sort((p, q) => p - q); O[id(i, j)] = v[v.length >> 1]; } return O; };
+  let C = giuaO(R, 2);
   for (let lan = 0; lan < 14; lan++) { const O = C.slice(); let con = 0; for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { if (!Number.isNaN(C[id(i, j)])) continue; let t = 0, n = 0;
     for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) continue; const q = C[id(ii, jj)]; if (!Number.isNaN(q)) { t += q; n++; } } if (n) O[id(i, j)] = t / n; else con++; } C = O; if (!con) break; }
   const lau = D.khoi.filter((k) => k.tags.height || k.tags['building:part'] || k.tags.building === 'courtyard').map((k) => k.ngoai?.[0]).filter((v) => v && v.length > 2 && Math.hypot(...tamDa(v)) < 100); // khối LÂU ĐÀI (có chiều cao OSM); nhà hàng / ki-ốt dưới dốc không có — vùng đó là tán rừng, không nâng
   const kc = (x, z) => { let m = 1e9; for (const v of lau) { if (trongDa(x, z, v)) return 0; for (let i = 0; i < v.length; i++) { const [ax, az] = v[i], [bx, bz] = v[(i + 1) % v.length], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1))); m = Math.min(m, Math.hypot(x - ax - dx * t, z - az - dz * t)); } } return m; };
   const G = new Float32Array(N), nang = new Float32Array(N);
-  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = x0 + i * B, z = z0 + j * B, dem = caoDat(x, z) - GOC_Y, c = C[id(i, j)], w = Math.max(0, Math.min(1, (20 - kc(x, z)) / 10));
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = x0 + i * B, z = z0 + j * B, dem = caoDat(x, z) - GOC_Y, c = C[id(i, j)], w = Math.max(0, Math.min(1, Math.min(x - x0, x1 - x, z - z0, z1 - z) / 10)); // dùng số đo ở MỌI chỗ có số đo, chỉ hoà dần 10 m ở mép vùng đo (trước: chỉ trong 20 m quanh khối lâu đài → sân dưới, chân cầu thang tụt về lưới thô 7 m)
     const d = Number.isNaN(c) ? 0 : Math.max(0, c - dem) * w; G[id(i, j)] = dem + d; nang[id(i, j)] = d; }
+  // SÂN TRÊN PHẲNG (anh 16/11/2026: thiếu cầu thang): đo ảnh 3D ra một dốc liền từ sân trên xuống sân dưới (lưới lấp chỗ trống + cây / tường lẫn vào) nên vùi
+  // mất cầu thang OSM nối hai sân; ngoài đời sân trên phẳng ở mặt sân đo được (NEN.san) — trong mặt bằng sân (OSM courtyard) đặt đúng mức đó
+  const sanV = D.khoi.find((k) => k.tags.building === 'courtyard')?.ngoai?.[0];
+  if (sanV && Number.isFinite(NEN.san)) for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = x0 + i * B, z = z0 + j * B; if (!trongDa(x, z, sanV)) continue; const dem = caoDat(x, z) - GOC_Y; G[id(i, j)] = Math.max(dem, NEN.san); nang[id(i, j)] = G[id(i, j)] - dem; }
   return { x0, z0, B, W, H, G, nang, id };
 })();
 function datThat(x, z) {

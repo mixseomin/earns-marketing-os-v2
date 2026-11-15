@@ -15,7 +15,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
 import { taoCamUng, CHAM } from './camung.js';
-import { datMatTien } from './mattien.js';
+import { datMatTien, datMatPalas } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 
 const $ = (id) => document.getElementById(id);
@@ -252,11 +252,46 @@ for (const [ten, G] of Object.entries(NHOM)) {
   g.computeVertexNormals();
   const m = new THREE.Mesh(g, VL[ten]); m.castShadow = m.receiveShadow = true; scene.add(m); LOP_OSM.push(m);
 }
+// mặt Palas hướng sân trên (đầu hồi đông, gần sân nhất): chọn TRƯỚC khi đặt cửa sổ để chừa dải trên cho tranh + ban công
+const SAN_TRONG = D.khoi.find((k) => k.tags.building === 'courtyard')?.ngoai?.[0];
+const MAT_PALAS = (() => {
+  if (!SAN_TRONG) return null; const [cx, cz] = tamDa(SAN_TRONG); let tot = null;
+  for (const t of TUONG_MT) if (t.ten === 'Palas') for (let i = 0; i < t.v.length; i++) {
+    const [x1, z1] = t.v[i], [x2, z2] = t.v[(i + 1) % t.v.length], L = Math.hypot(x2 - x1, z2 - z1), nx = (z2 - z1) / L, nz = -(x2 - x1) / L;
+    const mx = (x1 + x2) / 2, mz = (z1 + z2) / 2, d = Math.hypot(cx - mx, cz - mz), huong = (nx * (cx - mx) + nz * (cz - mz)) / d;
+    if (huong > 0.7 && L > 8 && (!tot || d < tot.d)) tot = { t, i, x1, z1, x2, z2, y1: t.y1, L, d }; // GẦN sân nhất, không phải dài nhất
+  }
+  if (tot) { const lo0 = tot.t.lo; tot.t.lo = (i, ...r) => (i === tot.i ? [...lo0(i, ...r), { s0: 0, s1: tot.L, y0: tot.y1 - 9.2, y1: tot.y1 + 1 }] : lo0(i, ...r)); } // chừa dải tranh + ban công
+  return tot;
+})();
 { // mặt tiền chi tiết: cửa sổ 3D + gờ tầng (một mặt tường bị khối khác áp vào ở tầng nào thì bỏ tầng đó)
   const biChe = (x, y, z) => dsKhoi.some((k) => k.yDuoi != null && y > k.yDuoi && y < k.yTren && trongDa(x, z, k.v));
-  const { ra, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe, nhe: CHAM });
+  const { ra, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe, nhe: CHAM,
+    matNgoai: (x, z, nx, nz) => { // mép sân OSM có chỗ cách chân tường vài mét → dò 2 / 5 / 8 m trước mặt tường; độ cao lấy ngay trước chân tường
+      const san = !!SAN_TRONG && [2, 5, 8].some((d) => trongDa(x + nx * d, z + nz * d, SAN_TRONG)); return { san, yDat: caoDat(x + nx * 1.5, z + nz * 1.5) - GOC_Y }; } });
   for (const m of ra) { scene.add(m); LOP_OSM.push(m); }
   console.info('[ns] mặt tiền chi tiết:', JSON.stringify(dem));
+}
+{ // mặt Palas hướng sân trên: tranh thánh George + Đức Mẹ Bavaria, ban công (mattien.js datMatPalas); sân trong lát đá
+  const san = SAN_TRONG, tot = MAT_PALAS;
+  if (san) {
+    const [cx, cz] = tamDa(san);
+    console.info('[ns] mặt Palas hướng sân:', tot ? `(${tot.x1.toFixed(1)},${tot.z1.toFixed(1)})→(${tot.x2.toFixed(1)},${tot.z2.toFixed(1)}) dài ${tot.L.toFixed(1)} m, mái ${tot.y1.toFixed(1)}` : 'không tìm thấy', '· sân', cx.toFixed(1), cz.toFixed(1));
+    if (tot) (async () => { // tranh tải nền, không chặn trang
+      const tl = new THREE.TextureLoader(), TR = {};
+      for (const ten of ['palas-thanh-george', 'palas-duc-me']) try { const t = await tl.loadAsync(`./du-lieu/anh/ngoai/${ten}.jpg`); t.colorSpace = THREE.SRGBColorSpace; TR[ten] = t; } catch (e) { console.warn('[ns] không tải được tranh mặt Palas', ten, e); }
+      for (const m of datMatPalas({ THREE, tuong: tot, tranh: TR })) { m.visible = !LOP_OSM.dangAn; scene.add(m); LOP_OSM.push(m); } // cờ trên LOP_OSM (khai sớm) — anh3d khai sau, đọc ở đây dễ dính lỗi chưa khai báo
+    })();
+    // sân lát đá: lưới ô 1,5 m bám độ cao đất trong mặt bằng sân (OSM courtyard), nhô 6 cm trên đất (người đi trên đất, đá chỉ là mặt nhìn)
+    const p = [], uv = [], B = 1.5; let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9; for (const [x, z] of san) { a0 = Math.min(a0, x); a1 = Math.max(a1, x); b0 = Math.min(b0, z); b1 = Math.max(b1, z); }
+    const yD = (x, z) => caoDat(x, z) - GOC_Y + 0.06;
+    for (let x = a0; x < a1; x += B) for (let z = b0; z < b1; z += B) { if (!trongDa(x + B / 2, z + B / 2, san)) continue;
+      const q = [[x, z], [x + B, z], [x + B, z + B], [x, z + B]].map(([u, w]) => [u, yD(u, w), w]);
+      for (const k of [0, 2, 1, 0, 3, 2]) { p.push(...q[k]); uv.push(q[k][0] / 3, q[k][2] / 3); } }
+    if (p.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
+      const vt = T.daXay(T.rngTu(41), 32, 58); for (const x of [vt.map, vt.bump]) if (x) x.wrapS = x.wrapT = THREE.RepeatWrapping;
+      const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: vt.map, bumpMap: vt.bump, bumpScale: 1.2, roughness: 0.9 })); m.receiveShadow = true; scene.add(m); LOP_OSM.push(m); }
+  }
 }
 
 // ---- NỘI THẤT Palas (noithat.js): sàn, phòng theo bản vẽ, cầu thang xoắn, đồ đạc, đèn chùm
@@ -602,7 +637,7 @@ function apDungAnh3d() {
   const p = di?.dang ? di.viTri() : null, gan = !!p && Math.hypot(p.x + 30, p.z - 30) < 260;
   const hien = anh3d.bat && !dangSo && !gan; if (hien === anh3d.hien) return; anh3d.hien = hien;
   anh3d.goc.visible = hien; if (!hien) $('nguon-3d').textContent = '';
-  for (const m of LOP_OSM) m.visible = !hien; for (const c of CAY_VA) c.setEnabled(!hien);
+  LOP_OSM.dangAn = hien; for (const m of LOP_OSM) m.visible = !hien; for (const c of CAY_VA) c.setEnabled(!hien);
   if (!hien) LOP_OSM.vaDat?.setEnabled(true); for (const c of anh3d.va.values()) for (const k of c) k.setEnabled(hien); // lưới đất: capNhatAnh3d chỉ tắt khi dưới chân đã có va chạm ô
 }
 (async () => { // chạy NỀN: không chặn vòng vẽ / vật lý chờ tải thư viện (trước đây trang đứng mấy giây đầu)

@@ -205,7 +205,9 @@ export function thamChieuCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[],
  *  - ĐUÔI 2 s chỉ khi SHOT CUỐI có thoại gửi giọng: model nói trễ / chậm hơn giọng, khớp thoại (can-giong.ts) cần chỗ dời điểm vào; shot có thoại ở giữa cụm
  *    nói trễ thì lấn shot kế → khớp thoại chặn, đuôi không cứu được — không trả tiền đuôi vô ích. */
 export function giayClipSeedance(phat: readonly number[], o: { vaoDau?: number; cuoiCoThoai?: boolean } = {}): number {
-  const het = (o.vaoDau ?? 0) + phat.reduce((a, x) => a + x, 0);
+  // + BO_DUOI: phần cuối clip luôn bị bỏ khi gắn (doanShot / vaoTuCatThat) — thiếu nó thì shot cuối hụt 0,45 s (16/11/2026 #20 phim #3071 job 8381: clip 6 s cho
+  // cụm 6 s, #20 còn 2,5 s / 3 s). Đuôi thoại 2 s đã đủ chỗ cho phần bỏ đó.
+  const het = (o.vaoDau ?? 0) + phat.reduce((a, x) => a + x, 0) + (o.cuoiCoThoai ? 0 : BO_DUOI);
   return Math.min(15, Math.max(4, Math.ceil(het - 1e-6) + (o.cuoiCoThoai ? 2 : 0)));
 }
 

@@ -109,7 +109,7 @@ console.log('✓ cum-shot chiaCumCan');
 // giây clip Seedance (một nguồn cho báo giá + lượt gửi, 15/11/2026): cụm C #11–15 (shot cuối có thoại) 11,43 s → 14; cụm E (thoại ở shot giữa) 9,6 s → 10, không đuôi;
 // shot lẻ #10 2 s → ⌈2⌉ + 2 = 4; #8 3,3 s → 6; clip lẻ có đoạn dư đầu 1,65 s → 6; trần 15
 assert.strictEqual(giayClipSeedance([1.5, 1.5, 1.43, 3.5, 3.5], { cuoiCoThoai: true }), 14);
-assert.strictEqual(giayClipSeedance([1.5, 2, 3, 3.1]), 10);
+assert.strictEqual(giayClipSeedance([1.5, 2, 3, 3.1]), 11); assert.strictEqual(giayClipSeedance([3, 3]), 7, 'ca thật #19–20: 6 s + 0,45 đuôi bỏ → 7');
 assert.strictEqual(giayClipSeedance([2], { cuoiCoThoai: true }), 4);
 assert.strictEqual(giayClipSeedance([3.3], { cuoiCoThoai: true }), 6);
 assert.strictEqual(giayClipSeedance([2], { vaoDau: 1.65, cuoiCoThoai: true }), 6);

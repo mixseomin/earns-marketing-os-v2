@@ -25,6 +25,16 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
   const tiaN = (p, dy, dx, dz, dai) => (dx || dz) && world.castRayAndGetNormal(new RAPIER.Ray({ x: p.x, y: p.y + dy, z: p.z }, { x: dx, y: 0, z: dz }), dai, true, TINH, nhomVa, va);
   const matTren = (x, yTu, z, sau) => { const h = world.castRay(new RAPIER.Ray({ x, y: yTu, z }, { x: 0, y: -1, z: 0 }), sau, true, TINH, nhomVa, va); return h ? yTu - h.timeOfImpact : null; };
   const ease = (t) => t * t * (3 - 2 * t);
+  // CHỖ TRỐNG khi ĐẶT người (bản đồ / F5 / đứng dậy / vào đi bộ): điểm đến có đồ (bàn dài giữa phòng ăn, ghế…) thì người bị đặt LỌT vào trong vật,
+  // giang tay rơi mãi và kẹt (anh 15/11/2026). Dò vòng quanh tới 4 m: chỗ đầu tiên thân người không chạm vật tĩnh và có sàn ngay dưới chân (không rơi xuống tầng khác).
+  const _hop = { x: 0, y: 0, z: 0, w: 1 };
+  const choTrong = (p) => {
+    const chan = p.y - NGUOI_H - NGUOI_R;
+    const trong = (x, z) => !world.intersectionWithShape({ x, y: p.y + 0.05, z }, _hop, va.shape, TINH, nhomVa, va) && (() => { const m = matTren(x, chan + 0.6, z, 1.6); return m != null && Math.abs(m - chan) < 0.7; })();
+    if (trong(p.x, p.z)) return p;
+    for (let r = 0.6; r <= 4; r += 0.6) for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r; if (trong(x, z)) return { x, y: p.y, z }; }
+    return p;
+  };
   const di = (mv) => { dk.computeColliderMovement(va, mv, undefined, nhomVa); return dk.computedMovement(); };
   function batDauQua(p, fx, fz, top) {
     qua.t = 0; qua.a = { x: p.x, y: p.y, z: p.z }; qua.b = { x: p.x + fx * 0.1, y: top + 0.96, z: p.z + fz * 0.1 }; qua.c = { x: p.x + fx * 0.8, y: top + 0.96, z: p.z + fz * 0.8 };
@@ -191,9 +201,9 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
     get yaw() { return yaw; }, set yaw(v) { yaw = v; }, get pitch() { return pitch; }, set pitch(v) { pitch = v; }, get gocNhin() { return gocNhin; },
     get huong() { return huong; }, set huong(v) { huong = muon = v; }, get lucChuot() { return lucChuot; }, set lucChuot(v) { lucChuot = v; },
     than, va, phim, dk, tiaN, matTren,
-    vao(x, y, z, h = 0) { than.setTranslation({ x, y: y + NGUOI_H + NGUOI_R + 0.1, z }, true); vy = 0; vx = vz = 0; tt = 'dat'; camY = null; huong = muon = h; yaw = h - Math.PI; pitch = -0.15; dang = true; toi.goc.visible = gocNhin === 3; khiDoi(true); },
+    vao(x, y, z, h = 0) { than.setTranslation(choTrong({ x, y: y + NGUOI_H + NGUOI_R + 0.1, z }), true); vy = 0; vx = vz = 0; tt = 'dat'; camY = null; huong = muon = h; yaw = h - Math.PI; pitch = -0.15; dang = true; toi.goc.visible = gocNhin === 3; khiDoi(true); },
     ra() { dang = false; toi.goc.visible = false; khiDoi(false); },
-    datCho(p, yaw_, pitch_, huong_) { than.setTranslation(p, true); vy = 0; vx = vz = 0; tt = 'dat'; camY = null; if (yaw_ != null) yaw = yaw_; if (pitch_ != null) pitch = pitch_; if (huong_ != null) huong = muon = huong_; }, // F5 / dịch chỗ
+    datCho(p, yaw_, pitch_, huong_) { than.setTranslation(choTrong(p), true); vy = 0; vx = vz = 0; tt = 'dat'; camY = null; if (yaw_ != null) yaw = yaw_; if (pitch_ != null) pitch = pitch_; if (huong_ != null) huong = muon = huong_; }, // F5 / dịch chỗ
     quayVe(h) { muon = h; }, // đứng yên quay người dần về hướng h (ném đá về chỗ nhấp)
     doiGocNhin() { gocNhin = gocNhin === 3 ? 1 : 3; toi.goc.visible = dang && gocNhin === 3; },
     buoc, khung,

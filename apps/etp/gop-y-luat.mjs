@@ -1207,4 +1207,5 @@ export const LUAT = [
   { tep: 'apps/xuong-video/scripts/ethopex/tinh-ba-kieu.py', co: "{' --lop-free' if AT.CO_FREE else ''}", vi: 'bản tĩnh có lớp Free ghi dấu vào thư viện (anh 15/11/2026)' },
   { tep: 'apps/etp/dong_phim.py', co: 'not khe_nang(d["id"], ke, cho_nang)', vi: 'khe nặng iMac chia công bằng cắt CC / creative tĩnh — dòng tĩnh không chiếm trọn khe khi CC đang chờ (anh 15/11/2026)' },
   { tep: 'apps/etp/dong_phim.py', co: 'DÙNG LẠI BẢN SẴN SÀNG TRƯỚC KHI SINH MỚI', vi: 'creative tĩnh dùng lại bản thư viện sẵn sàng của phim trước khi sinh mới (anh 15/11/2026)' },
+  { tep: 'apps/etp/dong_phim.py', co: 'CAT_NGOAI.add(d["id"])', vi: 'iMac đủ khe thì việc cắt CC vẫn xếp vào hàng chung cho máy thợ khác (HP / VPS) nhận — không chỉ dùng iMac (anh 15/11/2026)' },
 ];

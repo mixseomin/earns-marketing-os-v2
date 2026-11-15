@@ -222,6 +222,12 @@ def b_cat(d):
     if len(r) < 2 or not r[1]: return "loi", "không tìm thấy link tập trong ethopex_content (spy)", None
     sql(f"""delete from etp.viec where lo = '{lo}';   -- lô riêng của dòng: chạy lại bước = xếp lại từ đầu
             insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(2, int(d.get("so_camp") or 0) - san_cua(cid, d.get("loai"))) + 1 if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {}), "cam_them": json.loads(sql(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'cam_them'), '[]'::jsonb)::text") or "[]")})}) on conflict do nothing""")
+    if d["id"] in CAT_NGOAI:   # chế độ ngoài (CAT_NGOAI): việc đã vào hàng chung — chờ HP / VPS nhận, quá CHO_NGOAI không ai nhận thì iMac cắt
+        t0 = time.time()
+        try:
+            while time.time() - t0 < CHO_NGOAI and sql(f"select 1 from etp.viec where lo = '{lo}' and trang_thai = 'cho' limit 1"):
+                sql(f"update etp.dong_buoc set nhip = now(), ghi = {s('iMac đủ khe — chờ máy thợ khác (HP / VPS) nhận việc cắt')} where dong_id = {d['id']} and buoc = 'cat'"); time.sleep(30)
+        finally: CAT_NGOAI.discard(d["id"])
     rc, out = chay_tien_trinh(d["id"], "cat", ["python3", os.path.join(R, "tho.py"), "--lo", lo, "--so-tho", "1"], dict(BUOC)["cat"] - 60)
     # THỢ MÁY KHÁC ĐÃ NHẬN LÔ (07/11/2026 dòng #112: VPS may-cao-vn nhận trước, thợ iMac "hết việc — đã làm 0 việc" → dòng ghi lỗi trong khi VPS đang cắt) → chờ máy đó xong
     t0 = time.time()
@@ -654,9 +660,14 @@ CHAY = {}   # (dòng, bước) → (thread, lần chạy cuối)
 # KHE NẶNG CÔNG BẰNG (anh 15/11/2026 "rất nhiều camp chờ đang ko thể sx"): TRAN_CAT khe chung cho cắt CC + creative tĩnh, dòng tĩnh xếp trước (luật 08/11 khi
 # chỉ ≤ 6 dòng AT chờ) → 250 dòng PO / AT chiếm trọn 2 khe, 146 dòng CC đứng ở bước cắt không dòng nào bắt đầu. Giờ: một loại chỉ giữ hết khe khi loại kia
 # không có việc chờ; loại kia đang chờ thì mỗi loại tối đa TRAN_CAT // 2. Tổng tải iMac giữ nguyên (đo 15/11: 8 nhân, tải ~29 — không nới tổng).
+# CẮT NHỜ MÁY THỢ KHÁC (anh 15/11/2026 "khi sx đã có nhiều máy tham gia hỗ trợ nên ko nhất thiết phải dùng iMAC"): HP may-cao-nha (etp-tho-nha.timer) + VPS
+# may-cao-vn (etp-tho-vps.timer) tự nhận mọi việc etp.viec đang chờ, nhưng dòng phim chỉ XẾP việc cắt khi iMac còn khe → từ 07/11 hai máy không có việc nào.
+# iMac đủ khe → dòng CC vẫn mở bước cắt ở chế độ NGOÀI: xếp việc vào hàng chung rồi chờ máy khác nhận (luồng nhẹ, không tính khe nặng iMac), tối đa TRAN_NGOAI
+# dòng một lúc (HP 1 thợ có gác quạt + VPS 2 thợ); CHO_NGOAI giây không máy nào nhận thì iMac tự cắt như cũ.
+CAT_NGOAI = set(); TRAN_NGOAI = 4; CHO_NGOAI = 20 * 60
 def kieu_nang(i, b, loai=None):
     loai = loai or LOAI_DONG.get(i)
-    return "cat" if b == "cat" else "tinh" if b == "creative" and loai in TINH else None
+    return ("cat" if i not in CAT_NGOAI else None) if b == "cat" else "tinh" if b == "creative" and loai in TINH else None
 
 def khe_nang(i, b, cho):
     me = kieu_nang(i, b); dang = [kieu_nang(j, c) for (j, c), (th, _) in CHAY.items() if th.is_alive() and kieu_nang(j, c)]
@@ -725,7 +736,9 @@ def vong():
         if dang and t and time.time() - t[1] < CHO_LAI: continue   # bước đang "chờ": quay lại sau CHO_LAI giây
         # LƯỢT NẶNG trên iMac = bước cắt + bước creative AT (anh-tinh.py cũng tải tập + ffmpeg + Vision) → chung trần TRAN_CAT, kẻo 13 dòng AT xếp một lúc chạy đồng loạt
         LOAI_DONG[d["id"]] = d.get("loai"); nang = lambda i, b: kieu_nang(i, b) is not None
-        if nang(d["id"], ke) and not dang and not khe_nang(d["id"], ke, cho_nang): continue
+        if nang(d["id"], ke) and not dang and not khe_nang(d["id"], ke, cho_nang):
+            if ke != "cat" or sum(1 for (i, b), (th, _) in CHAY.items() if b == "cat" and i in CAT_NGOAI and th.is_alive()) >= TRAN_NGOAI: continue
+            CAT_NGOAI.add(d["id"])   # iMac đủ khe → xếp việc cho máy thợ khác (b_cat chờ ở chế độ ngoài)
         if not dang:
             sql(f"update etp.dong_buoc set trang_thai = 'dang', bat_dau = now(), nhip = now(), lan = lan + 1, may = '{MAY}' where dong_id = {d['id']} and buoc = '{ke}' and trang_thai = 'cho'")
             bs.setdefault(ke, {})["lan"] = (bs.get(ke) or {}).get("lan", 0) + 1

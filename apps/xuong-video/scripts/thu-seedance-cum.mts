@@ -71,11 +71,12 @@ if (loiGui.length) { console.error(`✗ CHẶN trước khi gửi (${loiGui.leng
 // CANH GIỌNG THEO MIỆNG (can-giong.ts, anh 15/11/2026 "chuẩn hoá cho mọi clip"): clip sinh kèm giọng → đo độ trễ tiếng clip so với từng câu đặt ở cauAm[].t,
 // dời điểm vào từng shot; đo không ra / không bù được → lỗi (shot không gắn, vào lượt sinh lại). PCM chỉ GIẢI MÃ âm (ffmpeg trên box, không mã hoá video).
 const pcm = (u: string) => { const b = execFileSync('ffmpeg', ['-v', 'error', '-i', u, '-vn', '-ac', '1', '-ar', '8000', '-f', 's16le', '-'], { maxBuffer: 64 << 20 }); return duongAmLuong(new Int16Array(b.buffer, b.byteOffset, Math.floor(b.length / 2)), 8000); };
+// dò độ trễ trên CẢ clip, không ±1,5 s: câu bị dời xa (#6: +3 s) mà dò hẹp thì bắt nhầm đỉnh, báo lệch sai (15/11/2026)
 function canhGiong(fClip: string, daiClip: number, vao: number[]): { vao: number[]; loi: (string | null)[]; bao: string } {
   if (!cauAm.length) return { vao, loi: vao.map(() => null), bao: '' };
   const tieng = pcm(fClip); const kq = cum.map((x, i) => {
     const cau = cauAm.filter((c) => c.so === i + 1); if (!cau.length) return { vao: vao[i]!, loi: null, lech: 0 };
-    const r = vaoSauCanh(vao[i]!, cau.map((c) => doLech(tieng, pcm(c.url), c.t, daiClip))   // dò CẢ clip, không ±1,5 s: câu bị dời xa (#6: +3 s) mà dò hẹp thì bắt nhầm đỉnh, báo lệch sai, daiClip, giayPhat(x.canh)); return r;
+    const r = vaoSauCanh(vao[i]!, cau.map((c) => doLech(tieng, pcm(c.url), c.t, daiClip)), daiClip, giayPhat(x.canh)); return r;
   });
   return { vao: kq.map((r) => r.vao), loi: kq.map((r) => r.loi), bao: kq.map((r, i) => (cauAm.some((c) => c.so === i + 1) ? `#${cum[i]!.canh.thu_tu}: trễ ${r.lech}s → vào ${r.vao}${r.loi ? ` ✗ ${r.loi}` : ''}` : '')).filter(Boolean).join(' · ') };
 }

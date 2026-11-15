@@ -32,3 +32,10 @@ Cổng `lyChanKeyframe` chặn trước khi tốn tiền; xem điểm + lỗi t�
 
 - Mặc định một bước: Nano sửa từ khung màu 3D (ảnh 1).
 - Shot vẫn lệch sau khi câu lệnh sạch: bật đường hai bước có sẵn (`kinh_thanh.keyframe_hai_buoc`, bước 1 FLUX theo bản đồ độ sâu 3D). Không dựng đường mới.
+
+## Soát hướng mặt trước khi gửi video (16/11/2026)
+
+Phim #3071 #2: khung màu 3D cho chú quay mặt sang TRÁI màn (nhìn dọc sân ga), tay trái màn cầm tờ tiền; keyframe Nano vẽ chú quay mặt sang PHẢI, tiền ở tay
+phải màn — câu lệnh đã ghi "keep … facing EXACTLY". Video chép keyframe nên không có cú quay đầu trái → phải. Bộ chấm tự động chưa đo được hướng mặt
+(docs/chuan-cham-diem.md), nên trước khi gửi video: ghép khung màu 3D cạnh keyframe từng shot, soát bằng mắt hướng mặt / hướng người / tay cầm vật; lệch thì
+sinh lại keyframe shot đó, không gửi video.

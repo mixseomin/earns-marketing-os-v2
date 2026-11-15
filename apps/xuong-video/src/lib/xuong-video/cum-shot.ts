@@ -102,7 +102,14 @@ export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[]; loo
   const MAY = /\s*\b(?:static|locked[- ]off|handheld|slow push[- ]in|slow dolly[^.]*?)\s+camera\b[^.]*\.?/i;
   // câu diễn tiếng Việt (dan_dung.dien) KHÔNG vào prompt khi có mở / kết tiếng Anh — cùng luật prompt video một shot (sinh-video.ts › theVideo), 14/11/2026 #3071
   const moKet = (c: Canh) => [gon(c.dan_dung?.mo), gon(c.dan_dung?.ket)].filter(Boolean).join(', then ');
-  const hanh = (c: Canh) => { const dien = laDienRong(c.dan_dung?.dien) ? '' : gon(c.dan_dung?.dien); const t = (dien && !(coTiengViet(dien) && moKet(c)) ? dien : '') || moKet(c) || gon(c.canh);
+  // HÀNH ĐỘNG = MỞ → DIỄN → KẾT + HƯỚNG MÀN (16/11/2026, phim #3071 #2: câu cụm chỉ còn "scan, then a sudden stop" — câu diễn THAY cho mở / kết nên mất
+  // "man looking down the platform to the left … ends facing screen right" và hướng màn "head turns left to right" → video không quay đầu, nhìn sai hướng 3D).
+  // Ghép đủ ba vế (bỏ vế tiếng Việt, bỏ mệnh đề trùng giữa mở và kết), hướng màn tiếng Anh ghi kèm. Không vế nào thì lấy câu cảnh.
+  const hanh = (c: Canh) => { const dd = c.dan_dung; const en = (x?: string | null) => { const g = gon(x ?? undefined); return g && !coTiengViet(g) ? g : ''; };
+    const dienG = laDienRong(dd?.dien) ? '' : gon(dd?.dien); const da: string[] = [];
+    const ve = [en(dd?.mo), en(dienG), en(dd?.ket)].map((v) => v.split(/\s*;\s*/).filter((m) => m && !da.includes(m.toLowerCase()) && da.push(m.toLowerCase())).join('; ')).filter(Boolean);
+    const huong = en(dd?.huong);
+    const t = (ve.length ? `${ve.join(', then ')}${huong ? `; screen direction: ${huong}` : ''}` : '') || dienG || gon(c.canh);
     return { cau: gon(t.replace(MAY, ' ')).replace(/\s{2,}/g, ' '), may: (t.match(MAY)?.[0] ?? '').trim().replace(/\.$/, '') }; };
   // NHÃN người (prompt-khoi.ts › nhanNhin): bộ đồ từ sổ trang phục carry của shot đầu người đó xuất hiện
   const nguoi: { ten: string; moTaNv: string; ao?: string }[] = [];
@@ -194,4 +201,11 @@ export function thamChieuCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[],
 export function giayClipSeedance(phat: readonly number[], o: { vaoDau?: number; cuoiCoThoai?: boolean } = {}): number {
   const het = (o.vaoDau ?? 0) + phat.reduce((a, x) => a + x, 0);
   return Math.min(15, Math.max(4, Math.ceil(het - 1e-6) + (o.cuoiCoThoai ? 2 : 0)));
+}
+
+/** KẸP ĐIỂM VÀO TRONG ĐOẠN của shot (16/11/2026, phim #3071 #2: vào 0,2 + phát 1,2 = 1,4 s trong khi cú cắt sang shot kế ở 1,25 s → 0,15 s cuối shot #2 là hình
+ *  thằng bé của shot #3; vaoTuCatThat cho lố tới 0,15 s). can = giây clip shot dùng (giây phát × tốc khớp). Đoạn ngắn hơn can quá 1 khung (0,04 s) → null = không gắn. */
+export function kepVaoDoan(vao: number, doan: readonly [number, number], can: number): number | null {
+  if (doan[1] - doan[0] < can - 0.04) return null;
+  return +Math.max(doan[0], Math.min(vao, doan[1] - can)).toFixed(2);
 }

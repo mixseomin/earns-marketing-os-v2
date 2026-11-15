@@ -12,7 +12,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { boiCanhCanh, taoJob, xongJob } from '../src/lib/xuong-video/doc-db';
-import { promptCumMoi, thamChieuCum, vaoTuCatThat, cauNgoaiCua, giayClipSeedance } from '../src/lib/xuong-video/cum-shot';
+import { promptCumMoi, thamChieuCum, vaoTuCatThat, cauNgoaiCua, giayClipSeedance, kepVaoDoan } from '../src/lib/xuong-video/cum-shot';
 import { catThat } from '../src/lib/xuong-video/cat-that';
 import { giayPhat, chatLieuPhim } from '../src/lib/xuong-video/kieu';
 import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
@@ -152,6 +152,9 @@ for (;;) {
   let cg: ReturnType<typeof khopThoai> | null = null;
   if (urlGiong && v.theoDo) { cg = khopThoai(f, v.vao, doan); v.vao.splice(0, v.vao.length, ...cg.vao); console.log(`khớp thoại: ${cg.bao}`);
     cg.loi.forEach((l, i) => { if (l && !hong.has(cum[i]!.canh.thu_tu)) hong.set(cum[i]!.canh.thu_tu, l); }); }
+  // MỌI shot (cả shot câm): điểm vào kẹp trong đoạn của nó, không lố sang hình shot kế (cum-shot.ts › kepVaoDoan, ca #2 phim #3071 16/11/2026)
+  if (v.theoDo) cum.forEach((x, i) => { const k = kepVaoDoan(v.vao[i]!, doan[i]!, giayPhat(x.canh) * (cg?.toc[i] ?? 1));
+    if (k == null) { if (!hong.has(x.canh.thu_tu)) hong.set(x.canh.thu_tu, `đoạn của shot ${doan[i]![0]}–${doan[i]![1]} s ngắn hơn giây dùng`); } else v.vao[i] = k; });
   for (const [i, x] of cum.entries()) {
     if (hong.has(x.canh.thu_tu)) { await db.execute(sql`UPDATE xv_canh SET video_url = NULL, loi = ${`cụm Seedance job ${job}: ${hong.get(x.canh.thu_tu)} — sinh lại`}, updated_at = now() WHERE id = ${x.canh.id}`); continue; }
     await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt, job, cum: ids, khung_dau: x.canh.keyframe_url, doan: doan[i],   // đoạn của shot trong clip (cú cắt đo) — canh miệng không dời lấn sang shot kế

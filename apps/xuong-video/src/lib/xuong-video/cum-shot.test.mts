@@ -1,7 +1,7 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/cum-shot.test.mts
 import assert from 'node:assert';
 import { giuNguyenVan } from './prompt-khoi';
-import { chiaCumCan, cauNgoaiCua, chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, promptCumMoi, giayClipSeedance, DUNG_DUOC, VAO_DAU } from './cum-shot';
+import { chiaCumCan, cauNgoaiCua, chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, promptCumMoi, giayClipSeedance, kepVaoDoan, DUNG_DUOC, VAO_DAU } from './cum-shot';
 import { lienCon, noiKhungShot } from './kieu';
 
 // Cảnh Thang máy phim #353: giây phát 17 shot thật → 6 cụm theo nhịp (đến · giật thẻ · thang mở · đối đáp · quay đi · vào thang)
@@ -115,4 +115,15 @@ assert.strictEqual(giayClipSeedance([3.3], { cuoiCoThoai: true }), 6);
 assert.strictEqual(giayClipSeedance([2], { vaoDau: 1.65, cuoiCoThoai: true }), 6);
 assert.strictEqual(giayClipSeedance([14.5], { cuoiCoThoai: true }), 15);
 assert.strictEqual(giayClipSeedance([4]), 4);
+// kẹp điểm vào trong đoạn (ca thật #2 phim #3071: vào 0,2, phát 1,2, đoạn 0–1,25 → 0,05); đoạn ngắn hơn giây dùng → null
+assert.strictEqual(kepVaoDoan(0.2, [0, 1.25], 1.2), 0.05);
+assert.strictEqual(kepVaoDoan(0.5, [0.4, 3], 1.2), 0.5);
+assert.strictEqual(kepVaoDoan(0.2, [0.3, 1.2], 1.2), null);
+// câu hành động cụm = mở → diễn → kết + hướng màn (ca thật #2: trước chỉ còn "scan, then a sudden stop")
+{ const nv2 = { id: 1, ten: 'Chú', loai: 'nhan_vat', mo_ta: 'a man' };
+  const p2 = promptCumMoi([{ canh: { id: 2, thu_tu: 2, phat_s: 1.2, ky_thuat: { co_canh: 'mcu' }, canh: '', thoai: [], nhan_vat: [1], loi_thoai: '', bien_the: [],
+    dan_dung: { mo: 'man looking down the platform to the left; the train stands still at the platform, not moving', dien: 'scan, then a sudden stop',
+      ket: 'head stopped facing screen right, eyes fixed on the boy; the train stands still at the platform, not moving', huong: 'head turns left to right, ends facing screen right' } } as never, nhanVat: [nv2] as never }]);
+  assert.ok(p2.includes('looking down the platform to the left') && p2.includes('scan, then a sudden stop') && p2.includes('facing screen right, eyes fixed on the boy') && p2.includes('screen direction: head turns left to right'), p2);
+  assert.strictEqual(p2.split('the train stands still at the platform').length - 1, 1, 'mệnh đề trùng giữa mở và kết chỉ ghi một lần'); }
 console.log('✓ cum-shot cauNgoaiCua');

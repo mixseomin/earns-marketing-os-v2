@@ -12,7 +12,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { boiCanhCanh, taoJob, xongJob, CD_LUC_SINH } from '../src/lib/xuong-video/doc-db';
-import { promptCumMoi, thamChieuCum, vaoTuCatThat, cauNgoaiCua, giayClipSeedance, kepVaoDoan } from '../src/lib/xuong-video/cum-shot';
+import { promptCumMoi, thamChieuCum, vaoTuCatThat, cauNgoaiCua, giayClipSeedance, kepVaoDoan, catBotDuoi } from '../src/lib/xuong-video/cum-shot';
 import { catThat } from '../src/lib/xuong-video/cat-that';
 import { giayPhat, chatLieuPhim, clip3dMoi } from '../src/lib/xuong-video/kieu';
 import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
@@ -123,13 +123,18 @@ async function ganKetQua(f: string, url: string, job: number, urlGiong: string |
   if (urlGiong && v.theoDo) { cg = khopThoai(f, v.vao, doan); v.vao.splice(0, v.vao.length, ...cg.vao); console.log(`khớp thoại: ${cg.bao}`);
     cg.loi.forEach((l, i) => { if (l && !hong.has(cum[i]!.canh.thu_tu)) hong.set(cum[i]!.canh.thu_tu, l); }); }
   // MỌI shot (cả shot câm): điểm vào kẹp trong đoạn của nó, không lố sang hình shot kế (cum-shot.ts › kepVaoDoan, ca #2 phim #3071 16/11/2026)
+  const catCuoi = new Map<number, number>();
   if (v.theoDo) cum.forEach((x, i) => { const k = kepVaoDoan(v.vao[i]!, doan[i]!, giayPhat(x.canh) * (cg?.toc[i] ?? 1));
+    // hụt chút ít ở shot câm → phát ngắn lại bằng đoạn (cum-shot.ts › catBotDuoi), không bỏ shot
+    const cb = k == null ? catBotDuoi(doan[i]!, giayPhat(x.canh), cauAm.some((c) => c.so === i + 1)) : null;
+    if (cb != null) { catCuoi.set(i, cb); v.vao[i] = doan[i]![0]; return; }
     if (k == null) { if (!hong.has(x.canh.thu_tu)) hong.set(x.canh.thu_tu, `đoạn của shot ${doan[i]![0]}–${doan[i]![1]} s ngắn hơn giây dùng`); } else v.vao[i] = k; });
   for (const [i, x] of cum.entries()) {
     if (hong.has(x.canh.thu_tu)) { await db.execute(sql`UPDATE xv_canh SET video_url = NULL, loi = ${`cụm Seedance job ${job}: ${hong.get(x.canh.thu_tu)} — sinh lại`}, updated_at = now() WHERE id = ${x.canh.id}`); continue; }
     await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt: promptGui, job, cum: ids, khung_dau: x.canh.keyframe_url, doan: doan[i],   // đoạn của shot trong clip (cú cắt đo) — canh miệng không dời lấn sang shot kế
          ...(urlGiong && cauAm.some((c) => c.so === i + 1) ? { khop_moi: { cach: 'seedance_audio', giong: urlGiong }, ...ghiMieng(true, cg?.bao.split(' · ').find((b) => b.startsWith(`#${x.canh.thu_tu}:`)) ?? '') } : {}) })}::jsonb || ${CD_LUC_SINH}, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);
     await ghiVaoToc(x.canh.id, v.vao[i]!, cg?.toc[i] ?? 1);
+    if (catCuoi.has(i)) { await db.execute(sql`UPDATE xv_canh SET cat_cuoi_s = ${catCuoi.get(i)!} WHERE id = ${x.canh.id}`); console.log(`#${x.canh.thu_tu}: đoạn hụt — phát ${catCuoi.get(i)} s thay ${giayPhat(x.canh)} s`); }
   }
   if (hong.size) console.log(`✗ KHÔNG GẮN: ${[...hong].map(([so, l]) => `#${so} ${l}`).join(' · ')} — vào lượt sinh sau`);
   console.log(`xong ${Math.round((Date.now() - t0) / 1000)}s · ${url} · dài ${dai.toFixed(2)} s · cú cắt đo ${cat.map((c) => c.toFixed(2)).join(', ') || 'không thấy'} · ${v.theoDo ? 'điểm vào theo cú cắt đo' : 'điểm vào theo lịch (không đo đủ cú cắt)'} · vào ${v.vao.map((x) => x.toFixed(2)).join(', ')}`);

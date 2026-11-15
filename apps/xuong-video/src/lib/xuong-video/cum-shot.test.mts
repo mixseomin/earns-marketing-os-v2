@@ -1,7 +1,7 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/cum-shot.test.mts
 import assert from 'node:assert';
 import { giuNguyenVan } from './prompt-khoi';
-import { chiaCumCan, cauNgoaiCua, chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, promptCumMoi, giayClipSeedance, kepVaoDoan, DUNG_DUOC, VAO_DAU } from './cum-shot';
+import { chiaCumCan, cauNgoaiCua, chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, promptCumMoi, giayClipSeedance, kepVaoDoan, catBotDuoi, DUNG_DUOC, VAO_DAU } from './cum-shot';
 import { lienCon, noiKhungShot } from './kieu';
 
 // Cảnh Thang máy phim #353: giây phát 17 shot thật → 6 cụm theo nhịp (đến · giật thẻ · thang mở · đối đáp · quay đi · vào thang)
@@ -131,4 +131,6 @@ assert.strictEqual(kepVaoDoan(0.2, [0.3, 1.2], 1.2), null);
 { const c3 = [1.2, 1.2, 2].map((p, i) => ({ id: i, thu_tu: i + 2, phat_s: p, thoi_luong_s: 4 })) as never[];
   const r = vaoTuCatThat(c3, [1.21, 4.38, 5.54], 7.1); assert.ok(r.theoDo && r.het === 5.49 && r.vao[1] === 1.26 && r.vao[2] === 4.43, JSON.stringify(r));
   assert.ok(!vaoTuCatThat(c3, [0.6, 1.21, 2.5], 7.1).theoDo, 'cú thừa giữa cụm → không đo'); }
+// cắt bớt đuôi (ca thật #14 job 8376: đoạn 1,59–4,99, phát 3,5 → phát 3,4); hụt nhiều / có thoại → không cứu
+assert.strictEqual(catBotDuoi([1.59, 4.99], 3.5, false), 3.4); assert.strictEqual(catBotDuoi([1.59, 4.99], 3.5, true), null); assert.strictEqual(catBotDuoi([0, 3], 3.5, false), null);
 console.log('✓ cum-shot cauNgoaiCua');

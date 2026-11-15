@@ -215,3 +215,10 @@ export function kepVaoDoan(vao: number, doan: readonly [number, number], can: nu
   if (doan[1] - doan[0] < can - 0.04) return null;
   return +Math.max(doan[0], Math.min(vao, doan[1] - can)).toFixed(2);
 }
+
+/** CẮT BỚT ĐUÔI cho shot CÂM có đoạn hụt chút ít (16/11/2026 phim #3071 #14 job 8376: đoạn 3,40 s, phát 3,5 s → máy bỏ cả shot đạt). Hụt ≤ HUT_TOI_DA giây
+ *  (~4 khung) thì phát ngắn lại bằng đoạn (canh.cat_cuoi_s), không bỏ shot. Shot có thoại không cắt (câu cần đủ giờ — khớp thoại quyết). null = không cứu được. */
+export const HUT_TOI_DA = 0.15;
+export function catBotDuoi(doan: readonly [number, number], phat: number, coThoai: boolean): number | null {
+  const dai = +(doan[1] - doan[0]).toFixed(2); if (coThoai || dai >= phat || phat - dai > HUT_TOI_DA) return null; return dai;
+}

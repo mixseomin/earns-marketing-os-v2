@@ -293,14 +293,52 @@
   "dinhY": 110
  },
  "thapGoc": {
-  "ghi_chu": "hai tháp góc sa thạch (tháp trái, đọc trên lưới): chóp, đỉnh thân (dưới răng cưa), chân thân (đầu con-xon), mũi con-xon — ns.js đặt lại cao độ hai khối OSM này theo đây",
+  "ghi_chu": "tháp góc trái (đối xứng tháp phải), đọc trên ảnh chính lưới 10 px: 2 TẦNG cửa, mỗi mặt quay ra ngoài MỘT cửa vòm đơn có cột nhỏ; giữa hai tầng gờ dày + diềm răng; đỉnh thân là diềm vòm nhỏ, gờ nhô rồi vành răng cưa; chóp cao mảnh; con-xon dưới gờ chân thu về một mũi treo. Máy kiểm: scripts/kiem-mat-tien.py đếm số tầng cửa của tháp",
   "ids": [
    "way/223145711",
    "way/223145712"
   ],
   "chop": 150,
-  "dinhThan": 410,
-  "chanThan": 925,
+  "chanChop": 450,
+  "dinhRang": 450,
+  "dinhThan": 505,
+  "frieze": [
+   520,
+   545
+  ],
+  "tang": [
+   {
+    "dinh": 605,
+    "bau": 685,
+    "o": [
+     505,
+     530
+    ]
+   },
+   {
+    "dinh": 820,
+    "bau": 905,
+    "o": [
+     495,
+     520
+    ]
+   }
+  ],
+  "go": [
+   [
+    687,
+    710
+   ],
+   [
+    910,
+    955
+   ]
+  ],
+  "rang": [
+   745,
+   760
+  ],
+  "chanThan": 955,
   "mui": 1060
  }
 }

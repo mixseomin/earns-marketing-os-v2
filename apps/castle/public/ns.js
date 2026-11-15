@@ -144,7 +144,7 @@ const MAI_SAN = BO_MET ? DINH_NEO - BO_MET.gableCao : null; // chân đầu hồ
 if (BO_MET) {
   const kn = dsKhoi.find((k) => k.id === MAT_BO.neo.khoi); if (kn) kn.tags['roof:height'] = String(BO_MET.gableCao);
   for (const tid of BO_MET.thap?.ids || []) { const k = dsKhoi.find((q) => q.id === tid); if (!k) continue;
-    k.tags.min_height = String(MAI_SAN - BO_MET.thap.chanThan - k.ref); k.tags.height = String(MAI_SAN - BO_MET.thap.chop - k.ref); k.tags['roof:height'] = String(BO_MET.thap.dinhThan - BO_MET.thap.chop); }
+    k.tags.min_height = String(MAI_SAN - BO_MET.thap.chanThan - k.ref); k.tags.height = String(MAI_SAN - BO_MET.thap.chop - k.ref); k.tags['roof:height'] = String(BO_MET.thap.chanChop - BO_MET.thap.chop); }
   console.info('[ns] mặt Palas hướng sân: tỉ lệ đứng', PX_DUNG.toFixed(1), 'px/m · đầu hồi', BO_MET.gableCao.toFixed(1), 'm · mái', MAI_SAN.toFixed(1), '· sân', MAT_SAN.toFixed(1));
 }
 console.info('[ns] mốc chân nhà theo ảnh 3D:', dsKhoi.filter((k) => k.suaGoogle != null).map((k) => `${k.tags.name || k.id} ${k.suaGoogle > 0 ? '+' : ''}${k.suaGoogle}`).join(' · '));
@@ -356,7 +356,9 @@ const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3
   CUA.push(...cua);
   // tháp góc treo trên con-xon (đánh dấu thap_goc trong tệp sửa theo ảnh): con-xon, gờ tầng, cửa sổ vòm nhỏ mặt ngoài, vành răng cưa
   const goc = dsKhoi.filter((k) => k.tags.thap_goc === 'yes' && k.yDuoi != null);
-  for (const k of goc) for (const m of datThapGoc({ THREE, mergeGeometries, v: k.v, y0: k.yDuoi, y1: k.yTren - (+k.tags['roof:height'] || 0), y2: k.yTren, mauMai: k.tags['roof:colour'], mau: mauOSM(k.tags['building:colour'], new THREE.Color('#dcc48e')),
+  const T = BO_MET?.thap, Y = (d) => MAI_SAN - d; // cao độ tuyệt đối từ số đo ảnh (mét dưới mái)
+  const bT = T && { chop: Y(T.chop), chanChop: Y(T.chanChop), dinhRang: Y(T.dinhRang), dinhThan: Y(T.dinhThan), frieze: T.frieze.map(Y), tang: T.tang.map((t) => ({ dinh: Y(t.dinh), bau: Y(t.bau), w: t.w })), go: T.go.map((g) => g.map(Y)), rang: T.rang.map(Y), chanThan: Y(T.chanThan), mui: Y(T.mui) };
+  if (bT) for (const k of goc) for (const m of datThapGoc({ THREE, mergeGeometries, v: k.v, b: bT, mauMai: k.tags['roof:colour'], mau: mauOSM(k.tags['building:colour'], new THREE.Color('#dcc48e')),
     ngoai: (x, z) => !dsKhoi.some((q) => q !== k && trongDa(x, z, q.v)), nhe: CHAM })) { scene.add(m); LOP_OSM.push(m); }
   console.info('[ns] mặt tiền chi tiết:', JSON.stringify({ ...dem, thapGoc: goc.length }));
 }
@@ -773,7 +775,7 @@ function apDungAnh3d() {
   const p = di?.dang ? di.viTri() : null, gan = !!p && Math.hypot(p.x + 30, p.z - 30) < 260;
   const hien = anh3d.bat && !dangSo && !gan; if (hien === anh3d.hien) return; anh3d.hien = hien;
   anh3d.goc.visible = hien; if (!hien) $('nguon-3d').textContent = '';
-  LOP_OSM.dangAn = hien; for (const m of LOP_OSM) m.visible = !hien; for (const c of CAY_VA) c.setEnabled(!hien);
+  LOP_OSM.dangAn = hien; for (const m of LOP_OSM) m.visible = !hien && !(dangSo && RUNG.includes(m)); for (const c of CAY_VA) c.setEnabled(!hien); // so ảnh: rừng giữ ẩn (moSo đã ẩn, không bật lại ở đây)
   if (!hien) LOP_OSM.vaDat?.setEnabled(true); for (const c of anh3d.va.values()) for (const k of c) k.setEnabled(hien); // lưới đất: capNhatAnh3d chỉ tắt khi dưới chân đã có va chạm ô
 }
 (async () => { // chạy NỀN: không chặn vòng vẽ / vật lý chờ tải thư viện (trước đây trang đứng mấy giây đầu)

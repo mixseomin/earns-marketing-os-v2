@@ -15,6 +15,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
 import { taoCamUng, CHAM } from './camung.js';
+import { taoChieuAnh } from './chieuanh.js';
 import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, tiLeDung, datChop, oCum } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 
@@ -136,7 +137,11 @@ if (!GOC_OSM) {
   for (const k of dsKhoi) if (k.vo) { const con = parts.filter((p) => trongDa(...tamDa(p.v), k.v)), ds = (con.length ? con : [k]).filter(doTot).map(lechK); k.ref = ds.length ? k.day + giua(ds) : null; }
   for (const p of parts) { const vo = dsKhoi.find((k) => k.vo && trongDa(...tamDa(p.v), k.v)); p.ref = vo?.ref ?? (doTot(p) ? p.day + lechK(p) : null); }
   for (const k of dsKhoi) { if (k.ref == null) k.ref = Math.max(k.day, ...k.v.map(([x, z]) => datThat(x, z)));
-    if (doTot(k) && (k.la || !k.coPart)) { const r = k.day + lechK(k) - k.ref; if (Math.abs(r) > 2.5) { k.suaGoogle = +r.toFixed(1); k.tags.height = String(chieuCao(k.tags) + r); } } }
+    if (doTot(k) && (k.la || !k.coPart)) { const r = k.day + lechK(k) - k.ref; if (Math.abs(r) > 2.5) { k.suaGoogle = +r.toFixed(1); k.tags.height = String(chieuCao(k.tags) + r); } }
+    // chóp nhọn (cone / pyramidal): mặt đo trải rộng nên không qua doTot — đỉnh lấy đỉnh đo (phân vị 98) trên ảnh 3D, chỉ nâng; thân giữ nguyên, chóp dài thêm
+    else if (/^(cone|pyramidal)$/.test(k.tags['roof:shape'] || '') && (NK[k.id]?.[1] ?? 0) >= 12 && NK[k.id][2] > k.ref + chieuCao(k.tags) + 2.5) {
+      const them = NK[k.id][2] - (k.ref + chieuCao(k.tags)); k.suaGoogle = +them.toFixed(1); k.tags.height = String(chieuCao(k.tags) + them); k.tags['roof:height'] = String((so(k.tags['roof:height']) || 4) + them);
+    } }
 }
 // MÁI HIÊN ĐO TRÊN ẢNH CHÍNH DIỆN (cua-so.json yHien, trung vị các mặt của khối): chân mái = đó, đỉnh giữ nguyên → mái cao đúng, tường không cao thừa
 if (!GOC_OSM) for (const k of dsKhoi) {
@@ -332,7 +337,7 @@ for (const [ten, G] of Object.entries(NHOM)) {
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(G.p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(G.uv, 2));
   if (G.c) g.setAttribute('color', new THREE.Float32BufferAttribute(G.c, 3));
   g.computeVertexNormals();
-  const m = new THREE.Mesh(g, VL[ten]); m.castShadow = m.receiveShadow = true; scene.add(m); LOP_OSM.push(m);
+  const m = new THREE.Mesh(g, VL[ten]); m.castShadow = m.receiveShadow = true; m.userData.nha = true; scene.add(m); LOP_OSM.push(m); // nha: nhận ảnh chiếu (chieuanh.js)
 }
 // mặt Palas hướng sân trên (đầu hồi đông, gần sân nhất): chọn TRƯỚC khi đặt cửa sổ để chừa dải trên cho tranh + ban công
 const CUA = []; // cửa sổ 3D mặt tiền (mattien.js): { x, y: bậu, z, nx, nz: pháp tuyến ra ngoài, nua: nửa bề ngang, cao, ten } — leo sát cửa có phòng phía sau thì E mở cửa trèo vào
@@ -395,8 +400,8 @@ const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3
   const T = BO_MET?.thap, Y = (d) => MAI_SAN - d; // cao độ tuyệt đối từ số đo ảnh (mét dưới mái)
   const bT = T && { chop: Y(T.chop), chanChop: Y(T.chanChop), dinhRang: Y(T.dinhRang), dinhThan: Y(T.dinhThan), frieze: T.frieze.map(Y), tang: T.tang.map((t) => ({ dinh: Y(t.dinh), bau: Y(t.bau), w: t.w })), go: T.go.map((g) => g.map(Y)), rang: T.rang.map(Y), chanThan: Y(T.chanThan), mui: Y(T.mui) };
   if (bT) for (const k of goc) for (const m of datThapGoc({ THREE, mergeGeometries, v: k.v, b: bT, mauMai: k.tags['roof:colour'], mau: mauOSM(k.tags['building:colour'], new THREE.Color('#dcc48e')),
-    ngoai: (x, z) => !dsKhoi.some((q) => q !== k && trongDa(x, z, q.v)), nhe: CHAM })) { scene.add(m); LOP_OSM.push(m); }
-  if (CHOP?.chop?.length) for (const m of datChop({ THREE, mergeGeometries, ds: CHOP.chop, nhe: CHAM })) { scene.add(m); LOP_OSM.push(m); }
+    ngoai: (x, z) => !dsKhoi.some((q) => q !== k && trongDa(x, z, q.v)), nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
+  if (CHOP?.chop?.length) for (const m of datChop({ THREE, mergeGeometries, ds: CHOP.chop, nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
   console.info('[ns] mặt tiền chi tiết:', JSON.stringify({ ...dem, thapGoc: goc.length, chop: CHOP?.chop?.length || 0 }));
 }
 { // mặt Palas hướng sân trên: tranh thánh George + Đức Mẹ Bavaria, ban công (mattien.js datMatPalas); sân trong lát đá
@@ -600,6 +605,19 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
 const ANH = await fetch(`./du-lieu/${ten}-anh.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
 const M_LAT = 111320, M_LNG = 111320 * Math.cos(D.tam[0] * Math.PI / 180);
 const raMet = (la, ln) => [(ln - D.tam[1]) * M_LNG, -(la - D.tam[0]) * M_LAT];
+// ẢNH CHỤP CHIẾU LÊN MÁI + THÁP (chieuanh.js): ảnh so khớp camera tốt nhất (ghi chú khớp tự động, lệch viền ≤ 10 px) → cửa mái, ống khói, chóp, hoa văn trên mái
+// hiện đúng chỗ như ảnh. Chỉ tô chỗ ảnh nhìn thấy; tải nền sau khi cảnh dựng xong
+(async () => {
+  const tot = ANH.map((a, i) => ({ a, i, lech: +(/lệch viền ([\d.]+) px/.exec(a.camera?.ghi_chu || '')?.[1] ?? 999) })).filter((x) => x.a.camera && x.lech <= 10).sort((p, q) => p.lech - q.lech)[0];
+  if (!tot) return;
+  const nha = LOP_OSM.filter((m) => m.isMesh && m.userData.nha); if (!nha.length) return;
+  const [x, z] = raMet(tot.a.lat, tot.a.lng), c = tot.a.camera, quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(c.pitch, c.yaw, 0, 'YXZ'));
+  try {
+    const phu = await taoChieuAnh({ THREE, renderer, anh: { url: `./du-lieu/${tot.a.tep}`, w: tot.a.rong, h: tot.a.cao }, cam: { pos: new THREE.Vector3(x, c.y, z), quat, fov: c.fov }, che: nha, nhan: nha });
+    for (const p of phu) { p.visible = !LOP_OSM.dangAn; scene.add(p); LOP_OSM.push(p); }
+    console.info('[ns] chiếu ảnh', tot.a.tieuDe, 'lên', phu.length, 'lưới nhà');
+  } catch (e) { console.warn('[ns] chiếu ảnh lỗi', e); }
+})();
 let dangSo = null, cam = null;
 const hop = $('so-khung'), img = $('so-anh');
 function khungAnh(a) { // khung lớn nhất cùng tỉ lệ ảnh, giữa màn

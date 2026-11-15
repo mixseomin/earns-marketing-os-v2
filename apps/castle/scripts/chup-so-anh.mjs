@@ -8,6 +8,7 @@ import { join } from 'node:path';
 const RA = doiSo[0] || '/tmp/chup-so-anh';
 mkdirSync(RA, { recursive: true });
 const { pg, dong } = await moTrang({ anh3d: false, khung: { width: 1920, height: 1440 } });
+await pg.waitForTimeout(6000); // lớp nền chạy sau (ảnh dán tường, ảnh chiếu lên mái) — chờ xong mới chụp
 const ds = await pg.evaluate(() => window.__ns.ANH.map((a, i) => ({ i, tep: a.tep, coCam: !!a.camera })));
 const ra = [];
 for (const a of ds.filter((a) => a.coCam)) {

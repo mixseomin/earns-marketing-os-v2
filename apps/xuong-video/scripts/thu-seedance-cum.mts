@@ -19,7 +19,7 @@ import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
 import { nhanNhin } from '../src/lib/xuong-video/prompt-khoi';
 import { duongAmLuong, khopTheoTiengClip, doanShot } from '../src/lib/xuong-video/can-giong';
 import { uploadToR2 } from '../src/lib/r2';
-import { loiPromptGui, loiClipThamChieu, loiThoaiPrompt, loiShotPrompt, loiAnhCum } from '../src/lib/xuong-video/chan-gui-video';
+import { loiPromptGui, loiClipThamChieu, loiThoaiPrompt, loiShotPrompt, loiAnhCum, loiThoaiCuoiCum } from '../src/lib/xuong-video/chan-gui-video';
 import { dangChongBau } from '../src/lib/xuong-video/bo-set-3d';
 
 const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
@@ -72,7 +72,7 @@ const prompt = `${tc.goi}. ${goiKf} Reference video 1 is a rough grey 3D blockou
 console.log(`cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${tong.toFixed(1)} s → clip ${giayGui} s · ${model} ${dpg} · ${anh.length} ảnh · prompt ${prompt.length} ký tự`);
 // LUẬT CHẤM TRƯỚC KHI GỬI (chan-gui-video.ts — anh 14/11/2026): lỗi nào cũng chặn, không tốn tiền
 const loiGui = [...loiPromptGui(prompt, { tiLe: bcs[0]!.kt.ti_le, tenNhanVat: [...new Set(cum.flatMap((x) => x.nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten)))] }),
-  ...loiThoaiPrompt(prompt, cauAm.map((c) => c.loi)), ...loiShotPrompt(prompt), ...loiAnhCum(cum.length, kf.length),
+  ...loiThoaiPrompt(prompt, cauAm.map((c) => c.loi)), ...loiShotPrompt(prompt), ...loiAnhCum(cum.length, kf.length), ...(guiGiong ? loiThoaiCuoiCum(cauAm.map((c) => c.so), cum.length) : []),
   ...loiClipThamChieu(cum.map((x) => ({ so: x.canh.thu_tu, clip: x.canh.khung_xam?.clip }))),
   ...Object.entries(dangChongBau(cum.map((x) => x.canh))).flatMap(([id, l]) => l.map((y) => `#${cum.find((x) => x.canh.id === Number(id))?.canh.thu_tu}: ${y}`))];
 // THIẾU GIỌNG (luật 15/11/2026: #6 sinh không kèm giọng → miệng không theo câu): shot có câu thoại có file giọng mà lượt này không gửi giọng → chặn

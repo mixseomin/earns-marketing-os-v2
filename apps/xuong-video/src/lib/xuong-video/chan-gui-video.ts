@@ -57,3 +57,10 @@ export function loiShotPrompt(prompt: string): string[] {
 /** ẢNH KHUNG TỪNG SHOT (15/11/2026 cụm C phim #3071: 5 ảnh người + bối cảnh + 4 khung = trần 9 → shot 5, shot CÓ THOẠI, không có ảnh khung): mỗi shot của cụm phải
  *  có keyframe của nó trong ảnh tham chiếu — thiếu thì bớt ảnh người phụ (thamChieuCum toiDa), không bớt khung shot. */
 export const loiAnhCum = (soShot: number, soKhung: number): string[] => (soKhung < soShot ? [`chỉ ${soKhung}/${soShot} shot có ảnh khung trong tham chiếu (trần 9 ảnh) — bớt ảnh người phụ`] : []);
+
+/** SHOT THOẠI ĐỨNG CUỐI CỤM (15/11/2026, soát cụm E phim #3071 trước khi sinh: câu "Cháu đi nhé!" ở shot 2/4): Seedance nói trễ 0,4–0,8 s và chậm ×1,2 (đo #4, #6) —
+ *  chỉ shot cuối có đuôi để khớp thoại (can-giong.ts) dời điểm vào; shot thoại ở giữa thì lấn đoạn shot kế, chắc chắn hỏng. soCoThoai = số thứ tự (1…n) shot có câu gửi giọng. */
+export const loiThoaiCuoiCum = (soCoThoai: readonly number[], soShot: number): string[] => {
+  const giua = [...new Set(soCoThoai)].filter((s) => s < soShot);
+  return giua.length ? [`shot ${giua.join(', ')} có thoại mà không đứng cuối cụm (${soShot} shot) — không có đuôi bù giờ nói: tách cụm sau shot thoại (cum-seedance.mts)`] : [];
+};

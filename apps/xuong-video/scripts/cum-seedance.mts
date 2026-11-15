@@ -32,7 +32,9 @@ const doan: (typeof ds)[] = []; for (const c of ds) { if (conDung(c)) { doan.pus
 // MỖI CỤM MỘT NGƯỜI NÓI (luật 15/11/2026): Seedance nhép lẫn khi ≥ 2 người nói trong một lần sinh — cắt đoạn trước shot đổi người nói rồi mới chia cân
 const nguoiNoi = (c: (typeof ds)[number]) => [...new Set((c.thoai ?? []).filter((d) => d.url && d.loi?.trim()).map((d) => d.nhan_vat))];
 const tachNoi = (d: (typeof ds)): (typeof ds)[] => { const out: (typeof ds)[] = [[]]; let ai: string | null = null;
-  for (const c of d) { const n = nguoiNoi(c); const moi = n.find((x) => x !== ai) ?? null; if (n.length > 1 || (moi && ai && moi !== ai)) out.push([]); if (n.length) ai = n.length > 1 ? null : n[0]!; out.at(-1)!.push(c); }
+  // SHOT THOẠI ĐỨNG CUỐI CỤM (luật 15/11/2026, đo #4 #6: Seedance nói trễ 0,4–0,8 s và chậm ×1,2): chỉ shot cuối có đuôi 2 s để khớp thoại dời điểm vào; shot thoại
+  // ở giữa nói trễ là lấn đoạn shot kế → khớp thoại chặn → sinh lại cả cụm. Cắt cụm NGAY SAU mỗi shot có thoại gửi giọng (cổng: chan-gui-video.ts › loiThoaiCuoiCum).
+  for (const c of d) { const n = nguoiNoi(c); const moi = n.find((x) => x !== ai) ?? null; if (n.length > 1 || (moi && ai && moi !== ai)) out.push([]); if (n.length) ai = n.length > 1 ? null : n[0]!; out.at(-1)!.push(c); if (n.length) out.push([]); }
   return out.filter((x) => x.length); };
 // CÁCH KHỚP MÔI theo loại phim (khop-moi-cach.ts) — mỗi cụm có thoại: một người nói → theo chất liệu / ngôn ngữ; nhiều người → khớp sau / tách cụm
 const kt = docKinhThanh(((await db.execute(sql`SELECT p.kinh_thanh FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tap}`)) as unknown as Row[])[0]?.kinh_thanh as KinhThanh);

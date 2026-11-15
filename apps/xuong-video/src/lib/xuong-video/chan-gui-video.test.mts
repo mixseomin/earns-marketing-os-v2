@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/chan-gui-video.test.mts — mỗi ca là một lỗi thật ở phim #3071 (14/11/2026)
 import assert from 'node:assert';
-import { loiPromptGui, loiClipThamChieu, boLoiThoai, loiThoaiPrompt, loiShotPrompt, loiAnhCum } from './chan-gui-video';
+import { loiPromptGui, loiClipThamChieu, boLoiThoai, loiThoaiPrompt, loiShotPrompt, loiAnhCum, loiThoaiCuoiCum } from './chan-gui-video';
 import { dangChongBau } from './bo-set-3d';
 
 const sach = 'A 10-second, 6-shot widescreen film sequence. Shot 1 (about 2 s): the man in the t-shirt says: Nhóc, lại đây!. Shot 2: the boy looks up. Keep it subtitle-free.';
@@ -32,6 +32,7 @@ const cumC = 'Shot 3 (about 1.5 s): Medium shot — slow carefree stroll, sippin
 assert.deepStrictEqual(loiShotPrompt(cumC).length, 1); assert.ok(loiShotPrompt(cumC)[0]!.includes('shot 4') && loiShotPrompt(cumC)[0]!.includes('questions'));
 assert.deepStrictEqual(loiShotPrompt(cumC.replace('fires questions', 'glares down, jabbing a finger at the train')), []);
 assert.ok(loiShotPrompt('Shot 1 (about 1.5 s): Insert close-up — hold the action clear and readable, settle at the end. Keep it subtitle-free.')[0]!.includes('câu diễn rỗng'));
+assert.ok(loiThoaiCuoiCum([2], 4)[0]!.includes('shot 2')); assert.deepStrictEqual(loiThoaiCuoiCum([5], 5), []); assert.deepStrictEqual(loiThoaiCuoiCum([], 3), []);
 assert.deepStrictEqual(loiAnhCum(5, 4).length, 1); assert.deepStrictEqual(loiAnhCum(5, 5), []);
 // câu thoại kết bằng "!" (không chấm thêm): boLoiThoai vẫn cắt đúng hết câu, không nuốt câu tiếng Anh sau nó
 assert.strictEqual(boLoiThoai('Shot 1 (about 2 s): the man says: Đi nhanh về nhanh nhé! Keep it subtitle-free.'), 'Shot 1 (about 2 s): the man says: …! Keep it subtitle-free.');

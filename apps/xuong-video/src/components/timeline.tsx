@@ -155,7 +155,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // CHẾ ĐỘ XEM (anh 13/11/2026: "film dạng 3D có đủ chuyển động, rồi các keyframe, sau đó mới đến video"): 3D = clip three.js của shot (khung_xam.clip,
   // bỏ dư đầu vao) · Keyframe = ảnh keyframe · Video = clip AI. Clip Blender thô gán tạm vào video_url (nguon_video.model 'blender:tho') KHÔNG tính là video.
   const [cheDo, setCheDo] = useNho<'3d' | 'keyframe' | 'video'>(`xv-tl-che-do-${tap.phim_id}`, 'video', ['3d', 'keyframe', 'video'], 'tlx');
-  const clip3d = c?.khung_xam?.clip && c.khung_xam.clip.ma === c.khung_xam.ma ? c.khung_xam.clip : null;
+  // SO SÁNH SONG SONG (góp ý #1603): Shift/⌘-bấm chế độ khác để thêm vào; màn xem hiện thêm khung của các chế độ đó cạnh khung chính, cùng thời điểm.
+  const [soSanh, setSoSanh] = useState<('3d' | 'keyframe' | 'video')[]>([]);
+  const phu = (['3d', 'keyframe', 'video'] as const).filter((m) => m !== cheDo && soSanh.includes(m));
+  const clip3d = c?.khung_xam?.clip &&c.khung_xam.clip.ma === c.khung_xam.ma ? c.khung_xam.clip : null;
   const vidAi = c && !String(c.nguon_video?.model ?? '').startsWith('blender') ? c.video_cuoi_url || c.video_url : null;
   const vid = !c ? null : cheDo === '3d' ? clip3d?.url ?? null : cheDo === 'keyframe' ? null : vidAi;
   const daiVid = vid ? daiCua[vid] ?? 0 : 0;
@@ -580,6 +583,18 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             {tap.nhac_url && <audio ref={nhacRef} src={tap.nhac_url} preload="auto" />}
             {nhacPc && <audio ref={nhacPcRef} key={nhacPc} src={nhacPc} preload="auto" />}
           </div>
+          {c && phu.length > 0 && <div style={{ display: 'flex', flexDirection: doc916 ? 'row' : 'column', gap: 6, marginTop: 6 }}>
+            {phu.map((m) => {
+              const cl = c.khung_xam?.clip && c.khung_xam.clip.ma === c.khung_xam.ma ? c.khung_xam.clip : null;
+              const v = m === '3d' ? cl?.url ?? null : m === 'video' ? vidAi : null;
+              const dv = v ? daiCua[v] ?? 0 : 0;
+              const vt = m === '3d' ? (cl ? cl.vao + tTrong : 0) : diemVaoClip(c.ky_thuat?.vao_s, dv || null, dur(c)) + tTrong;
+              const anh = m === '3d' ? c.khung_xam?.mau ?? null : c.keyframe_url;
+              const r = doc916 ? (rongXem - 6 * (phu.length - 1)) / phu.length : rongXem;
+              return <KhungSoSanh key={m} nhan={m === '3d' ? '🧊 3D' : m === 'keyframe' ? '🖼 Keyframe' : '🎬 Video'} rong={r} cao={r * caoXem / rongXem}
+                vid={v} vt={vt} anh={anh ? anhNho(anh, 640) ?? null : null} chay={chay} onDai={(d) => v && ghiDai(v, d)} />;
+            })}
+          </div>}
         </main>
   );
   const tranNgang = xemCanh && !doc916;
@@ -603,7 +618,14 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         <button type="button" className="xv-btn" title="Cảnh sau (→)" onClick={() => tuaToi(batDau[Math.min(canh.length - 1, idx + 1)] ?? 0)}>⏭</button>
         <span style={{ ...mono, fontSize: 12, color: 'var(--fg-1)', minWidth: 96 }}>{dongHo(t)} / {dongHo(tong)}</span>
         <button type="button" className="xv-btn" onClick={onToanManHinh} title="Xem cả tập toàn màn hình">⛶</button>
-        <Seg value={cheDo} onChange={(v) => setCheDo(v)} options={[{ value: '3d', label: '🧊 3D', title: 'Phim dựng 3D (three.js) đủ chuyển động — clip 3D từng shot; shot chưa xuất clip thì hiện khung mở' }, { value: 'keyframe', label: '🖼 Keyframe', title: 'Chỉ ảnh keyframe từng shot' }, { value: 'video', label: '🎬 Video', title: 'Clip video AI (clip Blender thô gán tạm không tính)' }]} />
+        <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+          {([{ value: '3d', label: '🧊 3D', title: 'Phim dựng 3D (three.js) đủ chuyển động — clip 3D từng shot; shot chưa xuất clip thì hiện khung mở' }, { value: 'keyframe', label: '🖼 Keyframe', title: 'Chỉ ảnh keyframe từng shot' }, { value: 'video', label: '🎬 Video', title: 'Clip video AI (clip Blender thô gán tạm không tính)' }] as const).map((o) => {
+            const chinh = o.value === cheDo; const them = !chinh && soSanh.includes(o.value);
+            return <button key={o.value} type="button" title={`${o.title}\nShift/⌘-bấm = thêm/bớt vào so sánh song song`}
+              onClick={(e) => { if (e.shiftKey || e.metaKey || e.ctrlKey) { if (!chinh) setSoSanh((s) => (s.includes(o.value) ? s.filter((x) => x !== o.value) : [...s, o.value])); } else { setCheDo(o.value); setSoSanh([]); } }}
+              style={{ padding: '4px 10px', border: 0, fontSize: 12, cursor: 'pointer', background: chinh ? 'var(--accent, #2563eb)' : them ? 'rgba(37,99,235,.35)' : 'transparent', color: chinh ? '#fff' : 'var(--fg-1)', boxShadow: them ? 'inset 0 0 0 1px var(--accent, #2563eb)' : undefined }}>{o.label}{them ? ' ⧉' : ''}</button>;
+          })}
+        </span>
         <Seg value={boCuc} onChange={(v) => setBoCuc(v)} options={[{ value: 'trai', label: '◧', title: 'Màn xem bên TRÁI, cao gần hết màn hình — timeline bên phải' }, { value: 'giua', label: '▣', title: 'Màn xem ở GIỮA hàng panel (Dự án | Khung hình | Thuộc tính) như cũ' }, { value: 'phai', label: '◨', title: 'Màn xem bên PHẢI, cao gần hết màn hình — kiểu CapCut (mặc định cho phim dọc 9:16)' }]} />
         <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)', margin: '0 4px' }} />
         <LopCongCu t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} onThem={themLop} />
@@ -1046,4 +1068,22 @@ function DsLanAn({ lay, an, onDoi }: { lay: () => string[]; an: string[]; onDoi:
       <input type="checkbox" checked={!an.includes('xem:chu_man')} onChange={() => onDoi('xem:chu_man')} /> Chữ màn trên khung xem (bản xuất vẫn có)
     </label>
   </>);
+}
+
+// Khung phụ so sánh song song (góp ý #1603): một chế độ xem khác của CÙNG shot, bám đồng hồ timeline (tua khi lệch > 0,25 s, chạy/dừng theo nút chính).
+function KhungSoSanh({ nhan, rong, cao, vid, vt, anh, chay, onDai }: { nhan: string; rong: number; cao: number; vid: string | null; vt: number; anh: string | null; chay: boolean; onDai: (d: number) => void }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    if (Math.abs(el.currentTime - vt) > 0.25) el.currentTime = Math.max(0, vt);
+    if (chay && el.paused) el.play().catch(() => {}); else if (!chay && !el.paused) el.pause();
+  }, [vt, chay, vid]);
+  return (
+    <div style={{ position: 'relative', width: rong, height: cao, overflow: 'hidden', borderRadius: 4, background: '#000' }}>
+      {vid ? <video ref={ref} key={vid} src={vid} poster={anh ?? undefined} muted playsInline preload="auto" onLoadedMetadata={(e) => onDai(e.currentTarget.duration || 0)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : anh ? <img src={anh} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>chưa có hình</div>}
+      <div style={{ position: 'absolute', left: 6, top: 6, padding: '2px 6px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: '#fff', fontSize: 11 }}>{nhan}</div>
+    </div>
+  );
 }

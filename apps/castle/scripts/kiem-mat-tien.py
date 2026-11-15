@@ -12,10 +12,12 @@ giữa chiều cao ô kính, tính độ sáng theo cột, tìm các đoạn T�
 import json, sys, pathlib
 from PIL import Image, ImageDraw
 
+LAU = sys.argv[sys.argv.index('--lau') + 1] if '--lau' in sys.argv else 'neuschwanstein'  # tên lâu đài (quy trình: apps/castle/QUY-TRINH.md)
+
 GOC = pathlib.Path(__file__).resolve().parent.parent
 ra_anh = sys.argv[sys.argv.index('--anh') + 1] if '--anh' in sys.argv else None
-args = [a for a in sys.argv[1:] if not a.startswith('--') and a != ra_anh]
-tep = pathlib.Path(args[0]) if args else GOC / 'public/du-lieu/neuschwanstein-mat-palas-san.json'
+args = [a for a in sys.argv[1:] if not a.startswith('--') and a != ra_anh and a != LAU]
+tep = pathlib.Path(args[0]) if args else GOC / f'public/du-lieu/{LAU}-mat-palas-san.json'
 B = json.loads(tep.read_text())
 anh = Image.open(GOC / B['anh']['tep']).convert('L')
 W, H = anh.size

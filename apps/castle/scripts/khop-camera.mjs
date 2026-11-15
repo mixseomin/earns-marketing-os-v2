@@ -4,22 +4,13 @@
 // Camera khớp xong ghi lại vào du-lieu/<lâu>-anh.json → máy kiểm đường viền (chup-so-anh.mjs + kiem-vien.py) so mô hình với ảnh trên camera đúng.
 // Chạy trên iMac: node apps/castle/scripts/khop-camera.mjs [chỉ số ảnh …] (mặc định mọi ảnh đã có camera). Tự mở máy chủ tĩnh cổng 18777.
 // tra-repo-ok: cùng ý tưởng khớp camera một ảnh của fSpy (perarnia/fSpy, GPL) nhưng tự động bằng viền ảnh 3D; công cụ nội bộ của cảnh.
-import http from 'node:http';
 import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
-import { join, dirname, extname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-const GOC = join(dirname(fileURLToPath(import.meta.url)), '..'), PUB = join(GOC, 'public'), TEP = join(PUB, 'du-lieu', 'neuschwanstein-anh.json');
-const PW = process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs';
-const LOAI = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png', '.glb': 'model/gltf-binary', '.bin': 'application/octet-stream' };
-const may = http.createServer((q, r) => { let p = decodeURIComponent(new URL(q.url, 'http://x').pathname); const f = join(PUB, p); if (!f.startsWith(PUB) || !existsSync(f) || statSync(f).isDirectory()) { r.writeHead(404).end(); return; } r.writeHead(200, { 'Content-Type': LOAI[extname(f)] || 'application/octet-stream' }).end(readFileSync(f)); });
-await new Promise((ok, loi) => may.once('error', loi).listen(18777, '127.0.0.1', ok)).catch((e) => { console.error('cổng 18777 đang bận:', e.code); process.exit(1); });
-const { chromium } = await import(PW);
-const b = await chromium.launch({ args: ['--use-angle=metal', '--ignore-gpu-blocklist'] }); const pg = await b.newPage({ viewport: { width: 1600, height: 1200 } });
-pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message));
-await pg.addInitScript(() => { try { localStorage.setItem('ns-anh3d', '1'); localStorage.setItem('ns-dau-thu', '1'); } catch {} });
-await pg.goto('http://127.0.0.1:18777/neuschwanstein.html'); await pg.waitForFunction(() => window.__ns?.tt && window.__ns.anh3d(), null, { timeout: 180000 });
+import { GOC, PUB, LAU, du, doiSo, moTrang } from './chung.mjs';
+import { join } from 'node:path';
+const TEP = du('anh');
+const { pg, dong } = await moTrang({ anh3d: true, khung: { width: 1600, height: 1200 } });
 const ANH = JSON.parse(readFileSync(TEP, 'utf8'));
-const chon = process.argv.slice(2).map(Number); const ds = ANH.map((a, i) => i).filter((i) => ANH[i].camera && (!chon.length || chon.includes(i)));
+const chon = doiSo.map(Number); const ds = ANH.map((a, i) => i).filter((i) => ANH[i].camera && (!chon.length || chon.includes(i)));
 
 // trong trang: viền ảnh thật (một lần) + hàm chấm một camera (vẽ riêng lớp ảnh 3D, chờ ô tải, đọc điểm ảnh)
 await pg.evaluate(() => {
@@ -59,4 +50,4 @@ for (const i of ds) {
     ghi_chu: `khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, ${new Date().toISOString().slice(0, 10)}): trung vị lệch viền ${tot.toFixed(1)} px trên khung 1600 px` };
 }
 writeFileSync(TEP, JSON.stringify(ANH, null, 1) + '\n'); console.log('ghi', TEP);
-await b.close(); may.close();
+await dong();

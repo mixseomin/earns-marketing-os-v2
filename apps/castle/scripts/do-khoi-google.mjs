@@ -7,27 +7,12 @@
 // Cần Playwright: PLAYWRIGHT=/đường/tới/playwright/index.mjs (mặc định bản cài trong courseforge-demo trên iMac).
 // Token web Cesium chỉ nhận referrer http://127.0.0.1:18777 (và castle.on.tc) → công cụ tự mở máy chủ tĩnh ở đúng cổng đó.
 // tra-repo-ok: công cụ đo nội bộ của cảnh, gọi lại hàm có sẵn trong trang (__ns.cao3d); không có thư viện tương ứng.
-import http from 'node:http';
 import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
-import { join, dirname, extname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const GOC = join(dirname(fileURLToPath(import.meta.url)), '..'), PUB = join(GOC, 'public');
-const PW = process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs';
-const LOAI = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.svg': 'image/svg+xml', '.css': 'text/css' };
-const may = http.createServer((q, r) => {
-  let p = decodeURIComponent(new URL(q.url, 'http://x').pathname); if (p.endsWith('/')) p += 'index.html';
-  const f = join(PUB, p); if (!f.startsWith(PUB) || !existsSync(f) || statSync(f).isDirectory()) { r.writeHead(404).end(); return; }
-  r.writeHead(200, { 'Content-Type': LOAI[extname(f)] || 'application/octet-stream', ETag: String(statSync(f).mtimeMs) }).end(readFileSync(f));
-});
-await new Promise((ok, loi) => may.once('error', loi).listen(18777, '127.0.0.1', ok)).catch((e) => { console.error('cổng 18777 đang bận (tắt máy chủ tĩnh khác rồi chạy lại):', e.code); process.exit(1); });
+import { GOC, PUB, LAU, du, doiSo, moTrang } from './chung.mjs';
+import { join } from 'node:path';
 
-const { chromium } = await import(PW);
-const b = await chromium.launch({ args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
-const pg = await b.newPage({ viewport: { width: 1400, height: 1000 } });
-pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message));
-await pg.addInitScript(() => { try { localStorage.setItem('ns-anh3d', '1'); localStorage.setItem('ns-dau-thu', '1'); } catch {} });
-await pg.goto('http://127.0.0.1:18777/neuschwanstein.html?goc=osm'); // ?goc=osm: trang dựng khối THUẦN OSM (chân = đất thấp nhất, không chỉnh theo số đo cũ) để so cặp từng điểm
+const { pg, dong } = await moTrang({ anh3d: true, them: 'goc=osm', khung: { width: 1400, height: 1000 } });
 await pg.waitForFunction(() => window.__ns?.tt && window.__ns.anh3d()?.hien, null, { timeout: 180000 });
 
 // nạp ô chi tiết: đưa camera toàn cảnh đi vòng trên lâu đài ở độ cao thấp, mỗi chỗ chờ tải xong
@@ -75,12 +60,12 @@ const kq = await pg.evaluate(() => {
   }
   return { dich: DICH, san: SAN, sanIQR: IQR, sanSoDiem: mSan.length, matSanDangDung: n.MAT_SAN, goc: n.GOC_Y, hop, buoc: BUOC, nen, ds };
 });
-await b.close(); may.close();
+await dong();
 
 const { nen, hop, buoc, ...bang } = kq;
 const ra = join(GOC, 'du-lieu-goc', 'do-khoi-google.json');
 writeFileSync(ra, JSON.stringify({ luc: new Date().toISOString(), ghi_chu: 'đỉnh / chân mái đo trên ảnh thật 3D Google — độ cao TUYỆT ĐỐI theo toạ độ cảnh (0 = GOC_Y so mặt biển); mô hình = khối đang dựng', ...bang }, null, 1) + '\n');
-const raNen = join(PUB, 'du-lieu', 'neuschwanstein-nen.json');
+const raNen = du('nen');
 const khoi = Object.fromEntries(kq.ds.filter((d) => d.lech != null).map((d) => [d.id, [+d.lech.toFixed(2), d.soLech, +d.dinhGoogle.toFixed(2), +d.lechIQR.toFixed(2)]]));
 writeFileSync(raNen, JSON.stringify({ ghi_chu: 'ĐO TRÊN ẢNH 3D GOOGLE (scripts/do-khoi-google.mjs), toạ độ cảnh, y so GOC_Y: diem = mặt đất ngoài mặt bằng nhà [x, z, y]; san = trung vị mặt sân trên; khoi = { id: [lệch (trung vị từng điểm: mặt Google − mặt khối thuần OSM chân đất thấp nhất), số điểm, đỉnh phân vị 98, độ trải giữa của lệch] }. ns.js dùng làm mốc chân nhà + mặt đất quanh lâu đài', luc: new Date().toISOString(), goc: kq.goc, san: +kq.san.toFixed(2), hop, buoc, khoi, diem: nen }) + '\n');
 console.log(`sân trên Google: ${kq.san?.toFixed(2)} m (= ${(kq.goc + kq.san).toFixed(1)} m so mặt biển; ${kq.sanSoDiem} điểm, độ trải giữa ${kq.sanIQR?.toFixed(2)} m) · nền sân đang dựng ${kq.matSanDangDung?.toFixed?.(2)} m · trang đã dịch ô ${kq.dich.toFixed(2)} m`);

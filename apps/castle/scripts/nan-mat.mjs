@@ -4,22 +4,12 @@
 //   node apps/castle/scripts/nan-mat.mjs <thư mục ra> <chỉ số ảnh> [tên khối = Palas]
 // Ghi <thư mục>/mat-<ảnh>-<k>.png + mat.json (mỗi mặt: khối, cạnh, x1 z1 x2 z2, y0 y1, px/m, tỉ lệ thấy được).
 // tra-repo-ok: công cụ nội bộ (chiếu camera three.js), không có thư viện tương ứng cho dữ liệu riêng của cảnh.
-import http from 'node:http';
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync } from 'node:fs';
-import { join, dirname, extname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-const GOC = join(dirname(fileURLToPath(import.meta.url)), '..'), PUB = join(GOC, 'public');
-const [RA, IS, TEN = 'Palas'] = process.argv.slice(2); const I = +IS; if (!RA || !Number.isInteger(I)) { console.error('dùng: nan-mat.mjs <thư mục> <chỉ số ảnh> [tên khối]'); process.exit(1); }
+import { GOC, PUB, LAU, du, doiSo, moTrang } from './chung.mjs';
+import { join } from 'node:path';
+const [RA, IS, TEN = 'Palas'] = doiSo; const I = +IS; if (!RA || !Number.isInteger(I)) { console.error('dùng: nan-mat.mjs <thư mục> <chỉ số ảnh> [tên khối]'); process.exit(1); }
 mkdirSync(RA, { recursive: true });
-const PW = process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs';
-const LOAI = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png', '.glb': 'model/gltf-binary', '.bin': 'application/octet-stream' };
-const may = http.createServer((q, r) => { let p = decodeURIComponent(new URL(q.url, 'http://x').pathname); const f = join(PUB, p); if (!f.startsWith(PUB) || !existsSync(f) || statSync(f).isDirectory()) { r.writeHead(404).end(); return; } r.writeHead(200, { 'Content-Type': LOAI[extname(f)] || 'application/octet-stream' }).end(readFileSync(f)); });
-await new Promise((ok, loi) => may.once('error', loi).listen(18777, '127.0.0.1', ok)).catch((e) => { console.error('cổng 18777 đang bận:', e.code); process.exit(1); });
-const { chromium } = await import(PW);
-const b = await chromium.launch({ args: ['--use-angle=metal'] }); const pg = await b.newPage({ viewport: { width: 1600, height: 1200 } });
-pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message));
-await pg.addInitScript(() => { try { localStorage.setItem('ns-anh3d', '0'); localStorage.setItem('ns-dau-thu', '1'); } catch {} });
-await pg.goto('http://127.0.0.1:18777/neuschwanstein.html'); await pg.waitForFunction(() => window.__ns?.tt, null, { timeout: 180000 });
+const { pg, dong } = await moTrang({ anh3d: false, khung: { width: 1600, height: 1200 } });
 const kq = await pg.evaluate(async ([I, TEN]) => {
   const n = window.__ns, T = n.THREE, A = n.ANH[I]; n.moSo(I); n.renderer.render(n.scene, n.camera);
   const im = new Image(); im.src = `./du-lieu/${A.tep}`; await im.decode();
@@ -53,7 +43,7 @@ const kq = await pg.evaluate(async ([I, TEN]) => {
   }
   return kq;
 }, [I, TEN]);
-await b.close(); may.close();
+await dong();
 const meta = kq.map((m, k) => { const tep = join(RA, `mat-${I}-${k}.png`); writeFileSync(tep, Buffer.from(m.anh.split(',')[1], 'base64')); const { anh, ...r } = m; return { ...r, tep }; });
 writeFileSync(join(RA, `mat-${I}.json`), JSON.stringify(meta, null, 1));
 for (const m of meta) console.log(`${m.khoi} cạnh ${m.canh}: ${m.L.toFixed(1)} × ${(m.y1 - m.y0).toFixed(1)} m · thấy ${(m.thay * 100).toFixed(0)}% → ${m.tep}`);

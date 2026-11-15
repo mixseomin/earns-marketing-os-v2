@@ -4,22 +4,12 @@
 // Cùng khuôn ra với nan-mat.mjs (mat-<nhãn>-<k>.png + mat-<nhãn>.json) → scripts/do-cua-so.py dò ô cửa.
 //   node apps/castle/scripts/nan-google.mjs <thư mục ra> [tên khối = Palas] [--ca: cả khối không tên nằm trong vỏ]
 // tra-repo-ok: công cụ nội bộ của cảnh (three.js OrthographicCamera + 3d-tiles-renderer đã nạp trong trang).
-import http from 'node:http';
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync } from 'node:fs';
-import { join, dirname, extname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-const GOC = join(dirname(fileURLToPath(import.meta.url)), '..'), PUB = join(GOC, 'public');
-const [RA, TEN = 'Palas'] = process.argv.slice(2).filter((a) => !a.startsWith('--')); if (!RA) { console.error('dùng: nan-google.mjs <thư mục> [tên khối]'); process.exit(1); }
+import { GOC, PUB, LAU, du, doiSo, moTrang } from './chung.mjs';
+import { join } from 'node:path';
+const [RA, TEN = 'Palas'] = doiSo.filter((a) => !a.startsWith('--')); if (!RA) { console.error('dùng: nan-google.mjs <thư mục> [tên khối]'); process.exit(1); }
 mkdirSync(RA, { recursive: true });
-const PW = process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs';
-const LOAI = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png', '.glb': 'model/gltf-binary', '.bin': 'application/octet-stream' };
-const may = http.createServer((q, r) => { let p = decodeURIComponent(new URL(q.url, 'http://x').pathname); const f = join(PUB, p); if (!f.startsWith(PUB) || !existsSync(f) || statSync(f).isDirectory()) { r.writeHead(404).end(); return; } r.writeHead(200, { 'Content-Type': LOAI[extname(f)] || 'application/octet-stream' }).end(readFileSync(f)); });
-await new Promise((ok, loi) => may.once('error', loi).listen(18777, '127.0.0.1', ok)).catch((e) => { console.error('cổng 18777 đang bận:', e.code); process.exit(1); });
-const { chromium } = await import(PW);
-const b = await chromium.launch({ args: ['--use-angle=metal', '--ignore-gpu-blocklist'] }); const pg = await b.newPage({ viewport: { width: 1200, height: 900 } });
-pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message));
-await pg.addInitScript(() => { try { localStorage.setItem('ns-anh3d', '1'); localStorage.setItem('ns-dau-thu', '1'); } catch {} });
-await pg.goto('http://127.0.0.1:18777/neuschwanstein.html'); await pg.waitForFunction(() => window.__ns?.tt && window.__ns.anh3d(), null, { timeout: 180000 });
+const { pg, dong } = await moTrang({ anh3d: true, khung: { width: 1200, height: 900 } });
 const ds = await pg.evaluate((TEN) => window.__ns.TUONG_MT.map((t, j) => ({ j, ten: t.ten, khoi: t.k?.id, n: t.v.length })).filter((t) => t.ten === TEN), TEN);
 const meta = [];
 for (const t of ds) for (let i = 0; i < t.n; i++) {
@@ -42,4 +32,4 @@ for (const t of ds) for (let i = 0; i < t.n; i++) {
   console.log(`${m.khoi} cạnh ${i}: ${m.L.toFixed(1)} m → ${tep}`);
 }
 writeFileSync(join(RA, 'mat-g.json'), JSON.stringify(meta, null, 1));
-await b.close(); may.close();
+await dong();

@@ -1,0 +1,37 @@
+// DÙNG CHUNG cho mọi công cụ đo / kiểm / dựng lâu đài (quy trình: apps/castle/QUY-TRINH.md):
+//   - LAU: tên lâu đài lấy từ --lau <tên> (mặc định neuschwanstein) → tệp du-lieu/<LAU>-*.json, trang neuschwanstein.html?lau=<LAU>
+//   - moTrang({ anh3d, them }): bật máy chủ tĩnh ĐÚNG cổng 18777 (token web Cesium chỉ nhận referrer 127.0.0.1:18777 + castle.on.tc), mở Chromium (Playwright),
+//     nạp trang, chờ trang sẵn sàng (window.__ns.tt; anh3d = true thì chờ cả lớp ảnh 3D) → { pg, dong() }
+//   - du(ten): đường dẫn public/du-lieu/<LAU>-<ten>.json
+// Chạy trên iMac (có trình duyệt). PLAYWRIGHT=… nếu Playwright cài chỗ khác.
+// tra-repo-ok: mã dán keo nội bộ (máy chủ tĩnh node:http + Playwright), không có thư viện tương ứng cho dữ liệu riêng.
+import http from 'node:http';
+import { readFileSync, existsSync, statSync } from 'node:fs';
+import { join, dirname, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+export const GOC = join(dirname(fileURLToPath(import.meta.url)), '..'), PUB = join(GOC, 'public');
+const i = process.argv.indexOf('--lau');
+export const LAU = i > 0 ? process.argv[i + 1] : process.env.LAU || 'neuschwanstein';
+export const doiSo = process.argv.slice(2).filter((a, k, ds) => a !== '--lau' && ds[k - 1] !== '--lau'); // tham số còn lại (bỏ --lau <tên>)
+export const du = (ten) => join(PUB, 'du-lieu', `${LAU}-${ten}.json`);
+const PW = process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs';
+const LOAI = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.svg': 'image/svg+xml', '.css': 'text/css' };
+
+export async function moTrang({ anh3d = false, them = '', khung = { width: 1600, height: 1200 }, nhanLog = null } = {}) {
+  const may = http.createServer((q, r) => {
+    let p = decodeURIComponent(new URL(q.url, 'http://x').pathname); if (p.endsWith('/')) p += 'index.html';
+    const f = join(PUB, p); if (!f.startsWith(PUB) || !existsSync(f) || statSync(f).isDirectory()) { r.writeHead(404).end(); return; }
+    r.writeHead(200, { 'Content-Type': LOAI[extname(f)] || 'application/octet-stream' }).end(readFileSync(f));
+  });
+  await new Promise((ok, loi) => may.once('error', loi).listen(18777, '127.0.0.1', ok)).catch((e) => { console.error('cổng 18777 đang bận (tắt máy chủ tĩnh khác rồi chạy lại):', e.code); process.exit(1); });
+  const { chromium } = await import(PW);
+  const b = await chromium.launch({ args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
+  const pg = await b.newPage({ viewport: khung });
+  pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message));
+  if (nhanLog) pg.on('console', (m) => { if (m.text().startsWith(nhanLog)) console.log(m.text()); });
+  await pg.addInitScript((a) => { try { localStorage.setItem('ns-anh3d', a ? '1' : '0'); localStorage.setItem('ns-dau-thu', '1'); } catch {} }, anh3d);
+  await pg.goto(`http://127.0.0.1:18777/neuschwanstein.html?lau=${encodeURIComponent(LAU)}${them ? '&' + them : ''}`);
+  await pg.waitForFunction((a) => window.__ns?.tt && (!a || window.__ns.anh3d()), anh3d, { timeout: 180000 });
+  return { pg, dong: async () => { await b.close(); may.close(); } };
+}

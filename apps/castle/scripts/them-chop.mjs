@@ -3,25 +3,16 @@
 // tia từ camera ĐÃ KHỚP (khop-camera.mjs) qua điểm ảnh ngay dưới viền mô hình cắt MÁI MÔ HÌNH (đã khớp ảnh 3D) = chân chóp (x, y, z);
 // tia qua mũi chóp trên ảnh → điểm gần đường thẳng đứng qua chân nhất = độ cao mũi; bề ngang đoạn → bán kính.
 // Gộp chóp trùng giữa các ảnh (< 2,5 m), chỉ giữ chóp nằm trên mái lâu đài (chân cao hơn mặt sân trên, trong / sát mặt bằng khối lâu đài).
-// Ghi apps/castle/public/du-lieu/neuschwanstein-chop.json — ns.js dựng (nón bát giác + chóp).
+// Ghi apps/castle/public/du-lieu/<lâu>-chop.json — ns.js dựng (nón bát giác + chóp).
 //   node apps/castle/scripts/chup-so-anh.mjs <thư mục> && python3 apps/castle/scripts/kiem-vien.py <thư mục>; node apps/castle/scripts/them-chop.mjs <thư mục>
 // tra-repo-ok: công cụ nội bộ của cảnh (Raycaster three.js trên lớp ảnh 3D đã nạp).
-import http from 'node:http';
 import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
-import { join, dirname, extname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-const GOC = join(dirname(fileURLToPath(import.meta.url)), '..'), PUB = join(GOC, 'public'), THU = process.argv[2];
+import { GOC, PUB, LAU, du, doiSo, moTrang } from './chung.mjs';
+import { join } from 'node:path';
+const THU = doiSo[0];
 if (!THU) { console.error('thiếu thư mục có thieu.json'); process.exit(1); }
 const THIEU = JSON.parse(readFileSync(join(THU, 'thieu.json'), 'utf8'));
-const PW = process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs';
-const LOAI = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png', '.glb': 'model/gltf-binary', '.bin': 'application/octet-stream' };
-const may = http.createServer((q, r) => { let p = decodeURIComponent(new URL(q.url, 'http://x').pathname); const f = join(PUB, p); if (!f.startsWith(PUB) || !existsSync(f) || statSync(f).isDirectory()) { r.writeHead(404).end(); return; } r.writeHead(200, { 'Content-Type': LOAI[extname(f)] || 'application/octet-stream' }).end(readFileSync(f)); });
-await new Promise((ok, loi) => may.once('error', loi).listen(18777, '127.0.0.1', ok)).catch((e) => { console.error('cổng 18777 đang bận:', e.code); process.exit(1); });
-const { chromium } = await import(PW);
-const b = await chromium.launch({ args: ['--use-angle=metal', '--ignore-gpu-blocklist'] }); const pg = await b.newPage({ viewport: { width: 1600, height: 1200 } });
-pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message)); pg.on('console', (m) => { if (m.text().startsWith('[chop]')) console.log(m.text()); });
-await pg.addInitScript(() => { try { localStorage.setItem('ns-anh3d', '0'); localStorage.setItem('ns-dau-thu', '1'); } catch {} });
-await pg.goto('http://127.0.0.1:18777/neuschwanstein.html'); await pg.waitForFunction(() => window.__ns?.tt, null, { timeout: 180000 });
+const { pg, dong } = await moTrang({ anh3d: false, khung: { width: 1600, height: 1200 }, nhanLog: '[chop]' });
 const tim = [];
 for (const i of [...new Set(THIEU.map((t) => t.i))]) {
   const ds = await pg.evaluate(async ([i, ts]) => {
@@ -41,7 +32,7 @@ for (const i of [...new Set(THIEU.map((t) => t.i))]) {
 }
 // lọc + gộp
 const ctx = await pg.evaluate(() => { const n = window.__ns, tam = (v) => v.reduce((s, p) => [s[0] + p[0] / v.length, s[1] + p[1] / v.length], [0, 0]); return { san: n.MAT_SAN, khoi: n.dsKhoi.filter((k) => k.tags.height || k.la).map((k) => k.v), tamKhoi: n.dsKhoi.filter((k) => k.la).map((k) => tam(k.v)) }; });
-await b.close(); may.close();
+await dong();
 const trong = (x, z, v) => { let c = false; for (let i = 0, j = v.length - 1; i < v.length; j = i++) { const [xi, zi] = v[i], [xj, zj] = v[j]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) c = !c; } return c; };
 const ganKhoi = (x, z) => ctx.khoi.some((v) => trong(x, z, v) || v.some(([a, c]) => Math.hypot(a - x, c - z) < 4));
 const loc = tim.filter((c) => c.yChan > ctx.san + 3 && c.yDinh - c.yChan > 2.5 && c.r > 0.25 && c.r < 3 && ganKhoi(c.x, c.z));
@@ -50,6 +41,6 @@ for (const c of loc) { const g = gop.find((q) => Math.hypot(q.x - c.x, q.z - c.z
 // chiều sâu chỉ chắc khi thấy trên ≥ 2 ảnh (hai tia gặp nhau) hoặc chân trùng tâm một khối OSM có sẵn (nối dài chóp của khối đó); một ảnh → bỏ
 const chac = gop.filter((c) => c.anh.length >= 2 || ctx.tamKhoi.some(([x, z]) => Math.hypot(x - c.x, z - c.z) < 3));
 const ra = chac.map((c) => ({ x: +c.x.toFixed(2), z: +c.z.toFixed(2), yChan: +c.yChan.toFixed(2), yDinh: +c.yDinh.toFixed(2), r: +c.r.toFixed(2), anh: c.anh }));
-const TEP = join(PUB, 'du-lieu', 'neuschwanstein-chop.json');
+const TEP = du('chop');
 writeFileSync(TEP, JSON.stringify({ ghi_chu: 'CHÓP / THÁP NHỎ OSM không có, tìm bằng máy kiểm đường viền (scripts/kiem-vien.py) + tia từ camera đã khớp xuống ảnh 3D Google (scripts/them-chop.mjs). Toạ độ cảnh: chân (x, yChan, z), mũi yDinh, bán kính r; anh = chỉ số ảnh so thấy chóp', luc: new Date().toISOString(), chop: ra }, null, 1) + '\n');
 console.log(`${tim.length} điểm dò → lọc ${loc.length} → gộp ${gop.length} → chắc ${ra.length} chóp → ${TEP}`); for (const c of ra) console.log(' ', JSON.stringify(c));

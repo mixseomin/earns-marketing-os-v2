@@ -4,9 +4,9 @@
   python3 apps/castle/scripts/do-cua-so.py <thư mục> <nhãn: g | chỉ số ảnh> [--ra tệp.json] [--anh]
 
 Cách dò theo LƯỚI (bền hơn dò từng vùng tối trên ảnh nhoè):
-  1. ảnh tối = điểm tối hơn nền tường (phân vị 70 độ sáng vùng tường) quá 30;
+  1. độ tối CỤC BỘ = trung bình tường quanh điểm (1,5 m) − điểm; ngưỡng = 45 % phân vị 97 của chính mặt đó (tự thích nghi mặt sáng / tối);
   2. HÀNG cửa: hồ sơ tối theo y (chỉ trong vùng tường, dưới mái hiên mô hình) → đoạn liền cao 0,8–4 m;
-  3. trong mỗi hàng: hồ sơ tối theo x → CỤM (đoạn tối gộp khi hở < 0,35 m), số Ô trong cụm = số đỉnh tối cách ≥ 0,35 m;
+  3. CỘT ô chung cho cả mặt (hồ sơ tối theo x gộp mọi hàng); mỗi hàng × cột đủ tối là một ô; ô sát nhau (hở < 0,5 m) gộp thành CỤM;
   4. CỬA MÁI: trên dải mái (y trên mái hiên) tìm khối SÁNG (thân cửa mái trắng trên mái xám) rộng 0,6–3 m.
 Ghi { "<khối>#<cạnh>": { "hang": [{ "y0", "y1", "cum": [[s0, s1, n]] }], "mai": [[s0, s1]] } } — mét: s dọc cạnh từ đỉnh đầu, y tuyệt đối.
 --anh: vẽ hàng (xanh), cụm + số ô (đỏ), cửa mái (vàng) lên ảnh để soát (cua-<nhãn>-<k>.png).
@@ -14,9 +14,11 @@ Ghi { "<khối>#<cạnh>": { "hang": [{ "y0", "y1", "cum": [[s0, s1, n]] }], "ma
 import json, sys, pathlib
 from PIL import Image, ImageDraw
 
+LAU = sys.argv[sys.argv.index('--lau') + 1] if '--lau' in sys.argv else 'neuschwanstein'  # tên lâu đài (quy trình: apps/castle/QUY-TRINH.md)
+
 thu = pathlib.Path(sys.argv[1]); NHAN = sys.argv[2]
 GOC = pathlib.Path(__file__).resolve().parent.parent
-ra = pathlib.Path(sys.argv[sys.argv.index('--ra') + 1]) if '--ra' in sys.argv else GOC / 'public/du-lieu/neuschwanstein-cua-so.json'
+ra = pathlib.Path(sys.argv[sys.argv.index('--ra') + 1]) if '--ra' in sys.argv else GOC / f'public/du-lieu/{LAU}-cua-so.json'
 cu = json.loads(ra.read_text()) if ra.exists() else {}
 
 
@@ -46,25 +48,35 @@ for k, m in enumerate(json.loads((thu / f'mat-{NHAN}.json').read_text())):
     vals = sorted(sang[y][x] for y in range(yMai, H) for x in range(W) if not troi(x, y))
     if len(vals) < 50: continue
     nen = vals[int(len(vals) * 0.7)]
-    toi = [[(not troi(x, y)) and y > yMai + 2 and sang[y][x] < nen - 30 for x in range(W)] for y in range(H)]
+    # ĐỘ TỐI CỤC BỘ: nền = trung bình vùng tường quanh điểm (hộp 1,5 m, ảnh tích phân); tối = nền − điểm. Ngưỡng theo chính mặt này
+    # (phân vị 97 của độ tối) → mặt sáng / mặt tối, ảnh rõ / ảnh nhoè, lâu đài khác đều dùng chung một cách dò
+    R = int(0.75 * P); I = [[0.0] * (W + 1) for _ in range(H + 1)]; C = [[0] * (W + 1) for _ in range(H + 1)]
+    for y in range(H):
+        for x in range(W):
+            t = not troi(x, y) and y > yMai; I[y + 1][x + 1] = I[y][x + 1] + I[y + 1][x] - I[y][x] + (sang[y][x] if t else 0); C[y + 1][x + 1] = C[y][x + 1] + C[y + 1][x] - C[y][x] + (1 if t else 0)
+    def tb(x, y):
+        a0, a1, b0, b1 = max(0, x - R), min(W, x + R + 1), max(0, y - R), min(H, y + R + 1)
+        c = C[b1][a1] - C[b0][a1] - C[b1][a0] + C[b0][a0]; return (I[b1][a1] - I[b0][a1] - I[b1][a0] + I[b0][a0]) / c if c else 0
+    toiDo = [[(tb(x, y) - sang[y][x]) if (not troi(x, y) and y > yMai + 2) else 0 for x in range(W)] for y in range(H)]
+    ds = sorted(v for r in toiDo for v in r if v > 0); muc = max(10, 0.45 * ds[int(len(ds) * 0.97)]) if ds else 99
+    toi = [[v > muc for v in r] for r in toiDo]
     hoY = [sum(toi[y]) / W for y in range(H)]
     hang = []
-    for y0, y1 in doan(hoY, 0.06, gop=int(0.3 * P)):
-        if not (0.8 * P <= y1 - y0 + 1 <= 4 * P): continue
-        hoX = [sum(1 for y in range(y0, y1 + 1) if toi[y][x]) / (y1 - y0 + 1) for x in range(W)]
+    dai = [(y0, y1) for y0, y1 in doan(hoY, max(0.03, 0.3 * sorted(hoY)[int(H * 0.97)]), gop=int(0.3 * P)) if 0.8 * P <= y1 - y0 + 1 <= 4 * P]
+    # CỘT Ô CỬA CHUNG CHO CẢ MẶT (cửa các tầng xếp thẳng cột): hồ sơ tối theo x gộp mọi hàng → mỗi đoạn tối rộng 0,15–1,3 m là một cột ô
+    if dai:
+        hoC = [sum(1 for y0, y1 in dai for y in range(y0, y1 + 1) if toi[y][x]) / sum(y1 - y0 + 1 for y0, y1 in dai) for x in range(W)]
+        cot = [(a, b) for a, b in doan(hoC, max(0.06, 0.3 * max(hoC))) if 0.15 * P <= b - a + 1 <= 1.3 * P]
+    for y0, y1 in dai:
+        # ô (hàng × cột) có cửa khi đủ tối so với ô tối nhất của hàng; ô sát nhau (hở < 0,5 m) gộp thành một cụm
+        f = [sum(1 for y in range(y0, y1 + 1) for x in range(a, b + 1) if toi[y][x]) / ((y1 - y0 + 1) * (b - a + 1)) for a, b in cot]
+        if not f or max(f) < 0.08: continue
+        co = [c for c, v in zip(cot, f) if v >= 0.35 * max(f)]
         cum = []
-        for x0, x1 in doan(hoX, 0.25, gop=int(0.35 * P)):
-            if x1 - x0 + 1 < 0.3 * P: continue
-            # số ô: đỉnh tối trong cụm, cách nhau ≥ 0,35 m (đáy giữa hai đỉnh sáng hơn 30 %)
-            seg = hoX[x0:x1 + 1]; dinh = []
-            for i in range(1, len(seg) - 1):
-                if seg[i] >= seg[i - 1] and seg[i] >= seg[i + 1] and seg[i] > 0.45:
-                    if dinh and i - dinh[-1] < 0.35 * P:
-                        if seg[i] > seg[dinh[-1]]: dinh[-1] = i
-                        continue
-                    if dinh and min(seg[dinh[-1]:i + 1]) > 0.7 * min(seg[i], seg[dinh[-1]]): continue
-                    dinh.append(i)
-            cum.append([round(x0 / P, 2), round((x1 + 1) / P, 2), max(1, len(dinh))])
+        for a, b in co:
+            if cum and a - cum[-1][1] - 1 < 0.5 * P: cum[-1][1] = b; cum[-1][2] += 1
+            else: cum.append([a, b, 1])
+        cum = [[round(a / P, 2), round((b + 1) / P, 2), n] for a, b, n in cum]
         if cum: hang.append({'y0': round(m['y1'] - (y1 + 1) / P, 2), 'y1': round(m['y1'] - y0 / P, 2), 'cum': cum, '_py': (y0, y1)})
     # cửa mái: trên dải mái (giữa trời và mái hiên) khối sáng
     mai = []

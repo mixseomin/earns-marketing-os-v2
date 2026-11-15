@@ -237,3 +237,17 @@ export function datThapGoc({ THREE, mergeGeometries, v, b, mau, mauMai = '#7f9e8
   gop(da, new THREE.MeshStandardMaterial({ color: mau, roughness: 0.8 })); gop(toi, new THREE.MeshStandardMaterial({ color: '#1b1f27', roughness: 0.6 }));
   return ra;
 }
+
+// CHÓP / THÁP NHỎ OSM không có (du-lieu/<lâu>-chop.json, tìm bằng máy kiểm đường viền + tia từ camera đã khớp): nón bát giác đá phiến + nụ + que chóp, gộp một lưới
+export function datChop({ THREE, mergeGeometries, ds, nhe = false }) {
+  const gs = [], cb = (g) => { g = g.index ? g.toNonIndexed() : g; if (g.attributes.uv) g.deleteAttribute('uv'); return g; };
+  for (const c of ds) {
+    const h = c.yDinh - c.yChan; if (!(h > 0.5)) continue;
+    const non = cb(new THREE.ConeGeometry(c.r, h, nhe ? 6 : 8, 1, false)); non.translate(c.x, c.yChan + h / 2, c.z); gs.push(non);
+    const nu = cb(new THREE.SphereGeometry(Math.max(0.08, c.r * 0.12), 6, 4)); nu.translate(c.x, c.yDinh + 0.05, c.z); gs.push(nu);
+    const que = cb(new THREE.CylinderGeometry(0.02, 0.03, Math.max(0.5, h * 0.12), 4)); que.translate(c.x, c.yDinh + Math.max(0.5, h * 0.12) / 2, c.z); gs.push(que);
+  }
+  if (!gs.length) return [];
+  const m = new THREE.Mesh(mergeGeometries(gs), new THREE.MeshStandardMaterial({ color: '#3d434c', roughness: 0.6, metalness: 0.15 })); m.castShadow = !nhe; m.receiveShadow = true;
+  return [m];
+}

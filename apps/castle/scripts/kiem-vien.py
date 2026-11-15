@@ -15,6 +15,7 @@ thu = pathlib.Path(sys.argv[1])
 chi = set(int(x) for x in sys.argv[sys.argv.index('--chi') + 1].split(',')) if '--chi' in sys.argv else {0, 1}
 NEN = (169, 196, 220)  # màu trời của cảnh (scene.background 0xa9c4dc)
 loi = 0
+thieu = []  # đoạn THIẾU hẹp (chóp / tháp nhỏ) — toạ độ theo phần khung (0..1) — scripts/them-chop.mjs đọc
 for d in json.loads((thu / 'ds.json').read_text()):
     if d['i'] not in chi: continue
     m = Image.open(d['moHinh']).convert('RGB'); W, H = m.size
@@ -51,10 +52,16 @@ for d in json.loads((thu / 'ds.json').read_text()):
     dr.line([(x, vA[x]) for x in range(W)], fill=(255, 40, 40), width=2); dr.line([(x, vM[x]) for x in range(W)], fill=(40, 220, 60), width=2)
     for s in doan: dr.rectangle([s['x0'], s['dinhAnh'] - 4, s['x1'], s['dinhAnh'] + 4], outline=(255, 255, 0), width=2)
     ve.save(thu / f"vien-{d['i']}.png")
-    print(f"ảnh {d['i']} ({pathlib.Path(d['anh']).name}): {len(doan)} đoạn lệch")
+    lechCot = sorted(abs(vM[x] - vA[x]) for x in xet); khop = sum(1 for v in lechCot if v <= 10) / max(1, len(lechCot))
+    print(f"ảnh {d['i']} ({pathlib.Path(d['anh']).name}): {len(doan)} đoạn lệch · {khop * 100:.0f}% cột lâu đài lệch ≤ 10 px · trung vị lệch {lechCot[len(lechCot) // 2] if lechCot else 0} px")
+    for s in doan:
+        if s['kieu'] == 'THIẾU' and s['x1'] - s['x0'] + 1 <= 40 and s['max'] >= 25:
+            dinh = min(range(s['x0'], s['x1'] + 1), key=lambda x: vA[x])
+            thieu.append({'i': d['i'], 'x': dinh / W, 'yDinh': vA[dinh] / H, 'yChan': vM[dinh] / H, 'rong': (s['x1'] - s['x0'] + 1) / W})
     for s in doan:
         rong = s['x1'] - s['x0'] + 1
         print(f"  {s['kieu']:<5} cột {s['x0']:>4}–{s['x1']:<4} ({rong:>3} px{' — chóp / tháp nhỏ' if rong <= 40 and s['kieu'] == 'THIẾU' else ''}) lệch tối đa {s['max']:>3} px, đỉnh ảnh y {s['dinhAnh']}")
     loi += len(doan)
+(thu / 'thieu.json').write_text(json.dumps(thieu))
 print('đường viền khớp' if not loi else f'{loi} đoạn lệch — xem vien-*.png trong {thu}')
 sys.exit(1 if loi else 0)

@@ -1,0 +1,48 @@
+{
+ "ghi_chu": "CHÓP / THÁP NHỎ OSM không có, tìm bằng máy kiểm đường viền (scripts/kiem-vien.py) + tia từ camera đã khớp xuống ảnh 3D Google (scripts/them-chop.mjs). Toạ độ cảnh: chân (x, yChan, z), mũi yDinh, bán kính r; anh = chỉ số ảnh so thấy chóp",
+ "luc": "2026-11-15T15:53:29.073Z",
+ "chop": [
+  {
+   "x": -83.19,
+   "z": 39.97,
+   "yChan": 67.73,
+   "yDinh": 72.25,
+   "r": 0.77,
+   "anh": [
+    0,
+    1
+   ]
+  },
+  {
+   "x": -58.57,
+   "z": 35.26,
+   "yChan": 71.42,
+   "yDinh": 79.86,
+   "r": 1.48,
+   "anh": [
+    0
+   ]
+  },
+  {
+   "x": -19.73,
+   "z": -11.26,
+   "yChan": 52.16,
+   "yDinh": 55.19,
+   "r": 0.84,
+   "anh": [
+    0,
+    1
+   ]
+  },
+  {
+   "x": -75.05,
+   "z": 18.34,
+   "yChan": 82.47,
+   "yDinh": 87.42,
+   "r": 0.92,
+   "anh": [
+    1
+   ]
+  }
+ ]
+}

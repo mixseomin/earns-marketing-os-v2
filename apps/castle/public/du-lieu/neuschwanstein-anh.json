@@ -12,10 +12,10 @@
   "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/3.0",
   "camera": {
    "y": 60.86,
-   "yaw": 0.0056,
-   "pitch": -0.078,
-   "fov": 26.4,
-   "ghi_chu": "khớp bằng 4 mốc: đỉnh tháp 65 m, chóp tháp mặt trước, tháp vuông, tháp tròn cổng; 15/11/2026 nâng 20,8 m: nền lâu đài đặt lại theo ảnh 3D Google (chân Palas thật cao hơn lưới đất thô 20,8 m), giữ nguyên chỗ khớp tương đối"
+   "yaw": 0.0031,
+   "pitch": -0.058,
+   "fov": 25.4,
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 3.0 px trên khung 1600 px"
   }
  },
  {
@@ -30,11 +30,11 @@
   "giayPhep": "CC BY-SA 3.0 de",
   "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/3.0/de/deed.en",
   "camera": {
-   "y": 59.46,
+   "y": 57.96,
    "yaw": 0.0856,
-   "pitch": -0.0741,
-   "fov": 30,
-   "ghi_chu": "khớp bằng 4 mốc: chóp tháp 65 m, chóp tháp mặt trước, chóp tháp vuông, tháp tròn cổng; 15/11/2026 nâng 20,8 m: nền lâu đài đặt lại theo ảnh 3D Google (chân Palas thật cao hơn lưới đất thô 20,8 m), giữ nguyên chỗ khớp tương đối"
+   "pitch": -0.0441,
+   "fov": 28.5,
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 22.0 px trên khung 1600 px"
   }
  },
  {
@@ -76,7 +76,7 @@
   "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0",
   "camera": {
    "y": 2.5,
-   "yaw": 2.0,
+   "yaw": 2,
    "pitch": 0.42,
    "fov": 48,
    "ghi_chu": "sân trên nhìn mặt Palas hướng sân; khớp ước lượng bằng mắt (tháp góc, ban công, đầu hồi), chưa khớp máy — nền sân DEM thấp hơn thật ~7 m nên mô hình thừa một tầng dưới cùng"

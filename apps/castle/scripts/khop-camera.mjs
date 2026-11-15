@@ -1,0 +1,62 @@
+#!/usr/bin/env node
+// KHỚP CAMERA ẢNH SO bằng ẢNH THẬT 3D (Google, đã khớp toạ độ): đặt camera ở chỗ đứng của ảnh (lat/lng trong du-lieu/<lâu>-anh.json), vẽ RIÊNG lớp ảnh 3D,
+// lấy viền trời từng cột rồi dò (độ cao, hướng, ngẩng, ống kính) để viền ảnh 3D trùng viền ảnh thật nhất (trung vị lệch các cột có lâu đài).
+// Camera khớp xong ghi lại vào du-lieu/<lâu>-anh.json → máy kiểm đường viền (chup-so-anh.mjs + kiem-vien.py) so mô hình với ảnh trên camera đúng.
+// Chạy trên iMac: node apps/castle/scripts/khop-camera.mjs [chỉ số ảnh …] (mặc định mọi ảnh đã có camera). Tự mở máy chủ tĩnh cổng 18777.
+// tra-repo-ok: cùng ý tưởng khớp camera một ảnh của fSpy (perarnia/fSpy, GPL) nhưng tự động bằng viền ảnh 3D; công cụ nội bộ của cảnh.
+import http from 'node:http';
+import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
+import { join, dirname, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const GOC = join(dirname(fileURLToPath(import.meta.url)), '..'), PUB = join(GOC, 'public'), TEP = join(PUB, 'du-lieu', 'neuschwanstein-anh.json');
+const PW = process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs';
+const LOAI = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png', '.glb': 'model/gltf-binary', '.bin': 'application/octet-stream' };
+const may = http.createServer((q, r) => { let p = decodeURIComponent(new URL(q.url, 'http://x').pathname); const f = join(PUB, p); if (!f.startsWith(PUB) || !existsSync(f) || statSync(f).isDirectory()) { r.writeHead(404).end(); return; } r.writeHead(200, { 'Content-Type': LOAI[extname(f)] || 'application/octet-stream' }).end(readFileSync(f)); });
+await new Promise((ok, loi) => may.once('error', loi).listen(18777, '127.0.0.1', ok)).catch((e) => { console.error('cổng 18777 đang bận:', e.code); process.exit(1); });
+const { chromium } = await import(PW);
+const b = await chromium.launch({ args: ['--use-angle=metal', '--ignore-gpu-blocklist'] }); const pg = await b.newPage({ viewport: { width: 1600, height: 1200 } });
+pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message));
+await pg.addInitScript(() => { try { localStorage.setItem('ns-anh3d', '1'); localStorage.setItem('ns-dau-thu', '1'); } catch {} });
+await pg.goto('http://127.0.0.1:18777/neuschwanstein.html'); await pg.waitForFunction(() => window.__ns?.tt && window.__ns.anh3d(), null, { timeout: 180000 });
+const ANH = JSON.parse(readFileSync(TEP, 'utf8'));
+const chon = process.argv.slice(2).map(Number); const ds = ANH.map((a, i) => i).filter((i) => ANH[i].camera && (!chon.length || chon.includes(i)));
+
+// trong trang: viền ảnh thật (một lần) + hàm chấm một camera (vẽ riêng lớp ảnh 3D, chờ ô tải, đọc điểm ảnh)
+await pg.evaluate(() => {
+  const n = window.__ns;
+  window.__vienAnh = async (src, W, H) => { const im = new Image(); im.src = src; await im.decode(); const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.drawImage(im, 0, 0, W, H);
+    const d = g.getImageData(0, 0, W, H).data, v = []; for (let x = 0; x < W; x++) { let y = 0; for (; y < H; y++) { const i = (y * W + x) * 4, r = d[i], gg = d[i + 1], bb = d[i + 2]; if (!(bb > r + 18 && bb > 100) && !(min3(r, gg, bb) > 185 && max3(r, gg, bb) - min3(r, gg, bb) < 40 && y < H * 0.35)) break; } v.push(y); } return v; };
+  const min3 = (a, b, c) => Math.min(a, b, c), max3 = (a, b, c) => Math.max(a, b, c);
+  window.__cham = async (cam, vA, nen) => {
+    n.datCam(cam); const a3 = n.anh3d(); a3.goc.visible = true; for (const o of n.scene.children) if (o !== a3.goc && !o.isLight) o.userData.anTam = o.visible, o.visible = false;
+    a3.t.setCamera(n.camera); a3.t.setResolutionFromRenderer(n.camera, n.renderer);
+    for (let k = 0, on = 0; k < 80 && on < 4; k++) { a3.t.update(); n.renderer.render(n.scene, n.camera); await new Promise((r) => setTimeout(r, 120)); on = (a3.t.loadProgress ?? 1) >= 0.999 ? on + 1 : 0; }
+    a3.t.update(); n.renderer.render(n.scene, n.camera);
+    const gl = n.renderer.getContext(), W = gl.drawingBufferWidth, H = gl.drawingBufferHeight, px = new Uint8Array(W * H * 4); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    for (const o of n.scene.children) if ('anTam' in o.userData) { o.visible = o.userData.anTam; delete o.userData.anTam; }
+    const vG = []; for (let x = 0; x < W; x++) { let y = 0; for (; y < H; y++) { const i = ((H - 1 - y) * W + x) * 4; if (Math.abs(px[i] - nen[0]) + Math.abs(px[i + 1] - nen[1]) + Math.abs(px[i + 2] - nen[2]) > 30) break; } vG.push(y); }
+    const sx = vA.length / W, chanTroi = [...vA.slice(0, vA.length / 12), ...vA.slice(-vA.length / 12)].sort((p, q) => p - q)[Math.floor(vA.length / 12)], lech = [];
+    for (let x = 0; x < W; x++) { const a = vA[Math.floor(x * sx)] / sx, g = vG[x]; if (a < chanTroi / sx - 40 / sx || g < chanTroi / sx - 40 / sx) lech.push(Math.abs(a - g)); }
+    lech.sort((p, q) => p - q); return lech.length > W * 0.08 ? lech[lech.length >> 1] : 999;
+  };
+});
+for (const i of ds) {
+  const a = ANH[i];
+  const vA = await pg.evaluate(async ([i, src, w, h]) => { window.__ns.moSo(i); return window.__vienAnh(src, w, h); }, [i, `./du-lieu/${a.tep}`, 1600, Math.round(1600 * a.cao / a.rong)]);
+  const nen = [169, 196, 220];
+  let cam = { y: a.camera.y, yaw: a.camera.yaw, pitch: a.camera.pitch, fov: a.camera.fov }, tot = 999;
+  for (let k = 0; k < 4; k++) tot = await pg.evaluate(([c, v, nen]) => window.__cham(c, v, nen), [cam, vA, nen]); // làm nóng: lần đầu ô ảnh 3D chưa tải đủ chi tiết ở chỗ đứng này → điểm sai
+  console.log(`ảnh ${i}: bắt đầu lệch ${tot.toFixed(1)} px`, JSON.stringify(cam));
+  const buoc = { y: 6, yaw: 0.02, pitch: 0.02, fov: 2 };
+  for (let vong = 0; vong < 5; vong++) {
+    for (const k of Object.keys(buoc)) for (const dau of [1, -1]) {
+      for (;;) { const thu = { ...cam, [k]: cam[k] + dau * buoc[k] }, e = await pg.evaluate(([c, v, nen]) => window.__cham(c, v, nen), [thu, vA, nen]); if (e < tot - 0.2) { cam = thu; tot = e; } else break; }
+    }
+    for (const k of Object.keys(buoc)) buoc[k] /= 2;
+    console.log(`  vòng ${vong + 1}: lệch ${tot.toFixed(1)} px`, JSON.stringify(Object.fromEntries(Object.entries(cam).map(([k, v]) => [k, +v.toFixed(4)]))));
+  }
+  a.camera = { ...a.camera, y: +cam.y.toFixed(2), yaw: +cam.yaw.toFixed(4), pitch: +cam.pitch.toFixed(4), fov: +cam.fov.toFixed(2),
+    ghi_chu: `khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, ${new Date().toISOString().slice(0, 10)}): trung vị lệch viền ${tot.toFixed(1)} px trên khung 1600 px` };
+}
+writeFileSync(TEP, JSON.stringify(ANH, null, 1) + '\n'); console.log('ghi', TEP);
+await b.close(); may.close();

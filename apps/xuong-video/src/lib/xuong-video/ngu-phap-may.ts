@@ -5,6 +5,7 @@
 // / đổi tốc; hé lộ thân phận → dolly zoom / quay vòng; đối đầu → quay vòng; móc cuối tập → đẩy sát vào mặt rồi cắt đen.
 // Máy ĐỌC nhịp của từng shot từ dữ liệu sẵn có (kế hoạch biểu cảm, mục đích thẻ shot, người đi trong shot, shot cuối tập) — không đoán chữ tự do.
 // MỘT nguồn cho: cổng tiền kỳ (quy-trinh.ts › chanTienKy) và nút 🎥 sửa 0đ (hau-ky.ts › daDangMayTapDb). Thuần — tự kiểm: ngu-phap-may.test.mts
+import { mayHopGiay } from './nhip-hinh';
 import type { KyThuatShot } from './dien-anh';
 import type { BieuCamNv } from './qc-cam-xuc';
 
@@ -76,7 +77,8 @@ export function apNguPhapMay<T extends ShotNguPhap & { id: number }>(ds: T[], th
   const out: { id: number; ky_thuat: KyThuatShot }[] = [];
   ds.forEach((c, i) => {
     const n = nhipKich(c); if (!n) return;
-    const l = NGU_PHAP_MAY[n]; const hop = mayHop(c, n); if (hop.includes(kt[i]!.chuyen_dong || 'tinh')) return;
+    // máy tiến / lùi cần ≥ GIAY_MAY_TIEN giây (nhip-hinh.ts › mayHopGiay); shot ngắn hơn thì bỏ các lựa chọn đó, không còn gì thì để nguyên
+    const g = (c as { giay?: number | null }).giay; const l = NGU_PHAP_MAY[n]; const hop = mayHop(c, n).filter((x) => mayHopGiay(x, g)); if (!hop.length) return; if (hop.includes(kt[i]!.chuyen_dong || 'tinh')) return;
     const giong = (x: string, j: number) => kt[j] && kt[j]!.co_canh === kt[i]!.co_canh && (kt[j]!.chuyen_dong || 'tinh') === x;
     kt[i]!.chuyen_dong = hop.find((x) => !giong(x, i - 1) && !giong(x, i + 1)) ?? hop[0]!;
     if (l.goc && (!kt[i]!.goc || kt[i]!.goc === 'ngang')) kt[i]!.goc = l.goc[0]!;

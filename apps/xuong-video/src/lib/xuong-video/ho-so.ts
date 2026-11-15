@@ -90,7 +90,7 @@ export function kiemHoSo(v: HoSoVao): string[] {
     for (const g of pc.gag ?? []) { const s = ss[g.o_shot - 1]; if (!s) loi.push(`cảnh "${pc.ten}": gag "${g.ten}" trỏ shot thứ ${g.o_shot} không có`); else if (!(s.dan_dung?.nhan ?? '').trim()) loi.push(`shot #${s.thu_tu}: có cú bùng của gag "${g.ten}" mà chưa ghi điểm nhấn âm–hình`); }
   }
   const p = { laQc: false, khong_loi: v.khong_loi };
-  loi.push(...kiemTheShot(ds, p), ...kiemVaiKe(ds, p), ...kiemNhipHinh(ds));
+  loi.push(...kiemTheShot(ds, p), ...kiemVaiKe(ds, p), ...kiemNhipHinh(ds.map((s) => ({ ...s, giay: giay(s) }))));
   // Dựng truyện: nút đóng giữa hai mạch trong một cảnh + kết ba nhịp (bùng → giữ → móc).
   loi.push(...kiemNutDong(v.phan_canh, ds, p), ...kiemKetTap(v.phan_canh, ds, { ...p, coMoc: conTapSau(v.series, v.so) }));
   return loi;

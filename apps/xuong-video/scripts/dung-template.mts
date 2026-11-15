@@ -38,7 +38,7 @@ const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown 
 const chi = gia('chi'), lai = gia('lai'), dongBo = gia('dong-bo');
 /** Kỹ thuật máy cả tập: cỡ cảnh theo tệp + chuyển động máy đa dạng (đúng luật nhịp hình). */
 const kyThuat = (shots: Shot[]): KyThuatShot[] => {
-  const ds = shots.map((s, i) => ({ id: i, thu_tu: i + 1, ky_thuat: { co_canh: s.co, ...(s.may ? { chuyen_dong: s.may } : {}), ...(s.nen_ghep ? { nen_ghep: true } : {}) } as KyThuatShot }));
+  const ds = shots.map((s, i) => ({ id: i, thu_tu: i + 1, giay: s.giay, ky_thuat: { co_canh: s.co, ...(s.may ? { chuyen_dong: s.may } : {}), ...(s.nen_ghep ? { nen_ghep: true } : {}) } as KyThuatShot }));
   for (const d of daDangMay(ds)) ds[d.id]!.ky_thuat = d.ky_thuat;
   return ds.map((d) => d.ky_thuat);
 };

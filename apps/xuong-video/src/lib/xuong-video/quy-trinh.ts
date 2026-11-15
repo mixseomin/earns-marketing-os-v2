@@ -109,7 +109,7 @@ export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' 
   if (!tap.phan_canh.length) out.push('chưa có phân cảnh (mục tiêu · xung đột · cảm xúc đầu→cuối)');
   if ((phim.phong_cach ?? '').trim().length < 30) out.push('chưa chốt phong cách hình (style frame: ánh sáng, màu, chất liệu) — mục 1 Kinh thánh');
   // Nhịp hình (nhip-hinh.ts): shot liền nhau trùng cỡ cảnh + chuyển động máy, quá nhiều shot máy đứng yên — sửa 0đ bằng 🎥 trong thanh 🎬.
-  out.push(...kiemNhipHinh(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, ky_thuat: c.ky_thuat }))));
+  out.push(...kiemNhipHinh(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, ky_thuat: c.ky_thuat, giay: c.phat_s && c.phat_s > 0 ? c.phat_s : (c as { thoi_luong_s?: number }).thoi_luong_s ?? null }))));
   // Ngữ pháp máy theo nhịp kịch (ngu-phap-may.ts, phim ngắn dọc): sốc / sỉ nhục / quyền lực / hé lộ / phán quyết / móc cuối tập phải có chuyển động
   // hợp nhịp — sửa 0đ bằng cùng nút 🎥.
   out.push(...kiemNguPhapMay(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, ky_thuat: c.ky_thuat, bieu_cam: c.bieu_cam, dan_dung: c.dan_dung, hanh_dong: c.hanh_dong,

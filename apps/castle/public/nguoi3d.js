@@ -63,7 +63,7 @@ function toMauAo(mesh, ao) {
 // LEO TỪNG BÊN (anh 15/11/2026: "bò như ếch không đẹp, phải lên từng bên"): bộ CC0 không có động tác leo tay chân lần lượt
 // → lấy tư thế đứng làm nền rồi XOAY XƯƠNG theo trục ngang của người (không cần biết trục riêng từng xương):
 // tay trái với cao trong khi tay phải kéo (khuỷu gập), chân phải bước lên cùng lúc tay trái với — rồi đổi bên; người đứng im thì giữ tư thế bám.
-const _q = new THREE.Quaternion(), _qp = new THREE.Quaternion(), _qw = new THREE.Quaternion(), _truc = new THREE.Vector3();
+const _q = new THREE.Quaternion(), _qp = new THREE.Quaternion(), _qw = new THREE.Quaternion(), _truc = new THREE.Vector3(), _len = new THREE.Vector3(0, 1, 0), _truoc = new THREE.Vector3();
 function xoayTheGioi(x, truc, goc) { // xoay xương x quanh trục thế giới `truc` một góc, giữ nguyên phần còn lại của tư thế
   if (!x) return;
   x.parent.getWorldQuaternion(_qp); x.getWorldQuaternion(_qw);
@@ -73,7 +73,11 @@ function tuTheLeo(goc, x, pha) {
   const h = goc.rotation.y; _truc.set(-Math.cos(h), 0, Math.sin(h)); // trục ngang (sang phải người): xoay + = đưa chi ra trước / lên
   goc.updateMatrixWorld(true);
   const s = Math.sin(pha), tL = Math.max(0, s), tR = Math.max(0, -s);
-  xoayTheGioi(x.spine_02, _truc, 0.12); xoayTheGioi(x.Head, _truc, -0.35); // ngả vào tường, ngẩng nhìn lên
+  xoayTheGioi(x.spine_02, _truc, 0.12); xoayTheGioi(x.Head, _truc, 0.35); // ngả vào tường, ngẩng nhìn lên (quanh trục ngang _truc: góc + = mặt ngửa lên — trước đây −0,35 làm cúi mặt vào tường)
+  // bớt cứng (anh 15/11/2026 "bò nhìn cứng quá"): thân vặn và nghiêng theo bên tay đang với, hông lắc ngược, đầu nhún theo nhịp kéo
+  _truoc.set(Math.sin(h), 0, Math.cos(h));
+  xoayTheGioi(x.spine_01, _len, -0.16 * s); xoayTheGioi(x.spine_03, _len, -0.1 * s); xoayTheGioi(x.spine_02, _truoc, 0.09 * s);
+  xoayTheGioi(x.pelvis, _truoc, -0.07 * s); xoayTheGioi(x.Head, _truc, 0.08 * Math.abs(s));
   for (const [ben, voi, keo] of [['l', tL, tR], ['r', tR, tL]]) {
     xoayTheGioi(x['upperarm_' + ben], _truc, 2.25 + 0.55 * voi - 0.25 * keo);   // tay với cao / hạ khi kéo
     xoayTheGioi(x['lowerarm_' + ben], _truc, 0.25 + 0.9 * keo);                 // khuỷu gập khi kéo người lên
@@ -97,7 +101,7 @@ export function taoNguoi3d(o = {}) {
   for (const [ten, clip] of Object.entries(MAU.clips)) hd[ten] = mixer.clipAction(clip);
   for (const t of ['nem', 'da', 'len1m', 'len2m', 'vuot', 'nga', 'gat']) { hd[t].setLoop(THREE.LoopOnce, 1); hd[t].clampWhenFinished = true; }
   hd.leoLap.setLoop(THREE.LoopPingPong, Infinity);
-  let dangChay = null, viec = null, tViec = 0, daTha = false, khiTha = null;
+  let dangChay = null, viec = null, tViec = 0, daTha = false, khiTha = null, nhinY = 0, nhinP = 0;
   function choi(ten, mo = 0.2, tocDo = 1) {
     const a = hd[ten]; a.timeScale = tocDo;
     if (dangChay === a) return;
@@ -139,6 +143,14 @@ export function taoNguoi3d(o = {}) {
       }
       mixer.update(dt);
       if (!viec && st.tuThe === 'leo') tuTheLeo(goc, xuong, (st.phaLeo || 0) * 1.1);
+      // ĐẦU QUAY THEO HƯỚNG NHÌN (anh 15/11/2026): st.nhin = { yaw: hướng camera so với thân, pitch: ngẩng (+ lên) }; cổ 40 %, đầu 60 %, giới hạn ±70° / ±35°,
+      // nhìn ra sau quá 135° (góc nhìn mặt V) thì đầu thôi quay; trơn dần để không giật
+      const n = st.nhin, ra = !n || Math.abs(n.yaw) > 2.36, mY = ra ? 0 : Math.max(-1.22, Math.min(1.22, n.yaw)), mP = ra ? 0 : Math.max(-0.6, Math.min(0.6, n.pitch));
+      const k = 1 - Math.exp(-dt * 8); nhinY += (mY - nhinY) * k; nhinP += (mP - nhinP) * k;
+      if (Math.abs(nhinY) > 0.01 || Math.abs(nhinP) > 0.01) {
+        goc.updateMatrixWorld(true); const h = goc.rotation.y; _truc.set(-Math.cos(h), 0, Math.sin(h));
+        for (const [ten, phan] of [['neck_01', 0.4], ['Head', 0.6]]) { xoayTheGioi(xuong[ten], _len, nhinY * phan); xoayTheGioi(xuong[ten], _truc, nhinP * phan * 0.8); } // góc + quanh _truc = ngửa mặt lên
+      }
     },
   };
   return api;

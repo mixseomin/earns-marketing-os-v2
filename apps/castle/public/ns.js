@@ -460,6 +460,7 @@ const RUNG = []; let RUNG_O = []; // ẩn khi so ảnh thật (cây mọc ở m�
 
 // ---------- điều khiển + nhãn
 const orbit = new OrbitControls(camera, renderer.domElement);
+orbit.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }; // cảm ứng: hai ngón vừa chụm / mở (phóng) vừa xoay như kéo chuột trái (anh 15/11/2026); mặc định là phóng + dời
 orbit.target.set(0, 25, 0); camera.position.set(-170, 90, 230); orbit.enableDamping = true; orbit.maxPolarAngle = 1.52; orbit.minDistance = 15; orbit.maxDistance = 1500; orbit.update();
 $('tt').innerHTML = `${dsKhoi.filter((k) => !(k.vo && k.coPart)).length} khối từ OpenStreetMap · cao nhất ${caoNhat ? caoNhat.h + ' m' : '—'} · địa hình ${n}×${n} điểm, ô ${B} m`;
 addEventListener('resize', () => { if (dangSo) return; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
@@ -596,7 +597,7 @@ function tatSo() {
 }
 if (ANH.length) {
   $('so').style.display = 'block';
-  $('so-ds').innerHTML = ANH.map((a, i) => `<button data-i="${i}" title="${a.tieuDe}">${i + 1}</button>`).join('') + '<button id="so-tat">Tắt</button>';
+  $('so-ds').innerHTML = ANH.map((a, i) => `<button data-i="${i}" title="${a.tieuDe}">📷 ${a.nhan || i + 1}</button>`).join('') + '<button id="so-tat">Tắt</button>'; // nút ghi tên góc chụp (trước chỉ ghi số, không biết nút nào là góc nào)
   $('so-ds').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; b.id === 'so-tat' ? tatSo() : moSo(+b.dataset.i); });
   $('so-mo').addEventListener('input', (e) => { img.style.opacity = e.target.value / 100; });
   addEventListener('keydown', (e) => {

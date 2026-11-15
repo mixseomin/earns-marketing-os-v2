@@ -163,7 +163,7 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
       toi.goc.position.set(p.x, chan, p.z);
     }
     toi.goc.rotation.y = huong; if (tt === 'leo') phaLeo += dt * tocLeo * 3.2;
-    toi.capNhat(dt, { toc: tt === 'dat' && !ng ? toc : 0, nen: nen || tt !== 'dat' || !!ng, ngoi: tt === 'dat' && !ng && !!phim.KeyC, tuThe, phaLeo, phaBoi, tocLeo, tocXe: toc, ...stThem() });
+    toi.capNhat(dt, { toc: tt === 'dat' && !ng ? toc : 0, nen: nen || tt !== 'dat' || !!ng, ngoi: tt === 'dat' && !ng && !!phim.KeyC, tuThe, phaLeo, phaBoi, tocLeo, tocXe: toc, nhin: { yaw: Math.atan2(Math.sin(yaw + Math.PI - huong), Math.cos(yaw + Math.PI - huong)), pitch: Math.max(-1.1, Math.min(0.75, pitch + camDoc)) }, ...stThem() }); // đầu quay theo hướng camera
     if (gocNhin === 1) { camera.position.set(p.x, (ng ? chan + 0.9 : chan + MAT), p.z); camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; }
     camY = camY == null || Math.abs(camY - chan) > 3 ? chan : camY + (chan - camY) * (1 - Math.exp(-dt * 12));
     // camera NGHIÊNG THEO DỐC phía trước (anh 15/11/2026 "đứng ở sườn dốc / lúc chạy cứ bị cắm mặt về phía trước"): góc cúi cố định thì quay lên dốc

@@ -16,7 +16,8 @@
    "pitch": -0.058,
    "fov": 25.4,
    "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 3.0 px trên khung 1600 px"
-  }
+  },
+  "nhan": "Cầu Marienbrücke 2011"
  },
  {
   "tieuDe": "Schloss Neuschwanstein 2013.jpg",
@@ -35,7 +36,8 @@
    "pitch": -0.0441,
    "fov": 28.5,
    "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 22.0 px trên khung 1600 px"
-  }
+  },
+  "nhan": "Cầu Marienbrücke 2013"
  },
  {
   "tieuDe": "SchlossNeuschwanstein2011.JPG",
@@ -48,7 +50,8 @@
   "tacGia": "Zeppelubil / Th. Haft, from Torgau / Elbe, Germany",
   "giayPhep": "CC BY-SA 3.0",
   "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/3.0",
-  "camera": null
+  "camera": null,
+  "nhan": "Phía nam (camera chưa khớp)"
  },
  {
   "tieuDe": "Aerial image of Neuschwanstein Castle (view from the northwest).jpg",
@@ -61,7 +64,8 @@
   "tacGia": "Carsten Steger",
   "giayPhep": "CC BY-SA 4.0",
   "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-  "camera": null
+  "camera": null,
+  "nhan": "Trên không, tây bắc (camera chưa khớp)"
  },
  {
   "tieuDe": "Oberer Schlosshof Neuschwanstein.jpg",
@@ -80,6 +84,7 @@
    "pitch": 0.42,
    "fov": 48,
    "ghi_chu": "sân trên nhìn mặt Palas hướng sân; khớp ước lượng bằng mắt (tháp góc, ban công, đầu hồi), chưa khớp máy — nền sân DEM thấp hơn thật ~7 m nên mô hình thừa một tầng dưới cùng"
-  }
+  },
+  "nhan": "Sân trên"
  }
 ]

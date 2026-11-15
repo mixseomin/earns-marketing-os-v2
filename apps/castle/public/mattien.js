@@ -39,6 +39,7 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
         const n = Math.floor((L - 0.6) / buoc), du = (L - n * buoc) / 2 + buoc / 2;
         const yM = y + cao / 2;
         if (biChe(x1 + ux * L / 2 + nx * 0.6, yM, z1 + uz * L / 2 + nz * 0.6)) continue; // mặt tường bị khối khác áp vào ở tầng này
+        if (lo.some((o) => o.s0 <= 0 && o.s1 >= L && y - 0.6 >= o.y0 && y + cao <= o.y1)) continue; // cả mặt dành cho dựng riêng (mặt Palas hướng sân) → không cửa, không gờ
         go.push([x1, z1, ux, uz, nx, nz, L, y - 0.55]); // gờ đá dưới mỗi hàng cửa
         for (let k = 0; k < n; k++) {
           const s = du + k * buoc; if (s - nua < 0.3 || s + nua > L - 0.3) continue;
@@ -55,6 +56,32 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
   return { ra, dem: { cua: viTri.mot.length, cuaBa: viTri.ba.length, vom: viTri.vom.length, go: go.length } };
 }
 
+// CỤM CỬA kiểu Roman như ảnh sân trên: n ô vòm nhỏ đứng sát nhau, giữa các ô là cột nhỏ có đầu cột, mỗi ô một vòm đá mảnh;
+// vom = true thì cả cụm nằm dưới một VÒM LỚN (vòm mù) có má tường hai bên. Toạ độ cục bộ: x dọc tường (tâm cụm x = 0), y lên (bậu y = 0), z ra ngoài.
+// → { da: [hình], toi: [hình] } (không chỉ số, không uv — gộp được ngay)
+export function nhomCua(THREE, { n = 3, w = 0.5, h = 2, vom = true, nhe = false }) {
+  const da = [], toi = [], k = 0.14, W = n * w + (n - 1) * k, yV = h - w / 2, cb = (g) => { g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); return g; };
+  const sh = new THREE.Shape(); sh.moveTo(-w / 2, 0); sh.lineTo(w / 2, 0); sh.lineTo(w / 2, yV); sh.absarc(0, yV, w / 2, 0, Math.PI, false); sh.lineTo(-w / 2, 0);
+  for (let i = 0; i < n; i++) {
+    const cx = (i - (n - 1) / 2) * (w + k);
+    const o = cb(new THREE.ShapeGeometry(sh, nhe ? 4 : 8)); o.translate(cx, 0, 0.015); toi.push(o);
+    const v = cb(new THREE.TorusGeometry(w / 2 + 0.035, 0.045, 4, nhe ? 5 : 9, Math.PI)); v.translate(cx, yV, 0.08); da.push(v);
+  }
+  for (let i = 0; i <= n; i++) { // cột nhỏ giữa / hai bên các ô + đầu cột
+    const x = i === 0 ? -W / 2 - 0.06 : i === n ? W / 2 + 0.06 : -W / 2 + i * (w + k) - k / 2;
+    const c = cb(new THREE.CylinderGeometry(0.055, 0.065, yV, nhe ? 5 : 7)); c.translate(x, yV / 2, 0.12); da.push(c);
+    const d = cb(new THREE.BoxGeometry(0.2, 0.12, 0.2)); d.translate(x, yV + 0.02, 0.12); da.push(d);
+  }
+  const bau = cb(new THREE.BoxGeometry(W + 0.5, 0.14, 0.3)); bau.translate(0, -0.07, 0.15); da.push(bau);
+  if (vom) { // vòm lớn: chân vòm ngang đầu các ô nhỏ, hai má tường từ bậu lên chân vòm
+    const R = W / 2 + 0.22, yC = h - 0.05;
+    const r1 = cb(new THREE.TorusGeometry(R + 0.08, 0.1, 4, nhe ? 8 : 16, Math.PI)); r1.translate(0, yC, 0.1); da.push(r1);
+    const r2 = cb(new THREE.TorusGeometry(R - 0.06, 0.05, 4, nhe ? 8 : 16, Math.PI)); r2.translate(0, yC, 0.06); da.push(r2);
+    for (const s of [-1, 1]) { const m = cb(new THREE.BoxGeometry(0.2, yC, 0.2)); m.translate(s * (R + 0.08), yC / 2, 0.1); da.push(m); }
+  }
+  return { da, toi, rong: vom ? W + 0.9 : W + 0.3 };
+}
+
 // MẶT PALAS HƯỚNG SÂN TRÊN: hai bức tranh tường (thánh George trái, Đức Mẹ Bavaria phải — cắt từ ảnh Commons CC BY-SA 4.0, Naturliebhaberin) ở tầng trên
 // sát chân đầu hồi, ban công đá giữa mặt (sàn + lan can + con-xon đỡ). Bố cục theo ảnh "Oberer Schlosshof Neuschwanstein". tuong = { x1, z1, x2, z2, y1 }
 export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {} }) {
@@ -64,85 +91,99 @@ export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {} }) {
   // khối cùng vật liệu gộp thành MỘT lưới lúc cuối (diềm răng cưa đầu hồi có vài chục khối nhỏ — để riêng thì mỗi khối một lệnh vẽ); tranh giữ lưới riêng
   const gom = new Map();
   const dat = (m, s, y, ra_) => { m.position.set(mx + ux * s + nx * ra_, y, mz + uz * s + nz * ra_); m.rotation.y = quay; m.castShadow = false; m.receiveShadow = true;
-    if (m.material.map) { ra.push(m); return m; } m.updateMatrix(); const g = m.geometry.toNonIndexed().applyMatrix4(m.matrix); g.deleteAttribute('uv');
+    if (m.material.map) { ra.push(m); return m; } m.updateMatrix(); const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry).applyMatrix4(m.matrix); if (g.attributes.uv) g.deleteAttribute('uv');
     if (!gom.has(m.material)) gom.set(m.material, []); gom.get(m.material).push(g); return m; };
   const TOI = new THREE.MeshStandardMaterial({ color: '#1b1f27', roughness: 0.6 });
-  const oVom = (w, h, s, y, ra_) => { // ô cửa vòm tối phẳng sát tường + khung đá nhô
-    const sh = new THREE.Shape(); sh.moveTo(-w / 2, 0); sh.lineTo(w / 2, 0); sh.lineTo(w / 2, h - w / 2); sh.absarc(0, h - w / 2, w / 2, 0, Math.PI, false); sh.lineTo(-w / 2, 0);
-    dat(new THREE.Mesh(new THREE.ShapeGeometry(sh, 8), TOI), s, y, ra_ + 0.02);
-    for (const k of [-1, 1]) dat(new THREE.Mesh(new THREE.BoxGeometry(0.14, h - w / 2, 0.2), DA), s + k * (w / 2 + 0.07), y + (h - w / 2) / 2, ra_ + 0.1);
-  };
+  const cum = (o, s, y) => { const c = nhomCua(THREE, o); for (const g of c.da) dat(new THREE.Mesh(g, DA), s, y, 0); for (const g of c.toi) dat(new THREE.Mesh(g, TOI), s, y, 0); };
+  const go = (y) => dat(new THREE.Mesh(new THREE.BoxGeometry(L, 0.2, 0.22), DA), 0, y, 0.11); // gờ đá ngang cả mặt
   // dải trên (đã chừa trống cửa sổ): hai tranh hai bên, cửa vòm đôi giữa — như ảnh thật
   const yT = y1 - 4.4;
   for (const [ten, lech] of [['palas-thanh-george', 0.3], ['palas-duc-me', -0.3]]) { // trục dọc tường của khung (x cục bộ) chạy ngược ux → tranh trái dùng lệch dương
-    const t = tranh[ten]; if (!t) continue; const cao = 4.4, rong = Math.min(L * 0.3, cao * t.image.width / t.image.height);
+    const t = tranh[ten]; if (!t) continue; const cao = 4.4, rong = Math.min(L * 0.26, cao * t.image.width / t.image.height);
     dat(new THREE.Mesh(new THREE.PlaneGeometry(rong, cao), new THREE.MeshStandardMaterial({ map: t, roughness: 0.9 })), L * lech, yT, 0.03);
   }
-  for (const k of [-0.62, 0.62]) oVom(0.95, 2.2, k, yT - 0.9, 0);
+  for (const k of [-0.86, 0.86]) cum({ n: 2, w: 0.34, h: 2.0 }, k, yT - 0.6); // giữa hai tranh: hai cụm cửa đôi có cột, mỗi cụm dưới một vòm
   // ban công giữa mặt, dưới dải tranh: cửa vòm ra ban công, sàn 4,2 × 1,1 m, lan can, con-xon
   const yB = y1 - 8.6;
-  oVom(1.3, 2.5, 0, yB + 0.14, 0);
+  cum({ n: 3, w: 0.42, h: 2.4 }, 0, yB + 0.14); // cửa ra ban công: cụm ba ô có cột dưới vòm lớn
+  go(yB - 0.95);
+  // các tầng dưới ban công: mỗi tầng ba cụm (4 · 3 · 4 ô) dưới vòm mù, gờ đá dưới mỗi tầng — tới sát mặt sân
+  const yDat = Number.isFinite(tuong.yDat) ? tuong.yDat : y1 - 30;
+  for (let y = yB - 6.2; y > yDat + 0.7; y -= 6.2) { go(y - 0.35); for (const [n, s] of [[4, -2.3], [3, 0], [4, 2.3]]) cum({ n, w: 0.36, h: 2.0 }, s, y); }
   dat(new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.26, 1.1), DA), 0, yB, 0.55);
   dat(new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.9, 0.14), DA), 0, yB + 0.58, 1.04);
   dat(new THREE.Mesh(new THREE.BoxGeometry(4.36, 0.09, 0.24), DA), 0, yB + 1.07, 1.04);
   for (const k of [-1, 1]) dat(new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.9, 1.1), DA), k * 2.03, yB + 0.58, 0.55);
   for (const k of [-1.6, -0.55, 0.55, 1.6]) dat(new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.7, 0.9), DA), k, yB - 0.48, 0.45);
-  // ĐẦU HỒI (tam giác từ mái y1 lên sống mái y2): diềm răng cưa bậc chạy song song hai mép mái, cửa sổ tròn giữa, lỗ tròn nhỏ — như ảnh
-  const { y2 } = tuong;
-  if (y2 > y1 + 4) {
-    const H = y2 - y1, nua = (y) => (L / 2) * (1 - (y - y1) / H) - 1.1, BAC = 1.45, VT = 0.2, SAU = 0.12; // nua: nửa bề ngang đầu hồi ở độ cao y, thụt 1,1 m vào trong mép mái
-    let y = y1 + 0.5;
-    for (; nua(y + BAC) > 0.9; y += BAC) {
-      const w0 = nua(y), w1 = nua(y + BAC);
-      for (const k of [-1, 1]) {
-        dat(new THREE.Mesh(new THREE.BoxGeometry(w0 - w1 + VT, VT, SAU), DA), k * (w0 + w1) / 2, y, SAU / 2); // bậc ngang
-        dat(new THREE.Mesh(new THREE.BoxGeometry(VT, BAC, SAU), DA), k * w1, y + BAC / 2, SAU / 2); // bậc đứng
-        for (let s = w1 + 0.35; s < w0 - 0.2; s += 0.6) dat(new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.3, SAU), DA), k * s, y + VT / 2 + 0.15, SAU / 2); // răng nhỏ trên bậc
-      }
+  // ĐẦU HỒI — tam giác thật lấy từ hình khối đã dựng (tuong.hoi = { sD, yD: đỉnh · sA, sB: hai chân · yC: chân }, s đo dọc tường từ giữa theo ux;
+  // đỉnh không nhất thiết ở giữa bức tường): gờ đá viền hai mép, diềm răng cưa bậc song song hai mép, cửa sổ tròn, lỗ tròn nhỏ, bệ + tượng sư tử trên đỉnh — như ảnh
+  const hoi = tuong.hoi || (tuong.y2 > y1 + 4 ? { sD: 0, yD: tuong.y2, sA: -L / 2, sB: L / 2, yC: y1 } : null);
+  if (hoi && hoi.yD > hoi.yC + 4) {
+    const { sD, yD, sA, sB, yC } = hoi, H = yD - yC, BAC = 1.45, VT = 0.2, SAU = 0.12;
+    const be = (y, k) => (k < 0 ? sD - sA : sB - sD) * (1 - (y - yC) / H) - 1.1; // bề ngang từ trục đỉnh tới mép (thụt 1,1 m) ở độ cao y, phía k
+    let y = yC + 0.5;
+    for (; Math.min(be(y + BAC, -1), be(y + BAC, 1)) > 0.9; y += BAC) for (const k of [-1, 1]) {
+      const w0 = be(y, k), w1 = be(y + BAC, k);
+      dat(new THREE.Mesh(new THREE.BoxGeometry(w0 - w1 + VT, VT, SAU), DA), sD + k * (w0 + w1) / 2, y, SAU / 2); // bậc ngang
+      dat(new THREE.Mesh(new THREE.BoxGeometry(VT, BAC, SAU), DA), sD + k * w1, y + BAC / 2, SAU / 2); // bậc đứng
+      for (let q = w1 + 0.35; q < w0 - 0.2; q += 0.6) dat(new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.3, SAU), DA), sD + k * q, y + VT / 2 + 0.15, SAU / 2); // răng nhỏ trên bậc
     }
-    dat(new THREE.Mesh(new THREE.BoxGeometry(2 * nua(y) + VT, VT, SAU), DA), 0, y, SAU / 2); // bậc trên cùng nối hai bên
-    const yTron = y1 + H * 0.45;
-    const vien = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.11, 6, 20), DA); dat(vien, 0, yTron, 0.06);
-    dat(new THREE.Mesh(new THREE.CircleGeometry(0.56, 18), TOI), 0, yTron, 0.02);
-    for (const [s, h] of [[1, 0.2], [-1, 0.2], [0.55, 0.62], [-0.55, 0.62], [0, 0.8]]) { // lỗ tròn nhỏ (s: phần nửa bề ngang ở độ cao đó)
-      const yy = y1 + H * h, w = nua(yy); if (w < 0.5) continue;
-      dat(new THREE.Mesh(new THREE.CircleGeometry(0.2, 12), TOI), s * Math.max(0, w - 0.9), yy, 0.02);
+    const wl = be(y, -1), wr = be(y, 1);
+    dat(new THREE.Mesh(new THREE.BoxGeometry(wl + wr + VT, VT, SAU), DA), sD + (wr - wl) / 2, y, SAU / 2); // bậc trên cùng nối hai bên
+    // gờ viền hai mép đầu hồi: trục x cục bộ của khung chạy NGƯỢC ux → góc nghiêng tính theo −Δs
+    for (const sE of [sA, sB]) { const ds = sD - sE, g = new THREE.BoxGeometry(Math.hypot(ds, H) + 0.3, 0.36, 0.3); g.rotateZ(Math.atan2(H, -ds)); dat(new THREE.Mesh(g, DA), (sD + sE) / 2, yC + H / 2 + 0.12, 0.15); }
+    const DONG = new THREE.MeshStandardMaterial({ color: '#6d6a58', roughness: 0.5, metalness: 0.35 });
+    dat(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), DA), sD, yD + 0.15, 0.1);
+    dat(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.14, 1.1), DA), sD, yD + 0.65, 0.1);
+    const su = [[new THREE.CylinderGeometry(0.26, 0.36, 0.95, 8), 0, 1.15, -0.05], [new THREE.SphereGeometry(0.36, 10, 8), 0, 1.72, 0.08], [new THREE.SphereGeometry(0.22, 10, 8), 0, 1.75, 0.34],
+      [new THREE.BoxGeometry(0.16, 0.12, 0.16), 0, 1.66, 0.52], [new THREE.CylinderGeometry(0.07, 0.08, 0.6, 6), -0.15, 0.97, 0.26], [new THREE.CylinderGeometry(0.07, 0.08, 0.6, 6), 0.15, 0.97, 0.26],
+      [new THREE.BoxGeometry(0.7, 0.3, 0.75), 0, 0.82, -0.12]]; // thân ngồi, bờm, đầu, mõm, hai chân trước, đùi sau — mặt quay ra sân
+    for (const [g, x, yy, z] of su) { g.translate(x, yy - 0.1, z + 0.1); dat(new THREE.Mesh(g, DONG), sD, yD, 0); }
+    const yTron = yC + H * 0.45;
+    dat(new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.11, 6, 20), DA), sD, yTron, 0.06);
+    dat(new THREE.Mesh(new THREE.CircleGeometry(0.56, 18), TOI), sD, yTron, 0.02);
+    for (const [k, h] of [[1, 0.2], [-1, 0.2], [0.55, 0.62], [-0.55, 0.62], [0, 0.8]]) { // lỗ tròn nhỏ (k: phần bề ngang phía đó ở độ cao đó)
+      const yy = yC + H * h, w = be(yy, k < 0 ? -1 : 1); if (w < 0.5) continue;
+      dat(new THREE.Mesh(new THREE.CircleGeometry(0.2, 12), TOI), sD + k * Math.max(0, w - 0.9), yy, 0.02);
     }
   }
   for (const [vl, ds] of gom) { const m = new THREE.Mesh(mergeGeometries(ds), vl); m.castShadow = false; m.receiveShadow = true; ra.push(m); }
   return ra;
 }
 
-// THÁP GÓC treo trên con-xon (hai tháp sa thạch vàng hai bên mặt Palas hướng sân, ảnh Naturliebhaberin): thân tròn từ y0 tới y1 (mái nón do ns.js dựng từ OSM),
-// dưới chân là con-xon hình nón ngược có vành gờ, gờ tầng mỗi 4 m, cửa sổ vòm nhỏ chỉ ở mặt quay ra ngoài (ngoai(x, z) = điểm trước mặt đó không nằm trong khối khác),
-// đỉnh thân là gờ đỡ + vành răng cưa. Hai lưới gộp: đá (màu tháp) + lòng cửa tối. → [Mesh…]
-export function datThapGoc({ THREE, mergeGeometries, v, y0, y1, y2 = null, mau, mauMai = '#7f9e8c', ngoai = () => true, nhe = false }) { // y2: đỉnh mái nón OSM → phủ một nón đồng xanh trùm lên (vân đá phiến chung của mái làm màu nào cũng tối)
-  const cx = v.reduce((s, p) => s + p[0], 0) / v.length, cz = v.reduce((s, p) => s + p[1], 0) / v.length, r = v.reduce((s, p) => s + Math.hypot(p[0] - cx, p[1] - cz), 0) / v.length;
-  const N = nhe ? 10 : 18, da = [], toi = [];
-  const tru = (rt, rd, h, y) => { const g = new THREE.CylinderGeometry(rt, rd, h, N, 1, false).toNonIndexed(); g.translate(cx, y, cz); return g; }; // y = tâm
-  // con-xon: nón ngược 3,2 m, ba vành gờ
-  da.push(tru(r, r * 0.18, 3.2, y0 - 1.6), tru(r + 0.14, r + 0.14, 0.28, y0 + 0.14), tru(r * 0.8 + 0.1, r * 0.8 + 0.1, 0.22, y0 - 0.65), tru(r * 0.55 + 0.08, r * 0.55 + 0.08, 0.2, y0 - 1.5));
-  for (let y = y0 + 4.2; y < y1 - 2; y += 4.2) da.push(tru(r + 0.09, r + 0.09, 0.2, y)); // gờ tầng
-  // đỉnh thân: gờ đỡ nhô + vành răng cưa (răng 0,5 m, cách 0,5 m)
-  da.push(tru(r + 0.3, r + 0.05, 0.55, y1 - 0.3), tru(r + 0.3, r + 0.3, 0.3, y1 + 0.1));
-  const nRang = Math.max(6, Math.round(Math.PI * 2 * (r + 0.2) / 1.0));
-  for (let i = 0; i < nRang; i++) { const a = (i / nRang) * Math.PI * 2, g = new THREE.BoxGeometry(0.5, 0.75, 0.28).toNonIndexed(); g.rotateY(Math.atan2(Math.cos(a), Math.sin(a))); g.translate(cx + Math.cos(a) * (r + 0.16), y1 + 0.62, cz + Math.sin(a) * (r + 0.16)); da.push(g); }
-  // cửa sổ vòm nhỏ: 6 hướng, mỗi gờ tầng một hàng
-  const sh = new THREE.Shape(), w = 0.56, h = 1.5; sh.moveTo(-w / 2, 0); sh.lineTo(w / 2, 0); sh.lineTo(w / 2, h - w / 2); sh.absarc(0, h - w / 2, w / 2, 0, Math.PI, false); sh.lineTo(-w / 2, 0);
-  for (let y = y0 + 1.2; y + h < y1 - 1; y += 4.2) for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 + 0.26, ox = Math.cos(a), oz = Math.sin(a); if (!ngoai(cx + ox * (r + 1.2), cz + oz * (r + 1.2))) continue;
-    const quay = Math.atan2(ox, oz), dat = (g, d) => { g.rotateY(quay); g.translate(cx + ox * (r + d), y, cz + oz * (r + d)); return g; };
-    toi.push(dat(new THREE.ShapeGeometry(sh, 6).toNonIndexed(), 0.03));
-    for (const k of [-1, 1]) { const g = new THREE.BoxGeometry(0.12, h - w / 2, 0.16).toNonIndexed(); g.translate(k * (w / 2 + 0.06), (h - w / 2) / 2, 0); da.push(dat(g, 0.06)); }
-    const vo = new THREE.TorusGeometry(w / 2 + 0.06, 0.07, 4, 8, Math.PI).toNonIndexed(); vo.translate(0, h - w / 2, 0); da.push(dat(vo, 0.06));
-    const bau = new THREE.BoxGeometry(w + 0.3, 0.1, 0.22).toNonIndexed(); bau.translate(0, -0.05, 0); da.push(dat(bau, 0.08));
+// THÁP GÓC treo trên con-xon (hai tháp sa thạch vàng hai bên mặt Palas hướng sân, ảnh Naturliebhaberin), dựng theo ảnh:
+// thân BÁT GIÁC bọc ngoài thân tròn OSM (y0 → y1), con-xon xếp bậc bát giác thu nhỏ dần thành mũi nhọn, gờ tầng, cửa sổ ĐÔI có cột nhỏ (nhomCua) chỉ trên mặt
+// quay ra ngoài (ngoai(x, z) = điểm trước mặt đó không nằm trong khối khác), diềm vòm nhỏ dưới gờ đỉnh, vành răng cưa, mái chóp bát giác đồng xanh + chóp.
+// Gộp: đá (màu tháp) · lòng cửa tối · mái. → [Mesh…]
+export function datThapGoc({ THREE, mergeGeometries, v, y0, y1, y2 = null, mau, mauMai = '#7f9e8c', ngoai = () => true, nhe = false }) {
+  const cx = v.reduce((s, p) => s + p[0], 0) / v.length, cz = v.reduce((s, p) => s + p[1], 0) / v.length;
+  const R = Math.max(...v.map((p) => Math.hypot(p[0] - cx, p[1] - cz))) * 1.12 + 0.04, AP = R * Math.cos(Math.PI / 8), CANH = 2 * R * Math.sin(Math.PI / 8); // bán kính đỉnh / trung đoạn / cạnh bát giác
+  const da = [], toi = [], cb = (g) => { g = g.index ? g.toNonIndexed() : g; if (g.attributes.uv) g.deleteAttribute('uv'); return g; };
+  const bat = (rt, rd, h, y, kin = false) => { const g = cb(new THREE.CylinderGeometry(rt, rd, h, 8, 1, !kin)); g.translate(cx, y, cz); return g; }; // lăng trụ bát giác, y = tâm; mặt i hướng góc (i + ½)·45°
+  da.push(bat(R, R, y1 - y0, (y0 + y1) / 2));
+  // con-xon xếp bậc: mỗi bậc một vành gờ nhô rồi thu vào, tổng ~3,6 m
+  let y = y0, r = R;
+  for (const [h, co] of [[0.35, 1.0], [0.7, 0.86], [0.8, 0.68], [0.9, 0.46], [0.85, 0.08]]) { const r2 = R * co; da.push(bat(r + 0.12, r + 0.12, 0.16, y - 0.08, true), bat(r, r2, h, y - h / 2, true)); y -= h; r = r2; }
+  for (let yy = y0 + 4.2; yy < y1 - 2; yy += 4.2) da.push(bat(R + 0.1, R + 0.1, 0.2, yy, true)); // gờ tầng
+  // gờ đỉnh + diềm vòm nhỏ (mỗi mặt 3 vòm) + vành răng cưa (mỗi mặt 2 răng)
+  da.push(bat(R + 0.32, R + 0.06, 0.5, y1 - 0.15, true), bat(R + 0.32, R + 0.32, 0.25, y1 + 0.22, true));
+  const matI = (i) => { const a = (i + 0.5) * Math.PI / 4; return { a, ox: Math.sin(a), oz: Math.cos(a), quay: a }; }; // CylinderGeometry: đỉnh ở góc θ là (r·sinθ, r·cosθ)
+  const dat = (g, i, x, yy, d) => { const { ox, oz, quay } = matI(i); g.translate(x, 0, 0); g.rotateY(quay); g.translate(cx + ox * (AP + d), yy, cz + oz * (AP + d)); return g; };
+  for (let i = 0; i < 8; i++) {
+    for (const x of [-CANH / 3, 0, CANH / 3]) { const g = cb(new THREE.TorusGeometry(CANH / 7, 0.045, 3, nhe ? 4 : 6, Math.PI)); da.push(dat(g, i, x, y1 - 0.85, 0.04)); }
+    for (const x of [-CANH / 4, CANH / 4]) da.push(dat(cb(new THREE.BoxGeometry(CANH / 3.2, 0.75, 0.3)), i, x, y1 + 0.72, 0.18));
   }
-  const ra = [], gop = (ds, vl) => { if (!ds.length) return; for (const g of ds) { g.deleteAttribute('uv'); } const m = new THREE.Mesh(mergeGeometries(ds), vl); m.castShadow = false; m.receiveShadow = true; ra.push(m); };
-  if (y2 > y1) { // mái nón đồng xanh + chóp: nón trùm hơi rộng hơn nón OSM để không chập mặt
-    const rMax = Math.max(...v.map((p) => Math.hypot(p[0] - cx, p[1] - cz))), g = new THREE.ConeGeometry(rMax * 1.04 + 0.08, y2 - y1 + 0.35, N, 1, true).toNonIndexed(); g.translate(cx, y1 + (y2 - y1 + 0.35) / 2, cz); g.deleteAttribute('uv');
-    const ch = [g, new THREE.SphereGeometry(0.16, 8, 6).toNonIndexed(), new THREE.CylinderGeometry(0.02, 0.05, 1.1, 5).toNonIndexed()];
-    ch[1].translate(cx, y2 + 0.45, cz); ch[2].translate(cx, y2 + 1.05, cz); for (const q of ch.slice(1)) q.deleteAttribute('uv');
-    const m = new THREE.Mesh(mergeGeometries(ch), new THREE.MeshStandardMaterial({ color: mauMai, roughness: 0.55, metalness: 0.25, side: THREE.DoubleSide })); m.castShadow = !nhe; m.receiveShadow = true; ra.push(m);
+  // cửa sổ đôi có cột: mỗi gờ tầng một hàng, chỉ mặt quay ra ngoài
+  for (let yy = y0 + 1.0; yy + 1.7 < y1 - 1.2; yy += 4.2) for (let i = 0; i < 8; i++) {
+    const { ox, oz } = matI(i); if (!ngoai(cx + ox * (AP + 1.2), cz + oz * (AP + 1.2))) continue;
+    const c = nhomCua(THREE, { n: 2, w: Math.min(0.36, CANH / 3.4), h: 1.6, vom: false, nhe });
+    for (const g of c.da) da.push(dat(g, i, 0, yy, 0)); for (const g of c.toi) toi.push(dat(g, i, 0, yy, 0));
+  }
+  const ra = [], gop = (ds, vl, bong = false) => { if (!ds.length) return; const m = new THREE.Mesh(mergeGeometries(ds), vl); m.castShadow = bong; m.receiveShadow = true; ra.push(m); };
+  if (y2 > y1) { // mái chóp bát giác đồng xanh (trùm nón OSM tối bên trong) + chóp
+    const hM = y2 - y1 + 0.6, g = cb(new THREE.ConeGeometry(R + 0.12, hM, 8, 1, true)); g.translate(cx, y1 + 0.1 + hM / 2, cz);
+    const q = cb(new THREE.SphereGeometry(0.15, 8, 6)); q.translate(cx, y1 + 0.1 + hM + 0.1, cz); const k = cb(new THREE.CylinderGeometry(0.02, 0.05, 1.1, 5)); k.translate(cx, y1 + 0.1 + hM + 0.7, cz);
+    gop([g, q, k], new THREE.MeshStandardMaterial({ color: mauMai, roughness: 0.55, metalness: 0.25, side: THREE.DoubleSide }), !nhe);
   }
   gop(da, new THREE.MeshStandardMaterial({ color: mau, roughness: 0.8 })); gop(toi, new THREE.MeshStandardMaterial({ color: '#1b1f27', roughness: 0.6 }));
   return ra;

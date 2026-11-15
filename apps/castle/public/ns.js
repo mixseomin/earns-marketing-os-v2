@@ -236,7 +236,7 @@ for (const k of dsKhoi) {
   if (k.vo && k.coPart) continue;
   const truoc = { mong: NHOM.mong.p.length, mat: NHOM.mat.p.length };
   const r = dungKhoi(k, NHOM);
-  k.yDuoi = r.y0; k.yTren = r.y2; TUONG_MT.push({ ten: k.tags.name || (k.la ? (() => { const [cx, cz] = tamDa(k.v); return dsKhoi.find((q) => q.vo && q.tags.name && trongDa(cx, cz, q.v))?.tags.name; })() : null), v: k.v, yMong: r.yMong, y1: r.y1, y2: r.y2, lo: (i, x1, z1, x2, z2) => loCanh(k, i, x1, z1, x2, z2) });
+  k.yDuoi = r.y0; k.yTren = r.y2; TUONG_MT.push({ ten: k.tags.name || (k.la ? (() => { const [cx, cz] = tamDa(k.v); return dsKhoi.find((q) => q.vo && q.tags.name && trongDa(cx, cz, q.v))?.tags.name; })() : null), k, v: k.v, yMong: r.yMong, y1: r.y1, y2: r.y2, lo: (i, x1, z1, x2, z2) => loCanh(k, i, x1, z1, x2, z2) });
   // hình từng khối: tường (móng + mặt tiền vừa thêm) + mái + nắp — cho va chạm và công cụ đo đối chiếu ảnh
   k.hinh = [[...NHOM.mong.p.slice(truoc.mong), ...NHOM.mat.p.slice(truoc.mat), ...r.da], r.mai];
   const pos = [...k.hinh[0], ...k.hinh[1]];
@@ -263,7 +263,16 @@ const MAT_PALAS = (() => {
     const mx = (x1 + x2) / 2, mz = (z1 + z2) / 2, d = Math.hypot(cx - mx, cz - mz), huong = (nx * (cx - mx) + nz * (cz - mz)) / d;
     if (huong > 0.7 && L > 8 && (!tot || d < tot.d)) tot = { t, i, x1, z1, x2, z2, y1: t.y1, y2: t.y2, L, d }; // GẦN sân nhất, không phải dài nhất
   }
-  if (tot) { const lo0 = tot.t.lo; tot.t.lo = (i, ...r) => (i === tot.i ? [...lo0(i, ...r), { s0: 0, s1: tot.L, y0: tot.y1 - 9.2, y1: tot.y1 + 1 }] : lo0(i, ...r)); } // chừa dải tranh + ban công
+  if (tot) { const lo0 = tot.t.lo; tot.t.lo = (i, ...r) => (i === tot.i ? [...lo0(i, ...r), { s0: 0, s1: tot.L, y0: -1e9, y1: tot.y1 + 1 }] : lo0(i, ...r)); const { x1, z1, x2, z2, L } = tot; tot.yDat = caoDat((x1 + x2) / 2 + (z2 - z1) / L * 2, (z1 + z2) / 2 - (x2 - x1) / L * 2) - GOC_Y;
+    // tam giác đầu hồi thật: trong các tam giác đá của khối, cái nằm trên mặt phẳng tường này và có đỉnh cao quá mái → đổi sang toạ độ s dọc tường
+    const nx = (z2 - z1) / L, nz = -(x2 - x1) / L, ux = (x2 - x1) / L, uz = (z2 - z1) / L, mx = (x1 + x2) / 2, mz = (z1 + z2) / 2, da = tot.t.k.hinh?.[0] || [];
+    let P = null;
+    for (let i = 0; i + 8 < da.length; i += 9) { const q = [0, 3, 6].map((j) => [da[i + j], da[i + j + 1], da[i + j + 2]]);
+      if (q.some(([x, , z]) => Math.abs((x - x1) * nx + (z - z1) * nz) > 0.25)) continue; const dinh = Math.max(...q.map((p) => p[1]));
+      if (dinh > tot.y1 + 1 && (!P || dinh > Math.max(...P.map((p) => p[1])))) P = q; }
+    if (P) { const s = P.map(([x, y, z]) => [(x - mx) * ux + (z - mz) * uz, y]).sort((a, b) => b[1] - a[1]), chan = s.slice(1).sort((a, b) => a[0] - b[0]);
+      tot.hoi = { sD: s[0][0], yD: s[0][1], sA: chan[0][0], sB: chan[1][0], yC: Math.min(chan[0][1], chan[1][1]) }; }
+  } // cả mặt dựng riêng theo ảnh (mattien.js datMatPalas)
   return tot;
 })();
 { // mặt tiền chi tiết: cửa sổ 3D + gờ tầng (một mặt tường bị khối khác áp vào ở tầng nào thì bỏ tầng đó)
@@ -282,7 +291,7 @@ const MAT_PALAS = (() => {
   const san = SAN_TRONG, tot = MAT_PALAS;
   if (san) {
     const [cx, cz] = tamDa(san);
-    console.info('[ns] mặt Palas hướng sân:', tot ? `(${tot.x1.toFixed(1)},${tot.z1.toFixed(1)})→(${tot.x2.toFixed(1)},${tot.z2.toFixed(1)}) dài ${tot.L.toFixed(1)} m, mái ${tot.y1.toFixed(1)}` : 'không tìm thấy', '· sân', cx.toFixed(1), cz.toFixed(1));
+    console.info('[ns] mặt Palas hướng sân:', tot ? `(${tot.x1.toFixed(1)},${tot.z1.toFixed(1)})→(${tot.x2.toFixed(1)},${tot.z2.toFixed(1)}) dài ${tot.L.toFixed(1)} m, mái ${tot.y1.toFixed(1)}, đầu hồi ${JSON.stringify(tot.hoi)}` : 'không tìm thấy', '· sân', cx.toFixed(1), cz.toFixed(1));
     if (tot) (async () => { // tranh tải nền, không chặn trang
       const tl = new THREE.TextureLoader(), TR = {};
       for (const ten of ['palas-thanh-george', 'palas-duc-me']) try { const t = await tl.loadAsync(`./du-lieu/anh/ngoai/${ten}.jpg`); t.colorSpace = THREE.SRGBColorSpace; TR[ten] = t; } catch (e) { console.warn('[ns] không tải được tranh mặt Palas', ten, e); }

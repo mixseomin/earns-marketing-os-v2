@@ -12,7 +12,7 @@ import { khoiVideoCanh } from '../src/lib/xuong-video/sinh-video';
 import { ghep } from '../src/lib/xuong-video/prompt-khoi';
 import { uploadToR2 } from '../src/lib/r2';
 import { cauNgoaiCua } from '../src/lib/xuong-video/cum-shot';
-import { loiPromptGui, loiClipThamChieu } from '../src/lib/xuong-video/chan-gui-video';
+import { loiPromptGui, loiClipThamChieu, loiCoMay, shotCoMay } from '../src/lib/xuong-video/chan-gui-video';
 import { dangChongBau } from '../src/lib/xuong-video/bo-set-3d';
 import { clip3dMoi } from '../src/lib/xuong-video/kieu';
 
@@ -32,7 +32,7 @@ const prompt = `@Image1 is the exact look of this shot: same drawing style, set,
 const giayRa = 5;   // Kie nhận 4–15 s; 5 s đủ phủ clip 3D (4 s) + điểm vào
 console.log(`shot #${bc.canh.thu_tu} · ${model} ${dpg} · ảnh ${anh.length} · video ${clip.url} · prompt ${prompt.length} ký tự`);
 // LUẬT CHẤM TRƯỚC KHI GỬI (chan-gui-video.ts — anh 14/11/2026): lỗi nào cũng chặn, không tốn tiền
-const loiGui = [...loiPromptGui(prompt, { tiLe: bc.kt.ti_le, tenNhanVat: bc.nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten) }), ...loiClipThamChieu([{ so: bc.canh.thu_tu, clip }]), ...(dangChongBau([bc.canh])[bc.canh.id] ?? [])];
+const loiGui = [...loiPromptGui(prompt, { tiLe: bc.kt.ti_le, tenNhanVat: bc.nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten) }), ...loiClipThamChieu([{ so: bc.canh.thu_tu, clip }]), ...loiCoMay([shotCoMay(bc.canh)]), ...(dangChongBau([bc.canh])[bc.canh.id] ?? [])];
 if (loiGui.length) { console.error(`✗ CHẶN trước khi gửi (${loiGui.length} lỗi):\n  - ${loiGui.join('\n  - ')}`); process.exit(3); }
 if (xem) { console.log(prompt); console.log(anh.join('\n')); process.exit(0); }
 if (!process.env.DUYET_SINH_1_LAN) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1 ngay sau khi anh duyệt lượt này'); process.exit(2); }

@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/chan-gui-video.test.mts — mỗi ca là một lỗi thật ở phim #3071 (14/11/2026)
 import assert from 'node:assert';
-import { loiPromptGui, loiClipThamChieu, boLoiThoai, loiThoaiPrompt, loiShotPrompt, loiAnhCum, loiThoaiCuoiCum, loiVideoThamChieu } from './chan-gui-video';
+import { loiPromptGui, loiClipThamChieu, boLoiThoai, loiThoaiPrompt, loiShotPrompt, loiAnhCum, loiThoaiCuoiCum, loiVideoThamChieu, loiCoMay, bacCoChu } from './chan-gui-video';
 import { dangChongBau } from './bo-set-3d';
 
 const sach = 'A 10-second, 6-shot widescreen film sequence. Shot 1 (about 2 s): the man in the t-shirt says: Nhóc, lại đây!. Shot 2: the boy looks up. Keep it subtitle-free.';
@@ -37,4 +37,17 @@ assert.ok(loiVideoThamChieu(1.2)[0]!.includes('1.20 s')); assert.deepStrictEqual
 assert.deepStrictEqual(loiAnhCum(5, 4).length, 1); assert.deepStrictEqual(loiAnhCum(5, 5), []);
 // câu thoại kết bằng "!" (không chấm thêm): boLoiThoai vẫn cắt đúng hết câu, không nuốt câu tiếng Anh sau nó
 assert.strictEqual(boLoiThoai('Shot 1 (about 2 s): the man says: Đi nhanh về nhanh nhé! Keep it subtitle-free.'), 'Shot 1 (about 2 s): the man says: …! Keep it subtitle-free.');
+// cỡ cảnh / máy một nguồn (dữ liệu THẬT phim #3071, 16/11/2026): #14 ws + lia mà kết "close on boy" → chặn; #3 tinh mà hướng "camera moves toward him" → chặn;
+// #4 cu tinh, #10 ms tinh "camera does not move", #15 cu day_vao → qua
+const s14 = { so: 14, co_canh: 'ws', chuyen_dong: 'lia', mo: 'two-shot, man frowning, boy with bottle', ket: 'close on boy holding out change, awkward grin', huong: 'man looks down screen right' };
+assert.ok(loiCoMay([s14]).some((l) => l.includes('#14') && l.includes('day_vao')), JSON.stringify(loiCoMay([s14])));
+assert.deepStrictEqual(loiCoMay([{ ...s14, chuyen_dong: 'day_vao' }]), []);
+const s3 = { so: 3, co_canh: 'ws', chuyen_dong: 'tinh', mo: 'boy small in frame, kicking a pebble', ket: 'boy a bit larger, looks up toward camera', huong: 'boy faces camera, camera moves toward him' };
+assert.ok(loiCoMay([s3])[0]!.includes('camera moves toward'));
+assert.deepStrictEqual(loiCoMay([{ so: 4, co_canh: 'cu', chuyen_dong: 'tinh', mo: 'close-up of the man at the open train window', ket: 'he leans out and calls the boy, smiling' },
+  { so: 10, co_canh: 'ms', chuyen_dong: 'tinh', mo: 'man calling from window', huong: 'man faces screen right; camera does not move' },
+  { so: 15, co_canh: 'cu', chuyen_dong: 'day_vao', mo: 'close-up of the annoyed man at the train window' }]), []);
+assert.ok(loiCoMay([{ so: 9, co_canh: 'ws', chuyen_dong: 'tinh', mo: 'close-up of the boy' }])[0]!.includes('cỡ cảnh khai ws'));
+assert.ok(loiCoMay([{ so: 10, co_canh: 'ms', chuyen_dong: 'day_vao', huong: 'camera does not move' }])[0]!.includes('máy đứng'));
+assert.strictEqual(bacCoChu('medium close-up of the boy'), 3); assert.strictEqual(bacCoChu('wide shot … then a close-up'), 1); assert.strictEqual(bacCoChu('boy walking'), null);
 console.log('✓ chan-gui-video (mã nội bộ · tên / tiếng Việt ngoài thoại · tỉ lệ · clip sạch · dáng chống bậu)');

@@ -8,6 +8,7 @@ import { mapCanh, type Row } from '../src/lib/xuong-video/doc-db';
 import { chiaCumCan, giayClipSeedance } from '../src/lib/xuong-video/cum-shot';
 import { giayPhat, chatLieuPhim, docKinhThanh, clip3dMoi, type KinhThanh } from '../src/lib/xuong-video/kieu';
 import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
+import { loiCoMay, shotCoMay } from '../src/lib/xuong-video/chan-gui-video';
 
 const arg = (k: string, d = ''): string => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
 const tap = Number(arg('tap')); const dpg = arg('dpg', '480p'); if (!tap) { console.error('cần --tap'); process.exit(1); }
@@ -47,16 +48,19 @@ const cum = doan.filter((d) => d.length).flatMap(tachNoi).flatMap((d) => chiaCum
   const cuoi = c.at(-1)!; const cuoiNoi = cachCua(c.map((x) => x.id))?.cach === 'seedance_audio' && (cuoi.thoai ?? []).some((d) => d.url && d.loi?.trim());
   const tong = c.reduce((a, x) => a + giayPhat(x), 0); const ra = giayClipSeedance(c.map((x) => giayPhat(x)), { cuoiCoThoai: cuoiNoi });
   const thieu = c.filter((x) => !clip3dMoi(x) || !x.keyframe_url).map((x) => x.thu_tu);   // clip 3D cũ (khung hoặc chuyển động máy đã đổi) — kieu.ts › clip3dMoi
+  const lech = loiCoMay(c.map(shotCoMay));   // cỡ cảnh / máy lệch giữa chữ và ky_thuat (chan-gui-video.ts › loiCoMay) — lượt gửi sẽ chặn, sửa dữ liệu trước khi tiêu tiền
   return { ten: String.fromCharCode(65 + i), phan_doan: c[0]!.phan_doan, shot: c.map((x) => ({ id: x.id, so: x.thu_tu, phat: giayPhat(x), clip: x.khung_xam?.clip?.url ?? null, vao: x.khung_xam?.clip?.vao ?? 0 })),
-    tong: +tong.toFixed(2), ra, cents: +(gia * (ra + ra)).toFixed(1), thieu };   // giây vào = clip tham chiếu, kéo dài bằng clip ra (cum-seedance-tap.sh)
+    tong: +tong.toFixed(2), ra, cents: +(gia * (ra + ra)).toFixed(1), thieu, lech };   // giây vào = clip tham chiếu, kéo dài bằng clip ra (cum-seedance-tap.sh)
 });
 console.log(`giữ clip (không sinh lại): ${giu.length ? giu.map((c) => `#${c.thu_tu}`).join(' ') : 'không có'}`);
+// shot đang giữ mà dữ liệu cỡ / máy lệch: clip hiện tại có thể đã đạt, nhưng lần sinh lại sau sẽ hỏng — báo để sửa dữ liệu
+const lechGiu = loiCoMay(giu.map(shotCoMay)); if (lechGiu.length) console.log(`dữ liệu cỡ cảnh / máy lệch (shot đang giữ): ${lechGiu.join(' | ')}`);
 // LUẬT KHỚP MÔI (anh 15/11/2026 "shot 4 có voice nhưng không thấy mồm nói"): clip Seedance câm — shot có clip + lời thoại có file giọng mà chưa qua bước khớp môi
 // (nguon_video.khop_moi) thì báo, chạy scripts/khop-moi-shot.mts --canh=<id>.
 const chuaKhop = ds.filter((c) => c.video_url && (c.nguon_video as { mieng?: { dat?: boolean } } | null)?.mieng?.dat == null &&   // dat === false đã vào cụm sinh lại ở dưới
   (c.thoai ?? []).some((d) => d.url && d.loi?.trim() && !/ngoài khung|v\.?o\.?|lời dẫn|off/i.test(d.dien_xuat ?? '')));
 if (chuaKhop.length) console.log(`chưa qua khớp thoại (có thoại): ${chuaKhop.map((c) => `#${c.thu_tu} (id ${c.id})`).join(' ')} — chạy khớp thoại cho clip đang gắn: thu-seedance-cum.mts --canh=<id> --chinh-giong (0đ)`);
-for (const c of cum) console.log(`cụm ${c.ten} · ${c.phan_doan} · #${c.shot.map((x) => x.so).join(' #')} · ${c.tong} s → clip ${c.ra} s · ~${c.cents}¢${c.thieu.length ? ` · THIẾU clip 3D / keyframe: #${c.thieu.join(' #')}` : ''}${(() => { const k = cachCua(c.shot.map((x) => x.id)); return k ? ` · khớp môi: ${k.cach} (${k.vi})` : ''; })()}`);
+for (const c of cum) console.log(`cụm ${c.ten} · ${c.phan_doan} · #${c.shot.map((x) => x.so).join(' #')} · ${c.tong} s → clip ${c.ra} s · ~${c.cents}¢${c.thieu.length ? ` · THIẾU clip 3D / keyframe: #${c.thieu.join(' #')}` : ''}${c.lech.length ? ` · CHẶN cỡ / máy: ${c.lech.join(' | ')}` : ''}${(() => { const k = cachCua(c.shot.map((x) => x.id)); return k ? ` · khớp môi: ${k.cach} (${k.vi})` : ''; })()}`);
 console.log(`tổng ~${cum.reduce((a, c) => a + c.cents, 0).toFixed(1)}¢ (${dpg})`);
 console.log(JSON.stringify(cum));
 process.exit(0);

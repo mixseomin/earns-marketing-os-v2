@@ -177,5 +177,391 @@
   "giayPhep": "CC BY 2.0",
   "giayPhepUrl": "https://creativecommons.org/licenses/by/2.0",
   "camera": null
+ },
+ {
+  "tieuDe": "Mapillary 514939746415831",
+  "tep": "anh/mly-514939746415831.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=514939746415831",
+  "mly": "514939746415831",
+  "lat": 47.557624563056,
+  "lng": 10.749374975767,
+  "rong": 2048,
+  "cao": 1152,
+  "tacGia": "gpsvid / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 32 m · T",
+  "cameraDau": {
+   "yaw": -1.4867,
+   "pitch": 0.1,
+   "fov": 35.4
+  },
+  "camera": null,
+  "khongDung": "ảnh không thấy rõ tường / mái (người, cây, đường) — soát bằng mắt 16/11/2026"
+ },
+ {
+  "tieuDe": "Mapillary 786129388763897",
+  "tep": "anh/mly-786129388763897-thang.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=786129388763897",
+  "mly": "786129388763897",
+  "lat": 47.557634023551,
+  "lng": 10.749350088233,
+  "rong": 2048,
+  "cao": 1152,
+  "tacGia": "gpsvid / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 34 m · T",
+  "cameraDau": {
+   "yaw": -1.7171,
+   "pitch": 0.1,
+   "fov": 60.8
+  },
+  "camera": {
+   "y": 17.6,
+   "yaw": -2.0171,
+   "pitch": 0.21,
+   "fov": 60.8,
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 73.0 px trên khung 1600 px"
+  },
+  "ongKinh": {
+   "kieu": "perspective",
+   "thamSo": [
+    0.47937230160954,
+    -0.22666235528975,
+    0.046628715226029
+   ],
+   "goc": [
+    1920,
+    1080
+   ]
+  },
+  "tepGoc": "anh/mly-786129388763897.jpg",
+  "khuMeo": "OpenSfM perspective f=0.479 k1=-0.227 k2=0.047"
+ },
+ {
+  "tieuDe": "Mapillary 962276507881301",
+  "tep": "anh/mly-962276507881301.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=962276507881301",
+  "mly": "962276507881301",
+  "lat": 47.557886449943,
+  "lng": 10.750066908572,
+  "rong": 2048,
+  "cao": 1152,
+  "tacGia": "gpsvid / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 38 m · BĐB",
+  "cameraDau": {
+   "yaw": -3.3081,
+   "pitch": 0.1,
+   "fov": 35.4
+  },
+  "camera": {
+   "y": 11.8,
+   "yaw": -3.4731,
+   "pitch": 0.495,
+   "fov": 35.4,
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 12.0 px trên khung 1600 px"
+  },
+  "ongKinh": {
+   "kieu": "perspective",
+   "thamSo": [
+    0.88202397654273,
+    0,
+    0
+   ],
+   "goc": [
+    1920,
+    1080
+   ]
+  },
+  "khuMeo": "không méo"
+ },
+ {
+  "tieuDe": "Mapillary 2852680028317489",
+  "tep": "anh/mly-2852680028317489-thang.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=2852680028317489",
+  "mly": "2852680028317489",
+  "lat": 47.557936624823,
+  "lng": 10.749695231996,
+  "rong": 2048,
+  "cao": 1152,
+  "tacGia": "gpsvid / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 38 m · TB",
+  "cameraDau": {
+   "yaw": -2.6778,
+   "pitch": 0.1,
+   "fov": 48.2
+  },
+  "camera": {
+   "y": -2.03,
+   "yaw": -2.3578,
+   "pitch": 0,
+   "fov": 48.2,
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 11.0 px trên khung 1600 px"
+  },
+  "ongKinh": {
+   "kieu": "perspective",
+   "thamSo": [
+    0.62919949749683,
+    -0.13493912929023,
+    -0.014885004764469
+   ],
+   "goc": [
+    1920,
+    1080
+   ]
+  },
+  "tepGoc": "anh/mly-2852680028317489.jpg",
+  "khuMeo": "OpenSfM perspective f=0.629 k1=-0.135 k2=-0.015"
+ },
+ {
+  "tieuDe": "Mapillary 918322632081559",
+  "tep": "anh/mly-918322632081559-thang.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=918322632081559",
+  "mly": "918322632081559",
+  "lat": 47.557985378995,
+  "lng": 10.749746337764,
+  "rong": 2048,
+  "cao": 1152,
+  "tacGia": "gpsvid / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 43 m · TB",
+  "cameraDau": {
+   "yaw": -2.7559,
+   "pitch": 0.1,
+   "fov": 48.2
+  },
+  "camera": {
+   "y": -4.74,
+   "yaw": -3.0109,
+   "pitch": -0.03,
+   "fov": 48.2,
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 22.0 px trên khung 1600 px"
+  },
+  "ongKinh": {
+   "kieu": "perspective",
+   "thamSo": [
+    0.62919949749683,
+    -0.13493912929023,
+    -0.014885004764469
+   ],
+   "goc": [
+    1920,
+    1080
+   ]
+  },
+  "tepGoc": "anh/mly-918322632081559.jpg",
+  "khuMeo": "OpenSfM perspective f=0.629 k1=-0.135 k2=-0.015"
+ },
+ {
+  "tieuDe": "Mapillary 395542015074735",
+  "tep": "anh/mly-395542015074735.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=395542015074735",
+  "mly": "395542015074735",
+  "lat": 47.557592853021,
+  "lng": 10.749213335874,
+  "rong": 2048,
+  "cao": 1152,
+  "tacGia": "gpsvid / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 44 m · TN",
+  "cameraDau": {
+   "yaw": -1.0927,
+   "pitch": 0.1,
+   "fov": 60.8
+  },
+  "camera": null,
+  "khongDung": "ảnh không thấy rõ tường / mái (người, cây, đường) — soát bằng mắt 16/11/2026"
+ },
+ {
+  "tieuDe": "Mapillary 545229799970388",
+  "tep": "anh/mly-545229799970388-thang.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=545229799970388",
+  "mly": "545229799970388",
+  "lat": 47.558011562205,
+  "lng": 10.74980581395,
+  "rong": 2048,
+  "cao": 1152,
+  "tacGia": "gpsvid / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 46 m · B",
+  "cameraDau": {
+   "yaw": -3.5236,
+   "pitch": 0.1,
+   "fov": 57.3
+  },
+  "camera": {
+   "y": -6.61,
+   "yaw": -3.8236,
+   "pitch": 0.24,
+   "fov": 57.3,
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 32.0 px trên khung 1600 px"
+  },
+  "ongKinh": {
+   "kieu": "perspective",
+   "thamSo": [
+    0.51501259882017,
+    -0.052914713338489,
+    -0.0095580452850937
+   ],
+   "goc": [
+    1920,
+    1080
+   ]
+  },
+  "tepGoc": "anh/mly-545229799970388.jpg",
+  "khuMeo": "OpenSfM perspective f=0.515 k1=-0.053 k2=-0.010"
+ },
+ {
+  "tieuDe": "Mapillary 782799649088531",
+  "tep": "anh/mly-782799649088531.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=782799649088531",
+  "mly": "782799649088531",
+  "lat": 47.557548965299,
+  "lng": 10.749158640048,
+  "rong": 2048,
+  "cao": 1152,
+  "tacGia": "gpsvid / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 49 m · TN",
+  "cameraDau": {
+   "yaw": -1.0005,
+   "pitch": 0.1,
+   "fov": 35.7
+  },
+  "camera": null,
+  "khongDung": "ảnh không thấy rõ tường / mái (người, cây, đường) — soát bằng mắt 16/11/2026"
+ },
+ {
+  "tieuDe": "Mapillary 487561372357897",
+  "tep": "anh/mly-487561372357897-thang.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=487561372357897",
+  "mly": "487561372357897",
+  "lat": 47.558042875867,
+  "lng": 10.749802577906,
+  "rong": 2048,
+  "cao": 1152,
+  "tacGia": "gpsvid / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 49 m · B",
+  "cameraDau": {
+   "yaw": -3.2952,
+   "pitch": 0.1,
+   "fov": 57.3
+  },
+  "camera": {
+   "y": -7.56,
+   "yaw": -2.9902,
+   "pitch": 0.4781,
+   "fov": 56.3,
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 13.0 px trên khung 1600 px"
+  },
+  "ongKinh": {
+   "kieu": "perspective",
+   "thamSo": [
+    0.51501259882017,
+    -0.052914713338489,
+    -0.0095580452850937
+   ],
+   "goc": [
+    1920,
+    1080
+   ]
+  },
+  "tepGoc": "anh/mly-487561372357897.jpg",
+  "khuMeo": "OpenSfM perspective f=0.515 k1=-0.053 k2=-0.010"
+ },
+ {
+  "tieuDe": "Mapillary 339627089073204",
+  "tep": "anh/mly-339627089073204.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=339627089073204",
+  "mly": "339627089073204",
+  "lat": 47.558220708065,
+  "lng": 10.748899237312,
+  "rong": 2048,
+  "cao": 1536,
+  "tacGia": "quickness805 / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 97 m · TTB",
+  "cameraDau": {
+   "yaw": -2.8172,
+   "pitch": 0.1,
+   "fov": 86.9
+  },
+  "camera": null,
+  "khongDung": "ảnh không thấy rõ tường / mái (người, cây, đường) — soát bằng mắt 16/11/2026"
+ },
+ {
+  "tieuDe": "Mapillary 253362237821200",
+  "tep": "anh/mly-253362237821200.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=253362237821200",
+  "mly": "253362237821200",
+  "lat": 47.558233212322,
+  "lng": 10.748893481626,
+  "rong": 2048,
+  "cao": 1536,
+  "tacGia": "quickness805 / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 98 m · TTB",
+  "cameraDau": {
+   "yaw": -2.8278,
+   "pitch": 0.1,
+   "fov": 86.9
+  },
+  "camera": null,
+  "khongDung": "ảnh không thấy rõ tường / mái (người, cây, đường) — soát bằng mắt 16/11/2026"
+ },
+ {
+  "tieuDe": "Mapillary 1189468269815446",
+  "tep": "anh/mly-1189468269815446.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=1189468269815446",
+  "mly": "1189468269815446",
+  "lat": 47.556610540005,
+  "lng": 10.748294593295,
+  "rong": 2048,
+  "cao": 1536,
+  "tacGia": "tartine78 / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 158 m · NTN",
+  "cameraDau": {
+   "yaw": -0.6037,
+   "pitch": 0.1,
+   "fov": 53.8
+  },
+  "camera": null,
+  "khongDung": "ảnh không thấy rõ tường / mái (người, cây, đường) — soát bằng mắt 16/11/2026"
+ },
+ {
+  "tieuDe": "Mapillary 1648104839725245",
+  "tep": "anh/mly-1648104839725245.jpg",
+  "trang": "https://www.mapillary.com/app/?pKey=1648104839725245",
+  "mly": "1648104839725245",
+  "lat": 47.55659798279,
+  "lng": 10.748284880524,
+  "rong": 2048,
+  "cao": 1536,
+  "tacGia": "tartine78 / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "nhan": "Mapillary 159 m · NTN",
+  "cameraDau": {
+   "yaw": -0.6161,
+   "pitch": 0.1,
+   "fov": 53.8
+  },
+  "camera": null,
+  "khongDung": "ảnh không thấy rõ tường / mái (người, cây, đường) — soát bằng mắt 16/11/2026"
  }
 ]

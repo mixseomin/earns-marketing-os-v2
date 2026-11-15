@@ -615,6 +615,17 @@ function anCayXa(now) {
   for (const o of RUNG_O) o.visible = o.userData.tam.distanceTo(c) < xa;
 }
 let lan = 0, tichLuy = 0, lucCham = 0;
+// TOUCHPAD HAI NGÓN (anh 16/11/2026): vuốt hai ngón = XOAY như giữ chuột trái kéo; chụm / mở hai ngón (trình duyệt gửi wheel + ctrlKey) = phóng;
+// lăn chuột thật (bánh xe: bước nguyên, không có trục ngang) vẫn phóng. Bắt ở pha capture trên khung vẽ, trước OrbitControls.
+const laTouchpad = (e) => !e.ctrlKey && e.deltaMode === 0 && (e.deltaX !== 0 || !Number.isInteger(e.deltaY) || Math.abs(e.deltaY) < 40);
+renderer.domElement.addEventListener('wheel', (e) => {
+  if (!laTouchpad(e) || dangSo) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (di?.dang) { di.yaw -= e.deltaX * 0.004; di.pitch = Math.max(-1.4, Math.min(1.4, di.pitch - e.deltaY * 0.004)); di.lucChuot = performance.now(); return; }
+  const off = camera.position.clone().sub(orbit.target), sp = new THREE.Spherical().setFromVector3(off);
+  sp.theta -= e.deltaX * 0.004; sp.phi = Math.max(0.05, Math.min(orbit.maxPolarAngle, sp.phi - e.deltaY * 0.004));
+  camera.position.copy(orbit.target).add(new THREE.Vector3().setFromSpherical(sp)); camera.lookAt(orbit.target); orbit.update();
+}, { capture: true, passive: false });
 for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart', 'touchmove']) addEventListener(ev, () => { lucCham = performance.now(); }, { passive: true }); // có thao tác → vẽ đủ nhịp
 const dongHo = new THREE.Clock();
 function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ so ảnh)

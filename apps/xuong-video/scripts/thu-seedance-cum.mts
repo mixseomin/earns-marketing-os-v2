@@ -6,7 +6,7 @@
 // Gắn: mọi shot trỏ cùng clip cụm, ky_thuat.vao_s = điểm vào đo được (câu lệnh riêng sau khi đổi clip — trigger 0328).
 //   cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/thu-seedance-cum.mts \
 //     --canh=9213,9198,9199 --video-file=/tmp/cum-3d.mp4 [--dpg=480p] [--xem]
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
@@ -19,7 +19,7 @@ import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
 import { nhanNhin } from '../src/lib/xuong-video/prompt-khoi';
 import { duongAmLuong, khopTheoTiengClip, doanShot } from '../src/lib/xuong-video/can-giong';
 import { uploadToR2 } from '../src/lib/r2';
-import { loiPromptGui, loiClipThamChieu, loiThoaiPrompt, loiShotPrompt, loiAnhCum, loiThoaiCuoiCum } from '../src/lib/xuong-video/chan-gui-video';
+import { loiPromptGui, loiClipThamChieu, loiThoaiPrompt, loiShotPrompt, loiAnhCum, loiThoaiCuoiCum, loiVideoThamChieu } from '../src/lib/xuong-video/chan-gui-video';
 import { dangChongBau } from '../src/lib/xuong-video/bo-set-3d';
 
 const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
@@ -77,6 +77,8 @@ const loiGui = [...loiPromptGui(prompt, { tiLe: bcs[0]!.kt.ti_le, tenNhanVat: [.
   ...Object.entries(dangChongBau(cum.map((x) => x.canh))).flatMap(([id, l]) => l.map((y) => `#${cum.find((x) => x.canh.id === Number(id))?.canh.thu_tu}: ${y}`))];
 // THIẾU GIỌNG (luật 15/11/2026: #6 sinh không kèm giọng → miệng không theo câu): shot có câu thoại có file giọng mà lượt này không gửi giọng → chặn
 if (cauAm.length && !guiGiong) loiGui.push(`cụm có thoại (${cauAm.map((c) => `#${cum[c.so - 1]!.canh.thu_tu}`).join(' ')}) mà không gửi giọng (cách khớp môi: ${cachKhop?.cach ?? '?'} — ${cachKhop?.vi ?? ''}) — tách cụm mỗi lần một người nói`);
+// clip 3D gửi đi đo thật (tệp có sẵn): dưới sàn Seedance thì chặn, không gửi
+const tepVao = clip1 ? clip1.url : fileVideo; if (tepVao && (clip1 || existsSync(fileVideo))) loiGui.push(...loiVideoThamChieu(Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', tepVao], { encoding: 'utf8' }).trim())));
 if (loiGui.length) { console.error(`✗ CHẶN trước khi gửi (${loiGui.length} lỗi):\n  - ${loiGui.join('\n  - ')}`); process.exit(3); }
 // KHỚP THOẠI THEO TIẾNG CLIP (can-giong.ts › khopTheoTiengClip — luật chuẩn 15/11/2026, thay tương quan âm lượng + đo miệng bằng hình): điểm vào shot = lúc clip
 // bắt đầu nói trong đoạn của shot − lúc câu bắt đầu nghe thấy trong shot. Clip không nói / nói lặp / không bù được → lỗi (shot không gắn, vào lượt sinh lại).

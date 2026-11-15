@@ -19,7 +19,9 @@ c = next((x for x in json.load(open(sys.argv[1])) if x['ten'] == sys.argv[2]), N
 if not c: sys.exit(f'không có cụm {sys.argv[2]}')
 if c['thieu']: sys.exit(f"cụm {c['ten']} thiếu clip 3D / keyframe: #{c['thieu']}")
 with open(f"{sys.argv[3]}/shot.txt", 'w') as f:
-    for s in c['shot']: f.write(f"{s['id']} {s['clip']} {s['vao']} {s['phat']}\n")
+    # SÀN VIDEO THAM CHIẾU 1,8 s (Seedance r2v — #2 phim #3071 16/11/2026): cụm ngắn hơn 2 s thì shot cuối cắt dài thêm từ phần dư của clip 3D (giữ dáng cuối)
+    thieu = max(0.0, 2.0 - sum(s['phat'] for s in c['shot']))
+    for i, s in enumerate(c['shot']): f.write(f"{s['id']} {s['clip']} {s['vao']} {round(s['phat'] + (thieu if i == len(c['shot']) - 1 else 0), 2)}\n")
 print(f"cụm {c['ten']}: #{' #'.join(str(s['so']) for s in c['shot'])} · {c['tong']} s · ~{c['cents']}¢")
 PY
 i=0; : > "$TM/list.txt"; IDS=""

@@ -64,3 +64,8 @@ export const loiThoaiCuoiCum = (soCoThoai: readonly number[], soShot: number): s
   const giua = [...new Set(soCoThoai)].filter((s) => s < soShot);
   return giua.length ? [`shot ${giua.join(', ')} có thoại mà không đứng cuối cụm (${soShot} shot) — không có đuôi bù giờ nói: tách cụm sau shot thoại (cum-seedance.mts)`] : [];
 };
+
+/** SÀN VIDEO THAM CHIẾU (16/11/2026, phim #3071 #2 job 8364: cụm một shot 1,2 s → Kie / Seedance r2v từ chối "video duration must be ≥ 1.8"): clip 3D gửi đi
+ *  phải ≥ 1,8 s. Cụm ngắn hơn: cum-seedance-tap.sh lấy dài shot cuối từ phần dư của clip 3D (giữ dáng cuối), câu lệnh vẫn ghi giây phát thật. */
+export const SAN_VIDEO_THAM_CHIEU = 1.8;
+export const loiVideoThamChieu = (giay: number): string[] => (giay < SAN_VIDEO_THAM_CHIEU ? [`clip 3D tham chiếu ${giay.toFixed(2)} s < ${SAN_VIDEO_THAM_CHIEU} s (sàn Seedance r2v) — lấy dài shot cuối (cum-seedance-tap.sh)`] : []);

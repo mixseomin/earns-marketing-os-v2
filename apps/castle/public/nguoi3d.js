@@ -76,8 +76,8 @@ function tuTheLeo(goc, x, pha) {
   xoayTheGioi(x.spine_02, _truc, 0.12); xoayTheGioi(x.Head, _truc, 0.35); // ngả vào tường, ngẩng nhìn lên (quanh trục ngang _truc: góc + = mặt ngửa lên — trước đây −0,35 làm cúi mặt vào tường)
   // bớt cứng (anh 15/11/2026 "bò nhìn cứng quá"): thân vặn và nghiêng theo bên tay đang với, hông lắc ngược, đầu nhún theo nhịp kéo
   _truoc.set(Math.sin(h), 0, Math.cos(h));
-  xoayTheGioi(x.spine_01, _len, -0.16 * s); xoayTheGioi(x.spine_03, _len, -0.1 * s); xoayTheGioi(x.spine_02, _truoc, 0.09 * s);
-  xoayTheGioi(x.pelvis, _truoc, -0.07 * s); xoayTheGioi(x.Head, _truc, 0.08 * Math.abs(s));
+  // chỉ vặn nhẹ thân theo bên tay đang với (anh 16/11/2026: nghiêng ngang + lắc hông làm người trông vẹo khi leo) + đầu nhún
+  xoayTheGioi(x.spine_02, _len, -0.06 * s); xoayTheGioi(x.Head, _truc, 0.06 * Math.abs(s));
   for (const [ben, voi, keo] of [['l', tL, tR], ['r', tR, tL]]) {
     xoayTheGioi(x['upperarm_' + ben], _truc, 2.25 + 0.55 * voi - 0.25 * keo);   // tay với cao / hạ khi kéo
     xoayTheGioi(x['lowerarm_' + ben], _truc, 0.25 + 0.9 * keo);                 // khuỷu gập khi kéo người lên
@@ -145,7 +145,7 @@ export function taoNguoi3d(o = {}) {
       if (!viec && st.tuThe === 'leo') tuTheLeo(goc, xuong, (st.phaLeo || 0) * 1.1);
       // ĐẦU QUAY THEO HƯỚNG NHÌN (anh 15/11/2026): st.nhin = { yaw: hướng camera so với thân, pitch: ngẩng (+ lên) }; cổ 40 %, đầu 60 %, giới hạn ±70° / ±35°,
       // nhìn ra sau quá 135° (góc nhìn mặt V) thì đầu thôi quay; trơn dần để không giật
-      const n = st.nhin, ra = !n || Math.abs(n.yaw) > 2.36, mY = ra ? 0 : Math.max(-1.22, Math.min(1.22, n.yaw)), mP = ra ? 0 : Math.max(-0.6, Math.min(0.6, n.pitch));
+      const n = st.nhin, ra = !n || Math.abs(n.yaw) > 2.36, gh = st.tuThe === 'leo' ? 0.52 : 1.22, mY = ra ? 0 : Math.max(-gh, Math.min(gh, n.yaw)), mP = ra ? 0 : Math.max(-0.6, Math.min(0.6, n.pitch)); // đang leo: đầu quay tối đa ±30°
       const k = 1 - Math.exp(-dt * 8); nhinY += (mY - nhinY) * k; nhinP += (mP - nhinP) * k;
       if (Math.abs(nhinY) > 0.01 || Math.abs(nhinP) > 0.01) {
         goc.updateMatrixWorld(true); const h = goc.rotation.y; _truc.set(-Math.cos(h), 0, Math.sin(h));

@@ -21,7 +21,7 @@ export async function taoChieuAnh({ THREE, renderer, anh, cam, che, nhan, kichTh
       varying vec4 vChieu; varying vec3 vPhap; varying vec3 vTg; uniform int kiem; uniform sampler2D anh; uniform sampler2D sau; uniform vec3 viTri; uniform float gan; uniform float xa;
       void main() {
         vec3 n = vChieu.xyz / vChieu.w; vec2 uv = n.xy * 0.5 + 0.5; if (vChieu.w <= 0.0 || uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) discard; if (kiem == 1) { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); return; }
-        vec3 toi = normalize(viTri - vTg); if (abs(dot(normalize(vPhap), toi)) < 0.15) discard; // mặt quá xiên so với hướng chụp: ảnh kéo dài, bỏ
+        vec3 toi = normalize(viTri - vTg); float hg = dot(normalize(gl_FrontFacing ? vPhap : -vPhap), toi); if (hg < 0.4) discard; // chỉ mặt QUAY VỀ chỗ chụp, lệch ≤ ~66°: mặt xiên / quay lưng thì ảnh bị kéo thành sọc (anh 16/11/2026), bỏ
         if (kiem == 2) { gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0); return; }
         float d = texture2D(sau, uv).x, zSau = perspectiveDepthToViewZ(d, gan, xa), zMinh = perspectiveDepthToViewZ(n.z * 0.5 + 0.5, gan, xa);
         if (zMinh < zSau - 0.6) discard; // bị vật khác che (sâu hơn 0,6 m so với mặt gần nhất camera chụp thấy)

@@ -1,12 +1,5 @@
 {
  "ghi_chu": "ẢNH DÁN MẶT TƯỜNG từ ảnh 3D Google nhìn thẳng (scripts/nan-google.mjs PX=16 + dan-mat.py): \"<khối>#<cạnh>\": { tep, y0, yTren (khung ảnh, y tuyệt đối), L }",
- "way/223069512#3": {
-  "chup": true,
-  "tep": "anh/mat/223069512-3.webp",
-  "y0": 29.0,
-  "yTren": 50.39,
-  "L": 10.76
- },
  "way/223069512#4": {
   "chup": false,
   "tep": "anh/mat/223069512-4.webp",
@@ -90,13 +83,6 @@
   "y0": 29.0,
   "yTren": 68.28,
   "L": 14.36
- },
- "way/223145713#2": {
-  "chup": true,
-  "tep": "anh/mat/223145713-2.webp",
-  "y0": 37.28,
-  "yTren": 46.28,
-  "L": 10.9
  },
  "way/223179004#0": {
   "chup": false,

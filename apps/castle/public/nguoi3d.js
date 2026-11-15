@@ -97,6 +97,10 @@ export function taoNguoi3d(o = {}) {
     if (x.isBone) xuong[x.name] = x;
     if (x.isMesh) { x.castShadow = true; x.frustumCulled = false; if (x.isSkinnedMesh) toMauAo(x, AO[o.ao || 'hiepSi'] || AO.hiepSi); }
   });
+  // XƯƠNG ĐƯỢC XOAY THÊM sau mixer (đầu nhìn theo camera, thân vặn khi leo): lưu tư thế gốc, đặt lại mỗi khung trước mixer — động tác nào không có
+  // rãnh cho xương đó (vd nhảy) thì mixer không ghi đè, phần xoay thêm sẽ CỘNG DỒN từng khung → đầu ngoáy vòng tròn (anh 16/11/2026)
+  const XOAY_THEM = ['neck_01', 'Head', 'spine_01', 'spine_02', 'spine_03', 'pelvis', 'upperarm_l', 'upperarm_r', 'lowerarm_l', 'lowerarm_r', 'thigh_l', 'thigh_r', 'calf_l', 'calf_r'];
+  const goc0 = XOAY_THEM.filter((t) => xuong[t]).map((t) => [xuong[t], xuong[t].quaternion.clone()]);
   const mixer = new THREE.AnimationMixer(than), hd = {};
   for (const [ten, clip] of Object.entries(MAU.clips)) hd[ten] = mixer.clipAction(clip);
   for (const t of ['nem', 'da', 'len1m', 'len2m', 'vuot', 'nga', 'gat']) { hd[t].setLoop(THREE.LoopOnce, 1); hd[t].clampWhenFinished = true; }
@@ -141,6 +145,7 @@ export function taoNguoi3d(o = {}) {
         else if (v < 5.4) choi('chay', 0.2, Math.max(0.75, Math.min(1.4, v / TOC_GOC.chay)));
         else choi('nuocRut', 0.2, Math.max(0.8, Math.min(1.5, v / TOC_GOC.nuocRut)));
       }
+      for (const [x, q] of goc0) x.quaternion.copy(q); // về tư thế gốc, rồi mixer + xoay thêm (không cộng dồn)
       mixer.update(dt);
       if (!viec && st.tuThe === 'leo') tuTheLeo(goc, xuong, (st.phaLeo || 0) * 1.1);
       // ĐẦU QUAY THEO HƯỚNG NHÌN (anh 15/11/2026): st.nhin = { yaw: hướng camera so với thân, pitch: ngẩng (+ lên) }; cổ 40 %, đầu 60 %, giới hạn ±70° / ±35°,

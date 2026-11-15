@@ -380,6 +380,7 @@ const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3
     const tl = new THREE.TextureLoader(), dem2 = { mat: 0 };
     for (const t of TUONG_MT) for (let i = 0; i < t.v.length; i++) {
       const a = MAT_ANH[`${t.k?.id}#${i}`]; if (!a) continue;
+      if (MAT_PALAS && t === MAT_PALAS.t && i === MAT_PALAS.i) continue; // mặt dựng riêng theo ảnh chụp rõ (datMatPalas: tranh, ban công, cụm cửa) — ảnh 3D nhoè dán đè sẽ che mất (anh 16/11/2026)
       const [x1, z1] = t.v[i], [x2, z2] = t.v[(i + 1) % t.v.length], L = Math.hypot(x2 - x1, z2 - z1), ux = (x2 - x1) / L, uz = (z2 - z1) / L, nx = uz, nz = -ux;
       const y0 = Math.max(t.yMong, a.y0), y1 = Math.min(t.y1, a.yTren); if (y1 - y0 < 1) continue;
       let tx; try { tx = await tl.loadAsync(`./du-lieu/${a.tep}`); } catch (e) { console.warn('[ns] không tải được ảnh mặt', a.tep, e); continue; }
@@ -390,9 +391,18 @@ const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3
         tx = new THREE.CanvasTexture(c);
       }
       tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4;
-      tx.repeat.set(1, (y1 - y0) / (a.yTren - a.y0)); tx.offset.set(0, (y0 - a.y0) / (a.yTren - a.y0));
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(L, y1 - y0), new THREE.MeshBasicMaterial({ map: tx, transparent: true, alphaTest: 0.5, toneMapped: false }));
-      m.position.set(x1 + ux * L / 2 + nx * 0.04, (y0 + y1) / 2, z1 + uz * L / 2 + nz * 0.04); m.rotation.y = Math.atan2(nx, nz);
+      // hình dán = chữ nhật tường (chân → mái hiên) + TAM GIÁC ĐẦU HỒI nằm trên cùng mặt phẳng (lấy từ hình khối đã dựng) — trước chỉ tới mái hiên,
+      // đầu hồi trơn (anh 16/11/2026); toạ độ ảnh: u = 1 − s / L (s dọc cạnh từ đầu), v theo độ cao trong khung ảnh
+      const P = [], UV = [], dat = (s, y) => { P.push(x1 + ux * s + nx * 0.04, y, z1 + uz * s + nz * 0.04); UV.push(1 - s / a.L, (y - a.y0) / (a.yTren - a.y0)); };
+      for (const [s, y] of [[0, y0], [L, y0], [L, y1], [0, y0], [L, y1], [0, y1]]) dat(s, y);
+      const da = t.k?.hinh?.[0] || [];
+      for (let j = 0; j + 8 < da.length; j += 9) {
+        const q = [0, 3, 6].map((o) => [da[j + o], da[j + o + 1], da[j + o + 2]]);
+        if (q.some(([x, y, z]) => Math.abs((x - x1) * nx + (z - z1) * nz) > 0.25 || y < t.y1 - 0.05) || Math.max(...q.map((p) => p[1])) < t.y1 + 0.5) continue;
+        for (const [x, y, z] of q) dat((x - x1) * ux + (z - z1) * uz, Math.min(y, a.yTren));
+      }
+      const gH = new THREE.BufferGeometry(); gH.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); gH.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2));
+      const m = new THREE.Mesh(gH, new THREE.MeshBasicMaterial({ map: tx, transparent: true, alphaTest: 0.5, toneMapped: false, side: THREE.DoubleSide }));
       m.visible = !LOP_OSM.dangAn; scene.add(m); LOP_OSM.push(m); dem2.mat++;
     }
     console.info('[ns] ảnh dán mặt tường:', dem2.mat, 'mặt');
@@ -429,15 +439,21 @@ const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3
 }
 // LƯỚI ĐẤT MỊN quanh lâu đài (ô 1,5 m, chỗ mặt đất thật cao hơn lưới thô): mặt đá + va chạm — người đi trên mặt đất thật, không trên lưới thô bên dưới
 if (NEN_LUOI) {
-  const L = NEN_LUOI, p = [], uv = [];
+  // chia theo ĐỘ DỐC từng ô (anh 16/11/2026: mỏm đá thành vách lát gạch xám, nhìn giả): dốc > 45° = vách đá tự nhiên (vân bazan sáng, chiếu ngang),
+  // thoải = đất rừng có cỏ (như sườn có cây ngoài đời); va chạm vẫn là một lưới chung
+  const L = NEN_LUOI, p = [], uv = [], nhom = { da: { p: [], uv: [] }, co: { p: [], uv: [] } };
   for (let j = 0; j + 1 < L.H; j++) for (let i = 0; i + 1 < L.W; i++) {
     const o = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]]; if (o.every(([a, b]) => L.nang[L.id(a, b)] < 0.15)) continue;
     const q = o.map(([a, b]) => [L.x0 + a * L.B, L.G[L.id(a, b)] + 0.02, L.z0 + b * L.B]);
-    for (const k of [0, 2, 1, 0, 3, 2]) { p.push(...q[k]); uv.push(q[k][0] / 4, q[k][2] / 4); }
+    const ys = q.map((v) => v[1]), doc = (Math.max(...ys) - Math.min(...ys)) / (L.B * Math.SQRT2), g = doc > 1 ? nhom.da : nhom.co, ngang = doc > 1;
+    for (const k of [0, 2, 1, 0, 3, 2]) { p.push(...q[k]); g.p.push(...q[k]); g.uv.push(ngang ? (q[k][0] + q[k][2]) / 6 : q[k][0] / 4, ngang ? q[k][1] / 6 : q[k][2] / 4); }
   }
   if (p.length) {
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
-    const m = new THREE.Mesh(g, VL.mong); m.receiveShadow = true; scene.add(m); LOP_OSM.push(m);
+    const da = T.bazan(T.rngTu(71)), co = T.co(T.rngTu(72)); for (const t of [da.map, da.bump, co.map, co.bump]) if (t) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    const vlNhom = { da: new THREE.MeshStandardMaterial({ map: da.map, bumpMap: da.bump, bumpScale: 2, roughness: 0.95, color: '#c9c2b6' }), co: new THREE.MeshStandardMaterial({ map: co.map || null, roughness: 1, color: '#7f8f62' }) };
+    for (const [k, gg] of Object.entries(nhom)) { if (!gg.p.length) continue;
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(gg.p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(gg.uv, 2)); g.computeVertexNormals();
+      const m = new THREE.Mesh(g, vlNhom[k]); m.receiveShadow = true; scene.add(m); LOP_OSM.push(m); }
     world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(p), Uint32Array.from({ length: p.length / 3 }, (_, i) => i)), tinh);
     console.info('[ns] mặt đất thật quanh lâu đài:', p.length / 18, 'ô · nâng tối đa', Math.max(...L.nang).toFixed(1), 'm');
   }

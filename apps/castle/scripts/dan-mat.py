@@ -26,6 +26,7 @@ for m in json.loads((thu / 'mat-g.json').read_text()):
         for x in range(W):
             r, g, b, a = px[x, y]
             if r > 200 and b > 200 and g < 70: px[x, y] = (0, 0, 0, 0)  # trời (nền hồng tím của bước chụp)
+            elif b > r + 25 and b > g + 8: px[x, y] = (0, 0, 0, 0)  # ảnh 3D Google: mảng xanh tím (trời / kính phản chiếu dính vào mặt tường) → bỏ, để ảnh chụp chiếu hoặc tường đá lộ ra (anh 16/11/2026: 'nham nhở')
     c = chup.get(f"{m['khoi']}#{m['canh']}")
     if c:
         pc = Image.open(c['tep']).convert('RGBA'); qx = pc.load(); P = c['px']
@@ -38,7 +39,9 @@ for m in json.loads((thu / 'mat-g.json').read_text()):
                 if a == 255 and not (r == g == b == 128) and not troi and not cay: px[x, gy] = (r, g, b, 255)
     # ẢNH HỎNG: mặt ảnh 3D không có ảnh thật (màu bị kéo dãn thành sọc ngang) → độ chênh theo chiều dọc gấp > 1,5 lần chiều ngang → không dán
     if True:  # kể cả sau khi ghép ảnh chụp (mặt nhìn quá xiên từ chỗ chụp cũng kéo thành sọc)
-        L_ = im.convert('L'); q = L_.load(); dx = sum(abs(q[x, y] - q[x + 1, y]) for y in range(0, H, 2) for x in range(W - 1)) / max(1, (W - 1) * (H // 2)); dy = sum(abs(q[x, y] - q[x, y + 1]) for y in range(H - 1) for x in range(0, W, 2)) / max(1, (H - 1) * (W // 2))
+        L_ = im.convert('L'); q = L_.load(); A = im.getchannel('A').load()  # chỉ cặp điểm đều có ảnh (lỗ trong suốt tạo mép giả)
+        cx = [abs(q[x, y] - q[x + 1, y]) for y in range(0, H, 2) for x in range(W - 1) if A[x, y] and A[x + 1, y]]; cy = [abs(q[x, y] - q[x, y + 1]) for y in range(H - 1) for x in range(0, W, 2) if A[x, y] and A[x, y + 1]]
+        dx = sum(cx) / max(1, len(cx)); dy = sum(cy) / max(1, len(cy))
         if dy > 1.5 * max(dx, 0.1): print(f"bỏ {m['khoi']}#{m['canh']}: ảnh sọc (dọc/ngang {dy / max(dx, 0.1):.1f})"); continue
     ten = f"{m['khoi'].split('/')[-1]}-{m['canh']}.webp"
     im.save(ra / ten, 'WEBP', quality=88, method=6)

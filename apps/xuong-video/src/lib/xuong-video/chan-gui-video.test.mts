@@ -15,8 +15,10 @@ assert.deepStrictEqual(loiPromptGui('A 8-second, 3-shot vertical film sequence.'
 // thoại trong câu lệnh: đúng một lần → qua; bị đổi chữ (0 lần) / lặp hai lần → chặn; cùng câu nói hai lần trong cụm thì cần đúng hai
 assert.deepStrictEqual(loiThoaiPrompt('Shot 1: the man says: Chú cho cháu 5k. Keep it subtitle-free.', ['Chú cho cháu 5k.']), []);
 assert.ok(loiThoaiPrompt('Shot 1: the man says: the man in the t-shirt cho cháu 5k.', ['Chú cho cháu 5k.'])[0]!.includes('không có nguyên văn'));
-assert.ok(loiThoaiPrompt('the man says: Chú cho cháu 5k. In shot 1, the man says: Chú cho cháu 5k.', ['Chú cho cháu 5k.'])[0]!.includes('lặp 2 lần'));
+assert.ok(loiThoaiPrompt('the man says: Chú cho cháu 5k. In shot 1, the man says: Chú cho cháu 5k.', ['Chú cho cháu 5k.']).some((x) => x.includes('lặp 2 lần')));
 assert.deepStrictEqual(loiThoaiPrompt('a says: Ê!; then a says: Ê!.', ['Ê!', 'Ê!']), []);
+// bản sao bị đổi chữ đứng cạnh bản đúng (đúng dạng câu lệnh thật job 8322): nguyên văn 1 lần nhưng "says:" 2 lần → chặn
+assert.ok(loiThoaiPrompt('the man says: the man in the t-shirt cho cháu 5k.. In shot 1, the man speaks out loud and says: Chú cho cháu 5k..', ['Chú cho cháu 5k.'])[0]!.includes('2 lần "says:"'));
 // clip 3D sạch
 assert.deepStrictEqual(loiClipThamChieu([{ so: 1, clip: { sach: true } }, { so: 2, clip: null }]), []);
 assert.ok(loiClipThamChieu([{ so: 7, clip: {} }])[0]!.includes('#7'));

@@ -4,7 +4,7 @@
 // liên tục do cùng một lần diễn, không do khớp từng shot rời. Module thuần: chia cụm, lịch giây trong clip, prompt, đổi điểm cắt đo được → vao_s.
 import { giayPhat, lienCon, phat, coTiengViet, type Canh, type NhanVat } from './kieu';
 import type { LookMang } from './bo-set-3d';
-import { nhanNhin, thayTenNhan } from './prompt-khoi';
+import { nhanNhin, thayTenNhan, giuNguyenVan } from './prompt-khoi';
 import { kyThuat } from './dien-anh';
 import { dongThoai, laLoiDan } from './am-thanh';
 
@@ -127,11 +127,10 @@ export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[]; loo
     const t = nhom[i - 1]?.canh;   // shot con liền shot cha (#2 → #2.9, #3.1 → #3) = khung cuối trước LÀ khung đầu sau (kieu.ts › lienCon), không cắt
     const lien = !!t && lienCon(t.thu_tu, c.thu_tu);
     const dong = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && d.nhan_vat.trim() && !laLoiDan(d.dien_xuat));
-    // NGUYÊN VĂN câu thoại KHÔNG qua thay() (15/11/2026 phim #3071 #6): nhân vật tên "Chú", câu "Chú cho cháu 5k." bị đổi thành "the man in the t-shirt cho cháu 5k."
-    // — model nhận một câu lai Anh–Việt khác với file giọng, tự đọc theo ý nó. Chỉ NGƯỜI NÓI đổi sang nhãn; chữ trong câu giữ từng ký tự.
-    const thoai = dong.map((d) => `${thay(d.nhan_vat)} says: ${d.loi.trim().replace(/["“”]/g, '')}`).join('; ');
-    const mieng = dong.length ? '' : cauMiengShot(c, nhanVat);
-    return `${thay(`Shot ${i + 1} (about ${nua(giay * k)} s): ${co[0]!.toUpperCase()}${co.slice(1)}${lien ? ', continuous from the last frame of the previous shot, no cut' : ''}${may ? `, ${may}` : ''} — ${cau.join('; then ')}${mieng ? `; ${mieng}` : ''}`)}${thoai ? `; ${thoai}` : ''}.`;
+    // NGUYÊN VĂN câu thoại không qua đổi tên → nhãn (prompt-khoi.ts › giuNguyenVan, 15/11/2026 #3071 #6): chỉ người nói đổi sang nhãn, chữ trong câu giữ từng ký tự
+    const cauNoi = dong.map((d) => d.loi.trim().replace(/["“”]/g, ''));
+    const loi = dong.length ? dong.map((d, j) => `${d.nhan_vat} says: ${cauNoi[j]}`).join('; ') : cauMiengShot(c, nhanVat);
+    return giuNguyenVan(`Shot ${i + 1} (about ${nua(giay * k)} s): ${co[0]!.toUpperCase()}${co.slice(1)}${lien ? ', continuous from the last frame of the previous shot, no cut' : ''}${may ? `, ${may}` : ''} — ${cau.join('; then ')}${loi ? `; ${loi}` : ''}.`, cauNoi, thay);
   });
   const dinh = nhan.length ? `Throughout: ${nhan.map((n) => `${n.day}${o.tag?.[n.ten] ? ` (${o.tag[n.ten]})` : ''}`).join(' and ')} keep the same face, hair, wardrobe and props in every shot; same location and light.` : 'Same location and light in every shot.';
   return [`A ${nua(tongGiay * k)}-second, ${nhom.length}-shot ${o.tiLe === '16:9' ? 'widescreen' : 'vertical'} film sequence${nhom.length > 1 ? ' cutting between angles' : ''}, one continuous moment.`, dinh, ...shot,

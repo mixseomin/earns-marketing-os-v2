@@ -2,7 +2,7 @@
 // (scripts/sinh-shot.mts) và server action (sinhVideoCanh / kiemVideo) dùng CÙNG một đường; actions chỉ kiểm quyền rồi gọi vào đây.
 import { raKhoiKhung, laDungLop, anhLopCua, cauDoMang, CAU_NEN_VIDEO_LOP, CAU_MAY_VIDEO_LOP, CAU_SONG_VIDEO_LOP, CAU_CHAN_VIDEO_LOP } from './dung-lop';
 import { chanDanDat } from './dan-dat';
-import { CHAT_LIEU, cauNhipGag, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, nhanNhin, tenNgonNguEn, type ChatLieu, type Khoi } from './prompt-khoi';
+import { CHAT_LIEU, cauNhipGag, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, nhanNhin, giuNguyenVan, tenNgonNguEn, type ChatLieu, type Khoi } from './prompt-khoi';
 import { loiTrangThaiVat, chamPrompt, NGUONG_CHAN, type LoiPrompt } from './kiem-prompt';
 import { batCamXuc } from './qc-cam-xuc';
 import { moTaChuyenDong, bienTheTheoSo } from './bo-set-3d';
@@ -144,7 +144,9 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
     khoi('khong_khi', cauKhongKhi(bc.khanGia ?? [])),
     khoi('thoai', coGiong ? (trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} speak their lines with natural lip movement; the dialogue audio is replaced by a separate voice recording in the edit.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.') : ''   /* 19/10/2026: "audio must contain NO spoken words" + mấp máy môi nói → Veo báo 'unable to generate audio' (4 shot tập 122, hỏng lặp lại); bản xuất đã bỏ tiếng clip khi có giọng riêng */),
   ];
-  return ds.map((k) => ({ ...k, chu: thayTen(k.chu) }));
+  // câu thoại giữ nguyên văn — đổi tên → nhãn chỉ chạy trên chữ ngoài câu thoại (prompt-khoi.ts › giuNguyenVan; cùng lỗi với câu lệnh cụm, 15/11/2026 #3071 #6)
+  const cauNoi = dong.map((d) => khongNgoac(d.loi));
+  return ds.map((k) => ({ ...k, chu: giuNguyenVan(k.chu, cauNoi, thayTen) }));
 }
 const CAU_YEN_3D = 'Everyone and everything stays where it is in the first frame, exactly as in the 3D blocking: nobody walks, climbs, sits down or leaves their place; only small natural movement and background life (light, dust, cloth, hair).';
 export const promptVideoCanh = (bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): string => ghep(khoiVideoCanh(bc));

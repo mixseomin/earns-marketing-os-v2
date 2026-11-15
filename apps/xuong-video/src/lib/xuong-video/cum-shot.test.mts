@@ -1,5 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/cum-shot.test.mts
 import assert from 'node:assert';
+import { giuNguyenVan } from './prompt-khoi';
 import { chiaCumCan, cauNgoaiCua, chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, promptCumMoi, DUNG_DUOC, VAO_DAU } from './cum-shot';
 import { lienCon, noiKhungShot } from './kieu';
 
@@ -76,6 +77,10 @@ assert.ok(pt.includes('the woman in the blouse says: Chị cần gì?') && !pt.i
 const nvChu = { id: 1, ten: 'Chú', loai: 'nhan_vat', mo_ta: 'người đàn ông 30 tuổi' };
 const pc = promptCumMoi([{ ...ps(6, 6, 6, 'cu', 'Chú holds out a note', null, [{ nhan_vat: 'Chú', loi: 'Chú cho cháu 5k.', dien_xuat: '' }]), nhanVat: [nvChu] as never, look: null }]);
 assert.ok(pc.includes('says: Chú cho cháu 5k.') && pc.split('Chú').length - 1 === 1, pc);
+// giuNguyenVan: đổi tên chỉ chạy ngoài câu nguyên văn; hai câu, câu dài che trước; không có câu nào thì đổi như thường
+assert.strictEqual(giuNguyenVan('Chú says: Chú cho cháu 5k. Chú smiles', ['Chú cho cháu 5k.'], (s) => s.replace(/Chú/g, 'the man')), 'the man says: Chú cho cháu 5k. the man smiles');
+assert.strictEqual(giuNguyenVan('Chú: Chú ơi; Chú ơi, lại đây', ['Chú ơi', 'Chú ơi, lại đây'], (s) => s.replace(/Chú/g, 'X')), 'X: Chú ơi; Chú ơi, lại đây');
+assert.strictEqual(giuNguyenVan('Chú smiles', [], (s) => s.replace(/Chú/g, 'X')), 'X smiles');
 // phá thử: shot con mà cha KHÔNG có trong cụm → đứng riêng, không mất
 assert.ok(promptCumMoi(bon.slice(1, 3)).startsWith('A 1-second, 2-shot'));
 // giãn cho đầy clip model sinh (VideoExpress ~6 s): 5 s → 6 s, tỉ lệ giữ nguyên (2 s : 3 s → 2.5 : 3.5 làm tròn 0,5)

@@ -237,6 +237,15 @@ export function nhanNhin(ds: readonly { ten: string; moTaNv?: string | null; ao?
     return { ten: a.ten, day: a.day, gon };
   });
 }
+/** GIỮ NGUYÊN VĂN (15/11/2026 phim #3071 #6): áp f (đổi tên → nhãn, …) lên chữ NGOÀI các câu nguyên văn `cau` (câu thoại). Nhân vật tên "Chú" nói "Chú cho
+ *  cháu 5k." — đổi tên chạy trên cả câu lệnh biến câu thoại thành "the man in the t-shirt cho cháu 5k.", khác file giọng. MỘT hàm cho mọi đường dựng câu lệnh
+ *  video (cụm: cum-shot.ts › promptCumMoi; shot lẻ: sinh-video.ts). Câu dài che trước; dấu giữ chỗ là ký tự điều khiển, không dính ranh giới chữ. Thuần. */
+export function giuNguyenVan(t: string, cau: readonly string[], f: (s: string) => string): string {
+  const ds = [...new Set(cau.map((c) => c.trim()).filter(Boolean))].sort((a, b) => b.length - a.length);
+  let o = t; ds.forEach((c, i) => { o = o.split(c).join(`\u0001${i}\u0001`); });
+  o = f(o); ds.forEach((c, i) => { o = o.split(`\u0001${i}\u0001`).join(c); });
+  return o;
+}
 /** Thay mọi lần gọi tên (tên đầy đủ + tên gọi cuối, vd "Lâm Hạ" / "Hạ") bằng nhãn nhìn thấy — model video không biết tên. Tên dài thay trước. */
 export function thayTenNhan(t: string, ds: readonly { ten: string; nhan: string }[]): string {
   let o = t;

@@ -27,8 +27,12 @@ export function loiPromptGui(prompt: string, o: { tiLe?: string | null; tenNhanV
 export function loiThoaiPrompt(prompt: string, cau: readonly string[]): string[] {
   const gon = (c: string) => c.trim().replace(/["“”]/g, '').replace(/[.\s]+$/, '');
   const can = new Map<string, number>(); for (const c of cau.map(gon).filter(Boolean)) can.set(c, (can.get(c) ?? 0) + 1);
-  return [...can].flatMap(([c, n]) => { const co = prompt.split(c).length - 1;
-    return co === n ? [] : [co < n ? `câu thoại «${c}» ${co ? `chỉ có ${co}/${n} lần` : 'không có nguyên văn'} trong câu lệnh (bị đổi chữ / rơi mất) — model sẽ nói khác file giọng` : `câu thoại «${c}» lặp ${co} lần trong câu lệnh (cần ${n}) — model nói lặp`]; });
+  // số lần "says:" phải bằng số câu thoại: bắt bản sao bị ĐỔI CHỮ đứng cạnh bản đúng (câu lệnh thật job 8322: nguyên văn có đúng 1 lần nên phép đếm nguyên văn
+  // không thấy, nhưng "says:" có 2 lần cho 1 câu) và câu có chữ mà chưa có file giọng lọt vào cụm đang gửi giọng
+  const says = (prompt.match(/\bsays:/g) ?? []).length; const tong = [...can.values()].reduce((a, b) => a + b, 0);
+  const lech = tong && says !== tong ? [`câu lệnh có ${says} lần "says:" cho ${tong} câu thoại có giọng — có câu ghi lặp / bị đổi chữ, hoặc câu thoại chưa có file giọng`] : [];
+  return [...lech, ...[...can].flatMap(([c, n]) => { const co = prompt.split(c).length - 1;
+    return co === n ? [] : [co < n ? `câu thoại «${c}» ${co ? `chỉ có ${co}/${n} lần` : 'không có nguyên văn'} trong câu lệnh (bị đổi chữ / rơi mất) — model sẽ nói khác file giọng` : `câu thoại «${c}» lặp ${co} lần trong câu lệnh (cần ${n}) — model nói lặp`]; })];
 }
 
 export function loiClipThamChieu(ds: { so: number; clip?: { sach?: boolean } | null }[]): string[] {

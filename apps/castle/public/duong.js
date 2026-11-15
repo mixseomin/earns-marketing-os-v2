@@ -4,10 +4,10 @@
 // Bỏ đường là cầu (bridge, đã dựng riêng) và hầm. Va chạm đường: trimesh dải (người đi trên mặt đường thay vì lưới đất thô).
 // datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao, vl: { nhua, da, bac } }) → { ra: [Mesh], dem }
 // tra-repo-ok: dựng dải theo polyline + bậc thang (mã nhỏ riêng cảnh).
-export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao, vl }) { // eslint-disable-line no-param-reassign
+export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao, vl, trongNha = null }) { // eslint-disable-line no-param-reassign
   const LAT = new Set(['footway', 'pedestrian', 'steps', 'service', 'residential', 'unclassified']); // đường lát / nhựa; còn lại (track, path) là đất
-  const nhom = { nhua: [], dat: [], bac: [] }, dem = { duong: 0, bac: 0, m: 0 };
-  const dai = (v, w, y = (x, z) => cao(x, z) + 0.06) => { // dải theo polyline, chia đoạn ≤ 2 m để bám đất
+  const nhom = { nhua: [], dat: [], bac: [], tuong: [] }, dem = { duong: 0, bac: 0, m: 0 };
+  const dai = (v, w, y = (x, z) => cao(x, z) + 0.22) => { // nhô 0,22 m: lưới đất mịn chia ô 1,5 m chéo khác nội suy → đường 6 cm bị đất trùm mất trên dốc (đường lên cổng không thấy) // dải theo polyline, chia đoạn ≤ 2 m để bám đất
     const p = []; const pts = [];
     for (let i = 0; i + 1 < v.length; i++) { const [x1, z1] = v[i], [x2, z2] = v[i + 1], L = Math.hypot(x2 - x1, z2 - z1), n = Math.max(1, Math.ceil(L / 2)); for (let k = 0; k < n; k++) pts.push([x1 + (x2 - x1) * k / n, z1 + (z2 - z1) * k / n]); }
     pts.push(v[v.length - 1]);
@@ -31,8 +31,23 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
       if (trung(a1, b0)) v = [...a.v, ...b.v.slice(1)]; else if (trung(a1, b1)) v = [...a.v, ...b.v.slice(0, -1).reverse()]; else if (trung(a0, b1)) v = [...b.v, ...a.v.slice(1)]; else if (trung(a0, b0)) v = [...b.v.slice().reverse(), ...a.v.slice(1)];
       if (v) { a.v = v; a.bac = a.bac && b.bac ? a.bac + b.bac : null; a.rong = Math.max(a.rong, b.rong); b.bo = true; gop = true; } } }
   ds = [...ds.filter((d) => d.loai !== 'steps' || d.cau || d.ham || d.v.length < 2), ...thang.filter((d) => !d.bo)];
+  const LO_TUONG = [], vlTuong = [];
   for (const d of ds) {
     if (d.cau || d.ham || d.v.length < 2) continue;
+    const kin = d.v.length > 3 && Math.hypot(d.v[0][0] - d.v.at(-1)[0], d.v[0][1] - d.v.at(-1)[1]) < 0.3;
+    if (kin && (d.loai === 'pedestrian' || d.loai === 'footway')) { // VÙNG khép kín (sân dưới "Unterer Hof"): lát kín cả vùng bám đất — trước dựng thành dải chạy quanh mép
+      const sh = new THREE.Shape(d.v.slice(0, -1).map(([x, z]) => new THREE.Vector2(x, -z))), g = new THREE.ShapeGeometry(sh).toNonIndexed(); g.rotateX(-Math.PI / 2);
+      const p = g.attributes.position, uv = new Float32Array(p.count * 2); for (let i = 0; i < p.count; i++) { p.setY(i, cao(p.getX(i), p.getZ(i)) + 0.07); uv[i * 2] = p.getX(i) / 3; uv[i * 2 + 1] = p.getZ(i) / 3; }
+      g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.computeVertexNormals(); nhom.nhua.push(g); dem.duong++; continue;
+    }
+    // TƯỜNG CHẮN mép đường ô tô / lối dốc: bên nào đất tụt > 1,5 m trong 3 m thì xây lan can đá 0,9 m (đường dốc lên cổng: tường chắn vòng như ảnh, anh 16/11/2026)
+    if (['unclassified', 'service', 'residential'].includes(d.loai)) for (let i = 0; i + 1 < d.v.length; i++) { // chỉ đường ô tô — lối bộ / chiếu nghỉ cầu thang không xây (chắn lối)
+      const [x1, z1] = d.v[i], [x2, z2] = d.v[i + 1], L = Math.hypot(x2 - x1, z2 - z1); if (L < 0.5) continue; const ux = (x2 - x1) / L, uz = (z2 - z1) / L;
+      for (let s = 0; s < L; s += 2) { const l = Math.min(2, L - s), x = x1 + ux * (s + l / 2), z = z1 + uz * (s + l / 2), y = cao(x, z);
+        if (trongNha?.(x, z)) continue; // trong nhà (đường xuyên cổng) không xây
+        for (const k of [-1, 1]) { const ox = -uz * k, oz = ux * k, b = d.rong / 2 + 0.25; if (cao(x + ox * (b + 3), z + oz * (b + 3)) > y - 1.5 || trongNha?.(x + ox * b, z + oz * b)) continue;
+          const g = new THREE.BoxGeometry(l + 0.05, 1.3, 0.45); g.rotateY(-Math.atan2(uz, ux)); g.translate(x + ox * b, y + 0.65 - 0.4, z + oz * b); vlTuong.push(g.toNonIndexed());
+          va.push([(l + 0.05) / 2, 0.65, 0.225, x + ox * b, y + 0.25, z + oz * b, -Math.atan2(uz, ux)]); } } }
     if (d.loai === 'steps') { // CẦU THANG: bậc đều giữa độ cao hai đầu (theo hướng đường OSM)
       let L = 0; for (let i = 0; i + 1 < d.v.length; i++) L += Math.hypot(d.v[i + 1][0] - d.v[i][0], d.v[i + 1][1] - d.v[i][1]);
       // hai đầu thang nối đúng mặt bằng nó lên / xuống: đầu cao lấy mặt CAO nhất trong 2,5 m quanh nó, đầu thấp lấy mặt THẤP nhất (đầu thang đặt sát mép sân
@@ -58,10 +73,11 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
   const q = new THREE.Quaternion(), Y = new THREE.Vector3(0, 1, 0);
   for (const [hx, hy, hz, x, y, z, a] of va) { q.setFromAxisAngle(Y, a); world.createCollider(RAPIER.ColliderDesc.cuboid(hx, hy, hz).setTranslation(x, y, z).setRotation(q), tinh); }
   const ra = [];
-  for (const [k, m] of [['nhua', vl.nhua], ['dat', vl.dat], ['bac', vl.bac]]) {
+  if (vlTuong.length) nhom.tuong = vlTuong;
+  for (const [k, m] of [['nhua', vl.nhua], ['dat', vl.dat], ['bac', vl.bac], ['tuong', vl.tuong || vl.bac]]) {
     if (!nhom[k].length) continue;
     const gs = nhom[k].map((g) => { for (const a of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(a)) g.deleteAttribute(a); if (!g.attributes.uv) { const n = g.attributes.position.count; g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2), 2)); } return g; });
-    const mesh = new THREE.Mesh(mergeGeometries(gs), m); mesh.receiveShadow = true; mesh.castShadow = k === 'bac'; ra.push(mesh);
+    const mesh = new THREE.Mesh(mergeGeometries(gs), m); mesh.receiveShadow = true; mesh.castShadow = k === 'bac' || k === 'tuong'; ra.push(mesh);
   }
   return { ra, dem };
 }

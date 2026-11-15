@@ -77,6 +77,8 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
         if (lo.some((o) => o.s0 <= 0 && o.s1 >= L && y - 0.6 >= o.y0 && y + cao <= o.y1)) continue; // cả mặt dành cho dựng riêng (mặt Palas hướng sân) → không cửa, không gờ
         go.push([x1, z1, ux, uz, nx, nz, L, y - 0.55]); // gờ đá dưới mỗi hàng cửa
         for (const s of ds) {
+          // TỪNG CỬA: tâm cửa (0,35 m ra ngoài mặt) nằm trong khối khác ở độ cao đó → cửa của khối bị khối to hơn bọc ngoài, khung sẽ đâm xuyên tường khối kia (thanh lơ lửng dọc mép tháp, anh 16/11/2026) → bỏ
+          if (biChe(x1 + ux * s + nx * 0.35, y + cao / 2, z1 + uz * s + nz * 0.35) || biChe(x1 + ux * (s - nua) + nx * 0.35, y + cao / 2, z1 + uz * (s - nua) + nz * 0.35) || biChe(x1 + ux * (s + nua) + nx * 0.35, y + cao / 2, z1 + uz * (s + nua) + nz * 0.35)) continue;
           if (lo.some((o) => !o.cuaSo && s + nua > o.s0 && s - nua < o.s1 && y + cao > o.y0 && y < o.y1)) continue; // chỗ khoét cửa / dải nội thất (lỗ của chính ô cửa sổ thì không tính)
           const [mNua, mCao] = O_MO[kieu], coLo = lo.some((o) => o.cuaSo && Math.abs((o.s0 + o.s1) / 2 - s) < 0.05 && Math.abs(o.y0 - y) < 0.05);
           viTri[coLo && kieu === 'ba' ? 'baMo' : kieu].push(m4.compose(new THREE.Vector3(x1 + ux * s, y, z1 + uz * s), q, mot1).clone());

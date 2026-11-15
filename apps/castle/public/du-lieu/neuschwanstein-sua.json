@@ -12,5 +12,29 @@
   "phong": 2.0,
   "thap_goc": "yes",
   "ly_do": "ảnh sân trên (Naturliebhaberin, Commons): tháp góc Palas hướng sân bằng sa thạch vàng, mái đồng xanh, rộng ~0,4 bề ngang đầu hồi (phong 2,0). Cao độ (chân thân, đỉnh thân, chóp) KHÔNG ghi ở đây: ns.js lấy từ tệp bố cục mặt Palas (thapGoc, đo trên ảnh, neo bằng ảnh 3D Google)"
+ },
+ "way/221599098": {
+  "y_tren": 54,
+  "dam_vom": "yes",
+  "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà"
+ },
+ "way/223069515": {
+  "y_tren": 54,
+  "dam_vom": "yes",
+  "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà"
+ },
+ "way/1573767743": {
+  "y_duoi": 53.6,
+  "y_tren": 54.4,
+  "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà — bệ đỡ tháp tròn"
+ },
+ "way/223069514": {
+  "y_duoi": 54,
+  "y_tren": 69.5,
+  "roof:height": 4.5,
+  "roof:shape": "cone",
+  "phong": 0.85,
+  "roof:colour": "#4a4f57",
+  "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà"
  }
 }

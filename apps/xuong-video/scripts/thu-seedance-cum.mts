@@ -117,7 +117,11 @@ async function ganKetQua(f: string, url: string, job: number, urlGiong: string |
   // LUẬT CHẤM SAU KHI SINH (anh 14/11/2026 — phát sinh nào cũng vào luật): model chia giờ sai (cụm #2–7 lần 2: #3 giữ 2,3 s, #4 còn 0,84 s < 2 s phát) → đoạn
   // của shot ngắn hơn giây phát thì phát lố sang shot kế. Shot thiếu giờ (vaoTuCatThat › ngan) hoặc clip không đo đủ cú cắt → KHÔNG gắn, gỡ clip cũ của shot
   // đó (video_url NULL) để kế hoạch cụm lần sau tự đưa vào sinh lại (cum-seedance.mts).
-  const doan = doanShot(v.vao, dai, 0.45, v.het);   // đoạn theo cú cắt, lấy TRƯỚC khi canh giọng dời điểm vào
+  // --doan-tay=0-1.63,2.88-5.63 (chỉ với --tu-job): đoạn từng shot do Claude chỉ định sau khi SOÁT KHUNG BẰNG MẮT — khi model chèn shot thừa GIỮA cụm, đo cú cắt không
+  // biết đoạn nào là shot nào (16/11/2026 #17–18 phim #3071 job 8378). Các bước sau (đủ giờ, khớp thoại, kẹp đoạn) vẫn chạy như thường; nguon_video ghi doan_tay.
+  const tay = doanTay.length === cum.length;
+  if (tay) { v.theoDo = true; v.ngan = []; v.vao.splice(0, v.vao.length, ...doanTay.map((d) => d[0])); }
+  const doan = tay ? doanTay : doanShot(v.vao, dai, 0.45, v.het);   // đoạn theo cú cắt, lấy TRƯỚC khi canh giọng dời điểm vào
   const hong = new Map<number, string>((v.theoDo ? v.ngan : cum.map((x) => x.canh.thu_tu)).map((so) => [so, v.theoDo ? 'đoạn của shot ngắn hơn giây phát' : 'không đo đủ cú cắt']));
   let cg: ReturnType<typeof khopThoai> | null = null;
   if (urlGiong && v.theoDo) { cg = khopThoai(f, v.vao, doan); v.vao.splice(0, v.vao.length, ...cg.vao); console.log(`khớp thoại: ${cg.bao}`);
@@ -131,7 +135,7 @@ async function ganKetQua(f: string, url: string, job: number, urlGiong: string |
     if (k == null) { if (!hong.has(x.canh.thu_tu)) hong.set(x.canh.thu_tu, `đoạn của shot ${doan[i]![0]}–${doan[i]![1]} s ngắn hơn giây dùng`); } else v.vao[i] = k; });
   for (const [i, x] of cum.entries()) {
     if (hong.has(x.canh.thu_tu)) { await db.execute(sql`UPDATE xv_canh SET video_url = NULL, loi = ${`cụm Seedance job ${job}: ${hong.get(x.canh.thu_tu)} — sinh lại`}, updated_at = now() WHERE id = ${x.canh.id}`); continue; }
-    await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt: promptGui, job, cum: ids, khung_dau: x.canh.keyframe_url, doan: doan[i],   // đoạn của shot trong clip (cú cắt đo) — canh miệng không dời lấn sang shot kế
+    await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt: promptGui, job, cum: ids, khung_dau: x.canh.keyframe_url, doan: doan[i], ...(tay ? { doan_tay: true } : {}),   // đoạn của shot trong clip (cú cắt đo) — canh miệng không dời lấn sang shot kế
          ...(urlGiong && cauAm.some((c) => c.so === i + 1) ? { khop_moi: { cach: 'seedance_audio', giong: urlGiong }, ...ghiMieng(true, cg?.bao.split(' · ').find((b) => b.startsWith(`#${x.canh.thu_tu}:`)) ?? '') } : {}) })}::jsonb || ${CD_LUC_SINH}, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);
     await ghiVaoToc(x.canh.id, v.vao[i]!, cg?.toc[i] ?? 1);
     if (catCuoi.has(i)) { await db.execute(sql`UPDATE xv_canh SET cat_cuoi_s = ${catCuoi.get(i)!} WHERE id = ${x.canh.id}`); console.log(`#${x.canh.thu_tu}: đoạn hụt — phát ${catCuoi.get(i)} s thay ${giayPhat(x.canh)} s`); }
@@ -141,6 +145,8 @@ async function ganKetQua(f: string, url: string, job: number, urlGiong: string |
 }
 // --tu-job=<id>: GẮN LẠI từ clip job đã sinh (0đ, không gọi model) — luật đo sau sinh đổi (vd cắt thừa ở đuôi, 16/11/2026 job 8369) thì cứu shot đạt mà không sinh lại.
 const tuJob = Number(arg('tu-job')) || 0;
+const doanTay = arg('doan-tay') ? arg('doan-tay').split(',').map((x) => x.split('-').map(Number) as [number, number]) : [];
+if (doanTay.length && (!tuJob || doanTay.length !== cum.length || doanTay.some(([a, b]) => !(b > a)))) { console.error(`--doan-tay cần --tu-job và đúng ${cum.length} đoạn a-b`); process.exit(1); }
 if (tuJob) {
   const r = ((await db.execute(sql`SELECT output_url, request FROM xv_job WHERE id = ${tuJob}`)) as unknown as { output_url: string | null; request: { cum?: number[]; giong?: string | null; prompt?: string } }[])[0];
   if (!r?.output_url) { console.error(`job ${tuJob} chưa có clip`); process.exit(1); }

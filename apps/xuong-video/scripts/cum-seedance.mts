@@ -48,7 +48,7 @@ const cum = doan.filter((d) => d.length).flatMap(tachNoi).flatMap((d) => chiaCum
   const tong = c.reduce((a, x) => a + giayPhat(x), 0); const ra = giayClipSeedance(c.map((x) => giayPhat(x)), { cuoiCoThoai: cuoiNoi });
   const thieu = c.filter((x) => !clip3dMoi(x) || !x.keyframe_url).map((x) => x.thu_tu);   // clip 3D cũ (khung hoặc chuyển động máy đã đổi) — kieu.ts › clip3dMoi
   return { ten: String.fromCharCode(65 + i), phan_doan: c[0]!.phan_doan, shot: c.map((x) => ({ id: x.id, so: x.thu_tu, phat: giayPhat(x), clip: x.khung_xam?.clip?.url ?? null, vao: x.khung_xam?.clip?.vao ?? 0 })),
-    tong: +tong.toFixed(2), ra, cents: +(gia * (tong + ra)).toFixed(1), thieu };
+    tong: +tong.toFixed(2), ra, cents: +(gia * (ra + ra)).toFixed(1), thieu };   // giây vào = clip tham chiếu, kéo dài bằng clip ra (cum-seedance-tap.sh)
 });
 console.log(`giữ clip (không sinh lại): ${giu.length ? giu.map((c) => `#${c.thu_tu}`).join(' ') : 'không có'}`);
 // LUẬT KHỚP MÔI (anh 15/11/2026 "shot 4 có voice nhưng không thấy mồm nói"): clip Seedance câm — shot có clip + lời thoại có file giọng mà chưa qua bước khớp môi

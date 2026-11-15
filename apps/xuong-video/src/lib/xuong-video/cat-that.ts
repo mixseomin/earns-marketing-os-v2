@@ -2,16 +2,12 @@
 // tìm khung đổi cảnh), không mã hoá — được chạy trên box3. Tách khỏi sinh-cum.mts 14/11/2026.
 import { execFileSync } from 'node:child_process';
 import { VAO_DAU, BO_DUOI } from './cum-shot';
-/** Cú cắt cứng trong clip: thử ngưỡng scene từ chặt tới lỏng, lấy lần ra đúng n−1 cú (bỏ cú dính đầu / đuôi, gộp cú sát nhau). */
-export function catThat(f: string, n: number, d: number): number[] {
-  let tot: number[] = [];
-  for (const nguong of [0.3, 0.22, 0.4, 0.15, 0.5]) {
-    // showinfo ghi ra stderr — gộp vào stdout để đọc
-    let out = ''; try { out = execFileSync('sh', ['-c', `ffmpeg -hide_banner -i '${f}' -vf "select='gt(scene,${nguong})',showinfo" -f null - 2>&1`], { encoding: 'utf8', timeout: 120_000 }); } catch { /* clip hỏng → không có cú cắt, theo lịch prompt */ }
-    const t = [...out.matchAll(/pts_time:([\d.]+)/g)].map((m) => Number(m[1])).filter((x) => x > VAO_DAU + 0.3 && x < d - BO_DUOI - 0.2)
-      .reduce<number[]>((a, x) => (a.length && x - a.at(-1)! < 0.4 ? a : [...a, x]), []);
-    if (t.length === n - 1) return t;
-    if (!tot.length || Math.abs(t.length - (n - 1)) < Math.abs(tot.length - (n - 1))) tot = t;
-  }
-  return tot;
+/** MỌI cú cắt cứng THẬT trong clip ở một ngưỡng cố định (bỏ cú dính đầu / đuôi, gộp cú sát nhau < 0,4 s). KHÔNG ép theo số cú mong đợi: trước 16/11/2026 hàm dò
+ *  ngưỡng tới khi ra đúng n − 1 cú — clip cụm #11–15 phim #3071 (job 8371) có 5 cú thật, ngưỡng 0,3 bỏ cú yếu nhất (1,21 s, bánh xe → cận chú) để "khớp" 4,
+ *  các shot sau gắn lệch nội dung. Số cú không khớp thì vaoTuCatThat quyết: cắt thừa ở đuôi → cứu shot đạt, lệch giữa cụm → không đo (không gắn). */
+export const NGUONG_CAT = 0.15;   // scene ffmpeg: cú cắt thật yếu nhất đo được ở ca trên ~0,17 (scdet 12,4)
+export function catThat(f: string, d: number): number[] {
+  let out = ''; try { out = execFileSync('sh', ['-c', `ffmpeg -hide_banner -i '${f}' -vf "select='gt(scene,${NGUONG_CAT})',showinfo" -f null - 2>&1`], { encoding: 'utf8', timeout: 120_000 }); } catch { /* ffmpeg lỗi → không cú nào: vaoTuCatThat báo không đo */ }
+  return [...out.matchAll(/pts_time:([\d.]+)/g)].map((m) => Number(m[1])).filter((x) => x > VAO_DAU + 0.3 && x < d - BO_DUOI - 0.2)
+    .reduce<number[]>((a, x) => (a.length && x - a.at(-1)! < 0.4 ? a : [...a, x]), []);
 }

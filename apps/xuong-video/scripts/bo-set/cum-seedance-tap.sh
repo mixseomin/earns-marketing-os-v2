@@ -19,9 +19,11 @@ c = next((x for x in json.load(open(sys.argv[1])) if x['ten'] == sys.argv[2]), N
 if not c: sys.exit(f'không có cụm {sys.argv[2]}')
 if c['thieu']: sys.exit(f"cụm {c['ten']} thiếu clip 3D / keyframe: #{c['thieu']}")
 with open(f"{sys.argv[3]}/shot.txt", 'w') as f:
-    # SÀN VIDEO THAM CHIẾU 1,8 s (Seedance r2v — #2 phim #3071 16/11/2026): cụm ngắn hơn 2 s thì shot cuối cắt dài thêm từ phần dư của clip 3D (giữ dáng cuối)
-    thieu = max(0.0, 2.0 - sum(s['phat'] for s in c['shot']))
-    for i, s in enumerate(c['shot']): f.write(f"{s['id']} {s['clip']} {s['vao']} {round(s['phat'] + (thieu if i == len(c['shot']) - 1 else 0), 2)}\n")
+    for s in c['shot']: f.write(f"{s['id']} {s['clip']} {s['vao']} {s['phat']}\n")
+# CLIP THAM CHIẾU DÀI ĐÚNG BẰNG CLIP RA (16/11/2026 phim #3071 cụm #11–15 job 8371, cụm #2–#4 job 8369: tham chiếu 10,9 s / 4,4 s, clip ra 13 s / 7 s → model dàn lại
+# nhịp shot cho đầy clip: kéo dài shot đầu, ép shot cuối, bịa shot mới ở đuôi). Phần sau shot cuối = khung cuối đứng yên (đúng câu lệnh "giữ dáng, không cắt").
+# Cũng phủ sàn 1,8 s của Seedance r2v (clip ra ≥ 4 s).
+open(f"{sys.argv[3]}/ra.txt", 'w').write(str(c['ra']))
 print(f"cụm {c['ten']}: #{' #'.join(str(s['so']) for s in c['shot'])} · {c['tong']} s · ~{c['cents']}¢")
 PY
 i=0; : > "$TM/list.txt"; IDS=""
@@ -31,6 +33,11 @@ while read -r id url vao phat; do
   echo "file c$i.mp4" >> "$TM/list.txt"; IDS="${IDS:+$IDS,}$id"
 done < "$TM/shot.txt"
 ffmpeg -v error -y -f concat -safe 0 -i "$TM/list.txt" -c copy "$TM/cum-3d.mp4"
+RA=$(cat "$TM/ra.txt"); DAI=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$TM/cum-3d.mp4")
+THEM=$(python3 -c "print(max(0.0, round($RA - $DAI, 2)))")
+if python3 -c "import sys; sys.exit(0 if $THEM > 0.04 else 1)"; then
+  ffmpeg -v error -y -i "$TM/cum-3d.mp4" -vf "tpad=stop_mode=clone:stop_duration=$THEM" -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p "$TM/cum-3d-dai.mp4" && mv "$TM/cum-3d-dai.mp4" "$TM/cum-3d.mp4"
+fi
 scp -q "$TM/cum-3d.mp4" "$BOX:/tmp/cum-3d-$TAP-$CUM.mp4"
 if [ "$CHAY" = "--chay" ]; then
   ssh "$BOX" "cd $RBOX && export DUYET_SINH_1_LAN=1; $TSX scripts/thu-seedance-cum.mts --canh=$IDS --video-file=/tmp/cum-3d-$TAP-$CUM.mp4 | grep -v '^Reference\|^https' | tail -3; rm -f /tmp/cum-3d-$TAP-$CUM.mp4"

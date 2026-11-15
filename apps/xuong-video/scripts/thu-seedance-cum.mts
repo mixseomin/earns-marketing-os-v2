@@ -113,7 +113,7 @@ if (process.argv.includes('--chinh-giong')) {
 /** GẮN KẾT QUẢ một clip cụm đã có (tệp f, url kho): đo cú cắt → điểm vào → khớp thoại → kẹp đoạn → ghi từng shot. Dùng sau khi sinh và cho --tu-job (0đ). */
 async function ganKetQua(f: string, url: string, job: number, urlGiong: string | null, promptGui: string, t0: number): Promise<void> {
   const dai = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim());
-  const cat = clip1 ? [] : catThat(f, cum.length, dai); const v = clip1 ? { vao: [clip1.vao], theoDo: true, ngan: [] as number[] } : vaoTuCatThat(cum.map((x) => x.canh), cat, dai);
+  const cat = clip1 ? [] : catThat(f, dai); const v = clip1 ? { vao: [clip1.vao], theoDo: true, ngan: [] as number[] } : vaoTuCatThat(cum.map((x) => x.canh), cat, dai);
   // LUẬT CHẤM SAU KHI SINH (anh 14/11/2026 — phát sinh nào cũng vào luật): model chia giờ sai (cụm #2–7 lần 2: #3 giữ 2,3 s, #4 còn 0,84 s < 2 s phát) → đoạn
   // của shot ngắn hơn giây phát thì phát lố sang shot kế. Shot thiếu giờ (vaoTuCatThat › ngan) hoặc clip không đo đủ cú cắt → KHÔNG gắn, gỡ clip cũ của shot
   // đó (video_url NULL) để kế hoạch cụm lần sau tự đưa vào sinh lại (cum-seedance.mts).

@@ -83,7 +83,7 @@ for (const [i, c] of cacCum.entries()) {
   const f = kq[i]; const nhan = `#${c[0]!.thu_tu}–#${c.at(-1)!.thu_tu}`; if (!f) { console.log(`${nhan}: KHÔNG có clip — giữ clip cũ`); continue; }
   const d = dai(f);
   // tham chiếu (Vidu) = cú máy liền → phát nối tiếp (vaoLienMach); Veo nhiều góc = cắt cứng → điểm vào theo cú cắt đo được
-  const cat = tc[i] ? [] : catThat(f, c.length, d); const v = tc[i] ? { vao: vaoLienMach(c), theoDo: false, ngan: [] as number[] } : vaoTuCatThat(c, cat, d);
+  const cat = tc[i] ? [] : catThat(f, d); const v = tc[i] ? { vao: vaoLienMach(c), theoDo: false, ngan: [] as number[] } : vaoTuCatThat(c, cat, d);
   const url = await uploadToR2(`xuong-video/video/cum-${tap}-${c[0]!.thu_tu}-${c.at(-1)!.thu_tu}-${randomUUID()}.mp4`, readFileSync(f), 'video/mp4');
   for (const [j, s] of c.entries()) {
     const cum = { tu: c[0]!.thu_tu, den: c.at(-1)!.thu_tu, url, cat, theo_do: v.theoDo, luc: new Date().toISOString() };

@@ -126,4 +126,9 @@ assert.strictEqual(kepVaoDoan(0.2, [0.3, 1.2], 1.2), null);
       ket: 'head stopped facing screen right, eyes fixed on the boy; the train stands still at the platform, not moving', huong: 'head turns left to right, ends facing screen right' } } as never, nhanVat: [nv2] as never }]);
   assert.ok(p2.includes('looking down the platform to the left') && p2.includes('scan, then a sudden stop') && p2.includes('facing screen right, eyes fixed on the boy') && p2.includes('screen direction: head turns left to right'), p2);
   assert.strictEqual(p2.split('the train stands still at the platform').length - 1, 1, 'mệnh đề trùng giữa mở và kết chỉ ghi một lần'); }
+// cắt thừa ở đuôi (ca thật cụm #2–#4 job 8369: phát 1,2 / 1,2 / 2, cú cắt 1,21 · 4,38 · 5,54, clip 7,1 s) → hai cú đầu là ranh giới, shot cuối dừng ở 5,49;
+// cú thừa nằm giữa (trước tổng giây phát) → không đo
+{ const c3 = [1.2, 1.2, 2].map((p, i) => ({ id: i, thu_tu: i + 2, phat_s: p, thoi_luong_s: 4 })) as never[];
+  const r = vaoTuCatThat(c3, [1.21, 4.38, 5.54], 7.1); assert.ok(r.theoDo && r.het === 5.49 && r.vao[1] === 1.26 && r.vao[2] === 4.43, JSON.stringify(r));
+  assert.ok(!vaoTuCatThat(c3, [0.6, 1.21, 2.5], 7.1).theoDo, 'cú thừa giữa cụm → không đo'); }
 console.log('✓ cum-shot cauNgoaiCua');

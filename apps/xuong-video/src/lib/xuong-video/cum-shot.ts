@@ -154,12 +154,18 @@ export const vaoLienMach = (cum: readonly ShotCum[]): number[] => { let t = VAO_
 
 /** Điểm vào (vao_s) từng shot từ điểm cắt ĐO trên clip (ffmpeg scene). Đủ n−1 cú cắt thì dùng điểm đo (+0,05 s qua cú cắt); thiếu / thừa thì theo
  *  lịch prompt và báo. ngan = shot có đoạn đo được ngắn hơn giây phát (dựng sẽ lấn sang góc kế) — phải soát. */
-export function vaoTuCatThat(cum: readonly ShotCum[], cat: readonly number[], daiClip = GIAY_CLIP): { vao: number[]; theoDo: boolean; ngan: number[] } {
-  const lich = lichCum(cum); const theoDo = cat.length === cum.length - 1;
-  const moc = theoDo ? [VAO_DAU, ...cat.map((x) => x + 0.05), daiClip - BO_DUOI] : [...lich.map((l) => l.tu), daiClip - BO_DUOI];
+export function vaoTuCatThat(cum: readonly ShotCum[], cat: readonly number[], daiClip = GIAY_CLIP): { vao: number[]; theoDo: boolean; ngan: number[]; /** hết phần dùng được của shot cuối (giây clip) */ het: number } {
+  const lich = lichCum(cum); const n = cum.length - 1;
+  // CẮT THỪA Ở ĐUÔI (16/11/2026 phim #3071 cụm #2–#4 job 8369: model bịa thêm một shot trong phần đuôi "giữ dáng, không cắt") — cú cắt thừa nằm SAU tổng giây phát
+  // thì n cú đầu vẫn là ranh giới các shot; shot cuối dừng ở cú thừa. Cú thừa nằm giữa (model tách một shot làm hai) thì không đoán — không đo được.
+  const tong = cum.reduce((a, c) => a + giayPhat(c), 0);
+  const duoiThua = cat.length > n && cat.slice(n).every((x) => x >= VAO_DAU + tong - 0.3);
+  const theoDo = cat.length === n || duoiThua;
+  const het = duoiThua ? +(cat[n]! - 0.05).toFixed(2) : daiClip - BO_DUOI;
+  const moc = theoDo ? [VAO_DAU, ...cat.slice(0, n).map((x) => x + 0.05), het] : [...lich.map((l) => l.tu), daiClip - BO_DUOI];
   const vao = cum.map((_, i) => +moc[i]!.toFixed(2));
   const ngan = cum.filter((c, i) => moc[i + 1]! - moc[i]! < giayPhat(c) - 0.15).map((c) => c.thu_tu);
-  return { vao, theoDo, ngan };
+  return { vao, theoDo, ngan, het };
 }
 
 /** CHẾ ĐỘ THAM CHIẾU (model nhận ảnh nhân vật — Vidu Q2 / Veo REFERENCE_2_VIDEO; bài thử phim #353 #13–#14 25/10/2026: khung mở thiếu Vivian thì Veo Lite

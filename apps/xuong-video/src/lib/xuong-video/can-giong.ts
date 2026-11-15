@@ -28,8 +28,8 @@ export function duongAmLuong(pcm: Int16Array, sr: number): Float32Array {
 
 /** ĐOẠN của từng shot trong clip cụm, MỘT nguồn cho khớp thoại và nguon_video.doan: từ điểm vào đo theo cú cắt (TRƯỚC khi khớp thoại)
  *  — shot đầu từ 0 (cho phép dời lùi về đầu clip), shot kế tới cú cắt sau − 0,05 s, shot cuối tới hết clip − đuôi. */
-export function doanShot(vaoCat: number[], daiClip: number, duoi = 0.45): [number, number][] {
-  return vaoCat.map((v, i) => [i === 0 ? 0 : v, i + 1 < vaoCat.length ? +(vaoCat[i + 1]! - 0.05).toFixed(2) : +(daiClip - duoi).toFixed(2)]);
+export function doanShot(vaoCat: number[], daiClip: number, duoi = 0.45, /** hết phần dùng được của shot cuối (cú cắt thừa ở đuôi — vaoTuCatThat › het) */ het?: number): [number, number][] {
+  return vaoCat.map((v, i) => [i === 0 ? 0 : v, i + 1 < vaoCat.length ? +(vaoCat[i + 1]! - 0.05).toFixed(2) : +Math.min(daiClip - duoi, het ?? Infinity).toFixed(2)]);
 }
 
 const LIEN = 5;   // ≥ 5 điểm liền (50 ms) trên ngưỡng mới tính là tiếng nói — bỏ tiếng tách / tiếng động lẻ

@@ -110,6 +110,39 @@ if (process.argv.includes('--chinh-giong')) {
   await ghiVaoToc(x.id, c.vao[0]!, c.toc[0]!);
   process.exit(0);
 }
+/** GẮN KẾT QUẢ một clip cụm đã có (tệp f, url kho): đo cú cắt → điểm vào → khớp thoại → kẹp đoạn → ghi từng shot. Dùng sau khi sinh và cho --tu-job (0đ). */
+async function ganKetQua(f: string, url: string, job: number, urlGiong: string | null, promptGui: string, t0: number): Promise<void> {
+  const dai = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim());
+  const cat = clip1 ? [] : catThat(f, cum.length, dai); const v = clip1 ? { vao: [clip1.vao], theoDo: true, ngan: [] as number[] } : vaoTuCatThat(cum.map((x) => x.canh), cat, dai);
+  // LUẬT CHẤM SAU KHI SINH (anh 14/11/2026 — phát sinh nào cũng vào luật): model chia giờ sai (cụm #2–7 lần 2: #3 giữ 2,3 s, #4 còn 0,84 s < 2 s phát) → đoạn
+  // của shot ngắn hơn giây phát thì phát lố sang shot kế. Shot thiếu giờ (vaoTuCatThat › ngan) hoặc clip không đo đủ cú cắt → KHÔNG gắn, gỡ clip cũ của shot
+  // đó (video_url NULL) để kế hoạch cụm lần sau tự đưa vào sinh lại (cum-seedance.mts).
+  const doan = doanShot(v.vao, dai, 0.45, v.het);   // đoạn theo cú cắt, lấy TRƯỚC khi canh giọng dời điểm vào
+  const hong = new Map<number, string>((v.theoDo ? v.ngan : cum.map((x) => x.canh.thu_tu)).map((so) => [so, v.theoDo ? 'đoạn của shot ngắn hơn giây phát' : 'không đo đủ cú cắt']));
+  let cg: ReturnType<typeof khopThoai> | null = null;
+  if (urlGiong && v.theoDo) { cg = khopThoai(f, v.vao, doan); v.vao.splice(0, v.vao.length, ...cg.vao); console.log(`khớp thoại: ${cg.bao}`);
+    cg.loi.forEach((l, i) => { if (l && !hong.has(cum[i]!.canh.thu_tu)) hong.set(cum[i]!.canh.thu_tu, l); }); }
+  // MỌI shot (cả shot câm): điểm vào kẹp trong đoạn của nó, không lố sang hình shot kế (cum-shot.ts › kepVaoDoan, ca #2 phim #3071 16/11/2026)
+  if (v.theoDo) cum.forEach((x, i) => { const k = kepVaoDoan(v.vao[i]!, doan[i]!, giayPhat(x.canh) * (cg?.toc[i] ?? 1));
+    if (k == null) { if (!hong.has(x.canh.thu_tu)) hong.set(x.canh.thu_tu, `đoạn của shot ${doan[i]![0]}–${doan[i]![1]} s ngắn hơn giây dùng`); } else v.vao[i] = k; });
+  for (const [i, x] of cum.entries()) {
+    if (hong.has(x.canh.thu_tu)) { await db.execute(sql`UPDATE xv_canh SET video_url = NULL, loi = ${`cụm Seedance job ${job}: ${hong.get(x.canh.thu_tu)} — sinh lại`}, updated_at = now() WHERE id = ${x.canh.id}`); continue; }
+    await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt: promptGui, job, cum: ids, khung_dau: x.canh.keyframe_url, doan: doan[i],   // đoạn của shot trong clip (cú cắt đo) — canh miệng không dời lấn sang shot kế
+         ...(urlGiong && cauAm.some((c) => c.so === i + 1) ? { khop_moi: { cach: 'seedance_audio', giong: urlGiong }, ...ghiMieng(true, cg?.bao.split(' · ').find((b) => b.startsWith(`#${x.canh.thu_tu}:`)) ?? '') } : {}) })}::jsonb || ${CD_LUC_SINH}, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);
+    await ghiVaoToc(x.canh.id, v.vao[i]!, cg?.toc[i] ?? 1);
+  }
+  if (hong.size) console.log(`✗ KHÔNG GẮN: ${[...hong].map(([so, l]) => `#${so} ${l}`).join(' · ')} — vào lượt sinh sau`);
+  console.log(`xong ${Math.round((Date.now() - t0) / 1000)}s · ${url} · dài ${dai.toFixed(2)} s · cú cắt đo ${cat.map((c) => c.toFixed(2)).join(', ') || 'không thấy'} · ${v.theoDo ? 'điểm vào theo cú cắt đo' : 'điểm vào theo lịch (không đo đủ cú cắt)'} · vào ${v.vao.map((x) => x.toFixed(2)).join(', ')} · ~${cents.toFixed(1)}¢`);
+}
+// --tu-job=<id>: GẮN LẠI từ clip job đã sinh (0đ, không gọi model) — luật đo sau sinh đổi (vd cắt thừa ở đuôi, 16/11/2026 job 8369) thì cứu shot đạt mà không sinh lại.
+const tuJob = Number(arg('tu-job')) || 0;
+if (tuJob) {
+  const r = ((await db.execute(sql`SELECT output_url, request FROM xv_job WHERE id = ${tuJob}`)) as unknown as { output_url: string | null; request: { cum?: number[]; giong?: string | null; prompt?: string } }[])[0];
+  if (!r?.output_url) { console.error(`job ${tuJob} chưa có clip`); process.exit(1); }
+  if (JSON.stringify(r.request.cum ?? []) !== JSON.stringify(ids)) { console.error(`job ${tuJob} là cụm ${JSON.stringify(r.request.cum)}, không phải ${JSON.stringify(ids)}`); process.exit(1); }
+  const f = `/tmp/seedance-cum-${tuJob}.mp4`; writeFileSync(f, Buffer.from(await (await fetch(r.output_url)).arrayBuffer()));
+  await ganKetQua(f, r.output_url, tuJob, r.request.giong ?? null, r.request.prompt ?? prompt, Date.now()); process.exit(0);
+}
 if (xem) { console.log(prompt); console.log(anh.join('\n')); process.exit(0); }
 if (!process.env.DUYET_SINH_1_LAN) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1 ngay sau khi anh duyệt lượt này'); process.exit(2); }
 
@@ -141,29 +174,9 @@ for (;;) {
   const u = (JSON.parse(d.resultJson ?? '{}') as { resultUrls?: string[] }).resultUrls?.[0];
   if (!u) { await xongJob(db, job, { loi: 'không có resultUrls' }); process.exit(1); }
   const buf = Buffer.from(await (await fetch(u)).arrayBuffer()); const f = `/tmp/seedance-cum-${job}.mp4`; writeFileSync(f, buf);
-  const dai = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim());
-  const cat = clip1 ? [] : catThat(f, cum.length, dai); const v = clip1 ? { vao: [clip1.vao], theoDo: true, ngan: [] as number[] } : vaoTuCatThat(cum.map((x) => x.canh), cat, dai);
   const url = await uploadToR2(`xuong-video/clip/cum-${ids.join('-')}-${randomUUID()}.mp4`, buf, 'video/mp4');
   if (!url) { await xongJob(db, job, { loi: 'đẩy kho hỏng' }); process.exit(1); }
   await xongJob(db, job, { output_url: url, chi_phi_cents: cents });
-  // LUẬT CHẤM SAU KHI SINH (anh 14/11/2026 — phát sinh nào cũng vào luật): model chia giờ sai (cụm #2–7 lần 2: #3 giữ 2,3 s, #4 còn 0,84 s < 2 s phát) → đoạn
-  // của shot ngắn hơn giây phát thì phát lố sang shot kế. Shot thiếu giờ (vaoTuCatThat › ngan) hoặc clip không đo đủ cú cắt → KHÔNG gắn, gỡ clip cũ của shot
-  // đó (video_url NULL) để kế hoạch cụm lần sau tự đưa vào sinh lại (cum-seedance.mts).
-  const doan = doanShot(v.vao, dai);   // đoạn theo cú cắt, lấy TRƯỚC khi canh giọng dời điểm vào
-  const hong = new Map<number, string>((v.theoDo ? v.ngan : cum.map((x) => x.canh.thu_tu)).map((so) => [so, v.theoDo ? 'đoạn của shot ngắn hơn giây phát' : 'không đo đủ cú cắt']));
-  let cg: ReturnType<typeof khopThoai> | null = null;
-  if (urlGiong && v.theoDo) { cg = khopThoai(f, v.vao, doan); v.vao.splice(0, v.vao.length, ...cg.vao); console.log(`khớp thoại: ${cg.bao}`);
-    cg.loi.forEach((l, i) => { if (l && !hong.has(cum[i]!.canh.thu_tu)) hong.set(cum[i]!.canh.thu_tu, l); }); }
-  // MỌI shot (cả shot câm): điểm vào kẹp trong đoạn của nó, không lố sang hình shot kế (cum-shot.ts › kepVaoDoan, ca #2 phim #3071 16/11/2026)
-  if (v.theoDo) cum.forEach((x, i) => { const k = kepVaoDoan(v.vao[i]!, doan[i]!, giayPhat(x.canh) * (cg?.toc[i] ?? 1));
-    if (k == null) { if (!hong.has(x.canh.thu_tu)) hong.set(x.canh.thu_tu, `đoạn của shot ${doan[i]![0]}–${doan[i]![1]} s ngắn hơn giây dùng`); } else v.vao[i] = k; });
-  for (const [i, x] of cum.entries()) {
-    if (hong.has(x.canh.thu_tu)) { await db.execute(sql`UPDATE xv_canh SET video_url = NULL, loi = ${`cụm Seedance job ${job}: ${hong.get(x.canh.thu_tu)} — sinh lại`}, updated_at = now() WHERE id = ${x.canh.id}`); continue; }
-    await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt, job, cum: ids, khung_dau: x.canh.keyframe_url, doan: doan[i],   // đoạn của shot trong clip (cú cắt đo) — canh miệng không dời lấn sang shot kế
-         ...(urlGiong && cauAm.some((c) => c.so === i + 1) ? { khop_moi: { cach: 'seedance_audio', giong: urlGiong }, ...ghiMieng(true, cg?.bao.split(' · ').find((b) => b.startsWith(`#${x.canh.thu_tu}:`)) ?? '') } : {}) })}::jsonb || ${CD_LUC_SINH}, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);
-    await ghiVaoToc(x.canh.id, v.vao[i]!, cg?.toc[i] ?? 1);
-  }
-  if (hong.size) console.log(`✗ KHÔNG GẮN: ${[...hong].map(([so, l]) => `#${so} ${l}`).join(' · ')} — vào lượt sinh sau`);
-  console.log(`xong ${Math.round((Date.now() - t0) / 1000)}s · ${url} · dài ${dai.toFixed(2)} s · cú cắt đo ${cat.map((c) => c.toFixed(2)).join(', ') || 'không thấy'} · ${v.theoDo ? 'điểm vào theo cú cắt đo' : 'điểm vào theo lịch (không đo đủ cú cắt)'} · vào ${v.vao.map((x) => x.toFixed(2)).join(', ')} · ~${cents.toFixed(1)}¢`);
+  await ganKetQua(f, url, job, urlGiong, prompt, t0);
   process.exit(0);
 }

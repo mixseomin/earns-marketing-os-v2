@@ -62,5 +62,24 @@
   "giayPhep": "CC BY-SA 4.0",
   "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0",
   "camera": null
+ },
+ {
+  "tieuDe": "Oberer Schlosshof Neuschwanstein.jpg",
+  "tep": "anh/neuschwanstein-san-tren.jpg",
+  "trang": "https://commons.wikimedia.org/wiki/File:Oberer_Schlosshof_Neuschwanstein.jpg",
+  "lat": 47.5575955,
+  "lng": 10.7497201,
+  "rong": 1600,
+  "cao": 1200,
+  "tacGia": "Naturliebhaberin",
+  "giayPhep": "CC BY-SA 4.0",
+  "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+  "camera": {
+   "y": 2.5,
+   "yaw": 2.0,
+   "pitch": 0.42,
+   "fov": 48,
+   "ghi_chu": "sân trên nhìn mặt Palas hướng sân; khớp ước lượng bằng mắt (tháp góc, ban công, đầu hồi), chưa khớp máy — nền sân DEM thấp hơn thật ~7 m nên mô hình thừa một tầng dưới cùng"
+  }
  }
 ]

@@ -15,7 +15,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
 import { taoCamUng, CHAM } from './camung.js';
-import { datMatTien, datMatPalas, datThapGoc } from './mattien.js';
+import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 
 const $ = (id) => document.getElementById(id);
@@ -124,12 +124,20 @@ const NOI = (() => {
   const [a1, a2] = [thap.v[tot.i], thap.v[(tot.i + 1) % thap.v.length]], mx = (a1[0] + a2[0]) / 2, mz = (a1[1] + a2[1]) / 2;
   const ra = trongDa(mx, mz - 1.5, thap.v) ? 1.5 : -1.5, yCua = caoDat(mx, mz - ra) - GOC_Y + 0.05;
   const y3 = palas.day + NT.tang3;
-  return { palas, thap, canhCua: tot.i, yCua, ngoai: [mx, mz - 2.2], dai: [y3 - 0.3, y3 + NT.caoTang3 + 0.35 + NT.caoTang4 + 0.45] };
+  return { palas, thap, canhCua: tot.i, yCua, y3, ngoai: [mx, mz - 2.2], dai: [y3 - 0.3, y3 + NT.caoTang3 + 0.35 + NT.caoTang4 + 0.45] };
 })();
 // lỗ trên một cạnh tường: [{ s0, s1, y0, y1 }] theo mét dọc cạnh
+const SAN0 = (() => { const v = D.khoi.find((k) => k.tags.building === 'courtyard')?.ngoai?.[0]; return v ? tamDa(v) : null; })();
+const huongRaSan = (x1, z1, x2, z2) => { if (!SAN0) return false; const L = Math.hypot(x2 - x1, z2 - z1), mx = (x1 + x2) / 2, mz = (z1 + z2) / 2, d = Math.hypot(SAN0[0] - mx, SAN0[1] - mz);
+  return d < 45 && ((z2 - z1) / L * (SAN0[0] - mx) - (x2 - x1) / L * (SAN0[1] - mz)) / d > 0.7; };
 function loCanh(k, i, x1, z1, x2, z2) {
   const lo = [], L = Math.hypot(x2 - x1, z2 - z1); if (!NOI) return lo;
   if (k.trongPalas || k === NOI.thap) { const mx = (x1 + x2) / 2, mz = (z1 + z2) / 2; if (trongDa(mx, mz, NOI.palas.v) && kcVien(mx, mz, NOI.palas.v) > 0.6) lo.push({ s0: -1, s1: L + 1, y0: NOI.dai[0], y1: NOI.dai[1] }); }
+  // cửa sổ mở được: tường ngoài Palas, hàng cửa nằm gọn trong phòng tầng ba → khoét lỗ thật ở ô giữa (bố cục chung với khung cửa 3D: mattien.js bocCuc)
+  if (k.trongPalas && k._yMong != null && kcVien((x1 + x2) / 2, (z1 + z2) / 2, NOI.palas.v) <= 0.6 && !huongRaSan(x1, z1, x2, z2)) { // mặt hướng sân trên dựng riêng theo ảnh (datMatPalas) → không khoét theo bố cục chung
+    const [mNua, mCao] = O_MO.ba;
+    for (const h of bocCuc({ L, yMong: k._yMong, y1: k._y1, palas: true })) if (h.y >= NOI.y3 - 0.3 && h.y + mCao <= NOI.y3 + NT.caoTang3 - 0.2) for (const s of h.ds) lo.push({ s0: s - mNua, s1: s + mNua, y0: h.y, y1: h.y + mCao, cuaSo: true });
+  }
   if (k === NOI.thap && i === NOI.canhCua) lo.push({ s0: L / 2 - 0.95, s1: L / 2 + 0.95, y0: NOI.yCua - 0.5, y1: NOI.yCua + 2.7 });
   if (k !== NOI.thap) { // tường khối khác chạy xuyên lòng tháp cầu thang → khoét suốt chiều cao thang (dò 48 điểm dọc cạnh)
     let dau = null; const N = 48;
@@ -183,6 +191,7 @@ function dungKhoi(k, G) {
   hMai = Math.min(hMai, Math.max(0, h - hMin - 0.5));
   const y0 = k.day + hMin, y1 = k.day + h - hMai, y2 = k.day + h;
   const yMong = hMin > 0 ? y0 : Math.min(y1, Math.max(y0, k.datCao + 1.2)); // móng đá thô tới quá mặt đất cao nhất 1,2 m
+  k._yMong = yMong; k._y1 = y1; // loCanh khoét lỗ cửa sổ theo cùng bố cục với khung cửa 3D (mattien.js bocCuc)
   const mai = [], da = [];
   const mauT = mauOSM(t['building:colour'], new THREE.Color(1, 1, 1)).lerp(new THREE.Color(1, 1, 1), 0.3); // màu tường OSM (Torbau gạch đỏ) pha lên vân đá
   let s0 = 0;
@@ -255,6 +264,7 @@ for (const [ten, G] of Object.entries(NHOM)) {
   const m = new THREE.Mesh(g, VL[ten]); m.castShadow = m.receiveShadow = true; scene.add(m); LOP_OSM.push(m);
 }
 // mặt Palas hướng sân trên (đầu hồi đông, gần sân nhất): chọn TRƯỚC khi đặt cửa sổ để chừa dải trên cho tranh + ban công
+const CUA = []; // cửa sổ 3D mặt tiền (mattien.js): { x, y: bậu, z, nx, nz: pháp tuyến ra ngoài, nua: nửa bề ngang, cao, ten } — leo sát cửa có phòng phía sau thì E mở cửa trèo vào
 const SAN_TRONG = D.khoi.find((k) => k.tags.building === 'courtyard')?.ngoai?.[0];
 const MAT_PALAS = (() => {
   if (!SAN_TRONG) return null; const [cx, cz] = tamDa(SAN_TRONG); let tot = null;
@@ -277,10 +287,11 @@ const MAT_PALAS = (() => {
 })();
 { // mặt tiền chi tiết: cửa sổ 3D + gờ tầng (một mặt tường bị khối khác áp vào ở tầng nào thì bỏ tầng đó)
   const biChe = (x, y, z) => dsKhoi.some((k) => k.yDuoi != null && y > k.yDuoi && y < k.yTren && trongDa(x, z, k.v));
-  const { ra, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe, nhe: CHAM,
+  const { ra, cua, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe, nhe: CHAM,
     matNgoai: (x, z, nx, nz) => { // mép sân OSM có chỗ cách chân tường vài mét → dò 2 / 5 / 8 m trước mặt tường; độ cao lấy ngay trước chân tường
       const san = !!SAN_TRONG && [2, 5, 8].some((d) => trongDa(x + nx * d, z + nz * d, SAN_TRONG)); return { san, yDat: caoDat(x + nx * 1.5, z + nz * 1.5) - GOC_Y }; } });
   for (const m of ra) { scene.add(m); LOP_OSM.push(m); }
+  CUA.push(...cua);
   // tháp góc treo trên con-xon (đánh dấu thap_goc trong tệp sửa theo ảnh): con-xon, gờ tầng, cửa sổ vòm nhỏ mặt ngoài, vành răng cưa
   const goc = dsKhoi.filter((k) => k.tags.thap_goc === 'yes' && k.yDuoi != null);
   for (const k of goc) for (const m of datThapGoc({ THREE, mergeGeometries, v: k.v, y0: k.yDuoi, y1: k.yTren - (+k.tags['roof:height'] || 0), y2: k.yTren, mauMai: k.tags['roof:colour'], mau: mauOSM(k.tags['building:colour'], new THREE.Color('#dcc48e')),
@@ -295,7 +306,8 @@ const MAT_PALAS = (() => {
     if (tot) (async () => { // tranh tải nền, không chặn trang
       const tl = new THREE.TextureLoader(), TR = {};
       for (const ten of ['palas-thanh-george', 'palas-duc-me']) try { const t = await tl.loadAsync(`./du-lieu/anh/ngoai/${ten}.jpg`); t.colorSpace = THREE.SRGBColorSpace; TR[ten] = t; } catch (e) { console.warn('[ns] không tải được tranh mặt Palas', ten, e); }
-      for (const m of datMatPalas({ THREE, mergeGeometries, tuong: tot, tranh: TR })) { m.visible = !LOP_OSM.dangAn; scene.add(m); LOP_OSM.push(m); } // cờ trên LOP_OSM (khai sớm) — anh3d khai sau, đọc ở đây dễ dính lỗi chưa khai báo
+      const mp = datMatPalas({ THREE, mergeGeometries, tuong: tot, tranh: TR }); CUA.push(...(mp.cua || []));
+      for (const m of mp) { m.visible = !LOP_OSM.dangAn; scene.add(m); LOP_OSM.push(m); } // cờ trên LOP_OSM (khai sớm) — anh3d khai sau, đọc ở đây dễ dính lỗi chưa khai báo
     })();
     // sân lát đá: lưới ô 1,5 m bám độ cao đất trong mặt bằng sân (OSM courtyard), nhô 6 cm trên đất (người đi trên đất, đá chỉ là mặt nhìn)
     const p = [], uv = [], B = 1.5; let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9; for (const [x, z] of san) { a0 = Math.min(a0, x); a1 = Math.max(a1, x); b0 = Math.min(b0, z); b1 = Math.max(b1, z); }
@@ -586,7 +598,36 @@ function moDoc(phong) {
   if (!g) { console.warn('[ns] phòng thiếu giới thiệu', phong.ten, phong.gioiThieu); return; } const el = $('doc'); el.querySelector('b').textContent = g.ten; el.querySelector('.chu').textContent = g.chu; el.querySelector('a').href = g.nguon; el.style.display = 'block';
 }
 function dongDoc() { $('doc').style.display = 'none'; } // khai báo hàm (được nâng): boTuongTac gọi được cả khi khôi phục chỗ đứng lúc F5
+// ---- CỬA SỔ khi đang leo tường: sát một ô cửa mà phía sau có sàn nội thất (Palas tầng ba / phòng tầng bốn) → E mở hai cánh vào trong rồi trèo vào đứng trên sàn
+let ganCua = null;
+function sanSauCua(c) { // điểm đứng trong phòng sau cửa: 1,1 m vào trong, tia dọc xuống tìm sàn ngay dưới bậu; không có phòng → null
+  if (!noiThat || !NOI || !c.coLo) return null; // chỉ ô có lỗ thật trên tường (loCanh) mới mở được
+  const x = c.x - c.nx * 1.1, z = c.z - c.nz * 1.1; if (!trongDa(x, z, NOI.palas.v)) return null;
+  const h = world.castRay(new RAPIER.Ray({ x, y: c.y + 1.2, z }, { x: 0, y: -1, z: 0 }), 4, true); if (!h) return null;
+  const y = c.y + 1.2 - h.timeOfImpact; return y >= NOI.dai[0] - 0.5 && y <= c.y + 0.4 ? { x, y, z } : null;
+}
+function timCua() {
+  if (!di?.dang || di.tt !== 'leo') return null;
+  const p = di.viTri(); let tot = null, diem = 1e9;
+  for (const c of CUA) {
+    const dx = p.x - c.x, dz = p.z - c.z, truoc = dx * c.nx + dz * c.nz, doc = dx * -c.nz + dz * c.nx; // trước mặt tường / dọc tường
+    if (truoc < -0.3 || truoc > 1.4 || Math.abs(doc) > c.nua + 1.3 || p.y < c.y - 0.6 || p.y > c.y + c.cao + 0.8) continue;
+    const d = Math.abs(doc) + Math.abs(p.y - (c.y + 1)) * 0.5; if (d < diem) { diem = d; tot = c; }
+  }
+  if (tot && tot.vao === undefined) tot.vao = sanSauCua(tot);
+  return tot;
+}
+function moCuaVao(c) {
+  if (!c.mo) { // hai cánh gỗ mở vào trong, bản lề hai bên (giữ mở)
+    const quay = Math.atan2(c.nx, c.nz), ux = -c.nz, uz = c.nx, w = c.nua * 0.92, vl = new THREE.MeshStandardMaterial({ color: '#4a3524', roughness: 0.7 });
+    c.mo = [-1, 1].map((k) => { const g = new THREE.Group(); g.position.set(c.x + ux * k * c.nua - c.nx * 0.12, c.y + c.cao * 0.45, c.z + uz * k * c.nua - c.nz * 0.12); g.rotation.y = quay + k * 1.2;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, c.cao * 0.85, 0.05), vl); m.position.x = k * w / 2; g.add(m); scene.add(g); return g; });
+  }
+  const p = c.vao, h = Math.atan2(-c.nx, -c.nz); // quay mặt vào trong phòng
+  di.datCho({ x: p.x, y: p.y + 0.95, z: p.z }, h - Math.PI, -0.1, h); ganCua = null;
+}
 function nutE() {
+  if (ganCua?.vao) return moCuaVao(ganCua);
   if (!noiThat || !di?.dang) return;
   if ($('doc').style.display === 'block') return dongDoc();
   if (dangNgoi) return dungDay();
@@ -602,7 +643,8 @@ addEventListener('keydown', (e) => { if (!di?.dang || e.repeat || e.target.close
 function timTuongTac(now) { // món gần nhất (≤ 1,8 m, cùng tầng, ưu tiên trước mặt) → dòng nhắc phím
   if (now - lucTim < 150) return; lucTim = now;
   let chu = '';
-  if (noiThat && di?.dang && noiThat.nhom.visible) {
+  ganCua = timCua(); if (ganCua) chu = ganCua.vao ? 'E mở cửa sổ, trèo vào' : 'Cửa sổ này chưa có phòng dựng bên trong';
+  if (!ganCua && noiThat && di?.dang && noiThat.nhom.visible) {
     if (dangNgoi) chu = 'E / W A S D đứng dậy';
     else if (dangCam) chu = 'E thả xuống · nhấp chuột ném';
     else {
@@ -623,7 +665,7 @@ function timTuongTac(now) { // món gần nhất (≤ 1,8 m, cùng tầng, ưu t
 const TEN_E = { ngoi: 'Ngồi', cam: 'Cầm', doc: 'Đọc' };
 const camUng = di ? taoCamUng({ dom: renderer.domElement, di, nut: [
   { id: 'nhay', chu: () => { const c = di.nguCanh(); return dangNgoi ? null : c === 'leo' ? 'Bật ra' : c === 'tuong' ? 'Leo' : 'Nhảy'; }, bam: () => camUng.nhay() },
-  { id: 'e', chu: () => $('doc').style.display === 'block' ? 'Đóng' : dangNgoi ? 'Đứng' : dangCam ? 'Thả' : ganNhat ? (ganNhat.loai === 'mo' ? (ganNhat.dangMo ? 'Đóng' : 'Mở') : ganNhat.loai === 'den' ? (ganNhat.den?.userData.tat ? 'Bật đèn' : 'Tắt đèn') : TEN_E[ganNhat.loai] || 'E') : null, bam: () => nutE() },
+  { id: 'e', chu: () => ganCua?.vao ? 'Vào' : $('doc').style.display === 'block' ? 'Đóng' : dangNgoi ? 'Đứng' : dangCam ? 'Thả' : ganNhat ? (ganNhat.loai === 'mo' ? (ganNhat.dangMo ? 'Đóng' : 'Mở') : ganNhat.loai === 'den' ? (ganNhat.den?.userData.tat ? 'Bật đèn' : 'Tắt đèn') : TEN_E[ganNhat.loai] || 'E') : null, bam: () => nutE() },
   { id: 'nem', chu: () => (dangCam ? 'Ném' : null), bam: () => nemDoDangCam(innerWidth / 2, innerHeight / 2) },
   { id: 'da', chu: () => (!dangNgoi && !dangCam && phongHienTai() ? 'Đá' : null), bam: () => daDo() },
   { id: 'goc', chu: () => '👁', bam: () => di.doiGocNhin() },
@@ -633,6 +675,7 @@ $('nut').insertAdjacentHTML('beforeend', '<button id="b-nn" title="Kênh nhiều
 const nhieuNguoi = di ? taoNhieuNguoi({ THREE, scene, lau: 'neuschwanstein', nut: $('b-nn'), taoNguoi: (ao) => taoNguoi3d({ ao }),
   layTrangThai: () => (di.dang ? { p: di.viTri(), h: di.huong, s: { tt: di.tt, toc: di.toc, nen: di.nen, ngoi: !!dangNgoi } } : null) }) : null;
 function phongHienTai() { if (!noiThat || !di?.dang) return null; const p = di.viTri(); return noiThat.phongTai(p.x, p.y - 0.9, p.z); }
+window.__ns.cuaSo = { CUA, timCua, sanSauCua, moCuaVao, gan: () => ganCua };
 window.__ns.camUng = () => camUng; window.__ns.diNhanh = diNhanhNS; window.__ns.noiThat = noiThat; window.__ns.NOI = NOI; window.__ns.cao3d = (x, z) => { if (!anh3d) return null; const h = new THREE.Raycaster(new THREE.Vector3(x, 600, z), new THREE.Vector3(0, -1, 0)).intersectObject(anh3d.t.group, true)[0]; return h ? h.point.y : null; }; window.__ns.anh3d = () => anh3d; window.__ns.anh3dTk = () => anh3d_tk; window.__ns.khuTai = khuTai; window.__ns.thuKhu = () => [...DA_KHU.map((k) => [...tamDa(k.v), k.khoa]), [(CAU[0][0] + CAU[1][0]) / 2, (CAU[0][1] + CAU[1][1]) / 2, 'Marienbruecke']]; window.__ns.tt = { nutE, daDo, nemDoDangCam, trangThai: () => ({ ngoi: !!dangNgoi, cam: !!dangCam, gan: ganNhat?.loai || null }) };
 // ---------- ẢNH THẬT 3D: Google Photorealistic 3D Tiles qua Cesium ion (tài khoản htuan82, vault #697) — thư viện 3DTilesRendererJS (NASA-AMMOS, Apache-2.0).
 // Khoá web trong du-lieu/google3d.json là khoá CÔNG KHAI bị khoá phạm vi: chỉ đọc asset 2275207, chỉ chạy khi trang ở castle.on.tc / 127.0.0.1:18777.

@@ -20,21 +20,23 @@
   "ly_do": "ảnh 2: cao hơn ảnh ~7 m (đo 9 cột); OSM 26.5"
  },
  "way/223145711": {
-  "min_height": 13,
-  "building:colour": "#dcc48e",
+  "min_height": 15.3,
+  "building:colour": "#f3e3bb",
   "roof:colour": "#8fb5a0",
-  "phong": 2.4,
+  "phong": 2.0,
   "thap_goc": "yes",
-  "ly_do": "ảnh sân trên (Naturliebhaberin, Commons): tháp góc Palas hướng sân bằng sa thạch vàng, mái đồng xanh, đỡ con-xon từ ngang hàng cửa trệt (~16 m dưới mái), vành răng cưa ngang chân đầu hồi, rộng ~0,4 bề ngang đầu hồi; OSM height 39, min_height 25, bán kính ~0,9 m, màu trắng mái đen",
-  "height": 35
+  "ly_do": "ảnh sân trên (Naturliebhaberin, Commons; đo ~38,7 px/m, mốc mái Palas): tháp góc Palas hướng sân bằng sa thạch vàng, mái đồng xanh; thân từ ~13 m dưới mái (con-xon thêm ~3,6 m dưới nữa) tới ~1 m dưới mái, chóp ~6,5 m; rộng ~0,4 bề ngang đầu hồi. OSM: height 39, min_height 25, bán kính ~0,9 m, màu trắng mái đen",
+  "height": 36,
+  "roof:height": 8.5
  },
  "way/223145712": {
-  "min_height": 13,
-  "building:colour": "#dcc48e",
+  "min_height": 15.3,
+  "building:colour": "#f3e3bb",
   "roof:colour": "#8fb5a0",
-  "phong": 2.4,
+  "phong": 2.0,
   "thap_goc": "yes",
-  "ly_do": "ảnh sân trên (Naturliebhaberin, Commons): tháp góc Palas hướng sân bằng sa thạch vàng, mái đồng xanh, đỡ con-xon từ ngang hàng cửa trệt (~16 m dưới mái), vành răng cưa ngang chân đầu hồi, rộng ~0,4 bề ngang đầu hồi; OSM height 39, min_height 25, bán kính ~0,9 m, màu trắng mái đen",
-  "height": 35
+  "ly_do": "ảnh sân trên (Naturliebhaberin, Commons; đo ~38,7 px/m, mốc mái Palas): tháp góc Palas hướng sân bằng sa thạch vàng, mái đồng xanh; thân từ ~13 m dưới mái (con-xon thêm ~3,6 m dưới nữa) tới ~1 m dưới mái, chóp ~6,5 m; rộng ~0,4 bề ngang đầu hồi. OSM: height 39, min_height 25, bán kính ~0,9 m, màu trắng mái đen",
+  "height": 36,
+  "roof:height": 8.5
  }
 }

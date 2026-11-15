@@ -43,6 +43,7 @@ function caoDat(x, z) { // nội suy song tuyến
   return (caoO(i, j) * (1 - u) + caoO(i + 1, j) * u) * (1 - v) + (caoO(i, j + 1) * (1 - u) + caoO(i + 1, j + 1) * u) * v;
 }
 const GOC_Y = caoDat(0, 0);
+const LOP_OSM = [], CAY_VA = []; // lớp vẽ dựng-từ-số-đo (địa hình, khối nhà, rừng, cầu) + va chạm thân cây — ẩn / tắt khi bật ẢNH THẬT 3D
 {
   const g = new THREE.PlaneGeometry(2 * NUA, 2 * NUA, n - 1, n - 1); g.rotateX(-Math.PI / 2);
   const p = g.attributes.position, mau = new Float32Array(p.count * 3), c = new THREE.Color();
@@ -54,7 +55,7 @@ const GOC_Y = caoDat(0, 0);
     c.setHSL(0.27, 0.34, 0.27 + nhieu).lerp(new THREE.Color().setHSL(0.1, 0.06, 0.5 + nhieu), da); mau.set([c.r, c.g, c.b], k * 3);
   }
   g.setAttribute('color', new THREE.BufferAttribute(mau, 3));
-  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 })); m.receiveShadow = true; scene.add(m);
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 })); m.receiveShadow = true; scene.add(m); LOP_OSM.push(m);
 }
 
 // ---------- vật lý: mặt đất = lưới độ cao (Rapier heightfield, cột trước: heights[i*n + j] với i theo x, j theo z)
@@ -62,7 +63,7 @@ try { await RAPIER.init(); } catch (e) { console.warn('[ns] không nạp đượ
 const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 }), tinh = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
 {
   const h = new Float32Array(n * n); for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) h[i * n + j] = G.cao[j * n + i] - GOC_Y;
-  world.createCollider(RAPIER.ColliderDesc.heightfield(n - 1, n - 1, h, { x: 2 * NUA, y: 1, z: 2 * NUA }), tinh);
+  LOP_OSM.vaDat = world.createCollider(RAPIER.ColliderDesc.heightfield(n - 1, n - 1, h, { x: 2 * NUA, y: 1, z: 2 * NUA }), tinh); // ảnh thật 3D bật: tắt, đi trên mặt mô hình Google
 }
 
 // ---------- khối nhà
@@ -242,7 +243,7 @@ for (const [ten, G] of Object.entries(NHOM)) {
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(G.p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(G.uv, 2));
   if (G.c) g.setAttribute('color', new THREE.Float32BufferAttribute(G.c, 3));
   g.computeVertexNormals();
-  const m = new THREE.Mesh(g, VL[ten]); m.castShadow = m.receiveShadow = true; scene.add(m);
+  const m = new THREE.Mesh(g, VL[ten]); m.castShadow = m.receiveShadow = true; scene.add(m); LOP_OSM.push(m);
 }
 
 // ---- NỘI THẤT Palas (noithat.js): sàn, phòng theo bản vẽ, cầu thang xoắn, đồ đạc, đèn chùm
@@ -287,9 +288,9 @@ const RUNG = []; // ẩn khi so ảnh thật (cây mọc ở mép vực che tầ
   viTri.forEach(([x, y, z, s, a], i) => { m4.compose(new THREE.Vector3(x, y, z), q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a), new THREE.Vector3(s, s * (0.9 + (i % 5) * 0.06), s)); iT.setMatrixAt(i, m4); iG.setMatrixAt(i, m4); iT.setColorAt(i, c.setHSL(0.3 + (i % 7) * 0.008, 0.3, 0.17 + (i % 11) * 0.008)); });
   iT.castShadow = true; iT.receiveShadow = true; scene.add(iT, iG);
   // thân cây có va chạm (trụ) từ gốc tới gần ngọn: đi không xuyên cây nữa, và bộ leo dibo (bám mọi mặt đứng) trèo được lên tới ngọn tán rồi đu lên đứng ở chạc ngọn
-  for (const [x, y, z, s] of viTri) { const h = 12 * s; world.createCollider(RAPIER.ColliderDesc.cylinder(h / 2, 0.32 * s).setTranslation(x, y + h / 2, z).setFriction(0.8), tinh);
-    world.createCollider(RAPIER.ColliderDesc.cylinder(0.06, 0.8).setTranslation(x, y + h, z), tinh); } // chạc ngọn: leo tới đỉnh thì đu lên đứng được, không tuột rơi
-  RUNG.push(iT, iG);
+  for (const [x, y, z, s] of viTri) { const h = 12 * s; CAY_VA.push(world.createCollider(RAPIER.ColliderDesc.cylinder(h / 2, 0.32 * s).setTranslation(x, y + h / 2, z).setFriction(0.8), tinh));
+    CAY_VA.push(world.createCollider(RAPIER.ColliderDesc.cylinder(0.06, 0.8).setTranslation(x, y + h, z), tinh)); } // chạc ngọn: leo tới đỉnh thì đu lên đứng được, không tuột rơi
+  RUNG.push(iT, iG); LOP_OSM.push(iT, iG);
 }
 
 // ---------- điều khiển + nhãn
@@ -378,7 +379,7 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
   else if (!dangSo) orbit.update(); // chế độ so ảnh: camera do thông số ảnh quyết
   if (noiThat) { const p = di?.dang ? di.viTri() : null; noiThat.hien(!!p && Math.hypot(p.x - noiThat.tam[0], p.z - noiThat.tam[1]) < 75); }
-  noiThat?.capNhat(dt); timTuongTac(now);
+  noiThat?.capNhat(dt); timTuongTac(now); capNhatAnh3d();
   capNhatHd(now); veBanDoNS(now);
   renderer.render(scene, camera);
 }
@@ -412,7 +413,7 @@ function moSo(i) {
   document.querySelectorAll('#so button[data-i]').forEach((b) => b.classList.toggle('chon', +b.dataset.i === i));
 }
 function tatSo() {
-  dangSo = null; for (const r of RUNG) r.visible = true; hop.style.display = 'none'; renderer.setSize(innerWidth, innerHeight); Object.assign(renderer.domElement.style, { left: '0px', top: '0px' });
+  dangSo = null; for (const r of RUNG) r.visible = !anh3d?.bat; hop.style.display = 'none'; renderer.setSize(innerWidth, innerHeight); Object.assign(renderer.domElement.style, { left: '0px', top: '0px' });
   camera.aspect = innerWidth / innerHeight; camera.fov = 45; camera.updateProjectionMatrix(); orbit.enabled = true; camera.position.set(-170, 90, 230); orbit.target.set(0, 25, 0); orbit.update();
   $('so-tt').textContent = ''; $('so-nguon').textContent = ''; document.querySelectorAll('#so button[data-i]').forEach((b) => b.classList.remove('chon'));
 }
@@ -438,7 +439,7 @@ const CAU = [[47.554991, 10.7492138], [47.5549237, 10.7495946]].map(([la, ln]) =
   const y = Math.max(caoDat(x1, z1), caoDat(x2, z2)) - GOC_Y, cx = (x1 + x2) / 2, cz = (z1 + z2) / 2, q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -a);
   const vl = new THREE.MeshStandardMaterial({ color: 0x5a5f66, roughness: 0.7, metalness: 0.4 });
   for (const [w, h, d, oy, oz] of [[L, 0.3, 2.6, 0, 0], [L, 1.1, 0.08, 0.7, 1.25], [L, 1.1, 0.08, 0.7, -1.25]]) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), vl); m.position.set(cx - Math.sin(a) * oz, y + oy, cz + Math.cos(a) * oz); m.quaternion.copy(q); m.castShadow = true; scene.add(m);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), vl); m.position.set(cx - Math.sin(a) * oz, y + oy, cz + Math.cos(a) * oz); m.quaternion.copy(q); m.castShadow = true; scene.add(m); LOP_OSM.push(m);
     world.createCollider(RAPIER.ColliderDesc.cuboid(w / 2, h / 2, d / 2).setTranslation(m.position.x, m.position.y, m.position.z).setRotation(q), tinh);
   }
 }
@@ -535,6 +536,98 @@ function timTuongTac(now) { // món gần nhất (≤ 1,8 m, cùng tầng, ưu t
   }
   const g = $('goiY'); if (g.textContent !== chu) { g.textContent = chu; g.style.display = chu ? 'block' : 'none'; }
 }
-window.__ns.diNhanh = diNhanhNS; window.__ns.noiThat = noiThat; window.__ns.NOI = NOI; window.__ns.khuTai = khuTai; window.__ns.thuKhu = () => [...DA_KHU.map((k) => [...tamDa(k.v), k.khoa]), [(CAU[0][0] + CAU[1][0]) / 2, (CAU[0][1] + CAU[1][1]) / 2, 'Marienbruecke']]; window.__ns.tt = { nutE, daDo, nemDoDangCam, trangThai: () => ({ ngoi: !!dangNgoi, cam: !!dangCam, gan: ganNhat?.loai || null }) };
+window.__ns.diNhanh = diNhanhNS; window.__ns.noiThat = noiThat; window.__ns.NOI = NOI; window.__ns.cao3d = (x, z) => { if (!anh3d) return null; const h = new THREE.Raycaster(new THREE.Vector3(x, 600, z), new THREE.Vector3(0, -1, 0)).intersectObject(anh3d.t.group, true)[0]; return h ? h.point.y : null; }; window.__ns.anh3d = () => anh3d; window.__ns.anh3dTk = () => anh3d_tk; window.__ns.khuTai = khuTai; window.__ns.thuKhu = () => [...DA_KHU.map((k) => [...tamDa(k.v), k.khoa]), [(CAU[0][0] + CAU[1][0]) / 2, (CAU[0][1] + CAU[1][1]) / 2, 'Marienbruecke']]; window.__ns.tt = { nutE, daDo, nemDoDangCam, trangThai: () => ({ ngoi: !!dangNgoi, cam: !!dangCam, gan: ganNhat?.loai || null }) };
+// ---------- ẢNH THẬT 3D: Google Photorealistic 3D Tiles qua Cesium ion (tài khoản htuan82, vault #697) — thư viện 3DTilesRendererJS (NASA-AMMOS, Apache-2.0).
+// Khoá web trong du-lieu/google3d.json là khoá CÔNG KHAI bị khoá phạm vi: chỉ đọc asset 2275207, chỉ chạy khi trang ở castle.on.tc / 127.0.0.1:18777.
+// Bật thì ẩn lớp dựng-từ-số-đo (LOP_OSM) + tắt va chạm thân cây giả (CAY_VA, cây thật trong ảnh mọc chỗ khác); giữ va chạm địa hình / khối nhà / cầu,
+// nội thất, người, bản đồ. Độ cao: mô hình Google theo ellipsoid → dò mặt đất mô hình ở vài chỗ trống rồi bù cho khớp lưới EU-DEM đang dùng làm va chạm.
+let anh3d = null, anh3d_tk = null;
+const datAnh3d = (bat) => {
+  if (!anh3d) return; anh3d.bat = bat; anh3d.goc.visible = bat && !dangSo; if (!bat) $('nguon-3d').textContent = '';
+  for (const m of LOP_OSM) m.visible = !bat; for (const c of CAY_VA) c.setEnabled(!bat);
+  if (!bat) LOP_OSM.vaDat?.setEnabled(true); for (const c of anh3d.va.values()) for (const k of c) k.setEnabled(bat); // lưới đất: capNhatAnh3d chỉ tắt khi dưới chân đã có va chạm ô
+  $('b-anh3d').textContent = bat ? '🧱 Mô hình' : '🌍 Ảnh thật 3D'; $('b-anh3d').title = bat ? 'Về mô hình dựng từ số đo' : 'Hiện lâu đài ảnh thật 3D (Google)';
+  try { localStorage.setItem('ns-anh3d', bat ? '1' : '0'); } catch {}
+};
+(async () => { // chạy NỀN: không chặn vòng vẽ / vật lý chờ tải thư viện (trước đây trang đứng mấy giây đầu)
+  const cfg = await fetch('./du-lieu/google3d.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (cfg?.token) try {
+    const [{ TilesRenderer }, P, { DRACOLoader }] = await Promise.all([import('3d-tiles-renderer/three'), import('3d-tiles-renderer/three/plugins'), import('three/addons/loaders/DRACOLoader.js')]);
+    const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/gltf/');
+    const t = new TilesRenderer();
+    t.registerPlugin(new P.CesiumIonAuthPlugin({ apiToken: cfg.token, assetId: cfg.assetId, autoRefreshToken: true }));
+    t.registerPlugin(new P.GLTFExtensionsPlugin({ dracoLoader: draco }));
+    t.registerPlugin(new P.TileCompressionPlugin()); t.registerPlugin(new P.TilesFadePlugin());
+    t.registerPlugin(new P.ReorientationPlugin({ lat: D.tam[0] * Math.PI / 180, lon: D.tam[1] * Math.PI / 180, height: GOC_Y + (cfg.geoid ?? 47.6), recenter: true }));
+    t.errorTarget = cfg.errorTarget ?? 8;
+    // ảnh chụp đã có sáng tối thật → vẽ không đổ bóng / không chịu đèn cảnh (đèn cảnh làm mặt khuất tối thêm lần nữa)
+    t.addEventListener('load-model', ({ scene: sc }) => sc.traverse((o) => { if (o.isMesh && o.material?.map) { const m = new THREE.MeshBasicMaterial({ map: o.material.map }); o.material.dispose(); o.material = m; } }));
+    t.setCamera(camera); t.setResolutionFromRenderer(camera, renderer);
+    // ReorientationPlugin đặt tâm về gốc với X hướng TÂY, Z hướng BẮC (chú thích trong mã thư viện); khung cảnh này X đông, Z nam → bọc nhóm xoay 180° quanh trục đứng
+    const goc = new THREE.Group(); goc.rotation.y = Math.PI; goc.add(t.group); scene.add(goc);
+    // VA CHẠM từ chính mặt mô hình (ô chi tiết, sai số ≤ cfg.loiVa m): người đi trên đất / bậc / mái thật thay lưới EU-DEM 25 m (lệch vài mét ngoài sân).
+    // Bỏ tam giác nằm trong mặt bằng khối nhà OSM: nhà dùng va chạm OSM đã khoét cửa (lối vào tháp cầu thang, nội thất), tường ảnh chụp sẽ bịt mất.
+    const thanVa = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setRotation({ x: 0, y: 1, z: 0, w: 0 })); // cùng phép xoay 180° của nhóm goc
+    const va = new Map(), _m = new THREE.Matrix4(), _v = new THREE.Vector3();
+    const khoiNha = dsKhoi.filter((k) => k.vo || k.la).map((k) => { let a = 1e9, b = -1e9, c = 1e9, d = -1e9; for (const [x, z] of k.v) { a = Math.min(a, x); b = Math.max(b, x); c = Math.min(c, z); d = Math.max(d, z); } return { v: k.v, a, b, c, d }; });
+    const trongNha = (x, z) => khoiNha.some((k) => x > k.a && x < k.b && z > k.c && z < k.d && trongDa(x, z, k.v));
+    const thongKe = {}; anh3d_tk = thongKe;
+    t.addEventListener('load-model', ({ scene: sc, tile }) => {
+      const ge = Math.round(tile.geometricError * 10) / 10; thongKe[ge] = (thongKe[ge] || 0) + 1;
+      if (!(tile.geometricError <= (cfg.loiVa ?? 4))) return;
+      try {
+      t.group.updateMatrix(); const ds = [];
+      sc.traverse((o) => {
+        if (!o.isMesh || !o.geometry?.attributes?.position) return;
+        _m.identity(); for (let q = o; q; q = q.parent) { q.updateMatrix(); _m.premultiply(q.matrix); if (q === sc) break; } _m.premultiply(t.group.matrix);
+        const pos = o.geometry.attributes.position, idx = o.geometry.index, n = idx ? idx.count : pos.count, vs = new Float32Array(pos.count * 3);
+        for (let i = 0; i < pos.count; i++) { _v.fromBufferAttribute(pos, i).applyMatrix4(_m); vs[i * 3] = _v.x; vs[i * 3 + 1] = _v.y; vs[i * 3 + 2] = _v.z; }
+        const giu = [];
+        for (let i = 0; i < n; i += 3) { const a = idx ? idx.getX(i) : i, b = idx ? idx.getX(i + 1) : i + 1, c = idx ? idx.getX(i + 2) : i + 2;
+          const cx = -(vs[a * 3] + vs[b * 3] + vs[c * 3]) / 3, cz = -(vs[a * 3 + 2] + vs[b * 3 + 2] + vs[c * 3 + 2]) / 3; // toạ độ cảnh = xoay 180° của khung ô
+          if (trongNha(cx, cz)) continue; giu.push(a, b, c); }
+        if (giu.length) ds.push(world.createCollider(RAPIER.ColliderDesc.trimesh(vs, Uint32Array.from(giu)).setEnabled(anh3d?.bat ?? false), thanVa));
+      });
+      if (ds.length) va.set(tile, ds);
+      } catch (e) { console.warn('[ns] dựng va chạm ô 3D lỗi', e); }
+    });
+    t.addEventListener('dispose-model', ({ tile }) => { for (const c of va.get(tile) || []) world.removeCollider(c, false); va.delete(tile); });
+    anh3d = { t, goc, bat: false, bu: null, va, thanVa };
+    $('nut').insertAdjacentHTML('beforeend', '<button id="b-anh3d"></button>');
+    $('b-anh3d').onclick = () => datAnh3d(!anh3d.bat);
+    let nho = '1'; try { nho = localStorage.getItem('ns-anh3d') ?? '1'; } catch {}
+    datAnh3d(nho === '1');
+  } catch (e) { console.warn('[ns] không nạp được ảnh thật 3D', e); }
+})();
+function capNhatAnh3d() {
+  if (!anh3d) return; const { t } = anh3d;
+  anh3d.goc.visible = anh3d.bat && !dangSo; if (!anh3d.goc.visible) return;
+  camera.updateMatrixWorld(); t.setResolutionFromRenderer(camera, renderer); t.update();
+  if (!anh3d.lucNguon || performance.now() - anh3d.lucNguon > 3000) { // ghi nguồn dữ liệu 3D đang hiện (điều khoản Google: luôn hiện tên nguồn)
+    anh3d.lucNguon = performance.now();
+    const ds = (t.getAttributions?.() || []).filter((x) => x.type === 'string' && x.value && x.value !== 'Google').map((x) => x.value);
+    $('nguon-3d').textContent = ' · ảnh thật 3D: Google' + (ds.length ? ' (' + [...new Set(ds)].join(', ').slice(0, 160) + ')' : '');
+  }
+  // bù độ cao LIÊN TỤC (mỗi 2 s): dò VA CHẠM của các ô chi tiết (không dò hình — hình còn lẫn ô thô, số nhảy -35 → +86 m) trên mặt sân trong lát đá
+  // (OSM courtyard), so với lưới EU-DEM mà nội thất / khối nhà OSM bám theo, chỉnh tới khi lệch < 0,3 m. Ô thô lúc đầu cho lệch 24,8 rồi 49,9 m nên không bù một lần.
+  const chiO = (c) => c.parent()?.handle === anh3d.thanVa.handle;
+  if (!anh3d.lucBu || performance.now() - anh3d.lucBu > 2000) {
+    anh3d.lucBu = performance.now();
+    const vs = sanTrong?.ngoai?.[0] || []; let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9; for (const [x, z] of vs) { a0 = Math.min(a0, x); a1 = Math.max(a1, x); b0 = Math.min(b0, z); b1 = Math.max(b1, z); }
+    const lech = [];
+    for (let x = a0; x <= a1; x += 3) for (let z = b0; z <= b1; z += 3) if (trongDa(x, z, vs) && kcVien(x, z, vs) > 2.5) {
+      const h = world.castRay(new RAPIER.Ray({ x, y: 700, z }, { x: 0, y: -1, z: 0 }), 1400, true, undefined, undefined, undefined, undefined, chiO);
+      if (h) lech.push(caoDat(x, z) - GOC_Y - (700 - h.timeOfImpact));
+    }
+    if (lech.length >= 8) { lech.sort((a, b) => a - b); const m = lech[lech.length >> 1], tu = lech[Math.floor(lech.length * 0.25)], den = lech[Math.floor(lech.length * 0.75)];
+      if (den - tu < 3 && Math.abs(m) > 0.3) { anh3d.goc.position.y += m; anh3d.bu = anh3d.goc.position.y; anh3d.thanVa.setTranslation({ x: 0, y: anh3d.bu, z: 0 }, true); console.info('[ns] ảnh thật 3D: chỉnh độ cao', m.toFixed(2), 'm → tổng', anh3d.bu.toFixed(2), 'm'); } }
+  }
+  // lưới đất EU-DEM: tắt khi ngay dưới chân đã có va chạm ô (đi trên mặt thật); chưa có (ô đang nạp / ra xa) thì bật lại để không rơi
+  if (di?.dang && (!anh3d.lucDat || performance.now() - anh3d.lucDat > 300)) {
+    anh3d.lucDat = performance.now(); const p = di.viTri();
+    const coO = !!world.castRay(new RAPIER.Ray({ x: p.x, y: p.y + 2, z: p.z }, { x: 0, y: -1, z: 0 }), 12, true, undefined, undefined, undefined, undefined, chiO);
+    LOP_OSM.vaDat?.setEnabled(!coO);
+  }
+}
 world.step(); // cập nhật bộ dò tia sau khi dựng xong mọi va chạm (chưa bước nào thì castRay không thấy gì → di chuyển nhanh từ toàn cảnh hỏng)
 ve();

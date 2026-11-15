@@ -26,6 +26,9 @@ assert.strictEqual(dong.filter((l) => l.includes(mauAss('#E5484D')) && l.include
 // màn kết bắt đầu đúng T_KET, video dài DAI
 assert.ok(dong.some((l) => l.includes('Did you spot') && l.includes(`0:00:0${Math.floor(T_KET)}.${String(Math.round((T_KET % 1) * 100)).padStart(2, '0')}`)));
 assert.ok(T_LO > 7 && T_LO < 8 && DAI > T_KET);
+// màn kết: lớp phủ toàn khung phải trong suốt một phần — ảnh thật lộ ra (chặn "chữ trên nền màu phẳng", 15/11/2026)
+const phu = dong.find((l) => l.includes(`l 1080 0 l 1080 1920`));
+assert.ok(phu && /\\1a&H[0-9A-F]{2}&/.test(phu) && !phu.includes('\\1a&H00&'), 'lớp phủ màn kết phải có độ trong');
 // không ký tự điều khiển ASS lọt từ đề
 assert.ok(!assMotDung({ ...de, dich: 'A{B}C' }).includes('A{B}C'));
 

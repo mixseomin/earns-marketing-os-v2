@@ -10,6 +10,8 @@ export interface DeMotDung { dich: string; o: string[]; cho: number; goi: string
 
 export const FPS = 30, T_DEM = 0.3, DEM = 7, T_LO = T_DEM + DEM, LO = 0.6, T_KET = T_LO + LO + 1.2, DAI = T_KET + 2.7;
 const W = 1080, H = 1920, DO = '#E5484D';
+/** Độ phủ lớp màu bìa của màn kết (0–1). < 1 để ảnh nền thật còn nhìn thấy (chuẩn: cấm chữ trên nền màu phẳng). */
+export const MAN_KET_PHU = 0.55;
 /** Cỡ chữ ASS (\\fs) tính theo chiều cao dòng, cỡ CSS của bản cũ tính theo em → nhân hệ số này để chữ ra cùng cỡ (đo 16/10/2026 trên khung so). */
 import { alpha, bo, chu, mauAss, ms, nayVao, nhipDem, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
 import { nenH264 } from './nen-video.mjs';
@@ -74,7 +76,8 @@ export function assMotDung(de: DeMotDung): string {
   }
   // màn kết
   const fad = '\\fad(300,0)';
-  d.push([10, T_KET, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c${mauAss(M.sau)}${fad}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
+  // lớp màu bìa PHỦ 55%, không đặc: ảnh thật vẫn lộ dưới màn kết (15/11/2026: tấm đặc kín khung → Phòng Nội dung chặn "chữ trên nền màu phẳng" 5/11 bài game-*)
+  d.push([10, T_KET, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c${mauAss(M.sau)}\\1a${alpha(MAN_KET_PHU)}${fad}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
   d.push([11, T_KET, DAI, 'Ve', `{\\an5\\pos(540,700)\\1c${mauAss(tron(M.sau, '#ffffff', 0.3))}\\1a${alpha(0.55)}${fad}\\blur40\\p1}${bo(1000, 1000, 500)}`]);
   d.push([12, T_KET, DAI, 'Den', `{\\an5\\pos(540,780)${fs(100)}\\1c${mauAss(M.truoc)}\\q2${fad}}Did you spot\\Nit in time?`]);
   d.push([12, T_KET, DAI, 'Ve', `{\\an5\\pos(540,1000)\\1c${mauAss(M.nhan)}${fad}\\p1}${bo(620, 110, 18)}`]);

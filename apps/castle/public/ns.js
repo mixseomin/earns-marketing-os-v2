@@ -449,8 +449,8 @@ if (NEN_LUOI) {
     for (const k of [0, 2, 1, 0, 3, 2]) { p.push(...q[k]); g.p.push(...q[k]); g.uv.push(ngang ? (q[k][0] + q[k][2]) / 6 : q[k][0] / 4, ngang ? q[k][1] / 6 : q[k][2] / 4); }
   }
   if (p.length) {
-    const da = T.bazan(T.rngTu(71)), co = T.co(T.rngTu(72)); for (const t of [da.map, da.bump, co.map, co.bump]) if (t) t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    const vlNhom = { da: new THREE.MeshStandardMaterial({ map: da.map, bumpMap: da.bump, bumpScale: 2, roughness: 0.95, color: '#c9c2b6' }), co: new THREE.MeshStandardMaterial({ map: co.map || null, roughness: 1, color: '#7f8f62' }) };
+    // đá vôi xám sáng chia mặt (như vách Pöllat ngoài đời) — vân bazan đen + cỏ xanh đậm trước đó nhìn như đất cháy (anh 16/11/2026)
+    const vlNhom = { da: new THREE.MeshStandardMaterial({ color: '#b3ada2', roughness: 0.95, flatShading: true }), co: new THREE.MeshStandardMaterial({ color: '#7d9256', roughness: 1, flatShading: true }) };
     for (const [k, gg] of Object.entries(nhom)) { if (!gg.p.length) continue;
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(gg.p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(gg.uv, 2)); g.computeVertexNormals();
       const m = new THREE.Mesh(g, vlNhom[k]); m.receiveShadow = true; scene.add(m); LOP_OSM.push(m); }
@@ -674,6 +674,7 @@ function datCamSo() {
   $('so-tt').textContent = `cao ${(cam.y + GOC_Y).toFixed(0)} m (so mặt biển) · quay ${(cam.yaw * 180 / Math.PI).toFixed(1)}° · ngẩng ${(cam.pitch * 180 / Math.PI).toFixed(1)}° · ống kính ${cam.fov.toFixed(1)}°`;
 }
 function moSo(i) {
+  if ($('so-than')) $('so-than').style.display = 'block'; // đang so ảnh: bảng mở (có nút Tắt, thanh độ mờ)
   di?.ra(); dangSo = ANH[i]; if (!dangSo) return; for (const r of RUNG) r.visible = false;
   const [x, z] = raMet(dangSo.lat, dangSo.lng);
   let yDat = -1e9; for (let dx = -15; dx <= 15; dx += 5) for (let dz = -15; dz <= 15; dz += 5) yDat = Math.max(yDat, caoDat(x + dx, z + dz) - GOC_Y); // đứng trên cầu / mép vực: lấy mặt cao nhất quanh chỗ chụp
@@ -695,6 +696,10 @@ if (ANH.length) {
   $('so').style.display = 'block';
   $('so-ds').innerHTML = '<button id="so-tat">✕ Tắt</button>' + ANH.map((a, i) => (a.khongDung ? '' : `<button data-i="${i}" title="${a.tieuDe}">📷 ${a.nhan || i + 1}</button>`)).join(''); // Tắt đứng ĐẦU (bảng cuộn trên điện thoại: cuối danh sách bị khuất); bỏ ảnh đã soát là không dùng được // nút ghi tên góc chụp (trước chỉ ghi số, không biết nút nào là góc nào)
   $('so-ds').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; b.id === 'so-tat' ? tatSo() : moSo(+b.dataset.i); });
+  // bảng thu gọn mặc định (nhiều ảnh → bảng to che cảnh), bấm tiêu đề để mở / đóng; đang so ảnh thì luôn mở
+  const moBang = (b) => { $('so-than').style.display = b ? 'block' : 'none'; $('so-mo-dong').textContent = `📷 So với ảnh thật ${b ? '▾' : '▸'}`; };
+  $('so-mo-dong').addEventListener('click', () => moBang($('so-than').style.display === 'none'));
+  $('so-ds').addEventListener('click', () => moBang(true));
   $('so-mo').addEventListener('input', (e) => { img.style.opacity = e.target.value / 100; });
   addEventListener('keydown', (e) => {
     if (!dangSo) return;

@@ -26,7 +26,20 @@ for m in json.loads((thu / 'mat-g.json').read_text()):
         for x in range(W):
             r, g, b, a = px[x, y]
             if r > 200 and b > 200 and g < 70: px[x, y] = (0, 0, 0, 0)  # trời (nền hồng tím của bước chụp)
-            elif b > r + 25 and b > g + 8: px[x, y] = (0, 0, 0, 0)  # ảnh 3D Google: mảng xanh tím (trời / kính phản chiếu dính vào mặt tường) → bỏ, để ảnh chụp chiếu hoặc tường đá lộ ra (anh 16/11/2026: 'nham nhở')
+    # CÂN BẰNG TRẮNG từng mặt (ảnh 3D Google ám xanh cả mặt — ánh trời lúc chụp): tường lâu đài trắng xám → kéo trung bình 3 kênh về bằng nhau
+    op = [px[x, y] for y in range(H) for x in range(W) if px[x, y][3]]
+    if op:
+        mr, mg, mb = (sum(p[k] for p in op) / len(op) for k in range(3)); xam = (mr + mg + mb) / 3; kr, kg, kb = xam / max(mr, 1), xam / max(mg, 1), xam / max(mb, 1)
+        for y in range(H):
+            for x in range(W):
+                r, g, b, a = px[x, y]
+                if a: px[x, y] = (min(255, int(r * kr)), min(255, int(g * kg)), min(255, int(b * kb)), a)
+    for y in range(H):
+        for x in range(W):
+            r, g, b, a = px[x, y]
+            if not a: continue
+            elif b > r + 25 and b > g + 8: px[x, y] = (0, 0, 0, 0)
+            elif g > r + 6 and g > b - 4: px[x, y] = (0, 0, 0, 0)  # cây / cỏ trong ảnh 3D Google (lưới Google gồm cả cây đứng trước tường)  # ảnh 3D Google: mảng xanh tím (trời / kính phản chiếu dính vào mặt tường) → bỏ, để ảnh chụp chiếu hoặc tường đá lộ ra (anh 16/11/2026: 'nham nhở')
     c = chup.get(f"{m['khoi']}#{m['canh']}")
     if c:
         pc = Image.open(c['tep']).convert('RGBA'); qx = pc.load(); P = c['px']
@@ -43,6 +56,8 @@ for m in json.loads((thu / 'mat-g.json').read_text()):
         cx = [abs(q[x, y] - q[x + 1, y]) for y in range(0, H, 2) for x in range(W - 1) if A[x, y] and A[x + 1, y]]; cy = [abs(q[x, y] - q[x, y + 1]) for y in range(H - 1) for x in range(0, W, 2) if A[x, y] and A[x, y + 1]]
         dx = sum(cx) / max(1, len(cx)); dy = sum(cy) / max(1, len(cy))
         if dy > 1.5 * max(dx, 0.1): print(f"bỏ {m['khoi']}#{m['canh']}: ảnh sọc (dọc/ngang {dy / max(dx, 0.1):.1f})"); continue
+    op = [px[x, y] for y in range(H) for x in range(W) if px[x, y][3]]
+    if len(op) < 0.3 * W * H: print(f"bỏ {m['khoi']}#{m['canh']}: còn < 30 % điểm ảnh sau lọc"); continue
     ten = f"{m['khoi'].split('/')[-1]}-{m['canh']}.webp"
     im.save(ra / ten, 'WEBP', quality=88, method=6)
     bang[f"{m['khoi']}#{m['canh']}"] = {'chup': bool(c), 'tep': f'anh/mat/{ten}', 'y0': round(m['y0'], 2), 'yTren': round(m['y1'], 2), 'L': round(m['L'], 2)}

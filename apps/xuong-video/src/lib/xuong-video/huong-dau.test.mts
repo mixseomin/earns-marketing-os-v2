@@ -1,6 +1,7 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/huong-dau.test.mts — hướng ĐẦU (bo-set-3d.ts › huongDau) cùng công thức khung 3D
 import assert from 'node:assert';
 import { huongVoiMay, huongDau } from './bo-set-3d';
+import { tuTheEn } from './prompt-khoi';
 // HƯỚNG ĐẦU theo đích nhìn (ca thật phim #3071, 16/11/2026): thân 90° ra cửa sổ, đầu nhìn mốc bộ set — câu tả phải theo ĐẦU như khung 3D
 { const moc = { dau_ga: [100, 100, 110], nhoc_xa: [100, 1800, 110] };
   // #2: máy [100,630] nhìn [-110,500]; chú ở [-115,500], nhịp mở nhìn đầu ga → khung 3D: mặt nghiêng sang TRÁI màn
@@ -16,4 +17,7 @@ import { huongVoiMay, huongDau } from './bo-set-3d';
   const mN = { dat: [0, 500, 150], nhin: [0, 0, 150], vi_tri: [{ ten: 'B', tam: [300, 0, 0] }] };
   const hN = huongVoiMay(mN as never, { ten: 'A', tam: [0, 0, 0], huong: 0, nhin_ai: 'B' } as never)!; assert.ok(hN.lech > 35, JSON.stringify(hN)); }
 assert.strictEqual(huongDau({ ten: 'X', tam: [0, 0, 0], huong: 90 } as never, []), 90, 'không đích nhìn → hướng thân');
+// dáng chống: có bậu cửa (huong_bau) → tả bậu cửa, không có → mặt bàn như cũ
+assert.ok(tuTheEn({ dien: ['chong_ban'], huong_bau: 90 }).includes('window sill') && !tuTheEn({ dien: ['chong_ban'], huong_bau: 90 }).includes('table'));
+assert.ok(tuTheEn({ dien: ['chong_ban'] }).includes('table'));
 console.log('✓ huong-dau (hướng đầu theo đích nhìn — ca thật #2, #19 phim #3071)');

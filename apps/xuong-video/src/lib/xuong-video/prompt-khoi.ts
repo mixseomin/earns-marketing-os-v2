@@ -154,10 +154,11 @@ const DANG_EN: Record<string, string> = {
   ngua_mat_gao: 'standing, head thrown back, crying out loud, arms hanging limp', chi_tay_gian: 'leaning forward, pointing a finger hard at someone', lui_so: 'stepping back, both hands raised defensively',
   om_nguoi: 'standing, arms wrapped tightly around herself', tay_che_mieng: 'standing, both hands over the mouth', tay_tran_cui: 'bent forward, one hand pressed to the forehead',
 };
-export function tuTheEn(v: { nam?: boolean; dien?: string[] }, mon = 'the item'): string {
+export function tuTheEn(v: { nam?: boolean; dien?: string[]; huong_bau?: number }, mon = 'the item'): string {
   if (v.nam) return 'lying down';
   const ma = (v.dien ?? []).map(String).filter((d) => !d.includes('@') || Number(d.split('@')[1]!.split('-')[0]) <= 0.01).map((d) => d.split('@')[0]!);
-  const t = ma.map((m) => DANG_EN[m]).filter(Boolean)[0];
+  // chống tay ở BẬU CỬA (bộ set khai huong_bau — ô cửa sổ toa tàu phim #3071) chứ không phải mặt bàn: câu 'palms flat on the table' đưa cái bàn vào cảnh tàu (16/11/2026)
+  const t = ma.map((m) => (m === 'chong_ban' && v.huong_bau != null ? 'leaning out over the window sill, both forearms resting on the sill' : DANG_EN[m])).filter(Boolean)[0];
   return (t ?? 'standing').replaceAll('{mon}', mon);   // mọi chỗ {mon} (câu lắc thẻ có hai — replace chỉ thay chỗ đầu, bộ chấm chặn #13)
 }
 /** SỐ NGƯỜI TRONG KHUNG theo 3D (nhân vật chính + người phụ của set lọt khung): ô trống trong khung (hành lang, ô cửa, hậu cảnh) thì AI hay thêm người —

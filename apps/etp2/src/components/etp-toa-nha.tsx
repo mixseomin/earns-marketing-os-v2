@@ -277,8 +277,11 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
     Promise.all([import('three'), import('three/examples/jsm/controls/MapControls.js'), import('three/examples/jsm/controls/OrbitControls.js'), import('three/examples/jsm/utils/BufferGeometryUtils.js')]).then(([T, { MapControls }, { OrbitControls }, { mergeGeometries }]) => {
       if (huy || !hop.current) return;
       const el = hop.current, W = el.clientWidth || 456, Hh = el.clientHeight || 340;
-      const r = new T.WebGLRenderer({ antialias: true, alpha: true });
-      r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); r.setSize(W, Hh); el.appendChild(r.domElement);
+      // MÁY CẢM ỨNG = TIẾT KIỆM (anh 15/11/2026 #1607 "Chạy trên mobile đang nóng máy"): GPU tiết kiệm, độ nét ≤ 1,5×, chuyển động SX ≤ 8 khung/giây;
+      // mọi máy: cảnh khuất màn thì ngừng vòng vẽ, chuyển động không kéo theo tính xuyên thấu
+      const tietKiem = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+      const r = new T.WebGLRenderer({ antialias: true, alpha: true, powerPreference: tietKiem ? 'low-power' : 'default' });
+      r.setPixelRatio(Math.min(tietKiem ? 1.5 : 2, window.devicePixelRatio || 1)); r.setSize(W, Hh); el.appendChild(r.domElement);
       const canh = new T.Scene(), cam = new T.PerspectiveCamera(38, W / Hh, 0.1, 600);
       canh.add(new T.HemisphereLight(0xffffff, 0x334155, 1.6));
       const den = new T.DirectionalLight(0xffffff, 1.4); den.position.set(5, 9, 6); canh.add(den);
@@ -306,7 +309,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
         const k = vat.find((x) => x.id != null && x.id === id); if (!k) return;
         khung = new T.BoxHelper(k.vien, 0xffffff); canh.add(khung);
       };
-      let can = true; const ve = () => { can = true; };
+      let can = true, canXuyen = true; const ve = () => { can = true; canXuyen = true; };
       ctl.addEventListener('change', ve); ctl.addEventListener('change', luuGoc);
       capNhatChon.current = (id) => { veChon(id); ve(); };
       veChon(chonRef.current);
@@ -343,9 +346,13 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
         for (const g of mo) if (!moi.has(g)) { datMo(g, false); mo.delete(g); }
         for (const g of moi) if (!mo.has(g)) { datMo(g, true); mo.add(g); }
       };
-      let raf = 0, tHoat = 0; const lap = () => { diPhim(); const doi = ctl.update();
-        if (hoat.length) { const t = performance.now(); if (t - tHoat > 40) { tHoat = t; for (const f of hoat) f(t / 1000); can = true; } }   // chuyển động SX: ≤ 25 khung/giây cho nhẹ
-        if (can || doi) { can = false; if (hop3.length) xuyen(); r.render(canh, cam); } raf = requestAnimationFrame(lap); }; lap();
+      const NHIP_HOAT = tietKiem ? 125 : 40;   // chuyển động SX: ≤ 8 khung/giây trên máy cảm ứng, ≤ 25 trên máy tính
+      let raf = 0, tHoat = 0, thay = true; const lap = () => { raf = 0; if (!thay) return; diPhim(); const doi = ctl.update();
+        if (hoat.length) { const t = performance.now(); if (t - tHoat > NHIP_HOAT) { tHoat = t; for (const f of hoat) f(t / 1000); can = true; } }
+        if (can || doi) { can = false; if (hop3.length && (canXuyen || doi)) { canXuyen = false; xuyen(); } r.render(canh, cam); } raf = requestAnimationFrame(lap); }; lap();
+      // cảnh cuộn khuất / widget gập → ngừng hẳn vòng vẽ; hiện lại → vẽ tiếp
+      const quanSat = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(([e]) => { thay = !!e?.isIntersecting; if (thay && !raf) { can = true; lap(); } });
+      quanSat?.observe(el);
 
       const ray = new T.Raycaster(), p2 = new T.Vector2(); ray.layers.enableAll();   // vật bấm gốc nằm ở lớp 1 (không vẽ — gopVe), tia vẫn chạm
       const mat = vat.map((k) => k.m), matDat = new T.Plane(new T.Vector3(0, 1, 0), 0), dd = new T.Vector3();
@@ -402,7 +409,7 @@ function useCanh3D(hop: React.RefObject<HTMLDivElement | null>, dung: (T: T3, ca
       cv.addEventListener('dblclick', dup); cv.addEventListener('keydown', phimXuong); cv.addEventListener('keyup', phimLen); cv.addEventListener('blur', boPhim);
       // ô đổi cỡ (widget kéo giãn) → đổi khung vẽ, không dựng lại
       const doiCo = new ResizeObserver(() => { const w = el.clientWidth, h = el.clientHeight; if (!w || !h) return; r.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); ve(); }); doiCo.observe(el);
-      don = () => { cancelAnimationFrame(raf); if (hen) clearTimeout(hen); if (henLuu) { clearTimeout(henLuu); try { localStorage.setItem(KHOA_GOC, JSON.stringify({ p: cam.position.toArray(), t: ctl.target.toArray() })); } catch { /* kho bị chặn */ } } if (henBam) clearTimeout(henBam); doiCo.disconnect(); ctl.dispose(); el.removeEventListener('wheel', xoayShift, { capture: true });
+      don = () => { thay = false; cancelAnimationFrame(raf); quanSat?.disconnect(); if (hen) clearTimeout(hen); if (henLuu) { clearTimeout(henLuu); try { localStorage.setItem(KHOA_GOC, JSON.stringify({ p: cam.position.toArray(), t: ctl.target.toArray() })); } catch { /* kho bị chặn */ } } if (henBam) clearTimeout(henBam); doiCo.disconnect(); ctl.dispose(); el.removeEventListener('wheel', xoayShift, { capture: true });
         dk.current = { phong: () => {}, veGoc: () => {}, ve: () => {}, tieuDiem: () => {} };
         canh.traverse((x) => { const o = x as unknown as { geometry?: { dispose(): void }; material?: { dispose(): void; map?: { dispose(): void } } }; o.geometry?.dispose(); o.material?.map?.dispose(); o.material?.dispose(); });
         r.dispose(); cv.remove(); };

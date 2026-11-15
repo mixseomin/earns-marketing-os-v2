@@ -114,7 +114,7 @@ assert.strictEqual(giayClipSeedance([2], { cuoiCoThoai: true }), 4);
 assert.strictEqual(giayClipSeedance([3.3], { cuoiCoThoai: true }), 6);
 assert.strictEqual(giayClipSeedance([2], { vaoDau: 1.65, cuoiCoThoai: true }), 6);
 assert.strictEqual(giayClipSeedance([14.5], { cuoiCoThoai: true }), 15);
-assert.strictEqual(giayClipSeedance([4]), 4);
+assert.strictEqual(giayClipSeedance([4]), 5);   // 4 s + 0,45 đuôi bỏ
 // kẹp điểm vào trong đoạn (ca thật #2 phim #3071: vào 0,2, phát 1,2, đoạn 0–1,25 → 0,05); đoạn ngắn hơn giây dùng → null
 assert.strictEqual(kepVaoDoan(0.2, [0, 1.25], 1.2), 0.05);
 assert.strictEqual(kepVaoDoan(0.5, [0.4, 3], 1.2), 0.5);

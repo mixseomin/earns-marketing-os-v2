@@ -3,6 +3,12 @@
 import { dangTao, choGio, dangChay } from '@/lib/etp-chay';
 import { createContext, Fragment, startTransition, useCallback, useContext, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+// THÀNH PHỐ — MỘT bản mã với etp2 (anh 15/11/2026, card #1605 "mở băng, dùng chung mã"): alias @etp2/thanh-pho trong next.config.mjs; three.js chỉ tải khi mở tab
+const ThanhPhoO = dynamic(() => import('@etp2/thanh-pho').then((m) => m.ThanhPhoO), { ssr: false, loading: () => <div style={{ padding: 20, color: 'var(--fg-3)' }}>đang dựng thành phố…</div> });
+function TabThanhPho() { const [cao, setCao] = useState(640);
+  useEffect(() => { const d = () => setCao(Math.max(420, window.innerHeight - 170)); d(); window.addEventListener('resize', d); return () => window.removeEventListener('resize', d); }, []);
+  return <div style={{ height: cao, marginTop: 8 }}><ThanhPhoO cao={cao} /></div>; }
 import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoang';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';   // SỔ LUẬT CHUNG — mọi thẻ / nhóm / hướng / bộ lọc luật đọc từ đây (anh 01/11/2026 "tìm nguyên nhân gốc")
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
@@ -46,7 +52,7 @@ import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 import { phimDangSx, tvChuaCr } from '@/lib/etp-sx';
 import { KD, KHUNG_TEN, NHIP_PHUT, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucTang, type HuongLuat } from '@/lib/etp-khung';
 
-type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
+type Tab = 'tong' | 'tp' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
 const tuoiNgay = (iso: string | null | undefined) => (iso ? Math.max(0, (Date.now() - Date.parse(iso)) / 86_400_000) : null);
 const tuoiChu = (d: number | null) => (d == null ? '—' : d < 10 ? d.toFixed(1) : String(Math.floor(d)));
@@ -2313,7 +2319,7 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
 const LOC_TAB: Partial<Record<Tab, 'all' | readonly string[]>> = { camp: 'all', insight: ['dang', 'bo', 'ro', 'ab'] };
 const TAB_LOC_CAMP = Object.keys(LOC_TAB) as Tab[];
 const locCoTab = (t: Tab, k: string) => { const d = LOC_TAB[t]; return d === 'all' || !!d?.includes(k); };
-const TABS: Tab[] = ['tong', 'camp', 'roas', 'creative', 'phim', 'dong', 'tv', 'tn', 'luat', 'insight'];
+const TABS: Tab[] = ['tong', 'tp', 'camp', 'roas', 'creative', 'phim', 'dong', 'tv', 'tn', 'luat', 'insight'];
 const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'mlai', 'mlo', 'chua_tieu', 'tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran', 'sx', 'cung', 'roas'] as const;
 // MỨC TIÊU HÔM NAY (anh 06/11/2026 "bộ lọc về các camp đã tiêu kịch trần ngân sách ngày" + "camp chưa tiêu đồng nào... các level"): camp ĐANG CHẠY chia theo
 // chi hôm nay (ngày Ethopex từ 07:00 VN) / ngân sách ngày; kịch trần = ≥ nap_chi × ngân sách — cùng ngưỡng máy xét tăng / nạp
@@ -2366,7 +2372,7 @@ function NutLenCamp({ du, gon }: { du: DuLieuEtp; gon: boolean }) {
     {bat ? (gon ? '▶ Lên camp' : '▶ Lên camp mới (David): BẬT') : (gon ? '⏸ Lên camp TẮT' : '⏸ Lên camp mới (David): TẮT')}</button>;
 }
 type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null; cheDo?: CheDoLuat | null };
-const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
+const TAB_NGUOI: Tab[] = ['tong', 'tp', 'camp', 'creative', 'phim'];
 export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLieuEtpGui; chiXem?: boolean; quyen?: QuyenXem; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string; ro?: string; ab?: string } }) {
   // TỰ TẢI LẠI KHI CÓ BẢN MỚI (anh 04/11/2026 "nút này đâu ở tab phim" — tab mở từ trước deploy chạy giao diện cũ): hỏi /etp/ban mỗi phút, mã bản dựng khác lúc nạp → tải lại
   // ngay khi không có form / ngăn đang mở (không làm mất chữ đang gõ)
@@ -2743,7 +2749,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLi
       <div className={gon ? 'etp-dk' : 'etp-thanh'} style={{ display: 'flex', gap: gon ? 6 : 8, alignItems: 'center', flexWrap: !gon ? 'wrap' : thap && !moLoc ? 'nowrap' : 'wrap', overflowX: gon && thap && !moLoc ? 'auto' : undefined, scrollbarWidth: 'none', margin: '8px 0', position: gon ? undefined : 'sticky', top: 0, zIndex: 5, background: 'var(--bg-0, #0b0b0c)', padding: '6px 0', rowGap: 8 }}>
       {!gon ? <style>{'.etp-thanh [data-comp="ui.Segmented"] button,.etp-thanh [data-comp="ui.Segmented"] a{white-space:nowrap}.etp-thanh>*{flex-shrink:0}'}</style> : null}
       <Segmented<Tab> value={tab} onChange={doiTab} hrefFor={(t) => urlCua({ ...hienTai, tab: t, xemCamp: 'cay', xemCr: 'hq' }).href} options={([
-        { value: 'tong', label: 'Tổng quan', title: 'lưới widget kéo thả + template — thay Tổng quan cũ (anh 11/11/2026)' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp`, menu: gon ? undefined : menuCamp }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative`, menu: gon ? undefined : menuCr },
+        { value: 'tong', label: 'Tổng quan', title: 'lưới widget kéo thả + template — thay Tổng quan cũ (anh 11/11/2026)' }, { value: 'tp', label: 'Thành phố', title: 'mỗi phim một toà / thửa — cùng bản với etp2 (anh 15/11/2026)' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp`, menu: gon ? undefined : menuCamp }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative`, menu: gon ? undefined : menuCr },
         { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'dong', label: 'Sản xuất', title: 'sản xuất creative theo phim: phim → loại nội dung → creative → camp, từng bước, xử lý tay tại ô (anh 03/11/2026)' }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }, { value: 'insight', label: 'Insight', title: 'nhận định từ số theo ngày / theo giờ của nhà và đội — chỉ chủ thấy (anh 06/11/2026)' }] satisfies SegmentedOption<Tab>[]).filter((o) => tabsHien.includes(o.value))} />
       {/* ĐIỆN THOẠI: hàng 1 = tab (cuộn ngang) · hàng 2 = kiểu xem (biểu tượng) + kỳ (ô chọn) + nút Lọc; bảng lọc chỉ mở khi bấm Lọc */}
       {gon && coKy ? kySel() : null}
@@ -2799,7 +2805,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLi
             style={{ background: 'rgba(168,85,247,.18)', color: '#d8b4fe', border: '1px solid rgba(168,85,247,.5)', borderRadius: 8, padding: '2px 8px', fontWeight: 600, fontSize: 12 }}>👁 chỉ xem</span> : null}</span>
       </div>
       {/* MỐC BẬT DÒNG DÍNH (anh 01/11/2026 "sticky chưa hiện khi đang scroll ở gần Heros"): máy tính bật ngay khi dòng tiêu đề (cụm Người · TK · kỳ) BẮT ĐẦU trôi khỏi màn (cuộn > 12px = lề trên trang), không đợi tới đỉnh / hết hero; điện thoại dòng gọn chỉ có số → vẫn đợi qua hết hero */}
-      <div ref={heroRef} style={{ margin: gon ? '8px 0' : '12px 0', ...(tab === 'tong' ? { display: 'none' } : {}) }}>{/* Tổng quan 2: widget Nắm nhanh thay dải số này — nhường chỗ để lưới vừa một màn (anh 01/11/2026) */}
+      <div ref={heroRef} style={{ margin: gon ? '8px 0' : '12px 0', ...(tab === 'tong' || tab === 'tp' ? { display: 'none' } : {}) }}>{/* Tổng quan 2: widget Nắm nhanh thay dải số này — nhường chỗ để lưới vừa một màn (anh 01/11/2026) */}
         {gon ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }} title={`Camp chạy ${chay.length} · ngân sách $${chay.reduce((a, c) => a + c.ngan_sach, 0)}/ngày · đoạn vượt 3 camp ${new Set(du.camps.filter((c) => c.cung_doan > tranT).map((c) => c.doan)).size} · cảnh báo 24h ${du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length}`}>
             {([['H.nay', nay], ['H.qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, s]) => (
@@ -2836,6 +2842,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLi
       {gon ? thanhTren : null}
       {tab === 'tong' ? (   /* TỔNG QUAN = lưới widget (anh 11/11/2026 "Tổng quan 2 giờ thay thế luôn tổng quan… xoá Tổng quan cũ"); số theo quyền cắt ở máy chủ (actions/etp-tong2.ts, etp-quyen.ts) */
         <Tong2 laChu={!chiXem} ky={khK} ve={{ bieu_do_ngay: (k) => bieuDoNgay(k.cao), bang_ngay: () => bangNgay }} />
+      ) : tab === 'tp' ? (
+        <TabThanhPho />
       ) : tab === 'roas' ? (
         <TabRoas camps={campRoas} tong={roasTong} ungVien={du.roas} cot={cotCamp.filter((k) => k.key !== 'lich' && k.key !== 'tl')} nhom={NHOM} du={du} anh={anh} />
       ) : tab === 'camp' && xemCamp === 'lich' ? (

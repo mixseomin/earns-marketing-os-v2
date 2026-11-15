@@ -140,7 +140,8 @@ function ThiTruong({ t, nay, rong, cao }: { t: { so: Record<string, SoNgay>; tra
 }
 
 /** ô widget Thành phố: tự tải số THEO NGƯỜI ĐANG XEM (?ng=) — cảnh 3D + một dòng tóm tắt phim đang chọn (đếm tầng, lãi 7 ngày) */
-function ThanhPhoO({ cao }: { cao: number }) {
+/** xuất cho etp.on.tc (apps/web tab Thành phố) — MỘT bản mã cho hai trang (anh 15/11/2026, card #1605) */
+export function ThanhPhoO({ cao }: { cao: number }) {
   const ng = useSearchParams().get('ng');
   const { so: tp, loi } = useSoNho(`thanh-pho:${ng ?? 'nha'}`, () => docThanhPho(ng), 120_000);
   if (!tp) return <span style={{ color: loi ? DO : MO, fontSize: 12 }}>{loi ?? 'đang tải số…'}</span>;

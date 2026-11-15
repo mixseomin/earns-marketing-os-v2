@@ -4,9 +4,9 @@ CHỈ xoá bản ĐẦU VÀO tải lại được, không xoá bản ra:
   - thu-vien/tv<id>.mp4   : thu-vien-len.py curl lại từ etp.thu_vien.video MỖI lần chạy → bản cũ là đồ thừa (giữ tv*.goc.mp4 + lo-*.json)
   - anh-tinh/<phim>/tap*.mp4 : tai-tap.py tải 3 tập miễn phí để chọn khung → chọn xong là thừa
 Giữ nguyên: nguon/ (đang dùng, đọc chữ gắn giờ tệp ghep-cuoi), ra/ (creative đã dựng), anh-tinh po/att/cts/pd/anh-tinh-*.mp4 (bản ra).
-Tệp mới hơn TUOI_GIO giờ không đụng (lô đang chạy).
+Tệp mới hơn 6 giờ không đụng (lô đang chạy; tv*.mp4 / tập tải về chỉ dùng trong MỘT lượt vài phút — nguon/ và ra/ máy đã tự dọn theo vòng ngày).
 Dùng (iMac): python3 don-kho.py [--xem] [--gio N]      --xem = chỉ đếm, không xoá
-Máy SX (sx-may.mjs) gọi đầu mỗi lượt; --tu-kiem chạy bài tự kiểm."""
+thu-vien-len.py và anh-tinh.py gọi khi chạy xong; --tu-kiem chạy bài tự kiểm."""
 import os, re, sys, tempfile, time
 
 C = os.path.expanduser("~/.cache/ethopex")
@@ -25,7 +25,7 @@ def quet(goc, gio):
                 if mau.fullmatch(t) and os.path.isfile(f) and os.path.getmtime(f) < han: ra.append(f)
     return ra
 
-def don(goc=C, gio=24, xem=False):
+def don(goc=C, gio=6, xem=False):
     ds = quet(goc, gio); n = sum(os.path.getsize(f) for f in ds)
     if not xem:
         for f in ds: os.remove(f)
@@ -54,6 +54,6 @@ def tu_kiem():
 if __name__ == "__main__":
     a = sys.argv[1:]
     if "--tu-kiem" in a: tu_kiem(); sys.exit()
-    gio = int(a[a.index("--gio") + 1]) if "--gio" in a else 24
+    gio = int(a[a.index("--gio") + 1]) if "--gio" in a else 6
     so, n = don(gio=gio, xem="--xem" in a)
     print(f"dọn kho ethopex: {'sẽ xoá' if '--xem' in a else 'đã xoá'} {so} tệp đầu vào tải lại được · {n / 1e9:.1f} GB (tệp cũ hơn {gio} giờ)")

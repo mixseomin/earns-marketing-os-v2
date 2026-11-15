@@ -7,10 +7,10 @@
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync } from 'node:fs';
 import { GOC, PUB, LAU, du, doiSo, moTrang } from './chung.mjs';
 import { join } from 'node:path';
-const [RA, TEN = 'Palas'] = doiSo.filter((a) => !a.startsWith('--')); if (!RA) { console.error('dùng: nan-google.mjs <thư mục> [tên khối]'); process.exit(1); }
+const [RA, TEN = '*'] = doiSo.filter((a) => !a.startsWith('--')); if (!RA) { console.error('dùng: nan-google.mjs <thư mục> [tên khối]'); process.exit(1); }
 mkdirSync(RA, { recursive: true });
 const { pg, dong } = await moTrang({ anh3d: true, khung: { width: 1200, height: 900 } });
-const ds = await pg.evaluate((TEN) => window.__ns.TUONG_MT.map((t, j) => ({ j, ten: t.ten, khoi: t.k?.id, n: t.v.length })).filter((t) => t.ten === TEN), TEN);
+const ds = await pg.evaluate((TEN) => window.__ns.TUONG_MT.map((t, j) => ({ j, ten: t.ten, khoi: t.k?.id, n: t.v.length })).filter((t) => (TEN === '*' ? !!t.khoi : t.ten === TEN)), TEN); // '*' = mọi khối lâu đài (mọi mặt tường)
 const meta = [];
 for (const t of ds) for (let i = 0; i < t.n; i++) {
   const m = await pg.evaluate(async ([j, i, PXM]) => {
@@ -21,15 +21,15 @@ for (const t of ds) for (let i = 0; i < t.n; i++) {
     const cam = new T.OrthographicCamera(-L / 2, L / 2, (y1 - y0) / 2, -(y1 - y0) / 2, 0.5, 80);
     cam.position.set(mx + nx * 40, (y0 + y1) / 2, mz + nz * 40); cam.lookAt(mx, (y0 + y1) / 2, mz); cam.near = 40 - 14; cam.far = 40 + 4; cam.updateProjectionMatrix(); // lớp dày 18 m quanh mặt tường (OSM lệch ảnh 3D vài mét theo chiều sâu ở vài mặt)
     const r = n.renderer, cu = r.getSize(new T.Vector2()), anTam = []; for (const o of n.scene.children) if (o !== a3.goc && !o.isLight && o.visible) { o.visible = false; anTam.push(o); }
-    const suong = n.scene.fog, nen = n.scene.background, mau = r.getClearColor(new T.Color()), aMau = r.getClearAlpha(); n.scene.fog = null; n.scene.background = null; r.setClearColor(0xff00ff, 1); a3.goc.visible = true; r.setSize(w, h, false); // nền hồng tím (khung vẽ của trang không có kênh alpha) → bước sau tách thành trong suốt a3.t.setCamera(cam); a3.t.setResolution(cam, w * 2, h * 2);
+    const suong = n.scene.fog, sg = [suong.near, suong.far], nen = n.scene.background, mau = r.getClearColor(new T.Color()), aMau = r.getClearAlpha(); suong.near = suong.far = 1e7; // tắt sương bằng đẩy xa (đặt null làm vòng vẽ của trang lỗi mỗi khung) n.scene.background = null; r.setClearColor(0xff00ff, 1); a3.goc.visible = true; r.setSize(w, h, false); // nền hồng tím (khung vẽ của trang không có kênh alpha) → bước sau tách thành trong suốt a3.t.setCamera(cam); a3.t.setResolution(cam, w * 2, h * 2);
     for (let k = 0, on = 0; k < 200 && (k < 20 || on < 6); k++) { a3.t.update(); r.render(n.scene, cam); await new Promise((ok) => setTimeout(ok, 100)); on = (a3.t.loadProgress ?? 1) >= 0.999 ? on + 1 : 0; } // tối thiểu 20 vòng: lượt đầu hàng đợi ô còn trống nên loadProgress báo xong giả
     a3.t.update(); r.render(n.scene, cam); const anh = r.domElement.toDataURL('image/png');
-    n.scene.fog = suong; n.scene.background = nen; r.setClearColor(mau, aMau); for (const o of anTam) o.visible = true; r.setSize(cu.x, cu.y, false); a3.t.deleteCamera?.(cam); a3.t.setCamera(n.camera);
+    [suong.near, suong.far] = sg; n.scene.background = nen; r.setClearColor(mau, aMau); for (const o of anTam) o.visible = true; r.setSize(cu.x, cu.y, false); a3.t.deleteCamera?.(cam); a3.t.setCamera(n.camera);
     return { khoi: t.k?.id, canh: i, x1, z1, x2, z2, y0, y1, L, px: PX, thay: 1, anh };
   }, [t.j, i, +(process.env.PX || 8)]); // PX=… (điểm ảnh / mét) — 8 cho dò cửa, 16 cho ảnh dán mặt tường
   if (!m) continue; if (m.bo) { console.log(`${t.khoi} cạnh ${i}: bỏ (${m.bo})`); continue; }
   const tep = join(RA, `mat-g-${meta.length}.png`); writeFileSync(tep, Buffer.from(m.anh.split(',')[1], 'base64')); const { anh, ...r } = m; meta.push({ ...r, tep });
-  console.log(`${m.khoi} cạnh ${i}: ${m.L.toFixed(1)} m → ${tep}`);
+  console.log(`[${meta.length}] ${m.khoi} cạnh ${i}: ${m.L.toFixed(1)} m`);
 }
 writeFileSync(join(RA, 'mat-g.json'), JSON.stringify(meta, null, 1));
 await dong();

@@ -41,6 +41,7 @@ for m in json.loads((thu / 'mat-g.json').read_text()):
             elif b > r + 25 and b > g + 8: px[x, y] = (0, 0, 0, 0)
             elif g > r + 6 and g > b - 4: px[x, y] = (0, 0, 0, 0)  # cây / cỏ trong ảnh 3D Google (lưới Google gồm cả cây đứng trước tường)  # ảnh 3D Google: mảng xanh tím (trời / kính phản chiếu dính vào mặt tường) → bỏ, để ảnh chụp chiếu hoặc tường đá lộ ra (anh 16/11/2026: 'nham nhở')
     c = chup.get(f"{m['khoi']}#{m['canh']}")
+    if not c and '--ca-google' not in sys.argv: continue  # CHỈ mặt có ảnh chụp thật phủ: ảnh 3D Google nhìn thẳng một mình quá nhoè (tường mờ trắng, dính cây) — giả hơn cửa dựng theo số đo (soát 16/11/2026)
     if c:
         pc = Image.open(c['tep']).convert('RGBA'); qx = pc.load(); P = c['px']
         for py in range(pc.size[1]):

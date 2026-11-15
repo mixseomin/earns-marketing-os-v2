@@ -7,7 +7,7 @@
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync } from 'node:fs';
 import { GOC, PUB, LAU, du, doiSo, moTrang } from './chung.mjs';
 import { join } from 'node:path';
-const [RA, IS, TEN = 'Palas'] = doiSo; const I = +IS; if (!RA || !Number.isInteger(I)) { console.error('dùng: nan-mat.mjs <thư mục> <chỉ số ảnh> [tên khối]'); process.exit(1); }
+const [RA, IS, TEN = '*'] = doiSo; const I = +IS; if (!RA || !Number.isInteger(I)) { console.error('dùng: nan-mat.mjs <thư mục> <chỉ số ảnh> [tên khối]'); process.exit(1); }
 mkdirSync(RA, { recursive: true });
 const { pg, dong } = await moTrang({ anh3d: false, khung: { width: 1600, height: 1200 } });
 const kq = await pg.evaluate(async ([I, TEN, PXM]) => {
@@ -17,7 +17,7 @@ const kq = await pg.evaluate(async ([I, TEN, PXM]) => {
   const PX = PXM, cam = n.camera.position.clone(), rc = new T.Raycaster(), moHinh = n.LOP_OSM.filter((o) => o.visible !== false), ra = [];
   const kq = [];
   for (const t of n.TUONG_MT) {
-    if (t.ten !== TEN) continue;
+    if (TEN === '*' ? !t.k : t.ten !== TEN) continue; // '*' = mọi khối
     for (let i = 0; i < t.v.length; i++) {
       const [x1, z1] = t.v[i], [x2, z2] = t.v[(i + 1) % t.v.length], L = Math.hypot(x2 - x1, z2 - z1); if (L < 4) continue;
       const ux = (x2 - x1) / L, uz = (z2 - z1) / L, nx = uz, nz = -ux, mx = (x1 + x2) / 2, mz = (z1 + z2) / 2;

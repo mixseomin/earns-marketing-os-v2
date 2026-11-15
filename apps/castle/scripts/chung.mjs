@@ -30,7 +30,7 @@ export async function moTrang({ anh3d = false, them = '', khung = { width: 1600,
   const pg = await b.newPage({ viewport: khung });
   pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message));
   if (nhanLog) pg.on('console', (m) => { if (m.text().startsWith(nhanLog)) console.log(m.text()); });
-  await pg.addInitScript((a) => { try { localStorage.setItem('ns-anh3d', a ? '1' : '0'); localStorage.setItem('ns-dau-thu', '1'); } catch {} }, anh3d);
+  await pg.addInitScript((a) => { try { localStorage.setItem('ns-anh3d', a ? '1' : '0'); localStorage.setItem('ns-anh3d-cong-cu', '1'); localStorage.setItem('ns-dau-thu', '1'); } catch {} }, anh3d);
   await pg.goto(`http://127.0.0.1:18777/neuschwanstein.html?lau=${encodeURIComponent(LAU)}${them ? '&' + them : ''}`);
   await pg.waitForFunction((a) => window.__ns?.tt && (!a || window.__ns.anh3d()), anh3d, { timeout: 180000 });
   return { pg, dong: async () => { await b.close(); may.close(); } };

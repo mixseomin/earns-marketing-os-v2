@@ -615,10 +615,10 @@ export function ThanhPho({ ds: ds0, an, chon: chonP, chonBo, onChon, cao }: { ds
         // KHUNG CHỌN ÔM TỪNG THÁP (anh 15/11/2026 "ko chọn được khu trong từng bộ tk"): mỗi tháp / thửa một khối bấm riêng, mở bảng phim đúng bộ đó
         const [bw, bh, bd] = r.than, bat = new T.Mesh(new T.BoxGeometry(bw, Math.max(0.3, bh), bd), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
         bat.position.set(0, Math.max(0.3, bh) / 2, 0); g.add(bat);
-        // VIỀN MÀU BỘ: khung cạnh ôm thân tháp + gờ đế MẢNH cùng màu (cùng bảng màu huy hiệu bộ) — mọi tháp đều có, vì vị trí ô giờ là của bộ (#1609),
-        // màu viền cho biết ô đó là bộ nào kể cả phim một bộ. Gờ mảnh (anh #1609 "Viền của bộ tk mỏng hơn"): 0,04 × 0,03, sát chân tháp, phát sáng nhẹ
-        { const mb = new T.Color(mauBo(b.bo, j)), H0 = Math.max(0.3, bh);
-          const vien = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(bw + 0.06, H0 + 0.04, bd + 0.06)), new T.LineBasicMaterial({ color: mb })); vien.position.y = H0 / 2; g.add(vien);
+        // MÀU BỘ = CHỈ gờ đế MẢNH dưới chân tháp (cùng bảng màu huy hiệu bộ) — mọi tháp đều có, vì vị trí ô giờ là của bộ (#1609), màu gờ cho biết ô đó là bộ nào.
+        // KHÔNG còn khung dây ôm cả thân tháp (anh 15/11/2026 #1611 "Sao nhà nào cũng hiện cái viền này ? Bỏ đi !!") — khung trắng chỉ hiện lúc rê (BoxHelper).
+        // Gờ mảnh (anh #1609 "Viền của bộ tk mỏng hơn"): 0,04 × 0,03, sát chân tháp, phát sáng nhẹ
+        { const mb = new T.Color(mauBo(b.bo, j));
           const matGo = new T.MeshStandardMaterial({ color: mb, emissive: mb, emissiveIntensity: 0.3 }), W2 = bw + 0.14, D2 = bd + 0.14;
           for (const [x, z, w, d] of [[0, D2 / 2, W2, 0.04], [0, -D2 / 2, W2, 0.04], [W2 / 2, 0, 0.04, D2], [-W2 / 2, 0, 0.04, D2]] as [number, number, number, number][]) {
             const go = new T.Mesh(new T.BoxGeometry(w, 0.03, d), matGo); go.position.set(x, 0.015, z); g.add(go); } }

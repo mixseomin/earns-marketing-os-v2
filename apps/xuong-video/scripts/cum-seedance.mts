@@ -43,7 +43,8 @@ const cum = doan.filter((d) => d.length).flatMap(tachNoi).flatMap((d) => chiaCum
 console.log(`giữ clip (không sinh lại): ${giu.length ? giu.map((c) => `#${c.thu_tu}`).join(' ') : 'không có'}`);
 // LUẬT KHỚP MÔI (anh 15/11/2026 "shot 4 có voice nhưng không thấy mồm nói"): clip Seedance câm — shot có clip + lời thoại có file giọng mà chưa qua bước khớp môi
 // (nguon_video.khop_moi) thì báo, chạy scripts/khop-moi-shot.mts --canh=<id>.
-const chuaKhop = ds.filter((c) => c.video_url && (c.nguon_video as { mieng?: { dat?: boolean } } | null)?.mieng?.dat !== true && (c.thoai ?? []).some((d) => d.url && d.loi?.trim() && !/ngoài khung|v\.?o\.?|lời dẫn|off/i.test(d.dien_xuat ?? '')));
+const chuaKhop = ds.filter((c) => c.video_url && (c.nguon_video as { mieng?: { dat?: boolean } } | null)?.mieng?.dat == null &&   // dat === false đã vào cụm sinh lại ở dưới
+  (c.thoai ?? []).some((d) => d.url && d.loi?.trim() && !/ngoài khung|v\.?o\.?|lời dẫn|off/i.test(d.dien_xuat ?? '')));
 if (chuaKhop.length) console.log(`chưa qua khớp thoại (có thoại): ${chuaKhop.map((c) => `#${c.thu_tu} (id ${c.id})`).join(' ')} — chạy khớp thoại cho clip đang gắn: thu-seedance-cum.mts --canh=<id> --chinh-giong (0đ)`);
 // CÁCH KHỚP MÔI theo loại phim (khop-moi-cach.ts) — mỗi cụm có thoại: một người nói → theo chất liệu / ngôn ngữ; nhiều người → khớp sau / tách cụm
 const kt = docKinhThanh(((await db.execute(sql`SELECT p.kinh_thanh FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tap}`)) as unknown as Row[])[0]?.kinh_thanh as KinhThanh);

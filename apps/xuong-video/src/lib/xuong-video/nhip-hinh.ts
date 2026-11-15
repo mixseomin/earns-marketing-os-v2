@@ -23,15 +23,19 @@ const ngan = (c: { giay?: number | null }) => c.giay != null && c.giay < GIAY_MA
  *  trùng cỡ + trùng chuyển động ở đó là CỐ Ý — hai hình khác nhau đặt cùng khuôn để nối ý (mặt Gióng → mặt cậu bé, phim mẫu tham-khao/thanh-giong);
  *  đổi chuyển động máy của nó là phá cú khớp (anh 30/10/2026, phim mẫu Little Sơn Tinh). */
 const trungCo = (a: KyThuatShot, b: KyThuatShot) => !!a.co_canh && a.co_canh === b.co_canh && (a.chuyen_dong ?? 'tinh') === (b.chuyen_dong ?? 'tinh') && b.chuyen_canh !== 'cat_khop';
+/** Cùng chủ thể khung (may_3d.khung)? Khác người = shot / reverse shot (cận thằng bé → cận chú, #16 → #17 phim #3071), cắt cùng cỡ là chuẩn ngành, không phải
+ *  "một shot kéo dài" — 16/11/2026 luật cũ bắt đổi máy, gán "lia" cho mặt chú đang đứng hình. Không biết chủ thể thì coi như cùng (giữ luật cũ). */
+const cungChu = (a: ShotNhip, b: ShotNhip) => !a.chu?.length || !b.chu?.length || a.chu.some((x) => b.chu!.includes(x));
+const trung = (a: ShotNhip, ka: KyThuatShot, b: ShotNhip, kb: KyThuatShot) => trungCo(ka, kb) && cungChu(a, b);
 /** tranh_day = không chọn chuyển động đẩy vào (san-pham-shot.ts › tranhDayVao: sản phẩm mặc trên người ở cỡ có người). */
-type ShotNhip = { id?: number; thu_tu: number; ky_thuat?: KyThuatShot | null; tranh_day?: boolean; /** giây phát — có thì áp luật máy tiến / lùi cần thời gian */ giay?: number | null };
+type ShotNhip = { id?: number; thu_tu: number; ky_thuat?: KyThuatShot | null; tranh_day?: boolean; /** giây phát — có thì áp luật máy tiến / lùi cần thời gian */ giay?: number | null; /** chủ thể khung (may_3d.khung) — khác người thì không tính trùng */ chu?: string[] | null };
 
 /** Lỗi nhịp hình của một chuỗi shot (đã xếp theo thứ tự phát). */
 export function kiemNhipHinh(ds: ShotNhip[]): string[] {
   const out: string[] = [];
   for (let i = 1; i < ds.length; i++) {
     const a = ds[i - 1]!.ky_thuat ?? {}; const b = ds[i]!.ky_thuat ?? {};
-    if (trungCo(a, b))
+    if (trung(ds[i - 1]!, a, ds[i]!, b))
       out.push(`${TIEN_TO_NHIP_HINH}#${ds[i - 1]!.thu_tu}–#${ds[i]!.thu_tu} cùng cỡ cảnh + cùng chuyển động máy (nhìn như một shot kéo dài)`);
   }
   for (const c of ds) if (!mayHopGiay(c.ky_thuat?.chuyen_dong, c.giay))
@@ -63,7 +67,7 @@ export function daDangMay<T extends ShotNhip & { id: number }>(ds: T[]): { id: n
   // máy tiến / lùi trên shot quá ngắn → đứng (luật mayHopGiay)
   kt.forEach((k, i) => { if (!mayHopGiay(k.chuyen_dong, ds[i]!.giay)) { k.chuyen_dong = 'tinh'; doi.add(i); } });
   for (let i = 1; i < kt.length; i++) {
-    if (trungCo(kt[i - 1]!, kt[i]!)) chon(i);
+    if (trung(ds[i - 1]!, kt[i - 1]!, ds[i]!, kt[i]!)) chon(i);
   }
   const daiI = kt.map((_, i) => i).filter((i) => !ngan(ds[i]!)); const tran = Math.floor(daiI.length * TI_LE_TINH_TOI_DA);
   const tinh = () => daiI.filter((i) => TINH(kt[i]));

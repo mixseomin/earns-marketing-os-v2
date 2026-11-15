@@ -1,3 +1,4 @@
+import { chuThe } from './bo-set-3d';
 import { laPhimNgan } from './goi-the-loai';
 import { xepPhat } from './kieu';
 // Các bước dựng 0đ chạy trên máy chủ cho cả tập (12/10/2026) — gọi từ server action (nút trên studio) và scripts/hau-ky.mts, MỘT đường:
@@ -139,7 +140,7 @@ export async function daDangMayTapDb(db: Db, tapId: number, nguoi: string): Prom
     const ds = locNhanh(canh, nh).map((c) => { const kt = doi.get(c.id) ?? c.ky_thuat; return { ...c, ky_thuat: kt, tranh_day: tranhDayVao(kt?.co_canh, sp.filter((v) => c.nhan_vat.includes(v.id))) }; });
     // Ngữ pháp máy theo nhịp kịch TRƯỚC (phim ngắn dọc — ngu-phap-may.ts), rồi luật nhịp hình đa dạng phần còn lại trên kết quả đó.
     for (const x of apNguPhapMay(ds.map((c, i) => ({ ...c, giay: giayPhat(c), di_cm: c.may_3d ? diCm(c.may_3d.vi_tri) : diCmShot(kgt, c), cuoi: i === ds.length - 1 && !!String(phim?.dong_co ?? '').trim() })), String(phim?.the_loai ?? ''))) doi.set(x.id, x.ky_thuat);
-    const ds2 = ds.map((c) => ({ ...c, ky_thuat: doi.get(c.id) ?? c.ky_thuat, giay: giayPhat(c) }));
+    const ds2 = ds.map((c) => ({ ...c, ky_thuat: doi.get(c.id) ?? c.ky_thuat, giay: giayPhat(c), chu: c.may_3d ? chuThe(c.may_3d) : null }));
     for (const x of daDangMay(ds2)) doi.set(x.id, x.ky_thuat);
   }
   for (const [id, kt] of doi) {

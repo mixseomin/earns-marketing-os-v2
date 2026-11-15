@@ -9,9 +9,8 @@
   "giayPhep": "CC BY-SA 4.0"
  },
  "tiLe": {
-  "ghi_chu": "ảnh gần chính diện (cùng bề ngang ở tầng hai và tầng trệt lệch 1%) → tỉ lệ không đổi. Ngang: khoảng tường giữa hai tháp góc 550 → 1050 px = 10,6 m (khoảng trong giữa hai tháp góc của mô hình). Đứng: vòm bán nguyệt cao/rộng đo được 0,95 → 44,8 px/m. Trục giữa mặt: tâm các cụm giữa / cửa ban công. Mốc đứng: chân đầu hồi (mép mái chạm tháp góc) = y1 của mô hình",
-  "pxNgang": 47.2,
-  "pxDung": 44.8,
+  "ghi_chu": "Ngang: tâm hai tháp góc trên ảnh 490 → 1095 px = 14,7 m (tâm hai tháp góc OSM) → 41,2 px/m. Đứng: KHÔNG đặt tay — mattien.js quyDoiMat tính từ hai mốc tuyệt đối đo trên ảnh 3D Google (neo): đỉnh đầu hồi (dinhY) = đỉnh khối Palas, mặt sân trên (ảnh phụ matSan) = mặt sân Google. Trục giữa mặt: tâm các cụm giữa / cửa ban công. maiY: chân đầu hồi (mép mái chạm tháp góc)",
+  "pxNgang": 41.2,
   "trucX": 799,
   "maiY": 405
  },
@@ -256,13 +255,11 @@
   }
  ],
  "anhPhu": {
-  "ghi_chu": "ảnh thứ hai cho phần ảnh chính bị cắt (dưới hàng 3·2·3 tới mặt sân). Neo vào ảnh chính: mocY = bậu hàng 3·2·3 (ảnh chính bau 1150), mocX = tâm cụm giữa hàng đó (ảnh chính x 800). Tỉ lệ: đứng 23,6 px/m (bậu tầng hai → bậu hàng 3·2·3 = 120 px = 5,09 m của ảnh chính), ngang 25,1 px/m (tâm cụm trái → giữa 90 px = 3,58 m). Ảnh chụp lúc đang xây, giàn giáo che nửa phải → cửa đơn phía phải lấy đối xứng (GIẢ ĐỊNH, chưa thấy trên ảnh)",
+  "ghi_chu": "ảnh thứ hai cho phần ảnh chính bị cắt (dưới hàng 3·2·3 tới mặt sân). Neo vào ảnh chính: mocY = bậu hàng 3·2·3 (ảnh chính bau 1150), mocX = tâm cụm giữa hàng đó (ảnh chính x 800). Tỉ lệ so với ảnh chính: đứng tiDung = 120 px (bậu tầng hai → bậu hàng 3·2·3) / 228 px của ảnh chính; ngang tiNgang = 90 px (tâm cụm trái → giữa) / 168,5 px của ảnh chính. Ảnh chụp lúc đang xây, giàn giáo che nửa phải → cửa đơn phía phải lấy đối xứng (GIẢ ĐỊNH, chưa thấy trên ảnh)",
   "tep": "du-lieu-goc/anh-ngoai/san-tren-albert.jpg",
   "nguon": "https://commons.wikimedia.org/wiki/File:Neuschwanstein_-_Blick_in_den_oberen_Schlosshof.jpg",
   "tacGia": "Josef Albert",
   "giayPhep": "Phạm vi công cộng",
-  "pxNgang": 25.1,
-  "pxDung": 23.6,
   "mocY": 950,
   "mocYChinh": 1150,
   "mocX": 825,
@@ -286,6 +283,24 @@
    }
   ],
   "doiXung": true,
-  "matSan": 1085
+  "matSan": 1085,
+  "tiDung": 0.5263,
+  "tiNgang": 0.5341
+ },
+ "neo": {
+  "ghi_chu": "mốc tuyệt đối cho tỉ lệ đứng: điểm ảnh đỉnh đầu hồi (tượng sư tử ở trên, lấy đỉnh mái) ↔ đỉnh khối OSM này đo trên ảnh 3D Google (du-lieu/neuschwanstein-nen.json khoi)",
+  "khoi": "way/223140032",
+  "dinhY": 110
+ },
+ "thapGoc": {
+  "ghi_chu": "hai tháp góc sa thạch (tháp trái, đọc trên lưới): chóp, đỉnh thân (dưới răng cưa), chân thân (đầu con-xon), mũi con-xon — ns.js đặt lại cao độ hai khối OSM này theo đây",
+  "ids": [
+   "way/223145711",
+   "way/223145712"
+  ],
+  "chop": 150,
+  "dinhThan": 410,
+  "chanThan": 925,
+  "mui": 1060
  }
 }

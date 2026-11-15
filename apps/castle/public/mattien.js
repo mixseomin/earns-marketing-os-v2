@@ -5,9 +5,9 @@
 // BỐ CỤC CỬA SỔ một cạnh tường (dùng chung: mattien.js đặt khung cửa 3D · ns.js khoét lỗ thật trên tường Palas ở dải có phòng — hai bên phải trùng nhau)
 // → [{ y: bậu, hang, kieu: 'ba' | 'vom' | 'mot', nua, cao, ds: [s dọc cạnh] }]. O_MO: nửa bề ngang + cao phần thẳng của Ô MỞ được (ô giữa của cửa ba ô)
 export const O_MO = { ba: [0.39, 1.91], mot: [0.575, 1.52], vom: [0.95, 1.55] };
-export function bocCuc({ L, yMong, y1, palas = false, coVom = false, yDat = 0 }) {
-  const ra = [], tang = palas ? 5.2 : 4.4;
-  for (let y = coVom ? yDat + 0.05 : yMong + 1.1, hang = 0; y + 3.6 <= y1; y += tang, hang++) {
+export function bocCuc({ L, yMong, y1, palas = false, coVom = false, yDat = 0, neo = null }) { // neo: bậu một hàng phải nằm đúng ở đây (Palas: sàn tầng ba có phòng) — các hàng khác cách đều theo tầng
+  const ra = [], tang = palas ? 5.2 : 4.4, dau = neo != null ? neo - Math.floor((neo - (yMong + 1.1)) / tang) * tang : yMong + 1.1;
+  for (let y = coVom ? yDat + 0.05 : dau, hang = 0; y + 3.6 <= y1; y += tang, hang++) {
     const kieu = palas ? 'ba' : coVom && hang === 0 ? 'vom' : 'mot', buoc = kieu === 'ba' ? 4.6 : kieu === 'vom' ? 3.0 : 3.4, nua = kieu === 'ba' ? 1.65 : kieu === 'vom' ? 1.35 : 0.95, cao = kieu === 'vom' ? 2.6 : kieu === 'ba' ? 2.6 : 2.4;
     if (y + cao + 1.2 > y1) break;
     const n = Math.floor((L - 0.6) / buoc), du = (L - n * buoc) / 2 + buoc / 2, ds = [];
@@ -48,7 +48,7 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
       q.setFromAxisAngle(Y, goc);
       // tầng trệt mọi toà (trừ Palas) NHÌN RA SÂN TRONG là dãy vòm (như dãy hiên Toà Hiệp sĩ trong ảnh Josef Albert), chân vòm đứng trên mặt sân trước tường;
       // mặt sân OSM của Toà Hiệp sĩ là khối không tên đứng trước khối mang tên, nên không lọc theo tên
-      for (const { y, kieu, nua, cao, ds } of bocCuc({ L, yMong: t.yMong, y1: t.y1, palas, coVom, yDat: mn.yDat })) {
+      for (const { y, kieu, nua, cao, ds } of bocCuc({ L, yMong: t.yMong, y1: t.y1, palas, coVom, yDat: mn.yDat, neo: palas ? t.neoHang : null })) {
         if (biChe(x1 + ux * L / 2 + nx * 0.6, y + cao / 2, z1 + uz * L / 2 + nz * 0.6)) continue; // mặt tường bị khối khác áp vào ở tầng này
         if (lo.some((o) => o.s0 <= 0 && o.s1 >= L && y - 0.6 >= o.y0 && y + cao <= o.y1)) continue; // cả mặt dành cho dựng riêng (mặt Palas hướng sân) → không cửa, không gờ
         go.push([x1, z1, ux, uz, nx, nz, L, y - 0.55]); // gờ đá dưới mỗi hàng cửa
@@ -97,8 +97,12 @@ export function nhomCua(THREE, { n = 3, w = 0.5, h = 2, vom = true, nhe = false,
 
 // QUY ĐỔI tệp bố cục (điểm ảnh thô đo trên ảnh, du-lieu/<lau>-mat-*.json) → mét: x = mét sang PHẢI của ảnh tính từ trục mặt, duoi = mét DƯỚI mái (chân đầu hồi).
 // Ảnh phụ (phần ảnh chính bị cắt) neo vào ảnh chính bằng một mốc chung (mocY ↔ mocYChinh, mocX ↔ mocXChinh). Không có số đo nào viết tay trong mã.
-export function quyDoiMat(bo) {
-  const T = bo.tiLe, X = (x) => (x - T.trucX) / T.pxNgang, Du = (y) => (y - T.maiY) / T.pxDung, tb = (a) => a.reduce((p, q) => p + q, 0) / a.length;
+export function tiLeDung(bo, dinhKhoi, matSan) { // px/m theo chiều đứng từ hai mốc tuyệt đối: đỉnh đầu hồi ↔ dinhKhoi, mặt sân (ảnh phụ) ↔ matSan
+  const P = bo.anhPhu, N = bo.neo; if (!P || !N || !(dinhKhoi > matSan)) return null;
+  return ((P.mocYChinh - N.dinhY) + (P.matSan - P.mocY) / P.tiDung) / (dinhKhoi - matSan);
+}
+export function quyDoiMat(bo, pxDung) {
+  const T = { ...bo.tiLe, pxDung }, X = (x) => (x - T.trucX) / T.pxNgang, Du = (y) => (y - T.maiY) / T.pxDung, tb = (a) => a.reduce((p, q) => p + q, 0) / a.length;
   const cum = bo.cum.map((c) => { const tam = c.o.map(([a, b]) => (a + b) / 2), rong = c.o.map(([a, b]) => b - a);
     return { ten: c.ten, x: X(tb(tam)), duoi: Du(c.bau), n: c.o.length, w: tb(rong) / T.pxNgang, buoc: c.o.length > 1 ? (tam.at(-1) - tam[0]) / (c.o.length - 1) / T.pxNgang : tb(rong) / T.pxNgang + 0.2,
       h: (c.bau - c.dinhO) / T.pxDung, vomR: c.vom ? (c.vom[1] - c.vom[0]) / 2 / T.pxNgang : null, vomDinh: c.vom ? (c.bau - c.vom[2]) / T.pxDung : null }; });
@@ -108,12 +112,13 @@ export function quyDoiMat(bo) {
   let cuaDon = [], duoiSan = null;
   const P = bo.anhPhu;
   if (P) {
-    const XP = (x) => X(P.mocXChinh) + (x - P.mocX) / P.pxNgang, DP = (y) => Du(P.mocYChinh) + (y - P.mocY) / P.pxDung;
-    cuaDon = P.cuaDon.map((c) => ({ x: XP((c.o[0] + c.o[1]) / 2), w: (c.o[1] - c.o[0]) / P.pxNgang, duoi: DP(c.bau), h: (c.bau - c.dinh) / P.pxDung }));
+    const pN = T.pxNgang * P.tiNgang, pD = T.pxDung * P.tiDung, XP = (x) => X(P.mocXChinh) + (x - P.mocX) / pN, DP = (y) => Du(P.mocYChinh) + (y - P.mocY) / pD;
+    cuaDon = P.cuaDon.map((c) => ({ x: XP((c.o[0] + c.o[1]) / 2), w: (c.o[1] - c.o[0]) / pN, duoi: DP(c.bau), h: (c.bau - c.dinh) / pD }));
     if (P.doiXung) cuaDon = [...cuaDon, ...cuaDon.map((c) => ({ ...c, x: -c.x, giaDinh: true }))];
     if (P.matSan != null) duoiSan = DP(P.matSan);
   }
-  return { cum, tranh, banCong, go, cuaDon, duoiSan };
+  const thap = bo.thapGoc && { ids: bo.thapGoc.ids, chop: Du(bo.thapGoc.chop), dinhThan: Du(bo.thapGoc.dinhThan), chanThan: Du(bo.thapGoc.chanThan), mui: Du(bo.thapGoc.mui) };
+  return { cum, tranh, banCong, go, cuaDon, duoiSan, thap, gableCao: bo.neo ? (T.maiY - bo.neo.dinhY) / T.pxDung : null, pxDung: T.pxDung };
 }
 
 // MẶT PALAS HƯỚNG SÂN TRÊN: hai bức tranh tường (thánh George trái, Đức Mẹ Bavaria phải — cắt từ ảnh Commons CC BY-SA 4.0, Naturliebhaberin) ở tầng trên

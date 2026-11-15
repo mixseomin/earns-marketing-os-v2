@@ -3,5 +3,10 @@
  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6IjNHR005Q1RDMjJUNllWclkiLCJqdGkiOiJhM2VmNTdkNy1kYjJhLTRjNDUtYjc1MC0yZDRkN2NmODcxY2IiLCJpZCI6NTQ5ODU3LCJzdWIiOiJodHVhbjgyIiwiaXNzIjoiaHR0cHM6Ly9hcGkuY2VzaXVtLmNvbSIsImF1ZCI6ImNhc3RsZS1vbi10Yy1nb29nbGUzZCIsImlhdCI6MTc5NDczMTI2M30.exSTFwZg4L2n-cbAoAgV_rQxBl-tAp4YbfKPFx1UI0U",
  "assetId": 2275207,
  "geoid": 47.6,
- "errorTarget": 8
+ "errorTarget": 8,
+ "lech": {
+  "x": -7,
+  "z": 0,
+  "ghi_chu": "dời NGANG ô 3D cho khớp bản đồ OSM: mái Google trùng mặt bằng nhà OSM 70% → 98% khi dời 7 m về phía tây (đo 15/11/2026 bằng dò lưới 0,5 m, 1.200 điểm; scripts/do-khoi-google.mjs đo lại được)"
+ }
 }

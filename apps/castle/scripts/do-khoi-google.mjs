@@ -27,7 +27,7 @@ const b = await chromium.launch({ args: ['--use-angle=metal', '--ignore-gpu-bloc
 const pg = await b.newPage({ viewport: { width: 1400, height: 1000 } });
 pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message));
 await pg.addInitScript(() => { try { localStorage.setItem('ns-anh3d', '1'); localStorage.setItem('ns-dau-thu', '1'); } catch {} });
-await pg.goto('http://127.0.0.1:18777/neuschwanstein.html');
+await pg.goto('http://127.0.0.1:18777/neuschwanstein.html?goc=osm'); // ?goc=osm: trang dựng khối THUẦN OSM (chân = đất thấp nhất, không chỉnh theo số đo cũ) để so cặp từng điểm
 await pg.waitForFunction(() => window.__ns?.tt && window.__ns.anh3d()?.hien, null, { timeout: 180000 });
 
 // nạp ô chi tiết: đưa camera toàn cảnh đi vòng trên lâu đài ở độ cao thấp, mỗi chỗ chờ tải xong
@@ -41,29 +41,50 @@ const kq = await pg.evaluate(() => {
   const tr = (x, z, v) => { let c = false; for (let i = 0, j = v.length - 1; i < v.length; j = i++) { const [xi, zi] = v[i], [xj, zj] = v[j]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) c = !c; } return c; };
   const kcVien = (x, z, v) => { let m = 1e9; for (let i = 0; i < v.length; i++) { const [x1, z1] = v[i], [x2, z2] = v[(i + 1) % v.length], dx = x2 - x1, dz = z2 - z1, t = Math.max(0, Math.min(1, ((x - x1) * dx + (z - z1) * dz) / (dx * dx + dz * dz || 1))); m = Math.min(m, Math.hypot(x - x1 - dx * t, z - z1 - dz * t)); } return m; };
   const pv = (a, p) => { if (!a.length) return null; const s = [...a].sort((u, w) => u - w); return s[Math.min(s.length - 1, Math.floor(s.length * p))]; };
-  // BÙ ĐỘ CAO: mặt sân trên của ảnh 3D phải trùng nền sân đo từ ảnh (MAT_SAN) — trung vị lệch trên các điểm cách mép sân > 2,5 m
-  const san = n.D.khoi.find((k) => k.tags.building === 'courtyard')?.ngoai?.[0], lech = [];
-  if (san && n.MAT_SAN != null) { const xs = san.map((p) => p[0]), zs = san.map((p) => p[1]);
-    for (let x = Math.min(...xs); x <= Math.max(...xs); x += 1.5) for (let z = Math.min(...zs); z <= Math.max(...zs); z += 1.5) if (tr(x, z, san) && kcVien(x, z, san) > 2.5) { const y = n.cao3d(x, z); if (y != null) lech.push(y - n.MAT_SAN); } }
-  const BU = pv(lech, 0.5) ?? 0, IQR = lech.length ? pv(lech, 0.75) - pv(lech, 0.25) : null;
-  const cao = (x, z) => { const y = n.cao3d(x, z); return y == null ? null : y - BU; };
+  // ĐỘ CAO TUYỆT ĐỐI: ReorientationPlugin đặt ô theo độ cao thật (GOC_Y + geoid) → lấy số THÔ, trừ phần trang đã tự dịch nhóm ô (goc.position.y) khi bù lúc chạy.
+  // Kiểm chéo: lối vào lâu đài 965 m so mặt biển (Klett), sân trên phải cao hơn lối vào. Ghi thêm độ lệch sân trên so với nền sân đang dựng để theo dõi.
+  const DICH = a3.goc.position.y || 0,  cao = (x, z) => { const y = n.cao3d(x, z); return y == null ? null : y - DICH; };
+  const san = n.D.khoi.find((k) => k.tags.building === 'courtyard')?.ngoai?.[0], mSan = [];
+  if (san) { const xs = san.map((p) => p[0]), zs = san.map((p) => p[1]);
+    for (let x = Math.min(...xs); x <= Math.max(...xs); x += 1.5) for (let z = Math.min(...zs); z <= Math.max(...zs); z += 1.5) if (tr(x, z, san) && kcVien(x, z, san) > 2.5) { const y = cao(x, z); if (y != null) mSan.push(y); } }
+  const SAN = pv(mSan, 0.5), IQR = mSan.length ? pv(mSan, 0.75) - pv(mSan, 0.25) : null;
+  // MẶT ĐẤT THẬT quanh lâu đài: lưới 1,5 m trong hộp bao các khối lâu đài (+10 m), bỏ điểm trong mặt bằng nhà (+0,6 m) → nền đá / sân / lối đi
+  const lauDai = n.dsKhoi.filter((k) => { const c = k.v.reduce((s, p) => [s[0] + p[0] / k.v.length, s[1] + p[1] / k.v.length], [0, 0]); return Math.hypot(c[0], c[1]) < 100; });
+  const bx = lauDai.flatMap((k) => k.v.map((p) => p[0])), bz = lauDai.flatMap((k) => k.v.map((p) => p[1]));
+  const hop = [Math.min(...bx) - 10, Math.max(...bx) + 10, Math.min(...bz) - 10, Math.max(...bz) + 10], BUOC = 1.5, nen = [];
+  for (let x = hop[0]; x <= hop[1]; x += BUOC) for (let z = hop[2]; z <= hop[3]; z += BUOC) {
+    if (lauDai.some((k) => tr(x, z, k.v) || kcVien(x, z, k.v) < 0.6)) continue;
+    const y = cao(x, z); if (y != null) nen.push([+x.toFixed(2), +z.toFixed(2), +y.toFixed(2)]);
+  }
   const ds = [];
   for (const k of n.dsKhoi) {
     if (k.yTren == null || (k.vo && k.coPart)) continue;
-    const xs = k.v.map((p) => p[0]), zs = k.v.map((p) => p[1]); const tat = [], mep = [];
+    const xs = k.v.map((p) => p[0]), zs = k.v.map((p) => p[1]); const tat = [], mep = [], lech = [];
+    // mặt trên của CHÍNH khối mô hình tại (x, z): tia thẳng đứng cắt các tam giác k.hinh (tường + mái), lấy chỗ cao nhất
+    const tg = [...(k.hinh?.[0] || []), ...(k.hinh?.[1] || [])], mhY = (x, z) => { let y = null;
+      for (let i = 0; i + 8 < tg.length; i += 9) { const ax = tg[i], ay = tg[i + 1], az = tg[i + 2], bx = tg[i + 3], by = tg[i + 4], bz = tg[i + 5], cx = tg[i + 6], cy = tg[i + 7], cz = tg[i + 8];
+        const d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz); if (Math.abs(d) < 1e-6) continue;
+        const u = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / d, v = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / d, w = 1 - u - v; if (u < -1e-4 || v < -1e-4 || w < -1e-4) continue;
+        const yy = u * ay + v * by + w * cy; if (y == null || yy > y) y = yy; } return y; };
     for (let x = Math.min(...xs); x <= Math.max(...xs); x += 0.75) for (let z = Math.min(...zs); z <= Math.max(...zs); z += 0.75) {
       if (!tr(x, z, k.v)) continue; const d = kcVien(x, z, k.v); if (d < 0.35) continue;
       const y = cao(x, z); if (y == null) continue; tat.push(y); if (d < 1.2) mep.push(y);
+      if (d > 0.5) { const m = mhY(x, z); if (m != null) lech.push(y - m); }
     }
-    ds.push({ id: k.id, ten: k.tags.name || '', mai: k.tags['roof:shape'] || 'flat', so: tat.length, dinhGoogle: pv(tat, 0.98), chanMaiGoogle: pv(mep, 0.5), dinhMoHinh: k.yTren, chanMaiMoHinh: k._y1 ?? null, day: k.day, osmCao: +(k.tagsGoc?.height ?? k.tags.height ?? NaN), suaCao: k.tagsGoc ? +k.tags.height : null });
+    ds.push({ id: k.id, ten: k.tags.name || '', mai: k.tags['roof:shape'] || 'flat', so: tat.length, lech: pv(lech, 0.5), soLech: lech.length, lechIQR: lech.length ? pv(lech, 0.75) - pv(lech, 0.25) : null, dinhGoogle: pv(tat, 0.98), chanMaiGoogle: pv(mep, 0.5), dinhMoHinh: k.yTren, chanMaiMoHinh: k._y1 ?? null, day: k.day, osmCao: +(k.tagsGoc?.height ?? k.tags.height ?? NaN), suaCao: k.tagsGoc ? +k.tags.height : null });
   }
-  return { bu: BU, buIQR: IQR, buSoDiem: lech.length, ds };
+  return { dich: DICH, san: SAN, sanIQR: IQR, sanSoDiem: mSan.length, matSanDangDung: n.MAT_SAN, goc: n.GOC_Y, hop, buoc: BUOC, nen, ds };
 });
 await b.close(); may.close();
 
+const { nen, hop, buoc, ...bang } = kq;
 const ra = join(GOC, 'du-lieu-goc', 'do-khoi-google.json');
-writeFileSync(ra, JSON.stringify({ luc: new Date().toISOString(), ghi_chu: 'đỉnh / chân mái đo trên ảnh thật 3D Google (toạ độ cảnh, mét); mô hình = khối đang dựng sau tệp sửa theo ảnh', ...kq }, null, 1) + '\n');
-console.log(`bù độ cao ảnh 3D theo nền sân trên: −${kq.bu.toFixed(2)} m (${kq.buSoDiem} điểm, độ trải giữa ${kq.buIQR?.toFixed(2)} m) · ${kq.ds.length} khối · ghi ${ra}`);
+writeFileSync(ra, JSON.stringify({ luc: new Date().toISOString(), ghi_chu: 'đỉnh / chân mái đo trên ảnh thật 3D Google — độ cao TUYỆT ĐỐI theo toạ độ cảnh (0 = GOC_Y so mặt biển); mô hình = khối đang dựng', ...bang }, null, 1) + '\n');
+const raNen = join(PUB, 'du-lieu', 'neuschwanstein-nen.json');
+const khoi = Object.fromEntries(kq.ds.filter((d) => d.lech != null).map((d) => [d.id, [+d.lech.toFixed(2), d.soLech, +d.dinhGoogle.toFixed(2)]]));
+writeFileSync(raNen, JSON.stringify({ ghi_chu: 'ĐO TRÊN ẢNH 3D GOOGLE (scripts/do-khoi-google.mjs), toạ độ cảnh, y so GOC_Y: diem = mặt đất ngoài mặt bằng nhà [x, z, y]; san = trung vị mặt sân trên; khoi = { id: [lệch (trung vị từng điểm: mặt Google − mặt khối thuần OSM chân đất thấp nhất), số điểm, đỉnh phân vị 98] }. ns.js dùng làm mốc chân nhà + mặt đất quanh lâu đài', luc: new Date().toISOString(), goc: kq.goc, san: +kq.san.toFixed(2), hop, buoc, khoi, diem: nen }) + '\n');
+console.log(`sân trên Google: ${kq.san?.toFixed(2)} m (= ${(kq.goc + kq.san).toFixed(1)} m so mặt biển; ${kq.sanSoDiem} điểm, độ trải giữa ${kq.sanIQR?.toFixed(2)} m) · nền sân đang dựng ${kq.matSanDangDung?.toFixed?.(2)} m · trang đã dịch ô ${kq.dich.toFixed(2)} m`);
+console.log(`mặt đất: ${nen.length} điểm lưới ${buoc} m → ${raNen} · ${kq.ds.length} khối → ${ra}`);
 console.log('khối                          mái          điểm  đỉnh Google  đỉnh mô hình  lệch   chân mái Google  mô hình  lệch');
 for (const d of kq.ds.sort((p, q) => Math.abs((q.dinhGoogle ?? 0) - q.dinhMoHinh) - Math.abs((p.dinhGoogle ?? 0) - p.dinhMoHinh))) {
   const f = (v) => (v == null ? '   —' : v.toFixed(1).padStart(6));

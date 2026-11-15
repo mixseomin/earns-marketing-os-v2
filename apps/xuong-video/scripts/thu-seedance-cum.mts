@@ -132,7 +132,7 @@ async function ganKetQua(f: string, url: string, job: number, urlGiong: string |
     await ghiVaoToc(x.canh.id, v.vao[i]!, cg?.toc[i] ?? 1);
   }
   if (hong.size) console.log(`✗ KHÔNG GẮN: ${[...hong].map(([so, l]) => `#${so} ${l}`).join(' · ')} — vào lượt sinh sau`);
-  console.log(`xong ${Math.round((Date.now() - t0) / 1000)}s · ${url} · dài ${dai.toFixed(2)} s · cú cắt đo ${cat.map((c) => c.toFixed(2)).join(', ') || 'không thấy'} · ${v.theoDo ? 'điểm vào theo cú cắt đo' : 'điểm vào theo lịch (không đo đủ cú cắt)'} · vào ${v.vao.map((x) => x.toFixed(2)).join(', ')} · ~${cents.toFixed(1)}¢`);
+  console.log(`xong ${Math.round((Date.now() - t0) / 1000)}s · ${url} · dài ${dai.toFixed(2)} s · cú cắt đo ${cat.map((c) => c.toFixed(2)).join(', ') || 'không thấy'} · ${v.theoDo ? 'điểm vào theo cú cắt đo' : 'điểm vào theo lịch (không đo đủ cú cắt)'} · vào ${v.vao.map((x) => x.toFixed(2)).join(', ')}`);
 }
 // --tu-job=<id>: GẮN LẠI từ clip job đã sinh (0đ, không gọi model) — luật đo sau sinh đổi (vd cắt thừa ở đuôi, 16/11/2026 job 8369) thì cứu shot đạt mà không sinh lại.
 const tuJob = Number(arg('tu-job')) || 0;
@@ -178,5 +178,6 @@ for (;;) {
   if (!url) { await xongJob(db, job, { loi: 'đẩy kho hỏng' }); process.exit(1); }
   await xongJob(db, job, { output_url: url, chi_phi_cents: cents });
   await ganKetQua(f, url, job, urlGiong, prompt, t0);
+  console.log(`tiền lượt này ~${cents.toFixed(1)}¢`);
   process.exit(0);
 }

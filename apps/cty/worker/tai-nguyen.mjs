@@ -49,7 +49,14 @@ export function docMayDay(ten, v, j, bayGio = Date.now()) {
   const cuPhut = j?.luc ? Math.round((bayGio - Date.parse(j.luc)) / 6e4) : null;
   if (cuPhut == null || cuPhut > (v.tre ?? 15)) return { ten, toi: false, day: true, cuPhut };
   return { ten, toi: true, day: true, cuPhut, daemon: j.dv?.[v.daemon] === 'active', ramMB: j.ramMB, swapMB: j.swapMB,
-    dia: Math.max(j.diaWsl ?? 0, j.diaC ?? 0), diaCConGB: j.diaCConGB, ban: j.ban ?? null, phut: j.phut ?? null, nang: j.nang ?? [], dv: j.dv ?? {}, chayGio: j.chayGio };
+    dia: Math.max(j.diaWsl ?? 0, j.diaC ?? 0), diaCConGB: j.diaCConGB, ban: j.ban ?? null, phut: j.phut ?? null, nang: j.nang ?? [], dv: boTimerEtp(j), chayGio: j.chayGio };
+}
+// Timer video etp trên máy nhà báo 'inactive' trong khi thợ etp-tho-nha đang chạy (15/11/2026: activating từ 11:02, 12 việc xong / 12 giờ) → không phải chết.
+// Thợ đang làm thì bỏ timer etp inactive khỏi bảng dịch vụ; thợ chạy quá lâu đã có giám sát phiên dài (tho) riêng.
+function boTimerEtp(j) {
+  const dv = { ...(j.dv ?? {}) }, tt = j.phien?.['etp-tho-nha']?.trang;
+  if (tt === 'active' || tt === 'activating') for (const u of Object.keys(dv)) if (/^etp-.*\.timer$/.test(u) && dv[u] === 'inactive') delete dv[u];
+  return dv;
 }
 
 const gioVNChu = (t) => { const x = new Date(Date.parse(t) + 7 * 36e5).toISOString(); return `${x.slice(11, 16)} ${x.slice(8, 10)}/${x.slice(5, 7)}`; };   // 08:06 06/11
@@ -386,6 +393,8 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     assert.deepStrictEqual(kNha(null), ['vps:may-cao-nha:toi'], 'chưa từng gửi: báo');
     assert.deepStrictEqual(kNha(anh(3, { dv: { 'spy-may-cao-daemon': 'active', 'spy-duong-ham-db': 'failed' } })), ['vps:may-cao-nha:dv'], 'đường hầm DB chết: báo dịch vụ');
     assert.deepStrictEqual(kNha(anh(3, { dv: { 'spy-may-cao-daemon': 'inactive' } })), ['vps:may-cao-nha:dv', 'vps:may-cao-nha:daemon'], 'trình duyệt chết: báo cả dịch vụ lẫn daemon');
+    assert.deepStrictEqual(kNha(anh(3, { dv: { 'spy-may-cao-daemon': 'active', 'etp-tho-nha.timer': 'inactive' }, phien: { 'etp-tho-nha': { trang: 'activating' } } })), [], 'timer etp inactive khi thợ đang làm: im');
+    assert.deepStrictEqual(kNha(anh(3, { dv: { 'spy-may-cao-daemon': 'active', 'etp-tho-nha.timer': 'inactive' } })), ['vps:may-cao-nha:dv'], 'timer etp tắt mà thợ không chạy: báo');
     assert.deepStrictEqual(kNha(anh(3, { diaC: 92 })), ['vps:may-cao-nha:dia'], 'ổ C: Windows 92%: báo ổ');
     assert.ok(kNha(anh(40)).length && k({ lan: [], khoa: [], may, vps: [docMayDay('may-cao-nha', vN, anh(40), BAY)] }).length === 0, 'máy nhà mất liên lạc mà không có làn: im');
     const vpsT = (x) => k({ lan: lanVps, khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: true, daemon: true, ban: 40, phut: 30, nang: [], ...x }] });

@@ -192,8 +192,9 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
   useEffect(() => { (loaiTT ??= loaiThaoTac()).then(setDsLoai).catch(() => {}); }, []);
   useEffect(() => { if (tab === 'log') docLogPhim(cid).then(setLog).catch((e) => setLog({ loi: String(e?.message ?? e) })); }, [tab, cid]);
   // bảng chỉ dựng khi đang mở → mở (hoặc đổi phim) là tải
-  useEffect(() => { setKq(null); setL(null); setLoi(null); if (!chiCamp) tai(); }, [cid, chiCamp]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const tai = () => docLichPhim(cid).then((r) => ('loi' in r ? setLoi(r.loi) : setL(r))).catch((e) => setLoi(String(e?.message ?? e)));
+  useEffect(() => { setKq(null); setL(null); setLoi(null); if (!chiCamp) tai(); }, [cid, chiCamp, bo0]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // mở từ một khối nhà (tháp một bộ) → số camp của RIÊNG bộ đó (#1613), không phải cả phim
+  const tai = () => docLichPhim(cid, bo0).then((r) => ('loi' in r ? setLoi(r.loi) : setL(r))).catch((e) => setLoi(String(e?.message ?? e)));
   // BẤM KHÔNG CHẠY NGAY (anh 07/11/2026 "các thao tác khi bấm vào chạy luôn là đéo được"): nút chỉ mở hàng xác nhận nói rõ sẽ làm gì, tốn gì; bấm Xác nhận mới chạy
   const [hoi, setHoi] = useState<{ chu: string; lam: () => Promise<{ loi: string } | { ok: true }>; xong: string } | null>(null);
   // xếp dòng SX xong → toà / thửa của phim trên thành phố cộng ngay n dòng SX (giàn giáo / cọc vàng), không chờ lượt tải số kế
@@ -227,7 +228,9 @@ export function BangPhim({ cid, thiTruong, noi: noi0, vi, dsCamp, ghim: ghim0 = 
           {!log ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : 'loi' in log ? <div style={{ color: '#f87171' }}>{log.loi}</div> : <DongMoc ds={log.map(mocLog)} rong="Phim chưa có log." />}</div> : <>
         {loi ? <div style={{ color: '#f87171' }}>{loi}</div> : !l ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : <>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-            <b style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.ten ?? `#${l.content_id}`}</b>
+            <b style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: l.bo ? 'help' : undefined }}
+              title={l.bo ? `Khối nhà Bộ ${l.bo}: số camp (đang chạy, dạng, camp thắng, hẹn giờ, toà nhà) chỉ của bộ này. Đồng hồ thị trường, tiềm năng, kế hoạch mở rộng, kho creative là của cả phim.` : undefined}>
+              {l.ten ?? `#${l.content_id}`}{l.bo ? <span style={{ color: mauBo(l.bo) }}> · Bộ {l.bo}</span> : null}</b>
             <span style={{ color: pha[1], whiteSpace: 'nowrap' }} title={`đồng hồ thị trường, máy dùng để quyết mở thêm camp${l.muc_hut ? ` · chi/ngày $${Math.round(l.chi_gan ?? 0)} / tối ưu $${Math.round(l.muc_hut)}` : ''}`}>● {pha[0]}</span>
           </div>
           {/* MỘT LƯỚI hai cột: nhãn trái + nội dung trái, mọi hàng cùng mép (anh 07/11/2026 "thò thụt, chỗ cân giữa, chỗ để trái phải khó nhìn") */}

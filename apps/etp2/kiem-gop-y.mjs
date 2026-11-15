@@ -202,6 +202,9 @@ const LUAT = [
   { card: 1597, tep: 'apps/etp2/src/components/etp-view.tsx', co: "Math.max(0, Math.floor(h) - 1)", cam: "'--etp-dinh', `${el.offsetHeight}px`", vi: '--etp-dinh đo số lẻ, làm tròn xuống, lùi 1px — hàng dính dưới không hở khe (offsetHeight làm tròn lên hở khe, anh 14/11/2026 "trên mobile lởm")' },
   { card: 1597, tep: 'apps/etp2/src/components/etp-view.tsx', co: "boxShadow: gon && gonHero ? '0 3px 0 var(--bg-0, #0b0b0c)' : undefined", vi: 'thanh dính điện thoại có váy nền 3px che khe với đầu cây khi Safari cuộn quán tính' },
   { card: 1597, tep: 'apps/etp2/src/components/etp-view.tsx', co: "borderBottom: '1px solid var(--line)', boxShadow: '0 6px 8px -4px rgba(0,0,0,.65)' }}>{/* #1597", vi: 'đầu cây dính có bóng dưới — dòng trôi vào dưới không lộ như bị cắt' },
+  { card: 1613, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'docLichPhim(cid, bo0)', cam: 'docLichPhim(cid).then', vi: 'bảng mở từ một khối nhà đọc số camp của RIÊNG bộ đó, không phải cả phim (anh 15/11/2026)' },
+  { card: 1613, tep: 'apps/etp2/src/lib/actions/etp-lich-phim.ts', co: "const B = (a: string) => (bo == null ? sql`true` : sql`coalesce(${sql.raw(a)}.bo::text, '?') = ${bo}`);", vi: 'docLichPhim lọc camp theo bộ qua MỘT điều kiện B()' },
+  { card: 1613, tep: 'apps/etp2/src/lib/actions/etp-lich-phim.ts', cam: "from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE'", vi: 'mọi câu đọc camp đang chạy trong docLichPhim đi qua bộ lọc bộ (không còn câu etp.camp trần theo phim)' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },
 ];
 

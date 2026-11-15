@@ -29,6 +29,8 @@ export type LichPhim = {
   camp: CampToa[]; camp_tat: CampToa[];   // camp_tat: camp đã tắt còn chi trong 30 ngày (cây héo ở thửa túp lều / nhà cấp 4)
   /** dạng dòng đang gác (etp.cau_hinh.gac_dang) — nút ＋ dạng đó tắt, chữ rê nói vì sao (#1598) */
   gac: string[];
+  /** bộ đang xem (#1613): bảng mở từ MỘT khối nhà (tháp một bộ) trên thành phố → mọi số camp chỉ của bộ đó; null = cả phim */
+  bo: string | null;
 };
 export type { CampToa } from '@/lib/etp-toa-sql';   // kiểu + câu SQL camp của toà nhà ở MỘT chỗ (lib/etp-toa-sql.ts)
 /** một camp thắng: ngân sách · chi / thu 30 ngày (cửa sổ máy luật dùng cho nấc nhân bản + ROAS) · 3 ngày gần · hôm nay (ngày Ethopex = ngày UTC) · tới 13:00 VN · lần tăng gần nhất */
@@ -38,31 +40,36 @@ export type CampThang = { camp_id: number; ten: string; ns: number; la_ban: bool
 async function laChu() { const q = await quyenEtp(await getCurrentUser()); return q?.vai === 'chu'; }
 const run = async <T,>(s: ReturnType<typeof sql>) => (await getDb()!.execute(s)) as unknown as T[];
 
-export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: string }> {
+// THEO KHỐI NHÀ ĐƯỢC BẤM (anh 15/11/2026 #1613 "Bảng widget phải hiện thông tin của khối nhà được bấm chứ ko phải của cả phim"): bo = bộ của tháp đã bấm →
+// mọi câu đọc CAMP (đang chạy / dạng / thắng / hẹn / hoãn / toà nhà / chi cả đời) lọc đúng bộ đó qua MỘT điều kiện B(); dòng phim chỉ dòng của bộ đó + dòng máy chọn bộ (bo trống).
+// Số của PHIM (đồng hồ thị trường, kế hoạch mở rộng, kho creative, lộ trình) vẫn của cả phim — chúng không chia theo bộ.
+export async function docLichPhim(contentId: number, boXem?: string | null): Promise<LichPhim | { loi: string }> {
   if (!(await laChu())) return { loi: 'chỉ chủ xem lịch phim' };
   const id = Math.trunc(Number(contentId)); if (!(id > 0)) return { loi: 'mã phim không hợp lệ' };
+  const bo = boXem != null && /^[1-9?]$/.test(String(boXem)) ? String(boXem) : null;
+  const B = (a: string) => (bo == null ? sql`true` : sql`coalesce(${sql.raw(a)}.bo::text, '?') = ${bo}`);
   const [[p], dang, [thay], sx, [kh], [mc], [ke], hen, [cho], [lt]] = await Promise.all([
     run<Omit<LichPhim, 'dang' | 'thay' | 'sx' | 'hoan' | 'moc_chi' | 'moc_thu' | 'ke' | 'hen' | 'tu_len' | 'thieu' | 'may_mo' | 'lt' | 'thang' | 'cr' | 'doi_lai' | 'do_toi'>>(sql`
-      with s as (select c.camp_id, c.la_roas, sum(n.chi) chi, sum(n.thu) thu from etp.camp c join etp.so_ngay n using (camp_id) where c.content_id = ${id} group by 1, 2)
+      with s as (select c.camp_id, c.la_roas, sum(n.chi) chi, sum(n.thu) thu from etp.camp c join etp.so_ngay n using (camp_id) where c.content_id = ${id} and ${B('c')} group by 1, 2)
       select ${id}::int content_id, p.ten, p.thu_vong vong, p.thu_ly ly, m.pha, m.muc_hut::float, m.chi_gan::float,
         coalesce((select sum(chi) from s), 0)::float chi, coalesce((select sum(thu) from s), 0)::float thu,
         (select count(*) from s where chi >= 1)::int so_thu, (select count(*) from s where chi >= 1 and thu > chi and not la_roas)::int camp_lai,   -- cùng cách đếm với thanh từng dạng (không tính ROAS — ROAS đếm riêng)
-        (select count(*) from etp.camp where content_id = ${id} and la_roas and trang_thai = 'ACTIVE')::int roas
+        (select count(*) from etp.camp c where c.content_id = ${id} and ${B('c')} and c.la_roas and c.trang_thai = 'ACTIVE')::int roas
       from (select 1) o left join etp.phim p on p.content_id = ${id} left join etp.mo_rong m on m.content_id = ${id}`),
     run<LichDang>(sql`with s as (select c.camp_id, case when c.la_roas then 'ROAS' else coalesce(r.dang, '?') end dang, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu from etp.camp c
         left join etp.creative r using (creative_id) left join etp.so_ngay n on n.camp_id = c.camp_id and n.ngay >= current_date - 6
-        where c.content_id = ${id} and c.trang_thai = 'ACTIVE' group by 1, 2)   -- gồm cả camp ROAS: phải khớp số camp ở dòng phim (anh 07/11/2026)
+        where c.content_id = ${id} and ${B('c')} and c.trang_thai = 'ACTIVE' group by 1, 2)   -- gồm cả camp ROAS: phải khớp số camp ở dòng phim (anh 07/11/2026)
       select dang, count(*)::int chay, count(*) filter (where chi >= 1 and thu > chi)::int lai, count(*) filter (where chi >= 1 and thu <= chi)::int lo, sum(chi)::float chi7, sum(thu)::float thu7
       from s group by 1 order by 2 desc`),
     run<LichPhim['thay']>(sql`select kieu, buoc, ghi from etp.thay_the where content_id = ${id} and buoc not in ('chay', 'huy') order by id desc limit 1`),
     run<LichSx>(sql`select d.id, d.trang_thai, d.loai, d.so_camp, left(d.ly_do, 200) ly_do,
         -- dòng dừng chỉ còn "mới" khi còn đúng: chưa có dòng cùng dạng tạo sau nó (dòng sau thay chỗ) (#1612)
         d.tao_luc > now() - interval '1 day' and not exists (select 1 from etp.dong_phim d2 where d2.content_id = d.content_id and d2.loai = d.loai and d2.id > d.id) moi, d.tao_luc::text tao, coalesce((select json_agg(json_build_object('buoc', b.buoc, 'trang_thai', b.trang_thai, 'ghi', left(b.ghi, 160), 'bat_dau', b.bat_dau, 'ket_qua', b.ket_qua) order by b.thu_tu)
-        from etp.dong_buoc b where b.dong_id = d.id), '[]') buoc from etp.dong_phim d where d.content_id = ${id} and d.trang_thai in ('chay', 'loi', 'dung') order by d.id desc limit 3`),
+        from etp.dong_buoc b where b.dong_id = d.id), '[]') buoc from etp.dong_phim d where d.content_id = ${id} and (${bo == null ? sql`true` : sql`d.bo is null or d.bo = ${bo}`}) and d.trang_thai in ('chay', 'loi', 'dung') order by d.id desc limit 3`),
     run<{ g: Record<string, unknown> | null }>(sql`select gia_tri g from etp.cau_hinh where khoa = 'khung_hoan'`),
     run<{ chi: number; so: number }>(sql`select coalesce((gia_tri->>'chi')::float, 25) chi, coalesce((gia_tri->>'so_thu')::int, 4) so from etp.cau_hinh where khoa = 'cat_phim'`),
     run<NonNullable<LichPhim['ke']>>(sql`select trang_thai, k, san, can_sx, ly from etp.mo_rong where content_id = ${id}`),
-    run<LichPhim['hen'][number]>(sql`select camp_id, to_char(lich at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') luc from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE' and lich > now() order by lich`),
+    run<LichPhim['hen'][number]>(sql`select camp_id, to_char(lich at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') luc from etp.camp c where c.content_id = ${id} and ${B('c')} and c.trang_thai = 'ACTIVE' and c.lich > now() order by c.lich`),
     run<{ tu_len: number; thieu: string | null; may_mo: boolean }>(sql`select (select count(*) from etp.cho_len_v where content_id = ${id} and ly_do is null)::int tu_len,
       (select b.ghi from etp.dong_phim d join etp.dong_buoc b on b.dong_id = d.id and b.buoc = 'camp' where d.content_id = ${id} and d.trang_thai = 'xong' and d.tao_luc > now() - interval '3 days' and b.ghi like '%thiếu%' order by d.id desc limit 1) thieu,
       (exists (select 1 from etp.phim_doi_lai where content_id = ${id}) and coalesce((select pha from etp.mo_rong where content_id = ${id}), '') <> 'bao_hoa') may_mo`),
@@ -70,7 +77,7 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
   ]);
   const DON_GIO = Number(BANG_LUAT.khung_doi.don_gio);
   const [thang, [kho], camp, gac] = await Promise.all([
-    run<CampThang>(sql`with nay as (select (now() at time zone 'utc')::date d), c as (select camp_id, ten, ngan_sach from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE' and not la_roas),
+    run<CampThang>(sql`with nay as (select (now() at time zone 'utc')::date d), c as (select camp_id, ten, ngan_sach from etp.camp c where c.content_id = ${id} and ${B('c')} and c.trang_thai = 'ACTIVE' and not c.la_roas),
         s as (select n.camp_id, sum(n.chi) filter (where n.ngay >= nay.d - 29) chi30, sum(n.thu) filter (where n.ngay >= nay.d - 29) thu30,
                 sum(n.chi) filter (where n.ngay >= nay.d - 6) chi7, sum(n.thu) filter (where n.ngay >= nay.d - 6) thu7, sum(n.chi) filter (where n.ngay >= nay.d - 2) chi3, sum(n.thu) filter (where n.ngay >= nay.d - 2) thu3,
                 sum(n.chi) filter (where n.ngay = nay.d) chi_nay, sum(n.thu) filter (where n.ngay = nay.d) thu_nay from etp.so_ngay n, nay where n.camp_id in (select camp_id from c) group by 1)
@@ -88,18 +95,18 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
         (select count(*) from etp.creative r left join etp.cham_cong g using (creative_id) where r.content_id = ${id} and not coalesce(g.duoc_len, false) and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id))::int chan,
         coalesce((gia_tri->>'chi')::float, 30) chi, coalesce((gia_tri->>'roi')::float, 30) roi, coalesce((gia_tri->>'ngay')::int, 3) ngay,
         -- mo_rong 'cho_do': camp mới nhất chưa qua trọn 1 ngày khép → đo lại từ 00:00 UTC ngày thứ 2 sau ngày tạo (07:00 VN)
-        (select to_char(((max(tao) at time zone 'utc')::date + 2)::timestamp at time zone 'utc' at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE' and not la_roas) do_toi
+        (select to_char(((max(tao) at time zone 'utc')::date + 2)::timestamp at time zone 'utc' at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') from etp.camp c where c.content_id = ${id} and ${B('c')} and c.trang_thai = 'ACTIVE' and not c.la_roas) do_toi
       from (select (select gia_tri from etp.cau_hinh where khoa = 'len_doi_lai') gia_tri) x`),
-    run<Record<string, unknown>>(campToaSql(sql`c.content_id = ${id}`)),
+    run<Record<string, unknown>>(campToaSql(bo == null ? sql`c.content_id = ${id}` : sql`c.content_id = ${id} and c.bo = ${bo}`)),   // c.bo ở câu toà đã là text ('?' khi trống)
     dangGac(),
   ]);
-  const ids = new Set((await run<{ camp_id: number }>(sql`select camp_id from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE'`)).map((x) => Number(x.camp_id)));
+  const ids = new Set((await run<{ camp_id: number }>(sql`select camp_id from etp.camp c where c.content_id = ${id} and ${B('c')} and c.trang_thai = 'ACTIVE'`)).map((x) => Number(x.camp_id)));
   const hoan = (['tang', 'giam', 'tat'] as const).flatMap((h) => ((kh?.g?.[h] as number[] | undefined) ?? []).filter((c) => ids.has(Number(c))).map((c) => ({ camp_id: Number(c), huong: h })));
   // DỪNG VÌ GÁC MÀ GÁC ĐÃ MỞ (#1612): anh mở lại mọi dạng 15/11/2026, dòng dừng "tạm gác dòng CC … mở lại: bỏ 'CC' khỏi gac_dang" vẫn hiện 24 giờ, nói sai hiện trạng.
   // Lý do gác chỉ còn đúng khi dạng đó VẪN trong gac → hết gác thì thôi hiện (cùng một chỗ cho mọi dạng, KT gồm gac_kt qua dangGac)
   const sxDung = sx.map((d) => d.trang_thai === 'dung' && (d.ly_do ?? '').startsWith('tạm gác dòng') && !gac.includes(d.loai) ? { ...d, moi: false } : d);
   return { ...p!, dang, thay: thay ?? null, sx: sxDung, hoan, moc_chi: mc?.chi ?? 25, moc_thu: mc?.so ?? 4, ke: ke ?? null, hen, tu_len: cho?.tu_len ?? 0, thieu: cho?.thieu ?? null, may_mo: !!cho?.may_mo, lt: lt?.g ?? null,
-    thang, cr: { san: kho?.san ?? 0, chan: kho?.chan ?? 0 }, doi_lai: { chi: kho?.chi ?? 30, roi: kho?.roi ?? 30, ngay: kho?.ngay ?? 3 }, do_toi: kho?.do_toi ?? null, camp: camp.map(docCampToa).filter((x) => !x.tat), camp_tat: camp.map(docCampToa).filter((x) => x.tat), gac };
+    thang, cr: { san: kho?.san ?? 0, chan: kho?.chan ?? 0 }, doi_lai: { chi: kho?.chi ?? 30, roi: kho?.roi ?? 30, ngay: kho?.ngay ?? 3 }, do_toi: kho?.do_toi ?? null, camp: camp.map(docCampToa).filter((x) => !x.tat), camp_tat: camp.map(docCampToa).filter((x) => x.tat), gac, bo };
 }
 
 /** LOG TỪNG PHIM (anh 07/11/2026 "các log của từng film nên để sang 1 tab riêng"): nhật ký máy + dòng phim, mới nhất trên. Lần cổng chặn (ok rỗng) gom theo câu lỗi. */

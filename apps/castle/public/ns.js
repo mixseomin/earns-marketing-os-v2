@@ -14,6 +14,7 @@ import { dungNoiThat } from './noithat.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
+import { taoCamUng } from './camung.js';
 
 const $ = (id) => document.getElementById(id);
 const ten = new URLSearchParams(location.search).get('lau') || 'neuschwanstein';
@@ -303,8 +304,8 @@ let toi = null, di = null;
 try { await napNguoi3d(); toi = taoNguoi3d(); } catch (e) { console.warn('[ns] không nạp được người 3D', e); }
 if (toi) {
   toi.goc.visible = false; scene.add(toi.goc);
-  di = taoDiBo({ RAPIER, world, camera, dom: renderer.domElement, toi, khiNhap: (x, y) => nemDoDangCam(x, y), ngoai: { buoc: (dt, tr) => buocNgoi(tr), khung: () => khungNgoi() }, khiDoi: (dang) => {
-    if (!dang) boTuongTac(); orbit.enabled = !dang; $('so').style.display = dang || !ANH.length ? 'none' : 'block'; $('b-di').style.display = dang ? 'none' : ''; $('b-toan').style.display = dang ? '' : 'none'; khoaHd = '';
+  di = taoDiBo({ RAPIER, world, camera, dom: renderer.domElement, toi, layTruc: () => camUng?.layTruc(), khiNhap: (x, y) => nemDoDangCam(x, y), ngoai: { buoc: (dt, tr) => buocNgoi(tr), khung: () => khungNgoi() }, khiDoi: (dang) => {
+    camUng?.hien(dang); if (!dang) boTuongTac(); orbit.enabled = !dang; $('so').style.display = dang || !ANH.length ? 'none' : 'block'; $('b-di').style.display = dang ? 'none' : ''; $('b-toan').style.display = dang ? '' : 'none'; khoaHd = '';
   } });
 }
 const torbau = dsKhoi.find((k) => k.tags.name === 'Torbau');
@@ -379,7 +380,7 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
   else if (!dangSo) orbit.update(); // chế độ so ảnh: camera do thông số ảnh quyết
   if (noiThat) { const p = di?.dang ? di.viTri() : null; noiThat.hien(!!p && Math.hypot(p.x - noiThat.tam[0], p.z - noiThat.tam[1]) < 75); }
-  noiThat?.capNhat(dt); timTuongTac(now); capNhatAnh3d();
+  noiThat?.capNhat(dt); timTuongTac(now); camUng?.capNhat(); capNhatAnh3d();
   capNhatHd(now); veBanDoNS(now);
   renderer.render(scene, camera);
 }
@@ -536,7 +537,17 @@ function timTuongTac(now) { // món gần nhất (≤ 1,8 m, cùng tầng, ưu t
   }
   const g = $('goiY'); if (g.textContent !== chu) { g.textContent = chu; g.style.display = chu ? 'block' : 'none'; }
 }
-window.__ns.diNhanh = diNhanhNS; window.__ns.noiThat = noiThat; window.__ns.NOI = NOI; window.__ns.cao3d = (x, z) => { if (!anh3d) return null; const h = new THREE.Raycaster(new THREE.Vector3(x, 600, z), new THREE.Vector3(0, -1, 0)).intersectObject(anh3d.t.group, true)[0]; return h ? h.point.y : null; }; window.__ns.anh3d = () => anh3d; window.__ns.anh3dTk = () => anh3d_tk; window.__ns.khuTai = khuTai; window.__ns.thuKhu = () => [...DA_KHU.map((k) => [...tamDa(k.v), k.khoa]), [(CAU[0][0] + CAU[1][0]) / 2, (CAU[0][1] + CAU[1][1]) / 2, 'Marienbruecke']]; window.__ns.tt = { nutE, daDo, nemDoDangCam, trangThai: () => ({ ngoi: !!dangNgoi, cam: !!dangCam, gan: ganNhat?.loai || null }) };
+// ---------- ĐIỆN THOẠI: cần gạt + kéo nhìn + nút theo ngữ cảnh (camung.js dùng chung) — cùng hàm với phím E / F / Space / V / nhấp chuột
+const TEN_E = { ngoi: 'Ngồi', cam: 'Cầm', doc: 'Đọc' };
+const camUng = di ? taoCamUng({ dom: renderer.domElement, di, nut: [
+  { id: 'nhay', chu: () => { const c = di.nguCanh(); return dangNgoi ? null : c === 'leo' ? 'Bật ra' : c === 'tuong' ? 'Leo' : 'Nhảy'; }, bam: () => camUng.nhay() },
+  { id: 'e', chu: () => $('doc').style.display === 'block' ? 'Đóng' : dangNgoi ? 'Đứng' : dangCam ? 'Thả' : ganNhat ? (ganNhat.loai === 'mo' ? (ganNhat.dangMo ? 'Đóng' : 'Mở') : ganNhat.loai === 'den' ? (ganNhat.den?.userData.tat ? 'Bật đèn' : 'Tắt đèn') : TEN_E[ganNhat.loai] || 'E') : null, bam: () => nutE() },
+  { id: 'nem', chu: () => (dangCam ? 'Ném' : null), bam: () => nemDoDangCam(innerWidth / 2, innerHeight / 2) },
+  { id: 'da', chu: () => (!dangNgoi && !dangCam && phongHienTai() ? 'Đá' : null), bam: () => daDo() },
+  { id: 'goc', chu: () => '👁', bam: () => di.doiGocNhin() },
+] }) : null;
+function phongHienTai() { if (!noiThat || !di?.dang) return null; const p = di.viTri(); return noiThat.phongTai(p.x, p.y - 0.9, p.z); }
+window.__ns.camUng = () => camUng; window.__ns.diNhanh = diNhanhNS; window.__ns.noiThat = noiThat; window.__ns.NOI = NOI; window.__ns.cao3d = (x, z) => { if (!anh3d) return null; const h = new THREE.Raycaster(new THREE.Vector3(x, 600, z), new THREE.Vector3(0, -1, 0)).intersectObject(anh3d.t.group, true)[0]; return h ? h.point.y : null; }; window.__ns.anh3d = () => anh3d; window.__ns.anh3dTk = () => anh3d_tk; window.__ns.khuTai = khuTai; window.__ns.thuKhu = () => [...DA_KHU.map((k) => [...tamDa(k.v), k.khoa]), [(CAU[0][0] + CAU[1][0]) / 2, (CAU[0][1] + CAU[1][1]) / 2, 'Marienbruecke']]; window.__ns.tt = { nutE, daDo, nemDoDangCam, trangThai: () => ({ ngoi: !!dangNgoi, cam: !!dangCam, gan: ganNhat?.loai || null }) };
 // ---------- ẢNH THẬT 3D: Google Photorealistic 3D Tiles qua Cesium ion (tài khoản htuan82, vault #697) — thư viện 3DTilesRendererJS (NASA-AMMOS, Apache-2.0).
 // Khoá web trong du-lieu/google3d.json là khoá CÔNG KHAI bị khoá phạm vi: chỉ đọc asset 2275207, chỉ chạy khi trang ở castle.on.tc / 127.0.0.1:18777.
 // Bật thì ẩn lớp dựng-từ-số-đo (LOP_OSM) + tắt va chạm thân cây giả (CAY_VA, cây thật trong ảnh mọc chỗ khác); giữ va chạm địa hình / khối nhà / cầu,
@@ -606,7 +617,7 @@ function capNhatAnh3d() {
   if (!anh3d.lucNguon || performance.now() - anh3d.lucNguon > 3000) { // ghi nguồn dữ liệu 3D đang hiện (điều khoản Google: luôn hiện tên nguồn)
     anh3d.lucNguon = performance.now();
     const ds = (t.getAttributions?.() || []).filter((x) => x.type === 'string' && x.value && x.value !== 'Google').map((x) => x.value);
-    $('nguon-3d').textContent = ' · ảnh thật 3D: Google' + (ds.length ? ' (' + [...new Set(ds)].join(', ').slice(0, 160) + ')' : '');
+    $('nguon-3d').textContent = 'Ảnh thật 3D: Google' + (ds.length ? ' (' + [...new Set(ds)].join(', ').slice(0, 160) + ')' : '') + ' · '; // đứng ĐẦU dòng nguồn: màn hẹp cắt đuôi dòng, tên Google vẫn phải hiện
   }
   // bù độ cao LIÊN TỤC (mỗi 2 s): dò VA CHẠM của các ô chi tiết (không dò hình — hình còn lẫn ô thô, số nhảy -35 → +86 m) trên mặt sân trong lát đá
   // (OSM courtyard), so với lưới EU-DEM mà nội thất / khối nhà OSM bám theo, chỉnh tới khi lệch < 0,3 m. Ô thô lúc đầu cho lệch 24,8 rồi 49,9 m nên không bù một lần.

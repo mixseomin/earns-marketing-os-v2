@@ -1202,4 +1202,9 @@ export const LUAT = [
   { card: 1561, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '→ bản USED POST (nhan-ban.py: ad dùng lại bài đăng của camp gốc', cam: '→ bản $1 GIỮ NGUYÊN creative', vi: 'mô tả luật NB (thẻ / trang) nói used post, không còn "bản $1 giữ creative"' },
   { card: 1576, tep: 'apps/etp/dong-bo.py', co: "'(?:duplicate by|dup by|_d)[_", vi: 'bản dup team tên "…_D_85382" (gạch dưới sau D) vẫn nhận camp gốc → kế thừa creative, không rơi "Chưa rõ loại" (anh 12/11/2026)' },
   { card: 1576, tep: 'apps/etp/dong-bo.py', co: 'group by goc_ten having count(distinct creative_id) = 1)', vi: 'bản dup không ghi id gốc (…_D3_Start-Today, ROAS1.3_…_D30, _ROAS-1.2, (ROAS)) kế thừa creative theo TÊN GỐC khi cả nhóm chung một creative' },
+  { tep: 'apps/xuong-video/scripts/ethopex/kiem-thoai-creative.sh', co: "chu_qc->>'lop_free'", vi: 'cổng chữ lúc lên camp tự tra dấu lớp Free của creative (thu_vien.chu_qc.lop_free) → kiem-thoai --free; thiếu = chặn oan mọi bản tĩnh (anh 15/11/2026 \"fix triệt để\")' },
+  { tep: 'apps/xuong-video/scripts/ethopex/len-creative.py', co: "{' --free' if x.get('lop_free') else ''}", vi: 'len-creative truyền --free cho cổng chữ khi bản có lớp Free (anh 15/11/2026)' },
+  { tep: 'apps/xuong-video/scripts/ethopex/tinh-ba-kieu.py', co: "{' --lop-free' if AT.CO_FREE else ''}", vi: 'bản tĩnh có lớp Free ghi dấu vào thư viện (anh 15/11/2026)' },
+  { tep: 'apps/etp/dong_phim.py', co: 'not khe_nang(d["id"], ke, cho_nang)', vi: 'khe nặng iMac chia công bằng cắt CC / creative tĩnh — dòng tĩnh không chiếm trọn khe khi CC đang chờ (anh 15/11/2026)' },
+  { tep: 'apps/etp/dong_phim.py', co: 'DÙNG LẠI BẢN SẴN SÀNG TRƯỚC KHI SINH MỚI', vi: 'creative tĩnh dùng lại bản thư viện sẵn sàng của phim trước khi sinh mới (anh 15/11/2026)' },
 ];

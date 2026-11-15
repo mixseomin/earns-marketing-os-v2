@@ -330,6 +330,20 @@ def b_creative_at(d):
     tr = (d.get("buoc") or {}).get("creative") or {}; kq0 = tr.get("ket_qua") or {}
     ids = [int(x["creative_id"]) for x in kq0.get("ds") or []] or ([int(kq0["creative_id"])] if kq0.get("creative_id") else [])
     if not ids:
+        # DÙNG LẠI BẢN SẴN SÀNG TRƯỚC KHI SINH MỚI (anh 15/11/2026 "rất nhiều camp chờ đang ko thể sx … fix triệt để"): 09–15/11 cổng chữ sau chặn oan lớp Free →
+        # mỗi lần FIX sinh lại 3 bản (giọng + ảnh AI) trong khi bản cũ vẫn nằm thư viện "sẵn sàng" — 2.178 bản PO + 87 AT, 133 phim. Bản sẵn sàng chưa thành creative
+        # của đúng phim + dạng (≤ 7 ngày, mới nhất trước, tối đa AT_BAN) → thu-vien-len (cùng đường anh-tinh gọi ở cuối) · đưa lên không ra creative nào thì loại
+        # các bản đó (trang_thai 'loai', ghi lý do — không xoá) rồi mới sinh mới, kẻo vòng sau bốc lại đúng mấy bản hỏng.
+        san = sql(f"""select string_agg(id::text, ' ') from (select id from etp.thu_vien where content_id = {int(d['content_id'])} and dang = {s(LOAI[d['loai']])}
+                      and trang_thai = 'san_sang' and creative_id is null and coalesce(video, '') <> '' and tao > now() - interval '7 days' order by id desc limit {AT_BAN}) x""").split()
+        if san:
+            rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "thu-vien-len.py"), *san], HAN_RIENG[(d["loai"], "creative")] - 120)
+            ids = [int(x) for x in dict.fromkeys(re.findall(r"→ creative #(\d+)", out))]
+            if not ids:
+                ly = (re.findall(r"✗ tv\d+: (.+)", out) or [out[-200:]])[-1][:200]
+                sql(f"update etp.thu_vien set trang_thai = 'loai', ghi = coalesce(ghi, '') || {s(' · máy dòng phim: dùng lại không ra creative — ' + ly)}, cap_nhat = now() where id in ({','.join(san)}) and creative_id is null")
+                print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} dùng lại tv{', tv'.join(san)} không ra creative ({ly[:80]}) → sinh mới", flush=True)
+    if not ids:
         rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, TINH[d["loai"]][0]), str(d["content_id"]), *TINH[d["loai"]][1], "--ban", str(AT_BAN)], HAN_RIENG[(d["loai"], "creative")] - 120)
         ids = [int(x) for x in dict.fromkeys(re.findall(r"→ creative #(\d+)", out))]
         if not ids:
@@ -637,6 +651,17 @@ def mo_tran_ngay():
         if l.strip(): print(f"[{time.strftime('%H:%M:%S')}] dòng #{l.strip()} — ngày mới, còn chỗ dưới trần camp/ngày → FIX bước camp", flush=True)
 
 CHAY = {}   # (dòng, bước) → (thread, lần chạy cuối)
+# KHE NẶNG CÔNG BẰNG (anh 15/11/2026 "rất nhiều camp chờ đang ko thể sx"): TRAN_CAT khe chung cho cắt CC + creative tĩnh, dòng tĩnh xếp trước (luật 08/11 khi
+# chỉ ≤ 6 dòng AT chờ) → 250 dòng PO / AT chiếm trọn 2 khe, 146 dòng CC đứng ở bước cắt không dòng nào bắt đầu. Giờ: một loại chỉ giữ hết khe khi loại kia
+# không có việc chờ; loại kia đang chờ thì mỗi loại tối đa TRAN_CAT // 2. Tổng tải iMac giữ nguyên (đo 15/11: 8 nhân, tải ~29 — không nới tổng).
+def kieu_nang(i, b, loai=None):
+    loai = loai or LOAI_DONG.get(i)
+    return "cat" if b == "cat" else "tinh" if b == "creative" and loai in TINH else None
+
+def khe_nang(i, b, cho):
+    me = kieu_nang(i, b); dang = [kieu_nang(j, c) for (j, c), (th, _) in CHAY.items() if th.is_alive() and kieu_nang(j, c)]
+    if len(dang) >= TRAN_CAT: return False
+    return not (cho - {me}) or dang.count(me) < max(1, TRAN_CAT // 2)
 DUNG = [None]
 def vong():
     if not (DUNG[0] and DUNG[0].is_alive()):   # một lệnh dựng dự phòng một lúc (iMac còn cắt phim cho dòng phim)
@@ -650,8 +675,11 @@ def vong():
     except Exception as e: print(f"mở rộng phim đội lãi lỗi: {str(e)[:200]}", flush=True)
     try: mo_tran_ngay()
     except Exception as e: print(f"mở lại dòng chạm trần ngày lỗi: {str(e)[:200]}", flush=True)
-    gac = gac_dang()
-    for d in doc_dong():
+    gac = gac_dang(); ds_dong = doc_dong()
+    # loại lượt nặng đang CHỜ khe (cắt CC / creative tĩnh) — khe_nang giữ một khe cho loại kia khi nó có việc chờ
+    cho_nang = {kieu_nang(d["id"], b, d.get("loai")) for d in ds_dong for b in [next((b for b, _ in BUOC if ((d.get("buoc") or {}).get(b) or {}).get("trang_thai") in ("dang", "cho")), None)]
+                if b and d["trang_thai"] == "chay" and kieu_nang(d["id"], b, d.get("loai")) and ((d.get("buoc") or {}).get(b) or {}).get("trang_thai") == "cho"}
+    for d in ds_dong:
         bs = d.get("buoc") or {}
         if d.get("loai") in gac and d["trang_thai"] == "chay" and not any((bs.get(b) or {}).get("trang_thai") in ("dang", "xong") for b in ("camp", "chay")):   # đã tới bước lên camp thì để chạy nốt
             with KHOA: pr = [p for (i, _), p in DANG.items() if i == d["id"]]
@@ -696,8 +724,8 @@ def vong():
         if t and t[0].is_alive(): continue
         if dang and t and time.time() - t[1] < CHO_LAI: continue   # bước đang "chờ": quay lại sau CHO_LAI giây
         # LƯỢT NẶNG trên iMac = bước cắt + bước creative AT (anh-tinh.py cũng tải tập + ffmpeg + Vision) → chung trần TRAN_CAT, kẻo 13 dòng AT xếp một lúc chạy đồng loạt
-        LOAI_DONG[d["id"]] = d.get("loai"); nang = lambda i, b: b == "cat" or (b == "creative" and LOAI_DONG.get(i) in TINH)
-        if nang(d["id"], ke) and not dang and sum(1 for (i, b), (th, _) in CHAY.items() if nang(i, b) and th.is_alive()) >= TRAN_CAT: continue
+        LOAI_DONG[d["id"]] = d.get("loai"); nang = lambda i, b: kieu_nang(i, b) is not None
+        if nang(d["id"], ke) and not dang and not khe_nang(d["id"], ke, cho_nang): continue
         if not dang:
             sql(f"update etp.dong_buoc set trang_thai = 'dang', bat_dau = now(), nhip = now(), lan = lan + 1, may = '{MAY}' where dong_id = {d['id']} and buoc = '{ke}' and trang_thai = 'cho'")
             bs.setdefault(ke, {})["lan"] = (bs.get(ke) or {}).get("lan", 0) + 1

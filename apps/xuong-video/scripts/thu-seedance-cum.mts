@@ -11,7 +11,7 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { boiCanhCanh, taoJob, xongJob } from '../src/lib/xuong-video/doc-db';
+import { boiCanhCanh, taoJob, xongJob, CD_LUC_SINH } from '../src/lib/xuong-video/doc-db';
 import { promptCumMoi, thamChieuCum, vaoTuCatThat, cauNgoaiCua, giayClipSeedance, kepVaoDoan } from '../src/lib/xuong-video/cum-shot';
 import { catThat } from '../src/lib/xuong-video/cat-that';
 import { giayPhat, chatLieuPhim, clip3dMoi } from '../src/lib/xuong-video/kieu';
@@ -160,7 +160,7 @@ for (;;) {
   for (const [i, x] of cum.entries()) {
     if (hong.has(x.canh.thu_tu)) { await db.execute(sql`UPDATE xv_canh SET video_url = NULL, loi = ${`cụm Seedance job ${job}: ${hong.get(x.canh.thu_tu)} — sinh lại`}, updated_at = now() WHERE id = ${x.canh.id}`); continue; }
     await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt, job, cum: ids, khung_dau: x.canh.keyframe_url, doan: doan[i],   // đoạn của shot trong clip (cú cắt đo) — canh miệng không dời lấn sang shot kế
-         ...(urlGiong && cauAm.some((c) => c.so === i + 1) ? { khop_moi: { cach: 'seedance_audio', giong: urlGiong }, ...ghiMieng(true, cg?.bao.split(' · ').find((b) => b.startsWith(`#${x.canh.thu_tu}:`)) ?? '') } : {}) })}::jsonb, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);
+         ...(urlGiong && cauAm.some((c) => c.so === i + 1) ? { khop_moi: { cach: 'seedance_audio', giong: urlGiong }, ...ghiMieng(true, cg?.bao.split(' · ').find((b) => b.startsWith(`#${x.canh.thu_tu}:`)) ?? '') } : {}) })}::jsonb || ${CD_LUC_SINH}, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);
     await ghiVaoToc(x.canh.id, v.vao[i]!, cg?.toc[i] ?? 1);
   }
   if (hong.size) console.log(`✗ KHÔNG GẮN: ${[...hong].map(([so, l]) => `#${so} ${l}`).join(' · ')} — vào lượt sinh sau`);

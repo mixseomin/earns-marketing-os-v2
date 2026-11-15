@@ -7,7 +7,7 @@
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { boiCanhCanh, taoJob, xongJob } from '../src/lib/xuong-video/doc-db';
+import { boiCanhCanh, taoJob, xongJob, CD_LUC_SINH } from '../src/lib/xuong-video/doc-db';
 import { khoiVideoCanh } from '../src/lib/xuong-video/sinh-video';
 import { ghep } from '../src/lib/xuong-video/prompt-khoi';
 import { uploadToR2 } from '../src/lib/r2';
@@ -57,7 +57,7 @@ for (;;) {
   const url = await uploadToR2(`xuong-video/clip/${canhId}-${randomUUID()}.mp4`, buf, 'video/mp4');
   if (!url) { await xongJob(db, job, { loi: 'đẩy kho hỏng' }); process.exit(1); }
   await xongJob(db, job, { output_url: url, chi_phi_cents: cents });
-  await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt, job, khung_dau: bc.canh.keyframe_url })}::jsonb, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${canhId}`);
+  await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt, job, khung_dau: bc.canh.keyframe_url })}::jsonb || ${CD_LUC_SINH}, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${canhId}`);
   await db.execute(sql`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${JSON.stringify(clip.vao)}::jsonb) WHERE id = ${canhId}`);
   console.log(`xong ${Math.round((Date.now() - t0) / 1000)}s · ${url} · ~${cents.toFixed(1)}¢`);
   process.exit(0);

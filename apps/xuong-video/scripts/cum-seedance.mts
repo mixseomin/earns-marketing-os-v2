@@ -22,7 +22,9 @@ const jobIds = ds.map((c) => Number((c.nguon_video as { job?: number } | null)?.
 const jobs = new Map(((jobIds.length ? await db.execute(sql`SELECT id, request FROM xv_job WHERE id = ANY(${`{${jobIds.join(',')}}`}::int[]) AND output_url IS NOT NULL`) : []) as unknown as Row[]).map((r) => [Number(r.id), JSON.stringify(r.request ?? {})]));
 // keyframe của CHÍNH shot lúc sinh: nguon_video.khung_dau (ghi khi gắn clip) — danh sách ảnh gửi đi (request.anh) bị trần 9 ảnh cắt bớt nên không dùng làm bằng chứng
 // (15/11/2026: cụm #2–7 thiếu keyframe #6 #7 trong request.anh, kế hoạch đòi sinh lại oan). Bản ghi cũ chưa có khung_dau → đọc request như trước.
-const conDung = (c: (typeof ds)[number]) => { const nv = c.nguon_video as { job?: number; khung_dau?: string } | null; const j = Number(nv?.job);
+const conDung = (c: (typeof ds)[number]) => { const nv = c.nguon_video as { job?: number; khung_dau?: string; cd?: string } | null; const j = Number(nv?.job);
+  // chuyển động máy lúc sinh khác chuyển động đang khai (doc-db.ts › CD_LUC_SINH) → clip cũ, sinh lại (#2–#4 phim #3071 còn cú đẩy vào sau khi đổi máy đứng)
+  if (nv?.cd && nv.cd !== (c.ky_thuat?.chuyen_dong || 'tinh')) return false;
   // khớp thoại (can-giong.ts › khopTheoTiengClip) báo không đạt → sinh lại
   if ((c.nguon_video as { mieng?: { dat?: boolean } } | null)?.mieng?.dat === false) return false;
   return !lai.has(c.thu_tu) && !!c.video_url && !!c.keyframe_url && (nv?.khung_dau ? nv.khung_dau === c.keyframe_url : !!jobs.get(j)?.includes(c.keyframe_url)); };

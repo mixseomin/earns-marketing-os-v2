@@ -32,7 +32,7 @@ import { sinhGiongShots } from './sinh-giong';
 import { type Canh, type TapHoSo, clip3dMoi, chatLieuPhim, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, lienCon, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, coTiengViet, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { cauKhongKhi } from './khan-gia';
 import { doiTayDo, cauDoiTayVideo, thieuCachThao } from './thao-do';
-import { boiCanhCanh, canhDaThayThe, taoJob, xongJob, mapJob, giaVideoSv, s, mapCanh, jobDangCho, type Db, type Row } from './doc-db';
+import { boiCanhCanh, canhDaThayThe, taoJob, xongJob, mapJob, giaVideoSv, s, mapCanh, jobDangCho, CD_LUC_SINH, type Db, type Row } from './doc-db';
 /** Khung hình sống (nhip-hinh.ts): clip AI hay đứng như ảnh — nhân vật làm hành động bằng cả thân, chuyển động phụ không ngừng. */
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
@@ -464,7 +464,7 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     } else {
       // Nháp: lưu NGUỒN để bản cuối tái lập đúng (model, prompt, khung đầu/cuối).
       const nguon = { model: s(req[0]?.model), prompt: rq.prompt ?? '', khung_dau: rq.khungDau ?? null, khung_cuoi: rq.khungCuoi ?? null, giay: rq.giay ?? null, job: r.id };
-      await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify(nguon)}::jsonb, trang_thai = 'xong', loi = '', chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${r.canh_id}`);
+      await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify(nguon)}::jsonb || ${CD_LUC_SINH}, trang_thai = 'xong', loi = '', chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${r.canh_id}`);
       // clip dựng từ clip 3D có đoạn dư đầu → điểm vào ghi bằng câu lệnh RIÊNG sau khi đổi clip: trigger xv_canh_doi_clip (0328) xoá vao_s khi đổi clip, kể cả khi
       // câu lệnh đổi clip đặt lại ĐÚNG giá trị cũ (coi trùng = cũ) — 14/11/2026 #3071 #1 mất vao_s hai lần. Câu riêng không đụng cột video → trigger không chạy.
       if (typeof rq.vaoNguon === 'number') await db.execute(sql`UPDATE xv_canh SET ky_thuat = jsonb_set(coalesce(ky_thuat, '{}'::jsonb), '{vao_s}', ${JSON.stringify(rq.vaoNguon)}::jsonb) WHERE id = ${r.canh_id}`);

@@ -218,3 +218,7 @@ export async function nguCanhPhimDb(db: Db, phimId: number): Promise<NguCanhPhim
     tap: tap.map((t) => ({ so: n(t.so), ten: s(t.ten), tom_tat: s(t.tom_tat), kich_ban: s(t.kich_ban) })),
   };
 }
+
+/** Phần ghi thêm vào nguon_video lúc gắn clip: CHUYỂN ĐỘNG MÁY lúc sinh (cd) — kế hoạch cụm (cum-seedance.mts) coi clip là cũ khi máy đã đổi (16/11/2026, phim #3071
+ *  #2–#4 còn cú đẩy vào sau khi luật nhịp hình đổi sang máy đứng). Dùng: nguon_video = <json>::jsonb || ${CD_LUC_SINH} trong cùng câu UPDATE xv_canh. */
+export const CD_LUC_SINH = sql`jsonb_build_object('cd', coalesce(nullif(ky_thuat->>'chuyen_dong', ''), 'tinh'))`;

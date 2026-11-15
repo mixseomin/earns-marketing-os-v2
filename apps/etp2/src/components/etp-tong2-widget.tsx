@@ -166,7 +166,11 @@ function ThanhPhoVe({ ds, nguoi, laNha, cao }: { ds: PhimThanhPho[]; nguoi: stri
   const [loc, setLoc0] = useState(''); useEffect(() => { const v = new URL(location.href).searchParams.get('loc_tp') ?? ''; if (LOC_TP.some((l) => l.ma === v)) setLoc0(v); }, []);
   const setLoc = (v: string) => { setLoc0(v); setChon(null); const u = new URL(location.href); if (v) u.searchParams.set('loc_tp', v); else u.searchParams.delete('loc_tp'); if (u.href !== location.href) history.replaceState(null, '', u); };
   const demLoc = useMemo(() => LOC_TP.map((l) => ds.filter(l.khop).length), [ds]);
-  const xep = useMemo(() => [...ds].filter((LOC_TP.find((l) => l.ma === loc) ?? LOC_TP[0]!).khop).map((x) => ({ x, k: capToa(x.camp) })).sort((a, b) => b.k.cap - a.k.cap || b.k.tinHieu - a.k.tinHieu || laiPhim(b.x) - laiPhim(a.x)).map((v) => v.x), [ds, loc]);
+  // LỌC = ẨN TOÀ, KHÔNG XẾP LẠI (anh 15/11/2026 #1602 "ko cắt gọn mà chỉ ẩn các toà ko liên quan... ko thay đổi cấu trúc city"): thành phố luôn dựng ĐỦ phim theo thứ tự đầy đủ
+  // (lô, khu, đường đứng nguyên chỗ) — lọc chỉ ẩn toà không khớp (an); số tóm tắt / chú giải đếm phim khớp lọc
+  const day = useMemo(() => [...ds].map((x) => ({ x, k: capToa(x.camp) })).sort((a, b) => b.k.cap - a.k.cap || b.k.tinHieu - a.k.tinHieu || laiPhim(b.x) - laiPhim(a.x)).map((v) => v.x), [ds]);
+  const xep = useMemo(() => day.filter((LOC_TP.find((l) => l.ma === loc) ?? LOC_TP[0]!).khop), [day, loc]);
+  const an = useMemo(() => { const co = new Set(xep.map((x) => x.p)); return new Set(day.filter((x) => !co.has(x.p)).map((x) => x.p)); }, [day, xep]);
   const demCap = useMemo(() => CAP.map((_, i) => xep.filter((x) => capToa(x.camp).cap === i).length), [xep]);
   const ph = xep.find((x) => x.p === chon) ?? null;
   const k = ph ? ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }) : null;
@@ -182,7 +186,7 @@ function ThanhPhoVe({ ds, nguoi, laNha, cao }: { ds: PhimThanhPho[]; nguoi: stri
         {' · '}7 ngày lãi <b style={{ color: k.thu >= k.chi ? XANH : DO }}>{tien(k.thu - k.chi)}</b>{k.chi >= 1 ? ` (${pct(Math.round((k.thu - k.chi) / k.chi * 100))})` : ''}</>
         : <span style={{ cursor: 'help' }} title={GIAI_CAP}><b style={{ color: 'var(--fg-1)' }}>{nguoi}</b> · {xep.length} phim · {tong} camp · {[...CAP].map((t, i) => ({ t, n: demCap[i]! })).reverse().filter((v) => v.n).map((v) => `${v.t} ${v.n}`).join(' · ')} · bấm một toà để xem</span>}
     </div>
-    <ThanhPho ds={xep} chon={chon} chonBo={chonBo} cao={Math.max(160, cao - 52)} onChon={(p, xy, bo) => { setChon(p); setChonBo(bo ?? null); if (p != null && xy) noi.moNgay({ id: p }, { clientX: xy.x, clientY: xy.y, currentTarget: null } as unknown as React.MouseEvent); else noi.dong(); }} />
+    <ThanhPho ds={day} an={an} chon={chon} chonBo={chonBo} cao={Math.max(160, cao - 52)} onChon={(p, xy, bo) => { setChon(p); setChonBo(bo ?? null); if (p != null && xy) noi.moNgay({ id: p }, { clientX: xy.x, clientY: xy.y, currentTarget: null } as unknown as React.MouseEvent); else noi.dong(); }} />
     {noi.v ? (() => { const x = ds.find((d) => d.p === noi.v!.id);
       // tháp một bộ của phim nhiều bộ → bảng Camps chỉ camp bộ đó, Thao tác chọn sẵn bộ đó (anh 15/11/2026)
       const nhieu = !!x && new Set(x.camp.map((c) => c.bo)).size > 1, boTen = chonBo ? x?.camp.find((c) => c.bo === chonBo)?.bo_ten : null;

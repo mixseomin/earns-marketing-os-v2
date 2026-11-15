@@ -35,7 +35,9 @@ if (tong > 15) { console.error(`cụm dài ${tong.toFixed(1)} s > 15 s (trần S
 const giayRa = Math.max(4, Math.ceil(tong));
 // MỘT SHOT NGẮN HƠN 4 s (sàn thời lượng Seedance, anh 15/11/2026): gửi NGUYÊN clip 3D của shot (có đoạn dư đầu / cuối clip.vao / clip.ra) — clip ra có phần đệm hai
 // đầu để cắt, điểm vào = clip.vao. Không cần clip nối từ iMac. Nhiều shot → clip 3D nối của cụm (--video-file, cum-seedance-tap.sh).
-const clip1 = cum.length === 1 && tong < 4 && cum[0]!.canh.khung_xam?.clip?.ma === cum[0]!.canh.khung_xam?.ma ? cum[0]!.canh.khung_xam!.clip! : null;
+// LUẬT 15/11/2026 (#6 phim #3071): có --video-file thì LUÔN dùng clip đã cắt đúng đoạn phát (shot bắt đầu ở giây 0). Clip nguyên có đoạn dư đầu 1,65 s im lặng
+// + đuôi trống → Seedance dồn câu thoại vào đuôi (tiếng ở 3,7–4,9 s, đoạn shot im). clip1 chỉ còn là đường dự phòng khi chạy tay không có tệp.
+const clip1 = !fileVideo && cum.length === 1 && tong < 4 && cum[0]!.canh.khung_xam?.clip?.ma === cum[0]!.canh.khung_xam?.ma ? cum[0]!.canh.khung_xam!.clip! : null;
 if (!clip1 && !fileVideo) { console.error('cần --video-file=<clip 3D nối của cụm> (cụm nhiều shot / shot ≥ 4 s)'); process.exit(1); }
 // KHỚP MÔI KHI SINH (khop-moi-cach.ts): cách 'seedance_audio' → gửi file giọng làm Audio 1, câu thoại đặt đúng mốc trong clip ra (mốc shot + trễ câu), kèm nguyên văn câu
 const nguoiNoi = [...new Set(cum.flatMap((x) => (x.canh.thoai ?? []).filter((d) => d.url && d.loi?.trim()).map((d) => d.nhan_vat)))];
@@ -73,7 +75,7 @@ function canhGiong(fClip: string, daiClip: number, vao: number[]): { vao: number
   if (!cauAm.length) return { vao, loi: vao.map(() => null), bao: '' };
   const tieng = pcm(fClip); const kq = cum.map((x, i) => {
     const cau = cauAm.filter((c) => c.so === i + 1); if (!cau.length) return { vao: vao[i]!, loi: null, lech: 0 };
-    const r = vaoSauCanh(vao[i]!, cau.map((c) => doLech(tieng, pcm(c.url), c.t)), daiClip, giayPhat(x.canh)); return r;
+    const r = vaoSauCanh(vao[i]!, cau.map((c) => doLech(tieng, pcm(c.url), c.t, daiClip))   // dò CẢ clip, không ±1,5 s: câu bị dời xa (#6: +3 s) mà dò hẹp thì bắt nhầm đỉnh, báo lệch sai, daiClip, giayPhat(x.canh)); return r;
   });
   return { vao: kq.map((r) => r.vao), loi: kq.map((r) => r.loi), bao: kq.map((r, i) => (cauAm.some((c) => c.so === i + 1) ? `#${cum[i]!.canh.thu_tu}: trễ ${r.lech}s → vào ${r.vao}${r.loi ? ` ✗ ${r.loi}` : ''}` : '')).filter(Boolean).join(' · ') };
 }

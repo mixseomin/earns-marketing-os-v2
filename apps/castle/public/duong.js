@@ -7,15 +7,20 @@
 export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao, vl, trongNha = null }) { // eslint-disable-line no-param-reassign
   const LAT = new Set(['footway', 'pedestrian', 'steps', 'service', 'residential', 'unclassified']); // đường lát / nhựa; còn lại (track, path) là đất
   const nhom = { nhua: [], dat: [], bac: [], tuong: [] }, dem = { duong: 0, bac: 0, m: 0 };
-  const dai = (v, w, y = (x, z) => cao(x, z) + 0.22) => { // nhô 0,22 m: lưới đất mịn chia ô 1,5 m chéo khác nội suy → đường 6 cm bị đất trùm mất trên dốc (đường lên cổng không thấy) // dải theo polyline, chia đoạn ≤ 2 m để bám đất
+  const dai = (v, w, y = (x, z) => cao(x, z) + 0.22) => { // eslint-disable-line prefer-const // nhô 0,22 m: lưới đất mịn chia ô 1,5 m chéo khác nội suy → đường 6 cm bị đất trùm mất trên dốc (đường lên cổng không thấy) // dải theo polyline, chia đoạn ≤ 2 m để bám đất
     const p = []; const pts = [];
     for (let i = 0; i + 1 < v.length; i++) { const [x1, z1] = v[i], [x2, z2] = v[i + 1], L = Math.hypot(x2 - x1, z2 - z1), n = Math.max(1, Math.ceil(L / 2)); for (let k = 0; k < n; k++) pts.push([x1 + (x2 - x1) * k / n, z1 + (z2 - z1) * k / n]); }
     pts.push(v[v.length - 1]);
+    // ĐOẠN TRONG NHÀ (đường xuyên cổng): trong nhà không có số đo đất (đất lấp nội suy → dốc 9 m trong 7 m) → độ cao nội suy đều giữa hai điểm ngoài nhà kề đó
+    const yT = pts.map(([x, z]) => cao(x, z)), trong = pts.map(([x, z]) => !!trongNha?.(x, z));
+    for (let i = 0; i < pts.length; i++) { if (!trong[i]) continue; let a = i; while (a >= 0 && trong[a]) a--; let b = i; while (b < pts.length && trong[b]) b++;
+      if (a >= 0 && b < pts.length) { const t = (i - a) / (b - a); yT[i] = yT[a] + (yT[b] - yT[a]) * t; } else if (a >= 0) yT[i] = yT[a]; else if (b < pts.length) yT[i] = yT[b]; }
     const ben = pts.map((q, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1; return [-dz / l * w / 2, dx / l * w / 2]; });
     let s = 0, uv = [];
     for (let i = 0; i + 1 < pts.length; i++) {
       const [x1, z1] = pts[i], [x2, z2] = pts[i + 1], [a1, b1] = ben[i], [a2, b2] = ben[i + 1], d = Math.hypot(x2 - x1, z2 - z1);
-      const A = [x1 + a1, y(x1 + a1, z1 + b1), z1 + b1], B = [x1 - a1, y(x1 - a1, z1 - b1), z1 - b1], C = [x2 + a2, y(x2 + a2, z2 + b2), z2 + b2], E = [x2 - a2, y(x2 - a2, z2 - b2), z2 - b2];
+      const h1 = (x, z) => (trong[i] ? yT[i] + 0.22 : y(x, z)), h2 = (x, z) => (trong[i + 1] ? yT[i + 1] + 0.22 : y(x, z)); // trong nhà: cả bề ngang theo độ cao tim đường đã nội suy
+      const A = [x1 + a1, h1(x1 + a1, z1 + b1), z1 + b1], B = [x1 - a1, h1(x1 - a1, z1 - b1), z1 - b1], C = [x2 + a2, h2(x2 + a2, z2 + b2), z2 + b2], E = [x2 - a2, h2(x2 - a2, z2 - b2), z2 - b2];
       p.push(...A, ...B, ...C, ...B, ...E, ...C); uv.push(0, s / 3, w / 3, s / 3, 0, (s + d) / 3, w / 3, s / 3, w / 3, (s + d) / 3, 0, (s + d) / 3); s += d;
     }
     dem.m += s;

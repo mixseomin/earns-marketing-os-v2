@@ -17,7 +17,7 @@ import { ganGopY, chupCanvas } from './gopy.js';
 import { taoCamUng, CHAM } from './camung.js';
 import { taoChieuAnh } from './chieuanh.js';
 import { datDuong } from './duong.js';
-import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, tiLeDung, datChop, oCum } from './mattien.js';
+import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, tiLeDung, datChop, oCum, datMai } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 
 const $ = (id) => document.getElementById(id);
@@ -38,6 +38,7 @@ const CUA_SO = await fetch(`./du-lieu/${ten}-cua-so.json`, { cache: 'no-cache' }
 const DAN_ANH = false;
 const MAT_ANH = DAN_ANH ? await fetch(`./du-lieu/${ten}-mat-anh.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})) : {};
 const DUONG = await fetch(`./du-lieu/${ten}-duong.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // đường + cầu thang OSM (scripts/tai-duong.mjs)
+const MAI = await fetch(`./du-lieu/${ten}-mai.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // cửa mái / chóp nhỏ đo trên ảnh 3D (scripts/do-mai.mjs)
 const NT = await fetch(`./du-lieu/${ten}-noi-that.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // nội thất (có thì dựng)
 for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [a, b] of Object.entries(SUA[k.id])) if (a !== 'ly_do') k.tags[a] = String(b); }
 
@@ -380,7 +381,8 @@ for (const k of dsKhoi) {
 const r1 = T.rngTu(5);
 const vlTu = (t, o = {}) => { for (const x of [t.map, t.bump]) x && x.wrapS && (x.wrapS = x.wrapT = THREE.RepeatWrapping); return new THREE.MeshStandardMaterial({ map: t.map, bumpMap: t.bump, bumpScale: o.bump ?? 1.5, roughness: o.ro ?? 0.85, side: THREE.DoubleSide, vertexColors: !!o.mau }); };
 // mặt tiền: vân TRƠN (matTron) — cửa sổ là hình 3D của mattien.js, không vẽ lên vân nữa
-const VL = { mong: vlTu(T.mongDa(r1), { bump: 3 }), mat: vlTu(T.matTron(r1), { mau: true }), da: vlTu(T.daVoi(r1), { mau: true }), mai: vlTu(T.daPhien(r1), { ro: 0.5, mau: true }) };
+const VL = { mong: vlTu(T.daVoi(T.rngTu(9)), { bump: 3 }), // móng / tường chắn: đá vôi sáng như ảnh thật (trước vân đá xám tối, anh 16/11/2026)
+   mat: vlTu(T.matTron(r1), { mau: true }), da: vlTu(T.daVoi(r1), { mau: true }), mai: vlTu(T.daPhien(r1), { ro: 0.5, mau: true }) };
 for (const [ten, G] of Object.entries(NHOM)) {
   if (!G.p.length) continue;
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(G.p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(G.uv, 2));
@@ -476,6 +478,13 @@ const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3
         for (let s = 0.9; s < L - 0.2; s += 0.9) { const v = new THREE.TorusGeometry(0.34, 0.06, 3, 6, Math.PI); dat(v, s, y1 - 0.75, 0.42); } // vòm nhỏ
       } }
     if (gs.length) { const m = new THREE.Mesh(mergeGeometries(gs), VL.da); m.receiveShadow = true; m.castShadow = !CHAM; scene.add(m); LOP_OSM.push(m); } }
+  // CỬA MÁI + CHÓP NHỎ dựng khối 3D theo số đo (bỏ khối có mái mô hình lệch ảnh 3D > 3 m: chỗ đó số đo không tin được); y lấy lại trên mặt mái mô hình
+  if (MAI?.khoi) { const ds = [];
+    for (const [id, cs] of Object.entries(MAI.khoi)) { const k = dsKhoi.find((q) => q.id === id); if (!k?.hinh?.[1]?.length) continue;
+      const tg = k.hinh[1], mai = (x, z) => { let y = null; for (let i = 0; i + 8 < tg.length; i += 9) { const [ax, ay, az, bx, by, bz, cx, cy, cz] = tg.slice(i, i + 9), d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz); if (Math.abs(d) < 1e-6) continue; const u = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / d, v = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / d, w = 1 - u - v; if (u < -1e-4 || v < -1e-4 || w < -1e-4) continue; const yy = u * ay + v * by + w * cy; if (y == null || yy > y) y = yy; } return y; };
+      for (const c of cs) { if (c.rong < 0.8 || c.rong > 6 || c.nho > 10) continue; const y = mai(c.x, c.z); if (y == null) continue; ds.push({ ...c, y: y - 0.2 }); } }
+    for (const m of datMai({ THREE, mergeGeometries, ds, nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
+    console.info('[ns] cửa mái / chóp trên mái (đo ảnh 3D):', ds.filter((c) => c.loai === 'cuaMai').length, '/', ds.filter((c) => c.loai === 'chop').length); }
   if (CHOP?.chop?.length) for (const m of datChop({ THREE, mergeGeometries, ds: CHOP.chop, nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
   console.info('[ns] mặt tiền chi tiết:', JSON.stringify({ ...dem, thapGoc: goc.length, chop: CHOP?.chop?.length || 0 }));
 }

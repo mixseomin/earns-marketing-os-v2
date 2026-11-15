@@ -279,3 +279,23 @@ export function datChop({ THREE, mergeGeometries, ds, nhe = false }) {
   const m = new THREE.Mesh(mergeGeometries(gs), new THREE.MeshStandardMaterial({ color: '#3d434c', roughness: 0.6, metalness: 0.15 })); m.castShadow = !nhe; m.receiveShadow = true;
   return [m];
 }
+
+// CỬA MÁI + CHÓP NHỎ TRÊN MÁI (du-lieu/<lâu>-mai.json, scripts/do-mai.mjs đo trên ảnh 3D): cửa mái = thân đá sáng nhô ra theo hướng mặt mái, mặt trước có cửa sổ vòm,
+// đầu hồi nhọn + mái đá phiến hai dốc; chóp = nón bát giác đá phiến + que. ds: [{ x, z, y, rong, nho, loai, huong }] → [Mesh]
+export function datMai({ THREE, mergeGeometries, ds, nhe = false }) {
+  const da = [], phien = [], toi = [], cb = (g) => { g = g.index ? g.toNonIndexed() : g; for (const a of Object.keys(g.attributes)) if (!['position', 'normal'].includes(a)) g.deleteAttribute(a); return g; };
+  for (const c of ds) {
+    const q = (g, x, y, z) => { g = cb(g); g.translate(x, y, z); g.rotateY(c.huong); g.translate(c.x, c.y, c.z); return g; };
+    if (c.loai === 'chop') { const h = Math.max(2, Math.min(9, c.nho)), r = Math.max(0.45, Math.min(1.4, c.rong / 2)); phien.push(q(new THREE.ConeGeometry(r, h, nhe ? 6 : 8), 0, h / 2, 0), q(new THREE.CylinderGeometry(0.02, 0.04, 0.9, 4), 0, h + 0.45, 0)); continue; }
+    const w = Math.max(1.2, Math.min(2.8, c.rong * 0.8)), h = Math.max(1.6, Math.min(3.4, c.nho + 0.4)), sau = 2.2, hv = h * 0.65; // thân: rộng w, cao tường hv, đầu hồi tới h
+    da.push(q(new THREE.BoxGeometry(w, hv, sau), 0, hv / 2 - 0.3, sau / 2 - 0.6));
+    const tg = new THREE.Shape([new THREE.Vector2(-w / 2, 0), new THREE.Vector2(w / 2, 0), new THREE.Vector2(0, h - hv)]), dh = new THREE.ExtrudeGeometry(tg, { depth: sau, bevelEnabled: false }); da.push(q(dh, 0, hv - 0.3, -0.6));
+    const L = Math.hypot(w / 2 + 0.15, h - hv); for (const k of [-1, 1]) { const g = new THREE.BoxGeometry(L, 0.12, sau + 0.3); g.rotateZ(k * Math.atan2(h - hv, w / 2 + 0.15) * -1); phien.push(q(g, k * (w / 4 + 0.04), hv - 0.3 + (h - hv) / 2 + 0.05, sau / 2 - 0.6)); }
+    const cw = w * 0.45, ch = hv * 0.7, sh = new THREE.Shape(); sh.moveTo(-cw / 2, 0); sh.lineTo(cw / 2, 0); sh.lineTo(cw / 2, ch - cw / 2); sh.absarc(0, ch - cw / 2, cw / 2, 0, Math.PI, false); sh.lineTo(-cw / 2, 0);
+    toi.push(q(new THREE.ShapeGeometry(sh, 6), 0, 0.05, sau - 0.59));
+  }
+  const ra = [], gop = (gs, vl) => { if (!gs.length) return; const m = new THREE.Mesh(mergeGeometries(gs), vl); m.castShadow = !nhe; m.receiveShadow = true; ra.push(m); };
+  gop(da, new THREE.MeshStandardMaterial({ color: '#e9e3d6', roughness: 0.85 })); gop(phien, new THREE.MeshStandardMaterial({ color: '#4b5058', roughness: 0.6, metalness: 0.1 }));
+  gop(toi, new THREE.MeshStandardMaterial({ color: '#7a4a2a', roughness: 0.5, side: THREE.DoubleSide }));
+  return ra;
+}

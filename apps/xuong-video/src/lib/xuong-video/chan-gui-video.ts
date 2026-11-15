@@ -22,6 +22,15 @@ export function loiPromptGui(prompt: string, o: { tiLe?: string | null; tenNhanV
 }
 
 /** Clip 3D tham chiếu phải là bản xuất SẠCH (xuat-clip.cjs › dungSach, cờ clip.sach) — clip cũ còn tia vàng thì xuất lại (clip-three-tap.sh). */
+/** THOẠI TRONG CÂU LỆNH (15/11/2026 phim #3071 #6: câu lệnh gửi đi có câu thoại HAI lần, một lần bị đổi chữ → model nói hai lần, không theo file giọng).
+ *  Mỗi câu thoại của cụm phải có NGUYÊN VĂN trong câu lệnh đúng số lần nó được nói (thường một): 0 lần = bị đổi chữ / rơi mất, nhiều hơn = model nói lặp. Thuần. */
+export function loiThoaiPrompt(prompt: string, cau: readonly string[]): string[] {
+  const gon = (c: string) => c.trim().replace(/["“”]/g, '').replace(/[.\s]+$/, '');
+  const can = new Map<string, number>(); for (const c of cau.map(gon).filter(Boolean)) can.set(c, (can.get(c) ?? 0) + 1);
+  return [...can].flatMap(([c, n]) => { const co = prompt.split(c).length - 1;
+    return co === n ? [] : [co < n ? `câu thoại «${c}» ${co ? `chỉ có ${co}/${n} lần` : 'không có nguyên văn'} trong câu lệnh (bị đổi chữ / rơi mất) — model sẽ nói khác file giọng` : `câu thoại «${c}» lặp ${co} lần trong câu lệnh (cần ${n}) — model nói lặp`]; });
+}
+
 export function loiClipThamChieu(ds: { so: number; clip?: { sach?: boolean } | null }[]): string[] {
   const cu = ds.filter((x) => x.clip && x.clip.sach !== true).map((x) => `#${x.so}`);
   return cu.length ? [`clip 3D tham chiếu ${cu.join(' ')} chưa phải bản xuất sạch (còn tia nhìn / dây đường đi) — chạy lại clip-three-tap.sh`] : [];

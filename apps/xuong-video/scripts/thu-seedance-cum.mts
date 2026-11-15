@@ -19,7 +19,7 @@ import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
 import { nhanNhin } from '../src/lib/xuong-video/prompt-khoi';
 import { duongAmLuong, doLech, vaoSauCanh, doanShot } from '../src/lib/xuong-video/can-giong';
 import { uploadToR2 } from '../src/lib/r2';
-import { loiPromptGui, loiClipThamChieu } from '../src/lib/xuong-video/chan-gui-video';
+import { loiPromptGui, loiClipThamChieu, loiThoaiPrompt } from '../src/lib/xuong-video/chan-gui-video';
 import { dangChongBau } from '../src/lib/xuong-video/bo-set-3d';
 
 const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
@@ -57,12 +57,20 @@ const tc = thamChieuCum(cum, 5);
 const kf = cum.map((x) => x.canh.keyframe_url!).slice(0, 9 - tc.anh.length);
 const anh = [...tc.anh, ...kf];
 const goiKf = kf.map((_, i) => `Reference image ${tc.anh.length + i + 1} is the exact look of shot ${i + 1} (its framing, drawing style and the people's clothes).`).join(' ');
-const than = promptCumMoi(cum, { tag: tc.tag, them: tc.them, giay: giayRa, tiLe: bcs[0]!.kt.ti_le });
-const cauGiong = guiGiong ? ` Audio 1 is the dialogue track — lip-sync to Audio 1: while Audio 1 has speech the speaker clearly opens the mouth and the lips visibly form every syllable, loud and expressive; the mouth is closed when Audio 1 is silent. ${cauAm.map((c) => `In shot ${c.so}, ${nhanNoi.get(c.ai) ?? 'the speaker'} speaks out loud and says: ${c.loi.replace(/["“”]/g, '')}.`).join(' ')}` : '';
-const prompt = `${tc.goi}. ${goiKf} Reference video 1 is a rough grey 3D blockout of this whole ${cum.length}-shot sequence with hard cuts: copy ONLY its cuts, camera angles, timing, where everyone stands and how they move — never its grey mannequin look; every shot must look like its reference image. ${than} ${cauNgoaiCua(cum.map((x) => x.canh))}${cauGiong}`.trim();
-console.log(`cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${tong.toFixed(1)} s → clip ${giayRa} s · ${model} ${dpg} · ${anh.length} ảnh · prompt ${prompt.length} ký tự`);
+// THỜI LƯỢNG NÓI THẬT (15/11/2026 #3071 #6): shot 2 s, clip 3D + giọng gửi đi 2 s mà câu lệnh ghi "Shot 1 (about 4 s)" (giãn cho đầy sàn 4 s của Seedance) —
+// model rải diễn xuất + câu thoại ra 4 s, bản dựng chỉ cắt 2 s. Câu lệnh ghi giây phát thật; phần clip dư (sàn 4 s / đuôi bù miệng) = giữ dáng cuối, im.
+const giayNoi = Math.ceil(tong); const giayGui = guiGiong ? giayRaGiong : giayRa;
+const cauDu = giayGui - giayNoi >= 1 ? ` The clip runs ${giayGui} s but the action above ends at about ${giayNoi} s: for the remaining time everyone just holds the final pose in the same framing — silent, mouths closed, no new action, no new line, no cut.` : '';
+const than = promptCumMoi(cum, { tag: tc.tag, them: tc.them, giay: giayNoi, tiLe: bcs[0]!.kt.ti_le });
+// Câu thoại nói MỘT lần trong câu lệnh: câu shot (promptCumMoi) đã có "<người> says: <câu>" thì ở đây không nhắc lại — nhắc hai lần model nói hai lần (#6: tiếng
+// ở 1,2 s và 2,6 s). Chỉ câu nào chưa có nguyên văn trong câu shot mới ghi thêm. Luật chặn: chan-gui-video.ts › loiThoaiPrompt.
+const cauThieu = cauAm.filter((c) => !than.includes(c.loi.replace(/["“”]/g, '').replace(/[.\s]+$/, '')));
+const cauGiong = guiGiong ? ` Audio 1 is the dialogue track: every spoken line above is exactly Audio 1, said once, at the moment Audio 1 has speech — lip-sync to Audio 1: while Audio 1 has speech the speaker clearly opens the mouth and the lips visibly form every syllable, loud and expressive; the mouth is closed when Audio 1 is silent.${cauThieu.map((c) => ` In shot ${c.so}, ${nhanNoi.get(c.ai) ?? 'the speaker'} speaks out loud and says: ${c.loi.replace(/["“”]/g, '')}.`).join('')}` : '';
+const prompt = `${tc.goi}. ${goiKf} Reference video 1 is a rough grey 3D blockout of this whole ${cum.length}-shot sequence with hard cuts: copy ONLY its cuts, camera angles, timing, where everyone stands and how they move — never its grey mannequin look; every shot must look like its reference image. ${than} ${cauNgoaiCua(cum.map((x) => x.canh))}${cauDu}${cauGiong}`.trim();
+console.log(`cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${tong.toFixed(1)} s → clip ${giayGui} s · ${model} ${dpg} · ${anh.length} ảnh · prompt ${prompt.length} ký tự`);
 // LUẬT CHẤM TRƯỚC KHI GỬI (chan-gui-video.ts — anh 14/11/2026): lỗi nào cũng chặn, không tốn tiền
 const loiGui = [...loiPromptGui(prompt, { tiLe: bcs[0]!.kt.ti_le, tenNhanVat: [...new Set(cum.flatMap((x) => x.nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten)))] }),
+  ...loiThoaiPrompt(prompt, cauAm.map((c) => c.loi)),
   ...loiClipThamChieu(cum.map((x) => ({ so: x.canh.thu_tu, clip: x.canh.khung_xam?.clip }))),
   ...Object.entries(dangChongBau(cum.map((x) => x.canh))).flatMap(([id, l]) => l.map((y) => `#${cum.find((x) => x.canh.id === Number(id))?.canh.thu_tu}: ${y}`))];
 // THIẾU GIỌNG (luật 15/11/2026: #6 sinh không kèm giọng → miệng không theo câu): shot có câu thoại có file giọng mà lượt này không gửi giọng → chặn

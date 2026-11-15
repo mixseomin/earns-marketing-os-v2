@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/chan-gui-video.test.mts — mỗi ca là một lỗi thật ở phim #3071 (14/11/2026)
 import assert from 'node:assert';
-import { loiPromptGui, loiClipThamChieu, boLoiThoai } from './chan-gui-video';
+import { loiPromptGui, loiClipThamChieu, boLoiThoai, loiThoaiPrompt } from './chan-gui-video';
 import { dangChongBau } from './bo-set-3d';
 
 const sach = 'A 10-second, 6-shot widescreen film sequence. Shot 1 (about 2 s): the man in the t-shirt says: Nhóc, lại đây!. Shot 2: the boy looks up. Keep it subtitle-free.';
@@ -12,6 +12,11 @@ assert.ok(loiPromptGui('Reference image 1 is Chú; Reference image 2 is Nhóc.',
 assert.ok(loiPromptGui('Shot 1: Chú dặn tận mặt thằng bé, rõ chữ.', { tenNhanVat: [] }).some((x) => x.includes('tiếng Việt')));
 assert.ok(loiPromptGui('A 8-second, 3-shot vertical film sequence.', { tiLe: '16:9' }).some((x) => x.includes('vertical')));
 assert.deepStrictEqual(loiPromptGui('A 8-second, 3-shot vertical film sequence.', { tiLe: '9:16' }), []);
+// thoại trong câu lệnh: đúng một lần → qua; bị đổi chữ (0 lần) / lặp hai lần → chặn; cùng câu nói hai lần trong cụm thì cần đúng hai
+assert.deepStrictEqual(loiThoaiPrompt('Shot 1: the man says: Chú cho cháu 5k. Keep it subtitle-free.', ['Chú cho cháu 5k.']), []);
+assert.ok(loiThoaiPrompt('Shot 1: the man says: the man in the t-shirt cho cháu 5k.', ['Chú cho cháu 5k.'])[0]!.includes('không có nguyên văn'));
+assert.ok(loiThoaiPrompt('the man says: Chú cho cháu 5k. In shot 1, the man says: Chú cho cháu 5k.', ['Chú cho cháu 5k.'])[0]!.includes('lặp 2 lần'));
+assert.deepStrictEqual(loiThoaiPrompt('a says: Ê!; then a says: Ê!.', ['Ê!', 'Ê!']), []);
 // clip 3D sạch
 assert.deepStrictEqual(loiClipThamChieu([{ so: 1, clip: { sach: true } }, { so: 2, clip: null }]), []);
 assert.ok(loiClipThamChieu([{ so: 7, clip: {} }])[0]!.includes('#7'));

@@ -108,7 +108,7 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
     if (chamLeo === 0) { // Space trước tường → vượt / bám; đang nhảy giữ W đâm tường → bám
       const hx = wl ? wx : Math.sin(huong), hz = wl ? wz : Math.cos(huong);
       if (demNhay > 0 && (nen || roiMep < VD.coyote) && thuBam(p, hx, hz)) { demNhay = 0; return; }
-      if (!nen && fz > 0 && vy < 3 && thuBam(p, Math.sin(huong), Math.cos(huong))) return;
+      if (!nen && roiMep > 0.3 && fz > 0 && vy < 3 && thuBam(p, Math.sin(huong), Math.cos(huong))) return; // chỉ khi đã ở trên không ≥ 0,3 s (nhảy thật) — bước bậc thang hở chân một tích tắc không tính
     }
     const v = (phim.KeyC ? VD.ngoi : phim.ShiftLeft || phim.ShiftRight ? VD.chay : VD.di) * Math.min(1, Math.hypot(fx, fz));
     let tocMuon = v;

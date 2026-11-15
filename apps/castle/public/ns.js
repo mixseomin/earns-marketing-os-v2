@@ -10,6 +10,7 @@ import * as T from './tex.js';
 import { napNguoi3d, taoNguoi3d } from './nguoi3d.js';
 import { taoDiBo } from './dibo.js';
 import { taoBanDo } from './bando.js';
+import { dungNoiThat } from './noithat.js';
 
 const $ = (id) => document.getElementById(id);
 const ten = new URLSearchParams(location.search).get('lau') || 'neuschwanstein';
@@ -17,6 +18,7 @@ const D = await (await fetch(`./du-lieu/${ten}.json`, { cache: 'no-cache' })).js
 // SỬA THEO ẢNH: số đo OSM lệch so với ảnh thật thì ghi phần chỉnh vào du-lieu/<ten>-sua.json ({ "way/…": { height, min_height, "roof:height", ly_do } }),
 // không sửa tệp số đo gốc — để biết khối nào là số OSM, khối nào đã chỉnh theo ảnh nào.
 const SUA = await fetch(`./du-lieu/${ten}-sua.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+const NT = await fetch(`./du-lieu/${ten}-noi-that.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // nội thất (có thì dựng)
 for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [a, b] of Object.entries(SUA[k.id])) if (a !== 'ly_do') k.tags[a] = String(b); }
 
 // ---------- cảnh
@@ -98,11 +100,54 @@ const tamGiac = (arr, ...p) => { for (const q of p) arr.push(...q); };
 // đáy cao nhất dưới vỏ nhà: phần tường dưới mặt đất cao nhất là MÓNG đá thô (dựng xuống tới chân vách), trên đó là mặt tiền
 const dinhDat = (v) => Math.max(...v.map(([x, z]) => caoDat(x, z))) - GOC_Y;
 for (const k of dsKhoi) if (k.vo) k.datCao = dinhDat(k.v);
+// ---- chuẩn bị nội thất: Palas + tháp cầu thang; vách giữa các khối OSM nằm TRONG Palas bị khoét ở dải tầng ba – tầng bốn (phòng theo bản vẽ
+// thay vào), mặt bắc tháp cầu thang khoét cửa vào sát mặt đất
+const kcDoan = (x, z, [x1, z1], [x2, z2]) => { const dx = x2 - x1, dz = z2 - z1, t = Math.max(0, Math.min(1, ((x - x1) * dx + (z - z1) * dz) / (dx * dx + dz * dz || 1))); return Math.hypot(x - x1 - dx * t, z - z1 - dz * t); };
+const kcVien = (x, z, v) => Math.min(...v.map((p, i) => kcDoan(x, z, p, v[(i + 1) % v.length])));
+const NOI = (() => {
+  if (!NT) return null;
+  const palas = dsKhoi.find((k) => k.vo && k.tags.name === NT.palas), thap = dsKhoi.find((k) => k.id === NT.thap);
+  if (!palas || !thap) return null;
+  for (const k of dsKhoi) if (k.la) { const [x, z] = tamDa(k.v); k.trongPalas = trongDa(x, z, palas.v); }
+  let tot = null; // cạnh bắc nhất của tháp = mặt cửa vào
+  thap.v.forEach((p, i) => { const q = thap.v[(i + 1) % thap.v.length], mz = (p[1] + q[1]) / 2; if (!tot || mz < tot.mz) tot = { i, mz }; });
+  const [a1, a2] = [thap.v[tot.i], thap.v[(tot.i + 1) % thap.v.length]], mx = (a1[0] + a2[0]) / 2, mz = (a1[1] + a2[1]) / 2;
+  const ra = trongDa(mx, mz - 1.5, thap.v) ? 1.5 : -1.5, yCua = caoDat(mx, mz - ra) - GOC_Y + 0.05;
+  const y3 = palas.day + NT.tang3;
+  return { palas, thap, canhCua: tot.i, yCua, ngoai: [mx, mz - 2.2], dai: [y3 - 0.3, y3 + NT.caoTang3 + 0.35 + NT.caoTang4 + 0.45] };
+})();
+// lỗ trên một cạnh tường: [{ s0, s1, y0, y1 }] theo mét dọc cạnh
+function loCanh(k, i, x1, z1, x2, z2) {
+  const lo = [], L = Math.hypot(x2 - x1, z2 - z1); if (!NOI) return lo;
+  if (k.trongPalas || k === NOI.thap) { const mx = (x1 + x2) / 2, mz = (z1 + z2) / 2; if (trongDa(mx, mz, NOI.palas.v) && kcVien(mx, mz, NOI.palas.v) > 0.6) lo.push({ s0: -1, s1: L + 1, y0: NOI.dai[0], y1: NOI.dai[1] }); }
+  if (k === NOI.thap && i === NOI.canhCua) lo.push({ s0: L / 2 - 0.95, s1: L / 2 + 0.95, y0: NOI.yCua - 0.5, y1: NOI.yCua + 2.7 });
+  if (k !== NOI.thap) { // tường khối khác chạy xuyên lòng tháp cầu thang → khoét suốt chiều cao thang (dò 48 điểm dọc cạnh)
+    let dau = null; const N = 48;
+    for (let j = 0; j <= N; j++) {
+      const t = j / N, trong = trongDa(x1 + (x2 - x1) * t, z1 + (z2 - z1) * t, NOI.thap.v);
+      if (trong && dau == null) dau = t; if ((!trong || j === N) && dau != null) { lo.push({ s0: dau * L - 0.3, s1: (trong ? 1 : t) * L + 0.3, y0: NOI.yCua - 0.5, y1: NOI.dai[1] }); dau = null; }
+    }
+  }
+  return lo;
+}
 for (const p of parts) { const [x, z] = tamDa(p.v); const vo = dsKhoi.find((k) => k.vo && trongDa(x, z, k.v)); p.datCao = vo ? vo.datCao : dinhDat(p.v); }
 
 // nhóm vật liệu: mong (móng đá thô) · mat (mặt tiền cửa sổ) · da (đá vôi trơn: nắp, răng cưa) · mai (đá phiến, pha màu mái OSM)
 function nhomMoi() { return { mong: { p: [], uv: [] }, mat: { p: [], uv: [], c: [] }, da: { p: [], uv: [], c: [] }, mai: { p: [], uv: [], c: [] } }; }
 // mảng tường dọc cạnh (x1,z1)→(x2,z2) từ ya lên yb, u theo mét dọc chu vi (cửa sổ liền mạch quanh khối), v theo mét từ mặt đất
+// tường từ ya lên yb có lỗ (cửa / dải nội thất): tách theo dọc cạnh tại mép lỗ, mỗi đoạn giữ các khoảng cao không bị lỗ che;
+// phần dưới yMong là móng đá thô, trên là mặt tiền
+function tuongCoLo(G, x1, z1, x2, z2, ya, yMong, yb, s0, k, mau, lo) {
+  if (!lo.length) { vachTuong(G.mong, x1, z1, x2, z2, ya, yMong, s0, k.day, 3); vachTuong(G.mat, x1, z1, x2, z2, yMong, yb, s0, yMong, 4, mau); return; }
+  const L = Math.hypot(x2 - x1, z2 - z1), ux = (x2 - x1) / L, uz = (z2 - z1) / L;
+  const moc = [...new Set([0, L, ...lo.flatMap((o) => [o.s0, o.s1]).filter((t) => t > 0 && t < L)])].sort((a, b) => a - b);
+  for (let i = 0; i + 1 < moc.length; i++) {
+    const a = moc[i], b = moc[i + 1], m = (a + b) / 2, che = lo.filter((o) => o.s0 <= m && o.s1 >= m).sort((p, q) => p.y0 - q.y0);
+    const tu = []; let y = ya; for (const o of che) { if (o.y0 > y) tu.push([y, Math.min(o.y0, yb)]); y = Math.max(y, o.y1); } if (y < yb) tu.push([y, yb]);
+    const [ax, az, bx, bz] = [x1 + ux * a, z1 + uz * a, x1 + ux * b, z1 + uz * b];
+    for (const [p, q] of tu) { if (q <= p) continue; vachTuong(G.mong, ax, az, bx, bz, p, Math.min(q, yMong), s0 + a, k.day, 3); vachTuong(G.mat, ax, az, bx, bz, Math.max(p, yMong), q, s0 + a, yMong, 4, mau); }
+  }
+}
 function vachTuong(G, x1, z1, x2, z2, ya, yb, s0, yRef, coi, mau) {
   if (yb - ya < 0.01) return; const L = Math.hypot(x2 - x1, z2 - z1), u0 = s0 / coi, u1 = (s0 + L) / coi, va = (ya - yRef) / coi, vb = (yb - yRef) / coi;
   G.p.push(x1, ya, z1, x2, ya, z2, x2, yb, z2, x1, ya, z1, x2, yb, z2, x1, yb, z1); G.uv.push(u0, va, u1, va, u1, vb, u0, va, u1, vb, u0, vb);
@@ -133,8 +178,7 @@ function dungKhoi(k, G) {
   let s0 = 0;
   for (let i = 0; i < v.length; i++) {
     const [x1, z1] = v[i], [x2, z2] = v[(i + 1) % v.length];
-    vachTuong(G.mong, x1, z1, x2, z2, y0, yMong, s0, k.day, 3);
-    vachTuong(G.mat, x1, z1, x2, z2, yMong, y1, s0, yMong, 4, mauT);
+    tuongCoLo(G, x1, z1, x2, z2, y0, yMong, y1, s0, k, mauT, loCanh(k, i, x1, z1, x2, z2));
     s0 += Math.hypot(x2 - x1, z2 - z1);
   }
   const napPhang = (y, arr) => { const sh = new THREE.Shape(v.map(([x, z]) => new THREE.Vector2(x, -z))); const g = new THREE.ShapeGeometry(sh); const p = g.toNonIndexed().attributes.position; for (let i = 0; i < p.count; i += 3) for (const j of [0, 2, 1]) arr.push(p.getX(i + j), y, -p.getY(i + j)); };
@@ -198,6 +242,21 @@ for (const [ten, G] of Object.entries(NHOM)) {
   const m = new THREE.Mesh(g, VL[ten]); m.castShadow = m.receiveShadow = true; scene.add(m);
 }
 
+// ---- NỘI THẤT Palas (noithat.js): sàn, phòng theo bản vẽ, cầu thang xoắn, đồ đạc, đèn chùm
+let noiThat = null;
+if (NOI) {
+  const veCanvas = (ve) => { const c = document.createElement('canvas'); c.width = c.height = 512; ve(c.getContext('2d')); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
+  NT._vanKham = veCanvas((g) => { // sàn khảm phòng ngai vàng: vòng tròn đồng tâm + hoa văn (phỏng dựng)
+    g.fillStyle = '#d8cfb8'; g.fillRect(0, 0, 512, 512);
+    for (let r = 250; r > 10; r -= 22) { g.strokeStyle = r % 44 ? '#7a5a2a' : '#2a4a7a'; g.lineWidth = 7; g.beginPath(); g.arc(256, 256, r, 0, 7); g.stroke(); }
+    for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2; g.fillStyle = i % 2 ? '#8a2a2a' : '#c9a24a'; g.beginPath(); g.arc(256 + Math.cos(a) * 180, 256 + Math.sin(a) * 180, 12, 0, 7); g.fill(); }
+  });
+  NT._vanKham.repeat.set(1, 1);
+  const vanTran = veCanvas((g) => { g.fillStyle = '#1e3a7a'; g.fillRect(0, 0, 512, 512); g.fillStyle = '#f0d070'; for (let i = 0; i < 160; i++) { const x = (i * 97) % 512, y = (i * 173) % 512; g.beginPath(); g.arc(x, y, 3 + (i % 3), 0, 7); g.fill(); } });
+  vanTran.repeat.set(3, 3);
+  const vanSan = T.van(T.rngTu(9)).map; vanSan.repeat?.set(1, 1);
+  noiThat = dungNoiThat({ RAPIER, world, tinh, scene, NT, yDay: NOI.palas.day, vienPalas: NOI.palas.v, thapV: NOI.thap.v, yCua: NOI.yCua, vanSan, vanTran });
+}
 const RUNG = []; // ẩn khi so ảnh thật (cây mọc ở mép vực che tầm nhìn từ cầu Marienbrücke; so ảnh chỉ đối chiếu lâu đài)
 // ---------- rừng: vân sam (thân + tán nón) vẽ hàng loạt; chừa nhà (+6 m), vách dốc, mép lưới
 {
@@ -257,11 +316,13 @@ const K = (...k) => k.map((x) => `<kbd>${x}</kbd>`).join(''), dg = (a, b) => `<d
 let khoaHd = '', lucHd = 0;
 function capNhatHd(now) {
   if (now - lucHd < 250) return; lucHd = now;
-  const c = dangSo ? 'so' : di ? di.nguCanh() : 'toan'; if (c === khoaHd) return; khoaHd = c;
+  const c = dangSo ? 'so' : di ? di.nguCanh() : 'toan', pv = di?.dang && noiThat ? di.viTri() : null, phong = pv ? noiThat.phongTai(pv.x, pv.y - 0.9, pv.z) : null;
+  const khoa = c + (phong?.so || ''); if (khoa === khoaHd) return; khoaHd = khoa;
   const xoay = dg('giữ chuột + kéo', 'xoay camera') + dg(K('Z', 'X'), 'xoay trái / phải') + dg(K('V'), 'góc nhìn sau lưng / mắt') + dg(K('Esc'), 'về toàn cảnh');
   $('hd').innerHTML = c === 'so' ? '' : c === 'toan' ? '<b>Toàn cảnh</b>' + dg('kéo chuột', 'xoay') + dg('lăn chuột', 'phóng to / nhỏ') + dg('nhấp đúp', 'xuống đi bộ tại đó') + dg('🚶 Đi bộ', 'vào ở cổng Torbau')
     : c === 'leo' ? '<b>Đang leo</b>' + dg(K('W', 'S'), 'lên / xuống') + dg(K('A', 'D'), 'ngang theo tường') + dg(K('W') + ' tới mép', 'tự đu lên') + dg(K('Space'), 'bật ra') + xoay
     : '<b>Đi bộ</b>' + dg(K('W', 'A', 'S', 'D'), 'đi theo hướng camera') + dg(K('Shift'), 'chạy') + dg(K('Space'), 'nhảy') + dg(K('C') + ' giữ', 'ngồi xổm')
+      + (phong ? `<b>Ở đây</b><div class="d"><span>📍 ${phong.ten}</span><span>tầng ${phong.tang} · phỏng dựng theo mặt bằng</span></div>` : '')
       + (c === 'tuong' ? '<b>Ở đây</b>' + dg(K('Space'), 'tường thấp: trèo qua · cao: bám leo') : '') + xoay;
   $('hd').style.display = c === 'so' ? 'none' : '';
 }
@@ -273,6 +334,7 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
   const dt = Math.min(dongHo.getDelta(), 0.1);
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
   else if (!dangSo) orbit.update(); // chế độ so ảnh: camera do thông số ảnh quyết
+  if (noiThat) { const p = di?.dang ? di.viTri() : null; noiThat.hien(!!p && Math.hypot(p.x - noiThat.tam[0], p.z - noiThat.tam[1]) < 75); }
   capNhatHd(now); veBanDoNS(now);
   renderer.render(scene, camera);
 }
@@ -337,8 +399,9 @@ const CAU = [[47.554991, 10.7492138], [47.5549237, 10.7495946]].map(([la, ln]) =
   }
 }
 // ---------- BẢN ĐỒ + DI CHUYỂN NHANH (bando.js dùng chung): khối nhà OSM, rừng, cầu; bấm vào đâu là tới đó
-function diNhanhNS(x, z) {
+function diNhanhNS(x, z, yTang) {
   if (!di) return false; if (dangSo) tatSo();
+  if (yTang != null) { const h = di.dang ? di.huong : 0; if (!di.dang) di.vao(x, yTang + 0.05, z, h); else di.datCho({ x, y: yTang + 1.0, z }, h - Math.PI, -0.1, h); return true; } // vào thẳng trong nhà
   const doY = (xx, zz) => { const h = world.castRay(new RAPIER.Ray({ x: xx, y: 900, z: zz }, { x: 0, y: -1, z: 0 }), 3000, true); return h ? 900 - h.timeOfImpact : null; };
   let tot = null; // trúng mái nhà thì dò vòng quanh tới 14 m tìm mặt đất / mặt cầu
   for (let r = 0; r <= 14 && !tot; r += 1) for (let a = 0; a < Math.PI * 2 && !tot; a += r ? 0.6 / r + 0.2 : 7) {
@@ -353,7 +416,7 @@ const sanTrong = D.khoi.find((k) => k.tags.building === 'courtyard');
 const tamSan = sanTrong ? tamDa(sanTrong.ngoai[0]) : [0, 0];
 const banDoNS = taoBanDo($('bd'), {
   phamVi: [110, 320], tam: [0, 60], khiChon: diNhanhNS,
-  diem: [['🚪 Cổng Torbau', (torbau ? Math.max(...torbau.v.map((p) => p[0])) : 30) + 10, torbau ? tamDa(torbau.v)[1] : 0], ['🏰 Sân trong', tamSan[0], tamSan[1]], ['🌉 Cầu Marienbrücke', (CAU[0][0] + CAU[1][0]) / 2, (CAU[0][1] + CAU[1][1]) / 2]],
+  diem: [['🚪 Cổng Torbau', (torbau ? Math.max(...torbau.v.map((p) => p[0])) : 30) + 10, torbau ? tamDa(torbau.v)[1] : 0], ['🏰 Sân trong', tamSan[0], tamSan[1]], ['🌉 Cầu Marienbrücke', (CAU[0][0] + CAU[1][0]) / 2, (CAU[0][1] + CAU[1][1]) / 2], ...(NOI ? [['🚪 Lối vào Palas', NOI.ngoai[0], NOI.ngoai[1]]] : []), ...(noiThat ? noiThat.diem : [])],
   veNen(g, S, p, k) {
     g.fillStyle = '#3f5a33'; g.fillRect(0, 0, S, S);
     for (const kk of dsKhoi) { if (kk.vo && kk.coPart) continue; g.fillStyle = kk.tags.name === 'Torbau' ? '#b5523a' : '#d8d0c0'; g.beginPath(); kk.v.forEach(([x, z], i) => { const [a, b] = p(x, z); i ? g.lineTo(a, b) : g.moveTo(a, b); }); g.closePath(); g.fill(); }
@@ -368,6 +431,6 @@ function veBanDoNS(now) {
   const p = di?.dang ? di.viTri() : { x: orbit.target.x, z: orbit.target.z };
   banDoNS.ve(p, di?.dang ? di.huong : Math.atan2(camera.position.x - orbit.target.x, camera.position.z - orbit.target.z) + Math.PI, []);
 }
-window.__ns.diNhanh = diNhanhNS;
+window.__ns.diNhanh = diNhanhNS; window.__ns.noiThat = noiThat; window.__ns.NOI = NOI;
 world.step(); // cập nhật bộ dò tia sau khi dựng xong mọi va chạm (chưa bước nào thì castRay không thấy gì → di chuyển nhanh từ toàn cảnh hỏng)
 ve();

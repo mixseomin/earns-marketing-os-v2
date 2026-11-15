@@ -28,7 +28,7 @@ export function taoBanDo(el, d) {
     e.stopPropagation();
     const nut = e.target.closest('button');
     if (nut?.classList.contains('bd-dong')) return to(false);
-    if (nut?.dataset.i != null) { const [, x, z] = d.diem[+nut.dataset.i]; d.khiChon?.(x, z); return to(false); }
+    if (nut?.dataset.i != null) { const [, x, z, y] = d.diem[+nut.dataset.i]; d.khiChon?.(x, z, y); return to(false); } // điểm có y = đi thẳng vào trong nhà (tầng)
     if (!lon) return to(true);
     if (e.target !== cv) return;
     const r = cv.getBoundingClientRect(), S = cv.width, [x, z] = raThe((e.clientX - r.left) * S / r.width, (e.clientY - r.top) * S / r.height, S);

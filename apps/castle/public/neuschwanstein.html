@@ -45,7 +45,7 @@
 <div id="dau" class="o">
   <b>Neuschwanstein</b> · dựng từ số đo thật
   <div class="mo" id="tt">Đang tải số đo…</div>
-  <div class="mo">Mặt bằng, chiều cao và kiểu mái lấy từ OpenStreetMap (chỉnh theo ảnh thật), địa hình EU-DEM 25 m. Cửa sổ, đá, mái là vân dựng bằng mã; chưa có nội thất.</div>
+  <div class="mo">Mặt bằng, chiều cao và kiểu mái lấy từ OpenStreetMap (chỉnh theo ảnh thật), địa hình EU-DEM 25 m. Cửa sổ, đá, mái là vân dựng bằng mã. Nội thất Palas tầng ba + Phòng hát theo mặt bằng Commons (CC BY 3.0, PodracerHH), đồ đạc phỏng dựng.</div>
   <div class="mo">Kéo chuột để xoay · lăn để phóng · chuột phải kéo để dời.</div>
   <a class="ve" href="./">← Lâu đài dung nham</a>
 </div>
@@ -65,7 +65,7 @@
 <script>
 // cùng cách nạp theo dấu phiên bản như index.html (Cloudflare zone on.tc giữ .js 30 ngày): hỏi ETag rồi nạp ./x.js?v=<ETag>
 (async () => {
-  const TEP = ['ns.js', 'tex.js', 'nguoi3d.js', 'dibo.js', 'bando.js'];
+  const TEP = ['ns.js', 'tex.js', 'nguoi3d.js', 'dibo.js', 'bando.js', 'noithat.js'];
   const lay = (f) => fetch(`./${f}?ban=${Date.now()}`, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' })
     .then((r) => (r.ok && (r.headers.get('etag') || r.headers.get('last-modified')) || '').replace(/[^\w-]/g, '')).catch(() => '');
   const dau = await Promise.all(TEP.map(lay));

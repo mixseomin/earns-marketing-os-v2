@@ -912,11 +912,19 @@ export function nguoiNoiKhongThayMat(c: { may_3d?: May3d | null } & Partial<Pick
   if (!m) return [`NGƯỜI NÓI: shot có thoại (${noi.join(', ')}) mà chưa có máy ảo 3D để đo mặt người nói`];
   const ct = new Set(chuThe(m).map((t) => t.trim().toLowerCase()));
   return noi.flatMap((t) => {
-    const v = m.vi_tri.find((x) => x.ten.trim().toLowerCase() === t.toLowerCase() && !x.an);
-    if (!v || !ct.has(t.toLowerCase())) return [`NGƯỜI NÓI: ${t} nói mà không có trong khung — cắt sang cận riêng của ${t} lúc nói (shot / reverse shot), hoặc khai ngoai_mat nếu cố ý nói ngoài khung`];
-    const a = huongVoiMay(m, v), b = o.khungMo ? null : huongVoiMay(m, v, true); const ng = ['ws', 'ews', 'two'].includes(o.coCanh ?? '') ? 100 : 80;
-    return a && a.lech > ng && (!b || b.lech > ng) ? [`NGƯỜI NÓI: máy không thấy mặt ${t} lúc nói (lệch ${a.lech}°) — đặt máy trước mặt ${t} (tầm mắt người đối diện / qua vai)`] : [];
+    const r = matNguoiNoi(m, t, o);
+    if (r?.vi === 'ngoai_khung') return [`NGƯỜI NÓI: ${t} nói mà không có trong khung — cắt sang cận riêng của ${t} lúc nói (shot / reverse shot), hoặc khai ngoai_mat nếu cố ý nói ngoài khung`];
+    return r?.vi === 'khuat' ? [`NGƯỜI NÓI: máy không thấy mặt ${t} lúc nói (lệch ${r.lech}°) — đặt máy trước mặt ${t} (tầm mắt người đối diện / qua vai)`] : [];
   });
+}
+/** MẶT NGƯỜI NÓI có thấy trong khung không (một chỗ đo cho cổng người nói ở trên và cho khớp thoại sau sinh — thu-seedance-cum.mts: không thấy miệng thì không
+ *  khớp miệng, 16/11/2026 #18 phim #3071 thằng bé quay lưng chạy, câu 0,3 s bị chặn "nói lặp" vì tiếng chân). null = thấy mặt. */
+export function matNguoiNoi(m: May3d, ten: string, o: { khungMo?: boolean; coCanh?: string } = {}): { vi: 'ngoai_khung' | 'khuat'; lech?: number } | null {
+  const t = ten.trim().toLowerCase(); const ct = new Set(chuThe(m).map((x) => x.trim().toLowerCase()));
+  const v = m.vi_tri.find((x) => x.ten.trim().toLowerCase() === t && !x.an);
+  if (!v || !ct.has(t)) return { vi: 'ngoai_khung' };
+  const a = huongVoiMay(m, v), b = o.khungMo ? null : huongVoiMay(m, v, true); const ng = ['ws', 'ews', 'two'].includes(o.coCanh ?? '') ? 100 : 80;
+  return a && a.lech > ng && (!b || b.lech > ng) ? { vi: 'khuat', lech: a.lech } : null;
 }
 /** Cỡ cảnh RỘNG (toàn / viễn) — thoại đặt ở đây thì mặt người nói quá nhỏ để đọc cảm xúc. */
 export const CO_RONG = new Set(['ws', 'ews', 'els', 'ls', 'toan']);

@@ -20,7 +20,7 @@ import { nhanNhin } from '../src/lib/xuong-video/prompt-khoi';
 import { duongAmLuong, khopTheoTiengClip, doanShot } from '../src/lib/xuong-video/can-giong';
 import { uploadToR2 } from '../src/lib/r2';
 import { loiPromptGui, loiClipThamChieu, loiThoaiPrompt, loiShotPrompt, loiAnhCum, loiThoaiCuoiCum, loiVideoThamChieu } from '../src/lib/xuong-video/chan-gui-video';
-import { dangChongBau } from '../src/lib/xuong-video/bo-set-3d';
+import { dangChongBau, matNguoiNoi, CO_RONG } from '../src/lib/xuong-video/bo-set-3d';
 
 const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
 const ids = arg('canh').split(',').map(Number).filter(Boolean); const fileVideo = arg('video-file'); const dpg = arg('dpg', '480p') as '480p' | '720p';
@@ -89,7 +89,9 @@ const pcm = (u: string) => { if (!coTieng(u)) return new Float32Array(0); const 
 function khopThoai(fClip: string, vao: number[], doan: [number, number][]): { vao: number[]; toc: number[]; loi: (string | null)[]; bao: string } {
   if (!cauAm.length) return { vao, toc: vao.map(() => 1), loi: vao.map(() => null), bao: '' };
   const tieng = pcm(fClip); const kq = cum.map((x, i) => {
-    const cau = cauAm.filter((c) => c.so === i + 1); if (!cau.length) return { vao: vao[i]!, toc: 1, loi: null, noi: null };
+    // không thấy miệng người nói (quay lưng / ngoài khung / cỡ quá rộng — bo-set-3d.ts › matNguoiNoi, CO_RONG) thì không khớp miệng: giọng đặt theo trễ câu, điểm vào đầu đoạn
+    const thayMieng = (ai: string) => !x.canh.may_3d || (!CO_RONG.has(x.canh.ky_thuat?.co_canh ?? '') && !matNguoiNoi(x.canh.may_3d, ai, { coCanh: x.canh.ky_thuat?.co_canh }));
+    const cau = cauAm.filter((c) => c.so === i + 1 && thayMieng(c.ai)); if (!cau.length) return { vao: vao[i]!, toc: 1, loi: null, noi: null };
     return khopTheoTiengClip({ clip: tieng, doan: doan[i]!, phat: giayPhat(x.canh), cau: cau.map((c) => ({ giong: pcm(c.url), tre: c.tre })) });
   });
   return { vao: kq.map((r) => r.vao), toc: kq.map((r) => r.toc), loi: kq.map((r) => r.loi), bao: kq.map((r, i) => (cauAm.some((c) => c.so === i + 1) ? `#${cum[i]!.canh.thu_tu}: clip nói ${r.noi ? `${r.noi.bd}–${r.noi.kt} s` : '—'} → vào ${r.vao}${r.toc !== 1 ? ` · tốc ×${r.toc}` : ''}${r.loi ? ` ✗ ${r.loi}` : ''}` : '')).filter(Boolean).join(' · ') };

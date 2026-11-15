@@ -88,6 +88,7 @@ không có rãnh tiếng), tiếng dài ngoài 0,75–1,4 lần câu (nói lặp
 | #6 lần 4 (job 8325) | miệng mở 0,6–2,0 s | 0,62 rồi 0,15 | vào 0,37 · tốc ×1,2 ✓ |
 | #6 lần 3 (job 8322, câu lệnh ghi câu thoại hai lần) | nói hai lần | – | chặn "nói lặp" ✓ |
 | #6 lần 2 (clip 3D nguyên, đuôi trống) | nói ở 3,7 s, đoạn shot im | – | chặn "lố khỏi đoạn" ✓ |
+| #10 lần 2 (job 8338, cụm B) | miệng mở 0,2–1,3 s | ngưỡng 30 %: đầu câu 0,4 s, vào 0,31 (trễ 0,2 s) | đầu câu 15 % / cuối 30 %: vào ~0,15 ✓ |
 | #8, #10 (cụm #8–10, sinh trước luật gửi giọng) | – | dời 0,0 / 0,13 | clip không có rãnh tiếng → sinh lại |
 
 Ba lần hỏng đầu của #6 là lỗi CÂU LỆNH, không phải model: đổi tên nhân vật "Chú" chạm vào câu thoại, câu thoại ghi hai lần, ghi "about 4 s" cho shot 2 s.

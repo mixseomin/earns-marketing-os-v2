@@ -33,14 +33,21 @@ export function doanShot(vaoCat: number[], daiClip: number, duoi = 0.45): [numbe
 }
 
 const LIEN = 5;   // ≥ 5 điểm liền (50 ms) trên ngưỡng mới tính là tiếng nói — bỏ tiếng tách / tiếng động lẻ
-/** Khoảng có tiếng nói trong [tu, den) (giây): ngưỡng = nền (phân vị 5 % — file giọng cắt gọn có ~86 % là tiếng nói, phân vị 20 % rơi vào tiếng) + 30 % (đỉnh − nền). Không có tiếng nói (đỉnh < 3 × nền + 1) → null. */
+/** Khoảng có tiếng nói trong [tu, den) (giây). Nền = phân vị 5 % (file giọng cắt gọn có ~86 % là tiếng nói, phân vị 20 % rơi vào tiếng). Không có tiếng nói (đỉnh < 3 × nền + 1) → null.
+ *  HAI NGƯỠNG (15/11/2026, đối chiếu mắt #4 #6 #10): ĐẦU câu = nền + 15 % (đỉnh − nền) — tiếng mở câu nhỏ (#10 job 8338: mở ~27 % đỉnh vì câu kết bằng tiếng hét
+ *  "nhé!", ngưỡng 30 % đo đầu câu 0,4 s trong khi miệng mở 0,2 s → điểm vào trễ 0,2 s); CUỐI câu = nền + 30 % — tiếng tắt dần, ngưỡng thấp kéo đuôi dài thêm 0,1 s
+ *  (#6: mắt 2,0 s, 15 % đo 2,1 s) làm tốc khớp sai. Cả hai cần ≥ 5 điểm liền (50 ms). */
 export function khoangNoi(a: Float32Array, tu = 0, den = a.length / DIEM_GIAY): { bd: number; kt: number } | null {
   const i0 = Math.max(0, Math.round(tu * DIEM_GIAY)), i1 = Math.min(a.length, Math.round(den * DIEM_GIAY)); if (i1 - i0 < LIEN) return null;
   const w = Array.from(a.subarray(i0, i1)); const xep = [...w].sort((p, q) => p - q);
   const nen = xep[Math.floor(xep.length * 0.05)]!, dinh = xep[xep.length - 1]!; if (dinh < 3 * nen + 1) return null;
-  const nguong = nen + 0.3 * (dinh - nen); let bd = -1, kt = -1, chay = 0;
-  for (let i = 0; i < w.length; i++) { if (w[i]! > nguong) { chay++; if (chay === LIEN && bd < 0) bd = i - LIEN + 1; if (chay >= LIEN) kt = i + 1; } else chay = 0; }
-  return bd < 0 ? null : { bd: +((i0 + bd) / DIEM_GIAY).toFixed(2), kt: +((i0 + kt) / DIEM_GIAY).toFixed(2) };
+  const chay = (nguong: number) => { let bd = -1, kt = -1, n = 0;
+    for (let i = 0; i < w.length; i++) { if (w[i]! > nguong) { n++; if (n === LIEN && bd < 0) bd = i - LIEN + 1; if (n >= LIEN) kt = i + 1; } else n = 0; }
+    return { bd, kt }; };
+  const cao = chay(nen + 0.3 * (dinh - nen)); if (cao.bd < 0) return null;
+  // đầu câu: lùi từ điểm vượt ngưỡng cao về trước khi còn trên ngưỡng thấp — chỉ trong CÙNG đoạn tiếng, tiếng động lẻ trước đó không kéo đầu câu lên sớm
+  const thap = nen + 0.15 * (dinh - nen); let bd = cao.bd; while (bd > 0 && w[bd - 1]! > thap) bd--;
+  return { bd: +((i0 + bd) / DIEM_GIAY).toFixed(2), kt: +((i0 + cao.kt) / DIEM_GIAY).toFixed(2) };
 }
 
 /** Điểm vào của MỘT shot theo tiếng clip. clip = âm lượng cả clip; doan = đoạn của shot (doanShot); cau = các câu của shot theo thứ tự (âm lượng file giọng + trễ câu). */

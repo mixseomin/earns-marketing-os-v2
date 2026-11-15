@@ -10,11 +10,11 @@ import { join } from 'node:path';
 const [RA, IS, TEN = 'Palas'] = doiSo; const I = +IS; if (!RA || !Number.isInteger(I)) { console.error('dùng: nan-mat.mjs <thư mục> <chỉ số ảnh> [tên khối]'); process.exit(1); }
 mkdirSync(RA, { recursive: true });
 const { pg, dong } = await moTrang({ anh3d: false, khung: { width: 1600, height: 1200 } });
-const kq = await pg.evaluate(async ([I, TEN]) => {
+const kq = await pg.evaluate(async ([I, TEN, PXM]) => {
   const n = window.__ns, T = n.THREE, A = n.ANH[I]; n.moSo(I); n.renderer.render(n.scene, n.camera);
   const im = new Image(); im.src = `./du-lieu/${A.tep}`; await im.decode();
   const cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight; const g = cv.getContext('2d'); g.drawImage(im, 0, 0); const D = g.getImageData(0, 0, cv.width, cv.height).data, W = cv.width, H = cv.height;
-  const PX = 8, cam = n.camera.position.clone(), rc = new T.Raycaster(), moHinh = n.LOP_OSM.filter((o) => o.visible !== false), ra = [];
+  const PX = PXM, cam = n.camera.position.clone(), rc = new T.Raycaster(), moHinh = n.LOP_OSM.filter((o) => o.visible !== false), ra = [];
   const kq = [];
   for (const t of n.TUONG_MT) {
     if (t.ten !== TEN) continue;
@@ -42,7 +42,7 @@ const kq = await pg.evaluate(async ([I, TEN]) => {
     }
   }
   return kq;
-}, [I, TEN]);
+}, [I, TEN, +(process.env.PX || 8)]); // PX=… điểm ảnh / mét
 await dong();
 const meta = kq.map((m, k) => { const tep = join(RA, `mat-${I}-${k}.png`); writeFileSync(tep, Buffer.from(m.anh.split(',')[1], 'base64')); const { anh, ...r } = m; return { ...r, tep }; });
 writeFileSync(join(RA, `mat-${I}.json`), JSON.stringify(meta, null, 1));

@@ -31,6 +31,7 @@ const MAT_BO = await fetch(`./du-lieu/${ten}-mat-palas-san.json`, { cache: 'no-c
 const NEN = await fetch(`./du-lieu/${ten}-nen.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const CHOP = await fetch(`./du-lieu/${ten}-chop.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // chóp / tháp nhỏ OSM không có (scripts/them-chop.mjs)
 const CUA_SO = await fetch(`./du-lieu/${ten}-cua-so.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})); // cửa sổ đo từ ảnh từng mặt (scripts/nan-google.mjs + do-cua-so.py)
+const MAT_ANH = await fetch(`./du-lieu/${ten}-mat-anh.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})); // ảnh dán mặt tường (scripts/nan-google.mjs PX=16 + dan-mat.py)
 const NT = await fetch(`./du-lieu/${ten}-noi-that.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // nội thất (có thì dựng)
 for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [a, b] of Object.entries(SUA[k.id])) if (a !== 'ly_do') k.tags[a] = String(b); }
 
@@ -361,11 +362,34 @@ const MAT_PALAS = (() => {
 const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3D) quanh lâu đài
 { // mặt tiền chi tiết: cửa sổ 3D + gờ tầng (một mặt tường bị khối khác áp vào ở tầng nào thì bỏ tầng đó)
   const biChe = (x, y, z) => dsKhoi.some((k) => k.yDuoi != null && y > k.yDuoi && y < k.yTren && trongDa(x, z, k.v));
-  const { ra, cua, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe, nhe: CHAM, cuaSo: CUA_SO,
+  const { ra, cua, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe, nhe: CHAM, cuaSo: CUA_SO, matAnh: MAT_ANH,
     matNgoai: (x, z, nx, nz) => { // mép sân OSM có chỗ cách chân tường vài mét → dò 2 / 5 / 8 m trước mặt tường; độ cao lấy ngay trước chân tường
       const san = !!SAN_TRONG && [2, 5, 8].some((d) => trongDa(x + nx * d, z + nz * d, SAN_TRONG)); return { san, yDat: matDat(x + nx * 1.5, z + nz * 1.5) }; } });
   for (const m of ra) { scene.add(m); LOP_OSM.push(m); }
   CUA.push(...cua);
+  // ẢNH DÁN MẶT TƯỜNG (LOD2 + ảnh mặt tiền): mỗi mặt có ảnh → một tấm phẳng sát ngoài tường, từ chân tường lên mái hiên mô hình (phần ảnh trên mái hiên bỏ),
+  // lỗ cửa mở được (dải phòng) khoét trong suốt trên ảnh để vẫn nhìn / trèo vào; ảnh tải nền, không chặn trang
+  (async () => {
+    const tl = new THREE.TextureLoader(), dem2 = { mat: 0 };
+    for (const t of TUONG_MT) for (let i = 0; i < t.v.length; i++) {
+      const a = MAT_ANH[`${t.k?.id}#${i}`]; if (!a) continue;
+      const [x1, z1] = t.v[i], [x2, z2] = t.v[(i + 1) % t.v.length], L = Math.hypot(x2 - x1, z2 - z1), ux = (x2 - x1) / L, uz = (z2 - z1) / L, nx = uz, nz = -ux;
+      const y0 = Math.max(t.yMong, a.y0), y1 = Math.min(t.y1, a.yTren); if (y1 - y0 < 1) continue;
+      let tx; try { tx = await tl.loadAsync(`./du-lieu/${a.tep}`); } catch (e) { console.warn('[ns] không tải được ảnh mặt', a.tep, e); continue; }
+      const lo = t.lo(i, x1, z1, x2, z2).filter((o) => o.cuaSo);
+      if (lo.length) { // khoét lỗ cửa mở được: vẽ ảnh lên canvas, xoá các ô
+        const c = document.createElement('canvas'), W = tx.image.width, H = tx.image.height; c.width = W; c.height = H; const g = c.getContext('2d'); g.drawImage(tx.image, 0, 0);
+        const ky = H / (a.yTren - a.y0), kx = W / a.L; for (const o of lo) g.clearRect(o.s0 * kx, (a.yTren - o.y1) * ky, (o.s1 - o.s0) * kx, (o.y1 - o.y0) * ky);
+        tx = new THREE.CanvasTexture(c);
+      }
+      tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4;
+      tx.repeat.set(1, (y1 - y0) / (a.yTren - a.y0)); tx.offset.set(0, (y0 - a.y0) / (a.yTren - a.y0));
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(L, y1 - y0), new THREE.MeshBasicMaterial({ map: tx, transparent: true, alphaTest: 0.5, toneMapped: false }));
+      m.position.set(x1 + ux * L / 2 + nx * 0.04, (y0 + y1) / 2, z1 + uz * L / 2 + nz * 0.04); m.rotation.y = Math.atan2(nx, nz);
+      m.visible = !LOP_OSM.dangAn; scene.add(m); LOP_OSM.push(m); dem2.mat++;
+    }
+    console.info('[ns] ảnh dán mặt tường:', dem2.mat, 'mặt');
+  })();
   // tháp góc treo trên con-xon (đánh dấu thap_goc trong tệp sửa theo ảnh): con-xon, gờ tầng, cửa sổ vòm nhỏ mặt ngoài, vành răng cưa
   const goc = dsKhoi.filter((k) => k.tags.thap_goc === 'yes' && k.yDuoi != null);
   const T = BO_MET?.thap, Y = (d) => MAI_SAN - d; // cao độ tuyệt đối từ số đo ảnh (mét dưới mái)

@@ -240,7 +240,10 @@ const main = async () => {
       const r = sinhKho(k.may, k.n); tien += r.vnd;
       if (r.loi || !r.so) { hong++; const l = `sinh kho ${k.may} hỏng: ${r.loi ?? `0/${r.xin} đề`}`; dongLuot(id, b, false, { vnd: r.vnd }, l); console.log(`✗ ${l}`); }
       else { const ghi = `kho còn ${k.con} → +${r.so}/${r.xin} đề video`; dongLuot(id, b, true, { vnd: r.vnd, ghi }); console.log(`✓ kho ${k.may}: ${ghi} · ${r.vnd}₫`); }
-    } catch (e) { hong++; const l = `sinh kho ${k.may} hỏng: ${String(e.message).split('\n')[0].slice(0, 200)}`; dongLuot(id, b, false, {}, l); console.log(`✗ ${l}`); }
+    } catch (e) {
+      // e.message dòng đầu chỉ là câu lệnh — nguyên nhân thật nằm ở mã thoát + đuôi stdout/stderr (lượt #42 14/11 mất hẳn lý do)
+      const duoi = String(e.stdout || e.stderr || '').trim().split('\n').slice(-4).join(' · ');
+      hong++; const l = `sinh kho ${k.may} hỏng (${e.signal ? `bị ngắt ${e.signal}` : `mã ${e.status}`}): ${(duoi || String(e.message).split('\n')[0]).slice(-500)}`; dongLuot(id, b, false, {}, l); console.log(`✗ ${l}`); }
   }
   if (kho.length) console.log(`cả lượt: ${tien}₫`);
   // nộp Phòng Nội dung chấm — máy đăng chỉ lấy bài DUYỆT

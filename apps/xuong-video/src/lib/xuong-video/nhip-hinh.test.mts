@@ -28,6 +28,7 @@ assert.ok(sauP.every((c) => mayHopGiay(c.ky_thuat.chuyen_dong, c.giay)) && ['15'
 const RS = [{ id: 1, thu_tu: 16, giay: 5.2, chu: ['Nhóc'], ky_thuat: { co_canh: 'cu', chuyen_dong: 'tinh' } }, { id: 2, thu_tu: 17, giay: 1.6, chu: ['Chú'], ky_thuat: { co_canh: 'cu', chuyen_dong: 'tinh' } }];
 assert.deepStrictEqual(kiemNhipHinh(RS), []); assert.deepStrictEqual(daDangMay(RS), []);
 assert.strictEqual(kiemNhipHinh(RS.map((c) => ({ ...c, chu: ['Chú'] }))).length, 1, 'cùng chủ thể vẫn tính trùng');
+assert.ok(!mayHopGiay('nghieng_len', 1.6) && mayHopGiay('zoom_gat', 1) && mayHopGiay('theo', 1.5));
 assert.ok(mayHopGiay('lia', 1.2) && !mayHopGiay('day_vao', 2.9) && mayHopGiay('day_vao', 3) && mayHopGiay('day_vao', null));
 // chuỗi ngắn (<5 shot) không xét tỉ lệ đứng yên; shot chưa chọn cỡ cảnh không tính trùng
 assert.deepStrictEqual(kiemNhipHinh([{ thu_tu: 1, ky_thuat: { co_canh: 'cu' } }, { thu_tu: 2, ky_thuat: { co_canh: 'ws' } }]), []);

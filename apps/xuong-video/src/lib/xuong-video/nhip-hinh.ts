@@ -15,7 +15,9 @@ const TINH = (k?: KyThuatShot) => !k?.chuyen_dong || k.chuyen_dong === 'tinh';
  *  anh: "hiệu ứng zoom in nhìn lởm"). Đẩy vào / lùi ra / zoom là creep chậm (dien-anh-nganh.ts: tốc 'cham') — shot dưới GIAY_MAY_TIEN giây để máy đứng.
  *  Shot ngắn như vậy KHÔNG tính vào trần shot đứng yên (cắt nhanh đã là nhịp, ép máy đi là ép zoom). Một luật cho cổng (kiemNhipHinh) + máy tự chọn (daDangMay, ngu-phap-may). */
 export const GIAY_MAY_TIEN = 3;
-const MAY_TIEN_LUI: readonly string[] = ['day_vao', 'lui_ra', 'zoom_cham', 'zoom_gat', 'dolly_zoom'];
+// Máy đi CHẬM tự thân (không bám theo chuyển động của người): cần thời gian mới đọc ra. Không gồm lia / theo (bám người đang đi — dài ngắn theo người),
+// cầm tay, quật / zoom giật (nhanh là bản chất), đổi nét. 16/11/2026: chỉ cấm đẩy vào thì luật đa dạng gán 'nghiêng lên' cho mặt chú đứng hình 1,6 s (#17).
+const MAY_TIEN_LUI: readonly string[] = ['day_vao', 'lui_ra', 'nghieng_len', 'truot_ngang', 'cau', 'cau_xuong', 'vong', 'zoom_cham', 'dolly_zoom', 'dan_truoc', 'xoay_truc', 'hyperlapse'];
 export const mayHopGiay = (cd: string | undefined, giay?: number | null): boolean => !(cd && MAY_TIEN_LUI.includes(cd) && giay != null && giay < GIAY_MAY_TIEN);
 const ngan = (c: { giay?: number | null }) => c.giay != null && c.giay < GIAY_MAY_TIEN;
 

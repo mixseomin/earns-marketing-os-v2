@@ -544,9 +544,11 @@ export function ThanhPho({ ds: ds0, an, chon: chonP, chonBo, onChon, cao }: { ds
       dk.current.tieuDiem(x.sang ? (thapSang[0] ?? v?.thap[0])?.ma ?? null : null); dk.current.ve(); };
     window.addEventListener('etp-toa', nghe); return () => window.removeEventListener('etp-toa', nghe);
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps
-  // LỌC = ẨN TOÀ (#1602): cảnh dựng đủ phim một lần; đổi lọc chỉ bật / tắt nhóm lô của phim (tháp, biển tên, khói / cần cẩu) — nền lô theo khu, sân lát (đã gộp vào cảnh), đường, công viên giữ nguyên, không dựng lại
+  // LỌC = ẨN TOÀ (#1602): cảnh dựng đủ phim một lần; đổi lọc chỉ bật / tắt tháp của phim (kèm khói / cần cẩu; tên phim trên nền sân giữ, #1617) — nền lô theo khu, sân lát (đã gộp vào cảnh), đường, công viên giữ nguyên, không dựng lại
   const anRef = useRef(an); anRef.current = an;
-  const anToa = () => { for (const [p, v] of vungRef.current) v.lg.visible = !anRef.current?.has(p); };
+  // ẩn THÁP chứ không ẩn cả lô (anh 15/11/2026 #1617 "ko hiện nhà thì cũng phải hiện tên phim chứ ?"): tên phim vẽ trên nền sân (bien0, con trực tiếp của lg) giữ nguyên;
+  // khói / cần cẩu / khối bấm / quầng sáng đều nằm trong nhóm tháp nên ẩn theo tháp, và hien() bỏ qua chúng khi rê / bấm
+  const anToa = () => { for (const [p, v] of vungRef.current) { const an0 = !!anRef.current?.has(p); for (const t of v.thap) t.g.visible = !an0; } };
   useEffect(() => { anToa(); dk.current.ve(); }, [an]);   // eslint-disable-line react-hooks/exhaustive-deps
   const { re, loi, dk } = useCanh3D(hop, (T, canh) => {
     const kho = new Map<string, import('three').CanvasTexture>(), vat: Vat[] = [], hoat: ((t: number) => void)[] = []; vungRef.current.clear(); boCuaMa.current.clear();

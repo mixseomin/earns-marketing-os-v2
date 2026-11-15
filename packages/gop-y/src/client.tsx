@@ -339,6 +339,9 @@ function docNguCanh(chonNgan: string, chonLoi: string): string {
   ].filter(Boolean).join(' · ');
 }
 
+// TRANG BỊ GÓP Ý: mặc định là chính trang này; hòm NHÚNG (mos2 /nhung/gop-y trong iframe trên trang tĩnh, vd castle.on.tc) khai
+// `window.__trangGopY = () => <url trang ngoài>` để card mang đúng trang người dùng đang đứng, không phải url iframe.
+const trangGopY = (): string => { try { return String((window as unknown as { __trangGopY?: () => string }).__trangGopY?.() || window.location.href); } catch { return window.location.href; } };
 function FormGopY({ onGui }: { onGui: (id: number, loai: string) => void }) {
   const c = useContext(Ctx)!; const KHOA = `${c.khoa}.gop-y.nhap`; const nc0 = () => docNguCanh(c.chonNgan, c.chonLoi);
   const [nhap, setNhap] = useState<Nhap>(TRANG_MOI);
@@ -348,15 +351,23 @@ function FormGopY({ onGui }: { onGui: (id: number, loai: string) => void }) {
   const [ket, setKet] = useState('');
   useEffect(() => {
     setNhap(docNhap(KHOA));
-    const doc = () => { setTrang(window.location.href); setNc(nc0()); };
+    const doc = () => { setTrang(trangGopY()); setNc(nc0()); };
     doc(); const t = setInterval(doc, 1000); return () => clearInterval(t);
   }, []);
   const ghi = (doi: (n: Nhap) => Nhap) => setNhap((cu) => { const n = doi(cu); ghiJsonLT(KHOA, n); return n; });
+  // ẢNH ĐƯA VÀO TỪ NGOÀI (hòm nhúng: trang tĩnh tự chụp khung hình canvas rồi chuyển vào): hàng chờ window.__anhGopY (ảnh tới trước khi form dựng) + sự kiện 'gop-y:anh'
+  useEffect(() => {
+    const them = (du: string) => { void c.hd.taiAnhGopY(du).then((r) => { if (r.ok && r.url) ghi((n) => ({ ...n, anh: [...n.anh, r.url!] })); else setKet(`⚠ Ảnh chụp trang không lên được: ${r.error || 'lỗi'}`); }); };
+    const w = window as unknown as { __anhGopY?: string[] };
+    for (const du of w.__anhGopY?.splice(0) ?? []) them(du);
+    const nghe = (e: Event) => { const du = (e as CustomEvent<string>).detail; if (typeof du === 'string' && du.startsWith('data:image/')) them(du); };
+    window.addEventListener('gop-y:anh', nghe); return () => window.removeEventListener('gop-y:anh', nghe);
+  }, []);
   const xoaNhap = () => { for (const u of nhap.anh) void c.hd.xoaAnhGopY?.(u); ghi(() => TRANG_MOI); ghiLT(KHOA, null); };
   const gui = async () => {
     setBusy(true); setKet('');
     let r: Awaited<ReturnType<HanhDongGopY['guiGopY']>>;
-    try { r = await c.hd.guiGopY({ loai: nhap.loai, noiDung: nhap.noiDung, trang: window.location.href, anhUrls: nhap.anh, nguCanh: nc0() }); }
+    try { r = await c.hd.guiGopY({ loai: nhap.loai, noiDung: nhap.noiDung, trang: trangGopY(), anhUrls: nhap.anh, nguCanh: nc0() }); }
     catch (e) { setBusy(false); setKet(`⚠ Chưa gửi được (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'}) — nếu trang vừa cập nhật, bấm ↻ Tải lại rồi gửi lại; nháp vẫn giữ.`); return; }
     setBusy(false);
     if (!r.ok || !r.id) { setKet(`⚠ ${r.error}`); return; }
@@ -515,6 +526,9 @@ export function HomGopY(p: CauHinhHom) {
   const hoi = ds?.filter((b) => b.loai === 'cau_hoi') ?? null;
   const hoiCoTraLoi = hoi?.filter((b) => b.soTin > 0 && !DA_DONG.has(nhomTT(b.trangThai))).length ?? 0;
   const daGui = (id: number) => { setVuaGui(id); setMo(false); nap(); };
+  // hòm đóng → báo ra ngoài (hòm nhúng dùng để ẩn iframe trên trang tĩnh)
+  const daMo = useRef(false);
+  useEffect(() => { if (daMo.current && !mo) window.dispatchEvent(new CustomEvent('gop-y:dong', { detail: { vuaGui } })); daMo.current = mo; }, [mo]);
   return (
     <Ctx.Provider value={cfg}>
       {/* nút mặc định gy-btn TỰ MANG KIỂU (góp ý #1458, 28/10/2026): trước không có CSS nào cho class này → nút trình duyệt nền trắng, chữ mất màu trên trang không có .btn (etp.on.tc) */}

@@ -16,6 +16,8 @@ export interface SimpleColumn<T> {
 }
 
 const thBase: CSSProperties = { padding: '6px 8px', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
+// dòng Tổng khác màu dòng thường (#1620): nền xanh nhạt phủ trên nền đặc --bg-3 (sticky nên phải đặc, không trong suốt) + viền trên xanh
+const NEN_TONG = 'linear-gradient(var(--accent-soft), var(--accent-soft)), var(--bg-3)';
 const tdBase: CSSProperties = { padding: '6px 8px', fontSize: 12, borderBottom: '1px solid var(--line)', verticalAlign: 'top' };
 
 export function SimpleTable<T>({ rows, columns, getRowKey, hideHeader, rowStyle, renderExpanded, tong }: {
@@ -56,7 +58,7 @@ export function SimpleTable<T>({ rows, columns, getRowKey, hideHeader, rowStyle,
         </tbody>
         {tong ? (
           <tfoot>
-            <tr data-tong="1">{columns.map((c) => <td key={c.key} style={{ ...tdBase, position: 'sticky', bottom: 0, zIndex: 1, background: 'var(--bg-1)', borderTop: '1px solid var(--line)', borderBottom: 'none', fontWeight: 600, textAlign: c.align ?? 'left', width: c.width }}>{tong[c.key] ?? null}</td>)}</tr>
+            <tr data-tong="1">{columns.map((c) => <td key={c.key} style={{ ...tdBase, position: 'sticky', bottom: 0, zIndex: 1, background: NEN_TONG, borderTop: '1px solid var(--accent-line)', borderBottom: 'none', fontWeight: 600, textAlign: c.align ?? 'left', width: c.width }}>{tong[c.key] ?? null}</td>)}</tr>
           </tfoot>
         ) : null}
       </table>

@@ -114,7 +114,8 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
     const td = Array.from(document.querySelectorAll<HTMLElement>('[data-kenh-tieu-de]')).map((e) => e.getBoundingClientRect().bottom).filter((x) => x > 0);
     if (tr) window.scrollBy({ top: tr.getBoundingClientRect().top - (td.length ? Math.max(...td) : 0) - 2, behavior: 'smooth' }); };
   const nutTd: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-1)', color: 'var(--fg-2)', cursor: 'pointer', padding: '0 5px', fontSize: 10, textTransform: 'none', letterSpacing: 0, flex: 'none', whiteSpace: 'nowrap' };
-  const tieuDeKenh = <span data-kenh-tieu-de style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+  // góp ý #1614: pill khối lên dòng TRÊN, dòng "Kênh · tên · nút" xuống dưới; tiêu đề các cột khác canh đáy (CSS .kenh-sp-bang) → nằm dòng dưới, chừa dòng trên cho pill
+  const tieuDeKenh = <span data-kenh-tieu-de style={{ display: 'flex', flexDirection: 'column-reverse', gap: 3, minWidth: 0 }}>
     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>Kênh
       {kXem && <><span style={{ color: 'var(--accent)', fontWeight: 700, textTransform: 'none', letterSpacing: 0, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {kXem.ten}</span>
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
@@ -218,10 +219,11 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   ];
   return (
     <Panel title="📺 Kênh nội dung" subtitle={'kênh video trọn chuyện + kênh social đã chuyển (một máy đăng ra nhiều nền — khối 📡 Nền đăng) · ▸ mở: sổ kênh · lộ trình · đang sản xuất · lịch · đã làm · "–" = chưa đo (khác 0)'}>
-      <DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : d.loai === 'trang' ? `${d.khoa}/trang` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
+      <style>{'.kenh-sp-bang th.dt-th{vertical-align:bottom}'}</style>
+      <div className="kenh-sp-bang"><DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : d.loai === 'trang' ? `${d.khoa}/trang` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
         rowData={(d) => ({ 'kenh-ma': d.k.ma, 'kenh-dau': laK(d) ? 1 : 0, ...(d.loai === 'ke' && d.nhom ? { 'kenh-khoi': d.id } : {}) })}
         fullRow={(d) => d.loai === 'ke' || d.loai === 'trang'}
-        minWidth={320 + 260 + 104 + 64 + 84 + 76 + 116 + 88 + 96 + 96 + 84 + 72} card />
+        minWidth={320 + 260 + 104 + 64 + 84 + 76 + 116 + 88 + 96 + 96 + 84 + 72} card /></div>
       <KenhNgan kenh={kenh} />
     </Panel>
   );

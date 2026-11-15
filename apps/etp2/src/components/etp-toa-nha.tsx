@@ -463,6 +463,14 @@ export const thapCua = (ph: ToaPhim) => {
   for (const c of ph.tat ?? []) m.get(c.bo)?.tat.push(c);
   return [...m.values()].sort((a, b) => b.camp.length - a.camp.length || a.bo.localeCompare(b.bo, 'vi', { numeric: true }));
 };
+/** Ô CỐ ĐỊNH CỦA BỘ TRONG LÔ (anh 15/11/2026 #1609 "Phải để đúng vị trí của bộ tương ứng. Ko phải để bừa bãi như vậy"): mọi lô chia CÙNG một lưới, mỗi bộ luôn đứng ở ô của nó
+ *  (nhà: Bộ 1–3 hàng sau trái → phải, Bộ 4–5 hàng trước, '?' ô cuối) — phim một bộ không còn đứng giữa lô, phim nhiều bộ không xếp theo số camp.
+ *  Bộ lạ (tài khoản QC người trong team) → ô theo thứ tự khoá chung của cả thành phố. Trả số ô + hàm ô của một bộ. */
+export const oBoCua = (ds: ToaPhim[]) => {
+  const khoa = [...new Set(ds.flatMap((ph) => ph.camp.map((c) => c.bo)))].sort((a, b) => a.localeCompare(b, 'vi', { numeric: true }));
+  const nha = khoa.every((b) => /^([1-5]|\?)$/.test(b));
+  return { so: nha ? (khoa.includes('?') ? 6 : 5) : Math.max(1, khoa.length), o: (bo: string) => (nha ? (bo === '?' ? 5 : Number(bo) - 1) : Math.max(0, khoa.indexOf(bo))) };
+};
 /** SX TRÊN TOÀ (anh 15/11/2026 #1601 "Nếu đang sx mà bị lỗi thì bốc khói !! Nếu hoạt động ổn thì có animation"): đặt trên nóc thân tháp (gốc g, cao y)
  *  · dòng SX lỗi / kẹt → cột khói xám bốc lên + đốm lửa đỏ nhấp nháy · dòng SX chạy ổn → cần cẩu vàng quay tay cẩu, móc lên xuống, đèn đỉnh nhấp nháy.
  *  Nhóm mang userData.dong → gopVe không gộp; trả hàm chuyển động cho useCanh3D. */
@@ -533,7 +541,7 @@ export function ThanhPho({ ds: ds0, an, chon: chonP, chonBo, onChon, cao }: { ds
     const kho = new Map<string, import('three').CanvasTexture>(), vat: Vat[] = [], hoat: ((t: number) => void)[] = []; vungRef.current.clear(); boCuaMa.current.clear();
     // KHU PHỨC HỢP (anh 15/11/2026 "bố cục lại toà nhà cần trở thành khu phức hợp với diện tích xung quanh rộng hơn! Giống ở túp lều nhưng hiện đại hơn" + nhiều bộ tk → "Khu phức hợp"):
     // lô gấp đôi (sân lát, bồn cây, lối vào) · mỗi BỘ TÀI KHOẢN một tháp riêng đứng chung lô, cấp tháp theo camp của bộ đó, biển "Bộ N" · tên phim một biển ở mép lô
-    const n = ds.length, LX = 2 * RONG + 2.4, LZ = 2 * SAU + 2.6, D = 1.3, nhom: { id: number; g: import('three').Object3D }[] = [];   // lô (có sân) · bề ngang đường
+    const oBo = oBoCua(ds), n = ds.length, LX = 2 * RONG + 2.4, LZ = 2 * SAU + 2.6, D = 1.3, nhom: { id: number; g: import('three').Object3D }[] = [];   // lô (có sân) · bề ngang đường
     const chan = (x: number) => x + (x % 2);
     const cot = Math.max(2, chan(Math.ceil(Math.sqrt(n * 1.3)))), hang = Math.max(2, chan(Math.ceil(n / cot)));
     const W = D + (cot / 2) * (2 * LX + D), Z = D + (hang / 2) * (2 * LZ + D);
@@ -573,9 +581,9 @@ export function ThanhPho({ ds: ds0, an, chon: chonP, chonBo, onChon, cao }: { ds
         // bụi thấp phẳng sát mép bồn (không phải quả cầu trên bệ — hình đó là đèn tín hiệu)
         const la = new T.Mesh(new T.BoxGeometry(0.32, 0.08, 0.32), matLa); la.position.set(bx, 0.18, bz); lg.add(la); }
       const loi = new T.Mesh(new T.PlaneGeometry(0.9, 0.5), new T.MeshStandardMaterial({ color: 0x6b7280 })); loi.rotation.x = -Math.PI / 2; loi.position.set(0, 0.043, PZ / 2 - 0.25); lg.add(loi);
-      // tháp theo bộ (thapCua: cao đứng sau, thấp đứng trước); lưới: 1 → giữa · 2 → ngang · 3–4 → 2 × 2 · 5+ → 3 cột; co tỉ lệ cho vừa sân
+      // tháp theo bộ: mỗi bộ đứng ở Ô CỐ ĐỊNH của nó (oBoCua, #1609) — cùng lưới cho mọi lô; co tỉ lệ cho vừa ô
       const thap = thapCua(ph), k = thap.length;
-      const cot2 = k <= 1 ? 1 : k <= 4 ? 2 : 3, hang2 = Math.ceil(k / cot2), oW = (PX - 0.4) / cot2, oD = (PZ - 0.4) / hang2;
+      const cot2 = oBo.so <= 1 ? 1 : oBo.so <= 4 ? 2 : 3, hang2 = Math.ceil(oBo.so / cot2), oW = (PX - 0.4) / cot2, oD = (PZ - 0.4) / hang2;
       const ti = Math.min(1, oW / (RONG + 0.9), oD / (SAU + 0.9)), ten = ph.ten.length > 22 ? `${ph.ten.slice(0, 21)}…` : ph.ten, lai = laiPhim(ph);
       const v0 = { T, lg, thap: [] as { g: import('three').Group; mong: [number, number, number, number]; bo: string; ma: number }[], sang: [] as import('three').Mesh[] };
       const ngan = ph.ten.length > 16 ? `${ph.ten.slice(0, 15)}…` : ph.ten;
@@ -583,7 +591,7 @@ export function ThanhPho({ ds: ds0, an, chon: chonP, chonBo, onChon, cao }: { ds
       const bien0 = nhan(T, k > 1 ? `${ngan} · ${k} bộ` : ngan, lai >= 0 ? XANH : DO, 0.5, true); bien0.center.set(0.5, 0);
       let caoLo = 0;
       thap.forEach((b, j) => {
-        const g = new T.Group(); g.scale.setScalar(ti); g.position.set(-PX / 2 + 0.2 + oW * ((j % cot2) + 0.5), 0.04, -PZ / 2 + 0.2 + oD * (Math.floor(j / cot2) + 0.5)); lg.add(g);
+        const s = oBo.o(b.bo), g = new T.Group(); g.scale.setScalar(ti); g.position.set(-PX / 2 + 0.2 + oW * ((s % cot2) + 0.5), 0.04, -PZ / 2 + 0.2 + oD * (Math.floor(s / cot2) + 0.5)); lg.add(g);
         const nhieuBo = k > 1, laiB = b.camp.reduce((a, c) => a + c.thu7 - c.chi7, 0), ma = maThap(ph.p, j);
         // SX theo bộ: dòng anh chọn bộ → tháp bộ đó; dòng máy chọn bộ ('') → tháp đầu
         const sx = (ph.sx?.[b.bo] ?? 0) + (j === 0 ? ph.sx?.[''] ?? 0 : 0), cb0 = capToa(b.camp).cap;
@@ -597,12 +605,13 @@ export function ThanhPho({ ds: ds0, an, chon: chonP, chonBo, onChon, cao }: { ds
         // KHUNG CHỌN ÔM TỪNG THÁP (anh 15/11/2026 "ko chọn được khu trong từng bộ tk"): mỗi tháp / thửa một khối bấm riêng, mở bảng phim đúng bộ đó
         const [bw, bh, bd] = r.than, bat = new T.Mesh(new T.BoxGeometry(bw, Math.max(0.3, bh), bd), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
         bat.position.set(0, Math.max(0.3, bh) / 2, 0); g.add(bat);
-        // VIỀN MÀU BỘ: khung cạnh ôm thân tháp + gờ đế dày cùng màu (cùng bảng màu huy hiệu bộ) — phim nhiều bộ mới có, một bộ thì không cần phân biệt
-        if (nhieuBo) { const mb = new T.Color(mauBo(b.bo, j)), H0 = Math.max(0.3, bh);
+        // VIỀN MÀU BỘ: khung cạnh ôm thân tháp + gờ đế MẢNH cùng màu (cùng bảng màu huy hiệu bộ) — mọi tháp đều có, vì vị trí ô giờ là của bộ (#1609),
+        // màu viền cho biết ô đó là bộ nào kể cả phim một bộ. Gờ mảnh (anh #1609 "Viền của bộ tk mỏng hơn"): 0,04 × 0,03, sát chân tháp, phát sáng nhẹ
+        { const mb = new T.Color(mauBo(b.bo, j)), H0 = Math.max(0.3, bh);
           const vien = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(bw + 0.06, H0 + 0.04, bd + 0.06)), new T.LineBasicMaterial({ color: mb })); vien.position.y = H0 / 2; g.add(vien);
-          const matGo = new T.MeshStandardMaterial({ color: mb, emissive: mb, emissiveIntensity: 0.45 }), W2 = bw + 0.3, D2 = bd + 0.3;
-          for (const [x, z, w, d] of [[0, D2 / 2, W2, 0.12], [0, -D2 / 2, W2, 0.12], [W2 / 2, 0, 0.12, D2], [-W2 / 2, 0, 0.12, D2]] as [number, number, number, number][]) {
-            const go = new T.Mesh(new T.BoxGeometry(w, 0.08, d), matGo); go.position.set(x, 0.04, z); g.add(go); } }
+          const matGo = new T.MeshStandardMaterial({ color: mb, emissive: mb, emissiveIntensity: 0.3 }), W2 = bw + 0.14, D2 = bd + 0.14;
+          for (const [x, z, w, d] of [[0, D2 / 2, W2, 0.04], [0, -D2 / 2, W2, 0.04], [W2 / 2, 0, 0.04, D2], [-W2 / 2, 0, 0.04, D2]] as [number, number, number, number][]) {
+            const go = new T.Mesh(new T.BoxGeometry(w, 0.03, d), matGo); go.position.set(x, 0.015, z); g.add(go); } }
         const nhanBo = nhieuBo ? ` · ${b.ten}` : '';
         for (const v of r.vat) vat.push({ m: v.m, vien: bat, id: ma, chu: `${ten}${nhanBo} · ${v.chu}`, bien: bien0 });
         const k7 = b.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }), cb = capToa(b.camp);

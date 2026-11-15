@@ -70,6 +70,23 @@
     "iMac:tc.on.cty.mos2-gop-y"
    ],
    "chi_phi": "gói Claude thuê bao (không tính theo lượt)"
+  },
+  {
+   "id": "xu-gop-y-studio",
+   "ten": "Xử hòm góp ý Xưởng video (Claude Code trên iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền; chỉ gọi Claude khi hòm góp ý studio có card mở",
+   "mo_ta": "Vinh lấy card góp ý mở cũ nhất của studio.on.tc (nút 💬, project xuong-video; anh bấm làm lại thì card về hàng với tin mới), kéo origin/main vào cây riêng, làm đúng /tasks-studio: sửa gốc apps/xuong-video, kiểm, đẩy main (GHA deploy box3), trả lời vào luồng card rồi nộp Review.",
+   "ma": "apps/cty/may/studio-gop-y.mjs (khung apps/cty/may/gop-y-ky-su.mjs) · lệnh .claude/commands/tasks-studio.md",
+   "chu_tri": "vinh",
+   "lam": [
+    "may"
+   ],
+   "khi": "khi hòm góp ý studio có card mở",
+   "lich": [
+    "iMac:tc.on.cty.studio-gop-y"
+   ],
+   "chi_phi": "gói Claude thuê bao (không tính theo lượt)"
   }
  ]
 }

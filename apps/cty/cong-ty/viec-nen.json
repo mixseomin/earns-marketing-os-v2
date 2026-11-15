@@ -911,6 +911,23 @@
    "uu_tien_thap": true
   },
   {
+   "nhan": "iMac:tc.on.cty.studio-gop-y",
+   "ten": "Studio - Vinh xử hòm góp ý (Claude)",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/may-ky-su/vinh/earns-marketing-os-v2/apps/cty/may/studio-gop-y.mjs"
+   ],
+   "thu_muc": "/Users/htuan/may-ky-su/vinh/earns-marketing-os-v2",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/studio-gop-y.log",
+   "hen": {
+    "moi_giay": 300
+   },
+   "uu_tien_thap": true
+  },
+  {
    "nhan": "iMac:tc.on.cty.astrolas-site",
    "ten": "Astrolas - site cục bộ cho Thành nhìn trang",
    "chay": [

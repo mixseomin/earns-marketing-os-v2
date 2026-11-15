@@ -47,15 +47,21 @@ export function chayKySu(cfg) {
   // Anh trả lời / bấm làm lại = có tin mới → nhận lại ngay.
   const daLam = (() => { try { return JSON.parse(fs.readFileSync(TEP_DA, 'utf8')); } catch { return {}; } })();
   const boQua = (cfg.boQuaUrl || []).map((m) => `\n  and coalesce(prep_payload->>'source_url','') not like '${m}'`).join('');
+  // Card đã nộp Review mà anh TRẢ LỜI tiếp trong luồng (không bấm Làm lại) vẫn là việc: tin cuối là của người → nhận lại (anh 15/11/2026 "tao rep tiếp qua đó thì mày có nhận ko").
+  // Không viết chú thích "--" trong câu SQL: sql() gộp mọi dòng thành một, "--" nuốt hết phần sau.
   const ds = JSON.parse(sql(`select coalesce(json_agg(x order by x.created_at), '[]') from (select id, created_at, title,
   (select count(*) from jsonb_array_elements(coalesce(prep_payload->'trao_doi','[]')) t where lower(coalesce(t->>'nguoi','')) not in (${NGUOI_AI.map((x) => `'${x}'`).join(',')})) as tin_nguoi
   from human_tasks where project_id='${cfg.duAn}' and prep_payload->>'source_platform'='feedback'${boQua}
-  and coalesce(prep_payload->'site_status'->>'${cfg.duAn}', status) in ('pending','claimed','broken')) x`) || '[]');
+  and (coalesce(prep_payload->'site_status'->>'${cfg.duAn}', status) in ('pending','claimed','broken')
+    or (coalesce(prep_payload->'site_status'->>'${cfg.duAn}', status) in ('review','submitted')
+        and lower(coalesce(prep_payload->'trao_doi'->-1->>'nguoi','')) not in (${NGUOI_AI.map((x) => `'${x}'`).join(',')})))) x`) || '[]');
   const card = kiem ? JSON.parse(sql(`select json_build_object('id', id, 'title', title, 'tin_nguoi', 0) from human_tasks where id=${kiem}`)) : ds.find((c) => { const d = daLam[c.id]; return !d || d.tin_nguoi < c.tin_nguoi || Date.now() - Date.parse(d.luc) > 24 * 36e5; });
   // cây riêng dọn MỖI LƯỢT, kể cả khi không có card (13/11/2026: Đạt commit #1580 lúc 00:03, push bị từ chối vì main vừa đổi; bước tự đẩy commit kẹt
   // trong cayRieng chỉ chạy khi có card mới → bản sửa nằm kẹt tới card kế). cfg.cayMoiLuot: chỉ người dùng cây riêng (Hiếu làm cây chính, kiểm box3 đắt hơn).
   const cayDau = !thu && !kiem && cfg.cayMoiLuot ? cfg.cay() : null;
-  for (const t of cayDau?.day ?? []) { const id = cardTuCommit(t); if (id) try { log(`commit kẹt đã lên main: ${chotCard({ duAn: cfg.duAn, id, cach: 'nop', chu: `Máy đã đẩy bản sửa lên main (lượt trước push bị từ chối vì main vừa đổi): ${t}` })}`); } catch (e) { log(`nộp card #${id} lỗi: ${String(e.message).split('\n')[0]}`); } }
+  // commit đã nằm trên main (máy vừa đẩy hộ) → nộp đúng card của nó sang Review
+  const nopCommitDay = (c, nhan) => { for (const t of c?.day ?? []) { const id = cardTuCommit(t); if (id) try { log(`${nhan}: ${chotCard({ duAn: cfg.duAn, id, cach: 'nop', chu: `Máy đã đẩy bản sửa lên main: ${t}` })}`); } catch (e) { log(`nộp card #${id} lỗi: ${String(e.message).split('\n')[0]}`); } } };
+  nopCommitDay(cayDau, 'commit kẹt đã lên main');
   if (!card) { log(`không có card mới (${ds.length} card mở, đã làm cả)`); process.exit(0); }
 
   ENV.BR_URL_NGUON = `card góp ý ${cfg.duAn} #${card.id} (trang lưu trong luồng card trên box3)`;   // luật br chống bịa URL: link trang lấy từ card là nguồn thật
@@ -73,7 +79,10 @@ export function chayKySu(cfg) {
   const ctx = { card, luong, cuoiNguoi, tin, moiAnh, anhMay, ANH, dir, cay };
   const loiGiao = cfg.loiGiao(ctx);
   if (thu) { console.log(loiGiao); process.exit(0); }
-  const giao = kiem ? `${loiGiao}\n\n${cfg.kiemThu(ctx)}` : loiGiao;
+  // PUSH BỊ TỪ CHỐI KHÔNG PHẢI VIỆC CỦA ANH (anh chửi 15/11/2026, card studio #1603: Vinh viết vào card "cần mở quyền git pull --rebase cho máy Vinh"):
+  // máy tự đặt commit lên main mới và đẩy ngay khi Claude kết thúc (bước dưới), rồi nộp card. Nói rõ để Claude không hỏi, không kêu kẹt.
+  const PUSH = cfg.cayMoiLuot ? `\n\nPUSH BỊ TỪ CHỐI (main trên GitHub đi trước): KHÔNG hỏi anh, KHÔNG viết vào card chuyện quyền git / kẹt push, KHÔNG thử pull / rebase. Máy tự đặt commit của bạn lên main mới, đẩy và nộp card ngay khi bạn kết thúc. Bạn cứ commit, reply nội dung đã sửa (bỏ bước submit) rồi kết KET: DA_SUA.` : '';
+  const giao = kiem ? `${loiGiao}\n\n${cfg.kiemThu(ctx)}` : `${loiGiao}${PUSH}`;
 
   // PHIÊN mos2 60 phút cho profile br: tạo trên box3 rồi nạp cookie httpOnly thẳng vào daemon (/datcookie) — token không qua dòng lệnh br, Claude không thấy.
   // Cookie mos2-session trên .on.tc cũng là phiên SSO của các app con (spy.on.tc …).
@@ -92,6 +101,8 @@ export function chayKySu(cfg) {
   fs.writeFileSync(TEP_DA, JSON.stringify(daLam));
   const r = chayClaude(CLAUDE, ['-p', giao, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
     { cwd: dir, encoding: 'utf8', timeout: (cfg.tranPhut || 40) * 60000, maxBuffer: 64 << 20, env: ENV });
+  // đẩy NGAY trong lượt này commit mà Claude không push được (trước: chờ lượt 5 phút sau, card nằm Kẹt + một tin "can_anh" thừa giữa chừng)
+  if (!kiem && cfg.cayMoiLuot) nopCommitDay(cfg.cay(), 'đẩy ngay commit Claude không push được');
   let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng / hết giờ */ }
   const ra = String(kq.result || '').trim(), ket = ((ra.match(/KET:\**\s*(DA_SUA|KHONG_SUA|CAN_ANH)/gi) || []).pop() || (r.signal || r.error ? 'treo' : 'khong_sua')).replace(/.*KET:\**\s*/i, '').toLowerCase();
   log(`xong #${card.id}: ${ket} · ${kq.num_turns ?? '?'} lượt · ${Math.round((kq.duration_ms || 0) / 6e4)} phút`);

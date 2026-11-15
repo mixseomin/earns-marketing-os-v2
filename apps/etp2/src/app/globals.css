@@ -227,6 +227,8 @@ button { font-family: inherit; color: inherit; }
        untouched. Both are harmless when the content already fits. */
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
 .table-scroll > table { min-width: max-content; }
+/* Chú giải góc trái cảnh 3D (khu thượng / trung / ven…) — điện thoại ẩn cho cảnh rộng chỗ (anh 15/11/2026 #1606 "Ko hiện cái này trên mobile vì chiếm nhiều diện tích") */
+@media (max-width: 768px) { .canh-chu-giai { display: none; } }
 @media (max-width: 768px) {
   table.scroll-x { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
 }

@@ -21,6 +21,8 @@ const LUAT = [
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: 'const r = await fetch(url);', vi: 'khung khach tải số liệu riêng, lỗi tải hiện ô đỏ + nút thử lại' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/app/etp/du/route.ts', co: "'content-encoding': br ? 'br' : 'gzip'", vi: '/etp/du trả bản nén sẵn, brotli khi trình duyệt nhận (anh 13/11/2026 22:00 "Ko load nổi", mạng iPhone ~20 KB/giây)' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/lib/etp-du-kho.ts', cam: 'brMuc(s, 11)', vi: 'KHÔNG nén brotli 11 nền — chiếm luồng zlib, trang chờ 13–22 s (anh 13/11/2026 22:30)' },
+  { card: 1606, tep: 'apps/etp2/src/components/etp-toa-nha.tsx', mot: '<div className="canh-chu-giai"', vi: 'chú giải góc trái cảnh 3D mang lớp canh-chu-giai (anh 15/11/2026 iPhone "Ko hiện cái này trên mobile vì chiếm nhiều diện tích")' },
+  { card: 1606, tep: 'apps/etp2/src/app/globals.css', co: '@media (max-width: 768px) { .canh-chu-giai { display: none; } }', vi: 'điện thoại ẩn chú giải khu trên cảnh thành phố' },
   { card: 'du-rieng-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', co: "taiPhan(urlPhan(duUrl, 'chinh'), (a, b) =>", vi: 'lần đầu tải phần chính có thanh tiến độ, dựng trang trước khi phần phụ về' },
   { card: 1598, tep: 'apps/etp2/src/lib/actions/etp-dong.ts', co: 'if ((await dangGac()).includes(loai)) return { loi:', vi: 'bấm chạy dòng dạng đang gác (gac_dang) bị chặn ngay kèm lý do, không tạo dòng để máy dừng sau 15 s rồi biến mất (anh 15/11/2026 "bật thử 1 camp CC mà biến mất")' },
   { card: 1598, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: "l.sx.filter((d) => conSx(d) || (d.trang_thai === 'dung' && d.moi))", vi: 'bảng lịch phim vẫn hiện dòng dừng trong 24 giờ kèm lý do' },

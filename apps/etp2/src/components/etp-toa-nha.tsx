@@ -419,7 +419,7 @@ function KhungCanh({ hop, re, loi, cao, dk, kieu = 'pho', chuGiai }: { hop: Reac
   return <div style={{ position: 'relative', width: '100%', height: cao }}>
     <div ref={hop} style={{ position: 'absolute', inset: 0, borderRadius: 8, background: 'color-mix(in srgb, var(--fg-3) 6%, transparent)', overflow: 'hidden' }} />
     {loi ? <div style={{ position: 'absolute', inset: 0, padding: 12, color: DO }}>{loi}</div> : null}
-    {chuGiai ? <div style={{ position: 'absolute', left: 8, top: 8, pointerEvents: 'none' }}>{chuGiai}</div> : null}
+    {chuGiai ? <div className="canh-chu-giai" style={{ position: 'absolute', left: 8, top: 8, pointerEvents: 'none' }}>{chuGiai}</div> : null}
     {re ? <div style={{ position: 'absolute', left: re.x + 10, top: re.y + 12, maxWidth: 240, padding: '4px 7px', borderRadius: 6, fontSize: 11, background: 'var(--bg-1, #0f172a)', border: '1px solid var(--line)', color: 'var(--fg-1)', pointerEvents: 'none', transform: re.x > 260 ? 'translateX(calc(-100% - 20px))' : undefined }}>{re.chu}</div> : null}
     <div style={{ position: 'absolute', right: 6, top: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
       <button style={nut} title="phóng to (hoặc lăn chuột / nhấp đúp)" onClick={() => dk.current?.phong(0.7)}>+</button>

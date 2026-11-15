@@ -20,7 +20,7 @@
   #dau a { color: var(--mo); } #dau details summary { cursor: pointer; } #dau details[open] { line-height: 1.5; }
   #nguon { bottom: 10px; right: 10px; padding: 4px 8px; font-size: 11px; color: var(--mo); }
   #nguon a { color: var(--mo); }
-  #so { display: none; bottom: 10px; left: 10px; padding: 8px 10px; max-width: min(520px, calc(100vw - 40px)); font-size: 12.5px; }
+  #so { display: none; bottom: 10px; left: 10px; padding: 8px 10px; max-width: min(520px, calc(100vw - 40px)); max-height: 45vh; overflow-y: auto; font-size: 12.5px; z-index: 4; } /* trên khung ảnh so (#so-khung z 2): ảnh không che nút Tắt */
   #so button { margin: 0 4px 4px 0; padding: 3px 9px; border-radius: 6px; border: 1px solid var(--vien); background: rgba(255,255,255,.08); color: var(--chu); cursor: pointer; font: inherit; }
   #so button.chon { background: #ffd9a8; color: #1a1208; }
   #so .mo { color: var(--mo); } #so a { color: var(--mo); }

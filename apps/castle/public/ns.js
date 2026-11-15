@@ -693,11 +693,12 @@ function tatSo() {
 }
 if (ANH.length) {
   $('so').style.display = 'block';
-  $('so-ds').innerHTML = ANH.map((a, i) => `<button data-i="${i}" title="${a.tieuDe}">📷 ${a.nhan || i + 1}</button>`).join('') + '<button id="so-tat">Tắt</button>'; // nút ghi tên góc chụp (trước chỉ ghi số, không biết nút nào là góc nào)
+  $('so-ds').innerHTML = '<button id="so-tat">✕ Tắt</button>' + ANH.map((a, i) => (a.khongDung ? '' : `<button data-i="${i}" title="${a.tieuDe}">📷 ${a.nhan || i + 1}</button>`)).join(''); // Tắt đứng ĐẦU (bảng cuộn trên điện thoại: cuối danh sách bị khuất); bỏ ảnh đã soát là không dùng được // nút ghi tên góc chụp (trước chỉ ghi số, không biết nút nào là góc nào)
   $('so-ds').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; b.id === 'so-tat' ? tatSo() : moSo(+b.dataset.i); });
   $('so-mo').addEventListener('input', (e) => { img.style.opacity = e.target.value / 100; });
   addEventListener('keydown', (e) => {
-    if (!dangSo) return; const k = e.shiftKey ? 10 : 1, d = Math.PI / 1800 * k;
+    if (!dangSo) return;
+    if (e.code === 'Escape') { tatSo(); e.preventDefault(); return; } // Esc thoát so ảnh const k = e.shiftKey ? 10 : 1, d = Math.PI / 1800 * k;
     const m = { ArrowLeft: () => (cam.yaw += d), ArrowRight: () => (cam.yaw -= d), ArrowUp: () => (cam.pitch += d), ArrowDown: () => (cam.pitch -= d), BracketLeft: () => (cam.fov = Math.max(5, cam.fov - 0.1 * k)), BracketRight: () => (cam.fov = Math.min(90, cam.fov + 0.1 * k)), PageUp: () => (cam.y += 0.5 * k), PageDown: () => (cam.y -= 0.5 * k) }[e.code];
     if (m) { m(); datCamSo(); e.preventDefault(); }
   });

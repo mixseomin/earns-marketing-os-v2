@@ -111,6 +111,7 @@ const LUAT = [
   { card: 'chon-thap-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'boCuaMa.current.set(ma, { p: ph.p, bo: b.bo }); nhom.push({ id: ma, g });', vi: 'mỗi tháp bộ một khối chọn riêng' },
   { card: 'mau-bo-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'new T.EdgesGeometry(new T.BoxGeometry(bw + 0.06, H0 + 0.04, bd + 0.06)), new T.LineBasicMaterial({ color: mb })', vi: 'tháp bộ có viền + gờ đế màu bộ' },
   { card: 'mau-bo-1511', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "const MAU_BO: Record<string, string> =", vi: 'màu bộ một bảng chung lib/etp-mau-bo.ts' },
+  { card: 'loc-tp-1511', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: "{ ma: 'sx', ten: '🏗 Đang SX'", vi: 'bộ lọc hiển thị thành phố (đang SX, lãi, lỗ, ROAS, hẹn, nhiều bộ, tín hiệu)' },
   { card: 'nhe-pan-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'gopVe(T, mergeGeometries, canh, vat, nhom);', vi: 'thành phố gộp lệnh vẽ theo chất liệu (pan nặng trên PC)' },
   { card: 'nhe-pan-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', co: 'ray.layers.enableAll();', vi: 'vật bấm gốc ở lớp 1 vẫn chạm tia' },
   { card: 'mot-cuon-1511', tep: 'apps/etp2/src/components/etp-toa-nha.tsx', cam: "maxHeight: 360, overflowY: 'auto', fontSize: 11.5", vi: 'bảng Camps không tự cuộn (một lớp cuộn của khung)' },

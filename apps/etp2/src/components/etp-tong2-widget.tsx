@@ -145,23 +145,42 @@ function ThanhPhoO({ cao }: { cao: number }) {
   if (!tp) return <span style={{ color: loi ? DO : MO, fontSize: 12 }}>{loi ?? 'đang tải số…'}</span>;
   return <ThanhPhoVe ds={tp.ds} nguoi={tp.nguoi} laNha={tp.laNha} cao={cao} />;
 }
+// BỘ LỌC HIỂN THỊ THÀNH PHỐ (anh 15/11/2026 "thêm các bộ lọc hiển thị kiểu như phim nào đang sx ..."): một lọc một lúc, nhớ trong máy; thành phố chỉ dựng phim khớp
+const LOC_TP: { ma: string; ten: string; giai: string; khop: (x: PhimThanhPho) => boolean }[] = [
+  { ma: '', ten: 'Tất cả', giai: 'mọi phim', khop: () => true },
+  { ma: 'sx', ten: '🏗 Đang SX', giai: 'phim có dòng sản xuất đang chạy', khop: (x) => Object.values(x.sx ?? {}).some((n) => n > 0) },
+  { ma: 'lai', ten: 'Lãi 7 ngày', giai: 'tổng thu − chi 7 ngày ≥ 0', khop: (x) => x.camp.length > 0 && laiPhim(x) >= 0 },
+  { ma: 'lo', ten: 'Lỗ 7 ngày', giai: 'tổng thu − chi 7 ngày < 0', khop: (x) => laiPhim(x) < 0 },
+  { ma: 'roas', ten: '★ ROAS', giai: 'có camp ROAS', khop: (x) => x.camp.some((c) => c.roas) },
+  { ma: 'hen', ten: 'Hẹn giờ', giai: 'có camp đang hẹn giờ chạy', khop: (x) => x.camp.some((c) => c.cho) },
+  { ma: 'bo', ten: 'Nhiều bộ', giai: 'phim chạy trên từ 2 bộ tài khoản', khop: (x) => new Set(x.camp.map((c) => c.bo)).size > 1 },
+  { ma: 'tin', ten: '🟢 Tín hiệu', giai: 'có camp tín hiệu lãi', khop: (x) => capToa(x.camp).tinHieu > 0 },
+];
 function ThanhPhoVe({ ds, nguoi, laNha, cao }: { ds: PhimThanhPho[]; nguoi: string; laNha: boolean; cao: number }) {
   const [chon, setChon] = useState<number | null>(null), [chonBo, setChonBo] = useState<string | null>(null);
   const noi = useNoi<{ id: number }>();   // bấm một toà → bảng phim đó (cùng ruột với bảng rê đồng hồ dòng phim)
   // cấp toà trước (tháp đứng hàng đầu), cùng cấp thì lãi 7 ngày
   // cấp trước; cùng cấp thì toà có đèn xanh tín hiệu đứng sát khu trên (gần tâm hơn), rồi lãi 7 ngày
-  const xep = useMemo(() => [...ds].map((x) => ({ x, k: capToa(x.camp) })).sort((a, b) => b.k.cap - a.k.cap || b.k.tinHieu - a.k.tinHieu || laiPhim(b.x) - laiPhim(a.x)).map((v) => v.x), [ds]);
+  const [loc, setLoc0] = useState(''); useEffect(() => { try { const v = localStorage.getItem('etp2-loc-tp') ?? ''; if (LOC_TP.some((l) => l.ma === v)) setLoc0(v); } catch { /* kho bị chặn */ } }, []);
+  const setLoc = (v: string) => { setLoc0(v); setChon(null); try { localStorage.setItem('etp2-loc-tp', v); } catch { /* kho bị chặn */ } };
+  const demLoc = useMemo(() => LOC_TP.map((l) => ds.filter(l.khop).length), [ds]);
+  const xep = useMemo(() => [...ds].filter((LOC_TP.find((l) => l.ma === loc) ?? LOC_TP[0]!).khop).map((x) => ({ x, k: capToa(x.camp) })).sort((a, b) => b.k.cap - a.k.cap || b.k.tinHieu - a.k.tinHieu || laiPhim(b.x) - laiPhim(a.x)).map((v) => v.x), [ds, loc]);
   const demCap = useMemo(() => CAP.map((_, i) => xep.filter((x) => capToa(x.camp).cap === i).length), [xep]);
   const ph = xep.find((x) => x.p === chon) ?? null;
   const k = ph ? ph.camp.reduce((a, c) => ({ chi: a.chi + c.chi7, thu: a.thu + c.thu7 }), { chi: 0, thu: 0 }) : null;
   const tong = xep.reduce((a, x) => a + x.camp.length, 0);
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 6, height: '100%' }}>
+    <div style={{ display: 'flex', gap: 4, flexWrap: 'nowrap', overflowX: 'auto', fontSize: 11 }}>
+      {LOC_TP.map((l, i) => <button key={l.ma} title={l.giai} onClick={() => setLoc(l.ma)} disabled={!demLoc[i] && loc !== l.ma}
+        style={{ padding: '1px 8px', borderRadius: 999, border: `1px solid ${loc === l.ma ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, background: loc === l.ma ? 'rgba(96,165,250,0.15)' : 'transparent',
+          color: loc === l.ma ? 'var(--fg-1)' : 'var(--fg-3)', cursor: 'pointer', whiteSpace: 'nowrap', opacity: !demLoc[i] && loc !== l.ma ? 0.4 : 1 }}>{l.ten} <span style={{ opacity: 0.7 }}>{demLoc[i]}</span></button>)}
+    </div>
     <div style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       {ph && k ? <><b style={{ color: 'var(--fg-1)' }}>{ph.ten}</b> · <b>{capToa(ph.camp).ten}</b> ({capToa(ph.camp).od} ổn định{capToa(ph.camp).tinHieu ? <span style={{ color: XANH }}> · 🟢 {capToa(ph.camp).tinHieu} tín hiệu lãi</span> : null}) · {[...TANG].map((t, i) => ({ t, n: ph.camp.filter((c) => xepTang(c) === i).length })).reverse().filter((x) => x.n).map((x) => `${x.t} ${x.n}`).join(' · ')}
         {' · '}7 ngày lãi <b style={{ color: k.thu >= k.chi ? XANH : DO }}>{tien(k.thu - k.chi)}</b>{k.chi >= 1 ? ` (${pct(Math.round((k.thu - k.chi) / k.chi * 100))})` : ''}</>
         : <span style={{ cursor: 'help' }} title={GIAI_CAP}><b style={{ color: 'var(--fg-1)' }}>{nguoi}</b> · {xep.length} phim · {tong} camp · {[...CAP].map((t, i) => ({ t, n: demCap[i]! })).reverse().filter((v) => v.n).map((v) => `${v.t} ${v.n}`).join(' · ')} · bấm một toà để xem</span>}
     </div>
-    <ThanhPho ds={xep} chon={chon} chonBo={chonBo} cao={Math.max(160, cao - 26)} onChon={(p, xy, bo) => { setChon(p); setChonBo(bo ?? null); if (p != null && xy) noi.moNgay({ id: p }, { clientX: xy.x, clientY: xy.y, currentTarget: null } as unknown as React.MouseEvent); else noi.dong(); }} />
+    <ThanhPho ds={xep} chon={chon} chonBo={chonBo} cao={Math.max(160, cao - 52)} onChon={(p, xy, bo) => { setChon(p); setChonBo(bo ?? null); if (p != null && xy) noi.moNgay({ id: p }, { clientX: xy.x, clientY: xy.y, currentTarget: null } as unknown as React.MouseEvent); else noi.dong(); }} />
     {noi.v ? (() => { const x = ds.find((d) => d.p === noi.v!.id);
       // tháp một bộ của phim nhiều bộ → bảng Camps chỉ camp bộ đó, Thao tác chọn sẵn bộ đó (anh 15/11/2026)
       const nhieu = !!x && new Set(x.camp.map((c) => c.bo)).size > 1, boTen = chonBo ? x?.camp.find((c) => c.bo === chonBo)?.bo_ten : null;

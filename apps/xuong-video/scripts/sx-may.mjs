@@ -101,7 +101,9 @@ function sinhKho(may, n) {
   const ra = execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/may-dung.mts --may ${shq(may)} ${rieng(may).lenh} ${Number(n)} 2>&1`], { encoding: 'utf8', timeout: 1_800_000 });
   return docTongKho(ra);
 }
-const docTongKho = (ra) => { const m = /sinh (?:kho|game) [^:]+: (\d+)\/(\d+) (?:đề|video), ([\d.,]+)₫/.exec(ra); return m ? { so: Number(m[1]), xin: Number(m[2]), vnd: Number(m[3].replace(/[.,]/g, '')) } : { so: 0, xin: 0, vnd: 0, loi: ra.trim().split('\n').slice(-2).join(' · ').slice(0, 200) }; };
+// 0 đề mà không có lý do = mù (ratesbyroom 16/11/2026 "0/6 đề"): kèm các dòng ✗ / "· hết hook…" / "· … dừng lượt" vào loi để sổ may_sx_luot nói vì sao
+const lyDoKho = (ra) => ra.split('\n').filter((l) => /^✗ |^· .*(hết hook|dừng)/.test(l)).slice(-3).join(' · ').slice(0, 280) || undefined;
+const docTongKho = (ra) => { const m = /sinh (?:kho|game) [^:]+: (\d+)\/(\d+) (?:đề|video), ([\d.,]+)₫/.exec(ra); return m ? { so: Number(m[1]), xin: Number(m[2]), vnd: Number(m[3].replace(/[.,]/g, '')), ...(Number(m[1]) ? {} : { loi: lyDoKho(ra) && `0/${m[2]} đề: ${lyDoKho(ra)}` }) } :{ so: 0, xin: 0, vnd: 0, loi: ra.trim().split('\n').slice(-2).join(' · ').slice(0, 200) }; };
 
 /** Link trang phim để tải tập (thư viện Ethopex, schema `etp` — KHÔNG phải public). */
 function urlPhim(id) {
@@ -193,6 +195,7 @@ const main = async () => {
     a.ok(kh.reduce((t, x) => t + x.n * K.vnd_de, 0) <= K.tran_vnd_luot, 'tổng ước không vượt trần');
     a.ok(KHO && KHO.tran_vnd_luot < 5000 && KHO.may.length && !KHO.may.includes('mia-calloway'), 'sổ _kho: trần dưới ngưỡng tự chạy 5.000₫, Mia đi đường lịch bài');
     a.deepEqual(docTongKho('✓ #1 top-n → x (26₫)\nsinh kho militarycalc: 5/6 đề, 1.150₫'), { so: 5, xin: 6, vnd: 1150 });
+    a.ok(docTongKho('✗ #9 top-n: hook trùng\n· hết hook QC chưa dùng (3 hook đều đã có bài chờ đăng) — dừng lượt\nsinh kho r: 0/6 đề, 0₫').loi.includes('hết hook'), '0 đề phải kèm lý do');
     // máy lấp bằng lệnh riêng 0₫ (Front Porch --sinh-game): trần tiền đã chạm vẫn lấp được; đọc đúng dòng tổng của --sinh-game
     const K2 = { ...K, rieng: { g: { lenh: '--sinh-game', vnd_de: 0 } } };
     a.deepEqual(keHoachKho(new Map([['b', 0], ['c', 0], ['g', 1]]), K2).map((x) => [x.may, x.n]), [['b', 6], ['c', 2], ['g', 5]], 'máy 0₫ không bị trần cắt');

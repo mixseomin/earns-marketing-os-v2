@@ -14,7 +14,7 @@ import { getDb } from '@mos2/db';
 import { boiCanhCanh, taoJob, xongJob } from '../src/lib/xuong-video/doc-db';
 import { promptCumMoi, thamChieuCum, vaoTuCatThat, cauNgoaiCua, giayClipSeedance, kepVaoDoan } from '../src/lib/xuong-video/cum-shot';
 import { catThat } from '../src/lib/xuong-video/cat-that';
-import { giayPhat, chatLieuPhim } from '../src/lib/xuong-video/kieu';
+import { giayPhat, chatLieuPhim, clip3dMoi } from '../src/lib/xuong-video/kieu';
 import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
 import { nhanNhin } from '../src/lib/xuong-video/prompt-khoi';
 import { duongAmLuong, khopTheoTiengClip, doanShot } from '../src/lib/xuong-video/can-giong';
@@ -36,7 +36,7 @@ if (tong > 15) { console.error(`cụm dài ${tong.toFixed(1)} s > 15 s (trần S
 // đầu để cắt, điểm vào = clip.vao. Không cần clip nối từ iMac. Nhiều shot → clip 3D nối của cụm (--video-file, cum-seedance-tap.sh).
 // LUẬT 15/11/2026 (#6 phim #3071): có --video-file thì LUÔN dùng clip đã cắt đúng đoạn phát (shot bắt đầu ở giây 0). Clip nguyên có đoạn dư đầu 1,65 s im lặng
 // + đuôi trống → Seedance dồn câu thoại vào đuôi (tiếng ở 3,7–4,9 s, đoạn shot im). clip1 chỉ còn là đường dự phòng khi chạy tay không có tệp.
-const clip1 = !fileVideo && cum.length === 1 && tong < 4 && cum[0]!.canh.khung_xam?.clip?.ma === cum[0]!.canh.khung_xam?.ma ? cum[0]!.canh.khung_xam!.clip! : null;
+const clip1 = !fileVideo && cum.length === 1 && tong < 4 && clip3dMoi(cum[0]!.canh) ? cum[0]!.canh.khung_xam!.clip! : null;
 if (!clip1 && !fileVideo) { console.error('cần --video-file=<clip 3D nối của cụm> (cụm nhiều shot / shot ≥ 4 s)'); process.exit(1); }
 // KHỚP MÔI KHI SINH (khop-moi-cach.ts): cách 'seedance_audio' → gửi file giọng làm Audio 1, câu thoại đặt đúng mốc trong clip ra (mốc shot + trễ câu), kèm nguyên văn câu
 const nguoiNoi = [...new Set(cum.flatMap((x) => (x.canh.thoai ?? []).filter((d) => d.url && d.loi?.trim()).map((d) => d.nhan_vat)))];

@@ -29,7 +29,7 @@ import { chupTruoc } from './hoan-tac';
 import { soiClipCanh, khungDauThieuSp } from './soi-clip';
 import { chamMayCanh } from './cham-may';
 import { sinhGiongShots } from './sinh-giong';
-import { type Canh, type TapHoSo, chatLieuPhim, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, lienCon, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, coTiengViet, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
+import { type Canh, type TapHoSo, clip3dMoi, chatLieuPhim, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, lienCon, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, coTiengViet, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { cauKhongKhi } from './khan-gia';
 import { doiTayDo, cauDoiTayVideo, thieuCachThao } from './thao-do';
 import { boiCanhCanh, canhDaThayThe, taoJob, xongJob, mapJob, giaVideoSv, s, mapCanh, jobDangCho, type Db, type Row } from './doc-db';
@@ -311,7 +311,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const khoiV = khoiVideoCanh(bc);
   // Model 3D→VIDEO có clip 3D còn mới: vị trí / hướng nhìn / đường đi đã nằm trong clip — bỏ khối 'huong' khỏi chữ (14/11/2026 #3071 #1: các khối bắt buộc
   // cộng 2.552 ký tự, H3 Max trần 2.000 → ghepTrongTran trả null, gửi nguyên prompt và bị cắt ngang câu).
-  const clipMoi = !!bc.canh.khung_xam?.clip && bc.canh.khung_xam.clip.ma === bc.canh.khung_xam.ma;
+  const clipMoi = clip3dMoi(bc.canh);
   const khoiCho = (model: string) => (clipMoi && /3d-to-video|video-to-video/.test(model) ? khoiV.filter((k) => k.ma !== 'huong') : khoiV);
   const promptCho = (model: string) => { const t = tranPrompt(model.replace(/^fal:/, '')); const goc = t ? ghepTrongTran(khoiCho(model), t, dangNhinVideo(bc).map((x) => [x.day, x.gon] as const)) ?? promptTron : promptTron; return chuoiCuoi && hieuDaiNhip(model) ? `${goc} ${cauChuoiCuoi(bc.canh.keyframe_giua ? 3 : 2)}` : goc; };
   const khungCuoi = cuoiCho(bc.kt.mo_hinh_video); const prompt = promptCho(bc.kt.mo_hinh_video);
@@ -365,7 +365,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
     // CLIP 3D LÀM NGUỒN (14/11/2026 phim #3071): ưu tiên clip three.js còn mới (clip.ma = mã khung hiện tại) — trước đây chỉ đọc kx.dien (Blender, phim three.js
     // để trống) nên model 3D→video được gửi KHÔNG có chuyển động 3D nào. Clip three.js luôn khớp khung 3D hiện tại → model 3D→video nhận cả khi keyframe là ảnh
     // AI (keyframe làm ảnh tham chiếu nét vẽ). Clip three.js có đoạn dư đầu (clip.vao) — bản dựng cắt từ đó (ky_thuat.vao_s ghi lúc gửi).
-    const clip3 = kx?.clip && kx.clip.ma === kx.ma ? kx.clip : null;
+    const clip3 = clip3dMoi(bc.canh) ? kx!.clip! : null;
     const videoNguon = clip3 && /3d-to-video|reference-to-video|video-to-video|vace/.test(id) ? clip3.url : kx && (bc.canh.keyframe_url === kx.mau || /reference-to-video|vace/.test(id)) ? kx.dien ?? null : null;
     kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, khungGiua, videoNguon, vaoNguon: videoNguon && clip3 && videoNguon === clip3.url ? clip3.vao : undefined, giay: bc.canh.thoi_luong_s || giay, giayPhat: bc.canh.phat_s, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
     // Điểm vào = đoạn dư đầu của clip 3D nguồn: GHI VÀO JOB, gắn vào shot cùng câu lệnh gắn clip (trigger xv_canh_doi_clip — migration 0328 — xoá vao_s cũ khi

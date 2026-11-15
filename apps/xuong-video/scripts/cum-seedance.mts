@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapCanh, type Row } from '../src/lib/xuong-video/doc-db';
 import { chiaCumCan, giayClipSeedance } from '../src/lib/xuong-video/cum-shot';
-import { giayPhat, chatLieuPhim, docKinhThanh, type KinhThanh } from '../src/lib/xuong-video/kieu';
+import { giayPhat, chatLieuPhim, docKinhThanh, clip3dMoi, type KinhThanh } from '../src/lib/xuong-video/kieu';
 import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
 
 const arg = (k: string, d = ''): string => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
@@ -44,7 +44,7 @@ const cum = doan.filter((d) => d.length).flatMap(tachNoi).flatMap((d) => chiaCum
   // giây clip = cum-shot.ts › giayClipSeedance (MỘT nguồn với lượt gửi thu-seedance-cum.mts): đuôi 2 s khi shot cuối có thoại gửi giọng — trước 15/11/2026 báo giá thiếu đuôi
   const cuoi = c.at(-1)!; const cuoiNoi = cachCua(c.map((x) => x.id))?.cach === 'seedance_audio' && (cuoi.thoai ?? []).some((d) => d.url && d.loi?.trim());
   const tong = c.reduce((a, x) => a + giayPhat(x), 0); const ra = giayClipSeedance(c.map((x) => giayPhat(x)), { cuoiCoThoai: cuoiNoi });
-  const thieu = c.filter((x) => !(x.khung_xam?.clip && x.khung_xam.clip.ma === x.khung_xam.ma) || !x.keyframe_url).map((x) => x.thu_tu);
+  const thieu = c.filter((x) => !clip3dMoi(x) || !x.keyframe_url).map((x) => x.thu_tu);   // clip 3D cũ (khung hoặc chuyển động máy đã đổi) — kieu.ts › clip3dMoi
   return { ten: String.fromCharCode(65 + i), phan_doan: c[0]!.phan_doan, shot: c.map((x) => ({ id: x.id, so: x.thu_tu, phat: giayPhat(x), clip: x.khung_xam?.clip?.url ?? null, vao: x.khung_xam?.clip?.vao ?? 0 })),
     tong: +tong.toFixed(2), ra, cents: +(gia * (tong + ra)).toFixed(1), thieu };
 });

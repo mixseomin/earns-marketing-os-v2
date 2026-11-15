@@ -14,13 +14,14 @@ import { uploadToR2 } from '../src/lib/r2';
 import { cauNgoaiCua } from '../src/lib/xuong-video/cum-shot';
 import { loiPromptGui, loiClipThamChieu } from '../src/lib/xuong-video/chan-gui-video';
 import { dangChongBau } from '../src/lib/xuong-video/bo-set-3d';
+import { clip3dMoi } from '../src/lib/xuong-video/kieu';
 
 const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
 const canhId = Number(arg('canh')); const dpg = arg('dpg', '480p') as '480p' | '720p'; const model = arg('model', 'bytedance/seedance-2-fast');
 const xem = process.argv.includes('--xem');
 const key = process.env.KIE_API_KEY; if (!key) { console.error('thiếu KIE_API_KEY'); process.exit(1); }
 const db = getDb()!; const bc = await boiCanhCanh(db, canhId); if (!bc) { console.error('không thấy shot'); process.exit(1); }
-const kx = bc.canh.khung_xam; const clip = kx?.clip && kx.clip.ma === kx.ma ? kx.clip : null;
+const kx = bc.canh.khung_xam; const clip = clip3dMoi(bc.canh) ? kx!.clip! : null;
 if (!clip || !bc.canh.keyframe_url) { console.error('shot thiếu clip 3D còn mới hoặc keyframe'); process.exit(1); }
 
 const nguoi = bc.nhanVat.filter((v) => v.loai === 'nhan_vat' && bc.canh.nhan_vat.includes(v.id) && v.anh_ref?.[0]);

@@ -9,7 +9,7 @@ import { ChuManXem } from './chu-man';
 //   Nhạc   — nhạc nền cả tập (nhac_url / nhac_mo_ta).
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
 import { Fragment, useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
-import { LOAI_NHAN_VAT, chuManHien, giayPhat, tenCamXuc, tenPhanDoan, camXucMucTieu, lechCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
+import { LOAI_NHAN_VAT, chuManHien, clip3dMoi, giayPhat, tenCamXuc, tenPhanDoan, camXucMucTieu, lechCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat, type KyThuatShot } from '@/lib/xuong-video/dien-anh';
 import { lopImpact, nhipHanhDong, themTieng } from '@/lib/xuong-video/nhip-hanh-dong';
 import { theTenTap } from '@/lib/xuong-video/the-ten';
@@ -160,7 +160,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Nút "⧉ So sánh" bật = bấm thường cũng chọn NHIỀU (góp ý #1603: Shift/⌘ ẩn quá, anh không thấy).
   const [cheDoNhieu, setCheDoNhieu] = useState(false);
   const phu = (['3d', 'keyframe', 'video'] as const).filter((m) => m !== cheDo && soSanh.includes(m));
-  const clip3d = c?.khung_xam?.clip &&c.khung_xam.clip.ma === c.khung_xam.ma ? c.khung_xam.clip : null;
+  const clip3d = c && clip3dMoi(c) ? c.khung_xam!.clip! : null;
   const vidAi = c && !String(c.nguon_video?.model ?? '').startsWith('blender') ? c.video_cuoi_url || c.video_url : null;
   const vid = !c ? null : cheDo === '3d' ? clip3d?.url ?? null : cheDo === 'keyframe' ? null : vidAi;
   const daiVid = vid ? daiCua[vid] ?? 0 : 0;
@@ -566,7 +566,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               chuyen={idx > 0 && c ? { anh: canh[idx - 1]!.keyframe_url, key: canh[idx - 1]!.ky_thuat?.chuyen_canh, giay: canh[idx - 1]!.ky_thuat?.giay_cc, phatTruoc: dur(canh[idx - 1]!), phatNay: dur(c) } : undefined}>
               {/* 3D: MỌI clip three.js của tập nạp sẵn + tua sẵn tới điểm vào (vài trăm KB mỗi clip) — sang shot chỉ đổi lớp hiện, không dựng trình phát mới.
                   Trước đây mỗi shot một <video key> mới: tải + tua xong mới chạy trong khi đồng hồ rAF đi tiếp → hình trễ rồi giật, nhịp cảm nhận sai (anh 13/11/2026). */}
-              {cheDo === '3d' && canh.map((k, i) => { const cl = k.khung_xam?.clip && k.khung_xam.clip.ma === k.khung_xam.ma ? k.khung_xam.clip : null; return cl && (
+              {cheDo === '3d' && canh.map((k, i) => { const cl = clip3dMoi(k) ? k.khung_xam!.clip! : null; return cl && (
                 <video key={`3d-${k.id}-${cl.url}`} data-clip3d="" ref={i === idx ? vidRef : undefined} src={cl.url} preload="auto" muted playsInline
                   onLoadedMetadata={(e) => { if (i !== idx) e.currentTarget.currentTime = cl.vao; }}
                   onPause={(e) => { if (i !== idx && Math.abs(e.currentTarget.currentTime - cl.vao) > 0.05) e.currentTarget.currentTime = cl.vao; }}
@@ -587,7 +587,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           </div>
           {c && phu.length > 0 && <div style={{ display: 'flex', flexDirection: doc916 ? 'row' : 'column', gap: 6, marginTop: 6 }}>
             {phu.map((m) => {
-              const cl = c.khung_xam?.clip && c.khung_xam.clip.ma === c.khung_xam.ma ? c.khung_xam.clip : null;
+              const cl = clip3dMoi(c) ? c.khung_xam!.clip! : null;
               const v = m === '3d' ? cl?.url ?? null : m === 'video' ? vidAi : null;
               const dv = v ? daiCua[v] ?? 0 : 0;
               const vt = m === '3d' ? (cl ? cl.vao + tTrong : 0) : diemVaoClip(c.ky_thuat?.vao_s, dv || null, dur(c)) + tTrong;

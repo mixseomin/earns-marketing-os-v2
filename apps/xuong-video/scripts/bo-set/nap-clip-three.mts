@@ -20,7 +20,7 @@ for (const c of ds) {
   const m = JSON.parse(await readFile(`${ten}.json`, 'utf8')) as { vao: number; ra: number; sach?: boolean };
   const url = await uploadToR2(`xuong-video/khung-xam/${c.id}-${kx.ma}-clip3d-${lan}.mp4`, await readFile(`${ten}.mp4`), 'video/mp4');
   if (!url) { loi.push(`#${so}: đẩy kho hỏng (R2 chưa bật?)`); continue; }
-  const clip = { url, vao: m.vao, ra: m.ra, ma: kx.ma, luc: new Date().toISOString(), sach: m.sach === true };
+  const clip = { url, vao: m.vao, ra: m.ra, ma: kx.ma, luc: new Date().toISOString(), sach: m.sach === true, cd: c.ky_thuat?.chuyen_dong || 'tinh' };   // cd: kieu.ts › clip3dMoi
   await db.execute(sql`UPDATE xv_canh SET khung_xam = khung_xam || ${JSON.stringify({ clip })}::jsonb, updated_at = now() WHERE id = ${c.id} AND khung_xam->>'ma' = ${kx.ma}`); nap++;
 }
 console.log(JSON.stringify({ nap, loi }));

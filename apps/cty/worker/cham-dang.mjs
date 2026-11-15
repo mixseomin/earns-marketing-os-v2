@@ -267,7 +267,13 @@ async function ketNoi() {
  *  ds = [{ title, anh: [url] }] → [{ chan: [], canh: [] } | null]. */
 /** Phiên bản luật xét hình — tăng khi đổi câu hỏi: bài SỬA LẠI chấm bởi bản cũ được chấm lại (chamMoi). v2 12/11/2026: logo / tên miền của chính site nhà không phải
  *  logo lạ (esimfares bị chặn oan vì nhãn esimfares.com góc khung). x.nha = tên miền / thương hiệu nhà. */
-export const HINH_V = 2;
+export const HINH_V = 3;   // v3 15/11/2026: tên kênh / nhãn nhà không phải tên miền (Front Porch Puzzles trong muc_dich) cũng là nhà — front-porch-only-one bị chặn oan
+/** Thương hiệu nhà cho Ngọc xét hình: site đích + mọi tên miền trong muc_dich + các đoạn sau dấu " · " của muc_dich (tên kênh / nhãn, vd "Bán sách · Front Porch Puzzles"). */
+export function thuongHieuNha(v) {
+  const md = String(v.muc_dich ?? '');
+  const doan = md.split(' · ').slice(1).map((x) => x.trim()).filter((x) => x && x.length <= 60);
+  return [...new Set([v.site_dich, ...(md.match(/[a-z0-9-]+\.[a-z]{2,}/gi) ?? []), ...doan].filter(Boolean))].join(', ') || null;
+}
 export async function xetHinhAi(ds) {
   if (!MODEL_NGOC) return ds.map(() => null);
   const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'xet-hinh.json');
@@ -375,7 +381,7 @@ export async function chamMoi(sql) {
   const suThatCua = (ma) => { if (!suThat.has(ma)) { try { suThat.set(ma, fs.readFileSync(new URL(`../../xuong-video/su-that/${ma}.md`, import.meta.url), 'utf8')); } catch { suThat.set(ma, null); } } return suThat.get(ma); };
   const loiHookNgach = await xetHookAi(ds.map((v) => ({ qc: v.dang?.loai !== 'bai' ? v.dang?.hook?.qc : null, ma: v.ma, nhan: v.ten, muc_dich: v.muc_dich, su_that: suThatCua(v.ma), goc: v.dang?.hook?.goc, luot_xem: v.dang?.hook?.luot_xem ?? (String(v.dang?.hook?.qc ?? '').startsWith('kenh:') ? v.dang?.hook?.ngay : undefined), dong: dongHookBai(v.dang?.title, v.de) })));
   const hinh = await xetHinhAi(ds.map((v) => ({ title: String(v.dang?.title ?? ''), anh: [...(v.de?.soat ?? (v.khung?.length ? v.khung : v.anh) ?? [])].filter((u) => /^https:\/\//.test(u)).slice(0, 8),
-    nha: [...new Set([v.site_dich, ...(String(v.muc_dich ?? '').match(/[a-z0-9-]+\.[a-z]{2,}/gi) ?? [])].filter(Boolean))].join(', ') || null })));
+    nha: thuongHieuNha(v) })));
   // THUMBNAIL (02/11/2026, anh: "không dùng thumb YouTube tự sinh"): video full (mẫu video-ngoai, kênh lịch sử) bắt buộc có thumbnail thiết kế (de.thumb.url,
   // lich-su/thumb.mjs) và Ngọc chấm đạt — thiếu / không đạt là chặn cứng, máy đăng không lấy.
   const thumb = await xetThumbAi(ds.map((v) => ({ title: String(v.dang?.title ?? ''), url: v.mau === 'video-ngoai' ? v.de?.thumb?.url ?? null : null, chu_de: v.de?.tom_tat ?? null, nguon: v.de?.thumb?.nguon ?? null })));
@@ -532,6 +538,8 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   const tot = { nen_url: 'https://images.pexels.com/photos/1/p.jpeg?w=1080', video_url: 'https://img.on.tc/v.mp4', xuat_luc: '2026-10-18',
     dang: { title: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds', description: 'Scam: fake deadline · asks for card by chat. Never pay through a link in a message. Call the hotel on its official number. Checklist: https://ratesbyroom.com/hotel-scam-check/', link: 'https://ratesbyroom.com/hotel-scam-check/', goc: { sp: 179, id: 1, loai: 'ai_noi_dau', ten: 'x' }, hook: { qc: '123', goc: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds' } } };   // mọi bài phải có góc + hook từ QC spy (31/10/2026)
   t.equal(doBaiDang(tot).ket, 'DUYET', 'bài đủ thì DUYỆT');
+  t.equal(thuongHieuNha({ site_dich: 'pickjot.com', muc_dich: 'Bán sách · Front Porch Puzzles' }), 'pickjot.com, Front Porch Puzzles', 'tên kênh nhà sau " · " là thương hiệu nhà');
+  t.equal(thuongHieuNha({ site_dich: 'esimfares.com', muc_dich: 'eSIM du lịch · esimfares.com' }), 'esimfares.com', 'không lặp tên miền');
   { // xếp việc Khang: một việc / máy, khoá social:sua|<máy>, mã máy lạ bỏ, không có bài thì không xếp
     let ra = null; const laSx = (q) => q.join('').includes('may_sx_luot');
     const sqlGia = async (q) => (laSx(q) ? [] : [{ ma: 'ratesbyroom-scam-or-real', n: 9, ly_do: 'hook mượn từ QC khác ngách', slug: 'a, b' }, { ma: 'x; rm -rf /', n: 1 }]);

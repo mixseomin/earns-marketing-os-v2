@@ -105,9 +105,14 @@ const LOAI = [
   ['xac-nhan-lien-he', /confirm (that )?you('|’)?re contacting|customer service wants to confirm|approve (or deny|this request)|xác nhận.*liên hệ/i, 'xác nhận liên hệ CSKH'],
   ['dang-nhap', /sign[- ]?in\b|log[- ]?in\b|new device|unrecognized|đăng nhập|thiết bị mới/i, 'đăng nhập'],
   ['mat-khau', /password|reset your|mật khẩu/i, 'mật khẩu'],
-  ['otp', /one-time|\bOTP\b|verification code|security code|mã xác (minh|nhận)/i, 'mã xác minh'],
+  ['otp', /one-time|\bOTP\b|verification code|security code|mã xác (minh|nhận)|is your [\w ]{0,20}code\b|confirmation code|verify your (email|address)/i, 'mã xác minh'],
+  ['quyen', /new owner|added as an? (owner|user|admin|member)|has been added as|granted [\w ]{0,20}access|email routing destination|thêm .{0,20}quyền/i, 'đổi quyền / thêm người'],
   ['thanh-toan', /payment|billing|card ending|refund|thanh toán/i, 'thanh toán'],
 ];
+// Link mạng xã hội ở CHÂN THƯ (trang Facebook / X / LinkedIn của chính hãng) không phải dấu hiệu giả: 16/11/2026 thư Cloudflare THẬT
+// (verify Email Routing, link dash.cloudflare.com) bị gắn GIẢ chỉ vì chân thư có facebook.com, x.com, linkedin.com. Lừa đảo cần trang lạ để lấy mật khẩu,
+// không dẫn về mạng xã hội thật.
+export const MXH = new Set(['facebook.com', 'x.com', 'twitter.com', 'linkedin.com', 'youtube.com', 'instagram.com', 'tiktok.com', 'pinterest.com', 'threads.net']);
 export const TEN_LOAI = Object.fromEntries(LOAI.map(([k, , t]) => [k, t]));
 const chu = (html) => String(html).replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<br\s*\/?>|<\/(p|div|tr)>/gi, '\n').replace(/<[^>]+>/g, '')
   .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
@@ -133,12 +138,14 @@ export function nguoiGui(from, html) {
   return { gui: (m ? m[1] : String(from)).toLowerCase(), chuyenTiep: i >= 0 };
 }
 /** Kết luận một thư: { gui, mien, loai[], links, la (host khác nhà người gửi), ket: 'gia'|'that'|'chua-ro', chu, viec }. */
+/** Loại thư "có người đang đòi quyền / mã / duyệt": chỉ phòng Bảo mật được giữ — hỏi anh "anh có tự làm không" trước, không giao phòng khác. */
+export const YEU_CAU = ['xac-nhan-lien-he', 'dang-nhap', 'mat-khau', 'otp', 'quyen'];
 export function thamDinh({ from, subject = '', html = '' }, day = { nha: [], quen: [], gia: [] }) {
   const { gui, chuyenTiep } = nguoiGui(from, html);
   const mien = gui.includes('@') ? mienGoc(gui.split('@')[1]) : '';
   const tinDuoc = (h) => [...(day.nha ?? []), ...(day.quen ?? [])].includes(mienGoc(h));
   const t = `${subject}\n${chu(html)}`, loai = LOAI.filter(([, re]) => re.test(t)).map(([k]) => k);
-  const links = tachLink(html), la = mien ? links.filter((h) => !cungNha(h, mien) && !tinDuoc(h)) : [];
+  const links = tachLink(html), la = mien ? links.filter((h) => !cungNha(h, mien) && !tinDuoc(h) && !MXH.has(mienGoc(h))) : [];
   const dkim = chuyenTiep ? ' (thư chuyển tiếp mất header gốc nên chưa đọc được chữ ký DKIM — kết luận theo link)' : '';
   if (!mien) return { gui, mien, loai, links, la, ket: 'chua-ro', chu: 'Không đọc được địa chỉ người gửi.', viec: 'Không bấm link nào; chuyển tiếp lại thư dạng tệp đính kèm (.eml) để đọc header.' };
   if ((day.gia ?? []).includes(mien)) return { gui, mien, loai, links, la, ket: 'gia', chu: `THƯ GIẢ: anh đã dạy Diệp ${mien} là tên miền giả.`, viec: 'Không bấm link, không nhập gì; xoá thư.' };
@@ -147,7 +154,7 @@ export function thamDinh({ from, subject = '', html = '' }, day = { nha: [], que
   if (!loai.length) return { gui, mien, loai, links, la, ket: 'thuong', chu: 'Không có dấu hiệu bảo mật (không đòi xác nhận, đăng nhập, mật khẩu, mã, thanh toán; không link lạ).', viec: 'Không cần làm gì.' };   // Diệp đọc MỌI thư (anh 14/10/2026), thư thường chỉ ghi nhận
   if (!NHA.has(nhan(mien)) && !(day.quen ?? []).includes(mien)) return { gui, mien, loai, links, la, ket: 'chua-ro', chu: `Tên miền ${mien} không phải nhà anh có tài khoản (worker/mail-bao-mat.mjs NHA) — tên nhái hay gặp.`, viec: 'Coi như giả: không bấm link, không trả lời. Là site nhà / nhà quen thì bấm 🏠 hoặc ✅ để dạy Diệp.' };
   if (!links.length) return { gui, mien, loai, links, la, ket: 'chua-ro', chu: `Thư mang tên ${mien}, không có link để đối chiếu${dkim}.`, viec: 'Không trả lời thư; kiểm thẳng trên trang thật (gõ tay địa chỉ).' };
-  const yeuCau = loai.some((k) => ['xac-nhan-lien-he', 'dang-nhap', 'mat-khau', 'otp'].includes(k));
+  const yeuCau = loai.some((k) => YEU_CAU.includes(k));
   return { gui, mien, loai, links, la, ket: 'that', chu: `Thư thật của ${mien}: mọi link về ${[...new Set(links.map(mienGoc))].join(', ')}${dkim}.`,
     viec: yeuCau ? `Anh KHÔNG tự làm việc này (${loai.map((k) => TEN_LOAI[k]).join(', ')}) → có người mạo danh: KHÔNG bấm Approve/Duyệt (bấm Deny nếu có), đổi mật khẩu + bật xác minh 2 lớp trên ${mien} (gõ tay địa chỉ, không qua link thư), xem "thiết bị đã đăng nhập".`
       : 'Thư thông báo, không đòi duyệt gì — đọc rồi lưu trữ.' };
@@ -186,6 +193,10 @@ export function apNao(x, n, day = {}, chiDuong = {}) {
   if (!x.mien) return x;
   if ((day.gia ?? []).includes(x.mien) || (day.nha ?? []).includes(x.mien) || linkNhai(x).length) return { ...x, phong: n?.phong ?? null };   // chốt máy thắng
   const y = n ? { ...x, ket: n.ket, chu: `${n.ly_do} (Diệp đọc thư)`, viec: n.viec || x.viec, phong: n.phong ?? null, nao: true } : { ...x };
+  // CHỐT BẢO MẬT (anh 16/11/2026 bảo Diệp rà lại): thư đòi duyệt / mã / đăng nhập / thêm owner mà mô hình giao phòng khác → kéo về Bảo mật.
+  // Trước đó: amazon.in "Account confirmation request" (thiết bị lạ ở Delhi) giao Kinh doanh với việc "vào link Approve hoặc Deny"; hai thư "New owner for
+  // loginwiz.com" (người lạ thành owner Search Console) giao AdFond; mã Instagram của social@astrolas.com gắn "thường".
+  if (y.ket !== 'gia' && (x.loai ?? []).some((k) => YEU_CAU.includes(k))) return { ...y, ket: 'that', phong: 'an-toan-tk', viec: `Anh có tự làm việc này không (${x.loai.filter((k) => YEU_CAU.includes(k)).map((k) => TEN_LOAI[k]).join(', ')})? Không phải anh hay máy nhà làm → KHÔNG bấm link trong thư, thu hồi quyền / đổi mật khẩu trên trang thật (gõ tay địa chỉ).`, chiDuong: 'chot-bao-mat' };
   if (cho) return { ...y, ket: 'that', phong: cho.phong, viec: `${cho.ly_do || 'Phòng này đang chờ thư này'} — ${y.viec}`, chiDuong: 'cho-thu' };   // người đang chờ thì nhận
   if (hoc) return { ...y, ket: y.ket === 'thuong' ? 'that' : y.ket, phong: hoc.phong, chiDuong: 'hoc' };   // anh đã sửa thư cùng loại
   return y;
@@ -478,6 +489,16 @@ if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu
   a.equal(thamDinh({ from: 'no-reply@accounts.google.com', html: '<a href="https://accounts.google.com/x">Check activity</a> New sign-in on Mac' }).ket, 'that');   // thư gửi thẳng (không chuyển tiếp)
   a.equal(thamDinh({ from: 'security@paypa1-support.com', html: '<a href="https://paypa1-support.com/login">Confirm</a> unusual sign-in' }).ket, 'chua-ro');   // tên miền nhái, link cùng nhà nhái → không bao giờ "thật"
   a.equal(thamDinh({ from: 'x', html: '' }).ket, 'chua-ro');
+  { const cf = thamDinh({ from: 'Cloudflare <noreply@notify.cloudflare.com>', subject: '[Action required] Verify your Email Routing address', html: '<a href="https://dash.cloudflare.com/email_fwdr/verify?token=x">Verify</a> <a href="https://www.facebook.com/Cloudflare">f</a><a href="https://x.com/cloudflare">x</a><a href="https://www.linkedin.com/company/cloudflare">in</a>' });
+    a.notEqual(cf.ket, 'gia', 'chân thư có link mạng xã hội của hãng → không gắn giả (Cloudflare 16/11/2026)'); a.ok(cf.loai.includes('otp') || cf.loai.includes('quyen'));
+    a.equal(thamDinh({ from: 'x@evil.top', html: '<a href="https://evil-login.top/a">x</a><a href="https://facebook.com/a">f</a>' }).ket !== 'that', true, 'link lạ thật vẫn bị bắt dù có link mạng xã hội');
+    const own = thamDinh({ from: 'sc-noreply@google.com', subject: 'New owner for loginwiz.com', html: 'ken@openmoneta.com has been added as an owner <a href="https://search.google.com/search-console/users">Manage users</a>' });
+    a.ok(own.loai.includes('quyen'), 'thư thêm owner = loại đổi quyền');
+    const r = apNao(own, { ket: 'that', ly_do: 'l', viec: 'Kiểm tra owner', phong: 'adfond' });
+    a.equal(r.phong, 'an-toan-tk', 'mô hình giao AdFond thư thêm owner → chốt kéo về Bảo mật'); a.match(r.viec, /Anh có tự làm/);
+    const ig = thamDinh({ from: 'no-reply@mail.instagram.com', subject: '265575 is your Instagram code', html: 'Someone tried to sign up <a href="https://www.instagram.com/x">x</a>' });
+    a.equal(apNao(ig, { ket: 'thuong', ly_do: 'l', viec: 'v', phong: null }).phong, 'an-toan-tk', 'mã đăng ký Instagram lạ → Bảo mật hỏi anh, không "thường"');
+    a.equal(apNao(thamDinh({ from: 'sc-noreply@google.com', subject: 'New reasons prevent pages from being indexed', html: '<a href="https://search.google.com/x">x</a>' }), { ket: 'that', ly_do: 'l', viec: 'v', phong: 'ky-thuat' }).phong, 'ky-thuat', 'thư thông báo thường không bị kéo về Bảo mật'); }
   const m1 = { id: 'a', xong: false, mien: 'amazon.in', gui: 'x@amazon.in', ket: 'that', tieuDe: 'A <b>', chu: 'c', viec: 'v' };
   const th = { id: 't', xong: false, mien: 'gmail.com', gui: 'a@gmail.com', ket: 'thuong', tieuDe: 'Diệp check mail', chu: 'c', viec: 'v' };
   const bk = buocTin({}, [th, { ...th, id: 'u', tieuDe: 'GSC report' }], 0, 'Diệp'); a.deepEqual(bk.daDoc.map((m) => m.id), ['t'], 'thư gọi tên Diệp (kể cả không dấu) → trả lời; thư thường khác → im'); a.equal(bk.cho, 0);

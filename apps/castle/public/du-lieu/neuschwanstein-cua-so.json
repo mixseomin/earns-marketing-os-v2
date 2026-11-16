@@ -2570,8 +2570,8 @@
  "way/223110818#7": {
   "hang": [
    {
-    "y0": 24.0,
-    "y1": 26.0,
+    "y0": 21.3,
+    "y1": 23.4,
     "cum": [
      [
       1.6,
@@ -2586,8 +2586,8 @@
     ]
    },
    {
-    "y0": 18.6,
-    "y1": 20.4,
+    "y0": 16.7,
+    "y1": 18.5,
     "cum": [
      [
       2.0,
@@ -2602,7 +2602,8 @@
     ]
    }
   ],
-  "ly_do": "ảnh Mapillary 360° cổng Torbau (990990575063069, 493003245182754): tầng trên cửa đôi vòm trong vòm kem, tầng dưới cửa đơn; mặt nhìn ra sân trước cổng (mặt đất 11,3 m)"
+  "ly_do": "ảnh Mapillary 360° cổng Torbau (990990575063069, 493003245182754): tầng trên cửa đôi vòm trong vòm kem, tầng dưới cửa đơn; mặt nhìn ra sân trước cổng (mặt đất 11,3 m)",
+  "ly_do_cao": "16/11/2026 thẻ #1624 (\"2 cánh đỏ sai\"): độ cao cũ 24–26 / 18,6–20,4 ghi khi đỉnh tường còn cao — sau #1623 đỉnh tường 25,0 nên hàng trên chọc vào răng cưa (mô hình: cửa đôi nằm ngay dưới răng). Đo trên cặp ảnh so-lech --the 1624 cùng camera (mặt cách ~50 m, ~14,3 điểm ảnh/m đứng), mốc chân răng cưa = 25,0: cửa đôi trong vòm kem 21,3–23,4 (khung 355–395 px), cửa đơn dưới 16,7–18,5 (438–462 px)"
  },
  "way/223110820#14": {
   "hang": [

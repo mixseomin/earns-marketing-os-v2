@@ -490,7 +490,9 @@ function dungKhoi(k, G) {
         for (let b = 0; b < nb; b++) for (const P of [A, Bq]) { const f0 = b / nb, f1 = (b + 1) / nb, y0 = A[1] + H * f0, y1 = A[1] + H * f1;
           const x0 = P[0] + (mx - P[0]) * f0, z0 = P[2] + (mz - P[2]) * f0, x1 = P[0] + (mx - P[0]) * f1, z1 = P[2] + (mz - P[2]) * f1;
           BAC_HOI.push({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, y: y1 + 0.35, w: Math.hypot(x1 - x0, z1 - z0) + 0.25, h: 0.7 + (y1 - y0) * 0.3, goc: Math.atan2(z1 - z0, x1 - x0), mau: mauT.clone() }); }
-        BAC_HOI.push({ x: R[0], z: R[2], y: R[1] + 0.9, w: 0.7, h: 1.6, goc: Math.atan2(Bq[2] - A[2], Bq[0] - A[0]), mau: mauT.clone() }); // trụ đỉnh
+        // trụ đỉnh: cao theo thẻ hoi_tru (m, sua.json — 0 = không có trụ, mũi đầu hồi chỉ là bậc nắp đá), mặc định 1,6
+        const hTru = so(t.hoi_tru) ?? 1.6;
+        if (hTru > 0) BAC_HOI.push({ x: R[0], z: R[2], y: R[1] + 0.1 + hTru / 2, w: 0.7, h: hTru, goc: Math.atan2(Bq[2] - A[2], Bq[0] - A[0]), mau: mauT.clone() });
         ghiKK(k.id + '#mai', 'hoi_bac', R[1]);
       }
     }

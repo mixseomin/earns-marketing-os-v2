@@ -51,10 +51,12 @@
   "height": "22",
   "ly_do_tra": "16/11/2026: so-lech --tu-xu thẻ #1623 hạ còn 13,6 m là SAI (đo đỉnh lệch chỗ, đầu hồi khuất) — ảnh 3D mặt đông: đầu hồi bậc đỏ nhô cao trên hai cánh, hai hàng cửa → trả 22",
   "y_duoi": "28.8",
-  "y_tren": "33.4",
+  "y_tren": "34.8",
+  "hoi_tru": "0",
+  "ly_do_cao4": "16/11/2026 thẻ #1624 (\"thiếu mái\"): bản đồ độ cao ảnh 3D từ trên xuống (scripts/xem-dsm.py 24 48 -36 6): mái dốc khối giữa sống chạy đông–tây, sống 34,6–35,1 m suốt dài (x 30 → 37,5), mái hiên bắc 30,3, nam 29,5 → mái hiên 30,0 giữ, sống 33,4 → 34,8 (mái 3,4 → 4,8, dốc ~46° như ảnh). Mũi đầu hồi đo 35,1 chỉ nhô ~0,3 m trên sống → bỏ trụ đỉnh 1,6 m (hoi_tru 0), bậc nắp đá tự nhô ~0,8 m",
   "ly_do_cao3": "16/11/2026 thẻ #1623 lần 3: cặp ảnh so-lech cùng camera (mặt đông cách 65,4 m): đầu hồi THẬT là tam giác liền từ mái hiên ~30,1 m (ngang răng cưa hai mấu đỏ) tới mũi 34,9 m (kể cả nắp đá), không có tường đứng trên răng cưa; mô hình mũi trụ đỉnh 37,2 (tường 30–32 + tam giác 32–35 + trụ 1,7). Chân ngang thân khối đỏ 28,8, sống 33,4 (trụ đỉnh tới 35,1), mái 3,4 → mái hiên 30,0",
   "ly_do_cao": "16/11/2026 đo theo TIA camera trên ảnh 3D (thẻ #1623): đầu hồi bậc đứng trên phần đỏ (28,4 — ngay trên đỉnh khối cổng kem 28,3, không che răng cưa / tháp canh của nó), đỉnh 39,4 — nhô cao trên hai cánh như ảnh",
-  "roof:height": "3.4",
+  "roof:height": "4.8",
   "ly_do_ti_le": "16/11/2026 so dáng từ cầu Marienbrücke (scripts/so-dang.py + đo tia trên ảnh 3D): đỉnh đầu hồi thật 34,6–35,0 m (CLI tự xử đo 35,0 là ĐÚNG — con trả 39,4 là sai), chân 30,0, mái bậc 3 m"
  },
  "way/223110820": {
@@ -79,12 +81,14 @@
   "ly_do_cao_cu": "16/11/2026 ảnh 3D mặt đông gần + rộng (anh khoanh): đỉnh khối cổng kem NGANG răng cưa hai cánh (cánh nam 26,6) — số 29,3 đo tia lần trước trúng phần gạch đỏ phía sau"
  },
  "way/223110818": {
-  "roof:shape": "flat",
   "rang_cua": "yes",
   "vom_nho": "yes",
   "da_goc": "yes",
   "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): cánh gạch đỏ: mái khuất sau tường răng cưa kem, dải vòm nhỏ dưới răng cưa, đá góc kem so le",
-  "y_tren": "25.0",
+  "roof:shape": "hipped",
+  "roof:height": "2.6",
+  "y_tren": "27.6",
+  "ly_do_mai": "16/11/2026 thẻ #1624 (\"2 cánh đỏ sai\"): ảnh 3D nhìn từ trên (góc báo + góc bắc) thấy mái đá phiến tối sau răng cưa cánh bắc, mô hình là mặt phẳng hồng; bản đồ độ cao (xem-dsm.py): mặt mái 26,0 (mép đông) → 27,9 (giữa) trên đỉnh tường 25,0 → mái dốc bốn mặt cao 2,6, đỉnh 27,6 (tường giữ 25,0; từ sân dưới vẫn khuất sau răng cưa 1,4 m như ảnh Mapillary)",
   "ly_do_cao": "16/11/2026 đo theo TIA camera trên ảnh 3D (thẻ #1623 \"thừa 1 tầng\"); mốc chân nhà Torbau neo theo đỉnh đo mặt bằng cũ (lẫn khối cao cạnh) nên chỉnh height vô ích — đặt ĐỘ CAO TUYỆT ĐỐI: đỉnh răng cưa thật 26,4–26,5 − răng 1,4"
  },
  "way/223110825": {
@@ -103,17 +107,22 @@
   "ly_do_dich": "dang-ky-khoi.mjs 2026-11-16: mặt bằng OSM lệch ảnh 3D (0, 2.5) m, khớp 0.698 → 0.785"
  },
  "way/221599083": {
-  "roof:shape": "flat",
+  "roof:shape": "cone",
+  "roof:height": "3.9",
+  "y_tren": "35.6",
   "vong_rang": "yes",
-  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): tháp tròn góc: đỉnh phẳng, vành con sơn + răng cưa, không mái nhọn",
+  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): tháp tròn góc: vành con sơn + răng cưa (từ sân dưới chân tháp không thấy mái — chóp khuất sau vành)",
+  "ly_do_mai": "16/11/2026 thẻ #1624 (\"thiếu mái\"): ảnh 3D Google nhìn từ trên (góc báo + góc bắc) cả hai tháp góc có MÁI CHÓP đá phiến tối mọc trong vành răng cưa (OSM gốc cũng ghi mái nhọn); bản đồ độ cao (xem-dsm.py): vành 33,3–34,1, mũi 35,6 tại tâm tháp; so-lech --cam … --do: đỉnh thật theo tia 34,26 / mô hình 33,06 (5 cột, trải 0,6 m). Thân giữ 31,7 (vành răng tới 33,2 ≈ vành đo), chóp nón 3,9 m → mũi 35,6",
   "cua_thap": "3"
  },
  "way/221599084": {
-  "roof:shape": "flat",
+  "roof:shape": "cone",
+  "roof:height": "3.2",
+  "ly_do_mai": "16/11/2026 thẻ #1624 (\"thiếu mái\"): ảnh 3D Google từ góc báo (trên cao) thấy mái chóp đá phiến tối trong vành răng cưa — từ sân dưới (thẻ #1623, tia 31,06) chóp khuất sau vành; bản đồ độ cao (xem-dsm.py): vành 30,8–31,0, mũi 32,9 tại tâm; so-lech --the 1624 --do: tia thật 32,6 / mô hình 31,1 (6 cột), từ trên xuống 32,59. Thân giữ 29,7 (vành răng tới 31,25), chóp nón 3,2 m → mũi 32,9 (y_tren)",
   "vong_rang": "yes",
   "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): tháp tròn góc: như way/221599083",
   "cua_thap": "3",
-  "y_tren": "29.7",
+  "y_tren": "32.9",
   "ly_do_cao": "16/11/2026 thẻ #1623 lần 3 (vùng anh tô, tháp bên trái ảnh): so-lech --do đo THEO TIA từ góc báo: đỉnh thật 31,06 · mô hình 35,26 (9 cột, trải 1,5 m — tin được); điểm ảnh cặp so-lech cùng camera (cách 55,3 m): thật ~30,6, mô hình 35,3 — hai cách khớp. Thân 33,86 → 29,7",
   "dich_x": "-2.75",
   "dich_z": "0.25",

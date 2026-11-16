@@ -1,0 +1,10 @@
+{
+  "name": "@mos2/cong-ai",
+  "version": "0.0.1",
+  "description": "Client MỘT CỔNG AI — mọi lượt gọi mô hình của repo đi qua cổng chung spy (POST /api/ai, chuỗi donk → ckey → fal → chính hãng cuối)",
+  "private": true,
+  "type": "module",
+  "main": "./index.mjs",
+  "types": "./index.d.ts",
+  "exports": { ".": { "types": "./index.d.ts", "default": "./index.mjs" } }
+}

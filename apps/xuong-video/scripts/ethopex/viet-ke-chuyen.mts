@@ -6,15 +6,12 @@
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/ethopex/viet-ke-chuyen.mts '<json một dòng của hang-ke-chuyen>'
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { goiAi, MO_HINH } from '../../../../packages/cong-ai/index.mjs';
 
 type Phim = { content_id: number; ten: string; url: string; nguon: string; lang: 'en' | 'es' };
 const p = JSON.parse(process.argv[2] ?? '{}') as Phim;
 if (!p.content_id || !p.url) { console.error('cần JSON {content_id, ten, url, nguon, lang}'); process.exit(1); }
-const KHOA = readFileSync('/root/.secrets/spy.env', 'utf8').match(/^CKEY_KEY=(.*)$/m)?.[1]?.trim();
-if (!KHOA) { console.error('thiếu CKEY_KEY (/root/.secrets/spy.env)'); process.exit(1); }
-// tuyến ckey SỐNG do spy bảo trì (/var/lib/spy/ckey-tuyen.json, đo 6 giờ/lần) — Sonnet trước (kịch bản cần chất lượng), Haiku dự phòng
-const TUYEN = (() => { try { const j = JSON.parse(readFileSync('/var/lib/spy/ckey-tuyen.json', 'utf8')) as { dong: Record<string, string[]> }; return [...(j.dong.sonnet ?? []), ...(j.dong.haiku ?? [])]; }
-  catch { return ['ckey:haiphu95pdp/claude-sonnet-5-5', 'ckey:nghiaphan0633/claude-haiku-5.5']; } })().map((m) => m.replace(/^ckey:/, ''));
+// GỌI AI QUA CỔNG AI CHUNG spy (anh 16/11/2026 "1 nguồn dùng API duy nhất cho mọi model") — tệp này không giữ khoá, không chọn tuyến: packages/cong-ai
 
 // ── 1. sự thật từ trang phim ──
 const giaiMa = (s: string) => s.replace(/\\u003c/g, '<').replace(/\\u003e/g, '>').replace(/\\u0026/g, '&').replace(/<[^>]+>/g, ' ').replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"')
@@ -52,46 +49,25 @@ const SCHEMA = { type: 'object', required: ['nhan_vat', 'nguoi_ke', 'boi_canh', 
 type KichBan = { nhan_vat: string; nguoi_ke: 'nu' | 'nam'; boi_canh: { ten: string; mo_ta: string }; canh: { loi: string; anh: string; dong: string }[] };
 let kq: KichBan | null = null;
 let chi = 0, loi = '';
-// CỔNG CHỮ = đúng danh sách từ cấm cat-canh / kiem-thoai.py dùng (một nguồn) — một hàm cho mọi lượt (donk + ckey)
+// CỔNG CHỮ = đúng danh sách từ cấm cat-canh / kiem-thoai.py dùng (một nguồn) — kiểm kết quả cổng AI
 const tuCam = (canh: { loi: string }[]): string[] => (JSON.parse(execFileSync('python3', ['-c', `import importlib.util as u,json,sys;s=u.spec_from_file_location('k','scripts/ethopex/kiem-thoai.py');m=u.module_from_spec(s);s.loader.exec_module(m);print(json.dumps([m.soat(c) for c in json.load(sys.stdin)]))`],
       { input: JSON.stringify(canh.map((c) => c.loi)), encoding: 'utf8' }).trim().split('\n').pop()!) as (string | null)[]).map((w, i) => (w ? `#${i + 1} "${w}"` : '')).filter(Boolean);
-// DONK ĐẦU CHUỖI (anh 11/11/2026): lượt 'donk' đi qua apps/etp/ai_chu.py --json (MỘT đường gọi AI của Ethopex: đổi khuôn, ảnh base64, tiền ước), rồi mới tới tuyến ckey
-const quaDonk = (): { x: unknown; vnd: number; loi: string | null } => {
-  const out = execFileSync('python3', [new URL('../../../etp/ai_chu.py', import.meta.url).pathname, '--json'], { encoding: 'utf8', timeout: 6 * 60e3, maxBuffer: 16 << 20,
-    input: JSON.stringify({ noi: [{ type: 'image_url', image_url: { url: poster } }, { type: 'text', text: LUAT }], max_tokens: 3000, cong_cu: ['ghi_kich_ban', SCHEMA], uu: 'sonnet', cong: ['donk'], timeout: 300 }) });
-  const j = JSON.parse(out.trim().split('\n').pop()!) as { ket: unknown; vnd: number; loi: string | null };
-  return { x: j.ket, vnd: Number(j.vnd) || 0, loi: j.loi };
-};
-for (const model of ['donk', ...TUYEN]) {
-  try {
-    if (model === 'donk') {
-      const d = quaDonk(); chi += d.vnd; const x = d.x as KichBan | null;
-      if (!x) { loi = `donk: ${d.loi}`; continue; }
-      const dinh = x.canh?.length === 6 ? tuCam(x.canh) : [];
-      if (x.canh?.length === 6 && x.nhan_vat && !dinh.length) { kq = x; break; }
-      loi = dinh.length ? `donk: lời dính từ cấm ${dinh.join(', ')}` : 'donk: sai khuôn'; continue;
-    }
-    const r = await fetch('https://api.xah.io/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${KHOA}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(5 * 60e3),
-      body: JSON.stringify({ model, max_tokens: 3000, messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: poster } }, { type: 'text', text: LUAT }] }],
-        tools: [{ type: 'function', function: { name: 'ghi_kich_ban', description: 'Ghi kịch bản QC kể chuyện', parameters: SCHEMA } }], tool_choice: { type: 'function', function: { name: 'ghi_kich_ban' } } }) });
-    const j = await r.json() as { usage?: { x_ckey?: { cost?: number } }; error?: unknown; choices?: { message?: { tool_calls?: { function?: { arguments?: string } }[] } }[] };
-    chi += Number(j.usage?.x_ckey?.cost ?? 0);
-    const a = j.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-    const x = a ? JSON.parse(a) : null;
-    // CỔNG CHỮ = đúng danh sách từ cấm cat-canh / kiem-thoai.py dùng (một nguồn): câu nào dính thì thử tuyến kế, không để tới bước dựng mới bị chặn
-    const dinh = x?.canh?.length === 6 ? tuCam(x.canh) : [];
-    if (x?.canh?.length === 6 && x.nhan_vat && !dinh.length) { kq = x; break; }
-    if (dinh.length) { loi = `${model}: lời dính từ cấm ${dinh.join(', ')}`; continue; }
-    loi = `${model}: ${JSON.stringify(j.error ?? 'sai khuôn').slice(0, 160)}`;
-  } catch (e) { loi = `${model}: ${String(e).slice(0, 160)}`; }
-}
-if (!kq) { console.error(`✗ ckey không viết được (${loi}) · đã tiêu ${Math.round(chi)}₫`); process.exit(4); }
+// Một lượt qua cổng (donk → ckey sống → fal, không chính hãng); lời dính từ cấm / sai khuôn → lượt sau bỏ tuyến đó (bo_tuyen)
+try {
+  const pb = await fetch(poster, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(30e3) });
+  const anh = Buffer.from(await pb.arrayBuffer()).toString('base64'), mt = (pb.headers.get('content-type') || 'image/jpeg').split(';')[0];
+  const r = await goiAi<KichBan>({ viec: 'xv-ke-chuyen', ma: String(p.content_id), model: MO_HINH.sonnet, max_tokens: 3000, schema: SCHEMA, bo_chinh_hang: true,
+    noi_dung: [{ type: 'image', source: { type: 'base64', media_type: mt, data: anh } }, { type: 'text', text: LUAT }] },
+    { kiem: (x) => { if (!(x?.canh?.length === 6 && x.nhan_vat)) return 'sai khuôn'; const dinh = tuCam(x.canh); return dinh.length ? `lời dính từ cấm ${dinh.join(', ')}` : null; } });
+  kq = r.kq; chi += r.chi_usd * 26000;
+} catch (e) { loi = String(e).slice(0, 300); }
+if (!kq) { console.error(`✗ cổng AI không viết được (${loi}) · đã tiêu ${Math.round(chi)}₫`); process.exit(4); }
 
 // ── 3. lô JSON một phim → tao-lo (khuôn studio + cổng) ──
 const D = '/var/tmp/vx-kc/lo'; if (!existsSync(D)) mkdirSync(D, { recursive: true });
 const tep = `${D}/lo-${p.content_id}-${Date.now()}.json`;
 writeFileSync(tep, JSON.stringify({
-  ghi_chu: `Máy sinh kể chuyện VideoExpress (viet-ke-chuyen.mts, ckey ${Math.round(chi)}₫) — khuôn bản thắng #55604, truyện theo tóm tắt trang phim, hình không vũ khí / máu / gợi dục.`,
+  ghi_chu: `Máy sinh kể chuyện VideoExpress (viet-ke-chuyen.mts, cổng AI ${Math.round(chi)}₫) — khuôn bản thắng #55604, truyện theo tóm tắt trang phim, hình không vũ khí / máu / gợi dục.`,
   khuon: { ti_le: '9:16', do_phan_giai: '1080p', so_canh: 6, giay_canh: 4, the_cuoi: { en: 'Watch the full series for free · Learn More', es: 'Mira la serie completa gratis · Más información' } },
   phim: [{ content_id: p.content_id, ten: p.ten, lang: p.lang, nguon: p.nguon, giong: kq.nguoi_ke === 'nam' ? 'Brian' : 'Sarah', poster, url: p.url, nhan_vat: kq.nhan_vat,
     trang_phim: tomTat.slice(0, 1200), boi_canh: kq.boi_canh, canh: kq.canh }],

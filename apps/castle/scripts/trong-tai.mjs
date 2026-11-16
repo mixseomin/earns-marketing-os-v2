@@ -54,7 +54,7 @@ else {
   for (const k of moi.khoi) { const c = M.get(k.id) || { id: k.id, ten: k.ten, chi_tiet: [] }; c.y_tren = k.y_tren; c.chi_tiet.push(...k.chi_tiet); M.set(k.id, c); }
   const kh = [...M.values()].filter((k) => k.chi_tiet.length).map((k) => ({ ...k, lech: +tv(k.chi_tiet.map((d) => d.lech)).toFixed(2), goc: k.chi_tiet.length })).sort((a, b) => Math.abs(b.lech) - Math.abs(a.lech));
   writeFileSync(MOC, JSON.stringify({ ...moc, luc: moi.luc, ban: sha.slice(0, 9), so_khoi: kh.length, lech_nang: kh.filter((k) => Math.abs(k.lech) >= 1.5).length, lech_tb: +(kh.reduce((t, k) => t + Math.abs(k.lech), 0) / (kh.length || 1)).toFixed(2), khoi: kh }, null, 1) + '\n');
-  g('add', MOC); g('commit', '-q', '-m', `castle: bảng chấm góc chuẩn sau ${sha.slice(0, 9)} (trọng tài máy: ${moi.goc.length} góc, không khối nào xấu đi)`);
+  g('add', MOC, du('kiem-ke-kq')); g('commit', '-q', '-m', `castle: bảng chấm góc chuẩn sau ${sha.slice(0, 9)} (trọng tài máy: ${moi.goc.length} góc, không khối nào xấu đi)`);
   nho(true, tom);
 }
 console.log(`✓ TRỌNG TÀI ĐẠT: ${sha.slice(0, 9)}`);

@@ -51,6 +51,6 @@ for (const m of KK.mat) {
 }
 const matChong = [...new Set(chong.map((c) => c.mat))];
 for (const c of chong) { (KQ[c.mat] ??= { ten: c.mat, khop: 0, loi: [], loai_sai: [] }).loi.push(`ô cửa chồng lấn tại s ${c.a[0]} / ${c.b[0]}`); KQ[c.mat].loai_sai.push('cua_so'); }
-writeFileSync(du('kiem-ke-kq'), JSON.stringify({ luc: new Date().toISOString(), mat: KQ }, null, 1) + '\n'); // CHỒNG LẤN toàn mô hình (mọi mặt, không riêng mặt đã kiểm kê)
+{ const cu = existsSync(du('kiem-ke-kq')) ? JSON.parse(readFileSync(du('kiem-ke-kq'), 'utf8')) : null; if (JSON.stringify(cu?.mat) !== JSON.stringify(KQ)) writeFileSync(du('kiem-ke-kq'), JSON.stringify({ luc: new Date().toISOString(), mat: KQ }, null, 1) + '\n'); }   // chỉ ghi khi KẾT QUẢ đổi: ghi lại mỗi lượt (dấu giờ mới) làm cây kỹ sư luôn bẩn → trọng tài đạt mà máy không đẩy được (16/11/2026) // CHỒNG LẤN toàn mô hình (mọi mặt, không riêng mặt đã kiểm kê)
 console.log(`\nCHỒNG LẤN ô cửa: ${chong.length} cặp trên ${matChong.length} mặt${chong.length ? ' — ' + matChong.slice(0, 12).join(', ') : ''}`);
 console.log(`\n${dung} khớp · ${thieu} THIẾU · ${thua} thừa · ${saiKhung} sai khung · ${saiViTri} sai vị trí · ${saiQH} sai tương quan`); process.exit(thieu || saiKhung || saiViTri || saiQH || chong.length ? 1 : 0);

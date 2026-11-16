@@ -932,6 +932,7 @@ for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart'
 const dongHo = new THREE.Clock();
 function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ so ảnh)
   requestAnimationFrame(ve);
+  luuGoc();
   // điện thoại: xem toàn cảnh xa > 140 m → khung cửa bản xa (mattien.js userData.lod); đi bộ / lại gần → đủ chi tiết
   if (CHAM && LOD_MT.xa.children.length) { const xa = !di?.dang && camera.position.distanceTo(orbit.target) > 140; if (xa !== LOD_MT.dangXa) { LOD_MT.dangXa = xa; for (const m of LOD_MT.gan.children) m.visible = !xa; for (const m of LOD_MT.xa.children) m.visible = xa; } }
   // trần khung hình: đi bộ 60 (điện thoại 30) · xem toàn cảnh 30, không chạm gì quá 2,5 s thì 10 · mất tiêu điểm 10 — bớt vẽ thừa là bớt nóng máy
@@ -1167,6 +1168,30 @@ const nhieuNguoi = di ? taoNhieuNguoi({ THREE, scene, lau: 'neuschwanstein', nut
   layTrangThai: () => (di.dang ? { p: di.viTri(), h: di.huong, s: { tt: di.tt, toc: di.toc, nen: di.nen, ngoi: !!dangNgoi } } : null) }) : null;
 function phongHienTai() { if (!noiThat || !di?.dang) return null; const p = di.viTri(); return noiThat.phongTai(p.x, p.y - 0.9, p.z); }
 window.__ns.cuaSo = { CUA, timCua, sanSauCua, moCuaVao, gan: () => ganCua };
+// NHỚ GÓC NHÌN QUA F5 (anh 16/11/2026: "lỡ F5 là mất luôn"): mỗi giây ghi góc đang xem vào ĐỊA CHỈ TRANG (#g=… — sao chép link gửi người khác cũng mở
+// đúng góc) + localStorage; mở / tải lại thì về đúng chỗ. Toàn cảnh: camera + điểm nhìn + góc nhìn. Đi bộ: chỗ đứng + hướng người + hướng nhìn.
+const GOC_KHOA = 'ns-goc';
+function gocHienTai() {
+  const f = (v) => +v.toFixed(2);
+  if (di?.dang) { const p = di.viTri(); return ['d', f(p.x), f(p.y), f(p.z), f(di.huong), f(di.yaw)].join(','); }
+  return ['t', ...camera.position.toArray().map(f), ...orbit.target.toArray().map(f), f(camera.fov)].join(',');
+}
+let gocCu = '', lucGoc = 0;
+function luuGoc(epBuoc = false) {
+  if (dangSo) return; const now = performance.now(); if (!epBuoc && now - lucGoc < 1000) return; lucGoc = now;
+  const g = gocHienTai(); if (g === gocCu) return; gocCu = g;
+  try { history.replaceState(null, '', `${location.pathname}${location.search}#g=${g}`); } catch {}
+  try { localStorage.setItem(GOC_KHOA, g); } catch {}
+}
+function khoiPhucGoc() {
+  let g = (location.hash.match(/[#&]g=([^&]+)/) || [])[1]; if (!g) try { g = localStorage.getItem(GOC_KHOA); } catch {}
+  const v = String(g || '').split(','), n = v.slice(1).map(Number); if (!g || n.some((x) => !Number.isFinite(x))) return false;
+  if (v[0] === 't' && n.length === 7) { camera.position.set(n[0], n[1], n[2]); orbit.target.set(n[3], n[4], n[5]); camera.fov = n[6]; camera.updateProjectionMatrix(); orbit.update(); gocCu = g; return true; }
+  if (v[0] === 'd' && n.length === 5 && di) { diNhanhNS(n[0], n[2], n[1] - 0.9); di.huong = n[3]; di.yaw = n[4]; gocCu = g; return true; } // viTri là tâm thân, chân thấp hơn ~0,9 m
+  return false;
+}
+addEventListener('pagehide', () => luuGoc(true)); addEventListener('beforeunload', () => luuGoc(true));
+window.__ns.luuGoc = luuGoc; window.__ns.gocHienTai = gocHienTai;
 window.__ns.kiemKe = () => KIEM_KE; window.__ns.chupHaiBan = chupHaiBan; window.__ns.diemTaiAnh = diemTaiAnh;
 // CHỒNG LẤN: hai ô cửa cùng một mặt tường mà khung chạm nhau (kể cả cửa dựng theo luật chung) → danh sách cặp (scripts/kiem-ke.mjs báo lỗi)
 window.__ns.chongLan = () => { const theoMat = new Map(); for (const c of CUA) { if (!c.mat) continue; (theoMat.get(c.mat) || theoMat.set(c.mat, []).get(c.mat)).push(c); } const ra = [];
@@ -1287,4 +1312,7 @@ function capNhatAnh3d() {
   }
 }
 world.step(); // cập nhật bộ dò tia sau khi dựng xong mọi va chạm (chưa bước nào thì castRay không thấy gì → di chuyển nhanh từ toàn cảnh hỏng)
+// F5 / mở link có #g=…: về đúng góc đã xem (công cụ đo tự đặt camera, bỏ qua — ns-anh3d-cong-cu)
+let laCongCu = false; try { laCongCu = localStorage.getItem('ns-anh3d-cong-cu') === '1'; } catch {}
+if (!laCongCu || /[#&]g=/.test(location.hash)) khoiPhucGoc();
 ve();

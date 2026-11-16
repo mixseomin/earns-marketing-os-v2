@@ -171,7 +171,7 @@ import { tomNenDang, cayNenDang } from './kenh-sp-tinh';
   assert.deepStrictEqual(n.map((x) => [x.nen, !!x.chua]), [['youtube', false], ['facebook:632', false], ['instagram', true]]);
   const c = cayNenDang(n);
   assert.ok(c[0]!.chu === '📡 Nền đăng (2/3)' && /2\/3 nền đã gắn · 1 bài/.test(c[0]!.phu!), c[0]!.phu);
-  assert.ok(/chưa gắn tài khoản · bài video/.test(c[3]!.phu!) && c[3]!.mau === 'var(--fg-3)');
+  assert.ok(/chưa gắn tài khoản · video/.test(c[3]!.phu!) && c[3]!.mau === 'var(--fg-3)');
 }
 import { cayMauSocial } from './kenh-sp-tinh';
 { // MẪU NỘI DUNG kênh social: gom theo dạng bài, dạng nhiều bài trước; lượt xem chưa đo = null; dạng ngoài kho vẫn hiện kèm ghi chú

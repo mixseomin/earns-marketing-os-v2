@@ -338,11 +338,12 @@ export function cayPlaylistThat(ds: PlaylistKenh[], so?: SoKenh | null): DongKe[
 export type NenKenh = { nen: string; ten: string; tk: string; kem: string | null; bai: number; hen: number; cuoi: string | null; xem: number | null; /** bài lên trong 7 ngày gần nhất (tính cả hôm nay) */ bai7?: number; /** nền trong sổ chung mà kênh chưa gắn tài khoản */ chua?: boolean };
 /** sổ nền chung (apps/xuong-video/nen-dang.json › nen): mã nền → tên + loại bài — để khối Nền đăng hiện ĐỦ mọi nền, nền kênh chưa gắn hiện mờ "chưa gắn". */
 export type NenSo = { ma: string; ten: string; loai: string };
+const LOAI_BAI: Record<string, string> = { video: 'video', anh: 'ảnh', link: 'link', poll: 'bình chọn', bai: 'bài viết' };
 /** Thuần — gộp nơi đăng của máy với đã-đăng từng video. `so` (sổ nền) có thì nối thêm mỗi nền CHƯA GẮN một dòng (anh 16/11/2026 "show full Nền đăng") —
  *  nền của máy dạng 'facebook:632' tính là đã gắn 'facebook'. dd = xv_may_video.da_dang (nền → { ngay, hen? }), lx = luot_xem_nen. Bài ngày > hôm nay = hẹn. */
 export function tomNenDang(dang: { nen: string; ten?: string; tk?: string; kem?: string }[], vids: { dd: Record<string, unknown> | null; lx: Record<string, unknown> | null }[], hom: string, so: NenSo[] = []): NenKenh[] {
   const gan = new Set(dang.map((n) => n.nen.split(':')[0]));
-  const chua = so.filter((x) => !gan.has(x.ma)).map((x): NenKenh => ({ nen: x.ma, ten: x.ten, tk: '', kem: `chưa gắn tài khoản · bài ${x.loai}`, bai: 0, hen: 0, cuoi: null, xem: null, bai7: 0, chua: true }));
+  const chua = so.filter((x) => !gan.has(x.ma)).map((x): NenKenh => ({ nen: x.ma, ten: x.ten, tk: '', kem: `chưa gắn tài khoản · ${LOAI_BAI[x.loai] ?? x.loai}`, bai: 0, hen: 0, cuoi: null, xem: null, bai7: 0, chua: true }));
   return [...dang.map((n) => {
     let bai = 0, hen = 0, bai7 = 0, cuoi: string | null = null, xem: number | null = null;
     const moc7 = new Date(Date.parse(`${hom}T00:00:00Z`) - 6 * 86400e3).toISOString().slice(0, 10);

@@ -131,8 +131,9 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
   }
   // VIDEO NGOÀI (kênh lịch sử bản đồ, 02/11/2026): video + khung đã nằm trên R2 (lam-tap.mjs → tap-day.mts) — "xuất" = chốt đúng bản đó, không dựng lại
   if ((r.de as { loai?: string } | null)?.loai === 'video-ngoai') {
-    const d = r.de as { video_url: string; giay: number; khung: string[] };
-    await db.execute(sql`UPDATE xv_may_video SET video_url = ${d.video_url}, khung = ${JSON.stringify(d.khung ?? [])}::jsonb, anh = '[]'::jsonb, giay = ${d.giay}, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
+    const d = r.de as { video_url: string; giay: number; khung: string[]; thumb?: { url?: string } };
+    // ẢNH TĨNH = bìa đã qua Ngọc (de.thumb.url) — để nền ảnh (Pinterest…) của máy đăng ghim được bìa trỏ về link bài (anh 16/11/2026 mở rộng nền Astrolas)
+    await db.execute(sql`UPDATE xv_may_video SET video_url = ${d.video_url}, khung = ${JSON.stringify(d.khung ?? [])}::jsonb, anh = ${JSON.stringify(d.thumb?.url ? [d.thumb.url] : [])}::jsonb, giay = ${d.giay}, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
     return { ok: true, url: d.video_url };
   }
   // BÀI VIẾT (Quora / Substack / Medium…, 28/10/2026): chữ dài, không dựng ffmpeg — "xuất" = chốt bản để Phòng Nội dung (kiem-bai) chấm đúng bản; ảnh bìa = nen_url nạp sẵn

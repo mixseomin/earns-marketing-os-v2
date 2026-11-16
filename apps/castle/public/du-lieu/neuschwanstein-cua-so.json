@@ -2607,20 +2607,57 @@
  "way/223110820#14": {
   "hang": [
    {
-    "y0": 23.63,
-    "y1": 27.51,
+    "y0": 25.8,
+    "y1": 27.5,
     "cum": [
      [
-      0.5,
-      5.12,
-      3
+      2.18,
+      2.98,
+      1
+     ],
+     [
+      4.72,
+      5.52,
+      1
      ]
     ]
    }
   ],
   "mai": [],
   "yHien": null,
-  "ly_do": "dò ảnh 3D + soát mắt: nhóm ba cửa vòm"
+  "ly_do": "16/11/2026 thẻ #1623 lần 3: cặp ảnh so-lech cùng camera (mặt đông cách 65,4 m): trên răng cưa khối kem chỉ có HAI cửa vòm đơn rộng ~0,8 m, 25,8–27,5 m, đối xứng ±1,27 m quanh tâm đầu hồi (cạnh dài 7,61 m, tâm 3,85) — trước: một cụm ba cửa 23,63–27,51 lệch về một đầu (dò ảnh 3D)"
+ },
+ "way/223110820#0": {
+  "hang": [
+   {
+    "y0": 26.2,
+    "y1": 27.2,
+    "cum": [
+     [
+      2.0,
+      2.6,
+      1
+     ]
+    ]
+   }
+  ],
+  "ly_do": "16/11/2026 thẻ #1623 lần 3: mấu gạch đỏ phía nam chân đầu hồi (răng cưa ~30 m) có một cửa đơn 26,2–27,2 m nhìn trên ảnh 3D mặt đông, ngay trên mái cánh nam; ngang cách mũi đầu hồi ~5,1 m trên ảnh (÷ 0,83 nhìn xiên → ~6,1 m dọc mặt) → cách đầu giáp đầu hồi ~2,3 m"
+ },
+ "way/223110820#13": {
+  "hang": [
+   {
+    "y0": 26.2,
+    "y1": 27.2,
+    "cum": [
+     [
+      1.9,
+      2.5,
+      1
+     ]
+    ]
+   }
+  ],
+  "ly_do": "16/11/2026 thẻ #1623 lần 3: mấu gạch đỏ phía bắc chân đầu hồi có một cửa đơn 26,2–27,2 m nhìn trên ảnh 3D mặt đông, ngay trên răng cưa cánh bắc; ngang cách mũi đầu hồi ~4,0 m trên ảnh (~4,8 m dọc mặt) → cách đầu giáp đầu hồi ~1,0 m (cạnh dài 3,23 m)"
  },
  "way/223110825#6": {
   "khung": true,
@@ -3142,45 +3179,8 @@
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m; đầu hồi bậc mặt tây sa thạch vàng"
  },
  "way/951894999#0": {
-  "hang": [
-   {
-    "y0": 30.8,
-    "y1": 32.4,
-    "cum": [
-     [
-      1.6,
-      2.5,
-      1
-     ],
-     [
-      3.4,
-      4.3,
-      1
-     ],
-     [
-      5.2,
-      6.1,
-      1
-     ]
-    ]
-   },
-   {
-    "y0": 33.0,
-    "y1": 34.4,
-    "cum": [
-     [
-      2.6,
-      3.4,
-      1
-     ],
-     [
-      4.3,
-      5.1,
-      1
-     ]
-    ]
-   }
-  ],
-  "ly_do": "ảnh 3D mặt đông (anh khoanh 16/11/2026): mặt đầu hồi đỏ quay ra cổng — hàng dưới 3 cửa, hàng trên 2 cửa"
+  "hang": [],
+  "ly_do": "16/11/2026 thẻ #1623 lần 3 (anh: \"số lượng cửa sổ không khớp, sai cả vị trí\"): cặp ảnh so-lech cùng camera — tam giác đầu hồi 30–35 m chỉ có nắp đá bậc, KHÔNG có cửa; hai cửa vòm thật nằm DƯỚI chân đầu hồi trên mặt gạch đỏ way/223110820#14 (25,8–27,5 m)",
+  "ly_do_cu": "ảnh 3D mặt đông (anh khoanh 16/11/2026): mặt đầu hồi đỏ quay ra cổng — hàng dưới 3 cửa, hàng trên 2 cửa (đọc nhầm: hai cửa vòm + bốn vết bậc nắp đá khi đầu hồi còn đặt cao)"
  }
 }

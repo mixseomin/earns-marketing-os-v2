@@ -50,10 +50,11 @@
   "ly_do": "cổng Torbau: đầu hồi gạch đỏ hình bậc (ảnh 3D Google anh gửi 16/11/2026)",
   "height": "22",
   "ly_do_tra": "16/11/2026: so-lech --tu-xu thẻ #1623 hạ còn 13,6 m là SAI (đo đỉnh lệch chỗ, đầu hồi khuất) — ảnh 3D mặt đông: đầu hồi bậc đỏ nhô cao trên hai cánh, hai hàng cửa → trả 22",
-  "y_duoi": "30.0",
-  "y_tren": "35.0",
+  "y_duoi": "28.8",
+  "y_tren": "33.4",
+  "ly_do_cao3": "16/11/2026 thẻ #1623 lần 3: cặp ảnh so-lech cùng camera (mặt đông cách 65,4 m): đầu hồi THẬT là tam giác liền từ mái hiên ~30,1 m (ngang răng cưa hai mấu đỏ) tới mũi 34,9 m (kể cả nắp đá), không có tường đứng trên răng cưa; mô hình mũi trụ đỉnh 37,2 (tường 30–32 + tam giác 32–35 + trụ 1,7). Chân ngang thân khối đỏ 28,8, sống 33,4 (trụ đỉnh tới 35,1), mái 3,4 → mái hiên 30,0",
   "ly_do_cao": "16/11/2026 đo theo TIA camera trên ảnh 3D (thẻ #1623): đầu hồi bậc đứng trên phần đỏ (28,4 — ngay trên đỉnh khối cổng kem 28,3, không che răng cưa / tháp canh của nó), đỉnh 39,4 — nhô cao trên hai cánh như ảnh",
-  "roof:height": "3.0",
+  "roof:height": "3.4",
   "ly_do_ti_le": "16/11/2026 so dáng từ cầu Marienbrücke (scripts/so-dang.py + đo tia trên ảnh 3D): đỉnh đầu hồi thật 34,6–35,0 m (CLI tự xử đo 35,0 là ĐÚNG — con trả 39,4 là sai), chân 30,0, mái bậc 3 m"
  },
  "way/223110820": {
@@ -64,7 +65,8 @@
   "rang_cua": "yes",
   "vom_nho": "yes",
   "da_goc": "yes",
-  "y_tren": "30.0",
+  "y_tren": "28.8",
+  "ly_do_cao2": "16/11/2026 thẻ #1623 lần 3: cặp ảnh so-lech cùng camera — răng cưa hai mấu gạch đỏ hai bên chân đầu hồi thật đỉnh ~30,2 m (mô hình 31,3 = 30,0 + răng 1,4) → thân 30,0 → 28,8; mặt gạch đỏ giữa răng kem (25,4) và chân đầu hồi (30,0) có 2 cửa vòm",
   "ly_do_cao": "16/11/2026 ảnh 360° cổng (anh khoanh): sau răng cưa đá kem có lớp răng cưa gạch đỏ cao hơn → phần đỏ đỉnh 30,0 (trên khối cổng kem 28,3); ảnh 3D phía nam phần này thấp hơn — một mặt bằng OSM, ưu tiên ảnh chụp gần"
  },
  "way/223110823": {
@@ -72,8 +74,9 @@
   "thap_canh": "yes",
   "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): khối cổng sa thạch kem: răng cưa đỉnh + hai tháp canh treo ở hai góc trên",
   "go_y": "16.69,19.65",
-  "y_tren": "26.6",
-  "ly_do_cao": "16/11/2026 ảnh 3D mặt đông gần + rộng (anh khoanh): đỉnh khối cổng kem NGANG răng cưa hai cánh (cánh nam 26,6) — số 29,3 đo tia lần trước trúng phần gạch đỏ phía sau"
+  "y_tren": "24.0",
+  "ly_do_cao": "16/11/2026 thẻ #1623 lần 3 (\"thừa 1 tầng\"): đo trên cặp ảnh so-lech cùng camera (mắt 24,26 m, f 788 px, mặt đông khối kem cách 64,2 m): đỉnh răng cưa + tháp canh kem THẬT 25,1–25,5 m — THẤP hơn răng cưa cánh bắc (26,3) dù ở gần hơn; mô hình 27,95 (= 26,6 + răng 1,4, khớp đúng điểm ảnh → cách đo tin được). Hạ thân 26,6 → 24,0 (răng tới 25,4)",
+  "ly_do_cao_cu": "16/11/2026 ảnh 3D mặt đông gần + rộng (anh khoanh): đỉnh khối cổng kem NGANG răng cưa hai cánh (cánh nam 26,6) — số 29,3 đo tia lần trước trúng phần gạch đỏ phía sau"
  },
  "way/223110818": {
   "roof:shape": "flat",
@@ -110,6 +113,8 @@
   "vong_rang": "yes",
   "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): tháp tròn góc: như way/221599083",
   "cua_thap": "3",
+  "y_tren": "29.7",
+  "ly_do_cao": "16/11/2026 thẻ #1623 lần 3 (vùng anh tô, tháp bên trái ảnh): so-lech --do đo THEO TIA từ góc báo: đỉnh thật 31,06 · mô hình 35,26 (9 cột, trải 1,5 m — tin được); điểm ảnh cặp so-lech cùng camera (cách 55,3 m): thật ~30,6, mô hình 35,3 — hai cách khớp. Thân 33,86 → 29,7",
   "dich_x": "-2.75",
   "dich_z": "0.25",
   "ly_do_dich": "dang-ky-khoi.mjs 2026-11-16: mặt bằng OSM lệch ảnh 3D (-2.75, 0.25) m, khớp 0.68 → 0.876"

@@ -763,9 +763,10 @@ if (NEN_LUOI) {
 // ---- ĐƯỜNG ĐI + CẦU THANG OSM (duong.js): mặt đường bám đất thật, bậc đá có va chạm
 if (DUONG?.duong?.length) {
   const tx = (t, lap) => { for (const x of [t.map, t.bump]) if (x) { x.wrapS = x.wrapT = THREE.RepeatWrapping; } return t; };
-  const nhua = tx(T.daXay(T.rngTu(61), 34, 50)), dat = tx(T.cuoi(T.rngTu(62))), bac = tx(T.daXay(T.rngTu(63), 30, 60));
+  // sân lát Unterer / Oberer Hof: ảnh 3D Google (góp ý #1629) là đá vôi xám sáng; vân sáng 50 nhân màu #b9b3a8 trước đây ra nâu đất
+  const nhua = tx(T.daXay(T.rngTu(61), 40, 76)), dat = tx(T.cuoi(T.rngTu(62))), bac = tx(T.daXay(T.rngTu(63), 30, 60));
   const { ra, dem } = datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds: DUONG.duong, cao: datThat, trongNha: (x, z) => dsKhoi.some((k) => trongDa(x, z, k.v)), vungLat: NEN_LUOI?.sanCong ? [{ v: NEN_LUOI.sanCong, cao: NEN_LUOI.caoSan }] : [],
-    vl: { nhua: new THREE.MeshStandardMaterial({ map: nhua.map, bumpMap: nhua.bump, bumpScale: 0.8, roughness: 0.92, color: '#b9b3a8' }),
+    vl: { nhua: new THREE.MeshStandardMaterial({ map: nhua.map, bumpMap: nhua.bump, bumpScale: 0.8, roughness: 0.92, color: '#d8d4cc' }),
       oto: new THREE.MeshStandardMaterial({ bumpMap: nhua.bump, bumpScale: 0.15, roughness: 0.9, color: '#8e8b85' }),
       tuong: VL.mong, nap: new THREE.MeshStandardMaterial({ color: '#d9d5cc', roughness: 0.85 }), // lan can / tường chắn: đá xám sáng (ảnh Mapillary), đá nắp sáng hơn
       dat: new THREE.MeshStandardMaterial({ map: dat.map || null, roughness: 0.95, color: '#9c8c72' }),

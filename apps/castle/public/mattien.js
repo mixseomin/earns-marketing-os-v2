@@ -89,10 +89,14 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
     }
   }
   const vl = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 }), ra = [];
-  for (const [ten, g] of [['mot', mot], ['ba', ba], ['baMo', baMo], ['vom', dayVom]]) { const ds = viTri[ten]; if (!ds.length) continue; const im = new THREE.InstancedMesh(g, vl, ds.length); ds.forEach((m, i) => im.setMatrixAt(i, m)); im.receiveShadow = true; ra.push(im); } // chi tiết nhỏ không đổ bóng: lượt vẽ bóng tốn gấp đôi mà bóng khung cửa gần như không thấy
+  // MỨC CHI TIẾT THEO KHOẢNG CÁCH (chỉ điện thoại, nhe): ở xa (toàn cảnh ~300 m) khung đá từng ô nhỏ hơn một điểm ảnh mà ăn ~100 nghìn tam giác →
+  // bản XA chỉ còn tấm cửa tối + khung phẳng (2 hộp / ô); userData.lod = 'gan' | 'xa', ns.js bật / tắt theo khoảng cách camera
+  const XA = { mot: [1.15, 2.4], ba: [2.65, 2.7], baMo: [2.65, 2.7], vom: [1.9, 2.9] };
+  for (const [ten, g] of [['mot', mot], ['ba', ba], ['baMo', baMo], ['vom', dayVom]]) { const ds = viTri[ten]; if (!ds.length) continue; const im = new THREE.InstancedMesh(g, vl, ds.length); ds.forEach((m, i) => im.setMatrixAt(i, m)); im.receiveShadow = true; ra.push(im);
+    if (nhe) { im.userData.lod = 'gan'; const [w, h] = XA[ten], gx = mergeGeometries([hop(w + 0.4, h + 0.3, 0.12, 0, h / 2, 0.06, DA), hop(w, h, 0.02, 0, h / 2 + 0.05, 0.13, TOI)]), ix = new THREE.InstancedMesh(gx, vl, ds.length); ds.forEach((m, i) => ix.setMatrixAt(i, m)); ix.userData.lod = 'xa'; ix.visible = false; ra.push(ix); } } // chi tiết nhỏ không đổ bóng: lượt vẽ bóng tốn gấp đôi mà bóng khung cửa gần như không thấy
   if (go.length) { const gs = go.map(([x1, z1, ux, uz, nx, nz, L, y]) => { const g = hop(L, 0.22, 0.2, 0, 0, 0, _c.copy(DA)); g.rotateY(Math.atan2(nx, nz)); g.translate(x1 + ux * L / 2 + nx * 0.1, y, z1 + uz * L / 2 + nz * 0.1); return g; });
     const m = new THREE.Mesh(mergeGeometries(gs), vl); m.receiveShadow = true; ra.push(m); }
-  if (doDa.length) { const m = new THREE.Mesh(mergeGeometries(doDa), new THREE.MeshStandardMaterial({ color: '#ece6da', roughness: 0.8 })); m.receiveShadow = true; ra.push(m); }
+  if (doDa.length) { const m = new THREE.Mesh(mergeGeometries(doDa), new THREE.MeshStandardMaterial({ color: '#ece6da', roughness: 0.8 })); m.receiveShadow = true; if (nhe) m.userData.lod = 'gan'; ra.push(m); } // ở xa: còn tấm kính tối (doToi) + gờ, đủ đọc ra cửa
   if (doToi.length) { const m = new THREE.Mesh(mergeGeometries(doToi), new THREE.MeshStandardMaterial({ color: '#2a3038', roughness: 0.35, metalness: 0.2 })); ra.push(m); }
   return { ra, cua, dem: { oDo: dem.do, cua: viTri.mot.length, cuaBa: viTri.ba.length, cuaMo: viTri.baMo.length, vom: viTri.vom.length, go: go.length } };
 }

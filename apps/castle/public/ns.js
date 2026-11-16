@@ -467,12 +467,15 @@ const MAT_PALAS = (() => {
 // NỀN SÂN TRÊN: mặt sân đo từ ảnh (ảnh phụ Josef Albert trong tệp bố cục mặt Palas: mặt sân ~22 m dưới mái), không phải lưới đất EU-DEM (thô 12 m, ở sân thấp hơn ~6 m).
 // OSM ghi chú khối courtyard là "building for 3D reasons" — dựng thành nền đá: mặt lát đá, tường chắn, lan can mép hở, bậc thang xuống phía cổng.
 const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3D) quanh lâu đài
+const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
 { // mặt tiền chi tiết: cửa sổ 3D + gờ tầng (một mặt tường bị khối khác áp vào ở tầng nào thì bỏ tầng đó)
   const biChe = (x, y, z) => dsKhoi.some((k) => k.yDuoi != null && y > k.yDuoi && y < (k._y1 ?? k.yTren) + 0.5 && trongDa(x, z, k.v)); // tới chân mái (+0,5) — phần mái dốc phía trên không che hết cửa
   const { ra, cua, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe, nhe: CHAM, cuaSo: CUA_SO, matAnh: MAT_ANH,
     matNgoai: (x, z, nx, nz) => { // mép sân OSM có chỗ cách chân tường vài mét → dò 2 / 5 / 8 m trước mặt tường; độ cao lấy ngay trước chân tường
       const san = !!SAN_TRONG && [2, 5, 8].some((d) => trongDa(x + nx * d, z + nz * d, SAN_TRONG)); return { san, yDat: matDat(x + nx * 1.5, z + nz * 1.5) }; } });
-  for (const m of ra) { scene.add(m); LOP_OSM.push(m); }
+  // mesh có mức chi tiết (userData.lod) nằm trong nhóm riêng: lớp ảnh 3D bật / tắt cả NHÓM (LOP_OSM), mức chi tiết bật / tắt từng mesh con — không giẫm nhau
+  for (const m of ra) { if (m.userData.lod) { LOD_MT[m.userData.lod].add(m); continue; } scene.add(m); LOP_OSM.push(m); }
+  for (const g of [LOD_MT.gan, LOD_MT.xa]) { scene.add(g); LOP_OSM.push(g); }
   CUA.push(...cua);
   // ẢNH DÁN MẶT TƯỜNG (LOD2 + ảnh mặt tiền): mỗi mặt có ảnh → một tấm phẳng sát ngoài tường, từ chân tường lên mái hiên mô hình (phần ảnh trên mái hiên bỏ),
   // lỗ cửa mở được (dải phòng) khoét trong suốt trên ảnh để vẫn nhìn / trèo vào; ảnh tải nền, không chặn trang
@@ -777,6 +780,8 @@ for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart'
 const dongHo = new THREE.Clock();
 function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ so ảnh)
   requestAnimationFrame(ve);
+  // điện thoại: xem toàn cảnh xa > 140 m → khung cửa bản xa (mattien.js userData.lod); đi bộ / lại gần → đủ chi tiết
+  if (CHAM && LOD_MT.xa.children.length) { const xa = !di?.dang && camera.position.distanceTo(orbit.target) > 140; if (xa !== LOD_MT.dangXa) { LOD_MT.dangXa = xa; for (const m of LOD_MT.gan.children) m.visible = !xa; for (const m of LOD_MT.xa.children) m.visible = xa; } }
   // trần khung hình: đi bộ 60 (điện thoại 30) · xem toàn cảnh 30, không chạm gì quá 2,5 s thì 10 · mất tiêu điểm 10 — bớt vẽ thừa là bớt nóng máy
   const nghi = !di?.dang && now - lucCham > 2500;
   if (now - lan < (!document.hasFocus() || nghi ? 100 : di?.dang ? (CHAM ? 1000 / 30 : 1000 / 60) : 1000 / 30) - 3) return; lan = now;

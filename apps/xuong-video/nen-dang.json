@@ -193,10 +193,10 @@
       ],
       "duong": "br",
       "dieu_phoi": "dang-may",
-      "ham": "dangMedium (chưa có đường: #193 mất proxy)",
+      "ham": "dangMedium (Import a story từ link bài gốc, canonical về site — 16/11/2026)",
       "ho": "medium",
       "ten": "Medium bài viết",
-      "co": false
+      "co": true
     },
     "pinterest": {
       "loai": "anh",

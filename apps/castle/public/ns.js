@@ -317,6 +317,14 @@ function nhomMoi() { return { mong: { p: [], uv: [] }, mat: { p: [], uv: [], c: 
 // mảng tường dọc cạnh (x1,z1)→(x2,z2) từ ya lên yb, u theo mét dọc chu vi (cửa sổ liền mạch quanh khối), v theo mét từ mặt đất
 // tường từ ya lên yb có lỗ (cửa / dải nội thất): tách theo dọc cạnh tại mép lỗ, mỗi đoạn giữ các khoảng cao không bị lỗ che;
 // phần dưới yMong là móng đá thô, trên là mặt tiền
+// MÓNG THEO TỪNG MẶT TƯỜNG: đá móng thô lên tới mặt đất NGAY NGOÀI mặt tường đó + 1,2 m (trước: mặt đất cao nhất quanh cả khối → mặt đông Torbau ngoài
+// cổng đất 11 m mà móng xám lên tới 20,9 m, che mất tường sa thạch kem như ảnh thật, anh 16/11/2026). Ngoài mặt tường là nhà khác / không đo được → mốc chung của khối.
+function mongCanh(k, x1, z1, x2, z2, y0, y1, yChung) {
+  const L = Math.hypot(x2 - x1, z2 - z1); if (L < 0.5) return yChung; const nx = (z2 - z1) / L, nz = -(x2 - x1) / L; let m = -Infinity, co = 0;
+  for (let t = 0.1; t < 0.95; t += 0.2) for (const s of [1, -1]) { const x = x1 + (x2 - x1) * t + nx * s * 1.2, z = z1 + (z2 - z1) * t + nz * s * 1.2;
+    if (trongDa(x, z, k.v) || dsKhoi.some((q) => q !== k && !q.la && trongDa(x, z, q.v) && !trongDa(x, z, k.v))) continue; const y = datThat(x, z); if (Number.isFinite(y)) { m = Math.max(m, y); co++; } }
+  return co ? Math.min(y1, Math.max(y0, m + 1.2)) : yChung;
+}
 function tuongCoLo(G, x1, z1, x2, z2, ya, yMong, yb, s0, k, mau, lo) {
   if (!lo.length) { vachTuong(G.mong, x1, z1, x2, z2, ya, yMong, s0, k.day, 3); vachTuong(G.mat, x1, z1, x2, z2, yMong, yb, s0, yMong, 4, mau); return; }
   const L = Math.hypot(x2 - x1, z2 - z1), ux = (x2 - x1) / L, uz = (z2 - z1) / L;
@@ -359,7 +367,7 @@ function dungKhoi(k, G) {
   let s0 = 0;
   for (let i = 0; i < v.length; i++) {
     const [x1, z1] = v[i], [x2, z2] = v[(i + 1) % v.length];
-    tuongCoLo(G, x1, z1, x2, z2, y0, yMong, y1, s0, k, mauT, loCanh(k, i, x1, z1, x2, z2));
+    tuongCoLo(G, x1, z1, x2, z2, y0, hMin > 0 ? yMong : mongCanh(k, x1, z1, x2, z2, y0, y1, yMong), y1, s0, k, mauT, loCanh(k, i, x1, z1, x2, z2));
     s0 += Math.hypot(x2 - x1, z2 - z1);
   }
   const napPhang = (y, arr) => { const sh = new THREE.Shape(v.map(([x, z]) => new THREE.Vector2(x, -z))); const g = new THREE.ShapeGeometry(sh); const p = g.toNonIndexed().attributes.position; for (let i = 0; i < p.count; i += 3) for (const j of [0, 2, 1]) arr.push(p.getX(i + j), y, -p.getY(i + j)); };
@@ -506,8 +514,10 @@ const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3
   if (bT) for (const k of goc) for (const m of datThapGoc({ THREE, mergeGeometries, v: k.v, b: bT, mauMai: k.tags['roof:colour'], mau: mauOSM(k.tags['building:colour'], new THREE.Color('#dcc48e')),
     ngoai: (x, z) => !dsKhoi.some((q) => q !== k && trongDa(x, z, q.v)), nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
   // KHUNG VÒM CỔNG (đá): hai má + vòm bán nguyệt + bậu nền, hai mặt tường; lỗ đã khoét trong loCanh
+  // màu đá sa thạch kem (VL.da nhân màu theo đỉnh — thiếu thuộc tính màu thì khung đen kịt như lỗ thủng)
+  const MAU_VOM = new THREE.Color('#efe4c6').toArray();
   if (VOM_CONG.length) { const gs = [];
-    for (const c of VOM_CONG) { const goc = Math.atan2(c.uz, -c.ux) + Math.PI / 2, h = 4.6 - c.w / 2, cb = (g) => { g = g.index ? g.toNonIndexed() : g; for (const a of Object.keys(g.attributes)) if (!['position', 'normal'].includes(a)) g.deleteAttribute(a); g.rotateY(-Math.atan2(c.uz, c.ux)); g.translate(c.x, c.y, c.z); return g; };
+    for (const c of VOM_CONG) { const goc = Math.atan2(c.uz, -c.ux) + Math.PI / 2, h = 4.6 - c.w / 2, cb = (g) => { g = g.index ? g.toNonIndexed() : g; for (const a of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(a)) g.deleteAttribute(a); g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 3).map((_, i) => MAU_VOM[i % 3]), 3)); g.rotateY(-Math.atan2(c.uz, c.ux)); g.translate(c.x, c.y, c.z); return g; };
       for (const k of [-1, 1]) gs.push(cb((() => { const g = new THREE.BoxGeometry(0.45, h, 1.2); g.translate(k * (c.w / 2 + 0.22), h / 2, 0); return g; })()));
       const v = new THREE.TorusGeometry(c.w / 2 + 0.22, 0.24, 5, 14, Math.PI); v.scale(1, 1, 2.4); v.translate(0, h, 0); gs.push(cb(v)); void goc; }
     const m = new THREE.Mesh(mergeGeometries(gs), VL.da); m.receiveShadow = m.castShadow = true; scene.add(m); LOP_OSM.push(m); console.info('[ns] vòm cổng (đường xuyên tường):', VOM_CONG.length); }
@@ -588,6 +598,7 @@ if (DUONG?.duong?.length) {
   const nhua = tx(T.daXay(T.rngTu(61), 34, 50)), dat = tx(T.cuoi(T.rngTu(62))), bac = tx(T.daXay(T.rngTu(63), 30, 60));
   const { ra, dem } = datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds: DUONG.duong, cao: datThat, trongNha: (x, z) => dsKhoi.some((k) => trongDa(x, z, k.v)),
     vl: { nhua: new THREE.MeshStandardMaterial({ map: nhua.map, bumpMap: nhua.bump, bumpScale: 0.8, roughness: 0.92, color: '#b9b3a8' }),
+      oto: new THREE.MeshStandardMaterial({ bumpMap: nhua.bump, bumpScale: 0.15, roughness: 0.9, color: '#8e8b85' }),
       dat: new THREE.MeshStandardMaterial({ map: dat.map || null, roughness: 0.95, color: '#9c8c72' }),
       bac: new THREE.MeshStandardMaterial({ map: bac.map, bumpMap: bac.bump, bumpScale: 1, roughness: 0.9, color: '#d6d0c4' }) } });
   for (const m of ra) { scene.add(m); LOP_OSM.push(m); }

@@ -42,7 +42,9 @@
   "ly_do": "cổng Torbau: đầu hồi gạch đỏ hình bậc (ảnh 3D Google anh gửi 16/11/2026)"
  },
  "way/223110820": {
-  "dau_hoi_bac": "yes",
-  "ly_do": "cổng Torbau: đầu hồi gạch đỏ hình bậc (ảnh 3D Google anh gửi 16/11/2026)"
+  "ly_do": "cổng Torbau: OSM chồng hai khối gạch đỏ (0–17,5 m mái 1 m và 12–22 m mái dốc) cùng mặt bằng → mái thấp đâm xuyên mái dốc (vệt tối), đầu hồi bậc dựng hai lần; khối dưới dừng ở chân khối trên (ref 19,0 + 11 ≈ 30, khối trên từ 29,5), mái phẳng. Đầu hồi bậc chỉ ở way/951894999 (anh 16/11/2026)",
+  "height": "11",
+  "roof:shape": "flat",
+  "roof:height": "0"
  }
 }

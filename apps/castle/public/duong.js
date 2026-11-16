@@ -6,7 +6,8 @@
 // tra-repo-ok: dựng dải theo polyline + bậc thang (mã nhỏ riêng cảnh).
 export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao, vl, trongNha = null }) { // eslint-disable-line no-param-reassign
   const LAT = new Set(['footway', 'pedestrian', 'steps', 'service', 'residential', 'unclassified']); // đường lát / nhựa; còn lại (track, path) là đất
-  const nhom = { nhua: [], dat: [], bac: [], tuong: [] }, dem = { duong: 0, bac: 0, m: 0 };
+  const OTO = new Set(['service', 'residential', 'unclassified']); // đường ô tô: mặt nhựa (vl.oto) — đường lên cổng ngoài đời là nhựa xám sáng, không lát đá
+  const nhom = { nhua: [], oto: [], dat: [], bac: [], tuong: [] }, dem = { duong: 0, bac: 0, m: 0 };
   const dai = (v, w) => { // eslint-disable-line prefer-const // nhô 0,22 m: lưới đất mịn chia ô 1,5 m chéo khác nội suy → đường 6 cm bị đất trùm mất trên dốc (đường lên cổng không thấy) // dải theo polyline, chia đoạn ≤ 2 m để bám đất
     const p = []; const pts = [];
     for (let i = 0; i + 1 < v.length; i++) { const [x1, z1] = v[i], [x2, z2] = v[i + 1], L = Math.hypot(x2 - x1, z2 - z1), n = Math.max(1, Math.ceil(L / 2)); for (let k = 0; k < n; k++) pts.push([x1 + (x2 - x1) * k / n, z1 + (z2 - z1) * k / n]); }
@@ -75,14 +76,14 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
       }
       dem.duong++; continue;
     }
-    const g = dai(d.v, d.rong); (LAT.has(d.loai) ? nhom.nhua : nhom.dat).push(g); dem.duong++;
+    const g = dai(d.v, d.rong); (OTO.has(d.loai) && vl.oto ? nhom.oto : LAT.has(d.loai) ? nhom.nhua : nhom.dat).push(g); dem.duong++;
     const p = g.attributes.position; world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(p.array), Uint32Array.from({ length: p.count }, (_, i) => i)), tinh);
   }
   const q = new THREE.Quaternion(), Y = new THREE.Vector3(0, 1, 0);
   for (const [hx, hy, hz, x, y, z, a] of va) { q.setFromAxisAngle(Y, a); world.createCollider(RAPIER.ColliderDesc.cuboid(hx, hy, hz).setTranslation(x, y, z).setRotation(q), tinh); }
   const ra = [];
   if (vlTuong.length) nhom.tuong = vlTuong;
-  for (const [k, m] of [['nhua', vl.nhua], ['dat', vl.dat], ['bac', vl.bac], ['tuong', vl.tuong || vl.bac]]) {
+  for (const [k, m] of [['nhua', vl.nhua], ['oto', vl.oto], ['dat', vl.dat], ['bac', vl.bac], ['tuong', vl.tuong || vl.bac]]) {
     if (!nhom[k].length) continue;
     const gs = nhom[k].map((g) => { for (const a of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(a)) g.deleteAttribute(a); if (!g.attributes.uv) { const n = g.attributes.position.count; g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2), 2)); } return g; });
     const mesh = new THREE.Mesh(mergeGeometries(gs), m); mesh.receiveShadow = true; mesh.castShadow = k === 'bac' || k === 'tuong'; ra.push(mesh);

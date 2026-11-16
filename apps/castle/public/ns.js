@@ -163,15 +163,61 @@ const NEN_LUOI = (() => {
   // giữa đường lên cổng Torbau, anh 16/11/2026); hoà dần ra ngoài 1,5 m. Bỏ cầu thang (bậc riêng), cầu, hầm, vùng lát khép kín (đã phẳng theo đất).
   const G0 = G.slice(), bil = (x, z) => { const fx = Math.max(0, Math.min(W - 1.001, (x - x0) / B)), fz = Math.max(0, Math.min(H - 1.001, (z - z0) / B)), i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j;
     return (G0[id(i, j)] * (1 - u) + G0[id(i + 1, j)] * u) * (1 - v) + (G0[id(i, j + 1)] * (1 - u) + G0[id(i + 1, j + 1)] * u) * v; };
+  // ĐỘ CAO TIM ĐƯỜNG Ô TÔ: dốc tối đa 12 % — số đo ảnh 3D sát mép bệ tường chắn rơi xuống sườn dưới (đường lên cổng Torbau lõm 11 m trong 30 m rồi leo lại,
+  // ngoài đời đường dốc đều, sân trước cổng phẳng; ảnh Mapillary 360° 2019, anh 16/11/2026). Chỉ NÂNG chỗ bị kéo tụt (giãn dốc từ các điểm cao lân cận), không hạ.
+  const OTO = ['service', 'residential', 'unclassified'], nhaVo = dsKhoi.filter((k) => k.vo), trongNha0 = (x, z) => nhaVo.some((k) => trongDa(x, z, k.v));
+  // sát nhà (≤ 0,75 m): đất đo lẫn tường / mái → mẫu tim đường ngay mép cổng không làm nguồn (trước: ngưỡng cổng Torbau 13,3 m, dốc 2,3 m chạy vào vòm)
+  const satNha = (x, z) => trongNha0(x, z) || [[0.75, 0], [-0.75, 0], [0, 0.75], [0, -0.75]].some(([a, b]) => trongNha0(x + a, z + b));
+  const DOC_MAX = 0.12, MAU_DUONG = [];
+  const hoSo = (d) => { // mẫu 1 m dọc tim: s, x, z, h (đất), trong (trong nhà: không làm nguồn)
+    const S = [], X = [], Z = [], Hh = [], Tr = [], dau = []; let s0 = 0;
+    for (let k = 0; k + 1 < d.v.length; k++) { const [ax, az] = d.v[k], [bx, bz] = d.v[k + 1], L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L)); dau.push(s0);
+      for (let m = 0; m < n || (k + 2 === d.v.length && m === n); m++) { const t = m / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t; S.push(s0 + L * t); X.push(x); Z.push(z); Hh.push(bil(x, z)); Tr.push(satNha(x, z)); } s0 += L; }
+    const Y = Hh.slice();
+    if (OTO.includes(d.loai)) for (let i = 0; i < S.length; i++) { if (Tr[i]) continue; for (let j = 0; j < S.length; j++) if (!Tr[j]) Y[i] = Math.max(Y[i], Hh[j] - DOC_MAX * Math.abs(S[i] - S[j])); }
+    if (OTO.includes(d.loai)) for (let i = 0; i < S.length; i++) if (!Tr[i]) MAU_DUONG.push([X[i], Z[i], Y[i]]);
+    return { dau, cao: (s) => { let i = 1; while (i < S.length - 1 && S[i] < s) i++; const t = Math.max(0, Math.min(1, (s - S[i - 1]) / ((S[i] - S[i - 1]) || 1))); return Y[i - 1] + (Y[i] - Y[i - 1]) * t; } };
+  };
   const san = new Float32Array(N).fill(NaN), tsan = new Float32Array(N), esan = new Float32Array(N).fill(1e9); // esan: khoảng cách tới tim — chỗ cua gấp hai đoạn chồng nhau lấy tim GẦN nhất
   for (const d of DUONG?.duong || []) { if (d.loai === 'steps' || d.cau || d.ham || d.v.length < 2) continue; if (d.v.length > 3 && Math.hypot(d.v[0][0] - d.v.at(-1)[0], d.v[0][1] - d.v.at(-1)[1]) < 0.3) continue;
-    const r0 = (d.rong || 2) / 2 + 0.6, r1 = r0 + 1.5;
+    const r0 = (d.rong || 2) / 2 + 0.6, r1 = r0 + 1.5, hs = hoSo(d);
     for (let k = 0; k + 1 < d.v.length; k++) { const [ax, az] = d.v[k], [bx, bz] = d.v[k + 1], dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz; if (l2 < 0.01) continue;
       const i0 = Math.max(0, Math.floor((Math.min(ax, bx) - r1 - x0) / B)), i1 = Math.min(W - 1, Math.ceil((Math.max(ax, bx) + r1 - x0) / B)), j0 = Math.max(0, Math.floor((Math.min(az, bz) - r1 - z0) / B)), j1 = Math.min(H - 1, Math.ceil((Math.max(az, bz) + r1 - z0) / B));
       for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const x = x0 + i * B, z = z0 + j * B, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / l2)), cx = ax + dx * t, cz = az + dz * t, e = Math.hypot(x - cx, z - cz); if (e > r1) continue;
-        const w = e <= r0 ? 1 : 1 - (e - r0) / (r1 - r0), q = id(i, j); if (w > tsan[q] || (w === tsan[q] && e < esan[q])) { tsan[q] = w; esan[q] = e; san[q] = bil(cx, cz); } } } }
+        const w = e <= r0 ? 1 : 1 - (e - r0) / (r1 - r0), q = id(i, j); if (w > tsan[q] || (w === tsan[q] && e < esan[q])) { tsan[q] = w; esan[q] = e; san[q] = hs.cao(hs.dau[k] + t * Math.sqrt(l2)); } } } }
   for (let q = 0; q < N; q++) if (tsan[q] > 0) { G[q] = G0[q] + (san[q] - G0[q]) * tsan[q]; nang[q] = Math.max(nang[q], 0.2); }
-  return { x0, z0, B, W, H, G, nang, id };
+  // SÂN TRƯỚC CỔNG NGOÀI (ảnh Mapillary 360°: sân nhựa rộng phẳng từ chân Torbau ra tới lan can mép vực): ô cổng = đỉnh đường ô tô nằm trên mép nhà; cổng ngoài =
+  // ô cổng có đường ra ngoài xa thân lâu đài nhất. Sân = bao lồi các mẫu tim đường trong 16 m quanh cổng, nới nửa bề rộng đường + 3 m (tới lan can, theo ảnh 360°);
+  // mặt sân nội suy từ cao độ tim đường đã chỉnh dốc
+  let sanCong = null, caoSan = null;
+  {
+    const dinh = (DUONG?.duong || []).filter((d) => OTO.includes(d.loai) && !d.cau && !d.ham).flatMap((d) => d.v.map((p) => [...p, d.rong || 5])), tamLau = tamDa(dsKhoi.flatMap((k) => k.v)), kc = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+    let cg = null;
+    const sanKin = (DUONG?.duong || []).filter((d) => ['pedestrian', 'footway'].includes(d.loai) && d.v.length > 3 && kc(d.v[0], d.v.at(-1)) < 0.3).map((d) => d.v); // phía trong cổng là sân khép kín
+    for (const c of dinh) { if (!nhaVo.some((k) => k.v.some((q) => kc(c, q) < 0.3))) continue; const p = dinh.filter((p) => kc(p, c) >= 2 && kc(p, c) <= 15 && !trongNha0(p[0], p[1]) && !sanKin.some((v) => trongDa(p[0], p[1], v))).sort((a, b) => Math.abs(kc(a, c) - 6) - Math.abs(kc(b, c) - 6))[0]; if (!p) continue; const xa = kc(p, tamLau); if (!cg || xa > cg.xa) cg = { c, p, xa, rong: p[2] }; }
+    // chỉ phía NGOÀI cổng: đoạn thẳng từ mẫu tới đỉnh đường ngoài cổng không xuyên nhà (mẫu đường phía sân trong làm bao lồi xuyên qua Torbau)
+    const thay = (a, b) => { const L = kc(a, b), n = Math.ceil(L); for (let i = 1; i < n; i++) { const t = i / n; if (trongNha0(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)) return false; } return true; };
+    const mau = cg ? MAU_DUONG.filter(([x, z]) => kc([x, z], cg.c) <= 16 && !sanKin.some((v) => trongDa(x, z, v)) && thay([x, z], cg.p)) : [];
+    // sân chạy dọc MẶT TIỀN nhà có cổng (ảnh 360° tại cổng: sân + lan can kéo tiếp lên phía bắc dọc mặt đông Torbau): đỉnh mặt tiền ≤ 20 m quanh cổng (tới tháp tròn góc), lùi ra 3 m
+    // (dải bồn sát chân nhà), nhìn thấy từ đường ngoài cổng → thêm vào bao lồi
+    const nhaCong = cg && nhaVo.find((k) => k.v.some((q) => kc(cg.c, q) < 0.3)), mt = !nhaCong ? [] : nhaCong.v.filter((q) => kc(q, cg.c) <= 20).map((q) => { const l = kc(q, cg.p) || 1; return [q[0] + (cg.p[0] - q[0]) / l * 3, q[1] + (cg.p[1] - q[1]) / l * 3]; }).filter((q) => !trongNha0(q[0], q[1]) && thay(q, cg.p));
+    // nới bao lồi = nửa bề rộng đường + 3 m: lan can phía vực cách tim đường ~7 m (ảnh Mapillary 360° 990990575063069 tại khúc cua, 461885445095370 trước cổng: lan can cách ~8 m)
+    if (mau.length > 6) { const r = cg.rong / 2 + 3, ds = [...mt, ...mau.flatMap(([x, z]) => Array.from({ length: 12 }, (_, a) => [x + Math.cos(a * Math.PI / 6) * r, z + Math.sin(a * Math.PI / 6) * r]))];
+      ds.sort((a, b) => a[0] - b[0] || a[1] - b[1]); const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], hi = [];
+      for (const p of ds) { while (lo.length >= 2 && cr(lo.at(-2), lo.at(-1), p) <= 0) lo.pop(); lo.push(p); } for (const p of ds.slice().reverse()) { while (hi.length >= 2 && cr(hi.at(-2), hi.at(-1), p) <= 0) hi.pop(); hi.push(p); }
+      sanCong = [...lo.slice(0, -1), ...hi.slice(0, -1)];
+      caoSan = (x, z) => { let t = 0, w = 0; for (const [mx, mz, my] of mau) { const q = 1 / (0.25 + (x - mx) ** 2 + (z - mz) ** 2); t += q * my; w += q; } return t / w; }; // mặt sân (cùng công thức với lưới) — lan can mép sân bám theo
+      for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = x0 + i * B, z = z0 + j * B; if (!trongDa(x, z, sanCong) || trongNha0(x, z)) continue;
+        let t = 0, w = 0; for (const [mx, mz, my] of mau) { const q = 1 / (0.25 + (x - mx) ** 2 + (z - mz) ** 2); t += q * my; w += q; } const q = id(i, j); G[q] = t / w; nang[q] = Math.max(nang[q], 0.2); }
+      // BỒN SÁT CHÂN NHÀ (ảnh Mapillary: dải cỏ / sỏi có bó vỉa dọc Torbau): đất ngoài sân ≤ 4 m mép sân và ≤ 4 m chân nhà → phẳng, cao hơn mặt sân 0,12 m
+      // (đất đo sát tường lẫn tường / mái → gò đá lồi lõm)
+      const ganNha = (x, z) => [[4, 0], [-4, 0], [0, 4], [0, -4], [2.8, 2.8], [-2.8, 2.8], [2.8, -2.8], [-2.8, -2.8]].some(([a, b]) => trongNha0(x + a, z + b));
+      for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = x0 + i * B, z = z0 + j * B; if (trongDa(x, z, sanCong) || keMep(x, z, sanCong) > 4 || !ganNha(x, z)) continue; // đỉnh trong nhà cũng đặt (không vẽ, nhưng là góc ô mép — giữ số đo lẫn tường thì thành mũi đá nhọn)
+        let t = 0, w = 0; for (const [mx, mz, my] of mau) { const q = 1 / (0.25 + (x - mx) ** 2 + (z - mz) ** 2); t += q * my; w += q; } const q = id(i, j); G[q] = t / w + 0.12; nang[q] = Math.max(nang[q], 0.2); }
+      console.info('[ns] sân trước cổng ngoài:', JSON.stringify({ cong: cg.c.slice(0, 2), mau: mau.length, dinh: sanCong.length }));
+    }
+  }
+  return { x0, z0, B, W, H, G, nang, id, sanCong, caoSan };
 })();
 function datThat(x, z) {
   const L = NEN_LUOI; if (!L) return caoDat(x, z) - GOC_Y;
@@ -279,7 +325,12 @@ function cong(x1, z1, x2, z2) {
     const t = ((a1 - x1) * (b2 - b1) - (b1 - z1) * (a2 - a1)) / den, u = ((a1 - x1) * (z2 - z1) - (b1 - z1) * (x2 - x1)) / den;
     const w = Math.max(2.4, Math.min(5, d.rong + 0.6)), s = t * L;
     if (u < -0.02 || u > 1.02 || s < -w / 2 || s > L + w / 2) continue; // đường cắt sát GÓC tường (ngoài đầu cạnh tới nửa bề rộng cổng) vẫn khoét phần lỗ thuộc cạnh này — trước bỏ qua cạnh kề, lối cụt
-    const x = x1 + (x2 - x1) * t, z = z1 + (z2 - z1) * t, y = datThat(x, z);
+    // đáy lỗ = mặt đất ngoài nhà gần nhất dọc đường (đi tiếp hai phía ≤ 5 m, cách nhà ≥ 0,75 m) — đất ngay chân tường / trong nhà đo lẫn tường, mái:
+    // vòm cổng phía sân Torbau đáy 12,9 m trong khi mặt đường 17,1 m → lỗ còn 1 m, kẹt (anh 16/11/2026)
+    const x = x1 + (x2 - x1) * t, z = z1 + (z2 - z1) * t, dl = Math.hypot(a2 - a1, b2 - b1) || 1, dx = (a2 - a1) / dl, dz = (b2 - b1) / dl;
+    const ngoai = (px, pz) => ![[0, 0], [0.75, 0], [-0.75, 0], [0, 0.75], [0, -0.75]].some(([p, q]) => dsKhoi.some((k) => trongDa(px + p, pz + q, k.v)));
+    let y = null; for (let r = 0.5; r <= 5 && y == null; r += 0.5) for (const g of [1, -1]) if (y == null && ngoai(x + dx * r * g, z + dz * r * g)) y = datThat(x + dx * r * g, z + dz * r * g);
+    if (y == null) y = datThat(x, z);
     ra.push({ s0: Math.max(-0.1, s - w / 2), s1: Math.min(L + 0.1, s + w / 2), y0: y - 0.6, y1: y + 4.6, x, z, y, w, ux: (x2 - x1) / L, uz: (z2 - z1) / L, trong: s > 0 && s < L });
   }
   return ra;
@@ -599,9 +650,10 @@ if (NEN_LUOI) {
 if (DUONG?.duong?.length) {
   const tx = (t, lap) => { for (const x of [t.map, t.bump]) if (x) { x.wrapS = x.wrapT = THREE.RepeatWrapping; } return t; };
   const nhua = tx(T.daXay(T.rngTu(61), 34, 50)), dat = tx(T.cuoi(T.rngTu(62))), bac = tx(T.daXay(T.rngTu(63), 30, 60));
-  const { ra, dem } = datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds: DUONG.duong, cao: datThat, trongNha: (x, z) => dsKhoi.some((k) => trongDa(x, z, k.v)),
+  const { ra, dem } = datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds: DUONG.duong, cao: datThat, trongNha: (x, z) => dsKhoi.some((k) => trongDa(x, z, k.v)), vungLat: NEN_LUOI?.sanCong ? [{ v: NEN_LUOI.sanCong, cao: NEN_LUOI.caoSan }] : [],
     vl: { nhua: new THREE.MeshStandardMaterial({ map: nhua.map, bumpMap: nhua.bump, bumpScale: 0.8, roughness: 0.92, color: '#b9b3a8' }),
       oto: new THREE.MeshStandardMaterial({ bumpMap: nhua.bump, bumpScale: 0.15, roughness: 0.9, color: '#8e8b85' }),
+      tuong: VL.mong, nap: new THREE.MeshStandardMaterial({ color: '#d9d5cc', roughness: 0.85 }), // lan can / tường chắn: đá xám sáng (ảnh Mapillary), đá nắp sáng hơn
       dat: new THREE.MeshStandardMaterial({ map: dat.map || null, roughness: 0.95, color: '#9c8c72' }),
       bac: new THREE.MeshStandardMaterial({ map: bac.map, bumpMap: bac.bump, bumpScale: 1, roughness: 0.9, color: '#d6d0c4' }) } });
   for (const m of ra) { scene.add(m); LOP_OSM.push(m); }

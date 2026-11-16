@@ -1379,7 +1379,14 @@ export async function chonPhienBan(canhId: number, url: string, ban: 'nhap' | 'c
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  await chupTruoc(db, { bang: 'xv_canh', id: canhId, cot: ['video_url', 'video_cuoi_url', 'trang_thai', 'loi'], moTa: ban === 'cuoi' ? 'chọn bản cuối' : 'chọn bản nháp', nguoi: await ai() });
+  await chupTruoc(db, { bang: 'xv_canh', id: canhId, cot: ['video_url', 'video_cuoi_url', 'trang_thai', 'loi', 'ky_thuat'], moTa: ban === 'cuoi' ? 'chọn bản cuối' : 'chọn bản nháp', nguoi: await ai() });
+  // Phiên bản mang mốc đoạn riêng (clip cụm nhiều shot: Seedance và H3 đặt shot ở giây khác nhau) → chép vào ky_thuat cùng lúc đổi clip
+  const pb = (((await db.execute(sql`SELECT video_phien_ban FROM xv_canh WHERE id = ${canhId}`)) as unknown as Row[])[0]?.video_phien_ban ?? []) as Canh['video_phien_ban'];
+  const v = pb.find((x) => x.url === url);
+  if (v && (v.vao_s != null || v.toc_khop != null)) {
+    const doan = { ...(v.vao_s != null ? { vao_s: v.vao_s } : {}), ...(v.toc_khop != null ? { toc_khop: v.toc_khop } : {}) };
+    await db.execute(sql`UPDATE xv_canh SET ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || ${JSON.stringify(doan)}::jsonb WHERE id = ${canhId}`);
+  }
   if (ban === 'cuoi') await db.execute(sql`UPDATE xv_canh SET video_cuoi_url = ${url}, updated_at = now() WHERE id = ${canhId} AND video_phien_ban @> ${JSON.stringify([{ url }])}::jsonb`);
   else await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${canhId} AND video_phien_ban @> ${JSON.stringify([{ url }])}::jsonb`);
   return { ok: true, data: undefined };

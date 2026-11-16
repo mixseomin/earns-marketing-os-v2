@@ -401,7 +401,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
               {c.video_phien_ban.map((v, i) => {
                 const dung = v.url === c.video_url || v.url === c.video_cuoi_url;
                 return (
-                  <Menu key={v.url + i} nhan={`${dung ? '● ' : ''}${i + 1} ${v.ban === 'cuoi' ? 'cuối' : 'nháp'}${c.nguon_tep?.[v.url] ? ` · ${c.nguon_tep[v.url]!.ngan}` : ''}`}>
+                  <Menu key={v.url + i} nhan={`${dung ? '● ' : ''}${i + 1} ${v.ban === 'cuoi' ? 'cuối' : 'nháp'}${c.nguon_tep?.[v.url] ? ` · ${c.nguon_tep[v.url]!.ngan}` : v.nhan ? ` · ${v.nhan}` : ''}`}>
                     <div style={{ ...mono, padding: '2px 4px', whiteSpace: 'pre-line' }}>{c.nguon_tep?.[v.url]?.day ?? v.model}{v.luc ? ` · ${gioVN(v.luc)}` : ''}</div>
                     <MucMenu onClick={() => moNgan({ loai: 'xem', url: v.url, ten: `Cảnh #${c.thu_tu} · phiên bản ${i + 1}` })}>▶ Xem / tải</MucMenu>
                     {v.url !== c.video_url && <MucMenu onClick={() => void chay(i + 'n' + c.id, () => chonPhienBan(c.id, v.url, 'nhap'))}>Dùng làm nháp</MucMenu>}

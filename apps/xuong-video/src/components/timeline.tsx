@@ -589,7 +589,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             {tap.nhac_url && <audio ref={nhacRef} src={tap.nhac_url} preload="auto" />}
             {nhacPc && <audio ref={nhacPcRef} key={nhacPc} src={nhacPc} preload="auto" />}
           </div>
-          {c && phu.length > 0 && <div style={{ display: 'flex', flexDirection: doc916 ? 'row' : 'column', gap: 6, marginTop: 6 }}>
+          {/* Khung so sánh LUÔN xếp ngang, chia đều bề rộng màn xem (17/11/2026: phim ngang xếp dọc → 2 khung Seedance / H3 cao gấp đôi, tràn đè lên các làn timeline) */}
+          {c && phu.length > 0 && <div style={{ display: 'flex', flexDirection: 'row', gap: 6, marginTop: 6 }}>
             {phu.map((m) => {
               const cl = clip3dMoi(c) ? c.khung_xam!.clip! : null;
               const pb = m.startsWith('pb:') ? [...(c.video_phien_ban ?? [])].reverse().find((x) => x.nhan === m.slice(3)) ?? null : null;
@@ -597,7 +598,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               const dv = v ? daiCua[v] ?? 0 : 0;
               const vt = m === '3d' ? (cl ? cl.vao + tTrong : 0) : diemVaoClip(pb ? pb.vao_s ?? 0 : c.ky_thuat?.vao_s, dv || null, dur(c)) + tTrong * (pb?.toc_khop ?? 1);
               const anh = m === '3d' ? c.khung_xam?.mau ?? null : c.keyframe_url;
-              const r = doc916 ? (rongXem - 6 * (phu.length - 1)) / phu.length : rongXem;
+              const r = (rongXem - 6 * (phu.length - 1)) / phu.length;
               return <KhungSoSanh key={m} nhan={pb ? `🎬 ${m.slice(3)}` : m.startsWith('pb:') ? `🎬 ${m.slice(3)} · shot này chưa có` : m === '3d' ? '🧊 3D' : m === 'keyframe' ? '🖼 Keyframe' : '🎬 Video'} rong={r} cao={r * caoXem / rongXem}
                 vid={v} vt={vt} anh={anh ? anhNho(anh, 640) ?? null : null} chay={chay} onDai={(d) => v && ghiDai(v, d)} />;
             })}

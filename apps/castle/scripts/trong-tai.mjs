@@ -44,7 +44,7 @@ else {
     const co = new Set(moc.khoi.filter((k) => ids.includes(k.id)).flatMap((k) => k.chi_tiet.map((d) => d.goc)));
     console.log(`· khối đổi: ${ids.join(', ')} → góc thấy: ${[...co].join(', ') || '(mốc chưa đo được khối nào — chấm mọi góc)'}`); if (co.size) gocs = moc.goc.filter((x) => co.has(x)); }
   const tam = join(NHO, khoa + '-do.json'); let ra = '', dat = true;
-  try { ra = chay('cham-goc.mjs', ['--goc', gocs.join(','), '--so', MOC, '--ghi', tam]); } catch (e) { ra = loi(e); dat = false; }
+  try { ra = chay('cham-goc.mjs', ['--goc', gocs.join(','), '--so', MOC, '--ghi', tam, '--nho', join(NHO, khoa + '-goc')]); } catch (e) { ra = loi(e); dat = false; }
   const tom = ra.slice(ra.indexOf('\nSO VỚI')).trim() || ra.split('\n').slice(-8).join('\n'); console.log(tom);
   if (!dat) { nho(false, tom); tra('hình khối xấu đi ở bộ góc chuẩn (danh sách trên) — sửa tiếp rồi commit mới'); }
   // gộp số đo mới vào mốc: thay phần của các góc vừa chấm, trung vị tính lại

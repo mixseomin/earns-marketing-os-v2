@@ -110,9 +110,11 @@ export function xetCanhBao(s, bayGio = Date.now()) {
   }
   const nang = (m) => (m.nang?.length ? ` — nặng nhất: ${m.nang.join(' · ')}` : '');
   const cha = (m) => (m.cha?.length ? `\nthủ phạm theo script cha: ${m.cha.map((x) => `${x.script} ×${x.n} (${x.cpu}% CPU)`).join(' · ')}` : '');
-  if (s.may.ban >= NGUONG.cpuBan) ra.push({ khoa: 'box3:tai', muc: s.may.ban, chu: `box3 quá tải: CPU bận ${s.may.ban}% suốt ${s.may.phut} phút qua${nang(s.may)}${cha(s.may)}` });
-  const tl = s.may.load5 && s.may.nhan ? s.may.load5 / s.may.nhan : 0;
-  if (tl >= NGUONG.taiLoiNhan) ra.push({ khoa: 'box3:nghen', muc: Math.round(tl * 10) / 10, chu: `box3 NGHẼN ngay lúc đo: tải 5 phút ${s.may.load5} trên ${s.may.nhan} nhân (${tl.toFixed(1)}×), swap dùng ${s.may.swapMB ?? '?'} MB, RAM còn ${s.may.ramMB} MB${nang(s.may)}${cha(s.may)}` });
+  // nghẽn cấp đã bao trùm quá tải CPU → MỘT việc (17/11/2026: box3:tai + box3:nghen cùng một đợt thành hai lượt Tài); mức của box3:nghen (tải / nhân)
+  // không có trần, còn CPU% chạm 100 nên box3:tai không bao giờ "nặng hơn" được lần kết trước.
+  const tl = s.may.load5 && s.may.nhan ? s.may.load5 / s.may.nhan : 0, nghen = tl >= NGUONG.taiLoiNhan;
+  if (s.may.ban >= NGUONG.cpuBan && !nghen) ra.push({ khoa: 'box3:tai', muc: s.may.ban, chu: `box3 quá tải: CPU bận ${s.may.ban}% suốt ${s.may.phut} phút qua${nang(s.may)}${cha(s.may)}` });
+  if (nghen) ra.push({ khoa: 'box3:nghen', muc: Math.round(tl * 10) / 10, chu: `box3 NGHẼN ngay lúc đo: tải 5 phút ${s.may.load5} trên ${s.may.nhan} nhân (${tl.toFixed(1)}×), swap dùng ${s.may.swapMB ?? '?'} MB, RAM còn ${s.may.ramMB} MB${nang(s.may)}${cha(s.may)}` });
   // Ổ BOX3 (01/11/2026: lên 95% — /root/.cache/ethopex 12 GB không cất được Drive — mà phòng chỉ canh ổ VPS, không ai báo). Khoá 'dia:' không vào hàng
   // thợ máy (LOAI_SUA): dọn ổ là quyết định giữ / cất của anh, thợ máy spy không được tự xoá.
   if (s.may.dia >= NGUONG.diaPt) ra.push({ khoa: 'dia:box3', chu: `box3 ổ cứng đầy ${s.may.dia}% — còn ${s.may.diaConGB} GB` });
@@ -371,6 +373,7 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ...may, ban: 60 } }), [], 'bận 60% (deploy nhói một lúc): im');
     assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ...may, load5: 64, nhan: 4, swapMB: 2751 } }), ['box3:nghen'], 'tải 64 trên 4 nhân → nghẽn cấp dù CPU trung bình 30 phút chưa tới ngưỡng');
     assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ...may, load5: 6, nhan: 4 } }), [], 'tải 1,5× số nhân: im');
+    assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ...may, ban: 99, load5: 40, nhan: 4 } }), ['box3:nghen'], 'quá tải CPU + nghẽn cấp → một việc, không hai');
     assert.equal(xetCanhBao({ lan: [], khoa: [], may: { ...may, ban: 95 } }, bay)[0].muc, 95, 'cảnh báo mang mức để hàng việc biết nặng hơn');
     { const ps = ['10 1 0.0 bash -c cd x && python3 nhan-ban.py 1', '11 10 30.0 python3 nhan-ban.py 1', '12 11 0.0 psql postgres://x -tAc select', '20 1 0.0 bash -c python3 nhan-ban.py 2', '21 20 25.0 python3 nhan-ban.py 2',
         '30 1 40.0 /usr/bin/node server/server.mjs', '40 1 9.0 python3 /opt/x/qc-fb-phim.py --dem', '41 40 0.0 psql x'];

@@ -40,7 +40,8 @@ Công cụ chạy trên **iMac** (có trình duyệt). Lõi chung: `scripts/chun
 3. **TƯƠNG QUAN giữa các thành phần**: thẳng cột (ô tròn trên cửa, huy hiệu trên vòm), cùng hàng, đối xứng — ghi `quan_he` trong vùng (`["thang_cot", A, B]`, `["cung_hang", A]`).
 4. **HOA VĂN / HOẠ TIẾT** sau cùng: huy hiệu, gờ ngang, dải vòm nhỏ, đá góc, neo sắt, vành răng cưa, ban công, đồng hồ (`trangtri.js`; thẻ khối trong sua.json: `rang_cua`, `vom_nho`, `da_goc`, `thap_canh`, `vong_rang`, `cua_thap`, `go_y`; theo mặt trong cua-so.json: `rang_cua` (số / 0 = không), `vom_nho`, `neo_y`, `o_vuong`, `o_tron`, `ban_cong`, `dong_ho`, `mau` hai tầng).
 
-Kiểm: `node apps/castle/scripts/kiem-ke.mjs --lau <tên>` → theo từng mặt: KHUNG (lệch %), số lượng từng vùng (THIẾU / thừa), VỊ TRÍ (lệch lớn nhất % khung, > 6 % là SAI), TƯƠNG QUAN; thoát 1 khi còn bất kỳ lỗi nào.
+Kiểm: `node apps/castle/scripts/kiem-ke.mjs --lau <tên>` → theo từng mặt: KHUNG (lệch %), số lượng từng vùng (THIẾU / thừa), VỊ TRÍ (lệch lớn nhất % khung, > 6 % là SAI), TƯƠNG QUAN; cộng CHỒNG LẤN trên TOÀN mô hình (khung ngoài ô cửa — viền đá, vòm bao — của hai cụm trên cùng mặt chạm nhau); thoát 1 khi còn bất kỳ lỗi nào.
+Cửa theo số đo luôn đi qua `boTriDo` (mattien.js, dùng chung dựng khung + khoét lỗ): hàng thu gọn trong dải không chạm hàng kề, hàng dò trùng / cụm chạm cụm bị bỏ, vòm bao chỉ khi còn chỗ — không vẽ chi tiết đè nhau để "đủ số".
 Mỗi mặt chỉ xong khi: kiểm kê sạch **và** chụp mô hình từ đúng chỗ đặt máy, đặt cạnh ảnh thật, không còn chỗ khoanh ra được. Nhầm hướng: trục z của cảnh hướng NAM (z = −(vĩ độ − vĩ độ tâm) × 111 320) — kiểm hướng trước khi đặt tên "bắc / nam".
 
 ## 4. Kiểm toàn cảnh

@@ -169,5 +169,17 @@
  "way/223145713": {
   "y_tren": "48.3",
   "ly_do_cao": "17/11/2026 thẻ máy quét #1631: khối lô-gia mặt tây Palas (mái một dốc) thấp hơn ảnh thật. Đo theo TIA ở 2 góc chuẩn: tây +2,6 m (7 cột), nam +3,5 m (5 cột) → trung vị +3,05; từ trên xuống đỉnh 47,73 m, bản đồ độ cao (cách 3) 47,71 m; ảnh gần (camera (-140, 56, 40)) cho thấy bản thật cao hơn mô hình khoảng một tầng vòm. y_tren 45,28 → 48,3"
+ },
+ "them/nha-chan-viereckturm": {
+  "ngoai": [[1.568, -14.846], [-4.397, -12.265], [-5.767, -15.431], [0.198, -18.013]],
+  "building": "yes",
+  "building:colour": "white",
+  "building:material": "sandstone",
+  "roof:colour": "black",
+  "roof:shape": "skillion",
+  "roof:direction": "337",
+  "roof:height": "2.4",
+  "y_tren": "28.3",
+  "ly_do": "17/11/2026 góp ý #1632 (nút 🔍, 'thiếu 1 căn nhà nhỏ ở chân'): OSM không có. Bản đồ độ cao ảnh 3D Google (neuschwanstein-cach3.json, ô 0,4 m, loại mái tối) có khối mái 26–28 m nằm ở góc giữa mặt tường way/223069513#5 và mặt tây Viereckturm, toạ độ dọc tường tính từ góc Viereckturm 0,1 → 6,6 m, nhô ra 0,05 → 3,5 m (mặt bằng = hình chữ nhật đó). Mái một dốc: cao 28,3 m sát tường, dốc ra ngoài ~0,7 m/m → mép hiên ~25,9 m (roof:height 2,4), hướng dốc xuống = pháp tuyến ngoài tường 337°. Chân: mặt đất đo quanh 17–20 m (ns.js tự lấy). Ảnh 3D trước đây coi mái này là mặt đất → gò đá xám giả ở chân tường (ns.js nay bỏ điểm đất trong khối thêm)."
  }
 }

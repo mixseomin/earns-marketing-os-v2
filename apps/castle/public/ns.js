@@ -50,7 +50,10 @@ const MAT_ANH = DAN_ANH ? await fetch(`./du-lieu/${ten}-mat-anh.json`, { cache: 
 const DUONG = await fetch(`./du-lieu/${ten}-duong.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // đường + cầu thang OSM (scripts/tai-duong.mjs)
 const MAI = await fetch(`./du-lieu/${ten}-mai.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // cửa mái / chóp nhỏ đo trên ảnh 3D (scripts/do-mai.mjs)
 const NT = await fetch(`./du-lieu/${ten}-noi-that.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // nội thất (có thì dựng)
-for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [a, b] of Object.entries(SUA[k.id])) if (!a.startsWith('ly_do')) k.tags[a] = String(b); }
+// KHỐI OSM KHÔNG CÓ (ảnh thật có, OSM chưa vẽ): mục sua.json khoá "them/<tên>" mang "ngoai" = mặt bằng [[x, z], …] (đo trên bản đồ độ cao ảnh 3D,
+// scripts/khop-khoi.mjs → <lâu>-cach3.json) + thẻ như khối OSM — dựng chung đường với khối OSM (căn nhà nhỏ chân Viereckturm, góp ý #1632)
+for (const [id, e] of Object.entries(SUA)) if (Array.isArray(e?.ngoai) && e.ngoai.length >= 3 && !D.khoi.some((k) => k.id === id)) D.khoi.push({ id, ngoai: [e.ngoai], trong: [], tags: {}, them: true });
+for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [a, b] of Object.entries(SUA[k.id])) if (!a.startsWith('ly_do') && a !== 'ngoai') k.tags[a] = String(b); }
 
 // ---------- cảnh
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -132,7 +135,9 @@ const NEN_LUOI = (() => {
   if (!NEN?.diem?.length) return null;
   const [x0, x1, z0, z1] = NEN.hop, B = NEN.buoc, W = Math.round((x1 - x0) / B) + 1, H = Math.round((z1 - z0) / B) + 1, N = W * H, id = (i, j) => j * W + i;
   const R = new Float32Array(N).fill(NaN), tran = NEN.san + 3;
-  for (const [x, z, y] of NEN.diem) { const i = Math.round((x - x0) / B), j = Math.round((z - z0) / B); if (i >= 0 && i < W && j >= 0 && j < H && y <= tran) R[id(i, j)] = y; }
+  // khối thêm (sua.json "them/…"): do-khoi-google chỉ bỏ điểm trong mặt bằng OSM → mái khối thêm nằm trong số đo mặt đất (gò đá giả cao bằng mái) — bỏ, nới 0,75 m
+  const vThem = dsKhoi.filter((k) => k.them).map((k) => k.v), trongThem = (x, z) => vThem.some((v) => [[0, 0], [0.75, 0], [-0.75, 0], [0, 0.75], [0, -0.75]].some(([a, b]) => trongDa(x + a, z + b, v)));
+  for (const [x, z, y] of NEN.diem) { const i = Math.round((x - x0) / B), j = Math.round((z - z0) / B); if (i >= 0 && i < W && j >= 0 && j < H && y <= tran && !trongThem(x, z)) R[id(i, j)] = y; }
   const loc = (A, f, r) => { const O = new Float32Array(N).fill(NaN); for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { let v = A[id(i, j)]; if (Number.isNaN(v)) continue;
     for (let b = -r; b <= r; b++) for (let a = -r; a <= r; a++) { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) continue; const q = A[id(ii, jj)]; if (!Number.isNaN(q)) v = f(v, q); } O[id(i, j)] = v; } return O; };
   // TRUNG VỊ 5 × 5 (thay lọc mở min → max: ở mép vực, min kéo mặt đất tụt xuống đáy vực — chân cầu thang sân dưới thấp hơn ảnh 3D 7 m, cổng Torbau mọc
@@ -477,9 +482,13 @@ function dungKhoi(k, G) {
     const thut = kieu === 'hipped' ? Math.min(W / 2, L / 2) : kieu === 'half-hipped' || kieu === 'side_hipped' ? Math.min(W / 4, L / 4) : 0;
     const P = (u, w, y) => { const [x, z] = o.ra(u, w); return [x, y, z]; };
     if (kieu === 'skillion') {
-      const a = P(o.u0, o.w0, y2), b = P(o.u1, o.w0, y2), c = P(o.u1, o.w1, y1), d = P(o.u0, o.w1, y1);
-      tamGiac(mai, a, c, b, a, d, c);
-      tamGiac(da, P(o.u0, o.w0, y1), P(o.u1, o.w0, y1), b, P(o.u0, o.w0, y1), b, a, P(o.u0, o.w1, y1), a, d, P(o.u0, o.w1, y1), P(o.u0, o.w0, y1), a, P(o.u1, o.w0, y1), P(o.u1, o.w1, y1), c, P(o.u1, o.w0, y1), c, b);
+      // roof:direction (OSM: độ từ bắc theo chiều kim đồng hồ, hướng mái dốc XUỐNG): mép thấp quay về hướng đó. Trục w (x, z) = (−s, c); xuống = (sin, −cos).
+      // Không có thẻ → mép w0 cao như trước. Đảo mép = phản chiếu → đảo thứ tự đỉnh tam giác để mặt vẫn quay ra ngoài.
+      const hd = so(t['roof:direction']), dao = hd != null && -o.s * Math.sin(hd * Math.PI / 180) - o.c * Math.cos(hd * Math.PI / 180) < 0;
+      const wc = dao ? o.w1 : o.w0, wt = dao ? o.w0 : o.w1, tg = (arr, ...p) => { for (let j = 0; j < p.length; j += 3) arr.push(...p[j], ...(dao ? p[j + 2] : p[j + 1]), ...(dao ? p[j + 1] : p[j + 2])); };
+      const a = P(o.u0, wc, y2), b = P(o.u1, wc, y2), c = P(o.u1, wt, y1), d = P(o.u0, wt, y1);
+      tg(mai, a, c, b, a, d, c);
+      tg(da, P(o.u0, wc, y1), P(o.u1, wc, y1), b, P(o.u0, wc, y1), b, a, P(o.u0, wt, y1), a, d, P(o.u0, wt, y1), P(o.u0, wc, y1), a, P(o.u1, wc, y1), P(o.u1, wt, y1), c, P(o.u1, wc, y1), c, b);
     } else {
       const r0 = P(o.u0 + thut, wm, y2), r1 = P(o.u1 - thut, wm, y2);
       const g00 = P(o.u0, o.w0, y1), g10 = P(o.u1, o.w0, y1), g11 = P(o.u1, o.w1, y1), g01 = P(o.u0, o.w1, y1);

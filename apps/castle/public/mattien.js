@@ -78,6 +78,9 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
       const ux = (x2 - x1) / L, uz = (z2 - z1) / L, nx = uz, nz = -ux, goc = Math.atan2(nx, nz); // pháp tuyến RA NGOÀI (đa giác ngược chiều kim nhìn từ trên)
       const lo = t.lo(i, x1, z1, x2, z2), mn = palas ? { san: false } : matNgoai((x1 + x2) / 2, (z1 + z2) / 2, nx, nz), coVom = mn.san && Number.isFinite(mn.yDat);
       q.setFromAxisAngle(Y, goc);
+      // cạnh bị KHOÁ gần hết (mặt dựng riêng theo ảnh phủ lên, ns.js — kể cả cạnh của khối khác cùng mặt phẳng) → không dựng cửa nào, kể cả cửa có số đo:
+      // đường số đo trước không xét khoá → hai lớp cửa đè nhau ở mặt Palas hướng sân (anh 17/11/2026)
+      if (lo.some((l) => !l.cuaSo && l.y0 < -1e8 && l.s1 - l.s0 >= L * 0.9)) continue;
       const doTu = cuaSo[`${t.k?.id}#${i}`], coAnh = !!matAnh[`${t.k?.id}#${i}`];
       if (coAnh && !doTu?.hang?.length) continue; // mặt có ảnh dán thật (đã có cửa, gờ thật trong ảnh) → không dựng cửa 3D đoán đè lên
       if (doTu?.hang?.length && coVom && !palas) { /* mặt nhìn ra sân trong: giữ dãy vòm tầng trệt theo ảnh Josef Albert (số đo ảnh 3D không thấy vòm) — bỏ số đo */ }

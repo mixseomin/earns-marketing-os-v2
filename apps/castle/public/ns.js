@@ -575,6 +575,16 @@ const MAT_PALAS = (() => {
   } // cả mặt dựng riêng theo ảnh (mattien.js datMatPalas)
   return tot;
 })();
+// MẶT DỰNG RIÊNG CHE CẢ MẶT PHẲNG (anh 17/11/2026, ảnh mặt Palas hướng sân: hai lớp cửa đè nhau): mặt Palas dựng theo ảnh chỉ khoá đúng cạnh của nó, nhưng khối OSM
+// khác (way/223140032#9) có cạnh NẰM TRÊN CÙNG MẶT PHẲNG tường → máy dựng cửa chung đặt thêm một lớp cửa đè lên. Khoá luôn mọi cạnh cùng mặt phẳng (cùng hướng,
+// cách mặt phẳng ≤ 1 m) trên đoạn trùng với mặt dựng riêng.
+if (MAT_PALAS) { const P = MAT_PALAS, nx = (P.z2 - P.z1) / P.L, nz = -(P.x2 - P.x1) / P.L, ux = (P.x2 - P.x1) / P.L, uz = (P.z2 - P.z1) / P.L;
+  for (const t of TUONG_MT) for (let i = 0; i < t.v.length; i++) { if (t === P.t && i === P.i) continue;
+    const [x1, z1] = t.v[i], [x2, z2] = t.v[(i + 1) % t.v.length], L = Math.hypot(x2 - x1, z2 - z1); if (L < 0.5) continue;
+    const d1 = (x1 - P.x1) * nx + (z1 - P.z1) * nz, d2 = (x2 - P.x1) * nx + (z2 - P.z1) * nz; if (Math.abs(d1) > 1 || Math.abs(d2) > 1) continue;
+    const s1 = (x1 - P.x1) * ux + (z1 - P.z1) * uz, s2 = (x2 - P.x1) * ux + (z2 - P.z1) * uz, a = Math.max(0, Math.min(s1, s2)), b = Math.min(P.L, Math.max(s1, s2)); if (b - a < 0.5) continue;
+    const ta = (a - s1) / (s2 - s1) * L, tb = (b - s1) / (s2 - s1) * L, lo0 = t.lo;
+    t.lo = (j, ...r) => (j === i ? [...lo0(j, ...r), { s0: Math.min(ta, tb), s1: Math.max(ta, tb), y0: -1e9, y1: 1e9 }] : lo0(j, ...r)); } }
 // NỀN SÂN TRÊN: mặt sân đo từ ảnh (ảnh phụ Josef Albert trong tệp bố cục mặt Palas: mặt sân ~22 m dưới mái), không phải lưới đất EU-DEM (thô 12 m, ở sân thấp hơn ~6 m).
 // OSM ghi chú khối courtyard là "building for 3D reasons" — dựng thành nền đá: mặt lát đá, tường chắn, lan can mép hở, bậc thang xuống phía cổng.
 const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3D) quanh lâu đài
@@ -1339,8 +1349,10 @@ addEventListener('pagehide', () => luuGoc(true)); addEventListener('beforeunload
 window.__ns.luuGoc = luuGoc; window.__ns.gocHienTai = gocHienTai;
 window.__ns.kiemKe = () => KIEM_KE; window.__ns.datCach3Hien = (b) => datCach3Hien(b); window.__ns.chupHaiBan = chupHaiBan; window.__ns.khoiTrongVung = khoiTrongVung; window.__ns.doKhoiAnh3d = doKhoiAnh3d; window.__ns.doKhoiTheoTia = doKhoiTheoTia; window.__ns.batAnh3dTam = batAnh3dTam; window.__ns.diemTaiAnh = diemTaiAnh;
 // CHỒNG LẤN: hai ô cửa cùng một mặt tường mà khung chạm nhau (kể cả cửa dựng theo luật chung) → danh sách cặp (scripts/kiem-ke.mjs báo lỗi)
-window.__ns.chongLan = () => { const theoMat = new Map(); for (const c of CUA) { if (!c.mat) continue; (theoMat.get(c.mat) || theoMat.set(c.mat, []).get(c.mat)).push(c); } const ra = [];
-  for (const [mat, ds] of theoMat) for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++) { const a = ds[i], b = ds[j], ux = -a.nz, uz = a.nx, sa = a.x * ux + a.z * uz, sb = b.x * ux + b.z * uz;
+// so MỌI cặp cửa CÙNG MẶT PHẲNG (cùng hướng, cách ≤ 0,8 m), mọi nguồn (mặt OSM, mặt dựng riêng Palas) — trước gom theo mã mặt nên hai khối cùng mặt phẳng đè nhau không thấy (17/11/2026)
+window.__ns.chongLan = () => { const ra = [];
+  for (let i = 0; i < CUA.length; i++) for (let j = i + 1; j < CUA.length; j++) { const a = CUA[i], b = CUA[j]; if (a.nx * b.nx + a.nz * b.nz < 0.97 || Math.abs((b.x - a.x) * a.nx + (b.z - a.z) * a.nz) > 0.8) continue;
+    const mat = a.mat || a.ten || 'Palas', ux = -a.nz, uz = a.nx, sa = a.x * ux + a.z * uz, sb = b.x * ux + b.z * uz;
     // so theo KHUNG NGOÀI (viền đá, vòm bao) — lòng kính tách nhau mà khung vẫn đè là đúng lỗi nhìn thấy; ô cùng một cụm (cum) không tính
     const va = a.vien || { ngang: 0.25, tren: 0.4 }, vb = b.vien || { ngang: 0.25, tren: 0.4 }; if (a.cum != null && a.cum === b.cum && Math.abs(a.y - b.y) < 0.01) continue;
     if (Math.abs(sa - sb) < a.nua + va.ngang + b.nua + vb.ngang - 0.05 && a.y - 0.15 < b.y + b.cao + vb.tren - 0.05 && b.y - 0.15 < a.y + a.cao + va.tren - 0.05 && !(Math.abs(sa - sb) < 0.01 && Math.abs(a.y - b.y) < 0.01)) ra.push({ mat, a: [+sa.toFixed(2), +a.y.toFixed(2)], b: [+sb.toFixed(2), +b.y.toFixed(2)] }); }

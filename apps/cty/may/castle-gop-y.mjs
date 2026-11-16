@@ -24,7 +24,9 @@ chayKySu({
     const dich = path.join(ANH, path.basename(new URL(u).pathname)); execFileSync('curl', ['-sf', '-m', '60', '-o', dich, u]); return dich; }),
   quyen: (MOS2) => [`Edit(/${path.join(MOS2, 'apps/castle')}/**)`, `Write(/${path.join(MOS2, 'apps/castle')}/**)`, `Read(/${path.join(MOS2, 'apps/castle')}/**)`,
     'Bash(git add apps/castle/*)', 'Bash(git push origin HEAD:main)', 'Bash(git pull --rebase origin main)', `Bash(${HOME}/bin/gh-watch deploy.yml)`,
-    'Bash(node apps/castle/*)', `Bash(node ${path.join(MOS2, 'apps/castle')}/*)`, 'Bash(python3 apps/castle/*)', `Bash(python3 ${path.join(MOS2, 'apps/castle')}/*)`, 'Bash(md5 -q:*)'],
+    'Bash(node apps/castle/*)', `Bash(node ${path.join(MOS2, 'apps/castle')}/*)`, 'Bash(python3 apps/castle/*)', `Bash(python3 ${path.join(MOS2, 'apps/castle')}/*)`, 'Bash(md5 -q:*)',
+    // lượt đầu #1623 (16/11/2026) dừng CAN_ANH sau 3 phút vì lệnh ghép "cd <thư mục con> && git log --since … --format …" bị chặn: mở đúng các lệnh đọc / đo việc castle hay dùng
+    'Bash(cd:*)', 'Bash(git log:*)', 'Bash(git fetch:*)', 'Bash(git rev-parse:*)', 'Bash(git pull:*)', 'Bash(python3 -c:*)', 'Bash(node -e:*)', 'Bash(md5:*)', 'Bash(find:*)', 'Bash(jq:*)', 'Bash(echo:*)', 'Bash(printf:*)'],
   loiGiao: ({ card, luong, cuoiNguoi, tin, moiAnh, anhMay, ANH, dir: MOS2, cay }) => `Bạn là Thắng, kỹ sư lâu đài 3D castle.on.tc (công ty AI của anh Tuấn). Anh không ngồi máy: bạn xử tới khi xong, tự kiểm, tự deploy, tự trả lời trong card.
 
 LÀM ĐÚNG LỆNH /tasks-castle: đọc ${MOS2}/apps/castle/tasks-castle.md rồi làm theo mục 2 (Xử) và 4 (Báo) cho DUY NHẤT card #${card.id} "${card.title}". Mục 1 (nạp) máy đã làm, luồng card ở dưới.

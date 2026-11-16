@@ -29,4 +29,6 @@ OUT=$(python3 chay-h3.py $T/luu.json | tail -1); echo "$OUT"
 MP4=$(echo "$OUT" | python3 -c 'import json,sys; print(json.load(sys.stdin)["mp4"])')
 case "$MP4" in */output/h3/thu*.mp4) ;; *) echo "✗ lấy NHẦM tệp: $MP4 (phải là output/h3/thu*.mp4 của SaveVideo)"; exit 1 ;; esac
 if [ "$(stat -c%s "$MP4")" -le 1000 ]; then echo "✗ clip SaveVideo rỗng"; exit 1; fi; echo "✓ lấy đúng clip SaveVideo ($MP4)"
+# 5. trọn mạch máy thuê: start.sh + PUBLIC_KEY → ssh, runpodctl, thả lam-lo.sh chạy tách, kéo clip, XONG
+bash /root/h3/thu-may.sh --trong
 echo "ĐẠT — kiểm 0đ xong"

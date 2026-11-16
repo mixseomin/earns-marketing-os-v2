@@ -14,7 +14,7 @@ RUN git clone -q --depth 1 --branch ${COMFY} https://github.com/Comfy-Org/ComfyU
     && python3 -c 'import torch,sys; print("torch", torch.__version__, torch.version.cuda); sys.exit(0 if (torch.version.cuda or "").startswith("13") else 1)'
 RUN curl -fsSL -o /usr/local/bin/runpodctl https://github.com/runpod/runpodctl/releases/download/v3.1.1/runpodctl-linux-amd64 && chmod +x /usr/local/bin/runpodctl
 RUN mkdir -p /run/sshd /root/.ssh /root/h3 && chmod 700 /root/.ssh
-COPY tren-may.sh chay-h3.py lam-lo.sh thu-0d.sh /root/h3/
+COPY tren-may.sh chay-h3.py lam-lo.sh thu-0d.sh thu-may.sh /root/h3/
 COPY may/start.sh /start.sh
 RUN chmod +x /start.sh
 CMD ["/start.sh"]

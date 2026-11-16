@@ -1153,6 +1153,7 @@ _g10_cam = {int(x[0]) for x in g10 + tat_g10} | set(_g10_theo) | _ab_giu_cam
 # lần tăng gần nhất trong 5 ngày, từ đó tới nay KHÔNG tăng thêm, và 2 ngày đã khép sau lần tăng (D−1, D−2) đều lỗ (chi ≥ $0.5, thu < chi) → hạ thẳng về $1, KHÔNG tắt
 # (L3 vẫn tắt nếu lỗ ngày thứ 3). Đo 22–31/10: 102 lần, 3 ngày kế để nguyên −$35.77 · hạ về $1 −$4.66 · tắt $0 nhưng mất +$31.91 của 28% camp hồi. Không áp ★ ROAS (luật RL riêng).
 H2_DICH = 1
+assert {G10_DICH, H3_DICH, H2_DICH} <= set(BANG_LUAT["thang"]) | {BANG_LUAT["g10_dich"]}, "đích của luật hạ phải là mức máy làm nhận ở đường giảm (thang + g10_dich) — lệch thì mọi lệnh hạ bị chặn như G10 16/11/2026"
 h2 = []
 try:
     _tang = {}
@@ -1290,7 +1291,7 @@ def _xet_luat():
     def L_g10(cid, ns):
         _x = [x for x in (_ng.get(int(cid)) or [None, []])[1] if x[0] in _d3s]; c3, t3 = sum(x[1] for x in _x), sum(x[2] for x in _x); r3 = (t3 - c3) / c3 * 100 if c3 >= 0.3 else None
         theo_ = _g10_theo.get(int(cid))
-        return L("g10", "G10 · ROI 3 ngày < 15% → $10, rồi tắt", f"Mọi camp kể cả ★ ROAS (hướng dẫn team 31/10/2026): ngân sách > ${G10_NS}, chạy đủ 3 ngày (3 ngày đã khép đều có chi), chi 3 ngày ≥ 1 ngày ngân sách mà ROI < {G10_ROI}% → máy hạ thẳng về ${G10_DICH}; {G10_THEO} ngày đã khép sau đó ROI vẫn < {G10_ROI}% → báo trước một nhịp rồi máy tắt. Đang theo dõi thì khoá tăng.",
+        return L("g10", f"G10 · ROI 3 ngày < {G10_ROI}% → ${G10_DICH}, rồi tắt", f"Mọi camp kể cả ★ ROAS (hướng dẫn team 31/10/2026): ngân sách > ${G10_NS}, chạy đủ 3 ngày (3 ngày đã khép đều có chi), chi 3 ngày ≥ 1 ngày ngân sách mà ROI < {G10_ROI}% → máy hạ thẳng về ${G10_DICH}; {G10_THEO} ngày đã khép sau đó ROI vẫn < {G10_ROI}% → báo trước một nhịp rồi máy tắt. Đang theo dõi thì khoá tăng.",
             [["Ngân sách", f"${ns:g}", f"> ${G10_NS}", ns > G10_NS], ["Ngày có chi (3 ngày đã khép)", f"{len(_x)}/3", "đủ 3 ngày", len(_x) >= 3], ["Chi 3 ngày đã khép", f(c3, "$"), f"≥ 1 ngày ngân sách", bool(ns) and c3 >= ns], ["ROI 3 ngày đã khép", f(r3, "%"), f"< {G10_ROI}%", r3 is not None and r3 < G10_ROI]],
             "g10" if int(cid) in vao["g10"] else "tat_g10" if int(cid) in vao["tat_g10"] else None,
             (f"AB08 nhánh thử: chạm luật nhưng GIỮ ở ${G10_DICH}, không tắt (L4 vẫn tắt)" if int(cid) in _ab_giu_cam else None) or (f"đã hạ về ${G10_DICH} ngày {theo_:%d/%m} — đang theo dõi {G10_THEO} ngày đã khép, khoá tăng" if theo_ else None), tien=2, lo=None if r3 is None else r3 < G10_ROI)

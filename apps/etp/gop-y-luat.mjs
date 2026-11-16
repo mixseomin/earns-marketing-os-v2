@@ -1233,4 +1233,7 @@ export const LUAT = [
   { card: 'g10-dich-1611', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'MUC_GIAM = MUC | {1, BANG_LUAT["g10_dich"]}', vi: 'cổng giảm nhận đích G10 ($10 ngoài thang) — 16/11/2026 13 lượt hạ G10 bị chặn "$10 không phải mức hợp lệ"' },
   { card: 'g10-dich-1611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'assert G10_DICH == BANG_LUAT["g10_dich"]', vi: 'đích G10 của máy luật khớp sổ luật chung, lệch là dừng ngay' },
   { card: 'g10-dich-1611', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"g10_dich": 10', vi: 'đích G10 nằm ở sổ luật chung' },
+  { card: 'g10-dich-1611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'assert {G10_DICH, H3_DICH, H2_DICH} <= set(BANG_LUAT["thang"]) | {BANG_LUAT["g10_dich"]}', vi: 'đích của MỌI luật hạ (G10 / H3 / H2) phải là mức đường giảm nhận — cả lớp lỗi, không riêng G10' },
+  { card: 'g10-dich-1611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'f"G10 · ROI 3 ngày < {G10_ROI}% → ${G10_DICH}, rồi tắt"', vi: 'tên thẻ G10 in ngưỡng thật (0% từ 05/11), không ghi cứng 15%' },
+  { card: 'g10-dich-1611', tep: 'apps/web/src/lib/etp-bang-luat.json', cam: 'ROI vẫn &lt; 15%', vi: 'chữ tin Telegram G10 không còn ngưỡng cũ 15%' },
 ];

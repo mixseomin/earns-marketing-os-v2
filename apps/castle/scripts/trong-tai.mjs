@@ -24,7 +24,8 @@ if (!doi.length) { console.log('✓ không có commit nào chưa lên main'); pr
 if (g('status', '--porcelain', '--untracked-files=no', '--', 'apps/castle')) tra('cây còn thay đổi apps/castle CHƯA commit — commit rồi chạy lại (trọng tài chấm đúng thứ sẽ lên main)');
 const NHO = join(os.homedir(), '.cache', 'castle-trong-tai'); mkdirSync(NHO, { recursive: true });
 // khoá nhớ = NỘI DUNG phần sửa castle (không phải mã commit: máy đặt lại commit lên main mới mỗi lượt, mã commit đổi mà bài không đổi)
-const khoa = createHash('sha1').update(g('diff', 'origin/main...HEAD', '--', 'apps/castle')).digest('hex').slice(0, 16), tepNho = join(NHO, khoa + '.json');
+// + mốc + kho tia: mốc / cách đo đổi thì kết luận cũ hết hiệu lực (16/11: mốc đo lại bằng cách quét mới mà trọng tài vẫn trả theo kết luận cũ)
+const khoa = createHash('sha1').update(g('diff', 'origin/main...HEAD', '--', 'apps/castle')).update(existsSync(du('cham-goc')) ? readFileSync(du('cham-goc')) : '').update(readFileSync(join(GOC, 'scripts', 'cham-goc.mjs'))).digest('hex').slice(0, 16), tepNho = join(NHO, khoa + '.json');
 if (existsSync(tepNho)) { const n = JSON.parse(readFileSync(tepNho, 'utf8')); if (!n.dat) { console.log(n.ra); tra(`commit ${sha.slice(0, 9)} đã bị trả lúc ${n.luc} — sửa tiếp bằng commit mới (không sửa lại lịch sử)`); } }
 const nho = (dat, ra) => writeFileSync(tepNho, JSON.stringify({ dat, luc: new Date().toISOString(), ra }));
 const loi = (e) => String(e.stdout || '') + String(e.stderr || e.message);

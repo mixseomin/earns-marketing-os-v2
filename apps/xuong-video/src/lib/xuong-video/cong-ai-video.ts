@@ -25,3 +25,22 @@ export async function donVideoCong(cong: string | null | undefined, uri: string)
   if (cong !== 'plenxai') return;
   try { await goiAi({ viec: 'xv-video-xoa', loai: 'video_xoa', cong, uri } as never, { lan: 1, hanMs: 60e3 }); } catch (e) { console.error('[video_xoa plenxai]', loiCua(e)); }
 }
+/** SEEDANCE 2.0 THAM CHIẾU qua cổng (Kie r2v: ảnh + clip 3D tham chiếu + giọng @Audio1) — đường sinh cụm (scripts/thu-seedance-cum.mts, thu-seedance-kie.mts).
+ *  giayVao = độ dài video tham chiếu (Kie tính tiền giây vào + giây ra). Trả task_id; đọc bằng docVideoCong('kie', …). */
+export async function guiSeedance(model: string, o: { prompt: string; anh: string[]; video: string[]; giong?: string | null; dpg: string; tiLe?: string | null; giay: number; giayVao?: number }): Promise<KqGui> {
+  try {
+    const r = await goiAi({ viec: 'xv-seedance', loai: 'video_gui', cong: 'kie', model, prompt: o.prompt, anh_dau: o.anh[0], anh_tham_chieu: o.anh, video_tham_chieu: o.video,
+      am_tham_chieu: o.giong ? [o.giong] : [], co_tieng: !!o.giong, do_phan_giai: o.dpg, ti_le: khungVideoCong(o.tiLe), giay: o.giay, giay_vao: o.giayVao } as never, { lan: 1, hanMs: 180e3 }) as unknown as { task_id?: string };
+    return r.task_id ? { ok: true, taskId: r.task_id } : { ok: false, loi: 'cổng không trả task_id' };
+  } catch (e) { return { ok: false, loi: loiCua(e).slice(0, 400) }; }
+}
+/** Chờ một việc video xong (đọc 15 giây một lần qua cổng), tối đa phut phút. */
+export async function choVideo(cong: string, taskId: string, taoLuc: string, phut = 25): Promise<{ ok: true; uri: string } | { ok: false; loi: string }> {
+  const t0 = Date.now();
+  for (;;) {
+    await new Promise((x) => setTimeout(x, 15_000));
+    const d = await docVideoCong(cong, taskId, taoLuc);
+    if (d.done) return d.ok ? { ok: true, uri: d.uri } : { ok: false, loi: d.loi };
+    if (Date.now() - t0 > phut * 60_000) return { ok: false, loi: `quá ${phut} phút` };
+  }
+}

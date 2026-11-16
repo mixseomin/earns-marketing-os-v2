@@ -4,6 +4,7 @@
 // Kie: POST /api/v1/jobs/createTask {model:'bytedance/seedance-2-fast'} · GET /api/v1/jobs/recordInfo · có video vào thì tính tiền (giây vào + giây ra).
 // Gắn clip vào shot (video_url + nguon_video), điểm vào = đoạn dư đầu clip 3D (câu lệnh riêng — trigger 0328). Ghi xv_job để vào sổ tiền.
 //   cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/thu-seedance-kie.mts --canh=9216 [--dpg=480p] [--model=bytedance/seedance-2-fast] [--xem]
+import { guiSeedance, choVideo } from '../src/lib/xuong-video/cong-ai-video';
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -19,7 +20,6 @@ import { clip3dMoi } from '../src/lib/xuong-video/kieu';
 const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
 const canhId = Number(arg('canh')); const dpg = arg('dpg', '480p') as '480p' | '720p'; const model = arg('model', 'bytedance/seedance-2-fast');
 const xem = process.argv.includes('--xem');
-const key = process.env.KIE_API_KEY; if (!key) { console.error('thiếu KIE_API_KEY'); process.exit(1); }
 const db = getDb()!; const bc = await boiCanhCanh(db, canhId); if (!bc) { console.error('không thấy shot'); process.exit(1); }
 const kx = bc.canh.khung_xam; const clip = clip3dMoi(bc.canh) ? kx!.clip! : null;
 if (!clip || !bc.canh.keyframe_url) { console.error('shot thiếu clip 3D còn mới hoặc keyframe'); process.exit(1); }
@@ -40,19 +40,14 @@ if (!process.env.DUYET_SINH_1_LAN) { console.error('tốn tiền — cần DUYET
 const giaGiay = dpg === '720p' ? 7.5 : 3.4;   // ¢/giây có video vào (kie.ai/seedance-2-0, 14/11/2026) — tính cả giây vào lẫn giây ra
 const cents = giaGiay * (4 + giayRa);
 const job = await taoJob(db, { canh_id: canhId, loai: 'video', provider: 'kie', model: `kie:${model}`, request: { thu: 'seedance-ref', prompt, anh, video: clip.url, dpg, vaoNguon: clip.vao }, cents });
-const r = await fetch('https://api.kie.ai/api/v1/jobs/createTask', { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-  body: JSON.stringify({ model, input: { prompt, reference_image_urls: anh, reference_video_urls: [clip.url], resolution: dpg, aspect_ratio: bc.kt.ti_le === '9:16' ? '9:16' : '16:9', duration: giayRa, generate_audio: false } }) });
-const j = (await r.json().catch(() => ({}))) as { code?: number; msg?: string; data?: { taskId?: string } };
-if (j.code !== 200 || !j.data?.taskId) { await xongJob(db, job, { loi: `Kie ${j.code}: ${j.msg}` }); console.error('Kie không nhận:', j.code, j.msg); process.exit(1); }
-console.log('gửi Kie', j.data.taskId, '· job', job);
-const t0 = Date.now();
-for (;;) {
-  await new Promise((o) => setTimeout(o, 15_000));
-  const d = ((await (await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${j.data.taskId}`, { headers: { authorization: `Bearer ${key}` } })).json().catch(() => ({}))) as { data?: { state?: string; resultJson?: string; failMsg?: string } }).data ?? {};
-  if (d.state === 'fail') { await xongJob(db, job, { loi: d.failMsg ?? 'Kie báo hỏng' }); console.error('hỏng:', d.failMsg); process.exit(1); }
-  if (d.state !== 'success') { if (Date.now() - t0 > 25 * 60_000) { console.error('quá 25 phút'); process.exit(1); } continue; }
-  const u = (JSON.parse(d.resultJson ?? '{}') as { resultUrls?: string[] }).resultUrls?.[0];
-  if (!u) { await xongJob(db, job, { loi: 'không có resultUrls' }); process.exit(1); }
+// QUA CỔNG AI CHUNG (16/11/2026): Kie Seedance gửi / đọc qua cổng spy (cong-ai-video.ts › guiSeedance / choVideo), không gọi thẳng Kie
+const g = await guiSeedance(model, { prompt, anh, video: [clip.url], dpg, tiLe: bc.kt.ti_le === '9:16' ? '9:16' : '16:9', giay: giayRa, giayVao: 4 });
+if (!g.ok) { await xongJob(db, job, { loi: `Kie (cổng): ${g.loi}` }); console.error('Kie không nhận:', g.loi); process.exit(1); }
+console.log('gửi Kie (cổng)', g.taskId, '· job', job);
+{
+  const d = await choVideo('kie', g.taskId, new Date().toISOString());
+  if (!d.ok) { await xongJob(db, job, { loi: d.loi }); console.error('hỏng:', d.loi); process.exit(1); }
+  const u = d.uri;
   const buf = Buffer.from(await (await fetch(u)).arrayBuffer());
   const url = await uploadToR2(`xuong-video/clip/${canhId}-${randomUUID()}.mp4`, buf, 'video/mp4');
   if (!url) { await xongJob(db, job, { loi: 'đẩy kho hỏng' }); process.exit(1); }

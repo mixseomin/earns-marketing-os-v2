@@ -6,6 +6,9 @@
 //   - clip 3D tham chiếu không phải bản xuất SẠCH (còn tia nhìn / dây đường đi vàng — Seedance chép nguyên vào phim, cụm #2–7)
 import { coTiengViet, type Canh } from './kieu';
 import { DIEN_RONG } from './prompt-khoi';
+import { BAC_CO } from './khong-gian';   // MỘT thang bậc cỡ cảnh (ews 0 … ecu 5)
+import { diChuThe, DI_NGANG_CM } from './nhip-hinh';
+import { chuThe } from './bo-set-3d';
 
 /** Bỏ lời thoại ("<ai> says: <câu>") — lời thoại tiếng Việt là ĐÚNG (miệng nhép theo), không tính vào luật chữ. Câu thoại kết ở dấu chấm trước một câu tiếng Anh mới. */
 export const boLoiThoai = (p: string): string => p.replace(/says:\s[\s\S]*?(?=[.!?…]\s+(?:Shot \d|Keep|No |Reference|Every|The |A |An |Camera|Throughout|Static|Nobody|Real|WHITELIST|Emotional|EXPRESSION)|[.!?…]?$)/g, 'says: …');
@@ -75,12 +78,13 @@ export const loiVideoThamChieu = (giay: number): string[] => (giay < SAN_VIDEO_T
  *  máy đã đổi sang tinh mà câu hướng còn "camera moves toward him" → cú zoom vào anh chê ở #2 #3). Chữ mở / diễn / kết / hướng là ĐỘNG TÁC; cỡ cảnh và chuyển động máy
  *  chỉ khai ở ky_thuat. Chữ nhắc cỡ / máy thì phải KHỚP ky_thuat, lệch → chặn trước khi gửi (và cum-seedance.mts báo trước khi tiêu tiền):
  *    (1) cỡ cảnh tả ở mở (hoặc bố cục) cách co_canh ≥ 2 bậc;
- *    (2) cỡ ở kết khác cỡ ở mở ≥ 2 bậc mà máy không đổi cỡ (gần hơn cần day_vao / zoom_cham / dolly_zoom; xa hơn cần lui_ra / cau);
+ *    (2) cỡ ở kết khác cỡ ở mở ≥ 2 bậc mà máy không đổi cỡ (gần hơn cần day_vao / zoom_cham / dolly_zoom / zoom_gat; xa hơn cần lui_ra / cau) — trừ khi chủ thể TỰ đi
+ *        lại gần / ra xa máy ≥ 150 cm (dàn cảnh theo chiều sâu: người bước vào cận, máy đứng);
  *    (3) chữ nói máy chuyển động (push in, camera moves toward, pull back, pan, static…) trái với chuyen_dong. Thuần. */
-const BAC_CO: Record<string, number> = { ews: 0, ws: 1, ms: 2, two: 2, ots: 2, mcu: 3, cu: 4, ecu: 5, insert: 5 };
 const CO_TU: [RegExp, number][] = [
   [/\bextreme close[- ]?up\b|\bdetail shot\b/i, 5], [/\bmedium close[- ]?up\b|\bchest[- ]up\b/i, 3],
-  [/\bclose[- ]?up\b|\bclose on\b|\bclose shot\b|\bface fill(?:s|ing) (?:the )?frame\b/i, 4],
+  // "close up to his face" (đưa sát mặt) là ĐỘNG TÁC, không phải cỡ cảnh: chỉ nhận close-up / closeup / close up of|on / close on
+  [/\bclose-?up\b|\bclose up (?:of|on)\b|\bclose on\b|\bclose shot\b|\bface fill(?:s|ing) (?:the )?frame\b/i, 4],
   [/\bextreme wide\b|\bestablishing shot\b/i, 0], [/\bmedium shot\b|\btwo[- ]shot\b|\bwaist[- ]up\b|\bover[- ]the[- ]shoulder\b/i, 2],
   [/\bwide (?:shot|view|frame)\b|\bfull shot\b|\blong shot\b/i, 1],
 ];
@@ -90,14 +94,14 @@ export const bacCoChu = (t?: string | null): number | null => {
   for (const [r, b] of CO_TU) { const m = r.exec(t ?? ''); if (m && (!tot || m.index < tot.i)) tot = { i: m.index, b }; }
   return tot?.b ?? null;
 };
-const MAY_VAO = ['day_vao', 'zoom_cham', 'dolly_zoom'], MAY_RA = ['lui_ra', 'cau'];
+const MAY_VAO = ['day_vao', 'zoom_cham', 'dolly_zoom', 'zoom_gat'], MAY_RA = ['lui_ra', 'cau'];
 const MAY_TU: { r: RegExp; can: string[]; vi: string }[] = [
   { r: /\bpush(?:es|ing)?[- ]in\b|\bcamera (?:moves|pushes|creeps|drifts|glides|dollies) (?:in|closer|toward)|\bdoll(?:y|ies|ying) in\b|\bzoom(?:s|ing)? in\b/i, can: MAY_VAO, vi: 'máy tiến vào' },
   { r: /\bpull(?:s|ing)?[- ](?:out|back)\b|\bcamera (?:moves|pulls|drifts|dollies) (?:back|away|out)\b|\bzoom(?:s|ing)? out\b/i, can: MAY_RA, vi: 'máy lùi ra' },
-  { r: /\bcamera pans\b|\bpan(?:s|ning)? (?:left|right|across|with|to)\b/i, can: ['lia'], vi: 'máy lia' },
+  { r: /\bcamera pans\b|\bpan(?:s|ning)? (?:left|right|across|with|to)\b/i, can: ['lia', 'quat', 'chuyen_chu_the'], vi: 'máy lia' },
   { r: /\bcamera (?:does not|doesn't|never) move|\bstatic camera\b|\blocked[- ]off\b/i, can: ['tinh'], vi: 'máy đứng' },
 ];
-export type ShotCoMay = { so: number; co_canh?: string | null; chuyen_dong?: string | null; mo?: string | null; dien?: string | null; ket?: string | null; huong?: string | null; bo_cuc?: string | null };
+export type ShotCoMay = { so: number; co_canh?: string | null; chuyen_dong?: string | null; mo?: string | null; dien?: string | null; ket?: string | null; huong?: string | null; bo_cuc?: string | null; /** chủ thể đi dọc trục máy (cm): âm = lại gần máy, dương = ra xa (nhip-hinh.ts › diChuThe) — người TỰ đi vào cận / đi xa thì cỡ đổi không cần máy */ di_sau_cm?: number | null };
 export function loiCoMay(ds: readonly ShotCoMay[]): string[] {
   return ds.flatMap((s) => {
     const loi: string[] = []; const cd = s.chuyen_dong || 'tinh'; const co = BAC_CO[s.co_canh ?? ''] ?? null;
@@ -105,8 +109,9 @@ export function loiCoMay(ds: readonly ShotCoMay[]): string[] {
     if (dau != null && co != null && Math.abs(dau - co) >= 2) loi.push(`#${s.so}: mở / bố cục tả cỡ bậc ${dau} mà cỡ cảnh khai ${s.co_canh} (bậc ${co}) — sửa chữ mở hoặc co_canh cho khớp`);
     const goc = dau ?? co;
     if (cuoi != null && goc != null) {
-      if (cuoi - goc >= 2 && !MAY_VAO.includes(cd)) loi.push(`#${s.so}: kết gần hơn mở ${cuoi - goc} bậc ("${(s.ket ?? '').slice(0, 40)}") mà máy ${cd} không đổi cỡ — model tự xoay xở (#14 làm ngược): máy day_vao hoặc bỏ cỡ ở kết`);
-      if (goc - cuoi >= 2 && !MAY_RA.includes(cd)) loi.push(`#${s.so}: kết xa hơn mở ${goc - cuoi} bậc mà máy ${cd} không đổi cỡ — máy lui_ra hoặc bỏ cỡ ở kết`);
+      const laiGan = (s.di_sau_cm ?? 0) <= -DI_NGANG_CM, raXa = (s.di_sau_cm ?? 0) >= DI_NGANG_CM;   // dàn cảnh theo chiều sâu: người đi vào cận / đi xa dần, máy đứng vẫn đổi cỡ
+      if (cuoi - goc >= 2 && !MAY_VAO.includes(cd) && !laiGan) loi.push(`#${s.so}: kết gần hơn mở ${cuoi - goc} bậc ("${(s.ket ?? '').slice(0, 40)}") mà máy ${cd} không đổi cỡ và chủ thể không đi lại gần máy — model tự xoay xở (#14 làm ngược): máy day_vao hoặc bỏ cỡ ở kết`);
+      if (goc - cuoi >= 2 && !MAY_RA.includes(cd) && !raXa) loi.push(`#${s.so}: kết xa hơn mở ${goc - cuoi} bậc mà máy ${cd} không đổi cỡ và chủ thể không đi ra xa máy — máy lui_ra hoặc bỏ cỡ ở kết`);
     }
     for (const [ten, t] of [['mở', s.mo], ['diễn', s.dien], ['kết', s.ket], ['hướng', s.huong]] as const)
       for (const m of MAY_TU) { const k = m.r.exec(t ?? ''); if (k && !m.can.includes(cd)) loi.push(`#${s.so}: chữ ${ten} «${k[0]}» (${m.vi}) trái máy khai ${cd} — câu lệnh nói hai máy, model chọn bừa: bỏ chữ máy khỏi ${ten}`); }
@@ -115,4 +120,5 @@ export function loiCoMay(ds: readonly ShotCoMay[]): string[] {
 }
 /** shot (xv_canh) → dữ liệu cho loiCoMay — một chỗ đọc, mọi đường gửi / kế hoạch dùng chung */
 export const shotCoMay = (c: Canh): ShotCoMay => ({ so: c.thu_tu, co_canh: c.ky_thuat?.co_canh, chuyen_dong: c.ky_thuat?.chuyen_dong,
-  mo: c.dan_dung?.mo, dien: c.dan_dung?.dien, ket: c.dan_dung?.ket, huong: c.dan_dung?.huong, bo_cuc: c.dan_dung?.bo_cuc });
+  mo: c.dan_dung?.mo, dien: c.dan_dung?.dien, ket: c.dan_dung?.ket, huong: c.dan_dung?.huong, bo_cuc: c.dan_dung?.bo_cuc,
+  di_sau_cm: c.may_3d ? diChuThe(c.may_3d, c.may_3d.nham ? [c.may_3d.nham] : chuThe(c.may_3d))?.sau ?? null : null });

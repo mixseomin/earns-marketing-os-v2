@@ -50,4 +50,9 @@ assert.deepStrictEqual(loiCoMay([{ so: 4, co_canh: 'cu', chuyen_dong: 'tinh', mo
 assert.ok(loiCoMay([{ so: 9, co_canh: 'ws', chuyen_dong: 'tinh', mo: 'close-up of the boy' }])[0]!.includes('cỡ cảnh khai ws'));
 assert.ok(loiCoMay([{ so: 10, co_canh: 'ms', chuyen_dong: 'day_vao', huong: 'camera does not move' }])[0]!.includes('máy đứng'));
 assert.strictEqual(bacCoChu('medium close-up of the boy'), 3); assert.strictEqual(bacCoChu('wide shot … then a close-up'), 1); assert.strictEqual(bacCoChu('boy walking'), null);
+// REVIEW 16/11/2026: "close up to his face" là động tác, không phải cỡ cảnh; người TỰ đi vào cận (dàn cảnh chiều sâu) thì máy đứng vẫn đổi cỡ; zoom gắt cũng là máy tiến vào
+assert.strictEqual(bacCoChu('he holds the note close up to his face'), null);
+const diVao = { so: 5, co_canh: 'ws', chuyen_dong: 'tinh', mo: 'wide shot, boy far down the platform', ket: 'close-up of the boy, panting' };
+assert.strictEqual(loiCoMay([diVao]).length, 1); assert.deepStrictEqual(loiCoMay([{ ...diVao, di_sau_cm: -600 }]), []); assert.strictEqual(loiCoMay([{ ...diVao, di_sau_cm: 600 }]).length, 1);
+assert.deepStrictEqual(loiCoMay([{ so: 6, co_canh: 'ms', chuyen_dong: 'zoom_gat', mo: 'medium shot of the man', ket: 'close-up, eyes wide', huong: 'camera zooms in' }]), []);
 console.log('✓ chan-gui-video (mã nội bộ · tên / tiếng Việt ngoài thoại · tỉ lệ · clip sạch · dáng chống bậu)');

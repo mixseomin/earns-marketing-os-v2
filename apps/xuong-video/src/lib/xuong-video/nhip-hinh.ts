@@ -13,22 +13,37 @@ export const TIEN_TO_NHIP_HINH = 'nhịp hình: ';
  *  chỉ tiêu 40 % làm bộ tự gán (daDangMay) gán máy không lý do: lia trên mặt chú đứng hình (#17), lia theo nhóc chạy vào chiều sâu (#9 #18), đẩy vào cảnh rộng
  *  trong khi tàu tự mang chú ra khỏi khung (#19), lia two-shot trả gài (#14 — model làm ngược). Không đủ dữ liệu để xét (shot chưa có 3D / chưa đọc nhịp) thì bỏ qua. */
 export const DI_NGANG_CM = 150;
-/** Quãng đi NGANG khung lớn nhất (cm) — thành phần chuyển động vuông góc trục máy trên mặt sàn (z hướng lên). Lia / trượt bám người đi ngang; người chạy vào chiều sâu
- *  (xa / lại gần máy) thì khung đứng tự kể (người nhỏ dần / to dần). null = không xét được (thiếu 3D / trục máy). */
-export const diNgangCm = (m?: { dat: number[]; nhin: number[]; vi_tri: { tam: number[]; den?: number[] }[] } | null): number | null => {
+/** Quãng đi của CHỦ THỂ so với trục máy (cm, mặt sàn, z hướng lên): ngang = vuông góc trục máy (lia / trượt bám người đi ngang), sau = dọc trục máy, dương là RA XA máy
+ *  (bám theo sau), âm là LẠI GẦN máy (dẫn trước; người tự đi vào cận). Chỉ tính người / vật máy nhắm (ten = may_3d.nham hoặc chủ thể khung — bo-set-3d.ts › chuThe):
+ *  đạo cụ hay đoàn tàu chuyển động không phải lý do để máy chạy (review 16/11/2026: bản đầu tính mọi vi_tri — #17 phim #3071 "quãng đi" là tờ tiền, #19 là đoàn tàu).
+ *  null = không xét được (thiếu 3D / trục máy). */
+export const diChuThe = (m?: { dat: number[]; nhin: number[]; vi_tri: { ten?: string; tam: number[]; den?: number[] }[] } | null, ten?: readonly string[]): { ngang: number; sau: number; dai: number } | null => {
   if (!m?.dat || !m.nhin) return null; const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const l = Math.hypot(fx, fy); if (l < 1e-6) return null;
-  const rx = fy / l, ry = -fx / l;
-  return Math.max(0, ...(m.vi_tri ?? []).map((v) => (v.den ? Math.abs((v.den[0]! - v.tam[0]!) * rx + (v.den[1]! - v.tam[1]!) * ry) : 0)));
+  const ux = fx / l, uy = fy / l; let ngang = 0, sau = 0, dai = 0;
+  for (const v of m.vi_tri ?? []) { if (!v.den || (ten?.length && !ten.includes(v.ten ?? ''))) continue; const dx = v.den[0]! - v.tam[0]!, dy = v.den[1]! - v.tam[1]!;
+    const n = Math.abs(dx * uy - dy * ux), d = dx * ux + dy * uy; if (n > ngang) ngang = n; if (Math.abs(d) > Math.abs(sau)) sau = d; dai = Math.max(dai, Math.hypot(dx, dy)); }
+  return { ngang, sau, dai };
 };
-const MAY_NGANG = ['lia', 'truot_ngang'], MAY_BAM = ['theo', 'dan_truoc', 'vuot_tien_canh'], MAY_DON = ['day_vao', 'zoom_cham'], MAY_HE_LO = ['lui_ra', 'cau'];
+export const diNgangCm = (m?: Parameters<typeof diChuThe>[0], ten?: readonly string[]): number | null => diChuThe(m, ten)?.ngang ?? null;
 const CO_CAN = ['cu', 'mcu', 'ecu', 'insert'];
-/** Lý do máy KHÔNG có động cơ (null = có động cơ hoặc không đủ dữ liệu để xét). Các máy theo nhịp kịch (vòng, dolly zoom, zoom gắt, cầm tay…) do ngu-phap-may.ts xét. */
+/** Lý do máy KHÔNG có động cơ (null = có động cơ hoặc không đủ dữ liệu để xét). Động cơ theo từng loại máy (Mascelli; Katz):
+ *    lia = BÁM người đi ngang khung (lia nối hai chủ thể là máy 'chuyen_chu_the', không xét ở đây);
+ *    trượt ngang = bám người đi ngang, hoặc shot MỞ cảnh (trượt thiết lập);
+ *    bám theo = người đi và KHÔNG đi về phía máy; dẫn trước = người đi và KHÔNG đi ra xa máy;
+ *    đẩy vào / zoom chậm = ở cận (dồn cảm xúc trên mặt) hoặc shot có nhịp kịch;
+ *    lùi ra / cẩu = shot mở hoặc kết cảnh (thiết lập / hé lộ / khép), hoặc nhịp kịch.
+ *  Máy theo nhịp kịch khác (vòng, dolly zoom, zoom gắt, cầm tay, trượt qua tiền cảnh…) do ngu-phap-may.ts xét.
+ *  GIỚI HẠN (ghi thật): đẩy vào ở cận luôn qua — máy không biết câu nào là câu then chốt; lạm dụng đẩy vào trên nhiều cận liền chỉ luật "hai shot trùng" bắt. */
 export function khongDongCo(c: ShotNhip): string | null {
   const cd = c.ky_thuat?.chuyen_dong; if (!cd || cd === 'tinh') return null;
-  if (MAY_NGANG.includes(cd) && c.di_ngang_cm != null && c.di_ngang_cm < DI_NGANG_CM) return `${cd} mà không ai đi ngang khung (${Math.round(c.di_ngang_cm)} cm < ${DI_NGANG_CM}) — người đứng / đi vào chiều sâu thì khung đứng tự kể`;
-  if (MAY_BAM.includes(cd) && c.di_cm != null && c.di_cm < DI_DAI_CM_NHIP) return `${cd} mà không ai đi (${Math.round(c.di_cm)} cm) — máy bám cần người di chuyển`;
-  if (MAY_DON.includes(cd) && !CO_CAN.includes(c.ky_thuat?.co_canh ?? '') && c.nhip_kich === false) return `${cd} ở cỡ ${c.ky_thuat?.co_canh ?? '?'} không có nhịp kịch — đẩy vào là để dồn cảm xúc trên mặt (cận) hoặc nhịp nhận ra / phán quyết`;
-  if (MAY_HE_LO.includes(cd) && c.cuoi_canh === false && c.nhip_kich === false) return `${cd} giữa cảnh không có gì để hé lộ — lùi / cẩu ra dùng kết cảnh hoặc nhịp hé lộ`;
+  const ngangThieu = c.di_ngang_cm != null && c.di_ngang_cm < DI_NGANG_CM;
+  if (cd === 'lia' && ngangThieu) return `lia mà chủ thể không đi ngang khung (${Math.round(c.di_ngang_cm!)} cm < ${DI_NGANG_CM}) — người đứng / đi vào chiều sâu thì khung đứng tự kể`;
+  if (cd === 'truot_ngang' && ngangThieu && c.dau_canh === false) return `trượt ngang mà chủ thể không đi ngang khung (${Math.round(c.di_ngang_cm!)} cm) và không phải shot mở cảnh`;
+  if ((cd === 'theo' || cd === 'dan_truoc') && c.di_chu_cm != null && c.di_chu_cm < DI_NGANG_CM) return `${cd} mà chủ thể không đi (${Math.round(c.di_chu_cm)} cm) — máy bám cần người di chuyển`;
+  if (cd === 'theo' && c.di_sau_cm != null && c.di_sau_cm <= -DI_NGANG_CM) return `bám theo sau mà chủ thể đi VỀ PHÍA máy (${Math.round(-c.di_sau_cm)} cm) — người lại gần thì máy dẫn trước (dan_truoc) hoặc đứng`;
+  if (cd === 'dan_truoc' && c.di_sau_cm != null && c.di_sau_cm >= DI_NGANG_CM) return `dẫn trước mà chủ thể đi RA XA máy (${Math.round(c.di_sau_cm)} cm) — người đi xa thì máy bám theo (theo) hoặc đứng`;
+  if ((cd === 'day_vao' || cd === 'zoom_cham') && !CO_CAN.includes(c.ky_thuat?.co_canh ?? '') && c.nhip_kich === false) return `${cd} ở cỡ ${c.ky_thuat?.co_canh ?? '?'} không có nhịp kịch — đẩy vào là để dồn cảm xúc trên mặt (cận) hoặc nhịp nhận ra / phán quyết`;
+  if ((cd === 'lui_ra' || cd === 'cau') && c.cuoi_canh === false && c.dau_canh === false && c.nhip_kich === false) return `${cd} giữa cảnh không có gì để hé lộ — lùi / cẩu ra dùng mở cảnh, kết cảnh hoặc nhịp hé lộ`;
   return null;
 }
 /** MÁY TIẾN / LÙI CẦN THỜI GIAN (16/11/2026, phim #3071: 10/20 shot "đẩy vào", 6 shot chỉ 1,2–2 s — khung 3D đẩy 25 % quãng trong 1,2 s thành cú zoom gấp,
@@ -50,9 +65,9 @@ const cungChu = (a: ShotNhip, b: ShotNhip) => !a.chu?.length || !b.chu?.length |
 const trung = (a: ShotNhip, ka: KyThuatShot, b: ShotNhip, kb: KyThuatShot) => trungCo(ka, kb) && cungChu(a, b);
 /** tranh_day = không chọn chuyển động đẩy vào (san-pham-shot.ts › tranhDayVao: sản phẩm mặc trên người ở cỡ có người). */
 type ShotNhip = { id?: number; thu_tu: number; ky_thuat?: KyThuatShot | null; tranh_day?: boolean; /** giây phát — có thì áp luật máy tiến / lùi cần thời gian */ giay?: number | null; /** chủ thể khung (may_3d.khung) — khác người thì không tính trùng */ chu?: string[] | null;
-  /** ĐỘNG CƠ MÁY (khongDongCo) — trống = không xét: quãng đi ngang khung (diNgangCm), quãng đi dài nhất (ngu-phap-may.ts › diCm), shot có nhịp kịch (ngu-phap-may.ts › nhipKich), shot cuối phân cảnh */
-  di_ngang_cm?: number | null; di_cm?: number | null; nhip_kich?: boolean; cuoi_canh?: boolean };
-const DI_DAI_CM_NHIP = 150;   // = ngu-phap-may.ts › DI_DAI_CM (ngu-phap-may nhập nhip-hinh nên không nhập ngược)
+  /** ĐỘNG CƠ MÁY (khongDongCo) — trống = không xét: quãng đi của chủ thể so với trục máy (diChuThe), shot có nhịp kịch (ngu-phap-may.ts › nhipKich), shot mở / cuối phân cảnh — ngu-phap-may.ts › dongCoMay điền */
+  di_ngang_cm?: number | null; /** quãng đi dài nhất của chủ thể */ di_chu_cm?: number | null; /** dọc trục máy: dương ra xa, âm lại gần */ di_sau_cm?: number | null; nhip_kich?: boolean; dau_canh?: boolean; cuoi_canh?: boolean };
+
 
 /** Lỗi nhịp hình của một chuỗi shot (đã xếp theo thứ tự phát). */
 export function kiemNhipHinh(ds: ShotNhip[]): string[] {

@@ -1121,7 +1121,7 @@ export const LUAT = [
   { card: 'donk-1111', tep: 'apps/xuong-video/scripts/ethopex/chu-qc-anh-tinh.py', cam: 'api.xah.io/v1/chat/completions', vi: 'gọi AI qua apps/etp/ai_chu.py (donk → ckey), không chép vòng ckey riêng' },
   { card: 'donk-1111', tep: 'apps/xuong-video/scripts/ethopex/xep-khung.py', cam: 'api.xah.io/v1/chat/completions', vi: 'gọi AI qua apps/etp/ai_chu.py (donk → ckey), không chép vòng ckey riêng' },
   { card: 'donk-1111', tep: 'apps/xuong-video/scripts/ethopex/soat_doan.py', co: 'AI.goi(noi, max_tokens=max_tokens, uu="sonnet", kiem=_k)', vi: 'soát đoạn: donk đầu chuỗi — qua ai_chu.goi (donk → ckey), 16/11/2026 bỏ chuỗi tự viết' },
-  { card: 'donk-1111', tep: 'apps/xuong-video/scripts/ethopex/viet-ke-chuyen.mts', co: "for (const model of ['donk', ...TUYEN])", vi: 'viết kể chuyện: donk đầu chuỗi' },
+  { card: 'donk-1111', tep: 'apps/xuong-video/scripts/ethopex/viet-ke-chuyen.mts', co: "goiAi<KichBan>({ viec: 'xv-ke-chuyen'", vi: 'viết kể chuyện qua cổng AI chung (donk đầu chuỗi do cổng giữ — 16/11/2026)' },
   { card: 'tong-1111', tep: V, cam: "'tong2'", vi: 'Tổng quan 2 đã thay Tổng quan cũ, không còn tab riêng (anh 11/11/2026)' },
   { card: 'tong-1111', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "'tong2'", vi: 'như trên, etp2' },
   { card: 'tong-1111', tep: 'apps/etp2/src/lib/actions/etp-tong2.ts', co: 'const cua = (n: number | undefined) => chiNg == null || n === chiNg;', vi: 'Tổng quan etp2: vai người chỉ nhận số của mình (cắt ở máy chủ)' },

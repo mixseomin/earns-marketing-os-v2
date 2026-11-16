@@ -712,7 +712,8 @@ if (CACH === '3') {
   const nhom = new THREE.Group(), dem = {}; scene.add(nhom);
   for (const [loai, mau] of Object.entries(MAU_TT)) { const pos = [];
     for (const [id, t] of Object.entries(TT)) { if (t !== loai) continue; const k = dsKhoi.find((q) => q.id === id); if (!k || k.yTren == null) continue; dem[loai] = (dem[loai] || 0) + 1;
-      const y0 = Math.max(k.yDuoi ?? k.day, (k.datCao ?? k.yTren - 30) - 2), y1 = k.yTren;
+      // đáy khung = mặt đất THẤP nhất quanh chân khối (khối treo trên khối khác: chân khối) — trước lấy đất CAO nhất − 2 m nên mặt tường thấp (cổng Torbau) không có khung
+      const datThap = Math.min(...k.v.map(([x, z]) => datThat(x, z))), y0 = Math.max(k.yDuoi ?? k.day, datThap - 0.3), y1 = k.yTren;
       for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length]; pos.push(ax, y1, az, bx, y1, bz, ax, y0, az, bx, y0, bz, ax, y0, az, ax, y1, az); } }
     if (!pos.length) continue; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: mau, depthTest: false, transparent: true, opacity: 0.85 })); l.renderOrder = 999; nhom.add(l); }

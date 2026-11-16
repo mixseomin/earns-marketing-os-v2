@@ -63,6 +63,8 @@ assert.ok(kd('theo', { di_sau_cm: -400 })!.includes('VỀ PHÍA máy')); assert.
 assert.ok(kd('dan_truoc', { di_sau_cm: 400 })!.includes('RA XA')); assert.ok(kd('theo', { di_chu_cm: 20 })!.includes('không đi'));
 assert.ok(kd('truot_ngang', {})); assert.strictEqual(kd('truot_ngang', { dau_canh: true }), null); assert.ok(kd('lui_ra', {})); assert.strictEqual(kd('lui_ra', { dau_canh: true }), null);
 assert.strictEqual(kd('vuot_tien_canh', { di_chu_cm: 0 }), null, 'trượt qua tiền cảnh là máy hé lộ — ngu-phap-may xét');
+// ca thật #13 phim #3071: đi chéo 200 cm, 144 cm về phía máy → bám sau sai hướng (tàu đỗ trượt trong clip tham chiếu, model cho tàu chạy); đi ngang là chính thì không
+assert.ok(kd('theo', { di_chu_cm: 200, di_sau_cm: -144 })!.includes('VỀ PHÍA máy')); assert.strictEqual(kd('theo', { di_chu_cm: 400, di_sau_cm: -100 }), null);
 // NÂNG 16/11/2026 — đẩy vào ở cận phải nhấn một chuyển biến: cảm xúc đổi / nhịp kịch / khép cảnh; chưa có kế hoạch biểu cảm thì không xét
 const cn = (o: object) => khongDongCo({ thu_tu: 1, ky_thuat: { co_canh: 'cu', chuyen_dong: 'day_vao' }, nhip_kich: false, cam_doi: false, dau_canh: false, cuoi_canh: false, ...o });
 assert.ok(cn({})!.includes('chuyển biến')); assert.strictEqual(cn({ cam_doi: true }), null); assert.strictEqual(cn({ nhip_kich: true }), null); assert.strictEqual(cn({ cuoi_canh: true }), null); assert.strictEqual(cn({ cam_doi: undefined }), null);

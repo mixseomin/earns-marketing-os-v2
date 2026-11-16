@@ -40,8 +40,12 @@ export function khongDongCo(c: ShotNhip): string | null {
   if (cd === 'lia' && ngangThieu) return `lia mà chủ thể không đi ngang khung (${Math.round(c.di_ngang_cm!)} cm < ${DI_NGANG_CM}) — người đứng / đi vào chiều sâu thì khung đứng tự kể`;
   if (cd === 'truot_ngang' && ngangThieu && c.dau_canh === false) return `trượt ngang mà chủ thể không đi ngang khung (${Math.round(c.di_ngang_cm!)} cm) và không phải shot mở cảnh`;
   if ((cd === 'theo' || cd === 'dan_truoc') && c.di_chu_cm != null && c.di_chu_cm < DI_NGANG_CM) return `${cd} mà chủ thể không đi (${Math.round(c.di_chu_cm)} cm) — máy bám cần người di chuyển`;
-  if (cd === 'theo' && c.di_sau_cm != null && c.di_sau_cm <= -DI_NGANG_CM) return `bám theo sau mà chủ thể đi VỀ PHÍA máy (${Math.round(-c.di_sau_cm)} cm) — người lại gần thì máy dẫn trước (dan_truoc) hoặc đứng`;
-  if (cd === 'dan_truoc' && c.di_sau_cm != null && c.di_sau_cm >= DI_NGANG_CM) return `dẫn trước mà chủ thể đi RA XA máy (${Math.round(c.di_sau_cm)} cm) — người đi xa thì máy bám theo (theo) hoặc đứng`;
+  // hướng đi tính theo TỈ LỆ, không theo ngưỡng cm (16/11/2026 phim #3071 #13: nhóc đi chéo 200 cm, 144 cm về phía máy — ngưỡng 150 cho qua; máy 3D "bám sau" mà người
+  // lại gần nên trong clip tham chiếu đoàn tàu đỗ trượt ngang khung, Seedance đọc thành TÀU CHẠY). Thành phần về phía máy ≥ nửa quãng đi = đang đi về phía máy.
+  const veMay = c.di_sau_cm != null && c.di_chu_cm != null && c.di_chu_cm >= DI_NGANG_CM && -c.di_sau_cm >= 0.5 * c.di_chu_cm;
+  const raXa = c.di_sau_cm != null && c.di_chu_cm != null && c.di_chu_cm >= DI_NGANG_CM && c.di_sau_cm >= 0.5 * c.di_chu_cm;
+  if (cd === 'theo' && veMay) return `bám theo sau mà chủ thể đi VỀ PHÍA máy (${Math.round(-(c.di_sau_cm ?? 0))} cm) — người lại gần thì máy dẫn trước (dan_truoc) hoặc đứng`;
+  if (cd === 'dan_truoc' && raXa) return `dẫn trước mà chủ thể đi RA XA máy (${Math.round(c.di_sau_cm ?? 0)} cm) — người đi xa thì máy bám theo (theo) hoặc đứng`;
   // ĐẨY VÀO Ở CẬN (nâng 16/11/2026): đẩy vào đánh dấu một CHUYỂN BIẾN — cảm xúc người trong khung đổi giữa shot (kế hoạch biểu cảm đầu ≠ cuối), nhịp kịch,
   // hoặc shot khép cảnh (button). Mặt giữ nguyên một cảm xúc suốt shot giữa cảnh thì đẩy vào không nhấn vào đâu. Chưa có kế hoạch biểu cảm → không xét.
   if ((cd === 'day_vao' || cd === 'zoom_cham') && CO_CAN.includes(c.ky_thuat?.co_canh ?? '') && c.cam_doi === false && c.nhip_kich === false && c.cuoi_canh === false) return `${cd} ở cận mà cảm xúc không đổi trong shot, không có nhịp kịch, không phải shot khép cảnh — đẩy vào phải nhấn một chuyển biến`;

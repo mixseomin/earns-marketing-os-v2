@@ -4,7 +4,7 @@
 import { writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '../src/lib/r2';
-import { sinhAnhQuaCong } from '../src/lib/xuong-video/cong-ai';
+import { sinhAnhQuaCong } from '../src/lib/xuong-video/cong-ai-anh';
 import type { TiLeAnh } from '../src/lib/xuong-video/kieu';
 
 const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';

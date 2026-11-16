@@ -6,7 +6,8 @@
 // iMac tách nền (shot-code/tach-lop.swift) rồi kho-day.mts đẩy lên R2 + Studio. Danh mục dáng: DANG bên dưới (thêm dáng = thêm một dòng).
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { sinhAnhQuaCong, type BuocNguon } from '../../src/lib/xuong-video/cong-ai';
+import { type BuocNguon } from '../../src/lib/xuong-video/cong-ai';
+import { sinhAnhQuaCong } from '../../src/lib/xuong-video/cong-ai-anh';
 import { uploadToR2 } from '../../src/lib/r2';
 
 export const DANG: Record<string, string> = {

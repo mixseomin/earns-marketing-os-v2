@@ -16,7 +16,8 @@ const sqlBox = (q) => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'Connect
 { input: q, encoding: 'utf8', timeout: 60000 }).trim();
 const LOC = "project_id = 'mos2' AND prep_payload->>'source_platform' = 'feedback' AND prep_payload->>'source_url' LIKE 'https://castle.on.tc/%'";
 
-const mo = Number(sqlBox(`SELECT count(*) FROM human_tasks WHERE ${LOC} AND coalesce(prep_payload->'site_status'->>'mos2', status) IN ('pending','claimed','broken');`));
+// thẻ mở mà tin cuối là của AI (đã hỏi lại, chờ anh trả lời — #1628) không tính là việc đang chờ Thắng
+const mo = Number(sqlBox(`SELECT count(*) FROM human_tasks WHERE ${LOC} AND coalesce(prep_payload->'site_status'->>'mos2', status) IN ('pending','claimed','broken') AND lower(coalesce(prep_payload->'trao_doi'->-1->>'nguoi','')) NOT IN ('ai','claude');`));
 if (mo && !THU) { console.log(`hòm castle còn ${mo} thẻ mở — không giao thêm`); process.exit(0); }
 const daGiao = new Set(sqlBox(`SELECT title FROM human_tasks WHERE ${LOC} AND title LIKE '[MÁY QUÉT]%' AND created_at > now() - interval '3 days';`)
   .split('\n').map((t) => (t.match(/way\/\d+/) || [])[0]).filter(Boolean));

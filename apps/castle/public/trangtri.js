@@ -30,7 +30,7 @@ export function datTrangTri({ THREE, mergeGeometries, dsKhoi, vl, ngoai, coSoDo 
   for (const k of dsKhoi) {
     const t = k.tags, v = k.v, y1 = k._y1 ?? k.yTren; if (!Number.isFinite(y1)) continue;
     const yMong = k._yMong ?? y1 - 10, coThe = (a) => t[a] === 'yes';
-    if (!['rang_cua', 'vom_nho', 'da_goc', 'thap_canh', 'vong_rang'].some(coThe) && !t.neo_y && !t.go_y && !t.cua_thap && !v.some((_, i) => oVuong?.(k.id + '#' + i)?.length)) continue;
+    if (!['rang_cua', 'vom_nho', 'da_goc', 'thap_canh', 'vong_rang'].some(coThe) && !t.neo_y && !t.go_y && !t.cua_thap && !v.some((_, i) => { const e = soDo?.(k.id + '#' + i); return e?.o_vuong?.length || e?.ban_cong?.length || e?.dong_ho?.length || e?.neo_y != null; })) continue;
     const canh = v.map((p, i) => { const q = v[(i + 1) % v.length], L = Math.hypot(q[0] - p[0], q[1] - p[1]), ux = (q[0] - p[0]) / (L || 1), uz = (q[1] - p[1]) / (L || 1);
       const nx = uz, nz = -ux, mx = (p[0] + q[0]) / 2, mz = (p[1] + q[1]) / 2; return { p, q, L, ux, uz, nx, nz, ngoai: L > 0.8 && ngoai(k, mx + nx * 0.8, mz + nz * 0.8, y1 - 0.5) }; });
     if (coThe('vong_rang')) { // tháp tròn: tâm + bán kính trung bình
@@ -48,8 +48,8 @@ export function datTrangTri({ THREE, mergeGeometries, dsKhoi, vl, ngoai, coSoDo 
     for (const c of canh) { if (!c.ngoai) continue;
       const { p, ux, uz, nx, nz, L } = c;
       if (coThe('rang_cua')) { // tường thấp + răng: răng 0,9 m, khe 0,6 m, cao 0,9 m trên tường 0,5 m
-        hop(p[0] + ux * L / 2 + nx * 0.05, y1 + 0.25, p[1] + uz * L / 2 + nz * 0.05, ux, uz, L + 0.4, 0.5, 0.5);
-        const n = +soDo?.(c.mat)?.rang_cua || Math.max(1, Math.round((L + 0.6) / 1.5)), b = L / n; for (let i = 0; i < n; i++) { const s = (i + 0.5) * b; hop(p[0] + ux * s + nx * 0.05, y1 + 0.95, p[1] + uz * s + nz * 0.05, ux, uz, Math.min(0.9, b * 0.6), 0.9, 0.5); ghi(c.mat, 'rang_cua', y1 + 0.95); } dem.rang++; }
+        if (soDo?.(c.mat)?.rang_cua !== 0) hop(p[0] + ux * L / 2 + nx * 0.05, y1 + 0.25, p[1] + uz * L / 2 + nz * 0.05, ux, uz, L + 0.4, 0.5, 0.5); // rang_cua = 0: mặt này không răng cưa (mái lộ, ảnh)
+        const sn = soDo?.(c.mat)?.rang_cua, n = sn != null ? +sn : Math.max(1, Math.round((L + 0.6) / 1.5)), b = L / Math.max(1, n); if (n > 0) for (let i = 0; i < n; i++) { const s = (i + 0.5) * b; hop(p[0] + ux * s + nx * 0.05, y1 + 0.95, p[1] + uz * s + nz * 0.05, ux, uz, Math.min(0.9, b * 0.6), 0.9, 0.5); ghi(c.mat, 'rang_cua', y1 + 0.95); } dem.rang++; }
       if (coThe('vom_nho')) { // dải đá + cung nhỏ trên con sơn, nhô 0,18 m, ngay dưới đỉnh tường
         hop(p[0] + ux * L / 2 + nx * 0.1, y1 - 0.12, p[1] + uz * L / 2 + nz * 0.1, ux, uz, L, 0.24, 0.2);
         const n = +soDo?.(c.mat)?.vom_nho || Math.max(1, Math.round(L / 0.85)), b = L / n;
@@ -66,12 +66,21 @@ export function datTrangTri({ THREE, mergeGeometries, dsKhoi, vl, ngoai, coSoDo 
       dem.goc++; ghi(c.ngoai ? c.mat : tr.mat, 'da_goc', (yMong + y1) / 2); });
     // NEO SẮT hoa huệ giữa hai tầng cửa (ảnh: 4 neo trên cánh gạch đỏ): chỉ trên mặt có SỐ ĐO cửa với hàng dưới < neo_y < hàng trên (mặt dựng cửa thủ tục
     // không biết hàng cửa nằm đâu → neo đè lên cửa). Hình: thanh đứng + thanh ngang ngắn + đầu hoa (khối xoay 45°) + hai cánh cong (khối nghiêng)
-    if (Number.isFinite(+t.neo_y) && t.neo_y !== '') canh.forEach((c, ci) => { const y = +t.neo_y, h = coSoDo?.(k.id + '#' + ci); if (!c.ngoai || c.L < 3 || !h?.length) return;
+    canh.forEach((c, ci) => { const nm = soDo?.(c.mat)?.neo_y ?? (t.neo_y !== undefined && t.neo_y !== '' ? t.neo_y : null), y = +nm, h = coSoDo?.(k.id + '#' + ci); if (nm == null || !Number.isFinite(y) || !c.ngoai || c.L < 3 || !h?.length) return; // neo theo MẶT (cua-so.json neo_y) — thẻ khối chỉ là mặc định
       if (!(h.some((r) => r.y1 < y) && h.some((r) => r.y0 > y))) return;
       const n = Math.max(2, Math.floor(c.L / 2)), b = c.L / n; // cánh 8,9 m → 4 neo như ảnh
       for (let i = 0; i < n; i++) { const s = (i + 0.5) * b, x = c.p[0] + c.ux * s + c.nx * 0.06, z = c.p[1] + c.uz * s + c.nz * 0.06;
         sat.push([x, y, z, c.ux, c.uz, 0.12, 1.0, 0.08, 0], [x, y - 0.15, z, c.ux, c.uz, 0.55, 0.1, 0.08, 0], [x, y + 0.58, z, c.ux, c.uz, 0.24, 0.24, 0.08, Math.PI / 4],
           [x - c.ux * 0.16, y + 0.36, z - c.uz * 0.16, c.ux, c.uz, 0.1, 0.38, 0.08, 0.65], [x + c.ux * 0.16, y + 0.36, z + c.uz * 0.16, c.ux, c.uz, 0.1, 0.38, 0.08, -0.65]); ghi(c.mat, 'neo', y); } });
+    // BAN CÔNG LỒI (ảnh mặt tây Torbau: trên vòm cổng): sàn đá + 3 con sơn + lan can đặc có gờ — cua-so.json "khối#cạnh".ban_cong = [[s, y sàn, rộng, nhô], …]
+    canh.forEach((c) => { for (const [s, y, w, nh = 1] of soDo?.(c.mat)?.ban_cong || []) { const x = c.p[0] + c.ux * s, z = c.p[1] + c.uz * s;
+      hop(x + c.nx * nh / 2, y - 0.12, z + c.nz * nh / 2, c.ux, c.uz, w, 0.25, nh); hop(x + c.nx * (nh - 0.1), y + 0.5, z + c.nz * (nh - 0.1), c.ux, c.uz, w, 0.95, 0.2); hop(x + c.nx * (nh - 0.1), y + 1.02, z + c.nz * (nh - 0.1), c.ux, c.uz, w + 0.1, 0.1, 0.3);
+      for (const sg of [-1, 1]) hop(x + c.ux * sg * (w / 2 - 0.1) + c.nx * nh / 2, y + 0.5, z + c.uz * sg * (w / 2 - 0.1) + c.nz * nh / 2, c.nx, c.nz, nh, 0.95, 0.2);
+      for (let j = 0; j < 3; j++) { const o = (j - 1) * (w / 2 - 0.4), g = new THREE.CylinderGeometry(0.22, 0.06, 1.2, 6); g.translate(x + c.ux * o + c.nx * 0.35, y - 0.85, z + c.uz * o + c.nz * 0.35); them(g); }
+      ghi(c.mat, 'ban_cong', y); } });
+    // ĐỒNG HỒ trên đầu hồi (ảnh mặt tây Torbau): đĩa đá + mặt số sáng + hai kim — cua-so.json "khối#cạnh".dong_ho = [[s, y tâm, bán kính], …]
+    canh.forEach((c) => { for (const [s, y, r] of soDo?.(c.mat)?.dong_ho || []) { const x = c.p[0] + c.ux * s, z = c.p[1] + c.uz * s, d = new THREE.CylinderGeometry(r + 0.12, r + 0.12, 0.15, 20); d.rotateX(Math.PI / 2); d.rotateY(-Math.atan2(c.uz, c.ux)); d.translate(x + c.nx * 0.07, y, z + c.nz * 0.07); them(d);
+      toi.push([x + c.nx * 0.17, y + r * 0.3, z + c.nz * 0.17, c.ux, c.uz, 0.07, r * 0.6, 0.03], [x + c.nx * 0.17 + c.ux * r * 0.22, y, z + c.nz * 0.17 + c.uz * r * 0.22, c.ux, c.uz, r * 0.45, 0.07, 0.03]); ghi(c.mat, 'dong_ho', y); } });
     // Ô CỬA VUÔNG nhỏ theo số đo (lòng tối lùi + khung đá bốn cạnh + bậu)
     canh.forEach((c) => { for (const [s, y0, w, h] of oVuong?.(c.mat) || []) { const x = c.p[0] + c.ux * s, z = c.p[1] + c.uz * s, yc = y0 + h / 2;
       toi.push([x + c.nx * 0.03, yc, z + c.nz * 0.03, c.ux, c.uz, w, h, 0.06]);

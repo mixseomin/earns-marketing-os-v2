@@ -37,6 +37,12 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals(); return g;
   };
   const va = [];
+  // CHIA NHỎ mặt lát phẳng (ShapeGeometry của đa giác) tới cạnh ≤ 1,5 m (chỉ gần lâu đài): tam giác dài hàng chục mét đặt cao độ ở đỉnh thì giữa chừng đất trùm lên (sân dưới lộ cỏ, sân trước cổng)
+  const chiaNho = (g0) => { const tg = [], a0 = g0.attributes.position.array; for (let i = 0; i < a0.length; i += 9) tg.push([[a0[i], a0[i + 2]], [a0[i + 3], a0[i + 5]], [a0[i + 6], a0[i + 8]]]);
+    const nho = []; while (tg.length) { const [A, Bq, C] = tg.pop(), d2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
+      // ≤ 1,5 m = ô lưới đất mịn; xa lâu đài (> 130 m) đất là lưới thô — không chia (tam giác điện thoại)
+      if (Math.max(d2(A, Bq), d2(Bq, C), d2(C, A)) <= 2.25 || Math.hypot(A[0], A[1]) > 130) { nho.push(A, Bq, C); continue; } const m = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2], ab = m(A, Bq), bc = m(Bq, C), ca = m(C, A); tg.push([A, ab, ca], [ab, Bq, bc], [ca, bc, C], [ab, bc, ca]); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(nho.flatMap(([x, z]) => [x, 0, z]), 3)); return g; };
   const keMep = (x, z, v) => { let m = 1e9; for (let i = 0; i < v.length; i++) { const [ax, az] = v[i], [bx, bz] = v[(i + 1) % v.length], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1))); m = Math.min(m, Math.hypot(x - ax - dx * t, z - az - dz * t)); } return m; };
   const trongDaV = (x, z, v) => { let c = false; for (let i = 0, j = v.length - 1; i < v.length; j = i++) { const [xi, zi] = v[i], [xj, zj] = v[j]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) c = !c; } return c; };
   const trongVung = (x, z) => vungLat.some(({ v }) => trongDaV(x, z, v) || keMep(x, z, v) < 0.6);
@@ -82,7 +88,7 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
     if (d.cau || d.ham || d.v.length < 2) continue;
     const kin = d.v.length > 3 && Math.hypot(d.v[0][0] - d.v.at(-1)[0], d.v[0][1] - d.v.at(-1)[1]) < 0.3;
     if (kin && (d.loai === 'pedestrian' || d.loai === 'footway')) { // VÙNG khép kín (sân dưới "Unterer Hof"): lát kín cả vùng bám đất — trước dựng thành dải chạy quanh mép
-      const sh = new THREE.Shape(d.v.slice(0, -1).map(([x, z]) => new THREE.Vector2(x, -z))), g = new THREE.ShapeGeometry(sh).toNonIndexed(); g.rotateX(-Math.PI / 2);
+      const sh = new THREE.Shape(d.v.slice(0, -1).map(([x, z]) => new THREE.Vector2(x, -z))), g0 = new THREE.ShapeGeometry(sh).toNonIndexed(); g0.rotateX(-Math.PI / 2); const g = chiaNho(g0);
       const p = g.attributes.position, uv = new Float32Array(p.count * 2); for (let i = 0; i < p.count; i++) { p.setY(i, cao(p.getX(i), p.getZ(i)) + 0.07); uv[i * 2] = p.getX(i) / 3; uv[i * 2 + 1] = p.getZ(i) / 3; }
       g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.computeVertexNormals(); nhom.nhua.push(g); dem.duong++; continue;
     }
@@ -114,11 +120,7 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
   for (const { v, cao: m } of vungLat) lanCan([...v, v[0]], 0, false, { mat: m || cao, nguong: 0.8, moLoi: true }); // mép sân trước cổng: lan can chỗ đất ngoài tụt (phía vực), dọc chân nhà thì không
   for (const { v } of vungLat) { // SÂN NHỰA (sân trước cổng ngoài): bám mặt đất đã san, thấp hơn mặt đường 6 cm (không giành mặt với dải đường)
     const sh = new THREE.Shape(v.map(([x, z]) => new THREE.Vector2(x, -z))), g0 = new THREE.ShapeGeometry(sh).toNonIndexed(); g0.rotateX(-Math.PI / 2);
-    // chia tam giác tới cạnh ≤ 1 m: tam giác của đa giác bao dài hàng chục mét, đặt cao độ ở đỉnh thì mặt sân phẳng giữa chừng — đất lồi lên trùm, chỗ lõm thì sân lơ lửng
-    const tg = [], a0 = g0.attributes.position.array; for (let i = 0; i < a0.length; i += 9) tg.push([[a0[i], a0[i + 2]], [a0[i + 3], a0[i + 5]], [a0[i + 6], a0[i + 8]]]);
-    const nho = []; while (tg.length) { const [A, Bq, C] = tg.pop(), d2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
-      if (Math.max(d2(A, Bq), d2(Bq, C), d2(C, A)) <= 1) { nho.push(A, Bq, C); continue; } const m = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2], ab = m(A, Bq), bc = m(Bq, C), ca = m(C, A); tg.push([A, ab, ca], [ab, Bq, bc], [ca, bc, C], [ab, bc, ca]); }
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(nho.flatMap(([x, z]) => [x, 0, z]), 3));
+    const g = chiaNho(g0);
     const p = g.attributes.position, uv = new Float32Array(p.count * 2); for (let i = 0; i < p.count; i++) { p.setY(i, cao(p.getX(i), p.getZ(i)) + 0.16); uv[i * 2] = p.getX(i) / 3; uv[i * 2 + 1] = p.getZ(i) / 3; }
     g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.computeVertexNormals(); (vl.oto ? nhom.oto : nhom.nhua).push(g); }
   const q = new THREE.Quaternion(), Y = new THREE.Vector3(0, 1, 0);

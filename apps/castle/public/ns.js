@@ -380,15 +380,22 @@ function mongCanh(k, x1, z1, x2, z2, y0, y1, yChung) {
     if (trongDa(x, z, k.v) || dsKhoi.some((q) => q !== k && !q.la && trongDa(x, z, q.v) && !trongDa(x, z, k.v))) continue; const y = datThat(x, z); if (Number.isFinite(y)) { m = Math.max(m, y); co++; } }
   return co ? Math.min(y1, Math.max(y0, m + 1.2)) : yChung;
 }
+// MÀU TƯỜNG THEO TỪNG MẶT, HAI TẦNG (ảnh: mặt tây Torbau tầng dưới đá vôi trắng, tầng trên sa thạch vàng; mặt đông gạch đỏ): <lâu>-cua-so.json
+// "khối#cạnh".mau = { duoi, tren, y } — mau ở đây là THREE.Color (cả mặt một màu) hoặc { duoi, tren, y } (chia ở độ cao y)
+function matTuong(G, ax, az, bx, bz, p, q, s, yMong, mau) {
+  if (!mau.tren) { vachTuong(G.mat, ax, az, bx, bz, p, q, s, yMong, 4, mau); return; }
+  if (p < mau.y) vachTuong(G.mat, ax, az, bx, bz, p, Math.min(q, mau.y), s, yMong, 4, mau.duoi);
+  if (q > mau.y) vachTuong(G.mat, ax, az, bx, bz, Math.max(p, mau.y), q, s, yMong, 4, mau.tren);
+}
 function tuongCoLo(G, x1, z1, x2, z2, ya, yMong, yb, s0, k, mau, lo) {
-  if (!lo.length) { vachTuong(G.mong, x1, z1, x2, z2, ya, yMong, s0, k.day, 3); vachTuong(G.mat, x1, z1, x2, z2, yMong, yb, s0, yMong, 4, mau); return; }
+  if (!lo.length) { vachTuong(G.mong, x1, z1, x2, z2, ya, yMong, s0, k.day, 3); matTuong(G, x1, z1, x2, z2, yMong, yb, s0, yMong, mau); return; }
   const L = Math.hypot(x2 - x1, z2 - z1), ux = (x2 - x1) / L, uz = (z2 - z1) / L;
   const moc = [...new Set([0, L, ...lo.flatMap((o) => [o.s0, o.s1]).filter((t) => t > 0 && t < L)])].sort((a, b) => a - b);
   for (let i = 0; i + 1 < moc.length; i++) {
     const a = moc[i], b = moc[i + 1], m = (a + b) / 2, che = lo.filter((o) => o.s0 <= m && o.s1 >= m).sort((p, q) => p.y0 - q.y0);
     const tu = []; let y = ya; for (const o of che) { if (o.y0 > y) tu.push([y, Math.min(o.y0, yb)]); y = Math.max(y, o.y1); } if (y < yb) tu.push([y, yb]);
     const [ax, az, bx, bz] = [x1 + ux * a, z1 + uz * a, x1 + ux * b, z1 + uz * b];
-    for (const [p, q] of tu) { if (q <= p) continue; vachTuong(G.mong, ax, az, bx, bz, p, Math.min(q, yMong), s0 + a, k.day, 3); vachTuong(G.mat, ax, az, bx, bz, Math.max(p, yMong), q, s0 + a, yMong, 4, mau); }
+    for (const [p, q] of tu) { if (q <= p) continue; vachTuong(G.mong, ax, az, bx, bz, p, Math.min(q, yMong), s0 + a, k.day, 3); matTuong(G, ax, az, bx, bz, Math.max(p, yMong), q, s0 + a, yMong, mau); }
   }
 }
 function vachTuong(G, x1, z1, x2, z2, ya, yb, s0, yRef, coi, mau) {
@@ -422,7 +429,8 @@ function dungKhoi(k, G) {
   let s0 = 0;
   for (let i = 0; i < v.length; i++) {
     const [x1, z1] = v[i], [x2, z2] = v[(i + 1) % v.length];
-    tuongCoLo(G, x1, z1, x2, z2, y0, hMin > 0 ? yMong : mongCanh(k, x1, z1, x2, z2, y0, y1, yMong), y1, s0, k, mauT, loCanh(k, i, x1, z1, x2, z2));
+    const mm = CUA_SO?.[k.id + '#' + i]?.mau, mauMat = mm ? { duoi: new THREE.Color(mm.duoi), tren: new THREE.Color(mm.tren), y: +mm.y } : mauT;
+    tuongCoLo(G, x1, z1, x2, z2, y0, hMin > 0 ? yMong : mongCanh(k, x1, z1, x2, z2, y0, y1, yMong), y1, s0, k, mauMat, loCanh(k, i, x1, z1, x2, z2));
     s0 += Math.hypot(x2 - x1, z2 - z1);
   }
   const napPhang = (y, arr) => { const sh = new THREE.Shape(v.map(([x, z]) => new THREE.Vector2(x, -z))); const g = new THREE.ShapeGeometry(sh); const p = g.toNonIndexed().attributes.position; for (let i = 0; i < p.count; i += 3) for (const j of [0, 2, 1]) arr.push(p.getX(i + j), y, -p.getY(i + j)); };

@@ -1,24 +1,142 @@
 {
  "ghi_chu": "Kiểm kê chi tiết mặt tiền ĐẾM TRÊN ẢNH theo vùng (scripts/kiem-ke.mjs so với mô hình). Vùng theo độ cao tuyệt đối toạ độ cảnh (sân trước cổng 11,3 m). Thứ tự quét: thành phần đếm được trước (cửa sổ, cổng, cửa mái, tháp canh, răng cưa), sau đó hoa văn / hoạ tiết (huy hiệu, gờ, dải vòm, đá góc, neo). Mỗi mặt ghi ảnh nguồn.",
- "gop_theo_do_cao": ["go_ngang"],
+ "gop_theo_do_cao": [
+  "go_ngang"
+ ],
  "mat": [
-  { "ten": "Torbau — khối cổng kem (mặt đông)", "nhom": ["way/223110823#3", "way/223110823#4", "way/223110820#14"],
-    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
-    "vung": {
-      "dinh": { "tu": 26, "dem": { "rang_cua": 5, "thap_canh": 2 } },
-      "than_tren": { "tu": 17, "den": 26, "dem": { "huy_hieu": 1, "o_vuong": 1, "go_ngang": 2 } },
-      "than_duoi": { "tu": 10, "den": 17, "dem": { "cong_vom": 1, "canh_cua": 2, "o_vuong": 1 } } } },
-  { "ten": "Torbau — cánh bắc gạch đỏ (mặt đông)", "nhom": ["way/223110825#0"],
-    "anh": "Mapillary 360° 493003245182754 (phương vị 290–320°)",
-    "vung": {
-      "dinh": { "tu": 26.5, "dem": { "rang_cua": 7, "vom_nho": 10 } },
-      "than_tren": { "tu": 19, "den": 26.5, "dem": { "cua_so": 4, "neo": 4, "o_vuong": 1 } },
-      "than_duoi": { "tu": 10, "den": 19, "dem": { "cua_so": 2, "o_vuong": 1 } } } },
-  { "ten": "Torbau — tháp tròn góc bắc", "nhom": ["way/221599084#*"],
-    "anh": "Mapillary 360° 493003245182754 (3 ô cửa mỗi phía nhìn thấy; 4 phía)",
-    "vung": { "toan": { "dem": { "vong_rang": 1, "o_vuong": 12 } } } },
-  { "ten": "Torbau — đầu hồi bậc thang gạch đỏ", "nhom": ["way/951894999#mai"],
-    "anh": "Mapillary 360° 493003245182754 (bậc đỏ, nắp đá kem)",
-    "vung": { "toan": { "dem": { "hoi_bac": 2 } } } }
+  {
+   "ten": "Torbau — khối cổng kem (mặt đông)",
+   "nhom": [
+    "way/223110823#3",
+    "way/223110823#4",
+    "way/223110820#14"
+   ],
+   "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
+   "vung": {
+    "dinh": {
+     "tu": 26,
+     "dem": {
+      "rang_cua": 5,
+      "thap_canh": 2
+     }
+    },
+    "than_tren": {
+     "tu": 17,
+     "den": 26,
+     "dem": {
+      "huy_hieu": 1,
+      "o_vuong": 1,
+      "go_ngang": 2
+     }
+    },
+    "than_duoi": {
+     "tu": 10,
+     "den": 17,
+     "dem": {
+      "cong_vom": 1,
+      "canh_cua": 2,
+      "o_vuong": 1
+     }
+    }
+   }
+  },
+  {
+   "ten": "Torbau — cánh bắc gạch đỏ (mặt đông)",
+   "nhom": [
+    "way/223110825#0"
+   ],
+   "anh": "Mapillary 360° 493003245182754 (phương vị 290–320°)",
+   "vung": {
+    "dinh": {
+     "tu": 25.5,
+     "dem": {
+      "rang_cua": 7,
+      "vom_nho": 10
+     }
+    },
+    "than_tren": {
+     "tu": 19,
+     "den": 25.5,
+     "dem": {
+      "cua_so": 4,
+      "neo": 4,
+      "o_vuong": 1
+     }
+    },
+    "than_duoi": {
+     "tu": 10,
+     "den": 19,
+     "dem": {
+      "cua_so": 2,
+      "o_vuong": 1
+     }
+    }
+   }
+  },
+  {
+   "ten": "Torbau — tháp tròn góc bắc",
+   "nhom": [
+    "way/221599084#*"
+   ],
+   "anh": "Mapillary 360° 493003245182754 (3 ô cửa mỗi phía nhìn thấy; 4 phía)",
+   "vung": {
+    "toan": {
+     "dem": {
+      "vong_rang": 1,
+      "o_vuong": 12
+     }
+    }
+   }
+  },
+  {
+   "ten": "Torbau — đầu hồi bậc thang gạch đỏ",
+   "nhom": [
+    "way/951894999#mai"
+   ],
+   "anh": "Mapillary 360° 493003245182754 (bậc đỏ, nắp đá kem)",
+   "vung": {
+    "toan": {
+     "dem": {
+      "hoi_bac": 2
+     }
+    }
+   }
+  },
+  {
+   "ten": "Torbau — mặt tây (sân dưới): cánh bắc + khối giữa + đầu hồi",
+   "nhom": [
+    "way/223110825#6",
+    "way/223110823#8",
+    "way/223110820#7",
+    "way/951894999#4",
+    "way/951894999#5"
+   ],
+   "anh": "Commons neuschwanstein-9.jpg (Il castello di Neuschwanstein - panoramio)",
+   "vung": {
+    "dinh": {
+     "tu": 29.4,
+     "dem": {
+      "cua_so": 2,
+      "dong_ho": 1
+     }
+    },
+    "than_tren": {
+     "tu": 23.4,
+     "den": 29.4,
+     "dem": {
+      "cua_so": 10,
+      "ban_cong": 1
+     }
+    },
+    "than_duoi": {
+     "tu": 13,
+     "den": 23.4,
+     "dem": {
+      "cua_so": 4,
+      "cong_vom": 1
+     }
+    }
+   }
+  }
  ]
 }

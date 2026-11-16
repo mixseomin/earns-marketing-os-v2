@@ -48,8 +48,7 @@
   "roof:height": "0",
   "rang_cua": "yes",
   "vom_nho": "yes",
-  "da_goc": "yes",
-  "neo_y": "22.2"
+  "da_goc": "yes"
  },
  "way/223110823": {
   "rang_cua": "yes",
@@ -62,16 +61,17 @@
   "rang_cua": "yes",
   "vom_nho": "yes",
   "da_goc": "yes",
-  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): cánh gạch đỏ: mái khuất sau tường răng cưa kem, dải vòm nhỏ dưới răng cưa, đá góc kem so le",
-  "neo_y": "22.2"
+  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): cánh gạch đỏ: mái khuất sau tường răng cưa kem, dải vòm nhỏ dưới răng cưa, đá góc kem so le"
  },
  "way/223110825": {
-  "roof:shape": "flat",
+  "roof:shape": "hipped",
   "rang_cua": "yes",
   "vom_nho": "yes",
   "da_goc": "yes",
   "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): cánh gạch đỏ: như way/223110818",
-  "neo_y": "19.6"
+  "roof:height": "1.2",
+  "roof:colour": "#6f9a8c",
+  "ly_do3": "ảnh Commons neuschwanstein-9: cánh bắc nhìn từ sân dưới có mái đồng xanh thấp (mặt đông khuất sau răng cưa)"
  },
  "way/221599083": {
   "roof:shape": "flat",

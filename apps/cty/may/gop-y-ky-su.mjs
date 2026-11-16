@@ -20,6 +20,34 @@ const quyenChung = (dir, ANH) => ['Read', 'Glob', 'Grep', `Read(/${ANH}/**)`, `B
   `Bash(curl -s -o ${ANH}/*)`, 'Bash(curl -s:*)', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git commit:*)', 'Bash(node --check:*)',
   'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(diff:*)',
   `Bash(${BR} goto:*)`, `Bash(${BR} look:*)`, `Bash(${BR} read:*)`, `Bash(${BR} scroll:*)`, `Bash(${BR} wait:*)`];
+/** GỐC "CLI mới mở là lỗi liên tục" (anh 17/11/2026): chế độ dontAsk chỉ cho lệnh KHỚP ĐÚNG CHUỖI trong danh sách — mỗi kỹ sư chép tay danh sách riêng, gõ khác
+ *  một chữ (thêm đối số, đường dẫn tuyệt đối của cây, cd trước) là bị chặn, lộ ra sau khi lượt hỏng (Thắng #1623, Vinh #1637). Máy tự nới MỌI quyền Bash ra các dạng
+ *  tương đương: (1) quyền khớp đúng chuỗi → thêm dạng có đối số (":*"); (2) đường dẫn 'apps/…' tương đối → thêm dạng tuyệt đối trong cây; (3) lệnh đọc / đo / đi lại
+ *  vô hại (cd, git fetch / rev-parse, python3 -c, node -e, find, jq, echo, printf, ffprobe) cho mọi kỹ sư. CAM (git reset / rm / npx…) vẫn chặn — luật cấm đè quyền. */
+export function moRongQuyen(ds, dir) {
+  const ra = new Set(ds);
+  for (const p of ds) {
+    const m = /^Bash\((.*)\)$/.exec(p); if (!m) continue;
+    const c = m[1];
+    if (!c.endsWith(':*') && !c.endsWith('*')) ra.add(`Bash(${c}:*)`);
+    if (/(^|\s)apps\//.test(c)) { const t = c.replace(/(^|\s)apps\//g, `$1${dir}/apps/`); ra.add(`Bash(${t})`); if (!t.endsWith('*')) ra.add(`Bash(${t}:*)`); }
+  }
+  if (ra.has('Bash(git push origin HEAD:main)')) for (const c of ['git push -q origin HEAD:main', 'git push origin HEAD:main -q']) ra.add(`Bash(${c})`);   // cờ -q đặt trước / sau
+  for (const c of ['cd', 'git fetch', 'git rev-parse', 'git pull --rebase origin main', 'python3 -c', 'node -e', 'find', 'jq', 'echo', 'printf', 'ffprobe', 'test', 'true', 'pwd', 'which']) ra.add(`Bash(${c}:*)`);
+  return [...ra];
+}
+/** Lệnh Bash bị CHẶN trong một phiên (đọc nhật ký jsonl của chính phiên) → [lệnh]. Máy báo nguyên văn vào card để sửa danh sách ngay, không chết im. */
+export function lenhBiChan(cwd, id) {
+  try {
+    const f = path.join(os.homedir(), '.claude', 'projects', cwd.replace(/[^A-Za-z0-9]/g, '-'), `${id}.jsonl`); const lenh = new Map(), chan = [];
+    for (const d of fs.readFileSync(f, 'utf8').split('\n')) { if (!d) continue; let o; try { o = JSON.parse(d); } catch { continue; }
+      for (const c of o.message?.content ?? []) {
+        if (c?.type === 'tool_use' && c.name === 'Bash') lenh.set(c.id, String(c.input?.command ?? ''));
+        if (c?.type === 'tool_result' && /Permission to use Bash has been denied|has been denied because Claude Code is running in don't ask mode/.test(JSON.stringify(c.content ?? ''))) chan.push(lenh.get(c.tool_use_id) ?? '?');
+      } }
+    return chan;
+  } catch { return []; }
+}
 const CAM = [...['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
   'rm', 'rmdir', 'rsync', 'scp', 'open', 'npm install', 'npm i', 'npx', 'brew', 'pip', 'launchctl', 'crontab', 'sudo', 'kill', 'pkill'].map((c) => `Bash(${c}:*)`),
   'AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate'];
@@ -72,7 +100,7 @@ export function chayKySu(cfg) {
   const cay = thu ? { dir: cfg.cayThu, do: [] } : cayDau ?? cfg.cay();
   const dir = cay.dir;
   fs.mkdirSync(ANH, { recursive: true });
-  const QUYEN = [...quyenChung(dir, ANH), ...cfg.quyen(dir)];
+  const QUYEN = moRongQuyen([...quyenChung(dir, ANH), ...cfg.quyen(dir)], dir);
 
   const moiAnh = luong.flatMap((t) => (t.anh || []).map(urlAnh)).filter(Boolean);
   const tin = luong.map((t, i) => `#${i + 1} ${laAi(t) ? 'AI' : 'NGƯỜI'} · ${String(t.luc || '').slice(0, 16)}${t.trang ? `\n  trang: ${t.trang}` : ''}${t.nguCanh ? `\n  ngữ cảnh: ${t.nguCanh}` : ''}${(t.anh || []).length ? `\n  ảnh / tệp: ${t.anh.map((a) => `${urlAnh(a)}${a?.ten ? ` (${a.ten})` : ''}`).join(' ')}` : ''}\n  ${String(t.noiDung || '').slice(0, 3000)}`).join('\n');
@@ -84,7 +112,9 @@ export function chayKySu(cfg) {
   // PUSH BỊ TỪ CHỐI KHÔNG PHẢI VIỆC CỦA ANH (anh chửi 15/11/2026, card studio #1603: Vinh viết vào card "cần mở quyền git pull --rebase cho máy Vinh"):
   // máy tự đặt commit lên main mới và đẩy ngay khi Claude kết thúc (bước dưới), rồi nộp card. Nói rõ để Claude không hỏi, không kêu kẹt.
   const PUSH = cfg.cayMoiLuot ? `\n\nPUSH BỊ TỪ CHỐI (main trên GitHub đi trước): KHÔNG hỏi anh, KHÔNG viết vào card chuyện quyền git / kẹt push, KHÔNG thử pull / rebase. Máy tự đặt commit của bạn lên main mới, đẩy và nộp card ngay khi bạn kết thúc. Bạn cứ commit, reply nội dung đã sửa (bỏ bước submit) rồi kết KET: DA_SUA.` : '';
-  const giao = kiem ? `${loiGiao}\n\n${cfg.kiemThu(ctx)}` : `${loiGiao}${PUSH}`;
+  // LUẬT LỆNH (17/11/2026): danh sách quyền khớp theo CHUỖI — nói rõ cách gõ để lệnh khớp, khỏi bị chặn rồi mới biết
+  const LENH = `\n\nCÁCH GÕ LỆNH (chế độ không hỏi: lệnh KHÔNG khớp danh sách sẽ bị chặn, lượt của bạn sẽ hỏng): đứng ở GỐC CÂY ${dir} (thư mục hiện tại), KHÔNG cd vào thư mục con; đường dẫn ghi tương đối từ gốc cây (apps/…); mỗi lệnh một lần gọi, hạn chế nối && / | nhiều lệnh khác loại. Được chạy: ${QUYEN.filter((q) => q.startsWith('Bash(')).map((q) => q.slice(5, -1)).join(' · ')}. Lệnh bị chặn → đổi sang đúng dạng trên, KHÔNG dừng lượt vì chuyện quyền.`;
+  const giao = kiem ? `${loiGiao}\n\n${cfg.kiemThu(ctx)}` : `${loiGiao}${PUSH}${LENH}`;
 
   // PHIÊN mos2 60 phút cho profile br: tạo trên box3 rồi nạp cookie httpOnly thẳng vào daemon (/datcookie) — token không qua dòng lệnh br, Claude không thấy.
   // Cookie mos2-session trên .on.tc cũng là phiên SSO của các app con (spy.on.tc …).
@@ -106,6 +136,9 @@ export function chayKySu(cfg) {
   // đẩy NGAY trong lượt này commit mà Claude không push được (trước: chờ lượt 5 phút sau, card nằm Kẹt + một tin "can_anh" thừa giữa chừng)
   if (!kiem && cfg.cayMoiLuot) nopCommitDay(cfg.cay(), 'đẩy ngay commit Claude không push được');
   let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng / hết giờ */ }
+  // Lệnh bị chặn trong lượt → ghi nhật ký + báo nguyên văn vào card (17/11/2026: Vinh #1637 bị chặn hết mà chỉ thấy "cần anh" chung chung)
+  const chan = kq.session_id ? lenhBiChan(dir, kq.session_id) : [];
+  if (chan.length) { log(`⚠ ${chan.length} lệnh bị chặn: ${chan.map((c) => c.slice(0, 120)).join(' ‖ ')}`); fs.appendFileSync(path.join(os.homedir(), '.cache', 'ky-su-lenh-bi-chan.log'), chan.map((c) => `${new Date().toISOString()}\t${NGUOI}\t#${card.id}\t${c.replace(/\s+/g, ' ').slice(0, 300)}\n`).join('')); }
   const ra = String(kq.result || '').trim(), ket = ((ra.match(/KET:\**\s*(DA_SUA|KHONG_SUA|CAN_ANH)/gi) || []).pop() || (r.signal || r.error ? 'treo' : 'khong_sua')).replace(/.*KET:\**\s*/i, '').toLowerCase();
   log(`xong #${card.id}: ${ket} · ${kq.num_turns ?? '?'} lượt · ${Math.round((kq.duration_ms || 0) / 6e4)} phút`);
   // Claude không tự trả lời được (treo, chết, bị từ chối) → máy ghi một tin vào luồng để anh thấy ngay trong card, không im lặng
@@ -113,7 +146,8 @@ export function chayKySu(cfg) {
   if (kiem) console.log(ra, '\n· từ chối:', JSON.stringify((kq.permission_denials || []).map((d) => d.tool_input?.command ?? d.tool_name)));
   else if (moi.length === luong.length) {
     const bao = (ra.split(/BÁO ANH:?/i).pop() || '').replace(/^\s*\**KET:.*$/gim, '').trim().slice(0, 1500) || `${TEN} chạy hỏng (${ket}, thoát ${r.status ?? r.signal}) — lượt sau có tin mới của anh thì làm lại.`;
-    try { cfg.traLoi(card.id, `[${TEN} · ${ket}] ${bao}`, ENV); } catch (e) { log(`ghi tin lỗi: ${String(e.message).split('\n')[0]}`); }
+    const baoChan = chan.length ? `\nLệnh bị chặn (máy ghi ~/.cache/ky-su-lenh-bi-chan.log, sửa danh sách quyền ở apps/cty/may): ${chan.slice(0, 5).map((c) => c.replace(/\s+/g, ' ').slice(0, 160)).join(' ‖ ')}` : '';
+    try { cfg.traLoi(card.id, `[${TEN} · ${ket}] ${bao}${baoChan}`, ENV); } catch (e) { log(`ghi tin lỗi: ${String(e.message).split('\n')[0]}`); }
   }
   // card còn "Đang làm" khi lượt dừng = chết im (anh 14/11/2026) → mục Kẹt kèm lý do; Claude đã nộp / trả lời thì chotCard để yên
   if (!kiem) try { log(`card ${chotCard({ duAn: cfg.duAn, id: card.id, cach: 'ket', chu: `[${TEN} · ${ket}] Lượt dừng mà card chưa nộp Review — con để ở mục Kẹt: lỗi / cần anh, hoặc commit chưa lên main (máy tự đẩy ở lượt sau rồi nộp).` }).replace(/^#\d+ /, '')}`); } catch (e) { log(`chốt card lỗi: ${String(e.message).split('\n')[0]}`); }

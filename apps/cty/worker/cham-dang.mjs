@@ -378,7 +378,7 @@ export async function xetThumbAi(ds) {
 export async function chamMoi(sql) {
   // chấm lại khi xuất lại (xuat) HOẶC chữ đăng đổi (dang = md5 của dang) — đổi tiêu đề mà không xuất lại vẫn phải qua phòng
   const { ketKhoa, soLuot, TRAN_LUOT } = await import('./kiem-bai.mjs');
-  const ds = (await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, m.muc_dich, m.site_dich, v.anh, v.khung,
+  const ds = (await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, v.cham, m.ma, m.ten, m.mau, m.goc_sp, m.muc_dich, m.site_dich, v.anh, v.khung,
       true as can_goc,   -- 31/10/2026: mọi bài phải có góc (trước: chỉ bài tạo từ MOC_GOC)
       (select count(*)::int from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') as trung
     from xv_may_video v join xv_may m on m.id = v.may_id

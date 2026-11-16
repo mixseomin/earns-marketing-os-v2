@@ -1,5 +1,7 @@
 'use server';
 
+import { getOpenAI } from '@/lib/ai/openai';   // MỘT CỔNG AI (16/11/2026)
+
 // Generic AI form parser. Accepts free-form text + optional image (base64),
 // returns JSON matching the requested field schema. Used by <AIFormParser>.
 
@@ -130,8 +132,6 @@ export async function suggestRulesUrl(input: {
   }
 
   // AI fallback — no live fetch, GPT infers from training knowledge
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return { ok: false, error: 'OPENAI_API_KEY not configured' };
 
   const prompt = [
     'Given an online community, return the EXACT rules/guidelines page URL — ONLY if you know it with certainty from your training data.',
@@ -157,19 +157,14 @@ export async function suggestRulesUrl(input: {
   ].filter(Boolean).join('\n');
 
   try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    // MỘT CỔNG AI (16/11/2026): qua getOpenAI() → cổng AI chung, không gọi thẳng nhà cung cấp
+    const data = (await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
         temperature: 0.1,
         max_tokens: 150,
-      }),
-    });
-    if (!res.ok) return { ok: false, error: `OpenAI ${res.status}` };
-    const data = await res.json() as { choices: Array<{ message: { content: string } }> };
+      } as never)) as unknown as { choices: Array<{ message: { content: string } }> };
     const parsed = JSON.parse(data.choices[0]?.message?.content ?? '{}') as { url?: string | null; confidence?: string };
     if (!parsed.url || parsed.confidence !== 'certain') {
       return { ok: false, error: 'AI không chắc URL rules — điền tay hoặc "📋 Paste raw".' };
@@ -188,8 +183,6 @@ export async function parseFormInput(input: {
   schema: FormFieldSchema[];
   context?: string;           // mô tả form (vd "Proxy form for anti-detect setup")
 }): Promise<ParseResult> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return { ok: false, error: 'OPENAI_API_KEY not configured' };
   if (!input.text?.trim() && !input.imageBase64 && !input.url?.trim()) {
     return { ok: false, error: 'Provide text, URL, or image' };
   }
@@ -258,13 +251,8 @@ Do not invent data. Be concise. If field is enum, pick the closest match.`;
   }
 
   try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    // MỘT CỔNG AI (16/11/2026): qua getOpenAI() → cổng AI chung, không gọi thẳng nhà cung cấp
+    const data = (await getOpenAI().chat.completions.create({
         model,
         messages: [
           { role: 'system', content: systemMsg },
@@ -276,13 +264,7 @@ Do not invent data. Be concise. If field is enum, pick the closest match.`;
         },
         temperature: 0.1,
         max_tokens: 1500,
-      }),
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      return { ok: false, error: `OpenAI ${res.status}: ${errText.slice(0, 300)}` };
-    }
-    const data = await res.json() as { choices: Array<{ message: { content: string } }> };
+      } as never)) as unknown as { choices: Array<{ message: { content: string } }> };
     const content = data.choices[0]?.message?.content;
     if (!content) return { ok: false, error: 'Empty response' };
     const parsed = JSON.parse(content) as Record<string, unknown>;

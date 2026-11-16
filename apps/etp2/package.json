@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@mos2/bang": "*",
+    "@mos2/cong-ai": "*",
     "@mos2/db": "*",
     "@mos2/gop-y": "*",
     "bcryptjs": "^3.0.3",

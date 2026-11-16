@@ -3,7 +3,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { touchEntity } from '@/lib/touch-entity';
-import OpenAI from 'openai';
+import { getOpenAI } from '@/lib/ai/openai';
 
 export interface AgentRow {
   id: number;
@@ -215,10 +215,7 @@ export async function sendAgentMessage(
     { role: 'user', content: userContent },
   ];
 
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY chưa được cấu hình trên server.');
-  }
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = getOpenAI();   // MỘT CỔNG AI (16/11/2026): qua cổng AI chung
   const response = await client.chat.completions.create({
     model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
     max_tokens: 1024,

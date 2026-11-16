@@ -9,3 +9,5 @@ export declare function congUrl(): string;
 export declare function congKhoa(): string | null;
 export declare function goiAi<T = unknown>(o: YeuCauAi, opt?: { kiem?: ((kq: T, model: string) => string | null) | null; lan?: number; hanMs?: number }): Promise<KetAi<T>>;
 export declare function hoiChu(o: { viec: string; model?: string | null; system?: string; user: string; max_tokens?: number; chi_re?: boolean }): Promise<{ chu: string; model: string; vao: number; ra: number; chi_usd: number }>;
+/** Vỏ cùng bề mặt SDK OpenAI: chat thường qua cổng; tools / stream / images / embeddings đi khách gốc (cổng chưa có). */
+export declare function voOpenAI<T = unknown>(goc: T | null, viec?: string): T;

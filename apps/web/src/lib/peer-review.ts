@@ -9,8 +9,7 @@
 // Reviewer KHÔNG dùng tool — chỉ đánh giá output text + reasoning. Cheap fast call.
 
 import 'server-only';
-import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
+import { getOpenAI } from '@/lib/ai/openai';   // MỘT CỔNG AI (16/11/2026)
 import { z } from 'zod';
 
 export type ReviewDecision = 'allow' | 'revise' | 'reject';
@@ -47,44 +46,9 @@ Output JSON format: { "decision": "allow" | "revise" | "reject", "reasoning": "1
 - "revise": có vấn đề nhỏ, agent gốc nên thử lại với hint
 - "reject": output sai/nguy hiểm, không nên dùng`;
 
-async function reviewWithAnthropic(input: PeerReviewInput): Promise<PeerReviewResult> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return { decision: 'allow', reasoning: 'reviewer unavailable: no ANTHROPIC_API_KEY', costUsdCents: 0, reviewerKind: input.reviewerKind };
-  }
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const userMsg = `## Task
-${input.taskDescription}
-
-## Agent output (model: ${input.agentKind})
-${input.agentOutput}
-${input.outputSchema ? `\n## Expected output schema\n${input.outputSchema}` : ''}
-
-Trả về JSON theo format đã yêu cầu.`;
-
-  try {
-    const resp = await client.messages.create({
-      model: input.reviewerKind, system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMsg }],
-      max_tokens: 400, temperature: 0.2,
-    });
-    const text = resp.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map((b) => b.text).join('\n');
-    const json = parseFirstJson(text);
-    const parsed = REVIEW_SCHEMA.safeParse(json);
-    if (!parsed.success) {
-      return { decision: 'revise', reasoning: 'reviewer output không parse được — auto revise', costUsdCents: 0, reviewerKind: input.reviewerKind };
-    }
-    const cost = Math.round((resp.usage.input_tokens * 80 + resp.usage.output_tokens * 400) / 1_000_000);
-    return { ...parsed.data, costUsdCents: cost, reviewerKind: input.reviewerKind };
-  } catch (e) {
-    return { decision: 'allow', reasoning: `reviewer error fallback: ${(e as Error).message}`, costUsdCents: 0, reviewerKind: input.reviewerKind };
-  }
-}
-
-async function reviewWithOpenAI(input: PeerReviewInput): Promise<PeerReviewResult> {
-  if (!process.env.OPENAI_API_KEY) {
-    return { decision: 'allow', reasoning: 'reviewer unavailable: no OPENAI_API_KEY', costUsdCents: 0, reviewerKind: input.reviewerKind };
-  }
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// MỘT CỔNG AI (16/11/2026): mọi reviewer (claude-* / gpt-*) đi getOpenAI() → cổng AI chung; tên model chỉ còn chọn DÒNG (dongCua), không gọi thẳng nhà cung cấp
+async function reviewQuaCong(input: PeerReviewInput): Promise<PeerReviewResult> {
+  const client = getOpenAI();
   const userMsg = `## Task
 ${input.taskDescription}
 
@@ -108,7 +72,7 @@ ${input.outputSchema ? `\n## Expected output schema\n${input.outputSchema}` : ''
     if (!parsed.success) {
       return { decision: 'revise', reasoning: 'reviewer output không parse được', costUsdCents: 0, reviewerKind: input.reviewerKind };
     }
-    const cost = Math.round(((resp.usage?.prompt_tokens ?? 0) * 15 + (resp.usage?.completion_tokens ?? 0) * 60) / 1_000_000);
+    const cost = Math.round((((resp.usage as { cost_usd?: number } | undefined)?.cost_usd ?? 0) * 100));   // cổng trả chi_usd thật
     return { ...parsed.data, costUsdCents: cost, reviewerKind: input.reviewerKind };
   } catch (e) {
     return { decision: 'allow', reasoning: `reviewer error fallback: ${(e as Error).message}`, costUsdCents: 0, reviewerKind: input.reviewerKind };
@@ -128,10 +92,7 @@ function parseFirstJson(text: string): unknown {
 }
 
 export async function peerReview(input: PeerReviewInput): Promise<PeerReviewResult> {
-  if (input.reviewerKind.startsWith('claude-')) {
-    return reviewWithAnthropic(input);
-  }
-  return reviewWithOpenAI(input);
+  return reviewQuaCong(input);
 }
 
 // Helper: pick complementary reviewer model (different provider than original).

@@ -1,5 +1,7 @@
 'use server';
 
+import { getOpenAI } from '@/lib/ai/openai';   // MỘT CỔNG AI (16/11/2026)
+
 // Bulk channel parser cho multi-channel community (Discord/Slack/Telegram channel +
 // FORUM sub-forum/board). Input: text dump (channel
 // list copy từ sidebar / rules channel) HOẶC screenshot. Output: array
@@ -44,8 +46,6 @@ export async function parseChannelsFromInput(input: {
   imageMimeType?: string;
   platformKey?: string;          // discord|slack|telegram — giúp AI biết format channel name
 }): Promise<{ ok: true; channels: ParsedChannel[]; notes?: string } | { ok: false; error: string }> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return { ok: false, error: 'OPENAI_API_KEY not configured' };
   if (!input.text?.trim() && !input.imageBase64) {
     return { ok: false, error: 'Provide text dump or screenshot' };
   }
@@ -121,13 +121,8 @@ CRITICAL:
   };
 
   try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    // MỘT CỔNG AI (16/11/2026): qua getOpenAI() → cổng AI chung, không gọi thẳng nhà cung cấp
+    const data = (await getOpenAI().chat.completions.create({
         model,
         messages: [
           { role: 'system', content: systemMsg },
@@ -139,13 +134,7 @@ CRITICAL:
         },
         temperature: 0.1,
         max_tokens: 2500,
-      }),
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      return { ok: false, error: `OpenAI ${res.status}: ${errText.slice(0, 300)}` };
-    }
-    const data = await res.json() as { choices: Array<{ message: { content: string } }> };
+      } as never)) as unknown as { choices: Array<{ message: { content: string } }> };
     const content = data.choices[0]?.message?.content;
     if (!content) return { ok: false, error: 'Empty response' };
     const parsed = JSON.parse(content) as {

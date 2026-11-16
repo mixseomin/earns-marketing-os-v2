@@ -295,7 +295,12 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu, hooks: hooksLuot, hook_qc: maHook });
     // tiêu đề trùng bài có sẵn của máy = Phòng Nội dung chặn chống spam → sinh lại ngay ở đây (31/10/2026: hook video thắng chép nguyên văn trùng chính video đó)
     const chuanTd = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-    if ((o.daDung ?? []).some((t) => chuanTd(t) === chuanTd(de.dang.title ?? ''))) loiCu.push(`tiêu đề trùng một bài có sẵn của máy: "${de.dang.title}" — KHÔNG dùng lại câu này, kể cả khi chép từ hook; viết tiêu đề khác hẳn (đổi con số, đối tượng, tình huống) mà vẫn giữ ý hook`);
+    if ((o.daDung ?? []).some((t) => chuanTd(t) === chuanTd(de.dang.title ?? ''))) { loiCu.push(`tiêu đề trùng một bài có sẵn của máy: "${de.dang.title}" — KHÔNG dùng lại câu này, kể cả khi chép từ hook; viết tiêu đề khác hẳn (đổi con số, đối tượng, tình huống) mà vẫn giữ ý hook`);
+      // trùng tiêu đề mà còn hook khác trong kho → bỏ hook vừa dùng, mở kho phần còn lại (militarycalc 17/11/2026 dung-sai-42960: mô hình bám một hook đã từng thành
+      // tiêu đề "Your orders came through. Now the clock st…", 4 lượt đều viết lại đúng câu cũ → lượt lấp kho 0/6). Hết hook khác thì giữ, chỉ dặn đổi câu.
+      const hd = timHook(hooksLuot, maHook) ?? hookCu;
+      if (hd && (o.hooks ?? []).some((h) => h.id !== hd.id && !boHook.has(h.id) && !tuMayDe(h.chu).length)) { boHook.add(hd.id); hookCu = null; khoaTruoc = false; }
+    }
     // HOOK XÉT NHƯ LÚC CHẤM (12/11/2026, ratesbyroom "Booking a hotel in Osaka? Check prices first." lọc kho qua, bài sửa thành "…for two? Check prices first." bị chặn
     // "khác ngách + hứa sai" — lỗi đã báo sửa 2 lần vẫn quay lại): lọc kho xét CÂU GỐC, phòng chấm xét TIÊU ĐỀ ĐÃ SỬA → hai khoá sổ, Ngọc xét lại từ đầu, kết luận lật.
     // Xét ngay đề vừa viết bằng đúng đầu vào của phòng chấm (sổ xet-hook.json dùng chung → lúc chấm đọc lại đúng kết luận này): bị chặn thì bỏ hook đó, viết lại với hook khác,

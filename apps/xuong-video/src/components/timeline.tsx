@@ -448,6 +448,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     else { caoXem = Math.max(360, man.h - 120); rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9); const tran = Math.round(man.w * 0.4); if (rongXem > tran) { rongXem = tran; caoXem = tiLeKhung(tran); } }
     if (caoXem > caoToiDa) { caoXem = caoToiDa; rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9); }
   }
+  // CÓ KHUNG SO SÁNH → THU khung chính để khung chính + khe 6px + hàng so sánh (cao caoXem/n) vừa đúng chiều cao cũ (góp ý #1637, anh làm lại 17/11/2026:
+  // chỉ đổi hàng so sánh sang ngang thì vẫn cao thêm caoXem/n mà cột / làn không nới → đè thước giây + làn shot). Chẩn đoán gốc: Vinh, lượt bị chặn lệnh.
+  const caoGoc = caoXem;
+  if (phu.length > 0) { const n = phu.length; caoXem = Math.round(((caoGoc - 6) * n) / (n + 1)); rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9); }
   const keoCot = (e: PE<HTMLDivElement>) => {
     e.preventDefault(); e.stopPropagation(); const el = e.currentTarget; el.setPointerCapture(e.pointerId);
     const x0 = e.clientX, w0 = rongXem; let moi = w0;

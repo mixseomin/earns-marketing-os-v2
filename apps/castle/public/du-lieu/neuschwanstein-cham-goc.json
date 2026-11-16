@@ -1,5 +1,5 @@
 {
- "luc": "2026-11-16T15:59:31.614Z",
+ "luc": "2026-11-16T16:14:21.889Z",
  "goc": [
   "dong",
   "dong-nam",
@@ -13,8 +13,8 @@
  ],
  "pha": null,
  "so_khoi": 30,
- "lech_nang": 13,
- "lech_tb": 2.86,
+ "lech_nang": 12,
+ "lech_tb": 2.73,
  "khoi": [
   {
    "id": "way/35212310",
@@ -65,30 +65,6 @@
      "goc": "dong",
      "lech": 9.2,
      "so": 12
-    }
-   ]
-  },
-  {
-   "id": "way/1573767744",
-   "ten": "",
-   "y_tren": 36.28,
-   "lech": 4.1,
-   "goc": 3,
-   "chi_tiet": [
-    {
-     "goc": "tay",
-     "lech": 4.4,
-     "so": 10
-    },
-    {
-     "goc": "tay-bac",
-     "lech": 4.1,
-     "so": 10
-    },
-    {
-     "goc": "bac",
-     "lech": 3.8,
-     "so": 5
     }
    ]
   },
@@ -176,6 +152,11 @@
    "goc": 3,
    "chi_tiet": [
     {
+     "goc": "dong",
+     "lech": -2.2,
+     "so": 6
+    },
+    {
      "goc": "tay",
      "lech": -2.2,
      "so": 8
@@ -183,11 +164,6 @@
     {
      "goc": "tay-bac",
      "lech": -2.5,
-     "so": 6
-    },
-    {
-     "goc": "dong",
-     "lech": -2.2,
      "so": 6
     }
    ]
@@ -350,11 +326,6 @@
      "so": 7
     },
     {
-     "goc": "tay-bac",
-     "lech": -0.7,
-     "so": 26
-    },
-    {
      "goc": "nam",
      "lech": -1.9,
      "so": 22
@@ -363,6 +334,11 @@
      "goc": "dong-nam",
      "lech": -1.6,
      "so": 38
+    },
+    {
+     "goc": "tay-bac",
+     "lech": -0.7,
+     "so": 26
     },
     {
      "goc": "bac",
@@ -695,6 +671,30 @@
    ]
   },
   {
+   "id": "way/1573767744",
+   "ten": "",
+   "y_tren": 40.4,
+   "lech": -0.32,
+   "goc": 3,
+   "chi_tiet": [
+    {
+     "goc": "tay",
+     "lech": 0.28,
+     "so": 12
+    },
+    {
+     "goc": "tay-bac",
+     "lech": -0.32,
+     "so": 11
+    },
+    {
+     "goc": "bac",
+     "lech": -0.32,
+     "so": 5
+    }
+   ]
+  },
+  {
    "id": "way/221599084",
    "ten": "",
    "y_tren": 32.9,
@@ -736,11 +736,6 @@
    "goc": 5,
    "chi_tiet": [
     {
-     "goc": "tay",
-     "lech": -0.7,
-     "so": 14
-    },
-    {
      "goc": "dong-bac",
      "lech": -0.1,
      "so": 13
@@ -754,6 +749,11 @@
      "goc": "dong",
      "lech": 2.9,
      "so": 4
+    },
+    {
+     "goc": "tay",
+     "lech": -0.7,
+     "so": 14
     },
     {
      "goc": "bac",
@@ -787,5 +787,5 @@
    ]
   }
  ],
- "ban": "c873c9344"
+ "ban": "3bb12564c"
 }

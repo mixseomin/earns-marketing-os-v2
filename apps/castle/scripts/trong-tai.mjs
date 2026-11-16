@@ -22,6 +22,11 @@ g('fetch', '-q', 'origin', 'main');
 const sha = g('rev-parse', 'HEAD'), doi = g('diff', '--name-only', 'origin/main...HEAD').split('\n').filter(Boolean);
 if (!doi.length) { console.log('✓ không có commit nào chưa lên main'); process.exit(0); }
 if (g('status', '--porcelain', '--untracked-files=no', '--', 'apps/castle')) tra('cây còn thay đổi apps/castle CHƯA commit — commit rồi chạy lại (trọng tài chấm đúng thứ sẽ lên main)');
+// NGƯỜI SỬA KHÔNG ĐƯỢC SỬA THƯỚC (16/11/2026: Thắng tự sửa trong-tai.mjs giữa thẻ #1630 → đụng bản trên main, 6 commit kẹt): commit nào của kỹ sư
+// đụng công cụ đo / chấm / mốc thì TRẢ. Commit mốc do chính trọng tài tạo ("castle: bảng chấm góc chuẩn sau …") được miễn.
+const THUOC = /^apps\/castle\/(scripts\/(trong-tai|cham-goc|chung|kiem-ke|so-lech|quet-giao)\.mjs|du-lieu-goc\/[^/]*-tia-that\.json|public\/du-lieu\/[^/]*-(cham-goc|goc-chuan)\.json)$/;
+for (const c of g('log', '--format=%H%x09%s', 'origin/main..HEAD').split('\n').filter(Boolean)) { const [h, tieu] = c.split('\t'); if (/^castle: bảng chấm góc chuẩn sau /.test(tieu)) continue;
+  const dung = g('show', '--name-only', '--format=', h).split('\n').filter((f) => THUOC.test(f)); if (dung.length) tra(`commit ${h.slice(0, 9)} "${tieu}" sửa công cụ chấm (${dung.join(', ')}) — người sửa không được sửa thước; công cụ hỏng thì reply card nêu lỗi, không tự sửa`); }
 const NHO = join(os.homedir(), '.cache', 'castle-trong-tai'); mkdirSync(NHO, { recursive: true });
 // khoá nhớ = NỘI DUNG phần sửa castle (không phải mã commit: máy đặt lại commit lên main mới mỗi lượt, mã commit đổi mà bài không đổi)
 // + mốc + kho tia: mốc / cách đo đổi thì kết luận cũ hết hiệu lực (16/11: mốc đo lại bằng cách quét mới mà trọng tài vẫn trả theo kết luận cũ)

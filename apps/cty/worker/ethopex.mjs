@@ -75,7 +75,10 @@ export const deHieu = (s) => String(s).replace(/(?:Traceback|subprocess\.|\w*Tim
 export const hoanHopLe = (so, homNay) => !!so && so.ngay === homNay && so.ban === banLuat();
 /** mức đích của một dòng luật = dấu '→ $N' CUỐI câu (G10 hồi viết '→ $10 → $30': lấy dấu đầu thì máy gửi $10 — 21:22 05/11/2026 #65722 #73284 bị lam-ethopex từ chối) */
 export const dichCua = (m) => [...String(m.chu).matchAll(/→ \$(\d+)/g)].pop()?.[1];
-export const giuGocRoas = (ds) => (!ds.some((r) => r.ok) && ds.every((r) => !r.may && r.loi) ? String(ds[0].loi).slice(0, 120) : null);
+// LỖI KHO TẠM (cong.kiem "không đọc được rào chắn etp" — Postgres hết chỗ kết nối lúc máy tạo camp thường chạy dày, 16/11/2026 12:08) KHÔNG phải luật từ chối:
+// không giữ gốc ROAS cả ngày vì nó, nhịp sau thử lại (anh 16/11/2026: lỗi của việc lên camp thường không được ảnh hưởng luật lên ROAS)
+export const LOI_KHO_TAM = /không đọc được rào chắn etp/;
+export const giuGocRoas = (ds) => (!ds.some((r) => r.ok) && ds.every((r) => !r.may && r.loi && !LOI_KHO_TAM.test(String(r.loi))) ? String(ds[0].loi).slice(0, 120) : null);
 export const chuChay = (ds, [a, b] = BANG_LUAT.khung_doi.len.map((x) => String(x).padStart(2, '0'))) => (ds.length && ds.every((r) => r?.chay === 'today') ? `chạy ngay (tạo trong khung ${a}–${b}h VN)`
   : ds.length && ds.every((r) => r?.chay === 'tomorrow') ? 'chạy từ 07:00 VN hôm sau' : `chạy theo khung lên ${a}–${b}h VN`);
 /** loại bản nhân theo KẾT QUẢ nhan-ban.py (kq.bai_cu = mã bài đăng dùng lại, kq.ns = ngân sách thật) — anh 12/11/2026 #1561: tin ghi cứng "bản mới $1" nên anh tưởng máy không dùng used post */

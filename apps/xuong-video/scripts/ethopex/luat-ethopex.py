@@ -1502,7 +1502,15 @@ if JSON:
                (f" insert into etp.xet_luat_ngoai (camp_id, nguoi_id, luc, xet) select (e->>'c')::int, {EA.XEM}, now(), e->'x' from _x, jsonb_array_elements(j) e on conflict (camp_id) do update set nguoi_id = excluded.nguoi_id, luc = excluded.luc, xet = excluded.xet;"
                 f" delete from etp.xet_luat_ngoai where nguoi_id = {EA.XEM} and luc < now() - interval '3 hours'; commit;" if EA.XEM else
                 " insert into etp.xet_luat (camp_id, luc, xet) select (e->>'c')::int, now(), e->'x' from _x, jsonb_array_elements(j) e on conflict (camp_id) do update set luc = excluded.luc, xet = excluded.xet;"
-                " delete from etp.xet_luat where luc < now() - interval '3 hours'; commit;")
+                " delete from etp.xet_luat where luc < now() - interval '3 hours'; commit;"
+                # LỊCH SỬ VÌ SAO KHÔNG TĂNG (anh 16/11/2026: camp trẻ ROI cao đứng $4–6 hai đêm, xet_luat chỉ giữ lượt mới nhất nên không truy được cổng nào chặn):
+                # thẻ tăng CHƯA đạt của mỗi camp, chỉ điều kiện còn thiếu, giữ 7 ngày. Giao dịch riêng sau commit trên — bảng này hỏng không làm mất xet_luat.
+                " create table if not exists etp.xet_tang_ls (camp_id integer not null, luc timestamptz not null default now(), ma text not null, ket text not null,"
+                " thieu jsonb not null default '[]'::jsonb, primary key (camp_id, luc, ma));"
+                " insert into etp.xet_tang_ls (camp_id, luc, ma, ket, thieu) select (e->>'c')::int, now(), t->>'ma', t->>'ket',"
+                " coalesce((select jsonb_agg(d) from jsonb_array_elements(t->'dk') d where d->>3 = 'false'), '[]'::jsonb)"
+                " from _x, jsonb_array_elements(j) e, jsonb_array_elements(e->'x') t where t->>'ma' in ('tang', 'tang_ngay', 'thang_nb', 'dau_phien') and t->>'ket' in ('gan', 'xa')"
+                " on conflict do nothing; delete from etp.xet_tang_ls where luc < now() - interval '7 days';")
         _p = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1"], input=_sql, capture_output=True, text=True, timeout=60)
         if _p.returncode: loi_may.append((0, f"ghi xét luật lỗi: {_p.stderr.strip()[:80]}"))
     except Exception as e:

@@ -1257,4 +1257,5 @@ export const LUAT = [
   { card: 'phanh-lot-1711', tep: 'apps/etp/cong.py', cam: 'if ly_pc and not tay', vi: 'phanh chợ không đọc cờ tay= (dòng phim máy gọi --tay, 17/11/2026 lọt 91 camp)' },
   { card: 'phanh-lot-1711', tep: 'apps/etp/dong_phim.py', cam: '--ai "anh (etp.on.tc:', vi: 'dòng phim không ghi cứng người làm là anh — dùng ai_dong theo người tạo dòng' },
   { card: 'phanh-lot-1711', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'anh_bam=anh or str(ai or "").strip().lower().startswith("anh"))', vi: 'nhân bản báo cổng người làm thật là anh hay máy' },
+  { card: 'phanh-13h-1711', tep: 'apps/etp/gia_adsense.py', co: 'if ph and ph["ngay"] < k and luc.hour >= PC_GIO[1] and not (ti is not None and ti >= pc["nguong"]):', vi: 'phanh tăng giữ tới 13h hôm sau, chỉ mở khi giá 07–13h đã hồi ≥ ngưỡng (anh 17/11/2026 "làm đi")' },
 ];

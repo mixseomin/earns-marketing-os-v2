@@ -66,12 +66,20 @@ def xet_phanh(luc, so13, cu, pc=PC):
     """hàm thuần: giờ UTC + sổ rpm_13h + trạng thái cũ → trạng thái phanh_cho mới (xem đầu tệp). Phanh cũ còn hạn thì giữ; mỗi ngày chốt MỘT lần; thiếu số → không phanh (trừ ngày lịch)."""
     hn = luc.date(); k = hn.isoformat(); cu = cu or {}; mot = dt.timedelta(days=1)
     dem0 = lambda d: dt.datetime(d.year, d.month, d.day, tzinfo=dt.timezone.utc).isoformat()
-    ph = cu.get("phanh") if ((cu.get("phanh") or {}).get("den_len") or "") > luc.isoformat() else None
+    ph = dict(cu["phanh"]) if ((cu.get("phanh") or {}).get("den_len") or "") > luc.isoformat() else None
+    # TĂNG CHỈ MỞ KHI GIÁ ĐÃ HỒI (anh 17/11/2026 "làm đi" — đề xuất: sụt xong hệ âm sâu, mở tăng 07:00 là tăng khi chưa biết chợ hồi chưa): phanh tăng giữ tới HẾT
+    # khung đo hôm sau (13h VN); tới đó giá 07–13h hôm nay ≥ ngưỡng thì mở, chưa hồi / thiếu số thì giữ tới giờ chốt (20h) — chốt 20h phanh tiếp hoặc nhả.
+    # (sửa luôn bản phanh cũ còn den_tang 07:00)
+    if ph:
+        mo = dt.datetime.fromisoformat(ph["ngay"]).replace(tzinfo=dt.timezone.utc) + mot + dt.timedelta(hours=PC_GIO[1])
+        ph["den_tang"] = max(ph["den_tang"], mo.isoformat())
     nen = [so13[x]["irpm"] for x in ((hn - mot * i).isoformat() for i in range(1, pc["nen_ngay"] + 1)) if (so13.get(x) or {}).get("irpm") and (so13[x].get("imp") or 0) >= pc["imp_min"]]
     v = so13.get(k) or {}; tb = sum(nen) / len(nen) if len(nen) >= pc["nen_min"] else None
     ti = round(v["irpm"] / tb, 3) if tb and v.get("irpm") and (v.get("imp") or 0) >= pc["imp_min"] else None
     ra = {"hom_nay": {"ngay": k, "irpm": v.get("irpm"), "imp": v.get("imp"), "nen": round(tb, 1) if tb else None, "ti": ti}, "som": False, "quyet": cu.get("quyet"), "phanh": ph}
     tut = ti is not None and ti < pc["nguong"]
+    if ph and ph["ngay"] < k and luc.hour >= PC_GIO[1] and not (ti is not None and ti >= pc["nguong"]):   # hết khung đo hôm sau mà giá chưa hồi → giữ phanh tăng tới giờ chốt
+        ph["den_tang"] = max(ph["den_tang"], (dt.datetime(hn.year, hn.month, hn.day, tzinfo=dt.timezone.utc) + dt.timedelta(hours=PC_CHOT)).isoformat())
     if luc.hour < PC_GIO[1]: return ra   # chưa hết khung đo
     if cu.get("quyet") == k: return ra   # hôm nay đã chốt — không lật lại
     if luc.hour < PC_CHOT: ra["som"] = tut; return ra
@@ -79,7 +87,7 @@ def xet_phanh(luc, so13, cu, pc=PC):
     if tut or lich:
         ly = (f"Impression RPM cả chợ 07–13h ngày {hn:%d/%m} = {v['irpm']:.0f}, bằng {ti * 100:.0f}% trung bình {len(nen)} ngày trước ({tb:.0f}) — dưới ngưỡng {pc['nguong'] * 100:.0f}%" if tut
               else f"ngày {hn + mot:%d/%m} nằm trong lịch phanh sẵn (sau dịp chi lớn của nhà quảng cáo)")
-        ra["phanh"] = {"ngay": k, "nguon": "so" if tut else "lich", "ti": ti, "den_tang": dem0(hn + mot), "den_len": dem0(hn + mot * 2), "ly_do": ly}
+        ra["phanh"] = {"ngay": k, "nguon": "so" if tut else "lich", "ti": ti, "den_tang": (dt.datetime(hn.year, hn.month, hn.day, tzinfo=dt.timezone.utc) + mot + dt.timedelta(hours=PC_GIO[1])).isoformat(), "den_len": dem0(hn + mot * 2), "ly_do": ly}
     return ra
 
 def hs_sql(cot):
@@ -138,9 +146,13 @@ def _tu_kiem():
     tut, deu = {**nen, "2026-11-16": {"irpm": 84, "imp": 9000}}, {**nen, "2026-11-16": {"irpm": 110, "imp": 9000}}
     r = xet_phanh(u("2026-11-16T03:00:00"), tut, {}); assert not r["som"] and not r["phanh"] and r["hom_nay"]["ti"] == 0.7, r   # chưa hết khung đo: chưa báo
     r = xet_phanh(u("2026-11-16T07:00:00"), tut, {}); assert r["som"] and not r["phanh"] and r["quyet"] is None, r   # 14h VN: cảnh báo sớm, chưa chặn
-    r = xet_phanh(u("2026-11-16T13:05:00"), tut, r); assert r["phanh"]["nguon"] == "so" and r["phanh"]["den_tang"] == "2026-11-17T00:00:00+00:00" and r["phanh"]["den_len"] == "2026-11-18T00:00:00+00:00" and not r["som"] and r["quyet"] == "2026-11-16", r
+    r = xet_phanh(u("2026-11-16T13:05:00"), tut, r); assert r["phanh"]["nguon"] == "so" and r["phanh"]["den_tang"] == "2026-11-17T06:00:00+00:00" and r["phanh"]["den_len"] == "2026-11-18T00:00:00+00:00" and not r["som"] and r["quyet"] == "2026-11-16", r
     r2 = xet_phanh(u("2026-11-16T15:00:00"), deu, r); assert r2["phanh"] == r["phanh"], "đã chốt hôm nay: số về trễ làm tỉ lệ lên cũng không lật lại"
     r3 = xet_phanh(u("2026-11-17T13:05:00"), {**tut, "2026-11-17": {"irpm": 118, "imp": 9000}}, r2); assert r3["phanh"]["ngay"] == "2026-11-16" and r3["quyet"] == "2026-11-17", r3   # hôm sau giá hồi: phanh cũ giữ tới hết hạn
+    h1 = xet_phanh(u("2026-11-17T06:10:00"), {**tut, "2026-11-17": {"irpm": 118, "imp": 9000}}, r2); assert h1["phanh"]["den_tang"] == "2026-11-17T06:00:00+00:00", h1   # 13h hôm sau giá hồi (≥ 85%) → tăng mở 13:00
+    h2 = xet_phanh(u("2026-11-17T06:10:00"), {**tut, "2026-11-17": {"irpm": 90, "imp": 9000}}, r2); assert h2["phanh"]["den_tang"] == "2026-11-17T13:00:00+00:00" and h2["som"] is True, h2   # chưa hồi → giữ tới chốt 20h + cảnh báo sớm
+    h3 = xet_phanh(u("2026-11-17T06:10:00"), tut, r2); assert h3["phanh"]["den_tang"] == "2026-11-17T13:00:00+00:00", "thiếu số hôm nay → giữ tới chốt"
+    cu7 = {"phanh": {**r2["phanh"], "den_tang": "2026-11-17T00:00:00+00:00"}, "quyet": "2026-11-16"}; assert xet_phanh(u("2026-11-16T20:00:00"), tut, cu7)["phanh"]["den_tang"] == "2026-11-17T06:00:00+00:00", "bản phanh cũ 07:00 được kéo tới 13:00"
     r4 = xet_phanh(u("2026-11-18T00:10:00"), tut, r3); assert r4["phanh"] is None, "hết hạn den_len thì tự nhả"
     r = xet_phanh(u("2026-11-16T13:05:00"), deu, {}); assert r["phanh"] is None and r["quyet"] == "2026-11-16", r   # 92% nền: không phanh
     r = xet_phanh(u("2026-11-16T13:05:00"), {"2026-11-16": {"irpm": 10, "imp": 9000}}, {}); assert r["phanh"] is None and r["hom_nay"]["ti"] is None, "thiếu nền → không đoán"

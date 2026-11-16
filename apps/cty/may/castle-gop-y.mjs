@@ -16,6 +16,12 @@ const q = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
 const ssh = (cmd) => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', BOX, cmd], { encoding: 'utf8', timeout: 60000 });
 // lệnh đo castle (Playwright + ảnh 3D) chạy 3–10 phút: trần mặc định 120 giây của Bash đẩy lệnh ra nền rồi lượt không giao diện kết thúc khi lệnh còn chạy (#1623 lượt 17:53)
 process.env.BASH_DEFAULT_TIMEOUT_MS = '900000'; process.env.BASH_MAX_TIMEOUT_MS = '1200000';
+// HÒM TRỐNG → MÁY QUÉT GIAO VIỆC (anh 16/11/2026, hệ tự phản biện): apps/castle/scripts/quet-giao.mjs lấy khối lệch nặng nhất trong bảng chấm góc chuẩn,
+// tạo thẻ "[MÁY QUÉT]" trong hòm — Thắng nhận ngay lượt này như thẻ thường. Hòm còn thẻ mở thì nó không tạo gì. Lỗi ở bước này không chặn lượt.
+if (!process.argv.includes('--thu') && !process.argv.includes('--kiem')) {
+  try { console.log(execFileSync(process.execPath, [new URL('../../castle/scripts/quet-giao.mjs', import.meta.url).pathname], { encoding: 'utf8', timeout: 120000 }).trim()); }
+  catch (e) { console.log('quet-giao lỗi: ' + String(e.stderr || e.message).split('\n')[0]); }
+}
 chayKySu({
   nguoi: 'thang', ten: 'Thắng', duAn: 'mos2', tranPhut: 120,   // sửa + trọng tài đủ 9 góc (≈ 55 phút khi đổi mã dựng hình) không vừa 60 phút (#1624)
   chiUrl: ['https://castle.on.tc/%'],
@@ -52,7 +58,7 @@ LÊN MAIN CHỈ QUA TRỌNG TÀI MÁY: node apps/castle/scripts/trong-tai.mjs --
 BÁO NÚT 🔍 (thẻ lệch ảnh): node apps/castle/scripts/so-lech.mjs --xong ${card.id} '<đã sửa gì>' — người báo thấy nút nháy xanh + báo cáo trên castle.on.tc và tin Telegram.
 TRẢ LỜI: ssh ${BOX} "${GOPY} reply ${card.id} '<sai gì · sửa gì · tệp · commit · số đo trước/sau>'" rồi ssh ${BOX} "${GOPY} submit ${card.id} '<tóm tắt>' https://github.com/mixseomin/earns-marketing-os-v2/commit/<sha>". Còn lệch thì ghi rõ còn gì trong lời nộp.
 Không rõ đề bài hoặc cần anh quyết (tiền, xoá dữ liệu) → reply hỏi đúng một câu và KHÔNG submit.
-LỆNH ĐO CHẠY LÂU (so-lech, kiem-ke: 3–10 phút; cổng 18777 bận thì công cụ tự xếp hàng chờ tới 20 phút): chạy THẲNG ở tiền cảnh và chờ nó xong — CẤM chạy nền, CẤM Monitor, CẤM kết lượt khi lệnh đo còn chạy. Chưa có số đo thì chưa được trả lời card.
+THẺ "[MÁY QUÉT]" (máy tự giao từ bảng chấm góc chuẩn khi hòm trống, không phải anh gửi): đề bài là khối + độ lệch ghi trong thẻ; vẫn chạy so-lech --the ${card.id} --do để xem ảnh hai bản ở góc mở sẵn, sửa hình mái / độ cao theo số đo, qua trọng tài, reply số trước / sau rồi submit. Ảnh cho thấy số đo của máy sai (khối bị cây che, mái phức tạp) thì reply lý do và submit KHÔNG sửa — đừng sửa cho khớp một số đo sai.\nLỆNH ĐO CHẠY LÂU (so-lech, kiem-ke: 3–10 phút; cổng 18777 bận thì công cụ tự xếp hàng chờ tới 20 phút): chạy THẲNG ở tiền cảnh và chờ nó xong — CẤM chạy nền, CẤM Monitor, CẤM kết lượt khi lệnh đo còn chạy. Chưa có số đo thì chưa được trả lời card.
 Mọi chữ ghi vào card: tiếng Việt có dấu.
 TỰ QUYẾT, KHÔNG HỎI: cách sửa, tệp nào, commit + deploy. Chỉ sửa đúng điều card xin. Bị từ chối một lệnh shell thì viết lại dạng đơn giản (một lệnh, không biến tạm).
 CẤM: hoàn tác git, xoá dữ liệu, gọi mô hình AI tốn tiền, in khoá / token, sửa ngoài apps/castle.

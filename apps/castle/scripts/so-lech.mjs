@@ -5,6 +5,7 @@
 //   node apps/castle/scripts/so-lech.mjs --the <id góp ý>            (đọc LECH-JSON / VUNG-JSON trong card hòm góp ý castle qua scripts/gop-y.sh trên box3)
 //   node apps/castle/scripts/so-lech.mjs --the <id> --tu-xu   — TỰ XỬ trọn thẻ: đo khối trong vùng đánh dấu trên ảnh 3D, sửa độ cao (sua.json), thử lại giữ
 //     phần khớp hơn, kiểm kê không lùi, đẩy lên + chờ deploy, trả lời / nộp thẻ, nút 🔍 nháy xanh + báo cáo
+//   node apps/castle/scripts/so-lech.mjs --the <id> --do   — thêm số đo độ cao từng khối trong vùng tô (theo tia từ góc báo + từ trên xuống)
 //   node apps/castle/scripts/so-lech.mjs --xong <id> "<đã sửa gì>" [link]   (sửa + deploy xong → nút 🔍 nháy xanh + hiện báo cáo)
 //   node apps/castle/scripts/so-lech.mjs --cam '{"p":[x,y,z],"d":[dx,dy,dz],"fov":50,"zoom":60,"w":1280,"h":800}' [--vung '[[[u,v],…]]']
 // Ra: apps/castle/.bao-lech/<id | giờ>/ (mo-hinh.png, anh-that.png, lech.json, bao-cao.png)
@@ -53,7 +54,7 @@ async function luotSo(thu, doKhoi = false) {
   let khoi = [];
   if (doKhoi) { // khối trong vùng tô (không tô: 3 vùng lệch nặng nhất) → đo đỉnh trên ảnh 3D ở góc này
     const hop = hopTo.length ? hopTo : L.vung.slice(0, 3).map((r) => [r.u0, r.v0, r.u1, r.v1]);
-    khoi = await pg.evaluate(async (hop) => { const n = window.__ns, ds = n.khoiTrongVung(hop); await n.batAnh3dTam(true); const ra = ds.map((x) => ({ ...x, do: n.doKhoiAnh3d(x.id) })); await n.batAnh3dTam(false); return ra; }, hop);
+    khoi = await pg.evaluate(async (hop) => { const n = window.__ns, ds = n.khoiTrongVung(hop); await n.batAnh3dTam(true); const ra = ds.map((x) => ({ ...x, do: n.doKhoiAnh3d(x.id), tia: n.doKhoiTheoTia(x.id) })); await n.batAnh3dTam(false); return ra; }, hop);
   }
   await dong();
   execFileSync('python3', [join(GOC, 'scripts', 'so-lech.py'), thu, '--ve'], { stdio: 'pipe' });
@@ -63,11 +64,13 @@ async function luotSo(thu, doKhoi = false) {
 }
 const inVung = (L) => L.vung.forEach((r, i) => console.log(`#${i + 1}${r.trong_vung_to ? ' [vùng tô]' : ''} điểm ${r.diem} · ${r.huong}${r.lech_m ? ` ~${r.lech_m} m` : ''} · ô ảnh u ${r.u0}–${r.u1} v ${r.v0}–${r.v1} · ${r.trung?.mat ? `mặt ${r.trung.mat}${r.trung.ten ? ' (' + r.trung.ten + ')' : ''}` : 'không trúng tường (địa hình / trời)'}${r.trung ? ` tại (${r.trung.diem.join(', ')})` : ''}`));
 
-const tuXu = process.argv.includes('--tu-xu');
+const tuXu = process.argv.includes('--tu-xu'), doTia = process.argv.includes('--do');
 let goc;
-try { goc = await luotSo(join(ra, 'truoc'), tuXu); } catch (e) { console.error('✗', e.message); if (nhan) baoTT({ id: nhan, tt: 'dang', viec: 'Lỗi khi so: ' + e.message }); process.exit(1); }
+try { goc = await luotSo(join(ra, 'truoc'), tuXu || doTia); } catch (e) { console.error('✗', e.message); if (nhan) baoTT({ id: nhan, tt: 'dang', viec: 'Lỗi khi so: ' + e.message }); process.exit(1); }
 console.log(`Camera: (${goc.hai.cam.p.join(', ')}) hướng (${goc.hai.cam.d.join(', ')}) · góc nhìn ${goc.hai.cam.fov}° · zoom ${cam.zoom ?? goc.hai.cam.zoom} m · khổ ${khung.width}×${khung.height}${vung.length ? ` · ${vung.length} nét đánh dấu` : ''}`);
 inVung(goc.L); console.log(`điểm lệch vùng đánh dấu: ${goc.diem.toFixed(2)} · ảnh: ${join(ra, 'truoc', 'bao-cao.png')}`);
+// --do: in số đo độ cao từng khối trong vùng tô — THEO TIA từ đúng góc báo (thật − mô hình cùng cách đo, tin được khi ≥ 4 cột) và từ trên xuống (lẫn khối chồng)
+if (doTia) for (const x of goc.khoi) console.log(`  đo ${x.id} ${x.ten} · tia: ${x.tia?.so >= 4 ? `đỉnh thật ${x.tia.dinhAnh} · mô hình ${x.tia.dinhMoHinhTia} · lệch ${x.tia.lech} m (${x.tia.so} cột, trải ${x.tia.trai} m, y_tren hiện ${x.tia.dinhMoHinh} → đề xuất ${+(x.tia.dinhMoHinh + x.tia.lech).toFixed(1)})` : `không đủ cột (${x.tia?.so ?? 0})`} · từ trên xuống: ${x.do ? `đỉnh ${x.do.dinhAnh} / mô hình ${x.do.dinhMoHinh}` : '—'}`);
 if (!tuXu) {
   if (nhan) { const r = goc.L.vung[0]; baoTT({ id: nhan, tt: 'dang', viec: `Đã so: ${goc.L.vung.length} vùng lệch${r ? `, chính: ${r.huong}${r.trung?.mat ? ' ở mặt ' + r.trung.mat : ''}` : ''}` }); }
   process.exit(0);
@@ -76,17 +79,20 @@ if (!tuXu) {
 // ===== TỰ XỬ (--tu-xu): sửa độ cao khối theo ảnh 3D, thử lại, giữ phần làm vùng đánh dấu khớp hơn, đẩy lên, trả lời thẻ, báo xong =====
 const SUA = join(GOC, 'public', 'du-lieu', 'neuschwanstein-sua.json'), suaGoc = readFileSync(SUA, 'utf8');
 const NGUONG = 1.5; // lệch đỉnh ≥ 1,5 m mới sửa (ảnh 3D sai số ~0,5–1 m)
-const de = goc.khoi.filter((x) => x.do && x.do.so >= 15 && Number.isFinite(x.do.h) && Math.abs(x.do.dinhAnh - x.do.dinhMoHinh) >= NGUONG)
-  .map((x) => { const d = x.do.dinhAnh - x.do.dinhMoHinh, hMoi = Math.max(2, +(x.do.h + d).toFixed(1)); return { id: x.id, ten: x.ten, h: x.do.h, hMoi, d: +d.toFixed(1), dinhAnh: x.do.dinhAnh, dinhMoHinh: x.do.dinhMoHinh }; });
+// số đo THEO TIA (≥ 4 cột, độ trải ≤ 3 m) thắng số đo từ trên xuống: từ trên xuống lẫn khối chồng trên mặt bằng (#1623 hạ nhầm đầu hồi). Ghi y_tren tuyệt đối.
+const de = goc.khoi.map((x) => { const t = x.tia;
+  if (t && t.so >= 4 && t.trai <= 3) { const yMoi = Math.max((t.yDuoi ?? -1e9) + 1, +(t.dinhMoHinh + t.lech).toFixed(1)); return { id: x.id, ten: x.ten, d: t.lech, yMoi, cu: t.dinhMoHinh, dinhAnh: t.dinhAnh, dinhMoHinh: t.dinhMoHinhTia, so: t.so * 20, cach: 'tia' }; }
+  if (x.do && x.do.so >= 15 && Number.isFinite(x.do.h)) { const d = +(x.do.dinhAnh - x.do.dinhMoHinh).toFixed(1); return { id: x.id, ten: x.ten, d, yMoi: +(x.do.dinhMoHinh + d).toFixed(1), cu: x.do.dinhMoHinh, dinhAnh: x.do.dinhAnh, dinhMoHinh: x.do.dinhMoHinh, so: x.do.so, cach: 'tren' }; }
+  return null; }).filter((x) => x && Math.abs(x.d) >= NGUONG);
 console.log(`
 Khối trong vùng: ${goc.khoi.length} · đo được trên ảnh 3D: ${goc.khoi.filter((x) => x.do).length} · lệch đỉnh ≥ ${NGUONG} m: ${de.length}`);
 for (const x of goc.khoi) console.log(`  ${x.id} ${x.ten} phủ ${x.phu}${x.do ? ` · đỉnh ảnh ${x.do.dinhAnh} · mô hình ${x.do.dinhMoHinh} · lệch ${(x.do.dinhAnh - x.do.dinhMoHinh).toFixed(1)} m (${x.do.so} điểm)` : ' · không đo được'}`);
-const apDung = (ds) => { const S = JSON.parse(suaGoc); for (const x of ds) { S[x.id] = { ...(S[x.id] || {}), height: String(x.hMoi), ly_do_tu_xu: `tự xử thẻ báo lệch #${nhan}: đỉnh ảnh 3D ${x.dinhAnh} m, mô hình ${x.dinhMoHinh} m → height ${x.h} → ${x.hMoi}` }; } writeFileSync(SUA, JSON.stringify(S, null, 1) + '\n'); };
+const apDung = (ds) => { const S = JSON.parse(suaGoc); for (const x of ds) { S[x.id] = { ...(S[x.id] || {}), y_tren: String(x.yMoi), ly_do_tu_xu: `tự xử thẻ báo lệch #${nhan} (đo ${x.cach === 'tia' ? 'theo tia từ góc báo' : 'từ trên xuống'}): đỉnh ảnh 3D ${x.dinhAnh} m, mô hình ${x.dinhMoHinh} m → y_tren ${x.cu} → ${x.yMoi}` }; } writeFileSync(SUA, JSON.stringify(S, null, 1) + '\n'); };
 let giu = [], sau = goc;
 if (de.length) {
   // LUẬT GIỮ (16/11/2026, thẻ #1623): điểm so ảnh nhiễu (ảnh 3D nhoè + cây) — không đủ làm trọng tài. Độ cao đo trên ảnh 3D là SỐ ĐO:
   //   lệch ≥ 3 m với ≥ 80 điểm đo → sửa thẳng theo số đo (chắc); 1,5–3 m → chỉ giữ nếu điểm so ảnh cũng tốt lên ≥ 5 %.
-  const chac = de.filter((x) => Math.abs(x.d) >= 3 && goc.khoi.find((q) => q.id === x.id)?.do?.so >= 80), mo_ = de.filter((x) => !chac.includes(x));
+  const chac = de.filter((x) => Math.abs(x.d) >= 3 && x.so >= 80), mo_ = de.filter((x) => !chac.includes(x));
   giu = [...chac]; apDung(giu); sau = await luotSo(join(ra, 'sau-chac'));
   console.log(`sửa chắc ${chac.length} khối (lệch ≥ 3 m): điểm lệch ${goc.diem.toFixed(2)} → ${sau.diem.toFixed(2)}`);
   for (const x of mo_) { apDung([...giu, x]); const t = await luotSo(join(ra, 'sau-' + x.id.replace('/', '_'))); console.log(`  thử ${x.id} (${x.d} m): ${sau.diem.toFixed(2)} → ${t.diem.toFixed(2)}`); if (t.diem < sau.diem * 0.95) { giu.push(x); sau = t; } }
@@ -96,7 +102,7 @@ let ket = '', kiemKe = 'không chạy';
 if (giu.length) { // không lùi: kiểm kê mặt đã chuẩn hoá vẫn sạch thì mới giữ
   try { execFileSync('node', [join(GOC, 'scripts', 'kiem-ke.mjs'), '--lau', 'neuschwanstein'], { stdio: 'pipe' }); kiemKe = 'sạch'; } catch (e) { kiemKe = 'HỎNG — bỏ sửa: ' + String(e.stdout || '').split('\n').filter((l) => /THIẾU|SAI|CHỒNG/.test(l)).slice(0, 3).join(' | '); writeFileSync(SUA, suaGoc); giu = []; }
 }
-const tomSua = giu.map((x) => `${x.ten || x.id} ${x.d > 0 ? 'cao thêm' : 'hạ'} ${Math.abs(x.d)} m (height ${x.h} → ${x.hMoi})`).join('; ');
+const tomSua = giu.map((x) => `${x.ten || x.id} ${x.d > 0 ? 'cao thêm' : 'hạ'} ${Math.abs(x.d)} m (y_tren ${x.cu} → ${x.yMoi})`).join('; ');
 const conLai = sau.L.vung.filter((r) => !hopTo.length || r.trong_vung_to).slice(0, 4).map((r) => `${r.huong}${r.trung?.mat ? ' ở ' + r.trung.mat : ''}`);
 if (giu.length) {
   const tin = `castle: tự xử thẻ báo lệch #${nhan} — ${tomSua} (điểm lệch ${goc.diem.toFixed(1)} → ${sau.diem.toFixed(1)})\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`;

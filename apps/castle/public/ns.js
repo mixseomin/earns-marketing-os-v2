@@ -998,13 +998,15 @@ function doKhoiTheoTia(id) {
       const h = lop === 'that' ? trungThat() : trungMH(); if (Math.abs(h - dist) <= SAI) return y; if (h < dist - SAI) return null; }
     return null; };
   const cot = [];
-  for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length], dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz); if (L < 1.2) continue;
+  for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length], dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz); if (L < 0.2) continue;
     let nx = dz / L, nz = -dx / L; const mx = (ax + bx) / 2, mz = (az + bz) / 2; if (trongDa(mx + nx * 0.5, mz + nz * 0.5, k.v)) { nx = -nx; nz = -nz; }
     if ((C.x - mx) * nx + (C.z - mz) * nz <= 0) continue;
-    for (let j = 0; j < 7; j++) { const t = 0.12 + j * 0.76 / 6, px = ax + dx * t + nx * 0.3, pz = az + dz * t + nz * 0.3;
+    const nCot = L < 1.5 ? 1 : 7; for (let j = 0; j < nCot; j++) { const t = nCot === 1 ? 0.5 : 0.12 + j * 0.76 / 6, px = ax + dx * t + nx * 0.3, pz = az + dz * t + nz * 0.3;
       const mh = dinhCot(px, pz, 'mh', 0), th = dinhCot(px, pz, 'that', DICH); if (mh != null && th != null) cot.push({ mh, th, canh: i }); } }
   LOP_OSM.forEach((m, i) => { m.visible = giu[i]; });
-  if (cot.length < 3) return { id, so: cot.length };
+  const nhon0 = !['flat', ''].includes(k.tags['roof:shape'] || ''), duoiMai = k._y1 ?? (k.yTren - (so(k.tags['roof:height']) ?? 0));
+  const tho = cot.length; cot.splice(0, cot.length, ...cot.filter((c) => nhon0 ? c.mh <= k.yTren + 1 && c.mh >= duoiMai - 1.5 : Math.abs(c.mh - k.yTren) <= 1.5));
+  if (cot.length < 3) return { id, so: cot.length, tho };
   const pv = (a, p) => { const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(s.length * p))]; };
   const nhon = !['flat', ''].includes(k.tags['roof:shape'] || ''), p = nhon ? 0.9 : 0.5;
   const th = pv(cot.map((c) => c.th), p), mh = pv(cot.map((c) => c.mh), p);

@@ -13,7 +13,7 @@ const PC = BANG_LUAT.phanh_cho;
 const p2 = (n: number) => String(n).padStart(2, '0');
 /** mốc ISO (UTC) → "07:00 17/11" giờ VN */
 const gioVn = (iso: string) => { const d = new Date(Date.parse(iso) + 7 * 3600_000); return `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())} ${p2(d.getUTCDate())}/${p2(d.getUTCMonth() + 1)}`; };
-const KHUNG = { margin: '0 0 10px', padding: '8px 12px', borderRadius: 8, fontSize: 13, lineHeight: 1.5 } as const;
+const KHUNG = { margin: '0 0 8px', padding: '4px 10px', borderRadius: 6, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } as const;   // MỘT dòng (anh 16/11/2026 "Hiện gọn hơn") — chi tiết ở chữ rê
 
 export function BienPhanhCho({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {
   const tt = (cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null;
@@ -21,17 +21,14 @@ export function BienPhanhCho({ cauHinh }: { cauHinh: { khoa: string; gia_tri: un
   const nay = Date.now(), ph = tt.phanh && Date.parse(tt.phanh.den_len) > nay ? tt.phanh : null;
   if (ph) {
     const conTang = Date.parse(ph.den_tang) > nay;
-    return <div role="alert" data-bien="phanh-cho" style={{ ...KHUNG, background: '#d93025', color: '#fff' }}>
-      <b style={{ fontSize: 15 }}>⛔ PHANH CHỢ</b> — {ph.ly_do}.
-      <div><b>Tăng bậc:</b> {conTang ? `dừng tới ${gioVn(ph.den_tang)}` : `đã mở lại từ ${gioVn(ph.den_tang)}`} · <b>Camp mới / nhân bản:</b> dừng tới {gioVn(ph.den_len)} (giờ VN, camp tài khoản nhà).</div>
-      <div style={{ opacity: 0.9 }}>Giảm / tắt vẫn chạy như thường. Không bị chặn: camp ★ ROAS, camp thay bài bị từ chối, lệnh anh.</div>
+    return <div role="alert" data-bien="phanh-cho" title={`${ph.ly_do}. Giảm / tắt vẫn chạy. Không chặn: camp ★ ROAS, camp thay bài bị từ chối, lệnh anh.`} style={{ ...KHUNG, background: '#d93025', color: '#fff' }}>
+      ⛔ PHANH CHỢ{ph.ti != null ? ` · giá chợ ${Math.round(ph.ti * 100)}% nền` : ' · lịch'} · {conTang ? `tăng dừng tới ${gioVn(ph.den_tang)}` : 'tăng đã mở'} · camp mới dừng tới {gioVn(ph.den_len)}
     </div>;
   }
   const h = tt.hom_nay;
   if (tt.som && h?.ti != null && h.irpm != null && h.nen != null)
-    return <div role="alert" data-bien="phanh-cho-som" style={{ ...KHUNG, background: '#f59e0b', color: '#1a1a1a' }}>
-      <b style={{ fontSize: 15 }}>⚠ CẢNH BÁO SỚM GIÁ CHỢ</b> — Impression RPM cả chợ 07–13h hôm nay {Math.round(h.irpm)}, bằng {Math.round(h.ti * 100)}% trung bình 7 ngày trước ({Math.round(h.nen)}).
-      <div>Tới {PC.gio_chot}:00 vẫn dưới {Math.round(PC.nguong * 100)}% thì máy phanh: đêm nay không tăng bậc, ngày mai không lên camp mới / nhân bản.</div>
+    return <div role="alert" data-bien="phanh-cho-som" title={`Impression RPM cả chợ 07–13h hôm nay ${Math.round(h.irpm)}, trung bình 7 ngày ${Math.round(h.nen)}. Tới ${PC.gio_chot}:00 vẫn dưới ${Math.round(PC.nguong * 100)}% thì đêm nay không tăng bậc, ngày mai không lên camp mới / nhân bản.`} style={{ ...KHUNG, background: '#f59e0b', color: '#1a1a1a' }}>
+      ⚠ Giá chợ {Math.round(h.ti * 100)}% nền · {PC.gio_chot}:00 có thể phanh
     </div>;
   return null;
 }

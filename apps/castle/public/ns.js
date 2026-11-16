@@ -15,6 +15,7 @@ import { dungNoiThat } from './noithat.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
+import { ganBaoLech } from './baolech.js';
 import { taoCamUng, CHAM } from './camung.js';
 import { taoChieuAnh } from './chieuanh.js';
 import { datDuong } from './duong.js';
@@ -862,6 +863,44 @@ function capNhatKhu(phong) {
   let v = null; try { v = localStorage.getItem('ns-dau-thu'); } catch {} dat(v == null ? innerWidth < 560 : v === '1'); // chưa chọn: màn hẹp thì thu sẵn
   $('b-thu').onclick = () => { const thu = !dau.classList.contains('thu'); dat(thu); try { localStorage.setItem('ns-dau-thu', thu ? '1' : '0'); } catch {} };
 }
+// BÁO LỆCH (nút 🔍, baolech.js) + CLI scripts/so-lech.mjs: chụp HAI bản ở cùng camera — mô hình dựng từ số đo và ảnh thật 3D (Google).
+// datCam (CLI): { p: [x, y, z], d: [hướng nhìn], fov, zoom } → đặt camera xem toàn cảnh đúng góc đó. Bản ảnh thật: ép hiện lớp Google (epHien) để vòng vẽ
+// tự cập nhật ô + bù độ cao, chờ ô tải đủ (loadProgress ≥ 0,999 năm nhịp liền) và ít nhất một lần bù độ cao (≥ 2,5 s), rồi trả lại như cũ.
+async function chupHaiBan(datCam = null) {
+  if (datCam) { if (di?.dang) $('b-toan').click(); const [x, y, z] = datCam.p, [dx, dy, dz] = datCam.d, k = datCam.zoom || 20;
+    camera.fov = datCam.fov || camera.fov; camera.updateProjectionMatrix(); orbit.target.set(x + dx * k, y + dy * k, z + dz * k); camera.position.set(x, y, z); camera.lookAt(orbit.target); orbit.update(); }
+  camera.updateMatrixWorld(); const d = camera.getWorldDirection(new THREE.Vector3());
+  const cam = { p: camera.position.toArray().map((v) => +v.toFixed(2)), d: d.toArray().map((v) => +v.toFixed(4)), fov: +camera.fov.toFixed(1), zoom: +(di?.dang ? 0 : camera.position.distanceTo(orbit.target)).toFixed(1),
+    w: innerWidth, h: innerHeight, cheDo: di?.dang ? 'di_bo' : 'toan_canh' };
+  const giuOSM = LOP_OSM.map((m) => m.visible), giuGoc = anh3d?.goc.visible;
+  for (const m of LOP_OSM) m.visible = true; if (anh3d) anh3d.goc.visible = false;
+  const moHinh = chupCanvas(renderer.domElement, () => renderer.render(scene, camera));
+  LOP_OSM.forEach((m, i) => { m.visible = giuOSM[i]; }); if (anh3d) anh3d.goc.visible = giuGoc;
+  let anhThat = null;
+  // lớp ảnh thật tải nền: bấm 🔍 ngay sau khi mở trang thì chờ tới 20 s cho nó nạp xong
+  for (const t0 = performance.now(); !anh3d && performance.now() - t0 < 20000;) await new Promise((ok) => setTimeout(ok, 200));
+  if (anh3d) {
+    anh3d.epHien = true; apDungAnh3d(); const t0 = performance.now();
+    for (let on = 0; performance.now() - t0 < 25000 && (on < 5 || performance.now() - t0 < 2500);) { await new Promise((ok) => setTimeout(ok, 150)); on = (anh3d.t.loadProgress ?? 1) >= 0.999 ? on + 1 : 0; }
+    anhThat = chupCanvas(renderer.domElement, () => renderer.render(scene, camera));
+    anh3d.epHien = false; anh3d.hien = null; apDungAnh3d();
+  }
+  return { moHinh, anhThat, cam };
+}
+// điểm ảnh (u, v: 0–1 từ góc trên trái) → điểm trúng trên MÔ HÌNH + mặt tường OSM gần nhất ("khối#cạnh") — CLI dò lỗi ra đúng mặt cần sửa
+function diemTaiAnh(u, v) {
+  // dò trên MÔ HÌNH dù đang bật lớp ảnh thật (lớp OSM bị ẩn → tia lọt qua tường trúng tận phía sau): tạm hiện, dò, trả lại
+  const giu = LOP_OSM.map((m) => m.visible); for (const m of LOP_OSM) m.visible = true; camera.updateMatrixWorld();
+  const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(u * 2 - 1, 1 - v * 2), camera);
+  const h = rc.intersectObjects(LOP_OSM.filter((m) => m.isObject3D), true).find((x) => { for (let o = x.object; o; o = o.parent) if (o.visible === false) return false; return true; });
+  LOP_OSM.forEach((m, i) => { m.visible = giu[i]; }); if (!h) return null;
+  const { x, y, z } = h.point; let tot = null;
+  for (const k of dsKhoi) { if (k.yTren != null && (y > k.yTren + 2 || y < (k.yDuoi ?? -1e9) - 2)) continue;
+    k.v.forEach((p, i) => { const q = k.v[(i + 1) % k.v.length], dx = q[0] - p[0], dz = q[1] - p[1], l2 = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((x - p[0]) * dx + (z - p[1]) * dz) / l2)), dd = Math.hypot(x - p[0] - dx * t, z - p[1] - dz * t);
+      if (!tot || dd < tot.kc) tot = { mat: k.id + '#' + i, ten: k.tags.name || '', kc: +dd.toFixed(2) }; }); }
+  return { diem: [+x.toFixed(2), +y.toFixed(2), +z.toFixed(2)], ...(tot && tot.kc < 4 ? tot : { mat: null }) };
+}
+ganBaoLech({ nut: $('b-lech'), chupHai: () => chupHaiBan() });
 // góp ý: hộp gopy.js, kèm ảnh khung hình + ngữ cảnh chỗ đứng
 ganGopY({ nut: $('b-gy'), tieuDe: 'Góp ý cho Neuschwanstein', chupAnh: () => chupCanvas(renderer.domElement, () => renderer.render(scene, camera)), nguCanh: () => {
   const p = di?.dang ? di.viTri() : null, ph = p && noiThat ? noiThat.phongTai(p.x, p.y - 0.9, p.z) : null;
@@ -1128,7 +1167,7 @@ const nhieuNguoi = di ? taoNhieuNguoi({ THREE, scene, lau: 'neuschwanstein', nut
   layTrangThai: () => (di.dang ? { p: di.viTri(), h: di.huong, s: { tt: di.tt, toc: di.toc, nen: di.nen, ngoi: !!dangNgoi } } : null) }) : null;
 function phongHienTai() { if (!noiThat || !di?.dang) return null; const p = di.viTri(); return noiThat.phongTai(p.x, p.y - 0.9, p.z); }
 window.__ns.cuaSo = { CUA, timCua, sanSauCua, moCuaVao, gan: () => ganCua };
-window.__ns.kiemKe = () => KIEM_KE;
+window.__ns.kiemKe = () => KIEM_KE; window.__ns.chupHaiBan = chupHaiBan; window.__ns.diemTaiAnh = diemTaiAnh;
 // CHỒNG LẤN: hai ô cửa cùng một mặt tường mà khung chạm nhau (kể cả cửa dựng theo luật chung) → danh sách cặp (scripts/kiem-ke.mjs báo lỗi)
 window.__ns.chongLan = () => { const theoMat = new Map(); for (const c of CUA) { if (!c.mat) continue; (theoMat.get(c.mat) || theoMat.set(c.mat, []).get(c.mat)).push(c); } const ra = [];
   for (const [mat, ds] of theoMat) for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++) { const a = ds[i], b = ds[j], ux = -a.nz, uz = a.nx, sa = a.x * ux + a.z * uz, sb = b.x * ux + b.z * uz;
@@ -1158,7 +1197,7 @@ const datAnh3d = (bat) => {
 function apDungAnh3d() {
   if (!anh3d) return;
   const p = di?.dang ? di.viTri() : null, gan = !!p && Math.hypot(p.x + 30, p.z - 30) < 260;
-  const hien = anh3d.bat && !dangSo && !gan; if (hien === anh3d.hien) return; anh3d.hien = hien;
+  const hien = anh3d.epHien || (anh3d.bat && !dangSo && !gan); if (hien === anh3d.hien) return; anh3d.hien = hien; // epHien: báo lệch đang chụp bản ảnh thật (kể cả khi đi bộ gần)
   anh3d.goc.visible = hien; if (!hien) $('nguon-3d').textContent = '';
   LOP_OSM.dangAn = hien; for (const m of LOP_OSM) m.visible = !hien && !(dangSo && RUNG.includes(m)); for (const c of CAY_VA) c.setEnabled(!hien); // so ảnh: rừng giữ ẩn (moSo đã ẩn, không bật lại ở đây)
   if (!hien) LOP_OSM.vaDat?.setEnabled(true); for (const c of anh3d.va.values()) for (const k of c) k.setEnabled(hien); // lưới đất: capNhatAnh3d chỉ tắt khi dưới chân đã có va chạm ô

@@ -76,3 +76,13 @@ Thiếu ngữ cảnh → `$S reply <id> "<lý do bí>"`, để nguyên In progre
 Mỗi mục một dòng (`✅ #id … → Review` / `⚠ #id … → còn In progress, đã hỏi lại`), kèm dòng NEO cuối theo luật chung.
 
 **`submit` = nộp, KHÔNG đóng sổ** — "Duyệt xong" là nút của anh.
+
+## Thẻ "[LỆCH ẢNH THẬT]" (nút 🔍 trên Neuschwanstein)
+
+Người xem bấm 🔍 ở một góc: trang chụp hai bản cùng camera (mô hình · ảnh thật 3D Google), họ tô đỏ vùng lỗi (tuỳ chọn) rồi gửi. Thẻ có `LECH-JSON:{camera}` trong ngữ cảnh,
+`VUNG-JSON:[nét tô]` trong nội dung, ảnh ghép hai bản kèm nét đỏ. **Việc đầu tiên khi gặp thẻ này:**
+```bash
+node /Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/castle/scripts/so-lech.mjs --the <id>
+```
+→ dựng lại đúng camera (vị trí, hướng, góc nhìn, zoom, khổ), chụp lại hai bản, so viền trời + màu khối + đường nét, ra bảng vùng lệch xếp hạng (vùng trong nét tô lên đầu),
+mỗi vùng dò ra mặt tường OSM `khối#cạnh` + toạ độ; ảnh `apps/castle/.bao-lech/<id>/bao-cao.png` (khung đỏ đánh số). Sửa theo QUY-TRINH.md (khung → vị trí → tương quan → hoa văn), chạy lại lệnh tới khi vùng đó hết đứng đầu.

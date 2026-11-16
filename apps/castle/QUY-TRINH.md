@@ -50,6 +50,12 @@ Mỗi mặt chỉ xong khi: kiểm kê sạch **và** chụp mô hình từ đú
 10. `node scripts/them-chop.mjs <thư mục> --lau <tên>` → chóp / tháp nhỏ OSM không có (`<tên>-chop.json`; chỉ giữ chóp thấy trên ≥ 2 ảnh hoặc nối khối OSM).
 11. Lặp 1–10 tới khi: kiểm cụm cửa đạt hết, kiểm viền ≥ 80 % cột khớp, chồng ảnh 50 % không lệch thấy được.
 
+### 4b. Báo lệch theo góc nhìn (nút 🔍 + CLI)
+
+`node apps/castle/scripts/so-lech.mjs --the <id thẻ góp ý>` hoặc `--cam '{"p":[x,y,z],"d":[dx,dy,dz],"fov":50,"zoom":40,"w":1280,"h":800}' [--vung '[[[u,v],…]]']`:
+chụp hai bản cùng camera (`window.__ns.chupHaiBan`, cùng hàm nút trên trang), so (`scripts/so-lech.py`: viền trời · màu khối chuẩn hoá · đường nét, lưới 32 × 20 ô), vùng tô đỏ ×2 điểm,
+dò mỗi vùng ra mặt tường (`window.__ns.diemTaiAnh`). Phá thử đã chạy: hạ tháp góc Torbau còn 10 m → vùng đỉnh tháp lên #1 (bản đúng không có vùng đó).
+
 ## 5. Không lùi
 
 **Sau MỌI lần sửa mã castle:** `node apps/castle/scripts/kiem-chu-thich.mjs` (chú thích `//` nuốt mã — `node --check` không bắt được khi phần bị nuốt vẫn đúng cú pháp; tự kiểm `--tu-kiem`). Khi sửa bằng thay chuỗi: chú thích mới đặt trên DÒNG RIÊNG, không nối vào cuối đoạn thay.

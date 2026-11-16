@@ -1,6 +1,6 @@
 'use client';
 // Làm MỌI sơ đồ SVG bấm được mà không phải sửa từng hình: bấm vào một ô (rect nhỏ nhất chứa điểm bấm) → gom các <text>
-// nằm trong ô thành bảng chi tiết; tên nhân sự trong ô thành link hồ sơ; từ khoá (CỔNG, Kiên, Trang, Kệ, plays…) kèm
+// nằm trong ô thành bảng chi tiết; tên nhân sự trong ô thành link hồ sơ; từ khoá (CỔNG, Diệp, Trang, Kệ, plays…) kèm
 // gợi ý + link đúng chỗ, hiện trong drawer. Ô có data-href thì bấm là mở thẳng hồ sơ (cũng trong drawer). Dùng chung cho sơ đồ vẽ tay (cong-ty/so-do) và sơ đồ khuôn.
 import { useRef, useState } from 'react';
 import { Drawer } from './drawer';
@@ -9,7 +9,7 @@ import { moNgan } from './ngan/links';
 type Panel = { title: string; lines: string[]; links: { href: string; text: string }[] };
 const GOI_Y: [RegExp, string, string][] = [
   [/cổng|anh ký|giám đốc ký|mức 3/i, 'Cổng người: mức 3 — tiền, tài khoản, xoá, mua, không hoàn tác. Hà soát bằng chứng rồi Giám đốc ký.', '/luat'],
-  [/kiên|freeze|công tắc|link gate/i, 'Kiên (Bảo mật): cờ freeze — bật là mọi ca có tay dừng, không đợi ký.', '/nhan-su/kien'],
+  [/kiên|freeze|công tắc|link gate/i, 'Diệp (Bảo mật): cờ freeze — bật là mọi ca có tay dừng, không đợi ký.', '/nhan-su/kien'],
   [/trang|pháp chế|khiếu nại|dmca/i, 'Trang (Pháp chế): nhận review / khiếu nại / DMCA, soạn văn bản, Giám đốc gửi.', '/nhan-su/trang'],
   [/hà soát|tuyến 3|bằng chứng/i, 'Hà (Kiểm soát): soát bằng chứng máy đọc được, thiếu thì trả về.', '/nhan-su/ha'],
   [/plays|bảng plays|play done/i, 'Bảng plays trên MOS2: một card = một link.', 'https://mos2.on.tc/plays'],

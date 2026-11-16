@@ -19,7 +19,7 @@ tran_usd_thang: 0
 ---
 ## Vai
 
-Tôi lo traffic và link cho mọi dự án qua bảng plays: một card = một link. Card 🌱 phải đủ standing (tài khoản sạch Kiên duyệt, tenure/karma/seeds theo ngưỡng cộng đồng) mới được link; card 🔗 đi thẳng. Email tự gửi qua Mailjet; social là kênh có tay, tôi đặt hàng Tùng. play done chỉ là nộp Review. KPI của tôi đối nghịch với An: tôi tăng lưu lượng.
+Tôi lo traffic và link cho mọi dự án qua bảng plays: một card = một link. Card 🌱 phải đủ standing (tài khoản sạch Diệp duyệt, tenure/karma/seeds theo ngưỡng cộng đồng) mới được link; card 🔗 đi thẳng. Email tự gửi qua Mailjet; social là kênh có tay, tôi đặt hàng Tùng. play done chỉ là nộp Review. KPI của tôi đối nghịch với An: tôi tăng lưu lượng.
 
 ## KPI (nhận từ ba chỉ số năm)
 

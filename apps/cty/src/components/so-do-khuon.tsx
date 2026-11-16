@@ -30,7 +30,7 @@ export function SoDoKhuon({ p, ns }: { p: Doc; ns: Doc[] }) {
     <Ar d="M540 52 Q680 52 720 126" /><Ar d="M720 172 Q720 248 542 248" /><Ar d="M380 248 Q200 248 200 174" /><Ar d="M200 128 Q200 52 378 52" />
     <Box x={740} y={30} w={170} h={50} t="CỔNG TIỀN" s={cong} warn />
     <Ar d="M800 128 V82" warn />
-    <Box x={640} y={200} w={160} h={34} t="Kiên · công tắc" teal href="/nhan-su/kien" />
+    <Box x={640} y={200} w={160} h={34} t="Diệp · công tắc" teal href="/nhan-su/kien" />
   </>);
   else if (khuon === 'hat-nho') body = (<>
     {[0, 1, 2, 3, 4, 5].map((i) => <circle key={i} cx={60 + (i % 3) * 30} cy={70 + Math.floor(i / 3) * 30} r={9} fill="var(--soft)" stroke="var(--accent)" />)}
@@ -40,7 +40,7 @@ export function SoDoKhuon({ p, ns }: { p: Doc; ns: Doc[] }) {
     {[0, 1, 2].map((i) => <Ar key={i} d={`M${318 + i * 130} 84 H${328 + i * 130}`} />)}
     <Ar d="M708 84 H738" />
     <Box x={740} y={56} w={170} h={56} t="CỔNG" s={cong} warn />
-    <Box x={460} y={190} w={200} h={34} t="Kiên · link gate / freeze" teal href="/nhan-su/kien" />
+    <Box x={460} y={190} w={200} h={34} t="Diệp · link gate / freeze" teal href="/nhan-su/kien" />
     <Ar d="M560 190 V108" dash />
     <Box x={200} y={190} w={240} h={44} t="Kệ kết quả" s="pending → submitted → verified" />
     <Ar d="M825 112 V212 H442" warn />
@@ -50,7 +50,7 @@ export function SoDoKhuon({ p, ns }: { p: Doc; ns: Doc[] }) {
     {[0, 1, 2, 3, 4].map((i) => <Ar key={i} d={`M${162 + i * 148} 84 H${176 + i * 148}`} />)}
     <Box x={560} y={190} w={330} h={50} t="CỔNG anh ký (ngoài đường chính)" s={cong} warn />
     <Ar d="M690 190 V106" warn dash />
-    <Box x={250} y={190} w={250} h={34} t="Kiên · freeze deploy khi sự cố" teal href="/nhan-su/kien" />
+    <Box x={250} y={190} w={250} h={34} t="Diệp · freeze deploy khi sự cố" teal href="/nhan-su/kien" />
     <Ar d="M375 190 V106" dash />
     <text x={96} y={212} textAnchor="middle" fontSize={10} fill="var(--muted)">{dv.slice(0, 28)}</text>
   </>);
@@ -77,7 +77,7 @@ export function SoDoKhuon({ p, ns }: { p: Doc; ns: Doc[] }) {
     <Ar d="M616 84 H658" />
     <Box x={660} y={54} w={240} h={60} t="5 CỔNG" s={cong} warn />
     <Ar d="M780 114 V150" warn />
-    <Box x={660} y={152} w={240} h={34} t="Kiên · cờ freeze" teal href="/nhan-su/kien" />
+    <Box x={660} y={152} w={240} h={34} t="Diệp · cờ freeze" teal href="/nhan-su/kien" />
     <Ar d="M780 186 V212" />
     <Box x={660} y={214} w={240} h={40} t="Kệ kết quả" s="đã đăng / đã giao" />
     <Box x={30} y={212} w={330} h={44} t="Trang · sau sự cố" s="review, khiếu nại → soạn, anh ký" warn href="/nhan-su/trang" />

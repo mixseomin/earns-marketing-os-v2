@@ -206,18 +206,18 @@ const KET_MAIL: Record<MailBm['ket'], [string, string]> = { gia: ['THƯ GIẢ', 
 /** Dây chuyền MAIL BẢO MẬT (Phòng Bảo mật): mỗi thư một hàng — kết luận của máy + việc phải làm; thư đã xử mờ đi. */
 export async function DcMail({ ds: tatCa }: { ds: MailBm[] | null }) {
   if (tatCa === null) return <p className="cty-bao-loi" data-loi>Không đọc được hòm claude@orit.app (Directus claude_inbox) — xem DIRECTUS_URL / DIRECTUS_TOKEN của mos2-cty.</p>;
-  const ds = tatCa.filter((m) => m.ket !== 'thuong'), thuong = tatCa.length - ds.length;   // Kiên đọc MỌI thư; bảng chỉ liệt kê thư bảo mật
+  const ds = tatCa.filter((m) => m.ket !== 'thuong'), thuong = tatCa.length - ds.length;   // Diệp đọc MỌI thư; bảng chỉ liệt kê thư bảo mật
   const day = (await docDay()) as { nha?: string[]; quen?: string[]; gia?: string[]; lich_su?: { luc: string; nhom: string; mien: string; ai: string }[] };
   const nhomCua = (m: string) => (['nha', 'quen', 'gia'] as const).find((k) => day[k]?.includes(m));
-  const dem = <><p className="cty-muted cty-nho">Kiên đã đọc {tatCa.length} thư trong 30 ngày: {ds.length} thư bảo mật, {thuong} thư thường (không có dấu hiệu bảo mật, không cần làm gì).</p>
-    <p className="cty-muted cty-nho">Đã dạy Kiên — 🏠 nhà mình: {day.nha?.join(', ') || '—'} · ✅ thật, quen: {day.quen?.join(', ') || '—'} · ⛔ giả: {day.gia?.join(', ') || '—'}. Dạy bằng nút trên từng dòng hoặc dưới tin Telegram.</p>
+  const dem = <><p className="cty-muted cty-nho">Diệp đã đọc {tatCa.length} thư trong 30 ngày: {ds.length} thư bảo mật, {thuong} thư thường (không có dấu hiệu bảo mật, không cần làm gì).</p>
+    <p className="cty-muted cty-nho">Đã dạy Diệp — 🏠 nhà mình: {day.nha?.join(', ') || '—'} · ✅ thật, quen: {day.quen?.join(', ') || '—'} · ⛔ giả: {day.gia?.join(', ') || '—'}. Dạy bằng nút trên từng dòng hoặc dưới tin Telegram.</p>
     {!!day.lich_su?.length && <details className="cty-dn-do" open><summary>Đã dạy <span className="cty-muted cty-nho">{day.lich_su.length} lần — mỗi lần thành bài học trong hồ sơ người phụ trách › Kinh nghiệm</span></summary>
       <div className="cty-cuon"><table className="cty-bang-loc cty-bang-viec"><thead><tr><th>Lúc</th><th>Tên miền</th><th>Nhớ là</th><th>Ai dạy</th></tr></thead><tbody>
         {[...day.lich_su].reverse().slice(0, 10).map((x, i) => <tr key={i}><td><TruocDay iso={x.luc} /></td><td>{x.mien}</td><td>{({ nha: '🏠 Nhà mình', quen: '✅ Thật, quen', gia: '⛔ Giả' } as Record<string, string>)[x.nhom] ?? x.nhom}</td><td className="cty-muted">{x.ai || '—'}</td></tr>)}
       </tbody></table></div></details>}</>;
   if (!ds.length) return <>{dem}<p className="cty-muted">30 ngày qua không có thư bảo mật nào trong hòm. Thư nghi vấn: chuyển tiếp vào claude@orit.app, máy thẩm định khi mở phòng.</p></>;
   return (
-    <>{dem}<div className="cty-cuon"><table className="cty-bang-loc cty-bang-viec"><thead><tr><th>Ngày</th><th>Thư</th><th>Nhà</th><th>Loại</th><th>Kết luận</th><th>Việc phải làm</th><th>Trạng thái</th><th>Dạy Kiên</th></tr></thead><tbody>
+    <>{dem}<div className="cty-cuon"><table className="cty-bang-loc cty-bang-viec"><thead><tr><th>Ngày</th><th>Thư</th><th>Nhà</th><th>Loại</th><th>Kết luận</th><th>Việc phải làm</th><th>Trạng thái</th><th>Dạy Diệp</th></tr></thead><tbody>
       {ds.map((m) => <tr key={m.id} className={m.xong ? 'cty-muted' : undefined}>
         <td className="cty-so">{ngay(m.luc.slice(0, 10))}</td><td>{m.tieuDe}<div className="cty-muted cty-nho">{m.gui}</div></td><td className="cty-bang-ai">{m.mien || '—'}</td>
         <td className="cty-bang-ai">{m.loai.map((l) => TEN_LOAI[l] ?? l).join(', ') || '—'}</td>
@@ -231,7 +231,7 @@ export async function DcMail({ ds: tatCa }: { ds: MailBm[] | null }) {
 const THU_TU = ['giam-doc', 'tre', 'truong-phong', 'nguoi-lam', 'kenh-keo-khach', 'thi-truong'];
 export type ViecDc = { key: string; dc: string; k: string; ai: string | null; chu: string; muc?: number; qua?: number | null; nhan?: string; href?: string; ten?: string; /** quy trình của việc — ngăn quy trình liệt kê việc đang mở của nó */ qt?: string | null;
   /** lệnh máy làm lại được ngay (worker/lenh-may.mjs) — có thì hàng có nút "Chạy lại ngay" */ lenh?: string };
-/** Một thư bảo mật đã thẩm định (worker/mail-bao-mat.mjs docMailBaoMat). xong = anh/Kiên đã đọc hoặc lưu trữ thư trong hòm. */
+/** Một thư bảo mật đã thẩm định (worker/mail-bao-mat.mjs docMailBaoMat). xong = anh/Diệp đã đọc hoặc lưu trữ thư trong hòm. */
 export type MailBm = { id: string; luc: string; tieuDe: string; xong: boolean; gui: string; mien: string; loai: string[]; ket: 'gia' | 'that' | 'chua-ro' | 'thuong'; chu: string; viec: string };
 type DuLieuDc = { dsDc: DcKhai[]; dc: DayChuyen | null; lv: Lv; kenh: Kenh[] | null; phong: string; /** dây chuyền nguon 'mail' — null = không đọc được hòm */ mail?: MailBm[] | null };
 export function viecCacDayChuyen({ dsDc, dc, lv, kenh, phong, mail }: DuLieuDc): ViecDc[] {
@@ -245,7 +245,7 @@ export function viecCacDayChuyen({ dsDc, dc, lv, kenh, phong, mail }: DuLieuDc):
     if (d.nguon.startsWith('kenh:')) for (const r of (kenh ?? []).filter((x) => x.kenh === d.nguon.slice(5) && x.canh_bao))
       ds.push({ key: `k${r.kenh}${r.san_pham}`, dc: d.id, k: 'kenh-keo-khach', ai: 'kenh-keo-khach', chu: r.canh_bao!, href: r.the_id ? hrefThe(r.the_id) : undefined, ten: r.ten, qt: d.qt_chinh ?? null });
     // thư bảo mật chưa xử (còn "new" trong hòm) → việc của trưởng phòng; thư giả / có người mạo danh lên mức 1 (làm ngay)
-    if (d.nguon === 'mail') for (const m of (mail ?? []).filter((x) => !x.xong && x.ket !== 'thuong' && x.luc >= BAT_TU))   // thư trước khi bật Kiên không thành việc
+    if (d.nguon === 'mail') for (const m of (mail ?? []).filter((x) => !x.xong && x.ket !== 'thuong' && x.luc >= BAT_TU))   // thư trước khi bật Diệp không thành việc
       ds.push({ key: `m${m.id}`, dc: d.id, k: 'truong-phong', ai: 'truong-phong', chu: `${m.chu} → ${m.viec}`, muc: m.ket === 'gia' || m.loai.some((l) => l !== 'thanh-toan') ? 1 : 2, nhan: m.mien, ten: m.tieuDe, qt: 'tham-dinh-mail-bao-mat' });
   }
   const tt = (k: string) => (THU_TU.includes(k) ? THU_TU.indexOf(k) : THU_TU.length);

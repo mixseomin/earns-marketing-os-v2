@@ -1,6 +1,6 @@
 // SỔ CẢNH BÁO NỀN TẢNG (anh 18/10/2026: "log lại mỗi lần tk bị một thông báo kiểu rủi ro này để phòng quản lý rủi ro nắm được").
 // Mỗi lần một tài khoản gặp thông báo rủi ro của nền tảng (bị hạn chế hành động, bị khoá / vô hiệu hoá, đòi xác minh danh tính, từ chối đăng…)
-// → một dòng platform_alerts (mos2_prod, migration 0291). Phòng Bảo mật (Kiên) đọc sổ này: nhịp mail-bao-mat báo dòng mới lên Telegram chủ đề 🔐 Bảo mật.
+// → một dòng platform_alerts (mos2_prod, migration 0291). Phòng Bảo mật (Diệp) đọc sổ này: nhịp mail-bao-mat báo dòng mới lên Telegram chủ đề 🔐 Bảo mật.
 // Ba đường ghi, cùng vào ghi() ở đây:
 //   · br tự soi (~/bin/br: chữ trang trả về khớp mẫu rủi ro → canh-bao ghi --nguon br-tu-dong)
 //   · máy đăng (puzzle-books dang-may: lỗi đăng khớp mẫu rủi ro)
@@ -48,12 +48,12 @@ export async function ghi(x, sql) {
     return { id: r.id, moi: true };
   } finally { if (tu) await sql.end({ timeout: 2 }).catch(() => {}); }
 }
-/** Dòng chưa báo (cho Kiên) — đánh dấu đã báo bằng daBao(ids). */
+/** Dòng chưa báo (cho Diệp) — đánh dấu đã báo bằng daBao(ids). */
 export async function chuaBao(sql) { return sql`select * from platform_alerts where not da_bao order by luc limit 20`; }
 export async function daBao(sql, ids) { if (ids.length) await sql`update platform_alerts set da_bao = true where id in ${sql(ids)}`; }
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 /** Tin Telegram cho một cảnh báo (HTML). */
-export function tinCanhBao(a, ten = 'Kiên') {
+export function tinCanhBao(a, ten = 'Diệp') {
   const tk = [a.platform, a.handle ? `@${String(a.handle).replace(/^@/, '')}` : null, a.account_id ? `vault #${a.account_id}` : null].filter(Boolean).join(' · ') || esc(a.profile ?? 'không rõ tài khoản');
   const gio = new Date(a.luc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
   return `<b>${LOAI[a.loai] ?? a.loai}</b> — ${esc(tk)}\n${esc(String(a.noi_dung).slice(0, 500))}\n<i>${gio} · ${esc(a.nguon)}${a.may ? ` · ${esc(a.may)}` : ''}</i>${a.url ? `\n${esc(String(a.url).slice(0, 200))}` : ''}\n— ${ten}: dừng thao tác cùng loại trên tài khoản này, không thử lại, chờ Giám đốc quyết.`;

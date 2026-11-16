@@ -1,5 +1,5 @@
 // HÀNG VIỆC THƯ CỦA PHÒNG (anh 20/10/2026: "Phòng Social chưa có ai phụ trách việc tiếp theo" → cho Vân chạy thật).
-// Kiên chuyển thư vào phòng nào thì ghi <DATA>/phong-thu/<phòng>/<mail>.json (mail-bao-mat.mjs giaoPhuTrach). Người phụ trách có máy chạy
+// Diệp chuyển thư vào phòng nào thì ghi <DATA>/phong-thu/<phòng>/<mail>.json (mail-bao-mat.mjs giaoPhuTrach). Người phụ trách có máy chạy
 // (vd Vân: may/van-thu.mjs trên iMac) lấy thư ở đây, báo NHẬN / XONG / DỪNG lên đúng chủ đề Telegram của phòng, kết quả lưu da-xu/.
 //   node worker/phong-thu.mjs --cho <phòng> --json            thư chờ xử (chưa nhận, chưa dừng)
 //   node worker/phong-thu.mjs --nhan <phòng> <mail> --ai <id>  đánh dấu nhận + báo Telegram
@@ -76,7 +76,7 @@ async function bao(ph, x, text, nutHoanTac = false) {
   const goi = await tg(); const { topicPhong } = await import('./tg-phong.mjs');
   // phòng chưa có chủ đề (anh chưa cho tạo) → báo ở 🔐 Bảo mật, không tự tạo chủ đề
   const tp = await topicPhong(ph, `📂 ${ph}`, goi) ?? (() => { try { return JSON.parse(fs.readFileSync(path.join(DATA(), 'bao-mat-tg.json'), 'utf8')).topic; } catch { return null; } })();
-  // Telegram giới hạn 4096 ký tự / tin: báo cáo dài thì cắt thành nhiều tin, tin đầu trả lời ngay dưới thư Kiên chuyển
+  // Telegram giới hạn 4096 ký tự / tin: báo cáo dài thì cắt thành nhiều tin, tin đầu trả lời ngay dưới thư Diệp chuyển
   const phan = []; for (let i = 0; i < text.length; i += 3800) phan.push(text.slice(i, i + 3800));
   const ids = [];
   for (const [i, p] of phan.entries()) { const j = await goi('sendMessage', { message_thread_id: tp, parse_mode: 'HTML', text: p, ...(i === 0 && x.tin ? { reply_parameters: { message_id: x.tin, allow_sending_without_reply: true } } : {}),

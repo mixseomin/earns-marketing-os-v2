@@ -4,7 +4,7 @@ thu_tu: 19
 khuon: day-chuyen
 truong: Vân
 don_vi_viec: 1 kênh mạng xã hội · tuần
-cong_nguoi: thư nền tảng (cấp API, khoá, chính sách) Kiên chuyển vào chủ đề 📂 Social Traffic
+cong_nguoi: thư nền tảng (cấp API, khoá, chính sách) Diệp chuyển vào chủ đề 📂 Social Traffic
 so_do:
 tom_tat: Kéo traffic từ mạng xã hội (Pinterest API, kênh social) cho các dự án; nhận thư của nền tảng xã hội
 trang_thai: đang chạy · theo việc
@@ -18,4 +18,4 @@ cùng góc + dạng (`may-dung --lam-lai-sua`, cất bài cũ, tối đa 3 lần
 Khang = lệnh vào hàng của Khang. Máy đăng lỡ lượt vẫn là việc của Mạnh (thợ máy).
 
 **Đang chờ thư:** khai mỗi thứ phòng đang đợi một dòng `cho_thu: <mẫu> | <lý do>` ở phần đầu tệp này. Thư khớp mẫu (người gửi + tiêu đề +
-đầu thư) thì Kiên chuyển thẳng vào chủ đề 📂 Social Traffic. Hết chờ thì xoá dòng. Kiên chuyển sai phòng → bấm "↪️ Sai phòng" dưới thư.
+đầu thư) thì Diệp chuyển thẳng vào chủ đề 📂 Social Traffic. Hết chờ thì xoá dòng. Diệp chuyển sai phòng → bấm "↪️ Sai phòng" dưới thư.

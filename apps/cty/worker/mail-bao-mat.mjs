@@ -24,7 +24,7 @@ export const NHA = new Set(['amazon', 'google', 'youtube', 'apple', 'icloud', 'p
 const HO = { google: ['c.gle', 'goo.gl', 'g.co', 'gstatic.com', 'googleusercontent.com', 'youtube.com', 'withgoogle.com', 'google.com'], amazon: ['a.co', 'amzn.to', 'media-amazon.com', 'amazon.com'],
   facebookmail: ['facebook.com', 'fb.com', 'instagram.com'], facebook: ['fb.com', 'facebookmail.com'], microsoft: ['live.com', 'outlook.com', 'office.com', 'aka.ms'] };
 const cungNha = (host, mien) => { const m = mienGoc(host); return nhan(m) === nhan(mien) || (HO[nhan(mien)] ?? []).includes(m); };
-// ── SỔ DẠY (anh 14/10/2026 "làm sao trả lời cho Kiên biết site nào không giả, site nào là site nhà"): anh bấm nút dưới tin Telegram hoặc trên
+// ── SỔ DẠY (anh 14/10/2026 "làm sao trả lời cho Diệp biết site nào không giả, site nào là site nhà"): anh bấm nút dưới tin Telegram hoặc trên
 // dòng thư ở cty → tên miền vào một trong ba nhóm. nha = site nhà (thư từ đó là thư thường) · quen = nhà thật có tài khoản (như NHA) · gia = giả,
 // thư từ đó luôn là THƯ GIẢ. Một miền chỉ nằm một nhóm (dạy lại thì chuyển nhóm). Nằm ở dữ liệu box, không phải sửa mã.
 export const NHOM_DAY = { nha: '🏠 Nhà mình', quen: '✅ Thật, quen', gia: '⛔ Giả' };
@@ -35,7 +35,7 @@ export const nhomTuChu = (t) => { const x = String(t).trim().toLowerCase(); cons
 // thư THẬT từ nền tảng có tài khoản của một phòng → giao đúng trưởng phòng đó, ngay dưới tin báo. Thêm nền tảng = thêm một dòng.
 export const PHU_TRACH_MIEN = { 'etsy.com': 'thao', 'amazon.com': 'thao', 'kdp.amazon.com': 'thao', 'gumroad.com': 'thao', 'google.com': 'lan', 'ads.google.com': 'lan' };
 export const phuTrachMien = (mien) => { const m = String(mien || '').toLowerCase(); const k = Object.keys(PHU_TRACH_MIEN).filter((d) => m === d || m.endsWith(`.${d}`)).sort((a, b) => b.length - a.length)[0]; return k ? PHU_TRACH_MIEN[k] : null; };
-/** Chuyển thư thật vào PHÒNG phụ trách (anh 19/10/2026: "Kiên đọc mail xong phải biết forward vào phòng liên quan"): tin đầy đủ vào chủ đề Telegram
+/** Chuyển thư thật vào PHÒNG phụ trách (anh 19/10/2026: "Diệp đọc mail xong phải biết forward vào phòng liên quan"): tin đầy đủ vào chủ đề Telegram
  *  của phòng đó (tạo nếu chưa có) + một dòng dưới tin báo ở 🔐 Bảo mật + nhật ký người phụ trách. Trả true khi đã chuyển. */
 /** Trưởng phòng của một phòng (nhân sự cùng phòng, chức danh "Trưởng…"; không có thì người đầu tiên của phòng). */
 export async function truongPhong(ph) {
@@ -45,7 +45,7 @@ export async function truongPhong(ph) {
 }
 /** Người nhận thư: phòng não chọn → trưởng phòng; không có thì bảng PHU_TRACH_MIEN theo tên miền. */
 export const nguoiNhanThu = async (mail) => (mail.phong && mail.phong !== 'an-toan-tk' ? await truongPhong(mail.phong) : null) ?? phuTrachMien(mail.mien);
-/** Nút "↪️ Sai phòng" dưới thư Kiên chuyển (anh 19/10/2026: "fw sang sai phòng thì làm sao để thông tin về đúng vị trí"). */
+/** Nút "↪️ Sai phòng" dưới thư Diệp chuyển (anh 19/10/2026: "fw sang sai phòng thì làm sao để thông tin về đúng vị trí"). */
 export const nutSai = (id) => ({ inline_keyboard: [[{ text: '↪️ Sai phòng', callback_data: `kc:?:${String(id).slice(0, 8)}` }]] });
 /** Bảng chọn phòng đúng (mọi phòng trong cong-ty/phong), 2 nút một hàng + Huỷ. */
 export async function bangPhong(id8) {
@@ -59,7 +59,7 @@ export async function bangPhong(id8) {
 export function hocChuyen(mail, phong, ai = '', chiTiet = {}) {
   const h = docHoc(), dong = { luc: new Date().toISOString(), id: mail.id, mien: mail.mien, gui: mail.gui, tieuDe: mail.tieuDe, tu: mail.phong ?? null, phong, ai, ...chiTiet };
   h.push(dong);
-  // nhật ký người phụ trách (ngăn Nhật ký trên cty) — dùng lại khi rà Kiên chia sai bao nhiêu, sai kiểu gì
+  // nhật ký người phụ trách (ngăn Nhật ký trên cty) — dùng lại khi rà Diệp chia sai bao nhiêu, sai kiểu gì
   try { const d = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/nhip`; _fs.mkdirSync(d, { recursive: true }); _fs.appendFileSync(`${d}/kien.jsonl`, JSON.stringify({ luc: dong.luc, viec: 'chuyen-lai', ket: `${ai} chuyển lại ${mail.mien} · ${mail.tieuDe}: ${dong.tu ?? '?'} → ${phong}${chiTiet.xoa_ok ? ' · đã xoá tin sai' : ''}` }) + '\n'); } catch { /* nhật ký hỏng: sổ học vẫn ghi */ }
   _fs.writeFileSync(`${tepHoc()}.tam`, JSON.stringify(h.slice(-200), null, 1)); _fs.renameSync(`${tepHoc()}.tam`, tepHoc());
 }
@@ -99,7 +99,7 @@ export async function dayMien(nhom, mien, ai = '') {
   if (ng) (await import('./kinh-nghiem.mjs')).ghiDuocDay(ng.id, 'an-toan-tk/tham-dinh-mail-bao-mat', m, `${m} = ${NOM_CHU[nhom]}: ${SAU_DAY[nhom]}`, ai);
   return s;
 }
-/** Kiên chỉ BÁO thư đến từ lúc được bật — thư cũ hơn coi như anh đã thấy (14/10/2026: lần đầu đọc mọi thư lôi 3 thư tháng 9 ra báo). */
+/** Diệp chỉ BÁO thư đến từ lúc được bật — thư cũ hơn coi như anh đã thấy (14/10/2026: lần đầu đọc mọi thư lôi 3 thư tháng 9 ra báo). */
 export const BAT_TU = '2026-10-13T00:00:00Z';
 const LOAI = [
   ['xac-nhan-lien-he', /confirm (that )?you('|’)?re contacting|customer service wants to confirm|approve (or deny|this request)|xác nhận.*liên hệ/i, 'xác nhận liên hệ CSKH'],
@@ -141,11 +141,11 @@ export function thamDinh({ from, subject = '', html = '' }, day = { nha: [], que
   const links = tachLink(html), la = mien ? links.filter((h) => !cungNha(h, mien) && !tinDuoc(h)) : [];
   const dkim = chuyenTiep ? ' (thư chuyển tiếp mất header gốc nên chưa đọc được chữ ký DKIM — kết luận theo link)' : '';
   if (!mien) return { gui, mien, loai, links, la, ket: 'chua-ro', chu: 'Không đọc được địa chỉ người gửi.', viec: 'Không bấm link nào; chuyển tiếp lại thư dạng tệp đính kèm (.eml) để đọc header.' };
-  if ((day.gia ?? []).includes(mien)) return { gui, mien, loai, links, la, ket: 'gia', chu: `THƯ GIẢ: anh đã dạy Kiên ${mien} là tên miền giả.`, viec: 'Không bấm link, không nhập gì; xoá thư.' };
-  if ((day.nha ?? []).includes(mien)) return { gui, mien, loai, links, la, ket: 'thuong', chu: `Thư từ site nhà (${mien}, anh đã dạy Kiên).`, viec: 'Không cần làm gì.' };
+  if ((day.gia ?? []).includes(mien)) return { gui, mien, loai, links, la, ket: 'gia', chu: `THƯ GIẢ: anh đã dạy Diệp ${mien} là tên miền giả.`, viec: 'Không bấm link, không nhập gì; xoá thư.' };
+  if ((day.nha ?? []).includes(mien)) return { gui, mien, loai, links, la, ket: 'thuong', chu: `Thư từ site nhà (${mien}, anh đã dạy Diệp).`, viec: 'Không cần làm gì.' };
   if (la.length) return { gui, mien, loai, links, la, ket: 'gia', chu: `THƯ GIẢ: mang tên ${mien} nhưng link dẫn sang ${la.slice(0, 3).join(', ')}.`, viec: 'Không bấm link, không nhập gì; xoá thư. Đã lỡ bấm/nhập → đổi mật khẩu ngay trên trang thật (gõ tay địa chỉ) + bật xác minh 2 lớp.' };
-  if (!loai.length) return { gui, mien, loai, links, la, ket: 'thuong', chu: 'Không có dấu hiệu bảo mật (không đòi xác nhận, đăng nhập, mật khẩu, mã, thanh toán; không link lạ).', viec: 'Không cần làm gì.' };   // Kiên đọc MỌI thư (anh 14/10/2026), thư thường chỉ ghi nhận
-  if (!NHA.has(nhan(mien)) && !(day.quen ?? []).includes(mien)) return { gui, mien, loai, links, la, ket: 'chua-ro', chu: `Tên miền ${mien} không phải nhà anh có tài khoản (worker/mail-bao-mat.mjs NHA) — tên nhái hay gặp.`, viec: 'Coi như giả: không bấm link, không trả lời. Là site nhà / nhà quen thì bấm 🏠 hoặc ✅ để dạy Kiên.' };
+  if (!loai.length) return { gui, mien, loai, links, la, ket: 'thuong', chu: 'Không có dấu hiệu bảo mật (không đòi xác nhận, đăng nhập, mật khẩu, mã, thanh toán; không link lạ).', viec: 'Không cần làm gì.' };   // Diệp đọc MỌI thư (anh 14/10/2026), thư thường chỉ ghi nhận
+  if (!NHA.has(nhan(mien)) && !(day.quen ?? []).includes(mien)) return { gui, mien, loai, links, la, ket: 'chua-ro', chu: `Tên miền ${mien} không phải nhà anh có tài khoản (worker/mail-bao-mat.mjs NHA) — tên nhái hay gặp.`, viec: 'Coi như giả: không bấm link, không trả lời. Là site nhà / nhà quen thì bấm 🏠 hoặc ✅ để dạy Diệp.' };
   if (!links.length) return { gui, mien, loai, links, la, ket: 'chua-ro', chu: `Thư mang tên ${mien}, không có link để đối chiếu${dkim}.`, viec: 'Không trả lời thư; kiểm thẳng trên trang thật (gõ tay địa chỉ).' };
   const yeuCau = loai.some((k) => ['xac-nhan-lien-he', 'dang-nhap', 'mat-khau', 'otp'].includes(k));
   return { gui, mien, loai, links, la, ket: 'that', chu: `Thư thật của ${mien}: mọi link về ${[...new Set(links.map(mienGoc))].join(', ')}${dkim}.`,
@@ -162,7 +162,7 @@ function docNao(day) { try { const n = JSON.parse(require_fs().readFileSync(tepN
 let _fs = null, _goc = ''; const require_fs = () => _fs;   // fs nạp một lần ở đầu nhịp / docMailBaoMat (tệp ESM không có require)
 /** Link nhái tên hãng: host chứa tên hãng của người gửi mà KHÔNG cùng nhà (amazon-in.verify-acct.top khi người gửi amazon.in). */
 export const linkNhai = (x) => (x.mien ? (x.la ?? []).filter((h) => h.toLowerCase().includes(nhan(x.mien)) && !cungNha(h, x.mien)) : []);
-// PHÒNG ĐANG CHỜ THƯ (anh 19/10/2026: "các phòng chờ thông tin thì phải có chỗ cho Kiên biết mà phân loại"): mỗi phòng tự khai trong
+// PHÒNG ĐANG CHỜ THƯ (anh 19/10/2026: "các phòng chờ thông tin thì phải có chỗ cho Diệp biết mà phân loại"): mỗi phòng tự khai trong
 // cong-ty/phong/<phòng>.md, phần đầu tệp, một dòng một thứ: `cho_thu: <mẫu> | <lý do>`. + SỔ HỌC CHUYỂN PHÒNG (<DATA>/mail-hoc-phong.json, anh bấm "↪️ Sai phòng" là ghi):
 // hai nguồn chỉ đường mà mô hình không được cãi — người đang chờ thư thì nhận thư; anh đã sửa một thư cùng người gửi + cùng tiêu đề thì đi đúng chỗ anh sửa.
 /** Mọi dòng `cho_thu:` trong phần đầu các tệp phòng → [{ mau, ly_do, phong }]. */
@@ -185,7 +185,7 @@ export function apNao(x, n, day = {}, chiDuong = {}) {
   const { cho = null, hoc = null } = chiDuong;
   if (!x.mien) return x;
   if ((day.gia ?? []).includes(x.mien) || (day.nha ?? []).includes(x.mien) || linkNhai(x).length) return { ...x, phong: n?.phong ?? null };   // chốt máy thắng
-  const y = n ? { ...x, ket: n.ket, chu: `${n.ly_do} (Kiên đọc thư)`, viec: n.viec || x.viec, phong: n.phong ?? null, nao: true } : { ...x };
+  const y = n ? { ...x, ket: n.ket, chu: `${n.ly_do} (Diệp đọc thư)`, viec: n.viec || x.viec, phong: n.phong ?? null, nao: true } : { ...x };
   if (cho) return { ...y, ket: 'that', phong: cho.phong, viec: `${cho.ly_do || 'Phòng này đang chờ thư này'} — ${y.viec}`, chiDuong: 'cho-thu' };   // người đang chờ thì nhận
   if (hoc) return { ...y, ket: y.ket === 'thuong' ? 'that' : y.ket, phong: hoc.phong, chiDuong: 'hoc' };   // anh đã sửa thư cùng loại
   return y;
@@ -194,7 +194,7 @@ const NAO_KET = ['gia', 'that', 'thuong', 'chua-ro'];
 /** Mô hình đọc một thư → { ket, ly_do, viec, phong } hoặc null khi lỗi (giữ kết luận máy). */
 export async function nhanDinh(nguoi, model, x, phongDs, ph = '') {
   if (!model) return null;
-  const system = `Bạn là Kiên, trưởng phòng Bảo mật của một công ty nhỏ (chủ là "anh"). Hòm claude@orit.app nhận thư anh chuyển tiếp từ Gmail. Việc của bạn: đọc MỘT thư, kết luận và giao đúng phòng.
+  const system = `Bạn là Diệp, trưởng phòng Bảo mật của một công ty nhỏ (chủ là "anh"). Hòm claude@orit.app nhận thư anh chuyển tiếp từ Gmail. Việc của bạn: đọc MỘT thư, kết luận và giao đúng phòng.
 - ket: "gia" (lừa đảo / mạo danh: người gửi giả, link dẫn sang tên miền lạ hay nhái, đòi mật khẩu/mã/tiền bất thường), "that" (thư thật của nền tảng/đối tác, CÓ việc cần người xử lý: cảnh báo vi phạm, yêu cầu xác nhận, thanh toán, khoá tài khoản, hạn chót), "thuong" (thư thật, chỉ thông báo, không cần làm gì), "chua-ro".
 - Gmail khi chuyển tiếp tự thêm link (google.com/url, Google Maps cho địa chỉ ở chân thư): KHÔNG coi là dấu hiệu giả. Danh sách tên miền link bên dưới đã bỏ các link đó.
 - phong: id phòng phải xử lý (chọn trong danh sách), null nếu không phòng nào. Thư về tài khoản bán hàng / sàn của phòng nào thì giao phòng đó.
@@ -203,7 +203,7 @@ export async function nhanDinh(nguoi, model, x, phongDs, ph = '') {
 Trả DUY NHẤT JSON: {"ket":"…","ly_do":"…","viec":"…","phong":"…"}.`;
   const vd = docHoc().slice(-15).map((h) => `- ${h.mien} · "${h.tieuDe}" → ${h.phong}`).join('\n');
   const cho = docChoThu().map((c) => `- ${c.phong}: ${c.ly_do} (mẫu: ${c.mau})`).join('\n');
-  const user = `${cho ? `PHÒNG ĐANG CHỜ THƯ (thư khớp thì giao đúng phòng đó):\n${cho}\n\n` : ''}${vd ? `ANH ĐÃ SỬA (thư Kiên chuyển sai phòng → phòng đúng; theo đúng cách chia này):\n${vd}\n\n` : ''}Người gửi thật: ${x.gui}${x.chuyenTiep ? ' (thư anh chuyển tiếp)' : ''}\nTiêu đề: ${x.tieuDe}\nTên miền các link trong thư: ${[...new Set((x.links ?? []).map(mienGoc))].join(', ') || '(không có)'}\nMáy đo: ${x.ket} — ${x.chu}\n\nCÁC PHÒNG:\n${phongDs}\n\nNỘI DUNG THƯ:\n${x.than ?? ''}`;
+  const user = `${cho ? `PHÒNG ĐANG CHỜ THƯ (thư khớp thì giao đúng phòng đó):\n${cho}\n\n` : ''}${vd ? `ANH ĐÃ SỬA (thư Diệp chuyển sai phòng → phòng đúng; theo đúng cách chia này):\n${vd}\n\n` : ''}Người gửi thật: ${x.gui}${x.chuyenTiep ? ' (thư anh chuyển tiếp)' : ''}\nTiêu đề: ${x.tieuDe}\nTên miền các link trong thư: ${[...new Set((x.links ?? []).map(mienGoc))].join(', ') || '(không có)'}\nMáy đo: ${x.ket} — ${x.chu}\n\nCÁC PHÒNG:\n${phongDs}\n\nNỘI DUNG THƯ:\n${x.than ?? ''}`;
   try {
     const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': nguoi, 'x-cty-luot': `nao-${Date.now()}`, ...(ph ? { 'x-cty-phong': ph } : {}) },
       body: JSON.stringify({ model, max_tokens: 400, temperature: 0.1, system, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(60000) });
@@ -260,7 +260,7 @@ export const tinDaNho = (x, ten) => `🧠 <b>${esc(ten)}</b> đã nhớ: <b>${es
 /** Ba nút dạy dưới mỗi tin báo (cùng ba nút trên dòng thư ở cty). */
 export const nutDay = (mien) => (mien ? { inline_keyboard: [Object.entries(NHOM_DAY).map(([k, t]) => ({ text: `${t}: ${mien}`.slice(0, 60), callback_data: `km:${k}:${mien}`.slice(0, 64) }))] } : undefined);
 const KET_CHU = { gia: '⛔ THƯ GIẢ', that: '⚠️ Thư thật — xem kỹ yêu cầu', 'chua-ro': '❓ Chưa rõ — coi như giả', thuong: '✅ Không có dấu hiệu bảo mật' };
-/** Tin "đã đọc" cho thư GỌI TÊN người phụ trách mà không phải thư bảo mật (anh gửi "Kiên check mail" mà không thấy gì, 14/10/2026). */
+/** Tin "đã đọc" cho thư GỌI TÊN người phụ trách mà không phải thư bảo mật (anh gửi "Diệp check mail" mà không thấy gì, 14/10/2026). */
 export const tinDaDoc = (m, ten) => `📨 <b>${esc(ten)}</b> đã đọc thư <i>${esc(m.tieuDe)}</i> (${esc(m.gui)}) — ${esc(m.chu)} ${esc(m.viec)}\n<a href="${CTY}">↗ cty · Bảo mật › Mail bảo mật</a>`;
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 /** Tin báo: lời của người phụ trách (mô hình viết, có thể rỗng) + kết luận và việc NGUYÊN VĂN của máy (mô hình không được sửa). */
@@ -268,7 +268,7 @@ export const tinBao = (m, ten, loi = '') => `🔐 <b>${esc(ten)} · ${esc(m.mien
 /** Lời mở của người phụ trách qua proxy công ty (worker/proxy.mjs — ghi tiền, trần chi). Lỗi → '' (tin vẫn đi bằng khuôn). */
 async function loiMo(nguoi, model, m, phong) {
   if (!model) return '';
-  const body = { model, max_tokens: 160, temperature: 0.3, system: 'Bạn là Kiên, trưởng phòng Bảo mật. Viết cho Giám đốc (gọi là "anh") 1–2 câu tiếng Việt ngắn, bình tĩnh: chuyện gì đang xảy ra và câu cần anh trả lời. Không lặp lại danh sách việc, không bịa chi tiết ngoài dữ kiện.',
+  const body = { model, max_tokens: 160, temperature: 0.3, system: 'Bạn là Diệp, trưởng phòng Bảo mật. Viết cho Giám đốc (gọi là "anh") 1–2 câu tiếng Việt ngắn, bình tĩnh: chuyện gì đang xảy ra và câu cần anh trả lời. Không lặp lại danh sách việc, không bịa chi tiết ngoài dữ kiện.',
     messages: [{ role: 'user', content: `Thư: ${m.tieuDe}\nNgười gửi: ${m.gui}\nMáy kết luận: ${m.chu}\nViệc máy đề xuất: ${m.viec}` }] };
   try {
     const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': nguoi, 'x-cty-luot': `nhip-${Date.now()}`, ...(phong ? { 'x-cty-phong': phong } : {}) }, body: JSON.stringify(body), signal: AbortSignal.timeout(30000) });
@@ -297,7 +297,7 @@ export function buocTin(st, ds, gio, ten = '', giu = () => false) {
   return { gui, tha, xoa, daDoc, st: { ...st, tin, da: [...da, ...daDoc.map((m) => m.id)].slice(-300) }, cho: ds.filter((m) => !m.xong && m.ket !== 'thuong' && !(m.luc && m.luc < BAT_TU)).length };
 }
 // ── ĐIỂM DANH + BÁO CÁO CUỐI NGÀY (anh 14/10/2026: "đầu ngày phải báo điểm danh, cuối ngày báo cáo trong ngày; ngoài giờ thì báo dồn vào đầu
-// ngày hôm sau 8h sáng"). Mốc điểm danh = `diem_danh` trong hồ sơ (Kiên 08:00); báo cáo = 5 phút trước khi hết ca. Mỗi ngày làm việc một lần.
+// ngày hôm sau 8h sáng"). Mốc điểm danh = `diem_danh` trong hồ sơ (Diệp 08:00); báo cáo = 5 phút trước khi hết ca. Mỗi ngày làm việc một lần.
 const gioVN = (ms) => new Date(ms).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' });
 const dongThu = (m) => `• ${KET_CHU[m.ket]} — <i>${esc(m.tieuDe)}</i> (${esc(m.mien || m.gui)})`;
 export function tinDiemDanh({ ten, ca, gio, ngoaiGio, cho }) {
@@ -329,7 +329,7 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
   let day = 0;
   for (const x of moHop(phong || 'an-toan-tk')) {
     x.xong(); const c = x.callback_query; const [, nhom, mien] = String(c?.data ?? '').split(':');
-    // anh TRẢ LỜI một tin báo bằng chữ ("Thật" / "Giả" / "Nhà mình") = bấm nút tương ứng (anh 19/10/2026: báo giả, anh trả lời "Thật" mà Kiên im)
+    // anh TRẢ LỜI một tin báo bằng chữ ("Thật" / "Giả" / "Nhà mình") = bấm nút tương ứng (anh 19/10/2026: báo giả, anh trả lời "Thật" mà Diệp im)
     const tr = x.message, goc = tr?.reply_to_message?.message_id, chuTra = String(tr?.text ?? '');
     if (tr && !tr.from?.is_bot && goc) {
       const mid = Object.entries(st.tin ?? {}).find(([, t]) => t.id === goc)?.[0], nh = nhomTuChu(chuTra);
@@ -369,7 +369,7 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
         if (!sua) await tg('editMessageReplyMarkup', { message_id: bam.message_id, reply_markup: { inline_keyboard: [] } });
         if (cu?.phong && cu.phong !== dich) try { _fs.rmSync(`${process.env.CTY_DATA_DIR || '/var/lib/cty'}/phong-thu/${cu.phong}/${mail.id}.json`, { force: true }); } catch { /* không có */ }
         hocChuyen(mail, dich, ai, { tu: cu?.phong ?? mail.phong ?? null, xoa_tin: idXoa, xoa_ok: xoa, sua_tin: idSua, sua_ok: sua, da_dung: daDung });
-        await tg('answerCallbackQuery', { callback_query_id: c.id, text: daDung ? `Thư đã ở ${dich} — đã dọn tin trùng` : `Kiên chuyển lại sang ${dich}, xoá tin sai và nhớ cách chia này` });
+        await tg('answerCallbackQuery', { callback_query_id: c.id, text: daDung ? `Thư đã ở ${dich} — đã dọn tin trùng` : `Diệp chuyển lại sang ${dich}, xoá tin sai và nhớ cách chia này` });
         if (!daDung) ghiChuyen(st, mail.id, await giaoPhuTrach(tg, st.topic, { ...mail, phong: dich }, ten, st.tin?.[mail.id]?.id));
       } catch (e) { await tg('answerCallbackQuery', { callback_query_id: c.id, text: e.message.slice(0, 190), show_alert: true }); }
       continue;
@@ -378,7 +378,7 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
     try { await dayMien(nhom, mien, c.from?.username ?? String(c.from?.id ?? '')); day++; await tg('answerCallbackQuery', { callback_query_id: c.id, text: `${ten} đã nhớ: ${mien} = ${NOM_CHU[nhom] ?? nhom}` }); }
     catch (e) { await tg('answerCallbackQuery', { callback_query_id: c.id, text: e.message, show_alert: true }); }
   }
-  // mỗi lần sổ dạy đổi (nút Telegram, nút cty, hay dạy hộ bằng lệnh) → Kiên báo một tin "đã nhớ" để anh THẤY Kiên đã học (anh 14/10/2026)
+  // mỗi lần sổ dạy đổi (nút Telegram, nút cty, hay dạy hộ bằng lệnh) → Diệp báo một tin "đã nhớ" để anh THẤY Diệp đã học (anh 14/10/2026)
   const ls = ((await docDay()).lich_su ?? []); if (st.daNho === undefined) st.daNho = 0;
   for (const x of ls.slice(st.daNho)) await tg('sendMessage', { message_thread_id: st.topic, text: tinDaNho(x, ten), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
   const moiNho = ls.length - st.daNho; st.daNho = ls.length;
@@ -402,7 +402,7 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
     const j = await tg('sendMessage', { message_thread_id: st.topic, text: tinBao(m, ten, await loiMo(nguoi, model, m, phong)), parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_markup: nutDay(m.mien) });
     if (j.ok) st.tin[m.id] = { id: j.result.message_id, nut: 1 }; st.vp = 'lam';
   }
-  // thư Kiên kết luận THẬT, tên miền có phòng phụ trách → tự chuyển vào phòng đó MỘT lần (không đợi anh)
+  // thư Diệp kết luận THẬT, tên miền có phòng phụ trách → tự chuyển vào phòng đó MỘT lần (không đợi anh)
   for (const m of (ds ?? []).filter((x) => x.ket === 'that' && !x.xong && x.luc >= BAT_TU && !st.chuyen?.[x.id] && ((x.phong && x.phong !== 'an-toan-tk') || phuTrachMien(x.mien)))) {
     await vpBao(nguoi, 'lam', `chuyển thư ${m.mien}`);
     ghiChuyen(st, m.id, await giaoPhuTrach(tg, st.topic, m, ten, st.tin?.[m.id]?.id));
@@ -462,7 +462,7 @@ if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu
     _fs.writeFileSync(`${_goc}/cong-ty/phong/sach.md`, '---\nten: Phòng Sách\n---\ncho_thu: dòng trong thân không tính');
     a.equal(docChoThu().length, 1, 'chỉ đọc cho_thu ở phần đầu tệp');
     const c = choThu({ gui: 'pinbot@account.pinterest.com', tieuDe: 'Your Pinterest API trial access request was approved', than: '' });
-    a.equal(c?.phong, 'social-traffic', 'phòng tự khai cho_thu trong phong/<id>.md → Kiên giao đúng phòng'); a.equal(choThu({ gui: 'x@etsy.com', tieuDe: 'order', than: '' }), null); _goc = goc0; }
+    a.equal(c?.phong, 'social-traffic', 'phòng tự khai cho_thu trong phong/<id>.md → Diệp giao đúng phòng'); a.equal(choThu({ gui: 'x@etsy.com', tieuDe: 'order', than: '' }), null); _goc = goc0; }
   a.equal(nhomTuChu('Thật'), 'quen'); a.equal(nhomTuChu('thật đấy, của Etsy'), 'quen'); a.equal(nhomTuChu('Giả'), 'gia'); a.equal(nhomTuChu('Nhà mình'), 'nha'); a.equal(nhomTuChu('ok'), null);
   a.equal(phuTrachMien('etsy.com'), 'thao'); a.equal(phuTrachMien('mail.etsy.com'), 'thao'); a.equal(phuTrachMien('evil-etsy.com'), null); a.equal(phuTrachMien('kdp.amazon.com'), 'thao');
   a.equal(mienGoc('www.amazon.co.uk'), 'amazon.co.uk'); a.equal(mienGoc('smile.amazon.in'), 'amazon.in'); a.equal(mienGoc('amazon-in.verify-acct.top'), 'verify-acct.top');
@@ -479,10 +479,10 @@ if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu
   a.equal(thamDinh({ from: 'security@paypa1-support.com', html: '<a href="https://paypa1-support.com/login">Confirm</a> unusual sign-in' }).ket, 'chua-ro');   // tên miền nhái, link cùng nhà nhái → không bao giờ "thật"
   a.equal(thamDinh({ from: 'x', html: '' }).ket, 'chua-ro');
   const m1 = { id: 'a', xong: false, mien: 'amazon.in', gui: 'x@amazon.in', ket: 'that', tieuDe: 'A <b>', chu: 'c', viec: 'v' };
-  const th = { id: 't', xong: false, mien: 'gmail.com', gui: 'a@gmail.com', ket: 'thuong', tieuDe: 'Kiên check mail', chu: 'c', viec: 'v' };
-  const bk = buocTin({}, [th, { ...th, id: 'u', tieuDe: 'GSC report' }], 0, 'Kiên'); a.deepEqual(bk.daDoc.map((m) => m.id), ['t'], 'thư gọi tên Kiên (kể cả không dấu) → trả lời; thư thường khác → im'); a.equal(bk.cho, 0);
-  a.equal(buocTin(bk.st, [th], 1, 'Kiên').daDoc.length, 0, 'trả lời một lần');
-  a.equal(thamDinh({ from: 'htuan82@gmail.com', subject: 'Kiên check mail', html: '<p>hi</p>' }).ket, 'thuong');
+  const th = { id: 't', xong: false, mien: 'gmail.com', gui: 'a@gmail.com', ket: 'thuong', tieuDe: 'Diệp check mail', chu: 'c', viec: 'v' };
+  const bk = buocTin({}, [th, { ...th, id: 'u', tieuDe: 'GSC report' }], 0, 'Diệp'); a.deepEqual(bk.daDoc.map((m) => m.id), ['t'], 'thư gọi tên Diệp (kể cả không dấu) → trả lời; thư thường khác → im'); a.equal(bk.cho, 0);
+  a.equal(buocTin(bk.st, [th], 1, 'Diệp').daDoc.length, 0, 'trả lời một lần');
+  a.equal(thamDinh({ from: 'htuan82@gmail.com', subject: 'Diệp check mail', html: '<p>hi</p>' }).ket, 'thuong');
   a.notEqual(thamDinh({ from: 'adsense-noreply@google.com', subject: 'fix issues', html: '<a href="https://c.gle/abc">x</a>' }).ket, 'gia', 'link c.gle trong thư Google không phải lạ');
   a.equal(buocTin({}, [{ ...m1, luc: '2026-09-26T04:30:00Z' }], 0).gui.length, 0, 'thư trước khi bật không báo');
   const tep = { from: 'support@examweight.com', subject: 'login to continue', html: '<a href="https://examweight.com/x">x</a>' };
@@ -497,11 +497,11 @@ if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu
   a.deepEqual(buocTin(b2.st, [{ ...m1, xong: true }], 1000 + 30_000).xoa, [], 'thả tim xong chưa đủ 1 phút → chưa xoá');
   const b3 = buocTin(b2.st, [{ ...m1, xong: true }], 1000 + 60_000); a.deepEqual(b3.xoa, [7]); a.deepEqual(b3.st.tin, {});
   const ngoai = { ...m1, id: 'n', luc: '2026-10-14T20:30:00Z' };   // 03:30 sáng VN 15/10 — ngoài ca 06–02
-  a.equal(buocTin({}, [ngoai], 0, 'Kiên', () => true).gui.length, 0, 'thư ngoài giờ bị giữ tới điểm danh');
-  a.match(tinDiemDanh({ ten: 'Kiên', ca: '06:00-02:00', gio: Date.parse('2026-10-15T01:00:00Z'), ngoaiGio: [ngoai], cho: [] }), /điểm danh.*\n.*1 thư bảo mật[\s\S]*<a href="https:\/\/cty[^"]+">[^<]+<\/a>$/);
-  a.match(tinBaoCao({ ten: 'Kiên', ca: '06:00-02:00', ngay: '2026-10-14', trongNgay: [m1], cho: [m1], hoc: [{ mien: 'examweight.com', nhom: 'nha' }], goi: 1, usd: 0.0001 }), /báo cáo ngày 14\/10\/2026[\s\S]*Còn chờ anh: 1 thư[\s\S]*examweight\.com = site nhà[\s\S]*<\/a>$/);
-  a.match(tinDaNho({ mien: 'examweight.com', nhom: 'nha', ai: 'anh' }, 'Kiên'), /đã nhớ: <b>examweight\.com<\/b> = site nhà.*\n<a href="https:\/\/cty/, 'tin đã nhớ kết bằng link cty');
-  a.match(tinBao(m1, 'Kiên'), /A &lt;b&gt;/, 'tiêu đề thư được thoát HTML'); a.match(tinBao(m1, 'Kiên'), /<a href="https:\/\/cty\.on\.tc\/[^"]+">[^<]+<\/a>$/, 'dòng cuối là link mở thẳng trên cty');
+  a.equal(buocTin({}, [ngoai], 0, 'Diệp', () => true).gui.length, 0, 'thư ngoài giờ bị giữ tới điểm danh');
+  a.match(tinDiemDanh({ ten: 'Diệp', ca: '06:00-02:00', gio: Date.parse('2026-10-15T01:00:00Z'), ngoaiGio: [ngoai], cho: [] }), /điểm danh.*\n.*1 thư bảo mật[\s\S]*<a href="https:\/\/cty[^"]+">[^<]+<\/a>$/);
+  a.match(tinBaoCao({ ten: 'Diệp', ca: '06:00-02:00', ngay: '2026-10-14', trongNgay: [m1], cho: [m1], hoc: [{ mien: 'examweight.com', nhom: 'nha' }], goi: 1, usd: 0.0001 }), /báo cáo ngày 14\/10\/2026[\s\S]*Còn chờ anh: 1 thư[\s\S]*examweight\.com = site nhà[\s\S]*<\/a>$/);
+  a.match(tinDaNho({ mien: 'examweight.com', nhom: 'nha', ai: 'anh' }, 'Diệp'), /đã nhớ: <b>examweight\.com<\/b> = site nhà.*\n<a href="https:\/\/cty/, 'tin đã nhớ kết bằng link cty');
+  a.match(tinBao(m1, 'Diệp'), /A &lt;b&gt;/, 'tiêu đề thư được thoát HTML'); a.match(tinBao(m1, 'Diệp'), /<a href="https:\/\/cty\.on\.tc\/[^"]+">[^<]+<\/a>$/, 'dòng cuối là link mở thẳng trên cty');
   console.log('✓ mail-bao-mat: 12 ca đạt (tên miền đăng ký, gỡ link chuyển tiếp, người gửi thư chuyển tiếp, thư thật yêu cầu giả, thư giả, tên miền nhái, không đọc được người gửi) + 8 ca nhịp báo (báo một lần, hòm lỗi không đụng, ❤ rồi gỡ sau 1 phút, thoát HTML)');
 }
 if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && !process.argv.includes('--tu-kiem')) {

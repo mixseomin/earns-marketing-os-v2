@@ -27,7 +27,7 @@ trang_thai: đang chạy · máy theo lịch (iMac + MacBook) · nhân sự AI c
 | T4 07:30 | Hà soát cổng: 2 PDF có, bìa có, lint đạt, dòng khai AI có, bút danh Martha Delaney → vào lô chờ ký |
 | T4 08:00 | Minh: "Phòng Sách: 2 cuốn chờ anh duyệt bản xem" |
 | Giám đốc | duyệt trong MOS2 → tới ngày, máy tự bật Etsy (box3), đăng Gumroad (MacBook 09:00), nháp + Publish KDP bìa mềm rồi bìa cứng (iMac 2 giờ/lần); lượt hỏng là việc của Thảo |
-| T4 15:00 | Kiên thấy KDP gửi mail content review cuốn cũ → freeze KDP 48h; Trang soạn giải trình, Giám đốc ký |
+| T4 15:00 | Diệp thấy KDP gửi mail content review cuốn cũ → freeze KDP 48h; Trang soạn giải trình, Giám đốc ký |
 | Hằng ngày 20:00–20:05 | Máy đăng 1 video mỗi nền (TikTok, YouTube, Facebook, Instagram), rồi đo lượt xem; lượt lỗi / quá giờ không có tin → việc trễ của Phúc trên tab Dây chuyền |
 | T2 | Bình chọn chủ đề video tuần (từ khoá mùa + số đo video cũ), Thảo xếp lịch; kho dưới 14 ngày thì dựng thêm |
 | T5 | Khoa nhận card ghim Pinterest |

@@ -1,5 +1,5 @@
 'use client';
-// Ba nút dạy Kiên trên một dòng thư (cùng ba nút dưới tin Telegram). Nhóm đang chọn tô đậm; lỗi hiện ngay dưới nút.
+// Ba nút dạy Diệp trên một dòng thư (cùng ba nút dưới tin Telegram). Nhóm đang chọn tô đậm; lỗi hiện ngay dưới nút.
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { dayKien } from '@/lib/day-kien';
@@ -11,7 +11,7 @@ export function NutDayKien({ mien, dang }: { mien: string; dang?: string }) {
   return (
     <span className="cty-day-kien">
       {NHOM.map(([k, t]) => <button key={k} type="button" className={`cty-btn cty-nho${dang === k ? ' cty-day-dang' : ''}`} disabled={cho}
-        title={`Dạy Kiên: ${mien} = ${t}`} onClick={() => chuyen(async () => { setLoi(null); const r = await dayKien(k, mien); if (!r.ok) setLoi(r.loi ?? 'Máy chủ từ chối.'); router.refresh(); })}>{t}</button>)}
+        title={`Dạy Diệp: ${mien} = ${t}`} onClick={() => chuyen(async () => { setLoi(null); const r = await dayKien(k, mien); if (!r.ok) setLoi(r.loi ?? 'Máy chủ từ chối.'); router.refresh(); })}>{t}</button>)}
       {loi && <span className="cty-bao-loi" data-loi>{loi}</span>}
     </span>
   );

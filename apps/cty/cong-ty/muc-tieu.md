@@ -8,7 +8,7 @@
 |---|---|---|---|
 | A | **Dòng tiền ròng tháng** = thu − chi ads − chi API − chi vendor | dương 3 tháng liên tiếp trước 03/2027 | An, mỗi tuần |
 | B | **Số sản phẩm / kênh có đơn trong 30 ngày** (sách, khoá, tool, site affiliate) | tăng mỗi quý | An, từ sổ Tài sản + kenh_so_ngay |
-| C | **Số tài khoản bị khoá / đình chỉ mới trong năm** | = 0 | Kiên, mỗi ngày |
+| C | **Số tài khoản bị khoá / đình chỉ mới trong năm** | = 0 | Diệp, mỗi ngày |
 
 C bảo vệ A và B: năm qua mất Etsy cũ và asfy_03.
 

@@ -39,7 +39,7 @@ Ngân sách ngoài phong bì, tài khoản mới, đụng tài khoản còn nguy
 
 ## Cấm
 
-Bê nội dung khỏi asfy_03. Đụng 3 tài khoản còn nguyên. Tự nộp Appeal. Tăng thầu khi Kiên freeze.
+Bê nội dung khỏi asfy_03. Đụng 3 tài khoản còn nguyên. Tự nộp Appeal. Tăng thầu khi Diệp freeze.
 
 ## Giọng báo cáo
 

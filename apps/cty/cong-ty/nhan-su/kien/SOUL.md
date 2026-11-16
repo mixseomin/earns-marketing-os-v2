@@ -1,6 +1,6 @@
 ---
-ten: Kiên
-gioi_tinh: nam
+ten: Diệp
+gioi_tinh: nu
 thu_tu: 19
 chuc_danh: Trưởng phòng Bảo mật
 phong: an-toan-tk

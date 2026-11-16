@@ -1,6 +1,6 @@
 // LỊCH CHẠY chỉnh được — MỘT mô hình cho mọi việc tự làm (anh 14/10/2026: "cần phải cho tao điều chỉnh ở đây nữa, refactor và dùng chung"):
 // mô hình lịch ở worker/lich-chu.mjs (mỗi N phút/giờ · nhiều giờ trong ngày · theo thứ). Bảng nhân sự dùng một ô chỉnh (components/chinh-lich.tsx)
-// cho nhịp cty (Kiên kiểm thư), giờ chạy việc Mac (Bảo dọn nhật ký) lẫn từng việc máy (timer / cron trên box, LaunchAgent trên Mac).
+// cho nhịp cty (Diệp kiểm thư), giờ chạy việc Mac (Bảo dọn nhật ký) lẫn từng việc máy (timer / cron trên box, LaunchAgent trên Mac).
 // Web chỉ GHI ý muốn vào <DATA>/lich-chinh.json; bộ chạy nhịp (root, mỗi phút) ÁP cho box (drop-in systemd / dòng crontab), Mac tự áp lúc đẩy ảnh
 // LaunchAgent (scripts/do-launchd.mjs). Áp xong ghi `ap` cạnh ý muốn → ô chỉnh hiện "đã áp" / lỗi đỏ.
 //   node worker/lich-may.mjs --tu-kiem

@@ -11,7 +11,7 @@ const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 export const CHU_DE = { 'an-toan-tk': 'bao-mat-tg.json', 'noi-dung': 'noi-dung-tg.json', 'tai-nguyen': 'tai-nguyen-tg.json' };   // tai-nguyen: 31/10/2026 tin anh trong 🧰 Tài nguyên rơi vào hộp _khac
 const GOC_HOP = () => path.join(DATA(), 'tg-hop'), HOP = (p) => path.join(GOC_HOP(), p);
 const KHAC_NUT = '_khac';   // nút đã nhận (x:cho) — không phòng nào xử
-// Nút bấm về phòng SỞ HỮU nút, không theo chủ đề nơi bấm: "↪️ Sai phòng" (kc:) nằm dưới thư Kiên chuyển vào chủ đề phòng khác vẫn về Kiên.
+// Nút bấm về phòng SỞ HỮU nút, không theo chủ đề nơi bấm: "↪️ Sai phòng" (kc:) nằm dưới thư Diệp chuyển vào chủ đề phòng khác vẫn về Diệp.
 export const NUT_CUA = { x: KHAC_NUT, km: 'an-toan-tk', kc: 'an-toan-tk', tp: 'an-toan-tk', nd: 'noi-dung', et: 'ethopex', el: 'ethopex', eb: 'ethopex-bang', ph: 'phim', sp: 'sp', dc: 'duyet-chi', hq: 'thu-ky', cv: 'etp-duyet' };   // et: nút duyệt tăng / tắt camp của phòng Ethopex · eb: 🔄 bảng số Ethopex (xử ngay ở tg-nghe) · ph: chạy tiếp / dừng phim vượt ngân sách (phim-nut.mjs) · sp: 🚀 máy đăng một sản phẩm (sp-nut.mjs) · dc: ✅ duyệt chi một lượt việc tốn tiền (duyet-chi.mjs)
 const KHAC = '_khac', GIU_KHAC_NGAY = 7;   // tin ở chủ đề không phòng nào nhận (chung, chủ đề tay) — giữ 7 ngày để tra rồi xoá
 
@@ -23,7 +23,7 @@ export function phongCuaTopic(topic) {
   return null;
 }
 /** Chủ đề Telegram của một phòng: có thì trả mã. CHƯA CÓ thì trả null — KHÔNG tự tạo (anh 20/10/2026: "cấm tự đẻ ra phòng, phải xin phép",
- *  sau khi Kiên tự tạo 📂 Dựng sản phẩm). Chỉ nút "✅ Tạo chủ đề" anh bấm mới gọi với { duocTao: true }. */
+ *  sau khi Diệp tự tạo 📂 Dựng sản phẩm). Chỉ nút "✅ Tạo chủ đề" anh bấm mới gọi với { duocTao: true }. */
 export async function topicPhong(phong, ten, tg, { duocTao = false } = {}) {
   const tep = CHU_DE[phong] ? path.join(DATA(), CHU_DE[phong]) : path.join(DATA(), `tg-${phong}.json`);
   let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
@@ -67,7 +67,7 @@ export async function ghimNhanSu(phong, tg) {
   if (st.ghim && (await tg('editMessageText', { message_id: st.ghim, ...opt })).ok) { st.ghimChu = chu; fs.writeFileSync(tep, JSON.stringify(st)); return 'đã sửa'; }
   const j = await tg('sendMessage', { message_thread_id: st.topic, ...opt }); if (!j.ok) return 'gửi hỏng';
   await tg('pinChatMessage', { message_id: j.result.message_id, disable_notification: true });
-  // đọc lại tệp trước khi ghi: phòng khác (Kiên, Ngọc) có thể vừa ghi khoá riêng của nó vào cùng tệp
+  // đọc lại tệp trước khi ghi: phòng khác (Diệp, Ngọc) có thể vừa ghi khoá riêng của nó vào cùng tệp
   try { st = { ...JSON.parse(fs.readFileSync(tep, 'utf8')), ghim: j.result.message_id, ghimChu: chu }; } catch { st = { ...st, ghim: j.result.message_id, ghimChu: chu }; }
   fs.writeFileSync(tep, JSON.stringify(st)); return 'đã ghim';
 }
@@ -162,7 +162,7 @@ export function doiThanhNut(x) {
 export const phongXuChu = (phong, m) => {
   const chu = String(m.text ?? m.caption ?? '');
   if (phong === 'noi-dung') return /https?:\/\//.test(chu);                                   // Ngọc: link nộp chấm
-  if (phong === 'an-toan-tk') return !!m.reply_to_message?.from?.is_bot && !docNut(m.reply_to_message.message_id)?.kb?.flat().some((b) => /^hq:/.test(b.callback_data));   // Kiên: trả lời dưới tin báo thư
+  if (phong === 'an-toan-tk') return !!m.reply_to_message?.from?.is_bot && !docNut(m.reply_to_message.message_id)?.kb?.flat().some((b) => /^hq:/.test(b.callback_data));   // Diệp: trả lời dưới tin báo thư
   if (phong === 'ethopex') return /bỏ\s*(cả\s*)?phim|vi phạm|báo lại phim/i.test(chu);       // Phát: bỏ phim
   if (phong === 'social-traffic') return true;                                                   // Vân: mọi tin (phong-thu.mjs quetTraLoi → iMac)
   return false;

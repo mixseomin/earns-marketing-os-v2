@@ -46,7 +46,7 @@ export function datGio(id, gio, ai = '') {
   if (!GIO.test(String(gio)) || gio === '24:00') throw new Error(`Giờ "${gio}" sai — dạng 03:30`);
   const s = docChinh(); s[id] = { ...(s[id] ?? {}), gio: String(gio), ai, luc: new Date().toISOString() }; return ghiChinh(s, id);
 }
-// LẦN LÀM GẦN NHẤT của mỗi người (mỗi nhịp chạy = một lần làm: kiểm hòm, gửi tin…) — "Làm lần cuối" trên bảng đọc đây (anh 14/10/2026: Kiên làm
+// LẦN LÀM GẦN NHẤT của mỗi người (mỗi nhịp chạy = một lần làm: kiểm hòm, gửi tin…) — "Làm lần cuối" trên bảng đọc đây (anh 14/10/2026: Diệp làm
 // từ 6h mà bảng ghi 9 giờ trước vì chỉ đếm lần gọi mô hình).
 const tepLam = (id) => path.join(DATA(), 'nhip', `${id}.json`);
 export const lanLam = (id) => { try { return JSON.parse(fs.readFileSync(tepLam(id), 'utf8')); } catch { return null; } };
@@ -71,8 +71,8 @@ export const VIEC_NHIP = {
       mo_ta: 'Mỗi ngày một lần, đúng giờ admin đặt ở cột Tự làm (mặc định 03:30), trên MacBook (LaunchAgent com.htuan.don-nhat-ky hỏi mỗi 10 phút → ~/bin/don-nhat-ky; Mac ngủ thì chạy lúc thức): xoá nhật ký chat Claude cũ hơn 14 ngày, cũ nhất trước; tổng còn quá 8 GB thì xoá tiếp từ cũ đến mới nhưng không đụng tệp có ghi trong 48 giờ (phiên đang chạy). Mỗi lượt ghi một dòng sổ sự kiện. Tắt ở cột Tự làm thì lượt kế không chạy.' },
   ],
   'xu-thu': [
-    { ma: 'xu-thu', ten: 'Xử thư Kiên chuyển vào phòng', lich: () => 'mỗi 30 phút · iMac', khop: null,
-      mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/van-thu.mjs mỗi 30 phút: thư Kiên chuyển vào chủ đề phòng (hàng <DATA>/phong-thu/<phòng>) → báo nhận, Claude Code CHỈ ĐỌC (thư, mã liên quan, tài liệu nền tảng; không sửa tệp, không chạy lệnh, không gọi API) lập việc tiếp theo + việc cần anh cung cấp + rủi ro chính sách → báo vào chủ đề phòng. 20 phút mỗi lượt; không xong thì báo dừng, không thử lại.' },
+    { ma: 'xu-thu', ten: 'Xử thư Diệp chuyển vào phòng', lich: () => 'mỗi 30 phút · iMac', khop: null,
+      mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/van-thu.mjs mỗi 30 phút: thư Diệp chuyển vào chủ đề phòng (hàng <DATA>/phong-thu/<phòng>) → báo nhận, Claude Code CHỈ ĐỌC (thư, mã liên quan, tài liệu nền tảng; không sửa tệp, không chạy lệnh, không gọi API) lập việc tiếp theo + việc cần anh cung cấp + rủi ro chính sách → báo vào chủ đề phòng. 20 phút mỗi lượt; không xong thì báo dừng, không thử lại.' },
   ],
   'sua-may': [
     { ma: 'sua-may', ten: 'Spy - tự sửa máy cào (Claude trên iMac)', lich: () => 'mỗi 30 phút · iMac', khop: null,
@@ -136,7 +136,7 @@ export const VIEC_NHIP = {
   ],
   'mail-bao-mat': [
     { ma: 'kiem-thu', ten: 'Kiểm thư bảo mật', lich: (n) => tanSuat(n.kiemMoi), khop: null,
-      mo_ta: 'Đọc hòm claude@ (thư 30 ngày), thẩm định từng thư: tên miền người gửi so với link thật trong thư, gỡ link chuyển tiếp, đối chiếu sổ "đã dạy". Thư giả / chưa rõ → báo vào chủ đề 🔐 Bảo mật trên Telegram kèm nút dạy; thư đã xử thì ❤ rồi gỡ tin sau 1 phút; thư gọi tên Kiên thì trả lời. Mô hình (não của Kiên) đọc mỗi thư đang chờ MỘT lần: thật / giả / thường, phòng nào nhận, việc gì — chốt máy (tên miền anh dạy, link nhái tên hãng) mô hình không vượt được; thư thật có việc thì tự chuyển vào chủ đề Telegram của phòng đó.' },
+      mo_ta: 'Đọc hòm claude@ (thư 30 ngày), thẩm định từng thư: tên miền người gửi so với link thật trong thư, gỡ link chuyển tiếp, đối chiếu sổ "đã dạy". Thư giả / chưa rõ → báo vào chủ đề 🔐 Bảo mật trên Telegram kèm nút dạy; thư đã xử thì ❤ rồi gỡ tin sau 1 phút; thư gọi tên Diệp thì trả lời. Mô hình (não của Diệp) đọc mỗi thư đang chờ MỘT lần: thật / giả / thường, phòng nào nhận, việc gì — chốt máy (tên miền anh dạy, link nhái tên hãng) mô hình không vượt được; thư thật có việc thì tự chuyển vào chủ đề Telegram của phòng đó.' },
     { ma: 'diem-danh', ten: 'Điểm danh đầu ngày', lich: (n) => n.diemDanh, khop: /điểm danh/, can_diem_danh: true,
       mo_ta: 'Một lần mỗi ngày làm việc, đúng giờ điểm danh: báo lên Telegram "đã vào ca" kèm số thư đang chờ, rồi thả các thư bảo mật đến ngoài giờ đã giữ lại từ tối hôm trước.' },
     { ma: 'bao-cao', ten: 'Báo cáo cuối ngày', lich: (n) => mocCuoiCa(n.ca), khop: /báo cáo cuối ngày/, can_diem_danh: true,
@@ -146,7 +146,7 @@ export const VIEC_NHIP = {
 /** Đầu việc của một người đang bật: [{ ma, ten, lich, mo_ta, viec, khop }]. n = { viec[], ca, diemDanh, kiemMoi } (như dangBat). */
 export const dauViec = (n) => n.viec.flatMap((v) => (VIEC_NHIP[v] ?? []).filter((x) => !x.can_diem_danh || n.diemDanh).map((x) => ({ ...x, viec: v, lich: x.lich(n), gio: x.gio?.(n) })));
 /** Tên việc nhịp bằng chữ người đọc (bảng nhân sự hiện cái này, không hiện mã). */
-export const TEN_NHIP = { 'tu-van-etp': 'Tư vấn Ethopex trước phiên 15 phút, mỗi người một chủ đề Telegram', 'kiem-bai': 'Kiểm bài mới trước khi lên trang (gọi mô hình chỉ khi có bài nộp)', 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)', 'don-nhat-ky': 'Dọn nhật ký chat Claude cũ (MacBook)', 'sua-bai': 'Sửa bài Phòng Nội dung trả về (iMac, Claude Code)', 'xu-thu': 'Xử thư Kiên chuyển vào phòng (iMac, Claude Code, chỉ đọc)', 'bao-social': 'Báo cáo ngày Social Traffic (box3, máy đọc số, 0đ)', 'kiem-tai-nguyen': 'Kiểm tài nguyên: proxy, làn cào, tải box3, số dư API (box3, 0đ)', 'kiem-ethopex': 'Theo dõi luật camp Ethopex, báo Telegram + duyệt bằng nút (box3, 0đ)', 'kiem-resend': 'Canh hạn mức gửi thư Resend, báo trước khi chạm trần (box3, 0đ)', 'kiem-ai-astrolas': 'Đồng bộ tuyến ckey + canh chi AI Astrolas (box3, 0đ)' };
+export const TEN_NHIP = { 'tu-van-etp': 'Tư vấn Ethopex trước phiên 15 phút, mỗi người một chủ đề Telegram', 'kiem-bai': 'Kiểm bài mới trước khi lên trang (gọi mô hình chỉ khi có bài nộp)', 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)', 'don-nhat-ky': 'Dọn nhật ký chat Claude cũ (MacBook)', 'sua-bai': 'Sửa bài Phòng Nội dung trả về (iMac, Claude Code)', 'xu-thu': 'Xử thư Diệp chuyển vào phòng (iMac, Claude Code, chỉ đọc)', 'bao-social': 'Báo cáo ngày Social Traffic (box3, máy đọc số, 0đ)', 'kiem-tai-nguyen': 'Kiểm tài nguyên: proxy, làn cào, tải box3, số dư API (box3, 0đ)', 'kiem-ethopex': 'Theo dõi luật camp Ethopex, báo Telegram + duyệt bằng nút (box3, 0đ)', 'kiem-resend': 'Canh hạn mức gửi thư Resend, báo trước khi chạm trần (box3, 0đ)', 'kiem-ai-astrolas': 'Đồng bộ tuyến ckey + canh chi AI Astrolas (box3, 0đ)' };
 /** Việc NHỊP chạy trên MÁY MAC (LaunchAgent), không phải bộ chạy box này: box không gọi, chỉ hiện + giữ cờ bật/tắt; script trên Mac hỏi `dangTat`
  *  qua ssh trước mỗi lượt và tự ghi nhật ký nhịp (<DATA>/nhip/<người>.json[l]) như ghiLam. */
 export { NHIP_MAY } from './nhip-may.mjs';

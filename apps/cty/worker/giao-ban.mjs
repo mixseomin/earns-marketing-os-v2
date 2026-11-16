@@ -65,14 +65,14 @@ export async function nhipGiaoBan({ nguoi, nhatKy, now = Date.now(), tg }) {
 
 if (process.argv[1]?.endsWith('giao-ban.mjs') && process.argv.includes('--tu-kiem')) {
   const { strict: t } = await import('node:assert'); const now = Date.parse('2026-10-22T01:05:00Z');   // 08:05 VN
-  const phongs = [{ id: 'sach', ten: 'Sách', truong: 'Thảo' }, { id: 'an-toan-tk', ten: 'Bảo mật', truong: 'Kiên' }, { id: 'phap-che', ten: 'Pháp chế', truong: 'Trang' }];
+  const phongs = [{ id: 'sach', ten: 'Sách', truong: 'Thảo' }, { id: 'an-toan-tk', ten: 'Bảo mật', truong: 'Diệp' }, { id: 'phap-che', ten: 'Pháp chế', truong: 'Trang' }];
   const viec = [{ phong: 'sach', loai: 'timer', ma: 'puzzle-a', tiep: 'x', ket: 'success' }, { phong: 'sach', loai: 'timer', ma: 'puzzle-b', ten: 'Dang Etsy', tiep: 'x', ket: 'failed' }];
-  const nguoi = [{ id: 'kien', ten: 'Kiên', phong: 'an-toan-tk', ca: '07:00-01:00', kiemMoi: 1, viecNhip: [{ ten: 'Kiểm thư bảo mật', lich: 'mỗi 1 phút' }] }];
+  const nguoi = [{ id: 'kien', ten: 'Diệp', phong: 'an-toan-tk', ca: '07:00-01:00', kiemMoi: 1, viecNhip: [{ ten: 'Kiểm thư bảo mật', lich: 'mỗi 1 phút' }] }];
   const nk = { kien: [{ luc: '2026-10-22T00:00:00Z', ket: '50 thư đã đọc' }, { luc: '2026-10-21T23:00:00Z', ket: 'x' }] };
   const tin = tinGiaoBan({ phongs, nguoi, viec, nhatKy: (id) => nk[id] ?? [], cho: (p) => (p === 'sach' ? [{ tieuDe: 'Etsy policy' }] : []), now });
   t.match(tin, /Giao ban sáng 22\/10\/2026<\/b> — 2 phòng có việc/); t.match(tin, /📂 Sách<\/b> — Thảo\n• Hôm nay: 2 việc nền \(2 đang chạy\)/);
   t.match(tin, /Việc nền hỏng \(1\): Dang Etsy/); t.match(tin, /Hàng chờ phòng: 1 việc — Etsy policy/);
-  t.match(tin, /Kiên chạy 2 lượt, cuối 07:00/); t.match(tin, /🛑 Kẹt: Kiên không chạy nhịp từ 07:00/, 'đứng 65 phút trong ca = kẹt'); t.match(tin, /Chưa có việc máy: Pháp chế/);
+  t.match(tin, /Diệp chạy 2 lượt, cuối 07:00/); t.match(tin, /🛑 Kẹt: Diệp không chạy nhịp từ 07:00/, 'đứng 65 phút trong ca = kẹt'); t.match(tin, /Chưa có việc máy: Pháp chế/);
   t.doesNotMatch(tinGiaoBan({ phongs, nguoi, viec, nhatKy: () => [{ luc: '2026-10-22T01:04:00Z', ket: 'ok' }], cho: () => [], now }), /Kẹt/, 'vừa chạy thì không kẹt');
   t.deepEqual(chiaTin('a'.repeat(3000) + '\n\n' + 'b'.repeat(2000)).map((x) => x.length), [3000, 2000], 'quá dài thì chia theo khối');
   process.env.CTY_DATA_DIR = fs.mkdtempSync(path.join((await import('node:os')).tmpdir(), 'giao-ban-')); const gui = []; const tg = async (_m, b) => gui.push(b);
@@ -82,7 +82,7 @@ if (process.argv[1]?.endsWith('giao-ban.mjs') && process.argv.includes('--tu-kie
   const toi = Date.parse('2026-10-22T15:01:00Z');   // 22:01 VN
   t.match(await nhipGiaoBan({ nguoi: [], nhatKy: () => [], now: toi, tg }), /báo cáo cuối ngày: 1 tin/); t.match(gui.at(-1).text, /🌙 <b>Báo cáo cuối ngày 22\/10\/2026/); t.equal(await nhipGiaoBan({ nguoi: [], nhatKy: () => [], now: toi + 60_000, tg }), null, 'tối cũng một lần');
   { const tt = tinGiaoBan({ phongs, nguoi, viec, nhatKy: () => [{ luc: '2026-10-22T14:50:00Z', ket: 'ok' }, { luc: '2026-10-21T16:00:00Z', ket: 'hôm qua' }], cho: () => [], daXu: (p) => (p === 'sach' ? [{ tieuDe: 'Pinterest API' }] : []), now: toi, kieu: 'toi' });
-    t.match(tt, /Đã làm hôm nay: Kiên chạy 1 lượt, cuối 21:50/, 'tối chỉ đếm từ 00:00 VN'); t.match(tt, /Đã xử hôm nay: 1 việc — Pinterest API/); t.match(tt, /Việc nền: 2 việc, 1 đang hỏng/); t.doesNotMatch(tt, /• Hôm nay:/); }
+    t.match(tt, /Đã làm hôm nay: Diệp chạy 1 lượt, cuối 21:50/, 'tối chỉ đếm từ 00:00 VN'); t.match(tt, /Đã xử hôm nay: 1 việc — Pinterest API/); t.match(tt, /Việc nền: 2 việc, 1 đang hỏng/); t.doesNotMatch(tt, /• Hôm nay:/); }
   console.log('giao-ban: tự kiểm đạt');
 }
 

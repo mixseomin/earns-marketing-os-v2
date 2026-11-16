@@ -49,7 +49,7 @@ export function soDo(id: string): string { return docText(path.join('so-do', `${
 
 export const KHUON: Record<string, { ten: string; mota: string }> = {
   'day-chuyen': { ten: 'Dây chuyền', mota: 'thẳng, theo lô; 1 cuốn / 1 khoá · tuần; cổng người trước khi đăng' },
-  'vong-toi-uu': { ten: 'Vòng tối ưu', mota: 'lặp đo → quyết → chỉnh → chạy; 1 camp đang sống · giờ; cổng = tiền, Kiên là công tắc cắt vòng' },
+  'vong-toi-uu': { ten: 'Vòng tối ưu', mota: 'lặp đo → quyết → chỉnh → chạy; 1 camp đang sống · giờ; cổng = tiền, Diệp là công tắc cắt vòng' },
   'hat-nho': { ten: 'Hạt nhỏ tích luỹ', mota: 'máy trạng thái theo thời gian; 1 card = 1 link / 1 bài / 1 đơn · ngày; cổng = link / bài theo standing' },
   'dung-san-pham': { ten: 'Dựng sản phẩm', mota: 'issue → build → review → deploy; 1 issue · ngày; cổng chỉ cho thao tác không hoàn tác' },
   'bo-loc': { ten: 'Bộ lọc', mota: 'không sản xuất, chỉ phân loại / chặn; 1 phát sinh · 15 phút' },

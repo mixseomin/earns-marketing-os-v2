@@ -57,7 +57,7 @@ export function ghiBaiHoc(id, khoa, nk, kq) {
 }
 
 /** ĐƯỢC DẠY (anh 14/10/2026 "lấy chủ thể là nhân viên đó, họ học được gì mới quan trọng"): điều Giám đốc dạy trực tiếp thành bài học của
- *  CHÍNH người đó (vd Kiên: "examweight.com = site nhà"). Một chủ đề một bài (khoaBai) — dạy lại thì sửa bài cũ, không đẻ bài mới.
+ *  CHÍNH người đó (vd Diệp: "examweight.com = site nhà"). Một chủ đề một bài (khoaBai) — dạy lại thì sửa bài cũ, không đẻ bài mới.
  *  Bằng chứng = ai dạy, lúc nào (không phải một lượt chạy). */
 export function ghiDuocDay(id, khoa, khoaBai, noi_dung, ai) {
   const ds = dsBaiHoc(id), ma = `day-${id}-${String(khoaBai).replace(/[^\w.-]/g, '-')}`, luc = new Date().toISOString();

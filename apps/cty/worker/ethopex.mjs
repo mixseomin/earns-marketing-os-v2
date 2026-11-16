@@ -580,7 +580,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       const ten = `${x.lo} ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ${a_(x.dang).toLowerCase()} ${Math.round(x.tu)}-${Math.round(x.den)}s${x.so_len > 1 ? ` doi lai ${x.lan}/${x.so_len}` : ''}`.trim();
       if (x.lan > 1 && !da.some((d) => d.x.creative_id === x.creative_id && d.r.ok)) continue;   // camp đầu của creative lỗi → không thử 4 camp còn lại (cùng lỗi)
       const lenMot = async () => JSON.parse((await chay(NB, [String(KHUON[x.lang] ?? KHUON.en), '--bo', String(x.bo), '--creative', String(x.creative_id), '--content', String(x.content_id), '--ten', ten,
-        // CAMP MỚI CHẠY THEO LỊCH (anh 04/11/2026 "áp dụng thêm việc lên camp mới theo lịch" — như Kiên): bắt đầu 00:00 UTC hôm sau (07:00 VN, đầu ngày Ethopex) → ngày đầu là ngày trọn
+        // CAMP MỚI CHẠY THEO LỊCH (anh 04/11/2026 "áp dụng thêm việc lên camp mới theo lịch" — như Diệp): bắt đầu 00:00 UTC hôm sau (07:00 VN, đầu ngày Ethopex) → ngày đầu là ngày trọn
         '--that', '--luat', LEN_DANG[x.dang]?.[0] ?? 'phim mới chấm sạch → lên camp',   // giờ chạy do nhan-ban.lich_len quyết (tạo 07–12h VN chạy ngay, ngoài khung hẹn 07:00 hôm sau — anh 05/11/2026)
         '--ai', (x.so_len > 1 ? `anh (chat 06/11/2026: phim ROI cao cả đội lên ${x.so_len} camp mỗi lần) · ` : '') + (LEN_DANG[x.dang]?.[1] ?? 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy')], 600)).trim().split('\n').pop());
       let r; try { r = await lenMot(); } catch (e) { r = { ok: false, loi: e.message }; }
@@ -653,7 +653,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   for (const m of kq.nb || []) {
     if (seTat.has(m.id)) continue;   // không nhân bản camp đang trong danh sách tắt
     // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026 "nhân bản cũng hẹn sáng hôm sau nếu không đúng khung giờ" — thay luật 22/10 "chạy luôn"); kết quả trả kq.chay
-    let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--nac', '--luat', `nhân bản camp thắng · ${m.chu}`.slice(0, 400), '--ai', 'máy tự nhân bản hai nấc (anh 07/11/2026 áp cách Kiên)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+    let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--nac', '--luat', `nhân bản camp thắng · ${m.chu}`.slice(0, 400), '--ai', 'máy tự nhân bản hai nấc (anh 07/11/2026 áp cách Diệp)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
     if (!r.bo_qua) daNb.push({ m, r });   // clone bị cổng chấm chặn, phim không có creative thay → bỏ, không báo lỗi (anh 07/11/2026)
   }
   if (daNb.length) {

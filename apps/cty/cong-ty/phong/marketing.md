@@ -15,6 +15,6 @@ trang_thai: tham quan · chưa hoạt động
 | Lúc | Việc |
 |---|---|
 | T2 07:00 | Khoa heartbeat: 12 prospect có email → Ngọc sinh email theo pillar từng dự án; voice-score chặn 2 email có em dash → sửa; cron Mailjet gửi |
-| T2 | Card 🌱 r/army #324 pha value: Ngọc viết bài không link; Khoa đăng qua Tùng (br). Kiên báo tài khoản #155 shadowban → card dùng #7 |
+| T2 | Card 🌱 r/army #324 pha value: Ngọc viết bài không link; Khoa đăng qua Tùng (br). Diệp báo tài khoản #155 shadowban → card dùng #7 |
 | T4 | GovLoop: profile live (completed), bài chờ mod (submitted) → tách 2 card. Bài bị mod gỡ "self-promo" → Trang đọc rule, soạn thư cho mod, Khoa gửi (mức 2) |
 | T2 tuần sau | Cron verify: 1 link cũ mất → broken, card mở lại tự động |

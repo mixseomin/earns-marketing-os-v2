@@ -90,7 +90,7 @@ for (const [l, qt] of Object.entries(nenCua)) if (/^(iMac|MacBook):/.test(l) && 
 { const { NGUOI_CUA, KHONG_TU_HOC } = await import('../may/tu-hoc.mjs'); const MAY = path.join(R, '..', 'may');
   for (const f of fs.readdirSync(MAY).filter((x) => x.endsWith('.mjs') && !/^(claude-chay|claude-tmux|gop-y-ky-su|tu-hoc)\.mjs$/.test(x))) {
     const t = fs.readFileSync(path.join(MAY, f), 'utf8'), ten = f.replace(/\.mjs$/, '');
-    if (/chayClaude\(CLAUDE|chayTmux\(|from '\.\/gop-y-ky-su\.mjs'/.test(t) && !NGUOI_CUA[ten] && !KHONG_TU_HOC[ten]) loi.push(`may/${f}: gọi Claude mà chưa có tên trong may/tu-hoc.mjs NGUOI_CUA — kỹ sư này không tự học`);
+    if (/chayClaude\(|chayTmux\(|from '\.\/gop-y-ky-su\.mjs'/.test(t) && !NGUOI_CUA[ten] && !KHONG_TU_HOC[ten]) loi.push(`may/${f}: gọi Claude mà chưa có tên trong may/tu-hoc.mjs NGUOI_CUA — kỹ sư này không tự học`);
   }
   for (const [f, id] of Object.entries(NGUOI_CUA)) if (!ns[id]) loi.push(`may/tu-hoc.mjs NGUOI_CUA: ${f} → "${id}" không có hồ sơ nhân sự`); }
 // chuẩn chung nút Góp ý "AI đang làm" (12/11/2026): ba bản chép (gói, spy, Astrolas) không được trôi — scripts/kiem-chuan-gop-y.mjs

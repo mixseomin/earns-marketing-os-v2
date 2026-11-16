@@ -30,8 +30,11 @@ export function oCum([s0, s1, n], hang) {
 //   2) trong mặt: cụm có khung (kể cả vòm bao) chạm khung cụm đã đặt thì bỏ (ưu tiên hàng đếm được nhiều ô hơn)
 //   3) vòm bao lớn cho cửa đôi chỉ khi trên đỉnh ô còn ≥ 0,9 m tới hàng trên / mái hiên
 // Trả [{ c, h, d, vom }] — h là hàng đã thu gọn (y0, y1), d = oCum(c, h).
-export function boTriDo(hang, yTran = Infinity) {
-  const H = hang.map((h) => ({ ...h, n: h.cum.reduce((t, c) => t + c[2], 0) })).sort((a, b) => a.y0 - b.y0);
+// yChan: chân tường — hàng cửa đo (độ cao TUYỆT ĐỐI từ ảnh Google) nằm HẲN ngoài [chân, đỉnh] của chính bức tường thì BỎ (17/11/2026, Viereckturm: khối được
+// chỉnh độ cao theo ảnh 3D sau khi đo cửa → cửa lơ lửng trên đỉnh tường / đè sang khối chồng bên trên). Hàng chỉ chạm / vắt qua đỉnh vẫn giữ (lọc chặt làm hụt 36 mặt).
+// L: bề ngang tường — cụm cửa đo lố khỏi [0, L] quá 0,1 m (mặt bằng bị thu nhỏ theo ảnh 3D sau khi đo cửa, vd Viereckturm) thì BỎ, không để cửa lơ lửng ngoài góc
+export function boTriDo(hang, yTran = Infinity, yChan = null, L = Infinity) {   // yChan = null: KHÔNG lọc (mặt đo tay — khung)
+  const H = hang.filter((h) => yChan == null || (h.y0 < yTran - 0.5 && h.y1 > yChan + 0.5)).map((h) => ({ ...h, n: h.cum.reduce((t, c) => t + c[2], 0) })).sort((a, b) => a.y0 - b.y0);
   const khoang = H.map((h) => { const d0 = oCum([0, 1, 1], h); return [d0.y - 0.1, d0.y + d0.h + 0.15]; }); // bao đứng của hàng sau khi nới
   for (let i = 0; i + 1 < H.length; i++) { const tren = khoang[i][1], duoi = khoang[i + 1][0]; if (tren > duoi - 0.3) { const g = (tren + duoi) / 2; khoang[i][1] = g - 0.15; khoang[i + 1][0] = g + 0.15; } }
   const ra = [], dat = [];
@@ -42,6 +45,7 @@ export function boTriDo(hang, yTran = Infinity) {
     const tran = Math.min(yTran, i + 1 < H.length ? khoang[i + 1][0] : Infinity);
     for (const c of h.cum) {
       const d = oCum(c, hh), W = d.n * d.w + (d.n - 1) * d.k, vom = d.n === 2 && tran - (d.y + d.h) >= 0.9, x0 = d.s - W / 2 - (vom ? 0.5 : 0.3), x1 = d.s + W / 2 + (vom ? 0.5 : 0.3), y0 = d.y - 0.15, y1 = d.y + d.h + (vom ? 0.6 : 0.15);
+      if (yChan != null && (d.s - W / 2 < -0.1 || d.s + W / 2 > L + 0.1)) continue;   // chỉ khi bật lọc (số đo tự động) — mặt đo tay cố ý cho cụm vắt qua đầu cạnh, kể cả s âm
       if (dat.some((b) => x0 < b[1] && b[0] < x1 && y0 < b[3] && b[2] < y1)) continue;
       dat.push([x0, x1, y0, y1]); ra.push({ c, h: hh, d, vom });
     }
@@ -76,16 +80,17 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
     for (let i = 0; i < t.v.length; i++) {
       const [x1, z1] = t.v[i], [x2, z2] = t.v[(i + 1) % t.v.length], L = Math.hypot(x2 - x1, z2 - z1); if (L < 2.5) continue;
       const ux = (x2 - x1) / L, uz = (z2 - z1) / L, nx = uz, nz = -ux, goc = Math.atan2(nx, nz); // pháp tuyến RA NGOÀI (đa giác ngược chiều kim nhìn từ trên)
-      const lo = t.lo(i, x1, z1, x2, z2), mn = palas ? { san: false } : matNgoai((x1 + x2) / 2, (z1 + z2) / 2, nx, nz), coVom = mn.san && Number.isFinite(mn.yDat);
+      const lo = t.lo(i, x1, z1, x2, z2), mn = palas ? { san: false } : matNgoai((x1 + x2) / 2, (z1 + z2) / 2, nx, nz), coVom = mn.san && Number.isFinite(mn.yDat) && t.yMong <= mn.yDat + 1.5; // dãy vòm sát đất chỉ khi chân tường CHẠM đất — khối đặt cao (phần trên tháp, chân 53,7 m) từng bị dựng cửa từ mặt sân lên, lơ lửng giữa trời (17/11/2026)
       q.setFromAxisAngle(Y, goc);
       // cạnh bị KHOÁ gần hết (mặt dựng riêng theo ảnh phủ lên, ns.js — kể cả cạnh của khối khác cùng mặt phẳng) → không dựng cửa nào, kể cả cửa có số đo:
       // đường số đo trước không xét khoá → hai lớp cửa đè nhau ở mặt Palas hướng sân (anh 17/11/2026)
-      if (lo.some((l) => !l.cuaSo && l.y0 < -1e8 && l.s1 - l.s0 >= L * 0.9)) continue;
+      if (lo.some((l) => l.matRieng && l.s1 - l.s0 >= L * 0.9)) continue;   // chỉ khoá của mặt dựng riêng (matRieng) — lỗ khoét cổng cũng phủ cả cạnh từ dưới đất, không được tính (Torbau mặt tây mất hết cửa)
       const doTu = cuaSo[`${t.k?.id}#${i}`], coAnh = !!matAnh[`${t.k?.id}#${i}`];
       if (coAnh && !doTu?.hang?.length) continue; // mặt có ảnh dán thật (đã có cửa, gờ thật trong ảnh) → không dựng cửa 3D đoán đè lên
       if (doTu?.hang?.length && coVom && !palas) { /* mặt nhìn ra sân trong: giữ dãy vòm tầng trệt theo ảnh Josef Albert (số đo ảnh 3D không thấy vòm) — bỏ số đo */ }
       else if (doTu?.hang?.length) { // MẶT CÓ SỐ ĐO TỪ ẢNH: hàng / cụm / số ô đúng ảnh, ô trong dải phòng có lỗ thật thì không kính (mở được)
-        const boTri = boTriDo(doTu.hang, t.y1);
+        // lọc ngoài tường chỉ cho số đo TỰ ĐỘNG trên ảnh Google; mặt đo tay trên ảnh rõ (khung: true) có thể cố ý cho cụm vắt qua đầu cạnh OSM ngắn (Torbau mặt tây)
+        const boTri = doTu.khung ? boTriDo(doTu.hang, t.y1) : boTriDo(doTu.hang, t.y1, Number.isFinite(t.k?.yDuoi) ? t.k.yDuoi : -1e9, L);
         for (const h of new Set(boTri.map((b) => b.h))) if (!coAnh) go.push([x1, z1, ux, uz, nx, nz, L, h.y0 - 0.35]); // gờ dưới mỗi hàng còn lại (mặt có ảnh dán: gờ đã có trong ảnh)
         for (const { c, h, d, vom } of boTri) {
           {
@@ -198,7 +203,7 @@ export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {} }) {
   const TOI = new THREE.MeshStandardMaterial({ color: '#1b1f27', roughness: 0.6 });
   const cuaSo = []; // ô cửa của mặt này (toạ độ thế giới) — ns.js dùng cho mở cửa trèo vào
   const KINH = new THREE.MeshStandardMaterial({ color: '#7d8691', roughness: 0.3, metalness: 0.2, emissive: '#3a4048' }); // kính chì xám như ảnh, không đen đặc
-  const cum = (o, s, y) => { const c = nhomCua(THREE, { k: 0.23, cot: 0.125, ...o }); cuaSo.push({ x: mx + ux * s, y, z: mz + uz * s, nx, nz, nua: c.rong / 2, cao: o.h, ten: 'Palas' }); for (const g of c.da) dat(new THREE.Mesh(g, DA), s, y, 0); for (const g of c.toi) dat(new THREE.Mesh(g, KINH), s, y, 0); };
+  const cum = (o, s, y) => { const c = nhomCua(THREE, { k: 0.23, cot: 0.125, ...o }); cuaSo.push({ x: mx + ux * s, y, z: mz + uz * s, nx, nz, nua: c.rong / 2, cao: o.h, ten: 'Palas', vien: { ngang: 0, tren: 0.6 } }); /* rong đã gồm trụ hai bên; vòm bao ~0,6 m trên đỉnh ô — khai thật để bộ kiểm chồng lấn không cộng thêm viền mặc định 0,25 m (báo nhầm hai cửa đôi đứng sát nhau theo ảnh) */ for (const g of c.da) dat(new THREE.Mesh(g, DA), s, y, 0); for (const g of c.toi) dat(new THREE.Mesh(g, KINH), s, y, 0); };
   // BỐ CỤC lấy TỪ TỆP ĐO ẢNH (tuong.bo = quyDoiMat(du-lieu/neuschwanstein-mat-palas-san.json)): x sang phải ảnh → s = C − x (trục x cục bộ của khung ngược ux:
   // bên trái ảnh là phía +s), duoi dưới mái → y = y1 − duoi. Mặt chạy từ tháp góc tới tháp góc = chân đầu hồi (hoi.sA → sB), tâm C.
   const C = tuong.hoi ? (tuong.hoi.sA + tuong.hoi.sB) / 2 : 0, RONG = tuong.hoi ? tuong.hoi.sB - tuong.hoi.sA : L, bo = tuong.bo;

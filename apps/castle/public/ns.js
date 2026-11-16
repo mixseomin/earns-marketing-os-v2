@@ -382,7 +382,7 @@ function loCanh(k, i, x1, z1, x2, z2) {
   // cửa sổ mở được: tường ngoài Palas, hàng cửa nằm gọn trong phòng tầng ba → khoét lỗ thật ở ô giữa (bố cục chung với khung cửa 3D: mattien.js bocCuc)
   if (k.trongPalas && k._yMong != null && kcVien((x1 + x2) / 2, (z1 + z2) / 2, NOI.palas.v) <= 0.6 && !huongRaSan(x1, z1, x2, z2)) { // mặt hướng sân trên dựng riêng theo ảnh (datMatPalas) → không khoét theo bố cục chung
     const [mNua, mCao] = O_MO.ba, doTu = CUA_SO[`${k.id}#${i}`];
-    if (doTu?.hang?.length) { for (const { d } of boTriDo(doTu.hang, k._y1)) for (const o of d.o) if (o.y0 >= NOI.y3 - 0.6 && o.y1 <= NOI.y3 + NT.caoTang3 - 0.2) lo.push({ ...o, cuaSo: true }); }
+    if (doTu?.hang?.length) { for (const { d } of (doTu.khung ? boTriDo(doTu.hang, k._y1) : boTriDo(doTu.hang, k._y1, Number.isFinite(k.yDuoi) ? k.yDuoi : -1e9, L))) for (const o of d.o) if (o.y0 >= NOI.y3 - 0.6 && o.y1 <= NOI.y3 + NT.caoTang3 - 0.2) lo.push({ ...o, cuaSo: true }); }
     else for (const h of bocCuc({ L, yMong: k._yMong, y1: k._y1, palas: true, neo: NEO_HANG })) if (h.y >= NOI.y3 - 0.3 && h.y + mCao <= NOI.y3 + NT.caoTang3 - 0.2) for (const s of h.ds) lo.push({ s0: s - mNua, s1: s + mNua, y0: h.y, y1: h.y + mCao, cuaSo: true });
   }
   if (k === NOI.thap && i === NOI.canhCua) lo.push({ s0: L / 2 - 0.95, s1: L / 2 + 0.95, y0: NOI.yCua - 0.5, y1: NOI.yCua + 2.7 });
@@ -564,7 +564,7 @@ const MAT_PALAS = (() => {
     const mx = (x1 + x2) / 2, mz = (z1 + z2) / 2, d = Math.hypot(cx - mx, cz - mz), huong = (nx * (cx - mx) + nz * (cz - mz)) / d;
     if (huong > 0.7 && L > 8 && (!tot || d < tot.d)) tot = { t, i, x1, z1, x2, z2, y1: t.y1, y2: t.y2, L, d }; // GẦN sân nhất, không phải dài nhất
   }
-  if (tot) { const lo0 = tot.t.lo; tot.t.lo = (i, ...r) => (i === tot.i ? [...lo0(i, ...r), { s0: 0, s1: tot.L, y0: -1e9, y1: tot.y1 + 1 }] : lo0(i, ...r)); const { x1, z1, x2, z2, L } = tot; tot.yDat = caoDat((x1 + x2) / 2 + (z2 - z1) / L * 2, (z1 + z2) / 2 - (x2 - x1) / L * 2) - GOC_Y;
+  if (tot) { const lo0 = tot.t.lo; tot.t.lo = (i, ...r) => (i === tot.i ? [...lo0(i, ...r), { s0: 0, s1: tot.L, y0: -1e9, y1: tot.y1 + 1, matRieng: true }] : lo0(i, ...r)); const { x1, z1, x2, z2, L } = tot; tot.yDat = caoDat((x1 + x2) / 2 + (z2 - z1) / L * 2, (z1 + z2) / 2 - (x2 - x1) / L * 2) - GOC_Y;
     // tam giác đầu hồi thật: trong các tam giác đá của khối, cái nằm trên mặt phẳng tường này và có đỉnh cao quá mái → đổi sang toạ độ s dọc tường
     const nx = (z2 - z1) / L, nz = -(x2 - x1) / L, ux = (x2 - x1) / L, uz = (z2 - z1) / L, mx = (x1 + x2) / 2, mz = (z1 + z2) / 2, da = tot.t.k.hinh?.[0] || [];
     let P = null;
@@ -586,7 +586,7 @@ if (MAT_PALAS) { const P = MAT_PALAS, nx = (P.z2 - P.z1) / P.L, nz = -(P.x2 - P.
     const d1 = (x1 - P.x1) * nx + (z1 - P.z1) * nz, d2 = (x2 - P.x1) * nx + (z2 - P.z1) * nz; if (Math.abs(d1) > 1 || Math.abs(d2) > 1) continue;
     const s1 = (x1 - P.x1) * ux + (z1 - P.z1) * uz, s2 = (x2 - P.x1) * ux + (z2 - P.z1) * uz, a = Math.max(0, Math.min(s1, s2)), b = Math.min(P.L, Math.max(s1, s2)); if (b - a < 0.5) continue;
     const ta = (a - s1) / (s2 - s1) * L, tb = (b - s1) / (s2 - s1) * L, lo0 = t.lo;
-    t.lo = (j, ...r) => (j === i ? [...lo0(j, ...r), { s0: Math.min(ta, tb), s1: Math.max(ta, tb), y0: -1e9, y1: 1e9 }] : lo0(j, ...r)); } }
+    t.lo = (j, ...r) => (j === i ? [...lo0(j, ...r), { s0: Math.min(ta, tb), s1: Math.max(ta, tb), y0: -1e9, y1: 1e9, matRieng: true }] : lo0(j, ...r)); } }
 // NỀN SÂN TRÊN: mặt sân đo từ ảnh (ảnh phụ Josef Albert trong tệp bố cục mặt Palas: mặt sân ~22 m dưới mái), không phải lưới đất EU-DEM (thô 12 m, ở sân thấp hơn ~6 m).
 // OSM ghi chú khối courtyard là "building for 3D reasons" — dựng thành nền đá: mặt lát đá, tường chắn, lan can mép hở, bậc thang xuống phía cổng.
 const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3D) quanh lâu đài

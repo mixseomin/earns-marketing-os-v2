@@ -23,13 +23,14 @@
   "ly_do_ti_le": "16/11/2026 so dáng từ cầu Marienbrücke (scripts/so-dang.py + đo tia trên ảnh 3D): tháp vuông thật bắt đầu x ≈ 2 m (bản đồ độ cao), mô hình x ≈ 0 → bè tây 2 m: thu mặt bằng 15 %"
  },
  "way/223069515": {
-  "y_tren": 54,
-  "dam_vom": "yes",
+  "y_tren": "54",
+  "dam_vom": "no",
   "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà",
-  "height": "39.6",
   "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 67.17 m, mô hình 54 m → height 26.41785606596212 → 39.6",
   "phong": "0.85",
-  "ly_do_ti_le": "16/11/2026 so dáng từ cầu Marienbrücke (scripts/so-dang.py + đo tia trên ảnh 3D): tháp vuông thật bắt đầu x ≈ 2 m (bản đồ độ cao), mô hình x ≈ 0 → bè tây 2 m: thu mặt bằng 15 %"
+  "ly_do_ti_le": "16/11/2026 so dáng từ cầu Marienbrücke (scripts/so-dang.py + đo tia trên ảnh 3D): tháp vuông thật bắt đầu x ≈ 2 m (bản đồ độ cao), mô hình x ≈ 0 → bè tây 2 m: thu mặt bằng 15 %",
+  "y_duoi": "53.7",
+  "ly_do_tron": "17/11/2026 (anh chụp Viereckturm: gờ thò ra ngoài góc, cửa hai lớp so le): khối này là phần trên OSM (28–33 m) chồng lên thân 221599098 — cả hai bị đặt đỉnh 54 m nên thành HAI thân gần trùng, mỗi thân tự dựng gờ / cửa / diềm vòm. Thân tháp vuông = 221599098 (chân → 54 m); khối này chỉ còn gờ mỏng ở đỉnh, không diềm vòm."
  },
  "way/1573767743": {
   "y_duoi": 53.6,
@@ -171,7 +172,24 @@
   "ly_do_cao": "17/11/2026 thẻ máy quét #1631: khối lô-gia mặt tây Palas (mái một dốc) thấp hơn ảnh thật. Đo theo TIA ở 2 góc chuẩn: tây +2,6 m (7 cột), nam +3,5 m (5 cột) → trung vị +3,05; từ trên xuống đỉnh 47,73 m, bản đồ độ cao (cách 3) 47,71 m; ảnh gần (camera (-140, 56, 40)) cho thấy bản thật cao hơn mô hình khoảng một tầng vòm. y_tren 45,28 → 48,3"
  },
  "them/nha-chan-viereckturm": {
-  "ngoai": [[1.568, -14.846], [-4.397, -12.265], [-5.767, -15.431], [0.198, -18.013]],
+  "ngoai": [
+   [
+    1.568,
+    -14.846
+   ],
+   [
+    -4.397,
+    -12.265
+   ],
+   [
+    -5.767,
+    -15.431
+   ],
+   [
+    0.198,
+    -18.013
+   ]
+  ],
   "building": "yes",
   "building:colour": "white",
   "building:material": "sandstone",

@@ -10,8 +10,9 @@ V = json.load(open(sys.argv[1]))
 
 def goi(duong, than=None):
     r = urllib.request.Request(API + duong, data=json.dumps(than).encode() if than is not None else None, headers={'content-type': 'application/json'})
-    try: return json.load(urllib.request.urlopen(r, timeout=60))
+    try: t = urllib.request.urlopen(r, timeout=60).read()
     except urllib.error.HTTPError as e: print(e.read().decode()[:4000]); sys.exit(2)
+    return json.loads(t) if t.strip() else {}   # /interrupt, /queue trả thân rỗng (bộ kiểm 0đ bắt được 16/11/2026)
 
 def so_khung(giay):   # 24 fps, lưới 17k + 5 của H3 (cùng công thức ComfyMathExpression trong mẫu)
     n = max(5, round(giay * 24)); return n + (5 - n % 17) % 17

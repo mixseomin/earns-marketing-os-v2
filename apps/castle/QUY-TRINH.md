@@ -18,6 +18,10 @@ Công cụ chạy trên **iMac** (có trình duyệt). Lõi chung: `scripts/chun
 Cách chuyên gia dựng lại công trình thật: lấy lưới đo thật (photogrammetry / ảnh 3D Google) làm khối mẫu, dựng khối sạch bám theo, rồi gắn bộ chi tiết.
 `node apps/castle/scripts/khop-khoi.mjs --lau <tên> [B=0.4] [NOI=2.5]` chụp ảnh 3D TỪ TRÊN XUỐNG (camera trực giao, ghi thẳng độ cao thế giới vào ảnh số thực)
 → `<tên>-cach3.json` (độ cao thật mỗi ô + loại vật liệu); `public/cach3.js` dựng mặt trên theo độ cao thật + tường đứng ở chỗ đổi bậc, bỏ ô sát đất (< 2 m).
+**Bản đầy đủ (nút 🧩 = `?cach=3`):** `node apps/castle/scripts/khoi-tu-dsm.mjs --lau <tên>` lấy ĐỘ CAO từng khối từ bản đồ đó (phân vị 95 trong mặt bằng, bỏ ô vọt > trung vị + 6 m của khối cao bên cạnh;
+khối có khối chồng trên / ít ô / đã đo tay bằng tia (y_tren trong sua.json) thì giữ; tháp nhỏ mái bằng mà vượt > 8 m → mái chóp) → `<tên>-sua-cach3.json`, chỉ áp khi `?cach=3`
+— mặt bằng + mọi chi tiết + đi bộ giữ nguyên. Không tự ước chiều cao mái (dải mép lẫn ô thấp → mái 11 m đè mặt tiền). `?cach=dsm`: lớp khối thô từ bản đồ (soi số đo).
+So ba bản: `so-lech.mjs --cam … [--cach3]`.
 Bước kế: gắn bộ chi tiết (cửa, răng cưa, tháp canh… — trangtri.js / mattien.js) lên mặt tường cách 3; va chạm / đi bộ vẫn theo cách cũ tới khi cách 3 đủ chi tiết.
 
 ## 1. Hình khối (LOD2)

@@ -1,0 +1,72 @@
+{
+ "way/88229473": {
+  "y_tren": "13.48",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 13.48 m (mô hình 10.1), 1755 ô"
+ },
+ "way/88229631": {
+  "y_tren": "11.39",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 11.39 m (mô hình 9.5), 1214 ô"
+ },
+ "way/221599083": {
+  "y_tren": "35.29",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 35.29 m (mô hình 31.7), 47 ô"
+ },
+ "way/221599084": {
+  "y_tren": "31.9",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 31.9 m (mô hình 33.7), 45 ô"
+ },
+ "way/223069512": {
+  "y_tren": "54.28",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 54.28 m (mô hình 49.4), 157 ô"
+ },
+ "way/223069513": {
+  "y_tren": "44.96",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 44.96 m (mô hình 54.4), 753 ô"
+ },
+ "way/223110819": {
+  "y_tren": "67.3",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 67.3 m (mô hình 79.6), 2779 ô"
+ },
+ "way/223140029": {
+  "y_tren": "63.8",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 63.8 m (mô hình 58.3), 165 ô"
+ },
+ "way/223145711": {
+  "y_tren": "60.08",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 60.08 m (mô hình 66.0), 27 ô"
+ },
+ "way/223145712": {
+  "y_tren": "60.28",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 60.28 m (mô hình 66.0), 27 ô"
+ },
+ "way/223145713": {
+  "y_tren": "47.71",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 47.71 m (mô hình 45.3), 18 ô"
+ },
+ "way/223179003": {
+  "y_tren": "54.53",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 54.53 m (mô hình 51.3), 129 ô"
+ },
+ "way/1573767740": {
+  "y_tren": "43.6",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 43.6 m (mô hình 44.6), 907 ô"
+ },
+ "way/1573767741": {
+  "y_tren": "41.69",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 41.69 m (mô hình 44.6), 27 ô"
+ },
+ "way/1573767742": {
+  "y_tren": "43.58",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 43.58 m (mô hình 44.6), 253 ô"
+ },
+ "way/1573767744": {
+  "y_tren": "40.65",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 40.65 m (mô hình 36.3), 120 ô"
+ },
+ "way/1573767747": {
+  "y_tren": "90.5",
+  "ly_do": "cách 3: đỉnh đo trên bản đồ độ cao thật 90.5 m (mô hình 68.3), 217 ô — tháp chóp nhọn (mặt bằng 49 m²)",
+  "roof:shape": "pyramidal",
+  "roof:height": "16"
+ }
+}

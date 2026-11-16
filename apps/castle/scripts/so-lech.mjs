@@ -37,7 +37,7 @@ const hopTo = vung.map((n) => { const us = n.map((p) => p[0]), vs = n.map((p) =>
 // MỘT LƯỢT SO: mở trang, chụp hai bản ở camera, so (so-lech.py), dò mặt tường; doKhoi = true thì đo thêm đỉnh các khối trong vùng trên ảnh 3D
 async function luotSo(thu, doKhoi = false) {
   mkdirSync(thu, { recursive: true });
-  const { pg, dong } = await moTrang({ anh3d: true, khung });
+  const { pg, dong } = await moTrang({ anh3d: true, khung, them: process.argv.includes('--cach3') ? 'cach=3' : '' }); // --cach3: so bản CÁCH 3 (độ cao từ bản đồ độ cao thật)
   const hai = await pg.evaluate((c) => window.__ns.chupHaiBan(c), cam);
   for (const [ten, du] of [['mo-hinh.png', hai.moHinh], ['anh-that.png', hai.anhThat]]) if (du) writeFileSync(join(thu, ten), Buffer.from(du.split(',')[1], 'base64'));
   if (!hai.anhThat) { await dong(); throw new Error('ảnh thật 3D không nạp được (token Cesium chỉ nhận cổng 18777 / castle.on.tc)'); }

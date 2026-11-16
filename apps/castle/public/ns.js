@@ -31,6 +31,10 @@ const D = await (await fetch(`./du-lieu/${ten}.json`, { cache: 'no-cache' })).js
 // thêm: phong = phóng mặt bằng quanh tâm (×), thap_goc = tháp góc treo trên con-xon — mattien.js datThapGoc dựng con-xon, gờ, cửa sổ, răng cưa),
 // không sửa tệp số đo gốc — để biết khối nào là số OSM, khối nào đã chỉnh theo ảnh nào.
 const SUA = await fetch(`./du-lieu/${ten}-sua.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+// CÁCH 3 (?cach=3, nút 🧩): độ cao từng khối lấy từ bản đồ độ cao thật (scripts/khoi-tu-dsm.mjs → <lâu>-sua-cach3.json) đè lên tệp sửa — mặt bằng + chi tiết giữ nguyên.
+// ?cach=dsm: lớp khối thô dựng thẳng từ bản đồ độ cao (cach3.js) — chỉ để soi số đo
+const CACH = new URLSearchParams(location.search).get('cach');
+if (CACH === '3') { const S3 = await fetch(`./du-lieu/${ten}-sua-cach3.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})); for (const [id, e] of Object.entries(S3)) SUA[id] = { ...(SUA[id] || {}), ...e }; }
 // bố cục mặt Palas hướng sân đo từ ảnh (điểm ảnh thô; kiểm với ảnh: apps/castle/scripts/kiem-mat-tien.py) — mattien.js quyDoiMat đổi ra mét
 const MAT_BO = await fetch(`./du-lieu/${ten}-mat-palas-san.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 // ĐO TRÊN ẢNH 3D GOOGLE (scripts/do-khoi-google.mjs): mặt đất quanh lâu đài, mặt sân trên, đỉnh từng khối — mốc chân nhà + mặt đất thật
@@ -675,8 +679,10 @@ function datCach3Hien(bat) {
   if ($('b-cach3')) { $('b-cach3').classList.toggle('chinh', CACH3.bat); $('b-cach3').title = CACH3.bat ? 'Đang xem CÁCH 3 (khối khớp lưới ảnh 3D). Bấm để về cách dựng cũ' : 'Xem CÁCH 3: lâu đài dựng từ bản đồ độ cao thật của ảnh 3D (so với cách dựng cũ)'; }
   try { localStorage.setItem('ns-cach3', CACH3.bat ? '1' : '0'); } catch {}
 }
-$('b-cach3').onclick = (e) => { e.stopPropagation(); datCach3Hien(!CACH3.bat); };
-{ let nho = '0'; try { nho = localStorage.getItem('ns-cach3') || '0'; } catch {} if (nho === '1') datCach3Hien(true); } // nhớ lựa chọn qua F5
+// nút 🧩: tải lại trang ở cách kia (giữ góc nhìn #g=…) — độ cao khối áp lúc dựng nên phải dựng lại
+$('b-cach3').classList.toggle('chinh', CACH === '3'); $('b-cach3').title = CACH === '3' ? 'Đang xem CÁCH 3: độ cao mọi khối đo từ bản đồ độ cao thật (ảnh 3D). Bấm để về cách cũ' : 'Xem CÁCH 3: độ cao mọi khối đo từ bản đồ độ cao thật của ảnh 3D (so với cách cũ)';
+$('b-cach3').onclick = (e) => { e.stopPropagation(); luuGoc(true); const q = new URLSearchParams(location.search); if (CACH === '3') q.delete('cach'); else q.set('cach', '3'); location.href = `${location.pathname}?${q}${location.hash}`; };
+if (CACH === 'dsm') datCach3Hien(true);
 function apHienCach3() { // gọi lại sau mọi chỗ đặt hiện / ẩn LOP_OSM (lớp ảnh thật 3D, so ảnh)
   if (LOP_OSM.dangAn) { if (CACH3.g) CACH3.g.visible = false; return; }
   for (const m of LOP_NHA) m.visible = !CACH3.bat; if (CACH3.g) CACH3.g.visible = CACH3.bat; }
@@ -894,7 +900,7 @@ async function chupHaiBan(datCam = null) {
   const cam = { p: camera.position.toArray().map((v) => +v.toFixed(2)), d: d.toArray().map((v) => +v.toFixed(4)), fov: +camera.fov.toFixed(1), zoom: +(di?.dang ? 0 : camera.position.distanceTo(orbit.target)).toFixed(1),
     w: innerWidth, h: innerHeight, cheDo: di?.dang ? 'di_bo' : 'toan_canh' };
   const giuOSM = LOP_OSM.map((m) => m.visible), giuGoc = anh3d?.goc.visible;
-  for (const m of LOP_OSM) m.visible = true; if (anh3d) anh3d.goc.visible = false;
+  for (const m of LOP_OSM) m.visible = true; if (CACH3.bat) { for (const m of LOP_NHA) m.visible = false; } else if (CACH3.g) CACH3.g.visible = false; if (anh3d) anh3d.goc.visible = false; // đúng cách dựng đang chọn (nút 🧩)
   const moHinh = chupCanvas(renderer.domElement, () => renderer.render(scene, camera));
   LOP_OSM.forEach((m, i) => { m.visible = giuOSM[i]; }); if (anh3d) anh3d.goc.visible = giuGoc;
   let anhThat = null;
@@ -1247,7 +1253,7 @@ function khoiPhucGoc() {
 }
 addEventListener('pagehide', () => luuGoc(true)); addEventListener('beforeunload', () => luuGoc(true));
 window.__ns.luuGoc = luuGoc; window.__ns.gocHienTai = gocHienTai;
-window.__ns.kiemKe = () => KIEM_KE; window.__ns.chupHaiBan = chupHaiBan; window.__ns.khoiTrongVung = khoiTrongVung; window.__ns.doKhoiAnh3d = doKhoiAnh3d; window.__ns.batAnh3dTam = batAnh3dTam; window.__ns.diemTaiAnh = diemTaiAnh;
+window.__ns.kiemKe = () => KIEM_KE; window.__ns.datCach3Hien = (b) => datCach3Hien(b); window.__ns.chupHaiBan = chupHaiBan; window.__ns.khoiTrongVung = khoiTrongVung; window.__ns.doKhoiAnh3d = doKhoiAnh3d; window.__ns.batAnh3dTam = batAnh3dTam; window.__ns.diemTaiAnh = diemTaiAnh;
 // CHỒNG LẤN: hai ô cửa cùng một mặt tường mà khung chạm nhau (kể cả cửa dựng theo luật chung) → danh sách cặp (scripts/kiem-ke.mjs báo lỗi)
 window.__ns.chongLan = () => { const theoMat = new Map(); for (const c of CUA) { if (!c.mat) continue; (theoMat.get(c.mat) || theoMat.set(c.mat, []).get(c.mat)).push(c); } const ra = [];
   for (const [mat, ds] of theoMat) for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++) { const a = ds[i], b = ds[j], ux = -a.nz, uz = a.nx, sa = a.x * ux + a.z * uz, sb = b.x * ux + b.z * uz;

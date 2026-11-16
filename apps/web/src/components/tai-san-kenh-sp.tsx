@@ -221,7 +221,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   ];
   return (
     <Panel title="📺 Kênh nội dung" subtitle={'kênh video trọn chuyện + kênh social đã chuyển (một máy đăng ra nhiều nền — khối 📡 Nền đăng) · ▸ mở: sổ kênh · lộ trình · đang sản xuất · lịch · đã làm · "–" = chưa đo (khác 0)'}>
-      <style>{'.kenh-sp-bang th.dt-th{vertical-align:bottom}.kenh-sp-bang th.dt-th:has([data-kenh-tieu-de]){overflow:visible;z-index:6}'}</style>
+      <style>{'.kenh-sp-bang th.dt-th{vertical-align:bottom}.kenh-sp-bang th.dt-th:has([data-kenh-tieu-de]),.kenh-sp-bang th.dt-th :has(> [data-kenh-tieu-de]){overflow:visible!important;z-index:6!important}'}</style>
       <div className="kenh-sp-bang"><DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : d.loai === 'trang' ? `${d.khoa}/trang` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
         rowData={(d) => ({ 'kenh-ma': d.k.ma, 'kenh-dau': laK(d) ? 1 : 0, ...(d.loai === 'ke' && d.nhom ? { 'kenh-khoi': d.id } : {}) })}
         fullRow={(d) => d.loai === 'ke' || d.loai === 'trang'}

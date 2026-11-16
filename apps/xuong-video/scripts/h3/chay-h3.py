@@ -62,7 +62,9 @@ while True:
     time.sleep(5); h = goi(f'/history/{pid}').get(pid)
     if not h: continue
     st = h.get('status', {})
-    if st.get('status_str') == 'error': print(json.dumps(st.get('messages', [])[-3:])[:4000]); sys.exit(3)
+    if st.get('status_str') == 'error':   # TÊN + CÂU lỗi lên đầu, một dòng (16/11/2026: in cả traceback rồi cắt đuôi → mất đúng câu lỗi)
+        e = next((m[1] for m in st.get('messages', []) if m and m[0] == 'execution_error'), {})
+        print(json.dumps({'loi': f"{e.get('node_type')}: {e.get('exception_type')}: {str(e.get('exception_message'))[:600]}", 'cuoi_traceback': ''.join(e.get('traceback') or [])[-800:]}, ensure_ascii=False)); sys.exit(3)
     if st.get('completed'):
         # CHỈ đầu ra của node SaveVideo '53' (type output) — 16/11/2026 lượt 6 đọc nhầm ô xem trước của LoadVideo (clip 3D đầu vào, type input) cho cả 16 cụm,
         # clip H3 thật nằm trên máy rồi mất khi xoá máy. Kiểm tệp có thật trên đĩa trước khi báo.

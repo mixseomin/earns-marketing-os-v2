@@ -110,7 +110,7 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
       for (const { y, kieu, nua, cao, ds } of bocCuc({ L, yMong: t.yMong, y1: t.y1, palas, coVom, yDat: mn.yDat, neo: palas ? t.neoHang : null })) {
         if (biChe(x1 + ux * L / 2 + nx * 0.6, y + cao / 2, z1 + uz * L / 2 + nz * 0.6)) continue; // mặt tường bị khối khác áp vào ở tầng này
         if (lo.some((o) => o.s0 <= 0 && o.s1 >= L && y - 0.6 >= o.y0 && y + cao <= o.y1)) continue; // cả mặt dành cho dựng riêng (mặt Palas hướng sân) → không cửa, không gờ
-        go.push([x1, z1, ux, uz, nx, nz, L, y - 0.55]); // gờ đá dưới mỗi hàng cửa
+        const coCua = cua.length;   // gờ đá dưới hàng chỉ đặt khi hàng có ít nhất một cửa (tường hẹp / cửa bị khối khác che → gờ cụt lơ lửng trên mặt tháp, anh 17/11/2026)
         for (const s of ds) {
           // TỪNG CỬA: tâm cửa (0,35 m ra ngoài mặt) nằm trong khối khác ở độ cao đó → cửa của khối bị khối to hơn bọc ngoài, khung sẽ đâm xuyên tường khối kia (thanh lơ lửng dọc mép tháp, anh 16/11/2026) → bỏ
           if (biChe(x1 + ux * s + nx * 0.35, y + cao / 2, z1 + uz * s + nz * 0.35) || biChe(x1 + ux * (s - nua) + nx * 0.35, y + cao / 2, z1 + uz * (s - nua) + nz * 0.35) || biChe(x1 + ux * (s + nua) + nx * 0.35, y + cao / 2, z1 + uz * (s + nua) + nz * 0.35)) continue;
@@ -119,6 +119,7 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
           viTri[coLo && kieu === 'ba' ? 'baMo' : kieu].push(m4.compose(new THREE.Vector3(x1 + ux * s, y, z1 + uz * s), q, mot1).clone());
           cua.push({ x: x1 + ux * s, y, z: z1 + uz * s, nx, nz, nua: mNua, cao: mCao, coLo, ten: t.ten, mat: `${t.k?.id}#${i}` }); // cho ns.js: đang leo sát cửa sổ có phòng phía sau thì mở cửa trèo vào
         }
+        if (cua.length > coCua) go.push([x1, z1, ux, uz, nx, nz, L, y - 0.55]);
       }
     }
   }

@@ -11,7 +11,8 @@ export const MOS2_GOC = path.join(os.homedir(), 'Me/GitHub/earns-marketing-os-v2
 const git = (cwd, ...a) => execFileSync('git', ['-C', cwd, ...a], { encoding: 'utf8' }).trim();
 
 /** Chuẩn bị cây riêng của `nguoi`, trả { dir, do: [tệp còn sửa dở từ lượt trước] }. Ném lỗi khi không fast-forward được (nhánh riêng có commit chưa lên main) — người gọi bỏ lượt. */
-export function cayRieng(nguoi, goc = MOS2_GOC) {
+// cong(dir): CỔNG trước khi máy đẩy commit kẹt (castle: trọng tài máy apps/castle/scripts/trong-tai.mjs) — trả false = KHÔNG đẩy, commit nằm lại cây riêng chờ kỹ sư sửa tiếp
+export function cayRieng(nguoi, goc = MOS2_GOC, cong = null) {
   if (!/^[a-z0-9-]+$/.test(nguoi)) throw new Error(`tên kỹ sư lạ: ${nguoi}`);
   const dir = path.join(os.homedir(), 'may-ky-su', nguoi, 'earns-marketing-os-v2'), nhanh = `ky-su/${nguoi}`;
   git(goc, 'fetch', '-q', 'origin', 'main');
@@ -43,11 +44,12 @@ export function cayRieng(nguoi, goc = MOS2_GOC) {
     day = git(dir, 'log', '--format=%s', 'origin/main..HEAD').split('\n').filter(Boolean);
     try { git(dir, 'rebase', '-q', 'origin/main'); } catch (e) { try { git(dir, 'rebase', '--abort'); } catch { /* không có rebase dở */ }
       throw new Error(`${kep} commit chưa lên main của ${nguoi} xung đột với main mới, cần làm lại: ${String(e.stderr || e.message).split('\n')[0]}`); }
+    if (cong && !cong(dir)) { console.log(`${new Date().toISOString()} ${kep} commit của ${nguoi} CHƯA qua cổng — không đẩy`); day = []; } else {
     for (let i = 1; ; i++) { try { git(dir, 'push', '-q', 'origin', 'HEAD:main'); break; } catch (e) { if (i >= 3) throw e; git(dir, 'fetch', '-q', 'origin', 'main'); git(dir, 'rebase', '-q', 'origin/main'); } }
     git(dir, 'fetch', '-q', 'origin', 'main');
-    console.log(`${new Date().toISOString()} đã đẩy ${kep} commit kẹt của ${nguoi} lên main`);
+    console.log(`${new Date().toISOString()} đã đẩy ${kep} commit kẹt của ${nguoi} lên main`); }
   }
-  git(dir, 'merge', '-q', '--ff-only', 'origin/main');
+  if (!Number(git(dir, 'rev-list', '--count', 'origin/main..HEAD'))) git(dir, 'merge', '-q', '--ff-only', 'origin/main');
   if (tep) { try { git(dir, 'apply', '--check', tep); git(dir, 'apply', tep); } catch { vat = tep; } }
   const doDo = git(dir, 'status', '--porcelain', '--untracked-files=no').split('\n').filter(Boolean).map((l) => l.slice(3));
   return { dir, do: doDo, vat, day };
@@ -57,8 +59,8 @@ if (process.argv[1]?.endsWith('cay-rieng.mjs') && process.argv[2]) { const r = c
 
 /** Như cayRieng, nhưng kẹt (không fast-forward được) thì BÁO chủ đề phòng rồi bỏ lượt — kỹ sư đứng im mà không ai biết là lỗi im lặng
  *  (anh 11/11/2026: "phải biết giới hạn đúng lúc, đúng chỗ"). tho-may-viec --canh tự giữ nhịp: mỗi khoá ≤ 1 tin / 24 giờ, không thành 5 phút một tin. */
-export function cayHoacBao(nguoi, { ten, khoa, phong, tep }) {
-  try { return cayRieng(nguoi); } catch (e) {
+export function cayHoacBao(nguoi, { ten, khoa, phong, tep, cong = null }) {
+  try { return cayRieng(nguoi, MOS2_GOC, cong); } catch (e) {
     const ly = String(e.stderr || e.message).split('\n')[0];
     console.log(`${new Date().toISOString()} chưa chuẩn bị được cây riêng, chưa nhận việc: ${ly}`);
     try {

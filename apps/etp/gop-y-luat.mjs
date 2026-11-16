@@ -1258,4 +1258,6 @@ export const LUAT = [
   { card: 'phanh-lot-1711', tep: 'apps/etp/dong_phim.py', cam: '--ai "anh (etp.on.tc:', vi: 'dòng phim không ghi cứng người làm là anh — dùng ai_dong theo người tạo dòng' },
   { card: 'phanh-lot-1711', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'anh_bam=anh or str(ai or "").strip().lower().startswith("anh"))', vi: 'nhân bản báo cổng người làm thật là anh hay máy' },
   { card: 'phanh-13h-1711', tep: 'apps/etp/gia_adsense.py', co: 'if ph and ph["ngay"] < k and luc.hour >= PC_GIO[1] and not (ti is not None and ti >= pc["nguong"]):', vi: 'phanh tăng giữ tới 13h hôm sau, chỉ mở khi giá 07–13h đã hồi ≥ ngưỡng (anh 17/11/2026 "làm đi")' },
+  { card: 'bao-tri-1711', tep: 'apps/etp/cong.py', co: 'if viec in ("tao_camp", "nhan_ban") and bt.get("bat") and not anh_bam:', vi: 'Ethopex bảo trì lên camp: máy dừng mọi đường tạo camp / nhân bản (anh 17/11/2026)' },
+  { card: 'bao-tri-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: "c.khoa === 'bao_tri_len'", vi: 'biển bảo trì lên camp trên etp + etp2 cho cả team' },
 ];

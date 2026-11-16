@@ -143,6 +143,11 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         ch = {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
         if viec == "bat" and camp_id and str(int(camp_id)) in _q(SQL_IT_NUOC).split(): return LY_IT_NUOC
         if ch.get("dung_khan"): return "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"
+        # ETHOPEX BẢO TRÌ LÊN CAMP (anh 17/11/2026: "bên Etho team báo là đang bảo trì việc lên camp nên sẽ dừng tạo camp mới từ giờ đến ít nhất là sáng mai + báo lại"):
+        # etp.cau_hinh.bao_tri_len {bat, tu, ly_do} → MỌI đường máy tạo camp / nhân bản dừng, kể cả ★ ROAS, camp team, bản thang — đứng trước mọi miễn trừ. KHÔNG tự hết hạn:
+        # chỉ tắt khi Ethopex báo lại. Anh bấm tay vẫn gửi được (anh 16/11/2026 không chặn thao tác thủ công — Ethopex có thể tự từ chối).
+        bt = ch.get("bao_tri_len") or {}
+        if viec in ("tao_camp", "nhan_ban") and bt.get("bat") and not anh_bam: return f"ETHOPEX BẢO TRÌ LÊN CAMP từ {bt.get('tu') or '?'} — dừng tạo camp / nhân bản tới khi Ethopex báo lại (etp.cau_hinh.bao_tri_len)"
         # TRẦN TUYỆT ĐỐI $30 / CAMP (anh 14/11/2026: "Ko bao giờ tăng ngân sách vượt trần $30") — đứng trước mọi miễn trừ (ROAS, A/B, lệnh anh, bản thang):
         # không đường nào trong máy đặt một camp nhà / team quá TRAN_TUYET, kể cả khi tran_camp trong cấu hình bị sửa cao hơn
         if ns_moi is not None and float(ns_moi) > TRAN_TUYET: return f"vượt trần tuyệt đối ${TRAN_TUYET:g}/camp (anh 14/11/2026: không bao giờ vượt $30) — đang gửi ${float(ns_moi):g}"

@@ -25,7 +25,20 @@ export function canhBaoPhanh(cauHinh: { khoa: string; gia_tri: unknown }[]): { t
            len: Date.parse(ph.den_len) > nay ? `${dau} — máy dừng camp mới tới ${gioVn(ph.den_len)}. Bấm Làm là vẫn tạo.` : null };
 }
 
+/** BẢO TRÌ LÊN CAMP của Ethopex (etp.cau_hinh.bao_tri_len, anh 17/11/2026) — máy dừng tạo camp / nhân bản tới khi Ethopex báo lại */
+function BienBaoTri({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {
+  const bt = (cauHinh.find((c) => c.khoa === 'bao_tri_len')?.gia_tri ?? null) as { bat?: boolean; tu?: string; ly_do?: string } | null;
+  if (!bt?.bat) return null;
+  return <div role="alert" data-bien="bao-tri-len" title={bt.ly_do ?? ''} style={{ ...KHUNG, background: '#7c3aed', color: '#fff' }}>
+    🛠 ETHOPEX BẢO TRÌ LÊN CAMP · máy dừng tạo camp mới / nhân bản{bt.tu ? ` từ ${bt.tu}` : ''} · chờ Ethopex báo lại
+  </div>;
+}
+
 export function BienPhanhCho({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {
+  return <><BienBaoTri cauHinh={cauHinh} /><BienPhanh cauHinh={cauHinh} /></>;
+}
+
+function BienPhanh({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {
   const tt = (cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null;
   if (!tt) return null;
   const nay = Date.now(), ph = tt.phanh && Date.parse(tt.phanh.den_len) > nay ? tt.phanh : null;

@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/chan-gui-video.test.mts — mỗi ca là một lỗi thật ở phim #3071 (14/11/2026)
 import assert from 'node:assert';
-import { loiPromptGui, loiClipThamChieu, boLoiThoai, loiThoaiPrompt, loiShotPrompt, loiAnhCum, loiThoaiCuoiCum, loiVideoThamChieu, loiCoMay, bacCoChu } from './chan-gui-video';
+import { loiPromptGui, loiClipThamChieu, boLoiThoai, loiThoaiPrompt, loiShotPrompt, loiAnhCum, loiThoaiCuoiCum, loiVideoThamChieu, loiCoMay, bacCoChu, loiLapHanhDong } from './chan-gui-video';
 import { dangChongBau } from './bo-set-3d';
 
 const sach = 'A 10-second, 6-shot widescreen film sequence. Shot 1 (about 2 s): the man in the t-shirt says: Nhóc, lại đây!. Shot 2: the boy looks up. Keep it subtitle-free.';
@@ -69,4 +69,14 @@ assert.deepStrictEqual(loiCoMay([{ so: 35, co_canh: 'ews', chuyen_dong: 'drone_l
 assert.deepStrictEqual(loiCoMay([{ so: 28, co_canh: 'insert', chuyen_dong: 'day_vao', ket: 'the beads in full view — cut to black' }]), []);
 assert.ok(loiCoMay([{ so: 5, co_canh: 'ms', chuyen_dong: 'lui_ra', huong: 'man faces screen right; camera does not move' }])[0]!.includes('máy đứng'), 'ca thật phim 2934 #5');
 assert.deepStrictEqual(loiCoMay([{ so: 13, co_canh: 'cu', dien: 'Hạ slowly lifts her eyes, slow push-in' }]), [], 'chưa khai máy: chữ là nguồn máy (phim 353 #15)');
+// HÀNH ĐỘNG MỘT LẦN — ca thật phim #3071 #14 → #16 (cùng phân cảnh "Quay về"): chìa tiền thừa ở #14, #16 lại giơ tiền thừa lên → chặn ở #16
+const Q = [{ so: 14, phan_doan: 'Quay về', dien: 'boy lowers head, then grins awkwardly and holds out change', ket: 'boy holding out change, awkward grin' },
+  { so: 15, phan_doan: 'Quay về', ket: "his eyes drop to the boy's hands, suspicious" },
+  { so: 16, phan_doan: 'Quay về', ket: 'he raises the crumpled change toward the window' }];
+assert.ok(loiLapHanhDong(Q).length === 1 && loiLapHanhDong(Q)[0]!.startsWith('#16') && loiLapHanhDong(Q)[0]!.includes('change'), JSON.stringify(loiLapHanhDong(Q)));
+// có người nhận ở giữa / chính shot sau là shot nhận → không lặp; khác phân cảnh → không tính; chìa tờ 5 nghìn #6 → #7 chú đưa, nhóc cầm lấy (ca thật) → qua
+assert.deepStrictEqual(loiLapHanhDong([Q[0]!, { ...Q[2]!, ket: 'the man snatches the crumpled change' }]), []);
+assert.deepStrictEqual(loiLapHanhDong([Q[0]!, { ...Q[2]!, phan_doan: 'Tiền thừa' }]), []);
+assert.deepStrictEqual(loiLapHanhDong([{ so: 6, phan_doan: 'Giao tiền', ket: 'he holds out a folded 5,000-dong note' }, { so: 7, phan_doan: 'Giao tiền', dien: 'man calls and reaches down with the note; boy steps in and takes it', ket: "boy's hand on the note" }]), []);
+assert.deepStrictEqual(loiLapHanhDong([{ so: 1, phan_doan: 'A', dien: 'he raises his head, then raises his eyes' }, { so: 2, phan_doan: 'A', dien: 'raises his hand to wave' }]), [], 'bộ phận cơ thể không phải món đồ');
 console.log('✓ chan-gui-video (mã nội bộ · tên / tiếng Việt ngoài thoại · tỉ lệ · clip sạch · dáng chống bậu)');

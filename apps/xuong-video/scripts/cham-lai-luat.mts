@@ -38,6 +38,7 @@ async function cham(lib: string, ds: Shot[]): Promise<Map<string, string>> {
     // phạm vi THẬT của cổng cỡ / máy: phim truyện ở cổng tiền kỳ (quy-trinh.ts) + mọi lượt gửi Seedance (thu-seedance-*.mts); đường sinh QC chính (sinh-video.ts) không gọi
     const qc = p.loai === 'quang_cao' || p.loai === 'may_dung';
     if (cg.loiCoMay && cg.shotCoMay) for (const l of cg.loiCoMay(cs.map((c) => cg.shotCoMay(c)))) ghi(so(l), `[cỡ/máy${qc ? ' — QC: chỉ chặn lượt gửi Seedance, đường QC chính không chặn' : ''}] ${l}`);
+    if (cg.loiLapHanhDong && cg.shotHanhDong && !qc) for (const l of cg.loiLapHanhDong(cs.map((c) => cg.shotHanhDong(c)))) ghi(so(l), `[lặp hành động] ${l}`);
     const chu = (c: Shot) => (c.may_3d && bs.chuThe ? bs.chuThe(c.may_3d) : null);
     const base = cs.map((c, i) => ({ ...c, giay: c.phat_s > 0 ? c.phat_s : c.thoi_luong_s, chu: chu(c), di_cm: c.may_3d && np.diCm ? np.diCm(c.may_3d.vi_tri) : 0, cuoi: false, thu_tu: c.thu_tu ?? i + 1 }));
     const dc = np.dongCoMay ? np.dongCoMay(base) : base;

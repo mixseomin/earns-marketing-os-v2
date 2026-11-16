@@ -145,3 +145,24 @@ export function loiCoMay(ds: readonly ShotCoMay[]): string[] {
 export const shotCoMay = (c: Canh): ShotCoMay => ({ so: c.thu_tu, co_canh: c.ky_thuat?.co_canh, chuyen_dong: c.ky_thuat?.chuyen_dong,
   mo: c.dan_dung?.mo, dien: c.dan_dung?.dien, ket: c.dan_dung?.ket, huong: c.dan_dung?.huong, bo_cuc: c.dan_dung?.bo_cuc,
   di_sau_cm: c.may_3d ? diChuThe(c.may_3d, c.may_3d.nham ? [c.may_3d.nham] : chuThe(c.may_3d))?.sau ?? null : null });
+
+/** HÀNH ĐỘNG CHỈ DIỄN MỘT LẦN (anh 16/11/2026, phim #3071: "15 đã đưa tiền lên rồi thì 16 không đưa tiếp nữa — bộ chấm đâu?"). Nghề: liên tục hành động của script
+ *  supervisor — động tác đã làm ở shot trước thì shot sau MỞ từ trạng thái đó (vẫn chìa / đã đưa), không làm lại từ đầu; cắt giữa động tác (match on action) là
+ *  ĐI TIẾP động tác, không lặp. Luật: trong cùng phân cảnh, một món đã được ĐƯA / CHÌA ở shot trước mà chưa có ai NHẬN, shot sau lại đưa / chìa chính món đó (và
+ *  cũng không ai nhận) → lặp. Ca thật: #14 kết "boy holding out change", #16 kết "he raises the crumpled change toward the window" (model còn tự cho #15 đưa tiền).
+ *  Đọc chữ mở / diễn / kết tiếng Anh. Thuần, tự kiểm: chan-gui-video.test.mts. */
+const DUA = /\b(?:hold(?:s|ing)? out|hold(?:s|ing)? up|rais(?:e|es|ing)|offer(?:s|ing)?|hand(?:s|ing)? (?:over|up)|lift(?:s|ing)? up|push(?:es|ing)? up|stretch(?:es|ing)? out)\b(?:\s+(?:a|an|the|his|her|their|its|some|this|that|crumpled|folded|small|little|wet|cold|empty|half[- ]empty|[0-9.,]+(?:-dong)?))*\s+([a-z]+)/gi;
+const NHAN = /\b(?:take[sn]?|taking|took|grab(?:s|bed|bing)?|snatch(?:es|ed|ing)?|receiv(?:e|es|ed|ing)|accept(?:s|ed|ing)?|catch(?:es|ing)?|caught)\b/i;
+export type ShotHanhDong = { so: number; phan_doan?: string | null; mo?: string | null; dien?: string | null; ket?: string | null };
+export function loiLapHanhDong(ds: readonly ShotHanhDong[]): string[] {
+  const loi: string[] = []; let canh: string | null | undefined; const dang = new Map<string, number>();   // món đang được chìa (chưa ai nhận) → shot
+  for (const s of ds) {
+    if (s.phan_doan !== canh) { dang.clear(); canh = s.phan_doan; }
+    const chu = [s.mo, s.dien, s.ket].filter(Boolean).join('; '); const nhan = NHAN.test(chu);
+    const mon = [...new Set([...chu.matchAll(DUA)].map((m) => m[1]!.toLowerCase()).filter((x) => !['toward', 'towards', 'to', 'and', 'his', 'her', 'head', 'eyes', 'hand', 'hands', 'arm', 'arms', 'finger', 'voice', 'face', 'chin'].includes(x)))];
+    for (const m of mon) { const i = dang.get(m); if (i != null && !nhan) loi.push(`#${s.so}: lại đưa / chìa «${m}» đã chìa ở #${i} mà chưa ai nhận — một hành động chỉ diễn MỘT lần: shot này mở từ trạng thái của #${i} (vẫn đang chìa, hoặc ghi ai NHẬN), không làm lại`); }
+    if (nhan) dang.clear(); else for (const m of mon) if (!dang.has(m)) dang.set(m, s.so);
+  }
+  return loi;
+}
+export const shotHanhDong = (c: Canh): ShotHanhDong => ({ so: c.thu_tu, phan_doan: c.phan_doan, mo: c.dan_dung?.mo, dien: c.dan_dung?.dien, ket: c.dan_dung?.ket });

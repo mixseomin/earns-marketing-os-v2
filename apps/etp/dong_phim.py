@@ -156,6 +156,10 @@ def cham_bang_canh(cid):
         for f in (0.3, 0.7):
             b = subprocess.run(["ffmpeg", "-v", "error", "-ss", str(d * f), "-i", t, "-frames:v", "1", "-vf", "scale=480:-2", "-q:v", "5", "-f", "mjpeg", "pipe:1"], capture_output=True, timeout=60).stdout
             if b: khung.append("data:image/jpeg;base64," + base64.b64encode(b).decode())
+    if str(cid) not in can_nguon():   # TẢI XONG DỌN NGAY (anh 16/11/2026): bước Cắt tự tải lại khi tới lượt, không giữ tập gốc từ lúc nhận
+        for t in glob.glob(os.path.join(tm, "tap*.mp4")):
+            try: os.remove(t)
+            except OSError: pass
     if not khung: return None, "không cắt được khung cảnh"
     p = subprocess.run([*SSH, B, f"{ENV}; python3 apps/etp/nhom_goc.py {int(cid)} --ghi --khung-stdin"], input=json.dumps(khung), capture_output=True, text=True, timeout=300)
     goc = sql(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {int(cid)}")
@@ -228,6 +232,12 @@ def b_cat(d):
             while time.time() - t0 < CHO_NGOAI and sql(f"select 1 from etp.viec where lo = '{lo}' and trang_thai = 'cho' limit 1"):
                 sql(f"update etp.dong_buoc set nhip = now(), ghi = {s('iMac đủ khe — chờ máy thợ khác (HP / VPS) nhận việc cắt')} where dong_id = {d['id']} and buoc = 'cat'"); time.sleep(30)
         finally: CAT_NGOAI.discard(d["id"])
+    t1 = time.time()
+    while str(cid) not in giu_nguon() and len(giu_nguon()) >= TRAN_TAI and time.time() - t1 < dict(BUOC)["cat"] - 600:
+        don_dep()
+        if len(giu_nguon()) < TRAN_TAI: break
+        sql(f"update etp.dong_buoc set nhip = now(), ghi = {s(f'chờ dọn: iMac đang giữ tập gốc {len(giu_nguon())}/{TRAN_TAI} phim — phim trước cắt + soát xong, dọn rồi mới tải phim này')} where dong_id = {d['id']} and buoc = 'cat'")
+        time.sleep(60)
     rc, out = chay_tien_trinh(d["id"], "cat", ["python3", os.path.join(R, "tho.py"), "--lo", lo, "--so-tho", "1"], dict(BUOC)["cat"] - 60)
     # THỢ MÁY KHÁC ĐÃ NHẬN LÔ (07/11/2026 dòng #112: VPS may-cao-vn nhận trước, thợ iMac "hết việc — đã làm 0 việc" → dòng ghi lỗi trong khi VPS đang cắt) → chờ máy đó xong
     # THỢ MÁY NÀY TRẢ LÔ VỀ HÀNG CHUNG (15/11/2026 #1608: Vision iMac lỗi → tho.xong 'tra_lai', lô về 'cho' cho HP / VPS cắt) → cũng chờ; trước chỉ chờ 'dang'
@@ -497,12 +507,27 @@ def b_chay(d, truoc):
 #   ra/dp<id>*   — đoạn cắt / tệp tải creative của dòng đã XONG (dòng dừng / lỗi: hết 3 ngày Mạnh còn mở lại)
 #   nguon/<phim> — tập gốc tải về, khi phim không còn dòng chạy, không còn việc cắt chờ / đang làm, và 30 phút không ai ghi
 #   vx-kc/<tập>  — clip máy sinh kể chuyện, khi bản đó đã thành creative (thư viện có creative_id) / đã lên; bản bị bỏ thì sau 2 ngày
+# TRẦN TẢI PHIM (anh 16/11/2026: "giới hạn ngay số phim ethopex tải về mỗi lần. Làm xong cái nào dọn dẹp gọn mới đc phép tải tiếp" — ổ iMac còn 3,6 GB,
+# nguon/ 41 GB của 189 phim: bước Nhận tải 2 tập mọi phim vào hàng, luật dọn cũ giữ tập gốc của MỌI phim có dòng chạy, kể cả dòng còn đứng chờ cắt).
+# Nay: iMac giữ tập gốc tối đa TRAN_TAI phim; tập gốc chỉ CẦN khi phim đang cắt (bước cắt 'dang' / việc cắt đang làm trên máy này) hoặc đã cắt mà chưa soát xong.
+# Bước Nhận tải xong là xoá; bước Cắt tới trần thì dọn rồi chờ, phim trước xong + dọn mới tải phim kế.
+TRAN_TAI = 3
+def giu_nguon():
+    """phim đang có tập gốc (.mp4) trong ~/.cache/ethopex/nguon trên máy này"""
+    g = os.path.join(C, "nguon")
+    return {t for t in (os.listdir(g) if os.path.isdir(g) else []) if t.isdigit() and any(f.endswith(".mp4") for f in os.listdir(os.path.join(g, t)) if os.path.isfile(os.path.join(g, t, f)))}
+def can_nguon():
+    """phim còn CẦN tập gốc: dòng chạy đang cắt, hoặc cắt xong mà soát chưa xong; việc cắt đang làm trên máy này"""
+    return set(sql(f"""select distinct d.content_id::text from etp.dong_phim d join etp.dong_buoc c on c.dong_id = d.id and c.buoc = 'cat'
+                       left join etp.dong_buoc s on s.dong_id = d.id and s.buoc = 'soat'
+                       where d.trang_thai = 'chay' and (c.trang_thai = 'dang' or (c.trang_thai = 'xong' and coalesce(s.trang_thai, 'cho') <> 'xong'))
+                       union select distinct content_id::text from etp.viec where trang_thai = 'dang' and may = '{MAY}' and content_id is not null""").split())
 DON = [0.0]
 def don_dep():
     import shutil
     ds = [l.split("\t") for l in sql("select id, trang_thai, (tao_luc < now() - interval '3 days')::text, content_id from etp.dong_phim").splitlines() if l.count("\t") == 3]
     xong = {int(i) for i, tt, cu, _ in ds if tt == "xong" or (tt in ("dung", "loi", "huy") and cu == "true")}
-    dung = {c for _, tt, _, c in ds if tt == "chay"} | set(sql("select distinct content_id from etp.viec where trang_thai in ('cho', 'dang') and content_id is not null").split())
+    dung = can_nguon()   # tập gốc chỉ giữ khi phim đang cắt / chờ soát (TRAN_TAI ở trên) — trước giữ cho mọi phim có dòng chạy, 41 GB / 189 phim
     xa = {t for t in sql("select tap_id from etp.thu_vien where tap_id is not null and (creative_id is not null or trang_thai = 'da_len' or (trang_thai = 'loai' and cap_nhat < now() - interval '2 days'))").split()}
     bo, tong = [], 0
     def xoa(p):
@@ -519,7 +544,7 @@ def don_dep():
         elif not (m and int(m.group(1)) in chay) and time.time() - moi_nhat(p_) > 3 * 86400: xoa(p_)
     for ten in os.listdir(os.path.join(C, "nguon")):
         p_ = os.path.join(C, "nguon", ten)
-        if ten.isdigit() and os.path.isdir(p_) and ten not in dung and time.time() - moi_nhat(p_) > 1800: xoa(p_)
+        if ten.isdigit() and os.path.isdir(p_) and ten not in dung and time.time() - moi_nhat(p_) > 600: xoa(p_)
         elif ten.isdigit() and os.path.isdir(p_):   # phim còn dùng: bản chuẩn hoá -chuan.mp4 đã nằm trong ghep-cuoi.mp4 → bỏ (cat-cuoi-lo dùng lại tệp ghép, không chuẩn hoá lại)
             g = os.path.join(p_, "ghep-cuoi.mp4")
             for f in os.listdir(p_):

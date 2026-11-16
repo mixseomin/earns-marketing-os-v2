@@ -9,7 +9,10 @@ DIR=$(cd "$(dirname "$0")" && pwd); mkdir -p "$RA"
 ANH=${XV_H3_ANH:-ghcr.io/mixseomin/xv-h3:latest}   # image đóng sẵn ComfyUI + PyTorch CUDA 13, kiểm 0đ trên GitHub Actions trước khi đẩy (may/Dockerfile)
 GPU=${XV_H3_GPU:-"NVIDIA GeForce RTX 4090|NVIDIA RTX PRO 4500 Blackwell|NVIDIA GeForce RTX 5090|NVIDIA L40S"}   # Ada (cùng đời L4 đã chạy H3 trên Colab) hoặc Blackwell; ≥ 24GB
 TRAN=${XV_H3_PHUT:-120}; T0=$(date +%s)
-API() { ssh root@167.233.241.16 'set -a; . /opt/earns-marketing-os-v2/.env.production; set +a; curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $RUNPOD_API_KEY" -d @- https://api.runpod.io/graphql'; }
+# Gọi qua box3 (khoá ở đó). Box3 quá tải thì từ chối ssh ("Connection reset", 16/11/2026) → thử lại 5 lần, mỗi lần đọc lại thân từ tệp tạm; trả lỗi rỗng = lỗi mạng
+API() { local q; q=$(cat); for i in 1 2 3 4 5; do
+  r=$(printf '%s' "$q" | ssh -o ConnectTimeout=15 root@167.233.241.16 'set -a; . /opt/earns-marketing-os-v2/.env.production; set +a; curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $RUNPOD_API_KEY" -d @- https://api.runpod.io/graphql' 2>/dev/null) && [ -n "$r" ] && { printf '%s' "$r"; return 0; }
+  sleep $(( i * 5 )); done; echo '{"errors":[{"message":"không gọi được API RunPod qua box3 sau 5 lần (ssh bị từ chối?)"}]}'; }
 GQ() { python3 -c 'import json,sys; print(json.dumps({"query": sys.argv[1]}))' "$1" | API; }
 POD=""; GIA=0
 xoa() { [ -n "$POD" ] && { GQ "mutation { podTerminate(input: {podId: \"$POD\"}) }" >/dev/null; echo "đã XOÁ máy $POD sau $(( ($(date +%s) - T0) / 60 )) phút (từ lúc bắt đầu mạch)"; POD=""; }; }

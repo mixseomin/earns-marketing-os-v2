@@ -6,7 +6,8 @@
 import { writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '../src/lib/r2';
-import { guiVideoCong, docVideoCong, giaVideoCong, donVideoCong, type CongKey } from '../src/lib/xuong-video/cong-ai';
+import { giaVideoCong, type CongKey } from '../src/lib/xuong-video/cong-ai';
+import { guiVideoCong, docVideoCong, donVideoCong } from '../src/lib/xuong-video/cong-ai-video';
 import '../src/lib/xuong-video/cong-plenxai';
 
 const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;

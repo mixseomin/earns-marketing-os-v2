@@ -12,7 +12,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { boiCanhCanh, mapCanh, type Row } from '../src/lib/xuong-video/doc-db';
-import { docVideoCong } from '../src/lib/xuong-video/cong-ai';
+import { docVideoCong } from '../src/lib/xuong-video/cong-ai-video';
 import { guiFal, docFal } from '../src/lib/xuong-video/fal';
 import { promptCumMoi } from '../src/lib/xuong-video/cum-shot';
 import { giayPhat, type NhanVat, type Canh } from '../src/lib/xuong-video/kieu';

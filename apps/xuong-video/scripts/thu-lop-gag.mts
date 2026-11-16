@@ -13,7 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { uploadToR2 } from '../src/lib/r2';
-import { guiVideoCong, docVideoCong } from '../src/lib/xuong-video/cong-ai';
+import { guiVideoCong, docVideoCong } from '../src/lib/xuong-video/cong-ai-video';
 import { sinhAnhQuaCong } from '../src/lib/xuong-video/cong-ai-anh';
 import '../src/lib/xuong-video/cong-plenxai';
 import { docKinhThanh, phongCachHinh, type KinhThanh } from '../src/lib/xuong-video/kieu';

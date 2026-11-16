@@ -17,7 +17,8 @@ import { uploadToR2 } from '@/lib/r2';
 import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
 import { docFal, guiFal, dauVaoTheoSchema, khoaFal, tranPrompt } from './fal';
 import './cong-plenxai';   // đăng ký cổng PlenX (token ở tệp trên box — chỉ máy chủ) vào chuỗi video
-import { donVideoCong, CONG_VIDEO, chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, hieuDaiNhip, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
+import { CONG_VIDEO, chuoiVideo, giaVideoCong, hieuDaiNhip, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
+import { guiVideoCong, docVideoCong, donVideoCong } from './cong-ai-video';
 import { baoHetTien } from './bao-het-tien';
 import { promptKyThuatVideo, cauVatLy } from './dien-anh';
 import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';

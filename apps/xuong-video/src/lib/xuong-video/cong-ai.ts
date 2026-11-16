@@ -249,100 +249,16 @@ export function chuoiVideo(modelGoc: string, laQc: boolean): { cong: CongKey; mo
  *  để cong-ai.ts (giao diện + Worker cũng import) không kéo node:fs vào bản build trình duyệt. */
 type CongMay = { gui: (model: string, o: { tiLe?: string | null; prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }) => Promise<KqGui>; doc: (taskId: string, taoLuc: string, treoPhut: number) => Promise<KqDoc>; /** xoá clip trên nền tảng của họ SAU khi đã lưu về R2 (anh 21/10/2026) */ xoa?: (uri: string) => Promise<void>; /** token còn hạn (PlenX) */ token?: () => Promise<string> };
 export const CONG_MAY: Partial<Record<CongKey, CongMay>> = {};
-/** Clip đã lưu về kho của mình (R2) → xoá bản trên nền tảng cổng nếu cổng có lệnh xoá (PlenX). Không chặn: lỗi chỉ ghi log. */
-export async function donVideoCong(cong: string | null | undefined, uri: string): Promise<void> {
-  const x = cong ? CONG_MAY[cong as CongKey]?.xoa : undefined; if (!x) return;
-  try { await x(uri); } catch (e) { console.error(`[${cong}] không xoá được clip trên nền tảng:`, e instanceof Error ? e.message : e); }
-}
 /** Gửi một task video lên cổng: khung đầu = keyframe (URL công khai). Trả task id hoặc lỗi (lỗi gửi = không tính tiền). */
 /** Khung hình gửi cổng video: khung của PHIM (kinh_thanh.ti_le) — 01/11/2026 phim 16:9 ra clip dọc 720×1280 vì PlenX / Kie gắn cứng 9:16, ShopAIKey 2:3.
  *  Cổng chỉ nhận dọc / ngang; khung lạ → 9:16 (QC dọc, mặc định cũ). */
 export const khungVideoCong = (tiLe?: string | null): '16:9' | '9:16' => (tiLe === '16:9' ? '16:9' : '9:16');
-export async function guiVideoCong(cong: CongKey, model: string, o: { /** khung hình của phim */ tiLe?: string | null; prompt: string; anhDau: string; /** ảnh CUỐI (keyframe KẾT) — cổng nhận hai ảnh (kie Veo FIRST_AND_LAST_FRAMES) thì gửi */ anhCuoi?: string | null; giay: number ; /** độ phân giải của phim (kinh_thanh.do_phan_giai) — Kie Veo nhận 1080p; cổng khác giữ 720p */ doPhanGiai?: '720p' | '1080p' }): Promise<{ ok: true; taskId: string } | { ok: false; loi: string; status?: number }> {
-  const k = khoa(cong);
-  if (!k || !CONG_VIDEO.includes(cong)) return { ok: false, loi: `cổng ${cong} chưa có đường video` };
-  if (cong === 'kie') return guiKie(k, model, o);
-  if (cong === 'plenxai') return CONG_MAY.plenxai ? CONG_MAY.plenxai.gui(model, o) : { ok: false, loi: 'cổng PlenX chỉ chạy trên máy chủ (cong-plenxai.ts chưa đăng ký)' };
-  if (cong === 'wavespeed') return guiWavespeed(k, model, o);
-  try {
-    const r = await fetch('https://api.shopaikey.com/v1/video/generations', {
-      method: 'POST', headers: { authorization: `Bearer ${k}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(60_000),
-      body: JSON.stringify({ model, prompt: o.prompt, metadata: { images: [o.anhDau], aspect_ratio: khungVideoCong(o.tiLe) === '16:9' ? '3:2' : '2:3', duration: o.giay, resolution: '720p' } }),
-    });
-    const j = (await r.json().catch(() => ({}))) as { task_id?: string; id?: string; error?: { message?: string }; message?: string };
-    const id = j.task_id || j.id;
-    if (!r.ok || !id) {
-      const het = await hetTienShopaikey(k, r.status);
-      return { ok: false, status: het ? 402 : r.status, loi: het ?? `HTTP ${r.status}: ${j.error?.message || j.message || 'không nhận task'}`.slice(0, 300) };
-    }
-    return { ok: true, taskId: id };
-  } catch (e) { return { ok: false, loi: `không gửi được (${e instanceof Error ? e.name : 'lỗi mạng'})` }; }
-}
 
-/** Hỏi trạng thái task cổng. treo = chưa chạy sau TREO_PHUT phút kể từ lúc gửi (tinh từ `taoLuc`). */
-export async function docVideoCong(cong: string, taskId: string, taoLuc: string): Promise<{ done: false } | { done: true; ok: true; uri: string } | { done: true; ok: false; loi: string; treo?: boolean }> {
-  const k = khoa(cong as CongKey);
-  if (!k) return { done: true, ok: false, loi: `thiếu khoá ${cong}` };
-  if (cong === 'kie') return docKie(k, taskId, taoLuc);
-  if (cong === 'plenxai') return CONG_MAY.plenxai ? CONG_MAY.plenxai.doc(taskId, taoLuc, TREO_PHUT) : { done: true, ok: false, loi: 'cổng PlenX chưa đăng ký trên máy chủ' };
-  if (cong === 'wavespeed') return docWavespeed(k, taskId, taoLuc);
-  const r = await fetch(`https://api.shopaikey.com/v1/video/generations/${encodeURIComponent(taskId)}`, { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
-  if (!r?.ok) return { done: false };
-  const d = ((await r.json().catch(() => ({}))) as { data?: { status?: string; result_url?: string; fail_reason?: string; start_time?: number } }).data ?? {};
-  const st = String(d.status ?? '').toUpperCase();
-  if (st === 'SUCCESS' && d.result_url) return { done: true, ok: true, uri: d.result_url };
-  if (st === 'FAILURE' || st === 'FAILED') return { done: true, ok: false, loi: `cổng báo hỏng: ${d.fail_reason || 'không rõ'}` };
-  if (!d.start_time && Date.now() - new Date(taoLuc).getTime() > TREO_PHUT * 60_000) return { done: true, ok: false, treo: true, loi: `treo hàng đợi ${TREO_PHUT} phút chưa chạy` };
-  return { done: false };
-}
 
 // ── Kie.ai (docs.kie.ai: POST /api/v1/jobs/createTask · GET /api/v1/jobs/recordInfo?taskId=; lỗi trả HTTP 200 + code ≠ 200) ──
 type KqGui = { ok: true; taskId: string } | { ok: false; loi: string; status?: number };
 type KqDoc = { done: false } | { done: true; ok: true; uri: string } | { done: true; ok: false; loi: string; treo?: boolean };
 const quaHan = (taoLuc: string) => Date.now() - new Date(taoLuc).getTime() > TREO_PHUT * 60_000;
-async function guiKie(k: string, model: string, o: { tiLe?: string | null; prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }): Promise<KqGui> {
-  try {
-    const r = await fetch('https://api.kie.ai/api/v1/jobs/createTask', { method: 'POST', headers: { authorization: `Bearer ${k}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(60_000),
-      body: JSON.stringify({ model: 'veo-3-1', input: { prompt: o.prompt, model, image_urls: o.anhCuoi ? [o.anhDau, o.anhCuoi] : [o.anhDau], generation_type: 'FIRST_AND_LAST_FRAMES_2_VIDEO'   /* 19/10/2026: trước chỉ gửi ảnh đầu — keyframe KẾT có mà không bao giờ tới Veo, #1 đoán kết cục */, aspect_ratio: khungVideoCong(o.tiLe), resolution: o.doPhanGiai === '1080p' ? '1080p' : '720p'   /* 19/10/2026: creative QC luôn HD — phim khai 1080p thì clip 1080p (trước gắn cứng 720p) */, duration: o.giay <= 4 ? 4 : o.giay <= 6 ? 6 : 8 } }) });
-    const j = (await r.json().catch(() => ({}))) as { code?: number; msg?: string; data?: { taskId?: string } };
-    if (j.code !== 200 || !j.data?.taskId) return { ok: false, status: j.code === 402 ? 402 : r.status, loi: `Kie.ai ${j.code ?? r.status}: ${j.msg || 'không nhận task'}`.slice(0, 300) };
-    return { ok: true, taskId: j.data.taskId };
-  } catch (e) { return { ok: false, loi: `không gửi được Kie.ai (${e instanceof Error ? e.name : 'lỗi mạng'})` }; }
-}
-async function docKie(k: string, taskId: string, taoLuc: string): Promise<KqDoc> {
-  const r = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`, { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
-  if (!r?.ok) return { done: false };
-  const d = ((await r.json().catch(() => ({}))) as { data?: { state?: string; resultJson?: string; failMsg?: string } }).data ?? {};
-  if (d.state === 'success') {
-    // 720p: resultJson.resultUrls · 1080p (19/10/2026): resultJson.data.result_urls (bản upsample) + high_resolution_pending — đọc cả hai, đang upsample thì chờ
-    let url: string | undefined; let cho = false;
-    try { const j = JSON.parse(d.resultJson ?? '{}') as { resultUrls?: string[]; data?: { result_urls?: string[]; high_resolution_pending?: boolean } }; cho = j.data?.high_resolution_pending === true; url = j.resultUrls?.[0] ?? j.data?.result_urls?.[0]; } catch { url = undefined; }
-    if (cho && !quaHan(taoLuc)) return { done: false };
-    return url ? { done: true, ok: true, uri: url } : { done: true, ok: false, loi: 'Kie.ai báo xong nhưng không có link video' };
-  }
-  if (d.state === 'fail') return { done: true, ok: false, loi: `Kie.ai báo hỏng: ${d.failMsg || 'không rõ'}` };
-  if ((d.state === 'waiting' || d.state === 'queuing') && quaHan(taoLuc)) return { done: true, ok: false, treo: true, loi: `Kie.ai treo hàng đợi ${TREO_PHUT} phút` };
-  return { done: false };
-}
-// ── WaveSpeedAI (wavespeed.ai/docs: POST /api/v3/{model} · GET /api/v3/predictions/{id}/result) ──
-async function guiWavespeed(k: string, model: string, o: { prompt: string; anhDau: string; giay: number }): Promise<KqGui> {
-  try {
-    const r = await fetch(`https://api.wavespeed.ai/api/v3/${model}`, { method: 'POST', headers: { authorization: `Bearer ${k}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(60_000),
-      body: JSON.stringify({ image: o.anhDau, prompt: o.prompt, duration: o.giay <= 5 ? 5 : 10 }) });
-    const j = (await r.json().catch(() => ({}))) as { code?: number; message?: string; data?: { id?: string } };
-    if (!r.ok || !j.data?.id) return { ok: false, status: r.status, loi: `WaveSpeedAI ${r.status}: ${j.message || 'không nhận task'}`.slice(0, 300) };
-    return { ok: true, taskId: j.data.id };
-  } catch (e) { return { ok: false, loi: `không gửi được WaveSpeedAI (${e instanceof Error ? e.name : 'lỗi mạng'})` }; }
-}
-async function docWavespeed(k: string, taskId: string, taoLuc: string): Promise<KqDoc> {
-  const r = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${encodeURIComponent(taskId)}/result`, { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
-  if (!r?.ok) return { done: false };
-  const d = ((await r.json().catch(() => ({}))) as { data?: { status?: string; outputs?: unknown[]; error?: unknown } }).data ?? {};
-  if (d.status === 'completed') { const url = (d.outputs ?? []).find((x): x is string => typeof x === 'string'); return url ? { done: true, ok: true, uri: url } : { done: true, ok: false, loi: 'WaveSpeedAI báo xong nhưng không có link video' }; }
-  if (['failed', 'cancelled', 'timeout', 'deleted'].includes(String(d.status))) return { done: true, ok: false, loi: `WaveSpeedAI báo ${d.status}: ${String(d.error ?? '').slice(0, 200)}` };
-  if (d.status === 'created' && quaHan(taoLuc)) return { done: true, ok: false, treo: true, loi: `WaveSpeedAI treo ${TREO_PHUT} phút` };
-  return { done: false };
-}
 
 // ── CHỌN ĐÍCH DANH NGUỒN (15/10/2026 — anh: "cùng 1 shot có thể tạo từ nhiều model, nhà cung cấp khác nhau") ─────────────────
 // Khoá model trên ô chọn: '<cổng>:<model>' = gọi đúng cổng đó (không dự phòng); 'google:<model>' = Google trực tiếp, bỏ qua chuỗi cổng;

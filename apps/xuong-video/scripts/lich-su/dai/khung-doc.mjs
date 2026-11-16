@@ -87,10 +87,12 @@ export async function khungMot(slug, k, { xem = false, bo = null } = {}) {
   const dai = JSON.parse(readFileSync(f, 'utf8')), d = doanChuong(dai, C2, k); if (!d) return { loi: [`tập dài crd-${slug} không có chương ${k} cắt được`] };
   const so = docSo().astrolas, pl = so.playlist.find((p) => p.ma === PL), y = `crk-${slug}-${k}`, A = dai.cau[1].chu.split(',')[0], ten = dai.chuong[k].ten, B = bo ?? boCuc(k);
   const { hook, chuHook, goc } = chonHook('astrolas', PL, y), dai_ = d.den - d.tu;
-  const cau = [{ chu: chuHook, khung: true, tu: 0, den: 0 },
+  // thẻ đầu = tên người + 'birth chart' (như cat-short): bìa lấy chữ to từ thẻ này — không có thì bìa lặp nguyên tiêu đề, Ngọc chặn (16/11/2026)
+  const cau = [{ chu: chuHook, khung: true, tu: 0, den: 0, the: { lon: A.split(' ')[0], duoi: 'birth chart', dong: [], vi: 'giua' } },
     ...d.ds.map((i) => { const { tu, den, ...q } = C2.cau[i]; return { ...q, tu: +(tu - d.tu).toFixed(2), den: +(den - d.tu).toFixed(2) }; }),
     { nhin: { toan: 1 }, khung: true, chu: 'Full reading on our channel. Read your own birth chart free at astrolas.com.', tu: +dai_.toFixed(2), den: +(dai_ + GIAY_KET).toFixed(2) }];
-  const tieuDe = `${chuHook} ${A}: ${ten}`;
+  // ≤ 100 ký tự (YouTube cắt): dài thì bỏ tên chương, giữ tên người — để nap-tap cắt về câu hook trần là trùng tiêu đề với video khác cùng hook (Phòng Nội dung chặn, 17/11/2026)
+  const tieuDe = [`${chuHook} ${A}: ${ten}`, `${chuHook} ${A}'s chart`].find((x) => x.length <= 100) ?? `${A}: ${ten}`.slice(0, 100);
   const tap = { _ghi: `Chart Reading khung dọc ${B} · ${A} · chương ${k} "${ten}" — cắt từ bản dựng crd-${slug} giây ${d.tu.toFixed(1)}–${d.den.toFixed(1)} bởi lich-su/dai/khung-doc.mjs (${d.ds.length} câu, hook QC spy #${hook.id})`,
     kenh: 'astrolas', mau: MAU, playlist_ma: PL, y_tuong: y, khung: 'doc', khung_chu: 'ngang', bo_cuc: B, tu_dai: `crd-${slug}`, doan: [+d.tu.toFixed(2), +d.den.toFixed(2)],
     tieu_de: tieuDe, goc, hook: { qc: hook.id, goc: hook.chu }, nguon_bai: dai.nguon_bai,

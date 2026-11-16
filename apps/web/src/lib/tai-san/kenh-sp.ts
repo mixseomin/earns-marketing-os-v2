@@ -5,7 +5,7 @@ import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DANG_BAI } from '@/lib/dang-bai';
-import { changVideo, suaLaiGiaiDoan,lichKenhHs, yTuongTuSinh, soTheoPlaylist, tinhSoKenh, tomNenDang, type DangLam, type HoSoKenhLich, type KenhSp, type NguoiLaSo, type SoKenh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
+import { changVideo, suaLaiGiaiDoan,lichKenhHs, yTuongTuSinh, soTheoPlaylist, tinhSoKenh, tomNenDang, type NenSo, type DangLam, type HoSoKenhLich, type KenhSp, type NguoiLaSo, type SoKenh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
 
 /** Đọc một tệp JSON của máy làm tập (apps/xuong-video/scripts/lich-su/<tệp>) — cwd của web có thể là gốc repo hoặc apps/web. */
 function docTepLichSu<T>(tep: string): T | null {
@@ -19,6 +19,14 @@ function docTepLichSu<T>(tep: string): T | null {
 function hoSoKenh(): Record<string, HoSoKenhLich> {
   const k = docTepLichSu<Record<string, HoSoKenhLich & { may?: string }>>('kenh.json') ?? {};
   return Object.fromEntries(Object.values(k).filter((x) => x && typeof x === 'object' && x.may).map((x) => [x.may!, x]));
+}
+/** SỔ NỀN chung (apps/xuong-video/nen-dang.json) — mọi nền máy đăng làm được, để khối 📡 Nền đăng hiện đủ (nền chưa gắn mờ). */
+function docSoNen(): NenSo[] {
+  for (const goc of [process.cwd(), join(process.cwd(), '..'), join(process.cwd(), '../..')]) {
+    try { const d = JSON.parse(readFileSync(join(goc, 'apps/xuong-video/nen-dang.json'), 'utf8')) as { nen: Record<string, { ten?: string; loai?: string; co?: boolean }> };
+      return Object.entries(d.nen).filter(([, v]) => v.co !== false).map(([ma, v]) => ({ ma, ten: v.ten ?? ma, loai: v.loai ?? '' })); } catch { /* thử gốc khác */ }
+  }
+  console.warn('kenh-sp: không đọc được apps/xuong-video/nen-dang.json'); return [];
 }
 /** Sổ kênh theo mã máy (so-kenh.json — chung mọi kênh studio; Studio + máy gác lich-su/kiem-so-kenh.mjs đọc cùng tệp). */
 function soKenh(): Record<string, SoKenh> {
@@ -47,6 +55,7 @@ const baiSocial = <T extends { dd: Record<string, unknown> | null; lx: Record<st
 
 export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Promise<KenhSp[]> {
   const d = getDb(); if (!d) return [];
+  const SO_NEN = docSoNen();
   const lt = soKenh(), maSocial = Object.entries(lt).filter(([, k]) => k.loai === 'social').map(([ma]) => ma);
   if (loai === 'social' && !maSocial.length) return [];
   const chon = loai === 'sp' ? sql`m.la_san_pham` : sql`NOT coalesce(m.la_san_pham, false) AND m.ma IN ${maSocial}`, loaiVid = loai === 'sp' ? sql`v.de->>'loai' = 'video-ngoai'` : sql`true`;
@@ -82,7 +91,7 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
       playlist: v.playlist ?? (hs[m.ma]?.playlist?.length === 1 ? hs[m.ma]!.playlist![0]!.ma : null), ...(v.nen ? { nen: v.nen, dangBai: v.dang_bai ?? (v.de_loai && DANG_TEN[v.de_loai] ? v.de_loai : null) ?? lt[m.ma]?.dang_mac_dinh ?? null } : {}) }));
     // kênh social: chờ đăng / đã đăng / đăng cuối tính trên MỌI nền (cột SQL ở trên chỉ đếm YouTube — đúng cho kênh sản phẩm)
     const xa = loai === 'social' ? { ten: lt[m.ma]?.ten ?? m.ten, choDang: cua.filter((v) => v.tep && !v.da_dang).length, daDang: cua.filter((v) => v.da_dang).length,
-      dangCuoi: cua.map((v) => v.nen?.length ? v.ngay : null).filter((x): x is string => !!x).sort().at(-1) ?? null, nen: tomNenDang(m.dang ?? [], cua, hom), siteDich: m.site_dich,
+      dangCuoi: cua.map((v) => v.nen?.length ? v.ngay : null).filter((x): x is string => !!x).sort().at(-1) ?? null, siteDich: m.site_dich,
       // ẢNH KÊNH: trang YouTube (máy đo); kênh không có YouTube (militarycalc) → ảnh Page Facebook đầu tiên của máy (Graph /<id>/picture công khai, không cần token)
       ...(anh.find((a) => a.san_pham === `may:${m.ma}`) ? {} : (() => { const g = (m.dang ?? []).find((x) => /^(facebook|fb_)/.test(x.nen) && x.br?.graph_id)?.br?.graph_id;
         return g ? { anh: `https://graph.facebook.com/${g}/picture?type=normal` } : {}; })()),
@@ -98,6 +107,7 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
         return { lichTap: l.chu, tapKe: l.ke, dangLam: [...(m.dang_lam?.id ? [m.dang_lam] : []), ...Object.values(m.dang_lam_ds ?? {})].sort((a, b) => a.luc.localeCompare(b.luc)), tapCho: m.tap_cho ?? [], gioDang: (m.dang ?? []).find((x) => x.nen === 'youtube')?.gio_tu ?? null,
           lichDang: lich.filter((x) => x.may === m.ma && x.ngay >= hom).sort((a, b) => `${a.ngay}${a.gio ?? ''}`.localeCompare(`${b.ngay}${b.gio ?? ''}`)).slice(0, 10)
             .map((x) => ({ ngay: x.ngay, gio: x.gio ?? null, nen: x.nen, tieuDe: x.title ?? '', slug: x.slug ?? null })) }; })(),
-      videos, ...xa };
+      // 📡 Nền đăng cho MỌI kênh (anh 16/11/2026: trước chỉ kênh social có khối này): nền máy đã gắn + mọi nền khác trong sổ nền, hiện mờ "chưa gắn"
+      videos, nen: tomNenDang(m.dang ?? [], cua, hom, SO_NEN), ...xa };
   });
 }

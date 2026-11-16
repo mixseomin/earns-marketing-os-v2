@@ -335,10 +335,15 @@ export function cayPlaylistThat(ds: PlaylistKenh[], so?: SoKenh | null): DongKe[
 
 /** NỀN ĐĂNG của một kênh social (anh 14/11/2026: chuyển kênh social sang kiểu trình bày Kênh nội dung) — một máy đổ ra nhiều nền / tài khoản:
  *  mỗi nơi đăng (xv_may.dang[]) một dòng: số bài đã lên, bài hẹn giờ chưa tới, lần cuối, lượt xem cộng dồn (luot_xem_nen; null = nền chưa có máy đọc số). */
-export type NenKenh = { nen: string; ten: string; tk: string; kem: string | null; bai: number; hen: number; cuoi: string | null; xem: number | null; /** bài lên trong 7 ngày gần nhất (tính cả hôm nay) */ bai7?: number };
-/** Thuần — gộp nơi đăng của máy với đã-đăng từng video. dd = xv_may_video.da_dang (nền → { ngay, hen? }), lx = luot_xem_nen. Bài ngày > hôm nay = hẹn. */
-export function tomNenDang(dang: { nen: string; ten?: string; tk?: string; kem?: string }[], vids: { dd: Record<string, unknown> | null; lx: Record<string, unknown> | null }[], hom: string): NenKenh[] {
-  return dang.map((n) => {
+export type NenKenh = { nen: string; ten: string; tk: string; kem: string | null; bai: number; hen: number; cuoi: string | null; xem: number | null; /** bài lên trong 7 ngày gần nhất (tính cả hôm nay) */ bai7?: number; /** nền trong sổ chung mà kênh chưa gắn tài khoản */ chua?: boolean };
+/** sổ nền chung (apps/xuong-video/nen-dang.json › nen): mã nền → tên + loại bài — để khối Nền đăng hiện ĐỦ mọi nền, nền kênh chưa gắn hiện mờ "chưa gắn". */
+export type NenSo = { ma: string; ten: string; loai: string };
+/** Thuần — gộp nơi đăng của máy với đã-đăng từng video. `so` (sổ nền) có thì nối thêm mỗi nền CHƯA GẮN một dòng (anh 16/11/2026 "show full Nền đăng") —
+ *  nền của máy dạng 'facebook:632' tính là đã gắn 'facebook'. dd = xv_may_video.da_dang (nền → { ngay, hen? }), lx = luot_xem_nen. Bài ngày > hôm nay = hẹn. */
+export function tomNenDang(dang: { nen: string; ten?: string; tk?: string; kem?: string }[], vids: { dd: Record<string, unknown> | null; lx: Record<string, unknown> | null }[], hom: string, so: NenSo[] = []): NenKenh[] {
+  const gan = new Set(dang.map((n) => n.nen.split(':')[0]));
+  const chua = so.filter((x) => !gan.has(x.ma)).map((x): NenKenh => ({ nen: x.ma, ten: x.ten, tk: '', kem: `chưa gắn tài khoản · bài ${x.loai}`, bai: 0, hen: 0, cuoi: null, xem: null, bai7: 0, chua: true }));
+  return [...dang.map((n) => {
     let bai = 0, hen = 0, bai7 = 0, cuoi: string | null = null, xem: number | null = null;
     const moc7 = new Date(Date.parse(`${hom}T00:00:00Z`) - 6 * 86400e3).toISOString().slice(0, 10);
     for (const v of vids) {
@@ -349,7 +354,7 @@ export function tomNenDang(dang: { nen: string; ten?: string; tk?: string; kem?:
       const x = Number(v.lx?.[n.nen]); if (v.lx?.[n.nen] != null && Number.isFinite(x)) xem = (xem ?? 0) + x;
     }
     return { nen: n.nen, ten: n.ten || n.nen, tk: n.tk ?? '', kem: n.kem ?? null, bai, hen, cuoi, xem, bai7 };
-  }).sort((a, b) => b.bai - a.bai);
+  }).sort((a, b) => b.bai - a.bai), ...chua];
 }
 /** Khối 📡 Nền đăng trong cây kênh social: dòng nhóm (tổng bài, số nền có số đo) + mỗi nơi đăng một dòng. Thuần. */
 /** SỐ LIỆU THEO NỀN (góp ý #1621 "show thêm số liệu theo Nền đăng"): mỗi nền một hàng số thẳng cột như khối Mẫu */
@@ -359,10 +364,11 @@ const oNen = (ns: NenKenh[]): (number | null)[] => { const bai = ns.reduce((t, n
   return [ns.reduce((t, n) => t + n.hen, 0), bai, ns.reduce((t, n) => t + (n.bai7 ?? 0), 0), xem, xem != null && baiDo ? Math.round(xem / baiDo) : null]; };
 export function cayNenDang(ds: NenKenh[]): DongKe[] {
   if (!ds.length) return [];
-  const ngay = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : 'chưa đăng'), coSo = ds.filter((n) => n.xem != null).length;
-  return [{ id: 'nen', nhom: true, chu: `📡 Nền đăng (${ds.length})`, phu: `${ds.reduce((t, n) => t + n.bai, 0)} bài đã lên · ${coSo}/${ds.length} nền có số lượt xem · "–" = chưa đo`, o: oNen(ds), oTieuDe: COT_NEN },
+  const ngay = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : 'chưa đăng'), gan = ds.filter((n) => !n.chua), coSo = gan.filter((n) => n.xem != null).length;
+  return [{ id: 'nen', nhom: true, chu: `📡 Nền đăng (${gan.length}/${ds.length})`, phu: `${gan.length}/${ds.length} nền đã gắn · ${ds.reduce((t, n) => t + n.bai, 0)} bài đã lên · ${coSo}/${gan.length} nền có số lượt xem · "–" = chưa đo`, o: oNen(gan), oTieuDe: COT_NEN },
     ...ds.map((n): DongKe => ({ id: `nen/${n.nen}`, icon: pkCua(n.nen), chu: `${n.ten}${n.tk && n.tk !== n.ten ? ` · ${n.tk}` : ''}`, mau: n.bai ? undefined : 'var(--fg-3)', o: oNen([n]), oTen: COT_NEN,
-      phu: [`${n.bai} bài`, n.hen ? `${n.hen} hẹn giờ` : '', `lần cuối ${ngay(n.cuoi)}`, `xem ${n.xem == null ? '–' : n.xem.toLocaleString('vi-VN')}`, n.kem ?? ''].filter(Boolean).join(' · ') }))];
+      phu: n.chua ? n.kem ?? 'chưa gắn tài khoản' : [`${n.bai} bài`, n.hen ? `${n.hen} hẹn giờ` : '', `lần cuối ${ngay(n.cuoi)}`, `xem ${n.xem == null ? '–' : n.xem.toLocaleString('vi-VN')}`, n.kem ?? ''].filter(Boolean).join(' · '),
+      ...(n.chua ? { o: [null, null, null, null, null] } : {}) }))];
 }
 
 /** 🧩 MẪU NỘI DUNG của kênh social (anh 14/11/2026 "Thiếu mẫu nội dung !!"): mỗi DẠNG BÀI máy đã làm một dòng — đã làm · đã đăng · số nền đã lên · lượt xem

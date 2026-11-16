@@ -161,9 +161,17 @@ import { tomNenDang, cayNenDang } from './kenh-sp-tinh';
     { dd: null, lx: null }], '2026-11-14');
   assert.deepStrictEqual(n.map((x) => [x.nen, x.bai, x.hen, x.cuoi, x.xem]), [['youtube', 2, 0, '2026-11-13', 35], ['x', 1, 1, '2026-11-12', null], ['quora', 0, 0, null, null]]);
   const c = cayNenDang(n);
-  assert.ok(c[0]!.nhom && c[0]!.chu === '📡 Nền đăng (3)' && /3 bài đã lên · 1\/3 nền/.test(c[0]!.phu!));
+  assert.ok(c[0]!.nhom && c[0]!.chu === '📡 Nền đăng (3/3)' && /3\/3 nền đã gắn · 3 bài đã lên · 1\/3 nền/.test(c[0]!.phu!), c[0]!.phu);
   assert.ok(/xem –/.test(c[2]!.phu!) && /1 hẹn giờ/.test(c[2]!.phu!) && c[3]!.mau === 'var(--fg-3)');
   assert.deepStrictEqual(cayNenDang([]), []);
+}
+{ // NỀN ĐĂNG ĐỦ (anh 16/11/2026 "show full Nền đăng"): nền trong sổ chung mà máy chưa gắn → dòng mờ "chưa gắn" ở cuối; 'facebook:632' tính là đã gắn facebook
+  const n = tomNenDang([{ nen: 'facebook:632', ten: 'FB' }, { nen: 'youtube' }], [{ dd: { youtube: { ngay: '2026-11-10' } }, lx: null }], '2026-11-14',
+    [{ ma: 'youtube', ten: 'YouTube', loai: 'video' }, { ma: 'facebook', ten: 'Facebook', loai: 'video' }, { ma: 'instagram', ten: 'Instagram Reel', loai: 'video' }]);
+  assert.deepStrictEqual(n.map((x) => [x.nen, !!x.chua]), [['youtube', false], ['facebook:632', false], ['instagram', true]]);
+  const c = cayNenDang(n);
+  assert.ok(c[0]!.chu === '📡 Nền đăng (2/3)' && /2\/3 nền đã gắn · 1 bài/.test(c[0]!.phu!), c[0]!.phu);
+  assert.ok(/chưa gắn tài khoản · bài video/.test(c[3]!.phu!) && c[3]!.mau === 'var(--fg-3)');
 }
 import { cayMauSocial } from './kenh-sp-tinh';
 { // MẪU NỘI DUNG kênh social: gom theo dạng bài, dạng nhiều bài trước; lượt xem chưa đo = null; dạng ngoài kho vẫn hiện kèm ghi chú

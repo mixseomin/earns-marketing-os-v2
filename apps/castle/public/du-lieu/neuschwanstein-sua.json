@@ -45,6 +45,41 @@
   "ly_do": "cổng Torbau: OSM chồng hai khối gạch đỏ (0–17,5 m mái 1 m và 12–22 m mái dốc) cùng mặt bằng → mái thấp đâm xuyên mái dốc (vệt tối), đầu hồi bậc dựng hai lần; khối dưới dừng ở chân khối trên (ref 19,0 + 11 ≈ 30, khối trên từ 29,5), mái phẳng. Đầu hồi bậc chỉ ở way/951894999 (anh 16/11/2026)",
   "height": "11",
   "roof:shape": "flat",
-  "roof:height": "0"
+  "roof:height": "0",
+  "rang_cua": "yes",
+  "vom_nho": "yes",
+  "da_goc": "yes",
+  "neo_y": "22.2"
+ },
+ "way/223110823": {
+  "rang_cua": "yes",
+  "thap_canh": "yes",
+  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): khối cổng sa thạch kem: răng cưa đỉnh + hai tháp canh treo ở hai góc trên"
+ },
+ "way/223110818": {
+  "roof:shape": "flat",
+  "rang_cua": "yes",
+  "vom_nho": "yes",
+  "da_goc": "yes",
+  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): cánh gạch đỏ: mái khuất sau tường răng cưa kem, dải vòm nhỏ dưới răng cưa, đá góc kem so le",
+  "neo_y": "22.2"
+ },
+ "way/223110825": {
+  "roof:shape": "flat",
+  "rang_cua": "yes",
+  "vom_nho": "yes",
+  "da_goc": "yes",
+  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): cánh gạch đỏ: như way/223110818",
+  "neo_y": "19.6"
+ },
+ "way/221599083": {
+  "roof:shape": "flat",
+  "vong_rang": "yes",
+  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): tháp tròn góc: đỉnh phẳng, vành con sơn + răng cưa, không mái nhọn"
+ },
+ "way/221599084": {
+  "roof:shape": "flat",
+  "vong_rang": "yes",
+  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): tháp tròn góc: như way/221599083"
  }
 }

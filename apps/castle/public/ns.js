@@ -7,6 +7,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import RAPIER from 'rapier';
 import * as T from './tex.js';
+const TEX = T; // tên khác cho khối có biến T cục bộ (mẫu tháp đo)
 import { napNguoi3d, taoNguoi3d } from './nguoi3d.js';
 import { taoDiBo } from './dibo.js';
 import { taoBanDo } from './bando.js';
@@ -17,6 +18,7 @@ import { ganGopY, chupCanvas } from './gopy.js';
 import { taoCamUng, CHAM } from './camung.js';
 import { taoChieuAnh } from './chieuanh.js';
 import { datDuong } from './duong.js';
+import { datTrangTri, datCuaCong } from './trangtri.js';
 import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, tiLeDung, datChop, oCum, datMai } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 
@@ -40,7 +42,7 @@ const MAT_ANH = DAN_ANH ? await fetch(`./du-lieu/${ten}-mat-anh.json`, { cache: 
 const DUONG = await fetch(`./du-lieu/${ten}-duong.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // đường + cầu thang OSM (scripts/tai-duong.mjs)
 const MAI = await fetch(`./du-lieu/${ten}-mai.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // cửa mái / chóp nhỏ đo trên ảnh 3D (scripts/do-mai.mjs)
 const NT = await fetch(`./du-lieu/${ten}-noi-that.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // nội thất (có thì dựng)
-for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [a, b] of Object.entries(SUA[k.id])) if (a !== 'ly_do') k.tags[a] = String(b); }
+for (const k of D.khoi) if (SUA[k.id]) { k.tagsGoc = { ...k.tags }; for (const [a, b] of Object.entries(SUA[k.id])) if (!a.startsWith('ly_do')) k.tags[a] = String(b); }
 
 // ---------- cảnh
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -315,8 +317,8 @@ const SAN0 = (() => { const v = D.khoi.find((k) => k.tags.building === 'courtyar
 const huongRaSan = (x1, z1, x2, z2) => { if (!SAN0) return false; const L = Math.hypot(x2 - x1, z2 - z1), mx = (x1 + x2) / 2, mz = (z1 + z2) / 2, d = Math.hypot(SAN0[0] - mx, SAN0[1] - mz);
   return d < 45 && ((z2 - z1) / L * (SAN0[0] - mx) - (x2 - x1) / L * (SAN0[1] - mz)) / d > 0.7; };
 // VÒM CỔNG: đường ô tô / lối đi OSM cắt ngang một bức tường → khoét vòm cổng thật ở chỗ cắt (đường lên cổng Torbau xuyên khối cổng — trước đường cụt ở chân tường,
-// anh 16/11/2026). Rộng theo đường + 0,6 m, cao 4,6 m từ mặt đất; khung đá vòm dựng sau (VOM_CONG)
-const VOM_CONG = [];
+// anh 16/11/2026). Rộng theo đường + 0,6 m, cao CAO_CONG từ mặt đất; khung đá vòm dựng sau (VOM_CONG)
+const VOM_CONG = [], CAO_CONG = 6.2; // lỗ cổng cao 6,2 m tới đỉnh vòm (ảnh 360° cổng Torbau: vòm cao ~1,5 lần bề rộng; trước 4,6 m thấp lùn)
 const DUONG_QUA = (DUONG?.duong || []).filter((d) => !d.cau && !d.ham && ['unclassified', 'service', 'residential'].includes(d.loai) && !(d.v.length > 3 && Math.hypot(d.v[0][0] - d.v.at(-1)[0], d.v[0][1] - d.v.at(-1)[1]) < 0.3));
 function cong(x1, z1, x2, z2) {
   const ra = [], L = Math.hypot(x2 - x1, z2 - z1);
@@ -331,7 +333,7 @@ function cong(x1, z1, x2, z2) {
     const ngoai = (px, pz) => ![[0, 0], [0.75, 0], [-0.75, 0], [0, 0.75], [0, -0.75]].some(([p, q]) => dsKhoi.some((k) => trongDa(px + p, pz + q, k.v)));
     let y = null; for (let r = 0.5; r <= 5 && y == null; r += 0.5) for (const g of [1, -1]) if (y == null && ngoai(x + dx * r * g, z + dz * r * g)) y = datThat(x + dx * r * g, z + dz * r * g);
     if (y == null) y = datThat(x, z);
-    ra.push({ s0: Math.max(-0.1, s - w / 2), s1: Math.min(L + 0.1, s + w / 2), y0: y - 0.6, y1: y + 4.6, x, z, y, w, ux: (x2 - x1) / L, uz: (z2 - z1) / L, trong: s > 0 && s < L });
+    ra.push({ s0: Math.max(-0.1, s - w / 2), s1: Math.min(L + 0.1, s + w / 2), y0: y - 0.6, y1: y + CAO_CONG, x, z, y, w, ux: (x2 - x1) / L, uz: (z2 - z1) / L, trong: s > 0 && s < L });
   }
   return ra;
 }
@@ -570,11 +572,21 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
   // KHUNG VÒM CỔNG (đá): hai má + vòm bán nguyệt + bậu nền, hai mặt tường; lỗ đã khoét trong loCanh
   // màu đá sa thạch kem (VL.da nhân màu theo đỉnh — thiếu thuộc tính màu thì khung đen kịt như lỗ thủng)
   const MAU_VOM = new THREE.Color('#efe4c6').toArray();
+  // khung vòm / cửa / huy hiệu đặt ở MẶT NGOÀI CÙNG: điểm cắt có thể nằm trên tường khối phía sau trong khi khối cổng nhô ra trước 1–2 m (khung + huy hiệu bị vùi)
+  for (const c of VOM_CONG) { const nx = c.uz, nz = -c.ux; let d = 0; while (d < 4 && dsKhoi.some((k) => !(k.vo && k.coPart) && trongDa(c.x + nx * (d + 0.05), c.z + nz * (d + 0.05), k.v))) d += 0.1; c.x += nx * d; c.z += nz * d; }
   if (VOM_CONG.length) { const gs = [];
-    for (const c of VOM_CONG) { const goc = Math.atan2(c.uz, -c.ux) + Math.PI / 2, h = 4.6 - c.w / 2, cb = (g) => { g = g.index ? g.toNonIndexed() : g; for (const a of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(a)) g.deleteAttribute(a); g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 3).map((_, i) => MAU_VOM[i % 3]), 3)); g.rotateY(-Math.atan2(c.uz, c.ux)); g.translate(c.x, c.y, c.z); return g; };
+    for (const c of VOM_CONG) { const goc = Math.atan2(c.uz, -c.ux) + Math.PI / 2, h = CAO_CONG - c.w / 2, cb = (g) => { g = g.index ? g.toNonIndexed() : g; for (const a of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(a)) g.deleteAttribute(a); g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 3).map((_, i) => MAU_VOM[i % 3]), 3)); g.rotateY(-Math.atan2(c.uz, c.ux)); g.translate(c.x, c.y, c.z); return g; };
       for (const k of [-1, 1]) gs.push(cb((() => { const g = new THREE.BoxGeometry(0.45, h, 1.2); g.translate(k * (c.w / 2 + 0.22), h / 2, 0); return g; })()));
       const v = new THREE.TorusGeometry(c.w / 2 + 0.22, 0.24, 5, 14, Math.PI); v.scale(1, 1, 2.4); v.translate(0, h, 0); gs.push(cb(v)); void goc; }
     const m = new THREE.Mesh(mergeGeometries(gs), VL.da); m.receiveShadow = m.castShadow = true; scene.add(m); LOP_OSM.push(m); console.info('[ns] vòm cổng (đường xuyên tường):', VOM_CONG.length); }
+  // cổng NGOÀI (vòm thấp nhất — phía sân trước cổng): cánh cửa gỗ mở + huy hiệu trên vòm (trangtri.js)
+  const cNgoai = VOM_CONG.slice().sort((a, b) => a.y - b.y)[0];
+  if (cNgoai) for (const m of datCuaCong({ THREE, mergeGeometries, c: cNgoai, cao: CAO_CONG, vlGo: new THREE.MeshStandardMaterial({ color: '#8a5634', roughness: 0.8 }), vlDa: new THREE.MeshStandardMaterial({ color: '#e6dcc2', roughness: 0.85 }) })) { scene.add(m); LOP_OSM.push(m); }
+  { // TRANG TRÍ MẶT TIỀN theo thẻ sua.json (răng cưa, vòm nhỏ, đá góc, tháp canh, đỉnh tháp tròn) — trangtri.js
+    const vlKem = vlTu(TEX.daVoi(TEX.rngTu(81)), { bump: 1 }); vlKem.color.set('#efe3c4');
+    const { ra, dem } = datTrangTri({ THREE, mergeGeometries, dsKhoi, vl: vlKem, coSoDo: (id) => CUA_SO?.[id]?.hang, ngoai: (k, x, z, y) => !dsKhoi.some((q) => q !== k && !(q.vo && q.coPart) && (q.yTren ?? 0) > y && (q.yDuoi ?? -1e9) < y && trongDa(x, z, q.v)) });
+    for (const m of ra) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); } console.info('[ns] trang trí mặt tiền:', JSON.stringify(dem));
+  }
   if (BAC_HOI.length) { const gs = BAC_HOI.map((b) => { const g = new THREE.BoxGeometry(b.w, b.h, 0.55).toNonIndexed(); g.rotateY(-b.goc); g.translate(b.x, b.y, b.z); const c = new Float32Array(g.attributes.position.count * 3); for (let i = 0; i < c.length; i += 3) c.set([b.mau.r, b.mau.g, b.mau.b], i); g.setAttribute('color', new THREE.BufferAttribute(c, 3)); g.deleteAttribute('uv'); return g; });
     const m = new THREE.Mesh(mergeGeometries(gs), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 })); m.castShadow = m.receiveShadow = true; scene.add(m); LOP_OSM.push(m); }
   // DIỀM VÒM ĐỠ dưới lan can mái bằng (tag dam_vom, tháp vuông: ảnh anh gửi 16/11/2026): dải gờ nhô 0,45 m, con-xon cách 0,9 m, vòm nhỏ giữa hai con-xon

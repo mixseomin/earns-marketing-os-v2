@@ -122,10 +122,10 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
           <button type="button" style={nutTd} title={`mở hết các khối của ${kXem.ten}`} onClick={(e) => { e.stopPropagation(); moHetKhoi(kXem, true); }}>▾ mở hết</button>
           <button type="button" style={nutTd} title={`gập hết các khối của ${kXem.ten}`} onClick={(e) => { e.stopPropagation(); moHetKhoi(kXem, false); }}>▸ gập hết</button>
           <button type="button" style={nutTd} title={`thu cây ${kXem.ten} về một dòng`} onClick={(e) => { e.stopPropagation(); doi(kXem.ma); }}>✕ thu kênh</button></span></>}</span>
-    {kXem && <span style={{ display: 'flex', gap: 4, overflowX: 'auto', scrollbarWidth: 'none', textTransform: 'none', letterSpacing: 0 }}>
+    {kXem && <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4, textTransform: 'none', letterSpacing: 0 }}>
       {khoiDs(kXem).map((d) => { const dang = dangXem?.ma === kXem.ma && dangXem.khoi === d.id, dong_ = gap.has(`${kXem.ma}:${d.id}`);
         return <button key={d.id} type="button" title={`tới khối ${d.chu}${dong_ ? ' (đang gập — bấm để mở)' : ''}`} onClick={(e) => { e.stopPropagation(); toiKhoi(kXem, d.id); }}
-          style={{ ...nutTd, fontSize: 11, padding: '1px 6px', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis',
+          style={{ ...nutTd, fontSize: 11, padding: '1px 6px',
             ...(dang ? { borderColor: 'var(--accent)', color: 'var(--accent)', fontWeight: 700 } : {}), ...(dong_ ? { opacity: 0.6 } : {}) }}>{d.chu}</button>; })}</span>}</span>;
   const doi = (ma: string) => { const n = new Set(moCay); if (n.has(ma)) n.delete(ma); else n.add(ma); datMoUrl([...n].join(',')); };
   const dong: Dong[] = kenh.flatMap((k) => [{ loai: 'kenh' as const, k },

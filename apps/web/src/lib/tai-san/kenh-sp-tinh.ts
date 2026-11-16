@@ -335,27 +335,33 @@ export function cayPlaylistThat(ds: PlaylistKenh[], so?: SoKenh | null): DongKe[
 
 /** NỀN ĐĂNG của một kênh social (anh 14/11/2026: chuyển kênh social sang kiểu trình bày Kênh nội dung) — một máy đổ ra nhiều nền / tài khoản:
  *  mỗi nơi đăng (xv_may.dang[]) một dòng: số bài đã lên, bài hẹn giờ chưa tới, lần cuối, lượt xem cộng dồn (luot_xem_nen; null = nền chưa có máy đọc số). */
-export type NenKenh = { nen: string; ten: string; tk: string; kem: string | null; bai: number; hen: number; cuoi: string | null; xem: number | null };
+export type NenKenh = { nen: string; ten: string; tk: string; kem: string | null; bai: number; hen: number; cuoi: string | null; xem: number | null; /** bài lên trong 7 ngày gần nhất (tính cả hôm nay) */ bai7?: number };
 /** Thuần — gộp nơi đăng của máy với đã-đăng từng video. dd = xv_may_video.da_dang (nền → { ngay, hen? }), lx = luot_xem_nen. Bài ngày > hôm nay = hẹn. */
 export function tomNenDang(dang: { nen: string; ten?: string; tk?: string; kem?: string }[], vids: { dd: Record<string, unknown> | null; lx: Record<string, unknown> | null }[], hom: string): NenKenh[] {
   return dang.map((n) => {
-    let bai = 0, hen = 0, cuoi: string | null = null, xem: number | null = null;
+    let bai = 0, hen = 0, bai7 = 0, cuoi: string | null = null, xem: number | null = null;
+    const moc7 = new Date(Date.parse(`${hom}T00:00:00Z`) - 6 * 86400e3).toISOString().slice(0, 10);
     for (const v of vids) {
       const o = v.dd?.[n.nen] as { ngay?: string } | undefined; if (!o || typeof o !== 'object') continue;
       const ngay = o.ngay?.slice(0, 10) ?? null;
       if (ngay && ngay > hom) { hen++; continue; }
-      bai++; if (ngay && (!cuoi || ngay > cuoi)) cuoi = ngay;
+      bai++; if (ngay && ngay >= moc7) bai7++; if (ngay && (!cuoi || ngay > cuoi)) cuoi = ngay;
       const x = Number(v.lx?.[n.nen]); if (v.lx?.[n.nen] != null && Number.isFinite(x)) xem = (xem ?? 0) + x;
     }
-    return { nen: n.nen, ten: n.ten || n.nen, tk: n.tk ?? '', kem: n.kem ?? null, bai, hen, cuoi, xem };
+    return { nen: n.nen, ten: n.ten || n.nen, tk: n.tk ?? '', kem: n.kem ?? null, bai, hen, cuoi, xem, bai7 };
   }).sort((a, b) => b.bai - a.bai);
 }
 /** Khối 📡 Nền đăng trong cây kênh social: dòng nhóm (tổng bài, số nền có số đo) + mỗi nơi đăng một dòng. Thuần. */
+/** SỐ LIỆU THEO NỀN (góp ý #1621 "show thêm số liệu theo Nền đăng"): mỗi nền một hàng số thẳng cột như khối Mẫu */
+export const COT_NEN = ['Hẹn giờ', 'Đã đăng', 'Bài 7 ngày', 'Lượt xem', 'Xem / bài'];
+const oNen = (ns: NenKenh[]): (number | null)[] => { const bai = ns.reduce((t, n) => t + n.bai, 0), coXem = ns.filter((n) => n.xem != null),
+  xem = coXem.length ? coXem.reduce((t, n) => t + (n.xem ?? 0), 0) : null, baiDo = coXem.reduce((t, n) => t + n.bai, 0);
+  return [ns.reduce((t, n) => t + n.hen, 0), bai, ns.reduce((t, n) => t + (n.bai7 ?? 0), 0), xem, xem != null && baiDo ? Math.round(xem / baiDo) : null]; };
 export function cayNenDang(ds: NenKenh[]): DongKe[] {
   if (!ds.length) return [];
   const ngay = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : 'chưa đăng'), coSo = ds.filter((n) => n.xem != null).length;
-  return [{ id: 'nen', nhom: true, chu: `📡 Nền đăng (${ds.length})`, phu: `${ds.reduce((t, n) => t + n.bai, 0)} bài đã lên · ${coSo}/${ds.length} nền có số lượt xem · "–" = chưa đo` },
-    ...ds.map((n): DongKe => ({ id: `nen/${n.nen}`, icon: pkCua(n.nen), chu: `${n.ten}${n.tk && n.tk !== n.ten ? ` · ${n.tk}` : ''}`, mau: n.bai ? undefined : 'var(--fg-3)',
+  return [{ id: 'nen', nhom: true, chu: `📡 Nền đăng (${ds.length})`, phu: `${ds.reduce((t, n) => t + n.bai, 0)} bài đã lên · ${coSo}/${ds.length} nền có số lượt xem · "–" = chưa đo`, o: oNen(ds), oTieuDe: COT_NEN },
+    ...ds.map((n): DongKe => ({ id: `nen/${n.nen}`, icon: pkCua(n.nen), chu: `${n.ten}${n.tk && n.tk !== n.ten ? ` · ${n.tk}` : ''}`, mau: n.bai ? undefined : 'var(--fg-3)', o: oNen([n]), oTen: COT_NEN,
       phu: [`${n.bai} bài`, n.hen ? `${n.hen} hẹn giờ` : '', `lần cuối ${ngay(n.cuoi)}`, `xem ${n.xem == null ? '–' : n.xem.toLocaleString('vi-VN')}`, n.kem ?? ''].filter(Boolean).join(' · ') }))];
 }
 

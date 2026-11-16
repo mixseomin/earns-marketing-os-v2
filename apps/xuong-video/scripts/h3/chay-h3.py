@@ -56,7 +56,7 @@ if V.get('thu_luu'):   # kiểm 0đ KHÂU LẤY CLIP (lỗi lượt 6): đồ th
     W = {'20': W['20'], '21': W['21'], '52': {'class_type': 'CreateVideo', 'inputs': {'images': ['21', 0], 'fps': 24.0}}, '53': W['53']}
     W['53']['inputs']['video'] = ['52', 0]
 if V.get('chi_kiem'):   # kiểm đồ thị (ComfyUI duyệt node + tên tệp) mà không chạy: gửi rồi huỷ ngay
-    r = goi('/prompt', {'prompt': W}); goi('/interrupt', {}); goi('/queue', {'clear': True}); print(json.dumps({'kiem': 'đồ thị hợp lệ', 'id': r.get('prompt_id')})); sys.exit(0)
+    r = goi('/prompt', {'prompt': W}); goi('/interrupt', {}); goi('/queue', {'clear': True}); print(json.dumps({'kiem': 'đồ thị hợp lệ', 'id': r.get('prompt_id')}, ensure_ascii=False)); sys.exit(0)
 t0 = time.time(); pid = goi('/prompt', {'prompt': W})['prompt_id']
 while True:
     time.sleep(5); h = goi(f'/history/{pid}').get(pid)

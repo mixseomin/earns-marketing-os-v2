@@ -6,7 +6,7 @@
 set -uo pipefail
 RA=${1:?thư mục ra}; shift; [ $# -gt 0 ] || { sed -n 5p "$0"; exit 1; }
 DIR=$(cd "$(dirname "$0")" && pwd); mkdir -p "$RA"
-ANH=${XV_H3_ANH:-runpod/pytorch:2.2.0-rc.229-cu1290-torch291-ubuntu2404}
+ANH=${XV_H3_ANH:-ghcr.io/mixseomin/xv-h3:latest}   # image đóng sẵn ComfyUI + PyTorch CUDA 13, kiểm 0đ trên GitHub Actions trước khi đẩy (may/Dockerfile)
 GPU=${XV_H3_GPU:-"NVIDIA GeForce RTX 4090|NVIDIA RTX PRO 4500 Blackwell|NVIDIA GeForce RTX 5090|NVIDIA L40S"}   # Ada (cùng đời L4 đã chạy H3 trên Colab) hoặc Blackwell; ≥ 24GB
 TRAN=${XV_H3_PHUT:-120}; T0=$(date +%s)
 API() { ssh root@167.233.241.16 'set -a; . /opt/earns-marketing-os-v2/.env.production; set +a; curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $RUNPOD_API_KEY" -d @- https://api.runpod.io/graphql'; }

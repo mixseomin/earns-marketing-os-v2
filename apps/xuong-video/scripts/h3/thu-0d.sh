@@ -22,9 +22,11 @@ base = {'prompt': '<Picture 1> is the man. <Video 1> is the blockout.', 'anh': [
 json.dump({**base, 'chi_kiem': True}, open('/root/h3/thu0d/kiem.json', 'w'))
 json.dump({**base, 'thu_luu': True}, open('/root/h3/thu0d/luu.json', 'w'))
 PY
-python3 chay-h3.py $T/kiem.json | tee $T/kiem.out; grep -q '"kiem": "đồ thị hợp lệ"' $T/kiem.out && echo "✓ đồ thị H3 hợp lệ"
+python3 chay-h3.py $T/kiem.json | tee $T/kiem.out
+# if ! grep … (không dùng grep && echo: set -e không dừng khi vế trái sai — 16/11/2026 bước này hỏng mà bộ kiểm vẫn báo ĐẠT)
+if ! grep -q '"kiem": "đồ thị hợp lệ"' $T/kiem.out; then echo "✗ ComfyUI không nhận đồ thị H3"; exit 1; fi; echo "✓ đồ thị H3 hợp lệ"
 OUT=$(python3 chay-h3.py $T/luu.json | tail -1); echo "$OUT"
 MP4=$(echo "$OUT" | python3 -c 'import json,sys; print(json.load(sys.stdin)["mp4"])')
 case "$MP4" in */output/h3/thu*.mp4) ;; *) echo "✗ lấy NHẦM tệp: $MP4 (phải là output/h3/thu*.mp4 của SaveVideo)"; exit 1 ;; esac
-[ "$(stat -c%s "$MP4")" -gt 1000 ] && echo "✓ lấy đúng clip SaveVideo ($MP4)"
+if [ "$(stat -c%s "$MP4")" -le 1000 ]; then echo "✗ clip SaveVideo rỗng"; exit 1; fi; echo "✓ lấy đúng clip SaveVideo ($MP4)"
 echo "ĐẠT — kiểm 0đ xong"

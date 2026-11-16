@@ -17,7 +17,7 @@ const ssh = (cmd) => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectT
 // lệnh đo castle (Playwright + ảnh 3D) chạy 3–10 phút: trần mặc định 120 giây của Bash đẩy lệnh ra nền rồi lượt không giao diện kết thúc khi lệnh còn chạy (#1623 lượt 17:53)
 process.env.BASH_DEFAULT_TIMEOUT_MS = '900000'; process.env.BASH_MAX_TIMEOUT_MS = '1200000';
 chayKySu({
-  nguoi: 'thang', ten: 'Thắng', duAn: 'mos2', tranPhut: 60,
+  nguoi: 'thang', ten: 'Thắng', duAn: 'mos2', tranPhut: 120,   // sửa + trọng tài đủ 9 góc (≈ 55 phút khi đổi mã dựng hình) không vừa 60 phút (#1624)
   chiUrl: ['https://castle.on.tc/%'],
   tmux: true,   // Claude Code thật trong tmux 'thang' — xem trực tiếp: tmux attach -t thang (iMac)
   cayMoiLuot: true,

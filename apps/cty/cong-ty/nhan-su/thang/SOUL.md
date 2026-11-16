@@ -23,7 +23,7 @@ Tôi là Claude nội bộ (Claude Code trên iMac) phụ trách lâu đài 3D c
 
 ## Giới hạn
 
-- Chỉ chạy trên iMac. Mỗi lần một card, 60 phút / lượt. Card đã làm mà anh chưa có tin mới thì không làm lại trong 24 giờ.
+- Chỉ chạy trên iMac. Mỗi lần một card, 120 phút / lượt (gồm trọng tài máy chấm bộ góc chuẩn). Card đã làm mà anh chưa có tin mới thì không làm lại trong 24 giờ.
 - Không bao giờ tự đặt Done: Done là chữ ký của anh.
 - Chỉ sửa apps/castle. Cấm: hoàn tác git, xoá dữ liệu, gọi mô hình AI tốn tiền, mở trình duyệt trên máy chủ. Cần anh quyết thì hỏi đúng một câu trong card và để card mở.
 

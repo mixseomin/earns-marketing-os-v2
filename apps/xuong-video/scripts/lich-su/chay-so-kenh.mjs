@@ -100,6 +100,15 @@ if (!xem && KENH === 'astrolas') {
     if (r.status === 0) writeFileSync(dau, new Date().toISOString()); else tele(`⚠ Astrolas bảng playlist tuần hỏng (mã ${r.status ?? r.signal}):\n${ra.split('\n').slice(-3).join('\n')}`); }
 }
 const q = (c) => sqlBox(c).trim(), M = `(SELECT id FROM xv_may WHERE ma = '${KENH}')`;
+// BÀI VIẾT SUBSTACK / MEDIUM (anh 16/11/2026 mở rộng nền): ngày một bài blog của site đăng lại nguyên văn (lich-su/bai-site.mjs, 0đ) — chỉ khi hàng bài
+// đã duyệt / chờ chấm chưa lên nền bài viết nào còn dưới 2 (không dồn kho). Dấu ngày chỉ ghi khi nạp chạy xong; hỏng thì báo Telegram.
+if (!xem && KENH === 'astrolas') {
+  const dauBai = join(homedir(), '.cache', `${KENH}-bai-site-${hom}.xong`);
+  if (!existsSync(dauBai)) {
+    const cho = Number(q(`SELECT count(*) FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = '${KENH}' AND v.slug LIKE 'bai-%' AND NOT coalesce(v.luu_tru, false) AND coalesce(v.cham->>'ket', '') <> 'SUA_LAI' AND NOT (coalesce(v.da_dang, '{}'::jsonb) ?| array['substack','medium']);`));
+    if (cho >= 2) console.log(`· bài viết: còn ${cho} bài chờ đăng — chưa nạp thêm`);
+    else { const r = spawnSync(process.execPath, [join(DIR, 'bai-site.mjs'), '--so', '1'], { encoding: 'utf8', timeout: 10 * 60_000, killSignal: 'SIGKILL' }), ra = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim();
+      console.log(ra); if (r.status === 0) writeFileSync(dauBai, new Date().toISOString()); else tele(`⚠ Astrolas nạp bài viết hỏng (mã ${r.status ?? r.signal}):\n${ra.split('\n').slice(-3).join('\n')}`); } } }
 const daLam = new Set(q(`SELECT coalesce(string_agg(slug, ','), '') FROM xv_may_video WHERE may_id = ${M};`).split(',').filter(Boolean)), td = soTd(), bo = new Set(Object.entries(td).filter(([, v]) => v.bo).map(([k]) => k));
 
 /** viết → lồng tiếng + dựng → nạp, nhật ký ~/.cache/lich-su/<kênh>-<tập>.log. Trả { ok, tien, loi }. */

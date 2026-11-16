@@ -31,6 +31,10 @@ Use ONLY these facts about Astrolas. Source: https://astrolas.com/, https://astr
 ## Famous charts on the site (birth time included) — https://astrolas.com/c/<slug>
 - steve-jobs · taylor-swift · elon-musk · beyonce · lady-gaga · cristiano-ronaldo. Use only these until more /c/ pages exist.
 
+## Famous people with a full birth-chart article on the blog — https://astrolas.com/en/blog/<slug>-birth-chart (checked 200 on 16/11/2026)
+- angelina-jolie · audrey-hepburn · barack-obama · bill-gates · billie-eilish · brad-pitt · donald-trump · elvis-presley · frida-kahlo · grace-kelly · jennifer-aniston · jimi-hendrix · john-f-kennedy · john-lennon · johnny-depp · kamala-harris · kate-middleton · katy-perry · kim-kardashian · king-charles-iii · kurt-cobain · lebron-james · leonardo-dicaprio · lionel-messi · madonna · marilyn-monroe · meghan-markle · michael-jackson · michael-jordan · miley-cyrus · muhammad-ali · oprah-winfrey · prince-harry · prince-william · princess-diana · serena-williams · timothee-chalamet · tom-hanks · what-is-a · zendaya.
+- These articles are the site's own reading of that person's chart. The free birth chart tool https://astrolas.com/birth also draws ANY person's chart from date / time / place; a link with name + date + time + place filled in (as the videos use) opens that person's chart directly. So a video promising "<person>'s birth chart, read in full" is a real promise for every name above.
+
 ## House meanings — the site's own words (traditional / Hellenistic, Annual Profections page). Use these, not modern keywords
 - 1st house: The body, physical health, spirit, new beginnings, and core personal matters.
 - 2nd house: Livelihood, income, personal assets, financial transactions (giving and receiving).

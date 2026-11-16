@@ -375,6 +375,8 @@ export async function xetThumbAi(ds) {
 }
 
 /** Chấm mọi video đang dùng chưa chấm hoặc đã xuất lại sau lần chấm. Trả { cham, duyet, sua, theoMau: { mau: { n, loi: {lỗi: số} } } }. */
+/** dấu tệp sự thật của máy (apps/xuong-video/su-that/<máy>.md) — ghi vào cham để biết bài chấm theo bản tệp nào; không có tệp thì ''. */
+const dauSuThat = (ma) => { try { return createHash('md5').update(fs.readFileSync(new URL(`../../xuong-video/su-that/${ma}.md`, import.meta.url), 'utf8')).digest('hex').slice(0, 10); } catch { return ''; } };
 export async function chamMoi(sql) {
   // chấm lại khi xuất lại (xuat) HOẶC chữ đăng đổi (dang = md5 của dang) — đổi tiêu đề mà không xuất lại vẫn phải qua phòng
   const { ketKhoa, soLuot, TRAN_LUOT } = await import('./kiem-bai.mjs');
@@ -387,8 +389,13 @@ export async function chamMoi(sql) {
            or (v.cham->>'ket' = 'SUA_LAI' and coalesce((v.cham->>'hinh_v')::int, 1) < ${HINH_V} and v.cham::text like '%logo / watermark lạ%')   -- luật hình đổi: bài chặn theo bản cũ chấm lại
            or (m.mau = 'video-ngoai' and v.cham->>'thumb' is distinct from v.de->'thumb'->>'url')   -- thumbnail đổi là chấm lại
            or (v.dang->>'loai' = 'bai' and v.cham->>'ket' is distinct from 'DUYET')   -- bài viết chưa DUYỆT: xét lại mỗi lượt (bản gửi phòng có thể đã đổi)
-           or (v.cham->>'ket' = 'DUYET' and (select count(*) from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') > 1))
+           or (v.cham->>'ket' = 'DUYET' and (select count(*) from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') > 1)
+           or (v.cham->>'ket' = 'SUA_LAI' and v.cham::text like '%hứa điều thương hiệu không có%'))   -- chặn theo tệp sự thật: tệp đổi thì chấm lại (lọc dưới)
     order by v.id`).filter((v) => {
+      // bài chỉ bị chọn vì "hứa sai": chấm lại khi TỆP SỰ THẬT của máy đã đổi so với lúc chấm (16/11/2026: tập dài Jimi Hendrix bị chặn vì tệp chỉ liệt kê 6 trang /c/,
+      // thiếu 40 bài lá số người nổi tiếng trên blog — bổ sung tệp rồi mà bài vẫn nằm SỬA LẠI vì không còn gì kéo nó ra chấm)
+      const doiKhac = !v.cham || v.cham.xuat !== v.xuat || v.cham.dang !== v.dang_md5 || v.cham.ket !== 'SUA_LAI' || !/hứa điều thương hiệu không có/.test(JSON.stringify(v.cham)) || v.dang?.loai === 'bai';
+      if (!doiKhac && v.cham.su_that === dauSuThat(v.ma)) return false;
       if (v.dang?.loai !== 'bai') return true;
       const { url, khoa } = banBaiViet(v); v.bai_khoa = khoa;
       v.bai_ket = ketKhoa(url, khoa) ?? (soLuot(url) >= TRAN_LUOT ? 'HET_LUOT' : null);
@@ -414,7 +421,7 @@ export async function chamMoi(sql) {
       const k = await kiemBaiViet(v); if (k === 'CHO') continue; kiem = k;
     }
     const r = doBaiDang({ ...v, xuat_luc: v.xuat, goc_loi: loiGoc[i], hook_loi: loiHookNgach[i], hinh: hinh[i], su_that: suThatCua(v.ma), kiem }, '');
-    await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, dang: v.dang_md5, thumb: v.de?.thumb?.url ?? null, hinh_v: HINH_V, ...(v.bai_khoa ? { bai_khoa: v.bai_khoa, bai_ket: v.bai_ket } : {}), luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
+    await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, dang: v.dang_md5, thumb: v.de?.thumb?.url ?? null, hinh_v: HINH_V, su_that: dauSuThat(v.ma), ...(v.bai_khoa ? { bai_khoa: v.bai_khoa, bai_ket: v.bai_ket } : {}), luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
     kq.cham++; r.ket === 'DUYET' ? kq.duyet++ : kq.sua++;
     const t = (kq.theoMau[v.ma] ??= { ten: v.ten, n: 0, sua: 0, loi: {} }); t.n++;
     if (r.ket !== 'DUYET') { t.sua++; for (const l of r.chan_cung.length ? r.chan_cung : [`điểm ${r.diem}/10 < ${DIEM_DUYET}`]) t.loi[l] = (t.loi[l] ?? 0) + 1; }

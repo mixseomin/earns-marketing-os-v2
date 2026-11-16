@@ -12,13 +12,24 @@ const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const SPY_ENV = '/root/.secrets/spy.env';
 /** Làn → khoá 2proxy dùng (tên biến trong spy.env). Một chỗ khai; làn mới thêm vào đây. */
 export const KHOA_LAN = { TWOPROXY_KEY_XOAY: 'cao_chinh', TWOPROXY_KEYS_SONG_SONG: 'cao_chinh', TWOPROXY_KEY_DT: 'doi_thu', TWOPROXY_KEY_UU: 'goc_uu' };
-export const NGUONG = { lanDungGio: 2, spyproDungGio: 3, khoaConNgay: 3, cpuBan: 85, ramMB: 1200, nhacLaiGio: 6, taiSanConNgay: 5, ckeyDungGio: 13, vpsRamMB: 400, diaPt: 85, luotQuaGio: 16, napMatGio: 18, giaoDichGio: 5, matNhipPhut: 15, thoQuaGio: 8 };
+export const NGUONG = { taiLoiNhan: 3,  lanDungGio: 2, spyproDungGio: 3, khoaConNgay: 3, cpuBan: 85, ramMB: 1200, nhacLaiGio: 6, taiSanConNgay: 5, ckeyDungGio: 13, vpsRamMB: 400, diaPt: 85, luotQuaGio: 16, napMatGio: 18, giaoDichGio: 5, matNhipPhut: 15, thoQuaGio: 8 };
 // QUÁ TẢI = % CPU BẬN THẬT trung bình giữa hai nhịp (~30 phút, /proc/stat; chờ đĩa/mạng tính là rỗi) — KHÔNG dùng load average 1 phút: nó đếm cả
 // tiến trình ngồi chờ mạng/đĩa và một phút nhói là kêu (22/10/2026: box3 "thỉnh thoảng quá tải" theo nhịp deploy spy; VPS CPU rỗi 97% mà tải 4).
 // Báo kèm 3 tiến trình nặng nhất lúc chụp → biết nghẽn ở đâu, không đoán.
 // GIỜ CPU "NICE" TÍNH LÀ RỖI (01/11/2026): lô cắt video ethopex chạy nice 19 (ffmpeg + tesseract) nhường mọi việc khác, vậy mà đếm là bận →
 // box3:tai kêu 5 lần trong 2 ngày, thợ máy mở 5 lượt đều kết "không sửa" (đo: 97% bận = 67% nice + 30% việc thật). Quá tải = việc ưu tiên thường tranh nhau.
 const TOP3 = `top -b -c -n 2 -d 2 -o %CPU -w 300 | awk '/^top -/{n++} n==2 && $1 ~ /^[0-9]+$/ && c++ < 3 {a=""; for(i=12;i<=NF&&i<=15;i++) a=a" "$i; print $9"%"substr(a,1,70)}'`;
+// NGHẼN CẤP (anh 17/11/2026 "box3 rất hay quá tải. Phải có con CLI phụ trách việc xử lý nó chứ ko chỉ thông báo"): CPU trung bình 30 phút để lọt đợt nghẽn
+// đang diễn ra — 00:06 17/11 box3 load 64 trên 4 nhân, 0% rỗi, swap 2,7 GB, 44 lượt nhan-ban.py Ethopex chạy song song, mỗi lượt gọi psql. Đo tại chỗ:
+// load 5 phút / số nhân + swap, kèm THỦ PHẠM gom theo script cha (psql / postgres không phải thủ phạm — kẻ gọi nó mới là), để Tài sửa đúng chỗ.
+/** Thuần: dòng `ps -eo pid=,ppid=,pcpu=,args=` → [{ script, n, cpu }] nặng nhất trước. Mỗi tiến trình được quy về tổ tiên gần nhất là một script (.py/.mjs/.js/.sh). */
+export function nhomCha(dong, toiDa = 4) {
+  const ps = new Map(); for (const l of dong) { const m = String(l).trim().match(/^(\d+)\s+(\d+)\s+([\d.]+)\s+(.+)$/); if (m) ps.set(m[1], { cha: m[2], cpu: Number(m[3]), args: m[4] }); }
+  const tenScript = (a) => (a.match(/(?:^|\s)(\S*?([\w.-]+\.(?:py|mjs|js|sh)))(?:\s|$)/) || [])[2] ?? null;
+  const goc = (pid) => { for (let p = pid, i = 0; p && ps.has(p) && i < 12; p = ps.get(p).cha, i++) { const t = tenScript(ps.get(p).args); if (t && !/^(server|next-server)\b/.test(t)) return t; } return null; };
+  const g = new Map(); for (const [pid, x] of ps) { if (x.cpu < 0.5 && !/^psql\b/.test(x.args)) continue; const t = goc(pid); if (!t) continue; const o = g.get(t) ?? { script: t, n: 0, cpu: 0 }; o.n++; o.cpu += x.cpu; g.set(t, o); }
+  return [...g.values()].map((o) => ({ ...o, cpu: Math.round(o.cpu) })).sort((a, b) => b.cpu - a.cpu || b.n - a.n).slice(0, toiDa);
+}
 /** Thuần: hai dòng "cpu …" của /proc/stat → % CPU bận giữa hai lần đọc (rỗi = nice + idle + iowait); không tính được → null */
 export function banCpu(truoc, nay) {
   const so = (d) => String(d || '').trim().split(/\s+/).slice(1).map(Number), a = so(truoc), b = so(nay), cong = (x) => x.reduce((t, v) => t + (v || 0), 0);
@@ -98,7 +109,10 @@ export function xetCanhBao(s, bayGio = Date.now()) {
     if (!k.ngoai && (!k.lan || !lanBat.has(k.lan))) ra.push({ khoa: `nam:${k.ma}`, chu: `Khoá 2proxy <b>…${k.ma}</b> đang trả tiền mà ${k.lan ? `làn ${k.lan} đang tắt` : 'không làn nào dùng'} — slot nằm không` });
   }
   const nang = (m) => (m.nang?.length ? ` — nặng nhất: ${m.nang.join(' · ')}` : '');
-  if (s.may.ban >= NGUONG.cpuBan) ra.push({ khoa: 'box3:tai', chu: `box3 quá tải: CPU bận ${s.may.ban}% suốt ${s.may.phut} phút qua${nang(s.may)}` });
+  const cha = (m) => (m.cha?.length ? `\nthủ phạm theo script cha: ${m.cha.map((x) => `${x.script} ×${x.n} (${x.cpu}% CPU)`).join(' · ')}` : '');
+  if (s.may.ban >= NGUONG.cpuBan) ra.push({ khoa: 'box3:tai', muc: s.may.ban, chu: `box3 quá tải: CPU bận ${s.may.ban}% suốt ${s.may.phut} phút qua${nang(s.may)}${cha(s.may)}` });
+  const tl = s.may.load5 && s.may.nhan ? s.may.load5 / s.may.nhan : 0;
+  if (tl >= NGUONG.taiLoiNhan) ra.push({ khoa: 'box3:nghen', muc: Math.round(tl * 10) / 10, chu: `box3 NGHẼN ngay lúc đo: tải 5 phút ${s.may.load5} trên ${s.may.nhan} nhân (${tl.toFixed(1)}×), swap dùng ${s.may.swapMB ?? '?'} MB, RAM còn ${s.may.ramMB} MB${nang(s.may)}${cha(s.may)}` });
   // Ổ BOX3 (01/11/2026: lên 95% — /root/.cache/ethopex 12 GB không cất được Drive — mà phòng chỉ canh ổ VPS, không ai báo). Khoá 'dia:' không vào hàng
   // thợ máy (LOAI_SUA): dọn ổ là quyết định giữ / cất của anh, thợ máy spy không được tự xoá.
   if (s.may.dia >= NGUONG.diaPt) ra.push({ khoa: 'dia:box3', chu: `box3 ổ cứng đầy ${s.may.dia}% — còn ${s.may.diaConGB} GB` });
@@ -212,6 +226,12 @@ export async function chupTaiNguyen() {
   };
   const sh = (c) => execFileSync('sh', ['-c', c], { encoding: 'utf8', timeout: 20000 }).trim();
   const box3 = doCpu('box3', sh);
+  try {   // nghẽn cấp: tải 5 phút / số nhân + swap + thủ phạm theo script cha (đo hỏng thì bỏ phần này, ảnh chụp vẫn đủ phần khác)
+    const [l5] = fs.readFileSync('/proc/loadavg', 'utf8').split(/\s+/), nhan = Number(sh('nproc')), mi = fs.readFileSync('/proc/meminfo', 'utf8');
+    const kb = (k) => Number(mi.match(new RegExp(`${k}:\\s+(\\d+)`))?.[1] ?? 0);
+    Object.assign(box3, { load5: Number(l5), nhan, swapMB: Math.round((kb('SwapTotal') - kb('SwapFree')) / 1024) });
+    if (box3.load5 / nhan >= NGUONG.taiLoiNhan || box3.ban >= NGUONG.cpuBan) { box3.cha = nhomCha(sh('ps -eo pid=,ppid=,pcpu=,args=').split('\n')); if (!box3.nang.length) box3.nang = sh(TOP3).split('\n').filter(Boolean); }
+  } catch (e) { console.error('✗ đo nghẽn box3:', e.message.split('\n')[0]); }
   const ramMB = Math.round(Number(fs.readFileSync('/proc/meminfo', 'utf8').match(/MemAvailable:\s+(\d+)/)[1]) / 1024);
   const [diaConGB, dia] = sh(`df -B1G --output=avail,pcent / | tail -1`).split(/\s+/).map((x) => Number(x.replace('%', '')));
   let daemon = false; try { daemon = execFileSync('systemctl', ['is-active', 'spy-cao-daemon'], { encoding: 'utf8' }).trim() === 'active'; } catch { /* không active */ }
@@ -349,6 +369,13 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ban: 92, phut: 30, nang: ['88% node nap.mjs'], ramMB: 900, daemon: true } }), ['box3:tai', 'box3:ram'], 'box3 bận 92% suốt 30 phút + thiếu RAM');
     assert.ok(xetCanhBao({ lan: [], khoa: [], may: { ...may, ban: 92, nang: ['88% node nap.mjs'] } }, bay)[0].chu.includes('nặng nhất: 88% node nap.mjs'), 'báo kèm tiến trình nặng nhất');
     assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ...may, ban: 60 } }), [], 'bận 60% (deploy nhói một lúc): im');
+    assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ...may, load5: 64, nhan: 4, swapMB: 2751 } }), ['box3:nghen'], 'tải 64 trên 4 nhân → nghẽn cấp dù CPU trung bình 30 phút chưa tới ngưỡng');
+    assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ...may, load5: 6, nhan: 4 } }), [], 'tải 1,5× số nhân: im');
+    assert.equal(xetCanhBao({ lan: [], khoa: [], may: { ...may, ban: 95 } }, bay)[0].muc, 95, 'cảnh báo mang mức để hàng việc biết nặng hơn');
+    { const ps = ['10 1 0.0 bash -c cd x && python3 nhan-ban.py 1', '11 10 30.0 python3 nhan-ban.py 1', '12 11 0.0 psql postgres://x -tAc select', '20 1 0.0 bash -c python3 nhan-ban.py 2', '21 20 25.0 python3 nhan-ban.py 2',
+        '30 1 40.0 /usr/bin/node server/server.mjs', '40 1 9.0 python3 /opt/x/qc-fb-phim.py --dem', '41 40 0.0 psql x'];
+      const g = nhomCha(ps); assert.equal(g[0].script, 'nhan-ban.py'); assert.equal(g[0].n, 3, 'psql con quy về script gọi nó (bash rỗi không tính)'); assert.equal(g[0].cpu, 55);
+      assert.ok(!g.some((x) => x.script === 'server.mjs'), 'web server không tính là thủ phạm lô'); assert.equal(g[1].script, 'qc-fb-phim.py'); }
     assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ...may, ban: null } }), [], 'không đo được CPU: không báo bừa');
     const st = (u, n, s, i, w) => `cpu  ${u} ${n} ${s} ${i} ${w} 0 0 0 0 0`;
     assert.strictEqual(banCpu(st(0, 0, 0, 0, 0), st(90, 0, 10, 0, 0)), 100, 'toàn bận');

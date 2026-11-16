@@ -90,6 +90,19 @@ HẠ TẦNG (đọc ${SPY}/CLAUDE.md nếu có, đầu deploy.sh, scripts/):
   site-chuan.mjs, hồ sơ apps/cty/cong-ty/phong/tai-nguyen.md. Sửa xong: node --check + node apps/cty/worker/<tệp> --tu-kiem, git add đúng tệp, commit,
   git push origin HEAD:main (GHA deploy box3 ~2 phút), chờ bằng ${os.homedir()}/bin/gh-watch deploy.yml. KHÔNG rsync / scp mã lên box3.${cay.do.length ? `\n- Cây riêng còn thay đổi CHƯA COMMIT từ lượt trước của chính bạn: ${cay.do.join(', ')} — kiểm rồi commit nếu đúng, sai thì sửa tới (không hoàn tác).` : ''}${cay.vat ? `\n- Lượt trước bạn để dở một bản sửa KHÔNG áp được lên main mới: tệp vá ${cay.vat}. Còn cần thì làm lại trên main hiện tại.` : ''}
 
+QUÁ TẢI BOX3 (khoá box3:tai · box3:nghen · box3:ram — anh 17/11/2026: "box3 rất hay quá tải. Phải có con CLI phụ trách việc xử lý nó chứ ko chỉ thông báo"):
+- Đo ÍT NHẤT 60 giây, không phải một ảnh chụp 2 giây: vmstat 5 12 · top -b -n 3 -d 10 -o %CPU · pg_stat_activity theo db + câu lặp (bao nhiêu bản, chạy bao lâu) ·
+  gom tiến trình theo SCRIPT CHA (ps -eo pid,ppid,pcpu,args — psql / postgres không phải thủ phạm, kẻ gọi nó mới là). Cảnh báo đã kèm "thủ phạm theo script cha".
+- Lúc đo mà còn quá tải (rỗi < 15% hoặc tải 5 phút ≥ 3× số nhân) thì KHÔNG được KET: KHONG_SUA.
+- CHỮA CHÁY làm ngay qua ssh ${BOX} (đều không mất dữ liệu, không dừng web): huỷ truy vấn ĐỌC chạy lặp > 60 giây (select pg_cancel_backend(pid) — chỉ câu mở bằng
+  select / with, KHÔNG đụng insert / update / delete / copy) · renice +15 các tiến trình của lô nền đang tranh CPU với web. KHÔNG kill tiến trình ghi dữ liệu,
+  KHÔNG dừng / khởi động lại spy-web, mos2, postgres.
+- GỐC thường là lô chạy song song không trần (vd 24 lượt nhan-ban.py cùng lúc) hay truy vấn nặng gọi lặp: sửa TRẦN CHẠY SONG SONG / bộ nhớ đệm ở đúng script gây ra.
+  Script trong phạm vi bạn (spy-on-tc, phần Tài nguyên mos2) → tự sửa, kiểm, deploy. Script NGOÀI phạm vi → giao đúng kỹ sư bằng một việc có bằng chứng + đề xuất sửa:
+  · apps/xuong-video/scripts/ethopex/* , apps/etp/* → Huy: ssh ${BOX} 'cd ${APP} && CTY_DATA_DIR=${DATA} THO_MAY_TEP=etp-sua.json node worker/tho-may-viec.mjs --them etp:qua-tai-<tên script> ethopex' (chữ ở stdin)
+  · chỗ khác → KET: CAN_ANH, ghi rõ script + người nên sửa.
+  Đã chữa cháy + đã sửa gốc (hoặc đã giao đúng người) = KET: DA_SUA; BÁO ANH ghi số trước / sau chữa cháy.
+
 CÁCH LÀM:
 1. Đo trước khi đoán: trạng thái unit, nhật ký, CPU rỗi thật (/proc/stat, KHÔNG dùng load average), RAM, khoá trong ~/.cache, phiên daemon (curl 127.0.0.1:39223/status).
 2. Tìm GỐC (vì sao lỗi tồn tại được), sửa một lần ở tầng gốc, có kiểm (bài tự kiểm sẵn có hoặc số đo). Chữa cháy tạm (khởi động lại unit, gỡ khoá mồ côi) được phép để

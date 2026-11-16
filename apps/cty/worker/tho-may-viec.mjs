@@ -25,7 +25,12 @@ const ngayVN = (t = Date.now()) => new Date(t + 7 * 36e5).toISOString().slice(0,
  *  (can_anh / khong_sua / treo) trong 24 giờ, cùng dấu bộ việc (dau — hoặc cả hai không có dấu) → không xếp lại y nguyên: kỹ sư sẽ làm lại đúng việc đó + hỏi lại anh mỗi nhịp
  *  (Khang 63 lượt / 37 lần "cần anh" trong vài giờ). Đã sửa (xong) mà tái phát thì vẫn nhận lại; bộ việc đổi (dấu khác) thì nhận. Anh trả lời (anh:) không qua đây. */
 export const LAP_GIO = 24;
-const vuaKetKhongSua = (hang, c, luc) => hang.some((v) => v.khoa === c.khoa && v.tt === 'ket' && (v.dau ?? null) === (c.dau ?? null) && v.xong && luc - Date.parse(v.xong) < LAP_GIO * 36e5);
+// NẶNG HƠN THÌ VẪN XẾP (anh 17/11/2026: "box3 rất hay quá tải. Phải có con CLI phụ trách việc xử lý nó chứ ko chỉ thông báo"): 16/11 Tài kết "không sửa"
+// box3:tai lúc CPU 95% (đo lại 2 giây thấy 43%) → khoá bị im 24 giờ, đêm đó box3 load 64 / swap đầy mà không việc nào tới Tài. Cảnh báo mang `muc` (độ nặng,
+// số càng lớn càng nặng): việc mới nặng hơn lần kết ≥ MUC_VUOT lần thì vẫn xếp; lần kết chưa ghi mức (bản cũ) mà việc mới có mức → xếp.
+export const MUC_VUOT = 1.15;
+const nangHon = (c, v) => c.muc != null && (v.muc == null || c.muc > v.muc * MUC_VUOT);
+const vuaKetKhongSua = (hang, c, luc) => hang.some((v) => v.khoa === c.khoa && v.tt === 'ket' && (v.dau ?? null) === (c.dau ?? null) && v.xong && luc - Date.parse(v.xong) < LAP_GIO * 36e5 && !nangHon(c, v));
 /** Đã báo "đã sửa" mà tái phát cũng có trần (anh 11/11/2026 "không được có vòng lặp vô hạn, phải biết giới hạn đúng lúc, đúng chỗ"): trong 24 giờ cùng khoá
  *  đã xong ≥ LAP_TRAN - 1 lần → lần xếp kế mang ghi chú LẶP (đòi gốc sâu hơn hoặc CAN_ANH để anh thấy); đã xong ≥ LAP_TRAN lần → thôi xếp tới hết 24 giờ. */
 export const LAP_TRAN = 3;
@@ -48,7 +53,7 @@ export function themViec(st, ds, { luc = Date.now(), topic = null, msg = null } 
     const g = nhomLoi(c.khoa, c.chu), goc = g && nhom.get(g);
     if (goc) { goc.gop = [...(goc.gop ?? []), c.khoa]; goc.chu += `\n\n↳ CÙNG LỖI, cùng lô: ${c.khoa} — sửa một gốc cho cả nhóm, báo đủ các máy / nền trong một tin.`; dang.add(c.khoa); continue; }
     const chu = nXong >= LAP_TRAN - 1 ? `${c.chu}\n\n⚠ LẶP: lỗi này đã báo "đã sửa" ${nXong} lần trong ${LAP_GIO} giờ mà vẫn tái phát. Đừng sửa lại kiểu cũ: tìm gốc sâu hơn; không chắc thì KET: CAN_ANH để anh quyết. Đây là lượt cuối trong ${LAP_GIO} giờ.` : c.chu;
-    const v = { id: ++so, khoa: c.khoa, chu, ...(c.dau ? { dau: c.dau } : {}), luc: new Date(luc).toISOString(), tg: { topic, msg }, tt: 'cho' };   // dau: dấu bộ việc (Khang — không xếp lại y nguyên)
+    const v = { id: ++so, khoa: c.khoa, chu, ...(c.dau ? { dau: c.dau } : {}), ...(c.muc != null ? { muc: c.muc } : {}), luc: new Date(luc).toISOString(), tg: { topic, msg }, tt: 'cho' };   // dau: dấu bộ việc (Khang — không xếp lại y nguyên)
     hang.push(v); dang.add(c.khoa); them++; if (g) nhom.set(g, v);
   }
   return { st: { ...st, hang: hang.slice(-200) }, them };
@@ -179,6 +184,13 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     { const s0 = { hang: [{ id: 1, khoa: 'dang:lo|m|x', chu: 'hỏng', tt: 'cho' }] };
       const g = ghiThem(s0, 'dang:lo|m|x', 'xem lại ô soạn'); assert.equal(g.kieu, 'gop'); assert.ok(g.st.hang[0].chu.includes('xem lại ô soạn'), 'nối vào việc đang chờ'); assert.equal(g.st.hang.length, 1);
       assert.equal(ghiThem(s0, 'dang:lo|m|y', 'mới').kieu, 'moi', 'chưa có việc thì xếp mới'); assert.equal(ghiThem({}, 'het:x', 'a').kieu, 'bo', 'khoá không thuộc thợ máy bỏ'); }
+    { const luc = Date.parse('2026-11-17T00:00:00Z'), ket = { id: 1, khoa: 'box3:tai', tt: 'ket', xong: '2026-11-16T12:00:00Z', muc: 95 };
+      const a = { equal: assert.strictEqual };
+      a.equal(themViec({ hang: [ket] }, [{ khoa: 'box3:tai', chu: 'x', muc: 96 }], { luc }).them, 0, 'vừa kết không sửa, mức ngang → im');
+      a.equal(themViec({ hang: [ket] }, [{ khoa: 'box3:tai', chu: 'x', muc: 120 }], { luc }).them, 1, 'nặng hơn rõ → vẫn xếp cho kỹ sư');
+      a.equal(themViec({ hang: [{ ...ket, muc: undefined }] }, [{ khoa: 'box3:tai', chu: 'x', muc: 50 }], { luc }).them, 1, 'lần kết cũ chưa có mức → xếp');
+      a.equal(themViec({ hang: [{ ...ket, muc: undefined }] }, [{ khoa: 'box3:tai', chu: 'x' }], { luc }).them, 0, 'không ai có mức → luật cũ (im 24 giờ)');
+      a.equal(themViec({}, [{ khoa: 'box3:nghen', chu: 'x', muc: 8 }], { luc }).st.hang[0].muc, 8, 'việc lưu mức'); }
     console.log('tho-may-viec tu-kiem ok');
   } else if (a[0] === '--lay') {
     const r = layViec(doc()); ghi(r.st); console.log(JSON.stringify(r.viec ? { viec: { ...r.viec, quyet_gan: quyetGan(r.st, r.viec), bac: bacViec(r.st, r.viec) } } : { ly_do: r.ly_do }));

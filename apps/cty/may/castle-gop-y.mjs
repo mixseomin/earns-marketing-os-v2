@@ -14,6 +14,8 @@ import { chayKySu, BOX, HOME } from './gop-y-ky-su.mjs';
 const GOPY = 'GOPY_TRANG=castle.on.tc /opt/earns-marketing-os-v2/scripts/gop-y.sh';
 const q = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
 const ssh = (cmd) => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', BOX, cmd], { encoding: 'utf8', timeout: 60000 });
+// lệnh đo castle (Playwright + ảnh 3D) chạy 3–10 phút: trần mặc định 120 giây của Bash đẩy lệnh ra nền rồi lượt không giao diện kết thúc khi lệnh còn chạy (#1623 lượt 17:53)
+process.env.BASH_DEFAULT_TIMEOUT_MS = '900000'; process.env.BASH_MAX_TIMEOUT_MS = '1200000';
 chayKySu({
   nguoi: 'thang', ten: 'Thắng', duAn: 'mos2', tranPhut: 60,
   chiUrl: ['https://castle.on.tc/%'],
@@ -26,7 +28,8 @@ chayKySu({
     'Bash(git add apps/castle/*)', 'Bash(git push origin HEAD:main)', 'Bash(git pull --rebase origin main)', `Bash(${HOME}/bin/gh-watch deploy.yml)`,
     'Bash(node apps/castle/*)', `Bash(node ${path.join(MOS2, 'apps/castle')}/*)`, 'Bash(python3 apps/castle/*)', `Bash(python3 ${path.join(MOS2, 'apps/castle')}/*)`, 'Bash(md5 -q:*)',
     // lượt đầu #1623 (16/11/2026) dừng CAN_ANH sau 3 phút vì lệnh ghép "cd <thư mục con> && git log --since … --format …" bị chặn: mở đúng các lệnh đọc / đo việc castle hay dùng
-    'Bash(cd:*)', 'Bash(git log:*)', 'Bash(git fetch:*)', 'Bash(git rev-parse:*)', 'Bash(git pull:*)', 'Bash(python3 -c:*)', 'Bash(node -e:*)', 'Bash(md5:*)', 'Bash(find:*)', 'Bash(jq:*)', 'Bash(echo:*)', 'Bash(printf:*)'],
+    'Bash(cd:*)', 'Bash(git log:*)', 'Bash(git fetch:*)', 'Bash(git rev-parse:*)', 'Bash(git pull:*)', 'Bash(python3 -c:*)', 'Bash(node -e:*)', 'Bash(md5:*)', 'Bash(find:*)', 'Bash(jq:*)', 'Bash(echo:*)', 'Bash(printf:*)',
+    'Bash(git push -q origin HEAD:main)', 'Bash(lsof:*)', 'Bash(ps:*)'],
   loiGiao: ({ card, luong, cuoiNguoi, tin, moiAnh, anhMay, ANH, dir: MOS2, cay }) => `Bạn là Thắng, kỹ sư lâu đài 3D castle.on.tc (công ty AI của anh Tuấn). Anh không ngồi máy: bạn xử tới khi xong, tự kiểm, tự deploy, tự trả lời trong card.
 
 LÀM ĐÚNG LỆNH /tasks-castle: đọc ${MOS2}/apps/castle/tasks-castle.md rồi làm theo mục 2 (Xử) và 4 (Báo) cho DUY NHẤT card #${card.id} "${card.title}". Mục 1 (nạp) máy đã làm, luồng card ở dưới.
@@ -45,6 +48,8 @@ CÂY RIÊNG ${MOS2} (nhánh ky-su/thang): git add đúng tệp bạn sửa (apps
 BÁO NÚT 🔍 (thẻ lệch ảnh): node apps/castle/scripts/so-lech.mjs --xong ${card.id} '<đã sửa gì>' — người báo thấy nút nháy xanh + báo cáo trên castle.on.tc và tin Telegram.
 TRẢ LỜI: ssh ${BOX} "${GOPY} reply ${card.id} '<sai gì · sửa gì · tệp · commit · số đo trước/sau>'" rồi ssh ${BOX} "${GOPY} submit ${card.id} '<tóm tắt>' https://github.com/mixseomin/earns-marketing-os-v2/commit/<sha>". Còn lệch thì ghi rõ còn gì trong lời nộp.
 Không rõ đề bài hoặc cần anh quyết (tiền, xoá dữ liệu) → reply hỏi đúng một câu và KHÔNG submit.
+LỆNH ĐO CHẠY LÂU (so-lech, kiem-ke: 3–10 phút; cổng 18777 bận thì công cụ tự xếp hàng chờ tới 20 phút): chạy THẲNG ở tiền cảnh và chờ nó xong — CẤM chạy nền, CẤM Monitor, CẤM kết lượt khi lệnh đo còn chạy. Chưa có số đo thì chưa được trả lời card.
+Mọi chữ ghi vào card: tiếng Việt có dấu.
 TỰ QUYẾT, KHÔNG HỎI: cách sửa, tệp nào, commit + deploy. Chỉ sửa đúng điều card xin. Bị từ chối một lệnh shell thì viết lại dạng đơn giản (một lệnh, không biến tạm).
 CẤM: hoàn tác git, xoá dữ liệu, gọi mô hình AI tốn tiền, in khoá / token, sửa ngoài apps/castle.
 

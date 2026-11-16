@@ -90,6 +90,10 @@ export const VIEC_NHIP = {
     { ma: 'xu-gop-y-spy', ten: 'Spy - xử hòm góp ý (Claude · Hiếu trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/spy-gop-y.mjs mỗi 5 phút: hòm góp ý của spy.on.tc (card feedback project spy, pending / claimed / broken) có card chưa làm hoặc có tin mới của anh → chỉ khi bản spy-on-tc iMac khớp box3, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL, effort theo việc) chạy đúng /tasks-spy: sửa gốc, kiểm, deploy.sh, trả lời vào luồng card rồi nộp Review. Card đã làm mà chưa có tin mới thì không làm lại trong 24 giờ.' },
   ],
+  'giam-sat-cli': [
+    { ma: 'giam-sat-cli', ten: 'Giám sát các kỹ sư CLI (Hà trên iMac)', lich: () => 'mỗi giờ · iMac', khop: null,
+      mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/giam-sat.mjs mỗi giờ. Máy đo (0đ): sổ kinh nghiệm (phình, bài trái luật, lộ bí mật, trùng ý), tiến trình claude / RAM, nhật ký phiên của các cây ~/may-ky-su (lệnh cấm, bí mật), lỗi dồn trong nhật ký việc nền, quyền --allowedTools bị nới, và chính Hà. Có cờ mới hoặc tới lượt rà tuần → Claude Code CHỈ ĐỌC (model_cli trong SOUL) phán; được bỏ bài học sai (có bản sao) và tạm dừng kỹ sư gây hại qua worker/giam-sat-lam.mjs trên box3; báo chủ đề 🛡 Giám sát CLI.' },
+  ],
   'xu-gop-y-studio': [
     { ma: 'xu-gop-y-studio', ten: 'Studio - xử hòm góp ý (Claude · Vinh trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/studio-gop-y.mjs mỗi 5 phút: hòm góp ý 💬 của studio.on.tc (card feedback project xuong-video, pending / claimed / broken) có card chưa làm hoặc có tin mới của anh → gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL, effort theo việc) trong cây riêng chạy đúng /tasks-studio: sửa gốc apps/xuong-video, kiểm, push (GHA deploy box3), trả lời vào luồng card rồi nộp Review. Card đã làm mà chưa có tin mới thì không làm lại trong 24 giờ.' },

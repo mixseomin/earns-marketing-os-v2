@@ -11,4 +11,5 @@ export const NHIP_MAY = { 'don-nhat-ky': { may: 'MacBook', script: '~/bin/don-nh
   'sua-tai-nguyen': { may: 'iMac', script: 'apps/cty/may/tai-nguyen-sua.mjs', launchd: 'tc.on.cty.tai-nguyen-sua' },   // Tài · Kỹ sư Tài nguyên (anh 13/11/2026)
   'xu-gop-y-mos2': { may: 'iMac', script: 'apps/cty/may/mos2-gop-y.mjs', launchd: 'tc.on.cty.mos2-gop-y' },
   'xu-gop-y-spy': { may: 'iMac', script: 'apps/cty/may/spy-gop-y.mjs', launchd: 'tc.on.cty.spy-gop-y' },
-  'xu-gop-y-studio': { may: 'iMac', script: 'apps/cty/may/studio-gop-y.mjs', launchd: 'tc.on.cty.studio-gop-y' } };   // Vinh · hòm góp ý studio (anh 15/11/2026)   // Đạt · hòm góp ý MOS2 (anh 12/11/2026)   // Khang · bài social bị chặn (anh 10/11/2026)   // Huy · Ethopex tự sửa lỗi máy (anh 10/11/2026)   // Spy - tự sửa máy cào (Claude trên iMac, 24/10/2026)
+  'xu-gop-y-studio': { may: 'iMac', script: 'apps/cty/may/studio-gop-y.mjs', launchd: 'tc.on.cty.studio-gop-y' },
+  'giam-sat-cli': { may: 'iMac', script: 'apps/cty/may/giam-sat.mjs', launchd: 'tc.on.cty.giam-sat' } };   // Hà · giám sát các kỹ sư CLI (anh 16/11/2026)   // Vinh · hòm góp ý studio (anh 15/11/2026)   // Đạt · hòm góp ý MOS2 (anh 12/11/2026)   // Khang · bài social bị chặn (anh 10/11/2026)   // Huy · Ethopex tự sửa lỗi máy (anh 10/11/2026)   // Spy - tự sửa máy cào (Claude trên iMac, 24/10/2026)

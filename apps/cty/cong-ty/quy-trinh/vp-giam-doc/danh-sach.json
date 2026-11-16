@@ -18,6 +18,23 @@
     "iMac:com.earns.followup-nhac"
    ],
    "chi_phi": "0"
+  },
+  {
+   "id": "giam-sat-cli",
+   "ten": "Giám sát các kỹ sư CLI (Claude Code trên iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi giờ — bộ điều phối việc nền; chỉ gọi Claude khi máy đo có cờ mới hoặc 7 ngày một lượt rà tuần",
+   "mo_ta": "Hà soát độc lập các kỹ sư CLI: phình bộ nhớ, ngáo, học sai / lệch, bảo mật. Máy đo 0đ; Hà chỉ đọc, được bỏ bài học sai và tạm dừng kỹ sư gây hại (đều làm ngược lại được), báo chủ đề 🛡 Giám sát CLI.",
+   "ma": "apps/cty/may/giam-sat.mjs · apps/cty/worker/giam-sat-lam.mjs",
+   "chu_tri": "ha",
+   "lam": [
+    "may"
+   ],
+   "khi": "mỗi giờ (máy đo); có cờ mới / rà tuần (Hà phán)",
+   "lich": [
+    "iMac:tc.on.cty.giam-sat"
+   ],
+   "chi_phi": "máy đo 0đ · lượt phán tính vào gói Claude thuê bao"
   }
  ]
 }

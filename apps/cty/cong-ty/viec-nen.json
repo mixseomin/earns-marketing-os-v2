@@ -1017,6 +1017,23 @@
     ]
    },
    "ghi_chu": "Anh duyệt 04/11/2026 (\"dựng ngay\", sau \"sao tao cứ hỏi mới thấy làm\"): sau giờ làm tập (ngày có lịch) báo tập đã nạp / đang làm / hỏng + Mạnh đã nhận chưa; 21:20 báo đã đăng video nào hoặc hàng chờ kẹt ở đâu. Không gọi AI, 0đ."
+  },
+  {
+   "nhan": "iMac:tc.on.cty.giam-sat",
+   "ten": "VP - Hà giám sát các kỹ sư CLI (Claude)",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/may-ky-su/ha/earns-marketing-os-v2/apps/cty/may/giam-sat.mjs"
+   ],
+   "thu_muc": "/Users/htuan/may-ky-su/ha/earns-marketing-os-v2",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/giam-sat.log",
+   "hen": {
+    "moi_giay": 3600
+   },
+   "uu_tien_thap": true
   }
  ]
 }

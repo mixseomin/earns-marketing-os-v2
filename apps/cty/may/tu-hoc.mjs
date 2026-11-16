@@ -12,6 +12,8 @@ const BOX = 'root@167.233.241.16', APP = '/opt/earns-marketing-os-v2/apps/cty';
 /** Tệp máy → nhân sự (id thư mục cong-ty/nhan-su). Kỹ sư mới: thêm một dòng ở đây (tu-kiem cty soát mọi tệp gọi chayClaude đều có tên). */
 export const NGUOI_CUA = { 'etp-sua': 'huy', 'social-sua': 'khang', 'tho-may': 'manh', 'tai-nguyen-sua': 'tai', 'van-thu': 'van', 'long-sua-bai': 'long',
   'sach-sua': 'thao', 'mos2-gop-y': 'dat', 'spy-gop-y': 'hieu', 'studio-gop-y': 'vinh' };
+/** Kỹ sư gọi Claude mà KHÔNG được tự học, kèm lý do (tu-kiem đọc bảng này). */
+export const KHONG_TU_HOC = { 'giam-sat': 'Hà soát các kỹ sư tự học — học theo chính đám mình canh là mất độc lập; bài học của Hà chỉ từ anh' };
 export const KHOA = 'cli/lam-viec';
 const may = () => path.basename(process.argv[1] ?? '', '.mjs');
 export const nguoiLuot = (opts = {}) => opts.nguoi ?? NGUOI_CUA[opts.ten] ?? (Object.values(NGUOI_CUA).includes(opts.ten) ? opts.ten : null) ?? NGUOI_CUA[may()] ?? null;

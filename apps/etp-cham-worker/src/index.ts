@@ -3,11 +3,11 @@
 //   ảnh      20 khung cắt bằng Media binding từ bản video tạm trong R2 (tải từ img.on.tc MỘT lần) → lưu R2 khung/<creative>/<n>.jpg, trang etp hiện qua /khung/…
 //   giọng    tách tiếng (Media binding, ≤ 60s / lượt) → Whisper large-v3-turbo (Workers AI)
 //   chữ      Claude đọc nguyên văn chữ trên các khung (thay OCR) → luật từ cấm / CTA (một nguồn: kiem-thoai.py / cta_qc.py, dong-bo.py xuất ra kho)
-//   nội dung Claude (chuỗi rẻ ckey → ShopAIKey → Anthropic) xem 20 khung + chữ + lời → điểm 0–10 từng tiêu chí (etp.tieu_chi); HAI lượt, lấy điểm thấp,
+//   nội dung Claude (cổng AI chung spy /api/ai: donk → ckey sống → fal, không chính hãng) xem 20 khung + chữ + lời → điểm 0–10 từng tiêu chí (etp.tieu_chi); HAI lượt, lấy điểm thấp,
 //            lệch ≥ 4 → cần người xem. Kết luận: cấm khi Meta ≤ 5 · cần xem khi Meta ≤ 7 hoặc AFS ≤ 7. CHỈ CHẤM — không đụng camp / luật.
 interface Env {
   MEDIA: any; AI: any; R2: R2Bucket;
-  MOS2_EXT_KEY: string; KHOA_THU: string; CKEY_API_KEY?: string; SHOPAIKEY_API_KEY?: string; ANTHROPIC_API_KEY?: string;
+  MOS2_EXT_KEY: string; KHOA_THU: string; CONG_AI_KEY: string;
 }
 type TieuChi = { nhom: string; ma: string; ten: string; mo_ta: string };
 type Mau = { thoai: string; thoai_hoa: string[]; cta: string; cta_hoa: string[]; phu: string; phu_hoa: string[]; nut_chuan: string };
@@ -16,8 +16,6 @@ type KetClaude = { noi_dung?: string; chu?: string; diem?: Record<string, number
 
 const MOS2 = 'https://mos2.on.tc/api/ext/etp-cham';
 const SO_KHUNG = 20, CAM_META = 5, XEM = 7;
-const MO_HINH = 'claude-sonnet-5-5';
-const CKEY = ['duc121026ab/claude-sonnet-5-5', 'thanhnhan9023/claude-sonnet-5.5'];   // = CKEY_CLAUDE['claude-sonnet-5-5'] (studio claude.ts / soat_doan.py)
 const vn = () => { const d = new Date(Date.now() + 7 * 3600_000); const p = (n: number) => String(n).padStart(2, '0'); return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())} ${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}`; };
 const b64 = (b: Uint8Array) => { let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(s); };
 async function theoNhom<T, R>(ds: T[], n: number, f: (x: T, i: number) => Promise<R>): Promise<R[]> {
@@ -58,29 +56,27 @@ function cauHoi(tc: TieuChi[], giong: string) {
     + `"khung": {"<group.code>": [<frame numbers 1-${SO_KHUNG} that show the problem, only for scores below 10>]}}`;
 }
 
+// CHỈ QUA CỔNG AI CHUNG (anh 16/11/2026: "worker này chỉ đc chạy qua fallback API của hệ thống. Cấm set cứng như vậy" → "Spy đang có chuỗi fallback hoàn chỉnh,
+// hãy sử dụng nó làm chuẩn"): Worker không giữ khoá nhà cung cấp nào, gửi lượt sang cổng spy POST https://spy.on.tc/api/ai (khoá CONG_AI_KEY) — chuỗi là goi() của spy
+// (donk → ckey sống → fal), bo_chinh_hang: không về Claude chính hãng. Trước đây chuỗi viết cứng ở đây (2 người bán ckey cố định → ShopAIKey → Anthropic) — ckey hết
+// tiền 14/11 thì 1.389 lượt chấm rơi về chính hãng. Kết quả thiếu điểm → lượt sau bỏ tuyến đó (bo_tuyen); hết tuyến → lỗi, creative chờ lượt sau (cham_hang thử lại).
+const CONG_AI = 'https://spy.on.tc/api/ai';
 async function claude(env: Env, anh: Uint8Array[], hoi: string, can: string[]): Promise<KetClaude> {
-  const nd = [{ role: 'user', content: [...anh.map((a) => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64(a) } })), { type: 'text', text: hoi }] }];
-  const duong: [string, string, string, string][] = [];
-  if (env.CKEY_API_KEY) for (const m of CKEY) duong.push(['ckey', 'https://api.xah.io/v1/messages', env.CKEY_API_KEY, m]);
-  if (env.SHOPAIKEY_API_KEY) duong.push(['shopaikey', 'https://api.shopaikey.com/v1/messages', env.SHOPAIKEY_API_KEY, MO_HINH]);
-  if (env.ANTHROPIC_API_KEY) duong.push(['anthropic', 'https://api.anthropic.com/v1/messages', env.ANTHROPIC_API_KEY, MO_HINH]);
-  const loi: string[] = [];
-  for (const [ten, url, k, m] of duong) {
+  const noi_dung = [...anh.map((a) => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64(a) } })), { type: 'text', text: hoi }];
+  const bo: string[] = []; let loi = '';
+  for (let i = 0; i < 3; i++) {
+    const r = await fetch(CONG_AI, { method: 'POST', headers: { authorization: `Bearer ${env.CONG_AI_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ viec: 'etp-cham', ma: String(i), model: 'fal:anthropic/claude-sonnet-5.5', max_tokens: 2000, noi_dung, bo_chinh_hang: true, bo_tuyen: bo }) });
+    const j = await r.json().catch(() => ({})) as { kq?: unknown; model?: string; vao?: number; ra?: number; chi_usd?: number; loi?: string };
+    if (!r.ok || typeof j.kq !== 'string') throw new Error(`cổng AI lỗi — HTTP ${r.status} ${String(j.loi ?? '').slice(0, 300)}`);
     try {
-      const h: Record<string, string> = { 'x-api-key': k, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' };
-      if (ten !== 'anthropic') h.authorization = `Bearer ${k}`;
-      const r = await fetch(url, { method: 'POST', headers: h, body: JSON.stringify({ model: m, max_tokens: 2000, messages: nd }) });
-      const j = await r.json() as { content?: { type: string; text?: string }[]; error?: unknown; usage?: { input_tokens?: number; output_tokens?: number; x_ckey?: { cost?: number } } };
-      const t = (j.content ?? []).filter((b) => b.type === 'text').map((b) => b.text ?? '').join('');
-      if (!t) throw new Error(`HTTP ${r.status} ${JSON.stringify(j.error ?? j).slice(0, 120)}`);
-      const o = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)) as KetClaude;
+      const o = JSON.parse(j.kq.slice(j.kq.indexOf('{'), j.kq.lastIndexOf('}') + 1)) as KetClaude;
       const thieu = can.filter((c) => typeof o.diem?.[c] !== 'number');
       if (thieu.length) throw new Error(`thiếu điểm ${thieu.slice(0, 3).join(', ')}`);
-      // TIỀN THẬT MỖI LƯỢT (anh 31/10/2026 "đã tính dựa vào ưu tiên chi phí giá rẻ fallback trước chưa"): ckey trả usage.x_ckey.cost (₫ thật); cổng khác ghi token, vnd null
-      return { ...o, duong: `${ten}:${m}`, tien: { vao: j.usage?.input_tokens ?? 0, ra: j.usage?.output_tokens ?? 0, vnd: typeof j.usage?.x_ckey?.cost === 'number' ? j.usage.x_ckey.cost : null } };
-    } catch (e) { loi.push(`${ten} ${m}: ${String(e).slice(0, 120)}`); }
+      return { ...o, duong: j.model ?? 'cong-ai', tien: { vao: j.vao ?? 0, ra: j.ra ?? 0, vnd: typeof j.chi_usd === 'number' ? Math.round(j.chi_usd * 26000 * 100) / 100 : null } };
+    } catch (e) { loi = `${j.model}: ${String(e).slice(0, 120)}`; if (j.model) bo.push(j.model); }
   }
-  throw new Error(`mọi đường Claude lỗi — ${loi.join(' | ').slice(0, 300)}`);
+  throw new Error(`cổng AI: kết quả sai sau 3 tuyến — ${loi}`);
 }
 
 // từ cấm / CTA trên chữ + lời (luật một nguồn từ kho) → danh sách câu dính

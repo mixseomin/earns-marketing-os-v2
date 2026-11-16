@@ -1,42 +1,30 @@
 #!/usr/bin/env python3
-"""MỘT ĐƯỜNG GỌI AI CHỮ / NHÌN ẢNH cho mọi việc Ethopex (anh 11/11/2026: "mới có thêm nguồn API AI từ donk. Hãy tích hợp nó vào đầu chuỗi của mọi thao tác liên quan").
-Trước đây 6 tệp mỗi tệp chép tay một vòng ckey riêng → thêm cổng phải sửa 6 chỗ. Giờ mọi chỗ gọi `goi()`; chuỗi cổng nằm ở đây:
-
-  1. donk  (api.shopdonk.com, khuôn Anthropic Messages — gói Claude trả trước, vault #693; khoá DONK_KEY trong /root/.secrets/spy.env hoặc env DONK_KEY / DONK_API_KEY)
-           ảnh gửi base64 (đo 11/11/2026: ảnh dạng link → 502, base64 → đọc đúng); tool_use cho kết quả có khuôn
-  2. ckey  (api.xah.io, khuôn OpenAI — tuyến sống /var/lib/spy/ckey-tuyen.json do spy đo 6 giờ / lần), 3 tuyến đầu
+"""MỘT ĐƯỜNG GỌI AI CHỮ / NHÌN ẢNH cho mọi việc Ethopex — đi qua CỔNG AI CHUNG của spy (anh 16/11/2026: "Spy đang có chuỗi fallback hoàn chỉnh,
+hãy sử dụng nó làm chuẩn để có 1 nguồn dùng API duy nhất cho mọi model"). Tệp này KHÔNG giữ khoá, KHÔNG chọn tuyến: gửi lượt sang
+POST /api/ai (spy-on-tc/server/cong-ai.mjs → goi() của spy: donk → ckey sống → fal), bo_chinh_hang = không bao giờ về Claude chính hãng.
+Trước 16/11 tệp này tự viết chuỗi donk → ckey (khoá + tuyến chép từ spy) — đổi tuyến phải sửa hai nơi. Sổ chi: ai_luot của spy, viec 'cong:etp-<việc>'.
 
 Người gọi đưa nội dung theo khuôn OpenAI như cũ (chuỗi, hoặc danh sách phần {"type": "text"} / {"type": "image_url"}), kèm cong_cu=(tên, schema JSON)
-khi cần kết quả có khuôn. `kiem(ket)` trả chuỗi lỗi → thử cổng sau (vd nhóm lạ, câu trả lời lạ). Trả (ket, vnd, mo_hinh, loi):
-ket = dict (có cong_cu) / str (không) / None khi mọi cổng hỏng; vnd = tiền ước cộng dồn mọi lượt thử; mo_hinh = 'donk:<model>' hoặc '<tuyến ckey>'.
+khi cần kết quả có khuôn. `kiem(ket)` trả chuỗi lỗi → lượt sau bỏ tuyến đó (bo_tuyen), đi tuyến kế. Trả (ket, vnd, mo_hinh, loi):
+ket = dict (có cong_cu) / str (không) / None khi mọi tuyến hỏng; vnd = tiền thật cộng dồn (cổng trả USD × 26.000); mo_hinh = tuyến đã chạy.
 
-  python3 apps/etp/ai_chu.py --thu      gọi thử một câu qua từng cổng (vài ₫), in cổng nào sống"""
-import base64, json, os, subprocess, sys, urllib.error, urllib.request
+  python3 apps/etp/ai_chu.py --thu      gọi thử một câu qua cổng (vài ₫)"""
+import base64, json, os, sys, urllib.error, urllib.request
 
-# donk: tên model của shop + giá niêm yết ₫ / 1 triệu token (cùng bảng DONK_DONG ở apps/xuong-video/src/lib/xuong-video/claude.ts — số ƯỚC, để đo gói)
-DONK_URL = "https://api.shopdonk.com/v1/messages"
-DONK = {"haiku": [("claude-haiku-4-5", 105)], "sonnet": [("claude-sonnet-5", 235), ("claude-haiku-4-5", 105)]}
-CKEY_URL = "https://api.xah.io/v1/chat/completions"
+VND_USD = 26000
 UA = {"user-agent": "mos2-etp"}
+MO_HINH = {"haiku": "claude-haiku-5-5", "sonnet": "fal:anthropic/claude-sonnet-5.5", "opus": "fal:anthropic/claude-opus-5.5"}   # tên theo bảng spy: chuỗi của tên này có tuyến fal trước chính hãng
 
-def _env_spy(ten):
-    v = os.environ.get(ten)
-    if v: return v
-    try: return subprocess.run(["bash", "-c", f". /root/.secrets/spy.env 2>/dev/null; echo \"${ten}\""], capture_output=True, text=True, timeout=10).stdout.strip()
-    except Exception: return ""
-def khoa_donk_ds():
-    """DONK GỐI ĐẦU (anh 12/11/2026): khoá cách bằng dấu phẩy, gói cũ TRƯỚC — khoá trước hết gói / lỗi thì lượt đi tiếp khoá sau. AI_BO_DONK=1: bỏ donk."""
-    if os.environ.get("AI_BO_DONK"): return []
-    return [k.strip() for k in (os.environ.get("DONK_API_KEY") or _env_spy("DONK_KEY")).split(",") if k.strip()]
-def khoa_donk(): return (khoa_donk_ds() or [""])[0]
-def khoa_ckey(): return _env_spy("CKEY_KEY")
-def tuyen_ckey(uu="haiku"):
-    try: j = json.load(open("/var/lib/spy/ckey-tuyen.json"))["dong"]
-    except Exception: return ["nghiaphan0633/claude-haiku-5.5"]
-    thu = ("sonnet", "haiku") if uu == "sonnet" else ("haiku", "sonnet")
-    return [m.replace("ckey:", "") for k in thu for m in (j.get(k) or [])]
+def _khoa_tep(tep):
+    try:
+        for l in open(os.path.expanduser(tep)):
+            if l.startswith("CONG_AI_KEY="): return l.split("=", 1)[1].strip().strip('"\'')
+    except OSError: pass
+    return ""
+def cong_url(): return os.environ.get("CONG_AI_URL") or ("http://127.0.0.1:3850/api/ai" if os.path.exists("/root/.secrets/spy.env") else "https://spy.on.tc/api/ai")
+def cong_khoa(): return os.environ.get("CONG_AI_KEY") or _khoa_tep("/root/.secrets/spy.env") or _khoa_tep("~/.secrets/cong-ai.env")
 
-# ---------- đổi khuôn OpenAI → Anthropic (donk) ----------
+# ---------- đổi khuôn OpenAI → Anthropic (khối cổng AI nhận) ----------
 _ANH = {}
 def _anh_b64(u):
     """link / data URI → (media_type, base64); tải một lần mỗi tiến trình"""
@@ -57,52 +45,43 @@ def _sang_anthropic(noi):
             mt, du = _anh_b64(p["image_url"]["url"]); ra.append({"type": "image", "source": {"type": "base64", "media_type": mt, "data": du}})
     return ra
 
-def _post(url, body, h, timeout):
-    try: return json.load(urllib.request.urlopen(urllib.request.Request(url, data=json.dumps(body).encode(), headers={**UA, "content-type": "application/json", **h}), timeout=timeout))
-    except urllib.error.HTTPError as e: raise RuntimeError(f"HTTP {e.code}: {e.read()[:200].decode('utf-8', 'replace')}")
-
-def goi(noi, *, max_tokens=400, cong_cu=None, uu="haiku", kiem=None, timeout=180, so_ckey=3, cong=("donk", "ckey")):
-    """cong: cổng được đi, theo thứ tự cố định donk → ckey (vd ("donk",) khi người gọi tự lo ckey)"""
-    vnd, loi = 0.0, []
-    # 1. donk
-    for kd in (khoa_donk_ds() if "donk" in cong else []):
-        for model, gia in DONK.get(uu, DONK["haiku"]):
-            try:
-                body = {"model": model, "max_tokens": max_tokens, "messages": [{"role": "user", "content": _sang_anthropic(noi)}]}
-                if cong_cu: body |= {"tools": [{"name": cong_cu[0], "input_schema": cong_cu[1]}], "tool_choice": {"type": "tool", "name": cong_cu[0]}}
-                r = _post(DONK_URL, body, {"x-api-key": kd, "anthropic-version": "2023-06-01"}, timeout)
-                # donk báo input_tokens của chữ = 1 (đo 11/11/2026, studio cũng gặp) → token vào lấy số lớn hơn giữa cổng báo và ước (3 ký tự / token, ~1.000 / ảnh)
-                u = r.get("usage") or {}; uoc = sum(len(p.get("text", "")) // 3 + (1000 if p.get("type") == "image_url" else 0) for p in ([{"text": noi}] if isinstance(noi, str) else noi))
-                vnd += (max(int(u.get("input_tokens") or 0), uoc) + int(u.get("output_tokens") or 0)) * gia / 1e6
-                if cong_cu: ket = next((b["input"] for b in r.get("content") or [] if b.get("type") == "tool_use"), None)
-                else: ket = "".join(b.get("text", "") for b in r.get("content") or [] if b.get("type") == "text").strip() or None
-                if ket is None: loi.append(f"donk:{model}: trả rỗng"); continue
-                k = kiem(ket) if kiem else None
-                if k: loi.append(f"donk:{model}: {k}"); continue
-                return ket, vnd, f"donk:{model}", None
-            except Exception as e: loi.append(f"donk:{model}: {str(e)[:150]}")
-    # 2. ckey
-    kc = khoa_ckey() if "ckey" in cong else ""
-    for model in (tuyen_ckey(uu)[:so_ckey] if kc else []):
+def goi(noi, *, max_tokens=400, cong_cu=None, uu="haiku", kiem=None, timeout=180, viec=None, so_ckey=None, cong=None):
+    """so_ckey / cong: bỏ (16/11/2026 — tuyến do cổng chung chọn, nơi gọi không chọn); giữ tham số để bên gọi cũ không gãy"""
+    khoa = cong_khoa()
+    if not khoa: return None, 0.0, None, "thiếu CONG_AI_KEY (box3: /root/.secrets/spy.env · máy khác: ~/.secrets/cong-ai.env)"
+    ten = viec or os.path.splitext(os.path.basename(sys.argv[0] or "etp"))[0] or "etp"
+    body = {"viec": f"etp-{ten}"[:60], "model": MO_HINH.get(uu, MO_HINH["haiku"]), "max_tokens": max_tokens, "noi_dung": _sang_anthropic(noi) if not isinstance(noi, str) else noi,
+            "bo_chinh_hang": True, **({"schema": cong_cu[1]} if cong_cu else {})}
+    vnd, loi, bo = 0.0, [], []
+    for _ in range(4):
         try:
-            body = {"model": model, "max_tokens": max_tokens, "messages": [{"role": "user", "content": noi}]}
-            if cong_cu: body |= {"tools": [{"type": "function", "function": {"name": cong_cu[0], "parameters": cong_cu[1]}}], "tool_choice": {"type": "function", "function": {"name": cong_cu[0]}}}
-            r = _post(CKEY_URL, body, {"Authorization": f"Bearer {kc}"}, timeout)
-            vnd += float(((r.get("usage") or {}).get("x_ckey") or {}).get("cost") or 0)
-            m = r["choices"][0]["message"]
-            ket = json.loads(m["tool_calls"][0]["function"]["arguments"]) if cong_cu else ((m.get("content") or "").strip() or None)
-            if ket is None: loi.append(f"{model}: trả rỗng"); continue
-            k = kiem(ket) if kiem else None
-            if k: loi.append(f"{model}: {k}"); continue
-            return ket, vnd, model, None
-        except Exception as e: loi.append(f"{model}: {str(e)[:150]}")
-    return None, vnd, None, " · ".join(loi) or "không có cổng AI nào (thiếu khoá donk và ckey)"
+            r = json.load(urllib.request.urlopen(urllib.request.Request(cong_url(), data=json.dumps({**body, "bo_tuyen": bo}).encode(),
+                headers={**UA, "content-type": "application/json", "authorization": f"Bearer {khoa}"}), timeout=max(timeout, 60) * 3))
+        except urllib.error.HTTPError as e:
+            try: r = json.loads(e.read().decode("utf-8", "replace"))
+            except Exception: r = {"loi": f"HTTP {e.code}"}
+        except Exception as e: return None, vnd, None, " · ".join(loi + [f"cổng AI: {str(e)[:150]}"])
+        if r.get("loi"): return None, vnd, None, " · ".join(loi + [f"cổng AI: {str(r['loi'])[:300]}"])
+        vnd += float(r.get("chi_usd") or 0) * VND_USD
+        ket = r.get("kq")
+        if isinstance(ket, str): ket = ket.strip() or None
+        k = "trả rỗng" if ket is None else (kiem(ket) if kiem else None)
+        if not k: return ket, vnd, r.get("model"), None
+        loi.append(f"{r.get('model')}: {k}"); bo.append(r.get("model"))
+    return None, vnd, None, " · ".join(loi)
 
-# CLI cho tệp không phải Python (viet-ke-chuyen.mts): stdin JSON {noi, max_tokens, cong_cu: [tên, schema], uu, cong} → stdout JSON {ket, vnd, mo_hinh, loi}
+# CLI cho tệp không phải Python (viet-ke-chuyen.mts): stdin JSON {noi, max_tokens, cong_cu: [tên, schema], uu, viec} → stdout JSON {ket, vnd, mo_hinh, loi}
 if __name__ == "__main__" and "--json" in sys.argv:
     a = json.load(sys.stdin)
+    # can = {khoá: [mã con bắt buộc là số]} → câu trả lời chữ phải là JSON đủ các mã, thiếu thì lượt sau bỏ tuyến đó
+    def _kiem_json(t):
+        if not a.get("can"): return None
+        try: j = json.loads(t[t.index("{"): t.rindex("}") + 1]) if isinstance(t, str) else t
+        except Exception as x: return f"không phải JSON ({str(x)[:60]})"
+        thieu = [f"{k}.{c}" for k, ds in a["can"].items() for c in ds if not isinstance((j.get(k) or {}).get(c), (int, float))]
+        return f"thiếu {', '.join(thieu[:3])}" if thieu else None
     ket, vnd, mo, loi = goi(a["noi"], max_tokens=int(a.get("max_tokens") or 400), cong_cu=tuple(a["cong_cu"]) if a.get("cong_cu") else None, uu=a.get("uu") or "haiku",
-                            cong=tuple(a.get("cong") or ("donk", "ckey")), timeout=int(a.get("timeout") or 300))
+                            kiem=_kiem_json, viec=a.get("viec"), timeout=int(a.get("timeout") or 300))
     print(json.dumps({"ket": ket, "vnd": vnd, "mo_hinh": mo, "loi": loi}, ensure_ascii=False))
 
 if __name__ == "__main__" and "--thu" in sys.argv:

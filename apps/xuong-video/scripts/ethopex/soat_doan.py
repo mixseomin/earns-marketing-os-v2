@@ -64,10 +64,9 @@ def to_khung(f, k):
 
 # MÁY SOÁT BẰNG CLAUDE (anh duyệt 24/10/2026: "Cho gọi Claude API", ~$0,005/đoạn): tờ khung 30 ô → ok / cam / xem. Chỉ "ok" chắc chắn mới cho qua;
 # "xem" (không chắc) giữ lại cho Claude trong phiên / anh. Khoá ANTHROPIC_API_KEY chỉ có trên box3 → iMac gửi tờ khung sang box3 gọi.
-# Chuỗi rẻ trước (anh 24/10/2026: "API phải chạy qua fallback từ các nguồn rẻ trước") — cùng thứ tự claude.ts › duongChu của studio:
-# ckey (người bán trên chợ, ~30–125₫/lượt) → ShopAIKey (~315₫) → Anthropic trực tiếp (~2.500₫). Đường nào lỗi / trả sai khuôn → đường sau.
-MO_HINH = "claude-sonnet-5-5"
-CKEY = ["duc121026ab/claude-sonnet-5-5", "thanhnhan9023/claude-sonnet-5.5"]   # = CKEY_CLAUDE['claude-sonnet-5-5'] trong claude.ts
+# CHỈ QUA FALLBACK HỆ THỐNG (anh 16/11/2026: "chỉ đc chạy qua fallback API của hệ thống. Cấm set cứng như vậy"): trước đây tệp này tự viết chuỗi
+# donk → 2 người bán ckey cố định → ShopAIKey → Anthropic chính hãng; người bán chết từ 14/11 → lượt soát rơi về chính hãng. Giờ gọi apps/etp/ai_chu.py › goi()
+# (donk → ckey tuyến sống /var/lib/spy/ckey-tuyen.json) — đổi cổng chỉ sửa ai_chu.py. Hết cổng → "xem" (giữ lại cho người), không có đường đắt.
 HOI = ("You review a contact sheet (30 frames, in order) cut from a short drama, to be used as a Facebook/Instagram video ad. "
        "Decide if Meta would reject it under Adult Nudity / Adult Sexual Exploitation / Violent or Graphic Content / Dangerous content. "
        "BAN (cam) if ANY frame shows: nudity or exposed intimate parts; sexual acts or strongly sexualised posing; non-consensual or forced sexual touching, "
@@ -80,31 +79,19 @@ HOI = ("You review a contact sheet (30 frames, in order) cut from a short drama,
        "Reply ONLY JSON: {\"ket\": \"ok\"|\"cam\"|\"xem\", \"ly\": \"<short reason in Vietnamese, name the frame>\", \"khung\": [<numbers of EVERY banned frame when ket is cam>]}")
 
 def goi_claude(jpg, hoi, max_tokens=300, kiem=None):   # jpg: một đường dẫn hoặc danh sách (nhiều tờ khung)
-    """chạy TRÊN BOX3: một tờ khung + câu hỏi → (JSON trả về, đường đã dùng) qua chuỗi donk → ckey → ShopAIKey → Anthropic.
+    """chạy TRÊN BOX3: một tờ khung + câu hỏi → (JSON trả về, cổng đã dùng) qua fallback hệ thống ai_chu.goi (donk → ckey tuyến sống).
     kiem(j) ném lỗi khi JSON sai khuôn → thử đường sau. Mọi đường lỗi → RuntimeError (người gọi quyết định giữ lại)."""
-    import base64, urllib.request
-    anh = [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": base64.b64encode(open(f, "rb").read()).decode()}} for f in ([jpg] if isinstance(jpg, str) else jpg)]
-    nd = [{"role": "user", "content": [*anh, {"type": "text", "text": hoi}]}]
-    e = os.environ; duong = []
-    # DONK ĐẦU CHUỖI (anh 11/11/2026): cùng khoá + tên model với apps/etp/ai_chu.py (một nguồn), khuôn Anthropic như chuỗi này
+    import base64
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import ai_chu as AI
-    duong += [("donk", AI.DONK_URL, k, m) for k in AI.khoa_donk_ds() for m, _ in AI.DONK["sonnet" if "sonnet" in MO_HINH else "haiku"]]   # mọi khoá donk, gói cũ trước
-    if e.get("CKEY_API_KEY"): duong += [("ckey", "https://api.xah.io/v1/messages", e["CKEY_API_KEY"], m) for m in CKEY]
-    if e.get("SHOPAIKEY_API_KEY"): duong.append(("shopaikey", "https://api.shopaikey.com/v1/messages", e["SHOPAIKEY_API_KEY"], MO_HINH))
-    if e.get("ANTHROPIC_API_KEY"): duong.append(("anthropic", "https://api.anthropic.com/v1/messages", e["ANTHROPIC_API_KEY"], MO_HINH))
-    loi = []
-    for ten, url, k, m in duong:
-        try:
-            h = {"x-api-key": k, "anthropic-version": "2023-06-01", "content-type": "application/json"}
-            if ten not in ("anthropic", "donk"): h["authorization"] = "Bearer " + k
-            if ten == "donk": h["user-agent"] = "mos2-etp"
-            r = urllib.request.Request(url, data=json.dumps({"model": m, "max_tokens": max_tokens, "messages": nd}).encode(), method="POST", headers=h)
-            t = "".join(b.get("text", "") for b in json.load(urllib.request.urlopen(r, timeout=180)).get("content", []) if b.get("type") == "text")
-            j = json.loads(t[t.index("{"): t.rindex("}") + 1])
-            if kiem: kiem(j)
-            return j, f"{ten}:{m}"
-        except Exception as x: loi.append(f"{ten} {m}: {type(x).__name__} {str(x)[:80]}")
-    raise RuntimeError("mọi đường Claude lỗi — " + " | ".join(loi)[:300])
+    noi = [*({"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + base64.b64encode(open(f, "rb").read()).decode()}} for f in ([jpg] if isinstance(jpg, str) else jpg)),
+           {"type": "text", "text": hoi}]
+    doc = lambda t: json.loads(t[t.index("{"): t.rindex("}") + 1])
+    def _k(t):
+        try: kiem and kiem(doc(t)); return None
+        except Exception as x: return f"{type(x).__name__} {str(x)[:80]}"
+    t, _vnd, mo, loi = AI.goi(noi, max_tokens=max_tokens, uu="sonnet", kiem=_k)
+    if t is None: raise RuntimeError("mọi cổng AI hệ thống lỗi — " + str(loi)[:300])
+    return doc(t), mo
 
 def ai_box(jpg):
     """chạy TRÊN BOX3: soát một tờ khung → {ket, ly, duong}"""

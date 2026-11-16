@@ -3,7 +3,7 @@
 # Từ iMac (thư mục Worker trong repo = apps/etp-cham-worker, đường đầy đủ ở dòng D= dưới):
 #   D=/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/etp-cham-worker
 #   rsync -a --exclude node_modules $D/ root@5.78.65.158:/opt/etp-cham-worker/ && ssh root@5.78.65.158 /opt/etp-cham-worker/trien-khai.sh [--khoa]
-#   --khoa : đặt lại secret (MOS2_EXT_KEY + khoá Claude chuỗi rẻ đọc thẳng từ /opt/earns-marketing-os-v2/.env.production trên box3, không in ra)
+#   --khoa : đặt lại secret (MOS2_EXT_KEY đọc thẳng từ /opt/earns-marketing-os-v2/.env.production trên box3, không in ra)
 set -e
 cd /opt/etp-cham-worker
 export CLOUDFLARE_EMAIL=$(grep dns_cloudflare_email /root/.secrets/cf-bwp.ini | cut -d= -f2 | tr -d ' ')
@@ -14,8 +14,10 @@ npx wrangler deploy 2>&1 | grep -E "Uploaded|Deployed|schedule|error|ERROR" | he
 if [ "$1" = "--khoa" ]; then
   [ -f /root/.secrets/etp-cham-khoa ] || (umask 077; openssl rand -hex 24 > /root/.secrets/etp-cham-khoa)
   npx wrangler secret put KHOA_THU < /root/.secrets/etp-cham-khoa 2>&1 | tail -1
-  for k in MOS2_EXT_KEY CKEY_API_KEY SHOPAIKEY_API_KEY ANTHROPIC_API_KEY; do
+  for k in MOS2_EXT_KEY; do   # Worker không giữ khoá nhà cung cấp AI (anh 16/11/2026) — chỉ khoá cổng AI chung, đặt riêng ở dưới
     v=$(ssh -o BatchMode=yes root@167.233.241.16 "grep -E '^$k=' /opt/earns-marketing-os-v2/.env.production | head -1 | cut -d= -f2- | tr -d '\"'")
     if [ -n "$v" ]; then printf '%s' "$v" | npx wrangler secret put $k 2>&1 | tail -1; else echo "thiếu $k trên box3"; fi
   done
+  v=$(ssh -o BatchMode=yes root@167.233.241.16 "grep -E '^CONG_AI_KEY=' /root/.secrets/spy.env | head -1 | cut -d= -f2- | tr -d '\"'")   # cổng AI chung spy
+  if [ -n "$v" ]; then printf '%s' "$v" | npx wrangler secret put CONG_AI_KEY 2>&1 | tail -1; else echo "thiếu CONG_AI_KEY trên box3"; fi
 fi

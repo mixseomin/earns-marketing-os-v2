@@ -1085,7 +1085,7 @@ export const LUAT = [
   // anh 31/10/2026 "hãy bổ sung bước chấm điểm Creative cho mọi thành viên"
   { card: 0, tep: 'apps/etp/dong-bo.py', co: '"nap-creative-ngoai.py"), "--tu-dong"]', vi: 'dong-bo gọi chấm creative mọi thành viên mỗi lượt' },
   { card: 0, tep: 'apps/etp/nap-creative-ngoai.py', co: 'if not ch["bat"] and "--kho" not in sys.argv:', vi: 'chấm đội chỉ chạy khi cham_doi.bat (tiền AI)' },
-  { card: 0, tep: 'apps/etp-cham-worker/src/index.ts', co: "vnd: typeof j.usage?.x_ckey?.cost === 'number' ? j.usage.x_ckey.cost : null", vi: 'Worker chấm ghi tiền thật ckey mỗi lượt' },
+  { card: 0, tep: 'apps/etp-cham-worker/src/index.ts', co: "vnd: typeof j.chi_usd === 'number' ? Math.round(j.chi_usd * 26000 * 100) / 100 : null", vi: 'Worker chấm ghi tiền thật mỗi lượt (cổng AI trả chi_usd)' },
   // anh 31/10/2026 "ko bao giờ đc để thiếu hình creative"
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "anh: (i.anh as string) || anhCr.get(c.creative_id)?.a || null", vi: 'ô creative lấy ảnh dự phòng etp.anh_cr' },
   { card: 0, tep: 'apps/etp/dong-bo.py', co: '"anh-creative.py"), "--so", "60"]', vi: 'dong-bo điền ảnh creative thiếu mỗi lượt' },
@@ -1114,13 +1114,13 @@ export const LUAT = [
   { card: 'phan-loai-1211', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "nullif(crn.dang, 'team') dang", vi: 'trang etp2 xem người team đọc dạng thật, không gán cứng null' },
   { card: 'phan-loai-1211', tep: 'apps/web/src/lib/etp-doc.ts', co: "nullif(crn.dang, 'team') dang", vi: 'như trên, etp' },
   { card: 'phan-loai-1211', tep: 'apps/etp2/src/components/etp-view.tsx', co: "bd_nhom: ['dang', (c) => [(c.dang && NHOM_DANG[c.dang]) ?? 'Chưa rõ nhóm']", vi: 'widget Theo nhóm creative (nhóm → dạng)' },
-  { card: 'donk-1111', tep: 'apps/etp/ai_chu.py', co: 'for kd in (khoa_donk_ds() if "donk" in cong else []):', vi: 'donk đứng ĐẦU chuỗi gọi AI của Ethopex, ckey sau (anh 11/11/2026)' },
+  { card: 'donk-1111', tep: 'apps/etp/ai_chu.py', co: '"bo_chinh_hang": True', vi: 'gọi AI Ethopex qua CỔNG AI CHUNG spy (donk → ckey → fal, không chính hãng) — 16/11/2026 thay chuỗi tự viết; donk đầu chuỗi (anh 11/11/2026) do cổng giữ' },
   { card: 'donk-1111', tep: 'apps/etp/tu_van.py', cam: 'api.xah.io/v1/chat/completions', vi: 'gọi AI qua apps/etp/ai_chu.py (donk → ckey), không chép vòng ckey riêng' },
   { card: 'donk-1111', tep: 'apps/etp/nhom_goc.py', cam: 'api.xah.io/v1/chat/completions', vi: 'gọi AI qua apps/etp/ai_chu.py (donk → ckey), không chép vòng ckey riêng' },
   { card: 'donk-1111', tep: 'apps/etp/soat_18_ai.py', cam: 'api.xah.io/v1/chat/completions', vi: 'gọi AI qua apps/etp/ai_chu.py (donk → ckey), không chép vòng ckey riêng' },
   { card: 'donk-1111', tep: 'apps/xuong-video/scripts/ethopex/chu-qc-anh-tinh.py', cam: 'api.xah.io/v1/chat/completions', vi: 'gọi AI qua apps/etp/ai_chu.py (donk → ckey), không chép vòng ckey riêng' },
   { card: 'donk-1111', tep: 'apps/xuong-video/scripts/ethopex/xep-khung.py', cam: 'api.xah.io/v1/chat/completions', vi: 'gọi AI qua apps/etp/ai_chu.py (donk → ckey), không chép vòng ckey riêng' },
-  { card: 'donk-1111', tep: 'apps/xuong-video/scripts/ethopex/soat_doan.py', co: 'duong += [("donk", AI.DONK_URL, k, m) for k in AI.khoa_donk_ds()', vi: 'soát đoạn: donk đầu chuỗi' },
+  { card: 'donk-1111', tep: 'apps/xuong-video/scripts/ethopex/soat_doan.py', co: 'AI.goi(noi, max_tokens=max_tokens, uu="sonnet", kiem=_k)', vi: 'soát đoạn: donk đầu chuỗi — qua ai_chu.goi (donk → ckey), 16/11/2026 bỏ chuỗi tự viết' },
   { card: 'donk-1111', tep: 'apps/xuong-video/scripts/ethopex/viet-ke-chuyen.mts', co: "for (const model of ['donk', ...TUYEN])", vi: 'viết kể chuyện: donk đầu chuỗi' },
   { card: 'tong-1111', tep: V, cam: "'tong2'", vi: 'Tổng quan 2 đã thay Tổng quan cũ, không còn tab riêng (anh 11/11/2026)' },
   { card: 'tong-1111', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "'tong2'", vi: 'như trên, etp2' },
@@ -1149,6 +1149,17 @@ export const LUAT = [
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/chon-phim-moi.py', co: 'da |= {int(x) for x in q("select distinct content_id from etp.camp_ngoai where content_id > 0").split() if x.isdigit()}', vi: 'chọn phim mới: bỏ phim đội đã lên' },
   { card: 'chat', tep: 'apps/web/src/lib/actions/etp-tong2.ts', co: "select khoa, gia_tri from etp.cau_hinh where khoa in ('phan_bo', 'tran_ngay')", vi: 'Tổng quan 2 phân bổ ngân sách: mục tiêu đọc cấu hình phan_bo + trần ngày' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'R0_NGAY, R0_CHI, R0_PHAN = 7, 0.5, 0.05', vi: 'luật R0 (3 → 7 ngày, anh 16/11/2026): camp ★ ROAS 7 ngày đã khép chi < max($0.5, 5% ngân sách) → báo trước rồi tắt (#72924)' },
+  // CHỈ QUA FALLBACK HỆ THỐNG (anh 16/11/2026 "worker này chỉ đc chạy qua fallback API của hệ thống. Cấm set cứng như vậy"): Worker etp-cham + soat_doan không tự viết chuỗi AI
+  { card: 'chat', tep: 'apps/etp-cham-worker/src/index.ts', co: "const CONG_AI = 'https://spy.on.tc/api/ai';", cam: 'api.anthropic.com', vi: 'Worker chấm gọi AI qua cổng AI chung spy, không gọi Anthropic chính hãng' },
+  { card: 'chat', tep: 'apps/etp-cham-worker/src/index.ts', co: 'bo_chinh_hang: true, bo_tuyen: bo', cam: 'shopaikey.com', vi: 'Worker chấm không viết cứng ShopAIKey' },
+  { card: 'chat', tep: 'apps/etp-cham-worker/src/index.ts', co: '// CHỈ QUA CỔNG AI CHUNG', cam: 'api.xah.io', vi: 'Worker chấm không viết cứng người bán ckey' },
+  { card: 'chat', tep: 'apps/etp-cham-worker/trien-khai.sh', co: 'for k in MOS2_EXT_KEY; do', cam: 'ANTHROPIC_API_KEY', vi: 'triển khai Worker không đặt khoá AI' },
+  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/soat_doan.py', co: 'AI.goi(noi, max_tokens=max_tokens, uu="sonnet", kiem=_k)', cam: 'api.anthropic.com', vi: 'soát đoạn qua ai_chu.goi, không gọi chính hãng' },
+  // TRẦN TẢI PHIM (anh 16/11/2026 "giới hạn ngay số phim ethopex tải về mỗi lần. Làm xong cái nào dọn dẹp gọn mới đc phép tải tiếp")
+  { card: 'chat', tep: 'apps/etp/dong_phim.py', co: 'TRAN_TAI = 3', vi: 'iMac giữ tập gốc tối đa 3 phim cùng lúc' },
+  { card: 'chat', tep: 'apps/etp/dong_phim.py', co: 'while str(cid) not in giu_nguon() and len(giu_nguon()) >= TRAN_TAI', vi: 'bước cắt tới trần thì dọn rồi chờ, không tải thêm' },
+  { card: 'chat', tep: 'apps/etp/dong_phim.py', co: 'dung = can_nguon()', cam: 'dung = {c for _, tt, _, c in ds if tt == "chay"}', vi: 'dọn tập gốc của mọi phim không đang cắt / chờ soát' },
+  { card: 'chat', tep: 'apps/etp/dong_phim.py', co: 'if str(cid) not in can_nguon():   # TẢI XONG DỌN NGAY', vi: 'bước nhận tải 2 tập xem cảnh xong là xoá' },
   // AB08 (anh 16/11/2026 "làm cả 2"): ★ ROAS chạm RL / G10 bước 2 → A/B giữ $10 hay tắt; nhánh ghi camp_ab lúc chạm, nhánh thử khoá tăng, L4 vẫn tắt
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '_ab_giu, _ab_giu_cam, ab_giu = _ab_lan("roas_giu"), set(), []', vi: 'AB08: chia nhánh giữ $10 / tắt cho ★ ROAS chạm RL, G10 bước 2' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if c8 not in _ROAS or c8 in _SE_TAT: continue', vi: 'AB08 chỉ ★ ROAS, camp dính luật tắt khác (L4…) đứng ngoài' },

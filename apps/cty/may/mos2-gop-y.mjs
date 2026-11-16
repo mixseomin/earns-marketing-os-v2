@@ -14,7 +14,8 @@ const PLAY = `${HOME}/bin/play`;
 chayKySu({
   nguoi: 'dat', ten: 'Đạt', duAn: 'mos2', tranPhut: 40,
   // card góp ý etp.on.tc / etp2.on.tc là hàng của Huy (may/etp-sua.mjs) — Đạt bỏ qua, không xử đôi (#1560: Huy sửa xong, Đạt nhận lại)
-  boQuaUrl: ['https://etp%.on.tc/%'],
+  // card góp ý castle.on.tc là hàng của Thắng (may/castle-gop-y.mjs) — Đạt chỉ được sửa apps/web nên trước đây trả thẻ castle về mà không ai làm (#1623, anh 16/11/2026)
+  boQuaUrl: ['https://etp%.on.tc/%', 'https://castle.on.tc/%'],
   cayMoiLuot: true,   // commit kẹt (push bị từ chối) được máy đẩy ngay lượt 5 phút kế, không chờ card mới
   cay: () => cayHoacBao('dat', { ten: 'Đạt', khoa: 'mos2:cay-rieng', phong: 'dung-san-pham', tep: 'mos2-gop-y.json' }), cayThu: MOS2_GOC,
   quyen: (MOS2) => [...['apps/web', 'packages'].map((d) => path.join(MOS2, d)).flatMap((d) => [`Edit(/${d}/**)`, `Write(/${d}/**)`]),

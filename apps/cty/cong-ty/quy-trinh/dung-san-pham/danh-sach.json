@@ -87,6 +87,23 @@
     "iMac:tc.on.cty.studio-gop-y"
    ],
    "chi_phi": "gói Claude thuê bao (không tính theo lượt)"
+  },
+  {
+   "id": "xu-gop-y-castle",
+   "ten": "Xử hòm góp ý Lâu đài 3D castle.on.tc (Claude Code trên iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền; chỉ gọi Claude khi hòm có card castle.on.tc mở",
+   "mo_ta": "Thắng lấy card góp ý mở cũ nhất gửi từ castle.on.tc (nút 💬 và nút 🔍 báo lệch ảnh thật; anh nhắn tiếp thì nhận lại), kéo origin/main vào cây riêng, làm đúng /tasks-castle: thẻ lệch ảnh chạy so-lech.mjs trước, sửa theo QUY-TRINH.md trong apps/castle, kiểm, đẩy main (GHA deploy box3), so mã băm, báo nút 🔍, trả lời vào luồng card rồi nộp Review.",
+   "ma": "apps/cty/may/castle-gop-y.mjs (khung apps/cty/may/gop-y-ky-su.mjs) · lệnh apps/castle/tasks-castle.md",
+   "chu_tri": "thang",
+   "lam": [
+    "may"
+   ],
+   "khi": "khi hòm góp ý có card castle.on.tc mở",
+   "lich": [
+    "iMac:tc.on.cty.castle-gop-y"
+   ],
+   "chi_phi": "gói Claude thuê bao (không tính theo lượt)"
   }
  ]
 }

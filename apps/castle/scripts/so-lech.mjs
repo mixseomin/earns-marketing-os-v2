@@ -101,7 +101,7 @@ const conLai = sau.L.vung.filter((r) => !hopTo.length || r.trong_vung_to).slice(
 if (giu.length) {
   const tin = `castle: tự xử thẻ báo lệch #${nhan} — ${tomSua} (điểm lệch ${goc.diem.toFixed(1)} → ${sau.diem.toFixed(1)})\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`;
   const g = (a) => execFileSync('git', a, { cwd: join(GOC, '..', '..'), encoding: 'utf8', stdio: 'pipe' });
-  try { g(['add', SUA]); g(['commit', '-q', '-m', tin]); g(['pull', '--rebase', '--autostash', '-q', 'origin', 'main']); g(['push', '-q', 'origin', 'main']);
+  try { g(['add', SUA]); g(['commit', '-q', '-m', tin]); g(['pull', '--rebase', '--autostash', '-q', 'origin', 'main']); g(['push', '-q', 'origin', 'HEAD:main']);
     const ma = g(['rev-parse', '--short', 'HEAD']).trim(); console.log('đã đẩy', ma, '— chờ deploy…');
     if (nhan) baoTT({ id: nhan, tt: 'dang', viec: `Đã sửa (${tomSua}), đang đưa lên máy chủ…` });
     try { execFileSync(join(process.env.HOME, 'bin', 'gh-watch'), ['deploy.yml'], { stdio: 'pipe', timeout: 900000 }); } catch { /* gh-watch báo lỗi: vẫn kiểm mã băm dưới */ }

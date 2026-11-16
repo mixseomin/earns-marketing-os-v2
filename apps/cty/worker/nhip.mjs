@@ -98,6 +98,10 @@ export const VIEC_NHIP = {
     { ma: 'xu-gop-y-studio', ten: 'Studio - xử hòm góp ý (Claude · Vinh trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/studio-gop-y.mjs mỗi 5 phút: hòm góp ý 💬 của studio.on.tc (card feedback project xuong-video, pending / claimed / broken) có card chưa làm hoặc có tin mới của anh → gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL, effort theo việc) trong cây riêng chạy đúng /tasks-studio: sửa gốc apps/xuong-video, kiểm, push (GHA deploy box3), trả lời vào luồng card rồi nộp Review. Card đã làm mà chưa có tin mới thì không làm lại trong 24 giờ.' },
   ],
+  'xu-gop-y-castle': [
+    { ma: 'xu-gop-y-castle', ten: 'Castle - xử hòm góp ý (Claude · Thắng trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
+      mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/castle-gop-y.mjs mỗi 5 phút: card góp ý gửi từ castle.on.tc (nút 💬 và 🔍 báo lệch ảnh thật, hòm mos2, pending / claimed / broken hoặc anh nhắn tiếp) → gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) trong cây riêng chạy đúng /tasks-castle: so-lech.mjs cho thẻ lệch ảnh, sửa apps/castle theo QUY-TRINH.md, kiểm, push (GHA deploy box3), báo nút 🔍, trả lời vào luồng card rồi nộp Review. Card đã làm mà chưa có tin mới thì không làm lại trong 24 giờ.' },
+  ],
   'xu-gop-y-mos2': [
     { ma: 'xu-gop-y-mos2', ten: 'MOS2 - xử hòm góp ý (Claude · Đạt trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/mos2-gop-y.mjs mỗi 5 phút: hòm góp ý 💬 của mos2.on.tc (card feedback trên plays mos2, pending / claimed / broken) có card chưa làm hoặc có tin mới của anh → gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) trong cây riêng chạy đúng /tasks-mos2: sửa gốc apps/web, kiểm, push (GHA deploy box3), trả lời vào luồng card rồi nộp Review. Card đã làm mà chưa có tin mới thì không làm lại trong 24 giờ.' },

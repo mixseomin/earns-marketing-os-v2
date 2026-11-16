@@ -30,7 +30,7 @@ export const laAi = (t) => NGUOI_AI.includes(String(t?.nguoi ?? '').toLowerCase(
 const urlAnh = (a) => (typeof a === 'string' ? a : a?.url) || '';   // ảnh lưu dạng chuỗi (cũ) hoặc {ten, url} (trao-doi-card)
 
 /** cfg: { nguoi, ten, duAn (project_id + khoá site_status), boQuaUrl?: [mẫu LIKE], tranPhut, cay: () => { dir, do }, cayThu: dir,
- *  quyen: (dir) => [], loiGiao: (ctx) => string, kiemThu: (ctx) => string, traLoi: (id, chu) => void } — ctx: { card, luong, cuoiNguoi, tin, moiAnh, ANH, dir, cay } */
+ *  chiUrl?: ['https://castle.on.tc/%'] (chỉ nhận card gửi từ trang đó — hòm dùng chung project), quyen: (dir) => [], loiGiao: (ctx) => string, kiemThu: (ctx) => string, traLoi: (id, chu) => void } — ctx: { card, luong, cuoiNguoi, tin, moiAnh, ANH, dir, cay } */
 export function chayKySu(cfg) {
   const { nguoi: NGUOI, ten: TEN } = cfg;
   if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`${TEN} chỉ chạy trên iMac (máy này: ${os.hostname()}) — Claude không giao diện bằng gói thuê bao chỉ iMac`); process.exit(3); }
@@ -48,11 +48,12 @@ export function chayKySu(cfg) {
   // Anh trả lời / bấm làm lại = có tin mới → nhận lại ngay.
   const daLam = (() => { try { return JSON.parse(fs.readFileSync(TEP_DA, 'utf8')); } catch { return {}; } })();
   const boQua = (cfg.boQuaUrl || []).map((m) => `\n  and coalesce(prep_payload->>'source_url','') not like '${m}'`).join('');
+  const chiLay = cfg.chiUrl ? `\n  and (${cfg.chiUrl.map((m) => `coalesce(prep_payload->>'source_url','') like '${m}'`).join(' or ')})` : '';
   // Card đã nộp Review mà anh TRẢ LỜI tiếp trong luồng (không bấm Làm lại) vẫn là việc: tin cuối là của người → nhận lại (anh 15/11/2026 "tao rep tiếp qua đó thì mày có nhận ko").
   // Không viết chú thích "--" trong câu SQL: sql() gộp mọi dòng thành một, "--" nuốt hết phần sau.
   const ds = JSON.parse(sql(`select coalesce(json_agg(x order by x.created_at), '[]') from (select id, created_at, title,
   (select count(*) from jsonb_array_elements(coalesce(prep_payload->'trao_doi','[]')) t where lower(coalesce(t->>'nguoi','')) not in (${NGUOI_AI.map((x) => `'${x}'`).join(',')})) as tin_nguoi
-  from human_tasks where project_id='${cfg.duAn}' and prep_payload->>'source_platform'='feedback'${boQua}
+  from human_tasks where project_id='${cfg.duAn}' and prep_payload->>'source_platform'='feedback'${boQua}${chiLay}
   and (coalesce(prep_payload->'site_status'->>'${cfg.duAn}', status) in ('pending','claimed','broken')
     or (coalesce(prep_payload->'site_status'->>'${cfg.duAn}', status) in ('review','submitted')
         and lower(coalesce(prep_payload->'trao_doi'->-1->>'nguoi','')) not in (${NGUOI_AI.map((x) => `'${x}'`).join(',')})))) x`) || '[]');

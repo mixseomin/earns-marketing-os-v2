@@ -982,6 +982,35 @@ function doKhoiAnh3d(id) {
   return { id, ten: k.tags.name || '', so: tat.length, dinhAnh: +pv(tat, 0.98).toFixed(2), thanAnh: mep.length ? +pv(mep, 0.6).toFixed(2) : null, dinhMoHinh: +k.yTren.toFixed(2), thanMoHinh: +(k._y1 ?? k.yTren).toFixed(2),
     duoi: +((k.yDuoi ?? k.day) || 0).toFixed(2), h: so(k.tags.height), hMin: so(k.tags.min_height) ?? 0, mai: k.tags['roof:shape'] || 'flat', hMai: so(k.tags['roof:height']) };
 }
+// ĐO KHỐI THEO TIA từ camera đang đặt (góc người báo, thẻ #1623): đo từ trên xuống (doKhoiAnh3d) lẫn khối chồng trên mặt bằng (khối cổng đo ra 35 m vì đầu hồi đứng trên).
+// Mỗi mặt tường quay về camera, 7 cột dọc mặt; mỗi cột quét từ trên xuống, bắn tia tới điểm sát trước mặt tường: trúng gần đúng khoảng (±2,5 m) = tường có ở độ cao đó → đỉnh cột;
+// trúng gần hẳn trước khi gặp tường = cột bị che, bỏ. Đo CÙNG cột trên ảnh 3D và trên mô hình → lệch = thật − mô hình (cùng cách đo, tự triệt sai số cách đo).
+function doKhoiTheoTia(id) {
+  const k = dsKhoi.find((q) => q.id === id); if (!k || !anh3d || k.yTren == null) return null;
+  camera.updateMatrixWorld(); const C = camera.position.clone(), DICH = anh3d.goc.position.y || 0, rc = new THREE.Raycaster(), d3 = new THREE.Vector3(), SAI = 2.5;
+  const giu = LOP_OSM.map((m) => m.visible); for (const m of LOP_OSM) m.visible = true;
+  const anHien = (o) => { for (let q = o; q; q = q.parent) if (q.visible === false) return false; return true; };
+  const trungMH = (dist) => rc.intersectObjects(LOP_OSM.filter((m) => m.isObject3D), true).find((x) => anHien(x.object))?.distance ?? Infinity;
+  const trungThat = () => rc.intersectObject(anh3d.t.group, true)[0]?.distance ?? Infinity;
+  const y0 = Math.max(Number.isFinite(k.yDuoi) ? k.yDuoi : -1e9, k.yTren - 22), y1 = k.yTren + 14;
+  const dinhCot = (px, pz, lop, dy) => {
+    for (let y = y1; y >= y0; y -= 0.3) { d3.set(px, y + dy, pz).sub(C); const dist = d3.length(); rc.set(C, d3.normalize()); rc.far = dist + 40;
+      const h = lop === 'that' ? trungThat() : trungMH(); if (Math.abs(h - dist) <= SAI) return y; if (h < dist - SAI) return null; }
+    return null; };
+  const cot = [];
+  for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length], dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz); if (L < 1.2) continue;
+    let nx = dz / L, nz = -dx / L; const mx = (ax + bx) / 2, mz = (az + bz) / 2; if (trongDa(mx + nx * 0.5, mz + nz * 0.5, k.v)) { nx = -nx; nz = -nz; }
+    if ((C.x - mx) * nx + (C.z - mz) * nz <= 0) continue;
+    for (let j = 0; j < 7; j++) { const t = 0.12 + j * 0.76 / 6, px = ax + dx * t + nx * 0.3, pz = az + dz * t + nz * 0.3;
+      const mh = dinhCot(px, pz, 'mh', 0), th = dinhCot(px, pz, 'that', DICH); if (mh != null && th != null) cot.push({ mh, th, canh: i }); } }
+  LOP_OSM.forEach((m, i) => { m.visible = giu[i]; });
+  if (cot.length < 3) return { id, so: cot.length };
+  const pv = (a, p) => { const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(s.length * p))]; };
+  const nhon = !['flat', ''].includes(k.tags['roof:shape'] || ''), p = nhon ? 0.9 : 0.5;
+  const th = pv(cot.map((c) => c.th), p), mh = pv(cot.map((c) => c.mh), p);
+  return { id, ten: k.tags.name || '', so: cot.length, canh: [...new Set(cot.map((c) => c.canh))], dinhAnh: +th.toFixed(2), dinhMoHinhTia: +mh.toFixed(2), lech: +(th - mh).toFixed(2), dinhMoHinh: +k.yTren.toFixed(2),
+    trai: +(pv(cot.map((c) => c.th - c.mh), 0.85) - pv(cot.map((c) => c.th - c.mh), 0.15)).toFixed(2), yDuoi: Number.isFinite(k.yDuoi) ? +k.yDuoi.toFixed(2) : null, mai: k.tags['roof:shape'] || 'flat' };
+}
 // ép hiện ảnh thật ở camera hiện tại, chờ ô tải (CLI đo khối trên ảnh 3D ở đúng góc người báo)
 const batAnh3dTam = async (bat) => { if (!anh3d) return false; anh3d.epHien = bat; anh3d.hien = null; apDungAnh3d(); if (!bat) return true; const t0 = performance.now();
   for (let on = 0; performance.now() - t0 < 30000 && on < 6;) { camera.updateMatrixWorld(); anh3d.t.setCamera(camera); anh3d.t.setResolutionFromRenderer(camera, renderer); anh3d.t.update(); renderer.render(scene, camera); await new Promise((ok) => setTimeout(ok, 150)); on = (anh3d.t.loadProgress ?? 1) >= 0.999 && performance.now() - t0 > 4000 ? on + 1 : 0; }
@@ -1278,7 +1307,7 @@ function khoiPhucGoc(gDua = null) { // gDua: chuỗi góc đưa thẳng vào (kh
 }
 addEventListener('pagehide', () => luuGoc(true)); addEventListener('beforeunload', () => luuGoc(true));
 window.__ns.luuGoc = luuGoc; window.__ns.gocHienTai = gocHienTai;
-window.__ns.kiemKe = () => KIEM_KE; window.__ns.datCach3Hien = (b) => datCach3Hien(b); window.__ns.chupHaiBan = chupHaiBan; window.__ns.khoiTrongVung = khoiTrongVung; window.__ns.doKhoiAnh3d = doKhoiAnh3d; window.__ns.batAnh3dTam = batAnh3dTam; window.__ns.diemTaiAnh = diemTaiAnh;
+window.__ns.kiemKe = () => KIEM_KE; window.__ns.datCach3Hien = (b) => datCach3Hien(b); window.__ns.chupHaiBan = chupHaiBan; window.__ns.khoiTrongVung = khoiTrongVung; window.__ns.doKhoiAnh3d = doKhoiAnh3d; window.__ns.doKhoiTheoTia = doKhoiTheoTia; window.__ns.batAnh3dTam = batAnh3dTam; window.__ns.diemTaiAnh = diemTaiAnh;
 // CHỒNG LẤN: hai ô cửa cùng một mặt tường mà khung chạm nhau (kể cả cửa dựng theo luật chung) → danh sách cặp (scripts/kiem-ke.mjs báo lỗi)
 window.__ns.chongLan = () => { const theoMat = new Map(); for (const c of CUA) { if (!c.mat) continue; (theoMat.get(c.mat) || theoMat.set(c.mat, []).get(c.mat)).push(c); } const ra = [];
   for (const [mat, ds] of theoMat) for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++) { const a = ds[i], b = ds[j], ux = -a.nz, uz = a.nx, sa = a.x * ux + a.z * uz, sb = b.x * ux + b.z * uz;

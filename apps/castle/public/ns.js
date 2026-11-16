@@ -704,16 +704,22 @@ $('b-cach3').onclick = (e) => { e.stopPropagation();
   if (khungC3) { if (khungSan) { khungC3.contentWindow.postMessage({ loai: 'c3:goc', g: gocHienTai() }, location.origin); hienKhung(true); } else { choHien = true; $('b-cach3').title = 'Đang dựng sẵn cách 3… sẽ tự chuyển khi xong'; } return; }
   luuGoc(true); const q = new URLSearchParams(location.search); if (CACH === '3') q.delete('cach'); else q.set('cach', '3'); location.href = `${location.pathname}?${q}${location.hash}`; };
 if (CACH === 'dsm') datCach3Hien(true);
-// CÁCH 3: nhãn + KHUNG VÀNG quanh các khối đã đổi độ cao theo bản đồ độ cao thật (anh 16/11/2026: "bấm vào không thấy khác gì" — khối đã đo tay áp cả hai bản)
+// CÁCH 3: nhãn + KHUNG MÀU quanh MỌI khối theo trạng thái (anh 16/11/2026: "sao không thấy khung cho các toà còn lại — chưa xong hay chưa làm?"):
+// vàng = cách 3 đổi độ cao · xanh = đã đo tay bằng tia (áp cả hai bản) · trắng = cách 3 đo khớp sẵn · đỏ = chưa đo được (khối chồng / ít ô / chóp) — scripts/khoi-tu-dsm.mjs
 if (CACH === '3') {
-  const pos = [], ds = S3_IDS.map((id) => dsKhoi.find((k) => k.id === id)).filter((k) => k && k.yTren != null);
-  for (const k of ds) { const y0 = Math.max(k.yDuoi ?? k.day, k.yTren - 60), y1 = k.yTren; for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length];
-    pos.push(ax, y1, az, bx, y1, bz, ax, y0, az, bx, y0, bz, ax, y0, az, ax, y1, az); } }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  const khung = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: '#ffd400', depthTest: false, transparent: true, opacity: 0.9 })); khung.renderOrder = 999; scene.add(khung);
-  const nhan = document.createElement('div'); nhan.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:6;padding:7px 12px;border-radius:10px;background:var(--o);border:1px solid #ffd400;color:var(--chu);font:600 13px system-ui;cursor:pointer;max-width:calc(100vw - 32px)';
-  const ve = () => { nhan.innerHTML = `🧩 CÁCH 3 · ${ds.length} khối đổi độ cao theo bản đồ độ cao thật — ${khung.visible ? 'khung vàng' : 'bấm để hiện khung vàng'}`; };
-  nhan.onclick = () => { khung.visible = !khung.visible; ve(); }; ve(); document.body.append(nhan);
+  const TT = await fetch(`./du-lieu/${ten}-cach3-trang-thai.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+  const MAU_TT = { doi: '#ffd400', do_tay: '#3ee07a', khop: '#ffffff', chua_do: '#ff4a3a' }, TEN_TT = { doi: 'vàng: cách 3 đổi', do_tay: 'xanh: đã đo tay', khop: 'trắng: đo khớp sẵn', chua_do: 'đỏ: chưa đo được' };
+  const nhom = new THREE.Group(), dem = {}; scene.add(nhom);
+  for (const [loai, mau] of Object.entries(MAU_TT)) { const pos = [];
+    for (const [id, t] of Object.entries(TT)) { if (t !== loai) continue; const k = dsKhoi.find((q) => q.id === id); if (!k || k.yTren == null) continue; dem[loai] = (dem[loai] || 0) + 1;
+      const y0 = Math.max(k.yDuoi ?? k.day, (k.datCao ?? k.yTren - 30) - 2), y1 = k.yTren;
+      for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length]; pos.push(ax, y1, az, bx, y1, bz, ax, y0, az, bx, y0, bz, ax, y0, az, ax, y1, az); } }
+    if (!pos.length) continue; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: mau, depthTest: false, transparent: true, opacity: 0.85 })); l.renderOrder = 999; nhom.add(l); }
+  const nhan = document.createElement('div'); nhan.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:6;padding:7px 12px;border-radius:10px;background:var(--o);border:1px solid #ffd400;color:var(--chu);font:600 13px system-ui;cursor:pointer;max-width:calc(100vw - 32px);text-align:center';
+  const ve = () => { nhan.innerHTML = `🧩 CÁCH 3 — khung theo trạng thái (${nhom.visible ? 'bấm để ẩn' : 'bấm để hiện'})<br><span style="font-weight:500;font-size:12px">` +
+    Object.keys(MAU_TT).filter((k) => dem[k]).map((k) => `<span style="color:${MAU_TT[k]}">■</span> ${TEN_TT[k]} ${dem[k]}`).join(' · ') + '</span>'; };
+  nhan.onclick = () => { nhom.visible = !nhom.visible; ve(); }; ve(); document.body.append(nhan);
 }
 function apHienCach3() { // gọi lại sau mọi chỗ đặt hiện / ẩn LOP_OSM (lớp ảnh thật 3D, so ảnh)
   if (LOP_OSM.dangAn) { if (CACH3.g) CACH3.g.visible = false; return; }

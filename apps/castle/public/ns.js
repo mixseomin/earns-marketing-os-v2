@@ -884,7 +884,7 @@ function capNhatHd(now) {
   capNhatKhu(phong);
   const khoa = c + (phong?.so || ''); if (khoa === khoaHd) return; khoaHd = khoa;
   const xoay = dg('giữ chuột + kéo', 'xoay camera') + dg(K('Z', 'X'), 'xoay trái / phải') + dg(K('V'), 'góc nhìn sau lưng / mắt') + dg(K('Esc'), 'về toàn cảnh');
-  $('hd').innerHTML = c === 'so' ? '' : c === 'toan' ? '<b>Toàn cảnh</b>' + dg('kéo chuột', 'xoay') + dg('lăn chuột', 'phóng to / nhỏ') + dg('nhấp đúp', 'xuống đi bộ tại đó') + dg('🚶 Đi bộ', 'vào ở cổng Torbau')
+  $('hd').innerHTML = c === 'so' ? '' : c === 'toan' ? '<b>Toàn cảnh</b>' + dg('kéo chuột', 'xoay') + dg('lăn chuột · Shift + lăn', 'phóng to / nhỏ') + dg('nhấp đúp', 'xuống đi bộ tại đó') + dg('🚶 Đi bộ', 'vào ở cổng Torbau')
     : c === 'leo' ? '<b>Đang leo</b>' + dg(K('W', 'S'), 'lên / xuống') + dg(K('A', 'D'), 'ngang theo tường') + dg(K('W') + ' tới mép', 'tự đu lên') + dg(K('Space'), 'bật ra') + xoay
     : '<b>Đi bộ</b>' + dg(K('W', 'A', 'S', 'D'), 'đi theo hướng camera') + dg(K('Shift'), 'chạy') + dg(K('Space'), 'nhảy') + dg(K('C') + ' giữ', 'ngồi xổm')
       + (phong ? dg(K('E'), 'ngồi · mở rương · cầm đồ · bật đèn · đọc') + dg(K('F') + ' · nhấp', 'đá đồ · ném đồ đang cầm') : '')
@@ -1033,8 +1033,13 @@ function anCayXa(now) {
 let lan = 0, tichLuy = 0, lucCham = 0;
 // TOUCHPAD HAI NGÓN (anh 16/11/2026): vuốt hai ngón = XOAY như giữ chuột trái kéo; chụm / mở hai ngón (trình duyệt gửi wheel + ctrlKey) = phóng;
 // lăn chuột thật (bánh xe: bước nguyên, không có trục ngang) vẫn phóng. Bắt ở pha capture trên khung vẽ, trước OrbitControls.
+// SHIFT + LĂN = luôn phóng (thẻ #1626 / #1627, anh 16/11/2026): Magic Mouse / chuột có gia tốc trên Mac gửi deltaY lẻ → bị nhận là touchpad nên chỉ xoay, PC không phóng được; giữ Shift macOS đổi lăn dọc thành deltaX → lấy deltaY || deltaX.
 const laTouchpad = (e) => !e.ctrlKey && e.deltaMode === 0 && (e.deltaX !== 0 || !Number.isInteger(e.deltaY) || Math.abs(e.deltaY) < 40);
 renderer.domElement.addEventListener('wheel', (e) => {
+  if (e.shiftKey && !dangSo) { e.preventDefault(); e.stopImmediatePropagation(); const d = e.deltaY || e.deltaX;
+    if (di?.dang) { di.phong(d * 0.0015); return; }
+    const off = camera.position.clone().sub(orbit.target), kc = Math.max(orbit.minDistance, Math.min(orbit.maxDistance, off.length() * Math.exp(d * 0.0015)));
+    camera.position.copy(orbit.target).add(off.setLength(kc)); orbit.update(); return; }
   if (di?.dang && !dangSo && !laTouchpad(e)) { e.preventDefault(); e.stopImmediatePropagation(); di.phong(e.deltaY * (e.ctrlKey ? 0.02 : 0.0015)); return; } // đi bộ: chụm / mở hai ngón (ctrl + wheel) hoặc lăn chuột = kéo camera gần / xa
   if (!laTouchpad(e) || dangSo) return;
   e.preventDefault(); e.stopImmediatePropagation();

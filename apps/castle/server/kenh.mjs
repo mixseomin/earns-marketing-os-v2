@@ -44,6 +44,21 @@ import { readFileSync as docTep, writeFileSync as ghiTep, mkdirSync as taoThu } 
 const TEP_LECH = '/var/lib/castle-kenh/lech.json';
 let LECH = { dang: [], xong: [] }; try { LECH = JSON.parse(docTep(TEP_LECH, 'utf8')); } catch { /* chưa có tệp: bắt đầu trống */ }
 const luuLech = () => { try { taoThu('/var/lib/castle-kenh', { recursive: true }); ghiTep(TEP_LECH, JSON.stringify(LECH)); } catch (e) { console.warn('[kenh] ghi lech.json lỗi', e.message); } };
+// BÁO TELEGRAM khi một thẻ báo lệch XONG (anh 16/11/2026: "không phải lúc nào cũng ngồi canh màn hình"): nhóm MINE của anh, topic riêng "🏰 Lâu đài 3D"
+// (tạo một lần, nhớ id trong /var/lib/castle-kenh/tg.json). Bot + nhóm: /root/.secrets/mine-tg.env (TG_BOT_TOKEN, TG_CHAT — vault MOS2 #476).
+const TG = (() => { try { return Object.fromEntries(docTep('/root/.secrets/mine-tg.env', 'utf8').split('\n').map((l) => l.match(/^(\w+)=(.*)$/)).filter(Boolean).map((m) => [m[1], m[2].trim()])); } catch { return {}; } })();
+const TEP_TG = '/var/lib/castle-kenh/tg.json', escTg = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+async function tgGoi(phuong, than) { const r = await fetch(`https://api.telegram.org/bot${TG.TG_BOT_TOKEN}/${phuong}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(than) }); return r.json(); }
+async function baoTelegram(x) {
+  if (!TG.TG_BOT_TOKEN || !TG.TG_CHAT) { console.warn('[kenh] thiếu cấu hình Telegram'); return; }
+  try {
+    let topic = null; try { topic = JSON.parse(docTep(TEP_TG, 'utf8')).topic; } catch { /* chưa tạo */ }
+    if (!topic) { const j = await tgGoi('createForumTopic', { chat_id: TG.TG_CHAT, name: '🏰 Lâu đài 3D' }); topic = j.result?.message_thread_id || null; if (topic) { taoThu('/var/lib/castle-kenh', { recursive: true }); ghiTep(TEP_TG, JSON.stringify({ topic })); } else console.warn('[kenh] không tạo được topic', JSON.stringify(j).slice(0, 200)); }
+    const chu = `<b>✅ Báo lệch #${escTg(x.id)} đã xong</b>\n${escTg(x.tom)}${x.link ? `\n<a href="${escTg(x.link)}">Mở đúng góc trên castle.on.tc</a>` : ''}`;
+    const j = await tgGoi('sendMessage', { chat_id: TG.TG_CHAT, ...(topic ? { message_thread_id: topic } : {}), text: chu.slice(0, 4000), parse_mode: 'HTML', disable_web_page_preview: true });
+    if (!j.ok) console.warn('[kenh] gửi Telegram lỗi', JSON.stringify(j).slice(0, 200));
+  } catch (e) { console.warn('[kenh] gửi Telegram lỗi', e.message); }
+}
 function xuLyLech(req, res) {
   if (req.method === 'GET') { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(LECH)); return; }
   const ip = req.socket.remoteAddress || ''; if (req.headers['x-forwarded-for'] || !/^(::ffff:)?127\.0\.0\.1$|^::1$/.test(ip)) { res.writeHead(403).end('{}'); return; } // chỉ CLI trên máy chủ, không qua nginx
@@ -51,7 +66,7 @@ function xuLyLech(req, res) {
   req.on('end', () => { try { const j = JSON.parse(b), id = String(j.id || '').slice(0, 40); if (!id) throw new Error('thiếu id');
     LECH.dang = LECH.dang.filter((x) => x.id !== id); LECH.xong = LECH.xong.filter((x) => x.id !== id);
     if (j.tt === 'dang') LECH.dang.push({ id, viec: String(j.viec || '').slice(0, 200), luc: Date.now() });
-    else LECH.xong.unshift({ id, tom: String(j.tom || '').slice(0, 1500), link: String(j.link || '').slice(0, 300), luc: Date.now() });
+    else { const x = { id, tom: String(j.tom || '').slice(0, 1500), link: String(j.link || '').slice(0, 300), luc: Date.now() }; LECH.xong.unshift(x); if (j.tg !== false) void baoTelegram(x); }
     LECH.xong = LECH.xong.slice(0, 20); luuLech(); res.writeHead(200, { 'Content-Type': 'application/json' }).end('{"ok":true}'); } catch (e) { res.writeHead(400).end(JSON.stringify({ ok: false, error: e.message })); } });
 }
 const may = http.createServer((req, res) => {

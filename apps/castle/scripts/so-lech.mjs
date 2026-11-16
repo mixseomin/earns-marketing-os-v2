@@ -110,7 +110,7 @@ const bao = giu.length ? `Đã tự sửa: ${tomSua}. Điểm lệch vùng đán
   : `Chưa tự sửa được: ${de.length ? 'thử chỉnh độ cao khối không làm vùng khớp hơn' : 'không có khối lệch đỉnh ≥ ' + NGUONG + ' m trong vùng đánh dấu'}${kiemKe.startsWith('HỎNG') ? ' (' + kiemKe + ')' : ''}. Lệch còn: ${conLai.join('; ') || '—'}. Thẻ để lại hàng chờ.`;
 console.log('\n' + bao + '\nẢnh trước / sau: ' + join(ra, 'truoc', 'bao-cao.png') + (giu.length ? ' · ' + join(ra, sau === goc ? 'truoc' : '', 'bao-cao.png') : ''));
 if (nhan) {
-  baoTT({ id: nhan, tt: 'xong', tom: bao });
+  baoTT({ id: nhan, tt: 'xong', tom: bao, link: `https://castle.on.tc/neuschwanstein.html#g=t,${goc.hai.cam.p.join(',')},${goc.hai.cam.p.map((v, i) => +(v + goc.hai.cam.d[i] * (cam.zoom || 40)).toFixed(2)).join(',')},${goc.hai.cam.fov}` }); // máy chủ gửi Telegram nhóm MINE kèm link mở đúng góc
   const gy = (lenh, chu) => { try { execFileSync('ssh', ['root@167.233.241.16', `GOPY_TRANG=castle.on.tc /opt/earns-marketing-os-v2/scripts/gop-y.sh ${lenh} ${nhan} "$(cat)"`], { input: chu, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }); } catch (e) { console.warn('(trả lời thẻ lỗi:', String(e.stderr || e.message).split('\n')[0] + ')'); } };
   gy(giu.length && ket.startsWith('đã lên') ? 'submit' : 'reply', '[so-lech tự xử] ' + bao);
 }

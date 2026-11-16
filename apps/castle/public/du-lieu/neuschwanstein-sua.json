@@ -2,26 +2,30 @@
  "way/223145711": {
   "building:colour": "#f3e3bb",
   "roof:colour": "#8fb5a0",
-  "phong": 2.0,
+  "phong": 2,
   "thap_goc": "yes",
   "ly_do": "ảnh sân trên (Naturliebhaberin, Commons): tháp góc Palas hướng sân bằng sa thạch vàng, mái đồng xanh, rộng ~0,4 bề ngang đầu hồi (phong 2,0). Cao độ (chân thân, đỉnh thân, chóp) KHÔNG ghi ở đây: ns.js lấy từ tệp bố cục mặt Palas (thapGoc, đo trên ảnh, neo bằng ảnh 3D Google)"
  },
  "way/223145712": {
   "building:colour": "#f3e3bb",
   "roof:colour": "#8fb5a0",
-  "phong": 2.0,
+  "phong": 2,
   "thap_goc": "yes",
   "ly_do": "ảnh sân trên (Naturliebhaberin, Commons): tháp góc Palas hướng sân bằng sa thạch vàng, mái đồng xanh, rộng ~0,4 bề ngang đầu hồi (phong 2,0). Cao độ (chân thân, đỉnh thân, chóp) KHÔNG ghi ở đây: ns.js lấy từ tệp bố cục mặt Palas (thapGoc, đo trên ảnh, neo bằng ảnh 3D Google)"
  },
  "way/221599098": {
   "y_tren": 54,
   "dam_vom": "yes",
-  "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà"
+  "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà",
+  "height": "39.9",
+  "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 67.44 m, mô hình 54 m → height 26.41785606596212 → 39.9"
  },
  "way/223069515": {
   "y_tren": 54,
   "dam_vom": "yes",
-  "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà"
+  "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà",
+  "height": "39.6",
+  "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 67.17 m, mô hình 54 m → height 26.41785606596212 → 39.6"
  },
  "way/1573767743": {
   "y_duoi": 53.6,
@@ -39,7 +43,9 @@
  },
  "way/951894999": {
   "dau_hoi_bac": "yes",
-  "ly_do": "cổng Torbau: đầu hồi gạch đỏ hình bậc (ảnh 3D Google anh gửi 16/11/2026)"
+  "ly_do": "cổng Torbau: đầu hồi gạch đỏ hình bậc (ảnh 3D Google anh gửi 16/11/2026)",
+  "height": "13.6",
+  "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 34.99 m, mô hình 43.44 m → height 22 → 13.6"
  },
  "way/223110820": {
   "ly_do": "cổng Torbau: OSM chồng hai khối gạch đỏ (0–17,5 m mái 1 m và 12–22 m mái dốc) cùng mặt bằng → mái thấp đâm xuyên mái dốc (vệt tối), đầu hồi bậc dựng hai lần; khối dưới dừng ở chân khối trên (ref 19,0 + 11 ≈ 30, khối trên từ 29,5), mái phẳng. Đầu hồi bậc chỉ ở way/951894999 (anh 16/11/2026)",
@@ -89,7 +95,7 @@
   "neo_mat_dat": [
    [
     35.2,
-    0.0,
+    0,
     18.58
    ],
    [
@@ -99,5 +105,13 @@
    ]
   ],
   "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới: KHUNG mặt tây cánh nam cao/rộng 0,946 → chân tường = mái hiên 28,7 − 0,946 × 10,7 = 18,6 m; cửa trong lối cổng cao hơn chân cánh nam 0,54 m (30 px)"
+ },
+ "way/223069513": {
+  "height": "27.2",
+  "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 54.37 m, mô hình 46.2 m → height 19 → 27.2"
+ },
+ "way/223110819": {
+  "height": "57.3",
+  "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 79.63 m, mô hình 68.28 m → height 46 → 57.3"
  }
 }

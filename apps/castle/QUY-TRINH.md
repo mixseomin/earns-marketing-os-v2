@@ -30,6 +30,18 @@ Công cụ chạy trên **iMac** (có trình duyệt). Lõi chung: `scripts/chun
 7. **Soát + sửa:** xem ảnh `cua-*.png` (khung vẽ chồng), sửa số liệu sai trong `<tên>-cua-so.json` (mỗi sửa ghi `ly_do`). Mặt có ảnh chụp rõ thì đo trên ảnh chụp như mặt sân Palas (`<tên>-mat-*.json`, kiểm bằng `python3 scripts/kiem-mat-tien.py`).
 8. Chi tiết đặc biệt (tháp góc, ban công, tranh, đầu hồi): đo điểm ảnh trên ảnh có lưới 10 px, ghi tệp bố cục, dựng hoàn toàn từ tệp (`mattien.js`), không số viết tay trong mã.
 
+### 3b. Kiểm kê theo VÙNG (chi tiết đếm được → hoa văn)
+
+Mỗi ảnh mặt tiền chia thành **vùng** trước khi dựng: `dinh` (răng cưa, tháp canh, đầu hồi) · `than_tren` · `than_duoi` · `chan` (hoặc `toan` cho tháp tròn), theo độ cao tuyệt đối toạ độ cảnh.
+Trong từng vùng quét theo thứ tự cố định:
+1. **Thành phần đếm được**: cửa sổ (`cua_so`), cổng (`cong_vom`, `canh_cua`), ô cửa vuông (`o_vuong`), cửa mái (`cua_mai`), chóp, tháp canh, răng cưa (`rang_cua`), đầu hồi bậc (`hoi_bac`).
+2. **Hoa văn / hoạ tiết**: huy hiệu, gờ ngang (`go_ngang`), dải vòm nhỏ (`vom_nho`), đá góc (`da_goc`), neo sắt (`neo`), vành răng cưa tháp (`vong_rang`).
+
+Ghi số đếm vào `public/du-lieu/<tên>-kiem-ke.json` (mỗi mặt: nhóm cạnh OSM `khối#cạnh`, ảnh nguồn, vùng `tu`–`den`, `dem` theo loại). Chi tiết dựng bằng `trangtri.js`
+(thẻ trong `<tên>-sua.json`: `rang_cua`, `vom_nho`, `da_goc`, `thap_canh`, `vong_rang`, `cua_thap`, `go_y`, `neo_y`; số đếm từng mặt trong `<tên>-cua-so.json`: `rang_cua`, `vom_nho`, `o_vuong`).
+Mọi chi tiết mô hình tự ghi sổ (`window.__ns.kiemKe()`); `node scripts/kiem-ke.mjs --lau <tên>` so từng vùng → THIẾU / thừa / khớp, thoát 1 khi còn THIẾU.
+Một mặt chỉ coi là xong khi kiểm kê khớp hết **và** chụp đúng chỗ đặt máy ảnh đặt cạnh ảnh thật không còn chi tiết khoanh được là thiếu.
+
 ## 4. Kiểm toàn cảnh
 
 9. `node scripts/chup-so-anh.mjs <thư mục> --lau <tên>` rồi `python3 scripts/kiem-vien.py <thư mục>` → đoạn THIẾU / THỪA của viền trời, % cột khớp, `thieu.json`.

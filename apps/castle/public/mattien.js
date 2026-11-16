@@ -65,7 +65,7 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
             const g = nhomCua(THREE, { n: d.n, w: d.w, h: d.h, k: d.k, cot: 0.06, vom: d.n === 2, nhe }); // cửa đôi: vòm đá lớn bao ngoài (ảnh 360° cánh Torbau; kiểu Roman)
             const dat = (gg) => { gg.rotateY(goc); gg.translate(x1 + ux * d.s, d.y, z1 + uz * d.s); return gg; };
             if (!coAnh || coLo.some(Boolean)) { for (const gg of g.da) doDa.push(dat(gg)); g.toi.forEach((gg, j) => { if (!coLo[j]) doToi.push(dat(gg)); }); } // mặt có ảnh dán: ảnh đã có cửa thật — chỉ dựng khung cho cụm có ô mở được
-            d.o.forEach((o, j) => cua.push({ x: x1 + ux * (o.s0 + o.s1) / 2, y: o.y0, z: z1 + uz * (o.s0 + o.s1) / 2, nx, nz, nua: d.w / 2, cao: o.y1 - o.y0, coLo: coLo[j], ten: t.ten }));
+            d.o.forEach((o, j) => cua.push({ x: x1 + ux * (o.s0 + o.s1) / 2, y: o.y0, z: z1 + uz * (o.s0 + o.s1) / 2, nx, nz, nua: d.w / 2, cao: o.y1 - o.y0, coLo: coLo[j], ten: t.ten, mat: `${t.k?.id}#${i}` }));
             dem.do += d.n;
           }
         }
@@ -83,7 +83,7 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
           if (lo.some((o) => !o.cuaSo && s + nua > o.s0 && s - nua < o.s1 && y + cao > o.y0 && y < o.y1)) continue; // chỗ khoét cửa / dải nội thất (lỗ của chính ô cửa sổ thì không tính)
           const [mNua, mCao] = O_MO[kieu], coLo = lo.some((o) => o.cuaSo && Math.abs((o.s0 + o.s1) / 2 - s) < 0.05 && Math.abs(o.y0 - y) < 0.05);
           viTri[coLo && kieu === 'ba' ? 'baMo' : kieu].push(m4.compose(new THREE.Vector3(x1 + ux * s, y, z1 + uz * s), q, mot1).clone());
-          cua.push({ x: x1 + ux * s, y, z: z1 + uz * s, nx, nz, nua: mNua, cao: mCao, coLo, ten: t.ten }); // cho ns.js: đang leo sát cửa sổ có phòng phía sau thì mở cửa trèo vào
+          cua.push({ x: x1 + ux * s, y, z: z1 + uz * s, nx, nz, nua: mNua, cao: mCao, coLo, ten: t.ten, mat: `${t.k?.id}#${i}` }); // cho ns.js: đang leo sát cửa sổ có phòng phía sau thì mở cửa trèo vào
         }
       }
     }

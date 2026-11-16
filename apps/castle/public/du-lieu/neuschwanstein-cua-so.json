@@ -2875,6 +2875,47 @@
     ]
    }
   ],
-  "ly_do": "ảnh Mapillary 360° 493003245182754 (cánh bắc cổng Torbau, phương vị 290–320° từ chỗ đặt máy): tầng trên 2 cửa đôi vòm, tầng dưới 2 cửa đơn, giữa là 4 neo hoa huệ; cao độ theo tỉ lệ trên ảnh × tường 11 → 27,8 m"
+  "ly_do": "ảnh Mapillary 360° 493003245182754 (cánh bắc cổng Torbau, phương vị 290–320° từ chỗ đặt máy): tầng trên 2 cửa đôi vòm, tầng dưới 2 cửa đơn, giữa là 4 neo hoa huệ; cao độ theo tỉ lệ trên ảnh × tường 11 → 27,8 m",
+  "o_vuong": [
+   [
+    0.9,
+    21.8,
+    0.55,
+    0.9
+   ],
+   [
+    0.9,
+    16.8,
+    0.55,
+    0.9
+   ]
+  ],
+  "rang_cua": 7,
+  "vom_nho": 10
+ },
+ "way/223110823#4": {
+  "hang": [],
+  "o_vuong": [
+   [
+    1.8,
+    19.3,
+    0.45,
+    0.6
+   ],
+   [
+    1.8,
+    15.6,
+    0.3,
+    0.4
+   ]
+  ],
+  "ly_do_o_vuong": "ảnh 360° 493003245182754: ô vuông nhỏ cạnh huy hiệu + ô nhỏ trên vòm cổng",
+  "rang_cua": 2,
+  "ly_do_rang": "ảnh 990990575063069: 5 răng trên mặt trước khối cổng giữa hai tháp canh"
+ },
+ "way/223110823#3": {
+  "hang": [],
+  "rang_cua": 3,
+  "ly_do_rang": "ảnh 990990575063069: 5 răng trên mặt trước khối cổng giữa hai tháp canh"
  }
 }

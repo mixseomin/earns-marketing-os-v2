@@ -54,7 +54,8 @@
  "way/223110823": {
   "rang_cua": "yes",
   "thap_canh": "yes",
-  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): khối cổng sa thạch kem: răng cưa đỉnh + hai tháp canh treo ở hai góc trên"
+  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): khối cổng sa thạch kem: răng cưa đỉnh + hai tháp canh treo ở hai góc trên",
+  "go_y": "17.5,20.9"
  },
  "way/223110818": {
   "roof:shape": "flat",
@@ -75,11 +76,13 @@
  "way/221599083": {
   "roof:shape": "flat",
   "vong_rang": "yes",
-  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): tháp tròn góc: đỉnh phẳng, vành con sơn + răng cưa, không mái nhọn"
+  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): tháp tròn góc: đỉnh phẳng, vành con sơn + răng cưa, không mái nhọn",
+  "cua_thap": "3"
  },
  "way/221599084": {
   "roof:shape": "flat",
   "vong_rang": "yes",
-  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): tháp tròn góc: như way/221599083"
+  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): tháp tròn góc: như way/221599083",
+  "cua_thap": "3"
  }
 }

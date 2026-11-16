@@ -71,6 +71,13 @@ assert.ok(cn({})!.includes('chuyển biến')); assert.strictEqual(cn({ cam_doi:
 // ba shot đẩy vào liền nhau → lạm dụng; hai shot (đấu mặt shot / reverse) thì không
 const dv = (i: number, co: string) => ({ thu_tu: i, giay: 3, chu: [`N${i}`], ky_thuat: { co_canh: co, chuyen_dong: 'day_vao' } });
 assert.ok(kiemNhipHinh([dv(1, 'cu'), dv(2, 'mcu'), dv(3, 'cu')]).some((x) => x.includes('#1–#3 ba shot đẩy vào liền nhau'))); assert.deepStrictEqual(kiemNhipHinh([dv(1, 'cu'), dv(2, 'mcu')]), []);
+// sửa 0đ ba đẩy vào liền: ca thật tập 122 #16–#18 (đối đầu, phán quyết, shot thường) → #18 về đứng; không có thông tin nhịp → shot giữa
+const B3 = [{ id: 16, thu_tu: 16, giay: 3, ky_thuat: { co_canh: 'ots', chuyen_dong: 'day_vao' }, nhip_kich: true }, { id: 17, thu_tu: 17, giay: 3, ky_thuat: { co_canh: 'cu', chuyen_dong: 'day_vao' }, nhip_kich: true },
+  { id: 18, thu_tu: 18, giay: 3, ky_thuat: { co_canh: 'ms', chuyen_dong: 'day_vao' }, nhip_kich: undefined }];
+assert.deepStrictEqual(daDangMay(B3).map((x) => [x.id, x.ky_thuat.chuyen_dong]), [[18, 'tinh']]);
+assert.deepStrictEqual(daDangMay(B3.map((c) => ({ ...c, nhip_kich: undefined }))).map((x) => x.id), [17]);
+// cả ba mang nhịp (tập 122 #16–#18 thật) → chuỗi leo thang: không báo, không đổi
+const B3n = B3.map((c) => ({ ...c, nhip_kich: true })); assert.deepStrictEqual(kiemNhipHinh(B3n), []); assert.deepStrictEqual(daDangMay(B3n), []);
 // nhịp đọc: Tango & Lint tập 1 — 20 shot / 48s, phat 2–3,5s → phim không lời chặn; quảng cáo không xét; shot chưa cắt tính cả clip
 const T1 = [3.5, 2, 2, 2, 2, 2.2, 2, 2.3, 2, 2, 2, 2.9, 2.1, 2, 2.5, 2, 2.5, 2.5, 2, 3.4].map((g, i) => ({ thu_tu: i + 1, phat_s: g, thoi_luong_s: 4 }));
 const ld = kiemGiayDoc(T1, { khong_loi: true });

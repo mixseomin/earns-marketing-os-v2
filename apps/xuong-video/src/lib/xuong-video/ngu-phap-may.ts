@@ -31,7 +31,7 @@ const CHOT = new Set(['lanh_lung', 'nhech_moi', 'quyet_tam']);
 const HE_LO = /(thân phận|lộ ra|hé lộ|lộ diện|người thừa kế|reveal|identity)/i;
 
 export type ShotNguPhap = { id?: number; thu_tu: number; ky_thuat?: KyThuatShot | null; bieu_cam?: BieuCamNv[] | null; dan_dung?: { muc_dich?: string } | null;
-  hanh_dong?: string; /** quãng đi dài nhất của một nhân vật trong shot (cm, vi_tri.tam → den) */ di_cm?: number; /** shot cuối của tập (móc) */ cuoi?: boolean };
+  hanh_dong?: string; /** giây phát — máy hợp nhịp phải đủ giờ (mayHopGiay) */ giay?: number | null; /** quãng đi dài nhất của một nhân vật trong shot (cm, vi_tri.tam → den) */ di_cm?: number; /** shot cuối của tập (móc) */ cuoi?: boolean };
 /** Quãng đi đủ dài để máy dẫn trước / bám / trượt theo — ngắn hơn (lùi một bước vào thang máy) thì đẩy vào. */
 export const DI_DAI_CM = 150;
 /** Quãng đi dài nhất trong chỗ đứng 3D của shot. */
@@ -73,6 +73,9 @@ export function kiemNguPhapMay(ds: ShotNguPhap[], theLoai?: string): string[] {
     const n = nhipKich(c); if (!n) continue;
     const l = NGU_PHAP_MAY[n]; const cd = c.ky_thuat?.chuyen_dong || 'tinh'; const hop = mayHopTheLoai(c, n, theLoai);
     if (!doc && cd === 'tinh') continue;
+    // shot quá ngắn cho mọi máy hợp nhịp (máy đi chậm cần ≥ 3 s — nhip-hinh.ts › mayHopGiay): khung đứng là lựa chọn duy nhất, không báo (cắt nhanh đã là nhịp).
+    // 16/11/2026 chấm lại toàn studio: tập 122 #17, tập 135 #19 nhịp phán quyết 2 s — luật thời gian đưa về đứng, luật nhịp đòi đẩy vào → hai cổng đá nhau, nút không gỡ được.
+    if (cd === 'tinh' && !hop.some((x) => mayHopGiay(x, c.giay))) continue;
     if (!hop.includes(cd)) out.push(`${TIEN_TO_NGU_PHAP}#${c.thu_tu} là nhịp "${l.ten}" mà máy "${cd}" — dùng ${hop.join(' / ')}${doc ? '' : ' hoặc để máy đứng'} (${l.vi_sao}); sửa 0đ bằng 🎥`);
   }
   return out;
@@ -103,6 +106,8 @@ export function apNguPhapMay<T extends ShotNguPhap & { id: number }>(ds: T[], th
 export function dongCoMay<T extends ShotNguPhap & { phan_doan?: string | null; may_3d?: (Parameters<typeof diChuThe>[0] & { nham?: string; khung?: string[]; vi_tri: { ten: string; an?: boolean; tam: number[]; den?: number[] }[] }) | null }>(ds: T[]) {
   const pd = (c?: T) => c?.phan_doan ?? '';
   return ds.map((c, i) => { const m = c.may_3d; const d = m ? diChuThe(m, m.nham ? [m.nham] : chuThe(m)) : null;
-    return { ...c, di_ngang_cm: d?.ngang ?? null, di_chu_cm: d?.dai ?? null, di_sau_cm: d?.sau ?? null, nhip_kich: nhipKich(c) != null, cam_doi: c.bieu_cam?.length ? c.bieu_cam.some((b) => b.dau !== b.cuoi) : undefined,
+    return { ...c, di_ngang_cm: d?.ngang ?? null, di_chu_cm: d?.dai ?? null, di_sau_cm: d?.sau ?? null, // chưa có kế hoạch biểu cảm (và không phải shot móc / hé lộ đọc được từ chữ) = CHƯA BIẾT nhịp, không phải "không có nhịp" — quét 16/11/2026: 21 shot hoạt hình / hài không có
+      // bieu_cam bị báo "đẩy vào không có nhịp kịch"
+      nhip_kich: nhipKich(c) != null ? true : c.bieu_cam?.length ? false : undefined, cam_doi: c.bieu_cam?.length ? c.bieu_cam.some((b) => b.dau !== b.cuoi) : undefined,
       dau_canh: i === 0 || pd(ds[i - 1]) !== pd(c), cuoi_canh: i === ds.length - 1 || pd(ds[i + 1]) !== pd(c) }; });
 }

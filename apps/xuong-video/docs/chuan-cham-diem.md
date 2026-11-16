@@ -11,6 +11,17 @@ Chuẩn ngành cho một bộ chấm: **nó phải được đo trước khi đ�
 | **Đo** | số đo hình học từ dữ liệu 3D của chính studio | dữ liệu đo đúng phiên bản khung đang dùng (không đo trên khung cũ) |
 | **Giám khảo** | mô hình nhìn ảnh / video / đọc kịch bản rồi phán (LLM, bộ dò vật) | đã đo trên bộ gắn nhãn, đạt ngưỡng ghi ở dưới |
 
+## Đổi luật = chấm lại toàn studio (anh 16/11/2026)
+
+"Mỗi lần luật thay đổi phải tự chấm lại cho toàn các shot xem luật mới thay đổi thế nào với các shot đó — không vá đầu hở đuôi." Bài kiểm chỉ chứng minh luật đúng trên
+ca mình nghĩ ra; chấm lại toàn bộ dữ liệu mới lộ ca bắt oan / để lọt mình không nghĩ tới (lần chạy đầu: 4 nguồn bắt oan + hai cổng đá nhau mà nút 🎥 không gỡ được).
+
+1. Dữ liệu (box3, chỉ đọc): `scripts/cham-lai-luat.mts --dump=/tmp/xv-luat.json`, kéo về iMac.
+2. So bản luật trước khi sửa với bản đang có: `node_modules/.bin/tsx apps/xuong-video/scripts/cham-lai-luat.mts --du-lieu=<tệp> --cu=<commit trước khi sửa> --sua-thu --het`.
+3. Đọc TỪNG dòng MỚI ĐỎ / HẾT ĐỎ: đúng ý thì giữ; bắt oan / để lọt → sửa luật + thêm ca đó vào bài kiểm → chạy lại tới khi mọi dòng đổi đều đúng ý.
+4. `--sua-thu`: lỗi còn đỏ sau khi chạy bộ sửa 0đ của nút 🎥 = cổng chặn mà nút không gỡ được — hai cổng đá nhau thì sửa luật; còn lại phải là việc dàn cảnh / dữ liệu ghi rõ.
+5. Báo anh: số shot đổi theo thể loại, ca nào đúng ý, ca nào đã sửa luật, ca nào là dữ liệu cần sửa.
+
 ## Luật cho giám khảo
 
 1. **Bộ gắn nhãn trước, ngưỡng sau.** Ít nhất 40 mẫu, khoảng nửa là mẫu xấu, nhãn gắn khi CHƯA xem kết quả bộ chấm. Lưu trong repo cạnh bộ chấm.

@@ -135,7 +135,8 @@ export function loiCoMay(ds: readonly ShotCoMay[]): string[] {
       if (xa && s.di_sau_cm <= -DI_NGANG_CM) loi.push(`#${s.so}: chữ ${ten} «${xa[0]}» mà trong 3D chủ thể đi VỀ PHÍA máy ${Math.round(-s.di_sau_cm)} cm — đặt lại máy 3D (hoặc sửa chữ) cho cùng một hướng`);
       if (gan && s.di_sau_cm >= DI_NGANG_CM) loi.push(`#${s.so}: chữ ${ten} «${gan[0]}» mà trong 3D chủ thể đi RA XA máy ${Math.round(s.di_sau_cm)} cm — đặt lại máy 3D (hoặc sửa chữ) cho cùng một hướng`);
     }
-    for (const [ten, t] of [['mở', s.mo], ['diễn', s.dien], ['kết', s.ket], ['hướng', s.huong]] as const)
+    // chưa khai chuyen_dong = máy lấy từ CHỮ (cum-shot.ts › promptCumMoi: kyThuat(undefined) → câu máy trong chữ) — chữ là nguồn, không có gì để trái (quét 16/11/2026: phim 322 / 353)
+    if (s.chuyen_dong) for (const [ten, t] of [['mở', s.mo], ['diễn', s.dien], ['kết', s.ket], ['hướng', s.huong]] as const)
       for (const m of MAY_TU) { const k = m.r.exec(t ?? ''); if (k && !m.can.includes(cd)) loi.push(`#${s.so}: chữ ${ten} «${k[0]}» (${m.vi}) trái máy khai ${cd} — câu lệnh nói hai máy, model chọn bừa: bỏ chữ máy khỏi ${ten}`); }
     return loi;
   });

@@ -68,4 +68,5 @@ assert.deepStrictEqual(loiCoMay([{ so: 32, co_canh: 'cu', chuyen_dong: 'doi_net'
 assert.deepStrictEqual(loiCoMay([{ so: 35, co_canh: 'ews', chuyen_dong: 'drone_lui', mo: 'close on the house', ket: 'whole valley and mountains' }]), []);
 assert.deepStrictEqual(loiCoMay([{ so: 28, co_canh: 'insert', chuyen_dong: 'day_vao', ket: 'the beads in full view — cut to black' }]), []);
 assert.ok(loiCoMay([{ so: 5, co_canh: 'ms', chuyen_dong: 'lui_ra', huong: 'man faces screen right; camera does not move' }])[0]!.includes('máy đứng'), 'ca thật phim 2934 #5');
+assert.deepStrictEqual(loiCoMay([{ so: 13, co_canh: 'cu', dien: 'Hạ slowly lifts her eyes, slow push-in' }]), [], 'chưa khai máy: chữ là nguồn máy (phim 353 #15)');
 console.log('✓ chan-gui-video (mã nội bộ · tên / tiếng Việt ngoài thoại · tỉ lệ · clip sạch · dáng chống bậu)');

@@ -1,6 +1,6 @@
 // Tự kiểm ngữ pháp máy theo nhịp kịch: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/ngu-phap-may.test.mts
 import assert from 'node:assert';
-import { nhipKich, kiemNguPhapMay, apNguPhapMay } from './ngu-phap-may';
+import { nhipKich, kiemNguPhapMay, apNguPhapMay, dongCoMay } from './ngu-phap-may';
 
 const bc = (nv: string, dau: string, cuoi: string) => ({ nv, dau, cuoi }) as never;
 const S = [
@@ -42,4 +42,9 @@ const HAI = [{ id: 1, thu_tu: 19, ky_thuat: { co_canh: 'ws', chuyen_dong: 'day_v
 const lH = kiemNguPhapMay(HAI as never, 'hai'); assert.ok(lH.length === 1 && lH[0]!.includes('#21') && lH[0]!.includes('hoặc để máy đứng'), lH.join('\n'));
 assert.deepEqual(apNguPhapMay(HAI as never, 'hai').map((x) => [x.id, x.ky_thuat.chuyen_dong]), [[3, 'tinh']]);
 assert.equal(kiemNguPhapMay(HAI as never, 'qc_ugc').length, 0, 'quảng cáo không xét'); assert.equal(kiemNguPhapMay(HAI as never, 'phim_doc').length, 3, 'phim ngắn dọc: máy đứng ở nhịp sốc vẫn là lỗi, đẩy vào không thuộc bộ sốc');
+// chưa có kế hoạch biểu cảm → nhịp kịch CHƯA BIẾT (không báo đẩy vào thiếu nhịp); có kế hoạch mà không nhịp → false
+assert.deepEqual(dongCoMay([{ thu_tu: 1, ky_thuat: { co_canh: 'ms' } }, { thu_tu: 2, ky_thuat: { co_canh: 'ms' }, bieu_cam: [bc('A', 'vui', 'vui')] }] as never).map((c) => c.nhip_kich), [undefined, false]);
+// nhịp phán quyết trên shot 2 s: không máy hợp nhịp nào đủ giờ → máy đứng hợp lệ (tập 122 #17); 3 s thì vẫn đòi đẩy vào
+const PQ = { thu_tu: 17, giay: 2, ky_thuat: { co_canh: 'cu', chuyen_dong: 'tinh' }, bieu_cam: [bc('Hạ', 'nhan_nhin', 'nhech_moi')] };
+assert.equal(kiemNguPhapMay([PQ] as never, 'phim_doc').length, 0); assert.equal(kiemNguPhapMay([{ ...PQ, giay: 3 }] as never, 'phim_doc').length, 1);
 console.log('ngu-phap-may: ok');

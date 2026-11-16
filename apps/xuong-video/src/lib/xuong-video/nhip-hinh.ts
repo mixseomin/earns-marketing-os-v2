@@ -88,7 +88,9 @@ export function kiemNhipHinh(ds: ShotNhip[]): string[] {
     out.push(`${TIEN_TO_NHIP_HINH}#${c.thu_tu} máy ${c.ky_thuat?.chuyen_dong} trong ${c.giay} s — dưới ${GIAY_MAY_TIEN} s đọc thành cú zoom gấp: để máy đứng`);
   for (const c of ds) { const l = mayHopGiay(c.ky_thuat?.chuyen_dong, c.giay) ? khongDongCo(c) : null; if (l) out.push(`${TIEN_TO_NHIP_HINH}#${c.thu_tu} máy không có động cơ: ${l} — để máy đứng`); }
   const don = (c?: ShotNhip) => ['day_vao', 'zoom_cham'].includes(c?.ky_thuat?.chuyen_dong ?? '');
-  for (let i = 2; i < ds.length; i++) if (don(ds[i]) && don(ds[i - 1]) && don(ds[i - 2]))
+  // ba cú đẩy vào ở BA nhịp kịch liền nhau là chuỗi leo thang (đối đầu → phán quyết → …), hợp lệ — chỉ tính lạm dụng khi có cú đẩy không mang nhịp
+  // (chấm lại toàn studio 16/11/2026: tập 122 #16–#18 đều là nhịp, luật cũ đưa #17 về đứng → luật ngữ pháp phim ngắn dọc đỏ, nút không gỡ được)
+  for (let i = 2; i < ds.length; i++) if (don(ds[i]) && don(ds[i - 1]) && don(ds[i - 2]) && [ds[i], ds[i - 1], ds[i - 2]].some((c) => c!.nhip_kich !== true))
     out.push(`${TIEN_TO_NHIP_HINH}#${ds[i - 2]!.thu_tu}–#${ds[i]!.thu_tu} ba shot đẩy vào liền nhau — cú nhấn nào cũng nhấn thì hết nhấn: giữ cú ở shot chuyển biến mạnh nhất, shot còn lại máy đứng`);
   return out;
 }
@@ -116,6 +118,14 @@ export function daDangMay<T extends ShotNhip & { id: number }>(ds: T[]): { id: n
   kt.forEach((k, i) => { if (!mayHopGiay(k.chuyen_dong, ds[i]!.giay) || khongDongCo({ ...ds[i]!, ky_thuat: k })) { k.chuyen_dong = 'tinh'; doi.add(i); } });
   for (let i = 1; i < kt.length; i++) {
     if (trung(ds[i - 1]!, kt[i - 1]!, ds[i]!, kt[i]!)) chon(i);
+  }
+  // BA ĐẨY VÀO LIỀN (cổng kiemNhipHinh): đưa shot KHÔNG mang nhịp có động cơ yếu nhất về đứng — cảm xúc đổi / khép cảnh 1 điểm; bằng nhau lấy shot giữa.
+  // Shot nhịp kịch giữ máy (phim ngắn dọc bắt buộc máy ở nhịp — ngu-phap-may.ts), nên hai cổng không đá nhau.
+  const don = (k: KyThuatShot) => ['day_vao', 'zoom_cham'].includes(k.chuyen_dong ?? '');
+  const diem = (j: number) => (ds[j]!.nhip_kich ? 2 : 0) + (ds[j]!.cam_doi || ds[j]!.cuoi_canh ? 1 : 0);
+  for (let i = 2; i < kt.length; i++) if (don(kt[i]!) && don(kt[i - 1]!) && don(kt[i - 2]!)) {
+    const ung = [i - 1, i - 2, i].filter((j) => ds[j]!.nhip_kich !== true); if (!ung.length) continue;   // cả ba mang nhịp → chuỗi leo thang, giữ
+    const j = ung.sort((p, q) => diem(p) - diem(q))[0]!; kt[j]!.chuyen_dong = 'tinh'; doi.add(j);
   }
   return [...doi].filter((i) => (kt[i]!.chuyen_dong ?? 'tinh') !== (ds[i]!.ky_thuat?.chuyen_dong ?? 'tinh')).map((i) => ({ id: ds[i]!.id, ky_thuat: kt[i]! }));
 }

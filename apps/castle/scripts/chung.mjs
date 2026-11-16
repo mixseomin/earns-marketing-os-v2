@@ -33,8 +33,10 @@ export async function moTrang({ anh3d = false, them = '', khung = { width: 1600,
   });
   // cổng 18777 là cổng DUY NHẤT khoá ảnh 3D nhận → mỗi lúc một lượt đo; lượt khác (Thắng / phiên khác) đang giữ thì XẾP HÀNG chờ tới 20 phút
   // thay vì chết (thẻ #1629: Thắng dừng vì phiên khác đang đo)
+  // KHÔNG ảnh 3D thì không cần cổng 18777: hệ điều hành cấp cổng trống — chạy song song, không xếp hàng sau lượt đo ảnh 3D
+  const CONG = anh3d ? 18777 : 0;
   for (let t0 = Date.now(), bao = false; ;) {
-    const loi = await new Promise((ok) => { may.once('error', ok); may.listen(18777, '127.0.0.1', () => ok(null)); });
+    const loi = await new Promise((ok) => { may.once('error', ok); may.listen(CONG, '127.0.0.1', () => ok(null)); });
     if (!loi) break;
     if (loi.code !== 'EADDRINUSE' || Date.now() - t0 > 20 * 60e3) { console.error('cổng 18777 vẫn bận sau 20 phút:', loi.code); process.exit(1); }
     if (!bao) { console.error('cổng 18777 đang có lượt đo khác — xếp hàng chờ (tối đa 20 phút)…'); bao = true; }
@@ -42,11 +44,15 @@ export async function moTrang({ anh3d = false, them = '', khung = { width: 1600,
   }
   const { chromium } = await import(PW);
   const b = await chromium.launch({ args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
-  const pg = await b.newPage({ viewport: khung });
-  pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message));
-  if (nhanLog) pg.on('console', (m) => { if (m.text().startsWith(nhanLog)) console.log(m.text()); });
-  await pg.addInitScript((a) => { try { localStorage.setItem('ns-anh3d', a ? '1' : '0'); localStorage.setItem('ns-anh3d-cong-cu', '1'); localStorage.setItem('ns-dau-thu', '1'); } catch {} }, anh3d);
-  await pg.goto(`http://127.0.0.1:18777/neuschwanstein.html?lau=${encodeURIComponent(LAU)}${them ? '&' + them : ''}`);
-  await pg.waitForFunction((a) => window.__ns?.tt && (!a || window.__ns.anh3d()), anh3d, { timeout: 180000 });
-  return { pg, dong: async () => { await b.close(); may.close(); } };
+  const cong = may.address().port;
+  // trangMoi(): thêm một trang cùng trình duyệt, cùng máy chủ (đo nhiều góc song song — cham-goc.mjs)
+  const trangMoi = async () => { const pg = await b.newPage({ viewport: khung });
+    pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message));
+    if (nhanLog) pg.on('console', (m) => { if (m.text().startsWith(nhanLog)) console.log(m.text()); });
+    await pg.addInitScript((a) => { try { localStorage.setItem('ns-anh3d', a ? '1' : '0'); localStorage.setItem('ns-anh3d-cong-cu', '1'); localStorage.setItem('ns-dau-thu', '1'); } catch {} }, anh3d);
+    await pg.goto(`http://127.0.0.1:${cong}/neuschwanstein.html?lau=${encodeURIComponent(LAU)}${them ? '&' + them : ''}`);
+    await pg.waitForFunction((a) => window.__ns?.tt && (!a || window.__ns.anh3d()), anh3d, { timeout: 180000 });
+    return pg; };
+  const pg = await trangMoi();
+  return { pg, trangMoi, dong: async () => { await b.close(); may.close(); } };
 }

@@ -996,9 +996,13 @@ function doKhoiTheoTia(id, kho = null) {
   const trungMH = (dist) => rc.intersectObjects(LOP_OSM.filter((m) => m.isObject3D), true).find((x) => anHien(x.object))?.distance ?? Infinity;
   const trungThat = () => rc.intersectObject(anh3d.t.group, true)[0]?.distance ?? Infinity;
   const y0 = Math.max(Number.isFinite(k.yDuoi) ? k.yDuoi : -1e9, k.yTren - 22), y1 = k.yTren + 14;
+  // QUÉT THÔ 1,2 m rồi MỊN 0,3 m trong đoạn vừa đổi trạng thái (trước: mịn 0,3 m suốt ~150 bước / cột — trọng tài 55 phút)
+  const trangThai = (px, pz, lop, dy, y) => { d3.set(px, y + dy, pz).sub(C); const dist = d3.length(); rc.set(C, d3.normalize()); rc.far = dist + 40;
+    const h = lop === 'that' ? trungThat() : trungMH(); return Math.abs(h - dist) <= SAI ? 1 : h < dist - SAI ? -1 : 0; };
   const dinhCot = (px, pz, lop, dy, tu = y1) => {
-    for (let y = tu; y >= y0; y -= 0.3) { d3.set(px, y + dy, pz).sub(C); const dist = d3.length(); rc.set(C, d3.normalize()); rc.far = dist + 40;
-      const h = lop === 'that' ? trungThat() : trungMH(); if (Math.abs(h - dist) <= SAI) return y; if (h < dist - SAI) return null; }
+    for (let y = tu; y >= y0; y -= 1.2) { if (!trangThai(px, pz, lop, dy, y)) continue;
+      for (let m = Math.min(tu, y + 1.2); m >= y - 1e-6; m -= 0.3) { const t = trangThai(px, pz, lop, dy, m); if (t === 1) return m; if (t === -1) return null; }
+      return null; }
     return null; };
   const cot = [];
   for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length], dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz); if (L < 0.2) continue;

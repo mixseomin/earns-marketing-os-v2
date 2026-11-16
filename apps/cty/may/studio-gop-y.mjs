@@ -23,7 +23,12 @@ chayKySu({
     const dich = path.join(ANH, path.basename(new URL(u).pathname)); execFileSync('curl', ['-sf', '-m', '60', '-o', dich, u]); return dich; }),
   quyen: (MOS2) => [`Edit(/${path.join(MOS2, 'apps/xuong-video')}/**)`, `Write(/${path.join(MOS2, 'apps/xuong-video')}/**)`,
     'Bash(git add apps/xuong-video/*)', 'Bash(git push origin HEAD:main)', `Bash(${HOME}/bin/gh-watch deploy.yml)`,
-    'Bash(npm --prefix apps/xuong-video run typecheck)', 'Bash(node_modules/.bin/tsx:*)', 'Bash(node apps/xuong-video/*)'],
+    'Bash(npm --prefix apps/xuong-video run typecheck)', 'Bash(node_modules/.bin/tsx:*)', 'Bash(node apps/xuong-video/*)',
+    // 17/11/2026 card #1637: Vinh sửa xong mà MỌI lệnh kiểm / commit bị chặn (chế độ dontAsk chỉ khớp ĐÚNG chuỗi) — gõ "cd apps/xuong-video && …",
+    // đường dẫn tuyệt đối của cây, "git add src/…" từ thư mục con. Mở đúng các dạng đó + lệnh đọc / đo hay dùng (cùng cách Thắng 1ee96c895).
+    `Bash(npm --prefix ${path.join(MOS2, 'apps/xuong-video')} run typecheck:*)`, 'Bash(npm --prefix apps/xuong-video run typecheck:*)', 'Bash(npm run typecheck:*)',
+    `Bash(git add ${path.join(MOS2, 'apps/xuong-video')}/*)`, 'Bash(git add src/*)', 'Bash(git add scripts/*)', 'Bash(git pull --rebase origin main)', 'Bash(git pull:*)', 'Bash(git fetch:*)', 'Bash(git rev-parse:*)',
+    'Bash(cd:*)', 'Bash(python3 -c:*)', 'Bash(node -e:*)', 'Bash(find:*)', 'Bash(jq:*)', 'Bash(echo:*)', 'Bash(printf:*)', 'Bash(ffprobe:*)'],
   loiGiao: ({ card, luong, cuoiNguoi, tin, moiAnh, anhMay, ANH, dir: MOS2, cay }) => `Bạn là Vinh, kỹ sư hòm góp ý của Xưởng video (studio.on.tc, công ty AI của anh Tuấn). Anh không ngồi máy: bạn xử tới khi xong, tự kiểm, tự deploy, tự trả lời trong card.
 
 LÀM ĐÚNG LỆNH /tasks-studio: đọc ${MOS2_GOC}/.claude/commands/tasks-studio.md rồi làm theo mục 2 (Xử) và 4 (Báo) cho DUY NHẤT card #${card.id} "${card.title}". Mục 1 (nạp) máy đã làm, luồng card ở dưới.

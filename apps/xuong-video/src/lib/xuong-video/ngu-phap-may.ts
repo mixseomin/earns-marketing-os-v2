@@ -109,7 +109,7 @@ export function apNguPhapMay<T extends ShotNguPhap & { id: number }>(ds: T[], th
 export function dongCoMay<T extends ShotNguPhap & { phan_doan?: string | null; may_3d?: (Parameters<typeof diChuThe>[0] & { nham?: string; khung?: string[]; ong_kinh?: number; vi_tri: { ten: string; an?: boolean; tam: number[]; den?: number[] }[] }) | null }>(ds: T[]) {
   const pd = (c?: T) => c?.phan_doan ?? '';
   return ds.map((c, i) => { const m = c.may_3d; const d = m ? diChuThe(m, m.nham ? [m.nham] : chuThe(m)) : null;
-    return { ...c, di_ngang_cm: d?.ngang ?? null, di_chu_cm: d?.dai ?? null, di_sau_cm: d?.sau ?? null, rong_khung_cm: d?.rong ?? null, cach_may_cm: d?.xa ?? null, may_dat: m?.dat ?? null, may_ong: (m as { ong_kinh?: number } | null)?.ong_kinh ?? null, chu_tam: d?.tam ?? null, // chưa có kế hoạch biểu cảm (và không phải shot móc / hé lộ đọc được từ chữ) = CHƯA BIẾT nhịp, không phải "không có nhịp" — quét 16/11/2026: 21 shot hoạt hình / hài không có
+    return { ...c, di_ngang_cm: d?.ngang ?? null, di_chu_cm: d?.dai ?? null, di_sau_cm: d?.sau ?? null, rong_khung_cm: d?.rong ?? null, cach_may_cm: d?.xa ?? null, // chưa có kế hoạch biểu cảm (và không phải shot móc / hé lộ đọc được từ chữ) = CHƯA BIẾT nhịp, không phải "không có nhịp" — quét 16/11/2026: 21 shot hoạt hình / hài không có
       // bieu_cam bị báo "đẩy vào không có nhịp kịch"
       nhip_kich: nhipKich(c) != null ? true : c.bieu_cam?.length ? false : undefined, cam_doi: c.bieu_cam?.length ? c.bieu_cam.some((b) => b.dau !== b.cuoi) : undefined,
       dau_canh: i === 0 || pd(ds[i - 1]) !== pd(c), cuoi_canh: i === ds.length - 1 || pd(ds[i + 1]) !== pd(c) }; });

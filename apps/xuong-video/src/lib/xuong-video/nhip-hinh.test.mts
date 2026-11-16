@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/nhip-hinh.test.mts
 import assert from 'node:assert';
-import { kiemNhipHinh, daDangMay, mayHopGiay, khongDongCo, diNgangCm, diChuThe, kiemGiayDoc, giayDoc, soShotToiDa, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap } from './nhip-hinh';
+import { kiemNhipHinh, daDangMay, mayHopGiay, khongDongCo, diNgangCm, diChuThe, nhayHinh, kiemGiayDoc, giayDoc, soShotToiDa, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap } from './nhip-hinh';
 // Fox tập 2 (13/10/2026): cỡ cảnh + chuyển động máy 14 shot
 const FOX = [['cu', 'day_vao'], ['cu', 'day_vao'], ['ws', 'tinh'], ['ms', 'tinh'], ['two', 'tinh'], ['ms', 'tinh'], ['ws', 'lui_ra'], ['cu', 'day_vao'], ['cu', 'day_vao'], ['ms', 'tinh'], ['cu', 'tinh'], ['two', 'tinh'], ['ws', 'truot_ngang'], ['ws', 'truot_ngang']]
   .map(([co_canh, chuyen_dong], i) => ({ id: 100 + i, thu_tu: i + 1, ky_thuat: { co_canh, chuyen_dong } }));
@@ -10,13 +10,11 @@ assert.ok(!loi.some((x) => x.includes('máy đứng yên')), 'bỏ trần 40 % s
 // sửa 0đ KHÔNG chữa cắt nhảy bằng đổi máy (luật 30° / 20 mm: đổi chuyển động không cứu được — sửa 16/11/2026 theo nguồn): ba cặp trùng vẫn báo, nút không bịa máy
 const sua = daDangMay(FOX);
 assert.deepStrictEqual(sua, [], JSON.stringify(sua));
-assert.strictEqual(kiemNhipHinh(FOX).filter((x) => x.includes('cắt nhảy')).length, 3);
-// LUẬT 30° / 20 mm có 3D: cùng chủ thể, cùng cỡ, góc máy quanh chủ thể 20° → cắt nhảy dù khác chuyển động; dời 40° hoặc đổi tiêu cự 25 mm → qua
-const j = (dat: number[], ong: number, cd: string) => ({ thu_tu: 1, chu: ['A'], chu_tam: [0, 0, 0], may_dat: dat, may_ong: ong, ky_thuat: { co_canh: 'ms', chuyen_dong: cd } });
-const r = 300, d2 = (deg: number) => [r * Math.sin((deg * Math.PI) / 180), -r * Math.cos((deg * Math.PI) / 180), 150];
-assert.strictEqual(kiemNhipHinh([j(d2(0), 35, 'tinh'), { ...j(d2(20), 35, 'day_vao'), thu_tu: 2 }]).length, 1, 'khác máy vẫn cắt nhảy');
-assert.deepStrictEqual(kiemNhipHinh([j(d2(0), 35, 'tinh'), { ...j(d2(40), 35, 'tinh'), thu_tu: 2 }]), [], 'dời 40° → qua');
-assert.deepStrictEqual(kiemNhipHinh([j(d2(0), 35, 'tinh'), { ...j(d2(10), 60, 'tinh'), thu_tu: 2 }]), [], 'đổi tiêu cự 25 mm → qua');
+assert.strictEqual(kiemNhipHinh(FOX).filter((x) => x.includes('nhảy hình')).length, 3);
+// NHẢY HÌNH dùng chung với làn Dẫn dắt (nhayHinh): cùng người + cùng cỡ + cùng góc → nhảy dù khác chuyển động; khác góc / qua vai ↔ qua vai / khớp hình → không
+assert.ok(nhayHinh({ co_canh: 'ms', chuyen_dong: 'tinh' }, { co_canh: 'ms', chuyen_dong: 'day_vao' }, true), 'khác máy vẫn nhảy hình');
+assert.ok(!nhayHinh({ co_canh: 'ms', goc: 'thap' }, { co_canh: 'ms', goc: 'ngang' }, true)); assert.ok(!nhayHinh({ co_canh: 'ots' }, { co_canh: 'ots' }, true));
+assert.ok(!nhayHinh({ co_canh: 'ms' }, { co_canh: 'ms', chuyen_canh: 'cat_khop' }, true)); assert.ok(!nhayHinh({ co_canh: 'ms' }, { co_canh: 'ms' }, false), 'khác người = shot / ngược shot');
 // MÁY TIẾN CẦN THỜI GIAN (phim #3071, 16/11/2026): 20 shot, 10 shot "đẩy vào" trong đó 6 shot chỉ 1,2–2 s → cú zoom gấp. Cổng đỏ đúng 6 shot ngắn,
 // sửa 0đ đổi đúng 6 shot đó sang máy đứng, shot ngắn không bị ép đi lại vì trần đứng yên
 const P = [[2, 'ws', 'tinh'], [1.2, 'mcu', 'day_vao'], [1.2, 'ws', 'day_vao'], [2, 'cu', 'day_vao'], [1.4, 'mcu', 'tinh'], [2, 'cu', 'day_vao'], [1.6, 'ws', 'tinh'], [3.3, 'cu', 'tinh'], [2.2, 'mcu', 'lia'], [2, 'ms', 'tinh'],

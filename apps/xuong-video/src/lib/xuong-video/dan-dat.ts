@@ -7,6 +7,7 @@ import type { KyThuatShot } from './dien-anh';
 import { kiemKhuon, type ApKhuon, type KetAp } from './khuon-chuoi';
 import type { TheLoai } from './dien-anh';
 import { CU_MAY_LIEN } from './dien-anh-nganh';
+import { nhayHinh } from './nhip-hinh';
 
 export type ShotDanDat = { id: number; thu_tu: number; phan_doan: string; hanh_dong?: string; canh?: string; nhan_vat?: number[]; ky_thuat?: KyThuatShot | null };
 export type CanhDanDat = { ten: string; noi?: string; luc?: string; ngay?: string };
@@ -38,7 +39,7 @@ export function chamCat(a: ShotDanDat, b: ShotDanDat, pc: Map<string, CanhDanDat
   const sangCanh = a.phan_doan !== b.phan_doan;
   if (!sangCanh) {
     // Trừ khung QUA VAI: qua vai A ↔ qua vai B (shot / ngược shot) cùng cỡ, cùng người trong khung nhưng đảo chủ thể — đúng chuẩn, không phải nhảy hình.
-    if (ka.co_canh && ka.co_canh === kb.co_canh && ka.co_canh !== 'ots' && (ka.goc ?? '') === (kb.goc ?? '') && cungNguoi(a, b) && !['nhay', 'lien_may', 'cat_khop'].includes(ka.chuyen_canh ?? ''))
+    if (nhayHinh(ka, kb, cungNguoi(a, b)))   // MỘT điều kiện với cổng nhịp hình (nhip-hinh.ts › nhayHinh)
       tru.push({ ma: 'nhay_hinh', tru: 25, chu: 'hai shot cùng cỡ, cùng góc, cùng người — cắt thành nhảy hình (luật 30°: đổi cỡ ≥ 2 bậc hoặc góc ≥ 30°)' });
     if (NHIN.test(chu(a)) && ['phan_ung', 'chu_quan'].includes(ka.vai ?? '') && cungNguoi(a, b) && kb.vai === 'phan_ung')
       tru.push({ ma: 'nhin_khong_dap', tru: 10, chu: 'shot trước có người NHÌN, shot sau vẫn ở trên mặt họ — chưa cho khán giả thấy thứ được nhìn (khớp hướng nhìn)' });

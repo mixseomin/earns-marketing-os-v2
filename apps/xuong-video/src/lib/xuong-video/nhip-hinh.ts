@@ -79,30 +79,19 @@ export const mayHopGiay = (cd: string | undefined, giay?: number | null): boolea
 /** Hai shot liền nhau trùng cỡ cảnh + chuyển động máy (nhìn như một shot kéo dài). Trừ khi shot sau là CẮT KHỚP HÌNH (chuyen_canh 'cat_khop'):
  *  trùng cỡ + trùng chuyển động ở đó là CỐ Ý — hai hình khác nhau đặt cùng khuôn để nối ý (mặt Gióng → mặt cậu bé, phim mẫu tham-khao/thanh-giong);
  *  đổi chuyển động máy của nó là phá cú khớp (anh 30/10/2026, phim mẫu Little Sơn Tinh). */
-const trungCo = (a: KyThuatShot, b: KyThuatShot) => !!a.co_canh && a.co_canh === b.co_canh && (a.chuyen_dong ?? 'tinh') === (b.chuyen_dong ?? 'tinh') && b.chuyen_canh !== 'cat_khop';
-/** Cùng chủ thể khung (may_3d.khung)? Khác người = shot / reverse shot (cận thằng bé → cận chú, #16 → #17 phim #3071), cắt cùng cỡ là chuẩn ngành, không phải
- *  "một shot kéo dài" — 16/11/2026 luật cũ bắt đổi máy, gán "lia" cho mặt chú đang đứng hình. Không biết chủ thể thì coi như cùng (giữ luật cũ). */
+/** NHẢY HÌNH — luật 30° (luat-dung.ts › luat_30; Wikipedia "30-degree rule"): hai shot liền của CÙNG người, cùng cỡ cảnh, cùng góc máy khai → cú cắt đọc thành nhảy hình.
+ *  Chuyển động máy KHÔNG cứu được (bản cũ "cùng cỡ + cùng máy" coi khác máy là khác shot — sai nguồn). Qua vai (ots) ↔ qua vai là shot / ngược shot, không tính;
+ *  chuyển cảnh nhảy cố ý / liền máy / khớp hình không tính. MỘT điều kiện cho cổng nhịp hình và điểm cắt làn ↪ Dẫn dắt (dan-dat.ts › chamCat). Bản đo góc thật trên 3D:
+ *  bo-set-3d.ts › canhBaoMachTap (luat30), 2D: khong-gian.ts › canhBao2d. */
+export const nhayHinh = (ka: KyThuatShot, kb: KyThuatShot, cungNguoi: boolean): boolean =>
+  !!ka.co_canh && ka.co_canh === kb.co_canh && ka.co_canh !== 'ots' && (ka.goc ?? '') === (kb.goc ?? '') && cungNguoi && !['nhay', 'lien_may', 'cat_khop'].includes(ka.chuyen_canh ?? '') && kb.chuyen_canh !== 'cat_khop';
+/** Cùng chủ thể khung (may_3d.khung)? Khác người = shot / reverse shot (cận thằng bé → cận chú, #16 → #17 phim #3071), cắt cùng cỡ là chuẩn ngành. Không biết chủ thể thì coi như cùng. */
 const cungChu = (a: ShotNhip, b: ShotNhip) => !a.chu?.length || !b.chu?.length || a.chu.some((x) => b.chu!.includes(x));
-/** CẮT NHẢY — luật 30° / 20 mm (Wikipedia "30-degree rule": hai shot liền của CÙNG chủ thể, máy phải dời ≥ 30° quanh chủ thể, hoặc tiêu cự đổi ≥ 20 mm, không thì
- *  cú cắt đọc thành cắt nhảy). Có 3D cả hai shot → đo thật góc máy quanh chủ thể + tiêu cự; chuyển động máy KHÔNG cứu được cắt nhảy (luật cũ coi khác máy là khác shot —
- *  sai nguồn, sửa 16/11/2026). Thiếu 3D → luật cũ (cùng cỡ + cùng máy) vì không đo được góc. */
-const gocQuanh = (a: ShotNhip, b: ShotNhip): number | null => {
-  if (!a.may_dat || !b.may_dat || !a.chu_tam || !b.chu_tam) return null;
-  const va = [a.may_dat[0]! - a.chu_tam[0]!, a.may_dat[1]! - a.chu_tam[1]!], vb = [b.may_dat[0]! - b.chu_tam[0]!, b.may_dat[1]! - b.chu_tam[1]!];
-  const la = Math.hypot(va[0]!, va[1]!), lb = Math.hypot(vb[0]!, vb[1]!); if (la < 1 || lb < 1) return null;
-  return (Math.acos(Math.max(-1, Math.min(1, (va[0]! * vb[0]! + va[1]! * vb[1]!) / (la * lb)))) * 180) / Math.PI;
-};
-const trung = (a: ShotNhip, ka: KyThuatShot, b: ShotNhip, kb: KyThuatShot) => {
-  if (!cungChu(a, b) || kb.chuyen_canh === 'cat_khop') return false;
-  const g = gocQuanh(a, b);
-  if (g != null && a.may_ong && b.may_ong) return g < 30 && Math.abs(a.may_ong - b.may_ong) < 20 && !!ka.co_canh && ka.co_canh === kb.co_canh;
-  return trungCo(ka, kb);
-};
+const trung = (a: ShotNhip, ka: KyThuatShot, b: ShotNhip, kb: KyThuatShot) => nhayHinh(ka, kb, cungChu(a, b));
 /** tranh_day = không chọn chuyển động đẩy vào (san-pham-shot.ts › tranhDayVao: sản phẩm mặc trên người ở cỡ có người). */
 type ShotNhip = { id?: number; thu_tu: number; ky_thuat?: KyThuatShot | null; tranh_day?: boolean; /** giây phát — có thì áp luật máy tiến / lùi cần thời gian */ giay?: number | null; /** chủ thể khung (may_3d.khung) — khác người thì không tính trùng */ chu?: string[] | null;
   /** ĐỘNG CƠ MÁY (khongDongCo) — trống = không xét: quãng đi của chủ thể so với trục máy (diChuThe), shot có nhịp kịch (ngu-phap-may.ts › nhipKich), shot mở / cuối phân cảnh — ngu-phap-may.ts › dongCoMay điền */
-  di_ngang_cm?: number | null; /** quãng đi dài nhất của chủ thể */ di_chu_cm?: number | null; /** dọc trục máy: dương ra xa, âm lại gần */ di_sau_cm?: number | null; /** bề ngang khung tại chủ thể (cm, diChuThe › rong) */ rong_khung_cm?: number | null; /** khoảng cách máy → chủ thể dọc trục máy (cm) */ cach_may_cm?: number | null; /** máy + chủ thể cho luật 30° / 20 mm */ may_dat?: number[] | null; may_ong?: number | null; chu_tam?: number[] | null;
-  nhip_kich?: boolean; /** cảm xúc của người trong khung đổi giữa shot (bieu_cam đầu ≠ cuối); trống = chưa có kế hoạch biểu cảm */ cam_doi?: boolean; dau_canh?: boolean; cuoi_canh?: boolean };
+  di_ngang_cm?: number | null; /** quãng đi dài nhất của chủ thể */ di_chu_cm?: number | null; /** dọc trục máy: dương ra xa, âm lại gần */ di_sau_cm?: number | null; /** bề ngang khung tại chủ thể (cm, diChuThe › rong) */ rong_khung_cm?: number | null; /** khoảng cách máy → chủ thể dọc trục máy (cm) */ cach_may_cm?: number | null;   nhip_kich?: boolean; /** cảm xúc của người trong khung đổi giữa shot (bieu_cam đầu ≠ cuối); trống = chưa có kế hoạch biểu cảm */ cam_doi?: boolean; dau_canh?: boolean; cuoi_canh?: boolean };
 
 
 /** Lỗi nhịp hình của một chuỗi shot (đã xếp theo thứ tự phát). */
@@ -111,7 +100,7 @@ export function kiemNhipHinh(ds: ShotNhip[]): string[] {
   for (let i = 1; i < ds.length; i++) {
     const a = ds[i - 1]!.ky_thuat ?? {}; const b = ds[i]!.ky_thuat ?? {};
     if (trung(ds[i - 1]!, a, ds[i]!, b))
-      out.push(`${TIEN_TO_NHIP_HINH}#${ds[i - 1]!.thu_tu}–#${ds[i]!.thu_tu} cùng cỡ cảnh + cùng chuyển động máy (cắt nhảy — luật 30° / 20 mm) — dời máy ≥ 30° quanh chủ thể hoặc đổi cỡ cảnh; đổi chuyển động máy không cứu được`);
+      out.push(`${TIEN_TO_NHIP_HINH}#${ds[i - 1]!.thu_tu}–#${ds[i]!.thu_tu} cùng cỡ cảnh · cùng góc máy (nhảy hình — luật 30°) — đổi cỡ ≥ 2 bậc hoặc dời máy ≥ 30° quanh chủ thể; đổi chuyển động máy không cứu được`);
   }
   for (const c of ds) if (!mayHopGiay(c.ky_thuat?.chuyen_dong, c.giay))
     out.push(`${TIEN_TO_NHIP_HINH}#${c.thu_tu} máy ${c.ky_thuat?.chuyen_dong} trong ${c.giay} s — dưới ${GIAY_MAY_TIEN} s đọc thành cú zoom gấp: để máy đứng`);

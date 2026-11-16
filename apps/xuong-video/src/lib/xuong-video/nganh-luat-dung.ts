@@ -3,7 +3,7 @@
 // Luật nào không tìm được gốc ngành thì ghi rõ là lệ riêng của studio trong `nguon` — không trình như chuẩn ngành.
 // Gộp vào NGANH (dien-anh-nganh.ts); test dien-anh-nganh.test.mts bắt MỌI luật dựng phải có mục ở đây hoặc ở NGANH.
 import type { NganhKyThuat } from './dien-anh-nganh';
-import { mucNganh as n, GRAMMAR_SHOT, GRAMMAR_EDIT, BLOCK, BROWN_CINE, BROWN_LIGHT, TRUFFAUT, CHION, MCKEE, MURCH, REISZ, MASCELLI, ARIJON, DMYTRYK } from './nguon-nganh';
+import { mucNganh as n, GRAMMAR_SHOT, GRAMMAR_EDIT, BLOCK, BROWN_CINE, BROWN_LIGHT, TRUFFAUT, CHION, MCKEE, MURCH, REISZ, MASCELLI, ARIJON, DMYTRYK, ILLUSION, HOLMAN } from './nguon-nganh';
 
 const BOWEN = `${GRAMMAR_SHOT}; ${GRAMMAR_EDIT}`;
 
@@ -70,7 +70,7 @@ export const NGANH_LUAT: Record<string, { nganh: NganhKyThuat }> = {
     'Mọi chuỗi shot; nặng hơn ở phim ngắn dọc.',
     'Mắt luôn có thứ mới để đọc, không ngấy.',
     'Chuỗi shot cùng cỡ cùng góc (dễ thành jump cut); toàn mặt nói không có hành động.',
-    `${BLOCK}, tương phản / tương đồng; ${MASCELLI} — luật 30°; máy chạy phải có động cơ (Mascelli; Katz — Shot by Shot) — trần 40 % shot đứng yên đã bỏ 16/11/2026`),
+    `${BLOCK}, tương phản / tương đồng; ${MASCELLI} — luật 30°. Trần 40 % shot đứng yên (lệ cũ 13/10/2026) đã bỏ 16/11/2026 — không có nguồn; máy chạy hay đứng theo luat.may_co_dong_co`),
   'luat.nhip_doc': n('Shot duration / reading time (pacing)',
     'Mỗi shot đủ dài để khán giả đọc hết thông tin của nó, không dài hơn.',
     'Shot càng nhiều chi tiết càng cần thời gian; một hành động chính mỗi shot; sau cú bất ngờ giữ phản ứng.',
@@ -168,7 +168,21 @@ export const NGANH_LUAT: Record<string, { nganh: NganhKyThuat }> = {
     'Mọi shot có máy chuyển.',
     'Khán giả không thấy máy — chỉ thấy cảm xúc dâng.',
     'Máy trôi vô cớ cho "điện ảnh"; khung giữa đẹp mà khung kết hụt.',
-    `${BOWEN} — motivated camera movement; ${BROWN_CINE}`),
+    `${BOWEN} — motivated camera movement; ${BROWN_CINE}; ${MASCELLI} — lia khi nó hé lộ thêm (qua bản tóm tắt, chưa đối chiếu nguyên văn); In Depth Cine — push-in là lựa chọn phong cách cho khoảnh khắc then chốt, dùng cho mọi cận thì mất tác dụng; lia / bám để giữ người trong khung (indepthcine.com/videos/4-camera-moves-every-filmmaker-needs-to-know); StudioBinder — tracking shot: dẫn trước = người đi về phía máy, bám sau, đi cạnh (studiobinder.com/camera-shots/camera-movements/tracking-shot); Bordwell — dàn người theo chiều sâu thay cho chạy máy (davidbordwell.net/blog/2010/06/01/the-cross). LỆ RIÊNG STUDIO (không có nguồn): ngưỡng "có đi" = một phần ba bề ngang khung / một phần ba khoảng cách tới máy (thiếu 3D: 150 cm); máy đi chậm ≥ 3 s (đo phim #3071: đẩy 1,2–2 s ra cú zoom gấp); ba cú đẩy liền = lạm dụng; bảng nhịp → máy phim ngắn dọc (anh chốt 17/10/2026)`),
+  'luat.thoai_sinh_kem_giong': n('Lip sync to a pre-recorded dialogue track (dialogue first, picture to sound)',
+    'Thoại thu / sinh trước, hình khớp theo tiếng: miệng mở đúng lúc có tiếng, ngậm khi im; mỗi câu nói đúng một lần.',
+    'Ghi câu thoại nguyên văn đúng một lần; đặt điểm vào shot theo lúc tiếng nói thật bắt đầu; nói chậm hơn giọng gốc thì chỉnh tốc cho miệng xong cùng tiếng.',
+    'Mọi shot có người nói trong khung thấy miệng.',
+    'Khán giả tin người trên màn đang nói — không thấy miệng trôi khỏi tiếng.',
+    'Miệng mấp máy sau khi tiếng đã hết; một câu nói hai lần; người nói quay lưng mà vẫn ép khớp miệng.',
+    `${ILLUSION} — thoại thu trước, hoạt hoạ khớp theo tiếng; ${HOLMAN} — đồng bộ tiếng–hình. LỆ RIÊNG STUDIO: mọi con số (ngưỡng tiếng 15 % / 30 %, tỉ lệ 0,75–1,4, đuôi 2 s, sàn video tham chiếu 1,8 s) đo trên Seedance 2.0, phim #3071 (can-giong.ts, chan-gui-video.ts)`),
+  'luat.co_may_mot_nguon': n('One source for framing & camera move (shot list discipline)',
+    'Cỡ cảnh và chuyển động máy của shot khai MỘT chỗ (ky_thuat); chữ mở / diễn / kết / hướng chỉ tả động tác, nói tới cỡ hay máy thì phải khớp.',
+    'Chữ kết đổi cỡ thì máy phải đổi cỡ (đẩy / lùi / zoom / cẩu / drone) hoặc người tự đi lại gần / ra xa; chữ nói máy (push in, pan, follows, handheld…) phải trùng máy khai; không ghi "cut to" trong một shot; hướng đi trong chữ khớp hướng đi trong 3D.',
+    'Mọi thẻ shot trước keyframe (cổng tiền kỳ) và trước mọi lượt gửi Seedance.',
+    'Model nhận một ý duy nhất — khung ra đúng kịch bản, không tự chọn giữa hai máy.',
+    'Chữ "close on boy" trong shot khai cảnh rộng + lia (phim #3071 #14: model làm ngược); "camera moves toward him" sau khi máy đã đổi sang đứng (#3: cú zoom vào).',
+    `Shot là một khung liền giữa hai cú cắt (en.wikipedia.org/wiki/Jump_cut); thang cỡ cảnh (studiobinder.com/blog/types-of-camera-shots-sizes-in-film); ${BOWEN} — shot list. LỆ RIÊNG STUDIO: dung sai chữ ↔ cỡ khai 1 bậc (chữ hay tả lệch một bậc); luật chữ ↔ máy và hướng đi chữ ↔ 3D đến từ cách Seedance phản ứng (phim #3071), không phải nghề quay`),
   'luat.noi_tap': n('Series continuity (story arc, series bible)',
     'Mỗi tập mới mở từ hậu quả của tập trước; các sợi truyện (bí mật, lời hứa, quan hệ) đi tiếp chứ không đặt lại.',
     'Giữ "kinh thánh" của series: nhân vật, quan hệ, bí mật chưa lộ, đồ vật quan trọng, kết của từng tập; viết tập sau bằng cách đọc nó trước.',

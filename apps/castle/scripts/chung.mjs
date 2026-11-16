@@ -22,11 +22,13 @@ const LOAI = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'applica
 // (đo / kiểm trên mã đang hỏng im lặng cho kết quả sai, đã xảy ra với nan-google.mjs 16/11/2026)
 import { execFileSync } from 'node:child_process';
 function kiemChuThich() { try { execFileSync(process.execPath, [join(GOC, 'scripts', 'kiem-chu-thich.mjs')], { stdio: 'pipe' }); } catch (e) { console.error(String(e.stdout || e.message)); console.error('✗ dừng: có chú thích // nuốt mã trong castle — sửa trước khi đo / kiểm'); process.exit(1); } }
-export async function moTrang({ anh3d = false, them = '', khung = { width: 1600, height: 1200 }, nhanLog = null } = {}) {
+// suaTam: { 'way/…': { y_tren: '…' } } trộn TẠM vào <lâu>-sua.json khi trang nạp (không đổi tệp) — bài phá thử của cham-goc.mjs, chấm bản sửa chưa ghi
+export async function moTrang({ anh3d = false, them = '', khung = { width: 1600, height: 1200 }, nhanLog = null, suaTam = null } = {}) {
   kiemChuThich();
   const may = http.createServer((q, r) => {
     let p = decodeURIComponent(new URL(q.url, 'http://x').pathname); if (p.endsWith('/')) p += 'index.html';
     const f = join(PUB, p); if (!f.startsWith(PUB) || !existsSync(f) || statSync(f).isDirectory()) { r.writeHead(404).end(); return; }
+    if (suaTam && f === du('sua')) { const S = JSON.parse(readFileSync(f, 'utf8')); for (const [id, e] of Object.entries(suaTam)) S[id] = { ...(S[id] || {}), ...e }; r.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(S)); return; }
     r.writeHead(200, { 'Content-Type': LOAI[extname(f)] || 'application/octet-stream' }).end(readFileSync(f));
   });
   // cổng 18777 là cổng DUY NHẤT khoá ảnh 3D nhận → mỗi lúc một lượt đo; lượt khác (Thắng / phiên khác) đang giữ thì XẾP HÀNG chờ tới 20 phút

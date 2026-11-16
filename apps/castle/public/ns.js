@@ -986,16 +986,18 @@ function doKhoiAnh3d(id) {
 // ĐO KHỐI THEO TIA từ camera đang đặt (góc người báo, thẻ #1623): đo từ trên xuống (doKhoiAnh3d) lẫn khối chồng trên mặt bằng (khối cổng đo ra 35 m vì đầu hồi đứng trên).
 // Mỗi mặt tường quay về camera, 7 cột dọc mặt; mỗi cột quét từ trên xuống, bắn tia tới điểm sát trước mặt tường: trúng gần đúng khoảng (±2,5 m) = tường có ở độ cao đó → đỉnh cột;
 // trúng gần hẳn trước khi gặp tường = cột bị che, bỏ. Đo CÙNG cột trên ảnh 3D và trên mô hình → lệch = thật − mô hình (cùng cách đo, tự triệt sai số cách đo).
-function doKhoiTheoTia(id) {
-  const k = dsKhoi.find((q) => q.id === id); if (!k || !anh3d || k.yTren == null) return null;
-  camera.updateMatrixWorld(); const C = camera.position.clone(), DICH = anh3d.goc.position.y || 0, rc = new THREE.Raycaster(), d3 = new THREE.Vector3(), SAI = 2.5;
+// kho (tuỳ chọn): bộ nhớ đỉnh ẢNH THẬT theo cột "x,z" ở camera này — ảnh 3D không đổi khi sửa mô hình, nên lượt chấm sau chỉ bắn tia vào mô hình,
+// không cần tải ảnh 3D (trọng tài 55 phút → vài phút). Cột chưa có trong kho mà không có ảnh 3D thì bỏ.
+function doKhoiTheoTia(id, kho = null) {
+  const k = dsKhoi.find((q) => q.id === id); if (!k || (!anh3d && !kho) || k.yTren == null) return null;
+  camera.updateMatrixWorld(); const C = camera.position.clone(), DICH = anh3d?.goc.position.y || 0, rc = new THREE.Raycaster(), d3 = new THREE.Vector3(), SAI = 2.5;
   const giu = LOP_OSM.map((m) => m.visible); for (const m of LOP_OSM) m.visible = true;
   const anHien = (o) => { for (let q = o; q; q = q.parent) if (q.visible === false) return false; return true; };
   const trungMH = (dist) => rc.intersectObjects(LOP_OSM.filter((m) => m.isObject3D), true).find((x) => anHien(x.object))?.distance ?? Infinity;
   const trungThat = () => rc.intersectObject(anh3d.t.group, true)[0]?.distance ?? Infinity;
   const y0 = Math.max(Number.isFinite(k.yDuoi) ? k.yDuoi : -1e9, k.yTren - 22), y1 = k.yTren + 14;
-  const dinhCot = (px, pz, lop, dy) => {
-    for (let y = y1; y >= y0; y -= 0.3) { d3.set(px, y + dy, pz).sub(C); const dist = d3.length(); rc.set(C, d3.normalize()); rc.far = dist + 40;
+  const dinhCot = (px, pz, lop, dy, tu = y1) => {
+    for (let y = tu; y >= y0; y -= 0.3) { d3.set(px, y + dy, pz).sub(C); const dist = d3.length(); rc.set(C, d3.normalize()); rc.far = dist + 40;
       const h = lop === 'that' ? trungThat() : trungMH(); if (Math.abs(h - dist) <= SAI) return y; if (h < dist - SAI) return null; }
     return null; };
   const cot = [];
@@ -1003,7 +1005,9 @@ function doKhoiTheoTia(id) {
     let nx = dz / L, nz = -dx / L; const mx = (ax + bx) / 2, mz = (az + bz) / 2; if (trongDa(mx + nx * 0.5, mz + nz * 0.5, k.v)) { nx = -nx; nz = -nz; }
     if ((C.x - mx) * nx + (C.z - mz) * nz <= 0) continue;
     const nCot = L < 1.5 ? 1 : 7; for (let j = 0; j < nCot; j++) { const t = nCot === 1 ? 0.5 : 0.12 + j * 0.76 / 6, px = ax + dx * t + nx * 0.3, pz = az + dz * t + nz * 0.3;
-      const mh = dinhCot(px, pz, 'mh', 0), th = dinhCot(px, pz, 'that', DICH); if (mh != null && th != null) cot.push({ mh, th, canh: i }); } }
+      const khoa = px.toFixed(1) + ',' + pz.toFixed(1); let th;
+      if (kho && khoa in kho) th = kho[khoa]; else if (anh3d) { th = dinhCot(px, pz, 'that', DICH, k.yTren + 25); if (kho) kho[khoa] = th; } else continue;
+      const mh = dinhCot(px, pz, 'mh', 0); if (mh != null && th != null) cot.push({ mh, th, canh: i }); } }
   LOP_OSM.forEach((m, i) => { m.visible = giu[i]; });
   const nhon0 = !['flat', ''].includes(k.tags['roof:shape'] || ''), duoiMai = k._y1 ?? (k.yTren - (so(k.tags['roof:height']) ?? 0));
   const tho = cot.length; cot.splice(0, cot.length, ...cot.filter((c) => nhon0 ? c.mh <= k.yTren + 1 && c.mh >= duoiMai - 1.5 : Math.abs(c.mh - k.yTren) <= 1.5));

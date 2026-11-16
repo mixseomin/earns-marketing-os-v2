@@ -13,7 +13,7 @@
 // tra-repo-ok: keo nội bộ trên dữ liệu riêng của cảnh (Playwright qua chung.mjs).
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { GOC, du, moTrang } from './chung.mjs';
+import { GOC, LAU, du, moTrang } from './chung.mjs';
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
 const TEP_GOC = du('goc-chuan'), RA = join(GOC, '.cham-goc'); mkdirSync(RA, { recursive: true });
 const NGUONG = 1.5;
@@ -54,18 +54,29 @@ const chon = arg('--goc')?.split(','), GOCS = JSON.parse(readFileSync(TEP_GOC, '
 const theoKhoi = {};
 // --nho <thư mục>: nhớ số đo từng góc (trong-tai.mjs đặt thư mục theo nội dung bản sửa) — lượt bị cắt giữa chừng chạy lại chỉ đo góc còn thiếu (#1624: trọng tài 9 góc bị cắt ở phút 54)
 const NHO_GOC = arg('--nho'); if (NHO_GOC) mkdirSync(NHO_GOC, { recursive: true });
+// KHO TIA ẢNH THẬT (apps/castle/du-lieu-goc/<lâu>-tia-that.json, theo góc → cột "x,z" → đỉnh thật): góc nào kho đủ thì đo không cần ảnh 3D (chỉ bắn tia vào mô hình,
+// một trang dùng chung) — trọng tài vài phút thay vì ~55 phút. Góc mới / khối dời mặt bằng → cột thiếu → góc đó đo đủ bằng ảnh 3D và bổ sung kho. --lai: bỏ kho, đo lại hết.
+const TEP_KHO = join(GOC, 'du-lieu-goc', `${LAU}-tia-that.json`), KHO = !process.argv.includes('--lai') && existsSync(TEP_KHO) ? JSON.parse(readFileSync(TEP_KHO, 'utf8')) : {};
+let trangNhanh = null; const moNhanh = async () => (trangNhanh ||= await moTrang({ anh3d: false, khung: { width: 1280, height: 800 }, suaTam }));
 for (const g of GOCS) { const tepG = NHO_GOC && join(NHO_GOC, g.ten + '.json'), t0 = Date.now(); let r;
   if (tepG && existsSync(tepG)) r = JSON.parse(readFileSync(tepG, 'utf8'));
-  else { const { pg, dong } = await mo();
-  r = await pg.evaluate(async (cam) => { const n = window.__ns; await n.chupHaiBan({ ...cam, w: innerWidth, h: innerHeight }); await n.batAnh3dTam(true);
+  else if (KHO[g.ten]) { const { pg } = await moNhanh();
+    const o = await pg.evaluate(([cam, kho]) => { const n = window.__ns, C = n.camera, [x, y, z] = cam.p, [dx, dy, dz] = cam.d; C.fov = cam.fov; C.aspect = innerWidth / innerHeight; C.updateProjectionMatrix();
+      C.position.set(x, y, z); C.lookAt(x + dx * 50, y + dy * 50, z + dz * 50); C.updateMatrixWorld(); const tr = Object.keys(kho).length;
+      const ra = n.khoiTrongVung([[0, 0, 1, 1]]).map((k) => n.doKhoiTheoTia(k.id, kho)).filter(Boolean); return { ra, thieu: Object.keys(kho).length > tr }; }, [g, KHO[g.ten]]);
+    r = o.ra; if (tepG) writeFileSync(tepG, JSON.stringify(r)); }
+  else { const { pg, dong } = await mo(); const kho = {};
+  r = await pg.evaluate(async ([cam, kho]) => { const n = window.__ns; await n.chupHaiBan({ ...cam, w: innerWidth, h: innerHeight }); await n.batAnh3dTam(true);
     const C = n.camera, [x, y, z] = cam.p, [dx, dy, dz] = cam.d; C.fov = cam.fov; C.updateProjectionMatrix(); C.position.set(x, y, z); C.lookAt(x + dx * 50, y + dy * 50, z + dz * 50); C.updateMatrixWorld();
-    const ra = n.khoiTrongVung([[0, 0, 1, 1]]).map((k) => n.doKhoiTheoTia(k.id)).filter(Boolean); await n.batAnh3dTam(false); return ra; }, g);
+    const ra = n.khoiTrongVung([[0, 0, 1, 1]]).map((k) => n.doKhoiTheoTia(k.id, kho)).filter(Boolean); await n.batAnh3dTam(false); return { ra, kho }; }, [g, kho]);
+  KHO[g.ten] = r.kho; r = r.ra; if (!pha) writeFileSync(TEP_KHO, JSON.stringify(KHO));
   await dong();
   await new Promise((ok) => setTimeout(ok, 15000));
   if (tepG) writeFileSync(tepG, JSON.stringify(r)); }
   let tin = 0; for (const x of r) { if (!(x.so >= 4) || x.trai > 3) continue; tin++; (theoKhoi[x.id] ||= { ten: x.ten || '', y: x.dinhMoHinh, do: [] }).do.push({ goc: g.ten, lech: x.lech, so: x.so }); }
   console.log(`góc ${g.ten}: ${r.length} khối thấy, ${tin} khối đo tin được · ${((Date.now() - t0) / 1000).toFixed(0)} giây`);
 }
+if (trangNhanh) await trangNhanh.dong();
 const tv = (a) => { const s = [...a].sort((x, y) => x - y); return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2; };
 const khoi = Object.entries(theoKhoi).map(([id, k]) => ({ id, ten: k.ten, y_tren: k.y, lech: +tv(k.do.map((d) => d.lech)).toFixed(2), goc: k.do.length, chi_tiet: k.do })).sort((a, b) => Math.abs(b.lech) - Math.abs(a.lech));
 const lechNang = khoi.filter((k) => Math.abs(k.lech) >= NGUONG), tb = khoi.length ? khoi.reduce((t, k) => t + Math.abs(k.lech), 0) / khoi.length : 0;

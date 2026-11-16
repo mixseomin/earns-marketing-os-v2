@@ -73,9 +73,9 @@ export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoSho
       )}
       <Loi>{loi}</Loi>
       {daSua && <div style={{ fontSize: 12, color: '#4ade80', marginTop: 6 }}>{daSua}</div>}
-      {/* Đã đạt → chỉ một dòng kết quả, bài kể lại gập sau ▾ (YDNI luật 5); chưa đạt thì luôn bày ra để sửa. */}
-      {t && dat && !cu && <button type="button" className="xv-lienket xv-mono" style={{ marginTop: 4 }} onClick={() => setXemChiTiet(!xemChiTiet)}>{xemChiTiet ? '▴ gập' : '▾ xem người xem kể lại'}</button>}
-      {t && (!dat || cu || xemChiTiet) && (
+      {/* Bài kể lại + chỗ vấp LUÔN gập sau ▾ (góp ý #1635: bày sẵn thì khung chiếm nửa màn timeline); nút ghi số chỗ vấp để vẫn thấy còn việc sửa. */}
+      {t && <button type="button" className="xv-lienket xv-mono" style={{ marginTop: 4 }} onClick={() => setXemChiTiet(!xemChiTiet)}>{xemChiTiet ? '▴ gập' : `▾ xem người xem kể lại${t.cho_kho.length ? ` · ${t.cho_kho.length} chỗ vấp` : ''}`}</button>}
+      {t && xemChiTiet && (
         <div style={{ display: 'grid', gap: 6, marginTop: 8, fontSize: 12, lineHeight: 1.5, opacity: cu ? 0.6 : 1 }}>
           <div><b>Người xem kể lại:</b> {t.ke_lai}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '2px 10px' }}>

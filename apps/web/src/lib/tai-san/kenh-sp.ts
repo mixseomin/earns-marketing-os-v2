@@ -83,12 +83,12 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
   return may.map((m) => {
     const ds: SoNgayKenh[] = so.filter((r) => r.san_pham === `may:${m.ma}`).map((r) => ({ ngay: r.ngay.slice(0, 10), xem: Number(r.hien), daDang: Number(r.so_muc), nguoiDk: r.nguoi_dk == null ? null : Number(r.nguoi_dk) }));
     const handle = (m.dang ?? []).find((x) => x.nen === 'youtube')?.br?.handle, l = lichKenhHs(hs[m.ma], hom, gioNay);
-    const cua = vids.filter((v) => v.ma === m.ma).map((v) => (loai === 'social' ? baiSocial(v, hom) : { ...v, nen: undefined as string[] | undefined }));
+    const cua = vids.filter((v) => v.ma === m.ma).map((v) => (loai === 'social' ? baiSocial(v, hom) : { ...v, nen: undefined as string[] | undefined, nenSp: baiSocial(v, hom).nen }));   // góp ý #1625: kênh sản phẩm cũng mang nền đã lên (YouTube + Facebook…) cho icon dòng bài
     const videos = cua.map((v) => ({ slug: v.slug, ten: v.ten.replace(/\s*#shorts\s*/i, ''), ngayLam: v.ngay_lam, trangThai: changVideo({ daDang: v.da_dang, xuat: v.xuat, cham: v.cham }),
       ngayDang: v.ngay?.slice(0, 10) ?? null, url: v.url, tep: v.tep, xem: v.xem, giay: v.giay == null ? null : Number(v.giay),
       // tập không ghi playlist (làm trước G1) của kênh chỉ MỘT playlist → playlist đó (cùng luật playlist.mjs › playlistCuaTap)
       mau: v.mau, yTuong: v.y_tuong, suaLai: v.cham === 'SUA_LAI' && !v.da_dang && v.xuat ? suaLaiGiaiDoan(v.slug, v.chan, v.cham_luc) : null,
-      playlist: v.playlist ?? (hs[m.ma]?.playlist?.length === 1 ? hs[m.ma]!.playlist![0]!.ma : null), ...(v.nen ? { nen: v.nen, dangBai: v.dang_bai ?? (v.de_loai && DANG_TEN[v.de_loai] ? v.de_loai : null) ?? lt[m.ma]?.dang_mac_dinh ?? null } : {}) }));
+      playlist: v.playlist ?? (hs[m.ma]?.playlist?.length === 1 ? hs[m.ma]!.playlist![0]!.ma : null), ...(v.nen ? { nen: v.nen, dangBai: v.dang_bai ?? (v.de_loai && DANG_TEN[v.de_loai] ? v.de_loai : null) ?? lt[m.ma]?.dang_mac_dinh ?? null } : 'nenSp' in v && v.nenSp.length ? { nen: v.nenSp, dangBai: null as string | null } : {}) }));
     // kênh social: chờ đăng / đã đăng / đăng cuối tính trên MỌI nền (cột SQL ở trên chỉ đếm YouTube — đúng cho kênh sản phẩm)
     const xa = loai === 'social' ? { ten: lt[m.ma]?.ten ?? m.ten, choDang: cua.filter((v) => v.tep && !v.da_dang).length, daDang: cua.filter((v) => v.da_dang).length,
       dangCuoi: cua.map((v) => v.nen?.length ? v.ngay : null).filter((x): x is string => !!x).sort().at(-1) ?? null, siteDich: m.site_dich,

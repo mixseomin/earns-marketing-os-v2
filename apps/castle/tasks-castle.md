@@ -85,4 +85,4 @@ Người xem bấm 🔍 ở một góc: trang chụp hai bản cùng camera (mô
 node /Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/castle/scripts/so-lech.mjs --the <id>
 ```
 → dựng lại đúng camera (vị trí, hướng, góc nhìn, zoom, khổ), chụp lại hai bản, so viền trời + màu khối + đường nét, ra bảng vùng lệch xếp hạng (vùng trong nét tô lên đầu),
-mỗi vùng dò ra mặt tường OSM `khối#cạnh` + toạ độ; ảnh `apps/castle/.bao-lech/<id>/bao-cao.png` (khung đỏ đánh số). Sửa theo QUY-TRINH.md (khung → vị trí → tương quan → hoa văn), chạy lại lệnh tới khi vùng đó hết đứng đầu.
+mỗi vùng dò ra mặt tường OSM `khối#cạnh` + toạ độ; lệnh này làm nút 🔍 trên trang NHÚN (đang xử). **Sửa + deploy xong bắt buộc báo:** `node /Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/castle/scripts/so-lech.mjs --xong <id> "<đã sửa gì>"` → nút nháy xanh + thẻ báo cáo cho người báo (castle-kenh /mp/lech); ảnh `apps/castle/.bao-lech/<id>/bao-cao.png` (khung đỏ đánh số). Sửa theo QUY-TRINH.md (khung → vị trí → tương quan → hoa văn), chạy lại lệnh tới khi vùng đó hết đứng đầu.

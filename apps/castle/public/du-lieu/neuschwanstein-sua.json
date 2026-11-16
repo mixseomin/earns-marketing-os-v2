@@ -71,7 +71,7 @@
   "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): cánh gạch đỏ: như way/223110818",
   "roof:height": "1.2",
   "roof:colour": "#6f9a8c",
-  "ly_do3": "ảnh Commons neuschwanstein-9: cánh bắc nhìn từ sân dưới có mái đồng xanh thấp (mặt đông khuất sau răng cưa)"
+  "ly_do3": "ảnh Commons neuschwanstein-9: cánh nam nhìn từ sân dưới có mái đồng xanh thấp (mặt đông khuất sau răng cưa)"
  },
  "way/221599083": {
   "roof:shape": "flat",
@@ -84,5 +84,20 @@
   "vong_rang": "yes",
   "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): tháp tròn góc: như way/221599083",
   "cua_thap": "3"
+ },
+ "way/221600217": {
+  "neo_mat_dat": [
+   [
+    35.2,
+    0.0,
+    18.58
+   ],
+   [
+    29.5,
+    -11.2,
+    19.08
+   ]
+  ],
+  "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới: KHUNG mặt tây cánh nam cao/rộng 0,946 → chân tường = mái hiên 28,7 − 0,946 × 10,7 = 18,6 m; cửa trong lối cổng cao hơn chân cánh nam 0,54 m (30 px)"
  }
 }

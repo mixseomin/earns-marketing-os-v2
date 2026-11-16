@@ -2623,76 +2623,81 @@
   "ly_do": "dò ảnh 3D + soát mắt: nhóm ba cửa vòm"
  },
  "way/223110825#6": {
-  "hang": [
+  "khung": true,
+  "hang_khung": [
    {
-    "y0": 24.3,
-    "y1": 26.1,
+    "v0": 0.611,
+    "v1": 0.796,
     "cum": [
      [
-      0.95,
-      2.65,
+      0.07,
+      0.25,
       2
      ],
      [
-      3.85,
-      5.55,
+      0.355,
+      0.54,
       2
      ],
      [
-      6.35,
-      8.05,
+      0.665,
+      0.88,
       2
+     ]
+    ]
+   },
+   {
+    "v0": 0.159,
+    "v1": 0.331,
+    "cum": [
+     [
+      0.115,
+      0.188,
+      1
      ],
      [
-      9.0,
-      9.8,
+      0.415,
+      0.489,
       1
      ]
     ]
    },
    {
-    "y0": 18.0,
-    "y1": 20.3,
+    "v0": 0.0,
+    "v1": 0.292,
     "cum": [
      [
-      4.3,
-      5.1,
-      1
-     ],
-     [
-      6.6,
-      7.4,
-      1
-     ],
-     [
-      9.0,
-      9.8,
-      1
-     ]
-    ]
-   },
-   {
-    "y0": 14.8,
-    "y1": 17.6,
-    "cum": [
-     [
-      1.0,
-      2.0,
+      0.762,
+      0.836,
       1
      ]
     ]
    }
   ],
-  "mai": [],
-  "yHien": null,
-  "ly_do": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m: cánh bắc — tầng trên 3 cửa đôi + 1 đơn, tầng dưới 3 cửa + cửa đi",
+  "o_tron_khung": [
+   [
+    0.157,
+    0.862,
+    0.27
+   ],
+   [
+    0.439,
+    0.862,
+    0.27
+   ],
+   [
+    0.774,
+    0.862,
+    0.27
+   ]
+  ],
+  "rang_cua": 0,
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 23.4
+   "v": 0.54
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m",
-  "rang_cua": 0
+  "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới (gần chính diện): mặt tây cánh nam — toạ độ khung u (trái→phải nhìn từ sân) / v (chân→mái hiên): tầng trên 3 cửa đôi (tâm u .10/.21 · .39/.50 · .70/.85, sill v .61, đỉnh v .80), tầng dưới 2 cửa (u .15 .45, v .16–.33) + cửa đi (u .80, v 0–.29), 3 ô tròn (u .16 .44 .77, v .86), gờ đổi màu v .54"
  },
  "way/1573767740#0": {
   "hang": [
@@ -2924,7 +2929,7 @@
     ]
    }
   ],
-  "ly_do": "ảnh Mapillary 360° 493003245182754 (cánh bắc cổng Torbau, phương vị 290–320° từ chỗ đặt máy): tầng trên 2 cửa đôi vòm, tầng dưới 2 cửa đơn, giữa là 4 neo hoa huệ; cao độ theo tỉ lệ trên ảnh × tường 11 → 27,8 m",
+  "ly_do": "ảnh Mapillary 360° 493003245182754 (cánh nam cổng Torbau, phương vị 290–320° từ chỗ đặt máy): tầng trên 2 cửa đôi vòm, tầng dưới 2 cửa đơn, giữa là 4 neo hoa huệ; cao độ theo tỉ lệ trên ảnh × tường 11 → 27,8 m",
   "o_vuong": [
    [
     0.9,
@@ -2973,47 +2978,61 @@
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 23.4
+   "y": 24.0
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m"
+  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m"
  },
  "way/223110818#10": {
   "hang": [],
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 23.4
+   "y": 24.0
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m"
+  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m"
  },
  "way/223110820#5": {
   "hang": [],
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 23.4
+   "y": 24.0
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m"
+  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m"
  },
  "way/223110820#6": {
-  "hang": [],
-  "mau": {
-   "duoi": "#e9e7e1",
-   "tren": "#d7b46e",
-   "y": 23.4
-  },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m"
- },
- "way/223110820#7": {
-  "hang": [
+  "khung": true,
+  "hang_khung": [
    {
-    "y0": 24.4,
-    "y1": 26.3,
+    "d0": 1.3,
+    "d1": 3.0,
     "cum": [
      [
-      -1.2,
-      1.2,
-      3
+      0.85,
+      1.05,
+      1
+     ]
+    ]
+   },
+   {
+    "d0": 6.0,
+    "d1": 7.5,
+    "cum": [
+     [
+      0.85,
+      1.05,
+      1
+     ]
+    ]
+   },
+   {
+    "d0": 10.4,
+    "d1": 11.7,
+    "cum": [
+     [
+      0.85,
+      1.05,
+      1
      ]
     ]
    }
@@ -3021,69 +3040,97 @@
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 23.4
+   "y": 24.0
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m",
-  "ban_cong": [
+  "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới, thước 55,8 px/m, gốc chân vòm cổng (y 1035): cột cửa đơn bên phải vòm (ảnh cách tâm vòm 4,3 m; cạnh OSM chỉ dài 3,6 m → đặt sát đầu phải): 3 tầng 1,3–3,0 / 6,0–7,5 / 10,4–11,7 m"
+ },
+ "way/223110820#7": {
+  "khung": true,
+  "hang_khung": [
+   {
+    "d0": 6.0,
+    "d1": 7.8,
+    "cum": [
+     [
+      0.69,
+      1.31,
+      3
+     ]
+    ]
+   },
+   {
+    "d0": 10.4,
+    "d1": 12.1,
+    "cum": [
+     [
+      0.62,
+      1.38,
+      3
+     ]
+    ]
+   }
+  ],
+  "ban_cong_khung": [
    [
-    0,
-    24.15,
-    3.4,
-    0.9
+    1.0,
+    10.1,
+    4.0,
+    1.0
    ]
   ],
-  "ly_do": "ảnh Commons neuschwanstein-9: ban công lồi 3 cửa vòm ngay trên vòm cổng (tâm cổng = đỉnh 0 của cạnh này, mặt ngoài cùng)"
+  "dong_ho_khung": [
+   [
+    1.0,
+    14.2,
+    0.42
+   ]
+  ],
+  "mau": {
+   "duoi": "#e9e7e1",
+   "tren": "#d7b46e",
+   "y": 24.0
+  },
+  "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới, thước 55,8 px/m, gốc chân vòm cổng (y 1035): khối giữa (tâm vòm = đỉnh p của cạnh, u 1): cửa ba vòm 6,0–7,8 m, ban công lồi sàn 10,1 m rộng 4,0 m, hàng ba vòm trên ban công 10,4–12,1 m, đồng hồ tâm 14,2 m"
  },
  "way/223110820#8": {
   "hang": [],
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 23.4
+   "y": 24.0
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m"
+  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m"
  },
  "way/223110823#8": {
   "hang": [],
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 23.4
+   "y": 24.0
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m",
+  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m",
   "ly_do": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m: trên vòm cổng ban công lồi 3 cửa vòm"
  },
  "way/223110825#7": {
-  "hang": [],
+  "rang_cua": 0,
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 23.4
+   "y": 24.0
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m",
-  "rang_cua": 0
+  "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới (55,8 px/m): khối giữa phía nam cổng: một cửa tầng trên + một cửa tầng dưới, cách tâm vòm cổng 4,3 m",
+  "ly_do_mau": " · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m",
+  "hang": []
  },
  "way/951894999#4": {
-  "hang": [
-   {
-    "y0": 30.6,
-    "y1": 32.2,
-    "cum": [
-     [
-      1.9,
-      3.4,
-      2
-     ]
-    ]
-   }
-  ],
   "mau": {
    "duoi": "#d7b46e",
    "tren": "#d7b46e",
    "y": 0
   },
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m; đầu hồi bậc mặt tây sa thạch vàng",
-  "ly_do": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m: đầu hồi — cửa đôi dưới đồng hồ"
+  "ly_do": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m: đầu hồi — cửa đôi dưới đồng hồ",
+  "hang": []
  },
  "way/951894999#5": {
   "hang": [],
@@ -3092,13 +3139,6 @@
    "tren": "#d7b46e",
    "y": 0
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m; đầu hồi bậc mặt tây sa thạch vàng",
-  "dong_ho": [
-   [
-    0.3,
-    36.0,
-    0.55
-   ]
-  ]
+  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m; đầu hồi bậc mặt tây sa thạch vàng"
  }
 }

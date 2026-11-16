@@ -30,17 +30,18 @@ Công cụ chạy trên **iMac** (có trình duyệt). Lõi chung: `scripts/chun
 7. **Soát + sửa:** xem ảnh `cua-*.png` (khung vẽ chồng), sửa số liệu sai trong `<tên>-cua-so.json` (mỗi sửa ghi `ly_do`). Mặt có ảnh chụp rõ thì đo trên ảnh chụp như mặt sân Palas (`<tên>-mat-*.json`, kiểm bằng `python3 scripts/kiem-mat-tien.py`).
 8. Chi tiết đặc biệt (tháp góc, ban công, tranh, đầu hồi): đo điểm ảnh trên ảnh có lưới 10 px, ghi tệp bố cục, dựng hoàn toàn từ tệp (`mattien.js`), không số viết tay trong mã.
 
-### 3b. Kiểm kê theo VÙNG (chi tiết đếm được → hoa văn)
+### 3b. Dựng từng mảng tường: KHUNG → VỊ TRÍ → TƯƠNG QUAN → HOA VĂN (bắt buộc theo thứ tự)
 
-Mỗi ảnh mặt tiền chia thành **vùng** trước khi dựng: `dinh` (răng cưa, tháp canh, đầu hồi) · `than_tren` · `than_duoi` · `chan` (hoặc `toan` cho tháp tròn), theo độ cao tuyệt đối toạ độ cảnh.
-Trong từng vùng quét theo thứ tự cố định:
-1. **Thành phần đếm được**: cửa sổ (`cua_so`), cổng (`cong_vom`, `canh_cua`), ô cửa vuông (`o_vuong`), cửa mái (`cua_mai`), chóp, tháp canh, răng cưa (`rang_cua`), đầu hồi bậc (`hoi_bac`).
-2. **Hoa văn / hoạ tiết**: huy hiệu, gờ ngang (`go_ngang`), dải vòm nhỏ (`vom_nho`), đá góc (`da_goc`), neo sắt (`neo`), vành răng cưa tháp (`vong_rang`).
+1. **KHUNG tổng thể mảng tường khớp ảnh TRƯỚC mọi chi tiết.** Đo trên ảnh gần chính diện (kẻ lưới, lấy thước từ một thứ biết cỡ — ô cửa, vòm cổng): mép trái / phải, chân tường, mái hiên, đỉnh (răng cưa / đầu hồi), chỗ lùi / nhô của từng khối. Ghi tỉ lệ `cao/rộng` vào `<tên>-kiem-ke.json` (`"khung": { "mat": "khối#cạnh", "ti_le_cao_rong": … }`).
+   Khung lệch (> 6 %) thì sửa NGUỒN của khung, không xê dịch chi tiết bù: mặt đất trước tường (neo `neo_mat_dat` của sân trong `<tên>-sua.json`), chiều cao khối (sua.json), mốc chân nhà. Mốc chân nhà tính trên mặt đất ĐO GỐC — san sân / đường không được kéo khối nhà lên xuống.
+2. **Thành phần ĐẾM ĐƯỢC + VỊ TRÍ trong khung.** Mỗi mặt chia vùng (`dinh`, `than_tren`, `than_duoi`, `chan`, hoặc `toan`) — ranh vùng ghi theo khung (`tu_v` / `den_v`, 0 chân → 1 mái hiên), không ghi mét tuyệt đối.
+   Đếm cửa sổ, cổng, cửa đi, ô vuông, ô tròn, cửa mái, tháp canh, răng cưa… và đo VỊ TRÍ từng cái theo toạ độ khung: **u** 0 trái → 1 phải nhìn từ ngoài, **v** 0 chân → 1 mái hiên.
+   Số đo dựng ghi THẲNG theo khung trong `<tên>-cua-so.json` (`"khung": true`, `hang_khung` [{v0, v1, cum: [[u0, u1, số ô]]}], `o_tron_khung`, `o_vuong_khung`, `mau.v`) — mô hình tự đổi sang mét theo khung của chính mặt đó. **Cấm tự đổi tay u, v sang mét**: khung đổi là cả mặt lệch.
+3. **TƯƠNG QUAN giữa các thành phần**: thẳng cột (ô tròn trên cửa, huy hiệu trên vòm), cùng hàng, đối xứng — ghi `quan_he` trong vùng (`["thang_cot", A, B]`, `["cung_hang", A]`).
+4. **HOA VĂN / HOẠ TIẾT** sau cùng: huy hiệu, gờ ngang, dải vòm nhỏ, đá góc, neo sắt, vành răng cưa, ban công, đồng hồ (`trangtri.js`; thẻ khối trong sua.json: `rang_cua`, `vom_nho`, `da_goc`, `thap_canh`, `vong_rang`, `cua_thap`, `go_y`; theo mặt trong cua-so.json: `rang_cua` (số / 0 = không), `vom_nho`, `neo_y`, `o_vuong`, `o_tron`, `ban_cong`, `dong_ho`, `mau` hai tầng).
 
-Ghi số đếm vào `public/du-lieu/<tên>-kiem-ke.json` (mỗi mặt: nhóm cạnh OSM `khối#cạnh`, ảnh nguồn, vùng `tu`–`den`, `dem` theo loại). Chi tiết dựng bằng `trangtri.js`
-(thẻ trong `<tên>-sua.json`: `rang_cua`, `vom_nho`, `da_goc`, `thap_canh`, `vong_rang`, `cua_thap`, `go_y`, `neo_y`; số đếm từng mặt trong `<tên>-cua-so.json`: `rang_cua`, `vom_nho`, `o_vuong`).
-Mọi chi tiết mô hình tự ghi sổ (`window.__ns.kiemKe()`); `node scripts/kiem-ke.mjs --lau <tên>` so từng vùng → THIẾU / thừa / khớp, thoát 1 khi còn THIẾU.
-Một mặt chỉ coi là xong khi kiểm kê khớp hết **và** chụp đúng chỗ đặt máy ảnh đặt cạnh ảnh thật không còn chi tiết khoanh được là thiếu.
+Kiểm: `node apps/castle/scripts/kiem-ke.mjs --lau <tên>` → theo từng mặt: KHUNG (lệch %), số lượng từng vùng (THIẾU / thừa), VỊ TRÍ (lệch lớn nhất % khung, > 6 % là SAI), TƯƠNG QUAN; thoát 1 khi còn bất kỳ lỗi nào.
+Mỗi mặt chỉ xong khi: kiểm kê sạch **và** chụp mô hình từ đúng chỗ đặt máy, đặt cạnh ảnh thật, không còn chỗ khoanh ra được. Nhầm hướng: trục z của cảnh hướng NAM (z = −(vĩ độ − vĩ độ tâm) × 111 320) — kiểm hướng trước khi đặt tên "bắc / nam".
 
 ## 4. Kiểm toàn cảnh
 
@@ -49,5 +50,7 @@ Một mặt chỉ coi là xong khi kiểm kê khớp hết **và** chụp đúng
 11. Lặp 1–10 tới khi: kiểm cụm cửa đạt hết, kiểm viền ≥ 80 % cột khớp, chồng ảnh 50 % không lệch thấy được.
 
 ## 5. Không lùi
+
+**Sau MỌI lần sửa mã castle:** `node apps/castle/scripts/kiem-chu-thich.mjs` (chú thích `//` nuốt mã — `node --check` không bắt được khi phần bị nuốt vẫn đúng cú pháp; tự kiểm `--tu-kiem`). Khi sửa bằng thay chuỗi: chú thích mới đặt trên DÒNG RIÊNG, không nối vào cuối đoạn thay.
 
 Sau mỗi nhịp: cầu thang / nội thất, leo + cửa sổ trèo vào, điều khiển điện thoại (bài thử trong phiên), đo tải điện thoại (tam giác, lệnh vẽ). Ghi mã băm box3 = iMac sau deploy.

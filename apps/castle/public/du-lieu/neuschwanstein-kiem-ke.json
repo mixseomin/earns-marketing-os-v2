@@ -16,9 +16,10 @@
     "dinh": {
      "tu": 26,
      "dem": {
-      "rang_cua": 5,
+      "rang_cua": 10,
       "thap_canh": 2
-     }
+     },
+     "ghi_chu": "hai lớp răng cưa (ảnh anh khoanh 16/11/2026): lớp đá kem phía trước 5 răng + lớp gạch đỏ phía sau 5 răng"
     },
     "than_tren": {
      "tu": 17,
@@ -41,7 +42,7 @@
    }
   },
   {
-   "ten": "Torbau — cánh bắc gạch đỏ (mặt đông)",
+   "ten": "Torbau — cánh nam gạch đỏ (mặt đông)",
    "nhom": [
     "way/223110825#0"
    ],
@@ -74,7 +75,7 @@
    }
   },
   {
-   "ten": "Torbau — tháp tròn góc bắc",
+   "ten": "Torbau — tháp tròn góc nam",
    "nhom": [
     "way/221599084#*"
    ],
@@ -103,37 +104,141 @@
    }
   },
   {
-   "ten": "Torbau — mặt tây (sân dưới): cánh bắc + khối giữa + đầu hồi",
+   "ten": "Torbau — mặt tây cánh nam (sân dưới)",
    "nhom": [
-    "way/223110825#6",
-    "way/223110823#8",
+    "way/223110825#6"
+   ],
+   "anh": "Commons neuschwanstein-9.jpg (gần chính diện, lưới 55,8 px/m)",
+   "khung": {
+    "mat": "way/223110825#6",
+    "ti_le_cao_rong": 0.946,
+    "sai": 0.06
+   },
+   "vung": {
+    "than_tren": {
+     "dem": {
+      "cua_so": 6,
+      "o_tron": 3
+     },
+     "vi_tri": {
+      "cua_so": [
+       [
+        0.104,
+        0.704
+       ],
+       [
+        0.214,
+        0.704
+       ],
+       [
+        0.389,
+        0.704
+       ],
+       [
+        0.503,
+        0.704
+       ],
+       [
+        0.698,
+        0.704
+       ],
+       [
+        0.849,
+        0.704
+       ]
+      ],
+      "o_tron": [
+       [
+        0.157,
+        0.862
+       ],
+       [
+        0.439,
+        0.862
+       ],
+       [
+        0.774,
+        0.862
+       ]
+      ]
+     },
+     "quan_he": [
+      [
+       "cung_hang",
+       "o_tron"
+      ]
+     ],
+     "tu_v": 0.54,
+     "den_v": 1.0
+    },
+    "than_duoi": {
+     "dem": {
+      "cua_so": 3
+     },
+     "vi_tri": {
+      "cua_so": [
+       [
+        0.151,
+        0.246
+       ],
+       [
+        0.452,
+        0.246
+       ],
+       [
+        0.799,
+        0.115
+       ]
+      ]
+     },
+     "quan_he": [
+      [
+       "thang_cot",
+       "o_tron",
+       "cua_so"
+      ]
+     ],
+     "tu_v": -0.1,
+     "den_v": 0.54
+    }
+   }
+  },
+  {
+   "ten": "Torbau — mặt tây khối giữa (vòm cổng, ban công, đồng hồ)",
+   "nhom": [
     "way/223110820#7",
+    "way/223110820#6",
+    "way/223110823#8",
+    "way/223110825#7",
     "way/951894999#4",
     "way/951894999#5"
    ],
-   "anh": "Commons neuschwanstein-9.jpg (Il castello di Neuschwanstein - panoramio)",
+   "anh": "Commons neuschwanstein-9.jpg (lưới, 55,8 px/m)",
+   "khung": {
+    "mat": "way/223110820#7"
+   },
    "vung": {
-    "dinh": {
-     "tu": 29.4,
+    "than_duoi": {
+     "tu_d": -1,
+     "den_d": 5,
      "dem": {
-      "cua_so": 2,
-      "dong_ho": 1
+      "cong_vom": 1,
+      "cua_so": 1
      }
     },
     "than_tren": {
-     "tu": 23.4,
-     "den": 29.4,
+     "tu_d": 5,
+     "den_d": 9.5,
      "dem": {
-      "cua_so": 10,
-      "ban_cong": 1
+      "cua_so": 4
      }
     },
-    "than_duoi": {
-     "tu": 13,
-     "den": 23.4,
+    "dinh": {
+     "tu_d": 9.5,
      "dem": {
+      "ban_cong": 1,
       "cua_so": 4,
-      "cong_vom": 1
+      "dong_ho": 1
      }
     }
    }

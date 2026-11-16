@@ -7,7 +7,7 @@ import { writeFile, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { VND_MOI_USD } from './cong-ai';
-import { goiCongAi, sangJsonSchema, sangKhoi, khoaCongAi } from './cong-ai-chung';
+import { goiAi, congKhoa, type KhoiNoiDung } from '@mos2/cong-ai';
 import { loiDanBienDang, LOAI_BD, N_KHUNG_BD, TEN_BD, type LoiBienDang } from './soi-clip-do';
 import { ghiTienChu, type Db } from './doc-db';
 import { congTk, giaChuCents } from './kieu';
@@ -93,18 +93,39 @@ A first automatic check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Loo
   return { loi, tho: giu, cents, canhBao };
 }
 /** MỘT lượt mô hình nhìn ảnh / chữ trả JSON theo schema — dùng chung cho soi biến dạng, bóc tách / đối chiếu khung, viết lại prompt, cắt đồ…
- *  QUA CỔNG AI CHUNG (cong-ai-chung.ts, anh 16/11/2026): bỏ chuỗi tự giữ ckey → ShopAIKey → Google (ckey hết tiền + khoá ShopAIKey chết = cả studio âm thầm về
- *  Google chính hãng). Cổng chọn tuyến (donk → ckey sống → fal → chính hãng cuối) và ghi sổ ai_luot; ở đây chỉ đổi khuôn: phần Gemini → khối Anthropic, khuôn Gemini
- *  → JSON Schema. Giữ tên + chữ ký để 6 nơi gọi không đổi. `model` / `mediaResolution` của Gemini không còn nghĩa (cổng chọn mô hình theo dòng: haiku).
- *  `viec` = tên nơi gọi cho sổ cổng. null = mọi tuyến hỏng. */
+ *  QUA CỔNG AI CHUNG (client dùng chung cả repo @mos2/cong-ai › goiAi → spy /api/ai, anh 16/11/2026): bỏ chuỗi tự giữ ckey → ShopAIKey → Google (ckey hết tiền
+ *  + khoá ShopAIKey chết = cả studio âm thầm về Google chính hãng). Cổng chọn tuyến (donk → ckey sống → fal → chính hãng cuối), ghi sổ ai_luot. Ở đây chỉ đổi
+ *  khuôn: phần Gemini → khối Anthropic, khuôn Gemini → JSON Schema. Giữ tên + chữ ký để 6 nơi gọi không đổi; `model` / `mediaResolution` của Gemini bỏ (cổng
+ *  chọn theo dòng: haiku). null = mọi tuyến hỏng (có log). Đo 16/11/2026: 4 lượt bóc / đối chiếu 0,21¢ qua ckey Haiku (Google chính hãng trước đó ~0,56¢ / lượt). */
 export type KqGeminiJson<T> = { data: T; tk: { in: number; out: number; vnd?: number }; model: string; nguon: 'cong' };
 export async function goiGeminiJson<T>(parts: unknown[], schema: unknown, _mediaResolution?: string, _model?: string, viec = 'chu-json'): Promise<KqGeminiJson<T> | null> {
-  const r = await goiCongAi<T>({ viec, noiDung: sangKhoi(parts), schema: sangJsonSchema(schema), maxTokens: 16384 });
-  if (!r) return null;
-  return { data: r.kq, tk: { in: r.vao, out: r.ra, ...(r.vnd != null ? { vnd: r.vnd } : {}) }, model: `cong:${r.model}`, nguon: 'cong' };
+  try {
+    const r = await goiAi<T>({ viec: `xv-${viec}`, noi_dung: sangKhoi(parts), schema: sangJsonSchema(schema) as Record<string, unknown>, max_tokens: 16384 });
+    return { data: r.kq, tk: { in: r.vao, out: r.ra, vnd: Math.round(r.chi_usd * VND_MOI_USD * 100) / 100 }, model: `cong:${r.model}`, nguon: 'cong' };
+  } catch (e) { console.error('[cổng AI]', e instanceof Error ? e.message : e); return null; }
 }
 /** Có đường cho goiGeminiJson (khoá cổng AI chung). */
-export const coDuongGemini = (): boolean => !!khoaCongAi();
+export const coDuongGemini = (): boolean => !!congKhoa();
+/** Khuôn kiểu Gemini (type 'OBJECT' / 'STRING'…) → JSON Schema chuẩn (type thường). Giữ properties / items / required / enum / description. */
+export function sangJsonSchema(s: unknown): unknown {
+  if (!s || typeof s !== 'object') return s;
+  if (Array.isArray(s)) return s.map(sangJsonSchema);
+  const ra: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(s as Record<string, unknown>)) {
+    if (k === 'type' && typeof v === 'string') ra.type = v.toLowerCase();
+    else if (k === 'properties' && v && typeof v === 'object') ra.properties = Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([p, x]) => [p, sangJsonSchema(x)]));
+    else if (k === 'items') ra.items = sangJsonSchema(v);
+    else if (['required', 'enum', 'description', 'minItems', 'maxItems'].includes(k)) ra[k] = v;
+  }
+  return ra;
+}
+/** Phần nội dung kiểu Gemini ({ text } / { inlineData }) → khối Anthropic của cổng. */
+export const sangKhoi = (parts: unknown[]): KhoiNoiDung[] => parts.flatMap((p): KhoiNoiDung[] => {
+  const x = p as { text?: string; inlineData?: { mimeType: string; data: string } };
+  if (typeof x.text === 'string') return [{ type: 'text', text: x.text }];
+  if (x.inlineData) return [{ type: 'image', source: { type: 'base64', media_type: x.inlineData.mimeType, data: x.inlineData.data } }];
+  return [];
+});
 /** Ý đồ của shot cho máy soi: hành động video + khung hình (bỏ đoạn tả sản phẩm dài — đã có riêng) — để quần cũ / rách / chia đôi khung cố ý không bị báo. */
 export const yDoShot = (promptVideo: string, promptAnh: string, spMoTa = ''): string =>
   [promptVideo, spMoTa ? promptAnh.split(spMoTa).join('') : promptAnh].map((x) => x.trim()).filter(Boolean).join(' | ').slice(0, 900);

@@ -7,7 +7,9 @@ import { writeFile, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { VND_MOI_USD } from './cong-ai';
-import { goiAi, congKhoa, type KhoiNoiDung } from '@mos2/cong-ai';
+// TẠM dùng client riêng cong-ai-chung.ts: gói chung @mos2/cong-ai (packages/cong-ai, phiên Ethopex 3) chưa commit — build GitHub không thấy gói (deploy 36b12de59 đỏ).
+// Gói chung lên repo thì đổi import này sang '@mos2/cong-ai' và gỡ cong-ai-chung.ts.
+import { goiCongAi, khoaCongAi, type KhoiNoiDung } from './cong-ai-chung';
 import { loiDanBienDang, LOAI_BD, N_KHUNG_BD, TEN_BD, type LoiBienDang } from './soi-clip-do';
 import { ghiTienChu, type Db } from './doc-db';
 import { congTk, giaChuCents } from './kieu';
@@ -100,12 +102,12 @@ A first automatic check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Loo
 export type KqGeminiJson<T> = { data: T; tk: { in: number; out: number; vnd?: number }; model: string; nguon: 'cong' };
 export async function goiGeminiJson<T>(parts: unknown[], schema: unknown, _mediaResolution?: string, _model?: string, viec = 'chu-json'): Promise<KqGeminiJson<T> | null> {
   try {
-    const r = await goiAi<T>({ viec: `xv-${viec}`, noi_dung: sangKhoi(parts), schema: sangJsonSchema(schema) as Record<string, unknown>, max_tokens: 16384 });
-    return { data: r.kq, tk: { in: r.vao, out: r.ra, vnd: Math.round(r.chi_usd * VND_MOI_USD * 100) / 100 }, model: `cong:${r.model}`, nguon: 'cong' };
+    const r = await goiCongAi<T>({ viec, noiDung: sangKhoi(parts), schema: sangJsonSchema(schema), maxTokens: 16384 }); if (!r) return null;
+    return { data: r.kq, tk: { in: r.vao, out: r.ra, ...(r.vnd != null ? { vnd: r.vnd } : {}) }, model: `cong:${r.model}`, nguon: 'cong' };
   } catch (e) { console.error('[cổng AI]', e instanceof Error ? e.message : e); return null; }
 }
 /** Có đường cho goiGeminiJson (khoá cổng AI chung). */
-export const coDuongGemini = (): boolean => !!congKhoa();
+export const coDuongGemini = (): boolean => !!khoaCongAi();
 /** Khuôn kiểu Gemini (type 'OBJECT' / 'STRING'…) → JSON Schema chuẩn (type thường). Giữ properties / items / required / enum / description. */
 export function sangJsonSchema(s: unknown): unknown {
   if (!s || typeof s !== 'object') return s;

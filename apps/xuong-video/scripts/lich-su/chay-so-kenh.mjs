@@ -109,6 +109,15 @@ if (!xem && KENH === 'astrolas') {
     if (cho >= 2) console.log(`· bài viết: còn ${cho} bài chờ đăng — chưa nạp thêm`);
     else { const r = spawnSync(process.execPath, [join(DIR, 'bai-site.mjs'), '--so', '1'], { encoding: 'utf8', timeout: 10 * 60_000, killSignal: 'SIGKILL' }), ra = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim();
       console.log(ra); if (r.status === 0) writeFileSync(dauBai, new Date().toISOString()); else tele(`⚠ Astrolas nạp bài viết hỏng (mã ${r.status ?? r.signal}):\n${ra.split('\n').slice(-3).join('\n')}`); } } }
+// QUORA (anh 16/11/2026 "Làm: Quora → …"): ngày một câu trả lời — puzzle-books sinh-bai.mjs (góc spy chưa dùng → câu hỏi Quora thật → viết chỉ từ
+// su-that/astrolas.md, ~0–250₫ qua cổng AI) → Phòng Nội dung chấm → máy đăng tự đăng. Chỉ khi câu Quora chờ đăng < 2; dấu ngày ghi khi chạy xong.
+if (!xem && KENH === 'astrolas') {
+  const dauQ = join(homedir(), '.cache', `${KENH}-quora-${hom}.xong`);
+  if (!existsSync(dauQ)) {
+    const cho = Number(q(`SELECT count(*) FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = '${KENH}' AND v.slug LIKE 'quora-%' AND NOT coalesce(v.luu_tru, false) AND coalesce(v.cham->>'ket', '') <> 'SUA_LAI' AND NOT (coalesce(v.da_dang, '{}'::jsonb) ? 'quora');`));
+    if (cho >= 2) console.log(`· Quora: còn ${cho} câu chờ đăng — chưa viết thêm`);
+    else { const r = spawnSync(process.execPath, ['/Users/htuan/puzzle-books/scripts/sinh-bai.mjs', '--may', KENH, '--so', '1'], { cwd: '/Users/htuan/puzzle-books', encoding: 'utf8', timeout: 15 * 60_000, killSignal: 'SIGKILL' }), ra = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim();
+      console.log(ra.split('\n').slice(-4).join('\n')); if (r.status === 0) writeFileSync(dauQ, new Date().toISOString()); else tele(`⚠ Astrolas viết câu Quora hỏng (mã ${r.status ?? r.signal}):\n${ra.split('\n').slice(-3).join('\n')}`); } } }
 const daLam = new Set(q(`SELECT coalesce(string_agg(slug, ','), '') FROM xv_may_video WHERE may_id = ${M};`).split(',').filter(Boolean)), td = soTd(), bo = new Set(Object.entries(td).filter(([, v]) => v.bo).map(([k]) => k));
 
 /** viết → lồng tiếng + dựng → nạp, nhật ký ~/.cache/lich-su/<kênh>-<tập>.log. Trả { ok, tien, loi }. */

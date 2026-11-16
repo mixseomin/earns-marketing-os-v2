@@ -1040,8 +1040,8 @@ except Exception as e:
 # R0 — ★ ROAS KHÔNG TIÊU (anh 02/11/2026 #72924: "camp ROAS này đang âm mà lại có 3 ngày liên tiếp ko tiêu tiền. Cần có cơ chế xử lý để dồn ngân sách sang việc khác"):
 # camp ROAS bật, đã lên > R0_NGAY + 1 ngày, R0_NGAY ngày đã khép gần nhất cộng chi < $R0_CHI (thầu ROAS không thắng phiên nào) → báo trước một nhịp rồi máy tắt, cùng
 # đường RL. D24 (khoảng dừng > 24 giờ) miễn camp ROAS và RL đòi có chi → trước đây camp ROAS đứng không luật nào xử, vẫn giữ ngân sách trong trần ngày.
-R0_NGAY, R0_CHI, R0_PHAN = 3, 0.5, 0.05
-# mốc chi THEO NGÂN SÁCH (02/11/2026: #72924 $20/ngày tiêu $0.85 trong 3 ngày — lọt mốc cứng $0.5): < max($0.5, 5% ngân sách 3 ngày) — camp $20 = $3, camp $1 = $0.5
+R0_NGAY, R0_CHI, R0_PHAN = 7, 0.5, 0.05   # 3 → 7 ngày (anh 16/11/2026 "làm cả 2" — giữ camp không chi để chợ qua cơn, có hạn: đợt xấu 12–15/11 kéo ~4 ngày; mốc chi vẫn 5% ngân sách mỗi ngày)
+# mốc chi THEO NGÂN SÁCH (02/11/2026: #72924 $20/ngày tiêu $0.85 trong 3 ngày — lọt mốc cứng $0.5): < max($0.5, 5% ngân sách × R0_NGAY ngày) — 7 ngày: camp $20 = $7, camp $1 = $0.5
 r0_chi = lambda ns: max(R0_CHI, round(R0_PHAN * R0_NGAY * float(ns or 0), 2))
 tat_r0 = []
 try:
@@ -1125,7 +1125,29 @@ try:
             f" < {G10_ROI}% (luật G10 — hướng dẫn team)")))
 except Exception as e:
     loi_may.append((0, f"luật G10 lỗi: {str(e)[:80]}"))
-_g10_cam = {int(x[0]) for x in g10 + tat_g10} | set(_g10_theo)
+# AB08 GIỮ $10 HAY TẮT (anh 16/11/2026 "làm cả 2" — review luật tắt ★ ROAS: RL / G10 bước 2 chưa từng có đối chứng, mọi camp chạm điều kiện đều bị tắt; 30 ngày tới 16/11
+# RL tắt 15 camp cả đời +$70, G10 tắt 13 camp +$59, camp ROAS lỗ 2 ngày chi < $20 để chạy tiếp 7 ngày sau +17…+27%): camp ★ ROAS chạm RL hoặc G10 bước 2 (không dính luật
+# tắt khác, chưa thuộc A/B khác) → nhánh đang ít camp hơn. thu = KHÔNG tắt, ngân sách > $G10_DICH thì hạ về $G10_DICH (đường g10 của worker, ghi sổ 'g10' như G10 bước 1),
+# khoá tăng như G10 đang theo dõi (G10 hồi vẫn nâng lại được); doi = tắt như luật. L4 vẫn tắt cả hai nhánh. Nhánh ghi etp.camp_ab NGAY lúc chạm (đo từ lúc vào, etp.ab_so).
+_ab_giu, _ab_giu_cam, ab_giu = _ab_lan("roas_giu"), set(), []
+try:
+    if _ab_giu.dang:
+        _cm8 = {int(c["id"]): c for c in ds_camp}
+        for _ds8, _luat8 in ((tat_roas, "RL"), (tat_g10, "G10")):
+            for x in list(_ds8):
+                c8 = int(x[0] or 0)
+                if c8 not in _ROAS or c8 in _SE_TAT: continue
+                nh8 = _ab_giu(c8)
+                if not nh8: continue
+                q(f"insert into etp.camp_ab (camp_id, ab, nhanh) values ({c8}, '{nh8[0]}', '{nh8[1]}') on conflict (camp_id) do nothing")
+                if nh8[1] != "thu": continue
+                _ds8.remove(x); _ab_giu_cam.add(c8)
+                ns8 = float((_cm8.get(c8) or {}).get("budget_daily") or 0)
+                ab_giu.append((c8, f"{x[1].split(' → TẮT')[0]} → GIỮ ({nh8[0]} {nh8[2]}: luật {_luat8} không tắt{f', hạ ${ns8:g} → ${G10_DICH}' if ns8 > G10_DICH else ''})"))
+                if ns8 > G10_DICH: g10.append((c8, f"{x[1].split(' → TẮT')[0]} · ${ns8:g} → ${G10_DICH} ({nh8[0]} {nh8[2]}: luật {_luat8} hạ thay vì tắt)"))
+except Exception as e:
+    loi_may.append((0, f"A/B AB08 (giữ $10 thay tắt ROAS) lỗi: {str(e)[:80]}"))
+_g10_cam = {int(x[0]) for x in g10 + tat_g10} | set(_g10_theo) | _ab_giu_cam
 # H2 — TĂNG BẬC RỒI LỖ 2 NGÀY ĐÃ KHÉP → HẠ VỀ $1 (anh 04/11/2026 "Đc. Làm đi và áp dụng", sau #68815 $1→$7 rồi −33% / −56% mà không luật nào kéo về):
 # lần tăng gần nhất trong 5 ngày, từ đó tới nay KHÔNG tăng thêm, và 2 ngày đã khép sau lần tăng (D−1, D−2) đều lỗ (chi ≥ $0.5, thu < chi) → hạ thẳng về $1, KHÔNG tắt
 # (L3 vẫn tắt nếu lỗ ngày thứ 3). Đo 22–31/10: 102 lần, 3 ngày kế để nguyên −$35.77 · hạ về $1 −$4.66 · tắt $0 nhưng mất +$31.91 của 28% camp hồi. Không áp ★ ROAS (luật RL riêng).
@@ -1270,7 +1292,7 @@ def _xet_luat():
         return L("g10", "G10 · ROI 3 ngày < 15% → $10, rồi tắt", f"Mọi camp kể cả ★ ROAS (hướng dẫn team 31/10/2026): ngân sách > ${G10_NS}, chạy đủ 3 ngày (3 ngày đã khép đều có chi), chi 3 ngày ≥ 1 ngày ngân sách mà ROI < {G10_ROI}% → máy hạ thẳng về ${G10_DICH}; {G10_THEO} ngày đã khép sau đó ROI vẫn < {G10_ROI}% → báo trước một nhịp rồi máy tắt. Đang theo dõi thì khoá tăng.",
             [["Ngân sách", f"${ns:g}", f"> ${G10_NS}", ns > G10_NS], ["Ngày có chi (3 ngày đã khép)", f"{len(_x)}/3", "đủ 3 ngày", len(_x) >= 3], ["Chi 3 ngày đã khép", f(c3, "$"), f"≥ 1 ngày ngân sách", bool(ns) and c3 >= ns], ["ROI 3 ngày đã khép", f(r3, "%"), f"< {G10_ROI}%", r3 is not None and r3 < G10_ROI]],
             "g10" if int(cid) in vao["g10"] else "tat_g10" if int(cid) in vao["tat_g10"] else None,
-            f"đã hạ về ${G10_DICH} ngày {theo_:%d/%m} — đang theo dõi {G10_THEO} ngày đã khép, khoá tăng" if theo_ else None, tien=2, lo=None if r3 is None else r3 < G10_ROI)
+            (f"AB08 nhánh thử: chạm luật nhưng GIỮ ở ${G10_DICH}, không tắt (L4 vẫn tắt)" if int(cid) in _ab_giu_cam else None) or (f"đã hạ về ${G10_DICH} ngày {theo_:%d/%m} — đang theo dõi {G10_THEO} ngày đã khép, khoá tăng" if theo_ else None), tien=2, lo=None if r3 is None else r3 < G10_ROI)
     # thẻ "G10 kém đi" (g10k) đã gỡ 05/11/2026 cùng nhánh kém đi — không giảm camp đang lãi
     ra = {}; _giu = {int(x[0] or 0) for x in giu_cuoi}
     _MA_TAT_THE = {k for k, v in BANG_LUAT["the"].items() if len(v) > 2 and v[2] == "tat"} | {"g10"}   # thẻ luật TẮT theo sổ luật chung (+ G10: bước cuối là tắt) — GIỮ camp cuối + HOÃN dùng chung
@@ -1299,7 +1321,7 @@ def _xet_luat():
                 ls.append(L("rl", "RL · ROAS lỗ 2 ngày", f"Camp ★ ROAS (miễn luật camp thường, trừ L4 — 03/11/2026): 2 ngày đã khép ĐỀU có chi và ĐỀU lỗ, cộng 2 ngày chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}% (bỏ ngày thị trường xấu, 15/11/2026) → báo trước một nhịp rồi máy tự tắt.",
                     [[f"ROI ngày {_rl2[8:10]}/{_rl2[5:7]}", f(r2_, "%"), "< 0%", r2_ is not None and r2_ < 0], [f"ROI ngày {_rl1[8:10]}/{_rl1[5:7]}", f(r1_, "%"), "< 0%", r1_ is not None and r1_ < 0],
                      ["Chi 2 ngày", f((ag_ or {}).get("chi"), "$"), f"> ${ROAS_CHI}", bool(ag_) and ag_["chi"] > ROAS_CHI], ["ROI 2 ngày", f(rg_, "%"), f"< {ROAS_ROI}%", rg_ is not None and rg_ < ROAS_ROI]],
-                    "tat_roas" if int(cid) in vao["tat_roas"] else None, lo=None if rg_ is None else rg_ < 0))
+                    "tat_roas" if int(cid) in vao["tat_roas"] else None, (f"AB08 nhánh thử: chạm luật nhưng GIỮ ở ${G10_DICH}, không tắt (L4 vẫn tắt)" if int(cid) in _ab_giu_cam else None), lo=None if rg_ is None else rg_ < 0))
                 _a0 = _g("_g0"); _t0 = _tao.get(cid); _tu0 = (dt.datetime.now(dt.timezone.utc) - _t0).days if _t0 else None
                 ls.append(L("r0", "R0 · ROAS không tiêu", f"Camp ★ ROAS đã lên > {R0_NGAY + 1} ngày, {R0_NGAY} ngày đã khép gần nhất cộng chi < max(${R0_CHI:g}, {R0_PHAN:.0%} ngân sách {R0_NGAY} ngày) (thầu ROAS không thắng) → báo trước một nhịp rồi máy tắt, trả ngân sách cho việc khác (anh 02/11/2026).",
                     [["Tuổi camp", "—" if _tu0 is None else f"{_tu0} ngày", f"> {R0_NGAY} ngày", _tu0 is not None and _tu0 >= R0_NGAY + 1], [f"Chi {R0_NGAY} ngày đã khép", f((_a0 or {}).get("chi", 0.0), "$"), f"< ${r0_chi(ns):g}", (_a0 or {}).get("chi", 0.0) < r0_chi(ns)]],
@@ -1500,6 +1522,7 @@ in_("CẦN TẮT — OFF (camp ≥ 7 ngày, tiêu > $10 từ trước tới nay,
 in_(f"LUẬT RL (camp ★ ROAS, 2 ngày đã khép đều lỗ, cộng chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}%) — BÁO TRƯỚC MỘT NHỊP RỒI MÁY TỰ TẮT:", tat_roas, "(không)")
 in_(f"LUẬT G10 (ngân sách > ${G10_NS}, 3 ngày đã khép ROI < {G10_ROI}%, kể cả ★ ROAS) — MÁY HẠ THẲNG VỀ ${G10_DICH}:", g10, "(không)")
 in_(f"LUẬT G10 — ĐÃ HẠ VỀ ${G10_DICH}, {G10_THEO} NGÀY SAU VẪN ROI < {G10_ROI}% — BÁO TRƯỚC MỘT NHỊP RỒI MÁY TỰ TẮT:", tat_g10, "(không)")
+in_(f"A/B AB08 — ★ ROAS chạm RL / G10 bước 2, nhánh thử GIỮ ở ${G10_DICH} (không tắt):", ab_giu, "(không)")
 in_("LUẬT H2 (tăng bậc rồi 2 ngày đã khép lỗ liền) — MÁY HẠ VỀ $1:", h2, "(không)")
 in_("LUẬT L0 (Dol: 3 / 7 ngày đã khép chi > $10 mà ROI < 0%) — MÁY TẮT (báo trước một nhịp):", tat_l0, "(không)")
 in_("LUẬT H3 (Dol: 3 / 7 ngày đã khép chi > $10, ROI 0–20%) — KHOÁ TĂNG + MÁY HẠ VỀ $3:", h3, "(không)")

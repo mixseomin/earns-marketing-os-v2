@@ -55,6 +55,14 @@ insert into etp.ab (ma, kieu, ten, gia_thuyet, bat_dau, ket_thuc, cach_chia, nha
   '2026-11-12', '2026-11-26', 'ứng viên vào nhánh đang ít camp hơn (cặp), sau mọi bộ lọc tăng',
   '{"thu": {"ten": "tăng một bậc", "cach": "tang"}, "doi": {"ten": "giữ ngân sách", "cach": "giu"}}', '{"camp": 10, "chi": 150, "ngay": 7}')
 on conflict (ma) do nothing;
+-- AB08 GIỮ $10 HAY TẮT (anh 16/11/2026 "làm cả 2"): camp ★ ROAS chạm RL hoặc G10 bước 2 → máy luật (luat-ethopex.py _ab_giu) chia nhánh + ghi etp.camp_ab lúc chạm.
+-- Nhánh đối chứng bị tắt nên sau đó không có chi → mẫu đếm theo NGÀY (camp / chi = 0), đọc thêm số camp mỗi nhánh trong ab_so trước khi kết luận.
+insert into etp.ab (ma, kieu, ten, gia_thuyet, bat_dau, ket_thuc, cach_chia, nhanh, mau) values
+ ('AB08', 'roas_giu', 'ROAS: giữ $10 thay vì tắt',
+  'Camp ★ ROAS chạm luật tắt RL (2 ngày đã khép đều lỗ, chi > $20) hoặc G10 bước 2 (đã về $10, 2 ngày sau vẫn lỗ): giữ ở $10 cho chợ qua cơn có lãi hơn tắt? Số cũ (30 ngày tới 16/11): RL tắt 15 camp cả đời +$70, G10 tắt 13 camp +$59; camp ROAS lỗ 2 ngày chi < $20 để chạy tiếp, 7 ngày sau ROI +17…+27%. Chi > $20 chưa có đối chứng.',
+  '2026-11-16', '2026-12-16', 'ứng viên vào nhánh đang ít camp hơn (cặp); camp dính luật tắt khác (L4…) hoặc đã thuộc A/B khác đứng ngoài',
+  '{"thu": {"ten": "giữ ở $10, không tắt", "cach": "giu10"}, "doi": {"ten": "tắt như luật", "cach": "tat"}}', '{"camp": 0, "chi": 0, "ngay": 21}')
+on conflict (ma) do nothing;
 """
 
 # AB04 — điều kiện vào: ★ ROAS đang chạy $20, 3 ngày đã khép đủ ở $20, tiêu TB ≥ 90% ngân sách, ROI 3 ngày ≥ +30%, chưa thuộc A/B nào

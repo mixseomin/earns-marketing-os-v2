@@ -1148,7 +1148,12 @@ export const LUAT = [
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/chon-phim-moi.py', co: 'NGUON = {"reelshort": 100, "netshort": 35}   # DramaBox / dramaboxdb: loại', vi: 'chọn phim mới: lọc nguồn ReelShort / NetShort, bỏ DramaBox' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/chon-phim-moi.py', co: 'da |= {int(x) for x in q("select distinct content_id from etp.camp_ngoai where content_id > 0").split() if x.isdigit()}', vi: 'chọn phim mới: bỏ phim đội đã lên' },
   { card: 'chat', tep: 'apps/web/src/lib/actions/etp-tong2.ts', co: "select khoa, gia_tri from etp.cau_hinh where khoa in ('phan_bo', 'tran_ngay')", vi: 'Tổng quan 2 phân bổ ngân sách: mục tiêu đọc cấu hình phan_bo + trần ngày' },
-  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'R0_NGAY, R0_CHI, R0_PHAN = 3, 0.5, 0.05', vi: 'luật R0: camp ★ ROAS 3 ngày đã khép chi < max($0.5, 5% ngân sách) → báo trước rồi tắt (#72924)' },
+  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'R0_NGAY, R0_CHI, R0_PHAN = 7, 0.5, 0.05', vi: 'luật R0 (3 → 7 ngày, anh 16/11/2026): camp ★ ROAS 7 ngày đã khép chi < max($0.5, 5% ngân sách) → báo trước rồi tắt (#72924)' },
+  // AB08 (anh 16/11/2026 "làm cả 2"): ★ ROAS chạm RL / G10 bước 2 → A/B giữ $10 hay tắt; nhánh ghi camp_ab lúc chạm, nhánh thử khoá tăng, L4 vẫn tắt
+  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '_ab_giu, _ab_giu_cam, ab_giu = _ab_lan("roas_giu"), set(), []', vi: 'AB08: chia nhánh giữ $10 / tắt cho ★ ROAS chạm RL, G10 bước 2' },
+  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if c8 not in _ROAS or c8 in _SE_TAT: continue', vi: 'AB08 chỉ ★ ROAS, camp dính luật tắt khác (L4…) đứng ngoài' },
+  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '| set(_g10_theo) | _ab_giu_cam', vi: 'AB08 nhánh giữ khoá tăng như G10 đang theo dõi' },
+  { card: 'chat', tep: 'apps/etp/ab_mau.py', co: "('AB08', 'roas_giu',", vi: 'sổ A/B có AB08' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tat_roas": m(tat_roas), "tat_r0": m(tat_r0),', vi: 'luật R0 xuất ra cho worker' },
   { card: 'chat', tep: 'apps/etp/cat_phim.py', co: 'if not team_lai and so_thu >= N:   # thử đủ N camp có chi VÀ đủ mọi dạng, chưa camp nào lãi', vi: 'cất phim khi thử đủ 4 camp có chi VÀ đủ dạng CC / CT / KT mà chưa camp nào lãi (anh đổi 04/11/2026)' },
   { card: 'bh-0611', tep: 'apps/etp/cat_phim.py', cam: 'bao_hoa_lo', vi: 'không cất phim vì bão hoà; phim đã cất vì bão hoà tự mở lại (anh 06/11/2026)' },

@@ -2,6 +2,7 @@
 // ckey.vn (chợ người bán, giá VNĐ) và ShopAIKey (credit $1 = 3.250₫) bán lại model Google/xAI rẻ hơn gọi thẳng. Một ảnh đi qua CHUỖI:
 // cổng rẻ nhất trước, lỗi/treo/hết tiền thì sang cổng kế, cuối cùng mới tới Google — mỗi bước ghi vào `nguon` để biết ảnh ra từ đâu,
 // giá thật bao nhiêu, bước nào hỏng vì sao. Số đo + bảng giá: scripts/du-lieu/cong-api/README.md. Chạy được trong Worker (không DB).
+import { goiAi } from '@mos2/cong-ai';
 import { hopQc, type TiLeAnh } from './kieu';
 
 /** Tỉ giá quy tiền thật (memory feedback_chi_phi_vnd_that): sổ chi phí ghi cent USD theo VNĐ thật đã trả. */
@@ -206,43 +207,23 @@ export async function sinhAnhCong(cong: CongKey, model: string, o: { prompt: str
   return { ok: false, loi: 'cổng không trả ảnh' };
 }
 
-/** Thử lần lượt chuỗi cổng; trả ảnh + nguồn, hoặc null + các bước đã hỏng (sinhAnh nối tiếp sang Google). */
-export async function sinhAnhQuaCong(modelGoogle: string, o: { prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh }): Promise<{ anh: { data: Buffer; mimeType: string } | null; nguon: NguonSinh | null; thu: BuocNguon[] }> {
-  const thu: BuocNguon[] = [];
-  const tinh = chuoiAnh(modelGoogle);
-  // Ckey: thay các dòng cấu hình tĩnh bằng MỌI người bán Nano Banana đang có trong danh mục (rẻ → đắt, bỏ người đang nghỉ); không đọc được
-  // danh mục thì giữ chuỗi tĩnh. Giá ghi sổ lấy đúng giá danh mục của người bán đã chạy.
-  const giaDong: Record<string, number> = {};
-  let chuoi = tinh;
-  const kc = khoa('ckey');
-  if (kc && tinh.some((x) => x.cong === 'ckey')) {
-    await napCkey(kc);
-    if (khoCkey) {
-      const ban = chonNguoiBanCkey([...khoCkey.gia].map(([id, vnd]) => ({ id, vnd })), dangNghi(), undefined, vuaDat(), o.thamChieuUrl.length > 0);
-      for (const b of ban) giaDong[`ckey:${b.model}`] = b.vnd;
-      chuoi = [...ban.map((b) => ({ cong: 'ckey' as const, model: b.model })), ...tinh.filter((x) => x.cong !== 'ckey')];
-    }
+/** Ảnh "tự chọn rẻ nhất" QUA CỔNG AI CHUNG (anh 16/11/2026: một nguồn cho mọi model): POST /api/ai {loai: 'anh'} — chuỗi người bán Nano Banana ckey → ShopAIKey
+ *  nay nằm ở cổng (spy-on-tc/server/cong-anh.mjs, chép từ bản cũ ở đây, giữ nguyên luật đã đo: danh mục sống rẻ → đắt, người hỏng nghỉ 20 phút, có tham chiếu bỏ
+ *  Pro + người lờ tham chiếu, ckey tối đa 3 ảnh) và ghi sổ ai_luot chung. modelGoogle giữ trong chữ ký cho nơi gọi cũ (cổng chọn dòng Nano Banana).
+ *  Hỏng hết → null + câu lỗi của cổng (google.ts › sinhAnh nối tiếp như trước). */
+export async function sinhAnhQuaCong(_modelGoogle: string, o: { prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh }): Promise<{ anh: { data: Buffer; mimeType: string } | null; nguon: NguonSinh | null; thu: BuocNguon[] }> {
+  const t0 = Date.now();
+  try {
+    const r = await goiAi({ viec: 'xv-anh', loai: 'anh', prompt: o.prompt, ti_le: o.tiLe, tham_chieu: o.thamChieuUrl } as never, { lan: 1, hanMs: 10 * 60e3 }) as unknown as { anh_b64: string; mime: string; model: string; chi_usd: number };
+    const giay = Math.round((Date.now() - t0) / 100) / 10; const [cong, ...m] = String(r.model).split(':'); const model = m.join(':');
+    const vnd = Math.round(r.chi_usd * VND_MOI_USD * 10) / 10;
+    const thu: BuocNguon[] = [{ cong: (cong as CongKey) || 'ckey', model, ok: true, giay }];
+    return { anh: { data: Buffer.from(r.anh_b64, 'base64'), mimeType: r.mime || 'image/png' }, thu,
+      nguon: { cong: (cong as CongKey) || 'ckey', model, nguoi_ban: cong === 'ckey' ? model.split('/')[0] : undefined, vnd, cents: vndRaCent(vnd), giay, thu } };
+  } catch (e) {
+    const loi = (e instanceof Error ? e.message : String(e)).replace(/^cổng AI:\s*/, '');
+    return { anh: null, nguon: null, thu: [{ cong: 'ckey', model: 'cổng AI chung', ok: false, loi: loi.slice(0, 300), het_tien: /hết tiền|insufficient/i.test(loi), giay: Math.round((Date.now() - t0) / 100) / 10 }] };
   }
-  // chuỗi tĩnh (không đọc được danh mục ckey) cũng bỏ bản Pro khi có ảnh tham chiếu — cùng luật chonNguoiBanCkey
-  if (o.thamChieuUrl.length) chuoi = chuoi.filter((x) => !(x.cong === 'ckey' && laBanProBoBoCuc(x.model)));
-  for (const b of chuoi) {
-    // Cổng nhận ít ảnh tham chiếu hơn shot cần → BỎ QUA, không cắt bớt: prompt có bản đồ "ảnh N là gì" (xepThamChieu), cắt ảnh là bản đồ sai, ảnh ra sai.
-    const toiDa = TOI_DA_REF[b.cong];
-    if (toiDa != null && o.thamChieuUrl.length > toiDa) { thu.push({ cong: b.cong, model: b.model, ok: false, loi: `cổng nhận tối đa ${toiDa} ảnh tham chiếu, shot có ${o.thamChieuUrl.length} — bỏ qua`, giay: 0 }); continue; }
-    const t0 = Date.now();
-    let kq = await sinhAnhCong(b.cong, b.model, o);
-    // Người bán trả model KHÁC (ảnh ra không phải Nano Banana) → coi như hỏng, sang người kế.
-    if (kq.ok && b.cong === 'ckey' && kq.modelThat && !/flash-image|pro-image|banana|gemini/i.test(kq.modelThat)) kq = { ok: false, loi: `người bán trả model khác (${kq.modelThat})` };
-    if (b.cong === 'ckey') ghiCkey(b.model, kq.ok);
-    const giay = Math.round((Date.now() - t0) / 100) / 10;
-    if (kq.ok) {
-      const vnd = giaDong[`${b.cong}:${b.model}`] ?? GIA_ANH_VND[`${b.cong}:${b.model}`];
-      thu.push({ cong: b.cong, model: b.model, ok: true, giay });
-      return { anh: kq, thu, nguon: { cong: b.cong, model: b.model, model_that: kq.modelThat, nguoi_ban: b.cong === 'ckey' ? b.model.split('/')[0] : undefined, vnd, cents: vnd != null ? vndRaCent(vnd) : undefined, giay, thu } };
-    }
-    thu.push({ cong: b.cong, model: b.model, ok: false, loi: kq.loi, het_tien: laHetTien(b.cong, kq.loi, kq.status), giay });
-  }
-  return { anh: null, nguon: null, thu };
 }
 
 const TEN_CONG: Record<string, string> = { plenxai: 'PlenX AI', ckey: 'ckey.vn', shopaikey: 'ShopAIKey', google: 'Google', fal: 'fal', openai: 'OpenAI', kie: 'Kie.ai', wavespeed: 'WaveSpeedAI' };

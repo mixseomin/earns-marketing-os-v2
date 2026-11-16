@@ -682,7 +682,27 @@ function datCach3Hien(bat) {
 }
 // nút 🧩: tải lại trang ở cách kia (giữ góc nhìn #g=…) — độ cao khối áp lúc dựng nên phải dựng lại
 $('b-cach3').classList.toggle('chinh', CACH === '3'); $('b-cach3').title = CACH === '3' ? 'Đang xem CÁCH 3: độ cao mọi khối đo từ bản đồ độ cao thật (ảnh 3D). Bấm để về cách cũ' : 'Xem CÁCH 3: độ cao mọi khối đo từ bản đồ độ cao thật của ảnh 3D (so với cách cũ)';
-$('b-cach3').onclick = (e) => { e.stopPropagation(); luuGoc(true); const q = new URLSearchParams(location.search); if (CACH === '3') q.delete('cach'); else q.set('cach', '3'); location.href = `${location.pathname}?${q}${location.hash}`; };
+// CHUYỂN TỨC THÌ (anh 16/11/2026: "bấm không phải mở lại như F5"): máy tính — trang chính dựng sẵn bản cách 3 trong một khung ẩn phủ màn (?cach=3&nhung=1)
+// sau khi trang chính xong; bấm 🧩 = đưa góc nhìn hiện tại sang khung rồi hiện khung; trong khung bấm 🧩 = đưa góc về trang chính rồi ẩn khung.
+// Điện thoại (CHAM): hai bản cùng lúc quá nặng bộ nhớ → tải lại trang như cũ. Mở thẳng ?cach=3 (không nhúng) cũng tải lại khi bấm.
+const NHUNG = new URLSearchParams(location.search).get('nhung') === '1' && window.parent !== window;
+let khungC3 = null, khungSan = false, choHien = false;
+const hienKhung = (hien) => { if (!khungC3) return; khungC3.style.visibility = hien ? 'visible' : 'hidden'; khungC3.style.pointerEvents = hien ? 'auto' : 'none'; if (hien) khungC3.focus(); };
+addEventListener('message', (e) => {
+  if (e.origin !== location.origin) return; const d = e.data || {};
+  if (!NHUNG && d.loai === 'c3:san-sang') { khungSan = true; if (choHien) { choHien = false; khungC3.contentWindow.postMessage({ loai: 'c3:goc', g: gocHienTai() }, location.origin); hienKhung(true); } }
+  if (!NHUNG && d.loai === 'c3:ve') { if (d.g) khoiPhucGoc(d.g); hienKhung(false); }
+  if (NHUNG && d.loai === 'c3:goc' && d.g) khoiPhucGoc(d.g);
+});
+if (!NHUNG && !CHAM && CACH !== '3') setTimeout(() => { // dựng sẵn nền sau khi trang chính chạy ổn (không tranh tải lúc đầu)
+  const q = new URLSearchParams(location.search); q.set('cach', '3'); q.set('nhung', '1');
+  khungC3 = document.createElement('iframe'); khungC3.src = `${location.pathname}?${q}`; khungC3.title = 'Cách 3';
+  khungC3.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:20;visibility:hidden;pointer-events:none;background:transparent'; document.body.append(khungC3);
+}, 4000);
+$('b-cach3').onclick = (e) => { e.stopPropagation();
+  if (NHUNG) { parent.postMessage({ loai: 'c3:ve', g: gocHienTai() }, location.origin); return; }
+  if (khungC3) { if (khungSan) { khungC3.contentWindow.postMessage({ loai: 'c3:goc', g: gocHienTai() }, location.origin); hienKhung(true); } else { choHien = true; $('b-cach3').title = 'Đang dựng sẵn cách 3… sẽ tự chuyển khi xong'; } return; }
+  luuGoc(true); const q = new URLSearchParams(location.search); if (CACH === '3') q.delete('cach'); else q.set('cach', '3'); location.href = `${location.pathname}?${q}${location.hash}`; };
 if (CACH === 'dsm') datCach3Hien(true);
 // CÁCH 3: nhãn + KHUNG VÀNG quanh các khối đã đổi độ cao theo bản đồ độ cao thật (anh 16/11/2026: "bấm vào không thấy khác gì" — khối đã đo tay áp cả hai bản)
 if (CACH === '3') {
@@ -1256,8 +1276,8 @@ function luuGoc(epBuoc = false) {
   try { history.replaceState(null, '', `${location.pathname}${location.search}#g=${g}`); } catch {}
   try { localStorage.setItem(GOC_KHOA, g); } catch {}
 }
-function khoiPhucGoc() {
-  let g = (location.hash.match(/[#&]g=([^&]+)/) || [])[1]; if (!g) try { g = localStorage.getItem(GOC_KHOA); } catch {}
+function khoiPhucGoc(gDua = null) { // gDua: chuỗi góc đưa thẳng vào (khung cách 3 nhận từ trang chính)
+  let g = gDua || (location.hash.match(/[#&]g=([^&]+)/) || [])[1]; if (!g) try { g = localStorage.getItem(GOC_KHOA); } catch {}
   const v = String(g || '').split(','), n = v.slice(1).map(Number); if (!g || n.some((x) => !Number.isFinite(x))) return false;
   if (v[0] === 't' && n.length === 7) { camera.position.set(n[0], n[1], n[2]); orbit.target.set(n[3], n[4], n[5]); camera.fov = n[6]; camera.updateProjectionMatrix(); orbit.update(); gocCu = g; return true; }
   if (v[0] === 'd' && n.length === 5 && di) { diNhanhNS(n[0], n[2], n[1] - 0.9); di.huong = n[3]; di.yaw = n[4]; gocCu = g; return true; } // viTri là tâm thân, chân thấp hơn ~0,9 m
@@ -1389,3 +1409,4 @@ world.step(); // cập nhật bộ dò tia sau khi dựng xong mọi va chạm (
 let laCongCu = false; try { laCongCu = localStorage.getItem('ns-anh3d-cong-cu') === '1'; } catch {}
 if (!laCongCu || /[#&]g=/.test(location.hash)) khoiPhucGoc();
 ve();
+if (NHUNG) parent.postMessage({ loai: 'c3:san-sang' }, location.origin); // khung cách 3 dựng xong hẳn mới báo trang chính

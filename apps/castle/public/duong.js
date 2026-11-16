@@ -4,7 +4,10 @@
 // Bỏ đường là cầu (bridge, đã dựng riêng) và hầm. Va chạm đường: trimesh dải (người đi trên mặt đường thay vì lưới đất thô).
 // datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao, vl: { nhua, da, bac } }) → { ra: [Mesh], dem }
 // tra-repo-ok: dựng dải theo polyline + bậc thang (mã nhỏ riêng cảnh).
-export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao, vl, trongNha = null, vungLat = [] }) { // vungLat: vùng lát nhựa thêm (sân trước cổng ngoài, ns.js NEN_LUOI.sanCong) // eslint-disable-line no-param-reassign
+// vungLat: vùng lát nhựa thêm (sân trước cổng ngoài, ns.js NEN_LUOI.sanCong)
+// tuongSan: nền sân xây cao hơn đất quanh nó [{ v: đa giác, mat: (x, z) → mặt sân }] (sân trên Neuschwanstein, góp ý #1633): mép nào đất ngoài tụt thì xây tường chắn
+//   đá thẳng đứng từ đất ngoài lên + lan can (ảnh 3D Google: vách trắng có lan can giữa sân trên và sân dưới — trước là lưới đất đo dốc tô màu đá tự nhiên), chừa lối ở đầu cầu thang
+export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao, vl, trongNha = null, vungLat = [], tuongSan = [] }) { // eslint-disable-line no-param-reassign
   const LAT = new Set(['footway', 'pedestrian', 'steps', 'service', 'residential', 'unclassified']); // đường lát / nhựa; còn lại (track, path) là đất
   const OTO = new Set(['service', 'residential', 'unclassified']); // đường ô tô: mặt nhựa (vl.oto) — đường lên cổng ngoài đời là nhựa xám sáng, không lát đá
   const nhom = { nhua: [], oto: [], dat: [], bac: [], tuong: [], nap: [] }, dem = { duong: 0, bac: 0, m: 0 };
@@ -52,11 +55,13 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
   // LAN CAN dọc một đường gấp khúc pl, cách tim b m, hai bên: mẫu 1 m nối liền; bên nào đất ngoài tụt > 1,7 m trong 3 m thì xây; khe ≤ 3 m giữa hai đoạn xây
   // được lấp, đầu đoạn nới 1 m (ảnh thật: lan can liền một dải). Mặt trên nghiêng theo dốc đường (trước: bậc thang từng mét). Thân xuống tới đất ngoài.
   // mat: cao độ mặt đi bên trong (đường: đất tim; sân: hàm mặt sân) · nguong: đất ngoài thấp hơn mặt đi bao nhiêu thì xây · moLoi: chừa lối chỗ đường xe cắt qua mép
-  function lanCan(pl, b, boVung, { mat = cao, nguong = 1.7, moLoi = false } = {}) {
+  // lo: các điểm chừa lối (đầu cầu thang, ≤ 1,8 m) · than: va chạm cả thân tường (tường chắn nền sân: không đi xuyên vách từ sân dưới)
+  function lanCan(pl, b, boVung, { mat = cao, nguong = 1.7, moLoi = false, lo = [], than = false } = {}) {
     const M = []; for (let i = 0; i + 1 < pl.length; i++) { const [x1, z1] = pl[i], [x2, z2] = pl[i + 1], L = Math.hypot(x2 - x1, z2 - z1); if (L < 0.3) continue; const ux = (x2 - x1) / L, uz = (z2 - z1) / L, n = Math.max(1, Math.round(L)), l = L / n;
       for (let m = 0; m < n; m++) M.push({ x: x1 + ux * (m + 0.5) * l, z: z1 + uz * (m + 0.5) * l, ux, uz, l }); }
     for (const k of [-1, 1]) {
-      const co = M.map(({ x, z, ux, uz }) => { const ox = -uz * k, oz = ux * k, y = cao(x, z) + 0.22, ex = x + ox * b, ez = z + oz * b;
+      const co = M.map(({ x, z, ux, uz }) => { const ox = -uz * k, oz = ux * k, ex = x + ox * b, ez = z + oz * b;
+        if (lo.some(([a, c]) => Math.hypot(x - a, z - c) < 1.8)) return null;
         if (trongNha?.(x, z) || trongNha?.(ex, ez) || (boVung && trongVung(ex, ez)) || (moLoi && quaDuong(ex, ez, ux, uz))) return null; const ym = mat(x - ox * (b > 0 ? 0 : 0.8), z - oz * (b > 0 ? 0 : 0.8)) + 0.22; return cao(x + ox * (b + 3), z + oz * (b + 3)) <= ym - nguong; });
       const xay = co.map((c) => c === true);
       for (let i = 0; i < xay.length; i++) if (!xay[i] && co[i] !== null) { let a = i - 1; while (a >= 0 && !xay[a] && i - a <= 3) a--; let c = i + 1; while (c < xay.length && !xay[c] && c - i <= 3) c++; if (a >= 0 && c < xay.length && xay[a] && xay[c] && c - a <= 4) xay[i] = 'lap'; }
@@ -71,6 +76,7 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
         vlTuong.push(uvTheGioi(lam(new THREE.BoxGeometry(Lr + 0.06, 1, 0.5).toNonIndexed(), 0, day)));
         nhom.nap.push(lam(new THREE.BoxGeometry(Lr + 0.06, 1, 0.64).toNonIndexed(), 0.14, null));
         for (let q = i; q < j; q++) { const t = (q - i + 0.5) / (j - i), ym = yA + (yB - yA) * t; va.push([l / 2 + 0.03, 0.65, 0.25, M[q].x + ox * b, ym - 0.65, M[q].z + oz * b, goc]); }
+        if (than) { const yt = (yA + yB) / 2 - 1.3; if (yt > day + 0.2) va.push([Lr / 2 + 0.03, (yt - day) / 2, 0.25, ex, (yt + day) / 2, ez, goc]); }
         i = j; }
     }
   }
@@ -84,13 +90,26 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
       if (v) { a.v = v; a.bac = a.bac && b.bac ? a.bac + b.bac : null; a.rong = Math.max(a.rong, b.rong); b.bo = true; gop = true; } } }
   ds = [...ds.filter((d) => d.loai !== 'steps' || d.cau || d.ham || d.v.length < 2), ...thang.filter((d) => !d.bo)];
   const LO_TUONG = [], vlTuong = [];
+  // LỐI MÒN NẰM TRONG SÂN LÁT (OSM path: lối tham quan băng qua sân dưới "Unterer Hof"): sân đã lát kín → không vẽ dải đất nâu đè lên
+  // (ảnh 3D Google: sân một màu đá sáng, không có vệt nâu — góp ý #1633). ≥ 60 % chiều dài trong / sát (≤ 1 m) vùng lát thì bỏ cả dải lẫn va chạm (mặt lát đã đỡ)
+  const VUNG_KIN = [...ds.filter((d) => (d.loai === 'pedestrian' || d.loai === 'footway') && d.v.length > 3 && Math.hypot(d.v[0][0] - d.v.at(-1)[0], d.v[0][1] - d.v.at(-1)[1]) < 0.3).map((d) => d.v), ...vungLat.map((o) => o.v), ...tuongSan.map((o) => o.v)];
+  const phuLat = (v) => { let tong = 0, trong = 0;
+    for (let i = 0; i + 1 < v.length; i++) { const [x1, z1] = v[i], [x2, z2] = v[i + 1], n = Math.max(1, Math.ceil(Math.hypot(x2 - x1, z2 - z1)));
+      for (let m = 0; m < n; m++) { const x = x1 + (x2 - x1) * m / n, z = z1 + (z2 - z1) * m / n; tong++; if (VUNG_KIN.some((p) => trongDaV(x, z, p) || keMep(x, z, p) < 1)) trong++; } }
+    return tong > 0 && trong / tong >= 0.6; };
   for (const d of ds) {
     if (d.cau || d.ham || d.v.length < 2) continue;
     const kin = d.v.length > 3 && Math.hypot(d.v[0][0] - d.v.at(-1)[0], d.v[0][1] - d.v.at(-1)[1]) < 0.3;
     if (kin && (d.loai === 'pedestrian' || d.loai === 'footway')) { // VÙNG khép kín (sân dưới "Unterer Hof"): lát kín cả vùng bám đất — trước dựng thành dải chạy quanh mép
       const sh = new THREE.Shape(d.v.slice(0, -1).map(([x, z]) => new THREE.Vector2(x, -z))), g0 = new THREE.ShapeGeometry(sh).toNonIndexed(); g0.rotateX(-Math.PI / 2); const g = chiaNho(g0);
-      const p = g.attributes.position, uv = new Float32Array(p.count * 2); for (let i = 0; i < p.count; i++) { p.setY(i, cao(p.getX(i), p.getZ(i)) + 0.07); uv[i * 2] = p.getX(i) / 3; uv[i * 2 + 1] = p.getZ(i) / 3; }
-      g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.computeVertexNormals(); nhom.nhua.push(g); dem.duong++; continue;
+      const p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, cao(p.getX(i), p.getZ(i)) + 0.07);
+      // bỏ tam giác DỐC > 45°: mặt lát trùm lên vách giữa hai sân thành mảng đá lát kéo dãn đứng (góp ý #1633) — vách là tường chắn / đất xây bên dưới
+      const a = p.array, P = [];
+      for (let t = 0; t < a.length; t += 9) { const ux = a[t + 3] - a[t], uy = a[t + 4] - a[t + 1], uz = a[t + 5] - a[t + 2], vx = a[t + 6] - a[t], vy = a[t + 7] - a[t + 1], vz = a[t + 8] - a[t + 2];
+        const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; if (Math.abs(ny) >= 0.7 * Math.hypot(nx, ny, nz)) for (let k = 0; k < 9; k++) P.push(a[t + k]); }
+      if (!P.length) continue;
+      const g2 = new THREE.BufferGeometry(), uv = new Float32Array(P.length / 3 * 2); for (let i = 0; i < P.length / 3; i++) { uv[i * 2] = P[i * 3] / 3; uv[i * 2 + 1] = P[i * 3 + 2] / 3; }
+      g2.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g2.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g2.computeVertexNormals(); nhom.nhua.push(g2); dem.duong++; continue;
     }
     // LAN CAN + TƯỜNG CHẮN mép đường ô tô (ảnh Mapillary 360° đường lên cổng Torbau: tường đá xám sáng liền mạch cao ~1 m, đá nắp phẳng nhô hai bên; dưới là bệ
     // tường chắn đá khối chạy xuống tới sườn) — chỉ đường ô tô (lối bộ / chiếu nghỉ cầu thang không xây, chắn lối); mép sân trước cổng xây ở vungLat
@@ -114,10 +133,14 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
       }
       dem.duong++; continue;
     }
+    if (!LAT.has(d.loai) && phuLat(d.v)) { dem.boLoi = (dem.boLoi || 0) + 1; continue; }
     const g = dai(d.v, d.rong); (OTO.has(d.loai) && vl.oto ? nhom.oto : LAT.has(d.loai) ? nhom.nhua : nhom.dat).push(g); dem.duong++;
     const p = g.attributes.position; world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(p.array), Uint32Array.from({ length: p.count }, (_, i) => i)), tinh);
   }
   for (const { v, cao: m } of vungLat) lanCan([...v, v[0]], 0, false, { mat: m || cao, nguong: 0.8, moLoi: true }); // mép sân trước cổng: lan can chỗ đất ngoài tụt (phía vực), dọc chân nhà thì không
+  // TƯỜNG CHẮN NỀN SÂN: đất ngoài tụt ≥ 1,5 m → tường đá từ đất ngoài lên + lan can, va chạm cả thân; đầu cầu thang (nối sân dưới lên sân trên) chừa lối
+  const DAU_THANG = ds.filter((d) => d.loai === 'steps' && d.v.length >= 2).flatMap((d) => [d.v[0], d.v.at(-1)]);
+  for (const { v, mat } of tuongSan) { lanCan([...v, v[0]], 0, false, { mat, nguong: 1.5, lo: DAU_THANG, than: true }); dem.tuongSan = (dem.tuongSan || 0) + 1; }
   for (const { v } of vungLat) { // SÂN NHỰA (sân trước cổng ngoài): bám mặt đất đã san, thấp hơn mặt đường 6 cm (không giành mặt với dải đường)
     const sh = new THREE.Shape(v.map(([x, z]) => new THREE.Vector2(x, -z))), g0 = new THREE.ShapeGeometry(sh).toNonIndexed(); g0.rotateX(-Math.PI / 2);
     const g = chiaNho(g0);

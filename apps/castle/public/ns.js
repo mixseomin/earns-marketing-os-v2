@@ -555,6 +555,8 @@ for (const [ten, G] of Object.entries(NHOM)) {
 // mặt Palas hướng sân trên (đầu hồi đông, gần sân nhất): chọn TRƯỚC khi đặt cửa sổ để chừa dải trên cho tranh + ban công
 const CUA = []; // cửa sổ 3D mặt tiền (mattien.js): { x, y: bậu, z, nx, nz: pháp tuyến ra ngoài, nua: nửa bề ngang, cao, ten } — leo sát cửa có phòng phía sau thì E mở cửa trèo vào
 const SAN_TRONG = D.khoi.find((k) => k.tags.building === 'courtyard')?.ngoai?.[0];
+// NỀN SÂN TRÊN PHẲNG (NEN_LUOI đặt mặt đất trong đa giác sân = NEN.san): mặt lát + tường chắn mép dựng theo mức này (góp ý #1633)
+const SAN_PHANG = SAN_TRONG && NEN_LUOI && Number.isFinite(NEN?.san) ? { v: SAN_TRONG, y: NEN.san } : null;
 const MAT_PALAS = (() => {
   if (!SAN_TRONG) return null; const [cx, cz] = tamDa(SAN_TRONG); let tot = null;
   for (const t of TUONG_MT) if (t.ten === 'Palas') for (let i = 0; i < t.v.length; i++) {
@@ -743,11 +745,16 @@ function apHienCach3() { // gọi lại sau mọi chỗ đặt hiện / ẩn LOP
       const mp = datMatPalas({ THREE, mergeGeometries, tuong: tot, tranh: TR }); CUA.push(...(mp.cua || []));
       for (const m of mp) { m.visible = !LOP_OSM.dangAn && !CACH3.bat; scene.add(m); LOP_OSM.push(m); LOP_NHA.add(m); } // cờ trên LOP_OSM (khai sớm) — anh3d khai sau, đọc ở đây dễ dính lỗi chưa khai báo
     })();
-    // sân lát đá: lưới ô 1,5 m bám mặt đất thật trong mặt bằng sân trên (OSM courtyard), nhô 6 cm
-    const p = [], uv = [], B = 1.5; let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9; for (const [x, z] of san) { a0 = Math.min(a0, x); a1 = Math.max(a1, x); b0 = Math.min(b0, z); b1 = Math.max(b1, z); }
-    for (let x = a0; x < a1; x += B) for (let z = b0; z < b1; z += B) { if (!trongDa(x + B / 2, z + B / 2, san)) continue;
-      const q = [[x, z], [x + B, z], [x + B, z + B], [x, z + B]].map(([u, w]) => [u, datThat(u, w) + 0.06, w]);
-      for (const k of [0, 2, 1, 0, 3, 2]) { p.push(...q[k]); uv.push(q[k][0] / 3, q[k][2] / 3); } }
+    // sân lát đá trong mặt bằng sân trên (OSM courtyard), nhô 6 cm. Nền phẳng (SAN_PHANG): một mặt phẳng cắt ĐÚNG mép đa giác + va chạm — mép là tường chắn
+    // (duong.js tuongSan), ô lưới đất cắt ngang mép đã hạ xuống phía thấp (khối đất mịn bên dưới); trước là ô 1,5 m bám lưới đất nội suy → mép sân võng thành dốc đá (góp ý #1633)
+    const p = [], uv = [], B = 1.5;
+    if (SAN_PHANG) { const sh = new THREE.Shape(san.map(([x, z]) => new THREE.Vector2(x, -z))), g0 = new THREE.ShapeGeometry(sh).toNonIndexed(); g0.rotateX(-Math.PI / 2);
+      const a = g0.attributes.position; for (let i = 0; i < a.count; i++) { p.push(a.getX(i), SAN_PHANG.y + 0.06, a.getZ(i)); uv.push(a.getX(i) / 3, a.getZ(i) / 3); }
+      world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(p), Uint32Array.from({ length: p.length / 3 }, (_, i) => i)), tinh);
+    } else { let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9; for (const [x, z] of san) { a0 = Math.min(a0, x); a1 = Math.max(a1, x); b0 = Math.min(b0, z); b1 = Math.max(b1, z); }
+      for (let x = a0; x < a1; x += B) for (let z = b0; z < b1; z += B) { if (!trongDa(x + B / 2, z + B / 2, san)) continue;
+        const q = [[x, z], [x + B, z], [x + B, z + B], [x, z + B]].map(([u, w]) => [u, datThat(u, w) + 0.06, w]);
+        for (const k of [0, 2, 1, 0, 3, 2]) { p.push(...q[k]); uv.push(q[k][0] / 3, q[k][2] / 3); } } }
     if (p.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
       const vt = T.daXay(T.rngTu(41), 32, 58); for (const x of [vt.map, vt.bump]) if (x) x.wrapS = x.wrapT = THREE.RepeatWrapping;
       const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: vt.map, bumpMap: vt.bump, bumpScale: 1.2, roughness: 0.9 })); m.receiveShadow = true; scene.add(m); LOP_OSM.push(m); }
@@ -762,22 +769,31 @@ const duoiThang = (x, z) => THANG.some((d) => d.v.some((p, k) => k + 1 < d.v.len
 if (NEN_LUOI) {
   // chia theo ĐỘ DỐC từng ô (anh 16/11/2026: mỏm đá thành vách lát gạch xám, nhìn giả): dốc > 45° = vách đá tự nhiên (vân bazan sáng, chiếu ngang),
   // thoải = đất rừng có cỏ (như sườn có cây ngoài đời); va chạm vẫn là một lưới chung
-  const L = NEN_LUOI, p = [], uv = [], nhom = { da: { p: [], uv: [] }, co: { p: [], uv: [] } };
+  const L = NEN_LUOI, p = [], uv = [], nhom = { da: { p: [], uv: [] }, co: { p: [], uv: [] }, xay: { p: [], uv: [] } };
+  // MÉP NỀN SÂN TRÊN (góp ý #1633): ô lưới cắt ngang mép đa giác sân mà chênh > 1,5 m → các đỉnh TRONG sân hạ xuống mức đỉnh ngoài thấp nhất (khối đất nằm dưới mặt lát
+  // phẳng, cắt đúng mép); vách đứng là tường chắn (duong.js tuongSan) — trước ô đó là một mặt dốc đá tự nhiên từ sân trên xuống sân dưới
+  const trongSan = SAN_PHANG ? Uint8Array.from({ length: L.W * L.H }, (_, q) => (trongDa(L.x0 + (q % L.W) * L.B, L.z0 + Math.floor(q / L.W) * L.B, SAN_PHANG.v) ? 1 : 0)) : null;
+  // VÙNG XÂY (sân lát khép kín OSM + nền sân trên): ô dốc trong đó là tường / bậc xây, không phải vách đá tự nhiên → vân đá vôi xây (VL.mong) thay đá xám chia mặt
+  const VUNG_XAY = [...(SAN_PHANG ? [SAN_PHANG.v] : []), ...(DUONG?.duong || []).filter((d) => ['pedestrian', 'footway'].includes(d.loai) && d.v.length > 3 && Math.hypot(d.v[0][0] - d.v.at(-1)[0], d.v[0][1] - d.v.at(-1)[1]) < 0.3).map((d) => d.v)];
+  let haMep = 0;
   for (let j = 0; j + 1 < L.H; j++) for (let i = 0; i + 1 < L.W; i++) {
     const o = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]]; if (o.every(([a, b]) => L.nang[L.id(a, b)] < 0.15)) continue;
     if (duoiThang(L.x0 + (i + 0.5) * L.B, L.z0 + (j + 0.5) * L.B) || trongNhaLuoi(L.x0 + (i + 0.5) * L.B, L.z0 + (j + 0.5) * L.B)) continue; // trong mặt bằng nhà: đất lấp nội suy thành gò cao 7 m ngay sau vòm cổng (chặn lối xuyên cổng, anh 16/11/2026) — tường bao kín, lối đi có mặt đường riêng // dưới cầu thang: bậc đá là mặt đi, đất đo từ ảnh cao hơn bậc sẽ vùi bậc (kẹt, anh 16/11/2026)
     const q = o.map(([a, b]) => [L.x0 + a * L.B, L.G[L.id(a, b)] + 0.02, L.z0 + b * L.B]);
-    const ys = q.map((v) => v[1]), doc = (Math.max(...ys) - Math.min(...ys)) / (L.B * Math.SQRT2), g = doc > 1 ? nhom.da : nhom.co, ngang = doc > 1;
+    if (trongSan) { const tr = o.map(([a, b]) => trongSan[L.id(a, b)]);
+      if (tr.some(Boolean) && !tr.every(Boolean)) { const thap = Math.min(...q.filter((_, k) => !tr[k]).map((v) => v[1])); if (Math.max(...q.map((v) => v[1])) - thap > 1.5) { q.forEach((v, k) => { if (tr[k]) v[1] = thap; }); haMep++; } } }
+    const ys = q.map((v) => v[1]), doc = (Math.max(...ys) - Math.min(...ys)) / (L.B * Math.SQRT2), ngang = doc > 1;
+    const g = !ngang ? nhom.co : VUNG_XAY.some((v) => trongDa(L.x0 + (i + 0.5) * L.B, L.z0 + (j + 0.5) * L.B, v)) ? nhom.xay : nhom.da;
     for (const k of [0, 2, 1, 0, 3, 2]) { p.push(...q[k]); g.p.push(...q[k]); g.uv.push(ngang ? (q[k][0] + q[k][2]) / 6 : q[k][0] / 4, ngang ? q[k][1] / 6 : q[k][2] / 4); }
   }
   if (p.length) {
     // đá vôi xám sáng chia mặt (như vách Pöllat ngoài đời) — vân bazan đen + cỏ xanh đậm trước đó nhìn như đất cháy (anh 16/11/2026)
-    const vlNhom = { da: new THREE.MeshStandardMaterial({ color: '#b3ada2', roughness: 0.95, flatShading: true }), co: new THREE.MeshStandardMaterial({ color: '#7d9256', roughness: 1, flatShading: true }) };
+    const vlNhom = { da: new THREE.MeshStandardMaterial({ color: '#b3ada2', roughness: 0.95, flatShading: true }), co: new THREE.MeshStandardMaterial({ color: '#7d9256', roughness: 1, flatShading: true }), xay: VL.mong };
     for (const [k, gg] of Object.entries(nhom)) { if (!gg.p.length) continue;
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(gg.p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(gg.uv, 2)); g.computeVertexNormals();
       const m = new THREE.Mesh(g, vlNhom[k]); m.receiveShadow = true; scene.add(m); LOP_OSM.push(m); }
     world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(p), Uint32Array.from({ length: p.length / 3 }, (_, i) => i)), tinh);
-    console.info('[ns] mặt đất thật quanh lâu đài:', p.length / 18, 'ô · nâng tối đa', Math.max(...L.nang).toFixed(1), 'm');
+    console.info('[ns] mặt đất thật quanh lâu đài:', p.length / 18, 'ô · nâng tối đa', Math.max(...L.nang).toFixed(1), 'm · ô mép nền sân hạ', haMep, '· ô dốc xây', nhom.xay.p.length / 18);
   }
 }
 
@@ -787,6 +803,7 @@ if (DUONG?.duong?.length) {
   // sân lát Unterer / Oberer Hof: ảnh 3D Google (góp ý #1629) là đá vôi xám sáng; vân sáng 50 nhân màu #b9b3a8 trước đây ra nâu đất
   const nhua = tx(T.daXay(T.rngTu(61), 40, 76)), dat = tx(T.cuoi(T.rngTu(62))), bac = tx(T.daXay(T.rngTu(63), 30, 60));
   const { ra, dem } = datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds: DUONG.duong, cao: datThat, trongNha: (x, z) => dsKhoi.some((k) => trongDa(x, z, k.v)), vungLat: NEN_LUOI?.sanCong ? [{ v: NEN_LUOI.sanCong, cao: NEN_LUOI.caoSan }] : [],
+    tuongSan: SAN_PHANG ? [{ v: SAN_PHANG.v, mat: () => SAN_PHANG.y }] : [], // nền sân trên: tường chắn + lan can mép tụt xuống sân dưới (góp ý #1633)
     vl: { nhua: new THREE.MeshStandardMaterial({ map: nhua.map, bumpMap: nhua.bump, bumpScale: 0.8, roughness: 0.92, color: '#d8d4cc' }),
       oto: new THREE.MeshStandardMaterial({ bumpMap: nhua.bump, bumpScale: 0.15, roughness: 0.9, color: '#8e8b85' }),
       tuong: VL.mong, nap: new THREE.MeshStandardMaterial({ color: '#d9d5cc', roughness: 0.85 }), // lan can / tường chắn: đá xám sáng (ảnh Mapillary), đá nắp sáng hơn

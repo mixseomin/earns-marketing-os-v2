@@ -881,7 +881,15 @@ async function chupHaiBan(datCam = null) {
   for (const t0 = performance.now(); !anh3d && performance.now() - t0 < 20000;) await new Promise((ok) => setTimeout(ok, 200));
   if (anh3d) {
     anh3d.epHien = true; apDungAnh3d(); const t0 = performance.now();
-    for (let on = 0; performance.now() - t0 < 25000 && (on < 5 || performance.now() - t0 < 2500);) { await new Promise((ok) => setTimeout(ok, 150)); on = (anh3d.t.loadProgress ?? 1) >= 0.999 ? on + 1 : 0; }
+    // chờ ô tải đủ: TỰ gọi t.update mỗi nhịp (vòng vẽ của trang có thể đang hãm 10 khung/s hoặc chưa kịp xin ô ở góc mới → loadProgress báo xong GIẢ,
+    // ảnh thật chụp ra toàn trời — thẻ #1623), tối thiểu 4 s, rồi kiểm ảnh: còn > 92 % là nền trời thì chờ tiếp (tối đa 40 s)
+    const troi = () => { const c = document.createElement('canvas'); c.width = 64; c.height = 40; const g = c.getContext('2d'); renderer.render(scene, camera); g.drawImage(renderer.domElement, 0, 0, 64, 40);
+      const d = g.getImageData(0, 0, 64, 40).data, b = scene.background?.isColor ? [scene.background.r * 255, scene.background.g * 255, scene.background.b * 255] : [d[0], d[1], d[2]]; let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - b[0]) + Math.abs(d[i + 1] - b[1]) + Math.abs(d[i + 2] - b[2]) < 30) n++; return n / (d.length / 4); };
+    for (let on = 0; performance.now() - t0 < 40000;) {
+      camera.updateMatrixWorld(); anh3d.t.setCamera(camera); anh3d.t.setResolutionFromRenderer(camera, renderer); anh3d.t.update(); renderer.render(scene, camera);
+      await new Promise((ok) => setTimeout(ok, 150)); on = (anh3d.t.loadProgress ?? 1) >= 0.999 ? on + 1 : 0;
+      if (on >= 6 && performance.now() - t0 > 4000 && troi() < 0.92) break; }
     anhThat = chupCanvas(renderer.domElement, () => renderer.render(scene, camera));
     anh3d.epHien = false; anh3d.hien = null; apDungAnh3d();
   }
@@ -900,6 +908,32 @@ function diemTaiAnh(u, v) {
       if (!tot || dd < tot.kc) tot = { mat: k.id + '#' + i, ten: k.tags.name || '', kc: +dd.toFixed(2) }; }); }
   return { diem: [+x.toFixed(2), +y.toFixed(2), +z.toFixed(2)], ...(tot && tot.kc < 4 ? tot : { mat: null }) };
 }
+// KHỐI TRONG VÙNG ẢNH (CLI tự xử báo lệch): các khối OSM có phần thân (đỉnh mặt bằng ở chân / giữa / đỉnh khối) chiếu vào hộp [u0, v0, u1, v1]
+// của camera hiện tại và không bị khối khác che hẳn → [{ id, ten, phu }] (phu: tỉ lệ điểm mẫu rơi vào hộp)
+function khoiTrongVung(hop) {
+  camera.updateMatrixWorld(); const ra = [], v3 = new THREE.Vector3();
+  for (const k of dsKhoi) { if (k.yTren == null || (k.vo && k.coPart) || Math.hypot(...tamDa(k.v)) > 130) continue; let n = 0, tr = 0;
+    for (const [x, z] of [...k.v, tamDa(k.v)]) for (const y of [k.yDuoi ?? k.day, ((k.yDuoi ?? k.day) + k.yTren) / 2, k.yTren]) { if (!Number.isFinite(y)) continue; n++;
+      v3.set(x, y, z).project(camera); const u = (v3.x + 1) / 2, v = (1 - v3.y) / 2; if (v3.z < 1 && hop.some(([u0, v0, u1, v1]) => u >= u0 && u <= u1 && v >= v0 && v <= v1)) tr++; }
+    if (n && tr / n >= 0.25) ra.push({ id: k.id, ten: k.tags.name || '', phu: +(tr / n).toFixed(2) }); }
+  return ra.sort((a, b) => b.phu - a.phu);
+}
+// ĐO ĐỈNH KHỐI trên ảnh 3D Google (đã khớp toạ độ cảnh) so với mô hình: lưới 0,75 m trong mặt bằng, bỏ dải 0,35 m sát mép; đỉnh = phân vị 98, thân tường =
+// phân vị 60 các điểm sát mép (≤ 1,2 m). Chỉ chạy khi lớp ảnh thật đang hiện (ô đã tải) — trả null nếu ít điểm. Dùng chung với scripts/do-khoi-google.mjs.
+function doKhoiAnh3d(id) {
+  const k = dsKhoi.find((q) => q.id === id); if (!k || !anh3d) return null;
+  const DICH = anh3d.goc.position.y || 0, cao = (x, z) => { const h = new THREE.Raycaster(new THREE.Vector3(x, 600, z), new THREE.Vector3(0, -1, 0)).intersectObject(anh3d.t.group, true)[0]; return h ? h.point.y - DICH : null; };
+  const kc = (x, z) => { let m = 1e9; for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1))); m = Math.min(m, Math.hypot(x - ax - dx * t, z - az - dz * t)); } return m; };
+  const xs = k.v.map((p) => p[0]), zs = k.v.map((p) => p[1]), tat = [], mep = [], pv = (a, p) => { const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(s.length * p))]; };
+  for (let x = Math.min(...xs); x <= Math.max(...xs); x += 0.75) for (let z = Math.min(...zs); z <= Math.max(...zs); z += 0.75) { if (!trongDa(x, z, k.v)) continue; const d = kc(x, z); if (d < 0.35) continue; const y = cao(x, z); if (y == null) continue; tat.push(y); if (d < 1.2) mep.push(y); }
+  if (tat.length < 6) return null;
+  return { id, ten: k.tags.name || '', so: tat.length, dinhAnh: +pv(tat, 0.98).toFixed(2), thanAnh: mep.length ? +pv(mep, 0.6).toFixed(2) : null, dinhMoHinh: +k.yTren.toFixed(2), thanMoHinh: +(k._y1 ?? k.yTren).toFixed(2),
+    duoi: +((k.yDuoi ?? k.day) || 0).toFixed(2), h: so(k.tags.height), hMin: so(k.tags.min_height) ?? 0, mai: k.tags['roof:shape'] || 'flat', hMai: so(k.tags['roof:height']) };
+}
+// ép hiện ảnh thật ở camera hiện tại, chờ ô tải (CLI đo khối trên ảnh 3D ở đúng góc người báo)
+const batAnh3dTam = async (bat) => { if (!anh3d) return false; anh3d.epHien = bat; anh3d.hien = null; apDungAnh3d(); if (!bat) return true; const t0 = performance.now();
+  for (let on = 0; performance.now() - t0 < 30000 && on < 6;) { camera.updateMatrixWorld(); anh3d.t.setCamera(camera); anh3d.t.setResolutionFromRenderer(camera, renderer); anh3d.t.update(); renderer.render(scene, camera); await new Promise((ok) => setTimeout(ok, 150)); on = (anh3d.t.loadProgress ?? 1) >= 0.999 && performance.now() - t0 > 4000 ? on + 1 : 0; }
+  return true; };
 ganBaoLech({ nut: $('b-lech'), chupHai: () => chupHaiBan() });
 // góp ý: hộp gopy.js, kèm ảnh khung hình + ngữ cảnh chỗ đứng
 ganGopY({ nut: $('b-gy'), tieuDe: 'Góp ý cho Neuschwanstein', chupAnh: () => chupCanvas(renderer.domElement, () => renderer.render(scene, camera)), nguCanh: () => {
@@ -1192,7 +1226,7 @@ function khoiPhucGoc() {
 }
 addEventListener('pagehide', () => luuGoc(true)); addEventListener('beforeunload', () => luuGoc(true));
 window.__ns.luuGoc = luuGoc; window.__ns.gocHienTai = gocHienTai;
-window.__ns.kiemKe = () => KIEM_KE; window.__ns.chupHaiBan = chupHaiBan; window.__ns.diemTaiAnh = diemTaiAnh;
+window.__ns.kiemKe = () => KIEM_KE; window.__ns.chupHaiBan = chupHaiBan; window.__ns.khoiTrongVung = khoiTrongVung; window.__ns.doKhoiAnh3d = doKhoiAnh3d; window.__ns.batAnh3dTam = batAnh3dTam; window.__ns.diemTaiAnh = diemTaiAnh;
 // CHỒNG LẤN: hai ô cửa cùng một mặt tường mà khung chạm nhau (kể cả cửa dựng theo luật chung) → danh sách cặp (scripts/kiem-ke.mjs báo lỗi)
 window.__ns.chongLan = () => { const theoMat = new Map(); for (const c of CUA) { if (!c.mat) continue; (theoMat.get(c.mat) || theoMat.set(c.mat, []).get(c.mat)).push(c); } const ra = [];
   for (const [mat, ds] of theoMat) for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++) { const a = ds[i], b = ds[j], ux = -a.nz, uz = a.nx, sa = a.x * ux + a.z * uz, sb = b.x * ux + b.z * uz;

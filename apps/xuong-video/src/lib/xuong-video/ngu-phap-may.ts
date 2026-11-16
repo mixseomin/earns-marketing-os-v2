@@ -5,7 +5,7 @@
 // / đổi tốc; hé lộ thân phận → dolly zoom / quay vòng; đối đầu → quay vòng; móc cuối tập → đẩy sát vào mặt rồi cắt đen.
 // Máy ĐỌC nhịp của từng shot từ dữ liệu sẵn có (kế hoạch biểu cảm, mục đích thẻ shot, người đi trong shot, shot cuối tập) — không đoán chữ tự do.
 // MỘT nguồn cho: cổng tiền kỳ (quy-trinh.ts › chanTienKy) và nút 🎥 sửa 0đ (hau-ky.ts › daDangMayTapDb). Thuần — tự kiểm: ngu-phap-may.test.mts
-import { mayHopGiay, diChuThe } from './nhip-hinh';
+import { mayHopGiay, diChuThe, khongDongCo } from './nhip-hinh';
 import { chuThe } from './bo-set-3d';
 import type { KyThuatShot } from './dien-anh';
 import type { BieuCamNv } from './qc-cam-xuc';
@@ -62,9 +62,12 @@ export function mayHop(c: ShotNguPhap, n: NhipKich): string[] {
  *  máy ĐỨNG (khung đứng giữ phản ứng luôn hợp lệ: hài deadpan, chính kịch lặng), nhưng đã chạy thì phải là máy của nhịp đó. Phim ngắn dọc giữ luật cũ: nhịp kịch
  *  BẮT BUỘC có máy (công thức micro-drama). Quảng cáo / tài liệu / video máy dựng không xét (không kể bằng nhịp kịch). */
 export const THE_LOAI_KE_CHUYEN: readonly string[] = ['hoat_hinh', 'phieu_luu', 'kinh_di', 'hanh_dong', 'tinh_cam', 'hai', 'chinh_kich', 'vien_tuong'];
-/** Máy hợp nhịp THÊM theo thể loại. Hài: cú sốc / nhận ra đọc bằng khung đứng hoặc đẩy chậm vào mặt đứng hình (deadpan push) — dien-anh.ts: hài = "khung tĩnh, cắt đúng nhịp". */
-const MAY_THEM: Record<string, Partial<Record<NhipKich, string[]>>> = { hai: { soc: ['day_vao', 'zoom_cham', 'quat'], phan_quyet: ['zoom_gat'] } };
-export const mayHopTheLoai = (c: ShotNguPhap, n: NhipKich, theLoai?: string): string[] => [...mayHop(c, n), ...(MAY_THEM[theLoai ?? '']?.[n] ?? [])];
+/** Thể loại kể chuyện khác: ĐẨY CHẬM VÀO hợp MỌI nhịp kịch — "khoảnh khắc then chốt / xung đột nội tâm" là chỗ dùng chuẩn của push-in (In Depth Cine,
+ *  indepthcine.com/videos/4-camera-moves-every-filmmaker-needs-to-know). Bảng riêng cho hài (16/11/2026 bản đầu) bỏ: không tìm được nguồn đáng tin. */
+/** MỘT thước "có động cơ" cho cả hai luật (16/11/2026 chấm lại toàn studio: tập 122 #9, tập 135 #10 — ngữ pháp đòi dẫn trước theo quãng đi 150 cm, luật động cơ đo theo
+ *  một phần ba khung → hai cổng đá nhau): máy hợp nhịp phải qua khongDongCo trên chính shot đó. */
+export const mayHopTheLoai = (c: ShotNguPhap, n: NhipKich, theLoai?: string): string[] => [...new Set([...mayHop(c, n), ...(theLoai && theLoai !== 'phim_doc' ? ['day_vao', 'zoom_cham'] : [])])]
+  .filter((x) => !khongDongCo({ ...(c as object), thu_tu: c.thu_tu, ky_thuat: { ...(c.ky_thuat ?? {}), chuyen_dong: x } } as Parameters<typeof khongDongCo>[0]));
 /** Lỗi ngữ pháp máy: shot có nhịp kịch mà chuyển động máy không thuộc bộ hợp nhịp. Phim ngắn dọc: máy đứng cũng là lỗi; thể loại kể chuyện khác: máy đứng hợp lệ. */
 export function kiemNguPhapMay(ds: ShotNguPhap[], theLoai?: string): string[] {
   const doc = theLoai === 'phim_doc'; if (!doc && !THE_LOAI_KE_CHUYEN.includes(theLoai ?? '')) return [];
@@ -92,7 +95,7 @@ export function apNguPhapMay<T extends ShotNguPhap & { id: number }>(ds: T[], th
   ds.forEach((c, i) => {
     const n = nhipKich(c); if (!n) return;
     // máy tiến / lùi cần ≥ GIAY_MAY_TIEN giây (nhip-hinh.ts › mayHopGiay); shot ngắn hơn thì bỏ các lựa chọn đó, không còn gì thì để nguyên
-    const g = (c as { giay?: number | null }).giay; const l = NGU_PHAP_MAY[n]; const hop = mayHop(c, n).filter((x) => mayHopGiay(x, g)); if (!hop.length) return; if (hop.includes(kt[i]!.chuyen_dong || 'tinh')) return;
+    const g = (c as { giay?: number | null }).giay; const l = NGU_PHAP_MAY[n]; const hop = mayHopTheLoai(c, n, theLoai).filter((x) => mayHopGiay(x, g)); if (!hop.length) return; if (hop.includes(kt[i]!.chuyen_dong || 'tinh')) return;
     const giong = (x: string, j: number) => kt[j] && kt[j]!.co_canh === kt[i]!.co_canh && (kt[j]!.chuyen_dong || 'tinh') === x;
     kt[i]!.chuyen_dong = hop.find((x) => !giong(x, i - 1) && !giong(x, i + 1)) ?? hop[0]!;
     if (l.goc && (!kt[i]!.goc || kt[i]!.goc === 'ngang')) kt[i]!.goc = l.goc[0]!;
@@ -103,10 +106,10 @@ export function apNguPhapMay<T extends ShotNguPhap & { id: number }>(ds: T[], th
 
 /** ĐỘNG CƠ MÁY của từng shot (nhip-hinh.ts › khongDongCo) — MỘT chỗ tính cho cổng tiền kỳ (quy-trinh.ts) và nút 🎥 (hau-ky.ts): quãng đi của CHỦ THỂ so với trục
  *  máy (người máy nhắm — may_3d.nham, không thì chủ thể khung), có nhịp kịch không, shot mở / cuối phân cảnh. ds đã xếp theo thứ tự phát. Shot chưa có 3D → quãng đi trống (không xét). */
-export function dongCoMay<T extends ShotNguPhap & { phan_doan?: string | null; may_3d?: (Parameters<typeof diChuThe>[0] & { nham?: string; khung?: string[]; vi_tri: { ten: string; an?: boolean; tam: number[]; den?: number[] }[] }) | null }>(ds: T[]) {
+export function dongCoMay<T extends ShotNguPhap & { phan_doan?: string | null; may_3d?: (Parameters<typeof diChuThe>[0] & { nham?: string; khung?: string[]; ong_kinh?: number; vi_tri: { ten: string; an?: boolean; tam: number[]; den?: number[] }[] }) | null }>(ds: T[]) {
   const pd = (c?: T) => c?.phan_doan ?? '';
   return ds.map((c, i) => { const m = c.may_3d; const d = m ? diChuThe(m, m.nham ? [m.nham] : chuThe(m)) : null;
-    return { ...c, di_ngang_cm: d?.ngang ?? null, di_chu_cm: d?.dai ?? null, di_sau_cm: d?.sau ?? null, // chưa có kế hoạch biểu cảm (và không phải shot móc / hé lộ đọc được từ chữ) = CHƯA BIẾT nhịp, không phải "không có nhịp" — quét 16/11/2026: 21 shot hoạt hình / hài không có
+    return { ...c, di_ngang_cm: d?.ngang ?? null, di_chu_cm: d?.dai ?? null, di_sau_cm: d?.sau ?? null, rong_khung_cm: d?.rong ?? null, cach_may_cm: d?.xa ?? null, may_dat: m?.dat ?? null, may_ong: (m as { ong_kinh?: number } | null)?.ong_kinh ?? null, chu_tam: d?.tam ?? null, // chưa có kế hoạch biểu cảm (và không phải shot móc / hé lộ đọc được từ chữ) = CHƯA BIẾT nhịp, không phải "không có nhịp" — quét 16/11/2026: 21 shot hoạt hình / hài không có
       // bieu_cam bị báo "đẩy vào không có nhịp kịch"
       nhip_kich: nhipKich(c) != null ? true : c.bieu_cam?.length ? false : undefined, cam_doi: c.bieu_cam?.length ? c.bieu_cam.some((b) => b.dau !== b.cuoi) : undefined,
       dau_canh: i === 0 || pd(ds[i - 1]) !== pd(c), cuoi_canh: i === ds.length - 1 || pd(ds[i + 1]) !== pd(c) }; });

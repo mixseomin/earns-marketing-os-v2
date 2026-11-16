@@ -7,13 +7,16 @@ const FOX = [['cu', 'day_vao'], ['cu', 'day_vao'], ['ws', 'tinh'], ['ms', 'tinh'
 const loi = kiemNhipHinh(FOX);
 assert.ok(loi.some((x) => x.includes('#1–#2')) && loi.some((x) => x.includes('#8–#9')) && loi.some((x) => x.includes('#13–#14')), loi.join('\n'));
 assert.ok(!loi.some((x) => x.includes('máy đứng yên')), 'bỏ trần 40 % shot đứng yên (16/11/2026 — lệ riêng, không phải chuẩn ngành)');
-// sửa 0đ → hết lỗi, chỉ đổi chuyển động máy, giữ cỡ cảnh + nhóm khác
+// sửa 0đ KHÔNG chữa cắt nhảy bằng đổi máy (luật 30° / 20 mm: đổi chuyển động không cứu được — sửa 16/11/2026 theo nguồn): ba cặp trùng vẫn báo, nút không bịa máy
 const sua = daDangMay(FOX);
-const sau = FOX.map((c) => ({ ...c, ky_thuat: sua.find((x) => x.id === c.id)?.ky_thuat ?? c.ky_thuat }));
-assert.deepStrictEqual(kiemNhipHinh(sau), [], kiemNhipHinh(sau).join('\n'));
-assert.ok(sua.every((x) => x.ky_thuat.co_canh === FOX.find((c) => c.id === x.id)!.ky_thuat.co_canh), 'không đổi cỡ cảnh');
-assert.ok(sua.length <= 6, `đổi ít nhất có thể (${sua.length} shot)`);
-assert.deepStrictEqual(daDangMay(sau), [], 'chạy lại không đổi gì nữa');
+assert.deepStrictEqual(sua, [], JSON.stringify(sua));
+assert.strictEqual(kiemNhipHinh(FOX).filter((x) => x.includes('cắt nhảy')).length, 3);
+// LUẬT 30° / 20 mm có 3D: cùng chủ thể, cùng cỡ, góc máy quanh chủ thể 20° → cắt nhảy dù khác chuyển động; dời 40° hoặc đổi tiêu cự 25 mm → qua
+const j = (dat: number[], ong: number, cd: string) => ({ thu_tu: 1, chu: ['A'], chu_tam: [0, 0, 0], may_dat: dat, may_ong: ong, ky_thuat: { co_canh: 'ms', chuyen_dong: cd } });
+const r = 300, d2 = (deg: number) => [r * Math.sin((deg * Math.PI) / 180), -r * Math.cos((deg * Math.PI) / 180), 150];
+assert.strictEqual(kiemNhipHinh([j(d2(0), 35, 'tinh'), { ...j(d2(20), 35, 'day_vao'), thu_tu: 2 }]).length, 1, 'khác máy vẫn cắt nhảy');
+assert.deepStrictEqual(kiemNhipHinh([j(d2(0), 35, 'tinh'), { ...j(d2(40), 35, 'tinh'), thu_tu: 2 }]), [], 'dời 40° → qua');
+assert.deepStrictEqual(kiemNhipHinh([j(d2(0), 35, 'tinh'), { ...j(d2(10), 60, 'tinh'), thu_tu: 2 }]), [], 'đổi tiêu cự 25 mm → qua');
 // MÁY TIẾN CẦN THỜI GIAN (phim #3071, 16/11/2026): 20 shot, 10 shot "đẩy vào" trong đó 6 shot chỉ 1,2–2 s → cú zoom gấp. Cổng đỏ đúng 6 shot ngắn,
 // sửa 0đ đổi đúng 6 shot đó sang máy đứng, shot ngắn không bị ép đi lại vì trần đứng yên
 const P = [[2, 'ws', 'tinh'], [1.2, 'mcu', 'day_vao'], [1.2, 'ws', 'day_vao'], [2, 'cu', 'day_vao'], [1.4, 'mcu', 'tinh'], [2, 'cu', 'day_vao'], [1.6, 'ws', 'tinh'], [3.3, 'cu', 'tinh'], [2.2, 'mcu', 'lia'], [2, 'ms', 'tinh'],
@@ -53,10 +56,10 @@ assert.strictEqual(khongDongCo({ thu_tu: 1, ky_thuat: { co_canh: 'ws', chuyen_do
 const TR = [{ id: 1, thu_tu: 1, giay: 3, chu: ['A'], ky_thuat: { co_canh: 'cu', chuyen_dong: 'tinh' }, di_ngang_cm: 0, di_chu_cm: 0, nhip_kich: false, dau_canh: false, cuoi_canh: false },
   { id: 2, thu_tu: 2, giay: 3, chu: ['A'], ky_thuat: { co_canh: 'ws', chuyen_dong: 'tinh' }, di_ngang_cm: 0, di_chu_cm: 0, nhip_kich: false, dau_canh: false, cuoi_canh: false },
   { id: 3, thu_tu: 3, giay: 3, chu: ['A'], ky_thuat: { co_canh: 'ws', chuyen_dong: 'tinh' }, di_ngang_cm: 0, di_chu_cm: 0, nhip_kich: false, dau_canh: false, cuoi_canh: false }];
-assert.deepStrictEqual(daDangMay(TR), []); assert.ok(kiemNhipHinh(TR)[0]!.includes('đổi cỡ cảnh / góc'));
+assert.deepStrictEqual(daDangMay(TR), []); assert.ok(kiemNhipHinh(TR)[0]!.includes('dời máy ≥ 30°'));
 // REVIEW 16/11/2026 — chỉ CHỦ THỂ tính là "người đi": tờ tiền / đoàn tàu chuyển động không phải lý do máy chạy (#17, #19 phim #3071)
 const mN = { dat: [0, 0, 150], nhin: [0, 1000, 150], vi_tri: [{ ten: 'Chú', tam: [0, 500, 0] }, { ten: 'Tiền thừa', tam: [0, 400, 100], den: [300, 400, 100] }, { ten: 'Nhóc', tam: [0, 600, 0], den: [0, 200, 0] }] };
-assert.strictEqual(diChuThe(mN, ['Chú'])!.ngang, 0); assert.strictEqual(diChuThe(mN)!.ngang, 300); assert.deepStrictEqual(diChuThe(mN, ['Nhóc']), { ngang: 0, sau: -400, dai: 400 });
+assert.strictEqual(diChuThe(mN, ['Chú'])!.ngang, 0); assert.strictEqual(diChuThe(mN)!.ngang, 300); assert.deepStrictEqual(diChuThe(mN, ['Nhóc']), { ngang: 0, sau: -400, dai: 400, rong: null, xa: 600, tam: [0, 600, 0] });
 // bám theo sau mà người đi về phía máy → sai hướng (dẫn trước); dẫn trước mà người đi ra xa → sai; trượt ngang mở cảnh (thiết lập) / lùi ra mở cảnh → có động cơ
 const kd = (cd: string, o: object) => khongDongCo({ thu_tu: 1, ky_thuat: { co_canh: 'ms', chuyen_dong: cd }, di_ngang_cm: 0, di_chu_cm: 400, di_sau_cm: 0, nhip_kich: false, dau_canh: false, cuoi_canh: false, ...o });
 assert.ok(kd('theo', { di_sau_cm: -400 })!.includes('VỀ PHÍA máy')); assert.strictEqual(kd('theo', { di_sau_cm: 400 }), null); assert.strictEqual(kd('dan_truoc', { di_sau_cm: -400 }), null);
@@ -64,7 +67,7 @@ assert.ok(kd('dan_truoc', { di_sau_cm: 400 })!.includes('RA XA')); assert.ok(kd(
 assert.ok(kd('truot_ngang', {})); assert.strictEqual(kd('truot_ngang', { dau_canh: true }), null); assert.ok(kd('lui_ra', {})); assert.strictEqual(kd('lui_ra', { dau_canh: true }), null);
 assert.strictEqual(kd('vuot_tien_canh', { di_chu_cm: 0 }), null, 'trượt qua tiền cảnh là máy hé lộ — ngu-phap-may xét');
 // ca thật #13 phim #3071: đi chéo 200 cm, 144 cm về phía máy → bám sau sai hướng (tàu đỗ trượt trong clip tham chiếu, model cho tàu chạy); đi ngang là chính thì không
-assert.ok(kd('theo', { di_chu_cm: 200, di_sau_cm: -144 })!.includes('VỀ PHÍA máy')); assert.strictEqual(kd('theo', { di_chu_cm: 400, di_sau_cm: -100 }), null);
+
 // NÂNG 16/11/2026 — đẩy vào ở cận phải nhấn một chuyển biến: cảm xúc đổi / nhịp kịch / khép cảnh; chưa có kế hoạch biểu cảm thì không xét
 const cn = (o: object) => khongDongCo({ thu_tu: 1, ky_thuat: { co_canh: 'cu', chuyen_dong: 'day_vao' }, nhip_kich: false, cam_doi: false, dau_canh: false, cuoi_canh: false, ...o });
 assert.ok(cn({})!.includes('chuyển biến')); assert.strictEqual(cn({ cam_doi: true }), null); assert.strictEqual(cn({ nhip_kich: true }), null); assert.strictEqual(cn({ cuoi_canh: true }), null); assert.strictEqual(cn({ cam_doi: undefined }), null);
@@ -78,6 +81,14 @@ assert.deepStrictEqual(daDangMay(B3).map((x) => [x.id, x.ky_thuat.chuyen_dong]),
 assert.deepStrictEqual(daDangMay(B3.map((c) => ({ ...c, nhip_kich: undefined }))).map((x) => x.id), [17]);
 // cả ba mang nhịp (tập 122 #16–#18 thật) → chuỗi leo thang: không báo, không đổi
 const B3n = B3.map((c) => ({ ...c, nhip_kich: true })); assert.deepStrictEqual(kiemNhipHinh(B3n), []); assert.deepStrictEqual(daDangMay(B3n), []);
+// NGUỒN 16/11/2026 — ngưỡng "đi" = một phần ba bề ngang khung tại chủ thể; lia hé lộ (mở cảnh / nhịp kịch) không cần người đi; hướng chính quyết định bám / dẫn
+assert.strictEqual(diChuThe({ dat: [0, 0, 150], nhin: [0, 1000, 150], ong_kinh: 36, vi_tri: [{ ten: 'A', tam: [0, 600, 0] }] }, ['A'])!.rong, 600, 'khung rộng 600 cm ở 6 m với 36 mm');
+const lk = (o: object) => khongDongCo({ thu_tu: 1, ky_thuat: { co_canh: 'ms', chuyen_dong: 'lia' }, di_ngang_cm: 100, di_chu_cm: 100, di_sau_cm: 0, nhip_kich: false, dau_canh: false, cuoi_canh: false, ...o });
+assert.strictEqual(lk({ rong_khung_cm: 240 }), null, 'cận: 100 cm > 1/3 khung 240 → có đi'); assert.ok(lk({ rong_khung_cm: 900 }), 'rộng: 100 cm < 1/3 khung 900 → không đi');
+assert.strictEqual(lk({ rong_khung_cm: 900, dau_canh: true }), null, 'lia mở cảnh = hé lộ'); assert.strictEqual(lk({ rong_khung_cm: 900, nhip_kich: true }), null);
+assert.ok(kd('theo', { di_chu_cm: 200, di_ngang_cm: 140, di_sau_cm: -144 })!.includes('VỀ PHÍA'), '#13 thật: hướng chính về phía máy'); assert.strictEqual(kd('theo', { di_chu_cm: 300, di_ngang_cm: 250, di_sau_cm: -150 }), null, 'đi ngang là chính → bám bên cạnh được');
+// dẫn trước theo chiều sâu: 318 cm về phía máy khi máy cách 600 cm → người to rõ (≥ 1/3 khoảng cách) → có đi; máy cách 1.200 cm → chưa
+assert.strictEqual(kd('dan_truoc', { di_chu_cm: 318, di_ngang_cm: 20, di_sau_cm: -318, rong_khung_cm: 900, cach_may_cm: 600 }), null); assert.ok(kd('dan_truoc', { di_chu_cm: 318, di_ngang_cm: 20, di_sau_cm: -318, rong_khung_cm: 1800, cach_may_cm: 1200 })!.includes('không đi'));
 // nhịp đọc: Tango & Lint tập 1 — 20 shot / 48s, phat 2–3,5s → phim không lời chặn; quảng cáo không xét; shot chưa cắt tính cả clip
 const T1 = [3.5, 2, 2, 2, 2, 2.2, 2, 2.3, 2, 2, 2, 2.9, 2.1, 2, 2.5, 2, 2.5, 2.5, 2, 3.4].map((g, i) => ({ thu_tu: i + 1, phat_s: g, thoi_luong_s: 4 }));
 const ld = kiemGiayDoc(T1, { khong_loi: true });

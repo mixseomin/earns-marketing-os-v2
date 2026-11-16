@@ -12,17 +12,22 @@ export const TIEN_TO_NHIP_HINH = 'nhịp hình: ';
  *  sự sống nằm trong khung). Thay luật cũ "tối đa 40 % shot máy đứng yên" (13/10/2026, lệ riêng của studio — nganh-luat-dung.ts) — 16/11/2026 phim #3071 (hài):
  *  chỉ tiêu 40 % làm bộ tự gán (daDangMay) gán máy không lý do: lia trên mặt chú đứng hình (#17), lia theo nhóc chạy vào chiều sâu (#9 #18), đẩy vào cảnh rộng
  *  trong khi tàu tự mang chú ra khỏi khung (#19), lia two-shot trả gài (#14 — model làm ngược). Không đủ dữ liệu để xét (shot chưa có 3D / chưa đọc nhịp) thì bỏ qua. */
+/** NGUỒN từng luật máy + lệ riêng studio: docs/nguon-luat-may.md. Ngưỡng 'có đi' khi THIẾU 3D (lệ studio). */
 export const DI_NGANG_CM = 150;
 /** Quãng đi của CHỦ THỂ so với trục máy (cm, mặt sàn, z hướng lên): ngang = vuông góc trục máy (lia / trượt bám người đi ngang), sau = dọc trục máy, dương là RA XA máy
  *  (bám theo sau), âm là LẠI GẦN máy (dẫn trước; người tự đi vào cận). Chỉ tính người / vật máy nhắm (ten = may_3d.nham hoặc chủ thể khung — bo-set-3d.ts › chuThe):
  *  đạo cụ hay đoàn tàu chuyển động không phải lý do để máy chạy (review 16/11/2026: bản đầu tính mọi vi_tri — #17 phim #3071 "quãng đi" là tờ tiền, #19 là đoàn tàu).
  *  null = không xét được (thiếu 3D / trục máy). */
-export const diChuThe = (m?: { dat: number[]; nhin: number[]; vi_tri: { ten?: string; tam: number[]; den?: number[] }[] } | null, ten?: readonly string[]): { ngang: number; sau: number; dai: number } | null => {
+export const diChuThe = (m?: { dat: number[]; nhin: number[]; ong_kinh?: number; vi_tri: { ten?: string; tam: number[]; den?: number[] }[] } | null, ten?: readonly string[]): { ngang: number; sau: number; dai: number; rong: number | null; xa: number | null; tam: number[] | null } | null => {
   if (!m?.dat || !m.nhin) return null; const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const l = Math.hypot(fx, fy); if (l < 1e-6) return null;
   const ux = fx / l, uy = fy / l; let ngang = 0, sau = 0, dai = 0;
+  const chu = (m.vi_tri ?? []).find((v) => !ten?.length || ten.includes(v.ten ?? '')) ?? null;
+  // BỀ NGANG KHUNG tại chỗ chủ thể đứng (cm) = khoảng cách × 36 / tiêu cự (khổ 36 mm — tiêu cự may_3d.ong_kinh là mm full-frame, bo-set-3d.ts › ONG_MM)
+  const xa = chu ? (chu.tam[0]! - m.dat[0]!) * ux + (chu.tam[1]! - m.dat[1]!) * uy : 0;
+  const rong = m.ong_kinh && xa > 1 ? (xa * 36) / m.ong_kinh : null;
   for (const v of m.vi_tri ?? []) { if (!v.den || (ten?.length && !ten.includes(v.ten ?? ''))) continue; const dx = v.den[0]! - v.tam[0]!, dy = v.den[1]! - v.tam[1]!;
     const n = Math.abs(dx * uy - dy * ux), d = dx * ux + dy * uy; if (n > ngang) ngang = n; if (Math.abs(d) > Math.abs(sau)) sau = d; dai = Math.max(dai, Math.hypot(dx, dy)); }
-  return { ngang, sau, dai };
+  return { ngang, sau, dai, rong, xa: chu && xa > 1 ? xa : null, tam: chu?.tam ?? null };
 };
 export const diNgangCm = (m?: Parameters<typeof diChuThe>[0], ten?: readonly string[]): number | null => diChuThe(m, ten)?.ngang ?? null;
 const CO_CAN = ['cu', 'mcu', 'ecu', 'insert'];
@@ -36,14 +41,23 @@ const CO_CAN = ['cu', 'mcu', 'ecu', 'insert'];
  *  Ba shot đẩy vào / zoom chậm LIỀN NHAU → lạm dụng (kiemNhipHinh): cú nhấn nào cũng nhấn thì không còn cú nào là nhấn. */
 export function khongDongCo(c: ShotNhip): string | null {
   const cd = c.ky_thuat?.chuyen_dong; if (!cd || cd === 'tinh') return null;
-  const ngangThieu = c.di_ngang_cm != null && c.di_ngang_cm < DI_NGANG_CM;
-  if (cd === 'lia' && ngangThieu) return `lia mà chủ thể không đi ngang khung (${Math.round(c.di_ngang_cm!)} cm < ${DI_NGANG_CM}) — người đứng / đi vào chiều sâu thì khung đứng tự kể`;
-  if (cd === 'truot_ngang' && ngangThieu && c.dau_canh === false) return `trượt ngang mà chủ thể không đi ngang khung (${Math.round(c.di_ngang_cm!)} cm) và không phải shot mở cảnh`;
-  if ((cd === 'theo' || cd === 'dan_truoc') && c.di_chu_cm != null && c.di_chu_cm < DI_NGANG_CM) return `${cd} mà chủ thể không đi (${Math.round(c.di_chu_cm)} cm) — máy bám cần người di chuyển`;
-  // hướng đi tính theo TỈ LỆ, không theo ngưỡng cm (16/11/2026 phim #3071 #13: nhóc đi chéo 200 cm, 144 cm về phía máy — ngưỡng 150 cho qua; máy 3D "bám sau" mà người
-  // lại gần nên trong clip tham chiếu đoàn tàu đỗ trượt ngang khung, Seedance đọc thành TÀU CHẠY). Thành phần về phía máy ≥ nửa quãng đi = đang đi về phía máy.
-  const veMay = c.di_sau_cm != null && c.di_chu_cm != null && c.di_chu_cm >= DI_NGANG_CM && -c.di_sau_cm >= 0.5 * c.di_chu_cm;
-  const raXa = c.di_sau_cm != null && c.di_chu_cm != null && c.di_chu_cm >= DI_NGANG_CM && c.di_sau_cm >= 0.5 * c.di_chu_cm;
+  // "Đi" = chủ thể rời phần ba khung của mình (bề ngang khung / 3 tại chỗ nó đứng — lia / bám để GIỮ người trong khung, In Depth Cine; một phần ba = luật một phần ba).
+  // Không có tiêu cự / khoảng cách → DI_NGANG_CM (lệ studio).
+  const nguong = c.rong_khung_cm ? c.rong_khung_cm / 3 : DI_NGANG_CM;
+  const ngangThieu = c.di_ngang_cm != null && c.di_ngang_cm < nguong;
+  // HÉ LỘ là động cơ thứ hai của lia / trượt (Mascelli: lia khi nó hé lộ thêm; pan reveal): shot mở cảnh hoặc nhịp kịch
+  const heLo = c.dau_canh === true || c.nhip_kich === true;
+  if (cd === 'lia' && ngangThieu && !heLo) return `lia mà chủ thể không đi ngang khung (${Math.round(c.di_ngang_cm!)} cm < ${Math.round(nguong)} cm = một phần ba khung) và không hé lộ gì — người đứng / đi vào chiều sâu thì khung đứng tự kể`;
+  if (cd === 'truot_ngang' && ngangThieu && !heLo && c.dau_canh === false) return `trượt ngang mà chủ thể không đi ngang khung (${Math.round(c.di_ngang_cm!)} cm) và không phải shot mở cảnh`;
+  // HƯỚNG CHÍNH của quãng đi quyết định kiểu máy bám (StudioBinder — tracking shot: dẫn trước = người đi VỀ PHÍA máy, bám theo = máy đi SAU người đi ra xa,
+  // ngang = máy đi bên cạnh). 16/11/2026 phim #3071 #13: nhóc đi chéo 140 ngang / 144 về phía máy — hướng chính là VỀ PHÍA máy, khai "bám theo sau" → clip 3D
+  // tham chiếu cho đoàn tàu đỗ trượt ngang khung, Seedance đọc thành tàu chạy.
+  // đi theo CHIỀU SÂU (dẫn trước / bám sau) đo bằng cỡ người đổi trong khung: quãng dọc trục ≥ một phần ba khoảng cách tới máy (người to / nhỏ đi ≥ 1,5 lần);
+  // đi ngang đo bằng một phần ba bề ngang khung. Có một trong hai là có đi. Thiếu 3D: quãng đi ≥ DI_NGANG_CM.
+  const coDi = c.di_chu_cm != null && (c.rong_khung_cm && c.cach_may_cm ? (c.di_ngang_cm ?? 0) >= c.rong_khung_cm / 3 || Math.abs(c.di_sau_cm ?? 0) >= c.cach_may_cm / 3 : c.di_chu_cm >= DI_NGANG_CM);
+  const veMay = coDi && c.di_sau_cm != null && -c.di_sau_cm > (c.di_ngang_cm ?? 0);
+  const raXa = coDi && c.di_sau_cm != null && c.di_sau_cm > (c.di_ngang_cm ?? 0);
+  if ((cd === 'theo' || cd === 'dan_truoc') && c.di_chu_cm != null && !coDi) return `${cd} mà chủ thể gần như không đi (${Math.round(c.di_chu_cm)} cm: chưa rời một phần ba khung, cỡ người chưa đổi rõ) — máy bám cần người di chuyển`;
   if (cd === 'theo' && veMay) return `bám theo sau mà chủ thể đi VỀ PHÍA máy (${Math.round(-(c.di_sau_cm ?? 0))} cm) — người lại gần thì máy dẫn trước (dan_truoc) hoặc đứng`;
   if (cd === 'dan_truoc' && raXa) return `dẫn trước mà chủ thể đi RA XA máy (${Math.round(c.di_sau_cm ?? 0)} cm) — người đi xa thì máy bám theo (theo) hoặc đứng`;
   // ĐẨY VÀO Ở CẬN (nâng 16/11/2026): đẩy vào đánh dấu một CHUYỂN BIẾN — cảm xúc người trong khung đổi giữa shot (kế hoạch biểu cảm đầu ≠ cuối), nhịp kịch,
@@ -69,11 +83,26 @@ const trungCo = (a: KyThuatShot, b: KyThuatShot) => !!a.co_canh && a.co_canh ===
 /** Cùng chủ thể khung (may_3d.khung)? Khác người = shot / reverse shot (cận thằng bé → cận chú, #16 → #17 phim #3071), cắt cùng cỡ là chuẩn ngành, không phải
  *  "một shot kéo dài" — 16/11/2026 luật cũ bắt đổi máy, gán "lia" cho mặt chú đang đứng hình. Không biết chủ thể thì coi như cùng (giữ luật cũ). */
 const cungChu = (a: ShotNhip, b: ShotNhip) => !a.chu?.length || !b.chu?.length || a.chu.some((x) => b.chu!.includes(x));
-const trung = (a: ShotNhip, ka: KyThuatShot, b: ShotNhip, kb: KyThuatShot) => trungCo(ka, kb) && cungChu(a, b);
+/** CẮT NHẢY — luật 30° / 20 mm (Wikipedia "30-degree rule": hai shot liền của CÙNG chủ thể, máy phải dời ≥ 30° quanh chủ thể, hoặc tiêu cự đổi ≥ 20 mm, không thì
+ *  cú cắt đọc thành cắt nhảy). Có 3D cả hai shot → đo thật góc máy quanh chủ thể + tiêu cự; chuyển động máy KHÔNG cứu được cắt nhảy (luật cũ coi khác máy là khác shot —
+ *  sai nguồn, sửa 16/11/2026). Thiếu 3D → luật cũ (cùng cỡ + cùng máy) vì không đo được góc. */
+const gocQuanh = (a: ShotNhip, b: ShotNhip): number | null => {
+  if (!a.may_dat || !b.may_dat || !a.chu_tam || !b.chu_tam) return null;
+  const va = [a.may_dat[0]! - a.chu_tam[0]!, a.may_dat[1]! - a.chu_tam[1]!], vb = [b.may_dat[0]! - b.chu_tam[0]!, b.may_dat[1]! - b.chu_tam[1]!];
+  const la = Math.hypot(va[0]!, va[1]!), lb = Math.hypot(vb[0]!, vb[1]!); if (la < 1 || lb < 1) return null;
+  return (Math.acos(Math.max(-1, Math.min(1, (va[0]! * vb[0]! + va[1]! * vb[1]!) / (la * lb)))) * 180) / Math.PI;
+};
+const trung = (a: ShotNhip, ka: KyThuatShot, b: ShotNhip, kb: KyThuatShot) => {
+  if (!cungChu(a, b) || kb.chuyen_canh === 'cat_khop') return false;
+  const g = gocQuanh(a, b);
+  if (g != null && a.may_ong && b.may_ong) return g < 30 && Math.abs(a.may_ong - b.may_ong) < 20 && !!ka.co_canh && ka.co_canh === kb.co_canh;
+  return trungCo(ka, kb);
+};
 /** tranh_day = không chọn chuyển động đẩy vào (san-pham-shot.ts › tranhDayVao: sản phẩm mặc trên người ở cỡ có người). */
 type ShotNhip = { id?: number; thu_tu: number; ky_thuat?: KyThuatShot | null; tranh_day?: boolean; /** giây phát — có thì áp luật máy tiến / lùi cần thời gian */ giay?: number | null; /** chủ thể khung (may_3d.khung) — khác người thì không tính trùng */ chu?: string[] | null;
   /** ĐỘNG CƠ MÁY (khongDongCo) — trống = không xét: quãng đi của chủ thể so với trục máy (diChuThe), shot có nhịp kịch (ngu-phap-may.ts › nhipKich), shot mở / cuối phân cảnh — ngu-phap-may.ts › dongCoMay điền */
-  di_ngang_cm?: number | null; /** quãng đi dài nhất của chủ thể */ di_chu_cm?: number | null; /** dọc trục máy: dương ra xa, âm lại gần */ di_sau_cm?: number | null; nhip_kich?: boolean; /** cảm xúc của người trong khung đổi giữa shot (bieu_cam đầu ≠ cuối); trống = chưa có kế hoạch biểu cảm */ cam_doi?: boolean; dau_canh?: boolean; cuoi_canh?: boolean };
+  di_ngang_cm?: number | null; /** quãng đi dài nhất của chủ thể */ di_chu_cm?: number | null; /** dọc trục máy: dương ra xa, âm lại gần */ di_sau_cm?: number | null; /** bề ngang khung tại chủ thể (cm, diChuThe › rong) */ rong_khung_cm?: number | null; /** khoảng cách máy → chủ thể dọc trục máy (cm) */ cach_may_cm?: number | null; /** máy + chủ thể cho luật 30° / 20 mm */ may_dat?: number[] | null; may_ong?: number | null; chu_tam?: number[] | null;
+  nhip_kich?: boolean; /** cảm xúc của người trong khung đổi giữa shot (bieu_cam đầu ≠ cuối); trống = chưa có kế hoạch biểu cảm */ cam_doi?: boolean; dau_canh?: boolean; cuoi_canh?: boolean };
 
 
 /** Lỗi nhịp hình của một chuỗi shot (đã xếp theo thứ tự phát). */
@@ -82,7 +111,7 @@ export function kiemNhipHinh(ds: ShotNhip[]): string[] {
   for (let i = 1; i < ds.length; i++) {
     const a = ds[i - 1]!.ky_thuat ?? {}; const b = ds[i]!.ky_thuat ?? {};
     if (trung(ds[i - 1]!, a, ds[i]!, b))
-      out.push(`${TIEN_TO_NHIP_HINH}#${ds[i - 1]!.thu_tu}–#${ds[i]!.thu_tu} cùng cỡ cảnh + cùng chuyển động máy (nhìn như một shot kéo dài) — đổi cỡ cảnh / góc; máy chỉ đổi khi có động cơ`);
+      out.push(`${TIEN_TO_NHIP_HINH}#${ds[i - 1]!.thu_tu}–#${ds[i]!.thu_tu} cùng cỡ cảnh + cùng chuyển động máy (cắt nhảy — luật 30° / 20 mm) — dời máy ≥ 30° quanh chủ thể hoặc đổi cỡ cảnh; đổi chuyển động máy không cứu được`);
   }
   for (const c of ds) if (!mayHopGiay(c.ky_thuat?.chuyen_dong, c.giay))
     out.push(`${TIEN_TO_NHIP_HINH}#${c.thu_tu} máy ${c.ky_thuat?.chuyen_dong} trong ${c.giay} s — dưới ${GIAY_MAY_TIEN} s đọc thành cú zoom gấp: để máy đứng`);
@@ -116,9 +145,7 @@ export function daDangMay<T extends ShotNhip & { id: number }>(ds: T[]): { id: n
   };
   // máy tiến / lùi trên shot quá ngắn, máy không có động cơ → đứng
   kt.forEach((k, i) => { if (!mayHopGiay(k.chuyen_dong, ds[i]!.giay) || khongDongCo({ ...ds[i]!, ky_thuat: k })) { k.chuyen_dong = 'tinh'; doi.add(i); } });
-  for (let i = 1; i < kt.length; i++) {
-    if (trung(ds[i - 1]!, kt[i - 1]!, ds[i]!, kt[i]!)) chon(i);
-  }
+  // hai shot trùng (cắt nhảy) KHÔNG chữa bằng đổi máy: nguồn ngành chữa bằng dời góc ≥ 30° / đổi cỡ (việc dàn cảnh) — cổng báo, nút không bịa máy
   // BA ĐẨY VÀO LIỀN (cổng kiemNhipHinh): đưa shot KHÔNG mang nhịp có động cơ yếu nhất về đứng — cảm xúc đổi / khép cảnh 1 điểm; bằng nhau lấy shot giữa.
   // Shot nhịp kịch giữ máy (phim ngắn dọc bắt buộc máy ở nhịp — ngu-phap-may.ts), nên hai cổng không đá nhau.
   const don = (k: KyThuatShot) => ['day_vao', 'zoom_cham'].includes(k.chuyen_dong ?? '');

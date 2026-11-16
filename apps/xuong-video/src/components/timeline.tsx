@@ -157,10 +157,13 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // bỏ dư đầu vao) · Keyframe = ảnh keyframe · Video = clip AI. Clip Blender thô gán tạm vào video_url (nguon_video.model 'blender:tho') KHÔNG tính là video.
   const [cheDo, setCheDo] = useNho<'3d' | 'keyframe' | 'video'>(`xv-tl-che-do-${tap.phim_id}`, 'video', ['3d', 'keyframe', 'video'], 'tlx');
   // SO SÁNH SONG SONG (góp ý #1603): Shift/⌘-bấm chế độ khác để thêm vào; màn xem hiện thêm khung của các chế độ đó cạnh khung chính, cùng thời điểm.
-  const [soSanh, setSoSanh] = useState<('3d' | 'keyframe' | 'video')[]>([]);
+  const [soSanh, setSoSanh] = useState<string[]>([]);
+  // SO SÁNH THEO NGUỒN (anh 17/11/2026 "muốn so sánh H3 với Seedance song song"): mỗi nhãn phiên bản (video_phien_ban[].nhan — 'Seedance', 'H3'…) là một khung
+  // 'pb:<nhãn>' — clip của phiên bản đó, cắt theo MỐC RIÊNG của phiên bản (clip cụm: hai nguồn đặt cùng shot ở giây khác nhau).
+  const nguonPb = useMemo(() => [...new Set(canh.flatMap((k) => (k.video_phien_ban ?? []).map((v) => v.nhan).filter((x): x is string => !!x)))], [canh]);
   // Nút "⧉ So sánh" bật = bấm thường cũng chọn NHIỀU (góp ý #1603: Shift/⌘ ẩn quá, anh không thấy).
   const [cheDoNhieu, setCheDoNhieu] = useState(false);
-  const phu = (['3d', 'keyframe', 'video'] as const).filter((m) => m !== cheDo && soSanh.includes(m));
+  const phu: string[] = [...(['3d', 'keyframe', 'video'] as const).filter((m) => m !== cheDo && soSanh.includes(m)), ...soSanh.filter((m) => m.startsWith('pb:'))];
   const clip3d = c && clip3dMoi(c) ? c.khung_xam!.clip! : null;
   const vidAi = c && !String(c.nguon_video?.model ?? '').startsWith('blender') ? c.video_cuoi_url || c.video_url : null;
   const vid = !c ? null : cheDo === '3d' ? clip3d?.url ?? null : cheDo === 'keyframe' ? null : vidAi;
@@ -589,12 +592,13 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {c && phu.length > 0 && <div style={{ display: 'flex', flexDirection: doc916 ? 'row' : 'column', gap: 6, marginTop: 6 }}>
             {phu.map((m) => {
               const cl = clip3dMoi(c) ? c.khung_xam!.clip! : null;
-              const v = m === '3d' ? cl?.url ?? null : m === 'video' ? vidAi : null;
+              const pb = m.startsWith('pb:') ? [...(c.video_phien_ban ?? [])].reverse().find((x) => x.nhan === m.slice(3)) ?? null : null;
+              const v = pb ? pb.url : m === '3d' ? cl?.url ?? null : m === 'video' ? vidAi : null;
               const dv = v ? daiCua[v] ?? 0 : 0;
-              const vt = m === '3d' ? (cl ? cl.vao + tTrong : 0) : diemVaoClip(c.ky_thuat?.vao_s, dv || null, dur(c)) + tTrong;
+              const vt = m === '3d' ? (cl ? cl.vao + tTrong : 0) : diemVaoClip(pb ? pb.vao_s ?? 0 : c.ky_thuat?.vao_s, dv || null, dur(c)) + tTrong * (pb?.toc_khop ?? 1);
               const anh = m === '3d' ? c.khung_xam?.mau ?? null : c.keyframe_url;
               const r = doc916 ? (rongXem - 6 * (phu.length - 1)) / phu.length : rongXem;
-              return <KhungSoSanh key={m} nhan={m === '3d' ? '🧊 3D' : m === 'keyframe' ? '🖼 Keyframe' : '🎬 Video'} rong={r} cao={r * caoXem / rongXem}
+              return <KhungSoSanh key={m} nhan={pb ? `🎬 ${m.slice(3)}` : m.startsWith('pb:') ? `🎬 ${m.slice(3)} · shot này chưa có` : m === '3d' ? '🧊 3D' : m === 'keyframe' ? '🖼 Keyframe' : '🎬 Video'} rong={r} cao={r * caoXem / rongXem}
                 vid={v} vt={vt} anh={anh ? anhNho(anh, 640) ?? null : null} chay={chay} onDai={(d) => v && ghiDai(v, d)} />;
             })}
           </div>}
@@ -630,8 +634,12 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           })}
         </span>
         <button type="button" className="xv-btn" title="Bật = bấm 3D / Keyframe / Video chọn NHIỀU cùng lúc, hiện song song dưới màn xem chính để so sánh"
-          onClick={() => { if (cheDoNhieu) { setCheDoNhieu(false); setSoSanh([]); } else { setCheDoNhieu(true); setSoSanh((['3d', 'keyframe', 'video'] as const).filter((m) => m !== cheDo)); } }}
+          onClick={() => { if (cheDoNhieu) { setCheDoNhieu(false); setSoSanh([]); } else { setCheDoNhieu(true); setSoSanh(nguonPb.length ? nguonPb.map((x) => `pb:${x}`) : (['3d', 'keyframe', 'video'] as const).filter((m) => m !== cheDo)); } }}
           style={cheDoNhieu ? { background: 'var(--accent, #2563eb)', color: '#fff' } : undefined}>⧉ So sánh</button>
+        {cheDoNhieu && nguonPb.map((x) => { const k = `pb:${x}`, bat = soSanh.includes(k);
+          return <button key={k} type="button" className="xv-btn" title={`Thêm / bớt khung so sánh nguồn ${x} (phiên bản clip của shot, cắt đúng đoạn theo mốc riêng của nguồn đó)`}
+            onClick={() => setSoSanh((s) => (s.includes(k) ? s.filter((y) => y !== k) : [...s, k]))}
+            style={bat ? { background: 'rgba(37,99,235,.35)' } : undefined}>🎬 {x}</button>; })}
         <Seg value={boCuc} onChange={(v) => setBoCuc(v)} options={[{ value: 'trai', label: '◧', title: 'Màn xem bên TRÁI, cao gần hết màn hình — timeline bên phải' }, { value: 'giua', label: '▣', title: 'Màn xem ở GIỮA hàng panel (Dự án | Khung hình | Thuộc tính) như cũ' }, { value: 'phai', label: '◨', title: 'Màn xem bên PHẢI, cao gần hết màn hình — kiểu CapCut (mặc định cho phim dọc 9:16)' }]} />
         <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)', margin: '0 4px' }} />
         <LopCongCu t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} onThem={themLop} />

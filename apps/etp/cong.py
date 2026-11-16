@@ -126,7 +126,7 @@ def phanh_cho(tt, viec, bay_gio=None, thay=False):
     if viec in ("tao_camp", "nhan_ban") and not thay and (pc.get("den_len") or "") > bay: return f"PHANH CHỢ: không tạo camp mới / nhân bản tới {vn(pc['den_len'])} giờ VN — {pc.get('ly_do')} (sổ luật phanh_cho)"
     return None
 
-def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False, thay=False):
+def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False, thay=False, anh_bam=False):
     if viec not in TANG: return None
     try:
         ct = content_id if content_id is not None else (_q(f"select content_id from etp.camp where camp_id = {int(camp_id)}") or None) if camp_id else None
@@ -149,10 +149,11 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         # PHANH CHỢ (anh 16/11/2026 "Làm theo đề xuất" — sổ luật phanh_cho, apps/etp/gia_adsense.py xet_phanh chốt 20h VN): giá AdSense cả chợ khung 07–13h < 85% nền 7 ngày
         # hoặc ngày trong lịch → không tăng bậc tới den_tang (07:00 sáng hôm sau), không tạo camp / nhân bản tới den_len (hết ngày Ethopex kế). Miễn: camp ★ ROAS,
         # lệnh anh, camp thay bài bị từ chối (thay), tài khoản người trong team (ngoai). Có hạn, tự hết — khác cờ hoãn đã bỏ 13/11.
-        # THAO TÁC TAY (tay=True) KHÔNG BỊ PHANH (anh 16/11/2026: "mày ko đc chặn với thao tác thủ công. Chỉ được cảnh báo thêm 1 lần nữa") — trang etp2 cảnh báo
-        # ngay ở bước xác nhận, bấm Làm là chạy; phanh chỉ chặn lệnh MÁY tự làm.
+        # ANH BẤM TAY (anh_bam=True) KHÔNG BỊ PHANH (anh 16/11/2026: "mày ko đc chặn với thao tác thủ công. Chỉ được cảnh báo thêm 1 lần nữa") — trang etp2 cảnh báo
+        # ở bước xác nhận, bấm Làm là chạy. anh_bam = người làm THẬT là anh (ai bắt đầu "anh"), KHÔNG đọc cờ tay= — dòng phim của máy gọi nhan-ban --tay
+        # nên 17/11/2026 00:01–00:12 lọt 91 camp mới của lộ trình máy qua phanh. Phanh chỉ chặn lệnh MÁY tự làm.
         ly_pc = phanh_cho(ch.get("phanh_cho"), viec, thay=thay)
-        if ly_pc and not tay and not roas and not lenh_anh and not ngoai and not (viec == "tang" and camp_id and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") == "1"): return ly_pc
+        if ly_pc and not anh_bam and not roas and not lenh_anh and not ngoai and not (viec == "tang" and camp_id and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") == "1"): return ly_pc
         # HOÃN TĂNG THEO GIÁ ADSENSE: ĐÃ BỎ (anh 13/11/2026 "bỏ rule Hoãn đang áp dụng") — giá AdSense tụt không còn chặn tăng / nhân bản; máy đo giá
         # (apps/etp/gia_adsense.py) vẫn đo và vẫn bù giá cho luật cắt camp mới. Tham số thay= giữ cho người gọi cũ (nhan-ban.py --thay), không còn tác dụng.
         if viec == "tang" and not roas and (ch.get("mua_le") or {}).get("khoa_tang"):   # mùa lễ Mỹ (apps/etp/mua_le.py, anh 08/11/2026): Meta học lại đúng tuần giá cao là tốn nhất

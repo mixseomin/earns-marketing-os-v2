@@ -45,7 +45,7 @@ const O_TEN_KENH = 180;
 function cayKenh(k: KenhSp): Dong[] {
   // 📂 Playlist: playlist THẬT (kenh.json, máy đang chạy theo) nếu kênh đã chia; chưa thì playlist theo kế hoạch (so-kenh.json)
   const pl = k.playlist?.length ? cayPlaylistThat(k.playlist, k.so) : k.so ? cayPlaylist(k.so) : [];
-  return [...[...(k.so ? [...caySoKenh(k.so), ...cayMau(k.so, thongKeMau(k.so, k.videos, k.yTuongTuSinh ?? [])), ...cayHangCho(k.so, k.videos, k.yTuongTuSinh ?? []), ...(k.nguoi ? cayNguoi(k.nguoi.ds, k.nguoi.dungNha) : [])] : []), ...cayNguonTien(k.so?.nguon_tien, k.tien ?? null), ...(k.so?.loai === 'social' ? cayMauSocial(k.videos, k.dangTen) : []), ...cayNenDang(k.nen ?? []), ...(k.so ? cayLoTrinh(k.so) : []), ...pl].map((x) => ({ loai: 'ke' as const, k, ...x })), ...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
+  return [...[...(k.so ? [...caySoKenh(k.so), ...cayMau(k.so, thongKeMau(k.so, k.videos, k.yTuongTuSinh ?? [])), ...cayHangCho(k.so, k.videos, k.yTuongTuSinh ?? []), ...(k.nguoi ? cayNguoi(k.nguoi.ds, k.nguoi.dungNha) : [])] : []), ...cayNguonTien(k.so?.nguon_tien, k.tien ?? null), ...(k.so?.loai === 'social' ? cayMauSocial(k.videos, k.dangTen) : []), ...cayNenDang(k.nen ?? []), ...(k.so ? cayLoTrinh(k.so) : []), ...pl].map((x) => ({ loai: 'ke' as const, k, ...x })), ...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đăng bài (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
     ...k.videos.map((v) => ({ loai: 'video' as const, k, v }))];
 }
 const LOAI_LICH: LoaiLichNho = {
@@ -165,7 +165,9 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
               style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'inherit', font: 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'underline dotted var(--fg-4)', width: 340, flex: 'none', textAlign: 'left' }}>{v.ten}</button>
             {/* trạng thái = cột riêng thẳng hàng, không dính đuôi tên (góp ý #1577) */}
             <span style={{ color: c.mau, fontSize: 11, whiteSpace: 'nowrap', width: 190, flex: 'none', overflow: 'hidden', textOverflow: 'ellipsis', cursor: v.suaLai ? 'help' : undefined }} title={v.suaLai?.chiTiet ?? c.chu}>{c.chu}{v.suaLai && <span style={{ color: 'var(--fg-3)' }}> · {v.suaLai.ngan}</span>}</span>
-            {v.nen?.length ? <span style={{ color: 'var(--fg-3)', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={`đã lên: ${v.nen.join(', ')}`}>📡 {v.nen.length} nền · {v.nen.join(' · ')}</span> : null}
+            {/* góp ý #1622: icon nền đã đăng (kênh social: mọi nền bài đã lên; kênh sản phẩm: đã đăng = YouTube) */}
+            {(() => { const ds = v.nen?.length ? v.nen : v.trangThai === 'da_dang' ? ['youtube'] : []; const pks = [...new Set(ds.map(pkCua))];
+              return pks.length ? <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center', flex: 'none' }} title={`đã lên: ${ds.join(', ')}`}>{pks.map((pk) => <SiteFavicon key={pk} platformKey={pk} size={14} title={ds.filter((n) => pkCua(n) === pk).join(', ')} />)}</span> : null; })()}
             {v.playlist && <span style={{ color: 'var(--fg-3)', fontSize: 11, whiteSpace: 'nowrap' }} title="playlist của tập">📂 {d.k.playlist?.find((p) => p.ma === v.playlist)?.ten ?? v.playlist}</span>}</span>; }
         const k = d.k, n = k.videos.length;
         // góp ý #1594: ô ghim trái, chiếm đủ cột, chữ trạng thái co + "…" — dòng nào nội dung dài hơn cột cũng không bị đẩy lệch ▸/ảnh/tên/⋯

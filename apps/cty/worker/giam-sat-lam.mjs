@@ -32,7 +32,8 @@ if (process.argv[1]?.endsWith('giam-sat-lam.mjs')) {
   const [, , lenh, id, ...con] = process.argv;
   if (lenh === '--so-lieu') {
     const d = path.join(DATA(), 'kinh-nghiem'), so = {};
-    for (const f of fs.existsSync(d) ? fs.readdirSync(d).filter((x) => x.endsWith('.json')) : []) { const t = fs.readFileSync(path.join(d, f), 'utf8'); let ds = []; try { ds = JSON.parse(t).bai_hoc ?? []; } catch { /* hỏng */ } so[f.slice(0, -5)] = { byte: t.length, bai: ds.map((b) => ({ ma: b.ma, ts: b.ts, khoa: b.khoa, noi_dung: b.noi_dung, ap: b.lan_ap_dung, dat: b.lan_dat })) }; }
+    // chỉ sổ của người Hà được động tới (kỹ sư CLI + Thành): nhân sự gọi API (Kỳ, Lộc…) có vòng cải tiến riêng (cai-tien.mjs), không thuộc Hà
+    for (const f of fs.existsSync(d) ? (await Promise.all(fs.readdirSync(d).filter((x) => x.endsWith('.json')).map(async (x) => ((await duocDong(x.slice(0, -5))) ? x : null)))).filter(Boolean) : []) { const t = fs.readFileSync(path.join(d, f), 'utf8'); let ds = []; try { ds = JSON.parse(t).bai_hoc ?? []; } catch { /* hỏng */ } so[f.slice(0, -5)] = { byte: t.length, bai: ds.map((b) => ({ ma: b.ma, ts: b.ts, khoa: b.khoa, noi_dung: b.noi_dung, ap: b.lan_ap_dung, dat: b.lan_dat })) }; }
     const ha = nk7(); console.log(JSON.stringify({ so, ha: { tam_dung: ha.filter((x) => x.viec === 'tam-dung').length, bo_bai: ha.filter((x) => x.viec === 'bo-bai').length, bao: ha.filter((x) => x.viec === 'bao').length } }));
   } else if (lenh === '--tam-dung') {
     if (!(await duocDong(id))) { console.error(`không được động tới "${id}"`); process.exit(2); }

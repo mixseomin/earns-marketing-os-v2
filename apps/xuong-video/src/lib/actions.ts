@@ -1392,6 +1392,25 @@ export async function chonPhienBan(canhId: number, url: string, ban: 'nhap' | 'c
   return { ok: true, data: undefined };
 }
 
+/** NGUỒN CHÍNH CẢ TẬP (góp ý #1638): mỗi shot có phiên bản mang nhãn `nhan` (Seedance / H3…) → chọn bản MỚI NHẤT của nhãn đó làm nháp đang dùng.
+ *  Shot không có bản của nhãn đó giữ nguyên. Không tốn tiền, mọi bản vẫn nằm trong video_phien_ban (đổi lại được). */
+export async function chonNguonTap(tapId: number, nhan: string): Promise<Kq<{ doi: number; thieu: number }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const rows = (await db.execute(sql`SELECT id, video_url, video_phien_ban FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[];
+  let doi = 0, thieu = 0;
+  for (const r of rows) {
+    const v = [...((r.video_phien_ban ?? []) as Canh['video_phien_ban'])].reverse().find((x) => x.nhan === nhan && x.url);
+    if (!v) { thieu++; continue; }
+    if (v.url === r.video_url) continue;
+    const k = await chonPhienBan(n(r.id), v.url, 'nhap');
+    if (!k.ok) return loi(`shot id ${r.id}: ${k.loi}`);
+    doi++;
+  }
+  return { ok: true, data: { doi, thieu } };
+}
+
 /** Bản cuối = NÂNG CẤP chính clip nháp (Topaz qua fal) → chuyển động, bố cục, nhân vật giống bản nháp 100%. */
 export async function nangCapCanh(canhId: number): Promise<Kq<number>> {
   const db = getDb();

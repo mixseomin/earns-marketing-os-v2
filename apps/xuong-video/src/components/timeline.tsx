@@ -15,7 +15,7 @@ import { lopImpact, nhipHanhDong, themTieng } from '@/lib/xuong-video/nhip-hanh-
 import { theTenTap } from '@/lib/xuong-video/the-ten';
 import { nhipCat } from '@/lib/xuong-video/nhip-cat';
 import { lichSfx, urlSfx, amLuongXem, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, DU_XEM } from '@/lib/xuong-video/sfx';
-import { doLufsAm } from '@/lib/actions';
+import { doLufsAm, chonNguonTap } from '@/lib/actions';
 import { keHoachToc, kieuTocShot, nguonTai, diemVaoClip } from '@/lib/xuong-video/toc-do';
 import { NutChuyenCanh } from './chuyen-canh-ui';
 import { dongThoai, phatTiengClip, tenNoi, cungTen, timNv, lichGiong, giayGiuKet } from '@/lib/xuong-video/am-thanh';
@@ -190,6 +190,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Bật/tắt từng lớp tiếng khi xem (clip có tiếng sẵn thì tắt bớt để khỏi chồng).
   const [tat, setTat] = useState<Record<string, boolean>>({});
   const [baoNhip, setBaoNhip] = useState('');
+  const [dangDoiNguon, setDangDoiNguon] = useState(false);
   const [dangKhop, setDangKhop] = useState(false);
 
   // Đồng hồ phát: requestAnimationFrame đẩy t, hết tập thì dừng.
@@ -645,6 +646,13 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           return <button key={k} type="button" className="xv-btn" title={`Thêm / bớt khung so sánh nguồn ${x} (phiên bản clip của shot, cắt đúng đoạn theo mốc riêng của nguồn đó)`}
             onClick={() => setSoSanh((s) => (s.includes(k) ? s.filter((y) => y !== k) : [...s, k]))}
             style={bat ? { background: 'rgba(37,99,235,.35)' } : undefined}>🎬 {x}</button>; })}
+        {/* NGUỒN CHÍNH CẢ TẬP (góp ý #1638): chọn bộ sinh video (nhãn phiên bản) làm clip đang dùng cho MỌI shot có bản đó — 0₫, đổi lại được */}
+        {nguonPb.length > 0 && <Chon nho value="" minWidth={150} placeholder={dangDoiNguon ? '⏳ đang đổi nguồn…' : '🎬 Nguồn chính…'}
+          title={'Bộ sinh video làm CHÍNH cho cả tập: mọi shot có phiên bản của nguồn này sẽ dùng bản mới nhất của nó làm clip đang dùng.\nShot không có bản của nguồn đó giữ nguyên. Không tốn tiền, đổi lại được.'}
+          options={nguonPb.map((x) => ({ value: x, label: `${x} (cả tập)`, ngan: x }))}
+          onChange={async (x) => { if (!x || dangDoiNguon) return; setDangDoiNguon(true); const k = await chonNguonTap(tap.id, x); setDangDoiNguon(false);
+            if (!k.ok) { setBaoNhip(`⚠ Đổi nguồn chính sang ${x} lỗi: ${k.loi}`); return; }
+            setBaoNhip(`🎬 Nguồn chính ${x}: đổi ${k.data.doi} shot${k.data.thieu ? ` · ${k.data.thieu} shot chưa có bản ${x}, giữ nguyên` : ''} — đang tải lại`); window.location.reload(); }} />}
         <Seg value={boCuc} onChange={(v) => setBoCuc(v)} options={[{ value: 'trai', label: '◧', title: 'Màn xem bên TRÁI, cao gần hết màn hình — timeline bên phải' }, { value: 'giua', label: '▣', title: 'Màn xem ở GIỮA hàng panel (Dự án | Khung hình | Thuộc tính) như cũ' }, { value: 'phai', label: '◨', title: 'Màn xem bên PHẢI, cao gần hết màn hình — kiểu CapCut (mặc định cho phim dọc 9:16)' }]} />
         <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)', margin: '0 4px' }} />
         <LopCongCu t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} onThem={themLop} />

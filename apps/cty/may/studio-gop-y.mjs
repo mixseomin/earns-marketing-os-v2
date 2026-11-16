@@ -21,6 +21,10 @@ chayKySu({
   // ảnh của studio nằm ở img.on.tc (công khai) — máy tải sẵn, Claude chỉ việc Read
   taiAnh: (urls, ANH) => urls.filter((u) => /^https:\/\/img\.on\.tc\//.test(u)).map((u) => {
     const dich = path.join(ANH, path.basename(new URL(u).pathname)); execFileSync('curl', ['-sf', '-m', '60', '-o', dich, u]); return dich; }),
+  // dạng lệnh Vinh hay gõ thật (nhật ký các lượt #1635 / #1637) — --thu-quyen chạy từng lệnh bằng Claude thật để biết lệnh nào bị chặn; đường dẫn giả, không đổi gì, không push
+  thuLenh: (MOS2) => [`cd ${MOS2} && npm --prefix apps/xuong-video run typecheck 2>&1 | grep -c timeline.tsx`, `npm --prefix ${path.join(MOS2, 'apps/xuong-video')} run typecheck 2>&1 | tail -2`,
+    'git add apps/xuong-video/khong-co-tep-thu-quyen.txt', `git add ${path.join(MOS2, 'apps/xuong-video')}/khong-co-tep-thu-quyen.txt`, 'git commit --dry-run -qm thu-quyen',
+    `ssh ${BOX} "${GOPY} list" | head -3`, `cd apps/xuong-video && pwd`, `${BR} look`],
   quyen: (MOS2) => [`Edit(/${path.join(MOS2, 'apps/xuong-video')}/**)`, `Write(/${path.join(MOS2, 'apps/xuong-video')}/**)`,
     'Bash(git add apps/xuong-video/*)', 'Bash(git push origin HEAD:main)', `Bash(${HOME}/bin/gh-watch deploy.yml)`,
     'Bash(npm --prefix apps/xuong-video run typecheck)', 'Bash(node_modules/.bin/tsx:*)', 'Bash(node apps/xuong-video/*)',

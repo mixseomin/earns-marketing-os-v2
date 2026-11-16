@@ -68,6 +68,23 @@ export function chayKySu(cfg) {
   const HO_SO = path.join(HOME, 'may-ky-su', NGUOI, 'br-profile');
   const ENV = { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}`, BR_PROFILE: HO_SO };
 
+  // KIỂM QUYỀN THẬT (anh 17/11/2026 "phải làm cho thằng Vinh sửa được tự động, không được lỗi"): chạy Claude Code ĐÚNG chế độ dontAsk + ĐÚNG danh sách quyền của kỹ sư,
+  // gõ các dạng lệnh kỹ sư hay dùng (cfg.thuLenh — đường dẫn giả, không đổi gì, không push), đọc nhật ký phiên → lệnh nào bị chặn. Mô hình haiku, vài trăm đồng.
+  //   node <kỹ-sư>-gop-y.mjs --thu-quyen      in ✓ / ✗ từng lệnh, thoát 1 nếu có lệnh bị chặn
+  if (process.argv.includes('--thu-quyen')) {
+    const cay = cfg.cay(), dir = cay.dir; fs.mkdirSync(ANH, { recursive: true });
+    const QUYEN = moRongQuyen([...quyenChung(dir, ANH), ...cfg.quyen(dir)], dir);
+    const ds = (cfg.thuLenh ? cfg.thuLenh(dir) : []).concat(['git status --short | head -3', 'git log --oneline -1', `git -C ${dir} rev-parse --short HEAD`]);
+    const loi = `Kiểm quyền: chạy LẦN LƯỢT từng lệnh dưới đây bằng công cụ Bash, mỗi lệnh MỘT lần gọi, GIỮ NGUYÊN từng chữ (không sửa, không gộp, không bỏ). Lệnh lỗi hay bị chặn cũng cứ chạy lệnh kế. Xong trả lời đúng một chữ XONG.\n${ds.map((c, i) => `${i + 1}. ${c}`).join('\n')}`;
+    const r = spawnSync(CLAUDE, ['-p', loi, '--model', 'haiku', '--output-format', 'json', '--permission-mode', 'dontAsk', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
+      { cwd: dir, encoding: 'utf8', timeout: 15 * 60000, maxBuffer: 64 << 20, env: ENV });
+    let kq = {}; try { kq = JSON.parse(r.stdout); } catch { console.error('Claude không trả JSON:', String(r.stderr || r.stdout).slice(0, 400)); process.exit(2); }
+    const chan = new Set(lenhBiChan(dir, kq.session_id).map((c) => c.trim()));
+    for (const c of ds) console.log(chan.has(c.trim()) ? '✗ BỊ CHẶN' : '✓', c);
+    for (const c of chan) if (!ds.some((d) => d.trim() === c)) console.log('✗ BỊ CHẶN (lệnh Claude tự gõ thêm)', c.slice(0, 200));
+    console.log(`${TEN}: ${chan.size ? `${chan.size} lệnh bị chặn` : 'ĐẠT — không lệnh nào bị chặn'} · chi $${(kq.total_cost_usd ?? 0).toFixed(4)}`);
+    process.exit(chan.size ? 1 : 0);
+  }
   const [chinh, soul] = box(`cat ${DATA}/nhip-chinh.json 2>/dev/null || echo {}; echo '@@'; grep -E '^model:' ${APP}/cong-ty/nhan-su/${NGUOI}/SOUL.md || true`).split('@@');
   if (JSON.parse(chinh.trim() || '{}')[NGUOI]?.bat === false) { log(`${TEN} đang tắt`); process.exit(0); }
   const dm = (soul.match(/^model:.*$/m) || [''])[0], model = (dm.match(/claude-code:([\w.-]+)/) || [])[1] || 'opus', effort = (dm.match(/effort:(low|medium|high|max)\b/) || [])[1] || null;
@@ -113,8 +130,12 @@ export function chayKySu(cfg) {
   // máy tự đặt commit lên main mới và đẩy ngay khi Claude kết thúc (bước dưới), rồi nộp card. Nói rõ để Claude không hỏi, không kêu kẹt.
   const PUSH = cfg.cayMoiLuot ? `\n\nPUSH BỊ TỪ CHỐI (main trên GitHub đi trước): KHÔNG hỏi anh, KHÔNG viết vào card chuyện quyền git / kẹt push, KHÔNG thử pull / rebase. Máy tự đặt commit của bạn lên main mới, đẩy và nộp card ngay khi bạn kết thúc. Bạn cứ commit, reply nội dung đã sửa (bỏ bước submit) rồi kết KET: DA_SUA.` : '';
   // LUẬT LỆNH (17/11/2026): danh sách quyền khớp theo CHUỖI — nói rõ cách gõ để lệnh khớp, khỏi bị chặn rồi mới biết
-  const LENH = `\n\nCÁCH GÕ LỆNH (chế độ không hỏi: lệnh KHÔNG khớp danh sách sẽ bị chặn, lượt của bạn sẽ hỏng): đứng ở GỐC CÂY ${dir} (thư mục hiện tại), KHÔNG cd vào thư mục con; đường dẫn ghi tương đối từ gốc cây (apps/…); mỗi lệnh một lần gọi, hạn chế nối && / | nhiều lệnh khác loại. Được chạy: ${QUYEN.filter((q) => q.startsWith('Bash(')).map((q) => q.slice(5, -1)).join(' · ')}. Lệnh bị chặn → đổi sang đúng dạng trên, KHÔNG dừng lượt vì chuyện quyền.`;
-  const giao = kiem ? `${loiGiao}\n\n${cfg.kiemThu(ctx)}` : `${loiGiao}${PUSH}${LENH}`;
+  const LENH = `\n\nCÁCH GÕ LỆNH (chế độ không hỏi: lệnh KHÔNG khớp danh sách sẽ bị chặn, lượt của bạn sẽ hỏng): đứng ở GỐC CÂY ${dir} (thư mục hiện tại), KHÔNG cd vào thư mục con; git chạy thẳng hoặc git -C <cây> — KHÔNG \"cd … && git …\" (Claude Code chặn dạng này dù có quyền); đường dẫn ghi tương đối từ gốc cây (apps/…); mỗi lệnh một lần gọi, hạn chế nối && / | nhiều lệnh khác loại. Được chạy: ${QUYEN.filter((q) => q.startsWith('Bash(')).map((q) => q.slice(5, -1)).join(' · ')}. Lệnh bị chặn → đổi sang đúng dạng trên, KHÔNG dừng lượt vì chuyện quyền.`;
+  // BỘ CHUẨN Huy / Khang (etp-sua.mjs, social-sua.mjs 10/11/2026): lệnh bị từ chối LƯỢT TRƯỚC → đưa vào lời giao lượt này để kỹ sư gõ lại đúng dạng, không hỏi anh
+  const TEP_TU_CHOI = path.join(HOME, '.cache', `${NGUOI}-tu-choi.json`);
+  const tuChoiCu = (() => { try { return JSON.parse(fs.readFileSync(TEP_TU_CHOI, 'utf8')); } catch { return []; } })();
+  const DU = tuChoiCu.length ? `\n\nLƯỢT TRƯỚC MÁY ĐÃ TỪ CHỐI các lệnh sau vì không khớp danh sách quyền (KHÔNG phải anh chặn, KHÔNG báo anh, KHÔNG dừng lượt):\n${tuChoiCu.map((c) => `- ${c}`).join('\n')}\nGõ lại dạng khớp: đứng gốc cây, mỗi lệnh bắt đầu đúng tên lệnh được phép; git chạy thẳng (đã ở gốc cây) hoặc git -C ${dir} — KHÔNG "cd … && git …" (Claude Code chặn dạng này dù có quyền, đo 17/11/2026).` : '';
+  const giao = kiem ? `${loiGiao}\n\n${cfg.kiemThu(ctx)}` : `${loiGiao}${PUSH}${LENH}${DU}`;
 
   // PHIÊN mos2 60 phút cho profile br: tạo trên box3 rồi nạp cookie httpOnly thẳng vào daemon (/datcookie) — token không qua dòng lệnh br, Claude không thấy.
   // Cookie mos2-session trên .on.tc cũng là phiên SSO của các app con (spy.on.tc …).
@@ -129,7 +150,7 @@ export function chayKySu(cfg) {
   // effort theo việc (may/chon-muc.mjs): đề bài = tin người mới nhất; anh nhắn lại nhiều lần = làm lại
   const muc = chonMuc({ chu: `${card.title}\n${cuoiNguoi?.noiDung ?? ''}`, soAnh: moiAnh.length, lanLamLai: Math.max(0, card.tin_nguoi - 1), macDinh: effort || 'low' });
   log(`nhận card #${card.id} ${card.title} · model ${model} · effort ${muc.effort} (${muc.ly_do.join(', ')})`);
-  if (!kiem) daLam[card.id] = { tin_nguoi: card.tin_nguoi, luc: new Date().toISOString() };   // ghi TRƯỚC khi chạy: lượt treo / chết cũng không chạy lại liền mỗi 5 phút
+  if (!kiem) daLam[card.id] = { tin_nguoi: card.tin_nguoi, luc: new Date().toISOString(), lanQuyen: Number(daLam[`quyen:${card.id}`] ?? 0) };   // ghi TRƯỚC khi chạy: lượt treo / chết cũng không chạy lại liền mỗi 5 phút
   fs.writeFileSync(TEP_DA, JSON.stringify(daLam));
   const r = (cfg.tmux ? (c, a, o) => chayTmux(c, a, { ...o, ten: NGUOI }) : chayClaude)(CLAUDE, ['-p', giao, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
     { cwd: dir, encoding: 'utf8', timeout: (cfg.tranPhut || 40) * 60000, maxBuffer: 64 << 20, env: ENV });
@@ -139,7 +160,14 @@ export function chayKySu(cfg) {
   // Lệnh bị chặn trong lượt → ghi nhật ký + báo nguyên văn vào card (17/11/2026: Vinh #1637 bị chặn hết mà chỉ thấy "cần anh" chung chung)
   const chan = kq.session_id ? lenhBiChan(dir, kq.session_id) : [];
   if (chan.length) { log(`⚠ ${chan.length} lệnh bị chặn: ${chan.map((c) => c.slice(0, 120)).join(' ‖ ')}`); fs.appendFileSync(path.join(os.homedir(), '.cache', 'ky-su-lenh-bi-chan.log'), chan.map((c) => `${new Date().toISOString()}\t${NGUOI}\t#${card.id}\t${c.replace(/\s+/g, ' ').slice(0, 300)}\n`).join('')); }
-  const ra = String(kq.result || '').trim(), ket = ((ra.match(/KET:\**\s*(DA_SUA|KHONG_SUA|CAN_ANH)/gi) || []).pop() || (r.signal || r.error ? 'treo' : 'khong_sua')).replace(/.*KET:\**\s*/i, '').toLowerCase();
+  const tuChoi = [...new Set([...chan, ...(kq.permission_denials || []).map((d) => String(d.tool_input?.command ?? d.tool_name ?? ''))].map((c) => c.replace(/\s+/g, ' ').slice(0, 160)).filter(Boolean))].slice(0, 8);
+  if (!kiem) try { fs.writeFileSync(TEP_TU_CHOI, JSON.stringify(tuChoi)); } catch { /* ổ đầy: lượt sau không có gợi ý, vẫn chạy */ }
+  const ra = String(kq.result || '').trim(), ket0 = ((ra.match(/KET:\**\s*(DA_SUA|KHONG_SUA|CAN_ANH)/gi) || []).pop() || (r.signal || r.error ? 'treo' : 'khong_sua')).replace(/.*KET:\**\s*/i, '').toLowerCase();
+  // "cần anh" / không sửa mà lượt có lệnh bị máy từ chối và lời báo nói về quyền → lỗi công cụ, KHÔNG phải việc anh (bộ chuẩn Huy): ghi khong_sua, và CHẠY LẠI ngay lượt 5 phút kế
+  // với gợi ý lệnh khớp (trước 17/11/2026: card bị đánh dấu "đã làm" tới khi anh nhắn tin mới → Vinh không tự làm lại #1637). Tối đa 2 lần chạy lại vì quyền / card.
+  const loiQuyen = ket0 !== 'da_sua' && tuChoi.length > 0 && (ket0 === 'can_anh' ? /quyền|git|bị chặn|chặn|permission|shell|bash/i.test(ra) : true);
+  const ket = loiQuyen ? 'khong_sua' : ket0;
+  if (!kiem && loiQuyen) { const lan = (daLam[card.id]?.lanQuyen ?? 0) + 1; if (lan <= 2) { delete daLam[card.id]; daLam[`quyen:${card.id}`] = lan; } fs.writeFileSync(TEP_DA, JSON.stringify(daLam)); log(`#${card.id}: lượt hỏng vì ${tuChoi.length} lệnh bị từ chối → ${lan <= 2 ? `tự chạy lại lượt kế (lần ${lan}/2)` : 'đã chạy lại 2 lần, chờ tin mới'}`); }
   log(`xong #${card.id}: ${ket} · ${kq.num_turns ?? '?'} lượt · ${Math.round((kq.duration_ms || 0) / 6e4)} phút`);
   // Claude không tự trả lời được (treo, chết, bị từ chối) → máy ghi một tin vào luồng để anh thấy ngay trong card, không im lặng
   const moi = JSON.parse(sql(`select coalesce(prep_payload->'trao_doi','[]') from human_tasks where id=${Number(card.id)}`) || '[]');
@@ -150,7 +178,7 @@ export function chayKySu(cfg) {
     try { cfg.traLoi(card.id, `[${TEN} · ${ket}] ${bao}${baoChan}`, ENV); } catch (e) { log(`ghi tin lỗi: ${String(e.message).split('\n')[0]}`); }
   }
   // card còn "Đang làm" khi lượt dừng = chết im (anh 14/11/2026) → mục Kẹt kèm lý do; Claude đã nộp / trả lời thì chotCard để yên
-  if (!kiem) try { log(`card ${chotCard({ duAn: cfg.duAn, id: card.id, cach: 'ket', chu: `[${TEN} · ${ket}] Lượt dừng mà card chưa nộp Review — con để ở mục Kẹt: lỗi / cần anh, hoặc commit chưa lên main (máy tự đẩy ở lượt sau rồi nộp).` }).replace(/^#\d+ /, '')}`); } catch (e) { log(`chốt card lỗi: ${String(e.message).split('\n')[0]}`); }
+  if (!kiem) try { log(`card ${chotCard({ duAn: cfg.duAn, id: card.id, cach: 'ket', chu: loiQuyen ? `[${TEN} · ${ket}] Lượt vướng ${tuChoi.length} lệnh bị máy từ chối (không phải việc anh) — máy tự chạy lại lượt kế với dạng lệnh khớp quyền.` : `[${TEN} · ${ket}] Lượt dừng mà card chưa nộp Review — con để ở mục Kẹt: lỗi / cần anh, hoặc commit chưa lên main (máy tự đẩy ở lượt sau rồi nộp).` }).replace(/^#\d+ /, '')}`); } catch (e) { log(`chốt card lỗi: ${String(e.message).split('\n')[0]}`); }
   try { execFileSync(BR, ['close', HO_SO], { encoding: 'utf8', env: ENV, timeout: 30000 }); } catch { /* chưa mở được thì thôi */ }   // xong là dọn: đóng ĐÍCH DANH profile của kỹ sư
 }
 

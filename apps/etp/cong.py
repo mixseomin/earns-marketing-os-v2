@@ -43,7 +43,12 @@ KHOA_DUNG_CAMP_MOI = "dung_camp_moi"
 SQL_DUNG_CAMP_MOI = f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{KHOA_DUNG_CAMP_MOI}'), 'false') = 'true'"
 LY_DUNG_CAMP_MOI = "ĐANG DỪNG LÊN CAMP MỚI"
 # camp ★ ROAS không phải camp thử → không đếm, không bị trần chặn (anh 12/11/2026: camp đủ lên ROAS bị vướng "Trần camp mới hôm nay 116/35")
-SQL_TAO_HOM_NAY = "select count(*) from etp.camp where (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date and not coalesce(la_roas, false)"
+# Đếm cả camp đã ghi nhật ký tạo mà CHƯA đồng bộ về etp.camp (dong-bo 10 phút/lượt) — 16/11/2026 00:01–00:15: 148 camp lọt trần 61 vì các luồng song song
+# đọc etp.camp còn 0 camp của ngày mới (09/11 cũng 108 camp 00:00–00:30). nhat_ky.camp_id = id camp mới, ghi ngay sau khi tạo (nhan-ban.ghi_nhat_ky).
+SQL_TAO_HOM_NAY = ("select count(*) from (select camp_id from etp.camp where (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date"
+                   " and not coalesce(la_roas, false) union select n.camp_id from etp.nhat_ky n where n.ok and n.viec in ('tao_camp', 'nhan_ban') and n.camp_id is not null"
+                   " and (n.luc at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date"
+                   " and not exists (select 1 from etp.camp c where c.camp_id = n.camp_id and c.la_roas)) x")
 # TRANG PHIM HỎNG HẲN (anh 09/11/2026 "Fix triệt để" — 91648 From Doomed Baby đứng bước Trang phim 01:26 08/11 → 01:27 09/11, hơn 20 lượt chờ 60 phút → Mạnh huỷ → FIX):
 # bản workspace Nhà đã thêm quá TRANG_CHO_SINH giây mà Ethopex vẫn chưa sinh đủ (thường là link tập 1: thư viện phim không có nguồn tập 1, 7 phim 09/11) → chờ thêm vô ích.
 # MỘT định nghĩa cho cổng Trang phim (dong_phim.b_ws dừng dòng), máy lộ trình (lo_trinh_phim không xếp dòng) và Mạnh (dấu cổng: Ethopex có link → tự mở lại dòng).

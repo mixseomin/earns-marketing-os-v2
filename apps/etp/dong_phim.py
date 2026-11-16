@@ -650,11 +650,12 @@ def mo_tran_ngay():
     trước, trong 3 ngày), tối đa bằng số chỗ còn lại; dòng vẫn vấp trần thì dừng lại với ngày hôm nay và chờ hôm sau."""
     if dung_camp_moi(): return
     for l in sql(f"""with con as (select (select gia_tri::text::int from etp.cau_hinh where khoa = '{CG.KHOA_TRAN_NGAY}') - ({CG.SQL_TAO_HOM_NAY}) n),
-        mo as (select b.dong_id from etp.dong_buoc b join etp.dong_phim d on d.id = b.dong_id, con
-               where b.buoc = 'camp' and b.trang_thai = 'dung' and not b.fix and strpos(b.ghi, '{CG.KHOA_TRAN_NGAY}') > 0 and d.trang_thai = 'dung'
-                 and (b.ket_thuc at time zone 'Asia/Ho_Chi_Minh')::date < (now() at time zone 'Asia/Ho_Chi_Minh')::date and b.ket_thuc > now() - interval '3 days'
-                 and con.n > 0
-               order by d.so_camp desc, b.ket_thuc limit greatest((select n from con), 0))
+        -- chỗ còn tính theo SỐ CAMP, không theo số dòng (16/11/2026: limit n dòng, mỗi dòng mở rộng 2–6 camp → 61 chỗ thành ~147 camp lúc 00:00)
+        ung as (select b.dong_id, sum(greatest(coalesce(d.so_camp, 1), 1)) over (order by d.so_camp desc nulls last, b.ket_thuc, b.dong_id) cong
+                from etp.dong_buoc b join etp.dong_phim d on d.id = b.dong_id
+                where b.buoc = 'camp' and b.trang_thai = 'dung' and not b.fix and strpos(b.ghi, '{CG.KHOA_TRAN_NGAY}') > 0 and d.trang_thai = 'dung'
+                  and (b.ket_thuc at time zone 'Asia/Ho_Chi_Minh')::date < (now() at time zone 'Asia/Ho_Chi_Minh')::date and b.ket_thuc > now() - interval '3 days'),
+        mo as (select ung.dong_id from ung, con where con.n > 0 and ung.cong <= con.n)
         update etp.dong_buoc b set fix = true from mo where b.dong_id = mo.dong_id and b.buoc = 'camp' returning b.dong_id""").splitlines():
         if l.strip(): print(f"[{time.strftime('%H:%M:%S')}] dòng #{l.strip()} — ngày mới, còn chỗ dưới trần camp/ngày → FIX bước camp", flush=True)
 

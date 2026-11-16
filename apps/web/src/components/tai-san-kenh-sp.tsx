@@ -122,7 +122,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
           <button type="button" style={nutTd} title={`mở hết các khối của ${kXem.ten}`} onClick={(e) => { e.stopPropagation(); moHetKhoi(kXem, true); }}>▾ mở hết</button>
           <button type="button" style={nutTd} title={`gập hết các khối của ${kXem.ten}`} onClick={(e) => { e.stopPropagation(); moHetKhoi(kXem, false); }}>▸ gập hết</button>
           <button type="button" style={nutTd} title={`thu cây ${kXem.ten} về một dòng`} onClick={(e) => { e.stopPropagation(); doi(kXem.ma); }}>✕ thu kênh</button></span></>}</span>
-    {kXem && <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4, textTransform: 'none', letterSpacing: 0 }}>
+    {kXem && <span style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, width: 'max-content', position: 'relative', zIndex: 6, textTransform: 'none', letterSpacing: 0 }}>{/* góp ý #1615: một dòng, tràn ngang sang dòng trên (trống) của các cột kế bên */}
       {khoiDs(kXem).map((d) => { const dang = dangXem?.ma === kXem.ma && dangXem.khoi === d.id, dong_ = gap.has(`${kXem.ma}:${d.id}`);
         return <button key={d.id} type="button" title={`tới khối ${d.chu}${dong_ ? ' (đang gập — bấm để mở)' : ''}`} onClick={(e) => { e.stopPropagation(); toiKhoi(kXem, d.id); }}
           style={{ ...nutTd, fontSize: 11, padding: '1px 6px',
@@ -221,7 +221,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   ];
   return (
     <Panel title="📺 Kênh nội dung" subtitle={'kênh video trọn chuyện + kênh social đã chuyển (một máy đăng ra nhiều nền — khối 📡 Nền đăng) · ▸ mở: sổ kênh · lộ trình · đang sản xuất · lịch · đã làm · "–" = chưa đo (khác 0)'}>
-      <style>{'.kenh-sp-bang th.dt-th{vertical-align:bottom}'}</style>
+      <style>{'.kenh-sp-bang th.dt-th{vertical-align:bottom}.kenh-sp-bang th.dt-th:has([data-kenh-tieu-de]){overflow:visible;z-index:6}'}</style>
       <div className="kenh-sp-bang"><DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : d.loai === 'trang' ? `${d.khoa}/trang` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
         rowData={(d) => ({ 'kenh-ma': d.k.ma, 'kenh-dau': laK(d) ? 1 : 0, ...(d.loai === 'ke' && d.nhom ? { 'kenh-khoi': d.id } : {}) })}
         fullRow={(d) => d.loai === 'ke' || d.loai === 'trang'}

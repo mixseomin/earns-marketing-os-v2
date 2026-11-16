@@ -1231,6 +1231,6 @@ export const LUAT = [
   { card: 'gop-y-1608', tep: 'apps/xuong-video/scripts/ethopex/kiem-thoai.py', co: 'raise RuntimeError(f"đọc chữ Vision lỗi mã {e.returncode}', vi: 'lỗi đọc chữ Vision ghi mã thoát + câu lỗi thật, không ghi danh sách đường dẫn khung (anh 15/11/2026 #1608)' },
   { tep: 'apps/etp/dong_phim.py', co: 'CAT_NGOAI.add(d["id"])', vi: 'iMac đủ khe thì việc cắt CC vẫn xếp vào hàng chung cho máy thợ khác (HP / VPS) nhận — không chỉ dùng iMac (anh 15/11/2026)' },
   { card: 'g10-dich-1611', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'MUC_GIAM = MUC | {1, BANG_LUAT["g10_dich"]}', vi: 'cổng giảm nhận đích G10 ($10 ngoài thang) — 16/11/2026 13 lượt hạ G10 bị chặn "$10 không phải mức hợp lệ"' },
-  { card: 'g10-dich-1611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'G10_NS, G10_DICH, G10_ROI, G10_THEO = 15, BANG_LUAT["g10_dich"], 0, 2', vi: 'đích G10 đọc từ sổ luật chung, không ghi cứng' },
+  { card: 'g10-dich-1611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'assert G10_DICH == BANG_LUAT["g10_dich"]', vi: 'đích G10 của máy luật khớp sổ luật chung, lệch là dừng ngay' },
   { card: 'g10-dich-1611', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"g10_dich": 10', vi: 'đích G10 nằm ở sổ luật chung' },
 ];

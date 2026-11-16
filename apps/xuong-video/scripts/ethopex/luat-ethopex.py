@@ -1064,7 +1064,8 @@ _rl = {int(x[0] or 0) for x in tat_roas + tat_r0}; tang30 = [x for x in tang30 i
 # "Campaign Status: Active · Budget Daily: > 15 · ROI: < 15") — ngân sách > $15, tức camp $20 / $30 (không đi từng bậc). Bước 2: camp G10 đã hạ (etp.cau_hinh 'g10' = {camp: ngày hạ},
 # worker ghi khi hạ xong) có G10_THEO ngày đã khép SAU ngày hạ mà ROI vẫn < G10_ROI% → báo trước một nhịp rồi máy tắt (cùng đường L3 / RL).
 # Đang theo dõi thì khoá tăng / nhân bản / lên ROAS; qua được thì hết theo dõi, kém lại thì hạ lại.
-G10_NS, G10_DICH, G10_ROI, G10_THEO = 15, BANG_LUAT["g10_dich"], 0, 2   # G10_ROI 15 → 0 (anh 05/11/2026 "không giảm camp đang lãi": giảm khi ROI 24h trước ≥ 0 → −$1,59/camp so đối chứng +$0,04)
+G10_NS, G10_DICH, G10_ROI, G10_THEO = 15, 10, 0, 2   # G10_ROI 15 → 0 (anh 05/11/2026 "không giảm camp đang lãi": giảm khi ROI 24h trước ≥ 0 → −$1,59/camp so đối chứng +$0,04)
+assert G10_DICH == BANG_LUAT["g10_dich"], "đích G10 lệch sổ luật chung (g10_dich) — máy làm mở cổng giảm theo sổ, lệch là lệnh hạ bị chặn như 16/11/2026"
 # NHÁNH KÉM ĐI (anh 02/11/2026 "có, thêm luôn" — team: "những camp mà last 5 day có tín hiệu rois kém đi … giảm budget theo dõi 2 ngày tiếp, vẫn kém thì off"):
 # Nhánh "kém đi" (ROI còn dương mà tụt so 4 ngày trước → hạ $10) ĐÃ BỎ 05/11/2026: không giảm camp đang lãi (số toàn đội: −$1,59/camp so đối chứng +$0,04).
 # G10 HỒI (anh 04/11/2026 "Camp ROAS về $10 theo dõi thì chưa có rule để tăng trở lại" → "ok"): camp G10 đã hạ, đủ G10_THEO ngày đã khép sau ngày hạ, ROI ≥ G10_HOI%

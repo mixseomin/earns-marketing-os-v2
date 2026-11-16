@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { baoLoiApi } from './claude-chay.mjs';
+import { truocLuot, sauLuot, chuTraLoi } from './tu-hoc.mjs';
 
 const TMUX = '/opt/homebrew/bin/tmux';
 const ngu = (giay) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, giay * 1000);
@@ -21,7 +22,9 @@ export const chonChu = (ds) => ds.findLast((t) => /BÁO ANH/i.test(t)) ?? ds.fin
 export const thuMucPhien = (cwd) => path.join(os.homedir(), '.claude', 'projects', cwd.replace(/[^A-Za-z0-9]/g, '-'));
 
 /** Như chayClaude(cmd, args, opts) nhưng chạy trong tmux tên opts.ten. args là bộ đối số của chế độ -p: lấy lời giao ở sau '-p', bỏ '--output-format'. */
-export function chayTmux(cmd, args, opts) {
+/** Cửa chạy có tự học (may/tu-hoc.mjs): nạp kinh nghiệm vào lời giao, ghi bài học sau lượt. */
+export function chayTmux(cmd, args, opts) { const h = truocLuot(args, opts), r = chayTmuxGoc(cmd, h.args, opts); sauLuot(h, chuTraLoi(r), r.status === 0); return r; }
+function chayTmuxGoc(cmd, args, opts) {
   const ten = opts.ten, cwd = opts.cwd, env = opts.env, tranMs = opts.timeout || 40 * 60000;
   const tm = (...a) => spawnSync(TMUX, a, { encoding: 'utf8', env });
   const khung = () => tm('capture-pane', '-p', '-t', ten).stdout ?? '', conPhien = () => tm('has-session', '-t', ten).status === 0;

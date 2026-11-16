@@ -68,6 +68,27 @@ export function ghiDuocDay(id, khoa, khoaBai, noi_dung, ai) {
 /** Bỏ một bài học (Giám đốc / Hà thấy bịa hoặc lệch chuẩn). */
 export function boBaiHoc(id, ma) { const ds = dsBaiHoc(id); const con = ds.filter((b) => b.ma !== ma); if (con.length === ds.length) return false; luu(id, con); return true; }
 
+/** Lớp tự học của CLI (may/tu-hoc.mjs, anh 16/11/2026): CLI chạy trên iMac, sổ ở box3 → hai lệnh qua ssh.
+ *  --nap <id> <khoá>  → JSON { chu: lời dặn kinh nghiệm, ma: [mã bài đã nạp] }
+ *  --hoc <id> <khoá>  ← stdin { bai: [câu], ma: [mã đã nạp], dat, may } → đếm áp dụng / đạt cho bài đã nạp + ghi bài mới (trùng ý bài cũ = cộng nguồn). */
+const chuanY = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+export function hocCli(id, khoa, { bai = [], ma = [], dat = false, may = 'cli' } = {}) {
+  const ds = dsBaiHoc(id), luc = new Date().toISOString(), ket = { ap_dung: 0, moi: 0, trung: 0 };
+  for (const b of ds) if (ma.includes(b.ma)) { b.lan_ap_dung++; if (dat) b.lan_dat++; b.luot_cuoi = luc; ket.ap_dung++; }
+  for (const noi of bai) {
+    const cu = ds.find((b) => b.khoa === khoa && chuanY(b.noi_dung) === chuanY(noi));
+    if (cu) { (cu.nguon ??= []).push(luc); ket.trung++; continue; }
+    ds.push({ ma: `bh-${id}-${luc}-${ds.length}`, ts: luc, khoa, noi_dung: String(noi).slice(0, 220), bang_chung: `${may} · lượt ${luc.slice(0, 16)}`, nguon: [luc], lan_ap_dung: 0, lan_dat: 0 }); ket.moi++;
+  }
+  luu(id, ds); return ket;
+}
+if ((process.argv[1] || '').endsWith('kinh-nghiem.mjs') && (process.argv[2] === '--nap' || process.argv[2] === '--hoc')) {
+  const [, , lenh, id, khoa] = process.argv;
+  if (!/^[a-z0-9-]+$/.test(id ?? '') || !khoa) { console.error('dùng: --nap|--hoc <id> <khoá>'); process.exit(2); }
+  if (lenh === '--nap') { const ds = chonBaiHoc(id, khoa); console.log(JSON.stringify({ chu: loiDanKinhNghiem(ds), ma: ds.map((b) => b.ma) })); }
+  else { const v = JSON.parse(fs.readFileSync(0, 'utf8') || '{}'); console.log(JSON.stringify(hocCli(id, khoa, v))); }
+}
+
 if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('kinh-nghiem.mjs')) {
   process.env.CTY_DATA_DIR = fs.mkdtempSync('/tmp/cty-kn-');
   const a = (c, m, x) => { if (!c) { console.error('✗ kinh-nghiem:', m, JSON.stringify(x ?? {}).slice(0, 300)); process.exit(1); } };
@@ -86,5 +107,10 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('kinh
   a(boBaiHoc('loc', r2.ma) && dsBaiHoc('loc').length === 1, 'bỏ bài học');
   const truoc = dsBaiHoc('loc')[0].lan_dat; const gat = nk({ ok: false, bh: [r.ma] }); gat.buoc[1].bi_gat = 'phuc_khao';
   ghiApDung(gat); a(dsBaiHoc('loc')[0].lan_dat === truoc + 1, 'lời bác bị gạt → bài học của người làm vẫn tính đạt');
+  { const C = 'cli/lam-viec', k1 = hocCli('huy', C, { bai: ['Card etp phải submit với GOPY_PROJECT=mos2, không phải etp2'], ma: [] });
+    a(k1.moi === 1 && chonBaiHoc('huy', C).length === 1, 'CLI ghi bài mới', k1);
+    a(hocCli('huy', C, { bai: ['card ETP phải submit với GOPY_PROJECT=mos2 — không phải etp2'] }).trung === 1 && dsBaiHoc('huy').length === 1, 'trùng ý (khác hoa thường, dấu câu) → cộng nguồn');
+    const m = chonBaiHoc('huy', C).map((b) => b.ma); for (let i = 0; i < 3; i++) hocCli('huy', C, { ma: m, dat: true });
+    a(trangThai(dsBaiHoc('huy')[0]) === 'ky_nang', 'CLI nạp bài 3 lượt đạt → kỹ năng', dsBaiHoc('huy')[0]); }
   console.log('✓ kinh-nghiem: bằng chứng phải trỏ lượt vừa làm, gộp trùng, nạp đúng quy trình, lên kỹ năng / phai theo kết quả, bỏ bài');
 }

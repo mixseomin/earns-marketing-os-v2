@@ -85,6 +85,14 @@ for (const f of fs.readdirSync(path.join(R, '..', 'may')).filter((f) => f.endsWi
 const trongSo = new Set((so.viec ?? []).map((v) => v.nhan));
 for (const k of trongSo) if (!nenCua[k]) loi.push(`viec-nen.json: ${k} chưa thuộc quy trình nào — thêm vào "lich" của quy trình phòng (người chịu trách nhiệm + chi phí)`);
 for (const [l, qt] of Object.entries(nenCua)) if (/^(iMac|MacBook):/.test(l) && !trongSo.has(l) && !l.endsWith(`:${NHAN_DIEU_PHOI}`)) loi.push(`${qt}: lich ${l} không có trong cong-ty/viec-nen.json`);
+// TỰ HỌC CHUẨN (anh 16/11/2026): mọi kỹ sư gọi Claude qua chayClaude / gop-y-ky-su phải giải ra MỘT nhân sự trong may/tu-hoc.mjs NGUOI_CUA —
+// thiếu thì lượt vẫn chạy nhưng không nạp / ghi kinh nghiệm, im lặng.
+{ const { NGUOI_CUA } = await import('../may/tu-hoc.mjs'); const MAY = path.join(R, '..', 'may');
+  for (const f of fs.readdirSync(MAY).filter((x) => x.endsWith('.mjs') && !/^(claude-chay|claude-tmux|gop-y-ky-su|tu-hoc)\.mjs$/.test(x))) {
+    const t = fs.readFileSync(path.join(MAY, f), 'utf8'), ten = f.replace(/\.mjs$/, '');
+    if (/chayClaude\(CLAUDE|chayTmux\(|from '\.\/gop-y-ky-su\.mjs'/.test(t) && !NGUOI_CUA[ten]) loi.push(`may/${f}: gọi Claude mà chưa có tên trong may/tu-hoc.mjs NGUOI_CUA — kỹ sư này không tự học`);
+  }
+  for (const [f, id] of Object.entries(NGUOI_CUA)) if (!ns[id]) loi.push(`may/tu-hoc.mjs NGUOI_CUA: ${f} → "${id}" không có hồ sơ nhân sự`); }
 // chuẩn chung nút Góp ý "AI đang làm" (12/11/2026): ba bản chép (gói, spy, Astrolas) không được trôi — scripts/kiem-chuan-gop-y.mjs
 { const { kiemMay } = await import('./kiem-chuan-gop-y.mjs'); const r = kiemMay(); for (const g of r.ghi) console.log(`· ${g}`); loi.push(...r.loi); }
 if (loi.length) { console.error('✗ tu-kiem cty:\n  ' + loi.join('\n  ')); process.exit(1); }

@@ -3,6 +3,7 @@
 // (box3 tho-may-viec.mjs --loi-api, mỗi khoá ≤ 1 tin / giờ). Thành (~/bin/thanh/chay.mjs, phiên tmux) dùng cùng phanLoai qua bản chép của anh ở ~/bin.
 import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
+import { truocLuot, sauLuot, chuTraLoi } from './tu-hoc.mjs';
 
 const BOX = 'root@167.233.241.16', APP = '/opt/earns-marketing-os-v2/apps/cty';
 const DANG_NHAP = /Please run \/login|Invalid API key|OAuth token (has )?expired|authentication_error|Invalid bearer token|not logged in|\b401\b/i;
@@ -30,7 +31,9 @@ export function baoLoiApi(khoa, than) {
 }
 /** spawnSync(claude, …) + báo lỗi API. Lỗi máy chủ thoáng qua chỉ báo khi lượt hỏng hẳn (không có kết quả); đăng nhập / hạn mức báo luôn. */
 export function chayClaude(cmd, args, opts) {
-  const r = spawnSync(cmd, args, opts), chu = chuLoi(r), pl = chu && phanLoai(chu);
+  const h = truocLuot(args, opts);   // tự học chuẩn (may/tu-hoc.mjs): mọi kỹ sư qua cửa này đều nạp kinh nghiệm + ghi bài học
+  const r = spawnSync(cmd, h.args, opts), chu = chuLoi(r), pl = chu && phanLoai(chu);
+  sauLuot(h, chuTraLoi(r), !chu);
   if (pl) {
     const nguoi = path.basename(process.argv[1] ?? 'may', '.mjs');
     console.error(`lỗi API (${pl.loai}): ${chu.slice(0, 300)}`);

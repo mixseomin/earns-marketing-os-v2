@@ -23,7 +23,7 @@ export function ganBaoLech({ nut, chupHai }) {
   const bl = document.createElement('div'); bl.id = 'bl';
   bl.innerHTML = `<div>
   <b>🔍 Báo chỗ ảnh thật khác mô hình — ở đúng góc đang nhìn</b>
-  <div class="hang">Tô đỏ lên vùng lỗi (tuỳ chọn, vẽ trên ảnh nào cũng được) — máy tự so cả hai bản để tìm chỗ sai.</div>
+  <div class="hang">Đánh dấu vùng lỗi (tuỳ chọn, vẽ trên ảnh nào cũng được) — máy tự so cả hai bản để tìm chỗ sai. Vẽ bằng: <label><input type="radio" name="bl-cu" value="o" checked> ▭ Khung</label><label><input type="radio" name="bl-cu" value="m"> ➜ Mũi tên</label><label><input type="radio" name="bl-cu" value="b"> ✎ Bút</label></div>
   <div class="hai"><figure><figcaption>Mô hình 3D</figcaption><img class="a1"><canvas class="c1"></canvas></figure>
     <figure><figcaption>Ảnh thật 3D (Google)</figcaption><img class="a2"><canvas class="c2"></canvas></figure></div>
   <textarea placeholder="Ghi chú (tuỳ chọn): sai gì, ví dụ: tháp này thiếu tầng, mái thấp quá…"></textarea>
@@ -31,15 +31,21 @@ export function ganBaoLech({ nut, chupHai }) {
   <div class="hang" style="justify-content:flex-end"><button class="xoa">Xoá nét đỏ</button><button class="dong">Đóng</button><button class="gui chinh">Gửi báo lệch</button></div>
 </div>`;
   document.body.append(bl);
-  const $q = (s) => bl.querySelector(s), kq = $q('.kq'), gui = $q('.gui'), net = []; // net: các nét đỏ, mỗi nét [[u, v], …] chuẩn hoá 0–1
+  const $q = (s) => bl.querySelector(s), kq = $q('.kq'), gui = $q('.gui'), net = []; // net: các hình đỏ { k: 'o' khung | 'm' mũi tên | 'b' bút, p: [[u, v], …] } chuẩn hoá 0–1 (khung / mũi tên: điểm đầu + điểm cuối)
   let du = null, ve = null;
-  const veLai = () => { for (const c of [$q('.c1'), $q('.c2')]) { const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height); g.strokeStyle = '#ff2020'; g.lineWidth = Math.max(3, c.width / 200); g.lineJoin = g.lineCap = 'round';
-    for (const n of net) { g.beginPath(); n.forEach(([u, v], i) => (i ? g.lineTo(u * c.width, v * c.height) : g.moveTo(u * c.width, v * c.height))); g.stroke(); } } };
+  // vẽ một hình lên ngữ cảnh g, ảnh rộng W cao H lệch ngang ox
+  const veHinh = (g, h, ox, W, H) => { const P = h.p.map(([u, v]) => [ox + u * W, v * H]); g.beginPath();
+    if (h.k === 'o' && P.length > 1) { const [[a, b], [c, d]] = [P[0], P.at(-1)]; g.rect(Math.min(a, c), Math.min(b, d), Math.abs(c - a), Math.abs(d - b)); g.stroke(); return; }
+    if (h.k === 'm' && P.length > 1) { const [[a, b], [c, d]] = [P[0], P.at(-1)], goc = Math.atan2(d - b, c - a), r = Math.max(14, W / 45); g.moveTo(a, b); g.lineTo(c, d); g.stroke();
+      g.beginPath(); g.moveTo(c, d); g.lineTo(c - r * Math.cos(goc - 0.45), d - r * Math.sin(goc - 0.45)); g.lineTo(c - r * Math.cos(goc + 0.45), d - r * Math.sin(goc + 0.45)); g.closePath(); g.fillStyle = '#ff2020'; g.fill(); return; }
+    P.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); };
+  const veLai = () => { for (const c of [$q('.c1'), $q('.c2')]) { const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height); g.strokeStyle = '#ff2020'; g.lineWidth = Math.max(3, c.width / 260); g.lineJoin = g.lineCap = 'round';
+    for (const h of net) veHinh(g, h, 0, c.width, c.height); } };
   for (const c of [$q('.c1'), $q('.c2')]) {
     const uv = (e) => { const r = c.getBoundingClientRect(); return [Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))]; };
-    c.onpointerdown = (e) => { c.setPointerCapture(e.pointerId); ve = [uv(e)]; net.push(ve); veLai(); };
-    c.onpointermove = (e) => { if (!ve) return; const p = uv(e), q = ve.at(-1); if (Math.hypot(p[0] - q[0], p[1] - q[1]) > 0.004) { ve.push(p); veLai(); } };
-    c.onpointerup = c.onpointercancel = () => { ve = null; };
+    c.onpointerdown = (e) => { c.setPointerCapture(e.pointerId); ve = { k: bl.querySelector('input[name=bl-cu]:checked').value, p: [uv(e)] }; net.push(ve); veLai(); };
+    c.onpointermove = (e) => { if (!ve) return; const p = uv(e); if (ve.k === 'b') { const q = ve.p.at(-1); if (Math.hypot(p[0] - q[0], p[1] - q[1]) > 0.004) ve.p.push(p); } else ve.p[1] = p; veLai(); };
+    c.onpointerup = c.onpointercancel = () => { if (ve && ve.p.length < 2) net.pop(); ve = null; veLai(); }; // bấm không kéo: bỏ
   }
   const nap = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = src; });
   async function mo() {
@@ -58,11 +64,14 @@ export function ganBaoLech({ nut, chupHai }) {
       const i1 = await nap(du.moHinh), i2 = await nap(du.anhThat || du.moHinh), W = i1.width, H = i1.height, c = document.createElement('canvas'); c.width = W * 2 + 8; c.height = H;
       const g = c.getContext('2d'); g.fillStyle = '#222'; g.fillRect(0, 0, c.width, c.height); g.drawImage(i1, 0, 0, W, H); g.drawImage(i2, W + 8, 0, W, H);
       g.strokeStyle = '#ff2020'; g.lineWidth = Math.max(3, W / 200); g.lineJoin = g.lineCap = 'round';
-      for (const ox of [0, W + 8]) for (const n of net) { g.beginPath(); n.forEach(([u, v], i) => (i ? g.lineTo(ox + u * W, v * H) : g.moveTo(ox + u * W, v * H))); g.stroke(); }
+      for (const ox of [0, W + 8]) for (const h of net) veHinh(g, h, ox, W, H);
       const anh = c.toDataURL('image/jpeg', 0.82), ghi = $q('textarea').value.trim();
       // máy chủ giữ ngữ cảnh ≤ 1 000 ký tự, nội dung ≤ 4 000: camera vào ngữ cảnh, vùng tô (mỗi nét rút còn ≤ 16 điểm) cuối nội dung
       const rut = (n) => { const b = Math.max(1, Math.ceil(n.length / 16)); return n.filter((_, i) => i % b === 0 || i === n.length - 1).map(([u, v]) => [+u.toFixed(3), +v.toFixed(3)]); };
-      let vung = JSON.stringify(net.map(rut)); if (vung.length > 2500) vung = JSON.stringify(net.map((n) => { const us = n.map((p) => p[0]), vs = n.map((p) => p[1]); return [[Math.min(...us), Math.min(...vs)], [Math.max(...us), Math.max(...vs)]].map(([u, v]) => [+u.toFixed(3), +v.toFixed(3)]); }));
+      // gửi CLI dạng nét điểm (so-lech.py lấy hộp bao từng nét): khung → 4 góc, mũi tên → ô quanh MŨI (chỗ chỉ vào), bút → rút gọn
+      const r3 = (x) => +x.toFixed(3), duong = net.map((h) => { if (h.k === 'o') { const [[a, b], [c, d]] = [h.p[0], h.p.at(-1)]; return [[a, b], [c, b], [c, d], [a, d], [a, b]].map(([u, v]) => [r3(u), r3(v)]); }
+        if (h.k === 'm') { const [u, v] = h.p.at(-1); return [[r3(u - 0.04), r3(v - 0.04)], [r3(u + 0.04), r3(v + 0.04)]]; } return rut(h.p); });
+      let vung = JSON.stringify(duong); if (vung.length > 2500) vung = JSON.stringify(duong.map((n) => { const us = n.map((p) => p[0]), vs = n.map((p) => p[1]); return [[Math.min(...us), Math.min(...vs)], [Math.max(...us), Math.max(...vs)]].map(([u, v]) => [+u.toFixed(3), +v.toFixed(3)]); }));
       const r = await fetch('/api/gop-y', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
         body: JSON.stringify({ noiDung: `[LỆCH ẢNH THẬT] ${ghi || '(không ghi chú — xem vùng tô đỏ / để máy tự so)'}${net.length ? `\n\nVUNG-JSON:${vung}` : ''}`, loai: 'loi', trang: location.href, nguCanh: 'LECH-JSON:' + JSON.stringify(du.cam), anh }) });
       const j = await r.json().catch(() => ({ ok: false, error: `máy chủ trả ${r.status}` }));

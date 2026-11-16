@@ -156,7 +156,17 @@ const NEN_LUOI = (() => {
   // SÂN TRÊN PHẲNG (anh 16/11/2026: thiếu cầu thang): đo ảnh 3D ra một dốc liền từ sân trên xuống sân dưới (lưới lấp chỗ trống + cây / tường lẫn vào) nên vùi
   // mất cầu thang OSM nối hai sân; ngoài đời sân trên phẳng ở mặt sân đo được (NEN.san) — trong mặt bằng sân (OSM courtyard) đặt đúng mức đó
   const sanV = D.khoi.find((k) => k.tags.building === 'courtyard')?.ngoai?.[0];
-  if (sanV && Number.isFinite(NEN.san)) for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = x0 + i * B, z = z0 + j * B; if (!trongDa(x, z, sanV)) continue; const dem = caoDat(x, z) - GOC_Y; G[id(i, j)] = Math.max(dem, NEN.san); nang[id(i, j)] = G[id(i, j)] - dem; }
+  // DẢI SÁT TƯỜNG quanh sân (anh 17/11/2026, ảnh mặt Palas hướng sân: mặt lát gợn sóng cao tới bậu cửa): đa giác sân OSM dừng cách chân tường vài mét, dải giữa
+  // bám mặt đất ảnh 3D (lẫn chân tường → gồ lên 0,6–1,3 m). Trong sân, và ô cách đa giác sân ≤ 6 m VÀ cách tường một khối nhà ≤ 2,5 m: đúng mức sân (lệch > 3 m thì giữ).
+  const kcCanh = (x, z, v) => { let m = 1e9; for (let q = 0; q < v.length; q++) { const [ax, az] = v[q], [bx, bz] = v[(q + 1) % v.length], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1))); m = Math.min(m, Math.hypot(x - ax - dx * t, z - az - dz * t)); } return m; };
+  const nhaSan = sanV ? dsKhoi.filter((k) => k.tags.building !== 'courtyard' && kcCanh(...tamDa(k.v), sanV) < 40) : [];
+  // gọi HAI lần: ở đây và CUỐI CÙNG (sau san nền dưới đường / dốc 12 % — các bước đó chỉ NÂNG theo tim lối đi bộ trong sân, kéo dải sát tường gồ lại)
+  const sanPhangHoa = () => { if (sanV && Number.isFinite(NEN.san)) for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = x0 + i * B, z = z0 + j * B, trong = trongDa(x, z, sanV);
+    if (!trong && !(kcCanh(x, z, sanV) <= 6 && nhaSan.some((k) => kcCanh(x, z, k.v) <= 2.5 || trongDa(x, z, k.v)))) continue;
+    const dem = caoDat(x, z) - GOC_Y, hien = trong ? dem : G[id(i, j)]; if (Math.abs(hien - NEN.san) > 3 && (!trong || hien > NEN.san)) continue; if (!trong && hien < NEN.san) continue;   // ngoài sân chỉ HẠ gồ, không nâng (nâng bịt đầu cầu thang xuống sân dưới — bài thử p-bac9)   // lệch > 3 m: vật thật (bậc, bệ) — giữ; ngoài sân xét mặt hiện tại (lưới thô dưới nhà lệch chục mét)
+    // trước: trong sân lấy max(mặt đo, mức sân) → chỉ nâng, gồ 0,4–0,7 m sát chân tường (ảnh 3D lẫn chân tường) còn nguyên, mặt lát gợn tới bậu cửa
+    G[id(i, j)] = NEN.san; nang[id(i, j)] = Math.abs(G[id(i, j)] - dem); } };
+  sanPhangHoa();
   // mặt đất ĐO GỐC (trước khi san sân lát / nền đường / sân trước cổng): mốc chân nhà (datCao) tính trên lưới này — san sân không được kéo cả khối nhà
   // lên xuống (sân dưới phẳng lại làm Torbau tụt 2 m, lệch mặt đông vừa khớp ảnh, anh 16/11/2026)
   const G_GOC = G.slice();
@@ -242,6 +252,7 @@ const NEN_LUOI = (() => {
       console.info('[ns] sân trước cổng ngoài:', JSON.stringify({ cong: cg.c.slice(0, 2), mau: mau.length, dinh: sanCong.length }));
     }
   }
+  sanPhangHoa();
   return { x0, z0, B, W, H, G, G_GOC, nang, id, sanCong, caoSan };
 })();
 function datThat(x, z) {

@@ -70,7 +70,7 @@ export const NGANH_LUAT: Record<string, { nganh: NganhKyThuat }> = {
     'Mọi chuỗi shot; nặng hơn ở phim ngắn dọc.',
     'Mắt luôn có thứ mới để đọc, không ngấy.',
     'Chuỗi shot cùng cỡ cùng góc (dễ thành jump cut); toàn mặt nói không có hành động.',
-    `${BLOCK}, tương phản / tương đồng; ${MASCELLI} — luật 30°; tỉ lệ ≤ 40% shot đứng yên là lệ riêng của studio`),
+    `${BLOCK}, tương phản / tương đồng; ${MASCELLI} — luật 30°; máy chạy phải có động cơ (Mascelli; Katz — Shot by Shot) — trần 40 % shot đứng yên đã bỏ 16/11/2026`),
   'luat.nhip_doc': n('Shot duration / reading time (pacing)',
     'Mỗi shot đủ dài để khán giả đọc hết thông tin của nó, không dài hơn.',
     'Shot càng nhiều chi tiết càng cần thời gian; một hành động chính mỗi shot; sau cú bất ngờ giữ phản ứng.',

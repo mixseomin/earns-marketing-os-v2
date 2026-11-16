@@ -24,7 +24,7 @@ import { nhipHanhDong } from './nhip-hanh-dong';
 import { mapCanh, mapTap, mapNhanVat, type Db, type Row } from './doc-db';
 import { chupTruoc } from './hoan-tac';
 import { daDangMay, giayDoc } from './nhip-hinh';
-import { apNguPhapMay, diCm } from './ngu-phap-may';
+import { apNguPhapMay, diCm, dongCoMay } from './ngu-phap-may';
 import { tranhDayVao } from './san-pham-shot';
 import { docCachDien, SAN_TIENG_GIAY } from './toc-noi';
 
@@ -140,7 +140,8 @@ export async function daDangMayTapDb(db: Db, tapId: number, nguoi: string): Prom
     const ds = locNhanh(canh, nh).map((c) => { const kt = doi.get(c.id) ?? c.ky_thuat; return { ...c, ky_thuat: kt, tranh_day: tranhDayVao(kt?.co_canh, sp.filter((v) => c.nhan_vat.includes(v.id))) }; });
     // Ngữ pháp máy theo nhịp kịch TRƯỚC (phim ngắn dọc — ngu-phap-may.ts), rồi luật nhịp hình đa dạng phần còn lại trên kết quả đó.
     for (const x of apNguPhapMay(ds.map((c, i) => ({ ...c, giay: giayPhat(c), di_cm: c.may_3d ? diCm(c.may_3d.vi_tri) : diCmShot(kgt, c), cuoi: i === ds.length - 1 && !!String(phim?.dong_co ?? '').trim() })), String(phim?.the_loai ?? ''))) doi.set(x.id, x.ky_thuat);
-    const ds2 = ds.map((c) => ({ ...c, ky_thuat: doi.get(c.id) ?? c.ky_thuat, giay: giayPhat(c), chu: c.may_3d ? chuThe(c.may_3d) : null }));
+    const ds2 = dongCoMay(ds.map((c, i) => ({ ...c, ky_thuat: doi.get(c.id) ?? c.ky_thuat, giay: giayPhat(c), chu: c.may_3d ? chuThe(c.may_3d) : null,
+      di_cm: c.may_3d ? diCm(c.may_3d.vi_tri) : diCmShot(kgt, c), cuoi: i === ds.length - 1 && !!String(phim?.dong_co ?? '').trim() })));
     for (const x of daDangMay(ds2)) doi.set(x.id, x.ky_thuat);
   }
   for (const [id, kt] of doi) {

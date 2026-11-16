@@ -1,12 +1,12 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/nhip-hinh.test.mts
 import assert from 'node:assert';
-import { kiemNhipHinh, daDangMay, mayHopGiay, kiemGiayDoc, giayDoc, soShotToiDa, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap } from './nhip-hinh';
+import { kiemNhipHinh, daDangMay, mayHopGiay, khongDongCo, diNgangCm, kiemGiayDoc, giayDoc, soShotToiDa, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap } from './nhip-hinh';
 // Fox tập 2 (13/10/2026): cỡ cảnh + chuyển động máy 14 shot
 const FOX = [['cu', 'day_vao'], ['cu', 'day_vao'], ['ws', 'tinh'], ['ms', 'tinh'], ['two', 'tinh'], ['ms', 'tinh'], ['ws', 'lui_ra'], ['cu', 'day_vao'], ['cu', 'day_vao'], ['ms', 'tinh'], ['cu', 'tinh'], ['two', 'tinh'], ['ws', 'truot_ngang'], ['ws', 'truot_ngang']]
   .map(([co_canh, chuyen_dong], i) => ({ id: 100 + i, thu_tu: i + 1, ky_thuat: { co_canh, chuyen_dong } }));
 const loi = kiemNhipHinh(FOX);
 assert.ok(loi.some((x) => x.includes('#1–#2')) && loi.some((x) => x.includes('#8–#9')) && loi.some((x) => x.includes('#13–#14')), loi.join('\n'));
-assert.ok(loi.some((x) => x.includes('7/14 shot máy đứng yên (tối đa 5)')), loi.join('\n'));
+assert.ok(!loi.some((x) => x.includes('máy đứng yên')), 'bỏ trần 40 % shot đứng yên (16/11/2026 — lệ riêng, không phải chuẩn ngành)');
 // sửa 0đ → hết lỗi, chỉ đổi chuyển động máy, giữ cỡ cảnh + nhóm khác
 const sua = daDangMay(FOX);
 const sau = FOX.map((c) => ({ ...c, ky_thuat: sua.find((x) => x.id === c.id)?.ky_thuat ?? c.ky_thuat }));
@@ -33,6 +33,27 @@ assert.ok(mayHopGiay('lia', 1.2) && !mayHopGiay('day_vao', 2.9) && mayHopGiay('d
 // chuỗi ngắn (<5 shot) không xét tỉ lệ đứng yên; shot chưa chọn cỡ cảnh không tính trùng
 assert.deepStrictEqual(kiemNhipHinh([{ thu_tu: 1, ky_thuat: { co_canh: 'cu' } }, { thu_tu: 2, ky_thuat: { co_canh: 'ws' } }]), []);
 assert.deepStrictEqual(kiemNhipHinh([{ thu_tu: 1, ky_thuat: {} }, { thu_tu: 2, ky_thuat: {} }]), []);
+// MÁY PHẢI CÓ ĐỘNG CƠ (phim #3071, 16/11/2026): máy đặt ở gốc toạ độ nhìn dọc +y
+const m3 = (den: number[]) => ({ dat: [0, 0, 150], nhin: [0, 1000, 150], vi_tri: [{ tam: [0, 500, 0], den }] });
+assert.strictEqual(diNgangCm(m3([50, 1500, 0])), 50, 'chạy vào chiều sâu: ngang 50 cm'); assert.strictEqual(diNgangCm(m3([800, 500, 0])), 800); assert.strictEqual(diNgangCm(null), null);
+const DC = [
+  { id: 1, thu_tu: 17, giay: 1.6, ky_thuat: { co_canh: 'cu', chuyen_dong: 'lia' }, di_ngang_cm: 0, di_cm: 0, nhip_kich: false, cuoi_canh: false },          // mặt chú đứng hình
+  { id: 2, thu_tu: 18, giay: 2, ky_thuat: { co_canh: 'ws', chuyen_dong: 'lia' }, di_ngang_cm: 50, di_cm: 1000, nhip_kich: false, cuoi_canh: false },      // nhóc chạy vào chiều sâu
+  { id: 3, thu_tu: 19, giay: 3, ky_thuat: { co_canh: 'ws', chuyen_dong: 'day_vao' }, di_ngang_cm: 0, di_cm: 0, nhip_kich: false, cuoi_canh: false },     // tàu mang chú đi
+  { id: 4, thu_tu: 20, giay: 3, ky_thuat: { co_canh: 'cu', chuyen_dong: 'day_vao' }, di_ngang_cm: 0, di_cm: 0, nhip_kich: false, cuoi_canh: true },      // cận nhận ra
+  { id: 5, thu_tu: 21, giay: 3, ky_thuat: { co_canh: 'ws', chuyen_dong: 'lia' }, di_ngang_cm: 800, di_cm: 800, nhip_kich: false, cuoi_canh: true },      // chạy ngang khung
+  { id: 6, thu_tu: 22, giay: 3, ky_thuat: { co_canh: 'ws', chuyen_dong: 'lui_ra' }, di_ngang_cm: 0, di_cm: 0, nhip_kich: false, cuoi_canh: true },       // lùi ra kết cảnh
+];
+assert.deepStrictEqual(DC.map((c) => !!khongDongCo(c)), [true, true, true, false, false, false], DC.map((c) => khongDongCo(c)).join(' | '));
+assert.ok(kiemNhipHinh(DC).some((x) => x.includes('#17 máy không có động cơ')) && kiemNhipHinh(DC).some((x) => x.includes('#19 máy không có động cơ')));
+const sDC = daDangMay(DC); assert.deepStrictEqual(sDC.map((x) => [x.id, x.ky_thuat.chuyen_dong]), [[1, 'tinh'], [2, 'tinh'], [3, 'tinh']], JSON.stringify(sDC));
+// thiếu dữ liệu động cơ (shot chưa có 3D / chưa đọc nhịp) → không xét, không chặn oan
+assert.strictEqual(khongDongCo({ thu_tu: 1, ky_thuat: { co_canh: 'ws', chuyen_dong: 'lia' } }), null);
+// hai shot trùng mà không có máy nào có động cơ → bộ tự gán KHÔNG bịa máy, cổng báo đổi cỡ / góc
+const TR = [{ id: 1, thu_tu: 1, giay: 3, chu: ['A'], ky_thuat: { co_canh: 'cu', chuyen_dong: 'tinh' }, di_ngang_cm: 0, di_cm: 0, nhip_kich: false, cuoi_canh: false },
+  { id: 2, thu_tu: 2, giay: 3, chu: ['A'], ky_thuat: { co_canh: 'ws', chuyen_dong: 'tinh' }, di_ngang_cm: 0, di_cm: 0, nhip_kich: false, cuoi_canh: false },
+  { id: 3, thu_tu: 3, giay: 3, chu: ['A'], ky_thuat: { co_canh: 'ws', chuyen_dong: 'tinh' }, di_ngang_cm: 0, di_cm: 0, nhip_kich: false, cuoi_canh: false }];
+assert.deepStrictEqual(daDangMay(TR), []); assert.ok(kiemNhipHinh(TR)[0]!.includes('đổi cỡ cảnh / góc'));
 // nhịp đọc: Tango & Lint tập 1 — 20 shot / 48s, phat 2–3,5s → phim không lời chặn; quảng cáo không xét; shot chưa cắt tính cả clip
 const T1 = [3.5, 2, 2, 2, 2, 2.2, 2, 2.3, 2, 2, 2, 2.9, 2.1, 2, 2.5, 2, 2.5, 2.5, 2, 3.4].map((g, i) => ({ thu_tu: i + 1, phat_s: g, thoi_luong_s: 4 }));
 const ld = kiemGiayDoc(T1, { khong_loi: true });

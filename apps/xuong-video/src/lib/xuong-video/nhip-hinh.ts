@@ -8,18 +8,37 @@ import type { KyThuatShot } from './dien-anh';
 import { O_DAN_DUNG_BAT_BUOC, type DanDung, type PhanCanh } from './kieu';
 
 export const TIEN_TO_NHIP_HINH = 'nhịp hình: ';
-/** Tối đa bao nhiêu phần shot được để máy đứng yên (hài cần vài shot đứng yên để đúng nhịp, nhưng không quá nửa phim). */
-export const TI_LE_TINH_TOI_DA = 0.4;
-const TINH = (k?: KyThuatShot) => !k?.chuyen_dong || k.chuyen_dong === 'tinh';
+/** MÁY PHẢI CÓ ĐỘNG CƠ (chuẩn ngành — Mascelli "The Five C's", Katz "Shot by Shot": máy chỉ chạy khi có lý do — người đi, hé lộ, cảm xúc dâng; còn lại khung đứng,
+ *  sự sống nằm trong khung). Thay luật cũ "tối đa 40 % shot máy đứng yên" (13/10/2026, lệ riêng của studio — nganh-luat-dung.ts) — 16/11/2026 phim #3071 (hài):
+ *  chỉ tiêu 40 % làm bộ tự gán (daDangMay) gán máy không lý do: lia trên mặt chú đứng hình (#17), lia theo nhóc chạy vào chiều sâu (#9 #18), đẩy vào cảnh rộng
+ *  trong khi tàu tự mang chú ra khỏi khung (#19), lia two-shot trả gài (#14 — model làm ngược). Không đủ dữ liệu để xét (shot chưa có 3D / chưa đọc nhịp) thì bỏ qua. */
+export const DI_NGANG_CM = 150;
+/** Quãng đi NGANG khung lớn nhất (cm) — thành phần chuyển động vuông góc trục máy trên mặt sàn (z hướng lên). Lia / trượt bám người đi ngang; người chạy vào chiều sâu
+ *  (xa / lại gần máy) thì khung đứng tự kể (người nhỏ dần / to dần). null = không xét được (thiếu 3D / trục máy). */
+export const diNgangCm = (m?: { dat: number[]; nhin: number[]; vi_tri: { tam: number[]; den?: number[] }[] } | null): number | null => {
+  if (!m?.dat || !m.nhin) return null; const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const l = Math.hypot(fx, fy); if (l < 1e-6) return null;
+  const rx = fy / l, ry = -fx / l;
+  return Math.max(0, ...(m.vi_tri ?? []).map((v) => (v.den ? Math.abs((v.den[0]! - v.tam[0]!) * rx + (v.den[1]! - v.tam[1]!) * ry) : 0)));
+};
+const MAY_NGANG = ['lia', 'truot_ngang'], MAY_BAM = ['theo', 'dan_truoc', 'vuot_tien_canh'], MAY_DON = ['day_vao', 'zoom_cham'], MAY_HE_LO = ['lui_ra', 'cau'];
+const CO_CAN = ['cu', 'mcu', 'ecu', 'insert'];
+/** Lý do máy KHÔNG có động cơ (null = có động cơ hoặc không đủ dữ liệu để xét). Các máy theo nhịp kịch (vòng, dolly zoom, zoom gắt, cầm tay…) do ngu-phap-may.ts xét. */
+export function khongDongCo(c: ShotNhip): string | null {
+  const cd = c.ky_thuat?.chuyen_dong; if (!cd || cd === 'tinh') return null;
+  if (MAY_NGANG.includes(cd) && c.di_ngang_cm != null && c.di_ngang_cm < DI_NGANG_CM) return `${cd} mà không ai đi ngang khung (${Math.round(c.di_ngang_cm)} cm < ${DI_NGANG_CM}) — người đứng / đi vào chiều sâu thì khung đứng tự kể`;
+  if (MAY_BAM.includes(cd) && c.di_cm != null && c.di_cm < DI_DAI_CM_NHIP) return `${cd} mà không ai đi (${Math.round(c.di_cm)} cm) — máy bám cần người di chuyển`;
+  if (MAY_DON.includes(cd) && !CO_CAN.includes(c.ky_thuat?.co_canh ?? '') && c.nhip_kich === false) return `${cd} ở cỡ ${c.ky_thuat?.co_canh ?? '?'} không có nhịp kịch — đẩy vào là để dồn cảm xúc trên mặt (cận) hoặc nhịp nhận ra / phán quyết`;
+  if (MAY_HE_LO.includes(cd) && c.cuoi_canh === false && c.nhip_kich === false) return `${cd} giữa cảnh không có gì để hé lộ — lùi / cẩu ra dùng kết cảnh hoặc nhịp hé lộ`;
+  return null;
+}
 /** MÁY TIẾN / LÙI CẦN THỜI GIAN (16/11/2026, phim #3071: 10/20 shot "đẩy vào", 6 shot chỉ 1,2–2 s — khung 3D đẩy 25 % quãng trong 1,2 s thành cú zoom gấp,
  *  anh: "hiệu ứng zoom in nhìn lởm"). Đẩy vào / lùi ra / zoom là creep chậm (dien-anh-nganh.ts: tốc 'cham') — shot dưới GIAY_MAY_TIEN giây để máy đứng.
- *  Shot ngắn như vậy KHÔNG tính vào trần shot đứng yên (cắt nhanh đã là nhịp, ép máy đi là ép zoom). Một luật cho cổng (kiemNhipHinh) + máy tự chọn (daDangMay, ngu-phap-may). */
+ *  Cắt nhanh đã là nhịp, ép máy đi là ép zoom. Một luật cho cổng (kiemNhipHinh) + máy tự chọn (daDangMay, ngu-phap-may). */
 export const GIAY_MAY_TIEN = 3;
 // Máy đi CHẬM tự thân (không bám theo chuyển động của người): cần thời gian mới đọc ra. Không gồm lia / theo (bám người đang đi — dài ngắn theo người),
 // cầm tay, quật / zoom giật (nhanh là bản chất), đổi nét. 16/11/2026: chỉ cấm đẩy vào thì luật đa dạng gán 'nghiêng lên' cho mặt chú đứng hình 1,6 s (#17).
 const MAY_TIEN_LUI: readonly string[] = ['day_vao', 'lui_ra', 'nghieng_len', 'truot_ngang', 'cau', 'cau_xuong', 'vong', 'zoom_cham', 'dolly_zoom', 'dan_truoc', 'xoay_truc', 'hyperlapse'];
 export const mayHopGiay = (cd: string | undefined, giay?: number | null): boolean => !(cd && MAY_TIEN_LUI.includes(cd) && giay != null && giay < GIAY_MAY_TIEN);
-const ngan = (c: { giay?: number | null }) => c.giay != null && c.giay < GIAY_MAY_TIEN;
 
 /** Hai shot liền nhau trùng cỡ cảnh + chuyển động máy (nhìn như một shot kéo dài). Trừ khi shot sau là CẮT KHỚP HÌNH (chuyen_canh 'cat_khop'):
  *  trùng cỡ + trùng chuyển động ở đó là CỐ Ý — hai hình khác nhau đặt cùng khuôn để nối ý (mặt Gióng → mặt cậu bé, phim mẫu tham-khao/thanh-giong);
@@ -30,7 +49,10 @@ const trungCo = (a: KyThuatShot, b: KyThuatShot) => !!a.co_canh && a.co_canh ===
 const cungChu = (a: ShotNhip, b: ShotNhip) => !a.chu?.length || !b.chu?.length || a.chu.some((x) => b.chu!.includes(x));
 const trung = (a: ShotNhip, ka: KyThuatShot, b: ShotNhip, kb: KyThuatShot) => trungCo(ka, kb) && cungChu(a, b);
 /** tranh_day = không chọn chuyển động đẩy vào (san-pham-shot.ts › tranhDayVao: sản phẩm mặc trên người ở cỡ có người). */
-type ShotNhip = { id?: number; thu_tu: number; ky_thuat?: KyThuatShot | null; tranh_day?: boolean; /** giây phát — có thì áp luật máy tiến / lùi cần thời gian */ giay?: number | null; /** chủ thể khung (may_3d.khung) — khác người thì không tính trùng */ chu?: string[] | null };
+type ShotNhip = { id?: number; thu_tu: number; ky_thuat?: KyThuatShot | null; tranh_day?: boolean; /** giây phát — có thì áp luật máy tiến / lùi cần thời gian */ giay?: number | null; /** chủ thể khung (may_3d.khung) — khác người thì không tính trùng */ chu?: string[] | null;
+  /** ĐỘNG CƠ MÁY (khongDongCo) — trống = không xét: quãng đi ngang khung (diNgangCm), quãng đi dài nhất (ngu-phap-may.ts › diCm), shot có nhịp kịch (ngu-phap-may.ts › nhipKich), shot cuối phân cảnh */
+  di_ngang_cm?: number | null; di_cm?: number | null; nhip_kich?: boolean; cuoi_canh?: boolean };
+const DI_DAI_CM_NHIP = 150;   // = ngu-phap-may.ts › DI_DAI_CM (ngu-phap-may nhập nhip-hinh nên không nhập ngược)
 
 /** Lỗi nhịp hình của một chuỗi shot (đã xếp theo thứ tự phát). */
 export function kiemNhipHinh(ds: ShotNhip[]): string[] {
@@ -38,13 +60,11 @@ export function kiemNhipHinh(ds: ShotNhip[]): string[] {
   for (let i = 1; i < ds.length; i++) {
     const a = ds[i - 1]!.ky_thuat ?? {}; const b = ds[i]!.ky_thuat ?? {};
     if (trung(ds[i - 1]!, a, ds[i]!, b))
-      out.push(`${TIEN_TO_NHIP_HINH}#${ds[i - 1]!.thu_tu}–#${ds[i]!.thu_tu} cùng cỡ cảnh + cùng chuyển động máy (nhìn như một shot kéo dài)`);
+      out.push(`${TIEN_TO_NHIP_HINH}#${ds[i - 1]!.thu_tu}–#${ds[i]!.thu_tu} cùng cỡ cảnh + cùng chuyển động máy (nhìn như một shot kéo dài) — đổi cỡ cảnh / góc; máy chỉ đổi khi có động cơ`);
   }
   for (const c of ds) if (!mayHopGiay(c.ky_thuat?.chuyen_dong, c.giay))
     out.push(`${TIEN_TO_NHIP_HINH}#${c.thu_tu} máy ${c.ky_thuat?.chuyen_dong} trong ${c.giay} s — dưới ${GIAY_MAY_TIEN} s đọc thành cú zoom gấp: để máy đứng`);
-  const dai = ds.filter((c) => !ngan(c)); const tinh = dai.filter((c) => TINH(c.ky_thuat ?? undefined)).length;
-  if (dai.length >= 5 && tinh > Math.floor(dai.length * TI_LE_TINH_TOI_DA))
-    out.push(`${TIEN_TO_NHIP_HINH}${tinh}/${dai.length} shot${dai.length < ds.length ? ` (≥ ${GIAY_MAY_TIEN} s)` : ''} máy đứng yên (tối đa ${Math.floor(dai.length * TI_LE_TINH_TOI_DA)})`);
+  for (const c of ds) { const l = mayHopGiay(c.ky_thuat?.chuyen_dong, c.giay) ? khongDongCo(c) : null; if (l) out.push(`${TIEN_TO_NHIP_HINH}#${c.thu_tu} máy không có động cơ: ${l} — để máy đứng`); }
   return out;
 }
 
@@ -56,30 +76,23 @@ const HOP_CO_CANH: Record<string, string[]> = {
 const HOP_MAC_DINH = ['day_vao', 'truot_ngang', 'lia', 'lui_ra'];
 
 /** Sửa 0đ: đổi chuyển động máy của các shot phạm luật, ít đổi nhất có thể — trả danh sách { id, ky_thuat mới } cần ghi.
- *  Đổi: shot trùng y hệt shot trước; rồi tới khi số shot đứng yên ≤ trần (đổi các shot đứng yên nằm cạnh shot đứng yên khác trước). */
+ *  Đổi: máy quá ngắn / không động cơ → đứng; shot trùng y hệt shot trước → máy khác CÓ động cơ (không có thì để cổng báo đổi cỡ / góc). */
 export function daDangMay<T extends ShotNhip & { id: number }>(ds: T[]): { id: number; ky_thuat: KyThuatShot }[] {
   const kt = ds.map((c) => ({ ...(c.ky_thuat ?? {}) }));
   const doi = new Set<number>();
   const chon = (i: number) => {
     const truoc = kt[i - 1]?.chuyen_dong; const sau = kt[i + 1]?.chuyen_dong;
-    const ds2 = (HOP_CO_CANH[kt[i]!.co_canh ?? ''] ?? HOP_MAC_DINH).filter((x) => !(ds[i]!.tranh_day && MAY_DAY_VAO.includes(x)) && mayHopGiay(x, ds[i]!.giay));
-    const m = ds2.find((x) => x !== truoc && x !== sau && x !== kt[i]!.chuyen_dong) ?? ds2[0] ?? 'tinh';
+    // chỉ máy CÓ ĐỘNG CƠ ở shot này (khongDongCo); không có thì để nguyên — cách sửa chuẩn của hai shot trùng là đổi cỡ / góc, không phải bịa máy
+    const ds2 = (HOP_CO_CANH[kt[i]!.co_canh ?? ''] ?? HOP_MAC_DINH).filter((x) => !(ds[i]!.tranh_day && MAY_DAY_VAO.includes(x)) && mayHopGiay(x, ds[i]!.giay) && !khongDongCo({ ...ds[i]!, ky_thuat: { ...kt[i]!, chuyen_dong: x } }));
+    const m = ds2.find((x) => x !== truoc && x !== sau && x !== kt[i]!.chuyen_dong); if (!m) return;
     kt[i]!.chuyen_dong = m; doi.add(i);
   };
-  // máy tiến / lùi trên shot quá ngắn → đứng (luật mayHopGiay)
-  kt.forEach((k, i) => { if (!mayHopGiay(k.chuyen_dong, ds[i]!.giay)) { k.chuyen_dong = 'tinh'; doi.add(i); } });
+  // máy tiến / lùi trên shot quá ngắn, máy không có động cơ → đứng
+  kt.forEach((k, i) => { if (!mayHopGiay(k.chuyen_dong, ds[i]!.giay) || khongDongCo({ ...ds[i]!, ky_thuat: k })) { k.chuyen_dong = 'tinh'; doi.add(i); } });
   for (let i = 1; i < kt.length; i++) {
     if (trung(ds[i - 1]!, kt[i - 1]!, ds[i]!, kt[i]!)) chon(i);
   }
-  const daiI = kt.map((_, i) => i).filter((i) => !ngan(ds[i]!)); const tran = Math.floor(daiI.length * TI_LE_TINH_TOI_DA);
-  const tinh = () => daiI.filter((i) => TINH(kt[i]));
-  while (daiI.length >= 5 && tinh().length > tran) {
-    const t = tinh();
-    // đứng yên cạnh đứng yên trước (phá chuỗi tĩnh), không có thì shot đứng yên đầu tiên
-    const i = t.find((x) => TINH(kt[x - 1]) || TINH(kt[x + 1])) ?? t[0]!;
-    chon(i);
-  }
-  return [...doi].map((i) => ({ id: ds[i]!.id, ky_thuat: kt[i]! }));
+  return [...doi].filter((i) => (kt[i]!.chuyen_dong ?? 'tinh') !== (ds[i]!.ky_thuat?.chuyen_dong ?? 'tinh')).map((i) => ({ id: ds[i]!.id, ky_thuat: kt[i]! }));
 }
 
 /** NHỊP ĐỌC (14/10/2026 — Tango & Lint tập 1: "chuyển cảnh nhanh chưa kịp hiểu gì"): 20 shot trong 48s, mỗi clip 4s bị cắt còn 2–2,5s

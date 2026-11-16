@@ -44,7 +44,7 @@ export const NGANH: Record<string, { nganh: NganhKyThuat; may_di?: MayDi }> = {
     thuc_hien: 'Máy trên chân, không lia không đẩy. Bố cục phải tự đứng được: có lớp tiền – trung – hậu cảnh và chỗ trống cho hành động sẽ xảy ra.',
     dong_co: 'Khi diễn xuất hoặc hành động trong khung đã đủ kể; hài cần khung đứng yên để cú gag đúng nhịp (Buster Keaton, Wes Anderson); khoảnh khắc lặng sau mất mát.',
     cam_xuc: 'Khán giả là người quan sát khách quan; khung đứng yên làm cử động nhỏ nhất cũng nổi bật.',
-    tranh: 'Quá nhiều shot đứng yên liền nhau → phim như trình chiếu ảnh (cổng nhịp hình: ≤ 40% shot máy đứng yên).', nguon: M } },
+    tranh: 'Quá nhiều shot đứng yên liền nhau → phim như trình chiếu ảnh (cổng nhịp hình: hai shot liền không trùng cỡ + máy; máy chạy phải có động cơ — nhip-hinh.ts › khongDongCo).', nguon: M } },
   'chuyen_dong.day_vao': { may_di: { kieu: 'tien', ti_le: 1.6, toc: 'cham' }, nganh: { ten_nganh: 'Push-in / dolly-in (bản rất chậm gọi là creep-in)',
     dau_cuoi: 'Mở ở trung cảnh hoặc cận trung (thấy cả nét mặt lẫn tư thế) → kết ở cận mặt hoặc đặc tả mắt; chủ thể to dần 1,5–2 lần, giữ đúng chỗ trong khung (thường điểm 1/3 trên).',
     thuc_hien: 'Máy THẬT SỰ tiến lại (dolly / slider), không zoom: hậu cảnh lùi xa, phối cảnh đổi. Tốc độ đều, gần như không nhận ra (creep) — vài cm mỗi giây ở cỡ người; bắt đầu và dừng mềm (ease in / ease out). Kéo dài trọn shot, thường đi cùng một cú giữ phản ứng.',

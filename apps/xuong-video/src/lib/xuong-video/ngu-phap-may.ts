@@ -5,7 +5,7 @@
 // / đổi tốc; hé lộ thân phận → dolly zoom / quay vòng; đối đầu → quay vòng; móc cuối tập → đẩy sát vào mặt rồi cắt đen.
 // Máy ĐỌC nhịp của từng shot từ dữ liệu sẵn có (kế hoạch biểu cảm, mục đích thẻ shot, người đi trong shot, shot cuối tập) — không đoán chữ tự do.
 // MỘT nguồn cho: cổng tiền kỳ (quy-trinh.ts › chanTienKy) và nút 🎥 sửa 0đ (hau-ky.ts › daDangMayTapDb). Thuần — tự kiểm: ngu-phap-may.test.mts
-import { mayHopGiay } from './nhip-hinh';
+import { mayHopGiay, diNgangCm } from './nhip-hinh';
 import type { KyThuatShot } from './dien-anh';
 import type { BieuCamNv } from './qc-cam-xuc';
 
@@ -85,4 +85,10 @@ export function apNguPhapMay<T extends ShotNguPhap & { id: number }>(ds: T[], th
     out.push({ id: c.id, ky_thuat: kt[i]! });
   });
   return out;
+}
+
+/** ĐỘNG CƠ MÁY của từng shot (nhip-hinh.ts › khongDongCo) — MỘT chỗ tính cho cổng tiền kỳ (quy-trinh.ts) và nút 🎥 (hau-ky.ts): quãng đi ngang khung, quãng đi,
+ *  có nhịp kịch không, shot cuối phân cảnh. ds đã xếp theo thứ tự phát; di_cm / cuoi người gọi tính như cho ngữ pháp máy. */
+export function dongCoMay<T extends ShotNguPhap & { phan_doan?: string | null; may_3d?: { dat: number[]; nhin: number[]; vi_tri: { tam: number[]; den?: number[] }[] } | null }>(ds: T[]): (T & { di_ngang_cm: number | null; nhip_kich: boolean; cuoi_canh: boolean })[] {
+  return ds.map((c, i) => ({ ...c, di_ngang_cm: diNgangCm(c.may_3d), nhip_kich: nhipKich(c) != null, cuoi_canh: i === ds.length - 1 || (ds[i + 1]!.phan_doan ?? '') !== (c.phan_doan ?? '') }));
 }

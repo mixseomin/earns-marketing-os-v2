@@ -225,6 +225,8 @@ for (const l of LUAT) {
 // SỔ LUẬT HAI BẢN (audit 10/11/2026: máy luật đọc apps/web, etp2 đọc bản chép — nap_chi 0.4 vs 0.5 lệch cả buổi, trang ghi cổng 50% trong khi máy dùng 40%)
 if (readFileSync(join(GOC, 'apps/etp2/src/lib/etp-bang-luat.json'), 'utf8') !== readFileSync(join(GOC, 'apps/web/src/lib/etp-bang-luat.json'), 'utf8'))
   loi.push('sổ luật etp2 lệch sổ máy luật — chép lại: cp apps/web/src/lib/etp-bang-luat.json apps/etp2/src/lib/etp-bang-luat.json');
+if (readFileSync(join(GOC, 'apps/etp2/src/components/etp-phanh-cho.tsx'), 'utf8') !== readFileSync(join(GOC, 'apps/web/src/components/etp-phanh-cho.tsx'), 'utf8'))
+  loi.push('biển phanh chợ hai trang lệch nhau — chép lại: cp apps/etp2/src/components/etp-phanh-cho.tsx apps/web/src/components/etp-phanh-cho.tsx');
 // TEMPLATE TRONG LƯỚI (anh 15/11/2026 "sao bố cục lại bị tràn ra ngoài màn hình": template Thành phố cao 20 hàng trong lưới 18) — mọi ô của mọi template nằm trong cot × hang, không chồng nhau
 { const so = JSON.parse(readFileSync(join(GOC, 'apps/etp2/src/lib/etp-widget.json'), 'utf8'));
   for (const [ma, t] of Object.entries(so.template)) for (const [i, o] of t.o.entries()) {

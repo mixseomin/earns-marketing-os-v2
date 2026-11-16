@@ -1258,6 +1258,17 @@ def _ly_tang(c):
     if not _sau_giam_ok(c): return f"sau lần giảm: ROI từ ngày giảm chưa ≥ {ROI_TANG}%"
     if _ts_ly(c): return f"Siết TS: {_ts_ly(c)}"
     return None
+# PHANH CHỢ (anh 16/11/2026, sổ luật phanh_cho — apps/etp/gia_adsense.py chốt, cong.kiem chặn): đang phanh thì camp thường KHÔNG vào danh sách tăng (worker không gửi lệnh
+# để cổng từ chối mỗi nhịp), thẻ xét luật ghi lý do; camp ★ ROAS giữ nguyên (cổng cũng miễn).
+try: _PHANH_TT = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'phanh_cho'), '{}')") or "{}")
+except Exception as e: _PHANH_TT = {}; loi_may.append((0, f"không đọc được trạng thái phanh chợ: {str(e)[:80]}"))
+_LY_PHANH = CONG.phanh_cho(_PHANH_TT, "tang")
+if _LY_PHANH:
+    def _bo_phanh(ds):
+        for x in ds:
+            if int(x[0] or 0) not in _ROAS: _KHONG_TANG[int(x[0] or 0)] = _LY_PHANH
+        return [x for x in ds if int(x[0] or 0) in _ROAS]
+    dat, dau_phien, tang30, hoi_g10 = _bo_phanh(dat), _bo_phanh(dau_phien), _bo_phanh(tang30), _bo_phanh(hoi_g10)
 def _xet_luat():
     vao = {k: {int(x[0] or 0) for x in v} for k, v in (("tat_l3", tat_l3), ("tat_l4", tat_l4), ("tat_pl", tat_pl), ("tat_d24", tat_d24), ("tat2", tat2), ("tat1", tat1), ("tat_t8", tat_t8), ("tat_tv", tat_tv), ("tat_cx", tat_cx), ("tat", tat_l), ("tang", dat), ("dau_phien", dau_phien), ("ha", ha), ("giam", giam), ("nb", nb),
            ("thang_nb", thang_nb), ("thang_tat", thang_tat), ("tang30", tang30), ("tat_l0", tat_l0), ("h3", h3), ("dung_dem", dung_dem), ("tat_roas", tat_roas), ("tat_r0", tat_r0), ("g10", g10), ("tat_g10", tat_g10), ("hoi_g10", hoi_g10), ("moc30", moc30))}

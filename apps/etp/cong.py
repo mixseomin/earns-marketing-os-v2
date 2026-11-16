@@ -9,7 +9,7 @@ kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=F
   viec: tang | bat | nhan_ban | tao_camp (làm tăng chi) · giam | tat (luôn cho qua — dừng khẩn vẫn phải hạ được chi)
 Đọc etp.cau_hinh (dung_khan · tran_ngay · tran_camp · tran_bo · tran_camp_moi_ngay) + etp.camp (tổng ngân sách camp đang bật). Lỗi đọc kho → CHẶN (an toàn trước, không đoán).
 Dùng trong script khác: sys.path.insert(0, '/opt/earns-marketing-os-v2/apps/etp'); import cong; ly = cong.kiem('tang', cid, 15, 10)"""
-import json, os, subprocess
+import json, os, subprocess, datetime as dt
 TANG = {"tang", "bat", "nhan_ban", "tao_camp"}
 # NẮP NGÂN SÁCH THEO ROI 3 NGÀY KHÉP — một nguồn với máy luật (sổ luật chung apps/web/src/lib/etp-bang-luat.json nap_tang; Dol 09/11/2026, anh duyệt: chỉ lần tăng mới)
 _BL = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web", "src", "lib", "etp-bang-luat.json")))
@@ -118,6 +118,14 @@ def phim_chan_len():
 # dùng LẠI bài đăng của camp gốc (Use existing post, ad chỉ mang effective_object_story_id) được lên tới NS_BAI_CU; mọi camp mới khác vẫn $1.
 NS_BAI_CU = 2
 TRAN_TUYET = 30   # trần tuyệt đối $/camp/ngày (anh 14/11/2026) — kiem() chặn trước mọi miễn trừ
+def phanh_cho(tt, viec, bay_gio=None, thay=False):
+    """hàm thuần: trạng thái etp.cau_hinh.phanh_cho + việc → câu lý do chặn | None (miễn trừ ROAS / lệnh anh / ngoài do kiem() xét)"""
+    pc = (tt or {}).get("phanh") or {}; bay = (bay_gio or dt.datetime.now(dt.timezone.utc)).isoformat()
+    vn = lambda s: f"{dt.datetime.fromisoformat(s) + dt.timedelta(hours=7):%H:%M %d/%m}"
+    if viec == "tang" and (pc.get("den_tang") or "") > bay: return f"PHANH CHỢ: không tăng bậc tới {vn(pc['den_tang'])} giờ VN — {pc.get('ly_do')} (sổ luật phanh_cho)"
+    if viec in ("tao_camp", "nhan_ban") and not thay and (pc.get("den_len") or "") > bay: return f"PHANH CHỢ: không tạo camp mới / nhân bản tới {vn(pc['den_len'])} giờ VN — {pc.get('ly_do')} (sổ luật phanh_cho)"
+    return None
+
 def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False, thay=False):
     if viec not in TANG: return None
     try:
@@ -138,6 +146,11 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         # TRẦN TUYỆT ĐỐI $30 / CAMP (anh 14/11/2026: "Ko bao giờ tăng ngân sách vượt trần $30") — đứng trước mọi miễn trừ (ROAS, A/B, lệnh anh, bản thang):
         # không đường nào trong máy đặt một camp nhà / team quá TRAN_TUYET, kể cả khi tran_camp trong cấu hình bị sửa cao hơn
         if ns_moi is not None and float(ns_moi) > TRAN_TUYET: return f"vượt trần tuyệt đối ${TRAN_TUYET:g}/camp (anh 14/11/2026: không bao giờ vượt $30) — đang gửi ${float(ns_moi):g}"
+        # PHANH CHỢ (anh 16/11/2026 "Làm theo đề xuất" — sổ luật phanh_cho, apps/etp/gia_adsense.py xet_phanh chốt 20h VN): giá AdSense cả chợ khung 07–13h < 85% nền 7 ngày
+        # hoặc ngày trong lịch → không tăng bậc tới den_tang (07:00 sáng hôm sau), không tạo camp / nhân bản tới den_len (hết ngày Ethopex kế). Miễn: camp ★ ROAS,
+        # lệnh anh, camp thay bài bị từ chối (thay), tài khoản người trong team (ngoai). Có hạn, tự hết — khác cờ hoãn đã bỏ 13/11.
+        ly_pc = phanh_cho(ch.get("phanh_cho"), viec, thay=thay)
+        if ly_pc and not roas and not lenh_anh and not ngoai and not (viec == "tang" and camp_id and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") == "1"): return ly_pc
         # HOÃN TĂNG THEO GIÁ ADSENSE: ĐÃ BỎ (anh 13/11/2026 "bỏ rule Hoãn đang áp dụng") — giá AdSense tụt không còn chặn tăng / nhân bản; máy đo giá
         # (apps/etp/gia_adsense.py) vẫn đo và vẫn bù giá cho luật cắt camp mới. Tham số thay= giữ cho người gọi cũ (nhan-ban.py --thay), không còn tác dụng.
         if viec == "tang" and not roas and (ch.get("mua_le") or {}).get("khoa_tang"):   # mùa lễ Mỹ (apps/etp/mua_le.py, anh 08/11/2026): Meta học lại đúng tuần giá cao là tốn nhất
@@ -247,6 +260,11 @@ def ns_tao(body):
     return None, tran
 
 def _tu_kiem():
+    _u = lambda s: dt.datetime.fromisoformat(s + "+00:00"); _pc = {"phanh": {"den_tang": "2026-11-17T00:00:00+00:00", "den_len": "2026-11-18T00:00:00+00:00", "ly_do": "x"}}
+    assert phanh_cho(_pc, "tang", _u("2026-11-16T14:00:00")).startswith("PHANH CHỢ: không tăng bậc tới 07:00 17/11") and phanh_cho(_pc, "tang", _u("2026-11-17T01:00:00")) is None, "tăng chỉ bị chặn tới 07:00 sáng hôm sau"
+    assert phanh_cho(_pc, "nhan_ban", _u("2026-11-17T12:00:00")) and phanh_cho(_pc, "tao_camp", _u("2026-11-17T23:59:00")) and phanh_cho(_pc, "tao_camp", _u("2026-11-18T00:00:01")) is None, "tạo camp / nhân bản bị chặn hết ngày Ethopex kế"
+    assert phanh_cho(_pc, "nhan_ban", _u("2026-11-17T12:00:00"), thay=True) is None and phanh_cho(_pc, "giam", _u("2026-11-16T14:00:00")) is None and phanh_cho(_pc, "bat", _u("2026-11-16T14:00:00")) is None
+    assert phanh_cho({}, "tang") is None and phanh_cho(None, "tao_camp") is None and phanh_cho({"phanh": None, "som": True}, "tang") is None, "không phanh / chỉ cảnh báo sớm thì không chặn"
     assert nap_tang(None) == 6 and nap_tang(29) == 6 and nap_tang(30) == 9 and nap_tang(50) == 13 and nap_tang(79) == 13 and nap_tang(80) == 20 and nap_tang(500) == 20, "nắp ROI lệch sổ luật"
     for t in ("★ ROAS 1.1 · X roas 1.1 duplicate by 65720", "S_FB_The-Dragons_167292_EN_EP8_x10_D69655_ROAS1", "S_FB_Max_153695_EN_VD-FULL-EP1_V1_D2 (ROAS)", "Dup by 66168 ROAS 1.2"):
         assert la_roas(t), t

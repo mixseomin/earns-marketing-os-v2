@@ -1236,4 +1236,13 @@ export const LUAT = [
   { card: 'g10-dich-1611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'assert {G10_DICH, H3_DICH, H2_DICH} <= set(BANG_LUAT["thang"]) | {BANG_LUAT["g10_dich"]}', vi: 'đích của MỌI luật hạ (G10 / H3 / H2) phải là mức đường giảm nhận — cả lớp lỗi, không riêng G10' },
   { card: 'g10-dich-1611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'f"G10 · ROI 3 ngày < {G10_ROI}% → ${G10_DICH}, rồi tắt"', vi: 'tên thẻ G10 in ngưỡng thật (0% từ 05/11), không ghi cứng 15%' },
   { card: 'g10-dich-1611', tep: 'apps/web/src/lib/etp-bang-luat.json', cam: 'ROI vẫn &lt; 15%', vi: 'chữ tin Telegram G10 không còn ngưỡng cũ 15%' },
+  // anh 16/11/2026 "Làm theo đề xuất" + "có dấu hiệu nhìn rõ ràng cho cả team trên etp và etp2": PHANH CHỢ sau dịp nhà quảng cáo chi lớn
+  { card: 'phanh-cho-1611', tep: 'apps/etp/cong.py', co: 'ly_pc = phanh_cho(ch.get("phanh_cho"), viec, thay=thay)', vi: 'cổng chung chặn tăng / tạo camp / nhân bản khi đang phanh chợ' },
+  { card: 'phanh-cho-1611', tep: 'apps/etp/cong.py', co: 'if ly_pc and not roas and not lenh_anh and not ngoai and not (viec == "tang" and camp_id and _q(', vi: 'phanh chợ miễn camp ★ ROAS, lệnh anh, tài khoản người trong team' },
+  { card: 'phanh-cho-1611', tep: 'apps/etp/gia_adsense.py', co: 'if cu.get("quyet") == k: return ra', vi: 'phanh chợ chốt một lần mỗi ngày, số về trễ không lật lại' },
+  { card: 'phanh-cho-1611', tep: 'apps/etp/gia_adsense.py', co: 'moi = xet_phanh(luc, so13, cu)', vi: 'máy đồng bộ đo khung 07–13h và chốt phanh mỗi lượt' },
+  { card: 'phanh-cho-1611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'dat, dau_phien, tang30, hoi_g10 = _bo_phanh(dat), _bo_phanh(dau_phien), _bo_phanh(tang30), _bo_phanh(hoi_g10)', vi: 'đang phanh thì camp thường không vào danh sách tăng (không gửi lệnh để cổng từ chối mỗi nhịp)' },
+  { card: 'phanh-cho-1611', tep: 'apps/web/src/components/etp-view.tsx', mot: '<BienPhanhCho cauHinh={du.cauHinh} />', vi: 'trang etp có biển phanh chợ đầu trang' },
+  { card: 'phanh-cho-1611', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<BienPhanhCho cauHinh={du.cauHinh} />', vi: 'trang etp2 có biển phanh chợ đầu trang' },
+  { card: 'phanh-cho-1611', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"phanh_cho": {"nguong": 0.85, "khung_do": [7, 13], "gio_chot": 20', vi: 'ngưỡng + khung đo + giờ chốt phanh chợ ở sổ luật chung' },
 ];

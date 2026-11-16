@@ -462,7 +462,9 @@ function dungKhoi(k, G) {
     const [cx, cz] = tamDa(v);
     for (let i = 0; i < v.length; i++) { const [x1, z1] = v[i], [x2, z2] = v[(i + 1) % v.length]; tamGiac(mai, [x1, y1, z1], [x2, y1, z2], [cx, y2, cz]); }
   } else if (kieu === 'gabled' || kieu === 'hipped' || kieu === 'side_hipped' || kieu === 'half-hipped' || kieu === 'skillion') {
-    const o = hopBao(v), wm = (o.w0 + o.w1) / 2, L = o.u1 - o.u0, W = o.w1 - o.w0;
+    // roof:orientation=across (OSM): sống mái theo trục NGẮN → hai đầu hồi quay ra hai mặt dài (đầu hồi bậc Torbau quay ra cổng như ảnh, anh 16/11/2026)
+    const o = hopBao(v); if (t['roof:orientation'] === 'across') { const { c, s: sn } = o; Object.assign(o, { a: o.a + Math.PI / 2, c: -sn, s: c, u0: o.w0, u1: o.w1, w0: -o.u1, w1: -o.u0 }); o.ra = (u, w) => [u * o.c - w * o.s, u * o.s + w * o.c]; }
+    const wm = (o.w0 + o.w1) / 2, L = o.u1 - o.u0, W = o.w1 - o.w0;
     const thut = kieu === 'hipped' ? Math.min(W / 2, L / 2) : kieu === 'half-hipped' || kieu === 'side_hipped' ? Math.min(W / 4, L / 4) : 0;
     const P = (u, w, y) => { const [x, z] = o.ra(u, w); return [x, y, z]; };
     if (kieu === 'skillion') {

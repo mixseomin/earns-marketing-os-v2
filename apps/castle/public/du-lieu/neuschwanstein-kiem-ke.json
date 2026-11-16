@@ -14,7 +14,7 @@
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
    "vung": {
     "dinh": {
-     "tu": 26,
+     "tu": 24.08,
      "dem": {
       "rang_cua": 10,
       "thap_canh": 2
@@ -22,8 +22,8 @@
      "ghi_chu": "hai lớp răng cưa (ảnh anh khoanh 16/11/2026): lớp đá kem phía trước 5 răng + lớp gạch đỏ phía sau 5 răng"
     },
     "than_tren": {
-     "tu": 17,
-     "den": 26,
+     "tu": 16.26,
+     "den": 24.08,
      "dem": {
       "huy_hieu": 1,
       "o_vuong": 1,
@@ -31,8 +31,8 @@
      }
     },
     "than_duoi": {
-     "tu": 10,
-     "den": 17,
+     "tu": 10.17,
+     "den": 16.26,
      "dem": {
       "cong_vom": 1,
       "canh_cua": 2,
@@ -49,15 +49,15 @@
    "anh": "Mapillary 360° 493003245182754 (phương vị 290–320°)",
    "vung": {
     "dinh": {
-     "tu": 25.5,
+     "tu": 23.43,
      "dem": {
       "rang_cua": 7,
       "vom_nho": 10
      }
     },
     "than_tren": {
-     "tu": 19,
-     "den": 25.5,
+     "tu": 17.88,
+     "den": 23.43,
      "dem": {
       "cua_so": 4,
       "neo": 4,
@@ -65,8 +65,8 @@
      }
     },
     "than_duoi": {
-     "tu": 10,
-     "den": 19,
+     "tu": 10.19,
+     "den": 17.88,
      "dem": {
       "cua_so": 2,
       "o_vuong": 1

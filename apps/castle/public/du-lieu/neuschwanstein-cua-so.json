@@ -2897,8 +2897,8 @@
  "way/223110825#0": {
   "hang": [
    {
-    "y0": 21.4,
-    "y1": 23.3,
+    "y0": 19.93,
+    "y1": 21.55,
     "cum": [
      [
       1.9,
@@ -2913,8 +2913,8 @@
     ]
    },
    {
-    "y0": 16.5,
-    "y1": 18.3,
+    "y0": 15.74,
+    "y1": 17.28,
     "cum": [
      [
       2.3,
@@ -2933,33 +2933,33 @@
   "o_vuong": [
    [
     0.9,
-    21.8,
+    20.27,
     0.55,
     0.9
    ],
    [
     0.9,
-    16.8,
+    16.0,
     0.55,
     0.9
    ]
   ],
   "rang_cua": 7,
   "vom_nho": 10,
-  "neo_y": 19.6
+  "neo_y": 18.39
  },
  "way/223110823#4": {
   "hang": [],
   "o_vuong": [
    [
     1.8,
-    19.3,
+    18.25,
     0.45,
     0.6
    ],
    [
     1.8,
-    15.6,
+    15.04,
     0.3,
     0.4
    ]
@@ -2978,7 +2978,7 @@
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 24.0
+   "v": 0.54
   },
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m"
  },
@@ -2987,7 +2987,7 @@
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 24.0
+   "v": 0.54
   },
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m"
  },
@@ -2996,7 +2996,7 @@
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 24.0
+   "v": 0.54
   },
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m"
  },
@@ -3040,7 +3040,7 @@
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 24.0
+   "v": 0.54
   },
   "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới, thước 55,8 px/m, gốc chân vòm cổng (y 1035): cột cửa đơn bên phải vòm (ảnh cách tâm vòm 4,3 m; cạnh OSM chỉ dài 3,6 m → đặt sát đầu phải): 3 tầng 1,3–3,0 / 6,0–7,5 / 10,4–11,7 m"
  },
@@ -3088,7 +3088,7 @@
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 24.0
+   "v": 0.54
   },
   "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới, thước 55,8 px/m, gốc chân vòm cổng (y 1035): khối giữa (tâm vòm = đỉnh p của cạnh, u 1): cửa ba vòm 6,0–7,8 m, ban công lồi sàn 10,1 m rộng 4,0 m, hàng ba vòm trên ban công 10,4–12,1 m, đồng hồ tâm 14,2 m"
  },
@@ -3097,7 +3097,7 @@
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 24.0
+   "v": 0.54
   },
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m"
  },
@@ -3106,7 +3106,7 @@
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 24.0
+   "v": 0.54
   },
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m",
   "ly_do": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m: trên vòm cổng ban công lồi 3 cửa vòm"
@@ -3116,7 +3116,7 @@
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
-   "y": 24.0
+   "v": 0.54
   },
   "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới (55,8 px/m): khối giữa phía nam cổng: một cửa tầng trên + một cửa tầng dưới, cách tâm vòm cổng 4,3 m",
   "ly_do_mau": " · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m",
@@ -3140,5 +3140,47 @@
    "y": 0
   },
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m; đầu hồi bậc mặt tây sa thạch vàng"
+ },
+ "way/951894999#0": {
+  "hang": [
+   {
+    "y0": 30.8,
+    "y1": 32.4,
+    "cum": [
+     [
+      1.6,
+      2.5,
+      1
+     ],
+     [
+      3.4,
+      4.3,
+      1
+     ],
+     [
+      5.2,
+      6.1,
+      1
+     ]
+    ]
+   },
+   {
+    "y0": 33.0,
+    "y1": 34.4,
+    "cum": [
+     [
+      2.6,
+      3.4,
+      1
+     ],
+     [
+      4.3,
+      5.1,
+      1
+     ]
+    ]
+   }
+  ],
+  "ly_do": "ảnh 3D mặt đông (anh khoanh 16/11/2026): mặt đầu hồi đỏ quay ra cổng — hàng dưới 3 cửa, hàng trên 2 cửa"
  }
 }

@@ -2,7 +2,7 @@
 //   rang_cua=yes     tường răng cưa trên đỉnh tường các mặt NGOÀI (mặt không áp vào khối khác)
 //   vom_nho=yes      dải vòm nhỏ (cung đá trên các con sơn) ngay dưới tường răng cưa
 //   da_goc=yes       đá góc so le dài / ngắn ở các góc lồi của khối (tường gạch đỏ viền đá kem)
-//   thap_canh=yes    hai tháp canh treo (thân tròn trên chân côn, đỉnh răng cưa) ở hai đầu mặt ngoài dài nhất
+//   thap_canh=yes    hai tháp canh treo (thap_canh_r = bán kính, mặc định 0,75 m) (thân tròn trên chân côn, đỉnh răng cưa) ở hai đầu mặt ngoài dài nhất
 //   vong_rang=yes    đỉnh tháp tròn: vành con sơn nhô ra + vòng răng cưa (thay mái nhọn — tháp góc Torbau)
 //   cua_thap=N       tháp tròn: N ô cửa đứng nhỏ mỗi phía (4 phía, so le độ cao)
 //   go_y=a,b         gờ đá ngang ở các độ cao tuyệt đối a, b… trên mọi mặt ngoài
@@ -91,7 +91,7 @@ export function datTrangTri({ THREE, mergeGeometries, dsKhoi, vl, ngoai, coSoDo 
       for (const sg of [-1, 1]) hop(x + c.ux * sg * (w / 2 + 0.09) + c.nx * 0.08, yc, z + c.uz * sg * (w / 2 + 0.09) + c.nz * 0.08, c.ux, c.uz, 0.18, h, 0.16);
       ghi(c.mat, 'o_vuong', yc, 1, x, z); } });
     if (coThe('thap_canh')) { const c = canh.filter((c) => c.ngoai).sort((a, b) => b.L - a.L)[0]; if (c) for (const [x, z] of [c.p, c.q]) { // tháp canh treo ở hai đầu mặt chính
-      const r = 1.05, ra = x === c.p[0] && z === c.p[1] ? -1 : 1, cx = x + c.nx * 0.75 + c.ux * ra * 0.45, cz = z + c.nz * 0.75 + c.uz * ra * 0.45, yc = y1 - 2.4; // tâm nhô ra ngoài góc (trước lún nửa thân vào tường)
+      const r = +k.tags.thap_canh_r || 0.75, ra = x === c.p[0] && z === c.p[1] ? -1 : 1, cx = x + c.nx * 0.75 + c.ux * ra * 0.45, cz = z + c.nz * 0.75 + c.uz * ra * 0.45, yc = y1 - 2.4; // tâm nhô ra ngoài góc (trước lún nửa thân vào tường)
       tru(cx, yc - 1.5, cz, 0.15, r, 1.5, 10); tru(cx, yc, cz, r, r, 2.4, 12); tru(cx, yc + 2.4, cz, r, r + 0.12, 0.2, 12); vongRang(cx, yc + 2.6, cz, r + 0.12, 1.0); dem.canh++;
       tru(cx, yc - 0.25, cz, r + 0.08, r + 0.08, 0.25, 12); // vành gờ giữa chân côn và thân (ảnh: gờ tròn)
       for (let g = 0; g < 6; g++) { const a = g / 6 * Math.PI * 2, nghieng = Math.atan2(r - 0.15, 1.5), b = new THREE.BoxGeometry(0.14, 1.6, 0.12); b.rotateX(nghieng); b.rotateY(-a + Math.PI / 2); b.translate(cx + Math.cos(a) * ((r + 0.15) / 2 + 0.05), yc - 0.75, cz + Math.sin(a) * ((r + 0.15) / 2 + 0.05)); them(b); } // gân đỡ ÁP SÁT mặt chân côn (nghiêng đúng độ dốc côn; trước chĩa ra như móng vuốt)

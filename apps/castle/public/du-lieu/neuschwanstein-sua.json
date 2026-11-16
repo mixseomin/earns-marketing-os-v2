@@ -44,8 +44,11 @@
  "way/951894999": {
   "dau_hoi_bac": "yes",
   "ly_do": "cổng Torbau: đầu hồi gạch đỏ hình bậc (ảnh 3D Google anh gửi 16/11/2026)",
-  "height": "13.6",
-  "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 34.99 m, mô hình 43.44 m → height 22 → 13.6"
+  "height": "22",
+  "ly_do_tra": "16/11/2026: so-lech --tu-xu thẻ #1623 hạ còn 13,6 m là SAI (đo đỉnh lệch chỗ, đầu hồi khuất) — ảnh 3D mặt đông: đầu hồi bậc đỏ nhô cao trên hai cánh, hai hàng cửa → trả 22",
+  "y_duoi": "30.0",
+  "y_tren": "39.4",
+  "ly_do_cao": "16/11/2026 đo theo TIA camera trên ảnh 3D (thẻ #1623): đầu hồi bậc đứng trên phần đỏ (28,4 — ngay trên đỉnh khối cổng kem 28,3, không che răng cưa / tháp canh của nó), đỉnh 39,4 — nhô cao trên hai cánh như ảnh"
  },
  "way/223110820": {
   "ly_do": "cổng Torbau: OSM chồng hai khối gạch đỏ (0–17,5 m mái 1 m và 12–22 m mái dốc) cùng mặt bằng → mái thấp đâm xuyên mái dốc (vệt tối), đầu hồi bậc dựng hai lần; khối dưới dừng ở chân khối trên (ref 19,0 + 11 ≈ 30, khối trên từ 29,5), mái phẳng. Đầu hồi bậc chỉ ở way/951894999 (anh 16/11/2026)",
@@ -54,20 +57,26 @@
   "roof:height": "0",
   "rang_cua": "yes",
   "vom_nho": "yes",
-  "da_goc": "yes"
+  "da_goc": "yes",
+  "y_tren": "30.0",
+  "ly_do_cao": "16/11/2026 ảnh 360° cổng (anh khoanh): sau răng cưa đá kem có lớp răng cưa gạch đỏ cao hơn → phần đỏ đỉnh 30,0 (trên khối cổng kem 28,3); ảnh 3D phía nam phần này thấp hơn — một mặt bằng OSM, ưu tiên ảnh chụp gần"
  },
  "way/223110823": {
   "rang_cua": "yes",
   "thap_canh": "yes",
   "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): khối cổng sa thạch kem: răng cưa đỉnh + hai tháp canh treo ở hai góc trên",
-  "go_y": "17.5,20.9"
+  "go_y": "16.69,19.65",
+  "y_tren": "26.6",
+  "ly_do_cao": "16/11/2026 ảnh 3D mặt đông gần + rộng (anh khoanh): đỉnh khối cổng kem NGANG răng cưa hai cánh (cánh nam 26,6) — số 29,3 đo tia lần trước trúng phần gạch đỏ phía sau"
  },
  "way/223110818": {
   "roof:shape": "flat",
   "rang_cua": "yes",
   "vom_nho": "yes",
   "da_goc": "yes",
-  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): cánh gạch đỏ: mái khuất sau tường răng cưa kem, dải vòm nhỏ dưới răng cưa, đá góc kem so le"
+  "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): cánh gạch đỏ: mái khuất sau tường răng cưa kem, dải vòm nhỏ dưới răng cưa, đá góc kem so le",
+  "y_tren": "25.0",
+  "ly_do_cao": "16/11/2026 đo theo TIA camera trên ảnh 3D (thẻ #1623 \"thừa 1 tầng\"); mốc chân nhà Torbau neo theo đỉnh đo mặt bằng cũ (lẫn khối cao cạnh) nên chỉnh height vô ích — đặt ĐỘ CAO TUYỆT ĐỐI: đỉnh răng cưa thật 26,4–26,5 − răng 1,4"
  },
  "way/223110825": {
   "roof:shape": "hipped",
@@ -77,7 +86,9 @@
   "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): cánh gạch đỏ: như way/223110818",
   "roof:height": "1.2",
   "roof:colour": "#6f9a8c",
-  "ly_do3": "ảnh Commons neuschwanstein-9: cánh nam nhìn từ sân dưới có mái đồng xanh thấp (mặt đông khuất sau răng cưa)"
+  "ly_do3": "ảnh Commons neuschwanstein-9: cánh nam nhìn từ sân dưới có mái đồng xanh thấp (mặt đông khuất sau răng cưa)",
+  "y_tren": "26.6",
+  "ly_do_cao": "16/11/2026 đo theo TIA camera trên ảnh 3D (thẻ #1623 \"thừa 1 tầng\"); mốc chân nhà Torbau neo theo đỉnh đo mặt bằng cũ (lẫn khối cao cạnh) nên chỉnh height vô ích — đặt ĐỘ CAO TUYỆT ĐỐI: mái hiên 25,4 (khung ảnh mặt tây 0,946) + mái 1,2"
  },
  "way/221599083": {
   "roof:shape": "flat",
@@ -95,16 +106,16 @@
   "neo_mat_dat": [
    [
     35.2,
-    0,
-    18.58
+    0.0,
+    15.4
    ],
    [
     29.5,
     -11.2,
-    19.08
+    15.9
    ]
   ],
-  "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới: KHUNG mặt tây cánh nam cao/rộng 0,946 → chân tường = mái hiên 28,7 − 0,946 × 10,7 = 18,6 m; cửa trong lối cổng cao hơn chân cánh nam 0,54 m (30 px)"
+  "ly_do": "16/11/2026 đo theo TIA camera trên ảnh 3D (mặt đông từ sân trước cổng + mặt tây từ sân dưới, thẻ báo lệch #1623 \"thừa 1 tầng\"): mặt đất sân dưới trước Torbau thật 14,6–17 m (tia xuống ảnh 3D); khung mặt tây cánh nam 0,946 × 10,7 m từ đỉnh tường 25,5 → chân 15,4 m — hai nguồn khớp. (Trước: 18,6 m — sai, nâng sân thay vì hạ tường)"
  },
  "way/223069513": {
   "height": "27.2",
@@ -113,5 +124,9 @@
  "way/223110819": {
   "height": "57.3",
   "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 79.63 m, mô hình 68.28 m → height 46 → 57.3"
+ },
+ "way/221599086": {
+  "y_tren": "30.0",
+  "ly_do_cao": "16/11/2026 đo theo TIA camera trên ảnh 3D (thẻ #1623): khối đầu hồi góc tây nam Torbau: đỉnh ảnh 3D 29,8 m (mô hình 38)"
  }
 }

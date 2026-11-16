@@ -534,6 +534,35 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     kq.tu_choi = (kq.tu_choi || []).filter((m) => !xong.has(Number(m.id)));
     for (const id of xong) lamRoi.add(id);
   }
+  // ★ LÊN ROAS TỰ ĐỘNG (anh 29/10/2026: "Các camp đủ điều kiện lên roas thì lên luôn. Nới điều kiện lên roas là ROI >= 75$"): camp gốc trong moc30
+  // (máy luật: lãi 30 ngày ≥ $75 hoặc chi ≥ $20 & ROI ≥ 50% — Dol 09/11/2026, đang bật, chưa có camp ★, không trong danh sách tắt) → nhan-ban.py --roas, rải ROAS_MUC · $20 · giờ chạy do lich_len (khuôn anh duyệt
+  // 28/10/2026). Cổng chấm + rào chắn etp vẫn ở nhan-ban (không --mien-cham — mở cổng chấm chỉ khi anh lệnh đích danh). Mỗi lần tạo chờ Ethopex đồng bộ
+  // 2–4 phút → chạy song song 4 tiến trình. Gốc bị nhan-ban TỪ CHỐI có lý do (chặn chấm…) → không thử lại
+  // trong ngày; hỏng vì lỗi máy (hết giờ, mạng) → nhịp sau thử lại (mức đã tạo được thì nhan-ban chặn trùng tên).
+  // ƯU TIÊN HÀNG ĐẦU (anh 16/11/2026 "luật lên camp ROAS luôn là ưu tiên hàng đầu. Ko thể để lỗi của việc lên camp thường ảnh hưởng"): bước này chạy TRƯỚC mọi bước
+  // tạo camp thường (phim mới, nuôi bộ, nhận phim đội, nhân bản, thang) — trước nằm cuối nhịp, sau nuôi bộ (hết giờ 45 phút) nên nhịp chậm / chết giữa chừng là ROAS lỡ nhịp.
+  // Chỉ đứng sau giảm / hạ / tăng (lệnh nhanh, lamRoi cần cho bộ lọc). Bọc try: lỗi ở đây không chặn phần còn lại của nhịp. Camp sắp dừng đêm cũng loại.
+  try {
+    const TEP_R = path.join(DATA(), 'ethopex-roas-len.json');
+    const so = docJ(TEP_R, {}); const giu = hoanHopLe(so, homNay) ? so.giu || {} : {};
+    const dungDem = new Set((kq.dung_dem || []).map((m) => m.id));
+    const goc = (kq.moc30 || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id) && !seTat.has(m.id) && !dungDem.has(m.id) && !giu[m.id]);
+    const viec = goc.flatMap((m) => ROAS_MUC.map((muc) => ({ m, muc })));
+    for (let i = 0; i < viec.length; i += 4) await Promise.all(viec.slice(i, i + 4).map(async (v) => {
+      try { v.r = JSON.parse((await chay(NB, [String(v.m.id), '--roas', String(v.muc), '--ns', String(ROAS_NS), '--that', '--luat', `lên ROAS · ${v.m.chu}`.slice(0, 400), '--ai', 'máy tự lên ROAS (anh chat 29/10/2026: các camp đủ điều kiện lên roas thì lên luôn — lãi ≥ $75)'], 1500)).trim().split('\n').pop()); }
+      catch (e) { v.r = { ok: false, loi: e.message, may: true }; }
+    }));
+    for (const m of goc) { const ly = giuGocRoas(viec.filter((v) => v.m === m).map((v) => v.r)); if (ly) giu[m.id] = ly; }
+    fs.writeFileSync(TEP_R, JSON.stringify({ ngay: homNay, ban: banLuat(), giu }));
+    if (viec.some((v) => !(!v.r.ok && v.r.chan && /^đã có camp/.test(String(v.r.loi || ''))))) {   // mọi mức đều đã có camp → không báo (không có gì mới)
+      const ok = viec.filter((v) => v.r.ok).length;
+      // mức đã có camp ★ (tạo ở lượt trước / lệnh tay) = KHÔNG phải lỗi (anh 10/11/2026: tin "0/4 ⚠ lỗi" trong khi 4 camp đã có) → ghi "đã có"
+      const daCo = (r) => !r.ok && r.chan && /^đã có camp/.test(String(r.loi || ''));
+      const dong = bangViec(viec.map(({ m, muc, r }) => ({ m, doi: daCo(r) ? `${muc} đã có` : `${muc}→#${r.moi ?? '?'}`, loi: r.ok || daCo(r) ? null : r.loi || 'không rõ' })), '30 ng');
+      await guiNhanh({ message_thread_id: topic, text: `★ <b>MÁY TỰ LÊN ROAS</b> — ${goc.length} camp gốc đủ lên ROAS (lãi 30 ngày ≥ $75 — anh 29/10/2026, hoặc chi ≥ $20 & ROI ≥ 50% — Dol 09/11/2026); mỗi gốc ${ROAS_MUC.length} mức ${ROAS_MUC.join(' · ')}, $${ROAS_NS}/ngày, ${chuChay(viec.filter((v) => v.r.ok).map((v) => v.r))} — tạo được ${ok}/${viec.length}\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
+      gui++;
+    }
+  } catch (e) { console.error('lên ROAS:', e.message); }
   // PHIM MỚI CHẤM SẠCH → LÊN CAMP NGAY (anh 28/10/2026: "Xong phim nào thì lên camp luôn phim đó"): trước đây len-sau-cham.py chỉ chạy tay trên iMac → creative chấm Sạch
   // nằm im (kho 51 góc). Mỗi nhịp: creative chấm Sạch, chưa có camp, PHIM CHƯA TỪNG CÓ CAMP (phim mới) → nhan-ban.py --creative trên khuôn cùng tiếng, ở bộ của phim
   // (bộ = etp.cau_hinh.bo_phim_moi, cùng nguồn apps/etp/cong.py SQL_BO_PHIM; một phim nhiều bộ), lịch today, $1. Tối đa 4 creative / nhịp (mỗi lần tạo chờ Ethopex đồng bộ ~1 phút). Cổng thật vẫn ở nhan-ban (chấm, rào chắn, 18+, CTA).
@@ -767,31 +796,6 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     } catch (e) { console.error('báo cáo ngày:', e.message); }
   }
   fs.writeFileSync(TEP(), JSON.stringify({ ngay: homNay, da: [...da], dong: [...dongNay] }));
-  // ★ LÊN ROAS TỰ ĐỘNG (anh 29/10/2026: "Các camp đủ điều kiện lên roas thì lên luôn. Nới điều kiện lên roas là ROI >= 75$"): camp gốc trong moc30
-  // (máy luật: lãi 30 ngày ≥ $75 hoặc chi ≥ $20 & ROI ≥ 50% — Dol 09/11/2026, đang bật, chưa có camp ★, không trong danh sách tắt) → nhan-ban.py --roas, rải ROAS_MUC · $20 · giờ chạy do lich_len (khuôn anh duyệt
-  // 28/10/2026). Cổng chấm + rào chắn etp vẫn ở nhan-ban (không --mien-cham — mở cổng chấm chỉ khi anh lệnh đích danh). Mỗi lần tạo chờ Ethopex đồng bộ
-  // 2–4 phút → chạy song song 4 tiến trình, đặt CUỐI nhịp để tắt / tăng / giảm không phải chờ. Gốc bị nhan-ban TỪ CHỐI có lý do (chặn chấm…) → không thử lại
-  // trong ngày; hỏng vì lỗi máy (hết giờ, mạng) → nhịp sau thử lại (mức đã tạo được thì nhan-ban chặn trùng tên).
-  {
-    const TEP_R = path.join(DATA(), 'ethopex-roas-len.json');
-    const so = docJ(TEP_R, {}); const giu = hoanHopLe(so, homNay) ? so.giu || {} : {};
-    const goc = (kq.moc30 || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id) && !seTat.has(m.id) && !giu[m.id]);
-    const viec = goc.flatMap((m) => ROAS_MUC.map((muc) => ({ m, muc })));
-    for (let i = 0; i < viec.length; i += 4) await Promise.all(viec.slice(i, i + 4).map(async (v) => {
-      try { v.r = JSON.parse((await chay(NB, [String(v.m.id), '--roas', String(v.muc), '--ns', String(ROAS_NS), '--that', '--luat', `lên ROAS · ${v.m.chu}`.slice(0, 400), '--ai', 'máy tự lên ROAS (anh chat 29/10/2026: các camp đủ điều kiện lên roas thì lên luôn — lãi ≥ $75)'], 1500)).trim().split('\n').pop()); }
-      catch (e) { v.r = { ok: false, loi: e.message, may: true }; }
-    }));
-    for (const m of goc) { const ly = giuGocRoas(viec.filter((v) => v.m === m).map((v) => v.r)); if (ly) giu[m.id] = ly; }
-    fs.writeFileSync(TEP_R, JSON.stringify({ ngay: homNay, ban: banLuat(), giu }));
-    if (viec.some((v) => !(!v.r.ok && v.r.chan && /^đã có camp/.test(String(v.r.loi || ''))))) {   // mọi mức đều đã có camp → không báo (không có gì mới)
-      const ok = viec.filter((v) => v.r.ok).length;
-      // mức đã có camp ★ (tạo ở lượt trước / lệnh tay) = KHÔNG phải lỗi (anh 10/11/2026: tin "0/4 ⚠ lỗi" trong khi 4 camp đã có) → ghi "đã có"
-      const daCo = (r) => !r.ok && r.chan && /^đã có camp/.test(String(r.loi || ''));
-      const dong = bangViec(viec.map(({ m, muc, r }) => ({ m, doi: daCo(r) ? `${muc} đã có` : `${muc}→#${r.moi ?? '?'}`, loi: r.ok || daCo(r) ? null : r.loi || 'không rõ' })), '30 ng');
-      await guiNhanh({ message_thread_id: topic, text: `★ <b>MÁY TỰ LÊN ROAS</b> — ${goc.length} camp gốc đủ lên ROAS (lãi 30 ngày ≥ $75 — anh 29/10/2026, hoặc chi ≥ $20 & ROI ≥ 50% — Dol 09/11/2026); mỗi gốc ${ROAS_MUC.length} mức ${ROAS_MUC.join(' · ')}, $${ROAS_NS}/ngày, ${chuChay(viec.filter((v) => v.r.ok).map((v) => v.r))} — tạo được ${ok}/${viec.length}\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
-      gui++;
-    }
-  }
   // 09/11/2026 anh BỎ loại camp thay thế (thay-the.py chỉ còn chạy thang cất phim cat_phim.xet). Lịch sử: CAMP THAY THẾ (anh 29/10/2026: "phim chỉ còn 1 camp duy nhất và có xu hướng bị đóng lại thì phải ưu tiên lên camp mới thay thế luôn" + "camp mới phải rút
   // kinh nghiệm" + "các định dạng CC, CT… đều $0 thì lên theo bộ"): thay-the.py đọc etp.xet_luat vừa ghi ở nhịp này → mỗi phim một dòng etp.thay_the, chẩn đoán
   // camp cũ, lên mỗi dạng một camp $1 (trần 15 camp / nhịp), phim chưa có CC sạch → xếp cắt góc mới. Đặt cuối nhịp (mỗi camp chờ Ethopex đồng bộ ~1 phút).

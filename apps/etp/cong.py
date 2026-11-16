@@ -49,6 +49,22 @@ SQL_TAO_HOM_NAY = ("select count(*) from (select camp_id from etp.camp where (ta
                    " and not coalesce(la_roas, false) union select n.camp_id from etp.nhat_ky n where n.ok and n.viec in ('tao_camp', 'nhan_ban') and n.camp_id is not null"
                    " and (n.luc at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date"
                    " and not exists (select 1 from etp.camp c where c.camp_id = n.camp_id and c.la_roas)) x")
+# GIỮ CHỖ DƯỚI TRẦN (16/11/2026): mỗi camp tạo mất 1–4 phút (chờ Ethopex đồng bộ) rồi mới ghi nhật ký → hàng chục luồng song song cùng đọc một số đếm cũ và cùng lọt.
+# Đếm + giữ chỗ trong MỘT giao dịch có khoá: số đã dùng = camp đã tạo hôm nay + chỗ đang giữ trong GIU_GIAY giây chưa thành dòng nhật ký. Chỗ giữ tự nhả sau GIU_GIAY
+# (lượt chạy thử / lượt hỏng sau cổng không ăn mất chỗ cả ngày). Trả (số đã dùng, được qua hay không).
+GIU_GIAY = 480
+def giu_cho(tcm):
+    r = _q(f"""select pg_advisory_xact_lock(74611116);
+        with dem as (select ({SQL_TAO_HOM_NAY}) n),
+        cu as (select coalesce((select jsonb_agg(x) from etp.cau_hinh, jsonb_array_elements(gia_tri) x where khoa = 'giu_cho_camp' and jsonb_typeof(gia_tri) = 'array'
+                                and (x#>>'{{}}')::float > extract(epoch from now()) - {GIU_GIAY}), '[]'::jsonb) ds),
+        vua as (select count(*) n from etp.nhat_ky where ok and viec in ('tao_camp', 'nhan_ban') and luc > now() - interval '{GIU_GIAY} seconds'),
+        q as (select dem.n + greatest(jsonb_array_length(cu.ds) - vua.n, 0) so, cu.ds from dem, cu, vua),
+        ghi as (insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) select 'giu_cho_camp', q.ds || to_jsonb(extract(epoch from now())::float),
+                    'chỗ đang giữ dưới trần camp mới / ngày (cong.giu_cho) — mốc giây, tự nhả sau {GIU_GIAY} giây', 'cong.py' from q where q.so < {int(tcm)}
+                on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now() returning 1)
+        select q.so || '|' || (select count(*) from ghi) from q""").strip().splitlines()[-1]
+    so, ok = r.split("|"); return int(so), ok == "1"
 # TRANG PHIM HỎNG HẲN (anh 09/11/2026 "Fix triệt để" — 91648 From Doomed Baby đứng bước Trang phim 01:26 08/11 → 01:27 09/11, hơn 20 lượt chờ 60 phút → Mạnh huỷ → FIX):
 # bản workspace Nhà đã thêm quá TRANG_CHO_SINH giây mà Ethopex vẫn chưa sinh đủ (thường là link tập 1: thư viện phim không có nguồn tập 1, 7 phim 09/11) → chờ thêm vô ích.
 # MỘT định nghĩa cho cổng Trang phim (dong_phim.b_ws dừng dòng), máy lộ trình (lo_trinh_phim không xếp dòng) và Mạnh (dấu cổng: Ethopex có link → tự mở lại dòng).
@@ -152,8 +168,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         # lenh_anh: clone SANG BỘ KHÁC theo lệnh đích danh của anh trong lượt (nhan-ban.py --bo --ep; anh 08/11/2026 "50 camp này dup luôn sang tk số 4" — bản thay
         # cho camp bộ 2 không tiêu) → không tính vào trần camp mới / ngày; mọi cổng khác giữ nguyên
         if tcm is not None and viec in ("nhan_ban", "tao_camp") and not lenh_anh and not roas:
-            so = int(_q(SQL_TAO_HOM_NAY) or 0)
-            if so >= int(tcm): return f"hôm nay đã tạo {so} camp, chạm trần {tcm} camp mới / ngày (etp.cau_hinh.{KHOA_TRAN_NGAY}) — mai lên tiếp (dong_phim.mo_tran_ngay tự FIX sang ngày mới)"
+            so, duoc = giu_cho(int(tcm))
+            if not duoc: return f"hôm nay đã tạo {so} camp (kể cả camp đang tạo dở), chạm trần {tcm} camp mới / ngày (etp.cau_hinh.{KHOA_TRAN_NGAY}) — mai lên tiếp (dong_phim.mo_tran_ngay tự FIX sang ngày mới)"
         tn = ch.get("tran_ngay")
         if tn is not None:
             tong = float(_q("select coalesce(sum(ngan_sach), 0) from etp.camp where trang_thai = 'ACTIVE'") or 0)

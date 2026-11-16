@@ -22,6 +22,7 @@ import { chanThamKhao, TIEN_TO_THAM_KHAO } from './tham-khao';
 import { loiSanPhamShot } from './san-pham-shot';
 import { chanDanDat } from './dan-dat';
 import { kiemNguPhapMay, diCm, dongCoMay } from './ngu-phap-may';
+import { loiCoMay, shotCoMay } from './chan-gui-video';
 import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNhipGag, kiemNutDong, kiemKetTap, TIEN_TO_NHIP_HINH, TIEN_TO_DUNG_TRUYEN } from './nhip-hinh';
 import { thieuBieuCam, loiMachBieuCam, loiCanCanhDongLon, loiCauTraiBieuCam, soatKeyframe } from './qc-cam-xuc';
 
@@ -121,6 +122,9 @@ export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' 
   // Nhịp đọc (nhip-hinh.ts › giayDoc): shot phim truyện phát quá ngắn → người xem chưa hiểu đã cắt.
   out.push(...kiemGiayDoc(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phat_s: c.phat_s, thoi_luong_s: c.thoi_luong_s })), phim));
   out.push(...kiemTheShot(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, dan_dung: c.dan_dung })), phim));
+  // Cỡ cảnh + máy một nguồn (chan-gui-video.ts › loiCoMay): chữ thẻ shot nhắc cỡ / máy / cú cắt / hướng đi trái ky_thuat hay 3D — bắt TRƯỚC keyframe, không đợi tới
+  // lúc gửi video (16/11/2026 #14 phim #3071 lọt tới lượt sinh). Phim truyện; quảng cáo chấm theo tiêu chí QC như các luật thẻ shot khác.
+  if (!phim.laQc) out.push(...loiCoMay(canh.map((c, i) => shotCoMay({ ...c, thu_tu: c.thu_tu ?? i + 1 } as never))).map((x) => `${TIEN_TO_NHIP_HINH}${x}`));
   out.push(...kiemNhipGag(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, canh: c.canh, phat_s: c.phat_s, thoi_luong_s: c.thoi_luong_s, dan_dung: c.dan_dung }))));
   out.push(...kiemVaiKe(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phan_doan: c.phan_doan, ky_thuat: c.ky_thuat })), phim));
   // Dựng truyện (nhip-hinh.ts): nút đóng giữa hai mạch truyện trong một cảnh + kết tập ba nhịp (bùng → giữ → móc).

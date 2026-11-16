@@ -55,4 +55,17 @@ assert.strictEqual(bacCoChu('he holds the note close up to his face'), null);
 const diVao = { so: 5, co_canh: 'ws', chuyen_dong: 'tinh', mo: 'wide shot, boy far down the platform', ket: 'close-up of the boy, panting' };
 assert.strictEqual(loiCoMay([diVao]).length, 1); assert.deepStrictEqual(loiCoMay([{ ...diVao, di_sau_cm: -600 }]), []); assert.strictEqual(loiCoMay([{ ...diVao, di_sau_cm: 600 }]).length, 1);
 assert.deepStrictEqual(loiCoMay([{ so: 6, co_canh: 'ms', chuyen_dong: 'zoom_gat', mo: 'medium shot of the man', ket: 'close-up, eyes wide', huong: 'camera zooms in' }]), []);
+// NÂNG 16/11/2026: cú cắt trong một shot; chữ máy bám / cẩu / vòng / cầm tay; hướng đi chữ ↔ 3D (ca thật #18 phim #3071: "runs away from camera", 3D đi về phía máy 1.280 cm)
+assert.ok(loiCoMay([{ so: 2, co_canh: 'ms', chuyen_dong: 'tinh', dien: 'he trips, then cut to his face' }])[0]!.includes('cú cắt'));
+assert.ok(loiCoMay([{ so: 2, co_canh: 'ms', chuyen_dong: 'tinh', huong: 'camera follows the boy' }])[0]!.includes('máy bám theo')); assert.deepStrictEqual(loiCoMay([{ so: 2, co_canh: 'ms', chuyen_dong: 'theo', huong: 'camera follows the boy' }]), []);
+assert.ok(loiCoMay([{ so: 2, co_canh: 'ms', chuyen_dong: 'tinh', mo: 'handheld, the crowd pushes in' }]).some((l) => l.includes('cầm tay')));
+const s18 = { so: 18, co_canh: 'ws', chuyen_dong: 'lia', huong: 'boy runs away from camera down the platform toward the sun', di_sau_cm: -1280 };
+assert.ok(loiCoMay([s18])[0]!.includes('VỀ PHÍA máy 1280 cm')); assert.deepStrictEqual(loiCoMay([{ ...s18, di_sau_cm: 380 }]), []);
+assert.ok(loiCoMay([{ so: 13, co_canh: 'ms', chuyen_dong: 'tinh', huong: 'boy walks toward camera', di_sau_cm: 400 }])[0]!.includes('RA XA'));
+assert.deepStrictEqual(loiCoMay([{ so: 3, co_canh: 'ws', chuyen_dong: 'tinh', ket: 'boy looks up toward camera', di_sau_cm: 400 }]), [], 'nhìn về phía máy không phải đi');
+// QUÉT MỌI PHIM 16/11/2026 — ba ca bắt oan thành bài kiểm: cận qua vai (phim 16 #32), drone lùi mở cận kết toàn (phim 963 #35), "cut to black" kết tập (phim 119 #28)
+assert.deepStrictEqual(loiCoMay([{ so: 32, co_canh: 'cu', chuyen_dong: 'doi_net', mo: 'Tango, standing on the orange card holder', bo_cuc: 'High over-the-shoulder from behind-right of Tango: Tango in the foreground' }]), []);
+assert.deepStrictEqual(loiCoMay([{ so: 35, co_canh: 'ews', chuyen_dong: 'drone_lui', mo: 'close on the house', ket: 'whole valley and mountains' }]), []);
+assert.deepStrictEqual(loiCoMay([{ so: 28, co_canh: 'insert', chuyen_dong: 'day_vao', ket: 'the beads in full view — cut to black' }]), []);
+assert.ok(loiCoMay([{ so: 5, co_canh: 'ms', chuyen_dong: 'lui_ra', huong: 'man faces screen right; camera does not move' }])[0]!.includes('máy đứng'), 'ca thật phim 2934 #5');
 console.log('✓ chan-gui-video (mã nội bộ · tên / tiếng Việt ngoài thoại · tỉ lệ · clip sạch · dáng chống bậu)');

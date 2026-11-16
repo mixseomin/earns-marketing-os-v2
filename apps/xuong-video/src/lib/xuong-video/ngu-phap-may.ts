@@ -58,14 +58,22 @@ export function mayHop(c: ShotNguPhap, n: NhipKich): string[] {
   if (n === 'doi_dau' && c.ky_thuat?.co_canh === 'ots') return ['day_vao', 'vong'];
   return m;
 }
-/** Lỗi ngữ pháp máy (chỉ phim ngắn dọc): shot có nhịp kịch mà chuyển động máy không thuộc bộ hợp nhịp. */
+/** THỂ LOẠI KỂ CHUYỆN ngoài phim ngắn dọc (nâng 16/11/2026): bảng nhịp → máy áp ở chế độ "KHÔNG ĐƯỢC SAI", không phải "phải chạy" — shot có nhịp kịch được để
+ *  máy ĐỨNG (khung đứng giữ phản ứng luôn hợp lệ: hài deadpan, chính kịch lặng), nhưng đã chạy thì phải là máy của nhịp đó. Phim ngắn dọc giữ luật cũ: nhịp kịch
+ *  BẮT BUỘC có máy (công thức micro-drama). Quảng cáo / tài liệu / video máy dựng không xét (không kể bằng nhịp kịch). */
+export const THE_LOAI_KE_CHUYEN: readonly string[] = ['hoat_hinh', 'phieu_luu', 'kinh_di', 'hanh_dong', 'tinh_cam', 'hai', 'chinh_kich', 'vien_tuong'];
+/** Máy hợp nhịp THÊM theo thể loại. Hài: cú sốc / nhận ra đọc bằng khung đứng hoặc đẩy chậm vào mặt đứng hình (deadpan push) — dien-anh.ts: hài = "khung tĩnh, cắt đúng nhịp". */
+const MAY_THEM: Record<string, Partial<Record<NhipKich, string[]>>> = { hai: { soc: ['day_vao', 'zoom_cham', 'quat'], phan_quyet: ['zoom_gat'] } };
+export const mayHopTheLoai = (c: ShotNguPhap, n: NhipKich, theLoai?: string): string[] => [...mayHop(c, n), ...(MAY_THEM[theLoai ?? '']?.[n] ?? [])];
+/** Lỗi ngữ pháp máy: shot có nhịp kịch mà chuyển động máy không thuộc bộ hợp nhịp. Phim ngắn dọc: máy đứng cũng là lỗi; thể loại kể chuyện khác: máy đứng hợp lệ. */
 export function kiemNguPhapMay(ds: ShotNguPhap[], theLoai?: string): string[] {
-  if (theLoai !== 'phim_doc') return [];
+  const doc = theLoai === 'phim_doc'; if (!doc && !THE_LOAI_KE_CHUYEN.includes(theLoai ?? '')) return [];
   const out: string[] = [];
   for (const c of ds) {
     const n = nhipKich(c); if (!n) continue;
-    const l = NGU_PHAP_MAY[n]; const cd = c.ky_thuat?.chuyen_dong || 'tinh'; const hop = mayHop(c, n);
-    if (!hop.includes(cd)) out.push(`${TIEN_TO_NGU_PHAP}#${c.thu_tu} là nhịp "${l.ten}" mà máy "${cd}" — dùng ${hop.join(' / ')} (${l.vi_sao}); sửa 0đ bằng 🎥`);
+    const l = NGU_PHAP_MAY[n]; const cd = c.ky_thuat?.chuyen_dong || 'tinh'; const hop = mayHopTheLoai(c, n, theLoai);
+    if (!doc && cd === 'tinh') continue;
+    if (!hop.includes(cd)) out.push(`${TIEN_TO_NGU_PHAP}#${c.thu_tu} là nhịp "${l.ten}" mà máy "${cd}" — dùng ${hop.join(' / ')}${doc ? '' : ' hoặc để máy đứng'} (${l.vi_sao}); sửa 0đ bằng 🎥`);
   }
   return out;
 }
@@ -73,7 +81,9 @@ export function kiemNguPhapMay(ds: ShotNguPhap[], theLoai?: string): string[] {
 /** Sửa 0đ: shot phạm ngữ pháp → chuyển động hợp nhịp đầu tiên KHÔNG trùng shot trước / sau (giữ luật nhịp hình), kèm góc gợi ý khi shot chưa
  *  khai góc riêng ('ngang' hoặc trống). Trả { id, ky_thuat mới } cần ghi. */
 export function apNguPhapMay<T extends ShotNguPhap & { id: number }>(ds: T[], theLoai?: string): { id: number; ky_thuat: KyThuatShot }[] {
-  if (theLoai !== 'phim_doc') return [];
+  // thể loại kể chuyện khác: máy sai nhịp → về máy đứng (không ép máy — khung đứng luôn hợp lệ)
+  if (theLoai !== 'phim_doc') return THE_LOAI_KE_CHUYEN.includes(theLoai ?? '') ? ds.flatMap((c) => { const n = nhipKich(c); const cd = c.ky_thuat?.chuyen_dong || 'tinh';
+    return n && cd !== 'tinh' && !mayHopTheLoai(c, n, theLoai).includes(cd) ? [{ id: c.id, ky_thuat: { ...(c.ky_thuat ?? {}), chuyen_dong: 'tinh' } }] : []; }) : [];
   const kt = ds.map((c) => ({ ...(c.ky_thuat ?? {}) }));
   const out: { id: number; ky_thuat: KyThuatShot }[] = [];
   ds.forEach((c, i) => {
@@ -93,6 +103,6 @@ export function apNguPhapMay<T extends ShotNguPhap & { id: number }>(ds: T[], th
 export function dongCoMay<T extends ShotNguPhap & { phan_doan?: string | null; may_3d?: (Parameters<typeof diChuThe>[0] & { nham?: string; khung?: string[]; vi_tri: { ten: string; an?: boolean; tam: number[]; den?: number[] }[] }) | null }>(ds: T[]) {
   const pd = (c?: T) => c?.phan_doan ?? '';
   return ds.map((c, i) => { const m = c.may_3d; const d = m ? diChuThe(m, m.nham ? [m.nham] : chuThe(m)) : null;
-    return { ...c, di_ngang_cm: d?.ngang ?? null, di_chu_cm: d?.dai ?? null, di_sau_cm: d?.sau ?? null, nhip_kich: nhipKich(c) != null,
+    return { ...c, di_ngang_cm: d?.ngang ?? null, di_chu_cm: d?.dai ?? null, di_sau_cm: d?.sau ?? null, nhip_kich: nhipKich(c) != null, cam_doi: c.bieu_cam?.length ? c.bieu_cam.some((b) => b.dau !== b.cuoi) : undefined,
       dau_canh: i === 0 || pd(ds[i - 1]) !== pd(c), cuoi_canh: i === ds.length - 1 || pd(ds[i + 1]) !== pd(c) }; });
 }

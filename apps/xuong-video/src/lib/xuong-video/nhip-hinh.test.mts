@@ -63,6 +63,12 @@ assert.ok(kd('theo', { di_sau_cm: -400 })!.includes('VỀ PHÍA máy')); assert.
 assert.ok(kd('dan_truoc', { di_sau_cm: 400 })!.includes('RA XA')); assert.ok(kd('theo', { di_chu_cm: 20 })!.includes('không đi'));
 assert.ok(kd('truot_ngang', {})); assert.strictEqual(kd('truot_ngang', { dau_canh: true }), null); assert.ok(kd('lui_ra', {})); assert.strictEqual(kd('lui_ra', { dau_canh: true }), null);
 assert.strictEqual(kd('vuot_tien_canh', { di_chu_cm: 0 }), null, 'trượt qua tiền cảnh là máy hé lộ — ngu-phap-may xét');
+// NÂNG 16/11/2026 — đẩy vào ở cận phải nhấn một chuyển biến: cảm xúc đổi / nhịp kịch / khép cảnh; chưa có kế hoạch biểu cảm thì không xét
+const cn = (o: object) => khongDongCo({ thu_tu: 1, ky_thuat: { co_canh: 'cu', chuyen_dong: 'day_vao' }, nhip_kich: false, cam_doi: false, dau_canh: false, cuoi_canh: false, ...o });
+assert.ok(cn({})!.includes('chuyển biến')); assert.strictEqual(cn({ cam_doi: true }), null); assert.strictEqual(cn({ nhip_kich: true }), null); assert.strictEqual(cn({ cuoi_canh: true }), null); assert.strictEqual(cn({ cam_doi: undefined }), null);
+// ba shot đẩy vào liền nhau → lạm dụng; hai shot (đấu mặt shot / reverse) thì không
+const dv = (i: number, co: string) => ({ thu_tu: i, giay: 3, chu: [`N${i}`], ky_thuat: { co_canh: co, chuyen_dong: 'day_vao' } });
+assert.ok(kiemNhipHinh([dv(1, 'cu'), dv(2, 'mcu'), dv(3, 'cu')]).some((x) => x.includes('#1–#3 ba shot đẩy vào liền nhau'))); assert.deepStrictEqual(kiemNhipHinh([dv(1, 'cu'), dv(2, 'mcu')]), []);
 // nhịp đọc: Tango & Lint tập 1 — 20 shot / 48s, phat 2–3,5s → phim không lời chặn; quảng cáo không xét; shot chưa cắt tính cả clip
 const T1 = [3.5, 2, 2, 2, 2, 2.2, 2, 2.3, 2, 2, 2, 2.9, 2.1, 2, 2.5, 2, 2.5, 2.5, 2, 3.4].map((g, i) => ({ thu_tu: i + 1, phat_s: g, thoi_luong_s: 4 }));
 const ld = kiemGiayDoc(T1, { khong_loi: true });

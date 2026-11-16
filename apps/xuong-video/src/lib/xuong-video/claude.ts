@@ -48,7 +48,7 @@ const DongThoaiSchema = z.object({
 });
 const DanDungSchema = z.object({
   bo_cuc: z.string().describe('Bố cục 3 lớp, TIẾNG ANH: foreground / midground / background, ai bên trái ai bên phải khung (đi vào prompt ảnh)'),
-  mo: z.string().describe('Trạng thái MỞ shot, TIẾNG ANH: vị trí từng nhân vật, đồ đang cầm/mất, biến dạng — phải khớp trạng thái KẾT của shot trước (luật 11)'),
+  mo: z.string().describe('Trạng thái MỞ shot, TIẾNG ANH: vị trí từng nhân vật, đồ đang cầm/mất, biến dạng — phải khớp trạng thái KẾT của shot trước (luật 11). KHÔNG ghi cỡ cảnh hay chuyển động máy (close-up, wide shot, push in, pan, camera moves…) ở mo / ket / dien / huong: hai thứ đó CHỈ khai ở ky_thuat.co_canh + ky_thuat.chuyen_dong; không ghi "cut to" — một shot là một khung liền'),
   ket: z.string().describe('Trạng thái KẾT shot, TIẾNG ANH — shot sau mở đúng từ đây'),
   huong: z.string().describe('Hướng nhìn + hướng di chuyển trên màn, TIẾNG ANH (screen-left/right) — giữ trục 180° trong phân cảnh'),
   muc_dich: z.string().describe('Tiếng Việt: khán giả cảm gì từ đầu → cuối shot, shot tồn tại để làm gì (luật 17)'),

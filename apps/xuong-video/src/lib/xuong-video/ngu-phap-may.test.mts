@@ -36,4 +36,10 @@ const mn = new Map(apNguPhapMay(N as never, 'phim_doc').map((x) => [x.id, x.ky_t
 assert.equal(mn.get(1), 'day_vao', 'quyền lực đi ngắn → đẩy vào, không dẫn trước');
 assert.equal(mn.get(2), 'day_vao', 'đối đầu qua vai → đẩy vào');
 assert.ok(!mn.has(3), 'hé lộ bằng lia dọc ở cận chi tiết là hợp — giữ');
+// NÂNG 16/11/2026 — thể loại kể chuyện khác: nhịp kịch được để máy đứng, đã chạy thì phải đúng máy của nhịp; hài nhận thêm đẩy chậm vào mặt đứng hình cho cú sốc
+const HAI = [{ id: 1, thu_tu: 19, ky_thuat: { co_canh: 'ws', chuyen_dong: 'day_vao' }, bieu_cam: [bc('Chú', 'ngo_vuc', 'soc')] }, { id: 2, thu_tu: 20, ky_thuat: { co_canh: 'cu', chuyen_dong: 'tinh' }, bieu_cam: [bc('Chú', 'ngo_vuc', 'soc')] },
+  { id: 3, thu_tu: 21, ky_thuat: { co_canh: 'cu', chuyen_dong: 'lia' }, bieu_cam: [bc('Chú', 'ngo_vuc', 'soc')] }];
+const lH = kiemNguPhapMay(HAI as never, 'hai'); assert.ok(lH.length === 1 && lH[0]!.includes('#21') && lH[0]!.includes('hoặc để máy đứng'), lH.join('\n'));
+assert.deepEqual(apNguPhapMay(HAI as never, 'hai').map((x) => [x.id, x.ky_thuat.chuyen_dong]), [[3, 'tinh']]);
+assert.equal(kiemNguPhapMay(HAI as never, 'qc_ugc').length, 0, 'quảng cáo không xét'); assert.equal(kiemNguPhapMay(HAI as never, 'phim_doc').length, 3, 'phim ngắn dọc: máy đứng ở nhịp sốc vẫn là lỗi, đẩy vào không thuộc bộ sốc');
 console.log('ngu-phap-may: ok');

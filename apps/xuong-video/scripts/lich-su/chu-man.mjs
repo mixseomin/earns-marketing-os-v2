@@ -45,7 +45,7 @@ export function chiaCau(chu, toiDa) {
  *  q.chu giữ nguyên câu đủ (giọng đọc một lượt, luật nguồn kiểm cả câu). Dòng thẻ dài chuyển xuống chữ; nhãn dài cắt ở ranh giới từ. Thời lượng theo lượng chữ. */
 export function tachCanh(tap) {
   if (!tap.cau?.length) return tap;
-  const toiDa = tap.khung === 'ngang' ? TRAN.ngang : TRAN.doc; let t = 0;
+  const toiDa = (tap.khung_chu ?? tap.khung) === 'ngang' ? TRAN.ngang : TRAN.doc; let t = 0;   // khung_chu: khổ của TRANG đã đặt chữ (Short khung dọc cắt từ bản 16:9 giữ cột chữ của trang ngang)
   const cau = tap.cau.map((q) => {
     const dongThe = (q.the?.dong ?? []).join(' '), dai = (q.the?.dong ?? []).some((d) => bo(d).length > TRAN.the);   // đo TỪNG dòng thẻ: thẻ nhiều dòng ngắn (bảng 12 cung Mọc) giữ trên thẻ
     const chu = dai ? `${bo(q.chu)} ${dongThe}`.trim() : bo(q.chu), manh = chiaCau(chu, toiDa);
@@ -67,7 +67,7 @@ export function manhTai(q, t) {
 }
 
 export function kiemChuMan(tap) {
-  const toiDa = tap.khung === 'ngang' ? TRAN.ngang : TRAN.doc, loi = [];
+  const toiDa = (tap.khung_chu ?? tap.khung) === 'ngang' ? TRAN.ngang : TRAN.doc, loi = [];
   (tap.cau ?? []).forEach((q, i) => {
     for (const c of (q.manh ?? [q.chu]).map(bo)) if (c.length > toiDa) loi.push(`câu ${i + 1}: ${c.length} ký tự trên một khung (trần ${toiDa}) — tách cảnh (chu-man.mjs › tachCanh)`);
     for (const d of q.the?.dong ?? []) if (bo(d).length > TRAN.the) loi.push(`câu ${i + 1}: dòng thẻ ${bo(d).length} ký tự (trần ${TRAN.the})`);

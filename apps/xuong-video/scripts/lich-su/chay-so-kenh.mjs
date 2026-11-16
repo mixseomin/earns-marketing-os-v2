@@ -11,7 +11,7 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), KENH = 'astrolas', CUNG = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-export const MAU_TU_CHAY = ['ask-the-chart', 'chart-chapters', 'chart-reading-cat', 'chart-tools', 'chart-vs-chart', 'free-60s', 'myth-behind', 'read-your-chart', 'sign-x-sign', 'sky-calendar', 'this-week', 'zodiac-myths'];
+export const MAU_TU_CHAY = ['ask-the-chart', 'chart-chapters', 'chart-reading-cat', 'chart-reading-khung', 'chart-tools', 'chart-vs-chart', 'free-60s', 'myth-behind', 'read-your-chart', 'sign-x-sign', 'sky-calendar', 'this-week', 'zodiac-myths'];
 const bam = (s) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7), iso = (ms) => new Date(ms).toISOString().slice(0, 10);
 
 /** lệnh máy viết của một mã tập. Thuần. */
@@ -24,6 +24,7 @@ export function lenhViet(y, o = {}) {
   if ((m = /^ccd-(.+)$/.exec(y))) return ['dai/sinh-chuong.mjs', '--slug', m[1], '--moc', `dai/moc-${m[1]}.json`];
   if ((m = /^crd-(.+)$/.exec(y))) return ['dai/doc-bai.mjs', '--slug', m[1]];   // Full Chart Reading 8–10 phút (09/11/2026)
   if ((m = /^crc-(.+)-(\d+)$/.exec(y))) return ['dai/cat-short.mjs', '--tu', m[1], '--chuong', m[2]];   // Short cắt từ một chương của tập dài
+  if ((m = /^crk-(.+)-(\d+)$/.exec(y))) return ['dai/khung-doc.mjs', '--tu', m[1], '--chuong', m[2]];   // Short khung dọc cắt thẳng từ bản dựng 16:9 (16/11/2026): bước này dựng luôn video
   if ((m = /^ls-(.+)$/.exec(y))) return ['viet-love-story.mjs', '--cap', m[1]];
   if ((m = /^cvc-(.+)$/.exec(y))) return ['viet-cap.mjs', '--cap', m[1]];
   if ((m = /^my-(.+)$/.exec(y))) return ['viet-myth-behind.mjs', '--sao', m[1]];
@@ -36,6 +37,8 @@ export function lenhViet(y, o = {}) {
 }
 /** tập video dài 16:9 (mẫu loai 'dai' tự chạy) → dựng 1920×1080, bìa 1280×720. Thuần. */
 export const laDai = (y) => /^(ccd|crd|ls)-/.test(y);
+/** tập mà bước viết đã dựng luôn video (khung dọc cắt từ bản dựng 16:9) — bỏ bước lồng tiếng + dựng. Thuần. */
+export const daDung = (y) => /^crk-/.test(y);
 /** câu lỗi của nhật ký: dòng ✗ / ⚠ máy viết ra, không lấy ngăn xếp Node (09/11/2026: Telegram chỉ nhận "at file:///…nap-tap.mjs:54"). Thuần. */
 export const caiLoi = (log) => { const d = log.trim().split('\n').map((l) => l.trim()).filter(Boolean), x = d.filter((l) => /^[✗⚠]/.test(l)); return (x.length ? x.slice(-2) : d.filter((l) => !/^at |^Node\.js v/.test(l)).slice(-3)).join(' · '); };
 /** ngày hẹn video dài gần nhất ≤ hôm nay (thu: 1 = Thứ Hai … 7 = Chủ nhật) — lỡ ngày hẹn (trần, ngoài giờ, máy bận) thì các ngày sau vẫn làm bù tới ngày hẹn kế. Thuần. */
@@ -58,7 +61,7 @@ export function chonTap(pl, ungVien, daLam, bo, hom) {
 if (process.argv.includes('--tu-kiem')) {
   const { strict: t } = await import('node:assert');
   t.deepEqual(lenhViet('ct-transit--tom-hanks'), ['viet-chart-tools.mjs', '--y', 'ct-transit--tom-hanks']); t.deepEqual(lenhViet('f60-birth'), ['viet-free60.mjs', '--cong-cu', 'birth']); t.deepEqual(lenhViet('ccd-steve-jobs'), ['dai/sinh-chuong.mjs', '--slug', 'steve-jobs', '--moc', 'dai/moc-steve-jobs.json']); t.ok(laDai('ls-a--b') && laDai('ccd-x') && laDai('crd-x') && !laDai('cc-x') && !laDai('crc-x-1'));
-  t.deepEqual(lenhViet('crd-tom-hanks'), ['dai/doc-bai.mjs', '--slug', 'tom-hanks']); t.deepEqual(lenhViet('crc-tom-hanks-3'), ['dai/cat-short.mjs', '--tu', 'tom-hanks', '--chuong', '3']);
+  t.deepEqual(lenhViet('crd-tom-hanks'), ['dai/doc-bai.mjs', '--slug', 'tom-hanks']); t.deepEqual(lenhViet('crc-tom-hanks-3'), ['dai/cat-short.mjs', '--tu', 'tom-hanks', '--chuong', '3']); t.deepEqual(lenhViet('crk-tom-hanks-2'), ['dai/khung-doc.mjs', '--tu', 'tom-hanks', '--chuong', '2']); t.ok(!laDai('crk-x-2') && daDung('crk-x-2') && !daDung('crc-x-1'));
   t.equal(caiLoi('✓ dựng\n✗ x: Ngọc chặn bìa: mờ\nfile:///a.mjs:54\n  at f (a.mjs:1)\nError: bìa bị chặn\n\nNode.js v25'), '✗ x: Ngọc chặn bìa: mờ'); t.equal(caiLoi('a\nb\n    at x\nNode.js v25'), 'a · b');
   t.equal(ngayDai('2026-11-08', [7]), '2026-11-08', 'đúng Chủ nhật'); t.equal(ngayDai('2026-11-09', [7]), '2026-11-08', 'Thứ Hai làm bù Chủ nhật lỡ'); t.equal(ngayDai('2026-11-14', [7]), '2026-11-08'); t.equal(ngayDai('2026-11-15', [7]), '2026-11-15'); t.equal(ngayDai('2026-11-09', []), null);
   t.deepEqual(lenhViet('ask-steve-jobs-1985'), ['viet-ask.mjs', '--ai', 'steve-jobs', '--nam', '1985']); t.deepEqual(lenhViet('ryc-mc-angelina-jolie'), ['viet-ryc.mjs', '--muc', 'mc', '--ai', 'angelina-jolie']);
@@ -129,7 +132,7 @@ function lam(y, han = {}) {
   const chay = (args, cwd) => { const r = spawnSync(process.execPath, args, { cwd, stdio: ['ignore', fd, fd], timeout: (laDai(y) ? 180 : 45) * 60_000, killSignal: 'SIGKILL', detached: true });
     if (r.signal && r.pid) try { process.kill(-r.pid, 'SIGKILL'); } catch { /* nhóm đã hết */ } return r; };
   try {
-    const ra = join(RA, `${y}.mp4`), tep = join(TAP, `${y}.json`), buoc = [[lenhViet(y, han), DIR], [[join(SHOT, 'long-tieng.mjs'), '--cau', relative(SHOT, tep), '--ra', relative(SHOT, ra), ...(laDai(y) ? ['--rong', '1920', '--cao', '1080'] : [])], SHOT],
+    const ra = join(RA, `${y}.mp4`), tep = join(TAP, `${y}.json`), buoc = [[lenhViet(y, han), DIR], ...daDung(y) ? [] : [[[join(SHOT, 'long-tieng.mjs'), '--cau', relative(SHOT, tep), '--ra', relative(SHOT, ra), ...(laDai(y) ? ['--rong', '1920', '--cao', '1080'] : [])], SHOT]],
       [[join(DIR, 'nap-tap.mjs'), '--tap', tep, '--video', ra, ...(han.tu ? ['--dang-tu', han.tu] : []), ...(han.den ? ['--dang-den', han.den] : [])], DIR]];
     for (const [a, cwd] of buoc) { const r = chay(a, cwd); if (r.status !== 0) return { ok: false, loi: `${relative(DIR, a[0]) || a[0]} mã ${r.status ?? r.signal}: ${caiLoi(readFileSync(f, 'utf8')).slice(0, 400)}` }; }
     return { ok: true, tien: Number(/tiền giọng lượt này (\d+)₫/.exec(readFileSync(f, 'utf8'))?.[1] ?? 0), tieu_de: JSON.parse(readFileSync(tep, 'utf8')).tieu_de };
@@ -180,7 +183,9 @@ const su = LT.su_kien.filter((e) => e.utc.slice(0, 10) > hom && e.utc.slice(0, 1
 const ungVien = [...dsTap().filter((t) => MAU_TU_CHAY.includes(t.mau) && !['sky-calendar', 'this-week'].includes(t.mau)).map((t) => ({ y: t.y_tuong, mau: t.mau, playlist: t.playlist_ma })),
   ...(await import('./viet-chart-tools.mjs')).dsMa().map((y) => ({ y, mau: 'chart-tools', playlist: 'career' })),
   // REMIX (09/11/2026): mỗi chương của tập dài ĐÃ nạp → một Short Know Yourself (giọng dùng lại)
-  ...await (async () => { const { maCat } = await import('./dai/cat-short.mjs'); return dsTap().filter((t) => t.mau === 'chart-reading-dai' && daLam.has(t.y_tuong)).flatMap((t) => maCat(t).map((y) => ({ y, mau: 'chart-reading-cat', playlist: 'know-yourself' }))); })(),   // Chart Tools: công cụ × người AA, tệp tập viết lúc làm (chụp trang)
+  ...await (async () => { const { maCat } = await import('./dai/cat-short.mjs'); return dsTap().filter((t) => t.mau === 'chart-reading-dai' && daLam.has(t.y_tuong)).flatMap((t) => maCat(t).map((y) => ({ y, mau: 'chart-reading-cat', playlist: 'know-yourself' }))); })(),
+  // KHUNG DỌC (16/11/2026): chương chẵn của tập dài đã nạp → Short cắt thẳng từ bản dựng 16:9 (cần .tieng.json mốc thật)
+  ...await (async () => { const { maKhung } = await import('./dai/khung-doc.mjs'); return dsTap().filter((t) => t.mau === 'chart-reading-dai' && daLam.has(t.y_tuong) && existsSync(join(TAP, `.${t.y_tuong}.tieng.json`))).flatMap((t) => maKhung(t, JSON.parse(readFileSync(join(TAP, `.${t.y_tuong}.tieng.json`), 'utf8'))).map((y) => ({ y, mau: 'chart-reading-khung', playlist: 'know-yourself' }))); })(),   // Chart Tools: công cụ × người AA, tệp tập viết lúc làm (chụp trang)
   ...(sky ? [{ y: sky.ma, mau: 'sky-calendar', playlist: 'timing', han: { tu: thu2Toi, den: iso(Date.parse(`${thu2Toi}T00:00Z`) + 6 * 864e5), tuan: thu2Toi } }] : []), ...su];
 let chon = null; for (const pl of thuTuPlaylist(so.playlist, thu)) { chon = chonTap(pl, ungVien, daLam, bo, hom); if (chon) break; }
 if (xem) { console.log(`hôm nay ${hom} (lịch ${thu}: 1 = Thứ Hai … 7 = Chủ nhật) · chưa đăng ${conCho}/${tran} · ${ungVien.length} ứng viên · tập kế: ${chon?.y ?? '(hết)'} [${chon?.playlist ?? ''}] ${chon?.han ? JSON.stringify(chon.han) : ''}`); process.exit(0); }

@@ -19,8 +19,8 @@ export function cauChuong(dai, k) {
   const ds = dai.cau.slice(c.cau, het).map(({ tu, den, manh, ...q }) => q);
   return { ten: c.ten, dau: ds[0], cau: ds.slice(1).filter((q) => !q.nhin?.tranh && !q.the) };
 }
-/** các mã Short cắt được từ một tập dài (mọi chương trừ Intro, có ít nhất một câu lá số). Thuần. */
-export const maCat = (dai) => (dai.chuong ?? []).map((_, k) => k).filter((k) => cauChuong(dai, k)?.cau.length).map((k) => `crc-${dai.y_tuong.replace(/^crd-/, '')}-${k}`);
+/** các mã Short cắt được từ một tập dài: chương LẺ có ít nhất một câu lá số (chương chẵn thuộc dạng khung dọc dai/khung-doc.mjs — một chương không lên hai Short, 16/11/2026). Thuần. */
+export const maCat = (dai) => (dai.chuong ?? []).map((_, k) => k).filter((k) => k % 2 === 1 && cauChuong(dai, k)?.cau.length).map((k) => `crc-${dai.y_tuong.replace(/^crd-/, '')}-${k}`);
 
 export async function catMot(slug, k, { xem = false } = {}) {
   const { tachCanh } = await import('../chu-man.mjs'), { docSo, kiemTap } = await import('../kiem-so-kenh.mjs'), { chonHook } = await import('../hook-kenh.mjs');
@@ -51,7 +51,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       cau: [{ chu: 'h' }, { chu: 'X, born' }, { chu: 'i' }, { chu: 'Moon in Aries.', the: { lon: '01' } }, { chu: 'a', nhin: { sao: 'Moon' }, tu: 1, den: 2, manh: ['a'] }, { chu: '1990, age 9.', nhin: { tranh: 'p' } }, { chu: 'b', nhin: { sao: 'Mars' } }, { chu: 'Sum.', the: { lon: 'In sum' } }, { chu: 'c', nhin: { toan: 1 } }, { chu: 'free at astrolas.com', khung: true }] };
     const c = cauChuong(D, 1); t.deepEqual(c.cau.map((q) => q.chu), ['a', 'b'], 'bỏ thẻ chương + mốc đời'); t.equal(c.cau[0].manh, undefined, 'bỏ mảnh / mốc giờ cũ');
     t.deepEqual(cauChuong(D, 2).cau.map((q) => q.chu), ['c'], 'chương cuối không lấy câu kết'); t.equal(cauChuong(D, 0), null, 'Intro không cắt');
-    t.deepEqual(maCat(D), ['crc-x-1', 'crc-x-2']); t.equal(tenGon('Sun and Mercury in Gemini, in the 11th house'), 'Sun and Mercury in Gemini');
+    t.deepEqual(maCat(D), ['crc-x-1'], 'chương chẵn để khung dọc'); t.equal(tenGon('Sun and Mercury in Gemini, in the 11th house'), 'Sun and Mercury in Gemini');
     console.log('cat-short: tự kiểm đạt'); process.exit(0);
   }
   const slug = arg('tu'), ch = arg('chuong', 'all'); if (!slug) { console.error('dùng: --tu <người> [--chuong <k | all>] [--xem]'); process.exit(2); }

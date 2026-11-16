@@ -83,6 +83,7 @@
           "chart-chapters",
           "zodiac-myths",
           "chart-reading-cat",
+          "chart-reading-khung",
           "chart-reading-dai"
         ],
         "trang_dich": "Birth chart (/birth), /c/<người>, bài <người>-birth-chart",
@@ -563,8 +564,18 @@
         "nhip": "theo lịch Know Yourself",
         "kho": "mỗi tập dài ~6–9 chương",
         "trang": "shot-code/la-so.html",
-        "sinh": "lich-su/dai/cat-short.mjs --tu <người> --chuong <k> — một chương của tập dài crd-<người> → Short 9:16 ≤ 50 giây; câu y nguyên bản dài nên giọng dùng lại (0₫ trừ hook + câu kết)",
+        "sinh": "lich-su/dai/cat-short.mjs --tu <người> --chuong <k> — một chương LẺ của tập dài crd-<người> → Short 9:16 ≤ 50 giây; câu y nguyên bản dài nên giọng dùng lại (0₫ trừ hook + câu kết)",
         "tu_sinh": "^crc-[a-z0-9-]+-\\d+$"
+      },
+      {
+        "ma": "chart-reading-khung",
+        "ten": "Chart Reading · khung dọc cắt thẳng từ bản dài 16:9",
+        "loai": "short",
+        "nhip": "theo lịch Know Yourself",
+        "kho": "mỗi tập dài ~3–4 chương chẵn",
+        "trang": "bản dựng crd-<người>.mp4 (1920×1080)",
+        "sinh": "lich-su/dai/khung-doc.mjs --tu <người> --chuong <k> — một chương CHẴN của tập dài: nguyên đoạn hình + tiếng của bản đã dựng đặt vào khung 1080×1920 (bố cục A khung ngang trong dọc / B tách bánh lá số + cột chữ xếp chồng, luân phiên), thẻ kết 3 giây trỏ astrolas.com; 0₫, không dựng lại, không đọc giọng (anh 16/11/2026)",
+        "tu_sinh": "^crk-[a-z0-9-]+-\\d+$"
       }
     ],
     "mo_dau": "https://img.on.tc/xuong-video/demo/astrolas/mo-dau-doc.mp4",

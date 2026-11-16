@@ -9,6 +9,17 @@
 set -euo pipefail
 cd /root/h3; T=/root/h3/thu0d; mkdir -p $T
 bash -n lam-lo.sh && bash -n tren-may.sh && python3 -m py_compile chay-h3.py && echo "✓ cú pháp"
+# Triton biên dịch nhân C lúc chạy GPU (bộ kiểm CPU không gọi tới) → kiểm thẳng: có gcc + Python.h, và Triton dựng được một tệp .so (16/11/2026 lượt 12 hỏng vì thiếu gcc)
+command -v gcc >/dev/null || { echo "✗ thiếu gcc (Triton cần biên dịch nhân)"; exit 1; }
+python3 - <<'PY'
+# đúng việc Triton làm lúc chạy: gcc dựng một .so có #include <Python.h> (không gọi hàm riêng của Triton — chữ ký đổi theo bản)
+import sysconfig, os, sys, subprocess, tempfile
+inc = sysconfig.get_paths()['include']
+if not os.path.isfile(os.path.join(inc, 'Python.h')): print('✗ thiếu Python.h ở', inc); sys.exit(1)
+d = tempfile.mkdtemp(); open(f'{d}/thu.c', 'w').write('#include <Python.h>\nint thu(void){return 1;}\n')
+subprocess.run(['gcc', '-shared', '-fPIC', '-O1', f'-I{inc}', f'{d}/thu.c', '-o', f'{d}/thu.so'], check=True)
+print('✓ gcc + Python.h dựng được nhân C (như Triton)')
+PY
 XV_H3_CPU=1 XV_H3_KHONG_TAI=1 bash tren-may.sh && echo "✓ cài + ComfyUI lên (CPU), PyTorch CUDA 13"
 # ảnh + clip tham chiếu giả phục vụ qua http cục bộ (chay-h3.py tải bằng URL như lượt thật)
 ffmpeg -v error -y -f lavfi -i testsrc=size=320x180:rate=24 -frames:v 1 $T/a.png

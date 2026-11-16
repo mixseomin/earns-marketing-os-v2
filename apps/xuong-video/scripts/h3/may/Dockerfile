@@ -2,10 +2,11 @@
 # ~15 phút cài mỗi lần thuê (chỉ còn tải 40GB mô hình từ Hugging Face, ~1 phút). KHÔNG khai NVIDIA_REQUIRE_CUDA: image cu13 của RunPod tự khai yêu cầu CUDA 13
 # nên RunPod chỉ xếp vào máy driver mới (hết chỗ 4 lần liền) — ở đây driver ≥ 580 do may-h3.sh kiểm sau khi máy lên. Mô hình KHÔNG đóng vào image (40GB kéo
 # image còn chậm hơn tải Hugging Face). Build + KIỂM 0đ trên GitHub Actions (.github/workflows/xv-h3-image.yml chạy thu-0d.sh trong image, đạt mới đẩy).
+# build-essential + python3-dev: Triton biên dịch nhân lúc chạy (cần gcc + Python.h) — thiếu thì H3 hỏng ở MiniMaxH3ReferenceToVideo "Failed to find C compiler" (16/11/2026)
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive NVIDIA_DRIVER_CAPABILITIES=all NVIDIA_VISIBLE_DEVICES=all \
     PIP_BREAK_SYSTEM_PACKAGES=1 PIP_ROOT_USER_ACTION=ignore PIP_NO_CACHE_DIR=1
-RUN apt-get update && apt-get install -y --no-install-recommends openssh-server rsync curl ca-certificates git python3 python3-pip ffmpeg \
+RUN apt-get update && apt-get install -y --no-install-recommends openssh-server rsync curl ca-certificates git python3 python3-pip python3-dev build-essential ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
 ARG COMFY=master

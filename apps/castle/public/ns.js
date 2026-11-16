@@ -19,7 +19,7 @@ import { taoCamUng, CHAM } from './camung.js';
 import { taoChieuAnh } from './chieuanh.js';
 import { datDuong } from './duong.js';
 import { datTrangTri, datCuaCong } from './trangtri.js';
-import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, tiLeDung, datChop, oCum, datMai } from './mattien.js';
+import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, tiLeDung, datChop, oCum, boTriDo, datMai } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 
 const $ = (id) => document.getElementById(id);
@@ -367,7 +367,7 @@ function loCanh(k, i, x1, z1, x2, z2) {
   // cửa sổ mở được: tường ngoài Palas, hàng cửa nằm gọn trong phòng tầng ba → khoét lỗ thật ở ô giữa (bố cục chung với khung cửa 3D: mattien.js bocCuc)
   if (k.trongPalas && k._yMong != null && kcVien((x1 + x2) / 2, (z1 + z2) / 2, NOI.palas.v) <= 0.6 && !huongRaSan(x1, z1, x2, z2)) { // mặt hướng sân trên dựng riêng theo ảnh (datMatPalas) → không khoét theo bố cục chung
     const [mNua, mCao] = O_MO.ba, doTu = CUA_SO[`${k.id}#${i}`];
-    if (doTu?.hang?.length) { for (const h of doTu.hang) for (const c of h.cum) for (const o of oCum(c, h).o) if (o.y0 >= NOI.y3 - 0.6 && o.y1 <= NOI.y3 + NT.caoTang3 - 0.2) lo.push({ ...o, cuaSo: true }); }
+    if (doTu?.hang?.length) { for (const { d } of boTriDo(doTu.hang, k._y1)) for (const o of d.o) if (o.y0 >= NOI.y3 - 0.6 && o.y1 <= NOI.y3 + NT.caoTang3 - 0.2) lo.push({ ...o, cuaSo: true }); }
     else for (const h of bocCuc({ L, yMong: k._yMong, y1: k._y1, palas: true, neo: NEO_HANG })) if (h.y >= NOI.y3 - 0.3 && h.y + mCao <= NOI.y3 + NT.caoTang3 - 0.2) for (const s of h.ds) lo.push({ s0: s - mNua, s1: s + mNua, y0: h.y, y1: h.y + mCao, cuaSo: true });
   }
   if (k === NOI.thap && i === NOI.canhCua) lo.push({ s0: L / 2 - 0.95, s1: L / 2 + 0.95, y0: NOI.yCua - 0.5, y1: NOI.yCua + 2.7 });
@@ -1129,6 +1129,13 @@ const nhieuNguoi = di ? taoNhieuNguoi({ THREE, scene, lau: 'neuschwanstein', nut
 function phongHienTai() { if (!noiThat || !di?.dang) return null; const p = di.viTri(); return noiThat.phongTai(p.x, p.y - 0.9, p.z); }
 window.__ns.cuaSo = { CUA, timCua, sanSauCua, moCuaVao, gan: () => ganCua };
 window.__ns.kiemKe = () => KIEM_KE;
+// CHỒNG LẤN: hai ô cửa cùng một mặt tường mà khung chạm nhau (kể cả cửa dựng theo luật chung) → danh sách cặp (scripts/kiem-ke.mjs báo lỗi)
+window.__ns.chongLan = () => { const theoMat = new Map(); for (const c of CUA) { if (!c.mat) continue; (theoMat.get(c.mat) || theoMat.set(c.mat, []).get(c.mat)).push(c); } const ra = [];
+  for (const [mat, ds] of theoMat) for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++) { const a = ds[i], b = ds[j], ux = -a.nz, uz = a.nx, sa = a.x * ux + a.z * uz, sb = b.x * ux + b.z * uz;
+    // so theo KHUNG NGOÀI (viền đá, vòm bao) — lòng kính tách nhau mà khung vẫn đè là đúng lỗi nhìn thấy; ô cùng một cụm (cum) không tính
+    const va = a.vien || { ngang: 0.25, tren: 0.4 }, vb = b.vien || { ngang: 0.25, tren: 0.4 }; if (a.cum != null && a.cum === b.cum && Math.abs(a.y - b.y) < 0.01) continue;
+    if (Math.abs(sa - sb) < a.nua + va.ngang + b.nua + vb.ngang - 0.05 && a.y - 0.15 < b.y + b.cao + vb.tren - 0.05 && b.y - 0.15 < a.y + a.cao + va.tren - 0.05 && !(Math.abs(sa - sb) < 0.01 && Math.abs(a.y - b.y) < 0.01)) ra.push({ mat, a: [+sa.toFixed(2), +a.y.toFixed(2)], b: [+sb.toFixed(2), +b.y.toFixed(2)] }); }
+  return ra; };
 // khung một mặt tường "khối#cạnh": hai đầu p, q, pháp tuyến ngoài n, mặt đất trước tường, đỉnh tường (mái hiên) y1, đỉnh khối yTren (scripts/kiem-ke.mjs kiểm khung)
 window.__ns.matTuong = (id) => { const [kid, si] = id.split('#'), k = dsKhoi.find((q) => q.id === kid), i = +si; if (!k || !Number.isFinite(i)) return null;
   const p = k.v[i], q = k.v[(i + 1) % k.v.length], L = Math.hypot(q[0] - p[0], q[1] - p[1]), nx = (q[1] - p[1]) / L, nz = -(q[0] - p[0]) / L;

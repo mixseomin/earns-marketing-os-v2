@@ -20,9 +20,33 @@ export function bocCuc({ L, yMong, y1, palas = false, coVom = false, yDat = 0, n
 // + các ô mở (dùng chung: mattien.js dựng khung · ns.js khoét lỗ thật cho ô trong dải phòng có nội thất — hai bên phải trùng nhau)
 export function oCum([s0, s1, n], hang) {
   // ảnh 3D nhoè: phần kính dò được hẹp hơn ô thật (~0,25 m so với 0,6–0,8 m) → ô tối thiểu 0,55 × 1,7 m theo cửa thật Palas, giữ tâm cụm + số ô đo được
-  const k = 0.2, w = Math.max(0.55, Math.min(0.9, (s1 - s0 + 0.2 - (n - 1) * k) / n)), h = Math.max(1.7, Math.min(3, hang.y1 - hang.y0 + 0.4)), s = (s0 + s1) / 2, y = (hang.y0 + hang.y1) / 2 - h / 2;
+  const k = 0.2, w = Math.max(0.55, Math.min(0.9, (s1 - s0 + 0.2 - (n - 1) * k) / n)), h = Math.min(hang.hMax ?? 9, Math.max(1.7, Math.min(3, hang.y1 - hang.y0 + 0.4))), s = (s0 + s1) / 2, y = (hang.y0 + hang.y1) / 2 - h / 2;
   const o = []; for (let i = 0; i < n; i++) { const c = s + (i - (n - 1) / 2) * (w + k); o.push({ s0: c - w / 2, s1: c + w / 2, y0: y, y1: y + h - w / 2 }); }
   return { n, w, h, k, s, y, o };
+}
+// BỐ TRÍ SỐ ĐO MỘT MẶT KHÔNG CHỒNG LẤN (dùng chung: mattien dựng khung · ns.js khoét lỗ — hai bên phải trùng nhau). Ảnh 3D nhoè cho hàng thấp
+// 0,9–1,2 m sát nhau; oCum nới ô tối thiểu 1,7 m → hai hàng chồng nửa thân, vòm bao cửa đôi trùm lên hàng trên (anh 16/11/2026: "chi tiết đè lên nhau").
+//   1) hàng xếp theo độ cao; mỗi hàng chỉ cao tới cách hàng kề 0,3 m (chia đôi khoảng hở) — còn < 1 m thì bỏ (hàng dò trùng)
+//   2) trong mặt: cụm có khung (kể cả vòm bao) chạm khung cụm đã đặt thì bỏ (ưu tiên hàng đếm được nhiều ô hơn)
+//   3) vòm bao lớn cho cửa đôi chỉ khi trên đỉnh ô còn ≥ 0,9 m tới hàng trên / mái hiên
+// Trả [{ c, h, d, vom }] — h là hàng đã thu gọn (y0, y1), d = oCum(c, h).
+export function boTriDo(hang, yTran = Infinity) {
+  const H = hang.map((h) => ({ ...h, n: h.cum.reduce((t, c) => t + c[2], 0) })).sort((a, b) => a.y0 - b.y0);
+  const khoang = H.map((h) => { const d0 = oCum([0, 1, 1], h); return [d0.y - 0.1, d0.y + d0.h + 0.15]; }); // bao đứng của hàng sau khi nới
+  for (let i = 0; i + 1 < H.length; i++) { const tren = khoang[i][1], duoi = khoang[i + 1][0]; if (tren > duoi - 0.3) { const g = (tren + duoi) / 2; khoang[i][1] = g - 0.15; khoang[i + 1][0] = g + 0.15; } }
+  const ra = [], dat = [];
+  const thu = H.map((h, i) => ({ h, i })).sort((a, b) => b.h.n - a.h.n); // hàng nhiều ô đặt trước
+  for (const { h, i } of thu) {
+    const [b0, b1] = khoang[i]; if (b1 - b0 < 1.0) continue;
+    const hh = { ...h, y0: b0 + 0.1, y1: b1 - 0.15, hMax: b1 - b0 - 0.25 }; // ô nằm gọn trong dải của hàng (hMax: oCum không nới quá dải)
+    const tran = Math.min(yTran, i + 1 < H.length ? khoang[i + 1][0] : Infinity);
+    for (const c of h.cum) {
+      const d = oCum(c, hh), W = d.n * d.w + (d.n - 1) * d.k, vom = d.n === 2 && tran - (d.y + d.h) >= 0.9, x0 = d.s - W / 2 - (vom ? 0.5 : 0.3), x1 = d.s + W / 2 + (vom ? 0.5 : 0.3), y0 = d.y - 0.15, y1 = d.y + d.h + (vom ? 0.6 : 0.15);
+      if (dat.some((b) => x0 < b[1] && b[0] < x1 && y0 < b[3] && b[2] < y1)) continue;
+      dat.push([x0, x1, y0, y1]); ra.push({ c, h: hh, d, vom });
+    }
+  }
+  return ra;
 }
 export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, matNgoai = () => ({ san: false }), cuaSo = {}, matAnh = {} }) { // matAnh: mặt có ảnh dán → không dựng cửa 3D đè lên (chỉ ghi ô mở được) // cuaSo: cửa đo từ ảnh theo "<khối>#<cạnh>" — mặt có số đo dựng theo số đo // matNgoai(x, z, nx, nz) → { san: mặt tường nhìn ra sân trong?, yDat: độ cao mặt sân trước tường } // nhe: điện thoại — vòm ít cạnh hơn
   const DA = new THREE.Color('#ece6da'), TOI = new THREE.Color('#1b1f27'), LONG = new THREE.Color('#8f8a80'), _c = new THREE.Color();
@@ -58,14 +82,16 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
       if (coAnh && !doTu?.hang?.length) continue; // mặt có ảnh dán thật (đã có cửa, gờ thật trong ảnh) → không dựng cửa 3D đoán đè lên
       if (doTu?.hang?.length && coVom && !palas) { /* mặt nhìn ra sân trong: giữ dãy vòm tầng trệt theo ảnh Josef Albert (số đo ảnh 3D không thấy vòm) — bỏ số đo */ }
       else if (doTu?.hang?.length) { // MẶT CÓ SỐ ĐO TỪ ẢNH: hàng / cụm / số ô đúng ảnh, ô trong dải phòng có lỗ thật thì không kính (mở được)
-        for (const h of doTu.hang) {
-          if (!coAnh) go.push([x1, z1, ux, uz, nx, nz, L, h.y0 - 0.35]); // mặt có ảnh dán: gờ đã có trong ảnh
-          for (const c of h.cum) {
-            const d = oCum(c, h), coLo = d.o.map((o) => lo.some((l) => l.cuaSo && Math.abs(l.s0 - o.s0) < 0.05 && Math.abs(l.y0 - o.y0) < 0.05));
-            const g = nhomCua(THREE, { n: d.n, w: d.w, h: d.h, k: d.k, cot: 0.06, vom: d.n === 2, nhe }); // cửa đôi: vòm đá lớn bao ngoài (ảnh 360° cánh Torbau; kiểu Roman)
+        const boTri = boTriDo(doTu.hang, t.y1);
+        for (const h of new Set(boTri.map((b) => b.h))) if (!coAnh) go.push([x1, z1, ux, uz, nx, nz, L, h.y0 - 0.35]); // gờ dưới mỗi hàng còn lại (mặt có ảnh dán: gờ đã có trong ảnh)
+        for (const { c, h, d, vom } of boTri) {
+          {
+            const coLo = d.o.map((o) => lo.some((l) => l.cuaSo && Math.abs(l.s0 - o.s0) < 0.05 && Math.abs(l.y0 - o.y0) < 0.05));
+            // cửa đôi: vòm đá lớn bao ngoài (ảnh 360° cánh Torbau; kiểu Roman) — chỉ khi boTriDo thấy còn chỗ phía trên
+            const g = nhomCua(THREE, { n: d.n, w: d.w, h: d.h, k: d.k, cot: 0.06, vom, nhe });
             const dat = (gg) => { gg.rotateY(goc); gg.translate(x1 + ux * d.s, d.y, z1 + uz * d.s); return gg; };
             if (!coAnh || coLo.some(Boolean)) { for (const gg of g.da) doDa.push(dat(gg)); g.toi.forEach((gg, j) => { if (!coLo[j]) doToi.push(dat(gg)); }); } // mặt có ảnh dán: ảnh đã có cửa thật — chỉ dựng khung cho cụm có ô mở được
-            d.o.forEach((o, j) => cua.push({ x: x1 + ux * (o.s0 + o.s1) / 2, y: o.y0, z: z1 + uz * (o.s0 + o.s1) / 2, nx, nz, nua: d.w / 2, cao: o.y1 - o.y0, coLo: coLo[j], ten: t.ten, mat: `${t.k?.id}#${i}` }));
+            d.o.forEach((o, j) => cua.push({ x: x1 + ux * (o.s0 + o.s1) / 2, y: o.y0, z: z1 + uz * (o.s0 + o.s1) / 2, nx, nz, nua: d.w / 2, cao: o.y1 - o.y0, coLo: coLo[j], ten: t.ten, mat: `${t.k?.id}#${i}`, vien: { ngang: vom ? 0.5 : 0.3, tren: d.w / 2 + (vom ? 0.6 : 0.15) }, cum: d.s })); // vien: khung đá ngoài lòng kính (kiểm chồng lấn)
             dem.do += d.n;
           }
         }

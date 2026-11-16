@@ -12,7 +12,7 @@ import { du, moTrang } from './chung.mjs';
 const tep = du('kiem-ke'); if (!existsSync(tep)) { console.error('chưa có', tep); process.exit(1); }
 const KK = JSON.parse(readFileSync(tep, 'utf8'));
 const { pg, dong } = await moTrang();
-const ds = await pg.evaluate(() => window.__ns.kiemKe());
+const ds = await pg.evaluate(() => window.__ns.kiemKe()), chong = await pg.evaluate(() => window.__ns.chongLan());
 const KHUNG = {}; for (const m of KK.mat) if (m.khung?.mat) KHUNG[m.khung.mat] = await pg.evaluate((id) => window.__ns.matTuong(id), m.khung.mat);
 await dong();
 let saiKhung = 0, saiViTri = 0, saiQH = 0;
@@ -45,4 +45,6 @@ for (const m of KK.mat) {
       if (!ok) saiQH++; console.log(`    ↳ tương quan ${kieu} ${a}${b ? ' ↔ ' + b : ''}: ${ok ? 'khớp' : 'SAI'}`); }
   }
 }
-console.log(`\n${dung} khớp · ${thieu} THIẾU · ${thua} thừa · ${saiKhung} sai khung · ${saiViTri} sai vị trí · ${saiQH} sai tương quan`); process.exit(thieu || saiKhung || saiViTri || saiQH ? 1 : 0);
+const matChong = [...new Set(chong.map((c) => c.mat))]; // CHỒNG LẤN toàn mô hình (mọi mặt, không riêng mặt đã kiểm kê)
+console.log(`\nCHỒNG LẤN ô cửa: ${chong.length} cặp trên ${matChong.length} mặt${chong.length ? ' — ' + matChong.slice(0, 12).join(', ') : ''}`);
+console.log(`\n${dung} khớp · ${thieu} THIẾU · ${thua} thừa · ${saiKhung} sai khung · ${saiViTri} sai vị trí · ${saiQH} sai tương quan`); process.exit(thieu || saiKhung || saiViTri || saiQH || chong.length ? 1 : 0);

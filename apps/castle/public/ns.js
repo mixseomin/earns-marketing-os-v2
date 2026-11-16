@@ -16,6 +16,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
 import { ganBaoLech } from './baolech.js';
+import { datCach3 } from './cach3.js';
 import { taoCamUng, CHAM } from './camung.js';
 import { taoChieuAnh } from './chieuanh.js';
 import { datDuong } from './duong.js';
@@ -524,6 +525,7 @@ const vlTu = (t, o = {}) => { for (const x of [t.map, t.bump]) x && x.wrapS && (
 // mặt tiền: vân TRƠN (matTron) — cửa sổ là hình 3D của mattien.js, không vẽ lên vân nữa
 const VL = { mong: vlTu(T.daVoi(T.rngTu(9)), { bump: 3 }), // móng / tường chắn: đá vôi sáng như ảnh thật (trước vân đá xám tối, anh 16/11/2026)
    mat: vlTu(T.matTron(r1), { mau: true }), da: vlTu(T.daVoi(r1), { mau: true }), mai: vlTu(T.daPhien(r1), { ro: 0.5, mau: true }) };
+const LOP_NHA_TU = LOP_OSM.length; // từ đây tới LOP_NHA_DEN: lớp LÂU ĐÀI của cách dựng cũ (nút 🧩 Cách 3 ẩn / hiện để so)
 for (const [ten, G] of Object.entries(NHOM)) {
   if (!G.p.length) continue;
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(G.p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(G.uv, 2));
@@ -661,6 +663,23 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
   if (CHOP?.chop?.length) for (const m of datChop({ THREE, mergeGeometries, ds: CHOP.chop, nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
   console.info('[ns] mặt tiền chi tiết:', JSON.stringify({ ...dem, thapGoc: goc.length, chop: CHOP?.chop?.length || 0 }));
 }
+const LOP_NHA = new Set(LOP_OSM.slice(LOP_NHA_TU));
+// CÁCH 3 (anh 16/11/2026): lâu đài dựng từ bản đồ độ cao thật (cach3.js, du-lieu/<lâu>-cach3.json) — lớp XEM để so với cách cũ; đi bộ / va chạm vẫn theo cách cũ
+const CACH3 = { bat: false, g: null };
+const DU_CACH3 = await fetch(`./du-lieu/${ten}-cach3.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+function datCach3Hien(bat) {
+  if (bat && !CACH3.g && DU_CACH3) { const khoiTai = (x, z) => dsKhoi.find((k) => !(k.vo && k.coPart) && trongDa(x, z, k.v)) || dsKhoi.filter((k) => !(k.vo && k.coPart)).sort((a, b) => Math.hypot(...tamDa(a.v).map((v, i) => v - [x, z][i])) - Math.hypot(...tamDa(b.v).map((v, i) => v - [x, z][i])))[0];
+    const daMau = new Map(), mauTuong = (x, z) => { const k = khoiTai(x, z); if (!k) return new THREE.Color('#e3ddd0'); if (!daMau.has(k.id)) daMau.set(k.id, mauOSM(k.tags['building:colour'], new THREE.Color('#e3ddd0')).lerp(new THREE.Color('#e3ddd0'), 0.25)); return daMau.get(k.id); };
+    CACH3.g = datCach3({ THREE, du: DU_CACH3, datThat, mauTuong }); scene.add(CACH3.g); LOP_OSM.push(CACH3.g); console.info('[ns] cách 3:', CACH3.g.userData.tamGiac, 'tam giác'); }
+  CACH3.bat = bat && !!CACH3.g; apHienCach3();
+  if ($('b-cach3')) { $('b-cach3').classList.toggle('chinh', CACH3.bat); $('b-cach3').title = CACH3.bat ? 'Đang xem CÁCH 3 (khối khớp lưới ảnh 3D). Bấm để về cách dựng cũ' : 'Xem CÁCH 3: lâu đài dựng từ bản đồ độ cao thật của ảnh 3D (so với cách dựng cũ)'; }
+  try { localStorage.setItem('ns-cach3', CACH3.bat ? '1' : '0'); } catch {}
+}
+$('b-cach3').onclick = (e) => { e.stopPropagation(); datCach3Hien(!CACH3.bat); };
+{ let nho = '0'; try { nho = localStorage.getItem('ns-cach3') || '0'; } catch {} if (nho === '1') datCach3Hien(true); } // nhớ lựa chọn qua F5
+function apHienCach3() { // gọi lại sau mọi chỗ đặt hiện / ẩn LOP_OSM (lớp ảnh thật 3D, so ảnh)
+  if (LOP_OSM.dangAn) { if (CACH3.g) CACH3.g.visible = false; return; }
+  for (const m of LOP_NHA) m.visible = !CACH3.bat; if (CACH3.g) CACH3.g.visible = CACH3.bat; }
 { // mặt Palas hướng sân trên: tranh thánh George + Đức Mẹ Bavaria, ban công (mattien.js datMatPalas); sân trong lát đá
   const san = SAN_TRONG, tot = MAT_PALAS;
   if (san) {
@@ -670,7 +689,7 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
       const tl = new THREE.TextureLoader(), TR = {};
       for (const ten of ['palas-thanh-george', 'palas-duc-me']) try { const t = await tl.loadAsync(`./du-lieu/anh/ngoai/${ten}.jpg`); t.colorSpace = THREE.SRGBColorSpace; TR[ten] = t; } catch (e) { console.warn('[ns] không tải được tranh mặt Palas', ten, e); }
       const mp = datMatPalas({ THREE, mergeGeometries, tuong: tot, tranh: TR }); CUA.push(...(mp.cua || []));
-      for (const m of mp) { m.visible = !LOP_OSM.dangAn; scene.add(m); LOP_OSM.push(m); } // cờ trên LOP_OSM (khai sớm) — anh3d khai sau, đọc ở đây dễ dính lỗi chưa khai báo
+      for (const m of mp) { m.visible = !LOP_OSM.dangAn && !CACH3.bat; scene.add(m); LOP_OSM.push(m); LOP_NHA.add(m); } // cờ trên LOP_OSM (khai sớm) — anh3d khai sau, đọc ở đây dễ dính lỗi chưa khai báo
     })();
     // sân lát đá: lưới ô 1,5 m bám mặt đất thật trong mặt bằng sân trên (OSM courtyard), nhô 6 cm
     const p = [], uv = [], B = 1.5; let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9; for (const [x, z] of san) { a0 = Math.min(a0, x); a1 = Math.max(a1, x); b0 = Math.min(b0, z); b1 = Math.max(b1, z); }
@@ -1260,7 +1279,7 @@ function apDungAnh3d() {
   const p = di?.dang ? di.viTri() : null, gan = !!p && Math.hypot(p.x + 30, p.z - 30) < 260;
   const hien = anh3d.epHien || (anh3d.bat && !dangSo && !gan); if (hien === anh3d.hien) return; anh3d.hien = hien; // epHien: báo lệch đang chụp bản ảnh thật (kể cả khi đi bộ gần)
   anh3d.goc.visible = hien; if (!hien) $('nguon-3d').textContent = '';
-  LOP_OSM.dangAn = hien; for (const m of LOP_OSM) m.visible = !hien && !(dangSo && RUNG.includes(m)); for (const c of CAY_VA) c.setEnabled(!hien); // so ảnh: rừng giữ ẩn (moSo đã ẩn, không bật lại ở đây)
+  LOP_OSM.dangAn = hien; for (const m of LOP_OSM) m.visible = !hien && !(dangSo && RUNG.includes(m)); for (const c of CAY_VA) c.setEnabled(!hien); apHienCach3(); // so ảnh: rừng giữ ẩn (moSo đã ẩn, không bật lại ở đây)
   if (!hien) LOP_OSM.vaDat?.setEnabled(true); for (const c of anh3d.va.values()) for (const k of c) k.setEnabled(hien); // lưới đất: capNhatAnh3d chỉ tắt khi dưới chân đã có va chạm ô
 }
 (async () => { // chạy NỀN: không chặn vòng vẽ / vật lý chờ tải thư viện (trước đây trang đứng mấy giây đầu)

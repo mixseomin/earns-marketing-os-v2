@@ -13,6 +13,13 @@ Công cụ chạy trên **iMac** (có trình duyệt). Lõi chung: `scripts/chun
 | `<tên>-anh.json` + `du-lieu/anh/` | `node scripts/tai-anh-doi-chieu.mjs <tên> "File:…"` | ảnh Commons có toạ độ chỗ đứng chụp, ghi tác giả + giấy phép |
 | ảnh 3D Google | `du-lieu/google3d.json` (token web Cesium, vault #697) | nguồn hình khối + mặt tường mọi phía |
 
+## 1a. CÁCH 3 — khối khớp lưới ảnh 3D (anh chốt 16/11/2026, xem song song bằng nút 🧩)
+
+Cách chuyên gia dựng lại công trình thật: lấy lưới đo thật (photogrammetry / ảnh 3D Google) làm khối mẫu, dựng khối sạch bám theo, rồi gắn bộ chi tiết.
+`node apps/castle/scripts/khop-khoi.mjs --lau <tên> [B=0.4] [NOI=2.5]` chụp ảnh 3D TỪ TRÊN XUỐNG (camera trực giao, ghi thẳng độ cao thế giới vào ảnh số thực)
+→ `<tên>-cach3.json` (độ cao thật mỗi ô + loại vật liệu); `public/cach3.js` dựng mặt trên theo độ cao thật + tường đứng ở chỗ đổi bậc, bỏ ô sát đất (< 2 m).
+Bước kế: gắn bộ chi tiết (cửa, răng cưa, tháp canh… — trangtri.js / mattien.js) lên mặt tường cách 3; va chạm / đi bộ vẫn theo cách cũ tới khi cách 3 đủ chi tiết.
+
 ## 1. Hình khối (LOD2)
 
 1. `node scripts/do-khoi-google.mjs --lau <tên>` → `<tên>-nen.json`: mặt đất thật quanh công trình, mặt sân, lệch từng khối OSM so với ảnh 3D (đo cặp từng điểm). Trang dùng ngay: mốc chân nhà, chiều cao khối.

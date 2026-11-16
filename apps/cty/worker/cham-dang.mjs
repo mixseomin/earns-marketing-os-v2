@@ -246,10 +246,23 @@ export const htmlBaiViet = (d, anh = null, taAnh = '') => {
   return `<article>${dau}${hinh}${String(d.description ?? '').split(/\n\s*\n/).map((p) => `<p>${e(p)}</p>`).join('')}</article>`;
 };
 /** Kết quả kiem-bai cho đúng bản của bài viết: 'DUYET' | 'SUA_LAI' | 'KHONG_DUYET' | 'CHO'. Chưa nộp thì nộp (url bai://<máy>/<slug>, khoa = md5 chữ đăng). */
+/** Bản gửi phòng của một bài viết: url bai://<máy>/<slug> + html + khoa = md5 của ĐÚNG bản HTML gửi phòng (chữ đăng + ảnh + cách dựng bản gửi):
+ *  sửa bài HAY sửa cách dựng bản gửi đều là bản mới, phải chấm lại. */
+export const banBaiViet = (v) => { const html = htmlBaiViet(v.dang, v.nen_url, v.de?.truy); return { url: `bai://${v.ma}/${v.slug}`, html, khoa: createHash('md5').update(html).digest('hex') }; };
+/** BÀI VIẾT CHƯA DUYỆT CHỈ CHẤM LẠI KHI CÓ GÌ ĐỔI (anh 16/11/2026 "Ngọc đang bị chấm đi chấm lại quá nhiều lần cho 1 bài"): điều kiện SQL
+ *  "bài viết chưa DUYỆT: xét lại mỗi lượt" chọn theo TRẠNG THÁI nên 3 bài Astrolas SỬA LẠI bị chấm lại MỖI PHÚT dù bản gửi phòng và kết quả phòng không đổi.
+ *  Chấm lại khi: chưa chấm · bản xuất / chữ đăng đổi · bản gửi phòng đổi (khoa) · phòng trả kết quả khác lần trước (ket: kết quả ketKhoa hiện tại, 'CHO' = đang chờ phòng, 'HET_LUOT' = hết lượt chờ anh mở khoá, null = chưa nộp)
+ *  · luật hình đổi (hinh_v cũ mà bị chặn vì logo lạ). Thuần. */
+export function canChamLaiBai(v, khoa, ket) {
+  const c = v.cham; if (!c || c.ket === 'DUYET') return true;
+  if (c.xuat !== v.xuat || c.dang !== v.dang_md5) return true;
+  if ((Number(c.hinh_v) || 1) < HINH_V && JSON.stringify(c).includes('logo / watermark lạ')) return true;
+  if (ket == null) return true;   // bản này chưa nộp phòng (vd anh vừa mở khoá) → lượt này nộp
+  return c.bai_khoa !== khoa || (ket !== 'CHO' && c.bai_ket !== ket);
+}
 async function kiemBaiViet(v) {
-  // khoá = md5 của ĐÚNG bản HTML gửi phòng (chữ đăng + ảnh + cách dựng bản gửi): sửa bài HAY sửa cách dựng bản gửi đều là bản mới, phải chấm lại
-  const { ketKhoa, nopBai } = await import('./kiem-bai.mjs'), { createHash } = await import('node:crypto');
-  const html = htmlBaiViet(v.dang, v.nen_url, v.de?.truy), khoa = createHash('md5').update(html).digest('hex'), url = `bai://${v.ma}/${v.slug}`, k = ketKhoa(url, khoa);
+  const { ketKhoa, nopBai } = await import('./kiem-bai.mjs');
+  const { html, khoa, url } = banBaiViet(v), k = ketKhoa(url, khoa);
   if (k) return k;
   try { nopBai({ url, tu: 'claude', html, loai: v.dang.loai_bai ?? (v.dang.cau_hoi ? 'tra-loi-hoi-dap' : 'bai-dich-mxh'), khoa }); return 'CHO'; }
   catch (e) { return `không nộp được: ${String(e.message).slice(0, 120)}`; }   // hết lượt sửa → SỬA LẠI kèm lý do, anh mở khoá trên Telegram
@@ -364,7 +377,8 @@ export async function xetThumbAi(ds) {
 /** Chấm mọi video đang dùng chưa chấm hoặc đã xuất lại sau lần chấm. Trả { cham, duyet, sua, theoMau: { mau: { n, loi: {lỗi: số} } } }. */
 export async function chamMoi(sql) {
   // chấm lại khi xuất lại (xuat) HOẶC chữ đăng đổi (dang = md5 của dang) — đổi tiêu đề mà không xuất lại vẫn phải qua phòng
-  const ds = await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, m.muc_dich, m.site_dich, v.anh, v.khung,
+  const { ketKhoa, soLuot, TRAN_LUOT } = await import('./kiem-bai.mjs');
+  const ds = (await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, m.muc_dich, m.site_dich, v.anh, v.khung,
       true as can_goc,   -- 31/10/2026: mọi bài phải có góc (trước: chỉ bài tạo từ MOC_GOC)
       (select count(*)::int from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') as trung
     from xv_may_video v join xv_may m on m.id = v.may_id
@@ -374,7 +388,12 @@ export async function chamMoi(sql) {
            or (m.mau = 'video-ngoai' and v.cham->>'thumb' is distinct from v.de->'thumb'->>'url')   -- thumbnail đổi là chấm lại
            or (v.dang->>'loai' = 'bai' and v.cham->>'ket' is distinct from 'DUYET')   -- bài viết chưa DUYỆT: xét lại mỗi lượt (bản gửi phòng có thể đã đổi)
            or (v.cham->>'ket' = 'DUYET' and (select count(*) from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') > 1))
-    order by v.id`;
+    order by v.id`).filter((v) => {
+      if (v.dang?.loai !== 'bai') return true;
+      const { url, khoa } = banBaiViet(v); v.bai_khoa = khoa;
+      v.bai_ket = ketKhoa(url, khoa) ?? (soLuot(url) >= TRAN_LUOT ? 'HET_LUOT' : null);
+      return canChamLaiBai(v, khoa, v.bai_ket);
+    });
   const kq = { cham: 0, duyet: 0, sua: 0, theoMau: {} };
   const loiGoc = await kiemGoc(ds.map((v) => ({ goc: v.dang?.goc, goc_sp: v.goc_sp })));
   const suThat = new Map();   // tệp sự thật đã kiểm của từng máy (apps/xuong-video/su-that/<máy>.md) — không có thì null
@@ -395,7 +414,7 @@ export async function chamMoi(sql) {
       const k = await kiemBaiViet(v); if (k === 'CHO') continue; kiem = k;
     }
     const r = doBaiDang({ ...v, xuat_luc: v.xuat, goc_loi: loiGoc[i], hook_loi: loiHookNgach[i], hinh: hinh[i], su_that: suThatCua(v.ma), kiem }, '');
-    await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, dang: v.dang_md5, thumb: v.de?.thumb?.url ?? null, hinh_v: HINH_V, luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
+    await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, dang: v.dang_md5, thumb: v.de?.thumb?.url ?? null, hinh_v: HINH_V, ...(v.bai_khoa ? { bai_khoa: v.bai_khoa, bai_ket: v.bai_ket } : {}), luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
     kq.cham++; r.ket === 'DUYET' ? kq.duyet++ : kq.sua++;
     const t = (kq.theoMau[v.ma] ??= { ten: v.ten, n: 0, sua: 0, loi: {} }); t.n++;
     if (r.ket !== 'DUYET') { t.sua++; for (const l of r.chan_cung.length ? r.chan_cung : [`điểm ${r.diem}/10 < ${DIEM_DUYET}`]) t.loi[l] = (t.loi[l] ?? 0) + 1; }
@@ -627,6 +646,18 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   t.ok(doBaiDang({ ...qa, kiem: 'SUA_LAI' }).chan_cung.some((x) => x.includes('SUA_LAI')), 'kiem-bai SỬA LẠI = chặn');
   t.ok(doBaiDang({ ...qa, kiem: 'DUYET', dang: { ...qa.dang, cau_hoi: null } }).chan_cung.some((x) => x.includes('ảnh thật')), 'bài Substack thiếu ảnh = chặn');
   t.equal(doBaiDang({ ...qa, kiem: 'DUYET', dang: { ...qa.dang, cau_hoi: null, description: 'x', html: `<p>${tot.dang.description}</p>` }, nen_url: tot.nen_url }).chan_cung.filter((x) => x.includes('link')).length, 0, 'link nằm trong html cũng tính');
+  { // chấm lại bài viết chỉ khi có gì đổi (16/11/2026: 3 bài Astrolas SỬA LẠI bị chấm mỗi phút)
+    const v = { xuat: 'x1', dang_md5: 'd1', cham: { ket: 'SUA_LAI', xuat: 'x1', dang: 'd1', hinh_v: HINH_V, bai_khoa: 'k1', bai_ket: 'SUA_LAI' } };
+    t.equal(canChamLaiBai(v, 'k1', 'SUA_LAI'), false, 'không đổi gì = không chấm lại');
+    t.equal(canChamLaiBai(v, 'k1', 'CHO'), false, 'đang chờ phòng cùng bản = không chấm lại');
+    t.equal(canChamLaiBai(v, 'k2', 'CHO'), true, 'bản gửi phòng đổi = chấm lại');
+    t.equal(canChamLaiBai(v, 'k1', 'DUYET'), true, 'phòng trả kết quả mới = chấm lại');
+    t.equal(canChamLaiBai({ ...v, xuat: 'x2' }, 'k1', 'SUA_LAI'), true, 'xuất lại = chấm lại');
+    t.equal(canChamLaiBai({ ...v, cham: { ...v.cham, bai_khoa: undefined } }, 'k1', 'SUA_LAI'), true, 'sổ cũ chưa có khoá = chấm một lần để ghi khoá');
+    t.equal(canChamLaiBai({ ...v, cham: null }, 'k1', null), true, 'chưa chấm = chấm');
+    t.equal(canChamLaiBai({ ...v, cham: { ...v.cham, bai_ket: 'HET_LUOT' } }, 'k1', 'HET_LUOT'), false, 'hết lượt chờ anh = không chấm lại');
+    t.equal(canChamLaiBai({ ...v, cham: { ...v.cham, bai_ket: 'HET_LUOT' } }, 'k1', null), true, 'anh mở khoá (chưa nộp) = nộp lại');
+  }
   t.ok(htmlBaiViet({ title: 'Q', description: 'a\n\nb' }).includes('<p>b</p>'), 'bọc đoạn cho kiem-bai');
   t.ok(htmlBaiViet({ title: 'Q', description: 'a' }, 'https://images.pexels.com/x.jpg').includes('<img src="https://images.pexels.com/x.jpg"'), 'ảnh bìa vào bản gửi kiem-bai');
   { const h = htmlBaiViet({ title: 'How is BAH calculated?', description: 'a', cau_hoi: 'https://www.quora.com/q' }, 'https://images.pexels.com/x.jpg', 'moving boxes');

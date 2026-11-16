@@ -16,6 +16,13 @@ const CSS = `
 #bl .hang { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--mo); font-size: 13px; }
 #bl .kq { font-size: 13px; min-height: 18px; } #bl .kq.loi { color: #ff9a8a; }
 #bl button { font: 600 13px system-ui, sans-serif; color: var(--chu); background: rgba(255,255,255,.08); border: 1px solid var(--vien); border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+@keyframes blChay { 0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245,158,11,.6) } 50% { transform: scale(1.14); box-shadow: 0 0 0 6px rgba(245,158,11,0) } }
+@keyframes blNhay { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,.9); border-color: #4ade80 } 100% { box-shadow: 0 0 0 14px rgba(74,222,128,0) } }
+.bl-dang { animation: blChay .9s ease-in-out infinite; border-color: #f59e0b !important; }
+.bl-xong { animation: blNhay .7s ease-out 3; }
+#bl-bao { position: fixed; right: 16px; bottom: 76px; z-index: 9; width: min(380px, calc(100vw - 32px)); padding: 12px 14px; background: var(--o); border: 1px solid #4ade80; border-radius: 12px; color: var(--chu); font-size: 13px; display: none; backdrop-filter: blur(6px); }
+#bl-bao b { color: #4ade80; } #bl-bao .dong { float: right; cursor: pointer; color: var(--mo); background: none; border: none; font-size: 15px; } #bl-bao p { margin: 6px 0 0; white-space: pre-wrap; } #bl-bao a { color: #ffd9a8; }
+#bl-bao.dang { border-color: #f59e0b; } #bl-bao.dang b { color: #f59e0b; }
 #bl button.chinh { background: #ffd9a8; color: #1a1208; border-color: #ffd9a8; } #bl button:disabled { opacity: .55; cursor: default; }`;
 
 export function ganBaoLech({ nut, chupHai }) {
@@ -80,7 +87,26 @@ export function ganBaoLech({ nut, chupHai }) {
     } catch (e) { kq.textContent = 'Gửi không được: ' + (e.message || e); kq.className = 'kq loi'; }
     gui.disabled = false;
   }
-  nut.onclick = (e) => { e.stopPropagation(); mo(); };
+  // TRẠNG THÁI XỬ LÝ (castle-kenh /mp/lech, CLI so-lech.mjs ghi): hỏi mỗi 3 s kể cả khi tab không focus — đang có việc → nút 🔍 nhún viền vàng,
+  // di chuột / chạm giữ thấy đang làm gì; có báo cáo xong MỚI (chưa xem trên máy này) → nút nháy xanh + thẻ báo cáo góc phải dưới, bấm ✕ là đã xem
+  const bao = document.createElement('div'); bao.id = 'bl-bao'; document.body.append(bao);
+  let daXem = 0; try { daXem = +localStorage.getItem('ns-lech-da-xem') || 0; } catch {}
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  async function hoiTT() {
+    try {
+      const r = await fetch('/mp/lech', { cache: 'no-store' }); if (!r.ok) return; const j = await r.json();
+      const dang = (j.dang || []).filter((x) => Date.now() - x.luc < 6 * 3600e3), moi = (j.xong || []).filter((x) => x.luc > daXem);
+      nut.classList.toggle('bl-dang', dang.length > 0 && !moi.length);
+      nut.title = dang.length ? `Đang xử báo lệch: ${dang.map((x) => '#' + x.id + ' ' + x.viec).join(' · ')}` : 'Báo chỗ ảnh thật khác mô hình 3D ở đúng góc đang nhìn (máy tự so hai bản, đánh dấu vùng lỗi nếu muốn)';
+      if (moi.length) { if (!nut.classList.contains('bl-xong')) { nut.classList.add('bl-xong'); }
+        bao.className = ''; bao.innerHTML = '<button class="dong" title="Đã xem">✕</button>' + moi.map((x) => `<b>✅ Báo lệch #${esc(x.id)} đã xong</b><p>${esc(x.tom)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">xem</a>` : ''}</p>`).join('<hr style="border:0;border-top:1px solid var(--vien)">');
+        bao.style.display = 'block'; bao.querySelector('.dong').onclick = () => { daXem = Math.max(...moi.map((x) => x.luc)); try { localStorage.setItem('ns-lech-da-xem', String(daXem)); } catch {} bao.style.display = 'none'; nut.classList.remove('bl-xong'); hoiTT(); }; }
+      else if (dang.length && bao.dataset.mo !== '0') { bao.className = 'dang'; bao.innerHTML = '<button class="dong">✕</button>' + dang.map((x) => `<b>⏳ Đang xử #${esc(x.id)}</b><p>${esc(x.viec)}</p>`).join(''); bao.style.display = 'block'; bao.querySelector('.dong').onclick = () => { bao.dataset.mo = '0'; bao.style.display = 'none'; }; }
+      else if (bao.className === 'dang') bao.style.display = 'none';
+    } catch { /* mạng chập: lượt sau hỏi lại */ }
+  }
+  hoiTT(); setInterval(hoiTT, 3000);
+  nut.onclick = (e) => { e.stopPropagation(); bao.dataset.mo = '1'; mo(); }; // bấm nút: thẻ "đang xử" hiện lại nếu đã tắt
   $q('.dong').onclick = dong; gui.onclick = guiDi; $q('.xoa').onclick = () => { net.length = 0; veLai(); };
   addEventListener('keydown', (e) => { if (bl.style.display !== 'grid') return; e.stopImmediatePropagation(); if (e.key === 'Escape') dong(); }, true);
   return { mo, dong };

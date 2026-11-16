@@ -38,8 +38,25 @@ async function danhTinh(cookie = '', url = null) {
   if (!r) return null; const v = { id: String(r.id), ten: String(r.ten).slice(0, 24), het: Date.now() + 60_000 }; cache.set(tok, v); return v;
 }
 
+// TRẠNG THÁI BÁO LỆCH (nút 🔍): CLI scripts/so-lech.mjs báo đang xử / đã xong qua POST /mp/lech (chỉ từ chính máy chủ — CLI chạy lệnh qua ssh, curl 127.0.0.1);
+// trang hỏi GET /mp/lech mỗi 3 s: đang có việc → nút 🔍 nhún, vừa xong → nháy xanh + hiện báo cáo. Giữ trong tệp để khởi động lại không mất.
+import { readFileSync as docTep, writeFileSync as ghiTep, mkdirSync as taoThu } from 'node:fs';
+const TEP_LECH = '/var/lib/castle-kenh/lech.json';
+let LECH = { dang: [], xong: [] }; try { LECH = JSON.parse(docTep(TEP_LECH, 'utf8')); } catch { /* chưa có tệp: bắt đầu trống */ }
+const luuLech = () => { try { taoThu('/var/lib/castle-kenh', { recursive: true }); ghiTep(TEP_LECH, JSON.stringify(LECH)); } catch (e) { console.warn('[kenh] ghi lech.json lỗi', e.message); } };
+function xuLyLech(req, res) {
+  if (req.method === 'GET') { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(LECH)); return; }
+  const ip = req.socket.remoteAddress || ''; if (req.headers['x-forwarded-for'] || !/^(::ffff:)?127\.0\.0\.1$|^::1$/.test(ip)) { res.writeHead(403).end('{}'); return; } // chỉ CLI trên máy chủ, không qua nginx
+  let b = ''; req.on('data', (c) => { b += c; if (b.length > 20000) req.destroy(); });
+  req.on('end', () => { try { const j = JSON.parse(b), id = String(j.id || '').slice(0, 40); if (!id) throw new Error('thiếu id');
+    LECH.dang = LECH.dang.filter((x) => x.id !== id); LECH.xong = LECH.xong.filter((x) => x.id !== id);
+    if (j.tt === 'dang') LECH.dang.push({ id, viec: String(j.viec || '').slice(0, 200), luc: Date.now() });
+    else LECH.xong.unshift({ id, tom: String(j.tom || '').slice(0, 1500), link: String(j.link || '').slice(0, 300), luc: Date.now() });
+    LECH.xong = LECH.xong.slice(0, 20); luuLech(); res.writeHead(200, { 'Content-Type': 'application/json' }).end('{"ok":true}'); } catch (e) { res.writeHead(400).end(JSON.stringify({ ok: false, error: e.message })); } });
+}
 const may = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
+  if (u.pathname === '/mp/lech') { xuLyLech(req, res); return; }
   if (u.pathname === '/mp/kenh') { const lau = u.searchParams.get('lau'); if (!LAU.has(lau)) { res.writeHead(400).end('{}'); return; }
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(THU ? { 'Access-Control-Allow-Origin': '*' } : {}) }).end(JSON.stringify(demKenh(lau))); return; }
   res.writeHead(404).end();

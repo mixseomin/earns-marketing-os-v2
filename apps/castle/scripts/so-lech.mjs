@@ -3,6 +3,7 @@
 // chụp hai bản (window.__ns.chupHaiBan — cùng hàm nút trên trang dùng), so viền trời + đường nét (scripts/so-lech.py), dò mỗi vùng lệch ra MẶT TƯỜNG OSM
 // ("khối#cạnh", window.__ns.diemTaiAnh) → bảng + ảnh báo cáo khung đỏ đánh số.
 //   node apps/castle/scripts/so-lech.mjs --the <id góp ý>            (đọc LECH-JSON / VUNG-JSON trong card hòm góp ý castle qua scripts/gop-y.sh trên box3)
+//   node apps/castle/scripts/so-lech.mjs --xong <id> "<đã sửa gì>" [link]   (sửa + deploy xong → nút 🔍 nháy xanh + hiện báo cáo)
 //   node apps/castle/scripts/so-lech.mjs --cam '{"p":[x,y,z],"d":[dx,dy,dz],"fov":50,"zoom":60,"w":1280,"h":800}' [--vung '[[[u,v],…]]']
 // Ra: apps/castle/.bao-lech/<id | giờ>/ (mo-hinh.png, anh-that.png, lech.json, bao-cao.png)
 // tra-repo-ok: keo nội bộ (Playwright qua chung.mjs + so ảnh PIL), dữ liệu riêng của cảnh.
@@ -11,6 +12,10 @@ import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { GOC, moTrang } from './chung.mjs';
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
+// TRẠNG THÁI cho nút 🔍 trên trang (castle-kenh /mp/lech, chỉ nhận từ máy chủ): đang xử → nút nhún; --xong → nháy xanh + hiện báo cáo cho người báo
+const baoTT = (o) => { try { execFileSync('ssh', ['root@167.233.241.16', 'curl -s -X POST --data-binary @- http://127.0.0.1:3891/mp/lech'], { input: JSON.stringify(o), encoding: 'utf8', timeout: 20000 }); } catch (e) { console.warn('(không báo được trạng thái nút 🔍:', e.message.split('\n')[0] + ')'); } };
+//   node apps/castle/scripts/so-lech.mjs --xong <id> "<đã sửa gì>" [link]   — sau khi sửa + deploy: báo xong cho trang
+if (arg('--xong')) { baoTT({ id: arg('--xong'), tt: 'xong', tom: process.argv[process.argv.indexOf('--xong') + 2] || 'Đã sửa xong.', link: process.argv[process.argv.indexOf('--xong') + 3] || '' }); console.log('đã báo xong #' + arg('--xong')); process.exit(0); }
 let cam = arg('--cam') ? JSON.parse(arg('--cam')) : null, vung = arg('--vung') ? JSON.parse(arg('--vung')) : [], nhan = arg('--the');
 if (nhan) {
   const txt = execFileSync('ssh', ['root@167.233.241.16', `GOPY_TRANG=castle.on.tc /opt/earns-marketing-os-v2/scripts/gop-y.sh show ${nhan}`], { encoding: 'utf8' });
@@ -19,6 +24,7 @@ if (nhan) {
   cam = JSON.parse(m[1]); if (v) vung = JSON.parse(v[1]);
 }
 if (!cam) { console.error('cần --the <id> hoặc --cam <json>'); process.exit(1); }
+if (nhan) baoTT({ id: nhan, tt: 'dang', viec: 'Đang so lại góc báo lệch' });
 const ra = join(GOC, '.bao-lech', nhan || new Date().toISOString().replace(/[:.]/g, '-')); mkdirSync(ra, { recursive: true });
 const k = Math.min(1, 1280 / (cam.w || 1280)), khung = { width: Math.round((cam.w || 1280) * k), height: Math.round((cam.h || 800) * k) };
 const { pg, dong } = await moTrang({ anh3d: true, khung });
@@ -38,3 +44,5 @@ execFileSync('python3', [join(GOC, 'scripts', 'so-lech.py'), ra, '--ve'], { stdi
 console.log(`\nCamera: (${hai.cam.p.join(', ')}) hướng (${hai.cam.d.join(', ')}) · góc nhìn ${hai.cam.fov}° · zoom ${cam.zoom ?? hai.cam.zoom} m · khổ ${khung.width}×${khung.height}${vung.length ? ` · ${vung.length} nét tô đỏ` : ''}`);
 L.vung.forEach((r, i) => console.log(`#${i + 1}${r.trong_vung_to ? ' [vùng tô]' : ''} điểm ${r.diem} · ${r.huong}${r.lech_m ? ` ~${r.lech_m} m` : ''} · ô ảnh u ${r.u0}–${r.u1} v ${r.v0}–${r.v1} · ${r.trung?.mat ? `mặt ${r.trung.mat}${r.trung.ten ? ' (' + r.trung.ten + ')' : ''}` : 'không trúng tường (địa hình / trời)'}${r.trung ? ` tại (${r.trung.diem.join(', ')})` : ''}`));
 console.log('\nThư mục:', ra);
+if (nhan) { const r = L.vung[0]; baoTT({ id: nhan, tt: 'dang', viec: `Đã so: ${L.vung.length} vùng lệch${r ? `, chính: ${r.huong}${r.trung?.mat ? ' ở mặt ' + r.trung.mat : ''}` : ''} — đang sửa` });
+  console.log(`\nNút 🔍 đang nhún cho #${nhan}. Sửa + deploy xong: node apps/castle/scripts/so-lech.mjs --xong ${nhan} "<đã sửa gì>"`); }

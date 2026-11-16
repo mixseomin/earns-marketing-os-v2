@@ -44,10 +44,18 @@ const kq = await pg.evaluate((D) => {
     if (mai === 'flat' && dt < 80 && dinh - k.yTren > 8) { e['roof:shape'] = 'pyramidal'; e['roof:height'] = String(+Math.min(16, (dinh - k.yTren) * 0.6 + 4).toFixed(1)); e.ly_do += ` — tháp chóp nhọn (mặt bằng ${dt.toFixed(0)} m²)`; }
     ra[k.id] = e; tt[k.id] = 'doi'; bao.push(`${k.id} ${k.tags.name || ''}: ${k.yTren.toFixed(1)} → ${dinh}${e['roof:height'] ? ` (mái ${e['roof:height']} m)` : ''}`);
   }
-  return { ra, bao, tt };
+  // ĐỈNH THẬT mọi khối lâu đài (kể cả đo tay / chồng) để lớp 🧩 Kiểm vẽ "khung thật" cạnh khung mô hình: phân vị 95 ô trong mặt bằng, bỏ ô vọt > trung vị + 6 m
+  const doDinh = {};
+  for (const k of ds) { const [cx, cz] = k.v.reduce((s, p) => [s[0] + p[0] / k.v.length, s[1] + p[1] / k.v.length], [0, 0]); if (Math.hypot(cx, cz) > 100) continue;
+    const xs = k.v.map((p) => p[0]), zs = k.v.map((p) => p[1]), a = [];
+    for (let j = Math.max(0, Math.floor((Math.min(...zs) - z0) / B)); j <= Math.min(H - 1, Math.ceil((Math.max(...zs) - z0) / B)); j++)
+      for (let i = Math.max(0, Math.floor((Math.min(...xs) - x0) / B)); i <= Math.min(W - 1, Math.ceil((Math.max(...xs) - x0) / B)); i++) { const y = D.y[j * W + i]; if (y == null) continue; const x = x0 + (i + 0.5) * B, z = z0 + (j + 0.5) * B; if (tr(x, z, k.v) && kc(x, z, k.v) >= 0.6) a.push(y); }
+    if (a.length < 12) continue; const g = pv(a, 0.5), sach = a.filter((y) => y <= g + 6);
+    doDinh[k.id] = { dinh: +pv(sach, 0.95).toFixed(2), so: a.length, chong: ds.some((q) => q !== k && (q.yDuoi ?? -1e9) > k.yTren - 1 && tr(cx, cz, q.v)) }; }
+  return { ra, bao, tt, doDinh };
 }, DSM);
 await dong();
 writeFileSync(du('sua-cach3'), JSON.stringify(kq.ra, null, 1) + '\n');
 // trạng thái từng khối: doi (cách 3 đổi) · do_tay (đo tay bằng tia, áp cả hai bản) · khop (đo khớp sẵn < 0,8 m) · chua_do (chồng / ít ô / chóp) · ngoai (ngoài lâu đài)
-writeFileSync(du('cach3-trang-thai'), JSON.stringify(kq.tt, null, 1) + '\n');
+writeFileSync(du('cach3-trang-thai'), JSON.stringify(Object.fromEntries(Object.entries(kq.tt).map(([id, t]) => [id, { tt: t, ...(kq.doDinh[id] || {}) }])), null, 1) + '\n'); // { tt, dinh (đỉnh đo trên bản đồ độ cao thật), so (số ô), chong (khối khác chồng trên → dinh là của khối trên) }
 console.log(kq.bao.join('\n')); console.log(`\n${Object.keys(kq.ra).length} khối đổi độ cao → ${du('sua-cach3')}`);

@@ -67,7 +67,7 @@
     <a class="ve" href="./">← Lâu đài dung nham</a>
   </div>
 </div>
-<div id="nut" class="o"><button id="b-di" class="chinh">🚶 Đi bộ</button><button id="b-toan" style="display:none">🗺 Toàn cảnh</button><button id="b-gy" title="Góp ý (gửi kèm ảnh màn hình + chỗ đang đứng)">💬</button><button id="b-cach3" title="Xem CÁCH 3: lâu đài dựng từ bản đồ độ cao thật của ảnh 3D (so với cách dựng cũ)">🧩</button><button id="b-lech" title="Báo chỗ ảnh thật khác mô hình 3D ở đúng góc đang nhìn (máy tự so hai bản, tô đỏ vùng lỗi nếu muốn)">🔍</button></div>
+<div id="nut" class="o"><button id="b-di" class="chinh">🚶 Đi bộ</button><button id="b-toan" style="display:none">🗺 Toàn cảnh</button><button id="b-gy" title="Góp ý (gửi kèm ảnh màn hình + chỗ đang đứng)">💬</button><button id="b-cach3" title="Xem CÁCH 3: lâu đài dựng từ bản đồ độ cao thật của ảnh 3D (so với cách dựng cũ)">🧩</button><button id="b-kiem" title="🧭 Kiểm từ tổng thể → chi tiết: khung khối / mặt tường / chi tiết tô màu đúng–sai theo kết quả máy; bấm vào lâu đài xem chỗ đó sai gì">🧭</button><button id="b-lech" title="Báo chỗ ảnh thật khác mô hình 3D ở đúng góc đang nhìn (máy tự so hai bản, tô đỏ vùng lỗi nếu muốn)">🔍</button></div>
 <div id="hd" class="o"></div>
 <div id="goiY"></div>
 <div id="doc" class="o"><b></b><div class="chu"></div><div class="mo">Nguồn: <a target="_blank" rel="noopener">trang chính thức Neuschwanstein</a> · E hoặc Esc để đóng</div></div>
@@ -88,7 +88,7 @@
 <script>
 // cùng cách nạp theo dấu phiên bản như index.html (Cloudflare zone on.tc giữ .js 30 ngày): hỏi ETag rồi nạp ./x.js?v=<ETag>
 (async () => {
-  const TEP = ['ns.js', 'tex.js', 'nguoi3d.js', 'dibo.js', 'bando.js', 'noithat.js', 'gopy.js', 'camung.js', 'mattien.js', 'nhieunguoi.js', 'chieuanh.js', 'duong.js', 'trangtri.js', 'baolech.js', 'cach3.js'];
+  const TEP = ['ns.js', 'tex.js', 'nguoi3d.js', 'dibo.js', 'bando.js', 'noithat.js', 'gopy.js', 'camung.js', 'mattien.js', 'nhieunguoi.js', 'chieuanh.js', 'duong.js', 'trangtri.js', 'baolech.js', 'cach3.js', 'danhgia.js'];
   const lay = (f) => fetch(`./${f}?ban=${Date.now()}`, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' })
     .then((r) => (r.ok && (r.headers.get('etag') || r.headers.get('last-modified')) || '').replace(/[^\w-]/g, '')).catch(() => '');
   const dau = await Promise.all(TEP.map(lay));

@@ -1,44 +1,239 @@
 {
- "way/35212310": "ngoai",
- "way/35212312": "ngoai",
- "way/221599086": "do_tay",
- "way/221599098": "do_tay",
- "way/221601953": "ngoai",
- "way/223069513": "do_tay",
- "way/223069514": "do_tay",
- "way/223069515": "do_tay",
- "way/223110818": "do_tay",
- "way/223110820": "do_tay",
- "way/223110823": "do_tay",
- "way/223110825": "do_tay",
- "way/951894999": "do_tay",
- "way/1573767743": "do_tay",
- "way/88229473": "doi",
- "way/88229631": "doi",
- "way/221599083": "doi",
- "way/221599084": "doi",
- "way/221599097": "khop",
- "way/223069511": "khop",
- "way/223069512": "doi",
- "way/223071829": "khop",
- "way/223110819": "doi",
- "way/223110824": "khop",
- "way/223116018": "chua_do",
- "way/223140028": "khop",
- "way/223140029": "doi",
- "way/223140032": "khop",
- "way/223145711": "doi",
- "way/223145712": "doi",
- "way/223145713": "doi",
- "way/223179003": "doi",
- "way/223179004": "khop",
- "way/1573692063": "khop",
- "way/1573692064": "khop",
- "way/1573692065": "khop",
- "way/1573767740": "doi",
- "way/1573767741": "doi",
- "way/1573767742": "doi",
- "way/1573767744": "doi",
- "way/1573767746": "chua_do",
- "way/1573767747": "doi"
+ "way/35212310": {
+  "tt": "ngoai"
+ },
+ "way/35212312": {
+  "tt": "ngoai"
+ },
+ "way/221599086": {
+  "tt": "do_tay",
+  "dinh": 29.4,
+  "so": 214,
+  "chong": false
+ },
+ "way/221599098": {
+  "tt": "do_tay",
+  "dinh": 67.14,
+  "so": 271,
+  "chong": true
+ },
+ "way/221601953": {
+  "tt": "ngoai"
+ },
+ "way/223069513": {
+  "tt": "do_tay",
+  "dinh": 44.96,
+  "so": 753,
+  "chong": false
+ },
+ "way/223069514": {
+  "tt": "do_tay",
+  "dinh": 67.46,
+  "so": 188,
+  "chong": false
+ },
+ "way/223069515": {
+  "tt": "do_tay",
+  "dinh": 67.03,
+  "so": 395,
+  "chong": true
+ },
+ "way/223110818": {
+  "tt": "do_tay",
+  "dinh": 30.49,
+  "so": 395,
+  "chong": false
+ },
+ "way/223110820": {
+  "tt": "do_tay",
+  "dinh": 34.62,
+  "so": 532,
+  "chong": true
+ },
+ "way/223110823": {
+  "tt": "do_tay",
+  "dinh": 34.71,
+  "so": 276,
+  "chong": true
+ },
+ "way/223110825": {
+  "tt": "do_tay",
+  "dinh": 29.65,
+  "so": 397,
+  "chong": false
+ },
+ "way/951894999": {
+  "tt": "do_tay",
+  "dinh": 34.8,
+  "so": 263,
+  "chong": false
+ },
+ "way/1573767743": {
+  "tt": "do_tay",
+  "dinh": 67.5,
+  "so": 144,
+  "chong": true
+ },
+ "way/88229473": {
+  "tt": "doi",
+  "dinh": 13.48,
+  "so": 1755,
+  "chong": false
+ },
+ "way/88229631": {
+  "tt": "khop",
+  "dinh": 11.39,
+  "so": 1214,
+  "chong": false
+ },
+ "way/221599083": {
+  "tt": "doi",
+  "dinh": 35.29,
+  "so": 47,
+  "chong": false
+ },
+ "way/221599084": {
+  "tt": "doi",
+  "dinh": 32.54,
+  "so": 48,
+  "chong": false
+ },
+ "way/221599097": {
+  "tt": "khop",
+  "dinh": 91.45,
+  "so": 106,
+  "chong": false
+ },
+ "way/223069511": {
+  "tt": "khop",
+  "dinh": 53.03,
+  "so": 37,
+  "chong": false
+ },
+ "way/223069512": {
+  "tt": "doi",
+  "dinh": 54.28,
+  "so": 157,
+  "chong": false
+ },
+ "way/223071829": {
+  "tt": "khop",
+  "dinh": 39.99,
+  "so": 121,
+  "chong": false
+ },
+ "way/223110819": {
+  "tt": "doi",
+  "dinh": 67.3,
+  "so": 2779,
+  "chong": false
+ },
+ "way/223110824": {
+  "tt": "khop",
+  "dinh": 46.66,
+  "so": 102,
+  "chong": false
+ },
+ "way/223116018": {
+  "tt": "chua_do"
+ },
+ "way/223140028": {
+  "tt": "khop",
+  "dinh": 73.95,
+  "so": 95,
+  "chong": false
+ },
+ "way/223140029": {
+  "tt": "doi",
+  "dinh": 63.8,
+  "so": 165,
+  "chong": false
+ },
+ "way/223140032": {
+  "tt": "khop",
+  "dinh": 66.52,
+  "so": 2817,
+  "chong": false
+ },
+ "way/223145711": {
+  "tt": "doi",
+  "dinh": 60.08,
+  "so": 27,
+  "chong": false
+ },
+ "way/223145712": {
+  "tt": "doi",
+  "dinh": 60.28,
+  "so": 27,
+  "chong": false
+ },
+ "way/223145713": {
+  "tt": "doi",
+  "dinh": 47.71,
+  "so": 18,
+  "chong": false
+ },
+ "way/223179003": {
+  "tt": "doi",
+  "dinh": 54.53,
+  "so": 129,
+  "chong": false
+ },
+ "way/223179004": {
+  "tt": "khop",
+  "dinh": 61.72,
+  "so": 200,
+  "chong": false
+ },
+ "way/1573692063": {
+  "tt": "khop",
+  "dinh": 48.38,
+  "so": 437,
+  "chong": false
+ },
+ "way/1573692064": {
+  "tt": "khop",
+  "dinh": 43.59,
+  "so": 104,
+  "chong": false
+ },
+ "way/1573692065": {
+  "tt": "khop",
+  "dinh": 44.01,
+  "so": 113,
+  "chong": false
+ },
+ "way/1573767740": {
+  "tt": "doi",
+  "dinh": 43.6,
+  "so": 907,
+  "chong": false
+ },
+ "way/1573767741": {
+  "tt": "doi",
+  "dinh": 41.69,
+  "so": 27,
+  "chong": false
+ },
+ "way/1573767742": {
+  "tt": "doi",
+  "dinh": 43.58,
+  "so": 253,
+  "chong": false
+ },
+ "way/1573767744": {
+  "tt": "doi",
+  "dinh": 40.65,
+  "so": 120,
+  "chong": false
+ },
+ "way/1573767746": {
+  "tt": "chua_do"
+ },
+ "way/1573767747": {
+  "tt": "doi",
+  "dinh": 90.5,
+  "so": 217,
+  "chong": false
+ }
 }

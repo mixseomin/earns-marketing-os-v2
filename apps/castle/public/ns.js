@@ -17,6 +17,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ganGopY, chupCanvas } from './gopy.js';
 import { ganBaoLech } from './baolech.js';
 import { datCach3 } from './cach3.js';
+import { ganDanhGia } from './danhgia.js';
 import { taoCamUng, CHAM } from './camung.js';
 import { taoChieuAnh } from './chieuanh.js';
 import { datDuong } from './duong.js';
@@ -119,6 +120,8 @@ const MAU_MAI = new THREE.Color('#3a4150');
 const dsKhoi = D.khoi.map((k) => {
   let v = k.ngoai[0].slice(); if (v.length > 1 && v[0][0] === v.at(-1)[0] && v[0][1] === v.at(-1)[1]) v.pop();
   if (dienTich(v) < 0) v.reverse(); // ngược chiều kim đồng hồ khi nhìn từ trên (x đông, z nam)
+  // dời mặt bằng theo ảnh 3D (sua.json dich_x / dich_z, m — đo bằng scripts/dang-ky-khoi.mjs: OSM vẽ lệch chỗ thật vài mét)
+  if (+k.tags.dich_x || +k.tags.dich_z) v = v.map(([x, z]) => [x + (+k.tags.dich_x || 0), z + (+k.tags.dich_z || 0)]);
   const f = +k.tags.phong; if (f > 0) { const [cx, cz] = tamDa(v); v = v.map(([x, z]) => [cx + (x - cx) * f, cz + (z - cz) * f]); } // sửa theo ảnh: phóng mặt bằng
   return { ...k, v, la: !!k.tags['building:part'], vo: !!k.tags.building && !k.tags['building:part'] };
 }).filter((k) => k.v.length >= 3 && (k.la || k.vo) && k.tags.building !== 'courtyard' && k.tags.building !== 'roof');
@@ -663,7 +666,7 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
       const tg = k.hinh[1], mai = (x, z) => { let y = null; for (let i = 0; i + 8 < tg.length; i += 9) { const [ax, ay, az, bx, by, bz, cx, cy, cz] = tg.slice(i, i + 9), d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz); if (Math.abs(d) < 1e-6) continue; const u = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / d, v = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / d, w = 1 - u - v; if (u < -1e-4 || v < -1e-4 || w < -1e-4) continue; const yy = u * ay + v * by + w * cy; if (y == null || yy > y) y = yy; } return y; };
       for (const c of cs) { if (c.rong < 0.8 || c.rong > 6 || c.nho > 10) continue; const y = mai(c.x, c.z); if (y == null) continue; ds.push({ ...c, y: y - 0.2 }); } }
     for (const m of datMai({ THREE, mergeGeometries, ds, nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
-    for (const [id, cs] of Object.entries(MAI?.khoi || {})) for (const c of cs || []) ghiKK(id + '#mai', c.loai === 'chop' ? 'chop' : 'cua_mai', c.y);
+    for (const [id, cs] of Object.entries(MAI?.khoi || {})) for (const c of cs || []) ghiKK(id + '#mai', c.loai === 'chop' ? 'chop' : 'cua_mai', c.y, 1, c.x, c.z);
     console.info('[ns] cửa mái / chóp trên mái (đo ảnh 3D):', ds.filter((c) => c.loai === 'cuaMai').length, '/', ds.filter((c) => c.loai === 'chop').length); }
   if (CHOP?.chop?.length) for (const m of datChop({ THREE, mergeGeometries, ds: CHOP.chop, nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
   console.info('[ns] mặt tiền chi tiết:', JSON.stringify({ ...dem, thapGoc: goc.length, chop: CHOP?.chop?.length || 0 }));
@@ -704,24 +707,7 @@ $('b-cach3').onclick = (e) => { e.stopPropagation();
   if (khungC3) { if (khungSan) { khungC3.contentWindow.postMessage({ loai: 'c3:goc', g: gocHienTai() }, location.origin); hienKhung(true); } else { choHien = true; $('b-cach3').title = 'Đang dựng sẵn cách 3… sẽ tự chuyển khi xong'; } return; }
   luuGoc(true); const q = new URLSearchParams(location.search); if (CACH === '3') q.delete('cach'); else q.set('cach', '3'); location.href = `${location.pathname}?${q}${location.hash}`; };
 if (CACH === 'dsm') datCach3Hien(true);
-// CÁCH 3: nhãn + KHUNG MÀU quanh MỌI khối theo trạng thái (anh 16/11/2026: "sao không thấy khung cho các toà còn lại — chưa xong hay chưa làm?"):
-// vàng = cách 3 đổi độ cao · xanh = đã đo tay bằng tia (áp cả hai bản) · trắng = cách 3 đo khớp sẵn · đỏ = chưa đo được (khối chồng / ít ô / chóp) — scripts/khoi-tu-dsm.mjs
-if (CACH === '3') {
-  const TT = await fetch(`./du-lieu/${ten}-cach3-trang-thai.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
-  const MAU_TT = { doi: '#ffd400', do_tay: '#3ee07a', khop: '#ffffff', chua_do: '#ff4a3a' }, TEN_TT = { doi: 'vàng: cách 3 đổi', do_tay: 'xanh: đã đo tay', khop: 'trắng: đo khớp sẵn', chua_do: 'đỏ: chưa đo được' };
-  const nhom = new THREE.Group(), dem = {}; scene.add(nhom);
-  for (const [loai, mau] of Object.entries(MAU_TT)) { const pos = [];
-    for (const [id, t] of Object.entries(TT)) { if (t !== loai) continue; const k = dsKhoi.find((q) => q.id === id); if (!k || k.yTren == null) continue; dem[loai] = (dem[loai] || 0) + 1;
-      // đáy khung = mặt đất THẤP nhất quanh chân khối (khối treo trên khối khác: chân khối) — trước lấy đất CAO nhất − 2 m nên mặt tường thấp (cổng Torbau) không có khung
-      const datThap = Math.min(...k.v.map(([x, z]) => datThat(x, z))), y0 = Math.max(k.yDuoi ?? k.day, datThap - 0.3), y1 = k.yTren;
-      for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length]; pos.push(ax, y1, az, bx, y1, bz, ax, y0, az, bx, y0, bz, ax, y0, az, ax, y1, az); } }
-    if (!pos.length) continue; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: mau, depthTest: false, transparent: true, opacity: 0.85 })); l.renderOrder = 999; nhom.add(l); }
-  const nhan = document.createElement('div'); nhan.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:6;padding:7px 12px;border-radius:10px;background:var(--o);border:1px solid #ffd400;color:var(--chu);font:600 13px system-ui;cursor:pointer;max-width:calc(100vw - 32px);text-align:center';
-  const ve = () => { nhan.innerHTML = `🧩 CÁCH 3 — khung theo trạng thái (${nhom.visible ? 'bấm để ẩn' : 'bấm để hiện'})<br><span style="font-weight:500;font-size:12px">` +
-    Object.keys(MAU_TT).filter((k) => dem[k]).map((k) => `<span style="color:${MAU_TT[k]}">■</span> ${TEN_TT[k]} ${dem[k]}`).join(' · ') + '</span>'; };
-  nhan.onclick = () => { nhom.visible = !nhom.visible; ve(); }; ve(); document.body.append(nhan);
-}
+// LỚP 🧭 KIỂM (danhgia.js): khối → mặt → chi tiết, tô màu theo kết quả máy — dựng ở cuối tệp (sau khi cửa sổ / chi tiết đã ghi sổ). Khung cũ chỉ cách 3 đã gộp vào đó.
 function apHienCach3() { // gọi lại sau mọi chỗ đặt hiện / ẩn LOP_OSM (lớp ảnh thật 3D, so ảnh)
   if (LOP_OSM.dangAn) { if (CACH3.g) CACH3.g.visible = false; return; }
   for (const m of LOP_NHA) m.visible = !CACH3.bat; if (CACH3.g) CACH3.g.visible = CACH3.bat; }
@@ -1417,3 +1403,8 @@ let laCongCu = false; try { laCongCu = localStorage.getItem('ns-anh3d-cong-cu') 
 if (!laCongCu || /[#&]g=/.test(location.hash)) khoiPhucGoc();
 ve();
 if (NHUNG) parent.postMessage({ loai: 'c3:san-sang' }, location.origin); // khung cách 3 dựng xong hẳn mới báo trang chính
+{ // 🧭 KIỂM: dữ liệu đánh giá (trạng thái khối + kết quả kiểm kê từng mặt) — có ở cả hai cách; cách 3 tự bật
+  const [TT, KQ] = await Promise.all([`${ten}-cach3-trang-thai`, `${ten}-kiem-ke-kq`].map((f) => fetch(`./du-lieu/${f}.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
+  const dg = ganDanhGia({ THREE, scene, camera, dom: renderer.domElement, nut: $('b-kiem'), dsKhoi, CUA, KIEM_KE, CUA_SO, TT, KQ: KQ.mat || {}, trongDa, datThat, diemTaiAnh });
+  if (CACH === '3' || dg.nho) dg.batTat(true); window.__ns.danhGia = dg;
+}

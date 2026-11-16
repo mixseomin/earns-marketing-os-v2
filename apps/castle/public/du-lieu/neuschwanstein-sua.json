@@ -94,7 +94,10 @@
   "roof:colour": "#6f9a8c",
   "ly_do3": "ảnh Commons neuschwanstein-9: cánh nam nhìn từ sân dưới có mái đồng xanh thấp (mặt đông khuất sau răng cưa)",
   "y_tren": "26.6",
-  "ly_do_cao": "16/11/2026 đo theo TIA camera trên ảnh 3D (thẻ #1623 \"thừa 1 tầng\"); mốc chân nhà Torbau neo theo đỉnh đo mặt bằng cũ (lẫn khối cao cạnh) nên chỉnh height vô ích — đặt ĐỘ CAO TUYỆT ĐỐI: mái hiên 25,4 (khung ảnh mặt tây 0,946) + mái 1,2"
+  "ly_do_cao": "16/11/2026 đo theo TIA camera trên ảnh 3D (thẻ #1623 \"thừa 1 tầng\"); mốc chân nhà Torbau neo theo đỉnh đo mặt bằng cũ (lẫn khối cao cạnh) nên chỉnh height vô ích — đặt ĐỘ CAO TUYỆT ĐỐI: mái hiên 25,4 (khung ảnh mặt tây 0,946) + mái 1,2",
+  "dich_x": "0",
+  "dich_z": "2.5",
+  "ly_do_dich": "dang-ky-khoi.mjs 2026-11-16: mặt bằng OSM lệch ảnh 3D (0, 2.5) m, khớp 0.698 → 0.785"
  },
  "way/221599083": {
   "roof:shape": "flat",
@@ -106,13 +109,16 @@
   "roof:shape": "flat",
   "vong_rang": "yes",
   "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): tháp tròn góc: như way/221599083",
-  "cua_thap": "3"
+  "cua_thap": "3",
+  "dich_x": "-2.75",
+  "dich_z": "0.25",
+  "ly_do_dich": "dang-ky-khoi.mjs 2026-11-16: mặt bằng OSM lệch ảnh 3D (-2.75, 0.25) m, khớp 0.68 → 0.876"
  },
  "way/221600217": {
   "neo_mat_dat": [
    [
     35.2,
-    0.0,
+    0,
     15.4
    ],
    [
@@ -136,5 +142,10 @@
  "way/221599086": {
   "y_tren": "30.0",
   "ly_do_cao": "16/11/2026 đo theo TIA camera trên ảnh 3D (thẻ #1623): khối đầu hồi góc tây nam Torbau: đỉnh ảnh 3D 29,8 m (mô hình 38)"
+ },
+ "way/88229631": {
+  "dich_x": "-0.75",
+  "dich_z": "2.75",
+  "ly_do_dich": "dang-ky-khoi.mjs 2026-11-16: mặt bằng OSM lệch ảnh 3D (-0.75, 2.75) m, khớp 0.833 → 0.945"
  }
 }

@@ -1019,8 +1019,10 @@ function doKhoiTheoTia(id, kho = null) {
   if (cot.length < 3) return { id, so: cot.length, tho };
   const pv = (a, p) => { const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(s.length * p))]; };
   const nhon = !['flat', ''].includes(k.tags['roof:shape'] || ''), p = nhon ? 0.9 : 0.5;
+  // lệch = TRUNG VỊ hiệu từng cột (cùng chỗ trên mặt tường, thật − mô hình) — trước lấy p90 mỗi phía rồi trừ: mái dốc một cột trúng khối phía sau kéo lệch cả khối
+  // (cánh Torbau #1624: mô hình cao thêm 2,6 m mà lệch nhảy 0,4 → 7,4 m). dinhAnh / dinhMoHinhTia chỉ để xem.
   const th = pv(cot.map((c) => c.th), p), mh = pv(cot.map((c) => c.mh), p);
-  return { id, ten: k.tags.name || '', so: cot.length, canh: [...new Set(cot.map((c) => c.canh))], dinhAnh: +th.toFixed(2), dinhMoHinhTia: +mh.toFixed(2), lech: +(th - mh).toFixed(2), dinhMoHinh: +k.yTren.toFixed(2),
+  return { id, ten: k.tags.name || '', so: cot.length, canh: [...new Set(cot.map((c) => c.canh))], dinhAnh: +th.toFixed(2), dinhMoHinhTia: +mh.toFixed(2), lech: +pv(cot.map((c) => c.th - c.mh), 0.5).toFixed(2), dinhMoHinh: +k.yTren.toFixed(2),
     trai: +(pv(cot.map((c) => c.th - c.mh), 0.85) - pv(cot.map((c) => c.th - c.mh), 0.15)).toFixed(2), yDuoi: Number.isFinite(k.yDuoi) ? +k.yDuoi.toFixed(2) : null, mai: k.tags['roof:shape'] || 'flat' };
 }
 // ép hiện ảnh thật ở camera hiện tại, chờ ô tải (CLI đo khối trên ảnh 3D ở đúng góc người báo)

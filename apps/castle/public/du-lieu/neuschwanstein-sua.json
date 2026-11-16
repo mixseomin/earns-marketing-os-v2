@@ -18,14 +18,18 @@
   "dam_vom": "yes",
   "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà",
   "height": "39.9",
-  "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 67.44 m, mô hình 54 m → height 26.41785606596212 → 39.9"
+  "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 67.44 m, mô hình 54 m → height 26.41785606596212 → 39.9",
+  "phong": "0.85",
+  "ly_do_ti_le": "16/11/2026 so dáng từ cầu Marienbrücke (scripts/so-dang.py + đo tia trên ảnh 3D): tháp vuông thật bắt đầu x ≈ 2 m (bản đồ độ cao), mô hình x ≈ 0 → bè tây 2 m: thu mặt bằng 15 %"
  },
  "way/223069515": {
   "y_tren": 54,
   "dam_vom": "yes",
   "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà",
   "height": "39.6",
-  "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 67.17 m, mô hình 54 m → height 26.41785606596212 → 39.6"
+  "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 67.17 m, mô hình 54 m → height 26.41785606596212 → 39.6",
+  "phong": "0.85",
+  "ly_do_ti_le": "16/11/2026 so dáng từ cầu Marienbrücke (scripts/so-dang.py + đo tia trên ảnh 3D): tháp vuông thật bắt đầu x ≈ 2 m (bản đồ độ cao), mô hình x ≈ 0 → bè tây 2 m: thu mặt bằng 15 %"
  },
  "way/1573767743": {
   "y_duoi": 53.6,
@@ -47,8 +51,10 @@
   "height": "22",
   "ly_do_tra": "16/11/2026: so-lech --tu-xu thẻ #1623 hạ còn 13,6 m là SAI (đo đỉnh lệch chỗ, đầu hồi khuất) — ảnh 3D mặt đông: đầu hồi bậc đỏ nhô cao trên hai cánh, hai hàng cửa → trả 22",
   "y_duoi": "30.0",
-  "y_tren": "39.4",
-  "ly_do_cao": "16/11/2026 đo theo TIA camera trên ảnh 3D (thẻ #1623): đầu hồi bậc đứng trên phần đỏ (28,4 — ngay trên đỉnh khối cổng kem 28,3, không che răng cưa / tháp canh của nó), đỉnh 39,4 — nhô cao trên hai cánh như ảnh"
+  "y_tren": "35.0",
+  "ly_do_cao": "16/11/2026 đo theo TIA camera trên ảnh 3D (thẻ #1623): đầu hồi bậc đứng trên phần đỏ (28,4 — ngay trên đỉnh khối cổng kem 28,3, không che răng cưa / tháp canh của nó), đỉnh 39,4 — nhô cao trên hai cánh như ảnh",
+  "roof:height": "3.0",
+  "ly_do_ti_le": "16/11/2026 so dáng từ cầu Marienbrücke (scripts/so-dang.py + đo tia trên ảnh 3D): đỉnh đầu hồi thật 34,6–35,0 m (CLI tự xử đo 35,0 là ĐÚNG — con trả 39,4 là sai), chân 30,0, mái bậc 3 m"
  },
  "way/223110820": {
   "ly_do": "cổng Torbau: OSM chồng hai khối gạch đỏ (0–17,5 m mái 1 m và 12–22 m mái dốc) cùng mặt bằng → mái thấp đâm xuyên mái dốc (vệt tối), đầu hồi bậc dựng hai lần; khối dưới dừng ở chân khối trên (ref 19,0 + 11 ≈ 30, khối trên từ 29,5), mái phẳng. Đầu hồi bậc chỉ ở way/951894999 (anh 16/11/2026)",
@@ -119,7 +125,9 @@
  },
  "way/223069513": {
   "height": "27.2",
-  "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 54.37 m, mô hình 46.2 m → height 19 → 27.2"
+  "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 54.37 m, mô hình 46.2 m → height 19 → 27.2",
+  "y_tren": "42.2",
+  "ly_do_ti_le": "16/11/2026 so dáng từ cầu Marienbrücke (scripts/so-dang.py + đo tia trên ảnh 3D): đỉnh thật 41,5–42,7 m, mô hình 44,7–45,0"
  },
  "way/223110819": {
   "height": "57.3",

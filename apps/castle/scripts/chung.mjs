@@ -29,7 +29,15 @@ export async function moTrang({ anh3d = false, them = '', khung = { width: 1600,
     const f = join(PUB, p); if (!f.startsWith(PUB) || !existsSync(f) || statSync(f).isDirectory()) { r.writeHead(404).end(); return; }
     r.writeHead(200, { 'Content-Type': LOAI[extname(f)] || 'application/octet-stream' }).end(readFileSync(f));
   });
-  await new Promise((ok, loi) => may.once('error', loi).listen(18777, '127.0.0.1', ok)).catch((e) => { console.error('cổng 18777 đang bận (tắt máy chủ tĩnh khác rồi chạy lại):', e.code); process.exit(1); });
+  // cổng 18777 là cổng DUY NHẤT khoá ảnh 3D nhận → mỗi lúc một lượt đo; lượt khác (Thắng / phiên khác) đang giữ thì XẾP HÀNG chờ tới 20 phút
+  // thay vì chết (thẻ #1629: Thắng dừng vì phiên khác đang đo)
+  for (let t0 = Date.now(), bao = false; ;) {
+    const loi = await new Promise((ok) => { may.once('error', ok); may.listen(18777, '127.0.0.1', () => ok(null)); });
+    if (!loi) break;
+    if (loi.code !== 'EADDRINUSE' || Date.now() - t0 > 20 * 60e3) { console.error('cổng 18777 vẫn bận sau 20 phút:', loi.code); process.exit(1); }
+    if (!bao) { console.error('cổng 18777 đang có lượt đo khác — xếp hàng chờ (tối đa 20 phút)…'); bao = true; }
+    await new Promise((ok) => setTimeout(ok, 5000));
+  }
   const { chromium } = await import(PW);
   const b = await chromium.launch({ args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
   const pg = await b.newPage({ viewport: khung });

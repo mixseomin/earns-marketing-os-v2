@@ -140,6 +140,37 @@ const NEN_LUOI = (() => {
   // mất cầu thang OSM nối hai sân; ngoài đời sân trên phẳng ở mặt sân đo được (NEN.san) — trong mặt bằng sân (OSM courtyard) đặt đúng mức đó
   const sanV = D.khoi.find((k) => k.tags.building === 'courtyard')?.ngoai?.[0];
   if (sanV && Number.isFinite(NEN.san)) for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = x0 + i * B, z = z0 + j * B; if (!trongDa(x, z, sanV)) continue; const dem = caoDat(x, z) - GOC_Y; G[id(i, j)] = Math.max(dem, NEN.san); nang[id(i, j)] = G[id(i, j)] - dem; }
+  // SÂN LÁT KHÉP KÍN (OSM pedestrian khép kín, vd "Unterer Hof"): mặt sân là một MẶT PHẲNG nghiêng nhẹ — khớp mặt phẳng (bình phương nhỏ nhất, bỏ điểm lệch > 1,5 m,
+  // chỉ lấy điểm đo cách mép sân ≥ 3 m) rồi đặt cả sân theo đó. Sát tường ảnh 3D lẫn mái / tường → đo ra gò 3–4 m ngay sau vòm cổng Torbau (anh 16/11/2026).
+  // Sân trên (building=courtyard) đã phẳng theo NEN.san ở trên — bỏ qua.
+  const keMep = (x, z, v) => { let m = 1e9; for (let i = 0; i < v.length; i++) { const [ax, az] = v[i], [bx, bz] = v[(i + 1) % v.length], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1))); m = Math.min(m, Math.hypot(x - ax - dx * t, z - az - dz * t)); } return m; };
+  for (const d of DUONG?.duong || []) { if (!['pedestrian', 'footway'].includes(d.loai) || d.v.length < 4 || Math.hypot(d.v[0][0] - d.v.at(-1)[0], d.v[0][1] - d.v.at(-1)[1]) > 0.3) continue;
+    const v = d.v.slice(0, -1), xs = v.map((p) => p[0]), zs = v.map((p) => p[1]); if (Math.max(...xs) < x0 || Math.min(...xs) > x1 || Math.max(...zs) < z0 || Math.min(...zs) > z1) continue;
+    const trong = [], loi = [];
+    // đỉnh trong nhà sát sân (≤ 3 m) cũng theo mặt sân: không vẽ nhưng là góc các ô mép — giữ gò cũ thì thành gờ chắn lối ra vòm cổng
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = x0 + i * B, z = z0 + j * B; if (sanV && trongDa(x, z, sanV)) continue; const o = trongDa(x, z, v); if (!o && !(keMep(x, z, v) < 3 && dsKhoi.some((k) => trongDa(x, z, k.v)))) continue; trong.push(id(i, j)); if (!o) continue; if (!Number.isNaN(R[id(i, j)]) && keMep(x, z, v) >= 3) loi.push([x, z, R[id(i, j)]]); }
+    if (loi.length < 20) continue;
+    let c = null, dung = loi;
+    for (let lan = 0; lan < 3; lan++) { let [n0, sx, sz, sy, sxx, szz, sxz, sxy, szy] = [0, 0, 0, 0, 0, 0, 0, 0, 0]; for (const [x, z, y] of dung) { n0++; sx += x; sz += z; sy += y; sxx += x * x; szz += z * z; sxz += x * z; sxy += x * y; szy += z * y; }
+      const M = [[n0, sx, sz, sy], [sx, sxx, sxz, sxy], [sz, sxz, szz, szy]]; for (let r = 0; r < 3; r++) { for (let k = r + 1; k < 3; k++) { const f = M[k][r] / M[r][r]; for (let q = r; q < 4; q++) M[k][q] -= f * M[r][q]; } }
+      const cc = [0, 0, 0]; for (let r = 2; r >= 0; r--) { let t = M[r][3]; for (let q = r + 1; q < 3; q++) t -= M[r][q] * cc[q]; cc[r] = t / M[r][r]; } c = cc;
+      dung = loi.filter(([x, z, y]) => Math.abs(y - (c[0] + c[1] * x + c[2] * z)) < 1.5); if (dung.length < 20) break; }
+    if (!c || !c.every(Number.isFinite) || Math.hypot(c[1], c[2]) > 0.2) continue; // dốc > 0,2: vùng bậc / sườn (bãi lát dưới dốc 60 m, dốc 0,26), không phải một sân phẳng — giữ số đo
+    for (const q of trong) { const i = q % W, j = (q - i) / W; G[q] = c[0] + c[1] * (x0 + i * B) + c[2] * (z0 + j * B); nang[q] = Math.max(nang[q], 0.2); }
+    console.info('[ns] sân phẳng', d.ten || d.id, JSON.stringify({ diem: dung.length, doc: +Math.hypot(c[1], c[2]).toFixed(3) }));
+  }
+  // SAN NỀN DƯỚI ĐƯỜNG: mặt đất ngang đường lấy đúng cao độ TIM đường (đường rộng 5 m trên sườn lồi: đất giữa hai mép cao hơn mặt đường tới 1,5 m → cỏ trùm
+  // giữa đường lên cổng Torbau, anh 16/11/2026); hoà dần ra ngoài 1,5 m. Bỏ cầu thang (bậc riêng), cầu, hầm, vùng lát khép kín (đã phẳng theo đất).
+  const G0 = G.slice(), bil = (x, z) => { const fx = Math.max(0, Math.min(W - 1.001, (x - x0) / B)), fz = Math.max(0, Math.min(H - 1.001, (z - z0) / B)), i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j;
+    return (G0[id(i, j)] * (1 - u) + G0[id(i + 1, j)] * u) * (1 - v) + (G0[id(i, j + 1)] * (1 - u) + G0[id(i + 1, j + 1)] * u) * v; };
+  const san = new Float32Array(N).fill(NaN), tsan = new Float32Array(N), esan = new Float32Array(N).fill(1e9); // esan: khoảng cách tới tim — chỗ cua gấp hai đoạn chồng nhau lấy tim GẦN nhất
+  for (const d of DUONG?.duong || []) { if (d.loai === 'steps' || d.cau || d.ham || d.v.length < 2) continue; if (d.v.length > 3 && Math.hypot(d.v[0][0] - d.v.at(-1)[0], d.v[0][1] - d.v.at(-1)[1]) < 0.3) continue;
+    const r0 = (d.rong || 2) / 2 + 0.6, r1 = r0 + 1.5;
+    for (let k = 0; k + 1 < d.v.length; k++) { const [ax, az] = d.v[k], [bx, bz] = d.v[k + 1], dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz; if (l2 < 0.01) continue;
+      const i0 = Math.max(0, Math.floor((Math.min(ax, bx) - r1 - x0) / B)), i1 = Math.min(W - 1, Math.ceil((Math.max(ax, bx) + r1 - x0) / B)), j0 = Math.max(0, Math.floor((Math.min(az, bz) - r1 - z0) / B)), j1 = Math.min(H - 1, Math.ceil((Math.max(az, bz) + r1 - z0) / B));
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const x = x0 + i * B, z = z0 + j * B, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / l2)), cx = ax + dx * t, cz = az + dz * t, e = Math.hypot(x - cx, z - cz); if (e > r1) continue;
+        const w = e <= r0 ? 1 : 1 - (e - r0) / (r1 - r0), q = id(i, j); if (w > tsan[q] || (w === tsan[q] && e < esan[q])) { tsan[q] = w; esan[q] = e; san[q] = bil(cx, cz); } } } }
+  for (let q = 0; q < N; q++) if (tsan[q] > 0) { G[q] = G0[q] + (san[q] - G0[q]) * tsan[q]; nang[q] = Math.max(nang[q], 0.2); }
   return { x0, z0, B, W, H, G, nang, id };
 })();
 function datThat(x, z) {

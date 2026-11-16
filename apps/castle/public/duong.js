@@ -7,7 +7,7 @@
 export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao, vl, trongNha = null }) { // eslint-disable-line no-param-reassign
   const LAT = new Set(['footway', 'pedestrian', 'steps', 'service', 'residential', 'unclassified']); // đường lát / nhựa; còn lại (track, path) là đất
   const nhom = { nhua: [], dat: [], bac: [], tuong: [] }, dem = { duong: 0, bac: 0, m: 0 };
-  const dai = (v, w, y = (x, z) => cao(x, z) + 0.22) => { // eslint-disable-line prefer-const // nhô 0,22 m: lưới đất mịn chia ô 1,5 m chéo khác nội suy → đường 6 cm bị đất trùm mất trên dốc (đường lên cổng không thấy) // dải theo polyline, chia đoạn ≤ 2 m để bám đất
+  const dai = (v, w) => { // eslint-disable-line prefer-const // nhô 0,22 m: lưới đất mịn chia ô 1,5 m chéo khác nội suy → đường 6 cm bị đất trùm mất trên dốc (đường lên cổng không thấy) // dải theo polyline, chia đoạn ≤ 2 m để bám đất
     const p = []; const pts = [];
     for (let i = 0; i + 1 < v.length; i++) { const [x1, z1] = v[i], [x2, z2] = v[i + 1], L = Math.hypot(x2 - x1, z2 - z1), n = Math.max(1, Math.ceil(L / 2)); for (let k = 0; k < n; k++) pts.push([x1 + (x2 - x1) * k / n, z1 + (z2 - z1) * k / n]); }
     pts.push(v[v.length - 1]);
@@ -19,11 +19,14 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
     let s = 0, uv = [];
     for (let i = 0; i + 1 < pts.length; i++) {
       const [x1, z1] = pts[i], [x2, z2] = pts[i + 1], [a1, b1] = ben[i], [a2, b2] = ben[i + 1], d = Math.hypot(x2 - x1, z2 - z1);
-      const h1 = (x, z) => (trong[i] ? yT[i] + 0.22 : y(x, z)), h2 = (x, z) => (trong[i + 1] ? yT[i + 1] + 0.22 : y(x, z)); // trong nhà: cả bề ngang theo độ cao tim đường đã nội suy
+      const h1 = () => yT[i] + 0.22, h2 = () => yT[i + 1] + 0.22; // cả bề ngang theo cao độ TIM đường (đất dưới đường đã san ngang theo tim — ns.js NEN_LUOI); trong nhà: tim đã nội suy
       const A = [x1 + a1, h1(x1 + a1, z1 + b1), z1 + b1], B = [x1 - a1, h1(x1 - a1, z1 - b1), z1 - b1], C = [x2 + a2, h2(x2 + a2, z2 + b2), z2 + b2], E = [x2 - a2, h2(x2 - a2, z2 - b2), z2 - b2];
       p.push(...A, ...B, ...C, ...B, ...E, ...C); uv.push(0, s / 3, w / 3, s / 3, 0, (s + d) / 3, w / 3, s / 3, w / 3, (s + d) / 3, 0, (s + d) / 3); s += d;
     }
     dem.m += s;
+    // mặt đường luôn NGỬA LÊN: thứ tự đỉnh theo chiều đi của đường OSM → đường đi một chiều thì tam giác úp xuống, vật liệu một mặt ẩn hẳn (đường lên cổng Torbau mất, chỉ còn cỏ)
+    for (let t = 0; t < p.length; t += 9) { const ny = (p[t + 5] - p[t + 2]) * (p[t + 6] - p[t]) - (p[t + 3] - p[t]) * (p[t + 8] - p[t + 2]); if (ny >= 0) continue;
+      for (let k = 0; k < 3; k++) [p[t + 3 + k], p[t + 6 + k]] = [p[t + 6 + k], p[t + 3 + k]]; const u = t / 9 * 6; for (let k = 0; k < 2; k++) [uv[u + 2 + k], uv[u + 4 + k]] = [uv[u + 4 + k], uv[u + 2 + k]]; }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals(); return g;
   };
   const va = [];

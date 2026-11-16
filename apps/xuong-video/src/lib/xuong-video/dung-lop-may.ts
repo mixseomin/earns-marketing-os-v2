@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { uploadToR2 } from '@/lib/r2';
-import { sinhAnhQuaCong } from './cong-ai';
+import { sinhAnhQuaCong } from './cong-ai-anh';
 import { phongCachHinh } from './kieu';
 import { taoJob, xongJob, type Db, type boiCanhCanh } from './doc-db';
 import { boiCanhCua, cauDoMang, coGhep, khoaNen, locGhep, promptLopTrenNen, promptNen, soatChan, thanhPhanLop, PROMPT_TACH_LOP } from './dung-lop';

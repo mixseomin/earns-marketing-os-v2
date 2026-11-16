@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
-import { sinhAnhQuaCong } from '../src/lib/xuong-video/cong-ai';
+import { sinhAnhQuaCong } from '../src/lib/xuong-video/cong-ai-anh';
 import { uploadToR2 } from '../src/lib/r2';
 import { phieuShot, khongGianTap, lechSo, type BangShot } from './phieu-shot.mts';
 

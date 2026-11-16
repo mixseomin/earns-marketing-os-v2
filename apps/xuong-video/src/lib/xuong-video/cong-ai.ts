@@ -2,7 +2,6 @@
 // ckey.vn (chợ người bán, giá VNĐ) và ShopAIKey (credit $1 = 3.250₫) bán lại model Google/xAI rẻ hơn gọi thẳng. Một ảnh đi qua CHUỖI:
 // cổng rẻ nhất trước, lỗi/treo/hết tiền thì sang cổng kế, cuối cùng mới tới Google — mỗi bước ghi vào `nguon` để biết ảnh ra từ đâu,
 // giá thật bao nhiêu, bước nào hỏng vì sao. Số đo + bảng giá: scripts/du-lieu/cong-api/README.md. Chạy được trong Worker (không DB).
-import { goiAi } from '@mos2/cong-ai';
 import { hopQc, type TiLeAnh } from './kieu';
 
 /** Tỉ giá quy tiền thật (memory feedback_chi_phi_vnd_that): sổ chi phí ghi cent USD theo VNĐ thật đã trả. */
@@ -205,25 +204,6 @@ export async function sinhAnhCong(cong: CongKey, model: string, o: { prompt: str
   if (d?.b64_json) return { ok: true, data: Buffer.from(d.b64_json, 'base64'), mimeType: 'image/png', modelThat: j.model };
   if (d?.url) { const t = await taiVe(d.url); return t ? { ok: true, ...t, modelThat: j.model } : { ok: false, loi: 'không tải được ảnh cổng trả về' }; }
   return { ok: false, loi: 'cổng không trả ảnh' };
-}
-
-/** Ảnh "tự chọn rẻ nhất" QUA CỔNG AI CHUNG (anh 16/11/2026: một nguồn cho mọi model): POST /api/ai {loai: 'anh'} — chuỗi người bán Nano Banana ckey → ShopAIKey
- *  nay nằm ở cổng (spy-on-tc/server/cong-anh.mjs, chép từ bản cũ ở đây, giữ nguyên luật đã đo: danh mục sống rẻ → đắt, người hỏng nghỉ 20 phút, có tham chiếu bỏ
- *  Pro + người lờ tham chiếu, ckey tối đa 3 ảnh) và ghi sổ ai_luot chung. modelGoogle giữ trong chữ ký cho nơi gọi cũ (cổng chọn dòng Nano Banana).
- *  Hỏng hết → null + câu lỗi của cổng (google.ts › sinhAnh nối tiếp như trước). */
-export async function sinhAnhQuaCong(_modelGoogle: string, o: { prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh }): Promise<{ anh: { data: Buffer; mimeType: string } | null; nguon: NguonSinh | null; thu: BuocNguon[] }> {
-  const t0 = Date.now();
-  try {
-    const r = await goiAi({ viec: 'xv-anh', loai: 'anh', prompt: o.prompt, ti_le: o.tiLe, tham_chieu: o.thamChieuUrl } as never, { lan: 1, hanMs: 10 * 60e3 }) as unknown as { anh_b64: string; mime: string; model: string; chi_usd: number };
-    const giay = Math.round((Date.now() - t0) / 100) / 10; const [cong, ...m] = String(r.model).split(':'); const model = m.join(':');
-    const vnd = Math.round(r.chi_usd * VND_MOI_USD * 10) / 10;
-    const thu: BuocNguon[] = [{ cong: (cong as CongKey) || 'ckey', model, ok: true, giay }];
-    return { anh: { data: Buffer.from(r.anh_b64, 'base64'), mimeType: r.mime || 'image/png' }, thu,
-      nguon: { cong: (cong as CongKey) || 'ckey', model, nguoi_ban: cong === 'ckey' ? model.split('/')[0] : undefined, vnd, cents: vndRaCent(vnd), giay, thu } };
-  } catch (e) {
-    const loi = (e instanceof Error ? e.message : String(e)).replace(/^cổng AI:\s*/, '');
-    return { anh: null, nguon: null, thu: [{ cong: 'ckey', model: 'cổng AI chung', ok: false, loi: loi.slice(0, 300), het_tien: /hết tiền|insufficient/i.test(loi), giay: Math.round((Date.now() - t0) / 100) / 10 }] };
-  }
 }
 
 const TEN_CONG: Record<string, string> = { plenxai: 'PlenX AI', ckey: 'ckey.vn', shopaikey: 'ShopAIKey', google: 'Google', fal: 'fal', openai: 'OpenAI', kie: 'Kie.ai', wavespeed: 'WaveSpeedAI' };

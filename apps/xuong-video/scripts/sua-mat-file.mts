@@ -12,7 +12,8 @@
 import { execFile } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { sinhAnhQuaCong, taNguon } from '../src/lib/xuong-video/cong-ai';
+import { taNguon } from '../src/lib/xuong-video/cong-ai';
+import { sinhAnhQuaCong } from '../src/lib/xuong-video/cong-ai-anh';
 import { uploadToR2 } from '../src/lib/r2';
 import { GIU_VUNG_DAU } from '../src/lib/xuong-video/khung';
 

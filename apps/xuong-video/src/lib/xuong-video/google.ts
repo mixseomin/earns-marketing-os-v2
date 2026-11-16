@@ -5,7 +5,8 @@ import 'server-only';
 import { MO_HINH_ANH, type DoPhanGiai, type TiLe, type TiLeAnh } from './kieu';
 import { sinhAnhOpenAI, khoaOpenAI } from './openai';
 import { sinhAnhFal } from './fal';
-import { sinhAnhQuaCong, sinhAnhMotCong, tachKhoa, laHetTien, type NguonSinh, type BuocNguon } from './cong-ai';
+import { sinhAnhMotCong, tachKhoa, laHetTien, type NguonSinh, type BuocNguon } from './cong-ai';
+import { sinhAnhQuaCong } from './cong-ai-anh';
 
 const GOC = 'https://generativelanguage.googleapis.com/v1beta';
 

@@ -1177,6 +1177,8 @@ export const LUAT = [
   { card: 't8-0611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: "tat_pl, dung_dem, tat_l, thang_tat, tat_t8) for x in v}", vi: 'camp chạm T8 ra khỏi mọi danh sách tăng / nhân bản' },
   { card: 't8-0611', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"moi_khung": true, "nha": true } },', vi: 'T8 tắt mọi khung giờ, chỉ camp nhà' },
   { card: 't8-0611', tep: 'apps/cty/worker/ethopex.mjs', co: "(khungDoi === 'giam' || LT.moi_khung || !hoan('tat', m))", vi: 'worker không hoãn luật tắt có moi_khung (T8) ra khung 15–21h' },
+  { card: 'nghi-thap-1611', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"nghi_thap": {"ns": 6, "gio": 12}', vi: 'camp vừa lên ≤ $6 nghỉ 12 giờ giữa hai lần tăng (anh 16/11/2026 "tăng bậc có nhanh hơn được không")' },
+  { card: 'nghi-thap-1611', tep: 'apps/xuong-video/scripts/ethopex/nhip_tang.py', co: 'NGHI = nghi_gio(api, cid) if ls else NGHI_GIO', vi: 'nhịp tăng chọn giờ nghỉ theo cỡ camp' },
   { card: 'nb-som-1611', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"nac": [[45, 100, 6], [10, 50, 2], [3, 50, 1]]', vi: 'nấc nhân bản sớm: gốc tiêu ≥ $3 & ROI ≥ +50% → 1 bản (anh 16/11/2026 "xử lý chỗ nghẽn" camp dò đường)' },
   { card: 'nb9-0611', tep: 'packages/db/migrations/0438_etp_nb_ns_goc.sql', co: "values ('nb_ns_goc', '9',", vi: 'nhân bản từ camp gốc ≥ $9 (anh 06/11/2026; trước = chạm trần $20)' },
   { card: 'nb9-0611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: "where khoa = 'nb_ns_goc'), (select gia_tri::text::numeric from etp.cau_hinh where khoa = 'tran_camp'), 20)", vi: 'máy luật NB đọc nb_ns_goc' },

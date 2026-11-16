@@ -14,6 +14,10 @@ NGHI_GIO, TOI_DA_NGAY = int(BANG_LUAT["khung_doi"]["nghi_gio"]), None   # sổ l
 # bước ≤ ×1,5 → lãi 24h hơn để nguyên $12,77/camp, 0% âm, n=9; mọi tăng dồn < 6h +$6,58): đạt cổng thì được tăng tiếp sau NGHI_DON_GIO giờ.
 # Cổng = khung_doi.nap_chi / sang_roi của sổ luật chung (cùng cổng tăng trong ngày của máy luật — du_so là MỘT công thức cho cả hai).
 NGHI_DON_GIO = int(BANG_LUAT["khung_doi"]["nghi_don_gio"])
+# NHỊP NGẮN CHO CAMP NHỎ (anh 16/11/2026 "tăng bậc có nhanh hơn được không" — camp trẻ lãi 3 ngày mới lên $9): lần tăng trước đưa camp tới ≤ NGHI_THAP_NS
+# thì chỉ nghỉ NGHI_THAP_GIO giờ (bước kế ≤ $9). Đo 30 ngày camp nhà, ROI 3 ngày khép sau lần tăng: tới $2–4 cách 6–20 giờ +21% vs ≥ 20 giờ +6%;
+# tới $6–9: +20% vs +10%; từ $13 trở lên chờ ≥ 20 giờ tốt hơn (+43%, 86% dương vs +30%, 70%) → giữ 24 giờ. Mọi cổng khác (chi, ROI, khung giờ) không đổi.
+NGHI_THAP_NS, NGHI_THAP_GIO = float(BANG_LUAT["khung_doi"]["nghi_thap"]["ns"]), int(BANG_LUAT["khung_doi"]["nghi_thap"]["gio"])
 KD = BANG_LUAT["khung_doi"]
 # TIÊU DỒN (anh 05/11/2026 "Ok. Làm đi"): tới 13:00 VN (DON_GIO giờ đầu ngày Ethopex) camp đã tiêu ≥ DON_13H × ngân sách lúc đó → HOÃN tăng tối nay,
 # giữ nguyên ngân sách; hôm sau tiêu đều thì tăng như thường. Số nhà 20/10–04/11, 466 lần máy tăng: ≥ 75% NS tới 13h → hôm sau +17% (39% lãi),
@@ -100,6 +104,21 @@ def _lan(api, cid, chieu):
         if not gop or (gop[-1] - x).total_seconds() > 600: gop.append(x)
     return gop
 def lan_tang(api, cid): return _lan(api, cid, +1)
+def ns_lan_tang_cuoi(api, cid):
+    """→ ngân sách MỚI của lần tăng gần nhất (None nếu không đọc được) — để chọn nhịp nghỉ theo cỡ camp"""
+    lan_tang(api, cid); moi = None
+    for h in _CACHE.get(cid) or []:
+        for ch in h.get("changes") or []:
+            if "budget" in (ch.get("field") or ""):
+                try:
+                    if float(ch.get("new") or 0) > float(ch.get("old") or 0):
+                        t = dt.datetime.fromisoformat(str(h["created_at"]).replace("Z", "+00:00"))
+                        if moi is None or t > moi[0]: moi = (t, float(ch.get("new")))
+                except (TypeError, ValueError): pass
+    return moi[1] if moi else None
+def nghi_gio(api, cid):
+    ns = ns_lan_tang_cuoi(api, cid)
+    return NGHI_THAP_GIO if ns is not None and ns <= NGHI_THAP_NS + 1e-9 else NGHI_GIO
 def lan_giam(api, cid): return _lan(api, cid, -1)
 
 def cho_tang(api, cid, bay_gio=None, du=None):
@@ -111,8 +130,8 @@ def cho_tang(api, cid, bay_gio=None, du=None):
     if g and (now - g[0]).total_seconds() < KHOA_SAU_GIAM_GIO * 3600:   # CHỐNG TĂNG–GIẢM QUA LẠI: vừa giảm thì khoá tăng KHOA_SAU_GIAM_GIO giờ
         mo = g[0] + dt.timedelta(hours=KHOA_SAU_GIAM_GIO)
         return f"vừa giảm lúc {vn(g[0]):%H:%M %d/%m} — khoá tăng tới {vn(mo):%H:%M %d/%m}", mo
-    ls = lan_tang(api, cid)
-    if ls and (now - ls[0]).total_seconds() < NGHI_GIO * 3600:
+    ls = lan_tang(api, cid); NGHI = nghi_gio(api, cid) if ls else NGHI_GIO   # camp nhỏ nghỉ ngắn (NGHI_THAP)
+    if ls and (now - ls[0]).total_seconds() < NGHI * 3600:
         gap = (now - ls[0]).total_seconds() / 3600
         # KHUNG TĂNG NHANH cũng phải tự đọc cổng (10/11/2026: máy luật chấm đạt cổng → đề xuất tăng < 3 giờ trong khung nhanh, lệnh tăng gọi chan_tang KHÔNG kèm du
         # nên chỉ đọc cổng khi ≥ 3 giờ → 01:34–05:44 bị từ chối 12 lần "vừa tăng lúc …"). Một luật cho cả hai đầu: hễ quyết định cần biết đạt cổng thì đọc.
@@ -124,10 +143,10 @@ def cho_tang(api, cid, bay_gio=None, du=None):
             # mốc ghi kèm NGÀY (11/11/2026: nhịp 24 giờ → "vừa tăng lúc 07:02 — chờ tới 07:02" trông như vô lý; giống câu "vừa giảm" đã có ngày)
             # trong khung tăng nhanh: chưa đạt cổng là lý do duy nhất (đạt thì tăng ngay) — câu nói thẳng thế, không hẹn "được từ +3 giờ" sai
             cong = chu_cong(now)
-            return ((f"vừa tăng lúc {vn(ls[0]):%H:%M %d/%m} — chờ tới {vn(ls[0] + dt.timedelta(hours=NGHI_GIO)):%H:%M %d/%m} (cách nhau ≥ {NGHI_GIO} giờ; "
+            return ((f"vừa tăng lúc {vn(ls[0]):%H:%M %d/%m} — chờ tới {vn(ls[0] + dt.timedelta(hours=NGHI)):%H:%M %d/%m} (cách nhau ≥ {NGHI} giờ; "
                      + (f"đang khung tăng nhanh nhưng camp chưa đạt cổng: {cong} thì tăng ngay)" if trong_nhanh(now) else
                         f"{cong} thì được từ {vn(ls[0] + dt.timedelta(hours=NGHI_DON_GIO)):%H:%M %d/%m})")),
-                    ls[0] + dt.timedelta(hours=NGHI_DON_GIO if gap < NGHI_DON_GIO and du else NGHI_GIO))
+                    ls[0] + dt.timedelta(hours=NGHI_DON_GIO if gap < NGHI_DON_GIO and du else NGHI))
     hom = [x for x in ls if vn(x).date() == vn(now).date()]
     if TOI_DA_NGAY and len(hom) >= TOI_DA_NGAY:
         return f"đã tăng {len(hom)} lần hôm nay (tối đa {TOI_DA_NGAY}/ngày) — để sang mốc 8h mai", None
@@ -153,10 +172,14 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     assert chan_tang(api, 1, u("2026-10-21T14:00:00")).startswith("vừa tăng"), "khung nhanh, không kèm du, đọc cổng không đạt → chặn"
     du_don = _goc_dd
     _c = chan_tang(api, 1, u("2026-10-21T18:00:00"), du=False)   # 01:00 VN 22/10, khung nhanh, 18 giờ sau lần tăng 14:37 21/10
-    assert "14:37 21/10" in _c and "14:37 22/10" in _c and "chưa đạt cổng" in _c, f"câu chờ có NGÀY + khung nhanh nói thẳng chưa đạt cổng (11/11/2026 #88441): {_c}"
+    assert "14:37 21/10" in _c and "02:37 22/10" in _c and "chưa đạt cổng" in _c, f"câu chờ có NGÀY + khung nhanh nói thẳng chưa đạt cổng (11/11/2026 #88441): {_c}"
     assert "được từ" in chan_tang(api, 1, u("2026-10-21T09:00:00"), du=False), "ngoài khung nhanh vẫn hẹn mốc tăng dồn"
     assert trong_nhanh(u("2026-10-21T01:30:00")) and trong_nhanh(u("2026-10-21T22:00:00")) and not trong_nhanh(u("2026-10-21T05:30:00")) and not trong_nhanh(u("2026-10-21T23:30:00")), "8h30 / 5h VN trong khung; 12h30 / 6h30 VN ngoài khung"
     assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=False).startswith("vừa tăng"), "3–24 giờ mà KHÔNG đạt cổng thì chặn (nhịp 24 giờ)"
+    assert ns_lan_tang_cuoi(api, 1) == 5 and nghi_gio(api, 1) == NGHI_THAP_GIO == 12 and NGHI_THAP_NS == 6, "lần tăng cuối tới $5 ≤ $6 → nghỉ 12 giờ"
+    assert chan_tang(api, 1, u("2026-10-21T19:00:00"), du=False).startswith("vừa tăng") and chan_tang(api, 1, u("2026-10-21T19:40:00"), du=False) is None, "camp nhỏ: 11,4 giờ còn chặn, 12 giờ thì được (16/11/2026)"
+    _gia_to = {"data": [{"created_at": "2026-10-21T07:37:10Z", "changes": [{"field": "budget_daily", "old": 6, "new": 9}]}]}; _CACHE.clear()
+    assert chan_tang(lambda p: _gia_to, 2, u("2026-10-21T20:00:00"), du=False).startswith("vừa tăng") and chan_tang(lambda p: _gia_to, 2, u("2026-10-22T07:40:00"), du=False) is None, "camp vừa lên $9: vẫn 24 giờ"
     assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=True) is None, "3 giờ + đạt cổng (tiêu ≥ nap_chi × NS mới, ROI ≥ 100%) → tăng dồn được"
     assert chan_tang(api, 1, u("2026-10-22T08:00:00"), du=False) is None, "đủ 24 giờ thì tăng, không cần cổng dồn"
     _n, _dem = float(KD["nap_chi"]), u("2026-10-21T16:00:00")   # 23h VN: ngoài khung sáng
@@ -166,7 +189,7 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     assert du_so(0.6, 0.6, 1, bay_gio=_sg) and du_so(0.5, 0.5, 1, bay_gio=_sg) and not du_so(0.75, 3, 1, bay_gio=_sg) and not du_so(1, 3, 1, bay_gio=_sg), "sáng: 50% ≤ chi < 75% ngân sách — tiêu ≥ 75% (tiêu dồn) không tăng dù ROI cao"
     assert not du_so(0.49, 2, 1, bay_gio=_sg) and not du_so(0.6, 0.59, 1, bay_gio=_sg) and not du_so(0, 0, 1, bay_gio=_sg), "sáng: dưới 50% / ROI âm / chưa chi → không"
     assert "50%–75%" in chu_cong(_sg) and "≥ 0%" in chu_cong(_sg) and "≥ 40%" in chu_cong(_dem), "câu cổng theo giờ"
-    assert chan_tang(api, 1, u("2026-10-22T01:30:00"), du=False).startswith("vừa tăng"), "18 giờ sau (8h30 VN hôm sau), không đạt cổng → còn chặn (nhịp 24 giờ, 05/11/2026)"
+    assert chan_tang(lambda p: _gia_to, 2, u("2026-10-22T01:30:00"), du=False).startswith("vừa tăng"), "camp vừa lên $9: 18 giờ sau (8h30 VN hôm sau), không đạt cổng → còn chặn (nhịp 24 giờ, 05/11/2026)"
     assert chan_tang(api, 1, u("2026-10-22T01:30:00"), du=True) is None, "18 giờ sau + đạt cổng → được"
     _CACHE.clear()
     gia2 = {"data": [{"created_at": "2026-10-22T01:00:00Z", "changes": [{"field": "budget_daily", "old": 5, "new": 3}]}]}

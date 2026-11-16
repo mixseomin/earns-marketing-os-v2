@@ -1430,7 +1430,7 @@ def _xet_luat():
                     except Exception as e: _ly_n, _mo_n = f"không đọc được lịch sử ngân sách: {str(e)[:60]}", None
                     # giá trị NGẮN (ô bảng hẹp — lý do dài làm thẻ tràn ngang, mất cột Giá trị / Ngưỡng 06/11/2026): luật đã ở tên dòng
                     _gt_n = "qua" if _ly_n is None else f"được từ {_mo_n + dt.timedelta(hours=7):%H:%M %d/%m}" if _mo_n else _ly_n[:40]
-                    _nhip_o["d"] = ([f"Nhịp tăng (cách lần tăng trước ≥ {NT.NGHI_GIO} giờ · tiêu dồn {NT.NGHI_DON_GIO} giờ · sau giảm {NT.KHOA_SAU_GIAM_GIO} giờ)", _gt_n, "không chặn", _ly_n is None],
+                    _nhip_o["d"] = ([f"Nhịp tăng (cách lần tăng trước ≥ {NT.NGHI_GIO} giờ, camp vừa lên ≤ ${NT.NGHI_THAP_NS:g} chỉ {NT.NGHI_THAP_GIO} giờ · tiêu dồn {NT.NGHI_DON_GIO} giờ · sau giảm {NT.KHOA_SAU_GIAM_GIO} giờ)", _gt_n, "không chặn", _ly_n is None],
                                     _mo_n.isoformat() if _mo_n else None)
                 return _nhip_o["d"]
             _cho_toi = None

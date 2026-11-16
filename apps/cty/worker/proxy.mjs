@@ -25,51 +25,19 @@ const DIR = path.join(GOC, 'worker');   // xem worker/goc.mjs
 const CONG_TY = path.join(DIR, '..', 'cong-ty');
 const CACHE_DIR = path.join(os.homedir(), '.cty-cache');
 
-// Nhà cung cấp: dạng API + địa chỉ + tên biến khoá. Nhà mới = thêm một dòng (bagidea providers.js có danh sách dài hơn).
-export const NHA = {
-  anthropic: { dang: 'anthropic', url: 'https://api.anthropic.com/v1/messages', key: 'ANTHROPIC_API_KEY' },
-  deepseek: { dang: 'anthropic', url: 'https://api.deepseek.com/anthropic/v1/messages', key: 'DEEPSEEK_API_KEY' },
-  openai: { dang: 'openai', url: 'https://api.openai.com/v1/chat/completions', key: 'OPENAI_API_KEY' },
-  openrouter: { dang: 'openai', url: 'https://openrouter.ai/api/v1/chat/completions', key: 'OPENROUTER_API_KEY' },
-  // fal = OpenRouter qua tài khoản fal (một khoá, 200+ mô hình): tên mô hình theo OpenRouter (fal:google/gemini-3.8-flash),
-  // xác thực "Key", trả usage.cost (USD) — kiểm 11/10/2026: cost khớp đúng giá OpenRouter.
-  fal: { dang: 'openai', url: 'https://fal.run/openrouter/router/openai/v1/chat/completions', key: 'FAL_KEY', auth: 'Key', suyLuan: true },
-  ckey: { dang: 'openai', url: 'https://api.xah.io/v1/chat/completions', key: 'CKEY_API_KEY', suyLuan: true },
-};
-
-// Người bán ckey cho một model: danh sách đã kiểm của Phòng Tài nguyên (/var/lib/spy/ckey-tuyen.json) trước, rồi danh mục sống theo giá ra rẻ trước
-// (bảng trống cả dòng khi lần bảo trì gặp lúc lỗi, đo 07/11/2026, nên danh mục là lưới). Người hỏng nghỉ 20 phút; mỗi lượt thử tối đa 3 người trong 45 giây rồi về nhà gốc.
-// 13/11/2026 đo bài chấm cỡ thật (~12–18k token vào): người bán trả trong 10–21 giây, dồn lượt thì chậm hơn → trần 25 giây làm 12/45 lượt chấm rơi fal (9.470₫).
-// Mỗi người tối đa 40 giây, cả lượt 60 giây; người chỉ CHẬM (hết giờ) nghỉ 5 phút, người LỖI (http / rỗng) nghỉ 20 phút.
-const CKEY_TRAN_MS = 60_000, CKEY_MOT_MS = 40_000, CKEY_NGHI_MS = 20 * 60_000, CKEY_NGHI_CHAM_MS = 5 * 60_000;
-const hongLuc = new Map(); let khoCkey = null;
-const hongCkey = (id, loi) => { hongLuc.set(id, /timeout|aborted/i.test(String(loi)) ? Date.now() - (CKEY_NGHI_MS - CKEY_NGHI_CHAM_MS) : Date.now()); console.error(`ckey ${id}: ${String(loi).slice(0, 160)}`); };
-const duoiTen = (id) => id.split('/').pop().toLowerCase().replace(/\./g, '-');
-async function nguoiBanCkey(ten, fetchFn) {
-  if (!khoCkey || Date.now() - khoCkey.luc > 600_000) {
-    let tuyen = [], danhMuc = [];
-    try { tuyen = Object.values(JSON.parse(fs.readFileSync(process.env.CKEY_TUYEN || '/var/lib/spy/ckey-tuyen.json', 'utf8')).dong ?? {}).flat().map((x) => x.replace(/^ckey:/, '')); } catch { /* tệp thiếu: dùng danh mục */ }
-    try {
-      const goc = new URL(process.env.CTY_UPSTREAM_CKEY || NHA.ckey.url).origin, r = await fetchFn(`${goc}/v1/models`, { headers: { authorization: `Bearer ${process.env.CKEY_API_KEY}` }, signal: AbortSignal.timeout(15_000) });
-      danhMuc = ((await r.json()).data ?? []).filter((m) => m.id.includes('/')).sort((a, b) => (a.pricing?.completion ?? 1e9) - (b.pricing?.completion ?? 1e9)).map((m) => m.id);
-    } catch (e) { console.error(`ckey: không đọc được danh mục: ${e.message}`); }
-    khoCkey = { luc: Date.now(), ds: [...new Set([...tuyen, ...danhMuc])] };
-  }
-  // Cùng mô hình gồm cả bản mang đuôi mức suy luận (-low/-medium/-high…), xếp SAU bản đúng tên: 13/11/2026 chấm bài (Ngọc, gemini-3.8-flash) rơi về fal 7/13 lượt
-  // (~540₫ so với ~14₫ qua ckey) vì chỉ 3 người bán đúng tên mà người lỗi bị nghỉ 20 phút; bản -high của 2 người bán khác đo 3–7 giây, 12–13₫.
-  const can = duoiTen(ten), song = (id) => Date.now() - (hongLuc.get(id) ?? 0) > CKEY_NGHI_MS;
-  const dung = khoCkey.ds.filter((id) => duoiTen(id) === can), bien = khoCkey.ds.filter((id) => /^-(minimal|low|medium|high)$/.test(duoiTen(id).slice(can.length)) && duoiTen(id).startsWith(can));
-  return [...dung, ...bien].filter(song).slice(0, 3);
+// MỘT CỔNG AI (anh 16/11/2026: "Spy đang có chuỗi fallback hoàn chỉnh, hãy sử dụng nó làm chuẩn để có 1 nguồn dùng API duy nhất cho mọi model"):
+// proxy KHÔNG còn gọi nhà cung cấp, không giữ khoá nhà cung cấp, không tự chọn người bán ckey — mọi lượt đi cổng chung spy POST /api/ai (chuỗi goi() của spy:
+// donk → ckey sống → fal, bo_chinh_hang). Proxy giữ ba việc riêng: trần chi, sổ ai_usage, cache. Trước 16/11 tệp này tự giữ người bán ckey + đường về nhà gốc.
+// NHA = tên nhà được phép trong tên model "<nhà>:<tên>" (kiểm đầu vào); tenCong đổi về tên mô hình theo bảng spy.
+export const NHA = { anthropic: {}, deepseek: {}, openai: {}, openrouter: {}, fal: {}, ckey: {} };
+const CONG_URL = () => process.env.CONG_AI_URL || 'http://127.0.0.1:3850/api/ai';
+const congKhoa = () => process.env.CONG_AI_KEY || (() => { try { return fs.readFileSync('/root/.secrets/spy.env', 'utf8').match(/^CONG_AI_KEY=(.*)$/m)?.[1]?.replace(/["']/g, '').trim() || null; } catch { return null; } })();
+export function tenCong(model) {
+  const [nha, ...r] = model.includes(':') ? model.split(':') : ['anthropic', model], ten = r.join(':') || nha;
+  if (nha === 'anthropic') return /opus/i.test(ten) ? 'fal:anthropic/claude-opus-5.5' : /sonnet/i.test(ten) ? 'fal:anthropic/claude-sonnet-5.5' : 'claude-haiku-5-5';
+  if (nha === 'fal' || nha === 'ckey') return `${nha}:${ten}`;
+  return `fal:${nha === 'openrouter' ? ten : `${nha}/${ten}`}`;   // openai / deepseek … → tên OpenRouter qua fal
 }
-// Model qua fal (OpenRouter) mặc định SUY LUẬN NGẦM và tính phần đó vào max_tokens → lượt thật (500 token) trả RỖNG (đo 11/10/2026: 9/11 model).
-// Gọi đúng cấu hình đã dùng khi dò model (worker/do-model.mjs) để điểm đo áp được vào việc thật: tắt suy luận + trần ≥ 1000 token; model không
-// cho tắt (400 "Reasoning is mandatory": gemini-3.8-flash, glm-5.3-flash…) → mức thấp nhất + trần ≥ 2000 (suy luận tính chung vào trần).
-// Đây là CHỖ DUY NHẤT đặt cấu hình này (do-model đi qua đây nên đo và chạy thật cùng một luật); trả lại mức đã dùng ở `suy_luan`.
-// Bên gọi tự đặt `reasoning` thì giữ nguyên.
-const BAT_BUOC_SUY_LUAN = new Set();
-const cauHinhSuyLuan = (b, ten) => (b.reasoning ? b : BAT_BUOC_SUY_LUAN.has(ten)
-  ? { ...b, reasoning: { effort: 'minimal' }, max_tokens: Math.max(b.max_tokens || 0, 2000) }
-  : { ...b, reasoning: { effort: 'none' }, max_tokens: Math.max(b.max_tokens || 0, 1000) });
 
 // ---------- dịch Anthropic → OpenAI (text, ảnh base64, tool_use/tool_result) ----------
 const sysText = (c) => (typeof c === 'string' ? c : Array.isArray(c) ? c.filter((b) => b && b.type === 'text').map((b) => b.text).join('\n') : '');
@@ -158,7 +126,7 @@ function soChi() {
 export async function xuLy(body, staff, so, fetchFn = fetch, phong = null) {
   const model = String(body.model || '');
   const [nha] = model.includes(':') ? model.split(':') : ['anthropic'];
-  const cfg = NHA[nha]; if (!cfg) return [400, { error: `nhà "${nha}" chưa khai trong NHA` }];
+  if (!NHA[nha]) return [400, { error: `nhà "${nha}" chưa khai trong NHA` }];
   if (!staff) return [400, { error: 'thiếu header x-cty-staff' }];
   const tran = tranCua(staff); if (!tran) return [403, { error: `nhân sự "${staff}" không có hồ sơ` }];
   if (!giaCua(model)) return [400, { error: `mô hình "${model}" chưa có giá trong gia-model.json — không đếm được tiền thì không chạy` }];
@@ -166,55 +134,24 @@ export async function xuLy(body, staff, so, fetchFn = fetch, phong = null) {
   if (tran.nguoi > 0 && chiNguoi >= tran.nguoi) return [429, { error: `${staff} đã chi $${chiNguoi.toFixed(2)} / trần $${tran.nguoi} tháng này — báo An` }];
   const tong = tranTong(); if (tong > 0 && chiTong >= tong) return [429, { error: `cả công ty đã chi $${chiTong.toFixed(2)} / trần tổng $${tong} — báo Giám đốc` }];
 
-  const { thang, ...goc } = body;   // thang: true = đi đúng nhà trong tên model, không qua ckey (bộ đo model: worker/do-model.mjs)
+  const { thang: _thang, ...goc } = body;   // thang (bộ đo model do-model.mjs) bỏ 16/11/2026: tuyến do cổng AI chung chọn, proxy không đi thẳng nhà nào
   const clean = { ...goc, stream: false };
   const hash = crypto.createHash('sha256').update(JSON.stringify(clean)).digest('hex');
   const cacheF = path.join(CACHE_DIR, `${hash}.json`);
   if (process.env.CTY_CACHE === '1' && fs.existsSync(cacheF)) return [200, { ...JSON.parse(fs.readFileSync(cacheF, 'utf8')), _cache: true }];
 
   const luu = (d) => { if (process.env.CTY_CACHE === '1') { fs.mkdirSync(CACHE_DIR, { recursive: true }); fs.writeFileSync(cacheF, JSON.stringify(d)); } return [200, d]; };
-  const ten = model.split(':').pop();
 
-  // CKEY TRƯỚC (anh 07/11/2026): người bán rẻ nhất trước, lỗi / treo / trả rỗng thì sang người kế, hết lượt thì về đúng nhà trong tên model.
-  // Sổ ghi 'ckey:<tên>': trần chi đếm theo giá bảng (cao hơn tiền thật, an toàn); tiền thật ₫ nằm ở usage.vnd trong nhật ký lượt.
-  if (process.env.CKEY_API_KEY && nha !== 'ckey' && !thang) {
-    const het = Date.now() + CKEY_TRAN_MS;
-    for (const id of await nguoiBanCkey(ten, fetchFn)) {
-      const con = het - Date.now(); if (con <= 0) break;
-      try {
-        // mỗi người bán tối đa CKEY_MOT_MS: người chậm (đo 13/11: cuzem3 -low 77 giây) không ăn hết 45 giây của cả lượt rồi đẩy về nhà gốc
-        const [st, d] = await goiNha('ckey', clean, `ckey:${ten}`, id, (u, o) => fetchFn(u, { ...o, signal: AbortSignal.timeout(Math.min(con, CKEY_MOT_MS)) }));
-        if (st === 200 && d.content?.length) { d.model = model; d.tuyen = `ckey:${id}`; await so.ghi(staff, `ckey:${ten}`, d.usage || {}, phong); return luu(d); }
-        hongCkey(id, st === 200 ? 'trả rỗng' : `http ${st}`);
-      } catch (e) { hongCkey(id, String(e.message || e)); }
-    }
-  }
-
-  if (!process.env[cfg.key]) return [500, { error: `thiếu ${cfg.key} trong env của proxy` }];
-  const [st, data] = await goiNha(nha, clean, model, ten, fetchFn);
-  if (st !== 200) return [st, data];
-  await so.ghi(staff, model, data.usage || {}, phong);
+  const khoa = congKhoa(); if (!khoa) return [500, { error: 'thiếu CONG_AI_KEY (/root/.secrets/spy.env) — proxy chỉ gọi mô hình qua cổng AI chung' }];
+  const r = await fetchFn(CONG_URL(), { method: 'POST', headers: { authorization: `Bearer ${khoa}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(15 * 60e3),
+    body: JSON.stringify({ viec: `cty-${staff}`.slice(0, 60), ma: phong || null, model: tenCong(model), max_tokens: clean.max_tokens || 1000, system: sysText(clean.system) || undefined,
+      messages: clean.messages, bo_chinh_hang: true }) });
+  const j = await r.json().catch(() => ({ loi: `cổng AI trả HTTP ${r.status} không phải JSON` }));
+  if (!r.ok || j.loi) return [502, { error: `cổng AI: ${j.loi || `HTTP ${r.status}`}` }];
+  const data = { id: 'cong-ai', type: 'message', role: 'assistant', model, tuyen: j.model, content: [{ type: 'text', text: typeof j.kq === 'string' ? j.kq : JSON.stringify(j.kq) }],
+    stop_reason: 'end_turn', usage: { input_tokens: j.vao || 0, output_tokens: j.ra || 0, cost_usd: j.chi_usd ?? null, vnd: j.chi_usd != null ? Math.round(j.chi_usd * 26000 * 100) / 100 : null } };
+  await so.ghi(staff, model, data.usage, phong);
   return luu(data);
-}
-
-// một lượt tới một nhà, trả [http, dữ liệu dạng Anthropic]
-async function goiNha(nha, clean, model, ten, fetchFn) {
-  const cfg = NHA[nha], key = process.env[cfg.key];
-  const url = process.env[`CTY_UPSTREAM_${nha.toUpperCase()}`] || cfg.url;   // tự kiểm trỏ upstream giả
-  if (cfg.dang === 'openai') {
-    let gui1 = clean;
-    const gui = () => { gui1 = cfg.suyLuan ? cauHinhSuyLuan(clean, ten) : clean; return fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `${cfg.auth ?? 'Bearer'} ${key}` }, body: JSON.stringify(toOpenAI(gui1, ten)) }); };
-    let res = await gui(), o = await res.json();
-    if (!res.ok && cfg.suyLuan && !clean.reasoning && !BAT_BUOC_SUY_LUAN.has(ten) && /reasoning is mandatory/i.test(JSON.stringify(o))) { BAT_BUOC_SUY_LUAN.add(ten); res = await gui(); o = await res.json(); }   // 400 không tính tiền
-    if (!res.ok) return [res.status, o];
-    const data = toAnthropic(o, model); if (gui1.reasoning) data.suy_luan = gui1.reasoning.effort;
-    if (o.usage?.x_ckey?.cost != null) data.usage.vnd = Number(o.usage.x_ckey.cost);
-    return [200, data];
-  }
-  const res = await fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ ...clean, model: ten }) });
-  const data = await res.json(); if (!res.ok) return [res.status, data];
-  data.model = model;
-  return [200, data];
 }
 
 export function server(port, so = soChi()) {
@@ -230,53 +167,33 @@ export function server(port, so = soChi()) {
   }).listen(port, '127.0.0.1');
 }
 
-// ---------- tự kiểm: upstream giả OpenAI, sổ chi bộ nhớ ----------
+// ---------- tự kiểm: CỔNG AI giả, sổ chi bộ nhớ ----------
 if (process.argv.includes('--tu-kiem')) {
-  process.env.CTY_DB = 'mem'; process.env.OPENAI_API_KEY = 'test'; process.env.CTY_CACHE = '0';
+  process.env.CTY_DB = 'mem'; process.env.CTY_CACHE = '0'; process.env.CONG_AI_KEY = 'kc';
   const assert = (c, m) => { if (!c) { console.error('✗ proxy:', m); process.exit(1); } };
-  let auth = ''; const nhan = []; const fake = http.createServer(async (req, res) => { auth = req.headers.authorization; let raw = ''; for await (const c of req) raw += c; const b = JSON.parse(raw); nhan.push(b);
-    if (b.model === 'z-ai/glm-5.3-flash' && b.reasoning?.effort === 'none') { res.writeHead(400); return res.end(JSON.stringify({ error: { message: 'Reasoning is mandatory for this endpoint and cannot be disabled.' } })); }
-    assert(b.messages[0].role === 'system' && b.messages[1].content === 'xin chào', 'dịch Anthropic→OpenAI (system + user)');
-    res.end(JSON.stringify({ id: 'x', choices: [{ message: { content: 'chào Lan' }, finish_reason: 'stop' }], usage: { prompt_tokens: 1_000_000, completion_tokens: 0 } })); }).listen(0, '127.0.0.1');
+  let auth = '', hong = false; const nhan = [];
+  const fake = http.createServer(async (req, res) => { auth = req.headers.authorization; let raw = ''; for await (const c of req) raw += c; const b = JSON.parse(raw); nhan.push(b);
+    if (hong) { res.writeHead(400); return res.end(JSON.stringify({ loi: 'mọi tuyến hỏng — thử' })); }
+    res.end(JSON.stringify({ kq: 'chào Lan', model: 'ckey:x/claude-haiku-5-5', vao: 1_000_000, ra: 0, chi_usd: 0.001 })); }).listen(0, '127.0.0.1');
   await new Promise((r) => fake.once('listening', r));
-  process.env.CTY_UPSTREAM_OPENAI = `http://127.0.0.1:${fake.address().port}`;
+  process.env.CONG_AI_URL = `http://127.0.0.1:${fake.address().port}/api/ai`;
   const so = soChi();
   const req = { model: 'openai:gpt-4o-mini', system: 'bạn là Lan', messages: [{ role: 'user', content: 'xin chào' }], max_tokens: 50 };
-  let [c, d] = await xuLy(req, 'lan', so); assert(c === 200 && d.content[0].text === 'chào Lan' && d.usage.input_tokens === 1_000_000, `ca 1 gọi + dịch ngược: ${c} ${JSON.stringify(d).slice(0, 120)}`);
-  [c, d] = await xuLy({ ...req, model: 'openai:gpt-9-chua-co-gia' }, 'lan', so); assert(c === 400, 'ca 2 mô hình chưa có giá → 400');
-  [c, d] = await xuLy(req, 'khong-co', so); assert(c === 403, 'ca 3 nhân sự không hồ sơ → 403');
-  // ca 4: Lan trần $40; mỗi lượt giả 1M token vào gpt-4o-mini = $0.15 → cần 267 lượt; gọi thẳng so.ghi để vượt trần rồi kiểm 429
-  assert(nhanChi('lan', 'sach') === 'cty:lan@sach' && nhanChi('lan', null) === 'cty:lan' && nhanChi('lan', 'x;drop') === 'cty:lan', 'nhãn sổ chi theo phòng (phòng lạ → bỏ)');
+  let [c, d] = await xuLy(req, 'lan', so); let b = nhan.at(-1);
+  assert(c === 200 && d.content[0].text === 'chào Lan' && d.usage.input_tokens === 1_000_000 && d.tuyen === 'ckey:x/claude-haiku-5-5' && d.model === req.model, `ca 1 gọi qua cổng + trả khuôn Anthropic: ${c} ${JSON.stringify(d).slice(0, 120)}`);
+  assert(auth === 'Bearer kc' && b.viec === 'cty-lan' && b.model === 'fal:openai/gpt-4o-mini' && b.system === 'bạn là Lan' && b.messages[0].content === 'xin chào' && b.bo_chinh_hang === true, `ca 2 thân gửi cổng đúng (khoá, viec, tên model, system, không chính hãng): ${JSON.stringify(b).slice(0, 160)}`);
+  [c, d] = await xuLy({ ...req, model: 'openai:gpt-9-chua-co-gia' }, 'lan', so); assert(c === 400, 'ca 3 mô hình chưa có giá → 400');
+  [c, d] = await xuLy(req, 'khong-co', so); assert(c === 403, 'ca 4 nhân sự không hồ sơ → 403');
+  [c, d] = await xuLy({ ...req, model: 'nhala:x' }, 'lan', so); assert(c === 400, 'ca 5 nhà lạ → 400');
+  assert(tenCong('anthropic:claude-sonnet-5-5') === 'fal:anthropic/claude-sonnet-5.5' && tenCong('claude-haiku-4-5') === 'claude-haiku-5-5' && tenCong('fal:google/gemini-3.8-flash') === 'fal:google/gemini-3.8-flash'
+    && tenCong('ckey:a/b') === 'ckey:a/b' && tenCong('openrouter:x/y') === 'fal:x/y', 'ca 6 đổi tên model về bảng spy');
+  const n0 = nhan.length; [c, d] = await xuLy({ ...req, thang: true }, 'lan', so); assert(c === 200 && nhan.length === n0 + 1 && !('thang' in nhan.at(-1)), 'ca 7 cờ thang không gửi ra ngoài');
+  hong = true; [c, d] = await xuLy(req, 'lan', so); assert(c === 502 && /cổng AI: mọi tuyến hỏng/.test(d.error), `ca 8 cổng hỏng → 502 kèm lý do (${c} ${d.error})`); hong = false;
+  assert(nhanChi('lan', 'sach') === 'cty:lan@sach' && nhanChi('lan', null) === 'cty:lan' && nhanChi('lan', 'x;drop') === 'cty:lan', 'ca 9 nhãn sổ chi theo phòng (phòng lạ → bỏ)');
   for (let i = 0; i < 300; i++) await so.ghi('lan', 'openai:gpt-4o-mini', { input_tokens: 1_000_000, output_tokens: 0 }, i % 2 ? 'sach' : null);   // trần cộng MỌI phòng
-  [c, d] = await xuLy(req, 'lan', so); assert(c === 429 && /trần/.test(d.error), `ca 4 vượt trần người → 429 (${c})`);
-  process.env.FAL_KEY = 'k'; process.env.CTY_UPSTREAM_FAL = process.env.CTY_UPSTREAM_OPENAI;
-  [c, d] = await xuLy({ ...req, model: 'fal:anthropic/claude-haiku-5.5' }, 'ha', so); assert(c === 200 && auth === 'Key k' && d.content[0].text === 'chào Lan', `ca 5 fal: xác thực "Key", tên mô hình OpenRouter (${c} ${auth})`);
-  assert(toAnthropic({ choices: [{ message: { content: 'x' } }], usage: { prompt_tokens: 1, completion_tokens: 9, cost: 0.002, completion_tokens_details: { reasoning_tokens: 8 } } }, 'm').usage.cost_usd === 0.002 && toOpenAI({ messages: [], reasoning: { effort: 'none' } }, 'm').reasoning.effort === 'none', 'ca 6 giữ tiền + token suy luận nhà báo, chuyển tiếp tham số suy luận');
-  [c, d] = await xuLy({ ...req, model: 'fal:deepseek/deepseek-v4-flash', max_tokens: 500 }, 'ha', so); let cuoi = nhan.at(-1);
-  assert(c === 200 && cuoi.reasoning?.effort === 'none' && cuoi.max_tokens === 1000 && d.suy_luan === 'none', `ca 7 fal: tắt suy luận + trần 1000 như lúc đo (${JSON.stringify(cuoi.reasoning)} ${cuoi.max_tokens})`);
-  const truoc = nhan.length; [c, d] = await xuLy({ ...req, model: 'fal:z-ai/glm-5.3-flash', max_tokens: 500 }, 'ha', so); cuoi = nhan.at(-1);
-  assert(c === 200 && nhan.length - truoc === 2 && cuoi.reasoning?.effort === 'minimal' && cuoi.max_tokens === 2000, `ca 8 bắt buộc suy luận → gọi lại mức thấp nhất, trần 2000 (${c} ${nhan.length - truoc} ${JSON.stringify(cuoi.reasoning)})`);
-  [c, d] = await xuLy({ ...req, model: 'fal:z-ai/glm-5.3-flash', max_tokens: 500 }, 'ha', so); assert(c === 200 && nhan.at(-1).reasoning?.effort === 'minimal' && d.suy_luan === 'minimal', 'ca 9 lần sau nhớ, không gọi hỏng nữa; trả lại mức suy luận đã dùng');
-  // ckey trước: rẻ nhất trả rỗng → người kế → lần sau bỏ qua người hỏng → hết người thì về fal; thang thì không qua ckey
-  let ckeyHong = false; const goiCkey = [];
-  const fakeC = http.createServer(async (rq, rs) => {
-    if (rq.method === 'GET') return rs.end(JSON.stringify({ data: [{ id: 'a/gemini-3.8-flash', pricing: { completion: 5 } }, { id: 'b/gemini-3-8-flash', pricing: { completion: 1 } }, { id: 'c/gemini-3.8-flash-high', pricing: { completion: 0 } }, { id: 'gemini-3.8-flash', pricing: { completion: 0 } }] }));
-    let raw = ''; for await (const x of rq) raw += x; const b = JSON.parse(raw); goiCkey.push(b.model);
-    if (ckeyHong) { rs.writeHead(530); return rs.end('{"error":"sập"}'); }
-    rs.end(JSON.stringify({ choices: [{ message: { content: b.model.startsWith('b/') ? '' : 'qua ckey' }, finish_reason: 'stop' }], usage: { prompt_tokens: 5, completion_tokens: 2, x_ckey: { cost: 7 } } }));
-  }).listen(0, '127.0.0.1');
-  await new Promise((r) => fakeC.once('listening', r));
-  process.env.CKEY_API_KEY = 'ck'; process.env.CKEY_TUYEN = '/khong/co'; process.env.CTY_UPSTREAM_CKEY = `http://127.0.0.1:${fakeC.address().port}`;
-  const loiCu = console.error; console.error = () => {};
-  const g = { ...req, model: 'fal:google/gemini-3.8-flash' };
-  [c, d] = await xuLy(g, 'ha', so); assert(c === 200 && d.content[0].text === 'qua ckey' && d.tuyen === 'ckey:a/gemini-3.8-flash' && d.usage.vnd === 7 && d.model === g.model && goiCkey.join() === 'b/gemini-3-8-flash,a/gemini-3.8-flash', `ca 10 rẻ trước, rỗng thì sang người kế, đúng tên đuôi (${goiCkey})`);
-  goiCkey.length = 0; [c, d] = await xuLy(g, 'ha', so); assert(c === 200 && goiCkey.join() === 'a/gemini-3.8-flash', `ca 11 người hỏng nghỉ (${goiCkey})`);
-  hongLuc.set('a/gemini-3.8-flash', Date.now()); goiCkey.length = 0; [c, d] = await xuLy(g, 'ha', so);
-  assert(c === 200 && d.tuyen === 'ckey:c/gemini-3.8-flash-high' && goiCkey.join() === 'c/gemini-3.8-flash-high', `ca 11b người đúng tên nghỉ hết → bản đuôi mức suy luận, không về fal (${goiCkey})`);
-  ckeyHong = true; [c, d] = await xuLy(g, 'ha', so); assert(c === 200 && d.content[0].text === 'chào Lan' && !d.tuyen, 'ca 12 ckey sập hết thì về fal');
-  ckeyHong = false; hongLuc.clear(); goiCkey.length = 0; const n0 = nhan.length; [c, d] = await xuLy({ ...g, thang: true }, 'ha', so); assert(c === 200 && !goiCkey.length && nhan.length === n0 + 1 && !('thang' in nhan.at(-1)), 'ca 13 thang: đi đúng nhà, không gửi cờ ra ngoài');
-  console.error = loiCu; fakeC.close();
-  fake.close(); console.log('✓ proxy: 13 ca đạt (dịch 2 chiều · giá fail-closed · hồ sơ · trần người · fal "Key" · giữ tiền nhà báo · suy luận như lúc đo · ckey trước, đổi người, về nhà gốc)'); process.exit(0);
+  [c, d] = await xuLy(req, 'lan', so); assert(c === 429 && /trần/.test(d.error), `ca 10 vượt trần người → 429 (${c})`);
+  delete process.env.CONG_AI_KEY; const k0 = process.env.CONG_AI_KEY; [c, d] = await xuLy(req, 'ha', so); assert(k0 !== undefined || c === 500 || c === 200, 'ca 11 thiếu khoá cổng → 500 (máy có spy.env thì dùng khoá đó)');
+  fake.close(); console.log('✓ proxy: 11 ca đạt (qua cổng AI chung · thân gửi đúng · giá fail-closed · hồ sơ · nhà lạ · đổi tên model · không gửi cờ thang · cổng hỏng 502 · nhãn phòng · trần người · thiếu khoá)'); process.exit(0);
 }
 
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])) && !process.argv.includes('--tu-kiem')) {

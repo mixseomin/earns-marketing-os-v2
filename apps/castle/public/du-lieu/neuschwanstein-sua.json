@@ -165,5 +165,9 @@
   "dich_x": "-0.75",
   "dich_z": "2.75",
   "ly_do_dich": "dang-ky-khoi.mjs 2026-11-16: mặt bằng OSM lệch ảnh 3D (-0.75, 2.75) m, khớp 0.833 → 0.945"
+ },
+ "way/223145713": {
+  "y_tren": "48.3",
+  "ly_do_cao": "17/11/2026 thẻ máy quét #1631: khối lô-gia mặt tây Palas (mái một dốc) thấp hơn ảnh thật. Đo theo TIA ở 2 góc chuẩn: tây +2,6 m (7 cột), nam +3,5 m (5 cột) → trung vị +3,05; từ trên xuống đỉnh 47,73 m, bản đồ độ cao (cách 3) 47,71 m; ảnh gần (camera (-140, 56, 40)) cho thấy bản thật cao hơn mô hình khoảng một tầng vòm. y_tren 45,28 → 48,3"
  }
 }

@@ -34,17 +34,19 @@ export function ganBaoLech({ nut, chupHai }) {
   <div class="hai"><figure><figcaption>Mô hình 3D</figcaption><img class="a1"><canvas class="c1"></canvas></figure>
     <figure><figcaption>Ảnh thật 3D (Google)</figcaption><img class="a2"><canvas class="c2"></canvas></figure></div>
   <textarea placeholder="Ghi chú (tuỳ chọn): sai gì, ví dụ: tháp này thiếu tầng, mái thấp quá…"></textarea>
+  <div class="tom hang" style="color:var(--chu)"></div>
   <div class="kq"></div>
+  <div class="ls hang"></div>
   <div class="hang" style="justify-content:flex-end"><button class="xoa">Xoá nét đỏ</button><button class="dong">Đóng</button><button class="gui chinh">Gửi báo lệch</button></div>
 </div>`;
   document.body.append(bl);
   const $q = (s) => bl.querySelector(s), kq = $q('.kq'), gui = $q('.gui'), net = []; // net: các hình đỏ { k: 'o' khung | 'm' mũi tên | 'b' bút, p: [[u, v], …] } chuẩn hoá 0–1 (khung / mũi tên: điểm đầu + điểm cuối)
   let du = null, ve = null;
   // vẽ một hình lên ngữ cảnh g, ảnh rộng W cao H lệch ngang ox
-  const veHinh = (g, h, ox, W, H) => { const P = h.p.map(([u, v]) => [ox + u * W, v * H]); g.beginPath();
+  const veHinh = (g, h, ox, W, H) => { const P = h.p.map(([u, v]) => [ox + u * W, v * H]); g.strokeStyle = g.fillStyle = h.mau || '#ff2020'; g.beginPath(); // mau: vùng YÊU CẦU gốc (vàng) khi mở lại một báo cáo
     if (h.k === 'o' && P.length > 1) { const [[a, b], [c, d]] = [P[0], P.at(-1)]; g.rect(Math.min(a, c), Math.min(b, d), Math.abs(c - a), Math.abs(d - b)); g.stroke(); return; }
     if (h.k === 'm' && P.length > 1) { const [[a, b], [c, d]] = [P[0], P.at(-1)], goc = Math.atan2(d - b, c - a), r = Math.max(14, W / 45); g.moveTo(a, b); g.lineTo(c, d); g.stroke();
-      g.beginPath(); g.moveTo(c, d); g.lineTo(c - r * Math.cos(goc - 0.45), d - r * Math.sin(goc - 0.45)); g.lineTo(c - r * Math.cos(goc + 0.45), d - r * Math.sin(goc + 0.45)); g.closePath(); g.fillStyle = '#ff2020'; g.fill(); return; }
+      g.beginPath(); g.moveTo(c, d); g.lineTo(c - r * Math.cos(goc - 0.45), d - r * Math.sin(goc - 0.45)); g.lineTo(c - r * Math.cos(goc + 0.45), d - r * Math.sin(goc + 0.45)); g.closePath(); g.fill(); return; }
     P.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); };
   const veLai = () => { for (const c of [$q('.c1'), $q('.c2')]) { const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height); g.strokeStyle = '#ff2020'; g.lineWidth = Math.max(3, c.width / 260); g.lineJoin = g.lineCap = 'round';
     for (const h of net) veHinh(g, h, 0, c.width, c.height); } };
@@ -55,10 +57,15 @@ export function ganBaoLech({ nut, chupHai }) {
     c.onpointerup = c.onpointercancel = () => { if (ve && ve.p.length < 2) net.pop(); ve = null; veLai(); }; // bấm không kéo: bỏ
   }
   const nap = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = src; });
-  async function mo() {
+  // mo(baoCu): baoCu = một báo cáo đã gửi { id, cam, vung, tom } → camera về ĐÚNG góc đó, chụp lại hai bản (mô hình HIỆN TẠI sau khi sửa · ảnh thật),
+  // vẽ lại vùng anh đánh dấu bằng màu vàng → so yêu cầu với kết quả ngay trên castle.on.tc
+  async function mo(baoCu = null) {
+    $q('b').textContent = baoCu ? `🔍 Đối chiếu báo lệch #${baoCu.id} — vùng VÀNG là chỗ anh đã đánh dấu, ảnh trái là mô hình hiện tại` : '🔍 Báo chỗ ảnh thật khác mô hình — ở đúng góc đang nhìn';
+    $q('.tom').textContent = baoCu?.tom ? 'Kết quả máy: ' + baoCu.tom : ''; veLs();
     kq.textContent = 'Đang chụp hai bản ở góc này (chờ ảnh thật tải đủ)…'; kq.className = 'kq'; net.length = 0; bl.style.display = 'grid'; gui.disabled = true;
     try {
-      du = await chupHai();
+      du = await chupHai(baoCu?.cam || null);
+      for (const n of baoCu?.vung || []) net.push({ k: 'b', p: n, mau: '#ffd400', goc: true });
       for (const [a, c, s] of [[$q('.a1'), $q('.c1'), du.moHinh], [$q('.a2'), $q('.c2'), du.anhThat || du.moHinh]]) { const i = await nap(s); a.src = s; c.width = i.width; c.height = i.height; }
       veLai(); kq.textContent = du.anhThat ? '' : 'Ảnh thật 3D chưa nạp được — chỉ gửi mô hình.'; gui.disabled = false;
     } catch (e) { kq.textContent = 'Chụp không được: ' + (e.message || e); kq.className = 'kq loi'; }
@@ -76,7 +83,7 @@ export function ganBaoLech({ nut, chupHai }) {
       // máy chủ giữ ngữ cảnh ≤ 1 000 ký tự, nội dung ≤ 4 000: camera vào ngữ cảnh, vùng tô (mỗi nét rút còn ≤ 16 điểm) cuối nội dung
       const rut = (n) => { const b = Math.max(1, Math.ceil(n.length / 16)); return n.filter((_, i) => i % b === 0 || i === n.length - 1).map(([u, v]) => [+u.toFixed(3), +v.toFixed(3)]); };
       // gửi CLI dạng nét điểm (so-lech.py lấy hộp bao từng nét): khung → 4 góc, mũi tên → ô quanh MŨI (chỗ chỉ vào), bút → rút gọn
-      const r3 = (x) => +x.toFixed(3), duong = net.map((h) => { if (h.k === 'o') { const [[a, b], [c, d]] = [h.p[0], h.p.at(-1)]; return [[a, b], [c, b], [c, d], [a, d], [a, b]].map(([u, v]) => [r3(u), r3(v)]); }
+      const r3 = (x) => +x.toFixed(3), duong = net.filter((h) => !h.goc).map((h) => { if (h.k === 'o') { const [[a, b], [c, d]] = [h.p[0], h.p.at(-1)]; return [[a, b], [c, b], [c, d], [a, d], [a, b]].map(([u, v]) => [r3(u), r3(v)]); }
         if (h.k === 'm') { const [u, v] = h.p.at(-1); return [[r3(u - 0.04), r3(v - 0.04)], [r3(u + 0.04), r3(v + 0.04)]]; } return rut(h.p); });
       let vung = JSON.stringify(duong); if (vung.length > 2500) vung = JSON.stringify(duong.map((n) => { const us = n.map((p) => p[0]), vs = n.map((p) => p[1]); return [[Math.min(...us), Math.min(...vs)], [Math.max(...us), Math.max(...vs)]].map(([u, v]) => [+u.toFixed(3), +v.toFixed(3)]); }));
       const r = await fetch('/api/gop-y', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
@@ -92,22 +99,26 @@ export function ganBaoLech({ nut, chupHai }) {
   const bao = document.createElement('div'); bao.id = 'bl-bao'; document.body.append(bao);
   let daXem = 0; try { daXem = +localStorage.getItem('ns-lech-da-xem') || 0; } catch {}
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let ttMoi = { dang: [], xong: [] };
+  const nutXem = (x) => (x.cam ? ` <button class="xem" data-id="${esc(x.id)}" style="font:600 12px system-ui;margin-top:6px;padding:4px 10px;border-radius:7px;border:1px solid var(--vien);background:#ffd9a8;color:#1a1208;cursor:pointer">📍 Xem tại góc báo</button>` : '');
+  const ganXem = (el) => el.querySelectorAll('button.xem').forEach((b) => { b.onclick = (e) => { e.stopPropagation(); const x = [...ttMoi.xong, ...ttMoi.dang].find((q) => q.id === b.dataset.id); if (x) mo(x); }; });
+  function veLs() { const ds = ttMoi.xong.filter((x) => x.cam).slice(0, 6), el = $q('.ls'); el.innerHTML = ds.length ? 'Báo cáo trước:' + ds.map((x) => ` <button class="xem" data-id="${esc(x.id)}">#${esc(x.id)}</button>`).join('') : ''; ganXem(el); }
   async function hoiTT() {
     try {
-      const r = await fetch('/mp/lech', { cache: 'no-store' }); if (!r.ok) return; const j = await r.json();
+      const r = await fetch('/mp/lech', { cache: 'no-store' }); if (!r.ok) return; const j = await r.json(); ttMoi = { dang: j.dang || [], xong: j.xong || [] };
       const dang = (j.dang || []).filter((x) => Date.now() - x.luc < 6 * 3600e3), moi = (j.xong || []).filter((x) => x.luc > daXem);
       nut.classList.toggle('bl-dang', dang.length > 0 && !moi.length);
       nut.title = dang.length ? `Đang xử báo lệch: ${dang.map((x) => '#' + x.id + ' ' + x.viec).join(' · ')}` : 'Báo chỗ ảnh thật khác mô hình 3D ở đúng góc đang nhìn (máy tự so hai bản, đánh dấu vùng lỗi nếu muốn)';
       if (moi.length) { if (!nut.classList.contains('bl-xong')) { nut.classList.add('bl-xong'); }
-        bao.className = ''; bao.innerHTML = '<button class="dong" title="Đã xem">✕</button>' + moi.map((x) => `<b>✅ Báo lệch #${esc(x.id)} đã xong</b><p>${esc(x.tom)}${x.link ? ` <a href="${esc(x.link)}" target="_blank" rel="noopener">xem</a>` : ''}</p>`).join('<hr style="border:0;border-top:1px solid var(--vien)">');
+        bao.className = ''; bao.innerHTML = '<button class="dong" title="Đã xem">✕</button>' + moi.map((x) => `<b>✅ Báo lệch #${esc(x.id)} đã xong</b><p>${esc(x.tom)}</p>${nutXem(x)}`).join('<hr style="border:0;border-top:1px solid var(--vien)">'); ganXem(bao);
         bao.style.display = 'block'; bao.querySelector('.dong').onclick = () => { daXem = Math.max(...moi.map((x) => x.luc)); try { localStorage.setItem('ns-lech-da-xem', String(daXem)); } catch {} bao.style.display = 'none'; nut.classList.remove('bl-xong'); hoiTT(); }; }
-      else if (dang.length && bao.dataset.mo !== '0') { bao.className = 'dang'; bao.innerHTML = '<button class="dong">✕</button>' + dang.map((x) => `<b>⏳ Đang xử #${esc(x.id)}</b><p>${esc(x.viec)}</p>`).join(''); bao.style.display = 'block'; bao.querySelector('.dong').onclick = () => { bao.dataset.mo = '0'; bao.style.display = 'none'; }; }
+      else if (dang.length && bao.dataset.mo !== '0') { bao.className = 'dang'; bao.innerHTML = '<button class="dong">✕</button>' + dang.map((x) => `<b>⏳ Đang xử #${esc(x.id)}</b><p>${esc(x.viec)}</p>${nutXem(x)}`).join(''); ganXem(bao); bao.style.display = 'block'; bao.querySelector('.dong').onclick = () => { bao.dataset.mo = '0'; bao.style.display = 'none'; }; }
       else if (bao.className === 'dang') bao.style.display = 'none';
     } catch { /* mạng chập: lượt sau hỏi lại */ }
   }
   hoiTT(); setInterval(hoiTT, 3000);
   nut.onclick = (e) => { e.stopPropagation(); bao.dataset.mo = '1'; mo(); }; // bấm nút: thẻ "đang xử" hiện lại nếu đã tắt
-  $q('.dong').onclick = dong; gui.onclick = guiDi; $q('.xoa').onclick = () => { net.length = 0; veLai(); };
+  $q('.dong').onclick = dong; gui.onclick = guiDi; $q('.xoa').onclick = () => { for (let i = net.length - 1; i >= 0; i--) if (!net[i].goc) net.splice(i, 1); veLai(); };
   addEventListener('keydown', (e) => { if (bl.style.display !== 'grid') return; e.stopImmediatePropagation(); if (e.key === 'Escape') dong(); }, true);
   return { mo, dong };
 }

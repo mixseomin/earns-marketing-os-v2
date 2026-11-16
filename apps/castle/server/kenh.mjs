@@ -65,8 +65,10 @@ function xuLyLech(req, res) {
   let b = ''; req.on('data', (c) => { b += c; if (b.length > 20000) req.destroy(); });
   req.on('end', () => { try { const j = JSON.parse(b), id = String(j.id || '').slice(0, 40); if (!id) throw new Error('thiếu id');
     LECH.dang = LECH.dang.filter((x) => x.id !== id); LECH.xong = LECH.xong.filter((x) => x.id !== id);
-    if (j.tt === 'dang') LECH.dang.push({ id, viec: String(j.viec || '').slice(0, 200), luc: Date.now() });
-    else { const x = { id, tom: String(j.tom || '').slice(0, 1500), link: String(j.link || '').slice(0, 300), luc: Date.now() }; LECH.xong.unshift(x); if (j.tg !== false) void baoTelegram(x); }
+    // cam + vung: góc + vùng người báo đánh dấu — trang mở lại đúng góc, vẽ lại vùng yêu cầu để so với kết quả
+    const goc = JSON.stringify(j.cam || null).length < 600 ? j.cam || null : null, vung = JSON.stringify(j.vung || []).length < 3000 ? j.vung || [] : [];
+    if (j.tt === 'dang') LECH.dang.push({ id, viec: String(j.viec || '').slice(0, 200), luc: Date.now(), cam: goc, vung });
+    else { const x = { id, tom: String(j.tom || '').slice(0, 1500), link: String(j.link || '').slice(0, 300), luc: Date.now(), cam: goc, vung }; LECH.xong.unshift(x); if (j.tg !== false) void baoTelegram(x); }
     LECH.xong = LECH.xong.slice(0, 20); luuLech(); res.writeHead(200, { 'Content-Type': 'application/json' }).end('{"ok":true}'); } catch (e) { res.writeHead(400).end(JSON.stringify({ ok: false, error: e.message })); } });
 }
 const may = http.createServer((req, res) => {

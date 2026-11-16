@@ -15,7 +15,7 @@ import { execFileSync } from 'node:child_process';
 import { GOC, moTrang } from './chung.mjs';
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
 // TRẠNG THÁI cho nút 🔍 trên trang (castle-kenh /mp/lech, chỉ nhận từ máy chủ): đang xử → nút nhún; --xong → nháy xanh + hiện báo cáo cho người báo
-const baoTT = (o) => { try { execFileSync('ssh', ['root@167.233.241.16', 'curl -s -X POST --data-binary @- http://127.0.0.1:3891/mp/lech'], { input: JSON.stringify(o), encoding: 'utf8', timeout: 20000 }); } catch (e) { console.warn('(không báo được trạng thái nút 🔍:', e.message.split('\n')[0] + ')'); } };
+const baoTT = (o) => { const g = globalThis.__gocBao; if (g && !o.cam) { o.cam = g.cam; o.vung = g.vung; } try { execFileSync('ssh', ['root@167.233.241.16', 'curl -s -X POST --data-binary @- http://127.0.0.1:3891/mp/lech'], { input: JSON.stringify(o), encoding: 'utf8', timeout: 20000 }); } catch (e) { console.warn('(không báo được trạng thái nút 🔍:', e.message.split('\n')[0] + ')'); } };
 //   node apps/castle/scripts/so-lech.mjs --xong <id> "<đã sửa gì>" [link]   — sau khi sửa + deploy: báo xong cho trang
 if (arg('--xong')) { baoTT({ id: arg('--xong'), tt: 'xong', tom: process.argv[process.argv.indexOf('--xong') + 2] || 'Đã sửa xong.', link: process.argv[process.argv.indexOf('--xong') + 3] || '' }); console.log('đã báo xong #' + arg('--xong')); process.exit(0); }
 let cam = arg('--cam') ? JSON.parse(arg('--cam')) : null, vung = arg('--vung') ? JSON.parse(arg('--vung')) : [], nhan = arg('--the');
@@ -28,6 +28,7 @@ if (nhan) {
   cam = JSON.parse(m[1]); if (v) vung = JSON.parse(v[1]);
 }
 if (!cam) { console.error('cần --the <id> hoặc --cam <json>'); process.exit(1); }
+globalThis.__gocBao = { cam, vung }; // baoTT gửi kèm góc + vùng đánh dấu cho trang mở lại
 if (nhan) baoTT({ id: nhan, tt: 'dang', viec: 'Đang so lại góc báo lệch' });
 const ra = join(GOC, '.bao-lech', nhan || new Date().toISOString().replace(/[:.]/g, '-')); mkdirSync(ra, { recursive: true });
 const k = Math.min(1, 1280 / (cam.w || 1280)), khung = { width: Math.round((cam.w || 1280) * k), height: Math.round((cam.h || 800) * k) };
@@ -83,10 +84,12 @@ for (const x of goc.khoi) console.log(`  ${x.id} ${x.ten} phủ ${x.phu}${x.do ?
 const apDung = (ds) => { const S = JSON.parse(suaGoc); for (const x of ds) { S[x.id] = { ...(S[x.id] || {}), height: String(x.hMoi), ly_do_tu_xu: `tự xử thẻ báo lệch #${nhan}: đỉnh ảnh 3D ${x.dinhAnh} m, mô hình ${x.dinhMoHinh} m → height ${x.h} → ${x.hMoi}` }; } writeFileSync(SUA, JSON.stringify(S, null, 1) + '\n'); };
 let giu = [], sau = goc;
 if (de.length) {
-  apDung(de); const thu = await luotSo(join(ra, 'sau-ca'));
-  console.log(`thử sửa cả ${de.length} khối: điểm lệch ${goc.diem.toFixed(2)} → ${thu.diem.toFixed(2)}`);
-  if (thu.diem < goc.diem * 0.9) { giu = de; sau = thu; }
-  else for (const x of de) { apDung([...giu, x]); const t = await luotSo(join(ra, 'sau-' + x.id.replace('/', '_'))); console.log(`  thử riêng ${x.id}: ${sau.diem.toFixed(2)} → ${t.diem.toFixed(2)}`); if (t.diem < sau.diem * 0.95) { giu.push(x); sau = t; } }
+  // LUẬT GIỮ (16/11/2026, thẻ #1623): điểm so ảnh nhiễu (ảnh 3D nhoè + cây) — không đủ làm trọng tài. Độ cao đo trên ảnh 3D là SỐ ĐO:
+  //   lệch ≥ 3 m với ≥ 80 điểm đo → sửa thẳng theo số đo (chắc); 1,5–3 m → chỉ giữ nếu điểm so ảnh cũng tốt lên ≥ 5 %.
+  const chac = de.filter((x) => Math.abs(x.d) >= 3 && goc.khoi.find((q) => q.id === x.id)?.do?.so >= 80), mo_ = de.filter((x) => !chac.includes(x));
+  giu = [...chac]; apDung(giu); sau = await luotSo(join(ra, 'sau-chac'));
+  console.log(`sửa chắc ${chac.length} khối (lệch ≥ 3 m): điểm lệch ${goc.diem.toFixed(2)} → ${sau.diem.toFixed(2)}`);
+  for (const x of mo_) { apDung([...giu, x]); const t = await luotSo(join(ra, 'sau-' + x.id.replace('/', '_'))); console.log(`  thử ${x.id} (${x.d} m): ${sau.diem.toFixed(2)} → ${t.diem.toFixed(2)}`); if (t.diem < sau.diem * 0.95) { giu.push(x); sau = t; } }
   apDung(giu); if (!giu.length) writeFileSync(SUA, suaGoc);
 }
 let ket = '', kiemKe = 'không chạy';

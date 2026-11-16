@@ -934,7 +934,7 @@ function doKhoiAnh3d(id) {
 const batAnh3dTam = async (bat) => { if (!anh3d) return false; anh3d.epHien = bat; anh3d.hien = null; apDungAnh3d(); if (!bat) return true; const t0 = performance.now();
   for (let on = 0; performance.now() - t0 < 30000 && on < 6;) { camera.updateMatrixWorld(); anh3d.t.setCamera(camera); anh3d.t.setResolutionFromRenderer(camera, renderer); anh3d.t.update(); renderer.render(scene, camera); await new Promise((ok) => setTimeout(ok, 150)); on = (anh3d.t.loadProgress ?? 1) >= 0.999 && performance.now() - t0 > 4000 ? on + 1 : 0; }
   return true; };
-ganBaoLech({ nut: $('b-lech'), chupHai: () => chupHaiBan() });
+ganBaoLech({ nut: $('b-lech'), chupHai: (cam) => chupHaiBan(cam) }); // cam: mở lại đúng góc một báo cáo cũ
 // góp ý: hộp gopy.js, kèm ảnh khung hình + ngữ cảnh chỗ đứng
 ganGopY({ nut: $('b-gy'), tieuDe: 'Góp ý cho Neuschwanstein', chupAnh: () => chupCanvas(renderer.domElement, () => renderer.render(scene, camera)), nguCanh: () => {
   const p = di?.dang ? di.viTri() : null, ph = p && noiThat ? noiThat.phongTai(p.x, p.y - 0.9, p.z) : null;

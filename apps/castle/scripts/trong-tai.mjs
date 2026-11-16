@@ -38,18 +38,18 @@ else {
   const MOC = du('cham-goc'); if (!existsSync(MOC)) tra(`chưa có mốc ${MOC} — chạy cham-goc.mjs đủ góc trên main rồi commit làm mốc`);
   const moc = JSON.parse(readFileSync(MOC, 'utf8'));
   // góc cần chấm: chỉ sua.json đổi → các góc mốc từng đo được khối đã đổi; đổi tệp khác (mã dựng, dữ liệu khác) → mọi góc
-  let gocs = moc.goc;
+  let gocs = moc.goc, chiKhoi = null;
   if (hinh.every((f) => f.endsWith('-sua.json'))) { const cu = JSON.parse(g('show', 'origin/main:apps/castle/public/du-lieu/neuschwanstein-sua.json')), mo = JSON.parse(readFileSync(du('sua'), 'utf8'));
     const ids = [...new Set([...Object.keys(cu), ...Object.keys(mo)])].filter((id) => JSON.stringify(cu[id]) !== JSON.stringify(mo[id]));
     const co = new Set(moc.khoi.filter((k) => ids.includes(k.id)).flatMap((k) => k.chi_tiet.map((d) => d.goc)));
-    console.log(`· khối đổi: ${ids.join(', ')} → góc thấy: ${[...co].join(', ') || '(mốc chưa đo được khối nào — chấm mọi góc)'}`); if (co.size) gocs = moc.goc.filter((x) => co.has(x)); }
+    console.log(`· khối đổi: ${ids.join(', ')} → góc thấy: ${[...co].join(', ') || '(mốc chưa đo được khối nào — chấm mọi góc)'}`); if (co.size) gocs = moc.goc.filter((x) => co.has(x)); chiKhoi = ids; }
   const tam = join(NHO, khoa + '-do.json'); let ra = '', dat = true;
-  try { ra = chay('cham-goc.mjs', ['--goc', gocs.join(','), '--so', MOC, '--ghi', tam, '--nho', join(NHO, khoa + '-goc')]); } catch (e) { ra = loi(e); dat = false; }
+  try { ra = chay('cham-goc.mjs', ['--goc', gocs.join(','), '--so', MOC, '--ghi', tam, '--nho', join(NHO, khoa + '-goc' + (chiKhoi ? '-khoi' : '')), ...(chiKhoi ? ['--khoi', chiKhoi.join(',')] : [])]); } catch (e) { ra = loi(e); dat = false; }
   const tom = ra.slice(ra.indexOf('\nSO VỚI')).trim() || ra.split('\n').slice(-8).join('\n'); console.log(tom);
   if (!dat) { nho(false, tom); tra('hình khối xấu đi ở bộ góc chuẩn (danh sách trên) — sửa tiếp rồi commit mới'); }
   // gộp số đo mới vào mốc: thay phần của các góc vừa chấm, trung vị tính lại
   const moi = JSON.parse(readFileSync(tam, 'utf8')), tv = (a) => { const s = [...a].sort((x, y) => x - y); return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2; };
-  const M = new Map(moc.khoi.map((k) => [k.id, { ...k, chi_tiet: k.chi_tiet.filter((d) => !moi.goc.includes(d.goc)) }]));
+  const doLai = new Set(moi.khoi.map((k) => k.id)), M = new Map(moc.khoi.map((k) => [k.id, { ...k, chi_tiet: k.chi_tiet.filter((d) => !moi.goc.includes(d.goc) || (chiKhoi && !doLai.has(k.id))) }]));
   for (const k of moi.khoi) { const c = M.get(k.id) || { id: k.id, ten: k.ten, chi_tiet: [] }; c.y_tren = k.y_tren; c.chi_tiet.push(...k.chi_tiet); M.set(k.id, c); }
   const kh = [...M.values()].filter((k) => k.chi_tiet.length).map((k) => ({ ...k, lech: +tv(k.chi_tiet.map((d) => d.lech)).toFixed(2), goc: k.chi_tiet.length })).sort((a, b) => Math.abs(b.lech) - Math.abs(a.lech));
   writeFileSync(MOC, JSON.stringify({ ...moc, luc: moi.luc, ban: sha.slice(0, 9), so_khoi: kh.length, lech_nang: kh.filter((k) => Math.abs(k.lech) >= 1.5).length, lech_tb: +(kh.reduce((t, k) => t + Math.abs(k.lech), 0) / (kh.length || 1)).toFixed(2), khoi: kh }, null, 1) + '\n');

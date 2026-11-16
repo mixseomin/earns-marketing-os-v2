@@ -27,7 +27,7 @@ function soSanh(cu, kq, tenCu) {
   console.log(`\nSO VỚI ${tenCu} (lệch ≥ ${NGUONG} m: ${cu.lech_nang} → ${kq.lech_nang} khối · trung bình ${cu.lech_tb} → ${kq.lech_tb} m)`);
   for (const k of kq.khoi) { const c = M.get(k.id); if (!c) continue; const d = Math.abs(k.lech) - Math.abs(c.lech); if (Math.abs(d) < 0.9) continue; const x = d > 0 && Math.abs(k.lech) >= NGUONG; if (x) xau++;
     console.log(`  ${d < 0 ? '✓ tốt lên' : x ? '✗ XẤU ĐI' : '· kém hơn (còn trong ngưỡng)'} ${k.id} ${k.ten}: lệch ${c.lech} → ${k.lech} m`); }
-  const mat = cu.khoi.filter((k) => !kq.khoi.some((q) => q.id === k.id)); if (mat.length) console.log(`  · ${mat.length} khối lượt trước đo được, lượt này không: ${mat.map((k) => k.id).join(', ')}`);
+  const mat = cu.khoi.filter((k) => !kq.khoi.some((q) => q.id === k.id)); if (mat.length && !CHI_KHOI) console.log(`  · ${mat.length} khối lượt trước đo được, lượt này không: ${mat.map((k) => k.id).join(', ')}`);
   if (xau) { console.log(`✗ ${xau} khối xấu đi`); process.exit(1); } console.log('✓ không khối nào xấu đi'); }
 if (arg('--so') && arg('--voi')) { soSanh(JSON.parse(readFileSync(arg('--so'), 'utf8')), JSON.parse(readFileSync(arg('--voi'), 'utf8')), arg('--so')); process.exit(0); }
 const pha = arg('--pha') ? (() => { const [id, d] = arg('--pha').split(':'); return { id, d: +d }; })() : null;
@@ -57,7 +57,9 @@ const NHO_GOC = arg('--nho'); if (NHO_GOC) mkdirSync(NHO_GOC, { recursive: true 
 // một trang dùng chung) — trọng tài vài phút thay vì ~55 phút. Góc mới / khối dời mặt bằng → cột thiếu → góc đó đo đủ bằng ảnh 3D và bổ sung kho. --lai: bỏ kho, đo lại hết.
 const TEP_KHO = join(GOC, 'du-lieu-goc', `${LAU}-tia-that.json`), KHO = !process.argv.includes('--lai') && existsSync(TEP_KHO) ? JSON.parse(readFileSync(TEP_KHO, 'utf8')) : {};
 // SONG SONG: mỗi loại một trình duyệt, nhiều trang (ảnh 3D: 3 trang — giới hạn GPU / mạng tải ô; không ảnh 3D: 4 trang, cổng riêng, không xếp hàng)
-const SONG = { that: 3, nhanh: 4 }, may = {};
+// --khoi id1,id2: chỉ đo các khối đó + khối trong 30 m quanh (tia có thể bị chúng che) — trọng tài khi chỉ sửa số đo vài khối (vài chục giây thay vì đủ cả lâu đài)
+const CHI_KHOI = arg('--khoi')?.split(',') || null;
+const SONG = { that: 3, nhanh: 9 }, may = {};
 const layMay = (loai) => (may[loai] ||= (async () => { const t = await moTrang({ anh3d: loai === 'that', khung: { width: 1280, height: 800 }, suaTam }); return { ...t, ranh: [t.pg] }; })());   // giữ LỜI HỨA: ba thợ gọi cùng lúc chỉ mở một trình duyệt
 const muonTrang = async (loai) => { const m = await layMay(loai); return m.ranh.pop() || await m.trangMoi(); };
 const traTrang = async (loai, pg) => (await may[loai]).ranh.push(pg);
@@ -65,7 +67,9 @@ const datCam = (cam) => { const n = window.__ns, C = n.camera, [x, y, z] = cam.p
 async function doGoc(g) { const tepG = NHO_GOC && join(NHO_GOC, g.ten + '.json'), t0 = Date.now(); let r, cach;
   if (tepG && existsSync(tepG)) { r = JSON.parse(readFileSync(tepG, 'utf8')); cach = 'nhớ'; }
   else if (KHO[g.ten]) { cach = 'kho'; const pg = await muonTrang('nhanh');
-    r = await pg.evaluate(([cam, kho, dc]) => { (0, eval)('(' + dc + ')')(cam); const n = window.__ns; return n.khoiTrongVung([[0, 0, 1, 1]]).map((k) => n.doKhoiTheoTia(k.id, kho)).filter(Boolean); }, [g, KHO[g.ten], String(datCam)]);
+    r = await pg.evaluate(([cam, kho, dc, chi]) => { (0, eval)('(' + dc + ')')(cam); const n = window.__ns, tam = (k) => k.v.reduce((a, p) => [a[0] + p[0] / k.v.length, a[1] + p[1] / k.v.length], [0, 0]);
+      const goc = chi && n.dsKhoi.filter((k) => chi.includes(k.id)).map(tam), gan = (k) => !goc || goc.some((c) => Math.hypot(tam(k)[0] - c[0], tam(k)[1] - c[1]) < 30);
+      return n.khoiTrongVung([[0, 0, 1, 1]]).filter((k) => gan(n.dsKhoi.find((q) => q.id === k.id))).map((k) => n.doKhoiTheoTia(k.id, kho)).filter(Boolean); }, [g, KHO[g.ten], String(datCam), CHI_KHOI]);
     traTrang('nhanh', pg); }
   else { cach = 'ảnh 3D'; const pg = await muonTrang('that'); const kho = {};
     const o = await pg.evaluate(async ([cam, kho, dc]) => { const n = window.__ns; await n.chupHaiBan({ ...cam, w: innerWidth, h: innerHeight }); await n.batAnh3dTam(true); (0, eval)('(' + dc + ')')(cam);
@@ -82,7 +86,7 @@ const tv = (a) => { const s = [...a].sort((x, y) => x - y); return s.length % 2 
 const khoi = Object.entries(theoKhoi).map(([id, k]) => ({ id, ten: k.ten, y_tren: k.y, lech: +tv(k.do.map((d) => d.lech)).toFixed(2), goc: k.do.length, chi_tiet: k.do })).sort((a, b) => Math.abs(b.lech) - Math.abs(a.lech));
 const lechNang = khoi.filter((k) => Math.abs(k.lech) >= NGUONG), tb = khoi.length ? khoi.reduce((t, k) => t + Math.abs(k.lech), 0) / khoi.length : 0;
 const kq = { luc: new Date().toISOString(), goc: GOCS.map((g) => g.ten), pha, so_khoi: khoi.length, lech_nang: lechNang.length, lech_tb: +tb.toFixed(2), khoi };
-const tep = join(RA, kq.luc.replace(/[:.]/g, '-') + (pha ? '-pha' : '') + '.json'); writeFileSync(tep, JSON.stringify(kq, null, 1)); if (!pha && !chon) writeFileSync(join(RA, 'moi-nhat.json'), JSON.stringify(kq, null, 1)); if (arg('--ghi')) writeFileSync(arg('--ghi'), JSON.stringify(kq, null, 1) + '\n');
+const tep = join(RA, kq.luc.replace(/[:.]/g, '-') + (pha ? '-pha' : '') + '.json'); writeFileSync(tep, JSON.stringify(kq, null, 1)); if (!pha && !chon && !CHI_KHOI) writeFileSync(join(RA, 'moi-nhat.json'), JSON.stringify(kq, null, 1)); if (arg('--ghi')) writeFileSync(arg('--ghi'), JSON.stringify(kq, null, 1) + '\n');
 console.log(`\nĐIỂM: ${khoi.length} khối đo được · lệch ≥ ${NGUONG} m: ${lechNang.length} khối · trung bình |lệch| ${tb.toFixed(2)} m · ${tep}`);
 for (const k of khoi.slice(0, 25)) console.log(`  ${k.lech > 0 ? 'thấp hơn thật' : 'cao hơn thật '} ${Math.abs(k.lech).toFixed(1).padStart(5)} m · ${k.id} ${k.ten} · y_tren ${k.y_tren} · ${k.goc} góc (${k.chi_tiet.map((d) => d.goc + ' ' + d.lech).join(', ')})`);
 if (arg('--so')) soSanh(JSON.parse(readFileSync(arg('--so'), 'utf8')), kq, arg('--so'));

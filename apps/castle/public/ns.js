@@ -993,7 +993,8 @@ function doKhoiTheoTia(id, kho = null) {
   camera.updateMatrixWorld(); const C = camera.position.clone(), DICH = anh3d?.goc.position.y || 0, rc = new THREE.Raycaster(), d3 = new THREE.Vector3(), SAI = 2.5;
   const giu = LOP_OSM.map((m) => m.visible); for (const m of LOP_OSM) m.visible = true;
   const anHien = (o) => { for (let q = o; q; q = q.parent) if (q.visible === false) return false; return true; };
-  const trungMH = (dist) => rc.intersectObjects(LOP_OSM.filter((m) => m.isObject3D), true).find((x) => anHien(x.object))?.distance ?? Infinity;
+  // tia mô hình chỉ bắn vào LỚP NHÀ (bỏ địa hình + rừng: hai lưới lớn nhất cảnh, chiếm gần hết thời gian chấm), danh sách lấy MỘT lần mỗi khối
+  const NHA = [...LOP_NHA].filter((m) => m.isObject3D), trungMH = () => rc.intersectObjects(NHA, true).find((x) => anHien(x.object))?.distance ?? Infinity;
   const trungThat = () => rc.intersectObject(anh3d.t.group, true)[0]?.distance ?? Infinity;
   const y0 = Math.max(Number.isFinite(k.yDuoi) ? k.yDuoi : -1e9, k.yTren - 22), y1 = k.yTren + 14;
   // QUÉT THÔ 1,2 m rồi MỊN 0,3 m trong đoạn vừa đổi trạng thái (trước: mịn 0,3 m suốt ~150 bước / cột — trọng tài 55 phút)

@@ -1248,4 +1248,8 @@ export const LUAT = [
   { card: 'phanh-tay-1611', tep: 'apps/etp/cong.py', co: 'if ly_pc and not tay and not roas', vi: 'phanh chợ KHÔNG chặn thao tác tay (anh 16/11/2026 "mày ko đc chặn với thao tác thủ công")' },
   { card: 'phanh-tay-1611', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'tay=str(ai or "").strip().lower().startswith("anh"))', vi: 'lệnh tăng anh bấm tay đi qua cổng với tay=True' },
   { card: 'phanh-tay-1611', tep: 'apps/etp2/src/components/etp-view.tsx', co: "k === 'ns' && Number(ns) > c.ngan_sach ? ctx?.phanh?.tang : k === 'nb' ? ctx?.phanh?.len : null", vi: 'thao tác tay chỉ cảnh báo một lần ở bước xác nhận' },
+  { card: 'qua-tai-nhan-ban-1711', tep: 'apps/xuong-video/scripts/ethopex/qc-spy-phim.sql', co: "FROM pat JOIN qc_meta q ON (COALESCE(q.dich, ''::text) || COALESCE(q.dich_cuoi, ''::text)) LIKE pat.p", vi: 'chữ QC app gốc lấy qua chỉ mục trigram theo khoá của phim, không quét cả kho QC mỗi lượt nhan-ban (box3 hết CPU 17/11/2026)' },
+  { card: 'qua-tai-nhan-ban-1711', tep: 'apps/xuong-video/scripts/ethopex/qc-spy-phim.sql', cam: "regexp_replace(coalesce(q.noi_dung, ''), '\\s+', ' ', 'g') AS nd", vi: 'không regexp_replace nội dung của mọi QC trong bảng qc' },
+  { card: 'qua-tai-nhan-ban-1711', tep: 'apps/xuong-video/scripts/ethopex/kiem-phim-18.py', co: 'if p.returncode: raise OSError(', vi: 'đọc chữ QC spy lỗi thì kêu to, không cho cổng 18+ qua lặng lẽ' },
+  { card: 'qua-tai-nhan-ban-1711', tep: 'apps/xuong-video/scripts/ethopex/kiem-phim-18.py', co: '["nice", "-n", "10", "psql", db,', vi: 'truy vấn spy của cổng 18+ chạy nice, nhường web' },
 ];

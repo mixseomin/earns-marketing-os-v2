@@ -47,8 +47,12 @@ def chu_phim(cid):
     (22/10/2026: chữ QC của SIMP NO MORE nằm dưới 'Seven Five-Star Generals' và 'Billionaire's Illegal Obsession' → chặn oan)."""
     db = spy_db(); ten = q(f"select ten from ethopex_content where id={int(cid)}", db) or ""
     khac = [t.lower() for t in q(f"select distinct ten from ethopex_content where id<>{int(cid)} and length(ten) >= 12", db).splitlines() if t.lower() not in ten.lower()]
-    r = subprocess.run(["psql", db, "-v", f"ids={int(cid)}", "-tA", "-F", "\t", "-f", os.path.join(D, "qc-spy-phim.sql")], capture_output=True, text=True).stdout
-    chu = list(dict.fromkeys(x.split("\t")[6] for x in r.splitlines() if len(x.split("\t")) > 6))
+    # nice: cổng này chạy trong MỌI lượt nhan-ban — lô mở rộng phim bật hàng chục lượt cùng lúc (17/11/2026: 45 lượt, box3 hết CPU), nhường web / spy-web.
+    # Lỗi psql KÊU TO (trước đây stdout rỗng = "không có chữ QC" = cổng từ khoá 18+ cho qua lặng lẽ)
+    p = subprocess.run(["nice", "-n", "10", "psql", db, "-v", "ON_ERROR_STOP=1", "-v", f"ids={int(cid)}", "-tA", "-F", "\t", "-f", os.path.join(D, "qc-spy-phim.sql")], capture_output=True, text=True)
+    if p.returncode: raise OSError(   # OSError = lỗi máy (nhan-ban.loi_may: nhịp sau thử lại), không cho qua cổng
+f"không đọc được chữ QC app gốc (spy, qc-spy-phim.sql): {p.stderr.strip()[-200:]}")
+    chu = list(dict.fromkeys(x.split("\t")[6] for x in p.stdout.splitlines() if len(x.split("\t")) > 6))
     return ten, [c for c in chu if not any(k in c.lower() for k in khac)]
 
 def kiem(cid, soat_hinh=True):

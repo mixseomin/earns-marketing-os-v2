@@ -483,7 +483,7 @@
    "chay": [
     "/bin/bash",
     "-lc",
-    "o=$(/Users/htuan/bin/br open /Users/htuan/Me/Earns/courseforge-demo/.capture-profile-militarycalc 2>&1); moi=; case \"$o\" in *'MỞ PHIÊN MỚI'*) moi=1;; esac; /Users/htuan/bin/br play run pinterest.doc-so-ghim; rc=$?; [ -n \"$moi\" ] && /Users/htuan/bin/br close /Users/htuan/Me/Earns/courseforge-demo/.capture-profile-militarycalc >/dev/null; exit $rc"
+    "/Users/htuan/bin/br play run pinterest.doc-so-ghim"
    ],
    "moi_truong": {
     "BR_PROFILE": "/Users/htuan/Me/Earns/courseforge-demo/.capture-profile-militarycalc",
@@ -504,7 +504,7 @@
    "chay": [
     "/bin/bash",
     "-lc",
-    "o=$(/Users/htuan/bin/br open /Users/htuan/Me/Earns/courseforge-demo/.capture-profile-militarycalc 2>&1); moi=; case \"$o\" in *'MỞ PHIÊN MỚI'*) moi=1;; esac; /Users/htuan/bin/br play run pinterest.nap-ghim-hen; rc=$?; [ -n \"$moi\" ] && /Users/htuan/bin/br close /Users/htuan/Me/Earns/courseforge-demo/.capture-profile-militarycalc >/dev/null; exit $rc"
+    "/Users/htuan/bin/br play run pinterest.nap-ghim-hen"
    ],
    "moi_truong": {
     "BR_PROFILE": "/Users/htuan/Me/Earns/courseforge-demo/.capture-profile-militarycalc",

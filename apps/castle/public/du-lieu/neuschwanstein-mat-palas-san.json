@@ -282,9 +282,60 @@
     "bau": 1067
    }
   ],
+  "cumPhu": [
+   {
+    "ten": "cặp giữa hàng cửa đơn",
+    "ly_do": "góp ý #1634: thấy trên ảnh 3D Google góc thẻ (x 642 / 675 px, đổi sang mét theo tâm hai cụm 3 ô hàng 3·2·3: −0,68 / +0,55 m); ảnh Albert bị giàn giáo che. Không lấy đối xứng (nằm giữa trục)",
+    "o": [
+     [
+      803,
+      815
+     ],
+     [
+      831,
+      843
+     ]
+    ],
+    "dinhO": 1020,
+    "bau": 1067
+   },
+   {
+    "ten": "cặp thấp trái",
+    "ly_do": "góp ý #1634: hàng cửa đôi thấp sát sân (ảnh Albert chụp lúc sân còn đắp cao, không thấy) — đo trên ảnh 3D Google góc thẻ: bậu 29,3 m, đỉnh 30,8 m (2,8 m trên mặt sân), hai ô −5,5 / −4,7 m. Toạ độ ghi theo hệ điểm ảnh Albert kéo dài (24,6 px/m đứng, 22 px/m ngang)",
+    "o": [
+     [
+      698,
+      708
+     ],
+     [
+      717,
+      727
+     ]
+    ],
+    "dinhO": 1141,
+    "bau": 1178
+   },
+   {
+    "ten": "cặp thấp giữa",
+    "ly_do": "góp ý #1634: cùng hàng cặp thấp trái, hai ô +0,4 / +1,4 m; phía phải trục bị cầu thang lên sân che trên ảnh 3D → không lấy đối xứng",
+    "o": [
+     [
+      829,
+      839
+     ],
+     [
+      850,
+      860
+     ]
+    ],
+    "dinhO": 1141,
+    "bau": 1178
+   }
+  ],
   "doiXung": true,
-  "matSan": 1085,
-  "tiDung": 0.5263,
+  "ly_do_ti_dung": "góp ý #1634 (17/11/2026): đo trên ảnh 3D Google ở góc thẻ (camera (−10,2; 31,1; 3,3), mặt cách 26,5 m → 29,7 px/m): bậu hàng 3·2·3 thật 38,6 m, hàng cửa đơn 33,9 → 35,7 m, mặt sân 26,5 m. Bản cũ (tiDung 0,526, matSan 1085) đặt hàng 3·2·3 ở 34,5 m — thấp 4 m, hàng cửa đơn sát đất, mũi con-xon tháp góc lọt vào khung trong khi ảnh thật không có. Hai ẩn số khớp ba mốc: tiDung 0,68 (hàng cửa đơn: 0,686 từ bậu, 0,676 từ đỉnh) và matSan 1247 (ảnh Albert chụp lúc sân còn đắp cao — mặt đất 1085 trên ảnh không phải sân hôm nay). Tỉ lệ đứng ảnh chính thành 36,2 px/m (cũ 31,8; ngang 41,2 — gần nhau hơn như ảnh gần chính diện phải có)",
+  "matSan": 1247,
+  "tiDung": 0.68,
   "tiNgang": 0.5341
  },
  "neo": {

@@ -1389,7 +1389,8 @@ window.__ns.chongLan = () => { const ra = [];
     const mat = a.mat || a.ten || 'Palas', ux = -a.nz, uz = a.nx, sa = a.x * ux + a.z * uz, sb = b.x * ux + b.z * uz;
     // so theo KHUNG NGOÀI (viền đá, vòm bao) — lòng kính tách nhau mà khung vẫn đè là đúng lỗi nhìn thấy; ô cùng một cụm (cum) không tính
     const va = a.vien || { ngang: 0.25, tren: 0.4 }, vb = b.vien || { ngang: 0.25, tren: 0.4 }; if (a.cum != null && a.cum === b.cum && Math.abs(a.y - b.y) < 0.01) continue;
-    if (Math.abs(sa - sb) < a.nua + va.ngang + b.nua + vb.ngang - 0.05 && a.y - 0.15 < b.y + b.cao + vb.tren - 0.05 && b.y - 0.15 < a.y + a.cao + va.tren - 0.05 && !(Math.abs(sa - sb) < 0.01 && Math.abs(a.y - b.y) < 0.01)) ra.push({ mat, a: [+sa.toFixed(2), +a.y.toFixed(2)], b: [+sb.toFixed(2), +b.y.toFixed(2)] }); }
+    if (Math.abs(sa - sb) < a.nua + va.ngang + b.nua + vb.ngang - 0.05 && a.y - 0.15 < b.y + b.cao + vb.tren - 0.05 && b.y - 0.15 < a.y + a.cao + va.tren - 0.05 && !(Math.abs(sa - sb) < 0.01 && Math.abs(a.y - b.y) < 0.01)) ra.push({ mat, a: [+sa.toFixed(2), +a.y.toFixed(2)], b: [+sb.toFixed(2), +b.y.toFixed(2)],
+      chiTiet: [a, b].map((o) => ({ mat: o.mat || o.ten || 'Palas', nua: +o.nua.toFixed(2), cao: +o.cao.toFixed(2), vien: o.vien || null, cum: o.cum ?? null })) }); }
   return ra; };
 // khung một mặt tường "khối#cạnh": hai đầu p, q, pháp tuyến ngoài n, mặt đất trước tường, đỉnh tường (mái hiên) y1, đỉnh khối yTren (scripts/kiem-ke.mjs kiểm khung)
 window.__ns.matTuong = (id) => { const [kid, si] = id.split('#'), k = dsKhoi.find((q) => q.id === kid), i = +si; if (!k || !Number.isFinite(i)) return null;

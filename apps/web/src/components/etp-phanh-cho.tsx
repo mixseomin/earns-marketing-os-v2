@@ -15,6 +15,16 @@ const p2 = (n: number) => String(n).padStart(2, '0');
 const gioVn = (iso: string) => { const d = new Date(Date.parse(iso) + 7 * 3600_000); return `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())} ${p2(d.getUTCDate())}/${p2(d.getUTCMonth() + 1)}`; };
 const KHUNG = { margin: '0 0 8px', padding: '4px 10px', borderRadius: 6, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } as const;   // MỘT dòng (anh 16/11/2026 "Hiện gọn hơn") — chi tiết ở chữ rê
 
+/** phanh đang chạy → câu cảnh báo cho bước xác nhận thao tác tay (tang = tăng ngân sách, len = tạo camp / nhân bản); null = không phanh việc đó.
+ *  Thao tác tay KHÔNG bị chặn (anh 16/11/2026) — chỉ cảnh báo một lần ở bước xác nhận. */
+export function canhBaoPhanh(cauHinh: { khoa: string; gia_tri: unknown }[]): { tang: string | null; len: string | null } {
+  const ph = ((cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null)?.phanh, nay = Date.now();
+  if (!ph) return { tang: null, len: null };
+  const dau = `⛔ Đang phanh chợ${ph.ti != null ? ` (giá chợ ${Math.round(ph.ti * 100)}% nền)` : ''}`;
+  return { tang: Date.parse(ph.den_tang) > nay ? `${dau} — máy dừng tăng tới ${gioVn(ph.den_tang)}. Bấm Làm là vẫn tăng.` : null,
+           len: Date.parse(ph.den_len) > nay ? `${dau} — máy dừng camp mới tới ${gioVn(ph.den_len)}. Bấm Làm là vẫn tạo.` : null };
+}
+
 export function BienPhanhCho({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {
   const tt = (cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null;
   if (!tt) return null;

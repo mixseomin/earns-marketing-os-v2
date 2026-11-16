@@ -149,8 +149,10 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         # PHANH CHỢ (anh 16/11/2026 "Làm theo đề xuất" — sổ luật phanh_cho, apps/etp/gia_adsense.py xet_phanh chốt 20h VN): giá AdSense cả chợ khung 07–13h < 85% nền 7 ngày
         # hoặc ngày trong lịch → không tăng bậc tới den_tang (07:00 sáng hôm sau), không tạo camp / nhân bản tới den_len (hết ngày Ethopex kế). Miễn: camp ★ ROAS,
         # lệnh anh, camp thay bài bị từ chối (thay), tài khoản người trong team (ngoai). Có hạn, tự hết — khác cờ hoãn đã bỏ 13/11.
+        # THAO TÁC TAY (tay=True) KHÔNG BỊ PHANH (anh 16/11/2026: "mày ko đc chặn với thao tác thủ công. Chỉ được cảnh báo thêm 1 lần nữa") — trang etp2 cảnh báo
+        # ngay ở bước xác nhận, bấm Làm là chạy; phanh chỉ chặn lệnh MÁY tự làm.
         ly_pc = phanh_cho(ch.get("phanh_cho"), viec, thay=thay)
-        if ly_pc and not roas and not lenh_anh and not ngoai and not (viec == "tang" and camp_id and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") == "1"): return ly_pc
+        if ly_pc and not tay and not roas and not lenh_anh and not ngoai and not (viec == "tang" and camp_id and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") == "1"): return ly_pc
         # HOÃN TĂNG THEO GIÁ ADSENSE: ĐÃ BỎ (anh 13/11/2026 "bỏ rule Hoãn đang áp dụng") — giá AdSense tụt không còn chặn tăng / nhân bản; máy đo giá
         # (apps/etp/gia_adsense.py) vẫn đo và vẫn bù giá cho luật cắt camp mới. Tham số thay= giữ cho người gọi cũ (nhan-ban.py --thay), không còn tác dụng.
         if viec == "tang" and not roas and (ch.get("mua_le") or {}).get("khoa_tang"):   # mùa lễ Mỹ (apps/etp/mua_le.py, anh 08/11/2026): Meta học lại đúng tuần giá cao là tốn nhất

@@ -5,7 +5,7 @@ import { dangTao, choGio, dangChay } from '@/lib/etp-chay';
 import { createContext, Fragment, startTransition, useCallback, useContext, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoang';
-import { BienPhanhCho } from '@/components/etp-phanh-cho';
+import { BienPhanhCho, canhBaoPhanh } from '@/components/etp-phanh-cho';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';   // SỔ LUẬT CHUNG — mọi thẻ / nhóm / hướng / bộ lọc luật đọc từ đây (anh 01/11/2026 "tìm nguyên nhân gốc")
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
 import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Segmented, StatsStrip, usePaged, type DataColumn, type SegmentedOption } from '@/components/ui';
@@ -47,7 +47,7 @@ const LsBacCtx = createContext<DuLieuEtp['lsBac']>({});   // lịch sử đổi 
 // ĐIỀU KHIỂN CAMP NHÀ BẰNG TAY (#1553): chỉ chủ (admin mos2) đang xem camp Nhà — null = không hiện nút ⚙ · bo = các bộ tài khoản để nhân bản sang
 // LỊCH SỬ THAY ĐỔI của một camp cho tab 🕘 Lịch sử (anh 09/11/2026 "thêm lịch sử thay đổi vào đó"): lệnh tay etp2 (sổ chờ áp, 2 giờ) · bật / tắt (nhật ký luật) · bậc 30 ngày
 type LsDk = { tay: ChoAp[]; batTat: DuLieuEtp['nhatKy']; bac: DuLieuEtp['lsBac'][number] };
-const DieuKhienCtx = createContext<{ bo: string[]; cho: Map<number, ChoAp[]>; ls: (id: number) => LsDk } | null>(null);
+const DieuKhienCtx = createContext<{ bo: string[]; cho: Map<number, ChoAp[]>; ls: (id: number) => LsDk; /** phanh chợ đang chạy → cảnh báo ở bước xác nhận (etp-phanh-cho canhBaoPhanh) */ phanh?: { tang: string | null; len: string | null } } | null>(null);
 // VẾT CHỜ (anh 09/11/2026 "khi thay đổi mà chưa áp dụng ngay thì phải show lại vết"): lệnh tay còn chờ = kho chưa khớp với lệnh (ngân sách / trạng thái);
 // nhân bản giữ vết 45 phút (camp mới hiện ở lượt đồng bộ kế). Hết chờ thì tự biến mất — không ai phải xoá.
 function conCho(ds: ChoAp[], camps: Pick<CampEtpKho, 'camp_id' | 'ngan_sach' | 'trang_thai'>[]): Map<number, ChoAp[]> {
@@ -796,6 +796,7 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
   const o = (k: string) => (kq && kq.o === k ? <div style={{ marginTop: 6, padding: '6px 8px', borderRadius: 6, background: kq.ok ? '#22c55e18' : '#ef444422', color: kq.ok ? '#4ade80' : '#fca5a5', whiteSpace: 'pre-wrap' }}>{kq.ok ? '✓ ' : '✕ '}{kq.chu}</div>
     : dang === k ? <div style={{ marginTop: 6, color: '#60a5fa' }}>đang gửi máy… (đọc lại Ethopex có thể tới 2 phút)</div> : null);
   const xacNhan = (k: string) => (cho && cho.o === k ? <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid #f59e0b', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+    {(() => { const cb = k === 'ns' && Number(ns) > c.ngan_sach ? ctx?.phanh?.tang : k === 'nb' ? ctx?.phanh?.len : null; return cb ? <div style={{ flexBasis: '100%', color: '#fca5a5', fontWeight: 600 }}>{cb}</div> : null; })()}
     <span style={{ flex: 1, minWidth: 160 }}>Chắc chắn: <b>{cho.chu}</b>?</span>
     <button onClick={() => { const f = cho.f; setCho(null); void lam(k, f); }} style={{ ...nut, borderColor: '#f59e0b' }}>Làm</button>
     <button onClick={() => setCho(null)} style={nut}>Huỷ</button></div> : null);
@@ -3114,7 +3115,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
     <ChiXem.Provider value={chiXem}><HoanCtx.Provider value={hoanSo}><LsBacCtx.Provider value={du.lsBac ?? {}}>
-    <PhamViLuu value={phamViNg(du)}><DieuKhienCtx.Provider value={quyen?.vai === 'chu' && !du.nguoi.ngoai ? { bo: Object.keys(du.boTk).sort(), cho: choMap, ls: lsCamp } : null}><SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
+    <PhamViLuu value={phamViNg(du)}><DieuKhienCtx.Provider value={quyen?.vai === 'chu' && !du.nguoi.ngoai ? { bo: Object.keys(du.boTk).sort(), cho: choMap, ls: lsCamp, phanh: canhBaoPhanh(du.cauHinh) } : null}><SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
     <div ref={cuonRef} onScroll={(e) => { const h = heroRef.current; const g = !!h && e.currentTarget.scrollTop > (gon ? h.offsetTop + h.offsetHeight : 12); if (g !== gonHero) setGonHero(g); }} style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}@keyframes etpXoay{to{transform:rotate(360deg)}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>
     {/* TRÀN HẾT BỀ NGANG MÀN (anh 29/10/2026 "tại sao màn hình ko tràn hết sang 2 bên"): trước khoá maxWidth 1600 căn giữa — màn 1930px thừa hai lề trống, bảng Cây bị cắt cột phải */}

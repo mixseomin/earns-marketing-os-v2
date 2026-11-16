@@ -36,6 +36,10 @@
   "y_tren": 54.4,
   "ly_do": "ảnh 3D Google (lưới độ cao quanh tháp, 16/11/2026): thân VUÔNG đỉnh 54 m có diềm vòm đỡ + lan can; tháp TRÒN đường kính ~7 m đỉnh thân 65 m, mái chóp tới ~69 m (ảnh anh gửi: tháp tròn có cửa sổ, chóp nhọn). y_* = độ cao tuyệt đối (toạ độ cảnh), ns.js đổi ra height / min_height theo mốc chân nhà — bệ đỡ tháp tròn"
  },
+ "way/1573767744": {
+  "y_tren": "40.4",
+  "ly_do": "16/11/2026 thẻ #1630 [MÁY QUÉT]: đo theo tia ở 3 góc chuẩn (cham-goc.mjs --khoi): tây +4,4 m (10 cột), tây-bắc +4,1 m (10 cột), bắc +3,8 m (5 cột) → trung vị +4,1; bản đồ độ cao ảnh 3D từ trên xuống (cách 3, 120 ô) đỉnh 40,65 m — hai cách đo cùng chiều. Cặp ảnh so-lech góc tây: khối nhỏ giữa cánh trái và Palas thật nhô mái lên ngang mái hiên khối kề, mô hình thấp hẳn → y_tren 36,28 → 40,4 (mái side_hipped 2 m giữ nguyên)"
+ },
  "way/223069514": {
   "y_duoi": 54,
   "y_tren": 69.5,

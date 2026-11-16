@@ -1367,6 +1367,10 @@ window.__ns.luuGoc = luuGoc; window.__ns.gocHienTai = gocHienTai;
 window.__ns.kiemKe = () => KIEM_KE; window.__ns.datCach3Hien = (b) => datCach3Hien(b); window.__ns.chupHaiBan = chupHaiBan; window.__ns.khoiTrongVung = khoiTrongVung; window.__ns.doKhoiAnh3d = doKhoiAnh3d; window.__ns.doKhoiTheoTia = doKhoiTheoTia; window.__ns.batAnh3dTam = batAnh3dTam; window.__ns.diemTaiAnh = diemTaiAnh;
 // CHỒNG LẤN: hai ô cửa cùng một mặt tường mà khung chạm nhau (kể cả cửa dựng theo luật chung) → danh sách cặp (scripts/kiem-ke.mjs báo lỗi)
 // so MỌI cặp cửa CÙNG MẶT PHẲNG (cùng hướng, cách ≤ 0,8 m), mọi nguồn (mặt OSM, mặt dựng riêng Palas) — trước gom theo mã mặt nên hai khối cùng mặt phẳng đè nhau không thấy (17/11/2026)
+// CỬA LƠ LỬNG (17/11/2026, Viereckturm): ô cửa có đáy dưới chân tường / đỉnh trên mái hiên của chính khối quá 1 m → treo giữa trời hoặc đè sang khối khác.
+// kiem-ke.mjs coi là lỗi (thoát 1) → trọng tài máy trả mọi bản sửa làm lớp lỗi này quay lại.
+window.__ns.cuaLoLung = () => CUA.filter((c) => c.mat).map((c) => { const k = dsKhoi.find((q) => q.id === c.mat.split('#')[0]); if (!k) return null;
+  const d0 = Number.isFinite(k.yDuoi) ? k.yDuoi : -1e9, d1 = k._y1 ?? k.yTren; return c.y < d0 - 1 || c.y + c.cao > d1 + 1 ? { mat: c.mat, y: +c.y.toFixed(1), chan: +d0.toFixed(1), dinh: +d1.toFixed(1) } : null; }).filter(Boolean);
 window.__ns.chongLan = () => { const ra = [];
   for (let i = 0; i < CUA.length; i++) for (let j = i + 1; j < CUA.length; j++) { const a = CUA[i], b = CUA[j]; if (a.nx * b.nx + a.nz * b.nz < 0.97 || Math.abs((b.x - a.x) * a.nx + (b.z - a.z) * a.nz) > 0.8) continue;
     const mat = a.mat || a.ten || 'Palas', ux = -a.nz, uz = a.nx, sa = a.x * ux + a.z * uz, sb = b.x * ux + b.z * uz;

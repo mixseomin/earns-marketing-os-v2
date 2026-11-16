@@ -12,7 +12,7 @@ import { du, moTrang } from './chung.mjs';
 const tep = du('kiem-ke'); if (!existsSync(tep)) { console.error('chưa có', tep); process.exit(1); }
 const KK = JSON.parse(readFileSync(tep, 'utf8'));
 const { pg, dong } = await moTrang();
-const ds = await pg.evaluate(() => window.__ns.kiemKe()), chong = await pg.evaluate(() => window.__ns.chongLan());
+const ds = await pg.evaluate(() => window.__ns.kiemKe()), chong = await pg.evaluate(() => window.__ns.chongLan()), loLung = await pg.evaluate(() => window.__ns.cuaLoLung());
 const KHUNG = {}; for (const m of KK.mat) if (m.khung?.mat) KHUNG[m.khung.mat] = await pg.evaluate((id) => window.__ns.matTuong(id), m.khung.mat);
 await dong();
 let saiKhung = 0, saiViTri = 0, saiQH = 0;
@@ -53,4 +53,5 @@ const matChong = [...new Set(chong.map((c) => c.mat))];
 for (const c of chong) { (KQ[c.mat] ??= { ten: c.mat, khop: 0, loi: [], loai_sai: [] }).loi.push(`ô cửa chồng lấn tại s ${c.a[0]} / ${c.b[0]}`); KQ[c.mat].loai_sai.push('cua_so'); }
 { const cu = existsSync(du('kiem-ke-kq')) ? JSON.parse(readFileSync(du('kiem-ke-kq'), 'utf8')) : null; if (JSON.stringify(cu?.mat) !== JSON.stringify(KQ)) writeFileSync(du('kiem-ke-kq'), JSON.stringify({ luc: new Date().toISOString(), mat: KQ }, null, 1) + '\n'); }   // chỉ ghi khi KẾT QUẢ đổi: ghi lại mỗi lượt (dấu giờ mới) làm cây kỹ sư luôn bẩn → trọng tài đạt mà máy không đẩy được (16/11/2026) // CHỒNG LẤN toàn mô hình (mọi mặt, không riêng mặt đã kiểm kê)
 console.log(`\nCHỒNG LẤN ô cửa: ${chong.length} cặp trên ${matChong.length} mặt${chong.length ? ' — ' + matChong.slice(0, 12).join(', ') : ''}`);
-console.log(`\n${dung} khớp · ${thieu} THIẾU · ${thua} thừa · ${saiKhung} sai khung · ${saiViTri} sai vị trí · ${saiQH} sai tương quan`); process.exit(thieu || saiKhung || saiViTri || saiQH || chong.length ? 1 : 0);
+console.log(`\nCỬA LƠ LỬNG (ngoài chân–đỉnh tường của chính khối quá 1 m): ${loLung.length}${loLung.length ? ' — ' + loLung.slice(0, 6).map((x) => `${x.mat} y ${x.y} (tường ${x.chan}–${x.dinh})`).join(' · ') : ''}`);
+console.log(`\n${dung} khớp · ${thieu} THIẾU · ${thua} thừa · ${saiKhung} sai khung · ${saiViTri} sai vị trí · ${saiQH} sai tương quan`); process.exit(thieu || saiKhung || saiViTri || saiQH || chong.length || loLung.length ? 1 : 0);

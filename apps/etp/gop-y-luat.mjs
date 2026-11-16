@@ -1252,4 +1252,6 @@ export const LUAT = [
   { card: 'qua-tai-nhan-ban-1711', tep: 'apps/xuong-video/scripts/ethopex/qc-spy-phim.sql', cam: "regexp_replace(coalesce(q.noi_dung, ''), '\\s+', ' ', 'g') AS nd", vi: 'không regexp_replace nội dung của mọi QC trong bảng qc' },
   { card: 'qua-tai-nhan-ban-1711', tep: 'apps/xuong-video/scripts/ethopex/kiem-phim-18.py', co: 'if p.returncode: raise OSError(', vi: 'đọc chữ QC spy lỗi thì kêu to, không cho cổng 18+ qua lặng lẽ' },
   { card: 'qua-tai-nhan-ban-1711', tep: 'apps/xuong-video/scripts/ethopex/kiem-phim-18.py', co: '["nice", "-n", "10", "psql", db,', vi: 'truy vấn spy của cổng 18+ chạy nice, nhường web' },
+  { card: 'gop-y-1636', tep: 'apps/etp/dong_phim.py', co: 'if ke == "camp" and sum(1 for (_, b), (th, _) in CHAY.items() if b == "camp" and th.is_alive()) >= TRAN_CAMP: continue', vi: 'dòng phim chạy tối đa TRAN_CAMP bước camp (nhan-ban box3) cùng lúc — 52 lượt một lúc cạn khe Postgres, etp2 nặng + không hiện giá (anh 17/11/2026 #1636)' },
+  { card: 'gop-y-1636', tep: 'apps/etp/dong_phim.py', co: 'TRAN_CAMP = 10', vi: 'trần bước camp cùng lúc' },
 ];

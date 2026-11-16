@@ -51,6 +51,10 @@ BUOC = [("nhan", 300), ("ws", 3600), ("poster", 900), ("cat", 4200), ("soat", 18
 THU_MANG = {}         # (dòng, bước, lan) → số lượt đã tự thử lại vì lỗi mạng
 CHO_LAI = 60          # bước trả "cho" → quay lại sau ngần này giây
 TRAN_CAT = 2          # tối đa 2 dòng cắt cùng lúc (iMac)
+# TRẦN BƯỚC CAMP (#1636, 17/11/2026 00:04 VN): bước camp = nhan-ban chạy trên box3 (4 nhân, Postgres 100 khe); lô mở rộng phim bật 52 bước camp cùng lúc →
+# box3 tải 46, cạn khe kết nối ("remaining connection slots are reserved"), đồng bộ lich_gio / cpm_ngay hỏng, etp2 nặng + không hiện giá. Chỉ giới hạn số
+# bước chạy CÙNG LÚC (bước thừa chờ vòng sau, trung vị ~3,5 phút/bước) — không đổi luật lên camp, giờ chạy vẫn do nhan-ban.lich_len.
+TRAN_CAMP = 10
 DANG = {}             # (dòng, bước) → Popen đang chạy — để Mạnh / nút Dừng giết được
 LOAI_DONG = {}        # dòng → loại (CC / KT / AT / LT) — để đếm lượt nặng đang chạy (TRAN_CAT)
 KHOA = threading.Lock()
@@ -767,6 +771,7 @@ def vong():
         if nang(d["id"], ke) and not dang and not khe_nang(d["id"], ke, cho_nang):
             if ke != "cat" or sum(1 for (i, b), (th, _) in CHAY.items() if b == "cat" and i in CAT_NGOAI and th.is_alive()) >= TRAN_NGOAI: continue
             CAT_NGOAI.add(d["id"])   # iMac đủ khe → xếp việc cho máy thợ khác (b_cat chờ ở chế độ ngoài)
+        if ke == "camp" and sum(1 for (_, b), (th, _) in CHAY.items() if b == "camp" and th.is_alive()) >= TRAN_CAMP: continue   # TRAN_CAMP: box3 không gánh 50 nhan-ban một lúc
         if not dang:
             sql(f"update etp.dong_buoc set trang_thai = 'dang', bat_dau = now(), nhip = now(), lan = lan + 1, may = '{MAY}' where dong_id = {d['id']} and buoc = '{ke}' and trang_thai = 'cho'")
             bs.setdefault(ke, {})["lan"] = (bs.get(ke) or {}).get("lan", 0) + 1

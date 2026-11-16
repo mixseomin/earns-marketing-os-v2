@@ -15,6 +15,8 @@ import importlib.util as _iuc
 _sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
 BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))
 MUC = set(BANG_LUAT["thang"]) - {1}   # thang bậc = sổ luật chung (anh 05/11/2026) · $30 chỉ qua luật T30 (camp $20 tiêu đủ + ROI cao 2–3 ngày, Support 23/10/2026) — máy tự tăng từ 28/10/2026 (anh: "ko cần xin nữa")
+MUC_GIAM = MUC | {1, BANG_LUAT["g10_dich"]}   # đường GIẢM: thang + sàn $1 + đích G10 ($10, ngoài thang từ 05/11/2026 — 16/11/2026 cả 13 lượt hạ G10 bị chặn vì cổng này chỉ nhận mức trên thang)
+assert BANG_LUAT["g10_dich"] in MUC_GIAM and BANG_LUAT["g10_dich"] not in MUC, "đích G10 phải giảm được và không thành bậc tăng"
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
 
@@ -188,7 +190,7 @@ def main(a):
             ok = lambda s: float(s["ns"] or 0) == ns
         elif viec == "giam":   # luật GB giảm bậc — chỉ xuống trên thang, tối thiểu $1, cách lần đổi trước ≥ 6 giờ (nhip_tang.py)
             ns = int(a[2])
-            if ns not in MUC | {1}: raise ValueError(f"${ns} không phải mức hợp lệ")
+            if ns not in MUC_GIAM: raise ValueError(f"${ns} không phải mức hợp lệ {sorted(MUC_GIAM)}")
             # camp tạm dừng chỉ được hạ về SÀN $1 (08/11/2026: 2 bản dup bộ 4 PAUSED kẹt ở $3 của AB01 vì lệnh giảm từ chối camp tạm dừng — bật lại sẽ chạy $3)
             if truoc["tt"] != "ACTIVE" and ns != 1: raise ValueError(f"camp đang {truoc['tt']}, chỉ hạ về $1")
             if ns >= float(truoc["ns"] or 0): raise ValueError(f"camp đang ${truoc['ns']} ≤ ${ns}, không phải giảm")

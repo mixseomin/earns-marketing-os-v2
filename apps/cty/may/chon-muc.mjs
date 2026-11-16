@@ -19,6 +19,8 @@ export function chonMuc({ chu = '', soAnh = 0, lanLamLai = 0, boDo = false, macD
     if (/thiết\s*kế|bản\s*mẫu|mockup|\bdesign\b/i.test(t)) ly.push('thiết kế');
     if (/interp2|\w+Tbl\b|google sheet|docs\.google\.com\/spreadsheets|seeder|cơ sở dữ liệu|database/i.test(t)) ly.push('dữ liệu / bảng');
     if (/tính năng mới|(thêm|tạo|bổ sung)\s+(một\s+|1\s+)?(tab|mục|trang|bảng|cột|bộ lọc)\b/i.test(t)) ly.push('tính năng mới');
+    // 17/11/2026 card studio #1638 "Cần option để chọn bộ sinh video nào làm chính (toàn bộ)" bị xếp việc vặt → Vinh effort low, làm nông, anh chửi: yêu cầu thêm LỰA CHỌN / CHẾ ĐỘ / CÀI ĐẶT cũng là tính năng mới
+    else if (/\b(option|tuỳ chọn|tùy chọn|lựa chọn|cho\s+(phép\s+)?chọn|cần\s+chọn|chế độ|cài đặt|cấu hình|mặc định|toàn bộ|tất cả)\b/i.test(t)) ly.push('tính năng mới (lựa chọn / chế độ)');
     const y = (t.match(/^\s*(?:[-*•]|\d+[.)])\s+\S/gm) || []).length;
     if (y >= 4) ly.push(`${y} ý`);
     if (soAnh >= 3) ly.push(`${soAnh} ảnh`);
@@ -37,6 +39,7 @@ if (process.argv[1]?.endsWith('chon-muc.mjs') && process.argv.includes('--tu-kie
   t.equal(chonMuc({ chu: 'Hãy format lại, giống như bản thiết kế' }).effort, 'medium', 'thiết kế');
   t.equal(chonMuc({ chu: 'cập nhật lại table PlanetRulersbyHouseHellenisticTbl' }).effort, 'medium', 'bảng Interp2');
   t.equal(chonMuc({ chu: 'Hãy bổ sung thêm một mục mới, mô tả Ruler' }).effort, 'medium', 'tính năng mới');
+  t.equal(chonMuc({ chu: 'Cần option để chọn bộ sinh video nào làm chinh (toàn bộ)' }).effort, 'medium', 'option / chế độ là tính năng mới (card #1638)');
   t.equal(chonMuc({ chu: '1. a\n2. b\n3. c\n4. d' }).effort, 'medium', '4 ý');
   t.equal(chonMuc({ chu: '1. a\n2. b' }).effort, 'low', '2 ý vẫn vặt');
   t.equal(chonMuc({ chu: 'x', soAnh: 3 }).effort, 'medium', '3 ảnh');

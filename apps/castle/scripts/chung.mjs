@@ -18,7 +18,12 @@ export const du = (ten) => join(PUB, 'du-lieu', `${LAU}-${ten}.json`);
 const PW = process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs';
 const LOAI = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.svg': 'image/svg+xml', '.css': 'text/css' };
 
+// CỔNG: mọi công cụ đo / kiểm castle chạy máy dò chú thích // nuốt mã trước (scripts/kiem-chu-thich.mjs) — mã bị nuốt thì từ chối chạy
+// (đo / kiểm trên mã đang hỏng im lặng cho kết quả sai, đã xảy ra với nan-google.mjs 16/11/2026)
+import { execFileSync } from 'node:child_process';
+function kiemChuThich() { try { execFileSync(process.execPath, [join(GOC, 'scripts', 'kiem-chu-thich.mjs')], { stdio: 'pipe' }); } catch (e) { console.error(String(e.stdout || e.message)); console.error('✗ dừng: có chú thích // nuốt mã trong castle — sửa trước khi đo / kiểm'); process.exit(1); } }
 export async function moTrang({ anh3d = false, them = '', khung = { width: 1600, height: 1200 }, nhanLog = null } = {}) {
+  kiemChuThich();
   const may = http.createServer((q, r) => {
     let p = decodeURIComponent(new URL(q.url, 'http://x').pathname); if (p.endsWith('/')) p += 'index.html';
     const f = join(PUB, p); if (!f.startsWith(PUB) || !existsSync(f) || statSync(f).isDirectory()) { r.writeHead(404).end(); return; }

@@ -8,8 +8,8 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { uploadToR2 } from '../src/lib/r2';
-import { sinhAnhMotCong, tachKhoa } from '../src/lib/xuong-video/cong-ai';
-import { sinhAnhQuaCong } from '../src/lib/xuong-video/cong-ai-anh';
+import { tachKhoa } from '../src/lib/xuong-video/cong-ai';
+import { sinhAnhMotCong, sinhAnhQuaCong } from '../src/lib/xuong-video/cong-ai-anh';
 import { docKinhThanh, phongCachHinh, type KinhThanh } from '../src/lib/xuong-video/kieu';
 
 const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';

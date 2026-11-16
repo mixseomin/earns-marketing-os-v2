@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '../src/lib/r2';
-import { guiFal, khoaFal } from '../src/lib/xuong-video/fal';
+import { guiFal, docFalTho } from '../src/lib/xuong-video/fal';
 import { giaAm } from '../src/lib/xuong-video/am-thanh';
 
 const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';
@@ -25,12 +25,12 @@ const url = await uploadToR2(`xuong-video/am-clip/${randomUUID()}.mp4`, readFile
 /** đợi một job fal xong, trả url tệp đầu tiên trong kết quả (âm / video) */
 async function cho(id: string, input: Record<string, unknown>): Promise<string> {
   const g = await guiFal(id, input); if (!g.ok) throw new Error(`${id}: ${g.loi}`);
-  const t = JSON.parse(g.taskId) as { s: string; r: string }; const h = { Authorization: `Key ${khoaFal()}` };
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 90; i++) {   // hỏi qua cổng AI chung (khoá fal ở cổng)
     await new Promise((r) => setTimeout(r, 4000));
-    const st = (await (await fetch(t.s, { headers: h })).json().catch(() => ({}))) as { status?: string };
-    if (st.status !== 'COMPLETED') continue;
-    const kq = JSON.stringify(await (await fetch(t.r, { headers: h })).json());
+    const d = await docFalTho(g.taskId);
+    if (!d.done) continue;
+    if (!d.ok) throw new Error(`${id}: ${d.loi}`);
+    const kq = JSON.stringify(d.kq);
     const u = /"url":"(https:[^"]+\.(?:wav|mp3|m4a|aac|mp4|ogg|flac)[^"]*)"/.exec(kq)?.[1];
     if (!u) throw new Error(`${id}: xong nhưng không thấy tệp (${kq.slice(0, 300)})`);
     return u;

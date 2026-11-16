@@ -1,17 +1,16 @@
 import assert from 'node:assert';
-import { TOI_DA_REF, chonNguoiBanCkey, laHetTien, chuoiAnh, chuoiVideo, taNguon, taThu, tachKhoa, taNguonNgan } from './cong-ai';
+import { TOI_DA_REF, coCong, laHetTien, chuoiAnh, chuoiVideo, taNguon, taThu, tachKhoa, taNguonNgan } from './cong-ai';
 
 // hết tiền: đúng câu lỗi thật của từng cổng (Google 14/10/2026), không nhầm lỗi máy chủ
 assert.strictEqual(laHetTien('google', 'gemini-nano-banana-2.1: RESOURCE_EXHAUSTED: Your prepayment credits are depleted.'), true);
 assert.strictEqual(laHetTien('ckey', 'HTTP 502: The upstream AI gateway is unavailable.'), false);
 assert.strictEqual(laHetTien('shopaikey', 'HTTP 403: user quota is not enough'), true);
 assert.strictEqual(laHetTien('ckey', 'x', 402), true);
-// chuỗi: chỉ model ảnh Google, chỉ cổng có khoá, ckey trước ShopAIKey
-process.env.CKEY_API_KEY = 'k'; process.env.SHOPAIKEY_API_KEY = 'k';
+// chuỗi: chỉ model ảnh Google, ckey trước ShopAIKey. Khoá nằm ở CỔNG AI CHUNG (16/11/2026) → chuỗi không còn đổi theo khoá trong tiến trình studio.
 assert.deepStrictEqual(chuoiAnh('gemini-nano-banana-2.1').map((x) => x.cong), ['ckey', 'ckey', 'ckey', 'plenxai', 'shopaikey'], 'PlenX 200₫ sau ckey 110₫, trước ShopAIKey 683₫ (21/10/2026)');
 assert.deepStrictEqual(chuoiAnh('fal:bytedance/seedream'), []);
-delete process.env.CKEY_API_KEY;
-assert.deepStrictEqual(chuoiAnh('gemini-nano-banana-2.1').map((x) => x.cong), ['plenxai', 'shopaikey']);
+process.env.CKEY_API_KEY = ''; assert.ok(coCong('ckey'), 'khoá ckey ở studio không còn quyết định gì — cổng giữ khoá');
+assert.ok(!coCong('wavespeed'), 'WaveSpeed chưa có tuyến ở cổng → ẩn');
 // dòng nguồn
 const n = { cong: 'ckey' as const, model: 'wowztools/nano-banana-2', model_that: 'gemini-3.1-flash-image-portrait', vnd: 110.5, giay: 39, thu: [{ cong: 'ckey' as const, model: 'wowztools/nano-banana-2', ok: true }] };
 assert.strictEqual(taNguon(n), 'ckey.vn · wowztools/nano-banana-2 → gemini-3.1-flash-image-portrait · 110,5₫ · 39s');
@@ -26,36 +25,11 @@ assert.strictEqual(taNguonNgan(null, 'shopaikey', 'grok-imagine-video-1.5'), 'Sh
 assert.strictEqual(taNguonNgan(null, 'google', 'gemini-nano-banana-2.1'), 'Google · gemini-nano-banana-2.1');
 console.log('cong-ai.ts: ok');
 
-// Người bán ckey dự phòng cho nhau: đúng dòng Nano Banana, rẻ hơn trần, NB2 trước Pro, bỏ người đang nghỉ (danh mục thật 15/10/2026).
-{ const dm = [{ id: 'dungcsnd113/gemini-3.1-flash-image', vnd: 65 }, { id: 'wowztools/nano-banana-pro', vnd: 110.5 }, { id: 'wowztools/Nano-Banana-2', vnd: 110.5 },
-    { id: 'wowztools/Nano-Banana-2-Lite', vnd: 110.5 }, { id: 'phuocanh421994/Qwen_Image_3.0_Pro', vnd: 120 }, { id: 'danielnguyenkarate/nano-banana-2', vnd: 480 }, { id: 'danielnguyenkarate/nano-banana-pro', vnd: 960 }];
-  assert.deepStrictEqual(chonNguoiBanCkey(dm, new Set()).map((x) => x.model), ['dungcsnd113/gemini-3.1-flash-image', 'wowztools/Nano-Banana-2', 'danielnguyenkarate/nano-banana-2', 'wowztools/nano-banana-pro']);
-  assert.deepStrictEqual(chonNguoiBanCkey(dm, new Set(['wowztools/Nano-Banana-2', 'dungcsnd113/gemini-3.1-flash-image'])).map((x) => x.model)[0], 'danielnguyenkarate/nano-banana-2');
-  // lượt có ảnh tham chiếu: bỏ người bán lờ ảnh (CKEY_BO_THAM_CHIEU); lượt không ảnh vẫn chọn họ khi rẻ nhất
-  assert.ok(!chonNguoiBanCkey(dm, new Set(), undefined, new Set(), true).some((x) => x.model === 'dungcsnd113/gemini-3.1-flash-image'));
-  assert.strictEqual(chonNguoiBanCkey(dm, new Set(), undefined, new Set(), true)[0]!.model, 'wowztools/Nano-Banana-2');
-  assert.strictEqual(chonNguoiBanCkey(dm, new Set(), undefined, new Set(), false)[0]!.model, 'dungcsnd113/gemini-3.1-flash-image');
-  assert.strictEqual(chonNguoiBanCkey(dm, new Set(), 683, new Set(['wowztools/Nano-Banana-2']))[0]!.model, 'wowztools/Nano-Banana-2', 'người vừa đạt lên đầu');
-  // bản Pro tự vẽ lại bố cục (13/11/2026 #3071: lệch khung 3D 6/7) — lượt có ảnh tham chiếu không bao giờ đi qua Pro, kể cả khi bản flash đang nghỉ
-  assert.ok(!chonNguoiBanCkey(dm, new Set(['wowztools/Nano-Banana-2']), undefined, new Set(), true).some((x) => /nano-banana-pro$/i.test(x.model)));
-  assert.ok(chonNguoiBanCkey(dm, new Set(), undefined, new Set(), false).some((x) => x.model === 'wowztools/nano-banana-pro'), 'lượt không ảnh vẫn dùng Pro');
-  console.log('cong-ai.test: người bán ckey ok'); }
+// Bộ chọn người bán ckey (dự phòng lẫn nhau, bỏ người lờ tham chiếu / bản Pro) + đọc số dư ShopAIKey: nằm ở cổng (spy-on-tc/server/cong-anh.mjs › chonNguoiBan) từ 16/11/2026.
 
 assert.strictEqual(TOI_DA_REF.ckey, 3, 'ckey nhận tối đa 3 ảnh tham chiếu (đo 15/10/2026)');
 
-// ShopAIKey hết tiền trá hình (403 "Model not found" khi khoá chạm trần): đọc số dư → câu hết tiền, laHetTien bắt được.
-{
-  const { loiHetTienShopaikey, laHetTien: ht } = await import('./cong-ai');
-  const l = loiHetTienShopaikey(20, 1982);
-  assert.ok(l && ht('shopaikey', l), 'còn $0,18 < một lượt → hết tiền');
-  assert.equal(loiHetTienShopaikey(20, 500), null, 'còn $15 → không phải hết tiền, giữ lỗi gốc');
-  assert.equal(loiHetTienShopaikey(undefined, 1982), null, 'không đọc được số dư → giữ lỗi gốc');
-}
-
 // Chuỗi video (16/10/2026): Kie.ai đứng đầu Veo khi có khoá; phim QC bỏ Grok; không khoá Kie thì như cũ.
-delete process.env.KIE_API_KEY;
-assert.deepStrictEqual(chuoiVideo('veo-3.1-lite-generate-preview', true).map((x) => `${x.cong}:${x.model}`), ['plenxai:veo3-lite', 'shopaikey:grok-video-3-10s', 'shopaikey:grok-imagine-video-1.5'], 'không khoá Kie → PlenX (token ở tệp, luôn thử) đầu chuỗi; Grok không còn bị loại khỏi QC (MO_HINH_KHONG_QC chỉ còn Pika)');
-process.env.KIE_API_KEY = 'k';
 assert.deepStrictEqual(chuoiVideo('veo-3.1-lite-generate-preview', true).map((x) => `${x.cong}:${x.model}`), ['plenxai:veo3-lite', 'kie:veo3_lite', 'shopaikey:grok-video-3-10s', 'shopaikey:grok-imagine-video-1.5'], 'PlenX đầu chuỗi (21/10/2026), Kie dự phòng');
 assert.deepStrictEqual(chuoiVideo('veo-3.1-fast-generate-preview', false).map((x) => `${x.cong}:${x.model}`), ['plenxai:veo3-fast', 'kie:veo3_fast', 'shopaikey:grok-video-3-10s', 'shopaikey:grok-imagine-video-1.5']);
 assert.deepStrictEqual(chuoiVideo('veo-3.1-generate-preview', true).map((x) => x.cong), ['shopaikey', 'shopaikey'], 'Veo Quality: Kie / PlenX chưa vào chuỗi');

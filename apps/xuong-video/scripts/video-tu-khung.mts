@@ -11,7 +11,7 @@ import { getDb } from '@mos2/db';
 import { mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
 import { guiFal, docFal } from '../src/lib/xuong-video/fal';
 import { uploadToR2 } from '../src/lib/r2';
-import { sinhAnhMotCong } from '../src/lib/xuong-video/cong-ai';
+import { sinhAnhMotCong } from '../src/lib/xuong-video/cong-ai-anh';
 import { bieuCam } from '../src/lib/xuong-video/qc-cam-xuc';
 import { phieuShot, khongGianTap, type BangShot } from './phieu-shot.mts';
 

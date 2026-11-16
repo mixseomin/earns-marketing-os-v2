@@ -18,7 +18,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapNhanVat, kemBienThe, type Row } from '../../src/lib/xuong-video/doc-db';
-import { sinhAnhMotCong } from '../../src/lib/xuong-video/cong-ai';
+import { sinhAnhMotCong } from '../../src/lib/xuong-video/cong-ai-anh';
 import { guiFal, docFal } from '../../src/lib/xuong-video/fal';
 import { uploadToR2 } from '../../src/lib/r2';
 import { GIU_LOGIC_3D } from '../../src/lib/xuong-video/giu-logic-3d';

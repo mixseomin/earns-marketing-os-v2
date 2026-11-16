@@ -1,7 +1,6 @@
-// THỬ CỔNG PLENX 0đ (cong-plenxai.ts): xoay token (refresh) + đọc hồ sơ / số dư — không sinh gì. Chạy trên box3 (tệp token ở đó):
+// THỬ CỔNG PLENX 0đ: đọc hồ sơ / số dư qua cổng AI chung (loai 'plenx_ho_so' — cổng giữ + xoay token) — không sinh gì:
 //   cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/thu-plenxai.mts
-import { layToken, hoSoPlenx, TOKEN_TEP } from '../src/lib/xuong-video/cong-plenxai';
-await layToken(true);
+import { hoSoPlenx } from '../src/lib/xuong-video/cong-plenxai';
 const h = await hoSoPlenx();
-const so = Object.fromEntries(Object.entries(h).filter(([k]) => /credit|balance|plan|email|username|quota/i.test(k)));
-console.log(`token ${TOKEN_TEP} xoay được · hồ sơ:`, JSON.stringify(so).slice(0, 600));
+const so = Object.fromEntries(Object.entries(h).filter(([k]) => /credit|balance|plan|email|username|quota|tier/i.test(k)));
+console.log('PlenX qua cổng · hồ sơ:', JSON.stringify(so).slice(0, 600));

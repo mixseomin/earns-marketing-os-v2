@@ -68,6 +68,7 @@ import { dongCreative, gomThanhPhan, type AnchorKho, type CreativeKho, type CumG
 import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
 import { giaTriSanPhamDb } from '@/lib/xuong-video/concept-db';
 import { diemNhan } from '@/lib/xuong-video/diem-nhan';
+import { coCongAi } from '@/lib/xuong-video/cong-ai-goi';
 import { MO_HINH_CONG, coCong, centsCong, chuoiAnh, chuoiVideo, taNguon, taNguonNgan, taThu, type CongKey, type NguonSinh } from '@/lib/xuong-video/cong-ai';
 import { oThieu, nhomCuaO, type OTemplateDs } from '@/lib/xuong-video/template';
 import type { CauHinhTemplate } from '@/lib/xuong-video/kieu';
@@ -390,14 +391,12 @@ export async function soChiPhi(opts: { phimId?: number; ngay?: number }): Promis
 /** Trạng thái khoá: trang báo thiếu gì thay vì để nút Sinh lỗi âm thầm. Chỉ trả có/không, không trả giá trị. */
 export async function trangThaiKhoa(): Promise<{ google: boolean; anthropic: boolean; r2: boolean; openai: boolean; fal: boolean; ckey?: boolean; shopaikey?: boolean }> {
   if (!(await admin())) return { google: false, anthropic: false, r2: false, openai: false, fal: false };
+  // Khoá nhà cung cấp nằm ở CỔNG AI CHUNG (16/11/2026) — studio chỉ cần khoá cổng; có khoá cổng = mọi tuyến (fal / Google / OpenAI / Claude / ckey / ShopAIKey) gọi được.
+  const cong = coCongAi();
   return {
-    fal: !!process.env.FAL_KEY,
-    openai: !!process.env.OPENAI_API_KEY,
-    google: !!(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY),
-    anthropic: !!process.env.ANTHROPIC_API_KEY,
+    fal: cong, openai: cong, google: cong, anthropic: cong,
     r2: !!(process.env.R2_ACCOUNT_ID && process.env.R2_BUCKET),
-    ckey: !!process.env.CKEY_API_KEY,
-    shopaikey: !!process.env.SHOPAIKEY_API_KEY,
+    ckey: cong, shopaikey: cong,
   };
 }
 
@@ -409,7 +408,7 @@ export async function taoPhim(ten: string, loai: LoaiPhim): Promise<Kq<number>> 
   if (!(await admin())) return loi('không có quyền');
   if (!ten.trim()) return loi('thiếu tên');
   // Quảng cáo: ảnh mặc định đi fal (Seedream) khi có khoá — Google Nano Banana chặn đồ lót/đồ bơi (IMAGE_SAFETY, 4 lần hỏng 08/10/2026).
-  const kt: KinhThanh = loai === 'quang_cao' ? { ti_le: '9:16', ...(process.env.FAL_KEY ? { mo_hinh_anh: 'fal:bytedance/seedream/v5/pro/edit' as KinhThanh['mo_hinh_anh'] } : {}) } : {};
+  const kt: KinhThanh = loai === 'quang_cao' ? { ti_le: '9:16', ...(coCongAi() ? { mo_hinh_anh: 'fal:bytedance/seedream/v5/pro/edit' as KinhThanh['mo_hinh_anh'] } : {}) } : {};
   const r = (await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, kinh_thanh) VALUES (${KHO}, ${ten.trim()}, ${loai}, ${JSON.stringify(kt)}::jsonb) RETURNING id`)) as unknown as Row[];
   // Short / quảng cáo: một tập sẵn, khỏi bắt người bấm "thêm tập".
   const id = n(r[0]?.id);

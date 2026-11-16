@@ -1,4 +1,4 @@
-// Kiểm nhanh adapter model bằng khoá thật (tốn vài cent): ANTHROPIC_API_KEY=… GOOGLE_API_KEY=… node_modules/.bin/tsx --conditions react-server apps/xuong-video/scripts/thu-api.mts
+// Kiểm nhanh adapter model qua cổng AI chung (tốn vài cent): node_modules/.bin/tsx --conditions react-server apps/xuong-video/scripts/thu-api.mts
 import { tachCanh } from '../src/lib/xuong-video/claude';
 import { sinhAnhMot, sinhAnh } from '../src/lib/xuong-video/google';
 const nv = [
@@ -15,7 +15,7 @@ const a = await sinhAnhMot({ model, prompt: 'Character reference sheet of a smal
 console.log('GEMINI', model, a.ok ? { model: a.model, mime: a.mimeType, bytes: a.data.length, ms: Date.now() - t1 } : a.loi.slice(0, 160));
 }
 
-// Đường thật của app (Google → fallback OpenAI) — một ảnh.
+// Đường thật của app (chuỗi cổng: ckey → ShopAIKey → Google → OpenAI) — một ảnh.
 const t2 = Date.now();
 const f = await sinhAnh({ model: 'gemini-nano-banana-2.1', prompt: 'small turtle, moss-green shell, red scarf, Pixar style, plain background', tiLe: '1:1', kichCo: '1K' });
 console.log('SINHANH (app)', f.ok ? { model: f.model, bytes: f.data.length, ms: Date.now() - t2 } : f.loi);

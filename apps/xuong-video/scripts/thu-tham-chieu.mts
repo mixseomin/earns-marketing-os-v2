@@ -14,6 +14,7 @@ import { getDb } from '@mos2/db';
 import { boiCanhCanh, mapCanh, type Row } from '../src/lib/xuong-video/doc-db';
 import { docVideoCong } from '../src/lib/xuong-video/cong-ai-video';
 import { guiFal, docFal } from '../src/lib/xuong-video/fal';
+import { goiCong } from '../src/lib/xuong-video/cong-ai-goi';
 import { promptCumMoi } from '../src/lib/xuong-video/cum-shot';
 import { giayPhat, type NhanVat, type Canh } from '../src/lib/xuong-video/kieu';
 import { uploadToR2 } from '../src/lib/r2';
@@ -49,10 +50,11 @@ async function cho(nhan: string, doc: () => Promise<{ done: boolean; ok?: boolea
 }
 async function K(): Promise<string | null> {
   const anh = [...nguoi.map((n) => n.anh[0]!), boiCanh].slice(0, 3);
-  const r = await fetch('https://api.kie.ai/api/v1/jobs/createTask', { method: 'POST', headers: { authorization: `Bearer ${process.env.KIE_API_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: 'veo-3-1', input: { prompt: `${pr}${anh.length > nguoi.length ? ` Reference image ${anh.length} is the location.` : ''}`, model: 'veo3_lite', image_urls: anh, generation_type: 'REFERENCE_2_VIDEO', aspect_ratio: '9:16', resolution: '720p', duration: 8 } }) });
-  const j = (await r.json().catch(() => ({}))) as { code?: number; msg?: string; data?: { taskId?: string } };
-  if (j.code !== 200 || !j.data?.taskId) { console.log(`  K: Kie từ chối — ${j.code} ${j.msg}`); return null; }
+  // Kie Veo REFERENCE_2_VIDEO qua cổng AI chung (khoá Kie ở cổng): anh_tham_chieu → cổng tự chọn kiểu tham chiếu
+  const g = await goiCong<{ task_id?: string }>({ viec: 'xv-thu-tham-chieu', loai: 'video_gui', cong: 'kie', model: 'veo3_lite', prompt: `${pr}${anh.length > nguoi.length ? ` Reference image ${anh.length} is the location.` : ''}`,
+    anh_dau: anh[0], anh_tham_chieu: anh, ti_le: '9:16', do_phan_giai: '720p', giay: 8 }).catch((e: Error) => ({ task_id: undefined, loi: e.message }));
+  if (!g.task_id) { console.log(`  K: Kie từ chối — ${(g as { loi?: string }).loi ?? 'không có task'}`); return null; }
+  const j = { data: { taskId: g.task_id } };
   const tao = new Date().toISOString(); return cho('K', () => docVideoCong('kie', j.data!.taskId!, tao));
 }
 async function V(): Promise<string | null> {

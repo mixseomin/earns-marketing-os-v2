@@ -14,11 +14,10 @@ import { cauVat } from './so-vat';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
-import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
+import { batDauVeo } from './google';
 import { docFal, guiFal, dauVaoTheoSchema, khoaFal, tranPrompt } from './fal';
-import './cong-plenxai';   // đăng ký cổng PlenX (token ở tệp trên box — chỉ máy chủ) vào chuỗi video
 import { CONG_VIDEO, chuoiVideo, giaVideoCong, hieuDaiNhip, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
-import { guiVideoCong, docVideoCong, donVideoCong } from './cong-ai-video';
+import { guiVideoCong, docVideoCong, donVideoCong, taiVideoCong } from './cong-ai-video';
 import { baoHetTien } from './bao-het-tien';
 import { promptKyThuatVideo, cauVatLy } from './dien-anh';
 import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
@@ -373,10 +372,8 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
     // đổi clip; ghi lúc gửi thì clip về là mất, 14/11/2026 #3071 #1).
     if (kq.ok && clip3 && videoNguon === clip3.url) await db.execute(sql`UPDATE xv_job SET request = request || ${JSON.stringify({ vaoNguon: clip3.vao })}::jsonb WHERE id = ${job}`);
   } else {
-    const anhDau = await taiAnhBase64(bc.canh.keyframe_url);
-    if (!anhDau) { await xongJob(db, job, { loi: 'không tải được keyframe' }); return loi('không tải được keyframe'); }
-    const anhCuoi = khungCuoi ? await taiAnhBase64(khungCuoi) : null;
-    kq = await batDauVeo({ model: bc.kt.mo_hinh_video, prompt, anhDau, anhCuoi, tiLe: bc.kt.ti_le, doPhanGiai: bc.kt.do_phan_giai, giay, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) });
+    // Veo chính hãng QUA CỔNG AI CHUNG (ép cổng google): ảnh đi bằng URL R2 công khai, cổng tải về rồi gửi bytes.
+    kq = await batDauVeo({ model: bc.kt.mo_hinh_video, prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi ?? null, tiLe: bc.kt.ti_le, doPhanGiai: bc.kt.do_phan_giai, giay, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) });
     // DỰ PHÒNG CUỐI = cùng Veo qua fal (anh 15/10/2026 "fallback đi, phần video phải vậy mới thông"): Google trực tiếp chỉ ~10 lượt/ngày/model
     // ở Tier 1 → lượt 11 trở đi dính 429 cả ngày. Không áp khi anh chọn đích danh 'google:<model>' (đã chọn nguồn thì báo lỗi, không tự đổi).
     const falId = VEO_SANG_FAL[bc.kt.mo_hinh_video];
@@ -408,7 +405,7 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     const thue = (await db.execute(sql`UPDATE xv_job SET updated_at = now() WHERE id = ${r.id} AND trang_thai = 'chay' AND updated_at < now() - interval '45 seconds' RETURNING id`)) as unknown as Row[];
     if (!thue.length) { conChay++; continue; }
     const laCong = CONG_VIDEO.includes(r.provider ?? '');
-    const kq = r.provider === 'fal' ? await docFal(r.task_id!) : laCong ? await docVideoCong(r.provider, r.task_id!, r.created_at) : await docVeo(r.task_id!);
+    const kq = r.provider === 'fal' ? await docFal(r.task_id!) : await docVideoCong(laCong ? r.provider : 'google', r.task_id!, r.created_at);   // Veo chính hãng = cổng 'google'
     if (!kq.done) { conChay++; continue; }
     // THỬ nhiều shot / một clip (ref2v-chay.ts): job gắn vào shot đầu cảnh chỉ để vòng này hỏi tới — KHÔNG đụng clip / trạng thái shot nào.
     const thuRef = ((await db.execute(sql`SELECT request->>'ref2v' AS ref, request->>'cents' AS cents FROM xv_job WHERE id = ${r.id}`)) as unknown as Row[])[0];
@@ -431,7 +428,7 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
       await db.execute(sql`UPDATE xv_canh SET trang_thai = 'loi', loi = ${kq.loi}, updated_at = now() WHERE id = ${r.canh_id}`);
       continue;
     }
-    const buf = r.provider === 'fal' || laCong ? await fetch(kq.uri).then((x) => (x.ok ? x.arrayBuffer().then((a) => Buffer.from(a)) : null)).catch(() => null) : await taiVeo(kq.uri);
+    const buf = await taiVideoCong(kq.uri);   // link Veo cần khoá → cổng tải hộ; link khác tải thẳng
     // DỰNG LỚP: clip về là lớp nền xanh → lưu bản thô, ghép lên tấm nền đứng yên (dung-lop-may.ts) → bản ghép mới là clip của shot
     let bufG = buf;
     const ln = buf ? ((await db.execute(sql`SELECT request->>'lopNen' AS n, request->>'tiLe' AS t FROM xv_job WHERE id = ${r.id}`)) as unknown as Row[])[0] : null;

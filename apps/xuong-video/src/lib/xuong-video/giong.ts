@@ -1,18 +1,18 @@
 // Giọng đọc: NHIỀU model (anh yêu cầu 08/10/2026 "voice cũng cần nhiều model + option, không chỉ ElevenLabs").
 // - fal: toàn bộ model text-to-speech trong danh mục fal (MiniMax, ElevenLabs, Chatterbox, Gemini TTS, Qwen3, Inworld, xAI, Kokoro…);
 //   tên trường chữ/giọng/ngôn ngữ + danh sách giọng ĐỌC TỪ OpenAPI của từng model (enum hoặc examples), không viết tay từng model.
-// - ElevenLabs trực tiếp (khoá ELEVENLABS_API_KEY trên box): mọi giọng trong tài khoản (giọng clone, giọng thêm từ thư viện),
-//   tính vào gói ElevenLabs của tài khoản thay vì fal. Không có khoá thì nhóm này không hiện.
+// - ElevenLabs tài khoản anh (qua cổng AI chung, loai 'eleven' — khoá nằm ở cổng từ 16/11/2026): mọi giọng trong tài khoản (giọng clone, giọng thêm từ
+//   thư viện), tính vào gói ElevenLabs của tài khoản thay vì fal.
 import 'server-only';
 import { GIONG_MINIMAX } from './giong-minimax';
 import { docCachDien, tiengGiay, SAN_TIENG_GIAY } from './toc-noi';
+import { coCongAi, goiCong, loiCua } from './cong-ai-goi';
 export { docCachDien, tiengGiay, SAN_TIENG_GIAY };
 
 type Truong = { type?: string; enum?: unknown[]; examples?: unknown[]; anyOf?: Array<{ enum?: unknown[]; $ref?: string }>; allOf?: Array<{ $ref?: string }>; $ref?: string; properties?: Record<string, Truong>; description?: string };
 export type MoHinhGiong = { key: string; ten: string; nhom: string; giaCents: number | null; donVi: '1k_ky_tu' | 'giay' | 'luot' | 'khac'; giaText: string };
 export type MoTaGiong = { truongChu: string; truongGiong: string[] | null; giong: string[]; truongNgonNgu: string | null; ngonNgu: string[] };
 
-const ELEVEN = 'https://api.elevenlabs.io/v1';
 /** Giọng thư viện ElevenLabs dùng được với khoá của anh (đã gọi text-to-speech 200, 12/11/2026). [voice_id, tên hiện]. George = giọng mặc định cũ (am-thanh.ts). */
 export const GIONG_ELEVEN_THU_VIEN: [string, string][] = [
   ['JBFqnCBsd6RMkjVDRZzb', 'George · Anh, nam trung niên'],
@@ -22,7 +22,7 @@ export const GIONG_ELEVEN_THU_VIEN: [string, string][] = [
   ['JxmKvRaNYFidf0N27Vng', 'Việt · Sơn Trần, nam trẻ miền Trung'],
   ['Wzj3w9OuQFcoiuKPnk3j', 'Việt · Luci, nam dẫn chuyện'],
 ];
-export const coElevenTrucTiep = () => !!process.env.ELEVENLABS_API_KEY;
+export const coElevenTrucTiep = () => coCongAi();
 
 /** Giá TTS từ chữ fal: "$0.1 per 1000 characters" · "0.002 per generated audio seconds". */
 function giaTts(t: string): { cents: number | null; donVi: MoHinhGiong['donVi'] } {
@@ -116,8 +116,7 @@ export async function giongCua(model: string): Promise<{ id: string; ten: string
     // (12/11/2026) đứng đầu danh sách, để ô chọn không trống và giọng mặc định (George) vẫn tìm được; khoá có voices_read thì nối thêm giọng của tài khoản.
     const coDinh = GIONG_ELEVEN_THU_VIEN.map(([id, ten]) => ({ id, ten }));
     try {
-      const r = await fetch(`${ELEVEN}/voices`, { headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY! } });
-      const j = (await r.json()) as { voices?: Array<{ voice_id: string; name: string; category?: string; labels?: Record<string, string> }> };
+      const j = (await goiCong<{ kq: unknown }>({ viec: 'xv-giong-ds', loai: 'eleven', duong: '/v1/voices' }, 40e3)).kq as { voices?: Array<{ voice_id: string; name: string; category?: string; labels?: Record<string, string> }> };
       return [...coDinh, ...(j.voices ?? []).filter((v) => !coDinh.some((g) => g.id === v.voice_id)).map((v) => ({ id: v.voice_id, ten: `${v.name}${v.labels ? ` · ${Object.values(v.labels).filter(Boolean).slice(0, 3).join(', ')}` : ''}${v.category && v.category !== 'premade' ? ` (${v.category})` : ''}` }))];
     } catch { return coDinh; }
   }
@@ -153,12 +152,11 @@ export async function dauVaoGiongTheoModel(model: string, v: { text: string; voi
   return o;
 }
 
-/** Gọi ElevenLabs trực tiếp (chạy được cả trong Worker): trả bytes mp3. */
-export async function ttsElevenTrucTiep(input: { text: string; voice_id: string; model_id: string; language_code?: string; voice_settings?: { speed?: number } }, key: string): Promise<{ ok: true; data: ArrayBuffer } | { ok: false; loi: string }> {
-  const r = await fetch(`${ELEVEN}/text-to-speech/${encodeURIComponent(input.voice_id)}?output_format=mp3_44100_128`, {
-    method: 'POST', headers: { 'xi-api-key': key, 'content-type': 'application/json', accept: 'audio/mpeg' },
-    body: JSON.stringify({ text: input.text, model_id: input.model_id, ...(input.language_code ? { language_code: input.language_code } : {}), ...(input.voice_settings ? { voice_settings: input.voice_settings } : {}) }),
-  });
-  if (!r.ok) return { ok: false, loi: `ElevenLabs ${r.status}: ${(await r.text()).slice(0, 200)}` };
-  return { ok: true, data: await r.arrayBuffer() };
+/** ElevenLabs tài khoản anh qua cổng AI chung (chạy được cả trong Worker): trả bytes mp3. vnd = giá ước để cổng ghi sổ. */
+export async function ttsElevenTrucTiep(input: { text: string; voice_id: string; model_id: string; language_code?: string; voice_settings?: { speed?: number } }, vnd?: number): Promise<{ ok: true; data: ArrayBuffer } | { ok: false; loi: string }> {
+  try {
+    const r = await goiCong<{ am_b64: string }>({ viec: 'xv-giong', loai: 'eleven', duong: `/v1/text-to-speech/${input.voice_id}`, vnd,
+      body: { text: input.text, model_id: input.model_id, ...(input.language_code ? { language_code: input.language_code } : {}), ...(input.voice_settings ? { voice_settings: input.voice_settings } : {}) } }, 6 * 60e3);
+    const b = Buffer.from(r.am_b64, 'base64'); return { ok: true, data: b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer };
+  } catch (e) { return { ok: false, loi: loiCua(e).slice(0, 300) }; }
 }

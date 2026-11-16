@@ -2,7 +2,8 @@
 //   NODE_OPTIONS=--conditions=react-server tsx scripts/lich-su/tranh-sinh.mts [--phong "<nét vẽ, en>"] <tệp-ra.jpg> "<mô tả cảnh, en>" [<url ảnh tham chiếu nhân vật> …]
 // Cùng nét vẽ với kho nhân vật (kho.json › phong_cach) + ánh sáng điện ảnh; có tham chiếu thì giữ đúng mặt / trang phục nhân vật kho. ~110₫ (ckey).
 import { writeFileSync, readFileSync } from 'node:fs';
-import { sinhAnhMotCong, chuoiAnh } from '../../src/lib/xuong-video/cong-ai';
+import { chuoiAnh } from '../../src/lib/xuong-video/cong-ai';
+import { sinhAnhMotCong } from '../../src/lib/xuong-video/cong-ai-anh';
 import sharp from 'sharp';
 
 // --phong "<nét vẽ, en>" (03/11/2026, kênh Astrolas): mỗi kênh / playlist khai nét vẽ riêng; bỏ trống = nét kho kênh lịch sử (kho.json › phong_cach) như cũ.

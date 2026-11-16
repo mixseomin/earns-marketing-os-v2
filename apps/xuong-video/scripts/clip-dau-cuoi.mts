@@ -6,7 +6,7 @@
 //   (--cuoi=<tệp> thay --sua-cuoi khi đã có khung cuối; --chi-khung = chỉ sinh khung cuối để duyệt)
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { sinhAnhMotCong } from '../src/lib/xuong-video/cong-ai';
+import { sinhAnhMotCong } from '../src/lib/xuong-video/cong-ai-anh';
 import { guiFal, docFal } from '../src/lib/xuong-video/fal';
 import { uploadToR2 } from '../src/lib/r2';
 

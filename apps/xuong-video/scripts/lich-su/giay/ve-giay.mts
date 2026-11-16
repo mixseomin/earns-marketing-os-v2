@@ -3,7 +3,8 @@
 //   yeu-cau.json = [{ ten, prompt, ti_le: '16:9'|'3:2'|'2:3' }] → <ra>/<ten>.jpg; in tiền thật dòng cuối
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { sinhAnhMotCong, chuoiAnh } from '../../../src/lib/xuong-video/cong-ai';
+import { chuoiAnh } from '../../../src/lib/xuong-video/cong-ai';
+import { sinhAnhMotCong } from '../../../src/lib/xuong-video/cong-ai-anh';
 
 const [tep, ra] = process.argv.slice(2);
 if (!tep || !ra) { console.error('tsx ve-giay.mts <yeu-cau.json> <ra>'); process.exit(2); }

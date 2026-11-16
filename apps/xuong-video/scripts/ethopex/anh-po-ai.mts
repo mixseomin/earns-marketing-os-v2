@@ -7,7 +7,8 @@
 // Ảnh ra KHÔNG có chữ; tên phim ghép sau trên iMac bằng chữ tách từ poster gốc (đúng kiểu chữ + vị trí như poster gốc). Giá ~110₫ / ảnh (ckey nano-banana).
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, basename } from 'node:path';
-import { sinhAnhMotCong, chuoiAnh } from '../../src/lib/xuong-video/cong-ai';
+import { chuoiAnh } from '../../src/lib/xuong-video/cong-ai';
+import { sinhAnhMotCong } from '../../src/lib/xuong-video/cong-ai-anh';
 import { uploadToR2 } from '../../src/lib/r2';
 
 // BỐ CỤC — ý từ PosterCraft / PosterVerse (nhóm bố cục poster phim) + bảng Pinterest anh gửi; mỗi bố cục là lời dặn sắp xếp cho mô hình ảnh

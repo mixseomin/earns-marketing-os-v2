@@ -10,7 +10,7 @@ import { promisify } from 'node:util';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { taoJob, xongJob } from '../../src/lib/xuong-video/doc-db';
-import { guiFal, khoaFal } from '../../src/lib/xuong-video/fal';
+import { guiFal, docFalTho } from '../../src/lib/xuong-video/fal';
 import { uploadToR2 } from '../../src/lib/r2';
 
 const id = Number(process.argv[2]); const boHoc = process.argv[3];
@@ -30,13 +30,12 @@ try {
   const job = await taoJob(db, { nhan: `LoRA · học ${bo.ten} (${anh.length} ảnh)`, nhan_vat_id: id, loai: 'lora', provider: 'fal', model: 'fal:fal-ai/flux-lora-fast-training', request: { zip: zipUrl, trigger } });
   const g = await guiFal('fal-ai/flux-lora-fast-training', { images_data_url: zipUrl, trigger_word: trigger, create_masks: true });
   if (!g.ok) { await xongJob(db, job, { loi: g.loi }); throw new Error(g.loi); }
-  const t = JSON.parse(g.taskId) as { s: string; r: string }; const h = { Authorization: `Key ${khoaFal() ?? ''}` };
-  for (let i = 0; i < 360; i++) {   // tối đa 60 phút
+  for (let i = 0; i < 360; i++) {   // tối đa 60 phút — hỏi qua cổng AI chung (khoá fal ở cổng)
     await new Promise((o) => setTimeout(o, 10_000));
-    const st = (await (await fetch(t.s, { headers: h })).json().catch(() => ({}))) as { status?: string };
-    if (i % 6 === 0) console.log(`· ${i / 6} phút: ${st.status}`);
-    if (st.status !== 'COMPLETED') continue;
-    const kq = (await (await fetch(t.r, { headers: h })).json()) as { diffusers_lora_file?: { url?: string }; detail?: unknown };
+    const d = await docFalTho(g.taskId);
+    if (i % 6 === 0) console.log(`· ${i / 6} phút: ${d.done ? (d.ok ? 'COMPLETED' : 'FAILED') : 'đang chạy'}`);
+    if (!d.done) continue;
+    const kq = (d.ok ? d.kq : { detail: d.loi }) as { diffusers_lora_file?: { url?: string }; detail?: unknown };
     const url = kq.diffusers_lora_file?.url;
     if (!url) { await xongJob(db, job, { loi: JSON.stringify(kq).slice(0, 300) }); throw new Error('fal xong mà không có tệp LoRA'); }
     // chép tệp LoRA về R2 nhà mình — đường fal.media là kho tạm, có thể hết hạn
@@ -47,5 +46,5 @@ try {
     await db.execute(sql`UPDATE xv_nhan_vat SET lora = ${JSON.stringify({ url: r2 ?? url, url_fal: url, trigger, bo_hoc: boHoc, so_anh: anh.length, luc: new Date().toISOString(), truoc })}::jsonb, updated_at = now() WHERE id = ${id}`);
     console.log(JSON.stringify({ lora: url, trigger, so_anh: anh.length })); process.exit(0);
   }
-  await xongJob(db, job, { loi: `quá 60 phút — tra: ${t.r}` }); throw new Error(`quá 60 phút — tra: ${t.r}`);
+  await xongJob(db, job, { loi: `quá 60 phút — tra task: ${g.taskId}` }); throw new Error(`quá 60 phút — tra task: ${g.taskId}`);
 } finally { await rm(thu, { recursive: true, force: true }).catch(() => {}); }

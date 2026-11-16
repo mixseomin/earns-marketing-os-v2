@@ -1,11 +1,28 @@
-// Adapter fal.ai (một khoá, nhiều model video kể cả Trung Quốc). Queue: POST https://queue.fal.run/<model> → {request_id, status_url,
-// response_url}; GET status_url tới COMPLETED; GET response_url → {video:{url}}. Header "Authorization: Key <FAL_KEY>" (đã kiểm 08/10/2026).
-// Trường đầu vào theo trang API của từng model trên fal.ai (đọc 08/10/2026).
+// Adapter fal.ai (một khoá, nhiều model video / ảnh / âm kể cả Trung Quốc). Từ 16/11/2026 MỌI lượt qua cổng AI chung (spy-on-tc/server/cong-media.mjs ›
+// fal_gui / fal_doc / fal_chay — cổng giữ khoá fal, studio dựng đầu vào theo OpenAPI từng model rồi chuyển nguyên). Queue: fal_gui → task {s, r};
+// fal_doc → {done, ok, kq}. Trường đầu vào theo trang API của từng model trên fal.ai (đọc 08/10/2026).
 import 'server-only';
 import { tomGia, type GiaTom } from './gia-fal';
+import { coCongAi, goiCong, loiCua } from './cong-ai-goi';
 
-const QUEUE = 'https://queue.fal.run';
-export const khoaFal = (): string | null => process.env.FAL_KEY || null;
+/** Có đường gọi fal không (= có khoá cổng AI chung). Giữ tên cũ cho nơi gọi. */
+export const khoaFal = (): string | null => (coCongAi() ? 'cong' : null);
+type KqGuiFal = { ok: true; taskId: string } | { ok: false; loi: string };
+type DocTho = { done: false } | { done: true; ok: true; kq: Record<string, unknown> } | { done: true; ok: false; loi: string };
+/** Gửi một việc vào hàng fal qua cổng — lỗi gửi (mạng / 4xx) = chưa tính tiền, không văng ra. */
+async function guiCong(model: string, input: Record<string, unknown>): Promise<KqGuiFal & { status?: number }> {
+  try { const r = await goiCong<{ task_id: string }>({ viec: 'xv-fal', loai: 'fal_gui', model, input }, 90e3); return { ok: true, taskId: r.task_id }; }
+  catch (e) { const loi = loiCua(e); return { ok: false, loi: loi.slice(0, 400), status: Number(/^fal (\d{3})/.exec(loi)?.[1]) || undefined }; }
+}
+/** Đọc một việc fal qua cổng → nguyên JSON kết quả của fal (nơi gọi tự lấy video / ảnh / âm / mặt nạ). Lỗi mạng → chưa xong. */
+export async function docFalTho(taskId: string): Promise<DocTho> {
+  try { return await goiCong<DocTho>({ viec: 'xv-fal-doc', loai: 'fal_doc', task_id: taskId }, 60e3); } catch { return { done: false }; }
+}
+/** Chạy đồng bộ một model fal qua cổng (âm thanh, ảnh ngắn) → nguyên JSON fal. */
+export async function chayFal(model: string, input: Record<string, unknown>, hanMs = 300e3): Promise<{ ok: true; kq: Record<string, unknown> } | { ok: false; loi: string }> {
+  try { const r = await goiCong<{ kq: Record<string, unknown> }>({ viec: 'xv-fal', loai: 'fal_chay', model, input }, hanMs + 15e3); return { ok: true, kq: r.kq }; }
+  catch (e) { return { ok: false, loi: loiCua(e).slice(0, 400) }; }
+}
 
 /** Trần ký tự prompt của model (theo trang API fal) — null = không giới hạn đáng kể. */
 // H3 Max 3D→Video kiểm prompt ≤ 2.000 ký tự lúc chạy (#23 16/10/2026) — khai trần ở đây để ghepTrongTran bỏ khối phụ có thứ tự, không cắt ngang câu (14/11/2026).
@@ -26,53 +43,17 @@ function dauVao(model: string, v: Vao): Record<string, unknown> {
   return { prompt: v.prompt, image_url: v.anhDau, duration: Math.min(16, Math.max(3, v.giay)) };
 }
 
-function docLoiFal(j: Record<string, unknown>, status: number): string {
-  const d = j.detail;
-  // 422 kiểu pydantic: [{type:'missing', loc:['body','image_urls'], msg}] → nói bằng tiếng Việt thiếu trường gì, không dán JSON.
-  const ds = Array.isArray(d) ? (d as Array<{ type?: string; loc?: unknown[]; msg?: string }>) : [];
-  const m = typeof d === 'string' ? d : ds.length ? ds.map((x) => `${x.type === 'missing' ? 'thiếu trường' : 'trường sai'} ${(x.loc ?? []).filter((y) => y !== 'body').join('.')}${x.type === 'missing' ? '' : ` (${x.msg ?? ''})`}`).join('; ') : '';
-  if (/Exhausted balance|locked/i.test(m)) return 'fal.ai hết tiền: tài khoản số dư $0 — nạp ở fal.ai/dashboard/billing rồi bấm lại.';
-  return `fal ${status}: ${m || 'lỗi không rõ'}`.slice(0, 300);
-}
-
-export async function batDauFal(model: string, v: Vao): Promise<{ ok: true; taskId: string } | { ok: false; loi: string }> {
-  const key = khoaFal();
-  if (!key) return { ok: false, loi: 'Thiếu FAL_KEY trên máy chủ' };
-  const r = await fetch(`${QUEUE}/${model}`, { method: 'POST', headers: { Authorization: `Key ${key}`, 'content-type': 'application/json' }, body: JSON.stringify(dauVao(model, v)) });
-  const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!r.ok) return { ok: false, loi: docLoiFal(j, r.status) };
-  if (typeof j.status_url !== 'string' || typeof j.response_url !== 'string') return { ok: false, loi: 'fal không trả status_url/response_url' };
-  return { ok: true, taskId: JSON.stringify({ s: j.status_url, r: j.response_url }) };
-}
+export async function batDauFal(model: string, v: Vao): Promise<KqGuiFal> { return guiCong(model, dauVao(model, v)); }
 
 export async function docFal(taskId: string): Promise<{ done: false } | { done: true; ok: true; uri: string } | { done: true; ok: false; loi: string }> {
-  const key = khoaFal();
-  if (!key) return { done: true, ok: false, loi: 'Thiếu FAL_KEY' };
-  let t: { s: string; r: string };
-  try { t = JSON.parse(taskId); } catch { return { done: true, ok: false, loi: 'task fal hỏng' }; }
-  const h = { Authorization: `Key ${key}` };
-  const st = await fetch(t.s, { headers: h, signal: AbortSignal.timeout(30_000) }).catch(() => null);
-  if (!st) return { done: false };   // mạng chập khi hỏi → coi như chưa xong, vòng sau hỏi lại
-  const sj = (await st.json().catch(() => ({}))) as { status?: string };
-  if (!st.ok && st.status !== 202) return { done: true, ok: false, loi: docLoiFal(sj as Record<string, unknown>, st.status) };
-  if (sj.status !== 'COMPLETED') return { done: false };
-  const rr = await fetch(t.r, { headers: h, signal: AbortSignal.timeout(30_000) }).catch(() => null);
-  if (!rr) return { done: false };
-  const rj = (await rr.json().catch(() => ({}))) as { video?: { url?: string } } & Record<string, unknown>;
-  if (!rr.ok) return { done: true, ok: false, loi: docLoiFal(rj, rr.status) };
-  return rj.video?.url ? { done: true, ok: true, uri: rj.video.url } : { done: true, ok: false, loi: 'fal xong nhưng không có video' };
+  const d = await docFalTho(taskId);
+  if (!d.done || !d.ok) return d;
+  const u = (d.kq.video as { url?: string } | undefined)?.url;
+  return u ? { done: true, ok: true, uri: u } : { done: true, ok: false, loi: 'fal xong nhưng không có video' };
 }
 
 /** Nâng cấp một clip có sẵn (giữ nguyên chuyển động) — Topaz Precision trên fal, video_url + upscale_factor. */
-export async function batDauNangCap(model: string, videoUrl: string, heSo = 2): Promise<{ ok: true; taskId: string } | { ok: false; loi: string }> {
-  const key = khoaFal();
-  if (!key) return { ok: false, loi: 'Thiếu FAL_KEY trên máy chủ' };
-  const r = await fetch(`${QUEUE}/${model}`, { method: 'POST', headers: { Authorization: `Key ${key}`, 'content-type': 'application/json' }, body: JSON.stringify({ video_url: videoUrl, upscale_factor: heSo }) });
-  const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!r.ok) return { ok: false, loi: docLoiFal(j, r.status) };
-  if (typeof j.status_url !== 'string' || typeof j.response_url !== 'string') return { ok: false, loi: 'fal không trả status_url/response_url' };
-  return { ok: true, taskId: JSON.stringify({ s: j.status_url, r: j.response_url }) };
-}
+export async function batDauNangCap(model: string, videoUrl: string, heSo = 2): Promise<KqGuiFal> { return guiCong(model, { video_url: videoUrl, upscale_factor: heSo }); }
 
 // ── Danh mục model fal (động) + ánh xạ đầu vào theo OpenAPI của từng endpoint ─────────────────────────────────────
 // Anh muốn chọn được nhiều model (08/10/2026). fal có API danh mục công khai (id, tên, mô tả giá) và OpenAPI theo endpoint →
@@ -307,24 +288,15 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
 }
 
 /** Gửi job fal bất kỳ (đầu vào đã ánh xạ). */
-export async function guiFal(id: string, input: Record<string, unknown>): Promise<{ ok: true; taskId: string } | { ok: false; loi: string }> {
-  const key = khoaFal();
-  if (!key) return { ok: false, loi: 'Thiếu FAL_KEY trên máy chủ' };
-  // Lỗi MẠNG (đứt kết nối) không được văng ra: lần gửi Pikaframes #23 (16/10/2026) đổ cả script sinh-shot ở đây. Lỗi gửi = chưa tính tiền.
-  let r: Response;
-  try { r = await fetch(`${QUEUE}/${id}`, { method: 'POST', headers: { Authorization: `Key ${key}`, 'content-type': 'application/json' }, body: JSON.stringify(input), signal: AbortSignal.timeout(60_000) }); }
-  catch (e) { return { ok: false, loi: `không gửi được tới fal (${e instanceof Error ? e.name : 'lỗi mạng'}) — thử lại` }; }
-  const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+export async function guiFal(id: string, input: Record<string, unknown>): Promise<KqGuiFal> {
+  const g = await guiCong(id, input);
   // Prompt dài hơn giới hạn mà schema KHÔNG khai maxLength (H3 Max 3D→Video: 2000 ký tự, #23 16/10/2026) → fal 422 nói rõ số → cắt ở ranh giới câu
   // đúng số đó rồi gửi lại MỘT lần. Lỗi 422 chưa tính tiền.
-  if (r.status === 422 && typeof input.prompt === 'string') {
-    const d = Array.isArray(j.detail) ? (j.detail as Array<{ loc?: unknown[]; msg?: string }>) : [];
-    const n = Number(/at most (\d+) characters/.exec(d.find((x) => (x.loc ?? []).includes('prompt'))?.msg ?? '')?.[1]);
+  if (!g.ok && g.status === 422 && typeof input.prompt === 'string') {
+    const n = Number(/at most (\d+) characters/.exec(g.loi)?.[1]);
     if (n && input.prompt.length > n) return guiFal(id, { ...input, prompt: catCau(input.prompt, n) });
   }
-  if (!r.ok) return { ok: false, loi: docLoiFal(j, r.status) };
-  if (typeof j.status_url !== 'string' || typeof j.response_url !== 'string') return { ok: false, loi: 'fal không trả status_url/response_url' };
-  return { ok: true, taskId: JSON.stringify({ s: j.status_url, r: j.response_url }) };
+  return g.ok ? { ok: true, taskId: g.taskId } : { ok: false, loi: g.loi };
 }
 
 /** Ảnh qua fal (model edit, có ảnh tham chiếu) — chờ tới xong (chạy trong hàng đợi nền nên chờ được). */
@@ -348,22 +320,16 @@ export async function sinhAnhFal(id0: string, v: { prompt: string; thamChieu: st
 export async function chayAnhFal(id: string, input: Record<string, unknown>, o: { /** SAM 3: tải MỌI mặt nạ (j.masks) vào `ds` */ masks?: boolean } = {}): Promise<{ ok: true; model: string; mimeType: string; data: Buffer; ds?: Buffer[] } | { ok: false; loi: string }> {
   const g = await guiFal(id, input);
   if (!g.ok) return g;
-  const t = JSON.parse(g.taskId) as { s: string; r: string };
-  const h = { Authorization: `Key ${khoaFal()}` };
-  // MỌI lần gọi mạng sau khi gửi cũng không được văng ra (17/10/2026: hỏi trạng thái gặp ConnectTimeout → đổ cả lượt sinh-anh-phim 10 shot, 4 job treo):
-  // hỏi trạng thái lỗi mạng thì hỏi lại lượt sau (tối đa 5 lần liền); tải kết quả / ảnh lỗi mạng thì thử lại 3 lần rồi trả lỗi thường.
-  const lay = async (u: string, lan = 3): Promise<Response | null> => { for (let i = 0; i < lan; i++) { try { return await fetch(u, { headers: u.startsWith('https://queue.fal.run') ? h : undefined, signal: AbortSignal.timeout(30_000) }); } catch { await new Promise((o) => setTimeout(o, 2000)); } } return null; };
-  let loiMang = 0;
+  // Tải kết quả / ảnh: lỗi mạng thử lại 3 lần rồi trả lỗi thường (17/10/2026: ConnectTimeout đổ cả lượt sinh-anh-phim 10 shot). Hỏi trạng thái qua cổng: lỗi mạng
+  // = chưa xong, hỏi lại lượt sau.
+  const lay = async (u: string, lan = 3): Promise<Response | null> => { for (let i = 0; i < lan; i++) { try { return await fetch(u, { signal: AbortSignal.timeout(30_000) }); } catch { await new Promise((o) => setTimeout(o, 2000)); } } return null; };
   // CHỜ 8 PHÚT (18/10/2026: FLUX pro depth đo 2–3 phút giờ cao điểm; cắt ở 3 phút thì fal vẫn chạy xong và vẫn tính tiền, sổ không ghi)
   for (let i = 0; i < 240; i++) {
     await new Promise((o) => setTimeout(o, 2000));
-    const rs = await lay(t.s, 1); if (!rs) { if (++loiMang >= 5) return { ok: false, loi: 'mất kết nối fal khi chờ kết quả (5 lần liền) — job đã gửi, xem lại trên fal' }; continue; }
-    loiMang = 0;
-    const st = (await rs.json().catch(() => ({}))) as { status?: string };
-    if (st.status !== 'COMPLETED') continue;
-    const rr = await lay(t.r); if (!rr) return { ok: false, loi: 'fal xong nhưng không tải được kết quả (lỗi mạng)' };
-    const j = (await rr.json().catch(() => ({}))) as { images?: Array<{ url?: string; content_type?: string }>; image?: { url?: string }; masks?: Array<{ url?: string }>; detail?: unknown };
-    if (!rr.ok) return { ok: false, loi: docLoiFal(j as Record<string, unknown>, rr.status) };
+    const d = await docFalTho(g.taskId);
+    if (!d.done) continue;
+    if (!d.ok) return { ok: false, loi: d.loi };
+    const j = d.kq as { images?: Array<{ url?: string; content_type?: string }>; image?: { url?: string }; masks?: Array<{ url?: string }> };
     if (o.masks) {   // không có mặt nạ nào = không thấy vật đó (hợp lệ, không phải lỗi)
       const ds: Buffer[] = [];
       for (const m of j.masks ?? []) { const b = m.url ? await lay(m.url) : null; if (b) ds.push(Buffer.from(await b.arrayBuffer())); }
@@ -374,5 +340,5 @@ export async function chayAnhFal(id: string, input: Record<string, unknown>, o: 
     const b = await lay(url); if (!b) return { ok: false, loi: 'fal xong nhưng không tải được ảnh (lỗi mạng)' };
     return { ok: true, model: `fal:${id}`, mimeType: b.headers.get('content-type')?.split(';')[0] || 'image/png', data: Buffer.from(await b.arrayBuffer()) };
   }
-  return { ok: false, loi: `fal quá 8 phút chưa xong — yêu cầu vẫn chạy và có thể tính tiền, tra: ${t.r}` };
+  return { ok: false, loi: `fal quá 8 phút chưa xong — yêu cầu vẫn chạy và có thể tính tiền, tra task: ${g.taskId}` };
 }

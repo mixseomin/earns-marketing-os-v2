@@ -1,10 +1,11 @@
-// GIỌNG ĐỌC CÓ MỐC TỪNG CHỮ cho tập kênh lịch sử (02/11/2026, kế hoạch S08 bước 2). Chạy trên box3 (khoá FAL_KEY ở .env.production):
+// GIỌNG ĐỌC CÓ MỐC TỪNG CHỮ cho tập kênh lịch sử (02/11/2026, kế hoạch S08 bước 2). Chạy trên box3 — fal qua CỔNG AI CHUNG (fal_chay, khoá fal ở cổng):
 //   NODE_OPTIONS=--conditions=react-server tsx scripts/lich-su/giong.mts <tệp-tập.json> <thư-mục-ra>
 // fal ElevenLabs v3 với timestamps:true → <ra>/giong.mp3 + <ra>/moc.json ({chu, start, end}[] từng chữ). Đọc CẢ tập một lượt (giọng liền mạch,
 // nhịp tự nhiên); máy dựng chia cảnh theo chữ đầu mỗi câu. Giá GIONG theo am-thanh.ts (eleven-v3 $0,10/1.000 ký tự) — in tiền thật ra cuối.
 import { readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
+import { chayFal } from '../../src/lib/xuong-video/fal';
 
 const [tep, ra] = process.argv.slice(2);
 if (!tep || !ra) { console.error('tsx giong.mts <tập.json> <thư-mục-ra>'); process.exit(2); }
@@ -16,13 +17,9 @@ const khuc: string[] = []; for (const c of tap.cau.map((c) => c.chu.trim())) { i
 mkdirSync(ra, { recursive: true });
 const moc: { characters: string[]; character_start_times_seconds: number[]; character_end_times_seconds: number[] }[] = []; let lech = 0;
 for (const [i, t] of khuc.entries()) {
-  const r = await fetch('https://fal.run/fal-ai/elevenlabs/tts/eleven-v3', {
-    method: 'POST', headers: { Authorization: `Key ${process.env.FAL_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: t, voice: tap.giong?.voice || 'George', timestamps: true, language_code: tap.ngon_ngu, apply_text_normalization: 'auto' }),
-    signal: AbortSignal.timeout(300_000),
-  });
-  if (!r.ok) { console.error(`fal ${r.status} (khúc ${i + 1}/${khuc.length}): ${(await r.text()).slice(0, 300)}`); process.exit(1); }
-  const j = await r.json() as { audio: { url: string }; timestamps?: typeof moc };
+  const c = await chayFal('fal-ai/elevenlabs/tts/eleven-v3', { text: t, voice: tap.giong?.voice || 'George', timestamps: true, language_code: tap.ngon_ngu, apply_text_normalization: 'auto' });
+  if (!c.ok) { console.error(`fal (khúc ${i + 1}/${khuc.length}): ${c.loi}`); process.exit(1); }
+  const j = c.kq as { audio: { url: string }; timestamps?: typeof moc };
   const f = join(ra, `khuc-${i}.mp3`); writeFileSync(f, Buffer.from(await (await fetch(j.audio.url)).arrayBuffer()));
   if (i) moc.push({ characters: [' '], character_start_times_seconds: [lech], character_end_times_seconds: [lech] });
   for (const o of [j.timestamps ?? []].flat()) moc.push({ characters: o.characters, character_start_times_seconds: o.character_start_times_seconds.map((v) => v + lech), character_end_times_seconds: o.character_end_times_seconds.map((v) => v + lech) });

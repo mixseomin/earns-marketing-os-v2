@@ -12,20 +12,19 @@ import { uploadToR2 } from '../r2';
 import { dsMoHinhGiong } from './giong';
 import { giaGiongTheo } from './am-thanh';
 import { VND_MOI_USD } from './cong-ai';
+import { chayFal } from './fal';
 
 export const GIONG_LOI_DAN = { model: 'heygen/heygen-voice/turbo', voice: 'Vincent' } as const;
 const chay = promisify(execFile);
 
 /** Đọc `loi` bằng giọng lời dẫn → tệp mp3 trên R2 + số giây thật + tiền VNĐ (theo bảng giá fal đang niêm yết). */
 export async function sinhGiongLoiDan(loi: string, slug: string): Promise<{ ok: true; url: string; giay: number; vnd: number } | { ok: false; loi: string }> {
-  const key = process.env.FAL_KEY; if (!key) return { ok: false, loi: 'thiếu FAL_KEY — không sinh được giọng lời dẫn' };
   const chu = loi.trim(); if (chu.length < 20) return { ok: false, loi: 'lời dẫn quá ngắn để đọc' };
-  const r = await fetch(`https://fal.run/${GIONG_LOI_DAN.model}`, { method: 'POST', headers: { Authorization: `Key ${key}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ text: chu, voice: GIONG_LOI_DAN.voice }), signal: AbortSignal.timeout(180_000) }).catch((e: Error) => e);
-  if (r instanceof Error) return { ok: false, loi: `fal giọng: ${r.message}` };
-  const j = (await r.json().catch(() => ({}))) as { audio?: { url?: string } | string; detail?: unknown };
+  const c = await chayFal(GIONG_LOI_DAN.model, { text: chu, voice: GIONG_LOI_DAN.voice }, 180e3);   // qua cổng AI chung (khoá fal ở cổng)
+  if (!c.ok) return { ok: false, loi: `fal giọng: ${c.loi}` };
+  const j = c.kq as { audio?: { url?: string } | string };
   const amUrl = typeof j.audio === 'string' ? j.audio : j.audio?.url;
-  if (!r.ok || !amUrl) return { ok: false, loi: `fal giọng ${r.status}: ${JSON.stringify(j.detail ?? j).slice(0, 200)}` };
+  if (!amUrl) return { ok: false, loi: `fal giọng: không trả tệp (${JSON.stringify(j).slice(0, 200)})` };
   const tai = await fetch(amUrl, { signal: AbortSignal.timeout(60_000) }); if (!tai.ok) return { ok: false, loi: `tải tệp giọng ${tai.status}` };
   const buf = Buffer.from(await tai.arrayBuffer()), dir = await mkdtemp(join(tmpdir(), 'giong-')), tep = join(dir, 'giong.mp3');
   try {

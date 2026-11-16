@@ -1,18 +1,11 @@
-// Adapter Google (Gemini API) cho xưởng video: sinh ảnh (generateContent, responseModalities IMAGE) + sinh video Veo 3.1
-// (predictLongRunning → poll operation → tải file). Gọi REST bằng fetch để không thêm dependency; khoá đọc server-side.
-// Tên model Google đổi nhanh → `sinhAnh` thử lần lượt danh sách MO_HINH_ANH khi model được chọn trả 404.
+// ẢNH + VEO của studio — mặt tiền giữ chữ ký cũ (sinhAnh / batDauVeo / docVeo / taiVeo) cho sinh-anh.ts, viec-anh.ts (Worker), sinh-video.ts, scripts.
+// Từ 16/11/2026 MỌI lượt đi qua cổng AI chung (spy-on-tc/server/cong-anh.mjs · cong-media.mjs): studio không giữ khoá Google / OpenAI, không tự viết chuỗi dự phòng.
 import 'server-only';
-import { MO_HINH_ANH, type DoPhanGiai, type TiLe, type TiLeAnh } from './kieu';
-import { sinhAnhOpenAI, khoaOpenAI } from './openai';
+import { type DoPhanGiai, type TiLe, type TiLeAnh } from './kieu';
 import { sinhAnhFal } from './fal';
-import { sinhAnhMotCong, tachKhoa, laHetTien, type NguonSinh, type BuocNguon } from './cong-ai';
-import { sinhAnhQuaCong } from './cong-ai-anh';
-
-const GOC = 'https://generativelanguage.googleapis.com/v1beta';
-
-export function khoaGoogle(): string | null {
-  return process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || null;
-}
+import { tachKhoa, type NguonSinh } from './cong-ai';
+import { sinhAnhMotCong, sinhAnhQuaCong } from './cong-ai-anh';
+import { guiVideoCong, docVideoCong, taiVideoCong } from './cong-ai-video';
 
 export type AnhVao = { mimeType: string; data: string };   // base64
 
@@ -29,156 +22,55 @@ export async function taiAnhBase64(url: string): Promise<AnhVao | null> {
   } catch { return null; }
 }
 
-/** nguon: ảnh ra từ cổng nào, model thật, tiền thật, các bước đã thử (cong-ai.ts) — có khi đi qua chuỗi cổng / Google trực tiếp. */
+/** nguon: ảnh ra từ cổng nào, model thật, tiền thật, các bước đã thử (cong-ai.ts) — mọi lượt đi qua cổng AI chung. */
 type KqAnh = { ok: true; model: string; mimeType: string; data: Buffer; nguon?: NguonSinh } | { ok: false; loi: string; nguon?: NguonSinh };
 
-/** Gọi đúng MỘT model, không fallback (probe + sinhAnh dùng chung). Model không nhận imageSize thì thử lại không có. */
-export async function sinhAnhMot(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; tiLe: TiLeAnh; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
-  const key = khoaGoogle();
-  if (!key) return { ok: false, loi: 'Thiếu GOOGLE_API_KEY trên máy chủ' };
-  const parts: Array<Record<string, unknown>> = [{ text: opts.prompt }];
-  for (const a of (opts.thamChieu ?? []).slice(0, 14)) parts.push({ inlineData: { mimeType: a.mimeType, data: a.data } });
-  let loiCuoi = '';
-  for (const coKichCo of [true, false]) {
-    const imageConfig: Record<string, string> = { aspectRatio: opts.tiLe };
-    if (coKichCo && opts.kichCo) imageConfig.imageSize = opts.kichCo;
-    const body = { contents: [{ role: 'user', parts }], generationConfig: { responseModalities: ['IMAGE'], imageConfig } };
-    const r = await fetch(`${GOC}/models/${opts.model}:generateContent`, {
-      method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body),
-    });
-    const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
-    if (!r.ok) {
-      loiCuoi = docLoi(j, r.status);
-      if (coKichCo && opts.kichCo && r.status === 400 && /imageSize|image_size|Unknown name/i.test(loiCuoi)) continue;
-      return { ok: false, loi: loiCuoi };
-    }
-    const cands = (j.candidates as Array<{ content?: { parts?: Array<{ inlineData?: { mimeType: string; data: string } }> }; finishReason?: string }> | undefined) ?? [];
-    const inl = cands.flatMap((c) => c.content?.parts ?? []).find((p) => p.inlineData)?.inlineData;
-    const ly = cands[0]?.finishReason ?? 'không rõ';
-    // IMAGE_SAFETY: Google chặn theo nội dung (vd người chỉ mặc đồ lót) — mọi model Google đều chặn như nhau, nên chỉ đường sang model khác.
-    if (!inl) return { ok: false, loi: /SAFETY|PROHIBITED|BLOCK/i.test(ly) ? `Google chặn ảnh này vì nội dung (${ly}) — đổi model ảnh sang fal (Seedream, FLUX Kontext…) ở ô chọn model cạnh nút rồi sinh lại` : `model không trả ảnh (${ly})` };
-    return { ok: true, model: opts.model, mimeType: inl.mimeType || 'image/png', data: Buffer.from(inl.data, 'base64') };
-  }
-  return { ok: false, loi: loiCuoi };
+/** Gọi đúng MỘT model ảnh Google chính hãng qua cổng (ép cổng google), không fallback — scripts/thu-api.mts dò model. */
+export async function sinhAnhMot(opts: { model: string; prompt: string; thamChieuUrl?: string[]; tiLe: TiLeAnh; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
+  const m = await sinhAnhMotCong('google', opts.model, { prompt: opts.prompt, thamChieuUrl: opts.thamChieuUrl ?? [], tiLe: opts.tiLe });
+  return m.anh ? { ok: true, model: opts.model, mimeType: m.anh.mimeType, data: m.anh.data, nguon: m.nguon } : { ok: false, loi: `${opts.model}: ${m.loi}`, nguon: m.nguon };
 }
 
-/** Sinh MỘT ảnh với fallback: model được chọn không tồn tại (404) hoặc không có trong hạng free (quota 0) → thử model kế trong MO_HINH_ANH. */
+/** Sinh MỘT ảnh — MỌI lượt qua cổng AI chung (anh 16/11/2026: một nguồn cho mọi model; studio không giữ khoá Google / OpenAI):
+ *  'fal:<model>' → fal (qua cổng) · 'gpt-image…' → ép cổng openai · '<cổng>:<model>' → ép đúng cổng đó · 'google:<model>' → ép Google chính hãng ·
+ *  model Google trần (Nano Banana…) → TỰ CHỌN theo chuỗi của cổng: ckey → ShopAIKey → lưới cuối Google → OpenAI (cong-anh.mjs).
+ *  thamChieu base64 không còn dùng (cổng nhận URL công khai R2 — thamChieuUrl); giữ trong chữ ký cho nơi gọi cũ. */
 export async function sinhAnh(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; thamChieuUrl?: string[]; tiLe: TiLeAnh; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
-  if (opts.model.startsWith('fal:')) {
-    // fal cần URL ảnh: tham chiếu đã là URL R2 công khai → truyền qua thamChieuUrl (base64 chỉ dùng cho Google/OpenAI).
-    return sinhAnhFal(opts.model.slice(4), { prompt: opts.prompt, thamChieu: opts.thamChieuUrl ?? [], tiLe: opts.tiLe });
-  }
-  if (opts.model.startsWith('gpt-image')) return sinhAnhOpenAI({ prompt: opts.prompt, thamChieu: opts.thamChieu, tiLe: opts.tiLe, model: opts.model });
-  // Khoá model (cong-ai.ts › tachKhoa): '<cổng>:<model>' = đúng cổng đó · 'google:<model>' = Google trực tiếp · trần = tự chọn rẻ nhất.
+  const ref = opts.thamChieuUrl ?? [];
+  // fal cần URL ảnh: tham chiếu đã là URL R2 công khai → truyền qua thamChieuUrl.
+  if (opts.model.startsWith('fal:')) return sinhAnhFal(opts.model.slice(4), { prompt: opts.prompt, thamChieu: ref, tiLe: opts.tiLe });
   const k = tachKhoa(opts.model);
-  if (k.kieu === 'cong') {
-    const m = await sinhAnhMotCong(k.cong, k.model, { prompt: opts.prompt, thamChieuUrl: opts.thamChieuUrl ?? [], tiLe: opts.tiLe });
+  const ep = opts.model.startsWith('gpt-image') ? { cong: 'openai' as const, model: opts.model } : k.kieu === 'cong' ? { cong: k.cong, model: k.model } : k.kieu === 'google' ? { cong: 'google' as const, model: k.model } : null;
+  if (ep) {
+    const m = await sinhAnhMotCong(ep.cong, ep.model, { prompt: opts.prompt, thamChieuUrl: ref, tiLe: opts.tiLe });
     return m.anh ? { ok: true, model: opts.model, mimeType: m.anh.mimeType, data: m.anh.data, nguon: m.nguon } : { ok: false, loi: `${opts.model}: ${m.loi}`, nguon: m.nguon };
   }
-  if (k.kieu === 'google') opts = { ...opts, model: k.model };
-  // Model ảnh Google (Nano Banana) tự chọn: đi CHUỖI CỔNG rẻ trước (ckey → ShopAIKey), hỏng hết mới gọi Google trực tiếp (cong-ai.ts).
-  const qc = k.kieu === 'google' ? { anh: null, nguon: null, thu: [] as BuocNguon[] } : await sinhAnhQuaCong(opts.model, { prompt: opts.prompt, thamChieuUrl: opts.thamChieuUrl ?? [], tiLe: opts.tiLe });
+  const qc = await sinhAnhQuaCong(opts.model, { prompt: opts.prompt, thamChieuUrl: ref, tiLe: opts.tiLe });
   if (qc.anh && qc.nguon) return { ok: true, model: `${qc.nguon.cong}:${qc.nguon.model}`, mimeType: qc.anh.mimeType, data: qc.anh.data, nguon: qc.nguon };
-  const thu: BuocNguon[] = [...qc.thu];
-  const nguonGoogle = (model: string, ok: boolean, loi?: string): NguonSinh => {
-    thu.push({ cong: 'google', model, ok, ...(loi ? { loi: loi.slice(0, 300), het_tien: laHetTien('google', loi) } : {}) });
-    return { cong: 'google', model, thu };
-  };
-  const thuTu = [opts.model, ...MO_HINH_ANH.map((m) => m.key).filter((k) => k !== opts.model && !k.startsWith('gpt-image'))];
-  let loiCuoi = qc.thu.length ? `${qc.thu.map((b) => `${b.cong}:${b.model}: ${b.loi}`).join(' → ')} → ` : '';
-  let nguon: NguonSinh | undefined;
-  for (const model of thuTu) {
-    const kq = await sinhAnhMot({ ...opts, model });
-    if (kq.ok) return { ...kq, nguon: nguonGoogle(model, true) };
-    nguon = nguonGoogle(model, false, kq.loi);
-    loiCuoi = `${loiCuoi}${model}: ${kq.loi}`;
-    // Chưa billing = cả project bị chặn, thử model Google khác cũng vô ích → nhảy thẳng sang OpenAI.
-    if (/chưa gắn Cloud Billing/.test(kq.loi)) break;
-    if (!/NOT_FOUND|404|không tồn tại|rate limit/i.test(kq.loi)) return { ok: false, loi: loiCuoi, nguon };
-  }
-  // Google hết đường (chưa billing → quota 0, hoặc đổi tên model) → OpenAI gpt-image nếu có khoá. Keyframe vẫn ra, Veo vẫn chờ billing Google.
-  if (khoaOpenAI()) {
-    const kq = await sinhAnhOpenAI({ prompt: opts.prompt, thamChieu: opts.thamChieu, tiLe: opts.tiLe });
-    if (kq.ok) return kq;
-    loiCuoi = `${loiCuoi} → ${kq.loi}`;
-  }
-  return { ok: false, loi: loiCuoi || 'không model ảnh nào chạy được', nguon };
+  const loi = qc.thu.map((b) => b.loi).filter(Boolean).join(' → ') || 'không cổng ảnh nào chạy được';
+  // IMAGE_SAFETY: Google chặn theo nội dung (vd người chỉ mặc đồ lót) — mọi model Google đều chặn như nhau, nên chỉ đường sang model khác.
+  return { ok: false, loi: /SAFETY|PROHIBITED|BLOCK/i.test(loi) ? `${loi} — Google chặn ảnh này vì nội dung: đổi model ảnh sang fal (Seedream, FLUX Kontext…) ở ô chọn model cạnh nút rồi sinh lại` : loi,
+    nguon: { cong: 'ckey', model: opts.model, thu: qc.thu } };
 }
 
 type KqVeoBatDau = { ok: true; taskId: string } | { ok: false; loi: string };
 
-/** Bắt đầu sinh video Veo. Trả operation name để poll (`docVeo`). mode: text | start_image (keyframe làm khung đầu). */
+/** Bắt đầu sinh video Veo CHÍNH HÃNG qua cổng (ép cổng google, đúng model). Ảnh đi bằng URL công khai (cổng tải về, gửi bytesBase64Encoded). Trả operation name
+ *  để hỏi lại bằng docVeo. loai = danh từ cần loại (negativePrompt). */
 export async function batDauVeo(opts: {
-  model: string; prompt: string; anhDau?: AnhVao | null; anhCuoi?: AnhVao | null; tiLe: TiLe; doPhanGiai: DoPhanGiai; giay: 4 | 6 | 8; loai?: string;
+  model: string; prompt: string; anhDau?: string | null; anhCuoi?: string | null; tiLe: TiLe; doPhanGiai: DoPhanGiai; giay: 4 | 6 | 8; loai?: string;
 }): Promise<KqVeoBatDau> {
-  const key = khoaGoogle();
-  if (!key) return { ok: false, loi: 'Thiếu GOOGLE_API_KEY trên máy chủ' };
-  const inst: Record<string, unknown> = { prompt: opts.prompt };
-  // Veo (predictLongRunning) nhận ảnh dạng {bytesBase64Encoded, mimeType}; inlineData bị từ chối "isn't supported by this model" (08/10/2026).
-  if (opts.anhDau) inst.image = { bytesBase64Encoded: opts.anhDau.data, mimeType: opts.anhDau.mimeType };
-  if (opts.anhCuoi) inst.lastFrame = { bytesBase64Encoded: opts.anhCuoi.data, mimeType: opts.anhCuoi.mimeType };
-  // 1080p bắt buộc 8s; ảnh đầu → personGeneration allow_adult (allow_all chỉ cho text-to-video).
-  const giay = opts.doPhanGiai === '1080p' ? 8 : opts.giay;
-  const parameters: Record<string, string | number> = {
-    aspectRatio: opts.tiLe, resolution: opts.doPhanGiai, durationSeconds: giay,   // phải là SỐ (Google báo lỗi nếu gửi chuỗi)
-    personGeneration: opts.anhDau ? 'allow_adult' : 'allow_all',
-  };
-  if (opts.loai) parameters.negativePrompt = opts.loai;
-  const r = await fetch(`${GOC}/models/${opts.model}:predictLongRunning`, {
-    method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({ instances: [inst], parameters }),
-  });
-  const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!r.ok) return { ok: false, loi: docLoi(j, r.status) };
-  const name = typeof j.name === 'string' ? j.name : '';
-  return name ? { ok: true, taskId: name } : { ok: false, loi: 'Veo không trả operation name' };
+  if (!opts.anhDau) return { ok: false, loi: 'Veo qua cổng cần ảnh đầu (keyframe)' };
+  const g = await guiVideoCong('google', opts.model, { prompt: opts.prompt, anhDau: opts.anhDau, anhCuoi: opts.anhCuoi ?? null, giay: opts.doPhanGiai === '1080p' ? 8 : opts.giay, tiLe: opts.tiLe, doPhanGiai: opts.doPhanGiai === '1080p' ? '1080p' : '720p', phuDinh: opts.loai ?? null });
+  return g.ok ? { ok: true, taskId: g.taskId } : { ok: false, loi: g.loi };
 }
 
 type KqVeo = { done: false } | { done: true; ok: true; uri: string } | { done: true; ok: false; loi: string };
 
 export async function docVeo(taskId: string): Promise<KqVeo> {
-  const key = khoaGoogle();
-  if (!key) return { done: true, ok: false, loi: 'Thiếu GOOGLE_API_KEY' };
-  const r = await fetch(`${GOC}/${taskId}`, { headers: { 'x-goog-api-key': key } });
-  const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!r.ok) return { done: true, ok: false, loi: docLoi(j, r.status) };
-  if (!j.done) return { done: false };
-  if (j.error) return { done: true, ok: false, loi: docLoi(j, 500) };
-  const resp = j.response as { generateVideoResponse?: { generatedSamples?: Array<{ video?: { uri?: string } }>; raiMediaFilteredCount?: number; raiMediaFilteredReasons?: string[] } } | undefined;
-  const uri = resp?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
-  if (!uri) {
-    const ly = resp?.generateVideoResponse?.raiMediaFilteredReasons?.join('; ');
-    return { done: true, ok: false, loi: ly ? `Veo chặn nội dung: ${ly}` : 'Veo xong nhưng không có video' };
-  }
-  return { done: true, ok: true, uri };
+  const d = await docVideoCong('google', taskId, new Date().toISOString());
+  return d.done ? (d.ok ? { done: true, ok: true, uri: d.uri } : { done: true, ok: false, loi: d.loi }) : { done: false };
 }
 
-/** Tải video từ URI của Veo (cần khoá trong header) về buffer để đẩy lên R2. */
-export async function taiVeo(uri: string): Promise<Buffer | null> {
-  const key = khoaGoogle();
-  if (!key) return null;
-  const r = await fetch(uri, { headers: { 'x-goog-api-key': key }, redirect: 'follow' });
-  if (!r.ok) return null;
-  return Buffer.from(await r.arrayBuffer());
-}
-
-function docLoi(j: Record<string, unknown>, status: number): string {
-  const e = j.error as { message?: string; status?: string } | undefined;
-  const m = e?.message ?? '';
-  // Lỗi hay gặp nhất: project của khoá chưa gắn Cloud Billing → ảnh/Veo bị quota free tier = 0. Nói thẳng nguyên nhân + cách sửa, không đổ nguyên đoạn tiếng Anh dài.
-  if (status === 429 && /limit: 0|free_tier/i.test(m)) return 'Google chặn: project của GOOGLE_API_KEY chưa gắn Cloud Billing (ảnh/Veo không có trong free tier). Gắn billing ở aistudio.google.com/billing → Import projects.';
-  // 429 có nhiều loại: hạn mức theo PHÚT (đợi 1 phút) khác hạn mức theo NGÀY (đợi qua ngày / xin nâng). Gộp chung thành "đợi 1 phút" làm
-  // script thử lại vô ích 30 phút (10/10/2026) — đọc quotaId/quotaMetric trong error.details và nói đúng loại, kèm nguyên văn ngắn.
-  if (status === 429) {
-    const ct = JSON.stringify((j.error as { details?: unknown } | undefined)?.details ?? '');
-    // "You exceeded your current quota, please check your plan and billing details" = hết SỐ LƯỢT/NGÀY của model trên project (không có trần
-    // chi nào): đo 15/10/2026 Veo 3.1 Lite qua Google chạy đúng 10 lượt rồi lượt 11 dính — ảnh Nano Banana cùng khoá vẫn chạy (hạn mức riêng).
-    // Báo "đợi 1 phút" cũ làm shot 1 phim 36 bị gửi lại 13 lần liền 11:39–12:02.
-    const quota = (ct.match(/"quotaId":"([^"]+)"/) ?? [])[1] ?? '';
-    if (/current quota|billing/i.test(m)) return `Google: hết số lượt/ngày của model này trên project (Veo ~10 lượt/ngày)${quota ? ` (${quota})` : ''} — Google mở lại lúc 0h giờ Mỹ Thái Bình Dương (14:00–15:00 giờ VN); không thử lại trước đó, chọn nguồn khác nếu cần ngay.`;
-    const theoNgay = /PerDay|per_day|PerProjectPerDay|daily/i.test(ct + m);
-    return theoNgay ? `Google: HẾT HẠN MỨC THEO NGÀY${quota ? ` (${quota})` : ''} — thử lại sau mốc reset ngày của Google hoặc xin nâng hạn mức; không thử lại ngay.`
-      : `Google báo vượt hạn mức gọi (rate limit${quota ? `: ${quota}` : ''}) — đợi 1 phút rồi bấm lại. ${m.slice(0, 120)}`;
-  }
-  return m ? `${e?.status ?? status}: ${m}`.slice(0, 300) : `HTTP ${status}`;
-}
+/** Tải video Veo (link cần khoá) — cổng tải hộ. */
+export async function taiVeo(uri: string): Promise<Buffer | null> { return taiVideoCong(uri); }

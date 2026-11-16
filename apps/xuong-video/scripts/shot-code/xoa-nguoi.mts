@@ -5,7 +5,8 @@
 // --them: xoá thêm con vật / đạo cụ sẽ cử động riêng (mèo, quả bóng…) — tách nó bằng tach-lop.swift --vung trên ảnh GỐC.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { sinhAnhMotCong, chuoiAnh, taNguonNgan } from '../../src/lib/xuong-video/cong-ai';
+import { chuoiAnh, taNguonNgan } from '../../src/lib/xuong-video/cong-ai';
+import { sinhAnhMotCong } from '../../src/lib/xuong-video/cong-ai-anh';
 
 const argv = process.argv.slice(2), iThem = argv.indexOf('--them'), them = iThem >= 0 ? argv.splice(iThem, 2)[1] : '';
 const PROMPT = 'Edit Image 1: remove every HUMAN figure completely (adults and children, including their hats, clothes and shadows)'

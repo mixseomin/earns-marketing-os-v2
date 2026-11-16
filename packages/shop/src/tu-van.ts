@@ -2,6 +2,7 @@
 // Ngữ cảnh chỉ gồm SỰ THẬT của shop: sản phẩm + size còn hàng, chính sách ship/đổi trả, FAQ, ngày dự kiến + cam kết (@mos2/shop/giao),
 // trang khách đang xem + giỏ (sổ phiên), và hành trình THẬT của đơn khi khách đưa số đơn + email khớp (banKhach — không lộ đơn người khác).
 // Soạn xong → kiemTraLoi (luật) → an toàn + mat_tien.tu_van.tu_gui thì gửi luôn; còn lại để nháp chờ anh duyệt ở /shop › Tư vấn.
+import { goiAi, dongCua } from '@mos2/cong-ai';
 import { sql } from 'drizzle-orm';
 import { q } from './su-kien';
 import { matTien, type MatTien } from './mat-tien';
@@ -75,20 +76,16 @@ RULES:
 - Group "safe" = sizing, product info, shipping times, how to track, verified order status, general questions. Anything about money, refunds, returns, damaged/wrong items, complaints, threats or disputes = "sensitive".
 Reply ONLY with JSON: {"reply": string, "group": "safe" | "sensitive", "topic": "sizing" | "product" | "shipping" | "order_status" | "returns" | "discount" | "complaint" | "other"}`;
 
+// MỘT CỔNG AI (anh 16/11/2026: "gom các cổng gọi rời rạc về chung 1 nguồn"): máy soạn trả lời đi qua client chung @mos2/cong-ai → cổng spy /api/ai (chuỗi donk →
+// ckey → fal, sổ ai_luot chung); trước đó gọi thẳng OpenAI bằng OPENAI_API_KEY riêng. Tên model cũ trong cấu hình cửa hàng (tu_van.model, OPENAI_MODEL) đổi về
+// dòng của cổng bằng dongCua (gpt-4o-mini → haiku). Kết quả ép khuôn bằng schema thay cho response_format json_object.
+const KHUON_TRA_LOI = { type: 'object', properties: { reply: { type: 'string' }, group: { type: 'string', enum: ['safe', 'sensitive'] },
+  topic: { type: 'string', enum: ['sizing', 'product', 'shipping', 'order_status', 'returns', 'discount', 'complaint', 'other'] } }, required: ['reply', 'group', 'topic'] };
 async function goiMay(model: string, fact: string, hoiThoai: { nguoi: string; noi_dung: string }[]) {
-  const khoa = process.env.OPENAI_API_KEY;
-  if (!khoa) throw new Error('thiếu OPENAI_API_KEY');
-  const r = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST', headers: { authorization: `Bearer ${khoa}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(45_000),
-    // đời gpt-5 / o-series chỉ nhận temperature mặc định — gửi 0.3 là lỗi 400
-    body: JSON.stringify({ model, ...(/^(gpt-5|o\d)/.test(model) ? {} : { temperature: 0.3 }), response_format: { type: 'json_object' }, messages: [
-      { role: 'system', content: `${HE_THONG}\n\nFACTS:\n${fact}` },
-      ...hoiThoai.slice(-20).map((x) => ({ role: x.nguoi === 'khach' ? 'user' : 'assistant', content: x.noi_dung })),
-    ] }),
-  });
-  const j = (await r.json()) as { choices?: { message?: { content?: string } }[]; error?: { message: string } };
-  if (!r.ok) throw new Error(`OpenAI ${r.status}: ${j.error?.message ?? ''}`.slice(0, 200));
-  const o = JSON.parse(j.choices?.[0]?.message?.content ?? '{}') as { reply?: string; group?: string; topic?: string };
+  const r = await goiAi<{ reply?: string; group?: string; topic?: string }>({ viec: 'shop-tu-van', model: dongCua(model), max_tokens: 1200, schema: KHUON_TRA_LOI,
+    system: `${HE_THONG}\n\nFACTS:\n${fact}`,
+    messages: hoiThoai.slice(-20).map((x) => ({ role: x.nguoi === 'khach' ? 'user' as const : 'assistant' as const, content: x.noi_dung })) }, { hanMs: 60_000 });
+  const o = r.kq ?? {};
   return { reply: String(o.reply ?? '').trim(), nhom: o.group === 'safe' ? 'an_toan' : 'nhay_cam', chu_de: String(o.topic ?? 'other') };
 }
 

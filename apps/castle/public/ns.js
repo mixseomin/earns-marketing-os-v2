@@ -34,7 +34,8 @@ const SUA = await fetch(`./du-lieu/${ten}-sua.json`, { cache: 'no-cache' }).then
 // CÁCH 3 (?cach=3, nút 🧩): độ cao từng khối lấy từ bản đồ độ cao thật (scripts/khoi-tu-dsm.mjs → <lâu>-sua-cach3.json) đè lên tệp sửa — mặt bằng + chi tiết giữ nguyên.
 // ?cach=dsm: lớp khối thô dựng thẳng từ bản đồ độ cao (cach3.js) — chỉ để soi số đo
 const CACH = new URLSearchParams(location.search).get('cach');
-if (CACH === '3') { const S3 = await fetch(`./du-lieu/${ten}-sua-cach3.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})); for (const [id, e] of Object.entries(S3)) SUA[id] = { ...(SUA[id] || {}), ...e }; }
+let S3_IDS = [];
+if (CACH === '3') { const S3 = await fetch(`./du-lieu/${ten}-sua-cach3.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})); for (const [id, e] of Object.entries(S3)) SUA[id] = { ...(SUA[id] || {}), ...e }; S3_IDS = Object.keys(S3); }
 // bố cục mặt Palas hướng sân đo từ ảnh (điểm ảnh thô; kiểm với ảnh: apps/castle/scripts/kiem-mat-tien.py) — mattien.js quyDoiMat đổi ra mét
 const MAT_BO = await fetch(`./du-lieu/${ten}-mat-palas-san.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 // ĐO TRÊN ẢNH 3D GOOGLE (scripts/do-khoi-google.mjs): mặt đất quanh lâu đài, mặt sân trên, đỉnh từng khối — mốc chân nhà + mặt đất thật
@@ -683,6 +684,17 @@ function datCach3Hien(bat) {
 $('b-cach3').classList.toggle('chinh', CACH === '3'); $('b-cach3').title = CACH === '3' ? 'Đang xem CÁCH 3: độ cao mọi khối đo từ bản đồ độ cao thật (ảnh 3D). Bấm để về cách cũ' : 'Xem CÁCH 3: độ cao mọi khối đo từ bản đồ độ cao thật của ảnh 3D (so với cách cũ)';
 $('b-cach3').onclick = (e) => { e.stopPropagation(); luuGoc(true); const q = new URLSearchParams(location.search); if (CACH === '3') q.delete('cach'); else q.set('cach', '3'); location.href = `${location.pathname}?${q}${location.hash}`; };
 if (CACH === 'dsm') datCach3Hien(true);
+// CÁCH 3: nhãn + KHUNG VÀNG quanh các khối đã đổi độ cao theo bản đồ độ cao thật (anh 16/11/2026: "bấm vào không thấy khác gì" — khối đã đo tay áp cả hai bản)
+if (CACH === '3') {
+  const pos = [], ds = S3_IDS.map((id) => dsKhoi.find((k) => k.id === id)).filter((k) => k && k.yTren != null);
+  for (const k of ds) { const y0 = Math.max(k.yDuoi ?? k.day, k.yTren - 60), y1 = k.yTren; for (let i = 0; i < k.v.length; i++) { const [ax, az] = k.v[i], [bx, bz] = k.v[(i + 1) % k.v.length];
+    pos.push(ax, y1, az, bx, y1, bz, ax, y0, az, bx, y0, bz, ax, y0, az, ax, y1, az); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  const khung = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: '#ffd400', depthTest: false, transparent: true, opacity: 0.9 })); khung.renderOrder = 999; scene.add(khung);
+  const nhan = document.createElement('div'); nhan.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:6;padding:7px 12px;border-radius:10px;background:var(--o);border:1px solid #ffd400;color:var(--chu);font:600 13px system-ui;cursor:pointer;max-width:calc(100vw - 32px)';
+  const ve = () => { nhan.innerHTML = `🧩 CÁCH 3 · ${ds.length} khối đổi độ cao theo bản đồ độ cao thật — ${khung.visible ? 'khung vàng' : 'bấm để hiện khung vàng'}`; };
+  nhan.onclick = () => { khung.visible = !khung.visible; ve(); }; ve(); document.body.append(nhan);
+}
 function apHienCach3() { // gọi lại sau mọi chỗ đặt hiện / ẩn LOP_OSM (lớp ảnh thật 3D, so ảnh)
   if (LOP_OSM.dangAn) { if (CACH3.g) CACH3.g.visible = false; return; }
   for (const m of LOP_NHA) m.visible = !CACH3.bat; if (CACH3.g) CACH3.g.visible = CACH3.bat; }

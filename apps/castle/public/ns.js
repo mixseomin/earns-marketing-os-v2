@@ -887,6 +887,32 @@ const RUNG = []; let RUNG_O = []; // ẩn khi so ảnh thật (cây mọc ở m�
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }; // cảm ứng: hai ngón vừa chụm / mở (phóng) vừa xoay như kéo chuột trái (anh 15/11/2026); mặc định là phóng + dời
 orbit.target.set(0, 25, 0); camera.position.set(-170, 90, 230); orbit.enableDamping = true; orbit.maxPolarAngle = 1.52; orbit.minDistance = 15; orbit.maxDistance = 1500; orbit.update();
+// DỜI CAMERA TOÀN CẢNH TRÊN PC (thẻ #1640, anh 17/11/2026 "thêm tính năng span trên pc"): giữ chuột phải kéo (touchpad Mac: bấm hai ngón rồi kéo)
+// hoặc Shift / Ctrl / ⌘ + kéo chuột trái = dời ngang theo MẶT ĐẤT như bản đồ (screenSpacePanning tắt: điểm nhìn không bay lên trời / chui xuống núi);
+// W A S D / mũi tên = dời theo hướng camera, giữ Shift nhanh gấp 3; tốc độ theo khoảng cách camera ↔ điểm nhìn (xem xa thì dời nhanh).
+// Trong lúc dời: điểm nhìn giữ trên đảo địa hình (±NUA, chừa mép DOI_LE m — ngoài đó là trời trống) và không dưới mặt đất (camera đi cùng). Ngoài lúc dời không đụng camera (so-lech / trọng tài đặt góc).
+orbit.screenSpacePanning = false; orbit.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+const PHIM_DOI = { KeyW: [0, 1], ArrowUp: [0, 1], KeyS: [0, -1], ArrowDown: [0, -1], KeyA: [-1, 0], ArrowLeft: [-1, 0], KeyD: [1, 0], ArrowRight: [1, 0] }, DOI_LE = 40;
+const doi = { phim: {}, nhanh: false, keoDen: 0 }, _vf = new THREE.Vector3(), _vr = new THREE.Vector3(), _vd = new THREE.Vector3();
+addEventListener('keydown', (e) => { doi.nhanh = e.shiftKey; if (!PHIM_DOI[e.code] || e.target.closest?.('textarea, input') || di?.dang) return; doi.phim[e.code] = true; if (e.code.startsWith('Arrow')) e.preventDefault(); });
+addEventListener('keyup', (e) => { doi.nhanh = e.shiftKey; delete doi.phim[e.code]; });
+addEventListener('blur', () => { doi.phim = {}; });
+renderer.domElement.addEventListener('pointerdown', (e) => { if (e.button === 2 || (e.button === 0 && (e.shiftKey || e.ctrlKey || e.metaKey))) doi.keoDen = Infinity; });
+addEventListener('pointerup', () => { if (doi.keoDen === Infinity) doi.keoDen = performance.now() + 1500; }); // quán tính (enableDamping) còn trôi ~1 s sau khi nhả
+function doiToanCanh(dt) {
+  let fx = 0, fz = 0; for (const k in doi.phim) { fx += PHIM_DOI[k][0]; fz += PHIM_DOI[k][1]; }
+  if (!fx && !fz && performance.now() > doi.keoDen) return;
+  _vd.set(0, 0, 0); const t = orbit.target;
+  if (fx || fz) {
+    camera.getWorldDirection(_vf); _vf.y = 0; if (_vf.lengthSq() < 1e-6) _vf.set(0, 0, -1); _vf.normalize(); _vr.crossVectors(_vf, camera.up).normalize();
+    const v = camera.position.distanceTo(t) * 0.5 * (doi.nhanh ? 3 : 1) * dt / Math.hypot(fx, fz);
+    _vd.addScaledVector(_vf, fz * v).addScaledVector(_vr, fx * v);
+  }
+  const R = NUA - DOI_LE, kep = (v) => Math.max(-R, Math.min(R, v));
+  _vd.x = kep(t.x + _vd.x) - t.x; _vd.z = kep(t.z + _vd.z) - t.z;
+  const day = datThat(t.x + _vd.x, t.z + _vd.z) + 2; if (t.y < day) _vd.y = day - t.y;
+  if (_vd.lengthSq() > 0) { t.add(_vd); camera.position.add(_vd); }
+}
 $('tt').innerHTML = `${dsKhoi.filter((k) => !(k.vo && k.coPart)).length} khối từ OpenStreetMap · cao nhất ${caoNhat ? caoNhat.h + ' m' : '—'} · địa hình ${n}×${n} điểm, ô ${B} m`;
 addEventListener('resize', () => { if (dangSo) return; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 // ---------- ĐI BỘ (bước 5): người chơi có xương + động tác thật, điều khiển dibo.js (dùng chung). Vào ở cổng Torbau phía đông.
@@ -963,7 +989,7 @@ function capNhatHd(now) {
   capNhatKhu(phong);
   const khoa = c + (phong?.so || ''); if (khoa === khoaHd) return; khoaHd = khoa;
   const xoay = dg('giữ chuột + kéo', 'xoay camera') + dg(K('Z', 'X'), 'xoay trái / phải') + dg(K('V'), 'góc nhìn sau lưng / mắt') + dg(K('Esc'), 'về toàn cảnh');
-  $('hd').innerHTML = c === 'so' ? '' : c === 'toan' ? '<b>Toàn cảnh</b>' + dg('kéo chuột', 'xoay') + dg('lăn chuột · Shift + lăn', 'phóng to / nhỏ') + dg('nhấp đúp', 'xuống đi bộ tại đó') + dg('🚶 Đi bộ', cho ? 'về chỗ đang đứng (ghim Bạn)' : 'vào ở cổng Torbau')
+  $('hd').innerHTML = c === 'so' ? '' : c === 'toan' ? '<b>Toàn cảnh</b>' + dg('kéo chuột', 'xoay') + dg('chuột phải kéo · Shift + kéo', 'dời camera') + dg(K('W', 'A', 'S', 'D') + ' · mũi tên', 'dời camera (Shift: nhanh)') + dg('lăn chuột · Shift + lăn', 'phóng to / nhỏ') + dg('nhấp đúp', 'xuống đi bộ tại đó') + dg('🚶 Đi bộ', cho ? 'về chỗ đang đứng (ghim Bạn)' : 'vào ở cổng Torbau')
     : c === 'leo' ? '<b>Đang leo</b>' + dg(K('W', 'S'), 'lên / xuống') + dg(K('A', 'D'), 'ngang theo tường') + dg(K('W') + ' tới mép', 'tự đu lên') + dg(K('Space'), 'bật ra') + xoay
     : '<b>Đi bộ</b>' + dg(K('W', 'A', 'S', 'D'), 'đi theo hướng camera') + dg(K('Shift'), 'chạy') + dg(K('Space'), 'nhảy') + dg(K('C') + ' giữ', 'ngồi xổm')
       + (phong ? dg(K('E'), 'ngồi · mở rương · cầm đồ · bật đèn · đọc') + dg(K('F') + ' · nhấp', 'đá đồ · ném đồ đang cầm') : '')
@@ -1179,7 +1205,7 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
   if (now - lan < (!document.hasFocus() || nghi ? 100 : di?.dang ? (CHAM ? 1000 / 30 : 1000 / 60) : 1000 / 30) - 3) return; lan = now;
   const dt = Math.min(dongHo.getDelta(), 0.1);
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
-  else if (!dangSo) orbit.update(); // chế độ so ảnh: camera do thông số ảnh quyết
+  else if (!dangSo) { doiToanCanh(dt); orbit.update(); } // chế độ so ảnh: camera do thông số ảnh quyết
   if (!di?.dang) apChoDung(dt); // toàn cảnh: nhân vật đứng thở ở chỗ đã rời + ghim "Bạn"
   if (noiThat) { const p = di?.dang ? di.viTri() : null; noiThat.hien(!!p && Math.hypot(p.x - noiThat.tam[0], p.z - noiThat.tam[1]) < 75); }
   noiThat?.capNhat(dt); timTuongTac(now); camUng?.capNhat(); anCayXa(now); nhieuNguoi?.capNhat(dt); capNhatAnh3d();

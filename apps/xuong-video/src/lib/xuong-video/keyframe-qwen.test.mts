@@ -13,6 +13,7 @@ assert.ok(r.prompt.includes('COMPOSITION comes ONLY from image 1') && r.prompt.i
 assert.deepStrictEqual(r.anh, ['k3d', 'nhoc', 'chai']);
 import { cauDau, QWEN_TRAN_KY_TU } from './keyframe-qwen';
 assert.strictEqual(cauDau('One. Two two. Three three three.', 14), 'One. Two two.');
+assert.strictEqual(cauDau('Lens 225 cm, middle 62.5 cm up, tilted down. Next.', 50), 'Lens 225 cm, middle 62.5 cm up, tilted down.', 'không tách ở số thập phân');
 assert.ok(cauDau('a, b, c, d, e, f, g, h, i, j, k, l, m, n', 12).length <= 13, 'câu đầu quá dài → cắt ở dấu phẩy');
 const dai = promptQwen({ vai, khoi: [{ ma: 'may', chu: 'CAMERA high angle. ' + 'x'.repeat(5000) } as never, { ma: 'bo_tri', chu: 'y'.repeat(3000) } as never, { ma: 'nguoi', chu: 'Nhóc — looks exactly like Image 2: boy.' } as never] });
 assert.ok(dai.prompt.length <= QWEN_TRAN_KY_TU && dai.prompt.includes('CAMERA high angle.') && !dai.prompt.includes('yyy') && dai.prompt.includes('Nhóc'), `câu ngắn: ${dai.prompt.length}`);

@@ -14,7 +14,7 @@ const GIU: readonly (readonly [string, number])[] = [['may', 260], ['nguoi', 420
 export const QWEN_TRAN_KY_TU = 1600;
 /** Các câu đầu của một khối, không vượt n ký tự (ít nhất một câu, cắt ở dấu chấm phẩy / phẩy nếu câu đầu đã quá dài). */
 export function cauDau(chu: string, n: number): string {
-  const cau = chu.match(/[^.!?]+[.!?]+(\s|$)/g) ?? [chu];
+  const cau = chu.split(/(?<=[.!?…])\s+(?=[A-Z("“])/).map((c) => `${c} `);   // tách câu: dấu chấm + khoảng trắng + chữ HOA — không tách '62.5 cm' / '0.5 s'
   let ra = '';
   for (const c of cau) { if ((ra + c).length > n) break; ra += c; }
   if (!ra) { const c = cau[0]!; const cat = c.slice(0, n); ra = `${cat.slice(0, Math.max(cat.lastIndexOf(';'), cat.lastIndexOf(','), Math.floor(n * 0.6))).trim()}.`; }

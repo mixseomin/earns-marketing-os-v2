@@ -68,6 +68,14 @@ export function henGanNhat(luc, bay) {
   return tot;
 }
 
+/** GIỜ CHẠY KẾ (ms) của một việc — bảng nhân sự đếm ngược tới lần kiểm tiếp theo (anh 17/11/2026). null = chạy tay / chạy liền. */
+export function luotKe(hen, t, bay) {
+  if (hen.tay || hen.luon) return null;
+  if (hen.moi_giay) return Math.max(bay, (t.bat_dau ?? t.moc ?? bay) + hen.moi_giay * 1000);
+  let tot = Infinity;
+  for (const toi of [0, 1]) for (const g of hen.luc ?? []) { const d = new Date(bay); d.setDate(d.getDate() + toi); const [h, m] = g.split(':').map(Number); d.setHours(h, m, 0, 0); if (d.getTime() > bay && d.getTime() < tot) tot = d.getTime(); }
+  return Number.isFinite(tot) ? tot : null;
+}
 /** Tới lượt chưa? t = trạng thái việc { moc (lần đầu thấy), bat_dau, lich_cuoi }. Trả { chay, lich? } — lich = mốc hẹn vừa phục vụ. */
 export function toiLuot(hen, t, bay) {
   if (hen.tay) return { chay: false };
@@ -114,9 +122,10 @@ export function tomNhatKy(chu, n = 2) {
   return d.slice(-n).join(' · ').slice(-300);
 }
 const docDuoi = (f, byte = 4096) => { try { const fd = fs.openSync(f, 'r'), n = fs.fstatSync(fd).size, b = Buffer.alloc(Math.min(byte, n)); fs.readSync(fd, b, 0, b.length, n - b.length); fs.closeSync(fd); return b.toString('utf8'); } catch { return ''; } };
-function ghiSuKien(v, ket) {
+function ghiSuKien(v, ket, t) {
   if (v.hen?.luon) return;
-  try { fs.appendFileSync(F.sk, `${JSON.stringify({ nhan: nhanCua(v), luc: new Date().toISOString(), ket })}\n`); } catch { /* hàng hỏng không được làm hỏng việc */ }
+  const ke = t ? luotKe(v.hen ?? {}, t, Date.now()) : null;
+  try { fs.appendFileSync(F.sk, `${JSON.stringify({ nhan: nhanCua(v), luc: new Date().toISOString(), ket, ...(ke ? { tiep: new Date(ke).toISOString() } : {}) })}\n`); } catch { /* hàng hỏng không được làm hỏng việc */ }
 }
 let dangDay = false, lanDay = 0;
 function daySuKien() {
@@ -165,7 +174,7 @@ function moViec(v, t, them, xong) {
     if (v.uu_tien_thap && c.pid) try { os.setPriority(c.pid, 10); } catch { /* đã thoát */ }
     Object.assign(t, { pid: c.pid, bat_dau: Date.now(), runs: (t.runs ?? 0) + 1, ma: null, xong: null });
     ghiLog(`▶ ${v.ten}${them.length ? ` (${them.join(' ')})` : ''} pid ${c.pid}`);
-    ghiSuKien(v, `▶ bắt đầu: ${v.ten}${them.length ? ` (${them.join(' ')})` : ''}`);
+    ghiSuKien(v, `▶ bắt đầu: ${v.ten}${them.length ? ` (${them.join(' ')})` : ''}`, t);
   } finally { fs.closeSync(out); if (err !== out) fs.closeSync(err); }
 }
 
@@ -237,7 +246,7 @@ function chayVong(may) {
         dangChay.delete(v.nhan); Object.assign(t, { pid: null, xong: Date.now(), ma });
         ghiLog(`■ ${v.ten} mã ${ma} sau ${Math.round((t.xong - t.bat_dau) / 1000)} giây`); ghiJson(F.tt, tt);
         const giay = Math.round((t.xong - t.bat_dau) / 1000), tom = tomNhatKy(docDuoi(v.nhat_ky));
-        ghiSuKien(v, `${ma === 0 ? '■ xong' : `✗ lỗi mã ${ma}`} sau ${giay < 120 ? `${giay} giây` : `${Math.round(giay / 60)} phút`}${tom ? ` · ${tom}` : ''}`);
+        ghiSuKien(v, `${ma === 0 ? '■ xong' : `✗ lỗi mã ${ma}`} sau ${giay < 120 ? `${giay} giây` : `${Math.round(giay / 60)} phút`}${tom ? ` · ${tom}` : ''}`, t);
       });
       doi = true;
     }
@@ -266,6 +275,11 @@ function goi(nhan, them) {
 
 async function tuKiem() {
   const a = (await import('node:assert')).default;
+  { const b = new Date(2026, 10, 17, 14, 0).getTime();
+    a.equal(luotKe({ moi_giay: 120 }, { bat_dau: b - 30_000 }, b), b + 90_000, 'mỗi 2 phút: kế = lần mở + 120 giây');
+    a.equal(luotKe({ luc: ['06:45', '20:45'] }, {}, b), new Date(2026, 10, 17, 20, 45).getTime(), 'lúc HH:MM: mốc kế trong ngày');
+    a.equal(luotKe({ luc: ['06:45'] }, {}, b), new Date(2026, 10, 18, 6, 45).getTime(), 'qua mốc cuối → sáng mai');
+    a.equal(luotKe({ luon: true }, {}, b), null); }
   a.equal(tomNhatKy('a\n\nhint: x\nfatal: Not possible to fast-forward, aborting.\n2026 phiên xong: 3 task\n'), 'a · 2026 phiên xong: 3 task', 'tóm nhật ký: bỏ dòng trống + lời nhắc git');
   const v = (x) => ({ nhan: 'iMac:com.x', ten: 'X - y', chay: ['/bin/bash', '-c', 'true'], hen: { moi_giay: 60 }, ...x });
   a.deepEqual(kiemSo({ viec: [v({})] }), []);

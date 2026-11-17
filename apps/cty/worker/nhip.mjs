@@ -53,8 +53,9 @@ export const lanLam = (id) => { try { return JSON.parse(fs.readFileSync(tepLam(i
 // NHẬT KÝ từng lần chạy (anh 14/10/2026: "chia thành các đầu việc, bấm vào từng việc xem log thực hiện") — một dòng JSON mỗi nhịp ở nhip/<id>.jsonl.
 const tepNk = (id) => path.join(DATA(), 'nhip', `${id}.jsonl`);
 const GIU_DONG = 20_000;   // ponytail: ~2 tuần nhịp mỗi phút; quá 1,5 lần thì cắt còn GIU_DONG dòng mới nhất
-const ghiLam = (id, ket, viec, luc = new Date().toISOString()) => {
-  const dong = { luc, viec, ket }; fs.mkdirSync(path.dirname(tepLam(id)), { recursive: true });
+const ghiLam = (id, ket, viec, luc = new Date().toISOString(), tiep) => {
+  // tiep = giờ chạy kế (bộ điều phối Mac đẩy về) — bảng nhân sự đếm ngược tới lần kiểm tiếp theo
+  const dong = { luc, viec, ket, ...(tiep ? { tiep } : {}) }; fs.mkdirSync(path.dirname(tepLam(id)), { recursive: true });
   fs.writeFileSync(tepLam(id), JSON.stringify(dong)); fs.appendFileSync(tepNk(id), `${JSON.stringify(dong)}\n`);
   const ds = fs.readFileSync(tepNk(id), 'utf8').split('\n').filter(Boolean); if (ds.length > GIU_DONG * 1.5) fs.writeFileSync(tepNk(id), `${ds.slice(-GIU_DONG).join('\n')}\n`);
 };
@@ -220,7 +221,7 @@ export function ghiMay(dong) {
   const dir = path.join(GOC, 'cong-ty', 'nhan-su'); const nguoi = fs.readdirSync(dir).filter((d) => fs.existsSync(path.join(dir, d, 'SOUL.md')))
     .map((d) => ({ id: d, viec: String(parseFm(fs.readFileSync(path.join(dir, d, 'SOUL.md'), 'utf8')).fm.heartbeat ?? '').split(',').map((v) => v.trim()) }));
   let ghi = 0;
-  for (const e of dong) for (const v of theoNhan[e?.nhan] ?? []) for (const n of nguoi.filter((x) => x.viec.includes(v))) { ghiLam(n.id, String(e.ket ?? '').slice(0, 500), v, e.luc || undefined); ghi++; }
+  for (const e of dong) for (const v of theoNhan[e?.nhan] ?? []) for (const n of nguoi.filter((x) => x.viec.includes(v))) { ghiLam(n.id, String(e.ket ?? '').slice(0, 500), v, e.luc || undefined, e.tiep); ghi++; }
   return ghi;
 }
 if (process.argv[1]?.endsWith('nhip.mjs') && process.argv.includes('--ghi-may')) {

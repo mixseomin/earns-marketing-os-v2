@@ -25,7 +25,7 @@ const CSS = `
 #bl-bao.dang { border-color: #f59e0b; } #bl-bao.dang b { color: #f59e0b; }
 #bl button.chinh { background: #ffd9a8; color: #1a1208; border-color: #ffd9a8; } #bl button:disabled { opacity: .55; cursor: default; }`;
 
-export function ganBaoLech({ nut, chupHai, them = () => '' }) { // them(): ngữ cảnh thêm (ảnh thật đã chọn ở 📷 — ANH-THAT-JSON)
+export function ganBaoLech({ nut, chupHai, them = () => '', anhNgoai = () => [] }) { // them(): ngữ cảnh thêm (ảnh thật đã chọn ở 📷 — ANH-THAT-JSON)
   const st = document.createElement('style'); st.textContent = CSS; document.head.append(st);
   const bl = document.createElement('div'); bl.id = 'bl';
   bl.innerHTML = `<div>
@@ -87,7 +87,7 @@ export function ganBaoLech({ nut, chupHai, them = () => '' }) { // them(): ngữ
         if (h.k === 'm') { const [u, v] = h.p.at(-1); return [[r3(u - 0.04), r3(v - 0.04)], [r3(u + 0.04), r3(v + 0.04)]]; } return rut(h.p); });
       let vung = JSON.stringify(duong); if (vung.length > 2500) vung = JSON.stringify(duong.map((n) => { const us = n.map((p) => p[0]), vs = n.map((p) => p[1]); return [[Math.min(...us), Math.min(...vs)], [Math.max(...us), Math.max(...vs)]].map(([u, v]) => [+u.toFixed(3), +v.toFixed(3)]); }));
       const r = await fetch('/api/gop-y', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-        body: JSON.stringify({ noiDung: `[LỆCH ẢNH THẬT] ${ghi || '(không ghi chú — xem vùng tô đỏ / để máy tự so)'}${net.length ? `\n\nVUNG-JSON:${vung}` : ''}`, loai: 'loi', trang: location.href, nguCanh: 'LECH-JSON:' + JSON.stringify(du.cam) + them(), anh }) });
+        body: JSON.stringify({ noiDung: `[LỆCH ẢNH THẬT] ${ghi || '(không ghi chú — xem vùng tô đỏ / để máy tự so)'}${net.length ? `\n\nVUNG-JSON:${vung}` : ''}`, loai: 'loi', trang: location.href, nguCanh: 'LECH-JSON:' + JSON.stringify(du.cam) + them(), anh, anhNgoai: anhNgoai() }) });
       const j = await r.json().catch(() => ({ ok: false, error: `máy chủ trả ${r.status}` }));
       if (!j.ok) throw new Error(j.error || `máy chủ trả ${r.status}`);
       kq.innerHTML = `Đã gửi báo lệch #${j.id}. Máy sẽ so lại đúng góc này. <a href="#" class="xem-hom">Theo dõi trong 💬 › Của tôi</a>`; $q('textarea').value = '';

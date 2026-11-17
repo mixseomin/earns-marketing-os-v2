@@ -54,8 +54,13 @@ const the = arg('--the');
 if (the) {
   if (!/^\d+$/.test(the)) { console.error('id thẻ phải là số'); process.exit(1); }
   const txt = execFileSync('ssh', ['root@167.233.241.16', `cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -tAc "SELECT instructions || ' ' || COALESCE(prep_payload->'trao_doi'->0->>'nguCanh','') FROM human_tasks WHERE id=${the}"`], { encoding: 'utf8' });
-  const j = docJsonSau(txt, 'ANH-THAT-JSON:');
-  if (!j?.a?.length) { console.error(`thẻ #${the} không đính ảnh nào (ANH-THAT-JSON) — tự tìm: --khoi <way/…> hoặc --xz x,z`); process.exit(1); }
+  let j = null; try { j = docJsonSau(txt, 'ANH-THAT-JSON:'); } catch { /* mã bị cắt dở */ }
+  if (!j?.a?.length) { // không có mã ảnh (ngữ cảnh bị cắt / thẻ cũ): tải ảnh ĐÍNH KÈM của thẻ (ảnh thật đã chọn ở 📷 lên R2 cùng ảnh chụp trang)
+    const urls = JSON.parse(execFileSync('ssh', ['root@167.233.241.16', `cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -tAc "SELECT COALESCE(prep_payload->'trao_doi'->0->'anh','[]'::jsonb) FROM human_tasks WHERE id=${the}"`], { encoding: 'utf8' }).trim() || '[]');
+    if (!urls.length) { console.error(`thẻ #${the} không đính ảnh nào — tự tìm: --khoi <way/…> hoặc --xz x,z`); process.exit(1); }
+    console.log(`thẻ #${the}: không có mã ảnh thật — tải ${urls.length} ảnh đính kèm (ảnh đầu thường là ảnh chụp màn hình mô hình; không có ghi công nguồn)`);
+    await taiVe(urls.map((u, i) => ({ nguon: 'the', id: `${the}-${i + 1}`, url: u, trang: u, tacGia: '?', giayPhep: '?' })), the); process.exit(0);
+  }
   console.log(`thẻ #${the}: ${j.a.length} ảnh người báo chọn quanh ${j.d?.ten || '?'} (x ${j.d?.x}, z ${j.d?.z})`);
   const mly = layKhoaMly(), ds = [];
   for (const ma of j.a) try { ds.push(await chiTietAnh(ma, mly)); } catch (e) { console.error('✗', e.message); }

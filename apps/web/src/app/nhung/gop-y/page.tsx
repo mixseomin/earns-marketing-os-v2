@@ -13,10 +13,11 @@ export default function NhungGopY() {
     let goc = '*'; try { goc = new URL(trang).origin; } catch { /* không có trang → không trả lời ai */ }
     const nhan = (e: MessageEvent) => {
       if (goc === '*' || e.origin !== goc || e.source !== window.parent) return;
-      const d = (e.data || {}) as { loai?: string; nguCanh?: string; anh?: string | null };
+      const d = (e.data || {}) as { loai?: string; nguCanh?: string; anh?: string | null; anhThem?: string[] };
       if (d.loai !== 'gop-y:mo') return;
       const nc = String(d.nguCanh || '').slice(0, 1000); w.__nguCanhTrang = () => nc;
       if (typeof d.anh === 'string' && d.anh.startsWith('data:image/')) (w.__anhGopY ||= []).push(d.anh);
+      for (const u of Array.isArray(d.anhThem) ? d.anhThem.slice(0, 5) : []) if (typeof u === 'string' && u.startsWith('data:image/')) (w.__anhGopY ||= []).push(u); // ảnh thật trang ngoài đã chọn (castle 📷) — vào ô ảnh đính kèm như ảnh chụp trang
       window.dispatchEvent(new CustomEvent('gop-y:mo'));
     };
     const dong = (e: Event) => { if (goc !== '*') window.parent.postMessage({ loai: 'gop-y:dong', vuaGui: (e as CustomEvent<{ vuaGui?: number }>).detail?.vuaGui ?? null }, goc); };

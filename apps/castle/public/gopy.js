@@ -2,12 +2,13 @@
 // xong không biết đang ở đâu"). Trước đây castle chạy một hộp tự viết chỉ gửi được; nay nút 💬 mở hòm dùng chung của mos2 (/nhung/gop-y trong khung phủ màn,
 // nạp bằng script https://mos2.on.tc/api/gop-y-ngoai/nut): GỬI · CỦA TÔI (trạng thái từng thẻ, luồng trả lời, làm lại, duyệt xong) · HỎI ĐÁP.
 // Thẻ 🔍 báo lệch (baolech.js), thẻ máy quét và thẻ Claude tạo theo lệnh anh cũng hiện trong "Của tôi".
-// ganGopY({ nut, chupAnh: () => dataURL|null, nguCanh: () => string }) → { mo, dangMo }
+// ganGopY({ nut, chupAnh: () => dataURL|null, nguCanh: () => string, anhNgoai: () => [dataURL] }) → { mo, dangMo }
 const NUT_HOM = 'https://mos2.on.tc/api/gop-y-ngoai/nut';
 
-export function ganGopY({ nut, chupAnh = () => null, nguCanh = () => '' }) {
+export function ganGopY({ nut, chupAnh = () => null, nguCanh = () => '', anhNgoai = () => [] }) {
   window.__nguCanhTrang = () => nguCanh();   // hòm đọc lúc mở: chỗ đứng / chế độ / ảnh thật đã chọn (📷)
   window.__chupTrang = () => chupAnh();       // ảnh khung hình kèm thẻ
+  window.__anhNgoaiTrang = () => anhNgoai();  // ảnh thật đã chọn ở 📷 → hiện thành ảnh đính kèm trong hòm (thấy / bỏ được trước khi gửi)
   nut.setAttribute('data-gop-y-mo', '');      // script hòm bắt click ở pha capture
   nut.title = 'Góp ý / báo lỗi — gửi kèm ảnh màn hình + chỗ đang đứng; tab "Của tôi" xem trạng thái + trả lời mọi thẻ đã gửi';
   if (!document.querySelector(`script[src="${NUT_HOM}"]`)) { const s = document.createElement('script'); s.src = NUT_HOM; s.defer = true; s.onerror = () => console.error('[castle] không nạp được hòm góp ý mos2', NUT_HOM); document.head.append(s); }

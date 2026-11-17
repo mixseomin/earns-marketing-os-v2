@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 const TRANG_NGOAI = ['castle.on.tc'];
 
 export async function POST(req: Request) {
-  const b = (await req.json().catch(() => ({}))) as { noiDung?: string; loai?: string; trang?: string; nguCanh?: string; anh?: string };
+  const b = (await req.json().catch(() => ({}))) as { noiDung?: string; loai?: string; trang?: string; nguCanh?: string; anh?: string; anhNgoai?: string[] };
   let host = '';
   try { host = new URL(String(b.trang || '')).hostname; } catch { /* trang hỏng → chặn dưới */ }
   if (!TRANG_NGOAI.includes(host)) return NextResponse.json({ ok: false, error: 'Trang này chưa được mở hòm góp ý.' }, { status: 400 });
@@ -22,6 +22,8 @@ export async function POST(req: Request) {
     if (up.ok && up.url) anhUrls.push(up.url);
     else console.warn('[gop-y-ngoai] ảnh không lên được:', up.error);
   }
+  // ảnh thật trang ngoài đã chọn (castle 📷: Commons / Mapillary, trang tải sẵn thành dataURL) → lên R2 như ảnh chụp (link Mapillary có chữ ký, hết hạn)
+  if (Array.isArray(b.anhNgoai)) for (const du of b.anhNgoai.slice(0, 5)) if (typeof du === 'string' && du.startsWith('data:image/')) { const up = await uploadImage(du, 'gop-y'); if (up.ok && up.url) anhUrls.push(up.url); else console.warn('[gop-y-ngoai] ảnh thật không lên được:', up.error); }
   const r = await guiGopYMos2({ loai: b.loai === 'cau_hoi' ? 'cau_hoi' : 'loi', noiDung: String(b.noiDung || ''), trang: String(b.trang), anhUrls, nguCanh: String(b.nguCanh || ''), hom: 'mos2' });
   return NextResponse.json(r, { status: r.ok ? 200 : r.error === 'not found' ? 403 : 400 });
 }

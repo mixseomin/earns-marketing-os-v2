@@ -85,9 +85,20 @@ async function xuLyAnhQuanh(u, res) {
   try { const kq = await timAnhQuanh({ lat, lng, r, mly: MLY, huong: Number.isFinite(huong) ? huong : null, khu, khuCam }); if (!kq.loi.length) { ANH_NHO.set(k, { luc: Date.now(), kq }); if (ANH_NHO.size > 500) ANH_NHO.delete(ANH_NHO.keys().next().value); } tra(200, kq); }
   catch (e) { tra(502, { anh: [], loi: [e.message] }); }
 }
+// TẢI HỘ ẢNH THẬT (📷 chọn ảnh → trang đổi thành dataURL để đính vào thẻ góp ý): chỉ host ảnh Commons / Mapillary, ≤ 8 MB — không thành cổng tải bừa
+const HOST_ANH = /^(upload\.wikimedia\.org|[\w-]+\.fbcdn\.net|[\w.-]+\.mapillary\.com)$/;
+async function xuLyTaiAnh(u, res) {
+  let dich; try { dich = new URL(u.searchParams.get('url') || ''); } catch { res.writeHead(400).end(); return; }
+  if (dich.protocol !== 'https:' || !HOST_ANH.test(dich.hostname)) { res.writeHead(403).end(); return; }
+  try { const r = await fetch(dich, { headers: { 'User-Agent': 'castle-lau-dai-that/1.0 (anh-tai)' }, signal: AbortSignal.timeout(20000) }); const loai = r.headers.get('content-type') || '';
+    if (!r.ok || !loai.startsWith('image/')) { res.writeHead(502).end(); return; }
+    const b = Buffer.from(await r.arrayBuffer()); if (b.length > 8e6) { res.writeHead(413).end(); return; }
+    res.writeHead(200, { 'Content-Type': loai, 'Cache-Control': 'private, max-age=3600' }).end(b); } catch { res.writeHead(502).end(); }
+}
 const may = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
   if (u.pathname === '/mp/anh-quanh') { void xuLyAnhQuanh(u, res); return; }
+  if (u.pathname === '/mp/anh-tai') { void xuLyTaiAnh(u, res); return; }
   if (u.pathname === '/mp/lech') { xuLyLech(req, res); return; }
   if (u.pathname === '/mp/kenh') { const lau = u.searchParams.get('lau'); if (!LAU.has(lau)) { res.writeHead(400).end('{}'); return; }
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(THU ? { 'Access-Control-Allow-Origin': '*' } : {}) }).end(JSON.stringify(demKenh(lau))); return; }

@@ -63,6 +63,19 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY, thay
   // ẢNH LỚN NGAY KHI MỞ (anh 17/11/2026: "phải hiện kích thước to hơn… phải bấm quá nhiều"): ảnh đang xem chiếm gần hết bảng, dải ảnh nhỏ bên dưới
   // (bấm = xem ảnh đó), ← → đổi ảnh, nút Chọn ngay dưới ảnh lớn, bấm vào ảnh lớn = toàn màn hình. Không còn bước "bấm 🔎 mới thấy ảnh to".
   let dang = 0;
+  // ẢNH CHỌN → ĐÍNH VÀO THẺ (anh 17/11/2026: "bấm sang gửi góp ý kèm ảnh thì không thấy 2 ảnh thật được chọn đâu"): chọn là tải sẵn qua máy chủ kênh
+  // (/mp/anh-tai — ảnh Commons / Mapillary khác nguồn, canvas không đọc thẳng được) thành dataURL ≤ 1600 px; hòm góp ý nhận như ảnh chụp trang
+  // (hiện trong ô ảnh đính kèm, bỏ được, tải lên R2 khi gửi). 🔍 báo lệch gửi kèm cùng các ảnh này.
+  const DATA = new Map();
+  async function taiSan(a) {
+    const k = a.nguon + a.id; if (DATA.has(k)) return;
+    DATA.set(k, null);
+    try {
+      const b = await (await fetch(`${MP}/mp/anh-tai?url=${encodeURIComponent(a.lon)}`, { credentials: 'same-origin' })).blob(), bm = await createImageBitmap(b);
+      const t = Math.min(1, 1600 / Math.max(bm.width, bm.height)), c = document.createElement('canvas'); c.width = Math.round(bm.width * t); c.height = Math.round(bm.height * t);
+      c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height); DATA.set(k, c.toDataURL('image/jpeg', 0.85));
+    } catch (e) { DATA.delete(k); console.warn('[📷] không tải sẵn được ảnh', a.id, e); }
+  }
   const xemToanMan = (a) => { lon.innerHTML = `<img src="${esc(a.lon)}" alt="">`; lon.style.display = 'flex'; };
   function ve() {
     if (bang.style.display !== 'flex') return;
@@ -86,7 +99,7 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY, thay
     if (!a) return;
     bang.querySelector('.lon img').onclick = () => xemToanMan(a);
     bang.querySelector('.trai').onclick = () => doi(-1); bang.querySelector('.phai').onclick = () => doi(1);
-    bang.querySelector('#aq-chon').onclick = () => { if (chon.has(k)) chon.delete(k); else if (chon.size < TOI_DA) chon.set(k, a); ve(); };
+    bang.querySelector('#aq-chon').onclick = () => { if (chon.has(k)) chon.delete(k); else if (chon.size < TOI_DA) { chon.set(k, a); taiSan(a); } ve(); };
     bang.querySelectorAll('.dai img').forEach((im) => { im.onclick = () => { dang = +im.dataset.i; ve(); }; });
     bang.querySelector('.dai img.dang')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
@@ -100,9 +113,14 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY, thay
   const daChon = () => [...chon.values()].map(({ nguon, id, lat, lng, kc, huong, lon: url, trang, tacGia, giayPhep, luc }) => ({ nguon, id, lat, lng, kc, huong, url, trang, tacGia, giayPhep, luc }));
   return {
     daChon,
+    daChonAnh: () => [...chon.keys()].map((k) => DATA.get(k)).filter(Boolean), // dataURL các ảnh đã chọn đã tải xong
     // thêm vào ngữ cảnh góp ý / báo lệch: điểm đang tìm + ảnh đã chọn (rỗng thì không thêm gì)
     // gọn (chỉ mã ảnh: c:<tên tệp Commons> · m:<id Mapillary>) — scripts/tim-anh.mjs tra ngược ra đường tải + tác giả + giấy phép
-    nguCanh: () => { const a = daChon(); return a.length ? ` ANH-THAT-JSON:${JSON.stringify({ d: diem && { x: +diem.x.toFixed(1), z: +diem.z.toFixed(1), ten: diem.ten }, a: a.map((x) => (x.nguon === 'commons' ? 'c:' : 'm:') + x.id) })}` : ''; },
+    // ≤ 380 ký tự (hòm chuẩn cắt ngữ cảnh trang ở 400): bớt ảnh cuối tới khi vừa — ảnh thật vẫn đính đủ trong thẻ, scripts/tim-anh.mjs --the tải từ ảnh đính kèm khi thiếu mã
+    nguCanh: () => { const a = daChon().map((x) => (x.nguon === 'commons' ? 'c:' : 'm:') + x.id); if (!a.length) return '';
+      const d = diem && { x: +diem.x.toFixed(1), z: +diem.z.toFixed(1), ten: diem.ten };
+      for (let n = a.length; n > 0; n--) { const t = ` ANH-THAT-JSON:${JSON.stringify({ d, a: a.slice(0, n) })}`; if (t.length <= 380) return t; }
+      return ''; },
     anGhim: (an) => { ghim.visible = !an && bang.style.display === 'flex'; },
   };
 }

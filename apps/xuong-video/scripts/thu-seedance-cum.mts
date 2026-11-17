@@ -20,6 +20,9 @@ import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
 import { nhanNhin } from '../src/lib/xuong-video/prompt-khoi';
 import { duongAmLuong, khopTheoTiengClip, doanShot } from '../src/lib/xuong-video/can-giong';
 import { uploadToR2 } from '../src/lib/r2';
+import { soiClipCanh } from '../src/lib/xuong-video/soi-clip';
+/** Số bản H3 sinh cho MỖI cụm (luật chuẩn 17/11/2026, bài phim ngắn H3 trên X: sinh mỗi đoạn 3 lần rồi chọn) — ~850₫ / bản trên máy thuê, vẫn rẻ hơn 1 lượt Seedance ~4 lần. */
+export const H3_SO_BAN = 3;
 import { loiPromptGui, loiClipThamChieu, loiThoaiPrompt, loiShotPrompt, loiAnhCum, loiThoaiCuoiCum, loiVideoThamChieu, loiCoMay, shotCoMay } from '../src/lib/xuong-video/chan-gui-video';
 import { dangChongBau, matNguoiNoi, CO_RONG } from '../src/lib/xuong-video/bo-set-3d';
 
@@ -120,7 +123,7 @@ if (process.argv.includes('--chinh-giong')) {
   process.exit(0);
 }
 /** GẮN KẾT QUẢ một clip cụm đã có (tệp f, url kho): đo cú cắt → điểm vào → khớp thoại → kẹp đoạn → ghi từng shot. Dùng sau khi sinh và cho --tu-job (0đ). */
-async function ganKetQua(f: string, url: string, job: number, urlGiong: string | null, promptGui: string, t0: number): Promise<void> {
+async function ganKetQua(f: string, url: string, job: number, urlGiong: string | null, promptGui: string, t0: number): Promise<number> {
   const dai = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim());
   const cat = clip1 ? [] : catThat(f, dai); const v = clip1 ? { vao: [clip1.vao], theoDo: true, ngan: [] as number[] } : vaoTuCatThat(cum.map((x) => x.canh), cat, dai);
   // LUẬT CHẤM SAU KHI SINH (anh 14/11/2026 — phát sinh nào cũng vào luật): model chia giờ sai (cụm #2–7 lần 2: #3 giữ 2,3 s, #4 còn 0,84 s < 2 s phát) → đoạn
@@ -155,6 +158,7 @@ async function ganKetQua(f: string, url: string, job: number, urlGiong: string |
   }
   if (hong.size) console.log(`✗ KHÔNG GẮN: ${[...hong].map(([so, l]) => `#${so} ${l}`).join(' · ')} — vào lượt sinh sau`);
   console.log(`xong ${Math.round((Date.now() - t0) / 1000)}s · ${url} · dài ${dai.toFixed(2)} s · cú cắt đo ${cat.map((c) => c.toFixed(2)).join(', ') || 'không thấy'} · ${v.theoDo ? 'điểm vào theo cú cắt đo' : 'điểm vào theo lịch (không đo đủ cú cắt)'} · vào ${v.vao.map((x) => x.toFixed(2)).join(', ')}`);
+  return hong.size;   // số shot KHÔNG gắn được — --nap-h3 dùng để chấm bản
 }
 // --tu-job=<id>: GẮN LẠI từ clip job đã sinh (0đ, không gọi model) — luật đo sau sinh đổi (vd cắt thừa ở đuôi, 16/11/2026 job 8369) thì cứu shot đạt mà không sinh lại.
 const tuJob = Number(arg('tu-job')) || 0;
@@ -168,16 +172,44 @@ if (tuJob) {
   await ganKetQua(f, r.output_url, tuJob, r.request.giong ?? null, r.request.prompt ?? prompt, Date.now()); process.exit(0);
 }
 if (xem) { console.log(prompt); console.log(anh.join('\n')); process.exit(0); }
+/** TỆP GIỌNG CỦA CỤM (một nguồn cho Seedance Audio 1 và H3 neo giọng — luật chuẩn H3 17/11/2026): lặng + từng câu đúng mốc trong clip ra, chỉ ghép ÂM.
+ *  File giọng NGẮN (15/11/2026, shot #4 lần 1: giọng 4 s có 1,1 s lặng đầu + 2 s lặng cuối → miệng gần như không nhép): giữ lặng ĐẦU (mốc câu), cắt lặng đuôi —
+ *  dài = hết câu cuối + 0,2 s, tối thiểu 2 s (sàn Kie), tối đa 15 s. */
+async function fileGiongCum(tienTo: string): Promise<string | null> {
+  const daiCau = (u: string) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', u], { encoding: 'utf8' }).trim());
+  const daiGiong = Math.min(15, Math.max(2, ...cauAm.map((c) => c.t + daiCau(c.url) + 0.2)));
+  const f = `/tmp/${tienTo}-giong-${ids.join('-')}.mp3`;
+  execFileSync('ffmpeg', ['-v', 'error', '-y', ...cauAm.flatMap((c) => ['-i', c.url]), '-filter_complex', `${cauAm.map((c, i) => `[${i}:a]aresample=48000,adelay=${Math.round(c.t * 1000)}|${Math.round(c.t * 1000)}[a${i}]`).join(';')};${cauAm.map((_, i) => `[a${i}]`).join('')}amix=inputs=${cauAm.length}:normalize=0,apad=whole_dur=${daiGiong.toFixed(2)},atrim=0:${daiGiong.toFixed(2)}[o]`, '-map', '[o]', '-ac', '2', '-b:a', '192k', f]);
+  return uploadToR2(`xuong-video/am/thoai/${tienTo}-${ids.join('-')}-${randomUUID()}.mp3`, readFileSync(f), 'audio/mpeg');
+}
 // --nap-h3=<job> --tep=<mp4>: GẮN clip H3 của job hàng H3 (0đ — tiền máy đã trả lúc chạy) — cùng khâu gắn với Seedance, phiên bản nhãn H3
 if (napH3) {
   const r = ((await db.execute(sql`SELECT request FROM xv_job WHERE id = ${napH3}`)) as unknown as { request: { thu?: string; cum?: number[]; cents?: number; vao?: { prompt?: string } } }[])[0];
   if (r?.request.thu !== 'h3-cum') { console.error(`job ${napH3} không phải job cụm H3`); process.exit(1); }
   if (JSON.stringify(r.request.cum ?? []) !== JSON.stringify(ids)) { console.error(`job ${napH3} là cụm ${JSON.stringify(r.request.cum)}, không phải ${JSON.stringify(ids)}`); process.exit(1); }
-  if (!tepH3 || !existsSync(tepH3)) { await xongJob(db, napH3, { loi: 'H3 không ra clip (xem nhật ký chay-hang.sh)' }); console.error(`thiếu tệp clip H3 ${tepH3}`); process.exit(1); }
-  const url = await uploadToR2(`xuong-video/clip/h3-cum-${ids.join('-')}-${randomUUID()}.mp4`, readFileSync(tepH3), 'video/mp4');
-  if (!url) { await xongJob(db, napH3, { loi: 'đẩy kho hỏng' }); process.exit(1); }
-  await xongJob(db, napH3, { output_url: url, chi_phi_cents: Number(r.request.cents) || 0 });
-  await ganKetQua(tepH3, url, napH3, null, r.request.vao?.prompt ?? prompt, Date.now()); process.exit(0);
+  // NHIỀU BẢN (luật chuẩn H3 17/11/2026 — so_ban seed / cụm): --tep=a.mp4,b.mp4,… → gắn từng bản, chấm = shot không gắn được × 100 + số lỗi soi clip
+  // (soi-clip.ts: chữ lạ, mặt trôi, biến dạng… ~37₫ / shot) → bản điểm thấp nhất gắn LẠI sau cùng làm clip chính; các bản khác vẫn nằm trong phiên bản để đổi tay.
+  const teps = tepH3.split(',').filter((t) => t && existsSync(t));
+  if (!teps.length) { await xongJob(db, napH3, { loi: 'H3 không ra clip (xem nhật ký chay-hang.sh)' }); console.error(`thiếu tệp clip H3 ${tepH3}`); process.exit(1); }
+  const ban: { tep: string; url: string; diem: number; bao: string }[] = [];
+  for (const [k, tep] of teps.entries()) {
+    const url = await uploadToR2(`xuong-video/clip/h3-cum-${ids.join('-')}-b${k + 1}-${randomUUID()}.mp4`, readFileSync(tep), 'video/mp4');
+    if (!url) { console.error(`bản ${k + 1}: đẩy kho hỏng`); continue; }
+    const hong = await ganKetQua(tep, url, napH3, null, r.request.vao?.prompt ?? prompt, Date.now());
+    let loiSoi = 0; const bao: string[] = [];
+    if (teps.length > 1) for (const x of cum) { const sc = await soiClipCanh(db, x.canh.id).catch(() => null); if (sc && sc.url === url && !sc.bo_qua) { loiSoi += sc.loi.length; if (sc.loi.length) bao.push(`#${x.canh.thu_tu} ${sc.loi.join('; ').slice(0, 120)}`); } }
+    ban.push({ tep, url, diem: hong * 100 + loiSoi, bao: `${hong} shot không gắn · ${loiSoi} lỗi soi${bao.length ? ` (${bao.join(' | ')})` : ''}` });
+    console.log(`bản ${k + 1}/${teps.length}: ${ban.at(-1)!.bao}`);
+  }
+  if (!ban.length) { await xongJob(db, napH3, { loi: 'đẩy kho hỏng mọi bản' }); process.exit(1); }
+  const tot = ban.reduce((a, b) => (b.diem < a.diem ? b : a));
+  if (ban.length > 1 && tot !== ban.at(-1)) {   // gắn lại bản tốt nhất làm clip chính + soi lại cho soi_clip khớp url chính
+    await ganKetQua(tot.tep, tot.url, napH3, null, r.request.vao?.prompt ?? prompt, Date.now());
+    for (const x of cum) await soiClipCanh(db, x.canh.id).catch(() => null);
+  }
+  if (ban.length > 1) console.log(`CHỌN bản ${ban.indexOf(tot) + 1}/${ban.length}: ${tot.bao}`);
+  await xongJob(db, napH3, { output_url: tot.url, chi_phi_cents: Number(r.request.cents) || 0 });
+  process.exit(0);
 }
 // --bo=h3: XẾP HÀNG H3 (0đ) — đầu vào y như lượt Seedance của cụm (ảnh ≤ 9, clip 3D nối, câu lệnh đã qua luật chấm), đổi cách gọi tham chiếu theo H3
 // ("Reference image N" → "<Picture N>", "Reference video 1" → "<Video 1>"; docs/h3-may-thue.md). Khung 864×480 / 480×864 như lô thử phim #3071.
@@ -185,9 +217,13 @@ if (bo === 'h3') {
   const urlVideo = clip1 ? clip1.url : await uploadToR2(`xuong-video/khung-xam/cum-${ids.join('-')}-${randomUUID()}.mp4`, readFileSync(fileVideo), 'video/mp4');
   if (!urlVideo) { console.error('đẩy clip 3D nối lên kho hỏng'); process.exit(1); }
   const ngang = bcs[0]!.kt.ti_le !== '9:16';
-  const vao = { prompt: prompt.replace(/reference image (\d+)/gi, '<Picture $1>').replace(/reference video 1/gi, '<Video 1>'), anh, video: urlVideo, giay: giayRaGiong, rong: ngang ? 864 : 480, cao: ngang ? 480 : 864, seed: 261662374822964, buoc: 4, turbo: true };
-  // tiền ước: lô thử 16 cụm ≈ 13.500₫ máy (gồm cài) → ~3¢ / cụm
-  const job = await taoJob(db, { canh_id: ids[0], nhan: `H3 cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${giayRaGiong}s — chờ máy thuê (chay-hang.sh)`, loai: 'video', provider: 'h3', model: 'h3:ref2va-int8-turbo', request: { thu: 'h3-cum', cum: ids, vao, cents: 3 }, cents: 3 });
+  // LUẬT CHUẨN H3 (docs/h3-may-thue.md): H3_SO_BAN bản / cụm (máy chọn bản ít lỗi khi gắn) + neo giọng studio của cụm (khớp khẩu hình, giọng đồng nhất giữa cụm)
+  const giong = cauAm.length ? await fileGiongCum('h3') : null;
+  if (cauAm.length && !giong) { console.error('đẩy file giọng H3 hỏng'); process.exit(1); }
+  const vao = { prompt: prompt.replace(/reference image (\d+)/gi, '<Picture $1>').replace(/reference video 1/gi, '<Video 1>'), anh, video: urlVideo, giay: giayRaGiong, rong: ngang ? 864 : 480, cao: ngang ? 480 : 864, seed: 261662374822964, buoc: 4, turbo: true,
+    so_ban: H3_SO_BAN, ...(giong ? { giong } : {}) };
+  // tiền ước: lô thử 16 cụm ≈ 13.500₫ máy (gồm cài) → ~3¢ / bản / cụm
+  const job = await taoJob(db, { canh_id: ids[0], nhan: `H3 cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${giayRaGiong}s — chờ máy thuê (chay-hang.sh)`, loai: 'video', provider: 'h3', model: 'h3:ref2va-int8-turbo', request: { thu: 'h3-cum', cum: ids, vao, cents: 3 * H3_SO_BAN }, cents: 3 * H3_SO_BAN });
   await db.execute(sql`UPDATE xv_job SET trang_thai = 'hang_h3', updated_at = now() WHERE id = ${job}`);
   console.log(`H3_JOB ${job}`); process.exit(0);
 }
@@ -198,13 +234,7 @@ const cents = (dpg === '720p' ? 7.5 : 3.4) * (giaVao + giayRaGiong);   // kie.ai
 const urlVideo = clip1 ? clip1.url : await uploadToR2(`xuong-video/khung-xam/cum-${ids.join('-')}-${randomUUID()}.mp4`, readFileSync(fileVideo), 'video/mp4');
 // file giọng Audio 1 (chỉ ghép ÂM trên box — không mã hoá video): lặng + từng câu đúng mốc, dài bằng clip ra (Kie: 2–15 s)
 let urlGiong: string | null = null;
-// file giọng NGẮN (15/11/2026, shot #4 lần 1: giọng 4 s có 1,1 s lặng đầu + 2 s lặng cuối → miệng gần như không nhép): giữ lặng ĐẦU (mốc câu), cắt lặng đuôi —
-// dài = hết câu cuối + 0,2 s, tối thiểu 2 s (sàn Kie). Độ dài từng câu đọc bằng ffprobe.
-const daiCau = (u: string) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', u], { encoding: 'utf8' }).trim());
-const daiGiong = guiGiong ? Math.min(15, Math.max(2, ...cauAm.map((c) => c.t + daiCau(c.url) + 0.2))) : 0;
-if (guiGiong) { const f = `/tmp/seedance-giong-${ids.join('-')}.mp3`;
-  execFileSync('ffmpeg', ['-v', 'error', '-y', ...cauAm.flatMap((c) => ['-i', c.url]), '-filter_complex', `${cauAm.map((c, i) => `[${i}:a]aresample=48000,adelay=${Math.round(c.t * 1000)}|${Math.round(c.t * 1000)}[a${i}]`).join(';')};${cauAm.map((_, i) => `[a${i}]`).join('')}amix=inputs=${cauAm.length}:normalize=0,apad=whole_dur=${daiGiong.toFixed(2)},atrim=0:${daiGiong.toFixed(2)}[o]`, '-map', '[o]', '-ac', '2', '-b:a', '192k', f]);
-  urlGiong = await uploadToR2(`xuong-video/am/thoai/seedance-${ids.join('-')}-${randomUUID()}.mp3`, readFileSync(f), 'audio/mpeg'); if (!urlGiong) { console.error('đẩy file giọng hỏng'); process.exit(1); } }
+if (guiGiong) { urlGiong = await fileGiongCum('seedance'); if (!urlGiong) { console.error('đẩy file giọng hỏng'); process.exit(1); } }
 if (!urlVideo) { console.error('đẩy clip 3D nối lên kho hỏng'); process.exit(1); }
 const job = await taoJob(db, { canh_id: ids[0], loai: 'video', provider: 'kie', model: `kie:${model}`, request: { thu: 'seedance-cum', cum: ids, prompt, anh, video: urlVideo, giong: urlGiong, dpg }, cents });
 // QUA CỔNG AI CHUNG (16/11/2026): Kie Seedance gửi / đọc qua cổng spy (cong-ai-video.ts › guiSeedance / choVideo), không gọi thẳng Kie

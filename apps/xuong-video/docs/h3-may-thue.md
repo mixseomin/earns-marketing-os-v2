@@ -41,6 +41,20 @@ bash apps/xuong-video/scripts/h3/may-h3.sh <thư-mục-ra> <vao-1.json> [vao-2.j
 - Ô **🎬 Nguồn** cạnh đó hiện nguồn clip đang dùng của cả phim (đếm shot theo nhãn phiên bản) và đổi cho mọi tập tại chỗ (`chonNguonPhim`, 0đ).
 - Chưa có tiến trình nền tự chạy hàng — muốn tự động phải anh duyệt riêng (luật tiến trình ngầm).
 
+## Luật chuẩn H3 (anh chốt 17/11/2026 — mọi phim kế thừa, học từ bài phim ngắn H3 trên X)
+
+Gắn trong máy, phim mới không phải bật gì:
+
+1. **3 bản mỗi cụm, máy tự chọn** — `thu-seedance-cum.mts` › `H3_SO_BAN = 3` ghi `so_ban` vào job; `chay-h3.py` sinh seed, seed+1, seed+2 trên cùng máy (mô hình
+   nạp một lần); `lam-lo.sh` trả `<job>.b1..b3.mp4`; `chay-hang.sh` đưa cả 3 vào `--nap-h3 --tep=a,b,c` → gắn từng bản, chấm = shot không gắn được × 100 + số lỗi
+   soi clip (`soi-clip.ts`, ~37₫/shot) → bản điểm thấp nhất làm clip chính, hai bản kia nằm trong phiên bản để đổi tay. Tiền: ~850₫/bản → ~2.550₫/cụm + soi.
+2. **Neo giọng studio** — cụm có thoại: tệp giọng của cụm (cùng hàm `fileGiongCum` với Seedance Audio 1: lặng + từng câu đúng mốc) đi vào `vao.giong`;
+   `chay-h3.py` nạp `LoadAudio` → `MiniMaxH3AddGuide` (frame 0) → H3 khớp khẩu hình theo giọng studio, giọng nhân vật đồng nhất giữa các cụm.
+3. **Kiểm 0đ trước khi thuê** — `thu-0d.sh` kiểm thêm đồ thị neo giọng và "so_ban=2 ra 2 tệp khác nhau" (chạy trên GitHub Actions khi build image).
+
+Chưa gắn máy (làm khi có ca dùng): đoạn phản ứng không thoại 3–5 s phủ thoại dài (hiện do cổng tiền kỳ "vai kể" nhắc chen phản ứng); nâng nét riêng bản được chọn;
+ghi kích thước thật đạo cụ trong câu lệnh; cảnh hội thoại 3 ảnh bối cảnh (góc A, góc ngược B, toàn cảnh).
+
 ## Bài học (mỗi dòng là một lần đã mất tiền máy)
 
 1. Image tự khai yêu cầu CUDA 13 → RunPod chỉ xếp máy driver mới → "hết chỗ" mọi loại máy. Dùng image không khai, kiểm driver sau khi lên.

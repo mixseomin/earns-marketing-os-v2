@@ -13,8 +13,10 @@ T0=$(date +%s); dau=1
 for v in $(cat /root/h3/thu-tu.txt); do
   con=$(( TRAN * 60 - ($(date +%s) - T0) )); [ $con -gt 120 ] || { echo "{\"vao\":\"$v\",\"ok\":false,\"kq\":\"hết trần\"}" >> ra/so.jsonl; break; }
   KQ=$(timeout $con python3 /root/h3/chay-h3.py /root/h3/vao/$v.json 2>&1 | tail -5)
-  MP4=$(echo "$KQ" | tail -1 | python3 -c 'import json,sys; print(json.load(sys.stdin).get("mp4",""))' 2>/dev/null)
-  if [ -n "$MP4" ] && [ -f "$MP4" ]; then cp "$MP4" "ra/$v.mp4"; ok=true; else ok=false; fi
+  # mỗi bản (so_ban, luật chuẩn H3) → ra/<tên>.b<k>.mp4; bản đầu cũng là ra/<tên>.mp4 (đường cũ đọc tên này)
+  MP4S=$(echo "$KQ" | tail -1 | python3 -c 'import json,sys; d=json.load(sys.stdin); print(" ".join(d.get("mp4s") or ([d["mp4"]] if d.get("mp4") else [])))' 2>/dev/null)
+  ok=false; k=0
+  for f in $MP4S; do [ -f "$f" ] || continue; k=$((k + 1)); cp "$f" "ra/$v.b$k.mp4"; [ $k = 1 ] && cp "$f" "ra/$v.mp4"; ok=true; done
   echo "{\"vao\":\"$v\",\"ok\":$ok,\"kq\":$(echo "$KQ" | tail -1 | python3 -c 'import json,sys; t=sys.stdin.read().strip(); print(t if t.startswith("{") else json.dumps(t[-600:]))')}" >> ra/so.jsonl
   [ "$ok" = false ] && [ $dau = 1 ] && { echo "cụm ĐẦU hỏng — dừng lô" >> ra/so.jsonl; break; }
   dau=0

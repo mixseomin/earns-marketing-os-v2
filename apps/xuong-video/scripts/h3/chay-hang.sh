@@ -52,9 +52,10 @@ if [ -s "$TM/h3.txt" ]; then
   echo "── H3: $N cụm · $MAY máy thuê song song"
   bash "$DIR/song-song.sh" "$MAY" "$TM/ra" "$TM"/vao/job-*.json
   while read -r JOB IDS; do
-    F="$TM/ra/job-$JOB.mp4"
-    if [ -f "$F" ]; then scp -q "$F" "$BOX:/tmp/h3-$JOB.mp4"; fi
-    ssh -n "$BOX" "cd $RBOX && $TSX scripts/thu-seedance-cum.mts --canh=$IDS --nap-h3=$JOB --tep=/tmp/h3-$JOB.mp4 | tail -3; rm -f /tmp/h3-$JOB.mp4"
+    # mọi bản của cụm (luật chuẩn H3: so_ban seed / cụm) → box3; --nap-h3 soi từng bản rồi giữ bản ít lỗi nhất làm clip chính (các bản khác vào phiên bản)
+    TEP=""; for F in "$TM"/ra/job-$JOB.b*.mp4; do [ -f "$F" ] || continue; B=$(basename "$F"); scp -q "$F" "$BOX:/tmp/h3-$B" && TEP="$TEP${TEP:+,}/tmp/h3-$B"; done
+    if [ -z "$TEP" ] && [ -f "$TM/ra/job-$JOB.mp4" ]; then scp -q "$TM/ra/job-$JOB.mp4" "$BOX:/tmp/h3-job-$JOB.mp4" && TEP=/tmp/h3-job-$JOB.mp4; fi
+    ssh -n "$BOX" "cd $RBOX && $TSX scripts/thu-seedance-cum.mts --canh=$IDS --nap-h3=$JOB --tep=${TEP:-/tmp/h3-job-$JOB.mp4} | tail -6; rm -f /tmp/h3-job-$JOB*.mp4"
   done < "$TM/h3.txt"
 fi
 # ── đóng hàng từng tập

@@ -1,0 +1,101 @@
+{
+ "ghi_chu": "BỐ CỤC MẶT TORBAU HƯỚNG SÂN DƯỚI (góp ý #1641, 17/11/2026) — số đo ĐIỂM ẢNH THÔ trên ảnh gốc 3840 × 2880, đọc bằng lưới: python3 apps/castle/scripts/kiem-mat-tien.py <tệp này> --luoi x0,y0,x1,y1 ra.png. mattien.js banDoMat đổi ra (s dọc tường, y tuyệt đối) có tính PHỐI CẢNH (ảnh chụp chéo từ phía nam, chỗ cao ngang mái hiên cánh nam: cánh nam ~143–163 px/m, khối cổng ~92–102 px/m), datMatRieng dựng hoàn toàn từ tệp — không số đo viết tay trong mã. Sửa mặt tiền = sửa tệp này. Kiểm số ô / vị trí ô với ảnh: python3 apps/castle/scripts/kiem-mat-tien.py apps/castle/public/du-lieu/neuschwanstein-mat-torbau-san.json · soát cả tệp bằng mắt: … --ve-tep ra.png",
+ "anh": {
+  "tep": "public/du-lieu/anh/neuschwanstein-9.jpg",
+  "rong": 3840,
+  "cao": 2880,
+  "nguon": "https://commons.wikimedia.org/wiki/File:Il_castello_di_Neuschwanstein_-_panoramio_(3).jpg",
+  "tacGia": "Itto Ogami",
+  "giayPhep": "CC BY 3.0"
+ },
+ "anhPhu": {
+  "tep": "public/du-lieu/anh/neuschwanstein-8.jpg",
+  "nguon": "https://commons.wikimedia.org/wiki/File:Schloss_Neuschwanstein_-_panoramio_-_Ainars_Br%C5%ABvelis_(2).jpg",
+  "tacGia": "Ainars Brūvelis",
+  "giayPhep": "CC BY-SA 3.0",
+  "ghi_chu": "chỉ dùng soát nửa phải (cánh nam): mỗi ô tầng trên MỘT cặp cửa vòm có cột giữa, ô tròn trên cặp, diềm vòm nhỏ dưới mái hiên và dưới bậu; tầng trệt đá vôi trắng: cửa vòm có viền đá dày, cửa vào có lunette chạm nổi. Ảnh chụp ngước từ dưới, phối cảnh mạnh — không đo số trên ảnh này"
+ },
+ "mat": {
+  "ghi_chu": "MỐC QUY ĐỔI. Trục mặt = cạnh khung (s = 0 ở đầu cạnh, tăng dọc cạnh — trên ảnh tăng sang TRÁI; mọi phần tử đặt lên mặt tường ngoài cùng tại s đó, khối cổng nhô ~1 m). NGANG: [x ảnh, khối, chỉ số đỉnh OSM] hoặc [x ảnh, \"cong\"] (tâm vòm cổng mô hình trên mặt này) → khớp ánh xạ phối cảnh s = (a·x + b) / (c·x + 1) (bình phương nhỏ nhất) + nắn phần dư từng khúc cho đúng hẳn mọi mốc. ĐỨNG: hai đường ngang trên ảnh — gờ đá chia tầng (đá vôi trắng dưới / sa thạch vàng trên) ↔ độ cao gờ đổi màu của khung (v = vGo, trùng mau.v của cua-so.json) và mái hiên cánh nam ↔ đỉnh tường khung; nội suy từng khúc theo x, ngoài khúc giữ giá trị đầu mút (mái hiên ngang tầm máy ảnh nên nằm ngang)",
+  "khung": "way/223110825#6",
+  "vGo": 0.54,
+  "ly_do_vGo": "gờ đổi màu đã chốt cho cả mặt tiền Torbau (cua-so.json mau.v .54 của way/223110825#6, way/223110820#6, #7…) — dùng cùng số để chi tiết bám đúng ranh hai màu đá",
+  "ngang": [
+   [3745, "way/223110825", 6, "đầu nam cánh nam (mép tường trước tháp tròn, ngang gờ chia tầng)"],
+   [2228, "way/223110825", 7, "chỗ cánh nam giáp khối cổng nhô ra (ống máng)"],
+   [752, "way/223110820", 9, "góc bắc khối cổng (giáp cánh bắc thấp, mái tôn) — lưới 450–1000 / 700–1600"],
+   [1350, "cong", null, "tâm vòm cổng: lòng vòm 1150–1550 px ở chân vòm"]
+  ],
+  "go": [[1000, 1910], [1700, 1938], [2200, 1946], [2250, 1982], [2950, 1990], [3000, 2000], [3700, 2025]],
+  "ly_do_go": "tâm dải gờ đá chia tầng: khối cổng 1895–1925 (x 1000), 1920–1955 (x 1700); cánh nam 1965–2000 (x 2250), 1975–2025 (x 3000), 2000–2050 (x 3700); khối cổng nhô ~1 m nên gờ nhảy ~30 px ở ống máng",
+  "maiHien": [[2250, 1275], [3700, 1268]],
+  "ly_do_maiHien": "đỉnh gờ mái hiên cánh nam ngay dưới máng xối (lưới 2200–3000 / 1150–1950 và 2980–3780): gần như nằm ngang = tầm máy ảnh"
+ },
+ "cum": [
+  { "ten": "cặp cửa tầng trên cánh nam — ô trái", "o": [[2332, 2434], [2492, 2600]], "dinhO": 1567, "bau": 1822 },
+  { "ten": "cặp cửa tầng trên cánh nam — ô giữa", "o": [[2755, 2872], [2935, 3067]], "dinhO": 1565, "bau": 1832 },
+  { "ten": "cặp cửa tầng trên cánh nam — ô phải", "o": [[3227, 3375], [3435, 3592]], "dinhO": 1563, "bau": 1845 },
+  { "ten": "cửa tầng trệt cánh nam trái", "o": [[2400, 2512]], "dinhO": 2252, "bau": 2507, "vom": [2340, 2550, 2207] },
+  { "ten": "cửa tầng trệt cánh nam phải", "o": [[2850, 2977]], "dinhO": 2295, "bau": 2567, "vom": [2792, 3008, 2250] },
+  { "ten": "ba vòm trên cổng", "o": [[1200, 1295], [1345, 1430], [1480, 1552]], "dinhO": 1550, "bau": 1795, "mui": [1130, 1595, 1492] },
+  { "ten": "cửa đơn phải cổng tầng trên", "o": [[1925, 2000]], "dinhO": 968, "bau": 1162, "vom": [1900, 2025, 950] },
+  { "ten": "cửa đơn phải cổng tầng giữa", "o": [[1900, 1995]], "dinhO": 1567, "bau": 1815, "vom": [1870, 2025, 1525] },
+  { "ten": "cửa đơn phải cổng tầng trệt", "o": [[1890, 1987]], "dinhO": 2217, "bau": 2472, "vom": [1825, 2025, 2180] },
+  { "ten": "cửa đơn trái cổng tầng trên", "o": [[922, 975]], "dinhO": 1064, "bau": 1225, "vom": [900, 997, 1045] },
+  { "ten": "cửa đơn trái cổng tầng giữa", "o": [[889, 946]], "dinhO": 1581, "bau": 1784, "vom": [855, 960, 1559] },
+  { "ten": "cửa đơn trái cổng tầng trệt", "o": [[847, 915]], "dinhO": 2144, "bau": 2346, "vom": [802, 937, 2095] }
+ ],
+ "oTron": [
+  { "ten": "ô tròn trên cặp trái", "x": 2454, "y": 1487, "r": 36 },
+  { "ten": "ô tròn trên cặp giữa", "x": 2896, "y": 1481, "r": 38 },
+  { "ten": "ô tròn trên cặp phải", "x": 3400, "y": 1474, "r": 42 }
+ ],
+ "dieMVom": [
+  { "ten": "diềm vòm dưới mái hiên — ô trái", "tu": 2278, "den": 2628, "y0": 1355, "y1": 1412, "n": 7 },
+  { "ten": "diềm vòm dưới mái hiên — ô giữa", "tu": 2700, "den": 3100, "y0": 1352, "y1": 1402, "n": 7 },
+  { "ten": "diềm vòm dưới mái hiên — ô phải", "tu": 3180, "den": 3630, "y0": 1335, "y1": 1390, "n": 7 },
+  { "ten": "diềm vòm dưới bậu — ô trái", "tu": 2310, "den": 2600, "y0": 1857, "y1": 1880, "n": 10 },
+  { "ten": "diềm vòm dưới bậu — ô giữa", "tu": 2745, "den": 3075, "y0": 1872, "y1": 1895, "n": 10 },
+  { "ten": "diềm vòm dưới bậu — ô phải", "tu": 3232, "den": 3607, "y0": 1895, "y1": 1922, "n": 10 }
+ ],
+ "khungTam": [
+  { "ten": "khung ô trái tầng trên cánh nam", "tu": 2278, "den": 2630, "tren": 1352, "duoi": 1840 },
+  { "ten": "khung ô giữa", "tu": 2700, "den": 3100, "tren": 1352, "duoi": 1842 },
+  { "ten": "khung ô phải", "tu": 3180, "den": 3630, "tren": 1335, "duoi": 1852 }
+ ],
+ "be": [
+  { "ten": "bệ đá nhô dưới ba vòm trên cổng", "tu": 1115, "den": 1590, "tren": 1800, "duoi": 1920, "nho": 0.3, "ly_do_nho": "mặt bên bệ thấy ~25 px trên ảnh (khối cổng ~100 px/m, nhìn chéo) → nhô ~0,3 m" }
+ ],
+ "cuaDi": [
+  { "ten": "cửa vào đầu nam cánh nam (lunette chạm nổi)", "o": [3325, 3552], "dinhO": 2477, "vom": [3325, 3555, 2297], "vien": [3260, 3617, 2255], "ly_do": "chân cửa bị người đứng che, ra ngoài khung ảnh → cánh cửa kéo xuống mặt đất mô hình trước tường" }
+ ],
+ "loGia": {
+  "ten": "lô-gia (ban công lồi) ba vòm trên cổng",
+  "o": [[1130, 1235], [1250, 1372], [1395, 1515]],
+  "dinhO": 895,
+  "bau": 1167,
+  "hop": [1080, 1605],
+  "maiTren": 695,
+  "maiDuoi": 822,
+  "maiRong": [1055, 1672],
+  "lanCan": [1175, 1295],
+  "day": 1320,
+  "conXon": [1310, 1445],
+  "nConXon": 4,
+  "matBen": [1549, 1604],
+  "ly_do_matBen": "mặt bên phải lô-gia (vòm bên + sàn + con-xon) thấy từ mép cột góc 1549 tới chân tường 1604 px (lưới 1450–1750 / 780–1460 ×4). Độ nhô KHÔNG ghi tay: mattien.js tính = bề ngang mặt bên / (px/m đứng × sin góc nhìn), góc nhìn suy từ tỉ lệ px/m ngang ÷ đứng của ánh xạ tại cột lô-gia (~0,5 m)"
+ },
+ "dongHo": { "ten": "đồng hồ đầu hồi", "x": 1408, "y": 625, "r": 70 },
+ "tatTrangTri": {
+  "way/223110825#6": ["vom_nho"],
+  "way/223110825#7": ["vom_nho"],
+  "ly_do": "cánh nam trên ảnh KHÔNG có dải vòm nhỏ chạy liền dưới mái hiên (thẻ vom_nho của cả khối, dựng theo mặt đông Mapillary) — chỉ có diềm vòm trong từng ô (dieMVom ở trên); để cả hai thì hai lớp vòm chồng nhau. Mặt đông giữ nguyên"
+ },
+ "cong": {
+  "dinh": 2002,
+  "chan": 2640,
+  "x": 1350,
+  "cao": 4.64,
+  "ly_do": "vòm cổng phía sân: đỉnh lòng vòm 2002 px, chân trụ / mặt sân 2640 px trên cột x 1350 (lưới 1000–1800 / 1450–2250 và ảnh toàn mặt); tỉ lệ đứng tại cột đó = (gờ 1924 − mái hiên 1275) px ↔ (mái hiên − gờ) của khung 4,72 m (xem-mat-rieng.mjs) → cao 638 / 649 × 4,72 = 4,64 m. Số chung 6,2 m (ảnh 360° cổng NGOÀI phía đông) làm đỉnh vòm + khung đá chạm bệ ba vòm phía trên. Khung đổi (mái hiên / gờ cánh nam) thì tính lại số này"
+ }
+}

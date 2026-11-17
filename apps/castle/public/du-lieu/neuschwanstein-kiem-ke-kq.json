@@ -1,5 +1,5 @@
 {
- "luc": "2026-11-16T18:31:34.193Z",
+ "luc": "2026-11-17T06:07:59.887Z",
  "mat": {
   "way/223110823#3": {
    "ten": "Torbau — khối cổng kem (mặt đông)",
@@ -58,6 +58,13 @@
    "loai_sai": []
   },
   "way/223110820#6": {
+   "ten": "Torbau — mặt tây khối giữa (vòm cổng, ban công, đồng hồ)",
+   "anh": "Commons neuschwanstein-9.jpg (lưới, 55,8 px/m)",
+   "khop": 6,
+   "loi": [],
+   "loai_sai": []
+  },
+  "way/223110820#5": {
    "ten": "Torbau — mặt tây khối giữa (vòm cổng, ban công, đồng hồ)",
    "anh": "Commons neuschwanstein-9.jpg (lưới, 55,8 px/m)",
    "khop": 6,

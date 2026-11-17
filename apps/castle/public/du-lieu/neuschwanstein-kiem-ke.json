@@ -109,6 +109,7 @@
     "way/223110825#6"
    ],
    "anh": "Commons neuschwanstein-9.jpg (gần chính diện, lưới 55,8 px/m)",
+   "ly_do_vi_tri": "góp ý #1641 (17/11/2026): vị trí đo LẠI có tính phối cảnh (du-lieu/neuschwanstein-mat-torbau-san.json, mattien.js banDoMat; ảnh chụp chéo từ phía nam: đầu nam ~163 px/m, chỗ giáp khối cổng ~123 px/m) — bản cũ chia tuyến tính trên ảnh nên dồn cửa về phía nam tới 6 % khung. In lại: node apps/castle/scripts/xem-mat-rieng.mjs",
    "khung": {
     "mat": "way/223110825#6",
     "ti_le_cao_rong": 0.946,
@@ -123,42 +124,42 @@
      "vi_tri": {
       "cua_so": [
        [
-        0.104,
-        0.704
+        0.122,
+        0.728
        ],
        [
-        0.214,
-        0.704
+        0.245,
+        0.728
        ],
        [
-        0.389,
-        0.704
+        0.435,
+        0.727
        ],
        [
-        0.503,
-        0.704
+        0.56,
+        0.727
        ],
        [
-        0.698,
-        0.704
+        0.747,
+        0.732
        ],
        [
-        0.849,
-        0.704
+        0.872,
+        0.732
        ]
       ],
       "o_tron": [
        [
-        0.157,
+        0.176,
         0.862
        ],
        [
-        0.439,
-        0.862
+        0.49,
+        0.866
        ],
        [
-        0.774,
-        0.862
+        0.806,
+        0.874
        ]
       ]
      },
@@ -178,16 +179,16 @@
      "vi_tri": {
       "cua_so": [
        [
-        0.151,
-        0.246
+        0.178,
+        0.284
        ],
        [
-        0.452,
-        0.246
+        0.502,
+        0.257
        ],
        [
-        0.799,
-        0.115
+        0.829,
+        0.118
        ]
       ]
      },
@@ -208,11 +209,13 @@
    "nhom": [
     "way/223110820#7",
     "way/223110820#6",
+    "way/223110820#5",
     "way/223110823#8",
     "way/223110825#7",
     "way/951894999#4",
     "way/951894999#5"
    ],
+   "ly_do_nhom": "góp ý #1641: cột cửa đơn bên phải vòm cổng (3 tầng) đo lại có tính phối cảnh rơi vào s 13,2–13,5 m — mặt ngoài cùng ở đó là way/223110820#5 (khối cổng, cùng mặt phẳng với cánh nam sau khi cánh dời 2,5 m), không phải #6",
    "anh": "Commons neuschwanstein-9.jpg (lưới, 55,8 px/m)",
    "khung": {
     "mat": "way/223110820#7"

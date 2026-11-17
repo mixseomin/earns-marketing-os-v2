@@ -50,7 +50,8 @@ export function datTrangTri({ THREE, mergeGeometries, dsKhoi, vl, ngoai, coSoDo 
       if (coThe('rang_cua')) { // tường thấp + răng: răng 0,9 m, khe 0,6 m, cao 0,9 m trên tường 0,5 m
         if (soDo?.(c.mat)?.rang_cua !== 0) hop(p[0] + ux * L / 2 + nx * 0.05, y1 + 0.25, p[1] + uz * L / 2 + nz * 0.05, ux, uz, L + 0.4, 0.5, 0.5); // rang_cua = 0: mặt này không răng cưa (mái lộ, ảnh)
         const sn = soDo?.(c.mat)?.rang_cua, n = sn != null ? +sn : Math.max(1, Math.round((L + 0.6) / 1.5)), b = L / Math.max(1, n); if (n > 0) for (let i = 0; i < n; i++) { const s = (i + 0.5) * b; hop(p[0] + ux * s + nx * 0.05, y1 + 0.95, p[1] + uz * s + nz * 0.05, ux, uz, Math.min(0.9, b * 0.6), 0.9, 0.5); ghi(c.mat, 'rang_cua', y1 + 0.95, 1, p[0] + ux * s, p[1] + uz * s); } dem.rang++; }
-      if (coThe('vom_nho')) { // dải đá + cung nhỏ trên con sơn, nhô 0,18 m, ngay dưới đỉnh tường
+      // vom_nho = 0 trên mặt (cua-so.json, hoặc mặt dựng riêng theo ảnh tắt đi): mặt này không có dải vòm chạy liền dưới đỉnh tường
+      if (coThe('vom_nho') && soDo?.(c.mat)?.vom_nho !== 0) { // dải đá + cung nhỏ trên con sơn, nhô 0,18 m, ngay dưới đỉnh tường
         hop(p[0] + ux * L / 2 + nx * 0.1, y1 - 0.12, p[1] + uz * L / 2 + nz * 0.1, ux, uz, L, 0.24, 0.2);
         const n = +soDo?.(c.mat)?.vom_nho || Math.max(1, Math.round(L / 0.85)), b = L / n;
         for (let i = 0; i < n; i++) { const s = (i + 0.5) * b, x = p[0] + ux * s + nx * 0.09, z = p[1] + uz * s + nz * 0.09, g = new THREE.TorusGeometry(b / 2 - 0.08, 0.06, 3, 6, Math.PI); g.translate(0, y1 - 0.62, 0); g.rotateY(-Math.atan2(uz, ux)); g.translate(x, 0, z); them(g);

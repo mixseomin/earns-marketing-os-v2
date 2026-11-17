@@ -2,19 +2,20 @@
 //   rang_cua=yes     tường răng cưa trên đỉnh tường các mặt NGOÀI (mặt không áp vào khối khác)
 //   vom_nho=yes      dải vòm nhỏ (cung đá trên các con sơn) ngay dưới tường răng cưa
 //   da_goc=yes       đá góc so le dài / ngắn ở các góc lồi của khối (tường gạch đỏ viền đá kem)
-//   thap_canh=yes    hai tháp canh treo (thap_canh_r = bán kính, mặc định 0,75 m) (thân tròn trên chân côn, đỉnh răng cưa) ở hai đầu mặt ngoài dài nhất
+//   thap_canh=yes    tháp canh treo (thân tròn trên chân côn, đỉnh răng cưa) — CHỈ dựng ở vị trí đo trên ảnh: cua-so.json "khối#cạnh".thap_canh = [[s, y mũi, y đỉnh, r], …]
 //   vong_rang=yes    đỉnh tháp tròn: vành con sơn nhô ra + vòng răng cưa (thay mái nhọn — tháp góc Torbau)
 //   cua_thap=N       tháp tròn: N ô cửa đứng nhỏ mỗi phía (4 phía, so le độ cao)
 //   go_y=a,b         gờ đá ngang ở các độ cao tuyệt đối a, b… trên mọi mặt ngoài
 //   neo_y=y          neo sắt hoa huệ ở độ cao y (chỉ mặt có số đo cửa, giữa hai hàng)
 // + số răng cưa / số cung vòm nhỏ đếm trên ảnh: cua-so.json "khối#cạnh".rang_cua / .vom_nho (không có thì chia theo chiều dài)
 // + ô cửa vuông nhỏ theo số đo: <lâu>-cua-so.json "khối#cạnh".o_vuong = [[s, y0, rộng, cao], …] (lòng tối + khung đá)
-// Mỗi chi tiết ghi vào sổ kk { mat: "khối#cạnh" | "khối#*", loai, y } — ns.js gộp theo VÙNG mặt tường để scripts/kiem-ke.mjs so với ảnh.
+// Mỗi chi tiết ghi vào sổ kk { mat: "khối#cạnh" | "khối#*", loai, y, hop? } — ns.js gộp theo VÙNG mặt tường để scripts/kiem-ke.mjs so với ảnh;
+// hop = khối bao thật { cx, cz, r, y0, y1 } của chi tiết khối 3D nhô ra trước tường → kiểm kê báo CHI TIẾT ĐÈ CỬA khi nó che khung một ô cửa (anh 17/11/2026: tháp canh treo đè cửa vẫn "khớp").
 // Mẫu: ảnh Mapillary 360° cổng Torbau (990990575063069, 493003245182754 — 2019). Toạ độ: đa giác ngược chiều kim nhìn từ trên → pháp tuyến ngoài (uz, −ux).
 // tra-repo-ok: hình khối thủ tục nhỏ của cảnh (hộp / trụ / côn ghép), không có thư viện tương ứng.
 
 export function datTrangTri({ THREE, mergeGeometries, dsKhoi, vl, ngoai, coSoDo = null, oVuong = null, soDo = null }) { // soDo("khối#cạnh") → mục cua-so.json (rang_cua / vom_nho: số đếm trên ảnh) // coSoDo("khối#cạnh") → hàng cửa đo được (neo sắt chỉ đặt giữa hai hàng đo)
-  const gs = [], sat = [], toi = [], toiTron = [], kk = [], ghi = (mat, loai, y, n = 1, x = null, z = null) => { for (let i = 0; i < n; i++) kk.push({ mat, loai, y, x, z }); }, dem = { rang: 0, vom: 0, goc: 0, canh: 0, vong: 0 };
+  const gs = [], sat = [], toi = [], toiTron = [], kk = [], ghi = (mat, loai, y, n = 1, x = null, z = null, hop = null) => { for (let i = 0; i < n; i++) kk.push({ mat, loai, y, x, z, hop }); }, dem = { rang: 0, vom: 0, goc: 0, canh: 0, vong: 0 };
   const uvTG = (g) => { const p = g.attributes.position, n = g.attributes.normal, uv = new Float32Array(p.count * 2); // vân đá theo toạ độ thật
     for (let i = 0; i < p.count; i++) { const ngang = Math.abs(n.getX(i)) > Math.abs(n.getZ(i)) ? p.getZ(i) : p.getX(i), dung = Math.abs(n.getY(i)) > 0.7; uv[i * 2] = (dung ? p.getX(i) : ngang) / 2; uv[i * 2 + 1] = (dung ? p.getZ(i) : p.getY(i)) / 2; }
     g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); return g; };
@@ -91,12 +92,20 @@ export function datTrangTri({ THREE, mergeGeometries, dsKhoi, vl, ngoai, coSoDo 
       hop(x + c.nx * 0.08, y0 + h + 0.09, z + c.nz * 0.08, c.ux, c.uz, w + 0.36, 0.18, 0.16); hop(x + c.nx * 0.1, y0 - 0.09, z + c.nz * 0.1, c.ux, c.uz, w + 0.44, 0.18, 0.22);
       for (const sg of [-1, 1]) hop(x + c.ux * sg * (w / 2 + 0.09) + c.nx * 0.08, yc, z + c.uz * sg * (w / 2 + 0.09) + c.nz * 0.08, c.ux, c.uz, 0.18, h, 0.16);
       ghi(c.mat, 'o_vuong', yc, 1, x, z); } });
-    if (coThe('thap_canh')) { const c = canh.filter((c) => c.ngoai).sort((a, b) => b.L - a.L)[0]; if (c) for (const [x, z] of [c.p, c.q]) { // tháp canh treo ở hai đầu mặt chính
-      const r = +k.tags.thap_canh_r || 0.75, ra = x === c.p[0] && z === c.p[1] ? -1 : 1, cx = x + c.nx * 0.75 + c.ux * ra * 0.45, cz = z + c.nz * 0.75 + c.uz * ra * 0.45, yc = y1 - 2.4; // tâm nhô ra ngoài góc (trước lún nửa thân vào tường)
-      tru(cx, yc - 1.5, cz, 0.15, r, 1.5, 10); tru(cx, yc, cz, r, r, 2.4, 12); tru(cx, yc + 2.4, cz, r, r + 0.12, 0.2, 12); vongRang(cx, yc + 2.6, cz, r + 0.12, 1.0); dem.canh++;
-      tru(cx, yc - 0.25, cz, r + 0.08, r + 0.08, 0.25, 12); // vành gờ giữa chân côn và thân (ảnh: gờ tròn)
-      for (let g = 0; g < 6; g++) { const a = g / 6 * Math.PI * 2, nghieng = Math.atan2(r - 0.15, 1.5), b = new THREE.BoxGeometry(0.14, 1.6, 0.12); b.rotateX(nghieng); b.rotateY(-a + Math.PI / 2); b.translate(cx + Math.cos(a) * ((r + 0.15) / 2 + 0.05), yc - 0.75, cz + Math.sin(a) * ((r + 0.15) / 2 + 0.05)); them(b); } // gân đỡ ÁP SÁT mặt chân côn (nghiêng đúng độ dốc côn; trước chĩa ra như móng vuốt)
-      ghi(c.mat, 'thap_canh', yc + 1, 1, x, z); } }
+    // THÁP CANH TREO — CHỈ THEO SỐ ĐO TRÊN ẢNH (anh 17/11/2026: "sao lại có luật nào tham gia vào đây? Ảnh đâu?"): trước đây thẻ thap_canh=yes tự đặt hai tháp ở hai
+    // đầu cạnh dài nhất của khối OSM (đoán) → cổng Torbau mặt ngoài một tháp che cửa, một tháp vắt sang tường gạch. Nay vị trí lấy từ cua-so.json "khối#cạnh".thap_canh
+    // = [[s (m từ đầu cạnh), y mũi chân côn, y đỉnh vành răng cưa, bán kính thân], …] đo trên ảnh thật; thẻ có mà chưa đo → KHÔNG dựng, ghi vào dem.thieuAnh.
+    if (coThe('thap_canh')) for (const c of canh.filter((c) => c.ngoai)) {
+      const ds = soDo?.(c.mat)?.thap_canh; if (!Array.isArray(ds) || !ds.length) continue;
+      for (const [s, yMui, yDinh, rDo] of ds) {
+        const r = +rDo || +k.tags.thap_canh_r || 0.75, x = c.p[0] + c.ux * s, z = c.p[1] + c.uz * s, cx = x + c.nx * (r + 0.05), cz = z + c.nz * (r + 0.05);
+        const yc = yDinh - 1.2 - 2.4 > yMui + 1.5 ? yDinh - 1.2 - 2.4 : yMui + 1.5, than = Math.max(1, yDinh - 1.2 - yc); // chân côn 1,5 m từ mũi · thân · gờ + vành răng cưa 1,2 m
+        tru(cx, yc - 1.5, cz, 0.15, r, 1.5, 10); tru(cx, yc, cz, r, r, than, 12); tru(cx, yc + than, cz, r, r + 0.12, 0.2, 12); vongRang(cx, yc + than + 0.2, cz, r + 0.12, 1.0); dem.canh++;
+        tru(cx, yc - 0.25, cz, r + 0.08, r + 0.08, 0.25, 12); // vành gờ giữa chân côn và thân (ảnh: gờ tròn)
+        for (let g = 0; g < 6; g++) { const a = g / 6 * Math.PI * 2, nghieng = Math.atan2(r - 0.15, 1.5), b = new THREE.BoxGeometry(0.14, 1.6, 0.12); b.rotateX(nghieng); b.rotateY(-a + Math.PI / 2); b.translate(cx + Math.cos(a) * ((r + 0.15) / 2 + 0.05), yc - 0.75, cz + Math.sin(a) * ((r + 0.15) / 2 + 0.05)); them(b); } // gân đỡ áp sát chân côn
+        ghi(c.mat, 'thap_canh', yc + than / 2, 1, x, z, { cx, cz, r: r + 0.12, y0: yMui, y1: yDinh }); }
+    }
+    if (coThe('thap_canh') && !canh.some((c) => c.ngoai && soDo?.(c.mat)?.thap_canh?.length)) (dem.thieuAnh ??= []).push(k.id + ' thap_canh (chưa đo trên ảnh — không dựng)');
   }
   const ra = [];
   if (gs.length) { const m = new THREE.Mesh(mergeGeometries(gs), vl); m.castShadow = m.receiveShadow = true; ra.push(m); }

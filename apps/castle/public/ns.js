@@ -364,7 +364,7 @@ const huongRaSan = (x1, z1, x2, z2) => { if (!SAN0) return false; const L = Math
 // VÒM CỔNG: đường ô tô / lối đi OSM cắt ngang một bức tường → khoét vòm cổng thật ở chỗ cắt (đường lên cổng Torbau xuyên khối cổng — trước đường cụt ở chân tường,
 // anh 16/11/2026). Rộng theo đường + 0,6 m, cao CAO_CONG từ mặt đất; khung đá vòm dựng sau (VOM_CONG)
 // SỔ KIỂM KÊ chi tiết đã dựng: { mat: "khối#cạnh" | "khối#mai" | "khối#*", loai, y } — scripts/kiem-ke.mjs gộp theo vùng mặt tường, so với <lâu>-kiem-ke.json (đếm trên ảnh)
-const KIEM_KE = [], ghiKK = (mat, loai, y, n = 1, x = null, z = null) => { if (mat) for (let i = 0; i < n; i++) KIEM_KE.push({ mat, loai, y, x, z }); }; // x, z: vị trí trên mặt tường (kiểm vị trí trong khung)
+const KIEM_KE = [], ghiKK = (mat, loai, y, n = 1, x = null, z = null, hop = null) => { if (mat) for (let i = 0; i < n; i++) KIEM_KE.push({ mat, loai, y, x, z, hop }); }; // x, z: vị trí trên mặt tường (kiểm vị trí trong khung)
 const VOM_CONG = [], CAO_CONG = 6.2; // lỗ cổng cao 6,2 m tới đỉnh vòm (ảnh 360° cổng Torbau: vòm cao ~1,5 lần bề rộng; trước 4,6 m thấp lùn)
 // cổng nằm trên MẶT DỰNG RIÊNG theo ảnh chụp (mặt Torbau hướng sân dưới, góp ý #1641): chiều cao lỗ lấy từ tệp bố cục (cong.cao, đo trên ảnh) thay số chung —
 // cạnh tường song song + cách trục khung ≤ 1,5 m (khối cổng nhô ~1 m) là cùng mặt. Số chung 6,2 m đo ở cổng NGOÀI (phía đông); cổng phía sân thấp hơn
@@ -689,7 +689,7 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
   if (MAT_TB) { // mặt Torbau hướng sân dưới theo ảnh chụp (góp ý #1641): cụm cửa, ô tròn, diềm vòm, khung ô, bệ, cửa vào, lô-gia, đồng hồ — mattien.js datMatRieng
     const r = datMatRieng({ THREE, mergeGeometries, bo: MAT_TB.bo, bd: MAT_TB.bd, viTri: MAT_TB.viTri, datTai: matDat, nhe: CHAM });
     for (const m of r.ra) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
-    CUA.push(...r.cua); for (const e of r.kk) ghiKK(e.mat, e.loai, e.y, 1, e.x, e.z); MAT_TB.dung = { cum: r.cua.length, kk: r.kk.length, boQua: [...r.boQua], nhoLoGia: r.boQua.nhoLoGia ?? null };
+    CUA.push(...r.cua); for (const e of r.kk) ghiKK(e.mat, e.loai, e.y, 1, e.x, e.z, e.hop); MAT_TB.dung = { cum: r.cua.length, kk: r.kk.length, boQua: [...r.boQua], nhoLoGia: r.boQua.nhoLoGia ?? null };
     console.info('[ns] mặt Torbau hướng sân:', r.cua.length, 'cụm ·', r.kk.length, 'chi tiết kiểm kê', r.boQua.length ? '· bỏ (không có tường ở độ cao đó): ' + r.boQua.join(' | ') : ''); }
   // ẢNH DÁN MẶT TƯỜNG (LOD2 + ảnh mặt tiền): mỗi mặt có ảnh → một tấm phẳng sát ngoài tường, từ chân tường lên mái hiên mô hình (phần ảnh trên mái hiên bỏ),
   // lỗ cửa mở được (dải phòng) khoét trong suốt trên ảnh để vẫn nhìn / trèo vào; ảnh tải nền, không chặn trang
@@ -1572,6 +1572,15 @@ window.__ns.kiemKe = () => KIEM_KE; window.__ns.datCach3Hien = (b) => datCach3Hi
 // kiem-ke.mjs coi là lỗi (thoát 1) → trọng tài máy trả mọi bản sửa làm lớp lỗi này quay lại.
 window.__ns.cuaLoLung = () => CUA.filter((c) => c.mat).map((c) => { const k = dsKhoi.find((q) => q.id === c.mat.split('#')[0]); if (!k) return null;
   const d0 = Number.isFinite(k.yDuoi) ? k.yDuoi : -1e9, d1 = k._y1 ?? k.yTren; return c.y < d0 - 1 || c.y + c.cao > d1 + 1 ? { mat: c.mat, y: +c.y.toFixed(1), chan: +d0.toFixed(1), dinh: +d1.toFixed(1) } : null; }).filter(Boolean);
+// CHI TIẾT ĐÈ CỬA (anh 17/11/2026, tháp canh treo cổng Torbau che ô cửa mà kiểm kê vẫn "khớp" vì chỉ đếm số lượng): chi tiết khối 3D nhô ra trước tường
+// (sổ kiểm kê có hop = { cx, cz, r, y0, y1 }) mà khối bao đè lên KHUNG NGOÀI một ô cửa trên mặt tường ngay sau nó (cách mặt tường ≤ r + 1,5 m, cùng phía ngoài) → lỗi
+window.__ns.chiTietDeCua = () => { const ra = [];
+  for (const e of KIEM_KE) { const h = e.hop; if (!h) continue;
+    for (const c of CUA) { const d = (h.cx - c.x) * c.nx + (h.cz - c.z) * c.nz; if (d < -0.3 || d > h.r + 1.5) continue; // chi tiết đứng trước mặt tường của ô cửa
+      const ux = -c.nz, uz = c.nx, ds = Math.abs((h.cx - c.x) * ux + (h.cz - c.z) * uz), v = c.vien || { ngang: 0.25, tren: 0.4 };
+      if (ds < h.r + c.nua + v.ngang - 0.05 && h.y0 < c.y + c.cao + v.tren - 0.05 && h.y1 > c.y + 0.05)
+        ra.push({ loai: e.loai, mat: e.mat, cua: c.mat || c.ten || '?', tam: [+h.cx.toFixed(1), +h.cz.toFixed(1)], cuaY: [+c.y.toFixed(1), +(c.y + c.cao).toFixed(1)], lechNgang: +ds.toFixed(2) }); } }
+  return ra; };
 window.__ns.chongLan = () => { const ra = [];
   for (let i = 0; i < CUA.length; i++) for (let j = i + 1; j < CUA.length; j++) { const a = CUA[i], b = CUA[j]; if (a.nx * b.nx + a.nz * b.nz < 0.97 || Math.abs((b.x - a.x) * a.nx + (b.z - a.z) * a.nz) > 0.8) continue;
     const mat = a.mat || a.ten || 'Palas', ux = -a.nz, uz = a.nx, sa = a.x * ux + a.z * uz, sb = b.x * ux + b.z * uz;

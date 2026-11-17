@@ -23,7 +23,9 @@ const QT = 'thu-nghiem/lam-viec';   // quy trình mặc định của nút "Ch�
 
 const doc = (rel) => parseFm(fs.readFileSync(path.join(CONG_TY, rel), 'utf8'));
 const luat = fs.readFileSync(path.join(CONG_TY, 'AGENTS.md'), 'utf8');
-export const nhanSu = (id, luot) => { const rel = `nhan-su/${id}/SOUL.md`; const d = doc(rel); ghiLog({ luot, loai: 'doc', tu: id, chi_tiet: { tep: rel, ky_tu: d.body.length, ly_do: 'nạp hồ sơ trước ca' } }); return { id, ...d.fm, body: d.body }; };
+export const nhanSu = (id, luot) => { const rel = `nhan-su/${id}/SOUL.md`; const d = doc(rel); ghiLog({ luot, loai: 'doc', tu: id, chi_tiet: { tep: rel, ky_tu: d.body.length, ly_do: 'nạp hồ sơ trước ca' } }); return { id, ...d.fm, ...modelDe(id), body: d.body }; };
+// Mô hình admin chỉnh trên bảng nhân sự (góp ý #1661, worker/nhip.mjs datModel) đè dòng model của SOUL — đọc thẳng tệp, không nạp nhip.mjs (tránh vòng).
+const modelDe = (id) => { try { const m = JSON.parse(fs.readFileSync(path.join(DATA(), 'nhip-chinh.json'), 'utf8'))[id]?.model; return m ? { model: m } : {}; } catch { return {}; } };
 
 // --nhip <giây>: mỗi bước giữ "đang làm" ít nhất chừng ấy giây rồi mới chuyển người (chạy chậm để xem trên văn phòng / gỡ lỗi).
 // Chỉ thêm thời gian chờ, không gọi thêm mô hình → không tốn thêm tiền. Mặc định 0 = chạy hết tốc.

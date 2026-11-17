@@ -2,7 +2,7 @@
 // Admin chỉnh nhịp của một nhân sự ngay trên bảng nhân sự (anh 14/10/2026): ca · giờ điểm danh · kiểm mấy phút một lần. Lưu ở sổ dữ liệu
 // (worker/nhip.mjs luuChinh), có hiệu lực ở nhịp kế tiếp — không sửa git, không cần deploy.
 import { getCurrentUser } from './auth';
-import { luuChinh, datBat, datGio, datKiemMoi } from '../../worker/nhip.mjs';
+import { luuChinh, datBat, datGio, datKiemMoi, datModel } from '../../worker/nhip.mjs';
 import { datLichMay, datBatMay, datLichNen, sach, KHONG_TAT } from '../../worker/lich-may.mjs';
 import { docViecMay, viecMayCua, dangChay } from '../../worker/viec-may.mjs';
 
@@ -11,6 +11,15 @@ export async function chinhNhip(id: string, x: { ca: string; diem_danh: string; 
   if (!me) return { ok: false, loi: 'Phiên đăng nhập đã hết — tải lại trang.' };
   if (me.role !== 'admin') return { ok: false, loi: 'Chỉ admin được chỉnh nhịp.' };
   try { luuChinh(String(id), x, String(me.email ?? me.id)); return { ok: true }; } catch (e) { return { ok: false, loi: (e as Error).message }; }
+}
+
+/** Đổi mô hình + luồng (qua cổng AI hay không) của một người ngay trên bảng nhân sự (anh 17/11/2026, góp ý #1661). Lưu ở nhip-chinh.json `model`,
+ *  đè dòng model của SOUL.md; bỏ trống = về lại SOUL. Hiệu lực từ lượt kế tiếp (nhịp box, lượt API, kỹ sư CLI). Chỉ admin. */
+export async function chinhModel(id: string, model: string): Promise<{ ok: boolean; loi?: string }> {
+  const me = await getCurrentUser();
+  if (!me) return { ok: false, loi: 'Phiên đăng nhập đã hết — tải lại trang.' };
+  if (me.role !== 'admin') return { ok: false, loi: 'Chỉ admin được đổi mô hình.' };
+  try { datModel(String(id), String(model ?? ''), String(me.email ?? me.id)); return { ok: true }; } catch (e) { return { ok: false, loi: (e as Error).message }; }
 }
 
 /** Bật/tắt cột Tự làm (anh 14/10/2026). Chỉ admin. */

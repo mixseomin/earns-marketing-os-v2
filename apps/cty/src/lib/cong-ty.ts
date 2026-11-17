@@ -4,6 +4,7 @@ import 'server-only';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseFm as parseFmJs } from '../../scripts/fm.mjs';
+import { docChinh } from '../../worker/nhip.mjs';
 const parseFm = parseFmJs as (raw: string) => { fm: Fm; body: string };
 
 export const ROOT = path.join(process.cwd(), 'cong-ty');
@@ -36,13 +37,17 @@ export function phong(id: string): Doc | null { return readDoc(path.join(ROOT, '
  *  Mọi link "xem trên văn phòng" của cty đi qua đây — người / phòng / lệnh máy trên cty ↔ đúng văn phòng nhân vật đó ngồi. */
 export const hrefVp = (phongId?: string | null) => (phongId && phong(phongId) ? `/vp/${phongId}/` : '/vp/cong-ty/');
 
+// Mô hình admin chỉnh trên bảng nhân sự (góp ý #1661, <DATA>/nhip-chinh.json `model`) ĐÈ dòng model của SOUL; fm.model_soul giữ bản gốc để ô sửa hiện.
+const chinhModel = (d: Doc | null, ch: Record<string, { model?: string }>): Doc | null => {
+  const m = d && ch[d.id]?.model; return d && m ? { ...d, fm: { ...d.fm, model_soul: String(d.fm.model ?? ''), model: m } } : d;
+};
 export function dsNhanSu(): Doc[] {
-  const dir = path.join(ROOT, 'nhan-su');
+  const dir = path.join(ROOT, 'nhan-su'); const ch = docChinh() as Record<string, { model?: string }>;
   return fs.readdirSync(dir).filter((d) => fs.existsSync(path.join(dir, d, 'SOUL.md')))
-    .map((d) => readDoc(path.join(dir, d, 'SOUL.md'), d)!)
+    .map((d) => chinhModel(readDoc(path.join(dir, d, 'SOUL.md'), d), ch)!)
     .sort((a, b) => Number(a.fm.thu_tu ?? 99) - Number(b.fm.thu_tu ?? 99));
 }
-export function nhanSu(id: string): Doc | null { return readDoc(path.join(ROOT, 'nhan-su', id, 'SOUL.md'), id); }
+export function nhanSu(id: string): Doc | null { return chinhModel(readDoc(path.join(ROOT, 'nhan-su', id, 'SOUL.md'), id), docChinh() as Record<string, { model?: string }>); }
 export function heartbeat(id: string): string { return docText(path.join('nhan-su', id, 'HEARTBEAT.md')); }
 export function cauHinh(): Fm { const f = path.join(ROOT, 'cau-hinh.md'); return fs.existsSync(f) ? parseFm(fs.readFileSync(f, 'utf8')).fm : {}; }
 export function soDo(id: string): string { return docText(path.join('so-do', `${id}.svg`)); }

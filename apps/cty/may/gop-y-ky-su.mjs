@@ -134,8 +134,10 @@ export function chayKySu(cfg) {
     process.exit(chan.size ? 1 : 0);
   }
   const [chinh, soul] = box(`cat ${DATA}/nhip-chinh.json 2>/dev/null || echo {}; echo '@@'; grep -E '^model:' ${APP}/cong-ty/nhan-su/${NGUOI}/SOUL.md || true`).split('@@');
-  if (JSON.parse(chinh.trim() || '{}')[NGUOI]?.bat === false) { log(`${TEN} đang tắt`); process.exit(0); }
-  const dm = (soul.match(/^model:.*$/m) || [''])[0], model = (dm.match(/claude-code:([\w.-]+)/) || [])[1] || 'opus', effort = (dm.match(/effort:(low|medium|high|max)\b/) || [])[1] || null;
+  const chMinh = JSON.parse(chinh.trim() || '{}')[NGUOI] ?? {};
+  if (chMinh.bat === false) { log(`${TEN} đang tắt`); process.exit(0); }
+  // Mô hình / luồng anh chỉnh trên bảng nhân sự (góp ý #1661, nhip-chinh.json `model`) đè dòng model của SOUL
+  const dm = chMinh.model ? `model: ${chMinh.model}` : (soul.match(/^model:.*$/m) || [''])[0], model = (dm.match(/claude-code:([\w.-]+)/) || [])[1] || 'opus', effort = (dm.match(/effort:(low|medium|high|max)\b/) || [])[1] || null;
   // QUA CỔNG AI (anh 17/11/2026: "Việc mà tốn token claude-code mà ko cần data nội bộ, bảo mật thì dùng donk" → "dùng API AI"): SOUL ghi `qua:cong` trên dòng model
   // → Claude Code gọi endpoint kiểu Anthropic của cổng spy (Hiếu, /api/ai/cc/<người>, chuỗi donk → ckey), KHÔNG dùng gói Claude. Khoá cổng đọc từ box3, không in.
   if (/\bqua:cong\b/.test(dm)) {

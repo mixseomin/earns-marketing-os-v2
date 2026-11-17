@@ -16,7 +16,8 @@ import { docLich, choAp, lichCua, lichNen, KHONG_TAT } from '../../worker/lich-m
 import { NutTuLam } from './nut-tu-lam';
 import { getCurrentUser } from '@/lib/auth';
 import { mocCuoiCa } from '../../worker/gio-lam.mjs';
-import { nhanSu, type Doc } from '@/lib/cong-ty';
+import { nhanSu, dsNhanSu, type Doc } from '@/lib/cong-ty';
+import { ChinhModel } from './chinh-model';
 import { soChi } from '@/lib/do-dac';
 import { docLog } from '../../worker/log.mjs';
 import { TruocDay } from './truoc-day';
@@ -152,6 +153,8 @@ export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc
   const admin = (await getCurrentUser())?.role === 'admin';
   const nenDoi = ds.filter((d) => d.deXuat.muc === 'doi').length; const thang = new Date().getUTCMonth() + 1;   // sổ chi tính date_trunc('month', now()) ở DB (UTC)
   const cotPhong = !trongPhong && !nhomPhong;
+  // Gợi ý cho ô đổi mô hình: mọi dòng model đang dùng trong công ty (bỏ qua:cong — có ô tick riêng)
+  const goiYModel = [...new Set(dsNhanSu().map((x) => String(x.fm.model ?? '').replace(/\s*\bqua:cong\b/g, '').trim()).filter((x) => x && x !== 'không'))].sort();
   // CỘT theo 4 NHÓM (anh 17/11/2026 "chia nhóm các cột cho khoa học"): Người · Bộ não & máy · Lịch & trạng thái · Chi phí
   const cot: CotNS[] = [
     { key: 'nguoi', group: 'nguoi', header: 'Người' },
@@ -184,7 +187,8 @@ export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc
       ...(x ? { phuTrach: <span title={`${x.chuTri} quy trình chủ trì · ${x.lam} được giao làm · ${x.viec} việc đang mở${x.tre ? ` (${x.tre} máy trễ)` : ''}`}><b>{x.chuTri}</b> · <b className={x.tre ? 'cty-thu-loi' : ''}>{x.viec}</b></span> } : {}),
       // Ký hiệu riêng khi người đó gọi mô hình qua Cổng AI API (không phải kỹ sư CLI Claude Code) — góp ý #1657
       // Kỹ sư CLI qua:cong → "🔌 cổng AI" (góp ý #giao-20261117-0000-nhan-cong: bảng không cho thấy Thắng chạy qua cổng)
-      model: <span className="cty-nho">{quaCong(fm) ? <span className="cty-pill cty-pill-kind" title={`Claude Code CLI chạy qua cổng AI spy /api/ai/cc/${d.id}, donk → ckey, KHÔNG dùng gói Claude`} aria-label="cổng AI">🔌</span> : loaiNS(fm) === 'api' && d.model ? <span className="cty-pill cty-pill-kind" title="Gọi mô hình qua Cổng AI API (spy /api/ai), không phải Claude Code CLI" aria-label="API">🔌</span> : null}{quaCong(fm) || (loaiNS(fm) === 'api' && d.model) ? ' ' : ''}{tenModel(d.model)}</span>,
+      // góp ý #1661: admin bấm ✎ đổi mô hình + luồng qua cổng AI (components/chinh-model.tsx, đè SOUL ở nhip-chinh.json)
+      model: <ChinhModel id={d.id} model={String(fm.model ?? '')} soul={String(fm.model_soul ?? '')} goiY={goiYModel} admin={admin} hien={<span className="cty-nho">{quaCong(fm) ? <span className="cty-pill cty-pill-kind" title={`Claude Code CLI chạy qua cổng AI spy /api/ai/cc/${d.id}, donk → ckey, KHÔNG dùng gói Claude`} aria-label="cổng AI">🔌</span> : loaiNS(fm) === 'api' && d.model ? <span className="cty-pill cty-pill-kind" title="Gọi mô hình qua Cổng AI API (spy /api/ai), không phải Claude Code CLI" aria-label="API">🔌</span> : null}{quaCong(fm) || (loaiNS(fm) === 'api' && d.model) ? ' ' : ''}{tenModel(d.model)}</span>} />,
       ...(noi.length ? { noi: <span className="cty-nho">{noi.join(' · ')}</span> } : {}),
       ...(cay.length ? { repo: <div className="cty-nho cty-repo">{cay.map((k) => <div key={k.dir}><b>{k.repo}</b> <span className="cty-muted">· {k.may}{k.nhanh ? <> · nhánh <code>{k.nhanh}</code></> : ''}</span><div><code title={`${k.dir} (${k.may})`}>{k.dir}</code></div></div>)}</div> } : {}),
       tuLam: <div className={`cty-nho cty-dn-tulam${n.bat ? '' : ' cty-muted'}`}>{((vm) => {

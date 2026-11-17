@@ -43,6 +43,18 @@ export function datKiemMoi(id, phut, ai = '') {
   if (!hopLeMoi(phut)) throw new Error(`Kiểm mỗi ${phut} phút — từ 1 phút tới 24 giờ`);
   const s = docChinh(); s[id] = { ...(s[id] ?? {}), kiem_moi: Number(phut), ai, luc: new Date().toISOString() }; return ghiChinh(s, id);
 }
+/** MÔ HÌNH + LUỒNG CỦA MỘT NGƯỜI (anh 17/11/2026 góp ý #1661 "edit chọn model, và chọn luồng qua cổng api ai"): cờ `model` trong nhip-chinh.json
+ *  ĐÈ dòng `model:` của SOUL.md (cùng cú pháp: `claude-code:opus effort:low qua:cong`, `fal:z-ai/glm-5.3-flash`…). Bỏ trống = về lại SOUL.
+ *  Ai đọc: src/lib/cong-ty.ts (bảng, nhịp box qua nhanSu) · worker/ca.mjs nhanSu (lượt API) · may/gop-y-ky-su.mjs (kỹ sư CLI, lượt kế tiếp). */
+export function datModel(id, model, ai = '') {
+  const m = String(model ?? '').trim().replace(/\s+/g, ' ');
+  if (m.length > 160 || /[#\n\r'"`$\\]/.test(m)) throw new Error(`Mô hình "${m.slice(0, 40)}" sai — chỉ chữ, số, dấu : / . - _ và khoảng trắng`);
+  if (m && !/^[\w.:/@+ -]+$/.test(m)) throw new Error(`Mô hình "${m}" có ký tự lạ`);
+  const s = docChinh(); const cu = { ...(s[id] ?? {}) }; if (m) cu.model = m; else delete cu.model;
+  s[id] = { ...cu, ai, luc: new Date().toISOString() }; return ghiChinh(s, id);
+}
+/** Dòng model đang hiệu lực của một người: bản chỉnh trên bảng (nếu có) trước, rồi SOUL. */
+export const modelChinh = (id) => docChinh()[id]?.model ?? null;
 export function datGio(id, gio, ai = '') {
   if (!GIO.test(String(gio)) || gio === '24:00') throw new Error(`Giờ "${gio}" sai — dạng 03:30`);
   const s = docChinh(); s[id] = { ...(s[id] ?? {}), gio: String(gio), ai, luc: new Date().toISOString() }; return ghiChinh(s, id);
@@ -203,6 +215,9 @@ if (process.argv[1]?.endsWith('nhip.mjs') && process.argv.includes('--tu-kiem'))
   a.equal(datBat('kien', false, 't').bat, false); a.ok(!dangBat().some((n) => n.id === 'kien') && dangTat('kien'), 'admin tắt → bộ chạy bỏ qua');
   a.equal(luuChinh('kien', { ca: '07:00-01:00', diem_danh: '08:30', kiem_moi: 5 }, 't').bat, false, 'chỉnh ca không được xoá cờ tắt');
   datBat('kien', true, 't'); a.throws(() => datKiemMoi('kien', 2000)); a.equal(datKiemMoi('kien', 15, 't').ca, '07:00-01:00', 'đổi tần suất giữ ca'); datKiemMoi('kien', 5, 't');
+  const batTruoc = docChinh().kien.bat;
+  a.equal(datModel('kien', 'claude-code:opus  effort:low qua:cong', 't').model, 'claude-code:opus effort:low qua:cong'); a.equal(modelChinh('kien'), 'claude-code:opus effort:low qua:cong');
+  a.equal(docChinh().kien.bat, batTruoc, 'đổi mô hình không xoá cờ bật / tắt'); a.throws(() => datModel('kien', "x'; rm -rf /")); a.equal(datModel('kien', '', 't').model, undefined, 'bỏ trống = về SOUL');
   a.throws(() => datGio('bao', '3h')); a.equal(datGio('bao', '04:15', 't').gio, '04:15'); a.equal(luuChinh('bao', { ca: '00:00-24:00', kiem_moi: 1 }).gio, '04:15', 'chỉnh ca không xoá giờ chạy');
   const k = dangBat().find((n) => n.id === 'kien'); a.ok(k.ca === '07:00-01:00' && k.diemDanh === '08:30' && k.kiemMoi === 5, 'chỉnh của admin đè hồ sơ');
   ghiLam('kien', 'điểm danh · 3 thư đã đọc', 'mail-bao-mat'); ghiLam('kien', '4 thư đã đọc', 'mail-bao-mat'); fs.appendFileSync(tepNk('kien'), '{hỏng\n');

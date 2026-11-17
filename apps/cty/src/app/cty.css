@@ -561,7 +561,8 @@ body.nk-dang-keo iframe{pointer-events:none}
 .cty-tn-gap>summary{cursor:pointer;font-size:.8rem;color:var(--muted)}.cty-tn-gap[open]>summary{margin-bottom:4px}
 .cty-dn-do>summary::before{content:'▸';color:var(--muted)}.cty-dn-do[open]>summary::before{content:'▾'}
 .cty-day-kien{display:flex;flex-wrap:wrap;gap:4px}.cty-day-kien .cty-btn{padding:2px 6px}.cty-day-dang{font-weight:700;border-color:var(--ink)}
-.cty-chinh-ca{display:grid;gap:3px;justify-items:start}.cty-chinh-ca input[type=time]{font:inherit;font-size:.8rem;padding:1px 2px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}.cty-dn select{font:inherit;font-size:.8rem}
+.cty-chinh-ca{display:grid;gap:3px;justify-items:start}.cty-chinh-ca input[list]{font:inherit;font-size:.8rem;padding:1px 4px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink);max-width:100%}
+.cty-btn-link{background:none;border:0;padding:0 2px;color:var(--muted,inherit);cursor:pointer;font:inherit}.cty-btn-link:hover{color:var(--ink)}.cty-chinh-ca input[type=time]{font:inherit;font-size:.8rem;padding:1px 2px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}.cty-dn select{font:inherit;font-size:.8rem}
 
 /* đầu việc: 3 cột thẳng hàng giữa các dòng — tên (một dòng, cắt …, rê chuột xem đủ) · lịch (ô chỉnh) · máy */
 .cty-dn-viec{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:17rem 13rem 10rem;gap:3px 10px;align-items:center}.cty-dn-viec li{display:contents}

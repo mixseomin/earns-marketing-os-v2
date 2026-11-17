@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import '@mos2/bang/bang.css';   // DataTable dùng chung (bảng Nhân sự)
 import './cty.css';
 import { getCurrentUser } from '@/lib/auth';
 import { NganLinks } from '@/components/ngan/links';

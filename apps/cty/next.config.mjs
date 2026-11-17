@@ -4,7 +4,7 @@ export default {
   poweredByHeader: false,
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },   // tsc chạy riêng trước khi đẩy (cùng nếp apps/web, apps/xuong-video)
-  transpilePackages: ['@mos2/db', '@mos2/gop-y'],
+  transpilePackages: ['@mos2/db', '@mos2/gop-y', '@mos2/bang'],   // @mos2/bang: DataTable dùng chung (bảng Nhân sự 17/11/2026)
   serverExternalPackages: ['postgres'],
   outputFileTracingIncludes: { '/**': ['./cong-ty/**/*'] },   // hồ sơ markdown + sơ đồ đi cùng bản dựng
   async headers() {

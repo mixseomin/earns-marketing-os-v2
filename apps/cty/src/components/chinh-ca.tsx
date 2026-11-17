@@ -10,16 +10,16 @@ export function ChinhCa({ id, ca, diemDanh, admin }: { id: string; ca: string; d
   const [tu, setTu] = useState(tu0!); const [den, setDen] = useState(den0!); const [dd, setDd] = useState(diemDanh);
   const [cho, chuyen] = useTransition(); const [bao, setBao] = useState<{ ok: boolean; chu: string } | null>(null); const router = useRouter();
   const doi = tu !== tu0 || den !== den0 || dd !== diemDanh;
-  if (!admin) return <td className="cty-nho">{ca}{diemDanh && <div className="cty-muted">điểm danh {diemDanh}</div>}</td>;
+  if (!admin) return <div className="cty-nho">{ca}{diemDanh && <div className="cty-muted">điểm danh {diemDanh}</div>}</div>;   // ô của DataTable (bảng nhân sự 17/11/2026) — không còn là <td>
   const luu = () => chuyen(async () => { setBao(null); const r = await chinhNhip(id, { ca: `${tu}-${den}`, diem_danh: dd });
     setBao(r.ok ? { ok: true, chu: 'Đã lưu — áp từ nhịp kế tiếp' } : { ok: false, chu: r.loi ?? 'Máy chủ từ chối.' }); router.refresh(); });
   return (
-    <td className="cty-nho cty-chinh-ca">
+    <div className="cty-nho cty-chinh-ca">
         <span><input type="time" value={tu} onChange={(e) => setTu(e.target.value)} aria-label="Vào ca" />–<input type="time" value={den === '24:00' ? '00:00' : den} onChange={(e) => setDen(e.target.value)} aria-label="Hết ca" /></span>
         <label className="cty-muted">điểm danh <input type="time" value={dd} onChange={(e) => setDd(e.target.value)} aria-label="Giờ điểm danh" /></label>
         {doi && <button type="button" className="cty-btn cty-nho" disabled={cho} onClick={luu}>{cho ? 'Đang lưu…' : 'Lưu'}</button>}
         {bao && <span className={bao.ok ? 'cty-bao-ok' : 'cty-bao-loi'} data-loi={bao.ok ? undefined : ''}>{bao.chu}</span>}
-    </td>
+    </div>
   );
 }
 

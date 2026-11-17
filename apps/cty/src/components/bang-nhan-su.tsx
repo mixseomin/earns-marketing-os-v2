@@ -24,7 +24,8 @@ import { trangThai, nhatKyCuoi, tranPhut, phutLich, cacLan } from '../../worker/
 import { DemNguoc } from './dem-nguoc';
 import { VIEC_NHIP } from '../../worker/nhip.mjs';
 import { LocNhanSu, LOAI_NS, type LocNS } from './loc-nhan-su';
-import { Fragment } from 'react';
+import { BangNhanSuDT, type DongNS, type CotNS } from './bang-nhan-su-dt';
+import { cayCua } from '@/lib/repo-ky-su';
 
 /** Loại nhân sự cho bộ lọc: người thật (kind human / vendor) · kỹ sư CLI (chạy bằng Claude Code) · gọi API (mô hình qua proxy, hoặc máy thuần). */
 export const loaiNS = (fm: Record<string, unknown>): keyof typeof LOAI_NS =>
@@ -147,26 +148,41 @@ export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc
   const chi = (id: string) => so ? so.ds.filter((r) => r.nguoi === id).reduce((t, r) => t + (r.usd ?? 0), 0) : null;
   const admin = (await getCurrentUser())?.role === 'admin';
   const nenDoi = ds.filter((d) => d.deXuat.muc === 'doi').length; const thang = new Date().getUTCMonth() + 1;   // sổ chi tính date_trunc('month', now()) ở DB (UTC)
-  const cotPhong = !trongPhong && !nhomPhong; const soCot = 9 +(cotPhong ? 1 : 0) + (tn && !trongPhong ? 1 : 0);
-  return (
-    <div className="cty-dn-cuon">
-      {loc && !trongPhong && <LocNhanSu loc={loc} phongs={phongs} so={ds.length} tong={dsGoc.length} />}
-      <table className="cty-viec cty-dn">
-        <thead><tr><th>Người</th>{cotPhong && <th>Phòng</th>}<th>{trongPhong ? 'Vai ở phòng' : 'Vai chính'}</th><th>Bộ não</th>
-          <th title="Việc người đó tự làm, không cần ai nhắc (worker/nhip.mjs)">Tự làm</th><th title="Nhịp cty: máy kiểm có việc chưa bao lâu một lần (KHÔNG phải số lần gọi mô hình). Người có việc máy: nhịp của việc chạy dày nhất — chỉnh từng việc ở cột Tự làm">Máy kiểm</th><th title="Giờ làm, giờ VN">Ca</th>
-          <th title="Trạng thái thật theo nhật ký công việc (giờ VN): đang làm gì từ lúc nào · rảnh từ lúc nào · KẸT khi chạy quá trần, 3 lần lỗi liền, hoặc việc lịch dày im quá 30 phút. Bấm để xem nhật ký từng lần chạy">Trạng thái</th>
-          <th className="cty-so" title={`Tiền mô hình thật THÁNG LỊCH ${thang} (từ 01/${thang} tới giờ — cơ sở lương)${trongPhong ? ', chỉ phần làm cho phòng này' : ', mọi phòng'} · sổ ai_usage`}><span style={{ whiteSpace: 'nowrap' }}>{trongPhong ? 'Chi phòng' : 'Chi'} T{thang}</span></th>
-          <th className="cty-so" title="Trần chi tháng của người đó (mọi phòng cộng lại) — chạm trần thì proxy chặn">Trần / tháng</th>
-          {tn && !trongPhong && <th className="cty-so" title="Số quy trình chịu trách nhiệm chính · số việc đang mở (kể cả việc máy làm thay)">Phụ trách</th>}</tr></thead>
-        <tbody>{nhom.map((g) => <Fragment key={g.id || 'tat-ca'}>
-          {nhomPhong && ((lam, ket) => <tr className="cty-nhom-phong"><td colSpan={soCot}><b>{g.ten}</b> <span className="cty-muted cty-nho">· {g.ds.length} người · {lam} đang làm{ket > 0 && <> · <span className="cty-tt-ket-chu">{ket} kẹt</span></>}</span></td></tr>)(
-            g.ds.filter((d) => tts[d.id]!.kieu === 'lam').length, g.ds.filter((d) => tts[d.id]!.ket.length).length)}
-          {g.ds.map((d) => { const fm = nhanSu(d.id)?.fm ?? {}; const n = nhipChu(fm, d.id); const c = chi(d.id); const tr = Number(fm.tran_usd_thang || 0); return (
-          <tr key={d.id} className={tts[d.id]!.ket.length ? 'cty-hang-ket' : undefined}>
-            <td><span className="cty-den-o"><Nguoi id={d.id} />{'coNut' in n && n.coNut && <NutTuLam muc={n.chiXem ? `nguoi:${d.id}` : `nhip:${d.id}`} bat={n.bat} admin={admin}
-              hoi={n.chiXem ? `Tắt ${n.soChay} việc máy đang chạy của ${String(fm.ten ?? d.id)}?` : undefined} />}</span></td>{cotPhong && <td className="cty-muted">{d.phongTen}</td>}<td title={d.giuVai.join(' · ') || d.chucDanh}>{(phong && vaiO(phong, d.id)) || TEN_VAI[d.vai]}</td>
-            <td className="cty-nho">{tenModel(d.model)}</td>
-            <td className={`cty-nho cty-dn-tulam${n.bat ? '' : ' cty-muted'}`}>{((vm) => {
+  const cotPhong = !trongPhong && !nhomPhong;
+  // CỘT theo 4 NHÓM (anh 17/11/2026 "chia nhóm các cột cho khoa học"): Người · Bộ não & máy · Lịch & trạng thái · Chi phí
+  const cot: CotNS[] = [
+    { key: 'nguoi', group: 'nguoi', header: 'Người' },
+    ...(cotPhong ? [{ key: 'phong', group: 'nguoi', header: 'Phòng' }] : []),
+    { key: 'vai', group: 'nguoi', header: trongPhong ? 'Vai ở phòng' : 'Vai chính' },
+    ...(tn && !trongPhong ? [{ key: 'phuTrach', group: 'nguoi', header: 'Phụ trách', so: true, title: 'Số quy trình chịu trách nhiệm chính · số việc đang mở (kể cả việc máy làm thay)' }] : []),
+    { key: 'model', group: 'nao', header: 'Mô hình' },
+    { key: 'noi', group: 'nao', header: 'Nơi chạy', title: 'Máy chạy việc của người đó: box3 (nhịp cty) · iMac / MacBook (bộ điều phối viec-nen, việc máy)' },
+    { key: 'repo', group: 'nao', header: 'Repo', title: 'Kỹ sư CLI: repo · cây làm việc (đường dẫn tuyệt đối) · máy · nhánh — đọc từ sổ cong-ty/viec-nen.json (thu_muc / chay) + cây riêng may/cay-rieng.mjs' },
+    { key: 'tuLam', group: 'lich', header: 'Tự làm', title: 'Việc người đó tự làm, không cần ai nhắc (worker/nhip.mjs) · lịch từng việc · đếm ngược tới lần kế' },
+    { key: 'kiem', group: 'lich', header: 'Máy kiểm', title: 'Nhịp cty: máy kiểm có việc chưa bao lâu một lần (KHÔNG phải số lần gọi mô hình). Người có việc máy: nhịp của việc chạy dày nhất — chỉnh từng việc ở cột Tự làm' },
+    { key: 'ca', group: 'lich', header: 'Ca', title: 'Giờ làm, giờ VN' },
+    { key: 'tt', group: 'lich', header: 'Trạng thái', title: 'Trạng thái thật theo nhật ký công việc (giờ VN): đang làm gì từ lúc nào · rảnh từ lúc nào · vừa làm gì · KẸT khi chạy quá trần, 3 lần lỗi liền, hoặc việc lịch dày im quá 30 phút. Bấm để xem nhật ký từng lần chạy' },
+    { key: 'chi', group: 'tien', header: `${trongPhong ? 'Chi phòng' : 'Chi'} T${thang}`, so: true, title: `Tiền mô hình thật THÁNG LỊCH ${thang} (từ 01/${thang} tới giờ — cơ sở lương)${trongPhong ? ', chỉ phần làm cho phòng này' : ', mọi phòng'} · sổ ai_usage` },
+    { key: 'tran', group: 'tien', header: 'Trần / tháng', so: true, title: 'Trần chi tháng của người đó (mọi phòng cộng lại) — chạm trần thì proxy chặn' },
+  ];
+  const TT_SO = { lam: 0, ranh: 1, chua: 2, tat: 3 } as const;
+  const dong: DongNS[] = nhom.flatMap((g) => g.ds).map((d) => { const fm = nhanSu(d.id)?.fm ?? {}; const n = nhipChu(fm, d.id); const c = chi(d.id); const tr = Number(fm.tran_usd_thang || 0);
+    const vm = viecMayCua(d.id) as ViecMay[]; const cay = loaiNS(fm) === 'cli' ? cayCua(fm.heartbeat) : [];
+    const noi = [...new Set([...('box' in n && n.box ? ['box3'] : []), ...cay.map((x) => x.may), ...vm.map((v) => v.may)])];
+    const x = tn && !trongPhong ? demTn(tn, d.id, phong) : null; const vai = (phong && vaiO(phong, d.id)) || TEN_VAI[d.vai];
+    return { id: d.id, phongTen: d.phongTen, ket: tts[d.id]!.ket.length > 0, lam: tts[d.id]!.kieu === 'lam',
+      s: { nguoi: String(fm.ten ?? d.id), phong: d.phongTen, vai, phuTrach: x ? x.viec : null, model: tenModel(d.model), noi: noi.join(' '), repo: cay.map((k) => k.repo).join(' ') || null,
+        tt: TT_SO[tts[d.id]!.kieu] - (tts[d.id]!.ket.length ? 10 : 0), chi: c, tran: tr || null },
+      o: {
+      nguoi: <span className="cty-den-o"><Nguoi id={d.id} />{'coNut' in n && n.coNut && <NutTuLam muc={n.chiXem ? `nguoi:${d.id}` : `nhip:${d.id}`} bat={n.bat} admin={admin}
+        hoi={n.chiXem ? `Tắt ${n.soChay} việc máy đang chạy của ${String(fm.ten ?? d.id)}?` : undefined} />}</span>,
+      phong: <span className="cty-muted">{d.phongTen}</span>,
+      vai: <span title={d.giuVai.join(' · ') || d.chucDanh}>{vai}</span>,
+      ...(x ? { phuTrach: <span title={`${x.chuTri} quy trình chủ trì · ${x.lam} được giao làm · ${x.viec} việc đang mở${x.tre ? ` (${x.tre} máy trễ)` : ''}`}><b>{x.chuTri}</b> · <b className={x.tre ? 'cty-thu-loi' : ''}>{x.viec}</b></span> } : {}),
+      model: <span className="cty-nho">{tenModel(d.model)}</span>,
+      ...(noi.length ? { noi: <span className="cty-nho">{noi.join(' · ')}</span> } : {}),
+      ...(cay.length ? { repo: <div className="cty-nho cty-repo">{cay.map((k) => <div key={k.dir}><b>{k.repo}</b> <span className="cty-muted">· {k.may}{k.nhanh ? <> · nhánh <code>{k.nhanh}</code></> : ''}</span><div><code title={`${k.dir} (${k.may})`}>{k.dir}</code></div></div>)}</div> } : {}),
+      tuLam: <div className={`cty-nho cty-dn-tulam${n.bat ? '' : ' cty-muted'}`}>{((vm) => {
               // ĐẦU VIỆC (anh 14/10/2026): việc nhịp cty (chấm = nhịp của người đó) rồi việc máy (chấm riêng từng việc); 4 dòng đầu luôn hiện, còn lại
               // mở tại chỗ (#1362) — cùng một lưới nên thẳng cột. Không có đầu việc nào → chữ trạng thái (tắt / khi bấm nút).
               const ke = keTiep(d.id);   // đếm ngược tới lần kiểm kế (anh 17/11/2026)
@@ -180,19 +196,21 @@ export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc
               return <>{n.chiXem && <div className="cty-muted">{n.viec}</div>}
                 <MoRong dau={tat.slice(0, dau)} them={tat.slice(dau)} so={tat.length - dau} chiTiet={hrefNhip(d.id, vm.length ? 'may' : n.ds[0]!.ma)}
                   ghiChu={<>{vm.some(hong) && <span className="cty-thu-loi"> · {vm.filter(hong).length} lỗi</span>}{vm.some((v) => v.chua_gan) && <span className="cty-thu-loi"> · {vm.filter((v) => v.chua_gan).length} chưa xếp phòng</span>}</>} /></>;
-            })(viecMayCua(d.id) as ViecMay[])}</td>
-            {n.bat && n.ca && ('box' in n ? n.box : true) ? <><td className="cty-nho"><ChinhLich muc={`nhip:${d.id}`} lich={{ kieu: 'moi', phut: n.kiemMoi ?? 1 }} chu={n.tanSuat ?? ''} kieu={['moi']} admin={admin} apSau="áp từ nhịp kế tiếp" /></td>
-              <ChinhCa   /* máy kiểm + ca chỉ nghĩa với nhịp box; việc trên Mac có lịch riêng (cột Tự làm) */ id={d.id} ca={n.ca} diemDanh={n.diemDanh ?? ''} admin={admin} /></>
-              : n.nhipMay ? <><td className="cty-nho" title="Nhịp của việc máy chạy dày nhất người này phụ trách — chỉnh lịch từng việc ở cột Tự làm">{n.nhipMay}<div className="cty-muted">việc dày nhất</div></td><td className="cty-nho cty-muted" title="Việc máy chạy theo lịch riêng của máy, không theo ca">theo lịch máy</td></>
-              : <><td className="cty-nho"><span className="cty-muted">—</span></td><td className="cty-nho"><span className="cty-muted">—</span></td></>}
-            <td className="cty-nho cty-tt"><OTrangThai id={d.id} t={tts[d.id]!} /></td>
-            <td className="cty-so" title={so ? `${so.ds.filter((r) => r.nguoi === d.id).reduce((t, r) => t + r.luot, 0)} lời gọi tháng này` : 'không nối được DB'}>{c === null ? <span className="cty-thu-loi">?</span> : tien(c)}</td>
-            <td className="cty-so cty-muted">{tr ? tien(tr) : '—'}</td>
-            {tn && !trongPhong && ((x) => <td className="cty-so" title={`${x.chuTri} quy trình chủ trì · ${x.lam} được giao làm · ${x.viec} việc đang mở${x.tre ? ` (${x.tre} máy trễ)` : ''}`}>
-              <b>{x.chuTri}</b> · <b className={x.tre ? 'cty-thu-loi' : ''}>{x.viec}</b></td>)(demTn(tn, d.id, phong))}
-          </tr>); })}</Fragment>)}
-          {!ds.length && <tr><td colSpan={soCot} className="cty-muted">Không ai khớp bộ lọc.</td></tr>}</tbody>
-      </table>
+            })(vm)}</div>,
+      ...(n.bat && n.ca && ('box' in n ? n.box : true) ? {
+        kiem: <span className="cty-nho"><ChinhLich muc={`nhip:${d.id}`} lich={{ kieu: 'moi', phut: n.kiemMoi ?? 1 }} chu={n.tanSuat ?? ''} kieu={['moi']} admin={admin} apSau="áp từ nhịp kế tiếp" /></span>,
+        ca: <ChinhCa   /* máy kiểm + ca chỉ nghĩa với nhịp box; việc trên Mac có lịch riêng (cột Tự làm) */ id={d.id} ca={n.ca} diemDanh={n.diemDanh ?? ''} admin={admin} /> }
+        : n.nhipMay ? { kiem: <span className="cty-nho" title="Nhịp của việc máy chạy dày nhất người này phụ trách — chỉnh lịch từng việc ở cột Tự làm">{n.nhipMay}<div className="cty-muted">việc dày nhất</div></span>,
+          ca: <span className="cty-nho cty-muted" title="Việc máy chạy theo lịch riêng của máy, không theo ca">theo lịch máy</span> } : {}),
+      tt: <div className="cty-nho cty-tt"><OTrangThai id={d.id} t={tts[d.id]!} /></div>,
+      chi: <span title={so ? `${so.ds.filter((r) => r.nguoi === d.id).reduce((t, r) => t + r.luot, 0)} lời gọi tháng này` : 'không nối được DB'}>{c === null ? <span className="cty-thu-loi">?</span> : tien(c)}</span>,
+      ...(tr ? { tran: <span className="cty-muted">{tien(tr)}</span> } : {}),
+    } }; });
+  return (
+    <div className="cty-dn-cuon">
+      {loc && !trongPhong && <LocNhanSu loc={loc} phongs={phongs} so={ds.length} tong={dsGoc.length} />}
+      {ds.length ? <div className="cty-dn-dt"><BangNhanSuDT ds={dong} cot={cot} khoa={trongPhong ? 'cty-ns-phong' : 'cty-nhan-su'} nhomPhong={nhomPhong} /></div>
+        : <p className="cty-muted">Không ai khớp bộ lọc.</p>}
       <details className="cty-dn-do">
         <summary>Chỉ số bộ não <span className="cty-muted cty-nho">giao việc · làm · kiểm · giá · đề xuất</span>{nenDoi > 0 && <span className="cty-pill cty-pill-off">{nenDoi} nên đổi</span>}</summary>
         <table className="cty-viec cty-dn">

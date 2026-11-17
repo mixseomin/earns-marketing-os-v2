@@ -77,12 +77,12 @@ function xuLyLech(req, res) {
 const MLY = process.env.MLY_TOKEN || (() => { try { return (docTep('/root/.secrets/mapillary.env', 'utf8').match(/^MLY_TOKEN=(.+)$/m) || [])[1]?.trim() || null; } catch { return null; } })();
 const ANH_NHO = new Map();
 async function xuLyAnhQuanh(u, res) {
-  const lat = +u.searchParams.get('lat'), lng = +u.searchParams.get('lng'), r = +(u.searchParams.get('r') || 100), huong = u.searchParams.has('huong') ? +u.searchParams.get('huong') : null;
+  const lat = +u.searchParams.get('lat'), lng = +u.searchParams.get('lng'), r = +(u.searchParams.get('r') || 100), huong = u.searchParams.has('huong') ? +u.searchParams.get('huong') : null, khu = (u.searchParams.get('khu') || '').slice(0, 60) || null, khuCam = (u.searchParams.get('khuCam') || '').slice(0, 60) || null;
   const tra = (ma, j) => res.writeHead(ma, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(THU ? { 'Access-Control-Allow-Origin': '*' } : {}) }).end(JSON.stringify(j));
   if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180) || !Number.isFinite(r)) return tra(400, { loi: ['thiếu lat / lng'] });
-  const k = `${lat.toFixed(4)},${lng.toFixed(4)},${Math.round(r / 20)},${huong == null ? '-' : Math.round(huong / 10)}`, nho = ANH_NHO.get(k);
+  const k = `${lat.toFixed(4)},${lng.toFixed(4)},${Math.round(r / 20)},${huong == null ? '-' : Math.round(huong / 10)},${khu},${khuCam}`, nho = ANH_NHO.get(k);
   if (nho && Date.now() - nho.luc < 30 * 60e3) return tra(200, nho.kq);
-  try { const kq = await timAnhQuanh({ lat, lng, r, mly: MLY, huong: Number.isFinite(huong) ? huong : null }); if (!kq.loi.length) { ANH_NHO.set(k, { luc: Date.now(), kq }); if (ANH_NHO.size > 500) ANH_NHO.delete(ANH_NHO.keys().next().value); } tra(200, kq); }
+  try { const kq = await timAnhQuanh({ lat, lng, r, mly: MLY, huong: Number.isFinite(huong) ? huong : null, khu, khuCam }); if (!kq.loi.length) { ANH_NHO.set(k, { luc: Date.now(), kq }); if (ANH_NHO.size > 500) ANH_NHO.delete(ANH_NHO.keys().next().value); } tra(200, kq); }
   catch (e) { tra(502, { anh: [], loi: [e.message] }); }
 }
 const may = http.createServer((req, res) => {

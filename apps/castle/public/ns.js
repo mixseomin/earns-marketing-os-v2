@@ -1163,7 +1163,8 @@ const aq = ganAnhQuanh({ THREE, scene, nut: $('b-aq'), moGopY: () => hopGopY.mo(
     const h = tia.intersectObjects(scene.children.filter((o) => o.isMesh && o.visible && !o.isInstancedMesh), false)[0];
     const p = h ? h.point : di?.dang ? (({ x, y, z }) => ({ x, y: y - 0.9, z }))(di.viTri()) : orbit.target.clone();
     const d = camera.getWorldDirection(new THREE.Vector3()); // hướng la bàn camera đang nhìn (x đông, −z bắc) — lọc ảnh chụp cùng hướng
-    return { x: p.x, y: p.y, z: p.z, ten: khuTai(p.x, p.z) || 'điểm đang nhìn', huong: ((Math.atan2(d.x, -d.z) * 180) / Math.PI + 360) % 360 };
+    const c = di?.dang ? di.viTri() : camera.position; // khu chỗ đang đứng (trong sân / ngoài thành) → chọn danh mục ảnh Commons đúng phía
+    return { x: p.x, y: p.y, z: p.z, ten: khuTai(p.x, p.z) || 'điểm đang nhìn', khuCam: khuTai(c.x, c.z), huong: ((Math.atan2(d.x, -d.z) * 180) / Math.PI + 360) % 360 };
   } });
 // VẬT Ở XA KHÔNG VẼ: đi bộ thì sương mù kéo về 180–520 m + camera chỉ vẽ tới 600 m, ô rừng xa hơn 560 m tắt; xem toàn cảnh thì tầm theo độ cao / khoảng cách camera
 let lucXa = 0;

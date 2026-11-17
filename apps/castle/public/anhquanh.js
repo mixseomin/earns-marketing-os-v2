@@ -50,7 +50,7 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY, thay
     const [lat, lng] = raLatLng(diem.x, diem.z); diem.lat = lat; diem.lng = lng;
     dangTim = true; tt = 'Đang tìm ảnh trên Wikimedia Commons + Mapillary…'; ds = []; khac = []; hienKhac = false; dang = 0; chon = new Map(); ve();
     try {
-      const j = await (await fetch(`${MP}/mp/anh-quanh?lat=${lat.toFixed(6)}&lng=${lng.toFixed(6)}&r=${r}${Number.isFinite(diem.huong) ? '&huong=' + Math.round(diem.huong) : ''}`, { cache: 'no-store', credentials: 'same-origin' })).json();
+      const j = await (await fetch(`${MP}/mp/anh-quanh?lat=${lat.toFixed(6)}&lng=${lng.toFixed(6)}&r=${r}${Number.isFinite(diem.huong) ? '&huong=' + Math.round(diem.huong) : ''}&khu=${encodeURIComponent(diem.ten || '')}&khuCam=${encodeURIComponent(diem.khuCam || '')}`, { cache: 'no-store', credentials: 'same-origin' })).json();
       ds = j.anh || []; khac = j.khac || [];
       // bỏ ảnh BỊ CHE: chỗ chụp không nhìn thấy điểm qua mô hình (tường thành, khối nhà chắn giữa) — thay(lat, lng, điểm) do ns.js cấp
       if (thay) { const che = []; ds = ds.filter((a) => { if (thay(a.lat, a.lng, diem) !== false) return true; che.push({ ...a, biChe: true }); return false; }); khac = [...che, ...khac]; }
@@ -73,7 +73,7 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY, thay
       ${tt || dangTim ? `<div class="mo">${esc(tt)}</div>` : ''}
       ${a ? `<div class="lon"><img src="${esc(a.lon)}" alt="" title="Bấm để xem toàn màn hình"><span class="so">${dang + 1} / ${ds.length}</span>
           <button class="mui trai" ${dang ? '' : 'disabled'}>‹</button><button class="mui phai" ${dang < ds.length - 1 ? '' : 'disabled'}>›</button></div>
-        <div class="tt-anh"><span>${a.nguon === 'commons' ? 'Wikimedia Commons' : 'Mapillary'}${a.lechNhin == null ? '' : a.doan ? ` · hướng suy ra từ chỗ chụp, lệch ~${a.lechNhin}°` : ` · chụp hướng ${tenHuong(a.huong)}, lệch ${a.lechNhin}°`}${a.biChe ? ' · BỊ KHỐI NHÀ CHE (chỗ chụp không thấy điểm này)' : a.khacHuong ? ' · KHÁC HƯỚNG' : ''} · chụp cách ${a.kc} m${a.luc ? ' · ' + esc(a.luc) : ''} · ${esc(a.tacGia)} · ${esc(a.giayPhep)} · <a href="${esc(a.trang)}" target="_blank" rel="noopener">nguồn ↗</a></span>
+        <div class="tt-anh"><span>${a.nguon === 'commons' ? 'Wikimedia Commons' : 'Mapillary'}${a.danhMuc ? ` · danh mục "${esc(a.danhMuc)}" (ảnh chụp chính khu này, Commons không ghi hướng)` : a.lechNhin == null ? '' : a.doan ? ` · hướng suy ra từ chỗ chụp, lệch ~${a.lechNhin}°` : ` · chụp hướng ${tenHuong(a.huong)}, lệch ${a.lechNhin}°`}${a.biChe ? ' · BỊ KHỐI NHÀ CHE (chỗ chụp không thấy điểm này)' : a.khacHuong ? ' · KHÁC HƯỚNG' : ''} ${a.kc == null ? '' : `· chụp cách ${a.kc} m`}${a.luc ? ' · ' + esc(a.luc) : ''} · ${esc(a.tacGia)} · ${esc(a.giayPhep)} · <a href="${esc(a.trang)}" target="_blank" rel="noopener">nguồn ↗</a></span>
           <button id="aq-chon" class="${chon.has(k) ? 'chon' : ''}" ${!chon.has(k) && chon.size >= TOI_DA ? 'disabled' : ''}>${chon.has(k) ? '✓ Đã chọn' : '＋ Chọn ảnh này'}</button></div>
         <div class="dai">${ds.map((x, i) => `<img loading="lazy" data-i="${i}" src="${esc(x.nho)}" alt="" class="${i === dang ? 'dang' : ''} ${chon.has(x.nguon + x.id) ? 'da' : ''}">`).join('')}</div>` : ''}
       <div class="chan"><span>Đã chọn ${chon.size}/${TOI_DA} — ảnh chọn đi kèm thẻ góp ý để kỹ sư sửa theo · ← → đổi ảnh</span><button id="aq-gy" ${chon.size ? '' : 'disabled'}>💬 Góp ý kèm ảnh</button></div>`;

@@ -6,7 +6,7 @@
 //   Output: mediaAssetId + URL.
 
 import 'server-only';
-import { getOpenAI } from '@/lib/ai/openai';
+import OpenAI from 'openai';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { register, z } from './registry';
@@ -31,7 +31,8 @@ register({
   costEstimateCents: 6,                     // gpt-image-2 medium ~$0.053 1024²
   timeoutMs: 90_000,
   fn: async (input, ctx) => {
-    const client = getOpenAI();   // MỘT CỔNG AI (16/11/2026): vỏ OpenAI → cổng AI chung (sinh ảnh)
+    if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY chưa set');
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     // gpt-image-2 (mới nhất #1 — xem memory reference_image_gen_model).
     // Trả base64 (không trả url) → lưu data URL (bỏ bug url tạm hết hạn).
     const res = await client.images.generate({

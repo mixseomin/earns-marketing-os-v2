@@ -10,7 +10,7 @@
 // library_tools.runtime_module='toolkits/research' để DB knows tool callable.
 
 import 'server-only';
-import { getOpenAI } from '@/lib/ai/openai';
+import OpenAI from 'openai';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { register, z } from './registry';
@@ -130,7 +130,8 @@ register({
   costEstimateCents: 1,    // ~$0.00002/1K tokens ≈ 1 cent per call
   timeoutMs: 10_000,
   fn: async (input) => {
-    const client = getOpenAI();   // MỘT CỔNG AI (16/11/2026): vỏ OpenAI → cổng AI chung (nhúng chữ, 512 chiều)
+    if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY chưa set');
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const model = input.model ?? 'text-embedding-3-small';
     const res = await client.embeddings.create({ model, input: input.text });
     const vec = res.data[0]?.embedding ?? [];

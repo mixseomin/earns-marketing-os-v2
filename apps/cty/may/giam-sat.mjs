@@ -85,6 +85,11 @@ export function doDieuPhoi(chu, luc = Date.now()) {
   }
   return [...dem].filter(([, n]) => n >= NGUONG.thoat_loi).map(([ten, n]) => ({ loai: 'ngao', ai: ten, vat: `thoat-${ten}-${new Date(luc).toISOString().slice(0, 10)}`, chu: `việc nền "${ten}" thoát lỗi ${n} lần trong 24 giờ (nhật ký ${HOME}/.cache/dieu-phoi.log)` }));
 }
+/** Thuần: nội dung bộ điều phối đang cài vs bản main → cờ cai-dat. */
+export function doCaiDat(cai, moi, lenh) {
+  if (Buffer.compare(Buffer.from(cai), Buffer.from(moi)) === 0) return [];
+  return [{ loai: 'cai-dat', ai: 'iMac', vat: createHash('sha1').update(moi).digest('hex').slice(0, 10), chu: `bộ điều phối đang cài trên iMac (~/viec-nen/dieu-phoi.mjs) khác bản main — sửa trong dieu-phoi.mjs chưa chạy thật. Cài: ${lenh}` }];
+}
 /** Nhật ký việc nền → số dòng lỗi trong 24 giờ (dòng mở đầu bằng mốc ISO). */
 export const LOI = /lỗi|hỏng|quá \d+ phút|timeout|\bError\b|✗|chưa nhận việc|tự đóng/i;
 export const demLoi = (chu, luc = Date.now()) => String(chu).split('\n').filter((l) => { const t = Date.parse(l.slice(0, 24)); return t && luc - t < 864e5 && LOI.test(l); }).length;
@@ -127,7 +132,7 @@ async function luot({ chiDo }) {
   try { dir = cayRieng('ha').dir ?? dir; } catch (e) { log(`cây riêng Hà chưa kéo được: ${String(e.message).split('\n')[0]}`); }   // kéo cây lên main cho lượt sau
   const [chinh, soul] = box(`cat ${DATA}/nhip-chinh.json 2>/dev/null || echo {}; echo '@@'; grep -E '^model_cli:' ${APP}/cong-ty/nhan-su/ha/SOUL.md || true`).split('@@');
   if (JSON.parse(chinh.trim() || '{}').ha?.bat === false) { log('Hà đang tắt'); return; }
-  const st = docSt(), luc = Date.now(), tu = st.luc ?? luc - 864e5, co = [];
+  const st = docSt(), luc = Date.now(), tu = st.luc ?? luc - 864e5, co = [], MAY = path.dirname(new URL(import.meta.url).pathname);
   // 1a. sổ kinh nghiệm + chính Hà
   const sl = JSON.parse(box(`cd ${APP} && CTY_DATA_DIR=${DATA} node worker/giam-sat-lam.mjs --so-lieu`));
   fs.writeFileSync(path.join(TRAM, 'so-kinh-nghiem.json'), JSON.stringify(sl.so, null, 1)); co.push(...doSo(sl.so));
@@ -159,8 +164,12 @@ async function luot({ chiDo }) {
   // 1d'. VIỆC NỀN THOÁT LỖI LẶP (17/11/2026: "Astrolas - site cục bộ cho Thành" thoát mã 1 4.608 lần — cổng 8000 bị một bản php khác giữ — mà máy đo chỉ đọc
   //      nhật ký việc của kỹ sư nên không ai thấy): đếm "■ <tên> mã N≠0" trong nhật ký bộ điều phối 24 giờ qua, mọi việc nền.
   try { const t = fs.readFileSync(path.join(HOME, '.cache', 'dieu-phoi.log'), 'utf8').slice(-4 << 20); co.push(...doDieuPhoi(t, luc)); } catch (e) { co.push({ loai: 'ngao', ai: 'dieu-phoi', vat: 'khong-doc', chu: `không đọc được nhật ký bộ điều phối: ${String(e.message).split('\n')[0]}` }); }
+  // 1d''. BỘ ĐIỀU PHỐI CÀI CŨ (17/11/2026: Hà sửa dieu-phoi.mjs ở 7bbdd9f23 nhưng bản cài ~/viec-nen/dieu-phoi.mjs vẫn là bản 25/10 → bản sửa không chạy thật,
+  //       không gì báo Hà là phải cài): bản cài khác bản trên main → cờ cai-dat, khoá theo mã nội dung bản main (main đổi thì cờ mới).
+  { const cai = path.join(HOME, 'viec-nen', 'dieu-phoi.mjs'), moi = path.join(MAY, 'dieu-phoi.mjs');
+    if (fs.existsSync(cai) && fs.existsSync(moi)) co.push(...doCaiDat(fs.readFileSync(cai), fs.readFileSync(moi), `bash ${path.resolve(MAY, '..', '..', '..')}/apps/cty/may/cai.sh iMac`)); }
   // 1e. quyền bị nới (đọc may/*.mjs của cây Hà — cây theo main)
-  const MAY = path.dirname(new URL(import.meta.url).pathname), q = new Set(fs.readdirSync(MAY).filter((f) => f.endsWith('.mjs')).flatMap((f) => quyenTrong(fs.readFileSync(path.join(MAY, f), 'utf8'))));
+  const q = new Set(fs.readdirSync(MAY).filter((f) => f.endsWith('.mjs')).flatMap((f) => quyenTrong(fs.readFileSync(path.join(MAY, f), 'utf8'))));
   if (st.quyen) for (const x of q) if (!st.quyen.includes(x)) co.push({ loai: 'bao-mat', ai: 'quyen', vat: x, chu: `quyền mới cho kỹ sư: Bash(${x})` });
 
   const daBao = Object.fromEntries(Object.entries(st.da_bao ?? {}).filter(([, t]) => luc - t < 7 * 864e5));
@@ -247,6 +256,7 @@ if (process.argv[1] === new URL(import.meta.url).pathname && process.argv.includ
   { const l = Date.now(), d = new Date(l - 36e5), hm = (x) => String(x).padStart(2, '0'), dong = (ma) => `${hm(d.getMonth() + 1)}-${hm(d.getDate())} ${hm(d.getHours())}:${hm(d.getMinutes())} ■ Astrolas - site cục bộ mã ${ma} sau 1 giây`;
     t.equal(doDieuPhoi(Array.from({ length: 25 }, () => dong(1)).join('\n'), l).length, 1, 'thoát lỗi 25 lần / 24 giờ → cờ');
     t.equal(doDieuPhoi(Array.from({ length: 25 }, () => dong(0)).join('\n'), l).length, 0, 'thoát mã 0 không tính'); }
+  t.equal(doCaiDat('a', 'b', 'x')[0].loai, 'cai-dat', 'bản cài khác main → cờ'); t.equal(doCaiDat('a', 'a', 'x').length, 0, 'giống nhau → im');
   t.notEqual(khoa({ loai: 'a', ai: 'b', vat: 'c' }), khoa({ loai: 'a', ai: 'b', vat: 'd' }));
   console.log('✓ giam-sat: học sai / lệch / phình / lộ bí mật, lệnh cấm, lỗi 24 giờ, quyền mới, lệnh LÀM hợp lệ');
 } else if (process.argv[1] === new URL(import.meta.url).pathname) await luot({ chiDo: process.argv.includes('--do') });

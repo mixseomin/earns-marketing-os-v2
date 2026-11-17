@@ -1,48 +1,42 @@
 {
- "luc": "2026-11-17T09:42:13.090Z",
+ "luc": "2026-11-17T09:55:29.180Z",
  "mat": {
   "way/223110823#3": {
    "ten": "Torbau — khối cổng kem (mặt đông)",
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
-   "khop": 5,
+   "khop": 6,
    "loi": [
     "dinh: rang_cua ảnh 10 · mô hình 5 (THIẾU)",
-    "dinh: thap_canh ảnh 2 · mô hình 0 (THIẾU)",
     "than_tren: go_ngang ảnh 2 · mô hình 0 (THIẾU)"
    ],
    "loai_sai": [
     "rang_cua",
-    "thap_canh",
     "go_ngang"
    ]
   },
   "way/223110823#4": {
    "ten": "Torbau — khối cổng kem (mặt đông)",
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
-   "khop": 5,
+   "khop": 6,
    "loi": [
     "dinh: rang_cua ảnh 10 · mô hình 5 (THIẾU)",
-    "dinh: thap_canh ảnh 2 · mô hình 0 (THIẾU)",
     "than_tren: go_ngang ảnh 2 · mô hình 0 (THIẾU)"
    ],
    "loai_sai": [
     "rang_cua",
-    "thap_canh",
     "go_ngang"
    ]
   },
   "way/223110820#14": {
    "ten": "Torbau — khối cổng kem (mặt đông)",
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
-   "khop": 5,
+   "khop": 6,
    "loi": [
     "dinh: rang_cua ảnh 10 · mô hình 5 (THIẾU)",
-    "dinh: thap_canh ảnh 2 · mô hình 0 (THIẾU)",
     "than_tren: go_ngang ảnh 2 · mô hình 0 (THIẾU)"
    ],
    "loai_sai": [
     "rang_cua",
-    "thap_canh",
     "go_ngang"
    ]
   },

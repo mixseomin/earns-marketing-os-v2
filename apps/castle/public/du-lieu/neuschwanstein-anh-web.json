@@ -60,5 +60,17 @@
   "lng": null,
   "huong": null,
   "luc": "2016-03-11"
+ },
+ {
+  "tep": "anh/web/mapillary-181719180454445.jpg",
+  "nguon": "mapillary",
+  "id": "181719180454445",
+  "trang": "https://www.mapillary.com/app/?pKey=181719180454445",
+  "tacGia": "gpsvid / Mapillary",
+  "giayPhep": "CC BY-SA 4.0",
+  "lat": 47.557634117461,
+  "lng": 10.74934982703,
+  "huong": 98,
+  "luc": "2013-07-06"
  }
 ]

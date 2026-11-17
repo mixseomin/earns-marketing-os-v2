@@ -497,6 +497,8 @@ export function DataTable<T>({
         const cs = getComputedStyle(el); if (!dinhDo.has(el)) { dinhDo.add(el); ro.observe(el); }   // thanh dính đổi cao (etp: dải số gọn hiện khi cuộn qua hero) → đo lại
         if (cs.position === 'sticky' && !el.contains(thanRef.current) && (el.compareDocumentPosition(thanRef.current) & Node.DOCUMENT_POSITION_FOLLOWING)) tren = Math.max(tren, (parseFloat(cs.top) || 0) + el.getBoundingClientRect().height);
       }
+      // không có thanh dính nào phía trên: sticky tính từ mép trong lề đệm của khung cuộn → top:0 chừa một dải paddingTop lộ thân bảng; kéo ngược đúng bằng lề cho tiêu đề sát mép (#1658)
+      if (tren === 0 && sc) tren = -(parseFloat(getComputedStyle(sc).paddingTop) || 0);
       setDinhTren((o) => (Math.abs(o - tren) < 0.5 ? o : tren));
       const le = sc ? parseFloat(getComputedStyle(sc).paddingBottom) || 0 : 0;
       setLeDuoi((o) => (Math.abs(o - le) < 0.5 ? o : le));

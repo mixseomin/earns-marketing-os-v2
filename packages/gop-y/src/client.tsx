@@ -17,7 +17,7 @@ export type HanhDongGopY = {
   guiTraoDoi: (input: { taskId: number; noiDung: string; anhUrls: string[]; xuLy: string }) => Promise<Kq>;
   taiAnhGopY: (dataUrl: string) => Promise<{ ok: boolean; url?: string; error?: string }>;
   xoaAnhGopY?: (url: string) => Promise<unknown>;
-  /** Hàng việc giao thẳng cho kỹ sư phụ trách hòm (bọc `hangGiao` của @mos2/gop-y/server) — hiện ở tab Của tôi. Thiếu / null thì không hiện mục. */
+  /** Hàng việc giao thẳng cho kỹ sư phụ trách hòm (bọc `hangGiao` của @mos2/gop-y/server) — hiện ở tab Việc giao riêng (#1662). Thiếu / null thì không hiện mục. */
   hangGiao?: () => Promise<HangGiao | null>;
 };
 export type KhungHom = ComponentType<{ onClose: () => void; tieuDe: ReactNode; dau: ReactNode; children: ReactNode }>;
@@ -296,7 +296,7 @@ export function ImageAttach({ value, onChange, max = 6, upload, xemAnh, xoaAnh, 
   );
 }
 
-type TabGopY = 'gui' | 'cua-toi' | 'hoi-dap';
+type TabGopY = 'gui' | 'cua-toi' | 'hoi-dap' | 'viec-giao';
 type Nhap = { loai: string; noiDung: string; anh: string[] };
 const TRANG_MOI: Nhap = { loai: 'loi', noiDung: '', anh: [] };
 const docNhap = (KHOA: string): Nhap => {
@@ -582,7 +582,7 @@ export function HomGopY(p: CauHinhHom) {
   const { ten, khoa, hd, Khung } = p;
   const cfg: Cfg = { khoa, hd, xemAnh: p.xemAnh, nut: p.nut ?? { thuong: 'gy-btn', chinh: 'gy-btn chinh' }, chonNgan: p.chonNgan ?? '[role=dialog]', chonLoi: p.chonLoi ?? '[data-loi]' };
   const [mo, setMo] = useState(false);
-  const [tab, doiTab] = useNho<TabGopY>(`${khoa}.gop-y.tab`, 'gui', ['gui', 'cua-toi', 'hoi-dap']);
+  const [tab, doiTab] = useNho<TabGopY>(`${khoa}.gop-y.tab`, 'gui', ['gui', 'cua-toi', 'hoi-dap', 'viec-giao']);
   const [vuaGui, setVuaGui] = useState<number | null>(null);
   useEffect(() => { if (vuaGui == null) return; const t = setTimeout(() => setVuaGui(null), 4000); return () => clearTimeout(t); }, [vuaGui]);
   const [ds, setDs] = useState<GopYCuaToi[] | null>(null);
@@ -636,13 +636,15 @@ export function HomGopY(p: CauHinhHom) {
             <button type="button" className={tab === 'gui' ? cfg.nut.chinh : cfg.nut.thuong} onClick={() => doiTab('gui')}>Gửi góp ý</button>
             <button type="button" className={tab === 'cua-toi' ? cfg.nut.chinh : cfg.nut.thuong} onClick={() => doiTab('cua-toi')}>Của tôi{conMo ? ` (${conMo})` : ''}</button>
             <button type="button" className={tab === 'hoi-dap' ? cfg.nut.chinh : cfg.nut.thuong} onClick={() => doiTab('hoi-dap')} title="Câu hỏi đã gửi + câu trả lời; trả lời tiếp ngay trong luồng">Hỏi đáp{hoi?.length ? ` (${hoiCoTraLoi ? `${hoiCoTraLoi} có trả lời · ` : ''}${hoi.length})` : ''}</button>
+            {/* Việc giao có tab riêng (góp ý #1662): trước nằm chồng trên đầu tab Của tôi */}
+            {hg && <button type="button" className={tab === 'viec-giao' ? cfg.nut.chinh : cfg.nut.thuong} onClick={() => doiTab('viec-giao')} title={`Việc giao thẳng cho ${hg.ten || hg.nguoi}`}>Việc giao{hg.viec.some((v) => v.trang_thai !== 'xong') ? ` (${hg.viec.filter((v) => v.trang_thai !== 'xong').length})` : ''}</button>}
           </div>
         }>
           <div data-gop-y="">
             <div data-gy-dang-lam="" title="Nạp lại mỗi 60 giây" style={{ fontSize: 11.5, padding: '5px 8px', marginBottom: 8, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: dem.working ? 'var(--fg-2)' : 'var(--fg-3)' }}>
               {dem.working ? <>🔧 <b>AI đang làm:</b> {dem.dangLam.join(' · ') || `${dem.working} việc`}</> : 'AI đang rảnh'}
             </div>
-            {tab === 'gui' ? <FormGopY onGui={daGui} /> : tab === 'hoi-dap' ? <CuaToi ds={hoi} onNap={nap} trong="Chưa có câu hỏi nào — chọn Loại: Câu hỏi khi gửi." /> : <><DsViecGiao hg={hg} /><CuaToi ds={ds} onNap={nap} /></>}
+            {tab === 'gui' ? <FormGopY onGui={daGui} /> : tab === 'hoi-dap' ? <CuaToi ds={hoi} onNap={nap} trong="Chưa có câu hỏi nào — chọn Loại: Câu hỏi khi gửi." /> : tab === 'viec-giao' && hg ? <DsViecGiao hg={hg} /> : <CuaToi ds={ds} onNap={nap} />}
           </div>
         </Khung>
       )}

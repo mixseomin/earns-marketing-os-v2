@@ -225,7 +225,9 @@ export function ghiMay(dong) {
   // dòng { ap: { id, luc, ok, loi } } = bộ điều phối báo đã ÁP lịch admin đặt (lich-may.mjs datLichNen) → ô chỉnh hết "chờ áp" / hiện lỗi đỏ
   for (const e of dong) if (e?.ap && String(e.ap.id ?? '').startsWith(TIEN_TO_NEN)) { ghiAp(String(e.ap.id), String(e.ap.luc ?? ''), !!e.ap.ok, String(e.ap.loi ?? '')); ghi++; }
   // dòng mang thẳng người (kỹ sư tự báo 'nhận việc' — bộ chạy biết tên mình, không qua nhãn launchd)
-  for (const e of dong) if (e?.nguoi && nguoi.some((x) => x.id === e.nguoi)) { ghiLam(e.nguoi, String(e.ket ?? '').slice(0, 500), String(e.viec ?? 'viec'), e.luc || undefined, e.tiep); ghi++; }
+  // '◆ nhận …' chỉ vào nhật ký TỪNG LẦN (.jsonl): dòng cuối <người>.json giữ '▶ bắt đầu' để nút 💬 (gói gop-y luotDangChay) còn rung
+  for (const e of dong) if (e?.nguoi && nguoi.some((x) => x.id === e.nguoi)) { const d = { luc: e.luc || new Date().toISOString(), viec: String(e.viec ?? 'viec'), ket: String(e.ket ?? '').slice(0, 500) };
+    fs.mkdirSync(path.dirname(tepNk(e.nguoi)), { recursive: true }); fs.appendFileSync(tepNk(e.nguoi), `${JSON.stringify(d)}\n`); ghi++; }
   for (const e of dong) for (const v of theoNhan[e?.nhan] ?? [])for (const n of nguoi.filter((x) => x.viec.includes(v))) { ghiLam(n.id, String(e.ket ?? '').slice(0, 500), v, e.luc || undefined, e.tiep); ghi++; }
   return ghi;
 }

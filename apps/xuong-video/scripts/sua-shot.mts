@@ -1,5 +1,5 @@
 // SỬA DỮ LIỆU SHOT CỦA MỘT TẬP TỪ MỘT TỆP VÁ (0đ) — cho tập dựng thẳng trên DB (bản sao, phim không có bộ dựng nguồn như tong-tai/): mỗi mục vá
-// một shot theo thu_tu, gộp sâu vào ky_thuat / dan_dung / may_3d (vi_tri gộp theo tên nhân vật), ghi đè các cột chữ. Chụp trước (hoan-tac.ts) nên
+// một shot theo thu_tu, gộp sâu vào ky_thuat / dan_dung / may_3d (vi_tri gộp theo tên nhân vật — tên chưa có thì thêm), ghi đè các cột chữ. Chụp trước (hoan-tac.ts) nên
 // ↶ hoàn tác được trên studio. Sửa may_3d → mã khung xám đổi → `bo-set.mts --dung` dựng lại đúng các shot đó.
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/sua-shot.mts <tap_id> <vá.json>
@@ -45,7 +45,9 @@ for (const v of va.filter((x) => !x.tach?.length)) {
     const cu = (r[0].may_3d ?? {}) as Record<string, unknown> & { vi_tri?: Record<string, unknown>[] };
     const { vi_tri: viVa, ...khac } = v.may_3d;
     const m = gop(cu, khac) as Record<string, unknown> & { vi_tri?: Record<string, unknown>[] };
-    if (viVa) m.vi_tri = (cu.vi_tri ?? []).map((x) => (viVa[String(x.ten)] ? gop(x, viVa[String(x.ten)]) : x)) as Record<string, unknown>[];
+    // vi_tri gộp theo tên; tên CHƯA có trong shot (shot mới chèn, chưa đặt máy — 17/11/2026 #15/#17/#19 phim #3071) thì THÊM, trước đây bị bỏ im lặng
+    if (viVa) { const da = new Set((cu.vi_tri ?? []).map((x) => String(x.ten)));
+      m.vi_tri = [...(cu.vi_tri ?? []).map((x) => (viVa[String(x.ten)] ? gop(x, viVa[String(x.ten)]) : x)), ...Object.entries(viVa).filter(([ten]) => !da.has(ten)).map(([ten, x]) => ({ ten, ...x }))] as Record<string, unknown>[]; }
     await ghi('may_3d', m);
   }
   for (const k of ['hanh_dong', 'canh', 'prompt_anh', 'prompt_video', 'phat_s', 'thoi_luong_s'] as const) if (v[k] != null) await ghi(k, v[k]);

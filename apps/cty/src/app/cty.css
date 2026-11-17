@@ -603,3 +603,6 @@ span.cty-lich-o{border-color:transparent;background:none;padding-inline:0}
 .cty-ten-viec{display:inline-flex;max-width:100%;align-items:center;gap:6px;min-width:0}.cty-ten-viec>a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cty-den.cho{outline:1.5px dashed var(--warn);outline-offset:2px}
 .cty-mo-rong{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;margin-top:3px}.cty-mo-rong-nut{font:inherit;border:0;background:none;padding:0;color:var(--accent);cursor:pointer}
+
+/* góp ý #1663: ô Mô hình dài (kỹ sư CLI) không bị cắt, nút ✎ luôn thấy */
+.cty-chinh-model{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:2px 4px;white-space:normal;max-width:100%}.cty-chinh-model>*{white-space:normal;overflow-wrap:anywhere}.cty-chinh-ca{display:flex;flex-wrap:wrap;gap:4px;align-items:center;white-space:normal}.cty-chinh-ca input:not([type]){max-width:100%;min-width:0}

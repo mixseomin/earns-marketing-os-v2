@@ -1270,10 +1270,9 @@
   }
  ],
  "tu_dong": {
-  "lan": 1,
-  "luc": "2026-11-02T18:33:38.602Z",
-  "loi": "} ·  · Node.js v25.6.1",
-  "tho": "2026-11-02T18:33:44.318Z"
+  "lan": 2,
+  "luc": "2026-11-02T19:41:06.517Z",
+  "loi": null
  },
  "anh_bia": {
   "commons": "File:Bellini, Gentile - Sultan Mehmet II.jpg",
@@ -1298,5 +1297,17 @@
    "tu": "Suleiman the Magnificent"
   }
  ],
- "chu_de_chon": "How did the Ottoman Empire lose its largest European city after 500 years of rule?"
+ "chu_de_chon": "How did the Ottoman Empire lose its largest European city after 500 years of rule?",
+ "thumb": {
+  "chu": "HE STARTED AT 21",
+  "phu": "TITLE GRAB",
+  "anh": "tranh/yesterdays-news-tonight-20261103-bia-9b92d034.jpg",
+  "commons": "File:Bellini, Gentile - Sultan Mehmet II.jpg",
+  "url": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-20261103/thumb-669a9a996afd.jpg",
+  "xet": {
+   "chan": [],
+   "canh": [],
+   "luc": "2026-11-02T22:17:24.654Z"
+  }
+ }
 }

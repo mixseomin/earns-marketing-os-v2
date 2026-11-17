@@ -4620,6 +4620,7 @@
      ],
      "goc_may": "Wide two-shot",
      "hanh_dong": "{{nhan_vat_ten}} has handed over the new {{san_pham}}; {{nguoi_2_ten}} holds the pair up by the waistband, fully unfolded, looking it up and down, skeptical",
+     "hanh_dong_vi": "{{nhan_vat_ten}} vừa đưa chiếc {{san_pham}} mới; {{nguoi_2_ten}} cầm cạp giơ cả chiếc quần đã mở sẵn lên, nhìn từ trên xuống dưới, nghi ngờ",
      "chu_man": "{{nguoi_gioi_thieu}}",
      "loi": "{{nguoi_gioi_thieu}}",
      "prompt_anh": "{{nhan_vat_hinh}} beside {{nguoi_2_hinh}}, who holds up by the waistband a fully unfolded pair of {{san_pham_hinh}}, {{boi_canh}}",
@@ -4628,7 +4629,6 @@
      "bt": [
       "m1"
      ],
-     "hanh_dong_vi": "{{nhan_vat_ten}} vừa đưa chiếc {{san_pham}} mới; {{nguoi_2_ten}} cầm cạp giơ cả chiếc quần đã mở sẵn lên, nhìn từ trên xuống dưới, nghi ngờ",
      "bieu_cam": [
       {
        "nv": "{{nhan_vat_ten}}",

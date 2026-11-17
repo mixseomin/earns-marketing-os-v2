@@ -110,7 +110,21 @@ def chan_sau_giam(cid):
     return None
 ROI_TANG_LAI = 50
 
-def tat_loat(ids, luat, ai, t7=False, ep=False):
+CAM_BIEN = BANG_LUAT["phanh_cho"]["cam_bien"]
+def giu_cam_bien(ids, ds, ai, bo=False, xep=None):
+    """CAMP CẢM BIẾN GIÁ CHỢ (anh 17/11/2026 duyệt: hết camp chạy thì không còn số giá chợ để biết lúc nào bắt đầu lại — sổ luật phanh_cho.cam_bien):
+    sau lượt tắt nhà còn < so camp ACTIVE và đội chi 6 giờ gần nhất < doi_chi_6h → giữ lại (so − còn) camp tốt nhất trong danh sách tắt (xep: khoá xếp, lớn = tốt).
+    Ngân sách giữ nguyên, không tăng. Nút anh bấm (etp2 / Telegram) không giữ (không chặn thao tác tay); lệnh chat bỏ giữ bằng --bo-cam-bien. → {camp_id: lý do}"""
+    a = (ai or "").strip().lower()
+    if bo or a == "anh (etp2)" or "(nút telegram)" in a: return {}
+    dang = {c for c, x in ds.items() if x.get("state") == "ACTIVE"}; con = len(dang - set(ids)); thieu = CAM_BIEN["so"] - con
+    if thieu <= 0: return {}
+    doi = float(q("select coalesce(sum(chi), 0) from etp.so_gio_ngoai where ngay + make_interval(hours => gio::int) >= (now() at time zone 'utc') - interval '6 hours'") or 0)
+    if doi >= CAM_BIEN["doi_chi_6h"]: return {}
+    return {c: f"giữ làm CAMP CẢM BIẾN giá chợ — tắt thì nhà còn {con} camp chạy, đội chi 6 giờ ${doi:.0f} < ${CAM_BIEN['doi_chi_6h']:g} (sổ luật phanh_cho.cam_bien; tắt nốt: --bo-cam-bien)"
+            for c in sorted([c for c in ids if c in dang], key=xep or (lambda c: 0), reverse=True)[:thieu]}
+
+def tat_loat(ids, luat, ai, t7=False, ep=False, bo=False):
     """TẮT HÀNG LOẠT (anh 26/10/2026: "sao ko gửi hàng loạt — backend có nút select all rồi set"): cùng chặn như `tat` nhưng đọc số MỘT lần cho cả danh sách
     (3 lượt Report: hôm nay · 2 ngày · từ đầu tháng) + một danh sách camp, rồi MỘT lệnh bulk mỗi 50 camp, đọc lại một lần. Bản cũ gọi từng camp ~25 giây/camp."""
     import datetime as dt
@@ -140,6 +154,8 @@ def tat_loat(ids, luat, ai, t7=False, ep=False):
               f"cộng dồn ROI {roi(tong, c):+.0f}%" if (roi(tong, c) or -1e9) > 0 else None)
         if ly and not ep: kq["giu"][c] = ly   # ep: anh lệnh tắt cả danh sách (anh 26/10/2026 với luật T7: không giữ camp "hôm nay đang lãi")
         else: kq["gui"].append(c)
+    cb = giu_cam_bien(kq["gui"], ds, ai, bo, xep=lambda c: (roi(nay, c) or -1e9, roi(hai, c) or -1e9))   # --ep không bỏ được cảm biến, chỉ --bo-cam-bien
+    kq["giu"].update(cb); kq["gui"] = [c for c in kq["gui"] if c not in cb]
     for i in range(0, len(kq["gui"]), 50):
         r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": kq["gui"][i:i + 50], "status": "paused"}])
         d0 = (r.get("data") or [{}])[0]
@@ -168,9 +184,10 @@ def main(a):
     # _loc + _du_tang) cách đó vài phút. Lệnh tăng KHÔNG chấm lại cổng bằng số cả ngày (du_don): hai cách đo lệch nhau ở ca sát ngưỡng → 23 lần / 7 ngày máy xếp tăng
     # rồi chính lệnh tăng chặn "vừa tăng — chờ" (rà 12/11/2026, anh "không thể lỗi ở bất kỳ khâu nào"). Khoá sau giảm, nhịp ≥ 3 giờ ngoài khung nhanh, mức, trần vẫn chặn.
     du_luat = "--du-luat" in a and str(ai or "").startswith("máy tự tăng")
-    a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai", "--ep", "--bo-nhip", "--du-luat") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
+    bo_cb = "--bo-cam-bien" in a   # anh lệnh tắt nốt cả camp cảm biến giá chợ (sổ luật phanh_cho.cam_bien)
+    a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai", "--ep", "--bo-nhip", "--du-luat", "--bo-cam-bien") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
     if a[0] == "tat-loat":   # tat-loat <id,id,…> --luat … --ai … [--t7]
-        print(json.dumps(tat_loat([int(x) for x in a[1].split(",") if x.strip().isdigit()], luat, ai, t7="--t7" in sys.argv, ep=ep), ensure_ascii=False)); return
+        print(json.dumps(tat_loat([int(x) for x in a[1].split(",") if x.strip().isdigit()], luat, ai, t7="--t7" in sys.argv, ep=ep, bo=bo_cb), ensure_ascii=False)); return
     viec, cid = a[0], int(a[1]); kq = {"ok": False, "viec": viec, "id": cid}
     try:
         truoc = doc(cid); kq["truoc"] = truoc
@@ -212,6 +229,8 @@ def main(a):
             # theo số chụp lúc 09:50, doanh thu về trễ). Đọc ROI cộng dồn MỚI NHẤT ngay lúc tắt; > 20% thì từ chối, trừ --ep (anh lệnh đích danh).
             lai = None if ep else dang_lai(cid, t7=(luat or "").startswith("T7"))
             if lai: raise ValueError(f"không tắt: {lai}")
+            cb = giu_cam_bien([cid], {int(c["id"]): c for c in api("/api/v1/campaigns?page_size=2000")["data"]}, ai, bo_cb)
+            if cb: raise ValueError(f"không tắt: {cb[cid]}")
             r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "paused"}])
             d0 = (r.get("data") or [{}])[0]
             if d0 and d0.get("ok") is False: raise ValueError(d0.get("error") or "Ethopex từ chối tắt")

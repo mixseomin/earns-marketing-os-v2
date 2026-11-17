@@ -17,6 +17,10 @@ type TrangThai = {
   /** như gia6_nay nhưng cửa sổ GỒM giờ đang chạy — số hiển thị nhiệt kế (gần thời gian thực) */
   gia_nay?: number | null;
   gia_nay_luc?: string | null;
+  /** số đo THÔ 24 giờ (ít camp chạy — sổ luật phanh_cho.cam_bien) */
+  gia_tho?: boolean;
+  /** nguồn số giá chợ trong cửa sổ đang đo: chi nhà / đội ($), lượt hiển thị cả chợ (gia_adsense.py) */
+  nguon?: { gio: number; nha: number; doi: number; imp: number } | null;
   roi_sang?: { ngay: string; roi: number; kem: number; den: string } | null;
   rut?: { ngay: string; gia: number; roi: number; den: string } | null;
 };
@@ -76,7 +80,7 @@ export function NhietKeCho({ cauHinh, dinh }: { cauHinh: { khoa: string; gia_tri
   return <span data-nhiet-ke={dinh ? 'dinh' : 'dong'} onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { if (e.currentTarget.contains(e.target as Node)) noi.moNgay({ id: 0 }, e); }} /* bấm Giờ / Ngày trong thẻ (portal) cũng nổi bọt lên đây → trước dời thẻ theo con trỏ rồi tắt (anh 17/11/2026) */
     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 9px 2px 6px', borderRadius: 999, border: `1px solid ${mau}`, background: 'var(--bg-1, #0b0d12)', color: 'var(--fg, #e5e7eb)', fontSize: 12, lineHeight: 1.4, whiteSpace: 'nowrap', alignSelf: 'center', cursor: 'pointer',
       ...(dinh ? { position: 'fixed' as const, right: 12, bottom: 12, zIndex: 70, boxShadow: '0 2px 10px #0009' } : {}) }}>
-    {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={384} cao={260} noi={noi} style={{ zIndex: 80 }}><TheGiaCho cauHinh={cauHinh} pt={pt} luc={tt?.gia_nay_luc ?? null} /></KhungNoi> : null}
+    {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={384} cao={260} noi={noi} style={{ zIndex: 80 }}><TheGiaCho cauHinh={cauHinh} pt={pt} tt={tt} /></KhungNoi> : null}
     <span style={{ display: 'inline-flex', alignItems: 'center' }}>
       <span style={{ width: 11, height: 11, borderRadius: '50%', background: mau, marginRight: -2, zIndex: 1 }} />
       <span style={{ position: 'relative', width: 58, height: 5, borderRadius: '0 3px 3px 0', background: 'var(--line, #333)', overflow: 'hidden' }}>
@@ -84,7 +88,7 @@ export function NhietKeCho({ cauHinh, dinh }: { cauHinh: { khoa: string; gia_tri
         <span style={{ position: 'absolute', left: `${phanh / TRAN * 100}%`, top: 0, bottom: 0, width: 1.5, background: '#fff' }} />
       </span>
     </span>
-    <b style={{ color: mau }}>{pt == null ? '?' : `${pt}%`}</b>{/* chỉ số (anh 17/11/2026 "ko cần ghi chữ. Chỉ cần số. Hover vào mới ra thông tin") */}
+    <b style={{ color: mau }}>{pt == null ? '?' : `${tt?.gia_tho ? '~' : ''}${pt}%`}</b>{/* chỉ số (anh 17/11/2026 "ko cần ghi chữ. Chỉ cần số. Hover vào mới ra thông tin") */}
   </span>;
 }
 
@@ -115,7 +119,8 @@ function chuoiNgay(so: Record<string, { irpm?: number | null }>): Diem[] {
   }).filter((x) => x.ti != null).slice(-30);
 }
 const KHOA_CHE = 'etp-gia-cho-che';
-function TheGiaCho({ cauHinh, pt, luc }: { cauHinh: { khoa: string; gia_tri: unknown }[]; pt: number | null; luc: string | null }) {
+function TheGiaCho({ cauHinh, pt, tt }: { cauHinh: { khoa: string; gia_tri: unknown }[]; pt: number | null; tt: TrangThai | null }) {
+  const luc = tt?.gia_nay_luc ?? null, ng = tt?.nguon;
   const [che, setChe] = useState<'gio' | 'ngay'>('gio');
   useEffect(() => { try { if (localStorage.getItem(KHOA_CHE) === 'ngay') setChe('ngay'); } catch { /* trình duyệt chặn kho → giữ mặc định Giờ */ } }, []);
   const chon = (c: 'gio' | 'ngay') => { setChe(c); try { localStorage.setItem(KHOA_CHE, c); } catch { /* như trên */ } };
@@ -129,6 +134,7 @@ function TheGiaCho({ cauHinh, pt, luc }: { cauHinh: { khoa: string; gia_tri: unk
       <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}>{nut('gio', 'Giờ')}{nut('ngay', 'Ngày')}</span>
     </div>
     <BieuDoTi ds={ds} />
+    {ng ? <div data-nguon-gia style={{ marginTop: 4 }}>Đo từ {ng.gio} giờ qua: nhà <b>${Math.round(ng.nha)}</b> · đội <b>${Math.round(ng.doi)}</b> · {ng.imp.toLocaleString('vi-VN')} lượt hiển thị{tt?.gia_tho ? <b style={{ color: '#f59e0b' }}> · số thô (ít camp chạy)</b> : null}</div> : null}
     <div style={{ color: 'var(--fg-3, #888)', marginTop: 4, lineHeight: 1.4 }}>
       {che === 'gio' ? `Mỗi điểm = ${PC.truot.gio} giờ cả chợ tới mốc đó / cùng khung ${PC.nen_ngay} ngày trước.` : `Mỗi điểm = ngày Ethopex (07:00 → 07:00) / trung bình ${PC.nen_ngay} ngày trước.`} Vạch vàng {Math.round(PC.truot.nguong * 100)}% = phanh · đỏ {Math.round(PC.rut.gia * 100)}% = rút.{luc ? ` Đo lúc ${gioVn(luc)}.` : ''}
     </div>

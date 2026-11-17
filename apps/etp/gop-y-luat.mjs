@@ -1262,7 +1262,7 @@ export const LUAT = [
   { card: 'bao-tri-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: "c.khoa === 'bao_tri_len'", vi: 'biển bảo trì lên camp trên etp + etp2 cho cả team' },
   { card: 'bien-mot-dong-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', mot: 'role="alert"', vi: 'mọi trạng thái phanh / bảo trì chỉ MỘT dải một dòng, không chồng dải (anh 17/11/2026)' },
   // anh 17/11/2026 "Áp dụng đi và làm sao để báo cho cả đội biết": ba nấc cảnh báo sớm (giá 6 giờ trượt · ROI sáng kém nền · rút khỏi chợ)
-  { card: 'bao-som-1711', tep: 'apps/etp/gia_adsense.py', co: 'som = xet_som(luc, cu, gia_truot(so_gio, luc), roi_sang(nha_gio, luc), moi["hom_nay"]["ti"])', vi: 'máy đồng bộ xét ba nấc cảnh báo sớm mỗi lượt' },
+  { card: 'bao-som-1711', tep: 'apps/etp/gia_adsense.py', co: 'som = xet_som(luc, cu, g6, roi_sang(nha_gio, luc), moi["hom_nay"]["ti"])', vi: 'máy đồng bộ xét ba nấc cảnh báo sớm mỗi lượt' },
   { card: 'bao-som-1711', tep: 'apps/etp/cong.py', co: 'if (g6.get("den") or "") > bay: return f"PHANH CHỢ (báo sớm)', vi: 'giá 6 giờ trượt dưới ngưỡng → cổng dừng mở rộng' },
   { card: 'bao-som-1711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if _RUT and _rn < 0:', vi: 'rút khỏi chợ: CX cắt mọi camp thường đang âm hôm nay' },
   { card: 'bao-som-1711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '[:None if _RUT else CX_TOI_DA]', vi: 'rút khỏi chợ bỏ trần 10 camp / nhịp; ngày thường giữ trần' },
@@ -1271,7 +1271,11 @@ export const LUAT = [
   { card: 'nhiet-ke-1711', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<NhietKeCho cauHinh={du.cauHinh} dinh />', vi: 'nhiệt kế giá chợ dính màn trên etp2 (anh 17/11/2026)' },
   { card: 'nhiet-ke-1711', tep: 'apps/web/src/components/etp-view.tsx', co: '<NhietKeCho cauHinh={du.cauHinh} dinh />', vi: 'nhiệt kế giá chợ dính màn trên etp' },
   { card: 'nhiet-ke-1711', tep: 'apps/web/src/components/etp-view.tsx', co: '<NhietKeCho cauHinh={du.cauHinh} />', vi: 'nhiệt kế giá chợ cạnh tiêu đề trang' },
-  { card: 'nhiet-ke-1711', tep: 'apps/etp/gia_adsense.py', co: 'moi["gia_nay"] = gia_truot(so_gio, luc + dt.timedelta(hours=1))', vi: 'nhiệt kế hiện giá gồm giờ đang chạy (anh 17/11/2026 hỏi realtime)' },
+  { card: 'nhiet-ke-1711', tep: 'apps/etp/gia_adsense.py', co: 'moi["gia_nay"], moi["gia_tho"] = gia_do(so_gio, luc + dt.timedelta(hours=1))', vi: 'nhiệt kế hiện giá gồm giờ đang chạy (anh 17/11/2026 hỏi realtime)' },
   { card: 'mat-so-1711', tep: 'apps/etp/gia_adsense.py', co: 'elif cu.get("gia6"): ra["gia6"] = {**cu["gia6"], "den": (luc + dt.timedelta(hours=pc["truot"]["giu_gio"])).isoformat(), "mat_so": True}', vi: 'hết camp chạy (mất số giá chợ) thì GIỮ phanh, không tự nhả sau 2 giờ (anh 17/11/2026)' },
+  { card: 'cam-bien-1711', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'cb = giu_cam_bien(kq["gui"], ds, ai, bo, xep=lambda c: (roi(nay, c) or -1e9, roi(hai, c) or -1e9))', vi: 'tắt loạt giữ camp cảm biến giá chợ khi nhà sắp hết camp chạy và đội ít chi (anh 17/11/2026 "2+3+4")' },
+  { card: 'cam-bien-1711', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'if cb: raise ValueError(f"không tắt: {cb[cid]}")', vi: 'tắt từng camp cũng qua cổng cảm biến' },
+  { card: 'cam-bien-1711', tep: 'apps/etp/gia_adsense.py', co: 'g6, _ = gia_do(so_gio, luc)', vi: 'ít camp chạy thì đo giá thô 24 giờ thay vì mất số' },
+  { card: 'cam-bien-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: '<div data-nguon-gia', vi: 'thẻ nhiệt kế ghi nguồn số: chi nhà / đội + lượt hiển thị' },
   { card: 'mat-so-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: "const matSo = !!tt && 'gia_nay' in tt && tt.gia_nay == null && tt.gia6_nay == null;", vi: 'nhiệt kế mất số hiện ? xám, không biến mất' },
 ];

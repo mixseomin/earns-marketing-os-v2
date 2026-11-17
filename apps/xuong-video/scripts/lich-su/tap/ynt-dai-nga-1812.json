@@ -7,7 +7,7 @@
   "voice": "Daniel"
  },
  "chu_de": "Napoleon's invasion of Russia in 1812: how the largest army Europe had seen marched to Moscow and almost none came back",
- "tieu_de": "The ENTIRE Story of Napoleon's 1812 Russia Disaster in {N} Minutes",
+ "tieu_de": "Forget the movies. Discover the real story of Napoleon in Russia.",
  "thumb": {
   "chu": "NAPOLEON",
   "nam": "RUSSIA 1812",
@@ -5538,5 +5538,16 @@
     "nguon": "Wikiquote › Quotes"
    }
   ]
- }
+ },
+ "hook": {
+  "qc": "2014866519205009",
+  "goc": "🏴‍☠️ Forget the movies. Discover the real stories of pirates!"
+ },
+ "goc": {
+  "sp": 2680,
+  "id": 66963,
+  "loai": "ai_phan_doi",
+  "ten": "Người chán bài lịch sử 5 phút nông cạn"
+ },
+ "mo_ta_dang": "Forget the movies. This is the real story of Napoleon's march on Moscow, told without the usual five-minute gloss. Half a million men crossed the Neman in June 1812; by December, the army was gone. Pull up a chair and let the whole thing unfold at its own pace."
 }

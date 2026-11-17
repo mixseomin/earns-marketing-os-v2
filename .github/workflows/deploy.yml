@@ -77,6 +77,8 @@ jobs:
           cham apps/etp2 && echo "etp2=1" >> "$GITHUB_OUTPUT"
           # deploy.sh + deploy/ chỉ chạy trên máy chủ, không vào bản build → không kéo build web (38s).
           if [ "$F" = "__HET__" ] || echo "$F" | grep -vqE '^(apps/(store|xuong-video|cty|etp2)/|packages/gop-y/|deploy/|deploy\.sh$)'; then echo "web=1" >> "$GITHUB_OUTPUT"; fi
+          # etp.on.tc (apps/web) dùng chung mã Thành phố của etp2 (anh 15/11/2026, card #1605 "mở băng, dùng chung mã") → mã etp2 đổi thì dựng lại cả web
+          co '^apps/etp2/src/' && echo "web=1" >> "$GITHUB_OUTPUT"
           echo "Tệp đổi:"; echo "$F" | head -40; echo "Build:"; cat "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         with: { node-version: '22' }   # match server node v22 (.next swapped in raw) + Node 20 is GHA-deprecated

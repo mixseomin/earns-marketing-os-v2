@@ -25,7 +25,26 @@ Use ONLY these rules and numbers. If a question needs a rule or number that is n
 - Homeowners can still deduct mortgage interest and property taxes even if they pay them with BAH.
 - Overseas assignments use OHA, not BAH.
 
+## VA disability compensation (from militarycalc.com/disability, 2026 rates)
+- The calculator takes the final VA combined disability rating (10% to 100%, rounded to the nearest 10%) - the single number on the VA decision letter, not the sum of separate conditions.
+- VA combines ratings with a formula: 50% plus 30% comes out to 65%, rounded to 70%, never 80%.
+- Dependent add-ons (spouse, dependent parents, children) only apply at 30% and above.
+- Children 18 to 23 in a VA-approved school keep dependent status and earn a higher add-on than younger kids; enrollment is certified with VA Form 21-674.
+- Spouse Aid and Attendance adds an amount on top of the base rate; it must be applied for, it is not automatic.
+- VA disability compensation is tax-free. Example: 70%, veteran alone = $1,808 per month in 2026 ($21,701 per year).
+- 2027 rates rise with a 3.6% COLA (70% alone becomes about $1,874 per month), starting with the December payment paid in early January.
+- VA pays each month on the first business day of the following month. Severe-loss Special Monthly Compensation (limb or sight loss) pays extra on top of these tables.
+- Readers should verify their own amount at VA.gov.
+
+## VA home loan (from militarycalc.com/va-loan)
+- VA loans allow 0% down; with full entitlement there is no national loan limit. No PMI (private mortgage insurance), limited closing costs.
+- Funding fee (one-time, instead of monthly mortgage insurance): 2.15% first use / 3.30% subsequent use with under 5% down; 1.50% at 5% down; 1.25% at 10% down.
+- The funding fee is waived for veterans who receive VA service-connected disability compensation, Purple Heart recipients while serving, and qualifying surviving spouses.
+- Most buyers roll the funding fee into the loan. The monthly payment shown is principal and interest only; taxes, insurance and HOA dues come on top.
+
 ## Site pages (link the one that fits)
+- https://militarycalc.com/disability — VA disability pay by rating and dependents
+- https://militarycalc.com/va-loan — VA loan payment and funding fee
 - https://militarycalc.com/retirement — retirement estimate
 - https://militarycalc.com/pay — pay by grade and years (drill pay math)
 - https://militarycalc.com/bah — BAH lookup by base, grade, dependents

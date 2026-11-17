@@ -288,7 +288,32 @@
  "cc-tom-hanks": [],
  "cc-grace-kelly": [],
  "cc-muhammad-ali": [],
- "cc-jimi-hendrix": [],
+ "cc-jimi-hendrix": [
+  {
+   "tep": "brand/astrolas/tranh/cc-jimi-hendrix-1.jpg",
+   "trang": "Jimi Hendrix",
+   "file": "File:Jimi Hendrix (1967) (cropped).jpg",
+   "giay_phep": "Public domain",
+   "tac_gia": "Original photographer unknown",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Jimi_Hendrix_(1967)_(cropped).jpg"
+  },
+  {
+   "tep": "brand/astrolas/tranh/cc-jimi-hendrix-2.jpg",
+   "trang": "Jimi Hendrix",
+   "file": "File:London 003 Hendrix and Handel houses.jpg",
+   "giay_phep": "CC BY-SA 2.0",
+   "tac_gia": "DAVID HOLT",
+   "nguon": "https://commons.wikimedia.org/wiki/File:London_003_Hendrix_and_Handel_houses.jpg"
+  },
+  {
+   "tep": "brand/astrolas/tranh/cc-jimi-hendrix-3.jpg",
+   "trang": "Jimi Hendrix",
+   "file": "File:Jimi Hendrix - The Commercial Appeal (1969).jpg",
+   "giay_phep": "Public domain",
+   "tac_gia": "James Shearin",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Jimi_Hendrix_-_The_Commercial_Appeal_(1969).jpg"
+  }
+ ],
  "cc-audrey-hepburn": [],
  "cc-kurt-cobain": [],
  "cc-leonardo-dicaprio": [],

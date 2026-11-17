@@ -18,14 +18,16 @@
 // pass run.id vào ctx. runAgent update output/cost/tools_used khi xong qua callback.
 //
 // Provider routing:
-//   - claude-* → Anthropic SDK
-//   - gpt-* / o3-* → OpenAI SDK
+//   - claude-* → vòng công cụ khuôn Anthropic qua cổng AI chung (goiAi)
+//   - gpt-* / o3-* → vòng công cụ khuôn OpenAI qua vỏ getOpenAI() → cổng AI chung
 //   - claude-code → throws (chờ MCP user pull, không exec ở đây)
 //   - human → throws (queue human_tasks)
 
 import 'server-only';
-import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
+import type Anthropic from '@anthropic-ai/sdk';
+import type OpenAI from 'openai';
+import { goiAi, dongCua, type TinNhan } from '@mos2/cong-ai';   // MỘT CỔNG AI (16/11/2026)
+import { getOpenAI } from './ai/openai';
 import { invokeTool, getTool, type ToolContext } from './toolkits/registry';
 
 export interface AgentRunOptions {
@@ -171,10 +173,12 @@ interface LoopParams extends Required<Omit<AgentRunOptions, 'onProgress'>> {
 
 // ── Anthropic Claude tool-use loop ────────────────────────────────
 async function runClaudeLoop(p: LoopParams): Promise<AgentRunResult> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return { ok: false, output: 'ANTHROPIC_API_KEY not set', partial: p.partial, reason: 'llm_error' };
-  }
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  // MỘT CỔNG AI (16/11/2026): vòng công cụ Claude đi cổng AI chung (chế độ công cụ: tools / tool_use / tool_result khuôn Anthropic), không gọi thẳng nhà cung cấp
+  const client = { messages: { create: async (q: { model: string; system: string; messages: Anthropic.MessageParam[]; tools: Anthropic.Tool[]; max_tokens: number }) => {
+    const r = await goiAi<{ content: Anthropic.ContentBlock[]; stop_reason: string }>({ viec: 'mos2-agent', model: dongCua(q.model), max_tokens: q.max_tokens, system: q.system,
+      messages: q.messages as unknown as TinNhan[], tools: q.tools as unknown as { name: string; description?: string; input_schema: Record<string, unknown> }[] });
+    return { content: r.kq.content, stop_reason: r.kq.stop_reason, usage: { input_tokens: r.vao, output_tokens: r.ra } } as unknown as Anthropic.Message;
+  } } };
   const tools = buildAnthropicTools(p.toolIds);
   // Map model alias to API model name
   const modelMap: Record<string, string> = {
@@ -257,10 +261,7 @@ async function runClaudeLoop(p: LoopParams): Promise<AgentRunResult> {
 
 // ── OpenAI function-calling loop ──────────────────────────────────
 async function runOpenAILoop(p: LoopParams): Promise<AgentRunResult> {
-  if (!process.env.OPENAI_API_KEY) {
-    return { ok: false, output: 'OPENAI_API_KEY not set', partial: p.partial, reason: 'llm_error' };
-  }
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = getOpenAI();   // MỘT CỔNG AI (16/11/2026): vỏ OpenAI → cổng AI chung, chế độ công cụ
   const tools = buildOpenAITools(p.toolIds);
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [

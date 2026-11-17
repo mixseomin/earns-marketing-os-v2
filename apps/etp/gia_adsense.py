@@ -104,6 +104,13 @@ def gia_truot(so_gio, luc, pc=PC):
     nen = [x / y * 1000 for x, y in (_cua(so_gio, moc - dt.timedelta(days=d), tr["gio"]) for d in range(1, pc["nen_ngay"] + 1)) if y >= tr["imp_min"]]
     return round(r / i * 1000 / (sum(nen) / len(nen)), 3) if i >= tr["imp_min"] and len(nen) >= pc["nen_min"] else None
 
+def gia_do(so_gio, luc, pc=PC):
+    """(tỉ lệ, thô?) — cửa sổ chuẩn truot.gio giờ; ít lượt hiển thị (chỉ còn camp cảm biến, sổ luật phanh_cho.cam_bien) thì đo THÔ cửa sổ gio_tho giờ với ngưỡng imp_min_tho; cả hai thiếu → (None, False)"""
+    g = gia_truot(so_gio, luc, pc)
+    if g is not None: return g, False
+    cb = pc["cam_bien"]; g = gia_truot(so_gio, luc, {**pc, "truot": {**pc["truot"], "gio": cb["gio_tho"], "imp_min": cb["imp_min_tho"]}})
+    return (g, True) if g is not None else (None, False)
+
 def roi_sang(nha_gio, luc, pc=PC):
     """hàm thuần: sổ giờ camp nhà {ngày: {giờ: [chi, thu]}} → (ROI % khung 07–13h hôm nay, điểm lệch so trung bình cùng khung 7 ngày trước) | None khi thiếu số"""
     hn = luc.date(); n = PC_GIO[1] - PC_GIO[0]; cm = pc["roi_sang"]["chi_min"]
@@ -167,11 +174,18 @@ def chay(q, luc=None):
     nha_gio = {}
     for l in (q(f"select g.ngay, g.gio, sum(g.chi), sum(g.thu) from etp.so_gio_camp g join etp.camp c using (camp_id) where g.ngay >= '{(hn - dt.timedelta(days=PC['nen_ngay'] + 1)).isoformat()}' group by 1, 2") or "").splitlines():
         a = l.split("|"); nha_gio.setdefault(a[0], {})[a[1]] = [float(a[2]), float(a[3])]
-    som = xet_som(luc, cu, gia_truot(so_gio, luc), roi_sang(nha_gio, luc), moi["hom_nay"]["ti"])
+    doi_gio = {}   # sổ giờ camp ĐỘI (etp.so_gio_ngoai) — chỉ để ghi nguồn số giá chợ trên thẻ nhiệt kế
+    for l in (q(f"select ngay, gio, sum(chi), sum(thu) from etp.so_gio_ngoai where ngay >= '{(hn - dt.timedelta(days=1)).isoformat()}' group by 1, 2") or "").splitlines():
+        a = l.split("|"); doi_gio.setdefault(a[0], {})[a[1]] = [float(a[2]), float(a[3])]
+    g6, _ = gia_do(so_gio, luc)   # số thô cũng xét phanh: có số là được nhả khi giá về ≥ ngưỡng (mất số hẳn → xet_som giữ phanh)
+    som = xet_som(luc, cu, g6, roi_sang(nha_gio, luc), moi["hom_nay"]["ti"])
     moi.update(som)
     # SỐ HIỂN THỊ GẦN THỜI GIAN THỰC (anh 17/11/2026 "Badge giá chợ có realtime đc ko"): cửa sổ 6 giờ GỒM giờ đang chạy (số report giờ dở cập nhật liên tục,
     # đo 17/11: giờ 03 UTC lúc 15 phút iRPM 73 → trọn giờ 70) — chỉ để hiện nhiệt kế; phanh vẫn xét trên giờ trọn (gia6) cho khỏi lật theo giờ dở.
-    moi["gia_nay"] = gia_truot(so_gio, luc + dt.timedelta(hours=1)); moi["gia_nay_luc"] = luc.isoformat()
+    moi["gia_nay"], moi["gia_tho"] = gia_do(so_gio, luc + dt.timedelta(hours=1)); moi["gia_nay_luc"] = luc.isoformat()
+    # NGUỒN SỐ (anh 17/11/2026 duyệt mục 2): chi nhà / đội + lượt hiển thị cả chợ trong cửa sổ đang đo — nhìn là biết giá chợ đang dựa vào camp của ai
+    _m = (luc + dt.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0); _n = PC["cam_bien"]["gio_tho"] if moi["gia_tho"] else PC["truot"]["gio"]
+    moi["nguon"] = {"gio": _n, "nha": round(_cua(nha_gio, _m, _n)[0], 2), "doi": round(_cua(doi_gio, _m, _n)[0], 2), "imp": round(_cua(so_gio, _m, _n)[1])}
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('rpm_gio', $J${json.dumps(so_gio)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('rpm_13h', $J${json.dumps(so13)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('phanh_cho', $J${json.dumps(moi, ensure_ascii=False)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
@@ -236,6 +250,9 @@ def _tu_kiem():
     assert roi_sang(ng, u("2026-11-16T06:05:00")) == (-14.0, -34.0) and roi_sang({"2026-11-16": ng["2026-11-16"]}, u("2026-11-16T06:05:00")) is None
     s = xet_som(u("2026-11-16T03:00:00"), {}, 0.7, None, None); assert s["gia6"] == {"ti": 0.7, "den": "2026-11-16T05:00:00+00:00"} and s["roi_sang"] is None and s["sang_quyet"] is None, s
     s2 = xet_som(u("2026-11-16T03:10:00"), s, 0.9, None, None); assert s2["gia6"] is None, "giá về lại ≥ ngưỡng → nhả ngay"
+    sg3 = {f"2026-11-{d:02d}": {str(h): [0.5, 30.0] for h in range(24)} for d in range(8, 17)}   # 30 lượt/giờ: 6 giờ = 180 < 1500, 24 giờ = 720 ≥ 500
+    assert gia_truot(sg3, u("2026-11-16T12:00:00")) is None and gia_do(sg3, u("2026-11-16T12:00:00")) == (1.0, True), "ít camp: đo thô 24 giờ"
+    assert gia_do({}, u("2026-11-16T12:00:00")) == (None, False)
     m = xet_som(u("2026-11-16T05:30:00"), s, None, None, None)["gia6"]; assert m["mat_so"] and m["ti"] == 0.7 and m["den"] == "2026-11-16T07:30:00+00:00", "mất số (không còn camp chạy): GIỮ phanh, gia hạn — không tự nhả"
     assert xet_som(u("2026-11-16T09:00:00"), {**s, "gia6": m}, 0.9, None, None)["gia6"] is None, "có số lại và giá ≥ ngưỡng → mới nhả"
     assert xet_som(u("2026-11-16T05:30:00"), {}, None, None, None)["gia6"] is None, "không đang phanh mà mất số → không tự phanh"

@@ -146,7 +146,12 @@ export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc
   const ds = dsGoc.filter(khop);
   const phongs = [...new Map(dsGoc.map((d) => [d.phong, d.phongTen])).entries()].map(([id, ten]) => ({ id, ten })).sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
   const nhomPhong = !!loc?.nhom && !trongPhong;
-  const nhom = nhomPhong ? phongs.map((p) => ({ ...p, ds: ds.filter((d) => d.phong === p.id) })).filter((g) => g.ds.length) : [{ id: '', ten: '', ds }];
+  // DẠNG CÂY (góp ý #1666): chia theo phòng thì trưởng phòng là gốc, người làm rồi người kiểm là nhánh ├─ / └─ bên dưới
+  const THU_VAI: Record<string, number> = { giao: 0, lam: 1, kiem: 2 };
+  const nhom = nhomPhong ? phongs.map((p) => ({ ...p, ds: ds.filter((d) => d.phong === p.id).sort((a, b) => (THU_VAI[a.vai] ?? 9) - (THU_VAI[b.vai] ?? 9)) })).filter((g) => g.ds.length) : [{ id: '', ten: '', ds }];
+  const nhanh: Record<string, string> = {};
+  if (nhomPhong) for (const g of nhom) { const goc = g.ds[0]?.vai === 'giao' ? 1 : 0; const con = g.ds.slice(goc);
+    if (goc) nhanh[g.ds[0]!.id] = '◆'; con.forEach((d, i) => { nhanh[d.id] = i === con.length - 1 ? '└─' : '├─'; }); }
   const docs = ds.map((d) => nhanSu(d.id)).filter(Boolean) as Doc[];
   const so = await soChi(docs, trongPhong ? phong : undefined);   // trong phòng: chỉ tiền làm cho phòng này · null = không nối DB → "?" chứ không phải $0
   const chi = (id: string) => so ? so.ds.filter((r) => r.nguoi === id).reduce((t, r) => t + (r.usd ?? 0), 0) : null;
@@ -180,7 +185,7 @@ export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc
       s: { nguoi: String(fm.ten ?? d.id), phong: d.phongTen, vai, phuTrach: x ? x.viec : null, model: tenModel(d.model), noi: noi.join(' '), repo: cay.map((k) => k.repo).join(' ') || null,
         tt: TT_SO[tts[d.id]!.kieu] - (tts[d.id]!.ket.length ? 10 : 0), chi: c, tran: tr || null },
       o: {
-      nguoi: <span className="cty-den-o"><Nguoi id={d.id} />{'coNut' in n && n.coNut && <NutTuLam muc={n.chiXem ? `nguoi:${d.id}` : `nhip:${d.id}`} bat={n.bat} admin={admin}
+      nguoi: <span className="cty-den-o">{nhanh[d.id] && <span className={`cty-cay-nhanh${nhanh[d.id] === '◆' ? ' cty-cay-goc' : ''}`} aria-hidden>{nhanh[d.id]}</span>}<Nguoi id={d.id} />{'coNut' in n && n.coNut && <NutTuLam muc={n.chiXem ? `nguoi:${d.id}` : `nhip:${d.id}`} bat={n.bat} admin={admin}
         hoi={n.chiXem ? `Tắt ${n.soChay} việc máy đang chạy của ${String(fm.ten ?? d.id)}?` : undefined} />}</span>,
       phong: <span className="cty-muted cty-xuong-dong">{d.phongTen}</span>,   // góp ý #1659: tên phòng dài xuống dòng, không cắt "…"
       vai: <span title={d.giuVai.join(' · ') || d.chucDanh}>{vai}</span>,

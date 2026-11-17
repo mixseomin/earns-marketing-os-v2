@@ -1,5 +1,5 @@
 {
- "luc": "2026-11-17T06:18:38.467Z",
+ "luc": "2026-11-17T06:46:30.492Z",
  "goc": [
   "dong",
   "dong-nam",
@@ -12,9 +12,9 @@
   "the-1623-cong"
  ],
  "pha": null,
- "so_khoi": 30,
- "lech_nang": 12,
- "lech_tb": 2.78,
+ "so_khoi": 31,
+ "lech_nang": 11,
+ "lech_tb": 2.2,
  "khoi": [
   {
    "id": "way/35212310",
@@ -37,25 +37,6 @@
      "goc": "bac",
      "lech": -20.2,
      "so": 10
-    }
-   ]
-  },
-  {
-   "id": "way/1573767747",
-   "ten": "Treppenturm",
-   "y_tren": 68.28,
-   "lech": 15.95,
-   "goc": 2,
-   "chi_tiet": [
-    {
-     "goc": "tay",
-     "lech": 15.2,
-     "so": 4
-    },
-    {
-     "goc": "dong-nam",
-     "lech": 16.7,
-     "so": 7
     }
    ]
   },
@@ -282,13 +263,13 @@
      "so": 8
     },
     {
-     "goc": "dong-nam",
-     "lech": -1,
+     "goc": "dong-bac",
+     "lech": -1.9,
      "so": 7
     },
     {
-     "goc": "dong-bac",
-     "lech": -1.9,
+     "goc": "dong-nam",
+     "lech": -1,
      "so": 7
     },
     {
@@ -326,14 +307,14 @@
      "so": 6
     },
     {
-     "goc": "dong-nam",
-     "lech": -1.37,
-     "so": 5
-    },
-    {
      "goc": "dong-bac",
      "lech": -1.37,
      "so": 7
+    },
+    {
+     "goc": "dong-nam",
+     "lech": -1.37,
+     "so": 5
     },
     {
      "goc": "bac",
@@ -621,14 +602,14 @@
      "so": 14
     },
     {
-     "goc": "dong-nam",
-     "lech": -1.3,
-     "so": 33
-    },
-    {
      "goc": "dong-bac",
      "lech": 1.1,
      "so": 10
+    },
+    {
+     "goc": "dong-nam",
+     "lech": -1.3,
+     "so": 33
     },
     {
      "goc": "bac",
@@ -646,6 +627,25 @@
      "so": 29
     }
    ]
+  },
+  {
+   "id": "way/221599097",
+   "ten": "",
+   "chi_tiet": [
+    {
+     "goc": "dong",
+     "lech": 0.38,
+     "so": 15
+    },
+    {
+     "goc": "the-1623-cong",
+     "lech": 0.38,
+     "so": 15
+    }
+   ],
+   "y_tren": 93,
+   "lech": 0.38,
+   "goc": 2
   },
   {
    "id": "way/223110820",
@@ -709,6 +709,25 @@
      "so": 5
     }
    ]
+  },
+  {
+   "id": "way/223110819",
+   "ten": "",
+   "chi_tiet": [
+    {
+     "goc": "tay-bac",
+     "lech": -0.4,
+     "so": 7
+    },
+    {
+     "goc": "dong-nam",
+     "lech": -0.1,
+     "so": 8
+    }
+   ],
+   "y_tren": 79.58,
+   "lech": -0.25,
+   "goc": 2
   },
   {
    "id": "way/223145713",
@@ -807,5 +826,5 @@
    ]
   }
  ],
- "ban": "ec8fe765e"
+ "ban": "863523cd5"
 }

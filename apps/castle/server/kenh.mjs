@@ -10,6 +10,7 @@ import http from 'node:http';
 import { readFileSync } from 'node:fs';
 import { WebSocketServer } from 'ws';
 import postgres from 'postgres';
+import { timAnhQuanh } from './anh-quanh.mjs';
 
 const CONG = +(process.env.CONG || 3891), GAN = 200, GAN_CHAT = 60, NHIP = 100;
 const KIEU = [
@@ -71,8 +72,22 @@ function xuLyLech(req, res) {
     else { const x = { id, tom: String(j.tom || '').slice(0, 1500), link: String(j.link || '').slice(0, 300), luc: Date.now(), cam: goc, vung }; LECH.xong.unshift(x); if (j.tg !== false) void baoTelegram(x); }
     LECH.xong = LECH.xong.slice(0, 20); luuLech(); res.writeHead(200, { 'Content-Type': 'application/json' }).end('{"ok":true}'); } catch (e) { res.writeHead(400).end(JSON.stringify({ ok: false, error: e.message })); } });
 }
+// 📷 ẢNH THẬT QUANH ĐIỂM (nút 📷 trên trang): GET /mp/anh-quanh?lat&lng&r → Commons + Mapillary (server/anh-quanh.mjs). Khoá Mapillary ở máy chủ
+// (/root/.secrets/mapillary.env MLY_TOKEN — vault acct #689), không lộ ra trang. Nhớ kết quả 30 phút theo ô ~10 m.
+const MLY = process.env.MLY_TOKEN || (() => { try { return (docTep('/root/.secrets/mapillary.env', 'utf8').match(/^MLY_TOKEN=(.+)$/m) || [])[1]?.trim() || null; } catch { return null; } })();
+const ANH_NHO = new Map();
+async function xuLyAnhQuanh(u, res) {
+  const lat = +u.searchParams.get('lat'), lng = +u.searchParams.get('lng'), r = +(u.searchParams.get('r') || 100);
+  const tra = (ma, j) => res.writeHead(ma, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(THU ? { 'Access-Control-Allow-Origin': '*' } : {}) }).end(JSON.stringify(j));
+  if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180) || !Number.isFinite(r)) return tra(400, { loi: ['thiếu lat / lng'] });
+  const k = `${lat.toFixed(4)},${lng.toFixed(4)},${Math.round(r / 20)}`, nho = ANH_NHO.get(k);
+  if (nho && Date.now() - nho.luc < 30 * 60e3) return tra(200, nho.kq);
+  try { const kq = await timAnhQuanh({ lat, lng, r, mly: MLY }); if (!kq.loi.length) { ANH_NHO.set(k, { luc: Date.now(), kq }); if (ANH_NHO.size > 500) ANH_NHO.delete(ANH_NHO.keys().next().value); } tra(200, kq); }
+  catch (e) { tra(502, { anh: [], loi: [e.message] }); }
+}
 const may = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
+  if (u.pathname === '/mp/anh-quanh') { void xuLyAnhQuanh(u, res); return; }
   if (u.pathname === '/mp/lech') { xuLyLech(req, res); return; }
   if (u.pathname === '/mp/kenh') { const lau = u.searchParams.get('lau'); if (!LAU.has(lau)) { res.writeHead(400).end('{}'); return; }
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(THU ? { 'Access-Control-Allow-Origin': '*' } : {}) }).end(JSON.stringify(demKenh(lau))); return; }

@@ -1,54 +1,18 @@
-// Góp ý dùng chung cho mọi trang castle (Lâu đài dung nham, Neuschwanstein): nút 💬 → hộp gõ → POST /api/gop-y (cùng host, phiên SSO,
-// nginx chuyển về hòm góp ý mos2) kèm ảnh khung hình + ngữ cảnh chỗ đứng. Hộp tự dựng DOM + CSS, dùng biến màu --o --vien --chu --mo của trang.
-// ganGopY({ nut, tieuDe, chupAnh: () => dataURL|null, nguCanh: () => string }) → { mo, dong, dangMo }
-const CSS = `
-#gy { position: fixed; inset: 0; display: none; place-items: center; background: rgba(5,5,8,.5); z-index: 8; }
-#gy > div { width: min(440px, calc(100vw - 32px)); padding: 16px; background: var(--o); border: 1px solid var(--vien); border-radius: 12px; display: flex; flex-direction: column; gap: 10px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-#gy textarea { width: 100%; min-height: 110px; resize: vertical; font: inherit; color: var(--chu); background: rgba(0,0,0,.35); border: 1px solid var(--vien); border-radius: 8px; padding: 8px 10px; }
-#gy .hang { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--mo); font-size: 13px; }
-#gy .kq { font-size: 13px; min-height: 18px; }
-#gy .kq.loi { color: #ff9a8a; }
-#gy button { font: 600 13px system-ui, sans-serif; color: var(--chu); background: rgba(255,255,255,.08); border: 1px solid var(--vien); border-radius: 8px; padding: 7px 14px; cursor: pointer; }
-#gy button:hover { background: rgba(255,255,255,.16); }
-#gy button.chinh { background: #ffd9a8; color: #1a1208; border-color: #ffd9a8; }
-#gy button:disabled { opacity: .55; cursor: default; }`;
+// GÓP Ý castle = HÒM CHUẨN MOS2 (anh 17/11/2026: "gửi tasks, ảnh phản biện… phải có chỗ xem, follow, update như góp ý chuẩn ở mos2, không phải gửi lên
+// xong không biết đang ở đâu"). Trước đây castle chạy một hộp tự viết chỉ gửi được; nay nút 💬 mở hòm dùng chung của mos2 (/nhung/gop-y trong khung phủ màn,
+// nạp bằng script https://mos2.on.tc/api/gop-y-ngoai/nut): GỬI · CỦA TÔI (trạng thái từng thẻ, luồng trả lời, làm lại, duyệt xong) · HỎI ĐÁP.
+// Thẻ 🔍 báo lệch (baolech.js), thẻ máy quét và thẻ Claude tạo theo lệnh anh cũng hiện trong "Của tôi".
+// ganGopY({ nut, chupAnh: () => dataURL|null, nguCanh: () => string }) → { mo, dangMo }
+const NUT_HOM = 'https://mos2.on.tc/api/gop-y-ngoai/nut';
 
-export function ganGopY({ nut, tieuDe = 'Góp ý', chupAnh = () => null, nguCanh = () => '' }) {
-  const st = document.createElement('style'); st.textContent = CSS; document.head.append(st);
-  const gy = document.createElement('div'); gy.id = 'gy';
-  gy.innerHTML = `<div>
-  <b>💬 ${tieuDe}</b>
-  <textarea placeholder="Thấy gì sai, muốn thêm gì… (Ctrl+Enter để gửi)"></textarea>
-  <div class="hang"><label><input type="checkbox" class="anh" checked> Kèm ảnh màn hình lúc này</label>
-    <label><input type="radio" name="gy-loai" value="loi" checked> Lỗi / sửa</label><label><input type="radio" name="gy-loai" value="cau_hoi"> Hỏi</label></div>
-  <div class="kq"></div>
-  <div class="hang" style="justify-content:flex-end"><button class="dong">Đóng</button><button class="gui chinh">Gửi</button></div>
-</div>`;
-  document.body.append(gy);
-  const chu = gy.querySelector('textarea'), kq = gy.querySelector('.kq'), gui = gy.querySelector('.gui');
-  const mo = () => { gy.style.display = 'grid'; kq.textContent = ''; kq.className = 'kq'; setTimeout(() => chu.focus(), 30); };
-  const dong = () => { gy.style.display = 'none'; };
-  async function guiDi() {
-    const noiDung = chu.value.trim();
-    if (!noiDung) { kq.textContent = 'Chưa gõ nội dung.'; kq.className = 'kq loi'; return; }
-    gui.disabled = true; kq.textContent = 'Đang gửi…'; kq.className = 'kq';
-    try {
-      const anh = gy.querySelector('.anh').checked ? chupAnh() : null;
-      const r = await fetch('/api/gop-y', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-        body: JSON.stringify({ noiDung, loai: gy.querySelector('input[name=gy-loai]:checked').value, trang: location.href, nguCanh: nguCanh(), anh }) });
-      const j = await r.json().catch(() => ({ ok: false, error: `máy chủ trả ${r.status}` }));
-      if (!j.ok) throw new Error(j.error || `máy chủ trả ${r.status}`);
-      kq.textContent = `Đã gửi góp ý #${j.id}. Cảm ơn!`; chu.value = '';
-      setTimeout(dong, 1600);
-    } catch (e) { kq.textContent = 'Gửi không được: ' + (e.message || e); kq.className = 'kq loi'; console.error('[castle] góp ý', e); }
-    gui.disabled = false;
-  }
-  nut.onclick = (e) => { e.stopPropagation(); mo(); };
-  gy.querySelector('.dong').onclick = dong; gui.onclick = guiDi;
-  gy.addEventListener('click', (e) => { if (e.target === gy) dong(); });
-  // hộp đang mở: bắt phím ở pha capture của window (trước mọi điều khiển game) — kể cả khi tiêu điểm đã rời ô gõ (nút Gửi bị tắt lúc gửi đẩy tiêu điểm về body)
-  addEventListener('keydown', (e) => { if (gy.style.display !== 'grid') return; e.stopImmediatePropagation(); if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) guiDi(); if (e.key === 'Escape') dong(); }, true);
-  return { mo, dong, dangMo: () => gy.style.display === 'grid' };
+export function ganGopY({ nut, chupAnh = () => null, nguCanh = () => '' }) {
+  window.__nguCanhTrang = () => nguCanh();   // hòm đọc lúc mở: chỗ đứng / chế độ / ảnh thật đã chọn (📷)
+  window.__chupTrang = () => chupAnh();       // ảnh khung hình kèm thẻ
+  nut.setAttribute('data-gop-y-mo', '');      // script hòm bắt click ở pha capture
+  nut.title = 'Góp ý / báo lỗi — gửi kèm ảnh màn hình + chỗ đang đứng; tab "Của tôi" xem trạng thái + trả lời mọi thẻ đã gửi';
+  if (!document.querySelector(`script[src="${NUT_HOM}"]`)) { const s = document.createElement('script'); s.src = NUT_HOM; s.defer = true; s.onerror = () => console.error('[castle] không nạp được hòm góp ý mos2', NUT_HOM); document.head.append(s); }
+  const dangMo = () => !!document.querySelector('iframe[title="Góp ý / báo lỗi"]');
+  return { mo: () => window.moGopYMos2?.(), dangMo };
 }
 
 // ảnh khung hình hiện tại: gọi ve() rồi đọc canvas NGAY trong cùng nhịp (không cần preserveDrawingBuffer), thu về cạnh dài 1280 px

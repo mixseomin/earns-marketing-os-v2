@@ -10,7 +10,7 @@ const JS = `(() => {
   function mo() {
     if (khung) return;
     cho = { nguCanh: '', anh: null };
-    try { cho.nguCanh = String(window.__nguCanhTrang ? window.__nguCanhTrang() : '').slice(0, 400); } catch (e) { console.warn('[gop-y] ngữ cảnh trang lỗi', e); }
+    try { cho.nguCanh = String(window.__nguCanhTrang ? window.__nguCanhTrang() : '').slice(0, 1000); } catch (e) { console.warn('[gop-y] ngữ cảnh trang lỗi', e); }
     try { cho.anh = window.__chupTrang ? window.__chupTrang() : null; } catch (e) { console.warn('[gop-y] chụp trang lỗi', e); }
     khung = document.createElement('iframe');
     khung.src = GOC + '/nhung/gop-y?trang=' + encodeURIComponent(location.href);

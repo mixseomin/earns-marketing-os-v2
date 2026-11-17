@@ -15,7 +15,7 @@ export default function NhungGopY() {
       if (goc === '*' || e.origin !== goc || e.source !== window.parent) return;
       const d = (e.data || {}) as { loai?: string; nguCanh?: string; anh?: string | null };
       if (d.loai !== 'gop-y:mo') return;
-      const nc = String(d.nguCanh || '').slice(0, 400); w.__nguCanhTrang = () => nc;
+      const nc = String(d.nguCanh || '').slice(0, 1000); w.__nguCanhTrang = () => nc;
       if (typeof d.anh === 'string' && d.anh.startsWith('data:image/')) (w.__anhGopY ||= []).push(d.anh);
       window.dispatchEvent(new CustomEvent('gop-y:mo'));
     };

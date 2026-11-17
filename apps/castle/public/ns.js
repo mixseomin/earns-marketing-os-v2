@@ -24,6 +24,7 @@ import { datDuong } from './duong.js';
 import { datTrangTri, datCuaCong } from './trangtri.js';
 import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, tiLeDung, datChop, oCum, boTriDo, datMai } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
+import { ganAnhQuanh } from './anhquanh.js';
 
 const $ = (id) => document.getElementById(id);
 const ten = new URLSearchParams(location.search).get('lau') || 'neuschwanstein';
@@ -997,8 +998,8 @@ function capNhatKhu(phong) {
 // datCam (CLI): { p: [x, y, z], d: [hướng nhìn], fov, zoom } → đặt camera xem toàn cảnh đúng góc đó. Bản ảnh thật: ép hiện lớp Google (epHien) để vòng vẽ
 // tự cập nhật ô + bù độ cao, chờ ô tải đủ (loadProgress ≥ 0,999 năm nhịp liền) và ít nhất một lần bù độ cao (≥ 2,5 s), rồi trả lại như cũ.
 async function chupHaiBan(datCam = null) {
-  anNguoiChup = true; apChoDung(); // ảnh mô hình / ảnh thật không có nhân vật + ghim của người chơi
-  try { return await chupHaiBanTrong(datCam); } finally { anNguoiChup = false; apChoDung(); }
+  anNguoiChup = true; apChoDung(); aq.anGhim(true); // ảnh mô hình / ảnh thật không có nhân vật + ghim người chơi + ghim 📷
+  try { return await chupHaiBanTrong(datCam); } finally { anNguoiChup = false; apChoDung(); aq.anGhim(false); }
 }
 async function chupHaiBanTrong(datCam) {
   if (datCam) { if (di?.dang) $('b-toan').click(); const [x, y, z] = datCam.p, [dx, dy, dz] = datCam.d, k = datCam.zoom || 20;
@@ -1110,12 +1111,22 @@ function doKhoiTheoTia(id, kho = null) {
 const batAnh3dTam = async (bat) => { if (!anh3d) return false; anh3d.epHien = bat; anh3d.hien = null; apDungAnh3d(); if (!bat) return true; const t0 = performance.now();
   for (let on = 0; performance.now() - t0 < 30000 && on < 6;) { camera.updateMatrixWorld(); anh3d.t.setCamera(camera); anh3d.t.setResolutionFromRenderer(camera, renderer); anh3d.t.update(); renderer.render(scene, camera); await new Promise((ok) => setTimeout(ok, 150)); on = (anh3d.t.loadProgress ?? 1) >= 0.999 && performance.now() - t0 > 4000 ? on + 1 : 0; }
   return true; };
-ganBaoLech({ nut: $('b-lech'), chupHai: (cam) => chupHaiBan(cam) }); // cam: mở lại đúng góc một báo cáo cũ
+ganBaoLech({ nut: $('b-lech'), chupHai: (cam) => chupHaiBan(cam), them: () => aq.nguCanh() }); // cam: mở lại đúng góc một báo cáo cũ
 // góp ý: hộp gopy.js, kèm ảnh khung hình + ngữ cảnh chỗ đứng
-ganGopY({ nut: $('b-gy'), tieuDe: 'Góp ý cho Neuschwanstein', chupAnh: () => chupCanvas(renderer.domElement, () => renderer.render(scene, camera)), nguCanh: () => {
+const hopGopY = ganGopY({ nut: $('b-gy'), tieuDe: 'Góp ý cho Neuschwanstein', chupAnh: () => chupCanvas(renderer.domElement, () => renderer.render(scene, camera)), nguCanh: () => {
   const p = di?.dang ? di.viTri() : null, ph = p && noiThat ? noiThat.phongTai(p.x, p.y - 0.9, p.z) : null;
-  return `Neuschwanstein · ${p ? `đi bộ tại (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}) hướng ${(di.huong * 180 / Math.PI).toFixed(0)}° · khu ${ph ? ph.ten : khuTai(p.x, p.z)}` : dangSo ? 'so ảnh thật' : 'toàn cảnh'} · ${innerWidth}×${innerHeight}`;
+  return `Neuschwanstein · ${p ? `đi bộ tại (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}) hướng ${(di.huong * 180 / Math.PI).toFixed(0)}° · khu ${ph ? ph.ten : khuTai(p.x, p.z)}` : dangSo ? 'so ảnh thật' : 'toàn cảnh'} · ${innerWidth}×${innerHeight}` + (aq?.nguCanh() || '');
 } });
+// 📷 ẢNH THẬT QUANH ĐÂY (anhquanh.js): điểm = chỗ tia giữa màn trúng mô hình (bỏ lớp đang ẩn); trúng trời → chỗ đang đứng / tâm toàn cảnh
+$('nut').insertAdjacentHTML('beforeend', '<button id="b-aq" title="Tìm ảnh thật trên mạng (Wikimedia Commons, Mapillary) quanh chỗ đang nhìn giữa màn — chọn ảnh rồi gửi kèm góp ý để sửa theo">📷</button>');
+const aq = ganAnhQuanh({ THREE, scene, nut: $('b-aq'), moGopY: () => hopGopY.mo(),
+  raLatLng: (x, z) => [D.tam[0] - z / 111320, D.tam[1] + x / (111320 * Math.cos(D.tam[0] * Math.PI / 180))],
+  layDiem: () => {
+    const tia = new THREE.Raycaster(); tia.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const h = tia.intersectObjects(scene.children.filter((o) => o.isMesh && o.visible && !o.isInstancedMesh), false)[0];
+    const p = h ? h.point : di?.dang ? (({ x, y, z }) => ({ x, y: y - 0.9, z }))(di.viTri()) : orbit.target.clone();
+    return { x: p.x, y: p.y, z: p.z, ten: khuTai(p.x, p.z) || 'điểm đang nhìn' };
+  } });
 // VẬT Ở XA KHÔNG VẼ: đi bộ thì sương mù kéo về 180–520 m + camera chỉ vẽ tới 600 m, ô rừng xa hơn 560 m tắt; xem toàn cảnh thì tầm theo độ cao / khoảng cách camera
 let lucXa = 0;
 function anCayXa(now) {

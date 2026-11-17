@@ -93,6 +93,9 @@ export type GopYCuaToi = {
 /** Góp ý CỦA TÔI: mọi card còn mở + card đã đóng trong 7 ngày (lọc HIỂN THỊ, không xoá — cùng
  *  lằn ranh adfond). Người gửi = tin gốc của luồng (`trao_doi[0].nguoi`), vì card không có cột
  *  người tạo. Xếp theo đúng cột màn hình in ra (cập nhật). */
+/** Thẻ do MÁY / Claude tạo thay anh (máy quét castle quet-giao.mjs, thẻ Claude tạo theo lệnh anh) không có người gửi là người —
+ *  admin thấy chúng trong "Của tôi" để theo dõi / trả lời / duyệt như thẻ mình gửi (anh 17/11/2026: "gửi lên xong đéo biết đang ở đâu"). */
+const NGUOI_MAY = ['may-quet', 'claude', 'ai'];
 export async function dsGopYCuaToi(homVao?: string): Promise<GopYCuaToi[]> {
   const me = await getCurrentUser(), hom = homCua(homVao);
   if (!me) return [];
@@ -107,7 +110,8 @@ export async function dsGopYCuaToi(homVao?: string): Promise<GopYCuaToi[]> {
            COALESCE(prep_payload->'trao_doi', '[]'::jsonb) AS td
     FROM human_tasks
     WHERE project_id = ${hom} AND prep_payload->>'source_platform' = 'feedback'
-      AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})
+      AND (lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})
+           ${me.role === 'admin' ? sql`OR lower(prep_payload->'trao_doi'->0->>'nguoi') IN (${sql.join(NGUOI_MAY.map((n) => sql`${n}`), sql`, `)})` : sql``})
       AND (COALESCE(prep_payload->>'source_url', '') ~ ${NGUON_ETP}) = ${laEtp}
       AND (COALESCE(prep_payload->'site_status'->>${hom}, status) IN ('pending','claimed','submitted','review','broken')
            OR updated_at >= now() - interval '7 days')

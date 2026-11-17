@@ -179,7 +179,7 @@ export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc
       o: {
       nguoi: <span className="cty-den-o"><Nguoi id={d.id} />{'coNut' in n && n.coNut && <NutTuLam muc={n.chiXem ? `nguoi:${d.id}` : `nhip:${d.id}`} bat={n.bat} admin={admin}
         hoi={n.chiXem ? `Tắt ${n.soChay} việc máy đang chạy của ${String(fm.ten ?? d.id)}?` : undefined} />}</span>,
-      phong: <span className="cty-muted">{d.phongTen}</span>,
+      phong: <span className="cty-muted cty-xuong-dong">{d.phongTen}</span>,   // góp ý #1659: tên phòng dài xuống dòng, không cắt "…"
       vai: <span title={d.giuVai.join(' · ') || d.chucDanh}>{vai}</span>,
       ...(x ? { phuTrach: <span title={`${x.chuTri} quy trình chủ trì · ${x.lam} được giao làm · ${x.viec} việc đang mở${x.tre ? ` (${x.tre} máy trễ)` : ''}`}><b>{x.chuTri}</b> · <b className={x.tre ? 'cty-thu-loi' : ''}>{x.viec}</b></span> } : {}),
       // Ký hiệu riêng khi người đó gọi mô hình qua Cổng AI API (không phải kỹ sư CLI Claude Code) — góp ý #1657

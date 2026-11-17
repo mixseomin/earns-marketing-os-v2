@@ -17,6 +17,7 @@ a{color:inherit}
 .cty-top .cty-dh-muc[aria-current="page"]{background:var(--soft);color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent)}
 .cty-dh-muc:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .cty-muted{color:var(--muted)}
+.cty-xuong-dong{display:block;white-space:normal;overflow-wrap:anywhere;line-height:1.35}   /* ô DataTable mặc định nowrap + "…" — cột cho phép xuống dòng (góp ý #1659) */
 .cty-main{padding:18px 24px 60px}   /* full width màn PC (anh 11/10/2026); chữ dài tự giới hạn ở .cty-md 72ch */
 .cty-banner{background:var(--warn-bg);border-left:3px solid var(--warn);padding:.6rem .9rem;border-radius:0 6px 6px 0;margin:0 0 1.2rem;font-size:.95rem}
 .cty-banner b{color:var(--warn)}

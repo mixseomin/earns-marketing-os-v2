@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLamMoiKhi } from './lam-moi';
 
 export type LocNS = { q: string; phong: string; loai: string; tt: string; nhom: boolean };
-export const LOAI_NS = { cli: 'Kỹ sư CLI', api: 'Gọi API', nguoi: 'Người thật' } as const;
+export const LOAI_NS = { cli: 'Kỹ sư CLI', cong: 'Qua cổng AI', api: 'Gọi API', nguoi: 'Người thật' } as const;
 export const TT_NS = { lam: 'Đang làm', ranh: 'Rảnh', ket: 'Kẹt', tat: 'Tắt' } as const;
 
 export function LocNhanSu({ loc, phongs, so, tong }: { loc: LocNS; phongs: { id: string; ten: string }[]; so: number; tong: number }) {

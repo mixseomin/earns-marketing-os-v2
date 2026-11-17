@@ -30,6 +30,9 @@ import { cayCua } from '@/lib/repo-ky-su';
 /** Loại nhân sự cho bộ lọc: người thật (kind human / vendor) · kỹ sư CLI (chạy bằng Claude Code) · gọi API (mô hình qua proxy, hoặc máy thuần). */
 export const loaiNS = (fm: Record<string, unknown>): keyof typeof LOAI_NS =>
   fm.kind && fm.kind !== 'ai' ? 'nguoi' : String(fm.model ?? '').startsWith('claude-code') || fm.model_cli ? 'cli' : 'api';
+/** Kỹ sư CLI chạy QUA CỔNG AI: dòng model SOUL có `qua:cong` → bộ chạy (may/gop-y-ky-su.mjs) đặt ANTHROPIC_BASE_URL về spy /api/ai/cc/<người>, không dùng gói Claude.
+ *  Bộ lọc "Qua cổng AI" (loai=cong) là tập con của Kỹ sư CLI — góp ý #giao-20261117-0000-nhan-cong. */
+export const quaCong = (fm: Record<string, unknown>): boolean => loaiNS(fm) === 'cli' && /\bqua:cong\b/.test(String(fm.model ?? ''));
 /** Đọc bộ lọc từ URL (/nhan-su?q=&phong=&loai=&tt=&nhom=phong). */
 export function docLocNS(sp: Record<string, string | string[] | undefined>): LocNS {
   const s = (k: string) => { const v = sp[k]; return String(Array.isArray(v) ? v[0] ?? '' : v ?? ''); };
@@ -137,7 +140,7 @@ export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc
   const tts = Object.fromEntries(dsGoc.map((d) => { const fm = nhanSu(d.id)?.fm ?? {}; return [d.id, trangThaiCua(d.id, fm, nhipChu(fm, d.id).bat, cuoiGoc[d.id])]; })) as Record<string, TT>;
   const boDau = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
   const khop = (d: NS) => { if (!loc) return true; const t = tts[d.id]!; const fm = nhanSu(d.id)?.fm ?? {};
-    return (!loc.q || boDau(`${d.ten} ${d.id} ${d.chucDanh}`).includes(boDau(loc.q))) && (!loc.phong || d.phong === loc.phong) && (!loc.loai || loaiNS(fm) === loc.loai)
+    return (!loc.q || boDau(`${d.ten} ${d.id} ${d.chucDanh}`).includes(boDau(loc.q))) && (!loc.phong || d.phong === loc.phong) && (!loc.loai || (loc.loai === 'cong' ? quaCong(fm) : loaiNS(fm) === loc.loai))
       && (!loc.tt || (loc.tt === 'ket' ? t.ket.length > 0 : loc.tt === 'ranh' ? t.kieu === 'ranh' || t.kieu === 'chua' : t.kieu === loc.tt)); };
   const ds = dsGoc.filter(khop);
   const phongs = [...new Map(dsGoc.map((d) => [d.phong, d.phongTen])).entries()].map(([id, ten]) => ({ id, ten })).sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
@@ -180,7 +183,8 @@ export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc
       vai: <span title={d.giuVai.join(' · ') || d.chucDanh}>{vai}</span>,
       ...(x ? { phuTrach: <span title={`${x.chuTri} quy trình chủ trì · ${x.lam} được giao làm · ${x.viec} việc đang mở${x.tre ? ` (${x.tre} máy trễ)` : ''}`}><b>{x.chuTri}</b> · <b className={x.tre ? 'cty-thu-loi' : ''}>{x.viec}</b></span> } : {}),
       // Ký hiệu riêng khi người đó gọi mô hình qua Cổng AI API (không phải kỹ sư CLI Claude Code) — góp ý #1657
-      model: <span className="cty-nho">{loaiNS(fm) === 'api' && d.model ? <span className="cty-pill cty-pill-kind" title="Gọi mô hình qua Cổng AI API (spy /api/ai), không phải Claude Code CLI">🔌 API</span> : null}{loaiNS(fm) === 'api' && d.model ? ' ' : ''}{tenModel(d.model)}</span>,
+      // Kỹ sư CLI qua:cong → "🔌 cổng AI" (góp ý #giao-20261117-0000-nhan-cong: bảng không cho thấy Thắng chạy qua cổng)
+      model: <span className="cty-nho">{quaCong(fm) ? <span className="cty-pill cty-pill-kind" title={`Claude Code CLI chạy qua cổng AI spy /api/ai/cc/${d.id}, donk → ckey, KHÔNG dùng gói Claude`}>🔌 cổng AI</span> : loaiNS(fm) === 'api' && d.model ? <span className="cty-pill cty-pill-kind" title="Gọi mô hình qua Cổng AI API (spy /api/ai), không phải Claude Code CLI">🔌 API</span> : null}{quaCong(fm) || (loaiNS(fm) === 'api' && d.model) ? ' ' : ''}{tenModel(d.model)}</span>,
       ...(noi.length ? { noi: <span className="cty-nho">{noi.join(' · ')}</span> } : {}),
       ...(cay.length ? { repo: <div className="cty-nho cty-repo">{cay.map((k) => <div key={k.dir}><b>{k.repo}</b> <span className="cty-muted">· {k.may}{k.nhanh ? <> · nhánh <code>{k.nhanh}</code></> : ''}</span><div><code title={`${k.dir} (${k.may})`}>{k.dir}</code></div></div>)}</div> } : {}),
       tuLam: <div className={`cty-nho cty-dn-tulam${n.bat ? '' : ' cty-muted'}`}>{((vm) => {

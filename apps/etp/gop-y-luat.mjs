@@ -732,8 +732,12 @@ export const LUAT = [
   { card: 'review-luat-0211', tep: "apps/web/src/components/etp-view.tsx", co: "c('hq', 'Hiệu quả thật'", vi: "bản luật hiện hiệu quả có đối chứng" },
   // anh 02/11/2026 "bật phần góp ý cho tk của Sơn": người có quyền etp thấy nút Góp ý trên etp.on.tc, chỉ đụng card mình gửi
   { card: 'gopy-son-0211', tep: 'apps/web/src/app/layout.tsx', co: "const coGopY = u?.role === 'admin' || (host === 'etp.on.tc' && !!(await quyenEtp(u)));", vi: 'nút góp ý cho người team etp' },
-  { card: 'gopy-son-0211', tep: 'apps/web/src/lib/actions/gop-y-mos2.ts', co: "if (me.role !== 'admin' && !(hom === 'mos2' && laTrangEtp(String(input.trang || '')) && (await quyenEtp(me))))", vi: 'gửi góp ý: người team chỉ từ trang etp' },
-  { card: 'gopy-son-0211', tep: 'apps/web/src/lib/actions/gop-y-mos2.ts', co: "AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})`}\n    RETURNING id, project_id", vi: 'người team chỉ trả lời card của mình' },
+  // 17/11/2026 hòm góp ý dời sang gói @mos2/gop-y (dcc52416a): mos2 tính choPhepGui, gói chặn người không phải admin thiếu choPhepGui; trả lời đi qua cuaMinh của gói
+  { card: 'gopy-son-0211', tep: 'apps/web/src/lib/actions/gop-y-mos2.ts', co: "const choPhepGui = !!me && me.role !== 'admin' && h === 'mos2' && laTrangEtp(String(input.trang || '')) && (await quyenEtp(me));", vi: 'gửi góp ý: người team chỉ từ trang etp' },
+  { card: 'gopy-son-0211', tep: 'apps/web/src/lib/actions/gop-y-mos2.ts', co: "return hom.guiGopY(h, me, input, { ...ghiTrangThai, choPhepGui });", vi: 'gửi góp ý: truyền choPhepGui vào gói' },
+  { card: 'gopy-son-0211', tep: 'packages/gop-y/src/server.ts', co: "if (!me || (me.role !== 'admin' && !o?.choPhepGui)) return { ok: false, error: 'không có quyền' };", vi: 'gửi góp ý: gói chặn người không phải admin khi thiếu choPhepGui' },
+  { card: 'gopy-son-0211', tep: 'packages/gop-y/src/server.ts', co: "const cuaMinh = (me: Nguoi) => (me.role === 'admin' ? sql`` : sql`AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})`);", vi: 'người team chỉ trả lời card của mình' },
+  { card: 'gopy-son-0211', tep: 'packages/gop-y/src/server.ts', co: "${cuaMinh(me)} RETURNING id, project_id", vi: 'trả lời card: UPDATE lọc theo cuaMinh' },
   { card: 1501, tep: 'apps/web/src/components/etp-tong2.tsx', cam: "borderColor: ra ?", vi: 'widget Tổng quan 2 không ghi đè borderColor lên shorthand border của Panel (React xoá viền → trắng gắt)' },
   { card: 1501, tep: 'apps/web/src/components/etp-tong2.tsx', co: "border: `1px solid ${ra ? '#f87171' : sua ? 'var(--accent)' : 'var(--line)'}`", vi: 'viền widget viết đủ shorthand, mặc định var(--line)' },
   { card: 1502, tep: 'apps/web/src/components/ui/chon2.tsx', co: "autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}", vi: 'ô chọn không tự focus ô tìm trên màn cảm ứng (bàn phím điện thoại bật che danh sách)' },

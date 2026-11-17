@@ -32,52 +32,23 @@ export function canhBaoPhanh(cauHinh: { khoa: string; gia_tri: unknown }[]): { t
            len: Date.parse(ph.den_len) > nay ? `${dau} — máy dừng camp mới tới ${gioVn(ph.den_len)}. Bấm Làm là vẫn tạo.` : null };
 }
 
-/** BẢO TRÌ LÊN CAMP của Ethopex (etp.cau_hinh.bao_tri_len, anh 17/11/2026) — máy dừng tạo camp / nhân bản tới khi Ethopex báo lại */
-function BienBaoTri({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {
-  const bt = (cauHinh.find((c) => c.khoa === 'bao_tri_len')?.gia_tri ?? null) as { bat?: boolean; tu?: string; ly_do?: string } | null;
-  if (!bt?.bat) return null;
-  return <div role="alert" data-bien="bao-tri-len" title={bt.ly_do ?? ''} style={{ ...KHUNG, background: '#7c3aed', color: '#fff' }}>
-    🛠 ETHOPEX BẢO TRÌ LÊN CAMP · máy dừng tạo camp mới / nhân bản{bt.tu ? ` từ ${bt.tu}` : ''} · chờ Ethopex báo lại
+/** MỘT DẢI MỘT DÒNG cho mọi trạng thái (anh 17/11/2026 chụp ba dải chồng nhau: "đéo ai làm thế này"): chỉ hiện trạng thái NẶNG NHẤT đang bật
+ *  (rút › phanh giá 6 giờ › phanh ROI sáng › phanh chốt 20h › cảnh báo sớm), bảo trì Ethopex ghép vào cùng dòng; các trạng thái còn lại nằm ở chữ rê. */
+export function BienPhanhCho({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {
+  const tt = (cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null, nay = Date.now();
+  const bt = (cauHinh.find((c) => c.khoa === 'bao_tri_len')?.gia_tri ?? null) as { bat?: boolean; tu?: string } | null;
+  const con = <T extends { den: string }>(x: T | null | undefined) => (x && Date.parse(x.den) > nay ? x : null);
+  const rut = con(tt?.rut), g6 = con(tt?.gia6), rs = con(tt?.roi_sang), ph = tt?.phanh && Date.parse(tt.phanh.den_len) > nay ? tt.phanh : null, h = tt?.hom_nay;
+  const ds: { chu: string; nen: string; mau: string }[] = [];   // nặng → nhẹ
+  if (rut) ds.push({ chu: `🚨 RÚT KHỎI CHỢ · giá sáng ${Math.round(rut.gia * 100)}% nền, ROI sáng ${Math.round(rut.roi)}% · máy tắt camp thường đang âm tới ${gioVn(rut.den)}`, nen: '#7f1d1d', mau: '#fff' });
+  if (g6) ds.push({ chu: `⛔ PHANH CHỢ · giá chợ ${Math.round(g6.ti * 100)}% nền · dừng tăng + camp mới tới khi giá về ≥ ${Math.round(PC.truot.nguong * 100)}%`, nen: '#d93025', mau: '#fff' });
+  if (rs) ds.push({ chu: `⛔ PHANH MỞ RỘNG · ROI sáng kém nền ${Math.abs(Math.round(rs.kem))} điểm · dừng tăng + camp mới tới ${gioVn(rs.den)}`, nen: '#d93025', mau: '#fff' });
+  if (ph) ds.push({ chu: `⛔ PHANH CHỢ${ph.ti != null ? ` · giá chợ ${Math.round(ph.ti * 100)}% nền` : ' · lịch'} · ${Date.parse(ph.den_tang) > nay ? `tăng dừng tới ${gioVn(ph.den_tang)}` : 'tăng đã mở'} · camp mới dừng tới ${gioVn(ph.den_len)}`, nen: '#d93025', mau: '#fff' });
+  if (tt?.som && h?.ti != null) ds.push({ chu: `⚠ Giá chợ ${Math.round(h.ti * 100)}% nền · ${PC.gio_chot}:00 có thể phanh`, nen: '#f59e0b', mau: '#1a1a1a' });
+  if (bt?.bat) ds.push({ chu: `🛠 Ethopex bảo trì lên camp${bt.tu ? ` từ ${bt.tu}` : ''} · máy dừng tạo camp`, nen: '#7c3aed', mau: '#fff' });
+  const dau = ds[0]; if (!dau) return null;
+  return <div role="alert" data-bien="phanh-cho" title={ds.map((x) => x.chu).join('\n')} style={{ ...KHUNG, background: dau.nen, color: dau.mau }}>
+    {dau.chu}{ds.length > 1 ? ` · +${ds.length - 1}` : ''}
   </div>;
 }
 
-export function BienPhanhCho({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {
-  return <><BienBaoTri cauHinh={cauHinh} /><BienSom cauHinh={cauHinh} /><BienPhanh cauHinh={cauHinh} /></>;
-}
-
-/** ba nấc cảnh báo sớm — mỗi nấc đang bật một dải một dòng */
-function BienSom({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {
-  const tt = (cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null, nay = Date.now();
-  if (!tt) return null;
-  const con = <T extends { den: string }>(x: T | null | undefined) => (x && Date.parse(x.den) > nay ? x : null);
-  const rut = con(tt.rut), g6 = con(tt.gia6), rs = con(tt.roi_sang);
-  return <>
-    {rut ? <div role="alert" data-bien="rut-cho" title="Giá 07–13h dưới 75% mức thường và ROI camp nhà 07–13h dưới −10%. Luật CX tắt mọi camp thường đang âm hôm nay, báo trước một nhịp. Camp ★ ROAS không áp." style={{ ...KHUNG, background: '#7f1d1d', color: '#fff' }}>
-      🚨 RÚT KHỎI CHỢ · giá sáng {Math.round(rut.gia * 100)}% nền · ROI sáng {Math.round(rut.roi)}% · máy tắt camp thường đang âm tới {gioVn(rut.den)}
-    </div> : null}
-    {g6 ? <div role="alert" data-bien="phanh-gia6" title={`Impression RPM cả chợ ${PC.truot.gio} giờ gần nhất so cùng khung 7 ngày trước. Máy dừng tăng bậc, camp mới, nhân bản tới khi giá về lại ≥ ${Math.round(PC.truot.nguong * 100)}%. Giảm / tắt vẫn chạy.`} style={{ ...KHUNG, background: '#d93025', color: '#fff' }}>
-      ⛔ PHANH CHỢ · giá chợ {PC.truot.gio} giờ gần nhất {Math.round(g6.ti * 100)}% nền · dừng tăng + camp mới tới khi giá về ≥ {Math.round(PC.truot.nguong * 100)}%
-    </div> : null}
-    {rs ? <div role="alert" data-bien="phanh-roi-sang" title="ROI camp nhà 07–13h so trung bình cùng khung 7 ngày trước. Máy dừng tăng bậc, camp mới, nhân bản hết ngày Ethopex này." style={{ ...KHUNG, background: '#d93025', color: '#fff' }}>
-      ⛔ PHANH MỞ RỘNG · ROI sáng {Math.round(rs.roi)}%, kém nền {Math.abs(Math.round(rs.kem))} điểm · dừng tăng + camp mới tới {gioVn(rs.den)}
-    </div> : null}
-  </>;
-}
-
-function BienPhanh({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {
-  const tt = (cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null;
-  if (!tt) return null;
-  const nay = Date.now(), ph = tt.phanh && Date.parse(tt.phanh.den_len) > nay ? tt.phanh : null;
-  if (ph) {
-    const conTang = Date.parse(ph.den_tang) > nay;
-    return <div role="alert" data-bien="phanh-cho" title={`${ph.ly_do}. Giảm / tắt vẫn chạy. Không chặn: camp ★ ROAS, camp thay bài bị từ chối, lệnh anh.`} style={{ ...KHUNG, background: '#d93025', color: '#fff' }}>
-      ⛔ PHANH CHỢ{ph.ti != null ? ` · giá chợ ${Math.round(ph.ti * 100)}% nền` : ' · lịch'} · {conTang ? `tăng dừng tới ${gioVn(ph.den_tang)}` : 'tăng đã mở'} · camp mới dừng tới {gioVn(ph.den_len)}
-    </div>;
-  }
-  const h = tt.hom_nay;
-  if (tt.som && h?.ti != null && h.irpm != null && h.nen != null)
-    return <div role="alert" data-bien="phanh-cho-som" title={`Impression RPM cả chợ 07–13h hôm nay ${Math.round(h.irpm)}, trung bình 7 ngày ${Math.round(h.nen)}. Tới ${PC.gio_chot}:00 vẫn dưới ${Math.round(PC.nguong * 100)}% thì đêm nay không tăng bậc, ngày mai không lên camp mới / nhân bản.`} style={{ ...KHUNG, background: '#f59e0b', color: '#1a1a1a' }}>
-      ⚠ Giá chợ {Math.round(h.ti * 100)}% nền · {PC.gio_chot}:00 có thể phanh
-    </div>;
-  return null;
-}

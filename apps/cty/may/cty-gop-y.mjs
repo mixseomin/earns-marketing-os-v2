@@ -15,6 +15,7 @@ const q = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
 const ssh = (cmd) => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', BOX, cmd], { encoding: 'utf8', timeout: 60000 });
 chayKySu({
   nguoi: 'khoi', ten: 'Khôi', duAn: 'cty', tranPhut: 40,
+  gon: true,   // ngữ cảnh gọn: bỏ MCP + skill (gonNguCanh, gop-y-ky-su.mjs) — thử trên Khôi trước (anh 17/11/2026)
   tmux: true,   // Claude Code thật trong tmux 'khoi' — xem trực tiếp: tmux attach -t khoi (iMac), như Thành / Vinh
   cayMoiLuot: true,   // commit kẹt (push bị từ chối) được máy đẩy ngay lượt 5 phút kế, không chờ card mới
   cay: () => cayHoacBao('khoi', { ten: 'Khôi', khoa: 'cty:cay-rieng', phong: 'vp-giam-doc', tep: 'cty-gop-y.json' }), cayThu: MOS2_GOC,

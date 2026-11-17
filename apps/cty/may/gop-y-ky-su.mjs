@@ -16,7 +16,14 @@ export const log = (s) => console.log(`${new Date().toISOString()} ${s}`);
 export const box = (cmd) => { for (let i = 1; ; i++) { try { return execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', BOX, cmd], { encoding: 'utf8', timeout: 120000 }); } catch (e) { if (i >= 3) throw e; } } };
 export const sql = (q) => box(`cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -tA -c ${JSON.stringify(q.replace(/\s+/g, " ")).replace(/\$/g, '\\$')}`).trim();
 /** Quyền đọc + nhìn trang chung của mọi kỹ sư hòm góp ý; cấu hình cộng thêm quyền sửa / deploy / trả lời riêng. */
-const quyenChung = (dir, ANH) => ['Read', 'Glob', 'Grep', `Read(/${ANH}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${dir}:*)`, `Bash(git -C ${dir}:*)`,
+/** NGỮ CẢNH GỌN (anh 17/11/2026: "thử trước với Khôi… đảm bảo tuyệt đối chất lượng"): đo 8 phiên Khôi, lượt ĐẦU đã mang ~123k token cố định trước khi đọc
+ *  dòng mã nào (máy chủ MCP Blender / Docs…, danh sách ~70 skill), phần việc thật chỉ 1–85k. cfg.gon = bỏ MCP + skill (kỹ sư không dùng: lệnh /tasks-* nó Read tệp .md);
+ *  GIỮ luật chung CLAUDE.md + CLAUDE.md repo + đủ công cụ → chất lượng không đổi. Bật từng kỹ sư sau khi đo lượt thật. */
+export const gonNguCanh = (cfg) => cfg.gon ? ['--strict-mcp-config', '--disable-slash-commands'] : [];
+/** Thư mục NGOÀI cây kỹ sư hay phải ĐỌC (lệnh /tasks-*, nhật ký bộ điều phối, sổ việc nền, launchd): thiếu --add-dir thì cat / sed / ls vào đó bị chặn dù quyền Bash
+ *  có (đo nhật ký Khôi 17/11: 25 lần). Chỉ mở đọc — Edit / Write vẫn chỉ trong thư mục cfg.quyen cho phép. */
+const DOC_THEM = [path.join(HOME, '.claude', 'commands'), path.join(HOME, '.cache'), path.join(HOME, 'viec-nen'), path.join(HOME, 'Library', 'LaunchAgents')];
+const quyenChung = (dir, ANH) => [...DOC_THEM.map((d) => `Read(/${d}/**)`), 'Bash(git branch:*)', 'Bash(gh run list:*)', 'Bash(gh run view:*)', 'Bash(date:*)', 'Bash(stat:*)', 'Bash(file:*)', 'Read', 'Glob', 'Grep', `Read(/${ANH}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${dir}:*)`, `Bash(git -C ${dir}:*)`,
   `Bash(curl -s -o ${ANH}/*)`, 'Bash(curl -s:*)', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git commit:*)', 'Bash(node --check:*)',
   'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(diff:*)',
   `Bash(${BR} goto:*)`, `Bash(${BR} look:*)`, `Bash(${BR} read:*)`, `Bash(${BR} scroll:*)`, `Bash(${BR} wait:*)`];
@@ -207,7 +214,7 @@ export function chayKySu(cfg) {
     { input: JSON.stringify({ nguoi: NGUOI, viec: 'nhan-viec', luc: new Date().toISOString(), ket: `◆ nhận ${card.giao ? 'việc giao' : `card #${card.id}`}: ${card.title} · ${model} ${muc.effort}` }), encoding: 'utf8', timeout: 30000 }); } catch (e) { log(`chưa báo được bảng nhân sự: ${String(e.message).split('\n')[0]}`); }
   if (!kiem && !card.giao) daLam[card.id] = { tin_nguoi: card.tin_nguoi, luc: new Date().toISOString(), lanQuyen: Number(daLam[`quyen:${card.id}`] ?? 0) };   // ghi TRƯỚC khi chạy: lượt treo / chết cũng không chạy lại liền mỗi 5 phút
   fs.writeFileSync(TEP_DA, JSON.stringify(daLam));
-  const r = (cfg.tmux ? (c, a, o) => chayTmux(c, a, { ...o, ten: NGUOI }) : chayClaude)(CLAUDE, ['-p', giao, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
+  const r = (cfg.tmux ? (c, a, o) => chayTmux(c, a, { ...o, ten: NGUOI }) : chayClaude)(CLAUDE, ['-p', giao, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', ...gonNguCanh(cfg), ...DOC_THEM.flatMap((d) => ['--add-dir', d]), '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
     { cwd: dir, encoding: 'utf8', timeout: (cfg.tranPhut || 40) * 60000, maxBuffer: 64 << 20, env: ENV });
   // đẩy NGAY trong lượt này commit mà Claude không push được (trước: chờ lượt 5 phút sau, card nằm Kẹt + một tin "can_anh" thừa giữa chừng)
   if (!kiem && cfg.cayMoiLuot) nopCommitDay(cfg.cay(), 'đẩy ngay commit Claude không push được');

@@ -71,7 +71,7 @@ export function NhietKeCho({ cauHinh, dinh }: { cauHinh: { khoa: string; gia_tri
   const pt = Math.round(ti * 100), phanh = Math.round(PC.truot.nguong * 100), rut = Math.round(PC.rut.gia * 100), TRAN = 130;
   const mau = mauTi(pt);
   // RÊ = THẺ NỔI CÓ BIỂU ĐỒ GIÁ CHỢ theo giờ / theo ngày (anh 17/11/2026 "khi hover vào thì hiện chart giá chợ theo từng giờ hoặc ngày tuỳ lựa chọn xem") — khung thẻ nổi chung etp-noi
-  return <span data-nhiet-ke={dinh ? 'dinh' : 'dong'} onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => noi.moNgay({ id: 0 }, e)}
+  return <span data-nhiet-ke={dinh ? 'dinh' : 'dong'} onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { if (e.currentTarget.contains(e.target as Node)) noi.moNgay({ id: 0 }, e); }} /* bấm Giờ / Ngày trong thẻ (portal) cũng nổi bọt lên đây → trước dời thẻ theo con trỏ rồi tắt (anh 17/11/2026) */
     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 9px 2px 6px', borderRadius: 999, border: `1px solid ${mau}`, background: 'var(--bg-1, #0b0d12)', color: 'var(--fg, #e5e7eb)', fontSize: 12, lineHeight: 1.4, whiteSpace: 'nowrap', alignSelf: 'center', cursor: 'pointer',
       ...(dinh ? { position: 'fixed' as const, right: 12, bottom: 12, zIndex: 70, boxShadow: '0 2px 10px #0009' } : {}) }}>
     {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={384} cao={260} noi={noi} style={{ zIndex: 80 }}><TheGiaCho cauHinh={cauHinh} pt={pt} luc={tt?.gia_nay_luc ?? null} /></KhungNoi> : null}

@@ -1277,6 +1277,8 @@ export const LUAT = [
   { card: 'cam-bien-1711', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'if cb: raise ValueError(f"không tắt: {cb[cid]}")', vi: 'tắt từng camp cũng qua cổng cảm biến' },
   { card: 'bo-birch-1711', tep: 'apps/etp/gia_adsense.py', cam: 'bir.ch', vi: 'bỏ CPM Meta Bïrch: so 3 tuần ngược chiều giá AdSense, trễ 1 tuần, gây hiểu lầm (anh 17/11/2026 "Bỏ đi vì vô dụng và hiểu lầm")' },
   { card: 'bo-birch-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', cam: 'cpm_meta', vi: 'thẻ nhiệt kế không hiện CPM Meta Bïrch' },
+  { card: 'gia-mien-1711', tep: 'apps/etp/gia_adsense.py', co: 'moi["mien"] = theo_mien(so_mien, luc + dt.timedelta(hours=1))', vi: 'giá chợ tách theo miền trang đích (anh 17/11/2026 "Còn cách nào có số này")' },
+  { card: 'gia-mien-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: '<div data-gia-mien', vi: 'thẻ nhiệt kế hiện giá từng miền' },
   { card: 'cam-bien-1711', tep: 'apps/etp/gia_adsense.py', co: 'g6, _ = gia_do(so_gio, luc)', vi: 'ít camp chạy thì đo giá thô 24 giờ thay vì mất số' },
   { card: 'cam-bien-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: '<div data-nguon-gia', vi: 'thẻ nhiệt kế ghi nguồn số: chi nhà / đội + lượt hiển thị' },
   { card: 'mat-so-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: "const matSo = !!tt && 'gia_nay' in tt && tt.gia_nay == null && tt.gia6_nay == null;", vi: 'nhiệt kế mất số hiện ? xám, không biến mất' },

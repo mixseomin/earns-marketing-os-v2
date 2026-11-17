@@ -111,6 +111,14 @@ def gia_do(so_gio, luc, pc=PC):
     cb = pc["cam_bien"]; g = gia_truot(so_gio, luc, {**pc, "truot": {**pc["truot"], "gio": cb["gio_tho"], "imp_min": cb["imp_min_tho"]}})
     return (g, True) if g is not None else (None, False)
 
+def theo_mien(so_mien, luc, pc=PC):
+    """hàm thuần: sổ {ngày: {miền: {giờ: [thu, lượt]}}} → {miền: {ti, tho, imp}} — giá chợ từng miền trang đích (cùng cách đo gia_do)"""
+    ra = {}
+    for m in sorted({m for d in so_mien.values() for m in d}):
+        sg = {d: v[m] for d, v in so_mien.items() if m in v}; ti, tho = gia_do(sg, luc, pc)
+        ra[m] = {"ti": ti, "tho": tho, "imp": round(_cua(sg, luc.replace(minute=0, second=0, microsecond=0), pc["truot"]["gio"])[1])}
+    return ra
+
 def roi_sang(nha_gio, luc, pc=PC):
     """hàm thuần: sổ giờ camp nhà {ngày: {giờ: [chi, thu]}} → (ROI % khung 07–13h hôm nay, điểm lệch so trung bình cùng khung 7 ngày trước) | None khi thiếu số"""
     hn = luc.date(); n = PC_GIO[1] - PC_GIO[0]; cm = pc["roi_sang"]["chi_min"]
@@ -171,6 +179,18 @@ def chay(q, luc=None):
         d = (hn - dt.timedelta(days=i)).isoformat()
         if i <= 1 or d not in so_gio: so_gio[d] = gio2(d)
     so_gio = {k: so_gio[k] for k in sorted(so_gio)[-(PC["nen_ngay"] + 3):]}
+    # GIÁ THEO TÊN MIỀN (anh 17/11/2026 "Còn cách nào có số này"): cùng sổ giờ nhưng tách theo miền trang đích (report chiều domain) — một miền sụt mà miền kia
+    # không là chuyện riêng của miền đó, không phải cả chợ. Ngày cũ thiếu thì nạp một lần, hôm qua + hôm nay đọc lại mỗi lượt như rpm_gio.
+    so_mien = ch("rpm_gio_mien", "{}")
+    for i in range(PC["nen_ngay"] + 1, -1, -1):
+        d = (hn - dt.timedelta(days=i)).isoformat()
+        if i <= 1 or d not in so_mien:
+            so_mien[d] = {}
+            for x in EA.doc_het("/api/v1/report", {"columns": ["hour", "domain", "revenue", "impressions"], "group_by": ["hour", "domain"], "filters": {}, "metric_conditions": [], "limit": 10000,
+                                                   "page": 1, "page_size": 10000, "date_from": d, "date_to": d}, 120)["rows"]:
+                so_mien[d].setdefault(str(x.get("domain") or "?"), {})[str(int(x["hour"]))] = [float(x.get("revenue") or 0), float(x.get("impressions") or 0)]
+    so_mien = {k: so_mien[k] for k in sorted(so_mien)[-(PC["nen_ngay"] + 3):]}
+    q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('rpm_gio_mien', $J${json.dumps(so_mien)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
     nha_gio = {}
     for l in (q(f"select g.ngay, g.gio, sum(g.chi), sum(g.thu) from etp.so_gio_camp g join etp.camp c using (camp_id) where g.ngay >= '{(hn - dt.timedelta(days=PC['nen_ngay'] + 1)).isoformat()}' group by 1, 2") or "").splitlines():
         a = l.split("|"); nha_gio.setdefault(a[0], {})[a[1]] = [float(a[2]), float(a[3])]
@@ -185,6 +205,7 @@ def chay(q, luc=None):
     moi["gia_nay"], moi["gia_tho"] = gia_do(so_gio, luc + dt.timedelta(hours=1)); moi["gia_nay_luc"] = luc.isoformat()
     # NGUỒN SỐ (anh 17/11/2026 duyệt mục 2): chi nhà / đội + lượt hiển thị cả chợ trong cửa sổ đang đo — nhìn là biết giá chợ đang dựa vào camp của ai
     _m = (luc + dt.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0); _n = PC["cam_bien"]["gio_tho"] if moi["gia_tho"] else PC["truot"]["gio"]
+    moi["mien"] = theo_mien(so_mien, luc + dt.timedelta(hours=1))
     moi["nguon"] = {"gio": _n, "nha": round(_cua(nha_gio, _m, _n)[0], 2), "doi": round(_cua(doi_gio, _m, _n)[0], 2), "imp": round(_cua(so_gio, _m, _n)[1])}
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('rpm_gio', $J${json.dumps(so_gio)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('rpm_13h', $J${json.dumps(so13)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
@@ -253,6 +274,8 @@ def _tu_kiem():
     sg3 = {f"2026-11-{d:02d}": {str(h): [0.5, 30.0] for h in range(24)} for d in range(8, 17)}   # 30 lượt/giờ: 6 giờ = 180 < 1500, 24 giờ = 720 ≥ 500
     assert gia_truot(sg3, u("2026-11-16T12:00:00")) is None and gia_do(sg3, u("2026-11-16T12:00:00")) == (1.0, True), "ít camp: đo thô 24 giờ"
     assert gia_do({}, u("2026-11-16T12:00:00")) == (None, False)
+    sm = {d: {"a.com": v, "b.com": {h: [x[0] * 0.5, x[1]] for h, x in v.items()} if d == "2026-11-16" else v} for d, v in sg3.items()}
+    tm = theo_mien(sm, u("2026-11-16T12:00:00")); assert tm["a.com"]["ti"] == 1.0 and tm["b.com"]["ti"] < 0.8 and tm["a.com"]["tho"], tm   # một miền sụt, miền kia không
     m = xet_som(u("2026-11-16T05:30:00"), s, None, None, None)["gia6"]; assert m["mat_so"] and m["ti"] == 0.7 and m["den"] == "2026-11-16T07:30:00+00:00", "mất số (không còn camp chạy): GIỮ phanh, gia hạn — không tự nhả"
     assert xet_som(u("2026-11-16T09:00:00"), {**s, "gia6": m}, 0.9, None, None)["gia6"] is None, "có số lại và giá ≥ ngưỡng → mới nhả"
     assert xet_som(u("2026-11-16T05:30:00"), {}, None, None, None)["gia6"] is None, "không đang phanh mà mất số → không tự phanh"

@@ -21,6 +21,8 @@ type TrangThai = {
   gia_tho?: boolean;
   /** nguồn số giá chợ trong cửa sổ đang đo: chi nhà / đội ($), lượt hiển thị cả chợ (gia_adsense.py) */
   nguon?: { gio: number; nha: number; doi: number; imp: number } | null;
+  /** giá chợ từng miền trang đích (gia_adsense.theo_mien) — một miền sụt mà miền kia không là chuyện riêng miền đó */
+  mien?: Record<string, { ti: number | null; tho?: boolean; imp: number }> | null;
   roi_sang?: { ngay: string; roi: number; kem: number; den: string } | null;
   rut?: { ngay: string; gia: number; roi: number; den: string } | null;
 };
@@ -134,6 +136,7 @@ function TheGiaCho({ cauHinh, pt, tt }: { cauHinh: { khoa: string; gia_tri: unkn
       <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}>{nut('gio', 'Giờ')}{nut('ngay', 'Ngày')}</span>
     </div>
     <BieuDoTi ds={ds} />
+    {tt?.mien && Object.keys(tt.mien).length > 1 ? <div data-gia-mien style={{ marginTop: 4 }}>Theo miền: {Object.entries(tt.mien).sort((a, b) => b[1].imp - a[1].imp).map(([m, v], i) => <span key={m}>{i ? ' · ' : ''}{m} <b style={{ color: v.ti == null ? '#6b7280' : mauTi(Math.round(v.ti * 100)) }}>{v.ti == null ? '?' : `${v.tho ? '~' : ''}${Math.round(v.ti * 100)}%`}</b></span>)}</div> : null}
     {ng ? <div data-nguon-gia style={{ marginTop: 4 }}>Đo từ {ng.gio} giờ qua: nhà <b>${Math.round(ng.nha)}</b> · đội <b>${Math.round(ng.doi)}</b> · {ng.imp.toLocaleString('vi-VN')} lượt hiển thị{tt?.gia_tho ? <b style={{ color: '#f59e0b' }}> · số thô (ít camp chạy)</b> : null}</div> : null}
     <div style={{ color: 'var(--fg-3, #888)', marginTop: 4, lineHeight: 1.4 }}>
       {che === 'gio' ? `Mỗi điểm = ${PC.truot.gio} giờ cả chợ tới mốc đó / cùng khung ${PC.nen_ngay} ngày trước.` : `Mỗi điểm = ngày Ethopex (07:00 → 07:00) / trung bình ${PC.nen_ngay} ngày trước.`} Vạch vàng {Math.round(PC.truot.nguong * 100)}% = phanh · đỏ {Math.round(PC.rut.gia * 100)}% = rút.{luc ? ` Đo lúc ${gioVn(luc)}.` : ''}

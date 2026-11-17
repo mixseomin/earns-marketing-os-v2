@@ -140,10 +140,31 @@ def hs_sql(cot):
     """biểu thức SQL hệ số giá của ngày ở cột `cot` — chia thu cho nó: f"s.thu / {GA.hs_sql('s.ngay')}" """
     return f"coalesce((select nullif(gia_tri ->> ({cot})::text, '')::numeric from etp.cau_hinh where khoa = 'he_so_rpm'), 1)"
 
+BIRCH = "https://app.bir.ch/client_api/v1/facebook_ads_cost?platform=facebook&cost_per=mille&granularity=week&date_from={tu}&date_to={den}"
+def cpm_meta(cu, luc, doc=None):
+    """CHỈ SỐ NGOÀI, KHÔNG CẦN CAMP NHÀ (anh 17/11/2026 "Cho gọi"): CPM Meta Mỹ theo TUẦN của Bïrch (app.bir.ch, bảng giá quảng cáo Facebook công khai —
+    API chỉ có tuần / tháng). Nhà quảng cáo rút ngân sách thì CPM Meta và giá AdSense cùng xuống → mốc tham khảo khi hết camp chạy. Mỗi ngày đọc MỘT lần
+    trong lượt đồng bộ sẵn có (không tiến trình riêng); lỗi thì GHI vào khoá loi, giữ số cũ. → {tuan: {đầu tuần: $}, ti: tuần mới nhất / TB 4 tuần trước, ngay, loi}"""
+    hn = (luc + dt.timedelta(hours=7)).date().isoformat(); cu = cu or {}
+    if cu.get("ngay") == hn and not cu.get("loi"): return cu
+    try:
+        if doc is None:
+            import urllib.request
+            r = urllib.request.Request(BIRCH.format(tu=(luc - dt.timedelta(days=200)).date().isoformat(), den=luc.date().isoformat()), headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"})
+            doc = lambda: json.load(urllib.request.urlopen(r, timeout=20))
+        tuan = {x["x"]: round(float(x["y"]), 3) for x in doc().get("total") or [] if x.get("y")}
+        if not tuan: raise ValueError("Bïrch trả rỗng")
+        ks = sorted(tuan); nen = [tuan[k] for k in ks[-5:-1]]
+        return {"tuan": {k: tuan[k] for k in ks[-26:]}, "ti": round(tuan[ks[-1]] / (sum(nen) / len(nen)), 3) if len(nen) >= 3 else None, "ngay": hn, "loi": None}
+    except Exception as e:
+        return {**cu, "ngay": hn, "loi": f"không đọc được CPM Meta Bïrch: {str(e)[:120]}"}
+
 def chay(q, luc=None):
     import ethopex_api as EA
     ch = lambda k, md: json.loads(q(f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{k}'), '{md}')") or md)
     so = ch("rpm_ngay", "{}")
+    cm = cpm_meta(ch("cpm_meta", "{}"), luc or dt.datetime.now(dt.timezone.utc))
+    q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('cpm_meta', $J${json.dumps(cm, ensure_ascii=False)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
     luc = luc or dt.datetime.now(dt.timezone.utc); hn = luc.date()
     ngay = [hn - dt.timedelta(days=i) for i in (range(14, -1, -1) if len(so) < 8 else (1, 0))]
     for d in ngay:
@@ -253,6 +274,11 @@ def _tu_kiem():
     sg3 = {f"2026-11-{d:02d}": {str(h): [0.5, 30.0] for h in range(24)} for d in range(8, 17)}   # 30 lượt/giờ: 6 giờ = 180 < 1500, 24 giờ = 720 ≥ 500
     assert gia_truot(sg3, u("2026-11-16T12:00:00")) is None and gia_do(sg3, u("2026-11-16T12:00:00")) == (1.0, True), "ít camp: đo thô 24 giờ"
     assert gia_do({}, u("2026-11-16T12:00:00")) == (None, False)
+    w = {"total": [{"x": f"2026-10-{d:02d}", "y": 20.0} for d in (5, 12, 19, 26)] + [{"x": "2026-11-02", "y": 16.0}]}
+    c = cpm_meta({}, u("2026-11-16T05:30:00"), lambda: w); assert c["ti"] == 0.8 and c["ngay"] == "2026-11-16" and c["loi"] is None, c
+    assert cpm_meta(c, u("2026-11-16T09:00:00"), lambda: 1 / 0) is c, "đã đọc hôm nay → không gọi lại"
+    def _hong(): raise OSError("mạng")
+    c2 = cpm_meta(c, u("2026-11-17T01:00:00"), _hong); assert c2["tuan"] == c["tuan"] and "mạng" in c2["loi"], "lỗi: giữ số cũ + ghi lỗi"
     m = xet_som(u("2026-11-16T05:30:00"), s, None, None, None)["gia6"]; assert m["mat_so"] and m["ti"] == 0.7 and m["den"] == "2026-11-16T07:30:00+00:00", "mất số (không còn camp chạy): GIỮ phanh, gia hạn — không tự nhả"
     assert xet_som(u("2026-11-16T09:00:00"), {**s, "gia6": m}, 0.9, None, None)["gia6"] is None, "có số lại và giá ≥ ngưỡng → mới nhả"
     assert xet_som(u("2026-11-16T05:30:00"), {}, None, None, None)["gia6"] is None, "không đang phanh mà mất số → không tự phanh"

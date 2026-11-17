@@ -11,7 +11,7 @@ type TrangThai = {
   som?: boolean;
   phanh?: { ngay: string; nguon: 'so' | 'lich'; ti: number | null; den_tang: string; den_len: string; ly_do: string } | null;
   /** ba nấc cảnh báo sớm (anh 17/11/2026, gia_adsense.xet_som) */
-  gia6?: { ti: number; den: string } | null;
+  gia6?: { ti: number; den: string; mat_so?: boolean } | null;   // mat_so: không còn đủ lượt hiển thị để đo → máy GIỮ phanh (gia_adsense.xet_som)
   /** tỉ lệ giá chợ 6 giờ trọn gần nhất so nền 7 ngày, cập nhật mỗi lượt đồng bộ (null = thiếu số) */
   gia6_nay?: number | null;
   /** như gia6_nay nhưng cửa sổ GỒM giờ đang chạy — số hiển thị nhiệt kế (gần thời gian thực) */
@@ -48,7 +48,7 @@ export function BienPhanhCho({ cauHinh }: { cauHinh: { khoa: string; gia_tri: un
   const rut = con(tt?.rut), g6 = con(tt?.gia6), rs = con(tt?.roi_sang), ph = tt?.phanh && Date.parse(tt.phanh.den_len) > nay ? tt.phanh : null, h = tt?.hom_nay;
   const ds: { chu: string; nen: string; mau: string }[] = [];   // nặng → nhẹ
   if (rut) ds.push({ chu: `🚨 RÚT KHỎI CHỢ · giá sáng ${Math.round(rut.gia * 100)}% nền, ROI sáng ${Math.round(rut.roi)}% · máy tắt camp thường đang âm tới ${gioVn(rut.den)}`, nen: '#7f1d1d', mau: '#fff' });
-  if (g6) ds.push({ chu: `⛔ PHANH CHỢ · giá chợ ${Math.round(g6.ti * 100)}% nền · dừng tăng + camp mới tới khi giá về ≥ ${Math.round(PC.truot.nguong * 100)}%`, nen: '#d93025', mau: '#fff' });
+  if (g6) ds.push({ chu: `⛔ PHANH CHỢ · giá chợ ${g6.mat_so ? `? (hết camp chạy, lần đo cuối ${Math.round(g6.ti * 100)}%)` : `${Math.round(g6.ti * 100)}%`} nền · dừng tăng + camp mới tới khi giá về ≥ ${Math.round(PC.truot.nguong * 100)}%`, nen: '#d93025', mau: '#fff' });
   if (rs) ds.push({ chu: `⛔ PHANH MỞ RỘNG · ROI sáng kém nền ${Math.abs(Math.round(rs.kem))} điểm · dừng tăng + camp mới tới ${gioVn(rs.den)}`, nen: '#d93025', mau: '#fff' });
   if (ph) ds.push({ chu: `⛔ PHANH CHỢ${ph.ti != null ? ` · giá chợ ${Math.round(ph.ti * 100)}% nền` : ' · lịch'} · ${Date.parse(ph.den_tang) > nay ? `tăng dừng tới ${gioVn(ph.den_tang)}` : 'tăng đã mở'} · camp mới dừng tới ${gioVn(ph.den_len)}`, nen: '#d93025', mau: '#fff' });
   if (tt?.som && h?.ti != null) ds.push({ chu: `⚠ Giá chợ ${Math.round(h.ti * 100)}% nền · ${PC.gio_chot}:00 có thể phanh`, nen: '#f59e0b', mau: '#1a1a1a' });
@@ -66,10 +66,12 @@ export function BienPhanhCho({ cauHinh }: { cauHinh: { khoa: string; gia_tri: un
 export function NhietKeCho({ cauHinh, dinh }: { cauHinh: { khoa: string; gia_tri: unknown }[]; dinh?: boolean }) {
   const tt = (cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null;
   const noi = useNoi<{ id: 0 }>();
-  const ti = tt?.gia_nay ?? tt?.gia6_nay ?? tt?.hom_nay?.ti ?? null;
-  if (ti == null) return null;
-  const pt = Math.round(ti * 100), phanh = Math.round(PC.truot.nguong * 100), rut = Math.round(PC.rut.gia * 100), TRAN = 130;
-  const mau = mauTi(pt);
+  // MẤT SỐ (cả nhà lẫn đội không còn camp chạy): hiện "?" xám thay vì biến mất — biểu đồ trong thẻ vẫn mở xem giá các giờ trước
+  const matSo = !!tt && 'gia_nay' in tt && tt.gia_nay == null && tt.gia6_nay == null;
+  const ti = matSo ? null : tt?.gia_nay ?? tt?.gia6_nay ?? tt?.hom_nay?.ti ?? null;
+  if (ti == null && !matSo) return null;
+  const pt = ti == null ? null : Math.round(ti * 100), phanh = Math.round(PC.truot.nguong * 100), rut = Math.round(PC.rut.gia * 100), TRAN = 130;
+  const mau = pt == null ? '#6b7280' : mauTi(pt);
   // RÊ = THẺ NỔI CÓ BIỂU ĐỒ GIÁ CHỢ theo giờ / theo ngày (anh 17/11/2026 "khi hover vào thì hiện chart giá chợ theo từng giờ hoặc ngày tuỳ lựa chọn xem") — khung thẻ nổi chung etp-noi
   return <span data-nhiet-ke={dinh ? 'dinh' : 'dong'} onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { if (e.currentTarget.contains(e.target as Node)) noi.moNgay({ id: 0 }, e); }} /* bấm Giờ / Ngày trong thẻ (portal) cũng nổi bọt lên đây → trước dời thẻ theo con trỏ rồi tắt (anh 17/11/2026) */
     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 9px 2px 6px', borderRadius: 999, border: `1px solid ${mau}`, background: 'var(--bg-1, #0b0d12)', color: 'var(--fg, #e5e7eb)', fontSize: 12, lineHeight: 1.4, whiteSpace: 'nowrap', alignSelf: 'center', cursor: 'pointer',
@@ -78,11 +80,11 @@ export function NhietKeCho({ cauHinh, dinh }: { cauHinh: { khoa: string; gia_tri
     <span style={{ display: 'inline-flex', alignItems: 'center' }}>
       <span style={{ width: 11, height: 11, borderRadius: '50%', background: mau, marginRight: -2, zIndex: 1 }} />
       <span style={{ position: 'relative', width: 58, height: 5, borderRadius: '0 3px 3px 0', background: 'var(--line, #333)', overflow: 'hidden' }}>
-        <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.min(pt, TRAN) / TRAN * 100}%`, background: mau }} />
+        <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.min(pt ?? 0, TRAN) / TRAN * 100}%`, background: mau }} />
         <span style={{ position: 'absolute', left: `${phanh / TRAN * 100}%`, top: 0, bottom: 0, width: 1.5, background: '#fff' }} />
       </span>
     </span>
-    <b style={{ color: mau }}>{pt}%</b>{/* chỉ số (anh 17/11/2026 "ko cần ghi chữ. Chỉ cần số. Hover vào mới ra thông tin") */}
+    <b style={{ color: mau }}>{pt == null ? '?' : `${pt}%`}</b>{/* chỉ số (anh 17/11/2026 "ko cần ghi chữ. Chỉ cần số. Hover vào mới ra thông tin") */}
   </span>;
 }
 
@@ -113,7 +115,7 @@ function chuoiNgay(so: Record<string, { irpm?: number | null }>): Diem[] {
   }).filter((x) => x.ti != null).slice(-30);
 }
 const KHOA_CHE = 'etp-gia-cho-che';
-function TheGiaCho({ cauHinh, pt, luc }: { cauHinh: { khoa: string; gia_tri: unknown }[]; pt: number; luc: string | null }) {
+function TheGiaCho({ cauHinh, pt, luc }: { cauHinh: { khoa: string; gia_tri: unknown }[]; pt: number | null; luc: string | null }) {
   const [che, setChe] = useState<'gio' | 'ngay'>('gio');
   useEffect(() => { try { if (localStorage.getItem(KHOA_CHE) === 'ngay') setChe('ngay'); } catch { /* trình duyệt chặn kho → giữ mặc định Giờ */ } }, []);
   const chon = (c: 'gio' | 'ngay') => { setChe(c); try { localStorage.setItem(KHOA_CHE, c); } catch { /* như trên */ } };
@@ -123,7 +125,7 @@ function TheGiaCho({ cauHinh, pt, luc }: { cauHinh: { khoa: string; gia_tri: unk
     background: che === c ? 'var(--fg-1, #e5e7eb)' : 'transparent', color: che === c ? 'var(--bg-1, #111)' : 'var(--fg-2, #aaa)', fontWeight: che === c ? 700 : 400 }}>{chu}</button>;
   return <div data-the-gia-cho={che} style={{ width: 384, maxWidth: '92vw', padding: '10px 34px 10px 12px', fontSize: 12, color: 'var(--fg-1)' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-      <b style={{ fontSize: 13 }}>Giá chợ so nền</b><b style={{ fontSize: 15, color: mauTi(pt) }}>{pt}%</b>
+      <b style={{ fontSize: 13 }}>Giá chợ so nền</b><b style={{ fontSize: 15, color: pt == null ? '#6b7280' : mauTi(pt) }}>{pt == null ? '? · không còn đủ camp chạy để đo, máy giữ phanh' : `${pt}%`}</b>
       <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}>{nut('gio', 'Giờ')}{nut('ngay', 'Ngày')}</span>
     </div>
     <BieuDoTi ds={ds} />

@@ -120,6 +120,9 @@ def xet_som(luc, cu, gia6, rs, ti_sang, pc=PC):
     con = lambda x: x if ((x or {}).get("den") or "") > bay else None
     ra = {"gia6": con(cu.get("gia6")), "roi_sang": con(cu.get("roi_sang")), "rut": con(cu.get("rut")), "sang_quyet": cu.get("sang_quyet"), "gia6_nay": gia6}
     if gia6 is not None: ra["gia6"] = {"ti": gia6, "den": (luc + dt.timedelta(hours=pc["truot"]["giu_gio"])).isoformat()} if gia6 < pc["truot"]["nguong"] else None
+    # MẤT SỐ = GIỮ PHANH (anh 17/11/2026 "nếu ko còn camps nào chạy thì lấy chỉ số này ở đâu"): cả nhà lẫn đội dừng → không đủ lượt hiển thị để đo giá.
+    # Trước: phanh tự hết hạn sau giu_gio giờ → máy mở rộng lại khi chưa ai biết giá đã hồi. Nay: đang phanh mà mất số thì gia hạn, chỉ nhả khi đo được giá ≥ ngưỡng.
+    elif cu.get("gia6"): ra["gia6"] = {**cu["gia6"], "den": (luc + dt.timedelta(hours=pc["truot"]["giu_gio"])).isoformat(), "mat_so": True}
     if luc.hour >= PC_GIO[1] and cu.get("sang_quyet") != k:
         ra["sang_quyet"] = k
         if rs and rs[1] <= pc["roi_sang"]["kem"]: ra["roi_sang"] = {"ngay": k, "roi": rs[0], "kem": rs[1], "den": het.isoformat()}
@@ -233,7 +236,9 @@ def _tu_kiem():
     assert roi_sang(ng, u("2026-11-16T06:05:00")) == (-14.0, -34.0) and roi_sang({"2026-11-16": ng["2026-11-16"]}, u("2026-11-16T06:05:00")) is None
     s = xet_som(u("2026-11-16T03:00:00"), {}, 0.7, None, None); assert s["gia6"] == {"ti": 0.7, "den": "2026-11-16T05:00:00+00:00"} and s["roi_sang"] is None and s["sang_quyet"] is None, s
     s2 = xet_som(u("2026-11-16T03:10:00"), s, 0.9, None, None); assert s2["gia6"] is None, "giá về lại ≥ ngưỡng → nhả ngay"
-    assert xet_som(u("2026-11-16T04:00:00"), s, None, None, None)["gia6"] == s["gia6"] and xet_som(u("2026-11-16T05:30:00"), s, None, None, None)["gia6"] is None, "mất số: giữ tới hết hạn rồi nhả"
+    m = xet_som(u("2026-11-16T05:30:00"), s, None, None, None)["gia6"]; assert m["mat_so"] and m["ti"] == 0.7 and m["den"] == "2026-11-16T07:30:00+00:00", "mất số (không còn camp chạy): GIỮ phanh, gia hạn — không tự nhả"
+    assert xet_som(u("2026-11-16T09:00:00"), {**s, "gia6": m}, 0.9, None, None)["gia6"] is None, "có số lại và giá ≥ ngưỡng → mới nhả"
+    assert xet_som(u("2026-11-16T05:30:00"), {}, None, None, None)["gia6"] is None, "không đang phanh mà mất số → không tự phanh"
     s3 = xet_som(u("2026-11-16T06:05:00"), s, 0.69, (-14.0, -34.0), 0.69); assert s3["roi_sang"]["den"] == s3["rut"]["den"] == "2026-11-17T00:00:00+00:00" and s3["sang_quyet"] == "2026-11-16", s3
     s4 = xet_som(u("2026-11-16T09:00:00"), s3, 0.69, (5.0, 0.0), 0.9); assert s4["rut"] == s3["rut"] and s4["roi_sang"] == s3["roi_sang"], "sáng đã chốt: không lật lại trong ngày"
     assert xet_som(u("2026-11-17T00:05:00"), s4, 0.9, None, None)["rut"] is None, "hết ngày Ethopex thì rút tự nhả"

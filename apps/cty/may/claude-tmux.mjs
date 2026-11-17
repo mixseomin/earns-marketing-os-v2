@@ -34,7 +34,8 @@ function chayTmuxGoc(cmd, args, opts) {
   fs.writeFileSync(caiDat, JSON.stringify({ remoteControlAtStartup: false, hooks: { Stop: [{ hooks: [{ type: 'command', command: `touch ${moc}` }] }] } }));
   fs.writeFileSync(tam, loi);
   if (conPhien()) tm('kill-session', '-t', ten);
-  const bien = ['PATH', 'BR_PROFILE', 'BR_URL_NGUON'].filter((k) => env[k]).flatMap((k) => ['-e', `${k}=${env[k]}`]);
+  // ANTHROPIC_*: kỹ sư chạy qua cổng AI (qua:cong) — thiếu thì Claude trong tmux rơi về gói Claude (17/11/2026: Thắng lượt đầu chạy gói)
+  const bien = ['PATH', 'BR_PROFILE', 'BR_URL_NGUON', 'ANTHROPIC_BASE_URL', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_API_KEY'].filter((k) => env[k] !== undefined && (k.startsWith('ANTHROPIC_') || env[k])).flatMap((k) => ['-e', `${k}=${env[k]}`]);
   const doc = (them = {}) => { const chu = []; let luot = 0; try { for (const d of fs.readFileSync(nk, 'utf8').split('\n')) { if (!d) continue; const o = JSON.parse(d); if (o.type !== 'assistant' || o.isSidechain) continue; luot++; const c = (o.message?.content ?? []).filter((x) => x.type === 'text').map((x) => x.text).join('\n'); if (c.trim()) chu.push(c); } } catch { /* chưa có nhật ký */ }
     return { status: them.status ?? 0, signal: them.signal ?? null, error: them.error ?? null, stdout: JSON.stringify({ result: chonChu(chu), num_turns: luot, duration_ms: Date.now() - dau, session_id: id }), stderr: them.loi ?? '' }; };
   const hong = (ly) => { console.log(`${new Date().toISOString()} phiên tmux ${ten} ${id}: ${ly}\n${khung().slice(-600)}`); tm('kill-session', '-t', ten); return doc({ status: 1, signal: 'SIGTERM', loi: ly }); };

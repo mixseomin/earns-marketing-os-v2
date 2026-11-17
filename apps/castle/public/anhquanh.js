@@ -9,7 +9,7 @@ const CSS = `
 #aq button { font: 600 12px system-ui, sans-serif; color: var(--chu); background: rgba(255,255,255,.08); border: 1px solid var(--vien); border-radius: 7px; padding: 4px 9px; cursor: pointer; }
 #aq button.chon { background: #ffd9a8; color: #1a1208; } #aq button:disabled { opacity: .45; cursor: default; }
 #aq .mo { color: var(--mo); font-size: 12px; margin-top: 6px; }
-#aq .luoi { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; align-content: start; }
+#aq .luoi { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: max-content; gap: 8px; margin-top: 8px; align-content: start; } /* ô có overflow:hidden thì lưới được phép bóp hàng về 0 → max-content giữ đủ cao, phần thừa cuộn */
 #aq .o-anh { position: relative; border: 2px solid transparent; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,.3); cursor: pointer; }
 #aq .o-anh.da { border-color: #ffd9a8; } #aq .o-anh img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
 #aq .o-anh .nhan { font-size: 11px; padding: 4px 6px; line-height: 1.35; } #aq .o-anh .tick { position: absolute; top: 6px; left: 6px; background: #ffd9a8; color: #1a1208; border-radius: 50%; width: 20px; height: 20px; display: none; place-items: center; font-weight: 700; font-size: 12px; }

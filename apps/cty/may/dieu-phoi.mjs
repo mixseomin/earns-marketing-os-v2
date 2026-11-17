@@ -21,7 +21,7 @@ import { pathToFileURL } from 'node:url';
 
 const HOME = os.homedir();
 const DIR = path.join(HOME, 'viec-nen');
-const F = { so: path.join(DIR, 'so.json'), tt: path.join(DIR, 'trang-thai.json'), goi: path.join(DIR, 'goi'), ten: path.join(DIR, 'ten'), log: path.join(HOME, '.cache', 'dieu-phoi.log') };
+const F = { so: path.join(DIR, 'so.json'), tt: path.join(DIR, 'trang-thai.json'), sk: path.join(DIR, 'su-kien.jsonl'), goi: path.join(DIR, 'goi'), ten: path.join(DIR, 'ten'), log: path.join(HOME, '.cache', 'dieu-phoi.log') };
 const LA = path.join(HOME, 'Library', 'LaunchAgents');
 const BOX = 'root@167.233.241.16', SO_BOX = '/opt/earns-marketing-os-v2/apps/cty/cong-ty/viec-nen.json';
 const PATH_LAUNCHD = '/usr/bin:/bin:/usr/sbin:/sbin';   // PATH launchd đưa cho việc không khai PATH — giữ y nguyên để việc cũ chạy như trước
@@ -105,6 +105,31 @@ function conSong(pid, ten) {
   try { return execFileSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8', env: { ...process.env, LC_ALL: 'en_US.UTF-8' } }).trim().startsWith(ten); } catch { return false; }
 }
 
+// ── NHẬT KÝ CÔNG VIỆC VỀ cty (anh 17/11/2026: "Mọi con này đều phải có thông tin qua đây. Có hệ thống logs công việc đầy đủ, tự động") ──────────────────
+// Mỗi lần MỞ / XONG một việc (trừ dịch vụ chạy liền) → một dòng vào hàng ~/viec-nen/su-kien.jsonl; vòng 5 giây đẩy cả hàng về box3 mỗi ≥ 30 giây
+// (worker/nhip.mjs --ghi-may ghi vào nhật ký nhịp của đúng người). box3 im → hàng nằm lại, lượt sau đẩy bù. Không tạo tiến trình mới.
+/** Dòng nhật ký có nghĩa cuối của một việc (bỏ dòng trống + lời nhắc git), gộp " · ", tối đa 300 ký tự. */
+export function tomNhatKy(chu, n = 2) {
+  const d = String(chu).split('\n').map((l) => l.trim()).filter((l) => l && !/^(hint:|fatal: Not possible to fast-forward)/.test(l));
+  return d.slice(-n).join(' · ').slice(-300);
+}
+const docDuoi = (f, byte = 4096) => { try { const fd = fs.openSync(f, 'r'), n = fs.fstatSync(fd).size, b = Buffer.alloc(Math.min(byte, n)); fs.readSync(fd, b, 0, b.length, n - b.length); fs.closeSync(fd); return b.toString('utf8'); } catch { return ''; } };
+function ghiSuKien(v, ket) {
+  if (v.hen?.luon) return;
+  try { fs.appendFileSync(F.sk, `${JSON.stringify({ nhan: nhanCua(v), luc: new Date().toISOString(), ket })}\n`); } catch { /* hàng hỏng không được làm hỏng việc */ }
+}
+let dangDay = false, lanDay = 0;
+function daySuKien() {
+  if (dangDay || Date.now() - lanDay < 30_000 || !fs.existsSync(F.sk) || !fs.statSync(F.sk).size) return;
+  dangDay = true; lanDay = Date.now(); const gui = `${F.sk}.dang-gui`;
+  try { if (!fs.existsSync(gui)) fs.renameSync(F.sk, gui); } catch { dangDay = false; return; }
+  const c = execFile('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', BOX, 'cd /opt/earns-marketing-os-v2/apps/cty && CTY_DATA_DIR=/var/lib/cty node worker/nhip.mjs --ghi-may'], { encoding: 'utf8', timeout: 60_000 }, (e) => {
+    if (e) ghiLog(`⚠ chưa đẩy được nhật ký công việc về box3 (giữ lại, lượt sau đẩy bù): ${e.message.split('\n')[0]}`); else fs.rmSync(gui, { force: true });
+    dangDay = false;
+  });
+  c.stdin.end(fs.readFileSync(gui, 'utf8'));
+}
+
 // ── chạy một việc ──────────────────────────────────────────────────────────────────────────────────────────────────────
 function lenhThat(v, PATH) {
   let [dau, ...ts] = v.chay;
@@ -140,6 +165,7 @@ function moViec(v, t, them, xong) {
     if (v.uu_tien_thap && c.pid) try { os.setPriority(c.pid, 10); } catch { /* đã thoát */ }
     Object.assign(t, { pid: c.pid, bat_dau: Date.now(), runs: (t.runs ?? 0) + 1, ma: null, xong: null });
     ghiLog(`▶ ${v.ten}${them.length ? ` (${them.join(' ')})` : ''} pid ${c.pid}`);
+    ghiSuKien(v, `▶ bắt đầu: ${v.ten}${them.length ? ` (${them.join(' ')})` : ''}`);
   } finally { fs.closeSync(out); if (err !== out) fs.closeSync(err); }
 }
 
@@ -210,10 +236,13 @@ function chayVong(may) {
       moViec(v, t, Array.isArray(goi?.them) ? goi.them.map(String) : [], (ma) => {
         dangChay.delete(v.nhan); Object.assign(t, { pid: null, xong: Date.now(), ma });
         ghiLog(`■ ${v.ten} mã ${ma} sau ${Math.round((t.xong - t.bat_dau) / 1000)} giây`); ghiJson(F.tt, tt);
+        const giay = Math.round((t.xong - t.bat_dau) / 1000), tom = tomNhatKy(docDuoi(v.nhat_ky));
+        ghiSuKien(v, `${ma === 0 ? '■ xong' : `✗ lỗi mã ${ma}`} sau ${giay < 120 ? `${giay} giây` : `${Math.round(giay / 60)} phút`}${tom ? ` · ${tom}` : ''}`);
       });
       doi = true;
     }
     if (doi) ghiJson(F.tt, tt);
+    daySuKien();
   };
   nhip(); setInterval(nhip, 5000);
   process.on('SIGTERM', () => { ghiJson(F.tt, tt); ghiLog('○ bộ điều phối dừng (việc đang chạy vẫn chạy tiếp)'); process.exit(0); });
@@ -237,6 +266,7 @@ function goi(nhan, them) {
 
 async function tuKiem() {
   const a = (await import('node:assert')).default;
+  a.equal(tomNhatKy('a\n\nhint: x\nfatal: Not possible to fast-forward, aborting.\n2026 phiên xong: 3 task\n'), 'a · 2026 phiên xong: 3 task', 'tóm nhật ký: bỏ dòng trống + lời nhắc git');
   const v = (x) => ({ nhan: 'iMac:com.x', ten: 'X - y', chay: ['/bin/bash', '-c', 'true'], hen: { moi_giay: 60 }, ...x });
   a.deepEqual(kiemSo({ viec: [v({})] }), []);
   a.ok(kiemSo({ viec: [v({ nhan: 'MacBook:x.claude', chay: ['/bin/sh', '-c', '/opt/homebrew/bin/claude -p hi'] })] }).some((l) => /chỉ được chạy trên iMac/.test(l)), 'Claude trên MacBook: lỗi');

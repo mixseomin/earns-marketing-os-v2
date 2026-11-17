@@ -69,9 +69,9 @@ for n in $NHA; do "thue_$n" && break; done
 IP=${HOST% *}; P=${HOST#* }; S="ssh -p $P -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 root@$IP"
 # Thả cả lô chạy TÁCH trên máy (lam-lo.sh, setsid) — iMac chỉ ghé kéo clip mỗi 30 giây; mạng chập thì lần ghé sau nối lại (16/11/2026 lượt 7 mất vì đứt ssh).
 for i in 1 2 3 4 5; do
-  $S 'mkdir -p /root/h3/vao' && scp -q -P "$P" "$DIR/tren-may.sh" "$DIR/chay-h3.py" "$DIR/lam-lo.sh" root@$IP:/root/h3/ && scp -q -P "$P" "$@" root@$IP:/root/h3/vao/ \
+  $S 'mkdir -p /root/h3/vao' && scp -q -P "$P" "$DIR/tren-may.sh" "$DIR/chay-h3.py" "$DIR/chay-anh.py" "$DIR/lam-lo.sh" root@$IP:/root/h3/ && scp -q -P "$P" "$@" root@$IP:/root/h3/vao/ \
     && printf '%s\n' "$@" | xargs -n1 basename | sed 's/\.json$//' | $S 'cat > /root/h3/thu-tu.txt' \
-    && $S "setsid nohup bash /root/h3/lam-lo.sh $TRAN > /root/h3/lam-lo.log 2>&1 < /dev/null &" && break
+    && $S "XV_MO_HINH=${XV_MO_HINH:-h3} XV_CHAY=${XV_CHAY:-chay-h3.py} setsid nohup bash /root/h3/lam-lo.sh $TRAN > /root/h3/lam-lo.log 2>&1 < /dev/null &" && break
   echo "  thả lô lỗi (mạng?) — thử lại $i/5"; sleep 20
 done
 echo "đã thả lô lên máy lúc $(date +%H:%M) — iMac ghé kéo clip mỗi 30 giây"
@@ -88,4 +88,4 @@ for l in sys.stdin:
     print(("✓" if d.get("ok") else "✗"), d.get("vao"), str(d.get("kq"))[:300])'
 [ -n "$XONG" ] && cat "$RA/XONG" || echo "✗ không thấy lô xong sau $(( TRAN + 25 )) phút"
 tail -3 "$RA/cai.log" 2>/dev/null
-echo "tổng $(( ($(date +%s) - T0) / 60 )) phút · $LOAI · giá máy $GIA\$/giờ · clip: $(ls "$RA"/*.mp4 2>/dev/null | wc -l | tr -d ' ')"
+echo "tổng $(( ($(date +%s) - T0) / 60 )) phút · $LOAI · giá máy $GIA\$/giờ · tệp ra: $(ls "$RA"/*.mp4 "$RA"/*.png 2>/dev/null | wc -l | tr -d ' ')"

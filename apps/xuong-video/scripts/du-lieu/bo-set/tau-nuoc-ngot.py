@@ -285,8 +285,10 @@ for ma, v in SD['shot'].items():
             if x['ten'] == 'Tiền thừa': x['tam'] = [-70, 500, 155]; x['trao'] = [0.15, 0.55]
             if x['ten'] == 'Nhóc': x['tay'] = [[0, 0.55]]
     if ma == '12': may[ma]['khung'] = ['Chú']   # nhóc xa ngoài khung cận chú
-    if ma == '11':   # 17/11/2026: lia không động cơ + chữ "runs away from camera" mà 3D đi VỀ máy → máy đứng sau chú ở ô cửa nhìn xuống sân ga, nhóc chạy xa khỏi máy
-        may[ma].update({'dat': [-150, 470, 230], 'nhin': [30, 800, 30]}); may[ma].pop('nham', None)
+    if ma == '11':   # 17/11/2026: lia không động cơ + chữ "runs away from camera" mà 3D đi VỀ máy → máy ĐỨNG phía đông-nam (như MAY_HAI): mở ra thấy đủ chú ở ô cửa +
+        # nhóc dưới cửa sổ (tổng thể cảnh "Tiền thừa"), nhóc chạy về phía bắc = xa khỏi máy. Bản máy sau lưng chú (cùng ngày) để nhóc ngoài khung, chú bị che.
+        may[ma].update({'dat': [260, 240, 170], 'nhin': [0, 760, 120], 'ong_kinh': 30}); may[ma].pop('nham', None)
+    if ma == '9e': may[ma].update({'dat': [-95, 480, 225], 'nhin': [-45, 500, 130], 'ong_kinh': 40})   # cận tay từ phía chú nhìn xuống: nắm tiền rõ (máy cao 290 cm: 0,7 % khung) + thấy mặt nhóc ngước lên (người cầm phải trong khung); y < 500 cùng phía trục với cận nhóc #9b — y 520 đảo hướng màn
     # dây vàng: đường nhóc đi trong shot (tam → den) vẽ sát sàn + mũi tên ở cuối — người xem thấy ngay nhóc đi đâu
     for x in vt:
         if x['ten'] == 'Nhóc' and x.get('den'):

@@ -31,6 +31,18 @@ const quyenChung = (dir, ANH) => [...DOC_THEM.map((d) => `Read(/${d}/**)`), 'Bas
  *  một chữ (thêm đối số, đường dẫn tuyệt đối của cây, cd trước) là bị chặn, lộ ra sau khi lượt hỏng (Thắng #1623, Vinh #1637). Máy tự nới MỌI quyền Bash ra các dạng
  *  tương đương: (1) quyền khớp đúng chuỗi → thêm dạng có đối số (":*"); (2) đường dẫn 'apps/…' tương đối → thêm dạng tuyệt đối trong cây; (3) lệnh đọc / đo / đi lại
  *  vô hại (cd, git fetch / rev-parse, python3 -c, node -e, find, jq, echo, printf, ffprobe) cho mọi kỹ sư. CAM (git reset / rm / npx…) vẫn chặn — luật cấm đè quyền. */
+/** SỔ "ĐÃ LÀM" GHI THEO KHOÁ (17/11/2026: anh / máy gỡ dấu #1658 giữa lượt, lượt đang chạy ghi đè cả tệp bằng bản đọc lúc đầu → dấu cũ sống lại, card nằm Kẹt):
+ *  chỉ ghi những khoá CHÍNH lượt này đổi / xoá, đè lên bản mới nhất trên đĩa. */
+export const LUU = Symbol('luu');
+export function soDaLam(tep) {
+  const doc = () => { try { return JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { return {}; } };
+  const d = doc(), doi = new Set();
+  return new Proxy(d, {
+    set: (o, k, v) => { o[k] = v; doi.add(k); return true; },
+    deleteProperty: (o, k) => { delete o[k]; doi.add(k); return true; },
+    get: (o, k) => k === LUU ? () => { const m = doc(); for (const x of doi) { if (x in o) m[x] = o[x]; else delete m[x]; } fs.writeFileSync(tep, JSON.stringify(m)); } : o[k],
+  });
+}
 export function moRongQuyen(ds, dir) {
   const ra = new Set(ds);
   for (const p of ds) {
@@ -149,7 +161,7 @@ export function chayKySu(cfg) {
 
   // CHỐNG VÒNG LẶP (cùng luật hàng thợ máy, anh 11/11/2026 "phải biết giới hạn đúng lúc, đúng chỗ"): card đã chạy mà luồng chưa có tin NGƯỜI mới → không làm lại trong 24 giờ.
   // Anh trả lời / bấm làm lại = có tin mới → nhận lại ngay.
-  const daLam = (() => { try { return JSON.parse(fs.readFileSync(TEP_DA, 'utf8')); } catch { return {}; } })();
+  const daLam = soDaLam(TEP_DA);
   const boQua = (cfg.boQuaUrl || []).map((m) => `\n  and coalesce(prep_payload->>'source_url','') not like '${m}'`).join('');
   const chiLay = cfg.chiUrl ? `\n  and (${cfg.chiUrl.map((m) => `coalesce(prep_payload->>'source_url','') like '${m}'`).join(' or ')})` : '';
   // Card đã nộp Review mà anh TRẢ LỜI tiếp trong luồng (không bấm Làm lại) vẫn là việc: tin cuối là của người → nhận lại (anh 15/11/2026 "tao rep tiếp qua đó thì mày có nhận ko").
@@ -172,7 +184,7 @@ export function chayKySu(cfg) {
   // commit đã nằm trên main (máy vừa đẩy hộ) → nộp đúng card của nó sang Review
   const nopCommitDay = (c, nhan) => { for (const t of c?.day ?? []) { const id = cardTuCommit(t); if (id) try { log(`${nhan}: ${chotCard({ duAn: cfg.duAn, id, cach: 'nop', chu: `Máy đã đẩy bản sửa lên main: ${t}` })}`); } catch (e) { log(`nộp card #${id} lỗi: ${String(e.message).split('\n')[0]}`); } } };
   nopCommitDay(cayDau, 'commit kẹt đã lên main');
-  if (!thu && !kiem) choDeployNop(daLam, cfg, cayDau?.dir ?? cfg.cayThu, TEN, log, () => fs.writeFileSync(TEP_DA, JSON.stringify(daLam)));
+  if (!thu && !kiem) choDeployNop(daLam, cfg, cayDau?.dir ?? cfg.cayThu, TEN, log, () => daLam[LUU]());
   if (!thu && !kiem) try { dayHangGiao(NGUOI); } catch (e) { log(`chưa đẩy được hàng việc giao: ${String(e.message).split('\n')[0]}`); }
   if (!card) { log(`không có card mới (${ds.length} card mở, đã làm cả)`); process.exit(0); }
 
@@ -224,7 +236,7 @@ export function chayKySu(cfg) {
   if (!kiem) try { execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', BOX, `cd ${APP} && CTY_DATA_DIR=${DATA} node worker/nhip.mjs --ghi-may`],
     { input: JSON.stringify({ nguoi: NGUOI, viec: 'nhan-viec', luc: new Date().toISOString(), ket: `◆ nhận ${card.giao ? 'việc giao' : `card #${card.id}`}: ${card.title} · ${model} ${muc.effort}` }), encoding: 'utf8', timeout: 30000 }); } catch (e) { log(`chưa báo được bảng nhân sự: ${String(e.message).split('\n')[0]}`); }
   if (!kiem && !card.giao) daLam[card.id] = { tin_nguoi: card.tin_nguoi, luc: new Date().toISOString(), lanQuyen: Number(daLam[`quyen:${card.id}`] ?? 0) };   // ghi TRƯỚC khi chạy: lượt treo / chết cũng không chạy lại liền mỗi 5 phút
-  fs.writeFileSync(TEP_DA, JSON.stringify(daLam));
+  daLam[LUU]();
   const r = (cfg.tmux ? (c, a, o) => chayTmux(c, a, { ...o, ten: NGUOI }) : chayClaude)(CLAUDE, ['-p', giao, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', ...gonNguCanh(cfg), '--allowedTools', ...QUYEN, '--disallowedTools', ...camCay(dir)],
     { cwd: dir, encoding: 'utf8', timeout: (cfg.tranPhut || 40) * 60000, maxBuffer: 64 << 20, env: ENV });
   // đẩy NGAY trong lượt này commit mà Claude không push được (trước: chờ lượt 5 phút sau, card nằm Kẹt + một tin "can_anh" thừa giữa chừng)
@@ -244,14 +256,14 @@ export function chayKySu(cfg) {
   const loiMay = ket0 === 'treo' && !(Number(kq.num_turns) > 0);
   const loiQuyen = loiMay || ket0 !== 'da_sua' && tuChoi.length > 0 && (ket0 === 'can_anh' ? /quyền|git|bị chặn|chặn|permission|shell|bash/i.test(ra) : true);
   const ket = loiQuyen ? 'khong_sua' : ket0;
-  if (!kiem && loiQuyen) { const lan = (daLam[card.id]?.lanQuyen ?? 0) + 1; if (lan <= 2) { delete daLam[card.id]; daLam[`quyen:${card.id}`] = lan; } fs.writeFileSync(TEP_DA, JSON.stringify(daLam)); log(`#${card.id}: lượt hỏng vì ${tuChoi.length} lệnh bị từ chối → ${lan <= 2 ? `tự chạy lại lượt kế (lần ${lan}/2)` : 'đã chạy lại 2 lần, chờ tin mới'}`); }
+  if (!kiem && loiQuyen) { const lan = (daLam[card.id]?.lanQuyen ?? 0) + 1; if (lan <= 2) { delete daLam[card.id]; daLam[`quyen:${card.id}`] = lan; } daLam[LUU](); log(`#${card.id}: lượt hỏng vì ${tuChoi.length} lệnh bị từ chối → ${lan <= 2 ? `tự chạy lại lượt kế (lần ${lan}/2)` : 'đã chạy lại 2 lần, chờ tin mới'}`); }
   log(`xong #${card.id}: ${ket} · ${kq.num_turns ?? '?'} lượt · ${Math.round((kq.duration_ms || 0) / 6e4)} phút`);
   // Claude không tự trả lời được (treo, chết, bị từ chối) → máy ghi một tin vào luồng để anh thấy ngay trong card, không im lặng
   if (card.giao) {   // việc giao thẳng: không có luồng card — lưu kết quả cạnh tệp việc, chuyển sang giao/xong/
     const xong = path.join(GIAO, 'xong'); fs.mkdirSync(xong, { recursive: true });
     fs.writeFileSync(path.join(xong, tepGiao), JSON.stringify({ ...viecGiao, ket, xong_luc: new Date().toISOString(), bao: (ra.split(/BÁO ANH:?/i).pop() || ra).trim().slice(0, 3000), lenh_bi_chan: chan.slice(0, 10) }, null, 1));
     if (!(loiQuyen && (daLam[`quyen:${card.id}`] ?? 0) <= 2)) fs.rmSync(path.join(GIAO, tepGiao), { force: true });
-    else daLam[`quyen:${card.id}`] = (daLam[`quyen:${card.id}`] ?? 0) + 1, fs.writeFileSync(TEP_DA, JSON.stringify(daLam));
+    else daLam[`quyen:${card.id}`] = (daLam[`quyen:${card.id}`] ?? 0) + 1, daLam[LUU]();
     log(`việc giao ${tepGiao}: ${ket} — kết quả ở ${path.join(xong, tepGiao)}`);
     try { execFileSync(BR, ['close', HO_SO], { encoding: 'utf8', env: ENV, timeout: 30000 }); } catch { /* chưa mở */ }
     return;
@@ -266,7 +278,7 @@ export function chayKySu(cfg) {
   // card còn "Đang làm" khi lượt dừng = chết im (anh 14/11/2026) → mục Kẹt kèm lý do; Claude đã nộp / trả lời thì chotCard để yên
   // ĐÃ SỬA mà chưa nộp (thường vì deploy toàn monorepo đang đỏ do người khác): KHÔNG đẩy về anh — máy chờ deploy xanh rồi tự nộp (anh 17/11/2026:
   // "việc của chúng nó thì gọi tao làm cái đéo gì"). Quá 6 giờ vẫn chưa xanh mới đặt Kẹt.
-  if (!kiem && !card.giao && ket === 'da_sua' && !loiQuyen) { daLam[`deploy:${card.id}`] = { luc: new Date().toISOString() }; fs.writeFileSync(TEP_DA, JSON.stringify(daLam)); log(`#${card.id}: đã sửa, chờ deploy xanh để máy tự nộp Review`); }
+  if (!kiem && !card.giao && ket === 'da_sua' && !loiQuyen) { daLam[`deploy:${card.id}`] = { luc: new Date().toISOString() }; daLam[LUU](); log(`#${card.id}: đã sửa, chờ deploy xanh để máy tự nộp Review`); }
   else if (!kiem) try { log(`card ${chotCard({ duAn: cfg.duAn, id: card.id, cach: 'ket', chu: loiQuyen ? `[${TEN} · ${ket}] Lượt vướng ${tuChoi.length} lệnh bị máy từ chối (không phải việc anh) — máy tự chạy lại lượt kế với dạng lệnh khớp quyền.` : `[${TEN} · ${ket}] Lượt dừng mà card chưa nộp Review — con để ở mục Kẹt: lỗi / cần anh, hoặc commit chưa lên main (máy tự đẩy ở lượt sau rồi nộp).` }).replace(/^#\d+ /, '')}`); } catch (e) { log(`chốt card lỗi: ${String(e.message).split('\n')[0]}`); }
   try { execFileSync(BR, ['close', HO_SO], { encoding: 'utf8', env: ENV, timeout: 30000 }); } catch { /* chưa mở được thì thôi */ }   // xong là dọn: đóng ĐÍCH DANH profile của kỹ sư
 }
@@ -279,5 +291,8 @@ if (process.argv[1]?.endsWith('gop-y-ky-su.mjs') && process.argv.includes('--tu-
   for (const p of ['Bash(git -C /x/cay reset:*)', 'Bash(git -C /x/cay checkout:*)', 'Bash(git -C /x/cay push --force:*)', 'Bash(git -C /x/cay branch -d:*)', 'Bash(git branch --delete:*)', 'Bash(rm:*)'])
     t.ok(cc.includes(p), `camCay chặn ${p}`);
   t.ok(CAM.every((p) => cc.includes(p)), 'camCay giữ nguyên mọi mục CAM');
+  { const tep = path.join(os.tmpdir(), `da-lam-thu-${process.pid}.json`); fs.writeFileSync(tep, JSON.stringify({ a: 1, b: 2 }));
+    const d = soDaLam(tep); d.c = 3; const m = JSON.parse(fs.readFileSync(tep, 'utf8')); delete m.b; m.e = 5; fs.writeFileSync(tep, JSON.stringify(m)); d[LUU]();
+    const ra = JSON.parse(fs.readFileSync(tep, 'utf8')); t.ok(!('b' in ra) && ra.c === 3 && ra.e === 5 && ra.a === 1, 'sổ đã-làm: khoá bị gỡ ngoài lượt không sống lại'); fs.rmSync(tep); }
   console.log('gop-y-ky-su: tự kiểm đạt');
 }

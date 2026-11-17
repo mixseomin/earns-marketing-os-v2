@@ -239,7 +239,10 @@ export function chayKySu(cfg) {
   const ra = String(kq.result || '').trim(), ket0 = ((ra.match(/KET:\**\s*(DA_SUA|KHONG_SUA|CAN_ANH)/gi) || []).pop() || (r.signal || r.error ? 'treo' : 'khong_sua')).replace(/.*KET:\**\s*/i, '').toLowerCase();
   // "cần anh" / không sửa mà lượt có lệnh bị máy từ chối và lời báo nói về quyền → lỗi công cụ, KHÔNG phải việc anh (bộ chuẩn Huy): ghi khong_sua, và CHẠY LẠI ngay lượt 5 phút kế
   // với gợi ý lệnh khớp (trước 17/11/2026: card bị đánh dấu "đã làm" tới khi anh nhắn tin mới → Vinh không tự làm lại #1637). Tối đa 2 lần chạy lại vì quyền / card.
-  const loiQuyen = ket0 !== 'da_sua' && tuChoi.length > 0 && (ket0 === 'can_anh' ? /quyền|git|bị chặn|chặn|permission|shell|bash/i.test(ra) : true);
+  // TREO 0 LƯỢT = lỗi MÁY, không phải việc (Khôi #1658 17/11/2026: phiên đứng ở hộp hỏi của Claude Code, chưa làm bước nào → card nằm Kẹt chờ anh nhắn lại):
+  // cùng đường chạy lại tự động của lỗi quyền, tối đa 2 lần / card.
+  const loiMay = ket0 === 'treo' && !(Number(kq.num_turns) > 0);
+  const loiQuyen = loiMay || ket0 !== 'da_sua' && tuChoi.length > 0 && (ket0 === 'can_anh' ? /quyền|git|bị chặn|chặn|permission|shell|bash/i.test(ra) : true);
   const ket = loiQuyen ? 'khong_sua' : ket0;
   if (!kiem && loiQuyen) { const lan = (daLam[card.id]?.lanQuyen ?? 0) + 1; if (lan <= 2) { delete daLam[card.id]; daLam[`quyen:${card.id}`] = lan; } fs.writeFileSync(TEP_DA, JSON.stringify(daLam)); log(`#${card.id}: lượt hỏng vì ${tuChoi.length} lệnh bị từ chối → ${lan <= 2 ? `tự chạy lại lượt kế (lần ${lan}/2)` : 'đã chạy lại 2 lần, chờ tin mới'}`); }
   log(`xong #${card.id}: ${ket} · ${kq.num_turns ?? '?'} lượt · ${Math.round((kq.duration_ms || 0) / 6e4)} phút`);

@@ -562,7 +562,7 @@ body.nk-dang-keo iframe{pointer-events:none}
 .cty-chinh-ca{display:grid;gap:3px;justify-items:start}.cty-chinh-ca input[type=time]{font:inherit;font-size:.8rem;padding:1px 2px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}.cty-dn select{font:inherit;font-size:.8rem}
 
 /* đầu việc: 3 cột thẳng hàng giữa các dòng — tên (một dòng, cắt …, rê chuột xem đủ) · lịch (ô chỉnh) · máy */
-.cty-dn-viec{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:17rem 13rem 3.5rem;gap:3px 10px;align-items:center}.cty-dn-viec li{display:contents}
+.cty-dn-viec{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:17rem 13rem 10rem;gap:3px 10px;align-items:center}.cty-dn-viec li{display:contents}
 .cty-dn-viec li>*{white-space:nowrap}.cty-dn-viec li>a{overflow:hidden;text-overflow:ellipsis}
 .cty-dn-viec li>*{min-width:0;overflow:hidden;text-overflow:ellipsis}   /* cột CỐ ĐỊNH → thẳng hàng giữa mọi người trong bảng, không chỉ trong một ô */
 .cty-dn td{overflow-wrap:normal;word-break:normal}   /* chữ không gãy giữa từ ("Trưởn g"); bảng rộng hơn khung thì khung cuộn ngang (.cty-dn-cuon) */

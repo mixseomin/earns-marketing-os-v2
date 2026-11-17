@@ -166,12 +166,15 @@ export function chayKySu(cfg) {
   const chiLay = cfg.chiUrl ? `\n  and (${cfg.chiUrl.map((m) => `coalesce(prep_payload->>'source_url','') like '${m}'`).join(' or ')})` : '';
   // Card đã nộp Review mà anh TRẢ LỜI tiếp trong luồng (không bấm Làm lại) vẫn là việc: tin cuối là của người → nhận lại (anh 15/11/2026 "tao rep tiếp qua đó thì mày có nhận ko").
   // Không viết chú thích "--" trong câu SQL: sql() gộp mọi dòng thành một, "--" nuốt hết phần sau.
-  const ds = JSON.parse(sql(`select coalesce(json_agg(x order by x.created_at), '[]') from (select id, created_at, title,
+  const ds = JSON.parse(sql(`select coalesce(json_agg(x order by x.lam_lai desc, x.created_at), '[]') from (select id, created_at, title,
+  coalesce((select t.v->>'xuLy' = 'rework' from jsonb_array_elements(coalesce(prep_payload->'trao_doi','[]')) with ordinality t(v, i) where lower(coalesce(t.v->>'nguoi','')) not in (${NGUOI_AI.map((x) => `'${x}'`).join(',')}) order by t.i desc limit 1), false) as lam_lai,
   (select count(*) from jsonb_array_elements(coalesce(prep_payload->'trao_doi','[]')) t where lower(coalesce(t->>'nguoi','')) not in (${NGUOI_AI.map((x) => `'${x}'`).join(',')})) as tin_nguoi
   from human_tasks where project_id='${cfg.duAn}' and prep_payload->>'source_platform'='feedback'${boQua}${chiLay}
   and (coalesce(prep_payload->'site_status'->>'${cfg.duAn}', status) in ('pending','claimed','broken')
     or (coalesce(prep_payload->'site_status'->>'${cfg.duAn}', status) in ('review','submitted')
         and lower(coalesce(prep_payload->'trao_doi'->-1->>'nguoi','')) not in (${NGUOI_AI.map((x) => `'${x}'`).join(',')})))) x`) || '[]');
+  // THỨ TỰ (anh 18/11/2026 "1658: nếu tao muốn push nhanh nó thì sao" → "sửa cho đàng hoàng"): card anh bấm LÀM LẠI (tin người mới nhất xuLy='rework') đi TRƯỚC
+  // mọi card mới — anh đã thấy sai một lần, chờ thêm là bắt anh chờ hai lần; còn lại cũ nhất trước. Bấm Làm lại = đẩy card lên đầu hàng.
   // VIỆC GIAO THẲNG (anh 17/11/2026: "mày chỉ đc sửa và ra lệnh cho các con CLI kia" — Claude giao việc mà không ghi card thay anh vào hòm):
   // tệp ~/may-ky-su/<người>/giao/<tên>.json { tieu_de, noi_dung, trang? } — cũ nhất làm trước, THẮNG card hòm. Xong máy chuyển sang giao/xong/ kèm kết quả.
   const GIAO = path.join(HOME, 'may-ky-su', NGUOI, 'giao');

@@ -1,6 +1,6 @@
 // Tự kiểm phần đếm của nút 💬 (CHUAN.md): node_modules/.bin/tsx packages/gop-y/src/dem.test.mts
 import assert from 'node:assert';
-import { choToi, luotDangChay, demTuDs, TRAN_DANG_LAM_MS } from './dem';
+import { choToi, luotDangChay, viecTuNhatKy, demTuDs, TRAN_DANG_LAM_MS } from './dem';
 
 const bay = Date.parse('2026-11-17T08:00:00Z');
 const truoc = (ms: number) => new Date(bay - ms).toISOString();
@@ -18,6 +18,10 @@ assert.equal(luotDangChay({ luc: truoc(5_000), ket: '▶ bắt đầu: X' }, bay
 assert.equal(luotDangChay({ luc: truoc(TRAN_DANG_LAM_MS + 1), ket: '▶ bắt đầu: X' }, bay), null, 'quá trần phiên → phiên chết, không rung mãi');
 assert.equal(luotDangChay({ luc: truoc(60_000), ket: '■ xong sau 5 phút' }, bay), null, 'dòng cuối là xong → không chạy');
 assert.equal(luotDangChay(null, bay), null);
+const bd = { luc: truoc(60_000), ket: '▶ bắt đầu: cty - Khôi xử hòm góp ý (Claude)' };
+assert.equal(viecTuNhatKy([bd, { luc: truoc(30_000), ket: '◆ nhận việc giao: Dải AI · opus low' }], bay), 'việc giao: Dải AI', '◆ sau ▶ → đúng việc');
+assert.equal(viecTuNhatKy([{ ket: '◆ nhận card #9: cũ' }, bd], bay), 'cty - Khôi xử hòm góp ý (Claude)', '◆ trước ▶ là lượt cũ → tên job');
+assert.equal(viecTuNhatKy([bd, { ket: '◆ nhận card #9: X' }, { luc: truoc(1000), ket: '■ xong' }], bay), null, 'đã xong → rảnh');
 
 const d = demTuDs([
   { id: 1, noiDung: 'Nút lệch\nchi tiết', trangThai: 'claimed', capNhat: truoc(60_000) },

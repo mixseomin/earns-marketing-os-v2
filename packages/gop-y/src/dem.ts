@@ -38,6 +38,21 @@ export function luotDangChay(dong: { luc?: string; ket?: string } | null | undef
   return ket.replace(/^▶\s*bắt đầu:\s*/, '').trim() || 'kỹ sư AI đang chạy lượt';
 }
 
+/** Nhật ký nhịp đầy đủ <người>.jsonl → việc đang làm, hoặc null. Lượt = dòng "▶ bắt đầu" mới nhất chưa có "■" sau nó (luật luotDangChay);
+ *  nếu sau ▶ có dòng "◆ nhận card #N: …" / "◆ nhận việc giao: …" (kỹ sư tự đẩy) thì lấy dòng ◆ mới nhất — đúng việc, không chỉ tên job. */
+export function viecTuNhatKy(dong: Array<{ luc?: string; ket?: string }>, bay = Date.now()): string | null {
+  let i = dong.length - 1;
+  while (i >= 0 && !/^[▶■]/.test(String(dong[i]?.ket ?? ''))) i--;
+  if (i < 0) return null;
+  const luot = luotDangChay(dong[i], bay);
+  if (!luot) return null;
+  for (let j = dong.length - 1; j > i; j--) {
+    const k = String(dong[j]?.ket ?? '');
+    if (/^◆/.test(k)) return k.replace(/^◆\s*nhận\s*/, '').replace(/\s+·\s+\S+\s+(low|medium|high|xhigh|max)$/, '').trim() || luot;
+  }
+  return luot;
+}
+
 /** Card claimed còn trong trần phiên (updated_at đổi lúc claim / reply). */
 export const conTrongTran = (capNhat: string, bay = Date.now()) => bay - Date.parse(capNhat) < TRAN_DANG_LAM_MS;
 

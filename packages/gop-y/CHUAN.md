@@ -35,7 +35,9 @@ Gói (`@mos2/gop-y/server`):
   - `working` = số card của hòm đang `claimed` còn trong trần phiên (45 phút từ `updated_at`), cộng lượt kỹ sư CLI phụ trách hòm đang chạy:
     dòng cuối nhật ký nhịp `<CTY_DATA_DIR>/nhip/<người>.json` là `▶ bắt đầu …`, đã chạy ≥ 15 giây và chưa quá 45 phút
     (bộ điều phối iMac đẩy dòng này về box3). Ánh xạ hòm → người: `cty→khoi · mos2→dat · xuong-video→vinh · spy→hieu` (`dem.ts KY_SU_HOM`).
-  - `dangLam` = tiêu đề các việc đó (tooltip).
+    Đọc `<người>.jsonl` (`dem.ts viecTuNhatKy`): sau `▶` có dòng `◆ nhận card #N: …` / `◆ nhận việc giao: …` (kỹ sư tự đẩy) thì việc = dòng ◆ mới nhất;
+    việc giao thẳng (ngoài hòm) được cộng thêm cả khi đang có card claimed. Chưa có `.jsonl` → dòng cuối `<người>.json`.
+  - `dangLam` = tiêu đề các việc đó: tooltip nút + **dải đầu hòm** (trên nội dung mọi tab, luôn hiện) "🔧 AI đang làm: …" / "AI đang rảnh", nạp cùng nhịp 60 giây.
   - `can_y_kien` = số card của chính `me` có `choYKien`; `choYKien` = id các card đó.
 
 Bản ngoài (spy / Astrolas) trả cùng tên khoá trong `counts`: `counts.working`, `counts.can_y_kien`.

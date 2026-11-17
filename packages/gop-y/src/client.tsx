@@ -580,6 +580,9 @@ export function HomGopY(p: CauHinhHom) {
           </div>
         }>
           <div data-gop-y="">
+            <div data-gy-dang-lam="" title="Nạp lại mỗi 60 giây" style={{ fontSize: 11.5, padding: '5px 8px', marginBottom: 8, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: dem.working ? 'var(--fg-2)' : 'var(--fg-3)' }}>
+              {dem.working ? <>🔧 <b>AI đang làm:</b> {dem.dangLam.join(' · ') || `${dem.working} việc`}</> : 'AI đang rảnh'}
+            </div>
             {tab === 'gui' ? <FormGopY onGui={daGui} /> : tab === 'hoi-dap' ? <CuaToi ds={hoi} onNap={nap} trong="Chưa có câu hỏi nào — chọn Loại: Câu hỏi khi gửi." /> : <CuaToi ds={ds} onNap={nap} />}
           </div>
         </Khung>

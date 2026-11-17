@@ -9,7 +9,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import fs from 'node:fs';
 import path from 'node:path';
-import { choToi, conTrongTran, luotDangChay, KY_SU_HOM, DEM_RONG, type DemGopY } from './dem';
+import { choToi, conTrongTran, luotDangChay, viecTuNhatKy, KY_SU_HOM, DEM_RONG, type DemGopY } from './dem';
 
 export type Nguoi = { email: string; displayName?: string | null; role: string };
 export type TinTraoDoi = { nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: string[]; trang?: string; nguCanh?: string };
@@ -139,7 +139,13 @@ const laNguoi = (me: Nguoi) => {
 /** Kỹ sư CLI phụ trách hòm đang chạy một lượt? Đọc dòng cuối nhật ký nhịp <CTY_DATA_DIR>/nhip/<người>.json (bộ điều phối iMac đẩy về box3). */
 function kySuDangChay(duAn: string): string | null {
   const nguoi = KY_SU_HOM[duAn]; if (!nguoi) return null;
-  try { return luotDangChay(JSON.parse(fs.readFileSync(path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip', `${nguoi}.json`), 'utf8'))); }
+  const thu = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip');
+  try {
+    const dong = fs.readFileSync(path.join(thu, `${nguoi}.jsonl`), 'utf8').trim().split('\n').slice(-200)
+      .map((s) => { try { return JSON.parse(s) as { luc?: string; ket?: string }; } catch { return {}; } });
+    return viecTuNhatKy(dong);
+  } catch { /* chưa có .jsonl → dòng cuối .json */ }
+  try { return luotDangChay(JSON.parse(fs.readFileSync(path.join(thu, `${nguoi}.json`), 'utf8'))); }
   catch { return null; }   // máy không có nhật ký (dev / app khác máy) → chỉ dựa vào card claimed
 }
 
@@ -156,7 +162,8 @@ export async function demGopY(duAn: string, me: Nguoi | null, o?: TuyChon): Prom
   const lam = (r as unknown as Array<{ id: number; title: string; updated_at: string | Date }>)
     .filter((x) => conTrongTran(new Date(x.updated_at).toISOString())).map((x) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`);
   const luot = kySuDangChay(duAn);
-  const dangLam = lam.length ? lam : luot ? [luot] : [];
+  // lượt kỹ sư thường là chính card claimed → chỉ cộng thêm khi không có card, hoặc là việc giao thẳng (ngoài hòm)
+  const dangLam = luot && (!lam.length || /^việc giao/.test(luot)) ? [...lam, luot] : lam;
   const cho = (await dsGopYCuaToi(duAn, me, o)).filter((b) => b.choYKien);
   return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id) };
 }

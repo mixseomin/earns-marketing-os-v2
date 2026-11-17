@@ -89,7 +89,7 @@ if (NEN?.diem?.length) {
     if (m === Infinity) continue; const yThat = m + GOC_Y - 0.5, id = j * n + i; if (yThat < G.cao[id]) { G.cao[id] = yThat; ha++; } }
   console.info('[ns] hạ lưới đất thô theo ảnh 3D:', ha, 'đỉnh');
 }
-const LOP_OSM = [], CAY_VA = []; // lớp vẽ dựng-từ-số-đo (địa hình, khối nhà, rừng, cầu) + va chạm thân cây — ẩn / tắt khi bật ẢNH THẬT 3D
+const LOP_OSM = [], CAY_VA = [], CAY_XZ = []; // lớp vẽ dựng-từ-số-đo (địa hình, khối nhà, rừng, cầu) + va chạm thân cây — ẩn / tắt khi bật ẢNH THẬT 3D
 {
   const g = new THREE.PlaneGeometry(2 * NUA, 2 * NUA, n - 1, n - 1); g.rotateX(-Math.PI / 2);
   const p = g.attributes.position, mau = new Float32Array(p.count * 3), c = new THREE.Color();
@@ -875,8 +875,10 @@ const RUNG = []; let RUNG_O = []; // ẩn khi so ảnh thật (cây mọc ở m�
   }
   scene.add(rung); RUNG_O = rung.children;
   // thân cây có va chạm (trụ) từ gốc tới gần ngọn: đi không xuyên cây nữa, và bộ leo dibo (bám mọi mặt đứng) trèo được lên tới ngọn tán rồi đu lên đứng ở chạc ngọn
-  for (const [x, y, z, s] of viTri) { const h = 12 * s; CAY_VA.push(world.createCollider(RAPIER.ColliderDesc.cylinder(h / 2, 0.32 * s).setTranslation(x, y + h / 2, z).setFriction(0.8), tinh));
-    CAY_VA.push(world.createCollider(RAPIER.ColliderDesc.cylinder(0.06, 0.8).setTranslation(x, y + h, z), tinh)); } // chạc ngọn: leo tới đỉnh thì đu lên đứng được, không tuột rơi
+  // va chạm cây TẮT sẵn, anCayXa chỉ bật cây trong 60 m quanh người đi bộ: ~2.600 cây × 2 khối trụ luôn bật làm mỗi bước vật lý tốn ~4 ms
+  // (anh 17/11/2026 "máy tính mở page nặng quá" — đo: 5,9 ms/bước → 0,6 ms khi chỉ giữ khối gần)
+  for (const [x, y, z, s] of viTri) { const h = 12 * s; CAY_VA.push(world.createCollider(RAPIER.ColliderDesc.cylinder(h / 2, 0.32 * s).setTranslation(x, y + h / 2, z).setFriction(0.8).setEnabled(false), tinh));
+    CAY_VA.push(world.createCollider(RAPIER.ColliderDesc.cylinder(0.06, 0.8).setTranslation(x, y + h, z).setEnabled(false), tinh)); CAY_XZ.push(x, z, x, z); } // chạc ngọn: leo tới đỉnh thì đu lên đứng được, không tuột rơi
   RUNG.push(rung); LOP_OSM.push(rung); // bật / tắt (ảnh thật, so ảnh) tác động nhóm cha; anCayXa tác động từng ô bên trong
 }
 
@@ -1092,6 +1094,16 @@ function anCayXa(now) {
   const fog = scene.fog, near = dang ? 180 : 600, far = dang ? 520 : 2200; if (fog.near !== near) { fog.near = near; fog.far = far; }
   const cf = dang ? 600 : 5000; if (camera.far !== cf) { camera.far = cf; camera.updateProjectionMatrix(); }
   for (const o of RUNG_O) o.visible = o.userData.tam.distanceTo(c) < xa;
+  batCayGan();
+}
+// bật va chạm đúng các cây trong 60 m quanh người đi bộ (ảnh thật 3D đang hiện thì tắt hết — cây thật trong ảnh mọc chỗ khác); chỉ gọi Rapier khi trạng thái đổi
+const CAY_BAT = [];
+function batCayGan() {
+  const p = di?.dang && !LOP_OSM.dangAn ? di.viTri() : null;
+  for (let i = 0; i < CAY_VA.length; i++) {
+    const bat = !!p && Math.abs(CAY_XZ[2 * i] - p.x) < 60 && Math.abs(CAY_XZ[2 * i + 1] - p.z) < 60;
+    if (CAY_BAT[i] !== bat) { CAY_BAT[i] = bat; CAY_VA[i].setEnabled(bat); }
+  }
 }
 let lan = 0, tichLuy = 0, lucCham = 0;
 // TOUCHPAD HAI NGÓN (anh 16/11/2026): vuốt hai ngón = XOAY như giữ chuột trái kéo; chụm / mở hai ngón (trình duyệt gửi wheel + ctrlKey) = phóng;
@@ -1115,6 +1127,9 @@ for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart'
 const dongHo = new THREE.Clock();
 function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ so ảnh)
   requestAnimationFrame(ve);
+  // BẢN TRANG ĐANG ẨN KHÔNG CHẠY (anh 17/11/2026 "máy tính mở page nặng quá"): khung cách 3 dựng sẵn — hoặc trang chính khi khung đang phủ — trước vẫn
+  // vẽ + chạy vật lý + tải ảnh 3D ở 10 khung/s → hai bản trang cùng ngốn máy. Ẩn thì dừng hẳn, chỉ nuốt đồng hồ để lúc hiện lại không nhảy cóc.
+  if (trangDangAn()) { dongHo.getDelta(); return; }
   luuGoc();
   // điện thoại: xem toàn cảnh xa > 140 m → khung cửa bản xa (mattien.js userData.lod); đi bộ / lại gần → đủ chi tiết
   if (CHAM && LOD_MT.xa.children.length) { const xa = !di?.dang && camera.position.distanceTo(orbit.target) > 140; if (xa !== LOD_MT.dangXa) { LOD_MT.dangXa = xa; for (const m of LOD_MT.gan.children) m.visible = !xa; for (const m of LOD_MT.xa.children) m.visible = xa; } }
@@ -1416,7 +1431,7 @@ function apDungAnh3d() {
   const p = di?.dang ? di.viTri() : null, gan = !!p && Math.hypot(p.x + 30, p.z - 30) < 260;
   const hien = anh3d.epHien || (anh3d.bat && !dangSo && !gan); if (hien === anh3d.hien) return; anh3d.hien = hien; // epHien: báo lệch đang chụp bản ảnh thật (kể cả khi đi bộ gần)
   anh3d.goc.visible = hien; if (!hien) $('nguon-3d').textContent = '';
-  LOP_OSM.dangAn = hien; for (const m of LOP_OSM) m.visible = !hien && !(dangSo && RUNG.includes(m)); for (const c of CAY_VA) c.setEnabled(!hien); apHienCach3(); // so ảnh: rừng giữ ẩn (moSo đã ẩn, không bật lại ở đây)
+  LOP_OSM.dangAn = hien; for (const m of LOP_OSM) m.visible = !hien && !(dangSo && RUNG.includes(m)); batCayGan(); apHienCach3(); // so ảnh: rừng giữ ẩn (moSo đã ẩn, không bật lại ở đây)
   if (!hien) LOP_OSM.vaDat?.setEnabled(true); for (const c of anh3d.va.values()) for (const k of c) k.setEnabled(hien); // lưới đất: capNhatAnh3d chỉ tắt khi dưới chân đã có va chạm ô
 }
 (async () => { // chạy NỀN: không chặn vòng vẽ / vật lý chờ tải thư viện (trước đây trang đứng mấy giây đầu)

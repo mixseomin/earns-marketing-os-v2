@@ -22,7 +22,7 @@
  */
 import { readFileSync } from 'node:fs';
 
-const NGUON = 'apps/web/src/lib/actions/gop-y-mos2.ts';
+const NGUON = 'packages/gop-y/src/server.ts';   // gop-y-mos2.ts chỉ còn re-export (dcc52416a) — đọc khai báo gốc
 const MAN = 'apps/web/src/components/trao-doi-card.tsx';   // TraoDoiCard tách khỏi backlinks-page 25/10/2026
 
 const nguon = readFileSync(NGUON, 'utf8');

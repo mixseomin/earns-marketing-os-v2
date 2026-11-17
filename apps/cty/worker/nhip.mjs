@@ -224,6 +224,8 @@ export function ghiMay(dong) {
   let ghi = 0;
   // dòng { ap: { id, luc, ok, loi } } = bộ điều phối báo đã ÁP lịch admin đặt (lich-may.mjs datLichNen) → ô chỉnh hết "chờ áp" / hiện lỗi đỏ
   for (const e of dong) if (e?.ap && String(e.ap.id ?? '').startsWith(TIEN_TO_NEN)) { ghiAp(String(e.ap.id), String(e.ap.luc ?? ''), !!e.ap.ok, String(e.ap.loi ?? '')); ghi++; }
+  // dòng mang thẳng người (kỹ sư tự báo 'nhận việc' — bộ chạy biết tên mình, không qua nhãn launchd)
+  for (const e of dong) if (e?.nguoi && nguoi.some((x) => x.id === e.nguoi)) { ghiLam(e.nguoi, String(e.ket ?? '').slice(0, 500), String(e.viec ?? 'viec'), e.luc || undefined, e.tiep); ghi++; }
   for (const e of dong) for (const v of theoNhan[e?.nhan] ?? [])for (const n of nguoi.filter((x) => x.viec.includes(v))) { ghiLam(n.id, String(e.ket ?? '').slice(0, 500), v, e.luc || undefined, e.tiep); ghi++; }
   return ghi;
 }

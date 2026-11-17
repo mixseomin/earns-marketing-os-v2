@@ -31,7 +31,7 @@ export function tranPhut(viec) {
 export const phutLich = (lich) => { const m = String(lich ?? '').match(/mỗi (\d+) phút/); return m ? Number(m[1]) : null; };
 export const IM_QUA_PHUT = 30, LOI_LIEN_TIEP = 3, LICH_DAY_PHUT = 5;
 
-const loaiDong = (ket) => (/^▶/.test(ket) ? 'mo' : /^■/.test(ket) ? 'xong' : /^✗/.test(ket) ? 'loi' : 'lan');   // 'lan' = nhịp box: một dòng = một lần chạy xong
+const loaiDong = (ket) => (/^◆/.test(ket) ? 'nhan' : /^▶/.test(ket) ? 'mo' : /^■/.test(ket) ? 'xong' : /^✗/.test(ket) ? 'loi' : 'lan');   // 'lan' = nhịp box: một dòng = một lần chạy xong
 const sau = (ket) => ket.match(/sau (\d+ (?:giây|phút))/)?.[1] ?? '';
 const tomTat = (ket) => ket.replace(/^(▶ bắt đầu: |■ xong sau \d+ (?:giây|phút)( · )?|✗ lỗi mã \d+ sau \d+ (?:giây|phút)( · )?)/, '');
 const phut = (a, b) => Math.max(0, Math.round((Date.parse(b) - Date.parse(a)) / 60000));
@@ -42,12 +42,14 @@ export function cacLan(nk, bay = Date.now()) {
   const mo = {}, ra = [];
   for (const e of [...nk].reverse()) {
     const ket = String(e.ket ?? ''), l = loaiDong(ket), v = String(e.viec ?? '');
+    // '◆ nhận …' = kỹ sư tự báo ĐÚNG việc vừa nhận (card / việc giao) — gắn vào lượt đang mở mới nhất, không phải một lần chạy riêng
+    if (l === 'nhan') { const v2 = Object.keys(mo).sort((a, b) => String(mo[b].luc).localeCompare(String(mo[a].luc)))[0]; if (v2) mo[v2] = { ...mo[v2], nhan: ket.replace(/^◆\s*/, '') }; continue; }
     if (l === 'mo') { if (mo[v]) ra.push({ viec: v, tu: mo[v].luc, ma: null, dai: '', tom: 'không thấy dòng xong (bộ điều phối khởi động lại?)', dang: false, mat: true }); mo[v] = e; continue; }
     if (l === 'lan') { ra.push({ viec: v, xong: e.luc, ma: 0, dai: '', tom: ket, dang: false }); continue; }
     const m = mo[v]; delete mo[v];
-    ra.push({ viec: v, tu: m?.luc, xong: e.luc, ma: l === 'xong' ? 0 : Number(ket.match(/mã (\d+)/)?.[1] ?? 1), dai: sau(ket), tom: tomTat(ket), dang: false, tenViec: m ? tomTat(String(m.ket)) : undefined });
+    ra.push({ viec: v, tu: m?.luc, xong: e.luc, ma: l === 'xong' ? 0 : Number(ket.match(/mã (\d+)/)?.[1] ?? 1), dai: sau(ket), tom: tomTat(ket), dang: false, tenViec: m ? (m.nhan ?? tomTat(String(m.ket))) : undefined });
   }
-  for (const [v, e] of Object.entries(mo)) ra.push({ viec: v, tu: e.luc, ma: null, dai: `${phut(e.luc, new Date(bay).toISOString())} phút`, tom: tomTat(String(e.ket)), dang: true, tenViec: tomTat(String(e.ket)) });
+  for (const [v, e] of Object.entries(mo)) ra.push({ viec: v, tu: e.luc, ma: null, dai: `${phut(e.luc, new Date(bay).toISOString())} phút`, tom: tomTat(String(e.ket)), dang: true, tenViec: e.nhan ?? tomTat(String(e.ket)) });
   return ra.sort((a, b) => (b.xong ?? b.tu ?? '').localeCompare(a.xong ?? a.tu ?? ''));
 }
 

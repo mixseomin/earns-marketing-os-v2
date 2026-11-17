@@ -170,6 +170,9 @@ export function chayKySu(cfg) {
   // effort theo việc (may/chon-muc.mjs): đề bài = tin người mới nhất; anh nhắn lại nhiều lần = làm lại
   const muc = chonMuc({ chu: `${card.title}\n${cuoiNguoi?.noiDung ?? ''}`, soAnh: moiAnh.length, lanLamLai: Math.max(0, card.tin_nguoi - 1), macDinh: effort || 'low' });
   log(`nhận card #${card.id} ${card.title} · model ${model} · effort ${muc.effort} (${muc.ly_do.join(', ')})`);
+  // BẢNG NHÂN SỰ thấy ĐÚNG việc đang làm (anh 17/11/2026: "Làm sao tao biết nó đã nhận việc gì?"): đẩy dòng 'nhận việc' về nhật ký nhịp của chính người này
+  if (!kiem) try { execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', BOX, `cd ${APP} && CTY_DATA_DIR=${DATA} node worker/nhip.mjs --ghi-may`],
+    { input: JSON.stringify({ nguoi: NGUOI, viec: 'nhan-viec', luc: new Date().toISOString(), ket: `◆ nhận ${card.giao ? 'việc giao' : `card #${card.id}`}: ${card.title} · ${model} ${muc.effort}` }), encoding: 'utf8', timeout: 30000 }); } catch (e) { log(`chưa báo được bảng nhân sự: ${String(e.message).split('\n')[0]}`); }
   if (!kiem && !card.giao) daLam[card.id] = { tin_nguoi: card.tin_nguoi, luc: new Date().toISOString(), lanQuyen: Number(daLam[`quyen:${card.id}`] ?? 0) };   // ghi TRƯỚC khi chạy: lượt treo / chết cũng không chạy lại liền mỗi 5 phút
   fs.writeFileSync(TEP_DA, JSON.stringify(daLam));
   const r = (cfg.tmux ? (c, a, o) => chayTmux(c, a, { ...o, ten: NGUOI }) : chayClaude)(CLAUDE, ['-p', giao, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],

@@ -28,7 +28,7 @@ export const HOC_CAM = /--no-verify|push\s+(-f\b|--force)|reset --hard|git clean
 export const BI_MAT = /(sk-(ant-|proj-)?[A-Za-z0-9_-]{24,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|xox[abp]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY|\b\d{9,10}:AA[A-Za-z0-9_-]{30,})/;
 /** Lệnh Bash cấm trong phiên của kỹ sư. */
 export const LENH_CAM = /rm -rf\s+[~/]|git push[^\n|;&]*(\s-f\b|--force)|--no-verify|git reset --hard|git clean -f|curl[^\n]*\|\s*(sh|bash)\b|chmod 777|DROP TABLE|TRUNCATE\s|scp\s[^\n]*root@\S+:\/opt\/(earns-marketing-os-v2|spy)/i;
-export const NGUONG = { byte_so: 60000, bai_so: 40, claude: 14, rss_mb: 6000, loi_24h: 8, phien_mb: 3000 };
+export const NGUONG = { thoat_loi: 20, byte_so: 60000, bai_so: 40, claude: 14, rss_mb: 6000, loi_24h: 8, phien_mb: 3000 };
 const chuanY = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 export const khoa = (c) => createHash('sha1').update(`${c.loai}|${c.ai}|${c.vat}`).digest('hex').slice(0, 12);
 
@@ -74,6 +74,16 @@ export function doCay(n, k, luc = Date.now()) {
   if (k.rebase) return [{ loai: 'ket-cay', ai: n, vat: `rebase-${k.head}`, chu: `cây ${n} đang dở rebase (xung đột chưa gộp) — kỹ sư không nhận việc được` }];
   if (k.truoc && luc - k.cu > 60 * 60000) return [{ loai: 'ket-cay', ai: n, vat: `truoc-${k.head}`, chu: `cây ${n} có ${k.truoc} commit chưa lên main, cũ nhất ${Math.round((luc - k.cu) / 60000)} phút` }];
   return [];
+}
+/** Thuần: nhật ký bộ điều phối ("MM-DD HH:MM ■ <tên> mã N sau …") → cờ cho việc thoát lỗi ≥ NGUONG.thoat_loi lần trong 24 giờ. */
+export function doDieuPhoi(chu, luc = Date.now()) {
+  const nam = new Date(luc).getFullYear(), dem = new Map();
+  for (const l of String(chu).split('\n')) {
+    const m = l.match(/^(\d\d)-(\d\d) (\d\d):(\d\d) ■ (.+?) mã (\d+)/); if (!m || m[6] === '0') continue;
+    const t = new Date(nam, Number(m[1]) - 1, Number(m[2]), Number(m[3]), Number(m[4])).getTime(); if (luc - t > 864e5 || t - luc > 36e5) continue;
+    dem.set(m[5], (dem.get(m[5]) ?? 0) + 1);
+  }
+  return [...dem].filter(([, n]) => n >= NGUONG.thoat_loi).map(([ten, n]) => ({ loai: 'ngao', ai: ten, vat: `thoat-${ten}-${new Date(luc).toISOString().slice(0, 10)}`, chu: `việc nền "${ten}" thoát lỗi ${n} lần trong 24 giờ (nhật ký ${HOME}/.cache/dieu-phoi.log)` }));
 }
 /** Nhật ký việc nền → số dòng lỗi trong 24 giờ (dòng mở đầu bằng mốc ISO). */
 export const LOI = /lỗi|hỏng|quá \d+ phút|timeout|\bError\b|✗|chưa nhận việc|tự đóng/i;
@@ -145,6 +155,9 @@ async function luot({ chiDo }) {
     let chu = ''; try { const fd = fs.openSync(v.nhat_ky, 'r'), n = fs.fstatSync(fd).size, b = Buffer.alloc(Math.min(n, 262144)); fs.readSync(fd, b, 0, b.length, n - b.length); fs.closeSync(fd); chu = b.toString('utf8'); } catch { continue; }
     const n = demLoi(chu, luc); if (n >= NGUONG.loi_24h) co.push({ loai: 'ngao', ai: v.ten, vat: `loi-${v.nhan}-${new Date(luc).toISOString().slice(0, 10)}`, chu: `${n} dòng lỗi trong 24 giờ ở ${v.nhat_ky}` });
   }
+  // 1d'. VIỆC NỀN THOÁT LỖI LẶP (17/11/2026: "Astrolas - site cục bộ cho Thành" thoát mã 1 4.608 lần — cổng 8000 bị một bản php khác giữ — mà máy đo chỉ đọc
+  //      nhật ký việc của kỹ sư nên không ai thấy): đếm "■ <tên> mã N≠0" trong nhật ký bộ điều phối 24 giờ qua, mọi việc nền.
+  try { const t = fs.readFileSync(path.join(HOME, '.cache', 'dieu-phoi.log'), 'utf8').slice(-4 << 20); co.push(...doDieuPhoi(t, luc)); } catch (e) { co.push({ loai: 'ngao', ai: 'dieu-phoi', vat: 'khong-doc', chu: `không đọc được nhật ký bộ điều phối: ${String(e.message).split('\n')[0]}` }); }
   // 1e. quyền bị nới (đọc may/*.mjs của cây Hà — cây theo main)
   const MAY = path.dirname(new URL(import.meta.url).pathname), q = new Set(fs.readdirSync(MAY).filter((f) => f.endsWith('.mjs')).flatMap((f) => quyenTrong(fs.readFileSync(path.join(MAY, f), 'utf8'))));
   if (st.quyen) for (const x of q) if (!st.quyen.includes(x)) co.push({ loai: 'bao-mat', ai: 'quyen', vat: x, chu: `quyền mới cho kỹ sư: Bash(${x})` });
@@ -227,6 +240,9 @@ if (process.argv[1] === new URL(import.meta.url).pathname && process.argv.includ
   t.equal(doCay('thang', { rebase: false, truoc: 1, cu: Date.now() - 5 * 60000, head: 'a1' }).length, 0, 'vừa commit 5 phút (đang đẩy) → im');
   { const { QUYEN, CAM_HA } = await quyenHa('/x'); t.ok(QUYEN.some((q) => q.includes('may-ky-su/**')) && QUYEN.includes('Bash(git rebase origin/main)') && !CAM_HA.includes('Bash(git rebase:*)'), 'Hà vào cây kỹ sư gỡ rebase được');
     t.ok(CAM_HA.includes('Bash(git reset:*)') && CAM_HA.includes('Bash(git push --force:*)'), 'reset / push --force vẫn cấm'); }
+  { const l = Date.now(), d = new Date(l - 36e5), hm = (x) => String(x).padStart(2, '0'), dong = (ma) => `${hm(d.getMonth() + 1)}-${hm(d.getDate())} ${hm(d.getHours())}:${hm(d.getMinutes())} ■ Astrolas - site cục bộ mã ${ma} sau 1 giây`;
+    t.equal(doDieuPhoi(Array.from({ length: 25 }, () => dong(1)).join('\n'), l).length, 1, 'thoát lỗi 25 lần / 24 giờ → cờ');
+    t.equal(doDieuPhoi(Array.from({ length: 25 }, () => dong(0)).join('\n'), l).length, 0, 'thoát mã 0 không tính'); }
   t.notEqual(khoa({ loai: 'a', ai: 'b', vat: 'c' }), khoa({ loai: 'a', ai: 'b', vat: 'd' }));
   console.log('✓ giam-sat: học sai / lệch / phình / lộ bí mật, lệnh cấm, lỗi 24 giờ, quyền mới, lệnh LÀM hợp lệ');
 } else if (process.argv[1] === new URL(import.meta.url).pathname) await luot({ chiDo: process.argv.includes('--do') });

@@ -6,7 +6,8 @@
 html{font-size:14px}   /* gọn kiểu SaaS văn phòng: mọi cỡ rem co theo (#1353) */
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:1rem;line-height:1.5;font-variant-numeric:tabular-nums}
 a{color:inherit}
-.cty-top{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:5}
+.cty-top{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:7}
+.cty-main .dt-dau{top:var(--cty-top-h,0px)!important}   /* #1658 tiêu đề bảng dính ngay dưới thanh trên, không chồng hở khe */
 .cty-brand{font-weight:600;font-size:1.15rem;text-decoration:none}
 .cty-top a{text-decoration:none}
 .cty-top a:hover{color:var(--accent)}

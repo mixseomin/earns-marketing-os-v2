@@ -63,6 +63,18 @@ export function doDongPhien(o, ai, tep) {
   }
   return co;
 }
+/** Đọc một cây kỹ sư: { rebase: dở rebase?, truoc: số commit chưa lên main, cu: giờ tác giả (ms) của commit chưa lên main cũ nhất, head }. */
+export function kiemCay(c) {
+  const g = (...a) => execFileSync('git', ['-C', c, ...a], { encoding: 'utf8', timeout: 30000 }).trim(), gd = path.resolve(c, g('rev-parse', '--git-dir'));
+  const rebase = ['rebase-merge', 'rebase-apply'].some((d) => fs.existsSync(path.join(gd, d))), truoc = rebase ? 0 : Number(g('rev-list', '--count', 'origin/main..HEAD'));
+  return { rebase, truoc, cu: truoc ? Number(g('log', '--format=%at', 'origin/main..HEAD').split('\n').pop()) * 1000 : 0, head: g('rev-parse', '--short', 'HEAD') };
+}
+/** Thuần: trạng thái cây → cờ ket-cay. */
+export function doCay(n, k, luc = Date.now()) {
+  if (k.rebase) return [{ loai: 'ket-cay', ai: n, vat: `rebase-${k.head}`, chu: `cây ${n} đang dở rebase (xung đột chưa gộp) — kỹ sư không nhận việc được` }];
+  if (k.truoc && luc - k.cu > 60 * 60000) return [{ loai: 'ket-cay', ai: n, vat: `truoc-${k.head}`, chu: `cây ${n} có ${k.truoc} commit chưa lên main, cũ nhất ${Math.round((luc - k.cu) / 60000)} phút` }];
+  return [];
+}
 /** Nhật ký việc nền → số dòng lỗi trong 24 giờ (dòng mở đầu bằng mốc ISO). */
 export const LOI = /lỗi|hỏng|quá \d+ phút|timeout|\bError\b|✗|chưa nhận việc|tự đóng/i;
 export const demLoi = (chu, luc = Date.now()) => String(chu).split('\n').filter((l) => { const t = Date.parse(l.slice(0, 24)); return t && luc - t < 864e5 && LOI.test(l); }).length;
@@ -83,12 +95,14 @@ export function tachLam(chu) {
 /** Quyền của Hà (anh 17/11/2026 mở quyền sửa): như một kỹ sư trong cây riêng `dir` — sửa / commit / push mos2, ssh box3 — trừ bộ gác của chính Hà và ~/.claude. */
 export async function quyenHa(dir) {
   const { moRongQuyen, CAM } = await import('./gop-y-ky-su.mjs');
-  const QUYEN = moRongQuyen(['Read', 'Glob', 'Grep', `Edit(/${dir}/**)`, `Write(/${dir}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${dir}:*)`, `Bash(git -C ${dir}:*)`,
+  const KY = path.join(HOME, 'may-ky-su');   // cây riêng của mọi kỹ sư — Hà vào gỡ khi cây kẹt (anh 17/11/2026: "Mày làm hộ nó thì sau tao lại phải gọi mày à")
+  const QUYEN = moRongQuyen(['Read', 'Glob', 'Grep', `Edit(/${dir}/**)`, `Write(/${dir}/**)`, `Edit(/${KY}/**)`, `Write(/${KY}/**)`, `Bash(git -C ${KY}/:*)`, `Bash(cd ${KY}/:*)`,
+    'Bash(git rebase origin/main)', 'Bash(git rebase --continue)', 'Bash(git rebase --abort)', 'Bash(git -c core.editor=true rebase --continue)', `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${dir}:*)`, `Bash(git -C ${dir}:*)`,
     'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(git push origin HEAD:main)', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git fetch:*)',
     'Bash(node:*)', `Bash(${HOME}/bin/gh-watch:*)`, 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)',
     'Bash(uniq:*)', 'Bash(diff:*)', 'Bash(ps:*)', 'Bash(du:*)', 'Bash(df:*)', 'Bash(tmux ls)', 'Bash(tmux capture-pane:*)'], dir);
   const TU_GAC = ['apps/cty/may/giam-sat.mjs', 'apps/cty/worker/giam-sat-lam.mjs'].flatMap((f) => [`Edit(/${dir}/${f})`, `Write(/${dir}/${f})`]);
-  const CAM_HA = [...CAM, ...TU_GAC, `Edit(/${HOME}/.claude/**)`, `Write(/${HOME}/.claude/**)`];
+  const CAM_HA = [...CAM.filter((c) => c !== 'Bash(git rebase:*)'), ...TU_GAC, `Edit(/${HOME}/.claude/**)`, `Write(/${HOME}/.claude/**)`];
   return { QUYEN, CAM_HA };
 }
 
@@ -118,6 +132,12 @@ async function luot({ chiDo }) {
       for (const l of fs.readFileSync(p, 'utf8').split('\n')) { if (!l.includes('"assistant"')) continue; try { co.push(...doDongPhien(JSON.parse(l), ai, f.slice(0, 8))); } catch { /* dòng hỏng */ } }
     }
     if (byte / 1048576 > NGUONG.phien_mb) co.push({ loai: 'phinh', ai, vat: `phien-${Math.floor(byte / 1073741824)}`, chu: `nhật ký phiên Claude của ${ai} ${Math.round(byte / 1048576)} MB (${dir})` });
+  }
+  // 1c'. CÂY KỸ SƯ KẸT (17/11/2026: cây Thắng dở rebase từ 01:48, 151 lượt không nhận việc — Hà chỉ thấy qua nhật ký và đẩy việc về anh): dở rebase, hoặc commit
+  //      chưa lên main viết quá 60 phút → cờ ket-cay, khoá theo mã HEAD (cây đổi thì cờ mới).
+  for (const n of fs.readdirSync(path.join(HOME, 'may-ky-su')).filter((x) => /^[a-z]+$/.test(x) && x !== 'ha')) {
+    const c = path.join(HOME, 'may-ky-su', n, 'earns-marketing-os-v2'); if (!fs.existsSync(path.join(c, '.git'))) continue;
+    try { co.push(...doCay(n, kiemCay(c), luc)); } catch (e) { co.push({ loai: 'ket-cay', ai: n, vat: 'khong-doc', chu: `không đọc được cây ${c}: ${String(e.message).split('\n')[0]}` }); }
   }
   // 1d. nhật ký việc nền của kỹ sư: lỗi dồn
   let so = { viec: [] }; try { so = JSON.parse(fs.readFileSync(path.join(HOME, 'viec-nen', 'so.json'), 'utf8')); } catch { /* chưa có sổ */ }
@@ -154,6 +174,11 @@ SỬA GỐC NHƯ MỘT KỸ SƯ (anh 17/11/2026 mở quyền): lỗi nằm trong
 - Repo khác (spy-on-tc — Tài · Astrolas — Thành · puzzle-books — Thảo / Khang) đang có kỹ sư làm trong cây chung: KHÔNG sửa ở đó; giao việc có bằng chứng + đề xuất
   sửa vào hàng của kỹ sư phụ trách: ssh ${BOX} 'cd ${APP} && CTY_DATA_DIR=${DATA} THO_MAY_TEP=<tệp hàng> node worker/tho-may-viec.mjs --them <khoá> <phòng>' (chữ ở stdin;
   hàng: Tài tai-nguyen-sua.json khoá box3:… · Huy etp-sua.json khoá etp:… · Khang social-sua.json khoá social:… · Thảo sach-sua.json khoá sach:…).
+- KỸ SƯ KẸT (cờ ket-cay: cây dở rebase, commit chưa lên main, xung đột; hay nhật ký báo lặp một lỗi git / cây): con VÀO CÂY CỦA KỸ SƯ ĐÓ
+  ${HOME}/may-ky-su/<người>/earns-marketing-os-v2 mà gỡ cho xong — git -C <cây> status · đang dở rebase thì đọc xung đột; chưa thì git -C <cây> fetch origin main rồi
+  (cd <cây> && git rebase origin/main); gộp xung đột giữ Ý của CẢ HAI bên (đọc commit hai bên: git log -1 <mã>), chạy bài kiểm của đúng phần đó (vd castle:
+  node apps/castle/scripts/kiem-ke.mjs --lau neuschwanstein · cty: node apps/cty/scripts/tu-kiem.mjs), git add tệp đã gộp, git -c core.editor=true rebase --continue,
+  rồi git -C <cây> push origin HEAD:main và chờ gh-watch. KHÔNG báo "cần anh / nhờ Huy" cho việc con tự gỡ được — anh không muốn phải gọi người khác làm thay con.
 - Chữa cháy trên box3 được (đo trước): huỷ truy vấn ĐỌC chạy lặp, renice lô nền. Không kill tiến trình ghi dữ liệu, không dừng web / postgres.
 CẤM: tiền / thanh toán / mua / đề xuất tài khoản · xoá dữ liệu · git reset / revert / checkout / push --force · sửa bộ gác của chính con (giam-sat.mjs, giam-sat-lam.mjs)
 · sửa ~/.claude · nới danh sách CAM của kỹ sư. Việc cần anh quyết → ghi rõ trong BÁO ANH.
@@ -197,6 +222,11 @@ if (process.argv[1] === new URL(import.meta.url).pathname && process.argv.includ
     t.ok(CAM_HA.includes(`Edit(/${d}/apps/cty/may/giam-sat.mjs)`) && CAM_HA.includes(`Edit(/${d}/apps/cty/worker/giam-sat-lam.mjs)`), 'không sửa bộ gác của chính Hà');
     t.ok(CAM_HA.some((q) => q.includes('.claude/**')) && CAM_HA.includes('Bash(git reset:*)') && CAM_HA.includes('Bash(rm:*)'), 'không sửa ~/.claude, cấm chung giữ nguyên'); }
   t.deepEqual(quyenTrong("const Q = ['Bash(ls:*)']\n    t.ok(CAM.includes('Bash(git reset:*)'))\n// cờ nhầm Bash(rm:*)"), ['ls:*'], 'chuỗi trong bài tự kiểm không phải quyền cấp');
+  t.equal(doCay('thang', { rebase: true, truoc: 0, cu: 0, head: 'a1' })[0].loai, 'ket-cay', 'dở rebase → cờ');
+  t.equal(doCay('thang', { rebase: false, truoc: 3, cu: Date.now() - 2 * 36e5, head: 'a1' }).length, 1, 'commit chưa lên main quá 60 phút → cờ');
+  t.equal(doCay('thang', { rebase: false, truoc: 1, cu: Date.now() - 5 * 60000, head: 'a1' }).length, 0, 'vừa commit 5 phút (đang đẩy) → im');
+  { const { QUYEN, CAM_HA } = await quyenHa('/x'); t.ok(QUYEN.some((q) => q.includes('may-ky-su/**')) && QUYEN.includes('Bash(git rebase origin/main)') && !CAM_HA.includes('Bash(git rebase:*)'), 'Hà vào cây kỹ sư gỡ rebase được');
+    t.ok(CAM_HA.includes('Bash(git reset:*)') && CAM_HA.includes('Bash(git push --force:*)'), 'reset / push --force vẫn cấm'); }
   t.notEqual(khoa({ loai: 'a', ai: 'b', vat: 'c' }), khoa({ loai: 'a', ai: 'b', vat: 'd' }));
   console.log('✓ giam-sat: học sai / lệch / phình / lộ bí mật, lệnh cấm, lỗi 24 giờ, quyền mới, lệnh LÀM hợp lệ');
 } else if (process.argv[1] === new URL(import.meta.url).pathname) await luot({ chiDo: process.argv.includes('--do') });

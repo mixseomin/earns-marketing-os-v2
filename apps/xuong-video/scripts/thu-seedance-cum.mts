@@ -34,7 +34,9 @@ const model = arg('model', 'bytedance/seedance-2-fast'); const xem = process.arg
 // (trang_thai 'hang_h3', request.vao = vao.json của chay-h3.py), in "H3_JOB <id>" — 0đ; scripts/h3/chay-hang.sh chạy H3 trên máy thuê rồi gọi lại
 // --nap-h3=<job> --tep=<mp4 trên box3> để gắn clip (đo cú cắt, khớp thoại như Seedance) + ghi phiên bản nhãn H3.
 const bo = arg('bo', 'seedance') === 'h3' ? 'h3' : 'seedance'; const napH3 = Number(arg('nap-h3')) || 0; const tepH3 = arg('tep');
-const NHAN = bo === 'h3' || napH3 ? 'H3' : 'Seedance'; const MODEL_GAN = NHAN === 'H3' ? 'h3:ref2va-int8-turbo' : `kie:${model}`;
+// --tu-job: nhãn theo BỘ THẬT của job (provider) — 17/11/2026 gắn lại clip H3 job 8604 (#18 phim #3071) bị ghi nhãn "Seedance" vì nhãn tính theo --bo mặc định
+const boJob = Number(arg('tu-job')) ? String(((await getDb()!.execute(sql`SELECT provider FROM xv_job WHERE id = ${Number(arg('tu-job'))}`)) as unknown as { provider: string }[])[0]?.provider ?? '') : '';
+const NHAN = bo === 'h3' || napH3 || boJob === 'h3' ? 'H3' : 'Seedance'; const MODEL_GAN = NHAN === 'H3' ? 'h3:ref2va-int8-turbo' : `kie:${model}`;
 if (!ids.length) { console.error('cần --canh=<id,…> (shot liền nhau, một shot cũng được) và --video-file=<clip 3D nối của cụm>'); process.exit(1); }
 const db = getDb()!;
 const bcs = await Promise.all(ids.map((id) => boiCanhCanh(db, id))); if (bcs.some((b) => !b?.canh.keyframe_url)) { console.error('có shot thiếu keyframe'); process.exit(1); }

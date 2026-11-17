@@ -1,24 +1,285 @@
 [
-  { "thu_tu": 13, "may_3d": { "vi_tri": { "Tiền thừa": { "cam": "Nhóc", "tam": [100, 1250, 100], "tay_cam": "phai" } } } },
-  { "thu_tu": 15, "ky_thuat": { "co_canh": "insert", "goc": "cao" },
-    "may_3d": { "dat": [-110, 500, 195], "nhin": [-20, 500, 100], "ong_kinh": 50, "khoa_nhin": true, "khung": ["Chai nước ngọt"],
-      "vi_tri": { "Nhóc": { "tam": [-20, 500, 0], "huong": -90, "o_dau": "standing on the platform outside the train", "nhin_ai": "Chú", "nhin_ai_den": "Chú", "trang_phuc": "Bộ áo be sờn + quần soóc ô liu" },
-                  "Chai nước ngọt": { "cam": "Nhóc", "tam": [-20, 500, 100], "tay_cam": "trai" },
-                  "Tiền thừa": { "cam": "Nhóc", "tam": [-20, 500, 100], "tay_cam": "phai" },
-                  "Tàu xanh": { "tam": [-248, 600, 0], "huong": 0 } } } },
-  { "thu_tu": 17, "ky_thuat": { "co_canh": "ms", "goc": "thap", "chuyen_dong": "tinh" },
-    "may_3d": { "dat": [140, 560, 110], "nhin": [-128, 500, 190], "ong_kinh": 35, "khoa_nhin": true, "khung": ["Chú"],
-      "vi_tri": { "Chú": { "tam": [-128, 500, 80], "dien": ["chong_ban"], "huong": 90, "huong_bau": 90, "o_dau": "inside the train carriage, behind the open passenger window (not standing on the platform)", "nhin_ai": "Nhóc", "nhin_ai_den": "Nhóc", "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám" },
-                  "Nhóc": { "tam": [-20, 500, 0], "huong": -90, "o_dau": "standing on the platform outside the train", "nhin_ai": "Chú", "nhin_ai_den": "Chú", "trang_phuc": "Bộ áo be sờn + quần soóc ô liu" },
-                  "Chai nước ngọt": { "cam": "Nhóc", "tam": [-20, 500, 100], "tay_cam": "trai" },
-                  "Tàu xanh": { "tam": [-248, 600, 0], "huong": 0 } } } },
-  { "thu_tu": 18, "may_3d": { "vi_tri": { "Chú": { "tam": [-128, 500, 80], "dien": ["chong_ban"], "huong": 90, "huong_bau": 90, "o_dau": "inside the train carriage, behind the open passenger window (not standing on the platform)", "nhin_ai": "Nhóc", "nhin_ai_den": "Nhóc", "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám" } } } },
-  { "thu_tu": 19, "ky_thuat": { "co_canh": "insert", "goc": "cao" },
-    "may_3d": { "dat": [-60, 470, 290], "nhin": [-70, 500, 150], "ong_kinh": 40, "khoa_nhin": true, "khung": ["Tiền thừa"],
-      "vi_tri": { "Chú": { "tam": [-128, 500, 80], "dien": ["chong_ban"], "huong": 90, "huong_bau": 90, "o_dau": "inside the train carriage, behind the open passenger window (not standing on the platform)", "nhin_ai": "Nhóc", "nhin_ai_den": "Nhóc", "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám" },
-                  "Nhóc": { "tam": [-20, 500, 0], "huong": -90, "o_dau": "standing on the platform outside the train", "nhin_ai": "Chú", "nhin_ai_den": "Chú", "trang_phuc": "Bộ áo be sờn + quần soóc ô liu" },
-                  "Chai nước ngọt": { "cam": "Nhóc", "tam": [-20, 500, 100], "tay_cam": "trai" },
-                  "Tiền thừa": { "cam": "Nhóc", "den": [-128, 500, 180], "tam": [-70, 500, 155], "trao": [0.15, 0.55] },
-                  "Tàu xanh": { "tam": [-248, 600, 0], "huong": 0 } } } },
-  { "thu_tu": 21, "ky_thuat": { "goc": "cao", "chuyen_dong": "tinh" }, "may_3d": { "dat": [-200, 430, 200], "nhin": [50, 1200, 80], "nham": null } }
+ {
+  "thu_tu": 13,
+  "may_3d": {
+   "vi_tri": {
+    "Tiền thừa": {
+     "cam": "Nhóc",
+     "tam": [
+      100,
+      1250,
+      100
+     ],
+     "tay_cam": "phai"
+    }
+   }
+  }
+ },
+ {
+  "thu_tu": 15,
+  "ky_thuat": {
+   "co_canh": "insert",
+   "goc": "cao"
+  },
+  "may_3d": {
+   "dat": [
+    -110,
+    500,
+    195
+   ],
+   "nhin": [
+    -20,
+    500,
+    100
+   ],
+   "ong_kinh": 50,
+   "khoa_nhin": true,
+   "khung": [
+    "Chai nước ngọt"
+   ],
+   "vi_tri": {
+    "Nhóc": {
+     "tam": [
+      -20,
+      500,
+      0
+     ],
+     "huong": -90,
+     "o_dau": "standing on the platform outside the train",
+     "nhin_ai": "Chú",
+     "nhin_ai_den": "Chú",
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu"
+    },
+    "Chai nước ngọt": {
+     "cam": "Nhóc",
+     "tam": [
+      -20,
+      500,
+      100
+     ],
+     "tay_cam": "trai"
+    },
+    "Tiền thừa": {
+     "cam": "Nhóc",
+     "tam": [
+      -20,
+      500,
+      100
+     ],
+     "tay_cam": "phai"
+    },
+    "Tàu xanh": {
+     "tam": [
+      -248,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   }
+  }
+ },
+ {
+  "thu_tu": 17,
+  "ky_thuat": {
+   "co_canh": "ms",
+   "goc": "thap",
+   "chuyen_dong": "tinh"
+  },
+  "may_3d": {
+   "dat": [
+    140,
+    560,
+    110
+   ],
+   "nhin": [
+    -128,
+    500,
+    190
+   ],
+   "ong_kinh": 35,
+   "khoa_nhin": true,
+   "khung": [
+    "Chú"
+   ],
+   "vi_tri": {
+    "Chú": {
+     "tam": [
+      -128,
+      500,
+      80
+     ],
+     "dien": [
+      "chong_ban"
+     ],
+     "huong": 90,
+     "huong_bau": 90,
+     "o_dau": "inside the train carriage, behind the open passenger window (not standing on the platform)",
+     "nhin_ai": "Nhóc",
+     "nhin_ai_den": "Nhóc",
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
+    },
+    "Nhóc": {
+     "tam": [
+      -20,
+      500,
+      0
+     ],
+     "huong": -90,
+     "o_dau": "standing on the platform outside the train",
+     "nhin_ai": "Chú",
+     "nhin_ai_den": "Chú",
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu"
+    },
+    "Chai nước ngọt": {
+     "cam": "Nhóc",
+     "tam": [
+      -20,
+      500,
+      100
+     ],
+     "tay_cam": "trai"
+    },
+    "Tàu xanh": {
+     "tam": [
+      -248,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   }
+  }
+ },
+ {
+  "thu_tu": 18,
+  "may_3d": {
+   "vi_tri": {
+    "Chú": {
+     "tam": [
+      -128,
+      500,
+      80
+     ],
+     "dien": [
+      "chong_ban"
+     ],
+     "huong": 90,
+     "huong_bau": 90,
+     "o_dau": "inside the train carriage, behind the open passenger window (not standing on the platform)",
+     "nhin_ai": "Nhóc",
+     "nhin_ai_den": "Nhóc",
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
+    }
+   }
+  }
+ },
+ {
+  "thu_tu": 19,
+  "ky_thuat": {
+   "co_canh": "insert",
+   "goc": "cao"
+  },
+  "may_3d": {
+   "dat": [
+    -60,
+    470,
+    290
+   ],
+   "nhin": [
+    -70,
+    500,
+    150
+   ],
+   "ong_kinh": 40,
+   "khoa_nhin": true,
+   "khung": [
+    "Tiền thừa"
+   ],
+   "vi_tri": {
+    "Chú": {
+     "tam": [
+      -128,
+      500,
+      80
+     ],
+     "dien": [
+      "chong_ban"
+     ],
+     "huong": 90,
+     "huong_bau": 90,
+     "o_dau": "inside the train carriage, behind the open passenger window (not standing on the platform)",
+     "nhin_ai": "Nhóc",
+     "nhin_ai_den": "Nhóc",
+     "trang_phuc": "Bộ đi tàu: áo khoác xanh navy + áo thun xám"
+    },
+    "Nhóc": {
+     "tam": [
+      -20,
+      500,
+      0
+     ],
+     "huong": -90,
+     "o_dau": "standing on the platform outside the train",
+     "nhin_ai": "Chú",
+     "nhin_ai_den": "Chú",
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu"
+    },
+    "Chai nước ngọt": {
+     "cam": "Nhóc",
+     "tam": [
+      -20,
+      500,
+      100
+     ],
+     "tay_cam": "trai"
+    },
+    "Tiền thừa": {
+     "cam": "Nhóc",
+     "den": [
+      -128,
+      500,
+      180
+     ],
+     "tam": [
+      -70,
+      500,
+      155
+     ],
+     "trao": [
+      0.15,
+      0.55
+     ]
+    },
+    "Tàu xanh": {
+     "tam": [
+      -248,
+      600,
+      0
+     ],
+     "huong": 0
+    }
+   }
+  }
+ },
+ {
+  "thu_tu": 21,
+  "ky_thuat": {
+   "goc": "cao",
+   "chuyen_dong": "tinh"
+  },
+  "may_3d": {
+   "dat": [
+    -150,
+    470,
+    230
+   ],
+   "nhin": [
+    30,
+    800,
+    30
+   ],
+   "nham": null
+  }
+ }
 ]

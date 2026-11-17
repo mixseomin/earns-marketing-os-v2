@@ -1,0 +1,13 @@
+[
+ { "thu_tu": 15, "may_3d": { "qua_truc": true, "khung": ["Nhóc", "Chai nước ngọt"] },
+   "dan_dung": { "bo_cuc": "close-up from above (the man's point of view through the window): foreground: the boy's small hand raising the half-drunk cola bottle with a straw; midground: the boy's face looking up, half out of frame; background: platform paving in warm sunset light",
+     "mo": "boy's hand raises the half-drunk cola bottle toward the window", "ket": "bottle held up still, cola clearly only half left", "huong": "boy looks up toward the window, screen left", "muc_dich": "CHO THẤY chai đã uống dở — người xem tự nhận ra nhóc đã uống chai của mình trước khi nhóc nói" } },
+ { "thu_tu": 16, "ky_thuat": { "chuyen_dong": "tinh" } },
+ { "thu_tu": 17, "may_3d": { "dat": [140, 440, 110], "vi_tri": { "Tiền thừa": { "cam": "Nhóc", "tam": [-20, 500, 100], "tay_cam": "phai", "an": true } } },
+   "dan_dung": { "bo_cuc": "medium shot from low on the platform past the boy's shoulder: foreground: the boy's shoulder and the bottle, soft (right); midground: the man leaning out of the open window, frowning (left); background: the green carriage side",
+     "mo": "man leaning out of the window, frowning, mouth opening to ask", "ket": "man waiting for the answer, eyebrows raised", "muc_dich": "Chú hỏi dồn — đặt câu hỏi để câu đáp của nhóc ở shot sau thành cú lật" } },
+ { "thu_tu": 19, "may_3d": { "khung": ["Nhóc", "Tiền thừa"] },
+   "dan_dung": { "bo_cuc": "top-down insert at the window ledge: foreground: the man's hand reaching down; midground: the boy's raised hand releasing the crumpled change, bottle in his other hand; background: platform paving",
+     "mo": "boy's hand holds up the crumpled change below the window", "ket": "man's hand closes on the change, boy's empty hand drops", "huong": "man's hand comes from screen left, boy's hand from screen right", "muc_dich": "Trao tiền thừa thay cho chai nước — tiền đổi tay mà nước thì không" } },
+ { "thu_tu": 22, "may_3d": { "vi_tri": { "Nhóc": { "tam": [100, 1800, 0], "huong": 180, "o_dau": "far away on the platform, walking off", "trang_phuc": "Bộ áo be sờn + quần soóc ô liu" } } } }
+]

@@ -441,7 +441,7 @@ export const LUAT = [
   // gỡ theo lệnh anh 05/11/2026 "Ko cần tao vào bấm duyệt nữa" (thay bằng bo-duyet-0511): { card: 'bo-cr-0311', tep: 'apps/etp/dong_phim.py', co: 'bộ creative đủ loại — chưa lên camp, CHỜ ANH BẮT ĐẦU', vi: 'phim làm bộ creative đủ loại thì mọi dòng dừng trước bước lên camp (anh 03/11/2026)' },
   { card: 'ly-do-poster-0411', tep: 'apps/etp/dong_phim.py', co: 'if l.startswith(f"{cid}: ")', vi: 'bước Ảnh bìa ghi đúng dòng phán của AI, không phải dòng "tổng N₫" (dòng #48 04/11/2026)' },
   { card: 'mau-poster-0411', tep: 'apps/etp/soat_18_ai.py', co: 'Fail blood only for GRAPHIC gore', vi: 'vết máu / bầm trên mặt poster không phải lỗi, chỉ chặn máu me ghê (Big Mistake 171236, anh 04/11/2026)' },
-  { card: 'manh-cam-nhan-0411', tep: 'apps/etp/manh.py', co: "d.dau_dung is distinct from {dau}", vi: 'Mạnh mở lại dòng dừng theo DẤU cổng phim (sổ cấm · nhóm gốc · creative đạt CTA) đổi — không đọc chữ lý do (dòng #47, anh 04/11/2026)' },
+  { card: 'manh-cam-nhan-0411', tep: 'apps/etp/manh.py', co: "d.dau_dung is distinct from x.dau", vi: 'Mạnh mở lại dòng dừng theo DẤU cổng phim (sổ cấm · nhóm gốc · creative đạt CTA) đổi — không đọc chữ lý do (dòng #47, anh 04/11/2026)' },
   { card: 'tu-nap-0411', tep: 'apps/etp/dong_phim.py', co: 'os.execv(sys.executable, [sys.executable, "-u", os.path.abspath(__file__), *a])', vi: 'máy chạy dòng tự nạp mã mới khi tệp đổi (chạy liền giữ mã cũ — --tay chưa có hiệu lực, dòng #49)' },
   { card: 'tay-trung-doi-0411', tep: 'apps/etp/dong_phim.py', co: '--tay --bo', vi: 'dòng phim (anh bấm chạy) lên camp với --tay' },
   { card: 'xu-ly-0411', tep: 'apps/web/src/components/etp-dong.tsx', co: 'export const xuLy = (tt: string)', vi: 'mọi lý do dừng / lỗi kèm bước giải quyết (anh 04/11/2026)' },
@@ -1293,4 +1293,8 @@ export const LUAT = [
   { card: 'chuan-gop-y-1711', tep: 'apps/etp2/src/lib/actions/gop-y-mos2.ts', co: '.filter((b) => NGUON_ETP.test(b.trang))', vi: 'tab Của tôi etp2 chỉ card gửi từ etp / etp2 (anh 14/11/2026)' },
   { card: 'chuan-gop-y-1711', tep: 'apps/etp2/src/components/gop-y-mos2.tsx', cam: 'huyChay', vi: 'bỏ hiệu ứng rung riêng của etp2 — rung gy-rung ở gói' },
   { card: 'chuan-gop-y-1711', tep: 'apps/etp2/src/components/gop-y-mos2.tsx', co: "import * as hd from '@/lib/actions/gop-y-mos2';", vi: 'giao diện nối đủ bộ hành động (cả demGopY) vào HomGopY' },
+  // box3 nghẽn 01:46–01:53 18/11/2026: Mạnh muc5 đếm creative qua view cham_cong bằng subquery tương quan cho từng dòng dừng (709 dòng = 47 giây CPU mỗi lượt)
+  { card: 'qua-tai-manh-muc5-1811', tep: 'apps/etp/manh.py', co: 'cr as materialized (select r.content_id, count(*) n from etp.creative r join etp.cham_cong g using (creative_id)', vi: 'dấu cổng muc5 đếm creative MỘT lần gom theo content_id, không subquery tương quan qua view cham_cong mỗi dòng' },
+  { card: 'qua-tai-manh-muc5-1811', tep: 'apps/etp/manh.py', cam: 'where r.content_id = d.content_id and r.cta_dat', vi: 'không quay lại đếm creative tương quan từng dòng dừng' },
+  { card: 'qua-tai-manh-muc5-1811', tep: 'apps/etp/deploy/etp-manh.service', co: 'Nice=10', vi: 'Mạnh chạy nice 10, nhường CPU cho web / máy luật' },
 ];

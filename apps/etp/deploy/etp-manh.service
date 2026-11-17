@@ -8,3 +8,4 @@ WorkingDirectory=/opt/earns-marketing-os-v2
 EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
 ExecStart=/usr/bin/python3 /opt/earns-marketing-os-v2/apps/etp/manh.py
 TimeoutStartSec=5min
+Nice=10

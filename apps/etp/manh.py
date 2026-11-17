@@ -124,20 +124,28 @@ def main():
         # 5. TỰ MỞ LẠI DÒNG DỪNG KHI CỔNG CỦA PHIM ĐỔI (anh 04/11/2026 "tại sao cứ phải địt cụ mày mới fix? ko làm tự động hết đc à"):
         #    trước đây đọc CHỮ lý do, mỗi kiểu lý do một luật → kiểu chưa có luật thì sót (dòng #47 đứng "0"). Nay: lúc dòng dừng chụp DẤU cổng
         #    (sổ cấm 18+ · nhóm gốc · số creative đạt CTA chưa camp); dấu đổi → chạy lại đúng bước dừng, mọi lý do, không cần luật riêng.
-        dau = f"""concat_ws('|', {CG.sql_trang_hong('d.content_id')},
-                 (select (k.gia_tri ? d.content_id::text)::text from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam'),
-                 (select f.nhom_goc from etp.phim f where f.content_id = d.content_id),
-                 (select count(*) from etp.creative r join etp.cham_cong g using (creative_id) where r.content_id = d.content_id and r.cta_dat and g.duoc_len
-                    and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)),
-                 case split_part(d.ly_do, ':', 1) """ + " ".join(f"when '{k}' then '{bam(v)}'" for k, v in MA_BUOC.items()) + f""" else '{bam([f"{G}/dong_phim.py"])}' end,
-                 case when split_part(d.ly_do, ':', 1) = 'camp' then to_char(now() at time zone 'Asia/Ho_Chi_Minh', 'YYYYMMDD') end)"""
+        # DẤU TÍNH MỘT LẦN MỖI CÂU (18/11/2026 box3 nghẽn 01:46–01:53: postgres UPDATE 47–74% CPU, 21–35 giây mỗi lượt Mạnh): trước đây số creative đạt CTA
+        # chưa camp là subquery TƯƠNG QUAN qua view etp.cham_cong (jsonb_each_text từng creative) → view tính lại cho MỖI dòng dừng 3 ngày: 709 dòng = 47 giây.
+        # Nay CTE `cr` đếm một lần gom theo content_id (0,1 giây), `x` chụp dấu từng dòng, hai câu update join theo id. Chuỗi dấu giữ y hệt
+        # (cùng thứ tự, concat_ws bỏ null như cũ; phim không creative → '0') để dòng đã chụp dấu không bị mở lại hàng loạt khi bản này lên.
+        def dau_cte(dk):
+            return f"""cr as materialized (select r.content_id, count(*) n from etp.creative r join etp.cham_cong g using (creative_id) where r.cta_dat and g.duoc_len
+                    and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id) group by 1),
+                 x as materialized (select d.id, concat_ws('|', {CG.sql_trang_hong('d.content_id')},
+                    (select (k.gia_tri ? d.content_id::text)::text from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam'),
+                    f.nhom_goc, coalesce(cr.n, 0),
+                    case split_part(d.ly_do, ':', 1) """ + " ".join(f"when '{k}' then '{bam(v)}'" for k, v in MA_BUOC.items()) + f""" else '{bam([f"{G}/dong_phim.py"])}' end,
+                    case when split_part(d.ly_do, ':', 1) = 'camp' then to_char(now() at time zone 'Asia/Ho_Chi_Minh', 'YYYYMMDD') end) dau
+                  from etp.dong_phim d left join etp.phim f on f.content_id = d.content_id left join cr on cr.content_id = d.content_id
+                  where d.trang_thai = 'dung' {GAC} and {dk})"""
         # dòng anh tạm gác (dong_phim.gac_ly: KT, và mọi dạng trong etp.cau_hinh.gac_dang, 08/11/2026) không phải dừng vì cổng — không tự mở lại, kẻo mở / gác lặp mỗi lần mã đổi
         GAC = "and coalesce(d.ly_do, '') not like 'tạm gác dòng %'"
-        if THU: r = q(f"select d.id, d.dau_dung, {dau} from etp.dong_phim d where d.trang_thai = 'dung' and d.tao_luc > now() - interval '3 days' {GAC}")
+        BA_NGAY = "d.tao_luc > now() - interval '3 days'"
+        if THU: r = q(f"with {dau_cte(BA_NGAY)} select d.id, d.dau_dung, x.dau from etp.dong_phim d join x on x.id = d.id")
         else:
-            q(f"update etp.dong_phim d set dau_dung = {dau} where d.trang_thai = 'dung' and d.dau_dung is null {GAC}")
-            r = q(f"""with mo as (update etp.dong_phim d set dau_dung = null where d.trang_thai = 'dung' and d.tao_luc > now() - interval '3 days' {GAC}
-                         and d.dau_dung is distinct from {dau} returning d.id)
+            q(f"with {dau_cte('d.dau_dung is null')} update etp.dong_phim d set dau_dung = x.dau from x where d.id = x.id and d.dau_dung is null")
+            r = q(f"""with {dau_cte(BA_NGAY)},
+                      mo as (update etp.dong_phim d set dau_dung = null from x where d.id = x.id and d.trang_thai = 'dung' and d.dau_dung is distinct from x.dau returning d.id)
                       update etp.dong_buoc b set fix = true from mo join etp.dong_phim p on p.id = mo.id where b.dong_id = mo.id and not b.fix
                         and (b.trang_thai in ('dung', 'loi') or (b.buoc = split_part(p.ly_do, ':', 1) and not exists (select 1 from etp.dong_buoc x where x.dong_id = mo.id and x.trang_thai in ('dung', 'loi'))))
                       returning b.dong_id, b.buoc""")

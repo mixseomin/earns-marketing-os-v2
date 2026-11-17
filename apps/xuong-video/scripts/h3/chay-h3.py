@@ -36,8 +36,9 @@ if co_video:   # clip blockout 3D → đúng 24 fps, đúng khung của lượt 
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', '/root/h3/ref_goc.mp4', '-r', '24', '-vf', f'scale={V["rong"]}:{V["cao"]}', '-an', f'{C}/input/h3_ref_video.mp4'], check=True)
 
 W = {
-  '1': {'class_type': 'UNETLoader', 'inputs': {'unet_name': 'minimax_h3_ref2va_pruned_int8_convrot.safetensors', 'weight_dtype': 'default'}},
-  '2': {'class_type': 'LoraLoaderModelOnly', 'inputs': {'model': ['1', 0], 'lora_name': 'minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors', 'strength_model': 1.0}},
+  # unet / lora theo vao.json (thử cấu hình: H3 đầy đủ 'minimax_h3_ref2va_int8_convrot', LoRA Pika 'pika_h3_flex_ref2va_v1_bf16') — mặc định = bản cắt gọn + turbo 4 bước
+  '1': {'class_type': 'UNETLoader', 'inputs': {'unet_name': V.get('unet') or 'minimax_h3_ref2va_pruned_int8_convrot.safetensors', 'weight_dtype': 'default'}},
+  '2': {'class_type': 'LoraLoaderModelOnly', 'inputs': {'model': ['1', 0], 'lora_name': V.get('lora') or 'minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors', 'strength_model': 1.0}},
   '3': {'class_type': 'CLIPLoader', 'inputs': {'clip_name': 'qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors', 'type': 'minimax', 'device': 'default'}},
   '4': {'class_type': 'VAELoader', 'inputs': {'vae_name': 'minimax_h3_video_vae_int8_convrot.safetensors'}},
   '5': {'class_type': 'VAELoader', 'inputs': {'vae_name': 'minimax_h3_audio_vae_fp32.safetensors'}},
@@ -45,8 +46,10 @@ W = {
          'width': V['rong'], 'height': V['cao'], 'length': so_khung(V['giay']), 'ref_image_size': 'match'}},
   '40': {'class_type': 'RandomNoise', 'inputs': {'noise_seed': V.get('seed', 261662374822964)}},
   '41': {'class_type': 'BasicGuider', 'inputs': {'model': ['2' if V.get('turbo', True) else '1', 0], 'conditioning': ['30', 0]}},
-  '42': {'class_type': 'KSamplerSelect', 'inputs': {'sampler_name': 'res_multistep'}},
-  '43': {'class_type': 'BasicScheduler', 'inputs': {'model': ['2' if V.get('turbo', True) else '1', 0], 'scheduler': 'simple', 'steps': V.get('buoc', 4), 'denoise': 1.0}},
+  '42': {'class_type': 'KSamplerSelect', 'inputs': {'sampler_name': V.get('sampler') or 'res_multistep'}},
+  # sigmas = chuỗi mức nhiễu cố định (mẫu chính thức Pika H3 Flex: ManualSigmas "1.0, 0.972973, 0.923077, 0.8, 0.571429, 0.333333, 0.0" + lcm) — không có thì BasicScheduler
+  '43': ({'class_type': 'ManualSigmas', 'inputs': {'sigmas': V['sigmas']}} if V.get('sigmas') else
+         {'class_type': 'BasicScheduler', 'inputs': {'model': ['2' if V.get('turbo', True) else '1', 0], 'scheduler': 'simple', 'steps': V.get('buoc', 4), 'denoise': 1.0}}),
   '44': {'class_type': 'SamplerCustomAdvanced', 'inputs': {'noise': ['40', 0], 'guider': ['41', 0], 'sampler': ['42', 0], 'sigmas': ['43', 0], 'latent_image': ['30', 1]}},
   '50': {'class_type': 'VAEDecode', 'inputs': {'samples': ['44', 0], 'vae': ['4', 0]}},
   '51': {'class_type': 'VAEDecodeAudio', 'inputs': {'samples': ['44', 0], 'vae': ['5', 0]}},

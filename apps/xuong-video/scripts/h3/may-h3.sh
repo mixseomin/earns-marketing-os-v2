@@ -3,7 +3,7 @@
 # CUDA 13 → driver ≥ 580; thiếu thì xoá máy, sang máy kế) → thả cả lô chạy TÁCH trên máy (lam-lo.sh) → iMac ghé kéo clip mỗi 30 giây → XOÁ máy (trap, cả khi lỗi;
 # trần XV_H3_PHUT phút cả mạch). Khoá: Vast vault #564 (đọc lúc gọi), RunPod box3 .env.production. Luật máy thuê (anh 17/10/2026): sẵn sàng hết rồi mới bật.
 #   bash may-h3.sh <thư-mục-ra> <vao-1.json> [vao-2.json …]     vao.json: xem chay-h3.py · clip ra: <thư-mục-ra>/<tên vao>.mp4 · nhật ký: <thư-mục-ra>/so.jsonl
-#   XV_H3_NHA="vast runpod" (mặc định) · "runpod" · "vast"      XV_H3_GIA_TOI_DA (Vast, $/giờ, mặc định 0,6)
+#   XV_H3_NHA="vast runpod" (mặc định) · "runpod" · "vast"      XV_H3_GIA_TOI_DA (Vast, $/giờ, mặc định 0,6) · XV_H3_VRAM (MB, mặc định 23000 — H3 đầy đủ cần ~46000)
 set -uo pipefail
 # chạy từ BẢN SAO: sửa tệp gốc giữa lượt thì bash đọc lệch byte → lượt gãy sau khi đã thuê máy (bài học may-thue-vast.sh 22/10/2026)
 if [ -z "${XV_H3_BAN_SAO:-}" ]; then B=$(mktemp -t may-h3); cp "$0" "$B"; XV_H3_DIR=$(cd "$(dirname "$0")" && pwd) XV_H3_BAN_SAO=1 exec bash "$B" "$@"; fi
@@ -44,11 +44,11 @@ if not p and x.get("ssh_host"): ip, p = x["ssh_host"], str(x["ssh_port"])   # ch
 print(f"{ip} {p}" if ip and p else "")' 2>/dev/null; }
 thue_vast() {   # máy một card ≥ 24GB, đời card ≥ 8.0 (INT8 ConvRot — V100 / Quadro RTX 6000 không chạy), driver CUDA ≥ 13, ổ ≥ 70GB, tin cậy ≥ 0,97, mạng ≥ 500 Mbps — rẻ trước. SSH: chế độ ssh_direc của Vast tự nạp khoá SSH của tài khoản
   local DS i g gia noi R N
-  DS=$(VAPI GET "/bundles/?q=$(python3 -c 'import json,urllib.parse,sys; print(urllib.parse.quote(json.dumps({"verified":{"eq":True},"rentable":{"eq":True},"num_gpus":{"eq":1},"gpu_frac":{"gte":0.99},"cuda_max_good":{"gte":13.0},"disk_space":{"gte":70},"reliability2":{"gte":0.97},"inet_down":{"gte":500},"gpu_ram":{"gte":23000},"compute_cap":{"gte":800},"dph_total":{"lte":float(sys.argv[1])},"type":"on-demand","order":[["dph_total","asc"]],"limit":8})))' "${XV_H3_GIA_TOI_DA:-0.6}")" \
+  DS=$(VAPI GET "/bundles/?q=$(python3 -c 'import json,urllib.parse,sys; print(urllib.parse.quote(json.dumps({"verified":{"eq":True},"rentable":{"eq":True},"num_gpus":{"eq":1},"gpu_frac":{"gte":0.99},"cuda_max_good":{"gte":13.0},"disk_space":{"gte":int(sys.argv[3])},"reliability2":{"gte":0.97},"inet_down":{"gte":500},"gpu_ram":{"gte":int(sys.argv[2])},"compute_cap":{"gte":800},"dph_total":{"lte":float(sys.argv[1])},"type":"on-demand","order":[["dph_total","asc"]],"limit":8})))' "${XV_H3_GIA_TOI_DA:-0.6}" "${XV_H3_VRAM:-23000}" "${XV_H3_O:-70}")" \
     | python3 -c 'import json,sys; [print("%s|%s|%.3f|%s" % (o["id"], o["gpu_name"], o["dph_total"], o.get("geolocation") or "")) for o in json.load(sys.stdin).get("offers",[])]' 2>/dev/null)
   [ -n "$DS" ] || { echo "  Vast: không có máy hợp (≤ \$${XV_H3_GIA_TOI_DA:-0.6}/giờ, driver CUDA 13)" >&2; return 1; }
   while IFS='|' read -r i g gia noi; do
-    R=$(VAPI PUT "/asks/$i/" "$(python3 -c 'import json,sys; print(json.dumps({"client_id":"me","image":sys.argv[1],"disk":70,"runtype":"ssh_direc ssh_proxy","onstart":"touch /root/.no_auto_tmux","label":"xv-h3-thu"}))' "$ANH")")
+    R=$(VAPI PUT "/asks/$i/" "$(python3 -c 'import json,sys; print(json.dumps({"client_id":"me","image":sys.argv[1],"disk":int(sys.argv[2]),"runtype":"ssh_direc ssh_proxy","onstart":"touch /root/.no_auto_tmux","label":"xv-h3-thu"}))' "$ANH" "${XV_H3_O:-70}")")
     N=$(echo "$R" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("new_contract") or "")' 2>/dev/null)
     [ -n "$N" ] || { echo "  Vast $g ($noi): không thuê được $(echo "$R" | head -c 100)" >&2; continue; }
     MAY=$N; LOAI=vast; GIA=$gia; echo "máy vast $MAY · $g · $noi · $gia\$/giờ" >&2

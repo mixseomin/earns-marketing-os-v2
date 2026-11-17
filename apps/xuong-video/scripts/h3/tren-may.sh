@@ -36,6 +36,9 @@ BO = {'h3': [('Comfy-Org/MiniMax-H3', 'diffusion_models/minimax_h3_ref2va_pruned
              ('Comfy-Org/HunyuanVideo_1.5_repackaged', 'split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors', 'text_encoders'),
              ('Comfy-Org/Qwen-Image_ComfyUI', 'split_files/vae/qwen_image_vae.safetensors', 'vae'),
              ('lightx2v/Qwen-Image-Edit-2511-Lightning', 'Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors', 'loras')]}
+# h3-thu: thử cấu hình cao hơn (anh 17/11/2026 "chạy thử các model") — H3 ĐẦY ĐỦ (không cắt gọn) INT8 + LoRA Pika H3 Flex (bản Pika luyện thêm trên H3, 6 bước)
+BO['h3-thu'] = BO['h3'] + [('Comfy-Org/MiniMax-H3', 'diffusion_models/minimax_h3_ref2va_int8_convrot.safetensors', 'diffusion_models'),
+                           ('Comfy-Org/MiniMax-H3', 'loras/pika_h3_flex_ref2va_v1_bf16.safetensors', 'loras')]
 TEP = BO[os.environ.get('XV_MO_HINH') or 'h3']
 def tai(t):
     kho, ten, thu = t; dich = f'{C}/{thu}/{os.path.basename(ten)}'

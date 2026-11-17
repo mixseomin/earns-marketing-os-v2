@@ -71,11 +71,11 @@ export const loiSoiClip = (c: Pick<Canh, 'video_url' | 'video_cuoi_url' | 'soi_c
 // 17/10/2026: anh mở lại Grok cho QC người thật — phụ đề giả Grok tự in giờ do máy soi bắt (soi-clip.ts: chữ lạ tesseract + soi biến dạng 'chữ tự in') và vòng tự sửa sinh lại.
 export const MO_HINH_KHONG_QC: readonly string[] = ['fal:fal-ai/pika/v2.2/pikaframes'];
 export const hopQc = (key: string, laQc: boolean): boolean => !(laQc && MO_HINH_KHONG_QC.includes(key));
-/** BỘ SINH VIDEO CHÍNH (KinhThanh.bo_sinh_video, góp ý #1638) — nhãn ô chọn trên timeline + nhãn phiên bản clip (video_phien_ban[].nhan) của từng đường. */
+/** BỘ SINH VIDEO CHÍNH (KinhThanh.bo_sinh_video, góp ý #1638; MẶC ĐỊNH H3 — anh 17/11/2026 "từ giờ mặc định ko báo gì thì là H3", KINH_THANH_MAC_DINH) — nhãn ô chọn trên timeline + nhãn phiên bản clip (video_phien_ban[].nhan) của từng đường. */
 export const BO_SINH_VIDEO = [
-  { value: '', ten: 'Model của phim', nhan: '', mo_ta: 'Nút Sinh gửi từng shot ngay cho model video của phim (như cũ).' },
+  { value: 'h3', ten: 'H3 (máy thuê) · mặc định', nhan: 'H3', mo_ta: 'Nút Sinh xếp hàng shot; lệnh chay-hang.sh trên iMac dựng cùng đầu vào cụm Seedance rồi chạy H3 trên GPU thuê (rẻ ~12 lần, kém ở cụm nhiều hành động).' },
   { value: 'seedance', ten: 'Seedance (Kie)', nhan: 'Seedance', mo_ta: 'Nút Sinh xếp hàng shot; lệnh chay-hang.sh trên iMac dựng clip 3D nối của cụm rồi gửi Seedance 2.0 Fast qua Kie.' },
-  { value: 'h3', ten: 'H3 (máy thuê)', nhan: 'H3', mo_ta: 'Nút Sinh xếp hàng shot; lệnh chay-hang.sh trên iMac dựng cùng đầu vào cụm Seedance rồi chạy H3 trên GPU thuê (rẻ ~12 lần, kém ở cụm nhiều hành động).' },
+  { value: '', ten: 'Model của phim', nhan: '', mo_ta: 'Nút Sinh gửi từng shot ngay cho model video của phim (như cũ).' },
 ] as const;
 export type BoSinhVideo = (typeof BO_SINH_VIDEO)[number]['value'];
 export const MO_HINH_VIDEO = [
@@ -388,7 +388,7 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
   return cho.length ? `Phim ${tenNgonNgu(ngonNgu)} nhưng chữ đi vào model còn tiếng Việt (${cho.slice(0, 5).join(', ')}${cho.length > 5 ? '…' : ''}) — bấm 🌐 Dịch cả phim trước, không sinh để khỏi mất tiền.` : null;
 }
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
-  phong_cach: '', chat_lieu: '', dung: '', ti_le: '9:16', do_phan_giai: '720p', bo_sinh_video: '',
+  phong_cach: '', chat_lieu: '', dung: '', ti_le: '9:16', do_phan_giai: '720p', bo_sinh_video: 'h3',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', goi: '', vat_dac_trung: '', vat_dac_trung_id: 0, logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
   video_tho: null, may_dung: null, may: '', kenh: '', giong_dan: null, nguoi_ke: '', cam_xuc_qc: false, series: null, luu_tru: false, nhip_stop_motion: false, phu_de: false, look: '', khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '', keyframe_sua_3d: true, keyframe_hai_buoc: true,
 };

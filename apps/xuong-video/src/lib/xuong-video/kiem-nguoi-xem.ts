@@ -6,7 +6,7 @@ import { thuNguoiXem, suaKichBanTheoNguoiXem, type NguoiXemSchema } from './clau
 import type { z } from 'zod/v4';
 type ThuNguoiXemTho = z.infer<typeof NguoiXemSchema>;
 import { chupTruoc } from './hoan-tac';
-import { banNguoiXem, maKichBan, maTheoCanh, keHoachSua, DIEM_HIEU_DAT } from './nguoi-xem';
+import { banNguoiXem, maKichBan, maTheoCanh, keHoachSua, vapHienTai, DIEM_HIEU_DAT } from './nguoi-xem';
 import { docKinhThanh, locNhanh, lamTronClip, giayPhat, type ThuNguoiXem } from './kieu';
 import { boiCanhTap, mapCanh, ghiTienChu, type Db, type Row } from './doc-db';
 
@@ -103,15 +103,18 @@ export async function suaTheoNguoiXemTap(db: Db, tapId: number, nguoi: string): 
   const bc = await boiCanhTap(db, tapId);
   if (!bc) return { ok: false, loi: 'không thấy tập' };
   const t = bc.tap.thu_nguoi_xem;
-  if (!t || (!t.cho_kho.length && !t.lech && !t.cat?.length)) return { ok: false, loi: 'chưa có kết quả kiểm người xem (hoặc không có chỗ vấp) — bấm kiểm trước' };
+  if (!t) return { ok: false, loi: 'chưa có kết quả kiểm người xem — bấm kiểm trước' };
   const tatCa = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
   const canh = locNhanh(tatCa, 'A');
+  // chỗ vấp CÒN HIỆU LỰC: bản cả tập nếu khớp kịch bản, không thì kết quả kiểm riêng từng cảnh (nguoi-xem.ts › vapHienTai)
+  const v = vapHienTai(t, canh);
+  if (!v.cho_kho.length && !v.lech && !v.cat.length) return { ok: false, loi: 'không có chỗ vấp còn hiệu lực (kịch bản đã sửa sau lần kiểm) — bấm kiểm lại trước' };
   const kt = docKinhThanh(bc.kt);
   const ten = (id: number) => bc.nhanVat.find((v) => v.id === id)?.ten ?? '';
   const bang = canh.map((c) => `#${c.thu_tu} [${c.phan_doan || '—'} · ${c.phat_s ?? c.thoi_luong_s}s · ${c.nhan_vat.map(ten).filter(Boolean).join(', ') || 'không anchor'}]\n  THẤY: ${c.hanh_dong}\n  CHỮ: ${c.chu_man || '—'}\n  LỜI: ${c.thoai.length ? c.thoai.map((d) => `${d.nhan_vat || '(dẫn)'}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ${d.loi}`).join(' | ') : '—'}\n  PROMPT ẢNH: ${c.prompt_anh}`).join('\n');
   const anchor = bc.nhanVat.filter((v) => v.loai !== 'phong_cach').map((v) => `- ${v.ten} (${v.loai}): ${v.mo_ta.slice(0, 140)}`).join('\n');
-  const vap = [...t.cho_kho.map((x) => `#${x.shot}: ${x.van_de} → gợi ý: ${x.sua}`), ...(t.cat ?? []).map((x) => `#${x.shot}: THU NHỎ được ${x.bot_s}s — ${x.ly_do} (rút phat_s hoặc gộp ý vào shot kề)`)].join('\n');
-  const kq = await suaKichBanTheoNguoiXem({ bang, anchor, vap, lech: t.khop ? '' : t.lech, brief: bc.tap.brief, kt });
+  const vap = [...v.cho_kho.map((x) => `#${x.shot}: ${x.van_de} → gợi ý: ${x.sua}`), ...v.cat.map((x) => `#${x.shot}: THU NHỎ được ${x.bot_s}s — ${x.ly_do} (rút phat_s hoặc gộp ý vào shot kề)`)].join('\n');
+  const kq = await suaKichBanTheoNguoiXem({ bang, anchor, vap, lech: v.lech, brief: bc.tap.brief, kt });
   if (!kq.ok) return kq;
   await ghiTienChu(db, bc.tap.phim_id, `Sửa kịch bản theo người xem · tập ${bc.tap.so}`, kq.model, kq.tokens);
   const kh = keHoachSua(canh, bc.nhanVat, kq.data.sua, kq.data.them);

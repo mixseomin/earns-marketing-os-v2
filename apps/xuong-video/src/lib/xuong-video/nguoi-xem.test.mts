@@ -90,3 +90,19 @@ console.log('nguoi-xem.test: ok');
   assert.deepStrictEqual(chanNguoiXem(tay, ds), [], 'nhận tay đúng bản → qua');
   assert.ok(chanNguoiXem(tay, [ds[0]!, { ...ds[1]!, chu_man: 'PLAN B' }]).length > 0, 'sửa kịch bản sau khi nhận tay → chặn lại');
 }
+
+// CHỖ VẤP CÒN HIỆU LỰC (vapHienTai): kịch bản đã đổi → lấy kết quả kiểm riêng cảnh chưa đạt, không lấy bản cả tập cũ
+import { vapHienTai } from './nguoi-xem';
+{
+  const ds2 = [{ ...ds[0]!, phan_doan: 'A' }, { ...ds[1]!, phan_doan: 'B' }];
+  const maC = maTheoCanh(ds2);
+  const cuTap = kq({ ma: 'cu', dat: false, cho_kho: [{ shot: 9, van_de: 'vấp cũ', sua: '' }] });
+  const rieng = kq({ ma: maC['B']!, dat: false, khop: false, lech: 'lệch B', cho_kho: [{ shot: 2, van_de: 'vấp mới', sua: 's' }], cat: [{ shot: 2, bot_s: 1, ly_do: 'x' }] });
+  const v = vapHienTai({ ...cuTap, canh: { B: rieng } }, ds2);
+  assert.deepStrictEqual(v.cho_kho.map((x) => x.van_de), ['vấp mới'], 'không áp vấp của bản cả tập đã cũ');
+  assert.strictEqual(v.cat.length, 1); assert.ok(v.lech.includes('lệch B'));
+  assert.strictEqual(vapHienTai({ ...cuTap, canh: { B: { ...rieng, ma: 'khac' } } }, ds2).cho_kho.length, 0, 'kiểm cảnh cũ hơn nội dung cảnh → bỏ');
+  const khop = kq({ ma: maKichBan(ds2), dat: false, cho_kho: [{ shot: 1, van_de: 'cả tập', sua: '' }] });
+  assert.deepStrictEqual(vapHienTai(khop, ds2).cho_kho.map((x) => x.van_de), ['cả tập'], 'bản cả tập khớp kịch bản → dùng nó');
+}
+console.log('vapHienTai: ok');

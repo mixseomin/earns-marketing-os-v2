@@ -71,6 +71,22 @@ export function tomTatNguoiXem(t: ThuNguoiXem | null | undefined, canh: ShotXem[
   return { dat: theoCanh, theoCanh, soCanh: phu.length, diem: theoCanh && ds.length ? [Math.min(...ds), Math.max(...ds)] : null, cu };
 }
 
+/** CHỖ VẤP CÒN HIỆU LỰC cho ✍ Sửa kịch bản theo người xem: bản cả tập nếu còn khớp mã kịch bản, không thì gom kết quả KIỂM RIÊNG từng cảnh
+ *  (khớp mã cảnh, chưa đạt). Trước đây bước sửa chỉ đọc bản cả tập → kiểm riêng cảnh “Quay về” phim #3071 trượt (17/11/2026) mà bấm sửa lại
+ *  áp 8 chỗ vấp CŨ của lần kiểm cả tập 12/11 (đánh số shot của kịch bản trước), lờ hẳn 5 chỗ vấp mới. */
+export function vapHienTai(t: ThuNguoiXem, canh: ShotXem[]): { cho_kho: ThuNguoiXem['cho_kho']; cat: NonNullable<ThuNguoiXem['cat']>; lech: string } {
+  if (t.ma === maKichBan(canh) && !canhVuotCaTap(t, canh)) return { cho_kho: t.cho_kho, cat: t.cat ?? [], lech: t.khop ? '' : t.lech };
+  const ma = maTheoCanh(canh);
+  const cho: ThuNguoiXem['cho_kho'] = []; const cat: NonNullable<ThuNguoiXem['cat']> = []; const lech: string[] = [];
+  for (const [ten, m] of Object.entries(ma)) {
+    const r = t.canh?.[ten];
+    if (!r || r.ma !== m || r.dat) continue;
+    cho.push(...r.cho_kho); cat.push(...(r.cat ?? []));
+    if (!r.khop && r.lech) lech.push(`Cảnh “${ten}”: ${r.lech}`);
+  }
+  return { cho_kho: cho, cat, lech: lech.join('\n') };
+}
+
 /** Bản cả tập KHỚP mã nhưng chưa đạt, rồi SAU ĐÓ mọi cảnh được kiểm riêng và đạt trên đúng nội dung hiện tại → các lần kiểm cảnh mới hơn thay
  *  kết luận cả tập. Trước đây nhánh khớp mã chỉ nhìn t.dat nên một lượt cả tập hỏng (cổng rẻ trả chữ rác "0/10", phim #306 25/10/2026) chặn mãi dù
  *  6/6 cảnh đã kiểm riêng đạt sau đó. Lần kiểm cả tập MỚI HƠN mọi cảnh vẫn là bằng chứng mới nhất → vẫn chặn. */

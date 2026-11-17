@@ -49,6 +49,9 @@ export function kiemSo(so, { claudeTep = [] } = {}) {
     else if (('luon' in h && h.luon !== true) || ('tay' in h && h.tay !== true)) loi.push(`${k}: hen.luon / hen.tay chỉ nhận true`);
     for (const f of ['thu_muc', 'nhat_ky', 'nhat_ky_loi']) if (v[f] != null && !path.isAbsolute(String(v[f]))) loi.push(`${k}: ${f} phải là đường dẫn tuyệt đối`);
     const lenh = (v.chay || []).join(' ');
+    // MÃ QUA STDIN (`cat x.mjs | node -`): import tương đối ('./claude-chay.mjs') tìm trong thư mục làm việc chứ không cạnh tệp → hỏng im lặng
+    // (17/11/2026: Vân + Long thoát ERR_MODULE_NOT_FOUND từ 13/11). Kéo cả thư mục về rồi chạy bằng tệp: xem iMac:tc.on.cty.van-thu.
+    if (/\|\s*\S*\bnode\b[^|;&]*\s-\s*$/.test(lenh)) loi.push(`${k}: chạy mã qua stdin (| node -) — import tương đối sẽ hỏng; kéo thư mục về rồi node <tệp>`);
     if (!k.startsWith('iMac:') && (GOI_CLAUDE.test(lenh) || claudeTep.some((t) => lenh.includes(t)))) loi.push(`${k}: gọi Claude không giao diện — chỉ được chạy trên iMac (luật 23/10/2026)`);
     if (v.moi_truong != null && (typeof v.moi_truong !== 'object' || Object.values(v.moi_truong).some((x) => typeof x !== 'string'))) loi.push(`${k}: moi_truong phải là { TÊN: "chữ" }`);
   }
@@ -92,11 +95,14 @@ function ghiLog(dong) {
   fs.appendFileSync(F.log, `${gio()} ${dong}\n`);
 }
 const nhanCua = (v) => v.nhan.split(':')[1];
-/** pid còn sống VÀ đúng là việc này (tiến trình mang argv0 = tên việc) — pid tái dùng không bị nhận nhầm. */
+/** pid còn sống VÀ đúng là việc này (tiến trình mang argv0 = tên việc) — pid tái dùng không bị nhận nhầm.
+ *  LC_ALL UTF-8 BẮT BUỘC (17/11/2026): launchd không đưa LANG → ps của macOS in chữ có dấu dạng thoát ("cM-aM-;M-%c bM-aM-;M^Y") → không khớp tên
+ *  tiếng Việt → sau mỗi lần bộ điều phối khởi động lại, mọi việc tên có dấu đang chạy bị coi là đã chết. Dịch vụ `luon` thì bị dựng chồng mãi:
+ *  "Astrolas - site cục bộ" bản 13/11 vẫn giữ cổng 8000, bản mới thoát mã 1 mỗi 10–20 giây, 4.621 lần/ngày. */
 function conSong(pid, ten) {
   if (!pid) return false;
   try { process.kill(pid, 0); } catch { return false; }
-  try { return execFileSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8' }).trim().startsWith(ten); } catch { return false; }
+  try { return execFileSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8', env: { ...process.env, LC_ALL: 'en_US.UTF-8' } }).trim().startsWith(ten); } catch { return false; }
 }
 
 // ── chạy một việc ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -234,8 +240,16 @@ async function tuKiem() {
   const v = (x) => ({ nhan: 'iMac:com.x', ten: 'X - y', chay: ['/bin/bash', '-c', 'true'], hen: { moi_giay: 60 }, ...x });
   a.deepEqual(kiemSo({ viec: [v({})] }), []);
   a.ok(kiemSo({ viec: [v({ nhan: 'MacBook:x.claude', chay: ['/bin/sh', '-c', '/opt/homebrew/bin/claude -p hi'] })] }).some((l) => /chỉ được chạy trên iMac/.test(l)), 'Claude trên MacBook: lỗi');
-  a.ok(kiemSo({ viec: [v({ nhan: 'MacBook:x.long', chay: ['/bin/sh', '-c', 'ssh box cat /opt/x/may/tho-may.mjs | node -'] })] }, { claudeTep: ['tho-may.mjs'] }).length, 'script cty có Claude trên MacBook: lỗi');
-  a.deepEqual(kiemSo({ viec: [v({ nhan: 'iMac:x.long', chay: ['/bin/sh', '-c', 'ssh box cat /opt/x/may/tho-may.mjs | node -'] })] }, { claudeTep: ['tho-may.mjs'] }), [], 'trên iMac: qua');
+  const keo = 'ssh box tar -C /opt/x/may -cf - . | tar -xf - -C /c && exec node /c/tho-may.mjs';
+  a.ok(kiemSo({ viec: [v({ nhan: 'MacBook:x.long', chay: ['/bin/sh', '-c', keo] })] }, { claudeTep: ['tho-may.mjs'] }).length, 'script cty có Claude trên MacBook: lỗi');
+  a.deepEqual(kiemSo({ viec: [v({ nhan: 'iMac:x.long', chay: ['/bin/sh', '-c', keo] })] }, { claudeTep: ['tho-may.mjs'] }), [], 'trên iMac: qua');
+  a.ok(kiemSo({ viec: [v({ chay: ['/bin/sh', '-c', 'ssh box cat /opt/x/may/van-thu.mjs | /opt/homebrew/bin/node --input-type=module -'] })] }).some((l) => /stdin/.test(l)), 'mã qua stdin: lỗi');
+  {   // conSong với tên có dấu: tiến trình argv0 tiếng Việt phải được nhận ra (ps không có LANG in dạng thoát)
+    const c = spawn('/bin/sleep', ['30'], { argv0: 'Thử - tên có dấu ụ', stdio: 'ignore', env: { PATH: '/usr/bin:/bin' } });
+    await new Promise((r) => setTimeout(r, 300));
+    const ok = conSong(c.pid, 'Thử - tên có dấu ụ'), sai = conSong(c.pid, 'Thử - tên khác');
+    c.kill(); a.ok(ok && !sai, 'conSong nhận đúng việc tên có dấu');
+  }
   a.equal(kiemSo({ viec: [v({}), v({})] }).length, 1, 'trùng nhãn');
   a.equal(kiemSo({ viec: [v({ hen: { luc: ['24:00'] } })] }).length, 1, 'giờ sai');
   a.equal(kiemSo({ viec: [v({ hen: { moi_giay: 60, luon: true } })] }).length, 1, 'hai kiểu hẹn');
@@ -260,7 +274,7 @@ async function tuKiem() {
   a.deepEqual(docShebang('#!/usr/bin/env bash', '/opt/x:/bin', (f) => f === '/bin/bash'), ['/bin/bash']);
   a.deepEqual(docShebang('#!/usr/bin/env node --x', '/a:/b', (f) => f === '/b/node'), ['/b/node', '--x']);
   a.equal(docShebang('console.log(1)', '/bin'), null);
-  console.log('dieu-phoi: 23/23 ok');
+  console.log('dieu-phoi: 25/25 ok');
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

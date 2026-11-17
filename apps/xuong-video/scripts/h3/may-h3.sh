@@ -29,10 +29,10 @@ trap xoa EXIT INT TERM
 cho_ssh() {   # đợi SSH vào được rồi kiểm driver ≥ 580; in "ip cổng" hoặc rỗng (đã xoá máy). $1 = hàm in "ip cổng" của máy hiện tại
   local h="" i drv
   for i in $(seq 1 60); do sleep 10; h=$($1); [ -n "$h" ] && ssh -p "${h#* }" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o BatchMode=yes root@"${h% *}" true 2>/dev/null && break; h=""; done
-  [ -n "$h" ] || { echo "  máy không lên SSH sau 10 phút → xoá, sang máy kế" >&2; xoa; return 0; }
+  [ -n "$h" ] || { echo "  máy không lên SSH sau 10 phút → xoá, sang máy kế" >&2; xoa >&2; return 0; }   # xoa ra stderr: stdout của hàm này CHỈ là "ip cổng" (17/11/2026: "Bad port 'XOÁ'")
   drv=$(ssh -p "${h#* }" -o BatchMode=yes root@"${h% *}" 'nvidia-smi --query-gpu=driver_version --format=csv,noheader' 2>/dev/null | head -1)
   if [ "${drv%%.*}" -ge 580 ] 2>/dev/null; then echo "driver $drv · SSH sau $(( $(date +%s) - T0 ))s" >&2; echo "$h"; return 0; fi
-  echo "  driver ${drv:-?} < 580 (PyTorch CUDA 13 không chạy) → xoá, sang máy kế" >&2; xoa; }
+  echo "  driver ${drv:-?} < 580 (PyTorch CUDA 13 không chạy) → xoá, sang máy kế" >&2; xoa >&2; }
 cong_runpod() { GQ "query { pod(input: {podId: \"$MAY\"}) { runtime { ports { ip publicPort privatePort isIpPublic } } } }" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]["pod"]; ps=[p for p in ((d.get("runtime") or {}).get("ports") or []) if p["privatePort"]==22 and p["isIpPublic"]]; print("%s %s" % (ps[0]["ip"], ps[0]["publicPort"]) if ps else "")' 2>/dev/null; }
 cong_vast() { VAPI GET "/instances/$MAY/" | python3 -c '
 import json,sys
@@ -48,6 +48,7 @@ thue_vast() {   # máy một card ≥ 24GB, đời card ≥ 8.0 (INT8 ConvRot �
     | python3 -c 'import json,sys; [print("%s|%s|%.3f|%s" % (o["id"], o["gpu_name"], o["dph_total"], o.get("geolocation") or "")) for o in json.load(sys.stdin).get("offers",[])]' 2>/dev/null)
   [ -n "$DS" ] || { echo "  Vast: không có máy hợp (≤ \$${XV_H3_GIA_TOI_DA:-0.6}/giờ, driver CUDA 13)" >&2; return 1; }
   while IFS='|' read -r i g gia noi; do
+    case "$g" in CMP*) echo "  bỏ $g (card đào coin — 17/11/2026 thuê được mà không lên SSH)" >&2; continue ;; esac
     R=$(VAPI PUT "/asks/$i/" "$(python3 -c 'import json,sys; print(json.dumps({"client_id":"me","image":sys.argv[1],"disk":int(sys.argv[2]),"runtype":"ssh_direc ssh_proxy","onstart":"touch /root/.no_auto_tmux","label":"xv-h3-thu"}))' "$ANH" "${XV_H3_O:-70}")")
     N=$(echo "$R" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("new_contract") or "")' 2>/dev/null)
     [ -n "$N" ] || { echo "  Vast $g ($noi): không thuê được $(echo "$R" | head -c 100)" >&2; continue; }
@@ -66,6 +67,7 @@ thue_runpod() {
   done; done; return 1; }
 for n in $NHA; do "thue_$n" && break; done
 [ -n "$HOST" ] || { echo "✗ không thuê được máy hợp ở: $NHA (hết chỗ / driver cũ)"; exit 1; }
+[[ "$HOST" =~ ^[0-9A-Za-z.-]+\ [0-9]+$ ]] || { echo "✗ địa chỉ máy sai dạng '$HOST' — dừng (không thả lô vào máy không rõ)"; exit 1; }
 IP=${HOST% *}; P=${HOST#* }; S="ssh -p $P -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 root@$IP"
 # Thả cả lô chạy TÁCH trên máy (lam-lo.sh, setsid) — iMac chỉ ghé kéo clip mỗi 30 giây; mạng chập thì lần ghé sau nối lại (16/11/2026 lượt 7 mất vì đứt ssh).
 for i in 1 2 3 4 5; do
@@ -73,6 +75,7 @@ for i in 1 2 3 4 5; do
     && printf '%s\n' "$@" | xargs -n1 basename | sed 's/\.json$//' | $S 'cat > /root/h3/thu-tu.txt' \
     && $S "XV_MO_HINH=${XV_MO_HINH:-h3} XV_CHAY=${XV_CHAY:-chay-h3.py} setsid nohup bash /root/h3/lam-lo.sh $TRAN > /root/h3/lam-lo.log 2>&1 < /dev/null &" && break
   echo "  thả lô lỗi (mạng?) — thử lại $i/5"; sleep 20
+  [ $i = 5 ] && { echo "✗ thả lô hỏng 5 lần — dừng, xoá máy (trước đây báo 'đã thả' rồi chờ suông tới trần)"; exit 1; }
 done
 echo "đã thả lô lên máy lúc $(date +%H:%M) — iMac ghé kéo clip mỗi 30 giây"
 XONG=""; for i in $(seq 1 $(( (TRAN + 25) * 2 ))); do

@@ -4,7 +4,7 @@
 // Ảnh đã chọn đi kèm góp ý 💬 / báo lệch 🔍 dưới dạng ANH-THAT-JSON:[…] → kỹ sư (Thắng) tải về bằng scripts/tim-anh.mjs --the <id> để đo / sửa.
 // ganAnhQuanh({ THREE, scene, nut, layDiem: () => { x, y, z, ten }, raLatLng: (x, z) => [lat, lng], moGopY }) → { daChon() → [], nguCanh() → string }
 const CSS = `
-#aq { position: fixed; right: 12px; top: 64px; bottom: 64px; width: min(420px, calc(100vw - 24px)); display: none; flex-direction: column; padding: 12px; z-index: 8; }
+#aq { position: fixed; right: 12px; top: 64px; bottom: 64px; width: min(420px, calc(100vw - 24px)); display: none; flex-direction: column; padding: 12px; z-index: 12; } /* trên thẻ báo cáo 🔍 (#bl-bao z 9) — bảng đang mở là bảng anh đang dùng */
 #aq .dau { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; } #aq .dau b { font-size: 14px; flex: 1; }
 #aq button { font: 600 12px system-ui, sans-serif; color: var(--chu); background: rgba(255,255,255,.08); border: 1px solid var(--vien); border-radius: 7px; padding: 4px 9px; cursor: pointer; }
 #aq button.chon { background: #ffd9a8; color: #1a1208; } #aq button:disabled { opacity: .45; cursor: default; }

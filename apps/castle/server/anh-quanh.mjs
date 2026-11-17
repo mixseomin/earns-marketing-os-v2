@@ -16,13 +16,14 @@ function doLech(lat, lng, la, lo) { // khoảng cách (m) + hướng la bàn T�
 async function commons(lat, lng, r) {
   const u = new URL('https://commons.wikimedia.org/w/api.php');
   for (const [k, v] of Object.entries({ action: 'query', format: 'json', generator: 'geosearch', ggscoord: `${lat}|${lng}`, ggsradius: String(Math.min(10000, Math.max(10, r))),
-    ggsnamespace: '6', ggslimit: '50', prop: 'coordinates|imageinfo', iiprop: 'url|size|extmetadata', iiurlwidth: '1600', iiextmetadatafilter: 'Artist|LicenseShortName|DateTimeOriginal' })) u.searchParams.set(k, v);
+    ggsnamespace: '6', ggslimit: '50', prop: 'coordinates|imageinfo', iiprop: 'url|size|extmetadata', iiurlwidth: '1280', iiextmetadatafilter: 'Artist|LicenseShortName|DateTimeOriginal' })) u.searchParams.set(k, v);
   const j = await (await fetch(u, { headers: UA, signal: AbortSignal.timeout(15000) })).json();
   return Object.values(j.query?.pages || {}).map((p) => {
     const ii = p.imageinfo?.[0], c = p.coordinates?.[0]; if (!ii || !c || !/\.(jpe?g|png|webp)$/i.test(p.title)) return null;
     const m = ii.extmetadata || {}, { kc } = doLech(lat, lng, c.lat, c.lon);
     return { nguon: 'commons', id: p.title.replace(/^File:/, ''), lat: c.lat, lng: c.lon, kc: Math.round(kc), huong: null, nhinVao: null,
-      nho: ii.thumburl?.replace(/\/\d+px-/, '/480px-') || ii.thumburl, lon: ii.thumburl || ii.url, rong: ii.width, cao: ii.height, trang: ii.descriptionurl,
+      // Commons chỉ nhận cỡ thu nhỏ CHUẨN (500, 1280…) — 480 px trả 400
+      nho: ii.thumburl?.replace(/\/\d+px-/, '/500px-') || ii.thumburl, lon: ii.thumburl || ii.url, rong: ii.width, cao: ii.height, trang: ii.descriptionurl,
       tacGia: boThe(m.Artist?.value).slice(0, 80) || 'Wikimedia Commons', giayPhep: boThe(m.LicenseShortName?.value) || '?', luc: boThe(m.DateTimeOriginal?.value).slice(0, 10) || null };
   }).filter(Boolean);
 }

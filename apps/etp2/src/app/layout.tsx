@@ -25,7 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <TablePrefsProvider value={tablePrefs}>
           {children}
           <EtpDrawerHost />
-          {u?.role === 'admin' && <GopYMos2 hom="mos2" tren />}
+          {u?.role === 'admin' && <GopYMos2 />}
         </TablePrefsProvider>
       </body>
     </html>

@@ -1282,4 +1282,11 @@ export const LUAT = [
   { card: 'cam-bien-1711', tep: 'apps/etp/gia_adsense.py', co: 'g6, _ = gia_do(so_gio, luc)', vi: 'ít camp chạy thì đo giá thô 24 giờ thay vì mất số' },
   { card: 'cam-bien-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: '<div data-nguon-gia', vi: 'thẻ nhiệt kế ghi nguồn số: chi nhà / đội + lượt hiển thị' },
   { card: 'mat-so-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: "const matSo = !!tt && 'gia_nay' in tt && tt.gia_nay == null && tt.gia6_nay == null;", vi: 'nhiệt kế mất số hiện ? xám, không biến mất' },
+  { card: 'chuan-gop-y-1711', tep: 'apps/etp2/src/lib/actions/gop-y-mos2.ts', co: "import * as hom from '@mos2/gop-y/server';", vi: 'hòm góp ý etp2 đi qua gói @mos2/gop-y theo packages/gop-y/CHUAN.md, không chép máy chủ riêng (anh 17/11/2026 "Chuẩn hoá toàn bộ phần gopy")' },
+  { card: 'chuan-gop-y-1711', tep: 'apps/etp2/src/lib/actions/gop-y-mos2.ts', cam: 'INSERT INTO human_tasks', vi: 'etp2 không tự ghi card góp ý — gói làm' },
+  { card: 'chuan-gop-y-1711', tep: 'apps/etp2/src/lib/actions/gop-y-mos2.ts', co: 'export async function demGopY(): Promise<hom.DemGopY> {', vi: 'nút 💬 etp2 có số rung + số đỏ chờ ý kiến (counts.working / can_y_kien)' },
+  { card: 'chuan-gop-y-1711', tep: 'apps/etp2/src/lib/actions/gop-y-mos2.ts', co: 'const huy = huyDangLam();', vi: 'nút etp2 rung khi Huy đang làm (hàng etp-sua.json), không theo Đạt' },
+  { card: 'chuan-gop-y-1711', tep: 'apps/etp2/src/lib/actions/gop-y-mos2.ts', co: '.filter((b) => NGUON_ETP.test(b.trang))', vi: 'tab Của tôi etp2 chỉ card gửi từ etp / etp2 (anh 14/11/2026)' },
+  { card: 'chuan-gop-y-1711', tep: 'apps/etp2/src/components/gop-y-mos2.tsx', cam: 'huyChay', vi: 'bỏ hiệu ứng rung riêng của etp2 — rung gy-rung ở gói' },
+  { card: 'chuan-gop-y-1711', tep: 'apps/etp2/src/components/gop-y-mos2.tsx', co: "import * as hd from '@/lib/actions/gop-y-mos2';", vi: 'giao diện nối đủ bộ hành động (cả demGopY) vào HomGopY' },
 ];

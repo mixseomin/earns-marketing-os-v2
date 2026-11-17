@@ -67,7 +67,9 @@ export function doDongPhien(o, ai, tep) {
 export const LOI = /lỗi|hỏng|quá \d+ phút|timeout|\bError\b|✗|chưa nhận việc|tự đóng/i;
 export const demLoi = (chu, luc = Date.now()) => String(chu).split('\n').filter((l) => { const t = Date.parse(l.slice(0, 24)); return t && luc - t < 864e5 && LOI.test(l); }).length;
 /** Quyền Bash(...) khai trong may/*.mjs → tập; so với lần trước ra phần MỚI (lần đầu = mốc, không cờ). */
-export const quyenTrong = (chu) => [...String(chu).matchAll(/`?Bash\(([^)`'"]{3,200})\)/g)].map((m) => m[1]);
+// Bỏ dòng bài tự kiểm (t.ok / assert … — chuỗi trong đó là dữ liệu thử, không phải quyền cấp: 17/11/2026 cờ nhầm "Bash(git reset:*)" lấy từ bài kiểm danh sách cấm).
+export const quyenTrong = (chu) => String(chu).split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l) && !/\b(t|a|assert)\.(ok|equal|deepEqual|notEqual|strictEqual|deepStrictEqual|match)\(/.test(l))
+  .flatMap((l) => [...l.matchAll(/`?Bash\(([^)`'"]{3,200})\)/g)].map((m) => m[1]));
 /** Lý do đi qua shell box3 trong nháy đơn: chỉ giữ chữ, số, dấu câu thường (không nháy, không $, không backtick). */
 export const sach = (s) => String(s).replace(/[^\p{L}\p{N} .,:;()\/_+#%=-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
 /** Dòng `LÀM:` của Hà → lệnh hợp lệ (id chữ thường, mã bài đúng dạng) hoặc null. */
@@ -194,6 +196,7 @@ if (process.argv[1] === new URL(import.meta.url).pathname && process.argv.includ
     t.ok(QUYEN.includes(`Edit(/${d}/**)`) && QUYEN.some((q) => q.startsWith('Bash(git commit')) && QUYEN.includes('Bash(git push origin HEAD:main)'), 'Hà sửa + commit + push được trong cây riêng');
     t.ok(CAM_HA.includes(`Edit(/${d}/apps/cty/may/giam-sat.mjs)`) && CAM_HA.includes(`Edit(/${d}/apps/cty/worker/giam-sat-lam.mjs)`), 'không sửa bộ gác của chính Hà');
     t.ok(CAM_HA.some((q) => q.includes('.claude/**')) && CAM_HA.includes('Bash(git reset:*)') && CAM_HA.includes('Bash(rm:*)'), 'không sửa ~/.claude, cấm chung giữ nguyên'); }
+  t.deepEqual(quyenTrong("const Q = ['Bash(ls:*)']\n    t.ok(CAM.includes('Bash(git reset:*)'))\n// cờ nhầm Bash(rm:*)"), ['ls:*'], 'chuỗi trong bài tự kiểm không phải quyền cấp');
   t.notEqual(khoa({ loai: 'a', ai: 'b', vat: 'c' }), khoa({ loai: 'a', ai: 'b', vat: 'd' }));
   console.log('✓ giam-sat: học sai / lệch / phình / lộ bí mật, lệnh cấm, lỗi 24 giờ, quyền mới, lệnh LÀM hợp lệ');
 } else if (process.argv[1] === new URL(import.meta.url).pathname) await luot({ chiDo: process.argv.includes('--do') });

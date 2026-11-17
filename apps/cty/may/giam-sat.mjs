@@ -96,7 +96,7 @@ export function tachLam(chu) {
 export async function quyenHa(dir) {
   const { moRongQuyen, CAM } = await import('./gop-y-ky-su.mjs');
   const KY = path.join(HOME, 'may-ky-su');   // cây riêng của mọi kỹ sư — Hà vào gỡ khi cây kẹt (anh 17/11/2026: "Mày làm hộ nó thì sau tao lại phải gọi mày à")
-  const QUYEN = moRongQuyen(['Read', 'Glob', 'Grep', `Edit(/${dir}/**)`, `Write(/${dir}/**)`, `Edit(/${KY}/**)`, `Write(/${KY}/**)`, `Bash(git -C ${KY}/:*)`, `Bash(cd ${KY}/:*)`,
+  const QUYEN = moRongQuyen(['Read', 'Glob', 'Grep', `Edit(/${dir}/**)`, `Write(/${dir}/**)`, `Edit(/${KY}/**)`, `Write(/${KY}/**)`, `Bash(git -C ${KY}/*)`, `Bash(cd ${KY}/*)`,
     'Bash(git rebase origin/main)', 'Bash(git rebase --continue)', 'Bash(git rebase --abort)', 'Bash(git -c core.editor=true rebase --continue)', `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${dir}:*)`, `Bash(git -C ${dir}:*)`,
     'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(git push origin HEAD:main)', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git fetch:*)',
     'Bash(node:*)', `Bash(${HOME}/bin/gh-watch:*)`, 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)',

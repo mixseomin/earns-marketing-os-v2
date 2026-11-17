@@ -501,6 +501,22 @@ body.nk-dang-keo iframe{pointer-events:none}
 .cty-dc-dau section{display:grid;gap:6px;min-width:0}
 .cty-bang-viec td{vertical-align:middle}
 .cty-bang-viec .cty-bang-ai{white-space:nowrap}
+/* BẢNG NHÂN SỰ (anh 17/11/2026): thanh lọc (loc-nhan-su.tsx) · dòng tiêu đề nhóm phòng · ô trạng thái thật (đang làm / rảnh / tắt / KẸT) bấm mở nhật ký */
+.cty-loc-ns{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:0 0 4px}
+.cty-loc-ns input[type=search]{min-width:0;width:12rem;max-width:100%}
+.cty-loc-ns input[type=search],.cty-loc-ns select{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit}
+.cty-loc-nhom{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.cty-link-nut{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font:inherit;text-decoration:underline}
+.cty-nhom-phong td{background:var(--soft);border-top:2px solid var(--line)}
+.cty-tt{min-width:11rem;max-width:22rem}
+.cty-tt-o{display:block;color:inherit;text-decoration:none}
+.cty-tt-o:hover{background:var(--soft)}
+.cty-tt-lam{color:var(--ok);font-weight:700}
+.cty-tt-ranh{color:var(--muted);font-weight:600}
+.cty-tt-ket{display:inline-block;font-size:.72rem;font-weight:700;padding:0 .4rem;border-radius:999px;background:var(--bad);color:var(--surface)}
+.cty-tt-ket-chu{color:var(--bad)}
+.cty-tt-vua{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.cty-hang-ket > td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
 /* Bảng việc / bảng lọc trên màn hẹp: giữ bề ngang đủ đọc, cuộn ngang trong khung .cty-cuon (trang không cuộn ngang); nhãn loại một dòng */
 .cty-bang-loc{min-width:720px}
 .cty-bang-loc .cty-pill{white-space:nowrap}

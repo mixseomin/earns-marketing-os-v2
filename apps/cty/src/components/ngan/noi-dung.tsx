@@ -12,7 +12,8 @@ import { soTinhCachCua, dsThuViec } from '../../../worker/cai-tien.mjs';
 import { NutDeCu } from '../nut-de-cu';
 import { KhungVp } from '@/components/khung-vp';
 import { docMailBaoMat } from '../../../worker/mail-bao-mat.mjs';
-import { nhatKyNhip } from '../../../worker/nhip.mjs';
+import { nhatKyNhip, TEN_NHIP } from '../../../worker/nhip.mjs';
+import { nhatKyCuoi, cacLan } from '../../../worker/trang-thai.mjs';
 import { viecMayCua, docViecMay, hong, tenViec } from '../../../worker/viec-may.mjs';
 import Link from 'next/link';
 import { Gio } from '../gio';
@@ -368,6 +369,7 @@ export function nganNhatKy(ma: string): Ngan {
 export function nganNhip(ma: string, admin = false): Ngan {
   const [id = '', viec = ''] = ma.split('/'); const d = nhanSu(id);
   if (d && viec === 'may') return nganViecMay(id, admin);
+  if (d && viec === 'nhat-ky') return nganNhatKyCongViec(id);
   const n = d ? nhipChu(d.fm, id) : null; const v = n?.ds.find((x) => x.ma === viec) as { ten: string; lich: string; mo_ta: string; khop: RegExp | null } | undefined;
   if (!d || !n || !v) return { tieuDe: ma, than: <Thieu chu={`Không có việc tự làm "${viec}" của "${id}" (heartbeat trong SOUL.md + worker/nhip.mjs VIEC_NHIP).`} /> };
   const tatCa = nhatKyNhip(id) as { luc: string; ket: string }[];
@@ -387,6 +389,35 @@ export function nganNhip(ma: string, admin = false): Ngan {
           <thead><tr><th>lúc</th><th>kết quả</th></tr></thead>
           <tbody>{ds.map((e) => <tr key={e.luc}><td className="cty-nho"><Gio iso={e.luc} /></td><td className="cty-log-ct">{e.ket}</td></tr>)}</tbody>
         </table></div> : <p className="cty-muted">Chưa có lần chạy nào{v.khop ? ' của việc này' : ' có việc'} trong nhật ký.</p>}
+      </div>
+    ),
+  };
+}
+
+/** Ngăn "Nhật ký công việc" `nhip:<người>/nhat-ky` (anh 17/11/2026: "Có hệ thống logs công việc đầy đủ, tự động"): MỌI lần chạy của người đó, mới nhất
+ *  trên — bắt đầu / xong (giờ VN) · việc · mã thoát · thời lượng · tóm tắt. Nguồn: nhật ký nhịp <DATA>/nhip/<id>.jsonl (bộ điều phối Mac + nhịp box3). */
+function nganNhatKyCongViec(id: string): Ngan {
+  const nk = nhatKyCuoi(id, 1024 * 1024) as { luc: string; viec: string; ket: string }[];
+  const lan = (cacLan(nk) as { viec: string; tu?: string; xong?: string; ma: number | null; dai: string; tom: string; dang: boolean; tenViec?: string; mat?: boolean }[]).slice(0, 300);
+  const ten = (v: string) => String((TEN_NHIP as Record<string, string>)[v] ?? v).replace(/\s*\(.*\)$/, '');
+  const gio = (iso?: string) => (iso ? new Date(Date.parse(iso) + 7 * 3600_000).toISOString().replace('T', ' ').slice(5, 16).replace(/^(\d\d)-(\d\d)/, '$2/$1') : '—');
+  return {
+    tieuDe: <><Nguoi id={id} anh={false} /> · nhật ký công việc <span className="cty-tab-so">{lan.length}</span></>,
+    than: (
+      <div className="nk-mot nk-cot-dai">
+        <p className="cty-nho cty-muted">Mỗi lần chạy một dòng, mới nhất trên, giờ VN (GMT+7). Việc trên Mac: bộ điều phối iMac đẩy dòng bắt đầu / xong về box3 mỗi ≥ 30 giây; nhịp box3 ghi khi chạy xong. Bản xem tối đa 300 lần gần nhất.</p>
+        {lan.length ? <div className="cty-md cty-cuon"><table className="cty-log">
+          <thead><tr><th>bắt đầu</th><th>xong</th><th>việc</th><th>mã</th><th>bao lâu</th><th>tóm tắt</th></tr></thead>
+          <tbody>{lan.map((x, i) => (
+            <tr key={`${x.tu ?? ''}${x.xong ?? ''}${i}`}>
+              <td className="cty-nho">{gio(x.tu)}</td>
+              <td className="cty-nho">{x.dang ? <b className="cty-tt-lam">đang chạy</b> : gio(x.xong)}</td>
+              <td className="cty-nho" title={x.viec}>{x.tenViec || ten(x.viec)}</td>
+              <td className="cty-nho">{x.dang ? '…' : x.mat ? <span className="cty-thu-loi">?</span> : x.ma ? <span className="cty-tt-ket-chu">{x.ma}</span> : '0'}</td>
+              <td className="cty-nho">{x.dai || '—'}</td>
+              <td className="cty-log-ct">{x.tom}</td>
+            </tr>))}</tbody>
+        </table></div> : <p className="cty-muted">Chưa có lần chạy nào trong nhật ký.</p>}
       </div>
     ),
   };

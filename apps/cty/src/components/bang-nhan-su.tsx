@@ -20,6 +20,43 @@ import { nhanSu, type Doc } from '@/lib/cong-ty';
 import { soChi } from '@/lib/do-dac';
 import { docLog } from '../../worker/log.mjs';
 import { TruocDay } from './truoc-day';
+import { trangThai, nhatKyCuoi, tranPhut, phutLich } from '../../worker/trang-thai.mjs';
+import { VIEC_NHIP } from '../../worker/nhip.mjs';
+import { LocNhanSu, LOAI_NS, type LocNS } from './loc-nhan-su';
+import { Fragment } from 'react';
+
+/** Loại nhân sự cho bộ lọc: người thật (kind human / vendor) · kỹ sư CLI (chạy bằng Claude Code) · gọi API (mô hình qua proxy, hoặc máy thuần). */
+export const loaiNS = (fm: Record<string, unknown>): keyof typeof LOAI_NS =>
+  fm.kind && fm.kind !== 'ai' ? 'nguoi' : String(fm.model ?? '').startsWith('claude-code') || fm.model_cli ? 'cli' : 'api';
+/** Đọc bộ lọc từ URL (/nhan-su?q=&phong=&loai=&tt=&nhom=phong). */
+export function docLocNS(sp: Record<string, string | string[] | undefined>): LocNS {
+  const s = (k: string) => { const v = sp[k]; return String(Array.isArray(v) ? v[0] ?? '' : v ?? ''); };
+  return { q: s('q'), phong: s('phong'), loai: s('loai'), tt: s('tt'), nhom: s('nhom') === 'phong' };
+}
+const GIO_VN = (iso: string) => new Date(Date.parse(iso) + 7 * 3600_000).toISOString().slice(11, 16);   // HH:MM giờ VN (GMT+7)
+const ngayVN = (iso: string) => new Date(Date.parse(iso) + 7 * 3600_000).toISOString().slice(0, 10);
+type TT = { kieu: 'lam' | 'ranh' | 'tat' | 'chua'; viec?: string; tu?: string; phut?: number; them?: number; xong?: string; vua?: { luc: string; ket: string } | null; ket: string[] };
+/** TRẠNG THÁI THẬT của một người (worker/trang-thai.mjs): đang làm gì từ lúc nào · rảnh từ lúc nào · kẹt vì sao. */
+function trangThaiCua(id: string, fm: Record<string, unknown>, bat: boolean, cuoiKhac?: { luc: string; ket?: string }): TT {
+  const viec = String(fm.heartbeat ?? '').split(',').map((v) => v.trim()).filter((v) => v in NHIP_MAY);
+  const lichDay = Object.fromEntries(viec.flatMap((v) => { const p = phutLich((VIEC_NHIP as Record<string, { lich: (n: object) => string }[]>)[v]?.[0]?.lich({})); return p ? [[v, p]] : []; }));
+  return trangThai(nhatKyCuoi(id), { bat, tran: tranPhut, lichDay, cuoiKhac: cuoiKhac ? { luc: cuoiKhac.luc, ket: cuoiKhac.ket ?? '' } : undefined }) as TT;
+}
+/** Ô trạng thái: bấm mở ngăn "Nhật ký công việc" của người đó (nhip:<id>/nhat-ky). */
+function OTrangThai({ id, t }: { id: string; t: TT }) {
+  const homNay = ngayVN(new Date().toISOString());
+  const gio = (iso: string) => `${GIO_VN(iso)}${ngayVN(iso) === homNay ? '' : ` ${ngayVN(iso).slice(8, 10)}/${ngayVN(iso).slice(5, 7)}`}`;
+  return (
+    <Link href={hrefNhip(id, 'nhat-ky')} className="cty-tt-o" title="Mở nhật ký công việc">
+      {t.kieu === 'lam' ? <><b className="cty-tt-lam">ĐANG LÀM</b> {t.viec}{t.them ? ` (+${t.them} việc)` : ''}<div className="cty-nho">từ {gio(t.tu!)} ({t.phut} phút)</div></>
+        : t.kieu === 'ranh' ? <><span className="cty-tt-ranh">RẢNH</span><span className="cty-nho"> · xong {gio(t.xong!)} · <TruocDay iso={t.xong!} /></span></>
+        : t.kieu === 'tat' ? <><span className="cty-muted">TẮT</span>{t.xong && <span className="cty-nho cty-muted"> · lần cuối {gio(t.xong)}</span>}</>
+        : <span className="cty-muted">chưa có lần chạy nào</span>}
+      {t.ket.length > 0 && <div><span className="cty-tt-ket">KẸT</span> <span className="cty-nho cty-tt-ket-chu">{t.ket.join(' · ')}</span></div>}
+      {t.vua?.ket && <div className="cty-nho cty-muted cty-tt-vua" title={t.vua.ket}>vừa: {t.vua.ket.slice(0, 160)}</div>}
+    </Link>
+  );
+}
 
 // số nhỏ (nhịp glm ~$0,0001/lần) giữ đủ chữ số có nghĩa — làm tròn 3 số lẻ thì tiền thật hiện thành $0,000 như chưa tiêu
 export const tien = (x: number) => `$${x.toFixed(x >= 1 ? 2 : x === 0 || x >= 0.001 ? 3 : 5).replace('.', ',')}`;
@@ -77,25 +114,41 @@ function lanCuoi(ids: string[]) {
 // YDNI (anh 14/10/2026 "page này cần YDNI"): mặt bảng chỉ còn cột VẬN HÀNH (người · vai · bộ não · nhịp · tần suất · ca · làm lần cuối · chi ·
 // trần); điểm đo bộ não (giao việc · làm · kiểm · giá · đề xuất) gập sau một bấm, dòng tóm tắt vẫn đếm "nên đổi". Trong phòng bỏ cột Phụ trách
 // vì khung Trách nhiệm ngay dưới đã có đúng số đó.
-export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS[]; trongPhong?: boolean; tn?: TrachNhiem; phong?: string }) {
+export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc }: { ds: NS[]; trongPhong?: boolean; tn?: TrachNhiem; phong?: string; loc?: LocNS }) {
+  // TRẠNG THÁI + BỘ LỌC (anh 17/11/2026): tính trạng thái thật cho mọi người trước, rồi lọc tên / phòng / loại / trạng thái trên URL
+  const cuoiGoc = lanCuoi(dsGoc.map((d) => d.id));
+  const tts = Object.fromEntries(dsGoc.map((d) => { const fm = nhanSu(d.id)?.fm ?? {}; return [d.id, trangThaiCua(d.id, fm, nhipChu(fm, d.id).bat, cuoiGoc[d.id])]; })) as Record<string, TT>;
+  const boDau = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  const khop = (d: NS) => { if (!loc) return true; const t = tts[d.id]!; const fm = nhanSu(d.id)?.fm ?? {};
+    return (!loc.q || boDau(`${d.ten} ${d.id} ${d.chucDanh}`).includes(boDau(loc.q))) && (!loc.phong || d.phong === loc.phong) && (!loc.loai || loaiNS(fm) === loc.loai)
+      && (!loc.tt || (loc.tt === 'ket' ? t.ket.length > 0 : loc.tt === 'ranh' ? t.kieu === 'ranh' || t.kieu === 'chua' : t.kieu === loc.tt)); };
+  const ds = dsGoc.filter(khop);
+  const phongs = [...new Map(dsGoc.map((d) => [d.phong, d.phongTen])).entries()].map(([id, ten]) => ({ id, ten })).sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
+  const nhomPhong = !!loc?.nhom && !trongPhong;
+  const nhom = nhomPhong ? phongs.map((p) => ({ ...p, ds: ds.filter((d) => d.phong === p.id) })).filter((g) => g.ds.length) : [{ id: '', ten: '', ds }];
   const docs = ds.map((d) => nhanSu(d.id)).filter(Boolean) as Doc[];
   const so = await soChi(docs, trongPhong ? phong : undefined);   // trong phòng: chỉ tiền làm cho phòng này · null = không nối DB → "?" chứ không phải $0
   const chi = (id: string) => so ? so.ds.filter((r) => r.nguoi === id).reduce((t, r) => t + (r.usd ?? 0), 0) : null;
   const admin = (await getCurrentUser())?.role === 'admin';
-  const cuoi = lanCuoi(ds.map((d) => d.id)); const nenDoi = ds.filter((d) => d.deXuat.muc === 'doi').length; const thang = new Date().getUTCMonth() + 1;   // sổ chi tính date_trunc('month', now()) ở DB (UTC)
+  const nenDoi = ds.filter((d) => d.deXuat.muc === 'doi').length; const thang = new Date().getUTCMonth() + 1;   // sổ chi tính date_trunc('month', now()) ở DB (UTC)
+  const cotPhong = !trongPhong && !nhomPhong; const soCot = 9 +(cotPhong ? 1 : 0) + (tn && !trongPhong ? 1 : 0);
   return (
     <div className="cty-dn-cuon">
+      {loc && !trongPhong && <LocNhanSu loc={loc} phongs={phongs} so={ds.length} tong={dsGoc.length} />}
       <table className="cty-viec cty-dn">
-        <thead><tr><th>Người</th>{!trongPhong && <th>Phòng</th>}<th>{trongPhong ? 'Vai ở phòng' : 'Vai chính'}</th><th>Bộ não</th>
+        <thead><tr><th>Người</th>{cotPhong && <th>Phòng</th>}<th>{trongPhong ? 'Vai ở phòng' : 'Vai chính'}</th><th>Bộ não</th>
           <th title="Việc người đó tự làm, không cần ai nhắc (worker/nhip.mjs)">Tự làm</th><th title="Nhịp cty: máy kiểm có việc chưa bao lâu một lần (KHÔNG phải số lần gọi mô hình). Người có việc máy: nhịp của việc chạy dày nhất — chỉnh từng việc ở cột Tự làm">Máy kiểm</th><th title="Giờ làm, giờ VN">Ca</th>
-          <th title="Lần gần nhất người đó thật sự làm việc (gọi mô hình / gửi tin) — theo nhật ký">Làm lần cuối</th>
+          <th title="Trạng thái thật theo nhật ký công việc (giờ VN): đang làm gì từ lúc nào · rảnh từ lúc nào · KẸT khi chạy quá trần, 3 lần lỗi liền, hoặc việc lịch dày im quá 30 phút. Bấm để xem nhật ký từng lần chạy">Trạng thái</th>
           <th className="cty-so" title={`Tiền mô hình thật THÁNG LỊCH ${thang} (từ 01/${thang} tới giờ — cơ sở lương)${trongPhong ? ', chỉ phần làm cho phòng này' : ', mọi phòng'} · sổ ai_usage`}><span style={{ whiteSpace: 'nowrap' }}>{trongPhong ? 'Chi phòng' : 'Chi'} T{thang}</span></th>
           <th className="cty-so" title="Trần chi tháng của người đó (mọi phòng cộng lại) — chạm trần thì proxy chặn">Trần / tháng</th>
           {tn && !trongPhong && <th className="cty-so" title="Số quy trình chịu trách nhiệm chính · số việc đang mở (kể cả việc máy làm thay)">Phụ trách</th>}</tr></thead>
-        <tbody>{ds.map((d) => { const fm = nhanSu(d.id)?.fm ?? {}; const n = nhipChu(fm, d.id); const c = chi(d.id); const tr = Number(fm.tran_usd_thang || 0); return (
-          <tr key={d.id}>
+        <tbody>{nhom.map((g) => <Fragment key={g.id || 'tat-ca'}>
+          {nhomPhong && ((lam, ket) => <tr className="cty-nhom-phong"><td colSpan={soCot}><b>{g.ten}</b> <span className="cty-muted cty-nho">· {g.ds.length} người · {lam} đang làm{ket > 0 && <> · <span className="cty-tt-ket-chu">{ket} kẹt</span></>}</span></td></tr>)(
+            g.ds.filter((d) => tts[d.id]!.kieu === 'lam').length, g.ds.filter((d) => tts[d.id]!.ket.length).length)}
+          {g.ds.map((d) => { const fm = nhanSu(d.id)?.fm ?? {}; const n = nhipChu(fm, d.id); const c = chi(d.id); const tr = Number(fm.tran_usd_thang || 0); return (
+          <tr key={d.id} className={tts[d.id]!.ket.length ? 'cty-hang-ket' : undefined}>
             <td><span className="cty-den-o"><Nguoi id={d.id} />{'coNut' in n && n.coNut && <NutTuLam muc={n.chiXem ? `nguoi:${d.id}` : `nhip:${d.id}`} bat={n.bat} admin={admin}
-              hoi={n.chiXem ? `Tắt ${n.soChay} việc máy đang chạy của ${String(fm.ten ?? d.id)}?` : undefined} />}</span></td>{!trongPhong && <td className="cty-muted">{d.phongTen}</td>}<td title={d.giuVai.join(' · ') || d.chucDanh}>{(phong && vaiO(phong, d.id)) || TEN_VAI[d.vai]}</td>
+              hoi={n.chiXem ? `Tắt ${n.soChay} việc máy đang chạy của ${String(fm.ten ?? d.id)}?` : undefined} />}</span></td>{cotPhong && <td className="cty-muted">{d.phongTen}</td>}<td title={d.giuVai.join(' · ') || d.chucDanh}>{(phong && vaiO(phong, d.id)) || TEN_VAI[d.vai]}</td>
             <td className="cty-nho">{tenModel(d.model)}</td>
             <td className={`cty-nho cty-dn-tulam${n.bat ? '' : ' cty-muted'}`}>{((vm) => {
               // ĐẦU VIỆC (anh 14/10/2026): việc nhịp cty (chấm = nhịp của người đó) rồi việc máy (chấm riêng từng việc); 4 dòng đầu luôn hiện, còn lại
@@ -113,12 +166,13 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
               <ChinhCa   /* máy kiểm + ca chỉ nghĩa với nhịp box; việc trên Mac có lịch riêng (cột Tự làm) */ id={d.id} ca={n.ca} diemDanh={n.diemDanh ?? ''} admin={admin} /></>
               : n.nhipMay ? <><td className="cty-nho" title="Nhịp của việc máy chạy dày nhất người này phụ trách — chỉnh lịch từng việc ở cột Tự làm">{n.nhipMay}<div className="cty-muted">việc dày nhất</div></td><td className="cty-nho cty-muted" title="Việc máy chạy theo lịch riêng của máy, không theo ca">theo lịch máy</td></>
               : <><td className="cty-nho"><span className="cty-muted">—</span></td><td className="cty-nho"><span className="cty-muted">—</span></td></>}
-            <td className="cty-nho" title={cuoi[d.id]?.ket}>{cuoi[d.id] ? <TruocDay iso={cuoi[d.id]!.luc} /> : <span className="cty-muted">chưa làm</span>}</td>
+            <td className="cty-nho cty-tt"><OTrangThai id={d.id} t={tts[d.id]!} /></td>
             <td className="cty-so" title={so ? `${so.ds.filter((r) => r.nguoi === d.id).reduce((t, r) => t + r.luot, 0)} lời gọi tháng này` : 'không nối được DB'}>{c === null ? <span className="cty-thu-loi">?</span> : tien(c)}</td>
             <td className="cty-so cty-muted">{tr ? tien(tr) : '—'}</td>
             {tn && !trongPhong && ((x) => <td className="cty-so" title={`${x.chuTri} quy trình chủ trì · ${x.lam} được giao làm · ${x.viec} việc đang mở${x.tre ? ` (${x.tre} máy trễ)` : ''}`}>
               <b>{x.chuTri}</b> · <b className={x.tre ? 'cty-thu-loi' : ''}>{x.viec}</b></td>)(demTn(tn, d.id, phong))}
-          </tr>); })}</tbody>
+          </tr>); })}</Fragment>)}
+          {!ds.length && <tr><td colSpan={soCot} className="cty-muted">Không ai khớp bộ lọc.</td></tr>}</tbody>
       </table>
       <details className="cty-dn-do">
         <summary>Chỉ số bộ não <span className="cty-muted cty-nho">giao việc · làm · kiểm · giá · đề xuất</span>{nenDoi > 0 && <span className="cty-pill cty-pill-off">{nenDoi} nên đổi</span>}</summary>

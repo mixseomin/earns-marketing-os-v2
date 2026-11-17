@@ -94,6 +94,7 @@ for (const [l, qt] of Object.entries(nenCua)) if (/^(iMac|MacBook):/.test(l) && 
   }
   for (const [f, id] of Object.entries(NGUOI_CUA)) if (!ns[id]) loi.push(`may/tu-hoc.mjs NGUOI_CUA: ${f} → "${id}" không có hồ sơ nhân sự`); }
 // chuẩn chung nút Góp ý "AI đang làm" (12/11/2026): ba bản chép (gói, spy, Astrolas) không được trôi — scripts/kiem-chuan-gop-y.mjs
-{ const { kiemMay } = await import('./kiem-chuan-gop-y.mjs'); const r = kiemMay(); for (const g of r.ghi) console.log(`· ${g}`); loi.push(...r.loi); }
+// bản ngoài monorepo THIẾU một mục chuẩn (spy chưa có số đỏ…) chỉ in cảnh báo ở đây — kỹ sư cty không sửa được repo đó; chạy lẻ kiem-chuan-gop-y thì đỏ
+{ const { kiemMay } = await import('./kiem-chuan-gop-y.mjs'); const r = kiemMay(); for (const g of r.ghi) console.log(`· ${g}`); for (const g of r.thieu) console.log(`⚠ chuẩn Góp ý — bản ngoài thiếu: ${g}`); loi.push(...r.loi); }
 if (loi.length) { console.error('✗ tu-kiem cty:\n  ' + loi.join('\n  ')); process.exit(1); }
 console.log(`✓ tu-kiem cty: ${Object.keys(ns).length} nhân sự, ${Object.keys(phong).length} phòng, hồ sơ nhất quán`);

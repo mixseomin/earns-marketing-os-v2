@@ -7,14 +7,20 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
+import fs from 'node:fs';
+import path from 'node:path';
+import { choToi, conTrongTran, luotDangChay, KY_SU_HOM, DEM_RONG, type DemGopY } from './dem';
 
 export type Nguoi = { email: string; displayName?: string | null; role: string };
 export type TinTraoDoi = { nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: string[]; trang?: string; nguCanh?: string };
 export type GopYCuaToi = {
   id: number; loai: string; noiDung: string; trang: string; trangThai: string; luc: string; capNhat: string; soTin: number;
   tinCuoi: { nguoi: string; noiDung: string; luc: string; xuLy: string | null } | null;
+  /** card đang chờ CHÍNH người xem (kỹ sư hỏi chưa ai đáp / kẹt) — số đỏ trên nút 💬 (CHUAN.md) */
+  choYKien?: boolean;
 };
 export type Kq = { ok: boolean; error?: string };
+export type { DemGopY } from './dem';
 export type R2 = { r2Enabled: () => boolean; uploadToR2: (key: string, buf: Buffer, type: string) => Promise<string | null> };
 
 const homNayVN = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
@@ -89,15 +95,48 @@ export async function dsGopYCuaToi(duAn: string, me: Nguoi | null): Promise<GopY
       AND (COALESCE(prep_payload->'site_status'->>${duAn}, status) IN ('pending','claimed','submitted','review','broken') OR updated_at >= now() - interval '7 days')
     ORDER BY updated_at DESC NULLS LAST, id DESC LIMIT 200`);
   type Row = { id: number; created_at: string | Date; updated_at: string | Date | null; tt: string; loai: string; trang: string; td: unknown };
+  const laToi = laNguoi(me);
   return (r as unknown as Row[]).map((x) => {
     const td = (Array.isArray(x.td) ? x.td : []) as TinTraoDoi[];
     const goc = td[0]; const cuoi = td.length > 1 ? td[td.length - 1]! : null;
+    const trangThai = String(x.tt || 'pending');
+    const tinCuoi = cuoi ? { nguoi: cuoi.nguoi, noiDung: cuoi.noiDung, luc: cuoi.luc, xuLy: cuoi.xuLy } : null;
     return {
       id: Number(x.id), loai: String(x.loai || 'loi'), noiDung: String(goc?.noiDung ?? ''), trang: String(x.trang || goc?.trang || ''),
-      trangThai: String(x.tt || 'pending'), luc: new Date(x.created_at).toISOString(), capNhat: new Date(x.updated_at ?? x.created_at).toISOString(),
-      soTin: Math.max(0, td.length - 1), tinCuoi: cuoi ? { nguoi: cuoi.nguoi, noiDung: cuoi.noiDung, luc: cuoi.luc, xuLy: cuoi.xuLy } : null,
+      trangThai, luc: new Date(x.created_at).toISOString(), capNhat: new Date(x.updated_at ?? x.created_at).toISOString(),
+      soTin: Math.max(0, td.length - 1), tinCuoi, choYKien: choToi(trangThai, tinCuoi, laToi),
     };
   });
+}
+
+/** Tin trong luồng có phải của người này: tin gốc ghi email, tin trả lời ghi displayName || email (guiTraoDoi). */
+const laNguoi = (me: Nguoi) => {
+  const ten = new Set([me.email, me.displayName].filter(Boolean).map((s) => String(s).trim().toLowerCase()));
+  return (nguoi: string) => ten.has(String(nguoi ?? '').trim().toLowerCase());
+};
+
+/** Kỹ sư CLI phụ trách hòm đang chạy một lượt? Đọc dòng cuối nhật ký nhịp <CTY_DATA_DIR>/nhip/<người>.json (bộ điều phối iMac đẩy về box3). */
+function kySuDangChay(duAn: string): string | null {
+  const nguoi = KY_SU_HOM[duAn]; if (!nguoi) return null;
+  try { return luotDangChay(JSON.parse(fs.readFileSync(path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip', `${nguoi}.json`), 'utf8'))); }
+  catch { return null; }   // máy không có nhật ký (dev / app khác máy) → chỉ dựa vào card claimed
+}
+
+/** SỐ CHO NÚT 💬 (CHUAN.md): working = card claimed của hòm (mọi người gửi, còn trong trần phiên) + lượt kỹ sư CLI đang chạy;
+ *  can_y_kien = card CỦA CHÍNH người xem đang chờ họ. Nút nạp 60 giây một lần khi tab đang hiện. */
+export async function demGopY(duAn: string, me: Nguoi | null): Promise<DemGopY> {
+  const db = getDb();
+  if (!me || !db) return DEM_RONG;
+  const r = await db.execute(sql`SELECT id, title, updated_at FROM human_tasks
+    WHERE project_id = ${duAn} AND prep_payload->>'source_platform' = 'feedback'
+      AND COALESCE(prep_payload->'site_status'->>${duAn}, status) = 'claimed'
+    ORDER BY updated_at DESC LIMIT 20`);
+  const lam = (r as unknown as Array<{ id: number; title: string; updated_at: string | Date }>)
+    .filter((x) => conTrongTran(new Date(x.updated_at).toISOString())).map((x) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`);
+  const luot = kySuDangChay(duAn);
+  const dangLam = lam.length ? lam : luot ? [luot] : [];
+  const cho = (await dsGopYCuaToi(duAn, me)).filter((b) => b.choYKien);
+  return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id) };
 }
 
 export async function docTraoDoi(duAn: string, me: Nguoi | null, taskId: number): Promise<TinTraoDoi[]> {

@@ -13,4 +13,6 @@ export async function taiAnhGopY(dataUrl: string) { return hom.taiAnh(await getC
 export async function guiGopY(input: Parameters<typeof hom.guiGopY>[2]) { return hom.guiGopY(DU_AN, await getCurrentUser(), input); }
 export async function dsGopYCuaToi() { return hom.dsGopYCuaToi(DU_AN, await getCurrentUser()); }
 export async function docTraoDoi(taskId: number) { return hom.docTraoDoi(DU_AN, await getCurrentUser(), taskId); }
+/** Số cho nút 💬 (packages/gop-y/CHUAN.md): rung khi Khôi đang làm + số đỏ góp ý đang chờ ý kiến của chính người xem. */
+export async function demGopY() { return hom.demGopY(DU_AN, await getCurrentUser()); }
 export async function guiTraoDoi(input: Parameters<typeof hom.guiTraoDoi>[2]) { return hom.guiTraoDoi(DU_AN, await getCurrentUser(), input); }

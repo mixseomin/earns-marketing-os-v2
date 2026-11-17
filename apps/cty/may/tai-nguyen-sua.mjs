@@ -14,6 +14,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { cayHoacBao, MOS2_GOC } from './cay-rieng.mjs';
 import { chonMuc } from './chon-muc.mjs';
+import { camCay } from './gop-y-ky-su.mjs';
 
 if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`Tài chỉ chạy trên iMac (máy này: ${os.hostname()}) — Claude không giao diện bằng gói thuê bao chỉ iMac`); process.exit(3); }
 
@@ -46,7 +47,7 @@ const QUYEN = ['Read', 'Glob', 'Grep', `Edit(/${SPY}/**)`, `Write(/${SPY}/**)`, 
   'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(diff:*)', 'Bash(date:*)'];
 const CAM_BASH = ['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
   'rm', 'rmdir', 'rsync', 'scp', 'br', 'open', 'npm install', 'npm i', 'npx', 'brew', 'pip', 'launchctl', 'crontab', 'sudo', 'kill', 'pkill'].map((c) => `Bash(${c}:*)`);
-const CAM = [...CAM_BASH, 'AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate'];
+const CAM = camCay([SPY, MOS2], [...CAM_BASH, 'AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate']);   // + dạng 'git -C <cây> reset…' (quyền git -C cho qua)
 
 const [chinh, soul] = box(`cat ${DATA}/nhip-chinh.json 2>/dev/null || echo {}; echo '@@'; grep -E '^model:' ${APP}/cong-ty/nhan-su/${NGUOI}/SOUL.md`).split('@@');
 if (JSON.parse(chinh.trim() || '{}')[NGUOI]?.bat === false) { log('Tài đang tắt'); process.exit(0); }

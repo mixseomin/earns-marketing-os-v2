@@ -62,9 +62,10 @@ export const CAM = [...['git reset', 'git revert', 'git checkout', 'git restore'
  *  bằng 'git reset'; quyền 'git branch:*' (de28970d8) cho qua 'git branch -d / --delete / -f' (CAM chỉ có -D). Máy nhân mọi lệnh git cấm ra dạng 'git -C <cây> …'
  *  và chặn thêm các dạng xoá / ép nhánh. Chỉ SIẾT, không nới. */
 const GIT_CAM_THEM = ['git branch -d', 'git branch --delete', 'git branch -f', 'git branch --force', 'git tag --delete'];
-export function camCay(dir) {
-  const git = [...CAM, ...GIT_CAM_THEM.map((c) => `Bash(${c}:*)`)].map((p) => /^Bash\((git [^)]*):\*\)$/.exec(p)?.[1]).filter(Boolean);
-  return [...new Set([...CAM, ...GIT_CAM_THEM.map((c) => `Bash(${c}:*)`), ...git.map((c) => `Bash(git -C ${dir} ${c.slice(4)}:*)`)])];
+export function camCay(dirs, cam = CAM) {   // dirs: một cây hoặc mảng cây có quyền 'git -C <cây>:*' · cam: danh sách cấm của runner (mặc định CAM chung)
+  const goc = [...cam, ...GIT_CAM_THEM.map((c) => `Bash(${c}:*)`)];
+  const git = goc.map((p) => /^Bash\((git [^)]*):\*\)$/.exec(p)?.[1]).filter(Boolean);
+  return [...new Set([...goc, ...[dirs].flat().flatMap((d) => git.map((c) => `Bash(git -C ${d} ${c.slice(4)}:*)`))])];
 }
 // Lời AI trong luồng card ghi nguoi = 'ai' (play reply) HOẶC 'claude' (gop-y.sh reply). Chỉ so 'ai' thì lời 'claude' bị đếm là tin NGƯỜI:
 // kỹ sư lấy câu trả lời cũ làm đề bài, và mỗi lần chính nó trả lời qua gop-y.sh lại thành "tin mới" → tự mở lại card mỗi 5 phút (12/11/2026, card spy #1293).

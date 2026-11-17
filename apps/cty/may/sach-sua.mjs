@@ -11,6 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { cayRieng } from './cay-rieng.mjs';
 import { chonMuc } from './chon-muc.mjs';
+import { camCay } from './gop-y-ky-su.mjs';
 
 /** Việc sách coi là xong khi SỔ đã qua giai đoạn dựng (owner_review trở đi) và hết lý do kẹt — không tin lời kỹ sư tự báo. */
 export const sachXong = (s) => !!s && !s.loi && ['owner_review', 'ready', 'in_review', 'published'].includes(s.st) && !s.ket;
@@ -37,7 +38,7 @@ const QUYEN = ['Read', 'Glob', 'Grep', `Edit(/${SACH}/themes/**)`, `Write(/${SAC
   'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(diff:*)', 'Bash(pdfinfo:*)'];
 const CAM_BASH = ['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
   'rm', 'rmdir', 'rsync', 'scp', 'br', 'open', 'npm install', 'npm i', 'npx', 'brew', 'pip', 'launchctl', 'crontab', 'sudo', 'kill', 'pkill', 'ssh'].map((c) => `Bash(${c}:*)`);
-const CAM = [...CAM_BASH, 'AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate'];
+const CAM = camCay([SACH], [...CAM_BASH, 'AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate']);   // + dạng 'git -C <cây> reset…' (quyền git -C cho qua)
 // TÁC GIẢ RIÊNG (audit 15/11/2026): ~/puzzle-books dùng chung với Mạnh (việc dang:) — đếm commit theo khoảng HEAD thì lượt này nhận nhầm commit của người kia
 // (Mạnh #222 báo commit 2cba82f5 của Thảo). Commit của Thảo mang tên tác giả riêng, báo cáo chỉ đếm commit có tên đó.
 const TAC_GIA = 'Thảo (kỹ sư Phòng Sách)';

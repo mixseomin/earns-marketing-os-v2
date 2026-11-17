@@ -69,6 +69,18 @@ export function giaoCho(nguoi, viec, tu) {
   fs.writeFileSync(f, JSON.stringify({ tieu_de: String(viec).slice(0, 80), noi_dung: `${tu} chuyển (việc thuộc phần của bạn): ${viec}`, luc: new Date().toISOString() }, null, 1));
   return `${nguoi} ← ${String(viec).slice(0, 80)}`;
 }
+/** Card đã sửa đang chờ deploy (daLam['deploy:<id>']): commit "#<id>" đã nằm trong một lượt deploy.yml XANH → nộp Review; quá 6 giờ → Kẹt. */
+export function choDeployNop(daLam, cfg, dir, TEN, log, luu) {
+  const cho = Object.keys(daLam).filter((k) => k.startsWith('deploy:')); if (!cho.length) return;
+  let runs = []; try { runs = JSON.parse(execFileSync('gh', ['run', 'list', '--workflow', 'deploy.yml', '--limit', '30', '--json', 'headSha,conclusion'], { cwd: dir, encoding: 'utf8', timeout: 60000 })).filter((r) => r.conclusion === 'success'); } catch (e) { log(`đọc deploy lỗi: ${String(e.message).split('\n')[0]}`); return; }
+  for (const k of cho) {
+    const id = k.slice(7); let sha = '';
+    try { execFileSync('git', ['-C', dir, 'fetch', '-q', 'origin', 'main'], { timeout: 60000 }); sha = execFileSync('git', ['-C', dir, 'log', 'origin/main', '-1', '--format=%H', `--grep=#${id}([^0-9]|$)`, '-E'], { encoding: 'utf8' }).trim(); } catch { /* chưa có commit */ }
+    const len = sha && runs.some((r) => { try { execFileSync('git', ['-C', dir, 'merge-base', '--is-ancestor', sha, r.headSha], { stdio: 'ignore' }); return true; } catch { return false; } });
+    if (len) { try { log(`chờ deploy: ${chotCard({ duAn: cfg.duAn, id, cach: 'nop', chu: `[${TEN}] Bản sửa ${sha.slice(0, 9)} đã lên máy chủ (deploy xanh) — máy tự nộp Review.` })}`); delete daLam[k]; luu(); } catch (e) { log(`nộp #${id} lỗi: ${String(e.message).split('\n')[0]}`); } }
+    else if (Date.now() - Date.parse(daLam[k].luc) > 6 * 36e5) { try { log(`chờ deploy quá 6 giờ: ${chotCard({ duAn: cfg.duAn, id, cach: 'ket', chu: `[${TEN}] Đã sửa${sha ? ` (${sha.slice(0, 9)})` : ''} nhưng 6 giờ chưa thấy deploy xanh chứa bản sửa.` })}`); delete daLam[k]; luu(); } catch { /* lượt sau */ } }
+  }
+}
 export function chayKySu(cfg) {
   const { nguoi: NGUOI, ten: TEN } = cfg;
   if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`${TEN} chỉ chạy trên iMac (máy này: ${os.hostname()}) — Claude không giao diện bằng gói thuê bao chỉ iMac`); process.exit(3); }
@@ -124,6 +136,7 @@ export function chayKySu(cfg) {
   // commit đã nằm trên main (máy vừa đẩy hộ) → nộp đúng card của nó sang Review
   const nopCommitDay = (c, nhan) => { for (const t of c?.day ?? []) { const id = cardTuCommit(t); if (id) try { log(`${nhan}: ${chotCard({ duAn: cfg.duAn, id, cach: 'nop', chu: `Máy đã đẩy bản sửa lên main: ${t}` })}`); } catch (e) { log(`nộp card #${id} lỗi: ${String(e.message).split('\n')[0]}`); } } };
   nopCommitDay(cayDau, 'commit kẹt đã lên main');
+  if (!thu && !kiem) choDeployNop(daLam, cfg, cayDau?.dir ?? cfg.cayThu, TEN, log, () => fs.writeFileSync(TEP_DA, JSON.stringify(daLam)));
   if (!card) { log(`không có card mới (${ds.length} card mở, đã làm cả)`); process.exit(0); }
 
   ENV.BR_URL_NGUON = `card góp ý ${cfg.duAn} #${card.id} (trang lưu trong luồng card trên box3)`;   // luật br chống bịa URL: link trang lấy từ card là nguồn thật
@@ -211,7 +224,10 @@ export function chayKySu(cfg) {
     try { cfg.traLoi(card.id, `[${TEN} · ${ket}] ${bao}${baoChan}`, ENV); } catch (e) { log(`ghi tin lỗi: ${String(e.message).split('\n')[0]}`); }
   }
   // card còn "Đang làm" khi lượt dừng = chết im (anh 14/11/2026) → mục Kẹt kèm lý do; Claude đã nộp / trả lời thì chotCard để yên
-  if (!kiem) try { log(`card ${chotCard({ duAn: cfg.duAn, id: card.id, cach: 'ket', chu: loiQuyen ? `[${TEN} · ${ket}] Lượt vướng ${tuChoi.length} lệnh bị máy từ chối (không phải việc anh) — máy tự chạy lại lượt kế với dạng lệnh khớp quyền.` : `[${TEN} · ${ket}] Lượt dừng mà card chưa nộp Review — con để ở mục Kẹt: lỗi / cần anh, hoặc commit chưa lên main (máy tự đẩy ở lượt sau rồi nộp).` }).replace(/^#\d+ /, '')}`); } catch (e) { log(`chốt card lỗi: ${String(e.message).split('\n')[0]}`); }
+  // ĐÃ SỬA mà chưa nộp (thường vì deploy toàn monorepo đang đỏ do người khác): KHÔNG đẩy về anh — máy chờ deploy xanh rồi tự nộp (anh 17/11/2026:
+  // "việc của chúng nó thì gọi tao làm cái đéo gì"). Quá 6 giờ vẫn chưa xanh mới đặt Kẹt.
+  if (!kiem && !card.giao && ket === 'da_sua' && !loiQuyen) { daLam[`deploy:${card.id}`] = { luc: new Date().toISOString() }; fs.writeFileSync(TEP_DA, JSON.stringify(daLam)); log(`#${card.id}: đã sửa, chờ deploy xanh để máy tự nộp Review`); }
+  else if (!kiem) try { log(`card ${chotCard({ duAn: cfg.duAn, id: card.id, cach: 'ket', chu: loiQuyen ? `[${TEN} · ${ket}] Lượt vướng ${tuChoi.length} lệnh bị máy từ chối (không phải việc anh) — máy tự chạy lại lượt kế với dạng lệnh khớp quyền.` : `[${TEN} · ${ket}] Lượt dừng mà card chưa nộp Review — con để ở mục Kẹt: lỗi / cần anh, hoặc commit chưa lên main (máy tự đẩy ở lượt sau rồi nộp).` }).replace(/^#\d+ /, '')}`); } catch (e) { log(`chốt card lỗi: ${String(e.message).split('\n')[0]}`); }
   try { execFileSync(BR, ['close', HO_SO], { encoding: 'utf8', env: ENV, timeout: 30000 }); } catch { /* chưa mở được thì thôi */ }   // xong là dọn: đóng ĐÍCH DANH profile của kỹ sư
 }
 

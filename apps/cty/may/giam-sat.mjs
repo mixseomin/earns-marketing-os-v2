@@ -110,7 +110,8 @@ export async function quyenHa(dir) {
     'Bash(git rebase origin/main)', 'Bash(git rebase --continue)', 'Bash(git rebase --abort)', 'Bash(git -c core.editor=true rebase --continue)', `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${dir}:*)`, `Bash(git -C ${dir}:*)`,
     'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(git push origin HEAD:main)', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git fetch:*)',
     'Bash(node:*)', `Bash(${HOME}/bin/gh-watch:*)`, 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)',
-    'Bash(uniq:*)', 'Bash(diff:*)', 'Bash(ps:*)', 'Bash(du:*)', 'Bash(df:*)', 'Bash(tmux ls)', 'Bash(tmux capture-pane:*)'], dir);
+    `Bash(bash ${dir}/apps/cty/may/cai.sh iMac)`, `Bash(node ${dir}/apps/cty/may/dung-viec-nen.mjs:*)`,   // cài bộ điều phối mới · dừng tiến trình việc nền mồ côi (chỉ việc trong sổ)
+    'Bash(uniq:*)', 'Bash(diff:*)', 'Bash(ps:*)', 'Bash(lsof:*)', 'Bash(curl -s:*)', 'Bash(du:*)', 'Bash(df:*)', 'Bash(tmux ls)', 'Bash(tmux capture-pane:*)'], dir);
   const TU_GAC = ['apps/cty/may/giam-sat.mjs', 'apps/cty/worker/giam-sat-lam.mjs'].flatMap((f) => [`Edit(/${dir}/${f})`, `Write(/${dir}/${f})`]);
   const CAM_HA = [...CAM.filter((c) => c !== 'Bash(git rebase:*)'), ...TU_GAC, `Edit(/${HOME}/.claude/**)`, `Write(/${HOME}/.claude/**)`];
   return { QUYEN, CAM_HA };
@@ -193,6 +194,9 @@ SỬA GỐC NHƯ MỘT KỸ SƯ (anh 17/11/2026 mở quyền): lỗi nằm trong
   node apps/castle/scripts/kiem-ke.mjs --lau neuschwanstein · cty: node apps/cty/scripts/tu-kiem.mjs), git add tệp đã gộp, git -c core.editor=true rebase --continue,
   rồi git -C <cây> push origin HEAD:main và chờ gh-watch. KHÔNG báo "cần anh / nhờ Huy" cho việc con tự gỡ được — anh không muốn phải gọi người khác làm thay con.
 - Chữa cháy trên box3 được (đo trước): huỷ truy vấn ĐỌC chạy lặp, renice lô nền. Không kill tiến trình ghi dữ liệu, không dừng web / postgres.
+- Sửa bộ điều phối (dieu-phoi.mjs) → tự cài bản mới: bash ${dir}/apps/cty/may/cai.sh iMac. Tiến trình việc nền mồ côi (cổng bị giữ, chạy trùng) → tự dừng:
+  node ${dir}/apps/cty/may/dung-viec-nen.mjs <pid> (chỉ dừng được tiến trình là việc nền trong sổ). Xong thì đo lại tới khi vòng lỗi hết.
+- KHÔNG BAO GIỜ bảo anh chạy lệnh (anh 17/11/2026). Lệnh con cần mà bị chặn quyền → ghi một dòng "CẦN QUYỀN: <lệnh> · <vì sao>" trong báo cáo để máy được sửa.
 CẤM: tiền / thanh toán / mua / đề xuất tài khoản · xoá dữ liệu · git reset / revert / checkout / push --force · sửa bộ gác của chính con (giam-sat.mjs, giam-sat-lam.mjs)
 · sửa ~/.claude · nới danh sách CAM của kỹ sư. Việc cần anh quyết → ghi rõ trong BÁO ANH.
 KẾT THÚC bằng dòng "BÁO ANH:" rồi tiếng Việt lời thường, gọn, cho anh đọc trên điện thoại: mỗi vấn đề một dòng (người · chuyện gì · đã làm gì / cần anh gì). Đã sửa gì thì ghi commit. Không có gì đáng báo thì ghi "BÁO ANH: ổn, không có gì". Xưng "con", gọi "anh".`;

@@ -110,6 +110,14 @@ export function chayKySu(cfg) {
   const [chinh, soul] = box(`cat ${DATA}/nhip-chinh.json 2>/dev/null || echo {}; echo '@@'; grep -E '^model:' ${APP}/cong-ty/nhan-su/${NGUOI}/SOUL.md || true`).split('@@');
   if (JSON.parse(chinh.trim() || '{}')[NGUOI]?.bat === false) { log(`${TEN} đang tắt`); process.exit(0); }
   const dm = (soul.match(/^model:.*$/m) || [''])[0], model = (dm.match(/claude-code:([\w.-]+)/) || [])[1] || 'opus', effort = (dm.match(/effort:(low|medium|high|max)\b/) || [])[1] || null;
+  // QUA CỔNG AI (anh 17/11/2026: "Việc mà tốn token claude-code mà ko cần data nội bộ, bảo mật thì dùng donk" → "dùng API AI"): SOUL ghi `qua:cong` trên dòng model
+  // → Claude Code gọi endpoint kiểu Anthropic của cổng spy (Hiếu, /api/ai/cc/<người>, chuỗi donk → ckey), KHÔNG dùng gói Claude. Khoá cổng đọc từ box3, không in.
+  if (/\bqua:cong\b/.test(dm)) {
+    const khoa = box(`grep -h '^CONG_AI_KEY=' /root/.secrets/spy.env | cut -d= -f2- | tr -d "\\"'"`).trim();
+    if (!khoa) { log(`${TEN}: SOUL đòi qua cổng AI mà không đọc được CONG_AI_KEY — dừng lượt, không rơi về gói Claude`); process.exit(0); }
+    Object.assign(ENV, { ANTHROPIC_BASE_URL: `https://spy.on.tc/api/ai/cc/${NGUOI}`, ANTHROPIC_AUTH_TOKEN: khoa, ANTHROPIC_API_KEY: '' });
+    log(`${TEN}: chạy qua cổng AI (donk → ckey), không dùng gói Claude`);
+  }
 
   // CHỐNG VÒNG LẶP (cùng luật hàng thợ máy, anh 11/11/2026 "phải biết giới hạn đúng lúc, đúng chỗ"): card đã chạy mà luồng chưa có tin NGƯỜI mới → không làm lại trong 24 giờ.
   // Anh trả lời / bấm làm lại = có tin mới → nhận lại ngay.

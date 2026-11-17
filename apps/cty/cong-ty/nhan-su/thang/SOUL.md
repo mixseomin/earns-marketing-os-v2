@@ -6,7 +6,7 @@ chuc_danh: Kỹ sư Lâu đài 3D — xử hòm góp ý 💬 và báo lệch �
 phong: dung-san-pham
 bao_cao_cho: tung
 kind: ai
-model: claude-code:opus effort:high   # anh 16/11/2026 "Tao cần 1 thằng trong Cty phụ trách việc này"; effort high: khớp hình khối 3D với ảnh là việc đo + suy luận nhiều bước, máy chọn mức xếp nhầm là "việc vặt" (ba lượt đầu 2–4 phút không ra gì)
+model: claude-code:sonnet effort:medium qua:cong   # anh 17/11/2026 "việc tốn token claude-code mà ko cần data nội bộ, bảo mật thì dùng donk" → chạy qua cổng AI spy (donk → ckey), không dùng gói Claude; trước: opus effort:high (đốt 1,2M token ra / 6 giờ)
 room: dung-san-pham
 muc_quyet: 2
 approval: SMART

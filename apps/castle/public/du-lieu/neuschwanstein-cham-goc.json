@@ -1,5 +1,5 @@
 {
- "luc": "2026-11-17T07:22:29.904Z",
+ "luc": "2026-11-17T07:43:02.666Z",
  "goc": [
   "dong",
   "dong-nam",
@@ -244,13 +244,13 @@
      "so": 8
     },
     {
-     "goc": "dong-bac",
-     "lech": -1.9,
+     "goc": "dong-nam",
+     "lech": -1,
      "so": 7
     },
     {
-     "goc": "dong-nam",
-     "lech": -1,
+     "goc": "dong-bac",
+     "lech": -1.9,
      "so": 7
     },
     {
@@ -288,14 +288,14 @@
      "so": 6
     },
     {
-     "goc": "dong-bac",
-     "lech": -1.37,
-     "so": 7
-    },
-    {
      "goc": "dong-nam",
      "lech": -1.37,
      "so": 5
+    },
+    {
+     "goc": "dong-bac",
+     "lech": -1.37,
+     "so": 7
     },
     {
      "goc": "bac",
@@ -377,8 +377,8 @@
     },
     {
      "goc": "bac",
-     "lech": -0.7,
-     "so": 11
+     "lech": -1.3,
+     "so": 7
     },
     {
      "goc": "dong",
@@ -583,14 +583,14 @@
      "so": 14
     },
     {
-     "goc": "dong-bac",
-     "lech": 1.1,
-     "so": 10
-    },
-    {
      "goc": "dong-nam",
      "lech": -1.3,
      "so": 33
+    },
+    {
+     "goc": "dong-bac",
+     "lech": 1.1,
+     "so": 10
     },
     {
      "goc": "bac",
@@ -826,5 +826,5 @@
    ]
   }
  ],
- "ban": "24f6e86fd"
+ "ban": "3b37e2667"
 }

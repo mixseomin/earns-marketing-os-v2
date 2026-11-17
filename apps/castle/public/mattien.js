@@ -202,8 +202,12 @@ export function quyDoiMat(bo, pxDung) {
     const Cg = P.cong;
     if (Cg) cong = { ten: Cg.ten, thang: Cg.thang, duoiNguong: DP(Cg.nguong), cua: (Cg.nguong - Cg.dinhCua) / pD, khung: (Cg.nguong - Cg.dinhKhung) / pD, rongCua: Cg.rongCua / pN, rongKhung: Cg.rongKhung / pN };
   }
-  const G = bo.thapGoc, thap = G && { ids: G.ids, chop: Du(G.chop), chanChop: Du(G.chanChop), dinhRang: Du(G.dinhRang), dinhThan: Du(G.dinhThan), frieze: G.frieze.map(Du),
-    tang: G.tang.map((t) => ({ dinh: Du(t.dinh), bau: Du(t.bau), w: (t.o[1] - t.o[0]) / T.pxNgang })), go: G.go.map((g) => g.map(Du)), rang: G.rang.map(Du), chanThan: Du(G.chanThan), mui: Du(G.mui) };
+  // tháp góc treo nhô ra trước mặt tường về phía người chụp (đứng dưới sân nhìn ngửa) → trên ảnh trông cao + to hơn thật:
+  // thapGoc.phoiCanh = { ti, matNguoi } co mọi độ cao tháp về ngang mắt người chụp (mặt sân + matNguoi) theo ti, bề ngang theo ti (góp ý #1649)
+  const G = bo.thapGoc, PC = G?.phoiCanh, matMay = PC && duoiSan != null ? duoiSan - PC.matNguoi : null;
+  const Dt = (y) => matMay == null ? Du(y) : matMay + PC.ti * (Du(y) - matMay), tiN = matMay == null ? 1 : PC.ti;
+  const thap = G && { ids: G.ids, chop: Dt(G.chop), chanChop: Dt(G.chanChop), dinhRang: Dt(G.dinhRang), dinhThan: Dt(G.dinhThan), frieze: G.frieze.map(Dt),
+    tang: G.tang.map((t) => ({ dinh: Dt(t.dinh), bau: Dt(t.bau), w: tiN * (t.o[1] - t.o[0]) / T.pxNgang })), go: G.go.map((g) => g.map(Dt)), rang: G.rang.map(Dt), chanThan: Dt(G.chanThan), mui: Dt(G.mui) };
   return { cum, tranh, banCong, go, cuaDon, duoiSan, cong, thap, gableCao: bo.neo ? (T.maiY - bo.neo.dinhY) / T.pxDung : null, pxDung: T.pxDung };
 }
 

@@ -370,6 +370,11 @@
   ],
   "chop": 265,
   "ly_do_chop": "góp ý #1639 (17/11/2026): bản cũ 150 px đọc nhầm chóp tháp PHÍA SAU đầu hồi (chóp mảnh giữa đầu hồi và tháp phải, mũi ~150 px) — chóp tháp góc trái thật: mũi nón 255 px, bầu đỉnh 235–245 px, chữ thập trên cùng 210 px ; tháp phải: mũi nón 285 px, bầu 265–275 px (thấp hơn tháp trái ~30 px do phối cảnh: người chụp đứng lệch trái và thấp, tháp trái gần hơn nên trông cao hơn; đầu hồi ở giữa). Lấy 265 = trung bình mũi nón + bầu của HAI tháp (chữ thập không dựng) để triệt lệch phối cảnh. Kiểm: đo tia ở góc tay (so-lech --do, 8 cột, trải 2,7 m) đỉnh thật thấp hơn mô hình 2,5 m (y_tren 64,64); bảng chấm góc chuẩn: tay −2,3 · tay-bac −1,7 · dong −2,3 (khối 223145711), nam −2,6 · dong −2,0 (223145712). Chóp 265 → đỉnh ≈ 61,6 m, nón cao ~5,1 m (cũ 8,3 m). Không hạ thêm theo tia: ảnh 3D Google làm cùn mũi chóp mảnh (đo từ trên xuống chỉ ra 59,4 / 60,8 m), ảnh chụp cho thấy mũi nón chỉ thấp hơn đỉnh đầu hồi 4–4,8 m",
+  "phoiCanh": {
+   "ti": 0.955,
+   "matNguoi": 1.6,
+   "ly_do": "góp ý #1649 [MÁY QUÉT] (17/11/2026): tháp góc way/223145712 cao hơn ảnh 3D Google 1,52 m dù số điểm ảnh đã đọc đúng (#1639) — đo tia ở 4 góc chuẩn đều cùng chiều: nam −1,07 (7 cột), đông-bắc −1,37 (6 cột), đông −1,67 (7 cột), the-1623-cong −1,67 (7 cột); ảnh 3D chụp gần (so-lech --cam từ (−14; 62; 48) nhìn tháp) thấy mũi nón thật thấp hơn mũi mô hình ~50 px ≈ 1,4 m, nón không cùn. Gốc: ảnh sân trên chụp từ mặt sân nhìn NGỬA, tháp treo trên con-xon nhô ra trước mặt Palas về phía người chụp, mà thước đứng lấy trên mặt tường (đỉnh đầu hồi ↔ mặt sân) → vật gần hơn trông cao hơn. Sửa: co mọi độ cao tháp về ngang mắt người chụp (mặt sân + 1,6 m) theo ti = (đỉnh 61,58 − 1,52 − mắt 28,09) / (61,58 − 28,09) ≈ 0,955 (ứng với tháp nhô ~4,5 % khoảng cách chụp, ~1 m ở 20–25 m); bề ngang ô cửa tháp co cùng ti. Điểm ảnh thô giữ nguyên để kiem-mat-tien.py vẫn so được với ảnh"
+  },
   "chanChop": 450,
   "dinhRang": 450,
   "dinhThan": 505,

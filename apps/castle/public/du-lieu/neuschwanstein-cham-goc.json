@@ -1,5 +1,5 @@
 {
- "luc": "2026-11-17T06:46:30.492Z",
+ "luc": "2026-11-17T06:55:40.424Z",
  "goc": [
   "dong",
   "dong-nam",
@@ -13,8 +13,8 @@
  ],
  "pha": null,
  "so_khoi": 31,
- "lech_nang": 11,
- "lech_tb": 2.2,
+ "lech_nang": 10,
+ "lech_tb": 2.13,
  "khoi": [
   {
    "id": "way/35212310",
@@ -98,25 +98,6 @@
      "goc": "bac",
      "lech": 6.8,
      "so": 4
-    }
-   ]
-  },
-  {
-   "id": "way/88229631",
-   "ten": "",
-   "y_tren": 10.85,
-   "lech": -2.2,
-   "goc": 2,
-   "chi_tiet": [
-    {
-     "goc": "dong-bac",
-     "lech": -2.5,
-     "so": 13
-    },
-    {
-     "goc": "dong",
-     "lech": -1.9,
-     "so": 7
     }
    ]
   },
@@ -824,7 +805,26 @@
      "so": 7
     }
    ]
+  },
+  {
+   "id": "way/88229631",
+   "ten": "",
+   "y_tren": 8.65,
+   "lech": 0,
+   "goc": 2,
+   "chi_tiet": [
+    {
+     "goc": "dong",
+     "lech": 0.3,
+     "so": 7
+    },
+    {
+     "goc": "dong-bac",
+     "lech": -0.3,
+     "so": 13
+    }
+   ]
   }
  ],
- "ban": "863523cd5"
+ "ban": "f1408c05e"
 }

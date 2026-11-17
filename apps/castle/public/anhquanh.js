@@ -129,10 +129,10 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY, thay
     daChonAnh: () => [...chon.keys()].map((k) => DATA.get(k)).filter(Boolean), // dataURL các ảnh đã chọn đã tải xong
     // thêm vào ngữ cảnh góp ý / báo lệch: điểm đang tìm + ảnh đã chọn (rỗng thì không thêm gì)
     // gọn (chỉ mã ảnh: c:<tên tệp Commons> · m:<id Mapillary>) — scripts/tim-anh.mjs tra ngược ra đường tải + tác giả + giấy phép
-    // ≤ 380 ký tự (hòm chuẩn cắt ngữ cảnh trang ở 400): bớt ảnh cuối tới khi vừa — ảnh thật vẫn đính đủ trong thẻ, scripts/tim-anh.mjs --the tải từ ảnh đính kèm khi thiếu mã
-    nguCanh: () => { const a = daChon().map((x) => (x.nguon === 'commons' ? 'c:' : 'm:') + x.id); if (!a.length) return '';
+    // ≤ toiDa ký tự (hòm chuẩn cắt ngữ cảnh trang ở 400, ns.js chừa chỗ cho vị trí thật): bớt ảnh cuối tới khi vừa — ảnh thật vẫn đính đủ trong thẻ, scripts/tim-anh.mjs --the tải từ ảnh đính kèm khi thiếu mã
+    nguCanh: (toiDa = 380) => { const a = daChon().map((x) => (x.nguon === 'commons' ? 'c:' : 'm:') + x.id); if (!a.length) return '';
       const d = diem && { x: +diem.x.toFixed(1), z: +diem.z.toFixed(1), ten: diem.ten };
-      for (let n = a.length; n > 0; n--) { const t = ` ANH-THAT-JSON:${JSON.stringify({ d, a: a.slice(0, n) })}`; if (t.length <= 380) return t; }
+      for (let n = a.length; n > 0; n--) { const t = ` ANH-THAT-JSON:${JSON.stringify({ d, a: a.slice(0, n) })}`; if (t.length <= toiDa) return t; }
       return ''; },
     anGhim: (an) => { ghim.visible = !an && bang.style.display === 'flex'; },
   };

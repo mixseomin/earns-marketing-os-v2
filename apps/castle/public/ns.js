@@ -915,8 +915,34 @@ function vaoCong() { // trước cổng Torbau, phía đông, quay mặt vào c�
   const h = world.castRay(new RAPIER.Ray({ x: o.x, y: 400, z: o.z }, { x: 0, y: -1, z: 0 }), 800, true), y = h ? 400 - h.timeOfImpact : datThat(o.x, o.z);
   di.vao(o.x, y + 0.3, o.z, o.h);
 }
-$('b-di').onclick = vaoCong;
-$('b-toan').onclick = () => { di?.ra(); camera.position.set(-170, 90, 230); orbit.target.set(0, 25, 0); orbit.update(); };
+// GIỮ CHỖ ĐỨNG QUA TOÀN CẢNH (anh 17/11/2026: "chuyển toàn cảnh + đi bộ vẫn phải giữ vị trí nhân vật, trên toàn cảnh vẽ thêm nhân vật"):
+// rời đi bộ thì nhớ chỗ chân + hướng (localStorage ns-cho, qua cả F5); toàn cảnh vẽ nhân vật đứng thở ở đó + ghim "Bạn" (cỡ cố định trên màn, xa vẫn thấy);
+// bấm Đi bộ = về đúng chỗ đó (chưa đi lần nào → cổng Torbau như cũ; nhấp đúp xuống đất vẫn là đi bộ tại chỗ nhấp). Chụp 🔍 / so ảnh thì ẩn cả hai.
+let cho = null, anNguoiChup = false, lucCho = 0; try { cho = JSON.parse(localStorage.getItem('ns-cho') || 'null'); } catch {}
+const ghim = (() => {
+  const c = document.createElement('canvas'), g = c.getContext('2d'); c.width = 160; c.height = 112;
+  g.fillStyle = 'rgba(14,20,30,.82)'; g.beginPath(); g.roundRect(8, 6, 144, 52, 14); g.fill(); g.beginPath(); g.moveTo(66, 58); g.lineTo(94, 58); g.lineTo(80, 80); g.fill();
+  g.fillStyle = '#ffd9a8'; g.font = '600 30px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Bạn', 80, 33);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true, sizeAttenuation: false }));
+  sp.scale.set(0.07, 0.049, 1); sp.center.set(0.5, 0.2); sp.renderOrder = 11; sp.visible = false; scene.add(sp); return sp;
+})();
+function luuCho() {
+  if (!di?.dang || !toi) return; const p = toi.goc.position;
+  cho = { x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), h: +toi.goc.rotation.y.toFixed(3),
+    yaw: +di.yaw.toFixed(3), pitch: +di.pitch.toFixed(3), kc: +di.camXa.toFixed(2), gn: di.gocNhin }; // + camera: góc quay, ngẩng, zoom, góc nhìn 1 / 3
+  try { localStorage.setItem('ns-cho', JSON.stringify(cho)); } catch {}
+}
+function apChoDung(dt = 0) { // gọi mỗi khung + trước / sau khi chụp
+  if (!toi || !di) return;
+  if (di.dang) { ghim.visible = false; return; }
+  const hien = !!cho && !dangSo && !anNguoiChup; ghim.visible = hien; toi.goc.visible = hien; if (!hien) return;
+  toi.goc.position.set(cho.x, cho.y, cho.z); toi.goc.rotation.y = cho.h; toi.capNhat(dt, { toc: 0, nen: true });
+  ghim.position.set(cho.x, cho.y + 1.95, cho.z);
+}
+// trả lại camera đi bộ đúng như lúc rời (vao() đặt camera sau lưng mặc định; F5 khôi phục chỗ đứng cũng gọi hàm này)
+function traCamCho() { if (!cho || !di) return; if (cho.yaw != null) { di.yaw = cho.yaw; di.pitch = cho.pitch; } if (cho.kc) di.camXa = cho.kc; if (cho.gn && cho.gn !== di.gocNhin) di.doiGocNhin(); }
+$('b-di').onclick = () => { if (cho && di) { if (dangSo) tatSo(); di.vao(cho.x, cho.y + 0.05, cho.z, cho.h); traCamCho(); } else vaoCong(); };
+$('b-toan').onclick = () => { luuCho(); di?.ra(); camera.position.set(-170, 90, 230); orbit.target.set(0, 25, 0); orbit.update(); apChoDung(); };
 addEventListener('keydown', (e) => { if (e.code === 'Escape' && di?.dang && $('doc').style.display !== 'block') $('b-toan').click(); }); // đang mở bảng giới thiệu thì Esc chỉ đóng bảng
 { // nhấp đúp xuống đất / mái khi đang xem toàn cảnh → đi bộ tại đó
   const tia = new THREE.Raycaster();
@@ -936,7 +962,7 @@ function capNhatHd(now) {
   capNhatKhu(phong);
   const khoa = c + (phong?.so || ''); if (khoa === khoaHd) return; khoaHd = khoa;
   const xoay = dg('giữ chuột + kéo', 'xoay camera') + dg(K('Z', 'X'), 'xoay trái / phải') + dg(K('V'), 'góc nhìn sau lưng / mắt') + dg(K('Esc'), 'về toàn cảnh');
-  $('hd').innerHTML = c === 'so' ? '' : c === 'toan' ? '<b>Toàn cảnh</b>' + dg('kéo chuột', 'xoay') + dg('lăn chuột · Shift + lăn', 'phóng to / nhỏ') + dg('nhấp đúp', 'xuống đi bộ tại đó') + dg('🚶 Đi bộ', 'vào ở cổng Torbau')
+  $('hd').innerHTML = c === 'so' ? '' : c === 'toan' ? '<b>Toàn cảnh</b>' + dg('kéo chuột', 'xoay') + dg('lăn chuột · Shift + lăn', 'phóng to / nhỏ') + dg('nhấp đúp', 'xuống đi bộ tại đó') + dg('🚶 Đi bộ', cho ? 'về chỗ đang đứng (ghim Bạn)' : 'vào ở cổng Torbau')
     : c === 'leo' ? '<b>Đang leo</b>' + dg(K('W', 'S'), 'lên / xuống') + dg(K('A', 'D'), 'ngang theo tường') + dg(K('W') + ' tới mép', 'tự đu lên') + dg(K('Space'), 'bật ra') + xoay
     : '<b>Đi bộ</b>' + dg(K('W', 'A', 'S', 'D'), 'đi theo hướng camera') + dg(K('Shift'), 'chạy') + dg(K('Space'), 'nhảy') + dg(K('C') + ' giữ', 'ngồi xổm')
       + (phong ? dg(K('E'), 'ngồi · mở rương · cầm đồ · bật đèn · đọc') + dg(K('F') + ' · nhấp', 'đá đồ · ném đồ đang cầm') : '')
@@ -971,6 +997,10 @@ function capNhatKhu(phong) {
 // datCam (CLI): { p: [x, y, z], d: [hướng nhìn], fov, zoom } → đặt camera xem toàn cảnh đúng góc đó. Bản ảnh thật: ép hiện lớp Google (epHien) để vòng vẽ
 // tự cập nhật ô + bù độ cao, chờ ô tải đủ (loadProgress ≥ 0,999 năm nhịp liền) và ít nhất một lần bù độ cao (≥ 2,5 s), rồi trả lại như cũ.
 async function chupHaiBan(datCam = null) {
+  anNguoiChup = true; apChoDung(); // ảnh mô hình / ảnh thật không có nhân vật + ghim của người chơi
+  try { return await chupHaiBanTrong(datCam); } finally { anNguoiChup = false; apChoDung(); }
+}
+async function chupHaiBanTrong(datCam) {
   if (datCam) { if (di?.dang) $('b-toan').click(); const [x, y, z] = datCam.p, [dx, dy, dz] = datCam.d, k = datCam.zoom || 20;
     camera.fov = datCam.fov || camera.fov; camera.updateProjectionMatrix(); orbit.target.set(x + dx * k, y + dy * k, z + dz * k); camera.position.set(x, y, z); camera.lookAt(orbit.target); orbit.update(); }
   camera.updateMatrixWorld(); const d = camera.getWorldDirection(new THREE.Vector3());
@@ -1130,7 +1160,7 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
   // BẢN TRANG ĐANG ẨN KHÔNG CHẠY (anh 17/11/2026 "máy tính mở page nặng quá"): khung cách 3 dựng sẵn — hoặc trang chính khi khung đang phủ — trước vẫn
   // vẽ + chạy vật lý + tải ảnh 3D ở 10 khung/s → hai bản trang cùng ngốn máy. Ẩn thì dừng hẳn, chỉ nuốt đồng hồ để lúc hiện lại không nhảy cóc.
   if (trangDangAn()) { dongHo.getDelta(); return; }
-  luuGoc();
+  luuGoc(); if (di?.dang && now - lucCho > 1000) { lucCho = now; luuCho(); }
   // điện thoại: xem toàn cảnh xa > 140 m → khung cửa bản xa (mattien.js userData.lod); đi bộ / lại gần → đủ chi tiết
   if (CHAM && LOD_MT.xa.children.length) { const xa = !di?.dang && camera.position.distanceTo(orbit.target) > 140; if (xa !== LOD_MT.dangXa) { LOD_MT.dangXa = xa; for (const m of LOD_MT.gan.children) m.visible = !xa; for (const m of LOD_MT.xa.children) m.visible = xa; } }
   // trần khung hình: đi bộ 60 (điện thoại 30) · xem toàn cảnh 30, không chạm gì quá 2,5 s thì 10 · mất tiêu điểm 10 — bớt vẽ thừa là bớt nóng máy
@@ -1139,6 +1169,7 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
   const dt = Math.min(dongHo.getDelta(), 0.1);
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
   else if (!dangSo) orbit.update(); // chế độ so ảnh: camera do thông số ảnh quyết
+  if (!di?.dang) apChoDung(dt); // toàn cảnh: nhân vật đứng thở ở chỗ đã rời + ghim "Bạn"
   if (noiThat) { const p = di?.dang ? di.viTri() : null; noiThat.hien(!!p && Math.hypot(p.x - noiThat.tam[0], p.z - noiThat.tam[1]) < 75); }
   noiThat?.capNhat(dt); timTuongTac(now); camUng?.capNhat(); anCayXa(now); nhieuNguoi?.capNhat(dt); capNhatAnh3d();
   capNhatHd(now); veBanDoNS(now);
@@ -1387,7 +1418,7 @@ function khoiPhucGoc(gDua = null) { // gDua: chuỗi góc đưa thẳng vào (kh
   let g = gDua || (location.hash.match(/[#&]g=([^&]+)/) || [])[1]; if (!g) try { g = localStorage.getItem(GOC_KHOA); } catch {}
   const v = String(g || '').split(','), n = v.slice(1).map(Number); if (!g || n.some((x) => !Number.isFinite(x))) return false;
   if (v[0] === 't' && n.length === 7) { camera.position.set(n[0], n[1], n[2]); orbit.target.set(n[3], n[4], n[5]); camera.fov = n[6]; camera.updateProjectionMatrix(); orbit.update(); gocCu = g; return true; }
-  if (v[0] === 'd' && n.length === 5 && di) { diNhanhNS(n[0], n[2], n[1] - 0.9); di.huong = n[3]; di.yaw = n[4]; gocCu = g; return true; } // viTri là tâm thân, chân thấp hơn ~0,9 m
+  if (v[0] === 'd' && n.length === 5 && di) { diNhanhNS(n[0], n[2], n[1] - 0.9); di.huong = n[3]; if (cho && Math.hypot(cho.x - n[0], cho.z - n[2]) < 1.5) traCamCho(); di.yaw = n[4]; gocCu = g; return true; } // viTri là tâm thân, chân thấp hơn ~0,9 m
   return false;
 }
 addEventListener('pagehide', () => luuGoc(true)); addEventListener('beforeunload', () => luuGoc(true));

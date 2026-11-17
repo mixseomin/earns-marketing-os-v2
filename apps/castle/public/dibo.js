@@ -208,7 +208,7 @@ export function taoDiBo({ RAPIER, world, camera, dom, toi, phim = {}, khiDoi = (
     quayVe(h) { muon = h; }, // đứng yên quay người dần về hướng h (ném đá về chỗ nhấp)
     doiGocNhin() { gocNhin = gocNhin === 3 ? 1 : 3; toi.goc.visible = dang && gocNhin === 3; },
     buoc, khung,
-    phong(d) { camXa = Math.max(1.2, Math.min(14, camXa * Math.exp(d))); }, get camXa() { return camXa; },
+    phong(d) { camXa = Math.max(1.2, Math.min(14, camXa * Math.exp(d))); }, get camXa() { return camXa; }, set camXa(v) { camXa = Math.max(1.2, Math.min(14, v)); },
     nguCanh() { if (!dang) return 'toan'; if (tt === 'leo' || tt === 'qua') return 'leo'; if (tt === 'boi') return 'boi'; const p = than.translation(), t = tiaN(p, 0.3, Math.sin(huong), Math.cos(huong), 1.0); return t && t.timeOfImpact > 0.02 && Math.abs(t.normal.y) < 0.35 ? 'tuong' : 'dat'; },
     viTri: () => than.translation(),
   };

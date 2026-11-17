@@ -134,13 +134,6 @@ function TheGiaCho({ cauHinh, pt, tt }: { cauHinh: { khoa: string; gia_tri: unkn
       <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}>{nut('gio', 'Giờ')}{nut('ngay', 'Ngày')}</span>
     </div>
     <BieuDoTi ds={ds} />
-    {(() => {   // CPM Meta Mỹ theo tuần (Bïrch, gia_adsense.cpm_meta) — chỉ số ngoài, còn số kể cả khi không còn camp nào chạy
-      const cm = (cauHinh.find((c) => c.khoa === 'cpm_meta')?.gia_tri ?? null) as { tuan?: Record<string, number>; ti?: number | null; loi?: string | null } | null;
-      const k = Object.keys(cm?.tuan ?? {}).sort().pop();
-      if (!cm || (!k && !cm.loi)) return null;
-      return <div data-cpm-meta style={{ marginTop: 4 }}>{k ? <>CPM Meta Mỹ tuần {k.slice(8, 10)}/{k.slice(5, 7)}: <b>${(cm.tuan?.[k] ?? 0).toFixed(2)}</b>{cm.ti != null ? <> · <b style={{ color: mauTi(Math.round(cm.ti * 100)) }}>{Math.round(cm.ti * 100)}%</b> 4 tuần trước</> : null} <span style={{ color: 'var(--fg-3, #888)' }}>(Bïrch, không cần camp nhà)</span></> : null}
-        {cm.loi ? <b style={{ color: '#ef4444' }}> {cm.loi}</b> : null}</div>;
-    })()}
     {ng ? <div data-nguon-gia style={{ marginTop: 4 }}>Đo từ {ng.gio} giờ qua: nhà <b>${Math.round(ng.nha)}</b> · đội <b>${Math.round(ng.doi)}</b> · {ng.imp.toLocaleString('vi-VN')} lượt hiển thị{tt?.gia_tho ? <b style={{ color: '#f59e0b' }}> · số thô (ít camp chạy)</b> : null}</div> : null}
     <div style={{ color: 'var(--fg-3, #888)', marginTop: 4, lineHeight: 1.4 }}>
       {che === 'gio' ? `Mỗi điểm = ${PC.truot.gio} giờ cả chợ tới mốc đó / cùng khung ${PC.nen_ngay} ngày trước.` : `Mỗi điểm = ngày Ethopex (07:00 → 07:00) / trung bình ${PC.nen_ngay} ngày trước.`} Vạch vàng {Math.round(PC.truot.nguong * 100)}% = phanh · đỏ {Math.round(PC.rut.gia * 100)}% = rút.{luc ? ` Đo lúc ${gioVn(luc)}.` : ''}

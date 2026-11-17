@@ -74,6 +74,6 @@ export function NhietKeCho({ cauHinh, dinh }: { cauHinh: { khoa: string; gia_tri
         <span style={{ position: 'absolute', left: `${phanh / TRAN * 100}%`, top: 0, bottom: 0, width: 1.5, background: '#fff' }} />
       </span>
     </span>
-    <span style={{ color: 'var(--fg-2, #9ca3af)' }}>Giá chợ</span><b style={{ color: mau }}>{pt}%</b>
+    <b style={{ color: mau }}>{pt}%</b>{/* chỉ số (anh 17/11/2026 "ko cần ghi chữ. Chỉ cần số. Hover vào mới ra thông tin") */}
   </span>;
 }

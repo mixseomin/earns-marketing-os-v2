@@ -4,7 +4,7 @@
 //   - Wikimedia Commons: geosearch theo toạ độ chỗ chụp (không cần khoá). Commons không có hướng camera → nhinVao = null.
 //   - Mapillary: ảnh đường phố, vị trí + hướng camera do Mapillary TÍNH LẠI (computed_*) — biết ảnh có NHÌN VÀO điểm đó không. Cần khoá (MLY_TOKEN).
 // Mapillary chỉ giữ ảnh NHÌN VÀO điểm (lệch hướng ≤ 40°); Commons giữ hết (không có hướng). Thứ tự: xem timAnhQuanh.
-// timAnhQuanh({ lat, lng, r = 120, mly }) → [{ nguon, id, lat, lng, kc, huong, nhinVao, nho, lon, trang, tacGia, giayPhep, luc }]
+// timAnhQuanh({ lat, lng, r = 120, mly, huong }) → { anh: [{ nguon, id, lat, lng, kc, toi, huong, lechNhin, doan, nhinVao, nho, lon, trang, tacGia, giayPhep, luc }], khac: […] }
 // tra-repo-ok: gọi thẳng API Commons + Graph API Mapillary (như scripts/tai-mapillary.mjs, tai-anh-doi-chieu.mjs).
 const UA = { 'User-Agent': 'castle-lau-dai-that/1.0 (anh-quanh)' };
 const M = 111320, rad = (d) => (d * Math.PI) / 180;
@@ -20,8 +20,8 @@ async function commons(lat, lng, r) {
   const j = await (await fetch(u, { headers: UA, signal: AbortSignal.timeout(15000) })).json();
   return Object.values(j.query?.pages || {}).map((p) => {
     const ii = p.imageinfo?.[0], c = p.coordinates?.[0]; if (!ii || !c || !/\.(jpe?g|png|webp)$/i.test(p.title)) return null;
-    const m = ii.extmetadata || {}, { kc } = doLech(lat, lng, c.lat, c.lon);
-    return { nguon: 'commons', id: p.title.replace(/^File:/, ''), lat: c.lat, lng: c.lon, kc: Math.round(kc), huong: null, nhinVao: null,
+    const m = ii.extmetadata || {}, { kc, toi } = doLech(lat, lng, c.lat, c.lon);
+    return { nguon: 'commons', id: p.title.replace(/^File:/, ''), lat: c.lat, lng: c.lon, kc: Math.round(kc), toi: Math.round(toi), huong: null, nhinVao: null,
       // Commons chỉ nhận cỡ thu nhỏ CHUẨN (500, 1280…) — 480 px trả 400
       nho: ii.thumburl?.replace(/\/\d+px-/, '/500px-') || ii.thumburl, lon: ii.thumburl || ii.url, rong: ii.width, cao: ii.height, trang: ii.descriptionurl,
       tacGia: boThe(m.Artist?.value).slice(0, 80) || 'Wikimedia Commons', giayPhep: boThe(m.LicenseShortName?.value) || '?', luc: boThe(m.DateTimeOriginal?.value).slice(0, 10) || null };
@@ -36,22 +36,36 @@ async function mapillary(lat, lng, r, mly) {
   return ((await res.json()).data || []).filter((x) => !x.is_pano && x.camera_type !== 'spherical' && x.computed_geometry && x.thumb_1024_url).map((x) => {
     const [lo, la] = x.computed_geometry.coordinates, { kc, toi } = doLech(lat, lng, la, lo), h = x.computed_compass_angle;
     const lech = h == null ? null : Math.abs((((h - toi) % 360) + 540) % 360 - 180);
-    return { nguon: 'mapillary', id: x.id, lat: la, lng: lo, kc: Math.round(kc), huong: h == null ? null : Math.round(h), nhinVao: lech == null ? null : lech <= 40 || kc < 6,
+    return { nguon: 'mapillary', id: x.id, lat: la, lng: lo, kc: Math.round(kc), toi: Math.round(toi), huong: h == null ? null : Math.round(h), nhinVao: lech == null ? null : lech <= 40 || kc < 6,
       nho: x.thumb_1024_url, lon: x.thumb_2048_url || x.thumb_1024_url, rong: x.width, cao: x.height, trang: `https://www.mapillary.com/app/?pKey=${x.id}`,
       tacGia: (x.creator?.username || 'Mapillary') + ' / Mapillary', giayPhep: 'CC BY-SA 4.0', luc: x.captured_at ? new Date(x.captured_at).toISOString().slice(0, 10) : null };
   }).filter((x) => x.kc <= r);
 }
-export async function timAnhQuanh({ lat, lng, r = 120, mly = null, toiDa = 60 }) {
+const gocLech = (a, b) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
+// huong (tuỳ chọn) = hướng la bàn camera đang nhìn (bắc = 0, theo chiều kim) — anh 17/11/2026: "ảnh tìm tự động không khớp hướng nhìn của nhân vật".
+//   Mapillary (có hướng camera thật): KHỚP khi hướng chụp lệch hướng nhìn ≤ 35° VÀ ảnh nhìn vào điểm.
+//   Commons (đo 17/11: 1/50 ảnh quanh Torbau có hướng, cả trang mô tả lẫn EXIF): chỉ SUY RA — chụp cách điểm ≥ 12 m từ phía sau lưng camera
+//   (hướng chỗ chụp → điểm lệch hướng nhìn ≤ 30°, coi như người chụp đang chụp chính chỗ đó) → doan = true, giao diện ghi "hướng suy ra".
+//   Còn lại vào `khac` (giao diện ẩn sau nút "+N ảnh khác hướng").
+export async function timAnhQuanh({ lat, lng, r = 120, mly = null, toiDa = 60, huong = null }) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error('thiếu lat / lng');
   r = Math.max(15, Math.min(400, r));
   const loi = [], [c, m] = await Promise.all([commons(lat, lng, r).catch((e) => (loi.push('Commons: ' + e.message), [])), mapillary(lat, lng, r, mly).catch((e) => (loi.push(e.message), []))]);
-  // Mapillary: chỉ giữ ảnh nhìn vào điểm (ảnh quay lưng lại vô dụng để sửa), mỗi ô 10 m một ảnh mới nhất cho khỏi trùng chuỗi chụp liên tiếp
+  // Mapillary: chỉ giữ ảnh nhìn vào điểm (ảnh quay lưng lại vô dụng để sửa), mỗi ô 10 m + mỗi 30° hướng một ảnh mới nhất cho khỏi trùng chuỗi chụp liên tiếp
   const o = new Map(); for (const x of m.filter((x) => x.nhinVao)) { const k = `${Math.round(x.lat * 9000)}:${Math.round(x.lng * 6000)}:${Math.round(x.huong / 30)}`; if (!o.has(k) || x.luc > o.get(k).luc) o.set(k, x); }
-  // xếp (anh 17/11/2026: ảnh Commons chụp NGAY tại điểm phần lớn là cảnh núi chụp ra ngoài): Mapillary nhìn vào điểm trước, rồi Commons chụp cách ≥ 15 m
-  // (đứng xa chụp lại → hay thấy chính chỗ đó), Commons chụp ngay tại điểm xuống cuối; trong mỗi nhóm gần trước
-  const hang = (x) => (x.nguon === 'mapillary' ? 0 : x.kc >= 15 ? 1 : 2);
-  const ds = [...c, ...o.values()].sort((a, b) => hang(a) - hang(b) || a.kc - b.kc);
-  return { anh: ds.slice(0, toiDa), loi, coMapillary: !!mly };
+  const tatCa = [...c, ...o.values()];
+  if (!Number.isFinite(huong)) { // không có hướng nhìn: như trước — Mapillary trước, Commons chụp xa, Commons chụp ngay tại điểm cuối
+    const hang = (x) => (x.nguon === 'mapillary' ? 0 : x.kc >= 15 ? 1 : 2);
+    return { anh: tatCa.sort((a, b) => hang(a) - hang(b) || a.kc - b.kc).slice(0, toiDa), khac: [], loi, coMapillary: !!mly };
+  }
+  const anh = [], khac = [];
+  for (const x of tatCa) {
+    if (x.nguon === 'mapillary' && x.huong != null) { x.lechNhin = Math.round(gocLech(x.huong, huong)); (x.lechNhin <= 35 ? anh : khac).push(x); }
+    else { x.lechNhin = Math.round(gocLech(x.toi, huong)); x.doan = true; (x.kc >= 12 && x.lechNhin <= 30 ? anh : khac).push(x); }
+  }
+  const diem = (x) => (x.doan ? 1 : 0) * 2 + x.lechNhin / 35 + x.kc / r; // ảnh có hướng thật trước, rồi lệch ít, rồi gần
+  anh.sort((a, b) => diem(a) - diem(b)); khac.sort((a, b) => a.lechNhin - b.lechNhin || a.kc - b.kc);
+  return { anh: anh.slice(0, toiDa), khac: khac.slice(0, toiDa), loi, coMapillary: !!mly };
 }
 
 // mã ảnh gọn (c:<tên tệp Commons> · m:<id Mapillary>, nút 📷 ghi vào thẻ) → chi tiết đủ để tải + ghi công (scripts/tim-anh.mjs --the)

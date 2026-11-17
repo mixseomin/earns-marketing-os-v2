@@ -3,7 +3,9 @@
 // → ẢNH LỚN ngay khi mở + dải ảnh nhỏ (nguồn · cách bao nhiêu m · tác giả · giấy phép), ghim 📷 đánh dấu điểm trong cảnh. ← → đổi ảnh, nút Chọn dưới ảnh lớn
 // (tối đa 6 — thẻ góp ý giữ tối đa 1.000 ký tự ngữ cảnh), bấm ảnh lớn = toàn màn hình.
 // Ảnh đã chọn đi kèm góp ý 💬 / báo lệch 🔍 dưới dạng ANH-THAT-JSON:[…] → kỹ sư (Thắng) tải về bằng scripts/tim-anh.mjs --the <id> để đo / sửa.
-// ganAnhQuanh({ THREE, scene, nut, layDiem: () => { x, y, z, ten }, raLatLng: (x, z) => [lat, lng], moGopY }) → { daChon() → [], nguCanh() → string }
+// LỌC THEO HƯỚNG NHÌN (anh 17/11/2026: "ảnh không khớp hướng nhìn của nhân vật"): gửi kèm hướng camera → máy chủ chỉ giữ ảnh chụp cùng hướng (server/anh-quanh.mjs),
+// ảnh khác hướng ẩn sau nút "+N ảnh khác hướng".
+// ganAnhQuanh({ THREE, scene, nut, layDiem: () => { x, y, z, ten, huong }, raLatLng: (x, z) => [lat, lng], moGopY }) → { daChon() → [], nguCanh() → string }
 const CSS = `
 #aq { position: fixed; right: 12px; top: 12px; bottom: 64px; width: min(880px, calc(100vw - 24px)); display: none; flex-direction: column; gap: 8px; padding: 12px; z-index: 12; }
 #aq .dau { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; } #aq .dau b { font-size: 15px; flex: 1; }
@@ -23,6 +25,7 @@ const CSS = `
 #aq-lon { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.92); display: none; align-items: center; justify-content: center; cursor: zoom-out; }
 #aq-lon img { max-width: 100%; max-height: 100%; object-fit: contain; }
 @media (max-width: 640px) { #aq { top: 8px; right: 8px; width: calc(100vw - 16px); } #aq .dai img { height: 64px; } }`;
+const HUONG = ['bắc', 'đông bắc', 'đông', 'đông nam', 'nam', 'tây nam', 'tây', 'tây bắc'], tenHuong = (h) => `${HUONG[Math.round((((h % 360) + 360) % 360) / 45) % 8]} ${Math.round(h)}°`;
 const TOI_DA = 6, esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY }) {
@@ -30,7 +33,7 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY }) {
   const bang = document.createElement('div'); bang.id = 'aq'; bang.className = 'o'; document.body.append(bang);
   const lon = document.createElement('div'); lon.id = 'aq-lon'; document.body.append(lon);
   lon.onclick = () => { lon.style.display = 'none'; };
-  let diem = null, ds = [], chon = new Map(), tt = '', r = 100, dangTim = false;
+  let diem = null, ds = [], khac = [], hienKhac = false, chon = new Map(), tt = '', r = 100, dangTim = false;
   const MP = window.__mpGoc || '';
   // ghim 📷 đánh dấu điểm đang tìm (cỡ cố định trên màn)
   const ghim = (() => {
@@ -45,10 +48,11 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY }) {
     diem = layDiem(); if (!diem) { tt = 'Không lấy được điểm đang nhìn'; ve(); return; }
     ghim.position.set(diem.x, diem.y, diem.z); ghim.visible = true;
     const [lat, lng] = raLatLng(diem.x, diem.z); diem.lat = lat; diem.lng = lng;
-    dangTim = true; tt = 'Đang tìm ảnh trên Wikimedia Commons + Mapillary…'; ds = []; dang = 0; chon = new Map(); ve();
+    dangTim = true; tt = 'Đang tìm ảnh trên Wikimedia Commons + Mapillary…'; ds = []; khac = []; hienKhac = false; dang = 0; chon = new Map(); ve();
     try {
-      const j = await (await fetch(`${MP}/mp/anh-quanh?lat=${lat.toFixed(6)}&lng=${lng.toFixed(6)}&r=${r}`, { cache: 'no-store', credentials: 'same-origin' })).json();
-      ds = j.anh || []; tt = ds.length ? '' : `Không có ảnh nào có toạ độ trong ${r} m — thử nới bán kính`;
+      const j = await (await fetch(`${MP}/mp/anh-quanh?lat=${lat.toFixed(6)}&lng=${lng.toFixed(6)}&r=${r}${Number.isFinite(diem.huong) ? '&huong=' + Math.round(diem.huong) : ''}`, { cache: 'no-store', credentials: 'same-origin' })).json();
+      ds = j.anh || []; khac = j.khac || [];
+      tt = ds.length ? '' : khac.length ? `Không có ảnh nào chụp theo hướng đang nhìn (${tenHuong(diem.huong)}) trong ${r} m — có ${khac.length} ảnh chụp hướng khác, bấm "+${khac.length} ảnh khác hướng" để xem, hoặc xoay camera / nới bán kính` : `Không có ảnh nào có toạ độ trong ${r} m — thử nới bán kính`;
       if (j.loi?.length) tt = (tt ? tt + ' · ' : '') + 'nguồn lỗi: ' + j.loi.join('; ');
       if (j.coMapillary === false) tt = (tt ? tt + ' · ' : '') + 'máy chủ chưa có khoá Mapillary (chỉ Commons)';
     } catch (e) { tt = 'Lỗi tìm ảnh: ' + e.message; }
@@ -61,17 +65,20 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY }) {
   function ve() {
     if (bang.style.display !== 'flex') return;
     const a = ds[dang], k = a && a.nguon + a.id;
-    bang.innerHTML = `<div class="dau"><b>📷 Ảnh thật quanh ${esc(diem?.ten || 'điểm đang nhìn')}</b>
-        ${[60, 100, 200].map((x) => `<button data-r="${x}" class="${r === x ? 'chon' : ''}">${x} m</button>`).join('')}<button id="aq-lai" title="Tìm lại ở điểm đang nhìn giữa màn">↻</button><button id="aq-dong">✕</button></div>
+    bang.innerHTML = `<div class="dau"><b>📷 Ảnh thật quanh ${esc(diem?.ten || 'điểm đang nhìn')}${Number.isFinite(diem?.huong) ? ` · nhìn hướng ${tenHuong(diem.huong)}` : ''}</b>
+        ${khac.length ? `<button id="aq-khac" class="${hienKhac ? 'chon' : ''}" title="Ảnh chụp theo hướng khác hướng đang nhìn (hoặc Commons không rõ hướng)">${hienKhac ? 'Ẩn' : '+' + khac.length} ảnh khác hướng</button>` : ''}
+        ${[60, 100, 200].map((x) => `<button data-r="${x}" class="${r === x ? 'chon' : ''}">${x} m</button>`).join('')}<button id="aq-lai" title="Tìm lại theo điểm + hướng đang nhìn giữa màn (xoay camera rồi bấm)">↻</button><button id="aq-dong">✕</button></div>
       ${tt || dangTim ? `<div class="mo">${esc(tt)}</div>` : ''}
       ${a ? `<div class="lon"><img src="${esc(a.lon)}" alt="" title="Bấm để xem toàn màn hình"><span class="so">${dang + 1} / ${ds.length}</span>
           <button class="mui trai" ${dang ? '' : 'disabled'}>‹</button><button class="mui phai" ${dang < ds.length - 1 ? '' : 'disabled'}>›</button></div>
-        <div class="tt-anh"><span>${a.nguon === 'commons' ? 'Wikimedia Commons' : 'Mapillary'}${a.nhinVao ? ' · nhìn vào điểm' : ''} · chụp cách ${a.kc} m${a.luc ? ' · ' + esc(a.luc) : ''} · ${esc(a.tacGia)} · ${esc(a.giayPhep)} · <a href="${esc(a.trang)}" target="_blank" rel="noopener">nguồn ↗</a></span>
+        <div class="tt-anh"><span>${a.nguon === 'commons' ? 'Wikimedia Commons' : 'Mapillary'}${a.lechNhin == null ? '' : a.doan ? ` · hướng suy ra từ chỗ chụp, lệch ~${a.lechNhin}°` : ` · chụp hướng ${tenHuong(a.huong)}, lệch ${a.lechNhin}°`}${a.khacHuong ? ' · KHÁC HƯỚNG' : ''} · chụp cách ${a.kc} m${a.luc ? ' · ' + esc(a.luc) : ''} · ${esc(a.tacGia)} · ${esc(a.giayPhep)} · <a href="${esc(a.trang)}" target="_blank" rel="noopener">nguồn ↗</a></span>
           <button id="aq-chon" class="${chon.has(k) ? 'chon' : ''}" ${!chon.has(k) && chon.size >= TOI_DA ? 'disabled' : ''}>${chon.has(k) ? '✓ Đã chọn' : '＋ Chọn ảnh này'}</button></div>
         <div class="dai">${ds.map((x, i) => `<img loading="lazy" data-i="${i}" src="${esc(x.nho)}" alt="" class="${i === dang ? 'dang' : ''} ${chon.has(x.nguon + x.id) ? 'da' : ''}">`).join('')}</div>` : ''}
       <div class="chan"><span>Đã chọn ${chon.size}/${TOI_DA} — ảnh chọn đi kèm thẻ góp ý để kỹ sư sửa theo · ← → đổi ảnh</span><button id="aq-gy" ${chon.size ? '' : 'disabled'}>💬 Góp ý kèm ảnh</button></div>`;
     bang.querySelectorAll('[data-r]').forEach((b) => { b.onclick = () => { r = +b.dataset.r; tim(); }; });
     bang.querySelector('#aq-lai').onclick = tim;
+    const nk = bang.querySelector('#aq-khac'); if (nk) nk.onclick = () => { hienKhac = !hienKhac; const goc = ds.filter((x) => !x.khacHuong);
+      ds = hienKhac ? [...goc, ...khac.map((x) => ({ ...x, khacHuong: true }))] : goc; dang = Math.min(dang, Math.max(0, ds.length - 1)); if (hienKhac && !goc.length) tt = ''; ve(); };
     bang.querySelector('#aq-dong').onclick = dong;
     bang.querySelector('#aq-gy').onclick = () => moGopY?.();
     if (!a) return;

@@ -57,6 +57,10 @@
   "y_duoi": "53.7",
   "ly_do_tron": "17/11/2026 (anh chụp Viereckturm: gờ thò ra ngoài góc, cửa hai lớp so le): khối này là phần trên OSM (28–33 m) chồng lên thân 221599098 — cả hai bị đặt đỉnh 54 m nên thành HAI thân gần trùng, mỗi thân tự dựng gờ / cửa / diềm vòm. Thân tháp vuông = 221599098 (chân → 54 m); khối này chỉ còn gờ mỏng ở đỉnh, không diềm vòm."
  },
+ "way/1573767741": {
+  "y_tren": 42.9,
+  "ly_do": "góp ý #1647 [MÁY QUÉT] (17/11/2026): khối nhô nhỏ mái side_hipped mặt nam cánh nối 1573767742 (OSM height 18, roof:height 5). Trước: đỉnh 44,64 (ngang khối kề). Đo theo TIA ở bộ góc chuẩn (cham-goc --khoi): tây-nam −1,9 m (7 cột), đông-nam −2,8 m (22 cột), đông −1,6 m (8 cột), the-1623-cong −1,6 m (8 cột) → trung vị −1,75 m, cả bốn góc cùng chiều, độ trải < 1,3 m; đo từ trên xuống (neuschwanstein-nen.json, phân vị 98, 10 điểm) đỉnh ảnh 3D 41,47 cũng thấp hơn. Cặp ảnh so-lech góc đông-nam: mái cánh này lộ trên rừng, không bị cây che → đặt đỉnh = 44,64 − 1,75 ≈ 42,9 (mái 5 m giữ nguyên)."
+ },
  "way/1573767743": {
   "y_duoi": 53.6,
   "y_tren": 54.4,

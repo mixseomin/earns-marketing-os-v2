@@ -3,9 +3,27 @@
 // trong suốt phủ màn (nạp bằng <script src="https://mos2.on.tc/api/gop-y-ngoai/nut">). Hòm chính là GopYMos2 mà layout gốc đã gắn —
 // trang này chỉ nối: ?trang= → window.__trangGopY (card mang đúng trang người dùng đang đứng), ngữ cảnh + ảnh khung hình trang ngoài
 // gửi qua postMessage → window.__nguCanhTrang / hàng ảnh __anhGopY, mở hòm ('gop-y:mo'), hòm đóng ('gop-y:dong') → báo trang ngoài gỡ iframe.
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function NhungGopY() {
+  // BÁO CHỜ (anh 17/11/2026: "nếu phải đợi thì phải thông báo chờ"): ảnh trang ngoài đưa vào (chụp trang + ảnh thật chọn ở castle 📷) phải tải lên R2
+  // mới hiện trong ô đính kèm (~10–20 s) → dải báo trên cùng tới khi đủ ảnh; quá 60 s thì báo lỗi thay vì để im.
+  const [cho, setCho] = useState<{ can: number; luc: number } | null>(null);
+  const [baoCho, setBaoCho] = useState<string>('');
+  useEffect(() => {
+    if (!cho) return;
+    let goc: number | null = null;
+    const dem = () => document.querySelectorAll('[data-comp="ui.ImageAttach"] img').length;
+    const t = setInterval(() => {
+      if (!document.querySelector('[data-comp="ui.ImageAttach"]')) return;
+      if (goc === null) goc = dem(); // ảnh nháp cũ khôi phục lúc hòm mở — không tính
+      const co = dem() - goc, giay = Math.round((Date.now() - cho.luc) / 1000);
+      if (co >= cho.can) { setBaoCho(''); setCho(null); return; }
+      setBaoCho(giay > 60 ? `⚠ Mới lên ${co}/${cho.can} ảnh sau ${giay} s — ảnh còn lại không tải lên được; đóng hòm mở lại, hoặc gửi luôn với ảnh đang có`
+        : `⏳ Đang đưa ${cho.can} ảnh (ảnh chụp trang + ảnh thật đã chọn) vào ô đính kèm… ${co}/${cho.can} · ${giay} s — chờ đủ rồi hãy Gửi`);
+    }, 300);
+    return () => clearInterval(t);
+  }, [cho]);
   useEffect(() => {
     const w = window as unknown as { __trangGopY?: () => string; __nguCanhTrang?: () => string; __anhGopY?: string[] };
     const trang = new URLSearchParams(location.search).get('trang') || '';
@@ -18,6 +36,8 @@ export default function NhungGopY() {
       const nc = String(d.nguCanh || '').slice(0, 1000); w.__nguCanhTrang = () => nc;
       if (typeof d.anh === 'string' && d.anh.startsWith('data:image/')) (w.__anhGopY ||= []).push(d.anh);
       for (const u of Array.isArray(d.anhThem) ? d.anhThem.slice(0, 5) : []) if (typeof u === 'string' && u.startsWith('data:image/')) (w.__anhGopY ||= []).push(u); // ảnh thật trang ngoài đã chọn (castle 📷) — vào ô ảnh đính kèm như ảnh chụp trang
+      const can = (typeof d.anh === 'string' && d.anh.startsWith('data:image/') ? 1 : 0) + (Array.isArray(d.anhThem) ? d.anhThem.slice(0, 5).filter((u) => typeof u === 'string' && u.startsWith('data:image/')).length : 0);
+      if (can) setCho({ can, luc: Date.now() });
       window.dispatchEvent(new CustomEvent('gop-y:mo'));
     };
     const dong = (e: Event) => { if (goc !== '*') window.parent.postMessage({ loai: 'gop-y:dong', vuaGui: (e as CustomEvent<{ vuaGui?: number }>).detail?.vuaGui ?? null }, goc); };
@@ -26,5 +46,13 @@ export default function NhungGopY() {
     return () => { window.removeEventListener('message', nhan); window.removeEventListener('gop-y:dong', dong); };
   }, []);
   // nền trong suốt để thấy trang ngoài phía sau ngăn hòm
-  return <style>{'html,body{background:transparent!important}'}</style>;
+  return (
+    <>
+      <style>{'html,body{background:transparent!important}'}</style>
+      {baoCho && (
+        <div role="status" style={{ position: 'fixed', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 2147483001, maxWidth: 'min(560px, calc(100vw - 24px))', padding: '8px 14px', borderRadius: 8,
+          background: baoCho.startsWith('⚠') ? 'var(--red, #b42318)' : 'var(--amber, #b54708)', color: '#fff', font: '600 13px system-ui, sans-serif', boxShadow: '0 4px 16px rgba(0,0,0,.35)' }}>{baoCho}</div>
+      )}
+    </>
+  );
 }

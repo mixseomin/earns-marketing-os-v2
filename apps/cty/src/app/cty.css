@@ -608,3 +608,9 @@ span.cty-lich-o{border-color:transparent;background:none;padding-inline:0}
 
 /* góp ý #1663: ô Mô hình dài (kỹ sư CLI) không bị cắt, nút ✎ luôn thấy */
 .cty-chinh-model{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:2px 4px;white-space:normal;max-width:100%}.cty-chinh-model>*{white-space:normal;overflow-wrap:anywhere}.cty-chinh-ca{display:flex;flex-wrap:wrap;gap:4px;align-items:center;white-space:normal}.cty-chinh-ca input:not([type]){max-width:100%;min-width:0}
+
+/* góp ý #1664: ô chọn có tìm (chinh-model.tsx) */
+.cty-chon-tim{position:relative;display:inline-flex;align-items:center;max-width:100%}.cty-chon-tim input{padding-right:22px}
+.cty-chon-tim-mui{position:absolute;right:2px;background:none;border:0;cursor:pointer;color:var(--muted,#888);padding:0 4px}
+.cty-chon-tim-ds{position:absolute;top:100%;left:0;z-index:50;min-width:100%;max-height:240px;overflow:auto;margin:2px 0 0;padding:4px 0;list-style:none;background:var(--surface);border:1px solid var(--line,#ccc);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.cty-chon-tim-ds li{padding:5px 10px;cursor:pointer;white-space:nowrap}.cty-chon-tim-ds li:hover,.cty-chon-tim-ds li.dang{background:var(--soft)}

@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { chuLich, sach, dongOnCalendar, truongCron } from './lich-chu.mjs';
+import { GOC } from './goc.mjs';
 export { chuLich, sach };
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
@@ -33,6 +34,30 @@ export const lichCua = (x) => (!x ? null : x.lich ?? (x.kieu === 'luc' ? { kieu:
 /** Ghi kết quả áp (máy nào áp thì ghi): ok / lỗi + lúc. Chỉ ghi khi ý muốn chưa đổi từ lúc áp bắt đầu (không đè ý muốn mới hơn). */
 export function ghiAp(id, luc, ok, loi = '') { const s = docLich(); if (s[id]?.luc !== luc) return; s[id].ap = { luc: new Date().toISOString(), ok, loi: String(loi).slice(0, 300) }; ghiLich(s); }
 export const choAp = (x) => !!x && (!x.ap || x.ap.luc < x.luc);
+
+// ── việc trong SỔ BỘ ĐIỀU PHỐI MAC (cong-ty/viec-nen.json, may/dieu-phoi.mjs) ──────────────────────────────────────────────
+// Anh 17/11/2026 ("phải cho tao sửa các chỗ này"): lịch việc Mac (Khôi mỗi 5 phút, Thành mỗi 2 phút…) chỉnh trên bảng nhân sự. Ý muốn ghi vào
+// lich-chinh.json khoá `nen:<máy>:<nhãn>` (tiền tố riêng: khoá `<máy>:<nhãn>` là của LaunchAgent, do-launchd.mjs sẽ đi tìm plist). Bộ điều phối
+// đọc tệp này cùng lượt tải sổ (5 phút), ĐÈ `hen` của việc đó, rồi báo áp về qua nhip.mjs --ghi-may (dòng { ap }). Giờ máy Mac = giờ VN.
+export const TIEN_TO_NEN = 'nen:';
+export const docSoNen = () => { try { return JSON.parse(fs.readFileSync(path.join(GOC, 'cong-ty', 'viec-nen.json'), 'utf8')); } catch { return { viec: [] }; } };
+/** hen của bộ điều phối → mô hình lịch (lich-chu): moi_giay → mỗi N phút · luc → các giờ, mỗi ngày · luon / tay → null (không có lịch). */
+export const henSangLich = (h) => (!h ? null : h.moi_giay ? { kieu: 'moi', phut: Math.max(1, Math.round(h.moi_giay / 60)) } : h.luc ? { kieu: 'luc', gio: [...h.luc].sort(), thu: [] } : null);
+/** Lịch một việc trong sổ Mac để hiện ô chỉnh: { goc: lịch trong git, dang: lịch đang chạy thật, x: ý muốn, cho, loi, kieu } — null = không có trong sổ. */
+export function lichNen(nhan) {
+  const v = docSoNen().viec.find((y) => y.nhan === nhan); if (!v) return null;
+  const x = docLich()[`${TIEN_TO_NEN}${nhan}`]; const goc = henSangLich(v.hen); const cho = choAp(x);
+  const daAp = x && !cho && x.ap?.ok ? lichCua(x) : null;   // ý muốn đã áp xong = lịch đang chạy thật
+  return { goc, dang: cho ? lichCua(x) : daAp ?? goc, cho, loi: !cho && x?.ap && !x.ap.ok ? x.ap.loi : undefined, kieu: v.hen?.luon ? 'luon' : v.hen?.tay ? 'tay' : 'lich', tat: !!v.tat };
+}
+/** Ghi ý muốn đổi lịch một việc trong sổ Mac. Bộ điều phối chưa chạy theo thứ → chặn trước khi ghi (lỗi hiện ngay ở ô chỉnh). */
+export function datLichNen(nhan, l, ai = '') {
+  const v = docSoNen().viec.find((y) => y.nhan === nhan);
+  if (!v) throw new Error(`Không thấy "${nhan}" trong sổ bộ điều phối (cong-ty/viec-nen.json).`);
+  if (v.hen?.luon || v.hen?.tay) throw new Error(v.hen.luon ? 'Việc này chạy liền — không có lịch để đổi.' : 'Việc này chỉ chạy khi gọi tay — không có lịch.');
+  const s = sach(l); if (s.kieu === 'luc' && s.thu.length) throw new Error('Bộ điều phối Mac chạy theo giờ mỗi ngày — chưa chọn được thứ.');
+  return datLichMay(`${TIEN_TO_NEN}${nhan}`, s, ai);
+}
 
 // ── áp trên box ────────────────────────────────────────────────────────────────────────────────────────────────────────
 /** Drop-in systemd đè lịch timer: xoá mọi mốc cũ rồi đặt mốc mới (giờ VN → UTC, thứ dời theo lệch ngày — lich-chu dongOnCalendar). */
@@ -106,6 +131,17 @@ if (process.argv[1]?.endsWith('lich-may.mjs') && process.argv.includes('--tu-kie
   ghiAp('box3:t', x.luc, true); a.ok(!choAp(docLich()['box3:t']));
   a.throws(() => datBatMay('box3:cty-nhip', false, 't'), /bộ chạy nhịp/); const t1 = datBatMay('box3:t', false, 't'); a.ok(t1.bat === false && t1.lich?.phut === 10 && choAp(t1), 'tắt giữ lịch đã đặt, chờ áp lại'); a.equal(datLichMay('box3:t', { kieu: 'moi', phut: 20 }, 't', 'timer').bat, false, 'đổi lịch không tự bật lại');
   const b2 = batCrontab(bang, '/opt/x.sh >> /var/log/x.log 2>&1', false); a.equal(b2.split('\n')[1], '#cty-tat */5 * * * * /opt/x.sh >> /var/log/x.log 2>&1');
-  a.equal(batCrontab(b2, '/opt/x.sh >> /var/log/x.log 2>&1', true), bang, 'tắt rồi bật = y nguyên'); a.equal(doiCrontab(b2, '/opt/x.sh >> /var/log/x.log 2>&1', { kieu: 'moi', phut: 30 }).split('\n')[1], '#cty-tat */30 * * * * /opt/x.sh >> /var/log/x.log 2>&1', 'đổi lịch việc đang tắt: vẫn tắt'); fs.rmSync(dir, { recursive: true });
+  a.equal(batCrontab(b2, '/opt/x.sh >> /var/log/x.log 2>&1', true), bang, 'tắt rồi bật = y nguyên'); a.equal(doiCrontab(b2, '/opt/x.sh >> /var/log/x.log 2>&1', { kieu: 'moi', phut: 30 }).split('\n')[1], '#cty-tat */30 * * * * /opt/x.sh >> /var/log/x.log 2>&1', 'đổi lịch việc đang tắt: vẫn tắt');
+  // việc trong sổ bộ điều phối Mac: đọc hen thật, ghi ý muốn khoá nen:, chặn việc chạy liền / theo thứ, áp xong thì ô hiện lịch mới
+  a.deepEqual(henSangLich({ moi_giay: 120 }), { kieu: 'moi', phut: 2 }); a.deepEqual(henSangLich({ luc: ['20:45', '06:45'] }), L(['06:45', '20:45'])); a.equal(henSangLich({ luon: true }), null);
+  const so = docSoNen(); a.ok(so.viec.length > 10, 'đọc được cong-ty/viec-nen.json');
+  const { NHIP_MAY } = await import('./nhip-may.mjs');
+  for (const [k, x] of Object.entries(NHIP_MAY)) if (x.may === 'iMac') a.ok(so.viec.some((v) => v.nhan === `${x.may}:${x.launchd}`), `NHIP_MAY ${k}: ${x.may}:${x.launchd} không có trong viec-nen.json — ô lịch trên bảng nhân sự không chỉnh được`);
+  const nen = so.viec.find((v) => v.hen?.moi_giay && !v.tat).nhan, lien = so.viec.find((v) => v.hen?.luon).nhan;
+  a.throws(() => datLichNen(lien, { kieu: 'moi', phut: 5 }), /chạy liền/); a.throws(() => datLichNen(nen, L(['08:00'], [1])), /thứ/); a.throws(() => datLichNen('iMac:khong-co', { kieu: 'moi', phut: 5 }), /Không thấy/);
+  const y = datLichNen(nen, { kieu: 'moi', phut: 7 }, 't'); a.ok(docLich()[`nen:${nen}`] && lichNen(nen).cho && lichNen(nen).dang.phut === 7, 'chờ áp: ô hiện ý muốn');
+  ghiAp(`nen:${nen}`, y.luc, false, 'hỏng'); a.ok(!lichNen(nen).cho && lichNen(nen).loi === 'hỏng' && lichNen(nen).dang.phut === lichNen(nen).goc.phut, 'áp lỗi: ô hiện lịch cũ đang chạy + lỗi');
+  const y2 = datLichNen(nen, { kieu: 'moi', phut: 7 }, 't'); ghiAp(`nen:${nen}`, y2.luc, true); a.ok(!lichNen(nen).cho && lichNen(nen).dang.phut === 7, 'áp xong: ô hiện lịch mới');
+  fs.rmSync(dir, { recursive: true });
   console.log('✓ lich-may: drop-in systemd nhiều giờ + thứ (VN→UTC, xoá mốc cũ), crontab chỉ đổi đúng dòng, cron không diễn được thì chặn trước khi ghi, bật/tắt timer·cron giữ lịch, áp không đè ý muốn mới');
 }

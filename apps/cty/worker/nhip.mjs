@@ -8,6 +8,7 @@ import path from 'node:path';
 import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
 import { chuLich } from './lich-chu.mjs';
+import { ghiAp, TIEN_TO_NEN } from './lich-may.mjs';
 
 /** Timer chạy mỗi phút (apps/cty/deploy/cty-nhip.timer); mỗi người kiểm `kiem_moi` phút một lần (mặc định 1) — admin chỉnh trên bảng nhân sự. */
 export const KIEM_MOI = [1, 5, 15, 30, 60];   // gợi ý nhanh trên ô chỉnh; nhập số khác cũng được (1 phút – 24 giờ)
@@ -221,7 +222,9 @@ export function ghiMay(dong) {
   const dir = path.join(GOC, 'cong-ty', 'nhan-su'); const nguoi = fs.readdirSync(dir).filter((d) => fs.existsSync(path.join(dir, d, 'SOUL.md')))
     .map((d) => ({ id: d, viec: String(parseFm(fs.readFileSync(path.join(dir, d, 'SOUL.md'), 'utf8')).fm.heartbeat ?? '').split(',').map((v) => v.trim()) }));
   let ghi = 0;
-  for (const e of dong) for (const v of theoNhan[e?.nhan] ?? []) for (const n of nguoi.filter((x) => x.viec.includes(v))) { ghiLam(n.id, String(e.ket ?? '').slice(0, 500), v, e.luc || undefined, e.tiep); ghi++; }
+  // dòng { ap: { id, luc, ok, loi } } = bộ điều phối báo đã ÁP lịch admin đặt (lich-may.mjs datLichNen) → ô chỉnh hết "chờ áp" / hiện lỗi đỏ
+  for (const e of dong) if (e?.ap && String(e.ap.id ?? '').startsWith(TIEN_TO_NEN)) { ghiAp(String(e.ap.id), String(e.ap.luc ?? ''), !!e.ap.ok, String(e.ap.loi ?? '')); ghi++; }
+  for (const e of dong) for (const v of theoNhan[e?.nhan] ?? [])for (const n of nguoi.filter((x) => x.viec.includes(v))) { ghiLam(n.id, String(e.ket ?? '').slice(0, 500), v, e.luc || undefined, e.tiep); ghi++; }
   return ghi;
 }
 if (process.argv[1]?.endsWith('nhip.mjs') && process.argv.includes('--ghi-may')) {

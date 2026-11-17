@@ -94,6 +94,36 @@ export function docShebang(dong, PATH, coTep = fs.existsSync) {
   return thay ? [thay, ...them] : null;
 }
 
+// ── LỊCH ADMIN ĐẶT TRÊN cty (anh 17/11/2026 "phải cho tao sửa các chỗ này") ──────────────────────────────────────────────
+// Ý muốn nằm ở box3 /var/lib/cty/lich-chinh.json, khoá `nen:<máy>:<nhãn>` (worker/lich-may.mjs datLichNen): { lich: { kieu: 'moi', phut } |
+// { kieu: 'luc', gio: [...], thu: [] }, luc, ap? }. Đọc cùng lượt tải sổ, ĐÈ `hen` của việc đó (không sửa viec-nen.json trong git). Giờ máy = giờ VN.
+/** Mô hình lịch cty → hen của bộ điều phối. Sai → ném lỗi đủ câu (báo về ô chỉnh). */
+export function henTuLich(l) {
+  if (l?.kieu === 'moi' && Number.isInteger(l.phut) && l.phut >= 1 && l.phut <= 1440) return { moi_giay: l.phut * 60 };
+  if (l?.kieu === 'luc') {
+    if (l.thu?.length) throw new Error('bộ điều phối chưa chạy theo thứ');
+    if (!Array.isArray(l.gio) || !l.gio.length || !l.gio.every((g) => /^([01]\d|2[0-3]):[0-5]\d$/.test(g))) throw new Error('giờ chạy sai dạng HH:MM');
+    return { luc: [...new Set(l.gio)].sort() };
+  }
+  throw new Error('lịch không đọc được');
+}
+/** Đè ý muốn lên sổ của máy `may`. Trả { so (bản đã đè), ap: [{ id, luc, ok, loi }] cho các ý muốn còn chờ áp }. Việc chạy liền / gọi tay không đè. */
+export function apLichChinh(so, chinh, may) {
+  const ap = [], viec = so.viec.map((v) => ({ ...v }));
+  for (const [id, x] of Object.entries(chinh ?? {})) {
+    if (!id.startsWith(`nen:${may}:`) || !x?.lich) continue;
+    const nhan = id.slice(4), v = viec.find((y) => y.nhan === nhan), cho = !x.ap || x.ap.luc < x.luc;
+    try {
+      if (!v) throw new Error(`không có ${nhan} trong sổ`);
+      if (v.hen?.luon || v.hen?.tay) throw new Error('việc chạy liền / gọi tay — không có lịch');
+      v.hen = henTuLich(x.lich);
+      if (cho) ap.push({ id, luc: x.luc, ok: true });
+    } catch (e) { if (cho) ap.push({ id, luc: x.luc, ok: false, loi: String(e.message) }); }
+  }
+  return { so: { ...so, viec }, ap };
+}
+const NGAN_LICH = '#cty-lich-chinh';
+
 // ── trạng thái + nhật ký ────────────────────────────────────────────────────────────────────────────────────────────────
 const docJson = (f, mac) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return mac; } };
 const ghiJson = (f, x) => { const t = `${f}.tam`; fs.writeFileSync(t, JSON.stringify(x, null, 1)); fs.renameSync(t, f); };
@@ -202,13 +232,19 @@ function cat(f) {
 }
 
 // ── vòng chính ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-function taiSo(dongBo) {
+function taiSo(dongBo, may) {
   const xong = (out) => {
-    let so; try { so = JSON.parse(out); } catch (e) { ghiLog(`⚠ sổ trên box3 không đọc được: ${e.message}`); return; }
+    // một lượt ssh: sổ git + dấu ngăn + lịch admin đặt (lich-chinh.json); box3 chưa có tệp thì {}
+    const [phanSo, phanLich = '{}'] = String(out).split(`\n${NGAN_LICH}\n`);
+    let so; try { so = JSON.parse(phanSo); } catch (e) { ghiLog(`⚠ sổ trên box3 không đọc được: ${e.message}`); return; }
     const loi = kiemSo(so); if (loi.length) { ghiLog(`⚠ sổ trên box3 có lỗi, giữ bản cũ: ${loi.slice(0, 3).join(' · ')}`); return; }
+    let chinh = {}; try { chinh = JSON.parse(phanLich); } catch (e) { ghiLog(`⚠ lịch admin đặt trên cty không đọc được (chạy theo sổ git): ${e.message}`); }
+    const r = apLichChinh(so, chinh, may); so = r.so;
+    for (const a of r.ap) { ghiLog(`${a.ok ? '⏱ áp lịch cty' : '✗ không áp được lịch cty'} ${a.id}${a.ok ? `: ${JSON.stringify(so.viec.find((v) => `nen:${v.nhan}` === a.id)?.hen)}` : ` — ${a.loi}`}`);
+      try { fs.appendFileSync(F.sk, `${JSON.stringify({ ap: a })}\n`); } catch { /* lượt tải sau báo lại */ } }
     if (JSON.stringify(so) !== JSON.stringify(docJson(F.so, null))) { ghiJson(F.so, so); ghiLog(`↻ đã nạp sổ mới (${so.viec.length} việc)`); }
   };
-  const ts = ['-o', 'BatchMode=yes', '-o', 'ControlMaster=no', '-o', 'ControlPath=none', '-o', 'ConnectTimeout=15', BOX, `cat ${SO_BOX}`];
+  const ts = ['-o', 'BatchMode=yes', '-o', 'ControlMaster=no', '-o', 'ControlPath=none', '-o', 'ConnectTimeout=15', BOX, `cat ${SO_BOX}; echo; echo '${NGAN_LICH}'; cat /var/lib/cty/lich-chinh.json 2>/dev/null || echo '{}'`];
   if (dongBo) { try { xong(execFileSync('ssh', ts, { encoding: 'utf8', timeout: 30_000 })); } catch (e) { ghiLog(`⚠ chưa đọc được sổ từ box3: ${e.message.split('\n')[0]}`); } return; }
   execFile('ssh', ts, { encoding: 'utf8', timeout: 30_000 }, (e, out) => (e ? ghiLog(`⚠ box3 không trả sổ (giữ bản cũ): ${e.message.split('\n')[0]}`) : xong(out)));
 }
@@ -216,7 +252,7 @@ function taiSo(dongBo) {
 function chayVong(may) {
   fs.mkdirSync(F.goi, { recursive: true }); fs.mkdirSync(path.dirname(F.log), { recursive: true });
   // đọc sổ ĐỒNG BỘ lúc khởi động (không chỉ khi chưa có bản sao): việc đã chuyển sang máy khác thì bản sao cũ không được chạy bù nó
-  taiSo(true);
+  taiSo(true, may);
   const tt = docJson(F.tt, {}), dangChay = new Map();   // nhan → true khi chính lượt này mở (có sự kiện exit)
   let lanTai = Date.now(), lanThu = 0, lanNhip = Date.now();
   ghiLog(`● bộ điều phối ${may} chạy (pid ${process.pid})`);
@@ -225,13 +261,15 @@ function chayVong(may) {
     // THỨC DẬY sau khi ngủ (nhịp 5 giây bị hở > 60 giây): đọc sổ ĐỒNG BỘ trước khi xét chạy bù — bản sao cũ còn những việc đã chuyển sang máy khác
     // (25/10/2026: chuyển việc MacBook → iMac; MacBook thức dậy chạy bù theo sổ cũ = chạy đôi). box3 không trả thì giữ bản cũ như trước.
     const thuc = bay - lanNhip > 60_000; lanNhip = bay;
-    if (thuc) { lanTai = bay; ghiLog("☀ thức dậy — đọc lại sổ trước khi chạy bù"); taiSo(true); }
-    else if (bay - lanTai > 5 * 60_000) { lanTai = bay; taiSo(false); }
+    if (thuc) { lanTai = bay; ghiLog("☀ thức dậy — đọc lại sổ trước khi chạy bù"); taiSo(true, may); }
+    else if (bay - lanTai > 5 * 60_000) { lanTai = bay; taiSo(false, may); }
     const ds = (docJson(F.so, { viec: [] }).viec ?? []).filter((v) => v.nhan.startsWith(`${may}:`) && !v.tat);
     const thu = bay - lanThu > 30_000; if (thu) lanThu = bay;
     let doi = false;
     for (const v of ds) {
       const t = (tt[v.nhan] ??= { moc: bay, runs: 0 });
+      // ĐỔI GIỜ (lịch admin đặt trên cty / sổ mới): mốc trước lúc đổi không được tính là lỡ — không chạy bù ngay như launchd nạp lại
+      { const ky = JSON.stringify(v.hen); if (t.hen_ky !== ky) { if (t.hen_ky !== undefined && v.hen?.luc) t.moc = bay; t.hen_ky = ky; doi = true; } }
       if (thu) try { t.cho_launchd = !thuNhan(v); } catch (e) { ghiLog(`⚠ thu nhận ${v.nhan}: ${e.message}`); t.cho_launchd = true; }
       if (t.cho_launchd) continue;   // launchd còn giữ việc này → không chạy đôi
       if (dangChay.has(v.nhan)) continue;
@@ -263,7 +301,7 @@ function chayVong(may) {
 function xem(nhan) {
   const so = docJson(F.so, { viec: [] }), tt = docJson(F.tt, {});
   const ds = so.viec.filter((v) => !nhan || nhanCua(v) === nhan || v.nhan === nhan);
-  const r = ds.map((v) => { const t = tt[v.nhan] ?? {}; return { nhan: v.nhan, ten: v.ten, chay: conSong(t.pid, v.ten), ma: t.ma ?? null, runs: t.runs ?? 0, bat_dau: t.bat_dau ?? null, xong: t.xong ?? null }; });
+  const r = ds.map((v) => { const t = tt[v.nhan] ?? {}; return { nhan: v.nhan, ten: v.ten, hen: v.hen, chay: conSong(t.pid, v.ten), ma: t.ma ?? null, runs: t.runs ?? 0, bat_dau: t.bat_dau ?? null, xong: t.xong ?? null }; });
   if (nhan) { if (!r.length) { console.error(`không có việc "${nhan}" trong sổ`); process.exit(1); } console.log(JSON.stringify(r[0])); return; }
   const g = (x) => (x ? new Date(x).toLocaleString('sv-SE').slice(5, 16) : '—');
   for (const x of r) console.log(`${x.chay ? '▶' : ' '} ${x.nhan.padEnd(52)} ${x.ten.padEnd(36)} lượt ${String(x.runs).padStart(4)} · cuối ${g(x.bat_dau)} · mã ${x.ma ?? '—'}`);
@@ -317,11 +355,22 @@ async function tuKiem() {
   a.ok(!toiLuot({ moi_giay: 900 }, { moc: 5000 }, 6000).chay, 'lần đầu thấy: đợi đủ một chu kỳ');
   a.ok(toiLuot({ luon: true }, { moc: 0 }, 20_000).chay && !toiLuot({ luon: true }, { moc: 0, bat_dau: 15_000 }, 20_000).chay, 'dịch vụ: dựng lại sau ≥ 10 giây');
   a.ok(!toiLuot({ tay: true }, { moc: 0 }, 1e12).chay);
+  {   // lịch admin đặt trên cty đè hen của đúng việc, đúng máy; báo áp một lần cho ý muốn còn chờ
+    const so = { viec: [v({ nhan: 'iMac:a', hen: { moi_giay: 300 } }), v({ nhan: 'iMac:b', hen: { luc: ['09:00'] } }), v({ nhan: 'iMac:c', hen: { luon: true } }), v({ nhan: 'MacBook:a', hen: { moi_giay: 300 } })] };
+    const chinh = { 'nen:iMac:a': { lich: { kieu: 'moi', phut: 2 }, luc: '2026-11-17T08:00:00Z' }, 'nen:iMac:b': { lich: { kieu: 'luc', gio: ['20:45', '06:45'], thu: [] }, luc: '2026-11-17T08:00:00Z', ap: { luc: '2026-11-17T08:01:00Z', ok: true } },
+      'nen:iMac:c': { lich: { kieu: 'moi', phut: 5 }, luc: '2026-11-17T08:00:00Z' }, 'nen:iMac:x': { lich: { kieu: 'moi', phut: 5 }, luc: '2026-11-17T08:00:00Z' }, 'iMac:a': { lich: { kieu: 'moi', phut: 9 }, luc: '2026-11-17T08:00:00Z' } };
+    const r = apLichChinh(so, chinh, 'iMac'); const h = (n) => r.so.viec.find((x) => x.nhan === n).hen;
+    a.deepEqual(h('iMac:a'), { moi_giay: 120 }, 'mỗi 2 phút đè 300 giây'); a.deepEqual(h('iMac:b'), { luc: ['06:45', '20:45'] }, 'ý muốn đã áp vẫn đè mỗi lượt tải sổ');
+    a.deepEqual(h('iMac:c'), { luon: true }, 'dịch vụ chạy liền không bị đè'); a.deepEqual(h('MacBook:a'), { moi_giay: 300 }, 'máy khác không bị đè'); a.deepEqual(so.viec[0].hen, { moi_giay: 300 }, 'không sửa sổ gốc');
+    a.deepEqual(r.ap.map((x) => `${x.id}:${x.ok}`), ['nen:iMac:a:true', 'nen:iMac:c:false', 'nen:iMac:x:false'], 'chỉ báo ý muốn còn chờ; khoá LaunchAgent (không tiền tố nen:) không đụng');
+    a.deepEqual(kiemSo(r.so), [], 'sổ đã đè vẫn hợp lệ');
+    a.throws(() => henTuLich({ kieu: 'luc', gio: ['08:00'], thu: [1] }), /thứ/);
+  }
   a.deepEqual(docShebang('#!/bin/bash', ''), ['/bin/bash']);
   a.deepEqual(docShebang('#!/usr/bin/env bash', '/opt/x:/bin', (f) => f === '/bin/bash'), ['/bin/bash']);
   a.deepEqual(docShebang('#!/usr/bin/env node --x', '/a:/b', (f) => f === '/b/node'), ['/b/node', '--x']);
   a.equal(docShebang('console.log(1)', '/bin'), null);
-  console.log('dieu-phoi: 25/25 ok');
+  console.log('dieu-phoi: 33/33 ok');
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

@@ -3,7 +3,7 @@
 // (worker/nhip.mjs luuChinh), có hiệu lực ở nhịp kế tiếp — không sửa git, không cần deploy.
 import { getCurrentUser } from './auth';
 import { luuChinh, datBat, datGio, datKiemMoi } from '../../worker/nhip.mjs';
-import { datLichMay, datBatMay, sach, KHONG_TAT } from '../../worker/lich-may.mjs';
+import { datLichMay, datBatMay, datLichNen, sach, KHONG_TAT } from '../../worker/lich-may.mjs';
 import { docViecMay, viecMayCua, dangChay } from '../../worker/viec-may.mjs';
 
 export async function chinhNhip(id: string, x: { ca: string; diem_danh: string; kiem_moi?: number }): Promise<{ ok: boolean; loi?: string }> {
@@ -37,7 +37,8 @@ export async function chinhLich(muc: string, lich: Lich): Promise<{ ok: boolean;
       const v = ((docViecMay() as { ds: { id: string; loai: string }[] } | null)?.ds ?? []).find((x) => x.id === ma);
       if (!v) throw new Error('Không thấy việc này trong lần dò máy gần nhất — đợi lượt dò (10 phút) rồi thử lại.');
       datLichMay(ma, l, ai, v.loai);
-    } else throw new Error(`Không biết việc "${muc}".`);
+    } else if (loai === 'nen') datLichNen(ma, l, ai);   // `nen:<máy>:<nhãn>` — việc trong sổ bộ điều phối Mac (cong-ty/viec-nen.json), bộ điều phối áp trong ≤ 5 phút
+    else throw new Error(`Không biết việc "${muc}".`);
     return { ok: true };
   } catch (e) { return { ok: false, loi: (e as Error).message }; }
 }

@@ -12,10 +12,11 @@ import { useBamNgoai } from './bam-ngoai';
 import { chuLich, TEN_THU } from '../../worker/lich-chu.mjs';
 
 export type Lich = { kieu: 'moi'; phut: number } | { kieu: 'luc'; gio: string[]; thu: number[] };
-export function ChinhLich({ muc, lich, chu, kieu = ['moi', 'luc'], motGio = false, admin, apSau, trang }: {
+export function ChinhLich({ muc, lich, chu, kieu = ['moi', 'luc'], motGio = false, coThu = true, admin, apSau, trang }: {
   muc: string; lich: Lich | null; chu: string;
   kieu?: ('moi' | 'luc')[];                             // nhịp cty chỉ 'moi'; giờ việc Mac của Bảo chỉ 'luc'
   motGio?: boolean;                                     // chỉ một giờ mỗi ngày, không chọn thứ
+  coThu?: boolean;                                      // false: nhiều giờ được, nhưng mỗi ngày (bộ điều phối Mac chưa chạy theo thứ)
   admin: boolean;
   apSau: string;                                        // "áp từ nhịp kế tiếp" / "box3 áp trong 1 phút" / "iMac áp trong 10 phút"
   trang?: { cho?: boolean; loi?: string };              // ý muốn trước: còn chờ áp / áp lỗi
@@ -30,12 +31,12 @@ export function ChinhLich({ muc, lich, chu, kieu = ['moi', 'luc'], motGio = fals
       <button ref={nut} type="button" className={cls} title={tieuDe} aria-expanded={mo} onClick={() => setMo((x) => !x)}>
         <span>{nhan}</span>{trang?.cho && <i aria-label="chờ áp" />}
       </button>
-      {mo && <BangChinh neo={nut.current} muc={muc} lich={lich} kieu={kieu} motGio={motGio} apSau={apSau} loiCu={trang?.loi} dong={dong} />}
+      {mo && <BangChinh neo={nut.current} muc={muc} lich={lich} kieu={kieu} motGio={motGio} coThu={coThu} apSau={apSau} loiCu={trang?.loi} dong={dong} />}
     </>
   );
 }
 
-function BangChinh({ neo, muc, lich, kieu, motGio, apSau, loiCu, dong }: { neo: HTMLElement | null; muc: string; lich: Lich | null; kieu: ('moi' | 'luc')[]; motGio: boolean; apSau: string; loiCu?: string; dong: () => void }) {
+function BangChinh({ neo, muc, lich, kieu, motGio, coThu, apSau, loiCu, dong }: { neo: HTMLElement | null; muc: string; lich: Lich | null; kieu: ('moi' | 'luc')[]; motGio: boolean; coThu: boolean; apSau: string; loiCu?: string; dong: () => void }) {
   const dau: Lich = lich ?? (kieu.includes('moi') ? { kieu: 'moi', phut: 60 } : { kieu: 'luc', gio: ['03:00'], thu: [] });
   const [kieuDang, setKieu] = useState<'moi' | 'luc'>(dau.kieu);
   const [so, setSo] = useState(dau.kieu === 'moi' ? (dau.phut % 60 === 0 && dau.phut >= 60 ? dau.phut / 60 : dau.phut) : 1);
@@ -66,7 +67,7 @@ function BangChinh({ neo, muc, lich, kieu, motGio, apSau, loiCu, dong }: { neo: 
               <span key={i}><input type="time" value={g} aria-label={`Giờ chạy ${i + 1} (giờ VN)`} onChange={(e) => setGio(gio.map((x, j) => (j === i ? e.target.value : x)))} />
                 {gio.length > 1 && <button type="button" className="cty-lich-bo" aria-label="Bỏ giờ này" onClick={() => setGio(gio.filter((_, j) => j !== i))}>×</button>}</span>))}
               {!motGio && <button type="button" className="cty-lich-them" onClick={() => setGio([...gio, gio[gio.length - 1] ?? '08:00'])}>+ giờ</button>}</div>
-            {!motGio && <div className="cty-lich-thu" aria-label="Thứ chạy (không chọn = mỗi ngày)">{[1, 2, 3, 4, 5, 6, 7].map((t) => (
+            {!motGio && coThu && <div className="cty-lich-thu" aria-label="Thứ chạy (không chọn = mỗi ngày)">{[1, 2, 3, 4, 5, 6, 7].map((t) => (
               <button key={t} type="button" aria-pressed={thu.includes(t)} onClick={() => setThu(thu.includes(t) ? thu.filter((x) => x !== t) : [...thu, t])}>{TEN_THU[t]}</button>))}
               <span className="cty-muted">{thu.length && thu.length < 7 ? '' : 'mỗi ngày'}</span></div>}
           </>}

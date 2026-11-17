@@ -1,5 +1,5 @@
 {
- "luc": "2026-11-17T04:52:00.858Z",
+ "luc": "2026-11-17T05:19:23.332Z",
  "goc": [
   "dong",
   "dong-nam",
@@ -13,8 +13,8 @@
  ],
  "pha": null,
  "so_khoi": 30,
- "lech_nang": 13,
- "lech_tb": 2.84,
+ "lech_nang": 12,
+ "lech_tb": 2.78,
  "khoi": [
   {
    "id": "way/35212310",
@@ -121,30 +121,6 @@
    ]
   },
   {
-   "id": "way/223145711",
-   "ten": "",
-   "y_tren": 64.64,
-   "lech": -2.32,
-   "goc": 3,
-   "chi_tiet": [
-    {
-     "goc": "tay",
-     "lech": -2.32,
-     "so": 8
-    },
-    {
-     "goc": "tay-bac",
-     "lech": -1.72,
-     "so": 6
-    },
-    {
-     "goc": "dong",
-     "lech": -2.32,
-     "so": 6
-    }
-   ]
-  },
-  {
    "id": "way/88229631",
    "ten": "",
    "y_tren": 10.85,
@@ -159,35 +135,6 @@
     {
      "goc": "dong",
      "lech": -1.9,
-     "so": 7
-    }
-   ]
-  },
-  {
-   "id": "way/223145712",
-   "ten": "",
-   "y_tren": 64.64,
-   "lech": -2.02,
-   "goc": 4,
-   "chi_tiet": [
-    {
-     "goc": "nam",
-     "lech": -2.62,
-     "so": 7
-    },
-    {
-     "goc": "dong-bac",
-     "lech": -1.72,
-     "so": 6
-    },
-    {
-     "goc": "dong",
-     "lech": -2.02,
-     "so": 7
-    },
-    {
-     "goc": "the-1623-cong",
-     "lech": -2.02,
      "so": 7
     }
    ]
@@ -272,14 +219,43 @@
      "so": 22
     },
     {
-     "goc": "dong",
+     "goc": "the-1623-cong",
      "lech": -1.6,
      "so": 8
     },
     {
-     "goc": "the-1623-cong",
+     "goc": "dong",
      "lech": -1.6,
      "so": 8
+    }
+   ]
+  },
+  {
+   "id": "way/223145712",
+   "ten": "",
+   "y_tren": 61.58,
+   "lech": -1.52,
+   "goc": 4,
+   "chi_tiet": [
+    {
+     "goc": "nam",
+     "lech": -1.07,
+     "so": 7
+    },
+    {
+     "goc": "dong-bac",
+     "lech": -1.37,
+     "so": 6
+    },
+    {
+     "goc": "the-1623-cong",
+     "lech": -1.67,
+     "so": 7
+    },
+    {
+     "goc": "dong",
+     "lech": -1.67,
+     "so": 7
     }
    ]
   },
@@ -321,14 +297,53 @@
      "so": 7
     },
     {
-     "goc": "dong",
-     "lech": -1,
-     "so": 7
-    },
-    {
      "goc": "the-1623-cong",
      "lech": -1.3,
      "so": 7
+    },
+    {
+     "goc": "dong",
+     "lech": -1,
+     "so": 7
+    }
+   ]
+  },
+  {
+   "id": "way/223145711",
+   "ten": "",
+   "y_tren": 61.58,
+   "lech": -1.37,
+   "goc": 6,
+   "chi_tiet": [
+    {
+     "goc": "tay",
+     "lech": -1.67,
+     "so": 8
+    },
+    {
+     "goc": "tay-bac",
+     "lech": -1.07,
+     "so": 6
+    },
+    {
+     "goc": "dong-nam",
+     "lech": -1.37,
+     "so": 5
+    },
+    {
+     "goc": "dong-bac",
+     "lech": -1.37,
+     "so": 7
+    },
+    {
+     "goc": "bac",
+     "lech": -1.07,
+     "so": 6
+    },
+    {
+     "goc": "dong",
+     "lech": -1.67,
+     "so": 6
     }
    ]
   },
@@ -360,14 +375,14 @@
      "so": 18
     },
     {
-     "goc": "dong",
-     "lech": -1.6,
-     "so": 22
-    },
-    {
      "goc": "the-1623-cong",
      "lech": -1.6,
      "so": 11
+    },
+    {
+     "goc": "dong",
+     "lech": -1.6,
+     "so": 22
     }
    ]
   },
@@ -404,14 +419,14 @@
      "so": 11
     },
     {
-     "goc": "dong",
-     "lech": -0.1,
-     "so": 11
-    },
-    {
      "goc": "the-1623-cong",
      "lech": -2.2,
      "so": 5
+    },
+    {
+     "goc": "dong",
+     "lech": -0.1,
+     "so": 11
     }
    ]
   },
@@ -433,14 +448,14 @@
      "so": 7
     },
     {
-     "goc": "dong",
-     "lech": 2.9,
-     "so": 4
-    },
-    {
      "goc": "the-1623-cong",
      "lech": 2.6,
      "so": 10
+    },
+    {
+     "goc": "dong",
+     "lech": 2.9,
+     "so": 4
     }
    ]
   },
@@ -448,7 +463,7 @@
    "id": "way/223179004",
    "ten": "",
    "y_tren": 61.28,
-   "lech": -1,
+   "lech": -0.85,
    "goc": 2,
    "chi_tiet": [
     {
@@ -458,8 +473,8 @@
     },
     {
      "goc": "dong",
-     "lech": -1,
-     "so": 12
+     "lech": -0.7,
+     "so": 14
     }
    ]
   },
@@ -474,40 +489,6 @@
      "goc": "tay-bac",
      "lech": 0.8,
      "so": 6
-    }
-   ]
-  },
-  {
-   "id": "way/223140032",
-   "ten": "",
-   "y_tren": 65.7,
-   "lech": -0.62,
-   "goc": 5,
-   "chi_tiet": [
-    {
-     "goc": "tay-nam",
-     "lech": 5.98,
-     "so": 7
-    },
-    {
-     "goc": "tay-bac",
-     "lech": -0.32,
-     "so": 25
-    },
-    {
-     "goc": "nam",
-     "lech": -1.22,
-     "so": 20
-    },
-    {
-     "goc": "dong-nam",
-     "lech": -1.22,
-     "so": 36
-    },
-    {
-     "goc": "bac",
-     "lech": -0.62,
-     "so": 41
     }
    ]
   },
@@ -584,6 +565,45 @@
    ]
   },
   {
+   "id": "way/223140032",
+   "ten": "",
+   "y_tren": 65.7,
+   "lech": -0.47,
+   "goc": 6,
+   "chi_tiet": [
+    {
+     "goc": "tay",
+     "lech": 0.28,
+     "so": 18
+    },
+    {
+     "goc": "tay-nam",
+     "lech": 5.98,
+     "so": 7
+    },
+    {
+     "goc": "tay-bac",
+     "lech": -0.32,
+     "so": 25
+    },
+    {
+     "goc": "nam",
+     "lech": -1.22,
+     "so": 20
+    },
+    {
+     "goc": "dong-nam",
+     "lech": -0.92,
+     "so": 36
+    },
+    {
+     "goc": "bac",
+     "lech": -0.62,
+     "so": 41
+    }
+   ]
+  },
+  {
    "id": "way/1573767740",
    "ten": "",
    "y_tren": 44.64,
@@ -616,14 +636,14 @@
      "so": 19
     },
     {
-     "goc": "dong",
-     "lech": -0.4,
-     "so": 36
-    },
-    {
      "goc": "the-1623-cong",
      "lech": -1.3,
      "so": 29
+    },
+    {
+     "goc": "dong",
+     "lech": -0.4,
+     "so": 36
     }
    ]
   },
@@ -655,14 +675,14 @@
      "so": 6
     },
     {
-     "goc": "dong",
-     "lech": 0.8,
-     "so": 12
-    },
-    {
      "goc": "the-1623-cong",
      "lech": -0.7,
      "so": 29
+    },
+    {
+     "goc": "dong",
+     "lech": 0.8,
+     "so": 12
     }
    ]
   },
@@ -732,12 +752,12 @@
      "so": 8
     },
     {
-     "goc": "dong",
+     "goc": "the-1623-cong",
      "lech": -0.1,
      "so": 9
     },
     {
-     "goc": "the-1623-cong",
+     "goc": "dong",
      "lech": -0.1,
      "so": 9
     }
@@ -787,5 +807,5 @@
    ]
   }
  ],
- "ban": "fb90730af"
+ "ban": "5900dcc97"
 }

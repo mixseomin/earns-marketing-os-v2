@@ -1,4 +1,8 @@
 {
+ "way/221601953": {
+  "y_tren": -20.3,
+  "ly_do": "góp ý #1646 [MÁY QUÉT] (17/11/2026): ki-ốt / nhà kho dài mái xám cạnh bãi xe dưới Schlossrestaurant (OSM building=kiosk, không chiều cao). Trước: ns.js lấy chiều cao theo Google (lệch riêng > 2,5 m) → đỉnh −22,18. Đo theo TIA ở bộ góc chuẩn (cham-goc --khoi): tây-nam +1,4 m (11 cột), bắc +2,3 m (4 cột), trung vị +1,85 m; đo từ trên xuống (neuschwanstein-nen.json, phân vị 98) đỉnh ảnh 3D −19,69 cũng cao hơn mô hình ~2,5 m. Ảnh 3D chụp gần (so-lech --cam từ tây-nam) thấy rõ mái nhà kho nhô trên mặt bãi, không bị cây che → đặt đỉnh = −22,18 + 1,85 ≈ −20,3."
+ },
  "way/1573767747": {
   "y_tren": 93,
   "roof:shape": "cone",

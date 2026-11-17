@@ -1,11 +1,19 @@
 #!/bin/bash
 # CẢ LÔ H3 CHẠY TÁCH HẲN TRÊN MÁY THUÊ (16/11/2026: mạng iMac chập hai lần làm đứt phiên ssh giữa lúc cài → máy xoá, mất lượt). may-h3.sh chỉ thả tệp này
 # chạy nền (setsid) rồi ghé vào kéo clip; mất kết nối thì lần ghé sau nối lại. Kết quả: /root/h3/ra/<tên>.mp4 + /root/h3/ra/so.jsonl; xong ghi /root/h3/ra/XONG.
-# LƯỚI AN TOÀN tự thân: cả lô có trần $1 phút; xong việc mà 20 phút không ai xoá máy (iMac mất liên lạc) → máy tự TẮT (runpodctl stop pod — hết tính tiền GPU).
+# LƯỚI AN TOÀN tự thân: cả lô có trần $1 phút; xong việc mà 20 phút không ai xoá máy (iMac mất liên lạc) → máy tự TẮT / tự XOÁ (RunPod runpodctl · Vast khoá riêng của máy).
 #   bash lam-lo.sh <trần phút>
 TRAN=${1:-110}; mkdir -p /root/h3/ra; cd /root/h3
-tat() { sleep "${1:-1200}"; runpodctl stop pod "$RUNPOD_POD_ID" >/dev/null 2>&1 || true; }
-( sleep $(( TRAN * 60 + 1200 )); runpodctl stop pod "$RUNPOD_POD_ID" >/dev/null 2>&1 ) &   # trần cứng, kể cả khi bước nào treo
+# TỰ TẮT cả hai nhà: RunPod = runpodctl; VAST = xoá chính máy bằng khoá riêng Vast cấp cho từng máy (CONTAINER_ID + CONTAINER_API_KEY trong môi trường
+# tiến trình 1 — phiên ssh có thể không có, đọc /proc/1/environ). 17/11/2026: máy Vast thử model vẫn chạy $0,71/giờ sau khi iMac dừng lượt — lưới cũ chỉ có runpodctl.
+moi1() { tr '\0' '\n' < /proc/1/environ 2>/dev/null | sed -n "s/^$1=//p" | head -1; }
+tu_xoa() {
+  runpodctl stop pod "$RUNPOD_POD_ID" >/dev/null 2>&1 || true
+  local id=${CONTAINER_ID:-$(moi1 CONTAINER_ID)} k=${CONTAINER_API_KEY:-$(moi1 CONTAINER_API_KEY)}
+  [ -n "$id" ] && [ -n "$k" ] && curl -s -m 30 -X DELETE -H "Authorization: Bearer $k" "https://console.vast.ai/api/v0/instances/$id/" >/dev/null 2>&1 || true
+}
+tat() { sleep "${1:-1200}"; tu_xoa; }
+( sleep $(( TRAN * 60 + 1200 )); tu_xoa ) &   # trần cứng, kể cả khi bước nào treo
 if ! bash /root/h3/tren-may.sh > /root/h3/ra/cai.log 2>&1 || ! curl -s -m 3 127.0.0.1:8188/system_stats >/dev/null; then
   echo '{"loi":"cài lỗi"}' > /root/h3/ra/XONG; tail -30 /root/comfyui.log >> /root/h3/ra/cai.log 2>/dev/null; tat; exit 1
 fi

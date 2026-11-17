@@ -125,7 +125,7 @@ DO = {
     '3': [('Tờ 5 nghìn', 'Chú', 'Nhóc', False)], '4': [('Tờ 5 nghìn', 'Nhóc', None, True)],
     '8': [('Chai nước ngọt', 'Nhóc', None, False)],
     '9': [('Chai nước ngọt', 'Nhóc', None, False), ('Tiền thừa', 'Nhóc', None, False)],
-    '10': [('Chai nước ngọt', 'Nhóc', None, False), ('Tiền thừa', 'Nhóc', 'Chú', False)],
+    '10': [('Chai nước ngọt', 'Nhóc', None, False), ('Tiền thừa', 'Chú', None, False)],   # 17/11/2026: #20 = chú đứng hình CẦM tiền (trao đã ở #19 · 9e)
     '11': [('Chai nước ngọt', 'Nhóc', None, False), ('Tiền thừa', 'Chú', None, False)],
     '12': [('Tiền thừa', 'Chú', None, False), ('Chai nước ngọt', 'Nhóc', None, False)],
     '9c': [('Chai nước ngọt', 'Nhóc', None, False), ('Tiền thừa', 'Nhóc', None, False)],
@@ -249,10 +249,7 @@ for ma, v in SD['shot'].items():
     if ma == '3a' and 'Chú' in nv_:   # chìa tờ tiền ra theo lời "Chú cho cháu 5k" — nối sang hai người trao ở #3
         nv_['Chú']['tay'] = [[0.3, 0], [1, 0.6]]
         nv_['Chú']['nhay'] = 'nhóc đã chạy tới dưới cửa sổ (shot #4 xen giữa): chú quay xuống nhìn nhóc'   # hướng mặt không nối từ #3 (đang nhìn nhóc ở giữa ga)
-    if ma == '10':   # CẬN TAY ở bậu cửa: tay nhóc đưa tiền thừa, tay chú đón — thay cận mặt (không thấy được động tác trao)
-        may[ma] = may.get(ma, {})
-        if 'Nhóc' in nv_: nv_['Nhóc']['tay'] = [[0, 0.55]]
-        if 'Tiền thừa' in nv_: nv_['Tiền thừa']['trao'] = [0.15, 0.55]
+    # '10' (#20): 17/11/2026 kịch bản sửa theo người xem thành "chú đứng hình cầm tiền" → cận MẶT chú (máy mat_chu của sơ đồ); cận tay trao chuyển sang 9e (#19)
     if ma == '11' and 'Nhóc' in nv_:   # mở ra vẫn quay về chú → quay người về tiệm (0–25 %) rồi mới chạy
         nv_['Nhóc']['nhip'] = [{'u': 0, 'h': -90, 'nhin': 'Chú'}, {'u': 0.25, 'h': 180, 'nhin': 'tiem'}, {'u': 1, 'p': D('nhoc_xa'), 'h': 180}]
     if ma == '12':   # mở ra chú vẫn quay về phía nhóc như kết #11, rồi xoay theo nhóc chạy xa (soát nối #11→#12: thân lệch 80°)
@@ -288,7 +285,9 @@ for ma, v in SD['shot'].items():
     if ma == '11':   # 17/11/2026: lia không động cơ + chữ "runs away from camera" mà 3D đi VỀ máy → máy ĐỨNG phía đông-nam (như MAY_HAI): mở ra thấy đủ chú ở ô cửa +
         # nhóc dưới cửa sổ (tổng thể cảnh "Tiền thừa"), nhóc chạy về phía bắc = xa khỏi máy. Bản máy sau lưng chú (cùng ngày) để nhóc ngoài khung, chú bị che.
         may[ma].update({'dat': [260, 240, 170], 'nhin': [0, 760, 120], 'ong_kinh': 30}); may[ma].pop('nham', None)
-    if ma == '9e': may[ma].update({'dat': [-95, 480, 225], 'nhin': [-45, 500, 130], 'ong_kinh': 40})   # cận tay từ phía chú nhìn xuống: nắm tiền rõ (máy cao 290 cm: 0,7 % khung) + thấy mặt nhóc ngước lên (người cầm phải trong khung); y < 500 cùng phía trục với cận nhóc #9b — y 520 đảo hướng màn
+    if ma == '9e':   # CẬN TAY TRAO từ SÂN GA (17/11/2026): máy thấp ngước lên bậu — thấy tay chú đón + nắm tiền + mặt nhóc giơ. Bản máy trong toa nhìn xuống
+        # qua mép ô cửa → H3 vẽ nhóc ĐỨNG TRONG Ô CỬA cạnh chú (3/3 bản sai).
+        may[ma].update({'dat': [80, 350, 105], 'nhin': [-45, 500, 120], 'ong_kinh': 26, 'khung': ['Tiền thừa', 'Nhóc']})   # ống rộng 26: nhóc ≥ 20 % khung (ống 40 chỉ 7 % — cổng cỡ cảnh)
     # dây vàng: đường nhóc đi trong shot (tam → den) vẽ sát sàn + mũi tên ở cuối — người xem thấy ngay nhóc đi đâu
     for x in vt:
         if x['ten'] == 'Nhóc' and x.get('den'):
@@ -299,11 +298,7 @@ for ma, v in SD['shot'].items():
                           'diem': [[b[0] - 40 * ux - 25 * uy, b[1] - 40 * uy + 25 * ux, 1], [b[0], b[1], 1], [b[0] - 40 * ux + 25 * uy, b[1] - 40 * uy - 25 * ux, 1]], 'bac': 1})
             may[ma].setdefault('them', []).extend([ten, f'Mũi tên nhóc #{ma}'])
     if ma == '4': may[ma]['nham'] = 'Nhóc'
-    if ma == '10':   # cận tay ở bậu cửa: chủ thể = nắm tiền thừa; tiền đang được nhóc GIƠ lên (tay 0,55) ngang bậu — chỗ đứng của món theo tay giơ, không theo hông
-        # máy THẤP trên sân ga ngước lên bậu cửa: thấy tay chú đón + nắm tiền + mặt nhóc đang giơ (cận trao — luật vật cầm phải thấy người cầm)
-        may[ma].update({'dat': [60, 380, 120], 'nhin': [-60, 500, 135], 'ong_kinh': 40, 'khung': ['Tiền thừa', 'Nhóc']})
-        for x in vt:
-            if x['ten'] == 'Tiền thừa': x['tam'] = [-70, 500, 155]   # chỗ hai bàn tay gặp nhau ở bậu (nhóc giơ 0,55 — trang three.js dựng tay tới đây)   # chủ thể cận tay = nắm tiền thừa (mặt chú ngoài khung là đúng)   # cận tay ở bậu cửa: ngang tầm hai bàn tay (nhóc giơ tới ~1,4 m, tay chú qua bậu 1,6 m)   # ma-nơ-canh: lùi máy 60 cm — sát quá thì thân đang nhoài choán hết khung (three.js 12/11)   # khối: đầu đứng thẳng cao hơn đầu ma-nơ-canh đang nhoài   # cận mặt chú đang NHOÀI (chong_ban): đầu thấp + ra trước so với lúc đứng thẳng   # máy lia theo nhóc chạy lên tiệm (video thô 12/11: cuối shot nhóc ra khỏi khung)   # sân ga chừa khe 40 cm trước thành tàu (mép x = -60) — máy đứng trong khe
+    # (cận tay ở bậu cửa của '10' chuyển sang '9e' — 17/11/2026)
 # #13 CẬN PHẢN ỨNG chốt cảnh (anh 12/11/2026 "đoạn cuối cần shot mặt gần của Chú để rõ cảm xúc" — ngành: close-up reaction shot, kiểu hài double take /
 # slow burn, chốt cảnh = button): nối hướng nhìn từ cuối #12 (nhìn theo nhóc) → cúi nhìn nắm tiền thừa → ngẩng lên nhìn lại, mặt đứng hình; máy đẩy chậm vào mặt
 M['tay_chu'] = [CHU[0] + 30, CHU[1] - 6, CHU[2] + 125]   # nắm tiền đưa lên ngang ngực

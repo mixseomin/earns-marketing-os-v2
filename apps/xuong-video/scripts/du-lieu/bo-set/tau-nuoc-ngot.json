@@ -2256,16 +2256,16 @@
   },
   "10": {
    "dat": [
-    60,
-    380,
-    120
+    40.0,
+    440.00000000000006,
+    235
    ],
    "nhin": [
-    -60,
+    -120.0,
     500,
-    135
+    240
    ],
-   "ong_kinh": 40,
+   "ong_kinh": 85,
    "vi_tri": [
     {
      "ten": "Chú",
@@ -2295,13 +2295,7 @@
      "nhin_ai": "Chú",
      "nhin_ai_den": "Chú",
      "o_dau": "standing on the platform outside the train",
-     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu",
-     "tay": [
-      [
-       0,
-       0.55
-      ]
-     ]
+     "trang_phuc": "Bộ áo be sờn + quần soóc ô liu"
     },
     {
      "ten": "Chai nước ngọt",
@@ -2316,20 +2310,11 @@
     {
      "ten": "Tiền thừa",
      "tam": [
-      -70,
-      500,
-      155
-     ],
-     "cam": "Nhóc",
-     "den": [
       -128,
       500,
       180
      ],
-     "trao": [
-      0.15,
-      0.55
-     ]
+     "cam": "Chú"
     },
     {
      "ten": "Tàu xanh",
@@ -2342,8 +2327,7 @@
     }
    ],
    "khung": [
-    "Tiền thừa",
-    "Nhóc"
+    "Chú"
    ],
    "khoa_nhin": true
   },
@@ -3102,16 +3086,16 @@
   },
   "9e": {
    "dat": [
-    -95,
-    480,
-    225
+    80,
+    350,
+    105
    ],
    "nhin": [
     -45,
     500,
-    130
+    120
    ],
-   "ong_kinh": 40,
+   "ong_kinh": 26,
    "vi_tri": [
     {
      "ten": "Chú",
@@ -3184,8 +3168,8 @@
     }
    ],
    "khung": [
-    "Nhóc",
-    "Tiền thừa"
+    "Tiền thừa",
+    "Nhóc"
    ],
    "khoa_nhin": true
   },

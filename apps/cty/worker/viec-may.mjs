@@ -21,6 +21,7 @@ import { chuLich, tuSystemd, tuCron, tuLaunchd } from './lich-chu.mjs';
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 export const TEP = () => path.join(DATA(), 'viec-may.json');
 const BOX1 = 'root@5.78.65.158';
+const ANH_MAC_CU = 3 * 86_400_000;
 
 /** [mẫu tên việc, phòng, người (bỏ trống = trưởng phòng)] — xét theo thứ tự, khớp đầu tiên thắng. Tên việc = unit / nhãn LaunchAgent / lệnh cron. */
 export const QUY_TAC = [
@@ -102,6 +103,9 @@ export function gom() {
   for (const f of (fs.existsSync(thu) ? fs.readdirSync(thu) : []).filter((f) => /^launchd-.+\.json$/.test(f))) {
     try { const x = JSON.parse(fs.readFileSync(path.join(thu, f), 'utf8')); if (!mac[x.may] || x.luc > mac[x.may].luc) mac[x.may] = x; } catch (e) { loi[f] = String(e.message); }
   }
+  // Ảnh launchd im quá 3 ngày = máy đã thôi đẩy (iMac chuyển sang bộ điều phối viec-nen từ 14/10): việc trong đó là bóng ma — tắt không bao giờ
+  // áp, người phụ trách cứ hiện "đang chạy" (góp ý #1656: tắt Lan không được). Bỏ ảnh, ghi lỗi để thấy máy nào câm.
+  for (const [may, x] of Object.entries(mac)) if (Date.now() - Date.parse(x.luc) > ANH_MAC_CU) { loi[may] = `ảnh launchd cũ từ ${x.luc} — bỏ qua`; delete mac[may]; }
   for (const x of Object.values(mac)) { theo(x.may, x.ds); for (const a of x.ap ?? []) ghiAp(a.id, a.luc, a.ok, a.loi ?? ''); }   // Mac tự áp lịch admin đặt, báo kết quả trong ảnh
   const mayLuc = { box3: loi.box3 ? cu?.may_luc?.box3 : new Date().toISOString(), box1: loi.box1 ? cu?.may_luc?.box1 : new Date().toISOString(), ...Object.fromEntries(Object.values(mac).map((x) => [x.may, x.luc])) };
   const anh = { luc: new Date().toISOString(), loi, may_luc: mayLuc, ds: kq };

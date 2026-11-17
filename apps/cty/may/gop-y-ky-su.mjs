@@ -59,6 +59,16 @@ const urlAnh = (a) => (typeof a === 'string' ? a : a?.url) || '';   // ảnh lư
 
 /** cfg: { nguoi, ten, duAn (project_id + khoá site_status), boQuaUrl?: [mẫu LIKE], tranPhut, cay: () => { dir, do }, cayThu: dir,
  *  chiUrl?: ['https://castle.on.tc/%'] (chỉ nhận card gửi từ trang đó — hòm dùng chung project), quyen: (dir) => [], loiGiao: (ctx) => string, kiemThu: (ctx) => string, traLoi: (id, chu) => void } — ctx: { card, luong, cuoiNguoi, tin, moiAnh, ANH, dir, cay } */
+/** Kỹ sư nhận việc giao thẳng (thư mục ~/may-ky-su/<người>/giao) — dùng chayKySu. */
+export const KY_SU_GIAO = { dat: 'mos2 apps/web + packages', khoi: 'cty.on.tc', vinh: 'studio xuong-video', hieu: 'spy', thang: 'castle' };
+/** Giao một việc cho kỹ sư khác (dòng CHUYỂN: của một kỹ sư). Trả chuỗi báo. */
+export function giaoCho(nguoi, viec, tu) {
+  if (!KY_SU_GIAO[nguoi]) throw new Error(`không có kỹ sư nhận giao "${nguoi}"`);
+  const d = path.join(HOME, 'may-ky-su', nguoi, 'giao'); fs.mkdirSync(d, { recursive: true });
+  const f = path.join(d, `${new Date().toISOString().replace(/[-:]/g, '').slice(0, 13)}-chuyen-${Math.random().toString(36).slice(2, 6)}.json`);
+  fs.writeFileSync(f, JSON.stringify({ tieu_de: String(viec).slice(0, 80), noi_dung: `${tu} chuyển (việc thuộc phần của bạn): ${viec}`, luc: new Date().toISOString() }, null, 1));
+  return `${nguoi} ← ${String(viec).slice(0, 80)}`;
+}
 export function chayKySu(cfg) {
   const { nguoi: NGUOI, ten: TEN } = cfg;
   if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`${TEN} chỉ chạy trên iMac (máy này: ${os.hostname()}) — Claude không giao diện bằng gói thuê bao chỉ iMac`); process.exit(3); }
@@ -142,7 +152,10 @@ export function chayKySu(cfg) {
   const tuChoiCu = (() => { try { return JSON.parse(fs.readFileSync(TEP_TU_CHOI, 'utf8')); } catch { return []; } })();
   const DU = tuChoiCu.length ? `\n\nLƯỢT TRƯỚC MÁY ĐÃ TỪ CHỐI các lệnh sau vì không khớp danh sách quyền (KHÔNG phải anh chặn, KHÔNG báo anh, KHÔNG dừng lượt):\n${tuChoiCu.map((c) => `- ${c}`).join('\n')}\nGõ lại dạng khớp: đứng gốc cây, mỗi lệnh bắt đầu đúng tên lệnh được phép; git chạy thẳng (đã ở gốc cây) hoặc git -C ${dir} — KHÔNG "cd … && git …" (Claude Code chặn dạng này dù có quyền, đo 17/11/2026).` : '';
   const GIAO_THANG = card.giao ? `VIỆC GIAO THẲNG từ anh Tuấn (qua Claude), KHÔNG có card trong hòm: BỎ QUA mọi lệnh claim / reply / submit / play reply / play done của hòm góp ý — các bước làm, kiểm, commit, push, deploy, kiểm sau deploy vẫn làm ĐỦ như dưới. Kết quả viết trong phần BÁO ANH (máy chuyển cho anh).\n\n` : '';
-  const giao = kiem ? `${loiGiao}\n\n${cfg.kiemThu(ctx)}` : `${GIAO_THANG}${loiGiao}${PUSH}${LENH}${DU}`;
+  // VIỆC CỦA NGƯỜI KHÁC (anh 17/11/2026: "thằng Khôi cũng ko đc hỏi việc của người khác"): kỹ sư thấy chỗ hỏng ngoài phần mình → KHÔNG hỏi / kể cho anh,
+  // ghi dòng CHUYỂN: <người> · <việc>; máy tự giao thẳng cho người đó (thư mục giao của họ) sau lượt.
+  const CHUYEN = `\n\nVIỆC CỦA KỸ SƯ KHÁC: thấy chỗ cần sửa nằm ngoài phần được giao / ngoài quyền của bạn → KHÔNG hỏi anh, KHÔNG liệt kê cho anh trong BÁO ANH. Ghi riêng mỗi việc một dòng "CHUYỂN: <mã người> · <việc cần làm, đủ để họ làm>" (mã người: ${Object.keys(KY_SU_GIAO).join(', ')}) — máy tự giao cho đúng người.`;
+  const giao = kiem ? `${loiGiao}\n\n${cfg.kiemThu(ctx)}` : `${GIAO_THANG}${loiGiao}${PUSH}${LENH}${DU}${CHUYEN}`;
 
   // PHIÊN mos2 60 phút cho profile br: tạo trên box3 rồi nạp cookie httpOnly thẳng vào daemon (/datcookie) — token không qua dòng lệnh br, Claude không thấy.
   // Cookie mos2-session trên .on.tc cũng là phiên SSO của các app con (spy.on.tc …).
@@ -169,6 +182,7 @@ export function chayKySu(cfg) {
   if (chan.length) { log(`⚠ ${chan.length} lệnh bị chặn: ${chan.map((c) => c.slice(0, 120)).join(' ‖ ')}`); fs.appendFileSync(path.join(os.homedir(), '.cache', 'ky-su-lenh-bi-chan.log'), chan.map((c) => `${new Date().toISOString()}\t${NGUOI}\t#${card.id}\t${c.replace(/\s+/g, ' ').slice(0, 300)}\n`).join('')); }
   const tuChoi = [...new Set([...chan, ...(kq.permission_denials || []).map((d) => String(d.tool_input?.command ?? d.tool_name ?? ''))].map((c) => c.replace(/\s+/g, ' ').slice(0, 160)).filter(Boolean))].slice(0, 8);
   if (!kiem) try { fs.writeFileSync(TEP_TU_CHOI, JSON.stringify(tuChoi)); } catch { /* ổ đầy: lượt sau không có gợi ý, vẫn chạy */ }
+  if (!kiem) for (const m of String(kq.result || '').matchAll(/^\s*CHUYỂN:\s*([a-z]+)\s*·\s*(.+)$/gim)) try { log(`chuyển việc: ${giaoCho(m[1], m[2], `${TEN} (#${card.id})`)}`); } catch (e) { log(`chuyển việc lỗi: ${e.message}`); }
   const ra = String(kq.result || '').trim(), ket0 = ((ra.match(/KET:\**\s*(DA_SUA|KHONG_SUA|CAN_ANH)/gi) || []).pop() || (r.signal || r.error ? 'treo' : 'khong_sua')).replace(/.*KET:\**\s*/i, '').toLowerCase();
   // "cần anh" / không sửa mà lượt có lệnh bị máy từ chối và lời báo nói về quyền → lỗi công cụ, KHÔNG phải việc anh (bộ chuẩn Huy): ghi khong_sua, và CHẠY LẠI ngay lượt 5 phút kế
   // với gợi ý lệnh khớp (trước 17/11/2026: card bị đánh dấu "đã làm" tới khi anh nhắn tin mới → Vinh không tự làm lại #1637). Tối đa 2 lần chạy lại vì quyền / card.

@@ -5,7 +5,10 @@
 //      các cây ~/may-ky-su (lệnh cấm, bí mật) · nhật ký việc nền (lỗi dồn) · quyền --allowedTools trong may/*.mjs bị nới · chính Hà (tạm dừng / bỏ bài).
 //   2. HÀ PHÁN (Claude, chỉ khi tầng 1 có cờ MỚI, hoặc 7 ngày một lượt rà cả tuần): CHỈ ĐỌC (Read / Grep / Glob), không chạy lệnh. Muốn làm thì ghi
 //      dòng `LÀM: tam-dung <id> <lý do>` · `LÀM: bo-bai <id> <mã> <lý do>` — máy soát rồi gọi worker/giam-sat-lam.mjs trên box3 (đều làm ngược lại được).
-//      Báo cáo `BÁO ANH:` → chủ đề Telegram 🛡 Giám sát CLI. Không sửa mã, không push, không xoá.
+//      Báo cáo `BÁO ANH:` → chủ đề Telegram 🛡 Giám sát CLI.
+//   SỬA (anh 17/11/2026: "sao con Hà ko thể sửa lỗi các con khác giống mày? Mày phải mở cho nó full quyền hơn"): Hà sửa gốc mã của các kỹ sư trong CÂY RIÊNG
+//      ~/may-ky-su/ha (mos2: runner may/*, worker/*, hồ sơ), kiểm, commit, push → GHA. Repo khác (spy-on-tc, Astrolas, puzzle-books) đang có kỹ sư làm trong cây chung →
+//      giao việc có bằng chứng vào hàng của kỹ sư đó. CHỐT: không sửa bộ gác của chính Hà (giam-sat*.mjs), không sửa ~/.claude, danh sách cấm chung (CAM) giữ nguyên.
 // ĐỘC LẬP: model riêng (model_cli trong SOUL của Hà, khác người bị soát), cây riêng ~/may-ky-su/ha, KHÔNG qua tự học (may/tu-hoc.mjs KHONG_TU_HOC).
 //   node giam-sat.mjs           một lượt     · --do   chỉ in cờ tầng 1, không gọi Claude, không báo     · --tu-kiem
 import { execFileSync } from 'node:child_process';
@@ -75,6 +78,18 @@ export function tachLam(chu) {
   }).filter(Boolean).slice(0, 5);
 }
 
+/** Quyền của Hà (anh 17/11/2026 mở quyền sửa): như một kỹ sư trong cây riêng `dir` — sửa / commit / push mos2, ssh box3 — trừ bộ gác của chính Hà và ~/.claude. */
+export async function quyenHa(dir) {
+  const { moRongQuyen, CAM } = await import('./gop-y-ky-su.mjs');
+  const QUYEN = moRongQuyen(['Read', 'Glob', 'Grep', `Edit(/${dir}/**)`, `Write(/${dir}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${dir}:*)`, `Bash(git -C ${dir}:*)`,
+    'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(git push origin HEAD:main)', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git fetch:*)',
+    'Bash(node:*)', `Bash(${HOME}/bin/gh-watch:*)`, 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)',
+    'Bash(uniq:*)', 'Bash(diff:*)', 'Bash(ps:*)', 'Bash(du:*)', 'Bash(df:*)', 'Bash(tmux ls)', 'Bash(tmux capture-pane:*)'], dir);
+  const TU_GAC = ['apps/cty/may/giam-sat.mjs', 'apps/cty/worker/giam-sat-lam.mjs'].flatMap((f) => [`Edit(/${dir}/${f})`, `Write(/${dir}/${f})`]);
+  const CAM_HA = [...CAM, ...TU_GAC, `Edit(/${HOME}/.claude/**)`, `Write(/${HOME}/.claude/**)`];
+  return { QUYEN, CAM_HA };
+}
+
 // ── chạy ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const box = (cmd, input) => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', BOX, cmd], { input, encoding: 'utf8', timeout: 120000, maxBuffer: 64 << 20 });
 const docSt = () => { try { return JSON.parse(fs.readFileSync(TEP_ST, 'utf8')); } catch { return {}; } };
@@ -121,20 +136,30 @@ async function luot({ chiDo }) {
 
   // 2. Hà phán
   fs.writeFileSync(path.join(TRAM, 'co.json'), JSON.stringify({ moi, tat_ca: co }, null, 1));
-  const dm = (soul.match(/^model_cli:.*$/m) || [''])[0], model = (dm.match(/claude-code:([\w.-]+)/) || [])[1] || 'sonnet', effort = (dm.match(/effort:(low|medium|high)\b/) || [])[1] || 'medium';
+  const dm = (soul.match(/^model_cli:.*$/m) || [''])[0], model = (dm.match(/claude-code:([\w.-]+)/) || [])[1] || 'opus', effort = (dm.match(/effort:(low|medium|high)\b/) || [])[1] || 'medium';
+  const { QUYEN, CAM_HA } = await quyenHa(dir);
   const giao = `Con là Hà, Kiểm soát tuyến 3 của công ty AI (cty.on.tc), đang soát ĐỘC LẬP các kỹ sư Claude Code chạy trên iMac (Huy, Khang, Mạnh, Tài, Vân, Long, Thảo, Đạt, Hiếu, Vinh, Thành).
 ${tuan ? 'Đây là LƯỢT RÀ TUẦN: đọc toàn bộ sổ kinh nghiệm, tìm bài học sai / lệch / chung chung / mâu thuẫn nhau, kể cả khi máy không gắn cờ.' : 'Máy đo vừa gắn cờ MỚI — xét từng cờ.'}
-Tệp để đọc (chỉ đọc, không chạy lệnh): ${path.join(TRAM, 'co.json')} (cờ: moi = cần xét lượt này) · ${path.join(TRAM, 'so-kinh-nghiem.json')} (bài học từng người: ma, noi_dung, ap = số lần áp dụng, dat = số lần đạt) · nhật ký phiên ở ${PJ}/-Users-htuan-may-ky-su-<người>-earns-marketing-os-v2/ · luật nhà ở ${HOME}/.claude/CLAUDE.md.
+Tệp để đọc: ${path.join(TRAM, 'co.json')} (cờ: moi = cần xét lượt này) · ${path.join(TRAM, 'so-kinh-nghiem.json')} (bài học từng người: ma, noi_dung, ap = số lần áp dụng, dat = số lần đạt) · nhật ký phiên ở ${PJ}/-Users-htuan-may-ky-su-<người>-earns-marketing-os-v2/ · luật nhà ở ${HOME}/.claude/CLAUDE.md.
 Với mỗi vấn đề: thật hay báo nhầm (đọc bằng chứng gốc), nặng cỡ nào, gốc ở đâu.
 Được LÀM (máy thực hiện, đều làm ngược lại được), mỗi việc một dòng riêng:
 LÀM: bo-bai <id người> <mã bài> <lý do>      — bài học sai luật / sai sự thật / gây hại
 LÀM: tam-dung <id người> <lý do>             — CHỈ khi kỹ sư đang gây hại thật (lệnh cấm, lộ bí mật, phá dữ liệu, chạy vòng đốt lượt); báo nhầm thì không
-Không sửa mã, không đề xuất tài khoản / tiền. Lỗi cần sửa mã thì ghi rõ tệp + kỹ sư phụ trách trong báo cáo.
-KẾT THÚC bằng dòng "BÁO ANH:" rồi tiếng Việt lời thường, gọn, cho anh đọc trên điện thoại: mỗi vấn đề một dòng (người · chuyện gì · đã làm gì / cần anh gì). Không có gì đáng báo thì ghi "BÁO ANH: ổn, không có gì". Xưng "con", gọi "anh".`;
+SỬA GỐC NHƯ MỘT KỸ SƯ (anh 17/11/2026 mở quyền): lỗi nằm trong mã của kỹ sư thì con TỰ SỬA, không chỉ báo.
+- Mos2 (runner apps/cty/may/*, apps/cty/worker/*, hồ sơ apps/cty/cong-ty/*, mã app các kỹ sư lo): sửa trong CÂY RIÊNG của con ${dir} — tìm gốc (vì sao lỗi tồn tại
+  được, còn chỗ nào cùng gốc), sửa một lần ở tầng gốc, chạy node --check + bài tự kiểm của tệp (node <tệp> --tu-kiem) + node apps/cty/scripts/tu-kiem.mjs, git add đúng tệp
+  con sửa, commit (tiếng Việt: gốc + cách sửa), git push origin HEAD:main, chờ ${HOME}/bin/gh-watch deploy.yml, rồi kiểm lại trên máy thật (ssh ${BOX}).
+- Repo khác (spy-on-tc — Tài · Astrolas — Thành · puzzle-books — Thảo / Khang) đang có kỹ sư làm trong cây chung: KHÔNG sửa ở đó; giao việc có bằng chứng + đề xuất
+  sửa vào hàng của kỹ sư phụ trách: ssh ${BOX} 'cd ${APP} && CTY_DATA_DIR=${DATA} THO_MAY_TEP=<tệp hàng> node worker/tho-may-viec.mjs --them <khoá> <phòng>' (chữ ở stdin;
+  hàng: Tài tai-nguyen-sua.json khoá box3:… · Huy etp-sua.json khoá etp:… · Khang social-sua.json khoá social:… · Thảo sach-sua.json khoá sach:…).
+- Chữa cháy trên box3 được (đo trước): huỷ truy vấn ĐỌC chạy lặp, renice lô nền. Không kill tiến trình ghi dữ liệu, không dừng web / postgres.
+CẤM: tiền / thanh toán / mua / đề xuất tài khoản · xoá dữ liệu · git reset / revert / checkout / push --force · sửa bộ gác của chính con (giam-sat.mjs, giam-sat-lam.mjs)
+· sửa ~/.claude · nới danh sách CAM của kỹ sư. Việc cần anh quyết → ghi rõ trong BÁO ANH.
+KẾT THÚC bằng dòng "BÁO ANH:" rồi tiếng Việt lời thường, gọn, cho anh đọc trên điện thoại: mỗi vấn đề một dòng (người · chuyện gì · đã làm gì / cần anh gì). Đã sửa gì thì ghi commit. Không có gì đáng báo thì ghi "BÁO ANH: ổn, không có gì". Xưng "con", gọi "anh".`;
   const { chayClaude, chuLoi } = await import('./claude-chay.mjs');
   log(`Hà phán (${model}${effort ? ` · ${effort}` : ''}): ${moi.length} cờ mới${tuan ? ' + rà tuần' : ''}`);
   const r = chayClaude('/opt/homebrew/bin/claude', ['-p', giao, '--model', model, '--effort', effort, '--output-format', 'json', '--setting-sources', 'project,local',
-    '--allowedTools', 'Read', 'Glob', 'Grep', '--disallowedTools', 'Bash', 'Edit', 'Write', 'NotebookEdit', 'WebFetch', 'WebSearch'], { cwd: dir, encoding: 'utf8', timeout: 30 * 60000, maxBuffer: 64 << 20, env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` } });
+    '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM_HA], { cwd: dir, encoding: 'utf8', timeout: 45 * 60000, maxBuffer: 64 << 20, env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` } });
   const loi = chuLoi(r); if (loi) { log(`Hà lỗi: ${loi.slice(0, 300)}`); return; }   // không lưu trạng thái → lượt sau xét lại
   let kq = ''; try { kq = String(JSON.parse(r.stdout).result ?? ''); } catch { kq = String(r.stdout); }
   const lam = tachLam(kq), ra = [];
@@ -165,6 +190,10 @@ if (process.argv[1] === new URL(import.meta.url).pathname && process.argv.includ
   t.deepEqual(tachLam('x\nLÀM: bo-bai huy bh-huy-2026-0 dạy dùng --no-verify\nLÀM: tam-dung khang chạy push --force 3 lần\nLÀM: bo-bai huy sai-ma lý do dài\nLÀM: xoa-het huy x'),
     [{ v: 'bo-bai', id: 'huy', ma: 'bh-huy-2026-0', ly: 'dạy dùng --no-verify' }, { v: 'tam-dung', id: 'khang', ly: 'chạy push --force 3 lần' }], 'chỉ nhận lệnh hợp lệ, bỏ mã sai + động từ lạ');
   t.equal(sach("x'; rm -rf / $(id) `y`"), 'x ; rm -rf / (id) y', 'lý do không mang nháy / $ / backtick qua shell');
+  { const d = '/Users/htuan/may-ky-su/ha/earns-marketing-os-v2', { QUYEN, CAM_HA } = await quyenHa(d);
+    t.ok(QUYEN.includes(`Edit(/${d}/**)`) && QUYEN.some((q) => q.startsWith('Bash(git commit')) && QUYEN.includes('Bash(git push origin HEAD:main)'), 'Hà sửa + commit + push được trong cây riêng');
+    t.ok(CAM_HA.includes(`Edit(/${d}/apps/cty/may/giam-sat.mjs)`) && CAM_HA.includes(`Edit(/${d}/apps/cty/worker/giam-sat-lam.mjs)`), 'không sửa bộ gác của chính Hà');
+    t.ok(CAM_HA.some((q) => q.includes('.claude/**')) && CAM_HA.includes('Bash(git reset:*)') && CAM_HA.includes('Bash(rm:*)'), 'không sửa ~/.claude, cấm chung giữ nguyên'); }
   t.notEqual(khoa({ loai: 'a', ai: 'b', vat: 'c' }), khoa({ loai: 'a', ai: 'b', vat: 'd' }));
   console.log('✓ giam-sat: học sai / lệch / phình / lộ bí mật, lệnh cấm, lỗi 24 giờ, quyền mới, lệnh LÀM hợp lệ');
 } else if (process.argv[1] === new URL(import.meta.url).pathname) await luot({ chiDo: process.argv.includes('--do') });

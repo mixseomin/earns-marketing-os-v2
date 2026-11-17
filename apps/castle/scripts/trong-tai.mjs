@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // TRỌNG TÀI MÁY — cổng trước khi bản sửa castle lên main (anh 16/11/2026: hệ tự phản biện; người sửa không tự chấm bài mình).
 // Người sửa (Thắng) chỉ COMMIT trong cây riêng; lệnh này chấm commit chưa lên main rồi mới đẩy:
-//   1. kiem-chu-thich (chú thích // nuốt mã) + kiem-nap-phien-ban (mô-đun mới có trong danh sách nạp theo phiên bản) + node --check mọi .js đã đổi + kiem-ke (kiểm kê mặt, chồng lấn)
+//   1. kiem-chu-thich (chú thích // nuốt mã) + kiem-nap-phien-ban (mô-đun mới có trong danh sách nạp theo phiên bản) + node --check mọi .js đã đổi + kiem-ke (kiểm kê mặt, chồng lấn) SO VỚI MỐC main: chỉ trả khi lỗi mới / tăng
 //   2. hình khối: cham-goc.mjs ở các góc chuẩn THẤY khối đã đổi (đổi mã dựng hình → đủ mọi góc), so với MỐC public/du-lieu/<lâu>-cham-goc.json:
 //      khối nào sau sửa lệch ≥ 1,5 m và tệ hơn trước ≥ 0,9 m → TRẢ (thoát 1), không đẩy
 //   3. đạt: gộp số đo mới vào mốc (commit kèm), --day thì git push origin HEAD:main (kéo main mới, thử 3 lần)
@@ -40,7 +40,15 @@ catch (e) { const ra = loi(e).split('\n').slice(0, 8).join('\n'); nho(false, ra)
 const hinh = doi.filter((f) => /^apps\/castle\/public\/.*\.(js|json)$/.test(f) && !/cham-goc\.json$|goc-chuan\.json$|kiem-ke-kq\.json$/.test(f));
 if (!hinh.length) { console.log('· không đổi mã / dữ liệu dựng hình — bỏ bước chấm góc'); }
 else {
-  try { chay('kiem-ke.mjs', ['--lau', 'neuschwanstein']); } catch (e) { const ra = loi(e).split('\n').filter((l) => /THIẾU|SAI|CHỒNG|✗/.test(l)).slice(0, 8).join('\n'); nho(false, ra); console.log(ra); tra('kiểm kê mặt hỏng'); }
+  // KIỂM KÊ SO VỚI MỐC TRÊN MAIN (17/11/2026: bỏ luật đoán → hàng chục mặt báo THIẾU cùng lúc; đòi sạch hết thì sửa xong một mặt vẫn bị chặn vì mặt khác):
+  // trả khi có mặt MỚI lỗi hoặc số lỗi một mặt TĂNG so với kiem-ke-kq.json trên origin/main; lỗi cũ chưa sửa không chặn, giảm lỗi là đạt (mốc mới commit cùng bảng chấm)
+  let raKK = ''; try { raKK = chay('kiem-ke.mjs', ['--lau', 'neuschwanstein']); } catch (e) { raKK = loi(e); }
+  { let goc = {}; try { goc = JSON.parse(g('show', 'origin/main:apps/castle/public/du-lieu/neuschwanstein-kiem-ke-kq.json')).mat || {}; } catch { /* chưa có mốc: so với rỗng */ }
+    const moi = existsSync(du('kiem-ke-kq')) ? JSON.parse(readFileSync(du('kiem-ke-kq'), 'utf8')).mat || {} : {};
+    const xau = Object.entries(moi).filter(([k, v]) => (v.loi?.length || 0) > (goc[k]?.loi?.length || 0)).map(([k, v]) => `${k}: ${goc[k]?.loi?.length || 0} → ${v.loi.length} lỗi — ${v.loi.filter((l) => !(goc[k]?.loi || []).includes(l)).slice(0, 3).join(' · ')}`);
+    const tong = (m) => Object.values(m).reduce((s, v) => s + (v.loi?.length || 0), 0);
+    console.log(`· kiểm kê: ${tong(goc)} → ${tong(moi)} lỗi so với mốc main`);
+    if (xau.length) { const ra = 'KIỂM KÊ XẤU ĐI:\n' + xau.slice(0, 10).join('\n') + '\n' + raKK.split('\n').filter((l) => /CHỒNG|LƠ LỬNG|ĐÈ CỬA/.test(l)).join('\n'); nho(false, ra); console.log(ra); tra('kiểm kê mặt xấu đi so với main (danh sách trên)'); } }
   const MOC = du('cham-goc'); if (!existsSync(MOC)) tra(`chưa có mốc ${MOC} — chạy cham-goc.mjs đủ góc trên main rồi commit làm mốc`);
   const moc = JSON.parse(readFileSync(MOC, 'utf8'));
   // góc cần chấm: chỉ sua.json đổi → các góc mốc từng đo được khối đã đổi; đổi tệp khác (mã dựng, dữ liệu khác) → mọi góc

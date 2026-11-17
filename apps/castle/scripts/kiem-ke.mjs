@@ -51,6 +51,7 @@ for (const m of KK.mat) {
 }
 const matChong = [...new Set(chong.map((c) => c.mat))];
 for (const c of chong) { (KQ[c.mat] ??= { ten: c.mat, khop: 0, loi: [], loai_sai: [] }).loi.push(`ô cửa chồng lấn tại s ${c.a[0]} / ${c.b[0]}`); KQ[c.mat].loai_sai.push('cua_so'); }
+for (const c of loLung) { (KQ[c.mat] ??= { ten: c.mat, khop: 0, loi: [], loai_sai: [] }).loi.push(`ô cửa lơ lửng y ${c.y} ngoài tường ${c.chan}–${c.dinh}`); KQ[c.mat].loai_sai.push('cua_so'); }
 for (const c of deCua) { (KQ[c.mat] ??= { ten: c.mat, khop: 0, loi: [], loai_sai: [] }).loi.push(`${c.loai} (tâm ${c.tam.join(', ')}) đè khung ô cửa ${c.cua} y ${c.cuaY.join('–')}`); KQ[c.mat].loai_sai.push(c.loai); }
 { const cu = existsSync(du('kiem-ke-kq')) ? JSON.parse(readFileSync(du('kiem-ke-kq'), 'utf8')) : null; if (JSON.stringify(cu?.mat) !== JSON.stringify(KQ)) writeFileSync(du('kiem-ke-kq'), JSON.stringify({ luc: new Date().toISOString(), mat: KQ }, null, 1) + '\n'); }   // chỉ ghi khi KẾT QUẢ đổi: ghi lại mỗi lượt (dấu giờ mới) làm cây kỹ sư luôn bẩn → trọng tài đạt mà máy không đẩy được (16/11/2026) // CHỒNG LẤN toàn mô hình (mọi mặt, không riêng mặt đã kiểm kê)
 console.log(`\nCHỒNG LẤN ô cửa: ${chong.length} cặp trên ${matChong.length} mặt${chong.length ? ' — ' + matChong.slice(0, 12).join(', ') : ''}`);

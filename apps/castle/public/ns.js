@@ -364,6 +364,7 @@ const huongRaSan = (x1, z1, x2, z2) => { if (!SAN0) return false; const L = Math
 // VÒM CỔNG: đường ô tô / lối đi OSM cắt ngang một bức tường → khoét vòm cổng thật ở chỗ cắt (đường lên cổng Torbau xuyên khối cổng — trước đường cụt ở chân tường,
 // anh 16/11/2026). Rộng theo đường + 0,6 m, cao CAO_CONG từ mặt đất; khung đá vòm dựng sau (VOM_CONG)
 // SỔ KIỂM KÊ chi tiết đã dựng: { mat: "khối#cạnh" | "khối#mai" | "khối#*", loai, y } — scripts/kiem-ke.mjs gộp theo vùng mặt tường, so với <lâu>-kiem-ke.json (đếm trên ảnh)
+const THIEU_ANH = []; // chi tiết có thẻ bật mà chưa có số đo / đếm trên ảnh → không dựng (trangtri.js dem.thieuAnh; scripts lấy qua window.__ns.thieuAnh)
 const KIEM_KE = [], ghiKK = (mat, loai, y, n = 1, x = null, z = null, hop = null) => { if (mat) for (let i = 0; i < n; i++) KIEM_KE.push({ mat, loai, y, x, z, hop }); }; // x, z: vị trí trên mặt tường (kiểm vị trí trong khung)
 const VOM_CONG = [], CAO_CONG = 6.2; // lỗ cổng cao 6,2 m tới đỉnh vòm (ảnh 360° cổng Torbau: vòm cao ~1,5 lần bề rộng; trước 4,6 m thấp lùn)
 // cổng nằm trên MẶT DỰNG RIÊNG theo ảnh chụp (mặt Torbau hướng sân dưới, góp ý #1641): chiều cao lỗ lấy từ tệp bố cục (cong.cao, đo trên ảnh) thay số chung —
@@ -529,8 +530,8 @@ function dungKhoi(k, G) {
         for (let b = 0; b < nb; b++) for (const P of [A, Bq]) { const f0 = b / nb, f1 = (b + 1) / nb, y0 = A[1] + H * f0, y1 = A[1] + H * f1;
           const x0 = P[0] + (mx - P[0]) * f0, z0 = P[2] + (mz - P[2]) * f0, x1 = P[0] + (mx - P[0]) * f1, z1 = P[2] + (mz - P[2]) * f1;
           BAC_HOI.push({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, y: y1 + 0.35, w: Math.hypot(x1 - x0, z1 - z0) + 0.25, h: 0.7 + (y1 - y0) * 0.3, goc: Math.atan2(z1 - z0, x1 - x0), mau: mh.clone() }); }
-        // trụ đỉnh: cao theo thẻ hoi_tru (m, sua.json — 0 = không có trụ, mũi đầu hồi chỉ là bậc nắp đá), mặc định 1,6
-        const hTru = so(t.hoi_tru) ?? 1.6;
+        // trụ đỉnh: cao theo thẻ hoi_tru (m, đo trên ảnh — 0 = không có trụ); KHÔNG có số thì không dựng (17/11/2026 bỏ mặc định 1,6 m đoán)
+        const hTru = so(t.hoi_tru) ?? 0; if (so(t.hoi_tru) == null) console.info('[ns] thiếu số ảnh: trụ đỉnh đầu hồi', k.id);
         if (hTru > 0) BAC_HOI.push({ x: R[0], z: R[2], y: R[1] + 0.1 + hTru / 2, w: 0.7, h: hTru, goc: Math.atan2(Bq[2] - A[2], Bq[0] - A[0]), mau: mh.clone() });
         ghiKK(k.id + '#mai', 'hoi_bac', R[1]);
       }
@@ -748,7 +749,7 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
   { // TRANG TRÍ MẶT TIỀN theo thẻ sua.json (răng cưa, vòm nhỏ, đá góc, tháp canh, đỉnh tháp tròn) — trangtri.js
     const vlKem = vlTu(TEX.daVoi(TEX.rngTu(81)), { bump: 1 }); vlKem.color.set('#efe3c4');
     const { ra, dem, kk } = datTrangTri({ THREE, mergeGeometries, dsKhoi, vl: vlKem, coSoDo: (id) => CUA_SO?.[id]?.hang, oVuong: (id) => CUA_SO?.[id]?.o_vuong, soDo: (id) => CUA_SO?.[id], ngoai: (k, x, z, y) => !dsKhoi.some((q) => q !== k && !(q.vo && q.coPart) && (q.yTren ?? 0) > y && (q.yDuoi ?? -1e9) < y && trongDa(x, z, q.v)) });
-    for (const m of ra) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); } console.info('[ns] trang trí mặt tiền:', JSON.stringify(dem)); KIEM_KE.push(...kk);
+    for (const m of ra) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); } console.info('[ns] trang trí mặt tiền:', JSON.stringify(dem)); THIEU_ANH.push(...(dem.thieuAnh || [])); KIEM_KE.push(...kk);
   }
   // đá nắp kem trên mỗi bậc (ảnh 360° cổng Torbau: bậc gạch đỏ, mặt trên phủ đá sa thạch kem nhô hai bên)
   for (const b of BAC_HOI.slice()) if (!b.nap) BAC_HOI.push({ ...b, y: b.y + b.h / 2 + 0.09, h: 0.18, w: b.w + 0.12, mau: new THREE.Color('#e8dcbe'), nap: true });
@@ -1539,7 +1540,7 @@ const nhieuNguoi = di ? taoNhieuNguoi({ THREE, scene, lau: 'neuschwanstein', nut
   layTrangThai: () => (di.dang ? { p: di.viTri(), h: di.huong, s: { tt: di.tt, toc: di.toc, nen: di.nen, ngoi: !!dangNgoi } } : null) }) : null;
 function phongHienTai() { if (!noiThat || !di?.dang) return null; const p = di.viTri(); return noiThat.phongTai(p.x, p.y - 0.9, p.z); }
 window.__ns.cuaSo = { CUA, timCua, sanSauCua, moCuaVao, gan: () => ganCua };
-window.__ns.thayDiem = thayDiem; // kiểm tầm nhìn chỗ chụp → điểm (bài thử 📷)
+window.__ns.thieuAnh = () => THIEU_ANH; window.__ns.thayDiem = thayDiem; // kiểm tầm nhìn chỗ chụp → điểm (bài thử 📷)
 // NHỚ GÓC NHÌN QUA F5 (anh 16/11/2026: "lỡ F5 là mất luôn"): mỗi giây ghi góc đang xem vào ĐỊA CHỈ TRANG (#g=… — sao chép link gửi người khác cũng mở
 // đúng góc) + localStorage; mở / tải lại thì về đúng chỗ. Toàn cảnh: camera + điểm nhìn + góc nhìn. Đi bộ: chỗ đứng + hướng người + hướng nhìn.
 const GOC_KHOA = 'ns-goc';

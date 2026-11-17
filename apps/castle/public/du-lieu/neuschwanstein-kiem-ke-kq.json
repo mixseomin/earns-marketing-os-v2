@@ -1,26 +1,50 @@
 {
- "luc": "2026-11-17T08:07:57.424Z",
+ "luc": "2026-11-17T09:42:13.090Z",
  "mat": {
   "way/223110823#3": {
    "ten": "Torbau — khối cổng kem (mặt đông)",
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
-   "khop": 8,
-   "loi": [],
-   "loai_sai": []
+   "khop": 5,
+   "loi": [
+    "dinh: rang_cua ảnh 10 · mô hình 5 (THIẾU)",
+    "dinh: thap_canh ảnh 2 · mô hình 0 (THIẾU)",
+    "than_tren: go_ngang ảnh 2 · mô hình 0 (THIẾU)"
+   ],
+   "loai_sai": [
+    "rang_cua",
+    "thap_canh",
+    "go_ngang"
+   ]
   },
   "way/223110823#4": {
    "ten": "Torbau — khối cổng kem (mặt đông)",
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
-   "khop": 8,
-   "loi": [],
-   "loai_sai": []
+   "khop": 5,
+   "loi": [
+    "dinh: rang_cua ảnh 10 · mô hình 5 (THIẾU)",
+    "dinh: thap_canh ảnh 2 · mô hình 0 (THIẾU)",
+    "than_tren: go_ngang ảnh 2 · mô hình 0 (THIẾU)"
+   ],
+   "loai_sai": [
+    "rang_cua",
+    "thap_canh",
+    "go_ngang"
+   ]
   },
   "way/223110820#14": {
    "ten": "Torbau — khối cổng kem (mặt đông)",
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
-   "khop": 8,
-   "loi": [],
-   "loai_sai": []
+   "khop": 5,
+   "loi": [
+    "dinh: rang_cua ảnh 10 · mô hình 5 (THIẾU)",
+    "dinh: thap_canh ảnh 2 · mô hình 0 (THIẾU)",
+    "than_tren: go_ngang ảnh 2 · mô hình 0 (THIẾU)"
+   ],
+   "loai_sai": [
+    "rang_cua",
+    "thap_canh",
+    "go_ngang"
+   ]
   },
   "way/223110825#0": {
    "ten": "Torbau — cánh nam gạch đỏ (mặt đông)",
@@ -32,9 +56,15 @@
   "way/221599084#*": {
    "ten": "Torbau — tháp tròn góc nam",
    "anh": "Mapillary 360° 493003245182754 (3 ô cửa mỗi phía nhìn thấy; 4 phía)",
-   "khop": 2,
-   "loi": [],
-   "loai_sai": []
+   "khop": 0,
+   "loi": [
+    "toan: vong_rang ảnh 1 · mô hình 0 (THIẾU)",
+    "toan: o_vuong ảnh 12 · mô hình 0 (THIẾU)"
+   ],
+   "loai_sai": [
+    "vong_rang",
+    "o_vuong"
+   ]
   },
   "way/951894999#mai": {
    "ten": "Torbau — đầu hồi bậc thang gạch đỏ",

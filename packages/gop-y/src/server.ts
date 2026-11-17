@@ -138,7 +138,9 @@ const laNguoi = (me: Nguoi) => {
 
 /** Kỹ sư CLI phụ trách hòm đang chạy một lượt? Đọc dòng cuối nhật ký nhịp <CTY_DATA_DIR>/nhip/<người>.json (bộ điều phối iMac đẩy về box3). */
 function kySuDangChay(duAn: string): string | null {
-  const nguoi = KY_SU_HOM[duAn]; if (!nguoi) return null;
+  const nguoi = KY_SU_HOM[duAn]; return nguoi ? nhipDangChay(nguoi) : null;
+}
+function nhipDangChay(nguoi: string): string | null {
   const thu = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip');
   try {
     const dong = fs.readFileSync(path.join(thu, `${nguoi}.jsonl`), 'utf8').trim().split('\n').slice(-200)
@@ -148,6 +150,29 @@ function kySuDangChay(duAn: string): string | null {
   try { return luotDangChay(JSON.parse(fs.readFileSync(path.join(thu, `${nguoi}.json`), 'utf8'))); }
   catch { return null; }   // máy không có nhật ký (dev / app khác máy) → chỉ dựa vào card claimed
 }
+
+/** Một việc giao thẳng cho kỹ sư (tệp ~/may-ky-su/<người>/giao/*.json trên iMac, máy đẩy về box3 mỗi lượt — apps/cty/may/gop-y-ky-su.mjs dayHangGiao). */
+export type ViecGiao = { tep: string; tieu_de?: string; noi_dung?: string; luc?: string; trang_thai: 'cho' | 'dang' | 'xong'; ket?: string; xong_luc?: string; bao?: string };
+export type HangGiao = { nguoi: string; /** tên hiện (app điền, vd "Khôi") */ ten?: string; luc: string | null; viec: ViecGiao[] };
+/** Hàng việc giao của một kỹ sư: <CTY_DATA_DIR>/giao/<người>.json. Việc CHỜ cũ nhất = việc đang làm khi nhật ký nhịp báo "việc giao: <tiêu đề>"
+ *  (bộ chạy lấy tệp cũ nhất trước). Thiếu tệp → hàng rỗng (luc null), không ném. */
+export function docHangGiao(nguoi: string, dangChay: string | null = null): HangGiao {
+  const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'giao', `${nguoi}.json`);
+  let j: { luc?: string; viec?: ViecGiao[] } = {};
+  try { j = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { return { nguoi, luc: null, viec: [] }; }
+  const viec = (Array.isArray(j.viec) ? j.viec : []).map((v) => ({ ...v, trang_thai: v.trang_thai === 'xong' ? 'xong' : 'cho' }) as ViecGiao);
+  const dau = viec.find((v) => v.trang_thai === 'cho');
+  if (dau && dangChay && /^việc giao/.test(dangChay)) dau.trang_thai = 'dang';
+  return { nguoi, luc: j.luc ?? null, viec };
+}
+/** Hòm 💬 tab Của tôi: việc anh giao cho kỹ sư phụ trách hòm `duAn` (KY_SU_HOM). Chỉ admin — nội dung là lệnh của anh. */
+export async function hangGiao(duAn: string, me: Nguoi | null): Promise<HangGiao | null> {
+  const nguoi = KY_SU_HOM[duAn];
+  if (!me || me.role !== 'admin' || !nguoi) return null;
+  return docHangGiao(nguoi, kySuDangChay(duAn));
+}
+/** Như hangGiao nhưng theo mã người (ngăn nhân sự /nhan-su/<id>, trang đã tự xét admin). */
+export function hangGiaoNguoi(nguoi: string): HangGiao { return docHangGiao(nguoi, nhipDangChay(nguoi)); }
 
 /** SỐ CHO NÚT 💬 (CHUAN.md): working = card claimed của hòm (mọi người gửi, còn trong trần phiên) + lượt kỹ sư CLI đang chạy;
  *  can_y_kien = card CỦA CHÍNH người xem đang chờ họ. Nút nạp 60 giây một lần khi tab đang hiện. */

@@ -39,6 +39,8 @@ import { LichPhong, demGap } from '../lich-phong';
 import { NEN_VIDEO, phutVN, tenSlug } from '../../../worker/video.mjs';
 import { trachNhiem, demTn, giaiMa, chuCard } from '@/lib/trach-nhiem';
 import { KhoiTrachNhiem } from '../trach-nhiem';
+import { hangGiaoNguoi } from '@mos2/gop-y/server';
+import { DsViecGiao } from '@mos2/gop-y/client';
 
 export type Ngan = { tieuDe: React.ReactNode; than: React.ReactNode };
 const Thieu = ({ chu }: { chu: string }) => <p className="cty-bao-loi" data-loi>{chu}</p>;
@@ -214,6 +216,8 @@ export async function nganNhanSu(id: string, admin = false): Promise<Ngan> {
   const vi = (soVi() as Record<string, Vi>)[id];
   const vaiLuong = giu.find((g) => (bangLuong() as { vai: Record<string, unknown> }).vai[g.ma])?.ma ?? vi?.muc[0]?.vai ?? null;
   const lg = vaiLuong ? (luongVai(vaiLuong, t?.cap ?? 1) as Luong | null) : null; const tenVai = vaiLuong ? ((theVai(vaiLuong) as { ten?: string } | null)?.ten ?? vaiLuong) : '';
+  // VIỆC GIAO THẲNG cho kỹ sư CLI (anh 17/11/2026 "việc mày giao cho thằng Khôi tao xem ở đâu"): <CTY_DATA_DIR>/giao/<id>.json — chỉ admin, chỉ người có hàng
+  const hg = admin ? hangGiaoNguoi(id) : null; const coGiao = !!hg?.luc;
   const ls = ((lichSu() as Record<string, Ngay[]>)[id]) ?? []; const tc = tinhCachCua(f) as TinhCach[]; const so = soTinhCachCua(id) as SoTc[]; const viec = viecCua(id) as Viec[]; const tn = await trachNhiem();
   const dau = (
     <div className="cty-ns-dau">
@@ -235,11 +239,12 @@ export async function nganNhanSu(id: string, admin = false): Promise<Ngan> {
   return {
     tieuDe: <>{String(f.ten)} <span className="cty-muted">· {giu[0]?.the?.ten ?? String(f.chuc_danh)}{t ? ` · cấp ${t.cap}` : ''}</span></>,
     than: (
-      <TabPhong khoa={`ns-${id}`} dau={dau} tabs={[{ key: 'nl', nhan: 'Chỉ số', so: t ? `cấp ${t.cap}` : '' }, { key: 'tn', nhan: 'Trách nhiệm', so: ((x) => `${x.chuTri} · ${x.viec}`)(demTn(tn, id)) }, { key: 'viec', nhan: 'Việc', so: new Set(viec.map((v) => v.luot)).size }, { key: 'kn', nhan: 'Kinh nghiệm', so: bh.length }, { key: 'vi', nhan: 'Ví', so: vi ? trieu(vi.tong_vnd) : '' }, { key: 'vai', nhan: 'Vai', so: giu.length }, { key: 'hs', nhan: 'Hồ sơ' }, { key: 'lich', nhan: 'Lịch chạy' }]}>
+      <TabPhong khoa={`ns-${id}`} dau={dau} tabs={[{ key: 'nl', nhan: 'Chỉ số', so: t ? `cấp ${t.cap}` : '' }, { key: 'tn', nhan: 'Trách nhiệm', so: ((x) => `${x.chuTri} · ${x.viec}`)(demTn(tn, id)) }, { key: 'viec', nhan: 'Việc', so: new Set(viec.map((v) => v.luot)).size }, ...(coGiao ? [{ key: 'giao', nhan: 'Việc giao', so: hg!.viec.filter((v) => v.trang_thai !== 'xong').length }] : []), { key: 'kn', nhan: 'Kinh nghiệm', so: bh.length }, { key: 'vi', nhan: 'Ví', so: vi ? trieu(vi.tong_vnd) : '' }, { key: 'vai', nhan: 'Vai', so: giu.length }, { key: 'hs', nhan: 'Hồ sơ' }, { key: 'lich', nhan: 'Lịch chạy' }]}>
         {[
           <TheNhanVat key="nl" id={id} h={h} t={t} ls={ls} tc={tc} so={so} lg={lg} kn={{ ky_nang: soKn, bai_hoc: bh.length - soKn }} />,
           <div key="tn"><KhoiTrachNhiem id={id} tn={tn} /><p className="cty-muted cty-nho">Chịu trách nhiệm chính = người trả lời khi quy trình hỏng hay trễ, kể cả phần máy làm thay. Ghi ở cong-ty/quy-trinh/&lt;phòng&gt;/danh-sach.json (chu_tri, lam) theo vai.</p></div>,
           <DsViec key="viec" id={id} ds={viec} />,
+          ...(coGiao ? [<DsViecGiao key="giao" hg={{ ...hg!, ten: String(f.ten) }} />] : []),
           <KinhNghiem key="kn" id={id} ds={bh} admin={admin} />,
           <ViNhanSu key="vi" vi={vi} lg={lg} tenVai={tenVai} />,
           <div key="vai" className="cty-ns-vai">{giu.length ? giu.map((g, i) => (

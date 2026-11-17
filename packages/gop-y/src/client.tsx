@@ -5,7 +5,7 @@
 // Phần riêng của từng app đi vào qua props: `hd` (server action của app, bọc @mos2/gop-y/server), `Khung` (drawer của app),
 // `nut` (class nút), `xemAnh` (xem ảnh to), `chonNgan`/`chonLoi` (selector để gom ngữ cảnh), `khoa` (tiền tố localStorage).
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ComponentType, type ReactNode } from 'react';
-import type { GopYCuaToi, TinTraoDoi, Kq } from './server';
+import type { GopYCuaToi, TinTraoDoi, Kq, HangGiao, ViecGiao } from './server';
 import { demTuDs, DEM_RONG, type DemGopY } from './dem';
 
 export type HanhDongGopY = {
@@ -17,6 +17,8 @@ export type HanhDongGopY = {
   guiTraoDoi: (input: { taskId: number; noiDung: string; anhUrls: string[]; xuLy: string }) => Promise<Kq>;
   taiAnhGopY: (dataUrl: string) => Promise<{ ok: boolean; url?: string; error?: string }>;
   xoaAnhGopY?: (url: string) => Promise<unknown>;
+  /** Hàng việc giao thẳng cho kỹ sư phụ trách hòm (bọc `hangGiao` của @mos2/gop-y/server) — hiện ở tab Của tôi. Thiếu / null thì không hiện mục. */
+  hangGiao?: () => Promise<HangGiao | null>;
 };
 export type KhungHom = ComponentType<{ onClose: () => void; tieuDe: ReactNode; dau: ReactNode; children: ReactNode }>;
 export type CauHinhHom = {
@@ -510,6 +512,62 @@ function CuaToi({ ds, onNap, trong = 'Chưa có góp ý nào.' }: { ds: GopYCuaT
   );
 }
 
+// HÀNG VIỆC GIAO THẲNG (anh 17/11/2026: "việc mày giao cho thằng Khôi tao xem ở đâu"): việc Claude giao cho kỹ sư không có card trong hòm —
+// đang làm · chờ (đúng thứ tự máy sẽ làm: tệp cũ nhất trước) · đã xong (kết quả + giờ VN). Bấm một việc mở nội dung giao + BÁO ANH.
+// Dùng ở tab Của tôi của hòm và ngăn nhân sự cty (/nhan-su/<id>) — không đọc Ctx để đứng được ngoài hòm.
+const KET_GIAO: Record<string, { nhan: string; mau: string }> = {
+  da_sua: { nhan: 'Đã sửa', mau: 'var(--lime)' }, khong_sua: { nhan: 'Không sửa', mau: 'var(--fg-3)' }, can_anh: { nhan: 'Cần anh', mau: 'var(--amber)' },
+};
+const NHOM_GIAO: Array<{ tt: ViecGiao['trang_thai']; nhan: string; mau: string }> = [
+  { tt: 'dang', nhan: 'Đang làm', mau: 'var(--cyan)' }, { tt: 'cho', nhan: 'Chờ', mau: 'var(--fg-3)' }, { tt: 'xong', nhan: 'Đã xong', mau: 'var(--lime)' },
+];
+export function DsViecGiao({ hg, tieuDe = true }: { hg: HangGiao | null; tieuDe?: boolean }) {
+  const [mo, setMo] = useState<string | null>(null);
+  if (!hg) return null;
+  const ten = hg.ten || hg.nguoi;
+  const soCho = hg.viec.filter((v) => v.trang_thai !== 'xong').length;
+  return (
+    <div data-viec-giao="" style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', marginBottom: 10, background: 'var(--bg-1)' }}>
+      {tieuDe && <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
+        <b style={{ fontSize: 12.5 }}>📋 Việc giao cho {ten}</b>
+        <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{soCho ? `${soCho} chưa xong` : 'không còn việc chờ'}</span>
+        <span style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--fg-4)' }} title="Máy trên iMac đẩy hàng việc về mỗi lượt kỹ sư (5 phút)">{hg.luc ? `cập nhật ${gioVN(hg.luc)}` : 'chưa có số'}</span>
+      </div>}
+      {!hg.viec.length && <div style={{ fontSize: 12, color: 'var(--fg-3)', padding: '4px 0' }}>{hg.luc ? 'Chưa có việc giao nào.' : `Máy chưa đẩy hàng việc của ${ten} lên (chạy ở lượt kỹ sư kế tiếp).`}</div>}
+      {NHOM_GIAO.map((g) => {
+        const ds = hg.viec.filter((v) => v.trang_thai === g.tt);
+        if (!ds.length) return null;
+        return (
+          <div key={g.tt} style={{ marginTop: 6 }}>
+            <div style={{ ...lbl, color: g.mau }}>{g.nhan} · {ds.length}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {ds.map((v, i) => {
+                const k = `${v.trang_thai}:${v.tep}`; const ket = v.ket ? KET_GIAO[v.ket] ?? { nhan: v.ket, mau: 'var(--fg-3)' } : null;
+                return (
+                  <div key={k} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '5px 8px', background: 'var(--bg-2)' }}>
+                    <div onClick={() => setMo(mo === k ? null : k)} style={{ cursor: 'pointer', display: 'flex', gap: 6, alignItems: 'center', fontSize: 12 }}>
+                      {g.tt === 'cho' && <span style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }} title="Thứ tự sẽ làm">{i + 1}.</span>}
+                      {ket && <span style={{ fontSize: 10.5, border: `1px solid ${ket.mau}`, color: ket.mau, borderRadius: 4, padding: '0 5px', whiteSpace: 'nowrap' }}>{ket.nhan}</span>}
+                      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: mo === k ? 'normal' : 'nowrap' }}>{v.tieu_de || v.tep}</span>
+                      <span style={{ fontSize: 10.5, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{v.trang_thai === 'xong' && v.xong_luc ? `xong ${gioVN(v.xong_luc)}` : v.luc ? `giao ${gioVN(v.luc)}` : ''}</span>
+                    </div>
+                    {mo === k && (
+                      <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div><div style={lbl}>Nội dung giao</div><div style={{ fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{v.noi_dung || '—'}</div></div>
+                        {v.bao && <div><div style={lbl}>Báo anh</div><div style={{ fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-word', borderLeft: `2px solid ${ket?.mau ?? 'var(--line)'}`, paddingLeft: 8 }}>{v.bao}</div></div>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Chữ khi rê chuột lên nút 💬: vừa gửi · số chờ ý kiến · "AI đang làm: <tiêu đề việc>" (CHUAN.md). */
 export function tieuDeNut(vuaGui: number | null, dem: DemGopY): string {
   if (vuaGui) return `Đã gửi card #${vuaGui}`;
@@ -547,7 +605,8 @@ export function HomGopY(p: CauHinhHom) {
     nhip(); const t = setInterval(nhip, 60_000); document.addEventListener('visibilitychange', nhip);
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', nhip); };
   }, []);
-  const nap = () => { void hd.dsGopYCuaToi().then(setDs); void napDem(); };
+  const [hg, setHg] = useState<HangGiao | null>(null);
+  const nap = () => { void hd.dsGopYCuaToi().then(setDs); void napDem(); if (hd.hangGiao) void hd.hangGiao().then(setHg).catch(() => { /* giữ hàng cũ */ }); };
   useEffect(() => {
     if (!mo) return;
     nap();
@@ -583,7 +642,7 @@ export function HomGopY(p: CauHinhHom) {
             <div data-gy-dang-lam="" title="Nạp lại mỗi 60 giây" style={{ fontSize: 11.5, padding: '5px 8px', marginBottom: 8, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: dem.working ? 'var(--fg-2)' : 'var(--fg-3)' }}>
               {dem.working ? <>🔧 <b>AI đang làm:</b> {dem.dangLam.join(' · ') || `${dem.working} việc`}</> : 'AI đang rảnh'}
             </div>
-            {tab === 'gui' ? <FormGopY onGui={daGui} /> : tab === 'hoi-dap' ? <CuaToi ds={hoi} onNap={nap} trong="Chưa có câu hỏi nào — chọn Loại: Câu hỏi khi gửi." /> : <CuaToi ds={ds} onNap={nap} />}
+            {tab === 'gui' ? <FormGopY onGui={daGui} /> : tab === 'hoi-dap' ? <CuaToi ds={hoi} onNap={nap} trong="Chưa có câu hỏi nào — chọn Loại: Câu hỏi khi gửi." /> : <><DsViecGiao hg={hg} /><CuaToi ds={ds} onNap={nap} /></>}
           </div>
         </Khung>
       )}

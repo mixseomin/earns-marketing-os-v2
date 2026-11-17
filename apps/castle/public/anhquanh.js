@@ -64,14 +64,18 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY, thay
   // (bấm = xem ảnh đó), ← → đổi ảnh, nút Chọn ngay dưới ảnh lớn, bấm vào ảnh lớn = toàn màn hình. Không còn bước "bấm 🔎 mới thấy ảnh to".
   let dang = 0;
   // ẢNH CHỌN → ĐÍNH VÀO THẺ (anh 17/11/2026: "bấm sang gửi góp ý kèm ảnh thì không thấy 2 ảnh thật được chọn đâu"): chọn là tải sẵn qua máy chủ kênh
-  // (/mp/anh-tai — ảnh Commons / Mapillary khác nguồn, canvas không đọc thẳng được) thành dataURL ≤ 1600 px; hòm góp ý nhận như ảnh chụp trang
+  // (tải thẳng bằng CORS, dự phòng /mp/anh-tai) thành dataURL ≤ 1600 px; hòm góp ý nhận như ảnh chụp trang
   // (hiện trong ô ảnh đính kèm, bỏ được, tải lên R2 khi gửi). 🔍 báo lệch gửi kèm cùng các ảnh này.
   const DATA = new Map();
   async function taiSan(a) {
     const k = a.nguon + a.id; if (DATA.has(k)) return;
     DATA.set(k, null);
     try {
-      const b = await (await fetch(`${MP}/mp/anh-tai?url=${encodeURIComponent(a.lon)}`, { credentials: 'same-origin' })).blob(), bm = await createImageBitmap(b);
+      // tải THẲNG từ trình duyệt (Commons + Mapillary đều cho CORS *); máy chủ kênh chỉ là đường dự phòng — IP máy chủ bị Wikimedia trả 429 với ảnh cỡ lớn
+      let r = await fetch(a.lon, { mode: 'cors' }).catch(() => null);
+      if (!r?.ok) r = await fetch(`${MP}/mp/anh-tai?url=${encodeURIComponent(a.lon)}`, { credentials: 'same-origin' });
+      if (!r.ok) throw new Error('tải ảnh ' + r.status);
+      const b = await r.blob(), bm = await createImageBitmap(b);
       const t = Math.min(1, 1600 / Math.max(bm.width, bm.height)), c = document.createElement('canvas'); c.width = Math.round(bm.width * t); c.height = Math.round(bm.height * t);
       c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height); DATA.set(k, c.toDataURL('image/jpeg', 0.85));
     } catch (e) { DATA.delete(k); console.warn('[📷] không tải sẵn được ảnh', a.id, e); }

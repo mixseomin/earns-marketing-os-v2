@@ -91,9 +91,9 @@ async function xuLyTaiAnh(u, res) {
   let dich; try { dich = new URL(u.searchParams.get('url') || ''); } catch { res.writeHead(400).end(); return; }
   if (dich.protocol !== 'https:' || !HOST_ANH.test(dich.hostname)) { res.writeHead(403).end(); return; }
   try { const r = await fetch(dich, { headers: { 'User-Agent': 'castle-lau-dai-that/1.0 (anh-tai)' }, signal: AbortSignal.timeout(20000) }); const loai = r.headers.get('content-type') || '';
-    if (!r.ok || !loai.startsWith('image/')) { res.writeHead(502).end(); return; }
+    if (!r.ok || !loai.startsWith('image/')) { console.warn('[anh-tai]', dich.hostname, r.status, loai); res.writeHead(502).end(); return; }
     const b = Buffer.from(await r.arrayBuffer()); if (b.length > 8e6) { res.writeHead(413).end(); return; }
-    res.writeHead(200, { 'Content-Type': loai, 'Cache-Control': 'private, max-age=3600' }).end(b); } catch { res.writeHead(502).end(); }
+    res.writeHead(200, { 'Content-Type': loai, 'Cache-Control': 'private, max-age=3600' }).end(b); } catch (e) { console.warn('[anh-tai]', dich.hostname, e.message); res.writeHead(502).end(); }
 }
 const may = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');

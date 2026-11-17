@@ -7,7 +7,7 @@
 // Nơi khác mở hòm tại chỗ: window.dispatchEvent(new CustomEvent('gop-y:mo')). Trang có trạng thái DOM không thấy (city 3D) khai window.__nguCanhTrang.
 import { HomGopY, type HanhDongGopY, type KhungHom } from '@mos2/gop-y/client';
 import { Drawer } from '@/components/ui';
-import { dsGopYCuaToi, guiGopYMos2, docTraoDoiCard, guiTraoDoiCard } from '@/lib/actions/gop-y-mos2';
+import { dsGopYCuaToi, demGopY, guiGopYMos2, docTraoDoiCard, guiTraoDoiCard } from '@/lib/actions/gop-y-mos2';
 import { uploadImage, deleteImage } from '@/lib/actions/uploads';
 
 const Khung: KhungHom = ({ onClose, tieuDe, dau, children }) => (
@@ -27,6 +27,7 @@ export function GopYMos2({ hom = 'mos2', tren = false }: { hom?: 'mos2' | 'city'
   const hd: HanhDongGopY = {
     guiGopY: (i) => guiGopYMos2({ ...i, hom }),
     dsGopYCuaToi: () => dsGopYCuaToi(hom),
+    demGopY: () => demGopY(hom),
     docTraoDoi: docTraoDoiCard,
     guiTraoDoi: guiTraoDoiCard,
     taiAnhGopY: (du) => uploadImage(du, 'gop-y'),

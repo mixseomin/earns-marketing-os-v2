@@ -21,6 +21,25 @@ export type GopYCuaToi = {
 };
 export type Kq = { ok: boolean; error?: string };
 export type { DemGopY } from './dem';
+/** Luật riêng của app (vd mos2: team ETP gửi được, lọc card theo nguồn etp, admin thấy card máy tạo, trạng thái qua setBacklinkSite). */
+export type TuyChon = {
+  /** app đã tự xét quyền gửi (thay luật mặc định admin-only) */
+  choPhepGui?: boolean;
+  /** chỉ lấy card có source_url khớp / không khớp mẫu regex Postgres */
+  locNguon?: { mau: string; khop: boolean };
+  /** admin thấy thêm card có người gửi là máy (vd 'may-quet', 'claude') */
+  nguoiMay?: string[];
+  /** ghi trạng thái theo đường của app (thay datTrangThai/henHomNay mặc định) */
+  datTrangThai?: (id: number, hom: string, st: string, url: string) => Promise<unknown>;
+  henHomNay?: (id: number, hom: string) => Promise<unknown>;
+};
+const dsHom = (duAn: string | string[]) => (Array.isArray(duAn) ? duAn : [duAn]);
+const trongHom = (duAn: string | string[]) => sql`project_id IN (${sql.join(dsHom(duAn).map((h) => sql`${h}`), sql`, `)})`;
+/** Ngoài admin, chỉ đọc / trả lời card chính mình gửi. */
+const cuaMinh = (me: Nguoi) => (me.role === 'admin' ? sql`` : sql`AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})`);
+async function ghiTT(o: TuyChon | undefined, duAn: string, id: number, st: string, url = ''): Promise<unknown> { return o?.datTrangThai ? o.datTrangThai(id, duAn, st, url) : datTrangThai(duAn, id, st, url); }
+async function hen(o: TuyChon | undefined, duAn: string, id: number) { if (o?.henHomNay) await o.henHomNay(id, duAn); else await henHomNay(duAn, id); }
+
 export type R2 = { r2Enabled: () => boolean; uploadToR2: (key: string, buf: Buffer, type: string) => Promise<string | null> };
 
 const homNayVN = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
@@ -54,8 +73,8 @@ async function henHomNay(duAn: string, id: number) {
 }
 
 /** Gửi góp ý → card pending trên plays `duAn`, hẹn hôm nay. Admin-only như hòm mos2. */
-export async function guiGopY(duAn: string, me: Nguoi | null, input: { loai: string; noiDung: string; trang: string; anhUrls: string[]; nguCanh?: string }): Promise<Kq & { id?: number }> {
-  if (!me || me.role !== 'admin') return { ok: false, error: 'không có quyền' };
+export async function guiGopY(duAn: string, me: Nguoi | null, input: { loai: string; noiDung: string; trang: string; anhUrls: string[]; nguCanh?: string }, o?: TuyChon): Promise<Kq & { id?: number }> {
+  if (!me || (me.role !== 'admin' && !o?.choPhepGui)) return { ok: false, error: 'không có quyền' };
   const db = getDb();
   if (!db) return { ok: false, error: 'no db' };
   const noiDung = input.noiDung.trim();
@@ -74,24 +93,26 @@ export async function guiGopY(duAn: string, me: Nguoi | null, input: { loai: str
     RETURNING id`)) as unknown as Array<{ id: number }>;
   const id = Number(r[0]?.id);
   if (!Number.isFinite(id)) return { ok: false, error: 'insert hỏng' };
-  await datTrangThai(duAn, id, 'pending');
-  await henHomNay(duAn, id);
+  await ghiTT(o, duAn, id, 'pending');
+  await hen(o, duAn, id);
   return { ok: true, id };
 }
 
 /** Góp ý CỦA TÔI: card còn mở + card đóng trong 7 ngày. */
-export async function dsGopYCuaToi(duAn: string, me: Nguoi | null): Promise<GopYCuaToi[]> {
+export async function dsGopYCuaToi(duAn: string, me: Nguoi | null, o?: TuyChon): Promise<GopYCuaToi[]> {
   const db = getDb();
   if (!me || !db) return [];
   const r = await db.execute(sql`
     SELECT id, created_at, updated_at,
            COALESCE(prep_payload->'site_status'->>${duAn}, status) AS tt,
-           COALESCE(prep_payload->>'loai', 'loi') AS loai,
+           COALESCE(prep_payload->>'loai', CASE WHEN title LIKE 'Hỏi: %' THEN 'cau_hoi' ELSE 'loi' END) AS loai,
            COALESCE(prep_payload->>'source_url', '') AS trang,
            COALESCE(prep_payload->'trao_doi', '[]'::jsonb) AS td
     FROM human_tasks
     WHERE project_id = ${duAn} AND prep_payload->>'source_platform' = 'feedback'
-      AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})
+      AND (lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})
+           ${me.role === 'admin' && o?.nguoiMay?.length ? sql`OR lower(prep_payload->'trao_doi'->0->>'nguoi') IN (${sql.join(o.nguoiMay.map((n) => sql`${n}`), sql`, `)})` : sql``})
+      ${o?.locNguon ? sql`AND (COALESCE(prep_payload->>'source_url', '') ~ ${o.locNguon.mau}) = ${o.locNguon.khop}` : sql``}
       AND (COALESCE(prep_payload->'site_status'->>${duAn}, status) IN ('pending','claimed','submitted','review','broken') OR updated_at >= now() - interval '7 days')
     ORDER BY updated_at DESC NULLS LAST, id DESC LIMIT 200`);
   type Row = { id: number; created_at: string | Date; updated_at: string | Date | null; tt: string; loai: string; trang: string; td: unknown };
@@ -124,32 +145,33 @@ function kySuDangChay(duAn: string): string | null {
 
 /** SỐ CHO NÚT 💬 (CHUAN.md): working = card claimed của hòm (mọi người gửi, còn trong trần phiên) + lượt kỹ sư CLI đang chạy;
  *  can_y_kien = card CỦA CHÍNH người xem đang chờ họ. Nút nạp 60 giây một lần khi tab đang hiện. */
-export async function demGopY(duAn: string, me: Nguoi | null): Promise<DemGopY> {
+export async function demGopY(duAn: string, me: Nguoi | null, o?: TuyChon): Promise<DemGopY> {
   const db = getDb();
   if (!me || !db) return DEM_RONG;
   const r = await db.execute(sql`SELECT id, title, updated_at FROM human_tasks
     WHERE project_id = ${duAn} AND prep_payload->>'source_platform' = 'feedback'
       AND COALESCE(prep_payload->'site_status'->>${duAn}, status) = 'claimed'
+      ${o?.locNguon ? sql`AND (COALESCE(prep_payload->>'source_url', '') ~ ${o.locNguon.mau}) = ${o.locNguon.khop}` : sql``}
     ORDER BY updated_at DESC LIMIT 20`);
   const lam = (r as unknown as Array<{ id: number; title: string; updated_at: string | Date }>)
     .filter((x) => conTrongTran(new Date(x.updated_at).toISOString())).map((x) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`);
   const luot = kySuDangChay(duAn);
   const dangLam = lam.length ? lam : luot ? [luot] : [];
-  const cho = (await dsGopYCuaToi(duAn, me)).filter((b) => b.choYKien);
+  const cho = (await dsGopYCuaToi(duAn, me, o)).filter((b) => b.choYKien);
   return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id) };
 }
 
-export async function docTraoDoi(duAn: string, me: Nguoi | null, taskId: number): Promise<TinTraoDoi[]> {
+export async function docTraoDoi(duAn: string | string[], me: Nguoi | null, taskId: number): Promise<TinTraoDoi[]> {
   const db = getDb();
   if (!me || !db) return [];
   const r = await db.execute(sql`SELECT prep_payload->'trao_doi' AS td FROM human_tasks
-    WHERE id = ${taskId} AND project_id = ${duAn} AND prep_payload->>'source_platform' = 'feedback' LIMIT 1`);
+    WHERE id = ${taskId} AND ${trongHom(duAn)} AND prep_payload->>'source_platform' = 'feedback' ${cuaMinh(me)} LIMIT 1`);
   const td = (r as unknown as Array<{ td: unknown }>)[0]?.td;
   return Array.isArray(td) ? (td as TinTraoDoi[]) : [];
 }
 
 /** Trả lời trong luồng: rework → card về Chờ xử (hẹn lại hôm nay) · duyet → Xong (admin) · còn lại chỉ thêm tin. */
-export async function guiTraoDoi(duAn: string, me: Nguoi | null, input: { taskId: number; noiDung: string; anhUrls: string[]; xuLy: string }): Promise<Kq> {
+export async function guiTraoDoi(duAn: string | string[], me: Nguoi | null, input: { taskId: number; noiDung: string; anhUrls: string[]; xuLy: string }, o?: TuyChon): Promise<Kq> {
   const db = getDb();
   if (!me || !db) return { ok: false, error: 'chưa đăng nhập' };
   const xuLy = input.xuLy === 'rework' || input.xuLy === 'duyet' ? input.xuLy : null;
@@ -161,9 +183,13 @@ export async function guiTraoDoi(duAn: string, me: Nguoi | null, input: { taskId
     anh: (Array.isArray(input.anhUrls) ? input.anhUrls : []).filter((u) => /^https?:\/\//.test(u)).slice(0, 6) };
   const up = await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{trao_doi}',
         COALESCE(prep_payload->'trao_doi', '[]'::jsonb) || ${JSON.stringify(tin)}::jsonb, true), updated_at = now()
-    WHERE id = ${input.taskId} AND project_id = ${duAn} AND prep_payload->>'source_platform' = 'feedback' RETURNING id`);
-  if (!(up as unknown as unknown[]).length) return { ok: false, error: 'Không phải card góp ý của hòm này.' };
-  if (xuLy === 'rework') { await datTrangThai(duAn, input.taskId, 'pending'); await henHomNay(duAn, input.taskId); }
-  if (xuLy === 'duyet') await datTrangThai(duAn, input.taskId, 'completed', `https://mos2.on.tc/plays?proj=${duAn}&task=${input.taskId}`);
+    WHERE id = ${input.taskId} AND ${trongHom(duAn)} AND prep_payload->>'source_platform' = 'feedback' ${cuaMinh(me)} RETURNING id, project_id`);
+  const hom = (up as unknown as Array<{ project_id: string }>)[0]?.project_id;
+  if (!hom) return { ok: false, error: 'Không phải card góp ý của hòm này.' };
+  if (xuLy === 'rework') { await ghiTT(o, hom, input.taskId, 'pending'); await hen(o, hom, input.taskId); }
+  if (xuLy === 'duyet') {
+    const r2 = (await ghiTT(o, hom, input.taskId, 'completed', `https://mos2.on.tc/plays?proj=${hom}&task=${input.taskId}`)) as Kq | undefined;
+    if (r2 && r2.ok === false) return { ok: false, error: r2.error || 'không đóng được card' };
+  }
   return { ok: true };
 }

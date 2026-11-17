@@ -12,6 +12,13 @@ const git = (cwd, ...a) => execFileSync('git', ['-C', cwd, ...a], { encoding: 'u
 
 /** Chuẩn bị cây riêng của `nguoi`, trả { dir, do: [tệp còn sửa dở từ lượt trước] }. Ném lỗi khi không fast-forward được (nhánh riêng có commit chưa lên main) — người gọi bỏ lượt. */
 // cong(dir): CỔNG trước khi máy đẩy commit kẹt (castle: trọng tài máy apps/castle/scripts/trong-tai.mjs) — trả false = KHÔNG đẩy, commit nằm lại cây riêng chờ kỹ sư sửa tiếp
+/** Cây đang dở rebase (thư mục rebase-merge / rebase-apply trong git dir của cây). */
+export const dangRebase = (dir) => { const g = path.resolve(dir, git(dir, 'rev-parse', '--git-dir')); return ['rebase-merge', 'rebase-apply'].some((d) => fs.existsSync(path.join(g, d))); };
+/** Đặt commit của kỹ sư lên origin/main; xung đột → HUỶ rebase (nhánh về nguyên trạng, commit còn nguyên) rồi ném lỗi để người gọi báo. MỌI chỗ rebase trong tệp này đi qua đây. */
+function rebaseHoacHuy(dir, kep, nguoi) {
+  try { git(dir, 'rebase', '-q', 'origin/main'); } catch (e) { try { git(dir, 'rebase', '--abort'); } catch { /* không có rebase dở */ }
+    throw new Error(`${kep} commit chưa lên main của ${nguoi} xung đột với main mới, cần làm lại: ${String(e.stderr || e.message).split('\n')[0]}`); }
+}
 export function cayRieng(nguoi, goc = MOS2_GOC, cong = null) {
   if (!/^[a-z0-9-]+$/.test(nguoi)) throw new Error(`tên kỹ sư lạ: ${nguoi}`);
   const dir = path.join(os.homedir(), 'may-ky-su', nguoi, 'earns-marketing-os-v2'), nhanh = `ky-su/${nguoi}`;
@@ -28,6 +35,10 @@ export function cayRieng(nguoi, goc = MOS2_GOC, cong = null) {
   // Khang đứng im gần một ngày, 4 việc chờ trong hàng — gồm việc SỬA LẠI của máy Mia). Cất bản dở thành tệp vá + stash (không xoá, không hoàn tác),
   // kéo main, rồi áp lại tệp vá lên bản mới. Áp không được = trả `vat` để kỹ sư đọc tệp vá và làm lại trên main mới, cây vẫn sạch để nhận việc.
   let vat = null, tep = null;
+  // 0. REBASE DỞ từ lượt trước (17/11/2026: vòng thử đẩy lại rebase lần hai gặp xung đột ở apps/castle/public/mattien.js mà không huỷ → cây Thắng nằm giữa
+  //    rebase từ 01:48, mọi lượt "could not write index", 151 lượt không nhận việc, card #1639 / #1634 đứng). Huỷ rebase = nhánh về đúng commit trước rebase,
+  //    không mất commit nào; bước 2 sẽ thử lại và báo nếu vẫn xung đột.
+  if (dangRebase(dir)) { git(dir, 'rebase', '--abort'); console.log(`${new Date().toISOString()} cây ${nguoi} đang dở rebase từ lượt trước — đã huỷ, nhánh về nguyên trạng`); }
   // 1. BẢN DỞ (chưa commit) trùng tệp main vừa đổi (11/11/2026: Khang để dở may-dung.mts → `merge --ff-only` từ chối mỗi lượt, đứng im gần một ngày):
   //    cất thành tệp vá + stash (không xoá, không hoàn tác), lát nữa áp lại lên bản mới; áp không được → trả `vat` để kỹ sư đọc và làm lại.
   if (git(dir, 'status', '--porcelain', '--untracked-files=no')) {
@@ -42,10 +53,9 @@ export function cayRieng(nguoi, goc = MOS2_GOC, cong = null) {
   let day = [];   // tiêu đề commit máy vừa đẩy hộ → người gọi nộp card tương ứng (etp-sua › nopCardDaDay, anh 14/11/2026 #1587 kẹt "Đang làm")
   if (kep > 0) {
     day = git(dir, 'log', '--format=%s', 'origin/main..HEAD').split('\n').filter(Boolean);
-    try { git(dir, 'rebase', '-q', 'origin/main'); } catch (e) { try { git(dir, 'rebase', '--abort'); } catch { /* không có rebase dở */ }
-      throw new Error(`${kep} commit chưa lên main của ${nguoi} xung đột với main mới, cần làm lại: ${String(e.stderr || e.message).split('\n')[0]}`); }
+    rebaseHoacHuy(dir, kep, nguoi);
     if (cong && !cong(dir)) { console.log(`${new Date().toISOString()} ${kep} commit của ${nguoi} CHƯA qua cổng — không đẩy`); day = []; } else {
-    for (let i = 1; ; i++) { try { git(dir, 'push', '-q', 'origin', 'HEAD:main'); break; } catch (e) { if (i >= 3) throw e; git(dir, 'fetch', '-q', 'origin', 'main'); git(dir, 'rebase', '-q', 'origin/main'); } }
+    for (let i = 1; ; i++) { try { git(dir, 'push', '-q', 'origin', 'HEAD:main'); break; } catch (e) { if (i >= 3) throw e; git(dir, 'fetch', '-q', 'origin', 'main'); rebaseHoacHuy(dir, kep, nguoi); } }
     git(dir, 'fetch', '-q', 'origin', 'main');
     console.log(`${new Date().toISOString()} đã đẩy ${kep} commit kẹt của ${nguoi} lên main`); }
   }

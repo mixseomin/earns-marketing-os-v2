@@ -1145,7 +1145,18 @@ const hopGopY = ganGopY({ nut: $('b-gy'), tieuDe: 'Góp ý cho Neuschwanstein', 
 } });
 // 📷 ẢNH THẬT QUANH ĐÂY (anhquanh.js): điểm = chỗ tia giữa màn trúng mô hình (bỏ lớp đang ẩn); trúng trời → chỗ đang đứng / tâm toàn cảnh
 $('nut').insertAdjacentHTML('beforeend', '<button id="b-aq" title="Tìm ảnh thật trên mạng (Wikimedia Commons, Mapillary) quanh chỗ đang nhìn giữa màn — chọn ảnh rồi gửi kèm góp ý để sửa theo">📷</button>');
-const aq = ganAnhQuanh({ THREE, scene, nut: $('b-aq'), moGopY: () => hopGopY.mo(),
+// THẤY ĐƯỢC ĐIỂM KHÔNG (anh 17/11/2026, đứng sân trên bấm 📷 ra toàn ảnh chụp ngoài đường dưới chân thành, cùng hướng nhưng bị tường che): tia từ chỗ chụp
+// (mặt đứng + 1,6 m) tới điểm đang nhìn qua va chạm của mô hình (bỏ cây); chạm khối nhà trước điểm > 2,5 m = bị che → ảnh xuống nhóm khác
+function thayDiem(lat, lng, d) {
+  const [x, z] = raMet(lat, lng), cay = new Set(CAY_VA.map((c) => c.handle)), khongCay = (c) => !cay.has(c.handle);
+  const h0 = world.castRay(new RAPIER.Ray({ x, y: 900, z }, { x: 0, y: -1, z: 0 }), 3000, true, undefined, undefined, undefined, undefined, khongCay);
+  if (!h0) return null;
+  const mat = { x, y: 900 - h0.timeOfImpact + 1.6, z }, v = { x: d.x - mat.x, y: d.y - mat.y, z: d.z - mat.z }, L = Math.hypot(v.x, v.y, v.z);
+  if (L < 3) return true;
+  const h = world.castRay(new RAPIER.Ray(mat, { x: v.x / L, y: v.y / L, z: v.z / L }), L, true, undefined, undefined, undefined, undefined, khongCay);
+  return !h || h.timeOfImpact >= L - 2.5;
+}
+const aq = ganAnhQuanh({ THREE, scene, nut: $('b-aq'), moGopY: () => hopGopY.mo(), thay: thayDiem,
   raLatLng: (x, z) => [D.tam[0] - z / 111320, D.tam[1] + x / (111320 * Math.cos(D.tam[0] * Math.PI / 180))],
   layDiem: () => {
     const tia = new THREE.Raycaster(); tia.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -1437,6 +1448,7 @@ const nhieuNguoi = di ? taoNhieuNguoi({ THREE, scene, lau: 'neuschwanstein', nut
   layTrangThai: () => (di.dang ? { p: di.viTri(), h: di.huong, s: { tt: di.tt, toc: di.toc, nen: di.nen, ngoi: !!dangNgoi } } : null) }) : null;
 function phongHienTai() { if (!noiThat || !di?.dang) return null; const p = di.viTri(); return noiThat.phongTai(p.x, p.y - 0.9, p.z); }
 window.__ns.cuaSo = { CUA, timCua, sanSauCua, moCuaVao, gan: () => ganCua };
+window.__ns.thayDiem = thayDiem; // kiểm tầm nhìn chỗ chụp → điểm (bài thử 📷)
 // NHỚ GÓC NHÌN QUA F5 (anh 16/11/2026: "lỡ F5 là mất luôn"): mỗi giây ghi góc đang xem vào ĐỊA CHỈ TRANG (#g=… — sao chép link gửi người khác cũng mở
 // đúng góc) + localStorage; mở / tải lại thì về đúng chỗ. Toàn cảnh: camera + điểm nhìn + góc nhìn. Đi bộ: chỗ đứng + hướng người + hướng nhìn.
 const GOC_KHOA = 'ns-goc';

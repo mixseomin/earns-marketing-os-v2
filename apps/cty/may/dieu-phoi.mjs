@@ -235,7 +235,10 @@ function chayVong(may) {
       if (thu) try { t.cho_launchd = !thuNhan(v); } catch (e) { ghiLog(`⚠ thu nhận ${v.nhan}: ${e.message}`); t.cho_launchd = true; }
       if (t.cho_launchd) continue;   // launchd còn giữ việc này → không chạy đôi
       if (dangChay.has(v.nhan)) continue;
-      if (t.pid) { if (conSong(t.pid, v.ten)) continue; Object.assign(t, { pid: null, xong: bay, ma: t.ma ?? null }); doi = true; }   // lượt của bộ điều phối trước (đã khởi động lại)
+      if (t.pid) { if (conSong(t.pid, v.ten)) continue;   // lượt của bộ điều phối trước (đã khởi động lại) — nó không nghe được 'exit' của lượt này
+        Object.assign(t, { pid: null, xong: bay, ma: t.ma ?? null }); doi = true;
+        // ghi dòng XONG cho lượt mồ côi, không thì bảng nhân sự treo "ĐANG LÀM" mãi (17/11/2026: Hà cài lại bộ điều phối giữa lượt 14:40 của chính Hà)
+        const tom = tomNhatKy(docDuoi(v.nhat_ky)); ghiSuKien(v, `■ xong (bộ điều phối khởi động lại giữa lượt, không biết mã thoát)${tom ? ` · ${tom}` : ''}`, t); }   // lượt của bộ điều phối trước (đã khởi động lại)
       const fGoi = path.join(F.goi, `${nhanCua(v)}.json`), goi = fs.existsSync(fGoi) ? docJson(fGoi, {}) : null;
       const l = goi ? { chay: true } : toiLuot(v.hen, t, bay);
       if (!l.chay) continue;

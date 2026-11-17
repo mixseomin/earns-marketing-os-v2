@@ -16,6 +16,7 @@ import { boiCanhCanh, taoJob, xongJob, CD_LUC_SINH } from '../src/lib/xuong-vide
 import { promptCumMoi, thamChieuCum, vaoTuCatThat, cauNgoaiCua, giayClipSeedance, kepVaoDoan, catBotDuoi } from '../src/lib/xuong-video/cum-shot';
 import { catThat } from '../src/lib/xuong-video/cat-that';
 import { giayPhat, chatLieuPhim, clip3dMoi } from '../src/lib/xuong-video/kieu';
+import { lichGiong } from '../src/lib/xuong-video/am-thanh';
 import { chonCachKhopMoi } from '../src/lib/xuong-video/khop-moi-cach';
 import { nhanNhin } from '../src/lib/xuong-video/prompt-khoi';
 import { duongAmLuong, khopTheoTiengClip, doanShot } from '../src/lib/xuong-video/can-giong';
@@ -51,7 +52,15 @@ const nguoiNoi = [...new Set(cum.flatMap((x) => (x.canh.thoai ?? []).filter((d) 
 const cachKhop = nguoiNoi.length ? chonCachKhopMoi({ chatLieu: chatLieuPhim(bcs[0]!.kt), ngonNgu: bcs[0]!.kt.ngon_ngu, soNguoiNoi: nguoiNoi.length }) : null;
 const nhanNoi = new Map(nhanNhin(nguoiNoi.map((t) => ({ ten: t, moTaNv: cum.flatMap((x) => x.nhanVat).find((v) => v.ten === t)?.mo_ta }))).map((x) => [x.ten, x.gon]));
 let mocShot = clip1 ? clip1.vao : 0; const cauAm: { url: string; t: number; tre: number; ai: string; loi: string; so: number }[] = [];
-for (const [i, x] of cum.entries()) { for (const d of x.canh.thoai ?? []) if (d.url && d.loi?.trim()) cauAm.push({ url: d.url, t: mocShot + (d.tre ?? 0), tre: d.tre ?? 0, ai: d.nhan_vat, loi: d.loi.trim(), so: i + 1 }); mocShot += giayPhat(x.canh); }
+// MỐC TỪNG CÂU = lịch phát của timeline / bản xuất (am-thanh.ts › lichGiong: câu nối tiếp, cách 0,15 s, tôn trọng tre). Trước 17/11/2026 lấy `tre ?? 0` → shot
+// 2 câu không ghi tre (phim #3071 #18 "Xin lỗi chú…" + "Đây là tiền thừa.") đặt CẢ HAI câu ở giây 0: tệp giọng cụm hai câu đè nhau, khớp thoại đo câu còn 0,47 s
+// → H3 hai lượt đều "lệch xa câu", không gắn.
+for (const [i, x] of cum.entries()) {
+  const daiTep = new Map((x.canh.thoai ?? []).filter((d) => d.url).map((d) => [d.url!, typeof d.dai === 'number' ? d.dai : null]));
+  const moc = new Map(lichGiong([x.canh], x.nhanVat, (u) => daiTep.get(u) ?? null).map((m) => [m.url, m.tu]));
+  for (const d of x.canh.thoai ?? []) if (d.url && d.loi?.trim()) { const tre = moc.get(d.url) ?? d.tre ?? 0; cauAm.push({ url: d.url, t: mocShot + tre, tre, ai: d.nhan_vat, loi: d.loi.trim(), so: i + 1 }); }
+  mocShot += giayPhat(x.canh);
+}
 const guiGiong = cachKhop?.cach === 'seedance_audio' && cauAm.length > 0;
 // ĐUÔI BÙ GIỜ NÓI (luật 15/11/2026): Seedance tự chọn lúc nói, thường trễ 0,4–0,8 s và đọc chậm hơn giọng (đo #4, #6) — cụm có thoại sinh thêm 2 s cuối để
 // khớp thoại (khopTheoTiengClip) dời điểm vào trong đoạn của shot mà không lấn shot kế / hết clip. +2 s × $0,034.

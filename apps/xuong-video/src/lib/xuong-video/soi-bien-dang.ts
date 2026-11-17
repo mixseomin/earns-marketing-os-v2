@@ -44,15 +44,16 @@ const LOAI_EN: Record<string, string> = { trang_phuc_bien_dang: 'clothing deform
 type KetSoiBd = { loi: string[]; tho: LoiBienDang[]; cents: number; canhBao: string[] };
 /** Tải clip về đĩa MỘT lần rồi cắt khung tại chỗ (17/10/2026: ffmpeg đọc thẳng URL mở lại kết nối + tua cho TỪNG khung — 26 khung/clip,
  *  soi lại 14 clip #127 mất 25 phút). Tải hỏng thì đọc thẳng URL như cũ. */
-export async function soiBienDang(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null }): Promise<KetSoiBd | null> {
+export async function soiBienDang(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null; /** giây bắt đầu đoạn shot dùng trong clip (clip cụm: điểm vào của shot) */ tu?: number }): Promise<KetSoiBd | null> {
   if (!coDuongGemini()) return null;
   const tep = join(tmpdir(), `soi-bd-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp4`);
   const co = /^https?:/.test(o.url) ? await fetch(o.url, { signal: AbortSignal.timeout(120_000) }).then(async (r) => (r.ok ? (await writeFile(tep, Buffer.from(await r.arrayBuffer())), true) : false)).catch(() => false) : false;
   try { return await soiBienDangTep(db, { ...o, url: co ? tep : o.url }); } finally { if (co) await unlink(tep).catch(() => {}); }
 }
-async function soiBienDangTep(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null }): Promise<KetSoiBd | null> {
+async function soiBienDangTep(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null; tu?: number }): Promise<KetSoiBd | null> {
   const N = N_KHUNG_BD, buoc = o.dai / N;
-  const tA = Array.from({ length: N }, (_, i) => (i + 0.25) * buoc), tB = Array.from({ length: N }, (_, i) => (i + 0.75) * buoc);
+  const tu = o.tu ?? 0;   // đoạn shot trong clip cụm (soi-clip.ts › diemVaoClip) — giây khung tính từ đầu TỆP
+  const tA = Array.from({ length: N }, (_, i) => tu + (i + 0.25) * buoc), tB = Array.from({ length: N }, (_, i) => tu + (i + 0.75) * buoc);
   const [a, b] = await Promise.all([khungTai(o.url, tA, 448), khungTai(o.url, tB, 448)]);
   if (!a || !b) return null;
   const schema = { type: 'OBJECT', properties: { loi: { type: 'ARRAY', items: { type: 'OBJECT',
@@ -76,7 +77,7 @@ async function soiBienDangTep(db: Db | null, o: { url: string; dai: number; sp: 
     // chi tiết may (túi, đường chỉ, đinh tán) ở shot KHÔNG cận sản phẩm: người xem không thấy (anh 17/10/2026: lỗi khó để ý không tính) → cảnh báo, không chặn
     if (laChiTietNho(v.mo_ta, loai, o.yDo)) { canhBao.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} (chi tiết nhỏ, shot không cận) giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.slice(0, 140)}`); continue; }
     if (!laLoiTay(v.mo_ta, loai)) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); continue; }
-    const ts = [-0.5, -0.25, 0, 0.25, 0.5, 0.75].map((d) => Math.min(o.dai, Math.max(0, v.giay + d)));
+    const ts = [-0.5, -0.25, 0, 0.25, 0.5, 0.75].map((d) => Math.min(tu + o.dai, Math.max(tu, v.giay + d)));
     const anh = await khungTai(o.url, ts, 768);
     // xác nhận bằng CLAUDE nhìn ảnh (claude.ts › xacNhanLoiClaude) — Gemini (cả Pro) gật cả ngón tay bình thường; đúng giá Claude ~1,5¢ vẫn rẻ hơn một lượt sinh lại oan
     const cauHoi = `These 6 images are consecutive frames (0.25 s apart) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}

@@ -7,6 +7,7 @@
 import 'server-only';
 import { execFile } from 'node:child_process';
 import { sql } from 'drizzle-orm';
+import { diemVaoClip } from './toc-do';
 import { mauSanPham, tiLeMau, giayMatSanPham, chuTrongKhung, VANG_SP, type MauSp } from './soi-clip-do';
 import { mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 import { soiMatClip } from './soi-mat';
@@ -48,8 +49,11 @@ export async function soiClipCanh(db: Db, canhId: number): Promise<SoiClip | nul
   if (!daiTep) return null;
   // MỌI lớp soi chỉ xét đoạn bản xuất DÙNG (xuat.ts bỏ ≤0,5s đầu rồi lấy đúng giây phát) — 17/10/2026: clip Grok 10s, shot dùng ~4s; soi mặt / chữ / màu
   // đo cả clip nên chặn oan lỗi ở giây 8–10 người xem không bao giờ thấy (#127 shot 3: "mặt trôi" giây 8,8 trong shot cận ngón tay)
-  const dai = Math.min(daiTep, giayPhat(c) + 0.6);
-  const giay = [0.1, dai * 0.2, dai * 0.4, dai * 0.6, dai * 0.8, Math.max(0.1, dai - 0.3)].map((x) => Math.round(x * 10) / 10);
+  // CLIP CỤM (H3 / Seedance — một tệp nhiều shot): đoạn của shot bắt đầu ở điểm vào (ky_thuat.vao_s), ĐÚNG luật bản xuất (toc-do.ts › diemVaoClip). Trước
+  // 17/11/2026 soi từ giây 0 của tệp → mọi shot không đứng đầu cụm bị soi bằng hình shot KHÁC (phim #3071 #11 "cắt sang người ở cửa sổ" = shot #12) → chặn xuất oan.
+  const phat = giayPhat(c); const tu = diemVaoClip(c.ky_thuat?.vao_s, daiTep, phat);
+  const dai = Math.min(daiTep - tu, phat + 0.6);
+  const giay = [0.1, dai * 0.2, dai * 0.4, dai * 0.6, dai * 0.8, Math.max(0.1, dai - 0.3)].map((x) => Math.round((tu + x) * 10) / 10);
   const loi: string[] = [];
   // Chữ lạ: chữ màn studio chồng lúc XUẤT, không nằm trong clip → mọi chữ đọc được trong clip là model tự in.
   // Cắt khung + tesseract chạy ở máy dựng Cloudflare (soi-chu.ts), lỗi thì tại box3 một tesseract một lúc.
@@ -70,12 +74,12 @@ export async function soiClipCanh(db: Db, canhId: number): Promise<SoiClip | nul
     else if (typeof mat === 'number') loi.push(`sản phẩm (${sp.ten}) ra khỏi khung hoặc đổi màu từ giây ${mat} — màu sản phẩm còn ${Math.round((Math.min(...mau.slice(1)) / mau[0]!) * 100)}% so với khung đầu`);
   }
   // Mặt trôi (phim người thật — soi-mat.ts › soiMatClip): video hay giữ mặt khung đầu rồi trôi dần sang người khác ở nửa sau clip.
-  const sm = await soiMatClip(db, c, url, dai).catch((e: unknown) => { console.error('[soi mặt clip]', e); return null; });
+  const sm = await soiMatClip(db, c, url, dai, tu).catch((e: unknown) => { console.error('[soi mặt clip]', e); return null; });
   if (sm) loi.push(...sm.loi);
   // Biến dạng (soi-bien-dang.ts): trang phục phồng / đũng tụt, cơ thể méo, chữ tự in trên đồ, sản phẩm đổi kiểu, vật lạ. Không soi được → không chặn.
   const spMoTa = ((await db.execute(sql`SELECT mo_ta FROM xv_nhan_vat WHERE loai = 'san_pham' AND id = ANY(${`{${(c.nhan_vat.length ? c.nhan_vat : [0]).join(',')}}`}::int[]) ORDER BY id LIMIT 1`)) as unknown as Row[])[0]?.mo_ta;
   const phimId = ((await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${c.tap_id}`)) as unknown as Row[])[0]?.phim_id;
-  const bd = await soiBienDang(db, { url, dai, sp: String(spMoTa ?? ''), yDo: yDoShot(c.prompt_video ?? '', c.prompt_anh ?? '', String(spMoTa ?? '')), phimId: phimId == null ? null : Number(phimId) });
+  const bd = await soiBienDang(db, { url, dai, tu, sp: String(spMoTa ?? ''), yDo: yDoShot(c.prompt_video ?? '', c.prompt_anh ?? '', String(spMoTa ?? '')), phimId: phimId == null ? null : Number(phimId) });
   if (bd) loi.push(...bd.loi);
   const kq: SoiClip = { url, luc: new Date().toISOString(), loi, do: { mau, chu, ...(sm ? { mat: sm.diem } : {}), ...(bd ? { bien_dang: bd.tho, ...(bd.canhBao.length ? { canh_bao: bd.canhBao } : {}) } : {}) } };
   await db.execute(sql`UPDATE xv_canh SET soi_clip = ${JSON.stringify(kq)}::jsonb WHERE id = ${canhId}`);

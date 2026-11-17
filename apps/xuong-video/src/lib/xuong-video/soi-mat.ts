@@ -237,14 +237,14 @@ export async function xongSuaMat(db: Db, canhId: number, url: string, gia: numbe
 /** 🎞 SOI MẶT CLIP (bước 2b nhịp C): phim người thật — khoảng 1 khung / giây (3–10 khung) của clip, so mặt từng khung với ảnh mẫu (chỉ chấm mặt đủ to,
  *  gần chính diện), luật trôi ở soi-clip-do.ts › matTroiClip. Gọi từ máy soi clip (soi-clip.ts) lúc clip về — lỗi vào soi_clip, bản xuất chặn,
  *  người duyệt bỏ qua được. null = không phải phim người thật / không có nhân vật có ảnh mẫu mặt. 0đ. */
-export async function soiMatClip(db: Db, c: Pick<Canh, 'tap_id' | 'nhan_vat'>, url: string, dai: number): Promise<{ loi: string[]; diem: Record<string, { giay: number; giong: number }[]> } | null> {
+export async function soiMatClip(db: Db, c: Pick<Canh, 'tap_id' | 'nhan_vat'>, url: string, dai: number, /** giây bắt đầu đoạn shot trong clip cụm */ tu = 0): Promise<{ loi: string[]; diem: Record<string, { giay: number; giong: number }[]> } | null> {
   const p = (await db.execute(sql`SELECT p.kinh_thanh FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${c.tap_id}`)) as unknown as Row[];
   if (!p[0] || chatLieuPhim(p[0].kinh_thanh as KinhThanh) !== 'nguoi_that' || !c.nhan_vat.length) return null;
   const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE loai = 'nhan_vat' AND id = ANY(${`{${c.nhan_vat.join(',')}}`}::int[])`)) as unknown as Row[]).map(mapNhanVat));
   const mau = Object.fromEntries(nv.map((v) => [v.ten, [...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url)].filter((u): u is string => !!u)] as const).filter(([, u]) => u.length > 0));
   if (!Object.keys(mau).length) return null;
   const n = Math.max(3, Math.min(10, Math.round(dai)));
-  const giay = Array.from({ length: n }, (_, i) => Math.round((0.15 + (i * (dai - 0.3)) / (n - 1)) * 10) / 10);
+  const giay = Array.from({ length: n }, (_, i) => Math.round((tu + 0.15 + (i * (dai - 0.3)) / (n - 1)) * 10) / 10);
   const thu = await mkdtemp(join(tmpdir(), 'soi-mat-clip-'));
   try {
     const khung: { id: number; url: string; ten: string[] }[] = [];

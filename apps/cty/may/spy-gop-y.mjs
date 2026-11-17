@@ -54,7 +54,7 @@ NHÌN TRANG THẬT bằng br (profile riêng đã đăng nhập .on.tc, lệnh b
 REPO ${dir} (CÂY CHÍNH, không có remote git; bản chuẩn là box3 /opt/spy — máy đã kiểm bản này khớp box3 trước khi giao việc): git add đúng tệp bạn sửa (trong ${DEPLOY.join(', ')}), git commit (tiếng Việt: gốc + cách sửa, ghi "góp ý #${card.id}"). Deploy: ${SPY}/deploy.sh (rsync lên box3, tự đợi nếu đang có lượt AI chạy). KHÔNG rsync / scp tay.${cay.do.length ? `\nTệp đang sửa dở (chưa commit) có từ trước, KHÔNG phải của bạn, đã chạy trên box3: ${cay.do.join(', ')} — không git add, không sửa đè.` : ''}
 KIỂM: node --check / python3 -m py_compile / bash -n tệp bạn sửa, node --test nếu có bài kiểm liên quan; sau deploy ssh ${BOX} "journalctl -u spy-web -n 30 --no-pager" + mở lại trang bằng br.
 TRẢ LỜI: ssh ${BOX} "${GOPY} reply ${card.id} '<sửa gì · tệp · commit · đã kiểm thế nào>'" rồi ssh ${BOX} "${GOPY} submit ${card.id} '<tóm tắt>' <trang>". Câu hỏi (không cần sửa mã) thì reply + submit.
-Không rõ đề bài hoặc cần anh quyết (tiền, xoá dữ liệu, đổi luồng lớn) → reply hỏi đúng một câu và KHÔNG submit.
+Không rõ đề bài hoặc cần anh quyết (tiền, xoá dữ liệu, đổi luồng lớn) → reply hỏi đúng một câu, MỞ tin bằng "❓" (vd '❓ Anh muốn A hay B?' — thiếu ❓ thì card không hiện nhãn "chờ bạn" / số đỏ cho người báo) và KHÔNG submit.
 TỰ QUYẾT, KHÔNG HỎI: cách sửa, tệp nào, commit + deploy. Chỉ sửa đúng điều card xin (không thêm tính năng ngoài đề). Bị từ chối một lệnh shell thì viết lại dạng đơn giản (một lệnh, không biến tạm).
 CẤM: hoàn tác git, xoá dữ liệu, đổi / xoá bảng có sẵn, chạy cào hay gọi mô hình AI tốn tiền, in khoá / token, sửa ngoài ${DEPLOY.join(', ')} của spy-on-tc.
 

@@ -47,7 +47,7 @@ DỮ LIỆU THẬT của kỹ sư CLI nằm ở iMac (bộ điều phối ${HOME
 CÂY RIÊNG ${MOS2} (nhánh ky-su/khoi, không ai khác sửa): git add đúng tệp bạn sửa, git commit (tiếng Việt: gốc + cách sửa, ghi "góp ý #${card.id}"), git push origin HEAD:main, ${HOME}/bin/gh-watch deploy.yml. KHÔNG rsync / scp mã.${cay.do.length ? `\nCây còn thay đổi chưa commit từ lượt trước của chính bạn: ${cay.do.join(', ')} — kiểm rồi commit nếu đúng, sai thì sửa tới (không hoàn tác).` : ''}
 KIỂM: npm --prefix apps/cty run typecheck (chỉ đọc lỗi tệp bạn sửa) + node apps/cty/scripts/tu-kiem.mjs (GHA chặn nếu đỏ); sau deploy ssh ${BOX} "systemctl is-active mos2-cty" + curl trang trên box + mở lại trang bằng br.
 TRẢ LỜI: ssh ${BOX} "${GOPY} reply ${card.id} '<sai gì · sửa gì · tệp · commit · đã kiểm thế nào>'" rồi ssh ${BOX} "${GOPY} submit ${card.id} '<tóm tắt>' https://github.com/mixseomin/earns-marketing-os-v2/commit/<sha>". Câu hỏi (không cần sửa mã) thì reply + submit với link trang.
-Không rõ đề bài hoặc cần anh quyết (tiền, xoá dữ liệu, đổi luồng lớn) → reply hỏi đúng một câu và KHÔNG submit.
+Không rõ đề bài hoặc cần anh quyết (tiền, xoá dữ liệu, đổi luồng lớn) → reply hỏi đúng một câu, MỞ tin bằng "❓" (vd '❓ Anh muốn A hay B?' — thiếu ❓ thì card không hiện nhãn "chờ bạn" / số đỏ cho người báo) và KHÔNG submit.
 TỰ QUYẾT, KHÔNG HỎI: cách sửa, tệp nào, commit + deploy. Chỉ sửa đúng điều card xin (không thêm tính năng ngoài đề). Bị từ chối một lệnh shell thì viết lại dạng đơn giản (một lệnh, không biến tạm).
 CẤM: hoàn tác git, xoá dữ liệu, migration xoá / đổi dữ liệu có sẵn, gọi mô hình tốn tiền, in khoá / token, tạo tiến trình nền mới (timer / cron / launchd / job viec-nen) — cần thì reply hỏi anh, sửa ngoài apps/cty và packages/gop-y.
 

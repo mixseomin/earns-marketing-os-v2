@@ -47,7 +47,7 @@ NHÌN TRANG THẬT bằng br (profile riêng đã đăng nhập .on.tc, lệnh b
 CÂY RIÊNG ${MOS2} (nhánh ky-su/vinh, không ai khác sửa): git add đúng tệp bạn sửa, git commit (tiếng Việt: gốc + cách sửa, ghi "góp ý #${card.id}"), git push origin HEAD:main, ${HOME}/bin/gh-watch deploy.yml. KHÔNG rsync / scp mã.${cay.do.length ? `\nCây còn thay đổi chưa commit từ lượt trước của chính bạn: ${cay.do.join(', ')} — kiểm rồi commit nếu đúng, sai thì sửa tới (không hoàn tác).` : ''}
 KIỂM: npm --prefix apps/xuong-video run typecheck (chỉ đọc lỗi tệp bạn sửa); sau deploy ssh ${BOX} "systemctl is-active mos2-studio" + mở lại trang bằng br.
 TRẢ LỜI: ssh ${BOX} "${GOPY} reply ${card.id} '<sai gì · sửa gì · tệp · commit · đã kiểm thế nào>'" rồi ssh ${BOX} "${GOPY} submit ${card.id} '<tóm tắt>' https://github.com/mixseomin/earns-marketing-os-v2/commit/<sha>". Câu hỏi (không cần sửa mã) thì reply + submit với link trang.
-Không rõ đề bài hoặc cần anh quyết (tiền, xoá dữ liệu, đổi luồng lớn) → reply hỏi đúng một câu và KHÔNG submit.
+Không rõ đề bài hoặc cần anh quyết (tiền, xoá dữ liệu, đổi luồng lớn) → reply hỏi đúng một câu, MỞ tin bằng "❓" (vd '❓ Anh muốn A hay B?' — thiếu ❓ thì card không hiện nhãn "chờ bạn" / số đỏ cho người báo) và KHÔNG submit.
 TỰ QUYẾT, KHÔNG HỎI: cách sửa, tệp nào, commit + deploy. Chỉ sửa đúng điều card xin (không thêm tính năng ngoài đề). Bị từ chối một lệnh shell thì viết lại dạng đơn giản (một lệnh, không biến tạm).
 CẤM: hoàn tác git, xoá dữ liệu, migration xoá / đổi dữ liệu có sẵn, sinh AI / render / gọi mô hình tốn tiền, in khoá / token, sửa ngoài apps/xuong-video.
 

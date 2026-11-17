@@ -2931,12 +2931,30 @@
   ],
   "ly_do_o_vuong": "ảnh 360° 493003245182754: ô vuông nhỏ cạnh huy hiệu + ô nhỏ trên vòm cổng",
   "rang_cua": 2,
-  "ly_do_rang": "ảnh 990990575063069: 5 răng trên mặt trước khối cổng giữa hai tháp canh"
+  "ly_do_rang": "ảnh 990990575063069: 5 răng trên mặt trước khối cổng giữa hai tháp canh",
+  "thap_canh": [
+   [
+    3.33,
+    20.9,
+    25.4,
+    1.05
+   ]
+  ],
+  "ly_do_thap_canh": "góp ý #1648 (17/11/2026): ảnh Commons 'Entering the Neuschwanstein Castle (25121020852)' (Ștefan Jurcă, CC BY 2.0, nhìn thẳng mặt cổng đông, cửa giữa ảnh x 635 ≈ giữa mảng kem 345–930 px → 77 px/m trên mặt 7,6 m): tháp canh NAM (trái ảnh) tâm x 366 px = cách góc nam mảng kem 0,3 m vào trong → cạnh #4 (chạy từ chỗ gãy giữa mặt về góc nam, dài 3,63) s = 3,33; thân 160 px → bán kính 1,05 m; tháp chìa ra ngoài mép kem 0,8 m nhìn thẳng (ảnh 60 px) nhưng đứng TRƯỚC mặt kem, không chạm tường gạch đỏ lùi sau. Đỉnh vành răng cưa = răng cưa khối kem 25,4 (đo tia ảnh 3D #1623: 25,1–25,5); mũi chân côn ngang mép trên khung huy hiệu (ảnh: mũi 500 px, khung 490 px) — khớp phối cảnh ba mốc (đất 11,3 · đỉnh vòm cổng 17,5 · răng cưa 25,4) cho 21,3 trên mặt tường, trừ thị sai mũi nhô 1,1 m trước mặt → 20,9; ô vuông cạnh huy hiệu (s 1,8, y 18,25–18,85) thấp hơn mũi, không bị che"
  },
  "way/223110823#3": {
   "hang": [],
   "rang_cua": 3,
-  "ly_do_rang": "ảnh 990990575063069: 5 răng trên mặt trước khối cổng giữa hai tháp canh"
+  "ly_do_rang": "ảnh 990990575063069: 5 răng trên mặt trước khối cổng giữa hai tháp canh",
+  "thap_canh": [
+   [
+    0.3,
+    20.9,
+    25.4,
+    1.05
+   ]
+  ],
+  "ly_do_thap_canh": "góp ý #1648 (17/11/2026): cùng ảnh 'Entering the Neuschwanstein Castle (25121020852)' — tháp canh BẮC (phải ảnh) tâm x 907 px, mép kem 930 px → cách góc bắc mảng kem 0,3 m → cạnh #3 (từ góc bắc về chỗ gãy giữa mặt) s = 0,3; thân 165 px ≈ bán kính 1,05; đối xứng tháp nam (cùng mũi 500 px, cùng đỉnh 235 px trên ảnh) → mũi 20,9, đỉnh 25,4. Ảnh 'Dvorac Neuschwanstein - pročelje' (Silverije, CC BY-SA 4.0, nhìn chéo từ đông nam) xác nhận: tháp bắc treo ở góc trên mảng kem, nhô trước mặt kem, phía bắc chìa ra trên tường gạch đỏ lùi sau"
  },
  "way/223110818#0": {
   "hang": [],

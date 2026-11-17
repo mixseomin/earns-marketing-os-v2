@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // TRỌNG TÀI MÁY — cổng trước khi bản sửa castle lên main (anh 16/11/2026: hệ tự phản biện; người sửa không tự chấm bài mình).
 // Người sửa (Thắng) chỉ COMMIT trong cây riêng; lệnh này chấm commit chưa lên main rồi mới đẩy:
-//   1. kiem-chu-thich (chú thích // nuốt mã) + node --check mọi .js đã đổi + kiem-ke (kiểm kê mặt, chồng lấn)
+//   1. kiem-chu-thich (chú thích // nuốt mã) + kiem-nap-phien-ban (mô-đun mới có trong danh sách nạp theo phiên bản) + node --check mọi .js đã đổi + kiem-ke (kiểm kê mặt, chồng lấn)
 //   2. hình khối: cham-goc.mjs ở các góc chuẩn THẤY khối đã đổi (đổi mã dựng hình → đủ mọi góc), so với MỐC public/du-lieu/<lâu>-cham-goc.json:
 //      khối nào sau sửa lệch ≥ 1,5 m và tệ hơn trước ≥ 0,9 m → TRẢ (thoát 1), không đẩy
 //   3. đạt: gộp số đo mới vào mốc (commit kèm), --day thì git push origin HEAD:main (kéo main mới, thử 3 lần)
@@ -35,7 +35,7 @@ if (existsSync(tepNho)) { const n = JSON.parse(readFileSync(tepNho, 'utf8')); if
 const nho = (dat, ra) => writeFileSync(tepNho, JSON.stringify({ dat, luc: new Date().toISOString(), ra }));
 const loi = (e) => String(e.stdout || '') + String(e.stderr || e.message);
 // 1. kiểm tĩnh
-try { chay('kiem-chu-thich.mjs'); for (const f of doi.filter((f) => /^apps\/castle\/.*\.m?js$/.test(f) && existsSync(join(REPO, f)))) execFileSync(process.execPath, ['--check', join(REPO, f)], { stdio: 'pipe' }); }
+try { chay('kiem-chu-thich.mjs'); chay('kiem-nap-phien-ban.mjs'); for (const f of doi.filter((f) => /^apps\/castle\/.*\.m?js$/.test(f) && existsSync(join(REPO, f)))) execFileSync(process.execPath, ['--check', join(REPO, f)], { stdio: 'pipe' }); }
 catch (e) { const ra = loi(e).split('\n').slice(0, 8).join('\n'); nho(false, ra); console.log(ra); tra('kiểm mã hỏng'); }
 const hinh = doi.filter((f) => /^apps\/castle\/public\/.*\.(js|json)$/.test(f) && !/cham-goc\.json$|goc-chuan\.json$|kiem-ke-kq\.json$/.test(f));
 if (!hinh.length) { console.log('· không đổi mã / dữ liệu dựng hình — bỏ bước chấm góc'); }

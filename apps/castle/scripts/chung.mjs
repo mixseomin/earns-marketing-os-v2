@@ -21,7 +21,11 @@ const LOAI = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'applica
 // CỔNG: mọi công cụ đo / kiểm castle chạy máy dò chú thích // nuốt mã trước (scripts/kiem-chu-thich.mjs) — mã bị nuốt thì từ chối chạy
 // (đo / kiểm trên mã đang hỏng im lặng cho kết quả sai, đã xảy ra với nan-google.mjs 16/11/2026)
 import { execFileSync } from 'node:child_process';
-function kiemChuThich() { try { execFileSync(process.execPath, [join(GOC, 'scripts', 'kiem-chu-thich.mjs')], { stdio: 'pipe' }); } catch (e) { console.error(String(e.stdout || e.message)); console.error('✗ dừng: có chú thích // nuốt mã trong castle — sửa trước khi đo / kiểm'); process.exit(1); } }
+// + kiem-nap-phien-ban.mjs: mô-đun mới quên thêm vào danh sách nạp theo dấu phiên bản thì trang thật chạy bản cũ trong bộ đệm Cloudflare (17/11/2026)
+function kiemChuThich() {
+  for (const [tep, ly] of [['kiem-chu-thich.mjs', 'có chú thích // nuốt mã trong castle'], ['kiem-nap-phien-ban.mjs', 'mô-đun castle nạp trần, thiếu trong danh sách TEP của trang']])
+    try { execFileSync(process.execPath, [join(GOC, 'scripts', tep)], { stdio: 'pipe' }); } catch (e) { console.error(String(e.stderr || '') + String(e.stdout || e.message)); console.error(`✗ dừng: ${ly} — sửa trước khi đo / kiểm`); process.exit(1); }
+}
 // suaTam: { 'way/…': { y_tren: '…' } } trộn TẠM vào <lâu>-sua.json khi trang nạp (không đổi tệp) — bài phá thử của cham-goc.mjs, chấm bản sửa chưa ghi
 export async function moTrang({ anh3d = false, them = '', khung = { width: 1600, height: 1200 }, nhanLog = null, suaTam = null } = {}) {
   kiemChuThich();

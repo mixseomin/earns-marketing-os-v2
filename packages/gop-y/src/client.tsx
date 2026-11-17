@@ -492,7 +492,7 @@ function CuaToi({ ds, onNap, trong = 'Chưa có góp ý nào.' }: { ds: GopYCuaT
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
                 <span style={{ border: `1px solid ${tt.mau}`, color: tt.mau, borderRadius: 4, padding: '0 5px' }}>{tt.nhan}</span>
                 <b style={{ color: 'var(--fg-2)' }}>#{b.id}</b><span>{b.loai === 'cau_hoi' ? 'hỏi' : 'lỗi'}</span>
-                {b.choYKien && <span style={{ background: 'var(--red,#ef4444)', color: '#fff', borderRadius: 4, padding: '0 5px', fontWeight: 700 }} title="Kỹ sư đang chờ bạn trả lời (hoặc card kẹt) — mở card để trả lời">chờ bạn</span>}
+                {b.choYKien && <span style={{ background: 'var(--red,#ef4444)', color: '#fff', borderRadius: 4, padding: '0 5px', fontWeight: 700 }} title="Kỹ sư đang hỏi bạn — mở card để trả lời">chờ bạn</span>}
                 <span style={{ marginLeft: 'auto' }}>cập nhật {cach(b.capNhat)}{b.soTin ? ` · ${b.soTin} tin` : ''}</span>
               </div>
               <div style={{ fontSize: 12.5, marginTop: 4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: mo === b.id ? 99 : 2, WebkitBoxOrient: 'vertical' }}>{b.noiDung}</div>

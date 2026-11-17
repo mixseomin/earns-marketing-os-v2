@@ -1,6 +1,6 @@
 // ĐẾM CHO NÚT 💬 (chuẩn packages/gop-y/CHUAN.md) — phần thuần, dùng ở cả máy chủ (server.ts) lẫn trình duyệt (client.tsx):
 //  · working     = số việc AI đang làm (card claimed còn trong trần phiên kỹ sư + kỹ sư CLI phụ trách hòm đang chạy một lượt) → nút rung
-//  · can_y_kien  = số card CỦA CHÍNH người xem đang chờ họ: kỹ sư hỏi mà chưa ai đáp, hoặc card kẹt (broken) → số đỏ trên nút
+//  · can_y_kien  = số card CỦA CHÍNH người xem đang chờ họ: tin cuối là kỹ sư hỏi (mở bằng ❓) mà chưa ai đáp; kẹt một mình không tính → số đỏ trên nút
 // Tự kiểm: node_modules/.bin/tsx packages/gop-y/src/dem.test.mts
 
 /** Trần phiên kỹ sư hòm (may/gop-y-ky-su tranPhut 40) + 5 phút: card claimed / lượt "▶ bắt đầu" quá trần coi là phiên đã chết — không rung mãi. */
@@ -22,11 +22,17 @@ export type DemGopY = {
 };
 export const DEM_RONG: DemGopY = { working: 0, dangLam: [], can_y_kien: 0, choYKien: [] };
 
-const MO = new Set(['pending', 'claimed', 'submitted']);
-/** Card của tôi có đang chờ tôi không: kẹt, hoặc còn mở mà tin cuối là người khác (kỹ sư) nói, không phải lệnh duyệt / làm lại của tôi. */
-export function choToi(trangThai: string, tinCuoi: { nguoi: string; xuLy: string | null } | null, laToi: (nguoi: string) => boolean): boolean {
-  if (trangThai === 'broken') return true;
-  return MO.has(trangThai) && !!tinCuoi && !tinCuoi.xuLy && !laToi(tinCuoi.nguoi);
+const MO = new Set(['pending', 'claimed', 'submitted', 'broken']);
+/** Cờ hỏi rõ ràng: kỹ sư mở tin bằng "❓" khi hỏi người báo. */
+export const CO_HOI = '❓';
+/** Tin máy tự ghi ("[Khôi · …]", "[máy] …") — không bao giờ là câu hỏi cho người. */
+const laTinMay = (noiDung: string) => /^\s*\[/.test(noiDung);
+/** Card của tôi có đang chờ tôi không: CHỈ khi còn mở (kể cả kẹt) và tin cuối là kỹ sư HỎI tôi (mở bằng ❓, không phải tin máy, không phải của tôi).
+ *  Kẹt một mình (vd deploy đỏ vì người khác) KHÔNG tính — anh 17/11/2026, góp ý #giao-20261117-0001-cho-ban. */
+export function choToi(trangThai: string, tinCuoi: { nguoi: string; noiDung?: string; xuLy: string | null } | null, laToi: (nguoi: string) => boolean): boolean {
+  if (!MO.has(trangThai) || !tinCuoi || tinCuoi.xuLy || laToi(tinCuoi.nguoi)) return false;
+  const nd = String(tinCuoi.noiDung ?? '');
+  return !laTinMay(nd) && nd.trimStart().startsWith(CO_HOI);
 }
 
 /** Dòng nhật ký nhịp cuối của kỹ sư (<người>.json) → tên việc đang chạy, hoặc null. */
@@ -59,6 +65,6 @@ export const conTrongTran = (capNhat: string, bay = Date.now()) => bay - Date.pa
 /** Phương án dự phòng ở trình duyệt khi app chưa nối `demGopY` vào máy chủ: đếm từ chính danh sách "Của tôi". */
 export function demTuDs(ds: Array<{ id: number; noiDung: string; trangThai: string; capNhat: string; choYKien?: boolean }>, bay = Date.now()): DemGopY {
   const lam = ds.filter((b) => b.trangThai === 'claimed' && conTrongTran(b.capNhat, bay));
-  const cho = ds.filter((b) => b.choYKien ?? b.trangThai === 'broken');
+  const cho = ds.filter((b) => !!b.choYKien);
   return { working: lam.length, dangLam: lam.map((b) => `#${b.id} ${b.noiDung.split('\n')[0]!.slice(0, 60)}`), can_y_kien: cho.length, choYKien: cho.map((b) => b.id) };
 }

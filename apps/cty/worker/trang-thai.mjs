@@ -63,8 +63,9 @@ export function trangThai(nk, op = {}, bay = Date.now()) {
   if (loi >= LOI_LIEN_TIEP) ket.push(`${loi} lần lỗi liên tiếp`);
   if (op.bat !== false) for (const [v, p] of Object.entries(op.lichDay ?? {})) {
     if (p > LICH_DAY_PHUT || dang.some((x) => x.viec === v)) continue;
+    // chưa có dòng nào của việc này = chưa biết (vd lượt mở TRƯỚC khi bộ điều phối biết đẩy sự kiện, 17/11 Thắng 14:26 chạy dài) — không gán kẹt
     const cuoi = nk.find((e) => e.viec === v); const im = cuoi ? phut(cuoi.luc, now) : null;
-    if (im === null) ket.push(`lịch mỗi ${p} phút mà chưa có lần chạy nào trong nhật ký`); else if (im > IM_QUA_PHUT) ket.push(`lịch mỗi ${p} phút mà im ${im} phút`);
+    if (im !== null && im > IM_QUA_PHUT) ket.push(`lịch mỗi ${p} phút mà im ${im} phút`);
   }
   const moi = nk[0]; const vua = moi ? { luc: moi.luc, ket: String(moi.ket ?? '') } : op.cuoiKhac ?? null;
   if (dang.length) { const x = dang.sort((a, b) => a.tu.localeCompare(b.tu))[0]; return { kieu: 'lam', viec: x.tenViec || x.viec, tu: x.tu, phut: phut(x.tu, now), them: dang.length - 1, vua, ket }; }
@@ -88,6 +89,7 @@ if (process.argv[1]?.endsWith('trang-thai.mjs') && process.argv.includes('--tu-k
   a.deepEqual(trangThai(nk([[-9, 'x', '✗ lỗi mã 1 sau 3 giây'], [-6, 'x', '✗ lỗi mã 1 sau 3 giây'], [-3, 'x', '■ xong sau 3 giây']]), {}, bay).ket, [], 'lần cuối xong → hết kẹt');
   a.deepEqual(trangThai(nk([[-40, 'x', '■ xong sau 3 giây']]), { lichDay: { x: 5 } }, bay).ket, ['lịch mỗi 5 phút mà im 40 phút'], 'lịch dày mà im');
   a.deepEqual(trangThai(nk([[-40, 'x', '■ xong sau 3 giây']]), { lichDay: { x: 30 } }, bay).ket, [], 'lịch 30 phút không xét im');
+  a.deepEqual(trangThai([], { lichDay: { x: 5 } }, bay).ket, [], 'chưa có dòng nào → chưa biết, không kẹt');
   a.equal(trangThai(nk([[-3, 'kiem-thu', '43 thư đã đọc']]), {}, bay).kieu, 'ranh', 'nhịp box: một dòng = một lần xong');
   a.equal(trangThai([], { cuoiKhac: { luc: t(-60), ket: 'việc máy chạy' } }, bay).kieu, 'ranh', 'không có nhịp mà có việc máy → không "chưa làm"');
   a.equal(trangThai([], { bat: false }, bay).kieu, 'tat');

@@ -51,7 +51,7 @@ function OTrangThai({ id, t }: { id: string; t: TT }) {
       {t.kieu === 'lam' ? <><b className="cty-tt-lam">ĐANG LÀM</b> {t.viec}{t.them ? ` (+${t.them} việc)` : ''}<div className="cty-nho">từ {gio(t.tu!)} ({t.phut} phút)</div></>
         : t.kieu === 'ranh' ? <><span className="cty-tt-ranh">RẢNH</span><span className="cty-nho"> · xong {gio(t.xong!)} · <TruocDay iso={t.xong!} /></span></>
         : t.kieu === 'tat' ? <><span className="cty-muted">TẮT</span>{t.xong && <span className="cty-nho cty-muted"> · lần cuối {gio(t.xong)}</span>}</>
-        : <span className="cty-muted">chưa có lần chạy nào</span>}
+        : <span className="cty-muted" title="Nhật ký nhịp chưa có dòng nào của người này — việc Mac mở trước 17/11 14:27 chỉ có dòng khi lượt đó xong">chưa có dòng nhật ký</span>}
       {t.ket.length > 0 && <div><span className="cty-tt-ket">KẸT</span> <span className="cty-nho cty-tt-ket-chu">{t.ket.join(' · ')}</span></div>}
       {t.vua?.ket && <div className="cty-nho cty-muted cty-tt-vua" title={t.vua.ket}>vừa: {t.vua.ket.slice(0, 160)}</div>}
     </Link>

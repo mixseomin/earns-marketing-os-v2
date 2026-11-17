@@ -20,7 +20,8 @@ import { nhanSu, type Doc } from '@/lib/cong-ty';
 import { soChi } from '@/lib/do-dac';
 import { docLog } from '../../worker/log.mjs';
 import { TruocDay } from './truoc-day';
-import { trangThai, nhatKyCuoi, tranPhut, phutLich } from '../../worker/trang-thai.mjs';
+import { trangThai, nhatKyCuoi, tranPhut, phutLich, cacLan } from '../../worker/trang-thai.mjs';
+import { DemNguoc } from './dem-nguoc';
 import { VIEC_NHIP } from '../../worker/nhip.mjs';
 import { LocNhanSu, LOAI_NS, type LocNS } from './loc-nhan-su';
 import { Fragment } from 'react';
@@ -41,6 +42,14 @@ function trangThaiCua(id: string, fm: Record<string, unknown>, bat: boolean, cuo
   const viec = String(fm.heartbeat ?? '').split(',').map((v) => v.trim()).filter((v) => v in NHIP_MAY);
   const lichDay = Object.fromEntries(viec.flatMap((v) => { const p = phutLich((VIEC_NHIP as Record<string, { lich: (n: object) => string }[]>)[v]?.[0]?.lich({})); return p ? [[v, p]] : []; }));
   return trangThai(nhatKyCuoi(id), { bat, tran: tranPhut, lichDay, cuoiKhac: cuoiKhac ? { luc: cuoiKhac.luc, ket: cuoiKhac.ket ?? '' } : undefined }) as TT;
+}
+/** GIỜ KIỂM KẾ từng việc của một người: { viec: { tiep?, tu? } } — tiep = trường "tiep" mới nhất bộ điều phối đẩy kèm nhật ký nhịp,
+ *  tu = lần đang chạy (▶ chưa có ■ / ✗) thì đếm "đang chạy" thay đếm ngược. */
+function keTiep(id: string): Record<string, { tiep?: string; tu?: string }> {
+  const nk = nhatKyCuoi(id) as { viec?: string; tiep?: string }[]; const ra: Record<string, { tiep?: string; tu?: string }> = {};
+  for (const e of nk) { const v = String(e.viec ?? ''); if (v && e.tiep && !ra[v]?.tiep) ra[v] = { ...ra[v], tiep: e.tiep }; }
+  for (const x of cacLan(nk) as { viec: string; tu?: string; dang: boolean }[]) if (x.dang && x.tu) ra[x.viec] = { ...ra[x.viec], tu: x.tu };
+  return ra;
 }
 /** Ô trạng thái: bấm mở ngăn "Nhật ký công việc" của người đó (nhip:<id>/nhat-ky). */
 function OTrangThai({ id, t }: { id: string; t: TT }) {
@@ -153,9 +162,10 @@ export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc
             <td className={`cty-nho cty-dn-tulam${n.bat ? '' : ' cty-muted'}`}>{((vm) => {
               // ĐẦU VIỆC (anh 14/10/2026): việc nhịp cty (chấm = nhịp của người đó) rồi việc máy (chấm riêng từng việc); 4 dòng đầu luôn hiện, còn lại
               // mở tại chỗ (#1362) — cùng một lưới nên thẳng cột. Không có đầu việc nào → chữ trạng thái (tắt / khi bấm nút).
+              const ke = keTiep(d.id);   // đếm ngược tới lần kiểm kế (anh 17/11/2026)
               const nhip = n.ds.map((v) => <li key={v.ma}><span className="cty-ten-viec"><NutTuLam muc={`nhip:${d.id}`} bat={n.bat} admin={admin} /><Link href={hrefNhip(d.id, v.ma)} title={v.ten}>{v.ten}</Link></span>
-                {v.gio ? <ChinhLich muc={`gio:${d.id}`} lich={{ kieu: 'luc', gio: [v.gio], thu: [] }} chu={v.lich} kieu={['luc']} motGio admin={admin} apSau={henAp('MacBook') as string} /> : <span className="cty-lich-o" title={v.lich}>{v.lich}</span>}<span /></li>);
-              const may = vm.map((v) => <li key={v.id}><TenViecMay v={v} admin={admin} href={hrefNhip(d.id, 'may')} /><LichViec v={v} admin={admin} /><span className="cty-muted">{v.may}</span></li>);
+                {v.gio ? <ChinhLich muc={`gio:${d.id}`} lich={{ kieu: 'luc', gio: [v.gio], thu: [] }} chu={v.lich} kieu={['luc']} motGio admin={admin} apSau={henAp('MacBook') as string} /> : <span className="cty-lich-o" title={v.lich}>{v.lich}</span>}<DemNguoc {...(ke[(v as { viec?: string }).viec ?? ''] ?? {})} /></li>);
+              const may = vm.map((v) => <li key={v.id}><TenViecMay v={v} admin={admin} href={hrefNhip(d.id, 'may')} /><LichViec v={v} admin={admin} /><span className="cty-muted">{v.may} <DemNguoc {...(ke[v.ma] ?? (v.tiep ? { tiep: v.tiep } : {}))} /></span></li>);
               const tat = [...nhip, ...may]; if (!tat.length) return n.viec;
               const dau = Math.max(nhip.length, Math.min(4, tat.length));
               return <>{n.chiXem && <div className="cty-muted">{n.viec}</div>}

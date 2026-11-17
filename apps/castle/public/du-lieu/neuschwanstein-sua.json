@@ -186,7 +186,9 @@
  "way/88229631": {
   "dich_x": "-0.75",
   "dich_z": "2.75",
-  "ly_do_dich": "dang-ky-khoi.mjs 2026-11-16: mặt bằng OSM lệch ảnh 3D (-0.75, 2.75) m, khớp 0.833 → 0.945"
+  "ly_do_dich": "dang-ky-khoi.mjs 2026-11-16: mặt bằng OSM lệch ảnh 3D (-0.75, 2.75) m, khớp 0.833 → 0.945",
+  "y_tren": "8.65",
+  "ly_do_cao": "17/11/2026 thẻ máy quét #1643: nhà bán hàng phía bắc lâu đài cao hơn ảnh thật. Đo theo TIA ở 2 góc chuẩn (cham-goc --khoi): đông-bắc −2,5 m, đông −1,9 m → trung vị −2,2 m; y_tren 10,85 → 8,65. Ảnh cận (camera (40, 35, −140)): bản thật mái dốc xám có cửa mái, cây che một phần (cây chỉ làm số đo thật cao lên, nên lệch xuống là thật). Giữ mái bằng: mặt bằng OSM có chái nhô ~5 m, mái dốc dựng trên hộp bao sẽ chìa ra ngoài tường"
  },
  "way/223145713": {
   "y_tren": "48.3",

@@ -35,6 +35,23 @@
     "iMac:tc.on.cty.giam-sat"
    ],
    "chi_phi": "máy đo 0đ · lượt phán tính vào gói Claude thuê bao"
+  },
+  {
+   "id": "xu-gop-y-cty",
+   "ten": "Xử hòm góp ý cty.on.tc (Claude Code trên iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền; chỉ gọi Claude khi hòm góp ý cty có card mở",
+   "mo_ta": "Khôi lấy card góp ý mở cũ nhất của cty.on.tc (nút 💬, project cty; anh bấm làm lại thì card về hàng với tin mới), kéo origin/main vào cây riêng, làm đúng /tasks-cty: sửa gốc apps/cty, kiểm, đẩy main (GHA deploy box3), trả lời vào luồng card rồi nộp Review.",
+   "ma": "apps/cty/may/cty-gop-y.mjs (khung apps/cty/may/gop-y-ky-su.mjs) · lệnh ~/.claude/commands/tasks-cty.md (iMac)",
+   "chu_tri": "khoi",
+   "lam": [
+    "may"
+   ],
+   "khi": "khi hòm góp ý cty có card mở",
+   "lich": [
+    "iMac:tc.on.cty.cty-gop-y"
+   ],
+   "chi_phi": "gói Claude thuê bao (không tính theo lượt)"
   }
  ]
 }

@@ -928,6 +928,24 @@
    "uu_tien_thap": true
   },
   {
+   "nhan": "iMac:tc.on.cty.cty-gop-y",
+   "ten": "cty - Khôi xử hòm góp ý (Claude)",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/may-ky-su/khoi/earns-marketing-os-v2/apps/cty/may/cty-gop-y.mjs"
+   ],
+   "thu_muc": "/Users/htuan/may-ky-su/khoi/earns-marketing-os-v2",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/cty-gop-y.log",
+   "hen": {
+    "moi_giay": 300
+   },
+   "uu_tien_thap": true,
+   "ghi_chu": "Anh duyệt 17/11/2026 (\"Tạo đi\") — hòm 💬 cty.on.tc chưa ai nhận."
+  },
+  {
    "nhan": "iMac:tc.on.cty.castle-gop-y",
    "ten": "Castle - Thắng xử hòm góp ý (Claude)",
    "chay": [

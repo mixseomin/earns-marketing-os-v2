@@ -166,6 +166,9 @@ def chay(q, luc=None):
         a = l.split("|"); nha_gio.setdefault(a[0], {})[a[1]] = [float(a[2]), float(a[3])]
     som = xet_som(luc, cu, gia_truot(so_gio, luc), roi_sang(nha_gio, luc), moi["hom_nay"]["ti"])
     moi.update(som)
+    # SỐ HIỂN THỊ GẦN THỜI GIAN THỰC (anh 17/11/2026 "Badge giá chợ có realtime đc ko"): cửa sổ 6 giờ GỒM giờ đang chạy (số report giờ dở cập nhật liên tục,
+    # đo 17/11: giờ 03 UTC lúc 15 phút iRPM 73 → trọn giờ 70) — chỉ để hiện nhiệt kế; phanh vẫn xét trên giờ trọn (gia6) cho khỏi lật theo giờ dở.
+    moi["gia_nay"] = gia_truot(so_gio, luc + dt.timedelta(hours=1)); moi["gia_nay_luc"] = luc.isoformat()
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('rpm_gio', $J${json.dumps(so_gio)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('rpm_13h', $J${json.dumps(so13)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('phanh_cho', $J${json.dumps(moi, ensure_ascii=False)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
@@ -224,6 +227,8 @@ def _tu_kiem():
     sg["2026-11-16"] = {str(h): [8.4, 100] for h in range(24)}; P5 = {**PC, "truot": {**PC["truot"], "imp_min": 500}}
     assert gia_truot(sg, u("2026-11-16T10:30:00"), P5) == 0.7 and gia_truot(sg, u("2026-11-16T03:10:00"), P5) == 0.85, "cửa sổ 6 giờ vắt qua nửa đêm: 3 giờ cũ + 3 giờ tụt"
     assert gia_truot(sg, u("2026-11-16T10:30:00")) is None, "ít lượt hiển thị → không đoán"
+    sg2 = {**sg, "2026-11-16": {**{str(h): [12.0, 100] for h in range(10)}, "10": [3.0, 50]}}   # giờ 10 đang dở: 50 lượt, iRPM 60
+    assert gia_truot(sg2, u("2026-11-16T10:30:00"), P5) == 1.0 and gia_truot(sg2, u("2026-11-16T11:30:00"), P5) == round((12 * 5 + 3) / 550 * 1000 / 120, 3), "luc + 1 giờ = cửa sổ gồm giờ đang chạy (số hiển thị)"
     ng = {f"2026-11-{d:02d}": {str(h): [50.0, 60.0] for h in range(24)} for d in range(8, 16)}; ng["2026-11-16"] = {str(h): [50.0, 43.0] for h in range(24)}
     assert roi_sang(ng, u("2026-11-16T06:05:00")) == (-14.0, -34.0) and roi_sang({"2026-11-16": ng["2026-11-16"]}, u("2026-11-16T06:05:00")) is None
     s = xet_som(u("2026-11-16T03:00:00"), {}, 0.7, None, None); assert s["gia6"] == {"ti": 0.7, "den": "2026-11-16T05:00:00+00:00"} and s["roi_sang"] is None and s["sang_quyet"] is None, s

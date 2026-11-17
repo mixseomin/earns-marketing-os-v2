@@ -1271,4 +1271,5 @@ export const LUAT = [
   { card: 'nhiet-ke-1711', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<NhietKeCho cauHinh={du.cauHinh} dinh />', vi: 'nhiệt kế giá chợ dính màn trên etp2 (anh 17/11/2026)' },
   { card: 'nhiet-ke-1711', tep: 'apps/web/src/components/etp-view.tsx', co: '<NhietKeCho cauHinh={du.cauHinh} dinh />', vi: 'nhiệt kế giá chợ dính màn trên etp' },
   { card: 'nhiet-ke-1711', tep: 'apps/web/src/components/etp-view.tsx', co: '<NhietKeCho cauHinh={du.cauHinh} />', vi: 'nhiệt kế giá chợ cạnh tiêu đề trang' },
+  { card: 'nhiet-ke-1711', tep: 'apps/etp/gia_adsense.py', co: 'moi["gia_nay"] = gia_truot(so_gio, luc + dt.timedelta(hours=1))', vi: 'nhiệt kế hiện giá gồm giờ đang chạy (anh 17/11/2026 hỏi realtime)' },
 ];

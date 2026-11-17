@@ -12,6 +12,9 @@ type TrangThai = {
   gia6?: { ti: number; den: string } | null;
   /** tỉ lệ giá chợ 6 giờ trọn gần nhất so nền 7 ngày, cập nhật mỗi lượt đồng bộ (null = thiếu số) */
   gia6_nay?: number | null;
+  /** như gia6_nay nhưng cửa sổ GỒM giờ đang chạy — số hiển thị nhiệt kế (gần thời gian thực) */
+  gia_nay?: number | null;
+  gia_nay_luc?: string | null;
   roi_sang?: { ngay: string; roi: number; kem: number; den: string } | null;
   rut?: { ngay: string; gia: number; roi: number; den: string } | null;
 };
@@ -60,11 +63,11 @@ export function BienPhanhCho({ cauHinh }: { cauHinh: { khoa: string; gia_tri: un
  *  Bầu + ống: đỏ dưới mốc rút, vàng dưới mốc phanh, xanh từ mốc phanh trở lên; vạch trắng = mốc phanh. dinh = dính góc dưới phải màn, cuộn / đổi tab vẫn thấy. */
 export function NhietKeCho({ cauHinh, dinh }: { cauHinh: { khoa: string; gia_tri: unknown }[]; dinh?: boolean }) {
   const tt = (cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null;
-  const ti = tt?.gia6_nay ?? tt?.hom_nay?.ti ?? null;
+  const ti = tt?.gia_nay ?? tt?.gia6_nay ?? tt?.hom_nay?.ti ?? null;
   if (ti == null) return null;
   const pt = Math.round(ti * 100), phanh = Math.round(PC.truot.nguong * 100), rut = Math.round(PC.rut.gia * 100), TRAN = 130;
   const mau = pt < rut ? '#ef4444' : pt < phanh ? '#f59e0b' : '#22c55e';
-  return <span data-nhiet-ke={dinh ? 'dinh' : 'dong'} title={`Giá quảng cáo cả chợ ${PC.truot.gio} giờ gần nhất = ${pt}% mức thường (trung bình cùng khung 7 ngày trước). Dưới ${phanh}%: máy phanh mở rộng · dưới ${rut}% kèm ROI sáng âm: máy rút. Cập nhật 10 phút một lần.`}
+  return <span data-nhiet-ke={dinh ? 'dinh' : 'dong'} title={`Giá quảng cáo cả chợ ${PC.truot.gio} giờ gần nhất = ${pt}% mức thường (trung bình cùng khung 7 ngày trước). Dưới ${phanh}%: máy phanh mở rộng · dưới ${rut}% kèm ROI sáng âm: máy rút. Tính cả giờ đang chạy, đo lúc ${tt?.gia_nay_luc ? gioVn(tt.gia_nay_luc) : '?'} (máy đo mỗi lượt đồng bộ).`}
     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 9px 2px 6px', borderRadius: 999, border: `1px solid ${mau}`, background: 'var(--bg-1, #0b0d12)', color: 'var(--fg, #e5e7eb)', fontSize: 12, lineHeight: 1.4, whiteSpace: 'nowrap', alignSelf: 'center',
       ...(dinh ? { position: 'fixed' as const, right: 12, bottom: 12, zIndex: 70, boxShadow: '0 2px 10px #0009' } : {}) }}>
     <span style={{ display: 'inline-flex', alignItems: 'center' }}>

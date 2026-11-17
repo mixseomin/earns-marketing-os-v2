@@ -58,6 +58,14 @@ export function lenhBiChan(cwd, id) {
 export const CAM = [...['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
   'rm', 'rmdir', 'rsync', 'scp', 'open', 'npm install', 'npm i', 'npx', 'brew', 'pip', 'launchctl', 'crontab', 'sudo', 'kill', 'pkill'].map((c) => `Bash(${c}:*)`),
   'AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate'];
+/** GỐC lỗ CAM (Hà 17/11/2026): luật chặn so TIỀN TỐ chuỗi lệnh — quyền chung 'git -C <cây>:*' cho qua 'git -C <cây> reset --hard' vì chuỗi đó không bắt đầu
+ *  bằng 'git reset'; quyền 'git branch:*' (de28970d8) cho qua 'git branch -d / --delete / -f' (CAM chỉ có -D). Máy nhân mọi lệnh git cấm ra dạng 'git -C <cây> …'
+ *  và chặn thêm các dạng xoá / ép nhánh. Chỉ SIẾT, không nới. */
+const GIT_CAM_THEM = ['git branch -d', 'git branch --delete', 'git branch -f', 'git branch --force', 'git tag --delete'];
+export function camCay(dir) {
+  const git = [...CAM, ...GIT_CAM_THEM.map((c) => `Bash(${c}:*)`)].map((p) => /^Bash\((git [^)]*):\*\)$/.exec(p)?.[1]).filter(Boolean);
+  return [...new Set([...CAM, ...GIT_CAM_THEM.map((c) => `Bash(${c}:*)`), ...git.map((c) => `Bash(git -C ${dir} ${c.slice(4)}:*)`)])];
+}
 // Lời AI trong luồng card ghi nguoi = 'ai' (play reply) HOẶC 'claude' (gop-y.sh reply). Chỉ so 'ai' thì lời 'claude' bị đếm là tin NGƯỜI:
 // kỹ sư lấy câu trả lời cũ làm đề bài, và mỗi lần chính nó trả lời qua gop-y.sh lại thành "tin mới" → tự mở lại card mỗi 5 phút (12/11/2026, card spy #1293).
 export const NGUOI_AI = ['ai', 'claude'];
@@ -115,7 +123,7 @@ export function chayKySu(cfg) {
     const QUYEN = moRongQuyen([...quyenChung(dir, ANH), ...cfg.quyen(dir)], dir);
     const ds = (cfg.thuLenh ? cfg.thuLenh(dir) : []).concat(['git status --short | head -3', 'git log --oneline -1', `git -C ${dir} rev-parse --short HEAD`]);
     const loi = `Kiểm quyền: chạy LẦN LƯỢT từng lệnh dưới đây bằng công cụ Bash, mỗi lệnh MỘT lần gọi, GIỮ NGUYÊN từng chữ (không sửa, không gộp, không bỏ). Lệnh lỗi hay bị chặn cũng cứ chạy lệnh kế. Xong trả lời đúng một chữ XONG.\n${ds.map((c, i) => `${i + 1}. ${c}`).join('\n')}`;
-    const r = spawnSync(CLAUDE, ['-p', loi, '--model', 'haiku', '--output-format', 'json', '--permission-mode', 'dontAsk', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
+    const r = spawnSync(CLAUDE, ['-p', loi, '--model', 'haiku', '--output-format', 'json', '--permission-mode', 'dontAsk', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...camCay(dir)],
       { cwd: dir, encoding: 'utf8', timeout: 15 * 60000, maxBuffer: 64 << 20, env: ENV });
     let kq = {}; try { kq = JSON.parse(r.stdout); } catch { console.error('Claude không trả JSON:', String(r.stderr || r.stdout).slice(0, 400)); process.exit(2); }
     const chan = new Set(lenhBiChan(dir, kq.session_id).map((c) => c.trim()));
@@ -214,7 +222,7 @@ export function chayKySu(cfg) {
     { input: JSON.stringify({ nguoi: NGUOI, viec: 'nhan-viec', luc: new Date().toISOString(), ket: `◆ nhận ${card.giao ? 'việc giao' : `card #${card.id}`}: ${card.title} · ${model} ${muc.effort}` }), encoding: 'utf8', timeout: 30000 }); } catch (e) { log(`chưa báo được bảng nhân sự: ${String(e.message).split('\n')[0]}`); }
   if (!kiem && !card.giao) daLam[card.id] = { tin_nguoi: card.tin_nguoi, luc: new Date().toISOString(), lanQuyen: Number(daLam[`quyen:${card.id}`] ?? 0) };   // ghi TRƯỚC khi chạy: lượt treo / chết cũng không chạy lại liền mỗi 5 phút
   fs.writeFileSync(TEP_DA, JSON.stringify(daLam));
-  const r = (cfg.tmux ? (c, a, o) => chayTmux(c, a, { ...o, ten: NGUOI }) : chayClaude)(CLAUDE, ['-p', giao, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', ...gonNguCanh(cfg), ...DOC_THEM.flatMap((d) => ['--add-dir', d]), '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
+  const r = (cfg.tmux ? (c, a, o) => chayTmux(c, a, { ...o, ten: NGUOI }) : chayClaude)(CLAUDE, ['-p', giao, '--model', model, '--effort', muc.effort, '--output-format', 'json', '--setting-sources', 'project,local', ...gonNguCanh(cfg), ...DOC_THEM.flatMap((d) => ['--add-dir', d]), '--allowedTools', ...QUYEN, '--disallowedTools', ...camCay(dir)],
     { cwd: dir, encoding: 'utf8', timeout: (cfg.tranPhut || 40) * 60000, maxBuffer: 64 << 20, env: ENV });
   // đẩy NGAY trong lượt này commit mà Claude không push được (trước: chờ lượt 5 phút sau, card nằm Kẹt + một tin "can_anh" thừa giữa chừng)
   if (!kiem && cfg.cayMoiLuot) nopCommitDay(cfg.cay(), 'đẩy ngay commit Claude không push được');
@@ -261,5 +269,9 @@ if (process.argv[1]?.endsWith('gop-y-ky-su.mjs') && process.argv.includes('--tu-
   const t = (await import('node:assert/strict')).default;
   t.ok(laAi({ nguoi: 'ai' }) && laAi({ nguoi: 'claude' }) && laAi({ nguoi: 'Claude' }), 'cả hai cách ghi lời AI');
   t.ok(!laAi({ nguoi: 'admin@earns.local' }) && !laAi({ nguoi: 'Hoàng Tuấn' }) && !laAi({}), 'người thật không phải AI');
+  const cc = camCay('/x/cay');
+  for (const p of ['Bash(git -C /x/cay reset:*)', 'Bash(git -C /x/cay checkout:*)', 'Bash(git -C /x/cay push --force:*)', 'Bash(git -C /x/cay branch -d:*)', 'Bash(git branch --delete:*)', 'Bash(rm:*)'])
+    t.ok(cc.includes(p), `camCay chặn ${p}`);
+  t.ok(CAM.every((p) => cc.includes(p)), 'camCay giữ nguyên mọi mục CAM');
   console.log('gop-y-ky-su: tự kiểm đạt');
 }

@@ -33,7 +33,7 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY, thay
   const bang = document.createElement('div'); bang.id = 'aq'; bang.className = 'o'; document.body.append(bang);
   const lon = document.createElement('div'); lon.id = 'aq-lon'; document.body.append(lon);
   lon.onclick = () => { lon.style.display = 'none'; };
-  let diem = null, ds = [], khac = [], hienKhac = false, chon = new Map(), tt = '', r = 100, dangTim = false;
+  let diem = null, ds = [], khac = [], hienKhac = false, chon = new Map(), tt = '', r = 100, dangTim = false; let dangVe = -1;   // ảnh đang xem ở lần vẽ trước — biết lần vẽ này có đổi ảnh không
   const MP = window.__mpGoc || '';
   // ghim 📷 đánh dấu điểm đang tìm (cỡ cố định trên màn)
   const ghim = (() => {
@@ -80,6 +80,9 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY, thay
   function ve() {
     if (bang.style.display !== 'flex') return;
     const a = ds[dang], k = a && a.nguon + a.id;
+    // GIỮ VỊ TRÍ CUỘN dải ảnh nhỏ (anh 17/11/2026: "chọn ảnh thì liên quan gì mà phải đổi vị trí scroll"): innerHTML dựng lại dải → scrollLeft về 0;
+    // chỉ khi ĐỔI ảnh đang xem (← →, bấm ảnh nhỏ) mới kéo ảnh đó vào tầm nhìn — chọn / bỏ chọn, đổi bán kính… giữ nguyên chỗ đang cuộn.
+    const cuonCu = bang.querySelector('.dai')?.scrollLeft ?? 0, doiAnh = dang !== dangVe; dangVe = dang;
     bang.innerHTML = `<div class="dau"><b>📷 Ảnh thật quanh ${esc(diem?.ten || 'điểm đang nhìn')}${Number.isFinite(diem?.huong) ? ` · nhìn hướng ${tenHuong(diem.huong)}` : ''}</b>
         ${khac.length ? `<button id="aq-khac" class="${hienKhac ? 'chon' : ''}" title="Ảnh chụp theo hướng khác, Commons không rõ hướng, hoặc bị khối nhà che giữa chỗ chụp và điểm đang nhìn">${hienKhac ? 'Ẩn' : '+' + khac.length} ảnh khác hướng</button>` : ''}
         ${[60, 100, 200].map((x) => `<button data-r="${x}" class="${r === x ? 'chon' : ''}">${x} m</button>`).join('')}<button id="aq-lai" title="Tìm lại theo điểm + hướng đang nhìn giữa màn (xoay camera rồi bấm)">↻</button><button id="aq-dong">✕</button></div>
@@ -101,7 +104,9 @@ export function ganAnhQuanh({ THREE, scene, nut, layDiem, raLatLng, moGopY, thay
     bang.querySelector('.trai').onclick = () => doi(-1); bang.querySelector('.phai').onclick = () => doi(1);
     bang.querySelector('#aq-chon').onclick = () => { if (chon.has(k)) chon.delete(k); else if (chon.size < TOI_DA) { chon.set(k, a); taiSan(a); } ve(); };
     bang.querySelectorAll('.dai img').forEach((im) => { im.onclick = () => { dang = +im.dataset.i; ve(); }; });
-    bang.querySelector('.dai img.dang')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    const dai = bang.querySelector('.dai'), im = dai?.querySelector('img.dang');
+    if (dai) { dai.scrollLeft = cuonCu; if (doiAnh && im) { const tr = im.offsetLeft - dai.offsetLeft, ph = tr + im.offsetWidth;   // kéo ngang trong dải, không cuộn cả bảng / trang
+      if (tr < dai.scrollLeft) dai.scrollLeft = tr; else if (ph > dai.scrollLeft + dai.clientWidth) dai.scrollLeft = ph - dai.clientWidth; } }
   }
   const doi = (b) => { const m = Math.max(0, Math.min(ds.length - 1, dang + b)); if (m !== dang) { dang = m; ve(); } };
   const dong = () => { bang.style.display = 'none'; ghim.visible = false; lon.style.display = 'none'; };

@@ -179,7 +179,8 @@ export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc
       phong: <span className="cty-muted">{d.phongTen}</span>,
       vai: <span title={d.giuVai.join(' · ') || d.chucDanh}>{vai}</span>,
       ...(x ? { phuTrach: <span title={`${x.chuTri} quy trình chủ trì · ${x.lam} được giao làm · ${x.viec} việc đang mở${x.tre ? ` (${x.tre} máy trễ)` : ''}`}><b>{x.chuTri}</b> · <b className={x.tre ? 'cty-thu-loi' : ''}>{x.viec}</b></span> } : {}),
-      model: <span className="cty-nho">{tenModel(d.model)}</span>,
+      // Ký hiệu riêng khi người đó gọi mô hình qua Cổng AI API (không phải kỹ sư CLI Claude Code) — góp ý #1657
+      model: <span className="cty-nho">{loaiNS(fm) === 'api' && d.model ? <span className="cty-pill cty-pill-kind" title="Gọi mô hình qua Cổng AI API (spy /api/ai), không phải Claude Code CLI">🔌 API</span> : null}{loaiNS(fm) === 'api' && d.model ? ' ' : ''}{tenModel(d.model)}</span>,
       ...(noi.length ? { noi: <span className="cty-nho">{noi.join(' · ')}</span> } : {}),
       ...(cay.length ? { repo: <div className="cty-nho cty-repo">{cay.map((k) => <div key={k.dir}><b>{k.repo}</b> <span className="cty-muted">· {k.may}{k.nhanh ? <> · nhánh <code>{k.nhanh}</code></> : ''}</span><div><code title={`${k.dir} (${k.may})`}>{k.dir}</code></div></div>)}</div> } : {}),
       tuLam: <div className={`cty-nho cty-dn-tulam${n.bat ? '' : ' cty-muted'}`}>{((vm) => {

@@ -1260,4 +1260,11 @@ export const LUAT = [
   { card: 'phanh-13h-1711', tep: 'apps/etp/gia_adsense.py', co: 'if ph and ph["ngay"] < k and luc.hour >= PC_GIO[1] and not (ti is not None and ti >= pc["nguong"]):', vi: 'phanh tăng giữ tới 13h hôm sau, chỉ mở khi giá 07–13h đã hồi ≥ ngưỡng (anh 17/11/2026 "làm đi")' },
   { card: 'bao-tri-1711', tep: 'apps/etp/cong.py', co: 'if viec in ("tao_camp", "nhan_ban") and bt.get("bat") and not anh_bam:', vi: 'Ethopex bảo trì lên camp: máy dừng mọi đường tạo camp / nhân bản (anh 17/11/2026)' },
   { card: 'bao-tri-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: "c.khoa === 'bao_tri_len'", vi: 'biển bảo trì lên camp trên etp + etp2 cho cả team' },
+  // anh 17/11/2026 "Áp dụng đi và làm sao để báo cho cả đội biết": ba nấc cảnh báo sớm (giá 6 giờ trượt · ROI sáng kém nền · rút khỏi chợ)
+  { card: 'bao-som-1711', tep: 'apps/etp/gia_adsense.py', co: 'som = xet_som(luc, cu, gia_truot(so_gio, luc), roi_sang(nha_gio, luc), moi["hom_nay"]["ti"])', vi: 'máy đồng bộ xét ba nấc cảnh báo sớm mỗi lượt' },
+  { card: 'bao-som-1711', tep: 'apps/etp/cong.py', co: 'if (g6.get("den") or "") > bay: return f"PHANH CHỢ (báo sớm)', vi: 'giá 6 giờ trượt dưới ngưỡng → cổng dừng mở rộng' },
+  { card: 'bao-som-1711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if _RUT and _rn < 0:', vi: 'rút khỏi chợ: CX cắt mọi camp thường đang âm hôm nay' },
+  { card: 'bao-som-1711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '[:None if _RUT else CX_TOI_DA]', vi: 'rút khỏi chợ bỏ trần 10 camp / nhịp; ngày thường giữ trần' },
+  { card: 'bao-som-1711', tep: 'apps/cty/worker/ethopex.mjs', co: "const pc = cb.filter((x) => x.loai === 'phanh_cho');", vi: 'tin phanh chợ gửi thêm thẳng tới người trong đội đã nối Telegram' },
+  { card: 'bao-som-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: 'data-bien="rut-cho"', vi: 'biển rút khỏi chợ / phanh báo sớm trên etp + etp2' },
 ];

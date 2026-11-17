@@ -8,6 +8,10 @@ type TrangThai = {
   hom_nay?: { ngay: string; irpm: number | null; nen: number | null; ti: number | null } | null;
   som?: boolean;
   phanh?: { ngay: string; nguon: 'so' | 'lich'; ti: number | null; den_tang: string; den_len: string; ly_do: string } | null;
+  /** ba nấc cảnh báo sớm (anh 17/11/2026, gia_adsense.xet_som) */
+  gia6?: { ti: number; den: string } | null;
+  roi_sang?: { ngay: string; roi: number; kem: number; den: string } | null;
+  rut?: { ngay: string; gia: number; roi: number; den: string } | null;
 };
 const PC = BANG_LUAT.phanh_cho;
 const p2 = (n: number) => String(n).padStart(2, '0');
@@ -19,6 +23,9 @@ const KHUNG = { margin: '0 0 8px', padding: '4px 10px', borderRadius: 6, fontSiz
  *  Thao tác tay KHÔNG bị chặn (anh 16/11/2026) — chỉ cảnh báo một lần ở bước xác nhận. */
 export function canhBaoPhanh(cauHinh: { khoa: string; gia_tri: unknown }[]): { tang: string | null; len: string | null } {
   const ph = ((cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null)?.phanh, nay = Date.now();
+  const tt0 = (cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null;
+  const som = tt0?.gia6 && Date.parse(tt0.gia6.den) > nay ? `⛔ Đang phanh chợ (giá chợ 6 giờ ${Math.round(tt0.gia6.ti * 100)}% nền)` : tt0?.roi_sang && Date.parse(tt0.roi_sang.den) > nay ? `⛔ Đang phanh mở rộng (ROI sáng kém nền ${Math.abs(Math.round(tt0.roi_sang.kem))} điểm)` : null;
+  if (som && !ph) return { tang: `${som}. Bấm Làm là vẫn tăng.`, len: `${som}. Bấm Làm là vẫn tạo.` };
   if (!ph) return { tang: null, len: null };
   const dau = `⛔ Đang phanh chợ${ph.ti != null ? ` (giá chợ ${Math.round(ph.ti * 100)}% nền)` : ''}`;
   return { tang: Date.parse(ph.den_tang) > nay ? `${dau} — máy dừng tăng tới ${gioVn(ph.den_tang)}. Bấm Làm là vẫn tăng.` : null,
@@ -35,7 +42,26 @@ function BienBaoTri({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[]
 }
 
 export function BienPhanhCho({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {
-  return <><BienBaoTri cauHinh={cauHinh} /><BienPhanh cauHinh={cauHinh} /></>;
+  return <><BienBaoTri cauHinh={cauHinh} /><BienSom cauHinh={cauHinh} /><BienPhanh cauHinh={cauHinh} /></>;
+}
+
+/** ba nấc cảnh báo sớm — mỗi nấc đang bật một dải một dòng */
+function BienSom({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {
+  const tt = (cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null, nay = Date.now();
+  if (!tt) return null;
+  const con = <T extends { den: string }>(x: T | null | undefined) => (x && Date.parse(x.den) > nay ? x : null);
+  const rut = con(tt.rut), g6 = con(tt.gia6), rs = con(tt.roi_sang);
+  return <>
+    {rut ? <div role="alert" data-bien="rut-cho" title="Giá 07–13h dưới 75% mức thường và ROI camp nhà 07–13h dưới −10%. Luật CX tắt mọi camp thường đang âm hôm nay, báo trước một nhịp. Camp ★ ROAS không áp." style={{ ...KHUNG, background: '#7f1d1d', color: '#fff' }}>
+      🚨 RÚT KHỎI CHỢ · giá sáng {Math.round(rut.gia * 100)}% nền · ROI sáng {Math.round(rut.roi)}% · máy tắt camp thường đang âm tới {gioVn(rut.den)}
+    </div> : null}
+    {g6 ? <div role="alert" data-bien="phanh-gia6" title={`Impression RPM cả chợ ${PC.truot.gio} giờ gần nhất so cùng khung 7 ngày trước. Máy dừng tăng bậc, camp mới, nhân bản tới khi giá về lại ≥ ${Math.round(PC.truot.nguong * 100)}%. Giảm / tắt vẫn chạy.`} style={{ ...KHUNG, background: '#d93025', color: '#fff' }}>
+      ⛔ PHANH CHỢ · giá chợ {PC.truot.gio} giờ gần nhất {Math.round(g6.ti * 100)}% nền · dừng tăng + camp mới tới khi giá về ≥ {Math.round(PC.truot.nguong * 100)}%
+    </div> : null}
+    {rs ? <div role="alert" data-bien="phanh-roi-sang" title="ROI camp nhà 07–13h so trung bình cùng khung 7 ngày trước. Máy dừng tăng bậc, camp mới, nhân bản hết ngày Ethopex này." style={{ ...KHUNG, background: '#d93025', color: '#fff' }}>
+      ⛔ PHANH MỞ RỘNG · ROI sáng {Math.round(rs.roi)}%, kém nền {Math.abs(Math.round(rs.kem))} điểm · dừng tăng + camp mới tới {gioVn(rs.den)}
+    </div> : null}
+  </>;
 }
 
 function BienPhanh({ cauHinh }: { cauHinh: { khoa: string; gia_tri: unknown }[] }) {

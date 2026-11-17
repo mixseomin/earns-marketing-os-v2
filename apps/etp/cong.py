@@ -124,6 +124,11 @@ def phanh_cho(tt, viec, bay_gio=None, thay=False):
     vn = lambda s: f"{dt.datetime.fromisoformat(s) + dt.timedelta(hours=7):%H:%M %d/%m}"
     if viec == "tang" and (pc.get("den_tang") or "") > bay: return f"PHANH CHỢ: không tăng bậc tới {vn(pc['den_tang'])} giờ VN — {pc.get('ly_do')} (sổ luật phanh_cho)"
     if viec in ("tao_camp", "nhan_ban") and not thay and (pc.get("den_len") or "") > bay: return f"PHANH CHỢ: không tạo camp mới / nhân bản tới {vn(pc['den_len'])} giờ VN — {pc.get('ly_do')} (sổ luật phanh_cho)"
+    # ba nấc cảnh báo sớm (anh 17/11/2026, gia_adsense.xet_som): giá 6 giờ trượt · ROI sáng kém nền → phanh cả tăng lẫn camp mới / nhân bản
+    if viec == "tang" or (viec in ("tao_camp", "nhan_ban") and not thay):
+        g6, rs = (tt or {}).get("gia6") or {}, (tt or {}).get("roi_sang") or {}
+        if (g6.get("den") or "") > bay: return f"PHANH CHỢ (báo sớm): giá chợ 6 giờ gần nhất {float(g6.get('ti') or 0) * 100:.0f}% mức thường — dừng mở rộng tới khi giá về lại (sổ luật phanh_cho.truot)"
+        if (rs.get("den") or "") > bay: return f"PHANH MỞ RỘNG: ROI sáng {float(rs.get('roi') or 0):+.0f}%, kém nền {abs(float(rs.get('kem') or 0)):.0f} điểm — dừng mở rộng tới {vn(rs['den'])} giờ VN (sổ luật phanh_cho.roi_sang)"
     return None
 
 def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False, thay=False, anh_bam=False):
@@ -272,6 +277,8 @@ def _tu_kiem():
     assert phanh_cho(_pc, "tang", _u("2026-11-16T14:00:00")).startswith("PHANH CHỢ: không tăng bậc tới 07:00 17/11") and phanh_cho(_pc, "tang", _u("2026-11-17T01:00:00")) is None, "tăng chỉ bị chặn tới 07:00 sáng hôm sau"
     assert phanh_cho(_pc, "nhan_ban", _u("2026-11-17T12:00:00")) and phanh_cho(_pc, "tao_camp", _u("2026-11-17T23:59:00")) and phanh_cho(_pc, "tao_camp", _u("2026-11-18T00:00:01")) is None, "tạo camp / nhân bản bị chặn hết ngày Ethopex kế"
     assert phanh_cho(_pc, "nhan_ban", _u("2026-11-17T12:00:00"), thay=True) is None and phanh_cho(_pc, "giam", _u("2026-11-16T14:00:00")) is None and phanh_cho(_pc, "bat", _u("2026-11-16T14:00:00")) is None
+    _s = {"gia6": {"ti": 0.6, "den": "2026-11-17T05:00:00+00:00"}, "roi_sang": {"roi": -14, "kem": -34, "den": "2026-11-18T00:00:00+00:00"}}
+    assert phanh_cho(_s, "tang", _u("2026-11-17T04:00:00")).startswith("PHANH CHỢ (báo sớm)") and phanh_cho(_s, "nhan_ban", _u("2026-11-17T06:00:00")).startswith("PHANH MỞ RỘNG") and phanh_cho(_s, "tao_camp", _u("2026-11-18T00:01:00")) is None and phanh_cho(_s, "giam", _u("2026-11-17T04:00:00")) is None and phanh_cho(_s, "nhan_ban", _u("2026-11-17T04:00:00"), thay=True) is None
     assert phanh_cho({}, "tang") is None and phanh_cho(None, "tao_camp") is None and phanh_cho({"phanh": None, "som": True}, "tang") is None, "không phanh / chỉ cảnh báo sớm thì không chặn"
     assert nap_tang(None) == 6 and nap_tang(29) == 6 and nap_tang(30) == 9 and nap_tang(50) == 13 and nap_tang(79) == 13 and nap_tang(80) == 20 and nap_tang(500) == 20, "nắp ROI lệch sổ luật"
     for t in ("★ ROAS 1.1 · X roas 1.1 duplicate by 65720", "S_FB_The-Dragons_167292_EN_EP8_x10_D69655_ROAS1", "S_FB_Max_153695_EN_VD-FULL-EP1_V1_D2 (ROAS)", "Dup by 66168 ROAS 1.2"):

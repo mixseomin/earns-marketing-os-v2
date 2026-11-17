@@ -947,6 +947,12 @@ _bo_roas = lambda ds: [x for x in ds if int(x[0] or 0) not in _ROAS]
 # mỗi nhịp; báo trước một nhịp rồi máy tắt, mọi khung giờ (sổ luật tat_cx). Chợ hồi → dây gỡ → không cắt nữa. ★ ROAS không áp (_bo_roas). Chưa có luật HOÃN tăng (anh: chỉ khuyên).
 CX_LECH, CX_CHI, CX_ROI3, CX_TOI_DA = 30, 3, 50, 10
 tat_cx, _cx, CX_CHO = [], {}, None
+# RÚT KHỎI CHỢ (anh 17/11/2026 "Áp dụng đi" — sổ luật phanh_cho.rut, apps/etp/gia_adsense.xet_som chốt 13h VN: giá 07–13h < 75% nền VÀ ROI nhà 07–13h < −10%):
+# trong ngày rút, CX cắt MỌI camp thường đang âm hôm nay có chi ≥ rut.chi_min — bỏ điều kiện kém chợ / 3 ngày khép, bỏ trần CX_TOI_DA. Hết ngày Ethopex tự nhả. ★ ROAS không áp.
+try: _RUT = (json.loads(q("select coalesce((select gia_tri->'rut' from etp.cau_hinh where khoa = 'phanh_cho'), 'null')::text") or "null") or {})
+except Exception as e: _RUT = {}; loi_may.append((0, f"không đọc được trạng thái rút khỏi chợ: {str(e)[:80]}"))
+_RUT = _RUT if (_RUT.get("den") or "") > dt.datetime.now(dt.timezone.utc).isoformat() else {}
+_RUT_CHI = float(BANG_LUAT["phanh_cho"]["rut"]["chi_min"])
 try:
     import importlib.util as _iuc
     _sc = _iuc.spec_from_file_location("etp_tu_van_cx", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "tu_van.py")); _TVX = _iuc.module_from_spec(_sc); _sc.loader.exec_module(_TVX)
@@ -954,18 +960,22 @@ try:
     _d3c = {dt.date.fromisoformat(d(i)) for i in (1, 2, 3)}
     for _k, _h in hom.items():
         _c = int(_k); _ch, _th = float(_h.get("chi") or 0), float(_h.get("thu") or 0)
-        if _c not in _bat or _ch < CX_CHI: continue
+        if _c not in _bat or _ch < (_RUT_CHI if _RUT else CX_CHI): continue
         _x3 = [x for x in (_ng.get(_c) or [None, []])[1] if x[0] in _d3c]; _c3, _t3 = sum(x[1] for x in _x3), sum(x[2] for x in _x3)
         _r3 = (_t3 - _c3) / _c3 * 100 if _c3 >= 0.3 else None; _rn = (_th - _ch) / _ch * 100
         _cx[_c] = (_ch, _th, _rn, _r3)
-        if CX_CHO and not CX_CHO.get("hoi") and _rn <= CX_CHO["roi"] - CX_LECH and (_r3 is None or _r3 < CX_ROI3):
+        if _RUT and _rn < 0:
+            tat_cx.append((_c, f"#{str(_h.get('ten') or '')[:70]} · hôm nay chi ${_ch:.2f} · lãi ${_th - _ch:+.2f} · ROI {_rn:+.0f}% → TẮT (luật CX · RÚT KHỎI CHỢ: giá sáng {float(_RUT.get('gia') or 0) * 100:.0f}% nền, ROI sáng nhà {float(_RUT.get('roi') or 0):+.0f}% — cắt mọi camp thường đang âm)"))
+        elif CX_CHO and not CX_CHO.get("hoi") and _rn <= CX_CHO["roi"] - CX_LECH and (_r3 is None or _r3 < CX_ROI3):
             tat_cx.append((_c, f"#{str(_h.get('ten') or '')[:70]} · hôm nay chi ${_ch:.2f} · lãi ${_th - _ch:+.2f} · ROI {_rn:+.0f}% (chợ {CX_CHO['roi']:+d}%) · 3 ngày khép {'—' if _r3 is None else f'{_r3:+.0f}%'} → TẮT (luật CX: chợ âm, cắt camp tệ nhất trước)"))
-    tat_cx = sorted(tat_cx, key=lambda x: float(x[1].split("lãi $")[1].split(" ")[0]))[:CX_TOI_DA]
+    tat_cx = sorted(tat_cx, key=lambda x: float(x[1].split("lãi $")[1].split(" ")[0]))[:None if _RUT else CX_TOI_DA]
 except Exception as e:
     loi_may.append((0, f"luật CX lỗi: {str(e)[:80]}"))
 def _cx_the(cid):
     """thẻ xét luật CX — cùng số với danh sách tat_cx"""
     x = _cx.get(int(cid)); b = CX_CHO or {}
+    if _RUT: return [["Đang RÚT KHỎI CHỢ (giá sáng < 75% nền + ROI sáng nhà < −10%, hết ngày tự nhả)", f"giá {float(_RUT.get('gia') or 0) * 100:.0f}% · ROI {float(_RUT.get('roi') or 0):+.0f}%", "đang rút", True],
+                     ["Chi hôm nay", "—" if not x else f"${x[0]:.2f}", f"≥ ${_RUT_CHI:g}", bool(x)], ["ROI hôm nay", "—" if not x else f"{x[2]:+.0f}%", "< 0%", bool(x) and x[2] < 0]], (x[2] < 0 if x else None)
     cho = "chưa đứt" if not b else "chợ đã hồi" if b.get("hoi") else f"{b['roi']:+d}% trên ${b['chi']}"
     dk = [["Dây báo động chợ đứt (cả đội từ 07:00 ≤ −15% trên chi ≥ $200, chưa hồi)", cho, "đứt, chưa hồi", bool(b) and not b.get("hoi")],
           [f"Chi hôm nay", "—" if not x else f"${x[0]:.2f}", f"≥ ${CX_CHI:g}", bool(x) and x[0] >= CX_CHI],

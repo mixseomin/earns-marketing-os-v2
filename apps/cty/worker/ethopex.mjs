@@ -515,12 +515,19 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   }
   // CẢNH BÁO KHO ETP (etp.on.tc bước 3, 24/10/2026): gửi dòng etp.canh_bao chưa gửi (canh-bao.py ghi sau mỗi lượt đồng bộ) + báo khi đồng bộ đứng > 30 phút
   try {
-    const dsCb = (await chayPsql(`select coalesce(json_agg(x order by x.id), '[]') from (select id, muc, noi_dung from etp.canh_bao where da_gui is null order by id limit 20) x`)).trim();
+    const dsCb = (await chayPsql(`select coalesce(json_agg(x order by x.id), '[]') from (select id, muc, noi_dung, loai from etp.canh_bao where da_gui is null order by id limit 20) x`)).trim();
     const cb = JSON.parse(dsCb || '[]');
     const tre = (await chayPsql(`select case when max(xong) < now() - interval '30 minutes' then extract(epoch from now() - max(xong))::int / 60 else 0 end from etp.dong_bo`)).trim();
     if (Number(tre) > 0) cb.push({ id: 0, muc: 'do', noi_dung: `Kho etp không đồng bộ ${tre} phút — kiểm systemd etp-dong-bo trên box3` });
     if (cb.length) {
       await guiNhanh({ message_thread_id: topic, disable_notification: yen && !cb.some((x) => x.muc === 'do'), text: `🚨 <b>CẢNH BÁO KHO ETP</b>\n${cb.map((x) => `${x.muc === 'do' ? '🔴' : '🟡'} ${esc(x.noi_dung)}`).join('\n')}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
+      // BÁO CẢ ĐỘI (anh 17/11/2026 "làm sao để báo cho cả đội biết"): tin phanh chợ / rút khỏi chợ gửi THÊM thẳng tới từng người trong đội đã nối Telegram với bot
+      // (etp.che_do_luat.tg_chat — nối ở etp.on.tc › Luật). Người chưa nối thấy biển đầu trang etp. Lỗi gửi một người không chặn phần còn lại.
+      const pc = cb.filter((x) => x.loai === 'phanh_cho');
+      if (pc.length) {
+        const chats = (await chayPsql(`select coalesce(string_agg(distinct tg_chat::text, ','), '') from etp.che_do_luat where tg_chat is not null`)).trim().split(',').filter(Boolean);
+        for (const chat of chats) await tg('sendMessage', { chat_id: Number(chat), parse_mode: 'HTML', link_preview_options: { is_disabled: true }, text: `${pc.map((x) => esc(x.noi_dung)).join('\n\n')}\n<i>Ethopex · ${esc(kq.luc)} giờ VN · xem biển đầu trang etp.on.tc</i>`.slice(0, 4000) }).catch((e) => console.error('báo đội phanh chợ:', chat, e.message));
+      }
       const ids = cb.map((x) => x.id).filter(Boolean); if (ids.length) await chayPsql(`update etp.canh_bao set da_gui = now() where id in (${ids.join(',')})`);
       gui++;
     }

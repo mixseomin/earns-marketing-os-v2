@@ -90,6 +90,42 @@ def xet_phanh(luc, so13, cu, pc=PC):
         ra["phanh"] = {"ngay": k, "nguon": "so" if tut else "lich", "ti": ti, "den_tang": (dt.datetime(hn.year, hn.month, hn.day, tzinfo=dt.timezone.utc) + mot + dt.timedelta(hours=PC_GIO[1])).isoformat(), "den_len": dem0(hn + mot * 2), "ly_do": ly}
     return ra
 
+def _cua(so_gio, moc, n, a=0, b=1):
+    """tổng hai cột [a], [b] của n giờ TRỌN ngay trước mốc `moc` (đầu giờ, UTC) trong sổ {ngày: {giờ: [..]}}"""
+    x = y = 0.0
+    for k in range(1, n + 1):
+        t = moc - dt.timedelta(hours=k); v = (so_gio.get(t.date().isoformat()) or {}).get(str(t.hour))
+        if v: x += v[a]; y += v[b]
+    return x, y
+
+def gia_truot(so_gio, luc, pc=PC):
+    """hàm thuần: sổ giờ cả chợ {ngày: {giờ: [thu, lượt hiển thị]}} → Impression RPM của `gio` giờ trọn gần nhất / trung bình cùng khung 7 ngày trước; thiếu số → None"""
+    moc = luc.replace(minute=0, second=0, microsecond=0); tr = pc["truot"]; r, i = _cua(so_gio, moc, tr["gio"])
+    nen = [x / y * 1000 for x, y in (_cua(so_gio, moc - dt.timedelta(days=d), tr["gio"]) for d in range(1, pc["nen_ngay"] + 1)) if y >= tr["imp_min"]]
+    return round(r / i * 1000 / (sum(nen) / len(nen)), 3) if i >= tr["imp_min"] and len(nen) >= pc["nen_min"] else None
+
+def roi_sang(nha_gio, luc, pc=PC):
+    """hàm thuần: sổ giờ camp nhà {ngày: {giờ: [chi, thu]}} → (ROI % khung 07–13h hôm nay, điểm lệch so trung bình cùng khung 7 ngày trước) | None khi thiếu số"""
+    hn = luc.date(); n = PC_GIO[1] - PC_GIO[0]; cm = pc["roi_sang"]["chi_min"]
+    moc = lambda d: dt.datetime(d.year, d.month, d.day, PC_GIO[1], tzinfo=dt.timezone.utc)
+    c, v = _cua(nha_gio, moc(hn), n)
+    nen = [(y - x) / x * 100 for x, y in (_cua(nha_gio, moc(hn - dt.timedelta(days=d)), n) for d in range(1, pc["nen_ngay"] + 1)) if x >= cm]
+    if c < cm or len(nen) < pc["nen_min"]: return None
+    r = (v - c) / c * 100; return round(r, 1), round(r - sum(nen) / len(nen), 1)
+
+def xet_som(luc, cu, gia6, rs, ti_sang, pc=PC):
+    """hàm thuần: BA NẤC CẢNH BÁO SỚM (sổ luật phanh_cho truot / roi_sang / rut) → các khoá thêm vào trạng thái phanh_cho:
+    gia6 {ti, den} — giá 6 giờ trượt < ngưỡng, giữ giu_gio giờ, mỗi lượt gia hạn · roi_sang {ngay, roi, kem, den} · rut {ngay, gia, roi, den} — hai cái sau xét MỘT lần lúc hết khung sáng."""
+    hn = luc.date(); k = hn.isoformat(); cu = cu or {}; bay = luc.isoformat(); het = dt.datetime(hn.year, hn.month, hn.day, tzinfo=dt.timezone.utc) + dt.timedelta(days=1)
+    con = lambda x: x if ((x or {}).get("den") or "") > bay else None
+    ra = {"gia6": con(cu.get("gia6")), "roi_sang": con(cu.get("roi_sang")), "rut": con(cu.get("rut")), "sang_quyet": cu.get("sang_quyet"), "gia6_nay": gia6}
+    if gia6 is not None: ra["gia6"] = {"ti": gia6, "den": (luc + dt.timedelta(hours=pc["truot"]["giu_gio"])).isoformat()} if gia6 < pc["truot"]["nguong"] else None
+    if luc.hour >= PC_GIO[1] and cu.get("sang_quyet") != k:
+        ra["sang_quyet"] = k
+        if rs and rs[1] <= pc["roi_sang"]["kem"]: ra["roi_sang"] = {"ngay": k, "roi": rs[0], "kem": rs[1], "den": het.isoformat()}
+        if rs and ti_sang is not None and ti_sang < pc["rut"]["gia"] and rs[0] < pc["rut"]["roi"]: ra["rut"] = {"ngay": k, "gia": ti_sang, "roi": rs[0], "den": het.isoformat()}
+    return ra
+
 def hs_sql(cot):
     """biểu thức SQL hệ số giá của ngày ở cột `cot` — chia thu cho nó: f"s.thu / {GA.hs_sql('s.ngay')}" """
     return f"coalesce((select nullif(gia_tri ->> ({cot})::text, '')::numeric from etp.cau_hinh where khoa = 'he_so_rpm'), 1)"
@@ -118,8 +154,31 @@ def chay(q, luc=None):
     if luc.hour >= PC_GIO[1] and cu.get("quyet") != hn.isoformat(): so13[hn.isoformat()] = luy_gio(gio(hn.isoformat()))
     so13 = {k: so13[k] for k in sorted(so13)[-30:]}
     moi = xet_phanh(luc, so13, cu)
+    # ── BA NẤC CẢNH BÁO SỚM (anh 17/11/2026): sổ giờ cả chợ 9 ngày (rpm_gio — hôm qua + hôm nay đọc lại mỗi lượt, ngày cũ thiếu thì nạp một lần) + sổ giờ camp nhà (etp.so_gio_camp)
+    gio2 = lambda d: {str(int(x["hour"])): [float(x.get("revenue") or 0), float(x.get("impressions") or 0)] for x in gio(d)}
+    so_gio = ch("rpm_gio", "{}")
+    for i in range(PC["nen_ngay"] + 1, -1, -1):
+        d = (hn - dt.timedelta(days=i)).isoformat()
+        if i <= 1 or d not in so_gio: so_gio[d] = gio2(d)
+    so_gio = {k: so_gio[k] for k in sorted(so_gio)[-(PC["nen_ngay"] + 3):]}
+    nha_gio = {}
+    for l in (q(f"select g.ngay, g.gio, sum(g.chi), sum(g.thu) from etp.so_gio_camp g join etp.camp c using (camp_id) where g.ngay >= '{(hn - dt.timedelta(days=PC['nen_ngay'] + 1)).isoformat()}' group by 1, 2") or "").splitlines():
+        a = l.split("|"); nha_gio.setdefault(a[0], {})[a[1]] = [float(a[2]), float(a[3])]
+    som = xet_som(luc, cu, gia_truot(so_gio, luc), roi_sang(nha_gio, luc), moi["hom_nay"]["ti"])
+    moi.update(som)
+    q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('rpm_gio', $J${json.dumps(so_gio)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('rpm_13h', $J${json.dumps(so13)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('phanh_cho', $J${json.dumps(moi, ensure_ascii=False)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
+    vn_ = lambda s: f"{dt.datetime.fromisoformat(s) + dt.timedelta(hours=7):%H:%M %d/%m}"
+    ds_bao = []
+    if moi.get("gia6") and not ((cu.get("gia6") or {}).get("den") or "") > luc.isoformat():
+        ds_bao.append((f"gia6:{luc:%Y-%m-%dT%H}", f"⛔ PHANH CHỢ (báo sớm) — giá quảng cáo cả chợ {PC['truot']['gio']} giờ gần nhất chỉ bằng {moi['gia6']['ti'] * 100:.0f}% mức thường. Máy dừng tăng bậc, camp mới và nhân bản cho tới khi giá về lại ≥ {PC['truot']['nguong'] * 100:.0f}%. Giảm / tắt vẫn chạy."))
+    if (moi.get("roi_sang") or {}).get("ngay") == hn.isoformat() and (cu.get("roi_sang") or {}).get("ngay") != hn.isoformat():
+        ds_bao.append((f"roi_sang:{hn.isoformat()}", f"⛔ PHANH MỞ RỘNG — ROI camp nhà 07–13h hôm nay {moi['roi_sang']['roi']:+.0f}%, kém cùng khung 7 ngày trước {abs(moi['roi_sang']['kem']):.0f} điểm. Máy dừng tăng bậc, camp mới và nhân bản tới {vn_(moi['roi_sang']['den'])}."))
+    if (moi.get("rut") or {}).get("ngay") == hn.isoformat() and (cu.get("rut") or {}).get("ngay") != hn.isoformat():
+        ds_bao.append((f"rut:{hn.isoformat()}", f"🚨 RÚT KHỎI CHỢ — giá 07–13h chỉ bằng {moi['rut']['gia'] * 100:.0f}% mức thường và ROI camp nhà 07–13h {moi['rut']['roi']:+.0f}%. Máy tắt mọi camp thường đang âm hôm nay (báo trước một nhịp), tới {vn_(moi['rut']['den'])}. Camp ★ ROAS không áp."))
+    for kb, chu in ds_bao:
+        q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'phanh_cho', 'phanh_cho:{kb}', 'info', $N${chu}$N$ where not exists (select 1 from etp.canh_bao where khoa = 'phanh_cho:{kb}')""")
     bao = None
     if (moi.get("phanh") or {}).get("ngay") == hn.isoformat() and (cu.get("phanh") or {}).get("ngay") != hn.isoformat():
         vn = lambda s: f"{dt.datetime.fromisoformat(s) + dt.timedelta(hours=7):%H:%M %d/%m}"
@@ -130,7 +189,7 @@ def chay(q, luc=None):
                                           f"tới {PC['gio_chot']}:00 vẫn dưới {PC['nguong'] * 100:.0f}% thì máy phanh: đêm nay không tăng bậc, ngày mai không lên camp mới / nhân bản.")
     if bao: q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'phanh_cho', 'phanh_cho:{bao[0]}:{hn.isoformat()}', 'info', $N${bao[1]}$N$
                   where not exists (select 1 from etp.canh_bao where khoa = 'phanh_cho:{bao[0]}:{hn.isoformat()}')""")
-    return {**kq, "phanh_cho": {"ti": moi["hom_nay"]["ti"], "som": moi["som"], "phanh": (moi.get("phanh") or {}).get("ngay")}}
+    return {**kq, "phanh_cho": {"ti": moi["hom_nay"]["ti"], "som": moi["som"], "phanh": (moi.get("phanh") or {}).get("ngay"), "gia6": moi.get("gia6_nay"), "roi_sang": bool(moi.get("roi_sang")), "rut": bool(moi.get("rut"))}}
 
 def _tu_kiem():
     t = tong_ngay([{"geo": "(US) United States", "cost": 100, "revenue": 90, "supply_impressions": 4000, "impressions": 600, "ad_requests": 900, "page_views": 700},
@@ -159,6 +218,22 @@ def _tu_kiem():
     r = xet_phanh(u("2026-11-16T13:05:00"), {**nen, "2026-11-16": {"irpm": 10, "imp": 100}}, {}); assert r["phanh"] is None, "ít lượt hiển thị → không phanh"
     r = xet_phanh(u("2026-11-30T13:05:00"), {}, {}); assert r["phanh"]["nguon"] == "lich" and r["phanh"]["den_len"] == "2026-12-02T00:00:00+00:00", r   # 01/12 trong lịch: phanh sẵn từ 20h VN hôm trước, không cần số
     assert xet_phanh(u("2026-11-30T12:00:00"), {}, {})["phanh"] is None, "ngày lịch cũng chờ tới giờ chốt"
+    # ba nấc cảnh báo sớm
+    sg = {f"2026-11-{d:02d}": {str(h): [12.0, 100] for h in range(24)} for d in range(8, 17)}   # iRPM 120, 100 lượt / giờ
+    assert gia_truot(sg, u("2026-11-16T10:30:00"), {**PC, "truot": {**PC["truot"], "imp_min": 500}}) == 1.0
+    sg["2026-11-16"] = {str(h): [8.4, 100] for h in range(24)}; P5 = {**PC, "truot": {**PC["truot"], "imp_min": 500}}
+    assert gia_truot(sg, u("2026-11-16T10:30:00"), P5) == 0.7 and gia_truot(sg, u("2026-11-16T03:10:00"), P5) == 0.85, "cửa sổ 6 giờ vắt qua nửa đêm: 3 giờ cũ + 3 giờ tụt"
+    assert gia_truot(sg, u("2026-11-16T10:30:00")) is None, "ít lượt hiển thị → không đoán"
+    ng = {f"2026-11-{d:02d}": {str(h): [50.0, 60.0] for h in range(24)} for d in range(8, 16)}; ng["2026-11-16"] = {str(h): [50.0, 43.0] for h in range(24)}
+    assert roi_sang(ng, u("2026-11-16T06:05:00")) == (-14.0, -34.0) and roi_sang({"2026-11-16": ng["2026-11-16"]}, u("2026-11-16T06:05:00")) is None
+    s = xet_som(u("2026-11-16T03:00:00"), {}, 0.7, None, None); assert s["gia6"] == {"ti": 0.7, "den": "2026-11-16T05:00:00+00:00"} and s["roi_sang"] is None and s["sang_quyet"] is None, s
+    s2 = xet_som(u("2026-11-16T03:10:00"), s, 0.9, None, None); assert s2["gia6"] is None, "giá về lại ≥ ngưỡng → nhả ngay"
+    assert xet_som(u("2026-11-16T04:00:00"), s, None, None, None)["gia6"] == s["gia6"] and xet_som(u("2026-11-16T05:30:00"), s, None, None, None)["gia6"] is None, "mất số: giữ tới hết hạn rồi nhả"
+    s3 = xet_som(u("2026-11-16T06:05:00"), s, 0.69, (-14.0, -34.0), 0.69); assert s3["roi_sang"]["den"] == s3["rut"]["den"] == "2026-11-17T00:00:00+00:00" and s3["sang_quyet"] == "2026-11-16", s3
+    s4 = xet_som(u("2026-11-16T09:00:00"), s3, 0.69, (5.0, 0.0), 0.9); assert s4["rut"] == s3["rut"] and s4["roi_sang"] == s3["roi_sang"], "sáng đã chốt: không lật lại trong ngày"
+    assert xet_som(u("2026-11-17T00:05:00"), s4, 0.9, None, None)["rut"] is None, "hết ngày Ethopex thì rút tự nhả"
+    s5 = xet_som(u("2026-11-08T06:05:00"), {}, 1.1, (3.0, -21.0), 1.13); assert s5["roi_sang"] and s5["rut"] is None and s5["gia6"] is None, "nhà tự mở rộng quá nhanh: chỉ phanh, không rút"
+    s6 = xet_som(u("2026-10-29T06:05:00"), {}, 0.65, (12.0, -33.0), 0.65); assert s6["roi_sang"] and s6["rut"] is None, "giá thấp nhưng ROI sáng còn dương: không rút"
     print("✓ gia_adsense.py tự kiểm (tính RPM / hoà vốn, hệ số giá: chỉ ngày tụt, kẹp sàn, ít lượt hiển thị không ghi, đoạn SQL · phanh chợ: cảnh báo sớm, chốt một lần, giữ tới hết hạn, thiếu số không đoán, ngày lịch)")
 
 if __name__ == "__main__": _tu_kiem()

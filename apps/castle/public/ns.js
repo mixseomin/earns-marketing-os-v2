@@ -284,7 +284,8 @@ if (!GOC_OSM) {
   for (const k of dsKhoi) { if (k.ref == null) k.ref = Math.max(k.day, ...k.v.map(([x, z]) => datGoc(x, z))); // đất đo gốc: san sân / đường không kéo khối nhà lên xuống
     if (doTot(k) && (k.la || !k.coPart)) { const r = (k.dayDo ?? dsKhoi.find((q) => q.vo && trongDa(...tamDa(k.v), q.v))?.dayDo ?? k.day) + lechK(k) - k.ref; if (Math.abs(r) > 2.5) { k.suaGoogle = +r.toFixed(1); k.tags.height = String(chieuCao(k.tags) + r); } }
     // chóp nhọn (cone / pyramidal): mặt đo trải rộng nên không qua doTot — đỉnh lấy đỉnh đo (phân vị 98) trên ảnh 3D, chỉ nâng; thân giữ nguyên, chóp dài thêm
-    else if (/^(cone|pyramidal)$/.test(k.tags['roof:shape'] || '') && (NK[k.id]?.[1] ?? 0) >= 12 && NK[k.id][2] > k.ref + chieuCao(k.tags) + 2.5) {
+    // khối có y_tren trong tệp sửa: độ cao tuyệt đối + roof:height đã đo → không cộng thêm chóp theo Google (y_tren thắng mọi chỉnh, xem dưới)
+    else if (k.tags.y_tren == null && /^(cone|pyramidal)$/.test(k.tags['roof:shape'] || '') && (NK[k.id]?.[1] ?? 0) >= 12 && NK[k.id][2] > k.ref + chieuCao(k.tags) + 2.5) {
       const them = NK[k.id][2] - (k.ref + chieuCao(k.tags)); k.suaGoogle = +them.toFixed(1); k.tags.height = String(chieuCao(k.tags) + them); k.tags['roof:height'] = String((so(k.tags['roof:height']) || 4) + them);
     } }
 }

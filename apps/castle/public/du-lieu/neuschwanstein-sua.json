@@ -1,4 +1,21 @@
 {
+ "way/1573767747": {
+  "y_tren": 93,
+  "roof:shape": "cone",
+  "roof:height": 11,
+  "ly_do": "góp ý #1642 [MÁY QUÉT] (17/11/2026): Treppenturm (tháp cầu thang bắc Palas) thấp hơn ảnh thật 16 m (OSM 46 m, không mái → đỉnh 68,28, khuất sau mái Palas). Đo theo TIA từ góc đông-nam của thẻ (so-lech --do, camera (85,9; 70; 99,8)): đỉnh thật 86,08 m, mô hình 69,38 m, lệch +16,7 m (7 cột, trải 2,4 m); bảng chấm góc chuẩn: tây +15,2 m (4 cột). Số tia là trung bình cột, lẫn sườn nón → HÌNH MÁI đo trên ảnh 3D cùng góc, thước lấy từ mô hình chụp cùng camera (bản thử nón 80 → 93: chân nón ở y 280, mũi y 125 trên ảnh cắt → 11,9 px/m): thân trắng rộng gần bằng cả tháp (~8 m) lên tới chân nón y 255 → ~82 m, nón rộng bằng thân, mũi trùng mũi mô hình ~93 m. → thân tới 82, nón 82 → 93 trên chính khối này (nón hẹp 5,9 m của way/221599097 nằm gọn trong)."
+ },
+ "way/221599097": {
+  "y_tren": 93,
+  "roof:height": 11,
+  "ly_do": "góp ý #1642 (17/11/2026): phần trên Treppenturm (OSM 45–65 m, nón). Trước: ns.js nâng theo đỉnh Google (phân vị 98 = 91,38) bằng cách kéo dài chóp → nón đen 16,1 m từ 75,3, mảnh hơn nón thật. Ảnh 3D góc đông-nam: nón thật rộng bằng thân Treppenturm, chân ~82, mũi ~93 → đặt nón khối này trùng chân + mũi với nón Treppenturm (hẹp hơn nên nằm gọn trong, không thò ra)."
+ },
+ "way/223116018": {
+  "y_duoi": 82,
+  "y_tren": 88.4,
+  "roof:height": 5,
+  "ly_do": "góp ý #1642 (17/11/2026): tháp con mái chóp sát sườn nón Treppenturm (OSM 53–61 m tương đối → 75,3–83,3, vùi trong nón mới). Ảnh 3D góc đông-nam (11,9 px/m, cùng thước với Treppenturm): mũi tháp con y 180 → ~88,4 m, chân mái y 240 → ~83,4 m (mái ~5 m), thân mọc từ sườn nón (chân nón 82)."
+ },
  "way/223140032": {
   "y_tren": 65.7,
   "ly_do": "góp ý #1634 (17/11/2026): khối neo đầu hồi mặt Palas hướng sân — đo tia từ góc thẻ (so-lech --do: 16 cột, trải 1,5 m) đỉnh thật 64,98 m, mô hình ở 67,28 lệch −1,6 m, đề xuất 65,7; bảng chấm góc chuẩn cũng ghi lệch −1,3 m. Đỉnh khối này là mốc trên của tỉ lệ đứng mặt Palas (tệp bố cục) → hạ mốc thì hai tháp góc (đang cao hơn thật 2,2 m) hạ theo"

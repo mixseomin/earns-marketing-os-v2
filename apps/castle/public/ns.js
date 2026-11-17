@@ -599,6 +599,15 @@ const MAT_PALAS = (() => {
   } // cả mặt dựng riêng theo ảnh (mattien.js datMatPalas)
   return tot;
 })();
+// CỔNG + CẦU THANG LÊN PALAS (góp ý #1644): cầu thang OSM (40 bậc) đi từ mặt Palas hướng sân xuống sân, nhưng duong.js lấy độ cao hai đầu theo mặt đất —
+// cả hai đầu nằm trên sân phẳng nên thang dẹt xuống mặt sân, không thấy. Đầu sát mặt tường neo vào NGƯỠNG CỬA đo trên ảnh (tệp bố cục: cong); cửa đặt ngang
+// đúng chỗ đầu thang chiếu lên mặt tường (ảnh cho cùng chỗ trong 0,33 m).
+if (MAT_PALAS && BO_MET?.cong && DUONG?.duong) { const P = MAT_PALAS, d = DUONG.duong.find((q) => q.id === BO_MET.cong.thang);
+  const ux = (P.x2 - P.x1) / P.L, uz = (P.z2 - P.z1) / P.L, nx = uz, nz = -ux, mx = (P.x1 + P.x2) / 2, mz = (P.z1 + P.z2) / 2;
+  const kc = (p) => Math.abs((p[0] - mx) * nx + (p[1] - mz) * nz), dau = d ? [d.v[0], d.v.at(-1)].sort((a, b) => kc(a) - kc(b))[0] : null;
+  if (dau && kc(dau) < 1.5) { const y = P.y1 - BO_MET.cong.duoiNguong; P.cong = { s: (dau[0] - mx) * ux + (dau[1] - mz) * uz, y }; d.neo = [{ x: dau[0], z: dau[1], y }];
+    console.info('[ns] cổng Palas đầu cầu thang', d.id, 's', P.cong.s.toFixed(2), 'ngưỡng', y.toFixed(2)); }
+  else console.warn('[ns] không tìm thấy cầu thang cổng Palas', BO_MET.cong.thang); }
 // MẶT DỰNG RIÊNG CHE CẢ MẶT PHẲNG (anh 17/11/2026, ảnh mặt Palas hướng sân: hai lớp cửa đè nhau): mặt Palas dựng theo ảnh chỉ khoá đúng cạnh của nó, nhưng khối OSM
 // khác (way/223140032#9) có cạnh NẰM TRÊN CÙNG MẶT PHẲNG tường → máy dựng cửa chung đặt thêm một lớp cửa đè lên. Khoá luôn mọi cạnh cùng mặt phẳng (cùng hướng,
 // cách mặt phẳng ≤ 1 m) trên đoạn trùng với mặt dựng riêng.

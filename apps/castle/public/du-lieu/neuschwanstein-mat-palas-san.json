@@ -280,8 +280,27 @@
     ],
     "dinh": 1020,
     "bau": 1067
+   },
+   {
+    "o": [
+     888,
+     908
+    ],
+    "dinh": 1020,
+    "bau": 1067,
+    "ly_do": "góp ý #1644: phía phải trục hàng cửa đơn chỉ có MỘT cửa đơn (ảnh người báo 76f05685: 718–745 px, d63b6c2c: 600–625 px) = đối xứng cửa đơn TRONG bên trái (742–762) qua trục 825; chỗ đối xứng cửa đơn NGOÀI là cổng Palas đầu cầu thang. Bản cũ lấy đối xứng cả hai (doiXung, giả định vì giàn giáo che) → thừa một cửa đè chỗ cổng"
    }
   ],
+  "cong": {
+   "ten": "cổng Palas đầu cầu thang",
+   "thang": "way/221599092",
+   "nguong": 1082,
+   "dinhCua": 1011,
+   "dinhKhung": 965,
+   "rongCua": 34,
+   "rongKhung": 66,
+   "ly_do": "góp ý #1644: ảnh người báo (76f05685, d63b6c2c) và ảnh 3D Google góc thẻ đều có cầu thang đá 40 bậc (OSM way/221599092) lên cửa vòm sa thạch ở góc bắc mặt Palas; mô hình không có. Đo trên hai ảnh, thước = cửa đơn hàng dưới (0,82 × 1,91 m → 34–35 px/m): ngưỡng cửa thấp hơn bậu hàng cửa đơn 0,5 / 0,74 m (lấy 0,6 m), lòng cửa rộng 1,55 m, đỉnh vòm cửa 2,77 / 3,1 m trên ngưỡng (lấy 2,9), khung đá rộng 3,0 m, đỉnh khung (gờ mái) 4,6 / 5,0 m trên ngưỡng (lấy 4,8). Ghi theo hệ điểm ảnh Albert kéo dài như cumPhu (24,6 px/m đứng, 22 px/m ngang). Chỗ đặt ngang: đầu trên cầu thang OSM chiếu lên mặt tường (s −7,00); ảnh cho tâm khung 5,9 m phải trục mặt (s −7,33) — lệch 0,33 m, lấy OSM để thang và cửa gặp nhau. Ngưỡng cửa ≈ 33,3 m − mặt sân 26,5 m = 6,8 m / 40 bậc = 0,17 m/bậc (đúng số bậc OSM)"
+  },
   "cumPhu": [
    {
     "ten": "cặp giữa hàng cửa đơn",
@@ -332,7 +351,7 @@
     "bau": 1178
    }
   ],
-  "doiXung": true,
+  "doiXung": false,
   "ly_do_ti_dung": "góp ý #1634 (17/11/2026): đo trên ảnh 3D Google ở góc thẻ (camera (−10,2; 31,1; 3,3), mặt cách 26,5 m → 29,7 px/m): bậu hàng 3·2·3 thật 38,6 m, hàng cửa đơn 33,9 → 35,7 m, mặt sân 26,5 m. Bản cũ (tiDung 0,526, matSan 1085) đặt hàng 3·2·3 ở 34,5 m — thấp 4 m, hàng cửa đơn sát đất, mũi con-xon tháp góc lọt vào khung trong khi ảnh thật không có. Hai ẩn số khớp ba mốc: tiDung 0,68 (hàng cửa đơn: 0,686 từ bậu, 0,676 từ đỉnh) và matSan 1247 (ảnh Albert chụp lúc sân còn đắp cao — mặt đất 1085 trên ảnh không phải sân hôm nay). Tỉ lệ đứng ảnh chính thành 36,2 px/m (cũ 31,8; ngang 41,2 — gần nhau hơn như ảnh gần chính diện phải có)",
   "matSan": 1247,
   "tiDung": 0.68,

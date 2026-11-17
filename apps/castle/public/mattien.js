@@ -187,7 +187,7 @@ export function quyDoiMat(bo, pxDung) {
   const tranh = (bo.tranh || []).map((t) => ({ ten: t.ten, x: X((t.hop[0] + t.hop[2]) / 2), rong: (t.hop[2] - t.hop[0]) / T.pxNgang, duoi: Du(t.hop[1]), cao: (t.hop[3] - t.hop[1]) / T.pxDung }));
   const b = bo.banCong, banCong = b && { x: X((b.trai + b.phai) / 2), rong: (b.phai - b.trai) / T.pxNgang, duoiLanCan: Du(b.lanCan), duoiSan: Du(b.san), duoiDay: Du(b.dayBan), duoiConXon: Du(b.conXon) };
   const go = (bo.go || []).map((g) => Du(g.y));
-  let cuaDon = [], duoiSan = null;
+  let cuaDon = [], duoiSan = null, cong = null;
   const P = bo.anhPhu;
   if (P) {
     const pN = T.pxNgang * P.tiNgang, pD = T.pxDung * P.tiDung, XP = (x) => X(P.mocXChinh) + (x - P.mocX) / pN, DP = (y) => Du(P.mocYChinh) + (y - P.mocY) / pD;
@@ -198,10 +198,13 @@ export function quyDoiMat(bo, pxDung) {
       cum.push({ ten: c.ten, x: XP(tam.reduce((p, q) => p + q, 0) / tam.length), duoi: DP(c.bau), n: c.o.length, w, buoc: c.o.length > 1 ? (tam.at(-1) - tam[0]) / (c.o.length - 1) / pN : w + 0.2,
         h: (c.bau - c.dinhO) / pD, vomR: null, vomDinh: null, khongVom: true }); }
     if (P.matSan != null) duoiSan = DP(P.matSan);
+    // cổng đầu cầu thang (góp ý #1644): độ cao theo hệ ảnh phụ kéo dài; chỗ đặt ngang lấy đầu trên cầu thang OSM (ns.js) để thang và cửa gặp nhau
+    const Cg = P.cong;
+    if (Cg) cong = { ten: Cg.ten, thang: Cg.thang, duoiNguong: DP(Cg.nguong), cua: (Cg.nguong - Cg.dinhCua) / pD, khung: (Cg.nguong - Cg.dinhKhung) / pD, rongCua: Cg.rongCua / pN, rongKhung: Cg.rongKhung / pN };
   }
   const G = bo.thapGoc, thap = G && { ids: G.ids, chop: Du(G.chop), chanChop: Du(G.chanChop), dinhRang: Du(G.dinhRang), dinhThan: Du(G.dinhThan), frieze: G.frieze.map(Du),
     tang: G.tang.map((t) => ({ dinh: Du(t.dinh), bau: Du(t.bau), w: (t.o[1] - t.o[0]) / T.pxNgang })), go: G.go.map((g) => g.map(Du)), rang: G.rang.map(Du), chanThan: Du(G.chanThan), mui: Du(G.mui) };
-  return { cum, tranh, banCong, go, cuaDon, duoiSan, thap, gableCao: bo.neo ? (T.maiY - bo.neo.dinhY) / T.pxDung : null, pxDung: T.pxDung };
+  return { cum, tranh, banCong, go, cuaDon, duoiSan, cong, thap, gableCao: bo.neo ? (T.maiY - bo.neo.dinhY) / T.pxDung : null, pxDung: T.pxDung };
 }
 
 // MẶT PALAS HƯỚNG SÂN TRÊN: hai bức tranh tường (thánh George trái, Đức Mẹ Bavaria phải — cắt từ ảnh Commons CC BY-SA 4.0, Naturliebhaberin) ở tầng trên
@@ -242,6 +245,24 @@ export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {} }) {
       dat(new THREE.Mesh(new THREE.BoxGeometry(b.rong + 0.18, 0.1, 0.26), DA), s0, yS + lc, 1.13);
       for (const k of [-1, 1]) dat(new THREE.Mesh(new THREE.BoxGeometry(0.14, lc, 1.2), DA), s0 + k * (b.rong / 2 - 0.07), yS + lc / 2, 0.6);
       const nCx = Math.max(2, Math.round(b.rong / 1.1)); for (let i = 0; i < nCx; i++) dat(new THREE.Mesh(new THREE.BoxGeometry(0.26, cx, 1.0), DA), s0 - b.rong / 2 + (i + 0.5) * b.rong / nCx, yS - day - cx / 2, 0.5);
+    }
+    const g = bo.cong;
+    if (g && Number.isFinite(tuong.cong?.s)) { // CỔNG ĐẦU CẦU THANG (góp ý #1644): khung sa thạch nhô ra, lòng cửa vòm, cánh gỗ, hai cột, vòm viền, diềm răng, gờ mái
+      const SA = new THREE.MeshStandardMaterial({ color: '#dccaa2', roughness: 0.75 }), GO = new THREE.MeshStandardMaterial({ color: '#4a3526', roughness: 0.7 });
+      const s0 = tuong.cong.s, y0 = y1 - g.duoiNguong, K = g.rongKhung, Wc = g.rongCua, yV = g.cua - Wc / 2, NHO = 0.45;
+      const vien = new THREE.Shape(); vien.moveTo(-K / 2, 0); vien.lineTo(K / 2, 0); vien.lineTo(K / 2, g.khung); vien.lineTo(-K / 2, g.khung); vien.lineTo(-K / 2, 0);
+      const lo = new THREE.Path(); lo.moveTo(-Wc / 2, 0); lo.lineTo(-Wc / 2, yV); lo.absarc(0, yV, Wc / 2, Math.PI, 0, true); lo.lineTo(Wc / 2, 0); lo.lineTo(-Wc / 2, 0); vien.holes.push(lo);
+      dat(new THREE.Mesh(new THREE.ExtrudeGeometry(vien, { depth: NHO, bevelEnabled: false, curveSegments: 10 }), SA), s0, y0, 0);
+      const canh = new THREE.Shape(); canh.moveTo(-Wc / 2, 0); canh.lineTo(Wc / 2, 0); canh.lineTo(Wc / 2, yV); canh.absarc(0, yV, Wc / 2, 0, Math.PI, false); canh.lineTo(-Wc / 2, 0);
+      dat(new THREE.Mesh(new THREE.ShapeGeometry(canh, 10), GO), s0, y0, 0.06);
+      for (const k of [-1, 1]) { // cột nhỏ hai bên lòng cửa: thân + đầu cột + chân cột
+        dat(new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, yV - 0.3, 10), SA), s0 + k * (Wc / 2 + 0.17), y0 + 0.12 + (yV - 0.3) / 2, NHO + 0.06);
+        dat(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.2, 0.34), SA), s0 + k * (Wc / 2 + 0.17), y0 + yV - 0.08, NHO + 0.06);
+        dat(new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.12, 0.32), SA), s0 + k * (Wc / 2 + 0.17), y0 + 0.06, NHO + 0.06);
+      }
+      dat(new THREE.Mesh(new THREE.TorusGeometry(Wc / 2 + 0.17, 0.1, 5, 14, Math.PI), SA), s0, y0 + yV, NHO + 0.04);
+      dat(new THREE.Mesh(new THREE.BoxGeometry(K + 0.3, 0.26, NHO + 0.3), SA), s0, y0 + g.khung - 0.13, (NHO + 0.3) / 2);
+      for (let q = -K / 2 + 0.2; q <= K / 2 - 0.15; q += 0.26) dat(new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.16, 0.12), SA), s0 + q, y0 + g.khung - 0.42, NHO + 0.06);
     }
   }
   // ĐẦU HỒI — tam giác thật lấy từ hình khối đã dựng (tuong.hoi = { sD, yD: đỉnh · sA, sB: hai chân · yC: chân }, s đo dọc tường từ giữa theo ux;

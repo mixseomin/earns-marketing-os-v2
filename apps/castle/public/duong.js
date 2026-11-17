@@ -123,13 +123,31 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
       // không lấy max / min quanh — trước đó lệch gần 5 m ở chiếu nghỉ cầu thang hai sân, kẹt
       const dauKhac = (x, z) => thang.filter((t) => !t.bo && t !== d).flatMap((t) => [t.v[0], t.v.at(-1)]).find((p) => Math.hypot(p[0] - x, p[1] - z) < 2.5);
       const dau = (x, z, f) => { const k = dauKhac(x, z); return k ? (cao(x, z) + cao(k[0], k[1])) / 2 : quanh(x, z, f); };
-      const [xa, za] = d.v[0], [xb, zb] = d.v[d.v.length - 1], aCao = cao(xa, za) > cao(xb, zb), ya = dau(xa, za, aCao ? Math.max : Math.min), yb = dau(xb, zb, aCao ? Math.min : Math.max), H = yb - ya, n = d.bac || Math.max(2, Math.round(Math.abs(H) / 0.17)), w = Math.max(1.2, d.rong);
+      // NEO (d.neo [{ x, z, y }], ns.js): đầu thang lên CỬA ĐI chứ không lên mặt đất (cầu thang lên cổng Palas, góp ý #1644) → độ cao đầu đó lấy ngưỡng cửa
+      const neoY = (x, z) => d.neo?.find((p) => Math.hypot(p.x - x, p.z - z) < 0.6)?.y ?? null;
+      const [xa, za] = d.v[0], [xb, zb] = d.v[d.v.length - 1], na = neoY(xa, za), nb = neoY(xb, zb), aCao = (na ?? cao(xa, za)) > (nb ?? cao(xb, zb));
+      const ya = na ?? dau(xa, za, aCao ? Math.max : Math.min), yb = nb ?? dau(xb, zb, aCao ? Math.min : Math.max), H = yb - ya, n = d.bac || Math.max(2, Math.round(Math.abs(H) / 0.17)), w = Math.max(1.2, d.rong);
       if (L < 0.8) continue;
       const diem = (t) => { let r = t * L; for (let i = 0; i + 1 < d.v.length; i++) { const [x1, z1] = d.v[i], [x2, z2] = d.v[i + 1], l = Math.hypot(x2 - x1, z2 - z1); if (r <= l || i + 2 === d.v.length) { const k = l ? Math.min(1, r / l) : 0; return [x1 + (x2 - x1) * k, z1 + (z2 - z1) * k, Math.atan2(x2 - x1, z2 - z1)]; } r -= l; } };
       for (let k = 0; k < n; k++) {
         const [x, z, goc] = diem((k + 0.5) / n), yTren = ya + H * (k + (H > 0 ? 1 : 0)) / n, sau = L / n + 0.02, day = Math.min(yTren, cao(x, z)) - 0.4, h = Math.max(0.1, yTren - day);
         const g = new THREE.BoxGeometry(w, h, sau); g.rotateY(goc); g.translate(x, day + h / 2, z); nhom.bac.push(g.toNonIndexed());
         va.push([w / 2, h / 2, sau / 2, x, day + h / 2, z, goc]); dem.bac++;
+      }
+      if (d.neo) { // THÀNH ĐÁ hai bên thang lên cửa (ảnh: tường thành đặc có đá nắp, cao ~1 m trên mũi bậc) — bên nào nằm trong nhà thì bỏ; nghiêng theo dốc thang, chân xuống đất
+        for (const k of [-1, 1]) for (let i = 0, s0 = 0; i + 1 < d.v.length; i++) {
+          const [x1, z1] = d.v[i], [x2, z2] = d.v[i + 1], l = Math.hypot(x2 - x1, z2 - z1), t1 = s0 / L, t2 = (s0 + l) / L; s0 += l; if (l < 0.5) continue;
+          const ox = (z2 - z1) / l * k, oz = -(x2 - x1) / l * k, b = w / 2 + 0.15;
+          if ([0.2, 0.5, 0.8].filter((t) => trongNha?.(x1 + (x2 - x1) * t + ox * b, z1 + (z2 - z1) * t + oz * b)).length >= 2) continue;
+          const yA = ya + H * t1 + 1.0, yB = ya + H * t2 + 1.0, cx = (x1 + x2) / 2 + ox * b, cz = (z1 + z2) / 2 + oz * b, goc = Math.atan2(x2 - x1, z2 - z1);
+          const day = Math.min(cao(x1 + ox * b, z1 + oz * b), cao(x2 + ox * b, z2 + oz * b), ya, yb) - 0.4;
+          for (const [rong, tren, duoi, tep] of [[0.3, 0, day, vlTuong], [0.44, 0.14, null, nhom.nap]]) {
+            const g = new THREE.BoxGeometry(rong, 1, l + 0.1).toNonIndexed(), p = g.attributes.position;
+            for (let q = 0; q < p.count; q++) { const yt = p.getZ(q) < 0 ? yA : yB; p.setY(q, p.getY(q) > 0 ? yt + tren : (duoi == null ? yt + tren - 0.14 : duoi)); }
+            g.rotateY(goc); g.translate(cx, 0, cz); g.computeVertexNormals(); tep.push(tep === vlTuong ? uvTheGioi(g) : g); }
+          // va chạm theo từng mét dọc thành (một hộp phẳng cả đoạn sẽ cao hơn thành thật vài mét ở đầu thấp)
+          const m = Math.max(1, Math.ceil(l)); for (let j = 0; j < m; j++) { const t = (j + 0.5) / m, yt = yA + (yB - yA) * t; va.push([0.15, (yt - day) / 2, l / m / 2, x1 + (x2 - x1) * t + ox * b, (yt + day) / 2, z1 + (z2 - z1) * t + oz * b, goc]); }
+        }
       }
       dem.duong++; continue;
     }

@@ -1,5 +1,18 @@
 {
  "ghi_chu": "CỬA SỔ + CỬA MÁI ĐO TRÊN ẢNH CHÍNH DIỆN TỪNG MẶT (scripts/nan-google.mjs + do-cua-so.py): \"<khối>#<cạnh>\": { hang: [{ y0, y1, cum: [[s0, s1, số ô]] }], mai: [[s0, s1]], yHien: mái hiên đo } — mét, s dọc cạnh từ đỉnh đầu, y tuyệt đối",
+ "way/221599083#*": {
+  "vong_rang": 14,
+  "ly_do_vong_rang": "góp ý #1650 (17/11/2026): tháp tròn góc BẮC Torbau. Ảnh sân trên commons-Schloss-Neuschwanstein-6870.jpg (nhìn về đông, tháp bên trái = bắc) thấy 7 răng trên nửa vành; khớp vị trí chiếu x = tâm + R·sin(θ0 + i·360°/n): n=14 lệch trung bình 6,4 px (n=13: 9,5 · n=15: 9,7 · n=16: 13,9). Ảnh mặt đông commons-Dvorac-Neuschwanstein---dio-pročelja.jpg (máy gần, ngửa) cho n=13–14. Chốt 14",
+  "cua_thap": [
+   [110, 26.5, 1.05, 0.44],
+   [110, 21.35, 1.2, 0.44],
+   [110, 16.05, 1.3, 0.43],
+   [183, 28.4, 0.9, 0.42],
+   [237, 26.8, 0.75, 0.95]
+  ],
+  "ly_do_cua_thap": "góp ý #1650 (17/11/2026), đo ô kính trên ảnh, [hướng la bàn °, y đáy, cao, rộng]. (1) Ba ô mặt đông chồng thẳng một đường sinh (cùng nằm trên đường qua điểm tụ đứng (590, −616) của ảnh dio-pročelja.jpg): toạ độ ảnh ô kính s = 395–452 · 712–800 · 1155–1290, chân vành con sơn s = 220, mép trên chân đá s = 1530; khớp ánh xạ xạ ảnh s(h) theo ba ô cùng cỡ (sai 1,6 px) → vị trí tương đối giữa chân vành và mép chân đá (đáy ô ở 0,265 · 0,570 · 0,881 của đoạn). Đối chiếu ảnh 3D Google cùng phía (so-lech.mjs --cam p [60, 23, −20], hướng 110,6° tới tâm tháp): ba ô đứng thẳng giữa thân, đáy ô theo thước đất 11,1 (neuschwanstein-nen.json) → đỉnh vành 34,0 (bản đồ độ cao): 26,4 · 21,1 · 15,6; theo tỉ lệ ảnh chụp với chân vành 31,1 / mép chân đá 14,5 đo trên ảnh 3D đó: 26,7 · 21,6 · 16,5 → lấy trung bình 26,5 · 21,35 · 16,05 (±0,5 m; cách nhau ~5,3 m — cầu thang tháp). Hướng 110° (±10°): ô nằm giữa thân tháp nhìn từ hướng 110,6° trên ảnh 3D; ảnh chụp cho ~105° (chỗ tường đông gặp tháp ở hướng 161° theo mặt bằng OSM, ở mép trái tháp trên ảnh). (2) Ô nhìn qua mái Torbau về nam: thấy cả ở mép phải tháp trên ảnh sân 6870 (hướng ~198°, đáy 28,7 theo thước đường kính tháp 4,38 m) lẫn sát mép trái trên ảnh mặt đông (~169°, đáy ~28,1 sau bù phối cảnh) → 183°, đáy 28,4. (3) Cửa vòm ra mái cánh bắc trên ảnh sân 6870 (giữa thân tháp phía sân, đỉnh vòm 27,5, chân khuất sau mái ~26,8). Không ghi: ô nhỏ trong vòm con sơn của vành (mô hình chưa dựng vòm con sơn, ô sẽ chìm trong vành); phía bắc chưa có ảnh",
+  "anh": "commons-Schloss-Neuschwanstein-6870.jpg (sân trên) · commons-Dvorac-Neuschwanstein---dio-pročelja.jpg (Silverije, CC BY-SA 4.0, mặt đông)"
+ },
  "way/223069512#4": {
   "hang": [
    {

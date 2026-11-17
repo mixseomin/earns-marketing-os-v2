@@ -7,9 +7,6 @@ html{font-size:14px}   /* gọn kiểu SaaS văn phòng: mọi cỡ rem co theo 
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:1rem;line-height:1.5;font-variant-numeric:tabular-nums}
 a{color:inherit}
 .cty-top{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:5}
-/* #1658 tiêu đề bảng DataTable (.dt-dau) dính theo KHUNG CUỘN gần nhất — ở đây là .cty-tabnoi / .cty-drawer-than (overflow:auto, lề trên --le),
-   không phải cửa sổ. Sticky tính từ mép trong lề đệm nên top:0 chừa một dải --le lộ dòng thân bảng → kéo ngược đúng bằng lề (cùng cách .cty-gopy-dau). */
-.cty-tabnoi .dt-dau,.cty-drawer-than .dt-dau{top:calc(-1 * var(--le))!important}
 .cty-brand{font-weight:600;font-size:1.15rem;text-decoration:none}
 .cty-top a{text-decoration:none}
 .cty-top a:hover{color:var(--accent)}

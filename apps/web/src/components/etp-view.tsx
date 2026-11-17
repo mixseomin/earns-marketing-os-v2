@@ -10,7 +10,7 @@ function TabThanhPho() { const [cao, setCao] = useState(640);
   useEffect(() => { const d = () => setCao(Math.max(420, window.innerHeight - 170)); d(); window.addEventListener('resize', d); return () => window.removeEventListener('resize', d); }, []);
   return <div style={{ height: cao, marginTop: 8 }}><ThanhPhoO cao={cao} /></div>; }
 import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoang';
-import { BienPhanhCho } from '@/components/etp-phanh-cho';
+import { BienPhanhCho, NhietKeCho } from '@/components/etp-phanh-cho';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';   // SỔ LUẬT CHUNG — mọi thẻ / nhóm / hướng / bộ lọc luật đọc từ đây (anh 01/11/2026 "tìm nguyên nhân gốc")
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
 import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Segmented, StatsStrip, usePaged, type DataColumn, type SegmentedOption } from '@/components/ui';
@@ -2792,9 +2792,10 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLi
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}@keyframes etpXoay{to{transform:rotate(360deg)}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>
     {/* TRÀN HẾT BỀ NGANG MÀN (anh 29/10/2026 "tại sao màn hình ko tràn hết sang 2 bên"): trước khoá maxWidth 1600 căn giữa — màn 1930px thừa hai lề trống, bảng Cây bị cắt cột phải */}
     <div style={{ padding: hep ? '10px 10px 40px' : '16px 20px 40px' }}>
-      <BienPhanhCho cauHinh={du.cauHinh} />
+      <BienPhanhCho cauHinh={du.cauHinh} /><NhietKeCho cauHinh={du.cauHinh} dinh />
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0, fontSize: hep ? 16 : 20 }}>ETP · quản lý camp</h1>
+        <NhietKeCho cauHinh={du.cauHinh} />
         <span title={`kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`} style={{ fontSize: 11, color: 'var(--fg-2)' }}>{hep ? `đồng bộ ${vn(du.dongBo?.xong ?? null)}` : `kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`}{du.dongBo?.loi ? ` · lỗi: ${du.dongBo.loi.slice(0, 80)}` : ''}</span>
         {chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={hep} />}
         {chiXem || du.nguoi.ngoai || du.nguoi.doi ? null : <NutLenCamp du={du} gon={hep} />}{/* chỉ khi đang xem tk David (Nhà) — anh 09/11/2026 'các thay đổi chỉ hiện ở tk David' */}

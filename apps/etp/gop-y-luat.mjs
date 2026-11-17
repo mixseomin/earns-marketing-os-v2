@@ -1268,4 +1268,7 @@ export const LUAT = [
   { card: 'bao-som-1711', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '[:None if _RUT else CX_TOI_DA]', vi: 'rút khỏi chợ bỏ trần 10 camp / nhịp; ngày thường giữ trần' },
   { card: 'bao-som-1711', tep: 'apps/cty/worker/ethopex.mjs', co: "const pc = cb.filter((x) => x.loai === 'phanh_cho');", vi: 'tin phanh chợ gửi thêm thẳng tới người trong đội đã nối Telegram' },
   { card: 'bao-som-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: 'RÚT KHỎI CHỢ', vi: 'biển rút khỏi chợ / phanh báo sớm trên etp + etp2' },
+  { card: 'nhiet-ke-1711', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<NhietKeCho cauHinh={du.cauHinh} dinh />', vi: 'nhiệt kế giá chợ dính màn trên etp2 (anh 17/11/2026)' },
+  { card: 'nhiet-ke-1711', tep: 'apps/web/src/components/etp-view.tsx', co: '<NhietKeCho cauHinh={du.cauHinh} dinh />', vi: 'nhiệt kế giá chợ dính màn trên etp' },
+  { card: 'nhiet-ke-1711', tep: 'apps/web/src/components/etp-view.tsx', co: '<NhietKeCho cauHinh={du.cauHinh} />', vi: 'nhiệt kế giá chợ cạnh tiêu đề trang' },
 ];

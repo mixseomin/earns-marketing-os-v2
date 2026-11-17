@@ -1204,7 +1204,11 @@ function diemGiuaMan() {
 // mặt quay hướng nào) + camera (vĩ độ, kinh độ, cao trên đất, hướng nhìn, ngẩng) + điểm giữa màn (vĩ độ, kinh độ, khu) — cả khi đang xem toàn cảnh
 function viTriThat() {
   const ll = (x, z) => raLatLngNS(x, z).map((v) => v.toFixed(6)).join(','), HN = ['bắc', 'đông bắc', 'đông', 'đông nam', 'nam', 'tây nam', 'tây', 'tây bắc'];
-  const hn = (h) => `${HN[Math.round(h / 45) % 8]} ${Math.round(h)}°`, trenDat = (x, y, z) => (y - matDat(x, z)).toFixed(1);
+  const cay = new Set(CAY_VA.map((k) => k.handle));
+  // cao trên MẶT ĐỨNG THẬT ngay dưới (tia xuống qua va chạm: sân lát, mái, cầu — lưới đất vùng ở sân trong thấp hơn mặt lát ~7 m), bỏ cây
+  const trenDat = (x, y, z) => { const t = world.castRay(new RAPIER.Ray({ x, y: y + 0.3, z }, { x: 0, y: -1, z: 0 }), 500, true, undefined, undefined, undefined, undefined, (k) => !cay.has(k.handle));
+    return (t ? Math.max(0, t.timeOfImpact - 0.3) : y - matDat(x, z)).toFixed(1); };
+  const hn = (h) => `${HN[Math.round(h / 45) % 8]} ${Math.round(h)}°`;
   const ds = [], g = diemGiuaMan(), d = camera.getWorldDirection(new THREE.Vector3()), c = camera.position;
   if (di?.dang && toi) { const p = toi.goc.position, h = toi.goc.rotation.y; ds.push(`nhân vật ${ll(p.x, p.z)} cao ${trenDat(p.x, p.y, p.z)} m trên đất, mặt hướng ${hn(laBan(Math.sin(h), Math.cos(h)))}`); }
   else if (cho) ds.push(`nhân vật (đã rời đi bộ) ${ll(cho.x, cho.z)}`);

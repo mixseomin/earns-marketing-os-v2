@@ -69,6 +69,16 @@ export function giaoCho(nguoi, viec, tu) {
   fs.writeFileSync(f, JSON.stringify({ tieu_de: String(viec).slice(0, 80), noi_dung: `${tu} chuyển (việc thuộc phần của bạn): ${viec}`, luc: new Date().toISOString() }, null, 1));
   return `${nguoi} ← ${String(viec).slice(0, 80)}`;
 }
+/** HÀNG VIỆC GIAO THẲNG → box3 <DATA>/giao/<người>.json (anh 17/11/2026: "việc mày giao cho thằng Khôi tao xem ở đâu"): chờ + đã xong (20 mới nhất, kèm BÁO ANH)
+ *  để hòm 💬 / bảng nhân sự hiện. Chạy đầu mỗi lượt 5 phút. */
+export function dayHangGiao(nguoi) {
+  const d = path.join(HOME, 'may-ky-su', nguoi, 'giao'), doc = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
+  const cho = fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.json')).sort().map((f) => ({ tep: f, ...doc(path.join(d, f)), trang_thai: 'cho' })) : [];
+  const dx = path.join(d, 'xong'), xong = fs.existsSync(dx) ? fs.readdirSync(dx).filter((f) => f.endsWith('.json')).map((f) => ({ tep: f, ...doc(path.join(dx, f)), trang_thai: 'xong' })).sort((a, b) => String(b.xong_luc ?? '').localeCompare(String(a.xong_luc ?? ''))).slice(0, 20) : [];
+  const gon = (x) => ({ tep: x.tep, tieu_de: x.tieu_de, noi_dung: String(x.noi_dung ?? '').slice(0, 1500), luc: x.luc, trang_thai: x.trang_thai, ket: x.ket, xong_luc: x.xong_luc, bao: String(x.bao ?? '').slice(0, 1500) });
+  execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', BOX, `mkdir -p ${DATA}/giao && cat > ${DATA}/giao/${nguoi}.json.tam && mv ${DATA}/giao/${nguoi}.json.tam ${DATA}/giao/${nguoi}.json`],
+    { input: JSON.stringify({ nguoi, luc: new Date().toISOString(), viec: [...cho.map(gon), ...xong.map(gon)] }), timeout: 30000 });
+}
 /** Card đã sửa đang chờ deploy (daLam['deploy:<id>']): commit "#<id>" đã nằm trong một lượt deploy.yml XANH → nộp Review; quá 6 giờ → Kẹt. */
 export function choDeployNop(daLam, cfg, dir, TEN, log, luu) {
   const cho = Object.keys(daLam).filter((k) => k.startsWith('deploy:')); if (!cho.length) return;
@@ -145,6 +155,7 @@ export function chayKySu(cfg) {
   const nopCommitDay = (c, nhan) => { for (const t of c?.day ?? []) { const id = cardTuCommit(t); if (id) try { log(`${nhan}: ${chotCard({ duAn: cfg.duAn, id, cach: 'nop', chu: `Máy đã đẩy bản sửa lên main: ${t}` })}`); } catch (e) { log(`nộp card #${id} lỗi: ${String(e.message).split('\n')[0]}`); } } };
   nopCommitDay(cayDau, 'commit kẹt đã lên main');
   if (!thu && !kiem) choDeployNop(daLam, cfg, cayDau?.dir ?? cfg.cayThu, TEN, log, () => fs.writeFileSync(TEP_DA, JSON.stringify(daLam)));
+  if (!thu && !kiem) try { dayHangGiao(NGUOI); } catch (e) { log(`chưa đẩy được hàng việc giao: ${String(e.message).split('\n')[0]}`); }
   if (!card) { log(`không có card mới (${ds.length} card mở, đã làm cả)`); process.exit(0); }
 
   ENV.BR_URL_NGUON = `card góp ý ${cfg.duAn} #${card.id} (trang lưu trong luồng card trên box3)`;   // luật br chống bịa URL: link trang lấy từ card là nguồn thật

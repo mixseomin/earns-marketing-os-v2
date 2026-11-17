@@ -89,7 +89,10 @@
  "tatTrangTri": {
   "way/223110825#6": ["vom_nho"],
   "way/223110825#7": ["vom_nho"],
-  "ly_do": "cánh nam trên ảnh KHÔNG có dải vòm nhỏ chạy liền dưới mái hiên (thẻ vom_nho của cả khối, dựng theo mặt đông Mapillary) — chỉ có diềm vòm trong từng ô (dieMVom ở trên); để cả hai thì hai lớp vòm chồng nhau. Mặt đông giữ nguyên"
+  "way/223110820#6": ["rang_cua", "vom_nho"],
+  "way/223110820#7": ["rang_cua", "vom_nho"],
+  "ly_do_1645": "góp ý #1645 (17/11/2026, ảnh Commons Neuschwanstein pano1 + Schloss Neuschwanstein 6870 / IMG 6898 anh đính): hai mặt way/223110820#6, #7 nằm ĐÚNG dưới đầu hồi bậc way/951894999 (cạnh #4, #5 cùng toạ độ) — trên ảnh mặt tường khối cổng nối THẲNG lên đầu hồi bậc sa thạch (đồng hồ giữa đầu hồi, mái lô-gia ngay dưới), không có răng cưa / dải vòm chạy ngang chân đầu hồi; răng cưa + dải vòm chỉ ở hai phần bên (#5, #8 giữ nguyên). Mô hình cũ chạy răng cưa ngang trước chân đầu hồi nên đầu hồi trông lùi ra sau",
+  "ly_do":"cánh nam trên ảnh KHÔNG có dải vòm nhỏ chạy liền dưới mái hiên (thẻ vom_nho của cả khối, dựng theo mặt đông Mapillary) — chỉ có diềm vòm trong từng ô (dieMVom ở trên); để cả hai thì hai lớp vòm chồng nhau. Mặt đông giữ nguyên"
  },
  "cong": {
   "dinh": 2002,

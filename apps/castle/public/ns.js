@@ -484,8 +484,8 @@ function dungKhoi(k, G) {
   const goc = k.ref ?? k.day, y0 = hMin > 0 ? goc + hMin : Math.min(k.day, goc), y1 = goc + h - hMai, y2 = goc + h; // chiều cao từ mốc chân nhà; tường không treo thì chạy xuống tới đất thấp nhất
   const yMong = hMin > 0 ? y0 : Math.min(y1, Math.max(y0, k.datCao + 1.2)); // móng đá thô tới quá mặt đất cao nhất 1,2 m
   k._yMong = yMong; k._y1 = y1; // loCanh khoét lỗ cửa sổ theo cùng bố cục với khung cửa 3D (mattien.js bocCuc)
-  const mai = [], da = [];
-  const mauT = mauOSM(t['building:colour'], new THREE.Color(1, 1, 1)).lerp(new THREE.Color(1, 1, 1), 0.3); // màu tường OSM (Torbau gạch đỏ) pha lên vân đá
+  const mai = [], da = [], hoi = []; // hoi: tam giác đầu hồi đứng [{ p, mau }] — màu theo mặt tường bên dưới
+  const mauT =mauOSM(t['building:colour'], new THREE.Color(1, 1, 1)).lerp(new THREE.Color(1, 1, 1), 0.3); // màu tường OSM (Torbau gạch đỏ) pha lên vân đá
   let s0 = 0;
   for (let i = 0; i < v.length; i++) {
     const [x1, z1] = v[i], [x2, z2] = v[(i + 1) % v.length];
@@ -515,15 +515,23 @@ function dungKhoi(k, G) {
       const r0 = P(o.u0 + thut, wm, y2), r1 = P(o.u1 - thut, wm, y2);
       const g00 = P(o.u0, o.w0, y1), g10 = P(o.u1, o.w0, y1), g11 = P(o.u1, o.w1, y1), g01 = P(o.u0, o.w1, y1);
       tamGiac(mai, g00, r1, g10, g00, r0, r1, g11, r0, g01, g11, r1, r0);
-      if (thut > 0) tamGiac(mai, g01, r0, g00, g10, r1, g11); else tamGiac(da, g01, r0, g00, g10, r1, g11); // đầu hồi đứng = tường đá
-      if (thut === 0 && t.dau_hoi_bac === 'yes') for (const [A, Bq, R] of [[g00, g01, r0], [g10, g11, r1]]) { // ĐẦU HỒI BẬC (cổng Torbau như ảnh): bậc gạch nhô trên mép đầu hồi
-        const H = R[1] - A[1], nb = Math.max(3, Math.round(H / 1.1)), mx = (A[0] + Bq[0]) / 2, mz = (A[2] + Bq[2]) / 2;
+      // MÀU ĐẦU HỒI ĐỨNG = màu tầng trên của mặt tường ngay dưới nó (cua-so.json mau.tren của cạnh OSM nằm trên đường chân đầu hồi): đầu hồi là tường nối lên,
+      // cùng loại đá — Torbau: phía sân sa thạch vàng, phía cổng gạch đỏ (góp ý #1645; trước cả hai đầu lấy màu gạch đỏ của khối). Không có số đo màu thì giữ màu tường OSM.
+      const mauHoi = (A, B) => { const ux = B[0] - A[0], uz = B[2] - A[2], L = Math.hypot(ux, uz) || 1;
+        for (let i = 0; i < v.length; i++) { const mm = CUA_SO?.[k.id + '#' + i]?.mau; if (!mm?.tren) continue;
+          const [x1, z1] = v[i], [x2, z2] = v[(i + 1) % v.length], dx = (x1 + x2) / 2 - A[0], dz = (z1 + z2) / 2 - A[2], tt = (dx * ux + dz * uz) / L;
+          if (tt > 0 && tt < L && Math.abs(dx * uz - dz * ux) / L < 1) return new THREE.Color(mm.tren); }
+        return mauT; };
+      if (thut > 0) tamGiac(mai, g01, r0, g00, g10, r1, g11);
+      else { hoi.push({ p: [...g01, ...r0, ...g00], mau: mauHoi(g00, g01) }, { p: [...g10, ...r1, ...g11], mau: mauHoi(g10, g11) }); } // đầu hồi đứng = tường đá
+      if (thut === 0 && t.dau_hoi_bac === 'yes') for (const [A, Bq, R] of [[g00, g01, r0], [g10, g11, r1]]) { // ĐẦU HỒI BẬC (cổng Torbau như ảnh): bậc nhô trên mép đầu hồi, cùng màu đầu hồi
+        const H = R[1] - A[1], nb = Math.max(3, Math.round(H / 1.1)), mx = (A[0] + Bq[0]) / 2, mz = (A[2] + Bq[2]) / 2, mh = mauHoi(A, Bq);
         for (let b = 0; b < nb; b++) for (const P of [A, Bq]) { const f0 = b / nb, f1 = (b + 1) / nb, y0 = A[1] + H * f0, y1 = A[1] + H * f1;
           const x0 = P[0] + (mx - P[0]) * f0, z0 = P[2] + (mz - P[2]) * f0, x1 = P[0] + (mx - P[0]) * f1, z1 = P[2] + (mz - P[2]) * f1;
-          BAC_HOI.push({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, y: y1 + 0.35, w: Math.hypot(x1 - x0, z1 - z0) + 0.25, h: 0.7 + (y1 - y0) * 0.3, goc: Math.atan2(z1 - z0, x1 - x0), mau: mauT.clone() }); }
+          BAC_HOI.push({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, y: y1 + 0.35, w: Math.hypot(x1 - x0, z1 - z0) + 0.25, h: 0.7 + (y1 - y0) * 0.3, goc: Math.atan2(z1 - z0, x1 - x0), mau: mh.clone() }); }
         // trụ đỉnh: cao theo thẻ hoi_tru (m, sua.json — 0 = không có trụ, mũi đầu hồi chỉ là bậc nắp đá), mặc định 1,6
         const hTru = so(t.hoi_tru) ?? 1.6;
-        if (hTru > 0) BAC_HOI.push({ x: R[0], z: R[2], y: R[1] + 0.1 + hTru / 2, w: 0.7, h: hTru, goc: Math.atan2(Bq[2] - A[2], Bq[0] - A[0]), mau: mauT.clone() });
+        if (hTru > 0) BAC_HOI.push({ x: R[0], z: R[2], y: R[1] + 0.1 + hTru / 2, w: 0.7, h: hTru, goc: Math.atan2(Bq[2] - A[2], Bq[0] - A[0]), mau: mh.clone() });
         ghiKK(k.id + '#mai', 'hoi_bac', R[1]);
       }
     }
@@ -543,6 +551,8 @@ function dungKhoi(k, G) {
   }
   const mauM = kieu === 'flat' ? null : mauOSM(t['roof:colour'], MAU_MAI).lerp(new THREE.Color(1, 1, 1), 0.55); // pha nhẹ lên vân đá phiến
   G.da.p.push(...da); G.da.uv.push(...uvChieu(da, 4)); for (let i = 0; i < da.length; i += 3) G.da.c.push(mauT.r, mauT.g, mauT.b);
+  // tam giác đầu hồi đứng: màu riêng từng đầu (mauHoi); vẫn nằm trong da trả về (va chạm + công cụ đo dùng hình khối)
+  for (const e of hoi) { G.da.p.push(...e.p); G.da.uv.push(...uvChieu(e.p, 4)); for (let i = 0; i < e.p.length; i += 3) G.da.c.push(e.mau.r, e.mau.g, e.mau.b); da.push(...e.p); }
   G.mai.p.push(...mai); G.mai.uv.push(...uvChieu(mai, 2.5)); for (let i = 0; i < mai.length; i += 3) G.mai.c.push(mauM.r, mauM.g, mauM.b);
   return { mai, da, ten: t.name, h, y2, y0, y1, yMong };
 }

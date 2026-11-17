@@ -2945,7 +2945,29 @@
    "tren": "#d7b46e",
    "v": 0.54
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m"
+  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m",
+  "rang_cua": 0,
+  "ly_do_rang": "góp ý #1645 (17/11/2026, ảnh Commons Neuschwanstein pano1 + 2004 neuschwanstein castle anh đính): cánh bắc Torbau nhìn từ sân dưới (trái khối cổng) có MÁI ĐÁ PHIẾN XÁM lộ ngay trên mái hiên, dải vòm nhỏ dưới mái hiên, KHÔNG có răng cưa — răng cưa của khối (thẻ rang_cua, dựng theo mặt đông Mapillary) chỉ đúng phía cổng ngoài"
+ },
+ "way/223110818#1": {
+  "hang": [],
+  "mau": {
+   "duoi": "#e9e7e1",
+   "tren": "#d7b46e",
+   "v": 0.54
+  },
+  "rang_cua": 0,
+  "ly_do": "góp ý #1645 (17/11/2026): đoạn tiếp theo của mặt hướng sân cánh bắc (cùng phương với #0, lệch ~1°) — trước không có số đo màu nên lấy màu gạch đỏ OSM (mảng hồng trên mô hình); ảnh pano1 + 2004 neuschwanstein castle: cả mặt cánh bắc hướng sân tầng dưới đá vôi trắng, tầng trên sa thạch vàng, mái xám lộ, không răng cưa — như #0"
+ },
+ "way/223110818#2": {
+  "hang": [],
+  "mau": {
+   "duoi": "#e9e7e1",
+   "tren": "#d7b46e",
+   "v": 0.54
+  },
+  "rang_cua": 0,
+  "ly_do": "góp ý #1645 (17/11/2026): như way/223110818#1 — đoạn cuối mặt hướng sân cánh bắc trước khi giáp khối trắng way/221599086"
  },
  "way/223110818#10": {
   "hang": [],

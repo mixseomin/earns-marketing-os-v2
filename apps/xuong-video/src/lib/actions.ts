@@ -42,7 +42,7 @@ import { themTapAi, apSapKhung, type AiTuyenTruyen } from '@/lib/xuong-video/tuy
 import { khungCuaPhim, vanKhung } from '@/lib/xuong-video/khung-tuyen';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, khoaKyThuatForm, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
-import { ghepThoai, thieuQc, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
+import { ghepThoai, thieuQc, BO_SINH_VIDEO, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
 import { maAnimatic } from '@/lib/xuong-video/ho-so';
 import type { BanXuat, BoSet, May3d } from '@/lib/xuong-video/kieu';
 import { soLienMach, type SoLienMach as SoLienMachT } from '@/lib/xuong-video/so-lien-mach';
@@ -1392,13 +1392,47 @@ export async function chonPhienBan(canhId: number, url: string, ban: 'nhap' | 'c
   return { ok: true, data: undefined };
 }
 
-/** NGUỒN CHÍNH CẢ TẬP (góp ý #1638): mỗi shot có phiên bản mang nhãn `nhan` (Seedance / H3…) → chọn bản MỚI NHẤT của nhãn đó làm nháp đang dùng.
- *  Shot không có bản của nhãn đó giữ nguyên. Không tốn tiền, mọi bản vẫn nằm trong video_phien_ban (đổi lại được). */
-export async function chonNguonTap(tapId: number, nhan: string): Promise<Kq<{ doi: number; thieu: number }>> {
+/** NGUỒN CLIP CHÍNH CỦA PHIM (góp ý #1638) — đếm, trên MỌI tập của phim, shot có phiên bản mang nhãn nguồn (Seedance / H3…) đang dùng clip của nguồn nào.
+ *  khac = shot có phiên bản theo nguồn mà clip đang dùng không thuộc nhãn nào. hang = shot đang xếp hàng đường cụm theo bộ. 0đ, chỉ đọc. */
+export type NguonPhim = { dem: Record<string, number>; khac: number; nhan: string[]; hang: Record<string, number>; bo: string };
+export async function demNguonPhim(phimId: number): Promise<NguonPhim | null> {
+  const db = getDb();
+  if (!db || !(await admin())) return null;
+  const rows = (await db.execute(sql`SELECT c.video_url, c.video_phien_ban FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${phimId} AND jsonb_path_exists(c.video_phien_ban, '$[*] ? (@.nhan != null && @.nhan != "")')`)) as unknown as Row[];
+  const dem: Record<string, number> = {}; const nhan = new Set<string>(); let khac = 0;
+  for (const r of rows) {
+    const pb = (r.video_phien_ban ?? []) as Canh['video_phien_ban'];
+    for (const v of pb) if (v.nhan) nhan.add(v.nhan);
+    const dang = pb.find((v) => v.url === r.video_url)?.nhan;
+    if (dang) dem[dang] = (dem[dang] ?? 0) + 1; else khac++;
+  }
+  const hang = Object.fromEntries(((await db.execute(sql`SELECT j.provider, count(*)::int AS n FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${phimId} AND j.loai = 'video' AND j.trang_thai = 'hang' GROUP BY 1`)) as unknown as Row[]).map((r) => [String(r.provider), Number(r.n)]));
+  const bo = String((((await db.execute(sql`SELECT kinh_thanh->>'bo_sinh_video' AS bo FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[])[0]?.bo) ?? '');
+  return { dem, khac, nhan: [...nhan], hang, bo };
+}
+/** BỘ SINH VIDEO CHÍNH của phim (góp ý #1638, kieu.ts › BO_SINH_VIDEO): '' = model của phim như cũ · 'seedance' / 'h3' = nút Sinh xếp hàng cho đường cụm. 0đ.
+ *  Đổi bộ thì shot đang xếp hàng chuyển sang bộ mới (một hàng, không nhân đôi). */
+export async function datBoSinhVideo(phimId: number, bo: string): Promise<Kq<{ chuyen: number }>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const rows = (await db.execute(sql`SELECT id, video_url, video_phien_ban FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[];
+  if (!BO_SINH_VIDEO.some((b) => b.value === bo)) return loi(`bộ sinh không có: ${bo}`);
+  await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{bo_sinh_video}', ${JSON.stringify(bo)}::jsonb), updated_at = now() WHERE id = ${phimId}`);
+  // bỏ bộ cụm ('') → hàng đang chờ không còn ai chạy: báo số shot, KHÔNG tự gửi model (tốn tiền — anh bấm Sinh lại)
+  const r = bo ? ((await db.execute(sql`UPDATE xv_job j SET provider = ${bo}, model = ${bo === 'h3' ? 'h3:ref2va-int8-turbo' : 'kie:bytedance/seedance-2-fast'}, updated_at = now() FROM xv_canh c, xv_tap t
+      WHERE c.id = j.canh_id AND t.id = c.tap_id AND t.phim_id = ${phimId} AND j.loai = 'video' AND j.trang_thai = 'hang' AND j.provider <> ${bo} RETURNING j.id`)) as unknown as Row[])
+    : ((await db.execute(sql`UPDATE xv_job j SET trang_thai = 'loi', loi = 'phim đổi bộ sinh về model của phim — hàng cụm bỏ, bấm Sinh lại', updated_at = now() FROM xv_canh c, xv_tap t
+      WHERE c.id = j.canh_id AND t.id = c.tap_id AND t.phim_id = ${phimId} AND j.loai = 'video' AND j.trang_thai = 'hang' RETURNING j.id`)) as unknown as Row[]);
+  return { ok: true, data: { chuyen: r.length } };
+}
+/** NGUỒN CLIP CHÍNH CẢ PHIM (góp ý #1638): mọi shot của MỌI tập có phiên bản mang nhãn `nhan` (Seedance / H3…) → chọn bản MỚI NHẤT của nhãn đó làm nháp
+ *  đang dùng (chonPhienBan: giữ mốc đoạn riêng, chụp trước để hoàn được). Shot không có bản của nhãn đó giữ nguyên. 0đ, đổi lại được. */
+export async function chonNguonPhim(phimId: number, nhan: string): Promise<Kq<{ doi: number; thieu: number }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const rows = (await db.execute(sql`SELECT c.id, c.video_url, c.video_phien_ban FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${phimId}
+    AND jsonb_path_exists(c.video_phien_ban, '$[*] ? (@.nhan != null && @.nhan != "")') ORDER BY t.so, c.thu_tu, c.id`)) as unknown as Row[];
   let doi = 0, thieu = 0;
   for (const r of rows) {
     const v = [...((r.video_phien_ban ?? []) as Canh['video_phien_ban'])].reverse().find((x) => x.nhan === nhan && x.url);

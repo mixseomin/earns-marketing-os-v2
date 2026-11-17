@@ -31,6 +31,16 @@ bash apps/xuong-video/scripts/h3/may-h3.sh <thư-mục-ra> <vao-1.json> [vao-2.j
   mỗi 30 s (rớt mạng không mất lô) → xoá máy (trap) · máy tự tắt khi xong / quá trần nếu iMac mất liên lạc.
 - Kiểm 0đ trước khi thuê: `thu-0d.sh` trong image `h3/may/Dockerfile` (cài, đồ thị H3, lấy đúng clip) — CPU, không tốn tiền.
 
+## Nối vào nút Sinh của studio (góp ý #1638, 17/11/2026)
+
+- Timeline có ô **⚙ Sinh** = bộ sinh video chính của phim (`kinh_thanh.bo_sinh_video`, kieu.ts › `BO_SINH_VIDEO`): Model của phim (như cũ) · Seedance (Kie) · H3 (máy thuê).
+- Chọn Seedance / H3 → nút Sinh nháp trên thẻ shot qua đủ cổng như cũ rồi **xếp hàng** shot (`xv_job` trang_thai `hang`, 0đ — sinh-video.ts › `xepHangCum`).
+- Chạy hàng trên iMac: `bash apps/xuong-video/scripts/h3/chay-hang.sh` (0đ, in cụm sẽ chạy) → `… --chay` (tốn tiền): gom shot vào cụm (cum-seedance.mts),
+  dựng clip 3D nối (cum-seedance-tap.sh) → Seedance gửi Kie; H3 xếp job `hang_h3` cùng đầu vào (`thu-seedance-cum.mts --bo=h3`) rồi `song-song.sh` →
+  `thu-seedance-cum.mts --nap-h3=<job> --tep=<mp4>` gắn clip + phiên bản nhãn H3 → `hang-video.mts --dong` đóng hàng.
+- Ô **🎬 Nguồn** cạnh đó hiện nguồn clip đang dùng của cả phim (đếm shot theo nhãn phiên bản) và đổi cho mọi tập tại chỗ (`chonNguonPhim`, 0đ).
+- Chưa có tiến trình nền tự chạy hàng — muốn tự động phải anh duyệt riêng (luật tiến trình ngầm).
+
 ## Bài học (mỗi dòng là một lần đã mất tiền máy)
 
 1. Image tự khai yêu cầu CUDA 13 → RunPod chỉ xếp máy driver mới → "hết chỗ" mọi loại máy. Dùng image không khai, kiểm driver sau khi lên.

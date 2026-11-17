@@ -233,6 +233,18 @@ function guiPlenxGian<T>(f: () => Promise<T>): Promise<T> {
   });
   hangPlenx = p.catch(() => null); return p;
 }
+/** XẾP HÀNG một shot cho đường CỤM (góp ý #1638) — bộ sinh chính của phim là Seedance (Kie) hoặc H3 (máy thuê). 0đ: chỉ ghi xv_job trang_thai 'hang'
+ *  (provider = bộ), không gọi model. scripts/h3/chay-hang.sh (iMac) đọc hàng (scripts/hang-video.mts), gom shot vào cụm của kế hoạch cụm rồi chạy đúng bộ.
+ *  Shot cần clip 3D còn mới (cụm gửi clip 3D nối làm tham chiếu). Bấm lại khi đã có hàng → giữ một hàng, đổi bộ nếu phim vừa đổi bộ. */
+export async function xepHangCum(db: Db, canh: Canh, bo: 'seedance' | 'h3', ban: 'nhap' | 'cuoi'): Promise<Kq<number>> {
+  if (!clip3dMoi(canh)) return loi(`Shot #${canh.thu_tu}: bộ sinh ${bo === 'h3' ? 'H3' : 'Seedance'} sinh theo cụm từ clip 3D — shot chưa có clip 3D còn mới, dựng 3D lại trước`);
+  const model = bo === 'h3' ? 'h3:ref2va-int8-turbo' : 'kie:bytedance/seedance-2-fast';
+  const co = ((await db.execute(sql`UPDATE xv_job SET provider = ${bo}, model = ${model}, updated_at = now() WHERE canh_id = ${canh.id} AND loai = 'video' AND trang_thai = 'hang' RETURNING id`)) as unknown as Row[])[0];
+  if (co) return { ok: true, data: Number(co.id) };
+  const job = await taoJob(db, { cents: 0, nhan: `Xếp hàng ${bo === 'h3' ? 'H3 (máy thuê)' : 'Seedance (Kie)'} · cảnh #${canh.thu_tu} ${canh.canh} — chờ chay-hang.sh trên iMac`, canh_id: canh.id, loai: 'video', provider: bo, model, request: { hang: bo, ban, tap_id: canh.tap_id, thu_tu: canh.thu_tu } });
+  await db.execute(sql`UPDATE xv_job SET trang_thai = 'hang', updated_at = now() WHERE id = ${job}`);
+  return { ok: true, data: job };
+}
 export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap', tuDong = false, thu = false, boQuaCong = false): Promise<Kq<number>> {
   let bc = await boiCanhCanh(db, canhId);
   if (!bc) return loi('không thấy cảnh');
@@ -265,6 +277,9 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   { const c = videoTraPhi(bc.canh.ky_thuat, bc.canh.tap_id, bc.canh.thu_tu, boQuaCong); if (c) return loi(c); }
   const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
   if (chan) return loi(chan);
+  // BỘ SINH CHÍNH = ĐƯỜNG CỤM (góp ý #1638): phim chọn Seedance / H3 → không gửi model ngay, XẾP HÀNG shot (trang_thai 'hang', 0đ). Lệnh trên iMac
+  // scripts/h3/chay-hang.sh lấy hàng, gom shot vào cụm (cum-seedance.mts), dựng clip 3D nối rồi sinh bằng đúng bộ đã chọn — clip về thành phiên bản mang nhãn bộ đó.
+  if (bc.kt.bo_sinh_video) return xepHangCum(db, bc.canh, bc.kt.bo_sinh_video, ban);
   // Cổng nhận được lấy từ MỘT chỗ (cong-ai.ts › tachKhoa) — trước là regex chép tay, thêm cổng mới (kie, wavespeed) là ô chọn bị lờ đi.
   if (moHinh && (moHinh.startsWith('fal:') || tachKhoa(moHinh).kieu !== 'tu_chon' || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
   // Model theo NỘI DUNG (qc-cam-xuc.ts): có trẻ em → Veo từ chối → đổi sang Kling TRƯỚC khi gửi (Jett #61 shot 1/2/11 hỏng 3 lượt).

@@ -26,6 +26,11 @@ import { dangChongBau, matNguoiNoi, CO_RONG } from '../src/lib/xuong-video/bo-se
 const arg = (k: string, d = '') => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
 const ids = arg('canh').split(',').map(Number).filter(Boolean); const fileVideo = arg('video-file'); const dpg = arg('dpg', '480p') as '480p' | '720p';
 const model = arg('model', 'bytedance/seedance-2-fast'); const xem = process.argv.includes('--xem');
+// BỘ SINH (góp ý #1638, kieu.ts › BO_SINH_VIDEO): --bo=h3 → CÙNG đầu vào cụm (ảnh, clip 3D nối, câu lệnh đã qua luật chấm) nhưng KHÔNG gửi Kie: ghi job H3
+// (trang_thai 'hang_h3', request.vao = vao.json của chay-h3.py), in "H3_JOB <id>" — 0đ; scripts/h3/chay-hang.sh chạy H3 trên máy thuê rồi gọi lại
+// --nap-h3=<job> --tep=<mp4 trên box3> để gắn clip (đo cú cắt, khớp thoại như Seedance) + ghi phiên bản nhãn H3.
+const bo = arg('bo', 'seedance') === 'h3' ? 'h3' : 'seedance'; const napH3 = Number(arg('nap-h3')) || 0; const tepH3 = arg('tep');
+const NHAN = bo === 'h3' || napH3 ? 'H3' : 'Seedance'; const MODEL_GAN = NHAN === 'H3' ? 'h3:ref2va-int8-turbo' : `kie:${model}`;
 if (!ids.length) { console.error('cần --canh=<id,…> (shot liền nhau, một shot cũng được) và --video-file=<clip 3D nối của cụm>'); process.exit(1); }
 const db = getDb()!;
 const bcs = await Promise.all(ids.map((id) => boiCanhCanh(db, id))); if (bcs.some((b) => !b?.canh.keyframe_url)) { console.error('có shot thiếu keyframe'); process.exit(1); }
@@ -37,7 +42,7 @@ if (tong > 15) { console.error(`cụm dài ${tong.toFixed(1)} s > 15 s (trần S
 // LUẬT 15/11/2026 (#6 phim #3071): có --video-file thì LUÔN dùng clip đã cắt đúng đoạn phát (shot bắt đầu ở giây 0). Clip nguyên có đoạn dư đầu 1,65 s im lặng
 // + đuôi trống → Seedance dồn câu thoại vào đuôi (tiếng ở 3,7–4,9 s, đoạn shot im). clip1 chỉ còn là đường dự phòng khi chạy tay không có tệp.
 const clip1 = !fileVideo && cum.length === 1 && tong < 4 && clip3dMoi(cum[0]!.canh) ? cum[0]!.canh.khung_xam!.clip! : null;
-if (!clip1 && !fileVideo) { console.error('cần --video-file=<clip 3D nối của cụm> (cụm nhiều shot / shot ≥ 4 s)'); process.exit(1); }
+if (!clip1 && !fileVideo && !napH3) { console.error('cần --video-file=<clip 3D nối của cụm> (cụm nhiều shot / shot ≥ 4 s)'); process.exit(1); }
 // KHỚP MÔI KHI SINH (khop-moi-cach.ts): cách 'seedance_audio' → gửi file giọng làm Audio 1, câu thoại đặt đúng mốc trong clip ra (mốc shot + trễ câu), kèm nguyên văn câu
 const nguoiNoi = [...new Set(cum.flatMap((x) => (x.canh.thoai ?? []).filter((d) => d.url && d.loi?.trim()).map((d) => d.nhan_vat)))];
 const cachKhop = nguoiNoi.length ? chonCachKhopMoi({ chatLieu: chatLieuPhim(bcs[0]!.kt), ngonNgu: bcs[0]!.kt.ngon_ngu, soNguoiNoi: nguoiNoi.length }) : null;
@@ -67,7 +72,9 @@ const than = promptCumMoi(cum, { tag: tc.tag, them: tc.them, tiLe: bcs[0]!.kt.ti
 // Câu thoại nói MỘT lần trong câu lệnh: câu shot (promptCumMoi) đã có "<người> says: <câu>" thì ở đây không nhắc lại — nhắc hai lần model nói hai lần (#6: tiếng
 // ở 1,2 s và 2,6 s). Chỉ câu nào chưa có nguyên văn trong câu shot mới ghi thêm. Luật chặn: chan-gui-video.ts › loiThoaiPrompt.
 const cauThieu = cauAm.filter((c) => !than.includes(c.loi.replace(/["“”]/g, '').replace(/[.\s]+$/, '')));
-const cauGiong = guiGiong ? ` Audio 1 is the dialogue track: every spoken line above is exactly Audio 1, said once, at the moment Audio 1 has speech — lip-sync to Audio 1: while Audio 1 has speech the speaker clearly opens the mouth and the lips visibly form every syllable, loud and expressive; the mouth is closed when Audio 1 is silent.${cauThieu.map((c) => ` In shot ${c.so}, ${nhanNoi.get(c.ai) ?? 'the speaker'} speaks out loud and says: ${c.loi.replace(/["“”]/g, '')}.`).join('')}` : '';
+// H3 không nhận rãnh giọng tham chiếu (chay-h3.py: ảnh + video) — tự sinh tiếng theo câu chữ: chỉ giữ câu thoại chưa có nguyên văn, bỏ câu Audio 1
+const cauGiong = guiGiong && bo === 'h3' ? cauThieu.map((c) => ` In shot ${c.so}, ${nhanNoi.get(c.ai) ?? 'the speaker'} speaks out loud and says: ${c.loi.replace(/["“”]/g, '')}.`).join('')
+  : guiGiong ? ` Audio 1 is the dialogue track: every spoken line above is exactly Audio 1, said once, at the moment Audio 1 has speech — lip-sync to Audio 1: while Audio 1 has speech the speaker clearly opens the mouth and the lips visibly form every syllable, loud and expressive; the mouth is closed when Audio 1 is silent.${cauThieu.map((c) => ` In shot ${c.so}, ${nhanNoi.get(c.ai) ?? 'the speaker'} speaks out loud and says: ${c.loi.replace(/["“”]/g, '')}.`).join('')}` : '';
 const prompt = `${tc.goi}. ${goiKf} Reference video 1 is a rough grey 3D blockout of this whole ${cum.length}-shot sequence with hard cuts: copy ONLY its cuts, camera angles, timing, where everyone stands and how they move — never its grey mannequin look; every shot must look like its reference image. ${than} ${cauNgoaiCua(cum.map((x) => x.canh))}${cauDu}${cauGiong}`.trim();
 console.log(`cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${tong.toFixed(1)} s → clip ${giayGui} s · ${model} ${dpg} · ${anh.length} ảnh · prompt ${prompt.length} ký tự`);
 // LUẬT CHẤM TRƯỚC KHI GỬI (chan-gui-video.ts — anh 14/11/2026): lỗi nào cũng chặn, không tốn tiền
@@ -126,7 +133,8 @@ async function ganKetQua(f: string, url: string, job: number, urlGiong: string |
   const doan = tay ? doanTay : doanShot(v.vao, dai, 0.45, v.het);   // đoạn theo cú cắt, lấy TRƯỚC khi canh giọng dời điểm vào
   const hong = new Map<number, string>((v.theoDo ? v.ngan : cum.map((x) => x.canh.thu_tu)).map((so) => [so, v.theoDo ? 'đoạn của shot ngắn hơn giây phát' : 'không đo đủ cú cắt']));
   let cg: ReturnType<typeof khopThoai> | null = null;
-  if (urlGiong && v.theoDo) { cg = khopThoai(f, v.vao, doan); v.vao.splice(0, v.vao.length, ...cg.vao); console.log(`khớp thoại: ${cg.bao}`);
+  // H3 tự sinh tiếng (không gửi giọng) → vẫn khớp thoại theo tiếng clip để đặt điểm vào đúng lúc nói
+  if ((urlGiong || (NHAN === 'H3' && cauAm.length)) && v.theoDo) { cg = khopThoai(f, v.vao, doan); v.vao.splice(0, v.vao.length, ...cg.vao); console.log(`khớp thoại: ${cg.bao}`);
     cg.loi.forEach((l, i) => { if (l && !hong.has(cum[i]!.canh.thu_tu)) hong.set(cum[i]!.canh.thu_tu, l); }); }
   // MỌI shot (cả shot câm): điểm vào kẹp trong đoạn của nó, không lố sang hình shot kế (cum-shot.ts › kepVaoDoan, ca #2 phim #3071 16/11/2026)
   const catCuoi = new Map<number, number>();
@@ -136,8 +144,11 @@ async function ganKetQua(f: string, url: string, job: number, urlGiong: string |
     if (cb != null) { catCuoi.set(i, cb); v.vao[i] = doan[i]![0]; return; }
     if (k == null) { if (!hong.has(x.canh.thu_tu)) hong.set(x.canh.thu_tu, `đoạn của shot ${doan[i]![0]}–${doan[i]![1]} s ngắn hơn giây dùng`); } else v.vao[i] = k; });
   for (const [i, x] of cum.entries()) {
-    if (hong.has(x.canh.thu_tu)) { await db.execute(sql`UPDATE xv_canh SET video_url = NULL, loi = ${`cụm Seedance job ${job}: ${hong.get(x.canh.thu_tu)} — sinh lại`}, updated_at = now() WHERE id = ${x.canh.id}`); continue; }
-    await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: `kie:${model}`, prompt: promptGui, job, cum: ids, khung_dau: x.canh.keyframe_url, doan: doan[i], ...(tay ? { doan_tay: true } : {}),   // đoạn của shot trong clip (cú cắt đo) — canh miệng không dời lấn sang shot kế
+    if (hong.has(x.canh.thu_tu)) { await db.execute(sql`UPDATE xv_canh SET video_url = NULL, loi = ${`cụm ${NHAN} job ${job}: ${hong.get(x.canh.thu_tu)} — sinh lại`}, updated_at = now() WHERE id = ${x.canh.id}`); continue; }
+    // PHIÊN BẢN MANG NHÃN NGUỒN (góp ý #1638): clip cụm vào video_phien_ban với nhãn bộ sinh + mốc đoạn riêng — ô "Nguồn clip chính" trên timeline đếm / đổi theo nhãn này
+    const pbMoi = [{ url, ban: 'nhap', nhan: NHAN, model: MODEL_GAN, job, vao_s: v.vao[i]!, toc_khop: cg?.toc[i] ?? 1, luc: new Date().toISOString() }];
+    await db.execute(sql`UPDATE xv_canh SET video_phien_ban = coalesce(video_phien_ban, '[]'::jsonb) || ${JSON.stringify(pbMoi)}::jsonb WHERE id = ${x.canh.id} AND NOT coalesce(video_phien_ban, '[]'::jsonb) @> ${JSON.stringify([{ url }])}::jsonb`);
+    await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify({ model: MODEL_GAN, prompt: promptGui, job, cum: ids, khung_dau: x.canh.keyframe_url, doan: doan[i], ...(tay ? { doan_tay: true } : {}),   // đoạn của shot trong clip (cú cắt đo) — canh miệng không dời lấn sang shot kế
          ...(urlGiong && cauAm.some((c) => c.so === i + 1) ? { khop_moi: { cach: 'seedance_audio', giong: urlGiong }, ...ghiMieng(true, cg?.bao.split(' · ').find((b) => b.startsWith(`#${x.canh.thu_tu}:`)) ?? '') } : {}) })}::jsonb || ${CD_LUC_SINH}, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${x.canh.id}`);
     await ghiVaoToc(x.canh.id, v.vao[i]!, cg?.toc[i] ?? 1);
     if (catCuoi.has(i)) { await db.execute(sql`UPDATE xv_canh SET cat_cuoi_s = ${catCuoi.get(i)!} WHERE id = ${x.canh.id}`); console.log(`#${x.canh.thu_tu}: đoạn hụt — phát ${catCuoi.get(i)} s thay ${giayPhat(x.canh)} s`); }
@@ -157,6 +168,29 @@ if (tuJob) {
   await ganKetQua(f, r.output_url, tuJob, r.request.giong ?? null, r.request.prompt ?? prompt, Date.now()); process.exit(0);
 }
 if (xem) { console.log(prompt); console.log(anh.join('\n')); process.exit(0); }
+// --nap-h3=<job> --tep=<mp4>: GẮN clip H3 của job hàng H3 (0đ — tiền máy đã trả lúc chạy) — cùng khâu gắn với Seedance, phiên bản nhãn H3
+if (napH3) {
+  const r = ((await db.execute(sql`SELECT request FROM xv_job WHERE id = ${napH3}`)) as unknown as { request: { thu?: string; cum?: number[]; cents?: number; vao?: { prompt?: string } } }[])[0];
+  if (r?.request.thu !== 'h3-cum') { console.error(`job ${napH3} không phải job cụm H3`); process.exit(1); }
+  if (JSON.stringify(r.request.cum ?? []) !== JSON.stringify(ids)) { console.error(`job ${napH3} là cụm ${JSON.stringify(r.request.cum)}, không phải ${JSON.stringify(ids)}`); process.exit(1); }
+  if (!tepH3 || !existsSync(tepH3)) { await xongJob(db, napH3, { loi: 'H3 không ra clip (xem nhật ký chay-hang.sh)' }); console.error(`thiếu tệp clip H3 ${tepH3}`); process.exit(1); }
+  const url = await uploadToR2(`xuong-video/clip/h3-cum-${ids.join('-')}-${randomUUID()}.mp4`, readFileSync(tepH3), 'video/mp4');
+  if (!url) { await xongJob(db, napH3, { loi: 'đẩy kho hỏng' }); process.exit(1); }
+  await xongJob(db, napH3, { output_url: url, chi_phi_cents: Number(r.request.cents) || 0 });
+  await ganKetQua(tepH3, url, napH3, null, r.request.vao?.prompt ?? prompt, Date.now()); process.exit(0);
+}
+// --bo=h3: XẾP HÀNG H3 (0đ) — đầu vào y như lượt Seedance của cụm (ảnh ≤ 9, clip 3D nối, câu lệnh đã qua luật chấm), đổi cách gọi tham chiếu theo H3
+// ("Reference image N" → "<Picture N>", "Reference video 1" → "<Video 1>"; docs/h3-may-thue.md). Khung 864×480 / 480×864 như lô thử phim #3071.
+if (bo === 'h3') {
+  const urlVideo = clip1 ? clip1.url : await uploadToR2(`xuong-video/khung-xam/cum-${ids.join('-')}-${randomUUID()}.mp4`, readFileSync(fileVideo), 'video/mp4');
+  if (!urlVideo) { console.error('đẩy clip 3D nối lên kho hỏng'); process.exit(1); }
+  const ngang = bcs[0]!.kt.ti_le !== '9:16';
+  const vao = { prompt: prompt.replace(/reference image (\d+)/gi, '<Picture $1>').replace(/reference video 1/gi, '<Video 1>'), anh, video: urlVideo, giay: giayRaGiong, rong: ngang ? 864 : 480, cao: ngang ? 480 : 864, seed: 261662374822964, buoc: 4, turbo: true };
+  // tiền ước: lô thử 16 cụm ≈ 13.500₫ máy (gồm cài) → ~3¢ / cụm
+  const job = await taoJob(db, { canh_id: ids[0], nhan: `H3 cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${giayRaGiong}s — chờ máy thuê (chay-hang.sh)`, loai: 'video', provider: 'h3', model: 'h3:ref2va-int8-turbo', request: { thu: 'h3-cum', cum: ids, vao, cents: 3 }, cents: 3 });
+  await db.execute(sql`UPDATE xv_job SET trang_thai = 'hang_h3', updated_at = now() WHERE id = ${job}`);
+  console.log(`H3_JOB ${job}`); process.exit(0);
+}
 if (!process.env.DUYET_SINH_1_LAN) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1 ngay sau khi anh duyệt lượt này'); process.exit(2); }
 
 const giaVao = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', clip1 ? clip1.url : fileVideo], { encoding: 'utf8' }).trim());

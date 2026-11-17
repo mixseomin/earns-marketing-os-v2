@@ -8,7 +8,7 @@ import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, type TheLoai } from '@
 import { KyThuatTheoNhom } from './thu-vien';
 import { BoSetXem } from './bo-set-xem';
 import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, sinhVideoThu, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh, luuShotKho, bocTachCanh, layThanhPhanCanh } from '@/lib/actions';
-import { O_DAN_DUNG, moTaVi, chuManHien, tenPhanDoan, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim, type DongDoiChieu } from '@/lib/xuong-video/kieu';
+import { O_DAN_DUNG, moTaVi, chuManHien, tenPhanDoan, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, BO_SINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim, type DongDoiChieu } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { BieuCamShot } from './bieu-cam-ui';
 import { chanVideo } from '@/lib/xuong-video/quy-trinh';
@@ -274,6 +274,9 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
   const dsVideo = moHinh.video.length ? moHinh.video : MO_HINH_VIDEO.map((m) => ({ key: m.key, label: m.label, nhom: '', giaCents: m.giaGiay['720p'], donVi: 'giay' as const }));
   const giaAnh = giaAnhUi(dsAnh, mhAnh);
   const giaVid = giaVideoUi(dsVideo, mhVideo, giay, kt.do_phan_giai);
+  // Bộ sinh chính của phim là đường cụm (Seedance / H3, góp ý #1638): nút Sinh chỉ XẾP HÀNG shot (0đ) — giá tính khi chay-hang.sh chạy cụm trên iMac
+  const boSinh = BO_SINH_VIDEO.find((b) => b.value && b.value === kt.bo_sinh_video);
+  const chuSinh = (dau: string) => (boSinh ? `${dau} → xếp hàng ${boSinh.ten} · ${giay}s` : `${dau} · ${giay}s · ${tien(giaVid)}`);
   const giaNangCap = NANG_CAP.giaGiayCents * (c.thoi_luong_s || 8);
   const lyAnh = (!khoa.google && !khoa.openai && !(mhAnh.startsWith('fal:') && khoa.fal) && !(mhAnh.startsWith('ckey:') && khoa.ckey) && !(mhAnh.startsWith('shopaikey:') && khoa.shopaikey) && !khoa.ckey && !khoa.shopaikey && 'thiếu khoá ảnh') || (!c.prompt_anh.trim() && 'chưa có prompt ảnh (Sửa cảnh → prompt ảnh)') || (tp.thieu.length > 0 && `thiếu: ${tp.thieu.join('; ')}`);
   const lyAnhKf = lyAnh || (chanKf?.length ? `chưa sinh được — ${chanKf.length} lý do ở khung đỏ ngay trên` : false);
@@ -429,12 +432,12 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
             {(buoc === 'kf' || buoc === 'duyet' || buoc === 'nhap' || buoc === 'cuoi' || (buoc === 'dang' && !c.dang_sinh_anh)) && (
               <NhomNut nhan="🎬 Video">
                 {buoc !== 'dang' && chonVideo}
-                {(buoc === 'duyet' || buoc === 'kf') && <Nut chinh ly={lyVideo} ban={ban(k)} title={[buoc === 'kf' && 'bấm = duyệt keyframe đang chọn', thieuGiong && 'shot còn lời chưa có giọng: sinh giọng trước, giọng xong máy tự gửi video'].filter(Boolean).join(' · ') || undefined} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'nhap', true))} gia={giaVid}>{c.dang_sinh_giong ? '⏳ Đang sinh giọng…' : `${thieuGiong ? '🗣 Giọng + ' : ''}Sinh nháp · ${giay}s · ${tien(giaVid)}`}</Nut>}
+                {(buoc === 'duyet' || buoc === 'kf') && <Nut chinh ly={lyVideo} ban={ban(k)} title={[buoc === 'kf' && 'bấm = duyệt keyframe đang chọn', thieuGiong && 'shot còn lời chưa có giọng: sinh giọng trước, giọng xong máy tự gửi video'].filter(Boolean).join(' · ') || undefined} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'nhap', true))} gia={giaVid}>{c.dang_sinh_giong ? '⏳ Đang sinh giọng…' : chuSinh(`${thieuGiong ? '🗣 Giọng + ' : ''}Sinh nháp`)}</Nut>}
                 {buoc !== 'dang' && chanVid.length > 0 && <span style={{ fontSize: 11, color: 'var(--red)', alignSelf: 'center' }}>chưa sinh video được: {chanVid.join('; ')}</span>}
                 {/* SINH THỬ ngoài quy trình (anh 14/10/2026): thử một shot không phải đi hết cổng — có keyframe là bấm được; job ghi 🧪 THỬ. Có keyframe kết thì làm ảnh cuối. */}
                 {buoc !== 'dang' && chanVid.length > 0 && c.keyframe_url && <Nut ly={mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : !khoa.google && 'thiếu GOOGLE_API_KEY'} ban={ban(k)} title={`Sinh thử video ngoài quy trình (bỏ cổng duyệt / kiểm khung / animatic) — ảnh đầu = keyframe đang chọn${c.keyframe_ket ? ', ảnh cuối = keyframe kết (chuyển động theo 3D)' : ''}. Ghi vào sổ là bản THỬ.`} onClick={() => void chay(k, () => sinhVideoThu(c.id, mhVideo))} gia={giaVid}>🧪 Sinh thử · {giay}s · {tien(giaVid)}</Nut>}
                 {buoc === 'dang' && <span style={{ ...mono, color: 'var(--violet)', alignSelf: 'center' }} title={c.video_dang?.day}>đang sinh video{c.video_dang ? ` · ${c.video_dang.ngan}` : ''}, tự kiểm mỗi 10s…</span>}
-                {(buoc === 'nhap' || buoc === 'cuoi') && <Nut ly={lyVideo} ban={ban(k)} title="Sinh một bản nháp video mới từ keyframe đang chọn; bản cũ vẫn giữ trong danh sách phiên bản" onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'nhap', true))} gia={giaVid}>↻ Nháp mới · {giay}s · {tien(giaVid)}</Nut>}
+                {(buoc === 'nhap' || buoc === 'cuoi') && <Nut ly={lyVideo} ban={ban(k)} title="Sinh một bản nháp video mới từ keyframe đang chọn; bản cũ vẫn giữ trong danh sách phiên bản" onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'nhap', true))} gia={giaVid}>{chuSinh('↻ Nháp mới')}</Nut>}
                 {buoc === 'nhap' && <Nut chinh ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban(k)} title="Nâng cấp CHÍNH clip nháp (Topaz ×2): chuyển động, bố cục, nhân vật y hệt bản nháp" onClick={() => void chay(k, () => nangCapCanh(c.id))} gia={giaNangCap}>⬆ Làm bản cuối · {tien(giaNangCap)}</Nut>}
                 {buoc === 'cuoi' && <a href={linkTai(c.video_cuoi_url!)} download className="xv-btn chinh" style={{ textDecoration: 'none' }}>⬇ Tải bản cuối</a>}
               </NhomNut>

@@ -6,7 +6,7 @@
 #   apps/xuong-video/scripts/bo-set/cum-seedance-tap.sh <tap_id>                 → in kế hoạch cụm + giá
 #   apps/xuong-video/scripts/bo-set/cum-seedance-tap.sh <tap_id> <cụm A|B|…> [--chay]
 set -euo pipefail
-TAP=$1; CUM=${2:-}; CHAY=${3:-}
+TAP=$1; CUM=${2:-}; CHAY=${3:-}; BO=${BO:-}   # BO=h3: xếp hàng H3 thay vì gửi Seedance
 BOX=root@167.233.241.16; RBOX=/opt/earns-marketing-os-v2/apps/xuong-video
 TSX="set -a; . ../../.env.production; set +a; NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx"
 TM=$(mktemp -d); trap 'rm -rf "$TM"' EXIT
@@ -40,7 +40,8 @@ if python3 -c "import sys; sys.exit(0 if $THEM > 0.04 else 1)"; then
 fi
 scp -q "$TM/cum-3d.mp4" "$BOX:/tmp/cum-3d-$TAP-$CUM.mp4"
 if [ "$CHAY" = "--chay" ]; then
-  ssh "$BOX" "cd $RBOX && export DUYET_SINH_1_LAN=1; $TSX scripts/thu-seedance-cum.mts --canh=$IDS --video-file=/tmp/cum-3d-$TAP-$CUM.mp4 | grep -v '^Reference\|^https' | tail -3; rm -f /tmp/cum-3d-$TAP-$CUM.mp4"
+  # BO=h3 (góp ý #1638): cùng đầu vào, không gửi Kie — script xếp job H3 (0đ) và in "H3_JOB <id>" cho scripts/h3/chay-hang.sh
+  ssh "$BOX" "cd $RBOX && export DUYET_SINH_1_LAN=1; $TSX scripts/thu-seedance-cum.mts --canh=$IDS --video-file=/tmp/cum-3d-$TAP-$CUM.mp4 ${BO:+--bo=$BO} | grep -v '^Reference\|^https' | tail -3; rm -f /tmp/cum-3d-$TAP-$CUM.mp4"
   # khớp thoại chạy NGAY trong thu-seedance-cum.mts (can-giong.ts › khopTheoTiengClip) — bước đo miệng bằng hình (canh-mieng-tap.sh) đã bỏ: sai 0,2–0,55 s (15/11/2026)
 else
   ssh "$BOX" "cd $RBOX && $TSX scripts/thu-seedance-cum.mts --canh=$IDS --video-file=/tmp/cum-3d-$TAP-$CUM.mp4 --xem | head -1; rm -f /tmp/cum-3d-$TAP-$CUM.mp4"

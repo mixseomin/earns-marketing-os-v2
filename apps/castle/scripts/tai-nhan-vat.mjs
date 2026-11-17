@@ -70,7 +70,7 @@ for (const a of doc.getRoot().listAnimations()) for (const ch of a.listChannels(
   if (p === 'scale' || (p === 'translation' && !DICH.has(n)) || (NGON.test(n) && !['nem', 'chao', 'gat'].includes(a.getName()))) { const s = ch.getSampler(); ch.dispose(); s?.dispose(); bo++; }
 }
 console.log('bỏ', bo, 'kênh thừa');
-await doc.transform(resample({ tolerance: 4e-3 }), prune(), dedup(), quantize(), meshopt({ encoder: MeshoptEncoder, level: 'high' }));
+await doc.transform(resample({ tolerance: 2e-4 }), prune(), dedup(), quantize(), meshopt({ encoder: MeshoptEncoder, level: 'high' }));
 doc.getRoot().getAsset().extras = { nguon: 'Quaternius Universal Animation Library — CC0 1.0 (https://quaternius.com)', dung: Object.keys(GIU) };
 const ra = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'tai-san', 'nguoi.glb');
 mkdirSync(dirname(ra), { recursive: true });

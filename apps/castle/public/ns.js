@@ -723,13 +723,13 @@ $('b-cach3').classList.toggle('chinh', CACH === '3'); $('b-cach3').title = CACH 
 // sau khi trang chính xong; bấm 🧩 = đưa góc nhìn hiện tại sang khung rồi hiện khung; trong khung bấm 🧩 = đưa góc về trang chính rồi ẩn khung.
 // Điện thoại (CHAM): hai bản cùng lúc quá nặng bộ nhớ → tải lại trang như cũ. Mở thẳng ?cach=3 (không nhúng) cũng tải lại khi bấm.
 const NHUNG = new URLSearchParams(location.search).get('nhung') === '1' && window.parent !== window;
-let khungC3 = null, khungSan = false, choHien = false;
+let khungC3 = null, khungSan = false, choHien = false, c3Hien = false; // c3Hien: (trong khung) khung đang được hiện
 const hienKhung = (hien) => { if (!khungC3) return; khungC3.style.visibility = hien ? 'visible' : 'hidden'; khungC3.style.pointerEvents = hien ? 'auto' : 'none'; if (hien) khungC3.focus(); };
 addEventListener('message', (e) => {
   if (e.origin !== location.origin) return; const d = e.data || {};
   if (!NHUNG && d.loai === 'c3:san-sang') { khungSan = true; if (choHien) { choHien = false; khungC3.contentWindow.postMessage({ loai: 'c3:goc', g: gocHienTai() }, location.origin); hienKhung(true); } }
   if (!NHUNG && d.loai === 'c3:ve') { if (d.g) khoiPhucGoc(d.g); hienKhung(false); }
-  if (NHUNG && d.loai === 'c3:goc' && d.g) khoiPhucGoc(d.g);
+  if (NHUNG && d.loai === 'c3:goc') { c3Hien = true; if (d.g) khoiPhucGoc(d.g); }
 });
 if (!NHUNG && !CHAM && CACH !== '3') setTimeout(() => { // dựng sẵn nền sau khi trang chính chạy ổn (không tranh tải lúc đầu)
   const q = new URLSearchParams(location.search); q.set('cach', '3'); q.set('nhung', '1');
@@ -737,7 +737,7 @@ if (!NHUNG && !CHAM && CACH !== '3') setTimeout(() => { // dựng sẵn nền sa
   khungC3.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:20;visibility:hidden;pointer-events:none;background:transparent'; document.body.append(khungC3);
 }, 4000);
 $('b-cach3').onclick = (e) => { e.stopPropagation();
-  if (NHUNG) { parent.postMessage({ loai: 'c3:ve', g: gocHienTai() }, location.origin); return; }
+  if (NHUNG) { c3Hien = false; parent.postMessage({ loai: 'c3:ve', g: gocHienTai() }, location.origin); return; }
   if (khungC3) { if (khungSan) { khungC3.contentWindow.postMessage({ loai: 'c3:goc', g: gocHienTai() }, location.origin); hienKhung(true); } else { choHien = true; $('b-cach3').title = 'Đang dựng sẵn cách 3… sẽ tự chuyển khi xong'; } return; }
   luuGoc(true); const q = new URLSearchParams(location.search); if (CACH === '3') q.delete('cach'); else q.set('cach', '3'); location.href = `${location.pathname}?${q}${location.hash}`; };
 if (CACH === 'dsm') datCach3Hien(true);
@@ -1347,7 +1347,9 @@ const camUng = di ? taoCamUng({ dom: renderer.domElement, di, nut: [
 ] }) : null;
 // ---------- NHIỀU NGƯỜI: kênh trên máy chủ castle-kenh (nhieunguoi.js) — nút 👥 chọn kênh / phòng riêng / chat; người khác hiện bằng cùng bộ nhân vật
 $('nut').insertAdjacentHTML('beforeend', '<button id="b-nn" title="Kênh nhiều người: chọn kênh, phòng riêng theo mã, chat">👥</button>');
-const nhieuNguoi = di ? taoNhieuNguoi({ THREE, scene, lau: 'neuschwanstein', nut: $('b-nn'), taoNguoi: (ao) => taoNguoi3d({ ao }),
+// bản trang đang ẩn (khung cách 3 chưa hiện, hoặc trang chính đang bị khung phủ) không có mặt trong kênh — chỉ bản anh đang nhìn mới là "mình"
+const trangDangAn = () => (NHUNG ? !c3Hien : khungC3?.style.visibility === 'visible');
+const nhieuNguoi = di ? taoNhieuNguoi({ THREE, scene, lau: 'neuschwanstein', nut: $('b-nn'), taoNguoi: (ao) => taoNguoi3d({ ao }), tamAn: trangDangAn,
   layTrangThai: () => (di.dang ? { p: di.viTri(), h: di.huong, s: { tt: di.tt, toc: di.toc, nen: di.nen, ngoi: !!dangNgoi } } : null) }) : null;
 function phongHienTai() { if (!noiThat || !di?.dang) return null; const p = di.viTri(); return noiThat.phongTai(p.x, p.y - 0.9, p.z); }
 window.__ns.cuaSo = { CUA, timCua, sanSauCua, moCuaVao, gan: () => ganCua };

@@ -10,7 +10,9 @@ const CSS = `
 #nn button.chon { background: #ffd9a8; color: #1a1208; } #nn button:disabled { opacity: .45; } #nn input { width: 100%; font: inherit; color: var(--chu); background: rgba(0,0,0,.35); border: 1px solid var(--vien); border-radius: 7px; padding: 5px 8px; }
 #nn .mo { color: var(--mo); font-size: 12px; margin-top: 6px; }`;
 
-export function taoNhieuNguoi({ THREE, scene, lau, nut, layTrangThai, taoNguoi, chauY = 0.9 }) {
+// tamAn(): true khi bản trang này đang ẩn (khung cách 3 dựng sẵn chưa hiện / trang chính đang bị khung phủ) → rời kênh, hiện lại thì tự vào lại.
+// Trước đây khung ẩn cũng vào kênh → người chơi thấy BẢN SAO của chính mình đứng cạnh (anh 17/11/2026: "mở ra luôn có 2 thằng").
+export function taoNhieuNguoi({ THREE, scene, lau, nut, layTrangThai, taoNguoi, chauY = 0.9, tamAn = null }) {
   const st = document.createElement('style'); st.textContent = CSS; document.head.append(st);
   const bang = document.createElement('div'); bang.id = 'nn'; bang.className = 'o'; document.body.append(bang);
   const khac = new Map(); // id → { av, ten, nhan, p, h, s, lucChat }
@@ -37,7 +39,7 @@ export function taoNhieuNguoi({ THREE, scene, lau, nut, layTrangThai, taoNguoi, 
     if (ws) { ws.onclose = null; ws.close(); ws = null; } boHet(); kenh = id; tb = 'Đang vào…'; ve();
     const w = new WebSocket(`${goc}?kenh=${encodeURIComponent(id)}${window.__mpThu ? '&thu=' + encodeURIComponent(window.__mpThu) : ''}`); ws = w;
     w.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch { return; }
-      if (d.t === 'chao') { ten = d.ten; tb = ''; try { localStorage.setItem('nn-kenh-' + lau, id); } catch {} napKenh(); }
+      if (d.t === 'chao') { ten = d.ten; tb = ''; nho = id; try { localStorage.setItem('nn-kenh-' + lau, id); } catch {} napKenh(); }
       else if (d.t === 'ds') { const co = new Set(); for (const [nid, nten, x, y, z, h, s] of d.n) { co.add(nid); let k = khac.get(nid);
           if (!k) { k = { av: taoNguoi(AO[parseInt(nid, 36) % AO.length]), ten: nten, p: new THREE.Vector3(x, y, z), h, s }; datNhan(k); scene.add(k.av.goc); khac.set(nid, k); }
           k.dich = new THREE.Vector3(x, y, z); k.hDich = h; k.s = s || {}; }
@@ -73,6 +75,7 @@ export function taoNhieuNguoi({ THREE, scene, lau, nut, layTrangThai, taoNguoi, 
 
   return {
     capNhat(dt) {
+      if (tamAn?.()) { if (ws) { ws.onclose = null; ws.close(); ws = null; kenh = null; boHet(); } if (toi) { clearTimeout(toi); toi = null; } return; }
       const tt = layTrangThai(), now = performance.now();
       if (tt && !ws && !kenh && nho !== 'tat' && !toi) { toi = setTimeout(async () => { await napKenh(); toi = null; if (!ws && layTrangThai()) vaoKenh(nho && nho !== 'tat' && (nho.startsWith('r-') || dsKenh?.kenh.some((k) => k.id === nho && k.so < k.toiDa)) ? nho : kenhTuVao()); }, 400); } // vào đi bộ → tự vào kênh
       if (ws?.readyState === 1 && tt && now - lucGui > 100) { lucGui = now; ws.send(JSON.stringify({ t: 'vt', p: [tt.p.x, tt.p.y, tt.p.z], h: tt.h, s: tt.s })); }

@@ -99,8 +99,10 @@ export function taoNguoi3d(o = {}) {
   });
   // XƯƠNG ĐƯỢC XOAY THÊM sau mixer (đầu nhìn theo camera, thân vặn khi leo): lưu tư thế gốc, đặt lại mỗi khung trước mixer — động tác nào không có
   // rãnh cho xương đó (vd nhảy) thì mixer không ghi đè, phần xoay thêm sẽ CỘNG DỒN từng khung → đầu ngoáy vòng tròn (anh 16/11/2026)
-  const XOAY_THEM = ['neck_01', 'Head', 'spine_01', 'spine_02', 'spine_03', 'pelvis', 'upperarm_l', 'upperarm_r', 'lowerarm_l', 'lowerarm_r', 'thigh_l', 'thigh_r', 'calf_l', 'calf_r'];
+  const XOAY_THEM = ['neck_01', 'Head', 'spine_01', 'spine_02', 'spine_03', 'pelvis', 'upperarm_l', 'upperarm_r', 'lowerarm_l', 'lowerarm_r', 'thigh_l', 'thigh_r', 'calf_l', 'calf_r', 'foot_l', 'foot_r'];
   const goc0 = XOAY_THEM.filter((t) => xuong[t]).map((t) => [xuong[t], xuong[t].quaternion.clone()]);
+  const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c0 = new THREE.Vector3(), _c1 = new THREE.Vector3();
+  let wDung = 0, tTho = Math.random() * 10; // trọng số nhịp đứng yên (vào / ra mượt) · đồng hồ thở (lệch pha giữa các người)
   const mixer = new THREE.AnimationMixer(than), hd = {};
   for (const [ten, clip] of Object.entries(MAU.clips)) hd[ten] = mixer.clipAction(clip);
   for (const t of ['nem', 'da', 'len1m', 'len2m', 'vuot', 'nga', 'gat']) { hd[t].setLoop(THREE.LoopOnce, 1); hd[t].clampWhenFinished = true; }
@@ -148,6 +150,21 @@ export function taoNguoi3d(o = {}) {
       for (const [x, q] of goc0) x.quaternion.copy(q); // về tư thế gốc, rồi mixer + xoay thêm (không cộng dồn)
       mixer.update(dt);
       if (!viec && st.tuThe === 'leo') tuTheLeo(goc, xuong, (st.phaLeo || 0) * 1.1);
+      // NHỊP ĐỨNG YÊN (anh 17/11/2026: "đứng yên phải nhún nhún tự nhiên như game nổi tiếng"): động tác Idle gốc chỉ nhún 2 mm → thêm lớp thở theo nhịp
+      // ~3,4 s: gối khuỵu 2°→5° (thân hạ ~1,5 cm, hạ đúng lượng gối gập nên bàn chân nằm yên trên đất), ngực ưỡn khi hít, đầu bù lại để mắt nhìn thẳng,
+      // thân trên vặn rất nhẹ theo nhịp chậm 7 s. Vào / ra mượt khi bắt đầu đi.
+      const dungYen = !viec && dangChay === hd.dung && !st.tuThe && st.nen !== false;
+      wDung += ((dungYen ? 1 : 0) - wDung) * (1 - Math.exp(-dt * 5)); tTho += dt; than.position.set(0, 0, 0);
+      if (wDung > 0.01) {
+        goc.updateMatrixWorld(true); const h = goc.rotation.y; _truc.set(-Math.cos(h), 0, Math.sin(h));
+        const tho = 0.5 - 0.5 * Math.cos((tTho * 2 * Math.PI) / 3.4), a = wDung * (0.03 + 0.05 * tho); // gối (rad)
+        const tamChan = (o) => o.copy(xuong.foot_l.getWorldPosition(_a)).add(xuong.foot_r.getWorldPosition(_b)).multiplyScalar(0.5), c0 = tamChan(_c0.set(0, 0, 0)).clone();
+        for (const b of ['l', 'r']) { xoayTheGioi(xuong['thigh_' + b], _truc, a); xoayTheGioi(xuong['calf_' + b], _truc, -2 * a); xoayTheGioi(xuong['foot_' + b], _truc, a); }
+        // dời thân đúng bằng lượng bàn chân bị kéo đi khi gập gối (đo thật — tư thế gốc không thẳng chân): chân dính đất, hông lùi + hạ như người khuỵu thật
+        tamChan(_c1).sub(c0).negate().applyAxisAngle(_len, -h); than.position.copy(_c1); // đổi về khung của người (goc xoay h)
+        xoayTheGioi(xuong.spine_03, _truc, wDung * 0.035 * tho); xoayTheGioi(xuong.Head, _truc, -wDung * 0.03 * tho);
+        xoayTheGioi(xuong.spine_01, _len, wDung * 0.025 * Math.sin((tTho * 2 * Math.PI) / 7)); // vặn thân trên (không vặn chậu — chậu kéo theo hai chân trượt)
+      }
       // ĐẦU QUAY THEO HƯỚNG NHÌN (anh 15/11/2026): st.nhin = { yaw: hướng camera so với thân, pitch: ngẩng (+ lên) }; cổ 40 %, đầu 60 %, giới hạn ±70° / ±35°,
       // nhìn ra sau quá 135° (góc nhìn mặt V) thì đầu thôi quay; trơn dần để không giật
       const n = st.nhin, ra = !n || Math.abs(n.yaw) > 2.36, gh = st.tuThe === 'leo' ? 0.52 : 1.22, mY = ra ? 0 : Math.max(-gh, Math.min(gh, n.yaw)), mP = ra ? 0 : Math.max(-0.6, Math.min(0.6, n.pitch)); // đang leo: đầu quay tối đa ±30°

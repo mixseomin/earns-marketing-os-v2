@@ -114,8 +114,8 @@ function vao(ws, lau, kenh, p, ten, ai) {
 setInterval(() => { // mỗi người chỉ nhận người khác trong GAN m — kênh đông vẫn nhẹ cho điện thoại
   for (const p of phong.values()) for (const a of p.values()) {
     if (!a.p || a.ws.readyState !== 1) continue; const n = [];
-    for (const b of p.values()) if (b !== a && b.p && Math.hypot(b.p[0] - a.p[0], b.p[2] - a.p[2]) < GAN) n.push([b.id, b.ten, ...b.p, b.h, b.s]);
-    a.ws.send(JSON.stringify({ t: 'ds', n }));
+    for (const b of p.values()) if (b !== a && b.uid !== a.uid && b.p && Math.hypot(b.p[0] - a.p[0], b.p[2] - a.p[2]) < GAN) n.push([b.id, b.ten, ...b.p, b.h, b.s]);
+    a.ws.send(JSON.stringify({ t: 'ds', n })); // không gửi các kết nối khác của CHÍNH tài khoản này (tab / khung thứ hai) — không thấy bản sao của mình
   }
 }, NHIP);
 may.listen(CONG, '127.0.0.1', () => console.log(`[kenh] nghe 127.0.0.1:${CONG}`));

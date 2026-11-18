@@ -346,7 +346,7 @@ def b_creative_kt(d):
 
 AT_BAN = 3   # anh 08/11/2026 "tăng thêm số camp mỗi phim lên thành 3 camp mỗi loại từ $1" — mỗi dòng AT làm 3 bản (3 khung AI chọn, 3 kiểu giọng) → 3 camp
 def b_creative_at(d):
-    """AT — ẢNH TĨNH: anh-tinh.py <phim> --ban AT_BAN trên iMac (AI chọn khung, tên phim từ poster, HD, mỗi bản một giọng) → thư viện → creative 'ảnh tĩnh' → cổng chấm.
+    """AT — ẢNH TĨNH: anh-tinh.py <phim> --ban AT_BAN trên iMac (AI chọn khung, tên phim từ poster, HD, giọng tốt nhất đã đo — sổ luật giong_at, anh 18/11/2026) → thư viện → creative 'ảnh tĩnh' → cổng chấm.
     Mã creative vừa tạo ghi vào ket_qua.ds của bước (etp.creative chỉ có chúng sau lượt dong-bo 10 phút — 07/11/2026 dòng #142 tưởng không ra rồi sinh lại);
     lượt sau chỉ chờ đồng bộ + chấm, không chạy lại. Xong khi mọi bản đã chấm và ≥ 1 bản sạch → bước camp lên mỗi bản sạch một camp (b_camp_mr, so_camp)."""
     tr = (d.get("buoc") or {}).get("creative") or {}; kq0 = tr.get("ket_qua") or {}
@@ -693,6 +693,17 @@ def mo_tran_ngay():
         update etp.dong_buoc b set fix = true from mo where b.dong_id = mo.dong_id and b.buoc = 'camp' returning b.dong_id""").splitlines():
         if l.strip(): print(f"[{time.strftime('%H:%M:%S')}] dòng #{l.strip()} — ngày mới, còn chỗ dưới trần camp/ngày → FIX bước camp", flush=True)
 
+def mo_tran_test():
+    """DÒNG DỪNG VÌ TRẦN CAMP TEST / PHIM TỰ LÊN LẠI KHI CÓ CHỖ (anh 18/11/2026, cong.KHOA_TRAN_TEST): creative đã dựng xong mà bước camp bị cổng chặn vì phim đủ camp
+    test chưa lãi → khi một camp test tắt / thành lãi (hoặc phim lãi ổn định) thì FIX bước camp — mỗi lượt một dòng / phim, dòng dừng trong 3 ngày; vẫn vấp thì dừng lại chờ lượt sau."""
+    if dung_camp_moi(): return
+    for l in sql(f"""with ung as (select distinct on (d.content_id) b.dong_id, d.content_id from etp.dong_buoc b join etp.dong_phim d on d.id = b.dong_id
+                where b.buoc = 'camp' and b.trang_thai = 'dung' and not b.fix and strpos(b.ghi, '{CG.KHOA_TRAN_TEST}') > 0 and d.trang_thai = 'dung' and b.ket_thuc > now() - interval '3 days'
+                order by d.content_id, b.ket_thuc),
+        mo as (select dong_id from ung where coalesce({CG.sql_test_con('ung.content_id')}, 1) > 0)
+        update etp.dong_buoc b set fix = true from mo where b.dong_id = mo.dong_id and b.buoc = 'camp' returning b.dong_id""").splitlines():
+        if l.strip(): print(f"[{time.strftime('%H:%M:%S')}] dòng #{l.strip()} — phim có chỗ camp test → FIX bước camp", flush=True)
+
 CHAY = {}   # (dòng, bước) → (thread, lần chạy cuối)
 # KHE NẶNG CÔNG BẰNG (anh 15/11/2026 "rất nhiều camp chờ đang ko thể sx"): TRAN_CAT khe chung cho cắt CC + creative tĩnh, dòng tĩnh xếp trước (luật 08/11 khi
 # chỉ ≤ 6 dòng AT chờ) → 250 dòng PO / AT chiếm trọn 2 khe, 146 dòng CC đứng ở bước cắt không dòng nào bắt đầu. Giờ: một loại chỉ giữ hết khe khi loại kia
@@ -723,6 +734,8 @@ def vong():
     except Exception as e: print(f"mở rộng phim đội lãi lỗi: {str(e)[:200]}", flush=True)
     try: mo_tran_ngay()
     except Exception as e: print(f"mở lại dòng chạm trần ngày lỗi: {str(e)[:200]}", flush=True)
+    try: mo_tran_test()
+    except Exception as e: print(f"mở lại dòng chạm trần camp test / phim lỗi: {str(e)[:200]}", flush=True)
     gac = gac_dang(); ds_dong = doc_dong()
     # loại lượt nặng đang CHỜ khe (cắt CC / creative tĩnh) — khe_nang giữ một khe cho loại kia khi nó có việc chờ
     cho_nang = {kieu_nang(d["id"], b, d.get("loai")) for d in ds_dong for b in [next((b for b, _ in BUOC if ((d.get("buoc") or {}).get(b) or {}).get("trang_thai") in ("dang", "cho")), None)]

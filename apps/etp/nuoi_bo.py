@@ -57,8 +57,13 @@ def ke_hoach():
 
 def main():
     xem = "--xem" in sys.argv
+    # ĐỢT LÊN HỒI CHỢ (anh 18/11/2026, apps/etp/hoi_cho.py — sổ luật hoi_cho): cùng nhịp worker với nuôi bộ (đường lên camp phụ mỗi nhịp), chạy TRƯỚC phần nuôi;
+    # ngoài đợt chỉ đọc trạng thái phanh chợ rồi thôi. Kết quả nằm ở khoá hoi_cho (tin Telegram đi qua etp.canh_bao 'hoi_cho:<camp>'), không trộn vào "da" của nuôi bộ.
+    try:
+        import hoi_cho; hc = hoi_cho.chay(xem)
+    except Exception as e: hc = {"loi": f"{type(e).__name__}: {str(e)[:200]}"}
     ds, ly = ke_hoach()
-    if ly or xem: print(json.dumps({"ok": True, "ke_hoach": ds, "ly": ly}, ensure_ascii=False)); return
+    if ly or xem: print(json.dumps({"ok": True, "ke_hoach": ds, "ly": ly, "hoi_cho": hc}, ensure_ascii=False, default=str)); return
     ra = []
     for v in ds:
         luat = f"{LUAT} {v['bo']} · phim #{v['phim']} 7 ngày {v['r7']}% · 3 ngày {v['r3']}% · gốc #{v['goc']}"
@@ -68,6 +73,6 @@ def main():
             k = json.loads((r.stdout.strip().splitlines() or ["{}"])[-1])
         except Exception as e: k = {"ok": False, "loi": str(e)[:200]}
         ra.append({**v, "ok": bool(k.get("ok")), "moi": k.get("moi"), "loi": k.get("loi")})
-    print(json.dumps({"ok": True, "da": ra}, ensure_ascii=False))
+    print(json.dumps({"ok": True, "da": ra, "hoi_cho": hc}, ensure_ascii=False, default=str))
 
 if __name__ == "__main__": main()

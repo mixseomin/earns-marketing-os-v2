@@ -65,6 +65,52 @@ def giu_cho(tcm):
                 on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now() returning 1)
         select q.so || '|' || (select count(*) from ghi) from q""").strip().splitlines()[-1]
     so, ok = r.split("|"); return int(so), ok == "1"
+# TRẦN CAMP TEST MỖI PHIM (anh 18/11/2026, hướng dẫn Dol khi chợ kém — sổ luật chung tran_test_phim): một phim chỉ có tối đa `so` camp TEST (camp CHƯA LÃI) đang chạy.
+# Camp LÃI không tính: ROI cộng dồn dương (thu > chi, chi > 0) hoặc đạt nấc NB thấp nhất (sổ nhan_ban.nac: tiêu ≥ $3 & ROI ≥ +50%). Phim LÃI ỔN ĐỊNH (phim_on: `ngay` ngày đã khép,
+# camp nhà, chi ≥ $chi, thu > chi) không bị trần. ★ ROAS không tính, cũng không bị trần (dạng riêng, đợt hồi chợ có trần riêng). Đếm cả camp vừa tạo chưa đồng bộ về kho
+# (nhật ký studio 15 phút, như nhan-ban.dem_dang_chay) + chỗ đang giữ (cùng cách giu_cho: hàng chục luồng song song cùng đọc một số đếm cũ thì cùng lọt).
+# MỘT câu SQL cho cổng (giu_test) và lộ trình (sql_test_con — không xếp dòng sản xuất cho phim đã đủ camp test) + dòng phim (mo_tran_test tự mở lại khi có chỗ).
+KHOA_TRAN_TEST = "tran_test_phim"
+TT = _BL[KHOA_TRAN_TEST]
+_NB_MIN = min(((float(c), float(m)) for c, m, _n in _BL["nhan_ban"]["nac"]), key=lambda x: x[0])
+def la_lai(chi, thu):
+    """camp lãi (không phải camp test) theo sổ luật — hàm thuần, cùng điều kiện câu SQL _sql_test"""
+    chi, thu = float(chi or 0), float(thu or 0)
+    return chi > 0 and (thu > chi or (chi >= _NB_MIN[0] and (thu - chi) / chi * 100 >= _NB_MIN[1]))
+def _sql_test(cid):
+    """dòng (n: camp test đang chạy + camp vừa tạo chưa vào kho, on: phim lãi ổn định) — cid: số hoặc biểu thức SQL"""
+    po = TT["phim_on"]
+    return f"""(select (select count(*) from (select c.camp_id, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu from etp.camp c left join etp.so_ngay n using (camp_id)
+            where c.content_id = {cid} and not coalesce(c.la_roas, false)
+              and (c.camp_id in (select camp_id from etp.camp_dang_chay) or coalesce(c.dong_bo, '') not in ('done', 'synced', 'error', 'DISAPPROVED')) group by 1) s
+            where not (s.chi > 0 and (s.thu > s.chi or (s.chi >= {_NB_MIN[0]} and (s.thu - s.chi) / s.chi * 100 >= {_NB_MIN[1]}))))
+          + (select count(distinct x->>'id') from xv_khoa_ngoai, jsonb_array_elements(gia_tri) x where ten = 'ethopex_nhat_ky' and x->>'viec' in ('tao_camp', 'nhan_ban') and (x->>'ok')::boolean
+              and x->>'nguoi' is null and x->>'content' = ({cid})::text and coalesce(x->>'id', '') ~ '^[0-9]+$'
+              and to_timestamp(x->>'luc', 'HH24:MI DD/MM/YYYY') > (now() at time zone 'Asia/Ho_Chi_Minh') - interval '15 minutes'
+              and not exists (select 1 from etp.camp k where k.camp_id = (x->>'id')::int)) n,
+        coalesce((select sum(n.chi) >= {float(po['chi'])} and sum(n.thu) > sum(n.chi) from etp.so_ngay n join etp.camp k using (camp_id) where k.content_id = {cid}
+            and n.ngay between (now() at time zone 'utc')::date - {int(po['ngay'])} and (now() at time zone 'utc')::date - 1), false) "on")"""
+def sql_test_con(cid):
+    """câu SQL con → số chỗ camp test còn lại của phim (null = phim lãi ổn định, không trần) — lộ trình đọc để không sản xuất creative cho phim đã đủ camp test"""
+    return f"(select case when t.on then null else greatest({int(TT['so'])} - t.n, 0) end from {_sql_test(cid)} t)"
+def giu_test(cid):
+    """(số camp test đang chạy kể cả chỗ đang giữ, phim lãi ổn định?, được qua?) — đếm + giữ chỗ trong MỘT giao dịch có khoá (cùng cách giu_cho)"""
+    cid, tran = int(cid), int(TT["so"])
+    r = _q(f"""select pg_advisory_xact_lock(74611118);
+        with t as {_sql_test(cid)},
+        cu as (select coalesce((select jsonb_agg(x) from etp.cau_hinh, jsonb_array_elements(case when jsonb_typeof(gia_tri->'{cid}') = 'array' then gia_tri->'{cid}' else '[]'::jsonb end) x
+                                where khoa = 'giu_test_phim' and (x#>>'{{}}')::float > extract(epoch from now()) - {GIU_GIAY}), '[]'::jsonb) ds),
+        vua as (select count(*) n from xv_khoa_ngoai, jsonb_array_elements(gia_tri) x where ten = 'ethopex_nhat_ky' and x->>'viec' in ('tao_camp', 'nhan_ban') and (x->>'ok')::boolean
+                and x->>'nguoi' is null and x->>'content' = '{cid}' and to_timestamp(x->>'luc', 'HH24:MI DD/MM/YYYY') > (now() at time zone 'Asia/Ho_Chi_Minh') - interval '{GIU_GIAY + 60} seconds'),
+        q as (select t.n + greatest(jsonb_array_length(cu.ds) - vua.n, 0) so, t.on, cu.ds from t, cu, vua),
+        ghi as (insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) select 'giu_test_phim', jsonb_build_object('{cid}', q.ds || to_jsonb(extract(epoch from now())::float)),
+                    'chỗ đang giữ dưới trần camp test / phim (cong.giu_test) — {{phim: [mốc giây]}}, tự nhả sau {GIU_GIAY} giây', 'cong.py' from q where not q.on and q.so < {tran}
+                on conflict (khoa) do update set gia_tri = etp.cau_hinh.gia_tri || excluded.gia_tri, luc = now() returning 1)
+        select q.so || '|' || q.on || '|' || (select count(*) from ghi) from q""").strip().splitlines()[-1]
+    so, on, ok = r.split("|"); return int(so), on == "t", on == "t" or ok == "1"
+def ly_tran_test(ct, so):
+    return (f"chạm trần {TT['so']} camp test / phim ({KHOA_TRAN_TEST}, anh 18/11/2026): phim #{ct} đang có {so} camp chưa lãi đang chạy / vừa tạo — camp mới / nhân bản chờ một camp test "
+            f"tắt hoặc lãi (dòng phim tự mở lại); phim lãi ổn định {TT['phim_on']['ngay']} ngày khép (chi ≥ ${TT['phim_on']['chi']:g}, thu > chi) không bị trần")
 # TRANG PHIM HỎNG HẲN (anh 09/11/2026 "Fix triệt để" — 91648 From Doomed Baby đứng bước Trang phim 01:26 08/11 → 01:27 09/11, hơn 20 lượt chờ 60 phút → Mạnh huỷ → FIX):
 # bản workspace Nhà đã thêm quá TRANG_CHO_SINH giây mà Ethopex vẫn chưa sinh đủ (thường là link tập 1: thư viện phim không có nguồn tập 1, 7 phim 09/11) → chờ thêm vô ích.
 # MỘT định nghĩa cho cổng Trang phim (dong_phim.b_ws dừng dòng), máy lộ trình (lo_trinh_phim không xếp dòng) và Mạnh (dấu cổng: Ethopex có link → tự mở lại dòng).
@@ -198,6 +244,11 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
                 where a.camp_id = {int(camp_id)} and a.nhanh = 'thu' and a.loai_tru is null and b.kieu = 'roas_tang' and b.trang_thai = 'dang' limit 1"""): tc = 30
         if tc is not None and ns_moi is not None and float(ns_moi) > float(tc): return f"vượt trần ${tc}/camp (etp.cau_hinh.tran_camp)"
         if ngoai: return None
+        # TRẦN CAMP TEST MỖI PHIM (anh 18/11/2026, sổ luật tran_test_phim — xem giu_test): mọi đường máy tạo camp / nhân bản (dòng phim, AT, len-sau-cham, nhan-ban, nuôi bộ, thang).
+        # Miễn: anh bấm tay (anh_bam) / lệnh đích danh của anh (lenh_anh) · ★ ROAS (dạng riêng, trần riêng của đợt hồi chợ) · camp thay bài bị Meta từ chối (thay: thay chỗ, không thêm)
+        if ct and viec in ("tao_camp", "nhan_ban") and not anh_bam and not lenh_anh and not roas and not thay:
+            so_t, _on, duoc_t = giu_test(int(ct))
+            if not duoc_t: return ly_tran_test(ct, so_t)
         tcm = ch.get(KHOA_TRAN_NGAY)   # TRẦN CAMP MỚI MỖI NGÀY (anh 07/11/2026 chốt 100 camp thử / ngày): đếm camp nhà tạo trong ngày VN, kể cả bản nhân
         # lenh_anh: clone SANG BỘ KHÁC theo lệnh đích danh của anh trong lượt (nhan-ban.py --bo --ep; anh 08/11/2026 "50 camp này dup luôn sang tk số 4" — bản thay
         # cho camp bộ 2 không tiêu) → không tính vào trần camp mới / ngày; mọi cổng khác giữ nguyên
@@ -290,6 +341,10 @@ def _tu_kiem():
     _s = {"gia6": {"ti": 0.6, "den": "2026-11-17T05:00:00+00:00"}, "roi_sang": {"roi": -14, "kem": -34, "den": "2026-11-18T00:00:00+00:00"}}
     assert phanh_cho(_s, "tang", _u("2026-11-17T04:00:00")).startswith("PHANH CHỢ (báo sớm)") and phanh_cho(_s, "nhan_ban", _u("2026-11-17T06:00:00")).startswith("PHANH MỞ RỘNG") and phanh_cho(_s, "tao_camp", _u("2026-11-18T00:01:00")) is None and phanh_cho(_s, "giam", _u("2026-11-17T04:00:00")) is None and phanh_cho(_s, "nhan_ban", _u("2026-11-17T04:00:00"), thay=True) is None
     assert phanh_cho({}, "tang") is None and phanh_cho(None, "tao_camp") is None and phanh_cho({"phanh": None, "som": True}, "tang") is None, "không phanh / chỉ cảnh báo sớm thì không chặn"
+    assert int(TT["so"]) == 2 and _NB_MIN == (3.0, 50.0), "trần camp test / phim lệch sổ luật (anh 18/11/2026: 2 camp test, camp lãi = nấc NB $3 & +50% hoặc ROI cộng dồn dương)"
+    assert la_lai(5, 6) and la_lai(3, 4.5) and la_lai(0.5, 0.6) and not la_lai(3, 3) and not la_lai(0, 0) and not la_lai(10, 4) and not la_lai(None, None), "camp lãi = thu > chi (chi > 0)"
+    assert "tran_test_phim" in ly_tran_test(1, 2) and "chạm trần" in ly_tran_test(1, 2), "câu chặn phải mang khoá (dòng phim mo_tran_test) + 'chạm trần' (SQL_DONG_HONG không đếm là dòng hỏng)"
+    assert '"on"' in _sql_test(1) and "camp_dang_chay" in _sql_test(1) and "la_roas" in _sql_test(1) and "ethopex_nhat_ky" in _sql_test(1)
     assert nap_tang(None) == 6 and nap_tang(29) == 6 and nap_tang(30) == 9 and nap_tang(50) == 13 and nap_tang(79) == 13 and nap_tang(80) == 20 and nap_tang(500) == 20, "nắp ROI lệch sổ luật"
     for t in ("★ ROAS 1.1 · X roas 1.1 duplicate by 65720", "S_FB_The-Dragons_167292_EN_EP8_x10_D69655_ROAS1", "S_FB_Max_153695_EN_VD-FULL-EP1_V1_D2 (ROAS)", "Dup by 66168 ROAS 1.2"):
         assert la_roas(t), t
@@ -324,4 +379,7 @@ def _tu_kiem():
 if __name__ == "__main__":
     import sys; a = sys.argv[1:]
     if a[:1] == ["--tu-kiem"]: _tu_kiem(); sys.exit(0)
+    if a[:1] == ["--xem-test"]:   # chỉ đọc: số camp test / phim lãi ổn định / chỗ còn của các phim đang chạy (trần camp test / phim, anh 18/11/2026) — không giữ chỗ
+        print(_q(f"""select p.content_id || ' test ' || t.n || ' · lãi ổn định ' || t.on || ' · chỗ còn ' || coalesce({sql_test_con('p.content_id')}::text, 'không trần')
+                     from (select distinct content_id from etp.camp where trang_thai = 'ACTIVE' and content_id is not null) p, lateral {_sql_test('p.content_id')} t order by t.n desc, 1 limit {int(a[1]) if len(a) > 1 else 15}""")); sys.exit(0)
     print(kiem(a[0], int(a[1]) if len(a) > 1 and a[1].isdigit() else None, float(a[2]) if len(a) > 2 else None, float(a[3]) if len(a) > 3 else 0) or "CHO QUA")

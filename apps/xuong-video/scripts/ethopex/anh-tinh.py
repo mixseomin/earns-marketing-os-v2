@@ -10,8 +10,9 @@ MỘT lệnh lo trọn, mỗi phim:
   3. giọng ElevenLabs v3 qua cổng giọng chung scripts/lich-su/giong-ckey.mjs (ckey 156₫/câu theo mã giọng → fal khi hỏng)
   4. cổng chữ trên video (kiem-thoai.py) → thư viện etp (thu-vien-them.mts, dạng "ảnh tĩnh", nguồn anh_tinh) → creative (thu-vien-len.py)
 Từ đó nhịp ethopex (apps/cty/worker/ethopex.mjs) thấy creative ảnh tĩnh chấm Sạch của phim đang chạy → lên camp $1, giờ chạy theo lịch chung (nhan-ban.lich_len).
-Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--ban N bản / phim] [--xem] [--giong ky_di|gao|cam_xuc|hao_hung|thuong|theo-phim]
-  giọng mặc định XOAY giữa 5 kiểu (kể cả "thuong" = như bản gốc), dấu kiểu ghi vào etp.diem_cham.cham.voice.giong để đo
+Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--ban N bản / phim] [--xem] [--giong ky_di|gao|cam_xuc|hao_hung|thuong|theo-phim|xoay]
+  giọng mặc định = giọng tốt nhất đã đo (sổ luật giong_at.mac_dinh = ky_di / Brian, anh 18/11/2026) cho MỌI bản; --giong xoay = xoay 5 kiểu như 05/11/2026;
+  dấu kiểu ghi vào etp.diem_cham.cham.voice.giong để đo
   --khong-free = không vẽ lớp Free (nhãn tím + nút xanh "Watch For Free", mặc định BẬT từ 09/11/2026 theo Dol)
   không id = tự chọn N phim (mặc định 10) · --xem = chỉ dựng + tờ khung (~/.cache/ethopex/anh-tinh/to-<giờ>.jpg), không nạp thư viện / tạo creative"""
 import hashlib, json, os, random, re, subprocess, sys, time
@@ -302,12 +303,22 @@ def anh(cid, ten, k, tm, ban=0):
     lop.save(os.path.join(tm, f"chu-{ban}.png"))
     return nen, os.path.join(tm, f"chu-{ban}.png")
 
+# GIỌNG MẶC ĐỊNH = GIỌNG TỐT NHẤT ĐÃ ĐO (anh 18/11/2026, sổ luật chung giong_at — thay luật xoay 5 giọng 05/11/2026): Brian / ky_di ROI −24% tốt nhất cả trước lẫn sau 12/11,
+# George / thuong −39% tệ nhất. Mọi bản AT (kể cả bản 2, 3… của một phim) đọc giọng này; --giong <kiểu> ép kiểu khác, --giong xoay = cách xoay cũ (đo lại khi cần).
+GIONG_MAC_DINH = json.load(open(os.path.join(D, "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))["giong_at"]["mac_dinh"]
+assert GIONG_MAC_DINH in KIEU_GIONG, f"sổ luật giong_at.mac_dinh '{GIONG_MAC_DINH}' không có trong KIEU_GIONG"
+def kieu_ban(kieu, b, xoay):
+    """kiểu giọng của bản thứ b (0 = bản đầu): xoay → lần lượt các kiểu kế (luật 08/11/2026), không xoay → mọi bản cùng một kiểu"""
+    ks = list(KIEU_GIONG); return ks[(ks.index(kieu) + b) % len(ks)] if xoay else kieu
+assert kieu_ban("ky_di", 2, False) == "ky_di" and kieu_ban("ky_di", 1, True) == "gao"
+XOAY = False   # --giong xoay (main đặt lại)
+
 def xoay_giong(ds, yeu_cau):
-    """kiểu giọng cho từng phim → {content_id: kiểu}. Anh 05/11/2026: "khi ren nếu ko yêu cầu thì xoay giữa các giọng. Kể cả giọng như bản gốc là 1 loại".
-    Mặc định XOAY: kiểu ít creative ảnh tĩnh nhất (đếm trong sổ điểm chạm) lên trước, không lặp kiểu phim đó đã có. --giong <kiểu> ép một kiểu,
-    --giong theo-phim chọn theo thể loại (THE_LOAI_GIONG)."""
+    """kiểu giọng cho từng phim → {content_id: kiểu}. MẶC ĐỊNH (anh 18/11/2026) = GIONG_MAC_DINH cho mọi phim. --giong <kiểu> ép một kiểu,
+    --giong theo-phim chọn theo thể loại (THE_LOAI_GIONG), --giong xoay = cách 05/11/2026: kiểu ít creative ảnh tĩnh nhất (đếm trong sổ điểm chạm) lên trước,
+    không lặp kiểu phim đó đã có."""
     if yeu_cau == "theo-phim": return {int(p["content_id"]): THE_LOAI_GIONG.get(p.get("the_loai") or "", "thuong") for p in ds}
-    if yeu_cau: return {int(p["content_id"]): yeu_cau for p in ds}
+    if yeu_cau != "xoay": return {int(p["content_id"]): yeu_cau or GIONG_MAC_DINH for p in ds}
     # đếm trong CHÍNH sổ điểm chạm (hook.dang + noi_dung.content_id do len-creative ghi) — etp.creative chỉ có creative mới sau lượt đồng bộ 10 phút
     da = json.loads(sql(f"select coalesce(json_agg(x), '[]') from (select (cham->'noi_dung'->>'content_id')::int content_id, cham->'voice'->>'giong' giong from etp.diem_cham "
                         f"where cham->'hook'->>'dang' = '{DANG}' and cham->'voice'->>'giong' is not null) x") or "[]")
@@ -368,8 +379,8 @@ def mot(p, xem, kieu, ban=1):
     for b, k in enumerate(uv[:ban]):
         try:
             so_mau = (mau0 + b) % len(CAU[lang])   # bốc ngẫu nhiên mẫu đầu, các bản sau xoay vòng (anh 06/11/2026)
-            # MỖI BẢN MỘT KIỂU GIỌNG (anh 08/11/2026 "nhớ có nhiều kiểu voice … để còn tối ưu về sau"): bản 1 = kiểu xoay_giong chọn, bản sau lần lượt các kiểu kế
-            ks = list(KIEU_GIONG); kieu_b = ks[(ks.index(kieu) + b) % len(ks)]
+            # MỖI BẢN MỘT KIỂU GIỌNG chỉ khi --giong xoay (anh 08/11/2026 đo kiểu voice; 18/11/2026 đã có số → mặc định mọi bản cùng giọng tốt nhất)
+            kieu_b = kieu_ban(kieu, b, XOAY)
             k["lang"] = lang; nen, chu = anh(cid, ten, k, tm, b); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu_b, tm, so_mau)
             out = os.path.join(tm, f"anh-tinh-{cid}-{b + 1}.mp4"); giay = dung(nen, chu, mp3, out)
             r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay)) if not k.get("free") else sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay), "--free")   # cổng chữ trên video (tên phim) — cùng cổng mọi creative; --free: gỡ đúng câu lớp Free nhà vẽ
@@ -402,7 +413,8 @@ if __name__ == "__main__":
     a = sys.argv[1:]; xem = "--xem" in a
     so = int(a[a.index("--so") + 1]) if "--so" in a else 10
     yc = a[a.index("--giong") + 1] if "--giong" in a else None
-    if yc and yc != "theo-phim" and yc not in KIEU_GIONG: sys.exit(f"--giong phải là một trong: {', '.join(KIEU_GIONG)} · theo-phim")
+    if yc and yc not in ("theo-phim", "xoay") and yc not in KIEU_GIONG: sys.exit(f"--giong phải là một trong: {', '.join(KIEU_GIONG)} · theo-phim · xoay")
+    XOAY = yc == "xoay"
     ids = [int(x) for i, x in enumerate(a) if x.isdigit() and (i == 0 or a[i - 1] not in ("--so", "--ban"))]
     ds = phim(ids) if ids else chon(so)
     if not ds: sys.exit("không có phim nào hợp (mới bắt đầu lãi, chưa có ảnh tĩnh)")

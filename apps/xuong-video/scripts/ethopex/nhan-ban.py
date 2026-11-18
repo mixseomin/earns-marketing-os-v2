@@ -21,6 +21,9 @@ Chạy trên box3 (khoá ở studio):
     ad = BÀI ĐĂNG CŨ của camp gốc (use existing post — giữ tương tác), ngân sách $15–20, lịch do lich_len quyết, tên "… roas X duplicate by <gốc>".
     Camp ROAS là loại riêng: KHÔNG qua luật clone-khác-creative / cổng chấm / chạm trần / bão hoà (dùng lại đúng bài cũ); vẫn qua cổng etp; miễn trần 30 camp/phim và không chiếm chỗ camp thường (anh 26/10/2026).
     Tạo xong đọc lại: mức ROAS sai → tạm dừng camp ngay + báo lỗi (Support: "nhập sai là lỗi camp"). --tam-dung = để PAUSED chờ anh review.
+  python3 nhan-ban.py <camp_khuôn> --roas 1 --creative <id> --content <id> --ten "<tên>" [--bo <bộ>] [--ns 5] --that …   → ★ ROAS TỪ CREATIVE MỚI (anh 18/11/2026,
+    đợt lên hồi chợ apps/etp/hoi_cho.py — sổ luật hoi_cho): ad = creative mới (chấm Sạch, chưa có camp), ngân sách $5–10 (ns_khoang), tên "★ ROAS 1 · <tên> roas 1".
+  python3 nhan-ban.py <camp_gốc> --hoi-cho --nac --that …   → NHÂN BẢN BÀI CŨ của camp từng lãi trước đợt sụt (đợt hồi chợ): gốc đã tắt vẫn dùng được bài đăng; không dùng được bài cũ thì thôi.
   ETP_SUA_NGUOI=<nguoi_id> python3 nhan-ban.py <camp_gốc> [--roas …] --that …   → CAMP CỦA NGƯỜI TRONG TEAM (Luật tự động, anh 31/10/2026: "giống hệt nhà nhưng chỉ
     áp dụng cho tk của Sơn"; creative nhà dùng được vì cùng co-founder): lệnh đi bằng phiên Ethopex riêng của người đó, cổng chung chỉ cho tạo vào tài khoản của họ.
     Đúng luật nhà (chạm trần $30, bão hoà phim, trần đoạn, cổng chấm, 18+, bài học, rào chắn dừng khẩn / Âu-Mỹ / phim cất), trừ những thứ chỉ có nghĩa với nhà:
@@ -46,6 +49,7 @@ def api(duong, body=None):
 api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 js = lambda v: json.loads(v) if isinstance(v, str) and v.strip().startswith("{") else (v or {})
 BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))   # sổ luật chung: khung giờ lên camp (khung_doi.len)
+HOI_CHO = BANG_LUAT["hoi_cho"]   # đợt lên hồi chợ (anh 18/11/2026): ★ ROAS creative mới — mức ROAS + ngân sách ns trong ns_khoang
 def chay_luc(lich, luc=None):
     """LÚC CAMP THỰC SỰ CHẠY (anh 10/11/2026 "khi nhân bản phải ghi rõ ngày, giờ sẽ thực sự active"): today = ngay khi Ethopex / Meta đồng bộ xong · tomorrow = 07:00 VN hôm sau"""
     now = luc or dt.datetime.now(dt.timezone.utc); vn = now + dt.timedelta(hours=7)
@@ -395,20 +399,24 @@ THANG_MUC = {float(x) for x in _cau_hinh("thang_muc", [1, 3, 7, 15, 30]) if floa
 BO_DANG_CHAN = {str(k): set(v) for k, v in _cau_hinh("bo_dang_chan", {}).items()}   # bộ → dạng creative không lên camp mới (migration 0394, anh 01/11/2026 "bộ 2 chỉ lên cảnh cuối")
 BO_CHI_PHIM_LAI = {str(x) for x in _cau_hinh("bo_chi_phim_lai", [])}   # bộ chỉ mở camp cho phim đã lãi 7 ngày ở bộ đó (migration 0399, anh 02/11/2026 "chặn mở camp phim mới" ở bộ 2)
 ROAS_MIN, ROAS_MAX = 1.0, 1.4
-def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None, ep=False):
+def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None, ep=False, hoi_cho=False):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
-    — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh)."""
+    — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh).
+    roas + moi (anh 18/11/2026, đợt lên hồi chợ — sổ luật hoi_cho): camp ★ ROAS từ CREATIVE MỚI trên khuôn (ad = creative mới, không phải bài cũ; bộ đổi được).
+    hoi_cho (đợt lên hồi chợ): nhân bản BÀI CŨ của camp từng lãi trước đợt sụt — camp gốc đã tắt vẫn dùng được bài đăng (như ROAS)."""
     d = api(f"/api/v1/campaigns/{goc_id}"); c = d["campaign"]; g = (d.get("ad_groups") or [{}])[0]; a = (g.get("ads") or [{}])[0]
     # ROAS: chọn theo số all time, camp gốc tắt rồi vẫn dùng được bài đăng. moi (--creative): camp gốc chỉ là KHUÔN cấu hình (Ad Set, pixel, nước, ngôn ngữ),
     # creative thay hẳn → khuôn tạm dừng vẫn dùng được (26/10/2026: khuôn #65110 / #65734 bị tắt vì creative QC spy → mọi lượt lên camp mới gãy "camp gốc đang PAUSED")
     # ep (sang bộ khác theo lệnh anh, 28/10/2026 "lên bộ 3 như bộ 1"): camp thắng bộ 1 đã bị luật chấm tắt vẫn là khuôn + bài đăng dùng được
-    if c.get("state") != "ACTIVE" and not roas and not moi and not ep: raise ValueError(f"camp gốc đang {c.get('state')}")
+    if c.get("state") != "ACTIVE" and not roas and not moi and not ep and not hoi_cho: raise ValueError(f"camp gốc đang {c.get('state')}")
     # NHÂN BẢN BÀI CŨ (anh 11/11/2026 "khi dup camp lãi ổn định dạng ko phải roas thì chọn Use existing post"): clone camp thường CÙNG BỘ (bài đăng thuộc Page của bộ)
     # → ad dùng lại bài đăng của camp gốc (giữ tương tác), ngân sách CONG.NS_BAI_CU, không đòi CTA mới. Creative mới (--creative), sang bộ khác, camp team → đăng bài mới như cũ.
     sid_goc = (a.get("effective_object_story_id") or "").strip()
     bai = (not roas and not moi and not NGOAI and bool(re.fullmatch(r"\d+_\d+", sid_goc)) and (not bo or str(bo) == str(bo_cua_camp(c))))
     if len(d.get("ad_groups") or []) != 1 or len(g.get("ads") or []) != 1: raise ValueError("camp gốc không đúng khuôn 1 nhóm 1 ad")
-    if roas:
+    if roas and moi:   # ★ ROAS creative mới (đợt hồi chợ): không có gốc để "duplicate by" — tên mang mức ROAS đầu + đuôi, cong.la_roas nhận bằng ★ và chiến lược thầu
+        ten = f"★ ROAS {roas:g} · {moi['ten']} roas {roas:g}"; a = {**a, "creative_id": moi["creative"], "content_id": moi["content"]}
+    elif roas:
         # mức ROAS ĐẦU tên (anh 26/10/2026 "đặt thêm chỉ số ROAS vào tên camp để kiểm tra cho tiện" — bảng Ethopex cắt mất đuôi); đuôi "roas X duplicate by <gốc>" giữ cho máy đọc
         # gốc là camp ★ ROAS (anh 06/11/2026 "duplicate camp roas chạm trần"): bỏ đầu "★ ROAS x · " + đuôi " roas x duplicate by N" của gốc, không lặp hai lần
         lo = re.sub(r"\s+roas [\d.]+ duplicate by \d+$", "", re.sub(r"^★ ROAS [\d.]+ · ", "", re.sub(r'^\d+:\s*', '', c['name'])))
@@ -439,11 +447,18 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
         b = bo_tk(bo); tk, ext, page = int(b["tk"]), str(b["ext"]), int(b["page"])
     sp_g = {k: v for k, v in js(g.get("source_payload")).items() if k not in BO}; sp_g.update(name=f"{ten} · adset")
     if roas:   # đúng đường form Ethopex (bid strategy cấp campaign + roas_average_floor cấp Ad Set, tối ưu VALUE) — đọc từ mã app 26/10/2026
+        sp_c.update(bid_strategy="LOWEST_COST_WITH_MIN_ROAS", daily_budget=int(ns_roas))
+        sp_g.update(optimization_goal="VALUE", bid_constraints={"roas_average_floor": roas}); sp_g.pop("bid_amount", None)
+        if moi:   # ★ ROAS creative mới: ad = creative mới (đăng bài mới, như camp mới thường) — khuôn chỉ cho cấu hình
+            return d, ten, moi["content"], {
+                "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo) if bo else None,
+                "external_account_id": ext,
+                "campaign": {"source_payload": sp_c, "ad_groups": [{"type_run": lich, "source_payload": sp_g,
+                    "ads": [{"content_id": moi["content"], "creative_id": moi["creative"], "facebook_page_id": page, "domain": a.get("domain") or "",
+                             "source_payload": {"name": ten, "status": "ACTIVE"}}]}]}}
         sid = (a.get("effective_object_story_id") or "").strip()
         if not re.fullmatch(r"\d+_\d+", sid): raise ValueError(f"camp gốc #{goc_id} không có mã bài đăng (effective_object_story_id) để dùng lại")
         if bo and str(bo) != str(bo_cua_camp(c)): raise ValueError("camp ROAS dùng bài đăng của camp gốc → phải cùng bộ tài khoản / Page với camp gốc")
-        sp_c.update(bid_strategy="LOWEST_COST_WITH_MIN_ROAS", daily_budget=int(ns_roas))
-        sp_g.update(optimization_goal="VALUE", bid_constraints={"roas_average_floor": roas}); sp_g.pop("bid_amount", None)
         return d, ten, a.get("content_id"), {
             "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo) if bo else None,
             "external_account_id": ext,
@@ -482,13 +497,15 @@ def main(a):
     if thang and (moi or thang not in THANG_MUC): raise SystemExit(f"--thang phải là một trong {sorted(THANG_MUC)} và không đi kèm --creative")
     if moi and not (moi["content"] and moi["ten"]): raise SystemExit("--creative cần kèm --content và --ten")
     roas = float(lay("--roas")) if lay("--roas") else None
+    hoi_cho = "--hoi-cho" in a   # ĐỢT LÊN HỒI CHỢ (anh 18/11/2026, apps/etp/hoi_cho.py): nhân bản BÀI CŨ của camp từng lãi trước đợt sụt — gốc tắt vẫn được, BẮT BUỘC bài cũ
     if roas is not None:
-        if moi or thang: raise SystemExit("--roas không đi kèm --creative / --thang")
+        if thang or hoi_cho: raise SystemExit("--roas không đi kèm --thang / --hoi-cho")
         if not ROAS_MIN <= roas <= ROAS_MAX: raise SystemExit(f"--roas phải trong {ROAS_MIN}–{ROAS_MAX} (Support 26/10/2026)")
-        return roas_main(goc, roas, int(float(lay("--ns", "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a, tay)
+        return roas_main(goc, roas, int(float(lay("--ns", str(HOI_CHO["ns"]) if moi else "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a, tay, moi=moi, bo=bo)
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None, "chay": lich}
     try:
-        d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep); kq["ten"] = ten; bo = pl.pop("bo"); bai0 = bai = pl.pop("bai_cu", None); cr_bai = pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"]
+        d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep, hoi_cho=hoi_cho and not moi and not thang); kq["ten"] = ten; bo = pl.pop("bo"); bai0 = bai = pl.pop("bai_cu", None); cr_bai = pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"]
+        if hoi_cho and not bai0: raise ChanLuat(f"camp gốc #{goc} không dùng được bài đăng cũ (không có mã bài / khác bộ) — đợt hồi chợ chỉ nhân bản bài cũ (anh 18/11/2026)")
         ly = None if NGOAI else (None if moi or ep else q(f"select etp.bo_chan_mo_camp('{bo}', {int(goc)})"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (0339); camp gốc tự thắng (3 ngày khép ROI ≥ 30%) thì miễn (0372, anh 30/10/2026)
         if ly: raise ChanLuat(ly)
         if moi: kq["viec"] = "tao_camp"
@@ -573,6 +590,7 @@ def main(a):
         if ly: raise ChanLuat(ly)
         kq["phim_dang_chay"] = n
         if ad0["creative_id"] != cr_bai: bai = None   # cổng chấm vừa thay creative (nhánh trên) → cũng không còn là bài cũ
+        if hoi_cho and not bai: raise ChanLuat(f"bản nhân của #{goc} phải đổi creative (đoạn đủ trần / cổng chấm) → không còn là bài cũ — đợt hồi chợ chỉ nhân bản bài cũ (anh 18/11/2026)")
         if bai0 and not bai:   # không còn là bài cũ: đăng bài mới, $1 như clone thường
             ten = ten.replace(" bai-cu ", " doi-cr "); kq["ten"] = ten
             pl = json.loads(json.dumps(pl, ensure_ascii=False).replace(" bai-cu ", " doi-cr ")); pl["campaign"]["source_payload"]["daily_budget"] = int(thang) if thang else 1
@@ -643,23 +661,36 @@ assert ten_sach_roas("3010 The Dragon Lord Comes Home EN - tap nguyen ep8 (cr tk
 assert ten_sach_roas("dp20lt Bound to the Wrong Dragon Prince EN - canh that 267-394s (thay 81599)") == "dp20lt Bound to the Wrong Dragon Prince EN - canh that 267-394s"
 assert ten_sach_roas("2110 Number One Nobody EN - ke chuyen (nhan ban 1 cua 65725)") == "2110 Number One Nobody EN - ke chuyen"
 
-def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False, tay=False):   # tay truyền từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)
-    """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim."""
+def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False, tay=False, moi=None, bo=None):   # tay truyền từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)
+    """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim.
+    moi = {creative, content, ten} (anh 18/11/2026, đợt lên hồi chợ): ★ ROAS từ CREATIVE MỚI trên khuôn `goc` — ngân sách trong sổ luật hoi_cho.ns_khoang ($5–10),
+    creative mới nên PHẢI qua cổng chấm Sạch + cổng 18+ / CTA / bài học + trang phim + một creative một camp (khác ★ ROAS bài cũ)."""
     kq = {"ok": False, "viec": "roas", "goc": goc, "moi": None, "ten": None, "roas": roas, "loi": None, "chay": lich}
     try:
-        if not 15 <= ns <= 20: raise ValueError("ngân sách camp ROAS $15–20 (Support 26/10/2026)")
-        d, ten, cid, pl = payload(goc, lich, bo=None, roas=roas, ns_roas=ns, nhan=nhan); kq["ten"] = ten; bo = pl.pop("bo")
-        # CAMP ROAS KHÔNG QUA CỔNG CHẤM (anh 29/10/2026: "Camp roas lên ko cần chấm lại" — thay luật 26/10 "áp cho mọi loại camp"): ad ROAS = đúng bài đăng
-        # của camp gốc đang chạy lãi (lãi 30 ngày ≥ $75), không phải creative mới. Điểm chấm chỉ ghi vào nhật ký để xem; luật chấm lich-gio cũng bỏ qua camp ★.
-        cr_goc = q(f"select creative_id from {'etp.camp_ngoai' if NGOAI else 'etp.camp'} where camp_id = {int(goc)}")
-        ly = cham_sach(int(cr_goc)) if cr_goc.isdigit() and int(cr_goc) > 0 else None
-        if ly: kq["mien_cham"] = ly
+        if moi:
+            lo_, hi_ = HOI_CHO["ns_khoang"]
+            if not lo_ <= ns <= hi_: raise ValueError(f"ngân sách ★ ROAS creative mới ${lo_:g}–{hi_:g} (anh 18/11/2026, sổ luật hoi_cho)")
+        elif not 15 <= ns <= 20: raise ValueError("ngân sách camp ROAS $15–20 (Support 26/10/2026)")
+        d, ten, cid, pl = payload(goc, lich, moi=moi, bo=bo if moi else None, roas=roas, ns_roas=ns, nhan=nhan); kq["ten"] = ten; bo = pl.pop("bo")
+        if moi:
+            kq["content"], kq["creative"] = cid, int(moi["creative"])
+            ly = cham_sach(int(moi["creative"])) or cong(cid, int(moi["creative"]), ten) or trang_chua_san(cid, pl.get("ad_account_id")) or giu_boi_nguoi_khac(cid, pl.get("ad_account_id"))
+            if ly: raise ChanLuat(ly)
+            dem_dang_chay(cid)
+            if DEM_CR.get(int(moi["creative"]), 0) > 0 or q(f"select 1 from etp.camp where creative_id = {int(moi['creative'])} limit 1") == "1":
+                raise ChanLuat(f"creative #{moi['creative']} đã có camp — ★ ROAS creative mới chỉ lên creative chưa có camp")
+        else:
+            # CAMP ROAS KHÔNG QUA CỔNG CHẤM (anh 29/10/2026: "Camp roas lên ko cần chấm lại" — thay luật 26/10 "áp cho mọi loại camp"): ad ROAS = đúng bài đăng
+            # của camp gốc đang chạy lãi (lãi 30 ngày ≥ $75), không phải creative mới. Điểm chấm chỉ ghi vào nhật ký để xem; luật chấm lich-gio cũng bỏ qua camp ★.
+            cr_goc = q(f"select creative_id from {'etp.camp_ngoai' if NGOAI else 'etp.camp'} where camp_id = {int(goc)}")
+            ly = cham_sach(int(cr_goc)) if cr_goc.isdigit() and int(cr_goc) > 0 else None
+            if ly: kq["mien_cham"] = ly
         # camp ROAS là dạng riêng, miễn mọi luật (anh 26/10/2026) — kể cả trần 30 camp/phim: không bị chặn, cũng không chiếm chỗ camp thường (dem_dang_chay bỏ ★)
         if any(x.get("name") == ten for x in api("/api/v1/campaigns?page_size=500")["data"]): raise ChanLuat(f"đã có camp '{ten}' — không tạo trùng")
-        ly = CONG.kiem("nhan_ban", None, ns, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, roas=True)   # ROAS miễn luật trùng phim với đội (anh 05/11/2026)
+        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, ns, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, roas=True)   # ROAS miễn luật trùng phim với đội (anh 05/11/2026)
         if ly: raise ChanLuat(ly)   # luật chặn → nhật ký ok NULL như đường thường (05/11/2026: chặn trùng phim bị đếm là lỗi 3–6 lần/ngày)
         kq["content"] = cid
-        tn = ab_lay(kq, pl, lich, goc, None, roas=True)   # gốc nhánh thu A/B → camp ★ mang cùng mã (Ad Set chép từ gốc đã mang tham số nhánh)
+        tn = ab_lay(kq, pl, lich, goc, None, roas=True) if not moi else None   # gốc nhánh thu A/B → camp ★ mang cùng mã (Ad Set chép từ gốc đã mang tham số nhánh); creative mới trên khuôn không thuộc A/B của khuôn
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
         r = api("/api/v1/campaigns/facebook", pl)

@@ -30,6 +30,7 @@ def so(q, cid, bat_dau):
         (select coalesce(jsonb_object_agg(loai, n), '{{}}') from (select loai, count(*) n from etp.dong_phim where content_id = {cid} and {CG.SQL_DONG_HONG} and tao_luc >= '{bat_dau}' group by 1) a) hong,   -- hỏng THẬT (cong.SQL_DONG_HONG): dòng gác / chạm trần / trang hỏng không đốt lượt thử của dạng
         (select coalesce(array_agg(distinct loai), '{{}}') from etp.dong_phim where content_id = {cid} and trang_thai = 'xong' and tao_luc > now() - interval '24 hours') dong_24h,
         (select count(*) from etp.camp where content_id = {cid} and tao > now() - interval '24 hours') camp_24h,
+        {CG.sql_test_con(int(cid))} test_con,   -- chỗ camp test còn của phim (cong.KHOA_TRAN_TEST, anh 18/11/2026); null = phim lãi ổn định, không trần
         {CG.sql_trang_hong(int(cid))} trang) x"""))
 
 def xet(s, tran, con_toi_da=None):
@@ -49,6 +50,11 @@ def xet(s, tran, con_toi_da=None):
     if con_toi_da is not None:
         if con_toi_da <= 0: return "cuu_du", f"Đã lên đủ {CUU_CAMP} camp cứu phim sắp hết camp (anh 09/11/2026) — để luật đo, không thêm", 0, []
         con = min(con, con_toi_da)
+    # TRẦN CAMP TEST MỖI PHIM (anh 18/11/2026, cong.KHOA_TRAN_TEST): phim đã đủ camp test (chưa lãi) đang chạy → không sản xuất creative mới cho camp mới (cổng
+    # cong.kiem cũng chặn lúc lên — xếp dòng ở đây chỉ đốt tiền dựng creative rồi đứng ở bước camp); còn chỗ thì số camp lượt này không vượt số chỗ
+    if s.get("test_con") is not None:
+        if int(s["test_con"]) <= 0: return "tran_test", f"Phim đã đủ {CG.TT['so']} camp test chưa lãi đang chạy (anh 18/11/2026) — chờ một camp tắt hoặc lãi rồi tự xếp", 0, []
+        con = min(con, int(s["test_con"]))
     if s.get("co_hoi") and mo.get("pha") == "bao_hoa": return "giu", "Có camp lãi nhưng vượt sức chứa, giữ nguyên, không mở thêm", 0, []
     xep, chu, ke = [], [], 0
     if s.get("co_hoi"):
@@ -248,6 +254,8 @@ if __name__ == "__main__":
     assert t(phim={"thu_vong": "cat"})[0] == "cat"
     assert t(phim={"co_url": False})[0] == "khong_nguon" and t(phim={"co_url": True})[0] == "thu_dang"
     assert t(trang="link tập 1")[0] == "trang" and t(trang="link tập 1")[3] == [] and t(trang=None)[0] == "thu_dang"
+    assert t(test_con=0)[0] == "tran_test" and t(test_con=0)[3] == [], "phim đủ camp test → không xếp dòng (anh 18/11/2026)"
+    assert sum(n for _, n in t(test_con=1)[3]) == 1 and t(test_con=None)[3] == t()[3], "còn 1 chỗ test → tối đa 1 camp; phim lãi ổn định (null) không trần"
     assert t(phim={"cam": True})[0] == "cam" and t(phim={"nhom_goc": "hoat_hinh"})[0] == "ngoai" and t(phim={"nhom_goc": "au_my"})[0] == "thu_dang"
     assert t(chay=[{"loai": "CC", "so": 2}])[3] == [("PO", 1), ("AT", 1)]   # CC đang làm không chặn dạng khác
     r = t(hong={"PO": 3}, chay=[{"loai": "PO", "so": 1}]); assert "Đang sản xuất PO" in r[1] and r[3] == [("CC", 2), ("AT", 1)]   # dạng đã bỏ vì hỏng mà còn dòng chạy → báo đang chạy, không 'đã thử hết'

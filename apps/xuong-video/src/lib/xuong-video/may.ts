@@ -105,7 +105,10 @@ export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ mo
     const coNen = x.nen_url !== undefined, nen = coNen ? x.nen_url ?? null : ((cu?.nen_url as string | null | undefined) ?? null);
     if (x.mau && !MAU_MAY_DUNG[x.mau]) throw new Error(`${x.slug}: mẫu lạ ${x.mau}`);
     // mẫu mặc định của MÁY chỉ cần hợp lệ khi đề không mang mẫu riêng (31/10/2026: Giỗ Chạp mẫu cũ 'van-khan-ngoai' không còn trong sổ — chặn oan mọi đề theo góc)
-    if (!x.mau && !cu?.mau && !MAU_MAY_DUNG[m.mau]) throw new Error(`${x.slug}: máy ${ma} mẫu mặc định lạ (${m.mau}) và đề không mang mẫu riêng`);
+    // bài ẢNH sinh AI (dang.loai='anh' + anh_ai, vd ảnh đời thường Mia nền fb_anh) dựng ở sx-may.mjs › anh_doi_thuong, không qua mẫu video → không đòi mẫu
+    // (19/11/2026: máy mia-calloway mẫu 'doi-thuong-phim-ngan' không có trong sổ → mọi lần nạp ảnh đời thường bị chặn, kho fb_anh cạn).
+    const dg = (x.dang ?? {}) as { loai?: string; anh_ai?: boolean }, laAnhAi = dg.loai === 'anh' && !!dg.anh_ai && !(x.de as { canh?: unknown } | undefined)?.canh;
+    if (!laAnhAi && !x.mau && !cu?.mau && !MAU_MAY_DUNG[m.mau]) throw new Error(`${x.slug}: máy ${ma} mẫu mặc định lạ (${m.mau}) và đề không mang mẫu riêng`);
     const mau = x.mau !== undefined ? x.mau ?? null : ((cu?.mau as MauMayDung | null | undefined) ?? null);   // không gửi = giữ mẫu đang có
     if (!cu) {
       await db.execute(sql`INSERT INTO xv_may_video (may_id, slug, chu_de, de, dang, nen_url, mau) VALUES (${m.id}, ${x.slug}, ${x.chu_de}, ${JSON.stringify(x.de)}::jsonb, ${JSON.stringify(x.dang)}::jsonb, ${nen}, ${mau})`);

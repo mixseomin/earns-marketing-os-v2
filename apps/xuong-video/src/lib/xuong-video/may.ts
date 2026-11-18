@@ -123,9 +123,11 @@ export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ mo
   return { moi, doi, giu };
 }
 
+/** Lần chấm trước của dòng có chặn cứng về ẢNH ("hình: …", vd logo / watermark lạ) không. Thuần. */
+export const hinhBiChan = (cham: unknown) => ((cham as { chan_cung?: unknown } | null)?.chan_cung as unknown[] | undefined ?? []).some((x) => /^hình:/.test(String(x)));
 /** Dựng video của một dòng (0đ) → video_url + 3 khung. */
 export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
-  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.nen_url, coalesce(v.nen_them, '{}') AS nen_them, v.chu_de, v.may_id, coalesce(v.mau, m.mau) AS mau, v.hinh_code FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
+  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.nen_url, coalesce(v.nen_them, '{}') AS nen_them, v.chu_de, v.may_id, coalesce(v.mau, m.mau) AS mau, v.hinh_code, v.cham FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
   if (!r) return { ok: false, loi: `không có video #${videoId}` };
   // BÌNH CHỌN (bước 4 Dạng × Góc × Sản phẩm, 27/10/2026): X poll không có media — không ảnh, không video; "xuất" = chốt bản (xuat_luc) để Phòng Nội dung chấm chữ + lựa chọn
   if ((r.de as { loai?: string } | null)?.loai === 'binh-chon') {
@@ -142,6 +144,9 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
   // BÀI VIẾT (Quora / Substack / Medium…, 28/10/2026): chữ dài, không dựng ffmpeg — "xuất" = chốt bản để Phòng Nội dung (kiem-bai) chấm đúng bản; ảnh bìa = nen_url nạp sẵn
   if ((r.de as { loai?: string } | null)?.loai === 'bai-viet') {
     const truyBai = (r.de as { truy?: string }).truy;   // chưa nạp ảnh bìa → ảnh thật Pexels theo de.truy, không trùng trong máy (như video)
+    // VIẾT LẠI giữ cùng dòng (sinh-bai --lai) nên ảnh bìa cũ ở lại — 19/11/2026 quora-40712 viết lại vẫn SỬA LẠI "hình: logo Apple trên laptop" vì cùng ảnh.
+    // Lần chấm trước chặn ảnh ("hình: …") → bỏ ảnh đó, chọn ảnh khác (daDung có cả ảnh cũ nên không lấy lại).
+    if (r.nen_url && truyBai && hinhBiChan(r.cham)) r.nen_url = null;
     if (!r.nen_url && truyBai) {
       const daDung = new Set(((await db.execute(sql`SELECT nen_url FROM xv_may_video WHERE may_id = ${Number(r.may_id)} AND nen_url IS NOT NULL`)) as unknown as Row[]).map((x) => idPexels(x.nen_url as string)).filter((x): x is number => x != null));
       try { r.nen_url = await timAnhNen(truyBai, daDung); } catch (e) { return { ok: false, loi: `ảnh bìa: ${(e as Error).message}` }; }

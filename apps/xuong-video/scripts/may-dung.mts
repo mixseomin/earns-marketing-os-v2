@@ -510,16 +510,23 @@ if (a.includes('--nap')) {
   // BÀI SUBSTACK / MEDIUM (19/11/2026): stdin { goc, slug, tieu_de_cu?, anh_da_dung? } → JSON { ok, html, truy, anh, vnd, model }. Chữ AI rẻ + ảnh ngang Pexels thật.
   // Máy gọi: puzzle-books sinh-bai.mjs --nen substack. Không nạp ở đây (nạp chỉ qua nap-bai.mjs).
   const { vietBaiDai, htmlBaiDai } = await import('../src/lib/xuong-video/may-de');
-  const { timAnhNgang } = await import('../src/lib/xuong-video/anh-nen');
+  const { timAnhNgang } = await import('../src/lib/xuong-video/anh-nen'), { execFileSync } = await import('node:child_process');
   const x = await docStdin(), sp = await spCua(ma);
   const utm = `utm_source=substack&utm_medium=article&utm_campaign=${encodeURIComponent(x.slug ?? 'substack')}`, link = `${sp.link}${sp.link.includes('?') ? '&' : '?'}${utm}`;
   const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
   const r = await vietBaiDai({ sp, goc: x.goc, link, utm, suThat, tieuDeCu: x.tieu_de_cu ?? [] });
   if (!r.ok) { console.log(JSON.stringify(r)); }
   else {
-    let anh: string | null = null, loiAnh = '';
-    try { anh = await timAnhNgang(r.truy, new Set((x.anh_da_dung ?? []).map(Number))); } catch (e) { loiAnh = String((e as Error).message); }
-    console.log(JSON.stringify(anh ? { ok: true, html: htmlBaiDai(r, r.link, anh), tieu_de: r.tieu_de, truy: r.truy, anh, vnd: r.vnd, model: r.model } : { ok: false, loi: `ảnh: ${loiAnh}`, vnd: r.vnd }));
+    // 3 ảnh ngang thật khác nhau (chuẩn ≤ 300 chữ mỗi khối hình) + 1 video YouTube nhúng (chuẩn SEO chặn cứng) — thiếu ảnh / video thì không nạp
+    const daDung = new Set<number>((x.anh_da_dung ?? []).map(Number)), anh: string[] = [], loi: string[] = [];
+    for (const q of r.truy) { try { const u = await timAnhNgang(q, daDung); anh.push(u); const id = u.match(/photos\/(\d+)\//)?.[1]; if (id) daDung.add(Number(id)); } catch (e) { loi.push(String((e as Error).message)); } }
+    let video: string | null = null;
+    try {
+      const j = JSON.parse(execFileSync('yt-dlp', ['--no-update', '--flat-playlist', '-J', `ytsearch8:${r.video}`], { encoding: 'utf8', timeout: 90_000, maxBuffer: 32 << 20 }));
+      video = ((j.entries ?? []) as { id?: string; duration?: number }[]).find((e) => e.id && (e.duration ?? 0) >= 60 && (e.duration ?? 0) <= 1500)?.id ?? null;
+      if (!video) loi.push(`YouTube không có video 1-25 phút cho "${r.video}"`);
+    } catch (e) { loi.push(`yt-dlp: ${String((e as Error).message).slice(0, 200)}`); }
+    console.log(JSON.stringify(anh.length >= 3 && video ? { ok: true, html: htmlBaiDai(r, r.link, anh, video), tieu_de: r.tieu_de, truy: r.truy[0], anh: anh[0], video, vnd: r.vnd, model: r.model } : { ok: false, loi: `ảnh / video: ${loi.join('; ')}`, vnd: r.vnd }));
   }
 } else if (a.includes('--tu-khoa') || a.includes('--viet-bai')) {
   // BÀI VIẾT bằng chữ AI rẻ (followup #1470): stdin { goc: { sp, id, loai, ten } [, cau_hoi, link] } → JSON. Một bài ~1¢ trở xuống (Haiku qua ckey) — dưới ngưỡng tự chạy;

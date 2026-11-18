@@ -412,45 +412,65 @@ export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; li
 
 // ── BÀI SUBSTACK (19/11/2026, kho social:kho|militarycalc|substack): máy có nền substack trong xv_may.dang nhưng sinh-bai.mjs chỉ viết Quora → kho Substack
 // luôn 0 bài. Cùng đường chữ AI rẻ + tệp sự thật; máy dựng HTML (h1 · em phụ đề · ảnh thật · h2 + đoạn) để nap-bai.mjs nạp như mọi bài .html.
+// Khuôn theo chuẩn Phòng Nội dung (kiem-bai mayDo + skill copywriting/bai-giu-nguoi-doc): 7/7 bài đầu KHÔNG DUYỆT vì thiếu cảnh mở, video nhúng, FAQ,
+// >300 chữ mỗi khối hình, ví dụ là chữ trơn, thiếu phần "nếu đã lỡ" → mô hình trả từng khối riêng, máy xếp khối + chèn 3 ảnh / 1 video / khung ví dụ.
 export const VietBaiDaiSchema = z.object({
   tieu_de: z.string().describe('article headline, English, 45-90 characters, specific, a real question or promise the reader cares about, no clickbait'),
   phu_de: z.string().describe('one-sentence subtitle, 80-160 characters'),
-  muc: z.array(z.object({ h2: z.string().describe('section heading'), doan: z.array(z.string()).min(1).max(4).describe('paragraphs, plain text, no markdown') })).min(4).max(7)
-    .describe('sections in order: the direct answer first, how it works, one round-number worked example labelled as an example, common mistakes, a short checklist, closing. The token {LINK} must appear exactly once in the whole article, in the closing section'),
+  canh: z.string().describe('opening SCENE, 3-5 sentences: a specific person (rank or role, no real names), where they are, what notice or number they just saw, how they feel. Starts with "Imagine" or a time of day. No definitions'),
+  hua: z.string().describe('one sentence right after the scene promising what the reader will be able to do after reading, and in how many minutes'),
+  muc: z.array(z.object({ h2: z.string().describe('section heading'), doan: z.array(z.string()).min(1).max(3).describe('short paragraphs, plain text, no markdown') })).min(3).max(4)
+    .describe('body sections in order: the direct answer, how it works (and why people get it wrong), common mistakes, a short checklist the reader can tick'),
+  vi_du: z.object({ tieu_de: z.string().describe('label like "Example: E-6 with 20 years"'), dong: z.array(z.string()).min(3).max(6).describe('lines of a worked example with round numbers, each line short like a pay statement row "High-3 average: $5,000"') }),
+  neu_da_lo: z.object({ h2: z.string().describe('heading starting with "If you already" (e.g. "If you already signed your retirement paperwork")'), doan: z.array(z.string()).min(1).max(2) }),
+  faq: z.array(z.object({ hoi: z.string(), dap: z.string().describe('2-3 sentences') })).min(3).max(4),
+  ket: z.string().describe('closing paragraph, 2-3 sentences, contains the token {LINK} exactly once, saying why that page helps this reader'),
   trang: z.string().describe('the ONE site page URL from the list given that best fits, copied exactly; empty string if no list was given'),
-  truy: z.string().describe('3-6 English words for a real landscape stock photo that fits (Pexels search), no brand names'),
+  truy: z.array(z.string().describe('3-6 English words for a real landscape stock photo (Pexels search), no brand names')).length(3).describe('three DIFFERENT photo searches for three images placed through the article'),
+  video: z.string().describe('a YouTube search query (4-8 words) for a short explainer video on this exact topic, e.g. "military retirement pay high-3 explained"'),
 });
+export type BaiDai = z.infer<typeof VietBaiDaiSchema>;
 const thoatHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-/** HTML bài Substack từ khuôn mô hình: link (đã thay {LINK}) thành thẻ a + chữ link thuần (nap-bai lấy link đích từ chữ). Thuần. */
-export function htmlBaiDai(d: { tieu_de: string; phu_de: string; muc: { h2: string; doan: string[] }[] }, link: string, anh: string | null): string {
-  const p = (x: string) => `<p>${thoatHtml(x.trim()).split('{LINK}').join(`<a href="${thoatHtml(link)}">${thoatHtml(link)}</a>`)}</p>`;
-  return `<article><h1>${thoatHtml(d.tieu_de.trim())}</h1><p><em>${thoatHtml(d.phu_de.trim())}</em></p>${anh ? `<p><img src="${thoatHtml(anh)}" alt="${thoatHtml(d.tieu_de.trim())}"></p>` : ''}\n`
-    + d.muc.map((m) => `<h2>${thoatHtml(m.h2.trim())}</h2>${m.doan.map(p).join('')}`).join('\n') + '</article>';
+/** HTML bài Substack: cảnh mở · lời hứa · ảnh 1 · mục 1-2 · khung ví dụ (class mock) · video · mục còn lại · ảnh 2 · "nếu đã lỡ" · ảnh 3 · FAQ · kết + nút CTA.
+ *  {LINK} thành thẻ a + chữ link thuần (nap-bai lấy link đích từ chữ). Thuần. */
+export function htmlBaiDai(d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket'>, link: string, anh: string[], video: string | null): string {
+  const L = thoatHtml(link), t = (x: string) => thoatHtml(x.trim()).split('{LINK}').join(`<a href="${L}">${L}</a>`), p = (x: string) => `<p>${t(x)}</p>`;
+  const img = (i: number) => anh[i] ? `<p><img src="${thoatHtml(anh[i]!)}" alt="${thoatHtml(d.tieu_de.trim())} (${i + 1})"></p>` : '';
+  const muc = (m: { h2: string; doan: string[] }) => `<h2>${thoatHtml(m.h2.trim())}</h2>${m.doan.map(p).join('')}`;
+  const vd = `<blockquote class="mock"><p><strong>${thoatHtml(d.vi_du.tieu_de.trim())}</strong></p>${d.vi_du.dong.map(p).join('')}</blockquote>`;
+  const vid = video ? `<p><iframe src="https://www.youtube.com/embed/${thoatHtml(video)}" title="${thoatHtml(d.tieu_de.trim())} video" width="560" height="315" allowfullscreen></iframe></p><p>Video: <a href="https://www.youtube.com/watch?v=${thoatHtml(video)}">https://www.youtube.com/watch?v=${thoatHtml(video)}</a></p>` : '';
+  return `<article><h1>${thoatHtml(d.tieu_de.trim())}</h1><p><em>${thoatHtml(d.phu_de.trim())}</em></p>\n${p(d.canh)}${p(d.hua)}${img(0)}\n`
+    + d.muc.slice(0, 2).map(muc).join('\n') + `\n${vd}\n${vid}\n` + d.muc.slice(2).map(muc).join('\n') + `\n${img(1)}\n${muc(d.neu_da_lo)}\n${img(2)}\n`
+    + `<h2>Questions people ask</h2>${d.faq.map((f) => `<h3>${thoatHtml(f.hoi.trim())}</h3>${p(f.dap)}`).join('')}\n${p(d.ket)}<p><a class="cta" href="${L}">Open the free tool</a></p></article>`;
 }
+/** Mọi chữ của bài (để kiểm luật / độ dài). Thuần. */
+export const chuBaiDai = (d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket'>) =>
+  [d.tieu_de, d.phu_de, d.canh, d.hua, ...d.muc.flatMap((m) => [m.h2, ...m.doan]), d.vi_du.tieu_de, ...d.vi_du.dong, d.neu_da_lo.h2, ...d.neu_da_lo.doan, ...d.faq.flatMap((f) => [f.hoi, f.dap]), d.ket].join('\n\n');
 /** Kiểm bài Substack (chặn cứng như kiemBaiViet, độ dài bài dài). Thuần. */
 export function kiemBaiDai(chu: string, link: string): string[] {
   const loi = kiemBaiViet(chu, link).filter((x) => !x.startsWith('độ dài'));
-  if (chu.length < 3000 || chu.length > 8000) loi.push(`độ dài ${chu.length} ký tự (cần 3000-8000)`);
+  if (chu.length < 3500 || chu.length > 9500) loi.push(`độ dài ${chu.length} ký tự (cần 3500-9500)`);
   return loi;
 }
-/** Viết một bài Substack cho một góc; sai luật thì viết lại một lần. anh do người gọi tìm (Pexels) sau khi có truy. */
-export async function vietBaiDai(o: { sp: SanPhamDe; goc: GocDe; link: string; utm?: string; suThat?: string | null; tieuDeCu?: string[] }): Promise<{ ok: true; tieu_de: string; phu_de: string; muc: { h2: string; doan: string[] }[]; truy: string; link: string; vnd: number; model: string } | { ok: false; loi: string; vnd: number }> {
+/** Viết một bài Substack cho một góc; sai luật thì viết lại một lần. Ảnh (Pexels) + video (YouTube) do người gọi tìm theo truy / video. */
+export async function vietBaiDai(o: { sp: SanPhamDe; goc: GocDe; link: string; utm?: string; suThat?: string | null; tieuDeCu?: string[] }): Promise<({ ok: true; link: string; vnd: number; model: string } & BaiDai) | { ok: false; loi: string; vnd: number }> {
   const { sinhJson } = await import('./claude');
   const system = [`You write Substack articles as an experienced, helpful person who also runs "${sp_ten(o.sp)}" (${o.sp.mo_ta}). Audience: US, English.`,
     'Rules (hard): answer the reader\'s real question first and fully, concrete and accurate, never invent statistics, prices, laws or testimonials; numbers that depend on the reader get a round-number example labelled as an example.',
     'Cover every variant that changes the answer. State deadlines and conditions exactly; if unsure of a rule, say what to check and where.',
     'Plain human voice, no hype, no em dashes (— or –), no hashtags, no markdown, never these words: ' + TU_MAY.join(', ') + '.',
-    'Put the token {LINK} exactly once, in the closing section, in a sentence that says why that page helps this reader (do not write any URL yourself).',
+    'Put the token {LINK} exactly once, only in "ket", in a sentence that says why that page helps this reader (do not write any URL yourself).',
+    'Readers arrive from social media on a phone: open with a concrete scene (not a definition), keep paragraphs to 2-4 sentences, make the example visible as short pay-statement-like lines, include a section for readers who already made the decision or mistake, and FAQ answers that each add something new.',
     ...(o.suThat ? ['VERIFIED FACTS (use ONLY these for rules, rates, numbers and deadlines; anything not listed: tell the reader where to check officially):', o.suThat] : [])].join('\n');
   const trangs = trangSuThat(o.suThat ?? null);
   let vnd = 0, loiCu: string[] = [];
   for (let lan = 0; lan < 2; lan++) {
-    const r = await sinhJson({ schema: VietBaiDaiSchema, ten: 'viet_bai_dai', max_tokens: 2600, system,
-      user: `Angle to write about (internal label, may be Vietnamese): "${o.goc.ten}" (${LOAI_VI[o.goc.loai] ?? o.goc.loai}). Topic of the product: ${o.sp.mo_ta}.${o.tieuDeCu?.length ? `\nHeadlines already published (write a DIFFERENT one): ${o.tieuDeCu.slice(0, 20).join(' | ')}` : ''}${trangs.length ? `\nSite pages to choose from for "trang": ${trangs.join(' | ')}` : ''}${loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''}\nTotal article 3500-6500 characters. Return the JSON now.` });
+    const r = await sinhJson({ schema: VietBaiDaiSchema, ten: 'viet_bai_dai', max_tokens: 3400, system,
+      user: `Angle to write about (internal label, may be Vietnamese): "${o.goc.ten}" (${LOAI_VI[o.goc.loai] ?? o.goc.loai}). Topic of the product: ${o.sp.mo_ta}.${o.tieuDeCu?.length ? `\nHeadlines already published (write a DIFFERENT one): ${o.tieuDeCu.slice(0, 20).join(' | ')}` : ''}${trangs.length ? `\nSite pages to choose from for "trang": ${trangs.join(' | ')}` : ''}${loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''}\nTotal article 4500-8000 characters. Return the JSON now.` });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += giaVnd(r);
     const link = trangs.includes(r.data.trang) && o.utm ? ganUtm(r.data.trang, o.utm) : o.link;
-    const tho = [r.data.tieu_de, r.data.phu_de, ...r.data.muc.flatMap((m) => [m.h2, ...m.doan])].join('\n\n');
+    const tho = chuBaiDai(r.data);
     const chu = tho.split('{LINK}').join(link);
     loiCu = [...kiemBaiDai(chu, link), ...(tho.split('{LINK}').length !== 2 ? ['token {LINK} phải có đúng một lần'] : [])];
     if (!loiCu.length) return { ok: true, ...r.data, link, vnd, model: r.model };

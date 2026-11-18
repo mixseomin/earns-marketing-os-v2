@@ -482,6 +482,9 @@ def ghi_nhat_ky(kq, luat, ai):
                     **({"nguoi": EA.SUA or EA.XEM} if NGOAI else {})})   # team cũng ghi (anh 02/11/2026: sổ luật đo được việc máy làm cho Sơn / Kiên); nguoi tách khỏi đếm Nhà
 
 def main(a):
+    # NHƯỜNG CPU (19/11/2026 box3 tải 21–43: 6–10 bản nhan-ban cùng lúc + postgres, web / đồng bộ chậm theo): mọi đường gọi (dòng phim qua ssh, worker,
+    # nút etp2) chạy ở nice 10 — việc lên camp chờ vài giây không sao, trang + đồng bộ không được nghẽn. Giờ lên camp vẫn do lich_len, không đổi luật.
+    if sys.platform.startswith("linux") and os.nice(0) < 10: os.nice(10 - os.nice(0))
     goc = int(a[0]); that = "--that" in a
     tay = "--tay" in a   # camp anh yêu cầu bằng tay (dòng phim etp.on.tc) → miễn luật không trùng phim với đội (cong.kiem tay=True), 04/11/2026
     lay = lambda k, md=None: next((a[i + 1] for i, x in enumerate(a[:-1]) if x == k), md)

@@ -1399,4 +1399,9 @@ export const LUAT = [
   { card: 'at-chi-dang-free-1911', tep: 'apps/etp/ethopex_api.py', co: "ly_at = CG.at_sai_dang(re.findall(r'\"creative_id\":\\s*\"?(\\d+)', json.dumps(body)), q=_q)", vi: 'mọi lệnh tạo camp / nhân bản / đổi creative đi qua cửa API chấm dạng AT' },
   { card: 'at-chi-dang-free-1911', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"at_chi_dang_free": {"dang": "ảnh tĩnh", "cta": "watch_for_free"}', vi: 'sổ luật chung có mục at_chi_dang_free' },
   { card: 'at-chi-dang-free-1911', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"at_chi_dang_free": {"dang": "ảnh tĩnh", "cta": "watch_for_free"}', vi: 'sổ luật etp2 có mục at_chi_dang_free' },
+  { card: 'qua-tai-nhan-ban-1911', tep: 'apps/etp/manh.py', co: "and not {sql_giu_phanh('d')} order by x.id limit {TRAN_MO}),", vi: 'Mạnh không mở lại dòng dừng vì phanh còn hiệu lực, mỗi lượt mở tối đa TRAN_MO dòng (19/11/2026: deploy mở 571 dòng phanh → bão nhan-ban, box3 tải 43)' },
+  { card: 'qua-tai-nhan-ban-1911', tep: 'apps/etp/manh.py', cam: 'mo as (update etp.dong_phim d set dau_dung = null from x where', vi: 'không quay lại mở lại mọi dòng đổi dấu trong một lượt' },
+  { card: 'qua-tai-nhan-ban-1911', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if sys.platform.startswith("linux") and os.nice(0) < 10: os.nice(10 - os.nice(0))', vi: 'nhan-ban chạy nice 10 trên box3, nhường web / đồng bộ' },
+  { card: 'qua-tai-nhan-ban-1911', tep: 'apps/xuong-video/scripts/ethopex/qc-fb-phim.py', co: 'tinh = can_dem(da_tra, cu, bay_gio)', vi: 'qc-fb-phim --dem chỉ đếm lại từ khoá có lượt cào mới / quá 24 giờ (câu regexp 39 giây mỗi 10 phút)' },
+  { card: 'qua-tai-nhan-ban-1911', tep: 'apps/xuong-video/scripts/ethopex/qc-fb-phim.py', cam: 'left join qc_meta q on k.tu = any(q.tu_khoa)', vi: 'lọc từ khoá bằng @> (chỉ mục GIN), không = any' },
 ];

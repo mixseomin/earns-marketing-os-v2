@@ -29,6 +29,17 @@ G = os.path.dirname(os.path.abspath(__file__)); XE = os.path.join(G, "..", "xuon
 _s = importlib.util.spec_from_file_location("tho", os.path.join(G, "tho.py")); THO = importlib.util.module_from_spec(_s); _s.loader.exec_module(THO)   # TRAN_SQL: một trần cắt cho thợ + Mạnh
 MA_BUOC = {"poster": [f"{G}/soat_18_ai.py"], "soat": [f"{XE}/soat_doan.py"], "cat": [f"{G}/dong_phim.py", f"{G}/tho.py"],
            "creative": [f"{G}/dong_phim.py", f"{XE}/len-creative.py", f"{G}/cong.py"], "camp": [f"{G}/dong_phim.py", f"{G}/cong.py", f"{XE}/nhan-ban.py"]}
+# KHÔNG MỞ LẠI DÒNG ĐANG BỊ PHANH GIỮ + TRẦN MỞ LẠI MỖI LƯỢT (19/11/2026 01:44–01:52 box3 tải 21–43, swap 3 GB): dấu bước camp băm cong.py / nhan-ban.py /
+# dong_phim.py → mỗi deploy đụng một trong ba tệp làm dấu của MỌI dòng dừng ở bước camp đổi cùng lúc. 571 dòng đang dừng vì PHANH CHỢ (phanh tới 07:00 20/11)
+# bị mở lại trung bình 5,5 lần / dòng = 3.137 lượt nhan-ban.py chỉ để cổng chặn lại đúng câu phanh cũ, 6–10 bản cùng lúc ~6 giây / bản.
+# Sửa: (a) dòng dừng ở bước camp vì phanh / dừng lên camp mới mà phanh đó CÒN hiệu lực → không mở (dau_dung giữ nguyên; phanh nhả thì dấu ngày / mã
+# khác dấu đã chụp → mở ở lượt Mạnh đầu tiên sau khi nhả); (b) mỗi lượt Mạnh (2 phút) mở tối đa TRAN_MO dòng, phần còn lại các lượt sau — dàn tải, không đổi luật.
+TRAN_MO = 12
+def sql_giu_phanh(a="d"):
+    """dòng a dừng ở bước camp vì một phanh / dừng lên camp mới đang còn hiệu lực (khoá cong.KHOA_SX còn hạn có phanh · cong.KHOA_DUNG_CAMP_MOI bật)"""
+    return (f"(split_part(coalesce({a}.ly_do, ''), ':', 1) = 'camp' and ((strpos({a}.ly_do, 'PHANH') > 0 and coalesce((select gia_tri->>'phanh' from etp.cau_hinh"
+            f" where khoa = '{CG.KHOA_SX}' and (gia_tri->>'het')::timestamptz > now()), '') <> '')"
+            f" or (strpos({a}.ly_do, 'DỪNG LÊN CAMP MỚI') > 0 and ({CG.SQL_DUNG_CAMP_MOI}))))")
 HA_TANG = r"ssh:|mux_client|Session open refused|Operation timed out|Connection (closed|reset|refused|timed out)|Broken pipe|kex_exchange|im [0-9]+ phút \(máy chạy dòng"
 # DÒNG LỖI MỤC 6 CÒN TỰ THỬ LẠI (hạ tầng < 10 lần · khác < 6 lần, trong 3 ngày) — mục 3 dùng để tách lỗi "máy tự lo" (gom tin giờ) khỏi lỗi "cần người" (báo ngay)
 THU_HA_TANG, THU_KHAC = 10, 6   # trần lượt tự thử lại của mục 6 — mục 3 dùng cùng số để biết dòng nào hết lượt
@@ -145,7 +156,9 @@ def main():
         else:
             q(f"with {dau_cte('d.dau_dung is null')} update etp.dong_phim d set dau_dung = x.dau from x where d.id = x.id and d.dau_dung is null")
             r = q(f"""with {dau_cte(BA_NGAY)},
-                      mo as (update etp.dong_phim d set dau_dung = null from x where d.id = x.id and d.trang_thai = 'dung' and d.dau_dung is distinct from x.dau returning d.id)
+                      chon as (select x.id from x join etp.dong_phim d on d.id = x.id where d.trang_thai = 'dung' and d.dau_dung is distinct from x.dau
+                               and not {sql_giu_phanh('d')} order by x.id limit {TRAN_MO}),
+                      mo as (update etp.dong_phim d set dau_dung = null from chon where d.id = chon.id returning d.id)
                       update etp.dong_buoc b set fix = true from mo join etp.dong_phim p on p.id = mo.id where b.dong_id = mo.id and not b.fix
                         and (b.trang_thai in ('dung', 'loi') or (b.buoc = split_part(p.ly_do, ':', 1) and not exists (select 1 from etp.dong_buoc x where x.dong_id = mo.id and x.trang_thai in ('dung', 'loi'))))
                       returning b.dong_id, b.buoc""")

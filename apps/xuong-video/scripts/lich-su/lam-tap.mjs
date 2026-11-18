@@ -19,6 +19,7 @@ import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
 import { BOX, box, len, ve, q, sqlBox, boxA, chay, lenA, veA, sshA, sshS, songSong, dauDangLam } from './box3.mjs';
 import { hoSoTap, playlistCuaTap, timPlaylist, tieuDeDang } from './playlist.mjs';
 import { nenH264 } from '../../src/lib/xuong-video/nen-video.mjs';
+import { nhapCty } from '../../src/lib/xuong-video/cty.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const co = (k) => process.argv.includes(`--${k}`);
@@ -221,7 +222,7 @@ if (co('gan-hook') && KENH.may && existsSync(tepTap)) {
   buoc('gắn hook');
   const t0 = JSON.parse(readFileSync(tepTap, 'utf8'));
   // hook cũ chỉ giữ khi chữ đăng qua được luật phòng chấm (từ máy / tiếng Việt) — 02/11/2026 Alaska giữ "Unlock the…" + mô tả tiếng Việt rồi bị SỬA LẠI lần hai
-  const { tuMayTrong } = await import('../../../cty/worker/cham-dang.mjs'), chuCu = `${t0.tieu_de ?? ''}\n${t0.mo_ta_dang ?? ''}`;
+  const { tuMayTrong } = await nhapCty('worker/cham-dang.mjs'), chuCu = `${t0.tieu_de ?? ''}\n${t0.mo_ta_dang ?? ''}`;
   const hongCu = tuMayTrong(chuCu).length || (t0.ngon_ngu ?? 'en') !== 'vi' && /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chuCu)
     || (t0.hook?.goc && loiHook([t0.tieu_de ?? ''], t0.hook.goc).length)   // tiêu đề sửa quá xa hook gốc (cùng luật phòng chấm)
     || co('doi-hook');   // Phòng Nội dung vừa chặn chính hook này (chay-kenh: SỬA LẠI chỉ vì hook) → bỏ hook cũ, chọn hook khác trong kho (hook đang nằm ở bài chờ không được chọn lại)

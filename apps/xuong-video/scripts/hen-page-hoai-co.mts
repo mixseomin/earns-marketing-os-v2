@@ -8,7 +8,8 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { uploadToR2 } from '../src/lib/r2';
 // @ts-expect-error mô-đun JS của cty
-import { doBaiDang, kiemGoc } from '../../cty/worker/cham-dang.mjs';
+import { nhapCty } from '../src/lib/xuong-video/cty.mjs';
+const { doBaiDang, kiemGoc } = await nhapCty('worker/cham-dang.mjs');   // mã chấm của cty — repo riêng, nạp lúc chạy (tách 18/11/2026)
 
 type Bai = { id: string; acct: number; page_id: string; ten: string; ngay: string; gio: string; loai: string; format: string; anh: string[]; video: string | null; link: string | null; slug?: string; chu: string; nguon_anh: string[]; goc?: { sp: number; id: number; loai: string; ten: string }; goc_sp?: number[] };
 const [tepKh, thuMuc] = process.argv.slice(2).filter((x) => !x.startsWith('--')), THU = process.argv.includes('--thu');

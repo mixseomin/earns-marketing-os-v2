@@ -22,6 +22,7 @@ import { networkRows } from './revenue/networks';
 import { docEthopex } from './ethopex-doc';
 import { chamLuat, dangCamp } from './ethopex-luat';
 import { tinhSucKhoe, type StSucKhoe, type VaoSuc } from './social-suc-khoe';
+import { CTY_DIR } from './cty-duong';
 
 const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
 const GOC_MOI_NHOM = 8;
@@ -223,7 +224,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
  *  (/var/lib/cty/nhip/<người>.jsonl: {luc, viec, ket}). Máy không có cty (máy dev) → rỗng. Nhớ 2 phút. */
 const docCongTy = unstable_cache(async () => {
   const { readdirSync, readFileSync: doc, existsSync: co } = await import('node:fs');
-  const goc = `${process.cwd().replace(/\/apps\/web$/, '')}/apps/cty/cong-ty/phong`, nhip = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/nhip`;
+  const goc = `${CTY_DIR}/cong-ty/phong`, nhip = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/nhip`;
   if (!co(goc)) return [];
   const chuanTen = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().replace(/[^a-z]/g, '');
   const tu = Date.now() - 864e5;
@@ -383,7 +384,7 @@ const NEN_ANH_LICH = ['x_anh', 'fb_anh'];
 const NEN_LINK_LICH = ['x_link', 'fb_link'];   // bài link (S03 bước 4): dòng studio dang.loai 'link', không video
 /** Lượt dang-may --het của từng máy Mac trong sổ việc nền cty (apps/cty/cong-ty/viec-nen.json) → { iMac: ['20:00', '21:00'] }. Thiếu tệp = {} (bảng báo không có lượt). */
 function luotMayDang(): Record<string, string[]> {
-  for (const f of [`${process.cwd()}/apps/cty/cong-ty/viec-nen.json`, `${process.cwd()}/../cty/cong-ty/viec-nen.json`, '/opt/earns-marketing-os-v2/apps/cty/cong-ty/viec-nen.json']) {
+  for (const f of [`${CTY_DIR}/cong-ty/viec-nen.json`]) {
     try {
       const so = JSON.parse(readFileSync(f, 'utf8')) as { viec?: { nhan: string; chay?: string[]; hen?: { luc?: string[] } }[] } | { nhan: string; chay?: string[]; hen?: { luc?: string[] } }[];
       const ds = Array.isArray(so) ? so : so.viec ?? [];

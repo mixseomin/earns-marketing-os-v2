@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
+import { CTY_DIR } from '@/lib/cty-duong';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,7 +86,7 @@ export async function POST(req: Request) {
     // lượt hỏng / mất dấu: ghi chú đi kèm việc của thợ máy Mạnh (apps/cty/worker/tho-may-viec.mjs --ghi-them) — đang có việc cùng khoá thì nối vào, chưa có thì xếp mới
     if (['hong', 'mat_dau'].includes(r.ket)) {
       try {
-        const ra = execFileSync(process.execPath, [path.resolve(process.cwd(), '../cty/worker/tho-may-viec.mjs'), '--ghi-them', `dang:lo|${r.ma}|${r.nen}`],
+        const ra = execFileSync(process.execPath, [path.join(CTY_DIR, 'worker/tho-may-viec.mjs'), '--ghi-them', `dang:lo|${r.ma}|${r.nen}`],
           { input: `Ghi chú từ tab Máy Đăng (lượt #${id}, ${ai}): ${chu}`, encoding: 'utf8', timeout: 20_000, env: { ...process.env, CTY_DATA_DIR: process.env.CTY_DATA_DIR || '/var/lib/cty' } }).trim().split('\n').pop();
         return NextResponse.json({ ok: true, bao: ra === 'gop' ? 'đã lưu + nối vào việc thợ máy Mạnh đang có' : ra === 'moi' ? 'đã lưu + xếp việc mới cho thợ máy Mạnh' : 'đã lưu ghi chú' });
       } catch (e) { return NextResponse.json({ ok: true, bao: `đã lưu ghi chú — chưa chuyển được cho thợ máy: ${String((e as Error).message).split('\n')[0]?.slice(0, 160) ?? ''}` }); }

@@ -3,11 +3,9 @@ name: Deploy MOS v2
 on:
   push:
     branches: [main]
-    # Hồ sơ phòng/nhân sự của cty (apps/cty/cong-ty/**) là DỮ LIỆU đọc lúc render, không phải tài liệu → vẫn deploy dù là .md.
     paths:
       - '**'
       - '!**/*.md'
-      - 'apps/cty/cong-ty/**'
       - '!wiki/**'
       - '!decisions/**'
       - '!.gitignore'
@@ -18,7 +16,7 @@ on:
         description: 'App cần deploy'
         required: true
         type: choice
-        options: [cty, web, store, xuong-video, etp2, het]
+        options: [web, store, xuong-video, etp2, het]
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -71,11 +69,10 @@ jobs:
           cham() { [ "$F" = "__HET__" ] || echo "$F" | node scripts/app-cham.mjs "$@"; }
           cham apps/store && echo "store=1" >> "$GITHUB_OUTPUT"
           cham apps/xuong-video && echo "studio=1" >> "$GITHUB_OUTPUT"
-          # cong-ty/** chỉ là dữ liệu đọc lúc render: máy chủ git pull là đủ, không dựng lại cty.
           # cty đã tách repo riêng (github.com/mixseomin/cty, 18/11/2026) — tự kiểm + dựng + deploy ở repo đó, monorepo không dựng cty nữa
           cham apps/etp2 && echo "etp2=1" >> "$GITHUB_OUTPUT"
           # deploy.sh + deploy/ chỉ chạy trên máy chủ, không vào bản build → không kéo build web (38s).
-          if [ "$F" = "__HET__" ] || echo "$F" | grep -vqE '^(apps/(store|xuong-video|cty|etp2)/|packages/gop-y/|deploy/|deploy\.sh$)'; then echo "web=1" >> "$GITHUB_OUTPUT"; fi
+          if [ "$F" = "__HET__" ] || echo "$F" | grep -vqE '^(apps/(store|xuong-video|etp2)/|packages/gop-y/|deploy/|deploy\.sh$)'; then echo "web=1" >> "$GITHUB_OUTPUT"; fi
           echo "Tệp đổi:"; echo "$F" | head -40; echo "Build:"; cat "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         with: { node-version: '22' }   # match server node v22 (.next swapped in raw) + Node 20 is GHA-deprecated
@@ -124,7 +121,7 @@ jobs:
           node scripts/check-client-db.mjs --tu-kiem
           node scripts/check-client-db.mjs
       # Dựng SONG SONG các app được chọn (runner repo công khai: 4 nhân, 16GB) — trước dựng nối đuôi web 41s + store 21s
-      # + studio 22s + cty 21s. Mỗi app một tarball <app>.tar.gz; app không dựng lượt này máy chủ giữ nguyên bản đang chạy.
+      # + studio 22s. Mỗi app một tarball <app>.tar.gz; app không dựng lượt này máy chủ giữ nguyên bản đang chạy.
       - name: Build (song song)
         run: |
           dung() { ( npm run build --workspace="apps/$1" > "/tmp/build-$1.log" 2>&1 && tar -C "apps/$1" --exclude='.next/cache' -czf "$1.tar.gz" .next; echo $? > "/tmp/build-$1.rc" ) & }

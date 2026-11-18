@@ -21,7 +21,7 @@ const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
 const tele = (chu) => { if (xem) return console.log(chu); try { execFileSync('ssh', [BOX, 'set -a; . /root/.secrets/mine-tg.env; set +a; curl -s -o /dev/null https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage --data-urlencode chat_id=$TG_CHAT --data-urlencode text@-'], { input: chu }); console.log(chu); } catch (e) { console.log(`⚠ Telegram: ${e.message}`); } };
 const song = (f) => { try { process.kill(Number(readFileSync(f, 'utf8')), 0); return true; } catch { return false; } };
 // việc của Mạnh cho tập này (mới nhất): trạng thái + kết quả
-const viecTho = (khoa) => { try { const j = JSON.parse(execFileSync('ssh', [BOX, 'cd /opt/earns-marketing-os-v2/apps/cty && CTY_DATA_DIR=/var/lib/cty node worker/tho-may-viec.mjs --xem'], { encoding: 'utf8', timeout: 60_000 }));
+const viecTho = (khoa) => { try { const j = JSON.parse(execFileSync('ssh', [BOX, 'cd /opt/cty && CTY_DATA_DIR=/var/lib/cty node worker/tho-may-viec.mjs --xem'], { encoding: 'utf8', timeout: 60_000 }));
   const v = (j.hang ?? []).filter((x) => x.khoa === khoa).pop(); if (!v) return 'chưa giao Mạnh';
   return { cho: `Mạnh chưa nhận (đang chờ lượt; hôm nay đã dùng ${j.ngay?.[hom] ?? 0}/6)`, dang: 'Mạnh đang sửa', xong: `Mạnh đã sửa: ${(v.ket_qua ?? '').replace(/\s+/g, ' ').slice(0, 160)}`, ket: `Mạnh bó tay (${v.ket}): ${(v.ket_qua ?? '').replace(/\s+/g, ' ').slice(0, 160)}`, treo: 'Mạnh treo quá giờ' }[v.tt] ?? v.tt; }
   catch (e) { return `không đọc được hàng Mạnh: ${e.message.split('\n')[0]}`; } };

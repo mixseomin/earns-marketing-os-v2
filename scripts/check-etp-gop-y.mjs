@@ -19,7 +19,16 @@
 import { readFileSync } from 'node:fs';
 
 // danh sách điều kiện nằm trong app etp (apps/etp/gop-y-luat.mjs, anh 10/11/2026) — tệp này chỉ còn máy chấm
-import { LUAT, V } from '../apps/etp/gop-y-luat.mjs';
+import { LUAT as TAT_CA, V } from '../apps/etp/gop-y-luat.mjs';
+
+// LUẬT TRÊN MÃ cty (apps/cty/… — máy Ethopex nằm trong worker cty) — cty tách repo riêng 18/11/2026 (github.com/mixseomin/cty). Luật vẫn MỘT chỗ ở đây,
+// nhưng chấm ở đâu có mã thật: monorepo bỏ qua các luật apps/cty/*; GHA của repo cty chạy chính tệp này với --chi-cty + LUAT_GOC_CTY=<gốc repo cty>
+// (đường apps/cty/x → <gốc cty>/x). Không bao giờ âm thầm bỏ: lượt monorepo in rõ số luật chuyển sang cty.
+const CTY_PREFIX = 'apps/cty/', CHI_CTY = process.argv.includes('--chi-cty'), GOC_CTY = process.env.LUAT_GOC_CTY;
+if (CHI_CTY && !GOC_CTY) { console.error('✗ --chi-cty cần LUAT_GOC_CTY=<gốc repo cty>'); process.exit(1); }
+const laCty = (l) => l.tep.startsWith(CTY_PREFIX);
+const LUAT = (CHI_CTY ? TAT_CA.filter(laCty) : TAT_CA.filter((l) => !laCty(l))).map((l) => (CHI_CTY ? { ...l, tep: `${GOC_CTY}/${l.tep.slice(CTY_PREFIX.length)}` } : l));
+const SANG_CTY = CHI_CTY ? 0 : TAT_CA.length - LUAT.length;
 
 const dem = (s, x) => s.split(x).length - 1;
 const sai = (l, s) => (l.mot != null ? (dem(s, l.mot) === 1 ? null : `cần đúng 1 lần, đang ${dem(s, l.mot)}: ${l.mot}`)
@@ -35,11 +44,12 @@ if (process.argv.includes('--tu-kiem')) {
     if (sai(l, s)) { lot++; console.error(`✗ bản hiện tại đã đỏ: #${l.card} ${l.vi}`); }
   }
   if (lot) process.exit(1);
-  console.log(`✓ check-etp-gop-y tự kiểm: ${LUAT.length} điều kiện, phá thử đều đỏ`);
+  console.log(`✓ check-etp-gop-y tự kiểm${CHI_CTY ? ' (mã cty)' : ''}: ${LUAT.length} điều kiện, phá thử đều đỏ`);
   process.exit(0);
 }
 
 const loi = [];
+if (!CHI_CTY) {   // hai sổ dưới nằm trong web / studio — chỉ monorepo chấm
 // SỔ LUẬT CHUNG phủ mọi danh sách máy luật xuất ra (đọc dòng ra_ = {...} của luat-ethopex.py)
 { const so = JSON.parse(readFileSync('apps/web/src/lib/etp-bang-luat.json', 'utf8')).khoa, src = readFileSync('apps/xuong-video/scripts/ethopex/luat-ethopex.py', 'utf8');
   const dong = src.split('\n').find((l) => l.trimStart().startsWith('ra_ = {"luc"')) ?? '';
@@ -53,9 +63,10 @@ const loi = [];
   for (const k of Object.keys(so.widget)) if (!ve.has(k)) loi.push(`  #chat sổ widget: ${k} chưa có hàm vẽ (ve của <Tong2> trong etp-view.tsx hoặc useVeSo trong etp-tong2-widget.tsx)`);
   for (const k of ve) if (!so.widget[k]) loi.push(`  #chat sổ widget: hàm vẽ ${k} không có trong apps/web/src/lib/etp-widget.json`);
   for (const [t, x] of Object.entries(so.template)) for (const o of x.o) if (!so.widget[o.ma]) loi.push(`  #chat template ${t} dùng widget ngoài sổ: ${o.ma}`); }
+}
 for (const l of LUAT) { const e = sai(l, readFileSync(l.tep, 'utf8')); if (e) loi.push(`  #${l.card || 'chat'} ${l.vi} — ${e}`); }
 if (loi.length) {
   console.error(`✗ góp ý etp đã sửa bị quay về bản cũ (${loi.length}):\n${loi.join('\n')}\n  Sửa mã cho đúng lại — KHÔNG xoá điều kiện trong scripts/check-etp-gop-y.mjs trừ khi anh đổi ý.`);
   process.exit(1);
 }
-console.log(`✓ check-etp-gop-y: ${LUAT.length} điều kiện giữ nguyên`);
+console.log(`✓ check-etp-gop-y${CHI_CTY ? ' (mã cty)' : ''}: ${LUAT.length} điều kiện giữ nguyên${SANG_CTY ? ` · ${SANG_CTY} điều kiện trên mã cty chấm ở GHA repo cty` : ''}`);

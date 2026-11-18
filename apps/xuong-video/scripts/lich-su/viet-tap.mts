@@ -9,6 +9,7 @@ import { z } from 'zod/v4';
 import { sinhJson } from '../../src/lib/xuong-video/claude';
 import { bangChungHook, loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
 import { hoSoTap } from './playlist.mjs';
+import { nhapCty } from '../../src/lib/xuong-video/cty.mjs';
 
 const arg = (k: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : undefined; };
 const ra = process.argv[2], nn = arg('nn') ?? 'en', id = arg('id');
@@ -91,7 +92,7 @@ if (process.argv.includes('--chi-hook')) {
   const cu = cuTap as unknown as { tieu_de: string; chu_de: string; cau: { chu: string }[] };
   const Gan = z.object({ hook_id: z.string(), tieu_de: z.string().describe('hook QC đó SỬA NHẸ cho đúng chuyện này: giữ ≥ 50% chữ gốc, không thêm con số không có trong hook, ≤ 95 ký tự, không gạch dài'),
     mo_ta_dang: z.string().describe(`mô tả YouTube 2–4 câu viết bằng ${nn === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh'} (ngôn ngữ của tập — KHÔNG tiếng Việt), giọng của kênh, không link, không spoil cú chốt`), ly_do: z.string() });
-  const { tuMayTrong } = await import('../../../cty/worker/cham-dang.mjs');
+  const { tuMayTrong } = await nhapCty('worker/cham-dang.mjs');
   let loi = '';
   for (let lan = 1; lan <= 3; lan++) {
     const c = await sinhJson({ schema: Gan, model: 'claude-sonnet-5-5', max_tokens: 1500, ten: 'gắn hook tập lịch sử',
@@ -160,7 +161,7 @@ if (process.argv.includes('--chi-thumb')) {
   const Th = z.object({ chu: z.string().describe(`chữ to trên thumbnail, 2–4 TỪ, VIẾT HOA, ${nn === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh'}, KHÔNG lặp lại tiêu đề mà nói phần tiêu đề chưa nói (con số sốc / lời phán / câu hỏi bỏ ngỏ), giọng lá cải hài của kênh, không gạch dài, không dấu chấm`),
     phu: z.string().describe(`dòng nhỏ kiểu tít báo lá cải ≤ 5 từ, VIẾT HOA (vd "SHOCKING DEAL", "EXCLUSIVE"), ${nn === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh'}`),
     anh: z.number().int().describe('số thứ tự ảnh nền trong danh sách (chủ thể rõ nhất, có mặt người / vật dễ nhận ra ở cỡ nhỏ)'), ly_do: z.string() });
-  const { tuMayTrong } = await import('../../../cty/worker/cham-dang.mjs');
+  const { tuMayTrong } = await nhapCty('worker/cham-dang.mjs');
   let loi = '';
   for (let lan = 1; lan <= 3; lan++) {
     const c = await sinhJson({ schema: Th, model: 'claude-sonnet-5-5', max_tokens: 800, ten: 'chữ thumbnail tập lịch sử',

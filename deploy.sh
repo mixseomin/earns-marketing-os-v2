@@ -206,51 +206,10 @@ if ! cmp -s apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc; 
   cp apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx etp.on.tc cài/cập nhật" \
     || { echo "✗ nginx etp.on.tc: cấu hình lỗi — trả bản cũ"; cp /tmp/etp.on.tc.truoc /etc/nginx/sites-enabled/etp.on.tc && systemctl reload nginx; }
 fi
-# CTY ĐÃ TÁCH REPO (18/11/2026, earns-strategy decisions/2026-11-17-tach-repo-theo-phong.md): /opt/cty (github.com/mixseomin/cty) tự lên bản qua
-# deploy/len.sh của chính nó — monorepo KHÔNG cài lại unit / vhost / .next của cty nữa (cài lại = kéo dịch vụ về apps/cty cũ). Có /opt/cty/.da-len = đã chuyển.
-CTY_RIENG=false; [ -f /opt/cty/.da-len ] && CTY_RIENG=true && echo "↺ cty: repo riêng /opt/cty tự deploy — bỏ qua"
-if [ "$CTY_RIENG" = "false" ]; then
-# 5e. Công ty AI (apps/cty, cổng 3850, mos2-cty.service, cty.on.tc) — app riêng như studio (anh chốt 10/10/2026: dựng để tham quan).
-#     Unit + vhost cài từ repo (deploy/mos2-cty.service, deploy/nginx-cty.conf); idempotent.
-if ! cmp -s deploy/mos2-cty.service /etc/systemd/system/mos2-cty.service; then
-  cp deploy/mos2-cty.service /etc/systemd/system/mos2-cty.service && systemctl daemon-reload && systemctl enable mos2-cty >/dev/null 2>&1 && echo "✓ mos2-cty unit cài/cập nhật"
-fi
-if ! cmp -s deploy/nginx-cty.conf /etc/nginx/sites-enabled/cty.on.tc; then
-  cp deploy/nginx-cty.conf /etc/nginx/sites-enabled/cty.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx cty.on.tc cài/cập nhật" || { echo "✗ nginx cty.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/cty.on.tc; }
-fi
-CTY_CHANGED=false
-# Văn phòng pixel chỉ đọc hồ sơ nhân sự + script bơm + unit của nó → chỉ khởi động lại khi mấy thứ đó đổi
-# (trước đây mọi lần sửa apps/cty đều khởi động lại 2 văn phòng, mỗi cái ~34s → 68s mỗi deploy).
-VP_CHANGED=false
-if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^(apps/cty/cong-ty/nhan-su/|apps/cty/scripts/seed-van-phong\.mjs|deploy/mos2-vp)"; then
-  VP_CHANGED=true
-fi
-if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | node scripts/app-cham.mjs apps/cty; then
-  CTY_CHANGED=true
-fi
-# Dịch vụ nghe Telegram (cty-tg-nghe, chạy liền, nạp worker/*.mjs MỘT lần lúc khởi động) — mã worker đổi mà không khởi động lại thì nút / tin xử bằng mã cũ
-# tới lần restart tay kế (31/10/2026: etp nhắn riêng + tách tin chat riêng nằm im sau deploy). Sổ luật chung etp-bang-luat.json worker cũng nạp lúc khởi động (02/11/2026: thêm T1). Nhịp mỗi phút (cty-nhip.timer) mỗi lần chạy là tiến trình mới — không cần.
-if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^(apps/cty/worker/|apps/web/src/lib/etp-bang-luat\.json)" && systemctl is-enabled cty-tg-nghe >/dev/null 2>&1; then
-  systemctl restart cty-tg-nghe && echo "✓ cty-tg-nghe khởi động lại (worker đổi)"
-fi
-if [ -f apps/cty/.next.new/BUILD_ID ] && ! cmp -s apps/cty/.next.new/BUILD_ID apps/cty/.next/BUILD_ID; then
-  CTY_CHANGED=true
-fi
-if [ -f apps/cty/.next.new/BUILD_ID ] && { [ "$CTY_CHANGED" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || [ ! -f apps/cty/.next/BUILD_ID ]; }; then
-  rm -rf apps/cty/.next.old
-  [ -e apps/cty/.next ] && mv apps/cty/.next apps/cty/.next.old
-  mv apps/cty/.next.new apps/cty/.next
-  rm -rf apps/cty/.next.old
-  systemctl restart mos2-cty; sleep 1
-  systemctl is-active mos2-cty && echo "✓ mos2-cty active" || { echo "✗ mos2-cty failed"; systemctl status mos2-cty --no-pager | tail -20; exit 1; }
-else
-  rm -rf apps/cty/.next.new
-  echo "↺ Cty unchanged — keep running build"
-fi
-
-fi
+# 5e. cty ĐÃ TÁCH REPO RIÊNG (18/11/2026, github.com/mixseomin/cty, earns-strategy decisions/2026-11-17-tach-repo-theo-phong.md): /opt/cty tự lên bản
+#     bằng deploy/len.sh của chính nó (unit, vhost cty / vp / vpthu, .next). Monorepo KHÔNG đụng dịch vụ cty, trừ một việc dưới.
 # cty riêng vẫn NẠP sổ luật chung etp-bang-luat.json của web lúc khởi động cty-tg-nghe (worker/goc.mjs đọc lúc chạy) → web đổi sổ thì khởi động lại nó
-if [ "$CTY_RIENG" = "true" ] && [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^apps/web/src/lib/etp-(bang-luat|dang)\.json" && systemctl is-enabled cty-tg-nghe >/dev/null 2>&1; then
+if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^apps/web/src/lib/etp-(bang-luat|dang)\.json" && systemctl is-enabled cty-tg-nghe >/dev/null 2>&1; then
   systemctl restart cty-tg-nghe && echo "✓ cty-tg-nghe khởi động lại (sổ luật web đổi)"
 fi
 
@@ -271,51 +230,6 @@ if [ -f apps/etp2/.next.new/BUILD_ID ]; then
   systemctl is-active mos2-etp2 && echo "✓ mos2-etp2 active" || { echo "✗ mos2-etp2 failed"; systemctl status mos2-etp2 --no-pager | tail -20; exit 1; }
 else
   echo "↺ etp2 unchanged — keep running build"
-fi
-
-if [ "$CTY_RIENG" = "false" ]; then
-# 5f. Văn phòng pixel (pixel-agents standalone, cổng 3851, mos2-vp.service, vp.on.tc) — gói npm toàn cục, ghim bản; nhân sự bơm
-#     bằng hook giả từ apps/cty/cong-ty (ExecStartPost). Vhost đứng sau auth_request của cty (/api/phien).
-PA_VER=1.4.1
-if [ "$(npm ls -g pixel-agents --depth=0 2>/dev/null | grep -o "pixel-agents@[0-9.]*")" != "pixel-agents@$PA_VER" ]; then
-  npm i -g "pixel-agents@$PA_VER" --no-audit --no-fund >/dev/null 2>&1 && echo "✓ pixel-agents@$PA_VER cài" || echo "✗ pixel-agents cài lỗi — vp.on.tc chưa lên, cty vẫn chạy"
-fi
-if ! cmp -s deploy/mos2-vp.service /etc/systemd/system/mos2-vp.service; then
-  cp deploy/mos2-vp.service /etc/systemd/system/mos2-vp.service && systemctl daemon-reload && systemctl enable mos2-vp >/dev/null 2>&1 && echo "✓ mos2-vp unit cài/cập nhật"
-fi
-if ! cmp -s deploy/nginx-vp.conf /etc/nginx/sites-enabled/vp.on.tc; then
-  cp deploy/nginx-vp.conf /etc/nginx/sites-enabled/vp.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx vp.on.tc cài/cập nhật" || { echo "✗ nginx vp.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/vp.on.tc; }
-fi
-if command -v pixel-agents >/dev/null 2>&1 && { [ "$VP_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-vp; }; then
-  systemctl restart mos2-vp; sleep 1
-  systemctl is-active mos2-vp && echo "✓ mos2-vp active" || { echo "✗ mos2-vp failed (không chặn deploy)"; systemctl status mos2-vp --no-pager | tail -15; }
-fi
-
-# 5g. Proxy đa mô hình của công ty (worker/proxy.mjs, cổng 3862, mos2-cty-proxy.service) — bật 10/10/2026 cho Phòng thử
-#     (anh bấm "Chạy một lượt" mới gọi mô hình; proxy đứng im không tốn gì). Nhật ký lượt ở /var/lib/cty.
-mkdir -p /var/lib/cty/nhat-ky
-if ! cmp -s deploy/mos2-cty-proxy.service /etc/systemd/system/mos2-cty-proxy.service; then
-  cp deploy/mos2-cty-proxy.service /etc/systemd/system/mos2-cty-proxy.service && systemctl daemon-reload && systemctl enable mos2-cty-proxy >/dev/null 2>&1 && echo "✓ mos2-cty-proxy unit cài/cập nhật"
-fi
-if [ "$CTY_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-cty-proxy; then
-  systemctl restart mos2-cty-proxy; sleep 1
-  systemctl is-active mos2-cty-proxy && echo "✓ mos2-cty-proxy active" || { echo "✗ mos2-cty-proxy failed (không chặn deploy)"; systemctl status mos2-cty-proxy --no-pager | tail -10; }
-fi
-
-# 5h. Văn phòng pixel RIÊNG Phòng thử (vpthu.on.tc, :3863, HOME /var/lib/cty/vp-thu) — cùng gói pixel-agents, instance thứ hai.
-if command -v pixel-agents >/dev/null 2>&1; then
-  if ! cmp -s deploy/mos2-vp-thu.service /etc/systemd/system/mos2-vp-thu.service; then
-    cp deploy/mos2-vp-thu.service /etc/systemd/system/mos2-vp-thu.service && systemctl daemon-reload && systemctl enable mos2-vp-thu >/dev/null 2>&1 && echo "✓ mos2-vp-thu unit cài/cập nhật"
-  fi
-  if ! cmp -s deploy/nginx-vpthu.conf /etc/nginx/sites-enabled/vpthu.on.tc; then
-    cp deploy/nginx-vpthu.conf /etc/nginx/sites-enabled/vpthu.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx vpthu.on.tc cài/cập nhật" || { echo "✗ nginx vpthu.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/vpthu.on.tc; }
-  fi
-  if [ "$VP_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-vp-thu; then
-    systemctl restart mos2-vp-thu; sleep 1
-    systemctl is-active mos2-vp-thu && echo "✓ mos2-vp-thu active" || { echo "✗ mos2-vp-thu failed (không chặn deploy)"; systemctl status mos2-vp-thu --no-pager | tail -10; }
-  fi
-fi
-
 fi
 
 # 5z. vhost etp.on.tc cài từ repo (có trang "đang cập nhật" tự tải lại khi mos2-web khởi động lại) — chỉ khi tệp đổi

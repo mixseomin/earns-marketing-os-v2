@@ -6,7 +6,8 @@
 //   node apps/xuong-video/scripts/cum-thang.mjs --nhom '(reelshort|dramabox|short drama|full episode)' [--top 25] [--toi-thieu 40] [--thang 30] [--thua 7]
 // Kết quả là TƯƠNG QUAN trên chữ đăng (không phải chữ trên hình) — mỗi cụm phải thử A/B một thay đổi một lần (sổ dạng bài kieu-sx.json) mới thành luật.
 import fs from 'node:fs';
-import { HO_HAO } from '../../cty/worker/cham-dang.mjs';
+import { nhapCty } from '../src/lib/xuong-video/cty.mjs';
+const { HO_HAO } = await nhapCty('worker/cham-dang.mjs');   // mã chấm của cty — repo riêng, nạp lúc chạy (tách 18/11/2026)
 // cụm nằm trong câu hô hào phòng chấm cấm → ghi "CẤM cho Page persona" (11/11/2026: mẹo C "limited" chọn từ bảng này, 3 bài Mia bị SỬA LẠI sau khi dựng)
 const camPersona = (c) => (c.length > 3 && HO_HAO.some((h) => h.includes(c) || c.includes(h)) ? ' · CẤM cho Page persona (phòng chấm chặn)' : '');
 

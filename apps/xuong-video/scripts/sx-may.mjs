@@ -16,7 +16,8 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { LAM, MIET_THI, doanSach, shq } from './sx-bai.mjs';
-import { loiChuPersona } from '../../cty/worker/cham-dang.mjs';
+import { nhapCty } from '../src/lib/xuong-video/cty.mjs';
+const { loiChuPersona } = await nhapCty('worker/cham-dang.mjs');   // mã chấm của cty — repo riêng, nạp lúc chạy (tách 18/11/2026)
 
 const BOX = 'root@167.233.241.16';
 const D = path.dirname(new URL(import.meta.url).pathname);
@@ -250,7 +251,7 @@ const main = async () => {
   }
   if (kho.length) console.log(`cả lượt: ${tien}₫`);
   // nộp Phòng Nội dung chấm — máy đăng chỉ lấy bài DUYỆT
-  try { execFileSync('ssh', [BOX, 'cd /opt/earns-marketing-os-v2/apps/cty && set -a; . /opt/earns-marketing-os-v2/.env.production; set +a; node worker/cham-dang.mjs --chay'], { encoding: 'utf8', timeout: 600_000 }); console.log('đã nộp Phòng Nội dung chấm'); }
+  try { execFileSync('ssh', [BOX, 'cd /opt/cty && set -a; . /opt/earns-marketing-os-v2/.env.production; set +a; node worker/cham-dang.mjs --chay'], { encoding: 'utf8', timeout: 600_000 }); console.log('đã nộp Phòng Nội dung chấm'); }
   catch (e) { console.log(`⚠ chưa chấm được: ${String(e.message).split('\n')[0].slice(0, 160)}`); }
 };
 main().catch((e) => { console.error(`sx-may: ${e.message}`); process.exit(1); });

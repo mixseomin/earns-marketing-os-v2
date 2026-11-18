@@ -58,7 +58,7 @@ function apDeXuat(k, K) {
 
 // HỎNG → GIAO THỢ MÁY (anh 03/11/2026: "thế này mà cho tự chạy … không có ai sửa à?"): xếp việc `kenh:<kênh>|<tập>` vào hàng của Mạnh (apps/cty/may/tho-may.mjs,
 // iMac, mỗi 5 phút) kèm đuôi nhật ký — Mạnh tìm gốc, sửa trong apps/xuong-video, push, chạy lại, trả lời trên Telegram. Trả true khi đã xếp (khoá đang chờ thì không xếp đôi).
-const giaoTho = (k, tap, ra) => { try { return execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2/apps/cty && CTY_DATA_DIR=/var/lib/cty node worker/tho-may-viec.mjs --them 'kenh:${k}|${tap}'`],
+const giaoTho = (k, tap, ra) => { try { return execFileSync('ssh', [BOX, `cd /opt/cty && CTY_DATA_DIR=/var/lib/cty node worker/tho-may-viec.mjs --them 'kenh:${k}|${tap}'`],
   { input: ra.trim().split('\n').slice(-40).join('\n'), encoding: 'utf8', timeout: 60_000 }).trim() === '1'; } catch (e) { console.log(`⚠ không giao được thợ máy: ${e.message.split('\n')[0]}`); return false; } };
 // lam-tap GHI NHẬT KÝ NGAY KHI CHẠY (03/11/2026: spawnSync giữ đầu ra tới cuối lượt → lượt viết hỏng 3 lần không ai đọc được lỗi): đầu ra vào
 // /Users/htuan/.cache/lich-su/<tập>/lam-tap.log (tail -f được), đọc lại vào `stdout` khi xong — bên gọi giữ nguyên cách dùng { status, signal, stdout, stderr }

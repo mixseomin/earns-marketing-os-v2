@@ -1,7 +1,8 @@
 // tự kiểm lucLam (giờ máy làm theo hướng luật): node_modules/.bin/tsx apps/etp2/src/lib/etp-khung.test.mts
 import assert from 'node:assert';
 import { lucLam, KD, congTang, quaCong } from './etp-khung';
-import { congNap } from '../../../cty/worker/ethopex.mjs';   // kiểm chéo cổng nạp sáng: worker ↔ trang
+import { nhapCty } from '../../../xuong-video/src/lib/xuong-video/cty.mjs';
+const { congNap } = await nhapCty('worker/ethopex.mjs');   // kiểm chéo cổng nạp sáng: worker ↔ trang
 const vn = (h: number, m = 0) => Date.UTC(2026, 10, 10, h - 7, m);   // giờ VN ngày 10/11
 const gio = (t: number | null) => (t == null ? null : new Date(t + 7 * 3600_000).toISOString().slice(11, 16));
 const luc = new Date(vn(16, 2)).toISOString();

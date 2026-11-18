@@ -4,7 +4,8 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { uploadToR2 } from '../../src/lib/r2';
-import { xetThumbAi } from '../../../cty/worker/cham-dang.mjs';
+import { nhapCty } from '../../src/lib/xuong-video/cty.mjs';
+const { xetThumbAi } = await nhapCty('worker/cham-dang.mjs');   // mã chấm của cty — repo riêng, nạp lúc chạy (tách 18/11/2026)
 
 const [id, title, tep, chuDe, nguon] = process.argv.slice(2);
 if (!id || !title || !tep) { console.error('xet-thumb.mts <id> "<tiêu đề>" <thumb.jpg>'); process.exit(2); }

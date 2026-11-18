@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { khungLuc, hetKhung, gioVnNay, docHoan, chuLich, lucTang } from './etp-khung';
-import { khungCua, congNap } from '../../../cty/worker/ethopex.mjs';   // kiểm chéo: worker đọc cùng sổ luật khung_doi
+import { nhapCty } from '../../../xuong-video/src/lib/xuong-video/cty.mjs';
+const { khungCua, congNap } = await nhapCty('worker/ethopex.mjs');   // kiểm chéo: worker đọc cùng sổ luật khung_doi
 
 assert.deepStrictEqual([0, 6.9, 7, 14.9, 15, 20.9, 21, 22.5, 23, 23.9].map(khungLuc), ['tang', 'tang', 'sang', 'sang', 'giam', 'giam', 'tang', 'tang', 'tang', 'tang']);   // 05/11/2026 đảo khung: tăng 21–07 (qua nửa đêm) · giảm/tắt 15–21 · nạp sáng 07–15
 assert.strictEqual(hetKhung(3), 7); assert.strictEqual(hetKhung(8), 15); assert.strictEqual(hetKhung(16), 21); assert.strictEqual(hetKhung(21.5), 7); assert.strictEqual(hetKhung(23.2), 7);

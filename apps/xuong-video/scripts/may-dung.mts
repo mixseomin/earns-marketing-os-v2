@@ -36,6 +36,7 @@ import { bucAnh, dsMay, dsVideoDang, ghiDang, ghiNguon, ghiNhatKy, mayTheoMa, na
 import { BO_DUNG } from '../src/lib/xuong-video/mau-dung';
 import { CHU_VIET } from '../src/lib/xuong-video/may-de';
 import { sachHook, cauHook, TRAN_HOOK } from '../src/lib/xuong-video/hook-qc.mjs';
+import { ctyTep, nhapCty } from '../src/lib/xuong-video/cty.mjs';
 
 const a = process.argv.slice(2), lay = (k: string) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] ?? '' : null; };
 const db = getDb(); if (!db) { console.error('thiếu DATABASE_URL'); process.exit(1); }
@@ -160,7 +161,7 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
   // NGỌC LỌC KHO HOOK TRƯỚC KHI SINH (31/10/2026): cùng phép xét của Phòng Nội dung (cham-dang.mjs › xetHookAi — lệch ngách / hứa điều thương hiệu không có),
   // hook bị chặn thì không đưa cho AI viết — sinh ra là bài SỬA LẠI, đốt tiền. Xét 100 hook nhóm chạy lâu nhất (câu đã xét đọc sổ xet-hook.json, không tốn lại) + QC gắn góc; vài đồng một hook.
   {
-    const { xetHookAi, tuMayTrong } = await import('../../cty/worker/cham-dang.mjs');
+    const { xetHookAi, tuMayTrong } = await nhapCty('worker/cham-dang.mjs');
     // hook dùng gần nguyên văn → hook mang cụm từ máy phòng chấm cấm thì bài chắc chắn bị chặn: loại bằng máy trước, không tốn lượt Ngọc
     const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
     // + hook mang CON SỐ tệp sự thật không có (vd "in 2026", "20+ tabs") → Phòng Nội dung chặn chắc (cham-dang luật 8 › soNgoaiSuThat), mà sửa bỏ số thì "sửa quá xa hook gốc":
@@ -200,7 +201,7 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
 /** XÉT HOOK CỦA ĐỀ VỪA VIẾT ĐÚNG NHƯ PHÒNG NỘI DUNG (cham-dang.mjs › chamMoi: cùng nhãn xv_may.ten, mục đích, tệp sự thật, dòng = dongHookBai(tiêu đề, đề)) → cùng khoá sổ
  *  xet-hook.json, nên lúc chấm đọc lại đúng kết luận này thay vì hỏi Ngọc lần nữa rồi lật (ratesbyroom 12/11/2026). Bài viết (loai 'bai') / không hook thì không xét. Vài đồng một đề. */
 async function xetHookNhuCham(ma: string) {
-  const { xetHookAi } = await import('../../cty/worker/cham-dang.mjs');
+  const { xetHookAi } = await nhapCty('worker/cham-dang.mjs');
   const { dongHookBai } = await import('../src/lib/xuong-video/hook-qc.mjs');
   const r = ((await db.execute(sql`SELECT ten, muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { ten: string; muc_dich: string | null }[])[0];
   const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
@@ -570,7 +571,7 @@ if (a.includes('--nap')) {
       ].filter(Boolean).join('\n');
       const khoa = `dang:${sau ? 'sau' : 'lo'}|${x.ma}|${x.nen}`;
       const { execFileSync } = await import('node:child_process'), path = await import('node:path');
-      const n = execFileSync(process.execPath, [path.resolve(process.cwd(), '../cty/worker/tho-may-viec.mjs'), '--them', khoa], { input: chu, encoding: 'utf8', timeout: 20_000,
+      const n = execFileSync(process.execPath, [ctyTep('worker/tho-may-viec.mjs'), '--them', khoa], { input: chu, encoding: 'utf8', timeout: 20_000,
         env: { ...process.env, CTY_DATA_DIR: process.env.CTY_DATA_DIR || '/var/lib/cty' } }).trim().split('\n').pop();
       console.log(`· ${khoa}: ${n === '1' ? 'giao thợ máy Mạnh' : 'đã có việc cùng khoá đang chờ / đang làm'}`);
     } catch (e) { console.error(`⚠ không giao được thợ máy cho lượt #${id}: ${String((e as Error).message).split('\n')[0]}`); }

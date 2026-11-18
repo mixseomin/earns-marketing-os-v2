@@ -4,6 +4,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLamMoiKhi } from './lam-moi';
+import { ChonTim } from './chon-tim';
 
 export type LocNS = { q: string; phong: string; loai: string; tt: string; nhom: boolean };
 export const LOAI_NS = { cli: 'Kỹ sư CLI', cong: 'Qua cổng AI', api: 'Gọi API', nguoi: 'Người thật' } as const;
@@ -22,15 +23,10 @@ export function LocNhanSu({ loc, phongs, so, tong }: { loc: LocNS; phongs: { id:
   return (
     <div className="cty-loc-ns">
       <input type="search" placeholder="Tìm tên…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Tìm tên" />
-      <select value={loc.phong} onChange={(e) => dat('phong', e.target.value)} aria-label="Lọc phòng">
-        <option value="">Mọi phòng</option>{phongs.map((p) => <option key={p.id} value={p.id}>{p.ten}</option>)}
-      </select>
-      <select value={loc.loai} onChange={(e) => dat('loai', e.target.value)} aria-label="Lọc loại">
-        <option value="">Mọi loại</option>{Object.entries(LOAI_NS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-      </select>
-      <select value={loc.tt} onChange={(e) => dat('tt', e.target.value)} aria-label="Lọc trạng thái">
-        <option value="">Mọi trạng thái</option>{Object.entries(TT_NS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-      </select>
+      {/* góp ý #1669 "Select2 hết": ô chọn có tìm thay select gốc */}
+      <ChonTim value={loc.phong} onChange={(v) => dat('phong', v)} nhan="Lọc phòng" tatCa="Mọi phòng" options={phongs.map((p) => ({ v: p.id, t: p.ten }))} />
+      <ChonTim value={loc.loai} onChange={(v) => dat('loai', v)} nhan="Lọc loại" tatCa="Mọi loại" options={Object.entries(LOAI_NS).map(([v, t]) => ({ v, t }))} />
+      <ChonTim value={loc.tt} onChange={(v) => dat('tt', v)} nhan="Lọc trạng thái" tatCa="Mọi trạng thái" options={Object.entries(TT_NS).map(([v, t]) => ({ v, t }))} />
       <label className="cty-loc-nhom"><input type="checkbox" checked={loc.nhom} onChange={(e) => dat('nhom', e.target.checked ? 'phong' : '')} /> Chia nhóm theo phòng</label>
       <span className="cty-muted cty-nho">{so === tong ? `${tong} người` : `${so} / ${tong} người`}{coLoc && <> · <button type="button" className="cty-link-nut" onClick={() => { setQ(''); const p = new URLSearchParams(sp.toString()); ['q', 'phong', 'loai', 'tt'].forEach((k) => p.delete(k)); const s = p.toString(); chuyen(() => router.replace(`${pathname}${s ? `?${s}` : ''}`, { scroll: false })); }}>bỏ lọc</button></>}</span>
     </div>

@@ -464,19 +464,19 @@ export function keHoachXuat(o: {
   const coSfx = nhanhSfx.length > 0;
   if (nhanhGiong.length && nhanhNhac.length) {
     // apad: sidechaincompress dừng theo luồng NGẮN hơn — không đệm thì nhạc bị cắt khi câu giọng cuối hết (phim #5: tiếng 53,8s / hình 55,5s).
-    loc.push(`${tron(nhanhGiong, 'giong')}asplit=${coSfx ? 3 : 2}[gm][gsc0]${coSfx ? '[gsc1]' : ''};[gsc0]apad[gsc]${coSfx ? ';[gsc1]apad[gscx]' : ''}`);
+    loc.push(`${tron(nhanhGiong, 'giong')}asplit=${coSfx ? 3 : 2}[gm][gsc0]${coSfx ? '[gsc1]' : ''};[gsc0]apad=whole_dur=${so(giay)}[gsc]${coSfx ? `;[gsc1]apad=whole_dur=${so(giay)}[gscx]` : ''}`);
     loc.push(`${tron(nhanhNhac, 'nhac')}[gsc]sidechaincompress=threshold=0.125:ratio=2:attack=30:release=400[nhacnen]`);
     tangAm.push('[gm]', '[nhacnen]');
   } else if (nhanhGiong.length) {
-    if (coSfx) loc.push(`${tron(nhanhGiong, 'giong')}asplit=2[gm][gsc1];[gsc1]apad[gscx]`); else loc.push(`${tron(nhanhGiong, 'giong')}anull[gm]`);
+    if (coSfx) loc.push(`${tron(nhanhGiong, 'giong')}asplit=2[gm][gsc1];[gsc1]apad=whole_dur=${so(giay)}[gscx]`); else loc.push(`${tron(nhanhGiong, 'giong')}anull[gm]`);
     tangAm.push('[gm]');
   } else tangAm.push(...nhanhNhac);
   // Tiếng hiệu ứng nén MẠNH dưới giọng (3:1, ngưỡng thấp, nhả nhanh): câu đọc luôn rõ, giữa hai câu cú đập vẫn đủ lực.
   if (nhanhSfx.length && nhanhGiong.length) { loc.push(`${tron(nhanhSfx, 'sfx')}[gscx]sidechaincompress=threshold=0.05:ratio=3:attack=5:release=250[sfxnen]`); tangAm.push('[sfxnen]'); }
   else tangAm.push(...nhanhSfx);
   tangAm.push(...nhanhAm);
-  // apad trước atrim: mọi nguồn tiếng hết trước hình (giữ hình kết, không nhạc nền) thì luồng tiếng ngắn hơn luồng hình — phim #3071 tập 3074 19/11/2026: tiếng 44,6 s / hình 51,8 s.
-  if (tangAm.length) loc.push(`${tangAm.join('')}amix=inputs=${tangAm.length}:normalize=0:dropout_transition=0,apad,atrim=0:${so(giay)},loudnorm=I=-14:TP=-1.5:LRA=11[aout]`);
+  // apad trước atrim: mọi nguồn tiếng hết trước hình (giữ hình kết, không nhạc nền) thì luồng tiếng ngắn hơn luồng hình — phim #3071 tập 3074 19/11/2026: tiếng 44,6 s / hình 51,8 s. Đệm CÓ HẠN (whole_dur): apad vô hạn + nhạc nền làm ffmpeg chạy mãi không kết (job 8665 treo 15 phút).
+  if (tangAm.length) loc.push(`${tangAm.join('')}amix=inputs=${tangAm.length}:normalize=0:dropout_transition=0,apad=whole_dur=${so(giay)},atrim=0:${so(giay)},loudnorm=I=-14:TP=-1.5:LRA=11[aout]`);
   else loc.push(`anullsrc=r=48000:cl=stereo,atrim=0:${so(giay)}[aout]`);
   const kichBan = tepChu('loc', loc.join(';\n'));
   const args = ['-y', '-hide_banner', '-loglevel', 'error', ...dauVao, '-/filter_complex', kichBan, '-map', '[vout]', '-map', '[aout]',

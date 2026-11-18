@@ -1306,6 +1306,10 @@ export const LUAT = [
   { card: 1667, tep: 'apps/etp/ethopex_api.py', mot: 'def chon_token(ghi=True):', vi: 'một hàm chọn token đang dùng: Nhà → phiên dự phòng người admin etp (Sơn)' },
   { card: 1667, tep: 'apps/etp/ethopex_api.py', co: 'if not n: ly.append(f"{tn}: không thấy camp tài khoản nhà"); continue', vi: 'phiên dự phòng phải đọc được camp nhà mới được dùng' },
   { card: 1667, tep: 'apps/etp/ethopex_api.py', co: "T_NHA = _q(\"select coalesce(gia_tri->>'nha_token', gia_tri->>'access_token') from xv_khoa_ngoai where ten='ethopex'\") or T", vi: 'T_NHA luôn là token Nhà kể cả khi đang chạy dự phòng' },
+  // etp:token 18/11/2026: chon_token chết ở câu SQL "group by 1" (cột 1 chứa max()) → Postgres báo "aggregate functions are not allowed in GROUP BY",
+  // dong-bo nuốt lỗi → không bao giờ chuyển sang phiên dự phòng Sơn, máy mù vì 401
+  { card: 'etp-token-1811', tep: 'apps/etp/ethopex_api.py', co: "where not nha and nguoi_id is not null group by nguoi_id\")", vi: 'tên người dự phòng gộp theo nguoi_id (không group by cột có hàm gộp)' },
+  { card: 'etp-token-1811', tep: 'apps/etp/ethopex_api.py', cam: "max(nguoi) from etp.tai_khoan where not nha and nguoi_id is not null group by 1", vi: 'câu SQL hỏng làm chon_token chết, mất đường dự phòng' },
   { card: 1667, tep: 'apps/etp/dong-bo.py', co: 'try: TOKEN = EA.chon_token()', vi: 'mỗi lượt đồng bộ chọn lại token TRƯỚC khi đọc access_token' },
   { card: 1667, tep: 'apps/etp/ket-nha.py', co: "'nha_token', $T${sach(vao)}$T$", vi: 'cất token Nhà mới → quay về Nhà ngay, giữ nha_token' },
   { card: 1667, tep: 'apps/cty/worker/ethopex.mjs', co: "select coalesce(gia_tri->>'nha_token', gia_tri->>'access_token') from xv_khoa_ngoai where ten = 'ethopex'", vi: 'báo hạn token NHÀ, không phải phiên dự phòng' },

@@ -81,7 +81,7 @@ def chon_token(ghi=True):
     uid = int(_q("select coalesce(min(nguoi_id), 0) from etp.tai_khoan where nha") or 0)
     nha = g.get("nha_token") or (g.get("access_token") if (jwt_tai(g.get("access_token")) or {}).get("user_id") == uid else None)
     ng = json.loads(_q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_nguoi'") or "{}")
-    ten = dict(l.split("|", 1) for l in _q("select nguoi_id || '|' || max(nguoi) from etp.tai_khoan where not nha and nguoi_id is not null group by 1").splitlines() if "|" in l)
+    ten = dict(l.split("|", 1) for l in _q("select nguoi_id || '|' || max(nguoi) from etp.tai_khoan where not nha and nguoi_id is not null group by nguoi_id").splitlines() if "|" in l)
     adm = set(_q("select distinct nguoi_id from etp.quyen where vai = 'admin' and nguoi_id is not null").split())
     ung = [("nha", "Nhà", nha)] + [(f"nguoi:{k}", ten.get(k, f"người #{k}"), (v or {}).get("access_token"))
                                     for k, v in sorted(ng.items(), key=lambda kv: (kv[0] not in adm, int(kv[0]) if kv[0].isdigit() else 0))]

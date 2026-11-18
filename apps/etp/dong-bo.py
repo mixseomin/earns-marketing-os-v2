@@ -52,10 +52,12 @@ def ghi(bang, rows, khoa_, cot):
     q(f"insert into etp.{bang} ({cs}) select {cs} from jsonb_to_recordset($J${j}$J$::jsonb) as x({dk}) on conflict ({', '.join(khoa_)}) do update set {cap}")
     return len(rows)
 
+import hau_kiem as HK   # hậu kiểm cửa API (anh 18/11/2026) — chụp kho / so sổ etp.cua
 import so_dang as DG   # SỔ DẠNG một nơi (apps/web/src/lib/etp-dang.json) — dạng đọc từ tên camp: DG.theo_ten (nhãn dài khớp trước)
 def main():
     day_du = "--day-du" in sys.argv
     lan = q("insert into etp.dong_bo default values returning lan"); loi = []; kq = {"so_camp": 0, "so_chi_tiet": 0, "so_dong_ngay": 0}
+    hk_cu = hk_ds = None   # hậu kiểm cửa (hau_kiem.py): chụp kho giữa lượt, so cuối lượt
     nay = dt.datetime.now(dt.timezone.utc).date()
     if TOKEN.get("nguon") in ("het", "?"): loi.append(f"token Ethopex: không còn token dùng được ({TOKEN.get('loi')}) — etp2 bấm 🔑 Sửa token")
     # ── LỊCH GIỜ (anh 25/10/2026): bật / tắt camp theo thể loại × khung giờ VN — chạy ĐẦU lượt cho đúng giờ (lượt đồng bộ dài vài phút); lỗi không chặn đồng bộ
@@ -109,6 +111,9 @@ def main():
         except Exception as e: loi.append(f"tai_khoan: {e}")
         # TRẠNG THÁI + NGÂN SÁCH của MỌI camp từ danh sách mỗi lượt (26/10/2026: lệnh bật / tắt / đổi ngân sách qua API control KHÔNG đổi updated_at → camp không
         # vào nhánh "đổi" bên dưới, kho giữ ACTIVE cũ cho camp đã tắt; lượt lịch giờ 12h sẽ ghi camp vừa tắt theo T7 vào sổ lịch rồi 20h bật lại)
+        # HẬU KIỂM CỬA (anh 18/11/2026, lớp 3): chụp kho TRƯỚC khi ghi trạng thái / ngân sách mới — cuối lượt so với sổ cửa etp.cua (apps/etp/hau_kiem.py)
+        try: HK.dam_bao_bang(q); hk_cu = HK.chup(q); hk_ds = ds
+        except Exception as e: loi.append(f"hau_kiem chụp: {e}")
         _tt = json.dumps([{"id": c["id"], "tt": c.get("state"), "ns": c.get("budget_daily"), "cl": c.get("source_bidding_strategy")} for c in ds])   # + chiến lược thầu (cột la_roas, 02/11/2026)
         q(f"""update etp.camp c set trang_thai = x.tt, ngan_sach = coalesce(x.ns, c.ngan_sach), chien_luoc = coalesce(x.cl, c.chien_luoc), cap_nhat = now() from jsonb_to_recordset($J${_tt}$J$::jsonb) as x(id int, tt text, ns numeric, cl text)
             where c.camp_id = x.id and (c.trang_thai is distinct from x.tt or (x.ns is not null and c.ngan_sach is distinct from x.ns) or (x.cl is not null and c.chien_luoc is distinct from x.cl))""")
@@ -430,6 +435,10 @@ def main():
                   as x(luc timestamptz, viec text, camp_id int, goc int, truoc text, sau text, ok boolean, loi text, luat text, ai text)
                   on conflict do nothing""")   # KHÔNG CHÉP LẠI: khoá etp_nhat_ky_mot_dong (0392, nulls not distinct, gồm câu lỗi) — trước đó khoá coi NULL là khác nhau, dòng lỗi bị chép lại mỗi lượt 10 phút (27/10, 01/11/2026)
     except Exception as e: loi.append(f"nhat_ky: {e}")
+    # ── HẬU KIỂM CỬA (sau khi chép nhật ký): camp mới / tăng ngân sách / bật không có dòng cửa cho qua → canh_bao đỏ 'cua_lot' (chỉ đọc + báo, không tắt camp)
+    try:
+        if hk_cu is not None: kq["hau_kiem"] = HK.xet(q, hk_cu, hk_ds, auto=lambda p: EA._goi(p))
+    except Exception as e: loi.append(f"hau_kiem: {e}")
     l_ = "; ".join(loi)[:1000].replace("$L$", "")
     q(f"update etp.dong_bo set xong = now(), so_camp = {kq['so_camp']}, so_chi_tiet = {kq['so_chi_tiet']}, so_dong_ngay = {kq['so_dong_ngay']}, loi = {('$L$' + l_ + '$L$') if loi else 'null'} where lan = {lan}")
     print(json.dumps({**kq, "loi": loi}, ensure_ascii=False))

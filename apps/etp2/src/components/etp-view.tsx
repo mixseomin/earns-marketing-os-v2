@@ -59,6 +59,18 @@ function conCho(ds: ChoAp[], camps: Pick<CampEtpKho, 'camp_id' | 'ngan_sach' | '
 }
 const gioCho = (luc: string) => new Date(luc).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' });
 /** ⏳ cạnh ô ngân sách: lệnh tay đã gửi, kho chưa đổi */
+/** BIỂN LỌT CỬA (anh 18/11/2026 "kiểm soát tuyệt đối", lớp 3): hậu kiểm mỗi lượt đồng bộ (apps/etp/hau_kiem.py) thấy camp mới / tăng ngân sách / bật trên Ethopex
+ *  mà cửa API không cho qua lệnh nào → cảnh báo đỏ bắt đầu bằng hau_kiem.DAU. Biển đỏ đầu trang trong 24 giờ — chỉ báo, máy không tắt camp. */
+function BienLotCua({ canhBao }: { canhBao: { luc: string; muc: string; noi_dung: string }[] }) {
+  const ds = canhBao.filter((c) => c.noi_dung.startsWith('🚨 LỌT CỬA') && Date.now() - Date.parse(c.luc) < 86_400_000);
+  if (!ds.length) return null;
+  return <div style={{ border: '1px solid #f87171', background: 'rgba(248,113,113,.12)', borderRadius: 8, padding: '8px 12px', margin: '0 0 10px', fontSize: 12 }}>
+    <b style={{ color: '#f87171' }}>🚨 {ds.length} thay đổi tăng chi KHÔNG qua cửa máy trong 24 giờ</b> — máy chỉ báo, không tắt camp; xem từng camp:
+    {ds.slice(0, 6).map((c, i) => <div key={i} style={{ marginTop: 3 }}>{new Date(Date.parse(c.luc) + 7 * 36e5).toISOString().slice(11, 16)} · {c.noi_dung.replace(/^🚨 LỌT CỬA: /, '').split(' — ')[0]}</div>)}
+    {ds.length > 6 ? <div style={{ marginTop: 3, color: 'var(--fg-2)' }}>… và {ds.length - 6} dòng nữa ở mục Cảnh báo</div> : null}
+  </div>;
+}
+
 function DauCho({ ds }: { ds?: ChoAp[] }) {
   if (!ds?.length) return null;
   return <span title={`đã gửi, chờ lượt đồng bộ kho (~10 phút):\n${ds.map((x) => `${gioCho(x.luc)} · ${x.chu}`).join('\n')}`} style={{ color: '#f59e0b', fontSize: 11, cursor: 'help' }}>⏳{ds.at(-1)!.viec === 'ns' && ds.at(-1)!.sau != null ? `$${ds.at(-1)!.sau}` : ''}</span>;
@@ -3178,7 +3190,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}@keyframes etpXoay{to{transform:rotate(360deg)}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>
     {/* TRÀN HẾT BỀ NGANG MÀN (anh 29/10/2026 "tại sao màn hình ko tràn hết sang 2 bên"): trước khoá maxWidth 1600 căn giữa — màn 1930px thừa hai lề trống, bảng Cây bị cắt cột phải */}
     <div style={{ padding: hep ? '10px 10px 40px' : '16px 20px 40px' }}>
-      <BienPhanhCho cauHinh={du.cauHinh} /><NhietKeCho cauHinh={du.cauHinh} dinh />
+      <BienPhanhCho cauHinh={du.cauHinh} /><BienLotCua canhBao={du.canhBao} /><NhietKeCho cauHinh={du.cauHinh} dinh />
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0, fontSize: hep ? 16 : 20 }}>ETP · quản lý camp</h1>
         <NhietKeCho cauHinh={du.cauHinh} />

@@ -212,6 +212,101 @@ def _id_cham(duong, body):
     if isinstance(body, dict) and body.get("entity_type") not in (None, "campaign"): return ids
     quet(body); return ids
 
+# ── MỘT CỬA CHO MỌI LỆNH LÀM TĂNG CHI (anh 18/11/2026 "kiểm soát tuyệt đối" — Huy): cổng cong.kiem() tin lời khai của người gọi (anh_bam / roas / ngoai / lenh_anh / tay)
+# → 17/11 dòng phim máy gọi nhan-ban --tay lọt 91 camp qua phanh chợ, 18/11 máy AT ghi ai "anh (chat 05/11/2026: …)" lọt 31 camp. Cửa này nằm ở tầng gọi API
+# (mọi script đi qua api()): ĐỌC VIỆC TỪ CHÍNH LỆNH — tạo camp (POST /campaigns/facebook: ngân sách, bid strategy ROAS, tài khoản đích, camp gốc / camp thay trong tên,
+# phim trong ad) · đổi ngân sách (campaigns/update: so với ngân sách ĐANG CHẠY đọc lại trên Ethopex) · bật (control/batch/bulk status active) — rồi chấm bằng
+# cong.chan_cua (dừng khẩn · ít nước · bảo trì · phanh chợ). Miễn phanh CHỈ khi lệnh mang VÉ thao tác tay hợp lệ (ETP_VE, cong.ve_hop_le) — vé bị đốt lúc gửi.
+# Loại hợp lệ đọc từ VẬT, không từ cờ: bật lại theo LỊCH GIỜ (camp trong etp.lich_tat) · camp THAY bài bị Meta từ chối (tên "(thay N bi tu choi)" + camp N có ad
+# DISAPPROVED đọc lại) · đặt lại ngân sách camp vừa tạo trong cùng tiến trình (_TRAN_TAO — đã chấm lúc tạo) · giảm / tắt luôn qua.
+# Mọi lệnh ghi đi qua (cho qua / chặn / gửi hỏng) ghi một dòng etp.cua — hậu kiểm apps/etp/hau_kiem.py (dong-bo mỗi lượt) so với thay đổi thật trên Ethopex.
+class ChanCua(NgoaiNha, ValueError): pass
+_THAY_TEN = re.compile(r"\(thay (\d+) bi tu choi\)\s*$")
+def _js(x):
+    if isinstance(x, str):
+        try: return json.loads(x or "{}")
+        except ValueError: return {}
+    return x or {}
+def _ns_dang(cid):
+    """ngân sách camp ĐANG CHẠY đọc lại trên Ethopex ngay lúc gửi (không tin số người gọi đưa) — None khi không đọc được"""
+    try: c = (_goi(f"/api/v1/campaigns/{int(cid)}", None, 60) or {}).get("campaign") or {}
+    except Exception: return None
+    v = c.get("budget_daily")
+    return float(v) if v not in (None, "") else None
+def _bi_tu_choi(cid):
+    try: d = _goi(f"/api/v1/campaigns/{int(cid)}", None, 60) or {}
+    except Exception: return False
+    return any(a.get("delivery_status") == "DISAPPROVED" or "DISAPPROVED" in str(a.get("error") or "").upper() for g in d.get("ad_groups") or [] for a in g.get("ads") or [])
+def phan_loai(duong, body):
+    """lệnh GHI → danh sách việc đọc TỪ CHÍNH LỆNH: {viec, camp_id, goc, content_id, ns, ns_cu, roas, thay, lich, loai}. [] = không phải lệnh đổi chi / trạng thái."""
+    if body is None or duong.startswith("/api/v1/report"): return []
+    if duong.endswith("/campaigns/facebook") and isinstance(body, dict):
+        cp = body.get("campaign") or {}; sp = _js(cp.get("source_payload"))
+        ten = str(sp.get("name") or body.get("name") or "")
+        goc, m = goc_tu_ten(ten), _THAY_TEN.search(ten)
+        ads = [a for g in cp.get("ad_groups") or [] if isinstance(g, dict) for a in g.get("ads") or [] if isinstance(a, dict)]
+        ct = next((int(a["content_id"]) for a in ads if str(a.get("content_id") or "").isdigit()), None)
+        roas = sp.get("bid_strategy") == "LOWEST_COST_WITH_MIN_ROAS"
+        bai = bool(ads) and all(str(a.get("effective_object_story_id") or "").strip() and a.get("creative_id") is None for a in ads)
+        thay = int(m.group(1)) if m else None
+        return [{"viec": "nhan_ban" if goc else "tao_camp", "camp_id": None, "goc": goc or thay, "thay_id": thay, "content_id": ct, "ns": sp.get("daily_budget"), "roas": roas,
+                 "loai": "roas" if roas else "thang" if re.search(r"\(thang \$", ten) else "bai_cu" if bai else "thay" if thay else None, "ten": ten[:200]}]
+    if duong.endswith("/campaigns/update") and isinstance(body, dict) and isinstance(body.get("campaign"), dict):
+        cp = body["campaign"]; ns = _js(cp.get("source_payload")).get("daily_budget")
+        if ns is None or not str(cp.get("campaign_id") or "").isdigit(): return []
+        cid = int(cp["campaign_id"])
+        if cid in _TRAN_TAO: return [{"viec": "dat_sau_tao", "camp_id": cid, "ns": float(ns), "loai": "dat_sau_tao"}]
+        cu = _ns_dang(cid)
+        return [{"viec": "giam" if cu is not None and float(ns) <= cu else "tang", "camp_id": cid, "ns": float(ns), "ns_cu": cu}]   # không đọc được mức đang chạy → coi là tăng (an toàn trước)
+    if "/control/" in duong:
+        ra = []
+        for x in body if isinstance(body, list) else [body]:
+            if not isinstance(x, dict): continue
+            tt = str(x.get("status") or "").lower(); et = x.get("entity_type") or "campaign"
+            if tt not in ("active", "paused"): continue
+            ids = [int(i) for i in (x.get("entity_ids") or []) if str(i).isdigit()] if et == "campaign" else []
+            if et != "campaign": ra.append({"viec": "bat" if tt == "active" else "tat", "camp_id": None, "loai": f"cap_{et}"}); continue
+            lich = {int(i) for i in _q(f"select camp_id from etp.lich_tat where camp_id in ({','.join(map(str, ids))})").split() if i.isdigit()} if tt == "active" and ids else set()
+            ra += [{"viec": "bat" if tt == "active" else "tat", "camp_id": i, "lich": i in lich, "loai": "lich" if i in lich else None} for i in ids]
+        return ra
+    return []
+def _ghi_cua(l, ok, ly=None, ve=None, camp_id=None):
+    """một dòng etp.cua — lỗi ghi không chặn lệnh (hậu kiểm sẽ thấy thiếu dòng và báo đỏ)"""
+    import sys as _sys
+    try:
+        f = lambda v: "null" if v in (None, "") else (str(float(v)) if isinstance(v, (int, float)) or str(v).replace(".", "", 1).isdigit() else "null")
+        s = lambda v: "null" if v in (None, "") else f"$X${str(v).replace('$', '')[:400]}$X$"
+        cid = camp_id or l.get("camp_id")
+        _q(f"""insert into etp.cua (viec, loai, camp_id, goc, content_id, ns, ns_cu, ve, ok, ly, tep) values ({s(l.get('viec'))}, {s(('tay' if ve else 'may') + (':' + l['loai'] if l.get('loai') else ''))},
+            {int(cid) if cid else 'null'}, {int(l['goc']) if l.get('goc') else 'null'}, {int(l['content_id']) if l.get('content_id') else 'null'}, {f(l.get('ns'))}, {f(l.get('ns_cu'))},
+            {s(ve)}, {'null' if ok is None else ('true' if ok else 'false')}, {s(ly)}, {s(os.path.basename(_sys.argv[0] or '?') + (f' · sửa người #{SUA}' if SUA else ''))})""")
+    except Exception as e: print(f"⚠ cửa API không ghi được sổ etp.cua: {str(e)[:160]}", file=_sys.stderr)
+def cua(duong, body):
+    """chấm mọi việc của lệnh trước khi gửi → [(việc, người bấm của vé | None)] · lệnh có việc bị chặn → ChanCua (không gửi gì). Đốt vé của việc được miễn."""
+    ds = phan_loai(duong, body)
+    if not ds: return []
+    try: ch = CG.doc_cau_hinh()
+    except Exception as e:
+        for l in ds: _ghi_cua(l, False, f"không đọc được etp.cau_hinh: {str(e)[:80]}")
+        raise ChanCua(f"cửa API không đọc được rào chắn etp ({str(e)[:80]}) — chặn cho an toàn")
+    ra = []
+    for l in ds:
+        v = l["viec"]
+        if v not in CG.TANG: ra.append((l, None)); continue
+        ids = [x for x in (l.get("camp_id"), l.get("goc")) if x]
+        ct = l.get("content_id") or (_q(f"select content_id from etp.camp where camp_id = {int(l['goc'])}") or None if l.get("goc") else None)
+        ve = CG.ve_hop_le(v, ids, ct)
+        thay = bool(l.get("thay_id")) and _bi_tu_choi(l["thay_id"])
+        ly = CG.chan_cua(v, ch, l.get("camp_id"), thay=thay, ve=bool(ve), lich=bool(l.get("lich")))
+        if ly:
+            _ghi_cua(l, False, ly)
+            raise ChanCua(f"cửa API chặn {v}{' #' + str(l['camp_id']) if l.get('camp_id') else ''}{' (gốc #' + str(l['goc']) + ')' if l.get('goc') else ''}: {ly}")
+        if ve and not CG.ve_hop_le(v, ids, ct, dung=True, cho=f"{v} {ids or ct}"):   # vé vừa bị lệnh khác đốt → hết miễn: chấm lại như lệnh máy
+            ve, ly = None, CG.chan_cua(v, ch, l.get("camp_id"), thay=thay, ve=False, lich=bool(l.get("lich")))
+            if ly: _ghi_cua(l, False, ly); raise ChanCua(f"cửa API chặn {v}: {ly} (vé đã dùng cho lệnh khác)")
+        ra.append((l, ve))
+    return ra
+
 def api(duong, body=None, timeout=90):
     if isinstance(body, (str, bytes)): body = json.loads(body)
     if XEM and body is not None and not duong.startswith("/api/v1/report"): raise NgoaiNha(f"chế độ xem người #{XEM}: chỉ đọc — không gửi {duong}")
@@ -220,6 +315,7 @@ def api(duong, body=None, timeout=90):
     if body is not None and not duong.startswith("/api/v1/report"):
         vuot = [float(v) for v in re.findall(r'"daily_budget":\s*"?([\d.]+)', json.dumps(body)) if float(v) > CG.TRAN_TUYET]
         if vuot: raise CamNganSach(f"ngân sách ${max(vuot):g} vượt trần tuyệt đối ${CG.TRAN_TUYET:g}/camp (anh 14/11/2026: không bao giờ vượt $30) — không gửi {duong}")
+    lenh = cua(duong, body)   # MỘT CỬA (anh 18/11/2026): mọi lệnh tăng chi / bật chấm trên dữ kiện của chính lệnh — chặn thì ChanCua, không gửi gì
     if duong.startswith("/api/v1/campaigns?") and body is None:
         return {"data": _ds_nha(duong.split("?", 1)[1]) if duong != "/api/v1/campaigns?" else _ds_nha()}
     if duong.startswith("/api/v1/report"):
@@ -244,8 +340,10 @@ def api(duong, body=None, timeout=90):
         tk = set(int(x) for x in re.findall(r'"ad_account_id":\s*"?(\d+)', json.dumps(body)))
         if not tk or tk - TK: raise NgoaiNha(f"tạo camp vào tài khoản {sorted(tk - TK) or '?'} không phải tài khoản nhà — không gửi")
         ly, tran = CG.ns_tao(body)   # CAMP MỚI $1 đọc trên CHÍNH payload (mọi tầng campaign + Ad Set), không tin số người gọi khai
-        if ly: raise CamNganSach(ly)
-        d = _goi(duong, body, timeout)   # camp vừa tạo (vào tài khoản nhà) có thể chưa hiện trong danh sách → nhớ id để lệnh sau (tạm dừng / lịch) không bị chặn oan
+        if ly:
+            for l, ve in lenh: _ghi_cua(l, False, ly, ve)
+            raise CamNganSach(ly)
+        d = _gui(duong, body, timeout, lenh)   # camp vừa tạo (vào tài khoản nhà) có thể chưa hiện trong danh sách → nhớ id để lệnh sau (tạm dừng / lịch) không bị chặn oan
         moi = d.get("id") or (d.get("data") or {}).get("id") or (d.get("campaign") or {}).get("id") if isinstance(d, dict) else None
         if moi and str(moi).isdigit(): _TAO.add(int(moi)); _TRAN_TAO[int(moi)] = tran
         return d
@@ -259,13 +357,55 @@ def api(duong, body=None, timeout=90):
         # camp vừa tạo chưa kịp vào danh sách đã nạp → đọc lại một lần
         global _NHA; _NHA = None; ngoai = [i for i in ngoai if i not in camp_nha()]
     if ngoai and body is not None: raise NgoaiNha(f"camp {sorted(ngoai)[:5]} không thuộc tài khoản nhà (bộ 1/2/3) — không gửi lệnh (camp ngoài chỉ để xem / học)")
-    return _goi(duong, body, timeout)
+    return _gui(duong, body, timeout, lenh) if body is not None else _goi(duong, body, timeout)
+
+def _gui(duong, body, timeout, lenh):
+    """gửi lệnh GHI + ghi sổ cửa etp.cua cho mọi việc của lệnh (cho qua và đã gửi / gửi hỏng); camp vừa tạo ghi id mới"""
+    try: d = _goi(duong, body, timeout)
+    except Exception as e:
+        for l, ve in lenh: _ghi_cua(l, None, f"gửi hỏng: {str(e)[:200]}", ve)
+        raise
+    moi = (d.get("id") or (d.get("data") or {}).get("id") or (d.get("campaign") or {}).get("id")) if isinstance(d, dict) and isinstance(d.get("data") or {}, dict) else None
+    for l, ve in lenh: _ghi_cua(l, True, None, ve, camp_id=moi if l["viec"] in ("tao_camp", "nhan_ban") and str(moi or "").isdigit() else None)
+    return d
 
 if __name__ == "__main__" and "--chon-token" in os.sys.argv:   # chọn lại token đang dùng (etp2 nút 🔑 / dong-bo mỗi lượt): một dòng JSON, không in token
     print(json.dumps(chon_token(), ensure_ascii=False)); raise SystemExit(0)
 if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
-    # CAMP MỚI $1 Ở CỔNG (phá thử, KHÔNG gửi gì lên Ethopex — mọi ca đều phải bị chặn trước khi gửi)
     tk0 = sorted(TK)[0]
+    # MỘT CỬA (anh 18/11/2026) — phá thử với _goi GIẢ (không lệnh nào tới Ethopex) + phanh chợ giả: lệnh máy (kể cả ★ ROAS, kể cả mang chữ "anh (chat …)") bị chặn,
+    # lệnh mang vé qua và vé bị đốt; giảm / tắt luôn qua; mã vé giả (không phải vé thật trong etp.ve_tay) không miễn
+    import datetime as _dt
+    _bay = (_dt.datetime.now(_dt.timezone.utc) + _dt.timedelta(hours=6)).isoformat()
+    _goc_goi, _goc_ch, _goc_ve, _goc_ghi, _gui_that = _goi, CG.doc_cau_hinh, CG.ve_hop_le, _ghi_cua, []
+    def _gia(d, b=None, t=90):
+        if b is not None: _gui_that.append(d); return {"id": 999999990}
+        return {"campaign": {"budget_daily": 5}, "ad_groups": []}
+    _so = []
+    globals().update(_goi=_gia, _ghi_cua=lambda l, ok, ly=None, ve=None, camp_id=None: _so.append((l["viec"], ok, bool(ve))))
+    CG.doc_cau_hinh = lambda: {"phanh_cho": {"phanh": {"den_tang": _bay, "den_len": _bay, "ly_do": "tự kiểm"}}}
+    _pl = lambda ten, **sp: {"name": ten, "ad_account_id": tk0, "campaign": {"source_payload": {"name": ten, "daily_budget": 1, **sp}, "ad_groups": [{"source_payload": {}, "ads": [{"content_id": 1, "creative_id": 2}]}]}}
+    try:
+        os.environ["ETP_VE"] = "0" * 32   # mã đúng dạng nhưng không có trong etp.ve_tay → không miễn
+        for ten, sp in (("dp1 X EN - creative #2", {}), ("X (nhan ban 1 cua 65110)", {}), ("★ ROAS 1 · X roas 1 duplicate by 65110", {"bid_strategy": "LOWEST_COST_WITH_MIN_ROAS"})):
+            try: api("/api/v1/campaigns/facebook", _pl(ten, **sp)); raise SystemExit(f"LỌT PHANH: máy tạo '{ten}'")
+            except ChanCua as e: assert "PHANH CHỢ" in str(e), e
+        _TAO.add(999999997)
+        try: api("/api/v1/campaigns/update", {"campaign": {"campaign_id": 999999997, "source_payload": {"daily_budget": 9}}}); raise SystemExit("LỌT PHANH: máy tăng $5 → $9")
+        except ChanCua: pass
+        assert not _gui_that, f"cửa để lọt lệnh tới Ethopex: {_gui_that}"
+        api("/api/v1/campaigns/update", {"campaign": {"campaign_id": 999999997, "source_payload": {"daily_budget": 3}}})   # giảm luôn qua
+        api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [999999997], "status": "paused"}])   # tắt luôn qua
+        _dot = []
+        CG.ve_hop_le = lambda viec, ids=(), ct=None, dung=False, cho="", ma=None: (_dot.append((viec, tuple(ids), ct)) if dung else None) or "anh (tự kiểm)"
+        api("/api/v1/campaigns/update", {"campaign": {"campaign_id": 999999997, "source_payload": {"daily_budget": 9}}})
+        api("/api/v1/campaigns/facebook", _pl("X (nhan ban 1 cua 65110)"))
+        assert any(v == "tang" and 999999997 in i for v, i, _c in _dot) and any(v == "nhan_ban" and 65110 in i for v, i, _c in _dot), f"vé phải bị đốt lúc gửi: {_dot}"
+        assert len(_gui_that) == 4 and ("tang", True, True) in _so and ("tang", False, False) in _so, (_gui_that, _so)
+        print("chặn đúng: một cửa — phanh chặn lệnh máy (camp mới / nhân bản / ★ ROAS / tăng), vé tay qua + bị đốt, giảm / tắt qua, sổ etp.cua ghi đủ")
+    finally:
+        globals().update(_goi=_goc_goi, _ghi_cua=_goc_ghi); CG.doc_cau_hinh, CG.ve_hop_le = _goc_ch, _goc_ve; _TAO.discard(999999997); os.environ.pop("ETP_VE", None)
+    # CAMP MỚI $1 Ở CỔNG (phá thử, KHÔNG gửi gì lên Ethopex — mọi ca đều phải bị chặn trước khi gửi)
     for ns, g in ((3, {}), (1, {"daily_budget": 3})):
         pl = {"name": "TU KIEM", "ad_account_id": tk0, "campaign": {"source_payload": {"name": "TU KIEM", "daily_budget": ns}, "ad_groups": [{"source_payload": g}]}}
         try: api("/api/v1/campaigns/facebook", pl); raise SystemExit(f"LỌT: tạo camp ngân sách {ns}/{g}")

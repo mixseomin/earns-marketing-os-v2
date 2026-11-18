@@ -12,6 +12,7 @@ import { quyenEtp } from '@/lib/etp-quyen';
 import type { TieuChi } from '@/lib/etp-chan';
 import { chuLich } from '@/lib/etp-khung';
 import { dangChay } from '@/lib/etp-chay';
+import { envVe, xinVeTay } from '@/lib/etp-ve';
 
 export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string; cach: string; gia: string; thoi_gian: string; chay: boolean; khoa?: string;
   vi_du: { creative_id: number; video: string; phim: string | null; lai: number; chi: number }[] };
@@ -274,8 +275,9 @@ export async function lenCampCr(dongId: number, creativeId: number): Promise<{ o
   const ten = `${id > 0 ? `dp${id}` : 'tay'} ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - creative #${cr}`;   // spawn không qua shell — chỉ giữ chữ ASCII cho tên camp
   const dir = `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
   const log = openSync(`/tmp/etp-len-cr-${cr}.log`, 'a');
+  const ve = await xinVeTay('tao_camp', { content: x.content_id, ai: `anh (etp.on.tc ${me.email})` });   // vé thao tác tay (anh 18/11/2026) — phanh chợ chỉ miễn lệnh mang vé
   spawn('python3', ['nhan-ban.py', String(KHUON[lang]), '--tay', '--bo', x.bo ?? '', '--creative', String(cr), '--content', String(x.content_id), '--ten', ten, '--that',   // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026: ngoài 07–12h VN hẹn 07:00 hôm sau)
-    '--luat', `anh bấm lên camp creative #${cr} (etp.on.tc › Sản xuất)`, '--ai', `anh (etp.on.tc ${me.email})`], { cwd: dir, detached: true, stdio: ['ignore', log, log], env: process.env }).unref();
+    '--luat', `anh bấm lên camp creative #${cr} (etp.on.tc › Sản xuất)`, '--ai', `anh (etp.on.tc ${me.email})`], { cwd: dir, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();
   return { ok: true };
 }
 

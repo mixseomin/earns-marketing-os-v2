@@ -201,7 +201,7 @@ def main(a):
             if ly: raise ValueError(ly)
             ly = None if ep else chan_sau_giam(cid)   # đã giảm → tăng lại phải đủ quy trình, mọi đường tăng chung một cổng
             if ly: raise ValueError(ly)
-            ly = CONG.kiem("tang", cid, ns, float(truoc["ns"] or 0), anh_bam=CONG.anh_bam_tu(ai))   # anh bấm tay (etp2 / nút Telegram / chat) → phanh chợ không chặn, chỉ cảnh báo ở trang (anh 16/11/2026)
+            ly = CONG.kiem("tang", cid, ns, float(truoc["ns"] or 0))   # người bấm thật (etp2 / nút Telegram) mang VÉ ETP_VE → phanh chợ không chặn (anh 16/11 + 18/11/2026); chữ --ai không miễn gì
             if ly: raise ValueError(ly)
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": cid, "source_payload": {"daily_budget": ns}}})
             ok = lambda s: float(s["ns"] or 0) == ns

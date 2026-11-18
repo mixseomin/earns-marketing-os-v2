@@ -8,6 +8,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { hetPhienEthopex, quyenCheDo, quyenEtp, suaNguoi } from '@/lib/etp-quyen';
+import { envVe, xinVeTay } from '@/lib/etp-ve';
 
 /** KẾT NỐI ETHOPEX (anh 31/10/2026: "Sơn ko thể sửa camp thông qua api của tao" — token Nhà chỉ được XEM tài khoản người khác):
  *  người tự dán phiên Ethopex của mình (localStorage access_token trên app.ethopex.dev) → sua-ngoai.py ket kiểm (đúng người, còn hạn, thấy camp của mình) rồi cất.
@@ -68,7 +69,8 @@ export async function catTokenEthopex(ai: 'nha' | number, phien: string): Promis
 export type KetSua = { ok: true; truoc: { ns: number | null; tt: string | null }; sau: { ns: number | null; tt: string | null } } | { loi: string };
 
 export async function suaCampNgoai(campId: number, viec: 'ns' | 'bat' | 'tat', ns?: number): Promise<KetSua> {
-  const q = await quyenEtp(await getCurrentUser());
+  const me = await getCurrentUser();
+  const q = await quyenEtp(me);
   const ng = q ? suaNguoi(q) : null;
   if (!ng) return { loi: 'không có quyền sửa camp' };
   if (!Number.isInteger(campId) || campId <= 0 || !['ns', 'bat', 'tat'].includes(viec)) return { loi: 'lệnh không hợp lệ' };
@@ -78,7 +80,9 @@ export async function suaCampNgoai(campId: number, viec: 'ns' | 'bat' | 'tat', n
   if (!cua) return { loi: `camp ${campId} không thuộc tài khoản QC của bạn` };
   const tep = `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/etp/sua-ngoai.py`;   // cùng khuôn LAM ở etp-cham.ts
   const args = [tep, String(ng), viec, String(campId), ...(viec === 'ns' ? [String(ns)] : [])];
-  const ra = await new Promise<string>((ok) => execFile('python3', args, { timeout: 90_000, env: process.env }, (_e, out) => ok(String(out ?? ''))));
+  // VÉ THAO TÁC TAY (anh 18/11/2026): người bấm thật → vé cho đúng camp; tăng / bật trong phanh chợ chỉ qua cửa khi mang vé (giảm thì cửa cho qua, vé không bị đốt)
+  const ve = viec === 'tat' ? null : await xinVeTay(viec === 'bat' ? 'bat' : 'tang', { camp: campId, ai: `${me?.displayName || me?.email || `người #${ng}`} (etp2 sửa camp)` });
+  const ra = await new Promise<string>((ok) => execFile('python3', args, { timeout: 90_000, env: envVe(ve) }, (_e, out) => ok(String(out ?? ''))));
   const dong = ra.trim().split('\n').reverse().find((l) => l.startsWith('{'));
   if (!dong) return { loi: 'máy sửa không trả kết quả' };
   const k = JSON.parse(dong) as { ok?: boolean; loi?: string | null; truoc?: { ns: unknown; tt: unknown }; sau?: { ns: unknown; tt: unknown } };

@@ -164,13 +164,44 @@ def phim_chan_len():
 # dùng LẠI bài đăng của camp gốc (Use existing post, ad chỉ mang effective_object_story_id) được lên tới NS_BAI_CU; mọi camp mới khác vẫn $1.
 NS_BAI_CU = 2
 TRAN_TUYET = 30   # trần tuyệt đối $/camp/ngày (anh 14/11/2026) — kiem() chặn trước mọi miễn trừ
-def anh_bam_tu(ai):
-    """người làm THẬT là anh, ngay lúc này (nút etp2 · nút Telegram · nút etp · lệnh chat đang diễn ra) → phanh chợ không chặn, chỉ cảnh báo.
-    Chữ duyệt ĐỨNG có ngày ("anh (chat 05/11/2026: …)") là MÁY chạy theo luật anh duyệt từ trước, KHÔNG phải bấm tay — 18/11/2026 00:46–12:51 máy lên AT
-    ghi ai "anh (chat 05/11/2026: thêm loại creative ảnh tĩnh…)" nên 31 camp mới lọt phanh (cùng lớp lỗi dòng phim 17/11). Mọi đường gọi cổng dùng hàm này."""
+# VÉ THAO TÁC TAY (anh 18/11/2026 "kiểm soát tuyệt đối" — thay cho chữ ai / cờ anh_bam: 17/11 dòng phim gọi nhan-ban --tay lọt 91 camp, 18/11 máy AT ghi ai
+# "anh (chat 05/11/2026: …)" lọt 31 camp — mọi chữ người gọi tự khai đều giả được). Nút người bấm (etp2 · nút Telegram · nút etp) xin MỘT vé ngay lúc bấm
+# (xin_ve — CHỈ các tệp nút trong VE_XIN được gọi, gop-y-luat.mjs giữ), vé đi qua biến môi trường ETP_VE vào tiến trình làm việc. Cổng chỉ miễn PHANH CHỢ /
+# BẢO TRÌ / TRẦN CAMP TEST khi vé hợp lệ: đúng việc, đúng camp (hoặc camp gốc / phim của lệnh tạo), chưa hết hạn VE_PHUT phút, chưa dùng. Cửa API
+# (ethopex_api.api) đốt vé lúc gửi lệnh — một vé một lệnh. Lỗi đọc vé = không vé (an toàn trước).
+VE_PHUT = int(_BL["mot_cua"]["ve_phut"])   # sổ luật chung mot_cua (anh 18/11/2026)
+assert _BL["mot_cua"]["mien_phanh"] == ["ve_tay"], "phanh chợ chỉ miễn thao tác tay có vé (anh 18/11/2026) — sổ luật mot_cua lệch mã"
+VE_VIEC = {"tang": "tang", "bat": "bat", "nhan_ban": "nhan_ban", "tao_camp": "nhan_ban"}   # tạo camp từ creative = cùng loại vé lên camp
+VE_XIN = ("apps/etp2/src/lib/actions/etp-tay.ts", "apps/etp2/src/lib/actions/etp-dong.ts", "apps/etp2/src/lib/actions/etp-sua.ts", "apps/etp2/src/lib/etp-ve.ts",
+          "apps/web/src/lib/actions/etp-dong.ts", "apps/web/src/lib/actions/etp-sua.ts", "apps/web/src/lib/etp-ve.ts")   # + worker/ethopex.mjs xuNut (nút Telegram) ở repo cty
+def _ma_ve(ma):
     import re
-    a = str(ai or "").strip().lower()
-    return a.startswith("anh") and not re.match(r"anh \(chat \d{1,2}/\d{1,2}", a)
+    ma = str(ma or os.environ.get("ETP_VE") or "").strip()
+    return ma if re.fullmatch(r"[0-9a-f]{32}", ma) else None
+def xin_ve(viec, camp_id=None, content_id=None, ai=""):
+    """vé một lần cho thao tác TAY vừa bấm → mã 32 hex. Chỉ gọi từ đường nút (VE_XIN). camp_id / content_id ít nhất một."""
+    import secrets
+    v = VE_VIEC.get(viec)
+    if not v: raise ValueError(f"vé không cho việc '{viec}' (chỉ {sorted(set(VE_VIEC.values()))})")
+    cid = int(camp_id) if camp_id not in (None, "", "-") else None; ct = int(content_id) if content_id not in (None, "", "-") else None
+    if cid is None and ct is None: raise ValueError("vé phải gắn camp hoặc phim")
+    if not str(ai or "").strip(): raise ValueError("vé phải ghi người bấm")
+    ma = secrets.token_hex(16); a = str(ai).replace("$", "")[:120]
+    _q(f"""insert into etp.ve_tay (ma, viec, camp_id, content_id, ai, het_han) values ('{ma}', '{v}', {cid if cid is not None else 'null'},
+        coalesce({ct if ct is not None else 'null'}, (select content_id from etp.camp where camp_id = {cid if cid is not None else 'null'}),
+                 (select content_id from etp.camp_ngoai where camp_id = {cid if cid is not None else 'null'})), $A${a}$A$, now() + interval '{VE_PHUT} minutes')""")
+    return ma
+def ve_hop_le(viec, camp_ids=(), content_id=None, dung=False, cho="", ma=None):
+    """người bấm (chữ ai của vé) nếu vé ETP_VE hợp lệ cho lệnh này, None nếu không. dung=True: đốt vé (cửa API, lúc gửi)."""
+    ma, v = _ma_ve(ma), VE_VIEC.get(viec)
+    if not ma or not v: return None
+    ids = sorted({int(x) for x in camp_ids or () if str(x).isdigit()})
+    khop = " or ".join(([f"camp_id in ({','.join(map(str, ids))})"] if ids else []) + ([f"content_id = {int(content_id)}"] if content_id not in (None, "") else [])) or "false"
+    dk = f"ma = '{ma}' and viec = '{v}' and da_dung is null and het_han > now() and ({khop})"
+    try:
+        if dung: return _q(f"update etp.ve_tay set da_dung = now(), dung_cho = $C${str(cho).replace('$', '')[:200]}$C$ where {dk} returning ai") or None
+        return _q(f"select ai from etp.ve_tay where {dk}") or None
+    except Exception: return None
 
 def phanh_cho(tt, viec, bay_gio=None, thay=False):
     """hàm thuần: trạng thái etp.cau_hinh.phanh_cho + việc → câu lý do chặn | None (miễn trừ ROAS / lệnh anh / ngoài do kiem() xét)"""
@@ -185,7 +216,34 @@ def phanh_cho(tt, viec, bay_gio=None, thay=False):
         if (rs.get("den") or "") > bay: return f"PHANH MỞ RỘNG: ROI sáng {float(rs.get('roi') or 0):+.0f}%, kém nền {abs(float(rs.get('kem') or 0)):.0f} điểm — dừng mở rộng tới {vn(rs['den'])} giờ VN (sổ luật phanh_cho.roi_sang)"
     return None
 
+def doc_cau_hinh():
+    """etp.cau_hinh {khoá: giá trị JSON} — lỗi đọc thì ném (người gọi chặn cho an toàn)"""
+    return {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
+
+LY_DUNG_KHAN = "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"
+def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False):
+    """PHẦN CỔNG KHÔNG TIN LỜI NGƯỜI GỌI (anh 18/11/2026) — một hàm cho kiem() và cửa API (ethopex_api.api, đọc dữ kiện từ chính lệnh gửi đi):
+    dừng khẩn · camp ít nước / lô team tắt không bật lại · Ethopex bảo trì lên camp · PHANH CHỢ. ch = etp.cau_hinh {khoá: giá trị}.
+    ve = vé thao tác tay hợp lệ (ve_hop_le) — thứ DUY NHẤT miễn phanh / bảo trì. ANH CHỐT 18/11/2026: trong phanh chợ máy KHÔNG còn được miễn ở ★ ROAS
+    (tự lên ROAS, tăng ROAS), camp đội chạy Luật tự động, lệnh chat — chỉ thao tác tay có vé. thay = camp thay bài bị Meta từ chối (thay chỗ, không thêm chi).
+    lich = bật lại camp tạm dừng theo LỊCH GIỜ (etp.lich_tat, apps/etp/lich-gio.py): việc hợp lệ, chỉ dừng khẩn chặn."""
+    if viec not in TANG: return None
+    if ch.get("dung_khan"): return LY_DUNG_KHAN
+    if lich: return None
+    if viec == "bat" and camp_id and str(int(camp_id)) in _q(SQL_IT_NUOC).split(): return LY_IT_NUOC
+    # ETHOPEX BẢO TRÌ LÊN CAMP (anh 17/11/2026: "bên Etho team báo là đang bảo trì việc lên camp nên sẽ dừng tạo camp mới từ giờ đến ít nhất là sáng mai + báo lại"):
+    # etp.cau_hinh.bao_tri_len {bat, tu, ly_do} → MỌI đường máy tạo camp / nhân bản dừng, kể cả ★ ROAS, camp team, bản thang — đứng trước mọi miễn trừ. KHÔNG tự hết hạn:
+    # chỉ tắt khi Ethopex báo lại. Anh bấm tay (có vé) vẫn gửi được (anh 16/11/2026 không chặn thao tác thủ công — Ethopex có thể tự từ chối).
+    bt = ch.get("bao_tri_len") or {}
+    if viec in ("tao_camp", "nhan_ban") and bt.get("bat") and not ve: return f"ETHOPEX BẢO TRÌ LÊN CAMP từ {bt.get('tu') or '?'} — dừng tạo camp / nhân bản tới khi Ethopex báo lại (etp.cau_hinh.bao_tri_len)"
+    # PHANH CHỢ (anh 16/11/2026 "Làm theo đề xuất" — sổ luật phanh_cho, apps/etp/gia_adsense.py xet_phanh chốt 20h VN): không tăng bậc tới den_tang, không tạo camp / nhân bản
+    # tới den_len. ANH BẤM TAY KHÔNG BỊ PHANH (anh 16/11/2026: "mày ko đc chặn với thao tác thủ công. Chỉ được cảnh báo thêm 1 lần nữa") — người bấm thật = có VÉ.
+    ly_pc = phanh_cho(ch.get("phanh_cho"), viec, thay=thay)
+    if ly_pc and not ve: return ly_pc
+    return None
+
 def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False, thay=False, anh_bam=False):
+    """anh_bam: BỎ (18/11/2026) — giữ tham số cho người gọi cũ, KHÔNG còn miễn gì; người bấm thật = vé ETP_VE (ve_hop_le). tay: chỉ còn nghĩa cũ (miễn trùng phim đội, đã bỏ)."""
     if viec not in TANG: return None
     try:
         ct = content_id if content_id is not None else (_q(f"select content_id from etp.camp where camp_id = {int(camp_id)}") or None) if camp_id else None
@@ -199,25 +257,16 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         if ct and viec in ("nhan_ban", "tao_camp"):   # PHIM ĐÃ CẤT (anh 31/10/2026): thử đủ creative + đủ bộ, team không lãi → thôi lên camp mới (apps/etp/cat_phim.py)
             cl = _q(f"select coalesce(thu_ly, '') from etp.phim where content_id = {int(ct)} and thu_vong = 'cat'")
             if cl: return LY_CAT.format(ct, cl)
-        ch = {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
-        if viec == "bat" and camp_id and str(int(camp_id)) in _q(SQL_IT_NUOC).split(): return LY_IT_NUOC
-        if ch.get("dung_khan"): return "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"
-        # ETHOPEX BẢO TRÌ LÊN CAMP (anh 17/11/2026: "bên Etho team báo là đang bảo trì việc lên camp nên sẽ dừng tạo camp mới từ giờ đến ít nhất là sáng mai + báo lại"):
-        # etp.cau_hinh.bao_tri_len {bat, tu, ly_do} → MỌI đường máy tạo camp / nhân bản dừng, kể cả ★ ROAS, camp team, bản thang — đứng trước mọi miễn trừ. KHÔNG tự hết hạn:
-        # chỉ tắt khi Ethopex báo lại. Anh bấm tay vẫn gửi được (anh 16/11/2026 không chặn thao tác thủ công — Ethopex có thể tự từ chối).
-        bt = ch.get("bao_tri_len") or {}
-        if viec in ("tao_camp", "nhan_ban") and bt.get("bat") and not anh_bam: return f"ETHOPEX BẢO TRÌ LÊN CAMP từ {bt.get('tu') or '?'} — dừng tạo camp / nhân bản tới khi Ethopex báo lại (etp.cau_hinh.bao_tri_len)"
+        ch = doc_cau_hinh()
+        # NGƯỜI BẤM THẬT = VÉ (anh 18/11/2026): chỉ vé ETP_VE hợp lệ cho đúng việc + camp / phim này mới miễn phanh / bảo trì / trần camp test — không đọc chữ ai, cờ anh_bam / tay / roas
+        ve = bool(ve_hop_le(viec, [camp_id] if camp_id else (), ct))
         # TRẦN TUYỆT ĐỐI $30 / CAMP (anh 14/11/2026: "Ko bao giờ tăng ngân sách vượt trần $30") — đứng trước mọi miễn trừ (ROAS, A/B, lệnh anh, bản thang):
         # không đường nào trong máy đặt một camp nhà / team quá TRAN_TUYET, kể cả khi tran_camp trong cấu hình bị sửa cao hơn
         if ns_moi is not None and float(ns_moi) > TRAN_TUYET: return f"vượt trần tuyệt đối ${TRAN_TUYET:g}/camp (anh 14/11/2026: không bao giờ vượt $30) — đang gửi ${float(ns_moi):g}"
-        # PHANH CHỢ (anh 16/11/2026 "Làm theo đề xuất" — sổ luật phanh_cho, apps/etp/gia_adsense.py xet_phanh chốt 20h VN): giá AdSense cả chợ khung 07–13h < 85% nền 7 ngày
-        # hoặc ngày trong lịch → không tăng bậc tới den_tang (07:00 sáng hôm sau), không tạo camp / nhân bản tới den_len (hết ngày Ethopex kế). Miễn: camp ★ ROAS,
-        # lệnh anh, camp thay bài bị từ chối (thay), tài khoản người trong team (ngoai). Có hạn, tự hết — khác cờ hoãn đã bỏ 13/11.
-        # ANH BẤM TAY (anh_bam=True) KHÔNG BỊ PHANH (anh 16/11/2026: "mày ko đc chặn với thao tác thủ công. Chỉ được cảnh báo thêm 1 lần nữa") — trang etp2 cảnh báo
-        # ở bước xác nhận, bấm Làm là chạy. anh_bam = người làm THẬT là anh (ai bắt đầu "anh"), KHÔNG đọc cờ tay= — dòng phim của máy gọi nhan-ban --tay
-        # nên 17/11/2026 00:01–00:12 lọt 91 camp mới của lộ trình máy qua phanh. Phanh chỉ chặn lệnh MÁY tự làm.
-        ly_pc = phanh_cho(ch.get("phanh_cho"), viec, thay=thay)
-        if ly_pc and not anh_bam and not roas and not lenh_anh and not ngoai and not (viec == "tang" and camp_id and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") == "1"): return ly_pc
+        # DỪNG KHẨN · ÍT NƯỚC · BẢO TRÌ · PHANH CHỢ — chan_cua (cùng hàm cửa API dùng). Miễn phanh CHỈ bằng vé (anh 18/11/2026); camp thay bài bị từ chối (thay) không bị phanh.
+        # Lịch sử lọt: 17/11 00:01–00:12 dòng phim máy gọi nhan-ban --tay → 91 camp; 18/11 00:46–12:51 máy AT ghi ai "anh (chat 05/11/2026: …)" → 31 camp; ★ ROAS / ngoai / lenh_anh miễn bằng cờ.
+        ly_cua = chan_cua(viec, ch, camp_id, thay=thay, ve=ve)
+        if ly_cua: return ly_cua
         # HOÃN TĂNG THEO GIÁ ADSENSE: ĐÃ BỎ (anh 13/11/2026 "bỏ rule Hoãn đang áp dụng") — giá AdSense tụt không còn chặn tăng / nhân bản; máy đo giá
         # (apps/etp/gia_adsense.py) vẫn đo và vẫn bù giá cho luật cắt camp mới. Tham số thay= giữ cho người gọi cũ (nhan-ban.py --thay), không còn tác dụng.
         if viec == "tang" and not roas and (ch.get("mua_le") or {}).get("khoa_tang"):   # mùa lễ Mỹ (apps/etp/mua_le.py, anh 08/11/2026): Meta học lại đúng tuần giá cao là tốn nhất
@@ -245,8 +294,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         if tc is not None and ns_moi is not None and float(ns_moi) > float(tc): return f"vượt trần ${tc}/camp (etp.cau_hinh.tran_camp)"
         if ngoai: return None
         # TRẦN CAMP TEST MỖI PHIM (anh 18/11/2026, sổ luật tran_test_phim — xem giu_test): mọi đường máy tạo camp / nhân bản (dòng phim, AT, len-sau-cham, nhan-ban, nuôi bộ, thang).
-        # Miễn: anh bấm tay (anh_bam) / lệnh đích danh của anh (lenh_anh) · ★ ROAS (dạng riêng, trần riêng của đợt hồi chợ) · camp thay bài bị Meta từ chối (thay: thay chỗ, không thêm)
-        if ct and viec in ("tao_camp", "nhan_ban") and not anh_bam and not lenh_anh and not roas and not thay:
+        # Miễn: anh bấm tay (vé) / lệnh đích danh của anh (lenh_anh) · ★ ROAS (dạng riêng, trần riêng của đợt hồi chợ) · camp thay bài bị Meta từ chối (thay: thay chỗ, không thêm)
+        if ct and viec in ("tao_camp", "nhan_ban") and not ve and not lenh_anh and not roas and not thay:
             so_t, _on, duoc_t = giu_test(int(ct))
             if not duoc_t: return ly_tran_test(ct, so_t)
         tcm = ch.get(KHOA_TRAN_NGAY)   # TRẦN CAMP MỚI MỖI NGÀY (anh 07/11/2026 chốt 100 camp thử / ngày): đếm camp nhà tạo trong ngày VN, kể cả bản nhân
@@ -332,8 +381,22 @@ def ns_tao(body):
     return None, tran
 
 def _tu_kiem():
-    assert anh_bam_tu("anh (etp2)") and anh_bam_tu("anh (nút Telegram)") and anh_bam_tu("anh (chat)") and anh_bam_tu("anh (etp.on.tc: nút mở rộng ở dòng phim, 04/11)")
-    assert not anh_bam_tu("anh (chat 05/11/2026: thêm loại creative ảnh tĩnh)") and not anh_bam_tu("máy: dòng phim #1") and not anh_bam_tu(None), "duyệt đứng có ngày = máy, không miễn phanh"
+    # PHÁ THỬ MỘT CỬA (anh 18/11/2026): phanh đang chạy → mọi lệnh máy bị chặn bất kể cờ / chữ ai; chỉ vé (ve=True) qua; thay bài bị từ chối qua; dừng khẩn chặn cả vé
+    _bay = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=6)).isoformat()
+    _ch = {"phanh_cho": {"phanh": {"den_tang": _bay, "den_len": _bay, "ly_do": "thử"}}}
+    for _v in ("tang", "nhan_ban", "tao_camp"):
+        assert chan_cua(_v, _ch, ve=False).startswith("PHANH CHỢ"), f"máy {_v} khi phanh phải bị chặn"
+        assert chan_cua(_v, _ch, ve=True) is None, f"vé tay {_v} phải qua phanh"
+    assert chan_cua("nhan_ban", _ch, thay=True) is None and chan_cua("giam", _ch) is None and chan_cua("tat", _ch) is None
+    assert chan_cua("nhan_ban", {**_ch, "dung_khan": True}, ve=True) == LY_DUNG_KHAN and chan_cua("bat", {"dung_khan": True}, lich=True) == LY_DUNG_KHAN, "dừng khẩn chặn cả vé, cả lịch"
+    assert chan_cua("bat", _ch, lich=True) is None, "bật theo lịch giờ là việc hợp lệ"
+    _bt = {"bao_tri_len": {"bat": True, "tu": "x"}}
+    assert chan_cua("tao_camp", _bt).startswith("ETHOPEX BẢO TRÌ") and chan_cua("tao_camp", _bt, ve=True) is None
+    _env = os.environ.pop("ETP_VE", None)
+    assert _ma_ve(None) is None and _ma_ve("anh (chat 05/11/2026: …)") is None and _ma_ve("x" * 32) is None and _ma_ve("0" * 32) == "0" * 32, "vé chỉ là mã 32 hex — chữ ai không phải vé"
+    assert ve_hop_le("tang", [1]) is None and ve_hop_le("giam", [1], ma="0" * 32) is None, "không vé / việc không cần vé → không miễn"
+    if _env: os.environ["ETP_VE"] = _env
+    assert VE_VIEC["tao_camp"] == "nhan_ban" and "tat" not in VE_VIEC
     _u = lambda s: dt.datetime.fromisoformat(s + "+00:00"); _pc = {"phanh": {"den_tang": "2026-11-17T00:00:00+00:00", "den_len": "2026-11-18T00:00:00+00:00", "ly_do": "x"}}
     assert phanh_cho(_pc, "tang", _u("2026-11-16T14:00:00")).startswith("PHANH CHỢ: không tăng bậc tới 07:00 17/11") and phanh_cho(_pc, "tang", _u("2026-11-17T01:00:00")) is None, "tăng chỉ bị chặn tới 07:00 sáng hôm sau"
     assert phanh_cho(_pc, "nhan_ban", _u("2026-11-17T12:00:00")) and phanh_cho(_pc, "tao_camp", _u("2026-11-17T23:59:00")) and phanh_cho(_pc, "tao_camp", _u("2026-11-18T00:00:01")) is None, "tạo camp / nhân bản bị chặn hết ngày Ethopex kế"
@@ -379,6 +442,15 @@ def _tu_kiem():
 if __name__ == "__main__":
     import sys; a = sys.argv[1:]
     if a[:1] == ["--tu-kiem"]: _tu_kiem(); sys.exit(0)
+    if a[:1] == ["--xin-ve"]:   # --xin-ve <tang|bat|nhan_ban|tao_camp> <camp_id|-> <content_id|-> <người bấm> — CHỈ đường nút (VE_XIN) gọi; in mã vé
+        print(xin_ve(a[1], a[2], a[3], " ".join(a[4:]))); sys.exit(0)
+    if a[:1] == ["--tu-kiem-ve"]:   # trên box3: vé thật trong etp.ve_tay (camp giả 999999991, ai 'tự kiểm') — đúng / sai camp, sai việc, đốt hai lần, hết hạn
+        m = xin_ve("tang", 999999991, None, "tự kiểm cong.py"); m2 = xin_ve("nhan_ban", None, 999999992, "tự kiểm cong.py")
+        assert ve_hop_le("tang", [999999991], ma=m) and not ve_hop_le("tang", [999999990], ma=m) and not ve_hop_le("bat", [999999991], ma=m), "vé phải đúng việc + đúng camp"
+        assert ve_hop_le("tao_camp", [], 999999992, ma=m2) and ve_hop_le("nhan_ban", [5], 999999992, ma=m2) and not ve_hop_le("nhan_ban", [5], 1, ma=m2), "vé lên camp khớp phim"
+        assert ve_hop_le("tang", [999999991], dung=True, cho="tự kiểm", ma=m) and not ve_hop_le("tang", [999999991], dung=True, ma=m), "vé chỉ dùng một lần"
+        _q(f"update etp.ve_tay set het_han = now() - interval '1 second' where ma = '{m2}'"); assert not ve_hop_le("nhan_ban", [], 999999992, ma=m2), "vé hết hạn"
+        print("✓ vé thao tác tay: đúng việc / camp / phim, một lần, hết hạn"); sys.exit(0)
     if a[:1] == ["--xem-test"]:   # chỉ đọc: số camp test / phim lãi ổn định / chỗ còn của các phim đang chạy (trần camp test / phim, anh 18/11/2026) — không giữ chỗ
         print(_q(f"""select p.content_id || ' test ' || t.n || ' · lãi ổn định ' || t.on || ' · chỗ còn ' || coalesce({sql_test_con('p.content_id')}::text, 'không trần')
                      from (select distinct content_id from etp.camp where trang_thai = 'ACTIVE' and content_id is not null) p, lateral {_sql_test('p.content_id')} t order by t.n desc, 1 limit {int(a[1]) if len(a) > 1 else 15}""")); sys.exit(0)

@@ -10,6 +10,7 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
+import { envVe, xinVeTay } from '@/lib/etp-ve';
 /** LÚC CAMP NHÂN BẢN THỰC SỰ CHẠY (anh 10/11/2026 "khi nhân bản phải ghi rõ ngày, giờ sẽ thực sự active") — cùng luật nhan-ban.lich_len / chay_luc: trong khung lên → chạy ngay khi đồng bộ xong; ngoài khung → 07:00 VN */
 function chayLuc(now = Date.now()): string {
   const [a, b] = BANG_LUAT.khung_doi.len as [number, number], vn = new Date(now + 7 * 36e5), h = vn.getUTCHours();
@@ -22,8 +23,9 @@ function chayLuc(now = Date.now()): string {
 const DIR = `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
 const AI = 'anh (etp2)';
 const laChu = async () => { const me = await getCurrentUser(); const q = await quyenEtp(me); return !!me && q?.vai === 'chu'; };
-const chay = (args: string[], ms: number) => new Promise<string>((ok) =>
-  execFile('python3', args, { cwd: DIR, timeout: ms, env: process.env, maxBuffer: 8 << 20 }, (e, out, er) => ok(String(out ?? '') + (e && !out ? String(er || e.message) : ''))));
+// ve: vé thao tác tay (anh 18/11/2026) — nút anh bấm xin vé ngay lúc bấm, máy chỉ miễn phanh chợ khi lệnh mang vé (apps/etp/cong.py ve_hop_le)
+const chay = (args: string[], ms: number, ve: string | null = null) => new Promise<string>((ok) =>
+  execFile('python3', args, { cwd: DIR, timeout: ms, env: envVe(ve), maxBuffer: 8 << 20 }, (e, out, er) => ok(String(out ?? '') + (e && !out ? String(er || e.message) : ''))));
 const dongJson = <T,>(ra: string): T | null => { const d = ra.trim().split('\n').reverse().find((l) => l.startsWith('{')); try { return d ? (JSON.parse(d) as T) : null; } catch { return null; } };
 
 export type KetTay = { ok: true; chu: string } | { loi: string };
@@ -57,7 +59,8 @@ export async function campTay(campId: number, viec: 'bat' | 'tat' | 'ns', o: { n
     lenh = [o.ns! > o.nsDang! ? 'tang' : 'giam', String(campId), String(o.ns)];
   } else lenh = [viec, String(campId)];
   const luat = `tay etp2: ${viec === 'ns' ? `$${o.nsDang} → $${o.ns}` : viec === 'tat' ? 'tắt' : 'bật'}${o.ghi ? ` · ${o.ghi.slice(0, 120)}` : ''}${o.ep ? ' · ép' : ''}`;
-  const ra = await chay(['lam-ethopex.py', ...lenh, '--luat', luat, '--ai', AI, ...(o.ep ? ['--ep', '--bo-nhip'] : [])], 170_000);
+  const ve = lenh[0] === 'tang' || lenh[0] === 'bat' ? await xinVeTay(lenh[0] as 'tang' | 'bat', { camp: campId, ai: AI }) : null;   // giảm / tắt không cần vé (luôn qua cửa)
+  const ra = await chay(['lam-ethopex.py', ...lenh, '--luat', luat, '--ai', AI, ...(o.ep ? ['--ep', '--bo-nhip'] : [])], 170_000, ve);
   const k = dongJson<{ ok?: boolean; loi?: string | null; truoc?: { ns: unknown; tt: unknown }; sau?: { ns: unknown; tt: unknown }; lich?: string }>(ra);
   if (!k) return { loi: `máy không trả kết quả: ${ra.trim().slice(-200) || '(trống)'}` };
   if (!k.ok) return { loi: k.loi || 'không làm được' };
@@ -79,7 +82,8 @@ const thamNb = (x: KieuNb): string[] | string => {
 export async function xemNhanBan(campId: number, x: KieuNb): Promise<{ ok: true; chu: string } | { loi: string }> {
   if (!(await laChu())) return { loi: 'chỉ admin mos2 điều khiển camp' };
   const t = thamNb(x); if (typeof t === 'string') return { loi: t };
-  const ra = await chay(['nhan-ban.py', String(campId), '--tay', '--anh', ...t], 120_000);   // --anh: anh bấm tay — máy không chặn bằng luật mềm (10/11/2026)
+  const ve = await xinVeTay('nhan_ban', { camp: campId, ai: AI });   // chạy khô không gửi gì nên không đốt vé — vé tự hết hạn
+  const ra = await chay(['nhan-ban.py', String(campId), '--tay', '--anh', ...t], 120_000, ve);   // --anh: anh bấm tay — máy không chặn bằng luật mềm (10/11/2026), chỉ có nghĩa khi mang vé (18/11/2026)
   const k = dongJson<{ ok?: boolean; loi?: string | null; ten?: string }>(ra);
   if (k && (k.ok === false || k.loi)) return { loi: k.loi || 'máy chặn' };   // chạy khô bị chặn: ok null + loi (vd ĐANG DỪNG LÊN CAMP MỚI)
   return { ok: true, chu: ra.trim().slice(-3000) || '(máy không in gì)' };
@@ -91,8 +95,9 @@ export async function nhanBanTay(campId: number, x: KieuNb, ghi?: string): Promi
   if (!Number.isInteger(campId) || campId <= 0) return { loi: 'camp không hợp lệ' };
   const t = thamNb(x); if (typeof t === 'string') return { loi: t };
   const log = openSync(`/tmp/etp2-nb-${campId}.log`, 'a');
+  const ve = await xinVeTay('nhan_ban', { camp: campId, ai: AI });   // vé thao tác tay (anh 18/11/2026): phanh chợ chỉ miễn lệnh mang vé
   spawn('python3', ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that', '--luat', `tay etp2: nhân bản ${x.kieu} — ANH CHỊU TRÁCH NHIỆM, máy không chặn${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI],
-    { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: process.env }).unref();
+    { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();
   await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ${x.kieu === 'thuong' ? 'thường' : x.kieu === 'thang' ? `thang $${x.ns}` : x.kieu === 'bo' ? `sang bộ ${x.bo}` : `ROAS ${x.roas}`}` });
   return { ok: true, chu: `đã gửi máy nhân bản (anh chịu trách nhiệm — máy không chặn bằng luật, chỉ dừng khẩn) · camp mới ${chayLuc()} · camp hiện sau lượt đồng bộ kế, kết quả ghi nhật ký luật` };
 }

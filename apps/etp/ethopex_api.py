@@ -60,7 +60,58 @@ def khoa_nguoi(ng):
     t = jwt_tai(tok)
     return tok if t and int(t.get("exp") or 0) > time.time() + 60 else None
 
-T_NHA = T
+# T_NHA = phiên CỦA tài khoản Nhà (htuan82) — khác T khi máy đang chạy bằng phiên dự phòng của người team (chon_token, #1667)
+T_NHA = _q("select coalesce(gia_tri->>'nha_token', gia_tri->>'access_token') from xv_khoa_ngoai where ten='ethopex'") or T
+
+def _ghi_stdin(cau):
+    """câu SQL chứa token → psql đọc STDIN (không qua tham số dòng lệnh: ps thấy được)"""
+    r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=cau, capture_output=True, text=True, timeout=30)
+    if r.returncode: raise RuntimeError(r.stderr.strip()[-200:])
+
+def chon_token(ghi=True):
+    """TOKEN ĐANG DÙNG CỦA MÁY — MỘT chỗ chọn (anh 18/11/2026 #1667: "dùng thêm API của Sơn để backup nếu API token của ta bị hết hạn").
+    Mọi script đọc xv_khoa_ngoai['ethopex'].access_token (16 nơi) → hàm này đặt ĐÚNG chuỗi đó, không sửa từng nơi đọc.
+    Thứ tự: token Nhà (nha_token) → phiên Ethopex người team đã cất (ethopex_nguoi, người vai admin etp trước — Sơn). Ứng viên phải còn hạn > 10 phút
+    VÀ đọc được camp tài khoản nhà bằng chính nó (lọc TK như mọi lệnh) — phiên không thấy camp nhà thì không dùng. Không ứng viên nào đạt: giữ nguyên,
+    ghi loi_token để etp2 hiện nút 🔑 Sửa token. Trả {nguon, ten, het, so_camp, loi} (không bao giờ trả / in token)."""
+    import datetime, time
+    global T, _NHA, T_NHA
+    if XEM or SUA: raise RuntimeError("chon_token chỉ chạy ở chế độ Nhà")
+    g = json.loads(_q("select gia_tri::text from xv_khoa_ngoai where ten='ethopex'") or "{}")
+    uid = int(_q("select coalesce(min(nguoi_id), 0) from etp.tai_khoan where nha") or 0)
+    nha = g.get("nha_token") or (g.get("access_token") if (jwt_tai(g.get("access_token")) or {}).get("user_id") == uid else None)
+    ng = json.loads(_q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_nguoi'") or "{}")
+    ten = dict(l.split("|", 1) for l in _q("select nguoi_id || '|' || max(nguoi) from etp.tai_khoan where not nha and nguoi_id is not null group by 1").splitlines() if "|" in l)
+    adm = set(_q("select distinct nguoi_id from etp.quyen where vai = 'admin' and nguoi_id is not null").split())
+    ung = [("nha", "Nhà", nha)] + [(f"nguoi:{k}", ten.get(k, f"người #{k}"), (v or {}).get("access_token"))
+                                    for k, v in sorted(ng.items(), key=lambda kv: (kv[0] not in adm, int(kv[0]) if kv[0].isdigit() else 0))]
+    vn = lambda e: (datetime.datetime.fromtimestamp(e, datetime.timezone.utc) + datetime.timedelta(hours=7)).strftime("%H:%M %d/%m")
+    het = lambda e: datetime.datetime.fromtimestamp(e, datetime.timezone.utc).isoformat() if e else None
+    T0, ly, chon = T, [], None
+    for ma, tn, tok in ung:
+        j = jwt_tai(tok)
+        if not j: ly.append(f"{tn}: chưa có token"); continue
+        if int(j.get("exp") or 0) < time.time() + 600: ly.append(f"{tn}: hết hạn {vn(int(j.get('exp') or 0))}"); continue
+        T, _NHA = tok, None
+        try: n = len(camp_nha())
+        except Exception as e: ly.append(f"{tn}: {str(e)[:160]}"); continue
+        if not n: ly.append(f"{tn}: không thấy camp tài khoản nhà"); continue
+        chon = (ma, tn, tok, int(j["exp"]), n); break
+    T, _NHA = (chon[2] if chon else T0), None
+    nha_het = (jwt_tai(nha) or {}).get("exp")
+    kq = {"nguon": chon[0] if chon else "het", "ten": chon[1] if chon else None, "het": het(chon[3]) if chon else None, "so_camp": chon[4] if chon else 0,
+          "nha_het": het(nha_het), "loi": " · ".join(ly) or None}
+    if ghi:
+        s = lambda x: (x or "").replace("$", "")
+        trang = {"nguon": kq["nguon"], "nguon_ten": kq["ten"], "nguon_het": kq["het"], "nha_het": kq["nha_het"], "loi_token": kq["loi"],
+                 "kiem": datetime.datetime.now(datetime.timezone.utc).isoformat()}
+        cau = f"update xv_khoa_ngoai set gia_tri = gia_tri || $J${json.dumps(trang, ensure_ascii=False).replace('$', '')}$J$::jsonb"
+        if nha: cau += f" || jsonb_build_object('nha_token', $T${s(nha)}$T$)"
+        if chon and chon[2] != g.get("access_token"): cau += f" || jsonb_build_object('access_token', $T${s(chon[2])}$T$), cap_nhat = now()"
+        _ghi_stdin(cau + " where ten = 'ethopex';")
+        if nha: T_NHA = nha
+    return kq
+
 if SUA: T = khoa_nguoi(SUA)   # chế độ sửa: MỌI lệnh đi bằng phiên của chính người đó — Ethopex ghi nhật ký đúng người, quyền đúng người
 
 def _goi(duong, body=None, timeout=90):
@@ -210,6 +261,8 @@ def api(duong, body=None, timeout=90):
     if ngoai and body is not None: raise NgoaiNha(f"camp {sorted(ngoai)[:5]} không thuộc tài khoản nhà (bộ 1/2/3) — không gửi lệnh (camp ngoài chỉ để xem / học)")
     return _goi(duong, body, timeout)
 
+if __name__ == "__main__" and "--chon-token" in os.sys.argv:   # chọn lại token đang dùng (etp2 nút 🔑 / dong-bo mỗi lượt): một dòng JSON, không in token
+    print(json.dumps(chon_token(), ensure_ascii=False)); raise SystemExit(0)
 if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
     # CAMP MỚI $1 Ở CỔNG (phá thử, KHÔNG gửi gì lên Ethopex — mọi ca đều phải bị chặn trước khi gửi)
     tk0 = sorted(TK)[0]

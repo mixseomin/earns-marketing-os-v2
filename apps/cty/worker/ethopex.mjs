@@ -354,7 +354,8 @@ export async function xuNutBang(tg) {
 /** Thuần — loại lỗi của máy luật: 'token' (Ethopex từ chối phiên nhà) · 'tam' (mạng / 5xx — nhịp sau tự đọc lại) · 'may' (lỗi mã, giao Huy) */
 export const loaiLoiLuat = (m) => (/HTTP Error 401|invalid token|UNAUTHORIZED/i.test(String(m)) ? 'token'
   : /không đọc được|HTTP Error 5|timed out|timeout|Connection|ETIMEDOUT|ECONNRESET/i.test(String(m)) ? 'tam' : 'may');
-const CACH_TOKEN = 'Cách lấy lại: một phiên Claude trên iMac (có br, hồ sơ htuan82) mở app.ethopex.dev/profile → ô Token → Copy, rồi chuyền token qua STDIN vào apps/etp/ket-nha.py trên box3 '
+const CACH_TOKEN = 'Cách nhanh: etp2.on.tc → bấm 🔑 Sửa token cạnh dòng lỗi đồng bộ → dán Token ở app.ethopex.dev/profile (Nhà; hoặc phiên của Sơn làm dự phòng — máy tự dùng khi token Nhà hết hạn). '
+  + 'Cách máy: một phiên Claude trên iMac (có br, hồ sơ htuan82) mở app.ethopex.dev/profile → ô Token → Copy, rồi chuyền token qua STDIN vào apps/etp/ket-nha.py trên box3 '
   + '(máy kiểm đúng tài khoản Nhà, còn hạn, đọc được camp rồi mới cất vào xv_khoa_ngoai ten=ethopex; không in token).';
 /** Máy luật không chạy được → xếp Huy theo loại lỗi; token thì báo 📂 Ethopex NGAY lượt xếp đầu (lượt sau cùng khoá đang chờ → không báo lại). Trả số tin đã gửi. */
 async function baoLuatChet(tg, topic, ten, loi) {
@@ -374,7 +375,7 @@ async function baoLuatChet(tg, topic, ten, loi) {
 /** Token nhà là JWT 30 ngày, refresh_token hết CÙNG lúc (đo 18/11/2026) → không làm mới được: báo trước 3 ngày, mỗi ngày một lần, để không mù lần nữa. */
 async function canhHanToken(tg, topic, ten) {
   try {
-    const tok = String(await chayPsql("select gia_tri->>'access_token' from xv_khoa_ngoai where ten = 'ethopex'")).trim();
+    const tok = String(await chayPsql("select coalesce(gia_tri->>'nha_token', gia_tri->>'access_token') from xv_khoa_ngoai where ten = 'ethopex'")).trim();   // hạn token NHÀ, không phải phiên dự phòng đang dùng (#1667)
     const exp = Number(JSON.parse(Buffer.from(tok.split('.')[1] || '', 'base64url').toString() || '{}').exp || 0) * 1000;
     const con = exp - Date.now(); if (!exp || con <= 0 || con > 3 * 864e5) return;
     const tep = path.join(DATA(), 'ethopex-han-token.json'), homNay = new Date(Date.now() + 7 * 36e5).toISOString().slice(0, 10);

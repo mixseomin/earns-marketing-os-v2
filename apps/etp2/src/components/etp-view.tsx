@@ -10,7 +10,7 @@ import BANG_LUAT from '@/lib/etp-bang-luat.json';   // SỔ LUẬT CHUNG — m�
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
 import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Segmented, StatsStrip, usePaged, type DataColumn, type SegmentedOption } from '@/components/ui';
 import { PhamViLuu, useKhoaLuu } from '@/components/ui/table-prefs';
-import { datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/actions/etp-sua';
+import { catTokenEthopex, datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/actions/etp-sua';
 import { campTay, nhanBanTay, xemNhanBan, type ChoAp, type KieuNb } from '@/lib/actions/etp-tay';
 import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import type { TrangPhim } from '@/lib/etp-doc';
@@ -723,6 +723,58 @@ function CheDoLuatO({ nguoiId, c }: { nguoiId: number; c: CheDoLuat }) {
         style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>Nối Telegram</button>) : null}
     {dang ? <span style={{ fontSize: 11, color: '#60a5fa' }}>đang lưu…</span> : loi ? <span style={{ fontSize: 11, color: '#f87171' }}>✕ {loi}</span> : null}
   </span>;
+}
+// SỬA TOKEN ETHOPEX THỦ CÔNG (#1667 anh 18/11/2026 "Cần thêm cơ chế, hướng dẫn để sửa cái này thủ công" + "dùng thêm API của Sơn để backup"):
+// nút 🔑 cạnh dòng lỗi đồng bộ (chỉ chủ). Lành: không hiện gì · chạy bằng phiên dự phòng: chip vàng "🔑 dự phòng: <tên>" · không còn token: nút đỏ.
+// Bấm → hướng dẫn 3 bước + chọn token của Nhà / người admin etp (dự phòng) → catTokenEthopex (máy kiểm đúng tài khoản + còn hạn + đọc được camp rồi mới cất,
+// chọn lại token đang dùng) → chạy một lượt đồng bộ. Chữ phụ (hạn, lý do) gập vào chữ rê.
+function SuaToken({ dongBo }: { dongBo: DuLieuEtp['dongBo'] }) {
+  const router = useRouter();
+  const neo = useRef<HTMLButtonElement>(null);
+  const tk = dongBo?.token ?? null;
+  const [mo, setMo] = useState(false), [ai, setAi] = useState<string>('nha'), [phien, setPhien] = useState(''), [dang, setDang] = useState(false), [kq, setKq] = useState<{ ok: boolean; chu: string } | null>(null);
+  const ngay = (s: string | null | undefined) => (s ? new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—');
+  const loi401 = /\b401\b|Unauthorized|invalid token|không còn token/i.test(dongBo?.loi ?? '');
+  const duPhong = !!tk?.nguon?.startsWith('nguoi:'), chet = tk?.nguon === 'het' || (loi401 && !duPhong);
+  if (!chet && !duPhong) return null;
+  const chuRe = [duPhong ? `Máy đang chạy bằng phiên Ethopex DỰ PHÒNG của ${tk?.ten} (hạn tới ${ngay(tk?.het)}) — lệnh ghi trên camp nhà mang tên người đó trong nhật ký Ethopex.`
+      : 'Ethopex từ chối token — đồng bộ, máy luật, phanh chợ đang mù; máy KHÔNG tăng / tắt camp nào tới khi có token.',
+    `Token Nhà hạn tới ${ngay(tk?.nhaHet)}.`, tk?.loi ? `Lý do: ${tk.loi}` : '', 'Bấm để dán token mới.'].filter(Boolean).join('\n');
+  const gui = async () => {
+    setDang(true); setKq(null);
+    const r = await catTokenEthopex(ai === 'nha' ? 'nha' : Number(ai), phien);
+    setDang(false); setPhien('');
+    if ('loi' in r) { setKq({ ok: false, chu: r.loi }); return; }
+    setKq({ ok: true, chu: `đã cất · thấy ${r.soCamp} camp · hạn tới ${ngay(r.het)} · ${r.dung} · đang kéo số mới…` });
+    await lamMoiEtp(); router.refresh();
+  };
+  const ds = [{ id: 'nha', ten: 'Nhà (htuan82) — token chính' }, ...(tk?.nguoi ?? []).map((n) => ({ id: String(n.id), ten: `${n.ten ?? `#${n.id}`} — dự phòng${n.het && Date.parse(n.het) > Date.now() ? ` (còn hạn tới ${ngay(n.het)})` : ' (hết hạn)'}` }))];
+  return <>
+    <button ref={neo} onClick={() => { setMo((v) => !v); setKq(null); }} title={chuRe}
+      style={{ alignSelf: 'center', fontSize: 11, padding: '1px 8px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap',
+        border: `1px solid ${chet ? '#f87171' : '#facc15'}`, background: chet ? 'rgba(248,113,113,.15)' : 'rgba(250,204,21,.12)', color: chet ? '#fca5a5' : '#fde68a' }}>
+      🔑 {chet ? 'Sửa token' : `dự phòng: ${tk?.ten ?? '?'}`}</button>
+    <AnchoredPopover anchorRef={neo} open={mo} onClose={() => setMo(false)}>
+      <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, width: 330, fontSize: 12, lineHeight: 1.45,
+        background: 'var(--bg-1)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>
+        <div style={{ color: chet ? '#fca5a5' : '#fde68a', fontWeight: 600 }}>{chet ? 'Token Ethopex không dùng được' : `Đang chạy bằng phiên dự phòng của ${tk?.ten}`}</div>
+        <div style={{ color: 'var(--fg-2)' }}>Máy tự dùng token Nhà; Nhà hết hạn thì tự chuyển sang phiên dự phòng còn hạn, có token Nhà mới thì tự quay về.</div>
+        <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--fg-2)' }}>
+          <li>Đăng nhập app.ethopex.dev bằng đúng tài khoản chọn dưới, mở <a href="https://app.ethopex.dev/profile" target="_blank" rel="noreferrer" style={{ color: 'var(--accent, #60a5fa)' }}>Profile</a></li>
+          <li>Ô <b>Token</b> → bấm <b>Copy</b></li>
+          <li>Chọn token của ai, dán vào ô → Cất</li>
+        </ol>
+        <select value={ai} onChange={(e) => setAi(e.target.value)} style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit' }}>
+          {ds.map((d) => <option key={d.id} value={d.id}>{d.ten}</option>)}</select>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input type="password" autoComplete="off" value={phien} onChange={(e) => setPhien(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !dang && phien) gui(); }} placeholder="Token Ethopex"
+            style={{ flex: 1, minWidth: 0, fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit' }} />
+          <button disabled={dang || !phien} onClick={gui} style={{ fontSize: 12, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'inherit', cursor: dang ? 'wait' : 'pointer' }}>Cất</button>
+        </div>
+        {dang ? <span style={{ color: 'var(--fg-2)' }}>đang kiểm token với Ethopex…</span> : kq ? <span style={{ color: kq.ok ? '#4ade80' : '#f87171' }}>{kq.ok ? '✓ ' : '✕ '}{kq.chu}</span> : null}
+      </div>
+    </AnchoredPopover>
+  </>;
 }
 function SuaCamp({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ngan_sach' | 'trang_thai'> }) {
   const router = useRouter();
@@ -3127,6 +3179,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         {/* #1585 anh 13/11/2026 "ko show ngu thế này": dòng chữ phụ 'kho đồng bộ … · ngày Ethopex … · tự làm mới khi số đổi' cạnh tiêu đề GẬP vào chữ rê nút ↻ Làm mới (YDNI);
             chỉ LỖI đồng bộ còn hiện chữ đỏ (lỗi phải kêu to); chế độ chỉ xem không có nút → chữ rê nằm trên ô 🕒 nhỏ */}
         {du.dongBo?.loi ? <span title={du.dongBo.loi} style={{ fontSize: 11, color: '#f87171' }}>lỗi đồng bộ: {du.dongBo.loi.slice(0, 80)}</span> : null}
+        {/* #1667 token Ethopex: nút 🔑 sửa tay (đỏ = không còn token, vàng = đang chạy phiên dự phòng của Sơn) — chỉ chủ */}
+        {quyen?.vai === 'chu' ? <SuaToken dongBo={du.dongBo} /> : null}
         {/* #1586 tuổi số liệu ngay sau tiêu đề (3s / 5m / 1h = bấy lâu trước) — mang luôn chữ rê trạng thái kho, thay ô 🕒 của chế độ chỉ xem */}
         {cumTuoi(hep)}
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}

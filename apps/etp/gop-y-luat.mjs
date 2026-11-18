@@ -1302,4 +1302,11 @@ export const LUAT = [
   { card: 'qua-tai-manh-muc5-1811', tep: 'apps/etp/manh.py', co: 'cr as materialized (select r.content_id, count(*) n from etp.creative r join etp.cham_cong g using (creative_id)', vi: 'dấu cổng muc5 đếm creative MỘT lần gom theo content_id, không subquery tương quan qua view cham_cong mỗi dòng' },
   { card: 'qua-tai-manh-muc5-1811', tep: 'apps/etp/manh.py', cam: 'where r.content_id = d.content_id and r.cta_dat', vi: 'không quay lại đếm creative tương quan từng dòng dừng' },
   { card: 'qua-tai-manh-muc5-1811', tep: 'apps/etp/deploy/etp-manh.service', co: 'Nice=10', vi: 'Mạnh chạy nice 10, nhường CPU cho web / máy luật' },
+  // #1667 anh 18/11/2026: token Nhà hết hạn → máy mù; "dùng thêm API của Sơn để backup" — MỘT chỗ chọn token, mọi script đọc access_token theo
+  { card: 1667, tep: 'apps/etp/ethopex_api.py', mot: 'def chon_token(ghi=True):', vi: 'một hàm chọn token đang dùng: Nhà → phiên dự phòng người admin etp (Sơn)' },
+  { card: 1667, tep: 'apps/etp/ethopex_api.py', co: 'if not n: ly.append(f"{tn}: không thấy camp tài khoản nhà"); continue', vi: 'phiên dự phòng phải đọc được camp nhà mới được dùng' },
+  { card: 1667, tep: 'apps/etp/ethopex_api.py', co: "T_NHA = _q(\"select coalesce(gia_tri->>'nha_token', gia_tri->>'access_token') from xv_khoa_ngoai where ten='ethopex'\") or T", vi: 'T_NHA luôn là token Nhà kể cả khi đang chạy dự phòng' },
+  { card: 1667, tep: 'apps/etp/dong-bo.py', co: 'try: TOKEN = EA.chon_token()', vi: 'mỗi lượt đồng bộ chọn lại token TRƯỚC khi đọc access_token' },
+  { card: 1667, tep: 'apps/etp/ket-nha.py', co: "'nha_token', $T${sach(vao)}$T$", vi: 'cất token Nhà mới → quay về Nhà ngay, giữ nha_token' },
+  { card: 1667, tep: 'apps/cty/worker/ethopex.mjs', co: "select coalesce(gia_tri->>'nha_token', gia_tri->>'access_token') from xv_khoa_ngoai where ten = 'ethopex'", vi: 'báo hạn token NHÀ, không phải phiên dự phòng' },
 ];

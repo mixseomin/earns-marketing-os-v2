@@ -99,10 +99,13 @@ export type TuVan = { nguoi_id: number; nguoi: string; luc: string; du: {
   nen: Record<'tat' | 'tang' | 'roas' | 'nhan', TuVanCamp[]>; dem: Record<'tat' | 'tang' | 'roas' | 'nhan', number>;
   /** dự báo ngày yếu + dây báo động chợ (tu_van.py du_bao, anh 12/11/2026) */
   du_bao?: { muc: 'xanh' | 'vang' | 'do'; ly: string[]; bao_dong: { roi: number; chi: number; toi_gio_vn: string; roi_2h?: number | null; roi_2h_7?: number | null; hoi?: boolean } | null } | null } };
+/** token Ethopex máy đang dùng (#1667): nguon 'nha' | 'nguoi:<id>' (phiên dự phòng của người team) | 'het' (không còn token dùng được) — chỉ chữ trạng thái */
+export type TokenEtp = { nguon: string | null; ten: string | null; het: string | null; nhaHet: string | null; loi: string | null; kiem: string | null;
+  nguoi: { id: number; ten: string | null; het: string | null }[] | null };
 export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt — etp-view tải bù khi tab cần (taiNangEtp) */; luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[]; thuVien: ThuVienMuc[];
   cauHinh: { khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }[];
   nhatKy: { luc: string; viec: string; camp_id: number | null; truoc: string | null; sau: string | null; ok: boolean | null; loi: string | null; luat: string | null; ai: string | null }[];
-  canhBao: { luc: string; muc: string; noi_dung: string; da_gui: string | null }[]; dongBo: { lan: number; bat_dau: string; xong: string | null; so_camp: number | null; loi: string | null } | null;
+  canhBao: { luc: string; muc: string; noi_dung: string; da_gui: string | null }[]; dongBo: { lan: number; bat_dau: string; xong: string | null; so_camp: number | null; loi: string | null; token?: TokenEtp | null } | null;
   theLoai: Record<string, string>;
   /** SỔ A/B (etp.ab, migration 0426): mọi lần A/B đang chạy — ô lọc A/B hiện theo sổ, kể cả khi chưa camp nào mang mã; chỉ Nhà */
   abSo?: { ma: string; ten: string; batDau: string; giaThuyet: string | null; thu: string; doi: string }[];
@@ -435,7 +438,14 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       from etp.nhat_ky n join etp.camp c on c.camp_id = n.camp_id and c.trang_thai <> 'ARCHIVED'
       where n.ok and n.viec in ('tao_camp', 'nhan_ban', 'roas', 'sang_bo', 'tang', 'giam') and n.luc > now() - interval '30 days' order by n.luc`).catch(() => []),
     run<DuLieuEtp['canhBao'][number]>(sql`select luc::text luc, muc, noi_dung, da_gui::text da_gui from etp.canh_bao order by id desc limit 60`),
-    run<NonNullable<DuLieuEtp['dongBo']>>(sql`select lan, bat_dau::text bat_dau, xong::text xong, so_camp, loi from etp.dong_bo where xong is not null order by lan desc limit 1`),
+    // + TOKEN ĐANG DÙNG (#1667): ethopex_api.chon_token ghi nguồn / hạn / lý do vào xv_khoa_ngoai['ethopex'] — chỉ đọc chữ trạng thái, KHÔNG BAO GIỜ đọc chuỗi token
+    run<NonNullable<DuLieuEtp['dongBo']>>(sql`select lan, bat_dau::text bat_dau, xong::text xong, so_camp, loi,
+      (select json_build_object('nguon', k.gia_tri->>'nguon', 'ten', k.gia_tri->>'nguon_ten', 'het', k.gia_tri->>'nguon_het', 'nhaHet', k.gia_tri->>'nha_het', 'loi', k.gia_tri->>'loi_token', 'kiem', k.gia_tri->>'kiem',
+         'nguoi', (select json_agg(json_build_object('id', a.nguoi_id, 'ten', (select max(t.nguoi) from etp.tai_khoan t where t.nguoi_id = a.nguoi_id),
+                   'het', (select n.gia_tri->(a.nguoi_id::text)->>'het' from xv_khoa_ngoai n where n.ten = 'ethopex_nguoi')) order by a.nguoi_id)
+                   from (select distinct nguoi_id from etp.quyen where vai = 'admin' and nguoi_id is not null) a))
+       from xv_khoa_ngoai k where k.ten = 'ethopex') token
+      from etp.dong_bo where xong is not null order by lan desc limit 1`),
     run<{ gia_tri: { the_loai?: Record<string, string> } | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_the_loai_thu'`),
   ]);
   const cs: CampEtpKho[] = camps.map((r) => ({ camp_id: n(r.camp_id), ten: String(r.ten ?? ''), bo: (r.bo as string) ?? null, trang_thai: String(r.trang_thai ?? ''), giao: (r.giao as string) ?? null, ngan_sach: n(r.ngan_sach),

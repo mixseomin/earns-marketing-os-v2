@@ -23,7 +23,46 @@ export async function ketNoiEthopex(phien: string): Promise<{ ok: true; het: str
   const dong = ra.trim().split('\n').reverse().find((l) => l.startsWith('{'));
   if (!dong) return { loi: 'máy kết nối không trả kết quả' };
   const k = JSON.parse(dong) as { ok?: boolean; loi?: string | null; het?: string; so_camp?: number };
+  if (k.ok) await chonToken();   // phiên mới của người admin etp (Sơn) = token dự phòng của máy (#1667): token Nhà đang chết thì máy chuyển sang ngay
   return k.ok && k.het ? { ok: true, het: k.het, soCamp: Number(k.so_camp ?? 0) } : { loi: k.loi || 'không kết nối được' };
+}
+
+const REPO = () => process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2';
+/** chạy python, chuỗi bí mật (nếu có) đi STDIN — không qua tham số / log; trả dòng JSON cuối */
+function chayPy(args: string[], stdin?: string): Promise<Record<string, unknown> | null> {
+  return new Promise((ok) => {
+    const p = execFile('python3', args, { timeout: 120_000, env: process.env }, (_e, out) => {
+      const dong = String(out ?? '').trim().split('\n').reverse().find((l) => l.startsWith('{'));
+      try { ok(dong ? JSON.parse(dong) : null); } catch { ok(null); }
+    });
+    p.stdin?.end(stdin ?? '');
+  });
+}
+/** chọn lại token máy đang dùng (apps/etp/ethopex_api.py chon_token): Nhà còn hạn → Nhà, không thì phiên dự phòng của người team đọc được camp nhà */
+async function chonToken() {
+  const k = await chayPy([`${REPO()}/apps/etp/ethopex_api.py`, '--chon-token']);
+  return k ? { nguon: String(k.nguon ?? ''), ten: (k.ten as string | null) ?? null, loi: (k.loi as string | null) ?? null } : null;
+}
+
+/** SỬA TOKEN THỦ CÔNG (#1667 anh 18/11/2026 "Cần thêm cơ chế, hướng dẫn để sửa cái này thủ công" + "dùng thêm API của Sơn để backup"):
+ *  chủ dán Token (app.ethopex.dev/profile → Copy) cho Nhà (apps/etp/ket-nha.py: đúng tài khoản Nhà, còn hạn, đọc được camp nhà) hoặc cho người admin etp
+ *  làm dự phòng (apps/etp/sua-ngoai.py <id> ket: đúng người, còn hạn). Xong chọn lại token đang dùng rồi trả nguồn máy đang chạy. Trang không đọc lại chuỗi token. */
+export async function catTokenEthopex(ai: 'nha' | number, phien: string): Promise<{ ok: true; het: string; soCamp: number; dung: string } | { loi: string }> {
+  const q = await quyenEtp(await getCurrentUser());
+  if (q?.vai !== 'chu') return { loi: 'chỉ chủ (admin mos2) cất token cho máy' };
+  const chuoi = String(phien ?? '').trim();
+  if (chuoi.length < 40 || chuoi.length > 4000) return { loi: 'chuỗi dán vào không phải token Ethopex' };
+  if (ai !== 'nha') {
+    const la = ((await getDb()!.execute(sql`select 1 from etp.quyen where vai = 'admin' and nguoi_id = ${Number(ai)} limit 1`)) as unknown as unknown[]).length;
+    if (!Number.isInteger(ai) || !la) return { loi: 'người này không phải admin etp — không dùng làm token dự phòng' };
+  }
+  const k = await chayPy(ai === 'nha' ? [`${REPO()}/apps/etp/ket-nha.py`] : [`${REPO()}/apps/etp/sua-ngoai.py`, String(ai), 'ket'], chuoi);
+  if (!k) return { loi: 'máy cất token không trả kết quả' };
+  if (!k.ok || !k.het) return { loi: String(k.loi || 'không cất được token') };
+  const c = await chonToken();
+  const dung = !c ? 'chưa chọn lại được token (lượt đồng bộ kế sẽ chọn)' : c.nguon === 'nha' ? 'máy đang dùng token Nhà'
+    : c.nguon.startsWith('nguoi:') ? `máy đang dùng phiên dự phòng của ${c.ten}` : `chưa có token nào dùng được: ${c.loi ?? '?'}`;
+  return { ok: true, het: String(k.het), soCamp: Number(k.so_camp ?? 0), dung };
 }
 
 export type KetSua = { ok: true; truoc: { ns: number | null; tt: string | null }; sau: { ns: number | null; tt: string | null } } | { loi: string };

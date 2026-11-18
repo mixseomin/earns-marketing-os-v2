@@ -210,6 +210,11 @@ const LUAT = [
   { card: 1613, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'docLichPhim(cid, bo0)', cam: 'docLichPhim(cid).then', vi: 'bảng mở từ một khối nhà đọc số camp của RIÊNG bộ đó, không phải cả phim (anh 15/11/2026)' },
   { card: 1613, tep: 'apps/etp2/src/lib/actions/etp-lich-phim.ts', co: "const B = (a: string) => (bo == null ? sql`true` : sql`coalesce(${sql.raw(a)}.bo::text, '?') = ${bo}`);", vi: 'docLichPhim lọc camp theo bộ qua MỘT điều kiện B()' },
   { card: 1613, tep: 'apps/etp2/src/lib/actions/etp-lich-phim.ts', cam: "from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE'", vi: 'mọi câu đọc camp đang chạy trong docLichPhim đi qua bộ lọc bộ (không còn câu etp.camp trần theo phim)' },
+  { card: 1667, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "{quyen?.vai === 'chu' ? <SuaToken dongBo={du.dongBo} /> : null}", vi: 'nút 🔑 sửa token cạnh dòng lỗi đồng bộ (anh 18/11/2026 "cơ chế, hướng dẫn để sửa thủ công")' },
+  { card: 1667, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'href="https://app.ethopex.dev/profile" target="_blank" rel="noreferrer" style={{ color: \'var(--accent, #60a5fa)\' }}>Profile</a></li>\n          <li>Ô <b>Token</b> → bấm <b>Copy</b></li>\n          <li>Chọn token của ai', vi: 'hướng dẫn 3 bước lấy Token ở Profile ngay trong bảng sửa token' },
+  { card: 1667, tep: 'apps/etp2/src/lib/actions/etp-sua.ts', co: "if (q?.vai !== 'chu') return { loi: 'chỉ chủ (admin mos2) cất token cho máy' };", vi: 'chỉ chủ cất token cho máy' },
+  { card: 1667, tep: 'apps/etp2/src/lib/actions/etp-sua.ts', co: "if (k.ok) await chonToken();", vi: 'Sơn kết nối phiên → máy chọn lại token ngay (dự phòng)' },
+  { card: 1667, tep: 'apps/etp2/src/lib/etp-doc.ts', cam: "k.gia_tri->>'access_token'", vi: 'trang chỉ đọc trạng thái token, không đọc chuỗi token' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },
 ];
 

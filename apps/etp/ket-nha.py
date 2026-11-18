@@ -27,7 +27,9 @@ except Exception as e: ra(ok=False, loi=f"token mới không đọc được Eth
 if not n: ra(ok=False, loi="token mới không thấy camp nào của tài khoản nhà — kiểm lại tài khoản đăng nhập")
 het = datetime.datetime.fromtimestamp(t["exp"], datetime.timezone.utc).isoformat()
 sach = lambda s: s.replace("$", "")
-cau = (f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('access_token', $T${sach(vao)}$T$, 'het', '{het}', 'luc', now())"
+# nha_token + access_token cùng lúc (#1667): máy đang chạy bằng phiên dự phòng của Sơn thì quay về Nhà NGAY, không chờ lượt đồng bộ kế (chon_token)
+cau = (f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('access_token', $T${sach(vao)}$T$, 'nha_token', $T${sach(vao)}$T$, 'het', '{het}', 'nha_het', '{het}',"
+       f" 'nguon', 'nha', 'nguon_ten', 'Nhà', 'nguon_het', '{het}', 'loi_token', null, 'luc', now())"
        + (f" || jsonb_build_object('refresh_token', $T${sach(ref)}$T$)" if ref else "") + ", cap_nhat = now() where ten = 'ethopex';")
 r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=cau, capture_output=True, text=True, timeout=30)   # câu chứa token → STDIN
 if r.returncode: ra(ok=False, loi="không cất được token: " + r.stderr.strip()[-150:])

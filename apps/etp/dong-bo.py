@@ -18,6 +18,10 @@ def q(s, db=DB):
     if r.returncode: raise RuntimeError(r.stderr.strip()[-400:])
     return r.stdout.strip()
 khoa = lambda ten, rong="{}": json.loads(q(f"select coalesce(gia_tri, '{rong}'::jsonb)::text from xv_khoa_ngoai where ten='{ten}'") or rong)
+# TOKEN DỰ PHÒNG (#1667 anh 18/11/2026): mỗi lượt chọn lại token đang dùng TRƯỚC khi đọc — token Nhà hết hạn thì chuyển sang phiên Ethopex của Sơn
+# (đọc được camp nhà mới nhận), Nhà có token mới thì quay về Nhà. Mọi script đọc access_token sau dòng này đều theo.
+try: TOKEN = EA.chon_token()
+except Exception as e: TOKEN = {"nguon": "?", "loi": f"chọn token lỗi: {str(e)[:200]}"}
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
 H = {"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "etp-dong-bo"}
 def api(p, b=None):
@@ -53,6 +57,7 @@ def main():
     day_du = "--day-du" in sys.argv
     lan = q("insert into etp.dong_bo default values returning lan"); loi = []; kq = {"so_camp": 0, "so_chi_tiet": 0, "so_dong_ngay": 0}
     nay = dt.datetime.now(dt.timezone.utc).date()
+    if TOKEN.get("nguon") in ("het", "?"): loi.append(f"token Ethopex: không còn token dùng được ({TOKEN.get('loi')}) — etp2 bấm 🔑 Sửa token")
     # ── LỊCH GIỜ (anh 25/10/2026): bật / tắt camp theo thể loại × khung giờ VN — chạy ĐẦU lượt cho đúng giờ (lượt đồng bộ dài vài phút); lỗi không chặn đồng bộ
     try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lich-gio.py")], capture_output=True, text=True, timeout=300)

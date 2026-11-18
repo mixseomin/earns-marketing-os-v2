@@ -15,6 +15,19 @@ export const CHANG_VIDEO: Record<VideoKenh['trangThai'], { chu: string; mau: str
   sua_lai: { chu: 'SỬA LẠI', mau: 'var(--bad)' }, da_dang: { chu: 'đã đăng', mau: 'var(--ok)' },
 };
 const ytId = (u: string | null) => u?.match(/(?:youtu\.be\/|v=|shorts\/)([\w-]{11})/)?.[1] ?? null;
+// Tên nền tảng lấy từ CHÍNH link (góp ý #1682: bài Page Facebook mà nút ghi "YouTube") — không đoán theo kênh.
+const tenNen = (u: string) => {
+  let h = '';
+  try { h = new URL(u).hostname.replace(/^(www|m)\./, ''); } catch { /* link hỏng → chữ chung */ }
+  if (/(^|\.)(youtube\.com|youtu\.be)$/.test(h)) return 'YouTube';
+  if (/(^|\.)(facebook\.com|fb\.watch|fb\.com)$/.test(h)) return 'Facebook';
+  if (/(^|\.)instagram\.com$/.test(h)) return 'Instagram';
+  if (/(^|\.)tiktok\.com$/.test(h)) return 'TikTok';
+  if (/(^|\.)(x\.com|twitter\.com)$/.test(h)) return 'X';
+  if (/(^|\.)threads\.(net|com)$/.test(h)) return 'Threads';
+  if (/(^|\.)substack\.com$/.test(h)) return 'Substack';
+  return h || 'nền tảng';
+};
 
 /** mở ngăn — dùng ở bảng kênh: const n = useNganKenh(); n.mo('mau', k.ma, m.ma) */
 export function useNganKenh() {
@@ -107,7 +120,7 @@ function NganVideo({ k, v, onClose }: { k: KenhSp; v: VideoKenh; onClose: () => 
           {v.giay != null && <O k="Dài">{Math.round(v.giay)} giây</O>}
         </Luoi>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {v.url && <NutNgoai href={v.url}>Mở trên YouTube</NutNgoai>}
+          {v.url && <NutNgoai href={v.url}>Mở trên {tenNen(v.url)}</NutNgoai>}
           {!v.url && v.tep && <NutNgoai href={v.tep}>Tải bản xuất</NutNgoai>}
           {k.phimId && <NutNgoai href={`${STUDIO}/?m=phim&mId=${k.phimId}`}>Phim Studio của kênh</NutNgoai>}
         </div>
@@ -159,7 +172,7 @@ function NganKenh({ k, onClose }: { k: KenhSp; onClose: () => void }) {
           <O k="Lượt xem">{so(k.xem)}</O>
         </Luoi>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {k.kenhUrl && <NutNgoai href={k.kenhUrl}>Mở kênh YouTube</NutNgoai>}
+          {k.kenhUrl && <NutNgoai href={k.kenhUrl}>Mở kênh {tenNen(k.kenhUrl)}</NutNgoai>}
           {k.phimId && <NutNgoai href={`${STUDIO}/?m=phim&mId=${k.phimId}`}>Phim Studio của kênh</NutNgoai>}
         </div>
       </div>

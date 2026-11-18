@@ -1334,7 +1334,7 @@ export const LUAT = [
   { card: 'phanh-lot-1811', tep: 'apps/etp/cong.py', cam: 'def anh_bam_tu(', vi: 'bỏ hẳn đoán người bấm bằng chữ ai — duyệt đứng "anh (chat DD/MM…)" hay "anh (etp2)" đều giả được (18/11/2026: 31 camp AT lọt phanh); chỉ vé miễn' },
   { card: 'phanh-lot-1811', tep: 'apps/etp/cong.py', co: 'return ma if re.fullmatch(r"[0-9a-f]{32}", ma) else None', vi: 'vé chỉ là mã 32 hex do nút xin — chữ ai không phải vé' },
   // MỘT CỬA + VÉ THAO TÁC TAY + HẬU KIỂM (anh 18/11/2026 "Mày giao cho thằng Huy" — khoá lỗi etp:kiem-soat-cong-1811)
-  { card: 'kiem-soat-cong-1811', tep: 'apps/etp/ethopex_api.py', co: 'lenh = cua(duong, body)   # MỘT CỬA', vi: 'mọi lệnh ghi qua cổng API chung đều chấm ở cửa trước khi gửi' },
+  { card: 'kiem-soat-cong-1811', tep: 'apps/etp/ethopex_api.py', co: '    lenh = cua(duong, body)\n    if duong.startswith("/api/v1/campaigns?") and body is None:', vi: 'mọi lệnh ghi qua cổng API chung đều chấm ở cửa trước khi gửi' },
   { card: 'kiem-soat-cong-1811', tep: 'apps/etp/ethopex_api.py', mot: 'def phan_loai(duong, body):', vi: 'một hàm đọc việc từ CHÍNH lệnh (tạo / nhân bản / tăng / bật), không tin cờ người gọi' },
   { card: 'kiem-soat-cong-1811', tep: 'apps/etp/ethopex_api.py', co: 'cu = _ns_dang(cid)', vi: 'tăng hay giảm so với ngân sách ĐANG CHẠY đọc lại trên Ethopex, không tin số người gọi' },
   { card: 'kiem-soat-cong-1811', tep: 'apps/etp/ethopex_api.py', co: 'thay = bool(l.get("thay_id")) and _bi_tu_choi(l["thay_id"])', vi: 'camp thay bài bị từ chối chỉ miễn phanh khi camp cũ đọc lại có ad DISAPPROVED' },

@@ -1,0 +1,72 @@
+<!doctype html>
+<!-- MẪU "POSTER TRAILER" cho kênh AngleBrief (anh 19/11/2026; mẫu gốc: Prompt Opus 5.5 › twoclipping-551116 — trailer ra mắt kiểu áp phích ồn ào: cobalt + mực,
+     chữ khổng lồ cắt theo phách nhạc, sticker, câu chuyện 3 bước). Ảnh ngách = ảnh thật cắt từ anglebrief.net/guides; số + giá chỉ lấy từ trang chủ.
+     Phách: 118 bpm (BEAT 0,508 s) — cùng nhịp nhạc nền qc-brief/dung.mjs (nhac: "manh" thêm trống), mỗi cảnh khai số giây = bội số phách.
+     Hợp đồng quay: window.CAU → await __dung() → __seek(t) thuần theo t. -->
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: AB; src: url(../../public/fonts/ArchivoBlack-Regular.ttf); }
+@font-face { font-family: M; src: url(../../public/fonts/Montserrat-Black.ttf); font-weight: 900; }
+* { margin: 0; } html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+</style></head><body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+const c = document.getElementById('c'), x = c.getContext('2d'), W = 1080, H = 1920, BEAT = 60 / 118;
+const COB = '#2B3BFF', MUC = '#0E0F1F', KEM = '#F3EFE6', CAM = '#FF5B1F';
+let C, IMG = {};
+const kep = (v) => Math.max(0, Math.min(1, v)), ra = (v) => 1 - (1 - kep(v)) ** 3, mem = (v) => { v = kep(v); return v < 0.5 ? 4 * v ** 3 : 1 - (-2 * v + 2) ** 3 / 2; };
+const tai = (u) => new Promise((ok, loi) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => loi(new Error('không tải được ' + u)); i.src = u; });
+window.__dung = async () => { C = window.CAU; await document.fonts.load('80px AB'); await document.fonts.load('900 40px M'); for (const [k, u] of Object.entries(C.anh)) IMG[k] = await tai(u); };
+const dap = (t) => 1 + 0.05 * Math.exp(-((t % BEAT) / BEAT) * 7);   // nhịp đập theo phách
+function hop(px, py, w, h, r) { x.beginPath(); x.roundRect(px, py, w, h, r); }
+function vua(chu, rong, max, font = 'AB') { let co = max; x.font = `${co}px ${font}`; while (x.measureText(chu).width > rong && co > 40) { co -= 4; x.font = `${co}px ${font}`; } return co; }
+function bang(chu, y, nen, mau, t, toc = 220, nghieng = -0.06) {   // dải chữ chạy ngang (marquee) kiểu băng dính
+  x.save(); x.translate(W / 2, y); x.rotate(nghieng); x.fillStyle = nen; x.fillRect(-W, -46, W * 2, 92); x.fillStyle = mau; x.font = '900 52px M';
+  const s = (chu + '  ✦  ').repeat(8), r = x.measureText(chu + '  ✦  ').width; x.fillText(s, -W + (-(t * toc) % r), 18); x.restore(); }
+function anh(k, cx, cy, w, h, goc, the) {   // ảnh dán như poster: viền trắng dày + bóng + nhãn sticker
+  const a = IMG[k]; x.save(); x.translate(cx, cy); x.rotate(goc); x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 30; x.shadowOffsetY = 14;
+  x.fillStyle = '#fff'; x.fillRect(-w / 2 - 14, -h / 2 - 14, w + 28, h + 28); x.shadowColor = 'transparent';
+  const sc = Math.max(w / a.width, h / a.height); x.save(); x.beginPath(); x.rect(-w / 2, -h / 2, w, h); x.clip(); x.drawImage(a, -a.width * sc / 2, -a.height * sc / 2, a.width * sc, a.height * sc); x.restore();
+  if (the) { x.font = '900 34px M'; const r = x.measureText(the).width + 36; x.fillStyle = CAM; x.fillRect(-w / 2 - 6, h / 2 - 30, r, 56); x.fillStyle = '#fff'; x.fillText(the, -w / 2 + 12, h / 2 + 10); }
+  x.restore(); }
+
+const VE = {
+  dap(s, q, t) { // mỗi phách một chữ, nền đảo cobalt / mực
+    const i = Math.min(s.c.chu.length - 1, Math.floor(q / BEAT)), w = s.c.chu[i], nen = (i + (s.c.dao ? 1 : 0)) % 2 ? MUC : COB;
+    x.fillStyle = nen; x.fillRect(0, 0, W, H); const p = (q % BEAT) / BEAT, k = 1.25 - 0.25 * ra(p * 4);
+    x.save(); x.translate(W / 2, H / 2); x.rotate(i % 2 ? 0.05 : -0.05); x.scale(k, k); const co = vua(w, 980, 330); x.textAlign = 'center';
+    x.fillStyle = w.endsWith('.') ? CAM : '#fff'; x.fillText(w, 0, co * 0.36); x.restore(); x.textAlign = 'left';
+    bang(s.c.bang || 'ANGLEBRIEF', 1680, nen === COB ? MUC : COB, '#fff', t, 260, 0.05); },
+  buoc(s, q, t) { x.fillStyle = s.c.nen === 'muc' ? MUC : COB; x.fillRect(0, 0, W, H);
+    x.save(); x.font = '520px AB'; x.lineWidth = 6; x.strokeStyle = 'rgba(255,255,255,.35)'; x.strokeText(s.c.so, 30 - q * 30, 560); x.restore();
+    const co = vua(s.c.chu, 980, 120); x.fillStyle = '#fff'; s.c.chu.split('|').forEach((d, i) => { x.save(); const p = ra((q - i * 0.12) / 0.3); x.translate((1 - p) * -600, 0); x.font = `${co}px AB`; x.fillText(d, 50, 700 + i * co * 1.05); x.restore(); });
+    (s.c.anh || []).forEach((k, i) => { const p = ra((q - 0.25 - i * BEAT / 2) / 0.3); if (p <= 0) return; const n = s.c.anh.length, cot = i % 2, hang = Math.floor(i / 2);
+      anh(k, 300 + cot * 480 + (1 - p) * 700, 1080 + hang * 300, 400, 200, (cot ? 0.07 : -0.06) * (1 + (1 - p) * 3), s.c.nhan?.[i]); });
+    if (s.c.cau) s.c.cau.forEach((d, i) => { const p = ra((q - 0.3 - i * BEAT) / 0.25); if (p <= 0) return; x.save(); x.translate(540, 1040 + i * 240); x.rotate(i % 2 ? 0.03 : -0.03); x.scale(p, p);
+      x.font = '900 46px M'; const ds = []; let dd = ''; for (const z of d.split(' ')) { const th = dd ? dd + ' ' + z : z; if (x.measureText(th).width > 860 && dd) { ds.push(dd); dd = z; } else dd = th; } ds.push(dd); const r = Math.max(...ds.map((z) => x.measureText(z).width)) + 60;
+      x.fillStyle = '#fff'; hop(-r / 2, -46, r, 40 + ds.length * 56, 18); x.fill(); x.fillStyle = MUC; x.textAlign = 'center'; ds.forEach((z, j) => x.fillText(z, 0, 4 + j * 56)); x.textAlign = 'left'; x.restore(); });
+    bang(s.c.bang, 1760, s.c.nen === 'muc' ? COB : MUC, '#fff', t); },
+  so(s, q, t) { x.fillStyle = MUC; x.fillRect(0, 0, W, H);
+    if (s.c.tieu) { x.save(); x.font = '520px AB'; x.lineWidth = 6; x.strokeStyle = 'rgba(255,255,255,.18)'; x.strokeText(s.c.tieu[0], 30 - q * 30, 560); x.restore(); x.fillStyle = '#fff'; x.font = '110px AB'; x.fillText(s.c.tieu[1], 50, 640); } const v = Math.round(s.c.so * ra(q / 1.2)).toLocaleString('en-US');
+    x.save(); x.translate(W / 2, 860); x.scale(dap(q), dap(q)); x.textAlign = 'center'; const co = vua(v, 1000, 250); x.fillStyle = COB; x.fillText(v, 8, 8); x.fillStyle = '#fff'; x.fillText(v, 0, 0); x.restore();
+    x.textAlign = 'center'; x.font = '900 64px M'; x.fillStyle = CAM; x.fillText(s.c.sau, 540, 990); x.textAlign = 'left';
+    bang(s.c.bang, 1300, COB, '#fff', t, 300, -0.07); bang(s.c.bang2, 1430, '#fff', MUC, t, -260, 0.05); },
+  gia(s, q, t) { x.fillStyle = COB; x.fillRect(0, 0, W, H); const e = ra(q / 0.25);
+    x.save(); x.translate(540, 860); x.scale((2 - e) * dap(q), (2 - e) * dap(q)); x.rotate(-0.04); x.textAlign = 'center'; x.font = '420px AB'; x.fillStyle = MUC; x.fillText(s.c.gia, 12, 12); x.fillStyle = '#fff'; x.fillText(s.c.gia, 0, 0); x.restore();
+    (s.c.the || []).forEach((d, i) => { const p = ra((q - 0.4 - i * BEAT) / 0.2); if (p <= 0) return; x.save(); x.translate(i % 2 ? 760 : 320, 1060 + i * 150); x.rotate(i % 2 ? 0.08 : -0.08); x.scale(p, p);
+      x.font = '900 54px M'; const r = x.measureText(d).width + 60; x.fillStyle = i % 2 ? CAM : MUC; hop(-r / 2, -50, r, 90, 45); x.fill(); x.fillStyle = '#fff'; x.textAlign = 'center'; x.fillText(d, 0, 16); x.restore(); });
+    x.textAlign = 'left'; bang(s.c.bang, 1740, MUC, '#fff', t); },
+  ket(s, q, t) { x.fillStyle = MUC; x.fillRect(0, 0, W, H); const e = ra(q / 0.35);
+    x.save(); x.translate(540, 820); x.scale(e * dap(q), e * dap(q)); x.textAlign = 'center'; const co = vua(s.c.chu, 980, 170); x.fillStyle = '#fff'; x.fillText(s.c.chu, 0, 0); x.restore();
+    const p = ra((q - 0.4) / 0.3); x.save(); x.translate(540, 980); x.scale(p, p); x.font = '900 70px M'; const r = x.measureText(s.c.url).width + 80; x.fillStyle = COB; hop(-r / 2, -64, r, 100, 50); x.fill(); x.fillStyle = '#fff'; x.textAlign = 'center'; x.fillText(s.c.url, 0, 12); x.restore();
+    x.globalAlpha = kep((q - 0.8) / 0.3); x.textAlign = 'center'; x.font = '900 46px M'; x.fillStyle = KEM; x.fillText(s.c.phu, 540, 1110); x.globalAlpha = 1; x.textAlign = 'left';
+    bang(s.c.bang, 1500, COB, '#fff', t, 240, -0.06); bang(s.c.bang, 1640, CAM, '#fff', t, -240, 0.05); },
+};
+window.__seek = (t) => {
+  const k = Math.max(0, C.canh.findIndex((s, i) => t >= s.bd && t < (C.canh[i + 1]?.bd ?? 1e9))), s = C.canh[k], q = t - s.bd;
+  VE[s.c.loai](s, q, t);
+  // nháy trắng 2 khung đầu mỗi cảnh = cú cắt trên phách
+  if (k && q < 0.07) { x.fillStyle = `rgba(255,255,255,${0.55 * (1 - q / 0.07)})`; x.fillRect(0, 0, W, H); }
+  x.fillStyle = '#fff'; x.font = '900 34px M'; x.fillText('ANGLEBRIEF', 48, 90);
+};
+window.__khung = () => c.toDataURL('image/jpeg', 0.92).split(',')[1];
+</script></body></html>

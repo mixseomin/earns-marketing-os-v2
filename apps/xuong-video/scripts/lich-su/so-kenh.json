@@ -1904,5 +1904,105 @@
         "trang_thai": "chua"
       }
     ]
+  },
+  "anglebrief": {
+    "loai": "social",
+    "dang_mac_dinh": "ad-breakdown",
+    "nguon_tien": [
+      {
+        "ma": "bao-cao",
+        "ten": "Báo cáo AngleBrief (Insight $24 · Ad Pack $79 · Custom $149, Stripe)",
+        "mang": null,
+        "site": "anglebrief.net",
+        "link": "anglebrief.net/reports · /r/<ngách>",
+        "ghi": "bán trực tiếp, không qua mạng affiliate"
+      }
+    ],
+    "ten": "AngleBrief · Page Facebook",
+    "cap_nhat": "2026-11-19",
+    "muc_tieu": "kênh tự vận hành: máy làm Reels / ảnh về góc QC và hook thật (guide anglebrief.net + QC chạy lâu trong spy) → Phòng Nội dung chấm → máy đăng Page AngleBrief (facebook.com/anglebrief) → khách vào anglebrief.net/guides và /reports",
+    "dinh_vi": {
+      "cho_ai": "media buyer Meta / TikTok, chủ shop DTC / ecommerce đang tìm góc QC và hook — tiếng Anh, toàn cầu",
+      "dich": "anglebrief.net (guide miễn phí → báo cáo từ $24)",
+      "ngon_ngu": "EN",
+      "cau_ket": "Find the angles buyers respond to at AngleBrief dot net."
+    },
+    "luat": [
+      "Số liệu, giá, hook chỉ lấy từ su-that/anglebrief.md và ảnh chụp thật anglebrief.net — không bịa số khách, kết quả, ROAS",
+      "QC mổ (Ad Breakdown) lấy từ kho spy, ghi nguồn library_id + số ngày chạy thật",
+      "Mỗi bài qua Phòng Nội dung chấm trước khi máy đăng lấy; kênh mới 1 bài / nền / ngày"
+    ],
+    "mau": [
+      {
+        "ma": "ad-breakdown",
+        "ten": "Ad Breakdown",
+        "loai": "short",
+        "nhip": "mỗi ngày (mẫu chính)",
+        "kho": "vô hạn · mỗi QC chạy lâu trong nhóm spy #4668 một tập",
+        "trang": "qc-brief/san-khau.html",
+        "sinh": "node scripts/qc-brief/dung.mjs scripts/qc-brief/<tập>.json (iMac, quay bằng Chromium) — giọng ElevenLabs ~1.900₫/tập + nhân vật media buyer vẽ sẵn (~/.cache/qc-brief/nv); mẫu YNT: giọng mốc từng chữ, phụ đề tô chữ, mỗi câu một cảnh, khung điện thoại QC thật, con dấu, số đếm, danh sách bật theo lời",
+        "demo": "https://img.on.tc/xuong-video/demo/anglebrief/ad-breakdown.mp4"
+      },
+      {
+        "ma": "site-showreel",
+        "ten": "Site Showreel",
+        "loai": "short",
+        "nhip": "2–3 lần / tuần",
+        "kho": "26 guide sống × 8 hook",
+        "trang": "qc-brief/showreel.html",
+        "sinh": "node scripts/qc-brief/dung.mjs scripts/qc-brief/<tập>.json (iMac, quay bằng Chromium) — 0₫, không giọng: chụp guide bằng qc-brief/chup-site.mjs, trang thật cuộn trong khung điện thoại, hook bật ra thành thẻ lớn (mẫu Opus wani-shola-459278)",
+        "demo": "https://img.on.tc/xuong-video/demo/anglebrief/site-showreel.mp4"
+      },
+      {
+        "ma": "poster-trailer",
+        "ten": "Poster Trailer",
+        "loai": "short",
+        "nhip": "1 lần (ghim đầu Page) + làm lại khi số trang chủ đổi",
+        "kho": "1–3 bản",
+        "trang": "qc-brief/trailer.html",
+        "sinh": "node scripts/qc-brief/dung.mjs scripts/qc-brief/<tập>.json (iMac, quay bằng Chromium) — 0₫, không giọng, nhạc có trống 118 bpm: chữ khổng lồ cắt theo phách, poster 3 bước, ảnh ngách thật (mẫu Opus twoclipping-551116)",
+        "demo": "https://img.on.tc/xuong-video/demo/anglebrief/poster-trailer.mp4"
+      },
+      {
+        "ma": "ui-promo",
+        "ten": "UI Promo",
+        "loai": "short",
+        "nhip": "1 lần / tháng (QC bán hàng, bài ghim)",
+        "kho": "46 báo cáo (đổi ngách được bấm)",
+        "trang": "qc-brief/ui.html",
+        "sinh": "node scripts/qc-brief/dung.mjs scripts/qc-brief/<tập>.json (iMac, quay bằng Chromium) — 0₫, không giọng: một khối hình đổi dạng, con trỏ bấm thật qua trang chủ → /reports → báo cáo → nút mua, khung cuối = khung đầu (mẫu Opus annacher-433425)",
+        "demo": "https://img.on.tc/xuong-video/demo/anglebrief/ui-promo.mp4"
+      }
+    ],
+    "giai_doan": [
+      {
+        "ma": "G0",
+        "ten": "Dựng máy + Page",
+        "viec": "Page AngleBrief (đổi tên từ BimBim Viral 19/11/2026, ảnh thật) · máy xv_may anglebrief · tệp sự thật · nhóm spy #4668",
+        "anh": "không",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G1",
+        "ten": "4 mẫu + demo",
+        "viec": "Ad Breakdown · Site Showreel · Poster Trailer · UI Promo (qc-brief/, 19/11/2026)",
+        "anh": "xem demo, chọn mẫu chạy",
+        "trang_thai": "cho_anh"
+      },
+      {
+        "ma": "G2",
+        "ten": "Nối mẫu vào máy đăng",
+        "viec": "may-dung --sinh-kho sinh tập theo mẫu đã chọn thay mẫu canh-dong, bật máy (chay=true) + lấp kho tự động",
+        "anh": "duyệt bật",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G3",
+        "ten": "Đo GA4",
+        "viec": "UTM theo mẫu, đọc G-NHL6WC9B6J sau 7 ngày",
+        "anh": "không",
+        "trang_thai": "chua"
+      }
+    ]
   }
 }

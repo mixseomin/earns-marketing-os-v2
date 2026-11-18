@@ -1,0 +1,139 @@
+<!doctype html>
+<!-- SÂN KHẤU "QC BRIEF" cho máy anglebrief (anh 19/11/2026: video dạng cũ "xấu, không sinh động" → mượn bộ máy YNT). Cùng hợp đồng quay với
+     lich-su/ban-do.html: window.CAU (qc-brief/dung.mjs dựng) → await __dung() → __seek(t) vẽ đúng khung giây t, thuần theo t (không timer, không CSS animation).
+     Thay bản đồ bằng sân khấu dân chạy QC: khung điện thoại QC thật (spy), con dấu, số đếm, danh sách bật từng dòng theo lời, nhân vật hoạt hình + bóng thoại.
+     Nhịp như YNT: mỗi câu một cảnh, phụ đề cụm ≤ 4 chữ tô chữ đang đọc, nền ảnh thật (Pexels) phóng chậm dưới lớp màu thương hiệu. -->
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: AB; src: url(../../public/fonts/ArchivoBlack-Regular.ttf); }
+@font-face { font-family: M; src: url(../../public/fonts/Montserrat-ExtraBold.ttf); font-weight: 800; }
+* { margin: 0; } html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+</style></head><body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+const c = document.getElementById('c'), x = c.getContext('2d'), W = 1080, H = 1920;
+const VANG = '#FFD60A', DO = '#E63946', NAVY = '#1E2A5A', EMO = '"Apple Color Emoji"';
+let C, IMG = {}, CUM = [];
+const kep = (v) => Math.max(0, Math.min(1, v)), ra = (v) => 1 - (1 - kep(v)) ** 3;
+const nay = (v) => { v = kep(v); const s = 1.7; return 1 + (s + 1) * (v - 1) ** 3 + s * (v - 1) ** 2; };   // back-out: vượt nhẹ rồi về
+const tai = (u) => new Promise((ok, loi) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => loi(new Error('không tải được ' + u)); i.src = u; });
+
+window.__dung = async () => {
+  C = window.CAU; await document.fonts.load('80px AB'); await document.fonts.load('800 40px M');
+  for (const [k, u] of Object.entries(C.anh)) IMG[k] = await tai(u);
+  // PHỤ ĐỀ CỤM: mỗi câu chia cụm ≤ 4 chữ, ngắt sớm ở dấu câu — hiện cụm chứa chữ đang đọc (như YNT)
+  const theoCau = {}; for (const w of C.tu) (theoCau[w.cau] ||= []).push(w);
+  for (const ws of Object.values(theoCau)) { let cum = []; for (const w of ws) { cum.push(w); if (cum.length >= 4 || /[.,:?!]$/.test(w.chu)) { CUM.push(cum); cum = []; } } if (cum.length) CUM.push(cum); }
+};
+
+function bocChu(s, rong) { const ws = s.split(' '), ds = []; let d = '';
+  for (const w of ws) { const th = d ? d + ' ' + w : w; if (x.measureText(th).width > rong && d) { ds.push(d); d = w; } else d = th; } if (d) ds.push(d); return ds; }
+function hop(px, py, w, h, r) { x.beginPath(); x.roundRect(px, py, w, h, r); }
+function chuVien(s, px, py, co, mau = '#fff', vien = 12, font = 'AB') { x.font = font === 'M' ? `800 ${co}px M, ${EMO}` : `${co}px AB, ${EMO}`; x.lineJoin = 'round'; x.lineWidth = vien; x.strokeStyle = '#000'; x.strokeText(s, px, py); x.fillStyle = mau; x.fillText(s, px, py); }
+
+function nen(t, k) {
+  const a = IMG['nen' + (k % 2)], u = t * 0.012, sc = Math.max(W / a.width, H / a.height) * (1.12 + u);
+  x.save(); x.filter = 'blur(5px) saturate(1.1)'; x.drawImage(a, (W - a.width * sc) / 2 + Math.sin(t * 0.3) * 18, (H - a.height * sc) / 2, a.width * sc, a.height * sc); x.restore();
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, 'rgba(14,20,48,.72)'); g.addColorStop(0.55, 'rgba(14,20,48,.45)'); g.addColorStop(1, 'rgba(10,14,34,.88)');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+}
+function khungTren(t) {
+  x.fillStyle = 'rgba(255,255,255,.18)'; x.fillRect(0, 0, W, 12); x.fillStyle = VANG; x.fillRect(0, 0, W * kep(t / C.DAI), 12);
+  x.save(); x.translate(56, 112); x.rotate(-0.04); x.font = '46px AB'; const s = '📰 AD BREAKDOWN', w = x.measureText(s).width + 44;
+  x.fillStyle = '#000'; x.fillRect(8, -44, w, 66); x.fillStyle = VANG; x.fillRect(0, -52, w, 66); x.fillStyle = '#111'; x.font = `46px AB, ${EMO}`; x.fillText(s, 22, 0); x.restore();
+  x.font = '800 40px M'; x.fillStyle = 'rgba(255,255,255,.9)'; x.textAlign = 'right'; x.fillText('AngleBrief', W - 50, 104); x.textAlign = 'left';
+}
+function phuDe(t) {
+  const cum = CUM.find((m, i) => t >= m[0].a - 0.05 && t < (CUM[i + 1]?.[0].a ?? C.DAI)); if (!cum) return;
+  x.font = '66px AB'; const gap = 22, ws = cum.map((w) => ({ w, r: x.measureText(w.chu).width })), tong = ws.reduce((s, o) => s + o.r, 0) + gap * (ws.length - 1);
+  const y = 1640, vao = nay((t - cum[0].a + 0.05) / 0.22); let px = (W - tong) / 2;
+  x.save(); x.translate(W / 2, y); x.scale(0.85 + 0.15 * vao, 0.85 + 0.15 * vao); x.translate(-W / 2, -y);
+  for (const { w, r } of ws) { const dang = t >= w.a && t < w.b + 0.12;
+    if (dang) { x.fillStyle = VANG; x.save(); x.translate(px + r / 2, y - 22); x.rotate(-0.025); hop(-r / 2 - 14, -50, r + 28, 92, 10); x.fill(); x.restore(); x.fillStyle = '#111'; x.font = '66px AB'; x.fillText(w.chu, px, y); }
+    else chuVien(w.chu, px, y, 66); px += r + gap; }
+  x.restore();
+}
+function conDau(chu, q, px, py) {   // con dấu cao su: rơi từ to xuống, rung nhẹ khi chạm
+  if (q < 0) return; const k = q < 0.22 ? 2.4 - 1.4 * ra(q / 0.22) : 1, rung = q < 0.4 && q > 0.22 ? Math.sin(q * 90) * 6 * (0.4 - q) / 0.18 : 0;
+  x.save(); x.translate(px + rung, py); x.rotate(-0.2); x.scale(k, k); x.globalAlpha = kep(q / 0.1);
+  x.font = '78px AB'; const w = x.measureText(chu).width + 70; x.strokeStyle = DO; x.lineWidth = 12; hop(-w / 2, -66, w, 112, 18); x.stroke();
+  x.lineWidth = 4; hop(-w / 2 + 14, -52, w - 28, 84, 12); x.stroke(); x.fillStyle = DO; x.textAlign = 'center'; x.fillText(chu, 0, 22); x.restore(); x.textAlign = 'left';
+}
+function dienThoai(q, cx, cy) {
+  const e = nay(q / 0.5), w = 560, h = 996, tr = Math.sin(q * 1.4) * 8;
+  x.save(); x.translate(cx, cy + (1 - e) * 900 + tr); x.rotate((1 - e) * 0.25 + Math.sin(q * 0.9) * 0.012);
+  x.shadowColor = 'rgba(0,0,0,.6)'; x.shadowBlur = 50; x.fillStyle = '#0b0b0f'; hop(-w / 2 - 22, -h / 2 - 22, w + 44, h + 44, 70); x.fill(); x.shadowBlur = 0;
+  x.save(); hop(-w / 2, -h / 2, w, h, 50); x.clip(); const a = IMG.qc, sc = Math.max(w / a.width, h / a.height); x.drawImage(a, -a.width * sc / 2, -a.height * sc / 2, a.width * sc, a.height * sc);
+  x.fillStyle = 'rgba(255,255,255,.94)'; x.fillRect(-w / 2, -h / 2, w, 96); x.fillStyle = '#1877F2'; x.beginPath(); x.arc(-w / 2 + 52, -h / 2 + 48, 26, 0, 7); x.fill();
+  x.fillStyle = '#111'; x.font = '800 26px M'; x.fillText(C.page || 'Advertiser', -w / 2 + 92, -h / 2 + 42); x.fillStyle = '#666'; x.font = '800 20px M'; x.fillText('Sponsored', -w / 2 + 92, -h / 2 + 70);
+  x.restore(); x.fillStyle = '#0b0b0f'; hop(-70, -h / 2 - 8, 140, 30, 15); x.fill(); x.restore();
+}
+function nhanVat(dang, q, cx, day, cao, tuTrai = true) {
+  const a = IMG['nv_' + dang]; if (!a) return; const e = nay(q / 0.45), sc = cao / a.height, w = a.width * sc, bob = Math.sin(q * 3.2) * 6;
+  x.save(); x.translate(cx + (1 - e) * (tuTrai ? -700 : 700), day + bob); x.scale(1 + Math.sin(q * 3.2) * 0.008, 1 - Math.sin(q * 3.2) * 0.008);
+  x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 30; x.drawImage(a, -w / 2, -cao, w, cao); x.restore();
+}
+function bongThoai(s, q, px, py, rong) {
+  const e = nay((q - 0.25) / 0.3); if (e <= 0) return; x.font = '62px AB'; const ds = bocChu(s, rong - 70), h = ds.length * 74 + 60;
+  x.save(); x.translate(px, py); x.scale(e, e); x.fillStyle = '#fff'; x.strokeStyle = '#111'; x.lineWidth = 8;
+  hop(-rong / 2, -h / 2, rong, h, 40); x.fill(); x.stroke(); x.beginPath(); x.moveTo(-rong / 2 + 90, h / 2 - 4); x.lineTo(-rong / 2 + 40, h / 2 + 80); x.lineTo(-rong / 2 + 170, h / 2 - 4); x.fill(); x.stroke();
+  x.fillStyle = '#fff'; x.fillRect(-rong / 2 + 94, h / 2 - 10, 72, 12); x.fillStyle = '#111'; x.textAlign = 'center';
+  ds.forEach((d, i) => x.fillText(d, 0, -h / 2 + 30 + 62 + i * 74 - 14)); x.restore(); x.textAlign = 'left';
+}
+function tia(q, cx, cy) { x.save(); x.translate(cx, cy); x.rotate(q * 0.25); x.fillStyle = 'rgba(255,214,10,.10)';
+  for (let i = 0; i < 16; i++) { x.rotate(Math.PI / 8); x.beginPath(); x.moveTo(0, 0); x.lineTo(1400, -110); x.lineTo(1400, 110); x.fill(); } x.restore(); }
+const dinhSo = (v) => Math.round(v).toLocaleString('en-US');
+
+const VE = {
+  dt(s, q) { dienThoai(q, 540, 900);
+    const k = s.c.khoanh; if (k) { const tk = (s.c._khi ?? 0.6), p = q - tk; if (p > 0) {
+      x.font = '58px AB'; const ds = bocChu(k, 760), h = ds.length * 70 + 56, e = nay(p / 0.3);
+      x.save(); x.translate(540, 470); x.scale(e, e); x.rotate(-0.02); x.fillStyle = '#fff'; hop(-430, -h / 2, 860, h, 26); x.fill();
+      const qt = kep((p - 0.2) / 0.6); x.fillStyle = 'rgba(255,214,10,.75)'; ds.forEach((d, i) => { const r = x.measureText(d).width; x.fillRect(-r / 2 - 8, -h / 2 + 30 + i * 70, (r + 16) * kep(qt * ds.length - i), 56); });
+      x.fillStyle = '#111'; x.textAlign = 'center'; ds.forEach((d, i) => x.fillText(d, 0, -h / 2 + 78 + i * 70)); x.textAlign = 'left';
+      const qv = kep((p - 0.5) / 0.6); x.strokeStyle = DO; x.lineWidth = 10; x.lineCap = 'round'; x.beginPath(); x.ellipse(0, 0, 470, h / 2 + 40, -0.04, -2.2, -2.2 + Math.PI * 2.1 * qv); x.stroke(); x.restore(); } }
+    if (s.c.dau) conDau(s.c.dau.chu, q - (s.c.dau._khi ?? 0.8), 700, 1290); },
+  nv(s, q) { nhanVat(s.c.dang, q, 330, 1500, 1050); bongThoai(s.c.noi, q, 690, 560, 620); },
+  so(s, q) { const tk = s.c._khi ?? 0.15;
+    // MỞ ĐẦU trước chữ "khi" (cảnh dài, số chưa tới): nhân vật + bóng thoại để khung không trống — rời đi khi số bật
+    if (s.c.mo_dau && q < tk) { x.save(); x.globalAlpha = kep((tk - q) / 0.25); nhanVat(s.c.mo_dau.dang, q, 330, 1500, 1050); bongThoai(s.c.mo_dau.noi, q, 690, 560, 620); x.restore(); return; }
+    tia(q, 540, 820);
+    const v = s.c.so * ra(kep((q - tk) / 0.9)), s1 = (s.c.truoc || '') + dinhSo(v) + (s.c.sau || ''); x.textAlign = 'center';
+    const e = nay((q - tk + 0.1) / 0.35); x.save(); x.translate(540, 900); x.scale(e, e); x.font = '230px AB'; x.lineWidth = 22; x.lineJoin = 'round'; x.strokeStyle = '#000';
+    let co = 230; while (x.measureText(s1).width > 980 && co > 120) { co -= 10; x.font = `${co}px AB`; } x.strokeText(s1, 0, 0); x.fillStyle = VANG; x.fillText(s1, 0, 0); x.restore();
+    const e2 = nay((q - tk - 0.4) / 0.3); if (e2 > 0) { x.save(); x.translate(540, 1050); x.scale(e2, e2); x.font = '60px AB'; const r = x.measureText(s.c.nhan).width + 70;
+      x.fillStyle = DO; hop(-r / 2, -62, r, 92, 46); x.fill(); x.fillStyle = '#fff'; x.fillText(s.c.nhan, 0, 6); x.restore(); }
+    if (s.c.phu && q > tk + 0.7) { x.globalAlpha = kep((q - tk - 0.7) / 0.3); chuVien(s.c.phu, 540, 1180, 54, '#fff', 8, 'M'); x.globalAlpha = 1; }
+    x.textAlign = 'left'; },
+  chu(s, q) { x.textAlign = 'center'; const tk = s.c._khi ?? 0.1;
+    if (s.c.gach) { const g = nay(q / 0.3); x.save(); x.translate(540, 620); x.scale(g, g); chuVien(s.c.gach, 0, 0, 110, 'rgba(255,255,255,.8)', 12); x.font = '110px AB'; const r = x.measureText(s.c.gach).width;
+      const qg = kep((q - tk + 0.5) / 0.35); if (qg > 0) { x.strokeStyle = DO; x.lineWidth = 18; x.lineCap = 'round'; x.beginPath(); x.moveTo(-r / 2 - 20, -36); x.lineTo(-r / 2 - 20 + (r + 40) * qg, -36 + 10 * qg); x.stroke(); } x.restore(); }
+    const p = q - tk; if (p > 0) { const k = p < 0.25 ? 2.6 - 1.6 * ra(p / 0.25) : 1, rung = p > 0.25 && p < 0.5 ? Math.sin(p * 80) * 10 * (0.5 - p) / 0.25 : 0;
+      x.save(); x.translate(540 + rung, s.c.gach ? 900 : 820); x.scale(k, k); x.globalAlpha = kep(p / 0.08); x.font = '128px AB'; const ds = bocChu(s.c.chu_to, 960);
+      ds.forEach((d, i) => chuVien(d, 0, i * 140, 128, i === ds.length - 1 ? VANG : '#fff', 16)); x.restore(); }
+    if (s.c.phu && p > 0.5) { x.globalAlpha = kep((p - 0.5) / 0.3); chuVien(s.c.phu, 540, s.c.gach ? 1180 : 1080, 60, '#fff', 8, 'M'); x.globalAlpha = 1; }
+    x.textAlign = 'left'; if (s.c.dau) conDau(s.c.dau.chu, q - (s.c.dau._khi ?? 0.9), 540, 1300); },
+  ds(s, q) { x.textAlign = 'center'; chuVien('WHAT THEY RUN', 540, 380, 84, VANG, 12); x.textAlign = 'left';
+    s.c.muc.forEach((m, i) => { const p = q - (m._khi ?? 0.3 + i * 0.6); if (p < 0) return; const e = nay(p / 0.35), y = 520 + i * 200;
+      x.save(); x.translate((1 - e) * 900, 0); x.fillStyle = 'rgba(255,255,255,.95)'; hop(90, y, 900, 160, 30); x.fill();
+      x.font = `92px ${EMO}`; x.fillText(m.bieu, 130, y + 112); x.fillStyle = '#111'; let co = 62; x.font = `${co}px AB`; while (x.measureText(m.chu).width > 590 && co > 36) { co -= 2; x.font = `${co}px AB`; } x.fillText(m.chu, 270, y + 102);
+      const qc = kep((p - 0.2) / 0.25); if (qc > 0) { x.save(); x.translate(925, y + 80); x.scale(nay(qc), nay(qc)); x.fillStyle = '#2BB673'; x.beginPath(); x.arc(0, 0, 38, 0, 7); x.fill();
+        x.strokeStyle = '#fff'; x.lineWidth = 10; x.lineCap = 'round'; x.beginPath(); x.moveTo(-16, 2); x.lineTo(-4, 14); x.lineTo(18, -12); x.stroke(); x.restore(); }
+      x.restore(); }); },
+  ket(s, q) { const e = nay(q / 0.4); x.fillStyle = `rgba(30,42,90,${0.75 * kep(q / 0.4)})`; x.fillRect(0, 0, W, H); tia(q, 540, 760);
+    x.textAlign = 'center'; x.save(); x.translate(540, 760); x.scale(e, e); chuVien(s.c.chu, 0, 0, 150, '#fff', 16); x.restore();
+    const e2 = nay((q - 0.35) / 0.35); if (e2 > 0) { const nhip = 1 + 0.04 * Math.sin(q * 6); x.save(); x.translate(540, 920); x.scale(e2 * nhip, e2 * nhip); x.font = '72px AB'; const r = x.measureText(s.c.url).width + 90;
+      x.fillStyle = VANG; hop(-r / 2, -70, r, 106, 53); x.fill(); x.fillStyle = '#111'; x.fillText(s.c.url, 0, 10); x.restore(); }
+    if (q > 0.7) { x.globalAlpha = kep((q - 0.7) / 0.3); let co = 50; x.font = `800 ${co}px M`; while (x.measureText(s.c.phu).width > 960 && co > 30) { co -= 2; x.font = `800 ${co}px M`; } chuVien(s.c.phu, 540, 1060, co, '#fff', 8, 'M'); x.globalAlpha = 1; }
+    x.textAlign = 'left'; nhanVat('noi_mo', q - 0.3, 540, 1880, 660, false); },
+};
+
+window.__seek = (t) => {
+  const k = Math.max(0, C.canh.findIndex((s, i) => t >= s.bd && t < (C.canh[i + 1]?.bd ?? 1e9))), s = C.canh[k], q = t - s.bd;
+  // CHUYỂN CẢNH: 0,18 s đầu cảnh mới trượt + mờ chuyển động như cú lia máy (tiếng vút do dung.mjs đặt cùng mốc)
+  x.clearRect(0, 0, W, H); nen(t, k);
+  const lia = k > 0 ? 1 - ra(kep(q / 0.18)) : 0; x.save(); if (lia) { x.translate(lia * 160, 0); x.filter = `blur(${Math.round(lia * 10)}px)`; }
+  VE[s.c.loai](s, q); x.restore();
+  khungTren(t); if (s.c.loai !== 'ket' || q < 0.3) phuDe(t);
+};
+window.__khung = () => c.toDataURL('image/jpeg', 0.92).split(',')[1];
+</script></body></html>

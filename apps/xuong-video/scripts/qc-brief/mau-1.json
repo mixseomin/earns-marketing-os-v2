@@ -1,0 +1,42 @@
+{
+ "id": "qc-brief-mau-1",
+ "may": "anglebrief",
+ "ngon_ngu": "en",
+ "giong": { "voice": "Daniel" },
+ "tieu_de": "This ad ran 29 days straight. Here's the angle behind it.",
+ "nguon_qc": { "library_id": "929507120018165", "page": "Lorenzo Pravatà", "bat_dau": "2026-10-19", "ngay": 29 },
+ "tai_san": {
+  "qc": "mau1/qc.jpg",
+  "nen": ["mau1/nen-8100069.jpg", "mau1/nen-20232363.jpg"],
+  "nen_nguon": ["https://www.pexels.com/photo/8100069/", "https://www.pexels.com/photo/20232363/"],
+  "nv": { "chi_tay": "nv/chi_tay.png", "suy_nghi": "nv/suy_nghi.png", "noi_mo": "nv/noi_mo.png", "ngac_nhien": "nv/ngac_nhien.png" }
+ },
+ "cau": [
+  { "chu": "This ad has been running for twenty nine days straight.",
+    "canh": { "loai": "dt", "dau": { "chu": "29 DAYS LIVE", "khi": "twenty" } } },
+  { "chu": "Its very first line calls out DTC brands stuck between seven and eight figures.",
+    "canh": { "loai": "dt", "khoanh": "DTC brands stuck between 7 and 8 figures", "khi": "calls" } },
+  { "chu": "Then it makes one bold promise.",
+    "canh": { "loai": "nv", "dang": "chi_tay", "noi": "One bold promise" } },
+  { "chu": "Twenty new ad creatives, done for you.",
+    "canh": { "loai": "so", "so": 20, "nhan": "NEW AD CREATIVES", "phu": "done for you" } },
+  { "chu": "If they don't beat your CPA, you get your money back.",
+    "canh": { "loai": "chu", "chu_to": "BEAT YOUR CPA", "phu": "or your money back", "dau": { "chu": "MONEY BACK", "khi": "money" } } },
+  { "chu": "It even filters who should click: brands spending ten thousand a month or more on Meta.",
+    "canh": { "loai": "so", "so": 10000, "truoc": "$", "sau": "+/mo", "nhan": "META SPEND ONLY", "khi": "ten", "mo_dau": { "dang": "chi_tay", "noi": "Who should click?" } } },
+  { "chu": "But here is the real lesson.",
+    "canh": { "loai": "nv", "dang": "suy_nghi", "noi": "The real lesson..." } },
+  { "chu": "Brands breaking past eight figures don't launch more ads. They launch different formats.",
+    "canh": { "loai": "chu", "chu_to": "DIFFERENT FORMATS", "gach": "MORE ADS", "khi": "different" } },
+  { "chu": "Podcast conversations. Street interviews. Educational pieces. Skits.",
+    "canh": { "loai": "ds", "muc": [
+      { "chu": "Podcast conversations", "bieu": "🎙️", "khi": "podcast" },
+      { "chu": "Street interviews", "bieu": "🎤", "khi": "street" },
+      { "chu": "Educational pieces", "bieu": "📚", "khi": "educational" },
+      { "chu": "Skits", "bieu": "🎭", "khi": "skits" } ] } },
+  { "chu": "Each one reads as a brand new ad to the algorithm.",
+    "canh": { "loai": "nv", "dang": "ngac_nhien", "noi": "A brand new ad, every time" } },
+  { "chu": "Want the angles buyers actually respond to in your niche? Find them at AngleBrief dot net.",
+    "canh": { "loai": "ket", "chu": "AngleBrief", "url": "anglebrief.net", "phu": "Real buyer research. Winning ad angles." } }
+ ]
+}

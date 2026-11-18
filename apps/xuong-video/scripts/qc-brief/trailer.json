@@ -1,0 +1,115 @@
+{
+ "id": "qc-brief-trailer",
+ "may": "anglebrief",
+ "mau": "poster-trailer",
+ "trang": "trailer.html",
+ "giong": false,
+ "nhac": "manh",
+ "nguon": "Số + giá: anglebrief.net trang chủ (19/11/2026: 366,624 buyer conversations across 46 niches · From $24 · one-time payment · instant access · 7-day refund). Ảnh ngách: cắt từ anglebrief.net/guides. Hook: nguyên văn guide (su-that/anglebrief.md).",
+ "tai_san": {
+  "anh": {
+   "bralette": "site/ngach-bralette.jpg",
+   "dog-harness": "site/ngach-dog-harness.jpg",
+   "belly-fat": "site/ngach-belly-fat.jpg",
+   "cycling": "site/ngach-cycling.jpg",
+   "gut-health": "site/ngach-gut-health.jpg",
+   "hiking-boots": "site/ngach-hiking-boots.jpg"
+  }
+ },
+ "cau": [
+  {
+   "chu": "slam",
+   "giay": 3.051,
+   "canh": {
+    "loai": "dap",
+    "chu": [
+     "STOP",
+     "GUESSING",
+     "WHAT",
+     "MAKES",
+     "BUYERS",
+     "CLICK."
+    ],
+    "bang": "REAL BUYER RESEARCH"
+   }
+  },
+  {
+   "chu": "01",
+   "giay": 4.068,
+   "canh": {
+    "loai": "buoc",
+    "so": "01",
+    "chu": "PICK|YOUR NICHE",
+    "anh": [
+     "bralette",
+     "dog-harness",
+     "cycling",
+     "hiking-boots"
+    ],
+    "nhan": [
+     "BRALETTE",
+     "DOG HARNESS",
+     "CYCLING",
+     "HIKING BOOTS"
+    ],
+    "bang": "46 NICHES RESEARCHED"
+   }
+  },
+  {
+   "chu": "02",
+   "giay": 4.068,
+   "canh": {
+    "loai": "so",
+    "so": 366624,
+    "sau": "buyer conversations, read",
+    "bang": "WHO BUYS · WHY THEY HESITATE · WHAT TRIGGERS THE PURCHASE",
+    "bang2": "RANKED BY HOW OFTEN BUYERS RAISE THEM",
+    "tieu": [
+     "02",
+     "READ IT ALL"
+    ]
+   }
+  },
+  {
+   "chu": "03",
+   "giay": 4.068,
+   "canh": {
+    "loai": "buoc",
+    "nen": "muc",
+    "so": "03",
+    "chu": "RUN HOOKS|THAT LAND",
+    "cau": [
+     "“Still slipping a hand under your band to fix it all day?”",
+     "“The vet said to get off the collar. Here's where the harness sits instead.”",
+     "“Why do your jeans feel tighter when the scale hasn't changed?”"
+    ],
+    "bang": "HOOKS QUOTED FROM REAL GUIDES"
+   }
+  },
+  {
+   "chu": "price",
+   "giay": 3.559,
+   "canh": {
+    "loai": "gia",
+    "gia": "$24",
+    "the": [
+     "ONE-TIME",
+     "INSTANT ACCESS",
+     "7-DAY REFUND"
+    ],
+    "bang": "NO SUBSCRIPTION"
+   }
+  },
+  {
+   "chu": "end",
+   "giay": 4.068,
+   "canh": {
+    "loai": "ket",
+    "chu": "AngleBrief",
+    "url": "anglebrief.net",
+    "phu": "Free guides · 46 niches",
+    "bang": "STOP GUESSING"
+   }
+  }
+ ]
+}

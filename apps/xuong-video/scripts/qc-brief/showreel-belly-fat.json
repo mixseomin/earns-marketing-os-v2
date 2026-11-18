@@ -1,0 +1,19 @@
+{
+ "id": "qc-brief-showreel-belly-fat",
+ "may": "anglebrief",
+ "mau": "site-showreel",
+ "trang": "showreel.html",
+ "giong": false,
+ "nguon": "https://anglebrief.net/guides/belly-fat-ad-hooks (chụp 19/11/2026: site/guide.png cắt bf-tren 0–6000 px, bf-hook 17300–22300 px) + https://anglebrief.net/ (home-tren)",
+ "tai_san": { "anh": { "tren": "site/bf-tren.png", "hook": "site/bf-hook.png", "home": "site/home-tren.png" } },
+ "cau": [
+  { "chu": "Selling a belly-fat product?", "giay": 3.2, "canh": { "loai": "mo", "anh": "tren", "chu": "Selling a belly-fat product?", "cuon": [0, 260] } },
+  { "chu": "7,155 buyer conversations", "giay": 3.4, "canh": { "loai": "so", "anh": "tren", "so": 7155, "sau": "real buyer conversations, read", "phu": "+ 671 competitor ads", "cuon": [260, 1500] } },
+  { "chu": "Then the hooks that stop the scroll.", "giay": 3.0, "canh": { "loai": "chu", "anh": "hook", "chu": "Then we write the hooks that stop the scroll.", "cuon": [0, 300] } },
+  { "chu": "hook 1", "giay": 3.6, "canh": { "loai": "hook", "anh": "hook", "cuon": [300], "o": [847, 437], "so_thu": "HOOK 1 / 8" } },
+  { "chu": "hook 2", "giay": 3.6, "canh": { "loai": "hook", "anh": "hook", "cuon": [700], "o": [1315, 437], "so_thu": "HOOK 2 / 8" } },
+  { "chu": "hook 3", "giay": 3.6, "canh": { "loai": "hook", "anh": "hook", "cuon": [1150], "o": [1782, 437], "so_thu": "HOOK 3 / 8" } },
+  { "chu": "chips", "giay": 3.2, "canh": { "loai": "chip", "anh": "hook", "cuon": [1150, 2600], "ds": ["8 hooks to test", "4 buyer types", "The doubts to answer", "Free guide"] } },
+  { "chu": "end", "giay": 4.2, "canh": { "loai": "ket", "anh": "home", "chu": "Your niche is probably already here.", "url": "anglebrief.net/guides", "phu": "46 niches · reports from $24 · one-time", "cuon": [0, 120] } }
+ ]
+}

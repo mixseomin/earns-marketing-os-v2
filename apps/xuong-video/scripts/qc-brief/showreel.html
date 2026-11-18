@@ -1,0 +1,80 @@
+<!doctype html>
+<!-- MẪU "SITE SHOWREEL" cho kênh AngleBrief (anh 19/11/2026 chọn cả 4 mẫu Opus; mẫu gốc: Prompt Opus 5.5 › wani-shola-459278 — "dùng trang web thật nhiều nhất có thể,
+     quay trang trong khung điện thoại, câu hỏi / câu trả lời to đậm, chỉ số liệu có trên site, mỗi cảnh một ý"). Ảnh chụp thật anglebrief.net (qc-brief/chup-site.mjs)
+     cuộn trong khung điện thoại; hook thật của guide BẬT RA khỏi trang thành thẻ lớn (chính vùng ảnh chụp, phóng to). Không giọng — nhạc + tiếng động (qc-brief/dung.mjs).
+     Hợp đồng quay như mọi trang shot-code: window.CAU → await __dung() → __seek(t) thuần theo t. -->
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: AB; src: url(../../public/fonts/ArchivoBlack-Regular.ttf); }
+@font-face { font-family: M; src: url(../../public/fonts/Montserrat-ExtraBold.ttf); font-weight: 800; }
+* { margin: 0; } html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+</style></head><body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+const c = document.getElementById('c'), x = c.getContext('2d'), W = 1080, H = 1920;
+const CAM = '#FF5B1F', MUC = '#121826', GIAY = '#F4F1EC';
+let C, IMG = {};
+const kep = (v) => Math.max(0, Math.min(1, v)), ra = (v) => 1 - (1 - kep(v)) ** 3, mem = (v) => { v = kep(v); return v < 0.5 ? 4 * v ** 3 : 1 - (-2 * v + 2) ** 3 / 2; };
+const nay = (v) => { v = kep(v); const s = 1.4; return 1 + (s + 1) * (v - 1) ** 3 + s * (v - 1) ** 2; };
+const tai = (u) => new Promise((ok, loi) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => loi(new Error('không tải được ' + u)); i.src = u; });
+window.__dung = async () => { C = window.CAU; await document.fonts.load('80px AB'); await document.fonts.load('800 40px M'); for (const [k, u] of Object.entries(C.anh)) IMG[k] = await tai(u); };
+
+function hop(px, py, w, h, r) { x.beginPath(); x.roundRect(px, py, w, h, r); }
+function boc(s, rong) { const ds = []; let d = ''; for (const w of s.split(' ')) { const th = d ? d + ' ' + w : w; if (x.measureText(th).width > rong && d) { ds.push(d); d = w; } else d = th; } if (d) ds.push(d); return ds; }
+
+// NỀN giấy ấm + lưới mờ trôi chậm + vệt màu cam nhoè (không phải nền phẳng: lớp lưới và vệt sáng chuyển động theo t)
+function nen(t) {
+  x.fillStyle = GIAY; x.fillRect(0, 0, W, H);
+  const g = x.createRadialGradient(540 + Math.sin(t * 0.4) * 260, 520, 40, 540, 520, 900); g.addColorStop(0, 'rgba(255,91,31,.20)'); g.addColorStop(1, 'rgba(255,91,31,0)'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.strokeStyle = 'rgba(18,24,38,.06)'; x.lineWidth = 2; const o = (t * 18) % 60; x.beginPath();
+  for (let i = -60; i < W + 60; i += 60) { x.moveTo(i + o, 0); x.lineTo(i + o, H); } for (let j = -60; j < H + 60; j += 60) { x.moveTo(0, j + o); x.lineTo(W, j + o); } x.stroke();
+}
+// KHUNG ĐIỆN THOẠI: trang thật (lát ảnh chụp) cuộn bên trong. Trả về hàm đổi toạ độ lát → toạ độ màn (để thẻ hook bật ra đúng chỗ)
+const PW = 600, PH = 1066;
+function dienThoai(anh, cuon, cx, cy, k = 1, xoay = 0) {
+  const a = IMG[anh], sc = PW / a.width;
+  x.save(); x.translate(cx, cy); x.rotate(xoay); x.scale(k, k);
+  x.shadowColor = 'rgba(18,24,38,.35)'; x.shadowBlur = 70; x.shadowOffsetY = 30; x.fillStyle = '#fff'; hop(-PW / 2 - 18, -PH / 2 - 18, PW + 36, PH + 36, 64); x.fill(); x.shadowColor = 'transparent';
+  x.save(); hop(-PW / 2, -PH / 2, PW, PH, 48); x.clip(); x.fillStyle = '#fff'; x.fillRect(-PW / 2, -PH / 2, PW, PH);
+  x.drawImage(a, 0, cuon, a.width, Math.min(a.height - cuon, PH / sc), -PW / 2, -PH / 2, PW, Math.min(a.height - cuon, PH / sc) * sc); x.restore();
+  x.fillStyle = '#121826'; hop(-60, -PH / 2 + 14, 120, 28, 14); x.fill(); x.restore();
+  return { y: (v) => cy + (-PH / 2 + (v - cuon) * sc) * k, sc: sc * k, x0: cx - (PW / 2) * k };
+}
+function tieuDe(chu, q, y, co = 92, mau = MUC) {   // chữ to bật từng từ (spring nhẹ, không nảy lố — luật mẫu gốc)
+  x.font = `${co}px AB`; const ds = boc(chu, 960); let n = 0;
+  ds.forEach((d, i) => { const ws = d.split(' '), rr = x.measureText(d).width; let px = (W - rr) / 2;
+    for (const w of ws) { const p = nay((q - 0.06 * n++) / 0.35), r = x.measureText(w + ' ').width;
+      x.save(); x.globalAlpha = kep(p * 1.5); x.translate(px, y + i * co * 1.12 + (1 - p) * 40); x.fillStyle = /\d|hook|free|\$/i.test(w) ? CAM : mau; x.fillText(w, 0, 0); x.restore(); px += r; } });
+  return y + ds.length * co * 1.12;
+}
+function chip(s, px, py, q, nen_ = MUC, mau = '#fff') { const e = nay(q / 0.3); if (e <= 0) return; x.font = '800 44px M'; const r = x.measureText(s).width + 64;
+  x.save(); x.translate(px, py); x.scale(e, e); x.fillStyle = nen_; hop(-r / 2, -40, r, 80, 40); x.fill(); x.fillStyle = mau; x.textAlign = 'center'; x.fillText(s, 0, 15); x.restore(); x.textAlign = 'left'; }
+const dinh = (v) => Math.round(v).toLocaleString('en-US');
+const cuonCua = (s, q) => { const [a, b] = s.c.cuon || [0, 0]; return a + (b - a) * mem(q / Math.max(0.5, s.kt - s.bd)); };
+
+const VE = {
+  mo(s, q) { const e = ra(q / 0.6); dienThoai(s.c.anh, cuonCua(s, q), 540, 1250 + (1 - e) * 900, 1, (1 - e) * 0.15); tieuDe(s.c.chu, q - 0.15, 300); },
+  so(s, q) { dienThoai(s.c.anh, cuonCua(s, q), 540, 1250); const v = s.c.so * ra(kep((q - 0.1) / 1.0));
+    x.textAlign = 'center'; x.font = '190px AB'; x.fillStyle = CAM; x.fillText(dinh(v), 540, 400); x.font = '800 56px M'; x.fillStyle = MUC; x.fillText(s.c.sau, 540, 490); x.textAlign = 'left';
+    if (s.c.phu) chip(s.c.phu, 540, 600, q - 0.9); },
+  chu(s, q) { dienThoai(s.c.anh, cuonCua(s, q), 540, 1250); tieuDe(s.c.chu, q, 300, 84); },
+  hook(s, q) { // thẻ hook = đúng vùng ảnh chụp của trang, bật khỏi điện thoại lên giữa trên
+    const cuon = s.c.cuon?.[0] ?? 0, doi = dienThoai(s.c.anh, cuon, 540, 1250), [y0, h0] = s.c.o, a = IMG[s.c.anh];
+    const p = mem((q - 0.15) / 0.55), tu = { x: doi.x0 + 20 * doi.sc, y: doi.y(y0), w: (a.width - 40) * doi.sc }, den = { w: 1000 }; den.x = 40; den.y = 330;
+    const w = tu.w + (den.w - tu.w) * p, k = w / (a.width - 40), px = tu.x + (den.x - tu.x) * p, py = tu.y + (den.y - tu.y) * p;
+    if (q > 0.1) { x.save(); x.fillStyle = 'rgba(244,241,236,.0)'; x.shadowColor = `rgba(255,91,31,${0.45 * p})`; x.shadowBlur = 60 * p; x.fillStyle = '#fff'; hop(px, py, w, h0 * k, 26 * k); x.fill(); x.shadowColor = 'transparent';
+      x.save(); hop(px, py, w, h0 * k, 26 * k); x.clip(); x.drawImage(a, 20, y0, a.width - 40, h0, px, py, w, h0 * k); x.restore();
+      x.strokeStyle = CAM; x.lineWidth = 6 * p; hop(px, py, w, h0 * k, 26 * k); x.stroke(); x.restore(); }
+    if (s.c.so_thu) chip(s.c.so_thu, 540, 250, q - 0.6, CAM); },
+  chip(s, q) { dienThoai(s.c.anh, cuonCua(s, q), 540, 1250, 0.92); s.c.ds.forEach((d, i) => chip(d, 540, 300 + i * 120, q - 0.15 - i * 0.35, i === s.c.ds.length - 1 ? CAM : MUC)); },
+  ket(s, q) { const e = ra(q / 0.6); dienThoai(s.c.anh, cuonCua(s, q), 540, 1440, 0.82 * (0.9 + 0.1 * e));
+    const y = tieuDe(s.c.chu, q, 250, 96); chip(s.c.url, 540, y + 40, q - 0.5, CAM); x.globalAlpha = kep((q - 0.9) / 0.3); x.textAlign = 'center'; x.font = '800 42px M'; x.fillStyle = MUC; x.fillText(s.c.phu, 540, y + 150); x.textAlign = 'left'; x.globalAlpha = 1; },
+};
+window.__seek = (t) => {
+  const k = Math.max(0, C.canh.findIndex((s, i) => t >= s.bd && t < (C.canh[i + 1]?.bd ?? 1e9))), s = C.canh[k], q = t - s.bd;
+  nen(t); VE[s.c.loai](s, q);
+  // logo góc + thanh tiến độ cam
+  x.fillStyle = CAM; hop(48, 60, 64, 64, 16); x.fill(); x.fillStyle = '#fff'; x.font = '44px AB'; x.fillText('A', 64, 108); x.fillStyle = MUC; x.font = '800 40px M'; x.fillText('AngleBrief', 128, 106);
+  x.fillStyle = 'rgba(18,24,38,.08)'; x.fillRect(0, H - 14, W, 14); x.fillStyle = CAM; x.fillRect(0, H - 14, W * kep(t / C.DAI), 14);
+};
+window.__khung = () => c.toDataURL('image/jpeg', 0.92).split(',')[1];
+</script></body></html>

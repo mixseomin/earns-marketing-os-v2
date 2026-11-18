@@ -1,0 +1,18 @@
+{
+ "id": "qc-brief-ui-promo",
+ "may": "anglebrief",
+ "mau": "ui-promo",
+ "trang": "ui.html",
+ "giong": false,
+ "nguon": "Ảnh chụp thật 19/11/2026 (qc-brief/chup-site.mjs, 430 css × 2,5): anglebrief.net (home-tren), /reports (reports-tren, thẻ Meal Kit css y 5950), /r/meal-kit (meal-tren, nút 'Get the report · $24' css 16,377,172,43). Giá + hoàn tiền: trang chủ.",
+ "tai_san": { "anh": { "home": "site/home-tren.png", "reports": "site/reports-tren.png", "meal": "site/meal-tren.png" } },
+ "cau": [
+  { "chu": "open", "giay": 2.0, "canh": { "loai": "vien", "chu": "Stop guessing what|makes buyers click." } },
+  { "chu": "home", "giay": 3.0, "canh": { "loai": "trang", "anh": "home", "cuon": [0, 0], "bam": [40, 1020, 355, 107], "bam_luc": 2.2 } },
+  { "chu": "reports", "giay": 4.4, "canh": { "loai": "trang", "anh": "reports", "cuon": [0, 14200], "bam": [40, 14875, 995, 577], "bam_luc": 3.7 } },
+  { "chu": "report", "giay": 3.2, "canh": { "loai": "trang", "anh": "meal", "cuon": [0, 0], "bam": [40, 942, 430, 107], "bam_luc": 2.4 } },
+  { "chu": "buy", "giay": 2.6, "canh": { "loai": "nut", "chu": "Get the report · $24", "sau": "✓ Instant access", "bam_luc": 0.9 } },
+  { "chu": "end", "giay": 3.0, "canh": { "loai": "ket", "chu": "AngleBrief", "url": "anglebrief.net" } },
+  { "chu": "loop", "giay": 0.9, "canh": { "loai": "vien", "chu": "Stop guessing what|makes buyers click." } }
+ ]
+}

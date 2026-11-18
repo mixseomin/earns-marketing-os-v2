@@ -198,16 +198,19 @@ export function DataTable<T>({
   // persistKey (localStorage, đọc sau khi gắn để không lệch SSR); có cột đã kéo → bảng chuyển table-layout fixed để bề ngang được tôn trọng.
   const khoaRong = persistKey ? `tbl-rong.${persistKey}` : null;
   const [rong, setRong] = useState<Record<string, number>>({});
+  const [dangKeo, setDangKeo] = useState(false);
+  const [khung, setKhung] = useState(0);   // bề ngang khung chứa bảng — khung hẹp hơn tổng bề ngang đã lưu thì co các cột theo tỉ lệ
   useEffect(() => { if (khoaRong) setRong(docRongCot(khoaRong)); }, [khoaRong]);
   const keoCot = (e: ReactPointerEvent<HTMLSpanElement>, key: string) => {
     e.stopPropagation();
     const th = e.currentTarget.parentElement as HTMLElement | null; const hang = th?.parentElement; if (!th || !hang) return;
     // chốt bề ngang HIỆN TẠI của mọi cột trước khi chuyển sang fixed — không thì các cột chưa khai width nhảy lung tung lúc bắt đầu kéo
-    const chot: Record<string, number> = {}; Array.from(hang.children).forEach((x, i) => { const k = visibleKeys[i]; if (k) chot[k] = Math.ceil((x as HTMLElement).getBoundingClientRect().width); });   // làm tròn LÊN: hụt nửa px là ô bị cắt "…"
-    setRong((r) => ({ ...chot, ...r }));
+    // Bề ngang GIỮ SỐ LẺ (2 chữ số): tổng các cột = đúng bề ngang bảng. Trước đây Math.ceil từng cột → lố ~1px/cột, 9 cột lố ~10px → bảng cuộn ngang, hết co theo màn (góp ý #giao-20261118T2101-chuyen-tz5p).
+    const chot: Record<string, number> = {}; Array.from(hang.children).forEach((x, i) => { const k = visibleKeys[i]; if (k) chot[k] = Math.round((x as HTMLElement).getBoundingClientRect().width * 100) / 100; });
+    setRong((r) => ({ ...chot, ...r })); setDangKeo(true);
     batDauKeo(e, { dau: th.getBoundingClientRect().width, min: 36, max: () => 1600,
       doi: (v) => setRong((r) => ({ ...r, [key]: v })),
-      xong: (v) => setRong((r) => { const n = { ...chot, ...r, [key]: v }; if (khoaRong) ghiRongCot(khoaRong, n); return n; }) });
+      xong: (v) => { setDangKeo(false); setRong((r) => { const n = { ...chot, ...r, [key]: v }; if (khoaRong) ghiRongCot(khoaRong, n); return n; }); } });
   };
   const veMacDinh = (key: string) => setRong((r) => { const n = { ...r }; delete n[key]; if (khoaRong) ghiRongCot(khoaRong, n); return n; });
   // Ô tìm/lọc chung — persist như sort/lọc-cột (cookie server đọc sẵn + URL để share/F5). Trước đây
@@ -435,15 +438,20 @@ export function DataTable<T>({
   };
   // bảng bề rộng cố định (table-layout:fixed — đã kéo cột / fixedLayout): ô nào cũng cắt phần tràn, không thì chữ dài đè sang cột bên cạnh (anh 26/10/2026)
   const coDinh = !!fixedLayout || Object.keys(rong).length > 0;
+  // co theo tỉ lệ: tổng bề ngang cột (đã lưu + mặc định) lớn hơn khung → nhân mọi bề ngang đã lưu với khung/tổng; lúc đang kéo thì không co (tay nắm phải theo chuột)
+  const tongLuu = visible.reduce((s, c) => s + (rong[c.key] ?? 0), 0);   // phần co được (cột đã lưu bề ngang)
+  const tongKhac = visible.reduce((s, c) => s + (rong[c.key] != null ? 0 : typeof c.width === 'number' ? c.width : RONG_MAC_DINH), 0);
+  const heSo = !dangKeo && khung > 0 && tongLuu > 0 && tongLuu + tongKhac > khung ? Math.max(0.1, (khung - tongKhac) / tongLuu) : 1;
+  const rongCot = (k: string): number | undefined => (rong[k] == null ? undefined : Math.floor(rong[k] * heSo * 100) / 100);
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties, i = -1): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
     // bảng đã chuyển fixed (đã kéo cột) mà cột này chưa có bề ngang (cột MỚI thêm sau lần kéo) → bề ngang mặc định, không thì table-layout:fixed
     // dồn hết chỗ cho các cột đã chốt và cột mới bị ép còn 0px — biến mất (etp cột Luật, anh 27/10/2026 "ko có cột Luật nào")
-    return { ...baseCell, textAlign: c.align ?? 'right', width: rong[c.key] ?? c.width ?? (coDinh ? RONG_MAC_DINH : undefined), ...(rong[c.key] ? { maxWidth: rong[c.key] } : {}), ...(coDinh ? { overflow: 'hidden', textOverflow: 'ellipsis' } : {}), background: bandSoft(g?.color), ...stick(i, false), ...extra };
+    return { ...baseCell, textAlign: c.align ?? 'right', width: rongCot(c.key) ?? c.width ?? (coDinh ? RONG_MAC_DINH : undefined), ...(rong[c.key] ? { maxWidth: rongCot(c.key) } : {}), ...(coDinh ? { overflow: 'hidden', textOverflow: 'ellipsis' } : {}), background: bandSoft(g?.color), ...stick(i, false), ...extra };
   };
   const headStyle = (c: DataColumn<T>, i = 0): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
-    return { ...baseHead, textAlign: c.headerAlign ?? c.align ?? 'right', width: rong[c.key] ?? c.width,
+    return { ...baseHead, textAlign: c.headerAlign ?? c.align ?? 'right', width: rongCot(c.key) ?? c.width,
       color: g?.color ?? 'var(--fg-3)',
       // nền = lớp ĐỤC + lớp màu nhóm (trong suốt) chồng lên, để hàng cuộn qua không lộ xuyên
       backgroundColor: 'var(--bg-2)',
@@ -510,6 +518,13 @@ export function DataTable<T>({
     window.addEventListener('resize', doNgay);
     return () => { ro.disconnect(); window.removeEventListener('resize', doNgay); };
   }, [theoTrang, effView, visible.length, rong, pageRows.length]);
+  // khung chứa bảng (cha của <table>) — đo bề ngang để co cột đã lưu theo tỉ lệ khi màn hẹp hơn tổng (rongCot)
+  useEffect(() => {
+    const cha = bangRef.current?.parentElement; if (!cha || !coDinh) return;
+    const doKhung = () => { const w = cha.clientWidth; setKhung((o) => (Math.abs(o - w) < 0.5 ? o : w)); };
+    const ro = new ResizeObserver(doKhung); ro.observe(cha); doKhung();
+    return () => ro.disconnect();
+  }, [coDinh, effView]);
   // NHÓM DÍNH: dòng nhóm đã cuộn qua mép dưới khối tiêu đề mà nhóm vẫn còn dòng dưới → chép dòng nhóm đó vào khối tiêu đề dính (thân bảng nằm trong
   // hộp overflow-x nên position:sticky của chính <tr> không dính theo trang được — cùng lý do tiêu đề là bảng riêng)
   const [nhomDinh, setNhomDinh] = useState<string | null>(null);
@@ -745,7 +760,7 @@ export function DataTable<T>({
       )}
       <div ref={thanRef} className={`dt-scroll${theoTrang ? '' : ' dt-hop'}`} onScroll={theoTrang ? dongCuon('than') : undefined} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
         <table ref={bangRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: fixedLayout || Object.keys(rong).length ? 'fixed' : 'auto', minWidth, ...(theoTrang && cotDo.cao ? { marginTop: -cotDo.cao } : {}) }}>
-          {groupHeader ? <colgroup>{visible.map((c) => <col key={c.key} style={{ width: rong[c.key] ?? c.width }} />)}</colgroup> : null}{/* hàng nhãn nhóm (ô gộp) đứng ĐẦU thead → table-layout:fixed bỏ qua bề rộng ở hàng cột → kéo giãn cột bị chia đều; khai bề rộng bằng colgroup */}
+          {groupHeader ? <colgroup>{visible.map((c) => <col key={c.key} style={{ width: rongCot(c.key) ?? c.width }} />)}</colgroup> : null}{/* hàng nhãn nhóm (ô gộp) đứng ĐẦU thead → table-layout:fixed bỏ qua bề rộng ở hàng cột → kéo giãn cột bị chia đều; khai bề rộng bằng colgroup */}
           {!hideHeader && (theoTrang
             ? <thead ref={doRef} style={{ visibility: 'hidden' }}>{hangNhom()}{hangDau(false)}</thead>
             : <thead>{hangNhom()}{hangDau(true)}</thead>)}

@@ -52,6 +52,23 @@
     "iMac:tc.on.cty.cty-gop-y"
    ],
    "chi_phi": "gói Claude thuê bao (không tính theo lượt)"
+  },
+  {
+   "id": "may-dung-cty",
+   "ten": "Máy dựng deploy repo cty (GitHub Actions tự quản trên iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac luôn chạy — bộ điều phối việc nền; nhận việc khi có push vào github.com/mixseomin/cty",
+   "mo_ta": "Dựng + kiểm cty (tu-kiem, typecheck, next build) rồi gửi bản dựng sang box3 và gọi /opt/cty/deploy/len.sh. Repo cty riêng tư nên dựng ở iMac để không tốn phút GitHub (anh chọn 18/11/2026).",
+   "ma": "github.com/mixseomin/cty .github/workflows/deploy.yml · deploy/len.sh · /Users/htuan/actions-runner-cty (iMac)",
+   "chu_tri": "khoi",
+   "lam": [
+    "may"
+   ],
+   "khi": "mỗi lần push main của repo cty",
+   "lich": [
+    "iMac:actions.runner.mixseomin-cty.tuans-imac-cty"
+   ],
+   "chi_phi": "0"
   }
  ]
 }

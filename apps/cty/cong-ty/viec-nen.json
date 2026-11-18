@@ -18,6 +18,22 @@
    }
   },
   {
+   "nhan": "iMac:actions.runner.mixseomin-cty.tuans-imac-cty",
+   "ten": "cty - máy dựng GitHub Actions (deploy repo cty)",
+   "chay": [
+    "/Users/htuan/actions-runner-cty/run.sh"
+   ],
+   "thu_muc": "/Users/htuan/actions-runner-cty",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/actions-runner-cty.log",
+   "hen": {
+    "luon": true
+   },
+   "ghi_chu": "Anh chọn 18/11/2026: máy dựng tự quản trên iMac cho repo riêng tư cty (0đ, thay phút GitHub). Chỉ nhận việc của github.com/mixseomin/cty, nhãn cty."
+  },
+  {
    "nhan": "iMac:com.adfond.ab-chup",
    "ten": "Adfond - tự chụp ảnh mẫu A-B",
    "chay": [

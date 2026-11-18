@@ -263,7 +263,7 @@ function chayVong(may) {
     const thuc = bay - lanNhip > 60_000; lanNhip = bay;
     if (thuc) { lanTai = bay; ghiLog("☀ thức dậy — đọc lại sổ trước khi chạy bù"); taiSo(true, may); }
     else if (bay - lanTai > 5 * 60_000) { lanTai = bay; taiSo(false, may); }
-    const ds = (docJson(F.so, { viec: [] }).viec ?? []).filter((v) => v.nhan.startsWith(`${may}:`) && !v.tat);
+    const ds = (docJson(F.so, { viec: [] }).viec ?? []).filter((v) => v.nhan.startsWith(`${may}:`) && !v.tat && !(v.tat_den && Date.now() < Date.parse(v.tat_den)));   // tat_den: tạm dừng tới mốc (ISO có múi giờ), qua mốc tự chạy lại — anh 18/11/2026 "tạm dừng mọi con CLI dùng claude code đến chiều nay sau 4h"
     const thu = bay - lanThu > 30_000; if (thu) lanThu = bay;
     let doi = false;
     for (const v of ds) {

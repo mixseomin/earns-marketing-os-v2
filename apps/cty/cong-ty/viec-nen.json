@@ -761,7 +761,8 @@
     "moi_giay": 1800
    },
    "uu_tien_thap": true,
-   "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
+   "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")",
+   "tat_den": "2026-11-18T16:00:00+07:00"
   },
   {
    "nhan": "iMac:tc.on.cty.astrolas-tasks",
@@ -778,7 +779,8 @@
    "hen": {
     "moi_giay": 120
    },
-   "uu_tien_thap": true
+   "uu_tien_thap": true,
+   "tat_den": "2026-11-18T16:00:00+07:00"
   },
   {
    "nhan": "iMac:tc.on.cty.etp-sua",
@@ -796,7 +798,8 @@
     "moi_giay": 120
    },
    "uu_tien_thap": true,
-   "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
+   "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")",
+   "tat_den": "2026-11-18T16:00:00+07:00"
   },
   {
    "nhan": "iMac:tc.on.cty.social-sua",
@@ -814,7 +817,8 @@
     "moi_giay": 1800
    },
    "uu_tien_thap": true,
-   "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
+   "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")",
+   "tat_den": "2026-11-18T16:00:00+07:00"
   },
   {
    "nhan": "iMac:tc.on.cty.sach-sua",
@@ -832,7 +836,8 @@
     "moi_giay": 1800
    },
    "uu_tien_thap": true,
-   "ghi_chu": "Chỉ gọi Claude khi hàng sach-sua.json có việc; mỗi lượt một cuốn (anh 15/11/2026)"
+   "ghi_chu": "Chỉ gọi Claude khi hàng sach-sua.json có việc; mỗi lượt một cuốn (anh 15/11/2026)",
+   "tat_den": "2026-11-18T16:00:00+07:00"
   },
   {
    "nhan": "iMac:tc.on.cty.tai-nguyen-sua",
@@ -850,7 +855,8 @@
     "moi_giay": 60
    },
    "uu_tien_thap": true,
-   "ghi_chu": "Anh duyệt 13/11/2026 (\"Có cho nó chạy\"); chỉ gọi Claude khi hàng có việc. Chạy từ CÂY RIÊNG của Tài (runner tự kéo origin/main mỗi lượt) — cây mos2 chính trên iMac hay lệch origin vì việc dở của phiên khác, chạy từ đó là chạy mã cũ"
+   "ghi_chu": "Anh duyệt 13/11/2026 (\"Có cho nó chạy\"); chỉ gọi Claude khi hàng có việc. Chạy từ CÂY RIÊNG của Tài (runner tự kéo origin/main mỗi lượt) — cây mos2 chính trên iMac hay lệch origin vì việc dở của phiên khác, chạy từ đó là chạy mã cũ",
+   "tat_den": "2026-11-18T16:00:00+07:00"
   },
   {
    "nhan": "iMac:com.earns.may-san-xuat",
@@ -891,7 +897,8 @@
    "hen": {
     "moi_giay": 300
    },
-   "uu_tien_thap": true
+   "uu_tien_thap": true,
+   "tat_den": "2026-11-18T16:00:00+07:00"
   },
   {
    "nhan": "iMac:tc.on.cty.spy-gop-y",
@@ -908,7 +915,8 @@
    "hen": {
     "moi_giay": 300
    },
-   "uu_tien_thap": true
+   "uu_tien_thap": true,
+   "tat_den": "2026-11-18T16:00:00+07:00"
   },
   {
    "nhan": "iMac:tc.on.cty.studio-gop-y",
@@ -925,7 +933,8 @@
    "hen": {
     "moi_giay": 300
    },
-   "uu_tien_thap": true
+   "uu_tien_thap": true,
+   "tat_den": "2026-11-18T16:00:00+07:00"
   },
   {
    "nhan": "iMac:tc.on.cty.cty-gop-y",
@@ -943,7 +952,8 @@
     "moi_giay": 300
    },
    "uu_tien_thap": true,
-   "ghi_chu": "Anh duyệt 17/11/2026 (\"Tạo đi\") — hòm 💬 cty.on.tc chưa ai nhận."
+   "ghi_chu": "Anh duyệt 17/11/2026 (\"Tạo đi\") — hòm 💬 cty.on.tc chưa ai nhận.",
+   "tat_den": "2026-11-18T16:00:00+07:00"
   },
   {
    "nhan": "iMac:tc.on.cty.castle-gop-y",
@@ -960,7 +970,8 @@
    "hen": {
     "moi_giay": 300
    },
-   "uu_tien_thap": true
+   "uu_tien_thap": true,
+   "tat_den": "2026-11-18T16:00:00+07:00"
   },
   {
    "nhan": "iMac:tc.on.cty.astrolas-site",
@@ -1068,7 +1079,8 @@
    "hen": {
     "moi_giay": 3600
    },
-   "uu_tien_thap": true
+   "uu_tien_thap": true,
+   "tat_den": "2026-11-18T16:00:00+07:00"
   }
  ]
 }

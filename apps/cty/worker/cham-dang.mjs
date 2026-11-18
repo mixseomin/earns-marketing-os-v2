@@ -34,7 +34,8 @@ export const MOC_GOC = '2026-10-25T17:00:00Z';   // 00:00 26/10/2026 giờ VN: m
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { loiHook, dongHookBai, soNgoaiSuThat, sachHook, CHU_VIET, chuManHinh } from '../../xuong-video/src/lib/xuong-video/hook-qc.mjs';
+import { nhapMono, monoTep } from './goc.mjs';
+const { loiHook, dongHookBai, soNgoaiSuThat, sachHook, CHU_VIET, chuManHinh } = await nhapMono('apps/xuong-video/src/lib/xuong-video/hook-qc.mjs');   // mã chấm hook của studio — đọc lúc chạy (tách repo cty 18/11/2026)
 async function moSpy() {
   let url = process.env.SPY_DATABASE_URL;
   if (!url) { const fs = await import('node:fs'); url = fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13); }
@@ -376,7 +377,7 @@ export async function xetThumbAi(ds) {
 
 /** Chấm mọi video đang dùng chưa chấm hoặc đã xuất lại sau lần chấm. Trả { cham, duyet, sua, theoMau: { mau: { n, loi: {lỗi: số} } } }. */
 /** dấu tệp sự thật của máy (apps/xuong-video/su-that/<máy>.md) — ghi vào cham để biết bài chấm theo bản tệp nào; không có tệp thì ''. */
-const dauSuThat = (ma) => { try { return createHash('md5').update(fs.readFileSync(new URL(`../../xuong-video/su-that/${ma}.md`, import.meta.url), 'utf8')).digest('hex').slice(0, 10); } catch { return ''; } };
+const dauSuThat = (ma) => { try { return createHash('md5').update(fs.readFileSync(monoTep(`apps/xuong-video/su-that/${ma}.md`), 'utf8')).digest('hex').slice(0, 10); } catch { return ''; } };
 export async function chamMoi(sql) {
   // chấm lại khi xuất lại (xuat) HOẶC chữ đăng đổi (dang = md5 của dang) — đổi tiêu đề mà không xuất lại vẫn phải qua phòng
   const { ketKhoa, soLuot, TRAN_LUOT } = await import('./kiem-bai.mjs');
@@ -404,7 +405,7 @@ export async function chamMoi(sql) {
   const kq = { cham: 0, duyet: 0, sua: 0, theoMau: {} };
   const loiGoc = await kiemGoc(ds.map((v) => ({ goc: v.dang?.goc, goc_sp: v.goc_sp })));
   const suThat = new Map();   // tệp sự thật đã kiểm của từng máy (apps/xuong-video/su-that/<máy>.md) — không có thì null
-  const suThatCua = (ma) => { if (!suThat.has(ma)) { try { suThat.set(ma, fs.readFileSync(new URL(`../../xuong-video/su-that/${ma}.md`, import.meta.url), 'utf8')); } catch { suThat.set(ma, null); } } return suThat.get(ma); };
+  const suThatCua = (ma) => { if (!suThat.has(ma)) { try { suThat.set(ma, fs.readFileSync(monoTep(`apps/xuong-video/su-that/${ma}.md`), 'utf8')); } catch { suThat.set(ma, null); } } return suThat.get(ma); };
   const loiHookNgach = await xetHookAi(ds.map((v) => ({ qc: v.dang?.loai !== 'bai' ? v.dang?.hook?.qc : null, ma: v.ma, nhan: v.ten, muc_dich: v.muc_dich, su_that: suThatCua(v.ma), goc: v.dang?.hook?.goc, luot_xem: v.dang?.hook?.luot_xem ?? (String(v.dang?.hook?.qc ?? '').startsWith('kenh:') ? v.dang?.hook?.ngay : undefined), dong: dongHookBai(v.dang?.title, v.de) })));
   const hinh = await xetHinhAi(ds.map((v) => ({ title: String(v.dang?.title ?? ''), anh: [...(v.de?.soat ?? (v.khung?.length ? v.khung : v.anh) ?? [])].filter((u) => /^https:\/\//.test(u)).slice(0, 8),
     nha: thuongHieuNha(v) })));
@@ -434,7 +435,7 @@ export async function chamMoi(sql) {
 // không nhắc lại cùng một chuyện mỗi ngày.
 export const KHO_TOI_THIEU = 7;
 // loại nền đọc từ SỔ NỀN ĐĂNG chung (apps/xuong-video/nen-dang.json — cùng nguồn với máy đăng puzzle-books nhip-an-toan.mjs), không khai tay ở đây
-const NEN_DANG = JSON.parse((await import('node:fs')).readFileSync(new URL('../../xuong-video/nen-dang.json', import.meta.url), 'utf8')).nen;
+const NEN_DANG = JSON.parse((await import('node:fs')).readFileSync(monoTep('apps/xuong-video/nen-dang.json'), 'utf8')).nen;
 const nenLoai = (l) => new Set(Object.entries(NEN_DANG).filter(([, v]) => v.loai === l).map(([k]) => k));
 const NEN_ANH = nenLoai('anh'), NEN_LINK = nenLoai('link'), NEN_POLL = nenLoai('poll'), NEN_BAI = nenLoai('bai');   // nền bài link: dòng dang.loai 'link', không video · nền poll: dang.loai 'poll', không tệp
 // HỌ NỀN (25/10/2026): máy đăng chống spam xoay vòng các nền cùng một tài khoản (facebook / fb_anh / fb_link chung trần ngày Facebook, x / x_anh / x_link chung X —

@@ -9,6 +9,7 @@
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { cayHoacBao, MOS2_GOC } from './cay-rieng.mjs';
+import { monoTep } from '../worker/goc.mjs';
 import { chayKySu, BOX, HOME } from './gop-y-ky-su.mjs';
 
 const GOPY = 'GOPY_TRANG=castle.on.tc /opt/earns-marketing-os-v2/scripts/gop-y.sh';
@@ -19,7 +20,7 @@ process.env.BASH_DEFAULT_TIMEOUT_MS = '900000'; process.env.BASH_MAX_TIMEOUT_MS 
 // HÒM TRỐNG → MÁY QUÉT GIAO VIỆC (anh 16/11/2026, hệ tự phản biện): apps/castle/scripts/quet-giao.mjs lấy khối lệch nặng nhất trong bảng chấm góc chuẩn,
 // tạo thẻ "[MÁY QUÉT]" trong hòm — Thắng nhận ngay lượt này như thẻ thường. Hòm còn thẻ mở thì nó không tạo gì. Lỗi ở bước này không chặn lượt.
 if (!process.argv.includes('--thu') && !process.argv.includes('--kiem')) {
-  try { console.log(execFileSync(process.execPath, [new URL('../../castle/scripts/quet-giao.mjs', import.meta.url).pathname], { encoding: 'utf8', timeout: 120000 }).trim()); }
+  try { console.log(execFileSync(process.execPath, [monoTep('apps/castle/scripts/quet-giao.mjs')], { encoding: 'utf8', timeout: 120000 }).trim()); }
   catch (e) { console.log('quet-giao lỗi: ' + String(e.stderr || e.message).split('\n')[0]); }
 }
 chayKySu({

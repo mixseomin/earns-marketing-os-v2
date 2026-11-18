@@ -4,13 +4,14 @@
 // (2) chấm luật một lần (apps/xuong-video/scripts/ethopex/luat-ethopex.py --json) → mục MỚI (chưa báo hôm nay) gửi một tin / nhóm, kèm nút.
 // Máy KHÔNG tự tăng / tắt: chỉ làm khi anh bấm. Nút chỉ nhận từ người trong nhóm chat của bot (tin gửi vào nhóm riêng của anh).
 import fs from 'node:fs';
+import { docMonoJson } from './goc.mjs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const REPO = process.env.MOS2_DIR || '/opt/earns-marketing-os-v2';
 // SỔ LUẬT CHUNG etp (apps/web/src/lib/etp-bang-luat.json, anh 01/11/2026 "tìm nguyên nhân gốc"): luật tắt / luật hạ của Nhà + tài khoản team đọc từ đây
-export const BANG_LUAT = JSON.parse(fs.readFileSync(new URL('../../web/src/lib/etp-bang-luat.json', import.meta.url), 'utf8'));
+export const BANG_LUAT = docMonoJson('apps/web/src/lib/etp-bang-luat.json');   // sổ luật chung của web — đọc lúc chạy (worker/goc.mjs, tách repo cty 18/11/2026)
 /** mọi luật tắt: { khoa, tep, ten: 'LUẬT X', mo_ta, cot, luat, ai, ngay?, rieng?, nha? } */
 // nấc nhân bản + trần mỗi phim / 24 giờ — sổ luật chung nhan_ban (anh 07/11/2026), cùng số máy luật đọc
 const NB_SO = BANG_LUAT.nhan_ban, NB_LUAT_CHU = `${[...NB_SO.nac].reverse().map(([c, m, n], i) => `nấc ${i + 1}: tiêu ≥ $${c} & ROI ≥ +${m}% → đủ ${n} bản`).join(' · ')} (ROI 3 ngày ≥ ${NB_SO.roi3}%, mỗi phim tối đa ${NB_SO.phim_ngay} bản / 24 giờ)`;
@@ -151,7 +152,7 @@ export const tenPhim = (chu) => (String(chu).match(/(?:^|[\s#:·])\d{4}\w* (.+?)
 // TÊN CAMP GỌN (anh 23/10/2026: "[1] = Bộ TK 1, [CT] = cảnh thật"): "#65727: 2110 Runaway Single Mom EN - canh that 120-196s cta-sua (nhan ban 1 cua 65727)"
 // → "#65727 [1] [CT] <b>Runaway Single Mom</b> EN / 120-196s / CTA sửa / NB←65727" — bỏ mã lô ngày; phần chi tiết luật sau " · " giữ nguyên. Trả HTML.
 // SỔ DẠNG một nơi (apps/web/src/lib/etp-dang.json, anh 08/11/2026): nhãn không dấu trong tên camp → mã ngắn; nhãn dài xếp trước ('anh tinh tom tat' trước 'anh tinh')
-const LOAI_TG = Object.fromEntries(JSON.parse(fs.readFileSync(new URL('../../web/src/lib/etp-dang.json', import.meta.url), 'utf8')).dang.map((x) => [x.khong_dau, x.ma]).sort((a, b) => b[0].length - a[0].length));
+const LOAI_TG = Object.fromEntries(docMonoJson('apps/web/src/lib/etp-dang.json').dang.map((x) => [x.khong_dau, x.ma]).sort((a, b) => b[0].length - a[0].length));
 // nhãn bộ TK = số khoanh tròn (anh 23/10/2026 chỉ đích danh bảng Number Emojis, thay "[1]") — ngoại lệ của luật cấm số khoanh tròn, CHỈ cho nhãn bộ TK Ethopex trên Telegram
 const soBo = (bo) => { const n = Number(bo); return n >= 1 && n <= 20 ? String.fromCodePoint(0x2460 + n - 1) : `[${bo}]`; };
 export function tenGon(ten, bo) {

@@ -8,10 +8,11 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { goiTep } from '../worker/goc.mjs';
 
 const H = os.homedir(), R = path.join(path.dirname(new URL(import.meta.url).pathname), '..', '..', '..');
-const GOC = path.join(R, 'packages/gop-y/src/client.tsx');
-const GOC_SERVER = path.join(R, 'packages/gop-y/src/server.ts');
+const GOC = goiTep('gop-y', 'src/client.tsx');   // bản ghim goi/gop-y khi cty là repo riêng (worker/goc.mjs)
+const GOC_SERVER = goiTep('gop-y', 'src/server.ts');
 const BAN = [
   { ten: 'spy web/app.css + gop-y.js', css: `${H}/Me/GitHub/spy-on-tc/web/app.css`, js: `${H}/Me/GitHub/spy-on-tc/web/gop-y.js` },
   ...[`${H}/Me/GitHub/Astrolas.com`, `${H}/Documents/GitHub/Astrolas.com`].map((a) => ({ ten: `Astrolas ${a}`, css: `${a}/resources/views/v2/layouts/partials/_report_button.blade.php`, js: `${a}/resources/views/v2/layouts/partials/_report_button.blade.php` })),
@@ -40,7 +41,7 @@ export function kiem(gocSrc, ds) {
   }
   return { loi, thieu, ghi };
 }
-export const kiemMay = () => kiem((doc(GOC) ?? '') + '\n' + (doc(GOC_SERVER) ?? '') + '\n' + (doc(path.join(R, 'packages/gop-y/src/dem.ts')) ?? ''), BAN.map((b) => ({ ten: b.ten, css: doc(b.css), js: doc(b.js) })));
+export const kiemMay = () => kiem((doc(GOC) ?? '') + '\n' + (doc(GOC_SERVER) ?? '') + '\n' + (doc(goiTep('gop-y', 'src/dem.ts')) ?? ''), BAN.map((b) => ({ ten: b.ten, css: doc(b.css), js: doc(b.js) })));
 
 if (process.argv[1]?.endsWith('kiem-chuan-gop-y.mjs')) {
   if (process.argv.includes('--tu-kiem')) {

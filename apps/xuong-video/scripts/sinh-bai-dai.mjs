@@ -30,8 +30,11 @@ if (!goc_sp.length) { console.error(`máy ${may} chưa gắn nhóm góc spy (xv_
 const gocs = JSON.parse(ssh(`U=$(grep ^DATABASE_URL= /root/.secrets/spy.env | cut -d= -f2-); psql "$U" -tA -c "select coalesce(json_agg(json_build_object('sp', sp_id, 'id', id, 'loai', loai, 'ten', ten) order by id), '[]') from goc where sp_id = any(array[${goc_sp.map(Number).join(',')}])"`) || '[]');
 const bai = Object.entries(dsMay({ caLuuTru: true, may })).filter(([s, m]) => m.loai === 'bai' && s.startsWith('dai-')).map(([, m]) => m);
 const daGoc = new Set(bai.map((m) => Number(m.goc?.id)).filter(Boolean)), tieuDeCu = bai.map((m) => m.title).filter(Boolean), anhDaDung = bai.map((m) => idAnh(m.html)).filter(Boolean);
+// bài dài cần góc là NGƯỜI / TÌNH HUỐNG / NỖI ĐAU (viết được hướng dẫn); góc tiêu chí / phàn nàn app (quảng cáo, crash, phân số) để sau cùng — mổ kho militarycalc 19/11/2026
+const UU = ['ai_tinh_huong', 'ai_noi_dau', 'ai_chan_dung', 'ai_cach_giai'], hang = (g) => (UU.indexOf(g.loai) + 1 || 99);
+const chiGoc = lay('--goc') ? new Set(lay('--goc').split(',').map(Number)) : null;
 let moi = 0, tien = 0;
-for (const g of gocs.filter((x) => !daGoc.has(Number(x.id)))) {
+for (const g of gocs.filter((x) => !daGoc.has(Number(x.id)) && (!chiGoc || chiGoc.has(Number(x.id)))).sort((x, y) => hang(x) - hang(y) || x.id - y.id)) {
   if (moi >= SO) break;
   if (XEM) { console.log(`→ góc #${g.id} "${g.ten}"`); moi++; continue; }
   const vb = JSON.parse(studio('--viet-bai-dai', JSON.stringify({ goc: g, slug: `dai-${g.id}`, tieu_de_cu: tieuDeCu, anh_da_dung: anhDaDung }), may).trim().split('\n').pop());

@@ -40,7 +40,8 @@ const phut = (a, b) => Math.max(0, Math.round((Date.parse(b) - Date.parse(a)) / 
  *  → [{ viec, tu?, xong?, ma: 0 | N | null, dai, tom, dang }] */
 export function cacLan(nk, bay = Date.now()) {
   const mo = {}, ra = [];
-  for (const e of [...nk].reverse()) {
+  // xếp theo GIỜ, không theo thứ tự trong tệp: bộ điều phối iMac đẩy '▶' theo lô nên tới box SAU dòng '◆ nhận' của kỹ sư (18/11 #1670: ◆ 09:18:43 nằm trước ▶ 09:18:13) → '◆' không gặp lượt mở, bảng chỉ hiện tên việc chung (góp ý #1671)
+  for (const e of [...nk].reverse().map((e, i) => [e, i]).sort((a, b) => String(a[0].luc ?? '').localeCompare(String(b[0].luc ?? '')) || a[1] - b[1]).map((x) => x[0])) {
     const ket = String(e.ket ?? ''), l = loaiDong(ket), v = String(e.viec ?? '');
     // '◆ nhận …' = kỹ sư tự báo ĐÚNG việc vừa nhận (card / việc giao) — gắn vào lượt đang mở mới nhất, không phải một lần chạy riêng
     if (l === 'nhan') { const v2 = Object.keys(mo).sort((a, b) => String(mo[b].luc).localeCompare(String(mo[a].luc)))[0]; if (v2) mo[v2] = { ...mo[v2], nhan: ket.replace(/^◆\s*/, '') }; continue; }
@@ -82,6 +83,8 @@ if (process.argv[1]?.endsWith('trang-thai.mjs') && process.argv.includes('--tu-k
   const t = (p) => new Date(Date.UTC(2026, 10, 17, 7, 0) + p * 60000).toISOString(), bay = Date.parse(t(0));
   const nk = (ds) => ds.map(([p, viec, ket]) => ({ luc: t(p), viec, ket })).reverse();   // nhập cũ trước → nhật ký mới trước
   const dangLam = trangThai(nk([[-12, 'xu-gop-y-cty', '▶ bắt đầu: cty - Khôi xử hòm góp ý (Claude)']]), { tran: () => 40 }, bay);
+  const tre = trangThai([{ luc: t(-5), viec: 'nhan-viec', ket: '◆ nhận card #9: Sửa ô X · opus low' }, { luc: t(-6), viec: 'x', ket: '▶ bắt đầu: Khôi xử hòm' }], {}, bay);
+  a.equal(tre.viec, 'nhận card #9: Sửa ô X · opus low', '◆ tới tệp trước ▶ (đẩy theo lô) vẫn gắn đúng tên card');
   a.ok(dangLam.kieu === 'lam' && dangLam.phut === 12 && dangLam.viec === 'cty - Khôi xử hòm góp ý (Claude)' && !dangLam.ket.length, 'đang chạy 12 phút, chưa quá trần');
   a.deepEqual(trangThai(nk([[-45, 'x', '▶ bắt đầu: X']]), { tran: () => 40 }, bay).ket, ['chạy 45 phút, quá trần 40 phút'], 'quá trần → kẹt');
   const r = trangThai(nk([[-10, 'x', '▶ bắt đầu: X'], [-8, 'x', '■ xong sau 2 phút · 0 task']]), {}, bay);

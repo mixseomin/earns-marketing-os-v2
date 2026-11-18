@@ -14,7 +14,7 @@
 #   ./scripts/gop-y.sh show <id>                # một card: toàn luồng + link ảnh
 #   ./scripts/gop-y.sh claim <id>               # nhận việc → In progress
 #   ./scripts/gop-y.sh reply <id> "<lời>"       # thêm tin vào luồng, KHÔNG đổi trạng thái
-#   ./scripts/gop-y.sh submit <id> "<lời>" [url]  # nộp cho người duyệt → Review
+#   ./scripts/gop-y.sh submit <id> "<lời>" [url]  # nộp cho người duyệt → Review (card lỗi: url = commit GitHub ĐÃ chạy trên box3)
 #
 # submit KHÔNG phải đóng sổ. Cùng luật với review trong lib/site-status.ts: người làm dừng ở
 # Review, chỉ người duyệt mới đẩy sang Done. Muốn đóng thì bấm "Duyệt xong" trên drawer.
@@ -142,6 +142,26 @@ submit)
        echo "  ./scripts/gop-y.sh submit $id \"<lời>\" https://mos2.on.tc/..." >&2
        exit 1 ;;
   esac
+  # CỔNG "REVIEW = BẢN SỬA ĐÃ CHẠY TRÊN MÁY CHỦ" (anh 19/11/2026: "Sửa toàn bộ việc chuyển trạng thái Review đều phải check commit đã thành công";
+  # #1681 vào Review 01:51 khi bản dựng chưa lên). Card không phải câu hỏi → link phải là commit GitHub, và commit đó phải nằm trong bản
+  # ĐANG CHẠY trên box3 (HEAD của thư mục deploy). Mọi kỹ sư (cty, mos2, castle, studio, etp) và máy (cty may/chot-card.mjs) nộp qua đây nên chặn
+  # một chỗ là đủ. spy-on-tc không có git (deploy rsync) → không kiểm được commit, cho qua.
+  la_hoi=$(psql "$DATABASE_URL" -At -c "SELECT (COALESCE(prep_payload->>'loai','') = 'cau_hoi' OR title LIKE 'Hỏi: %') FROM human_tasks WHERE id = $id AND $SCOPE")
+  if [ "$la_hoi" != "t" ] && [ "$P" != "spy" ]; then
+    if [[ "$url" =~ ^https://github\.com/mixseomin/([A-Za-z0-9._-]+)/commit/([0-9a-f]{7,40})$ ]]; then
+      repo="${BASH_REMATCH[1]}"; sha="${BASH_REMATCH[2]}"
+      case "$repo" in
+        cty) dir=/opt/cty ;;
+        earns-marketing-os-v2) dir=/opt/earns-marketing-os-v2 ;;
+        *) echo "submit #$id bị chặn: chưa biết thư mục deploy của repo $repo trên box3 để kiểm commit (thêm vào scripts/gop-y.sh)." >&2; exit 1 ;;
+      esac
+      if ! git -C "$dir" merge-base --is-ancestor "$sha" HEAD 2>/dev/null; then
+        echo "submit #$id bị chặn: commit $sha chưa nằm trong bản đang chạy trên box3 ($dir đang ở $(git -C "$dir" log -1 --format=%h)) — push chưa thành công hoặc deploy chưa xong. Chờ deploy xanh, kiểm trên trang thật, rồi mới nộp." >&2; exit 1
+      fi
+    else
+      echo "submit #$id bị chặn: nộp Review phải kèm link commit đã lên máy chủ: https://github.com/mixseomin/<repo>/commit/<sha> (card câu hỏi thì không cần)." >&2; exit 1
+    fi
+  fi
   them_tin "$id" "$loi" | bat_buoc_trung "$id"
   dat_trang_thai "$id" review "$url" | bat_buoc_trung "$id"
   ;;

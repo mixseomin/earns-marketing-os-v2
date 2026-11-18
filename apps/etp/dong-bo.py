@@ -7,7 +7,7 @@ Kéo về schema `etp` (migration 0313):
   · phim / creative: studio (xv_phim kinh_thanh.ethopex, ethopex_cta_dat, ethopex_cta_thay, ethopex_tu_choi, ethopex_the_loai, ethopex_phim_tk) + spy (tên, nguồn, url)
   · nhat_ky: chép dòng mới từ studio ethopex_nhat_ky (bản đó chỉ giữ 1000 dòng — kho giữ hết)
 Ghi bằng psql + jsonb_to_recordset (không cần thư viện ngoài). Lỗi một phần không chặn phần khác; ghi lượt vào etp.dong_bo.
-Dùng: dong-bo.py [--day-du]   (--day-du = kéo lại chi tiết mọi camp + số từ 19/10)"""
+Dùng: dong-bo.py [--day-du]   (--day-du = kéo lại chi tiết mọi camp + số từ 19/10) · dong-bo.py --xem-dem [ngày] (bảng chụp đêm, chỉ đọc)"""
 import datetime as dt, json, os, re, subprocess, sys, time, urllib.error, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import ethopex_api as EA   # cổng chung: tài khoản nhà / ngoài (anh 28/10/2026)
@@ -17,6 +17,9 @@ def q(s, db=DB):
     r = subprocess.run(["psql", db, "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=s, capture_output=True, text=True)
     if r.returncode: raise RuntimeError(r.stderr.strip()[-400:])
     return r.stdout.strip()
+# XEM CHỤP ĐÊM (anh 18/11/2026): dong-bo.py --xem-dem [ngày] — chỉ đọc etp.dem_chup, thoát trước khi chọn token / gọi Ethopex
+if __name__ == "__main__" and "--xem-dem" in sys.argv:
+    import dem_chup as _DC; _a = [x for x in sys.argv[1:] if not x.startswith("--")]; _DC.xem(q, _a[0] if _a else None, "--het" in sys.argv); sys.exit(0)
 khoa = lambda ten, rong="{}": json.loads(q(f"select coalesce(gia_tri, '{rong}'::jsonb)::text from xv_khoa_ngoai where ten='{ten}'") or rong)
 # TOKEN DỰ PHÒNG (#1667 anh 18/11/2026): mỗi lượt chọn lại token đang dùng TRƯỚC khi đọc — token Nhà hết hạn thì chuyển sang phiên Ethopex của Sơn
 # (đọc được camp nhà mới nhận), Nhà có token mới thì quay về Nhà. Mọi script đọc access_token sau dòng này đều theo.
@@ -305,6 +308,10 @@ def main():
                 ghi(bang, [{"content_id": c, "ngay": d, "gio": h, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, h), v in gg[nha].items()],
                     ["content_id", "ngay", "gio"], {"content_id": "int", "ngay": "date", "gio": "smallint", "chi": "numeric", "thu": "numeric"})
     except Exception as e: loi.append(f"so_gio: {e}")
+    # ── CHỤP ĐÊM (anh 18/11/2026, bước 1 — chỉ ghi sổ, không cắt camp): khung 0h–7h59 VN ghi một dòng etp.dem_chup = ROI cộng dồn camp nhà máy đang THẤY (apps/etp/dem_chup.py)
+    try:
+        import dem_chup as DC; kq["dem_chup"] = DC.chay(q)
+    except Exception as e: loi.append(f"dem_chup: {e}")
     # ── LUẬT TỪ CẤM / CTA cho Worker chấm creative (anh 25/10/2026: một nguồn — danh sách gốc ở kiem-thoai.py / cta_qc.py) → xv_khoa_ngoai['ethopex_mau_cam']
     try:
         import importlib.util as _iu

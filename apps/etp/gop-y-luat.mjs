@@ -1359,6 +1359,15 @@ export const LUAT = [
   { card: 'kiem-soat-cong-1811', tep: 'apps/etp/dong-bo.py', co: 'HK.xet(q, hk_cu, hk_ds, auto=lambda p: EA._goi(p))', vi: 'hậu kiểm so sổ cửa + đọc Auto Camp Config mỗi lượt đồng bộ' },
   { card: 'kiem-soat-cong-1811', tep: 'apps/etp/hau_kiem.py', co: '"/api/v1/campaign-auto-configs?page=1&page_size=100"', vi: 'đọc Auto Camp Config của Ethopex (pending / checking = sắp tự tạo camp)' },
   { card: 'kiem-soat-cong-1811', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<BienLotCua canhBao={du.canhBao} />', vi: 'biển đỏ lọt cửa đầu trang etp2' },
+  { card: 'dem-chup-1811', tep: 'apps/etp/dong-bo.py', mot: 'import dem_chup as DC; kq["dem_chup"] = DC.chay(q)', vi: 'mỗi lượt đồng bộ chụp ROI đêm máy đang thấy vào etp.dem_chup (anh 18/11/2026)' },
+  { card: 'dem-chup-1811', tep: 'apps/etp/dong-bo.py', co: 'except Exception as e: loi.append(f"dem_chup: {e}")', vi: 'lỗi chụp đêm không chặn đồng bộ' },
+  { card: 'dem-chup-1811', tep: 'apps/etp/dong-bo.py', co: '"--xem-dem" in sys.argv', vi: 'cờ đọc dong-bo.py --xem-dem [ngày]' },
+  { card: 'dem-chup-1811', tep: 'apps/etp/dem_chup.py', co: 'from etp.so_gio_camp s join etp.camp c using (camp_id)', vi: 'chụp chỉ camp nhà' },
+  { card: 'dem-chup-1811', tep: 'apps/etp/dem_chup.py', co: "khoa = 'rpm_gio'", vi: 'iRPM toàn pub giờ gần nhất từ cau_hinh rpm_gio' },
+  ...['tat(', 'tat-loat', 'nhan-ban', 'ngan_sach', 'lam-ethopex'].map((cam) => ({ card: 'dem-chup-1811', tep: 'apps/etp/dem_chup.py', cam, vi: 'bước 1 chỉ ghi sổ — chụp đêm không tắt / đổi camp nào' })),
+  ...['apps/web/src/lib/etp-bang-luat.json', 'apps/etp2/src/lib/etp-bang-luat.json'].flatMap((tep) => [
+    { card: 'dem-chup-1811', tep, co: '"dem_chup": {"tu_gio": 17, "gio_utc": [17, 18, 19, 20, 21, 22, 23, 0]', vi: 'khung chụp đêm 0h–7h59 VN trong sổ luật chung' },
+    { card: 'dem-chup-1811', tep, co: 'CHƯA CÓ LUẬT CẮT; sau 1–2 tuần số mới xét nấc dừng đêm = ROI cộng dồn 0–4h ≤ −20% VÀ giá chợ toàn pub theo giờ đang tụt, nối vào phanh chợ', vi: 'chụp đêm chưa có luật cắt (anh 18/11/2026)' }]),
   ...['apps/etp/dong_phim.py', 'apps/etp/hoi_cho.py', 'apps/etp/nuoi_bo.py', 'apps/etp/lo_trinh_phim.py', 'apps/xuong-video/scripts/ethopex/nhan-ban.py', 'apps/xuong-video/scripts/ethopex/lam-ethopex.py',
       'apps/xuong-video/scripts/ethopex/luat-ethopex.py', 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', 'apps/cty/worker/etp-tu-dong.mjs']
     .flatMap((tep) => ['xin_ve(', '--xin-ve'].map((cam) => ({ card: 'kiem-soat-cong-1811', tep, cam, vi: 'máy chạy theo luật không bao giờ tự xin vé thao tác tay (chỉ nút người bấm — cong.VE_XIN)' }))),

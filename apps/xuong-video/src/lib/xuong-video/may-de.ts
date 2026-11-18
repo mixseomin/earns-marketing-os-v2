@@ -114,6 +114,12 @@ export const DeCarouselSchema = z.object({
   trang: z.array(z.object({ tieu_de: z.string().describe('one idea per page, under 50 characters'), chu: z.string().describe('one concrete detail, under 80 characters, or empty'), truy: z.string().describe('Pexels PHOTO query for THIS page, English, 2-4 words, a different scene') })).min(3).max(5),
   ket: z.string().describe('last page takeaway / save prompt, under 50 characters, no link'),
 });
+/** BÀI LINK (nền fb_link / x_link, 18/11/2026): không video — chữ đăng + MỘT ảnh thật Pexels riêng của bài, thẻ xem trước trỏ về trang đích.
+ *  Trước đây bài link nạp tay từ tệp mau/may/bai-link-hotel.json (hook tự viết) → bị cất cả lô 31/10 vì "thiếu dang.hook", không máy nào làm lại → fb_link cạn kho. */
+export const DeLinkSchema = z.object({
+  truy: z.string().describe('Pexels PHOTO query for the one image of the post, English, 2-4 words, a real scene from the angle (hands with phone, hotel lobby, traveler at check-in…)'),
+});
+export const LAP_LINK = 'bai-link';
 export const ChuDangSchema = z.object({
   title: z.string().describe('Post hook, 40-100 characters, English, contains a question mark or a number, speaks to the angle, does NOT start with the brand name, unique'),
   description: z.string().describe('Post text, 150-400 characters, English, plain human voice: concrete, one useful thing, no hype, no hashtags, no em dashes; end with a natural invitation to the destination page (the link is appended by the machine)'),
@@ -227,12 +233,15 @@ const MO_TA_DANG: Record<string, string> = {
   'cau-noi-theo-nuoc': 'the audience is English-speaking travelers; pick the DESTINATION language implied by the angle (Japanese, Spanish, French, Italian, Thai, Korean, Portuguese, German, Indonesian…) — never Vietnamese or English (the angle text being in Vietnamese is an internal label, not the destination); one real situation from the angle in that country, 3-5 phrases a traveler says there (native script + romanization + meaning), polite register, in the order used.',
   'so-sanh': 'two sides of the angle set against each other (old vs new, A vs B, two places on one budget), 2-4 matched points each, one takeaway; both sides real and fair, no made-up numbers.',
   'top-n': 'a countdown list (3-5 items) answering the angle; each item is a real, specific thing with its own real-scene photo; #1 is the strongest; no made-up numbers.',
+  'bai-link': 'a Facebook / X link post: the title is the hook, the post text gives ONE concrete thing to check or do from the angle, then invites the reader to the destination page (the link preview card shows under the post); one real photo.',
 };
 
 /** Ráp dòng nạp máy từ JSON mô hình trả. Thuần. */
 export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: MauMayDung; de: z.infer<typeof DeCanhSchema> | z.infer<typeof DeAnhSchema> | z.infer<typeof DeTopSchema> | z.infer<typeof DeLatSchema> | z.infer<typeof DeSoSanhSchema> | z.infer<typeof DeCauNoiSchema> | z.infer<typeof DeGiaSchema> | z.infer<typeof DeLacLoaiSchema> | z.infer<typeof DePollSchema> | z.infer<typeof DeCarouselSchema> | z.infer<typeof DeGiaiThichSchema>; chu: z.infer<typeof ChuDangSchema>; dich?: string | null; hook?: HookQc | null }): DeNapMay & { mau: MauMayDung } {
   const link = o.dich ?? o.sp.link, mota = o.chu.description.includes(link) ? o.chu.description : `${o.chu.description.trim()} ${link}`;
-  const de: Record<string, unknown> = o.mau === 'bai-anh'
+  const laLink = (o.mau as string) === LAP_LINK;
+  const de: Record<string, unknown> = laLink ? { loai: 'bai-link', link, truy: (o.de as unknown as z.infer<typeof DeLinkSchema>).truy }
+    : o.mau === 'bai-anh'
     ? (() => { const d = o.de as z.infer<typeof DeAnhSchema>; return { kieu: KIEU_ANH[o.dang_bai] ?? 'the-chu-tren-anh', truy: d.truy, chu: d.chu, ...(d.phu ? { phu: d.phu } : {}), ...(o.dang_bai === 'hai-lua-chon' ? { lua: d.lua } : {}), ...(o.dang_bai === 'doan-nam-gia' && d.dap_an ? { dap_an: d.dap_an } : {}), nhan: o.sp.nhan }; })()
     : o.mau === 'giai-thich' ? (() => { const d = o.de as z.infer<typeof DeGiaiThichSchema>; return { truy: d.truy, moc: d.moc, loi: d.loi, ...(d.ket ? { ket: d.ket } : {}), canh: d.canh.map((c) => ({ truy: c.truy, prompt: c.prompt })) }; })()
     : o.mau === 'carousel' ? (() => { const d = o.de as z.infer<typeof DeCarouselSchema>; return { moc: d.moc, truy: d.truy, trang: d.trang.map((p) => ({ tieu_de: p.tieu_de, ...(p.chu ? { chu: p.chu } : {}), truy: p.truy })), ket: d.ket, nhan: o.sp.nhan }; })()
@@ -247,6 +256,11 @@ export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: Mau
   // câu móc trên màn (moc) mô hình hay TỰ VIẾT (lạc loại / top-n: "Can you spot Q before Japan?") dù đã dặn giữ hook QC → Phòng Nội dung chặn "sửa quá xa hook QC gốc"
   // dù tiêu đề đạt (esimfares 10/11/2026: 4/7 bài hỏng cả 2 lượt). Gác bằng máy: moc lệch hook gốc thì thay bằng chính tiêu đề (dòng hook đã chọn). giai-thich giữ: moc phải = lời đọc đầu.
   if (o.hook && o.mau !== 'giai-thich' && typeof de.moc === 'string' && de.moc.trim() && loiHook([de.moc], o.hook.chu).length && !loiHook([o.chu.title], o.hook.chu).length) de.moc = o.chu.title;
+  if (laLink) {   // bài link: không mẫu dựng (xuatVideo đi nhánh de.loai 'bai-link'), mau để trống — napVideo không nhận mẫu lạ
+    const mota2 = o.chu.description.includes(link) ? o.chu.description : `${o.chu.description.trim()}\n\n${link}`;
+    return { slug: slugDe('link', o.goc.id, o.chu.title), chu_de: o.goc.ten, de: de as never,
+      dang: { loai: 'link', title: o.chu.title, description: mota2, link, nhom: 'Góc spy', dang_bai: o.dang_bai, goc: { sp: o.goc.sp, id: o.goc.id, loai: o.goc.loai, ten: o.goc.ten }, ...(o.hook ? { hook: { qc: o.hook.id, goc: o.hook.chu, page: o.hook.page, ngay: o.hook.ngay } } : {}) } as DeNapMay['dang'] } as DeNapMay & { mau: MauMayDung };
+  }
   return { slug: slugDe(o.dang_bai, o.goc.id, (de.tieu_de as string | undefined) ?? (de.tinh_huong as string | undefined) ?? (de.cau_hoi as string | undefined) ?? ((de.cau as { khang_dinh: string }[] | undefined)?.[0]?.khang_dinh) ?? (de.moc as string | undefined) ?? (de.chu as string | undefined) ?? o.goc.ten), chu_de: o.goc.ten, mau: o.mau, de: de as never,
     dang: { title: o.chu.title, description: mota, link, nhom: 'Góc spy', ...(o.mau === 'binh-chon' ? { loai: 'poll', lua: (o.de as z.infer<typeof DePollSchema>).lua, ngay: (o.de as z.infer<typeof DePollSchema>).ngay } : {}), dang_bai: o.dang_bai, goc: { sp: o.goc.sp, id: o.goc.id, loai: o.goc.loai, ten: o.goc.ten }, ...(o.hook ? { hook: { qc: o.hook.id, goc: o.hook.chu, page: o.hook.page, ngay: o.hook.ngay } } : {}), ...(o.sp.book ? { book: o.sp.book } : {}) } as DeNapMay['dang'] };
 }
@@ -255,11 +269,11 @@ export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: Mau
 export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; dich?: string | null; daDung?: string[]; hooks?: HookQc[];
   /** XÉT HOOK ĐÚNG NHƯ PHÒNG CHẤM trên đề vừa viết (tiêu đề + câu trên màn), trước khi trả đề đi dựng — trả lý do chặn hoặc null. Xem may-dung.mts › xetHookNhuCham. */
   xetHook?: (de: DeNapMay & { mau: MauMayDung }) => Promise<string | null> }): Promise<{ ok: true; de: DeNapMay & { mau: MauMayDung }; vnd: number; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string; vnd: number }> {
-  const mau = MAU_CUA_DANG[o.dang_bai]; if (!mau || !MAU_SINH.has(mau)) return { ok: false, loi: `dạng ${o.dang_bai} chưa có mẫu sinh đề`, vnd: 0 };
+  const mau = o.dang_bai === LAP_LINK ? (LAP_LINK as MauMayDung) : MAU_CUA_DANG[o.dang_bai]; if (!mau || (o.dang_bai !== LAP_LINK && !MAU_SINH.has(mau))) return { ok: false, loi: `dạng ${o.dang_bai} chưa có mẫu sinh đề`, vnd: 0 };
   // không kho hook QC = bài chắc chắn SỬA LẠI (cham-dang luật 8 "thiếu dang.hook") → từ chối trước khi tốn tiền (sidecue 12/11/2026)
   if (!o.hooks?.length) return { ok: false, loi: 'không có hook QC spy nào đưa vào — bài hook tự viết bị Phòng Nội dung chặn', vnd: 0 };
   const { sinhJson } = await import('./claude');
-  const schema = z.object({ de: mau === 'giai-thich' ? DeGiaiThichSchema : mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : mau === 'binh-chon' ? DePollSchema : mau === 'carousel' ? DeCarouselSchema : DeCanhSchema, chu: ChuDangSchema, hook_qc: z.string().optional().describe('id of the proven ad hook you adapted (empty if none were given)') });
+  const schema = z.object({ de: o.dang_bai === LAP_LINK ? DeLinkSchema : mau === 'giai-thich' ? DeGiaiThichSchema : mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : mau === 'binh-chon' ? DePollSchema : mau === 'carousel' ? DeCarouselSchema : DeCanhSchema, chu: ChuDangSchema, hook_qc: z.string().optional().describe('id of the proven ad hook you adapted (empty if none were given)') });
   // hook_qc TUỲ CHỌN: mô hình rẻ hay bỏ sót trường này → cổng AI coi "thiếu khuôn .hook_qc", mọi tuyến hỏng, lấp kho 0/6 (examweight 18/11/2026).
   // Thiếu mã thì maHookKhop tự suy hook theo tiêu đề, lượt sau khoá hook gần nhất — kiemDe vẫn chặn khi không khớp hook nào.
   // tiền: ckey báo VNĐ thật (tokens.vnd); không báo (Anthropic trực tiếp, hoặc ckey thiếu x_ckey.cost — 27/10 nhật ký ghi 0₫) thì ƯỚC theo token × bảng giá (26.000₫/$)

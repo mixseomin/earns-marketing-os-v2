@@ -97,9 +97,22 @@ function tonKho(may) {
 FROM xv_may m LEFT JOIN xv_may_video v ON v.may_id=m.id WHERE m.chay AND m.ma IN (${ds.map(q).join(',')}) GROUP BY m.ma;`);
   return new Map(r.split('\n').filter(Boolean).map((d) => { const [m, n] = d.split('\t'); return [m, Number(n)]; }));
 }
+// KHO BÀI LINK (18/11/2026, ratesbyroom fb_link 0 bài): tonKho đếm bài DUYỆT chưa đăng NỀN NÀO — máy nhiều video thì luôn "đủ", trong khi nền fb_link / x_link
+// chỉ lấy bài dang.loai='link' và cả lô bài link nạp tay đã bị cất 31/10 (thiếu dang.hook) → nền link cạn mà không lượt nào lấp. Đếm riêng từng nền link của máy
+// (bài link DUYỆT chưa đăng ĐÚNG nền đó), lấy nền cạn nhất; dưới `link_du` (mặc định 7 = trần 1/ngày × 7 ngày) thì --sinh-kho --dang bai-link bù cho đủ.
+const LINK_DU = () => KHO?.link_du ?? 7;
+const canSinhLink = (con, du = LINK_DU()) => (con < du ? du - con : 0);
+function tonKhoLink(may) {
+  const ds = may ? KHO.may.filter((m) => m === may) : KHO.may;
+  if (!ds.length) return new Map();
+  const r = psql(`SELECT m.ma||E'\\t'||min((SELECT count(*) FROM xv_may_video v WHERE v.may_id=m.id AND NOT coalesce(v.luu_tru,false) AND v.dang->>'loai'='link'
+  AND (v.cham->>'ket'='DUYET' OR v.cham IS NULL) AND NOT coalesce(v.da_dang ? split_part(n->>'nen',':',1), false)))
+FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE m.chay AND m.ma IN (${ds.map(q).join(',')}) AND n->>'nen' ~ '^(fb|x)_link' GROUP BY m.ma;`);
+  return new Map(r.split('\n').filter(Boolean).map((d) => { const [m, n] = d.split('\t'); return [m, Number(n)]; }));
+}
 /** Chạy --sinh-kho trên box3 (dựng Cloudflare; sinhJson tự gác ngưỡng tiền), trả số đề + tiền thật đọc từ dòng tổng của lệnh. */
-function sinhKho(may, n) {
-  const ra = execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/may-dung.mts --may ${shq(may)} ${rieng(may).lenh} ${Number(n)} 2>&1`], { encoding: 'utf8', timeout: 1_800_000 });
+function sinhKho(may, n, dang = null) {
+  const ra = execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/may-dung.mts --may ${shq(may)} ${rieng(may).lenh} ${Number(n)}${dang ? ` --dang ${shq(dang)}` : ''} 2>&1`], { encoding: 'utf8', timeout: 1_800_000 });
   return docTongKho(ra);
 }
 // 0 đề mà không có lý do = mù (ratesbyroom 16/11/2026 "0/6 đề"): kèm các dòng ✗ / "· hết hook…" / "· … dừng lượt" vào loi để sổ may_sx_luot nói vì sao
@@ -203,6 +216,7 @@ const main = async () => {
     a.equal(rieng('g', K2).lenh, '--sinh-game'); a.equal(rieng('b', K2).lenh, '--sinh-kho');
     a.deepEqual(docTongKho('✓ game-1-apple\nsinh game front-porch-only-one: 4/5 video, 0₫'), { so: 4, xin: 5, vnd: 0 });
     a.ok(KHO.may.includes('front-porch-only-one') && rieng('front-porch-only-one').lenh === '--sinh-game', 'sổ: Front Porch lấp kho bằng --sinh-game');
+    a.equal(canSinhLink(0, 7), 7); a.equal(canSinhLink(7, 7), 0); a.equal(canSinhLink(5, 7), 2);   // kho bài link: bù cho đủ 7 ngày
     a.equal(docTongKho('Error: mẫu lạ van-khan-ngoai').so, 0); a.ok(docTongKho('Error: mẫu lạ van-khan-ngoai').loi.includes('mẫu lạ'), 'lệnh hỏng không có dòng tổng → báo lỗi, không coi là xong');
     console.log(`sx-may: ${dang.length} dạng bài, sổ ↔ bảng hàm khớp · ${dang.length * 3 + 17}/${dang.length * 3 + 17} ok`);
     return;
@@ -215,11 +229,13 @@ const main = async () => {
   if (!ds.length) console.log(`không có bài nào thiếu tệp tới hạn trong ${ngay} ngày`);
   // kho chỉ lấp ở lượt máy (--het / --may), không ở --slug (dựng đúng một bài)
   const kho = KHO && !slug ? keHoachKho(tonKho(may)) : [];
+  // kho bài link theo từng nền link (tonKhoLink) — đi sau kho video, cùng trần tiền cả lượt
+  if (KHO && !slug) for (const [m, con] of tonKhoLink(may)) { const n = canSinhLink(con); if (n && rieng(m).lenh === '--sinh-kho') kho.push({ may: m, con, n, dang: 'bai-link' }); }
 
   if (co('--xem')) {
     for (const b of ds) console.log(`→ ${b.dangTu} ${b.slug.padEnd(34)} ${b.nen.padEnd(9)} ${b.kieu ?? '(KHÔNG BIẾT DẠNG)'} · ${SO[b.kieu]?.vnd ?? '?'}₫ · ${b.huong || '(chưa có hướng)'}`);
     if (ds.length) console.log(`tổng ước: ${ds.reduce((t, b) => t + (SO[b.kieu]?.vnd ?? 0), 0)}₫ cho ${ds.length} bài`);
-    for (const k of kho) console.log(`→ kho ${k.may.padEnd(28)} còn ${k.con} → ${rieng(k.may).lenh} ${k.n} · ước ${k.n * rieng(k.may).vnd_de}₫`);
+    for (const k of kho) console.log(`→ kho ${k.may.padEnd(28)} còn ${k.con} → ${rieng(k.may).lenh} ${k.n}${k.dang ? ` --dang ${k.dang}` : ''} · ước ${k.n * rieng(k.may).vnd_de}₫`);
     if (KHO && !slug) console.log(kho.length ? `kho: ước ${kho.reduce((t, k) => t + k.n * rieng(k.may).vnd_de, 0)}₫ (trần lượt ${KHO.tran_vnd_luot}₫)` : `kho: mọi máy còn ≥ ${KHO.con_it_nhat} bài`);
     return;
   }
@@ -239,11 +255,11 @@ const main = async () => {
   for (const k of kho) {
     if (tien + k.n * rieng(k.may).vnd_de > KHO.tran_vnd_luot) { console.log(`· kho ${k.may}: dừng — cộng dồn ${tien}₫ sắp chạm trần ${KHO.tran_vnd_luot}₫`); break; }
     // một dòng sổ lượt `kho:<máy>` — tab Máy SX hiện, hỏng thì Phòng Nội dung xếp việc social:sx|<máy> cho Khang (cham-dang.mjs › xepKhang)
-    const b = { may: k.may, slug: `kho:${k.may}`, kieu: 'sinh_kho', dangTu: null }, id = moLuot(b);
+    const b = { may: k.may, slug: `kho:${k.may}${k.dang ? `:${k.dang}` : ''}`, kieu: k.dang ? 'sinh_kho_link' : 'sinh_kho', dangTu: null }, id = moLuot(b);
     try {
-      const r = sinhKho(k.may, k.n); tien += r.vnd;
+      const r = sinhKho(k.may, k.n, k.dang ?? null); tien += r.vnd;
       if (r.loi || !r.so) { hong++; const l = `sinh kho ${k.may} hỏng: ${r.loi ?? `0/${r.xin} đề`}`; dongLuot(id, b, false, { vnd: r.vnd }, l); console.log(`✗ ${l}`); }
-      else { const ghi = `kho còn ${k.con} → +${r.so}/${r.xin} đề video`; dongLuot(id, b, true, { vnd: r.vnd, ghi }); console.log(`✓ kho ${k.may}: ${ghi} · ${r.vnd}₫`); }
+      else { const ghi = `kho${k.dang ? ' bài link' : ''} còn ${k.con} → +${r.so}/${r.xin} đề${k.dang ? ' bài link' : ' video'}`; dongLuot(id, b, true, { vnd: r.vnd, ghi }); console.log(`✓ kho ${k.may}: ${ghi} · ${r.vnd}₫`); }
     } catch (e) {
       // e.message dòng đầu chỉ là câu lệnh — nguyên nhân thật nằm ở mã thoát + đuôi stdout/stderr (lượt #42 14/11 mất hẳn lý do)
       const duoi = String(e.stdout || e.stderr || '').trim().split('\n').slice(-4).join(' · ');

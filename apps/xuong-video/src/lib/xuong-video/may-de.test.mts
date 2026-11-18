@@ -69,4 +69,11 @@ assert.ok(vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('3496181930676276') 
   assert.equal(maHookKhop(ds, 'it', 'Stay ready for every OTP when you fly abroad'), 'otp', 'khai nhầm mã hook: lấy hook tiêu đề thật bám (esimfares 10/11)');
   assert.equal(maHookKhop(ds, 'it', 'Landing in Japan? Do this before your plane touches down'), 'it', 'khai đúng thì giữ');
   assert.equal(maHookKhop(ds, 'it', 'Totally new words here'), 'it', 'không hook nào khớp thì giữ mã cũ (kiemDe vẫn chặn)'); }
+// BÀI LINK (18/11/2026): dòng nạp không mẫu dựng (napVideo chặn mẫu lạ), de.loai 'bai-link' + ảnh theo truy, dang.loai 'link', link ở cuối chữ, giữ hook QC
+{ const hk = { id: '77', chu: 'Got this text from your hotel?', ngay: 120, page: 'X' };
+  const l = rapDe({ sp, goc, dang_bai: 'bai-link', mau: 'bai-link' as never, de: { truy: 'phone message hotel' } as never, chu: { title: 'Got this text from your hotel?', description: 'Open the app you booked with first. If the stay shows confirmed, the message is fake.' }, hook: hk });
+  assert.equal((l as { mau?: string }).mau, undefined, 'bài link không mang mẫu');
+  assert.equal((l.de as { loai?: string }).loai, 'bai-link'); assert.equal((l.de as { truy?: string }).truy, 'phone message hotel');
+  assert.equal(l.dang.loai, 'link'); assert.ok(l.dang.description?.trim().endsWith(sp.link), 'link ở cuối chữ'); assert.ok(l.slug.startsWith('link-'));
+  assert.equal((l.dang as { hook?: { qc?: string } }).hook?.qc, '77'); }
 console.log('may-de: phần thuần đạt');

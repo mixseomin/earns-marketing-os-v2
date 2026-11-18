@@ -166,7 +166,7 @@ export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string
   // mà vẫn DUYỆT. Trừ mẫu câu nói (bản ngữ có thể là tiếng Việt).
   if (x.ngon_ngu !== 'vi' && x.mau !== 'cau-noi' && CHU_VIET.test(`${chu}\n${chuManHinh(x.de)}`)) loi.push('có chữ tiếng Việt — viết toàn bộ bằng tiếng Anh (góc chỉ là ghi chú tiếng Việt, hãy dịch ý)');
   const tm = TU_MAY.filter((w) => thuong.includes(w)); if (tm.length) loi.push(`từ máy: ${tm.join(', ')}`);
-  if (x.description.length < 80) loi.push('chữ đăng quá mỏng');
+  if (x.description.length < 80) loi.push(`chữ đăng quá mỏng: chu.description chỉ ${x.description.length} ký tự, cần ít nhất 80 (thêm 1-2 câu cụ thể nối hook với góc${x.mau === 'binh-chon' ? ', viết dưới câu hỏi bình chọn' : ''})`);   // lời cũ không nói trường nào / dài bao nhiêu → mô hình sửa mù 3 lượt (militarycalc binh-chon 18/11/2026)
   if ((chu.match(/(^|\s)#\w+/g) || []).length > 3) loi.push('quá 3 hashtag');
   const de = x.de as { truy?: string; moc?: string; chu?: string; lua?: string[]; dap_an?: string };
   if (x.mau !== 'top-n' && x.mau !== 'lat-dap-an' && x.mau !== 'so-sanh' && x.mau !== 'cau-noi' && x.mau !== 'cai-nao-gia' && x.mau !== 'lac-loai' && x.mau !== 'binh-chon' && x.mau !== 'carousel' && (!de.truy || de.truy.split(/\s+/).length > 6)) loi.push('từ khoá cảnh thiếu hoặc dài');
@@ -321,6 +321,8 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     // (militarycalc 12/11/2026: kho còn 1 hook, 3 lượt đều "chưa chọn hook QC gốc", bài lam-tuong-42929 kẹt SỬA LẠI)
     if (!hookCu && hooksLuot.length) hookCu = [...hooksLuot].sort((a, b) => giuHook(r.data.chu.title, b.chu) - giuHook(r.data.chu.title, a.chu))[0]!;
     const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich, hook: timHook(hooksLuot, maHook) });
+    // lượt KHOÁ ở trên gán tiêu đề / moc = NGUYÊN câu hook QC, mà câu QC gốc hay có gạch dài (lượt sau 0be6a7dd7 vẫn 2/6 đề chết "gạch ngang dài") → thay lần nữa trên bài đã ráp
+    de.dang.title = boGachDai(de.dang.title); de.dang.description = boGachDai(de.dang.description); de.de = boGachDai(de.de);
     loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu, hooks: hooksLuot, hook_qc: maHook });
     // tiêu đề trùng bài có sẵn của máy = Phòng Nội dung chặn chống spam → sinh lại ngay ở đây (31/10/2026: hook video thắng chép nguyên văn trùng chính video đó)
     const chuanTd = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();

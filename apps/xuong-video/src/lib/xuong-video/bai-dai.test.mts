@@ -18,6 +18,9 @@ assert.ok(h.includes('<blockquote class="mock">') && h.includes('class="cta"'), 
 assert.ok(h.includes(`<a href="${L}">${L}</a>`), 'link đích thành thẻ a + chữ link thuần');
 assert.ok(h.indexOf('Imagine') < h.indexOf('<h2>'), 'cảnh mở đứng trước mục đầu');
 assert.ok(chuBaiDai(d).includes('{LINK}') && chuBaiDai(d).includes('Q3?'), 'chữ kiểm gồm mọi khối');
+assert.equal((h.match(/class="cta"/g) || []).length, 2, 'nút giữa bài + cuối bài');
+const h2 = htmlBaiDai({ ...d, checklist: ['Check one', 'Check two', 'Check three', 'Check four'] }, L, [], null);
+assert.ok(h2.includes('<ul class="checklist"><li>☐ Check one</li>') && chuBaiDai({ ...d, checklist: ['Check one'] }).includes('Check one'), 'checklist thành danh sách ô tick');
 assert.ok(kiemBaiDai('x'.repeat(100), 'L').some((x) => x.startsWith('độ dài')), 'bài ngắn bị chặn');
 assert.ok(kiemBaiDai(`${'word '.repeat(900)} L`, 'L').length === 0, 'bài đủ dài, có link: qua');
 console.log('bai-dai: 10/10 ok');

@@ -419,12 +419,14 @@ export const VietBaiDaiSchema = z.object({
   phu_de: z.string().describe('one-sentence subtitle, 80-160 characters'),
   canh: z.string().describe('opening SCENE, 3-5 sentences: a specific person (rank or role, no real names), where they are, what notice or number they just saw, how they feel. Starts with "Imagine" or a time of day. No definitions'),
   hua: z.string().describe('one sentence right after the scene promising what the reader will be able to do after reading, and in how many minutes'),
-  muc: z.array(z.object({ h2: z.string().describe('section heading'), doan: z.array(z.string()).min(1).max(3).describe('short paragraphs, plain text, no markdown') })).min(3).max(4)
-    .describe('body sections in order: the direct answer, how it works (and why people get it wrong), common mistakes, a short checklist the reader can tick'),
-  vi_du: z.object({ tieu_de: z.string().describe('label like "Example: E-6 with 20 years"'), dong: z.array(z.string()).min(3).max(6).describe('lines of ONE concrete worked case with real specific values of this topic, each line short like a statement row ("High-3 average: $5,000", "Sun: Taurus, 10th house"), no abstract steps') }),
+  muc: z.array(z.object({ h2: z.string().describe('section heading written as an informative sentence, not a label like "Common mistakes"'), doan: z.array(z.string()).min(2).max(4).describe('short paragraphs, plain text, no markdown') })).min(3).max(4)
+    .describe('body sections in order: the direct answer; how it works; why sensible people still get pulled in or get it wrong (the psychology: wanting control when anxious, confirmation bias…); common mistakes where EVERY mistake gets its own one-line concrete mini example'),
+  // 19/11/2026: checklist viết trong đoạn bị dính thành một dòng → Phòng Nội dung SỬA LẠI; tách trường riêng, máy dựng danh sách ô tick
+  checklist: z.array(z.string().describe('one short action the reader can tick, starts with a verb')).min(4).max(6).optional(),
+  vi_du: z.object({ tieu_de: z.string().describe('label like "Example: E-6 with 20 years"'), dong: z.array(z.string()).min(3).max(6).describe('lines of ONE concrete worked case with real specific values of this topic, each line short like a statement row ("High-3 average: $5,000", "Sun: Taurus, 10th house"), no abstract steps; one line is a quoted sentence the person actually read or said, in quotes') }),
   neu_da_lo: z.object({ h2: z.string().describe('heading starting with "If you already" (e.g. "If you already signed your retirement paperwork")'), doan: z.array(z.string()).min(1).max(2) }),
   faq: z.array(z.object({ hoi: z.string(), dap: z.string().describe('2-3 sentences') })).min(3).max(4),
-  ket: z.string().describe('closing paragraph, 2-3 sentences, contains the token {LINK} exactly once, saying why that page helps this reader'),
+  ket: z.string().describe('closing paragraph, 2 short sentences, no repetition, contains the token {LINK} exactly once, saying why that page helps this reader'),
   trang: z.string().describe('the ONE site page URL from the list given that best fits, copied exactly; empty string if no list was given'),
   truy: z.array(z.string().describe('3-6 English words for a real landscape stock photo (Pexels search), no brand names')).length(3).describe('three DIFFERENT photo searches for three images placed through the article'),
   video: z.string().describe('a YouTube search query (4-8 words) for a short explainer video on this exact topic, e.g. "military retirement pay high-3 explained"'),
@@ -433,23 +435,24 @@ export type BaiDai = z.infer<typeof VietBaiDaiSchema>;
 const thoatHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 /** HTML bài Substack: cảnh mở · lời hứa · ảnh 1 · mục 1-2 · khung ví dụ (class mock) · video · mục còn lại · ảnh 2 · "nếu đã lỡ" · ảnh 3 · FAQ · kết + nút CTA.
  *  {LINK} thành thẻ a + chữ link thuần (nap-bai lấy link đích từ chữ). Thuần. */
-export function htmlBaiDai(d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket'>, link: string, anh: string[], video: string | null): string {
+export function htmlBaiDai(d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket' | 'checklist'>, link: string, anh: string[], video: string | null): string {
+  const ds = d.checklist?.length ? `<h2>Your quick checklist</h2><ul class="checklist">${d.checklist.map((x) => `<li>☐ ${thoatHtml(x.trim())}</li>`).join('')}</ul>` : '';
   const L = thoatHtml(link), t = (x: string) => thoatHtml(x.trim()).split('{LINK}').join(`<a href="${L}">${L}</a>`), p = (x: string) => `<p>${t(x)}</p>`;
   const img = (i: number) => anh[i] ? `<p><img src="${thoatHtml(anh[i]!)}" alt="${thoatHtml(d.tieu_de.trim())} (${i + 1})"></p>` : '';
   const muc = (m: { h2: string; doan: string[] }) => `<h2>${thoatHtml(m.h2.trim())}</h2>${m.doan.map(p).join('')}`;
   const vd = `<blockquote class="mock"><p><strong>${thoatHtml(d.vi_du.tieu_de.trim())}</strong></p>${d.vi_du.dong.map(p).join('')}</blockquote>`;
   const vid = video ? `<p><iframe src="https://www.youtube.com/embed/${thoatHtml(video)}" title="${thoatHtml(d.tieu_de.trim())} video" width="560" height="315" allowfullscreen></iframe></p><p>Video: <a href="https://www.youtube.com/watch?v=${thoatHtml(video)}">https://www.youtube.com/watch?v=${thoatHtml(video)}</a></p>` : '';
   return `<article><h1>${thoatHtml(d.tieu_de.trim())}</h1><p><em>${thoatHtml(d.phu_de.trim())}</em></p>\n${p(d.canh)}${p(d.hua)}${img(0)}\n`
-    + d.muc.slice(0, 2).map(muc).join('\n') + `\n${vd}\n${vid}\n<p><a class="cta" href="${L}">Try it free on your own case</a></p>\n` + d.muc.slice(2).map(muc).join('\n') + `\n${img(1)}\n${muc(d.neu_da_lo)}\n${img(2)}\n`
+    + d.muc.slice(0, 2).map(muc).join('\n') + `\n${vd}\n${vid}\n<p><a class="cta" href="${L}">Try it free on your own case</a></p>\n` + d.muc.slice(2).map(muc).join('\n') + `\n${ds}\n${img(1)}\n${muc(d.neu_da_lo)}\n${img(2)}\n`
     + `<h2>Questions people ask</h2>${d.faq.map((f) => `<h3>${thoatHtml(f.hoi.trim())}</h3>${p(f.dap)}`).join('')}\n${p(d.ket)}<p><a class="cta" href="${L}">Open the free tool</a></p></article>`;
 }
 /** Mọi chữ của bài (để kiểm luật / độ dài). Thuần. */
-export const chuBaiDai = (d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket'>) =>
-  [d.tieu_de, d.phu_de, d.canh, d.hua, ...d.muc.flatMap((m) => [m.h2, ...m.doan]), d.vi_du.tieu_de, ...d.vi_du.dong, d.neu_da_lo.h2, ...d.neu_da_lo.doan, ...d.faq.flatMap((f) => [f.hoi, f.dap]), d.ket].join('\n\n');
+export const chuBaiDai = (d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket' | 'checklist'>) =>
+  [d.tieu_de, d.phu_de, d.canh, d.hua, ...d.muc.flatMap((m) => [m.h2, ...m.doan]), ...(d.checklist ?? []), d.vi_du.tieu_de, ...d.vi_du.dong, d.neu_da_lo.h2, ...d.neu_da_lo.doan, ...d.faq.flatMap((f) => [f.hoi, f.dap]), d.ket].join('\n\n');
 /** Kiểm bài Substack (chặn cứng như kiemBaiViet, độ dài bài dài). Thuần. */
 export function kiemBaiDai(chu: string, link: string): string[] {
   const loi = kiemBaiViet(chu, link).filter((x) => !x.startsWith('độ dài'));
-  if (chu.length < 3500 || chu.length > 9500) loi.push(`độ dài ${chu.length} ký tự (cần 3500-9500)`);
+  if (chu.length < 3500 || chu.length > 12000) loi.push(`độ dài ${chu.length} ký tự (cần 3500-12000)`);
   return loi;
 }
 /** Viết một bài Substack cho một góc; sai luật thì viết lại một lần. Ảnh (Pexels) + video (YouTube) do người gọi tìm theo truy / video. */
@@ -468,8 +471,8 @@ export async function vietBaiDai(o: { sp: SanPhamDe; goc: GocDe; link: string; u
   const trangs = trangSuThat(o.suThat ?? null);
   let vnd = 0, loiCu: string[] = [];
   for (let lan = 0; lan < 2; lan++) {
-    const r = await sinhJson({ schema: VietBaiDaiSchema, ten: 'viet_bai_dai', max_tokens: 3400, system,
-      user: `Angle to write about (internal label, may be Vietnamese): "${o.goc.ten}" (${LOAI_VI[o.goc.loai] ?? o.goc.loai}). Topic of the product: ${o.sp.mo_ta}.${o.tieuDeCu?.length ? `\nHeadlines already published (write a DIFFERENT one): ${o.tieuDeCu.slice(0, 20).join(' | ')}` : ''}${trangs.length ? `\nSite pages to choose from for "trang": ${trangs.join(' | ')}` : ''}${loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''}\nTotal article 4500-8000 characters. Return the JSON now.` });
+    const r = await sinhJson({ schema: VietBaiDaiSchema, ten: 'viet_bai_dai', max_tokens: 4600, system,
+      user: `Angle to write about (internal label, may be Vietnamese): "${o.goc.ten}" (${LOAI_VI[o.goc.loai] ?? o.goc.loai}). Topic of the product: ${o.sp.mo_ta}.${o.tieuDeCu?.length ? `\nHeadlines already published (write a DIFFERENT one): ${o.tieuDeCu.slice(0, 20).join(' | ')}` : ''}${trangs.length ? `\nSite pages to choose from for "trang": ${trangs.join(' | ')}` : ''}${loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''}\nTotal article 7500-10500 characters (at least 1,200 words). The opening scene stays a scene: no thesis or "the important question is" sentence. Return the JSON now.` });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += giaVnd(r);
     const link = trangs.includes(r.data.trang) && o.utm ? ganUtm(r.data.trang, o.utm) : o.link;

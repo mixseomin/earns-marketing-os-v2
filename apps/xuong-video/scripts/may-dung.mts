@@ -120,7 +120,9 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
   const qcKhop = (ids: number[]) => ids.length ? spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta
     where bat_dau is not null and left(noi_dung, 280) ~* any(select replace(lien_quan, '\\b', '\\y') from goc_sp where id = any(${ids}) and lien_quan is not null)
     order by (coalesce(lan_cuoi, now()) - bat_dau) desc, bien_the desc nulls last limit 400` : [];
-  const hookNhom = hookTu([...(await qcKhop(nhom)), ...(await qcKhop(nhomHook.filter((id) => !nhom.includes(id))))] as never).slice(0, 100);
+  // KHÔNG cắt 100 ở đây (18/11/2026, ratesbyroom-scam-or-real): nhóm máy 179 "đặt phòng" có 149 QC chiếm hết 100 chỗ, Ngọc loại 85/86 vì lệch ngách lừa đảo,
+  // 316 QC nhóm lân cận 2449 (lừa đảo đặt phòng — đúng ngách) không bao giờ được xét → kho 1 câu. Ngọc xét từng lô 100 tới khi giữ đủ (xem khối Ngọc lọc dưới).
+  const hookNhom = hookTu([...(await qcKhop(nhom)), ...(await qcKhop(nhomHook.filter((id) => !nhom.includes(id))))] as never);
   // VIDEO THẮNG của chính máy (anh duyệt 31/10/2026: hook đã chứng minh = QC spy chạy lâu HOẶC video kênh ≥ 500 lượt sau 7 ngày) → đứng ĐẦU kho hook
   const { THANG_LUOT_XEM, THANG_SAU_NGAY } = await import('../src/lib/xuong-video/luot-xem');
   const { docLaiLuotXem, NGAY_DANG_SQL } = await import('../src/lib/xuong-video/luot-xem-db'); await docLaiLuotXem(db, Number(m.id));
@@ -177,7 +179,10 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
     thangKenh.splice(0, thangKenh.length, ...hongYt(thangKenh));
     const muc = ((await db.execute(sql`SELECT muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { muc_dich: string | null }[])[0]?.muc_dich ?? null;
     const xet = async (ds: HookDong[]) => { const loi = await xetHookAi(ds.map((h) => ({ qc: h.id, ma, nhan: sp.nhan, muc_dich: muc, su_that: suThat, goc: h.chu, dong: [h.chu], luot_xem: h.ngay }))); return ds.filter((_, k) => !loi[k]); };
-    const truoc = hookNhom.length + hookCuaQc.size, nhomDat = await xet(hookNhom.slice(0, 100)), qcDat = new Set((await xet([...hookCuaQc.values()])).map((h) => h.id));
+    // lô 100 một: giữ < 12 câu thì xét tiếp lô sau (tối đa 4 lô) — câu đã xét đọc sổ, không tốn lại
+    const truoc = Math.min(hookNhom.length, 400) + hookCuaQc.size, nhomDat: HookDong[] = [];
+    for (let o = 0; o < Math.min(hookNhom.length, 400) && (o === 0 || nhomDat.length < 12); o += 100) nhomDat.push(...await xet(hookNhom.slice(o, o + 100)));
+    const qcDat = new Set((await xet([...hookCuaQc.values()])).map((h) => h.id));
     hookNhom.splice(0, hookNhom.length, ...nhomDat); for (const k of [...hookCuaQc.keys()]) if (!qcDat.has(k)) hookCuaQc.delete(k);
     console.log(`· Ngọc lọc kho hook: giữ ${hookNhom.length + hookCuaQc.size}/${truoc}`);
     // NGUỒN HOOK THỨ HAI — YOUTUBE NHIỀU LƯỢT XEM (anh duyệt 02/11/2026: Alaska kẹt cả buổi chờ lượt cào Meta tới nhóm lịch sử): SAU khi Ngọc lọc mà kho QC Meta

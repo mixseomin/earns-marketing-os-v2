@@ -56,22 +56,25 @@ async function spCua(ma: string) {
 }
 
 /** Video YouTube nhiều lượt xem theo các cụm tìm (yt-dlp trên box3, không cần khoá API). Đệm 3 ngày theo khoá nhóm. Trả [{ id, title, views }] ≥ 300.000 lượt (ngách hẹp hạ 100.000 / 50.000), nhiều trước. */
-async function hookYoutube(khoa: string, cum: string[]): Promise<{ id: string; title: string; views: number }[]> {
+async function hookYoutube(khoa: string, cum: string[], vi = false): Promise<{ id: string; title: string; views: number }[]> {
   // khoá đệm gồm cả CỤM TÌM: đổi cụm của nhóm (goc_sp.cum) thì lượt sau tìm lại ngay, không đọc đệm 3 ngày của cụm cũ (militarycalc 15/11/2026)
   const fs = await import('node:fs'), { execFileSync } = await import('node:child_process'), { createHash } = await import('node:crypto'), dir = `${process.env.HOME}/.cache/hook-yt-4`,
-    tep = `${dir}/${khoa}-${createHash('sha1').update(cum.slice(0, 8).join('|')).digest('hex').slice(0, 8)}.json`;
+    tep = `${dir}/${khoa}${vi ? '-vi' : ''}-${createHash('sha1').update(cum.slice(0, 8).join('|')).digest('hex').slice(0, 8)}.json`;
   try { const c = JSON.parse(fs.readFileSync(tep, 'utf8')); if (Date.now() - c.luc < 3 * 86_400_000 && c.ds?.length) return c.ds; } catch { /* chưa có đệm */ }
   const ra = new Map<string, { id: string; title: string; views: number }>();
   // tìm cả biến thể câu hỏi của cụm ("why … ") — tiêu đề nhiều lượt xem nhất thường là NHÃN chủ đề ("WW1 - Oversimplified"), Ngọc loại 39/40 vì nhạt (02/11/2026)
-  for (const q of cum.slice(0, 8).flatMap((c) => [c, `why ${c}`])) {
+  // THỊ TRƯỜNG VN (Giỗ Chạp 18/11/2026): yt-dlp mặc định trả tiêu đề YouTube TỰ DỊCH sang tiếng Anh → hookTu (vi) loại hết, kho còn 2 câu, --sinh-kho 2/7.
+  // Máy VN: xin tiêu đề gốc (lang=vi), biến thể câu hỏi tiếng Việt, nhận hình dạng hook tiếng Việt.
+  for (const q of cum.slice(0, 8).flatMap((c) => vi ? [c, `vì sao ${c}`, `kiêng kỵ ${c}`] : [c, `why ${c}`])) {
     try {
-      const j = JSON.parse(execFileSync('yt-dlp', ['--flat-playlist', '-J', `ytsearch40:${q}`], { encoding: 'utf8', timeout: 90_000, maxBuffer: 32 << 20 }));
+      const j = JSON.parse(execFileSync('yt-dlp', ['--no-update', '--flat-playlist', '-J', ...(vi ? ['--extractor-args', 'youtube:lang=vi'] : []), `ytsearch40:${q}`], { encoding: 'utf8', timeout: 90_000, maxBuffer: 32 << 20 }));
       for (const e of j.entries ?? []) if (e.id && e.title && Number(e.view_count) >= 50_000) ra.set(e.id, { id: e.id, title: e.title, views: Number(e.view_count) });
     } catch (e) { console.error(`· hook YouTube "${q}": ${String((e as Error).message).split('\n')[0].slice(0, 120)}`); }
   }
   // chỉ giữ tiêu đề có HÌNH DẠNG HOOK (câu hỏi / mở bằng why-how-what-the day… / so sánh nhất / con số gây tò mò), bỏ nhãn chủ đề + tên series ("|", "(Part n)", #thẻ)
   const hinhHook = (t: string) => !/\s[|]\s|\(part \d|#\w|oversimplified/i.test(t) && (/\?$/.test(t.trim()) || /^(why|how|what|when|where|who|the (day|man|woman|time|year|night)|this|imagine|nobody|no one|you|they)\b/i.test(t.trim())
-    || /\b(worst|strangest|weirdest|craziest|deadliest|dumbest|most|never|only|secret|forgotten|real reason)\b/i.test(t));
+    || /\b(worst|strangest|weirdest|craziest|deadliest|dumbest|most|never|only|secret|forgotten|real reason)\b/i.test(t)
+    || (vi && (/\?/.test(t) || /(vì sao|tại sao|có nên|có được|đừng|cấm|kiêng|sai lầm|bí mật|ít ai biết|nhiều người|ai cũng|cần biết|nhất định)/i.test(t))));
   // NGÁCH HẸP (anh duyệt 10/11/2026, militarycalc: mức 300.000 chỉ ra 1 câu): mức chuẩn 300.000; dưới 5 câu đạt thì hạ dần 100.000 → 50.000, nhiều lượt xem vẫn đứng trước
   const hinh = [...ra.values()].filter((v) => hinhHook(v.title)).sort((a, b) => b.views - a.views);
   // trả HẾT câu ≥ 50.000 (đã xếp lượt xem giảm dần), không dừng ở mức đầu đủ 5 câu: militarycalc 12/11/2026 mức 300.000 ra đúng 5 câu, Ngọc loại cả 5 → kho cạn,
@@ -181,7 +184,7 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
     // còn < 3 câu chưa dùng → tìm YouTube theo cụm của nhóm spy (goc_sp.cum), lấy tiêu đề video ≥ 300.000 lượt xem (lượt xem = bằng chứng giữ người, đúng nền đăng).
     // Đệm 3 ngày / nhóm (~/.cache/hook-yt/<nhóm>.json). Ngọc lọc y như hook QC; một hook vẫn chỉ một bài; QC Meta luôn đứng trước.
     if (hookNhom.filter((h) => !hookDaDung.has(h.id)).length + hookCuaQc.size < 3) {
-      const yt = hookTu((await hookYoutube(nhomHook.join('-'), cumNhom)).map((v) => ({ library_id: `yt:${v.id}`, dong: v.title, ngay: v.views, page_ten: 'YouTube' })))
+      const yt = hookTu((await hookYoutube(nhomHook.join('-'), cumNhom, vi)).map((v) => ({ library_id: `yt:${v.id}`, dong: v.title, ngay: v.views, page_ten: 'YouTube' })))
         .filter((h) => !hookDaDung.has(h.id) && !hookBiChan(h) && !hookNhom.some((x) => x.chu.toLowerCase() === h.chu.toLowerCase())).slice(0, 40);
       const ytDat = await xet(hongYt(yt)); hookNhom.push(...ytDat);
       // ĐẨY CỤM CỦA NHÓM LÊN ĐẦU HÀNG CÀO META (spy-on-tc scripts/cao.sh › tu_ke): lượt cào đang chạy chen các cụm này ngay, lượt sau có hook QC thật

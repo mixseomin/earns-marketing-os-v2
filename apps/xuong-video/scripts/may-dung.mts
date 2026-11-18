@@ -517,7 +517,16 @@ if (a.includes('--nap')) {
     const utm = `utm_source=quora&utm_medium=answer&utm_campaign=${encodeURIComponent(x.slug ?? 'quora')}`, link = x.link ?? `${sp.link}${sp.link.includes('?') ? '&' : '?'}${utm}`;
     // tệp SỰ THẬT đã kiểm của máy (apps/xuong-video/su-that/<máy>.md) — có thì mô hình chỉ dùng số liệu trong đó + chọn trang đích trong danh sách của nó
     const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
-    console.log(JSON.stringify(await vietBai({ sp, goc: x.goc, cauHoi: x.cau_hoi, link, utm, suThat })));
+    // VIẾT LẠI (sinh-bai --lai, 18/11/2026): mang góp ý lần chấm trước của Phòng Nội dung (kiem-bai da-kiem/*.json theo url bai://<máy>/<slug>) vào mô hình.
+    // Gốc: trước đây viết lại mù → SỬA LẠI đúng lý do cũ (ratesbyroom-scam-or-real: 4/5 bài Quora SỬA LẠI vì né câu hỏi / link lạc đề / thiếu ví dụ).
+    const gopY = x.slug ? await import('node:fs').then((f) => { try {
+      const dir = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/vp-noi-dung/da-kiem`, url = `bai://${ma}/${x.slug}`;
+      const ds = f.readdirSync(dir).filter((n) => n.endsWith('.json')).sort().reverse();
+      for (const n of ds) { const s = f.readFileSync(`${dir}/${n}`, 'utf8'); if (!s.includes(url)) continue; const d = JSON.parse(s); if (d.url !== url) continue;
+        const kq = d.kq ?? {}; if (kq.ket_luan === 'DUYET') return null;
+        return [kq.tom_tat, ...(kq.thieu ?? []).map((t: string) => `missing: ${t}`), ...(kq.thua ?? []).map((t: string) => `remove: ${t}`)].filter(Boolean).join(' | ') || null; }
+      return null; } catch { return null; } }) : null;
+    console.log(JSON.stringify(await vietBai({ sp, goc: x.goc, cauHoi: x.cau_hoi, link, utm, suThat, gopY })));
   }
 } else if (lay('--sinh-de') != null) {
   // MÁY SINH ĐỀ THEO GÓC (bước 3, 27/10/2026): ô kế hoạch của máy ngày đó chưa có bài DUYỆT đúng góc + dạng → sinh đề bằng chữ AI rẻ (may-de.ts) → nạp (→ --va-xuat dựng luôn; không dùng chữ --xuat vì nhánh --xuat <slug> đứng trước trong chuỗi lệnh).

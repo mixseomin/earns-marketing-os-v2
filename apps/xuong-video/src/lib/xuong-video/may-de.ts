@@ -372,9 +372,12 @@ export const trangSuThat = (suThat: string | null) => (suThat?.split(/^## Site p
 /** Gắn UTM của bài vào một trang (giữ query sẵn có). Thuần. */
 export const ganUtm = (trang: string, utm: string) => `${trang}${trang.includes('?') ? '&' : '?'}${utm}`;
 /** Viết câu trả lời Quora. suThat = tệp sự thật đã kiểm của máy (apps/xuong-video/su-that/<máy>.md): mô hình CHỈ dùng số liệu / quy định trong đó, thiếu thì chỉ cách tra — mô hình rẻ viết số liệu sai (28/10: trần Legacy '75% sau 30 năm'). */
-export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; link: string; utm?: string; suThat?: string | null }): Promise<{ ok: true; tra_loi: string; truy: string; link: string; vnd: number; model: string } | { ok: false; loi: string; vnd: number }> {
+export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; link: string; utm?: string; suThat?: string | null; gopY?: string | null }): Promise<{ ok: true; tra_loi: string; truy: string; link: string; vnd: number; model: string } | { ok: false; loi: string; vnd: number }> {
   const { sinhJson } = await import('./claude');
-  const system = [`You answer Quora questions as an experienced, helpful person who also runs "${sp_ten(o.sp)}" (${o.sp.mo_ta}). Audience: US, English.`,
+  const system = [
+    // 18/11/2026: Phòng Nội dung trả SỬA LẠI vì né câu hỏi ("name some places" mà không gọi tên), link lạc đề, thiếu ví dụ cụ thể → luật cứng cho mọi máy
+    'Answer the EXACT thing asked: if it asks to name places/tools/options, name 2-4 real, well-known ones; if it asks how something works, explain the mechanism plainly. Never dodge the core question.',
+    'Include one concrete worked example or real-life scenario. The closing link sentence must say why that page helps THIS reader with THIS question; if the site is only loosely related, frame it as a side tip for a related risk, never as the answer.',`You answer Quora questions as an experienced, helpful person who also runs "${sp_ten(o.sp)}" (${o.sp.mo_ta}). Audience: US, English.`,
     'Rules (hard): answer the question first and fully, be concrete and accurate, never invent statistics, prices, laws or testimonials; if a number depends on the reader, explain how to work it out with a round-number example labelled as an example.',
     'Cover every major variant that changes the answer (old vs new system, with vs without dependents, by state or country…) — leaving one out makes readers calculate wrong. State deadlines and conditions exactly; if unsure of an exact rule, say what to check and where instead of guessing.',
     'Plain human voice, no hype, no em dashes (— or –), no hashtags, no headings, never these words: ' + TU_MAY.join(', ') + '.',
@@ -384,7 +387,7 @@ export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; li
   let vnd = 0, loiCu: string[] = [];
   for (let lan = 0; lan < 2; lan++) {
     const r = await sinhJson({ schema: VietBaiSchema, ten: 'viet_bai', max_tokens: 1100, system,   // ~2.200 ký tự ≈ 600 token + JSON; trần token là giá ước của cổng tiền
-      user: `Quora question: "${o.cauHoi}"\nAngle to lean on (internal label, may be Vietnamese): "${o.goc.ten}".${trangs.length ? `\nSite pages to choose from for "trang": ${trangs.join(' | ')}` : ''}${loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''}\nReturn the JSON now.` });
+      user: `Quora question: "${o.cauHoi}"\nAngle to lean on (internal label, may be Vietnamese): "${o.goc.ten}".${trangs.length ? `\nSite pages to choose from for "trang": ${trangs.join(' | ')}` : ''}${o.gopY ? `\nAn editor rejected the previous version of this answer. Fix every point: ${o.gopY}` : ''}${loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''}\nReturn the JSON now.` });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += giaVnd(r);
     const link = trangs.includes(r.data.trang) && o.utm ? ganUtm(r.data.trang, o.utm) : o.link;   // trang mô hình chọn phải nằm trong danh sách, không thì trang đích mặc định

@@ -1,0 +1,42 @@
+{
+ "id": "qc-brief-arcads-362",
+ "may": "anglebrief",
+ "mau": "ad-breakdown",
+ "ngon_ngu": "en",
+ "giong": { "voice": "Daniel" },
+ "tieu_de": "Arcads Update: realistic ads for $10, as easy as writing a prompt. Steal the structure.",
+ "goc": { "id": 153879, "sp": 4668, "loai": "ai_cach_giai", "ten": "Săn và tái tạo ad thắng của đối thủ, kể cả qua ad spy tool" },
+ "nguon_qc": { "library_id": "841590635496375", "page": "Blake Guidry", "bat_dau": "2025-11-20", "lan_cuoi": "2026-11-17", "ngay": 362 },
+ "tai_san": {
+  "qc": "arcads/qc.jpg",
+  "nen": ["mau1/nen-20232363.jpg", "mau1/nen-8100069.jpg"],
+  "nen_nguon": ["https://www.pexels.com/photo/20232363/", "https://www.pexels.com/photo/8100069/"],
+  "nv": { "chi_tay": "nv/chi_tay.png", "suy_nghi": "nv/suy_nghi.png", "noi_mo": "nv/noi_mo.png", "ngac_nhien": "nv/ngac_nhien.png" }
+ },
+ "cau": [
+  { "chu": "This ad has been live for three hundred sixty two days.",
+    "canh": { "loai": "dt", "dau": { "chu": "362 DAYS LIVE", "khi": "three" } } },
+  { "chu": "Its hook is not a question. It reads like a news update.",
+    "canh": { "loai": "dt", "khoanh": "Arcads Update: Making consistent, realistic ads for $10 is now as easy as writing a prompt", "khi": "news" } },
+  { "chu": "That one word, update, makes an old offer feel brand new.",
+    "canh": { "loai": "nv", "dang": "noi_mo", "noi": "\"Update\" = feels new" } },
+  { "chu": "Then it drops a price anchor: ten dollars per ad.",
+    "canh": { "loai": "so", "so": 10, "truoc": "$", "nhan": "PER REALISTIC AD", "khi": "ten", "mo_dau": { "dang": "chi_tay", "noi": "A price anchor" } } },
+  { "chu": "And a clear before and after moment: Q4 2025.",
+    "canh": { "loai": "chu", "chu_to": "Q4 2025", "phu": "a clear before and after", "khi": "before" } },
+  { "chu": "Next come two concrete promises.",
+    "canh": { "loai": "nv", "dang": "chi_tay", "noi": "Two concrete promises" } },
+  { "chu": "Five to ten UGC creators in minutes. Twenty to thirty hooks in under ten minutes.",
+    "canh": { "loai": "ds", "tieu": "THE PROMISES", "muc": [
+      { "chu": "5-10 UGC creators", "bieu": "🎥", "khi": "five" },
+      { "chu": "In minutes", "bieu": "⚡", "khi": "minutes" },
+      { "chu": "20-30 hooks", "bieu": "🪝", "khi": "twenty" },
+      { "chu": "Under 10 minutes", "bieu": "⏱️", "khi": "under" } ] } },
+  { "chu": "A number, a date and a price. No vague claims.",
+    "canh": { "loai": "chu", "chu_to": "NO VAGUE CLAIMS", "gach": "TRUST ME", "khi": "no" } },
+  { "chu": "Steal the structure, not the words.",
+    "canh": { "loai": "nv", "dang": "suy_nghi", "noi": "Steal the structure" } },
+  { "chu": "Want the angles buyers actually respond to in your niche? Find them at AngleBrief dot net.",
+    "canh": { "loai": "ket", "chu": "AngleBrief", "url": "anglebrief.net", "phu": "Real buyer research. Winning ad angles." } }
+ ]
+}

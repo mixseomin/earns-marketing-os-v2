@@ -86,6 +86,7 @@ const wavNhac = join(RA, 'nhac.wav'); ghiWav(wavNhac, m.map((v) => v * 0.25));
 const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', hinh, ...(COGIONG ? ['-i', GIONG] : []), '-i', wavNhac, '-i', wavSfx,
   '-filter_complex', COGIONG ? `[1:a]volume=1.0[g];[2:a]volume=0.45,afade=t=in:d=1,afade=t=out:st=${DAI - 1.5}:d=1.5[n];[3:a]volume=0.4[s];[g][n][s]amix=inputs=3:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5[a]`
     : `[1:a]volume=0.9,afade=t=in:d=0.5,afade=t=out:st=${DAI - 1.5}:d=1.5[n];[2:a]volume=0.5[s];[n][s]amix=inputs=2:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5[a]`,
-  '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-t', String(DAI), '-movflags', '+faststart', ra], { stdio: 'inherit' });
+  '-map', '0:v', '-map', '[a]', '-c:v', 'libx264', '-crf', '23', '-preset', 'slow', '-maxrate', '5M', '-bufsize', '10M', '-pix_fmt', 'yuv420p',   // nén cho mạng xã hội (bản quay thô ~15 Mbit/s → 1 phút ≈ 100 MB)
+  '-c:a', 'aac', '-b:a', '160k', '-t', String(DAI), '-movflags', '+faststart', ra], { stdio: 'inherit' });
 if (r.status) process.exit(r.status);
 console.log(`${ra} · ${DAI}s · ${canh.length} cảnh · ${tu.length} chữ`);

@@ -112,7 +112,7 @@ const VE = {
       ds.forEach((d, i) => chuVien(d, 0, i * 140, 128, i === ds.length - 1 ? VANG : '#fff', 16)); x.restore(); }
     if (s.c.phu && p > 0.5) { x.globalAlpha = kep((p - 0.5) / 0.3); chuVien(s.c.phu, 540, s.c.gach ? 1180 : 1080, 60, '#fff', 8, 'M'); x.globalAlpha = 1; }
     x.textAlign = 'left'; if (s.c.dau) conDau(s.c.dau.chu, q - (s.c.dau._khi ?? 0.9), 540, 1300); },
-  ds(s, q) { x.textAlign = 'center'; chuVien('WHAT THEY RUN', 540, 380, 84, VANG, 12); x.textAlign = 'left';
+  ds(s, q) { x.textAlign = 'center'; chuVien(s.c.tieu || 'WHAT THEY RUN', 540, 380, 84, VANG, 12); x.textAlign = 'left';
     s.c.muc.forEach((m, i) => { const p = q - (m._khi ?? 0.3 + i * 0.6); if (p < 0) return; const e = nay(p / 0.35), y = 520 + i * 200;
       x.save(); x.translate((1 - e) * 900, 0); x.fillStyle = 'rgba(255,255,255,.95)'; hop(90, y, 900, 160, 30); x.fill();
       x.font = `92px ${EMO}`; x.fillText(m.bieu, 130, y + 112); x.fillStyle = '#111'; let co = 62; x.font = `${co}px AB`; while (x.measureText(m.chu).width > 590 && co > 36) { co -= 2; x.font = `${co}px AB`; } x.fillText(m.chu, 270, y + 102);

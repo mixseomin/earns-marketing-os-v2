@@ -215,6 +215,8 @@ const LUAT = [
   { card: 1667, tep: 'apps/etp2/src/lib/actions/etp-sua.ts', co: "if (q?.vai !== 'chu') return { loi: 'chỉ chủ (admin mos2) cất token cho máy' };", vi: 'chỉ chủ cất token cho máy' },
   { card: 1667, tep: 'apps/etp2/src/lib/actions/etp-sua.ts', co: "if (k.ok) await chonToken();", vi: 'Sơn kết nối phiên → máy chọn lại token ngay (dự phòng)' },
   { card: 1667, tep: 'apps/etp2/src/lib/etp-doc.ts', cam: "k.gia_tri->>'access_token'", vi: 'trang chỉ đọc trạng thái token, không đọc chuỗi token' },
+  { card: 1668, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const HIEN_SX_CAY = false;', vi: 'đồng hồ sản xuất ở dòng phim cây Camp tạm ẩn (anh chưa bảo bật lại)' },
+  { card: 1668, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'return HIEN_SX_CAY && k && rs.every((x) => x.content_id === k)', vi: 'ô TT dòng phim cây Camp đi qua cờ ẩn' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },
 ];
 

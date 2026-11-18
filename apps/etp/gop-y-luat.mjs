@@ -1255,7 +1255,7 @@ export const LUAT = [
   { card: 'phanh-cho-1611', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<BienPhanhCho cauHinh={du.cauHinh} />', vi: 'trang etp2 có biển phanh chợ đầu trang' },
   { card: 'phanh-cho-1611', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"phanh_cho": {"nguong": 0.85, "khung_do": [7, 13], "gio_chot": 20', vi: 'ngưỡng + khung đo + giờ chốt phanh chợ ở sổ luật chung' },
   { card: 'phanh-tay-1611', tep: 'apps/etp/cong.py', co: 'if ly_pc and not anh_bam and not roas', vi: 'phanh chợ KHÔNG chặn thao tác tay (anh 16/11/2026 "mày ko đc chặn với thao tác thủ công")' },
-  { card: 'phanh-tay-1611', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'anh_bam=str(ai or "").strip().lower().startswith("anh"))', vi: 'lệnh tăng anh bấm tay đi qua cổng với tay=True' },
+  { card: 'phanh-tay-1611', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'anh_bam=CONG.anh_bam_tu(ai))', vi: 'lệnh tăng anh bấm tay đi qua cổng — người làm thật là anh (anh_bam_tu)' },
   { card: 'phanh-tay-1611', tep: 'apps/etp2/src/components/etp-view.tsx', co: "k === 'ns' && Number(ns) > c.ngan_sach ? ctx?.phanh?.tang : k === 'nb' ? ctx?.phanh?.len : null", vi: 'thao tác tay chỉ cảnh báo một lần ở bước xác nhận' },
   { card: 'qua-tai-nhan-ban-1711', tep: 'apps/xuong-video/scripts/ethopex/qc-spy-phim.sql', co: "FROM pat JOIN qc_meta q ON (COALESCE(q.dich, ''::text) || COALESCE(q.dich_cuoi, ''::text)) LIKE pat.p", vi: 'chữ QC app gốc lấy qua chỉ mục trigram theo khoá của phim, không quét cả kho QC mỗi lượt nhan-ban (box3 hết CPU 17/11/2026)' },
   { card: 'qua-tai-nhan-ban-1711', tep: 'apps/xuong-video/scripts/ethopex/qc-spy-phim.sql', cam: "regexp_replace(coalesce(q.noi_dung, ''), '\\s+', ' ', 'g') AS nd", vi: 'không regexp_replace nội dung của mọi QC trong bảng qc' },
@@ -1265,7 +1265,7 @@ export const LUAT = [
   { card: 'gop-y-1636', tep: 'apps/etp/dong_phim.py', co: 'TRAN_CAMP = 10', vi: 'trần bước camp cùng lúc' },
   { card: 'phanh-lot-1711', tep: 'apps/etp/cong.py', cam: 'if ly_pc and not tay', vi: 'phanh chợ không đọc cờ tay= (dòng phim máy gọi --tay, 17/11/2026 lọt 91 camp)' },
   { card: 'phanh-lot-1711', tep: 'apps/etp/dong_phim.py', cam: '--ai "anh (etp.on.tc:', vi: 'dòng phim không ghi cứng người làm là anh — dùng ai_dong theo người tạo dòng' },
-  { card: 'phanh-lot-1711', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'anh_bam=anh or str(ai or "").strip().lower().startswith("anh"))', vi: 'nhân bản báo cổng người làm thật là anh hay máy' },
+  { card: 'phanh-lot-1711', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'anh_bam=anh or CONG.anh_bam_tu(ai))', vi: 'nhân bản báo cổng người làm thật là anh hay máy' },
   { card: 'phanh-13h-1711', tep: 'apps/etp/gia_adsense.py', co: 'if ph and ph["ngay"] < k and luc.hour >= PC_GIO[1] and not (ti is not None and ti >= pc["nguong"]):', vi: 'phanh tăng giữ tới 13h hôm sau, chỉ mở khi giá 07–13h đã hồi ≥ ngưỡng (anh 17/11/2026 "làm đi")' },
   { card: 'bao-tri-1711', tep: 'apps/etp/cong.py', co: 'if viec in ("tao_camp", "nhan_ban") and bt.get("bat") and not anh_bam:', vi: 'Ethopex bảo trì lên camp: máy dừng mọi đường tạo camp / nhân bản (anh 17/11/2026)' },
   { card: 'bao-tri-1711', tep: 'apps/etp2/src/components/etp-phanh-cho.tsx', co: "c.khoa === 'bao_tri_len'", vi: 'biển bảo trì lên camp trên etp + etp2 cho cả team' },
@@ -1313,4 +1313,5 @@ export const LUAT = [
   { card: 1667, tep: 'apps/etp/dong-bo.py', co: 'try: TOKEN = EA.chon_token()', vi: 'mỗi lượt đồng bộ chọn lại token TRƯỚC khi đọc access_token' },
   { card: 1667, tep: 'apps/etp/ket-nha.py', co: "'nha_token', $T${sach(vao)}$T$", vi: 'cất token Nhà mới → quay về Nhà ngay, giữ nha_token' },
   { card: 1667, tep: 'apps/cty/worker/ethopex.mjs', co: "select coalesce(gia_tri->>'nha_token', gia_tri->>'access_token') from xv_khoa_ngoai where ten = 'ethopex'", vi: 'báo hạn token NHÀ, không phải phiên dự phòng' },
+  { card: 'phanh-lot-1811', tep: 'apps/etp/cong.py', co: 'return a.startswith("anh") and not re.match(r"anh \\(chat \\d{1,2}/\\d{1,2}", a)', vi: 'duyệt đứng có ngày (anh (chat DD/MM…)) là máy — không miễn phanh chợ (18/11/2026: 31 camp AT lọt phanh)' },
 ];

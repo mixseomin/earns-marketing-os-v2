@@ -118,6 +118,14 @@ def phim_chan_len():
 # dùng LẠI bài đăng của camp gốc (Use existing post, ad chỉ mang effective_object_story_id) được lên tới NS_BAI_CU; mọi camp mới khác vẫn $1.
 NS_BAI_CU = 2
 TRAN_TUYET = 30   # trần tuyệt đối $/camp/ngày (anh 14/11/2026) — kiem() chặn trước mọi miễn trừ
+def anh_bam_tu(ai):
+    """người làm THẬT là anh, ngay lúc này (nút etp2 · nút Telegram · nút etp · lệnh chat đang diễn ra) → phanh chợ không chặn, chỉ cảnh báo.
+    Chữ duyệt ĐỨNG có ngày ("anh (chat 05/11/2026: …)") là MÁY chạy theo luật anh duyệt từ trước, KHÔNG phải bấm tay — 18/11/2026 00:46–12:51 máy lên AT
+    ghi ai "anh (chat 05/11/2026: thêm loại creative ảnh tĩnh…)" nên 31 camp mới lọt phanh (cùng lớp lỗi dòng phim 17/11). Mọi đường gọi cổng dùng hàm này."""
+    import re
+    a = str(ai or "").strip().lower()
+    return a.startswith("anh") and not re.match(r"anh \(chat \d{1,2}/\d{1,2}", a)
+
 def phanh_cho(tt, viec, bay_gio=None, thay=False):
     """hàm thuần: trạng thái etp.cau_hinh.phanh_cho + việc → câu lý do chặn | None (miễn trừ ROAS / lệnh anh / ngoài do kiem() xét)"""
     pc = (tt or {}).get("phanh") or {}; bay = (bay_gio or dt.datetime.now(dt.timezone.utc)).isoformat()
@@ -273,6 +281,8 @@ def ns_tao(body):
     return None, tran
 
 def _tu_kiem():
+    assert anh_bam_tu("anh (etp2)") and anh_bam_tu("anh (nút Telegram)") and anh_bam_tu("anh (chat)") and anh_bam_tu("anh (etp.on.tc: nút mở rộng ở dòng phim, 04/11)")
+    assert not anh_bam_tu("anh (chat 05/11/2026: thêm loại creative ảnh tĩnh)") and not anh_bam_tu("máy: dòng phim #1") and not anh_bam_tu(None), "duyệt đứng có ngày = máy, không miễn phanh"
     _u = lambda s: dt.datetime.fromisoformat(s + "+00:00"); _pc = {"phanh": {"den_tang": "2026-11-17T00:00:00+00:00", "den_len": "2026-11-18T00:00:00+00:00", "ly_do": "x"}}
     assert phanh_cho(_pc, "tang", _u("2026-11-16T14:00:00")).startswith("PHANH CHỢ: không tăng bậc tới 07:00 17/11") and phanh_cho(_pc, "tang", _u("2026-11-17T01:00:00")) is None, "tăng chỉ bị chặn tới 07:00 sáng hôm sau"
     assert phanh_cho(_pc, "nhan_ban", _u("2026-11-17T12:00:00")) and phanh_cho(_pc, "tao_camp", _u("2026-11-17T23:59:00")) and phanh_cho(_pc, "tao_camp", _u("2026-11-18T00:00:01")) is None, "tạo camp / nhân bản bị chặn hết ngày Ethopex kế"

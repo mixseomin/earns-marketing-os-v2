@@ -220,6 +220,9 @@ const LUAT = [
   { card: 1672, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "const laBaiCu = (c: { ten: string }) => / bai-cu /.test(c.ten);", vi: 'một hàm nhận used post (tên bai-cu như nhan-ban.py / so-luat.py)' },
   { card: 1672, tep: 'apps/etp2/src/components/etp-view.tsx', co: "k === 'bai_cu' ? laBaiCu(c) : k === 'bai_moi' ? !laBaiCu(c)", vi: 'ô Lọc camp có nhóm Creative: Used post / Creative đăng mới' },
   { card: 1672, tep: 'apps/etp2/src/components/etp-view.tsx', co: "m('bai_cu', '♻ Used post'", vi: 'mục Used post hiện trong ô Lọc' },
+  { card: 1673, tep: 'apps/etp2/src/components/gop-y-mos2.tsx', mot: "const KY_SU_ETP = 'Huy';", vi: 'hòm góp ý etp2 ghi tên kỹ sư AI phụ trách phòng (anh 18/11/2026 "Show tên con AI đang quản lý")' },
+  { card: 1673, tep: 'apps/etp2/src/components/gop-y-mos2.tsx', co: '`🤖 ${KY_SU_ETP} đang rảnh`', cam: "'AI đang rảnh'", vi: 'dải đầu hòm: "Huy đang làm: …" / "Huy đang rảnh", không còn "AI đang rảnh"' },
+  { card: 1673, tep: 'apps/etp2/src/components/gop-y-mos2.tsx', co: "const d = await hd.demGopY(); setDem(d); return d;", vi: 'dải tên dùng chính lượt nạp 60 giây của gói, không nạp thêm' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },
 ];
 

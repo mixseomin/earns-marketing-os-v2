@@ -177,7 +177,7 @@ const LUAT = [
   { card: 1556, tep: 'apps/etp2/src/components/etp-view.tsx', cam: '{p}% NS</span>', vi: 'Tổng quan 2: chỉ vạch % ngân sách, không in chữ % NS — rê mới hiện (anh 11/11/2026)' },
   { card: 'mo-1011', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "interval '90 minutes'", cam: "from etp.xet_luat where luc > now() - interval '30 minutes'", vi: 'thẻ máy giữ 90 phút: nhịp máy luật dài không làm trang tự tính trái máy' },
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "(c) => (c.ban || c.giong ? [", vi: 'loại creative có dòng con theo biến thể (PO.1, ATT.KD…)' },
-  { card: 1561, tep: 'apps/etp2/src/components/etp-view.tsx', co: "if (!c.creative_id && / bai-cu /.test(c.ten)) return <span data-cot=\"creative\" title={`USED POST", vi: 'Cây: bản nhân dùng bài cũ hiện nhãn used post thay ô creative xám "chưa chấm" (anh 12/11/2026)' },
+  { card: 1561, tep: 'apps/etp2/src/components/etp-view.tsx', co: "if (!c.creative_id && laBaiCu(c)) return <span data-cot=\"creative\" title={`USED POST", vi: 'Cây: bản nhân dùng bài cũ hiện nhãn used post thay ô creative xám "chưa chấm" (anh 12/11/2026)' },
   { card: 1573, tep: 'apps/etp2/src/components/etp-tong2.tsx', co: "for (const c of Array.from(cha.children))", cam: 'duoi = cha.scrollHeight - (tren + r.height)', vi: 'lưới Tổng quan phủ kín màn khi phóng to cửa sổ — phần dưới lưới đo từ con thật, không lấy scrollHeight (bằng khung khi nội dung ngắn)' },
   { card: 1581, tep: 'apps/etp2/src/components/ui/simple-table.tsx', co: "<tr data-tong=\"1\">{columns.map((c) => <td key={c.key} style={{ ...tdBase, position: 'sticky', bottom: 0", vi: 'SimpleTable có dòng Tổng dính đáy khung cuộn (anh 13/11/2026)' },
   { card: 1581, tep: 'apps/etp2/src/components/ui/simple-table.tsx', co: "style={tong ? { width: 'max-content', minWidth: '100%' } : { overflowX: 'auto' }}", vi: 'có dòng Tổng thì vỏ bảng không thành khung cuộn — sticky bám khung cuộn của widget' },
@@ -217,6 +217,9 @@ const LUAT = [
   { card: 1667, tep: 'apps/etp2/src/lib/etp-doc.ts', cam: "k.gia_tri->>'access_token'", vi: 'trang chỉ đọc trạng thái token, không đọc chuỗi token' },
   { card: 1668, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const HIEN_SX_CAY = false;', vi: 'đồng hồ sản xuất ở dòng phim cây Camp tạm ẩn (anh chưa bảo bật lại)' },
   { card: 1668, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'return HIEN_SX_CAY && k && rs.every((x) => x.content_id === k)', vi: 'ô TT dòng phim cây Camp đi qua cờ ẩn' },
+  { card: 1672, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "const laBaiCu = (c: { ten: string }) => / bai-cu /.test(c.ten);", vi: 'một hàm nhận used post (tên bai-cu như nhan-ban.py / so-luat.py)' },
+  { card: 1672, tep: 'apps/etp2/src/components/etp-view.tsx', co: "k === 'bai_cu' ? laBaiCu(c) : k === 'bai_moi' ? !laBaiCu(c)", vi: 'ô Lọc camp có nhóm Creative: Used post / Creative đăng mới' },
+  { card: 1672, tep: 'apps/etp2/src/components/etp-view.tsx', co: "m('bai_cu', '♻ Used post'", vi: 'mục Used post hiện trong ô Lọc' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },
 ];
 

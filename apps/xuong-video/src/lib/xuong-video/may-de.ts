@@ -421,7 +421,7 @@ export const VietBaiDaiSchema = z.object({
   hua: z.string().describe('one sentence right after the scene promising what the reader will be able to do after reading, and in how many minutes'),
   muc: z.array(z.object({ h2: z.string().describe('section heading'), doan: z.array(z.string()).min(1).max(3).describe('short paragraphs, plain text, no markdown') })).min(3).max(4)
     .describe('body sections in order: the direct answer, how it works (and why people get it wrong), common mistakes, a short checklist the reader can tick'),
-  vi_du: z.object({ tieu_de: z.string().describe('label like "Example: E-6 with 20 years"'), dong: z.array(z.string()).min(3).max(6).describe('lines of a worked example with round numbers, each line short like a pay statement row "High-3 average: $5,000"') }),
+  vi_du: z.object({ tieu_de: z.string().describe('label like "Example: E-6 with 20 years"'), dong: z.array(z.string()).min(3).max(6).describe('lines of ONE concrete worked case with real specific values of this topic, each line short like a statement row ("High-3 average: $5,000", "Sun: Taurus, 10th house"), no abstract steps') }),
   neu_da_lo: z.object({ h2: z.string().describe('heading starting with "If you already" (e.g. "If you already signed your retirement paperwork")'), doan: z.array(z.string()).min(1).max(2) }),
   faq: z.array(z.object({ hoi: z.string(), dap: z.string().describe('2-3 sentences') })).min(3).max(4),
   ket: z.string().describe('closing paragraph, 2-3 sentences, contains the token {LINK} exactly once, saying why that page helps this reader'),
@@ -440,7 +440,7 @@ export function htmlBaiDai(d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua'
   const vd = `<blockquote class="mock"><p><strong>${thoatHtml(d.vi_du.tieu_de.trim())}</strong></p>${d.vi_du.dong.map(p).join('')}</blockquote>`;
   const vid = video ? `<p><iframe src="https://www.youtube.com/embed/${thoatHtml(video)}" title="${thoatHtml(d.tieu_de.trim())} video" width="560" height="315" allowfullscreen></iframe></p><p>Video: <a href="https://www.youtube.com/watch?v=${thoatHtml(video)}">https://www.youtube.com/watch?v=${thoatHtml(video)}</a></p>` : '';
   return `<article><h1>${thoatHtml(d.tieu_de.trim())}</h1><p><em>${thoatHtml(d.phu_de.trim())}</em></p>\n${p(d.canh)}${p(d.hua)}${img(0)}\n`
-    + d.muc.slice(0, 2).map(muc).join('\n') + `\n${vd}\n${vid}\n` + d.muc.slice(2).map(muc).join('\n') + `\n${img(1)}\n${muc(d.neu_da_lo)}\n${img(2)}\n`
+    + d.muc.slice(0, 2).map(muc).join('\n') + `\n${vd}\n${vid}\n<p><a class="cta" href="${L}">Try it free on your own case</a></p>\n` + d.muc.slice(2).map(muc).join('\n') + `\n${img(1)}\n${muc(d.neu_da_lo)}\n${img(2)}\n`
     + `<h2>Questions people ask</h2>${d.faq.map((f) => `<h3>${thoatHtml(f.hoi.trim())}</h3>${p(f.dap)}`).join('')}\n${p(d.ket)}<p><a class="cta" href="${L}">Open the free tool</a></p></article>`;
 }
 /** Mọi chữ của bài (để kiểm luật / độ dài). Thuần. */
@@ -461,6 +461,9 @@ export async function vietBaiDai(o: { sp: SanPhamDe; goc: GocDe; link: string; u
     'Plain human voice, no hype, no em dashes (— or –), no hashtags, no markdown, never these words: ' + TU_MAY.join(', ') + '.',
     'Put the token {LINK} exactly once, only in "ket", in a sentence that says why that page helps this reader (do not write any URL yourself).',
     'Readers arrive from social media on a phone: open with a concrete scene (not a definition), keep paragraphs to 2-4 sentences, make the example visible as short pay-statement-like lines, include a section for readers who already made the decision or mistake, and FAQ answers that each add something new.',
+    // 19/11/2026 (astrolas substack, Phòng Nội dung 6/10 SỬA LẠI): ví dụ là các bước trừu tượng, thân bài kể giá gói / tính năng → luật chung mọi máy
+    'The worked example must be ONE specific case with concrete values a reader can see (actual numbers, names of signs/ranks/items, dates), never abstract steps like "date: entered".',
+    'Body sections teach, they do not sell: never mention prices, plan names, paid tiers or the product\'s feature list or claims ("X says its calculations…") in the body; the product appears only in "ket".',
     ...(o.suThat ? ['VERIFIED FACTS (use ONLY these for rules, rates, numbers and deadlines; anything not listed: tell the reader where to check officially):', o.suThat] : [])].join('\n');
   const trangs = trangSuThat(o.suThat ?? null);
   let vnd = 0, loiCu: string[] = [];

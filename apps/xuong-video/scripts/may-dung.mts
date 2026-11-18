@@ -191,6 +191,24 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
       console.log(`· kho QC Meta mỏng → hook YouTube nhiều lượt xem: Ngọc giữ ${ytDat.length}/${yt.length} (nhóm ${nhomHook.join(', ')})`);
     }
   }
+  // KHO CẠN THẬT (militarycalc 18/11/2026: Ngọc giữ 0/87 QC nhóm + 0/12 YouTube, sinh kho chết mã 1) → luật "dùng lại hook bài ĐÃ ĐĂNG" (anh duyệt 10/11) phải có
+  // nguồn: trước đây hooksCho chỉ lấy lại từ hookNhom/hookCuaQc — chính cái kho đã cạn — nên không bao giờ chạy. Nạp hook từ dang.hook của bài đã đăng (không bài đang chờ
+  // nào giữ), xét lại qua Ngọc (đọc sổ xet-hook.json, không tốn) rồi đưa vào kho; sinhDe vẫn nhận daDung nên tiêu đề phải mới.
+  if (!hookNhom.some((h) => !hookDaDung.has(h.id)) && !hookCuaQc.size) {
+    const daDang = (await db.execute(sql`SELECT DISTINCT ON (v.dang->'hook'->>'qc') v.dang->'hook'->>'qc' AS qc, v.dang->'hook'->>'goc' AS goc, coalesce((v.dang->'hook'->>'ngay')::int, 0) AS ngay, v.dang->'hook'->>'page' AS page
+      FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false) AND coalesce(v.da_dang, '{}'::jsonb) <> '{}'::jsonb AND v.dang->'hook'->>'qc' IS NOT NULL
+      AND v.dang->'hook'->>'qc' NOT LIKE 'kenh:%' AND v.dang->'hook'->>'goc' IS NOT NULL`)) as unknown as { qc: string; goc: string; ngay: number; page: string | null }[];
+    const lai = daDang.filter((x) => hookDaDangLai.has(x.qc) && !hookCho.has(x.qc) && !hookNhom.some((h) => h.id === x.qc))
+      .map((x) => ({ id: x.qc, chu: sachHook(x.goc), ngay: Number(x.ngay) || 0, page: String(x.page ?? '') })).filter((h) => h.chu.length >= 20 && !hookBiChan(h));
+    if (lai.length) {
+      const { xetHookAi } = await nhapCty('worker/cham-dang.mjs');
+      const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
+      const muc = ((await db.execute(sql`SELECT muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { muc_dich: string | null }[])[0]?.muc_dich ?? null;
+      const loi = await xetHookAi(lai.map((h) => ({ qc: h.id, ma, nhan: sp.nhan, muc_dich: muc, su_that: suThat, goc: h.chu, dong: [h.chu], luot_xem: h.ngay })));
+      const dat = lai.filter((_, k) => !loi[k]); hookNhom.push(...dat);
+      console.log(`· kho cạn → dùng lại hook bài đã đăng: Ngọc giữ ${dat.length}/${lai.length}`);
+    }
+  }
   hookNhom.unshift(...thangKenh);   // video thắng của kênh: đã chứng minh trên đúng tệp người xem của máy, không qua kho spy
   console.log(`· hook QC gốc: ${hookNhom.length} hook nhóm (chạy lâu nhất ${hookNhom[0]?.ngay ?? 0} ngày), ${hookCuaQc.size} QC gắn góc, ${hookDaDung.size} đã dùng ở bài đang chờ`);
   // KHÔNG có hook QC thì DỪNG: bài hook tự viết bị Phòng Nội dung chặn (cham-dang luật 8) — sinh ra là đốt tiền (31/10: Sidecue / MilitaryCalc / Giỗ Chạp 17 bài SỬA LẠI)

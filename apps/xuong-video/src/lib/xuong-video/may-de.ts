@@ -417,13 +417,13 @@ export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; li
 export const VietBaiDaiSchema = z.object({
   tieu_de: z.string().describe('article headline, English, 45-90 characters, specific, a real question or promise the reader cares about, no clickbait'),
   phu_de: z.string().describe('one-sentence subtitle, 80-160 characters'),
-  canh: z.string().describe('opening SCENE, 3-5 sentences: a specific person (rank or role, no real names), where they are, what notice or number they just saw, how they feel. Starts with "Imagine" or a time of day. No definitions'),
+  canh: z.string().describe('opening SCENE, 3-5 sentences written to the reader as "you" (second person, never she/he): where you are, what notice or number you just saw, how you feel. Starts with "Imagine" or a time of day. No definitions, no personal names'),
   hua: z.string().describe('one sentence right after the scene promising what the reader will be able to do after reading, and in how many minutes'),
   muc: z.array(z.object({ h2: z.string().describe('section heading written as an informative sentence, not a label like "Common mistakes"'), doan: z.array(z.string()).min(2).max(4).describe('short paragraphs, plain text, no markdown') })).min(3).max(4)
     .describe('body sections in order: the direct answer; how it works; why sensible people still get pulled in or get it wrong (the psychology: wanting control when anxious, confirmation bias…); common mistakes where EVERY mistake gets its own one-line concrete mini example'),
   // 19/11/2026: checklist viết trong đoạn bị dính thành một dòng → Phòng Nội dung SỬA LẠI; tách trường riêng, máy dựng danh sách ô tick
   checklist: z.array(z.string().describe('one short action the reader can tick, starts with a verb')).min(4).max(6).optional(),
-  vi_du: z.object({ tieu_de: z.string().describe('label like "Example: E-6 with 20 years"'), dong: z.array(z.string()).min(3).max(6).describe('lines of ONE concrete worked case with real specific values of this topic, each line short like a statement row ("High-3 average: $5,000", "Sun: Taurus, 10th house"), no abstract steps; one line is a quoted sentence the person actually read or said, in quotes') }),
+  vi_du: z.object({ tieu_de: z.string().describe('label marked as a sample, by role never by a personal name, like "Sample case: an E-6 with 20 years"'), dong: z.array(z.string()).min(3).max(6).describe('lines of ONE concrete worked case with real specific values of this topic, each line short like a statement row ("High-3 average: $5,000", "Sun: Taurus, 10th house"), no abstract steps; one line is a quoted sentence the person actually read or said, in quotes') }),
   neu_da_lo: z.object({ h2: z.string().describe('heading starting with "If you already" (e.g. "If you already signed your retirement paperwork")'), doan: z.array(z.string()).min(1).max(2) }),
   faq: z.array(z.object({ hoi: z.string(), dap: z.string().describe('2-3 sentences') })).min(3).max(4),
   ket: z.string().describe('closing paragraph, 2 short sentences, no repetition, contains the token {LINK} exactly once, saying why that page helps this reader'),
@@ -465,6 +465,7 @@ export async function vietBaiDai(o: { sp: SanPhamDe; goc: GocDe; link: string; u
     'Put the token {LINK} exactly once, only in "ket", in a sentence that says why that page helps this reader (do not write any URL yourself).',
     'Readers arrive from social media on a phone: open with a concrete scene (not a definition), keep paragraphs to 2-4 sentences, make the example visible as short pay-statement-like lines, include a section for readers who already made the decision or mistake, and FAQ answers that each add something new.',
     // 19/11/2026 (astrolas substack, Phòng Nội dung 6/10 SỬA LẠI): ví dụ là các bước trừu tượng, thân bài kể giá gói / tính năng → luật chung mọi máy
+    'Never use personal first names (no "Maya", "John"): people are "you" or a role ("a graduate student"); the example is labelled as a sample case.',
     'The worked example must be ONE specific case with concrete values a reader can see (actual numbers, names of signs/ranks/items, dates), never abstract steps like "date: entered".',
     'Body sections teach, they do not sell: never mention prices, plan names, paid tiers or the product\'s feature list or claims ("X says its calculations…") in the body; the product appears only in "ket".',
     ...(o.suThat ? ['VERIFIED FACTS (use ONLY these for rules, rates, numbers and deadlines; anything not listed: tell the reader where to check officially):', o.suThat] : [])].join('\n');

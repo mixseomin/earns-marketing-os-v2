@@ -8,6 +8,7 @@ import * as hom from '@mos2/gop-y/server';
 import { headers } from 'next/headers';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
+import { boLocNguon } from '@/lib/gop-y-loc-nguon';
 import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture';
 
 export type TinTraoDoi = hom.TinTraoDoi;
@@ -15,8 +16,6 @@ export type GopYCuaToi = hom.GopYCuaToi;
 
 /** Hòm = project_id của card = khoá site_status: mos2 (nút 💬 mọi màn) và city (city.on.tc, xử bằng /tasks-city). */
 const HOM_GOP_Y = ['mos2', 'city'];
-const NGUON_ETP = '^https?://etp2?\\.on\\.tc(/|$)';
-const laHostEtp = (host: string | null) => /^etp2?\.on\.tc$/.test(String(host ?? '').split(':')[0] ?? '');
 const homCua = (x: unknown) => (typeof x === 'string' && HOM_GOP_Y.includes(x) ? x : 'mos2');
 const laTrangEtp = (u: string) => { try { return new URL(u).hostname === 'etp.on.tc'; } catch { return false; } };
 const homNayVN = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
@@ -28,7 +27,8 @@ const ghiTrangThai: hom.TuyChon = {
   henHomNay: (id, h) => setBacklinkSchedule(id, h, homNayVN()),
 };
 async function tuyChonDoc(): Promise<hom.TuyChon> {
-  return { ...ghiTrangThai, nguoiMay: NGUOI_MAY, locNguon: { mau: NGUON_ETP, khop: laHostEtp((await headers()).get('host')) } };
+  const h = await headers(); // nguồn theo nơi đang xem: mos2 / etp / castle (lib/gop-y-loc-nguon.ts)
+  return { ...ghiTrangThai, nguoiMay: NGUOI_MAY, locNguon: boLocNguon(h.get('host'), h.get('referer')) };
 }
 
 export async function guiGopYMos2(input: { loai: string; noiDung: string; trang: string; anhUrls: string[]; nguCanh?: string; hom?: string }) {

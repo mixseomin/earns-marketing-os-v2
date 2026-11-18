@@ -351,6 +351,40 @@ export async function xuNutBang(tg) {
   return n;
 }
 
+/** Thuần — loại lỗi của máy luật: 'token' (Ethopex từ chối phiên nhà) · 'tam' (mạng / 5xx — nhịp sau tự đọc lại) · 'may' (lỗi mã, giao Huy) */
+export const loaiLoiLuat = (m) => (/HTTP Error 401|invalid token|UNAUTHORIZED/i.test(String(m)) ? 'token'
+  : /không đọc được|HTTP Error 5|timed out|timeout|Connection|ETIMEDOUT|ECONNRESET/i.test(String(m)) ? 'tam' : 'may');
+const CACH_TOKEN = 'Cách lấy lại: một phiên Claude trên iMac (có br, hồ sơ htuan82) mở app.ethopex.dev/profile → ô Token → Copy, rồi chuyền token qua STDIN vào apps/etp/ket-nha.py trên box3 '
+  + '(máy kiểm đúng tài khoản Nhà, còn hạn, đọc được camp rồi mới cất vào xv_khoa_ngoai ten=ethopex; không in token).';
+/** Máy luật không chạy được → xếp Huy theo loại lỗi; token thì báo 📂 Ethopex NGAY lượt xếp đầu (lượt sau cùng khoá đang chờ → không báo lại). Trả số tin đã gửi. */
+async function baoLuatChet(tg, topic, ten, loi) {
+  const loai = loaiLoiLuat(loi); console.error(`✗ máy luật Ethopex (${loai}): ${loi.slice(-300)}`);
+  if (loai === 'tam') return 0;
+  const lop = (t) => String(t).replace(/request_id[^,}]*/g, '').replace(/#?\d[\d.,:/]*/g, 'N').replace(/\s+/g, ' ').trim().slice(-70);
+  const viec = loai === 'token'
+    ? { khoa: 'etp:token', chu: `Token Ethopex nhà bị từ chối (401 invalid token) — máy luật, đồng bộ etp, phanh chợ, nhiệt kế đang mù. Lấy token mới cho nhà rồi kiểm etp-dong-bo hết 401. ${CACH_TOKEN} Lỗi: ${loi.slice(-300)}` }
+    : { khoa: `etp:luat|chet|${lop(loi)}`, chu: `Máy luật Ethopex (luat-ethopex.py --json) không chạy được — nhịp không chấm luật nào: ${loi.slice(-400)}` };
+  let n = 0;
+  try { const { themTuCanhBao, theoHang, HANG_HUY } = await import('./tho-may-viec.mjs'); n = theoHang(HANG_HUY, () => themTuCanhBao([viec], { topic })); } catch (e) { console.error('xếp việc Huy:', e.message); }
+  if (!n || loai !== 'token') return 0;
+  await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, message_thread_id: topic,
+    text: `🔑 <b>TOKEN ETHOPEX NHÀ HẾT HIỆU LỰC</b>\nEthopex trả 401 invalid token — máy luật không chấm, đồng bộ etp không về số, phanh chợ / nhiệt kế đang mù. Máy KHÔNG tăng / tắt camp nào tới khi có token mới.\n${esc(CACH_TOKEN)}\nĐã giao Huy.\n<i>${esc(ten)}</i>` });
+  return 1;
+}
+/** Token nhà là JWT 30 ngày, refresh_token hết CÙNG lúc (đo 18/11/2026) → không làm mới được: báo trước 3 ngày, mỗi ngày một lần, để không mù lần nữa. */
+async function canhHanToken(tg, topic, ten) {
+  try {
+    const tok = String(await chayPsql("select gia_tri->>'access_token' from xv_khoa_ngoai where ten = 'ethopex'")).trim();
+    const exp = Number(JSON.parse(Buffer.from(tok.split('.')[1] || '', 'base64url').toString() || '{}').exp || 0) * 1000;
+    const con = exp - Date.now(); if (!exp || con <= 0 || con > 3 * 864e5) return;
+    const tep = path.join(DATA(), 'ethopex-han-token.json'), homNay = new Date(Date.now() + 7 * 36e5).toISOString().slice(0, 10);
+    if (docJ(tep, {}).ngay === homNay) return;
+    const luc = new Date(exp + 7 * 36e5).toISOString(); const moc = `${luc.slice(11, 16)} ${luc.slice(8, 10)}/${luc.slice(5, 7)}`;
+    await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, message_thread_id: topic,
+      text: `⏳ <b>TOKEN ETHOPEX NHÀ SẮP HẾT HẠN</b> — ${moc} giờ VN (còn ${Math.round(con / 36e5)} giờ). Hết hạn là máy luật + đồng bộ etp mù.\n${esc(CACH_TOKEN)}\n<i>${esc(ten)}</i>` });
+    fs.writeFileSync(tep, JSON.stringify({ ngay: homNay }));
+  } catch (e) { console.error('hạn token Ethopex:', e.message); }
+}
 export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
   // KHOÁ MỘT NHỊP (22/10/2026: lượt kích tay 02:18 chạy chồng nhịp tự động → cùng camp bị gửi lệnh tăng 2 lần): nhịp khác đang chạy thì bỏ lượt này;
   // khoá kẹt > 15 phút (nhịp trước chết giữa chừng) thì gỡ.
@@ -366,7 +400,12 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const topic = await topicPhong('ethopex', '📂 Ethopex', tg, { duocTao: true });   // anh lập phòng 21/10/2026 = cho tạo chủ đề
   await gomTin(tg); let nut = 0;
   for (const x of moHop('ethopex')) if ((await xuChuBoPhim(tg, x)) || (await xuNut(tg, x))) nut++;
-  const kq = boPhimLoc(JSON.parse((await chay(LUAT, ['--json'], 540)).trim().split('\n').pop()));   // phim anh đã bỏ: không báo, không tự tăng
+  await canhHanToken(tg, topic, ten);
+  let kq;
+  // MÁY LUẬT CHẾT KHÔNG ĐƯỢC KÉO SẬP NHỊP (18/11/2026: token nhà hết hạn 13:47 VN → luat-ethopex.py ném 401 → hàm này ném → cty-nhip.service exit 1 suốt 133 lượt,
+  // không ai xếp việc cho Huy, không tin nào vào 📂 Ethopex). Lỗi máy luật: phân loại → xếp Huy (+ tin ngay lượt đầu với token) → trả kết quả, không ném.
+  try { kq = boPhimLoc(JSON.parse((await chay(LUAT, ['--json'], 540)).trim().split('\n').pop())); }   // phim anh đã bỏ: không báo, không tự tăng
+  catch (e) { return { gui: await baoLuatChet(tg, topic, ten, String(e.message || e)), nut, loi: loaiLoiLuat(e.message) }; }
   // XẾP VIỆC CHO HUY — KỸ SƯ ETHOPEX (anh 10/11/2026 "Phòng ETP này phải có 1 con riêng phụ trách"; "ko phải mỗi lần lại tạo 1 cái như vậy"): MỌI lỗi máy Ethopex
   // vào MỘT hàng (worker/tho-may-viec.mjs, tệp etp-sua.json) — Huy (apps/cty/may/etp-sua.mjs, Claude Code trên iMac) tìm gốc + sửa + báo dưới tin trong 📂 Ethopex.
   // Khoá theo LỚP lỗi (bỏ số) → cùng lớp đang chờ / đang sửa không xếp đôi; đã sửa mà tái phát thì xếp lại (lần trước chưa tới gốc).
@@ -826,6 +865,11 @@ if (process.argv.includes('--tu-kiem')) {
     a.equal(kieuNb([{ ok: true, bai_cu: '1_2', ns: 2 }, { ok: true, bai_cu: '1_2', ns: 2 }]), '2 bản USED POST (dùng lại bài đăng camp gốc) $2', '#1561: bản bài cũ phải hiện USED POST, không ghi cứng $1');
     a.equal(kieuNb([{ ok: true, bai_cu: '1_2', ns: 2 }, { ok: true, ns: 1 }, { ok: false }]), '1 bản USED POST (dùng lại bài đăng camp gốc) $2 · 1 bản bài mới $1 (đổi creative / khác bộ)');
     console.log('✓ kieuNb (#1561)'); }
+  { const { strict: a } = await import('node:assert');   // etp:token-401 18/11/2026: lỗi máy luật phân loại đúng, 401 không bị coi là lỗi mạng tạm
+    a.equal(loaiLoiLuat("urllib.error.HTTPError: HTTP Error 401: Unauthorized · {'code': 'UNAUTHORIZED', 'message': 'invalid token'}"), 'token');
+    a.equal(loaiLoiLuat('HTTP Error 502: Bad Gateway'), 'tam'); a.equal(loaiLoiLuat('urlopen error timed out'), 'tam');
+    a.equal(loaiLoiLuat("KeyError: 'roi'"), 'may');
+    console.log('✓ loaiLoiLuat (token 401 → việc etp:token cho Huy, nhịp không sập)'); }
   { const { strict: a } = await import('node:assert');
     a.equal(tenPhim('2010 SIMP NO MORE EN - canh that 0-86s · $1 → $2'), 'simp no more'); a.equal(tenPhim('#65735: 2110 Atras No te metas con ese vagabundo ES - canh that'), 'atras no te metas con ese vagabundo');
     const kq = { tang: [{ id: 1, chu: '#65648: 2010 SIMP NO MORE EN - canh that · $1 → $2' }, { id: 2, chu: '#65735: 2110 Number One Nobody EN - canh' }], luc: 'x' };

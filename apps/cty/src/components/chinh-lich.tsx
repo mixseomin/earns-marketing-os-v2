@@ -6,6 +6,7 @@
 // Một mô hình lịch (worker/lich-chu.mjs), một server action (lib/nhip-chinh chinhLich). Lỗi máy chủ (vd cron không diễn được lịch đó) hiện đỏ
 // NGAY trong bảng chỉnh, đủ câu. Người không phải admin: chỉ thấy nhãn.
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { chinhLich } from '@/lib/nhip-chinh';
 import { useBamNgoai } from './bam-ngoai';
@@ -31,7 +32,8 @@ export function ChinhLich({ muc, lich, chu, kieu = ['moi', 'luc'], motGio = fals
       <button ref={nut} type="button" className={cls} title={tieuDe} aria-expanded={mo} onClick={() => setMo((x) => !x)}>
         <span>{nhan}</span>{trang?.cho && <i aria-label="chờ áp" />}
       </button>
-      {mo && <BangChinh neo={nut.current} muc={muc} lich={lich} kieu={kieu} motGio={motGio} coThu={coThu} apSau={apSau} loiCu={trang?.loi} dong={dong} />}
+      {/* portal ra body: ô bảng có filter khi rê hàng (packages/bang .dt-row:hover td) → fixed bám theo ô, bảng bị dời + cắt (góp ý #1670) */}
+      {mo && createPortal(<BangChinh neo={nut.current} muc={muc} lich={lich} kieu={kieu} motGio={motGio} coThu={coThu} apSau={apSau} loiCu={trang?.loi} dong={dong} />, document.body)}
     </>
   );
 }

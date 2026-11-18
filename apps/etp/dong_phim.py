@@ -630,10 +630,27 @@ def sang_ke_chuyen(d, buoc, ghi):
                   from etp.dong_phim where id = {d['id']} returning id""")
     return f"tự chuyển sang kể chuyện: dòng #{moi}" if moi else None
 
+# SẢN XUẤT THEO CHỢ (anh 18/11/2026 "mấy hôm nay không cho lên camp mới thì sx cũng không bật lên được" — sổ luật san_xuat_theo_cho): 24 giờ tới 23:40 18/11
+# 521 dòng chạy hết nhận / poster soát 18+ / cắt / soát / chấm rồi mới dừng ở bước camp vì PHANH CHỢ. Nay đọc khoá cong.KHOA_SX (lo_trinh_phim.ghi_sx ghi mỗi lượt
+# đồng bộ — đúng cổng lên camp của máy, không đọc phanh lần thứ hai): phanh bật thì bước CHƯA BẮT ĐẦU trong BUOC_SX đứng 'cho' với lý do "chờ phanh nhả: …" (dòng vẫn
+# 'chay' — giữ chỗ, lộ trình không xếp dòng thứ hai; phanh nhả thì chạy tiếp ngay, không FIX). Bước creative đang chờ máy chấm thì trả về 'cho' (giữ ket_qua, không làm
+# lại). Phim hồi chợ còn thiếu kho dự trữ (du_tru) vẫn chạy các bước sản xuất; bước camp luôn chờ (cổng lên camp chặn máy khi phanh).
+BUOC_SX = tuple(CG.SXC["buoc_cho"])   # sổ luật chung san_xuat_theo_cho.buoc_cho
+SX = [{}]
+def cho_phanh(sx, d, buoc):
+    """hàm thuần: khoá san_xuat_cho + dòng + bước → câu lý do chờ | None (chạy)"""
+    if not (sx or {}).get("phanh") or buoc not in BUOC_SX: return None
+    if buoc != "camp" and int(d.get("content_id") or 0) in {int(x) for x in sx.get("du_tru") or []}: return None
+    return sx["phanh"]
+
 def lam_buoc(d, buoc):
     truoc = {k: (v.get("ket_qua") or {}) for k, v in (d.get("buoc") or {}).items() if v.get("trang_thai") == "xong"}
     try: ket, ghi, kq = HAM[buoc](d) if buoc in ("nhan", "ws", "poster", "cat") else HAM[buoc](d, truoc)
     except Exception as e: ket, ghi, kq = "loi", f"{type(e).__name__}: {str(e)[:300]}", None
+    if ket == "cho" and buoc == "creative" and (ly := cho_phanh(SX[0], d, buoc)):   # creative đã dựng, chờ máy chấm mà phanh bật → trả bước về hàng, giữ kết quả
+        sql(f"""update etp.dong_buoc set trang_thai = 'cho', bat_dau = null, nhip = now(), pid = null, lan = greatest(lan - 1, 0), ghi = {s(f'{ly} · {ghi}'[:500])}{', ket_qua = ' + js(kq) if kq else ''}
+                where dong_id = {d['id']} and buoc = '{buoc}' and trang_thai = 'dang'""")
+        print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} · {buoc} → chờ phanh nhả", flush=True); return
     if sql(f"select huy::text from etp.dong_buoc where dong_id = {d['id']} and buoc = '{buoc}'") == "true" and ket != "xong":
         ket, ghi = "loi", f"bị huỷ (Mạnh / nút Dừng) — {ghi}"
     k_mang = (d["id"], buoc, int(((d.get("buoc") or {}).get(buoc) or {}).get("lan") or 0))   # đếm RIÊNG lượt thử lại vì mạng của LẦN bật này — `lan` đếm cả FIX tay và không tăng khi thử lại (05/11/2026: #51 đã FIX 4 lần → không bao giờ được thử lại)
@@ -665,6 +682,8 @@ def dung_camp_moi():
 
 def mo_doi_lai():
     if time.time() - DOI_LAI[0] < 600 or dung_camp_moi(): return
+    con = (SX[0].get("kho") or {}).get("con")
+    if SX[0].get("phanh") or (con is not None and con <= 0): return   # sản xuất theo chợ (anh 18/11/2026): phanh / đủ ~1 ngày chỗ lên → không xếp dòng mở rộng
     DOI_LAI[0] = time.time()
     for l in sql("""begin; select pg_advisory_xact_lock(4390);
         insert into etp.dong_phim (content_id, ten, loai, ai, so_camp)
@@ -678,6 +697,9 @@ def mo_doi_lai():
         returning id, content_id; commit;""").splitlines():
         if "\t" in l: print(f"[{time.strftime('%H:%M:%S')}] phim đội lãi → xếp dòng mở rộng #{l.split(chr(9))[0]} phim {l.split(chr(9))[1]}", flush=True)
 
+# MỞ LẠI KHÔNG TRÙNG (18/11/2026: 1.197 dòng huỷ "FIX bỏ qua" / 24 giờ): mọi đường tự FIX (mo_tran_*, Mạnh muc5 / muc6) chỉ mở dòng d khi phim CHƯA có dòng cùng loại
+# đang chạy — kiểm lúc đặt fix, không đặt rồi để vòng sau huỷ
+KHONG_TRUNG = CG.SQL_KHONG_TRUNG
 def mo_tran_ngay():
     """DÒNG DỪNG VÌ TRẦN CAMP MỚI / NGÀY TỰ LÊN LẠI SANG NGÀY MỚI (08/11/2026: đợt ATT/PD/CTS 9 phim — 6 dòng creative sạch dừng "chạm trần 100 camp
     mới / ngày … mai lên tiếp" mà không máy nào làm câu "mai lên tiếp"): ngày VN mới + còn chỗ dưới trần → FIX bước camp của các dòng đó (dừng từ ngày
@@ -687,7 +709,7 @@ def mo_tran_ngay():
         -- chỗ còn tính theo SỐ CAMP, không theo số dòng (16/11/2026: limit n dòng, mỗi dòng mở rộng 2–6 camp → 61 chỗ thành ~147 camp lúc 00:00)
         ung as (select b.dong_id, sum(greatest(coalesce(d.so_camp, 1), 1)) over (order by d.so_camp desc nulls last, b.ket_thuc, b.dong_id) cong
                 from etp.dong_buoc b join etp.dong_phim d on d.id = b.dong_id
-                where b.buoc = 'camp' and b.trang_thai = 'dung' and not b.fix and strpos(b.ghi, '{CG.KHOA_TRAN_NGAY}') > 0 and d.trang_thai = 'dung'
+                where b.buoc = 'camp' and b.trang_thai = 'dung' and not b.fix and strpos(b.ghi, '{CG.KHOA_TRAN_NGAY}') > 0 and d.trang_thai = 'dung' and {KHONG_TRUNG}
                   and (b.ket_thuc at time zone 'Asia/Ho_Chi_Minh')::date < (now() at time zone 'Asia/Ho_Chi_Minh')::date and b.ket_thuc > now() - interval '3 days'),
         mo as (select ung.dong_id from ung, con where con.n > 0 and ung.cong <= con.n)
         update etp.dong_buoc b set fix = true from mo where b.dong_id = mo.dong_id and b.buoc = 'camp' returning b.dong_id""").splitlines():
@@ -698,7 +720,7 @@ def mo_tran_test():
     test chưa lãi → khi một camp test tắt / thành lãi (hoặc phim lãi ổn định) thì FIX bước camp — mỗi lượt một dòng / phim, dòng dừng trong 3 ngày; vẫn vấp thì dừng lại chờ lượt sau."""
     if dung_camp_moi(): return
     for l in sql(f"""with ung as (select distinct on (d.content_id) b.dong_id, d.content_id from etp.dong_buoc b join etp.dong_phim d on d.id = b.dong_id
-                where b.buoc = 'camp' and b.trang_thai = 'dung' and not b.fix and strpos(b.ghi, '{CG.KHOA_TRAN_TEST}') > 0 and d.trang_thai = 'dung' and b.ket_thuc > now() - interval '3 days'
+                where b.buoc = 'camp' and b.trang_thai = 'dung' and not b.fix and strpos(b.ghi, '{CG.KHOA_TRAN_TEST}') > 0 and d.trang_thai = 'dung' and b.ket_thuc > now() - interval '3 days' and {KHONG_TRUNG}
                 order by d.content_id, b.ket_thuc),
         mo as (select dong_id from ung where coalesce({CG.sql_test_con('ung.content_id')}, 1) > 0)
         update etp.dong_buoc b set fix = true from mo where b.dong_id = mo.dong_id and b.buoc = 'camp' returning b.dong_id""").splitlines():
@@ -736,6 +758,9 @@ def vong():
     except Exception as e: print(f"mở lại dòng chạm trần ngày lỗi: {str(e)[:200]}", flush=True)
     try: mo_tran_test()
     except Exception as e: print(f"mở lại dòng chạm trần camp test / phim lỗi: {str(e)[:200]}", flush=True)
+    try: SX[0] = json.loads(sql(CG.SQL_SX) or "{}")   # khoá san_xuat_cho (lo_trinh_phim.ghi_sx) — quá hạn / đọc hỏng = {} → chạy như cũ
+    except Exception: SX[0] = {}
+    cho_ph = {}   # câu chờ phanh → [dòng] — ghi gộp một câu SQL cuối vòng
     gac = gac_dang(); ds_dong = doc_dong()
     # loại lượt nặng đang CHỜ khe (cắt CC / creative tĩnh) — khe_nang giữ một khe cho loại kia khi nó có việc chờ
     cho_nang = {kieu_nang(d["id"], b, d.get("loai")) for d in ds_dong for b in [next((b for b, _ in BUOC if ((d.get("buoc") or {}).get(b) or {}).get("trang_thai") in ("dang", "cho")), None)]
@@ -784,6 +809,7 @@ def vong():
         t = CHAY.get((d["id"], ke))
         if t and t[0].is_alive(): continue
         if dang and t and time.time() - t[1] < CHO_LAI: continue   # bước đang "chờ": quay lại sau CHO_LAI giây
+        if not dang and (ly := cho_phanh(SX[0], d, ke)): cho_ph.setdefault(f"{ke}: {ly}", []).append(d["id"]); continue   # phanh chợ: bước chưa bắt đầu đứng chờ (BUOC_SX)
         # LƯỢT NẶNG trên iMac = bước cắt + bước creative AT (anh-tinh.py cũng tải tập + ffmpeg + Vision) → chung trần TRAN_CAT, kẻo 13 dòng AT xếp một lúc chạy đồng loạt
         LOAI_DONG[d["id"]] = d.get("loai"); nang = lambda i, b: kieu_nang(i, b) is not None
         if nang(d["id"], ke) and not dang and not khe_nang(d["id"], ke, cho_nang):
@@ -794,6 +820,15 @@ def vong():
             sql(f"update etp.dong_buoc set trang_thai = 'dang', bat_dau = now(), nhip = now(), lan = lan + 1, may = '{MAY}' where dong_id = {d['id']} and buoc = '{ke}' and trang_thai = 'cho'")
             bs.setdefault(ke, {})["lan"] = (bs.get(ke) or {}).get("lan", 0) + 1
         th = threading.Thread(target=lam_buoc, args=(d, ke), daemon=True); th.start(); CHAY[(d["id"], ke)] = (th, time.time())
+    # lý do chờ phanh hiện trên thẻ dòng phim (dong_phim.ly_do + ghi bước) — một câu SQL / vòng; phanh nhả thì gỡ lý do cũ
+    cho_id = sorted({i for v in cho_ph.values() for i in v})
+    cau = [f"update etp.dong_phim set ly_do = null where trang_thai = 'chay' and ly_do like '%chờ phanh nhả%' and id not in ({','.join(map(str, cho_id)) or '0'})"]
+    for k, ids in cho_ph.items():
+        b, ly = k.split(": ", 1)
+        cau += [f"update etp.dong_phim set ly_do = {s(k[:500])} where id in ({','.join(map(str, ids))}) and trang_thai = 'chay' and ly_do is distinct from {s(k[:500])}",
+                f"update etp.dong_buoc set ghi = {s(ly[:500])}, nhip = now() where dong_id in ({','.join(map(str, ids))}) and buoc = '{b}' and trang_thai = 'cho' and coalesce(ghi, '') not like 'chờ phanh nhả%'"]
+    try: sql(";\n".join(cau) + ";")
+    except Exception as e: print(f"ghi lý do chờ phanh lỗi: {str(e)[:200]}", flush=True)
 
 # CỨU CREATIVE BỊ CỔNG CHẤM CHẶN (anh 07/11/2026 "làm cả 4"): mỗi 15 phút một lượt apps/etp/cuu_cham.py trong luồng riêng (cắt bỏ khung + lên creative chạy vài phút,
 # không giữ chân vòng dòng phim). Lượt đang chạy thì không bật lượt mới. Chỉ ở iMac (cắt video — cấm dựng video trên box3).
@@ -806,7 +841,16 @@ def cuu():
         except Exception as e: print(f"[{time.strftime('%H:%M:%S')}] cứu creative lỗi: {type(e).__name__}: {str(e)[:300]}", flush=True)
     CUU["th"] = threading.Thread(target=chay, daemon=True); CUU["th"].start()
 
+def tu_kiem():
+    p = {"phanh": "chờ phanh nhả: PHANH CHỢ: x", "du_tru": [7]}
+    assert cho_phanh(p, {"content_id": 1}, "poster") == p["phanh"] and cho_phanh(p, {"content_id": 1}, "camp") == p["phanh"] and cho_phanh(p, {"content_id": 1}, "chay") is None, "phanh: bước sản xuất + camp chờ, bước chờ camp chạy giữ nguyên"
+    assert cho_phanh(p, {"content_id": 7}, "creative") is None and cho_phanh(p, {"content_id": 7}, "camp") == p["phanh"], "phim hồi chợ thiếu kho dự trữ vẫn sản xuất, không lên camp"
+    assert cho_phanh({}, {"content_id": 1}, "nhan") is None and cho_phanh({"phanh": None}, {"content_id": 1}, "nhan") is None and cho_phanh(None, {"content_id": 1}, "nhan") is None, "không phanh / khoá quá hạn → chạy như cũ"
+    assert set(BUOC_SX) == {b for b, _ in BUOC} - {"chay"} and "not exists" in KHONG_TRUNG
+    print("✓ dong_phim.py tự kiểm (sản xuất theo chợ: bước chờ phanh, kho dự trữ hồi chợ, mở lại không trùng)")
+
 def main(a):
+    if a and a[0] == "--tu-kiem": return tu_kiem()
     if a and a[0] == "mot": vong(); time.sleep(int(a[1]) if len(a) > 1 else 60); return   # một vòng rồi chờ các bước vừa bật (thử)
     # BỎ TẦNG NỀN macOS (anh 07/11/2026 "vẫn chậm"): launcher cũ chạy `taskpolicy -b`, execv khi nạp mã giữ nguyên tầng nền → mọi thợ cắt / ffmpeg / Vision con
     # bị dồn sang nhân E + bóp đĩa (ưu tiên 4; khung 65 s cắt 13 phút). setpriority(PRIO_DARWIN_PROCESS, 0, 0) tự gỡ, con sinh sau thừa hưởng (đo: 4 → 31)

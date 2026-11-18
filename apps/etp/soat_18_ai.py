@@ -35,13 +35,24 @@ def _tom_tat(url):
         return (m.group(1) if m else "").replace("&#x27;", "'").replace("&quot;", '"').replace("&amp;", "&")[:800]
     except Exception: return ""
 
-def soat(content_id, ghi=True):
+# MỘT PHIM SOÁT MỘT LẦN THEO POSTER (anh 18/11/2026, sổ luật san_xuat_theo_cho): 24 giờ tới 23:40 18/11 "etp soát 18+" 827 lượt cho 224 phim — mỗi dòng phim mới
+# của cùng phim soát lại poster đã soát. Sổ ethopex_soat_18 đã có kết quả cho phim mà poster không đổi (khoá "anh" ghi kèm; bản ghi cũ chưa có "anh" = poster đang có)
+# → trả kết quả cũ, 0₫. --lai (hoặc lai=True) mới soát lại.
+def da_soat(v, anh):
+    """hàm thuần: bản ghi sổ ethopex_soat_18 của phim + poster hiện tại → True khi dùng lại được kết quả cũ"""
+    return isinstance(v, dict) and isinstance(v.get("ok"), bool) and (not v.get("anh") or v.get("anh") == anh)
+
+def soat(content_id, ghi=True, lai=False):
     """→ (dat True/False | None, chi_vnd, ly_do)"""
     db = os.environ["DATABASE_URL"]
     r = _q(f"select coalesce(ten, '') || '|' || coalesce(anh, '') || '|' || coalesce(url, '') from etp.thu_vien_phim where content_id = {int(content_id)}", db)
     ten, anh, url = (r.split("|", 2) + ["", "", ""])[:3]
     if not anh: return None, 0, "không có poster trong kho thư viện (etp.thu_vien_phim)"
     anh = anh if anh.startswith("http") else f"https://acdn.dofez.com/{anh.lstrip('/')}"
+    if not lai:
+        try: v = json.loads(_q(f"select coalesce((select gia_tri->'{int(content_id)}' from xv_khoa_ngoai where ten = 'ethopex_soat_18'), 'null')::text", db) or "null")
+        except ValueError: v = None
+        if da_soat(v, anh): return v["ok"], 0, f"{str(v.get('ghi') or '')[:240]} (đã soát {v.get('luc') or 'trước'} — không soát lại)"
     chu = f"{ten}\nSynopsis: {_tom_tat(url)}"
     a, chi, model, loi = AI.goi([{"type": "image_url", "image_url": {"url": anh}}, {"type": "text", "text": LUAT + chu}], max_tokens=300, timeout=120,
         kiem=lambda a: None if isinstance(a.get("dat"), bool) else "trả lời lạ",
@@ -49,11 +60,17 @@ def soat(content_id, ghi=True):
             "dat": {"type": "boolean"}, "vi_pham": {"type": "array", "items": {"type": "string"}}, "ly_do": {"type": "string"}}}))   # donk → ckey: ai_chu.py
     if not a: return None, round(chi), loi
     ly = f"AI soát poster ({model.split('/')[-1]}): {str(a.get('ly_do') or '')[:160]}" + (f" — {', '.join(a.get('vi_pham') or [])}" if not a["dat"] else "")
-    if ghi: subprocess.run(["python3", K18, "--soat", str(int(content_id)), "ok" if a["dat"] else "cam", ly], capture_output=True, text=True, timeout=60)
+    if ghi:
+        subprocess.run(["python3", K18, "--soat", str(int(content_id)), "ok" if a["dat"] else "cam", ly], capture_output=True, text=True, timeout=60)
+        a_sql = anh.replace("'", "''")   # nhớ poster đã soát (da_soat) — chỉ thêm khoá "anh" vào bản ghi vừa ghi, không đụng khoá khác
+        _q(f"update xv_khoa_ngoai set gia_tri = jsonb_set(gia_tri, '{{{int(content_id)},anh}}', to_jsonb('{a_sql}'::text)) where ten = 'ethopex_soat_18' and gia_tri ? '{int(content_id)}'", db)
     return a["dat"], round(chi), ly
 
 if __name__ == "__main__":
+    if "--tu-kiem" in sys.argv:
+        assert da_soat({"ok": True, "ghi": "x"}, "a") and da_soat({"ok": False, "anh": "a"}, "a") and not da_soat({"ok": True, "anh": "b"}, "a") and not da_soat(None, "a") and not da_soat({"ghi": "chưa"}, "a"), "soát một lần theo poster"
+        print("✓ soat_18_ai.py tự kiểm (một phim soát một lần theo poster)"); sys.exit(0)
     ids = [int(x) for x in sys.argv[1:] if x.isdigit()]; tong = 0
     for i in ids:
-        d, c, ly = soat(i, ghi="--ghi" in sys.argv); tong += c; print(f"{i}: {d} · {c}₫ · {ly}")
+        d, c, ly = soat(i, ghi="--ghi" in sys.argv, lai="--lai" in sys.argv); tong += c; print(f"{i}: {d} · {c}₫ · {ly}")
     print(f"tổng {tong}₫")

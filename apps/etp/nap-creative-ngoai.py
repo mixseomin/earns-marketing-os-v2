@@ -23,6 +23,10 @@ def main():
     if "--tu-dong" in sys.argv:
         ch = {"bat": False, "chi": 3, "moi_luot": 5, **json.loads(EA._q("select gia_tri::text from etp.cau_hinh where khoa = 'cham_doi'") or "{}")}
         if not ch["bat"] and "--kho" not in sys.argv: print(json.dumps({"tat": True, "ghi": "etp.cau_hinh.cham_doi.bat = false"})); return
+        # SẢN XUẤT THEO CHỢ (anh 18/11/2026, sổ luật san_xuat_theo_cho): phanh chợ bật → không nạp / chấm creative đội (cửa máy chấm cũng giữ hàng); đọc khoá cong.KHOA_SX
+        import cong as CG
+        sx = json.loads(EA._q(CG.SQL_SX) or "{}")
+        if sx.get("phanh") and "--kho" not in sys.argv: print(json.dumps({"tat": True, "ghi": sx["phanh"]}, ensure_ascii=False)); return
         ids = [int(x) for x in EA._q(f"""select c.creative_id from etp.camp_ngoai c join etp.tai_khoan t using (ad_account_id) left join etp.so_ngay_ngoai n using (camp_id)
                 where not t.nha and c.trang_thai = 'ACTIVE' and c.creative_id > 0
                   and not exists (select 1 from etp.cham h where h.creative_id = c.creative_id) and not exists (select 1 from etp.cham_hang q where q.creative_id = c.creative_id

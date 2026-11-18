@@ -137,7 +137,7 @@ def main():
                     case split_part(d.ly_do, ':', 1) """ + " ".join(f"when '{k}' then '{bam(v)}'" for k, v in MA_BUOC.items()) + f""" else '{bam([f"{G}/dong_phim.py"])}' end,
                     case when split_part(d.ly_do, ':', 1) = 'camp' then to_char(now() at time zone 'Asia/Ho_Chi_Minh', 'YYYYMMDD') end) dau
                   from etp.dong_phim d left join etp.phim f on f.content_id = d.content_id left join cr on cr.content_id = d.content_id
-                  where d.trang_thai = 'dung' {GAC} and {dk})"""
+                  where d.trang_thai = 'dung' {GAC} and {dk} and {CG.SQL_KHONG_TRUNG})"""   # phim đã có dòng cùng loại đang chạy → không mở lại (18/11/2026: 1.197 dòng huỷ trùng / ngày)
         # dòng anh tạm gác (dong_phim.gac_ly: KT, và mọi dạng trong etp.cau_hinh.gac_dang, 08/11/2026) không phải dừng vì cổng — không tự mở lại, kẻo mở / gác lặp mỗi lần mã đổi
         GAC = "and coalesce(d.ly_do, '') not like 'tạm gác dòng %'"
         BA_NGAY = "d.tao_luc > now() - interval '3 days'"
@@ -155,7 +155,7 @@ def main():
         #    dòng LỖI KỸ THUẬT (không phải dừng vì luật) → thử lại bước lỗi, trong 3 ngày
         #    LỖI HẠ TẦNG (ssh / kênh mux tới box3, máy chạy dòng im vì nạp lại mã / khởi động lại) → 10 phút, tối đa 10 lần (05/11/2026: 14 dòng đứng
         #    'lỗi' 3 giờ sau một lần box3 từ chối ssh 22:04–22:08); lỗi khác giữ 2 giờ, tối đa 6 lần
-        r = q(f"""update etp.dong_buoc b set fix = true from etp.dong_phim d where d.id = b.dong_id and d.trang_thai = 'loi' and b.trang_thai = 'loi' and not b.fix
+        r = q(f"""update etp.dong_buoc b set fix = true from etp.dong_phim d where d.id = b.dong_id and d.trang_thai = 'loi' and b.trang_thai = 'loi' and not b.fix and {CG.SQL_KHONG_TRUNG}
                   and d.tao_luc > now() - interval '3 days'
                   and case when coalesce(b.ghi, '') ~ '{HA_TANG}' then b.lan < {THU_HA_TANG} and b.ket_thuc < now() - interval '10 minutes'
                            else b.lan < {THU_KHAC} and b.ket_thuc < now() - interval '2 hours' end

@@ -28,8 +28,10 @@ SQL_BO_PHIM = ("select coalesce((select thu_bo from etp.phim where content_id = 
 # DÒNG HỎNG THẬT ≠ DÒNG DỪNG ĐÚNG LUẬT (09/11/2026 rà xung đột: lộ trình đếm mọi dòng 'dung' là hỏng → 3 dòng là bỏ hẳn dạng đó cho phim; 46 phim mất CC, 37 mất AT
 # chỉ vì dòng bị gác theo gac_dang, 33 mất PO vì chạm trần camp/ngày hay trang phim hỏng). Hỏng thật = 'loi' (máy), hoặc 'dung' không do một luật chặn:
 # gác dạng (dong_phim.gac_ly), trần camp mới/ngày (kiem → mo_tran_ngay tự mở lại), trang phim Nhà hỏng (ly_trang_hong), nhóm gốc ngoài Âu-Mỹ (bước nhận).
+# + PHANH CHỢ / BẢO TRÌ / RÚT (18/11/2026): dòng dừng ở bước camp vì phanh cũng là dừng đúng luật — trước đếm là hỏng, 3 lần thì lộ trình bỏ hẳn dạng đó của phim
 SQL_DONG_HONG = ("(trang_thai = 'loi' or (trang_thai = 'dung' and coalesce(ly_do, '') not like 'tạm gác dòng%' and strpos(coalesce(ly_do, ''), 'chạm trần') = 0"
-                 " and strpos(coalesce(ly_do, ''), 'DỪNG LÊN CAMP MỚI') = 0 and coalesce(ly_do, '') not like 'ws: trang phim Nhà%' and coalesce(ly_do, '') not like 'nhan: nhóm gốc%'))")
+                 " and strpos(coalesce(ly_do, ''), 'DỪNG LÊN CAMP MỚI') = 0 and strpos(coalesce(ly_do, ''), 'PHANH') = 0 and strpos(coalesce(ly_do, ''), 'BẢO TRÌ') = 0"
+                 " and strpos(coalesce(ly_do, ''), 'RÚT KHỎI CHỢ') = 0 and coalesce(ly_do, '') not like 'ws: trang phim Nhà%' and coalesce(ly_do, '') not like 'nhan: nhóm gốc%'))")
 # CAMP ÍT NƯỚC KHÔNG BẬT LẠI (anh 09/11/2026 theo Dol / Ethopex: "phải target đúng cả list quốc gia" — team tắt camp ít nước, "Ko bật lại", bỏ A/B nước):
 # camp nhánh THỬ của mọi lần A/B kiểu 'nuoc' (AB01 "4 nước") → mọi đường bật (lam-ethopex bat, lịch giờ, máy thay creative bị từ chối) đều chặn.
 # + LÔ TEAM ETHOPEX TẮT (anh 09/11/2026 "1 lô vừa tắt từ bên team etho thì ko tự bật lại"): etp.cau_hinh.team_tat = mảng camp_id (201 camp tắt 15:46 09/11) — thêm lô mới = nối vào mảng
@@ -242,6 +244,24 @@ def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False):
     if ly_pc and not ve: return ly_pc
     return None
 
+# SẢN XUẤT THEO CHỢ (anh 18/11/2026 "cứ sx rồi để đấy hay theo plan? mấy hôm nay không cho lên camp mới thì sx cũng không bật lên được" — sổ luật chung san_xuat_theo_cho):
+# cổng lên camp mới của máy đang đóng → máy KHÔNG sản xuất creative cho camp mới (lộ trình không xếp dòng, dòng phim dừng trước bước tốn AI, máy chấm chỉ chấm nút anh
+# + kho dự trữ hồi chợ). MỘT hàm đọc, đúng cổng chan_cua('tao_camp') không vé (dừng khẩn · Ethopex bảo trì · phanh chợ + báo sớm gia6 / roi_sang) + nấc rút (phanh_cho.rut).
+# lo_trinh_phim.ghi_sx (dong-bo 10 phút) ghi kết quả vào etp.cau_hinh KHOA_SX {phanh, du_tru, kho, het} — dòng phim (iMac), Mạnh, cửa máy chấm đọc khoá đó, không đọc lại phanh.
+SXC = _BL["san_xuat_theo_cho"]   # sổ luật chung
+KHOA_SX = SXC["khoa"]
+# điều kiện chung cho mọi đường tự mở lại dòng phim d (dong_phim.mo_tran_*, manh muc5 / muc6): phim chưa có dòng CÙNG LOẠI đang chạy — kiểm lúc đặt fix
+SQL_KHONG_TRUNG = "not exists (select 1 from etp.dong_phim y where y.content_id = d.content_id and y.loai is not distinct from d.loai and y.trang_thai = 'chay' and y.id <> d.id)"
+SX_PHUT = int(SXC["het_phut"])   # khoá san_xuat_cho quá hạn (dong-bo chết) → coi như không phanh (máy chạy như cũ, cổng lên camp vẫn chặn)
+SQL_SX = (f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{KHOA_SX}' and (gia_tri->>'het')::timestamptz > now()), '{{}}')")
+def phanh_sx(ch, bay_gio=None):
+    """hàm thuần: etp.cau_hinh {khoá: giá trị} → câu 'chờ phanh nhả: …' | None"""
+    bay = bay_gio or dt.datetime.now(dt.timezone.utc)   # bay_gio chỉ cho nấc rút (bài tự kiểm); cổng chan_cua xét giờ hiện tại như lúc lên camp
+    ly = chan_cua("tao_camp", ch or {})
+    rut = ((((ch or {}).get("phanh_cho") or {}).get("rut")) or {}).get("den") or ""
+    if not ly and rut > bay.isoformat(): ly = f"RÚT KHỎI CHỢ tới {dt.datetime.fromisoformat(rut) + dt.timedelta(hours=7):%H:%M %d/%m} giờ VN (sổ luật phanh_cho.rut)"
+    return f"chờ phanh nhả: {ly}" if ly else None
+
 def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False, thay=False, anh_bam=False):
     """anh_bam: BỎ (18/11/2026) — giữ tham số cho người gọi cũ, KHÔNG còn miễn gì; người bấm thật = vé ETP_VE (ve_hop_le). tay: chỉ còn nghĩa cũ (miễn trùng phim đội, đã bỏ)."""
     if viec not in TANG: return None
@@ -404,6 +424,12 @@ def _tu_kiem():
     _s = {"gia6": {"ti": 0.6, "den": "2026-11-17T05:00:00+00:00"}, "roi_sang": {"roi": -14, "kem": -34, "den": "2026-11-18T00:00:00+00:00"}}
     assert phanh_cho(_s, "tang", _u("2026-11-17T04:00:00")).startswith("PHANH CHỢ (báo sớm)") and phanh_cho(_s, "nhan_ban", _u("2026-11-17T06:00:00")).startswith("PHANH MỞ RỘNG") and phanh_cho(_s, "tao_camp", _u("2026-11-18T00:01:00")) is None and phanh_cho(_s, "giam", _u("2026-11-17T04:00:00")) is None and phanh_cho(_s, "nhan_ban", _u("2026-11-17T04:00:00"), thay=True) is None
     assert phanh_cho({}, "tang") is None and phanh_cho(None, "tao_camp") is None and phanh_cho({"phanh": None, "som": True}, "tang") is None, "không phanh / chỉ cảnh báo sớm thì không chặn"
+    # SẢN XUẤT THEO CHỢ (anh 18/11/2026): đúng cổng lên camp của máy + nấc rút; vé tay không làm máy sản xuất
+    _x = lambda gio: (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=gio)).isoformat()
+    assert phanh_sx({"phanh_cho": {"phanh": {"den_len": _x(5), "ly_do": "x"}}}).startswith("chờ phanh nhả: PHANH CHỢ") and phanh_sx({"phanh_cho": {"phanh": {"den_len": _x(-1), "ly_do": "x"}}}) is None, "phanh den_len → ngừng sản xuất tới khi nhả"
+    assert phanh_sx({"phanh_cho": {"gia6": {"ti": 0.6, "den": _x(1)}}}).startswith("chờ phanh nhả: PHANH CHỢ (báo sớm)") and phanh_sx({"phanh_cho": {"roi_sang": {"roi": -14, "kem": -34, "den": _x(3)}}}).startswith("chờ phanh nhả: PHANH MỞ RỘNG"), "báo sớm gia6 / roi_sang cũng ngừng"
+    assert phanh_sx({"phanh_cho": {"rut": {"den": "2026-11-18T00:00:00+00:00"}}}, _u("2026-11-17T04:00:00")).startswith("chờ phanh nhả: RÚT KHỎI CHỢ") and phanh_sx({}, _u("2026-11-17T04:00:00")) is None and phanh_sx(None) is None
+    assert phanh_sx({"bao_tri_len": {"bat": True}}, _u("2026-11-17T04:00:00")).startswith("chờ phanh nhả: ETHOPEX BẢO TRÌ") and phanh_sx({"dung_khan": True}).startswith("chờ phanh nhả: ĐANG DỪNG KHẨN")
     assert int(TT["so"]) == 2 and _NB_MIN == (3.0, 50.0), "trần camp test / phim lệch sổ luật (anh 18/11/2026: 2 camp test, camp lãi = nấc NB $3 & +50% hoặc ROI cộng dồn dương)"
     assert la_lai(5, 6) and la_lai(3, 4.5) and la_lai(0.5, 0.6) and not la_lai(3, 3) and not la_lai(0, 0) and not la_lai(10, 4) and not la_lai(None, None), "camp lãi = thu > chi (chi > 0)"
     assert "tran_test_phim" in ly_tran_test(1, 2) and "chạm trần" in ly_tran_test(1, 2), "câu chặn phải mang khoá (dòng phim mo_tran_test) + 'chạm trần' (SQL_DONG_HONG không đếm là dòng hỏng)"

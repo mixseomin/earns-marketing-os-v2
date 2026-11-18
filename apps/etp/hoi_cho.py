@@ -10,6 +10,7 @@ Phanh chợ nhả (hết den_len của lần phanh gần nhất — etp.canh_bao
 Giờ chạy theo nhan-ban.lich_len. Mọi cổng etp vẫn áp (cong.kiem: dừng khẩn, bảo trì, Âu-Mỹ, phim cất, trần camp test / phim cho bản nhân, trần camp mới / ngày).
 Mỗi creative / gốc chỉ thử MỘT lần mỗi đợt (etp.cau_hinh.hoi_cho_da) — bị cổng chặn thì không gọi lại mỗi nhịp. Camp lên được → etp.canh_bao 'hoi_cho:<camp>' (tin Telegram).
   python3 apps/etp/hoi_cho.py --xem      → trạng thái đợt + ứng viên nhịp này (không tạo gì)
+  python3 apps/etp/hoi_cho.py --du-tru   → kho dự trữ creative Sạch cho đợt (máy chấm vẫn chấm phim thiếu trong lúc phanh — sổ luật san_xuat_theo_cho)
   python3 apps/etp/hoi_cho.py --tu-kiem  → bài tự kiểm hàm thuần"""
 import ast, datetime as dt, json, os, re, subprocess, sys
 D = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, D)
@@ -42,13 +43,30 @@ def da_lam(luat):
 CUA = f"""mo as (select '{HC['moc_sut']}'::date m),
     s as (select n.camp_id, sum(n.chi) chi, sum(n.thu) thu from etp.so_ngay n, mo where n.ngay >= m - {int(HC['truoc_ngay'])} and n.ngay < m group by 1)"""
 
+# phim đã lãi TRƯỚC đợt sụt — một câu cho ung_vien_roas và kho dự trữ (du_tru)
+PHIM_HC = f"""p as (select c.content_id, (sum(s.thu) - sum(s.chi)) / sum(s.chi) * 100 r from s join etp.camp c using (camp_id) where c.content_id is not null group by 1
+              having sum(s.chi) >= {float(HC['phim']['chi'])} and (sum(s.thu) - sum(s.chi)) / sum(s.chi) * 100 >= {float(HC['phim']['roi'])})"""
+# creative ★ ROAS hồi chợ dùng được: chấm Sạch, cập nhật trong cr_ngay ngày, chưa bị Meta từ chối, chưa có camp
+CR_HC = f"""r.cap_nhat > now() - interval '{int(HC['cr_ngay'])} days' and r.tu_choi is null and not exists (select 1 from etp.camp k where k.creative_id = r.creative_id)"""
+DU_TRU = int(HC["tran_ngay"]) * int(HC["so_ngay"])   # anh 18/11/2026: đợt dùng tối đa 5 camp ROAS / ngày × 3 ngày, mỗi phim một camp / đợt → giữ sẵn ~15 phim có creative Sạch
+
+def du_tru(qq=None):
+    """KHO DỰ TRỮ HỒI CHỢ khi phanh (sổ luật san_xuat_theo_cho, anh 18/11/2026): trong lúc phanh máy ngừng chấm / sản xuất, TRỪ creative cho phim lãi trước sụt
+    còn thiếu. Trả {"co": số phim đã có ≥ 1 creative Sạch dùng được, "can": min(DU_TRU, số phim), "thieu": [phim chưa có]} — đủ thì thieu = [] (thôi chấm)."""
+    qq = qq or q
+    r = qq(f"""with {CUA}, {PHIM_HC},
+        co as (select distinct r.content_id from etp.creative r join p using (content_id) join etp.cham_cong g on g.creative_id = r.creative_id and g.duoc_len where {CR_HC})
+        select (select count(*) from p) || '|' || (select count(*) from co) || '|' || coalesce((select string_agg(content_id::text, ',' order by r desc) from p where content_id not in (select content_id from co)), '')""")
+    tong, co, thieu = (r.split("|") + ["0", "0", ""])[:3]
+    can = min(DU_TRU, int(tong or 0)); co = int(co or 0)
+    return {"co": co, "can": can, "thieu": [] if co >= can else [int(x) for x in thieu.split(",") if x.strip().isdigit()]}
+
 def ung_vien_roas(thu, chan):
     ds = [l.split("|", 4) for l in q(f"""with {CUA},
-        p as (select c.content_id, (sum(s.thu) - sum(s.chi)) / sum(s.chi) * 100 r from s join etp.camp c using (camp_id) where c.content_id is not null group by 1
-              having sum(s.chi) >= {float(HC['phim']['chi'])} and (sum(s.thu) - sum(s.chi)) / sum(s.chi) * 100 >= {float(HC['phim']['roi'])})
+        {PHIM_HC}
         select r.creative_id, r.content_id, coalesce(r.lang, 'en'), round(p.r), coalesce((select v.ten from etp.thu_vien_phim v where v.content_id = r.content_id), '')
         from etp.creative r join p using (content_id) join etp.cham_cong g on g.creative_id = r.creative_id and g.duoc_len
-        where r.cap_nhat > now() - interval '{int(HC['cr_ngay'])} days' and r.tu_choi is null and not exists (select 1 from etp.camp k where k.creative_id = r.creative_id)
+        where {CR_HC}
         order by p.r desc, r.creative_id desc limit 60""").splitlines() if l.count("|") >= 4]
     return [{"cr": int(c), "phim": int(p), "lang": lg, "r": r, "ten": t} for c, p, lg, r, t in ds
             if f"cr:{c}" not in thu and f"phim:{p}" not in thu and int(p) not in chan and lg[:2] in KHUON]
@@ -110,8 +128,12 @@ def _tu_kiem():
     assert not dot({"gia6_nay": 0.9, "rut": {"den": "2026-11-20T00:00:00+00:00"}}, "2026-11-17", u("2026-11-19T01:00:00"))[0] and not dot(tt, None, u("2026-11-19T01:00:00"))[0]
     assert HC["roas"] == 1 and HC["ns_khoang"] == [5, 10] and HC["ns_khoang"][0] <= HC["ns"] <= HC["ns_khoang"][1] and HC["tran_ngay"] == 5, "đợt hồi chợ lệch sổ luật (anh 18/11/2026: ROAS 1, $5–10, 5 camp / ngày)"
     assert KHUON.get("en") and KHUON.get("es")
+    assert DU_TRU == 15, "kho dự trữ hồi chợ = 5 camp ROAS / ngày × 3 ngày (anh 18/11/2026)"
+    gia = lambda tong, co, thieu: (lambda s: du_tru(lambda _: s))(f"{tong}|{co}|{thieu}")
+    assert gia(36, 34, "1,2")["thieu"] == [] and gia(36, 3, "7,8")["thieu"] == [7, 8] and gia(4, 4, "")["thieu"] == [] and gia(4, 2, "5,6") == {"co": 2, "can": 4, "thieu": [5, 6]}, "đủ phim có creative Sạch thì thôi chấm"
     print("✓ hoi_cho.py tự kiểm (cửa sổ đợt sau phanh, giá về ≥ ngưỡng, nấc báo sớm / rút, sổ luật)")
 
 if __name__ == "__main__":
     if "--tu-kiem" in sys.argv: _tu_kiem(); sys.exit(0)
+    if "--du-tru" in sys.argv: print(json.dumps(du_tru(), ensure_ascii=False)); sys.exit(0)
     print(json.dumps(chay("--xem" in sys.argv), ensure_ascii=False, default=str))

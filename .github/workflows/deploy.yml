@@ -72,8 +72,7 @@ jobs:
           cham apps/store && echo "store=1" >> "$GITHUB_OUTPUT"
           cham apps/xuong-video && echo "studio=1" >> "$GITHUB_OUTPUT"
           # cong-ty/** chỉ là dữ liệu đọc lúc render: máy chủ git pull là đủ, không dựng lại cty.
-          cham apps/cty --tru apps/cty/cong-ty/ && echo "cty=1" >> "$GITHUB_OUTPUT"
-          co '^apps/cty/cong-ty/' && echo "cty_du_lieu=1" >> "$GITHUB_OUTPUT"
+          # cty đã tách repo riêng (github.com/mixseomin/cty, 18/11/2026) — tự kiểm + dựng + deploy ở repo đó, monorepo không dựng cty nữa
           cham apps/etp2 && echo "etp2=1" >> "$GITHUB_OUTPUT"
           # deploy.sh + deploy/ chỉ chạy trên máy chủ, không vào bản build → không kéo build web (38s).
           if [ "$F" = "__HET__" ] || echo "$F" | grep -vqE '^(apps/(store|xuong-video|cty|etp2)/|packages/gop-y/|deploy/|deploy\.sh$)'; then echo "web=1" >> "$GITHUB_OUTPUT"; fi
@@ -104,10 +103,6 @@ jobs:
         if: steps.chon.outputs.studio == '1'
         uses: actions/cache@v4
         with: { path: apps/xuong-video/.next/cache, key: "nextcache-studio-${{ github.sha }}", restore-keys: nextcache-studio- }
-      - name: Restore Next.js build cache (cty)
-        if: steps.chon.outputs.cty == '1'
-        uses: actions/cache@v4
-        with: { path: apps/cty/.next/cache, key: "nextcache-cty-${{ github.sha }}", restore-keys: nextcache-cty- }
       - name: Restore Next.js build cache (etp2)
         if: steps.chon.outputs.etp2 == '1'
         uses: actions/cache@v4
@@ -128,9 +123,6 @@ jobs:
           node scripts/check-tab-trang.mjs
           node scripts/check-client-db.mjs --tu-kiem
           node scripts/check-client-db.mjs
-      # Công ty AI: hồ sơ phòng/nhân sự + worker tự kiểm trước khi dựng.
-      - run: node apps/cty/scripts/tu-kiem.mjs && node apps/cty/scripts/fm.mjs --tu-kiem && node apps/cty/worker/gia.mjs --tu-kiem && node apps/cty/worker/log.mjs --tu-kiem && node apps/cty/worker/proxy.mjs --tu-kiem && node apps/cty/worker/ca.mjs --tu-kiem && node apps/cty/scripts/thu-ngan.mjs && node apps/cty/worker/quy-trinh.mjs --tu-kiem && node apps/cty/worker/cai-tien.mjs --tu-kiem
-        if: steps.chon.outputs.cty == '1' || steps.chon.outputs.cty_du_lieu == '1'
       # Dựng SONG SONG các app được chọn (runner repo công khai: 4 nhân, 16GB) — trước dựng nối đuôi web 41s + store 21s
       # + studio 22s + cty 21s. Mỗi app một tarball <app>.tar.gz; app không dựng lượt này máy chủ giữ nguyên bản đang chạy.
       - name: Build (song song)
@@ -139,7 +131,6 @@ jobs:
           if [ "${{ steps.chon.outputs.web }}" = 1 ]; then dung web; fi
           if [ "${{ steps.chon.outputs.store }}" = 1 ]; then dung store; fi
           if [ "${{ steps.chon.outputs.studio }}" = 1 ]; then dung xuong-video; fi
-          if [ "${{ steps.chon.outputs.cty }}" = 1 ]; then dung cty; fi
           if [ "${{ steps.chon.outputs.etp2 }}" = 1 ]; then dung etp2; fi
           wait
           sai=0
@@ -163,7 +154,7 @@ jobs:
           if ls *.tar.gz >/dev/null 2>&1; then ls -la *.tar.gz; ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} "mkdir -p /var/tmp/mos2-deploy"; scp -i ~/.ssh/id_ed25519 *.tar.gz root@${{ secrets.DEPLOY_HOST }}:/var/tmp/mos2-deploy/; else echo "↺ không app nào dựng lượt này"; fi
           ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} '
             set -e
-            for a in web store xuong-video cty etp2; do
+            for a in web store xuong-video etp2; do
               [ -f "/var/tmp/mos2-deploy/$a.tar.gz" ] || { echo "↺ $a: không build lượt này"; continue; }
               mkdir -p "/opt/earns-marketing-os-v2/apps/$a" && cd "/opt/earns-marketing-os-v2/apps/$a"
               B="/var/tmp/mos2-deploy/b-$a"

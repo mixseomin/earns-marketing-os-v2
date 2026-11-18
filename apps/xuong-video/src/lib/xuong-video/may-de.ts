@@ -195,7 +195,14 @@ export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string
   }
   return loi;
 }
-export const slugDe = (dang: string, gocId: number, chu: string) => `${dang}-${gocId}-${chu.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').split('-').slice(0, 3).join('-')}`.slice(0, 60);
+/** Thay gạch ngang dài (— –) trong mọi chuỗi của một giá trị JSON: giữa hai chữ số "2–4" → "2-4", còn lại → ", ". Thuần. */
+export const boGachDai = <T,>(v: T): T => {
+  if (typeof v === 'string') return v.replace(/(\d)\s*[—–]\s*(\d)/g, '$1-$2').replace(/\s*[—–]+\s*/g, ', ').replace(/^, |, $/g, '').replace(/,\s*([,.?!])/g, '$1') as T;
+  if (Array.isArray(v)) return v.map(boGachDai) as T;
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, boGachDai(x)])) as T;
+  return v;
+};
+export const slugDe =(dang: string, gocId: number, chu: string) => `${dang}-${gocId}-${chu.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').split('-').slice(0, 3).join('-')}`.slice(0, 60);
 
 /** Prompt hệ thống: luật chữ chung (giọng người thật, Phòng Nội dung) + mô tả sản phẩm + góc + dạng. */
 export function vanHeThong(sp: SanPhamDe, dang_bai: string): string {
@@ -299,6 +306,9 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
       // → mọi đề chép nguyên câu, lấp kho 0/6) → nói thẳng câu đó đã dùng, bắt đổi 2-3 từ; dặn "copy it" mà không nói điều này thì mô hình chép y nguyên.
       + (hooksLuot.some((h) => daCo.has(tdChuan(h.chu))) ? `\nThese hook sentences are ALREADY the exact title of an earlier post, so the title must NOT equal them: ${hooksLuot.filter((h) => daCo.has(tdChuan(h.chu))).map((h) => `"${h.chu}"`).join(', ')}. Keep the hook's structure but swap 2-3 words (the role, the number, the moment, the place) so the title is new.` : ''), ten: 'de_bai' });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
+    // gạch ngang dài là lỗi CHỮ thuần, máy tự thay được (militarycalc 18/11/2026: --sinh-kho binh-chon 2/3 đề chết "đề sai luật sau 3 lượt: gạch ngang dài"
+    // dù prompt đã cấm — mô hình rẻ vẫn viết, mỗi lượt sửa lại đốt một lượt gọi) → thay trên MỌI chuỗi của đề trước khi kiemDe, không xin mô hình viết lại.
+    r.data = boGachDai(r.data);
     vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;
     // lượt KHOÁ = kho chỉ còn đúng một hook: mô hình rẻ vẫn khai trống / sai mã, hoặc tự viết tiêu đề (militarycalc 12/11/2026 top-n-42942: kho 3 hook,
     // cả 4 lượt "chưa chọn hook QC gốc") → máy tự gắn mã hook đã khoá; tiêu đề lệch hook thì dùng NGUYÊN VĂN câu hook (trừ khi trùng tiêu đề đã có).

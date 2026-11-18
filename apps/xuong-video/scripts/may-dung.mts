@@ -26,6 +26,7 @@
 //   --luot-xem                     ĐO THEO DẠNG: đọc lại lượt xem YouTube + Facebook mọi video đã đăng (cũ hơn 12 giờ) → bảng trung bình máy × dạng, 0₫
 //   --sinh-game <N>                dạng game Only ONE: tiêu đề theo KHUNG video thắng của kênh (≥ 500 lượt sau 7 ngày, đọc lại lượt xem YouTube trước) + góc spy dùng ít nhất → nạp + dựng, 0₫
 //   --sinh-kho <N>                 lấp kho VIDEO cho máy: N đề theo góc spy chưa dùng, dạng ra MP4 xoay vòng → nạp + dựng (TỐN TIỀN chữ AI — lô lớn duyệt qua Telegram)
+//   --viet-bai-dai                   stdin { goc, slug [, tieu_de_cu, anh_da_dung] } → JSON bài Substack HTML + ảnh ngang Pexels — puzzle-books sinh-bai.mjs --nen substack gọi
 //   --tu-khoa | --viet-bai           stdin { goc [, cau_hoi, slug] } → JSON câu tìm Quora / câu trả lời (chữ AI rẻ ~1¢; nạp vẫn qua nap-bai.mjs) — puzzle-books sinh-bai.mjs gọi
 //   --lam-lai-sua [--toi-da N]     bài social SỬA LẠI chỉ vì lỗi đề (hook / tiêu đề trùng / chưa gắn góc) → đề mới cùng góc + dạng, dựng, cất bài cũ; tối đa 3 lần một chuỗi (chữ AI vài chục đồng / đề)
 //   --ke-hoach <YYYY-MM-DD>        in JSON ô KẾ HOẠCH GÓC của máy ngày đó [{ ho, nen, format, dang, goc, dich }] (ke_hoach_goc — mos2 tự sinh hằng tuần); máy đăng ưu tiên bài đúng góc + dùng link đích
@@ -505,6 +506,21 @@ if (a.includes('--nap')) {
     }
   }
   console.log(ra.join('\n')); console.log(`sinh game ${ma}: ${ra.filter((x) => x.startsWith('✓')).length}/${N} video, 0₫`);
+} else if (a.includes('--viet-bai-dai')) {
+  // BÀI SUBSTACK / MEDIUM (19/11/2026): stdin { goc, slug, tieu_de_cu?, anh_da_dung? } → JSON { ok, html, truy, anh, vnd, model }. Chữ AI rẻ + ảnh ngang Pexels thật.
+  // Máy gọi: puzzle-books sinh-bai.mjs --nen substack. Không nạp ở đây (nạp chỉ qua nap-bai.mjs).
+  const { vietBaiDai, htmlBaiDai } = await import('../src/lib/xuong-video/may-de');
+  const { timAnhNgang } = await import('../src/lib/xuong-video/anh-nen');
+  const x = await docStdin(), sp = await spCua(ma);
+  const utm = `utm_source=substack&utm_medium=article&utm_campaign=${encodeURIComponent(x.slug ?? 'substack')}`, link = `${sp.link}${sp.link.includes('?') ? '&' : '?'}${utm}`;
+  const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
+  const r = await vietBaiDai({ sp, goc: x.goc, link, utm, suThat, tieuDeCu: x.tieu_de_cu ?? [] });
+  if (!r.ok) { console.log(JSON.stringify(r)); }
+  else {
+    let anh: string | null = null, loiAnh = '';
+    try { anh = await timAnhNgang(r.truy, new Set((x.anh_da_dung ?? []).map(Number))); } catch (e) { loiAnh = String((e as Error).message); }
+    console.log(JSON.stringify(anh ? { ok: true, html: htmlBaiDai(r, r.link, anh), tieu_de: r.tieu_de, truy: r.truy, anh, vnd: r.vnd, model: r.model } : { ok: false, loi: `ảnh: ${loiAnh}`, vnd: r.vnd }));
+  }
 } else if (a.includes('--tu-khoa') || a.includes('--viet-bai')) {
   // BÀI VIẾT bằng chữ AI rẻ (followup #1470): stdin { goc: { sp, id, loai, ten } [, cau_hoi, link] } → JSON. Một bài ~1¢ trở xuống (Haiku qua ckey) — dưới ngưỡng tự chạy;
   // máy gọi: puzzle-books scripts/sinh-bai.mjs (tìm câu hỏi Quora thật bằng br → --viet-bai → nap-bai.mjs). Không nạp ở đây: nạp chỉ một đường (nap-bai.mjs).

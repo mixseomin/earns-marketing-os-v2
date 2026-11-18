@@ -33,6 +33,19 @@ export async function timAnhNen(truyVan: string, daDung: Set<number>, key = proc
   throw new Error(`Pexels không còn ảnh chưa dùng cho "${truyVan}"`);
 }
 
+/** Ảnh NGANG chưa dùng cho bài viết (Substack / Medium: ảnh trong thân bài, 1600 rộng). Ném lỗi khi không có khoá / không có ảnh. */
+export async function timAnhNgang(truyVan: string, daDung: Set<number>, key = process.env.PEXELS_KEY): Promise<string> {
+  if (!key) throw new Error('thiếu PEXELS_KEY — không nạp bài viết thiếu ảnh thật');
+  const tu = truyVan.trim().split(/\s+/);
+  for (const q of [...new Set([tu.join(' '), tu.slice(0, 2).join(' ')])].filter(Boolean)) {
+    const r = await fetch(`https://api.pexels.com/v1/search?${new URLSearchParams({ query: q, orientation: 'landscape', per_page: '30' })}`, { headers: { Authorization: key, 'User-Agent': UA }, signal: AbortSignal.timeout(20_000) });
+    if (!r.ok) throw new Error(`Pexels ${r.status} cho "${q}"`);
+    const p = chonChuaDung(((await r.json()) as { photos?: AnhPexels[] }).photos ?? [], daDung);
+    if (p) return `${p.src.original}?auto=compress&cs=tinysrgb&w=1600`;
+  }
+  throw new Error(`Pexels không còn ảnh ngang chưa dùng cho "${truyVan}"`);
+}
+
 // ── VIDEO NỀN THẬT (mẫu khai nenVideo — vd canh-dong, 26/10/2026): Pexels Videos, dọc, 6–30s, lấy tệp 1080×1920 (hd) — cùng luật không trùng trong máy.
 type VideoPexels = { id: number; duration: number; video_files: { width: number; height: number; link: string; quality: string }[] };
 /** id video Pexels trong URL tệp (videos.pexels.com/video-files/<id>/…). */

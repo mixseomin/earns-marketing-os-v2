@@ -315,7 +315,19 @@ def api(duong, body=None, timeout=90):
     if body is not None and not duong.startswith("/api/v1/report"):
         vuot = [float(v) for v in re.findall(r'"daily_budget":\s*"?([\d.]+)', json.dumps(body)) if float(v) > CG.TRAN_TUYET]
         if vuot: raise CamNganSach(f"ngân sách ${max(vuot):g} vượt trần tuyệt đối ${CG.TRAN_TUYET:g}/camp (anh 14/11/2026: không bao giờ vượt $30) — không gửi {duong}")
-    lenh = cua(duong, body)   # MỘT CỬA (anh 18/11/2026): mọi lệnh tăng chi / bật chấm trên dữ kiện của chính lệnh — chặn thì ChanCua, không gửi gì
+    tran = None
+    if body is not None and duong.endswith("/campaigns/facebook"):   # tạo camp mới: tài khoản đích (ad_account_id trong payload) phải là tài khoản nhà
+        tk = set(int(x) for x in re.findall(r'"ad_account_id":\s*"?(\d+)', json.dumps(body)))
+        if not tk or tk - TK: raise NgoaiNha(f"tạo camp vào tài khoản {sorted(tk - TK) or '?'} không phải tài khoản nhà — không gửi")
+        ly, tran = CG.ns_tao(body)   # CAMP MỚI $1 đọc trên CHÍNH payload (mọi tầng campaign + Ad Set), không tin số người gọi khai
+        if ly: raise CamNganSach(ly)
+    if body is not None and isinstance(body, dict) and duong.endswith("/campaigns/update"):   # đặt lại ngân sách camp VỪA TẠO (Ethopex không nhận lúc tạo) → không vượt trần lúc tạo
+        cp = body.get("campaign") or {}; cid = int(cp.get("campaign_id") or 0); ns = (cp.get("source_payload") or {}).get("daily_budget")
+        if cid in _TRAN_TAO and ns is not None and float(ns) > _TRAN_TAO[cid]:
+            raise CamNganSach(f"camp #{cid} vừa tạo, trần lúc tạo ${_TRAN_TAO[cid]:g} — không đặt ${float(ns):g} (camp mới phải $1, anh 08/11/2026)")
+    # MỘT CỬA (anh 18/11/2026) — sau các chặn theo VẬT ở trên (tài khoản nhà, $1, trần tuyệt đối): mọi lệnh tăng chi / bật chấm phanh / bảo trì / dừng khẩn trên dữ kiện
+    # của chính lệnh — chặn thì ChanCua, không gửi gì
+    lenh = cua(duong, body)
     if duong.startswith("/api/v1/campaigns?") and body is None:
         return {"data": _ds_nha(duong.split("?", 1)[1]) if duong != "/api/v1/campaigns?" else _ds_nha()}
     if duong.startswith("/api/v1/report"):
@@ -336,21 +348,11 @@ def api(duong, body=None, timeout=90):
             if not x or not (x.get("delivery_status") == "DISAPPROVED" or "DISAPPROVED" in str(x.get("error") or "").upper()):
                 raise CamThayCreative(f"ad #{ad} (camp #{nha_ad[ad]}) không bị Meta từ chối — cấm tự ý đổi creative (anh 03/11/2026)")
     ids = _id_cham(duong, body if not isinstance(body, list) else {"x": body})
-    if body is not None and duong.endswith("/campaigns/facebook"):   # tạo camp mới: tài khoản đích (ad_account_id trong payload) phải là tài khoản nhà
-        tk = set(int(x) for x in re.findall(r'"ad_account_id":\s*"?(\d+)', json.dumps(body)))
-        if not tk or tk - TK: raise NgoaiNha(f"tạo camp vào tài khoản {sorted(tk - TK) or '?'} không phải tài khoản nhà — không gửi")
-        ly, tran = CG.ns_tao(body)   # CAMP MỚI $1 đọc trên CHÍNH payload (mọi tầng campaign + Ad Set), không tin số người gọi khai
-        if ly:
-            for l, ve in lenh: _ghi_cua(l, False, ly, ve)
-            raise CamNganSach(ly)
+    if body is not None and duong.endswith("/campaigns/facebook"):   # tạo camp (đã qua tài khoản nhà + $1 + cửa ở trên)
         d = _gui(duong, body, timeout, lenh)   # camp vừa tạo (vào tài khoản nhà) có thể chưa hiện trong danh sách → nhớ id để lệnh sau (tạm dừng / lịch) không bị chặn oan
         moi = d.get("id") or (d.get("data") or {}).get("id") or (d.get("campaign") or {}).get("id") if isinstance(d, dict) else None
         if moi and str(moi).isdigit(): _TAO.add(int(moi)); _TRAN_TAO[int(moi)] = tran
         return d
-    if body is not None and isinstance(body, dict) and duong.endswith("/campaigns/update"):   # đặt lại ngân sách camp VỪA TẠO (Ethopex không nhận lúc tạo) → không vượt trần lúc tạo
-        cp = body.get("campaign") or {}; cid = int(cp.get("campaign_id") or 0); ns = (cp.get("source_payload") or {}).get("daily_budget")
-        if cid in _TRAN_TAO and ns is not None and float(ns) > _TRAN_TAO[cid]:
-            raise CamNganSach(f"camp #{cid} vừa tạo, trần lúc tạo ${_TRAN_TAO[cid]:g} — không đặt ${float(ns):g} (camp mới phải $1, anh 08/11/2026)")
     if body is None and "?" in duong: return doc_het(duong, None, timeout)   # mọi danh sách GET khác (tài khoản QC, Page, pixel, creative…) cũng đủ mọi trang
     ngoai = [i for i in ids if i > 1000 and i not in _TAO and i not in camp_nha()] if body is not None else []   # chỉ lệnh GHI mới gác
     if ngoai:

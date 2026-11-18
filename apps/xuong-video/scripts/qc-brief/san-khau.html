@@ -62,7 +62,11 @@ function dienThoai(q, cx, cy) {
   const e = nay(q / 0.5), w = 560, h = 996, tr = Math.sin(q * 1.4) * 8;
   x.save(); x.translate(cx, cy + (1 - e) * 900 + tr); x.rotate((1 - e) * 0.25 + Math.sin(q * 0.9) * 0.012);
   x.shadowColor = 'rgba(0,0,0,.6)'; x.shadowBlur = 50; x.fillStyle = '#0b0b0f'; hop(-w / 2 - 22, -h / 2 - 22, w + 44, h + 44, 70); x.fill(); x.shadowBlur = 0;
-  x.save(); hop(-w / 2, -h / 2, w, h, 50); x.clip(); const a = IMG.qc, sc = Math.max(w / a.width, h / a.height); x.drawImage(a, -a.width * sc / 2, -a.height * sc / 2, a.width * sc, a.height * sc);
+  x.save(); hop(-w / 2, -h / 2, w, h, 50); x.clip(); const a = IMG.qc, phu = Math.max(w / a.width, h / a.height), vua = Math.min(w / a.width, (h - 96) / a.height);
+  // QC không đúng 9:16 (ảnh tĩnh vuông / ngang có chữ): phủ kín sẽ cắt chữ ở mép (Phòng Nội dung chặn 19/11/2026) → nền = chính ảnh phủ kín làm nhoè, trên là ảnh TRỌN dưới thanh Sponsored
+  if (Math.abs(a.width / a.height - w / h) > 0.04) { x.save(); x.filter = 'blur(18px) brightness(.6)'; x.drawImage(a, -a.width * phu / 2, -a.height * phu / 2, a.width * phu, a.height * phu); x.restore();
+    x.drawImage(a, -a.width * vua / 2, -h / 2 + 96 + (h - 96 - a.height * vua) / 2, a.width * vua, a.height * vua); }
+  else x.drawImage(a, -a.width * phu / 2, -a.height * phu / 2, a.width * phu, a.height * phu);
   x.fillStyle = 'rgba(255,255,255,.94)'; x.fillRect(-w / 2, -h / 2, w, 96); x.fillStyle = '#1877F2'; x.beginPath(); x.arc(-w / 2 + 52, -h / 2 + 48, 26, 0, 7); x.fill();
   x.fillStyle = '#111'; x.font = '800 26px M'; x.fillText(C.page || 'Advertiser', -w / 2 + 92, -h / 2 + 42); x.fillStyle = '#666'; x.font = '800 20px M'; x.fillText('Sponsored', -w / 2 + 92, -h / 2 + 70);
   x.restore(); x.fillStyle = '#0b0b0f'; hop(-70, -h / 2 - 8, 140, 30, 15); x.fill(); x.restore();

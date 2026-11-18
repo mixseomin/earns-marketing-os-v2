@@ -1,0 +1,152 @@
+{
+ "id": "qc-brief-2396596607480668",
+ "may": "anglebrief",
+ "mau": "ad-breakdown",
+ "ngon_ngu": "en",
+ "giong": {
+  "voice": "Daniel"
+ },
+ "tieu_de": "Let Me Break Down Something Absolutely Critical: Steal the Structure",
+ "mo_ta": "This ad shifts attention from audience targeting to creative volume, then offers a free guide as a response prompt. Its testing cadence and repeated creative batches make the structure easy to study and adapt.",
+ "goc": {
+  "id": 153879,
+  "sp": 4668,
+  "loai": "ai_cach_giai",
+  "ten": "Săn và tái tạo ad thắng của đối thủ, kể cả qua ad spy tool"
+ },
+ "nguon_qc": {
+  "library_id": "2396596607480668",
+  "page": "Hernan Vazquez",
+  "bat_dau": "2026-03-06",
+  "ngay": 257
+ },
+ "may_viet": {
+  "model": "donk:claude-sonnet-5",
+  "luc": "2026-11-18T18:22:05.921Z",
+  "chi_usd": 2.656403846153846e-05
+ },
+ "tai_san": {
+  "qc": "qc-brief-2396596607480668/qc.jpg",
+  "nen": [
+   "mau1/nen-8100069.jpg",
+   "mau1/nen-20232363.jpg"
+  ],
+  "nen_nguon": [
+   "https://www.pexels.com/photo/8100069/",
+   "https://www.pexels.com/photo/20232363/"
+  ],
+  "nv": {
+   "chi_tay": "nv/chi_tay.png",
+   "suy_nghi": "nv/suy_nghi.png",
+   "noi_mo": "nv/noi_mo.png",
+   "ngac_nhien": "nv/ngac_nhien.png"
+  }
+ },
+ "cau": [
+  {
+   "chu": "This ad has been live for 257 days.",
+   "canh": {
+    "loai": "dt",
+    "dau": {
+     "chu": "257 DAYS LIVE",
+     "khi": "257"
+    }
+   }
+  },
+  {
+   "chu": "The hook promises, “Let me break down something that's absolutely critical if you want to succeed with Meta ads in 2025...”",
+   "canh": {
+    "loai": "dt",
+    "khoanh": "Let me break down something that's absolutely critical if you want to succeed with Meta ads in 2025...",
+    "khi": "promises"
+   }
+  },
+  {
+   "chu": "Then it offers a free guide for commenting “Seven,” turning interest into a clear response.",
+   "canh": {
+    "loai": "nv",
+    "dang": "chi_tay",
+    "noi": "Comment Seven",
+    "khi": "Comment"
+   }
+  },
+  {
+   "chu": "The core argument flips the old focus: creatives matter more than targeting.",
+   "canh": {
+    "loai": "chu",
+    "chu_to": "CREATIVE OVER TARGETING",
+    "phu": "A clear strategic reversal",
+    "khi": "creatives"
+   }
+  },
+  {
+   "chu": "For proof, the writer says this pattern plays out across every managed account.",
+   "canh": {
+    "loai": "nv",
+    "dang": "suy_nghi",
+    "noi": "Proof by experience",
+    "khi": "proof"
+   }
+  },
+  {
+   "chu": "The offer then becomes practical: a weekly schedule, batches of five, and duplication.",
+   "canh": {
+    "loai": "ds",
+    "tieu": "THE TESTING SYSTEM",
+    "muc": [
+     {
+      "chu": "Weekly schedule",
+      "bieu": "🗓️",
+      "khi": "schedule"
+     },
+     {
+      "chu": "Batches of five",
+      "bieu": "🧪",
+      "khi": "five"
+     },
+     {
+      "chu": "Duplicate winners",
+      "bieu": "📋",
+      "khi": "duplication"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "That specific cadence makes a broad creative strategy feel actionable for buyers.",
+   "canh": {
+    "loai": "nv",
+    "dang": "noi_mo",
+    "noi": "Make it actionable",
+    "khi": "actionable"
+   }
+  },
+  {
+   "chu": "The reusable lesson: pair a strong belief shift with a simple operating rhythm.",
+   "canh": {
+    "loai": "chu",
+    "chu_to": "SHIFT THEN SYSTEM",
+    "phu": "Make the next step concrete",
+    "khi": "belief"
+   }
+  },
+  {
+   "chu": "Keep the proof grounded in the advertiser’s stated experience, not invented results.",
+   "canh": {
+    "loai": "nv",
+    "dang": "ngac_nhien",
+    "noi": "Stay with the evidence",
+    "khi": "proof"
+   }
+  },
+  {
+   "chu": "Want the angles buyers actually respond to in your niche? Find them at AngleBrief dot net.",
+   "canh": {
+    "loai": "ket",
+    "chu": "AngleBrief",
+    "url": "anglebrief.net",
+    "phu": "Real buyer research. Winning ad angles."
+   }
+  }
+ ]
+}

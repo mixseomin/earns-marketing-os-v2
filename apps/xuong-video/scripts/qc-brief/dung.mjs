@@ -18,8 +18,10 @@ mkdirSync(RA, { recursive: true });
 
 // ---------- giọng có mốc từng chữ (box3, chỉ khi lời đổi) — mẫu không giọng (giong: false) chạy theo giây khai từng câu (cau[].giay) ----------
 const COGIONG = tap.giong !== false;
+// khoá giọng = CHỮ của lời (bỏ dấu câu, hoa thường): sửa dấu (vd gạch dài → phẩy) không đọc lại, tránh tốn tiền giọng (19/11/2026 lỡ một lượt ~2.100₫)
+const khoaLoi = (t) => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 const loi = tap.cau.map((c) => c.chu.trim()).join(' '), tepLoi = join(RA, 'giong.txt');
-if (COGIONG && (!existsSync(join(RA, 'moc-tho.json')) || process.argv.includes('--giong-lai') || !existsSync(tepLoi) || readFileSync(tepLoi, 'utf8') !== loi)) {
+if (COGIONG && (!existsSync(join(RA, 'moc-tho.json')) || process.argv.includes('--giong-lai') || !existsSync(tepLoi) || khoaLoi(readFileSync(tepLoi, 'utf8')) !== khoaLoi(loi))) {
   len(tepTap, `/tmp/qcb-${tap.id}.json`);
   console.log(box(`scripts/lich-su/giong.mts /tmp/qcb-${tap.id}.json /tmp/qcb-ra-${tap.id}`));
   execFileSync('scp', ['-q', `${BOX}:/tmp/qcb-ra-${tap.id}/*`, RA]); execFileSync('ssh', [BOX, `rm -rf /tmp/qcb-ra-${tap.id} /tmp/qcb-${tap.id}.json`]);

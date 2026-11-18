@@ -207,6 +207,15 @@ for (const [k, K] of Object.entries(KENH)) {
   if (bao.some((x) => /tập mới|hỏng|tự làm lại/.test(x))) tele(chu);   // ngày chỉ đo số thì không làm ồn Telegram
 }
 
+// AD BREAKDOWN CHO MÁY anglebrief (anh 19/11/2026: "bật máy chạy anglebrief cho sản xuất đi" + "lên lịch đăng bài"): cùng lượt mỗi giờ này, không tiến trình riêng.
+// qc-brief/lam-tap.mjs --theo-lich tự gác: sau 09:00 VN, mỗi ngày một tập, hàng chờ đăng < 3 → chọn QC spy chạy lâu chưa mổ → viết → dựng → nạp máy đăng (20:00).
+// Báo Telegram khi có tập mới hoặc hỏng; "hết QC" chỉ ghi nhật ký (mỗi giờ một dòng, không làm ồn).
+if (!process.argv.includes('--ep') && !process.argv.includes('--chi-duyet') && !arg('kenh')) {
+  const r = spawnSync(process.execPath, [join(DIR, '../qc-brief/lam-tap.mjs'), '--theo-lich'], { encoding: 'utf8', maxBuffer: 64 << 20, timeout: 45 * 60_000 });
+  const ra = `${r.stdout || ''}`.trim(); if (ra) console.log(ra);
+  if (r.status || r.signal) tele(`⚠ anglebrief làm tập hỏng (mã ${r.status ?? r.signal}): ${`${r.stderr || ''}${ra}`.trim().slice(-400)}`);
+  else { const moi = ra.split('\n').filter((x) => x.startsWith('✓ tập mới')); if (moi.length) tele(moi.join('\n')); }
+}
 // SỐ KÊNH SOCIAL ĐÃ CHUYỂN (anh 14/11/2026: chỉ số kênh social trong tab Kênh nội dung còn trống): cùng lượt mỗi giờ này, không tiến trình riêng — 0₫, chỉ đọc số công khai
 if (!process.argv.includes('--ep') && !arg('kenh')) { try { console.log(box('scripts/may-dung.mts --so-kenh --social')); } catch (e) { console.log(`⚠ đo số kênh social hỏng: ${String(e.stderr || e.message).trim().split('\n').pop()}`); } }
 

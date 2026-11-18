@@ -32,4 +32,16 @@ Source: ratesbyroom.com/hotel-scam-check/ (reviewed by Phòng Nội dung). Use O
 - Deposit by bank transfer: only when the booking site itself shows that payment method on the booking page, never because a message asked.
 
 ## Site pages (link the one that fits)
-- https://ratesbyroom.com/hotel-scam-check/ — free checklist with example messages
+- https://ratesbyroom.com/hotel-scam-check/ — free checklist with example messages: is this message from your hotel real, five red flags, what to do if you already clicked
+- https://ratesbyroom.com/check-message/ — paste a text, email or WhatsApp that claims to be from your hotel; it marks the lines that match known scam moves
+- https://ratesbyroom.com/scam-quiz/ — 2-minute quiz: real-looking hotel messages, pick scam or real
+- https://ratesbyroom.com/hotel-cancellation-scam/ — "your booking will be cancelled unless you act now" messages
+- https://ratesbyroom.com/hotel-bank-transfer-scam/ — a "hotel" asks you to pay to a new bank account, by QR code or Zelle
+- https://ratesbyroom.com/hotel-card-details-scam/ — requests to re-enter your card, read back a code or send a passport photo before check-in
+- https://ratesbyroom.com/hotel-whatsapp-scam/ — "app chat is down, continue on WhatsApp" and off-app booking tricks
+- https://ratesbyroom.com/hotel-fake-fee-scam/ — city tax, damage fee or upgrade fee requested by message; hidden or surprise fees, real vs fake
+- https://ratesbyroom.com/cheap-hotel-deal-scam/ — prices that look too good: "price error" repayments, crypto discounts, fake comparison sites, club deals
+- https://ratesbyroom.com/business-travel-hotel-scam/ — fake hotel invoices, "corporate rates" and changed bank details for company payments
+- https://ratesbyroom.com/hotel-booking-for-visa/ — dummy bookings, passport requests and "deposit to hold" fees aimed at visa applicants
+- https://ratesbyroom.com/late-night-hotel-check-in-scam/ — prepaid airport pickups, "pay now or lose your room" emails, midnight card texts
+- https://ratesbyroom.com/honeymoon-hotel-scam/ — fake suite upgrades for a small fee, "priority rooms", early check-in fees paid by link

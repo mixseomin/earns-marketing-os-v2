@@ -371,15 +371,20 @@ export function kiemBaiViet(chu: string, link: string): string[] {
 }
 const giaVnd = (r: { model: string; tokens: { in: number; out: number; vnd?: number } }) => r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260;
 /** 2-3 câu tìm Quora cho một góc (một lượt mô hình). */
-export async function tuKhoaQuora(o: { sp: SanPhamDe; goc: GocDe }): Promise<{ ok: true; tu_khoa: string[]; vnd: number } | { ok: false; loi: string; vnd: number }> {
+// 19/11/2026 (ratesbyroom-scam-or-real: 3/3 bài Quora SỬA LẠI "link gượng ép, lạc đề"): góc spy rộng (đổi điểm thẻ, giá OTA, phí ẩn) → câu tìm chung chung
+// → câu hỏi Quora không trang nào của site trả lời được → link cuối bài luôn lạc đề. Câu tìm giờ nhắm câu hỏi mà MỘT trang thật của site (tệp sự thật › Site pages) giúp được.
+export async function tuKhoaQuora(o: { sp: SanPhamDe; goc: GocDe; suThat?: string | null }): Promise<{ ok: true; tu_khoa: string[]; vnd: number } | { ok: false; loi: string; vnd: number }> {
   const { sinhJson } = await import('./claude');
+  const trang = dongTrangSuThat(o.suThat ?? null);
   const r = await sinhJson({ schema: TuKhoaSchema, ten: 'tu_khoa', max_tokens: 300, system: `You help "${sp_ten(o.sp)}" find real Quora questions its US audience asks.`,
-    user: `ANGLE (${LOAI_VI[o.goc.loai] ?? o.goc.loai}): "${o.goc.ten}" (internal label, may be Vietnamese). Topic of the product: ${o.sp.mo_ta}. Give 2-3 English search queries.` });
+    user: `ANGLE (${LOAI_VI[o.goc.loai] ?? o.goc.loai}): "${o.goc.ten}" (internal label, may be Vietnamese). Topic of the product: ${o.sp.mo_ta}.${trang.length ? `\nThe answer will link to one of these site pages, so each query must find a question where one page below directly helps the asker (the angle seen through that page's topic, not the angle in general):\n${trang.join('\n')}` : ''}\nGive 2-3 English search queries.` });
   return r.ok ? { ok: true, tu_khoa: r.data.tu_khoa, vnd: giaVnd(r) } : { ok: false, loi: r.loi, vnd: 0 };
 }
 const sp_ten = (sp: SanPhamDe) => sp.nhan || sp.ten;
 /** Viết câu trả lời Quora cho câu hỏi thật + góc; sai luật thì viết lại một lần. */
 /** Trang đích các trang của site khai trong tệp sự thật (dòng "- https://… — …" dưới "## Site pages"). Thuần. */
+/** Các dòng trang đích kèm mô tả ("https://… — …") dưới "## Site pages" của tệp sự thật. Thuần. */
+export const dongTrangSuThat = (suThat: string | null) => (suThat?.split(/^## Site pages/m)[1] ?? '').split('\n').filter((l) => /^- https?:\/\//.test(l)).map((l) => l.slice(2).trim());
 export const trangSuThat = (suThat: string | null) => (suThat?.split(/^## Site pages/m)[1] ?? '').split('\n').map((l) => l.match(/^- (https?:\/\/\S+)/)?.[1]).filter((x): x is string => !!x);
 /** Gắn UTM của bài vào một trang (giữ query sẵn có). Thuần. */
 export const ganUtm = (trang: string, utm: string) => `${trang}${trang.includes('?') ? '&' : '?'}${utm}`;
@@ -389,6 +394,7 @@ export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; li
   const system = [
     // 18/11/2026: Phòng Nội dung trả SỬA LẠI vì né câu hỏi ("name some places" mà không gọi tên), link lạc đề, thiếu ví dụ cụ thể → luật cứng cho mọi máy
     'Answer the EXACT thing asked: if it asks to name places/tools/options, name 2-4 real, well-known ones; if it asks how something works, explain the mechanism plainly. Never dodge the core question.',
+    'Never say you are an AI or that you lack personal experience, points, trips or cases (no "I don\'t have personal..."); write the example as a typical case ("A common case: ...").',
     'Include one concrete worked example or real-life scenario. The closing link sentence must say why that page helps THIS reader with THIS question; if the site is only loosely related, frame it as a side tip for a related risk, never as the answer.',`You answer Quora questions as an experienced, helpful person who also runs "${sp_ten(o.sp)}" (${o.sp.mo_ta}). Audience: US, English.`,
     'Rules (hard): answer the question first and fully, be concrete and accurate, never invent statistics, prices, laws or testimonials; if a number depends on the reader, explain how to work it out with a round-number example labelled as an example.',
     'Cover every major variant that changes the answer (old vs new system, with vs without dependents, by state or country…) — leaving one out makes readers calculate wrong. State deadlines and conditions exactly; if unsure of an exact rule, say what to check and where instead of guessing.',

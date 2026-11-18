@@ -533,13 +533,14 @@ if (a.includes('--nap')) {
   // máy gọi: puzzle-books scripts/sinh-bai.mjs (tìm câu hỏi Quora thật bằng br → --viet-bai → nap-bai.mjs). Không nạp ở đây: nạp chỉ một đường (nap-bai.mjs).
   const { tuKhoaQuora, vietBai } = await import('../src/lib/xuong-video/may-de');
   const x = await docStdin(), sp = await spCua(ma);   // tiền: sinhJson (claude.ts) tự gác theo giá thật mỗi lượt — không gác thêm ở đây (gác hai lần = cộng dồn sai, chặn oan 28/10)
-  if (a.includes('--tu-khoa')) { console.log(JSON.stringify(await tuKhoaQuora({ sp, goc: x.goc }))); }
+  // tệp SỰ THẬT đã kiểm của máy (apps/xuong-video/su-that/<máy>.md) — có thì mô hình chỉ dùng số liệu trong đó + chọn trang đích trong danh sách của nó;
+  // --tu-khoa cũng đọc để câu tìm nhắm câu hỏi mà một trang thật của site trả lời được (19/11/2026: link cuối bài lạc đề)
+  const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
+  if (a.includes('--tu-khoa')) { console.log(JSON.stringify(await tuKhoaQuora({ sp, goc: x.goc, suThat }))); }
   else {
     if (!x.cau_hoi) { console.error('--viet-bai cần cau_hoi'); process.exit(1); }
     // link đích dựng MỘT chỗ ở đây: trang đích của máy (spCua) + UTM theo slug bài — người gọi không tự ghép
     const utm = `utm_source=quora&utm_medium=answer&utm_campaign=${encodeURIComponent(x.slug ?? 'quora')}`, link = x.link ?? `${sp.link}${sp.link.includes('?') ? '&' : '?'}${utm}`;
-    // tệp SỰ THẬT đã kiểm của máy (apps/xuong-video/su-that/<máy>.md) — có thì mô hình chỉ dùng số liệu trong đó + chọn trang đích trong danh sách của nó
-    const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
     // VIẾT LẠI (sinh-bai --lai, 18/11/2026): mang góp ý lần chấm trước của Phòng Nội dung (kiem-bai da-kiem/*.json theo url bai://<máy>/<slug>) vào mô hình.
     // Gốc: trước đây viết lại mù → SỬA LẠI đúng lý do cũ (ratesbyroom-scam-or-real: 4/5 bài Quora SỬA LẠI vì né câu hỏi / link lạc đề / thiếu ví dụ).
     const gopY = x.slug ? await import('node:fs').then((f) => { try {

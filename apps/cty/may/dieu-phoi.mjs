@@ -152,6 +152,8 @@ export function tomNhatKy(chu, n = 2) {
   return d.slice(-n).join(' · ').slice(-300);
 }
 const docDuoi = (f, byte = 4096) => { try { const fd = fs.openSync(f, 'r'), n = fs.fstatSync(fd).size, b = Buffer.alloc(Math.min(byte, n)); fs.readSync(fd, b, 0, b.length, n - b.length); fs.closeSync(fd); return b.toString('utf8'); } catch { return ''; } };
+/** hen → chữ ngắn cho dòng nhật ký đổi lịch */
+export const moTaHen = (h = {}) => h.moi_giay ? `mỗi ${h.moi_giay % 60 ? `${h.moi_giay} giây` : `${h.moi_giay / 60} phút`}` : h.luc ? `lúc ${h.luc.join(', ')}` : h.luon ? 'chạy liền' : 'khi gọi';
 function ghiSuKien(v, ket, t) {
   if (v.hen?.luon) return;
   const ke = t ? luotKe(v.hen ?? {}, t, Date.now()) : null;
@@ -262,14 +264,17 @@ function chayVong(may) {
     // (25/10/2026: chuyển việc MacBook → iMac; MacBook thức dậy chạy bù theo sổ cũ = chạy đôi). box3 không trả thì giữ bản cũ như trước.
     const thuc = bay - lanNhip > 60_000; lanNhip = bay;
     if (thuc) { lanTai = bay; ghiLog("☀ thức dậy — đọc lại sổ trước khi chạy bù"); taiSo(true, may); }
-    else if (bay - lanTai > 5 * 60_000) { lanTai = bay; taiSo(false, may); }
+    // đọc lại sổ + lịch admin MỖI PHÚT (trước 5 phút — anh 18/11/2026 "Mỗi lần sửa lịch thì phải reset ngay lại trạng thái này": sửa lịch xong phải chờ tới 5 phút)
+    else if (bay - lanTai > 60_000) { lanTai = bay; taiSo(false, may); }
     const ds = (docJson(F.so, { viec: [] }).viec ?? []).filter((v) => v.nhan.startsWith(`${may}:`) && !v.tat && !(v.tat_den && Date.now() < Date.parse(v.tat_den)));   // tat_den: tạm dừng tới mốc (ISO có múi giờ), qua mốc tự chạy lại — anh 18/11/2026 "tạm dừng mọi con CLI dùng claude code đến chiều nay sau 4h"
     const thu = bay - lanThu > 30_000; if (thu) lanThu = bay;
     let doi = false;
     for (const v of ds) {
       const t = (tt[v.nhan] ??= { moc: bay, runs: 0 });
       // ĐỔI GIỜ (lịch admin đặt trên cty / sổ mới): mốc trước lúc đổi không được tính là lỡ — không chạy bù ngay như launchd nạp lại
-      { const ky = JSON.stringify(v.hen); if (t.hen_ky !== ky) { if (t.hen_ky !== undefined && v.hen?.luc) t.moc = bay; t.hen_ky = ky; doi = true; } }
+      { const ky = JSON.stringify(v.hen); if (t.hen_ky !== ky) { const cu = t.hen_ky; if (cu !== undefined && v.hen?.luc) t.moc = bay; t.hen_ky = ky; doi = true;
+        // ĐỔI LỊCH → đẩy NGAY giờ chạy kế theo lịch mới (trước chỉ đẩy khi xong một lượt → bảng nhân sự đếm ngược theo lịch cũ tới 1 giờ). Đang chạy thì để dòng ▶ / xong lo.
+        if (cu !== undefined && !t.pid && !dangChay.has(v.nhan)) ghiSuKien(v, `⏱ đổi lịch: ${moTaHen(v.hen)}`, t); } }
       if (thu) try { t.cho_launchd = !thuNhan(v); } catch (e) { ghiLog(`⚠ thu nhận ${v.nhan}: ${e.message}`); t.cho_launchd = true; }
       if (t.cho_launchd) continue;   // launchd còn giữ việc này → không chạy đôi
       if (dangChay.has(v.nhan)) continue;
@@ -370,7 +375,8 @@ async function tuKiem() {
   a.deepEqual(docShebang('#!/usr/bin/env bash', '/opt/x:/bin', (f) => f === '/bin/bash'), ['/bin/bash']);
   a.deepEqual(docShebang('#!/usr/bin/env node --x', '/a:/b', (f) => f === '/b/node'), ['/b/node', '--x']);
   a.equal(docShebang('console.log(1)', '/bin'), null);
-  console.log('dieu-phoi: 33/33 ok');
+  a.equal(moTaHen({ moi_giay: 120 }), 'mỗi 2 phút', 'dòng đổi lịch'); a.equal(moTaHen({ luc: ['06:45', '20:45'] }), 'lúc 06:45, 20:45');
+  console.log('dieu-phoi: 34/34 ok');
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

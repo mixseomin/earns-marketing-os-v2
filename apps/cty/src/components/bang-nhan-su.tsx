@@ -111,11 +111,11 @@ export function LichViec({ v, admin }: { v: ViecMay; admin: boolean }) {
   return <ChinhLich muc={`may:${v.id}`} lich={lich} chu={lichNguoi(v) as string} admin={admin} apSau={henAp(v.may) as string} trang={{ cho, loi: !cho && x?.ap && !x.ap.ok ? x.ap.loi : undefined }} />;
 }
 /** Lịch một việc NHỊP chạy trên Mac qua bộ điều phối (sổ cong-ty/viec-nen.json): chữ = lịch đang chạy thật (hen trong sổ, hoặc ý muốn admin đã áp),
- *  chỉnh tại chỗ (anh 17/11/2026 "phải cho tao sửa các chỗ này"). Bộ điều phối đọc ý muốn mỗi 5 phút, áp rồi báo về → hết "chờ áp". */
+ *  chỉnh tại chỗ (anh 17/11/2026 "phải cho tao sửa các chỗ này"). Bộ điều phối đọc ý muốn mỗi phút, áp rồi báo về → hết "chờ áp". */
 export function LichNen({ nhan, chu, admin }: { nhan: string; chu: string; admin: boolean }) {
   const x = lichNen(nhan) as { dang: Lich | null; cho: boolean; loi?: string; kieu: string } | null;
   if (!x || x.kieu !== 'lich') return <span className="cty-lich-o" title={x ? (x.kieu === 'luon' ? 'Việc chạy liền — không có lịch' : 'Chỉ chạy khi gọi tay') : `${nhan} chưa có trong sổ bộ điều phối`}>{x?.kieu === 'luon' ? 'chạy liền' : x?.kieu === 'tay' ? 'khi gọi' : chu}</span>;
-  return <ChinhLich muc={`nen:${nhan}`} lich={x.dang} chu={chu} coThu={false} admin={admin} apSau={`${nhan.split(':')[0]} áp trong ≤ 5 phút (bộ điều phối đọc lại mỗi 5 phút)`} trang={{ cho: x.cho, loi: x.loi }} />;
+  return <ChinhLich muc={`nen:${nhan}`} lich={x.dang} chu={chu} coThu={false} admin={admin} apSau={`${nhan.split(':')[0]} áp trong ≤ 1 phút (bộ điều phối đọc lại mỗi phút)`} trang={{ cho: x.cho, loi: x.loi }} />;
 }
 /** Tên một việc máy kèm chấm bật/tắt riêng của việc đó (bảng nhân sự + ngăn việc máy). */
 export function TenViecMay({ v, admin, href }: { v: ViecMay; admin: boolean; href?: string }) {
@@ -202,7 +202,7 @@ export async function BangNhanSu({ ds: dsGoc, trongPhong = false, tn, phong, loc
               const ke = keTiep(d.id);   // đếm ngược tới lần kiểm kế (anh 17/11/2026)
               const nhip = n.ds.map((v) => <li key={v.ma}><span className="cty-ten-viec"><NutTuLam muc={`nhip:${d.id}`} bat={n.bat} admin={admin} /><Link href={hrefNhip(d.id, v.ma)} title={v.ten}>{v.ten}</Link></span>
                 {((nm) => v.gio ? <ChinhLich muc={`gio:${d.id}`} lich={{ kieu: 'luc', gio: [v.gio], thu: [] }} chu={v.lich} kieu={['luc']} motGio admin={admin} apSau={henAp('MacBook') as string} />
-                  : nm && nm.may === 'iMac' ? <><LichNen nhan={`${nm.may}:${nm.launchd}`} chu={v.lich} admin={admin} /><span className="cty-muted">{nm.may} <DemNguoc {...(ke[(v as { viec?: string }).viec ?? ''] ?? {})} /></span></>
+                  : nm && nm.may === 'iMac' ? <><LichNen nhan={`${nm.may}:${nm.launchd}`} chu={v.lich} admin={admin} /><span className="cty-muted">{nm.may} <DemNguoc {...(ke[(v as { viec?: string }).viec ?? ''] ?? {})} cho={!!(lichNen(`${nm.may}:${nm.launchd}`) as { cho?: boolean } | null)?.cho} /></span></>
                   : <><span className="cty-lich-o" title={v.lich}>{v.lich}</span><DemNguoc {...(ke[(v as { viec?: string }).viec ?? ''] ?? {})} /></>)((NHIP_MAY as Record<string, { may: string; launchd: string }>)[(v as { viec?: string }).viec ?? ''])}</li>);
               const may = vm.map((v) => <li key={v.id}><TenViecMay v={v} admin={admin} href={hrefNhip(d.id, 'may')} /><LichViec v={v} admin={admin} /><span className="cty-muted">{v.may} <DemNguoc {...(ke[v.ma] ?? (v.tiep ? { tiep: v.tiep } : {}))} /></span></li>);
               const tat = [...nhip, ...may]; if (!tat.length) return n.viec;

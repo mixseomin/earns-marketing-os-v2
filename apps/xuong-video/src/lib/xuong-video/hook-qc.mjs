@@ -11,7 +11,9 @@ export const giuHook = (moi, goc) => { const g = [...new Set(tuNoiDung(goc))]; i
 /** "Sửa không quá nhiều": giữ ít nhất 35% từ nội dung của hook gốc. */
 export const GIU_HOOK_TOI_THIEU = 0.35;
 /** Dòng đầu QC sạch: chữ kiểu Unicode in đậm (𝗡𝗘𝗪) về chữ thường (NFKC), bỏ đuôi nhãn của nền tảng ("| ad", "| Sponsored") — #851 mang nguyên "| ad?" lên tiêu đề. */
-export const sachHook = (v) => String(v ?? '').normalize('NFKC').replace(/\s+/g, ' ').replace(/\s*[|｜]\s*(ads?|sponsored|promoted|paid)\s*\??\s*$/i, '').trim();
+// nhãn quảng cáo ở ĐẦU dòng ("#sponsored You need…", "Sponsored: …", "#ad ") cũng bỏ (18/11/2026, militarycalc bài 1245: tiêu đề X mang nguyên "#sponsored" của QC gốc)
+export const sachHook = (v) => String(v ?? '').normalize('NFKC').replace(/\s+/g, ' ').replace(/\s*[|｜]\s*(ads?|sponsored|promoted|paid)\s*\??\s*$/i, '')
+  .replace(/^\s*(?:(?:#(?:ads?|sponsored|promoted|paid)\b|(?:sponsored|promoted|paid partnership)\s*[:|｜\-–])\s*[:|｜\-–]?\s*)+/i, '').trim();
 /** Trần một câu móc — cùng trần câu móc của kiemDe (may-de.ts). */
 export const TRAN_HOOK = 110;
 /** CÂU MÓC lấy từ dòng đầu QC: dòng đầu ≤ 110 ký tự thì giữ nguyên; dài hơn thì lấy CÂU ĐẦU (kết bằng . ? ! … rồi khoảng trắng) nếu 20–110 ký tự; không có thì ''.

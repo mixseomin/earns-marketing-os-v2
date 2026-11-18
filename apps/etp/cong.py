@@ -133,6 +133,30 @@ def _q(s):
     if r.returncode: raise RuntimeError(r.stderr.strip()[-200:])
     return r.stdout.strip()
 
+# AT CHỈ MỘT DẠNG — FREE (anh chốt 19/11/2026 theo mẫu team Dol, sổ luật at_chi_dang_free): creative ẢNH TĨNH (etp.diem_cham.cham.hook.dang / etp.creative.dang
+# 'ảnh tĩnh') chỉ được lên camp khi cham.cta.mau = 'watch_for_free' (nhãn tím "All Episodes Released" + tên phim + nút "Watch For Free"). Mọi đường (dòng phim, AT,
+# hồi chợ, nhân bản, đổi creative bài bị từ chối) gửi qua apps/etp/ethopex_api.api → chấm ở đó trên creative_id của CHÍNH lệnh. Creative AT của nhà chưa có sổ điểm
+# chạm → chặn (không chứng minh được Free); creative do team dựng (etp.creative.lo = 'team', không có sổ) không chấm — không biết dạng của họ.
+DANG_AT, CTA_AT = "ảnh tĩnh", "watch_for_free"
+LY_AT = "creative #{0} dạng ảnh tĩnh mang CTA '{1}' — AT chỉ còn dạng Free (nhãn 'All Episodes Released' + tên phim + nút 'Watch For Free', anh chốt 19/11/2026, sổ luật at_chi_dang_free)"
+def ly_at(rows):
+    """rows = [(creative_id, dang kho, hook.dang sổ, cta.mau sổ | None, lo, có sổ)] → lý do chặn đầu tiên | None (hàm thuần, tự kiểm)"""
+    for cid, dang, hook, mau, lo, co_so in rows:
+        if DANG_AT not in (dang, hook): continue
+        if not co_so and lo == "team": continue
+        if mau != CTA_AT: return LY_AT.format(cid, mau or "chưa ghi sổ điểm chạm")
+    return None
+def at_sai_dang(creative_ids, q=None):
+    """lý do chặn | None cho danh sách creative_id sắp lên camp — lỗi đọc sổ thì chặn (fail-closed)"""
+    ids = sorted({int(i) for i in creative_ids or () if str(i).isdigit()})
+    if not ids: return None
+    try:
+        r = (q or _q)(f"""select c.creative_id, coalesce(c.dang, ''), coalesce(d.cham->'hook'->>'dang', ''), coalesce(d.cham->'cta'->>'mau', ''), coalesce(c.lo, ''), d.creative_id is not null
+            from etp.creative c left join etp.diem_cham d using (creative_id) where c.creative_id in ({','.join(map(str, ids))})""")
+    except Exception as e: return f"không đọc được sổ điểm chạm để chấm dạng AT ({str(e)[:80]}) — chặn cho an toàn"
+    rows = [(int(a), b, h, m or None, l, t == "t") for a, b, h, m, l, t in (x.split("|") for x in r.splitlines() if x.count("|") == 5)]
+    return ly_at(rows)
+
 LY_AU_MY = "phim nhóm gốc '{}' — chỉ chạy phim Âu-Mỹ (anh 29/10/2026: dừng các phim ngoài Âu-Mỹ, chặn khi lên camp; nhóm chấm trên poster, etp.phim.nhom_goc)"
 LY_CAT = "phim #{0} đã cất ({1}) — thử đủ creative + đủ bộ mà chưa camp nào lãi; tự mở lại khi camp nhà / team lãi, mở tay: python3 apps/etp/cat_phim.py --mo {0}"
 
@@ -463,6 +487,13 @@ def _tu_kiem():
     _bc = lambda ns, ad: {"name": "X", "campaign": {"source_payload": {"name": "X", "daily_budget": ns}, "ad_groups": [{"source_payload": {}, "ads": [ad]}]}}
     assert ns_tao(_bc(2, {"effective_object_story_id": "1_2"})) == (None, 2.0) and ns_tao(_bc(3, {"effective_object_story_id": "1_2"}))[0], "bài cũ tới đúng $2"
     assert ns_tao(_bc(2, {"effective_object_story_id": "1_2", "creative_id": 5}))[0] and ns_tao(_bc(2, {"creative_id": 5}))[0], "có creative mới → vẫn camp mới $1"
+    # AT CHỈ DẠNG FREE (anh 19/11/2026) — phá thử: AT cta kien / khong_nut / chưa sổ phải đỏ; AT Free, cảnh thật mẫu Kiên, AT team không sổ qua
+    assert ly_at([(1, "ảnh tĩnh", "ảnh tĩnh", "kien", "tv1", True)]) and "kien" in ly_at([(1, "ảnh tĩnh", "ảnh tĩnh", "kien", "tv1", True)]), "AT cta kien phải bị chặn"
+    assert ly_at([(2, "ảnh tĩnh", "ảnh tĩnh", "khong_nut", "tv1", True)]) and ly_at([(3, "ảnh tĩnh", "", None, "tv1", False)]) and ly_at([(4, "cảnh thật", "ảnh tĩnh", "kien", "x", True)])
+    assert ly_at([(5, "ảnh tĩnh", "ảnh tĩnh", "watch_for_free", "tv1", True), (6, "cảnh thật", "cảnh thật", "kien", "x", True), (7, "ảnh tĩnh", "", None, "team", False)]) is None
+    assert ly_at([(5, "ảnh tĩnh", "ảnh tĩnh", "watch_for_free", "tv1", True), (8, "ảnh tĩnh", "ảnh tĩnh", "kien", "tv2", True)]).startswith("creative #8")
+    assert at_sai_dang([9], q=lambda s: "9|ảnh tĩnh|ảnh tĩnh|kien|tv1|t") and at_sai_dang([9], q=lambda s: "9|ảnh tĩnh|ảnh tĩnh|watch_for_free|tv1|t") is None and at_sai_dang([]) is None
+    assert "chặn cho an toàn" in at_sai_dang([9], q=lambda s: (_ for _ in ()).throw(RuntimeError("x"))), "lỗi đọc sổ phải chặn"
     print("✓ cong.py tự kiểm (nhận camp ROAS mọi kiểu tên + gốc đã có ROAS + camp mới $1 trên payload: 10 ca)")
 
 if __name__ == "__main__":

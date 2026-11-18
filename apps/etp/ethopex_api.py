@@ -15,6 +15,7 @@ import json, os, re, subprocess, urllib.error, urllib.request
 class NgoaiNha(RuntimeError): pass
 class CamThayCreative(NgoaiNha): pass
 class CamNganSach(NgoaiNha, ValueError): pass     # camp mới > $1 (anh 08/11/2026) — cong.ns_tao đọc chính payload tạo camp
+class CamDangAT(NgoaiNha, ValueError): pass       # creative ảnh tĩnh không phải dạng Free (anh 19/11/2026, sổ luật at_chi_dang_free) — cong.at_sai_dang
 import importlib.util as _iu
 _s = _iu.spec_from_file_location("cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cong.py")); CG = _iu.module_from_spec(_s); _s.loader.exec_module(CG)
 
@@ -321,6 +322,10 @@ def api(duong, body=None, timeout=90):
         if not tk or tk - TK: raise NgoaiNha(f"tạo camp vào tài khoản {sorted(tk - TK) or '?'} không phải tài khoản nhà — không gửi")
         ly, tran = CG.ns_tao(body)   # CAMP MỚI $1 đọc trên CHÍNH payload (mọi tầng campaign + Ad Set), không tin số người gọi khai
         if ly: raise CamNganSach(ly)
+    # AT CHỈ DẠNG FREE (anh 19/11/2026): mọi lệnh mang creative (tạo camp / nhân bản / hồi chợ / đổi creative bài bị từ chối) → creative ảnh tĩnh phải cta watch_for_free
+    if body is not None and (duong.endswith("/campaigns/facebook") or (duong.endswith("/campaigns/update") and isinstance(body, dict) and body.get("ads"))):
+        ly_at = CG.at_sai_dang(re.findall(r'"creative_id":\s*"?(\d+)', json.dumps(body)), q=_q)
+        if ly_at: raise CamDangAT(f"{ly_at} — không gửi {duong}")
     if body is not None and isinstance(body, dict) and duong.endswith("/campaigns/update"):   # đặt lại ngân sách camp VỪA TẠO (Ethopex không nhận lúc tạo) → không vượt trần lúc tạo
         cp = body.get("campaign") or {}; cid = int(cp.get("campaign_id") or 0); ns = (cp.get("source_payload") or {}).get("daily_budget")
         if cid in _TRAN_TAO and ns is not None and float(ns) > _TRAN_TAO[cid]:
@@ -412,6 +417,13 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
         pl = {"name": "TU KIEM", "ad_account_id": tk0, "campaign": {"source_payload": {"name": "TU KIEM", "daily_budget": ns}, "ad_groups": [{"source_payload": g}]}}
         try: api("/api/v1/campaigns/facebook", pl); raise SystemExit(f"LỌT: tạo camp ngân sách {ns}/{g}")
         except CamNganSach as e: print("chặn đúng: tạo camp >$1 ·", str(e)[:70])
+    # AT SAI DẠNG Ở CỔNG (anh 19/11/2026, phá thử trên sổ thật, KHÔNG gửi gì): creative ảnh tĩnh không Free → tạo camp / đổi creative đều bị chặn
+    sai = _q(f"select d.creative_id from etp.diem_cham d where d.cham->'hook'->>'dang' = '{CG.DANG_AT}' and coalesce(d.cham->'cta'->>'mau', '') <> '{CG.CTA_AT}' order by 1 desc limit 1")
+    if sai:
+        pl = {"name": "TU KIEM AT", "ad_account_id": tk0, "campaign": {"source_payload": {"name": "TU KIEM AT", "daily_budget": 1}, "ad_groups": [{"source_payload": {}, "ads": [{"content_id": 1, "creative_id": int(sai)}]}]}}
+        for duong, body in (("/api/v1/campaigns/facebook", pl), ("/api/v1/campaigns/update", {"ads": [{"ad_id": 1, "creative_id": int(sai)}]})):
+            try: api(duong, body); raise SystemExit(f"LỌT: {duong} với creative AT sai dạng #{sai}")
+            except CamDangAT as e: print("chặn đúng: AT không Free ·", str(e)[:70])
     _TRAN_TAO[999999999] = 1.0
     try: api("/api/v1/campaigns/update", {"campaign": {"campaign_id": 999999999, "source_payload": {"daily_budget": 3}}}); raise SystemExit("LỌT: đặt $3 cho camp vừa tạo")
     except CamNganSach as e: print("chặn đúng: đặt lại >$1 camp vừa tạo ·", str(e)[:70])

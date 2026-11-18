@@ -19,10 +19,25 @@ import os, sys; sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(
 DANG_CHUAN = DG.CHUAN   # nhãn không dấu (len-creative) / có dấu → dạng có dấu của kho etp.creative
 
 
+DANG_AT = "ảnh tĩnh"
+def cta_at(x):
+    """CTA của creative ẢNH TĨNH đọc từ CHÍNH bản dựng (anh 19/11/2026 at_chi_dang_free): lớp Free đã vẽ (thư viện chu_qc.lop_free → thu-vien-len → lo.json) = 'watch_for_free',
+    không có = 'khong_nut' (cổng apps/etp/cong.at_sai_dang chặn lên camp). Gốc lỗi 15–18/11/2026: ban() ghi khuôn mẫu Kiên của video cắt cảnh cho cả AT → 187 creative
+    AT có Free thật mang nhãn 'kien', 10 camp bị tắt nhầm là sai dạng; anh-tinh.danh_dau chỉ vá được bản tạo cùng lượt, bản thư viện đưa lên sau (dong_phim) không ai vá."""
+    return {"mau": "watch_for_free" if x.get("lop_free") else "khong_nut", "nut_chu": "Watch For Free" if x.get("lop_free") else None}
+
+
 def ban(x, dang, chu_qc, CQ):
     dang = DANG_CHUAN.get(dang, dang)
     lang = x.get("lang") or "en"; c = CQ.CTA.get(lang) or CQ.CTA["en"]
     tu, den = float(x.get("tu") or 0), float(x.get("den") or 0)
+    if dang == DANG_AT:   # ảnh tĩnh: không thoại gốc, không nút mẫu Kiên — giọng / khung do anh-tinh.danh_dau ghi thêm
+        return {"hook": {"dang": dang, "giay_vao_phim": 0, "cat_tai": "anh_tinh", "chu_hook": None},
+                "noi_dung": {"content_id": x.get("content_id"), "giay": x.get("giay") or round(den - tu, 1), "lang": lang},
+                "voice": {"thoai": "khong"}, "chu_video": {"bo_cuc": "anh_tinh_ten_phim", "phu_de": "xoa"}, "cta": cta_at(x),
+                "anh_dau": {"khung": "giay_2"},
+                "chu_qc": {"so_cau": len((chu_qc or {}).get("primaryTexts") or []), "cau_1": ((chu_qc or {}).get("primaryTexts") or [None])[0],
+                           "headline": ((chu_qc or {}).get("headlines") or [None])[0], "mo_ta": ((chu_qc or {}).get("descriptions") or [None])[0]}}
     return {
         "hook": {"dang": dang, "giay_vao_phim": round(tu), "cat_tai": "dau_canh", "chu_hook": None},
         "noi_dung": {"content_id": x.get("content_id"), "giay": x.get("giay") or round(den - tu, 1), "lang": lang},

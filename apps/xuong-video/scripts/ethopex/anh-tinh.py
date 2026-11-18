@@ -13,7 +13,7 @@ Từ đó nhịp ethopex (apps/cty/worker/ethopex.mjs) thấy creative ảnh tĩ
 Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--ban N bản / phim] [--xem] [--giong ky_di|gao|cam_xuc|hao_hung|thuong|theo-phim|xoay]
   giọng mặc định = giọng tốt nhất đã đo (sổ luật giong_at.mac_dinh = ky_di / Brian, anh 18/11/2026) cho MỌI bản; --giong xoay = xoay 5 kiểu như 05/11/2026;
   dấu kiểu ghi vào etp.diem_cham.cham.voice.giong để đo
-  --khong-free = không vẽ lớp Free (nhãn tím + nút xanh "Watch For Free", mặc định BẬT từ 09/11/2026 theo Dol)
+  lớp Free (nhãn tím "All Episodes Released" + tên phim + nút xanh "Watch For Free") LUÔN vẽ — anh chốt 19/11/2026 (at_chi_dang_free): AT chỉ một dạng, không tắt được
   không id = tự chọn N phim (mặc định 10) · --xem = chỉ dựng + tờ khung (~/.cache/ethopex/anh-tinh/to-<giờ>.jpg), không nạp thư viện / tạo creative"""
 import hashlib, json, os, random, re, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
@@ -50,11 +50,13 @@ LOC = "fps=2/3"   # khung ứng viên: mỗi 1,5 giây (từ giây 3) — một 
 FONT = "/System/Library/Fonts/Supplemental/Georgia Bold Italic.ttf"
 # LỚP "FREE" — LUẬT CHUNG MỌI DẠNG TĨNH (sổ dạng etp-dang.json "tinh": AT · ATT · PO · CTS — anh 09/11/2026 "cho vào luật chung về dựng creative dạng ảnh tĩnh, PO"):
 # mọi lớp chữ đứng yên của creative tĩnh đi qua lop_free (anh-tinh.anh cho AT / ATT, tinh-ba-kieu.py cho PO / CTS). Gốc (Dol / Ethopex 09/11/2026: "Trong Creative, hình ảnh, video có chữ 'Free' gần như giúp mình mua được CPC rẻ hơn" + mẫu poster Dol gửi; anh 09/11: "Dựng free"):
-# nhãn tím trên cùng "All Episodes Released" + nút xanh "Watch For Free" ngay dưới tên phim. Bật mặc định mọi bản AT mới; --khong-free = bản cũ (đo A/B về sau).
+# nhãn tím trên cùng "All Episodes Released" + nút xanh "Watch For Free" ngay dưới tên phim. LUÔN BẬT (anh chốt 19/11/2026 theo mẫu team Dol: "Phải luôn có text ở trên,
+# FREE + mô tả tên phim!") — cờ --khong-free đã bỏ; bản không Free mang nhãn cta khong_nut và cổng apps/etp/cong.at_sai_dang chặn lên camp.
 # Tên phim đẩy lên (đáy ≤ TEN_DAY_FREE) để nút xanh vẫn nằm trên vùng khung ứng dụng (~15% đáy: tên trang, nút của Meta).
 FREE = {"en": ("All Episodes Released", "Watch For Free"), "es": ("Todos los episodios ya disponibles", "Míralo gratis")}
 FONT_FREE, TIM, XANH, TEN_DAY_FREE = "/System/Library/Fonts/Supplemental/Arial Bold.ttf", (124, 58, 237, 255), (34, 197, 94, 255), 0.72
-CO_FREE = "--khong-free" not in sys.argv
+if "--khong-free" in sys.argv: sys.exit("--khong-free đã bỏ: AT chỉ còn MỘT dạng có Free (anh chốt 19/11/2026, sổ luật at_chi_dang_free)")
+CO_FREE = True
 def lop_free(lop, lang, day_ten=None):
     """vẽ nhãn tím trên cùng + nút xanh dưới tên phim (day_ten = mép dưới tên, px; None = sát vùng giao diện Meta ở đáy — PO, tên nằm sẵn trên poster) lên lớp chữ RGBA đứng yên"""
     if day_ten is None: day_ten = H

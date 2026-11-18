@@ -310,7 +310,8 @@ if (a.includes('--nap')) {
   const DANG_TAT_CA = ['lam-tuong', 'dung-sai', 'top-n', 'so-sanh', 'spot-the-fake', 'cau-do-meo', 'vat-lac-loai', 'canh-dong', 'giai-thich-giong', ...(dl ? ['cau-noi-theo-nuoc'] : [])];
   // --dang bai-link: lấp kho BÀI LINK (nền fb_link / x_link) — không video, chỉ chữ + một ảnh Pexels; sx-may.mjs gọi khi kho link của máy cạn (18/11/2026)
   const coLink = ((m.dang ?? []) as { nen?: string }[]).some((d) => /^(fb|x)_link/.test(String(d.nen ?? '')));
-  const DANG_VIDEO = lay('--dang') ? [...DANG_TAT_CA, ...(coLink ? ['bai-link'] : [])].filter((d) => d === lay('--dang')) : DANG_TAT_CA;
+  const coPoll = ((m.dang ?? []) as { nen?: string }[]).some((d) => /^x_poll/.test(String(d.nen ?? '')));   // --dang binh-chon: lấp kho nền x_poll (18/11/2026)
+  const DANG_VIDEO = lay('--dang') ? [...DANG_TAT_CA, ...(coLink ? ['bai-link'] : []), ...(coPoll ? ['binh-chon'] : [])].filter((d) => d === lay('--dang')) : DANG_TAT_CA;
   if (!DANG_VIDEO.length) { console.error(`--dang ${lay('--dang')} không phải dạng video (${DANG_TAT_CA.join(', ')})`); process.exit(1); }
   const { tt, gocs, hooksCho, hookDaDung, hookCho } = await khoGocHook(ma, Number(m.id), sp), xetHook = await xetHookNhuCham(ma);
   if (tt.length && tt.every((t) => /^VN/i.test(t))) { (sp as { ngon_ngu?: 'vi' }).ngon_ngu = 'vi'; DANG_VIDEO.splice(0, DANG_VIDEO.length, ...DANG_VIDEO.filter((d) => d !== 'giai-thich-giong' && d !== 'cau-noi-theo-nuoc')); console.log('· máy thị trường VN: viết tiếng Việt'); }

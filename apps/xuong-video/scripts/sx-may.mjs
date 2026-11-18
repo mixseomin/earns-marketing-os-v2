@@ -102,12 +102,14 @@ FROM xv_may m LEFT JOIN xv_may_video v ON v.may_id=m.id WHERE m.chay AND m.ma IN
 // (bài link DUYỆT chưa đăng ĐÚNG nền đó), lấy nền cạn nhất; dưới `link_du` (mặc định 7 = trần 1/ngày × 7 ngày) thì --sinh-kho --dang bai-link bù cho đủ.
 const LINK_DU = () => KHO?.link_du ?? 7;
 const canSinhLink = (con, du = LINK_DU()) => (con < du ? du - con : 0);
-function tonKhoLink(may) {
+// KHO BÀI BÌNH CHỌN (18/11/2026, ratesbyroom x_poll 0 bài): cùng luật với nền link — nền x_poll chỉ lấy bài dang.loai='poll', lấp bằng --dang binh-chon.
+const NEN_KHO_RIENG = [{ nen: '^(fb|x)_link', loai: 'link', dang: 'bai-link' }, { nen: '^x_poll', loai: 'poll', dang: 'binh-chon' }];
+function tonKhoLink(may, nenRe = NEN_KHO_RIENG[0].nen, loai = NEN_KHO_RIENG[0].loai) {
   const ds = may ? KHO.may.filter((m) => m === may) : KHO.may;
   if (!ds.length) return new Map();
-  const r = psql(`SELECT m.ma||E'\\t'||min((SELECT count(*) FROM xv_may_video v WHERE v.may_id=m.id AND NOT coalesce(v.luu_tru,false) AND v.dang->>'loai'='link'
+  const r = psql(`SELECT m.ma||E'\\t'||min((SELECT count(*) FROM xv_may_video v WHERE v.may_id=m.id AND NOT coalesce(v.luu_tru,false) AND v.dang->>'loai'=${q(loai)}
   AND (v.cham->>'ket'='DUYET' OR v.cham IS NULL) AND NOT coalesce(v.da_dang ? split_part(n->>'nen',':',1), false)))
-FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE m.chay AND m.ma IN (${ds.map(q).join(',')}) AND n->>'nen' ~ '^(fb|x)_link' GROUP BY m.ma;`);
+FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE m.chay AND m.ma IN (${ds.map(q).join(',')}) AND n->>'nen' ~ ${q(nenRe)} GROUP BY m.ma;`);
   return new Map(r.split('\n').filter(Boolean).map((d) => { const [m, n] = d.split('\t'); return [m, Number(n)]; }));
 }
 /** Chạy --sinh-kho trên box3 (dựng Cloudflare; sinhJson tự gác ngưỡng tiền), trả số đề + tiền thật đọc từ dòng tổng của lệnh. */
@@ -230,7 +232,7 @@ const main = async () => {
   // kho chỉ lấp ở lượt máy (--het / --may), không ở --slug (dựng đúng một bài)
   const kho = KHO && !slug ? keHoachKho(tonKho(may)) : [];
   // kho bài link theo từng nền link (tonKhoLink) — đi sau kho video, cùng trần tiền cả lượt
-  if (KHO && !slug) for (const [m, con] of tonKhoLink(may)) { const n = canSinhLink(con); if (n && rieng(m).lenh === '--sinh-kho') kho.push({ may: m, con, n, dang: 'bai-link' }); }
+  if (KHO && !slug) for (const r of NEN_KHO_RIENG) for (const [m, con] of tonKhoLink(may, r.nen, r.loai)) { const n = canSinhLink(con); if (n && rieng(m).lenh === '--sinh-kho') kho.push({ may: m, con, n, dang: r.dang }); }
 
   if (co('--xem')) {
     for (const b of ds) console.log(`→ ${b.dangTu} ${b.slug.padEnd(34)} ${b.nen.padEnd(9)} ${b.kieu ?? '(KHÔNG BIẾT DẠNG)'} · ${SO[b.kieu]?.vnd ?? '?'}₫ · ${b.huong || '(chưa có hướng)'}`);
@@ -259,7 +261,7 @@ const main = async () => {
     try {
       const r = sinhKho(k.may, k.n, k.dang ?? null); tien += r.vnd;
       if (r.loi || !r.so) { hong++; const l = `sinh kho ${k.may} hỏng: ${r.loi ?? `0/${r.xin} đề`}`; dongLuot(id, b, false, { vnd: r.vnd }, l); console.log(`✗ ${l}`); }
-      else { const ghi = `kho${k.dang ? ' bài link' : ''} còn ${k.con} → +${r.so}/${r.xin} đề${k.dang ? ' bài link' : ' video'}`; dongLuot(id, b, true, { vnd: r.vnd, ghi }); console.log(`✓ kho ${k.may}: ${ghi} · ${r.vnd}₫`); }
+      else { const nhan = k.dang === 'binh-chon' ? ' bài bình chọn' : k.dang ? ' bài link' : '', ghi = `kho${nhan} còn ${k.con} → +${r.so}/${r.xin} đề${nhan || ' video'}`; dongLuot(id, b, true, { vnd: r.vnd, ghi }); console.log(`✓ kho ${k.may}: ${ghi} · ${r.vnd}₫`); }
     } catch (e) {
       // e.message dòng đầu chỉ là câu lệnh — nguyên nhân thật nằm ở mã thoát + đuôi stdout/stderr (lượt #42 14/11 mất hẳn lý do)
       const duoi = String(e.stdout || e.stderr || '').trim().split('\n').slice(-4).join(' · ');

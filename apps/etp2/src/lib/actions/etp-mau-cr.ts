@@ -8,7 +8,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
-import { DS_DANG } from '@/lib/etp-dang';
+import { DS_DANG, NHOM_DANG } from '@/lib/etp-dang';
 import SO_MAU from '@/lib/etp-mau-cr.json';
 import { spy } from '@/lib/spy-db';
 import { chayDong } from '@/lib/actions/etp-dong';
@@ -23,8 +23,11 @@ export type BanMau = { anh: string | null; video: string | null; nhan: string | 
   vai?: 'goc' | 'dung'; /** chữ rê chuột */ goi_y?: string };
 export type MauCr = {
   ma: string; ten: string; loai: LoaiMau; nguon: NguonMau; trang_thai: TrangThaiMau; nhom: string | null; mau: string | null;
-  /** NHÓM THIẾT KẾ hiện trên tab (anh 19/11/2026 "phải tổ chức trình bày cho khoa học hơn"): 1 công thức · 2 dạng · 3 tên phim · 4 nút / CTA · 5 băng chữ · 6 bố cục / key-art · 7 bố cục nhà */
+  /** TẦNG 1 — THỂ LOẠI CREATIVE (anh 19/11/2026 "Creative phải chia theo thể loại, rồi mới đến format chi tiết bên trong"): nhóm của dạng chính trong sổ dạng
+   *  (cắt cảnh · kể chuyện · chèn khung · ảnh tĩnh · poster động), có số thứ tự để xếp */
   nhom_tk: string;
+  /** TẦNG 2 — VAI của format trong creative (tên phim · nút / CTA · băng chữ / câu nhử · bố cục / key-art · bố cục nhà); dạng / công thức = null */
+  vai: string | null;
   dung_cho: string[]; the_loai: string[]; mo_ta: string; may: string | null; ban: BanMau[];
   so: { cr: number; camp: number; dang_chay: number; chi: number; thu: number; moi: string | null } | null;
   tham_chieu: ThamChieu[];
@@ -46,6 +49,10 @@ const run = async <T,>(q: ReturnType<typeof sql>) => (await getDb()!.execute(q))
 const BANG_MAU_PHIM = sql`create table if not exists etp.mau_phim (mau text not null, content_id integer not null, ai text, dong_id integer, luc timestamptz not null default now(), primary key (mau, content_id))`;
 /** mã dòng phim của một dạng (sổ dạng: trường dong) */
 const dongCua = (dang: string | undefined | null) => DS_DANG.find((d) => d.dang === dang)?.dong ?? null;
+/** thể loại (nhóm trong sổ dạng) của một dạng → nhãn có số thứ tự để xếp nhóm trên tab */
+const THU_TU_TL = ['cắt cảnh', 'kể chuyện', 'chèn khung', 'ảnh tĩnh', 'poster động'];
+const theLoaiCua = (dang: string | null | undefined) => { const n = (dang && NHOM_DANG[dang]) || 'khác'; const i = THU_TU_TL.indexOf(n);
+  return `${i < 0 ? 9 : i + 1} · ${n.charAt(0).toUpperCase()}${n.slice(1)}`; };
 
 export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; ten: string }[]; luc: string } | { loi: string }> {
   const q = await quyenEtp(await getCurrentUser());
@@ -126,13 +133,13 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
     const mau: MauCr[] = [
       ...DS_DANG.map((d): MauCr => {
         const s = soTheo.get(d.dang);
-        return { nhom_tk: '2 · Dạng creative', ma: d.ma, ten: d.dang, loai: 'dang', nguon: 'nha', trang_thai: s?.dang_chay ? 'chay' : s?.camp ? 'may' : 'thu', nhom: d.nhom ?? null, mau: d.mau,
+        return { nhom_tk: theLoaiCua(d.dang), vai: null, ma: d.ma, ten: d.dang, loai: 'dang', nguon: 'nha', trang_thai: s?.dang_chay ? 'chay' : s?.camp ? 'may' : 'thu', nhom: d.nhom ?? null, mau: d.mau,
           dung_cho: [], the_loai: [], mo_ta: d.mo_ta ?? '', may: d.dong ? `dòng ${d.dong} (apps/etp/dong_phim.py)` : d.kieu ? `kiểu ${d.kieu} (kieu-moi.py)` : null,
           ban: banTheo.get(d.dang) ?? [], so: s ? { cr: s.cr, camp: s.camp, dang_chay: s.dang_chay, chi: s.chi, thu: s.thu, moi: s.moi } : null, tham_chieu: [],
           dong: d.dong ?? null, may_mau: false, phim_sx: sxCua(d.ma) };
       }),
       ...so.map((m): MauCr => { const sm = soTheoMau.get(m.ma); return {
-        nhom_tk: m.nhom ?? '6 · Bố cục / key-art', ma: m.ma, ten: m.ten, loai: m.loai, nguon: m.nguon, trang_thai: sm?.dang_chay ? 'chay' : m.trang_thai, nhom: null, mau: null, dung_cho: m.dung_cho, the_loai: m.the_loai ?? [],
+        nhom_tk: theLoaiCua(m.loai === 'cong_thuc' ? m.dang : m.dung_cho[0]), vai: m.loai === 'cong_thuc' ? null : (m.nhom ?? '').replace(/^\d+ · /, '') || null, ma: m.ma, ten: m.ten, loai: m.loai, nguon: m.nguon, trang_thai: sm?.dang_chay ? 'chay' : m.trang_thai, nhom: null, mau: null, dung_cho: m.dung_cho, the_loai: m.the_loai ?? [],
         mo_ta: m.mo_ta, may: m.may ?? null, ban: [...(m.anh ? [{ anh: m.anh, video: null, nhan: 'mẫu nhà', link: m.anh }] : []), ...(banTheoMau.get(m.ma)
           // công thức chưa có creative nào ghi mẫu (cổng mới từ 19/11/2026) → mượn creative thu cao nhất của CÙNG DẠNG, nhãn ghi rõ là của dạng
           ?? (m.loai === 'cong_thuc' && m.dang ? (banTheo.get(m.dang) ?? []).map((b) => ({ ...b, nhan: `dạng · ${b.nhan ?? ''}`.trim() })) : []))],

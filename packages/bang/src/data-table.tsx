@@ -537,6 +537,19 @@ export function DataTable<T>({
     const ro = new ResizeObserver(doKhung); ro.observe(cha); doKhung();
     return () => ro.disconnect();
   }, [coDinh, effView]);
+  // CO THEO KHUNG NGAY TỪ ĐẦU (góp ý #giao-20261119T0917-chuyen-n7dt): chưa kéo cột lần nào → table-layout auto giãn theo nội dung, có thể vượt khung
+  // (cty /nhan-su 1480px trong khung 1334px) → cuộn ngang. Bảng tràn khung (và khung ≥ minWidth) → chốt bề ngang đang hiện của các cột vào `rong`
+  // (KHÔNG ghi localStorage) → bảng chuyển fixed và hienRef co theo tỉ lệ đúng như sau khi kéo. Khung hẹp hơn minWidth thì vẫn cuộn ngang như cũ.
+  useEffect(() => {
+    if (coDinh || effView !== 'table') return;
+    const bang = bangRef.current, cha = bang?.parentElement; if (!bang || !cha) return;
+    const hangs = bang.querySelectorAll('thead tr'); const hang = hangs[hangs.length - 1]; if (!hang) return;
+    const w = cha.clientWidth;
+    if (w < minWidth || bang.getBoundingClientRect().width <= w + 1) return;
+    const chot: Record<string, number> = {};
+    Array.from(hang.children).forEach((x, i) => { const k = visibleKeys[i]; if (k) chot[k] = Math.round((x as HTMLElement).getBoundingClientRect().width * 100) / 100; });
+    if (Object.keys(chot).length) setRong(chot);
+  });
   // NHÓM DÍNH: dòng nhóm đã cuộn qua mép dưới khối tiêu đề mà nhóm vẫn còn dòng dưới → chép dòng nhóm đó vào khối tiêu đề dính (thân bảng nằm trong
   // hộp overflow-x nên position:sticky của chính <tr> không dính theo trang được — cùng lý do tiêu đề là bảng riêng)
   const [nhomDinh, setNhomDinh] = useState<string | null>(null);

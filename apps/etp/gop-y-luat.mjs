@@ -1497,4 +1497,7 @@ export const LUAT = [
   { card: 'xung-dot-luat-b2-2011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'chon.xem =', vi: 'A/B có hàm chỉ đọc nhánh camp đang mang (không chia nhánh)' },
   { card: 'xung-dot-luat-b2-2011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'def _chu_kg(cid):', vi: 'chữ cổng khung giờ theo nhánh A/B' },
   { card: 'xung-dot-luat-b2-2011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'nhánh {ab[2]}: máy tăng ngay nhịp này', vi: 'nhánh thử tăng ghi "máy tăng ngay nhịp này"' },
+  // xem-bai-qc-2011 — đồng bộ chữ QC / Page / CTA / tên miền mỗi lượt (etp2 khung bài QC đọc bai_cr / bai_camp)
+  { card: 'xem-bai-qc-2011', tep: 'apps/etp/dong-bo.py', co: 'bai-qc.py', vi: 'dong-bo gọi bai-qc.py mỗi lượt' },
+  { card: 'xem-bai-qc-2011', tep: 'apps/etp/bai-qc.py', co: 'etp.bai_camp', vi: 'bai-qc ghi Page + tên miền của camp' },
 ];

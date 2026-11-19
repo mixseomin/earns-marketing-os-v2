@@ -86,6 +86,7 @@ import { KD, KHUNG_TEN, TANG_CHI, TRAN_CHI, chuCong, congTang, quaCong, chuLich,
 import { nhip } from '@/lib/nhip';   // tự làm mới chỉ khi tab hiện (12/11/2026)
 import { TabDoiThu } from './etp-doi-thu';   // tab Phim đối thủ (anh giao 19/11/2026)
 import { TabMauCr } from './etp-mau-cr';   // tab Mẫu creative (anh giao 19/11/2026)
+import { KhungBaiQc } from './etp-bai-qc';   // khung bài QC như người xem thấy (anh 20/11/2026)
 
 type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'dt' | 'mau' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -2270,7 +2271,7 @@ function NutMoRong({ cid, k, cam }: { cid: number; k?: number; /** phim cấm (e
       onClick={(e) => { e.stopPropagation(); setMo(true); }} onMouseDown={(e) => e.stopPropagation()}
       style={{ padding: '0 6px', fontSize: 11, lineHeight: '16px', fontWeight: 400, color: '#4ade80', borderColor: '#14532d' }}>＋</button></ReThe></>;   // chỉ dấu ＋ — số máy tính điền sẵn trong form (anh 04/11/2026)
 }
-function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, dongCr, moCamp, moPhim, onTimDoi, khiTimTrong }: { kyCay?: { tu: string; den: string }; onTimDoi?: (q: string) => void; khiTimTrong?: React.ReactNode; moCamp?: (id: number) => void; moPhim?: (k: string) => void; camps: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string; moCr?: (cr: number, e: React.MouseEvent) => void; dongCr?: () => void }) {
+function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, dongCr, moCamp, moPhim, onTimDoi, khiTimTrong }: { kyCay?: { tu: string; den: string }; onTimDoi?: (q: string) => void; khiTimTrong?: React.ReactNode; moCamp?: (id: number) => void; moPhim?: (k: string) => void; camps: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string; moCr?: (cr: number, e: React.MouseEvent, camp?: number) => void; dongCr?: () => void }) {
   const coLich = du.cauHinh.find((k) => k.khoa === 'lich_gio')?.gia_tri === true, LT = luoiTrong(coLich);
   const choCay = useContext(DieuKhienCtx)?.cho;   // vết ⏳ ở ô ngân sách dòng điện thoại
   const { boThang, thangMuc } = soThang(du);   // lịch giờ đang tắt → không có cột lịch
@@ -2332,8 +2333,8 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, dongCr, 
     // USED POST (#1561, anh 12/11/2026 — luật Ethopex 11/11 "nhân bản phải kèm used post"): bản nhân bài cũ không có creative riêng → trước hiện ô xám "chưa chấm", anh tưởng máy không dùng
     if (!c.creative_id && laBaiCu(c)) return <span data-cot="creative" title={`USED POST — ad dùng lại bài đăng của camp gốc${c.goc ? ` #${c.goc}` : ''} (giữ tương tác), không đăng creative mới`} style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 6px', border: '1px solid #4ade80', borderRadius: 4, color: '#4ade80', fontSize: 10.5, whiteSpace: 'nowrap' }}>used post</span>;
     return (
-          <span data-cot="creative" onMouseEnter={c.creative_id && moCr ? (e) => moCr(c.creative_id!, e) : undefined} onMouseLeave={dongCr}
-            onClick={c.creative_id && moCr ? (e) => { e.stopPropagation(); e.preventDefault(); moCr(c.creative_id!, e); } : undefined} title={`cr #${c.creative_id ?? '?'}${c.doan ? ` · đoạn ${c.doan.split(':')[1] ?? ''}s` : ''}`} style={{ cursor: c.creative_id ? 'zoom-in' : undefined,  display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+          <span data-cot="creative" onMouseEnter={c.creative_id && moCr ? (e) => moCr(c.creative_id!, e, c.camp_id) : undefined} onMouseLeave={dongCr}
+            onClick={c.creative_id && moCr ? (e) => { e.stopPropagation(); e.preventDefault(); moCr(c.creative_id!, e, c.camp_id); } : undefined} title={`cr #${c.creative_id ?? '?'}${c.doan ? ` · đoạn ${c.doan.split(':')[1] ?? ''}s` : ''}`} style={{ cursor: c.creative_id ? 'zoom-in' : undefined,  display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
             {cr?.anh ? <img src={cr.anh} alt="" style={{ width: 14, height: 24, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: 14, height: 24, background: 'var(--line)' }} />}
             {/* chỉ mã + điểm chấm (anh 28/10/2026 #1465 "chỉ cần ID đủ… show thêm điểm số"); đoạn giây ở hover */}
             {/* #1555 (anh 10/11/2026 "ẩn thông tin này, cần thì hover"): mã creative không in ra ô — rê ô mới thấy */}
@@ -2901,7 +2902,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   // đứng hở một khe dưới thanh dính, chữ dòng đang trôi lọt qua khe. Đo số lẻ thật, làm tròn XUỐNG rồi lùi 1px → hàng dưới luôn chui dưới mép thanh (thanh zIndex cao hơn che), không bao giờ hở
   useEffect(() => { const el = dinhRef.current; if (!el) return; const dat = () => { const h = el.getBoundingClientRect().height; document.documentElement.style.setProperty('--etp-dinh', `${h > 0 ? Math.max(0, Math.floor(h) - 1) : 0}px`); }; dat();
     const ro = new ResizeObserver(dat); ro.observe(el); return () => { ro.disconnect(); document.documentElement.style.removeProperty('--etp-dinh'); }; }, []);
-  const noiAnh = useNoi<{ anh: string; video: string | null; cr?: number }>(); const xem = noiAnh.v;   // ảnh to + video khi rê vào ảnh creative (thẻ nổi dùng chung: ✕ / Esc)
+  const noiAnh = useNoi<{ anh: string; video: string | null; cr?: number; camp?: number }>(); const xem = noiAnh.v;   // ảnh to + video khi rê vào ảnh creative (thẻ nổi dùng chung: ✕ / Esc)
   useEffect(() => { const u = new URL(location.href); u.searchParams.set('k', kh); if (u.href !== location.href) history.replaceState(null, '', u);
     try { localStorage.setItem('etp-kh', kh); } catch { /* bỏ qua */ } }, [kh]);
   const ngayKh = useMemo(() => { const { tu, den } = khKhoang(kh, du.nay); return (d: string) => d >= tu && d <= den; }, [kh, du.nay]);
@@ -2913,7 +2914,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const NHOM = [{ key: 'nay', label: 'Hôm nay (đang chạy)', color: '#22d3ee' }, { key: 'qua', label: 'Hôm qua', color: '#a78bfa' }, ...(khNay ? [] : [{ key: 'kh', label: khNhan, color: '#fbbf24' }])];   // chọn khoảng Hôm nay → không lặp nhóm hôm nay lần hai
   const crAnh = useMemo(() => new Map(du.creatives.map((r) => [r.creative_id, r])), [du.creatives]);
   const anh = (cr: number | null) => { const r = cr ? crAnh.get(cr) : null; return r?.anh
-    ? <img src={r.anh} alt="" loading="lazy" onMouseEnter={(e) => noiAnh.mo({ anh: r.anh!, video: r.video }, e)} onMouseLeave={noiAnh.dongTre} style={{ width: 20, height: 36, objectFit: 'cover', borderRadius: 3, background: '#000', verticalAlign: 'middle', cursor: 'zoom-in', flex: 'none' }} />
+    ? <img src={r.anh} alt="" loading="lazy" onMouseEnter={(e) => noiAnh.mo({ anh: r.anh!, video: r.video, cr: r.creative_id || undefined }, e)} onMouseLeave={noiAnh.dongTre} style={{ width: 20, height: 36, objectFit: 'cover', borderRadius: 3, background: '#000', verticalAlign: 'middle', cursor: 'zoom-in', flex: 'none' }} />
     : <span style={{ display: 'inline-block', width: 20, height: 36, borderRadius: 3, flex: 'none', background: 'var(--bg-2, #222)', verticalAlign: 'middle' }} />; };
   const tl = (k: string | null) => (k ? du.theLoai[k] ?? k : '—');
   // camp mà dải số đầu trang cộng: tab Camp / ★ ROAS có lọc → CHỈ phần đã lọc (anh 27/10/2026 "khi có lọc thì con số phải là của riêng phần đã lọc"), còn lại = mọi camp (khai sau `camps`)
@@ -3338,7 +3339,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
-        <CayCamp camps={camps} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} kyCay={kh === 'tat_ca' ? undefined : khK} />
+        <CayCamp camps={camps} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e, camp) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr, camp }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} kyCay={kh === 'tat_ca' ? undefined : khK} />
       ) : tab === 'camp' ? (
         <>
         <TongPhim du={du} ckh={ckh} anh={anh} tl={tl} khTen={khNhan} chon={phimLoc} onChon={doiPhim} />
@@ -3436,9 +3437,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
             <BieuNgay ngay={ngay6} sd={ngay6.map((d) => soCamp(c.camp_id, d))} nay={c.nay} ns={[...nsCuoiNgay(c.ngan_sach, du.lsBac[c.camp_id], ngay6), c.ngan_sach]} />
             <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px' }}>{tl!.chinh ? <div style={{ marginBottom: 6 }}><ChipO chinh={tl!.chinh} /></div> : null}<ThanLuat t={tl!} gon /></div>
             {r ? <TheCr r={r} ch={ch} k={crKh.get(r.creative_id)} khTen={khNay ? undefined : khNhan} tc={du.tieuChi} /> : null}
-            {r?.video || r?.anh ? <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', maxHeight: '58dvh', background: '#000', borderRadius: 8, overflow: 'hidden' }}>
-              {r.video ? <video src={r.video} poster={r.anh ?? undefined} autoPlay muted loop playsInline controls style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
-                : <img src={r.anh!} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />}</div> : null}
+            {c.creative_id ? <div style={{ maxWidth: 360 }}><KhungBaiQc cr={c.creative_id} camp={c.camp_id} anh={r?.anh ?? null} video={r?.video ?? null} caoMedia="46dvh" /></div> : null}{/* bài QC như người xem thấy (anh 20/11/2026) */}
             <details><summary style={{ cursor: 'pointer', color: 'var(--fg-2)' }}>Lịch sử bậc · 30 ngày</summary><TheBac ls={du.lsBac[c.camp_id] ?? []} d={b!.d} /></details>
           </div>}
         </Drawer>; })() : null}
@@ -3446,8 +3445,12 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         // THẺ CHI TIẾT CREATIVE (anh 27/10/2026 "hover vào xem đc chi tiết creative"): rê vào ô creative ở cây camp → dải thông tin trên đầu + ảnh/video bên dưới
         const r = xem.cr ? crAnh.get(xem.cr) : undefined, ch = xem.cr ? du.cham[xem.cr] : undefined, k = xem.cr ? crKh.get(xem.cr) : undefined, CAO = r ? 600 : 480;
         // dải thông tin TỰ CAO theo chữ (lỗi 27/10/2026: cao cố định 92px, dòng "chặn" xuống hàng làm dòng lãi bị video che) — video lấp phần còn lại
+        // có mã creative → khung BÀI QC như người xem thấy (anh 20/11/2026: Page · chữ QC · hình · tên miền · tiêu đề · CTA); chấm điểm / lý do chặn giữ trên đầu, ngoài khung
+        if (xem.cr) return <KhungNoi x={xem.x} y={xem.y} rong={320} cao={CAO} noi={noiAnh} style={{ width: 320, maxHeight: CAO, overflow: 'auto', background: 'var(--bg-1, #111)', display: 'flex', flexDirection: 'column', gap: 6, padding: '6px 8px 8px' }}>
+          {r ? <div style={{ flex: 'none', paddingRight: 22 }}><TheCr r={r} ch={ch} k={k} khTen={khNay ? undefined : khNhan} tc={du.tieuChi} /></div> : null}
+          <KhungBaiQc cr={xem.cr} camp={xem.camp ?? null} anh={xem.anh || null} video={xem.video} caoMedia={300} />
+        </KhungNoi>;
         return <KhungNoi x={xem.x} y={xem.y} rong={270} cao={CAO} noi={noiAnh} style={{ width: 270, height: CAO, overflow: 'hidden', background: '#000', display: 'flex', flexDirection: 'column' }}>
-          {r ? <div style={{ flex: 'none', padding: '6px 30px 6px 8px', background: 'var(--bg-1, #111)' }}><TheCr r={r} ch={ch} k={k} khTen={khNay ? undefined : khNhan} tc={du.tieuChi} /></div> : null}
           <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
             {xem.anh ? <img src={xem.anh} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}
             {xem.video ? <video src={xem.video} autoPlay muted loop playsInline controls style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}

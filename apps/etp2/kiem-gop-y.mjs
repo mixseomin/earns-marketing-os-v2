@@ -368,6 +368,11 @@ const LUAT = [
   { card: 1711, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "const laTay = (ai: string | null) => !!ai && !/^(máy|\\?)/.test(ai.trim());", vi: 'dòng do "máy …" (luật) ghi không tính là tay' },
   { card: 1711, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<CoTay ls={ls} />', vi: 'ô ngân sách camp (BacCamp, dùng ở cây / bảng / điện thoại) hiện cờ ✋ khi đang nâng bậc tay (anh "phải có 1 cờ trên camp đó là đang nâng bậc = tay")' },
   { card: 1711, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'data-o="co-nang-tay"', vi: 'cờ nâng tay có mốc data-o để kiểm' },
+  // xem-bai-qc-2011 (anh 20/11/2026 "creative đang ko show Primary Text… cần show giống như cách người dùng sẽ nhìn thấy")
+  { card: 'xem-bai-qc-2011', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<KhungBaiQc cr={xem.cr} camp={xem.camp ?? null}', vi: 'thẻ nổi creative hiện khung bài QC (Page · chữ QC · hình · tên miền · tiêu đề · CTA)' },
+  { card: 'xem-bai-qc-2011', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<KhungBaiQc cr={c.creative_id} camp={c.camp_id}', vi: 'ngăn camp hiện khung bài QC đúng camp' },
+  { card: 'xem-bai-qc-2011', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', mot: 'chưa lên camp — chữ dự kiến', vi: 'creative chưa lên camp ghi rõ chữ là dự kiến' },
+  { card: 'xem-bai-qc-2011', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', mot: "'… Xem thêm'", vi: 'chữ QC cắt "… Xem thêm" như Facebook' },
 ];
 
 const loi = [];

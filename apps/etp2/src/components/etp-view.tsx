@@ -2260,7 +2260,8 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   // data-cot: phép đo `do-man thang` (mọi ô cùng tên cột phải cùng mép) — anh 25/10/2026 không muốn nhắc lại chuyện lệch cột
   // SỐ LẦN NHÂN BẢN GIỐNG HỆT (anh 28/10/2026 #1474 "x10 hiểu là được nhân bản 10 lần (giống hệt)"): mọi camp con / cháu cùng creative với camp này
   const conHet = useMemo(() => { const m = new Map<number, CampEtpKho[]>(); for (const c of du.camps) if (c.goc) m.set(c.goc, [...(m.get(c.goc) ?? []), c]); return m; }, [du.camps]);   // đếm cả bản đã tắt / bị bộ lọc giấu
-  const giongHet = (c: CampEtpKho): number => { let n = 0; const di = (id: number) => { for (const x of conHet.get(id) ?? []) { if (x.creative_id === c.creative_id) n++; di(x.camp_id); } }; di(c.camp_id); return n; };
+  // bản USED POST (' bai-cu ', creative rỗng) đăng lại đúng bài của camp mẹ → mang creative của mẹ; trước bỏ sót (19/11/2026: #88929 hiện ×4, sổ có 6 bản giống hệt)
+  const giongHet = (c: CampEtpKho): number => { let n = 0; const di = (id: number, crMe: number | null) => { for (const x of conHet.get(id) ?? []) { const cr = !x.creative_id && laBaiCu(x) ? crMe : x.creative_id; if (cr != null && cr === c.creative_id) n++; di(x.camp_id, cr); } }; di(c.camp_id, c.creative_id); return n; };
   // Ô CREATIVE — MỘT bản cho dòng cây điện thoại / lưới cũ và cột Creative của bảng (anh 29/10/2026 #1476: bản chép tay ở bảng mất mã + điểm chấm + ×N đã sửa ở #1465 #1474)
   const oCr = (c: CampEtpKho) => { const cr = c.creative_id ? anhCr.get(c.creative_id) : undefined;
     // USED POST (#1561, anh 12/11/2026 — luật Ethopex 11/11 "nhân bản phải kèm used post"): bản nhân bài cũ không có creative riêng → trước hiện ô xám "chưa chấm", anh tưởng máy không dùng

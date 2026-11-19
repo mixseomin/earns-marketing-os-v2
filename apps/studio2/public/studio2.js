@@ -204,6 +204,7 @@ document.addEventListener('input', (e) => {
   const t = e.target, nut = $('[data-v=tiep]');
   if (t.dataset.f) return goD(t);
   if (t.id === 'tlZoom') { E.pxs = +t.value; return veTlClip(); }
+  if (t.id === 'mnTim') { E.tim = t.value; clearTimeout(hTim); hTim = setTimeout(timPhim, 300); return; }
   if (t.id === 'oY') { S.y = t.value; if (nut) nut.disabled = !S.y.trim(); $('#phai').innerHTML = vePhai(); }
   if (t.id === 'oTk') { S.thamKhao = t.value; $('#thayTk').innerHTML = veThay(); }
   if (t.id === 'oAi') { S.ai = t.value.trim() || null; S.mo = null; if (nut) nut.disabled = !S.ai; $('#phai').innerHTML = vePhai(); }
@@ -261,6 +262,52 @@ function duAnTu(ma, o = {}) {
 }
 /** dự án lấy từ phim thật của studio (DL): mỗi cảnh nhớ `tu` = giây bắt đầu trong video gốc, `khop` = độ dài đã khớp tiếng */
 function tuDL(k) { const p = JSON.parse(JSON.stringify(DL[k])); return { giong: GIONG[0], toc: 'Vừa', nhac: k === 'cn' ? NHAC[2] : NHAC[1], am: 55, nhoLai: true, kieuChu: KCHU[0], ...p, canh: p.canh.map((c) => canhMoi({ ...c, khop: c.tg })) }; }
+// ── phim THẬT của studio.on.tc: đọc qua đường đọc song song của studio (POST /api/xv/doc — vhost studio2 chuyển /api/xv/ sang cổng studio, cùng phiên SSO mos2)
+//    rồi ghép về mô hình dự án ở đây. Bản gốc từng cảnh giữ ở GOC (theo id cảnh) cho việc soi bước / nhật ký — không nằm trong D vì sổ hoàn tác chép cả D.
+const TRONG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 16"><rect width="9" height="16" fill="#2a2d3a"/></svg>');
+async function goi(ham, ...args) {
+  let r; try { r = await fetch('/api/xv/doc', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ham, args }) }); } catch { throw new Error('không gọi được máy chủ studio (có thể phiên đăng nhập đã hết, hãy tải lại trang)'); }
+  const j = await r.json().catch(() => null); if (!r.ok || !j || j.loi) throw new Error(j?.loi || `máy chủ studio trả lỗi ${r.status}`); return j.kq;
+}
+/** ảnh trong kho studio → bản thu nhỏ (studio tự thu + nhớ); thứ khác giữ nguyên; không có ảnh → ô xám */
+const nho = (u, w = 640) => (!u ? TRONG : /^https:\/\/img\.on\.tc\/xuong-video\/(?!nho\/).+\.(jpe?g|png|webp)$/i.test(u) ? `/api/xv/nho?u=${encodeURIComponent(u)}&w=${w}` : u);
+const S_CO = { ws: 'Toàn', els: 'Toàn', ls: 'Toàn', ms: 'Trung', two: 'Trung', ots: 'Trung', pov: 'Trung', mcu: 'Trung cận', cu: 'Cận', ecu: 'Đặc tả', insert: 'Đặc tả' }, S_GOC = { ngang: 'Ngang', thap: 'Thấp', sat_dat: 'Thấp', cao: 'Cao' }, S_ONG = { rong: 'Rộng', chuan: 'Chuẩn', chan_dung: 'Chân dung', macro: 'Macro' };
+const S_CD = { tinh: 'Đứng yên', cam_tay: 'Đứng yên', day: 'Phóng gần', day_vao: 'Phóng gần', lui: 'Lùi xa', lia: 'Lia ngang', truot: 'Lia ngang', theo: 'Lia ngang' }, S_VAI = { nhan_vat: 'Nhân vật', dao_cu: 'Đồ vật', boi_canh: 'Bối cảnh' };
+const MAU_NV = ['#c8553d', '#3d7ec8', '#5aa469', '#b08a2e', '#8a5ac8', '#c85a9a'];
+let GOC = {};
+function tuStudio(pd, tap, ds) {
+  const p = pd.phim, tl = TILE[p.kinh_thanh?.ti_le] ? p.kinh_thanh.ti_le : '9:16', so = (x) => Math.round(+x || 0), hoa = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  // phim nhiều tập có cả trăm anchor: chỉ lấy thứ tập này dùng
+  const dung = new Set(ds.flatMap((c) => c.nhan_vat || []).filter((x) => x != null)), nvs = pd.nhanVat.filter((n) => (dung.size ? dung.has(n.id) || dung.has(n.ten) : pd.nhanVat.length <= 12)).slice(0, 40).map((n) => ({ id: `n${n.id}`, ten: n.ten, vai: S_VAI[n.loai] || 'Nhân vật', anh: nho(n.anh_ref?.[0], 320), mo: (n.mo_ta || '').slice(0, 140) }));
+  // shot ghi anchor bằng số (phim thường) hoặc bằng tên (video máy dựng)
+  const idNv = new Map(pd.nhanVat.flatMap((n) => [[n.id, `n${n.id}`], [n.ten, `n${n.id}`]]).filter(([, v]) => nvs.some((x) => x.id === v))), laNguoi = new Set(pd.nhanVat.filter((n) => n.loai === 'nhan_vat').map((n) => n.ten));
+  // studio ghi giây theo hai cách: phim có clip từng shot → phat_s là SỐ GIÂY PHÁT của shot; video máy dựng (không có clip từng shot) → phat_s là MỐC BẮT ĐẦU trong video cả tập
+  const ps = ds.map((c) => c.phat_s), laMoc = !ds.some((c) => c.video_cuoi_url || c.video_url) && ds.length > 1 && ps[0] === 0 && ps.every((x, i) => x != null && (!i || x > ps[i - 1]));
+  GOC = {}; const khoi = {}; let tu = 0;
+  const canh = ds.map((c, i) => {
+    const kt = c.ky_thuat || {}, kx = c.khung_xam || null, m = c.may_3d || null, id = `s${c.id}`; GOC[id] = c;
+    const tg = lam2(Math.max(0.5, laMoc ? (i < ds.length - 1 ? ps[i + 1] - ps[i] : Math.max(1, (+tap.thoi_luong_s || ps[i] + (+c.thoi_luong_s || 4)) - ps[i])) : +(c.phat_s ?? c.thoi_luong_s ?? 4) || 4));
+    const thoai = (Array.isArray(c.thoai) ? c.thoai : []).filter((t) => t.loi).map((t) => ({ ai: t.nhan_vat || 'Lời dẫn', cau: t.loi }));
+    const vt = (Array.isArray(m?.vi_tri) ? m.vi_tri : []).filter((v) => Array.isArray(v.tam)).map((v) => ({ ten: v.ten, x: so(v.tam[0]), y: so(v.tam[1]), h: v.huong }));
+    for (const v of vt) khoi[v.ten] ??= { w: 45, h: 45, nguoi: laNguoi.has(v.ten), mau: MAU_NV[Object.keys(khoi).length % MAU_NV.length] };
+    const canKiem = new Set((Array.isArray(kx?.kiem) ? kx.kiem : []).map((k) => k.nhan_vat));   // khung trên hình 3D: chỉ người + thứ cổng khung đang soát, không vẽ khung cho đồ nền
+    const hop = Object.fromEntries(Object.entries(kx?.hop || {}).filter(([k, b]) => Array.isArray(b) && b.length === 4 && (laNguoi.has(k) || canKiem.has(k))).map(([k, b]) => [k, b.map((x) => Math.round(x * 1000) / 1000)]));
+    const o = canhMoi({ id, nhan: (c.canh || '').replace(/^\[[^\]]*\]\s*/, '').replace(/\s*\(.*\)$/, '') || `Cảnh ${i + 1}`, loi: thoai.length ? thoai.map((t) => t.cau).join(' ') : c.loi_thoai || '',
+      chu: (c.chu_man || '').split('\n').map((x) => x.replace(/^@[\d.]+\s*/, '').trim()).filter(Boolean).join(' · '), anh: nho(c.keyframe_url), k3: typeof kx?.mau === 'string' && kx.mau ? nho(kx.mau) : undefined,
+      tg, khop: tg, tu: laMoc ? ps[i] : lam2(tu), vid: c.video_cuoi_url || c.video_url || undefined, tuV: +kt.vao_s || 0, vid3: kx?.clip?.url || undefined, tu3: +kx?.clip?.vao || 0,
+      goc: c.goc_may || '', co: S_CO[kt.co_canh] || '', gm: S_GOC[kt.goc] || '', ong: S_ONG[kt.ong_kinh] || '', cd: S_CD[kt.chuyen_dong] || 'Đứng yên', chuyen: /mo|fade|dissolve/i.test(kt.chuyen_canh || '') ? 'Mờ dần' : 'Cắt thẳng',
+      mota: c.hanh_dong_vi || c.hanh_dong || '', thoai, td: c.am_thanh || '', cx: +c.cam_xuc || 0, pd: c.phan_doan || '', hop: Object.keys(hop).length ? hop : undefined,
+      m3: m && Array.isArray(m.dat) && Array.isArray(m.nhin) ? { dat: [so(m.dat[0]), so(m.dat[1])], nhin: [so(m.nhin[0]), so(m.nhin[1])], vt } : null, pb: c.video_phien_ban?.length || 0,
+      soi: c.soi_clip && !c.soi_clip.bo_qua ? (c.soi_clip.loi || []).map((s) => hoa(String(s).replace(/:[\s\S]*$/, '').trim())) : [],
+      kiem: (Array.isArray(kx?.kiem) ? kx.kiem : []).filter((k) => k.bat_buoc).map((k) => ({ n: k.nhan_vat, ok: !!k.trong_khung })), nv: (c.nhan_vat || []).map((n) => idNv.get(n)).filter(Boolean) });
+    tu += tg; return o;
+  });
+  const co3d = canh.some((c) => c.m3);
+  return { ten: p.ten + (pd.tap.length > 1 ? ` · tập ${tap.so}` : ''), loai: co3d ? 'phim' : 'tailieu', tile: tl, kieu: 'chart-chapters', vid: tap.video_url || tap.xuat?.[tap.xuat.length - 1]?.url || undefined,
+    giong: GIONG[0], toc: 'Vừa', nhac: tap.nhac_url ? NHAC[1] : NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs, set: co3d ? { vat: [], khoi } : undefined, canh, that: { phim: p.id, tap: tap.id, soTap: pd.tap.length } };
+}
+/** dự án chờ: khung trống hiện trong lúc đọc phim thật */
+const duAnCho = () => ({ ten: 'Đang mở phim…', loai: 'hinh', tile: '9:16', kieu: 'chart-chapters', giong: GIONG[0], toc: 'Vừa', nhac: NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs: [], canh: [canhMoi({ nhan: 'Đang mở', anh: TRONG, tg: 4 })], cho: true });
 const LOAI = { hinh: 'Kể chuyện bằng hình', tailieu: 'Tài liệu lời dẫn', phim: 'Phim nhân vật 3D' };
 const DU_AN = { cn: { bia: 'v/cn/k14.jpg', tao: () => tuDL('cn') }, ynt: { bia: 'v/ynt/k3.jpg', tao: () => tuDL('ynt') }, leo: { bia: 'v/leo-k1.jpg', tao: duAnMau } };
 // ── widget: mỗi bảng là một widget; mỗi LOẠI HÌNH video có một bố cục (danh sách widget theo thứ tự trái sang phải), đổi được và nhớ lại
@@ -269,11 +316,11 @@ const BC_MAU = { hinh: ['tv', 'xem', 'tt'], tailieu: ['kb', 'xem', 'lp', 'tt'], 
 
 let D = duAnMau();
 const E = { man: 'dung', ban: 'pro', da: 'cn', nguon: 'anh', hop: true, tat: false, ttTab: 'may', bc: JSON.parse(JSON.stringify(BC_MAU)), menu: null,
-  t: 0, chon: null, pxs: 22, tab: 'Mẫu', chay: false, lui: [], toi: [], xuat: null, moDoi: false, moNv: false, moThem: false, dangGo: false, o: 'tv', vua: false, canhDang: null, solo: null };
-try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { if (l.ban === 'gon' || l.ban === 'pro') E.ban = l.ban; if (DU_AN[l.da]) E.da = l.da; for (const k in BC_MAU) if (Array.isArray(l.bc?.[k]) && l.bc[k].includes('xem') && l.bc[k].every((w) => WG[w])) E.bc[k] = l.bc[k]; } } catch {}
-try { const q = new URLSearchParams(location.search); if (q.get('ban') === 'gon' || q.get('ban') === 'pro') E.ban = q.get('ban'); if (DU_AN[q.get('phim')]) E.da = q.get('phim'); } catch {}
-const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, bc: E.bc })); } catch {} try { history.replaceState(null, '', `?phim=${E.da}&ban=${E.ban}`); } catch {} };
-const pro = () => E.ban === 'pro', boCuc = () => (pro() ? E.bc[D.loai] : BC_MAU.hinh), co = (w) => boCuc().includes(w);
+  t: 0, chon: null, pxs: 22, tab: 'Mẫu', chay: false, lui: [], toi: [], xuat: null, moDoi: false, moNv: false, moThem: false, dangGo: false, o: 'tv', vua: false, canhDang: null, solo: null, tap: null, tim: '', kq: undefined, kqLoi: '' };
+try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { if (l.ban === 'gon' || l.ban === 'pro') E.ban = l.ban; if (DU_AN[l.da] || /^\d+$/.test(l.da || '')) { E.da = l.da; E.tap = +l.tap || null; } for (const k in BC_MAU) if (Array.isArray(l.bc?.[k]) && l.bc[k].includes('xem') && l.bc[k].every((w) => WG[w])) E.bc[k] = l.bc[k]; } } catch {}
+try { const q = new URLSearchParams(location.search); if (q.get('ban') === 'gon' || q.get('ban') === 'pro') E.ban = q.get('ban'); if (DU_AN[q.get('phim')] || /^\d+$/.test(q.get('phim') || '')) { E.da = q.get('phim'); E.tap = +q.get('tap') || null; } } catch {}
+const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc })); } catch {} try { history.replaceState(null, '', `?phim=${E.da}${E.tap ? `&tap=${E.tap}` : ''}&ban=${E.ban}`); } catch {} };
+const pro = () => E.ban === 'pro', boCuc = () => (pro() ? E.bc[D.loai].filter((w) => !D.that || ((w !== 'lp' || coLop()) && (w !== 'mb' || !!D.set))) : BC_MAU.hinh), co = (w) => boCuc().includes(w);
 const tong = () => D.canh.reduce((a, c) => a + c.tg, 0), canh = (id) => D.canh.find((c) => c.id === id), vt = (id) => D.canh.findIndex((c) => c.id === id);
 const batDau = (i) => D.canh.slice(0, i).reduce((a, c) => a + c.tg, 0), lam2 = (x) => Math.round(x * 100) / 100;
 const gio = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -284,15 +331,51 @@ const soLoi = (c) => (dai(c) ? 1 : 0) + (c.ban3 ? 1 : 0) + (c.soi?.length || 0) 
 function canhTai(t) { let s = 0; for (let i = 0; i < D.canh.length; i++) { const c = D.canh[i]; if (t < s + c.tg || i === D.canh.length - 1) return { c, i, s }; s += c.tg; } }
 const canhChon = () => (E.chon && E.chon.id !== 'nhac' ? canh(E.chon.id) : null);
 const anhNv = (n) => n.anh || NV(n.id), nguoiNoi = () => [...new Set(D.canh.flatMap((c) => c.thoai.map((t) => t.ai)))];
-const coLop = () => D.canh.some((c) => c.lop), nguonCo = () => [coLop() ? 'lop' : null, D.vid3 || D.canh.some((c) => c.k3) ? '3d' : null, 'anh', D.vid ? 'clip' : null].filter(Boolean);
-const TEN_NG = { lop: 'Lớp', '3d': '3D', anh: 'Ảnh', clip: 'Clip' }, nguonDau = () => (!pro() ? 'anh' : coLop() ? 'lop' : D.vid ? 'clip' : 'anh');
+const coLop = () => D.canh.some((c) => c.lop), coClip = () => !!D.vid || D.canh.some((c) => c.vid), nguonCo = () => [coLop() ? 'lop' : null, D.vid3 || D.canh.some((c) => c.k3 || c.vid3) ? '3d' : null, 'anh', coClip() ? 'clip' : null].filter(Boolean);
+const TEN_NG = { lop: 'Lớp', '3d': '3D', anh: 'Ảnh', clip: 'Clip' }, nguonDau = () => (!pro() ? 'anh' : coLop() ? 'lop' : coClip() ? 'clip' : 'anh');
 const khoHinh = () => [...new Set([...D.canh.map((c) => c.anh), ...KHO_HINH])].slice(0, 30);
 
 const ghi = () => { E.lui.push(JSON.stringify(D)); if (E.lui.length > 80) E.lui.shift(); E.toi = []; };
 function hoan(tu, sang) { if (!tu.length) return; sang.push(JSON.stringify(D)); D = JSON.parse(tu.pop()); if (E.chon && E.chon.id !== 'nhac' && !canh(E.chon.id)) E.chon = null; E.t = Math.min(E.t, tong()); veD(); }
 let hBao = 0;
-function bao(chu, hoanTac) { const b = $('#dBao'); b.innerHTML = `<span>${esc(chu)}</span>${hoanTac ? '<button type="button" data-d="lui">Hoàn tác</button>' : ''}`; b.hidden = false; clearTimeout(hBao); hBao = setTimeout(() => { b.hidden = true; }, 4500); }
-function moDuAn(k) { D = DU_AN[k].tao(); E.da = k; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.nguon = nguonDau(); E.solo = null; E.tab = 'Mẫu'; luu(); }
+function bao(chu, hoanTac, lau) { const b = $('#dBao'); b.innerHTML = `<span>${esc(chu)}</span>${hoanTac ? '<button type="button" data-d="lui">Hoàn tác</button>' : ''}`; b.hidden = false; clearTimeout(hBao); hBao = setTimeout(() => { b.hidden = true; }, lau || 4500); }
+function moDuAn(k) { D = DU_AN[k].tao(); GOC = {}; E.da = k; E.tap = null; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.nguon = nguonDau(); E.solo = null; E.tab = 'Mẫu'; luu(); }
+
+/** mở một phim THẬT của studio: đọc phim + cảnh của tập, ghép về dự án. Lỗi thì báo ngay trên thanh báo và giữ phim đang mở (lúc khởi động: về phim mẫu). */
+let soMo = 0;
+async function moPhimThat(pid, tid, khoiDong) {
+  const so = ++soMo; E.dangMo = true; if (khoiDong) D = duAnCho(); else { dungChay(); E.menu = null; veD(); }   // lúc khởi động: man('dung') ở cuối tệp vẽ khung chờ
+  try {
+    const [pd, ds0] = await Promise.all([goi('docPhim', +pid), tid ? goi('dsCanh', +tid) : null]); if (so !== soMo) return;
+    if (!pd) throw new Error('studio không trả phim này (phim không còn, hoặc tài khoản chưa có quyền quản trị studio)');
+    const tap = pd.tap.find((t) => t.id === +tid) || pd.tap.find((t) => t.so_canh > 0) || pd.tap[0]; if (!tap) throw new Error('phim này chưa có tập nào');
+    const ds = ds0 && tap.id === +tid ? ds0 : await goi('dsCanh', tap.id); if (so !== soMo) return;
+    if (!ds.length) throw new Error(`tập ${tap.so} của phim này chưa có cảnh nào`);
+    D = tuStudio(pd, tap, ds); E.da = String(pd.phim.id); E.tap = tap.id; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.nguon = nguonDau(); E.solo = null; E.tab = 'Mẫu'; E.vua = false; E.dangMo = false; luu(); man('dung');
+  } catch (e) { if (so !== soMo) return; E.dangMo = false; if (khoiDong || D.cho) moDuAn('cn'); veD(); bao(`Không mở được phim #${pid}: ${e.message}`, false, 15000); }
+}
+/** danh sách phim của studio trong menu chọn phim: gõ là tìm (studio lọc theo tên), chưa gõ = phim sửa gần đây */
+let hTim = 0, soTim = 0;
+async function timPhim() {
+  const so = ++soTim; E.kq = null; E.kqLoi = ''; veKq();
+  // chưa gõ: phim ngắn + series (bỏ hàng nghìn creative quảng cáo); có gõ: tìm trong mọi loại
+  try { const tim = E.tim.trim(), ds = await Promise.all((tim ? [''] : ['phim', 'series']).map((kieu) => goi('dsNhomTuDo', { kieu, tim, luuTru: false, toiDa: tim ? 20 : 12 }))); if (so !== soTim) return;
+    E.kq = ds.flatMap((r) => r.nhom.flatMap((n) => n.phim)); E.kqTong = ds.reduce((a, r) => a + r.tong, 0); }
+  catch (e) { if (so !== soTim) return; E.kq = []; E.kqLoi = e.message; }
+  veKq();
+}
+function veKqTim() {
+  if (E.kqLoi) return `<div class="bao">Không đọc được danh sách phim: ${esc(E.kqLoi)}</div>`;
+  if (!E.kq) return '<span class="nho">Đang tìm…</span>';
+  if (!E.kq.length) return `<span class="nho">${E.tim.trim() ? 'Không có phim nào khớp tên này.' : 'Studio chưa có phim nào.'}</span>`;
+  return E.kq.map((p) => { const tap = (p.tap_tom || []).filter((t) => t.so_canh > 0), dang = E.da === String(p.id);
+    return `<button type="button" class="mn-da" data-d="phimThat" data-g="${p.id}" aria-pressed="${dang}" ${tap.length ? '' : 'disabled'}><img src="${nho(p.poster_url || p.anh_dai_dien, 160)}" alt="" loading="lazy"><span><b>${esc(p.ten)}</b><small>#${p.id} · ${tap.length ? `${tap.length > 1 ? `${tap.length} tập · ` : ''}${p.so_canh} cảnh` : 'chưa có cảnh'}</small></span></button>`
+      + (tap.length > 1 ? `<div class="day-bt mn-tap">${tap.slice(0, 60).map((t) => `<button type="button" class="bt" data-d="phimThat" data-g="${p.id}" data-k="${t.id}" aria-pressed="${dang && E.tap === t.id}" title="${esc(t.ten || '')} · ${t.so_canh} cảnh, ${t.so_hinh} có hình, ${t.so_clip} có clip">Tập ${t.so}</button>`).join('')}</div>` : ''); }).join('')
+    + (E.kqTong > E.kq.length ? `<span class="nho">Còn ${E.kqTong - E.kq.length} phim nữa, gõ tên để lọc.</span>` : '');
+}
+function datMenu() { const m = $('#dMenu'); if (!E.menu || m.hidden) return; const r = E.menu.r, w = m.offsetWidth, cao = m.offsetHeight;
+  m.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - w - 8))}px`; m.style.top = `${r.bottom + 6 + cao > window.innerHeight && r.top - cao - 6 > 0 ? r.top - cao - 6 : r.bottom + 6}px`; }
+const veKq = () => { const el = $('#mnKq'); if (el) { el.innerHTML = veKqTim(); datMenu(); } };
 
 // ── vẽ
 const chipD = (ds, cur, d, k) => `<div class="day-bt">${ds.map((x) => `<button type="button" class="bt" data-d="${d}"${k ? ` data-k="${k}"` : ''} data-g="${esc(x)}" aria-pressed="${cur === x}">${esc(x)}</button>`).join('')}</div>`;
@@ -312,7 +395,7 @@ function veBoCuc() {
     if (w === 'xem') { const ng = nguonCo(), ten = TEN_NG;
       them = (ng.length > 1 ? `<span class="doan-bt">${ng.map((n) => `<button type="button" class="bt" data-d="nguon" data-g="${n}" aria-pressed="${E.nguon === n}">${ten[n]}</button>`).join('')}</span>` : '')
         + (D.canh.some((c) => c.hop) ? `<button type="button" class="bt ic-bt" data-d="hopBat" title="Khung nhân vật trên hình 3D" aria-label="Khung nhân vật trên hình 3D" aria-pressed="${E.hop}">${ic('Khung')}</button>` : '')
-        + (D.vid ? `<button type="button" class="bt ic-bt" data-d="tat" title="${E.tat ? 'Bật tiếng' : 'Tắt tiếng'}" aria-label="${E.tat ? 'Bật tiếng' : 'Tắt tiếng'}">${ic(E.tat ? 'Tắt tiếng' : 'Tiếng')}</button>` : ''); }
+        + (coClip() ? `<button type="button" class="bt ic-bt" data-d="tat" title="${E.tat ? 'Bật tiếng' : 'Tắt tiếng'}" aria-label="${E.tat ? 'Bật tiếng' : 'Tắt tiếng'}">${ic(E.tat ? 'Tắt tiếng' : 'Tiếng')}</button>` : ''); }
     const di = (t, k, mo, tat) => `<button type="button" class="bt ic-bt" data-d="wgDi" data-g="${w}" data-k="${k}" title="${mo}" aria-label="${mo}" ${tat ? 'disabled' : ''}>${ic(t)}</button>`;
     $(`#wd-${w}`).innerHTML = `<span class="w-ten">${ic(WG[w][0])}<b>${WG[w][0]}</b></span><span class="w-them">${them}</span><span class="w-nut">${di('Trái', -1, 'Đưa sang trái', !i)}${di('Phải', 1, 'Đưa sang phải', i === ds.length - 1)}${w === 'xem' ? '' : `<button type="button" class="bt ic-bt" data-d="wg" data-g="${w}" title="Ẩn widget này" aria-label="Ẩn widget này">${ic('Đóng')}</button>`}</span>`; }
 }
@@ -320,7 +403,7 @@ function veTren() {
   const p = pro(), ten = (t, d, them = '') => (p ? nutIc(t, d, '', them) : `<button type="button" class="bt" data-d="${d}" ${them}>${t === 'Hoàn tác' ? '↶ ' : t === 'Làm lại' ? '↷ ' : ''}${t}</button>`);
   $('#dTren').innerHTML = `<span class="ten-hang">Studio 2</span>
   <button type="button" class="bt da-nut" data-d="menu" data-g="da" aria-haspopup="true" aria-expanded="${E.menu?.loai === 'da'}"><b>${esc(D.ten)}</b><small>${LOAI[D.loai]}</small><span aria-hidden="true">▾</span></button>
-  <span class="thu">Bản bấm thử · dữ liệu mẫu</span>
+  ${D.that ? `<span class="thu that">Đọc từ studio · sửa ở đây chưa lưu về <a href="https://studio.on.tc/?m=phim&mId=${D.that.phim}&tab=storyboard" target="_blank" rel="noopener">Mở trong studio ↗</a></span>` : `<span class="thu">${E.dangMo ? 'Đang đọc phim từ studio…' : 'Phim mẫu · dữ liệu đóng sẵn'}</span>`}
   <span class="day"><span class="doan-bt" role="group" aria-label="Phiên bản">${[['gon', 'Gọn'], ['pro', 'Pro']].map(([k, t]) => `<button type="button" class="bt" data-d="ban" data-g="${k}" aria-pressed="${E.ban === k}">${t}</button>`).join('')}</span>
   ${p ? `<button type="button" class="bt ic-bt" data-d="menu" data-g="bc" title="Bố cục widget" aria-label="Bố cục widget" aria-haspopup="true" aria-expanded="${E.menu?.loai === 'bc'}">${ic('Bố cục')}</button>` : ''}
   ${ten('Hoàn tác', 'lui', E.lui.length ? '' : 'disabled')}${ten('Làm lại', 'toi', E.toi.length ? '' : 'disabled')}
@@ -328,13 +411,12 @@ function veTren() {
 }
 function veMenu() {
   const m = $('#dMenu'); m.hidden = !E.menu; if (!E.menu) { m.innerHTML = ''; return; } let h = '';
-  if (E.menu.loai === 'da') h = `<h3>Video mẫu để thử</h3>${Object.entries(DU_AN).map(([k, a]) => `<button type="button" class="mn-da" data-d="duAn" data-g="${k}" aria-pressed="${E.da === k}"><img src="${a.bia}" alt=""><span><b>${esc(a.ten)}</b><small>${LOAI[a.loai]} · ${a.so} cảnh · ${gio(a.dai)}</small></span></button>`).join('')}`;
+  if (E.menu.loai === 'da') h = `<h3>Phim của studio</h3><input type="text" id="mnTim" placeholder="Tìm theo tên phim" value="${esc(E.tim)}" aria-label="Tìm phim của studio" autocomplete="off"><div class="mn-kq" id="mnKq">${veKqTim()}</div><h3>Video mẫu để thử</h3>${Object.entries(DU_AN).map(([k, a]) => `<button type="button" class="mn-da" data-d="duAn" data-g="${k}" aria-pressed="${E.da === k}"><img src="${a.bia}" alt=""><span><b>${esc(a.ten)}</b><small>${LOAI[a.loai]} · ${a.so} cảnh · ${gio(a.dai)}</small></span></button>`).join('')}`;
   else { const ds = boCuc();
     h = `<h3>Bố cục cho loại “${LOAI[D.loai]}”</h3><div class="mn-wg">${Object.keys(WG).map((w) => `<button type="button" class="bt" data-d="wg" data-g="${w}" aria-pressed="${ds.includes(w)}" ${w === 'xem' ? 'disabled' : ''}>${ic(WG[w][0])}${WG[w][0]}</button>`).join('')}</div>
     <h3>Lấy bố cục của loại khác</h3><div class="day-bt">${Object.keys(BC_MAU).map((k) => `<button type="button" class="bt" data-d="bcMau" data-g="${k}">${LOAI[k]}</button>`).join('')}</div>
     <span class="nho">Mỗi loại hình video nhớ một bố cục riêng. Đổi thứ tự bằng mũi tên trên đầu từng widget.</span>`; }
-  m.innerHTML = h; const r = E.menu.r, w = m.offsetWidth, cao = m.offsetHeight;
-  m.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - w - 8))}px`; m.style.top = `${r.bottom + 6 + cao > window.innerHeight && r.top - cao - 6 > 0 ? r.top - cao - 6 : r.bottom + 6}px`;
+  m.innerHTML = h; datMenu();
 }
 function veTv() {
   const T = ['Mẫu', 'Hình', 'Nhân vật', 'Chữ', 'Giọng', 'Nhạc']; let h = '';
@@ -506,13 +588,13 @@ function veKim(theo) {
 }
 function veKhung() {
   const T = tong(), { c, s } = canhTai(Math.min(E.t, T - 0.001)), p = Math.min(1, Math.max(0, (E.t - s) / c.tg)), a = $('#kA'), v = $('#kV');
-  const ng = pro() && nguonCo().includes(E.nguon) ? E.nguon : 'anh', src = ng === 'clip' ? D.vid : ng === '3d' ? D.vid3 : null, hopBat = pro() && E.hop && ng === '3d' && !E.chay && !!c.hop && Math.abs(E.t - s) < 0.05, coVid = !!src && c.tu != null && !hopBat, laLop = ng === 'lop' && !!c.lop, anh = laLop ? c.nen : ng === '3d' && c.k3 ? c.k3 : c.anh;
+  const ng = pro() && nguonCo().includes(E.nguon) ? E.nguon : 'anh', rieng = ng === 'clip' ? c.vid : ng === '3d' ? c.vid3 : null, src = rieng || (ng === 'clip' ? D.vid : ng === '3d' ? D.vid3 : null), tu0 = rieng ? (ng === 'clip' ? c.tuV : c.tu3) : c.tu, hopBat = pro() && E.hop && ng === '3d' && !E.chay && !!c.hop && Math.abs(E.t - s) < 0.05, coVid = !!src && tu0 != null && !hopBat, laLop = ng === 'lop' && !!c.lop, anh = laLop ? c.nen : ng === '3d' && c.k3 ? c.k3 : c.anh;
   $('#w-xem').style.setProperty('--r', TILE[D.tile]);
   if (a.dataset.src !== anh) { a.dataset.src = anh; a.src = anh; }
   a.style.transform = ng !== 'anh' && !(ng === 'lop' && !laLop) ? 'none' : { 'Phóng gần': `scale(${1 + 0.14 * p})`, 'Lùi xa': `scale(${1.14 - 0.14 * p})`, 'Lia ngang': `scale(1.12) translateX(${(p - 0.5) * 7}%)`, 'Đứng yên': 'none' }[c.cd];
   a.style.opacity = ng === 'anh' && E.chay && c.chuyen === 'Mờ dần' && s > 0 && E.t - s < 0.5 ? ((E.t - s) / 0.5).toFixed(2) : 1;
   v.hidden = !coVid;
-  if (coVid) { if (v.dataset.src !== src) { v.dataset.src = src; v.src = src; } v.muted = ng === '3d' || E.tat; const d = c.tu + Math.min(E.t - s, c.tg);
+  if (coVid) { if (v.dataset.src !== src) { v.dataset.src = src; v.src = src; } v.muted = ng === '3d' || E.tat; const d = tu0 + Math.min(E.t - s, c.tg);
     if (E.chay) { if (v.paused) { try { v.currentTime = d; } catch {} v.play().catch(() => {}); } else if (Math.abs(v.currentTime - d) > 0.35) v.currentTime = d; }
     else { if (!v.paused) v.pause(); if (Math.abs(v.currentTime - d) > 0.04) { try { v.currentTime = d; } catch {} } }
   } else if (!v.paused) v.pause();
@@ -571,9 +653,10 @@ function lamD(a, d = {}, nut) {
     case 'chonCanh': return chon(g, 'canh');
     case 'chonLoi': return chon(g, 'giong');
     case 'ttTab': E.ttTab = g; E.moDoi = false; return veTt();
-    case 'menu': { const r = nut.getBoundingClientRect(); E.menu = E.menu?.loai === g ? null : { loai: g, r: { left: r.left, top: r.top, bottom: r.bottom } }; veTren(); return veMenu(); }
+    case 'menu': { const r = nut.getBoundingClientRect(); E.menu = E.menu?.loai === g ? null : { loai: g, r: { left: r.left, top: r.top, bottom: r.bottom } }; veTren(); veMenu(); if (E.menu?.loai === 'da' && E.kq === undefined) timPhim(); return; }
     case 'ban': dungChay(); E.ban = g; E.menu = null; luu(); E.nguon = nguonDau(); E.vua = false; return man('dung');
-    case 'duAn': dungChay(); E.menu = null; moDuAn(g); E.vua = false; return man('dung');
+    case 'duAn': soMo++; E.dangMo = false; dungChay(); E.menu = null; moDuAn(g); E.vua = false; return man('dung');
+    case 'phimThat': return void moPhimThat(g, d.k || null);
     case 'nguon': E.nguon = g; return veD();
     case 'hopBat': E.hop = !E.hop; if (E.hop && E.nguon !== '3d' && nguonCo().includes('3d')) { dungChay(); E.nguon = '3d'; } return veD();
     case 'tat': E.tat = !E.tat; return veD();
@@ -625,7 +708,7 @@ function lamD(a, d = {}, nut) {
     case 'veNv': return bao('Bản thật vẽ lại theo lời tả, rồi cập nhật mọi cảnh có nhân vật hay đồ vật này.');
     case 'tach': { const { c: x, i, s } = canhTai(Math.min(E.t, tong() - 0.001)), o = Math.round((E.t - s) * 10) / 10;
       if (o < 0.5 || x.tg - o < 0.5) return bao('Đặt kim vào giữa một cảnh, cách hai mép ít nhất nửa giây, rồi bấm Tách.');
-      ghi(); const w = x.loi.split(/\s+/).filter(Boolean), k = Math.round(w.length * o / x.tg), sau = canhMoi({ ...x, id: idMoi(), nv: [...x.nv], thoai: [], soi: [], nhan: `${x.nhan} (tiếp)`, loi: w.slice(k).join(' '), tg: lam2(x.tg - o), tu: x.tu != null ? lam2(x.tu + o) : undefined, khop: null });
+      ghi(); const w = x.loi.split(/\s+/).filter(Boolean), k = Math.round(w.length * o / x.tg), sau = canhMoi({ ...x, id: idMoi(), nv: [...x.nv], thoai: [], soi: [], nhan: `${x.nhan} (tiếp)`, loi: w.slice(k).join(' '), tg: lam2(x.tg - o), tu: x.tu != null ? lam2(x.tu + o) : undefined, tuV: x.vid ? lam2(x.tuV + o) : undefined, tu3: x.vid3 ? lam2(x.tu3 + o) : undefined, khop: null });
       if (x.thoai.length) sau.loi = ''; else x.loi = w.slice(0, k).join(' '); x.tg = o; x.khop = null; D.canh.splice(i + 1, 0, sau); E.chon = { id: sau.id, loai: 'canh' }; return veD(); }
     case 'nhanDoi': if (!c) return; ghi(); { const b = canhMoi({ ...JSON.parse(JSON.stringify(c)), id: idMoi() }); D.canh.splice(vt(c.id) + 1, 0, b); E.chon = { id: b.id, loai: 'canh' }; } return veD();
     case 'xoa': if (!c) return;
@@ -714,7 +797,7 @@ function goD(t) {
   veTlClip(); veKhung(); if (pro() && co('kb') && (f === 'loi' || f === 'thoai')) veKb();
 }
 for (const k in DU_AN) { const p = DU_AN[k].tao(); Object.assign(DU_AN[k], { ten: p.ten, loai: p.loai, so: p.canh.length, dai: p.canh.reduce((a, c) => a + c.tg, 0) }); }
-moDuAn(E.da);
+if (DU_AN[E.da]) moDuAn(E.da); else moPhimThat(E.da, E.tap, true);
 
 document.addEventListener('change', (e) => { if (e.target.dataset?.f === 'nhoLai') goD(e.target); });
 man('dung');

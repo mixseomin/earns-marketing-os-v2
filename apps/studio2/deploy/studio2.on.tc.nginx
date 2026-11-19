@@ -1,4 +1,4 @@
-# studio2.on.tc — Studio 2 (apps/studio2/public, tệp tĩnh: trình dựng video kiểu timeline cho team, ba phim mẫu). Anh 19/11/2026 "làm bản studio2.on.tc".
+# studio2.on.tc — Studio 2 (apps/studio2/public, tệp tĩnh: trình dựng video kiểu timeline cho team; đọc phim thật của studio.on.tc + ba phim mẫu). Anh 19/11/2026 "làm bản studio2.on.tc".
 # SSO mos2 như mọi sub mới (khuôn castle.on.tc). deploy.sh cài tệp này vào sites-enabled/studio2.on.tc; DNS do deploy/dns-on-tc.sh tự tạo.
 server { listen 80; server_name studio2.on.tc; return 301 https://$host$request_uri; }
 server {
@@ -15,5 +15,8 @@ server {
   location = /_mos2auth { internal; proxy_pass http://127.0.0.1:3821/api/auth/verify; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header Cookie $http_cookie; proxy_set_header Host mos2.on.tc; }
   location @login { return 302 https://mos2.on.tc/login?next=https://studio2.on.tc$request_uri; }
   location = /robots.txt { auth_request off; default_type text/plain; return 200 "User-agent: *\nDisallow: /\n"; }
+  # Phim thật: studio2 đọc qua đường đọc + ảnh nhỏ của studio (apps/xuong-video, cổng 3840). Chỉ mở đúng hai đường này (không mở /api/xv/xong, /tai…);
+  # qua cổng SSO ở trên rồi studio tự kiểm phiên mos2 lần nữa (hàm đọc chỉ trả dữ liệu cho quản trị).
+  location ~ ^/api/xv/(doc|nho)$ { proxy_pass http://127.0.0.1:3840; proxy_http_version 1.1; proxy_set_header Host studio.on.tc; proxy_set_header X-Forwarded-For $remote_addr; proxy_set_header X-Forwarded-Proto $scheme; proxy_read_timeout 60s; }
   location / { add_header Cache-Control "no-cache"; add_header X-Robots-Tag "noindex, nofollow" always; try_files $uri /index.html; }
 }

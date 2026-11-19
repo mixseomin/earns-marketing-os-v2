@@ -336,3 +336,10 @@ span.lp-than { cursor: default }
 .k-lop { position: absolute; inset: 0 }
 .clip.lp { background: var(--bg); gap: 4px; color: var(--ink-2); padding: 0 5px } .clip.lp .ic { width: 12px; height: 12px }
 .trong-w.sang { color: var(--ink-3); opacity: 1 }
+
+/* phim thật của studio: menu tìm phim + nhãn nguồn trên thanh trên */
+.d-menu { max-height: calc(100vh - 16px); overflow: auto }
+.mn-kq { display: grid; gap: 6px; max-height: 44vh; overflow: auto; align-content: start }
+.mn-da[disabled] { opacity: .5; cursor: default }
+.mn-tap { padding: 0 0 4px 64px; flex-wrap: wrap; max-height: 92px; overflow: auto }
+.thu.that { color: var(--ink-2, var(--ink)); background: var(--brass-nhat) } .thu a { color: inherit; font-weight: 600; margin-left: 6px; white-space: nowrap }

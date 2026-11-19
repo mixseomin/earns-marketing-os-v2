@@ -1,7 +1,7 @@
 'use client';
 // TAB MẪU CREATIVE (anh 19/11/2026: "Tạo 1 tab mới là Mẫu Creative và tổng hợp vào đó. Có bộ lọc đầy đủ").
 // Một danh sách gộp: dạng creative nhà (sổ etp-dang.json + số thật) · bố cục ảnh nhà (bo-cuc-po.py) · mẫu học từ QC đối thủ (sổ etp-mau-cr.json).
-// Lọc: Loại · Nguồn · Trạng thái (chip) · Dùng cho dạng · Thể loại (chọn nhiều, có tìm) — mọi lọc trên URL (?mcl ?mcn ?mct ?mcd ?mctl) + ô tìm + lọc theo cột của DataTable.
+// Lọc: Loại · Nguồn · Trạng thái (chip) · Dùng cho dạng · Thể loại (chọn nhiều, có tìm) — mọi lọc trên URL (?mcl ?mcn ?mct ?mcd ?mctl) + ô tìm + lọc theo cột số của DataTable (cột chữ lọc bằng chip / ô chọn ở trên, không dựng bộ thứ hai).
 // Xem Thẻ (mặc định, có ảnh mẫu) hoặc Bảng (đủ cột số). CHỈ ĐỌC. Dữ liệu: lib/actions/etp-mau-cr.ts.
 // tra-repo-ok: màn nội bộ dựng từ khối dùng chung của etp2 (DataTable thẻ / bảng, FilterChips, MultiSelect, useSoNho)
 import { useEffect, useMemo, useState } from 'react';
@@ -104,11 +104,11 @@ export function TabMauCr() {
     { key: 'ten', header: 'Mẫu', align: 'left', width: 220, sortValue: (m) => m.ten, cell: (m) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
       {m.mau ? <span style={{ width: 8, height: 8, borderRadius: 4, background: m.mau, flex: 'none' }} /> : null}<b>{m.ten}</b><span style={{ color: MO_SO, fontSize: 11 }}>{m.ma}</span></span> },
     { key: 'anh', header: 'Ảnh', align: 'left', width: 56, cell: (m) => (m.anh[0] ? <a href={m.anh[0]} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="mở ảnh cỡ lớn"><img src={m.anh[0]} alt="" loading="lazy" style={{ width: 36, height: 54, objectFit: 'cover', borderRadius: 3, display: 'block' }} /></a> : <span style={{ color: MO_SO }}>—</span>) },
-    { key: 'loai', header: 'Loại', align: 'left', loc: 'chu', sortValue: (m) => TEN_LOAI[m.loai], cell: (m) => TEN_LOAI[m.loai] },
-    { key: 'nguon', header: 'Nguồn', align: 'left', loc: 'chu', sortValue: (m) => TEN_NGUON[m.nguon], cell: (m) => TEN_NGUON[m.nguon] },
-    { key: 'tt', header: 'Trạng thái', align: 'left', loc: 'chu', sortValue: (m) => TT.indexOf(m.trang_thai), cell: (m) => <OTT m={m} /> },
-    { key: 'cho', header: 'Dùng cho', align: 'left', width: 220, loc: 'chu', sortValue: (m) => choDang(m).join(', '), cell: (m) => <span style={{ fontSize: 11.5 }}>{choDang(m).join(' · ') || '—'}</span> },
-    { key: 'tl', header: 'Thể loại', align: 'left', loc: 'chu', sortValue: (m) => m.the_loai.join(', '), cell: (m) => <span style={{ fontSize: 11.5 }}>{m.the_loai.join(' · ') || <span style={{ color: MO_SO }}>mọi thể loại</span>}</span> },
+    { key: 'loai', header: 'Loại', align: 'left', sortValue: (m) => TEN_LOAI[m.loai], cell: (m) => TEN_LOAI[m.loai] },
+    { key: 'nguon', header: 'Nguồn', align: 'left', sortValue: (m) => TEN_NGUON[m.nguon], cell: (m) => TEN_NGUON[m.nguon] },
+    { key: 'tt', header: 'Trạng thái', align: 'left', sortValue: (m) => TT.indexOf(m.trang_thai), cell: (m) => <OTT m={m} /> },
+    { key: 'cho', header: 'Dùng cho', align: 'left', width: 220, sortValue: (m) => choDang(m).join(', '), cell: (m) => <span style={{ fontSize: 11.5 }}>{choDang(m).join(' · ') || '—'}</span> },
+    { key: 'tl', header: 'Thể loại', align: 'left', sortValue: (m) => m.the_loai.join(', '), cell: (m) => <span style={{ fontSize: 11.5 }}>{m.the_loai.join(' · ') || <span style={{ color: MO_SO }}>mọi thể loại</span>}</span> },
     { key: 'cr', header: 'Creative', title: 'số creative nhà của dạng', loc: 'so', sortValue: (m) => m.so?.cr ?? null, cell: (m) => (m.so ? <Dem v={m.so.cr} /> : <span style={{ color: MO_SO }}>—</span>) },
     { key: 'camp', header: 'Camp', title: 'camp đang chạy / đã lên', loc: 'so', sortValue: (m) => m.so?.camp ?? null, cell: (m) => (m.so ? `${m.so.dang_chay}/${m.so.camp}` : <span style={{ color: MO_SO }}>—</span>) },
     { key: 'chi', header: 'Chi $', loc: 'so', sortValue: (m) => m.so?.chi ?? null, cell: (m) => (m.so ? m.so.chi.toFixed(0) : <span style={{ color: MO_SO }}>—</span>) },

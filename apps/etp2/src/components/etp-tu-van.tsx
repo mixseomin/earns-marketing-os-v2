@@ -3,9 +3,10 @@
 // Đọc bản tư vấn sống etp.tu_van (apps/etp/tu_van.py --luu, dong-bo.py ghi mỗi 10 phút) — cùng số với tin 🧭 Tư vấn trên Telegram, không tính lại ở trình duyệt.
 import { useState } from 'react';
 import type { TuVan, TuVanCamp } from '@/lib/etp-doc';
+import { tienKT } from '@/components/etp-so';
 
 const pc = (v: number | null | undefined) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v}%`);
-const usd = (v: number | null | undefined) => (v == null ? '—' : `$${Math.abs(v) >= 10 ? Math.round(v).toLocaleString('en-US') : v.toFixed(2)}`);
+const usd = tienKT;   // #1565: một hàm tiền chung (etp-so)
 const mauRoi = (v: number | null | undefined) => (v == null ? 'var(--fg-3)' : v >= 30 ? '#34d399' : v >= 0 ? 'var(--fg-1)' : '#f87171');
 const NHOM: [keyof TuVan['du']['nen'], string, string][] = [['tat', '⏹ Nên tắt', '#f87171'], ['tang', '⬆️ Nên tăng', '#34d399'], ['roas', '★ Nên lên ROAS', '#fbbf24'], ['nhan', '⧉ Nên nhân bản', '#60a5fa']];
 const DU_BAO = { xanh: ['Dự báo: ngày bình thường', '#34d399'], vang: ['Dự báo: dễ yếu', '#fbbf24'], do: ['Dự báo: ngày yếu', '#f87171'] } as const;

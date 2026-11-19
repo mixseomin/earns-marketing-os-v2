@@ -12,7 +12,7 @@ import { useNoi } from '@/components/etp-noi';
 import { useSearchParams } from 'next/navigation';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
-import { Dem, KeToan } from '@/components/etp-so';
+import { Dem, KeToan, tienKT } from '@/components/etp-so';
 import { congNgay as congN, doiChieu, heSo, hieuChinh, mauCpm, mocMau, nen, ngayThiTruong, saiSo, type NhatKyDuDoan, type SoNgay } from '@/lib/etp-thi-truong';
 import { useSoNho } from '@/lib/so-nho';
 
@@ -20,7 +20,7 @@ type ST = { chi: number; thu: number };
 const cong = (rs: ST[]) => rs.reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 });
 const roi = (s: ST) => (s.chi >= 1 ? ((s.thu - s.chi) / s.chi) * 100 : null);
 // tien() chỉ cho CHỮ (câu, tiêu đề, ô số lớn). Ô TIỀN TRONG BẢNG dùng <KeToan> (etp-so): luôn 2 số lẻ, dấu phẩy nghìn, $ mép trái, âm trong ngoặc (anh 12/11/2026 #1565 "trình bày chuẩn kế toán")
-const tien = (v: number) => { const a = Math.abs(v); return `${v < 0 ? '−' : ''}$${a >= 10_000 ? `${(a / 1000).toFixed(1)}k` : a >= 100 ? a.toFixed(0) : a.toFixed(2)}`; };
+const tien = tienKT;   // #1565: một hàm tiền chung (etp-so) — không làm tròn theo độ lớn nữa
 const pct = (r: number | null) => (r == null ? '—' : `${r > 0 ? '+' : ''}${r.toFixed(0)}%`);
 const XANH = 'var(--neon-lime, #4ade80)', DO = '#f87171', MO = 'var(--fg-3)';
 const mauLai = (v: number) => (Math.abs(v) < 0.005 ? MO : v > 0 ? XANH : DO);

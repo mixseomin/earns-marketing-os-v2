@@ -15,7 +15,7 @@ import { campTay, nhanBanTay, xemNhanBan, type ChoAp, type KieuNb } from '@/lib/
 import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import type { TrangPhim } from '@/lib/etp-doc';
 import { moXet, type DuLieuEtpGui } from '@/lib/etp-xet-gon';
-import { Dem, KeToan, mauLai, MAU_DANG, MA_DANG, BadgeDang, BadgeDangNgan } from '@/components/etp-so';
+import { Dem, KeToan, tienKT, mauLai, MAU_DANG, MA_DANG, BadgeDang, BadgeDangNgan } from '@/components/etp-so';
 import { NHOM_DANG } from '@/lib/etp-dang';
 import { maGiong } from '@/lib/etp-dang';
 import { lyDoChan, chuChan, type TieuChi } from '@/lib/etp-chan';
@@ -92,7 +92,7 @@ type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'dt' | 'mau' | 'dong
 const tuoiNgay = (iso: string | null | undefined) => (iso ? Math.max(0, (Date.now() - Date.parse(iso)) / 86_400_000) : null);
 const tuoiChu = (d: number | null) => (d == null ? '—' : d < 10 ? d.toFixed(1) : String(Math.floor(d)));
 const tuoiLoc = (d: number | null) => (d == null ? null : Math.round(d * 100) / 100);
-const usd = (v: number) => `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`;
+const usd = tienKT;   // #1565: một hàm tiền chung (etp-so) — 2 số lẻ, phẩy nghìn, âm trong ngoặc
 const roiOf = (s: SoTien) => (s.chi >= 0.3 ? Math.round(((s.thu - s.chi) / s.chi) * 100) : null);
 // số 0 ($0.00, 0%) hiện MỜ; ROI âm càng sâu càng đậm — −100% đỏ đậm in đậm, −5% đỏ nhạt (anh 26/10/2026)
 const MO = 'var(--fg-3)';
@@ -3274,7 +3274,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
           { key: 'kh', label: `Lãi ${khNhan.toLowerCase()}`, value: <Lai s={khTong} />, sub: <span>ROI <Roi s={khTong} /> · chi {usd(khTong.chi)}</span> },   // ô theo kỳ đang chọn
           { key: 'camp', label: 'Camp chạy', value: chay.length, sub: `${choChay.length ? `${choChay.length} chờ giờ · ` : ''}${nguon.filter(daTat).length} đã tắt` },
           // TỔNG NGÂN SÁCH (anh 27/10/2026 "thêm hero tổng ngân sách"): mọi camp ACTIVE (đang chạy + chờ giờ), theo bộ lọc đang chọn như các ô khác
-          { key: 'ns', label: 'Tổng ngân sách', value: `$${[...chay, ...choChay].reduce((a, c) => a + c.ngan_sach, 0)}/ngày`, sub: `đang chạy $${chay.reduce((a, c) => a + c.ngan_sach, 0)}${choChay.length ? ` · chờ giờ $${choChay.reduce((a, c) => a + c.ngan_sach, 0)}` : ''} · đã chi hôm nay ${usd(nay.chi)}` },
+          { key: 'ns', label: 'Tổng ngân sách', value: `${usd([...chay, ...choChay].reduce((a, c) => a + c.ngan_sach, 0))}/ngày`, sub: `đang chạy ${usd(chay.reduce((a, c) => a + c.ngan_sach, 0))}${choChay.length ? ` · chờ giờ ${usd(choChay.reduce((a, c) => a + c.ngan_sach, 0))}` : ''} · đã chi hôm nay ${usd(nay.chi)}` },
           { key: 'cung', label: `Đoạn vượt ${tranT} camp`, value: new Set(du.camps.filter((c) => c.cung_doan > tranT).map((c) => c.doan)).size, color: '#ffb74d' },
           { key: 'cb', label: 'Cảnh báo 24h', value: du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length, color: du.canhBao.some((c) => c.muc === 'do' && Date.now() - Date.parse(c.luc) < 86_400_000) ? '#f87171' : undefined },
         ]} />}

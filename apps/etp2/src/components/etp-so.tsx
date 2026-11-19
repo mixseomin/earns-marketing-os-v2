@@ -6,7 +6,14 @@ export function Dem({ v }: { v: number | null | undefined }) {
 }
 // CỘT TIỀN KIỂU KẾ TOÁN (anh 26/10/2026, luật YDNI): "$" dính mép trái ô, số dính mép phải, có dấu phẩy nghìn, số âm trong ngoặc (1.10) — cột thẳng hàng dấu thập phân; 0 thì mờ.
 // Một component cho mọi bảng etp (etp-view, tab Sản xuất etp-dong #1517) — đừng in "$-0.25" trần.
-export const mauLai = (v: number) => (v > 0 ? 'var(--neon-lime, #4ade80)' : 'var(--neon-red, #f87171)');
+// TIỀN TRONG CHỮ (câu, thẻ số, trục biểu đồ, title) — MỘT hàm cho cả etp2 (anh 12/11/2026 #1565 "Trình bày chuẩn kế toán"): luôn 2 số lẻ, phẩy nghìn, âm trong ngoặc ($26.11).
+// Trước mỗi tệp tự viết một kiểu (làm tròn theo độ lớn "-$196" cạnh "-$26.11", "$1.234" kiểu vi-VN, "−$") → cấm khai hàm tiền riêng, import tienKT.
+export const tienKT = (v: number | null | undefined) => {
+  if (v == null || !Number.isFinite(v)) return '—';
+  const s = `$${Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return v <= -0.005 ? `(${s})` : s;
+};
+export const mauLai =(v: number) => (v > 0 ? 'var(--neon-lime, #4ade80)' : 'var(--neon-red, #f87171)');
 export function KeToan({ v, mau }: { v: number; mau?: string }) {
   const khong = Math.abs(v) < 0.005, so = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return <span style={{ display: 'flex', justifyContent: 'space-between', gap: 6, width: '100%', paddingLeft: 12, boxSizing: 'border-box', color: khong ? MO_SO : mau, fontVariantNumeric: 'tabular-nums' }}><span style={{ opacity: 0.6 }}>$</span><span>{v < 0 && !khong ? `(${so})` : so}</span></span>;

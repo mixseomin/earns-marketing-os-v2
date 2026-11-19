@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { KhungKeo } from '@/components/etp-khung-keo';
 import { DongMoc, KhungNoi, TheChung, useNoi, type Moc, type Noi, type TheNoi } from '@/components/etp-noi';
 import { ChuoiBuoc } from '@/components/etp-dong';
-import { MA_DANG, DANG_DONG } from '@/components/etp-so';
+import { MA_DANG, DANG_DONG, tienKT } from '@/components/etp-so';
 import { chuCong, chuLich, congTang, gioVnNay, KD, khungLuc, quaCong } from '@/lib/etp-khung';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { ToaNha, TANG, xepTang, mauCamp, roiCamp, capToa, GIAI_CAP, DsCampToa, baoToa } from '@/components/etp-toa-nha';
@@ -83,7 +83,7 @@ const mocLog = (x: LogPhim): Moc => {
 // LỘ TRÌNH SCALE CAMP THẮNG (anh 07/11/2026 duyệt mẫu): mỗi camp Nhà lãi 7 ngày một khối — lên bậc · nhân bản hai nấc · ★ ROAS, chấm đúng cổng máy luật
 // (luat-ethopex.py: nhip_tang.du_so, tiêu dồn, nghỉ giữa hai lần tăng, NB_NAC, ROAS_LAI) với ngưỡng đọc ở SỔ LUẬT CHUNG — trang không giữ số riêng
 const NB = { ...BANG_LUAT.nhan_ban, nac: BANG_LUAT.nhan_ban.nac as [number, number, number][] }, ROAS_LAI = BANG_LUAT.roas_lai, ROAS_LEN = BANG_LUAT.roas_len, THANG_TU = BANG_LUAT.thang.filter((x) => x <= 20);   // camp thường tự tăng tới $20, $30 chỉ ★ ROAS
-const tien = (x: number) => `$${x.toFixed(2)}`, phan = (chi: number, thu: number) => (chi >= 0.3 ? Math.round((thu - chi) / chi * 100) : null);
+const tien = tienKT, phan = (chi: number, thu: number) => (chi >= 0.3 ? Math.round((thu - chi) / chi * 100) : null);
 const pc = (r: number | null) => (r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`);
 const gioVn = (ms: number) => { const d = new Date(ms + 7 * 3600_000); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`; };
 const Thanh = ({ v, mau }: { v: number; mau: string }) => <span style={{ display: 'inline-block', width: 56, height: 6, borderRadius: 3, background: 'var(--line)', verticalAlign: 'middle', marginRight: 6, overflow: 'hidden' }}>

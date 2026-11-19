@@ -2,7 +2,7 @@
 // TAB INSIGHT etp (anh 06/11/2026 "tạo 1 tab mới là Insight (chỉ david xem) và tổng hợp các insight gần đây sau khi phân tích chi tiết theo từng ngày và từng giờ của nhà và đội"):
 // trên = thẻ nhận định (sổ etp.insight) · dưới = số sống để tự kiểm: ngày × người, khung giờ × ngày (nhà / đội), 24 giờ VN 7 ngày. Chỉ vai chủ (lib/actions/etp-insight.ts kiểm trên máy chủ).
 import { useEffect, useMemo, useState } from 'react';
-import { Dem, KeToan, mauLai } from '@/components/etp-so';
+import { Dem, KeToan, tienKT, mauLai } from '@/components/etp-so';
 import { docInsight, docMoc, type DuInsight } from '@/lib/actions/etp-insight';
 import { useSoNho } from '@/lib/so-nho';
 import { DataTable, type DataColumn } from '@/components/ui/data-table';
@@ -11,7 +11,7 @@ import { dongBang, giaiDong, kieuDong, moTuHang, nhanDinh, roiKhoi, NHAN_KIEU, T
 const NHOM: Record<string, [string, string]> = { gio: ['🕒 Giờ', '#60a5fa'], ngay: ['📅 Ngày', '#a78bfa'], camp: ['🎯 Camp', '#f59e0b'], doi: ['👥 Đội', '#4ade80'] };
 const roi = (chi: number, thu: number) => (chi >= 1 ? Math.round(((thu - chi) / chi) * 100) : null);
 const ngan = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
-const tien = (v: number) => `$${Math.round(v).toLocaleString('vi-VN')}`;
+const tien = tienKT;   // #1565: một hàm tiền chung (etp-so)
 function Roi({ chi, thu }: { chi: number; thu: number }) {
   const r = roi(chi, thu);
   return r == null ? <span style={{ color: 'var(--fg-3)' }}>—</span> : <b style={{ color: mauLai(r) }}>{r > 0 ? '+' : ''}{r}%</b>;

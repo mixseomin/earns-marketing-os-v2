@@ -474,6 +474,11 @@ def main():
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "anh-creative.py"), "--so", "60"], capture_output=True, text=True, timeout=240)
         if '"thieu": 0' not in r.stdout or r.stderr.strip(): print(("anh-creative: " + r.stdout + r.stderr).strip()[-300:])
     except Exception as e: print(f"anh-creative: {e}")
+    # ── BÀI QC NHƯ NGƯỜI DÙNG THẤY (anh 20/11/2026) — bai-qc.py: chữ QC + CTA của creative, Page + tên miền của camp → etp.bai_cr / etp.bai_camp (chỉ GET)
+    try:
+        r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "bai-qc.py"), "--so", "80"], capture_output=True, text=True, timeout=240)
+        if '"thieu": 0' not in r.stdout or r.stderr.strip(): print(("bai-qc: " + r.stdout + r.stderr).strip()[-300:])
+    except Exception as e: print(f"bai-qc: {e}")
     # ── CHẤM CREATIVE MỌI THÀNH VIÊN (anh 31/10/2026) — nap-creative-ngoai.py --tu-dong, chỉ chạy khi etp.cau_hinh.cham_doi.bat
     try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nap-creative-ngoai.py"), "--tu-dong"], capture_output=True, text=True, timeout=180)

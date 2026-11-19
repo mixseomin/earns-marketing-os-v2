@@ -321,6 +321,8 @@ const LUAT = [
   { card: 1514, tep: 'apps/etp2/src/components/etp-noi.tsx', co: '}), TRE_MO);   // #1514', vi: 'thẻ nổi đang mở thẻ khác cũng chờ đủ trễ' },
   { card: 1522, tep: 'apps/etp2/src/components/etp-view.tsx', co: "const bangCay = hep ? null : <DataTable rows={camps} columns={cotCay}", cam: 'mở rộng +${', vi: 'cây camp chỉ có camp thật: phim đang sản xuất KHÔNG hiện dòng plan "mở rộng +N camp · chờ đo lượt"; camp mới chỉ hiện khi đã lên thật, như camp ổn định (anh 03/11 + 09/11/2026)' },
   { card: 1522, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "trang_thai: 'MO_RONG'", vi: 'không dựng lại dòng giả MO_RONG trong cây camp' },
+  { card: 1702, tep: 'apps/etp2/src/app/globals.css', mot: 'tr.dt-nhom:not(.etp-cay tr) > td { background: color-mix(in srgb, var(--accent) 16%, var(--bg-1)) !important;', vi: 'dòng nhóm bảng etp2 = tiêu đề phân nhóm: nền xanh đặc khác dòng dữ liệu (anh 19/11/2026 "Heading group phải format khác đi")' },
+  { card: 1702, tep: 'apps/etp2/src/app/globals.css', mot: 'tr.dt-nhom:not(.etp-cay tr) > td:first-child { color: var(--accent) !important; box-shadow: inset 3px 0 0 var(--accent); }', vi: 'tên nhóm chữ xanh + vạch xanh mép trái' },
 ];
 
 const loi = [];

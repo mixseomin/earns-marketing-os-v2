@@ -9,7 +9,7 @@ Chạy (iMac, ~/.venvs/poster-mau/bin/python — có rembg):
   dung-mau.py --hang                           (mọi phim đã chọn cho mẫu có hàm vẽ mà chưa dựng)
   dung-mau.py --bang <content_id>              (vẽ mọi mẫu trên một phim → bảng ghép xem trước, không giọng, không nạp)"""
 import colorsys, importlib.util, json, math, os, random, re, subprocess, sys, traceback, urllib.error, urllib.request
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
+from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
 
 D = os.path.dirname(os.path.abspath(__file__))
 def _nap(ten, tep):
@@ -134,8 +134,8 @@ def sang_khoi(lop, m, mau=(255, 255, 240), toi=(60, 30, 0)):
         l = Image.new("RGBA", (W, H), c + (0,)); l.putalpha(mm.point(lambda v: v * a // 255)); lop.alpha_composite(l)
 def phat_sang(lop, m, mau, mo=24, a=200):
     g = Image.new("RGBA", (W, H), mau + (0,)); g.putalpha(m.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(mo)).point(lambda v: min(255, v * a // 255))); lop.alpha_composite(g)
-def nut(lop, chu, y, f, nen, chu_mau=(255, 255, 255), vien_mau=None, dem=(56, 26), bo_tron=None, rong_min=0):
-    d = ImageDraw.Draw(lop); x0, y0, x1, y1 = f.getbbox(chu); w = max(rong_min, x1 - x0 + 2 * dem[0]); h = y1 - y0 + 2 * dem[1]; x = (W - w) // 2
+def nut(lop, chu, y, f, nen, chu_mau=(255, 255, 255), vien_mau=None, dem=(56, 26), bo_tron=None, rong_min=0, x_tam=None):
+    d = ImageDraw.Draw(lop); x0, y0, x1, y1 = f.getbbox(chu); w = max(rong_min, x1 - x0 + 2 * dem[0]); h = y1 - y0 + 2 * dem[1]; x = int((x_tam or W / 2) - w / 2)
     r = bo_tron if bo_tron is not None else h // 2
     bo = Image.new("RGBA", (W, H)); ImageDraw.Draw(bo).rounded_rectangle((x + 4, y + 10, x + w + 4, y + h + 10), radius=r, fill=(0, 0, 0, 150)); lop.alpha_composite(bo.filter(ImageFilter.GaussianBlur(12)))
     if vien_mau: d.rounded_rectangle((x - 6, y - 6, x + w + 6, y + h + 6), radius=r + 6, fill=vien_mau)
@@ -226,6 +226,45 @@ def logo_goc(c):
         print(f"logo gốc: kiểu {kieu}" + (f" · {'; '.join(ly)}" if ly else ""), flush=True)
     lg = Image.open(ra).convert("RGBA"); tl = W / lg.width if kieu == "dai" else min(W * LOGO_RONG / lg.width, H * LOGO_CAO / lg.height)
     return lg.resize((max(1, round(lg.width * tl)), max(1, round(lg.height * tl))), Image.LANCZOS), kieu
+# CỔNG CHUNG "CHỮ KHÔNG CHE MẶT" cho MỌI mẫu (anh 20/11/2026 "các mẫu mới tìm thấy hnay từ spy và chưa có quy trình chuẩn thế này thì chuẩn bị luôn"): trước đây mỗi hàm vẽ tự
+# né mặt theo toạ độ dọc của khung gốc (đoán), nhiều mẫu vẫn đè mặt khi khung chật. Giờ vòng dựng ĐO trên ảnh thật: máy đọc mặt chạy trên nền cuối (1080×1920, nền riêng của mẫu nếu có)
+# → hộp mặt nới 15% → phần lớp chữ / nút phủ lên hộp mặt. Quá CHE_MAT_TOI_DA thì thử khung xếp hạng kế (tối đa KHUNG_THU khung); hết khung vẫn che → DỪNG kêu to, không đăng bản che mặt.
+CHE_MAT_TOI_DA = 0.04   # tối đa 4% diện tích hộp mặt bị chữ phủ (mép tóc / cằm chạm nhẹ thì qua)
+KHUNG_THU = int(os.environ.get("KHUNG_THU", 10))
+def mat_tren(anh):
+    """hộp mặt (x0, y0, x1, y1 — điểm ảnh) trên một ảnh 1080×1920, nới 15% mỗi phía"""
+    jm = json.loads(subprocess.run([AT.may_doc(), "--mat", anh], capture_output=True, text=True, timeout=300).stdout.strip() or "{}")
+    ra = []
+    for m in jm.get("mat") or []:
+        if m[4] < 0.45 or m[3] < 0.04: continue
+        x, y, w, h = m[0] * W, m[1] * H, m[2] * W, m[3] * H
+        ra.append((max(0, x - 0.15 * w), max(0, y - 0.15 * h), min(W, x + 1.15 * w), min(H, y + 1.15 * h)))
+    return ra
+def che_mat(lop, hop):
+    """phần (0..1) diện tích hộp mặt bị lớp chữ phủ (alpha > 60) — lấy hộp bị phủ NHIỀU nhất; CHE_MAT_HOP giữ hộp đó để báo lỗi chỉ đúng chỗ"""
+    a = lop.split()[3]; toi = 0.0
+    for x0, y0, x1, y1 in hop:
+        v = a.crop((int(x0), int(y0), int(x1), int(y1))); n = max(1, v.width * v.height); r = sum(1 for t in v.getdata() if t > 60) / n
+        if r > toi: toi = r; CHE_MAT_HOP[0] = (int(x0), int(y0), int(x1), int(y1))
+    return toi
+CHE_MAT_HOP = [None]
+
+def nen_dat_mat(c, tren, duoi):
+    """MẪU BỐ CỤC CỐ ĐỊNH (băng trên, tên trên + nút dưới…) chừa một CỬA SỔ cho mặt: dời / co nền để mặt chính nằm giữa cửa sổ [tren, duoi] (px) và không cao quá 80% cửa sổ;
+    chỗ hở lấp bằng chính khung phóng to làm mờ tối (kiểu nền mờ QC đối thủ hay dùng). Không đọc ra mặt → giữ nền cũ. → đường dẫn nền mới"""
+    hop = mat_tren(c["nen"])
+    if not hop: return c["nen"]
+    x0, y0, x1, y1 = max(hop, key=lambda b: (b[2] - b[0]) * (b[3] - b[1])); im = Image.open(c["nen"]).convert("RGB")
+    z = min(1.0, 0.8 * (duoi - tren) / max(1, y1 - y0)); nho = im.resize((round(W * z), round(H * z)), Image.LANCZOS)
+    oy = round((tren + duoi) / 2 - (y0 + y1) / 2 * z); lo, hi = sorted((0, W - nho.width)); ox = round(min(hi, max(lo, W / 2 - (x0 + x1) / 2 * z)))
+    if z == 1.0 and abs(oy) < 8: return c["nen"]
+    s_ = 1.35; nen = im.resize((round(W * s_), round(H * s_))).crop((round(W * (s_ - 1) / 2), round(H * (s_ - 1) / 2), round(W * (s_ - 1) / 2) + W, round(H * (s_ - 1) / 2) + H))
+    nen = ImageEnhance.Brightness(nen.filter(ImageFilter.GaussianBlur(45))).enhance(0.55)
+    mk = Image.new("L", nho.size, 0); ImageDraw.Draw(mk).rectangle((30, 30, nho.width - 30, nho.height - 30), fill=255); mk = mk.filter(ImageFilter.GaussianBlur(18))
+    for canh, dk in (("tren", oy <= 0), ("duoi", oy + nho.height >= H), ("trai", ox <= 0), ("phai", ox + nho.width >= W)):   # mép chạm mép khung thì không mờ
+        if dk: ImageDraw.Draw(mk).rectangle({"tren": (0, 0, nho.width, 40), "duoi": (0, nho.height - 40, nho.width, nho.height), "trai": (0, 0, 40, nho.height), "phai": (nho.width - 40, 0, nho.width, nho.height)}[canh], fill=255)
+    nen.paste(nho, (ox, oy), mk); ra = os.path.join(c["tm"], f"nen-dat-{c['ma']}.png"); nen.save(ra); return ra
+
 def logo_cho(c, cao):
     """chỗ đặt một khối cao `cao` dưới mọi mặt của khung → (y, hệ số co) hoặc None nếu co tới LOGO_CO_MIN vẫn không vừa"""
     mats = c.get("mats") or [(c["mat_day"] - 1, c["mat_day"])]; tren = max(H * LOGO_VUNG[0], max(b for _, b in mats) + LOGO_CACH_MAT)
@@ -322,7 +361,7 @@ def dt_su_thi(c):
     d.text((x, hop[3] + 26), t2, font=f2, fill=(235, 205, 150, 255)); d.line([(W * 0.25, hop[3] + 14), (W * 0.75, hop[3] + 14)], fill=(220, 180, 110, 200), width=2); return ra, lop
 def dt_hanh_dong_kim_loai(c):
     """tên phim chữ hẹp nghiêng đậm kiểu phim hành động, mặt kim loại xước, viền tối (kiểu American Sniper: The Last Round)"""
-    lop0 = Image.new("RGBA", (W, H)); f, dong, y = dat_chu(c, c["ten"].upper(), "impact", W - 160, 140, 3, 0.98, 0, 0.58); cao = int(f.size * 0.98) * len(dong); m, hop = mat_chu(dong, f, y, 0.98)
+    lop0 = Image.new("RGBA", (W, H)); f, dong, y = dat_chu(c, c["ten"].upper(), "impact", W - 160, 140, 3, 0.98, 230 if AT.CO_FREE else 0, 0.58); cao = int(f.size * 0.98) * len(dong); m, hop = mat_chu(dong, f, y, 0.98)   # chừa 230px cho nút Free dưới tên
     xuoc = doc_trong((250, 250, 252), (170, 176, 186), (90, 96, 108), hop); rng = random.Random(c["cid"]); dx = ImageDraw.Draw(xuoc)
     for _ in range(400): x, yy = rng.randint(0, W), rng.randint(hop[1], max(hop[1] + 1, hop[3])); dx.line([(x, yy), (x + rng.randint(10, 60), yy + rng.randint(-2, 2))], fill=(255, 255, 255) if rng.random() < 0.5 else (60, 60, 70), width=1)
     bong(lop0, m, (8, 12), 12, 230); vien(lop0, m, 6, (15, 15, 20)); to(lop0, m, xuoc); sang_khoi(lop0, m, (255, 255, 255), (20, 20, 30))
@@ -336,6 +375,12 @@ def dt_khung_player(c):
     nen = Image.new("RGB", (W, H), (8, 8, 10)); mo = goc.resize((W, H)).filter(ImageFilter.GaussianBlur(40)).point(lambda v: v // 4); nen.paste(mo); nen.paste(g, (0, y0))
     ra = os.path.join(c["tm"], f"nen-{c['ma']}.png"); nen.save(ra)
     lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop); cx, cy2, r = W // 2, y0 + bang_h // 2, 92
+    # NÚT PLAY KHÔNG ĐÈ MẶT (cổng che mặt 20/11/2026: nút giữa màn đè 5–10% mặt nhân vật): mặt chiếm giữa → nút sang bên còn rộng hơn, cách mép mặt 40px
+    try: mats = [b for b in mat_tren(ra) if b[1] < cy2 + r and b[3] > cy2 - r]
+    except Exception: mats = []
+    if mats and any(b[0] - r < cx < b[2] + r for b in mats):
+        x0m, x1m = min(b[0] for b in mats), max(b[2] for b in mats)
+        cx = int(x0m - r - 40) if x0m > W - x1m else int(x1m + r + 40); cx = min(W - r - 30, max(r + 30, cx))
     d.ellipse((cx - r, cy2 - r, cx + r, cy2 + r), fill=(230, 30, 40, 240)); d.polygon([(cx - 30, cy2 - 46), (cx - 30, cy2 + 46), (cx + 50, cy2)], fill=(255, 255, 255, 255))
     d.rectangle((0, y0 + bang_h - 10, W, y0 + bang_h - 4), fill=(255, 255, 255, 90)); d.rectangle((0, y0 + bang_h - 10, int(W * 0.34), y0 + bang_h - 4), fill=(230, 30, 40, 255))
     yy = y0 + bang_h + 60; f = ph("arial_b", 40); t = "EXCLUSIVE"; w = f.getlength(t) + 80; d.rounded_rectangle(((W - w) / 2, yy, (W + w) / 2, yy + 70), radius=12, fill=(230, 30, 40, 255))
@@ -379,21 +424,23 @@ def _goc2(c):
 def dt_discover_banner(c):
     """BỐ CỤC: băng trên 2 dòng (DISCOVER THE FULL STORY đen trên nền sáng · EPISODE BY EPISODE trắng trên dải xám), mép chéo cắt khung; góc dưới trái nêm tối chứa
     ảnh nhỏ khung phụ; tên phim chữ hẹp nghiêng trắng góc dưới phải + nút đỏ WATCH MORE (kiểu American Sniper · Movie World)"""
-    nen = Image.open(c["nen"]).convert("RGBA"); d = ImageDraw.Draw(nen); y0 = int(H * TREN_AN)
-    d.polygon([(0, 0), (W, 0), (W, y0 + 360), (0, y0 + 560)], fill=(236, 236, 236, 255))   # mảng sáng mép chéo
-    nho = Image.open(_goc2(c)).convert("RGB"); s_ = 620 / nho.width; nho = nho.resize((620, int(nho.height * s_))).crop((0, 0, 620, 520))
-    nem = Image.new("L", (W, H)); ImageDraw.Draw(nem).polygon([(0, int(H * 0.56)), (W, int(H * 0.44)), (W, H), (0, H)], fill=255)
+    y0 = int(H * TREN_AN)
+    nen = Image.open(nen_dat_mat(c, y0 + 400, int(H * 0.62))).convert("RGBA"); d = ImageDraw.Draw(nen)   # mặt nằm GIỮA mép chéo của băng trên và nêm tối dưới (cửa sổ ~ 610–1190px)
+    d.polygon([(0, 0), (W, 0), (W, y0 + 300), (0, y0 + 400)], fill=(236, 236, 236, 255))   # mảng sáng mép chéo
+    RN, CN = 470, 400   # ảnh nhỏ cột TRÁI; tên + nút ở cột PHẢI từ x = RN + 30 (trước đây ảnh 620 rộng, tên đặt từ 42% → đè mặt trong ảnh nhỏ, cổng che mặt 20/11/2026)
+    nho = Image.open(_goc2(c)).convert("RGB"); s_ = RN / nho.width; nho = nho.resize((RN, int(nho.height * s_))).crop((0, 0, RN, CN))
+    nem = Image.new("L", (W, H)); ImageDraw.Draw(nem).polygon([(0, int(H * 0.68)), (W, int(H * 0.60)), (W, H), (0, H)], fill=255)
     toi = Image.new("RGBA", (W, H), (14, 14, 16, 255)); nen = Image.composite(toi, nen, nem)
-    mk = Image.new("L", (620, 520)); ImageDraw.Draw(mk).polygon([(0, 110), (620, 0), (620, 520), (0, 520)], fill=255); nen.paste(nho, (0, int(H * 0.60)), mk)
+    mk = Image.new("L", (RN, CN)); ImageDraw.Draw(mk).polygon([(0, 84), (RN, 0), (RN, CN), (0, CN)], fill=255); nen.paste(nho, (0, int(H * 0.70)), mk)
     ra = os.path.join(c["tm"], f"nen-{c['ma']}.png"); nen.convert("RGB").save(ra)
     lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop)
     t1, t2 = ("DISCOVER THE FULL STORY", "EPISODE BY EPISODE") if c["lang"] != "es" else ("DESCUBRE LA HISTORIA", "EPISODIO A EPISODIO")
     f1 = ph("din", 118); d.text(((W - f1.getlength(t1)) / 2, y0 + 10), t1, font=f1, fill=(30, 30, 30, 255))
     f2 = ph("din", 128); w2 = f2.getlength(t2); d.rectangle((0, y0 + 140, W, y0 + 280), fill=(48, 48, 50, 255)); d.text(((W - w2) / 2, y0 + 150), t2, font=f2, fill=(255, 255, 255, 255))
-    f3, dong = vua(c["ten"].upper(), "impact", int(W * 0.55), 84, 3); m, hop = mat_chu(dong, f3, int(H * 0.66), 1.0, "trai", int(W * 0.42))
+    XC = RN + 40; f3, dong = vua(c["ten"].upper(), "impact", W - XC - 60, 84, 3); m, hop = mat_chu(dong, f3, int(H * 0.70), 1.0, "trai", XC)
     l3 = Image.new("RGBA", (W, H)); bong(l3, m); vien(l3, m, 3, (0, 0, 0)); to(l3, m, (255, 255, 255))
     l3 = l3.transform((W, H), Image.AFFINE, (1, 0.16, -0.16 * (hop[1] + hop[3]) / 2, 0, 1, 0), Image.BICUBIC); lop.alpha_composite(l3)
-    nut(lop, "WATCH MORE" if c["lang"] != "es" else "VER MÁS", hop[3] + 50, ph("din", 84), (190, 22, 30), (255, 255, 255), (120, 10, 16), (60, 14), bo_tron=14); return ra, lop
+    nut(lop, "WATCH MORE" if c["lang"] != "es" else "VER MÁS", hop[3] + 50, ph("din", 76), (190, 22, 30), (255, 255, 255), (120, 10, 16), (44, 14), bo_tron=14, x_tam=(XC + W - 40) / 2); return ra, lop
 def dt_ong_ngam(c):
     """BỐ CỤC ống ngắm: khung phim trong vòng tròn ống ngắm (viền kim loại tối, chữ thập, số khoảng cách cam phát sáng), ngoài vòng tối; tên phim chữ hẹp nghiêng
     trắng kim loại phía dưới (kiểu American Sniper · Hot Movies Every Day, 41 ngày) — hợp phim hành động / quân đội / sát thủ"""
@@ -467,7 +514,8 @@ def dt_ten_tren_nut_duoi(c):
     d.polygon([(cx - 46, y + 40), (cx - 46, y + 6), (cx - 23, y + 24), (cx, y), (cx + 23, y + 24), (cx + 46, y + 6), (cx + 46, y + 40)], fill=(236, 186, 70, 255))
     f, dong = vua(c["ten"].upper(), "copper", W - 120, 120, 3); m, hop = mat_chu(dong, f, y + 60, 1.0)
     bong(lop, m, (5, 8), 10, 220); vien(lop, m, 5, (70, 40, 6)); to(lop, m, doc_trong((255, 244, 196), (232, 176, 60), (160, 96, 18), hop)); sang_khoi(lop, m)
-    nut(lop, "WATCH NOW!" if c["lang"] != "es" else "¡VER AHORA!", int(H * 0.74), ph("georgia_bi", 64), (40, 24, 10), (255, 236, 190), (214, 160, 50), (70, 18)); return None, lop
+    nut(lop, "WATCH NOW!" if c["lang"] != "es" else "¡VER AHORA!", int(H * 0.74), ph("georgia_bi", 64), (40, 24, 10), (255, 236, 190), (214, 160, 50), (70, 18))
+    nen = nen_dat_mat(c, hop[3] + 40, int(H * 0.74) - 40); return (None if nen == c["nen"] else nen), lop   # mặt nằm GIỮA đáy tên và nút
 
 HAM = {k: v for k, v in globals().items() if k.startswith("dt_") and callable(v)}
 CAN_CAU = {"dt_key_art_neon", "dt_cau_nhu_dinh", "dt_khung_player", "dt_logo_goc"}
@@ -531,9 +579,10 @@ def mot(ma, cid, xem=False, ban=1):
         cr = []
         for b in range(ban):
             cao_cho = CAN_CHO[ma]({"tm": tm, "ten": ten, "p": p, "cid": cid}) if ma in CAN_CHO else None; vnd += _CHI_LOGO[0]; _CHI_LOGO[0] = 0   # tách logo TRƯỚC khi chọn khung: không có logo thì dừng luôn, chưa tốn gì
-            for lan in range(min(len(uv), 10) if cao_cho else 1):
+            tot = None   # (che mặt, khung, nền, lớp, c) tốt nhất đã thử
+            for lan in range(min(len(uv), KHUNG_THU)):
                 k = uv[(b + lan) % len(uv)]; k["lang"] = lang
-                tt("ve_mau", g=f"bản {b + 1}/{ban}: vẽ mẫu trên khung {k['tap']}#{k['so']}" + (f" (khung xếp hạng {lan + 1} — các khung trước không đủ chỗ dưới mặt)" if lan else ""))
+                tt("ve_mau", g=f"bản {b + 1}/{ban}: vẽ mẫu trên khung {k['tap']}#{k['so']}" + (f" (khung xếp hạng {lan + 1} — các khung trước chữ che mặt / không đủ chỗ)" if lan else ""))
                 AT.CO_FREE, cu = False, AT.CO_FREE   # nền sạch không lớp Free — mẫu tự quyết lớp CTA của nó
                 try: nen, _ = AT.anh(cid, ten, k, tm, 100 + b)
                 finally: AT.CO_FREE = cu
@@ -547,9 +596,20 @@ def mot(ma, cid, xem=False, ban=1):
                 except Exception as e: print("đọc mặt lỗi — chỉ né mặt chính:", e, file=sys.stderr)
                 c = {"ma": ma, "cid": cid, "p": p, "lang": lang, "ten": ten, "tm": tm, "nen": nen, "goc": goc, "goc_khac": [x for x in khac if os.path.exists(x)], "mats": mats,
                      "mat_day": (k["mat"][1] + k["mat"][3]) * H, "mat_tam": k["mat"][1] + k["mat"][3] / 2, "cau": cau, "nhan": nhan}
-                if not cao_cho or cao_cho[1](c, cao_cho[0]): break
-            else: raise RuntimeError(f"{min(len(uv), 10)} khung xếp hạng đầu đều không đủ chỗ dưới mặt cho khối chữ của mẫu (chữ không che mặt)")
-            nen2, lop = HAM[ma](c); nen = nen2 or nen
+                if cao_cho and not cao_cho[1](c, cao_cho[0]): continue
+                try: nen2, lop = HAM[ma](c)
+                except RuntimeError as e:
+                    if "không đủ chỗ" in str(e): continue
+                    raise
+                nen_x = nen2 or nen
+                try: cm = che_mat(lop, mat_tren(nen_x))
+                except Exception as e: print("đo che mặt lỗi — coi như không che:", e, file=sys.stderr); cm = 0.0
+                if tot is None or cm < tot[0]: tot = (cm, k, nen_x, lop, c)
+                if cm <= CHE_MAT_TOI_DA: break
+                print(f"✗ khung {k['tap']}#{k['so']}: chữ phủ {cm:.0%} hộp mặt {CHE_MAT_HOP[0]} — thử khung kế", file=sys.stderr, flush=True)
+            if tot is None: raise RuntimeError(f"{min(len(uv), KHUNG_THU)} khung xếp hạng đầu đều không đủ chỗ dưới mặt cho khối chữ của mẫu (chữ không che mặt)")
+            if tot[0] > CHE_MAT_TOI_DA: raise RuntimeError(f"{min(len(uv), KHUNG_THU)} khung xếp hạng đầu, khung tốt nhất chữ vẫn phủ {tot[0]:.0%} hộp mặt (chuẩn ≤ {CHE_MAT_TOI_DA:.0%}) — chữ không che mặt")
+            _, k, nen, lop, c = tot
             chu = os.path.join(tm, f"chu-{ma}-{b}.png"); lop.save(chu)
             out = os.path.join(tm, f"{ma}-{cid}-{b + 1}.mp4")
             if xem:   # xem: ảnh ghép tĩnh, không giọng

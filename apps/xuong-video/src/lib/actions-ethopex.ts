@@ -13,6 +13,8 @@ export type SoLieuSong = {
   /** creative_id → số liệu cộng các camp của nó */
   theo_creative: Record<number, { chi: number; thu: number; lai: number; camp: { id: number; budget: number; spending: number | null; roi: number | null; lai: number; chi: number; thu: number }[] }>;
 };
+/** camp Ethopex đã hỏi chi tiết → creative_id (0 = camp không có creative), sống theo tiến trình — xem góp ý #1401 ở soLieuQcSong. */
+const DA_HOI = new Map<number, { cr: number; luc: number }>();
 type Dong = { campaign_id: number; daily_budget: number; spending: number | null; roi: number | null; profit: number; cost: number; revenue: number };
 
 export async function soLieuQcSong(): Promise<{ ok: true; data: SoLieuSong } | { ok: false; loi: string }> {
@@ -29,11 +31,23 @@ export async function soLieuQcSong(): Promise<{ ok: true; data: SoLieuSong } | {
     FROM xv_phim WHERE project = 'ethopex' AND kinh_thanh->'ethopex' ? 'creative_id'`)) as unknown as { id: number; cr: number; camp: number | null; nb: number[] | null }[];
   const campCr = new Map<number, number>();
   for (const r of rows) for (const c of [r.camp, ...(r.nb ?? [])]) if (typeof c === 'number') campCr.set(c, r.cr);
-  // camp chưa biết creative → hỏi Ethopex, ghi vào studio (lần sau khỏi hỏi)
-  const thieu = bc.data.rows.map((r) => r.campaign_id).filter((id) => !campCr.has(id));
-  for (const id of thieu) {
+  // camp chưa biết creative → hỏi Ethopex, ghi vào studio (lần sau khỏi hỏi).
+  // Góp ý #1401: trước hỏi TUẦN TỰ từng camp, và camp không thuộc phim studio nào (không ghi được vào studio) thì lần mở nào cũng hỏi lại
+  // → action kéo hàng chục giây; server action của Next chạy nối đuôi nên ngăn 📦 Sản phẩm (docKhoSanPham) treo "đang tải…" chờ nó.
+  // Nay: nhớ kết quả mọi camp đã hỏi trong bộ nhớ tiến trình (6 giờ) + hỏi song song 8 camp một lúc.
+  const bay = Date.now();
+  for (const [id, x] of DA_HOI) if (bay - x.luc > 6 * 3600_000) DA_HOI.delete(id);
+  for (const r of bc.data.rows) { const x = DA_HOI.get(r.campaign_id); if (x?.cr && !campCr.has(r.campaign_id)) campCr.set(r.campaign_id, x.cr); }
+  const thieu = bc.data.rows.map((r) => r.campaign_id).filter((id) => !campCr.has(id) && !DA_HOI.has(id));
+  const hoi = async (id: number) => {
     const ct = await goiEthopex<{ ad_groups?: { ads?: { creative_id?: number }[] }[] }>(db, `/api/v1/campaigns/${id}`);
     const cr = ct.ok ? ct.data.ad_groups?.[0]?.ads?.[0]?.creative_id : undefined;
+    if (ct.ok) DA_HOI.set(id, { cr: cr ?? 0, luc: Date.now() });
+    return { id, cr };
+  };
+  const hoiDuoc: { id: number; cr: number | undefined }[] = [];
+  for (let i = 0; i < thieu.length; i += 8) hoiDuoc.push(...(await Promise.all(thieu.slice(i, i + 8).map(hoi))));
+  for (const { id, cr } of hoiDuoc) {
     if (!cr) continue;
     campCr.set(id, cr);
     const p = rows.find((r) => r.cr === cr);

@@ -27,11 +27,15 @@ let nho: { luc: number; ra: { viec: ViecSx[]; kenh: KenhSp[]; loi: string[]; ghi
 
 /** Ô LỊCH Social Traffic của từng bài (theo máy + slug) để mở CHÍNH ngăn bài của lịch (ChiTietBai). Bài chưa có ô trên lịch (ngoài cửa sổ lịch, chưa xếp ngày)
  *  thì dựng ô cùng khuôn từ sổ bài — vẫn là ngăn bài của lịch, chỉ thiếu số liệu đăng. */
-let nhoLuoi: { luc: number; o: StLuoiO[] } | null = null;
+let nhoLuoi: { luc: number; o: StLuoiO[] } | null = null, dangLuoi: Promise<void> | null = null;
 export async function baiTheoSlug(ds: { may: string; slug: string }[]): Promise<Map<string, StLuoiO>> {
   const ra = new Map<string, StLuoiO>(); if (!ds.length) return ra;
   // lịch Social dựng ~5 giây (đo 12/11/2026) — nhớ 60 giây như phần gom, tab hỏi lại mỗi 30 giây
-  if (!nhoLuoi || Date.now() - nhoLuoi.luc > 60_000) nhoLuoi = { luc: Date.now(), o: (await docLuoiSocial().catch(() => ({ luoi: { o: [] as StLuoiO[] } }))).luoi.o };
+  // góp ý #1700: cũ quá 60 giây thì trả bản cũ NGAY + làm mới ở nền (một lượt một lúc); chỉ lần đầu sau khởi động mới phải chờ
+  const lamLuoi = () => (dangLuoi ??= docLuoiSocial().catch(() => ({ luoi: { o: [] as StLuoiO[] } }))
+    .then((r) => { nhoLuoi = { luc: Date.now(), o: r.luoi.o }; }).finally(() => { dangLuoi = null; }));
+  if (!nhoLuoi) await lamLuoi(); else if (Date.now() - nhoLuoi.luc > 60_000) void lamLuoi();
+  if (!nhoLuoi) return ra;
   const luoi = { o: nhoLuoi.o };
   for (const o of luoi.o) if (o.slug && !ra.has(`${o.may}|${o.slug}`)) ra.set(`${o.may}|${o.slug}`, o);
   const thieu = ds.filter((x) => !ra.has(`${x.may}|${x.slug}`)); const d = getDb();
@@ -50,11 +54,24 @@ export async function baiTheoSlug(ds: { may: string; slug: string }[]): Promise<
   return ra;
 }
 
-export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi: string[]; ghiChu: string[] }> {
-  if (nho && Date.now() - nho.luc < 60_000) return nho.ra;
+type KetSx = { viec: ViecSx[]; kenh: KenhSp[]; loi: string[]; ghiChu: string[] };
+let dangGom: Promise<KetSx> | null = null;
+/** Góp ý #1700 (anh 19/11/2026 "load quá chậm, ko mở ra cái gì"): gom nguội mất ~39 giây (đo box3) mà chỉ nhớ 60 giây → cứ quá một phút
+ *  là tab lại đứng "Đang tải…" nửa phút. Nay: có bản cũ thì trả NGAY, quá 60 giây thì làm mới ở nền (một lượt một lúc, các lượt hỏi cùng
+ *  lúc dùng chung); chỉ lượt đầu sau khởi động máy chủ mới phải chờ. Thời gian từng nguồn ghi journal ([may-sx] gom …) để biết nguồn nào chậm. */
+export async function docViecSx(): Promise<KetSx> {
+  const lam = () => (dangGom ??= gomMoi().finally(() => { dangGom = null; }));
+  if (!nho) return lam();
+  if (Date.now() - nho.luc > 60_000) void lam().catch(() => {});
+  return nho.ra;
+}
+
+async function gomMoi(): Promise<KetSx> {
+  const bd = Date.now(), doGio: string[] = [];
+  const bam = <T>(ten: string, p: Promise<T>): Promise<T> => { const a = Date.now(); return p.finally(() => { doGio.push(`${ten} ${((Date.now() - a) / 1000).toFixed(1)}s`); }); };
   const loi: string[] = [], ghiChu: string[] = []; let dsKenh: KenhSp[] = [];   // loi = nguồn đọc hỏng · ghiChu = chú thích phạm vi (không phải lỗi)
   const hom = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
-  const doc = async <T>(ten: string, f: () => Promise<T[]>): Promise<T[]> => { try { return await f(); } catch (e) { loi.push(`${ten}: ${(e as Error).message.slice(0, 140)}`); return []; } };
+  const doc = async <T>(ten: string, f: () => Promise<T[]>): Promise<T[]> => bam(ten, (async () => { try { return await f(); } catch (e) { loi.push(`${ten}: ${(e as Error).message.slice(0, 140)}`); return []; } })());
 
   const [social, kenh, etp, puzzle, mauDung] = await Promise.all([
     // BÀI SOCIAL CỦA MÁY SX TỚI LÚC ĐĂNG (anh 12/11/2026 "SX thì làm sao chia thành các nhịp rõ ràng"): bài chờ dựng (view xv_bai_cho_dung — một định nghĩa
@@ -150,10 +167,11 @@ export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi
     }),
   ]);
   // bài social: thay ô tạm bằng Ô LỊCH thật của bài (ngăn bài lịch Social Traffic)
-  const o = await baiTheoSlug(social.map((v) => ('bai' in v.mo ? { may: v.mo.bai.may, slug: v.mo.bai.slug ?? '' } : null)).filter((x): x is { may: string; slug: string } => !!x?.slug));
+  const o = await bam('lịch social', baiTheoSlug(social.map((v) => ('bai' in v.mo ? { may: v.mo.bai.may, slug: v.mo.bai.slug ?? '' } : null)).filter((x): x is { may: string; slug: string } => !!x?.slug)));
   for (const v of social) if ('bai' in v.mo) { const t = o.get(`${v.mo.bai.may}|${v.mo.bai.slug}`); if (t) v.mo = { bai: t }; }
   // hồ sơ kênh chỉ gửi kênh có việc đang làm — ngăn KenhNgan đọc từ đây
   const kenhCo = new Set(kenh.map((v) => ('kenh' in v.mo ? v.mo.kenh : ''))), ra = { viec: [...mauDung, ...etp, ...kenh, ...social, ...puzzle], kenh: dsKenh.filter((k) => kenhCo.has(k.ma)), loi, ghiChu };
   nho = { luc: Date.now(), ra };
+  console.log(`[may-sx] gom ${((Date.now() - bd) / 1000).toFixed(1)}s · ${doGio.join(' · ')}`);
   return ra;
 }

@@ -16,6 +16,7 @@ import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
+import { duocS2 } from '@/lib/quyen-s2';
 import { uploadToR2 } from '@/lib/r2';
 import { dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { gopAm } from '@/lib/xuong-video/xuat-chay';
@@ -131,7 +132,8 @@ const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
 
 async function admin() {
   const me = await getCurrentUser();
-  return me && me.role === 'admin' ? me : null;
+  // người dùng thường chỉ qua được khi route Studio 2 đã kiểm: đúng hàm cho phép, đúng phim của họ, đã được cấp quyền (quyen-s2.ts › chayS2)
+  return me && (me.role === 'admin' || duocS2(me.id)) ? me : null;
 }
 /** Email người đang sửa (ghi vào sổ hoàn tác) — gọi sau khi đã qua admin(). */
 const ai = async () => (await admin())?.email ?? '';

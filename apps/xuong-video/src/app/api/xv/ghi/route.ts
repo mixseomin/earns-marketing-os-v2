@@ -2,6 +2,7 @@
 // Mỗi hàm tự kiểm quyền + cổng quy trình + cổng tiền như trên studio. Chống gọi chéo trang: chỉ nhận JSON thật (trang lạ muốn gửi JSON thì trình duyệt
 // hỏi trước và bị từ chối vì ở đây không mở CORS) + nguồn phải là studio2 / studio.
 import { HAM_GHI } from '@/lib/ghi-ham';
+import { chayS2 } from '@/lib/quyen-s2';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -14,6 +15,6 @@ export async function POST(req: Request) {
   const { ham, args } = (await req.json().catch(() => ({}))) as { ham?: string; args?: unknown[] };
   const f = ham && Object.hasOwn(HAM_GHI, ham) ? (HAM_GHI as Record<string, (...a: unknown[]) => Promise<unknown>>)[ham] : null;
   if (!f) return Response.json({ loi: `không có hàm ghi '${ham}'` }, { status: 400 });
-  try { return Response.json({ kq: (await f(...(Array.isArray(args) ? args : []))) ?? null }, { headers: { 'cache-control': 'no-store' } }); }
+  try { return Response.json({ kq: (await chayS2('ghi', ham!, Array.isArray(args) ? args : [], () => f(...(Array.isArray(args) ? args : [])))) ?? null }, { headers: { 'cache-control': 'no-store' } }); }
   catch (e) { console.error('[studio2 ghi]', ham, e); return Response.json({ loi: e instanceof Error ? e.message : String(e) }, { status: 500 }); }
 }

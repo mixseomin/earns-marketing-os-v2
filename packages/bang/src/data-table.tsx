@@ -542,8 +542,12 @@ export function DataTable<T>({
       let v: string | null = null, cuoi: HTMLTableRowElement | null = null;
       // ngưỡng = mép dưới tiêu đề + NỬA cao dòng nhóm: bản dính tự che dải [day, day + cao dòng] → dòng nhóm kế chui quá nửa dưới bản dính thì đổi sang nó,
       // không để bản dính ghi phim cũ trong khi camp bên dưới đã là của phim mới (etp #1485 rà lại 19/11/2026: cuộn vào Atravesando mà trên đầu vẫn ghi "#0")
-      for (const tr of Array.from(bang.querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { const r = tr.getBoundingClientRect(); if (r.top < day + r.height / 2) { v = tr.dataset.nhom ?? null; cuoi = tr; } else break; }
-      if (v != null && (gapNhom(v) || bang.getBoundingClientRect().bottom <= day + (cuoi?.getBoundingClientRect().height ?? 0))) v = null;   // nhóm gập hoặc bảng đã cuộn hết
+      // CHỐNG GIẬT (anh 19/11/2026 "Màn hình cứ giật giật đéo bấm nổi" · "Rất nhiều table bị như vậy"): bản dính nằm TRONG khối tiêu đề dính, mà phần tử sticky vẫn chiếm
+      // chỗ trong dòng chảy → hiện bản dính là đẩy cả thân bảng xuống đúng một dòng → dòng nhóm thật vượt ngưỡng → gỡ bản dính → thân nhảy lên → hiện lại… (đo trong ngăn chọn
+      // phim etp2: 35 lần đổi / 4,5 giây khi đứng yên). Đo vị trí dòng như KHI CHƯA CÓ bản dính: trừ cao bản dính đang hiện (không có bản dính thì lech = 0, như cũ).
+      const lech = dauRef.current?.querySelector<HTMLTableRowElement>('tr.dt-nhom-dinh')?.getBoundingClientRect().height ?? 0;
+      for (const tr of Array.from(bang.querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { const r = tr.getBoundingClientRect(); if (r.top - lech < day + r.height / 2) { v = tr.dataset.nhom ?? null; cuoi = tr; } else break; }
+      if (v != null && (gapNhom(v) || bang.getBoundingClientRect().bottom - lech <= day + (cuoi?.getBoundingClientRect().height ?? 0))) v = null;   // nhóm gập hoặc bảng đã cuộn hết
       setNhomDinh((o) => (o === v ? o : v));
     };
     const nghe = () => { if (!hen) hen = requestAnimationFrame(xet); };

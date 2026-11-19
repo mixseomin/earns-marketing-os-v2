@@ -158,3 +158,45 @@ export async function chonPhimMau(ma: string, contentId: number): Promise<{ ok: 
     on conflict (mau, content_id) do update set dong_id = coalesce(excluded.dong_id, etp.mau_phim.dong_id), luc = now()`);
   return { ok: true, ghi };
 }
+
+/** BẢNG CHỌN PHIM cho một mẫu (anh 19/11/2026: "Bảng chọn phim đang ngu. Nhìn mỗi tên sẽ ko biết làm gì tiếp. Phải có chi tiết các cột, các thông số, chia nhóm…
+ *  giống bên tab Phim đối thủ!! Phim nào đã có…"). Mỗi phim Âu-Mỹ của Ethopex: thể loại, tuổi, camp + ROI nhà / đội, creative của mẫu này / của dạng / tổng,
+ *  dòng phim đang chạy, đã chọn cho mẫu chưa. Số đối thủ (QC đang chạy) ghép ở trình duyệt từ danh sách Phim đối thủ (useDoiThu, đã giữ trong máy). */
+export type SoCamp = { dang: number; tong: number; chi: number; thu: number };
+export type PhimChon = {
+  id: number; ten: string; tl: string | null; locale: string | null; tuoi: number | null; nha: SoCamp; doi: SoCamp;
+  cr_mau: number; cr_dang: number; cr_tong: number; dong_chay: { id: number; loai: string }[]; da_chon: boolean;
+};
+export async function docPhimChon(ma: string): Promise<{ mau: { ma: string; ten: string; dang: string | null; dong: string | null }; phim: PhimChon[]; luc: string } | { loi: string }> {
+  const q = await quyenEtp(await getCurrentUser());
+  if (!q || q.vai !== 'chu') return { loi: 'không có quyền' };
+  const so = (SO_MAU.mau as MucSo[]).find((x) => x.ma === ma), d = DS_DANG.find((x) => x.ma === ma);
+  if (!so && !d) return { loi: `không có mẫu ${ma} trong sổ` };
+  const dang = d ? d.dang : so!.loai === 'cong_thuc' ? so!.dang ?? null : null;
+  const dong = d ? d.dong ?? null : so!.loai === 'cong_thuc' && so!.trang_thai === 'may' ? dongCua(so!.dang) : null;
+  try {
+    const [coMau] = await run<{ m: boolean; c: boolean }>(sql`select to_regclass('etp.creative_mau') is not null m, to_regclass('etp.mau_phim') is not null c`);
+    const [phim, nha, doi, tuoi, cr, crMau, dongR, chon, tlR] = await Promise.all([
+      run<{ id: number; ten: string; the_loai: string | null; locale: string | null }>(sql`select content_id id, ten, the_loai, locale from etp.phim where ten is not null and coalesce(nhom_goc, 'au_my') = 'au_my'`),
+      run<SoCamp & { id: number }>(sql`select k.content_id id, count(*) filter (where k.trang_thai = 'ACTIVE')::int dang, count(*)::int tong, coalesce(sum(s.chi), 0)::float chi, coalesce(sum(s.thu), 0)::float thu
+        from etp.camp k left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id) where k.content_id is not null group by 1`),
+      run<SoCamp & { id: number }>(sql`select k.content_id id, count(*) filter (where k.trang_thai = 'ACTIVE')::int dang, count(*)::int tong, coalesce(sum(s.chi), 0)::float chi, coalesce(sum(s.thu), 0)::float thu
+        from etp.camp_ngoai k left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay_ngoai group by 1) s using (camp_id) where k.content_id is not null group by 1`),
+      run<{ id: number; ngay: number }>(sql`select content_id::int id, (current_date - min(tao)::date)::int ngay from etp.trang_phim group by 1`),
+      run<{ id: number; tong: number; dang: number }>(sql`select content_id id, count(*)::int tong, count(*) filter (where dang = ${dang ?? ''})::int dang from etp.creative where content_id is not null group by 1`),
+      coMau?.m ? run<{ id: number; n: number }>(sql`select c.content_id id, count(*)::int n from etp.creative_mau m join etp.creative c using (creative_id) where m.mau = ${ma} group by 1`) : Promise.resolve([]),
+      run<{ id: number; ds: { id: number; loai: string }[] }>(sql`select content_id id, json_agg(json_build_object('id', id, 'loai', loai) order by id) ds from etp.dong_phim where trang_thai = 'chay' group by 1`),
+      coMau?.c ? run<{ id: number }>(sql`select content_id id from etp.mau_phim where mau = ${ma}`) : Promise.resolve([]),
+      run<{ v: Record<string, string> | null }>(sql`select gia_tri->'the_loai' v from xv_khoa_ngoai where ten = 'ethopex_the_loai_thu'`),
+    ]);
+    const z: SoCamp = { dang: 0, tong: 0, chi: 0, thu: 0 }, tenTl = tlR[0]?.v ?? {};
+    const M = <T extends { id: number }>(a: T[]) => new Map(a.map((x) => [Number(x.id), x]));
+    const nhaM = M(nha), doiM = M(doi), tuoiM = M(tuoi), crM = M(cr), crMauM = M(crMau), dongM = M(dongR), chonS = new Set(chon.map((x) => Number(x.id)));
+    const so_ = (x?: SoCamp) => (x ? { dang: Number(x.dang), tong: Number(x.tong), chi: Number(x.chi), thu: Number(x.thu) } : z);
+    return { mau: { ma, ten: so?.ten ?? d!.dang, dang, dong }, luc: new Date().toISOString(), phim: phim.map((p) => { const id = Number(p.id); return {
+      id, ten: p.ten, tl: p.the_loai ? tenTl[p.the_loai] ?? p.the_loai : null, locale: p.locale, tuoi: tuoiM.get(id)?.ngay ?? null, nha: so_(nhaM.get(id)), doi: so_(doiM.get(id)),
+      cr_mau: crMauM.get(id)?.n ?? 0, cr_dang: crM.get(id)?.dang ?? 0, cr_tong: crM.get(id)?.tong ?? 0, dong_chay: dongM.get(id)?.ds ?? [], da_chon: chonS.has(id) }; }) };
+  } catch (e) {
+    return { loi: `đọc danh sách phim không được: ${(e as Error).message}` };
+  }
+}

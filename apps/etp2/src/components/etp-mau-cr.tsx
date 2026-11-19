@@ -9,8 +9,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { DataTable, FilterChips, MultiSelect, type DataColumn } from '@/components/ui';
 import { Dem, MO_SO } from '@/components/etp-so';
 import { useSoNho } from '@/lib/so-nho';
+import { openEntityDrawer } from '@/lib/entity-drawer';
+import { SU_KIEN_MAU } from '@/lib/etp-mau-su-kien';
 import { DS_DANG } from '@/lib/etp-dang';
-import { chonPhimMau, docMauCr, type LoaiMau, type MauCr, type NguonMau, type PhimSx, type TrangThaiMau } from '@/lib/actions/etp-mau-cr';
+import { docMauCr, type LoaiMau, type MauCr, type NguonMau, type PhimSx, type TrangThaiMau } from '@/lib/actions/etp-mau-cr';
 import { DO, XANH, gioVn } from './etp-doi-thu';
 
 const thuVienQc = (id: string) => `https://href.li/?https://www.facebook.com/ads/library/?id=${id}`;   // link ra ngoài che referrer
@@ -66,20 +68,14 @@ type DsPhim = { id: number; ten: string }[];
 const TT_DONG: Record<string, [string, string]> = { chay: ['đang sinh', '#fbbf24'], xong: ['xong', '#4ade80'], dung: ['dừng', '#f87171'], loi: ['lỗi', '#f87171'] };
 /** CHÂN THẺ — phim sản xuất theo mẫu + creative thật của từng phim (anh 19/11/2026: "Ở footer mỗi card sẽ là danh sách creative thực của mỗi phim được lựa chọn
  *  để sản xuất từ creative mẫu tương ứng … Mỗi phim có thể có nhiều creative"). Chọn phim → chonPhimMau (mẫu có máy dựng: tạo dòng phim; chưa có: ghi chờ). */
-function ChanThe({ m, phim, xong }: { m: MauCr; phim: DsPhim; xong: () => void }) {
-  const [dang, setDang] = useState(false), [kq, setKq] = useState<{ loi?: string; ghi?: string } | null>(null);
-  const chon = (v: number[]) => { const cid = v[v.length - 1]; if (!cid || dang) return; setDang(true); setKq(null);
-    void chonPhimMau(m.ma, cid).then((r) => { setKq('loi' in r ? { loi: r.loi } : { ghi: r.ghi }); if (!('loi' in r)) xong(); })
-      .catch((e: unknown) => setKq({ loi: e instanceof Error ? e.message : String(e) })).finally(() => setDang(false)); };
-  const daChon = new Set(m.phim_sx.map((f) => f.content_id));
+function ChanThe({ m }: { m: MauCr }) {
   return <div onClick={(e) => e.stopPropagation()} style={{ borderTop: '1px solid var(--line)', paddingTop: 7, display: 'flex', flexDirection: 'column', gap: 6 }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <span style={{ fontSize: 11.5, color: MO_SO, flex: 1 }}>Phim sản xuất · {m.phim_sx.length} phim · {m.phim_sx.reduce((a, f) => a + f.cr.length, 0)} creative</span>
-      <MultiSelect<number> label={dang ? 'đang tạo…' : '＋ Chọn phim'} single compact portal popupWidth={320} searchPlaceholder="Tìm phim…" selected={[]} onChange={chon}
-        options={phim.filter((f) => !daChon.has(f.id)).map((f) => ({ value: f.id, label: f.ten }))} />
+      <button type="button" onClick={() => openEntityDrawer('etp-mau-phim', m.ma)} title="bảng phim đủ số (nhà / đội / đối thủ / creative mẫu này) — chọn phim để máy sinh creative theo mẫu"
+        style={{ fontSize: 11.5, padding: '2px 10px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'var(--accent, #60a5fa)', cursor: 'pointer' }}>＋ Chọn phim</button>
     </div>
     {!m.dong ? <div style={{ fontSize: 11, color: MO_SO }}>mẫu chưa có máy dựng — chọn phim chỉ ghi lại, dựng mã mẫu xong máy mới sinh creative</div> : null}
-    {kq ? <div style={{ fontSize: 11.5, padding: '4px 8px', borderRadius: 6, border: `1px solid ${kq.loi ? DO : 'var(--line)'}`, color: kq.loi ? DO : 'var(--fg-2)' }}>{kq.loi ?? kq.ghi}</div> : null}
     {m.phim_sx.map((f) => <DongPhimSx key={f.content_id} f={f} />)}
   </div>;
 }
@@ -115,7 +111,7 @@ function ThamChieu({ m }: { m: MauCr }) {
       style={{ fontSize: 11.5, fontVariantNumeric: 'tabular-nums', color: t.con_chay ? XANH : 'var(--fg-2)' }}>{t.ngay ?? '?'} ngày{t.con_chay ? ' ●' : ''}</a>)}</span>;
 }
 
-function The({ m, phim, xong }: { m: MauCr; phim: DsPhim; xong: () => void }) {
+function The({ m }: { m: MauCr }) {
   const s = m.so;
   return <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 7, height: '100%' }}>
     <BanMauLuoi m={m} />
@@ -134,7 +130,7 @@ function The({ m, phim, xong }: { m: MauCr; phim: DsPhim; xong: () => void }) {
     </div> : null}
     {m.tham_chieu.length ? <div style={{ fontSize: 11.5 }}><span style={{ color: MO_SO }}>QC đối thủ: </span><ThamChieu m={m} /></div> : null}
     {m.may ? <div style={{ fontSize: 10.5, color: MO_SO, overflowWrap: 'anywhere' }}>máy dựng: {m.may}</div> : null}
-    <div style={{ marginTop: 'auto' }}><ChanThe m={m} phim={phim} xong={xong} /></div>
+    <div style={{ marginTop: 'auto' }}><ChanThe m={m} /></div>
   </div>;
 }
 
@@ -145,7 +141,8 @@ export function TabMauCr() {
   const { so: duNho, loi } = useSoNho<{ mau: MauCr[]; phim: DsPhim; luc: string }>('mau-cr', docMauCr, undefined, hopKhuon);
   const [moi, setMoi] = useState<{ mau: MauCr[]; phim: DsPhim; luc: string } | null>(null);   // bản tải lại ngay sau khi chọn phim (khỏi chờ nhịp)
   const du = moi ?? duNho;
-  const taiLai = () => { void docMauCr().then((r) => { if (!('loi' in r)) setMoi(r); }); };
+  // ngăn chọn phim (etp-mau-phim-drawer) sinh xong → tải lại chân thẻ ngay, khỏi chờ nhịp
+  useEffect(() => { const f = () => { void docMauCr().then((r) => { if (!('loi' in r)) setMoi(r); }); }; window.addEventListener(SU_KIEN_MAU, f); return () => window.removeEventListener(SU_KIEN_MAU, f); }, []);
   const [loai, setLoai] = useLoc('mcl'), [nguon, setNguon] = useLoc('mcn'), [tt, setTt] = useLoc('mct'), [dang, setDang] = useLoc('mcd'), [tl, setTl] = useLoc('mctl');
   const tatCa = useMemo(() => du?.mau ?? [], [du]);
   const dsTl = useMemo(() => [...new Set(tatCa.flatMap((m) => m.the_loai))].sort(), [tatCa]);
@@ -179,7 +176,7 @@ export function TabMauCr() {
   return (
     <DataTable rows={rows} columns={cot} getRowKey={(m) => `${m.loai}:${m.ma}`} persistKey="etp-mau-cr" minWidth={1500} pageSize={100}
       locTuDong={false}   /* thanh lọc tự động của DataTable tách sai cột nhiều giá trị (Thể loại, Dùng cho) và trùng chip ở trên → một bộ lọc */
-      card={{ render: (m) => <The m={m} phim={du.phim} xong={taiLai} />, minWidth: 340 }} defaultView="card" defaultSort={[{ key: 'tt', dir: 'asc' }]}
+      card={{ render: (m) => <The m={m} />, minWidth: 340 }} defaultView="card" defaultSort={[{ key: 'tt', dir: 'asc' }]}
       searchText={(m) => `${m.ten} ${m.ma} ${m.mo_ta} ${choDang(m).join(' ')} ${m.the_loai.join(' ')} ${m.tham_chieu.map((t) => t.phim ?? '').join(' ')}`} searchPlaceholder="Tìm mẫu, dạng, thể loại, phim đối thủ…"
       dauThanh={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <FilterChips<LoaiMau> options={LOAI.map((v) => ({ value: v, label: TEN_LOAI[v] }))} values={loai as LoaiMau[]} onToggle={(v) => setLoai(v)} counts={dem('l', LOAI, (m, v) => m.loai === v)} urlKey="mcl" />

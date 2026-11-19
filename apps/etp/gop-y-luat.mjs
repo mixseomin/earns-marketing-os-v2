@@ -1452,4 +1452,10 @@ export const LUAT = [
   { card: 1460, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'a1["chi"] > 0 and a2["chi"] > 0 and a["chi"] > ROAS_CHI and roi(a) < ROAS_ROI and roi(a1) < 0 and roi(a2) < 0', vi: 'luật RL chỉ báo tắt camp ROAS khi 2 ngày đã khép ĐỀU lỗ, cộng chi > $20, ROI < 0% — một ngày âm không đòi tắt (anh 28/10/2026)' },
   { card: 1464, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls.append(L("tang_ngay", "Tăng trong ngày → mở bản thang (bộ 2)" if b2 else "Tăng trong ngày",', vi: 'camp đi thang (bộ trong thang_bo) mới mang tên "→ mở bản thang" — tên luật nói rõ vì sao có dòng cổng mở bản thang (anh 28/10/2026)' },
   { card: 1464, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'dk_ts] + ([cong_b2] if b2 else [])', vi: 'dòng "Cổng mở bản thang" chỉ nằm trong Tăng trong ngày của camp đi thang; thang tắt (thang_bo = [] từ 01/11) thì bộ 2 tăng ngân sách như bộ khác, không hiện dòng đó' },
+  { card: 'phim-cam-quet-2011', tep: 'apps/etp/cong.py', co: 'def don_phim_cam(lam=True, q=None, tat=None, bao=None):', vi: 'máy quét phim cấm: tắt camp nhà phim cấm bị bật ngoài cổng + huỷ dòng phim / việc chờ (anh 20/11/2026 01:10)' },
+  { card: 'phim-cam-quet-2011', tep: 'apps/etp/cong.py', co: '"tat-loat", ids, "--ep", "--bo-cam-bien"', vi: 'tắt ngay qua tat-loat --ep --bo-cam-bien (cả ★ ROAS, không chờ khung giờ, không qua lich_tat)' },
+  { card: 'phim-cam-quet-2011', tep: 'apps/etp/cong.py', co: 'and c.camp_id not in (select camp_id from {ngoai} where camp_id is not null)', vi: 'chỉ camp NHÀ — không đụng camp đội / camp_ngoai (anh 19/11/2026)' },
+  { card: 'phim-cam-quet-2011', tep: 'apps/etp/cong.py', cam: 'delete from etp.dong_phim', vi: 'phim cấm chỉ đổi trạng thái + lý do, không xoá dòng' },
+  { card: 'phim-cam-quet-2011', tep: 'apps/etp/cong.py', co: 'assert _ra == ["-4", "-1"] or sorted(_ra) == ["-1", "-4"]', vi: 'tự kiểm sổ thật: camp phim cấm ACTIVE bị nhặt, camp phim thường và camp đội không' },
+  { card: 'phim-cam-quet-2011', tep: 'apps/etp/dong-bo.py', co: '"cong.py"), "--don-phim-cam"]', vi: 'máy quét chạy mỗi nhịp etp-dong-bo ngay sau đồng bộ camp, không timer mới' },
 ];

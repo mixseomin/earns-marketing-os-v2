@@ -288,6 +288,66 @@ def phim_cam(camp_ids=(), cts=(), q=None):
     if not r or "|" not in r[0]: return None
     c, ly = r[0].split("|", 1)
     return LY_PHIM_CAM.format(c, KHOA_PHIM_CAM, ly[:160])
+# MÁY QUÉT PHIM CẤM (anh 20/11/2026 01:10 "fix triệt để các phim cấm là ko đc bật !! Tắt, xoá,... mọi thứ ngay"): cổng phim_cam chỉ chặn lệnh ĐI QUA cổng — camp bị bật
+# ngoài cổng (bấm thẳng web Ethopex, hẹn giờ cũ, lỗi máy) chạy mãi không ai tắt, phim MỚI vào sổ thì dòng phim / thay bài / hàng chờ của nó vẫn sống. don_phim_cam chạy MỖI
+# lượt etp-dong-bo (dong-bo.py, ngay sau bước đồng bộ camp — trạng thái tươi): (a) camp NHÀ (CHỈ etp.camp, trừ mọi camp_id có trong etp.camp_ngoai — anh 19/11 "Chỉ tắt
+# phía nhà thôi") của phim cấm đang ACTIVE hoặc còn lịch giờ bật lại (etp.lich_tat) → tat-loat --ep --bo-cam-bien ngay (kể cả ★ ROAS, không chờ khung giờ, không qua
+# lich_tat; tat_loat tự gỡ dòng lich_tat của camp đã dừng); (b) dòng phim chay / dung / loi → huy, thay bài chay → huy, việc cắt chờ → huy, mở rộng them / cho_do → khong
+# (đổi trạng thái + lý do, KHÔNG xoá dòng); (c) có làm gì → MỘT tin Telegram chủ đề Ethopex, không có gì → im. Chỉ TẮT / huỷ, không bật / tăng / tạo gì.
+LY_DON = "phim trong sổ cấm (ethopex_phim_cam) — máy quét phim cấm tự huỷ (anh 20/11/2026)"
+LUAT_DON = "phim cấm: tự tắt camp bị bật ngoài cổng (sổ ethopex_phim_cam, anh 20/11/2026)"
+AI_DON = "anh (lệnh 20/11/2026 01:10: phim cấm tắt ngay — máy quét phim cấm)"
+def _cam_join(bang, so="xv_khoa_ngoai"):
+    return (f"join {so} k on k.ten = '{KHOA_PHIM_CAM}' and jsonb_typeof(k.gia_tri) = 'object' and {bang}.content_id is not null and k.gia_tri ? {bang}.content_id::text")
+def sql_don_camp(camp="etp.camp", ngoai="etp.camp_ngoai", lich="etp.lich_tat", so="xv_khoa_ngoai"):
+    """camp nhà phim cấm cần tắt: 'camp_id|content_id|trạng thái|đổi lúc VN|tên|lý do sổ' — tham số bảng để tự kiểm chạy đúng câu này trên bảng giả (CTE)"""
+    return (f"select c.camp_id || '|' || c.content_id || '|' || coalesce(c.trang_thai, '') || '|' || coalesce(to_char(c.cap_nhat_etp at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM'), '?')"
+            f" || '|' || replace(coalesce(c.ten, ''), '|', '/') || '|' || replace(coalesce(k.gia_tri->(c.content_id::text)->>'ly_do', 'cấm'), '|', '/')"
+            f" from {camp} c {_cam_join('c', so)} where (c.trang_thai = 'ACTIVE' or c.camp_id in (select camp_id from {lich}))"
+            f" and c.camp_id not in (select camp_id from {ngoai} where camp_id is not null) order by c.camp_id")
+# (bảng, cột trạng thái, trạng thái sống → trạng thái mới, cột lý do) — đổi trạng thái kèm lý do, giữ dòng
+HUY_PHIM_CAM = (("etp.dong_phim", "trang_thai", ("chay", "dung", "loi"), "huy", "ly_do", "id"),
+                ("etp.thay_the", "buoc", ("chay",), "huy", "ghi", "id"),
+                ("etp.viec", "trang_thai", ("cho",), "huy", "loi", "id"),
+                ("etp.mo_rong", "trang_thai", ("them", "cho_do"), "khong", "ly", "content_id"))
+def _bao_tg(chu):
+    import importlib.util as iu
+    s = iu.spec_from_file_location("lich_gio", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lich-gio.py")); m = iu.module_from_spec(s); s.loader.exec_module(m)
+    m.bao_tg(chu)
+def don_phim_cam(lam=True, q=None, tat=None, bao=None):
+    """→ {"tat": [dòng camp], "da_tat": [...], "chua": {...}, "huy": {bảng: [(khoá, phim)]}}. lam=False: chỉ đọc (không tắt, không huỷ, không báo). Lỗi đọc sổ → ném."""
+    import html, sys
+    q = q or _q
+    camps = [dict(zip(("camp_id", "ct", "tt", "luc", "ten", "ly"), l.split("|", 5))) for l in (q(sql_don_camp()) or "").splitlines() if l.count("|") >= 5]
+    kq = {"tat": camps, "da_tat": [], "chua": {}, "huy": {}}
+    for bang, cot, song, moi, ly, khoa in HUY_PHIM_CAM:
+        dk = (f"x.{cot} in ({','.join(repr(x) for x in song)}) and x.content_id is not null and exists (select 1 from xv_khoa_ngoai k where k.ten = '{KHOA_PHIM_CAM}'"
+              f" and jsonb_typeof(k.gia_tri) = 'object' and k.gia_tri ? x.content_id::text)")
+        if lam: s = f"update {bang} x set {cot} = '{moi}', {ly} = '{LY_DON}' || coalesce(' · trước: ' || x.{ly}, '') where {dk} returning x.{khoa} || '|' || x.content_id"
+        else: s = f"select x.{khoa} || '|' || x.content_id from {bang} x where {dk}"
+        kq["huy"][bang] = [tuple(l.split("|", 1)) for l in (q(s) or "").splitlines() if "|" in l]
+    if not lam: return kq
+    if camps:
+        ids = ",".join(c["camp_id"] for c in camps)
+        r = (tat or (lambda ids: subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "lam-ethopex.py"),
+                                                 "tat-loat", ids, "--ep", "--bo-cam-bien", "--luat", LUAT_DON, "--ai", AI_DON], capture_output=True, text=True, timeout=300)))(ids)
+        try: j = json.loads((r.stdout or "").strip().splitlines()[-1])
+        except Exception: j = {"loi": (r.stderr or r.stdout or "")[-300:]}
+        kq["da_tat"] = [str(x) for x in j.get("da_tat", []) + j.get("lich", [])]
+        kq["chua"] = {str(c): "đã gửi lệnh tắt, Ethopex chưa áp" for c in j.get("chua", [])} | {str(c): str(v) for c, v in (j.get("giu") or {}).items()}
+        if j.get("loi"): kq["chua"] |= {c["camp_id"]: f"lệnh tắt lỗi: {j['loi']}" for c in camps if c["camp_id"] not in kq["da_tat"]}
+    so_huy = sum(len(v) for v in kq["huy"].values())
+    if camps or so_huy:
+        e = html.escape; d = ["🚫 <b>MÁY QUÉT PHIM CẤM</b> (sổ ethopex_phim_cam — anh 20/11/2026: phim cấm không được chạy)"]
+        for c in camps:
+            d.append(f"• camp #{c['camp_id']} {e(c['ten'][:60])} · phim #{c['ct']} · {c['tt'] or '?'}" + (" (còn lịch bật lại)" if c["tt"] != "ACTIVE" else f" từ ~{c['luc']} VN")
+                     + (" → ĐÃ TẮT" if c["camp_id"] in kq["da_tat"] else f" → CHƯA TẮT: {e(kq['chua'].get(c['camp_id'], 'không rõ'))[:160]}"))
+        ten = {"etp.dong_phim": "dòng phim", "etp.thay_the": "việc thay bài", "etp.viec": "việc cắt chờ", "etp.mo_rong": "đề xuất mở rộng"}
+        for bang, v in kq["huy"].items():
+            if v: d.append(f"• huỷ {len(v)} {ten[bang]} · phim " + ", ".join(sorted({f'#{p}' for _, p in v})[:12]))
+        try: (bao or _bao_tg)("\n".join(d))
+        except Exception as x: print(f"báo Telegram lỗi: {x}", file=sys.stderr)
+    return kq
 def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False, cts=(), goc=None, q=None):
     """PHẦN CỔNG KHÔNG TIN LỜI NGƯỜI GỌI (anh 18/11/2026) — một hàm cho kiem() và cửa API (ethopex_api.api, đọc dữ kiện từ chính lệnh gửi đi):
     dừng khẩn · camp ít nước / lô team tắt không bật lại · Ethopex bảo trì lên camp · PHANH CHỢ. ch = etp.cau_hinh {khoá: giá trị}.
@@ -557,6 +617,14 @@ def _tu_kiem():
     assert chan_cua("tang", {}, 5, cts=[7], q=lambda s: "") is None and phim_cam(q=lambda s: (_ for _ in ()).throw(RuntimeError("không được đọc"))) is None, "không phim / camp thì không đọc sổ"
     assert "chặn cho an toàn" in phim_cam([5], q=lambda s: (_ for _ in ()).throw(RuntimeError("x"))), "lỗi đọc sổ phim cấm phải chặn"
     assert "ethopex_phim_cam" in SQL_CAMP_PHIM_CAM and "camp_ngoai" in SQL_CAMP_PHIM_CAM
+    # MÁY QUÉT PHIM CẤM (anh 20/11/2026): 1 camp phim cấm ACTIVE → tắt đúng camp đó qua tat-loat --ep --bo-cam-bien, MỘT tin; không có gì → im, không gọi tắt
+    _goi, _tin = [], []
+    class _R: stdout = '{"da_tat": [9001], "lich": [], "chua": [], "giu": {}}'; stderr = ""
+    _k = don_phim_cam(q=lambda s: "9001|501|ACTIVE|01:05 20/11|camp thử|vi phạm" if "select c.camp_id" in s else "", tat=lambda ids: _goi.append(ids) or _R, bao=_tin.append)
+    assert _goi == ["9001"] and _k["da_tat"] == ["9001"] and len(_tin) == 1 and "#9001" in _tin[0] and "ĐÃ TẮT" in _tin[0] and "#501" in _tin[0], (_goi, _k, _tin)
+    _goi, _tin = [], []; don_phim_cam(q=lambda s: "", tat=lambda ids: _goi.append(ids) or _R, bao=_tin.append)
+    assert not _goi and not _tin, "không có camp / dòng phim cấm thì không tắt, không báo"
+    assert sql_don_camp().count("etp.camp_ngoai") == 1 and "not in (select camp_id from etp.camp_ngoai" in sql_don_camp() and " from etp.camp c " in sql_don_camp(), "máy quét chỉ đọc camp NHÀ, trừ camp đội"
     print("✓ cong.py tự kiểm (nhận camp ROAS mọi kiểu tên + gốc đã có ROAS + camp mới $1 trên payload + phim cấm chặn cả vé / lịch / ROAS)")
 
 if __name__ == "__main__":
@@ -606,6 +674,22 @@ if __name__ == "__main__":
         _ds = [int(x) for x in (_q("select string_agg(distinct content_id::text, ',') from etp.cho_len_v where ly_do is null") or "").split(",") if x]
         assert _ds and phim_cam(cts=_ds) is None, f"LỌT: kho chờ lên cho tự lên phim cấm → {phim_cam(cts=_ds) if _ds else 'kho rỗng'}"
         print(f"✓ kho chờ lên: 167292 bị chặn, {len(_ds)} phim thường (vd #{_ds[0]}) đi qua phim_cam")
+        # MÁY QUÉT PHIM CẤM (etp:phim-cam-quet-2011): ĐÚNG câu sql_don_camp chạy trên bảng giả với sổ cấm thật —
+        # -1 phim cấm ACTIVE → tắt · -2 phim thường ACTIVE → không đụng · -3 phim cấm ACTIVE nhưng là camp ĐỘI → không đụng · -4 phim cấm PAUSED còn lịch bật lại → tắt
+        _ct_sach = int(_q(f"select content_id from etp.camp where camp_id = {_sach}"))
+        _gia = (f"with gia_camp(camp_id, content_id, trang_thai, cap_nhat_etp, ten) as (values (-1::bigint, {ct}, 'ACTIVE', now(), 'a'), (-2::bigint, {_ct_sach}, 'ACTIVE', now(), 'b'),"
+                f" (-3::bigint, {ct}, 'ACTIVE', now(), 'c'), (-4::bigint, {ct}, 'PAUSED', now(), 'd')), gia_ngoai(camp_id) as (values (-3::bigint)), gia_lich(camp_id) as (values (-4::bigint)) ")
+        _ra = [l.split("|")[0] for l in (_q(_gia + sql_don_camp("gia_camp", "gia_ngoai", "gia_lich")) or "").splitlines()]
+        assert _ra == ["-4", "-1"] or sorted(_ra) == ["-1", "-4"], f"máy quét sai: {_ra} (mong -1, -4)"
+        print(f"✓ máy quét: camp phim cấm ACTIVE / còn lịch bật → tắt; phim thường #{_ct_sach} và camp đội không đụng")
+        _x = don_phim_cam(lam=False)
+        _ngoai = set((_q("select string_agg(camp_id::text, ',') from etp.camp_ngoai") or "").split(","))
+        assert not [c for c in _x["tat"] if c["camp_id"] in _ngoai], "LỌT: máy quét nhặt camp đội"
+        print(f"✓ máy quét sổ thật (chỉ đọc): {len(_x['tat'])} camp nhà cần tắt · " + " · ".join(f"{b} {len(v)}" for b, v in _x["huy"].items()))
+        sys.exit(0)
+    if a[:1] == ["--don-phim-cam"]:   # nhịp etp-dong-bo (anh 20/11/2026): tắt camp nhà phim cấm bị bật ngoài cổng + huỷ dòng phim / việc chờ của phim cấm; --xem = chỉ đọc
+        _x = don_phim_cam(lam="--xem" not in a)
+        print(json.dumps({"tat": [c["camp_id"] for c in _x["tat"]], "da_tat": _x["da_tat"], "chua": _x["chua"], "huy": {b: len(v) for b, v in _x["huy"].items()}}, ensure_ascii=False))
         sys.exit(0)
     if a[:1] == ["--xem-test"]:   # chỉ đọc: số camp test / phim lãi ổn định / chỗ còn của các phim đang chạy (trần camp test / phim, anh 18/11/2026) — không giữ chỗ
         print(_q(f"""select p.content_id || ' test ' || t.n || ' · lãi ổn định ' || t.on || ' · chỗ còn ' || coalesce({sql_test_con('p.content_id')}::text, 'không trần')

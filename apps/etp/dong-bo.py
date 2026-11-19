@@ -151,6 +151,12 @@ def main():
         # camp ROAS chạy BÀI ĐĂNG CŨ: ad không mang content/creative → nhận phim của camp gốc (cây camp + số theo phim trên etp.on.tc)
         q("""update etp.camp c set content_id = g.content_id from etp.camp g where c.goc = g.camp_id and coalesce(c.content_id, 0) = 0 and coalesce(g.content_id, 0) <> 0""")
     except Exception as e: loi.append(f"camp: {e}")
+    # ── MÁY QUÉT PHIM CẤM (anh 20/11/2026 01:10 "phim cấm là ko đc bật — tắt, xoá mọi thứ ngay"): ngay sau khi đồng bộ camp (trạng thái mới nhất) —
+    # camp NHÀ phim trong sổ ethopex_phim_cam đang ACTIVE / còn lịch bật → tắt ngay (cả ★ ROAS), huỷ dòng phim / việc chờ của phim cấm; có gì thì MỘT tin Telegram. Không đụng camp đội.
+    try:
+        r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cong.py"), "--don-phim-cam"], capture_output=True, text=True, timeout=420)
+        print("phim cấm:", (r.stdout or "").strip()[-300:]); (r.returncode or r.stderr.strip()) and loi.append(f"phim_cam_quet: {(r.stderr or r.stdout).strip()[-200:]}")
+    except Exception as e: loi.append(f"phim_cam_quet: {e}")
     # ── SỔ DẠNG (anh 08/11/2026 "ko bị khai thừa ở nhiều nơi"): lưới apps/etp/kiem-so-dang.mjs mỗi lượt — có bảng dạng tự khai / sổ lệch → cảnh báo Telegram (một lần mỗi nội dung)
     try:
         r = subprocess.run(["node", os.path.join(os.path.dirname(os.path.abspath(__file__)), "kiem-so-dang.mjs")], capture_output=True, text=True, timeout=60)

@@ -389,7 +389,7 @@
    "ten": "Tên vàng nổi khối",
    "loai": "lop_phu",
    "nguon": "doi_thu",
-   "trang_thai": "chua",
+   "trang_thai": "thu",
    "dung_cho": [
     "ảnh tĩnh",
     "câu thoại sốc",
@@ -407,14 +407,15 @@
     "2210241639548499",
     "1419786253363654"
    ],
-   "mo_ta": "Tên phim chữ vàng bóng nổi khối (vát cạnh, đổ bóng) đặt 1/3 dưới, đè thẳng lên khung phim điện ảnh — không nền, không nút. Hai QC chạy lâu nhất kho đối thủ (92 ngày)."
+   "mo_ta": "Tên phim chữ vàng bóng nổi khối (vát cạnh, đổ bóng) đặt 1/3 dưới, đè thẳng lên khung phim điện ảnh — không nền, không nút. Hai QC chạy lâu nhất kho đối thủ (92 ngày).",
+   "may": "dung-mau.py › dt_ten_vang"
   },
   {
    "ma": "dt_logo_chat_lieu",
    "ten": "Logo chất liệu chủ đề",
    "loai": "lop_phu",
    "nguon": "doi_thu",
-   "trang_thai": "chua",
+   "trang_thai": "thu",
    "dung_cho": [
     "ảnh tĩnh",
     "poster động",
@@ -430,14 +431,15 @@
     "3003117683383697",
     "1851918955714094"
    ],
-   "mo_ta": "Tên phim vẽ bằng chất liệu theo chủ đề phim (sóng nước, lửa, phép thuật, huy hiệu) có hoạ tiết bao quanh — logo như phim chiếu rạp."
+   "mo_ta": "Tên phim vẽ bằng chất liệu theo chủ đề phim (sóng nước, lửa, phép thuật, huy hiệu) có hoạ tiết bao quanh — logo như phim chiếu rạp.",
+   "may": "dung-mau.py › dt_logo_chat_lieu"
   },
   {
    "ma": "dt_ten_nut_vang",
    "ten": "Tên + nút WATCH NOW viền vàng",
    "loai": "lop_phu",
    "nguon": "doi_thu",
-   "trang_thai": "chua",
+   "trang_thai": "thu",
    "dung_cho": [
     "ảnh tĩnh",
     "câu thoại sốc",
@@ -449,14 +451,15 @@
     "1077794738566345",
     "1092249746682945"
    ],
-   "mo_ta": "Tên phim hai tầng (từ khoá tô đỏ) giữa khung + nút bo tròn WATCH NOW viền vàng ngay dưới tên."
+   "mo_ta": "Tên phim hai tầng (từ khoá tô đỏ) giữa khung + nút bo tròn WATCH NOW viền vàng ngay dưới tên.",
+   "may": "dung-mau.py › dt_ten_nut_vang"
   },
   {
    "ma": "dt_key_art_neon",
    "ten": "Key-art neon + câu nhử",
    "loai": "bo_cuc",
    "nguon": "doi_thu",
-   "trang_thai": "chua",
+   "trang_thai": "thu",
    "dung_cho": [
     "poster động",
     "ảnh tĩnh"
@@ -469,14 +472,15 @@
    "tham_chieu": [
     "1889799045326032"
    ],
-   "mo_ta": "Nhân vật tách nền chồng hai lớp (chính + phụ), nền chuyển đỏ–tím rực có tia sáng, câu nhử trên đỉnh tô đỏ một từ ('To fight crime, he became a criminal'), tên + nút dưới."
+   "mo_ta": "Nhân vật tách nền chồng hai lớp (chính + phụ), nền chuyển đỏ–tím rực có tia sáng, câu nhử trên đỉnh tô đỏ một từ ('To fight crime, he became a criminal'), tên + nút dưới.",
+   "may": "dung-mau.py › dt_key_art_neon"
   },
   {
    "ma": "dt_cau_nhu_dinh",
    "ten": "Câu nhử chữ nghiêng trên đỉnh",
    "loai": "lop_phu",
    "nguon": "doi_thu",
-   "trang_thai": "chua",
+   "trang_thai": "thu",
    "dung_cho": [
     "cảnh thật",
     "cảnh cuối",
@@ -487,14 +491,15 @@
    "tham_chieu": [
     "4503252533269379"
    ],
-   "mo_ta": "Một câu nhử chữ có chân nghiêng trắng ở đỉnh khung, một từ tô đỏ ('A fighter is thrown into the death arena') — giữ cảnh phim sạch ở dưới."
+   "mo_ta": "Một câu nhử chữ có chân nghiêng trắng ở đỉnh khung, một từ tô đỏ ('A fighter is thrown into the death arena') — giữ cảnh phim sạch ở dưới.",
+   "may": "dung-mau.py › dt_cau_nhu_dinh"
   },
   {
    "ma": "dt_su_thi",
    "ten": "Poster sử thi khắc chữ",
    "loai": "bo_cuc",
    "nguon": "doi_thu",
-   "trang_thai": "chua",
+   "trang_thai": "thu",
    "dung_cho": [
     "poster động"
    ],
@@ -507,14 +512,15 @@
     "2193667711364272",
     "1078372875245973"
    ],
-   "mo_ta": "Poster vẽ sử thi (nhân vật + rồng / lửa), tên phim chữ có chân khắc ánh kim + dòng nhỏ dưới 'A FANTASY ROMANCE EPIC'."
+   "mo_ta": "Poster vẽ sử thi (nhân vật + rồng / lửa), tên phim chữ có chân khắc ánh kim + dòng nhỏ dưới 'A FANTASY ROMANCE EPIC'.",
+   "may": "dung-mau.py › dt_su_thi"
   },
   {
    "ma": "dt_hanh_dong_kim_loai",
    "ten": "Tên hành động kim loại",
    "loai": "lop_phu",
    "nguon": "doi_thu",
-   "trang_thai": "chua",
+   "trang_thai": "thu",
    "dung_cho": [
     "ảnh tĩnh",
     "poster động",
@@ -529,14 +535,15 @@
     "2218759858703858",
     "28606044065745348"
    ],
-   "mo_ta": "Tên phim chữ hẹp nghiêng đậm kiểu phim hành động, mặt kim loại xước / trắng viền tối, đặt giữa dưới."
+   "mo_ta": "Tên phim chữ hẹp nghiêng đậm kiểu phim hành động, mặt kim loại xước / trắng viền tối, đặt giữa dưới.",
+   "may": "dung-mau.py › dt_hanh_dong_kim_loai"
   },
   {
    "ma": "dt_khung_player",
    "ten": "Khung trình phát + EXCLUSIVE",
    "loai": "lop_phu",
    "nguon": "doi_thu",
-   "trang_thai": "chua",
+   "trang_thai": "thu",
    "dung_cho": [
     "cảnh thật",
     "cảnh cuối",
@@ -547,14 +554,15 @@
    "tham_chieu": [
     "1459936659424344"
    ],
-   "mo_ta": "Cảnh phim đặt giữa hai dải đen như màn hình trình phát, nút play đỏ ở giữa, nhãn EXCLUSIVE + tên phim phía dưới."
+   "mo_ta": "Cảnh phim đặt giữa hai dải đen như màn hình trình phát, nút play đỏ ở giữa, nhãn EXCLUSIVE + tên phim phía dưới.",
+   "may": "dung-mau.py › dt_khung_player"
   },
   {
    "ma": "dt_dai_free",
    "ten": "Dải trắng WATCH FREE trên đỉnh",
    "loai": "lop_phu",
    "nguon": "doi_thu",
-   "trang_thai": "chua",
+   "trang_thai": "thu",
    "dung_cho": [
     "cảnh thật",
     "cảnh cuối",
@@ -565,14 +573,15 @@
    "tham_chieu": [
     "1114104751104052"
    ],
-   "mo_ta": "Một dải trắng mảnh trên đỉnh khung chữ đen 'WATCH MOVIES NOW! FREE' — báo miễn phí ngay giây đầu, cảnh phim giữ nguyên."
+   "mo_ta": "Một dải trắng mảnh trên đỉnh khung chữ đen 'WATCH MOVIES NOW! FREE' — báo miễn phí ngay giây đầu, cảnh phim giữ nguyên.",
+   "may": "dung-mau.py › dt_dai_free"
   },
   {
    "ma": "dt_theo_mua",
    "ten": "Theo mùa (Giáng sinh)",
    "loai": "bo_cuc",
    "nguon": "doi_thu",
-   "trang_thai": "chua",
+   "trang_thai": "thu",
    "dung_cho": [
     "poster động",
     "ảnh tĩnh"
@@ -584,14 +593,15 @@
    "tham_chieu": [
     "1088302080694453"
    ],
-   "mo_ta": "Key-art cặp nhân vật trên nền theo mùa (cây thông, tuyết, mũ Noel), tên phim nhiều tầng + nút WATCH NOW viền vàng."
+   "mo_ta": "Key-art cặp nhân vật trên nền theo mùa (cây thông, tuyết, mũ Noel), tên phim nhiều tầng + nút WATCH NOW viền vàng.",
+   "may": "dung-mau.py › dt_theo_mua"
   },
   {
    "ma": "dt_logo_goc",
    "ten": "Logo phim nhỏ ở góc + phụ đề",
    "loai": "lop_phu",
    "nguon": "doi_thu",
-   "trang_thai": "chua",
+   "trang_thai": "thu",
    "dung_cho": [
     "cảnh thật",
     "cảnh cuối",
@@ -602,14 +612,15 @@
     "1262667959359716",
     "1069410726133558"
    ],
-   "mo_ta": "Logo tên phim chữ nghiêng nhỏ ở góc trên trái, phụ đề thoại trơn giữa dưới — trông như cảnh trích từ phim thật."
+   "mo_ta": "Logo tên phim chữ nghiêng nhỏ ở góc trên trái, phụ đề thoại trơn giữa dưới — trông như cảnh trích từ phim thật.",
+   "may": "dung-mau.py › dt_logo_goc"
   },
   {
    "ma": "dt_nut_free_do",
    "ten": "Nút Watch Free đỏ nhỏ",
    "loai": "lop_phu",
    "nguon": "doi_thu",
-   "trang_thai": "chua",
+   "trang_thai": "thu",
    "dung_cho": [
     "cảnh thật",
     "cảnh cuối",
@@ -620,7 +631,8 @@
    "tham_chieu": [
     "2512666309260387"
    ],
-   "mo_ta": "Nút bo tròn đỏ nhỏ 'Watch Free' đặt 1/3 dưới, đè thẳng lên cảnh phim — không tên phim, không nền."
+   "mo_ta": "Nút bo tròn đỏ nhỏ 'Watch Free' đặt 1/3 dưới, đè thẳng lên cảnh phim — không tên phim, không nền.",
+   "may": "dung-mau.py › dt_nut_free_do"
   }
  ]
 }

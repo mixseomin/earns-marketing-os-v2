@@ -3,6 +3,7 @@
 //   social  = bài đã khai mà chưa có tệp (xv_may_video — Máy SX dựng / xưởng studio)          → studio.on.tc
 //   kenh    = tập đang làm của kênh nội dung (docKenhSp › ke.dangLam, bỏ tập demo)            → tab Kênh nội dung, mở cây kênh
 //   etp     = creative Ethopex đang cắt / chờ soát / chờ dựng lại (docEtp › dangSx)          → ngăn Sản xuất phim (?ed=etp-sx~<mã phim>)
+//           + dựng theo mẫu (etp.mau_dung, dung-mau.py — chọn phim ở tab Mẫu Creative etp2)     → cùng ngăn Sản xuất phim
 //   puzzle  = sản phẩm đang làm / chờ ảnh / chờ duyệt (docTaiSanBan, sổ cái Directus)         → tab Tài sản
 // Đọc DỮ LIỆU THẬT bằng chính hàm của trang gốc, không viết lại truy vấn → hai nơi luôn cùng số. Nguồn nào hỏng thì ghi `loi`, nguồn khác vẫn hiện.
 // docEtp nặng (cả sổ camp) nên kết quả gom nhớ 60 giây — tab hỏi lại mỗi 30 giây.
@@ -55,7 +56,7 @@ export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi
   const hom = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
   const doc = async <T>(ten: string, f: () => Promise<T[]>): Promise<T[]> => { try { return await f(); } catch (e) { loi.push(`${ten}: ${(e as Error).message.slice(0, 140)}`); return []; } };
 
-  const [social, kenh, etp, puzzle] = await Promise.all([
+  const [social, kenh, etp, puzzle, mauDung] = await Promise.all([
     // BÀI SOCIAL CỦA MÁY SX TỚI LÚC ĐĂNG (anh 12/11/2026 "SX thì làm sao chia thành các nhịp rõ ràng"): bài chờ dựng (view xv_bai_cho_dung — một định nghĩa
     // với máy) + bài Máy SX đã dựng trong 14 ngày mà chưa đăng → nhịp Lịch · Dựng · Chấm · Đăng. View chưa có = máy chưa chạy lượt nào → báo lỗi nguồn.
     doc('Social', async () => {
@@ -125,12 +126,34 @@ export async function docViecSx(): Promise<{ viec: ViecSx[]; kenh: KenhSp[]; loi
             return ['Làm', 'Anh duyệt', 'Nộp sàn', 'Sàn duyệt', 'Bán'].map((ten, i) => ({ ten, tt: i < vi ? 'xong' : i === vi ? 'dang' : 'cho', chu: i === 0 && vi === 0 ? p.tienDo ?? null : null, ghi: i === vi && p.ke ? `kế: ${p.ke}` : null })); })() };
       }));
     }),
+    // ETHOPEX — DỰNG THEO MẪU (anh 19/11/2026: "Mọi quy trình đều phải đi qua đây"): việc của máy dựng theo mẫu học từ đối thủ
+    // (apps/xuong-video/scripts/ethopex/dung-mau.py, etp.mau_dung — chọn phim ở tab Mẫu Creative etp2). Hiện việc chưa xong + việc xong trong 24 giờ;
+    // nhịp = đúng các bước máy ghi (chờ → tải tập → chọn khung → vẽ mẫu → giọng → video → thư viện → creative). Bảng chưa có = máy chưa nhận việc nào.
+    doc('Ethopex · dựng theo mẫu', async () => {
+      const d = getDb(); if (!d) throw new Error('không có DB');
+      const co = ((await d.execute(sql`SELECT to_regclass('etp.mau_dung') IS NOT NULL AS c`)) as unknown as { c: boolean }[])[0]?.c;
+      if (!co) return [];
+      const r = (await d.execute(sql`SELECT m.mau, m.content_id, p.ten, m.buoc, m.trang_thai, m.ghi, m.cap_nhat::text AS luc, m.bat_dau::text AS bat_dau, m.creative_ids, m.vnd
+        FROM etp.mau_dung m LEFT JOIN etp.phim p USING (content_id)
+        WHERE m.trang_thai <> 'xong' OR m.cap_nhat > now() - interval '24 hours' ORDER BY m.cap_nhat DESC LIMIT 200`)) as unknown as
+        { mau: string; content_id: number; ten: string | null; buoc: string; trang_thai: string; ghi: string | null; luc: string; bat_dau: string | null; creative_ids: number[] | null; vnd: number }[];
+      const BUOC: [string, string][] = [['tai_tap', 'Tải tập'], ['chon_khung', 'Chọn khung'], ['ve_mau', 'Vẽ mẫu'], ['giong', 'Giọng'], ['video', 'Video'], ['thu_vien', 'Thư viện'], ['creative', 'Creative']];
+      return r.map((x): ViecSx => {
+        const i = BUOC.findIndex(([k]) => k === x.buoc), xong = x.trang_thai === 'xong', loi = x.trang_thai === 'loi', cho = x.buoc === 'cho';
+        const nhip: Nhip[] = BUOC.map(([, ten], j) => ({ ten, tt: xong || j < i ? 'xong' : j === i ? (loi ? 'loi' : 'dang') : 'cho', ghi: j === i ? x.ghi : null,
+          chu: j === BUOC.length - 1 && x.creative_ids?.length ? `${x.creative_ids.length} cr` : null }));
+        return { nguon: 'etp', khoa: `m-${x.mau}-${x.content_id}`, ten: x.ten ?? `phim ${x.content_id}`, cua: `mẫu ${x.mau}`,
+          buoc: xong ? 'xong' : cho ? 'chờ máy dựng theo mẫu' : `${BUOC[i]?.[1] ?? x.buoc}${loi ? ' lỗi' : ' đang làm'}`, luc: x.luc,
+          loi: loi ? x.ghi : null, ghi: loi ? null : [x.ghi, x.vnd ? `${x.vnd}₫` : null].filter(Boolean).join(' · ') || null, nhip,
+          mo: { ed: 'etp-sx', id: String(x.content_id) } };
+      });
+    }),
   ]);
   // bài social: thay ô tạm bằng Ô LỊCH thật của bài (ngăn bài lịch Social Traffic)
   const o = await baiTheoSlug(social.map((v) => ('bai' in v.mo ? { may: v.mo.bai.may, slug: v.mo.bai.slug ?? '' } : null)).filter((x): x is { may: string; slug: string } => !!x?.slug));
   for (const v of social) if ('bai' in v.mo) { const t = o.get(`${v.mo.bai.may}|${v.mo.bai.slug}`); if (t) v.mo = { bai: t }; }
   // hồ sơ kênh chỉ gửi kênh có việc đang làm — ngăn KenhNgan đọc từ đây
-  const kenhCo = new Set(kenh.map((v) => ('kenh' in v.mo ? v.mo.kenh : ''))), ra = { viec: [...etp, ...kenh, ...social, ...puzzle], kenh: dsKenh.filter((k) => kenhCo.has(k.ma)), loi, ghiChu };
+  const kenhCo = new Set(kenh.map((v) => ('kenh' in v.mo ? v.mo.kenh : ''))), ra = { viec: [...mauDung, ...etp, ...kenh, ...social, ...puzzle], kenh: dsKenh.filter((k) => kenhCo.has(k.ma)), loi, ghiChu };
   nho = { luc: Date.now(), ra };
   return ra;
 }

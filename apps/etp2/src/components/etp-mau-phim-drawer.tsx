@@ -85,7 +85,7 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
     if (p.da_chon) return <span style={{ color: MO_SO, fontSize: 11.5 }}>đã chọn cho mẫu này</span>;
     return <button type="button" onClick={(e) => { e.stopPropagation(); sinh(p); }} title={mau?.dong ? `tạo dòng phim ${mau.dong} — máy sinh creative theo mẫu, mọi cổng của dòng (soát, chấm, phanh chợ, luật lên camp) giữ nguyên` : 'mẫu chưa có máy dựng — chỉ ghi phim, dựng mã mẫu xong máy mới sinh'}
       style={{ fontSize: 11.5, padding: '2px 10px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'var(--accent, #60a5fa)', cursor: 'pointer' }}>
-      {mau?.dong ? `Sinh (${mau.dong})` : 'Ghi chờ dựng'}</button>;
+      {mau?.dong ? `Sinh (${mau.dong})` : 'Sinh (máy mẫu)'}</button>;
   }
   const nhomCot: DataGroup[] = [
     { key: 'mau', label: 'Mẫu này', color: '#a78bfa' }, { key: 'nha', label: 'Nhà', color: '#38bdf8' }, { key: 'doi', label: 'Đội', color: '#94a3b8' }, { key: 'dt', label: 'Đối thủ', color: '#fb923c' },

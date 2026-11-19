@@ -18,6 +18,11 @@ TAB = "https://etp2.on.tc/?t=mau"
 
 def chon(dang, goi_y=""):
     """dạng (có dấu / không dấu) + chữ gợi ý (ghi chú bản dựng, tên lô…) → mục công thức trong sổ, hoặc None khi dạng chưa có công thức dựng được"""
+    # DẤU MẪU TƯỜNG MINH (máy dựng theo mẫu dung-mau.py ghi "mẫu:<mã>" vào ghi chú bản dựng): mẫu có trong sổ + có mã dựng → đúng mẫu đó, mọi loại (bố cục / lớp phủ)
+    m_ = re.search(r"mẫu:([a-z0-9_]+)", goi_y or "")
+    if m_:
+        x = next((x for x in DS if x["ma"] == m_.group(1) and x["trang_thai"] in DUOC_LEN), None)
+        if x: return x
     d = DG.CHUAN.get((dang or "").strip().lower(), (dang or "").strip())
     ung = [x for x in CONG_THUC if x["dang"] == d and x["trang_thai"] in DUOC_LEN]
     if not ung: return None
@@ -60,6 +65,8 @@ def tu_kiem():
     po = chon("poster động", "Poster (PO) PO.5 bản 1/3")
     if not po or po["ma"] != "po_ai": loi.append(f"chon() PO.5 ra {po and po['ma']}")
     if (chon("poster dong", "") or {}).get("ma") != "po_goc": loi.append("chon() poster không gợi ý phải ra mặc định po_goc")
+    if (chon("anh tinh", "mẫu:dt_ten_vang · bản 1/1") or {}).get("ma") != "dt_ten_vang": loi.append("chon() không nhận dấu mẫu:dt_ten_vang")
+    if (chon("anh tinh", "mẫu:khong_co") or {}).get("ma") != "at_khung": loi.append("chon() dấu mẫu lạ phải rơi về công thức của dạng")
     return loi
 
 if __name__ == "__main__":

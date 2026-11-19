@@ -24,13 +24,17 @@ export type MauCr = {
   dung_cho: string[]; the_loai: string[]; mo_ta: string; may: string | null; ban: BanMau[];
   so: { cr: number; camp: number; dang_chay: number; chi: number; thu: number; moi: string | null } | null;
   tham_chieu: ThamChieu[];
-  /** mã dòng phim máy dựng được mẫu này (CC / KT / AT / ATT / PO / CTS / LT) — null = chưa có máy dựng, chọn phim chỉ ghi lại chờ dựng mã */
+  /** mã dòng phim máy dựng được mẫu này (CC / KT / AT / ATT / PO / CTS / LT) — null = không đi dòng phim */
   dong: string | null;
+  /** máy dựng theo mẫu (dung-mau.py trên iMac) dựng được mẫu này — mẫu học từ đối thủ đã có hàm vẽ */
+  may_mau: boolean;
   /** PHIM SẢN XUẤT theo mẫu (anh 19/11/2026: "tao sẽ chọn phim, sau đó chúng mày phải sinh ra được creative mới. Mỗi phim có thể có nhiều creative") */
   phim_sx: PhimSx[];
 };
 export type CrSx = { id: number; anh: string | null; video: string | null; chay: boolean; camp: number; chi: number; thu: number };
-export type PhimSx = { content_id: number; ten: string | null; chon: boolean; dong_id: number | null; dong_tt: string | null; dong_ly: string | null; cr: CrSx[] };
+/** trạng thái máy dựng theo mẫu (dung-mau.py, etp.mau_dung) — anh 19/11/2026 "Tao cần xem trạng thái quá trình dựng ở đó luôn" */
+export type DungMau = { buoc: string; trang_thai: string; ghi: string | null; cap_nhat: string; creative_ids: number[] };
+export type PhimSx = { content_id: number; ten: string | null; chon: boolean; dong_id: number | null; dong_tt: string | null; dong_ly: string | null; cr: CrSx[]; dung: DungMau | null };
 type MucSo = { ma: string; ten: string; loai: 'cong_thuc' | 'bo_cuc' | 'lop_phu'; dang?: string; nguon: NguonMau; trang_thai: 'may' | 'thu' | 'chua'; dung_cho: string[]; the_loai?: string[]; mo_ta: string; may?: string; anh?: string; tham_chieu?: string[] };
 
 const run = async <T,>(q: ReturnType<typeof sql>) => (await getDb()!.execute(q)) as unknown as T[];
@@ -80,8 +84,12 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
       group by 1, 2, 3, 4, 5, 6 order by c.creative_id desc`) : [];
     const phimSx = new Map<string, Map<number, PhimSx>>();
     const lay = (mau: string, cid: number, ten: string | null) => { const m = phimSx.get(mau) ?? new Map<number, PhimSx>(); phimSx.set(mau, m);
-      return m.get(cid) ?? (m.set(cid, { content_id: cid, ten, chon: false, dong_id: null, dong_tt: null, dong_ly: null, cr: [] }), m.get(cid)!); };
+      return m.get(cid) ?? (m.set(cid, { content_id: cid, ten, chon: false, dong_id: null, dong_tt: null, dong_ly: null, cr: [], dung: null }), m.get(cid)!); };
     for (const x of chon) Object.assign(lay(x.mau, x.content_id, x.ten), { chon: true, dong_id: x.dong_id, dong_tt: x.dong_tt, dong_ly: x.dong_ly });
+    const coBangDung = (await run<{ c: boolean }>(sql`select to_regclass('etp.mau_dung') is not null c`))[0]?.c;
+    const dung = coBangDung ? await run<DungMau & { mau: string; content_id: number; ten: string | null }>(sql`
+      select d.mau, d.content_id, p.ten, d.buoc, d.trang_thai, d.ghi, d.cap_nhat::text cap_nhat, d.creative_ids from etp.mau_dung d left join etp.phim p using (content_id)`) : [];
+    for (const x of dung) lay(x.mau, x.content_id, x.ten).dung = { buoc: x.buoc, trang_thai: x.trang_thai, ghi: x.ghi, cap_nhat: x.cap_nhat, creative_ids: x.creative_ids ?? [] };
     for (const x of [...crMau, ...crDang]) { const f = lay(x.mau, x.content_id, x.ten); if (!f.cr.some((c) => c.id === x.id)) f.cr.push({ id: x.id, anh: x.anh, video: x.video, chay: !!x.chay, camp: x.camp, chi: x.chi, thu: x.thu }); }
     const sxCua = (ma: string) => [...(phimSx.get(ma)?.values() ?? [])];
     const phim = await run<{ id: number; ten: string }>(sql`select content_id id, ten from etp.phim where ten is not null and coalesce(nhom_goc, 'au_my') = 'au_my' order by ten`);
@@ -117,7 +125,7 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
         return { ma: d.ma, ten: d.dang, loai: 'dang', nguon: 'nha', trang_thai: s?.dang_chay ? 'chay' : s?.camp ? 'may' : 'thu', nhom: d.nhom ?? null, mau: d.mau,
           dung_cho: [], the_loai: [], mo_ta: d.mo_ta ?? '', may: d.dong ? `dòng ${d.dong} (apps/etp/dong_phim.py)` : d.kieu ? `kiểu ${d.kieu} (kieu-moi.py)` : null,
           ban: banTheo.get(d.dang) ?? [], so: s ? { cr: s.cr, camp: s.camp, dang_chay: s.dang_chay, chi: s.chi, thu: s.thu, moi: s.moi } : null, tham_chieu: [],
-          dong: d.dong ?? null, phim_sx: sxCua(d.ma) };
+          dong: d.dong ?? null, may_mau: false, phim_sx: sxCua(d.ma) };
       }),
       ...so.map((m): MauCr => { const sm = soTheoMau.get(m.ma); return {
         ma: m.ma, ten: m.ten, loai: m.loai, nguon: m.nguon, trang_thai: sm?.dang_chay ? 'chay' : m.trang_thai, nhom: null, mau: null, dung_cho: m.dung_cho, the_loai: m.the_loai ?? [],
@@ -126,7 +134,7 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
           ?? (m.loai === 'cong_thuc' && m.dang ? (banTheo.get(m.dang) ?? []).map((b) => ({ ...b, nhan: `dạng · ${b.nhan ?? ''}`.trim() })) : []))],
         so: sm ? { cr: sm.cr, camp: sm.camp, dang_chay: sm.dang_chay, chi: sm.chi, thu: sm.thu, moi: sm.moi } : null,
         tham_chieu: (m.tham_chieu ?? []).map((id) => { const x = qc.get(id); return { id, phim: x?.ma ? ten.get(`${x.mien}~${x.ma}`) ?? null : null, ngay: x?.ngay ?? null, con_chay: !!x?.con, anh: anhQc.get(id) ?? null, video: x?.video ?? null }; }),
-        dong: m.loai === 'cong_thuc' && m.trang_thai === 'may' ? dongCua(m.dang) : null, phim_sx: sxCua(m.ma),
+        dong: m.loai === 'cong_thuc' && m.trang_thai === 'may' ? dongCua(m.dang) : null, may_mau: m.loai !== 'cong_thuc' && m.trang_thai !== 'chua' && (m.may ?? '').startsWith('dung-mau.py'), phim_sx: sxCua(m.ma),
       }; }),
     ];
     // mẫu học từ đối thủ: hiện NGUYÊN mọi QC tham chiếu (ảnh + video), nhãn = số ngày chạy
@@ -153,6 +161,12 @@ export async function chonPhimMau(ma: string, contentId: number): Promise<{ ok: 
     const r = await chayDong(cid, dong, '');
     if ('loi' in r) return { loi: `chưa sinh được: ${r.loi}` };
     dongId = r.id; ghi = `đã tạo dòng phim #${r.id} (${dong}) — máy dòng phim sinh creative theo mẫu, xong hiện ở đây`;
+  } else if (so && so.loai !== 'cong_thuc' && so.trang_thai !== 'chua' && (so.may ?? '').startsWith('dung-mau.py')) {
+    await getDb()!.execute(sql`create table if not exists etp.mau_dung (mau text not null, content_id integer not null, buoc text not null default 'cho', trang_thai text not null default 'cho',
+      ghi text, creative_ids integer[] not null default '{}', tv_ids integer[] not null default '{}', vnd integer not null default 0, bat_dau timestamptz, cap_nhat timestamptz not null default now(), primary key (mau, content_id))`);
+    await getDb()!.execute(sql`insert into etp.mau_dung (mau, content_id, buoc, trang_thai, ghi) values (${ma}, ${cid}, 'cho', 'cho', 'chờ máy dựng theo mẫu (iMac) nhận')
+      on conflict (mau, content_id) do update set buoc = 'cho', trang_thai = 'cho', ghi = excluded.ghi, cap_nhat = now() where etp.mau_dung.trang_thai in ('loi', 'cho')`);
+    ghi = 'đã xếp hàng máy dựng theo mẫu — trạng thái từng bước hiện ở chân thẻ';
   } else ghi = 'đã ghi phim — mẫu này chưa có máy dựng nên chưa sinh được creative; dựng mã mẫu xong máy mới làm';
   await getDb()!.execute(sql`insert into etp.mau_phim (mau, content_id, ai, dong_id) values (${ma}, ${cid}, ${me?.displayName ?? me?.email ?? 'chủ'}, ${dongId})
     on conflict (mau, content_id) do update set dong_id = coalesce(excluded.dong_id, etp.mau_phim.dong_id), luc = now()`);

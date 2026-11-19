@@ -317,6 +317,8 @@ const LUAT = [
   { card: 1514, tep: 'apps/etp2/src/app/globals.css', co: 'opacity: 1; visibility: visible; animation: tre-hien 0s var(--tre-mo) both;', vi: 'InfoHint chờ --tre-mo' },
   { card: 1514, tep: 'apps/etp2/src/components/ui/month-calendar.tsx', co: '.cal-pill-wrap:hover .cal-brief{display:block!important;animation:tre-hien 0s var(--tre-mo) both}', vi: 'brief lịch tháng chờ --tre-mo' },
   { card: 1514, tep: 'apps/etp2/src/components/etp-noi.tsx', co: '}), TRE_MO);   // #1514', vi: 'thẻ nổi đang mở thẻ khác cũng chờ đủ trễ' },
+  { card: 1522, tep: 'apps/etp2/src/components/etp-view.tsx', co: "const bangCay = hep ? null : <DataTable rows={camps} columns={cotCay}", cam: 'mở rộng +${', vi: 'cây camp chỉ có camp thật: phim đang sản xuất KHÔNG hiện dòng plan "mở rộng +N camp · chờ đo lượt"; camp mới chỉ hiện khi đã lên thật, như camp ổn định (anh 03/11 + 09/11/2026)' },
+  { card: 1522, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "trang_thai: 'MO_RONG'", vi: 'không dựng lại dòng giả MO_RONG trong cây camp' },
 ];
 
 const loi = [];

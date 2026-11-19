@@ -309,6 +309,11 @@ if (a.includes('--nap')) {
   // LẤP KHO VIDEO cho máy (anh 29/10/2026: Page cũ #625 hết bài DUYỆT để hẹn — --sinh-de chỉ sinh theo ô kế hoạch tuần, Page cũ không có ô): N đề VIDEO
   // (dạng ra MP4 — Reel lên Page được), góc spy CHƯA DÙNG của máy trước, dạng xoay vòng; nạp + dựng; Phòng Nội dung chấm như mọi bài. TỐN TIỀN (chữ AI ckey,
   // sinhJson tự gác ngưỡng) — chạy lô lớn qua nút ✅ Duyệt trên Telegram (worker/duyet-chi.mjs) hoặc DUYET_SINH_1_LAN=1 ngay sau khi anh duyệt.
+  // máy đi ĐƯỜNG RIÊNG (kieu-sx.json › _kho.duong_rieng: kênh lịch sử làm tập đầy đủ + thumbnail, Mia theo lịch bài) không lấp bằng đề short — 19/11/2026
+  // --sinh-kho cho kênh lịch sử ra 2 bài top-n / so-sanh link trống, không thumbnail, Phòng Nội dung chặn cứng. Từ chối, in đúng lệnh của máy.
+  { const K = JSON.parse((await import('node:fs')).readFileSync(new URL('../kieu-sx.json', import.meta.url), 'utf8'))._kho ?? {};
+    const LENH: Record<string, string> = { 'yesterdays-news-tonight': 'iMac: node apps/xuong-video/scripts/lich-su/chay-kenh.mjs --kenh parody --ep — mỗi lần MỘT tập đầy đủ + thumbnail thiết kế (~1.100₫), chạy đúng số tập thiếu' };
+    if ((K.duong_rieng ?? []).includes(ma)) { console.error(`✗ máy ${ma} đi đường riêng — KHÔNG --sinh-kho. Lấp kho: ${LENH[ma] ?? 'lệnh riêng của máy (kieu-sx.json › _kho)'}`); process.exit(1); } }
   const N = Math.max(1, Math.min(40, Number(lay('--sinh-kho')) || 10)), m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
   const { sinhDe } = await import('../src/lib/xuong-video/may-de');
   const sp = await spCua(ma), dl = (sp.ngach ?? []).includes('du-lich');

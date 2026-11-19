@@ -68,7 +68,13 @@ def xet_phim_cam(q, ngay):
             select camp_id, content_id, 'nhà' nguon, ten, ngan_sach from etp.camp where trang_thai = 'ACTIVE'
             union all select camp_id, content_id, 'team' nguon, ten, ngan_sach from etp.camp_ngoai where trang_thai = 'ACTIVE') c
         where c.camp_id in ({CG.SQL_CAMP_PHIM_CAM}) order by 1""").splitlines() if l.count("|") >= 4]
-    for cid, ct, nguon, ten, ns in ds:
+    # camp ĐỘI (tk người trong team) chạy phim cấm: GỘP một tin / ngày — 19/11/2026 có 11 camp đội chạy phim sổ cấm do AI soát poster (cấm cho nhà), báo từng camp là ồn
+    doi_ = [x for x in ds if x[2] == "team"]
+    if doi_:
+        bao(q, f"phim_cam:team:{ngay}", f"{DAU_CAM}: {len(doi_)} camp ĐỘI đang ACTIVE chạy phim trong sổ cấm {CG.KHOA_PHIM_CAM} — "
+            + ", ".join(f"#{c} (phim #{ct})" for c, ct, _n, _t, _s in doi_[:15]) + (" …" if len(doi_) > 15 else "")
+            + ". Cổng không cho máy / Luật tự động bật / tăng / nhân bản các camp này; tắt hay giữ là việc của người phụ trách tài khoản đó.")
+    for cid, ct, nguon, ten, ns in [x for x in ds if x[2] != "team"]:
         bao(q, f"phim_cam:{cid}:{ngay}", f"{DAU_CAM}: camp {nguon} #{cid} '{ten[:70]}' ${float(ns or 0):g} phim #{ct} nằm trong sổ cấm {CG.KHOA_PHIM_CAM} mà đang ACTIVE — "
                                          f"cửa API không cho bật phim cấm, nên có thể do người bấm trên app.ethopex.dev / Ethopex tự bật. Máy chỉ báo, không tắt — anh / người phụ trách tắt camp này.")
     return [f"{n}:{c}" for c, _ct, n, _t, _n in ds]

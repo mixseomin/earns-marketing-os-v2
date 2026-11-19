@@ -621,7 +621,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // NÚT PHÁT ĐI CÙNG MÀN XEM (góp ý #1230 "cái nào cho khối nào thì phải ở gần nhau"): ⏮ ▶ ⏭ · đồng hồ · ⛶ · 3D/Keyframe/Video · So sánh điều khiển MÀN XEM.
   // Màn xem là cột (trái / phải) → cụm này nằm ngay dưới khung hình trong cột đó; màn xem ở giữa hàng panel → giữ đầu thanh công cụ (ngay trên màn xem).
   const thanhPhat = (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', ...(xemCanh ? { padding: '0 8px 8px', justifyContent: 'center' } : {}) }}>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', padding: '0 8px 8px', justifyContent: 'center' }}>
         <button type="button" className="xv-btn" title="Cảnh trước (←)" onClick={() => tuaToi(batDau[Math.max(0, idx - 1)] ?? 0)}>⏮</button>
         <button type="button" className="xv-btn chinh" style={{ minWidth: 80 }} title="Chạy / dừng (Space)" onClick={() => { if (!chay && t >= tong - 0.05) setT(0); setChay(!chay); }}>{chay ? '⏸ Dừng' : '▶ Chạy'}</button>
         <button type="button" className="xv-btn" title="Cảnh sau (→)" onClick={() => tuaToi(batDau[Math.min(canh.length - 1, idx + 1)] ?? 0)}>⏭</button>
@@ -660,7 +660,6 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       {/* Bố cục kiểu After Effects (anh 11/10/2026): thanh công cụ · 3 panel CỐ ĐỊNH (Dự án | Khung hình | Thuộc tính) · timeline thứ tự lớp.
           Hàng panel cao cố định = khung hình, panel tự cuộn bên trong → chọn/bỏ chọn lớp chỉ đổi NỘI DUNG panel, không xô timeline (YDNI §bố cục đứng yên). */}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '6px 10px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
-        {!xemCanh && thanhPhat}
         {/* NGUỒN CLIP CHÍNH CẢ PHIM (góp ý #1638): ô hiện nguồn ĐANG dùng (đếm shot mọi tập) · chọn = mọi shot có bản của nguồn đó dùng bản mới nhất — 0₫, đổi lại được, không tải lại trang */}
         {nguonPhim && nguonPhim.nhan.length > 0 && (() => {
           const co = Object.entries(nguonPhim.dem).filter(([, v]) => v > 0);
@@ -711,7 +710,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         </aside>
         <TayKeo truc="x" onPointerDown={panTrai.keo('x')} onDoubleClick={panTrai.veMacDinh} />
         {/* Bấm vào chỗ trống (ngoài lớp, trong hay ngoài khung hình) = bỏ chọn (#1288) — lớp và tay nắm tự chặn sự kiện của mình. */}
-        {!xemCanh && khungXem}
+        {/* Bố cục giữa (góp ý #1246): nút ⏮ ▶ ⏭ giờ ⛶ căn giữa NGAY DƯỚI hình, không nằm trên thanh công cụ. */}
+        {!xemCanh && <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto', background: 'var(--bg-0, #0b0b0d)' }}>{khungXem}{thanhPhat}</div>}
         {!xemCanh && <TayKeo truc="x" onPointerDown={panPhai.keo('x', -1)} onDoubleClick={panPhai.veMacDinh} />}
         {/* minmax(0,1fr): ô lưới không nở theo nội dung dài (thẻ shot) — co theo bề rộng panel và tự xuống dòng. */}
         <aside style={{ overflowY: 'auto', overflowX: 'hidden', padding: 8, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, alignContent: 'start' }}>

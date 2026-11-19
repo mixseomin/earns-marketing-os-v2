@@ -8,6 +8,7 @@
     "./data-table": "./src/data-table.tsx",
     "./use-table-sort": "./src/use-table-sort.tsx",
     "./anchored-popover": "./src/anchored-popover.tsx",
+    "./chon-tim": "./src/chon-tim.tsx",
     "./col-filter": "./src/col-filter.ts",
     "./table-prefs": "./src/table-prefs.tsx",
     "./url-shallow": "./src/url-shallow.ts",

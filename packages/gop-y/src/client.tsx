@@ -5,6 +5,7 @@
 // Phần riêng của từng app đi vào qua props: `hd` (server action của app, bọc @mos2/gop-y/server), `Khung` (drawer của app),
 // `nut` (class nút), `xemAnh` (xem ảnh to), `chonNgan`/`chonLoi` (selector để gom ngữ cảnh), `khoa` (tiền tố localStorage).
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ComponentType, type ReactNode } from 'react';
+import { ChonTim } from '@mos2/bang/chon-tim';
 import type { GopYCuaToi, TinTraoDoi, Kq, HangGiao, ViecGiao } from './server';
 import { demTuDs, DEM_RONG, type DemGopY } from './dem';
 
@@ -391,10 +392,7 @@ function FormGopY({ onGui }: { onGui: (id: number, loai: string) => void }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div>
         <div style={lbl}>Loại</div>
-        <select value={nhap.loai} onChange={(e) => { const v = e.target.value; ghi((n) => ({ ...n, loai: v })); }} style={{ ...oNhap, cursor: 'pointer' }}>
-          <option value="loi">Báo lỗi / góp ý</option>
-          <option value="cau_hoi">Câu hỏi</option>
-        </select>
+        <ChonTim value={nhap.loai} onChange={(v) => ghi((n) => ({ ...n, loai: v }))} ds={[{ v: 'loi', nhan: 'Báo lỗi / góp ý' }, { v: 'cau_hoi', nhan: 'Câu hỏi' }]} style={{ ...oNhap, width: '100%' }} />
       </div>
       <div>
         <div style={lbl}>Mô tả</div>

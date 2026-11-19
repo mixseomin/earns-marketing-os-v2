@@ -7,7 +7,7 @@ import { AnchoredPopover } from './anchored-popover';
 
 export interface ChonTimMuc { v: string; nhan?: string }
 
-export function ChonTim({ value, ds, onChange, style, title, zIndex = 1200 }: {
+export function ChonTim({ value, ds, onChange, style, title, zIndex = 3000 }: {
   value: string;
   ds: ChonTimMuc[];
   onChange: (v: string) => void;

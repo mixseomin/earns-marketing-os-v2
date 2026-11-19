@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode, type CSSPropertie
 import { batDauKeo, docRongCot, ghiRongCot } from './keo-rong';
 import { useTableSort, type SortSpec, type ThSort } from './use-table-sort';
 import { AnchoredPopover } from './anchored-popover';
+import { ChonTim } from './chon-tim';
 import { COL_FILTER_OPS, isNullaryOp, isRangeOp, khoangTach, khoangGhep, matchColFilter } from './col-filter';
 import { usePaged, Pager } from './phan-trang';
 import { useKhoaLuu, useTablePref, writeTablePref } from './table-prefs';
@@ -861,9 +862,7 @@ function ColFilterBox({ colLabel, value, onApply, onClear, onCancel }: {
         Lọc cột: <span style={{ color: 'var(--fg-1)' }}>{colLabel}</span>
       </div>
       <div style={{ display: 'flex', gap: 5 }}>
-        <select value={op} onChange={(e) => setOp(e.target.value)} style={{ ...ctrl, cursor: 'pointer', flexShrink: 0 }}>
-          {COL_FILTER_OPS.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
+        <ChonTim value={op} onChange={setOp} ds={COL_FILTER_OPS.map((o) => ({ v: o }))} title="Toán tử lọc" style={{ ...ctrl, flexShrink: 0 }} />
         {isRangeOp(op) ? (() => { const [tu, den] = khoangTach(val); const o = (t: string, d: string) => setVal(khoangGhep(t, d));
           return <span style={{ display: 'flex', gap: 4, alignItems: 'center', flex: 1, minWidth: 0 }}>
             <input autoFocus value={tu} onChange={(e) => o(e.target.value, den)} placeholder="từ" inputMode="decimal" autoComplete="off"

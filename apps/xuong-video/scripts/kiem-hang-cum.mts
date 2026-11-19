@@ -29,7 +29,7 @@ try {
     const k1 = await xepHangCum(tx as never, c, bo, 'nhap');
     const k2 = await xepHangCum(tx as never, c, bo, 'nhap');
     out.push(`3. nút Sinh shot id ${c.id} (#${c.thu_tu}) → ${JSON.stringify(k1)} · bấm lần hai → ${JSON.stringify(k2)}`);
-    const j = await q(sql`SELECT j.id, j.provider, j.model, j.trang_thai, j.cents FROM xv_job j WHERE j.canh_id = ${c.id} AND j.loai = 'video' AND j.trang_thai = 'hang'`);
+    const j = await q(sql`SELECT j.id, j.provider, j.model, j.trang_thai, j.chi_phi_cents, j.request FROM xv_job j WHERE j.canh_id = ${c.id} AND j.loai = 'video' AND j.trang_thai = 'hang'`);
     out.push(`4. hàng của shot (hang-video.mts --ds đọc đúng bảng này): ${j.length} job ${JSON.stringify(j)}`);
     throw new Error(HUY);
   });

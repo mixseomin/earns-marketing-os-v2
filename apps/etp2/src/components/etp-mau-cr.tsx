@@ -76,7 +76,7 @@ function ChanThe({ m }: { m: MauCr }) {
         style={{ fontSize: 11.5, padding: '2px 10px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'var(--accent, #60a5fa)', cursor: 'pointer' }}>＋ Chọn phim</button>
     </div>
     {!m.dong && !m.may_mau ? <div style={{ fontSize: 11, color: MO_SO }}>mẫu chưa có máy dựng — chọn phim chỉ ghi lại, dựng mã mẫu xong máy mới sinh creative</div> : null}
-    {m.phim_sx.map((f) => <DongPhimSx key={f.content_id} f={f} />)}
+    {m.phim_sx.map((f) => <DongPhimSx key={f.content_id} f={f} ma={m.ma} />)}
   </div>;
 }
 // các bước máy dựng theo mẫu (dung-mau.py) — thanh tiến độ trong chân thẻ
@@ -93,9 +93,12 @@ function TienDoDung({ d }: { d: DungMau }) {
       {loi ? '✕ lỗi' : xong ? '✓ xong' : `● ${BUOC_DUNG[i]?.[1] ?? d.buoc}`} · {d.ghi ?? ''} · {gioNgan(d.cap_nhat)}</div>
   </div>;
 }
-function DongPhimSx({ f }: { f: PhimSx }) {
+function DongPhimSx({ f, ma }: { f: PhimSx; ma: string }) {
   const tt = f.dong_tt ? TT_DONG[f.dong_tt] : null;
-  return <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+  // BẤM PHIM = XEM CHI TIẾT CÁC BƯỚC THEO DÒNG THỜI GIAN (anh 19/11/2026): việc dựng theo mẫu → ngăn etp-mau-dung · dòng phim → ngăn Sản xuất phim (etp-sx) sẵn có
+  const mo = f.dung || !f.dong_id ? () => openEntityDrawer('etp-mau-dung', `${ma}:${f.content_id}`) : () => openEntityDrawer('etp-sx', f.content_id);
+  return <div onClick={mo} title="bấm xem chi tiết các bước + vấn đề theo dòng thời gian" style={{ display: 'flex', flexDirection: 'column', gap: 4, cursor: 'pointer', borderRadius: 6, padding: '3px 4px', margin: '0 -4px' }}
+    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={`${f.ten ?? ''} · phim #${f.content_id}`}>{f.ten ?? `phim #${f.content_id}`}</span>
       {tt ? <span title={f.dong_ly ?? `dòng phim #${f.dong_id}`} style={{ fontSize: 10.5, color: tt[1], whiteSpace: 'nowrap' }}>● dòng #{f.dong_id} {tt[0]}</span>
@@ -104,7 +107,7 @@ function DongPhimSx({ f }: { f: PhimSx }) {
     </div>
     {f.dung ? <TienDoDung d={f.dung} /> : null}
     {f.cr.length ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 4 }}>
-      {f.cr.map((c) => { const r = c.chi > 0.5 ? ((c.thu - c.chi) / c.chi) * 100 : null; return <a key={c.id} href={c.video ?? c.anh ?? undefined} target="_blank" rel="noreferrer"
+      {f.cr.map((c) => { const r = c.chi > 0.5 ? ((c.thu - c.chi) / c.chi) * 100 : null; return <a key={c.id} href={c.video ?? c.anh ?? undefined} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
         title={`creative #${c.id} · ${c.camp} camp${c.chay ? ' (đang chạy)' : ''} · chi $${c.chi.toFixed(2)} · thu $${c.thu.toFixed(2)}${r != null ? ` · ROI ${r.toFixed(0)}%` : ''} — mở video`}
         style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 4, overflow: 'hidden', display: 'block' }}>
         {c.anh ? <img src={c.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}

@@ -225,3 +225,25 @@ export async function docPhimChon(ma: string): Promise<{ mau: { ma: string; ten:
     return { loi: `đọc danh sách phim không được: ${(e as Error).message}` };
   }
 }
+
+/** CHI TIẾT MỘT VIỆC DỰNG THEO MẪU (ngăn etp-mau-dung): trạng thái hiện tại + dòng thời gian từng bước (etp.mau_dung_nk) + creative đã ra (ảnh, camp, chi / thu) */
+export type NkDung = { luc: string; buoc: string; trang_thai: string; ghi: string | null; may: string | null };
+export async function docDungChiTiet(ma: string, contentId: number): Promise<{ mau: { ma: string; ten: string }; phim: { id: number; ten: string | null; url: string | null };
+  hien: DungMau | null; nk: NkDung[]; cr: CrSx[] } | { loi: string }> {
+  const q = await quyenEtp(await getCurrentUser());
+  if (!q || q.vai !== 'chu') return { loi: 'không có quyền' };
+  const cid = Math.trunc(Number(contentId)), so = (SO_MAU.mau as MucSo[]).find((x) => x.ma === ma);
+  try {
+    const [co] = await run<{ d: boolean; n: boolean; m: boolean }>(sql`select to_regclass('etp.mau_dung') is not null d, to_regclass('etp.mau_dung_nk') is not null n, to_regclass('etp.creative_mau') is not null m`);
+    const [ph] = await run<{ ten: string | null; url: string | null }>(sql`select ten, url from etp.phim where content_id = ${cid}`);
+    const hien = co?.d ? (await run<DungMau>(sql`select buoc, trang_thai, ghi, cap_nhat::text cap_nhat, creative_ids from etp.mau_dung where mau = ${ma} and content_id = ${cid}`))[0] ?? null : null;
+    const nk = co?.n ? await run<NkDung>(sql`select luc::text luc, buoc, trang_thai, ghi, may from etp.mau_dung_nk where mau = ${ma} and content_id = ${cid} order by luc, id`) : [];
+    const ids = [...new Set([...(hien?.creative_ids ?? []), ...(co?.m ? (await run<{ id: number }>(sql`select m.creative_id id from etp.creative_mau m join etp.creative c using (creative_id) where m.mau = ${ma} and c.content_id = ${cid}`)).map((x) => Number(x.id)) : [])])];
+    const cr = ids.length ? await run<CrSx>(sql`select c.creative_id id, c.anh, c.video, coalesce(bool_or(k.trang_thai = 'ACTIVE'), false) chay, count(distinct k.camp_id)::int camp,
+        coalesce(sum(s.chi), 0)::float chi, coalesce(sum(s.thu), 0)::float thu from etp.creative c left join etp.camp k on k.creative_id = c.creative_id
+        left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s on s.camp_id = k.camp_id where c.creative_id = any(${`{${ids.join(',')}}`}::int[]) group by 1, 2, 3 order by 1 desc`) : [];
+    return { mau: { ma, ten: so?.ten ?? ma }, phim: { id: cid, ten: ph?.ten ?? null, url: ph?.url ?? null }, hien, nk, cr };
+  } catch (e) {
+    return { loi: `đọc chi tiết việc dựng không được: ${(e as Error).message}` };
+  }
+}

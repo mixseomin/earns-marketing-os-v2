@@ -27,12 +27,16 @@ def ph(ten, co): f, i = PH[ten]; return ImageFont.truetype(F + f, co, index=i)
 def bang_sql():
     return ("create table if not exists etp.mau_dung (mau text not null, content_id integer not null, buoc text not null default 'cho', trang_thai text not null default 'cho', "
             "ghi text, creative_ids integer[] not null default '{}', tv_ids integer[] not null default '{}', vnd integer not null default 0, bat_dau timestamptz, "
-            "cap_nhat timestamptz not null default now(), primary key (mau, content_id));")
+            "cap_nhat timestamptz not null default now(), primary key (mau, content_id)); "
+            # NHẬT KÝ (anh 19/11/2026 "Bấm vào từng phim đang sx thì xem đc chi tiết các bước, các vấn đề theo timeline"): mỗi lần đổi bước / lỗi một dòng
+            "create table if not exists etp.mau_dung_nk (id bigserial primary key, mau text not null, content_id integer not null, luc timestamptz not null default now(), "
+            "buoc text not null, trang_thai text not null, ghi text, may text); create index if not exists mau_dung_nk_viec on etp.mau_dung_nk (mau, content_id, luc);")
 def s_(v): return "null" if v is None else "$Q$" + str(v).replace("$Q$", "") + "$Q$"
 def ghi_tt(mau, cid, buoc, tt="dang", ghi=None, **k):
     them = "".join(f", {c} = {v}" for c, v in k.items())
     AT.sql(bang_sql() + f" insert into etp.mau_dung (mau, content_id, buoc, trang_thai, ghi, bat_dau) values ({s_(mau)}, {int(cid)}, {s_(buoc)}, {s_(tt)}, {s_(ghi)}, now()) "
-           f"on conflict (mau, content_id) do update set buoc = excluded.buoc, trang_thai = excluded.trang_thai, ghi = excluded.ghi, cap_nhat = now(){them}")
+           f"on conflict (mau, content_id) do update set buoc = excluded.buoc, trang_thai = excluded.trang_thai, ghi = excluded.ghi, cap_nhat = now(){them}; "
+           f"insert into etp.mau_dung_nk (mau, content_id, buoc, trang_thai, ghi, may) values ({s_(mau)}, {int(cid)}, {s_(buoc)}, {s_(tt)}, {s_(ghi)}, {s_(os.uname().nodename.split('.')[0])})")
     print(f"[{mau} · {cid}] {buoc} · {tt}{' · ' + ghi if ghi else ''}", flush=True)
 
 # ---------- câu nhử (cổng AI chung, haiku rẻ) ----------

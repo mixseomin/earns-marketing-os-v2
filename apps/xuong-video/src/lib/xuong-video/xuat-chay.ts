@@ -1,5 +1,5 @@
 // Chạy bản xuất trên máy chủ studio (box3 có ffmpeg 8): tải nguyên liệu → đo (ffprobe) → dựng lệnh (xuat.ts) → ffmpeg → R2.
-// Chạy trong tiến trình Next (chayNen) vì Worker Cloudflare không có ffmpeg; một bản 30s mất ~30–90 giây trên 4 nhân.
+// Chạy trong tiến trình Next (chayNen) vì Worker Cloudflare không có ffmpeg; một bản 30s mất ~60–130 giây (nice 10, trần 2 luồng — nhường web).
 import 'server-only';
 import { execFile } from 'node:child_process';
 import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
@@ -13,14 +13,17 @@ import { sql } from 'drizzle-orm';
 import { locNhanh, loiSoiClip, type Canh, type LoaiPhim, type Lop, type NhanVat, type PhanCanh, type Tap, type ThongTinQc } from './kieu';
 import type { Db } from './doc-db';
 import { luuKieuChuThuongHieu } from './kho';
+import { ffmpegNhe } from './nen-video.mjs';
 
 const run = promisify(execFile);
+/** Mọi ffmpeg của tệp này chạy trên box3 cạnh web → nice 10 qua ffmpegNhe (nen-video.mjs), không bao giờ gọi 'ffmpeg' trần. */
+const ff = (args: string[], o: { timeout: number; maxBuffer?: number }) => { const [l, a] = ffmpegNhe(args); return run(l, a, { ...o, encoding: 'utf8' }); };
 const FONT_UNG_VIEN = ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', '/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf', '/System/Library/Fonts/Supplemental/Arial Bold.ttf', '/Library/Fonts/Arial Bold.ttf'];
 
 /** Độ to tích hợp (LUFS) của một tệp tiếng — để đưa mọi câu giọng về cùng mức trước khi trộn. */
 export async function doLufs(duong: string): Promise<number | null> {
   try {
-    const { stderr } = await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-af', 'ebur128', '-f', 'null', '-'], { timeout: 30_000, maxBuffer: 8 << 20 });
+    const { stderr } = await ff(['-hide_banner', '-nostats', '-i', duong, '-af', 'ebur128', '-f', 'null', '-'], { timeout: 30_000, maxBuffer: 8 << 20 });
     const m = stderr.match(/Integrated loudness:\s*\n\s*I:\s*(-?[\d.]+)\s*LUFS/); const v = m ? Number(m[1]) : NaN;
     return Number.isFinite(v) ? v : null;
   } catch (e) { console.error('[xuất] đo độ to hỏng — câu này không được chuẩn hoá mức', duong, e); return null; }
@@ -31,7 +34,7 @@ async function doCatDuoi(duong: string, dai: number | null): Promise<number | nu
   if (!dai) return null;
   const tep = `${duong}.m128.txt`;
   try {
-    await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-af', `ebur128=metadata=1,ametadata=print:key=lavfi.r128.M:file=${tep}`, '-f', 'null', '-'], { timeout: 60_000, maxBuffer: 8 << 20 });
+    await ff(['-hide_banner', '-nostats', '-i', duong, '-af', `ebur128=metadata=1,ametadata=print:key=lavfi.r128.M:file=${tep}`, '-f', 'null', '-'], { timeout: 60_000, maxBuffer: 8 << 20 });
     return duoiNhac(await readFile(tep, 'utf8'));
   } catch (e) { console.error('[xuất] đo đuôi nhạc hỏng — nhạc lặp nguyên bài', duong, e); return null; }
 }
@@ -39,7 +42,7 @@ async function doCatDuoi(duong: string, dai: number | null): Promise<number | nu
 /** Độ sáng trung bình (Y 0–255) của một clip — 2 khung/giây qua signalstats, lấy trung bình YAVG. Cân màu theo cảnh (xuat.ts › canMauCanh). */
 export async function doYavg(duong: string): Promise<number | null> {
   try {
-    const { stdout } = await run('ffmpeg', ['-v', 'error', '-i', duong, '-vf', 'fps=2,signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-', '-f', 'null', '-'], { timeout: 60_000, maxBuffer: 8 << 20 });
+    const { stdout } = await ff(['-v', 'error', '-i', duong, '-vf', 'fps=2,signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-', '-f', 'null', '-'], { timeout: 60_000, maxBuffer: 8 << 20 });
     const ys = [...stdout.matchAll(/YAVG=([\d.]+)/g)].map((m) => Number(m[1])).filter(Number.isFinite);
     return ys.length ? Math.round((ys.reduce((a, b) => a + b, 0) / ys.length) * 10) / 10 : null;
   } catch (e) { console.error('[xuất] đo độ sáng hỏng — clip này không cân màu', duong, e); return null; }
@@ -91,7 +94,7 @@ async function tiengNganHon(duong: string): Promise<number | null> {
 async function doKhoangIm(duong: string, giay: number, thuMuc: string, lich?: LichTieng): Promise<{ im: [number, number][]; la: ReturnType<typeof tiengLa> } | null> {
   const tep = `${thuMuc}/m128.txt`;
   try {
-    await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-vn', '-af', `ebur128=metadata=1,ametadata=print:key=lavfi.r128.M:file=${tep}`, '-f', 'null', '-'], { timeout: 120_000, maxBuffer: 8 << 20 });
+    await ff(['-hide_banner', '-nostats', '-i', duong, '-vn', '-af', `ebur128=metadata=1,ametadata=print:key=lavfi.r128.M:file=${tep}`, '-f', 'null', '-'], { timeout: 120_000, maxBuffer: 8 << 20 });
     const md = await readFile(tep, 'utf8');
     return { im: khoangIm(md, giay), la: lich ? tiengLa(md, lich, giay) : [] };
   } catch (e) { console.error('[xuất] đo khoảng im hỏng', e); return null; }
@@ -101,7 +104,7 @@ async function doKhoangIm(duong: string, giay: number, thuMuc: string, lich?: Li
  *  bị dừng hẳn lại"). Trả [từ, đến] giây; null = không đo được. */
 async function doHinhDung(duong: string, giay: number): Promise<[number, number][] | null> {
   try {
-    const { stderr } = await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-an', '-vf', 'freezedetect=n=0.002:d=1', '-f', 'null', '-'], { timeout: 180_000, maxBuffer: 16 << 20 });
+    const { stderr } = await ff(['-hide_banner', '-nostats', '-i', duong, '-an', '-vf', 'freezedetect=n=0.002:d=1', '-f', 'null', '-'], { timeout: 180_000, maxBuffer: 16 << 20 });
     return hinhDung(stderr, giay);
   } catch (e) { console.error('[xuất] đo hình đứng hỏng', e); return null; }
 }
@@ -142,7 +145,7 @@ export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; nhipStopMotion
     if (kh.loi) return { ok: false, loi: kh.loi };
     if (!kh.args.length) return { ok: false, loi: `không shot nào có clip/keyframe tải được${kh.canhThieu.length ? ` (${kh.canhThieu.join(', ')})` : ''}` };
     await Promise.all(kh.tep.map((t) => writeFile(t.duong, t.noiDung, 'utf8')));
-    try { await run('ffmpeg', kh.args, { timeout: 15 * 60_000, maxBuffer: 8 << 20 }); }
+    try { await ff(kh.args, { timeout: 15 * 60_000, maxBuffer: 8 << 20 }); }
     catch (e) {
       const err = e as { stderr?: string; message?: string; killed?: boolean; signal?: string };
       // Bị dừng vì quá giờ thì stderr rỗng và message chỉ là nguyên câu lệnh (job 521, 12/10/2026) — nói thẳng lý do.
@@ -179,7 +182,7 @@ export async function gopAm(urls: string[]): Promise<Buffer | null> {
     }
     const ra = `${thuMuc}/ra.mp3`;
     const loc = `${tep.map((_, i) => `[${i}:a]aformat=sample_rates=44100:channel_layouts=mono,apad=pad_dur=0.15[a${i}]`).join(';')};${tep.map((_, i) => `[a${i}]`).join('')}concat=n=${tep.length}:v=0:a=1[aout]`;
-    await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', ...tep.flatMap((t) => ['-i', t]), '-filter_complex', loc, '-map', '[aout]', '-c:a', 'libmp3lame', '-q:a', '2', ra], { timeout: 120_000 });
+    await ff(['-y', '-hide_banner', '-loglevel', 'error', ...tep.flatMap((t) => ['-i', t]), '-filter_complex', loc, '-map', '[aout]', '-c:a', 'libmp3lame', '-q:a', '2', ra], { timeout: 120_000 });
     return await readFile(ra);
   } catch (e) { console.error('[gộp giọng]', e); return null; }
   finally { await rm(thuMuc, { recursive: true, force: true }).catch(() => {}); }
@@ -197,7 +200,7 @@ export async function khungHinhVideo(url: string, toiDa = 40): Promise<{ ok: tru
     const { dai } = await doTep(tep);
     if (!dai) return { ok: false, loi: 'không đọc được thời lượng video mẫu (không phải mp4?)' };
     const buoc = Math.max(1, Math.ceil(dai / toiDa));
-    await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', tep, '-vf', `fps=1/${buoc},scale=360:-2`, '-q:v', '6', `${thuMuc}/k%03d.jpg`], { timeout: 180_000 });
+    await ff(['-y', '-hide_banner', '-loglevel', 'error', '-i', tep, '-vf', `fps=1/${buoc},scale=360:-2`, '-q:v', '6', `${thuMuc}/k%03d.jpg`], { timeout: 180_000 });
     const { readdir } = await import('node:fs/promises');
     const ds = (await readdir(thuMuc)).filter((f) => f.startsWith('k') && f.endsWith('.jpg')).sort();
     const khung = await Promise.all(ds.map(async (f, i) => ({ giay: i * buoc, b64: (await readFile(`${thuMuc}/${f}`)).toString('base64') })));

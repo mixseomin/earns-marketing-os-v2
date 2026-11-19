@@ -4,6 +4,10 @@
 //   { card: <id>, tep: <tệp từ gốc repo>, mot | co | cam: '<chuỗi>', vi: '<anh muốn gì>' }   mot = đúng 1 lần · co = phải có · cam = không được có
 export const V = 'apps/web/src/components/etp-view.tsx';
 export const LUAT = [
+  { card: 'qua-tai-ffmpeg-1911', tep: 'apps/xuong-video/src/lib/xuong-video/xuat-chay.ts', cam: "run('ffmpeg',", vi: 'ffmpeg xuất / đo trên box3 không chạy NI 0 cạnh web — đi qua ffmpegNhe (nice 10) (etp:qua-tai-ffmpeg-xuat 19/11/2026: tải 14,3, swap 7,8 MB/s)' },
+  { card: 'qua-tai-ffmpeg-1911', tep: 'apps/xuong-video/src/lib/xuong-video/nen-video.mjs', co: "export const ffmpegNhe = (args) => ['nice', ['-n', String(NICE_FFMPEG), 'ffmpeg', ...args]];", vi: 'một hàm chung gọi ffmpeg ở ưu tiên nền' },
+  { card: 'qua-tai-ffmpeg-1911', tep: 'apps/xuong-video/src/lib/xuong-video/xuat.ts', co: "...nenH264({ crf: 20, preset: 'medium', threads: TRAN_LUONG })", vi: 'bản xuất trần 2 luồng mã hoá (trước 222% CPU / 1,1 GB RAM)' },
+  { card: 'qua-tai-ffmpeg-1911', tep: 'apps/xuong-video/src/lib/xuong-video/xuat.ts', co: "'-filter_complex_threads', String(TRAN_LUONG)", vi: 'bản xuất trần 2 luồng lọc' },
   { card: 'nhan-viec-1669', tep: 'apps/cty/may/gop-y-ky-su.mjs', co: 'export function baoNhanViec(nguoi, ket, log = () => {}) {', vi: 'một hàm chung đẩy dòng ◆ nhận việc về nhật ký nhịp — ô ĐANG LÀM cty.on.tc/nhan-su hiện đúng việc (Khôi #1669, 19/11/2026)' },
   { card: 'nhan-viec-1669', tep: 'apps/cty/may/etp-sua.mjs', co: 'baoNhanViec(NGUOI, dongNhanViec({ ...v, card: gopY }, `${model} ${muc.effort}`), log);', vi: 'runner Huy báo đúng việc vừa nhận (việc hàng / việc giao / card góp ý) lên bảng nhân sự' },
   { card: 'quyen-20-1011', tep: 'apps/cty/worker/ethopex.mjs', co: "const trongQuyen = (k, m) => tuTang && ['tang', 'dau_phien', 'hoi_g10'].includes(k)", vi: 'tăng trong quyền máy ($20) không gửi nút xin duyệt — ngoài khung thì máy hoãn rồi tự tăng (anh 10/11/2026)' },

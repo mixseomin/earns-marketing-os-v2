@@ -20,7 +20,7 @@ import { lichSfx, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, LUFS_CLIP_DUOI_GIONG } from 
 export { DUOI_CLIP_BO } from './toc-do';
 export { doanChuMan, chuManHien } from './kieu';
 import { giayGiuKet, dongThoai, phatTiengClip, lichGiong } from './am-thanh';
-import { nenH264 } from './nen-video.mjs';
+import { nenH264, TRAN_LUONG } from './nen-video.mjs';
 
 /** Một tệp nguyên liệu đã tải về + đo: dai = giây (âm/video), coAm = clip có luồng tiếng, lufs = độ to tích hợp (tệp chỉ có tiếng). */
 export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean; fps?: number | null; lufs?: number | null;
@@ -479,7 +479,8 @@ export function keHoachXuat(o: {
   if (tangAm.length) loc.push(`${tangAm.join('')}amix=inputs=${tangAm.length}:normalize=0:dropout_transition=0,apad=whole_dur=${so(giay)},atrim=0:${so(giay)},loudnorm=I=-14:TP=-1.5:LRA=11[aout]`);
   else loc.push(`anullsrc=r=48000:cl=stereo,atrim=0:${so(giay)}[aout]`);
   const kichBan = tepChu('loc', loc.join(';\n'));
-  const args = ['-y', '-hide_banner', '-loglevel', 'error', ...dauVao, '-/filter_complex', kichBan, '-map', '[vout]', '-map', '[aout]',
-    ...nenH264({ crf: 20, preset: 'medium' }), '-r', so(fpsRa), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', '-t', so(giay), o.ra];
+  // Trần luồng (lọc + mã hoá): bản xuất chạy chung box3 với web — không trần thì 222% CPU / 1,1 GB RAM (etp:qua-tai-ffmpeg-xuat 19/11/2026).
+  const args = ['-y', '-hide_banner', '-loglevel', 'error', '-filter_complex_threads', String(TRAN_LUONG), ...dauVao, '-/filter_complex', kichBan, '-map', '[vout]', '-map', '[aout]',
+    ...nenH264({ crf: 20, preset: 'medium', threads: TRAN_LUONG }), '-r', so(fpsRa), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', '-t', so(giay), o.ra];
   return { args, tep, giay, canhThieu, canhBao, lich };
 }

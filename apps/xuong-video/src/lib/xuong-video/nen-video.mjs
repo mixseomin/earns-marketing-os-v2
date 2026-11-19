@@ -20,5 +20,19 @@ export function nenH264(o = {}) {
   return ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', crf, '-preset', o.preset ?? 'medium', ...(o.threads ? ['-threads', String(o.threads)] : []), ...(o.maxrate ? ['-maxrate', o.maxrate, '-bufsize', o.bufsize ?? o.maxrate] : [])];
 }
 
+// ffmpeg chạy TRÊN box3 chung máy với các next-server (cty, etp2, studio, mos2): NI 0 + libx264 tự lấy mọi nhân thì một bản xuất 30 giây
+// ăn 222% CPU / 1,1 GB RAM, gặp lúc deploy khởi động lại web → swap 7,8 MB/s, tải 14 trên 4 nhân (etp:qua-tai-ffmpeg-xuat 19/11/2026).
+// Luật: ffmpeg chạy trong tiến trình web/script trên box3 đi qua ffmpegNhe → nice 10 (web luôn được ưu tiên); bản mã hoá nặng thêm TRAN_LUONG.
+/** Số luồng tối đa cho một lệnh ffmpeg mã hoá trên máy chủ chung (2 nhân / 4). */
+export const TRAN_LUONG = 2;
+/** Mức nice của ffmpeg nền — thấp hơn web (0), cao hơn việc vứt được (soi-chu dùng 19). */
+export const NICE_FFMPEG = 10;
+/**
+ * [lệnh, tham số] để gọi ffmpeg ở ưu tiên nền: `const [l, a] = ffmpegNhe(args); run(l, a, opts)`.
+ * @param {string[]} args
+ * @returns {[string, string[]]}
+ */
+export const ffmpegNhe = (args) => ['nice', ['-n', String(NICE_FFMPEG), 'ffmpeg', ...args]];
+
 /** Đặt TRƯỚC `-i <video>` khi đầu vào là video H.264/HEVC: Mac giải mã bằng phần cứng (khung về bộ nhớ thường, filter vẫn chạy bình thường). */
 export const giaiMaHw = () => (MAC ? ['-hwaccel', 'videotoolbox'] : []);

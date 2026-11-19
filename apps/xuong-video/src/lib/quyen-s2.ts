@@ -21,7 +21,7 @@ const LUAT: Record<string, { doi: Doi; tien?: boolean }> = {
   docPhim: { doi: 'phim' }, quyTrinhTap: { doi: 'phim' }, dsCanh: { doi: 'tap' }, uocTien: { doi: 'tap' }, uocAm: { doi: 'tap' }, nhatKyTap: { doi: 'tap' }, nhatKyCanh: { doi: 'canh' },
   docViecNen: { doi: 'viec' }, trangThaiXuat: { doi: 'job' },
   // ghi không tốn tiền
-  taoPhimS2: { doi: 'khong' }, taoPhimTuTemplate: { doi: 'khong' }, taoTap: { doi: 'phim' }, suaPhim: { doi: 'phim' }, suaTap: { doi: 'tap' }, suaCanh: { doi: 'canh' }, xepCanh: { doi: 'tap' },
+  taoPhimS2: { doi: 'khong' }, taoPhimTuTemplate: { doi: 'khong' }, taoTap: { doi: 'phim' }, suaPhim: { doi: 'phim' }, suaTap: { doi: 'tap' }, suaCanh: { doi: 'canh' }, xepCanh: { doi: 'tap' }, themCanh: { doi: 'tap' },
   duyetNguoiXemTayAction: { doi: 'tap' }, chonKeyframe: { doi: 'canh' }, duyetCanh: { doi: 'canh' }, duyetAnimatic: { doi: 'tap' }, xuatTap: { doi: 'tap' },
   // ghi tốn tiền
   taoPhimMau: { doi: 'khong', tien: true }, vietKichBanTap: { doi: 'tap', tien: true }, tachCanhTap: { doi: 'tap', tien: true }, batDauNguoiXem: { doi: 'tap', tien: true },

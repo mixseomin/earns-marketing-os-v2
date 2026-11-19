@@ -3,9 +3,9 @@
 // liệt kê ở đây. Mỗi hàm vẫn là đúng server action studio đang dùng: tự kiểm quyền quản trị, tự gác cổng quy trình (quy-trinh.ts) và cổng tiền
 // (chot-tien.ts) như khi bấm trên studio. Thêm một bước cho Studio 2 = thêm tên hàm vào đây. Hàm ĐỌC thì thêm ở doc-ham.ts.
 import { taoPhim, taoPhimMau, taoTap, suaPhim, suaTap, vietKichBanTap, tachCanhTap, batDauNguoiXem, duyetNguoiXemTayAction, goiYAIKinhThanh, goiYAIBoAnchor,
-  sinhAnhThieuAction, sinhKeyframe, chonKeyframe, duyetCanh, sinhGiong, duyetAnimatic, sinhVideoCanh, sinhNhac, xuatTap, suaCanh, xepCanh, taoPhimTuTemplate } from './actions';
+  sinhAnhThieuAction, sinhKeyframe, chonKeyframe, duyetCanh, sinhGiong, duyetAnimatic, sinhVideoCanh, sinhNhac, xuatTap, suaCanh, xepCanh, themCanh, taoPhimTuTemplate } from './actions';
 import { taoPhimS2, datQuyenS2 } from './actions-studio2';
 
 export const HAM_GHI = { taoPhim, taoPhimMau, taoTap, suaPhim, suaTap, vietKichBanTap, tachCanhTap, batDauNguoiXem, duyetNguoiXemTayAction, goiYAIKinhThanh, goiYAIBoAnchor,
-  sinhAnhThieuAction, sinhKeyframe, chonKeyframe, duyetCanh, sinhGiong, duyetAnimatic, sinhVideoCanh, sinhNhac, xuatTap, suaCanh, xepCanh, taoPhimTuTemplate, taoPhimS2, datQuyenS2 };
+  sinhAnhThieuAction, sinhKeyframe, chonKeyframe, duyetCanh, sinhGiong, duyetAnimatic, sinhVideoCanh, sinhNhac, xuatTap, suaCanh, xepCanh, themCanh, taoPhimTuTemplate, taoPhimS2, datQuyenS2 };
 export type HamGhi = typeof HAM_GHI;

@@ -199,7 +199,7 @@ export function DataTable<T>({
   // persistKey (localStorage, đọc sau khi gắn để không lệch SSR); có cột đã kéo → bảng chuyển table-layout fixed để bề ngang được tôn trọng.
   const khoaRong = persistKey ? `tbl-rong.${persistKey}` : null;
   const [rong, setRong] = useState<Record<string, number>>({});
-  const [dangKeo, setDangKeo] = useState(false);
+  const [dangKeo, setDangKeo] = useState<string | null>(null);   // khoá cột đang kéo
   const [khung, setKhung] = useState(0);   // bề ngang khung chứa bảng — khung hẹp hơn tổng bề ngang đã lưu thì co các cột theo tỉ lệ
   useEffect(() => { if (khoaRong) setRong(docRongCot(khoaRong)); }, [khoaRong]);
   const keoCot = (e: ReactPointerEvent<HTMLSpanElement>, key: string) => {
@@ -208,10 +208,11 @@ export function DataTable<T>({
     // chốt bề ngang HIỆN TẠI của mọi cột trước khi chuyển sang fixed — không thì các cột chưa khai width nhảy lung tung lúc bắt đầu kéo
     // Bề ngang GIỮ SỐ LẺ (2 chữ số): tổng các cột = đúng bề ngang bảng. Trước đây Math.ceil từng cột → lố ~1px/cột, 9 cột lố ~10px → bảng cuộn ngang, hết co theo màn (góp ý #giao-20261118T2101-chuyen-tz5p).
     const chot: Record<string, number> = {}; Array.from(hang.children).forEach((x, i) => { const k = visibleKeys[i]; if (k) chot[k] = Math.round((x as HTMLElement).getBoundingClientRect().width * 100) / 100; });
-    setRong((r) => ({ ...r, ...chot })); setDangKeo(true);
+    setRong((r) => ({ ...r, ...chot })); setDangKeo(key);
     batDauKeo(e, { dau: th.getBoundingClientRect().width, min: 36, max: () => 1600,
       doi: (v) => setRong((r) => ({ ...r, [key]: v })),
-      xong: (v) => { setDangKeo(false); setRong((r) => { const n = { ...chot, ...r, [key]: v }; if (khoaRong) ghiRongCot(khoaRong, n); return n; }); } });
+      // thả: ghi bề ngang ĐANG HIỆN của mọi cột (tổng = khung) → sau khi thả không co thêm lần nữa, tay nắm không giật
+      xong: (v) => { setDangKeo(null); setRong((r) => { const g = { ...chot, ...r, [key]: v }; const n = { ...g, ...hienRef.current(g, key) }; if (khoaRong) ghiRongCot(khoaRong, n); return n; }); } });
   };
   const veMacDinh = (key: string) => setRong((r) => { const n = { ...r }; delete n[key]; if (khoaRong) ghiRongCot(khoaRong, n); return n; });
   // Ô tìm/lọc chung — persist như sort/lọc-cột (cookie server đọc sẵn + URL để share/F5). Trước đây
@@ -440,10 +441,20 @@ export function DataTable<T>({
   // bảng bề rộng cố định (table-layout:fixed — đã kéo cột / fixedLayout): ô nào cũng cắt phần tràn, không thì chữ dài đè sang cột bên cạnh (anh 26/10/2026)
   const coDinh = !!fixedLayout || Object.keys(rong).length > 0;
   // co theo tỉ lệ: tổng bề ngang cột (đã lưu + mặc định) lớn hơn khung → nhân mọi bề ngang đã lưu với khung/tổng; lúc đang kéo thì không co (tay nắm phải theo chuột)
-  const tongLuu = visible.reduce((s, c) => s + (rong[c.key] ?? 0), 0);   // phần co được (cột đã lưu bề ngang)
-  const tongKhac = visible.reduce((s, c) => s + (rong[c.key] != null ? 0 : typeof c.width === 'number' ? c.width : RONG_MAC_DINH), 0);
-  const heSo = !dangKeo && khung > 0 && tongLuu > 0 && tongLuu + tongKhac > khung ? Math.max(0.1, (khung - tongKhac) / tongLuu) : 1;
-  const rongCot = (k: string): number | undefined => (rong[k] == null ? undefined : Math.floor(rong[k] * heSo * 100) / 100);
+  // Đang kéo: cột đang kéo giữ đúng v, các cột khác co theo (khung − tongKhac − v) / (tongLuu − v) — bảng không bung quá khung, tay nắm theo chuột (góp ý #giao-20261119T0858-chuyen-8zd2)
+  const hienRef = useRef<(r: Record<string, number>, keo: string | null) => Record<string, number>>(() => ({}));
+  hienRef.current = (r, keo) => {
+    const tongLuu = visible.reduce((s, c) => s + (r[c.key] ?? 0), 0);   // phần co được (cột đã lưu bề ngang)
+    const tongKhac = visible.reduce((s, c) => s + (r[c.key] != null ? 0 : typeof c.width === 'number' ? c.width : RONG_MAC_DINH), 0);
+    const v = keo != null && r[keo] != null ? r[keo] : 0;
+    const coDuoc = tongLuu - v;
+    const heSo = khung > 0 && coDuoc > 0 && tongLuu + tongKhac > khung ? Math.max(0.1, (khung - tongKhac - v) / coDuoc) : 1;
+    const out: Record<string, number> = {};
+    for (const c of visible) { const x = r[c.key]; if (x != null) out[c.key] = c.key === keo ? x : Math.floor(x * heSo * 100) / 100; }
+    return out;
+  };
+  const hien = hienRef.current(rong, dangKeo);
+  const rongCot = (k: string): number | undefined => hien[k];
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties, i = -1): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
     // bảng đã chuyển fixed (đã kéo cột) mà cột này chưa có bề ngang (cột MỚI thêm sau lần kéo) → bề ngang mặc định, không thì table-layout:fixed

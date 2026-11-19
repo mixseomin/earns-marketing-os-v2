@@ -95,8 +95,11 @@ function The({ m }: { m: MauCr }) {
   </div>;
 }
 
+/** bản giữ trong máy đúng khuôn hiện tại (mỗi mẫu có mảng ban + tham_chieu + dung_cho + the_loai) — bản khuôn cũ thì bỏ, chờ bản mới */
+const hopKhuon = (v: unknown) => { const ds = (v as { mau?: unknown })?.mau; return Array.isArray(ds) && ds.every((m) => ['ban', 'tham_chieu', 'dung_cho', 'the_loai'].every((k) => Array.isArray((m as Record<string, unknown>)?.[k]))); };
+
 export function TabMauCr() {
-  const { so: du, loi } = useSoNho<{ mau: MauCr[]; luc: string }>('mau-cr', docMauCr);
+  const { so: du, loi } = useSoNho<{ mau: MauCr[]; luc: string }>('mau-cr', docMauCr, undefined, hopKhuon);
   const [loai, setLoai] = useLoc('mcl'), [nguon, setNguon] = useLoc('mcn'), [tt, setTt] = useLoc('mct'), [dang, setDang] = useLoc('mcd'), [tl, setTl] = useLoc('mctl');
   const tatCa = useMemo(() => du?.mau ?? [], [du]);
   const dsTl = useMemo(() => [...new Set(tatCa.flatMap((m) => m.the_loai))].sort(), [tatCa]);

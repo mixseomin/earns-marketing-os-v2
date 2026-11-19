@@ -30,13 +30,15 @@ export async function ghiNho(k: string, v: unknown, ma = ''): Promise<void> {
   } catch (e) { console.warn('[etp2 số giữ trong máy] ghi', k, e); }
 }
 
-/** widget tự tải: bản giữ hiện ngay (khi bản mới chưa về), bản mới về thì thay + giữ lại. tai trả `{ loi }` khi máy chủ báo lỗi; `ms` = nhịp tải lại */
-export function useSoNho<T extends object>(khoa: string, tai: () => Promise<T | { loi: string }>, ms?: number): { so: T | null; loi: string | null } {
+/** widget tự tải: bản giữ hiện ngay (khi bản mới chưa về), bản mới về thì thay + giữ lại. tai trả `{ loi }` khi máy chủ báo lỗi; `ms` = nhịp tải lại.
+ *  `hop` = bài kiểm KHUÔN của bản giữ (19/11/2026: tab Mẫu creative đổi khuôn → bản giữ của bản dựng trước thiếu trường mới → trang đổ "reading 'length'"
+ *  trước khi bản mới về). Bản giữ không qua `hop` thì bỏ, chờ bản mới — đổi khuôn dữ liệu của widget thì sửa `hop`, không cần đổi khoá. */
+export function useSoNho<T extends object>(khoa: string, tai: () => Promise<T | { loi: string }>, ms?: number, hop?: (v: unknown) => boolean): { so: T | null; loi: string | null } {
   const [so, setSo] = useState<T | null>(null);
   const [loi, setLoi] = useState<string | null>(null);
   useEffect(() => {
     let huy = false, moi = false;
-    void docNho(khoa).then((b) => { if (b && !huy && !moi) try { setSo(JSON.parse(b.than) as T); } catch { /* bản hỏng — chờ bản mới */ } });
+    void docNho(khoa).then((b) => { if (b && !huy && !moi) try { const v = JSON.parse(b.than); if (!hop || hop(v)) setSo(v as T); else console.warn('[etp2 số giữ trong máy] bỏ bản giữ khuôn cũ', khoa); } catch { /* bản hỏng — chờ bản mới */ } });
     const f = () => tai().then((r) => { if (huy) return; if ('loi' in r) { setLoi(r.loi); return; } moi = true; setLoi(null); setSo(r as T); void ghiNho(khoa, r); })
       .catch((e: unknown) => { if (!huy) setLoi(e instanceof Error ? e.message : String(e)); });
     f(); const t = ms ? nhip(f, ms) : null;

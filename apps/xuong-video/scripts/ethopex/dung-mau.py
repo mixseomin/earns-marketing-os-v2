@@ -289,7 +289,10 @@ def mot(ma, cid, xem=False, ban=1):
     muc = next((x for x in SO if x["ma"] == ma), None)
     if not muc: raise SystemExit(f"mẫu {ma} không có trong sổ")
     dang = "poster động" if muc["loai"] == "bo_cuc" and "poster động" in muc["dung_cho"] else "ảnh tĩnh"
-    tt = (lambda *a, **k: None) if xem else (lambda b, t="dang", g=None, **k: ghi_tt(ma, cid, b, t, g, **k))
+    dang_o = ["tai_tap"]   # bước đang làm — lỗi thì ghi ĐÚNG bước hỏng (19/11/2026: ghi buoc='loi' làm Máy SX không biết hỏng ở nhịp nào)
+    def tt(b, t="dang", g=None, **k):
+        if b not in ("xong", "loi"): dang_o[0] = b
+        if not xem: ghi_tt(ma, cid, dang_o[0] if b == "loi" else b, t, g, **k)
     vnd = 0
     try:
         tt("tai_tap", g="tải 3 tập miễn phí + trích khung")

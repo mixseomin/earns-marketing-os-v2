@@ -159,16 +159,16 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
               color: d.oTieuDe ? 'var(--fg-3)' : x ? 'var(--fg-1)' : 'var(--fg-4)', fontWeight: d.oTieuDe ? 400 : x ? 600 : 400 }}>
             {d.oTieuDe ? <span title={`tổng: ${so(x)}`}>{d.oTieuDe[i]}</span> : so(x)}</span>)}</span>}</span>;
         if (!laK(d)) { const v = d.v, c = CHANG[v.trangThai];
-          return <span style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0 }}>
+          return <span style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0, width: '100%', overflow: 'hidden' }}>
             <span style={{ color: 'var(--fg-4)' }}>└</span>
             <button type="button" onClick={(e) => { e.stopPropagation(); ngan.moVideo(d.k.ma, v.slug); }} title={`${v.ten} — bấm mở video`}
-              style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'inherit', font: 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'underline dotted var(--fg-4)', width: 340, flex: 'none', textAlign: 'left' }}>{v.ten}</button>
+              style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'inherit', font: 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'underline dotted var(--fg-4)', flex: '1 1 0', minWidth: 0, textAlign: 'left' }}>{v.ten}</button>
             {/* góp ý #1622 + #1625: icon nền đã đăng đứng NGAY SAU TÊN, ô rộng cố định để cột trạng thái vẫn thẳng hàng
                 (trước nằm sau cột trạng thái 190px → khuất mắt). Kênh social: mọi nền bài đã lên; kênh sản phẩm: mọi nền trong da_dang (YouTube, Facebook…) */}
             {(() => { const ds = v.nen?.length ? v.nen : v.trangThai === 'da_dang' ? ['youtube'] : []; const pks = [...new Set(ds.map(pkCua))];
               return <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center', flex: 'none', width: 52 }} title={ds.length ? `đã lên: ${ds.join(', ')}` : 'chưa lên nền nào'}>{pks.map((pk) => <SiteFavicon key={pk} platformKey={pk} size={14} title={ds.filter((n) => pkCua(n) === pk).join(', ')} />)}</span>; })()}
-            {/* trạng thái = cột riêng thẳng hàng, không dính đuôi tên (góp ý #1577) */}
-            <span style={{ color: c.mau, fontSize: 11, whiteSpace: 'nowrap', width: 190, flex: 'none', overflow: 'hidden', textOverflow: 'ellipsis', cursor: v.suaLai ? 'help' : undefined }} title={v.suaLai?.chiTiet ?? c.chu}>{c.chu}{v.suaLai && <span style={{ color: 'var(--fg-3)' }}> · {v.suaLai.ngan}</span>}</span>
+            {/* trạng thái = cột riêng thẳng hàng, không dính đuôi tên (góp ý #1577); tên co giãn (flex 1 1 0) để cột trạng thái luôn nằm TRONG ô, không bị cắt khỏi cột ghim */}
+            <span style={{ color: c.mau, fontSize: 11, whiteSpace: 'nowrap', width: 120, flex: 'none', overflow: 'hidden', textOverflow: 'ellipsis', cursor: v.suaLai ? 'help' : undefined }} title={v.suaLai?.chiTiet ?? c.chu}>{c.chu}{v.suaLai && <span style={{ color: 'var(--fg-3)' }}> · {v.suaLai.ngan}</span>}</span>
             {v.playlist && <span style={{ color: 'var(--fg-3)', fontSize: 11, whiteSpace: 'nowrap' }} title="playlist của tập">📂 {d.k.playlist?.find((p) => p.ma === v.playlist)?.ten ?? v.playlist}</span>}</span>; }
         const k = d.k, n = k.videos.length;
         // góp ý #1594: ô ghim trái, chiếm đủ cột, chữ trạng thái co + "…" — dòng nào nội dung dài hơn cột cũng không bị đẩy lệch ▸/ảnh/tên/⋯

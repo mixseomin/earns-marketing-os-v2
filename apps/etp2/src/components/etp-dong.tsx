@@ -146,7 +146,8 @@ function O({ tt, chu, the, fix, bam, menu, xem, so, cap = 3 }: { tt: string; chu
   return <td onClick={menu ?? bam} onMouseEnter={xem ? (e) => datXem({ ...xem, x: e.clientX, y: e.clientY }) : coThe ? (e) => noi.mo({ id: 0 }, e) : undefined} onMouseLeave={xem ? () => datXem(null) : coThe ? noi.dongTre : undefined}
     style={{ padding: cap === 3 ? '1px 2px' : 2, cursor: bam || menu ? 'pointer' : xem ? 'zoom-in' : coThe ? 'help' : undefined }}>{noi.v && the ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={380} cao={320} noi={noi}><TheChung t={the()} /></KhungNoi> : null}<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', padding: so != null ? '0 6px' : undefined,
     ...kieu, animation: tt === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>
-    <span>{KY[tt] ?? ''}</span>{chu ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: so != null ? 40 : 74 }}>{chu}</span> : null}
+    {/* chữ ô dùng HẾT bề rộng cột (#1520 "nút Chờ của phim đang bị cụt"): trước trần cứng 74px nên chữ dài ('👆 chờ anh duyệt', 'tự lên · thứ 12', '⏳ đang lên 10/10') cụt dù cột còn chỗ; chỉ ô có số tiền mới chia chỗ */}
+    <span style={{ flex: 'none' }}>{KY[tt] ?? ''}</span>{chu ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, ...(so != null ? { maxWidth: 40 } : { flex: '0 1 auto' }) }}>{chu}</span> : null}
     {so != null ? <span style={{ flex: 1, minWidth: 0, maxWidth: 72 }}><KeToan v={so} mau={cap === 1 ? undefined : mauLai(so)} /></span> : null}
     {fix ? <button className="btn" onClick={fix} style={{ padding: '0 4px', fontSize: 10, lineHeight: '14px', color: '#fca5a5', borderColor: '#7f1d1d' }}>FIX</button> : null}</div></td>;
 }

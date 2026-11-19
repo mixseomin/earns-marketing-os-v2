@@ -10,7 +10,8 @@ import { DataTable, Drawer, FilterChips, type DataColumn, type DataGroup } from 
 import { Dem, MO_SO } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { chonPhimMau, docPhimChon, type PhimChon } from '@/lib/actions/etp-mau-cr';
-import { DO, OCamp, ORoi, VANG, XANH, useDoiThu } from './etp-doi-thu';
+import { DO, Mien, OCamp, ORoi, VANG, XANH, ngayTu, useDoiThu } from './etp-doi-thu';
+import type { PhimDoiThu } from '@/lib/actions/etp-doi-thu';
 import { SU_KIEN_MAU } from '@/lib/etp-mau-su-kien';
 
 type Dong = PhimChon & { dt_dang: number; dt_lau: number; nhom: string };
@@ -32,11 +33,20 @@ function ghiUrl(k: string, v: string | null) {
   window.history.replaceState(window.history.state, '', `${u.pathname}${u.search}${u.hash}`);
 }
 
+// XEM "PHIM ĐỐI THỦ ĐANG CHẠY" (anh 19/11/2026: "Tao cần thấy danh sách film đối thủ đang chạy khi chọn phim!") — mặc định của ngăn: mỗi phim đối thủ còn QC chạy
+// (danh sách Phim đối thủ, useDoiThu) ghép phim Ethopex cùng tên → số mẫu này / nhà / đội + nút Sinh. Phim đối thủ chưa có trên Ethopex thì không sinh được (ghi rõ).
+type XemNgan = 'dt' | 'etp';
+type DongDt = PhimDoiThu & { e: Dong | null; nhom: string };
+const NHOM_DT = ['1 · Đã có creative mẫu này', '2 · Đang sinh / đã chọn', '3 · Nhà đang chạy phim — chưa có mẫu này', '4 · Nhà chưa chạy phim', '5 · Không có trên Ethopex'] as const;
+
 export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => void }) {
   const [du, setDu] = useState<Awaited<ReturnType<typeof docPhimChon>> | null>(null);
   const { so: dt } = useDoiThu();
   const [loc, setLoc] = useState<Loc[]>(() => (docUrl('mpl') ?? '').split(',').filter((x): x is Loc => LOC.some((l) => l.value === x)));
   const [kq, setKq] = useState<Record<number, { dang?: boolean; loi?: string; ghi?: string }>>({});
+  const [xem, setXem] = useState<XemNgan>(() => (docUrl('mpv') === 'etp' ? 'etp' : 'dt'));
+  useEffect(() => { ghiUrl('mpv', xem === 'dt' ? null : xem); }, [xem]);
+  useEffect(() => () => ghiUrl('mpv', null), []);
   useEffect(() => { ghiUrl('mpl', loc.length ? loc.join(',') : null); }, [loc]);
   useEffect(() => () => ghiUrl('mpl', null), []);
   const tai = () => docPhimChon(ma).then(setDu).catch((e: unknown) => setDu({ loi: e instanceof Error ? e.message : String(e) }));
@@ -49,6 +59,12 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
   })
     // thứ tự mặc định: nhóm 1 → 5 (bảng dùng chung gom nhóm theo thứ tự xuất hiện), trong nhóm chi nhà nhiều trước, rồi QC đối thủ đang chạy
     .sort((a, b) => a.nhom.localeCompare(b.nhom) || b.nha.chi - a.nha.chi || b.dt_dang - a.dt_dang), [du, dtTheo]);
+  const theoId = useMemo(() => new Map(rows.map((p) => [p.id, p])), [rows]);
+  const dtRows: DongDt[] = useMemo(() => (dt?.phim ?? []).filter((p) => p.qc_dang > 0).map((p) => {
+    const e = p.etp ? theoId.get(p.etp.id) ?? null : null;
+    const nhom = !p.etp ? NHOM_DT[4] : !e ? NHOM_DT[4] : e.cr_mau ? NHOM_DT[0] : e.nhom === NHOM[1] ? NHOM_DT[1] : e.nha.dang || e.nha.tong ? NHOM_DT[2] : NHOM_DT[3];
+    return { ...p, e, nhom };
+  }).sort((a, b) => a.nhom.localeCompare(b.nhom) || b.qc_dang - a.qc_dang || b.lau_nhat - a.lau_nhat), [dt, theoId]);
   const loc_ = rows.filter((p) => loc.every((k) => LOC.find((l) => l.value === k)!.f(p)));
   const dem = Object.fromEntries(LOC.map((l) => [l.value, rows.filter(l.f).length])) as Record<Loc, number>;
   const mau = du && 'mau' in du ? du.mau : null;
@@ -60,6 +76,16 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
       if (!('loi' in r)) { window.dispatchEvent(new Event(SU_KIEN_MAU)); void tai(); }
     }).catch((e: unknown) => setKq((k) => ({ ...k, [p.id]: { loi: e instanceof Error ? e.message : String(e) } })));
   };
+  function oSinh(p: Dong) {
+    const k = kq[p.id];
+    if (k?.dang) return <span style={{ color: MO_SO }}>đang tạo dòng…</span>;
+    if (k?.loi) return <span style={{ color: DO, fontSize: 11.5 }} title={k.loi}>✕ {k.loi}</span>;
+    if (k?.ghi) return <span style={{ color: XANH, fontSize: 11.5 }} title={k.ghi}>✓ {k.ghi}</span>;
+    if (p.da_chon) return <span style={{ color: MO_SO, fontSize: 11.5 }}>đã chọn cho mẫu này</span>;
+    return <button type="button" onClick={(e) => { e.stopPropagation(); sinh(p); }} title={mau?.dong ? `tạo dòng phim ${mau.dong} — máy sinh creative theo mẫu, mọi cổng của dòng (soát, chấm, phanh chợ, luật lên camp) giữ nguyên` : 'mẫu chưa có máy dựng — chỉ ghi phim, dựng mã mẫu xong máy mới sinh'}
+      style={{ fontSize: 11.5, padding: '2px 10px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'var(--accent, #60a5fa)', cursor: 'pointer' }}>
+      {mau?.dong ? `Sinh (${mau.dong})` : 'Ghi chờ dựng'}</button>;
+  }
   const nhomCot: DataGroup[] = [
     { key: 'mau', label: 'Mẫu này', color: '#a78bfa' }, { key: 'nha', label: 'Nhà', color: '#38bdf8' }, { key: 'doi', label: 'Đội', color: '#94a3b8' }, { key: 'dt', label: 'Đối thủ', color: '#fb923c' },
   ];
@@ -83,22 +109,45 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
     { key: 'doi_roi', group: 'doi', header: 'ROI', width: 54, sortValue: (p) => roi(p.doi), cell: (p) => <ORoi x={p.doi} /> },
     { key: 'dt_dang', group: 'dt', header: 'Đang', title: 'QC đối thủ Spy còn thấy trong 2 ngày qua', width: 60, sortValue: (p) => p.dt_dang, cell: (p) => (p.dt_dang ? <b>{p.dt_dang}</b> : <span style={{ color: MO_SO }}>—</span>) },
     { key: 'dt_lau', group: 'dt', header: 'Lâu', title: 'QC đối thủ chạy lâu nhất (ngày)', width: 66, sortValue: (p) => p.dt_lau, cell: (p) => (p.dt_lau ? `${p.dt_lau} ngày` : <span style={{ color: MO_SO }}>—</span>) },
-    { key: 'sinh', header: 'Sinh creative', align: 'left', width: 190, sortValue: (p) => Number(p.da_chon),
-      cell: (p) => { const k = kq[p.id];
-        if (k?.dang) return <span style={{ color: MO_SO }}>đang tạo dòng…</span>;
-        if (k?.loi) return <span style={{ color: DO, fontSize: 11.5 }} title={k.loi}>✕ {k.loi}</span>;
-        if (k?.ghi) return <span style={{ color: XANH, fontSize: 11.5 }} title={k.ghi}>✓ {k.ghi}</span>;
-        if (p.da_chon) return <span style={{ color: MO_SO, fontSize: 11.5 }}>đã chọn cho mẫu này</span>;
-        return <button type="button" onClick={(e) => { e.stopPropagation(); sinh(p); }} title={mau?.dong ? `tạo dòng phim ${mau.dong} — máy sinh creative theo mẫu, mọi cổng của dòng (soát, chấm, phanh chợ, luật lên camp) giữ nguyên` : 'mẫu chưa có máy dựng — chỉ ghi phim, dựng mã mẫu xong máy mới sinh'}
-          style={{ fontSize: 11.5, padding: '2px 10px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'var(--accent, #60a5fa)', cursor: 'pointer' }}>
-          {mau?.dong ? `Sinh (${mau.dong})` : 'Ghi chờ dựng'}</button>; } },
+    { key: 'sinh', header: 'Sinh creative', align: 'left', width: 190, sortValue: (p) => Number(p.da_chon), cell: (p) => oSinh(p) },
+  ];
+  const cotDt: DataColumn<DongDt>[] = [
+    { key: 'ten', header: 'Phim đối thủ', align: 'left', width: 230, sortValue: (p) => p.ten, onCellClick: (p) => openEntityDrawer('etp-dt', p.khoa),
+      cell: (p) => <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }} title={`${p.ten} — bấm xem creative đối thủ của phim`}>
+        {p.qc_dang >= 3 && p.e && !p.e.cr_mau && !p.e.da_chon ? <span title="đối thủ đang chạy ≥ 3 QC, phim có trên Ethopex, nhà chưa có mẫu này" style={{ color: VANG, fontWeight: 700 }}>★</span> : null}
+        <a style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{p.ten}</a></span> },
+    { key: 'mien', header: 'Đối thủ', align: 'left', width: 64, sortValue: (p) => p.mien.join(','), cell: (p) => <Mien ds={p.mien} /> },
+    { key: 'qc_dang', group: 'dt', header: 'Đang', title: 'QC đối thủ Spy còn thấy trong 2 ngày qua', width: 56, sortValue: (p) => p.qc_dang, cell: (p) => <b style={{ fontWeight: p.qc_dang >= 10 ? 700 : 500 }}>{p.qc_dang}</b> },
+    { key: 'qc_tong', group: 'dt', header: 'Tổng', title: 'mọi QC đối thủ của phim', width: 54, sortValue: (p) => p.qc_tong, cell: (p) => <Dem v={p.qc_tong} /> },
+    { key: 'lau', group: 'dt', header: 'Lâu', title: 'QC chạy lâu nhất (ngày)', width: 62, sortValue: (p) => p.lau_nhat, cell: (p) => `${p.lau_nhat} ngày` },
+    { key: 'page', group: 'dt', header: 'Page', title: 'số Page đối thủ chạy phim', width: 50, sortValue: (p) => p.so_page, cell: (p) => <Dem v={p.so_page} /> },
+    { key: 'tu', group: 'dt', header: 'Chạy từ', title: 'số ngày từ QC đầu tiên của đối thủ', width: 66, sortValue: (p) => ngayTu(p.bat_dau), cell: (p) => { const n = ngayTu(p.bat_dau); return n == null ? '—' : `${n} ngày`; } },
+    { key: 'etp', header: 'Ethopex', align: 'left', title: 'phim cùng tên trên Ethopex — bấm mở ngăn phim', width: 70, sortValue: (p) => p.etp?.id ?? null,
+      onCellClick: (p) => { if (p.etp) openEntityDrawer('etp-phim', p.etp.id); }, cell: (p) => (p.etp ? <a style={{ cursor: 'pointer' }}>#{p.etp.id}</a> : <span style={{ color: MO_SO }}>không có</span>) },
+    { key: 'tl', header: 'Thể loại', align: 'left', width: 110, sortValue: (p) => p.e?.tl ?? null, cell: (p) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 106 }} title={p.e?.tl ?? ''}>{p.e?.tl ?? '—'}</span> },
+    { key: 'cr_mau', group: 'mau', header: 'Mẫu này', title: 'creative nhà của phim theo đúng mẫu này', width: 66, sortValue: (p) => p.e?.cr_mau ?? null, cell: (p) => (p.e?.cr_mau ? <b style={{ color: XANH }}>{p.e.cr_mau}</b> : <span style={{ color: MO_SO }}>0</span>) },
+    { key: 'cr_dang', group: 'mau', header: 'Dạng', title: 'creative nhà của phim cùng dạng', width: 54, sortValue: (p) => p.e?.cr_dang ?? null, cell: (p) => (p.e ? <Dem v={p.e.cr_dang} /> : '—') },
+    { key: 'nha', group: 'nha', header: 'Camp', width: 64, sortValue: (p) => (p.e ? p.e.nha.dang * 1000 + p.e.nha.tong : null), cell: (p) => (p.e ? <OCamp x={p.e.nha} ai="Nhà" /> : '—') },
+    { key: 'nha_roi', group: 'nha', header: 'ROI', width: 54, sortValue: (p) => (p.e ? roi(p.e.nha) : null), cell: (p) => (p.e ? <ORoi x={p.e.nha} /> : '—') },
+    { key: 'doi', group: 'doi', header: 'Camp', width: 64, sortValue: (p) => (p.e ? p.e.doi.dang * 1000 + p.e.doi.tong : null), cell: (p) => (p.e ? <OCamp x={p.e.doi} ai="Đội" /> : '—') },
+    { key: 'doi_roi', group: 'doi', header: 'ROI', width: 54, sortValue: (p) => (p.e ? roi(p.e.doi) : null), cell: (p) => (p.e ? <ORoi x={p.e.doi} /> : '—') },
+    { key: 'sinh', header: 'Sinh creative', align: 'left', width: 190, sortValue: (p) => Number(!!p.e?.da_chon),
+      cell: (p) => (p.e ? oSinh(p.e) : <span style={{ fontSize: 11.5, color: MO_SO }} title="phim đối thủ chưa khớp phim nào trên Ethopex (tên khác / chưa có) — không sinh được">không có trên Ethopex</span>) },
   ];
   const dau = <div className="modal-head"><div><div className="id-line">chọn phim sinh creative theo mẫu</div><h2 style={{ margin: 0 }}>{mau?.ten ?? ma}</h2>
     <div style={{ fontSize: 11.5, color: MO_SO, marginTop: 2 }}>{mau ? (mau.dong ? `dạng ${mau.dang} · máy dựng: dòng ${mau.dong}` : 'mẫu chưa có máy dựng — chọn phim chỉ ghi lại') : ''}</div></div>
     <button className="modal-close" onClick={onClose}>✕</button></div>;
   return <Drawer onClose={onClose} width={1400} padding={0}>{dau}
     <div style={{ padding: '8px 12px' }}>
-      {!du ? <div style={{ color: MO_SO }}>đang đọc danh sách phim…</div> : 'loi' in du ? <div style={{ color: DO }}>{du.loi}</div> :
+      <div style={{ marginBottom: 6 }}><FilterChips<XemNgan> value={xem} onChange={setXem} urlKey="mpv" allValue="dt"
+        options={[{ value: 'dt', label: `Phim đối thủ đang chạy${dt ? ` · ${dtRows.length}` : ''}`, title: 'phim đối thủ còn QC chạy trong 2 ngày qua (kho Spy) — ghép phim Ethopex cùng tên để sinh' },
+          { value: 'etp', label: `Mọi phim Ethopex · ${rows.length}`, title: 'mọi phim Âu-Mỹ trên Ethopex, chia nhóm theo mẫu này / nhà / đối thủ' }]} /></div>
+      {!du ? <div style={{ color: MO_SO }}>đang đọc danh sách phim…</div> : 'loi' in du ? <div style={{ color: DO }}>{du.loi}</div> : xem === 'dt' ? (!dt
+        ? <div style={{ color: MO_SO }}>đang đọc danh sách phim đối thủ (kho Spy)…</div>
+        : <DataTable rows={dtRows} columns={cotDt} groups={nhomCot} groupHeader getRowKey={(p) => p.khoa} persistKey="etp-mau-phim-dt" minWidth={1250} pageSize={100} fixedLayout
+            groupBy={{ value: (p) => p.nhom }} locTuDong={false}
+            searchText={(p) => `${p.ten} ${p.etp?.id ?? ''} ${p.mien.join(' ')} ${p.e?.tl ?? ''}`} searchPlaceholder="Tìm phim đối thủ, mã Ethopex…"
+            dauThanh={<span style={{ fontSize: 11.5, color: MO_SO }}>{dtRows.length} phim đối thủ còn chạy · {dtRows.filter((p) => p.e).length} có trên Ethopex (sinh được) · bấm tên phim xem creative đối thủ</span>} />) :
         <DataTable rows={loc_} columns={cot} groups={nhomCot} groupHeader getRowKey={(p) => String(p.id)} persistKey="etp-mau-phim" minWidth={1250} pageSize={100} fixedLayout   /* bề rộng theo khai báo từng cột — cột Phim không nuốt chỗ của Đối thủ / Sinh */
           groupBy={{ value: (p) => p.nhom }} locTuDong={false}
           searchText={(p) => `${p.ten} ${p.id} ${p.tl ?? ''}`} searchPlaceholder="Tìm phim, mã, thể loại…"

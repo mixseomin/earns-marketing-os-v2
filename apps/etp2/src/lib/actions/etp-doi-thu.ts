@@ -7,13 +7,13 @@
 //   ảnh QC: link fbcdn hết hạn → cất R2 (etp.doi_thu_qc.anh) · dạng creative: cổng AI chung (haiku, chi_re), đệm theo library_id
 // Bảng đệm dựng tại chỗ (create if not exists) — etp2 không ghi migration chung của repo.
 // tra-repo-ok: mã dán keo nội bộ — đọc kho Spy + sổ etp của nhà, không có thư viện ngoài nào làm việc này
-import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { goiAi, MO_HINH } from '@mos2/cong-ai';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 import { r2Enabled, uploadToR2 } from '@/lib/r2';
+import { spy, type Pg } from '@/lib/spy-db';
 
 const MIEN_MAC_DINH = ['maybic.com', 'marcusbeilby.com', 'applodo.com'];
 const BO_TEN = new Set(['shortfilmlanding']);   // trang đích chung, không phải phim
@@ -25,16 +25,8 @@ const chuan = (s: string | null | undefined) => (s ?? '').toLowerCase().replace(
 const giaiMa = (s: string) => s.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
   .replace(/&quot;/g, '"').replace(/&apos;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
 
-// ── kết nối kho Spy (DB riêng trên box3) — một pool nhỏ giữ suốt tiến trình
-type Pg = Awaited<ReturnType<typeof taoSpy>>;
-async function taoSpy() {
-  let url = process.env.SPY_DATABASE_URL;
-  if (!url) url = readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13).replace(/^["']|["']$/g, '');
-  if (!url) throw new Error('không thấy kết nối kho Spy (/root/.secrets/spy.env)');
-  return (await import('postgres')).default(url, { max: 3, prepare: false, connect_timeout: 5, idle_timeout: 120 });
-}
-const g = globalThis as unknown as { __etp2_spy?: Promise<Pg>; __etp2_dt_bang?: Promise<void> };
-const spy = () => (g.__etp2_spy ??= taoSpy().catch((e) => { g.__etp2_spy = undefined; throw e; }));
+// ── kết nối kho Spy: lib/spy-db.ts (dùng chung với tab Mẫu creative)
+const g = globalThis as unknown as { __etp2_dt_bang?: Promise<void> };
 
 const db = () => getDb()!;
 const run = async <T,>(q: ReturnType<typeof sql>) => (await db().execute(q)) as unknown as T[];

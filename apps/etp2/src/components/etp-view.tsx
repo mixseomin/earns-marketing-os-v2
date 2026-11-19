@@ -84,8 +84,9 @@ import { phimDangSx, tvChuaCr } from '@/lib/etp-sx';
 import { KD, KHUNG_TEN, chuCong, congTang, quaCong, chuLich, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucLam, type HuongLuat } from '@/lib/etp-khung';
 import { nhip } from '@/lib/nhip';   // tự làm mới chỉ khi tab hiện (12/11/2026)
 import { TabDoiThu } from './etp-doi-thu';   // tab Phim đối thủ (anh giao 19/11/2026)
+import { TabMauCr } from './etp-mau-cr';   // tab Mẫu creative (anh giao 19/11/2026)
 
-type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'dt' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
+type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'dt' | 'mau' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
 const tuoiNgay = (iso: string | null | undefined) => (iso ? Math.max(0, (Date.now() - Date.parse(iso)) / 86_400_000) : null);
 const tuoiChu = (d: number | null) => (d == null ? '—' : d < 10 ? d.toFixed(1) : String(Math.floor(d)));
@@ -2650,7 +2651,7 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
 const LOC_TAB: Partial<Record<Tab, 'all' | readonly string[]>> = { camp: 'all', insight: ['dang', 'bo', 'ro', 'ab'] };
 const TAB_LOC_CAMP = Object.keys(LOC_TAB) as Tab[];
 const locCoTab = (t: Tab, k: string) => { const d = LOC_TAB[t]; return d === 'all' || !!d?.includes(k); };
-const TABS: Tab[] = ['tong', 'camp', 'roas', 'creative', 'phim', 'dt', 'dong', 'tv', 'tn', 'luat', 'insight'];
+const TABS: Tab[] = ['tong', 'camp', 'roas', 'creative', 'phim', 'dt', 'mau', 'dong', 'tv', 'tn', 'luat', 'insight'];
 const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'mlai', 'mlo', 'chua_tieu', 'tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran', 'sx', 'cung', 'roas', 'bai_cu', 'bai_moi'] as const;
 // USED POST (#1672 anh 18/11/2026 "cần thêm bộ lọc cho các Creative dạng Used post"): bản nhân dùng lại bài đăng camp gốc — nhan-ban.py đặt tên ' bai-cu ', cùng dấu so-luat.py đọc
 const laBaiCu = (c: { ten: string }) => / bai-cu /.test(c.ten);
@@ -3160,7 +3161,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       {!gon ? <style>{'.etp-thanh [data-comp="ui.Segmented"] button,.etp-thanh [data-comp="ui.Segmented"] a{white-space:nowrap}.etp-thanh>*{flex-shrink:0}'}</style> : null}
       <Segmented<Tab> value={tab} onChange={doiTab} hrefFor={(t) => urlCua({ ...hienTai, tab: t, xemCamp: 'cay', xemCr: 'hq' }).href} options={([
         { value: 'tong', label: 'Tổng quan', title: 'lưới widget kéo thả + template — thay Tổng quan cũ (anh 11/11/2026)' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp`, menu: gon ? undefined : menuCamp }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative`, menu: gon ? undefined : menuCr },
-        { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'dt', label: 'Phim đối thủ', title: 'phim đối thủ đang quảng bá trên Meta (kho Spy) so với nhà / đội — bấm một phim xem creative đối thủ (19/11/2026)' }, { value: 'dong', label: 'Sản xuất', title: 'sản xuất creative theo phim: phim → loại nội dung → creative → camp, từng bước, xử lý tay tại ô (anh 03/11/2026)' }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }, { value: 'insight', label: 'Insight', title: 'nhận định từ số theo ngày / theo giờ của nhà và đội — chỉ chủ thấy (anh 06/11/2026)' }] satisfies SegmentedOption<Tab>[]).filter((o) => tabsHien.includes(o.value))} />
+        { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'dt', label: 'Phim đối thủ', title: 'phim đối thủ đang quảng bá trên Meta (kho Spy) so với nhà / đội — bấm một phim xem creative đối thủ (19/11/2026)' }, { value: 'mau', label: 'Mẫu Creative', title: 'mọi mẫu creative một chỗ: dạng video nhà + bố cục ảnh + mẫu học từ QC đối thủ, kèm số chi / thu và ảnh mẫu (19/11/2026)' }, { value: 'dong', label: 'Sản xuất', title: 'sản xuất creative theo phim: phim → loại nội dung → creative → camp, từng bước, xử lý tay tại ô (anh 03/11/2026)' }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }, { value: 'insight', label: 'Insight', title: 'nhận định từ số theo ngày / theo giờ của nhà và đội — chỉ chủ thấy (anh 06/11/2026)' }] satisfies SegmentedOption<Tab>[]).filter((o) => tabsHien.includes(o.value))} />
       {/* ĐIỆN THOẠI: hàng 1 = tab (cuộn ngang) · hàng 2 = kiểu xem (biểu tượng) + kỳ (ô chọn) + nút Lọc; bảng lọc chỉ mở khi bấm Lọc */}
       {gon && coKy ? kySel() : null}
       {!gon && (tab === 'camp' || tab === 'creative' || hienLoc) ? <span className="etp-xuong" style={{ flexBasis: '100%', height: 0 }} /> : null}
@@ -3293,6 +3294,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         <TabThuVien du={du} tl={tl} />
       ) : tab === 'dt' ? (
         <TabDoiThu />
+      ) : tab === 'mau' ? (
+        <TabMauCr />
       ) : tab === 'insight' ? (
         <TabInsight ids={campsSoKy.map((c) => c.camp_id)} tu={khK.tu} den={khK.den} nhan={`kỳ ${khNhan} · ${campsSoKy.length}/${du.camps.length} camp · lọc theo Loại · ROAS · A/B · TK`} />
       ) : tab === 'tn' ? (

@@ -13,7 +13,7 @@ import { docDungChiTiet, docMauCr, type MauCr } from '@/lib/actions/etp-mau-cr';
 import { useSoNho } from '@/lib/so-nho';
 import { hopKhuon } from './etp-mau-cr';
 import { loiThuongMau } from '@/lib/etp-mau-loi';
-import { FilterChips } from '@/components/ui';
+import { FilterChips, useMediaViewer } from '@/components/ui';
 import { DO, XANH } from './etp-doi-thu';
 
 const BUOC: [string, string][] = [['cho', 'Chờ máy'], ['trang_phim', 'Trang phim'], ['tai_tap', 'Tải tập'], ['chon_khung', 'Chọn khung'], ['ve_mau', 'Vẽ mẫu'], ['giong', 'Giọng'], ['video', 'Video'], ['thu_vien', 'Thư viện'], ['creative', 'Tải creative'], ['xong', 'Xong']];
@@ -37,6 +37,8 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
   // ad gốc của đối thủ mà mẫu học theo (anh 19/11/2026 "Vẫn show thêm ad gốc của đối thủ cũng đc") — cùng bản nhớ của tab
   const { so: soMau } = useSoNho<{ mau: MauCr[]; phim: { id: number; ten: string }[]; luc: string }>('mau-cr', docMauCr, 20_000, hopKhuon);
   const goc = (soMau?.mau.find((x) => x.ma === ma)?.ban ?? []).filter((b) => b.vai === 'goc' && b.anh);
+  // BẤM ẢNH = XEM NGAY TRONG TRANG (anh 19/11/2026 "khi bấm vào ko đc mở ra ngoài. Tao cần xem trong page đó") — lớp xem dùng chung, Esc / bấm nền / ✕ để đóng
+  const mv = useMediaViewer();
   const ok = du && !('loi' in du) ? du : null;
   const dau = <div className="modal-head"><div><div className="id-line">dựng theo mẫu · {ok?.mau.ten ?? 'đang đọc…'}</div>
     <h2 style={{ margin: 0, cursor: 'pointer' }} title="mở ngăn phim" onClick={() => openEntityDrawer('etp-phim', cid)}>{ok?.phim.ten ?? 'đang đọc…'}</h2></div>
@@ -60,18 +62,18 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
       <div>
         <div style={{ fontSize: 11, color: MO_SO, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6 }}>So với gốc · poster phim · {goc.length} ad đối thủ · {ok.cr.length} máy dựng</div>
           <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: 'calc((100% - 32px) / 5)', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-            {ok.phim.poster ? <a href={ok.phim.poster} target="_blank" rel="noreferrer noopener" referrerPolicy="no-referrer" title="poster gốc của phim (ảnh trên trang phim) — bấm mở cỡ gốc" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+            {ok.phim.poster ? <a onClick={() => mv.open({ url: ok.phim.poster!, label: 'Poster gốc của phim', kind: 'image' })} title="poster gốc của phim (ảnh trên trang phim) — bấm phóng to" style={{ display: 'block', color: 'inherit', cursor: 'zoom-in' }}>
               <div style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: '2px solid rgba(194,65,12,0.9)' }}><img src={ok.phim.poster} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                 <span style={{ position: 'absolute', left: 4, top: 4, fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: 'rgba(194,65,12,0.92)', color: '#fff', fontWeight: 600 }}>poster gốc</span></div>
               <div style={{ fontSize: 11, marginTop: 3, color: MO_SO }}>ảnh trên trang phim</div>
             </a> : <div title="máy ghi poster gốc ở bước Tải tập — phim chưa qua bước đó hoặc trang phim không có ảnh" style={{ aspectRatio: '9 / 16', display: 'grid', placeItems: 'center', textAlign: 'center', padding: 8, borderRadius: 6, border: '1px dashed var(--line)', color: MO_SO, fontSize: 11.5 }}>chưa có poster gốc — máy ghi ở bước Tải tập</div>}
-            {goc.map((b, j) => <a key={`g${j}`} href={b.link ? (b.link.startsWith('https://www.facebook.com') ? `https://href.li/?${b.link}` : b.link) : b.anh ?? undefined} target="_blank" rel="noreferrer" title={`ad gốc của đối thủ mà mẫu học theo${b.goi_y ? ` — ${b.goi_y}` : ''} · bấm mở`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+            {goc.map((b, j) => <a key={`g${j}`} onClick={() => mv.open(b.video ? { url: b.video, label: 'Ad gốc của đối thủ', kind: 'frame' } : { url: b.anh!, label: 'Ad gốc của đối thủ', kind: 'image' })} title={`ad gốc của đối thủ mà mẫu học theo${b.goi_y ? ` — ${b.goi_y}` : ''} · bấm phóng to`} style={{ display: 'block', color: 'inherit', cursor: 'zoom-in' }}>
               <div style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: '2px solid rgba(148,163,184,0.7)' }}><img src={b.anh ?? undefined} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                 <span style={{ position: 'absolute', left: 4, top: 4, fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: 'rgba(51,65,85,0.92)', color: '#fff', fontWeight: 600 }}>ad đối thủ</span></div>
               <div style={{ fontSize: 11, marginTop: 3, color: MO_SO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.nhan ?? 'mẫu học theo'}</div>
             </a>)}
             {ok.cr.map((c) => { const r = c.chi > 0.5 ? ((c.thu - c.chi) / c.chi) * 100 : null;
-              return <a key={c.id} href={c.video ?? c.anh ?? undefined} target="_blank" rel="noreferrer" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }} title="creative máy dựng cho phim này — mở video">
+              return <a key={c.id} onClick={() => { const u = c.video ?? c.anh; if (u) mv.open({ url: u, label: 'Creative máy dựng', kind: c.video ? 'frame' : 'image' }); }} style={{ display: 'block', color: 'inherit', cursor: 'zoom-in' }} title="creative máy dựng cho phim này — bấm xem video ngay tại đây">
                 <div style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: '2px solid rgba(37,99,235,0.9)' }}>{c.anh ? <img src={c.anh} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
                   <span style={{ position: 'absolute', left: 4, top: 4, fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: 'rgba(37,99,235,0.92)', color: '#fff', fontWeight: 600 }}>máy dựng</span></div>
                 <div style={{ fontSize: 11, marginTop: 3, fontVariantNumeric: 'tabular-nums', color: MO_SO }}>{c.camp} camp{c.chay ? <span style={{ color: XANH }}> ●</span> : ''} · chi ${c.chi.toFixed(2)}{r != null ? <> · ROI <span style={{ color: r >= 0 ? XANH : DO }}>{r.toFixed(0)}%</span></> : ''}</div>
@@ -99,5 +101,6 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
           </div>}
       </div>
     </div>
+    {mv.node}
   </Drawer>;
 }

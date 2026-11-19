@@ -447,7 +447,7 @@
   },
   {
    "ma": "dt_logo_chat_lieu",
-   "ten": "Logo chất liệu chủ đề",
+   "ten": "Logo gốc của phim",
    "loai": "lop_phu",
    "nguon": "doi_thu",
    "trang_thai": "thu",
@@ -466,7 +466,7 @@
     "3003117683383697",
     "1851918955714094"
    ],
-   "mo_ta": "Tên phim vẽ bằng chất liệu theo chủ đề phim (sóng nước, lửa, phép thuật, huy hiệu) có hoạ tiết bao quanh — logo như phim chiếu rạp.",
+   "mo_ta": "Logo tên phim lấy NGUYÊN từ poster gốc của phim (giữ kiểu chữ, màu, hoạ tiết của logo) đặt lên khung cảnh phim — không vẽ lại bằng phông khác. Đối thủ dùng logo thiết kế riêng theo chủ đề phim (sóng nước, lửa, phép thuật, huy hiệu).",
    "may": "dung-mau.py › dt_logo_chat_lieu",
    "anh_dung": "/mau-cr/dt_logo_chat_lieu.jpg",
    "anh_dung_phim": "Undercover Prison King",

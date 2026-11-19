@@ -174,25 +174,37 @@ def dt_ten_vang(c):
     m, hop = mat_chu(dong, f, y, 1.02); bong(lop, m, (8, 12), 14, 220); vien(lop, m, 7, (70, 38, 6))
     to(lop, m, doc_trong((255, 246, 200), (232, 172, 52), (176, 104, 18), hop)); sang_khoi(lop, m); return None, lop
 def dt_logo_chat_lieu(c):
-    """tên phim vẽ bằng chất liệu theo chủ đề phim (nước / lửa / phép thuật / băng) + hào quang + gạch hoạ tiết (kiểu Surf God's Revenge / Luna's Revenge)"""
-    tl = (c["p"].get("the_loai") or "").lower(); txt = c["ten"].lower()
-    chu_de = ("nuoc" if re.search(r"sea|surf|ocean|water|mermaid|tide", txt) else "lua" if re.search(r"dragon|fire|flame|phoenix|inferno", txt) else
-              "thep" if re.search(r"sniper|soldier|war|army|marine|seal|military|commander|assassin|bullet|gun|prison|warrior|veteran|mercenary", txt) else
-              "bang" if re.search(r"ice|frost|snow|winter", txt) else "phep" if tl in ("fantasy", "soi", "vien_tuong") else "vang")
-    bang = {"nuoc": ((235, 252, 255), (70, 180, 235), (10, 70, 150), (120, 220, 255)), "lua": ((255, 248, 200), (255, 150, 30), (170, 30, 10), (255, 120, 20)),
-            "bang": ((250, 255, 255), (160, 220, 255), (60, 120, 200), (170, 230, 255)), "phep": ((255, 235, 255), (200, 120, 255), (80, 20, 150), (190, 110, 255)),
-            "vang": ((255, 245, 205), (230, 175, 60), (130, 70, 10), (255, 200, 90)),
-            "thep": ((250, 252, 255), (170, 178, 190), (60, 66, 78), (255, 120, 40))}[chu_de]   # thép xước + quầng cam lửa súng — phim quân đội / bắn tỉa / hành động
-    lop = Image.new("RGBA", (W, H)); f, dong, y = dat_chu(c, c["ten"].upper(), "copper", W - 110, 140, 3, 1.0, 40, 0.58)
-    m, hop = mat_chu(dong, f, y, 1.0); phat_sang(lop, m, bang[3], 28, 230); vien(lop, m, 6, tuple(v // 3 for v in bang[2]))
-    van = doc_trong(bang[0], bang[1], bang[2], hop)
-    nhieu = Image.effect_noise((W, H), 40).convert("RGB"); van = Image.blend(van, ImageChops.multiply(van, nhieu.point(lambda v: 150 + v // 3)), 0.35)
-    to(lop, m, van); sang_khoi(lop, m, (255, 255, 255), tuple(v // 2 for v in bang[2]))
-    d = ImageDraw.Draw(lop); yy = hop[3] + 18
-    for s in (-1, 1):   # hai gạch hoạ tiết nhọn hai bên dòng cuối
-        x0 = W // 2 + s * 70; x1 = W // 2 + s * 380
-        d.polygon([(x0, yy), (x1, yy - 5), (x1, yy + 5)], fill=bang[1] + (230,))
-    d.ellipse((W // 2 - 12, yy - 12, W // 2 + 12, yy + 12), fill=bang[3] + (240,)); return None, lop
+    """LOGO GỐC CỦA PHIM (anh 19/11/2026: "Logo mẫu đó mày làm sai rồi. Máy dựng làm sai hoàn toàn. Logo phải giữ nguyên phong cách gốc") — KHÔNG vẽ lại tên phim bằng phông khác:
+    tách đúng khối logo trên poster gốc của phim (AT.ten_poster: Vision đọc chữ poster → cắt nét chữ, giữ màu / kiểu chữ / hoạ tiết của logo) rồi đặt lên khung, né mọi mặt,
+    trong vùng an toàn Reels. Không tách được logo (thiếu poster / chữ không đọc ra) → DỪNG kêu to, không vẽ chữ thay (mẫu này chỉ có nghĩa khi là logo gốc)."""
+    po = os.path.join(c["tm"], "poster.jpg"); ra = os.path.join(c["tm"], "logo-goc.png")
+    tp = AT.ten_poster(c["ten"], po, ra)
+    if not tp: raise RuntimeError("không tách được logo gốc từ poster phim (thiếu poster hoặc không đọc ra chữ tên phim) — mẫu Logo gốc không dựng bằng chữ vẽ thay")
+    lg = Image.open(tp).convert("RGBA")
+    # LÀM SẠCH: bản tách còn vụn nền poster (mảng nâu / tối quanh chữ, 19/11/2026 American Sniper ra một hộp tối vuông sau logo) → chỉ giữ điểm ảnh mang MÀU CHÍNH của logo
+    # (màu chiếm ≥ 3% số điểm đặc, không đen), bỏ đốm lẻ; quầng tối mềm vẽ lại ở dưới thay cho viền đen cứng của bản tách
+    from collections import Counter
+    px = list(lg.getdata()); q = lambda t: (t[0] // 32, t[1] // 32, t[2] // 32)
+    dac = [t for t in px if t[3] >= 250 and max(t[:3]) > 70]; dem = Counter(q(t) for t in dac)
+    chinh = [k for k, v in dem.items() if v >= 0.03 * max(1, len(dac))]
+    if not chinh: raise RuntimeError("logo gốc tách từ poster không còn nét chữ sau khi làm sạch — không dựng bằng chữ vẽ thay")
+    mk = Image.new("L", lg.size); mk.putdata([255 if t[3] >= 128 and max(t[:3]) > 70 and q(t) in chinh else 0 for t in px])
+    mk = mk.filter(ImageFilter.MedianFilter(5)).filter(ImageFilter.GaussianBlur(0.8)); lg.putalpha(mk)
+    tl0 = min((W - 120) / lg.width, H * 0.22 / lg.height); goc_lg = lg; y = None
+    # CHỖ ĐẶT (chữ không che mặt): hộp mặt của máy đọc dừng ở khoảng miệng / chân tóc — cằm và tóc còn thò ra (American Sniper: mép logo chạm cằm đứa bé) → chừa 100px
+    # DƯỚI mặt thấp nhất; không đủ chỗ thì TRÊN mặt cao nhất (chừa 110px cho tóc, dưới vùng che của Reels); cả hai không vừa thì CO logo dần 100% → 60% rồi thử lại
+    mats = c.get("mats") or [(c["mat_day"] - 1, c["mat_day"])]
+    for k in (1.0, 0.9, 0.8, 0.7, 0.6):
+        lg = goc_lg.resize((max(1, int(goc_lg.width * tl0 * k)), max(1, int(goc_lg.height * tl0 * k))), Image.LANCZOS)
+        duoi = max(H * 0.56, max(b for _, b in mats) + 100); tren = min(a for a, _ in mats) - 110 - lg.height
+        if duoi + lg.height <= H * 0.86: y = int(duoi); break
+        if tren >= H * (TREN_AN + 0.03): y = int(tren); break
+    if y is None: y = dat_y(c, lg.height + 20, 0.56, 0.86)
+    lop = Image.new("RGBA", (W, H)); bg = Image.new("RGBA", (W, H)); bg.paste(lg, ((W - lg.width) // 2, y), lg)
+    al = bg.split()[3]
+    toi = ImageChops.lighter(al.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3)).point(lambda v: min(235, int(v * 1.4))),   # viền tối sát nét chữ
+                             al.filter(ImageFilter.GaussianBlur(30)).point(lambda v: min(140, int(v * 1.6))))                                  # + quầng mềm để đọc rõ trên khung sáng
+    nen = Image.new("RGBA", (W, H), (0, 0, 0, 0)); nen.putalpha(toi); lop = Image.alpha_composite(lop, nen); lop = Image.alpha_composite(lop, bg); return None, lop
 def _ten_hai_tang(c, y_min, them=130):
     """tên hai tầng: phần đầu trắng, TỪ CUỐI đỏ (kiểu UNDERCOVER PRISON KING) → (lớp, đáy)"""
     w = c["ten"].upper().split(); dau, cuoi = " ".join(w[:-1]) or w[0], w[-1] if len(w) > 1 else ""

@@ -122,6 +122,33 @@ def nut(lop, chu, y, f, nen, chu_mau=(255, 255, 255), vien_mau=None, dem=(56, 26
     if vien_mau: d.rounded_rectangle((x - 6, y - 6, x + w + 6, y + h + 6), radius=r + 6, fill=vien_mau)
     d.rounded_rectangle((x, y, x + w, y + h), radius=r, fill=nen)
     d.text((x + (w - (x1 - x0)) / 2 - x0, y + dem[1] - y0), chu, font=f, fill=chu_mau); return y + h
+def dat_y(c, cao, lo_min=0.56, lo_max=0.86):
+    """CHỮ KHÔNG CHE MẶT (luật nhà; 19/11/2026 American Sniper: tên phim đè mặt đứa trẻ vì máy chỉ né mặt LỚN NHẤT): khoảng trống không có mặt nào trên khung —
+    ưu tiên DƯỚI mặt thấp nhất (trong [lo_min, lo_max] chiều cao), hết chỗ thì TRÊN mặt cao nhất (dưới vùng che của Reels), cả hai không đủ thì sát đáy cho phép."""
+    mats = c.get("mats") or [(c["mat_day"] - 1, c["mat_day"])]
+    duoi = max(b for _, b in mats) + 30; tren = min(a for a, _ in mats) - 30
+    y = max(H * lo_min, duoi)
+    if y + cao <= H * lo_max: return int(y)
+    if tren - cao >= H * (TREN_AN + 0.06): return int(tren - cao)
+    return int(H * lo_max - cao)
+
+def khe(c, cao, lo_min=0.56, lo_max=0.86):
+    """vị trí y trong một khoảng trống KHÔNG có mặt đủ chứa khối cao `cao`, hoặc None"""
+    mats = c.get("mats") or [(c["mat_day"] - 1, c["mat_day"])]
+    duoi = max(H * lo_min, max(b for _, b in mats) + 30); tren = min(a for a, _ in mats) - 30
+    if duoi + cao <= H * lo_max: return int(duoi)
+    if tren - cao >= H * (TREN_AN + 0.06): return int(tren - cao)
+    return None
+
+def dat_chu(c, chu, ten_ph, rong, co, toi_da=3, gian=1.0, them=0, lo_min=0.56, lo_max=0.86):
+    """chia dòng + CO CHỮ cho tới khi khối chữ vừa một khoảng trống không có mặt (chữ không che mặt) → (phông, dòng, y). Không cỡ nào vừa → cỡ nhỏ nhất ở vị trí đỡ nhất."""
+    f = dong = None
+    for co_thu in range(co, 47, -6):
+        f, dong = vua(chu, ten_ph, rong, co_thu, toi_da)
+        y = khe(c, int(f.size * gian) * len(dong) + them, lo_min, lo_max)
+        if y is not None: return f, dong, y
+    return f, dong, dat_y(c, int(f.size * gian) * len(dong) + them, lo_min, lo_max)
+
 def ten_chu(p):
     return AT.ten_sach(p["ten"])
 def nhan_tl(p):
@@ -132,8 +159,7 @@ def nhan_tl(p):
 # ---------- 12 MẪU (mã = sổ etp-mau-cr.json) — mỗi hàm: (ngữ cảnh) → (nền.png hoặc None = nền khung phim thường, lớp chữ RGBA) ----------
 def dt_ten_vang(c):
     """tên phim chữ vàng bóng nổi khối đặt 1/3 dưới, đè thẳng lên khung — không nền, không nút (kiểu Step Back! Hidden King / Great and Powerful Genie, 92 ngày)"""
-    lop = Image.new("RGBA", (W, H)); f, dong = vua(c["ten"], "georgia_bi", W - 120, 150, 3)
-    cao = int(f.size * 1.02) * len(dong); y = int(max(H * 0.60, min(H * 0.80 - cao, c["mat_day"] + 40)))
+    lop = Image.new("RGBA", (W, H)); f, dong, y = dat_chu(c, c["ten"], "georgia_bi", W - 120, 150, 3, 1.02, 0, 0.60)
     m, hop = mat_chu(dong, f, y, 1.02); bong(lop, m, (8, 12), 14, 220); vien(lop, m, 7, (70, 38, 6))
     to(lop, m, doc_trong((255, 246, 200), (232, 172, 52), (176, 104, 18), hop)); sang_khoi(lop, m); return None, lop
 def dt_logo_chat_lieu(c):
@@ -146,8 +172,7 @@ def dt_logo_chat_lieu(c):
             "bang": ((250, 255, 255), (160, 220, 255), (60, 120, 200), (170, 230, 255)), "phep": ((255, 235, 255), (200, 120, 255), (80, 20, 150), (190, 110, 255)),
             "vang": ((255, 245, 205), (230, 175, 60), (130, 70, 10), (255, 200, 90)),
             "thep": ((250, 252, 255), (170, 178, 190), (60, 66, 78), (255, 120, 40))}[chu_de]   # thép xước + quầng cam lửa súng — phim quân đội / bắn tỉa / hành động
-    lop = Image.new("RGBA", (W, H)); f, dong = vua(c["ten"].upper(), "copper", W - 110, 140, 3)
-    cao = int(f.size * 1.0) * len(dong); y = int(max(H * 0.58, min(H * 0.80 - cao, c["mat_day"] + 50)))
+    lop = Image.new("RGBA", (W, H)); f, dong, y = dat_chu(c, c["ten"].upper(), "copper", W - 110, 140, 3, 1.0, 40, 0.58)
     m, hop = mat_chu(dong, f, y, 1.0); phat_sang(lop, m, bang[3], 28, 230); vien(lop, m, 6, tuple(v // 3 for v in bang[2]))
     van = doc_trong(bang[0], bang[1], bang[2], hop)
     nhieu = Image.effect_noise((W, H), 40).convert("RGB"); van = Image.blend(van, ImageChops.multiply(van, nhieu.point(lambda v: 150 + v // 3)), 0.35)
@@ -157,11 +182,11 @@ def dt_logo_chat_lieu(c):
         x0 = W // 2 + s * 70; x1 = W // 2 + s * 380
         d.polygon([(x0, yy), (x1, yy - 5), (x1, yy + 5)], fill=bang[1] + (230,))
     d.ellipse((W // 2 - 12, yy - 12, W // 2 + 12, yy + 12), fill=bang[3] + (240,)); return None, lop
-def _ten_hai_tang(c, y_min):
+def _ten_hai_tang(c, y_min, them=130):
     """tên hai tầng: phần đầu trắng, TỪ CUỐI đỏ (kiểu UNDERCOVER PRISON KING) → (lớp, đáy)"""
     w = c["ten"].upper().split(); dau, cuoi = " ".join(w[:-1]) or w[0], w[-1] if len(w) > 1 else ""
     lop = Image.new("RGBA", (W, H)); f1, d1 = vua(dau, "impact", W - 160, 120, 2); f2 = ph("impact", f1.size)
-    y = int(max(y_min, H * 0.58)); m1, h1 = mat_chu(d1, f1, y, 1.0)
+    y = dat_y(c, int(f1.size * 1.0) * len(d1) + (f2.size if cuoi else 0) + them, 0.58) if y_min != H * 0.66 else int(y_min); m1, h1 = mat_chu(d1, f1, y, 1.0)
     bong(lop, m1, (6, 10), 10, 210); vien(lop, m1, 5, (20, 20, 20)); to(lop, m1, doc_trong((255, 255, 255), (235, 235, 235), (190, 190, 190), h1))
     day = h1[3]
     if cuoi:
@@ -232,8 +257,7 @@ def dt_su_thi(c):
     d.text((x, hop[3] + 26), t2, font=f2, fill=(235, 205, 150, 255)); d.line([(W * 0.25, hop[3] + 14), (W * 0.75, hop[3] + 14)], fill=(220, 180, 110, 200), width=2); return ra, lop
 def dt_hanh_dong_kim_loai(c):
     """tên phim chữ hẹp nghiêng đậm kiểu phim hành động, mặt kim loại xước, viền tối (kiểu American Sniper: The Last Round)"""
-    lop0 = Image.new("RGBA", (W, H)); f, dong = vua(c["ten"].upper(), "impact", W - 160, 140, 3)
-    cao = int(f.size * 0.98) * len(dong); y = int(max(H * 0.58, min(H * 0.80 - cao, c["mat_day"] + 40))); m, hop = mat_chu(dong, f, y, 0.98)
+    lop0 = Image.new("RGBA", (W, H)); f, dong, y = dat_chu(c, c["ten"].upper(), "impact", W - 160, 140, 3, 0.98, 0, 0.58); cao = int(f.size * 0.98) * len(dong); m, hop = mat_chu(dong, f, y, 0.98)
     xuoc = doc_trong((250, 250, 252), (170, 176, 186), (90, 96, 108), hop); rng = random.Random(c["cid"]); dx = ImageDraw.Draw(xuoc)
     for _ in range(400): x, yy = rng.randint(0, W), rng.randint(hop[1], max(hop[1] + 1, hop[3])); dx.line([(x, yy), (x + rng.randint(10, 60), yy + rng.randint(-2, 2))], fill=(255, 255, 255) if rng.random() < 0.5 else (60, 60, 70), width=1)
     bong(lop0, m, (8, 12), 12, 230); vien(lop0, m, 6, (15, 15, 20)); to(lop0, m, xuoc); sang_khoi(lop0, m, (255, 255, 255), (20, 20, 30))
@@ -269,7 +293,7 @@ def dt_theo_mua(c):
     nen.alpha_composite(den.filter(ImageFilter.GaussianBlur(2))); nen.alpha_composite(den)
     ra = os.path.join(c["tm"], f"nen-{c['ma']}.png"); nen.convert("RGB").save(ra)
     lop = Image.new("RGBA", (W, H)); f, dong = vua(c["ten"].upper(), "impact", W - 140, 112, 3); cao = int(f.size * 1.0) * len(dong)
-    y = int(max(H * 0.56, min(H * 0.76 - cao, c["mat_day"] + 40))); m, hop = mat_chu(dong, f, y, 1.0)
+    y = dat_y(c, cao + 130); m, hop = mat_chu(dong, f, y, 1.0)
     bong(lop, m); vien(lop, m, 6, (120, 10, 20)); to(lop, m, doc_trong((255, 255, 255), (255, 240, 220), (240, 210, 180), hop))
     nut(lop, "WATCH NOW" if c["lang"] != "es" else "VER AHORA", hop[3] + 40, ph("impact", 62), (25, 20, 15), (255, 222, 140), (214, 160, 50), (60, 18)); return ra, lop
 def dt_logo_goc(c):
@@ -327,7 +351,7 @@ def dt_full_series_dau(c):
     """băng chữ trên đỉnh 2 dòng 'Full series / now available' chữ hẹp đậm trắng đổ bóng + tên phim chữ có chân nghiêng trắng 3 dòng phía dưới (kiểu American Sniper · Screen Hub)"""
     lop = Image.new("RGBA", (W, H)); t = ("Full series", "now available") if c["lang"] != "es" else ("Serie completa", "ya disponible")
     f = ph("din", 96); m, _ = mat_chu(list(t), f, int(H * TREN_AN), 1.05); bong(lop, m, (4, 6), 8, 220); to(lop, m, (255, 255, 255))
-    f2, dong = vua(c["ten"], "georgia_i", W - 200, 120, 3); cao = int(f2.size * 1.12) * len(dong); y = int(max(H * 0.58, min(H * 0.80 - cao, c["mat_day"] + 30)))
+    f2, dong, y = dat_chu(c, c["ten"], "georgia_i", W - 200, 120, 3, 1.12, 0, 0.58)
     m2, _ = mat_chu(dong, f2, y, 1.12); bong(lop, m2, (5, 8), 10, 220); to(lop, m2, (255, 255, 255)); return None, lop
 def dt_stream_banner(c):
     """hộp đen bo tròn viền vàng trên đỉnh: 'STREAM THE FULL SERIES' trắng + '"WATCH MORE" - KEEP WATCHING FOR FREE!' vàng; tên phim chữ hẹp nghiêng trắng giữa dưới
@@ -348,17 +372,18 @@ def dt_watch_more_gian(c):
     lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop); y0 = int(H * TREN_AN); f = ph("arial_b", 34); t = "WATCH MORE" if c["lang"] != "es" else "VER MÁS"; w = f.getlength(t) + 40
     d.rectangle(((W - w) / 2, y0, (W + w) / 2, y0 + 56), fill=(40, 34, 20, 220)); d.text(((W - f.getlength(t)) / 2, y0 + 9), t, font=f, fill=(255, 226, 150, 255))
     tu = c["ten"].upper().split(); dau, cuoi = (" ".join(tu[:1]), " ".join(tu[1:])) if len(tu) > 2 else ((tu[0], " ".join(tu[1:])) if len(tu) == 2 else ("", tu[0]))
-    y = int(max(H * 0.62, min(H * 0.70, c["mat_day"] + 40)))
+    f2, dong = vua(cuoi, "impact", int((W - 120) / 0.84), 190, 2)
+    y = dat_y(c, (74 if dau else 0) + int(f2.size * 0.98) * len(dong), 0.60)
     if dau:
         gian = " ".join(dau); f1 = ph("didot", 54); d.text(((W - f1.getlength(gian)) / 2, y), gian, font=f1, fill=(245, 245, 245, 255)); y += 74
-    f2, dong = vua(cuoi, "impact", int((W - 120) / 0.84), 190, 2); m, hop = mat_chu(dong, f2, y, 0.98)
+    m, hop = mat_chu(dong, f2, y, 0.98)
     l2 = Image.new("RGBA", (W, H)); bong(l2, m, (6, 10), 12, 220); vien(l2, m, 5, (60, 34, 4)); to(l2, m, doc_trong((255, 244, 190), (236, 176, 50), (150, 90, 12), hop)); sang_khoi(l2, m)
     lop.alpha_composite(_ep_ngang(l2, 0.84)); return None, lop
 def dt_vang_do_script(c):
     """tên phim HAI MÀU: 'The' nhỏ vàng nghiêng · thân tên chữ có chân VÀNG nổi khối · phần cuối chữ viết tay ĐỎ đè lên (kiểu The Godmother's New Heir, 9 QC đang chạy)"""
     lop = Image.new("RGBA", (W, H)); tu = c["ten"].split(); mo = tu[0] if tu[0].lower() in ("the", "a", "my", "el", "la") and len(tu) > 2 else ""
     than = tu[1:] if mo else tu; cat = max(1, len(than) // 2); vang, do_ = " ".join(than[:-cat] or than[:1]), " ".join(than[-cat:]) if len(than) > 1 else ""
-    y = int(max(H * 0.56, min(H * 0.70, c["mat_day"] + 20)))
+    y = dat_y(c, (70 if mo else 0) + 150 * 2 + (150 if do_ else 0), 0.54)
     if mo:
         f0 = ph("georgia_bi", 60); m0, _ = mat_chu([mo], f0, y, 1.0); bong(lop, m0); to(lop, m0, (240, 200, 110)); y += 70
     f1, d1 = vua(vang.upper(), "didot_b", W - 100, 150, 2); m1, h1 = mat_chu(d1, f1, y, 0.95)
@@ -438,7 +463,12 @@ def mot(ma, cid, xem=False, ban=1):
             goc = os.path.join(tm, f"goc-{100 + b}.png"); khac = [os.path.join(tm, f"goc-{200 + b}.png")]
             if ma in CAN_KHUNG2 and len(uv) > 1:   # nhân vật thứ hai từ khung xếp hạng kế
                 k2 = uv[(b + 1) % len(uv)]; AT.sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k2["tap"] + ".mp4"), "-vf", f"{AT.LOC},select=eq(n\\,{k2['so'] - 1})", "-frames:v", "1", khac[0])
-            c = {"ma": ma, "cid": cid, "p": p, "lang": lang, "ten": ten, "tm": tm, "nen": nen, "goc": goc, "goc_khac": [x for x in khac if os.path.exists(x)],
+            mats = []
+            try:   # mọi mặt trên khung gốc (máy đọc Vision của anh-tinh) — khung 9:16 cắt từ khung gốc nên quy toạ độ dọc theo cùng tỉ lệ
+                jm = json.loads(subprocess.run([AT.may_doc(), "--mat", goc], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
+                mats = [((m[1]) * H, (m[1] + m[3]) * H) for m in jm.get("mat") or [] if m[4] >= 0.45 and m[3] >= 0.05]
+            except Exception as e: print("đọc mặt lỗi — chỉ né mặt chính:", e, file=sys.stderr)
+            c = {"ma": ma, "cid": cid, "p": p, "lang": lang, "ten": ten, "tm": tm, "nen": nen, "goc": goc, "goc_khac": [x for x in khac if os.path.exists(x)], "mats": mats,
                  "mat_day": (k["mat"][1] + k["mat"][3]) * H, "mat_tam": k["mat"][1] + k["mat"][3] / 2, "cau": cau, "nhan": nhan}
             nen2, lop = HAM[ma](c); nen = nen2 or nen
             chu = os.path.join(tm, f"chu-{ma}-{b}.png"); lop.save(chu)

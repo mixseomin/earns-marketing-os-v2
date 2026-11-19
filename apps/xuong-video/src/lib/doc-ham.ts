@@ -3,7 +3,8 @@
 // route /api/xv/doc (POST thường, chạy song song); phía trình duyệt gọi bằng lib/doc.ts cùng tên + cùng kiểu. Mỗi hàm tự kiểm admin như cũ.
 // Thêm một hàm đọc vào đây = hết xếp hàng cho nó. CHỈ hàm đọc — hàm ghi giữ server action (đúng thứ tự bấm).
 import { tongQuanPhim, dsPhimTemplate, dsNhomTuDo, dsSanPhamTong } from './actions-ds-phim';
+import { nhatKyTap, nhatKyCanh } from './actions-studio2';
 import { dsPhim, docPhim, dsMoHinh, dsCanh, dsThungRac, phieuShotsTap, baoCaoChuanBiAction, docHoanTac, uocTien, uocAm, kiemVideo, docViecNen, demNguonPhim } from './actions';
 
-export const HAM_DOC = { tongQuanPhim, dsPhimTemplate, dsNhomTuDo, dsSanPhamTong, dsPhim, docPhim, dsMoHinh, dsCanh, dsThungRac, phieuShotsTap, baoCaoChuanBiAction, docHoanTac, uocTien, uocAm, kiemVideo, docViecNen, demNguonPhim };
+export const HAM_DOC = { tongQuanPhim, dsPhimTemplate, dsNhomTuDo, dsSanPhamTong, dsPhim, docPhim, dsMoHinh, dsCanh, dsThungRac, phieuShotsTap, baoCaoChuanBiAction, docHoanTac, uocTien, uocAm, kiemVideo, docViecNen, demNguonPhim, nhatKyTap, nhatKyCanh };
 export type HamDoc = typeof HAM_DOC;

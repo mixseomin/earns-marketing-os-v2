@@ -302,7 +302,10 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     if (khoaTruoc && hookCu && loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l))) { boHook.add(hookCu.id); hookCu = null; loiCu = loiCu.filter((l) => !/sửa quá xa|chưa chọn hook/.test(l)); }
     // trượt "sửa quá xa": mô hình rẻ cầm cả kho thì không bám (esimfares 10/11/2026: hook kênh "Landing in Italy? Do this before your plane touches down"
     // → viết "Set this up before takeoff", giữ 17%, 2/3 bài kẹt cả 2 lượt) → lượt sau khoá vào ĐÚNG hook đã chọn + đưa nguyên câu làm khuôn, thêm một lượt.
-    const xa = !!hookCu && (epNguyen || loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l))), hooksLuot = xa ? [hookCu as HookQc] : (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length && !boHook.has(h.id));
+    const xa = !!hookCu && (epNguyen || loiCu.some((l) => /sửa quá xa|chưa chọn hook/.test(l))), khoConLai = (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length && !boHook.has(h.id)),
+      // Khi mọi hook còn lại đã từng là tiêu đề, không được bỏ kho rồi kết luận 0 đề: dùng lại một hook đó làm khuôn đổi vài từ.
+      // Lượt khóa + ghepHook ở dưới sẽ giữ đủ chữ hook và tạo tiêu đề mới, thay vì để mô hình sửa xa rồi bị mắc lại.
+      hooksLuot = xa ? [hookCu as HookQc] : (khoConLai.length ? khoConLai : hookTrung.filter((h) => !tuMayDe(h.chu).length));
     khoaTruoc = xa; epNguyen = false;
     // kho lọc hết trong lượt (hook trùng tiêu đề / mang từ máy / đã bị chặn) → kiemDe bỏ qua luật hook, rapDe không gắn hook, bài ra "thiếu dang.hook"
     // (sidecue 12/11/2026: spot-the-fake-40162-…-emails làm lại vẫn SỬA LẠI) → dừng, không dựng bài chắc chắn bị chặn

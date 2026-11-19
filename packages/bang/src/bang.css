@@ -1,5 +1,8 @@
 /* ui.DataTable — row hover brighten (matches the SEO table's .seo-row:hover). */
-.dt-row:hover td { filter: brightness(1.4); }
+/* KHÔNG dùng filter: filter biến td thành khung chứa của mọi ô nổi position:fixed bên trong → ô nổi
+   bị dời + cắt khi rê qua hàng (góp ý cty #1670). Phủ lớp sáng bằng background-image để giữ nguyên
+   background-color riêng của từng ô. */
+.dt-row:hover td { background-image: linear-gradient(rgba(255,255,255,.07), rgba(255,255,255,.07)); }
 /* Hộp cuộn của DataTable: cuộn CẢ HAI chiều bên trong. max-height để hàng tiêu đề position:sticky
    có hộp dọc mà dính. KHÔNG dùng overscroll-behavior:contain — nó CHẶN wheel chuyền xuống TRANG khi
    cuộn tới đáy bảng: bảng cao hơn 78vh (>~20 hàng) là kẹt, chuột đặt trong bảng không scroll trang

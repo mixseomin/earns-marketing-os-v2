@@ -92,6 +92,7 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
     { key: 'mau', label: 'Mẫu này', color: '#a78bfa' }, { key: 'nha', label: 'Nhà', color: '#38bdf8' }, { key: 'doi', label: 'Đội', color: '#94a3b8' }, { key: 'dt', label: 'Đối thủ', color: '#fb923c' },
   ];
   const cot: DataColumn<Dong>[] = [
+    { key: 'nhom', header: 'Nhóm', align: 'left', width: 150, sortValue: (p) => p.nhom, cell: (p) => <span style={{ fontSize: 11, color: MO_SO }}>{p.nhom.replace(/^\d+ · /, '')}</span> },
     { key: 'ten', header: 'Phim', align: 'left', width: 220, sortValue: (p) => p.ten, onCellClick: (p) => openEntityDrawer('etp-phim', p.id),
       cell: (p) => <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }} title={`${p.ten} · phim #${p.id} — bấm mở ngăn phim`}>
         {p.dt_dang >= 3 && !p.cr_mau && !p.da_chon ? <span title="đối thủ đang chạy ≥ 3 QC mà nhà chưa có mẫu này" style={{ color: VANG, fontWeight: 700 }}>★</span> : null}
@@ -114,6 +115,7 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
     { key: 'sinh', header: 'Sinh creative', align: 'left', width: 190, sortValue: (p) => Number(p.da_chon), cell: (p) => oSinh(p) },
   ];
   const cotDt: DataColumn<DongDt>[] = [
+    { key: 'nhom', header: 'Nhóm', align: 'left', width: 150, sortValue: (p) => p.nhom, cell: (p) => <span style={{ fontSize: 11, color: MO_SO }}>{p.nhom.replace(/^\d+ · /, '')}</span> },
     { key: 'ten', header: 'Phim đối thủ', align: 'left', width: 230, sortValue: (p) => p.ten, onCellClick: (p) => openEntityDrawer('etp-dt', p.khoa),
       cell: (p) => <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }} title={`${p.ten} — bấm xem creative đối thủ của phim`}>
         {p.qc_dang >= 3 && p.e && !p.e.cr_mau && !p.e.da_chon ? <span title="đối thủ đang chạy ≥ 3 QC, phim có trên Ethopex, nhà chưa có mẫu này" style={{ color: VANG, fontWeight: 700 }}>★</span> : null}
@@ -147,11 +149,11 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
       {!du ? <div style={{ color: MO_SO }}>đang đọc danh sách phim…</div> : 'loi' in du ? <div style={{ color: DO }}>{du.loi}</div> : xem === 'dt' ? (!dt
         ? <div style={{ color: MO_SO }}>đang đọc danh sách phim đối thủ (kho Spy)…</div>
         : <DataTable rows={dtRows} columns={cotDt} groups={nhomCot} groupHeader getRowKey={(p) => p.khoa} persistKey="etp-mau-phim-dt" minWidth={1250} pageSize={100} fixedLayout
-            groupBy={{ value: (p) => p.nhom }} locTuDong={false}
+            locTuDong={false}   /* KHÔNG groupBy: dòng nhóm dính của bảng chung giật trong ngăn (anh 19/11/2026) — nhóm là cột đầu + thứ tự xếp */
             searchText={(p) => `${p.ten} ${p.etp?.id ?? ''} ${p.mien.join(' ')} ${p.e?.tl ?? ''}`} searchPlaceholder="Tìm phim đối thủ, mã Ethopex…"
             dauThanh={<span style={{ fontSize: 11.5, color: MO_SO }}>{dtRows.length} phim đối thủ còn chạy · {dtRows.filter((p) => p.e).length} có trên Ethopex (sinh được) · bấm tên phim xem creative đối thủ</span>} />) :
         <DataTable rows={loc_} columns={cot} groups={nhomCot} groupHeader getRowKey={(p) => String(p.id)} persistKey="etp-mau-phim" minWidth={1250} pageSize={100} fixedLayout   /* bề rộng theo khai báo từng cột — cột Phim không nuốt chỗ của Đối thủ / Sinh */
-          groupBy={{ value: (p) => p.nhom }} locTuDong={false}
+          locTuDong={false}   /* KHÔNG groupBy: dòng nhóm dính của bảng chung giật trong ngăn (anh 19/11/2026) — nhóm là cột đầu + thứ tự xếp */
           searchText={(p) => `${p.ten} ${p.id} ${p.tl ?? ''}`} searchPlaceholder="Tìm phim, mã, thể loại…"
           dauThanh={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <FilterChips<Loc> options={LOC.map(({ value, label, title }) => ({ value, label, title }))} values={loc} onToggle={setLoc} counts={dem} urlKey="mpl" />

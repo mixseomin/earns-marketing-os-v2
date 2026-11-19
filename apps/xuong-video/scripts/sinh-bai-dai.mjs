@@ -21,7 +21,7 @@ if (a.includes('--tu-kiem')) {
   console.log('sinh-bai-dai: 3/3 ok'); process.exit(0);
 }
 const may = lay('--may'); if (!may) { console.error('cần --may <mã máy>'); process.exit(2); }
-const NEN = lay('--nen') ?? 'substack', SO = Math.max(1, Math.min(7, Number(lay('--so') ?? 1))), XEM = a.includes('--xem');
+const NEN = lay('--nen') ?? 'substack', SO = Math.max(1, Math.min(7, Number(lay('--so') ?? 1))), XEM = a.includes('--xem'), LAI = a.includes('--lai');
 const { studio, dsMay, thongTinMay } = await import(`${PB}/day-studio.mjs`), { napBai } = await import(`${PB}/nap-bai.mjs`);
 if (!thongTinMay(may).dang.some((d) => d.nen === NEN)) { console.error(`máy ${may} không có nền ${NEN} trong xv_may.dang`); process.exit(1); }
 const ssh = (lenh) => execFileSync('ssh', ['-o', 'ControlMaster=no', '-o', 'ConnectTimeout=15', 'root@167.233.241.16', lenh], { encoding: 'utf8', timeout: 120_000 }).trim();
@@ -29,7 +29,9 @@ const goc_sp = JSON.parse(ssh(`cd /opt/earns-marketing-os-v2 && set -a && . ./.e
 if (!goc_sp.length) { console.error(`máy ${may} chưa gắn nhóm góc spy (xv_may.goc_sp)`); process.exit(1); }
 const gocs = JSON.parse(ssh(`U=$(grep ^DATABASE_URL= /root/.secrets/spy.env | cut -d= -f2-); psql "$U" -tA -c "select coalesce(json_agg(json_build_object('sp', sp_id, 'id', id, 'loai', loai, 'ten', ten) order by id), '[]') from goc where sp_id = any(array[${goc_sp.map(Number).join(',')}])"`) || '[]');
 const bai = Object.entries(dsMay({ caLuuTru: true, may })).filter(([s, m]) => m.loai === 'bai' && s.startsWith('dai-')).map(([, m]) => m);
-const daGoc = new Set(bai.map((m) => Number(m.goc?.id)).filter(Boolean)), tieuDeCu = bai.map((m) => m.title).filter(Boolean), anhDaDung = bai.map((m) => idAnh(m.html)).filter(Boolean);
+const baiLai = bai.filter((m) => !m.da_dang && (m.cham?.ket === 'SUA_LAI' || m.cham?.ket === 'KHONG_DUYET'));
+const dsGocLai = new Map(baiLai.map((m) => [Number(m.goc?.id), m]));
+const daGoc = new Set(bai.filter((m) => !LAI || !dsGocLai.has(Number(m.goc?.id))).map((m) => Number(m.goc?.id)).filter(Boolean)), tieuDeCu = bai.map((m) => m.title).filter(Boolean), anhDaDung = bai.map((m) => idAnh(m.html)).filter(Boolean);
 // bài dài cần góc là NGƯỜI / TÌNH HUỐNG / NỖI ĐAU (viết được hướng dẫn); góc tiêu chí / phàn nàn app (quảng cáo, crash, phân số) để sau cùng — mổ kho militarycalc 19/11/2026
 const UU = ['ai_tinh_huong', 'ai_noi_dau', 'ai_chan_dung', 'ai_cach_giai'], hang = (g) => (UU.indexOf(g.loai) + 1 || 99);
 const chiGoc = lay('--goc') ? new Set(lay('--goc').split(',').map(Number)) : null;
@@ -42,6 +44,11 @@ for (const g of gocs.filter((x) => !daGoc.has(Number(x.id)) && (!chiGoc || chiGo
   if (!vb.ok) { console.log(`✗ góc #${g.id}: ${vb.loi} (${Math.round(vb.vnd ?? 0)}₫)`); if (/TỐN TIỀN/.test(vb.loi)) break; continue; }
   const slug = slugDai(g.id, vb.tieu_de), dir = `${PB}/../out/bai/${may}/`; mkdirSync(dir, { recursive: true });
   const tep = `${dir}${slug}.html`; writeFileSync(tep, vb.html);
+  const cu = dsGocLai.get(Number(g.id));
+  if (cu && cu.slug !== slug) {
+    const q = `UPDATE xv_may_video SET luu_tru = true, dang = coalesce(dang, '{}'::jsonb) || jsonb_build_object('thay_bang', '${slug.replace(/'/g, "''")}'::text), updated_at = now() WHERE id = ${Number(cu.id)} AND coalesce(da_dang, '{}'::jsonb) = '{}'::jsonb`;
+    ssh(`cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c '${q}'`);
+  }
   napBai({ may, tep, noiDung: vb.html, goc: g, truy: vb.truy, slug, anh: vb.anh });
   console.log(`✓ ${slug} (${vb.model}, ${Math.round(vb.vnd)}₫) → Phòng Nội dung chấm · ${tep}`);
   tieuDeCu.push(vb.tieu_de); if (idAnh(vb.anh)) anhDaDung.push(idAnh(vb.anh)); moi++;

@@ -41,6 +41,17 @@ def ghi_tt(mau, cid, buoc, tt="dang", ghi=None, **k):
            f"insert into etp.mau_dung_nk (mau, content_id, buoc, trang_thai, ghi, may) values ({s_(mau)}, {int(cid)}, {s_(buoc)}, {s_(tt)}, {s_(ghi)}, {s_(os.uname().nodename.split('.')[0])})")
     print(f"[{mau} · {cid}] {buoc} · {tt}{' · ' + ghi if ghi else ''}", flush=True)
 
+def ghi_poster(cid, url):
+    """POSTER GỐC CỦA PHIM (anh 19/11/2026 "POSTER GỐC CỦA PHIM ĐANG CHỌN CƠ MÀ"): link ảnh og:image trên trang phim công khai (đúng ảnh tai-tap tải về poster.jpg) ghi vào
+    etp.phim_poster → ngăn dựng theo mẫu etp2 đặt nó cạnh creative máy dựng để so. Hỏng thì báo ra stderr, không chặn việc dựng."""
+    try:
+        TT = _nap("tai_tap", "tai-tap.py"); link = TT.og_anh(TT.mo_rong(url))
+        if not link: print(f"poster gốc phim {cid}: trang phim không có og:image", file=sys.stderr); return None
+        AT.sql("create table if not exists etp.phim_poster (content_id integer primary key, url text not null, luc timestamptz not null default now()); "
+               f"insert into etp.phim_poster (content_id, url) values ({int(cid)}, {s_(link)}) on conflict (content_id) do update set url = excluded.url, luc = now()")
+        return link
+    except Exception as e: print(f"poster gốc phim {cid} lỗi: {e}", file=sys.stderr); return None
+
 # ---------- câu nhử (cổng AI chung, haiku rẻ) ----------
 def cau_nhu(ten, mo_ta, lang):
     """câu nhử 4–10 chữ + MỘT từ nhấn (tô đỏ) — kiểu 'To fight crime, he became a criminal'. Chữ trơn hai dòng HOOK / WORD (19/11/2026: khuôn JSON qua tuyến
@@ -456,6 +467,7 @@ def mot(ma, cid, xem=False, ban=1):
             return []
         if cid not in _NHO:   # một phim chỉ tải tập / xếp khung / viết câu nhử MỘT lần trong tiến trình (bảng xem trước vẽ 12 mẫu)
             uv = AT.khung(cid, p["url"], tm)
+            if not xem: ghi_poster(cid, p["url"])
             tt("chon_khung", g=f"{len(uv)} khung ứng viên → AI xếp hạng")
             uv, _, v = AT.xep_ai(ten, uv) if len(uv) > 1 else (uv, "", 0); vnd += v
             _NHO[cid] = {"uv": uv}
@@ -529,4 +541,5 @@ if __name__ == "__main__":
     if not a: sys.exit(__doc__)
     if a[0] == "--hang": hang()
     elif a[0] == "--bang": bang_xem(int(a[1]))
+    elif a[0] == "--poster": print(ghi_poster(int(a[1]), ngu_canh(int(a[1]))[0].get("url")))   # ghi bù poster gốc cho phim đã dựng trước 19/11/2026
     else: print(json.dumps(mot(a[0], int(a[1]), "--xem" in a, int(a[a.index("--ban") + 1]) if "--ban" in a else 1)))

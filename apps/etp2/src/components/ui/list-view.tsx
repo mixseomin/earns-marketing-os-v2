@@ -70,8 +70,10 @@ type ChipMode<T> =
   | { value: T; onChange: (v: T) => void; values?: never; onToggle?: never }
   | { values: T[]; onToggle: (v: T[]) => void; value?: never; onChange?: never };
 
-export function FilterChips<T extends string>({ options, value, onChange, values, onToggle, counts, urlKey, allValue = 'all', hrefFor }: {
+export function FilterChips<T extends string>({ options, value, onChange, values, onToggle, counts, donVi = 'mục', urlKey, allValue = 'all', hrefFor }: {
   options: ChipOption<T>[]; counts?: Partial<Record<T, number>>;
+  /** đơn vị của số đếm trong hover ("mẫu", "camp"…) — số không bao giờ đứng trơn */
+  donVi?: string;
   /** Tên param URL của bộ lọc này → ⌘/Ctrl-click (hay chuột giữa) một chip mở TAB MỚI với URL đã áp chip đó.
    *  Giá trị bằng `allValue` thì xoá param (URL sạch). Bộ lọc nào có key trong URL đều nên khai — luật "mọi state trong URL". */
   urlKey?: string;
@@ -90,7 +92,8 @@ export function FilterChips<T extends string>({ options, value, onChange, values
       options={options.map((o) => ({
         value: o.value,
         // NHÃN CHIP KHÔNG MANG SỐ (luật anh 16/10/2026, nhắc lại 26/10/2026 "tiêu đề mà viết hết cả tên ra"): chip chỉ ghi tên, số đếm vào hover
-        title: [counts && counts[o.value] != null ? `${counts[o.value]}` : null, o.title].filter(Boolean).join(' · ') || undefined,
+        // số KHÔNG đứng trơn (#1693: thẻ nổi chỉ hiện "0" → không ai hiểu số gì): luôn kèm tên chip + đơn vị
+        title: [counts && counts[o.value] != null ? `${o.label}: ${counts[o.value]} ${donVi}` : null, o.title].filter(Boolean).join(' · ') || undefined,
         label: o.icon ? <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>{o.icon}{o.label}</span> : o.label,
       }))}
     />

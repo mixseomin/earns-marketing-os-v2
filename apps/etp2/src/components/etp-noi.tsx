@@ -166,7 +166,8 @@ export function HoverChu({ goc }: { goc: React.RefObject<HTMLElement | null> }) 
       const el = tim(e.target); if (!el) return;
       const t = el.getAttribute('title');
       if (t != null) { el.removeAttribute('title'); if (t.trim()) el.setAttribute('data-tip', t); else el.removeAttribute('data-tip'); }
-      const chu = el.getAttribute('data-tip'); if (!chu) return;
+      // chữ không có lấy một chữ cái (chỉ số / dấu, vd "0") → không mở thẻ: số trơn không nói gì với người đọc (#1693 "0 ✕")
+      const chu = el.getAttribute('data-tip'); if (!chu || !/\p{L}/u.test(chu)) return;
       if (dangEl.current === el) { giu(); return; }
       giu(); dangEl.current = el;
       hen.current = window.setTimeout(() => {   // trễ hơn thẻ riêng một nhịp → thẻ riêng của cùng ô mở trước, thẻ chữ nhường

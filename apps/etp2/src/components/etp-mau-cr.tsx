@@ -194,9 +194,9 @@ export function TabMauCr() {
       card={{ render: (m) => <The m={m} />, minWidth: 340 }} defaultView="card" defaultSort={[{ key: 'tt', dir: 'asc' }]}
       searchText={(m) => `${m.ten} ${m.ma} ${m.mo_ta} ${choDang(m).join(' ')} ${m.the_loai.join(' ')} ${m.tham_chieu.map((t) => t.phim ?? '').join(' ')}`} searchPlaceholder="Tìm mẫu, dạng, thể loại, phim đối thủ…"
       dauThanh={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <FilterChips<LoaiMau> options={LOAI.map((v) => ({ value: v, label: TEN_LOAI[v] }))} values={loai as LoaiMau[]} onToggle={(v) => setLoai(v)} counts={dem('l', LOAI, (m, v) => m.loai === v)} urlKey="mcl" />
-        <FilterChips<NguonMau> options={NGUON.map((v) => ({ value: v, label: TEN_NGUON[v] }))} values={nguon as NguonMau[]} onToggle={(v) => setNguon(v)} counts={dem('n', NGUON, (m, v) => m.nguon === v)} urlKey="mcn" />
-        <FilterChips<TrangThaiMau> options={TT.map((v) => ({ value: v, label: TEN_TT[v][0], title: TEN_TT[v][2] }))} values={tt as TrangThaiMau[]} onToggle={(v) => setTt(v)} counts={dem('t', TT, (m, v) => m.trang_thai === v)} urlKey="mct" />
+        <FilterChips<LoaiMau> options={LOAI.map((v) => ({ value: v, label: TEN_LOAI[v] }))} values={loai as LoaiMau[]} onToggle={(v) => setLoai(v)} counts={dem('l', LOAI, (m, v) => m.loai === v)} donVi="mẫu" urlKey="mcl" />
+        <FilterChips<NguonMau> options={NGUON.map((v) => ({ value: v, label: TEN_NGUON[v] }))} values={nguon as NguonMau[]} onToggle={(v) => setNguon(v)} counts={dem('n', NGUON, (m, v) => m.nguon === v)} donVi="mẫu" urlKey="mcn" />
+        <FilterChips<TrangThaiMau> options={TT.map((v) => ({ value: v, label: TEN_TT[v][0], title: TEN_TT[v][2] }))} values={tt as TrangThaiMau[]} onToggle={(v) => setTt(v)} counts={dem('t', TT, (m, v) => m.trang_thai === v)} donVi="mẫu" urlKey="mct" />
         <MultiSelect<string> label="Dùng cho dạng" options={DANG_TEN.map((v) => ({ value: v, label: v, count: demD[v] }))} selected={dang} onChange={setDang} searchPlaceholder="Tìm dạng…" compact portal />
         <MultiSelect<string> label="Thể loại" options={dsTl.map((v) => ({ value: v, label: v, count: demTl[v] }))} selected={tl} onChange={setTl} searchPlaceholder="Tìm thể loại…" compact portal />
         <span style={{ fontSize: 11.5, color: MO_SO }} title={`đọc lúc ${gioVn(du.luc)}`}>{rows.length}/{tatCa.length} mẫu</span>

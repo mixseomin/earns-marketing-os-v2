@@ -24,7 +24,7 @@ export type SoTien = { chi: number; thu: number };
 /** ns = tổng ngân sách ngày của camp đang chạy (anh 26/10/2026): ngày cũ = ảnh chụp cuối ngày trong etp.so_ngay (camp ACTIVE); hôm nay = view camp_dang_chay (gồm camp tạm dừng vì lịch); null = chưa ghi */
 export type DongNgayEtp = SoTien & { ngay: string; camp: number; ns: number | null };
 export type XetLuat = { ma: string; ten: string; mo_ta: string; dk: [string, string, string, boolean][]; ket: 'dat' | 'gan' | 'xa' | 'khong_ap'; vao: string | null; ghi: string | null; /** thẻ Tăng bậc bị cổng nhịp chặn: mốc UTC được tăng (luat-ethopex · nhip_tang.cho_tang) */ cho_toi?: string | null; /** máy ĐÃ LÀM việc của thẻ sau lúc ghi thẻ — giờ VN (etp-doc theDaLam) */ da?: string; /** thẻ tăng bị Siết TS chặn: mốc UTC sớm nhất thôi chặn + điều kiện còn phải đạt lúc đó (luat-ethopex _ts_mo, anh 10/11/2026) */ mo?: { luc: string; can: string | null } };
-export type CampEtpKho = { camp_id: number; ten: string; bo: string | null; trang_thai: string; giao: string | null; ngan_sach: number; creative_id: number | null; content_id: number | null;
+export type CampEtpKho = { camp_id: number; ten: string; bo: string | null; trang_thai: string; giao: string | null; ngan_sach: number; creative_id: number | null; content_id: number | null; cam?: { luc: string | null; ly_do: string | null } | null;
   goc: number | null; lich: string | null; tao: string | null; loi: string | null; dong_bo?: string | null; phim: string | null; the_loai: string | null; dang: string | null; /** bản mẫu (PO.1…PO.5) — sqlBan */ ban: string | null; /** giọng đọc (ky_di…) — sqlGiong */ giong: string | null; doan: string | null; cung_doan: number;
   thang: SoTien; qua: SoTien; nay: SoTien;
   /** đang tạm dừng vì LỊCH GIỜ (etp.lich_tat — apps/etp/lich-gio.py tự bật lại khi tới khung BẬT) */
@@ -542,6 +542,8 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const soCam = (await qPhimCam)[0]?.gia_tri ?? {};
   const coCam = new Set(phims.map((p) => p.content_id));
   for (const p of phims) { const v = soCam[String(p.content_id)]; p.cam = v ? { luc: v.luc ?? null, ly_do: v.ly_do ?? null } : null; }
+  // camp của phim cấm (etp:phim-cam-quet-2011) mang cùng nhãn — DieuKhienCamp / NutMoRong khoá Bật / Tăng / Nhân bản / Mở rộng
+  for (const c of cs) { const v = c.content_id ? soCam[String(c.content_id)] : null; c.cam = v ? { luc: v.luc ?? null, ly_do: v.ly_do ?? null } : null; }
   if (!ngoai) for (const [k, v] of Object.entries(soCam)) { const ma = n(k); if (!ma || coCam.has(ma)) continue; const i = phInfo.get(ma) ?? {};
     phims.push({ content_id: ma, ten: (i.ten as string) ?? null, the_loai: (i.the_loai as string) ?? null, bo: (i.bo as string) ?? null, locale: (i.locale as string) ?? null, nguon: (i.nguon as string) ?? null,
       nhom_goc: (i.nhom_goc as string) ?? null, moc: i.moc ? String(i.moc) : null, doi_chay: doiChay.get(ma) ?? 0, creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 },

@@ -856,7 +856,7 @@ const NB_KIEU: { k: KieuNb['kieu']; ten: string; mo: string }[] = [
   { k: 'bo', ten: 'Sang bộ tài khoản khác', mo: 'Clone sang bộ tài khoản khác — KHÔNG dùng được used post (bài đăng thuộc Page của bộ gốc) nên đăng bài mới cùng creative camp gốc, $1; bỏ qua các cổng chỉ dành cho nhân trong cùng bộ. Vẫn qua cổng chấm sạch + rào chắn etp.' },
   { k: 'roas', ten: 'Camp ROAS', mo: 'Nhân bản với bid ROAS goal (giá thầu theo ROAS tối thiểu), dùng LẠI bài đăng cũ của camp gốc (giữ tương tác), ngân sách $15–20. Hợp với camp đã chi > $100 mà ROI > 50%. Mức ROAS nhập sai = lỗi camp — máy đọc lại, sai thì tạm dừng.' },
 ];
-function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang'>; /** nút chữ to (ngăn camp — điện thoại) */ lon?: boolean; /** bộ tài khoản khi đứng ngoài DieuKhienCtx */ boDs?: string[]; /** lệnh chờ áp khi đứng ngoài DieuKhienCtx */ choDs?: ChoAp[]; /** lịch sử khi đứng ngoài DieuKhienCtx */ lsDk?: LsDk }) {
+function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang'> & { cam?: CampEtpKho['cam'] }; /** nút chữ to (ngăn camp — điện thoại) */ lon?: boolean; /** bộ tài khoản khi đứng ngoài DieuKhienCtx */ boDs?: string[]; /** lệnh chờ áp khi đứng ngoài DieuKhienCtx */ choDs?: ChoAp[]; /** lịch sử khi đứng ngoài DieuKhienCtx */ lsDk?: LsDk }) {
   const router = useRouter();
   const ctx = useContext(DieuKhienCtx), bo = boDs ?? ctx?.bo ?? [], dsCho = choDs ?? ctx?.cho.get(c.camp_id) ?? [];
   const ls = lsDk ?? ctx?.ls(c.camp_id) ?? { tay: [], batTat: [], bac: [] };
@@ -891,6 +891,8 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
   const muc = (t: string, mo2: string) => <div style={{ marginBottom: 6 }}><b style={{ fontSize: 13 }}>{t}</b>{hd ? <div style={{ color: 'var(--fg-2)', lineHeight: 1.45, marginTop: 2 }}>{mo2}</div> : null}</div>;
   const hop: React.CSSProperties = { padding: 12, border: '1px solid var(--line)', borderRadius: 8, marginBottom: 12 };
   const o2: React.CSSProperties = { width: 70, fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit' };
+  // phim cấm (etp:phim-cam-quet-2011): khoá Bật / Tăng / Nhân bản — máy quét don_phim_cam tự tắt camp mỗi nhịp đồng bộ
+  if (c.cam) return <NhanCam cam={c.cam} />;
   return <>
     <button onClick={(e) => { e.stopPropagation(); setMo(true); setKq(null); setXem(null); setNs(String(c.ngan_sach)); }} title="điều khiển camp: bật / tắt · bậc ngân sách · nhân bản"
       style={lon ? { fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--accent, #60a5fa)', background: 'var(--accent-soft, #60a5fa18)', color: 'inherit', cursor: 'pointer', width: '100%', textAlign: 'left' }
@@ -1122,7 +1124,9 @@ function MenuPhim({ p }: { p: PhimEtpKho }) {
   const [chay, setChay] = useState(false);   // form Chạy tự động (dòng phim, anh 03/11/2026)
   return <>{chay ? <FormChayDong contentId={p.content_id} onClose={() => setChay(false)} /> : null}<MenuBaCham tieuDe="Phim" phu={p.ten ?? `#${p.content_id}`} title={`Thao tác phim #${p.content_id}`} groups={[
     { label: 'Xem', items: [{ label: 'Nội dung, điểm, tiến độ', emoji: '▸', onClick: () => openEntityDrawer('etp-phim', p.content_id) }] },
-    { label: 'Tự động', items: [{ label: 'Chạy tự động tới khi lên camp…', emoji: '▶', onClick: () => setChay(true) }] },
+    // phim cấm (etp:phim-cam-quet-2011): không có Chạy tự động — mục chỉ ghi CẤM + lý do sổ
+    { label: 'Tự động', items: [p.cam ? { label: `CẤM — ${p.cam.ly_do ?? 'phim trong sổ cấm'}`.slice(0, 90), emoji: '🚫', onClick: () => setChay(false) }
+      : { label: 'Chạy tự động tới khi lên camp…', emoji: '▶', onClick: () => setChay(true) }] },
   ]} /></>;
 }
 
@@ -2255,8 +2259,9 @@ function DongHoHapThu({ m, ten, boc }: { m?: MoRong; ten?: string | null; boc?: 
   return boc ? boc(theThat, g) : <ReThe the={theThat}>{g}</ReThe>;
 }
 /** NÚT ＋ Ở DÒNG PHIM (anh 04/11/2026 "thêm 1 nút ở dòng film … mở ra form để chọn: số camp mới, thể loại film → submit là xong. Còn lại cho tab SX xử lý") */
-function NutMoRong({ cid, k }: { cid: number; k?: number }) {
+function NutMoRong({ cid, k, cam }: { cid: number; k?: number; /** phim cấm (etp:phim-cam-quet-2011): khoá nút, hiện CẤM + lý do */ cam?: PhimEtpKho['cam'] }) {
   const [mo, setMo] = useState(false);
+  if (cam) return <NhanCam cam={cam} />;
   return <>{mo ? <FormChayDong contentId={cid} moRong onClose={() => setMo(false)} /> : null}
     <ReThe the={() => ({ tieu: 'Mở rộng phim', mau: '#4ade80', moc: [{ ten: 'Bấm', mau: '#4ade80', chu: 'mở form: số camp mới (điền sẵn số máy tính) · loại nội dung · thể loại' }, { ten: 'Sau đó', mau: '#60a5fa', chu: 'tab Sản xuất làm hết: cắt phần thiếu → soát + chấm → lên đủ số camp → chờ camp chạy' }] })}><button className="btn"
       onClick={(e) => { e.stopPropagation(); setMo(true); }} onMouseDown={(e) => e.stopPropagation()}
@@ -2406,7 +2411,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, dongCr, 
         return c.trang_thai === 'ACTIVE' || c.giao === 'DISAPPROVED' ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: x.chu, mau: x.mau, moc: [{ ten: 'Trạng thái', mau: x.mau, chu: x.t }] })}>{o}</ReThe> : <ReDung c={c}>{o}</ReDung>; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
     { key: 'tuoi', header: 'Tuổi', width: 52, title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: tuoiTitle, cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)),
       // NÚT ＋ MỞ RỘNG ở dòng PHIM, thẳng một cột (anh 04/11/2026 "phải thẳng cột") — dòng tổng bảng (nhiều phim) không có
-      total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <NutMoRong cid={k} /> : null; } },   // ＋ thẳng cột trong cột Tuổi (hẹp 52); đồng hồ các đợt ở ô TT ngay bên trái
+      total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <NutMoRong cid={k} cam={rs.find((x) => x.cam)?.cam} /> : null; } },   // ＋ thẳng cột trong cột Tuổi (hẹp 52); đồng hồ các đợt ở ô TT ngay bên trái
     { key: 'ns', header: 'Ngân sách', align: 'left', width: 106, loc: 'so', title: 'ngân sách $/ngày — rê xem lịch sử bậc', cell: (c) => <BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach,
       total: (rs) => { const t = rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0);   // $0 mờ · ≥ $20 đậm sáng (anh 28/10/2026)
         return <span title="tổng ngân sách/ngày camp đang bật" style={{ display: 'inline-block', width: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: t >= 20 ? 'var(--fg)' : 'var(--fg-2)', fontWeight: t >= 20 ? 700 : 400, opacity: t ? 1 : 0.45 }}>${t}</span>; } },   // cùng ô 30px canh phải với $ của camp (anh 29/10/2026 #1476 "thò thụt")
@@ -3071,7 +3076,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     // LỌC "ĐANG SẢN XUẤT" (anh 04/11/2026 "Tab phim cần thêm bộ lọc các phim đang sx"): sortValue chữ = cột danh mục → thanh lọc tự động của DataTable (sxPh)
     ...(!laNguoi && !du.nguoi.ngoai && !du.nguoi.doi ? [{ key: 'sx_ph', header: 'Sản xuất', align: 'right' as const, width: 90, loc: 'chu' as const, title: 'đợt sản xuất của phim (đồng hồ 9 bước) + nút ＋ mở rộng / chạy tự động · lọc: Đang sản xuất / Dừng / Lỗi / Xong (24 giờ) / Chưa sản xuất',
       cell: (p: PhimEtpKho) => <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2, whiteSpace: 'nowrap' }}>
-        <BadgeSx cid={p.content_id} ds={du.dongChay ?? []} kt={ktPh.get(p.content_id)} /><NutMoRong cid={p.content_id} /></span>, sortValue: sxPh }] : []),
+        <BadgeSx cid={p.content_id} ds={du.dongChay ?? []} kt={ktPh.get(p.content_id)} /><NutMoRong cid={p.content_id} cam={p.cam} /></span>, sortValue: sxPh }] : []),
     { key: 'tt_ph', header: 'Trạng thái', align: 'left', title: 'Phim cấm (máy chặn camp mới / nhân bản / bật / tăng / lên creative) · Có thể test (qua lọc chọn phim mới — nguồn, tiếng, thể loại, ít QC FB, chưa ai lên) · Đã có camp · Đã cất (máy cất, không mở camp mới) · Mới thêm vào workspace, chưa camp', cell: (p) => p.cam ? <span style={{ fontSize: 12, color: MAU_CAM, display: 'block', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={chuCam(p.cam)}>Cấm{p.cam.luc ? ` · ${p.cam.luc}` : ''}{p.cam.ly_do ? ` — ${p.cam.ly_do}` : ''}</span> : <span style={{ fontSize: 12, color: p.moc || !p.camp && !p.test ? MO : 'var(--fg-2)' }} title={p.moc ? `máy cất phim lúc ${vn(p.moc)} — không mở camp mới` : undefined}>{ttPh(p)}</span>, sortValue: ttPh },
     // #1530 (anh 04/11/2026 "bỏ tính năng nhận phim này đi"): bỏ cột Người nhận + Tiến độ nhận — tab Sản xuất / đồng hồ sản xuất là chỗ xem tiến độ
     { key: 'hang', header: 'Hạng', title: 'hạng trong danh sách có thể test (điểm cao trước) — hover: điểm, lý do, trạng thái hàng chờ phim mới', cell: (p) => (p.test ? <span style={{ fontVariantNumeric: 'tabular-nums', cursor: 'help' }} title={`điểm ${p.test.diem} · ${p.test.vi_sao}${p.test.tt ? `\nhàng chờ phim mới: ${TT_MOI[p.test.tt] ?? p.test.tt}` : ''}`}>{p.test.hang}</span> : <span style={{ color: MO }}>—</span>), sortValue: (p) => p.test?.hang ?? null },

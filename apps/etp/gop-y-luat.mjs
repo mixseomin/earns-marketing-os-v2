@@ -1462,4 +1462,9 @@ export const LUAT = [
   { card: 'phim-cam-quet-2011', tep: 'apps/etp/cong.py', cam: 'delete from etp.dong_phim', vi: 'phim cấm chỉ đổi trạng thái + lý do, không xoá dòng' },
   { card: 'phim-cam-quet-2011', tep: 'apps/etp/cong.py', co: 'assert _ra == ["-4", "-1"] or sorted(_ra) == ["-1", "-4"]', vi: 'tự kiểm sổ thật: camp phim cấm ACTIVE bị nhặt, camp phim thường và camp đội không' },
   { card: 'phim-cam-quet-2011', tep: 'apps/etp/dong-bo.py', co: '"cong.py"), "--don-phim-cam"]', vi: 'máy quét chạy mỗi nhịp etp-dong-bo ngay sau đồng bộ camp, không timer mới' },
+  { card: 'phim-cam-quet-2011', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'for (const c of cs) { const v = c.content_id ? soCam[String(c.content_id)] : null;', vi: 'etp2: camp của phim cấm mang nhãn cam từ sổ' },
+  { card: 'phim-cam-quet-2011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'if (c.cam) return <NhanCam cam={c.cam} />;', vi: 'etp2: camp phim cấm khoá Bật / Tăng / Nhân bản, hiện CẤM + lý do' },
+  { card: 'phim-cam-quet-2011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'if (cam) return <NhanCam cam={cam} />;', vi: 'etp2: phim cấm khoá nút Mở rộng' },
+  { card: 'phim-cam-quet-2011', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<NutMoRong cid={p.content_id} cam={p.cam} />', vi: 'etp2: bảng phim truyền nhãn cấm vào Mở rộng' },
+  { card: 'phim-cam-quet-2011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "label: `CẤM — ${p.cam.ly_do ?? 'phim trong sổ cấm'}`", vi: 'etp2: menu phim cấm không có Chạy tự động tới khi lên camp' },
 ];

@@ -20,7 +20,9 @@ SO = json.load(open(os.path.join(D, "..", "..", "..", "etp2", "src", "lib", "etp
 F = "/System/Library/Fonts/Supplemental/"
 PH = {"impact": ("Impact.ttf", 0), "arial_black": ("Arial Black.ttf", 0), "didot": ("Didot.ttc", 0), "bodoni": ("Bodoni 72.ttc", 0), "copper": ("Copperplate.ttc", 2),
       "basker": ("Baskerville.ttc", 4), "basker_ng": ("Baskerville.ttc", 5), "georgia_bi": ("Georgia Bold Italic.ttf", 0), "georgia_i": ("Georgia Italic.ttf", 0),
-      "din": ("DIN Condensed Bold.ttf", 0), "futura": ("Futura.ttc", 4), "arial_b": ("Arial Bold.ttf", 0)}
+      "din": ("DIN Condensed Bold.ttf", 0), "futura": ("Futura.ttc", 4), "arial_b": ("Arial Bold.ttf", 0), "snell": ("SnellRoundhand.ttc", 2), "didot_b": ("Didot.ttc", 2)}
+# VÙNG AN TOÀN (Meta, 9:16 Reels / Stories): ~14% trên cùng bị thanh tiêu đề + tên Page che, ~20–35% dưới cùng bị chữ QC + nút — chữ trên đỉnh đặt từ TREN_AN
+TREN_AN = 0.12
 def ph(ten, co): f, i = PH[ten]; return ImageFont.truetype(F + f, co, index=i)
 
 # ---------- trạng thái ----------
@@ -193,7 +195,7 @@ def dt_key_art_neon(c):
     duoi = Image.new("L", (1, 256)); duoi.putdata([0 if i < 150 else min(235, (i - 150) * 3) for i in range(256)])
     nen = Image.composite(Image.new("RGBA", (W, H), (10, 0, 15, 255)), nen, duoi.resize((W, H)))
     ra = os.path.join(c["tm"], f"nen-{c['ma']}.png"); nen.convert("RGB").save(ra)
-    lop = Image.new("RGBA", (W, H)); _cau_dinh(lop, c, "arial_b", 50, H * 0.035, (255, 255, 255))
+    lop = Image.new("RGBA", (W, H)); _cau_dinh(lop, c, "arial_b", 50, H * TREN_AN, (255, 255, 255))
     l2, day = _ten_hai_tang({**c, "mat_day": H * 0.66}, H * 0.66); lop.alpha_composite(l2)
     nut(lop, "WATCH NOW" if c["lang"] != "es" else "VER AHORA", day + 30, ph("din", 76), (60, 8, 16), (255, 255, 255), (230, 40, 60), (70, 16), bo_tron=18); return ra, lop
 def _cau_dinh(lop, c, ten_ph, co, y, mau, mau_nhan=(235, 40, 40)):
@@ -209,7 +211,7 @@ def dt_cau_nhu_dinh(c):
     """câu nhử chữ có chân nghiêng trắng ở đỉnh khung, một từ tô đỏ; cảnh phim sạch phía dưới (kiểu What If I'm One Hell of a Fighter)"""
     lop = Image.new("RGBA", (W, H)); toi = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(toi)
     for r in range(int(H * 0.22)): d.line([(0, r), (W, r)], fill=(0, 0, 0, int(170 * (1 - r / (H * 0.22)))))
-    lop.alpha_composite(toi); _cau_dinh(lop, c, "georgia_bi", 76, H * 0.07, (255, 255, 255))
+    lop.alpha_composite(toi); _cau_dinh(lop, c, "georgia_bi", 76, H * TREN_AN, (255, 255, 255))
     if AT.CO_FREE:   # lớp Free chuẩn nhưng chỉ NÚT (nhãn tím trên đỉnh trùng chỗ câu nhử — bản xem trước 19/11/2026 đè nhau)
         f = ImageFont.truetype(AT.FONT_FREE, 84); nut(lop, AT.FREE.get(c["lang"], AT.FREE["en"])[1], int(H * 0.70), f, AT.XANH, (255, 255, 255), None, (70, 34), bo_tron=40)
     return None, lop
@@ -252,7 +254,7 @@ def dt_khung_player(c):
 def dt_dai_free(c):
     """dải trắng mảnh trên đỉnh chữ đen 'WATCH MOVIES NOW! FREE' — báo miễn phí ngay giây đầu, cảnh phim giữ nguyên (kiểu My Billionaire Boss, 32 ngày)"""
     lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop); t = "WATCH MOVIES NOW! FREE" if c["lang"] != "es" else "¡MIRA PELÍCULAS AHORA! GRATIS"
-    f = ph("arial_black", 46); d.rectangle((0, int(H * 0.035), W, int(H * 0.035) + 92), fill=(255, 255, 255, 255)); d.text(((W - f.getlength(t)) / 2, int(H * 0.035) + 18), t, font=f, fill=(10, 10, 10, 255))
+    f = ph("arial_black", 46); y0 = int(H * TREN_AN); d.rectangle((0, y0, W, y0 + 92), fill=(255, 255, 255, 255)); d.text(((W - f.getlength(t)) / 2, y0 + 18), t, font=f, fill=(10, 10, 10, 255))
     f2, dong = vua(c["ten"], "georgia_bi", W - 160, 96, 3); cao = int(f2.size * 1.08) * len(dong); y = int(H * 0.80 - cao)
     m, _ = mat_chu(dong, f2, y); bong(lop, m); vien(lop, m, 4, (0, 0, 0)); to(lop, m, (255, 255, 255)); return None, lop
 def dt_theo_mua(c):
@@ -270,15 +272,114 @@ def dt_theo_mua(c):
     nut(lop, "WATCH NOW" if c["lang"] != "es" else "VER AHORA", hop[3] + 40, ph("impact", 62), (25, 20, 15), (255, 222, 140), (214, 160, 50), (60, 18)); return ra, lop
 def dt_logo_goc(c):
     """logo tên phim chữ nghiêng nhỏ ở góc trên trái + một dòng 'phụ đề' (câu nhử) trơn giữa dưới — trông như cảnh trích từ phim thật (kiểu Extraordinary Mother of a Billionaire)"""
-    lop = Image.new("RGBA", (W, H)); f, dong = vua(c["ten"], "georgia_i", int(W * 0.55), 44, 2, 30); m, _ = mat_chu(dong, f, int(H * 0.04), 1.1, "trai", 50)
+    lop = Image.new("RGBA", (W, H)); f, dong = vua(c["ten"], "georgia_i", int(W * 0.55), 44, 2, 30); m, _ = mat_chu(dong, f, int(H * TREN_AN), 1.1, "trai", 50)
     bong(lop, m, (3, 4), 4, 220); to(lop, m, (255, 236, 200))
     f2, d2 = vua(c["cau"], "arial_b", W - 200, 46, 2, 34); m2, _ = mat_chu(d2, f2, int(H * 0.70), 1.15); vien(lop, m2, 3, (0, 0, 0)); to(lop, m2, (255, 255, 255)); return None, lop
 def dt_nut_free_do(c):
     """nút bo tròn đỏ nhỏ 'Watch Free' đặt 1/3 dưới, đè thẳng lên cảnh phim — không tên phim, không nền (kiểu Lulu the Little Goddess, 29 ngày)"""
     lop = Image.new("RGBA", (W, H)); nut(lop, "Watch Free" if c["lang"] != "es" else "Ver gratis", int(H * 0.70), ph("arial_b", 52), (229, 36, 54), (255, 255, 255), None, (64, 22)); return None, lop
 
+def _ep_ngang(lop, ty=0.82, cy=None):
+    """ép chữ hẹp lại theo chiều ngang quanh giữa khung (kiểu chữ cao, hẹp của poster)"""
+    hep = lop.resize((int(W * ty), H), Image.LANCZOS); o = Image.new("RGBA", (W, H)); o.alpha_composite(hep, ((W - hep.width) // 2, 0)); return o
+def _goc2(c):
+    """khung phụ (khung xếp hạng kế) — ảnh nhỏ / tách nền"""
+    return c["goc_khac"][0] if c.get("goc_khac") else c["goc"]
+def dt_discover_banner(c):
+    """BỐ CỤC: băng trên 2 dòng (DISCOVER THE FULL STORY đen trên nền sáng · EPISODE BY EPISODE trắng trên dải xám), mép chéo cắt khung; góc dưới trái nêm tối chứa
+    ảnh nhỏ khung phụ; tên phim chữ hẹp nghiêng trắng góc dưới phải + nút đỏ WATCH MORE (kiểu American Sniper · Movie World)"""
+    nen = Image.open(c["nen"]).convert("RGBA"); d = ImageDraw.Draw(nen); y0 = int(H * TREN_AN)
+    d.polygon([(0, 0), (W, 0), (W, y0 + 360), (0, y0 + 560)], fill=(236, 236, 236, 255))   # mảng sáng mép chéo
+    nho = Image.open(_goc2(c)).convert("RGB"); s_ = 620 / nho.width; nho = nho.resize((620, int(nho.height * s_))).crop((0, 0, 620, 520))
+    nem = Image.new("L", (W, H)); ImageDraw.Draw(nem).polygon([(0, int(H * 0.56)), (W, int(H * 0.44)), (W, H), (0, H)], fill=255)
+    toi = Image.new("RGBA", (W, H), (14, 14, 16, 255)); nen = Image.composite(toi, nen, nem)
+    mk = Image.new("L", (620, 520)); ImageDraw.Draw(mk).polygon([(0, 110), (620, 0), (620, 520), (0, 520)], fill=255); nen.paste(nho, (0, int(H * 0.60)), mk)
+    ra = os.path.join(c["tm"], f"nen-{c['ma']}.png"); nen.convert("RGB").save(ra)
+    lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop)
+    t1, t2 = ("DISCOVER THE FULL STORY", "EPISODE BY EPISODE") if c["lang"] != "es" else ("DESCUBRE LA HISTORIA", "EPISODIO A EPISODIO")
+    f1 = ph("din", 118); d.text(((W - f1.getlength(t1)) / 2, y0 + 10), t1, font=f1, fill=(30, 30, 30, 255))
+    f2 = ph("din", 128); w2 = f2.getlength(t2); d.rectangle((0, y0 + 140, W, y0 + 280), fill=(48, 48, 50, 255)); d.text(((W - w2) / 2, y0 + 150), t2, font=f2, fill=(255, 255, 255, 255))
+    f3, dong = vua(c["ten"].upper(), "impact", int(W * 0.55), 84, 3); m, hop = mat_chu(dong, f3, int(H * 0.66), 1.0, "trai", int(W * 0.42))
+    l3 = Image.new("RGBA", (W, H)); bong(l3, m); vien(l3, m, 3, (0, 0, 0)); to(l3, m, (255, 255, 255))
+    l3 = l3.transform((W, H), Image.AFFINE, (1, 0.16, -0.16 * (hop[1] + hop[3]) / 2, 0, 1, 0), Image.BICUBIC); lop.alpha_composite(l3)
+    nut(lop, "WATCH MORE" if c["lang"] != "es" else "VER MÁS", hop[3] + 50, ph("din", 84), (190, 22, 30), (255, 255, 255), (120, 10, 16), (60, 14), bo_tron=14); return ra, lop
+def dt_ong_ngam(c):
+    """BỐ CỤC ống ngắm: khung phim trong vòng tròn ống ngắm (viền kim loại tối, chữ thập, số khoảng cách cam phát sáng), ngoài vòng tối; tên phim chữ hẹp nghiêng
+    trắng kim loại phía dưới (kiểu American Sniper · Hot Movies Every Day, 41 ngày) — hợp phim hành động / quân đội / sát thủ"""
+    goc = Image.open(c["goc"]).convert("RGB"); r = int(W * 0.47); cx, cy = W // 2, int(H * 0.36)
+    s_ = max(2 * r / goc.width, 2 * r / goc.height) * 1.15; g = goc.resize((int(goc.width * s_), int(goc.height * s_)), Image.LANCZOS)
+    x0 = int(min(max(0, (c["mat_tam"] * 0 + 0.5) * g.width - r), g.width - 2 * r)); y0 = int(min(max(0, c["mat_tam"] * g.height - r), g.height - 2 * r)); g = g.crop((x0, y0, x0 + 2 * r, y0 + 2 * r))
+    nen = Image.new("RGB", (W, H), (6, 6, 8)); mo = goc.resize((W, H)).filter(ImageFilter.GaussianBlur(30)).point(lambda v: v // 6); nen.paste(mo)
+    mk = Image.new("L", (2 * r, 2 * r)); ImageDraw.Draw(mk).ellipse((0, 0, 2 * r, 2 * r), fill=255); nen.paste(g, (cx - r, cy - r), mk)
+    d = ImageDraw.Draw(nen); d.ellipse((cx - r - 40, cy - r - 40, cx + r + 40, cy + r + 40), outline=(30, 30, 34), width=46); d.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(0, 0, 0), width=10)
+    d.line([(cx - r, cy), (cx + r, cy)], fill=(10, 10, 10), width=3); d.line([(cx, cy - r), (cx, cy + r)], fill=(10, 10, 10), width=3)
+    for t in range(1, 5): d.line([(cx + t * r // 5, cy - 14), (cx + t * r // 5, cy + 14)], fill=(10, 10, 10), width=2); d.line([(cx - t * r // 5, cy - 14), (cx - t * r // 5, cy + 14)], fill=(10, 10, 10), width=2)
+    d.ellipse((cx - 7, cy - 7, cx + 7, cy + 7), fill=(230, 30, 30))
+    ra = os.path.join(c["tm"], f"nen-{c['ma']}.png"); nen.save(ra)
+    lop = Image.new("RGBA", (W, H)); so = f"{random.Random(c['cid']).randint(1200, 4200)}M"; f = ph("din", 92); m, _ = mat_chu([so], f, cy - r + 50, 1.0)
+    phat_sang(lop, m, (255, 140, 20), 16, 230); to(lop, m, (255, 190, 60))
+    f2, dong = vua(c["ten"].upper(), "impact", W - 140, 140, 3); cao = int(f2.size * 0.98) * len(dong); m2, hop = mat_chu(dong, f2, int(H * 0.70), 0.98)
+    l2 = Image.new("RGBA", (W, H)); bong(l2, m2, (8, 12), 12, 230); vien(l2, m2, 6, (10, 10, 14)); to(l2, m2, doc_trong((255, 255, 255), (200, 205, 214), (120, 126, 140), hop)); sang_khoi(l2, m2, (255, 255, 255), (20, 20, 30))
+    lop.alpha_composite(l2.transform((W, H), Image.AFFINE, (1, 0.18, -0.18 * (hop[1] + hop[3]) / 2, 0, 1, 0), Image.BICUBIC)); return ra, lop
+def dt_full_series_dau(c):
+    """băng chữ trên đỉnh 2 dòng 'Full series / now available' chữ hẹp đậm trắng đổ bóng + tên phim chữ có chân nghiêng trắng 3 dòng phía dưới (kiểu American Sniper · Screen Hub)"""
+    lop = Image.new("RGBA", (W, H)); t = ("Full series", "now available") if c["lang"] != "es" else ("Serie completa", "ya disponible")
+    f = ph("din", 96); m, _ = mat_chu(list(t), f, int(H * TREN_AN), 1.05); bong(lop, m, (4, 6), 8, 220); to(lop, m, (255, 255, 255))
+    f2, dong = vua(c["ten"], "georgia_i", W - 200, 120, 3); cao = int(f2.size * 1.12) * len(dong); y = int(max(H * 0.58, min(H * 0.80 - cao, c["mat_day"] + 30)))
+    m2, _ = mat_chu(dong, f2, y, 1.12); bong(lop, m2, (5, 8), 10, 220); to(lop, m2, (255, 255, 255)); return None, lop
+def dt_stream_banner(c):
+    """hộp đen bo tròn viền vàng trên đỉnh: 'STREAM THE FULL SERIES' trắng + '"WATCH MORE" - KEEP WATCHING FOR FREE!' vàng; tên phim chữ hẹp nghiêng trắng giữa dưới
+    (kiểu My Billionaire Boss / Undercover Prison King / Surf God's Revenge)"""
+    lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop); y0 = int(H * TREN_AN)
+    t1, t2 = ("STREAM THE FULL SERIES", '"WATCH MORE" - KEEP WATCHING FOR FREE!') if c["lang"] != "es" else ("MIRA LA SERIE COMPLETA", '"VER MÁS" - ¡SIGUE MIRANDO GRATIS!')
+    f1, f2 = ph("arial_black", 44), ph("arial_black", 32); w = max(f1.getlength(t1), f2.getlength(t2)) + 90
+    d.rounded_rectangle(((W - w) / 2, y0, (W + w) / 2, y0 + 150), radius=22, fill=(8, 8, 8, 235), outline=(214, 170, 60, 255), width=4)
+    d.text(((W - f1.getlength(t1)) / 2, y0 + 24), t1, font=f1, fill=(255, 255, 255, 255)); d.text(((W - f2.getlength(t2)) / 2, y0 + 88), t2, font=f2, fill=(255, 214, 70, 255))
+    l2, _ = _ten_nghieng(c, int(H * 0.62)); lop.alpha_composite(l2); return None, lop
+def _ten_nghieng(c, y):
+    f, dong = vua(c["ten"].upper(), "impact", W - 220, 120, 3); m, hop = mat_chu(dong, f, y, 0.98)
+    l = Image.new("RGBA", (W, H)); bong(l, m, (6, 10), 10, 220); vien(l, m, 4, (0, 0, 0)); to(l, m, (255, 255, 255))
+    return l.transform((W, H), Image.AFFINE, (1, 0.17, -0.17 * (hop[1] + hop[3]) / 2, 0, 1, 0), Image.BICUBIC), hop
+def dt_watch_more_gian(c):
+    """nhãn nhỏ 'WATCH MORE' trong hộp tối giữa đỉnh + phần đầu tên phim CHỮ GIÃN mảnh trắng + phần cuối tên phim chữ hẹp cao VÀNG nổi khối (kiểu Undercover Prison King,
+    hầu hết QC mới của phim — 'U N D E R C O V E R / PRISON KING')"""
+    lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop); y0 = int(H * TREN_AN); f = ph("arial_b", 34); t = "WATCH MORE" if c["lang"] != "es" else "VER MÁS"; w = f.getlength(t) + 40
+    d.rectangle(((W - w) / 2, y0, (W + w) / 2, y0 + 56), fill=(40, 34, 20, 220)); d.text(((W - f.getlength(t)) / 2, y0 + 9), t, font=f, fill=(255, 226, 150, 255))
+    tu = c["ten"].upper().split(); dau, cuoi = (" ".join(tu[:1]), " ".join(tu[1:])) if len(tu) > 2 else ((tu[0], " ".join(tu[1:])) if len(tu) == 2 else ("", tu[0]))
+    y = int(max(H * 0.62, min(H * 0.70, c["mat_day"] + 40)))
+    if dau:
+        gian = " ".join(dau); f1 = ph("didot", 54); d.text(((W - f1.getlength(gian)) / 2, y), gian, font=f1, fill=(245, 245, 245, 255)); y += 74
+    f2, dong = vua(cuoi, "impact", int((W - 120) / 0.84), 190, 2); m, hop = mat_chu(dong, f2, y, 0.98)
+    l2 = Image.new("RGBA", (W, H)); bong(l2, m, (6, 10), 12, 220); vien(l2, m, 5, (60, 34, 4)); to(l2, m, doc_trong((255, 244, 190), (236, 176, 50), (150, 90, 12), hop)); sang_khoi(l2, m)
+    lop.alpha_composite(_ep_ngang(l2, 0.84)); return None, lop
+def dt_vang_do_script(c):
+    """tên phim HAI MÀU: 'The' nhỏ vàng nghiêng · thân tên chữ có chân VÀNG nổi khối · phần cuối chữ viết tay ĐỎ đè lên (kiểu The Godmother's New Heir, 9 QC đang chạy)"""
+    lop = Image.new("RGBA", (W, H)); tu = c["ten"].split(); mo = tu[0] if tu[0].lower() in ("the", "a", "my", "el", "la") and len(tu) > 2 else ""
+    than = tu[1:] if mo else tu; cat = max(1, len(than) // 2); vang, do_ = " ".join(than[:-cat] or than[:1]), " ".join(than[-cat:]) if len(than) > 1 else ""
+    y = int(max(H * 0.56, min(H * 0.70, c["mat_day"] + 20)))
+    if mo:
+        f0 = ph("georgia_bi", 60); m0, _ = mat_chu([mo], f0, y, 1.0); bong(lop, m0); to(lop, m0, (240, 200, 110)); y += 70
+    f1, d1 = vua(vang.upper(), "didot_b", W - 100, 150, 2); m1, h1 = mat_chu(d1, f1, y, 0.95)
+    bong(lop, m1, (6, 10), 12, 220); vien(lop, m1, 5, (70, 40, 6)); to(lop, m1, doc_trong((255, 240, 180), (226, 166, 44), (150, 92, 14), h1)); sang_khoi(lop, m1)
+    if do_:
+        f2, d2 = vua(do_, "snell", W - 160, 150, 2); m2, h2 = mat_chu(d2, f2, h1[3] - 30, 1.0)
+        bong(lop, m2, (5, 8), 10, 220); vien(lop, m2, 3, (60, 0, 6)); to(lop, m2, doc_trong((255, 80, 80), (214, 18, 30), (130, 6, 14), h2))
+    return None, lop
+def dt_full_series_free(c):
+    """tên phim hai tầng (từ cuối đỏ) + dòng 'FULL SERIES - FREE' trắng đậm bên dưới (kiểu Undercover Prison King)"""
+    lop, day = _ten_hai_tang(c, c["mat_day"] + 40); f = ph("arial_black", 58); t = "FULL SERIES - FREE" if c["lang"] != "es" else "SERIE COMPLETA - GRATIS"
+    m, _ = mat_chu([t], f, day + 22, 1.0); bong(lop, m); vien(lop, m, 3, (0, 0, 0)); to(lop, m, (255, 255, 255)); return None, lop
+def dt_ten_tren_nut_duoi(c):
+    """vương miện nhỏ + tên phim chữ có chân VÀNG nổi khối ở TRÊN (dưới vùng che), nhân vật giữa khung, nút tối viền vàng 'WATCH NOW!' ở DƯỚI (kiểu Undercover Prison King, 10 ngày)"""
+    lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop); y = int(H * TREN_AN); cx = W // 2
+    d.polygon([(cx - 46, y + 40), (cx - 46, y + 6), (cx - 23, y + 24), (cx, y), (cx + 23, y + 24), (cx + 46, y + 6), (cx + 46, y + 40)], fill=(236, 186, 70, 255))
+    f, dong = vua(c["ten"].upper(), "copper", W - 120, 120, 3); m, hop = mat_chu(dong, f, y + 60, 1.0)
+    bong(lop, m, (5, 8), 10, 220); vien(lop, m, 5, (70, 40, 6)); to(lop, m, doc_trong((255, 244, 196), (232, 176, 60), (160, 96, 18), hop)); sang_khoi(lop, m)
+    nut(lop, "WATCH NOW!" if c["lang"] != "es" else "¡VER AHORA!", int(H * 0.74), ph("georgia_bi", 64), (40, 24, 10), (255, 236, 190), (214, 160, 50), (70, 18)); return None, lop
+
 HAM = {k: v for k, v in globals().items() if k.startswith("dt_") and callable(v)}
-CAN_CAU = {"dt_key_art_neon", "dt_cau_nhu_dinh", "dt_khung_player", "dt_logo_goc"}   # mẫu có câu nhử (AI viết)
+CAN_CAU = {"dt_key_art_neon", "dt_cau_nhu_dinh", "dt_khung_player", "dt_logo_goc"}
+CAN_KHUNG2 = {"dt_key_art_neon", "dt_discover_banner"}   # mẫu cần khung phụ (khung xếp hạng kế)   # mẫu có câu nhử (AI viết)
 
 def ngu_canh(cid, tm_rieng=None):
     p = AT.phim([cid])[0]; lang = "es" if str(p.get("locale")).startswith("es") else "en"; ten = ten_chu(p)
@@ -333,7 +434,7 @@ def mot(ma, cid, xem=False, ban=1):
             try: nen, _ = AT.anh(cid, ten, k, tm, 100 + b)
             finally: AT.CO_FREE = cu
             goc = os.path.join(tm, f"goc-{100 + b}.png"); khac = [os.path.join(tm, f"goc-{200 + b}.png")]
-            if ma == "dt_key_art_neon" and len(uv) > 1:   # nhân vật thứ hai từ khung xếp hạng kế
+            if ma in CAN_KHUNG2 and len(uv) > 1:   # nhân vật thứ hai từ khung xếp hạng kế
                 k2 = uv[(b + 1) % len(uv)]; AT.sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k2["tap"] + ".mp4"), "-vf", f"{AT.LOC},select=eq(n\\,{k2['so'] - 1})", "-frames:v", "1", khac[0])
             c = {"ma": ma, "cid": cid, "p": p, "lang": lang, "ten": ten, "tm": tm, "nen": nen, "goc": goc, "goc_khac": [x for x in khac if os.path.exists(x)],
                  "mat_day": (k["mat"][1] + k["mat"][3]) * H, "mat_tam": k["mat"][1] + k["mat"][3] / 2, "cau": cau, "nhan": nhan}
@@ -377,8 +478,8 @@ def bang_xem(cid):
     for ma in HAM:
         try: anh += [(ma, f) for f in mot(ma, cid, xem=True)]
         except Exception as e: print("✗", ma, e, file=sys.stderr)
-    tm = ngu_canh(cid)[3]; o = 360; ra = Image.new("RGB", (o * 6, int(o * 16 / 9 + 40) * 2), (20, 20, 20)); d = ImageDraw.Draw(ra); f = ph("arial_b", 20)
-    for i, (ma, fp) in enumerate(anh[:12]):
+    tm = ngu_canh(cid)[3]; o = 360; ra = Image.new("RGB", (o * 6, int(o * 16 / 9 + 40) * 4), (20, 20, 20)); d = ImageDraw.Draw(ra); f = ph("arial_b", 20)
+    for i, (ma, fp) in enumerate(anh[:24]):
         im = Image.open(fp).convert("RGB").resize((o, int(o * 16 / 9))); x, y = (i % 6) * o, (i // 6) * (int(o * 16 / 9) + 40); ra.paste(im, (x, y)); d.text((x + 8, y + int(o * 16 / 9) + 8), ma, font=f, fill=(255, 255, 255))
     out = os.path.join(tm, "bang-mau.jpg"); ra.save(out, quality=85); print(out)
 

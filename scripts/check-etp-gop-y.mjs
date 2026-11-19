@@ -17,6 +17,7 @@
  * `--tu-kiem` phá thử từng điều kiện (bỏ chuỗi / nhân đôi / chèn dạng cũ) — phải đỏ hết.
  */
 import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 
 // danh sách điều kiện nằm trong app etp (apps/etp/gop-y-luat.mjs, anh 10/11/2026) — tệp này chỉ còn máy chấm
 import { LUAT as TAT_CA, V } from '../apps/etp/gop-y-luat.mjs';
@@ -63,6 +64,10 @@ if (!CHI_CTY) {   // hai sổ dưới nằm trong web / studio — chỉ monorep
   for (const k of Object.keys(so.widget)) if (!ve.has(k)) loi.push(`  #chat sổ widget: ${k} chưa có hàm vẽ (ve của <Tong2> trong etp-view.tsx hoặc useVeSo trong etp-tong2-widget.tsx)`);
   for (const k of ve) if (!so.widget[k]) loi.push(`  #chat sổ widget: hàm vẽ ${k} không có trong apps/web/src/lib/etp-widget.json`);
   for (const [t, x] of Object.entries(so.template)) for (const o of x.o) if (!so.widget[o.ma]) loi.push(`  #chat template ${t} dùng widget ngoài sổ: ${o.ma}`); }
+// LƯỚI XUNG ĐỘT LUẬT TĂNG (việc #125 phần C, anh 19/11/2026): ma trận 180 ô máy luật / cổng / etp2 (+ worker khi có /opt/cty) — chạy mỗi lần máy chấm này chạy (GHA Kiểm tĩnh mỗi lần đẩy, deploy.sh)
+{ const r = spawnSync('python3', ['apps/etp/kiem-xung-dot-luat.py'], { encoding: 'utf8', timeout: 180_000 });
+  process.stdout.write(r.stdout || '');
+  if (r.status !== 0) loi.push(`  #ra-xung-dot-luat-1911 lưới xung đột luật tăng đỏ:\n${(r.stdout || '').split('\n').filter((x) => x.startsWith('ĐỎ')).slice(0, 12).map((x) => `    ${x}`).join('\n')}\n    ${(r.stderr || r.error?.message || '').trim().slice(-400)}`); }
 }
 for (const l of LUAT) { const e = sai(l, readFileSync(l.tep, 'utf8')); if (e) loi.push(`  #${l.card || 'chat'} ${l.vi} — ${e}`); }
 if (loi.length) {

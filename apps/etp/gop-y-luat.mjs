@@ -1483,4 +1483,10 @@ export const LUAT = [
   { card: 'xung-dot-luat-b2-2011', tep: 'apps/etp2/src/lib/etp-bang-luat.json', cam: '"giam_som":', vi: 'sổ luật etp2 không còn Giảm sớm' },
   { card: 'xung-dot-luat-b2-2011', tep: 'apps/web/src/lib/etp-bang-luat.json', cam: '"gan_t7":', vi: 'sổ luật web (máy luật đọc) không còn Gần T7' },
   { card: 'xung-dot-luat-b2-2011', tep: 'apps/web/src/lib/etp-bang-luat.json', cam: '"giam_ngay":', vi: 'sổ luật web không còn Giảm trong ngày' },
+  // LƯỚI XUNG ĐỘT LUẬT TĂNG (việc #125 phần C, anh 19/11/2026): ma trận 180 ô máy luật / cổng / worker / etp2 chạy mỗi lần deploy, đỏ thì không lên
+  { card: 'ra-xung-dot-luat-1911', tep: 'scripts/check-etp-gop-y.mjs', co: "spawnSync('python3', ['apps/etp/kiem-xung-dot-luat.py']", vi: 'máy chấm góp ý (GHA Kiểm tĩnh + deploy.sh) chạy lưới xung đột luật tăng, đỏ thì dừng' },
+  { card: 'ra-xung-dot-luat-1911', tep: 'apps/etp/kiem-xung-dot-luat.py', co: 'NT.tn_roi = lambda chi, ns: NT.TN["roi"]', vi: 'lưới tự phá thử một ngưỡng mỗi lượt, không đỏ = lưới mù' },
+  { card: 'ra-xung-dot-luat-1911', tep: 'apps/etp/kiem-xung-dot-luat.py', co: 'w_tang = vao_ds and (k == "tang" or (k == "sang" and dat))', vi: 'mô hình vòng tăng của worker trong lưới' },
+  { card: 'ra-xung-dot-luat-1911', tep: 'apps/cty/worker/ethopex.mjs', co: "const napDuoc = (m) => khungDoi === 'sang' && m.qua_cong === true;", vi: 'worker nạp sáng chỉ theo cờ qua_cong của máy luật (cùng mô hình của lưới)' },
+  { card: 'ra-xung-dot-luat-1911', tep: 'apps/cty/worker/ethopex.mjs', co: "(!(ab || khungDoi === 'tang' || napDuoc(m)) && hoan('tang', m))", vi: 'worker vòng tăng: khung tăng hoặc nạp sáng, còn lại ghi sổ hoãn (cùng mô hình của lưới)' },
 ];

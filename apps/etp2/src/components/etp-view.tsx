@@ -2728,7 +2728,9 @@ function TuoiSo({ dongBo, trong }: { dongBo: DuLieuEtp['dongBo']; trong?: boolea
   const nhanh = giay == null || giay < 120;
   useEffect(() => { if (!Number.isFinite(xong)) return; setBay(Date.now());
     const t = nhip(() => setBay(Date.now()), nhanh ? 1_000 : 30_000); return () => t(); }, [xong, nhanh]);
-  return <span title={trong ? undefined : chuDongBo(dongBo)} style={{ alignSelf: 'center', fontSize: 11, color: 'var(--fg-2)', cursor: trong ? undefined : 'help', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{giay == null ? '—' : tuoiSo(giay)}</span>;
+  // chữ rê nói thẳng nghĩa của con số (#1586 ý "thì hiểu là 3s trước, 1h trước"): "9m = số liệu kéo về 9m trước" — cả khi nằm trong nút làm mới
+  const nghia = giay == null ? 'chưa biết lượt đồng bộ cuối' : `${tuoiSo(giay)} = số liệu kéo về ${tuoiSo(giay)} trước`;
+  return <span title={`${nghia}\n${trong ? 'bấm để kéo số mới từ Ethopex ngay (máy tự kéo 10 phút/lần)\n' : ''}${chuDongBo(dongBo)}`} style={{ alignSelf: 'center', fontSize: 11, color: 'var(--fg-2)', cursor: trong ? undefined : 'help', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{giay == null ? '—' : tuoiSo(giay)}</span>;
 }
 /** #1599 anh 15/11/2026 "Thêm 1 icon làm mới bên cạnh 9m. Bấm vào đó hoặc số 9m cũng đều làm mới cho gọn": tuổi số + ↻ là MỘT nút không viền —
  *  bỏ nút có chữ "Làm mới" riêng; đang kéo thì ↻ xoay, chữ rê nói đang chờ */

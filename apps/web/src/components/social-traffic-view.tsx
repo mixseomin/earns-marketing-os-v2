@@ -63,7 +63,7 @@ const GAC_LIVE = 'LIVE chưa nối ghi thật: tạo lô sẽ gửi việc sang 
 const LO_HIEN = 12;
 
 /** Tab 🏙 Thành phố: lấy mô hình dựng sẵn từ /api/social/thanh-pho khi mở tab (số thô hệ sinh thái không còn nằm trong trang — 25/10/2026). */
-function ThanhPhoTai() {
+export function ThanhPhoTai() {
   const [ban, setBan] = useState<{ luc: string; mh: Parameters<typeof SocialThanhPho>[0]['mh'] } | null>(null), [loi, setLoi] = useState('');
   useEffect(() => { let song = true; fetch('/api/social/thanh-pho', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))).then((x) => song && setBan(x)).catch((e: Error) => song && setLoi(e.message)); return () => { song = false; }; }, []);
   if (loi) return <div style={{ padding: 16, color: 'var(--bad)' }}>Không tải được thành phố: {loi}</div>;

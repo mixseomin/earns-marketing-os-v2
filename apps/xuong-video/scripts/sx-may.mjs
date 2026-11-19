@@ -75,43 +75,55 @@ ORDER BY dang_tu;`);
 // Gốc 12/11/2026: kho video của các máy social chỉ được lấp khi có người tạo tin xin duyệt chi → 7 máy cạn kho, máy đăng ghi "Hết video đã dựng
 // chưa đăng" trên mọi nền mà không ai được báo. Giờ mỗi lượt --het tự đếm và lấp, cộng dồn tiền dưới trần của sổ.
 const KHO = SO._kho ?? null;
-/** Số cần sinh cho một máy: còn (DUYỆT chưa đăng nền nào + đang chờ chấm) < con_it_nhat → bù cho đủ len_toi; đủ thì 0. */
-const canSinh = (con, k = KHO) => (con < k.con_it_nhat ? Math.max(0, k.len_toi - con) : 0);
 /** Máy lấp kho bằng lệnh riêng (sổ _kho.rieng, vd Front Porch --sinh-game 0₫) — không có thì --sinh-kho với giá vnd_de chung. */
 const rieng = (may, k = KHO) => ({ lenh: '--sinh-kho', vnd_de: k.vnd_de, ...(k.rieng?.[may] ?? {}) });
-/** Chia lượt theo trần tiền: lấy máy theo thứ tự còn ít nhất trước, dừng khi ước cộng dồn chạm trần. */
-function keHoachKho(ton, k = KHO) {
+// SỐ THIẾU = MỘT NGUỒN (anh 19/11/2026 "Thiếu thì sx chứ sao nữa" + "chỉ sx trước vài bài so với ngày lên lịch, không sx hàng loạt"):
+// trước đây máy tự đếm ba kiểu — gộp mọi nền rồi bù lên len_toi 6 (astrolas còn 9 bài Substack nên Facebook:632 trống mà máy coi là đủ), nền link / poll
+// bù cho đủ 7 ngày, còn Phòng Nội dung đếm từng nền 2 ngày và giao Khang (Khang chạm trần token → kho trống cả ngày). Nay chỉ đọc cty cham-dang.mjs --thieu
+// (từng nền, đủ 2 ngày đăng theo trần nền) và làm ĐÚNG số đó. Loại nền đọc sổ nền đăng chung nen-dang.json.
+const NEN_LOAI = Object.fromEntries(Object.entries(JSON.parse(readFileSync(path.join(D, '..', 'nen-dang.json'), 'utf8')).nen).map(([k, v]) => [k, v.loai]));
+const loaiNen = (nen) => NEN_LOAI[String(nen).split(':')[0]] ?? 'video';
+const DANG_LOAI = { link: 'bai-link', poll: 'binh-chon' };   // --sinh-kho --dang cho nền link / poll
+/** Kế hoạch lấp kho. Thuần: rows = [{ma, nen, thieu}] của Phòng Nội dung. Máy trong sổ _kho: video → --sinh-kho (hoặc lệnh `rieng`), link / poll →
+ *  --sinh-kho --dang, bài viết → sinh-bai.mjs; MỘT bộ cho mọi nền cùng loại nên n = nền thiếu nhiều nhất trong loại (không cộng). Ảnh, và mọi nền
+ *  (trừ bài viết) của máy ngoài sổ không thuộc duong_rieng (vd AngleBrief) → ô kế hoạch (--sinh-de --nen). Máy thiếu nhiều trước; trần tiền cắt phần sau. */
+function keHoachKho(rows, k = KHO, may = null) {
+  const g = new Map();
+  for (const r of rows) {
+    if ((may && r.ma !== may) || !/^[a-z0-9-]+$/.test(r.ma) || !/^[a-z0-9_:]+$/.test(r.nen) || (k.duong_rieng ?? []).includes(r.ma)) continue;
+    const l = loaiNen(r.nen), trong = k.may.includes(r.ma);
+    // link / poll: --sinh-kho --dang cho MỌI máy (ô kế hoạch bai-link chưa có mẫu sinh đề — AngleBrief 19/11); ảnh + video của máy ngoài sổ: ô kế hoạch
+    const loai = l === 'link' || l === 'poll' ? (rieng(r.ma, k).lenh === '--sinh-kho' ? l : null) : l === 'anh' || (!trong && l !== 'bai') ? 'o' : !trong ? null : l === 'bai' ? 'bai' : 'video';
+    if (!loai) continue;
+    const kh = `${r.ma}|${loai}`, x = g.get(kh) ?? { may: r.ma, loai, n: 0, nen: [] }; x.n = Math.max(x.n, r.thieu); x.nen.push(r.nen); g.set(kh, x);
+  }
   const ra = []; let uoc = 0;
-  for (const [may, con] of [...ton.entries()].sort((a, b) => a[1] - b[1])) {
-    let n = canSinh(con, k); if (!n) continue;
-    const gia = rieng(may, k).vnd_de;
+  for (const x of [...g.values()].sort((a, b) => b.n - a.n)) {
+    const gia = giaMot(x, k); let n = x.n;
     if (gia > 0) n = Math.min(n, Math.floor((k.tran_vnd_luot - uoc) / gia)); if (n <= 0) continue;
-    ra.push({ may, con, n }); uoc += n * gia;
+    ra.push({ ...x, n, ...(DANG_LOAI[x.loai] ? { dang: DANG_LOAI[x.loai] } : {}) }); uoc += n * gia;
   }
   return ra;
 }
-function tonKho(may) {
-  const ds = may ? KHO.may.filter((m) => m === may) : KHO.may;
-  if (!ds.length) return new Map();
-  const r = psql(`SELECT m.ma||E'\\t'||count(v.id) FILTER (WHERE NOT coalesce(v.luu_tru,false) AND v.da_dang='{}'::jsonb AND (v.cham->>'ket'='DUYET' OR (v.cham IS NULL AND v.video_url IS NOT NULL)))
-FROM xv_may m LEFT JOIN xv_may_video v ON v.may_id=m.id WHERE m.chay AND m.ma IN (${ds.map(q).join(',')}) GROUP BY m.ma;`);
-  return new Map(r.split('\n').filter(Boolean).map((d) => { const [m, n] = d.split('\t'); return [m, Number(n)]; }));
+const giaMot = (x, k = KHO) => (x.loai === 'bai' ? k.vnd_bai : x.loai === 'o' ? k.vnd_de : rieng(x.may, k).vnd_de);
+const giaKho = (x, k = KHO) => x.n * giaMot(x, k);
+/** Số thiếu từng nền — của Phòng Nội dung trên box3 (cty /opt/cty), không tự đếm lại ở đây. */
+function thieuKho() {
+  return JSON.parse(execFileSync('ssh', [BOX, 'cd /opt/cty && set -a; . /opt/earns-marketing-os-v2/.env.production; set +a; CTY_DATA_DIR=/var/lib/cty node worker/cham-dang.mjs --thieu'], { encoding: 'utf8', timeout: 120_000 }).trim().split('\n').pop());
 }
-// KHO BÀI LINK (18/11/2026, ratesbyroom fb_link 0 bài): tonKho đếm bài DUYỆT chưa đăng NỀN NÀO — máy nhiều video thì luôn "đủ", trong khi nền fb_link / x_link
-// chỉ lấy bài dang.loai='link' và cả lô bài link nạp tay đã bị cất 31/10 (thiếu dang.hook) → nền link cạn mà không lượt nào lấp. Đếm riêng từng nền link của máy
-// (bài link DUYỆT chưa đăng ĐÚNG nền đó), lấy nền cạn nhất; dưới `link_du` (mặc định 7 = trần 1/ngày × 7 ngày) thì --sinh-kho --dang bai-link bù cho đủ.
-const LINK_DU = () => KHO?.link_du ?? 7;
-const canSinhLink = (con, du = LINK_DU()) => (con < du ? du - con : 0);
-// KHO BÀI BÌNH CHỌN (18/11/2026, ratesbyroom x_poll 0 bài): cùng luật với nền link — nền x_poll chỉ lấy bài dang.loai='poll', lấp bằng --dang binh-chon.
-const NEN_KHO_RIENG = [{ nen: '^(fb|x)_link', loai: 'link', dang: 'bai-link' }, { nen: '^x_poll', loai: 'poll', dang: 'binh-chon' }];
-function tonKhoLink(may, nenRe = NEN_KHO_RIENG[0].nen, loai = NEN_KHO_RIENG[0].loai) {
-  const ds = may ? KHO.may.filter((m) => m === may) : KHO.may;
-  if (!ds.length) return new Map();
-  const r = psql(`SELECT m.ma||E'\\t'||min((SELECT count(*) FROM xv_may_video v WHERE v.may_id=m.id AND NOT coalesce(v.luu_tru,false) AND v.dang->>'loai'=${q(loai)}
-  AND (v.cham->>'ket'='DUYET' OR v.cham IS NULL) AND NOT coalesce(v.da_dang ? split_part(n->>'nen',':',1), false)))
-FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE m.chay AND m.ma IN (${ds.map(q).join(',')}) AND n->>'nen' ~ ${q(nenRe)} GROUP BY m.ma;`);
-  return new Map(r.split('\n').filter(Boolean).map((d) => { const [m, n] = d.split('\t'); return [m, Number(n)]; }));
+/** Bài viết (Quora / Substack / Medium): máy viết puzzle-books sinh-bai.mjs chạy ngay ở iMac — Phòng Nội dung tự chấm, máy đăng tự lấy. */
+function sinhBai(may, n) {
+  return docTongBai(execFileSync(process.execPath, ['/Users/htuan/puzzle-books/scripts/sinh-bai.mjs', '--may', may, '--so', String(Number(n))], { encoding: 'utf8', timeout: 1_800_000, stdio: ['ignore', 'pipe', 'pipe'] }));
 }
+const docTongBai = (ra) => { const ok = ra.split('\n').filter((l) => /^✓ /.test(l)), vnd = [...ra.matchAll(/(\d+)₫\)/g)].reduce((t, m) => t + Number(m[1]), 0);
+  return { so: ok.length, vnd, ...(ok.length ? {} : { loi: ra.split('\n').filter((l) => /^✗ /.test(l)).slice(-3).join(' · ').slice(0, 280) || ra.trim().split('\n').slice(-2).join(' · ').slice(0, 200) }) }; };
+/** Ô kế hoạch → bài: --sinh-de một ngày trên box3 cho đúng các nền thiếu (trước 19/11 --sinh-de không lịch nào gọi — AngleBrief có ô mà không có bài). */
+function sinhO(may, ngayD, nen, n) {
+  const ra = execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/may-dung.mts --may ${shq(may)} --sinh-de ${ngayD} --va-xuat --nen ${shq(nen.join(','))} --toi-da ${Number(n)} 2>&1`], { encoding: 'utf8', timeout: 1_800_000 });
+  const t = /sinh đề [^:]+: (\d+) lượt mô hình, ([\d.,]+)₫/.exec(ra);
+  return { so: ra.split('\n').filter((l) => /^✓ /.test(l)).length, vnd: t ? Number(t[2].replace(/[.,]/g, '')) : 0, ghi: ra.split('\n').filter((l) => /^[✓✗·] /.test(l)).slice(-4).join(' · ').slice(0, 300), loi: t ? null : ra.trim().split('\n').slice(-2).join(' · ').slice(0, 200) };
+}
+const ngayVN = (them = 0) => new Date(Date.now() + 7 * 3600e3 + them * 864e5).toISOString().slice(0, 10);
 /** Chạy --sinh-kho trên box3 (dựng Cloudflare; sinhJson tự gác ngưỡng tiền), trả số đề + tiền thật đọc từ dòng tổng của lệnh. */
 function sinhKho(may, n, dang = null) {
   const ra = execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/may-dung.mts --may ${shq(may)} ${rieng(may).lenh} ${Number(n)}${dang ? ` --dang ${shq(dang)}` : ''} 2>&1`], { encoding: 'utf8', timeout: 1_800_000 });
@@ -203,22 +215,30 @@ const main = async () => {
     // chữ persona: đúng 3 bài Mia bị chặn 11/11 (tiêu đề + chữ đăng > 300, "limited time") phải bị chặn trước khi dựng; chữ ngắn sạch thì qua
     a.ok(loiChuPersona('his family made her sign a paper before the wedding', 'his family made her sign a paper before the wedding saying she would leave with nothing. she signed it in front of everyone. what none of them checked was whose name was already on the building. it is free to watch for a limited time, i put it in the comments').length === 2, 'bài Mia 15/11 phải dính cả trần lẫn limited time');
     a.equal(loiChuPersona('they kicked the man sleeping behind the restaurant', 'one phone call later he owns the place.').length, 0);
-    // LẤP KHO: còn đủ thì không sinh; cạn thì bù tới len_toi; trần tiền chặn tổng ước của cả lượt; đọc đúng dòng tổng của --sinh-kho
-    const K = { con_it_nhat: 3, len_toi: 6, vnd_de: 45, tran_vnd_luot: 400 };
-    a.equal(canSinh(3, K), 0); a.equal(canSinh(0, K), 6); a.equal(canSinh(2, K), 4);
-    const kh = keHoachKho(new Map([['a', 5], ['b', 0], ['c', 2], ['d', 4]]), K);
-    a.deepEqual(kh.map((x) => [x.may, x.n]), [['b', 6], ['c', 2]], 'máy cạn nhất trước, phần sau bị cắt theo trần 400₫');
-    a.ok(kh.reduce((t, x) => t + x.n * K.vnd_de, 0) <= K.tran_vnd_luot, 'tổng ước không vượt trần');
+    // LẤP KHO theo số thiếu Phòng Nội dung: nhóm theo loại nền, n = nền thiếu nhiều nhất của loại (không cộng), máy thiếu nhiều trước, trần tiền cắt phần sau
+    const K = { may: ['a', 'b', 'c'], duong_rieng: ['y'], vnd_de: 45, vnd_bai: 60, tran_vnd_luot: 400 };
+    const R = [{ ma: 'b', nen: 'facebook:632', thieu: 2 }, { ma: 'b', nen: 'youtube', thieu: 1 }, { ma: 'b', nen: 'quora', thieu: 1 }, { ma: 'b', nen: 'fb_link', thieu: 2 },
+      { ma: 'a', nen: 'youtube', thieu: 6 }, { ma: 'y', nen: 'youtube', thieu: 2 }, { ma: 'z', nen: 'fb_anh', thieu: 1 }, { ma: 'z', nen: 'fb_link', thieu: 2 }, { ma: 'z', nen: 'quora', thieu: 3 }];
+    const kh = keHoachKho(R, K);
+    a.deepEqual(kh.map((x) => [x.may, x.loai, x.n]), [['a', 'video', 6], ['b', 'video', 2]], 'máy thiếu nhiều trước; b video = max(2,1); phần sau bị trần 400₫ cắt');
+    a.ok(kh.reduce((t, x) => t + giaKho(x, K), 0) <= K.tran_vnd_luot, 'tổng ước không vượt trần');
+    const kh2 = keHoachKho(R, { ...K, tran_vnd_luot: 4000 });
+    a.deepEqual(kh2.filter((x) => x.may === 'b').map((x) => [x.loai, x.n, x.dang ?? '']), [['video', 2, ''], ['link', 2, 'bai-link'], ['bai', 1, '']], 'máy trong sổ: video + link (--dang bai-link) + bài viết');
+    a.deepEqual(kh2.filter((x) => x.may === 'z').map((x) => [x.loai, x.nen.join(','), x.n]), [['link', 'fb_link', 2], ['o', 'fb_anh', 1]], 'máy ngoài sổ: link qua --sinh-kho --dang, ảnh qua ô kế hoạch, bài viết bỏ');
+    a.ok(!kh2.some((x) => x.may === 'y'), 'máy đi đường riêng (kênh lịch sử, Mia) không sinh');
+    a.equal(keHoachKho([], K).length, 0, 'không thiếu thì không làm gì');
+    a.deepEqual(docTongBai('✓ quora-1 (m, 33₫) → x\n✗ viết bài góc #2: lỗi (0₫)\n✓ quora-3 (m, 30₫) → y'), { so: 2, vnd: 63 });
+    a.ok(docTongBai('✗ viết bài góc #2: hết câu hỏi (0₫)').loi.includes('hết câu hỏi'), '0 bài phải kèm lý do');
+    a.ok(KHO.duong_rieng.includes('yesterdays-news-tonight') && KHO.duong_rieng.includes('mia-calloway'), 'sổ: kênh lịch sử + Mia đi đường riêng');
     a.ok(KHO && KHO.tran_vnd_luot < 5000 && KHO.may.length && !KHO.may.includes('mia-calloway'), 'sổ _kho: trần dưới ngưỡng tự chạy 5.000₫, Mia đi đường lịch bài');
     a.deepEqual(docTongKho('✓ #1 top-n → x (26₫)\nsinh kho militarycalc: 5/6 đề, 1.150₫'), { so: 5, xin: 6, vnd: 1150 });
     a.ok(docTongKho('✗ #9 top-n: hook trùng\n· hết hook QC chưa dùng (3 hook đều đã có bài chờ đăng) — dừng lượt\nsinh kho r: 0/6 đề, 0₫').loi.includes('hết hook'), '0 đề phải kèm lý do');
     // máy lấp bằng lệnh riêng 0₫ (Front Porch --sinh-game): trần tiền đã chạm vẫn lấp được; đọc đúng dòng tổng của --sinh-game
-    const K2 = { ...K, rieng: { g: { lenh: '--sinh-game', vnd_de: 0 } } };
-    a.deepEqual(keHoachKho(new Map([['b', 0], ['c', 0], ['g', 1]]), K2).map((x) => [x.may, x.n]), [['b', 6], ['c', 2], ['g', 5]], 'máy 0₫ không bị trần cắt');
+    const K2 = { ...K, may: ['a', 'g'], rieng: { g: { lenh: '--sinh-game', vnd_de: 0 } } };
+    a.deepEqual(keHoachKho([{ ma: 'a', nen: 'youtube', thieu: 9 }, { ma: 'g', nen: 'youtube', thieu: 3 }, { ma: 'g', nen: 'fb_link', thieu: 2 }], K2).map((x) => [x.may, x.loai, x.n]), [['a', 'video', 8], ['g', 'video', 3]], 'máy 0₫ không bị trần cắt; máy lệnh riêng không lấp link bằng --sinh-kho');
     a.equal(rieng('g', K2).lenh, '--sinh-game'); a.equal(rieng('b', K2).lenh, '--sinh-kho');
     a.deepEqual(docTongKho('✓ game-1-apple\nsinh game front-porch-only-one: 4/5 video, 0₫'), { so: 4, xin: 5, vnd: 0 });
     a.ok(KHO.may.includes('front-porch-only-one') && rieng('front-porch-only-one').lenh === '--sinh-game', 'sổ: Front Porch lấp kho bằng --sinh-game');
-    a.equal(canSinhLink(0, 7), 7); a.equal(canSinhLink(7, 7), 0); a.equal(canSinhLink(5, 7), 2);   // kho bài link: bù cho đủ 7 ngày
     a.equal(docTongKho('Error: mẫu lạ van-khan-ngoai').so, 0); a.ok(docTongKho('Error: mẫu lạ van-khan-ngoai').loi.includes('mẫu lạ'), 'lệnh hỏng không có dòng tổng → báo lỗi, không coi là xong');
     console.log(`sx-may: ${dang.length} dạng bài, sổ ↔ bảng hàm khớp · ${dang.length * 3 + 17}/${dang.length * 3 + 17} ok`);
     return;
@@ -230,15 +250,13 @@ const main = async () => {
   if (slug) ds = ds.filter((x) => x.slug === slug);
   if (!ds.length) console.log(`không có bài nào thiếu tệp tới hạn trong ${ngay} ngày`);
   // kho chỉ lấp ở lượt máy (--het / --may), không ở --slug (dựng đúng một bài)
-  const kho = KHO && !slug ? keHoachKho(tonKho(may)) : [];
-  // kho bài link theo từng nền link (tonKhoLink) — đi sau kho video, cùng trần tiền cả lượt
-  if (KHO && !slug) for (const r of NEN_KHO_RIENG) for (const [m, con] of tonKhoLink(may, r.nen, r.loai)) { const n = canSinhLink(con); if (n && rieng(m).lenh === '--sinh-kho') kho.push({ may: m, con, n, dang: r.dang }); }
+  const kho = KHO && !slug ? keHoachKho(thieuKho(), KHO, may) : [];
 
   if (co('--xem')) {
     for (const b of ds) console.log(`→ ${b.dangTu} ${b.slug.padEnd(34)} ${b.nen.padEnd(9)} ${b.kieu ?? '(KHÔNG BIẾT DẠNG)'} · ${SO[b.kieu]?.vnd ?? '?'}₫ · ${b.huong || '(chưa có hướng)'}`);
     if (ds.length) console.log(`tổng ước: ${ds.reduce((t, b) => t + (SO[b.kieu]?.vnd ?? 0), 0)}₫ cho ${ds.length} bài`);
-    for (const k of kho) console.log(`→ kho ${k.may.padEnd(28)} còn ${k.con} → ${rieng(k.may).lenh} ${k.n}${k.dang ? ` --dang ${k.dang}` : ''} · ước ${k.n * rieng(k.may).vnd_de}₫`);
-    if (KHO && !slug) console.log(kho.length ? `kho: ước ${kho.reduce((t, k) => t + k.n * rieng(k.may).vnd_de, 0)}₫ (trần lượt ${KHO.tran_vnd_luot}₫)` : `kho: mọi máy còn ≥ ${KHO.con_it_nhat} bài`);
+    for (const k of kho) console.log(`→ kho ${k.may.padEnd(28)} thiếu ${k.n} ở ${k.nen.join(', ')} → ${k.loai === 'bai' ? 'sinh-bai.mjs' : k.loai === 'o' ? `--sinh-de ${ngayVN()}…${ngayVN(ngay - 1)} (ô kế hoạch)` : `${rieng(k.may).lenh} ${k.n}${k.dang ? ` --dang ${k.dang}` : ''}`} · ước ${giaKho(k)}₫`);
+    if (KHO && !slug) console.log(kho.length ? `kho: ước ${kho.reduce((t, k) => t + giaKho(k), 0)}₫ (trần lượt ${KHO.tran_vnd_luot}₫)` : 'kho: mọi nền đủ bài 2 ngày đăng');
     return;
   }
   if (!ds.length && !kho.length) return;
@@ -255,13 +273,24 @@ const main = async () => {
   if (ds.length) console.log(`dựng ${ds.length - hong}/${ds.length} bài · ${tien}₫`);
   // lấp kho: trần tính trên tiền THẬT cộng dồn cả lượt (bài lịch + kho), không phải trên ước
   for (const k of kho) {
-    if (tien + k.n * rieng(k.may).vnd_de > KHO.tran_vnd_luot) { console.log(`· kho ${k.may}: dừng — cộng dồn ${tien}₫ sắp chạm trần ${KHO.tran_vnd_luot}₫`); break; }
+    if (tien + giaKho(k) > KHO.tran_vnd_luot) { console.log(`· kho ${k.may}: dừng — cộng dồn ${tien}₫ sắp chạm trần ${KHO.tran_vnd_luot}₫`); break; }
+    if (k.loai === 'o') {   // ô kế hoạch: từng ngày trong tầm --ngay, dừng khi đủ số thiếu
+      let con = k.n;
+      for (let d = 0; d < ngay && con > 0; d++) {
+        const b = { may: k.may, slug: `ke-hoach:${k.may}:${ngayVN(d)}`, kieu: 'sinh_de', dangTu: ngayVN(d) }, id = moLuot(b);
+        try { const r = sinhO(k.may, ngayVN(d), k.nen, con); tien += r.vnd; con -= r.so;
+          if (r.loi) { hong++; dongLuot(id, b, false, { vnd: r.vnd }, `sinh đề ${k.may} ${ngayVN(d)} hỏng: ${r.loi}`); console.log(`✗ ô ${k.may} ${ngayVN(d)}: ${r.loi}`); }
+          else { dongLuot(id, b, true, { vnd: r.vnd, ghi: `+${r.so} bài · ${r.ghi}` }); console.log(`${r.so ? '✓' : '·'} ô ${k.may} ${ngayVN(d)}: +${r.so} bài · ${r.vnd}₫${r.so ? '' : ` (${r.ghi})`}`); } }
+        catch (e) { hong++; const l = `sinh đề ${k.may} ${ngayVN(d)} hỏng (mã ${e.status ?? e.signal}): ${String(e.stdout || e.message).trim().split('\n').slice(-3).join(' · ').slice(-400)}`; dongLuot(id, b, false, {}, l); console.log(`✗ ${l}`); }
+      }
+      continue;
+    }
     // một dòng sổ lượt `kho:<máy>` — tab Máy SX hiện, hỏng thì Phòng Nội dung xếp việc social:sx|<máy> cho Khang (cham-dang.mjs › xepKhang)
-    const b = { may: k.may, slug: `kho:${k.may}${k.dang ? `:${k.dang}` : ''}`, kieu: k.dang ? 'sinh_kho_link' : 'sinh_kho', dangTu: null }, id = moLuot(b);
+    const b = { may: k.may, slug: k.loai === 'bai' ? `kho:${k.may}:bai` : `kho:${k.may}${k.dang ? `:${k.dang}` : ''}`, kieu: k.loai === 'bai' ? 'sinh_bai' : k.dang ? 'sinh_kho_link' : 'sinh_kho', dangTu: null }, id = moLuot(b);
     try {
-      const r = sinhKho(k.may, k.n, k.dang ?? null); tien += r.vnd;
-      if (r.loi || !r.so) { hong++; const l = `sinh kho ${k.may} hỏng: ${r.loi ?? `0/${r.xin} đề`}`; dongLuot(id, b, false, { vnd: r.vnd }, l); console.log(`✗ ${l}`); }
-      else { const nhan = k.dang === 'binh-chon' ? ' bài bình chọn' : k.dang ? ' bài link' : '', ghi = `kho${nhan} còn ${k.con} → +${r.so}/${r.xin} đề${nhan || ' video'}`; dongLuot(id, b, true, { vnd: r.vnd, ghi }); console.log(`✓ kho ${k.may}: ${ghi} · ${r.vnd}₫`); }
+      const r = k.loai === 'bai' ? sinhBai(k.may, k.n) : sinhKho(k.may, k.n, k.dang ?? null); tien += r.vnd;
+      if (r.loi || !r.so) { hong++; const l = `sinh ${k.loai === 'bai' ? 'bài viết' : 'kho'} ${k.may} hỏng: ${r.loi ?? `0/${r.xin} đề`}`; dongLuot(id, b, false, { vnd: r.vnd }, l); console.log(`✗ ${l}`); }
+      else { const nhan = k.loai === 'bai' ? ' bài viết' : k.dang === 'binh-chon' ? ' bài bình chọn' : k.dang ? ' bài link' : '', ghi = `thiếu ${k.n} (${k.nen.join(', ')}) → +${r.so}${r.xin ? `/${r.xin}` : ''}${nhan || ' đề video'}`; dongLuot(id, b, true, { vnd: r.vnd, ghi }); console.log(`✓ kho ${k.may}: ${ghi} · ${r.vnd}₫`); }
     } catch (e) {
       // e.message dòng đầu chỉ là câu lệnh — nguyên nhân thật nằm ở mã thoát + đuôi stdout/stderr (lượt #42 14/11 mất hẳn lý do)
       const duoi = String(e.stdout || e.stderr || '').trim().split('\n').slice(-4).join(' · ');
@@ -269,7 +298,7 @@ const main = async () => {
   }
   if (kho.length) console.log(`cả lượt: ${tien}₫`);
   // nộp Phòng Nội dung chấm — máy đăng chỉ lấy bài DUYỆT
-  try { execFileSync('ssh', [BOX, 'cd /opt/cty && set -a; . /opt/earns-marketing-os-v2/.env.production; set +a; node worker/cham-dang.mjs --chay'], { encoding: 'utf8', timeout: 600_000 }); console.log('đã nộp Phòng Nội dung chấm'); }
+  try { execFileSync('ssh', [BOX, 'cd /opt/cty && set -a; . /opt/earns-marketing-os-v2/.env.production; set +a; CTY_DATA_DIR=/var/lib/cty node worker/cham-dang.mjs --chay'], { encoding: 'utf8', timeout: 600_000 }); console.log('đã nộp Phòng Nội dung chấm'); }
   catch (e) { console.log(`⚠ chưa chấm được: ${String(e.message).split('\n')[0].slice(0, 160)}`); }
 };
 main().catch((e) => { console.error(`sx-may: ${e.message}`); process.exit(1); });

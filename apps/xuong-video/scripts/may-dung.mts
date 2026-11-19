@@ -14,7 +14,7 @@
 //   --nguon                        stdin JSON { dung, tong, mo_ta? } → số của nguồn đề
 //   --ghi-du-kien                  stdin JSON { may, ds: [{ ngay, gio, may, nen, slug, title }] } → lịch dự kiến 7 ngày (tab Social › Lịch đăng)
 //   --nhat-ky                      stdin JSON { buoc, ok?, slug?, nen?, noi_dung?, url? } → một dòng nhật ký máy (màn máy hiện)
-//   --sinh-de <YYYY-MM-DD> [--va-xuat] [--toi-da N]   ô kế hoạch ngày đó chưa có bài đúng góc + dạng → sinh đề bằng chữ AI (may-de.ts) → nạp (→ dựng); TỐN TIỀN vài chục đồng / đề
+//   --sinh-de <YYYY-MM-DD> [--va-xuat] [--toi-da N] [--nen a,b]   ô kế hoạch ngày đó chưa có bài đúng góc + dạng → sinh đề bằng chữ AI (may-de.ts) → nạp (→ dựng); TỐN TIỀN vài chục đồng / đề
 //   --trang-thai                   stdin JSON { may_mac, giay, ghi?, ds: [{ ma, nen, quyet, ly_do, slug?, url? }], luot?: [@@luot…] } → trạng thái máy đăng + sổ lượt 7 bước (mos2 tab Máy Đăng)
 //   --lenh-dang                    lệnh chờ của tab Máy Đăng (thử lại…) → JSON, đánh dấu đã nhận
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
@@ -560,6 +560,8 @@ if (a.includes('--nap')) {
   const toiDa = Number(lay('--toi-da') ?? 50), m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
   const sp = await spCua(ma);
   const o = (await db.execute(sql`SELECT k.nen, k.dang, k.goc, k.dich FROM ke_hoach_goc k WHERE k.may = ${ma} AND k.ngay = ${ngay}::date AND k.dang IS NOT NULL`)) as unknown as { nen: string; dang: string; goc: { sp: number; id: number; loai: string; ten: string }; dich: string | null }[];
+  // --nen a,b: chỉ ô của các nền đang THIẾU bài (sx-may.mjs gọi theo số thiếu của Phòng Nội dung — nền còn đủ thì không sinh dư, anh 19/11/2026)
+  { const chi = lay('--nen')?.split(',').filter(Boolean); if (chi?.length) o.splice(0, o.length, ...o.filter((x) => chi.includes(x.nen))); }
   const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.dang->>'dang_bai' AS dang, v.dang->>'title' AS title FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { goc: string | null; dang: string | null; title: string | null }[];
   const daDung = daCo.map((x) => x.title ?? '').filter(Boolean);
   let vnd = 0, n = 0, kho: (Awaited<ReturnType<typeof khoGocHook>> & { xetHook: Awaited<ReturnType<typeof xetHookNhuCham>> }) | null = null; const ra: string[] = [];

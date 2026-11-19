@@ -27,10 +27,9 @@
     "mac_dinh": true
   },
   "_kho": {
-    "_ve": "LẤP KHO VIDEO (anh 12/11/2026 hỏi 'các nhóm cần sx đã đáp ứng đủ chưa' — đo ra 7 máy video social báo 'Hết video đã dựng chưa đăng' từ 00:20 12/11, lần lấp cuối 10/11 vì kho chỉ được lấp khi có người tạo tin xin duyệt chi). Mỗi lượt --het: máy trong `may` có (bài DUYỆT chưa đăng nền nào + bài đang chờ chấm) < `con_it_nhat` → may-dung.mts --sinh-kho cho đủ `len_toi`. Cộng dồn tiền cả lượt dừng trước `tran_vnd_luot` (dưới ngưỡng tự chạy 5.000₫ của luật nhà). Máy không có ở đây: mia-calloway (lịch bài persona — phần trên của máy), yesterdays-news-tonight (máy kênh lịch sử), giochap-van-khan (mẫu van-khan-ngoai chưa có trong --sinh-kho). `rieng`: máy lấp kho bằng LỆNH KHÁC --sinh-kho (anh 15/11/2026: Front Porch cạn kho từ 31/10 vì --sinh-game có sẵn mà không máy nào gọi theo lịch).",
-    "con_it_nhat": 3,
-    "len_toi": 6,
+    "_ve": "LẤP KHO (anh 19/11/2026 'Thiếu thì sx chứ sao nữa' + 'chỉ sx trước vài bài so với ngày lên lịch, không sx hàng loạt'): mỗi lượt --het đọc SỐ THIẾU từng nền của Phòng Nội dung (cty worker/cham-dang.mjs --thieu: đủ 2 ngày đăng theo trần nền) — MỘT nguồn, máy không tự đếm lại (trước đây ba kiểu đếm: gộp mọi nền bù lên 6, nền link / poll đủ 7 ngày, Phòng Nội dung 2 ngày). Máy trong `may`: video thiếu → may-dung.mts --sinh-kho (hoặc lệnh `rieng`), link / poll → --sinh-kho --dang bai-link / binh-chon, bài viết (Quora / Substack / Medium) → puzzle-books sinh-bai.mjs ở iMac (giá ước `vnd_bai`); n = nền thiếu nhiều nhất trong loại (một bộ dùng cho mọi nền cùng loại). Nền ảnh, và mọi nền (trừ bài viết) của máy ngoài `may` (vd anglebrief) → sinh từ ô kế hoạch (may-dung.mts --sinh-de --nen). `duong_rieng`: máy có máy làm bài riêng theo lịch đã duyệt (Mia lịch bài persona, kênh lịch sử YNT, giochap mẫu van-khan-ngoai) — Máy SX không sinh cho các máy này. Máy trong `may` Phòng Nội dung không xếp việc kho| cho Khang. Cộng dồn tiền cả lượt dừng trước `tran_vnd_luot` (dưới ngưỡng tự chạy 5.000₫). `rieng`: máy lấp kho bằng LỆNH KHÁC --sinh-kho (anh 15/11/2026: Front Porch --sinh-game).",
     "vnd_de": 45,
+    "vnd_bai": 60,
     "tran_vnd_luot": 4000,
     "may": [
       "militarycalc",
@@ -41,6 +40,11 @@
       "saidly",
       "sidecue",
       "front-porch-only-one"
+    ],
+    "duong_rieng": [
+      "mia-calloway",
+      "yesterdays-news-tonight",
+      "giochap-van-khan"
     ],
     "rieng": {
       "front-porch-only-one": {

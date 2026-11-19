@@ -153,7 +153,7 @@ const LUAT = [
   { card: 'ls-0911', tep: 'apps/etp2/src/components/etp-view.tsx', co: "{ value: 'ls', label: '🕘 Lịch sử' }", vi: 'bảng điều khiển camp có tab Lịch sử thay đổi (anh 09/11/2026)' },
   { card: 'nhanh-1011', tep: 'apps/xuong-video/scripts/ethopex/nhip_tang.py', co: 'if du and trong_nhanh(now): return None, None', vi: 'khung tăng nhanh 08–12h + 21–06h: đạt cổng thì tăng ngay, không chờ nhịp 24h/3h (anh 10/11/2026)' },
   { card: 'nhanh-1011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'or tb_ngay or tb_nhanh) and _ke and _ke <= _nap and not lo_nay: dat.append', vi: 'khung tăng nhanh: ROI hôm nay ≥ 100% + tiêu ≥ 50% vào danh sách tăng' },
-  { card: 'nhanh-1011', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"nhanh": [[8, 12], [21, 6]]', vi: 'sổ luật chung có khung tăng nhanh' },
+  { card: 'nhanh-1011', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"nhanh": [[21, 6]]', vi: 'sổ luật chung có khung tăng nhanh — chỉ còn 21–06h, bỏ 08–12h nằm trong khung sáng (anh 19/11/2026, ra-xung-dot-luat-1911)' },
   { card: 'du-doan-1111', tep: 'apps/etp2/src/lib/etp-thi-truong.ts', co: 'export function doiChieu(', vi: 'nhật ký dự đoán ↔ thực tế trên widget Thị trường (anh 11/11/2026)' },
   { card: 'du-doan-1111', tep: 'apps/etp/du_doan_cpm.py', co: 'etp-mua.json', vi: 'máy chụp dự đoán đọc chung hệ số mùa với widget (một nguồn)' },
   { card: 'du-doan-1111', tep: 'apps/etp2/src/lib/etp-thi-truong.ts', co: "import SO_MUA from './etp-mua.json';", cam: 'const MUA: [string, string, number', vi: 'hệ số mùa không chép tay trong TS' },

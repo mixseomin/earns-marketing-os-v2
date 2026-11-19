@@ -51,7 +51,7 @@ import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 import { phimDangSx, tvChuaCr } from '@/lib/etp-sx';
-import { KD, KHUNG_TEN, NHIP_PHUT, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucTang, type HuongLuat } from '@/lib/etp-khung';
+import { KD, KHUNG_TEN, NHIP_PHUT, TANG_CHI, TRAN_CHI, chuCong, quaCong, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucTang, type HuongLuat } from '@/lib/etp-khung';
 
 type Tab = 'tong' | 'tp' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -452,9 +452,9 @@ function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: bo
 // KHUNG ĐỔI CAMP — BẢN LỚN (anh 05/11/2026 "show trực quan hơn"): một hàng trọn chiều ngang trên tab Camp — trạng thái chữ to + đếm ngược,
 // thanh 24 giờ ghi chữ từng khung + kim giờ hiện tại, số camp đã đạt luật đang chờ khung (theo hướng, từ etp.bao — cùng nguồn chip ⏳)
 // nhịp tăng đọc sổ luật (khung_doi.nghi_gio / nghi_don_gio) — chữ không ghi cứng số (anh 05/11/2026: thẻ còn ghi "một bậc" sau khi đã cho tăng dồn)
-const NHIP_TANG = `mỗi lần lên bậc kế (≤ ×1,5); tăng tiếp sau ≥ ${KD.nghi_don_gio} giờ nếu vẫn tiêu ≥ ${KD.nap_chi * 100}% ngân sách mới + ROI hôm nay ≥ ${KD.sang_roi}%, không thì cách ≥ ${KD.nghi_gio} giờ`;
-const CHU_KHUNG: Record<string, string> = { tang: `máy tự TĂNG camp đã tiêu ≥ ${KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ ${KD.sang_roi}% (đầu phiên · tăng bậc · T30): ${NHIP_TANG} — không giảm, không tắt`, giam: 'máy tự GIẢM · TẮT camp theo luật — không tăng',
-  sang: `máy NẠP camp lãi lớn đã tiêu ≥ ${KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ ${KD.sang_roi}%: ${NHIP_TANG} — không giảm, không tắt`, bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung' };   // số lấy từ sổ luật chung khung_doi
+const NHIP_TANG = `mỗi lần lên bậc kế (≤ ×1,5); tăng tiếp sau ≥ ${KD.nghi_don_gio} giờ nếu vẫn ${chuCong(KD.tang[0] + 1)} (ngân sách mới), không thì cách ≥ ${KD.nghi_gio} giờ`;
+const CHU_KHUNG: Record<string, string> = { tang: `máy tự TĂNG camp ${chuCong(KD.tang[0] + 1)} (đầu phiên · tăng bậc · T30): ${NHIP_TANG} — không giảm, không tắt`, giam: 'máy tự GIẢM · TẮT camp theo luật — không tăng',
+  sang: `máy NẠP camp ${chuCong(KD.sang[0] + 1)}: ${NHIP_TANG} — không giảm, không tắt`, bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung' };   // số lấy từ sổ luật chung khung_doi
 function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   const noi = useNoi<{ id: 0 }>();   // gọi trước mọi lệnh return sớm (luật hook)
   const [h, setH] = useState<number | null>(null);
@@ -515,7 +515,7 @@ function ChipLuat(p: VaoLuat) {
   const theT = p.deXuat ? [] : (p.xet ?? []).filter((x) => x.ma === 'tang' || x.ma === 'tang_ngay');
   const xT = theT.find((x) => x.ket === 'dat') ?? theT.find(gan1), nhipT = xT?.dk.find((d) => d[0].startsWith('Nhịp tăng'));
   const chiCong = !!xT && gan1(xT);
-  const don = p.c.ngan_sach > 0 && p.c.nay.chi >= KD.nap_chi * p.c.ngan_sach && p.c.nay.chi > 0 && (p.c.nay.thu - p.c.nay.chi) / p.c.nay.chi * 100 >= KD.sang_roi;   // tiêu dồn → được nạp ở khung sáng
+  const don = quaCong(p.c.nay.chi, p.c.nay.thu, p.c.ngan_sach, KD.sang[0] + 1);   // đạt cổng nạp sáng (sang_nap, cùng hàm máy nhip_tang.cong) → được nạp ở khung sáng
   const lucT = xT?.ket === 'dat' || chiCong ? lucTang(hoan.luc, hoan.cu, Date.now(), chiCong ? Date.parse(xT!.cho_toi!) : 0, don) : null;
   const chuT = lucT ? `${conLai(new Date(lucT).toISOString())} nữa · ~${new Date(lucT + 7 * 3600_000).toISOString().slice(11, 16)} VN` : null;   // máy đã đủ luật, hoãn vì khung giờ (sổ hoãn) — giờ theo hướng: tăng 21h · giảm/tắt 15h
   return (
@@ -527,7 +527,7 @@ function ChipLuat(p: VaoLuat) {
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
           <span title={p.c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.ten ?? p.c.phim} · ${p.c.ngan_sach}</span></div>
         {lucT ? <div style={{ marginBottom: 6, color: '#4ade80' }}>⏳ Máy thực sự tăng sau <b>{chuT}</b> — {chiCong ? `chờ cổng nhịp tăng (${nhipT![1]}: cách lần tăng trước ≥ ${KD.nghi_gio} giờ, tiêu dồn ${KD.nghi_don_gio} giờ), rồi nhịp máy luật đầu tiên trong khung tăng` : khungLuc(gioVnNay()) === 'tang' ? 'nhịp máy luật kế' : `nhịp đầu sau khi khung tăng mở ${KD.tang[0]}:00`} (máy luật chạy {NHIP_PHUT} phút / lần, lần gần nhất {hoan.luc ? new Date(Date.parse(hoan.luc) + 7 * 3600_000).toISOString().slice(11, 16) : '—'} VN); điều kiện còn đạt lúc đó thì tăng</div> : null}
-        {cho ? <div style={{ marginBottom: 6, color: 'var(--fg-2)' }}>⏳ Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc <b>{cho} VN</b>. Khung: {KD.tang[0]}–{KD.tang[1]}h tăng · {KD.giam[0]}–{KD.giam[1]}h giảm / tắt · {KD.sang[0]}–{KD.sang[1]}h chỉ nạp camp đã tiêu ≥ {KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ {KD.sang_roi}%.</div> : null}
+        {cho ? <div style={{ marginBottom: 6, color: 'var(--fg-2)' }}>⏳ Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc <b>{cho} VN</b>{khungLuc(gioVnNay()) === 'giam' ? ` (khung ${KD.giam[0]}–${KD.giam[1]}h chỉ giảm / tắt)` : ''}. Khung: {KD.tang[0]}–{KD.tang[1]}h tăng khi {chuCong(KD.tang[0] + 1)} · {KD.giam[0]}–{KD.giam[1]}h giảm / tắt · {KD.sang[0]}–{KD.sang[1]}h chỉ nạp camp {chuCong(KD.sang[0] + 1)}.</div> : null}
         <ThanLuat t={t} deXuat={p.deXuat} />
         {/* LỊCH SỬ ĐỔI BẬC ngay dưới bảng luật (anh 10/11/2026 "phần hover này cũng cần show thêm lịch sử tăng bậc") — cùng dòng thời gian thẻ Lịch sử bậc (DongBac) */}
         <div style={{ ...KHONG_GIAN, marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--line)' }}><b style={{ fontSize: 12 }}>Lịch sử đổi bậc · 30 ngày</b><DongBac ls={lsBac} /></div></div></KhungNoi> : null}
@@ -2323,9 +2323,9 @@ const locCoTab = (t: Tab, k: string) => { const d = LOC_TAB[t]; return d === 'al
 const TABS: Tab[] = ['tong', 'tp', 'camp', 'roas', 'creative', 'phim', 'dong', 'tv', 'tn', 'luat', 'insight'];
 const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'mlai', 'mlo', 'chua_tieu', 'tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran', 'sx', 'cung', 'roas'] as const;
 // MỨC TIÊU HÔM NAY (anh 06/11/2026 "bộ lọc về các camp đã tiêu kịch trần ngân sách ngày" + "camp chưa tiêu đồng nào... các level"): camp ĐANG CHẠY chia theo
-// chi hôm nay (ngày Ethopex từ 07:00 VN) / ngân sách ngày; kịch trần = ≥ nap_chi × ngân sách — cùng ngưỡng máy xét tăng / nạp
+// chi hôm nay (ngày Ethopex từ 07:00 VN) / ngân sách ngày; kịch trần = ≥ tang_ngay.duoi × ngân sách — cùng ngưỡng máy xét tăng (tieu90 còn trong LOC_CAMP cho URL cũ, không còn camp nào rơi vào)
 const mucTieu = (c: CampEtpKho): 'tieu0' | 'tieu25' | 'tieu50' | 'tieu90' | 'tran' | null => { if (!dangChay(c)) return null; const r = c.ngan_sach > 0 ? c.nay.chi / c.ngan_sach : 0;
-  return c.nay.chi <= 0 ? 'tieu0' : r < 0.25 ? 'tieu25' : r < 0.5 ? 'tieu50' : r < KD.nap_chi ? 'tieu90' : 'tran'; };
+  return c.nay.chi <= 0 ? 'tieu0' : r < TANG_CHI ? 'tieu25' : r < TRAN_CHI ? 'tieu50' : 'tran'; };   // số luật 12/11 tang_ngay (nap_chi bỏ 19/11/2026)
 // ô Lọc camp CHỌN NHIỀU (anh 05/11/2026): giá trị = các mục nối ',' — bỏ mục lạ; rỗng = 'all'
 // NHÓM MỤC Ô LỌC (anh 06/11/2026 "Tiêu + đang chạy phải là VÀ chứ, HOẶC thì có ý nghĩa gì"): cùng nhóm = HOẶC, khác nhóm = VÀ — một sổ cho danh sách chọn và phép lọc
 const LOC_NHOM: Record<Exclude<(typeof LOC_CAMP)[number], 'all'>, string> = { chay: 'Trạng thái', cho: 'Trạng thái', tat: 'Trạng thái', luat: 'Luật máy', ganluat: 'Luật máy',
@@ -2736,10 +2736,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLi
           m('mlai', '▲ Mới lãi', 'camp đang chạy < 7 ngày, ≥ 2 trong 3 ngày đã khép gần nhất có chi và ngày nào có chi cũng lãi — ứng viên dồn tiền'), m('mlo', '▼ Mới lỗ', 'camp đang chạy < 7 ngày, ≥ 2 trong 3 ngày đã khép gần nhất có chi và ngày nào có chi cũng lỗ'),
           m('chua_tieu', '∅ Chưa từng tiêu', 'camp đang chạy, tạo trong tháng này, chưa tiêu đồng nào từ lúc tạo'),
           m('tieu0', '○ Hôm nay chưa tiêu', 'camp đang chạy, chi hôm nay $0 (ngày Ethopex từ 07:00 VN)'),
-          m('tieu25', '◔ Tiêu < 25% NS', 'chi hôm nay dưới 25% ngân sách ngày'),
-          m('tieu50', '◑ Tiêu 25–50% NS', 'chi hôm nay 25–50% ngân sách ngày'),
-          m('tieu90', `◕ Tiêu 50–${Math.round(KD.nap_chi * 100)}% NS`, `chi hôm nay 50–${Math.round(KD.nap_chi * 100)}% ngân sách ngày`),
-          m('tran', `● Tiêu kịch trần (≥ ${Math.round(KD.nap_chi * 100)}% NS)`, `camp đang chạy đã tiêu ≥ ${Math.round(KD.nap_chi * 100)}% ngân sách ngày hôm nay — cùng ngưỡng nap_chi máy xét tăng / nạp`),
+          m('tieu25', `◔ Tiêu < ${Math.round(TANG_CHI * 100)}% NS`, `chi hôm nay dưới ${Math.round(TANG_CHI * 100)}% ngân sách ngày — chưa tới ngưỡng máy xét tăng`),
+          m('tieu50', `◑ Tiêu ${Math.round(TANG_CHI * 100)}–${Math.round(TRAN_CHI * 100)}% NS`, `chi hôm nay ${Math.round(TANG_CHI * 100)}–${Math.round(TRAN_CHI * 100)}% ngân sách ngày — máy tăng khi ROI hôm nay ≥ 100%`),
+          m('tran', `● Tiêu kịch trần (≥ ${Math.round(TRAN_CHI * 100)}% NS)`, `camp đang chạy đã tiêu ≥ ${Math.round(TRAN_CHI * 100)}% ngân sách ngày hôm nay — cùng ngưỡng luật tăng 12/11 máy dùng`),
           m('sx', '⚙ Phim đang sản xuất', 'mọi camp (mọi trạng thái) của phim đang sản xuất creative: dòng phim đang chạy · máy sinh đang làm / sẵn sàng · creative tạo ≤ 3 ngày chưa lên camp (chờ chấm, chờ nhịp lên) — cùng định nghĩa cột Sản xuất tab Phim'),
           m('cung', `Đoạn > ${tranT} camp`), m('roas', '★ Đủ bid ROAS')]} />; })();
   const oLoc = () => <>{([['lai', laiSel], ['tuoi', tuoiSel], ['luat', luatSel], ['dang', dangSel], ['ro', roSel], ['ab', abSel]] as const).map(([k, f]) => (locCoTab(tab, k) ? <Fragment key={k}>{f()}</Fragment> : null))}</>;

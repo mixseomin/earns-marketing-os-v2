@@ -82,7 +82,7 @@ import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 import { phimDangSx, tvChuaCr } from '@/lib/etp-sx';
-import { KD, KHUNG_TEN, chuCong, congTang, quaCong, chuLich, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucLam, type HuongLuat } from '@/lib/etp-khung';
+import { KD, KHUNG_TEN, TANG_CHI, TRAN_CHI, chuCong, congTang, quaCong, chuLich, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucLam, type HuongLuat } from '@/lib/etp-khung';
 import { nhip } from '@/lib/nhip';   // tự làm mới chỉ khi tab hiện (12/11/2026)
 import { TabDoiThu } from './etp-doi-thu';   // tab Phim đối thủ (anh giao 19/11/2026)
 import { TabMauCr } from './etp-mau-cr';   // tab Mẫu creative (anh giao 19/11/2026)
@@ -641,7 +641,7 @@ function ChipLuat(p: VaoLuat) {
         {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
           <span title={p.c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.ten ?? p.c.phim} · ${p.c.ngan_sach}</span></div>
-        {cho ? <div style={{ marginBottom: 6, color: 'var(--fg-2)' }}>⏳ Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc <b>{cho} VN</b>. Khung: {KD.tang[0]}–{KD.tang[1]}h tăng · {KD.giam[0]}–{KD.giam[1]}h giảm / tắt · {KD.sang[0]}–{KD.sang[1]}h chỉ nạp camp đã tiêu ≥ {KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ {KD.sang_roi}%.</div> : null}
+        {cho ? <div style={{ marginBottom: 6, color: 'var(--fg-2)' }}>⏳ Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc <b>{cho} VN</b>{khungLuc(gioVnNay()) === 'giam' ? ` (khung ${KD.giam[0]}–${KD.giam[1]}h chỉ giảm / tắt)` : ''}. Khung: {KD.tang[0]}–{KD.tang[1]}h tăng khi {chuCong(KD.tang[0] + 1)} · {KD.giam[0]}–{KD.giam[1]}h giảm / tắt · {KD.sang[0]}–{KD.sang[1]}h chỉ nạp camp {chuCong(KD.sang[0] + 1)}.</div> : null}
         <ThanLuat t={t} deXuat={p.deXuat} />
         {/* LỊCH SỬ ĐỔI BẬC ngay dưới bảng luật (anh 10/11/2026 "phần hover này cũng cần show thêm lịch sử tăng bậc") — cùng dòng thời gian thẻ Lịch sử bậc (DongBac) */}
         <div style={{ ...KHONG_GIAN, marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--line)' }}><b style={{ fontSize: 12 }}>Lịch sử đổi bậc · 30 ngày</b><DongBac ls={lsBac} /></div></div></KhungNoi> : null}
@@ -2714,9 +2714,9 @@ const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggia
 // USED POST (#1672 anh 18/11/2026 "cần thêm bộ lọc cho các Creative dạng Used post"): bản nhân dùng lại bài đăng camp gốc — nhan-ban.py đặt tên ' bai-cu ', cùng dấu so-luat.py đọc
 const laBaiCu = (c: { ten: string }) => / bai-cu /.test(c.ten);
 // MỨC TIÊU HÔM NAY (anh 06/11/2026 "bộ lọc về các camp đã tiêu kịch trần ngân sách ngày" + "camp chưa tiêu đồng nào... các level"): camp ĐANG CHẠY chia theo
-// chi hôm nay (ngày Ethopex từ 07:00 VN) / ngân sách ngày; kịch trần = ≥ nap_chi × ngân sách — cùng ngưỡng máy xét tăng / nạp
+// chi hôm nay (ngày Ethopex từ 07:00 VN) / ngân sách ngày; kịch trần = ≥ tang_ngay.duoi × ngân sách — cùng ngưỡng máy xét tăng (tieu90 còn trong LOC_CAMP cho URL cũ, không còn camp nào rơi vào)
 const mucTieu = (c: CampEtpKho): 'tieu0' | 'tieu25' | 'tieu50' | 'tieu90' | 'tran' | null => { if (!dangChay(c)) return null; const r = c.ngan_sach > 0 ? c.nay.chi / c.ngan_sach : 0;
-  return c.nay.chi <= 0 ? 'tieu0' : r < 0.25 ? 'tieu25' : r < 0.5 ? 'tieu50' : r < KD.nap_chi ? 'tieu90' : 'tran'; };
+  return c.nay.chi <= 0 ? 'tieu0' : r < TANG_CHI ? 'tieu25' : r < TRAN_CHI ? 'tieu50' : 'tran'; };   // số luật 12/11 tang_ngay (nap_chi bỏ 19/11/2026)
 // ô Lọc camp CHỌN NHIỀU (anh 05/11/2026): giá trị = các mục nối ',' — bỏ mục lạ; rỗng = 'all'
 // NHÓM MỤC Ô LỌC (anh 06/11/2026 "Tiêu + đang chạy phải là VÀ chứ, HOẶC thì có ý nghĩa gì"): cùng nhóm = HOẶC, khác nhóm = VÀ — một sổ cho danh sách chọn và phép lọc
 const LOC_NHOM: Record<Exclude<(typeof LOC_CAMP)[number], 'all'>, string> = { chay: 'Trạng thái', cho: 'Trạng thái', tat: 'Trạng thái', luat: 'Luật máy', ganluat: 'Luật máy',
@@ -3202,10 +3202,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
           m('mlai', '▲ Mới lãi', 'camp đang chạy < 7 ngày, ≥ 2 trong 3 ngày đã khép gần nhất có chi và ngày nào có chi cũng lãi — ứng viên dồn tiền'), m('mlo', '▼ Mới lỗ', 'camp đang chạy < 7 ngày, ≥ 2 trong 3 ngày đã khép gần nhất có chi và ngày nào có chi cũng lỗ'),
           m('chua_tieu', '∅ Chưa từng tiêu', 'camp đang chạy, tạo trong tháng này, chưa tiêu đồng nào từ lúc tạo'),
           m('tieu0', '○ Hôm nay chưa tiêu', 'camp đang chạy, chi hôm nay $0 (ngày Ethopex từ 07:00 VN)'),
-          m('tieu25', '◔ Tiêu < 25% NS', 'chi hôm nay dưới 25% ngân sách ngày'),
-          m('tieu50', '◑ Tiêu 25–50% NS', 'chi hôm nay 25–50% ngân sách ngày'),
-          m('tieu90', `◕ Tiêu 50–${Math.round(KD.nap_chi * 100)}% NS`, `chi hôm nay 50–${Math.round(KD.nap_chi * 100)}% ngân sách ngày`),
-          m('tran', `● Tiêu kịch trần (≥ ${Math.round(KD.nap_chi * 100)}% NS)`, `camp đang chạy đã tiêu ≥ ${Math.round(KD.nap_chi * 100)}% ngân sách ngày hôm nay — cùng ngưỡng nap_chi máy xét tăng / nạp`),
+          m('tieu25', `◔ Tiêu < ${Math.round(TANG_CHI * 100)}% NS`, `chi hôm nay dưới ${Math.round(TANG_CHI * 100)}% ngân sách ngày — chưa tới ngưỡng máy xét tăng`),
+          m('tieu50', `◑ Tiêu ${Math.round(TANG_CHI * 100)}–${Math.round(TRAN_CHI * 100)}% NS`, `chi hôm nay ${Math.round(TANG_CHI * 100)}–${Math.round(TRAN_CHI * 100)}% ngân sách ngày — máy tăng khi ROI hôm nay ≥ 100%`),
+          m('tran', `● Tiêu kịch trần (≥ ${Math.round(TRAN_CHI * 100)}% NS)`, `camp đang chạy đã tiêu ≥ ${Math.round(TRAN_CHI * 100)}% ngân sách ngày hôm nay — cùng ngưỡng luật tăng 12/11 máy dùng`),
           m('sx', '⚙ Phim đang sản xuất', 'mọi camp (mọi trạng thái) của phim đang sản xuất creative: dòng phim đang chạy · máy sinh đang làm / sẵn sàng · creative tạo ≤ 3 ngày chưa lên camp (chờ chấm, chờ nhịp lên) — cùng định nghĩa cột Sản xuất tab Phim'),
           m('cung', `Đoạn > ${tranT} camp`), m('roas', '★ Đủ bid ROAS'),
           m('bai_cu', '♻ Used post', 'bản nhân dùng lại bài đăng của camp gốc (giữ tương tác) — không đăng creative mới'), m('bai_moi', 'Creative đăng mới', 'camp đăng bài riêng (không phải used post)')]} />; })();

@@ -79,15 +79,27 @@ def la_lai(chi, thu):
     """camp lãi (không phải camp test) theo sổ luật — hàm thuần, cùng điều kiện câu SQL _sql_test"""
     chi, thu = float(chi or 0), float(thu or 0)
     return chi > 0 and (thu > chi or (chi >= _NB_MIN[0] and (thu - chi) / chi * 100 >= _NB_MIN[1]))
+# BẢN NHÂN TỪ CAMP GỐC ĐÃ ĐẠT NẤC KHÔNG TÍNH TRẦN (anh 19/11/2026 rà xung đột luật, xung đột 5): nhân bản theo nấc (nhan_ban.nac) là đường scale camp ĐÃ LÃI —
+# đếm bản nhân vào trần camp test thì camp gốc đạt nấc 45 / 100 không bao giờ nhân được tới đủ nấc. Đếm theo CAMP GỐC (etp.camp.goc · nhật ký x.goc): gốc đạt nấc NB
+# thấp nhất (số cộng dồn của gốc trong etp.so_ngay) → bản nhân không tính, cổng cũng không giữ chỗ. Phim không có camp nào đạt nấc vẫn trần tran_test_phim.so.
+def goc_dat_nac(chi, thu):
+    """camp gốc đã đạt nấc NB thấp nhất (bản nhân của nó không tính trần camp test) — hàm thuần, cùng điều kiện _sql_goc_nac"""
+    chi, thu = float(chi or 0), float(thu or 0)
+    return chi >= _NB_MIN[0] and (thu - chi) / chi * 100 >= _NB_MIN[1]
+def _sql_goc_nac(goc):
+    """điều kiện SQL: camp gốc (biểu thức SQL số camp) đã đạt nấc NB thấp nhất trên số cộng dồn etp.so_ngay"""
+    return (f"exists (select 1 from etp.so_ngay g where g.camp_id = ({goc}) group by g.camp_id having sum(g.chi) >= {_NB_MIN[0]}"
+            f" and (sum(g.thu) - sum(g.chi)) / nullif(sum(g.chi), 0) * 100 >= {_NB_MIN[1]})")
+_NB_LOG_MIEN = "not (x->>'viec' = 'nhan_ban' and coalesce(x->>'goc', '') ~ '^[0-9]+$' and " + _sql_goc_nac("(x->>'goc')::int") + ")"
 def _sql_test(cid):
     """dòng (n: camp test đang chạy + camp vừa tạo chưa vào kho, on: phim lãi ổn định) — cid: số hoặc biểu thức SQL"""
     po = TT["phim_on"]
     return f"""(select (select count(*) from (select c.camp_id, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu from etp.camp c left join etp.so_ngay n using (camp_id)
-            where c.content_id = {cid} and not coalesce(c.la_roas, false)
+            where c.content_id = {cid} and not coalesce(c.la_roas, false) and not (c.goc is not null and {_sql_goc_nac('c.goc')})
               and (c.camp_id in (select camp_id from etp.camp_dang_chay) or coalesce(c.dong_bo, '') not in ('done', 'synced', 'error', 'DISAPPROVED')) group by 1) s
             where not (s.chi > 0 and (s.thu > s.chi or (s.chi >= {_NB_MIN[0]} and (s.thu - s.chi) / s.chi * 100 >= {_NB_MIN[1]}))))
           + (select count(distinct x->>'id') from xv_khoa_ngoai, jsonb_array_elements(gia_tri) x where ten = 'ethopex_nhat_ky' and x->>'viec' in ('tao_camp', 'nhan_ban') and (x->>'ok')::boolean
-              and x->>'nguoi' is null and x->>'content' = ({cid})::text and coalesce(x->>'id', '') ~ '^[0-9]+$'
+              and x->>'nguoi' is null and x->>'content' = ({cid})::text and coalesce(x->>'id', '') ~ '^[0-9]+$' and {_NB_LOG_MIEN}
               and to_timestamp(x->>'luc', 'HH24:MI DD/MM/YYYY') > (now() at time zone 'Asia/Ho_Chi_Minh') - interval '15 minutes'
               and not exists (select 1 from etp.camp k where k.camp_id = (x->>'id')::int)) n,
         coalesce((select sum(n.chi) >= {float(po['chi'])} and sum(n.thu) > sum(n.chi) from etp.so_ngay n join etp.camp k using (camp_id) where k.content_id = {cid}
@@ -103,13 +115,17 @@ def giu_test(cid):
         cu as (select coalesce((select jsonb_agg(x) from etp.cau_hinh, jsonb_array_elements(case when jsonb_typeof(gia_tri->'{cid}') = 'array' then gia_tri->'{cid}' else '[]'::jsonb end) x
                                 where khoa = 'giu_test_phim' and (x#>>'{{}}')::float > extract(epoch from now()) - {GIU_GIAY}), '[]'::jsonb) ds),
         vua as (select count(*) n from xv_khoa_ngoai, jsonb_array_elements(gia_tri) x where ten = 'ethopex_nhat_ky' and x->>'viec' in ('tao_camp', 'nhan_ban') and (x->>'ok')::boolean
-                and x->>'nguoi' is null and x->>'content' = '{cid}' and to_timestamp(x->>'luc', 'HH24:MI DD/MM/YYYY') > (now() at time zone 'Asia/Ho_Chi_Minh') - interval '{GIU_GIAY + 60} seconds'),
+                and x->>'nguoi' is null and x->>'content' = '{cid}' and to_timestamp(x->>'luc', 'HH24:MI DD/MM/YYYY') > (now() at time zone 'Asia/Ho_Chi_Minh') - interval '{GIU_GIAY + 60} seconds'
+                and {_NB_LOG_MIEN}),
         q as (select t.n + greatest(jsonb_array_length(cu.ds) - vua.n, 0) so, t.on, cu.ds from t, cu, vua),
         ghi as (insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) select 'giu_test_phim', jsonb_build_object('{cid}', q.ds || to_jsonb(extract(epoch from now())::float)),
                     'chỗ đang giữ dưới trần camp test / phim (cong.giu_test) — {{phim: [mốc giây]}}, tự nhả sau {GIU_GIAY} giây', 'cong.py' from q where not q.on and q.so < {tran}
                 on conflict (khoa) do update set gia_tri = etp.cau_hinh.gia_tri || excluded.gia_tri, luc = now() returning 1)
         select q.so || '|' || q.on || '|' || (select count(*) from ghi) from q""").strip().splitlines()[-1]
     so, on, ok = r.split("|"); return int(so), on == "t", on == "t" or ok == "1"
+def mien_tran_goc(goc):
+    """nhân bản từ camp gốc này không tính trần camp test (gốc đã đạt nấc NB, cùng câu _sql_goc_nac)"""
+    return _q(f"select {_sql_goc_nac(int(goc))}").strip() == "t"
 def ly_tran_test(ct, so):
     return (f"chạm trần {TT['so']} camp test / phim ({KHOA_TRAN_TEST}, anh 18/11/2026): phim #{ct} đang có {so} camp chưa lãi đang chạy / vừa tạo — camp mới / nhân bản chờ một camp test "
             f"tắt hoặc lãi (dòng phim tự mở lại); phim lãi ổn định {TT['phim_on']['ngay']} ngày khép (chi ≥ ${TT['phim_on']['chi']:g}, thu > chi) không bị trần")
@@ -314,7 +330,7 @@ def phanh_sx(ch, bay_gio=None):
     if not ly and rut > bay.isoformat(): ly = f"RÚT KHỎI CHỢ tới {dt.datetime.fromisoformat(rut) + dt.timedelta(hours=7):%H:%M %d/%m} giờ VN (sổ luật phanh_cho.rut)"
     return f"chờ phanh nhả: {ly}" if ly else None
 
-def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False, thay=False, anh_bam=False):
+def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False, thay=False, anh_bam=False, goc=None):
     """anh_bam: BỎ (18/11/2026) — giữ tham số cho người gọi cũ, KHÔNG còn miễn gì; người bấm thật = vé ETP_VE (ve_hop_le). tay: chỉ còn nghĩa cũ (miễn trùng phim đội, đã bỏ)."""
     if viec not in TANG: return None
     try:
@@ -370,7 +386,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         if ngoai: return None
         # TRẦN CAMP TEST MỖI PHIM (anh 18/11/2026, sổ luật tran_test_phim — xem giu_test): mọi đường máy tạo camp / nhân bản (dòng phim, AT, len-sau-cham, nhan-ban, nuôi bộ, thang).
         # Miễn: anh bấm tay (vé) / lệnh đích danh của anh (lenh_anh) · ★ ROAS (dạng riêng, trần riêng của đợt hồi chợ) · camp thay bài bị Meta từ chối (thay: thay chỗ, không thêm)
-        if ct and viec in ("tao_camp", "nhan_ban") and not ve and not lenh_anh and not roas and not thay:
+        # Miễn thêm (anh 19/11/2026, xung đột 5): nhân bản từ camp gốc ĐÃ ĐẠT NẤC NB (mien_tran_goc) — bản nhân không tính trần, không giữ chỗ
+        if ct and viec in ("tao_camp", "nhan_ban") and not ve and not lenh_anh and not roas and not thay and not (viec == "nhan_ban" and (goc or camp_id) and mien_tran_goc(goc or camp_id)):
             so_t, _on, duoc_t = giu_test(int(ct))
             if not duoc_t: return ly_tran_test(ct, so_t)
         tcm = ch.get(KHOA_TRAN_NGAY)   # TRẦN CAMP MỚI MỖI NGÀY (anh 07/11/2026 chốt 100 camp thử / ngày): đếm camp nhà tạo trong ngày VN, kể cả bản nhân
@@ -487,6 +504,10 @@ def _tu_kiem():
     assert phanh_sx({"bao_tri_len": {"bat": True}}, _u("2026-11-17T04:00:00")).startswith("chờ phanh nhả: ETHOPEX BẢO TRÌ") and phanh_sx({"dung_khan": True}).startswith("chờ phanh nhả: ĐANG DỪNG KHẨN")
     assert int(TT["so"]) == 2 and _NB_MIN == (3.0, 50.0), "trần camp test / phim lệch sổ luật (anh 18/11/2026: 2 camp test, camp lãi = nấc NB $3 & +50% hoặc ROI cộng dồn dương)"
     assert la_lai(5, 6) and la_lai(3, 4.5) and la_lai(0.5, 0.6) and not la_lai(3, 3) and not la_lai(0, 0) and not la_lai(10, 4) and not la_lai(None, None), "camp lãi = thu > chi (chi > 0)"
+    # xung đột 5 (anh 19/11/2026): camp gốc nấc 45 / 100 (tiêu $45, thu $100) → bản nhân không tính trần; gốc chưa đạt nấc ($2 / $10, $10 / $12) → vẫn tính, trần giữ nguyên
+    assert goc_dat_nac(45, 100) and not goc_dat_nac(2, 10) and not goc_dat_nac(10, 12) and not goc_dat_nac(0, 0), "gốc đạt nấc NB thấp nhất mới miễn trần"
+    assert int(TT["so"]) == 2 and "c.goc is not null" in _sql_test(1) and _NB_LOG_MIEN in _sql_test(1) and _NB_LOG_MIEN in sql_test_con(1), "đếm trần bỏ bản nhân từ gốc đạt nấc (kho + nhật ký), phim không có gốc đạt nấc vẫn trần 2"
+    assert "having sum(g.chi) >= " + str(_NB_MIN[0]) in _sql_goc_nac(7), "SQL gốc đạt nấc cùng ngưỡng nấc NB thấp nhất của sổ"
     assert "tran_test_phim" in ly_tran_test(1, 2) and "chạm trần" in ly_tran_test(1, 2), "câu chặn phải mang khoá (dòng phim mo_tran_test) + 'chạm trần' (SQL_DONG_HONG không đếm là dòng hỏng)"
     assert '"on"' in _sql_test(1) and "camp_dang_chay" in _sql_test(1) and "la_roas" in _sql_test(1) and "ethopex_nhat_ky" in _sql_test(1)
     assert nap_tang(None) == 6 and nap_tang(29) == 6 and nap_tang(30) == 9 and nap_tang(50) == 13 and nap_tang(79) == 13 and nap_tang(80) == 20 and nap_tang(500) == 20, "nắp ROI lệch sổ luật"

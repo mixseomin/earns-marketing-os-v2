@@ -5,7 +5,7 @@ import BANG_LUAT from './etp-bang-luat.json';
 
 export type KhungDoi = 'tang' | 'giam' | 'sang' | 'bang';
 export type HuongLuat = 'tang' | 'giam' | 'tat';
-export const KD = BANG_LUAT.khung_doi as unknown as { tang: [number, number]; giam: [number, number]; sang: [number, number]; sang_roi: number; nap_chi: number; len: [number, number]; nghi_gio: number; nghi_don_gio: number; khoa_sau_giam_gio: number; hoc_gio: number; don_13h: number; don_gio: number };
+export const KD = BANG_LUAT.khung_doi as unknown as { tang: [number, number]; giam: [number, number]; sang: [number, number]; len: [number, number]; nghi_gio: number; nghi_don_gio: number; khoa_sau_giam_gio: number; hoc_gio: number; don_13h: number; don_gio: number };
 export const KHUNG_TEN: Record<KhungDoi, [string, string, string]> = {   // [biểu tượng, tên, màu]
   tang: ['⬆', 'Khung tăng', '#4ade80'], giam: ['🔧', 'Khung giảm · tắt', '#fb923c'], sang: ['☀', 'Nạp sáng', '#22c55e'], bang: ['🔒', 'Đóng băng', '#64748b'] };
 /** giờ VN máy sẽ làm việc đang hoãn theo hướng luật */
@@ -27,7 +27,9 @@ const tnRoi = (chi: number, ns: number) => (ns > 0 && chi < TN.duoi * ns ? TN.ro
 export const congTang = (h = gioVnNay(), chi?: number, ns?: number): { tu: number; den: number | null; roi: number } => (trong(h, KD.sang) ? { tu: SANG_NAP.chi[0], den: SANG_NAP.chi[1], roi: SANG_NAP.roi } : { tu: TN.chi, den: null, roi: chi != null && ns ? tnRoi(chi, ns) : TN.roi });
 export const quaCong = (chi: number, thu: number, ns: number, h?: number) => { const c = congTang(h, chi, ns); return ns > 0 && chi > 0 && chi >= c.tu * ns && (c.den == null || chi < c.den * ns) && thu >= (1 + c.roi / 100) * chi; };
 export const chuCong = (h?: number) => { const c = congTang(h), p = (x: number) => `${Math.round(x * 100)}%`; return `${c.den == null ? `đã tiêu ≥ ${p(c.tu)}` : `đã tiêu ${p(c.tu)}–${p(c.den)}`} ngân sách + ROI hôm nay ≥ ${c.roi}%${c.den == null ? ` (tiêu < ${p(TN.duoi)} thì ≥ ${TN.roi_duoi}%)` : ''}`; };
-export const NHANH_TEN: [string, string, string] = ['⚡', `Tăng nhanh ${NHANH.map(([a, b]) => `${a}–${b}h`).join(' · ')}: đạt cổng thì lên bậc kế ngay mỗi nhịp, không chờ 24 giờ — đêm ${chuCong(KD.tang[0] + 1)} · sáng ${chuCong(KD.sang[0] + 2)}`, '#facc15'];
+export const NHANH_TEN: [string, string, string] = ['⚡', `Tăng nhanh ${NHANH.map(([a, b]) => `${a}–${b}h`).join(' · ')}: đạt cổng thì lên bậc kế ngay mỗi nhịp, không chờ 24 giờ — ${chuCong(KD.tang[0] + 1)} (luật 12/11 tang_ngay; khung sáng không còn tăng nhanh — anh 19/11/2026)`, '#facc15'];
+// tiêu kịch trần (bộ lọc trang) = qua ngưỡng chi của cổng tăng ngoài khung sáng — cùng số tang_ngay máy dùng, không giữ số riêng (nap_chi đã bỏ 19/11/2026)
+export const TRAN_CHI = TN.duoi, TANG_CHI = TN.chi;
 /** khung đang chạy kéo tới mấy giờ (giờ nguyên, 0–23) */
 export const hetKhung = (h: number) => { const k = khungLuc(h); for (let i = 1; i <= 24; i++) { const g = (Math.floor(h) + i) % 24; if (khungLuc(g) !== k) return g; } return Math.floor(h); };
 /** SỔ HOÃN của máy (etp.cau_hinh 'khung_hoan', worker ethopex.mjs ghi mỗi nhịp): camp máy ĐÃ đủ luật + đủ công tắc nhưng hoãn vì khung giờ.

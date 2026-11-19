@@ -28,6 +28,9 @@ NHANH = [tuple(x) for x in KD.get("nhanh") or []]
 def trong_nhanh(bay_gio=None):
     h = ((bay_gio or dt.datetime.now(dt.timezone.utc)) + dt.timedelta(hours=7)).hour
     return any((a <= h < b) if a <= b else (h >= a or h < b) for a, b in NHANH)
+def chu_nhanh():
+    """chữ khung tăng nhanh theo sổ luật (vd '21–06h') — máy luật / thẻ đọc cùng chỗ, không gõ giờ cứng"""
+    return " · ".join(f"{a:02d}–{b:02d}h" for a, b in NHANH) or "không có"
 def tieu_don(chi_13h, ns_13h):
     """chi tới 13h VN ≥ DON_13H × ngân sách lúc 13h → True (hoãn tăng); thiếu số (None) → False, không chặn oan"""
     return chi_13h is not None and bool(ns_13h) and float(chi_13h) >= DON_13H * float(ns_13h)
@@ -191,7 +194,8 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     _c = chan_tang(api, 1, u("2026-10-21T18:00:00"), du=False)   # 01:00 VN 22/10, khung nhanh, 18 giờ sau lần tăng 14:37 21/10
     assert "14:37 21/10" in _c and "02:37 22/10" in _c and "chưa đạt cổng" in _c, f"câu chờ có NGÀY + khung nhanh nói thẳng chưa đạt cổng (11/11/2026 #88441): {_c}"
     assert "được từ" in chan_tang(api, 1, u("2026-10-21T09:00:00"), du=False), "ngoài khung nhanh vẫn hẹn mốc tăng dồn"
-    assert trong_nhanh(u("2026-10-21T01:30:00")) and trong_nhanh(u("2026-10-21T22:00:00")) and not trong_nhanh(u("2026-10-21T05:30:00")) and not trong_nhanh(u("2026-10-21T23:30:00")), "8h30 / 5h VN trong khung; 12h30 / 6h30 VN ngoài khung"
+    assert trong_nhanh(u("2026-10-21T15:00:00")) and trong_nhanh(u("2026-10-21T22:00:00")) and not trong_nhanh(u("2026-10-21T01:30:00")) and not trong_nhanh(u("2026-10-21T05:30:00")) and not trong_nhanh(u("2026-10-21T23:30:00")), "22h / 5h VN trong khung; 8h30 (khung sáng, bỏ 19/11/2026) / 12h30 / 6h30 VN ngoài khung"
+    assert chu_nhanh() == "21–06h", chu_nhanh()
     assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=False).startswith("vừa tăng"), "3–24 giờ mà KHÔNG đạt cổng thì chặn (nhịp 24 giờ)"
     assert ns_lan_tang_cuoi(api, 1) == 5 and nghi_gio(api, 1) == NGHI_THAP_GIO == 12 and NGHI_THAP_NS == 6, "lần tăng cuối tới $5 ≤ $6 → nghỉ 12 giờ"
     assert chan_tang(api, 1, u("2026-10-21T19:00:00"), du=False).startswith("vừa tăng") and chan_tang(api, 1, u("2026-10-21T19:40:00"), du=False) is None, "camp nhỏ: 11,4 giờ còn chặn, 12 giờ thì được (16/11/2026)"

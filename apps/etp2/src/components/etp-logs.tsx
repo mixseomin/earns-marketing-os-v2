@@ -95,7 +95,7 @@ export function TabLogs({ moCamp, hangLoc, campIds }: { moCamp: (id: number) => 
     {k ? <span title={KHUNG_TEN[k][1]} style={{ color: KHUNG_TEN[k][2], width: 14, textAlign: 'center' }}>{KHUNG_TEN[k][0]}</span> : null}
     <span title={nhanhCua(t) ? NHANH_TEN[1] : undefined} style={{ color: NHANH_TEN[2], width: 12, textAlign: 'center', cursor: nhanhCua(t) ? 'help' : undefined }}>{nhanhCua(t) ? NHANH_TEN[0] : ''}</span>{nhanKhung(t, gom)}</span>; };
   const cot: DataColumn<KhungLog>[] = [
-    { key: 'khung', header: '🕒 Khung (giờ VN)', title: 'nền dòng = khung máy tự đổi camp: ⬆ tăng 21–7h · ☀ nạp sáng 7–15h · 🔧 giảm · tắt 15–21h · ⚡ tăng nhanh 8–12h, 21–6h', align: 'left', cell: (x) => nhanKhungIcon(x.t), sortValue: (x) => x.t, total: () => <b>Cả {tenKy(ky)}</b> },
+    { key: 'khung', header: '🕒 Khung (giờ VN)', title: 'nền dòng = khung máy tự đổi camp: ⬆ tăng 21–7h · ☀ nạp sáng 7–15h · 🔧 giảm · tắt 15–21h · ⚡ tăng nhanh 21–6h', align: 'left', cell: (x) => nhanKhungIcon(x.t), sortValue: (x) => x.t, total: () => <b>Cả {tenKy(ky)}</b> },
     { key: 'chi', header: 'Chi', title: gom < 60 ? 'chi / thu nhà chỉ có theo giờ — khung dưới 1 giờ: cả giờ cộng vào khung đầu giờ' : 'chi nhà trong khung', cell: (x) => x.coTien ? <KeToan v={x.chi} /> : null, sortValue: (x) => x.chi, total: (r) => <KeToan v={r.reduce((a, x) => a + x.chi, 0)} /> },
     { key: 'thu', header: 'Thu', cell: (x) => x.coTien ? <KeToan v={x.thu} /> : null, sortValue: (x) => x.thu, total: (r) => <KeToan v={r.reduce((a, x) => a + x.thu, 0)} /> },
     { key: 'lai', header: 'Lãi', cell: (x) => x.coTien ? <KeToan v={x.thu - x.chi} mau={mauLai(x.thu - x.chi)} /> : null, sortValue: (x) => x.thu - x.chi,

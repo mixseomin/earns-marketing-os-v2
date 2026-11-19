@@ -30,6 +30,10 @@ export const chuCong = (h?: number) => { const c = congTang(h), p = (x: number) 
 export const NHANH_TEN: [string, string, string] = ['⚡', `Tăng nhanh ${NHANH.map(([a, b]) => `${a}–${b}h`).join(' · ')}: đạt cổng thì lên bậc kế ngay mỗi nhịp, không chờ 24 giờ — ${chuCong(KD.tang[0] + 1)} (luật 12/11 tang_ngay; khung sáng không còn tăng nhanh — anh 19/11/2026)`, '#facc15'];
 // tiêu kịch trần (bộ lọc trang) = qua ngưỡng chi của cổng tăng ngoài khung sáng — cùng số tang_ngay máy dùng, không giữ số riêng (nap_chi đã bỏ 19/11/2026)
 export const TRAN_CHI = TN.duoi, TANG_CHI = TN.chi;
+// THỨ TỰ ƯU TIÊN luật tăng (sổ uu_tien, anh 19/11/2026 xung đột 1): luật đứng trước thắng — luatThang trả luật đang chặn đầu tiên của một camp
+export const UU_TIEN = (BANG_LUAT as unknown as { uu_tien: string[] }).uu_tien;
+export const UU_TIEN_TEN: Record<string, string> = { phim_cam: 'Phim cấm', dung_khan_bao_tri: 'Dừng khẩn / bảo trì', phanh_cho: 'Phanh chợ', khung_gio: 'Khung giờ', nap_roi3: 'Nắp ROI 3 ngày', cong_tang_ngay: 'Cổng tăng trong ngày', nhan_ban_tran_test: 'Nhân bản / trần test' };
+export const luatThang = (chan: Partial<Record<string, boolean>>): string | null => { const k = UU_TIEN.find((x) => chan[x]); return k ? UU_TIEN_TEN[k] ?? k : null; };
 /** khung đang chạy kéo tới mấy giờ (giờ nguyên, 0–23) */
 export const hetKhung = (h: number) => { const k = khungLuc(h); for (let i = 1; i <= 24; i++) { const g = (Math.floor(h) + i) % 24; if (khungLuc(g) !== k) return g; } return Math.floor(h); };
 /** SỔ HOÃN của máy (etp.cau_hinh 'khung_hoan', worker ethopex.mjs ghi mỗi nhịp): camp máy ĐÃ đủ luật + đủ công tắc nhưng hoãn vì khung giờ.

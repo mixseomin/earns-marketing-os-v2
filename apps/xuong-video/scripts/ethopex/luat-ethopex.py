@@ -1464,7 +1464,10 @@ def _xet_luat():
             if not b2 and all(x[3] for x in dk_tang): dk_tang = dk_tang + [_nhip()[0]]; _cho_toi = _nhip()[1]
             # đủ hết điều kiện thẻ mà máy KHÔNG xếp tăng → dòng ✗ nói đúng bộ lọc đã loại (không để thẻ ✓ hết rồi im lặng)
             _kt = (lambda dk: dk + [["Máy xếp tăng nhịp này", f"không — {(_ly_tang(cid) or 'chưa rõ bộ lọc nào loại (thêm vào _ly_tang)')[:240]}", "có", False]]
-                   if not b2 and all(x[3] for x in dk) and int(cid) not in vao["tang"] and not _h3_ly(cid) else dk)   # _ly_tang None = bộ lọc mới chưa khai ở _ly_tang → dòng kêu, không im   # khoá L0 / H3 có dòng riêng (_khoa_dol)
+                   if not b2 and all(x[3] for x in dk) and int(cid) not in vao["tang"] and not _h3_ly(cid) else
+                   # KHUNG 15–21h GIỮ không tăng (anh 19/11/2026 xung đột 2, ca #105577): đạt hết mà đang khung giảm → nói giờ máy tăng, không ✓ rồi im; phanh chợ đã loại khỏi vao["tang"] → nhánh trên ghi lý do phanh, không hứa giờ
+                   dk + [["Máy xếp tăng nhịp này", f"đạt — máy tăng lúc {int(KD['giam'][1]):02d}:00 VN (khung {int(KD['giam'][0]):02d}–{int(KD['giam'][1]):02d}h chỉ giảm / tắt)", "có", True]]
+                   if not b2 and all(x[3] for x in dk) and _GIAM_NAY else dk)   # _ly_tang None = bộ lọc mới chưa khai ở _ly_tang → dòng kêu, không im   # khoá L0 / H3 có dòng riêng (_khoa_dol)
             dk_tang = _kt(dk_tang)
             ls.append(L("thang_nb" if b2 else "tang", "Thang nhân bản (bộ 2)" if b2 else "Tăng bậc",
                 ("Bộ 2: đủ luật tăng thì KHÔNG đổi ngân sách mà mở bản mới ở bậc kế (creative khác cùng phim). " if b2 else "") + f"ROI khung dài ≥ {ROI_TANG}%, spending > {sp_min:g}% ngân sách, hôm nay không lỗ, chưa ở trần. Cổng phụ: tăng cách nhau ≥ 3 giờ, sau lần giảm phải ROI ≥ 50% lại." + (f" Bộ 2: camp gốc tiêu TB ≥ ${THANG_CHI_GOC:g}/ngày 3 ngày đã khép mới mở bản thang (29/10)." if b2 else ""),
@@ -1520,7 +1523,8 @@ def _dat_ab():
         ra.append((c, s_ + f" · {nh_[0]} {nh_[2]}", {"ab": list(nh_[:2])}) if nh_ else (c, s_))
     return ra
 if JSON:
-    m = lambda ds: [{"id": i, "chu": s, **(x[0] if x else {}), **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {})} for i, s, *x in ds]   # phần tử thứ ba (tuỳ chọn) = trường thêm, vd G10 hồi {"ab": [mã, nhánh]}
+    # qua_cong = MỘT hàm quyết định cổng tăng (NT.qua_cong theo giờ VN, chi, thu, ngân sách) — worker ethopex.mjs đọc cờ này, không tự tính lại cổng bằng SQL riêng (anh 19/11/2026 xung đột 1)
+    m = lambda ds: [{"id": i, "chu": s, **(x[0] if x else {}), **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {}), **({"qua_cong": bool(_nap_sang(int(i)))} if i and int(i) in thang else {})} for i, s, *x in ds]   # phần tử thứ ba (tuỳ chọn) = trường thêm, vd G10 hồi {"ab": [mã, nhánh]}
     try:   # XÉT LUẬT TỪNG CAMP → etp.xet_luat (đi qua stdin psql: chuỗi lớn vượt giới hạn một tham số dòng lệnh)
         _x = _xet_luat()
         _sai = sorted({l_["ma"] for ls_ in _x.values() for l_ in ls_ if not (isinstance(l_.get("dk"), list) and all(isinstance(r_, list) and len(r_) == 4 and isinstance(r_[3], bool) for r_ in l_["dk"]))})

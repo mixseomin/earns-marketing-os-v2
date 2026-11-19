@@ -7,7 +7,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ComponentType, type ReactNode } from 'react';
 import { ChonTim } from '@mos2/bang/chon-tim';
 import type { GopYCuaToi, TinTraoDoi, Kq, HangGiao, ViecGiao } from './server';
-import { demTuDs, DEM_RONG, type DemGopY } from './dem';
+import { demTuDs, chuDaiKySu, DEM_RONG, type DemGopY } from './dem';
 
 export type HanhDongGopY = {
   /** Số cho nút 💬 (CHUAN.md: counts.working + counts.can_y_kien) — app bọc `demGopY` của @mos2/gop-y/server. Thiếu thì nút đếm từ dsGopYCuaToi. */
@@ -639,8 +639,8 @@ export function HomGopY(p: CauHinhHom) {
           </div>
         }>
           <div data-gop-y="">
-            <div data-gy-dang-lam="" title="Nạp lại mỗi 60 giây" style={{ fontSize: 11.5, padding: '5px 8px', marginBottom: 8, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: dem.working ? 'var(--fg-2)' : 'var(--fg-3)' }}>
-              {dem.working ? <>🔧 <b>AI đang làm:</b> {dem.dangLam.join(' · ') || `${dem.working} việc`}</> : 'AI đang rảnh'}
+            <div data-gy-dang-lam="" data-ky-su={dem.kySu?.ten || undefined} title={`${dem.kySu ? `Kỹ sư AI phụ trách góp ý ${ten}: ${dem.kySu.ten}${dem.kySu.tat ? ' (đang tắt)' : ''} · ` : ''}nạp lại mỗi 60 giây`} style={{ fontSize: 11.5, padding: '5px 8px', marginBottom: 8, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: dem.working ? 'var(--fg-2)' : 'var(--fg-3)' }}>
+              {dem.working ? <>🔧 <b>{chuDaiKySu(dem).nhan}</b> {dem.dangLam.join(' · ') || `${dem.working} việc`}</> : chuDaiKySu(dem).nhan}
             </div>
             {tab === 'gui' ? <FormGopY onGui={daGui} /> : tab === 'hoi-dap' ? <CuaToi ds={hoi} onNap={nap} trong="Chưa có câu hỏi nào — chọn Loại: Câu hỏi khi gửi." /> : tab === 'viec-giao' && hg ? <DsViecGiao hg={hg} /> : <CuaToi ds={ds} onNap={nap} />}
           </div>

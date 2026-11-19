@@ -16,5 +16,7 @@ export async function taiAnhGopY(dataUrl: string) { return hom.taiAnh(await getC
 export async function xoaAnhGopY(_url: string): Promise<{ ok: boolean }> { return { ok: true }; }
 export async function guiGopY(input: Parameters<typeof hom.guiGopY>[2]) { return hom.guiGopY(DU_AN, await getCurrentUser(), input); }
 export async function dsGopYCuaToi() { return hom.dsGopYCuaToi(DU_AN, await getCurrentUser()); }
+/** Số cho nút 💬 + tên kỹ sư phụ trách (Vinh, đọc sổ SOUL) cho dải đầu hòm — góp ý #1673. */
+export async function demGopY() { return hom.demGopY(DU_AN, await getCurrentUser()); }
 export async function docTraoDoi(taskId: number) { return hom.docTraoDoi(DU_AN, await getCurrentUser(), taskId); }
 export async function guiTraoDoi(input: Parameters<typeof hom.guiTraoDoi>[2]) { return hom.guiTraoDoi(DU_AN, await getCurrentUser(), input); }

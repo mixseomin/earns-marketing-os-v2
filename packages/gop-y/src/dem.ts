@@ -19,8 +19,16 @@ export type DemGopY = {
   can_y_kien: number;
   /** id các card đó (đánh dấu trong tab Của tôi) */
   choYKien: number[];
+  /** kỹ sư AI phụ trách hòm (tên từ SOUL.md, tat = đang tắt trên bảng nhân sự) — dải đầu hòm "Khôi đang rảnh" (góp ý #1673) */
+  kySu?: { ten: string; tat: boolean } | null;
 };
 export const DEM_RONG: DemGopY = { working: 0, dangLam: [], can_y_kien: 0, choYKien: [] };
+/** Chữ dải đầu hòm: "<tên> đang tắt" / "<tên> đang làm:" / "<tên> đang rảnh"; chưa biết tên → "AI". */
+export function chuDaiKySu(dem: DemGopY): { nhan: string; tat: boolean } {
+  const ten = dem.kySu?.ten || 'AI';
+  if (dem.kySu?.tat && !dem.working) return { nhan: `⏸ ${ten} đang tắt`, tat: true };
+  return { nhan: dem.working ? `${ten} đang làm:` : `🤖 ${ten} đang rảnh`, tat: false };
+}
 
 const MO = new Set(['pending', 'claimed', 'submitted', 'broken']);
 /** Cờ hỏi rõ ràng: kỹ sư mở tin bằng "❓" khi hỏi người báo. */

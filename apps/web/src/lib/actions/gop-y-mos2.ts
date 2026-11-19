@@ -8,7 +8,7 @@ import * as hom from '@mos2/gop-y/server';
 import { headers } from 'next/headers';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
-import { boLocNguon } from '@/lib/gop-y-loc-nguon';
+import { boLocNguon, noiDangXem } from '@/lib/gop-y-loc-nguon';
 import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture';
 
 export type TinTraoDoi = hom.TinTraoDoi;
@@ -28,7 +28,9 @@ const ghiTrangThai: hom.TuyChon = {
 };
 async function tuyChonDoc(): Promise<hom.TuyChon> {
   const h = await headers(); // nguồn theo nơi đang xem: mos2 / etp / castle (lib/gop-y-loc-nguon.ts)
-  return { ...ghiTrangThai, nguoiMay: NGUOI_MAY, locNguon: boLocNguon(h.get('host'), h.get('referer')) };
+  // castle.on.tc nằm trong hòm mos2 nhưng do Thắng xử (SOUL thang runner castle-gop-y) → dải đầu hòm + rung theo Thắng, không theo Đạt (góp ý #1673)
+  const kySu = noiDangXem(h.get('host'), h.get('referer')) === 'castle.on.tc' ? 'thang' : undefined;
+  return { ...ghiTrangThai, nguoiMay: NGUOI_MAY, locNguon: boLocNguon(h.get('host'), h.get('referer')), kySu };
 }
 
 export async function guiGopYMos2(input: { loai: string; noiDung: string; trang: string; anhUrls: string[]; nguCanh?: string; hom?: string }) {

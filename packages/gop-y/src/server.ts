@@ -27,6 +27,8 @@ export type TuyChon = {
   choPhepGui?: boolean;
   /** chỉ lấy card có source_url khớp / không khớp mẫu regex Postgres */
   locNguon?: { mau: string; khop: boolean };
+  /** kỹ sư phụ trách khác KY_SU_HOM của hòm (vd castle.on.tc nằm trong hòm mos2 nhưng do 'thang' xử) */
+  kySu?: string;
   /** admin thấy thêm card có người gửi là máy (vd 'may-quet', 'claude') */
   nguoiMay?: string[];
   /** ghi trạng thái theo đường của app (thay datTrangThai/henHomNay mặc định) */
@@ -137,8 +139,18 @@ const laNguoi = (me: Nguoi) => {
 };
 
 /** Kỹ sư CLI phụ trách hòm đang chạy một lượt? Đọc dòng cuối nhật ký nhịp <CTY_DATA_DIR>/nhip/<người>.json (bộ điều phối iMac đẩy về box3). */
-function kySuDangChay(duAn: string): string | null {
-  const nguoi = KY_SU_HOM[duAn]; return nguoi ? nhipDangChay(nguoi) : null;
+function kySuDangChay(duAn: string, o?: TuyChon): string | null {
+  const nguoi = o?.kySu || KY_SU_HOM[duAn]; return nguoi ? nhipDangChay(nguoi) : null;
+}
+/** Tên + bật/tắt của kỹ sư từ SỔ KỸ SƯ: <CTY_APP_DIR>/cong-ty/nhan-su/<id>/SOUL.md dòng "ten:" + <CTY_DATA_DIR>/nhip-chinh.json[id].bat (chấm xanh cột Tự làm). */
+export function kySuPhuTrach(nguoi: string | undefined | null): { ten: string; tat: boolean } | null {
+  if (!nguoi || !/^[a-z0-9-]+$/.test(nguoi)) return null;
+  let ten = '';
+  try { ten = fs.readFileSync(path.join(process.env.CTY_APP_DIR || '/opt/cty', 'cong-ty', 'nhan-su', nguoi, 'SOUL.md'), 'utf8').match(/^ten:\s*(.+?)\s*$/m)?.[1] ?? ''; } catch { /* máy không có sổ */ }
+  if (!ten) return null;
+  let tat = false;
+  try { tat = JSON.parse(fs.readFileSync(path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip-chinh.json'), 'utf8'))?.[nguoi]?.bat === false; } catch { /* không có tệp → coi là bật */ }
+  return { ten, tat };
 }
 function nhipDangChay(nguoi: string): string | null {
   const thu = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip');
@@ -186,11 +198,11 @@ export async function demGopY(duAn: string, me: Nguoi | null, o?: TuyChon): Prom
     ORDER BY updated_at DESC LIMIT 20`);
   const lam = (r as unknown as Array<{ id: number; title: string; updated_at: string | Date }>)
     .filter((x) => conTrongTran(new Date(x.updated_at).toISOString())).map((x) => `#${x.id} ${String(x.title ?? '').slice(0, 60)}`);
-  const luot = kySuDangChay(duAn);
+  const luot = kySuDangChay(duAn, o);
   // lượt kỹ sư thường là chính card claimed → chỉ cộng thêm khi không có card, hoặc là việc giao thẳng (ngoài hòm)
   const dangLam = luot && (!lam.length || /^việc giao/.test(luot)) ? [...lam, luot] : lam;
   const cho = (await dsGopYCuaToi(duAn, me, o)).filter((b) => b.choYKien);
-  return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id) };
+  return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id), kySu: kySuPhuTrach(o?.kySu || KY_SU_HOM[duAn]) };
 }
 
 export async function docTraoDoi(duAn: string | string[], me: Nguoi | null, taskId: number): Promise<TinTraoDoi[]> {

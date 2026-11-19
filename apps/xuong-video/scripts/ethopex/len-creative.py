@@ -116,6 +116,13 @@ EOF'""", timeout=3600)
     r = sh(f"""ssh {B} '. /root/.secrets/spy.env; psql "$DATABASE_URL" -tA -F"\t" -c "select id, ten, url from ethopex_content where id in ({ids})"'""")
     for l in r.stdout.splitlines():
         i, t, u = l.split("\t"); pm[i] = {"ten": t.replace("（DUBBED）", "").replace("(Doblado)", "").strip(), "link": u}
+    # PHIM KHÔNG CÓ TRONG KHO SPY (19/11/2026: American Sniper 49428 — phim studio #7936 thiếu kinh_thanh.qc.link → cổng studio chặn creative #111307): tên + link lấy
+    # từ etp.phim của nhà (đồng bộ từ Ethopex / trang workspace), không để phim studio thiếu sản phẩm
+    thieu = [x for x in ids.split(",") if not (pm.get(x) or {}).get("link")]
+    if thieu:
+        r2 = sh(f"""ssh {B} '{ENV}; psql "$DATABASE_URL" -tA -F"\t" -c "select content_id, ten, url from etp.phim where content_id in ({",".join(thieu)}) and url is not null"'""")
+        for l in r2.stdout.splitlines():
+            i, t, u = l.split("\t"); pm[i] = {"ten": (pm.get(i) or {}).get("ten") or t, "link": u}
     sf = os.path.join(D, f"canh-that-studio-{ma}.json"); json.dump({"creative": st, "phim_moi": pm, "dang": dang}, open(sf, "w"), ensure_ascii=False, indent=1)   # dạng thật → studio ghi đúng the_loai (29/10/2026: KT bị ghi cảnh thật)
     subprocess.run(["scp", "-q", sf, f"{B}:/opt/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex/"], check=True)
     print(sh(f"ssh {B} '{ENV}; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/ethopex/ghi-studio-canh-that.mts scripts/ethopex/{os.path.basename(sf)}'", timeout=900).stdout[-200:])

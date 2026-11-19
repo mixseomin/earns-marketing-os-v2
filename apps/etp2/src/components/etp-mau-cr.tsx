@@ -51,7 +51,7 @@ function useLoc(k: string) {
 function BanMauLuoi({ m }: { m: MauCr }) {
   if (!m.ban.length) return <div style={{ aspectRatio: '9 / 16', maxHeight: 300, display: 'grid', placeItems: 'center', background: 'var(--bg-2)', color: MO_SO, fontSize: 11.5, borderRadius: 6 }}>chưa có creative mẫu</div>;
   return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))'   /* MỌI creative mẫu cùng một cỡ (anh 19/11/2026 "ko cho hiển thị nơi to nơi bé") — luôn 3 cột, không giãn theo số bản */, gap: 6 }}>
-    {m.ban.map((b, i) => <div key={i} style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden' }}>
+    {m.ban.map((b, i) => <div key={i} title={b.goi_y} style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: b.vai === 'dung' ? '2px solid rgba(37,99,235,0.9)' : undefined }}>
       {b.video
         ? <video src={b.video} poster={b.anh ?? undefined} controls muted loop playsInline preload="none" onClick={(e) => e.stopPropagation()} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
         : b.anh ? <img src={b.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}

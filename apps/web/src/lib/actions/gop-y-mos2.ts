@@ -35,7 +35,7 @@ async function tuyChonDoc(): Promise<hom.TuyChon> {
 
 export async function guiGopYMos2(input: { loai: string; noiDung: string; trang: string; anhUrls: string[]; nguCanh?: string; hom?: string }) {
   const me = await getCurrentUser(), h = homCua(input.hom);
-  const choPhepGui = !!me && me.role !== 'admin' && h === 'mos2' && laTrangEtp(String(input.trang || '')) && !!(await quyenEtp(me));
+  const choPhepGui = !!me && me.role !== 'admin' && h === 'mos2' && laTrangEtp(String(input.trang || '')) && (await quyenEtp(me));
   return hom.guiGopY(h, me, input, { ...ghiTrangThai, choPhepGui });
 }
 export async function dsGopYCuaToi(homVao?: string) { return hom.dsGopYCuaToi(homCua(homVao), await getCurrentUser(), await tuyChonDoc()); }

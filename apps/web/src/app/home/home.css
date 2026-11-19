@@ -90,7 +90,9 @@
 /* ruột: thẻ Panel của các khối cũ nằm trong ô thì bỏ viền + nền riêng (khung ô đã là viền), bảng có tiêu đề dính */
 .hm-ob [data-comp="ui.Panel"] { border: 0 !important; background: none !important; padding: 0 !important; margin: 0 !important; border-radius: 0 !important; }
 .hm-ob [data-comp="ui.StatsStrip"] { margin-bottom: 0 !important; }
-.hm-ob thead th { position: sticky; top: -8px; background: var(--bg-1); z-index: 1; }
+/* Tiêu đề dính CHỈ cho bảng tự dựng (bảng phủ…). Bảng nhà DataTable (.dt-dau / .dt-scroll) đã tự lo dính tiêu đề + thanh lọc + thanh trang theo khung cuộn gần nhất —
+   ép thêm ở đây làm dòng tiêu đề đè lên thanh tìm kiếm của bảng (anh 20/11/2026, ảnh bảng Lượt đăng). */
+.hm-ob thead th:not(.dt-dau *):not(.dt-scroll *) { position: sticky; top: -8px; background: var(--bg-1); z-index: 1; }
 
 /* đang sửa */
 .hm-sua .hm-o { border-style: dashed; border-color: var(--accent-line, var(--accent)); }

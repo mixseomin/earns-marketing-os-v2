@@ -1424,19 +1424,11 @@ def _xet_luat():
             if int(cid) in _pl_xet:
                 ls.append(L("pl", "PL · phim lỗ 7 ngày", f"Bộ {', '.join(BO_PL)}: phim có 7 ngày đã khép ở bộ đó chi ≥ ${PL_CHI:g} và ROI < {PL_ROI}% → máy tắt camp ≤ ${PL_NS:g} của phim, trừ camp tự lãi 3 ngày (anh 02/11/2026).",
                     _pl_xet[int(cid)], "tat_pl" if int(cid) in vao["tat_pl"] else None))
-            # L7 — ĐANG DỪNG (thay bằng L4 29/10/2026), số chỉ để đối chiếu
-            ls.append(L("l7", "L7 · lỗ đều 7 ngày (ĐANG DỪNG)", f"Đã dừng từ 29/10, thay bằng L4. Số chỉ để đối chiếu: chi ≥ ${L7_CHI:g}, ≥ {L7_NGAY} ngày có chi, ROI < {L7_ROI}%.",
-                [["Ngày có chi (7 ngày đã khép)", f"{len(_x7)} ngày", f"≥ {L7_NGAY}", len(_x7) >= L7_NGAY], ["Chi 7 ngày", f(_c7, "$"), f"≥ ${L7_CHI:g}", _c7 >= L7_CHI], ["ROI 7 ngày", f(_r7, "%"), f"< {L7_ROI}%", _r7 is not None and _r7 < L7_ROI]],
-                None, "luật đang dừng — không làm gì", ap=False))
+            # L7 (dừng 29/10, thay bằng L4) + T7 (dừng 27/10, thay bằng T2): thẻ "ĐANG DỪNG" gỡ 20/11/2026 cùng mục ở sổ luật chung (etp:xung-dot-luat-b2-2011)
             # OFF — tắt camp lỗ lâu
             ls.append(L("off", "OFF · tắt camp lỗ lâu", "Camp đủ 7 ngày tuổi, tiêu > $10 từ trước tới nay mà ROI < −50% → máy tắt (báo Telegram trước một nhịp).",
                 [["Tuổi", f"{tuoi} ngày" if tuoi is not None else "—", f"≥ {TUOI_TAT} ngày", tuoi is not None and tuoi >= TUOI_TAT], ["Chi từ trước tới nay", f(tr["chi"] if tr else 0, "$"), "> $10", bool(tr and tr["chi"] > 10)],
                  ["ROI từ trước tới nay", f(rtr, "%"), "< −50%", rtr is not None and rtr < -50]], "tat" if int(cid) in vao["tat"] else None, lo=rtr is not None and rtr < 0))
-            # T7 — đang dừng
-            a7 = _r7.get(int(cid)) if isinstance(_r7, dict) else None
-            ls.append(L("t7", "T7 · lãi 7 ngày (ĐANG DỪNG)", "Đã dừng từ 27/10, thay bằng T2. Số chỉ để đối chiếu: 7 ngày đã khép lãi < −$1, chi > $5, > 3 ngày bật.",
-                [["Lãi 7 ngày đã khép", f(a7["lai"] if a7 else None, "$"), "< −$1", bool(a7 and a7["lai"] < -1)], ["Chi 7 ngày", f(a7["chi"] if a7 else None, "$"), "> $5", bool(a7 and a7["chi"] > 5)],
-                 ["Ngày bật", f"{a7['ad']} ngày" if a7 else "—", "> 3", bool(a7 and a7["ad"] > 3)]], None, "luật đang dừng — không làm gì", ap=False))
             # TĂNG BẬC / THANG NHÂN BẢN (bộ 2 không đổi ngân sách, mở bản thang)
             spv = (y["chi"] if (KHUNG_DEM and y) else h.get("chi", 0)) / ns * 100 if ns else 0
             dk_tang = [["ROI " + rd(cid).replace("ROI ", ""), f(r, "%"), f"≥ {ROI_TANG}%", r is not None and r >= ROI_TANG],
@@ -1547,7 +1539,7 @@ if JSON:
         if _p.returncode: loi_may.append((0, f"ghi xét luật lỗi: {_p.stderr.strip()[:80]}"))
     except Exception as e:
         loi_may.append((0, f"xét luật lỗi: {str(e)[:80]}"))
-    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_l0": m(tat_l0), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat1": m(tat1), "tat_t8": m(tat_t8), "tat_tv": m(tat_tv), "tat_cx": m(tat_cx), "t1_cho": m(t1_cho), "giu_cuoi": m(giu_cuoi), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "h3": m(h3), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(_dat_ab()), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7), "hoi_g10": m(hoi_g10)}
+    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_l0": m(tat_l0), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat2": m(tat2), "tat1": m(tat1), "tat_t8": m(tat_t8), "tat_tv": m(tat_tv), "tat_cx": m(tat_cx), "t1_cho": m(t1_cho), "giu_cuoi": m(giu_cuoi), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "h3": m(h3), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(_dat_ab()), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "hoi_g10": m(hoi_g10)}
     # SỔ LUẬT CHUNG (apps/web/src/lib/etp-bang-luat.json): mọi danh sách máy luật xuất ra phải có mục ở sổ — thiếu là trang etp / bộ lọc / worker không biết luật đó (gốc vụ G10 01/11/2026)
     _thieu = sorted(k for k in ra_ if k != "luc" and k not in BANG_LUAT["khoa"])
     if _thieu: ra_["loi_may"] = ra_.get("loi_may", []) + [{"id": 0, "chu": f"luật chưa có trong sổ luật chung etp-bang-luat.json: {', '.join(_thieu)}"}]

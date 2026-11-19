@@ -1467,4 +1467,13 @@ export const LUAT = [
   { card: 'phim-cam-quet-2011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'if (cam) return <NhanCam cam={cam} />;', vi: 'etp2: phim cấm khoá nút Mở rộng' },
   { card: 'phim-cam-quet-2011', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<NutMoRong cid={p.content_id} cam={p.cam} />', vi: 'etp2: bảng phim truyền nhãn cấm vào Mở rộng' },
   { card: 'phim-cam-quet-2011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "label: `CẤM — ${p.cam.ly_do ?? 'phim trong sổ cấm'}`", vi: 'etp2: menu phim cấm không có Chạy tự động tới khi lên camp' },
+  // etp:xung-dot-luat-b2-2011 (anh 19/11/2026) — luật chết T7 / L7 / GB / giảm trong ngày / giảm sớm gỡ khỏi sổ luật chung + máy luật thôi xuất khoá của chúng
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: '"gan_t7": m(gan_t7)', vi: 'máy luật không xuất khoá gan_t7 (T7 dừng 27/10)' },
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: '"tat7": m(tat7)', vi: 'máy luật không xuất khoá tat7' },
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'ls.append(L("t7", "T7 · lãi 7 ngày (ĐANG DỪNG)"', vi: 'thẻ xét luật không còn T7 đang dừng' },
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'ls.append(L("l7", "L7 · lỗ đều 7 ngày (ĐANG DỪNG)"', vi: 'thẻ xét luật không còn L7 đang dừng' },
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/etp2/src/lib/etp-bang-luat.json', cam: '"gan_t7":', vi: 'sổ luật etp2 không còn Gần T7' },
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/etp2/src/lib/etp-bang-luat.json', cam: '"giam_som":', vi: 'sổ luật etp2 không còn Giảm sớm' },
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/web/src/lib/etp-bang-luat.json', cam: '"gan_t7":', vi: 'sổ luật web (máy luật đọc) không còn Gần T7' },
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/web/src/lib/etp-bang-luat.json', cam: '"giam_ngay":', vi: 'sổ luật web không còn Giảm trong ngày' },
 ];

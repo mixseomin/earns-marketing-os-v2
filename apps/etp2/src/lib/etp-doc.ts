@@ -59,7 +59,10 @@ export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: str
    *  hạng trong danh sách điểm cao trước · tt = trạng thái trong quy trình phim mới nếu đã vào hàng chờ (poster_ok, da_cat…). ung_vien = dòng chỉ để thấy phim chưa có camp */
   test?: { hang: number; tong: number; diem: number; vi_sao: string; tt: string | null; nhom: string | null; qc_dang: number | null; qc: number | null; page: number | null; qc_tra: string | null } | null; ung_vien?: boolean;
   /** NHẬN PHIM (etp.phim_nhan_v — anh 02/11/2026): người đang giữ quyền lên camp (24 giờ) hoặc đã lên */
-  nhan?: { nguoi: string | null; het_luc: string; trang_thai: string; buoc?: string | null; ghi?: string | null } | null };
+  nhan?: { nguoi: string | null; het_luc: string; trang_thai: string; buoc?: string | null; ghi?: string | null } | null;
+  /** PHIM CẤM (anh 19/11/2026 "các phim bị cấm thì trong này cũng phải show chi tiết"): phim trong sổ xv_khoa_ngoai ethopex_phim_cam (cùng sổ apps/etp/cong.py phim_cam —
+   *  cổng chặn tạo / nhân bản / bật / tăng camp + lên creative). Phim cấm vẫn đủ số camp / creative / tiền như phim thường; null = không cấm */
+  cam?: { luc: string | null; ly_do: string | null } | null };
 export type TrangPhim = { ws: number; nguoi: string | null; tao: string | null; mo_ta: number; cot_truyen: number; nguon: string | null; redirect_url: string | null;
   link_ok: boolean | null; link_loi: string | null; link_luc: string | null; thieu: string[] };
 export type ChamCr = { luc: string; may: string | null; ket: string | null; meta: number | null; afs: number | null; loi: string | null;
@@ -265,6 +268,8 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const qCrInfo = som(run<Record<string, unknown>>(sql`select creative_id, tu, den, lang, cta_dat, tu_choi, video, anh from etp.creative`));
   const qAnhCr = som(run<{ c: number; a: string | null; v: string | null }>(sql`select creative_id c, anh a, video v from etp.anh_cr where anh is not null or video is not null`));
   const qPhInfo = som(run<Record<string, unknown>>(sql`select content_id, ten, the_loai, bo, locale, nguon, nhom_goc, case when thu_vong = 'cat' then thu_luc end moc, thu_vong, thu_ly from etp.phim`));
+  // sổ phim cấm (cùng sổ cong.phim_cam) — đọc nguyên sổ, không lọc phim nào (anh 19/11/2026)
+  const qPhimCam = som(run<{ gia_tri: Record<string, { luc?: string; ly_do?: string }> | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_phim_cam' and jsonb_typeof(gia_tri) = 'object'`));
   const qDoiChay = som(run<{ c: number; n: string }>(sql`select content_id c, count(*) n from etp.camp_ngoai where trang_thai = 'ACTIVE' and content_id > 0 group by 1`));
   const qPhimDoi = som(ngoai ? Promise.resolve([]) : run<{ c: number; ten: string | null }>(sql`select content_id c, max(phim_ten) ten from etp.camp_ngoai where trang_thai = 'ACTIVE' and content_id > 0 group by 1`));
   const qTrangPhim = som(run<Record<string, unknown>>(sql`select content_id, ref_id, nguoi, ten, locale, nguon, redirect_url, mo_ta, cot_truyen, link_ok, link_loi, link_luc::text link_luc, tao::text tao, thieu
@@ -532,6 +537,15 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   for (const [ma, r] of nhTheo) if (!coDong.has(ma))
     phims.push({ content_id: ma, ten: r.ten, the_loai: null, bo: null, locale: r.locale, nguon: r.url && r.url.includes('//') ? r.url.split('/')[2]! : null, nhom_goc: (phInfo.get(ma)?.nhom_goc as string) ?? null, moc: null, doi_chay: 0,
       creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, trang: null, test: null, nhan: { nguoi: r.nguoi, het_luc: r.het_luc, trang_thai: r.trang_thai, buoc: tdTheo.get(ma)?.buoc ?? null, ghi: tdTheo.get(ma)?.ghi ?? null } });
+  // PHIM CẤM (anh 19/11/2026): mọi phim trong sổ ethopex_phim_cam mang nhãn cam {luc, ly_do} — phim đã có dòng (camp nhà / đội / test / nhận) giữ nguyên số liệu;
+  // phim cấm chưa có dòng nào thêm một dòng trống số để lọc "Phim cấm" thấy đủ sổ (màn người / khách không thêm — chỉ nhà)
+  const soCam = (await qPhimCam)[0]?.gia_tri ?? {};
+  const coCam = new Set(phims.map((p) => p.content_id));
+  for (const p of phims) { const v = soCam[String(p.content_id)]; p.cam = v ? { luc: v.luc ?? null, ly_do: v.ly_do ?? null } : null; }
+  if (!ngoai) for (const [k, v] of Object.entries(soCam)) { const ma = n(k); if (!ma || coCam.has(ma)) continue; const i = phInfo.get(ma) ?? {};
+    phims.push({ content_id: ma, ten: (i.ten as string) ?? null, the_loai: (i.the_loai as string) ?? null, bo: (i.bo as string) ?? null, locale: (i.locale as string) ?? null, nguon: (i.nguon as string) ?? null,
+      nhom_goc: (i.nhom_goc as string) ?? null, moc: i.moc ? String(i.moc) : null, doi_chay: doiChay.get(ma) ?? 0, creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 },
+      trang: null, test: null, nhan: null, cam: { luc: v?.luc ?? null, ly_do: v?.ly_do ?? null } }); }
   const [soNgay, tatNgay, boRow] = await qSoNgay;
   const [pheuR, dcR, slR, tvR, tvCr, ttR, mrR, dcyR, ketR] = await qSanXuat;
   // gộp: bản thư viện đã lên Ethopex (creative_id) mang số chạy của creative đó; bản chưa lên đứng riêng

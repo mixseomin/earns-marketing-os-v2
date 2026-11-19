@@ -310,6 +310,23 @@ def cua(duong, body):
         ra.append((l, ve))
     return ra
 
+def phim_cam_lenh(duong, body, q=None):
+    """lệnh mang creative (tạo creative /creatives…, gắn / đổi creative vào ad /campaigns/update ads) → lý do chặn phim cấm | None (cong.phim_cam, một hàm đọc sổ)."""
+    if body is None or duong.startswith("/api/v1/report"): return None
+    tao_cr = "/creatives" in duong
+    gan = duong.endswith("/campaigns/update") and isinstance(body, dict) and bool(body.get("ads"))
+    if not tao_cr and not gan: return None
+    s = json.dumps(body); q = q or _q
+    cts = [int(x) for x in re.findall(r'"content_id":\s*"?(\d+)', s)]
+    crs = sorted({int(x) for x in re.findall(r'"creative_id":\s*"?(\d+)', s)})
+    ads = sorted({int(a.get("ad_id")) for a in body.get("ads") or [] if isinstance(a, dict) and str(a.get("ad_id") or "").isdigit()}) if gan else []
+    try:
+        if crs: cts += [int(x) for x in q(f"select content_id from etp.creative where creative_id in ({','.join(map(str, crs))}) and content_id is not null").split() if x.isdigit()]
+        camps = [int(x) for x in q(f"select camp_id from etp.camp where ad_id in ({','.join(map(str, ads))})").split() if x.isdigit()] if ads else []
+    except Exception as e: return f"không đọc được phim của lệnh creative ({str(e)[:80]}) — chặn cho an toàn"
+    if tao_cr and not cts: return None   # lệnh creative không mang phim (đọc / sửa chữ) — không có gì để soát
+    return CG.phim_cam(camps, cts, q=q)
+
 def api(duong, body=None, timeout=90):
     if isinstance(body, (str, bytes)): body = json.loads(body)
     if XEM and body is not None and not duong.startswith("/api/v1/report"): raise NgoaiNha(f"chế độ xem người #{XEM}: chỉ đọc — không gửi {duong}")
@@ -328,6 +345,11 @@ def api(duong, body=None, timeout=90):
     if body is not None and (duong.endswith("/campaigns/facebook") or (duong.endswith("/campaigns/update") and isinstance(body, dict) and body.get("ads"))):
         ly_at = CG.at_sai_dang(re.findall(r'"creative_id":\s*"?(\d+)', json.dumps(body)), q=_q)
         if ly_at: raise CamDangAT(f"{ly_at} — không gửi {duong}")
+    # PHIM CẤM — LÊN / GẮN CREATIVE (anh 19/11/2026 "ko cho mở camp mới, lên creative dưới mọi hình thức"): lệnh tạo creative (/creatives…, kể cả bulk-jobs) và lệnh
+    # gắn / đổi creative vào ad (/campaigns/update ads) soát cùng hàm cong.phim_cam trên phim của CHÍNH lệnh (content_id trong body, phim của creative_id, camp của ad_id).
+    # Tạo / nhân bản / bật / tăng camp đã soát ở cua() → chan_cua. Lỗi đọc → chặn.
+    ly_pc = phim_cam_lenh(duong, body)
+    if ly_pc: raise ChanCua(f"cửa API chặn lên / gắn creative: {ly_pc} — không gửi {duong}")
     if body is not None and isinstance(body, dict) and duong.endswith("/campaigns/update"):   # đặt lại ngân sách camp VỪA TẠO (Ethopex không nhận lúc tạo) → không vượt trần lúc tạo
         cp = body.get("campaign") or {}; cid = int(cp.get("campaign_id") or 0); ns = (cp.get("source_payload") or {}).get("daily_budget")
         if cid in _TRAN_TAO and ns is not None and float(ns) > _TRAN_TAO[cid]:
@@ -432,6 +454,28 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
             finally: _TAO.discard(_cc)
             assert len(_gui_that) == _n0, f"phim cấm lọt tới Ethopex: {_gui_that[_n0:]}"
             print(f"chặn đúng: phim cấm #{_ct} (camp #{_cc}) — bật / bật theo lịch / tăng / nhân bản / ★ ROAS / tạo camp đều chặn dù có vé, không lệnh nào tới Ethopex")
+        # PHIM CẤM — LÊN / GẮN CREATIVE (anh 19/11/2026, phá thử phim 167292 The Dragon's Silly Captive, sổ thật): tạo creative (bulk-jobs / đơn) · gắn creative vào ad
+        # của camp phim cấm · creative của phim cấm gắn vào ad bất kỳ · tạo camp · nhân bản camp phim cấm → chặn, vé không miễn, không lệnh nào tới Ethopex
+        _P = 167292
+        if CG.phim_cam(cts=[_P], q=_q):
+            _n0 = len(_gui_that)
+            _cc = _q(f"select camp_id from etp.camp where content_id = {_P} order by camp_id limit 1")
+            _ad = _q(f"select ad_id from etp.camp where content_id = {_P} and ad_id is not null order by camp_id limit 1")
+            _cr = _q(f"select creative_id from etp.creative where content_id = {_P} order by creative_id limit 1")
+            _ca = [("/api/v1/creatives/bulk-jobs", {"items": [{"content_id": _P, "name": "TU KIEM PHIM CAM"}]}),
+                   ("/api/v1/creatives", {"content_id": _P, "name": "TU KIEM PHIM CAM"}),
+                   ("/api/v1/campaigns/facebook", {**_pl("dp1 X EN - creative #2"), "campaign": {"source_payload": {"name": "dp1 X", "daily_budget": 1}, "ad_groups": [{"source_payload": {}, "ads": [{"content_id": _P, "creative_id": 2}]}]}})]
+            if _cc: _ca.append(("/api/v1/campaigns/facebook", _pl(f"X (nhan ban 1 cua {_cc})")))
+            if _ad: _ca.append(("/api/v1/campaigns/update", {"ads": [{"ad_id": int(_ad), "creative_id": 1}]}))
+            if _cr: _ca.append(("/api/v1/campaigns/update", {"ads": [{"ad_id": 1, "creative_id": int(_cr)}]}))
+            for _d, _b in _ca:
+                try: api(_d, _b); raise SystemExit(f"LỌT PHIM CẤM #{_P}: {_d} {json.dumps(_b)[:120]}")
+                except ChanCua as e: assert "sổ cấm" in str(e), e
+            assert len(_gui_that) == _n0, f"phim cấm #{_P} lọt tới Ethopex: {_gui_that[_n0:]}"
+            assert phim_cam_lenh("/api/v1/creatives/bulk-jobs", {"items": [{"content_id": 1}]}, q=lambda s: "") is None, "phim thường phải qua"
+            assert "chặn cho an toàn" in phim_cam_lenh("/api/v1/campaigns/update", {"ads": [{"ad_id": 1, "creative_id": 5}]}, q=lambda s: (_ for _ in ()).throw(RuntimeError("x"))), "lỗi đọc phải chặn"
+            print(f"chặn đúng: phim cấm #{_P} — lên creative / gắn creative vào ad / tạo camp / nhân bản ({len(_ca)} ca) đều chặn dù có vé, không lệnh nào tới Ethopex")
+        else: print(f"⚠ phim #{_P} không còn trong sổ cấm — bỏ ca phá thử lên creative")
     finally:
         globals().update(_goi=_goc_goi, _ghi_cua=_goc_ghi); CG.doc_cau_hinh, CG.ve_hop_le = _goc_ch, _goc_ve; _TAO.discard(999999997); os.environ.pop("ETP_VE", None)
     # CAMP MỚI $1 Ở CỔNG (phá thử, KHÔNG gửi gì lên Ethopex — mọi ca đều phải bị chặn trước khi gửi)

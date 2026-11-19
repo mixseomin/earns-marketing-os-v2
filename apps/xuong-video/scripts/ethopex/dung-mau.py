@@ -433,6 +433,15 @@ def mot(ma, cid, xem=False, ban=1):
         if b not in ("xong", "loi"): dang_o[0] = b
         if not xem: ghi_tt(ma, cid, dang_o[0] if b == "loi" else b, t, g, **k)
     vnd = 0
+    # PHIM CẤM (anh 19/11/2026 "ko cho mở camp mới, lên creative dưới mọi hình thức"): không dựng creative cho phim trong sổ ethopex_phim_cam — trước bước tốn AI.
+    # Đọc bằng xuong.phim_cam → cong.phim_cam (một hàm); lỗi đọc → coi như cấm (an toàn trước).
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import xuong as _XG
+    try: _cam = _XG.phim_cam([cid]).get(int(cid))
+    except Exception as e: _cam = f"không đọc được sổ phim cấm ({str(e)[:100]}) — dừng cho an toàn"
+    if _cam:
+        if not xem: ghi_tt(ma, cid, "tai_tap", "dung", f"PHIM CẤM: {_cam}"[:300])
+        print(f"✗ phim #{cid} cấm — không dựng: {_cam[:160]}", flush=True)
+        return []
     try:
         tt("tai_tap", g="tải 3 tập miễn phí + trích khung")
         p, lang, ten, tm = ngu_canh(cid)

@@ -181,9 +181,10 @@ function CayMau({ rows, chon, setChon, mo, setMo }: { rows: MauCr[]; chon: strin
   const conCua = (m: MauCr) => (m.loai === 'dang' ? rows.filter((x) => x.loai === 'bien_the' && x.cha === m.ma) : []);
   const doiMo = (k: string) => setMo(mo.includes(k) ? mo.filter((x) => x !== k) : [...mo, k]);
   const so = (n: number) => <span style={{ color: MO_SO, fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>{n}</span>;
-  return <div style={{ width: rong, flex: 'none', position: 'sticky', top: 8, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 24px)', overflowY: 'auto', borderRight: '1px solid var(--line)', paddingRight: 6, marginRight: 12 }}>
-    <span onPointerDown={keo} onDoubleClick={() => { setRong(280); try { localStorage.removeItem('etp-mau-cay-rong'); } catch { /* */ } }} title="kéo để đổi rộng · nhấp đúp về mặc định"
-      style={{ position: 'absolute', top: 0, right: -4, width: 8, height: '100%', cursor: 'col-resize', zIndex: 2 }} />
+  // CỘT DÍNH NGAY DƯỚI HÀNG TAB (--etp-dinh) và CAO TRỌN MÀN (anh 19/11/2026 "cho resize toàn bộ cột đó. Fix cả sticky của nó"): trước dính ở top 8 → chui dưới hàng tab,
+  // và cao bằng nội dung → tay kéo chỉ dài bằng cây. Nay khung ngoài cố định cao, cây cuộn bên trong, tay kéo là dải dọc suốt mép phải (nằm ngoài vùng cuộn).
+  return <div data-cot="cay-mau" style={{ width: rong, flex: 'none', position: 'sticky', top: 'calc(var(--etp-dinh, 0px) + 6px)', alignSelf: 'flex-start', height: 'calc(100vh - var(--etp-dinh, 0px) - 18px)', marginRight: 12 }}>
+    <div style={{ height: '100%', overflowY: 'auto', borderRight: '1px solid var(--line)', paddingRight: 6 }}>
     <Cay label="cây mẫu creative">
       <NutCay ten={<b>Tất cả mẫu</b>} phai={so(rows.length)} chon={!chon} onChon={() => setChon('')} />
       {[...theoTl].map(([tl, nhom]) => { const kt = `t:${tl}`, tong = [...nhom.values()].reduce((a, x) => a + x.length, 0);
@@ -202,6 +203,10 @@ function CayMau({ rows, chon, setChon, mo, setMo }: { rows: MauCr[]; chon: strin
             </NutCay>; })}
         </NutCay>; })}
     </Cay>
+    </div>
+    <span onPointerDown={keo} onDoubleClick={() => { setRong(280); try { localStorage.removeItem('etp-mau-cay-rong'); } catch { /* */ } }} title="kéo để đổi rộng · nhấp đúp về mặc định"
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(96,165,250,0.35)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+      style={{ position: 'absolute', top: 0, right: -5, width: 10, height: '100%', cursor: 'col-resize', zIndex: 3, borderRadius: 3 }} />
   </div>;
 }
 
@@ -258,7 +263,7 @@ export function TabMauCr() {
   return (<div style={{ display: 'flex', alignItems: 'flex-start' }}>
     <CayMau rows={[...locRows].sort((a, b) => tl1(a) - tl1(b) || tang2(a) - tang2(b) || manh(b) - manh(a))} chon={cayChon} setChon={setCayChon} mo={cayMo} setMo={setCayMo} />
     <div style={{ flex: 1, minWidth: 0 }}>
-    <DataTable rows={rows} columns={cot} getRowKey={(m) => `${m.loai}:${m.ma}`} persistKey="etp-mau-cr" minWidth={1500} pageSize={100}
+    <DataTable rows={rows} columns={cot} getRowKey={(m) => `${m.loai}:${m.ma}`} persistKey="etp-mau-cr" minWidth={1500} pageSize={100} thanhDinh="var(--etp-dinh, 0px)"
       locTuDong={false}   /* thanh lọc tự động của DataTable tách sai cột nhiều giá trị (Thể loại, Dùng cho) và trùng chip ở trên → một bộ lọc */
       card={{ render: (m) => <The m={m} />, minWidth: 340 }} defaultView="card"
       groupBy={{ value: (m) => m.nhom_tk, label: (v, rs) => <span style={{ fontWeight: 700 }}>{v} <span style={{ color: MO_SO, fontWeight: 400 }}>· {rs.filter((x) => x.loai === 'dang').length} dạng · {rs.filter((x) => x.loai === 'cong_thuc').length} công thức · {rs.filter((x) => x.loai !== 'dang' && x.loai !== 'cong_thuc').length} format</span></span> }}

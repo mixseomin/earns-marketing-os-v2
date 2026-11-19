@@ -364,6 +364,10 @@ const LUAT = [
   { card: 1702, tep: 'apps/etp2/src/app/globals.css', mot: 'tr.dt-nhom:not(.etp-cay tr) > td { background: color-mix(in srgb, var(--accent) 16%, var(--bg-1)) !important;', vi: 'dòng nhóm bảng etp2 = tiêu đề phân nhóm: nền xanh đặc khác dòng dữ liệu (anh 19/11/2026 "Heading group phải format khác đi")' },
   { card: 1702, tep: 'apps/etp2/src/app/globals.css', mot: 'tr.dt-nhom:not(.etp-cay tr) > td:first-child { color: var(--accent) !important; box-shadow: inset 3px 0 0 var(--accent), 1px 0 0 var(--line) !important;', vi: 'tên nhóm chữ xanh + vạch xanh mép trái — PHẢI !important vì ô cột dính có box-shadow inline từ DataTable' },
   { card: 1702, tep: 'apps/etp2/src/app/globals.css', mot: 'padding-top: 7px !important; padding-bottom: 7px !important; }', vi: 'dòng nhóm cao hơn — !important để thắng padding inline của DataTable' },
+  { card: 1711, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "return cuoi && cuoi.viec === 'tang' && laTay(cuoi.ai) ? cuoi : null;", vi: 'cờ nâng tay = lần tăng / giảm GẦN NHẤT là TĂNG do người; máy tăng / hạ bậc kế thì tự bỏ (anh 19/11/2026 "Nếu sau đó tự tăng bậc tiếp theo rule thì bỏ tay đi")' },
+  { card: 1711, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "const laTay = (ai: string | null) => !!ai && !/^(máy|\\?)/.test(ai.trim());", vi: 'dòng do "máy …" (luật) ghi không tính là tay' },
+  { card: 1711, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<CoTay ls={ls} />', vi: 'ô ngân sách camp (BacCamp, dùng ở cây / bảng / điện thoại) hiện cờ ✋ khi đang nâng bậc tay (anh "phải có 1 cờ trên camp đó là đang nâng bậc = tay")' },
+  { card: 1711, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'data-o="co-nang-tay"', vi: 'cờ nâng tay có mốc data-o để kiểm' },
 ];
 
 const loi = [];

@@ -335,6 +335,19 @@ function DauCamp({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ten'> }) {
     <span title={c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', userSelect: 'all' }}>{c.ten ?? '—'}</span></div>;
 }
 // DÒNG THỜI GIAN ĐỔI BẬC (mới nhất trên) — thẻ Lịch sử bậc 30 ngày (ô ngân sách / ngăn camp) và thẻ đổi bậc trong một ngày (ô ngày của camp, #1507)
+// CỜ NÂNG TAY (#1711 anh 19/11/2026 "Bấm nâng bậc = tay thì phải có 1 cờ trên camp đó… Nếu sau đó tự tăng bậc tiếp theo rule thì bỏ tay đi"):
+// suy thẳng từ lịch sử bậc (etp.nhat_ky, cột ai) — lần tăng / giảm GẦN NHẤT là TĂNG do người (không phải "máy …") thì camp đang ở bậc nâng tay.
+// Máy luật tăng / hạ bậc kế tiếp → dòng mới nhất là của máy → cờ tự bỏ, không cần ai gỡ. Dấu ✋ gọn, chữ giải thích nằm ở rê chuột (YDNI mục 8).
+const laTay = (ai: string | null) => !!ai && !/^(máy|\?)/.test(ai.trim());
+function nangTay(ls?: DuLieuEtp['lsBac'][number]) {
+  const cuoi = [...(ls ?? [])].reverse().find((x) => x.viec === 'tang' || x.viec === 'giam');
+  return cuoi && cuoi.viec === 'tang' && laTay(cuoi.ai) ? cuoi : null;
+}
+function CoTay({ ls }: { ls?: DuLieuEtp['lsBac'][number] }) {
+  const x = nangTay(ls); if (!x) return null;
+  return <span data-o="co-nang-tay" aria-label="đang nâng bậc tay" title={`Đang ở bậc NÂNG TAY: $${x.truoc ?? '?'} → $${x.sau ?? '?'} lúc ${gioVn(x.luc)} (${x.ai}). Máy luật tự tăng / hạ bậc kế tiếp thì cờ tự bỏ.`}
+    style={{ border: '1px solid #f59e0b', color: '#f59e0b', borderRadius: 5, padding: '0 3px', fontSize: 11, lineHeight: '15px', cursor: 'help', flex: 'none' }}>✋</span>;
+}
 function DongBac({ ls }: { ls: DuLieuEtp['lsBac'][number] }) {
   return <DongMoc gon rong="Chưa đổi bậc lần nào trong 30 ngày." ds={[...ls].reverse().map((x) => { const [ten, mau] = VIEC_BAC[x.viec] ?? [x.viec, '#94a3b8'];
     return { ten, mau, so: x.truoc && x.sau ? `$${x.truoc} → $${x.sau}` : x.sau ? `$${x.sau}` : '', luc: gioVn(x.luc), chu: x.luat ? luatThuong(x.luat) : null, t: x.ai }; })} />;
@@ -985,6 +998,7 @@ function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'tran
       <span style={{ fontVariantNumeric: 'tabular-nums', color: `rgba(196,181,253,${(0.55 + 0.45 * (bac / (BAC_NS.length - 1))).toFixed(2)})`, fontWeight: bac >= 4 ? 700 : 500, width: 30, flex: 'none', textAlign: 'right' }}>${c.ngan_sach}</span>{/* bậc càng cao chữ càng sáng (anh 26/10/2026); màu tím nhẹ, bậc thấp không chìm (anh 29/10/2026, #1482) */}
       {/* bỏ thước ROI + dấu luật sau số $ (anh 29/10/2026 "ẩn cái này đi. Vướng + khó nhìn", rồi "bỏ cái này đi cơ mà?" — là cả cái thước): ROI hôm nay đã có cột 'nay', luật có cột Luật */}
     </span>
+    <CoTay ls={ls} />{/* #1711: cờ "đang nâng bậc tay" — máy tự tăng / hạ bậc kế thì tự bỏ */}
     {sua ? <SuaCamp c={c} /> : null}
     {dk ? <DauCho ds={dkCtx!.cho.get(c.camp_id)} /> : null}
     {dk && c.camp_id > 0 ? <DieuKhienCamp c={c} /> : null}
@@ -2393,7 +2407,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, dongCr, 
     { key: 'tuoi', header: 'Tuổi', width: 52, title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: tuoiTitle, cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)),
       // NÚT ＋ MỞ RỘNG ở dòng PHIM, thẳng một cột (anh 04/11/2026 "phải thẳng cột") — dòng tổng bảng (nhiều phim) không có
       total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <NutMoRong cid={k} /> : null; } },   // ＋ thẳng cột trong cột Tuổi (hẹp 52); đồng hồ các đợt ở ô TT ngay bên trái
-    { key: 'ns', header: 'Ngân sách', align: 'left', width: 86, loc: 'so', title: 'ngân sách $/ngày — rê xem lịch sử bậc', cell: (c) => <BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach,
+    { key: 'ns', header: 'Ngân sách', align: 'left', width: 106, loc: 'so', title: 'ngân sách $/ngày — rê xem lịch sử bậc', cell: (c) => <BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach,
       total: (rs) => { const t = rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0);   // $0 mờ · ≥ $20 đậm sáng (anh 28/10/2026)
         return <span title="tổng ngân sách/ngày camp đang bật" style={{ display: 'inline-block', width: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: t >= 20 ? 'var(--fg)' : 'var(--fg-2)', fontWeight: t >= 20 ? 700 : 400, opacity: t ? 1 : 0.45 }}>${t}</span>; } },   // cùng ô 30px canh phải với $ của camp (anh 29/10/2026 #1476 "thò thụt")
     // CỘT ⏳ NGAY TRƯỚC LUẬT (anh 11/11/2026 #1559): bao lâu nữa máy làm theo thẻ luật đang hiện, dạng h:mm — trước in ⏳27p dính sau chip luật

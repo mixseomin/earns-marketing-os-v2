@@ -8,6 +8,7 @@ import { join } from 'node:path';
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
   { card: 1516, tep: 'apps/etp2/src/components/etp-view.tsx', co: "(khK.den >= du.nay && (c.trang_thai === 'ACTIVE' || c.nay.chi > 0))", cam: "c.trang_thai === 'ACTIVE' || c.nay.chi > 0 || c.qua.chi > 0 ||", vi: 'kỳ không chứa hôm nay thì camp đang chạy / chỉ chi hôm nay, hôm qua KHÔNG được lọt vào cây (anh "giờ đang show all time")' },
+  { card: 1516, tep: 'apps/etp2/src/components/etp-view.tsx', co: "(khCamp.get(c.camp_id)?.chi ?? 0) > 0 || (khCamp.get(c.camp_id)?.thu ?? 0) > 0 ||", vi: 'camp chỉ có doanh thu về trễ trong kỳ vẫn nằm trong cây — tổng lãi bảng khớp hero kỳ' },
   { card: 1516, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'tenKy={khNhan} kyCay={kh === \'tat_ca\' ? undefined : khK} />', vi: 'cây camp nhận kỳ đang chọn' },
   { card: 1516, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'for (let d = den; d >= kyTu && ds.length < 6; d = ngayCong(d, -1)) ds.unshift(d);', vi: 'cột ngày của cây = các ngày trong kỳ đã chọn, không cứng 6 ngày gần nhất' },
   { card: 1516, tep: 'apps/etp2/src/components/etp-view.tsx', co: "...(!coNay ? [] : [{ key: 'nay', header: 'nay'", vi: 'cột ROI nay chỉ hiện khi kỳ chứa hôm nay' },

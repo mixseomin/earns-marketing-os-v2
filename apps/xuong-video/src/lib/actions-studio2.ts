@@ -89,11 +89,12 @@ export async function toiS2(): Promise<{ id: number; ten: string; role: string; 
 
 export type PhimS2 = { id: number; ten: string; loai: string; updated_at: string; anh: string | null; cua_toi: boolean; chu: string; tap_tom: { id: number; so: number; ten: string; so_canh: number }[] };
 /** Danh sách phim cho menu của Studio 2 — một câu SQL nhẹ (thay cho dsNhomTuDo tải cả ~7.800 phim rồi lọc). Quản trị: chưa gõ → phim không phải creative
- *  quảng cáo hàng loạt + phim do người trong đội tạo; gõ tên → tìm mọi loại. Người dùng thường: chỉ phim của mình. Bỏ template, bản lưu trữ, máy dựng. */
-export async function dsPhimS2(tim: string): Promise<{ ds: PhimS2[]; tong: number }> {
+ *  quảng cáo hàng loạt + phim do người trong đội tạo; gõ tên → tìm mọi loại. Người dùng thường (và quản trị khi chiCuaToi): chỉ phim chính họ tạo.
+ *  Bỏ template, bản lưu trữ, máy dựng. */
+export async function dsPhimS2(tim: string, chiCuaToi = false): Promise<{ ds: PhimS2[]; tong: number }> {
   const db = getDb(), me = await getCurrentUser();
   if (!db || !me || !(await laAdmin())) return { ds: [], tong: 0 };
-  const t = String(tim ?? '').trim(), mau = `%${t.replace(/[%_\\]/g, (c) => `\\${c}`)}%`, quanTri = me.role === 'admin';
+  const t = String(tim ?? '').trim(), mau = `%${t.replace(/[%_\\]/g, (c) => `\\${c}`)}%`, quanTri = me.role === 'admin' && !chiCuaToi;   // chiCuaToi: quản trị bật "xem như người mới" trên Studio 2 → chỉ phim chính họ tạo, như một người trong đội
   const loc = quanTri ? (t ? sql`p.ten ILIKE ${mau}` : sql`(p.loai <> 'quang_cao' OR p.owner_user_id IS NOT NULL)`) : (t ? sql`p.owner_user_id = ${me.id} AND p.ten ILIKE ${mau}` : sql`p.owner_user_id = ${me.id}`);
   try {
     const r = (await db.execute(sql`SELECT p.id, p.ten, p.loai, p.updated_at, p.owner_user_id, count(*) OVER () AS tong,

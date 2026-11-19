@@ -85,10 +85,15 @@ const COT: DataColumn<SpNut>[] = [
 
 /** Tài khoản đứng sau shop — MỘT cách hiện cho mục lục, cây, thẻ, drawer. Kho MOS2 → EntityRef (mở drawer tài khoản);
  *  kho Directus (earns.accounts) → link sang bản ghi ở as.on.tc, ghi rõ kho để không nhầm id. */
-const TkRef = ({ tk }: { tk: TaiKhoan }) => (tk.nguon === 'mos2'
-  ? <EntityRef kind="account" id={Number(tk.id)} label={`#${tk.id} ${tk.handle}`} />
-  : <a {...extLinkProps(tk.url ?? '#')} onClick={(e) => e.stopPropagation()} title="tài khoản trong kho Directus (as.on.tc)"
-      style={{ color: 'var(--fg-2)' }}>{tk.handle} <span style={{ fontSize: 10, color: 'var(--fg-4)' }}>Directus ↗</span></a>);
+const TkRef = ({ tk }: { tk: TaiKhoan }) => (<>
+  {tk.nguon === 'mos2'
+    ? <EntityRef kind="account" id={Number(tk.id)} label={`#${tk.id} ${tk.handle}`} />
+    : tk.nguon === 'cong'
+      ? <a href={tk.url ?? '/shop?tab=thanh_toan'} onClick={(e) => e.stopPropagation()} title="cổng thanh toán của cửa hàng nhà — bấm mở ở trang Shop › Thanh toán"
+          style={{ color: 'var(--fg-2)' }}>{tk.handle}</a>
+      : <a {...extLinkProps(tk.url ?? '#')} onClick={(e) => e.stopPropagation()} title="tài khoản trong kho Directus (as.on.tc)"
+          style={{ color: 'var(--fg-2)' }}>{tk.handle} <span style={{ fontSize: 10, color: 'var(--fg-4)' }}>Directus ↗</span></a>}
+  {tk.ghi && <span style={{ fontSize: 10, color: 'var(--fg-4)' }}>{tk.ghi}</span>}</>);
 
 /** Logo nền tảng của shop (Etsy, Gumroad, KDP…) — /api/platform-icon theo khoá nền tảng; shop MOS (mellowstep) lấy favicon tên miền. */
 const Logo = ({ s, co = 16 }: { s: ShopNut; co?: number }) => (s.loai === 'mos' || s.loai === 'san'
@@ -198,7 +203,7 @@ function ShopChiTiet({ s, sp, onMo, kySocial }: { s: ShopNut; sp: SpNut[]; onMo:
           {s.loi && <Pill label={s.loi} color="var(--bad)" size="xs" tone="soft" uppercase={false} mono={false} />}
           {s.tk && <span style={{ fontSize: 11.5, ...phu, display: 'inline-flex', gap: 4, alignItems: 'center' }}>
             tài khoản <TkRef tk={s.tk} />{s.tk.email && <span>· {s.tk.email}</span>}</span>}
-          {!s.tk && s.loai !== 'san' && <span style={{ fontSize: 11.5, color: 'var(--warn)' }}>chưa có tài khoản trong vault</span>}
+          {!s.tk && <span style={{ fontSize: 11.5, color: 'var(--warn)' }}>{s.tkGoiY ? `tài khoản: ${s.tkGoiY}` : 'chưa có tài khoản trong vault'}</span>}
           {s.tien != null && <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{thu(s.tien, s.ky)}</span>}
         </div>
         <div style={{ fontSize: 11.5, ...phu }}>{`${s.sp.length} sản phẩm${dong ? ` · ${dong}` : ''}${s.ghiChu ? ` · ${s.ghiChu}` : ''}`}</div>
@@ -245,7 +250,7 @@ export function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: ()
   const laApp = s.khoa.startsWith('app-store:') && !!x.idSo;   // shop App Store (doc.ts: khoa = '<platform>:<store>')
   const dong: [string, React.ReactNode][] = [
     ['Shop', <><span style={{ display: 'inline-flex', verticalAlign: 'middle', marginRight: 6 }}><Logo s={s} /></span>{s.ten}{s.url && <> · <a {...extLinkProps(s.url)} style={{ color: 'var(--accent)' }}>mở shop ↗</a></>}</>],
-    ['Tài khoản', s.tk ? <><TkRef tk={s.tk} />{s.tk.email && <span style={phu}> · {s.tk.email}</span>}</> : <span style={{ color: 'var(--warn)' }}>chưa có trong vault</span>],
+    ['Tài khoản', s.tk ? <><TkRef tk={s.tk} />{s.tk.email && <span style={phu}> · {s.tk.email}</span>}</> : <span style={{ color: 'var(--warn)' }}>{s.tkGoiY ?? 'chưa có trong vault'}</span>],
     ['Trạng thái', x.idSo ? <SuaTrangThai x={x} /> : <><NhanTt x={x} /> <span style={phu}>· đọc từ API nền tảng, không sửa tay</span></>],
     ['Đăng dự kiến', <NgayDang x={x} />],
     ['Định dạng', x.phu ?? '—'],

@@ -16,7 +16,7 @@ import { sql } from 'drizzle-orm';
 
 import { docEtsy } from '@/lib/etsy/listings';
 import { fetchDirectusAccountsForPlatforms } from '@/lib/bridge/directus';
-import { NEN_GOP, anhBiaXem, daDuyetBanNay, khopTk, nenChuan, shopChet, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from './kieu';
+import { NEN_GOP, anhBiaXem, daDuyetBanNay, handleTuUrl, khopTk, nenChuan, nenTuUrl, shopChet, type Ky, type ShopNut, type SpNut, type TaiKhoan, type TaiSanBan, type TrangThaiSp } from './kieu';
 export { TT_SP, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from './kieu';
 
 const NHAN_NEN: Record<string, string> = { gumroad: 'Gumroad', kdp: 'KDP', etsy: 'Etsy', udemy: 'Udemy', 'mql5-market': 'MQL5 Market', rapidapi: 'RapidAPI',
@@ -49,6 +49,16 @@ async function docTaiKhoan(nens: string[], loi: string[]): Promise<TkDong[]> {
       .filter((a) => !co.has(`${a.nen}:${a.handle}`) && (co.add(`${a.nen}:${a.handle}`), true));
   } catch (e) { loi.push(`tài khoản Directus: ${(e as Error).message}`); }
   return [...mos, ...dir];
+}
+
+/** Cổng thanh toán gắn từng cửa hàng nhà (shop_cua_hang.cong_id → shop_cong) — khoá = shop_cua_hang.khoa. Mở drawer cổng ở /shop. */
+async function docCongShop(): Promise<Map<string, TaiKhoan>> {
+  const d = getDb();
+  if (!d) return new Map();
+  const r = (await d.execute(sql`SELECT h.khoa, c.id, c.loai, coalesce(c.ten, c.ma) AS ten, c.tai_khoan AS email
+    FROM shop_cua_hang h JOIN shop_cong c ON c.id = h.cong_id`)) as unknown as { khoa: string; id: number; loai: string; ten: string; email: string | null }[];
+  return new Map(r.map((x) => [x.khoa, { id: x.id, nguon: 'cong' as const, url: `/shop?tab=thanh_toan&cong=xem&congId=${x.id}`,   // shop-cong.tsx: useModalParam('cong') → drawer cổng
+    handle: `${x.loai === 'stripe' ? 'Stripe' : x.loai} · ${x.ten}`, email: x.email, status: 'active', ghi: 'cổng thanh toán' }]));
 }
 
 const DIRECTUS = process.env.DIRECTUS_URL || 'https://as.on.tc';
@@ -159,12 +169,28 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
     }
   }
   // Tài khoản tra SAU khi có cây: nền = nền của chính các shop (mellowstep cho shop MOS).
-  const tk = await docTaiKhoan([...new Set(shops.map((x) => (x.loai === 'mos' ? 'mellowstep' : nenChuan(x.khoa.split(':')[0] ?? ''))))], loi);
+  // Nền đọc từ host link sản phẩm (shop 'Khoá học' = udemy.com…) cũng được tra, để shop nền chung chung vẫn ra tài khoản (#1113).
+  const hostNen = (s: ShopNut) => (s.loai === 'san' ? s.sp.map((x) => nenTuUrl(x.url)).find(Boolean) ?? null : null);
+  const tk = await docTaiKhoan([...new Set(shops.flatMap((x) => [x.loai === 'mos' ? 'mellowstep' : nenChuan(x.khoa.split(':')[0] ?? ''), hostNen(x) ?? '']).filter(Boolean))], loi);
+  const cong = await boc('cổng thanh toán', docCongShop, new Map<string, TaiKhoan>());
+  const doiTk = (t: TkDong, ghi?: string): TaiKhoan => ({ id: t.id, nguon: t.nguon, url: t.url, handle: t.ten, email: t.email, status: t.status, ghi });
   for (const s of shops) {
     const [nenGoc, store] = s.khoa.split(':');
     const nen = nenChuan(nenGoc ?? '');
     const t = s.loai === 'mos' ? khopTk('mellowstep', null, tk)[0] : khopTk(nen ?? '', store || null, tk)[0];
-    s.tk = t ? { id: t.id, nguon: t.nguon, url: t.url, handle: t.ten, email: t.email, status: t.status } : null;
+    // Shop nhà (mellowstep): tài khoản thu tiền là CỔNG thanh toán gắn cửa hàng trong sổ shop_cong (Stripe · Mellowstep).
+    s.tk = t ? doiTk(t) : s.loai === 'mos' ? cong.get(store ?? '') ?? null : null;
+    const hn = !s.tk ? hostNen(s) : null;
+    if (hn && hn !== nen) {
+      const ung = [...new Map(khopTk(hn, null, tk).map((x) => [x.handle, x])).values()];
+      const nhan = NHAN_NEN[hn] ?? hn;
+      if (ung.length === 1) s.tk = doiTk(ung[0]!, `theo link sản phẩm (${nhan})`);
+      else if (ung.length > 1) s.tkGoiY = `link sản phẩm là ${nhan} — kho có ${ung.length} tài khoản ${nhan}: ${ung.map((x) => `${x.ten}${x.nguon === 'mos2' ? ` #${x.id}` : ''}${x.status !== 'active' ? ` (${x.status})` : ''}`).join(' · ')}; sổ chưa ghi sản phẩm thuộc tài khoản nào`;
+    }
+    if (!s.tk && !s.tkGoiY) {
+      const h = s.sp.map((x) => handleTuUrl(x.url)).find(Boolean);
+      if (h) s.tkGoiY = `người bán ${h} (đọc từ link sản phẩm) — kho chưa có tài khoản ${NHAN_NEN[hn ?? nen] ?? nen} nào`;
+    }
     const chet = s.loai === 'mos' ? null : shopChet(nen ?? '', store || null, tk);
     if (!chet) continue;
     s.loi = `tài khoản ${chet === 'banned' ? 'bị khoá' : chet}`;

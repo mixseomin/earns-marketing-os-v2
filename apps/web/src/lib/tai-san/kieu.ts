@@ -49,23 +49,43 @@ export type SpNut = { /** social trỏ về sản phẩm (tab Tài sản, khung 
 /** Tài khoản vault đứng sau shop — để biết đăng nhập bằng gì, mở drawer tài khoản. */
 /** nguon: kho nào giữ tài khoản — 'mos2' (platform_accounts, mở drawer EntityRef) hay 'directus' (earns.accounts trên as.on.tc,
  *  id là uuid). Tab Tài sản đọc CẢ HAI: tài khoản chỉ nằm ở Directus trước đây hiện "—" (#1113, 05/10/2026). */
-export type TaiKhoan = { id: number | string; nguon: 'mos2' | 'directus'; /** link bản ghi ở kho Directus (máy chủ dựng từ DIRECTUS_URL) */ url?: string; handle: string; email: string | null; status: string };
+export type TaiKhoan = { id: number | string; nguon: 'mos2' | 'directus' | 'cong'; /** link bản ghi ở kho Directus (máy chủ dựng từ DIRECTUS_URL) / trang cổng thanh toán */ url?: string; handle: string; email: string | null; status: string;
+  /** tài khoản tra ra bằng đường phụ (link sản phẩm) → nói rõ, anh biết vì sao gắn */ ghi?: string };
 
 /** Một nền tảng nhiều tên khoá giữa các kho (MOS2 'mql5', Directus 'mql5-com', sổ sản phẩm 'mql5-market') → một khoá chuẩn. */
 // apple-developer = khoá vault của tài khoản nhà phát triển (#470) → gộp về nền app-store để shop App Store tra ra tài khoản
 // paddle = cổng thu (Merchant of Record) của astrolas.com — shop Astrolas tra ra tài khoản Paddle; site khác dùng Paddle thì tách khoá theo handle.
-export const NEN_GOP: Record<string, string> = { mql5: 'mql5-market', 'mql5-com': 'mql5-market', 'apple-developer': 'app-store', paddle: 'astrolas' };
+// microsoft = khoá vault của tài khoản Partner Center (#555 CodeCrate · htuan82@gmail.com) → nền ms-store (#1113, 19/11/2026)
+export const NEN_GOP: Record<string, string> = { mql5: 'mql5-market', 'mql5-com': 'mql5-market', 'apple-developer': 'app-store', paddle: 'astrolas', microsoft: 'ms-store' };
 export const nenChuan = (k: string) => { const x = k.toLowerCase(); return NEN_GOP[x] ?? x; };
+/** Sổ sản phẩm ghi nền chung chung ('course') hay nền chưa có tài khoản → đọc nền thật từ HOST link sản phẩm (#1113: 'Khoá học' là khoá
+ *  udemy.com). Thêm host ở đây là shop nền đó tự tra ra tài khoản. */
+const HOST_NEN: Record<string, string> = { 'udemy.com': 'udemy', 'rapidapi.com': 'rapidapi', 'apps.microsoft.com': 'ms-store', 'gumroad.com': 'gumroad', 'etsy.com': 'etsy', 'mql5.com': 'mql5-market' };
+export function nenTuUrl(u: string | null | undefined): string | null {
+  try { const h = new URL(u ?? '').hostname.replace(/^www\./, ''); return HOST_NEN[h] ?? Object.entries(HOST_NEN).find(([k]) => h.endsWith(`.${k}`))?.[1] ?? null; } catch { return null; }
+}
+/** Handle người bán đọc được thẳng trong link sản phẩm (rapidapi.com/<handle>/api/…) — dùng khi kho chưa có tài khoản, để vẫn biết tên. */
+export function handleTuUrl(u: string | null | undefined): string | null {
+  try { const x = new URL(u ?? ''); return x.hostname.replace(/^www\./, '') === 'rapidapi.com' ? (x.pathname.split('/')[1] || null) : null; } catch { return null; }
+}
 export type ShopNut = { khoa: string; ten: string; loai: 'gumroad' | 'kdp' | 'etsy' | 'mos' | 'san'; url: string | null; sp: SpNut[]; tk?: TaiKhoan | null;
+  /** không gắn chắc được một tài khoản (nhiều ứng viên / kho chưa có) → câu nói rõ biết gì, thay cho "chưa có tài khoản" */ tkGoiY?: string | null;
   tien: number | null; ky: Ky; loi: string | null; ghiChu: string | null };
 export type TaiSanBan = { shops: ShopNut[]; loi: string[]; viewsToi: string | null };
 
 // Trạng thái vault coi là CHẾT (tài khoản không bán được nữa). Tự kiểm: node_modules/.bin/tsx apps/web/src/lib/tai-san/kieu.test.mts
 const CHET = new Set(['banned', 'blocked', 'closed', 'suspended']);
 /** Shop có tài khoản trong vault mà MỌI tài khoản khớp đều chết → trạng thái chết đó; còn một cái sống hoặc không có hồ sơ → null. */
-export const khopTk = <T extends { nen: string; handle: string }>(nen: string, store: string | null, tk: T[]): T[] =>
-  tk.filter((t) => (t.nen === nen || t.nen.startsWith(`${nen}-`)) && (!store || t.handle === store.toLowerCase()));
-export function shopChet(nen: string, store: string | null, tk: { nen: string; handle: string; status: string; nguon?: 'mos2' | 'directus' }[]): string | null {
+// Store khớp handle; không có handle nào khớp thì khớp phần trước @ của email (Microsoft Store · htuan82 ↔ #555 handle CodeCrate,
+// email htuan82@gmail.com — #1113). Handle khớp luôn thắng email.
+export const khopTk = <T extends { nen: string; handle: string; email?: string | null }>(nen: string, store: string | null, tk: T[]): T[] => {
+  const cung = tk.filter((t) => t.nen === nen || t.nen.startsWith(`${nen}-`));
+  if (!store) return cung;
+  const s = store.toLowerCase();
+  const h = cung.filter((t) => t.handle === s);
+  return h.length ? h : cung.filter((t) => (t.email ?? '').toLowerCase().split('@')[0] === s);
+};
+export function shopChet(nen: string, store: string | null, tk: { nen: string; handle: string; email?: string | null; status: string; nguon?: 'mos2' | 'directus' | 'cong' }[]): string | null {
   const khop = khopTk(nen, store, tk);
   // Vault MOS2 là nơi anh ghi trạng thái; sổ Directus accounts mặc định 'active' và không ai cập nhật (Udemy #158 banned 08/2026 mà
   // Directus vẫn 'active' ×2 + một handle khác 'active' → phủ quyết, card #1130). Có hồ sơ vault thì CHỈ vault quyết; Directus chỉ khi vault trống.

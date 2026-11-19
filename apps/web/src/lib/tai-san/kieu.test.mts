@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/web/src/lib/tai-san/kieu.test.mts
 import { strict as a } from 'node:assert';
-import { anhBiaXem, daDuyetBanNay, khopTk, nenChuan, shopChet, gopBo, tenTrongBo } from './kieu';
+import { anhBiaXem, daDuyetBanNay, handleTuUrl, khopTk, nenChuan, nenTuUrl, shopChet, gopBo, tenTrongBo } from './kieu';
 const tk = [{ nen: 'udemy', handle: 'evergreen programming', status: 'banned' }, { nen: 'gumroad', handle: 'oldcc7391', status: 'closed' },
   { nen: 'gumroad', handle: 'frontporchpuzzles', status: 'active' }, { nen: 'kdp', handle: 'htuan82', status: 'active' }];
 a.equal(shopChet('udemy', null, tk), 'banned');                // Udemy không ghi store → mọi tk udemy chết (05/10/2026)
@@ -24,6 +24,18 @@ const tk2 = [{ nen: nenChuan('mql5-com'), handle: 'piplord', status: 'active' },
 a.equal(khopTk(nenChuan('mql5-market'), null, tk2).length, 1);
 a.equal(khopTk(nenChuan('chaturbate'), null, tk2)[0]?.handle, 'zoomxxx');
 console.log('nenChuan + khopTk: 6/6 ok');
+{ // #1113 (19/11/2026): Microsoft Store · htuan82 ↔ vault 'microsoft' #555 handle CodeCrate, email htuan82@gmail.com; nền đọc từ link sản phẩm
+  const ms = [{ nen: nenChuan('microsoft'), handle: 'codecrate', email: 'htuan82@gmail.com' }, { nen: nenChuan('microsoft'), handle: 'doanhedu', email: 'doanhedu@gmail.com' }];
+  a.equal(khopTk('ms-store', 'htuan82', ms).length, 1);
+  a.equal(khopTk('ms-store', 'htuan82', ms)[0]?.handle, 'codecrate');
+  a.equal(khopTk('ms-store', 'codecrate', [...ms, { nen: 'ms-store', handle: 'x', email: 'codecrate@x.com' }]).length, 1);   // handle thắng email
+  a.equal(nenTuUrl('https://www.udemy.com/course/ai-essentials-on-aws-become-certified/'), 'udemy');
+  a.equal(nenTuUrl('https://frontporchpuzzles.gumroad.com/l/x'), 'gumroad');
+  a.equal(nenTuUrl('rác'), null);
+  a.equal(handleTuUrl('https://rapidapi.com/peternohatan/api/website-traffic-analytics-api'), 'peternohatan');
+  a.equal(handleTuUrl('https://www.udemy.com/course/x/'), null);
+  console.log('khopTk email + nenTuUrl + handleTuUrl: 8/8 ok');
+}
 
 // #1115: duyệt bản hiện tại
 a.equal(daDuyetBanNay('2026-10-06', '2026-10-05'), true);

@@ -77,7 +77,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         ]} />
         {/* Cần chú ý = việc của campaign (adapter, lander, camp tới ngưỡng, sid lạ) → chỉ hiện ở 4 tab campaign (#1110, 05/10/2026:
             hiện ở mọi tab là đè lên việc đang làm). Tab khác vẫn thấy dấu đỏ trên tab "Lander & adapter". */}
-        {phu && laPhu && <PhuCanChuY data={phu} />}
+        {phu && laPhu && <Suspense fallback={null}><PhuCanChuY data={phu} /></Suspense>}
 
         <div>
           <Suspense fallback={null}>

@@ -95,7 +95,16 @@ export function TaiSanKenh({ ap, lib, shops }: { ap: ApDung; lib: PhuongPhap[]; 
         <span style={{ fontWeight: 600 }}>{t.ten}</span>
         <span style={{ ...phu, fontSize: 11, marginLeft: 6 }}>{noiBan(t)}</span></span> },
     ...bat.map((k): DataColumn<Tua> => ({
-      key: `pp:${k.key}`, header: k.nhan, align: 'left', width: 200,
+      // #1116: mô tả chỉ ở rê chuột (title); NƠI ĐĂNG hiện thẳng dưới tên kênh — tài khoản bấm mở drawer, trang bấm mở tab mới.
+      // stopPropagation: bấm chip không kích sort của cột.
+      key: `pp:${k.key}`, align: 'left', width: 200,
+      header: <span style={{ display: 'grid', gap: 1, minWidth: 0 }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.nhan}</span>
+        {(k.noi.tk.length > 0 || k.noi.url) && <span onClick={(e) => e.stopPropagation()}
+          style={{ display: 'flex', gap: 4, alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap', fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--fg-3)' }}>
+          đăng ở{k.noi.tk.map((x) => <EntityRef key={x.id} kind="account" id={x.id} label={x.nhan} size="sm" />)}
+          {k.noi.url && <a {...extLinkProps(k.noi.url)} style={{ color: 'var(--fg-2)' }}>{gonUrl(k.noi.url)} ↗</a>}</span>}
+      </span>,
       title: [k.moTa, k.noi.tk.length ? `Đăng ở: ${k.noi.tk.map((x) => x.nhan).join(', ')}` : '', k.noi.url ? gonUrl(k.noi.url) : ''].filter(Boolean).join('\n'),
       sortValue: (t) => (t.o[k.key]?.ao === undefined && t.o[k.key] ? t.o[k.key]!.muc : null),
       cellTitle: (t) => (t.o[k.key] ? tipO(t.o[k.key]!, k, !!t.may && !t.o[k.key]!.ao) : undefined),

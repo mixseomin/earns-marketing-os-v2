@@ -9,6 +9,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { Collapsible, Drawer, EmptyState, Pager, Panel, Pill, SearchInput, SelectField, TextAreaField, TextField, usePaged } from '@/components/ui';
 import type { PhuCamp, PhuData, PhuLuat, PhuNguon, PhuNguonCamp, PhuPlatform, PhuZone } from '@/lib/phu-shared';
 import type { PhuCampNhatKy } from '@/lib/phu';
+import { useShallowParam } from '@/lib/url-shallow';
 import { PHU_NGUON_TRANG_THAI, PHU_PHAN_XET, PHU_TRANG_THAI, mangCuaLander, phanXet } from '@/lib/phu-shared';
 const KHAC = '(khác)';
 import { docPhuCampNhatKy, docPhuNguonCamp, docPhuZone, luuPhuCamp, luuPhuChi, luuPhuDoiLyDo, luuPhuNguon, luuPhuPlatform } from '@/lib/actions/phu';
@@ -26,20 +27,48 @@ const cu = (iso: string | null, phut: number) => !iso || Date.now() - new Date(i
 
 export type PhuPhan = 'camp' | 'phu' | 'nguon' | 'hatang';
 
-/** Cần chú ý — MỘT dòng mỏng dưới số tổng, chỉ thứ đòi hành động: adapter chết · lander ĐỘNG cũ (lander tĩnh
- *  không có soMuc thì không có "sinh lại" mà đo) · camp tới ngưỡng dừng/mở rộng · sid lạ đủ lớn (≥50 view / ≥5 click).
- *  Không có thì không chiếm một pixel nào. (16/09: bản Panel trước tốn diện tích + báo lander tĩnh + 3 view lạ.) */
+/** Cần chú ý — chỉ thứ đòi hành động: adapter lỗi / cron lâu không chạy · lander ĐỘNG cũ (lander tĩnh không có soMuc
+ *  thì không có "sinh lại" mà đo) · camp tới ngưỡng dừng/mở rộng · sid lạ đủ lớn (≥50 view / ≥5 click).
+ *  Không có thì không chiếm một pixel nào.
+ *  #1110 (anh 19/11/2026 mở lại "thiết kế ngu"): bản cũ bung MỌI mục thành bức tường 5 dòng đè lên bảng, và cron quá
+ *  hạn lại in ghi chú lần chạy cuối ("ga4-ngay: 6 dòng · 3 ngày") — đọc như tin thường, không ra lỗi gì.
+ *  Nay: MỘT dòng đếm theo loại, bấm mới bung chi tiết (?ccy=1, F5 giữ); mỗi mục nói thẳng lỗi gì. */
 export function PhuCanChuY({ data: d }: { data: PhuData }) {
+  const [moUrl, datMo] = useShallowParam('ccy', '');
+  const mo = moUrl === '1';
   const khac = d.pheu.find((x) => x.sidPrefix === KHAC);
-  const dong: React.ReactNode[] = [];
-  for (const a of d.adapters) if (a.lastOk === false || (a.loai === 'cron' && cu(a.lastRun, 24 * 60))) dong.push(<span key={'a' + a.key} style={{ color: 'var(--danger)' }}>adapter {a.key}{a.lastNote ? `: ${a.lastNote.slice(0, 60)}` : ' lâu không chạy'}</span>);
-  for (const l of d.landers) if (l.trangThai !== 'song' || (l.soMuc != null && cu(l.lastSinh, 20))) dong.push(<span key={'l' + l.host + l.path} style={{ color: 'var(--warn)' }}>lander {l.host}{l.path} {l.trangThai !== 'song' ? l.trangThai : `sinh lúc ${khi(l.lastSinh)}`}</span>);
-  for (const c of d.camp) { const px = phanXet(c); if (px.ma === 'dung' || px.ma === 'mo_rong') dong.push(<span key={'c' + c.id} style={{ color: PHU_PHAN_XET[px.ma]?.color }}>{c.ten}: {PHU_PHAN_XET[px.ma]?.label} — {(c.keHoach || px.lyDo).slice(0, 80)}</span>); }
-  if (khac && (khac.view >= 50 || khac.click >= 5)) dong.push(<span key="khac" style={{ color: 'var(--warn)' }}>{khac.soPrefix} sid lạ ({khac.view} view / {khac.click} click) chưa thuộc camp nào</span>);
-  if (!dong.length) return null;
+  type Nhom = { ten: string; mau: string; muc: React.ReactNode[] };
+  const nhom: [Nhom, Nhom, Nhom, Nhom] = [
+    { ten: 'adapter hỏng', mau: 'var(--danger)', muc: [] },
+    { ten: 'lander cũ', mau: 'var(--warn)', muc: [] },
+    { ten: 'camp tới ngưỡng', mau: 'var(--warn)', muc: [] },
+    { ten: 'sid lạ', mau: 'var(--warn)', muc: [] },
+  ];
+  for (const a of d.adapters) {
+    if (a.lastOk === false) nhom[0].muc.push(<span key={'a' + a.key}><b>{a.key}</b> lỗi{a.lastNote ? `: ${a.lastNote.slice(0, 80)}` : ''}</span>);
+    else if (a.loai === 'cron' && cu(a.lastRun, 24 * 60)) nhom[0].muc.push(<span key={'a' + a.key}><b>{a.key}</b> quá 24 giờ không chạy — lần cuối {khi(a.lastRun)}</span>);
+  }
+  for (const l of d.landers) if (l.trangThai !== 'song' || (l.soMuc != null && cu(l.lastSinh, 20))) nhom[1].muc.push(<span key={'l' + l.host + l.path}><b>{l.host}{l.path}</b> {l.trangThai !== 'song' ? l.trangThai : `quá 20 phút chưa sinh lại — lần cuối ${khi(l.lastSinh)}`}</span>);
+  for (const c of d.camp) { const px = phanXet(c); if (px.ma === 'dung' || px.ma === 'mo_rong') nhom[2].muc.push(<span key={'c' + c.id}><b style={{ color: PHU_PHAN_XET[px.ma]?.color }}>{c.ten}: {PHU_PHAN_XET[px.ma]?.label}</b> — {(c.keHoach || px.lyDo).slice(0, 100)}</span>); }
+  if (khac && (khac.view >= 50 || khac.click >= 5)) nhom[3].muc.push(<span key="khac">{khac.soPrefix} sid ({khac.view} view / {khac.click} click) chưa thuộc camp nào</span>);
+  const co = nhom.filter((n) => n.muc.length);
+  if (!co.length) return null;
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', fontSize: 11.5, padding: '5px 10px', border: '1px solid var(--line)', borderLeft: '3px solid var(--warn)', borderRadius: 6, background: 'var(--bg-1)' }}>
-      <b style={{ color: 'var(--fg-2)' }}>Cần chú ý</b>{dong}
+    <div style={{ fontSize: 11.5, border: '1px solid var(--line)', borderLeft: '3px solid var(--warn)', borderRadius: 6, background: 'var(--bg-1)' }}>
+      <button type="button" onClick={() => datMo(mo ? '' : '1')} aria-expanded={mo}
+        style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '5px 10px', background: 'none', border: 0, cursor: 'pointer', color: 'var(--fg-2)', fontSize: 11.5, textAlign: 'left' }}>
+        <b>Cần chú ý</b>
+        {co.map((n) => <span key={n.ten} style={{ color: n.mau }}>{n.muc.length} {n.ten}</span>)}
+        <span style={{ marginLeft: 'auto', color: 'var(--fg-3)' }}>{mo ? 'thu gọn ▴' : 'xem chi tiết ▸'}</span>
+      </button>
+      {mo && <div style={{ display: 'grid', gap: 6, padding: '2px 10px 8px' }}>
+        {co.map((n) => (
+          <div key={n.ten} style={{ display: 'grid', gap: 2 }}>
+            <span style={{ color: n.mau, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{n.ten}</span>
+            {n.muc.map((m, i) => <div key={i} style={{ color: 'var(--fg-1)' }}>{m}</div>)}
+          </div>
+        ))}
+      </div>}
     </div>
   );
 }

@@ -396,7 +396,9 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
     _pl = lambda ten, **sp: {"name": ten, "ad_account_id": tk0, "campaign": {"source_payload": {"name": ten, "daily_budget": 1, **sp}, "ad_groups": [{"source_payload": {}, "ads": [{"content_id": 1, "creative_id": 2}]}]}}
     try:
         os.environ["ETP_VE"] = "0" * 32   # mã đúng dạng nhưng không có trong etp.ve_tay → không miễn
-        for ten, sp in (("dp1 X EN - creative #2", {}), ("X (nhan ban 1 cua 65110)", {}), ("★ ROAS 1 · X roas 1 duplicate by 65110", {"bid_strategy": "LOWEST_COST_WITH_MIN_ROAS"})):
+        # camp gốc mẫu: camp nhà KHÔNG thuộc phim cấm (65110 cũ là phim 94344 — cấm từ 19/11/2026, cửa chặn trước phanh)
+        _G = int(_q(f"select camp_id from etp.camp where content_id is not null and camp_id not in ({CG.SQL_CAMP_PHIM_CAM}) order by camp_id limit 1"))
+        for ten, sp in (("dp1 X EN - creative #2", {}), (f"X (nhan ban 1 cua {_G})", {}), (f"★ ROAS 1 · X roas 1 duplicate by {_G}", {"bid_strategy": "LOWEST_COST_WITH_MIN_ROAS"})):
             try: api("/api/v1/campaigns/facebook", _pl(ten, **sp)); raise SystemExit(f"LỌT PHANH: máy tạo '{ten}'")
             except ChanCua as e: assert "PHANH CHỢ" in str(e), e
         _TAO.add(999999997)
@@ -408,8 +410,8 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
         _dot = []
         CG.ve_hop_le = lambda viec, ids=(), ct=None, dung=False, cho="", ma=None: (_dot.append((viec, tuple(ids), ct)) if dung else None) or "anh (tự kiểm)"
         api("/api/v1/campaigns/update", {"campaign": {"campaign_id": 999999997, "source_payload": {"daily_budget": 9}}})
-        api("/api/v1/campaigns/facebook", _pl("X (nhan ban 1 cua 65110)"))
-        assert any(v == "tang" and 999999997 in i for v, i, _c in _dot) and any(v == "nhan_ban" and 65110 in i for v, i, _c in _dot), f"vé phải bị đốt lúc gửi: {_dot}"
+        api("/api/v1/campaigns/facebook", _pl(f"X (nhan ban 1 cua {_G})"))
+        assert any(v == "tang" and 999999997 in i for v, i, _c in _dot) and any(v == "nhan_ban" and _G in i for v, i, _c in _dot), f"vé phải bị đốt lúc gửi: {_dot}"
         assert len(_gui_that) == 4 and ("tang", True, True) in _so and ("tang", False, False) in _so, (_gui_that, _so)
         print("chặn đúng: một cửa — phanh chặn lệnh máy (camp mới / nhân bản / ★ ROAS / tăng), vé tay qua + bị đốt, giảm / tắt qua, sổ etp.cua ghi đủ")
         # PHIM CẤM (anh 19/11/2026) — sổ THẬT ethopex_phim_cam, vé vẫn đang "hợp lệ" (ve_hop_le giả ở trên): bật (cả lịch giờ) / nhân bản / ★ ROAS / tạo camp phim cấm / tăng → chặn

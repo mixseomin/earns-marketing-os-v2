@@ -418,10 +418,8 @@ span.lp-than { cursor: default }
 /* người mới: khung trống + chip thoát chế độ xem như người mới */
 .qt-trong { display: grid; gap: 10px; padding: 18px 12px; align-content: start; justify-items: start } .qt-trong b { font-size: 16px }
 button.thu.nut { border: 0; cursor: pointer; font-family: var(--f-so) } button.thu.nut:hover { outline: 1px solid var(--cho) }
-/* video kênh: mẫu, kho ý tưởng, đơn đã đặt */
-.kenh-m { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center } .kenh-m .mn-da { grid-template-columns: minmax(0, 1fr) }
-.kenh-y { max-height: 36vh } .kenh-yd { display: flex; justify-content: space-between; gap: 8px; text-align: left; white-space: normal; width: 100% } .kenh-yd small { color: var(--ink-3); font-size: 11.5px; white-space: nowrap }
-.dat-d small i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: baseline; background: var(--line) }
-.dat-d.xong small i { background: var(--ok) } .dat-d.loi small i { background: var(--loi) } .dat-d.dang small i { background: var(--brass); animation: nk-nhay 1.1s ease-in-out infinite } .dat-d.thieu small i { background: none; border: 1.5px solid var(--ink-3) }
-.qt-trong .mn-kq, .qt-trong h3 { justify-self: stretch } .qt-trong h3 { font: 600 11px var(--f-than); letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); margin: 8px 0 0 }
-.hop-phu a.bt { text-decoration: none; display: inline-flex; align-items: center }
+/* cơ sở phân tích từ Astrolas trong widget Quy trình */
+.d-qt textarea, .d-qt input[type=text], .d-qt input[type=date], .d-qt input[type=time] { width: 100%; font: 400 13.5px var(--f-than); color: var(--ink); background: var(--mat); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px }
+.d-qt input:focus, .d-qt textarea:focus { outline: 2px solid var(--brass); outline-offset: 1px; border-color: var(--brass) }
+.cs-n { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, .8fr); gap: 5px } .cs-n input[data-cs=noi] { grid-column: 1 / -1 }
+.cs-kq { display: grid; gap: 6px } .cs-ls { font: 12px var(--f-so); padding: 4px 8px; border-radius: 6px; background: var(--brass-nhat); justify-self: start } .cs-kq a { color: var(--brass) }

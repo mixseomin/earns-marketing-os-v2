@@ -24,8 +24,10 @@ def ds_l(v):   # Ethopex trả list hoặc chuỗi JSON của list
     return [str(x).strip() for x in (v or []) if str(x or "").strip()] if isinstance(v, list) else []
 
 def cr_thieu():
-    return [int(l) for l in EA._q(f"""with ids as (select creative_id, max(case when trang_thai = 'ACTIVE' then 1 else 0 end) chay from etp.camp where creative_id > 0 group by 1
-              union all select creative_id, 0 from etp.camp_ngoai where creative_id > 0)
+    # ưu tiên: camp nhà đang chạy (2) → camp khác (1) → creative CHƯA LÊN CAMP của thư viện / kho nhà (0: chữ dự kiến — chính asset_spec máy đã nạp lên Ethopex)
+    return [int(l) for l in EA._q(f"""with ids as (select creative_id, max(case when trang_thai = 'ACTIVE' then 2 else 1 end) chay from etp.camp where creative_id > 0 group by 1
+              union all select creative_id, 1 from etp.camp_ngoai where creative_id > 0
+              union all select creative_id, 0 from etp.thu_vien where creative_id > 0 union all select creative_id, 0 from etp.creative where creative_id > 0)
         select i.creative_id from (select creative_id, max(chay) chay from ids group by 1) i left join etp.bai_cr b using (creative_id)
         where (b.creative_id is null or (b.chinh is null and b.lan_loi < 3)) order by i.chay desc, i.creative_id desc limit {SO}""").split()]
 

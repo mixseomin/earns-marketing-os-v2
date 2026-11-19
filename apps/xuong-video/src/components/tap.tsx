@@ -9,6 +9,8 @@ import { PhieuShots } from './phieu-shots';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { khaiNguCanh } from '@/lib/ngu-canh';
 import { Timeline } from './timeline';
+import { ghiLT } from '@/lib/luu-tru';
+import { ghiThamSoUrl } from '@/lib/ghi-url';
 import { LuoiKichBan } from './luoi-kich-ban';
 import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
@@ -398,7 +400,14 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab, onMoNut }: {
         if (!c) return null;
         return (
           <Ngan onClose={() => setXemShot(null)} tieuDe={`Shot #${c.thu_tu} · ${c.canh}`}
-            nut={<button type="button" className="xv-btn" title="Đóng ngăn, chuyển sang Timeline và đặt con trỏ ở đầu shot này" onClick={() => { setXemShot(null); setChonCanh(c.id); setXem('timeline'); }}>⏱ Mở trên timeline</button>}>
+            nut={<button type="button" className="xv-btn" title="Đóng ngăn, chuyển sang Timeline và đặt con trỏ ở đầu shot này" onClick={() => {
+              // Ghi luôn vị trí nhớ (?tlt + localStorage) = đầu shot này: đổi màn có thể dựng lại tập và mất shot đã chọn, timeline lại khôi phục ?tlt cũ (#1357).
+              const ds = locNhanh(canh, nhanh); let g = 0;
+              for (const x of ds) { if (x.id === c.id) break; g += giayPhat(x); }
+              const v = g > 0.05 ? g.toFixed(1) : null;
+              ghiLT(`xv-tlt-${tap.id}`, v); ghiThamSoUrl({ tlt: v ? `${tap.id}:${v}` : null });
+              setXemShot(null); setChonCanh(c.id); setXem('timeline');
+            }}>⏱ Mở trên timeline</button>}>
             <CanhRow key={c.id} c={c} kg={kgCua(tap.khong_gian, c)} sau={shotSau(c)} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} chanKf={chanKf.get(c.id)} chiTiet />
           </Ngan>
         );

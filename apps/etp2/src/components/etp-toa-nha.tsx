@@ -16,7 +16,10 @@ export const TANG = ['Móng', 'Thử', 'Lãi', 'Scale', '★ ROAS'] as const;
 const XANH = '#4ade80', DO = '#f87171', XAM = '#6b7280', TIM = '#a78bfa', VANG = '#facc15', LAM = '#60a5fa';
 /** TRANG TRÍ (bồn cây sân lô, cây công viên / khu trung lưu) — MỘT bảng màu TRẦM, không phát sáng, không tán cầu tròn (anh 15/11/2026 #1600 "dễ lẫn với đèn… cái nào lẫn với
  *  các dấu hiệu chính thì ko nên cho quá nổi"): màu dấu hiệu (xanh lãi / đỏ lỗ / tím ★ / lam hẹn giờ / vàng SX) chỉ dành cho camp + đèn tín hiệu, cảnh nền không được dùng */
-const TRANG_TRI = { bon: 0x3f3a36, la: 0x34483b, cay: 0x2c4234 } as const;
+const TRANG_TRI = { bon: 0x3f3a36, la: 0x34483b, cay: 0x2c4234, vach: 0x6b6352, ngoi: 0x6b4a3a, kinhDinh: 0x8f9cad } as const;
+/** màu nhận diện KHÔNG phải tín hiệu (gờ màu bộ dưới chân tháp): giữ sắc để còn nhận bộ, nhưng pha ~55% về xám nền + không phát sáng — gờ bộ 4 (xanh lá) / bộ 5 (đỏ) / bộ 2 (tím)
+ *  trước phát sáng y màu lãi / lỗ / ★ ROAS (#1600 lượt 2 "xem cái nào lẫn với các dấu hiệu chính thì ko nên cho quá nổi") */
+const tram = (T: T3, mau: string) => new T.Color(mau).lerp(new T.Color(0x374151), 0.55);
 const COT = 3, HANG = 2, O_TANG = 2 * COT + 2 * HANG, CAO = 0.7, MONG_TOI_DA = O_TANG, RONG = COT * 1.0, SAU = HANG * 1.0;
 
 /** tầng của camp: hẹn giờ → Móng · ★ ROAS → mái · đã lên bậc (> $1) → Scale · $1 lãi 7 ngày → Lãi · còn lại → Thử */
@@ -194,7 +197,7 @@ function dungThan(T: T3, g: import('three').Group, o: { bienCo?: number; tat?: C
   let dinh = y;
   if (cap === 2) {
     const hinh = new T.Shape(); hinh.moveTo(-SAU / 2 - 0.12, 0); hinh.lineTo(SAU / 2 + 0.12, 0); hinh.lineTo(0, 0.6); hinh.closePath();
-    const ngoi = new T.Mesh(new T.ExtrudeGeometry(hinh, { depth: RONG + 0.2, bevelEnabled: false }), new T.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.8 }));
+    const ngoi = new T.Mesh(new T.ExtrudeGeometry(hinh, { depth: RONG + 0.2, bevelEnabled: false }), new T.MeshStandardMaterial({ color: TRANG_TRI.ngoi, roughness: 0.9 }));   // ngói nâu trầm — đỏ cam cũ lẫn với đỏ lỗ (#1600)
     ngoi.rotation.y = Math.PI / 2; ngoi.position.set(-RONG / 2 - 0.1, y, 0); g.add(ngoi); dinh = y + 0.6;
   } else {
     be(RONG + 0.14, 0.1, SAU + 0.14, cap === 5 ? 0xd4a017 : 0x64748b, y + 0.05); dinh = y + 0.1;
@@ -204,7 +207,7 @@ function dungThan(T: T3, g: import('three').Group, o: { bienCo?: number; tat?: C
       for (let k = 0; k < (cap === 5 ? 2 : 1); k++) {
         const r = RONG - 0.7 - k * 0.6, d = SAU - 0.5 - k * 0.4, h = 0.5;
         be(r, h, d, THAN, dinh + h / 2);
-        const dai = new T.Mesh(new T.BoxGeometry(r + 0.02, 0.12, d + 0.02), new T.MeshStandardMaterial({ color: cap === 5 ? 0xfacc15 : 0x93c5fd, emissive: cap === 5 ? 0xfacc15 : 0x60a5fa, emissiveIntensity: 0.6 }));
+        const dai = new T.Mesh(new T.BoxGeometry(r + 0.02, 0.12, d + 0.02), new T.MeshStandardMaterial({ color: TRANG_TRI.kinhDinh, roughness: 0.3, metalness: 0.5 }));   // kính đỉnh trung tính — lam sáng cũ = màu hẹn giờ, vàng sáng = màu SX (#1600)
         dai.position.set(0, dinh + h * 0.62, 0); g.add(dai);
         dinh += h;
       }
@@ -576,7 +579,7 @@ export function ThanhPho({ ds: ds0, an, chon: chonP, chonBo, onChon, cao }: { ds
     const vach: [number, number, boolean][] = [];
     for (let k = 0; k <= cot / 2; k++) { const x = D / 2 + k * (2 * LX + D) - W / 2; for (let z = -Z / 2 + 0.4; z < Z / 2; z += 0.9) vach.push([x, z, true]); }
     for (let k = 0; k <= hang / 2; k++) { const z = D / 2 + k * (2 * LZ + D) - Z / 2; for (let x = -W / 2 + 0.4; x < W / 2; x += 0.9) vach.push([x, z, false]); }
-    const vm = new T.InstancedMesh(new T.PlaneGeometry(0.08, 0.45), new T.MeshBasicMaterial({ color: 0xe5c07b }), vach.length), mt = new T.Object3D();
+    const vm = new T.InstancedMesh(new T.PlaneGeometry(0.08, 0.45), new T.MeshBasicMaterial({ color: TRANG_TRI.vach }), vach.length), mt = new T.Object3D();
     vach.forEach(([x, z, doc], i) => { mt.position.set(x, 0.002, z); mt.rotation.set(-Math.PI / 2, 0, doc ? 0 : Math.PI / 2); mt.updateMatrix(); vm.setMatrixAt(i, mt.matrix); }); canh.add(vm);
     // toà + nền lô theo khu
     const lanKhu: [number, number][][] = KHU.map(() => []), cay: [number, number][] = [];
@@ -623,8 +626,7 @@ export function ThanhPho({ ds: ds0, an, chon: chonP, chonBo, onChon, cao }: { ds
         // MÀU BỘ = CHỈ gờ đế MẢNH dưới chân tháp (cùng bảng màu huy hiệu bộ) — mọi tháp đều có, vì vị trí ô giờ là của bộ (#1609), màu gờ cho biết ô đó là bộ nào.
         // KHÔNG còn khung dây ôm cả thân tháp (anh 15/11/2026 #1611 "Sao nhà nào cũng hiện cái viền này ? Bỏ đi !!") — khung trắng chỉ hiện lúc rê (BoxHelper).
         // Gờ mảnh (anh #1609 "Viền của bộ tk mỏng hơn"): 0,04 × 0,03, sát chân tháp, phát sáng nhẹ
-        { const mb = new T.Color(mauBo(b.bo, j));
-          const matGo = new T.MeshStandardMaterial({ color: mb, emissive: mb, emissiveIntensity: 0.3 }), W2 = bw + 0.14, D2 = bd + 0.14;
+        { const matGo = new T.MeshStandardMaterial({ color: tram(T, mauBo(b.bo, j)), roughness: 0.9 }), W2 = bw + 0.14, D2 = bd + 0.14;
           for (const [x, z, w, d] of [[0, D2 / 2, W2, 0.04], [0, -D2 / 2, W2, 0.04], [W2 / 2, 0, 0.04, D2], [-W2 / 2, 0, 0.04, D2]] as [number, number, number, number][]) {
             const go = new T.Mesh(new T.BoxGeometry(w, 0.03, d), matGo); go.position.set(x, 0.015, z); g.add(go); } }
         const nhanBo = nhieuBo ? ` · ${b.ten}` : '';

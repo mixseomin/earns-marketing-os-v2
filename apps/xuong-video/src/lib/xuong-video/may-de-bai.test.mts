@@ -27,3 +27,7 @@ assert.ok(trangSuThat(rb).includes('https://ratesbyroom.com/hotel-fake-fee-scam/
 assert.ok(dongTrangSuThat(rb).every((d) => /^https:\/\/\S+ — \S/.test(d)), 'dòng trang có mô tả sau URL');
 assert.strictEqual(dongTrangSuThat(rb).length, trangSuThat(rb).length); assert.deepStrictEqual(dongTrangSuThat(null), []);
 console.log('dongTrangSuThat: 5/5');
+import { boNhayTuKhoa } from './may-de';
+assert.strictEqual(boNhayTuKhoa(`hotel support won't help "scam"  message`), 'hotel support wont help scam message');
+assert.strictEqual(boNhayTuKhoa('it’s a `fee` \\ x'), 'its a fee x');
+console.log('boNhayTuKhoa: 2/2');

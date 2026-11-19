@@ -378,11 +378,14 @@ export async function tuKhoaQuora(o: { sp: SanPhamDe; goc: GocDe; suThat?: strin
   const trang = dongTrangSuThat(o.suThat ?? null);
   const r = await sinhJson({ schema: TuKhoaSchema, ten: 'tu_khoa', max_tokens: 300, system: `You help "${sp_ten(o.sp)}" find real Quora questions its US audience asks.`,
     user: `ANGLE (${LOAI_VI[o.goc.loai] ?? o.goc.loai}): "${o.goc.ten}" (internal label, may be Vietnamese). Topic of the product: ${o.sp.mo_ta}.${trang.length ? `\nThe answer will link to one of these site pages, so each query must find a question where one page below directly helps the asker (the angle seen through that page's topic, not the angle in general):\n${trang.join('\n')}` : ''}\nGive 2-3 English search queries.` });
-  return r.ok ? { ok: true, tu_khoa: r.data.tu_khoa, vnd: giaVnd(r) } : { ok: false, loi: r.loi, vnd: 0 };
+  // bỏ dấu nháy: puzzle-books sinh-bai.mjs nhét câu tìm vào chuỗi JS 'location.assign(…)' — "won't" làm vỡ lệnh br eval, cả lượt dừng (19/11/2026)
+  return r.ok ? { ok: true, tu_khoa: r.data.tu_khoa.map(boNhayTuKhoa), vnd: giaVnd(r) } : { ok: false, loi: r.loi, vnd: 0 };
 }
 const sp_ten = (sp: SanPhamDe) => sp.nhan || sp.ten;
 /** Viết câu trả lời Quora cho câu hỏi thật + góc; sai luật thì viết lại một lần. */
 /** Trang đích các trang của site khai trong tệp sự thật (dòng "- https://… — …" dưới "## Site pages"). Thuần. */
+/** Câu tìm Quora không dấu nháy / ngoặc kép (won't → wont). Thuần. */
+export const boNhayTuKhoa = (q: string) => q.replace(/['’‘"“”`\\]/g, '').replace(/\s+/g, ' ').trim();
 /** Các dòng trang đích kèm mô tả ("https://… — …") dưới "## Site pages" của tệp sự thật. Thuần. */
 export const dongTrangSuThat = (suThat: string | null) => (suThat?.split(/^## Site pages/m)[1] ?? '').split('\n').filter((l) => /^- https?:\/\//.test(l)).map((l) => l.slice(2).trim());
 export const trangSuThat = (suThat: string | null) => (suThat?.split(/^## Site pages/m)[1] ?? '').split('\n').map((l) => l.match(/^- (https?:\/\/\S+)/)?.[1]).filter((x): x is string => !!x);

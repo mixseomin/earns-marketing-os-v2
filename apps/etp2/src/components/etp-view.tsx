@@ -1941,18 +1941,39 @@ const O = ({ v, t, cot, s, max, mo, nhom, n, bac, gio, ns }: { v: number | null;
     {n != null ? <span data-cot={`${cot}-camp`} title={`${n} camp có chi trong ngày`} style={{ fontSize: 9.5, lineHeight: '11px', color: n ? 'var(--fg-2)' : 'var(--fg-3)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{n} camp</span> : null}
     {pNs != null ? <span data-cot={`${cot}-ns`} title={`đã tiêu ${pNs}% ngân sách ngày ${usd(ns!)}`} style={{ position: 'relative', width: 30, height: 2, marginTop: 2, borderRadius: 1, background: `${MAU_CHI_NS}33` }}>
       <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.min(100, pNs)}%`, borderRadius: 1, background: MAU_CHI_NS }} /></span> : null}</span>;
-  return bac?.length || (gio && s.chi > 0) ? <ONgay bac={bac} tieu={tieu} gio={s.chi > 0 ? gio : undefined}>{o}</ONgay> : o;
+  return bac?.length || (gio && s.chi > 0) ? <ONgay bac={bac} d={{ t, v, s, ns, n }} gio={s.chi > 0 ? gio : undefined}>{o}</ONgay> : o;
 };
+// ĐẦU THẺ NGÀY (anh 19/11/2026 rà lại #1507 "Trình bày cho đàng hoàng!! Ko ai đọc đc"): trước là MỘT dòng chữ đậm nối bằng "·" (ROI 01/11 · chi · lãi · % ngân sách)
+// → nay tách khối: ngày + ROI to có màu, dưới là ba ô số có nhãn (Chi · Thu · Lãi), rồi vạch % ngân sách đã tiêu cùng màu vạch đáy ô
+type DuNgay = { t: string; v: number | null; s: SoTien; ns?: number; n?: number };
+function DauNgay({ d }: { d: DuNgay }) {
+  const lai = d.s.thu - d.s.chi, mau = d.v == null ? 'var(--fg-2)' : d.v >= 50 ? '#4ade80' : d.v >= 0 ? '#f59e0b' : '#f87171';
+  const pNs = d.ns && d.ns > 0 ? Math.round((d.s.chi / d.ns) * 100) : null;
+  const so = (nhan: string, gt: string, m?: string) => <div><div style={{ fontSize: 10.5, color: 'var(--fg-3, #777)' }}>{nhan}</div><b style={{ fontSize: 13, color: m, fontVariantNumeric: 'tabular-nums' }}>{gt}</b></div>;
+  return <div data-dau-ngay style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--line)' }}>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+      <span style={{ fontSize: 13, color: 'var(--fg-1)' }}>{d.t.replace(/^ROI\s*/, '')}</span>
+      <span style={{ fontSize: 11, color: 'var(--fg-3, #777)' }}>ROI</span><b style={{ fontSize: 18, color: mau, fontVariantNumeric: 'tabular-nums' }}>{d.v == null ? '—' : `${d.v > 0 ? '+' : ''}${d.v}%`}</b>
+      {d.n != null ? <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--fg-2)' }}>{d.n} camp có chi</span> : null}
+    </div>
+    <div style={{ display: 'flex', gap: 22, marginTop: 6 }}>{so('Chi', usd(d.s.chi))}{so('Thu', usd(d.s.thu))}{so('Lãi', usd(lai), lai >= 0 ? '#4ade80' : '#f87171')}</div>
+    {pNs != null ? <div style={{ marginTop: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>Đã tiêu <b style={{ color: MAU_CHI_NS }}>{pNs}%</b> ngân sách ngày {usd(d.ns!)}</div>
+      <div style={{ position: 'relative', height: 4, marginTop: 3, borderRadius: 2, background: `${MAU_CHI_NS}33` }}><span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.min(100, pNs)}%`, borderRadius: 2, background: MAU_CHI_NS }} /></div>
+    </div> : null}
+  </div>;
+}
 // THẺ ĐỔI BẬC TRONG NGÀY (anh 02/11/2026 #1507 "Trình bày cho đàng hoàng!! Ko ai đọc được" — trước là tooltip chữ thô của trình duyệt): khuôn thẻ nổi chung
 // (useNoi + KhungNoi) + dòng thời gian DongBac giống thẻ Lịch sử bậc, đầu thẻ là ROI / chi / lãi của ngày
-function ONgay({ bac, tieu, gio, children }: { bac?: DuLieuEtp['lsBac'][number]; tieu: string; gio?: GioO; children: React.ReactNode }) {
+// bấm cũng mở ngay (cùng khuôn etp-logs / etp-phanh-cho: điện thoại không có rê chuột); bấm trong thẻ (portal nổi bọt lên đây) thì bỏ qua
+function ONgay({ bac, d, gio, children }: { bac?: DuLieuEtp['lsBac'][number]; d: DuNgay; gio?: GioO; children: React.ReactNode }) {
   const noi = useNoi<{ id: 0 }>();
-  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'contents' }}>
+  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { if (e.currentTarget.contains(e.target as Node)) noi.moNgay({ id: 0 }, e); }} style={{ display: 'contents' }}>
     {children}
     {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={400} cao={360} noi={noi}><div style={{ width: 400, maxWidth: '92vw', maxHeight: 420, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>{tieu}</div>
+      <DauNgay d={d} />
       {gio ? <BieuDoGio gio={gio} bac={bac} /> : null}
-      {bac?.length ? <><div style={{ fontSize: 11, color: 'var(--fg-3, #777)', margin: '8px 0 6px' }}>Đổi bậc trong ngày</div><DongBac ls={bac} /></> : null}
+      {bac?.length ? <><div style={{ fontSize: 11, color: 'var(--fg-3, #777)', margin: '10px 0 6px', paddingTop: 8, borderTop: '1px solid var(--line)' }}>Đổi bậc trong ngày</div><DongBac ls={bac} /></> : null}
     </div></KhungNoi> : null}
   </span>;
 }

@@ -316,10 +316,10 @@ const BC_MAU = { hinh: ['tv', 'xem', 'tt'], tailieu: ['kb', 'xem', 'lp', 'tt'], 
 
 let D = duAnMau();
 const E = { man: 'dung', ban: 'pro', da: 'cn', nguon: 'anh', hop: true, tat: false, ttTab: 'may', bc: JSON.parse(JSON.stringify(BC_MAU)), menu: null,
-  t: 0, chon: null, pxs: 22, tab: 'Mẫu', chay: false, lui: [], toi: [], xuat: null, moDoi: false, moNv: false, moThem: false, dangGo: false, o: 'tv', vua: false, canhDang: null, solo: null, tap: null, tim: '', kq: undefined, kqLoi: '', nkBuoc: 'anh', nk: null, nkMo: null, nkCt: {} };
-try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { if (l.ban === 'gon' || l.ban === 'pro') E.ban = l.ban; if (DU_AN[l.da] || /^\d+$/.test(l.da || '')) { E.da = l.da; E.tap = +l.tap || null; } for (const k in BC_MAU) if (Array.isArray(l.bc?.[k]) && l.bc[k].includes('xem') && l.bc[k].every((w) => WG[w])) E.bc[k] = l.bc[k]; } } catch {}
+  t: 0, chon: null, pxs: 22, tab: 'Mẫu', chay: false, lui: [], toi: [], xuat: null, moDoi: false, moNv: false, moThem: false, dangGo: false, o: 'tv', vua: false, canhDang: null, solo: null, tap: null, tim: '', kq: undefined, kqLoi: '', nkBuoc: 'anh', nk: null, nkMo: null, nkCt: {}, rong: { hinh: {}, tailieu: {}, phim: {} } };
+try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { if (l.ban === 'gon' || l.ban === 'pro') E.ban = l.ban; if (DU_AN[l.da] || /^\d+$/.test(l.da || '')) { E.da = l.da; E.tap = +l.tap || null; } for (const k in BC_MAU) { if (Array.isArray(l.bc?.[k]) && l.bc[k].includes('xem') && l.bc[k].every((w) => WG[w])) E.bc[k] = l.bc[k]; for (const w in l.rong?.[k] || {}) if (WG[w] && w !== 'xem' && l.rong[k][w] >= 160 && l.rong[k][w] <= 720) E.rong[k][w] = +l.rong[k][w]; } } } catch {}
 try { const q = new URLSearchParams(location.search); if (q.get('ban') === 'gon' || q.get('ban') === 'pro') E.ban = q.get('ban'); if (DU_AN[q.get('phim')] || /^\d+$/.test(q.get('phim') || '')) { E.da = q.get('phim'); E.tap = +q.get('tap') || null; } } catch {}
-const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc })); } catch {} try { history.replaceState(null, '', `?phim=${E.da}${E.tap ? `&tap=${E.tap}` : ''}&ban=${E.ban}${pro() && D.that && co('nk') ? `&nk=${E.nkBuoc}` : ''}`); } catch {} };
+const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc, rong: E.rong })); } catch {} try { history.replaceState(null, '', `?phim=${E.da}${E.tap ? `&tap=${E.tap}` : ''}&ban=${E.ban}${pro() && D.that && co('nk') ? `&nk=${E.nkBuoc}` : ''}`); } catch {} };
 const pro = () => E.ban === 'pro', boCuc = () => (pro() ? E.bc[D.loai].filter((w) => (w !== 'nk' || !!D.that) && (!D.that || ((w !== 'lp' || coLop()) && (w !== 'mb' || !!D.set)))) : BC_MAU.hinh), co = (w) => boCuc().includes(w);
 const tong = () => D.canh.reduce((a, c) => a + c.tg, 0), canh = (id) => D.canh.find((c) => c.id === id), vt = (id) => D.canh.findIndex((c) => c.id === id);
 const batDau = (i) => D.canh.slice(0, i).reduce((a, c) => a + c.tg, 0), lam2 = (x) => Math.round(x * 100) / 100;
@@ -376,6 +376,30 @@ function veKqTim() {
 function datMenu() { const m = $('#dMenu'); if (!E.menu || m.hidden) return; const r = E.menu.r, w = m.offsetWidth, cao = m.offsetHeight;
   m.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - w - 8))}px`; m.style.top = `${r.bottom + 6 + cao > window.innerHeight && r.top - cao - 6 > 0 ? r.top - cao - 6 : r.bottom + 6}px`; }
 const veKq = () => { const el = $('#mnKq'); if (el) { el.innerHTML = veKqTim(); datMenu(); } };
+
+// ── widget KÉO THẢ (bản Pro, màn ngang): nắm ĐẦU widget kéo sang chỗ khác để đổi thứ tự (vạch đồng chỉ chỗ sẽ rơi); kéo MÉP PHẢI widget để đổi bề rộng
+//    (Khung xem lấy phần còn lại, không hẹp hơn 260px; bấm đúp mép = về mặc định). Thứ tự + bề rộng nhớ theo từng loại hình video.
+let keoWg = null;
+const oWg = () => boCuc().map((w) => [w, $(`#w-${w}`).getBoundingClientRect()]), ngang = () => pro() && window.innerWidth > 900;
+const xongKeoWg = () => { const k = keoWg; keoWg = null; document.body.classList.remove('keo-wg', 'keo-rong'); document.querySelector('.wg.nhac')?.classList.remove('nhac'); const v = $('#wgCho'); if (v) v.hidden = true; return k; };
+document.addEventListener('pointerdown', (e) => { if (e.button || !ngang() || E.man !== 'dung') return;
+  const kh = e.target.closest('.w-keo');
+  if (kh) { const ds = boCuc(), i = ds.indexOf(kh.dataset.w), dich = ds[i] === 'xem' ? ds[i + 1] : ds[i]; if (!dich || dich === 'xem') return; e.preventDefault();
+    keoWg = { loai: 'rong', w: dich, dau: ds[i] === 'xem' ? -1 : 1, x: e.clientX, r0: $(`#w-${dich}`).getBoundingClientRect().width, xem0: $('#w-xem').getBoundingClientRect().width }; document.body.classList.add('keo-rong'); return; }
+  const dau = e.target.closest('.w-dau'); if (!dau || e.target.closest('button, input, a')) return;
+  keoWg = { loai: 'cho', w: dau.id.slice(3), x: e.clientX, y: e.clientY, da: false, den: null }; });
+document.addEventListener('pointermove', (e) => { const k = keoWg; if (!k) return;
+  if (k.loai === 'rong') { const moi = Math.round(Math.max(160, Math.min(720, k.r0 + k.xem0 - 260, k.r0 + (e.clientX - k.x) * k.dau))); E.rong[D.loai][k.w] = moi; $('#dGiua').style.gridTemplateColumns = cotWg(boCuc()); return; }
+  if (!k.da) { if (Math.hypot(e.clientX - k.x, e.clientY - k.y) < 6) return; k.da = true; document.body.classList.add('keo-wg'); $(`#w-${k.w}`).classList.add('nhac'); }
+  const kia = oWg().filter(([w]) => w !== k.w), j = kia.filter(([, r]) => e.clientX > r.left + r.width / 2).length, g = $('#dGiua').getBoundingClientRect(); k.den = j;
+  let v = $('#wgCho'); if (!v) { $('#dung').insertAdjacentHTML('beforeend', '<i class="wg-cho" id="wgCho"></i>'); v = $('#wgCho'); }
+  v.hidden = false; v.style.top = `${g.top}px`; v.style.height = `${g.height}px`; v.style.left = `${(kia[j] ? kia[j][1].left - 5 : kia.length ? kia[kia.length - 1][1].right + 3 : g.left)}px`; });
+document.addEventListener('pointerup', () => { const k = xongKeoWg(); if (!k) return;
+  if (k.loai === 'rong') { luu(); return veD(); }
+  if (!k.da || k.den == null) return; const ds = E.bc[D.loai], kia = boCuc().filter((w) => w !== k.w), truoc = kia[k.den];
+  ds.splice(ds.indexOf(k.w), 1); ds.splice(truoc ? ds.indexOf(truoc) : kia.length ? ds.indexOf(kia[kia.length - 1]) + 1 : ds.length, 0, k.w); luu(); veD(); });
+document.addEventListener('pointercancel', () => { if (xongKeoWg()) veD(); });
+document.addEventListener('dblclick', (e) => { const kh = e.target.closest('.w-keo'); if (!kh || !ngang()) return; const ds = boCuc(), i = ds.indexOf(kh.dataset.w), dich = ds[i] === 'xem' ? ds[i + 1] : ds[i]; if (dich && E.rong[D.loai][dich]) { delete E.rong[D.loai][dich]; luu(); veD(); } });
 
 // ── NHẬT KÝ (chỉ phim thật): dải BƯỚC của cảnh đang ở kim — mỗi bước một đèn (xong / thiếu / hỏng / cần xem / đang chạy) — và các LƯỢT SINH của bước đó
 //    đọc từ sổ lượt sinh của studio (nhatKyTap: bản gọn cả tập; nhatKyCanh: câu lệnh nguyên văn + tham số của một cảnh, chỉ tải khi mở một lượt).
@@ -440,17 +464,18 @@ function veD() {
   veTl(); veKhung(); veKim(); vePhu(); veMenu();
   document.querySelectorAll('.d-doi .bt').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.g === E.o)));
 }
+/** cột của từng widget: bề rộng người dùng đã kéo (nhớ theo loại hình) thay cho mặc định; Khung xem luôn co giãn lấy phần còn lại */
+const cotWg = (ds) => ds.map((w) => (w !== 'xem' && E.rong[D.loai]?.[w] ? `${E.rong[D.loai][w]}px` : WG[w][1])).join(' ');
 function veBoCuc() {
   const ds = boCuc();
-  $('#dGiua').style.gridTemplateColumns = pro() ? ds.map((w) => WG[w][1]).join(' ') : '292px minmax(0, 1fr) 304px';
-  for (const w in WG) { const el = $(`#w-${w}`), i = ds.indexOf(w); el.hidden = i < 0; el.style.order = i + 10; if (i < 0 || !pro()) continue;
+  $('#dGiua').style.gridTemplateColumns = pro() ? cotWg(ds) : '292px minmax(0, 1fr) 304px';
+  for (const w in WG) { const el = $(`#w-${w}`), i = ds.indexOf(w); el.hidden = i < 0; el.style.order = i + 10; let kh = el.querySelector(':scope > .w-keo'); if (!kh) { el.insertAdjacentHTML('beforeend', '<i class="w-keo" title="Kéo để đổi bề rộng · bấm đúp để về mặc định"></i>'); kh = el.lastElementChild; } kh.dataset.w = w; kh.hidden = !pro() || i < 0 || i === ds.length - 1; if (i < 0 || !pro()) continue;
     let them = '';
     if (w === 'xem') { const ng = nguonCo(), ten = TEN_NG;
       them = (ng.length > 1 ? `<span class="doan-bt">${ng.map((n) => `<button type="button" class="bt" data-d="nguon" data-g="${n}" aria-pressed="${E.nguon === n}">${ten[n]}</button>`).join('')}</span>` : '')
         + (D.canh.some((c) => c.hop) ? `<button type="button" class="bt ic-bt" data-d="hopBat" title="Khung nhân vật trên hình 3D" aria-label="Khung nhân vật trên hình 3D" aria-pressed="${E.hop}">${ic('Khung')}</button>` : '')
         + (coClip() ? `<button type="button" class="bt ic-bt" data-d="tat" title="${E.tat ? 'Bật tiếng' : 'Tắt tiếng'}" aria-label="${E.tat ? 'Bật tiếng' : 'Tắt tiếng'}">${ic(E.tat ? 'Tắt tiếng' : 'Tiếng')}</button>` : ''); }
-    const di = (t, k, mo, tat) => `<button type="button" class="bt ic-bt" data-d="wgDi" data-g="${w}" data-k="${k}" title="${mo}" aria-label="${mo}" ${tat ? 'disabled' : ''}>${ic(t)}</button>`;
-    $(`#wd-${w}`).innerHTML = `<span class="w-ten">${ic(WG[w][0])}<b>${WG[w][0]}</b></span><span class="w-them">${them}</span><span class="w-nut">${di('Trái', -1, 'Đưa sang trái', !i)}${di('Phải', 1, 'Đưa sang phải', i === ds.length - 1)}${w === 'xem' ? '' : `<button type="button" class="bt ic-bt" data-d="wg" data-g="${w}" title="Ẩn widget này" aria-label="Ẩn widget này">${ic('Đóng')}</button>`}</span>`; }
+    $(`#wd-${w}`).innerHTML = `<span class="w-ten" tabindex="0" role="button" data-wg="${w}" aria-label="Widget ${WG[w][0]}: kéo để đổi chỗ, phím mũi tên trái phải để dời" title="Kéo để đổi chỗ · phím ← → để dời">${ic(WG[w][0])}<b>${WG[w][0]}</b></span><span class="w-them">${them}</span><span class="w-nut">${w === 'xem' ? '' : `<button type="button" class="bt ic-bt" data-d="wg" data-g="${w}" title="Ẩn widget này" aria-label="Ẩn widget này">${ic('Đóng')}</button>`}</span>`; }
 }
 function veTren() {
   const p = pro(), ten = (t, d, them = '') => (p ? nutIc(t, d, '', them) : `<button type="button" class="bt" data-d="${d}" ${them}>${t === 'Hoàn tác' ? '↶ ' : t === 'Làm lại' ? '↷ ' : ''}${t}</button>`);
@@ -468,7 +493,7 @@ function veMenu() {
   else { const ds = boCuc();
     h = `<h3>Bố cục cho loại “${LOAI[D.loai]}”</h3><div class="mn-wg">${Object.keys(WG).map((w) => `<button type="button" class="bt" data-d="wg" data-g="${w}" aria-pressed="${ds.includes(w)}" ${w === 'xem' ? 'disabled' : ''}>${ic(WG[w][0])}${WG[w][0]}</button>`).join('')}</div>
     <h3>Lấy bố cục của loại khác</h3><div class="day-bt">${Object.keys(BC_MAU).map((k) => `<button type="button" class="bt" data-d="bcMau" data-g="${k}">${LOAI[k]}</button>`).join('')}</div>
-    <span class="nho">Mỗi loại hình video nhớ một bố cục riêng. Đổi thứ tự bằng mũi tên trên đầu từng widget.</span>`; }
+    <span class="nho">Mỗi loại hình video nhớ một bố cục riêng. Kéo đầu widget để đổi chỗ, kéo mép phải của widget để đổi bề rộng (bấm đúp mép = về mặc định).</span>`; }
   m.innerHTML = h; datMenu();
 }
 function veTv() {
@@ -717,11 +742,11 @@ function lamD(a, d = {}, nut) {
     case 'lopSolo': { const y = canhTai(Math.min(E.t, tong() - 0.001)).c; E.solo = E.solo?.id === y.id && E.solo.k === g ? null : { id: y.id, k: g }; E.nguon = 'lop'; dungChay(); return veD(); }
     case 'lopHet': { const y = canhTai(Math.min(E.t, tong() - 0.001)).c; if (y.an?.length) { ghi(); y.an = []; } E.solo = null; return veD(); }
     case 'wg': { const ds = E.bc[D.loai], i = ds.indexOf(g); if (i >= 0) ds.splice(i, 1); else ds.splice(g === 'tt' || g === 'mb' || g === 'lp' || g === 'nk' ? (ds.includes('tt') && g !== 'tt' ? ds.indexOf('tt') : ds.length) : Math.max(0, ds.indexOf('xem')), 0, g); luu(); return veD(); }
-    case 'wgDi': { const ds = E.bc[D.loai], i = ds.indexOf(g), j = i + +d.k; if (j < 0 || j >= ds.length) return; [ds[i], ds[j]] = [ds[j], ds[i]]; luu(); return veD(); }
+    case 'wgDi': { const ds = E.bc[D.loai], hien = boCuc(), kia = hien[hien.indexOf(g) + +d.k]; if (!kia) return; const i = ds.indexOf(g), j = ds.indexOf(kia); [ds[i], ds[j]] = [ds[j], ds[i]]; luu(); veD(); return document.querySelector(`.w-ten[data-wg="${g}"]`)?.focus(); }
     case 'nkBuoc': E.nkBuoc = g; E.nkMo = null; luu(); return veNk();
     case 'nkMo': E.nkMo = E.nkMo === +g ? null : +g; veNk(); if (E.nkMo) napNkCanh(); return;
     case 'nkBat': { const ds = E.bc[D.loai]; if (!ds.includes('nk')) ds.splice(ds.includes('tt') ? ds.indexOf('tt') : ds.length, 0, 'nk'); if (g) E.nkBuoc = g; luu(); return veD(); }
-    case 'bcMau': E.bc[D.loai] = [...BC_MAU[g]]; luu(); return veD();
+    case 'bcMau': E.bc[D.loai] = [...BC_MAU[g]]; E.rong[D.loai] = {}; luu(); return veD();
     case 'moTao': dungChay(); E.menu = null; return man('tao');
     case 'veDung': return man('dung');
     case 'moDung': { const hm = HINH.find((h) => h[0] === S.hinh)?.[1];
@@ -828,6 +853,7 @@ mbEl.addEventListener('pointerup', thaMb); mbEl.addEventListener('pointercancel'
 
 document.addEventListener('keydown', (e) => {
   if (E.man !== 'dung') return; const a = document.activeElement, go = a && /INPUT|TEXTAREA|SELECT/.test(a.tagName), m = e.metaKey || e.ctrlKey;
+  if (a?.dataset?.wg && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); return lamD('wgDi', { g: a.dataset.wg, k: e.key === 'ArrowLeft' ? -1 : 1 }); }
   if (e.key === 'Escape' && E.menu) { E.menu = null; veTren(); return veMenu(); }
   if (e.key === 'Escape' && E.xuat) return lamD('dong');
   if (go || E.xuat) return;

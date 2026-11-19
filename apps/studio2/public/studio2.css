@@ -365,3 +365,13 @@ span.lp-than { cursor: default }
 .nk-l > button:hover { background: var(--bg) } .nk-l b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap } .nk-l .so { font-family: var(--f-so); font-size: 11.5px; color: var(--ink-3) } .nk-tt { font-size: 11.5px; color: var(--ink-3) } .nk-l.loi .nk-tt { color: var(--loi); font-weight: 600 }
 .nk-mo { display: grid; gap: 6px; padding: 8px; border-top: 1px solid var(--line) } .nk-mo a { color: var(--brass); font-size: 12.5px } .nk-mo .bao { font-size: 12.5px; overflow-wrap: anywhere }
 .nk-mo dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 8px; margin: 0; font: 11.5px/1.4 var(--f-so) } .nk-mo dt { color: var(--ink-3) } .nk-mo dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 90px; overflow: auto }
+
+/* widget kéo thả: đầu widget là tay nắm đổi chỗ, mép phải là tay nắm đổi bề rộng */
+.wg { position: relative }
+@media (min-width: 901px) { .pro .w-dau { cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none } .pro .w-dau button { cursor: pointer } }
+.w-ten { border-radius: 6px; padding: 2px 4px; margin-left: -4px } .w-ten:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px }
+.w-keo { position: absolute; top: 0; right: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 3; touch-action: none; border-radius: 0 12px 12px 0 } .w-keo:hover, .keo-rong .w-keo:active { background: color-mix(in srgb, var(--brass) 35%, transparent) }
+@media (max-width: 900px) { .w-keo { display: none } }
+.keo-wg, .keo-wg * { cursor: grabbing !important; user-select: none; -webkit-user-select: none } .keo-rong, .keo-rong * { cursor: col-resize !important; user-select: none; -webkit-user-select: none }
+.wg.nhac { opacity: .45; outline: 2px dashed var(--brass); outline-offset: -2px }
+.wg-cho { position: fixed; width: 4px; border-radius: 2px; background: var(--brass); z-index: 40; pointer-events: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--brass) 25%, transparent) }

@@ -197,6 +197,21 @@ def xep_ai(ten, uv):
     tt = j.get("thu_tu") or list(range(len(uv)))
     return [uv[i] for i in tt], j.get("ly_do", ""), int(j.get("vnd") or 0)
 
+def hop_ten(ten, j):
+    """các hộp chữ (x, y, rộng, cao — tỉ lệ ảnh) là TÊN PHIM trong kết quả máy đọc chữ một poster; không thấy → [] (dùng chung: ten_poster + logo-goc.py)"""
+    tu = lambda x: set(re.findall(r"[a-z0-9áéíóúñü]+", x.lower()))
+    can = tu(ten); hop = [k[1:] for k in j.get("khung") or [] if tu(k[0]) and len(tu(k[0]) & can) / len(tu(k[0])) >= 0.6]
+    if not hop or len(set().union(*[tu(k[0]) for k in j.get("khung") or [] if k[1:] in hop]) & can) < 0.6 * len(can):
+        # CHỮ HOA VĂN (08/11/2026 The Dragon's Silly Captive: chữ gothic, Vision đọc lệch → không khớp tên): tên phim gần như luôn là KHỐI CHỮ TO NHẤT nửa dưới poster
+        # → dòng cao nhất (y > 0,45) + các dòng liền trên / dưới cao ≥ 50% nó; khối phải rộng ≥ 35% poster, không thì bỏ (chữ vàng)
+        dd = sorted([k[1:] for k in j.get("khung") or [] if k[2] > 0.45 and k[4] > 0.025], key=lambda b: -b[3])
+        if not dd: return []
+        hop = [dd[0]]
+        for b in dd[1:]:
+            if b[3] >= 0.5 * dd[0][3] and any(abs((b[1] + b[3] / 2) - (h_[1] + h_[3] / 2)) < 1.6 * max(b[3], h_[3]) for h_ in hop): hop.append(b)
+        if max(b[0] + b[2] for b in hop) - min(b[0] for b in hop) < 0.35: return []
+    return hop
+
 def ten_poster(ten, poster, ra):
     """TÊN PHIM TÁCH TỪ POSTER (anh 08/11/2026 "tách phần tên phim từ poster ra và gắn lên creative"): Vision đọc chữ poster → các dòng chữ khớp từ
     của tên phim → cắt vùng đó, chỉ giữ nét chữ (màu nhiều trong lõi dòng chữ, ít ở viền vùng cắt), thêm viền tối để đọc rõ trên mọi khung.
@@ -204,17 +219,8 @@ def ten_poster(ten, poster, ra):
     if not os.path.exists(poster): return None
     from collections import Counter
     j = json.loads(subprocess.run([may_doc(), poster], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
-    tu = lambda x: set(re.findall(r"[a-z0-9áéíóúñü]+", x.lower()))
-    can = tu(ten); hop = [k[1:] for k in j.get("khung") or [] if tu(k[0]) and len(tu(k[0]) & can) / len(tu(k[0])) >= 0.6]
-    if not hop or len(set().union(*[tu(k[0]) for k in j.get("khung") or [] if k[1:] in hop]) & can) < 0.6 * len(can):
-        # CHỮ HOA VĂN (08/11/2026 The Dragon's Silly Captive: chữ gothic, Vision đọc lệch → không khớp tên): tên phim gần như luôn là KHỐI CHỮ TO NHẤT nửa dưới poster
-        # → dòng cao nhất (y > 0,45) + các dòng liền trên / dưới cao ≥ 50% nó; khối phải rộng ≥ 35% poster, không thì bỏ (chữ vàng)
-        dd = sorted([k[1:] for k in j.get("khung") or [] if k[2] > 0.45 and k[4] > 0.025], key=lambda b: -b[3])
-        if not dd: return None
-        hop = [dd[0]]
-        for b in dd[1:]:
-            if b[3] >= 0.5 * dd[0][3] and any(abs((b[1] + b[3] / 2) - (h_[1] + h_[3] / 2)) < 1.6 * max(b[3], h_[3]) for h_ in hop): hop.append(b)
-        if max(b[0] + b[2] for b in hop) - min(b[0] for b in hop) < 0.35: return None
+    hop = hop_ten(ten, j)
+    if not hop: return None
     im = Image.open(poster).convert("RGB"); X, Y = im.size
     x0 = max(0, int(min(b[0] for b in hop) * X) - 12); y0 = max(0, int(min(b[1] for b in hop) * Y) - 12)
     x1 = min(X, int(max(b[0] + b[2] for b in hop) * X) + 12); y1 = min(Y, int(max(b[1] + b[3] for b in hop) * Y) + 12)

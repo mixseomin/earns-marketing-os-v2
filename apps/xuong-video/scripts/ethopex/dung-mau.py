@@ -181,38 +181,40 @@ def dt_ten_vang(c):
     lop = Image.new("RGBA", (W, H)); f, dong, y = dat_chu(c, c["ten"], "georgia_bi", W - 120, 150, 3, 1.02, 0, 0.60)
     m, hop = mat_chu(dong, f, y, 1.02); bong(lop, m, (8, 12), 14, 220); vien(lop, m, 7, (70, 38, 6))
     to(lop, m, doc_trong((255, 246, 200), (232, 172, 52), (176, 104, 18), hop)); sang_khoi(lop, m); return None, lop
+# CHUẨN MẪU "LOGO GỐC CỦA PHIM" (anh 20/11/2026 "Vấn đề về vị trí chữ, cắt rồi ghép thì sao ? Hãy chuẩn hoá cho mẫu creative này trước") — một bộ số cố định, không chỉnh theo phim:
+LOGO_RONG = 0.90      # logo rộng 90% khung (bản dải: tràn đủ bề ngang khung)
+LOGO_CAO = 0.26       # nhưng không cao quá 26% khung
+LOGO_VUNG = (0.56, 0.86)   # logo chỉ nằm trong dải 56–86% chiều cao: dưới mặt, trên vùng nút / chú thích của Reels
+LOGO_CACH_MAT = 100   # mép trên logo cách đáy mặt thấp nhất ≥ 100px (hộp mặt của máy đọc dừng ở miệng, cằm còn thò ra)
+LOGO_CO_MIN = 0.80    # khung chật thì co logo tối đa xuống 80% cỡ chuẩn; vẫn không vừa = khung đó KHÔNG dùng cho mẫu này (máy đổi khung khác, xem chon_khung_cho)
+def logo_goc(c):
+    """logo gốc đã tách của phim (một lần / phim) → (ảnh RGBA đã đưa về cỡ chuẩn, 'cat' | 'dai'); không tách được → dừng kêu to"""
+    ra = os.path.join(c["tm"], "logo-goc.png"); ly = []
+    tp, kieu = _nap("logo_goc", "logo-goc.py").tach(c["ten"], os.path.join(c["tm"], "poster.jpg"), ra, ly.append)
+    if not tp: raise RuntimeError(f"không lấy được logo gốc từ poster phim ({'; '.join(ly) or 'không rõ'}) — mẫu Logo gốc không dựng bằng chữ vẽ thay")
+    lg = Image.open(tp).convert("RGBA"); tl = W / lg.width if kieu == "dai" else min(W * LOGO_RONG / lg.width, H * LOGO_CAO / lg.height)
+    return lg.resize((max(1, round(lg.width * tl)), max(1, round(lg.height * tl))), Image.LANCZOS), kieu
+def logo_cho(c, cao):
+    """chỗ đặt một khối cao `cao` dưới mọi mặt của khung → (y, hệ số co) hoặc None nếu co tới LOGO_CO_MIN vẫn không vừa"""
+    mats = c.get("mats") or [(c["mat_day"] - 1, c["mat_day"])]; tren = max(H * LOGO_VUNG[0], max(b for _, b in mats) + LOGO_CACH_MAT)
+    for k in (1.0, 0.9, LOGO_CO_MIN):
+        if tren + cao * k <= H * LOGO_VUNG[1]: return int(tren + (H * LOGO_VUNG[1] - tren - cao * k) * 0.35), k   # lệch nhẹ về phía mặt, không dính đáy
+    return None
 def dt_logo_chat_lieu(c):
-    """LOGO GỐC CỦA PHIM (anh 19/11/2026: "Logo mẫu đó mày làm sai rồi. Máy dựng làm sai hoàn toàn. Logo phải giữ nguyên phong cách gốc") — KHÔNG vẽ lại tên phim bằng phông khác:
-    tách đúng khối logo trên poster gốc của phim (AT.ten_poster: Vision đọc chữ poster → cắt nét chữ, giữ màu / kiểu chữ / hoạ tiết của logo) rồi đặt lên khung, né mọi mặt,
-    trong vùng an toàn Reels. Không tách được logo (thiếu poster / chữ không đọc ra) → DỪNG kêu to, không vẽ chữ thay (mẫu này chỉ có nghĩa khi là logo gốc)."""
-    po = os.path.join(c["tm"], "poster.jpg"); ra = os.path.join(c["tm"], "logo-goc.png")
-    tp = AT.ten_poster(c["ten"], po, ra)
-    if not tp: raise RuntimeError("không tách được logo gốc từ poster phim (thiếu poster hoặc không đọc ra chữ tên phim) — mẫu Logo gốc không dựng bằng chữ vẽ thay")
-    lg = Image.open(tp).convert("RGBA")
-    # LÀM SẠCH: bản tách còn vụn nền poster (mảng nâu / tối quanh chữ, 19/11/2026 American Sniper ra một hộp tối vuông sau logo) → chỉ giữ điểm ảnh mang MÀU CHÍNH của logo
-    # (màu chiếm ≥ 3% số điểm đặc, không đen), bỏ đốm lẻ; quầng tối mềm vẽ lại ở dưới thay cho viền đen cứng của bản tách
-    from collections import Counter
-    px = list(lg.getdata()); q = lambda t: (t[0] // 32, t[1] // 32, t[2] // 32)
-    dac = [t for t in px if t[3] >= 250 and max(t[:3]) > 70]; dem = Counter(q(t) for t in dac)
-    chinh = [k for k, v in dem.items() if v >= 0.03 * max(1, len(dac))]
-    if not chinh: raise RuntimeError("logo gốc tách từ poster không còn nét chữ sau khi làm sạch — không dựng bằng chữ vẽ thay")
-    mk = Image.new("L", lg.size); mk.putdata([255 if t[3] >= 128 and max(t[:3]) > 70 and q(t) in chinh else 0 for t in px])
-    mk = mk.filter(ImageFilter.MedianFilter(5)).filter(ImageFilter.GaussianBlur(0.8)); lg.putalpha(mk)
-    tl0 = min((W - 120) / lg.width, H * 0.22 / lg.height); goc_lg = lg; y = None
-    # CHỖ ĐẶT (chữ không che mặt): hộp mặt của máy đọc dừng ở khoảng miệng / chân tóc — cằm và tóc còn thò ra (American Sniper: mép logo chạm cằm đứa bé) → chừa 100px
-    # DƯỚI mặt thấp nhất; không đủ chỗ thì TRÊN mặt cao nhất (chừa 110px cho tóc, dưới vùng che của Reels); cả hai không vừa thì CO logo dần 100% → 60% rồi thử lại
-    mats = c.get("mats") or [(c["mat_day"] - 1, c["mat_day"])]
-    for k in (1.0, 0.9, 0.8, 0.7, 0.6):
-        lg = goc_lg.resize((max(1, int(goc_lg.width * tl0 * k)), max(1, int(goc_lg.height * tl0 * k))), Image.LANCZOS)
-        duoi = max(H * 0.56, max(b for _, b in mats) + 100); tren = min(a for a, _ in mats) - 110 - lg.height
-        if duoi + lg.height <= H * 0.86: y = int(duoi); break
-        if tren >= H * (TREN_AN + 0.03): y = int(tren); break
-    if y is None: y = dat_y(c, lg.height + 20, 0.56, 0.86)
+    """LOGO GỐC CỦA PHIM (anh 19/11/2026: "Logo phải giữ nguyên phong cách gốc") — lấy logo từ poster gốc của phim (logo-goc.py: cắt rời khi nền poster êm, không thì nguyên
+    dải poster chứa logo mép mờ dần), đưa về cỡ chuẩn, đặt dưới mọi mặt trong vùng chuẩn. Khung không đủ chỗ → lỗi (vòng dựng đã chọn khung đủ chỗ trước khi tới đây)."""
+    lg, kieu = logo_goc(c); cho = logo_cho(c, lg.height)
+    if not cho: raise RuntimeError("khung không đủ chỗ dưới mặt cho logo ở cỡ chuẩn (chữ không che mặt) — cần khung khác")
+    y, k = cho
+    if k < 1: lg = lg.resize((round(lg.width * k), round(lg.height * k)), Image.LANCZOS)
     lop = Image.new("RGBA", (W, H)); bg = Image.new("RGBA", (W, H)); bg.paste(lg, ((W - lg.width) // 2, y), lg)
-    al = bg.split()[3]
-    toi = ImageChops.lighter(al.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3)).point(lambda v: min(235, int(v * 1.4))),   # viền tối sát nét chữ
-                             al.filter(ImageFilter.GaussianBlur(30)).point(lambda v: min(140, int(v * 1.6))))                                  # + quầng mềm để đọc rõ trên khung sáng
-    nen = Image.new("RGBA", (W, H), (0, 0, 0, 0)); nen.putalpha(toi); lop = Image.alpha_composite(lop, nen); lop = Image.alpha_composite(lop, bg); return None, lop
+    if kieu == "cat":   # logo cắt rời: viền tối sát nét + quầng mềm để đọc rõ trên khung sáng (bản dải đã mang nền của chính nó)
+        al = bg.split()[3]
+        toi = ImageChops.lighter(al.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3)).point(lambda v: min(235, int(v * 1.4))),
+                                 al.filter(ImageFilter.GaussianBlur(30)).point(lambda v: min(140, int(v * 1.6))))
+        nen = Image.new("RGBA", (W, H), (0, 0, 0, 0)); nen.putalpha(toi); lop = Image.alpha_composite(lop, nen)
+    return None, Image.alpha_composite(lop, bg)
+CAN_CHO = {"dt_logo_chat_lieu": lambda c: (logo_goc(c)[0].height, logo_cho)}   # mẫu cần KHUNG ĐỦ CHỖ: (chiều cao khối, hàm thử chỗ) — vòng dựng duyệt khung xếp hạng tới khi vừa
 def _ten_hai_tang(c, y_min, them=130):
     """tên hai tầng: phần đầu trắng, TỪ CUỐI đỏ (kiểu UNDERCOVER PRISON KING) → (lớp, đáy)"""
     w = c["ten"].upper().split(); dau, cuoi = " ".join(w[:-1]) or w[0], w[-1] if len(w) > 1 else ""
@@ -496,21 +498,25 @@ def mot(ma, cid, xem=False, ban=1):
         cau, nhan = _NHO[cid].get("cau", ("", "")) if ma in CAN_CAU else ("", "")
         cr = []
         for b in range(ban):
-            k = uv[b % len(uv)]; k["lang"] = lang
-            tt("ve_mau", g=f"bản {b + 1}/{ban}: vẽ mẫu trên khung {k['tap']}#{k['so']}")
-            AT.CO_FREE, cu = False, AT.CO_FREE   # nền sạch không lớp Free — mẫu tự quyết lớp CTA của nó
-            try: nen, _ = AT.anh(cid, ten, k, tm, 100 + b)
-            finally: AT.CO_FREE = cu
-            goc = os.path.join(tm, f"goc-{100 + b}.png"); khac = [os.path.join(tm, f"goc-{200 + b}.png")]
-            if ma in CAN_KHUNG2 and len(uv) > 1:   # nhân vật thứ hai từ khung xếp hạng kế
-                k2 = uv[(b + 1) % len(uv)]; AT.sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k2["tap"] + ".mp4"), "-vf", f"{AT.LOC},select=eq(n\\,{k2['so'] - 1})", "-frames:v", "1", khac[0])
-            mats = []
-            try:   # mọi mặt trên khung gốc (máy đọc Vision của anh-tinh) — khung 9:16 cắt từ khung gốc nên quy toạ độ dọc theo cùng tỉ lệ
-                jm = json.loads(subprocess.run([AT.may_doc(), "--mat", goc], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
-                mats = [((m[1]) * H, (m[1] + m[3]) * H) for m in jm.get("mat") or [] if m[4] >= 0.45 and m[3] >= 0.05]
-            except Exception as e: print("đọc mặt lỗi — chỉ né mặt chính:", e, file=sys.stderr)
-            c = {"ma": ma, "cid": cid, "p": p, "lang": lang, "ten": ten, "tm": tm, "nen": nen, "goc": goc, "goc_khac": [x for x in khac if os.path.exists(x)], "mats": mats,
-                 "mat_day": (k["mat"][1] + k["mat"][3]) * H, "mat_tam": k["mat"][1] + k["mat"][3] / 2, "cau": cau, "nhan": nhan}
+            cao_cho = CAN_CHO[ma]({"tm": tm, "ten": ten}) if ma in CAN_CHO else None   # tách logo TRƯỚC khi chọn khung: không có logo thì dừng luôn, chưa tốn gì
+            for lan in range(min(len(uv), 10) if cao_cho else 1):
+                k = uv[(b + lan) % len(uv)]; k["lang"] = lang
+                tt("ve_mau", g=f"bản {b + 1}/{ban}: vẽ mẫu trên khung {k['tap']}#{k['so']}" + (f" (khung xếp hạng {lan + 1} — các khung trước không đủ chỗ dưới mặt)" if lan else ""))
+                AT.CO_FREE, cu = False, AT.CO_FREE   # nền sạch không lớp Free — mẫu tự quyết lớp CTA của nó
+                try: nen, _ = AT.anh(cid, ten, k, tm, 100 + b)
+                finally: AT.CO_FREE = cu
+                goc = os.path.join(tm, f"goc-{100 + b}.png"); khac = [os.path.join(tm, f"goc-{200 + b}.png")]
+                if ma in CAN_KHUNG2 and len(uv) > 1:   # nhân vật thứ hai từ khung xếp hạng kế
+                    k2 = uv[(b + 1) % len(uv)]; AT.sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k2["tap"] + ".mp4"), "-vf", f"{AT.LOC},select=eq(n\\,{k2['so'] - 1})", "-frames:v", "1", khac[0])
+                mats = []
+                try:   # mọi mặt trên khung gốc (máy đọc Vision của anh-tinh) — khung 9:16 cắt từ khung gốc nên quy toạ độ dọc theo cùng tỉ lệ
+                    jm = json.loads(subprocess.run([AT.may_doc(), "--mat", goc], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
+                    mats = [((m[1]) * H, (m[1] + m[3]) * H) for m in jm.get("mat") or [] if m[4] >= 0.45 and m[3] >= 0.05]
+                except Exception as e: print("đọc mặt lỗi — chỉ né mặt chính:", e, file=sys.stderr)
+                c = {"ma": ma, "cid": cid, "p": p, "lang": lang, "ten": ten, "tm": tm, "nen": nen, "goc": goc, "goc_khac": [x for x in khac if os.path.exists(x)], "mats": mats,
+                     "mat_day": (k["mat"][1] + k["mat"][3]) * H, "mat_tam": k["mat"][1] + k["mat"][3] / 2, "cau": cau, "nhan": nhan}
+                if not cao_cho or cao_cho[1](c, cao_cho[0]): break
+            else: raise RuntimeError(f"{min(len(uv), 10)} khung xếp hạng đầu đều không đủ chỗ dưới mặt cho khối chữ của mẫu (chữ không che mặt)")
             nen2, lop = HAM[ma](c); nen = nen2 or nen
             chu = os.path.join(tm, f"chu-{ma}-{b}.png"); lop.save(chu)
             out = os.path.join(tm, f"{ma}-{cid}-{b + 1}.mp4")

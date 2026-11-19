@@ -19,7 +19,7 @@ const TEN_NGUON: Record<NguonMau, string> = { nha: 'Nhà', doi_thu: 'Học từ 
 // màu chỉ cho TRẠNG THÁI (tín hiệu thật) — loại / nguồn để xám (YDNI kỷ luật màu)
 const TEN_TT: Record<TrangThaiMau, [string, string, string]> = {
   chay: ['Đang chạy', '#4ade80', 'có camp đang chạy bằng dạng này'],
-  may: ['Đã lên camp', '#60a5fa', 'đã từng lên camp, hiện không camp nào chạy'],
+  may: ['Đã vào máy', '#60a5fa', 'máy đang dựng theo mẫu này / đã từng lên camp — hiện không camp nào chạy'],
   thu: ['Có mã dựng', '#fbbf24', 'đã có mã dựng (dựng thử được), chưa vào máy lên camp'],
   chua: ['Chưa dựng', '#94a3b8', 'mới là mẫu tham chiếu từ QC đối thủ — chưa có mã dựng'],
 };

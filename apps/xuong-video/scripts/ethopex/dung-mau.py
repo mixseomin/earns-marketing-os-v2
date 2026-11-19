@@ -8,7 +8,7 @@ Chạy (iMac, ~/.venvs/poster-mau/bin/python — có rembg):
   dung-mau.py <mã mẫu> <content_id> [--xem]   (--xem: chỉ dựng ảnh + video, không nạp thư viện / không tải creative)
   dung-mau.py --hang                           (mọi phim đã chọn cho mẫu có hàm vẽ mà chưa dựng)
   dung-mau.py --bang <content_id>              (vẽ mọi mẫu trên một phim → bảng ghép xem trước, không giọng, không nạp)"""
-import colorsys, importlib.util, json, math, os, random, re, subprocess, sys, traceback, urllib.request
+import colorsys, importlib.util, json, math, os, random, re, subprocess, sys, traceback, urllib.error, urllib.request
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 D = os.path.dirname(os.path.abspath(__file__))
@@ -187,12 +187,44 @@ LOGO_CAO = 0.26       # nhưng không cao quá 26% khung
 LOGO_VUNG = (0.56, 0.86)   # logo chỉ nằm trong dải 56–86% chiều cao: dưới mặt, trên vùng nút / chú thích của Reels
 LOGO_CACH_MAT = 100   # mép trên logo cách đáy mặt thấp nhất ≥ 100px (hộp mặt của máy đọc dừng ở miệng, cằm còn thò ra)
 LOGO_CO_MIN = 0.80    # khung chật thì co logo tối đa xuống 80% cỡ chuẩn; vẫn không vừa = khung đó KHÔNG dùng cho mẫu này (máy đổi khung khác, xem chon_khung_cho)
+# TẦNG AI của bước tách logo (anh 20/11/2026 "nếu ko đc thì vẫn phải cho AI vào support, dùng mô hình nào rẻ nhất" → "ok. Làm thử đi"): poster nền rối thì nhờ mô hình ảnh
+# rẻ nhất của cổng AI chung (Nano Banana: ckey 111₫ → PlenX 200₫, không lùi về chính hãng) vẽ lại poster KHÔNG CHỮ; logo-goc.py lấy logo = chỗ poster gốc lệch nền sạch đó.
+# Thử 5 poster nền rối 20/11/2026: 3 ra logo sạch, 2 trượt cổng chất lượng → dải poster. Một lần / phim (nhớ nen-sach.png), tiền cộng vào chi phí bản dựng.
+DE_NEN_SACH = ("Recreate this exact poster image without any lettering: the same picture with the title and all words gone. Where the letters were, continue only what is directly behind them. "
+               "Keep the dark shading, gradient and vignette behind the title exactly as dark as it is now - do not brighten, clean up or repaint that area. "
+               "Everything else stays pixel-identical: same framing and crop, same people and objects at the same position and size, same colours and lighting.")
+_CHI_LOGO = [0]   # ₫ tầng AI của các lượt tách logo chưa tính — vòng dựng cộng vào chi phí rồi đặt về 0
+def nen_sach_ai(c):
+    def lam(poster):
+        import base64
+        ra = os.path.join(c["tm"], "nen-sach.png")
+        if os.path.exists(ra) and os.path.getsize(ra) > 20000: return ra
+        TT = _nap("tai_tap", "tai-tap.py"); link = TT.og_anh(TT.mo_rong(c["p"]["url"])) if c.get("p", {}).get("url") else None
+        if not link: raise RuntimeError("không có link poster công khai để gửi mô hình ảnh")
+        k = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/.secrets/cong-ai.env")) if "=" in l)["CONG_AI_KEY"].strip().strip('"')
+        try:
+            r = urllib.request.urlopen(urllib.request.Request("https://spy.on.tc/api/ai", method="POST", headers={"authorization": f"Bearer {k}", "content-type": "application/json", "user-agent": "Mozilla/5.0 dung-mau"},
+                data=json.dumps({"loai": "anh", "viec": "etp-dung-mau", "ma": str(c.get("cid") or ""), "prompt": DE_NEN_SACH, "ti_le": "3:4", "tham_chieu": [link], "bo_chinh_hang": True}).encode()), timeout=400)
+            j = json.loads(r.read())
+        except urllib.error.HTTPError as e: raise RuntimeError(f"cổng ảnh từ chối: {e.read()[:200].decode('utf8', 'replace')}")
+        if not j.get("anh_b64"): raise RuntimeError(f"cổng ảnh không trả ảnh: {str(j.get('loi'))[:160]}")
+        open(ra, "wb").write(base64.b64decode(j["anh_b64"])); v = round((j.get("chi_usd") or 0) * 26000); _CHI_LOGO[0] += v
+        print(f"logo gốc: nền sạch AI {j.get('model')} {v}₫ → {ra}", flush=True); return ra
+    return lam
+LOGO_BAN = 3   # đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại
 def logo_goc(c):
-    """logo gốc đã tách của phim (một lần / phim) → (ảnh RGBA đã đưa về cỡ chuẩn, 'cat' | 'dai'); không tách được → dừng kêu to"""
-    ra = os.path.join(c["tm"], "logo-goc.png"); ly = []
-    tp, kieu = _nap("logo_goc", "logo-goc.py").tach(c["ten"], os.path.join(c["tm"], "poster.jpg"), ra, ly.append)
-    if not tp: raise RuntimeError(f"không lấy được logo gốc từ poster phim ({'; '.join(ly) or 'không rõ'}) — mẫu Logo gốc không dựng bằng chữ vẽ thay")
-    lg = Image.open(tp).convert("RGBA"); tl = W / lg.width if kieu == "dai" else min(W * LOGO_RONG / lg.width, H * LOGO_CAO / lg.height)
+    """logo gốc đã tách của phim (MỘT lần / phim, nhớ logo-goc.png + .json) → (ảnh RGBA đã đưa về cỡ chuẩn, 'cat' | 'ai' | 'dai'); không tách được → dừng kêu to"""
+    ra = os.path.join(c["tm"], "logo-goc.png"); so = ra[:-4] + ".json"; ly = []; kieu = None
+    try:
+        n = json.load(open(so))
+        if n.get("ban") == LOGO_BAN and os.path.exists(ra): kieu = n["kieu"]
+    except Exception: pass
+    if not kieu:
+        tp, kieu = _nap("logo_goc", "logo-goc.py").tach(c["ten"], os.path.join(c["tm"], "poster.jpg"), ra, ly.append, nen_sach_ai(c))
+        if not tp: raise RuntimeError(f"không lấy được logo gốc từ poster phim ({'; '.join(ly) or 'không rõ'}) — mẫu Logo gốc không dựng bằng chữ vẽ thay")
+        json.dump({"ban": LOGO_BAN, "kieu": kieu, "ghi": ly}, open(so, "w"), ensure_ascii=False)
+        print(f"logo gốc: kiểu {kieu}" + (f" · {'; '.join(ly)}" if ly else ""), flush=True)
+    lg = Image.open(ra).convert("RGBA"); tl = W / lg.width if kieu == "dai" else min(W * LOGO_RONG / lg.width, H * LOGO_CAO / lg.height)
     return lg.resize((max(1, round(lg.width * tl)), max(1, round(lg.height * tl))), Image.LANCZOS), kieu
 def logo_cho(c, cao):
     """chỗ đặt một khối cao `cao` dưới mọi mặt của khung → (y, hệ số co) hoặc None nếu co tới LOGO_CO_MIN vẫn không vừa"""
@@ -208,7 +240,7 @@ def dt_logo_chat_lieu(c):
     y, k = cho
     if k < 1: lg = lg.resize((round(lg.width * k), round(lg.height * k)), Image.LANCZOS)
     lop = Image.new("RGBA", (W, H)); bg = Image.new("RGBA", (W, H)); bg.paste(lg, ((W - lg.width) // 2, y), lg)
-    if kieu == "cat":   # logo cắt rời: viền tối sát nét + quầng mềm để đọc rõ trên khung sáng (bản dải đã mang nền của chính nó)
+    if kieu != "dai":   # logo cắt rời (không AI / có AI): viền tối sát nét + quầng mềm để đọc rõ trên khung sáng (bản dải đã mang nền của chính nó)
         al = bg.split()[3]
         toi = ImageChops.lighter(al.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3)).point(lambda v: min(235, int(v * 1.4))),
                                  al.filter(ImageFilter.GaussianBlur(30)).point(lambda v: min(140, int(v * 1.6))))
@@ -498,7 +530,7 @@ def mot(ma, cid, xem=False, ban=1):
         cau, nhan = _NHO[cid].get("cau", ("", "")) if ma in CAN_CAU else ("", "")
         cr = []
         for b in range(ban):
-            cao_cho = CAN_CHO[ma]({"tm": tm, "ten": ten}) if ma in CAN_CHO else None   # tách logo TRƯỚC khi chọn khung: không có logo thì dừng luôn, chưa tốn gì
+            cao_cho = CAN_CHO[ma]({"tm": tm, "ten": ten, "p": p, "cid": cid}) if ma in CAN_CHO else None; vnd += _CHI_LOGO[0]; _CHI_LOGO[0] = 0   # tách logo TRƯỚC khi chọn khung: không có logo thì dừng luôn, chưa tốn gì
             for lan in range(min(len(uv), 10) if cao_cho else 1):
                 k = uv[(b + lan) % len(uv)]; k["lang"] = lang
                 tt("ve_mau", g=f"bản {b + 1}/{ban}: vẽ mẫu trên khung {k['tap']}#{k['so']}" + (f" (khung xếp hạng {lan + 1} — các khung trước không đủ chỗ dưới mặt)" if lan else ""))

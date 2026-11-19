@@ -177,9 +177,11 @@ export async function docPhimDoiThu(): Promise<DuDoiThu | { loi: string }> {
       };
     });
     ds.sort((a, b) => b.qc_dang - a.qc_dang || b.qc_tong - a.qc_tong);
-    // ảnh QC đang chạy chưa cất → cất ngầm (lượt sau đã có bản R2)
-    const daCat = new Set((await run<{ id: string }>(sql`select library_id id from etp.doi_thu_qc where anh is not null or anh_nguon is not null`)).map((x) => x.id));
-    void catAnh(qc.filter((x) => x.dang && x.anh && /^https?:\/\//.test(x.anh) && !daCat.has(x.library_id)).slice(0, 120).map((x) => ({ library_id: x.library_id, anh: x.anh! })));
+    // ảnh MỌI QC đối thủ chưa cất (cả QC ĐÃ DỪNG — card #1694: chỉ cất QC đang chạy nên QC dừng trước khi ai mở ngăn mất ảnh vĩnh viễn, link fbcdn chết sau vài ngày,
+    // Thư viện QC Meta không còn mở lại được QC đã dừng) → cất ngầm, link mới nạp trước (sắp chết trước). Link đã thử mà Spy nạp link KHÁC thì thử lại.
+    const daCat = new Map((await run<{ id: string; nguon: string | null; anh: string | null }>(sql`select library_id id, anh_nguon nguon, anh from etp.doi_thu_qc`)).map((x) => [x.id, x]));
+    void catAnh(qc.filter((x) => x.anh && /^https?:\/\//.test(x.anh) && !daCat.get(x.library_id)?.anh && daCat.get(x.library_id)?.nguon !== x.anh)
+      .sort((a, b) => Number(b.dang) - Number(a.dang) || (b.bd < a.bd ? -1 : 1)).slice(0, 400).map((x) => ({ library_id: x.library_id, anh: x.anh! })));
     const ms = Date.now() - t0;
     console.log(`[etp-do] phim đối thủ ${ds.length} phim · ${qc.length} QC · ${ms}ms`);
     return { phim: ds, mien, luc: new Date().toISOString(), chua_ten: chuaTen, qc: qc.length, ms };

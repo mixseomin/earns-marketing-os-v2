@@ -268,6 +268,7 @@ const LUAT = [
   { card: 1693, tep: 'apps/etp2/src/components/ui/list-view.tsx', co: '`${o.label}: ${counts[o.value]} ${donVi}`', cam: "? `${counts[o.value]}` : null", vi: 'chip lọc: hover số đếm kèm tên chip + đơn vị, không còn số trơn "0" (anh 19/11/2026)' },
   { card: 1693, tep: 'apps/etp2/src/components/etp-noi.tsx', co: "if (!chu || !/\\p{L}/u.test(chu)) return;", vi: 'thẻ nổi chung không mở cho chữ chỉ có số / dấu ("0 ✕")' },
   { card: 1693, tep: 'apps/etp2/src/components/etp-mau-cr.tsx', co: 'donVi="mẫu" urlKey="mct"', vi: 'Mẫu Creative: chip trạng thái đếm theo "mẫu"' },
+  { card: 1694, tep: 'apps/etp2/src/lib/actions/etp-doi-thu.ts', co: "void catAnh(qc.filter((x) => x.anh && /^https?:\\/\\//.test(x.anh) && !daCat.get(x.library_id)?.anh", cam: 'qc.filter((x) => x.dang && x.anh &&', vi: 'QC đối thủ: lưu ảnh MỌI QC (cả QC đã dừng) khi mở danh sách, không chỉ QC đang chạy — link Meta chết sau vài ngày (anh 19/11/2026)' },
   { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', mot: 'export function viTriNoi(', vi: 'một hàm đặt lớp nổi cạnh con trỏ cho mọi thẻ rê (anh 28/10/2026 "hover vào đâu thì phải để ở gần đó")' },
   { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'const h = useCaoThat(ref, cao);', vi: 'KhungNoi đặt theo chiều cao THẬT của thẻ, không theo cao ước' },
   { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'const top = Math.max(8, Math.min(y - 24, H - h - 8));', vi: 'đầu thẻ ngang con trỏ, chỉ đẩy lên phần vượt đáy màn' },

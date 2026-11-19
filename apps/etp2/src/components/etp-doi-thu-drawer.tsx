@@ -99,7 +99,8 @@ function TheQc({ x }: { x: QcDoiThu }) {
     <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{ background: '#000', aspectRatio: '1 / 1', display: 'grid', placeItems: 'center', position: 'relative' }}>
         {x.anh && !hong && !x.anh_het ? <img src={x.anh} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setHong(true)} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
-          : <a href={ngoai(lib)} target="_blank" rel="noreferrer noopener" style={{ color: MO_SO, fontSize: 12, textAlign: 'center', padding: 12 }}>ảnh đã hết hạn — mở Thư viện QC để xem ↗</a>}
+          : <a href={ngoai(lib)} target="_blank" rel="noreferrer noopener" title="Meta chỉ giữ link ảnh QC vài ngày; QC này dừng trước khi máy kịp lưu bản riêng nên không còn nguồn ảnh. Từ nay máy lưu ảnh mọi QC đối thủ (cả QC đã dừng) ngay khi mở danh sách."
+            style={{ color: MO_SO, fontSize: 12, textAlign: 'center', padding: 12 }}>mất ảnh: link Meta hết hạn trước khi máy lưu ↗</a>}
         <span title={x.dang ? 'Spy còn thấy QC này trong 2 ngày qua' : `Spy thấy lần cuối ${gioVn(x.lan_cuoi)}`} style={{ position: 'absolute', top: 6, left: 6, fontSize: 10.5, padding: '1px 6px', borderRadius: 9, background: 'rgba(0,0,0,0.65)', color: x.dang ? XANH : 'var(--fg-2)' }}>{x.dang ? '● đang chạy' : '○ đã dừng'}</span>
         {x.media === 'video' ? <span title="QC video (ảnh là ảnh bìa)" style={{ position: 'absolute', top: 6, right: 6, fontSize: 10.5, padding: '1px 6px', borderRadius: 9, background: 'rgba(0,0,0,0.65)', color: '#fff' }}>▶ video</span> : null}
       </div>

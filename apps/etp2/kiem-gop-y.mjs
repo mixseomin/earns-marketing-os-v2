@@ -7,6 +7,12 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1546, tep: 'apps/etp2/src/components/etp-view.tsx', co: "border: `1px solid ${thu ? '#8b5cf6' : 'var(--line)'}` }}>{ab.ma}</span></ReThe>", cam: '>{ab.ma} · {ab.nhanhTen}</span>', vi: 'nhãn A/B chỉ ghi mã AB01, nhánh + ngày + giả thuyết ở thẻ nổi chung (anh 06/11/2026 "Cho gọn lại. Thông tin chi tiết vào hover")' },
+  { card: 1546, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<HoverChu goc={cuonRef} />', vi: 'MỌI title= trong trang etp → thẻ nổi chung (anh "Format hover theo chuẩn đẹp đang có !! Tất cả hover !!")' },
+  { card: 1546, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'rowTitle={(c) => { const l = loiNb.get(c.camp_id)', vi: 'cây không dùng rowTitle cả dòng (hộp chữ thô) — nghĩa vạch đỏ / cam ở chữ rê ô camp' },
+  { card: 1546, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'rowTitle={(c) => (hetNs(c)', vi: 'bảng camp không dùng rowTitle cả dòng — hết ngân sách ở chữ rê ô ngân sách' },
+  { card: 1546, tep: 'apps/etp2/src/components/etp-noi.tsx', co: "el.removeAttribute('title'); if (t.trim()) el.setAttribute('data-tip', t)", vi: 'HoverChu cất title sang data-tip để trình duyệt không hiện hộp chữ thô' },
+  { card: 1546, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'if (SO_THE_RIENG > 0 || dangEl.current !== el) return;', vi: 'thẻ chữ nhường thẻ riêng (bậc, xét luật, creative) — không hai thẻ chồng nhau' },
   { card: 1461, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const CSS_CAY = CSS_MUI_BANG + ', vi: 'cây camp máy tính (DataTable): mọi mũi tên phim + camp đi qua MỘT luật CSS_MUI_BANG (anh 28/10/2026 "Để cách mũi tên ko sát lề như vậy")' },
   { card: 1461, tep: 'apps/etp2/src/components/etp-view.tsx', co: '{margin-left:8px;width:16px!important;flex:none;text-align:center;', vi: 'mũi tên cách mép trái ô 8px, ô 16px canh giữa — phim và camp gốc cùng một cột' },
   { card: 'so-nho-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', cam: 'caches.open(', vi: 'giữ số trong máy chỉ qua lib/so-nho, không dựng kho thứ hai (/audit 13/11/2026)' },

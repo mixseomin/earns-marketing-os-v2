@@ -25,7 +25,7 @@ import { quetPhimEtp } from '@/lib/actions/etp-phim';
 import { docGioNgay, type SoGio } from '@/lib/actions/etp-gio';
 import { NutLichPhim, PHA_HT } from '@/components/etp-lich-phim';
 import { DongHoSx, FormChayDong, MAU as MAU_DONG, NUT_SX, TabDong, xuLy } from '@/components/etp-dong';
-import { DongMoc, KhungNoi, ReThe, useNoi, type Moc, type Noi, type TheNoi } from '@/components/etp-noi';
+import { DongMoc, HoverChu, KhungNoi, ReThe, useNoi, type Moc, type Noi, type TheNoi } from '@/components/etp-noi';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
@@ -2327,7 +2327,10 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   // số camp có chi mỗi ngày, cùng thứ tự với tongNgay (ô cuối = hôm nay)
   const demCamp = (rs: CampEtpKho[]): number[] => [...ngay.map((d) => rs.filter((c) => (so.get(c.camp_id)?.get(d)?.chi ?? 0) > 0).length), rs.filter((c) => c.nay.chi > 0).length];
   const cotCay: DataColumn<CampEtpKho>[] = [
-    { key: 'camp', header: 'Phim → camp gốc → bản nhân', align: 'left', width: 260, cellTitle: (c) => c.ten ?? undefined, sortValue: (c) => c.camp_id,
+    // chữ rê ô camp: tên camp + nghĩa vạch mép trái (đỏ / cam) — #1546: trước nằm ở rowTitle của cả dòng (hộp chữ thô, rê đâu cũng bật); nay ở ô camp, HoverChu dựng thẻ nổi chung
+    { key: 'camp', header: 'Phim → camp gốc → bản nhân', align: 'left', width: 260, cellTitle: (c) => { const l = loiNb.get(c.camp_id); const r3 = ngay.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d)));
+      const vach = l ? `Vạch ĐỎ: máy không nhân bản được camp này (${l.lan} lần thử trong 24 giờ) — ${loiThuong(l.loi)}` : giam(c) ? `Vạch CAM: ROI giảm 2 ngày liền ${ngay.slice(-3).map((d, i) => `${d.slice(8, 10)}/${d.slice(5, 7)} ${r3[i]}%`).join(' → ')}` : '';
+      return [c.ten ?? `#${c.camp_id}`, vach].filter(Boolean).join('\n') || undefined; }, sortValue: (c) => c.camp_id,
       // loại (CC…) + số bản nhân (x9 / ⚠) DẠT PHẢI ô, thẳng một cột ở mọi tầng cây — trước bám sau số camp nên thụt theo tầng (anh 31/10/2026 #1493 "cho sang phải")
       cell: (c) => { const n = dem(c); return <span data-o="camp-cay" style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
         <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} />
@@ -2400,8 +2403,6 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
     tree={{ parent: (c) => (c.goc ? String(c.goc) : null), open: moBang, onOpen: doiMoBang }} groupBy={{ value: (c) => String(c.content_id ?? 0), label: nhanPhim }}
     rowData={(c) => ({ 'camp-dong': c.camp_id })}
     rowStyle={(c) => { const mau = loiNb.get(c.camp_id) ? '#ef4444' : giam(c) ? '#f59e0b' : null; return mau ? { boxShadow: `inset 3px 0 ${mau}`, background: `${mau}14` } : undefined; }}
-    rowTitle={(c) => { const l = loiNb.get(c.camp_id); if (l) return `Vạch ĐỎ — máy không nhân bản được camp này (${l.lan} lần thử trong 24 giờ): ${loiThuong(l.loi)}`;
-      if (!giam(c)) return undefined; const r3 = ngay.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d))); return `Vạch CAM — ROI giảm 2 ngày liền: ${ngay.slice(-3).map((d, i) => `${d.slice(8, 10)}/${d.slice(5, 7)} ${r3[i]}%`).join(' → ')}`; }}
     searchText={(c) => `${c.camp_id} ${c.ten ?? ''} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tlC(c.the_loai ?? null)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…"
     dauThanh={nutCay} thanhDinh="var(--etp-dinh, 0px)" locTuDong={false} onTimDoi={onTimDoi} khiTimTrong={khiTimTrong} />;   // TT / Luật / Loại tự sinh trùng nghĩa ô Lọc · Luật · Loại trên thanh tab
   return (
@@ -2960,7 +2961,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     { key: 'phim', header: 'Phim · creative', align: 'left', width: 260, cell: (c) => <PhimO anh={anh(c.creative_id)} ten={c.phim ?? c.ten} title={c.ten} phu={`#${c.creative_id} ${c.dang ?? ''}`} cung={c.cung_doan} />, sortValue: (c) => c.phim ?? '' },
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (c) => <span style={{ fontSize: 12 }}>{tl(c.the_loai)}</span>, sortValue: (c) => c.the_loai ?? '' },
     ...(du.cauHinh.find((k) => k.khoa === 'lich_gio')?.gia_tri === true ? [{key: 'lich', header: 'Lịch giờ', align: 'left', title: 'lịch bật / tắt theo thể loại: 07h · 08h–12h · 13h–19h · 20h–06h (xanh BẬT, xám TẮT, viền = khung đang chạy) — sửa ở Camp › Lịch giờ', cell: (c) => <LichCamp c={c} du={du} tl={tl} />, sortValue: (c) => (c.lich_tat ? 1 : 0) }] as DataColumn<CampEtpKho>[] : []),
-    { key: 'ns', header: 'Bậc ngân sách', align: 'left', loc: 'so', title: 'ngân sách $/ngày của camp · thước ROI hôm nay (đỏ giảm, xám giữ, xanh tăng) · dấu máy luật', cell: (c) => <BacCamp c={c} bao={baoCampBang.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach, total: (rs) => `$${rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0)}` },
+    // dòng mờ = hết ngân sách hôm nay: chữ rê ở ô ngân sách (#1546 — trước rowTitle cả dòng, hộp chữ thô)
+    { key: 'ns', header: 'Bậc ngân sách', align: 'left', loc: 'so', title: 'ngân sách $/ngày của camp · thước ROI hôm nay (đỏ giảm, xám giữ, xanh tăng) · dấu máy luật',
+      cellTitle: (c) => (hetNs(c) ? `Hết ngân sách hôm nay — đã tiêu $${c.nay.chi.toFixed(2)} ≥ ngân sách $${c.ngan_sach}/ngày · Meta gần như ngừng chi tới 07:00` : undefined), cell: (c) => <BacCamp c={c} bao={baoCampBang.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach, total: (rs) => `$${rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0)}` },
     { key: 'luat', header: 'Luật', align: 'left', width: 84, title: 'luật máy đang xếp làm ở nhịp này (thẻ đậm: chưa chạy / chờ anh duyệt / báo trước) và luật sắp chạm (thẻ viền nét đứt) — rê vào thẻ xem số', cell: (c) => <ChipLuat c={c} bao={baoCampBang.get(c.camp_id)} {...soThang(du)} ba={ba3(du, c)} xet={du.xetLuat?.[c.camp_id]} deXuat={du.nguoi.ngoai} />, sortValue: (c) => (baoCampBang.get(c.camp_id) ?? []).reduce((a, b) => a + (LUAT_NHAN[b.nhom]?.[3] === 'dang' ? 10 : LUAT_NHAN[b.nhom] ? 1 : 0), 0) },
     ...soCot<CampEtpKho>('nay', (c) => c.nay), ...soCot<CampEtpKho>('qua', (c) => c.qua), ...(khNay ? [] : soCot<CampEtpKho>('kh', (c) => ckh(c.camp_id))),
     { key: 'tuoi', header: 'Tuổi (ngày)', title: 'tuổi camp tính bằng NGÀY từ lúc tạo (0.3 ≈ 7 giờ) — lọc 🔍 theo ngày: > 2 = camp hơn 2 ngày', cellTitle: tuoiTitle, cell: (c) => tuoiChu(tuoiNgay(c.tao)), sortValue: (c) => tuoiLoc(tuoiNgay(c.tao)) },
@@ -3193,6 +3196,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     <ChiXem.Provider value={chiXem}><HoanCtx.Provider value={hoanSo}><LsBacCtx.Provider value={du.lsBac ?? {}}>
     <PhamViLuu value={phamViNg(du)}><DieuKhienCtx.Provider value={quyen?.vai === 'chu' && !du.nguoi.ngoai ? { bo: Object.keys(du.boTk).sort(), cho: choMap, ls: lsCamp, phanh: canhBaoPhanh(du.cauHinh) } : null}><SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
     <div ref={cuonRef} onScroll={(e) => { const h = heroRef.current; const g = !!h && e.currentTarget.scrollTop > (gon ? h.offsetTop + h.offsetHeight : 12); if (g !== gonHero) setGonHero(g); }} style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <HoverChu goc={cuonRef} />{/* #1546: mọi title= trong trang → thẻ nổi chung */}
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}@keyframes etpXoay{to{transform:rotate(360deg)}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>
     {/* TRÀN HẾT BỀ NGANG MÀN (anh 29/10/2026 "tại sao màn hình ko tràn hết sang 2 bên"): trước khoá maxWidth 1600 căn giữa — màn 1930px thừa hai lề trống, bảng Cây bị cắt cột phải */}
     <div style={{ padding: hep ? '10px 10px 40px' : '16px 20px 40px' }}>
@@ -3267,7 +3271,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         <>
         <TongPhim du={du} ckh={ckh} anh={anh} tl={tl} khTen={khNhan} chon={phimLoc} onChon={doiPhim} />
         <DaiLuat opts={luatOpts} chon={luatLoc} onChon={(t) => { const mo = !!t && !t.startsWith(DA_LAM); doi({ luat: t, ...(mo ? { loc: 'all' as const } : {}) }, () => { setLuatLoc(t); if (mo) setLoc('all'); }); }} />
-        <DataTable rows={camps} columns={cotCamp} groups={NHOM} groupHeader rowStyle={(c) => (hetNs(c) ? { opacity: 0.5 } : undefined)} rowTitle={(c) => (hetNs(c) ? `đã tiêu $${c.nay.chi.toFixed(2)} ≥ ngân sách $${c.ngan_sach}/ngày — Meta gần như ngừng chi tới 07:00` : undefined)} defaultSort={[{ key: 'tao', dir: 'desc' }]} getRowKey={(c) => String(c.camp_id)} persistKey="etp-camp" minWidth={1400} pageSize={100}
+        <DataTable rows={camps} columns={cotCamp} groups={NHOM} groupHeader rowStyle={(c) => (hetNs(c) ? { opacity: 0.5 } : undefined)} defaultSort={[{ key: 'tao', dir: 'desc' }]} getRowKey={(c) => String(c.camp_id)} persistKey="etp-camp" minWidth={1400} pageSize={100}
           searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tl(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…" locTuDong={false} onTimDoi={setTimCay} khiTimTrong={giaiTim()} />
         </>
       ) : choNang ? (

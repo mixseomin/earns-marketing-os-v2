@@ -136,8 +136,12 @@ async function docNgoai(): Promise<DongPhim[]> {
       g.duoc_len, g.chan_boi, (select max(h.luc) from etp.cham h where h.creative_id = v.creative_id)::text cham_luc, ${so} c.creative_id = v.creative_id) camps, cl.hang len_hang, cl.ly_do len_ly_do, cl.so_len len_so
     from etp.thu_vien v left join etp.phim f using (content_id) left join etp.cham_cong g on g.creative_id = v.creative_id left join etp.cho_len_v cl on cl.creative_id = v.creative_id
     where v.tao > now() - interval '14 days'
-      and not exists (select 1 from etp.dong_buoc b where b.buoc = 'creative' and v.creative_id is not null and (b.ket_qua @> jsonb_build_object('creative_id', v.creative_id)
-        or b.ket_qua->'ds' @> jsonb_build_array(jsonb_build_object('creative_id', v.creative_id))))   -- creative do dòng phim làm: đã hiện ở dòng đó
+      -- creative do dòng phim làm: đã hiện ở dòng đó. Tập creative_id của bước 'creative' dựng MỘT lần rồi so băm (góp ý #giao-20261119T0635-chuyen-x5k7:
+      -- not exists … @> cũ quét 5.778 bước cho từng dòng thư viện = 18,1 giây/lượt, gọi 2 lần mỗi lượt gom Máy SX; cùng 3.170 dòng, nay 0,04 giây)
+      and not (v.creative_id is not null and to_jsonb(v.creative_id) in (
+        select b.ket_qua->'creative_id' from etp.dong_buoc b where b.buoc = 'creative' and b.ket_qua->'creative_id' is not null
+        union all select e->'creative_id' from etp.dong_buoc b, jsonb_array_elements(b.ket_qua->'ds') e
+          where b.buoc = 'creative' and jsonb_typeof(b.ket_qua->'ds') = 'array' and e->'creative_id' is not null))
       and not (v.creative_id is null and exists (select 1 from etp.dong_phim d where d.content_id = v.content_id and d.loai = 'KT' and d.trang_thai = 'chay' and d.tao_luc <= v.tao))`);
   const tt = await run<NgoaiTho & { buoc: string }>(sql`select t.id::int, t.content_id, f.ten, f.the_loai, null anh, 'thay_the' nguon, t.buoc tt, t.buoc, t.creative_id, t.ghi, t.tao::text, t.cap_nhat::text,
       g.duoc_len, g.chan_boi, (select max(h.luc) from etp.cham h where h.creative_id = t.creative_id)::text cham_luc, ${so} c.camp_id = t.camp_moi) camps

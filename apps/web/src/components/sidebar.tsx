@@ -303,7 +303,8 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
   const filteredGroups = groups
     .map((g) => ({ ...g, items: g.items.filter((it) => !it.role || role === 'admin') }))
     .filter((g) => g.items.length > 0);
-  return <CayNav groups={[{ key: 'trangchu', label: 'Trang chủ', items: [{ href: '/', icon: '⊞', color: 'var(--neon-violet)', label: 'Trang chủ', sub: 'campaign · doanh thu · tài sản · SEO…' }] }, ...filteredGroups]} />;
+  return <CayNav groups={[{ key: 'trangchu', label: 'Trang chủ', items: [{ href: '/', icon: '⊞', color: 'var(--neon-violet)', label: 'Trang chủ', sub: 'campaign · doanh thu · tài sản · SEO…' },
+    ...(role === 'admin' ? [{ href: '/home', icon: '▦', color: 'var(--neon-blue)', label: 'Home widget', sub: 'màn + widget kéo thả' }] : [])] }, ...filteredGroups]} />;
 }
 
 // CÂY ĐIỀU HƯỚNG mở sẵn (anh chốt 05/10/2026: sidebar 70% trống trong khi 33 mục + 21 tab trong trang chỉ hiện khi hover

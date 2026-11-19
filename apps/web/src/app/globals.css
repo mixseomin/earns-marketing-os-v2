@@ -1997,3 +1997,7 @@ body.flow-debug [data-entity] {
   outline: 2px dashed #3ee08f !important;
   outline-offset: -1px;
 }
+
+/* một trang MOS2 được mở NHÚNG trong ngăn của /home: bỏ khung ngoài (topbar, sidebar, cột phải, thanh trạng thái) + nút góp ý — khung ngoài đã có ở trang mẹ */
+:root[data-nhung] .app { grid-template-columns: 0 1fr 0 !important; grid-template-rows: 0 1fr 0 !important; }
+:root[data-nhung] .topbar, :root[data-nhung] .sidebar, :root[data-nhung] .rightbar, :root[data-nhung] .statusbar, :root[data-nhung] .gy-nut { display: none !important; }

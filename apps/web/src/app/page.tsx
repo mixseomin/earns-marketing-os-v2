@@ -13,10 +13,11 @@ import { RevenueCalendar } from '@/components/revenue-calendar';
 import { HomeTabs } from '@/components/home-tabs';
 import { tabCua } from '@/lib/tab-trang';
 import { HOME_TABS as TABS, HOME_TAB_MAC_DINH, HOME_TABS_COOKIE, type HomeTab } from '@/lib/home-tabs';
-import { OrdersBlotter } from '@/components/orders-blotter';
+import { LenhMt5 } from '@/components/trang-chu/lenh-mt5';
+import { theSoChinh } from '@/components/trang-chu/so-chinh';
+import { docDuAn, docNguPhu, docThuTheoNgay, kyPhu } from '@/lib/home/du-lieu';
 import { PhuCanChuY, PhuView } from '@/components/phu-view';
 import { LuatView } from '@/components/luat-view';
-import { phuDo } from '@/lib/phu-shared';
 import { TaiSanTab } from '@/components/tai-san-tab';
 import { SeoTab } from '@/components/seo-tab';
 import { KenhNoiDungTab } from '@/components/kenh-noi-dung-tab';
@@ -26,10 +27,7 @@ import { MailwizzListsPanel } from '@/components/mailwizz-lists-panel';
 import { AwarenessFunnelPanel } from '@/components/awareness-funnel-panel';
 import { AwinDailyPanel } from '@/components/awin-daily-panel';
 import { PortfolioGrid } from '@/components/portfolio-grid';
-import { getMode, listProjects, getAiUsageSummary, listStrategyTrades, listStrategyTests, listStrategyForward, getBrokerNowMs } from '@/lib/data';
-import { getRevenueByDay } from '@/lib/revenue/by-day';
-import { getPhu, listPhuProjects } from '@/lib/phu';
-import { BACKLINK_SITES } from '@/lib/backlink-sites';
+import { getMode, getAiUsageSummary, type listProjects } from '@/lib/data';
 import { ThuVienTab } from '@/components/thu-vien-tab';
 import { MayDangView } from '@/components/may-dang-view';
 import { MaySxView } from '@/components/may-sx-view';
@@ -43,9 +41,7 @@ export const dynamic = 'force-dynamic';
 // gửi có tới không (Email), danh sách dự án (Dự án). Trên cùng luôn là
 // số tiền + Cần chú ý; mỗi lượt chỉ đọc dữ liệu của tab đang mở. Lệnh MT5 (strategy-lab/orders) cũng về đây (16/09).
 // Thứ tự tab: cookie `home-tabs` (kéo-thả ở HomeTabs; nối bằng '.', dấu phẩy không hợp lệ trong cookie-value), thiếu key nào thì key đó xếp cuối theo mặc định.
-const SL = 'strategy-lab';
-const usd = (v: number) => (v ? `$${v.toFixed(2)}` : '—');
-const cho = <div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 16 }}>đang đọc…</div>;
+const cho =<div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 16 }}>đang đọc…</div>;
 const pill = (active: boolean): React.CSSProperties => ({ padding: '3px 9px', fontSize: 11, borderRadius: 999, border: '1px solid var(--line)', textDecoration: 'none', background: 'var(--bg-2)', ...(active ? { borderColor: 'var(--fg-2)', color: 'var(--fg-1)' } : { color: 'var(--fg-3)' }) });
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ tab?: string; p?: string; days?: string; tv?: string; ky?: string }> }) {
@@ -53,28 +49,18 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const tab: HomeTab = TABS.includes(sp.tab as HomeTab) ? (sp.tab as HomeTab) : HOME_TAB_MAC_DINH;
   const thuTu = ((await cookies()).get(HOME_TABS_COOKIE)?.value ?? '').split('.').filter((k): k is HomeTab => TABS.includes(k as HomeTab));
   const xep = <T extends { key: HomeTab }>(items: T[]) => [...items].sort((a, b) => (thuTu.includes(a.key) ? thuTu.indexOf(a.key) : 99 + TABS.indexOf(a.key)) - (thuTu.includes(b.key) ? thuTu.indexOf(b.key) : 99 + TABS.indexOf(b.key)));
-  const days = [7, 30, 90].includes(Number(sp.days)) ? Number(sp.days) : 7;
-  const [projects, mode, byDay, phuProjects] = await Promise.all([listProjects(), getMode('affiliate'), getRevenueByDay(30), listPhuProjects()]);
-  const pid = phuProjects.includes(sp.p ?? '') ? String(sp.p) : phuProjects[0];
-  const phu = pid ? await getPhu(pid, days) : null;
-  const host = phu?.landers[0]?.host.replace(/^[a-z]+\./, '') ?? BACKLINK_SITES.find((s) => s.slug === pid)?.domain ?? '';
-  const thu30 = byDay.rows.reduce((a, r) => a + r.amount, 0);
-  const campChay = phu?.camp.filter((c) => c.trangThai === 'chay').length ?? 0;
-  const hong = phu ? phuDo(phu) : 0;
-  const pct = (a: number, b: number, so = 0) => (b ? `${((a / b) * 100).toFixed(so)}%` : '—');
+  // số tiền + sổ phủ đọc qua lib/home/du-lieu.ts — CÙNG nguồn, CÙNG công thức với các widget của /home (components/home/ve.tsx)
+  const days = kyPhu(sp.days);
+  const [projects, mode, byDay, ngu] = await Promise.all([docDuAn(), getMode('affiliate'), docThuTheoNgay(30), docNguPhu(sp.p, days)]);
+  const { duAnPhu: phuProjects, pid, phu, host } = ngu;
+  const { the, campChay, hong } = theSoChinh({ byDay, phu, pid, days, soDuAn: projects.length });
   const laPhu = tab === 'camp' || tab === 'phu' || tab === 'nguon' || tab === 'hatang';
   const qs = (kv: Record<string, string | number>) => '/?' + new URLSearchParams({ tab, p: pid ?? '', days: String(days), ...Object.fromEntries(Object.entries(kv).map(([k, v]) => [k, String(v)])) }).toString();
 
   return (
     <AppShell mode={mode} projects={projects} isPortfolio>
       <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'minmax(0, 1fr)' }}>
-        <HomeStats cards={[
-          { key: 'thu', tab: 'doanhthu', label: 'Doanh thu 30 ngày', value: usd(thu30), sub: byDay.errors.length ? <span style={{ color: 'var(--danger)' }}>{byDay.errors.length} nguồn lỗi</span> : `${byDay.scannedNetworks.length} mạng đã quét` },
-          { key: 'chi', tab: 'camp', label: `Chi QC ${days} ngày`, value: usd(phu?.tong.chi ?? 0), color: phu && phu.tong.chi > phu.tong.revenue ? 'var(--danger)' : undefined, sub: phu ? `về ${usd(phu.tong.revenue)} · ${pid}` : 'chưa có sổ phủ' },
-          { key: 'pheu', tab: 'camp', label: 'View → click → out', value: phu ? `${phu.tong.view} → ${phu.tong.click} → ${phu.tong.out}` : '—', sub: phu ? `CTR ${pct(phu.tong.click, phu.tong.view, 1)} · cổng ${pct(phu.tong.gate, phu.tong.view)}` : undefined },
-          { key: 'signup', tab: 'phu', label: 'Signup', value: phu?.tong.signup ?? '—', sub: phu?.tong.click ? `${((phu.tong.signup / phu.tong.click) * 1000).toFixed(1)} / 1k click` : undefined },
-          { key: 'camp', tab: hong ? 'hatang' : 'camp', label: 'Camp chạy', value: campChay, color: hong ? 'var(--danger)' : undefined, sub: hong ? `${hong} adapter/lander đỏ` : `${projects.length} dự án` },
-        ]} />
+        <HomeStats cards={the} />
         {/* Cần chú ý = việc của campaign (adapter, lander, camp tới ngưỡng, sid lạ) → chỉ hiện ở 4 tab campaign (#1110, 05/10/2026:
             hiện ở mọi tab là đè lên việc đang làm). Tab khác vẫn thấy dấu đỏ trên tab "Lander & adapter". */}
         {phu && laPhu && <Suspense fallback={null}><PhuCanChuY data={phu} /></Suspense>}
@@ -119,7 +105,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </>}
 
           {tab === 'luat' && <LuatView />}
-          {tab === 'lenh' && <Lenh />}
+          {tab === 'lenh' && <LenhMt5 />}
           {tab === 'duan' && <DuAn projects={projects} />}
           {tab === 'social' && <Suspense fallback={cho}><SocialTab /></Suspense>}
           {tab === 'maydang' && <Suspense fallback={cho}><MayDangView /></Suspense>}
@@ -144,21 +130,6 @@ async function SocialTab() {
   // lưới lịch đăng (~750 KB) cũng bỏ: tab Lịch đăng tự tải khi mở (anh 30/10/2026: trang 1,87 MB "load chậm vãi")
   const { heSinhThai: _bo, ...nhe } = await getSocialLive({ hst: false, luoi: false });
   return <SocialTrafficView live={{ ...nhe, heSinhThai: undefined as never }} email={<Suspense fallback={<div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Đang đọc MailWizz…</div>}><MailwizzListsPanel /></Suspense>} />;
-}
-
-// Live Orders của strategy-lab — cùng blotter với /p/strategy-lab/orders, bộ lọc giữ ở cookie slf2 như bên đó.
-async function Lenh() {
-  let initial = { range: '24h', grouped: true, hideClosed: false, sort: 'equity' };
-  try { const slf = (await cookies()).get('slf2')?.value; if (slf) initial = { ...initial, ...JSON.parse(decodeURIComponent(slf)) }; } catch { /* cookie hỏng thì dùng mặc định */ }
-  const [trades, tests, forward, brokerNowMs] = await Promise.all([listStrategyTrades(), listStrategyTests(SL), listStrategyForward(), getBrokerNowMs()]);
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-        <Link href={`/p/${SL}/strategy-tests`} style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}>🔬 Strategy Tests →</Link>
-      </div>
-      <OrdersBlotter trades={trades} tests={tests} forward={forward} brokerNowMs={brokerNowMs} initial={initial} />
-    </div>
-  );
 }
 
 async function DuAn({ projects }: { projects: Awaited<ReturnType<typeof listProjects>> }) {

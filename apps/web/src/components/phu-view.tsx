@@ -25,7 +25,8 @@ const usd = (v: number) => (v ? `$${v.toFixed(2)}` : '—');
 const khi = (iso: string | null) => (iso ? new Date(iso).toLocaleString('vi-VN', { hour12: false }).replace(/:\d\d( |$)/, ' ') : '—');
 const cu = (iso: string | null, phut: number) => !iso || Date.now() - new Date(iso).getTime() > phut * 60_000;
 
-export type PhuPhan = 'camp' | 'phu' | 'nguon' | 'hatang';
+/** 'lander' / 'adapter' = từng nửa của 'hatang' — widget /home vẽ riêng từng bảng (anh 20/11/2026) */
+export type PhuPhan = 'camp' | 'phu' | 'nguon' | 'hatang' | 'lander' | 'adapter';
 
 /** Cần chú ý — chỉ thứ đòi hành động: adapter lỗi / cron lâu không chạy · lander ĐỘNG cũ (lander tĩnh không có soMuc
  *  thì không có "sinh lại" mà đo) · camp tới ngưỡng dừng/mở rộng · sid lạ đủ lớn (≥50 view / ≥5 click).
@@ -33,9 +34,10 @@ export type PhuPhan = 'camp' | 'phu' | 'nguon' | 'hatang';
  *  #1110 (anh 19/11/2026 mở lại "thiết kế ngu"): bản cũ bung MỌI mục thành bức tường 5 dòng đè lên bảng, và cron quá
  *  hạn lại in ghi chú lần chạy cuối ("ga4-ngay: 6 dòng · 3 ngày") — đọc như tin thường, không ra lỗi gì.
  *  Nay: MỘT dòng đếm theo loại, bấm mới bung chi tiết (?ccy=1, F5 giữ); mỗi mục nói thẳng lỗi gì. */
-export function PhuCanChuY({ data: d }: { data: PhuData }) {
+/** luonMo: widget /home — không có nút gập, luôn xổ chi tiết; không có gì thì vẽ `rong` (trang chủ cũ thì không vẽ gì) */
+export function PhuCanChuY({ data: d, luonMo, rong = null }: { data: PhuData; luonMo?: boolean; rong?: React.ReactNode }) {
   const [moUrl, datMo] = useShallowParam('ccy', '');
-  const mo = moUrl === '1';
+  const mo = luonMo || moUrl === '1';
   const khac = d.pheu.find((x) => x.sidPrefix === KHAC);
   type Nhom = { ten: string; mau: string; muc: React.ReactNode[] };
   const nhom: [Nhom, Nhom, Nhom, Nhom] = [
@@ -52,16 +54,16 @@ export function PhuCanChuY({ data: d }: { data: PhuData }) {
   for (const c of d.camp) { const px = phanXet(c); if (px.ma === 'dung' || px.ma === 'mo_rong') nhom[2].muc.push(<span key={'c' + c.id}><b style={{ color: PHU_PHAN_XET[px.ma]?.color }}>{c.ten}: {PHU_PHAN_XET[px.ma]?.label}</b> — {(c.keHoach || px.lyDo).slice(0, 100)}</span>); }
   if (khac && (khac.view >= 50 || khac.click >= 5)) nhom[3].muc.push(<span key="khac">{khac.soPrefix} sid ({khac.view} view / {khac.click} click) chưa thuộc camp nào</span>);
   const co = nhom.filter((n) => n.muc.length);
-  if (!co.length) return null;
+  if (!co.length) return rong;
   return (
-    <div style={{ fontSize: 11.5, border: '1px solid var(--line)', borderLeft: '3px solid var(--warn)', borderRadius: 6, background: 'var(--bg-1)' }}>
-      <button type="button" onClick={() => datMo(mo ? '' : '1')} aria-expanded={mo}
+    <div style={{ fontSize: 11.5, ...(luonMo ? {} : { border: '1px solid var(--line)', borderLeft: '3px solid var(--warn)', borderRadius: 6, background: 'var(--bg-1)' }) }}>
+      {!luonMo && <button type="button" onClick={() => datMo(mo ? '' : '1')} aria-expanded={mo}
         style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '5px 10px', background: 'none', border: 0, cursor: 'pointer', color: 'var(--fg-2)', fontSize: 11.5, textAlign: 'left' }}>
         <b>Cần chú ý</b>
         {co.map((n) => <span key={n.ten} style={{ color: n.mau }}>{n.muc.length} {n.ten}</span>)}
         <span style={{ marginLeft: 'auto', color: 'var(--fg-3)' }}>{mo ? 'thu gọn ▴' : 'xem chi tiết ▸'}</span>
-      </button>
-      {mo && <div style={{ display: 'grid', gap: 6, padding: '2px 10px 8px' }}>
+      </button>}
+      {mo && <div style={{ display: 'grid', gap: 6, padding: luonMo ? 0 : '2px 10px 8px' }}>
         {co.map((n) => (
           <div key={n.ten} style={{ display: 'grid', gap: 2 }}>
             <span style={{ color: n.mau, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{n.ten}</span>
@@ -240,8 +242,8 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
         </div>
       </Panel>}
 
-      {tab === 'hatang' && <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(min(380px, 100%), 1fr))' }}>
-        <Panel title={`Lander (${d.landers.length})`} subtitle="subdomain riêng, noindex · lander động phải mới hơn 15 phút" style={{ marginBottom: 0 }}>
+      {(tab === 'hatang' || tab === 'lander' || tab === 'adapter') && <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(min(380px, 100%), 1fr))' }}>
+        {tab !== 'adapter' && <Panel title={`Lander (${d.landers.length})`} subtitle="subdomain riêng, noindex · lander động phải mới hơn 15 phút" style={{ marginBottom: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr><th style={head}>Lander</th><th style={head} className={mh}>Bán</th><th style={head}>Sinh lúc</th><th style={head} className={mh}>Mục</th></tr></thead>
             <tbody>
@@ -256,8 +258,8 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
             </tbody>
           </table>
           {!d.landers.length && <EmptyState icon="🛬" title="Chưa có lander" compact />}
-        </Panel>
-        <Panel title={`Adapter (${d.adapters.length})`} subtitle="đỏ = lâu không chạy hoặc lần cuối lỗi · dòng postback kèm URL dán vào mạng" style={{ marginBottom: 0 }}>
+        </Panel>}
+        {tab !== 'lander' && <Panel title={`Adapter (${d.adapters.length})`} subtitle="đỏ = lâu không chạy hoặc lần cuối lỗi · dòng postback kèm URL dán vào mạng" style={{ marginBottom: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr><th style={head}>Adapter</th><th style={head} className={mh}>Lịch</th><th style={head}>Chạy cuối</th><th style={head}>Ghi chú</th></tr></thead>
             <tbody>
@@ -275,7 +277,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
             </tbody>
           </table>
           {!d.adapters.length && <EmptyState icon="🔌" title="Chưa adapter nào báo về" compact />}
-        </Panel>
+        </Panel>}
       </div>}
 
       {suaPl && <SuaPlatform p={suaPl} projectId={projectId} onClose={() => setSuaPl(null)} />}

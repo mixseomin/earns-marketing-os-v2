@@ -34,7 +34,10 @@ export const viewport = {
 // is the standard pattern (next-themes does this) to avoid the "dark flash"
 // on F5 when user has picked light. Must NOT use modern syntax that could
 // fail to parse in older WebViews.
-const NO_FLASH_SCRIPT = `(function(){try{
+const NO_FLASH_SCRIPT = `(function(){
+  // trang đang được /home mở NHÚNG trong ngăn (iframe cùng gốc) → data-nhung: globals.css bỏ khung ngoài. Khác gốc thì đọc parent ném lỗi → không gắn.
+  try{ if (window.self !== window.top && window.parent.location.pathname.indexOf('/home') === 0) document.documentElement.setAttribute('data-nhung', '1'); }catch(e){}
+  try{
   var raw = localStorage.getItem('mos.tweaks');
   var t = raw ? JSON.parse(raw) : null;
   var theme = (t && t.theme === 'light') ? 'light' : 'dark';

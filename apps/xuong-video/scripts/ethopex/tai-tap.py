@@ -2,7 +2,7 @@
 """TẢI TẬP PHIM TỪ SITE GỐC (anh 21/10/2026: đợt NetShort + DramaBox — creative cắt đoạn 20–30s + 2–3' trong phim; nguồn = tập miễn phí trên site,
 không phụ thuộc QC spy). Chỉ đọc trang công khai + tải mp4 tập miễn phí (NetShort mở ~tập 1–8, DramaBox tập đầu, ReelShort tập trước paid_start — chỉ 720p) + poster (og:image).
 Dùng: tai-tap.py <link phim> <thư mục ra> [số tập=3]  → <ra>/tap01.mp4 …, <ra>/poster.jpg, <ra>/tap.json ([{tap, giay, url}])"""
-import urllib.parse, html as H, json, os, re, subprocess, sys, urllib.request
+import urllib.parse, html as H, json, os, re, subprocess, sys, urllib.request, urllib.error
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
 def lay(url, ref=None):
@@ -65,7 +65,26 @@ def og_anh(goc):
     og = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"|<meta[^>]+content="([^"]+)"[^>]+property="og:image"', html1)
     return H.unescape(og.group(1) or og.group(2)).split("@")[0] if og else None
 
+def mo_rong(goc):
+    """LINK RÚT GỌN reelslink.com/cps/<mã> (19/11/2026: American Sniper 49428 + 8 phim khác mang link này → "không tải được tập miễn phí", cả dòng phim lẫn máy dựng theo mẫu
+    chết ở bước tải tập): 302 tới link mở app ReelShort (onelink, parm1 = mã phim 24 hex) → trang phim https://www.reelshort.com/movie/<mã> (ReelShort tự chuyển về trang
+    chuẩn có tên) — từ đó đường ReelShort sẵn có đọc tập miễn phí. Link khác giữ nguyên; mở rộng hỏng thì giữ link cũ (lỗi tải tập kêu như trước)."""
+    if "reelslink.com/" not in goc: return goc
+    try:
+        class _Dung(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, *a, **k): return None
+        r = urllib.request.build_opener(_Dung()).open(urllib.request.Request(goc, headers={"User-Agent": UA}), timeout=30)
+        loc = r.headers.get("Location") or ""
+    except urllib.error.HTTPError as e:
+        loc = e.headers.get("Location") or ""
+    except Exception as e:
+        print(f"mở rộng {goc} lỗi: {e}", file=sys.stderr); return goc
+    m = re.search(r"parm1(?:%3D|=)([0-9a-f]{24})", urllib.parse.unquote(loc)) or re.search(r"([0-9a-f]{24})", loc)
+    if not m: print(f"mở rộng {goc}: không thấy mã phim ReelShort trong {loc[:120]}", file=sys.stderr); return goc
+    return f"https://www.reelshort.com/movie/{m.group(1)}"
+
 def main(goc, ra, so=3):
+    goc = mo_rong(goc)
     os.makedirs(ra, exist_ok=True)
     if da_het(ra):
         kq = json.load(open(os.path.join(ra, "tap.json")))

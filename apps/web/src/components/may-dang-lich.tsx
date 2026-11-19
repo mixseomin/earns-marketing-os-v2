@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { MultiSelect, Segmented, type MultiSelectOption } from '@/components/ui';
 import { LichLuoi, LichThangTuan, nhanNen } from '@/components/social-lich-luoi';
-import { taiLuoiSocial } from '@/lib/actions/social-traffic';
+import type { taiLuoiSocial } from '@/lib/actions/social-traffic';
 import { urlVoiParam } from '@/lib/url-mo-tab';
 import type { StLuoi, StLuoiO } from '@/lib/social-traffic';
 
@@ -45,7 +45,8 @@ export function MayDangLich() {
   // lưới nặng (~750 KB) nên không hỏi 5 giây như bảng lượt: tải khi mở, rồi 5 phút một lần khi tab đang xem (máy đăng chạy 10 phút một vòng)
   const hoi = useCallback(async () => {
     setTai(true);
-    try { const r = await taiLuoiSocial(); if (r.ok) { setLuoi(r.luoi); setLoi(null); } else setLoi(r.loi); }
+    // GET riêng, không dùng server action: action của Next nối đuôi nhau trên trang nên lịch từng đứng "đang tải" hàng phút
+    try { const r = (await (await fetch('/api/may-dang/lich', { cache: 'no-store' })).json()) as Awaited<ReturnType<typeof taiLuoiSocial>>; if (r.ok) { setLuoi(r.luoi); setLoi(null); } else setLoi(r.loi); }
     catch (e) { setLoi((e as Error).message); } finally { setTai(false); }
   }, []);
   useEffect(() => { void hoi(); const id = setInterval(() => { if (document.visibilityState === 'visible') void hoi(); }, 300_000); return () => clearInterval(id); }, [hoi]);

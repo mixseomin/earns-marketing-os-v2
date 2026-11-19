@@ -1418,6 +1418,8 @@ export const LUAT = [
   { card: 'phim-cam-cong-1911', tep: 'apps/etp/cong.py', co: 'return f"không đọc được sổ phim cấm {KHOA_PHIM_CAM}', vi: 'lỗi đọc sổ phim cấm → chặn (an toàn trước)' },
   { card: 'phim-cam-cong-1911', tep: 'apps/etp/ethopex_api.py', co: 'cts=cts, goc=l.get("goc"), q=_q)', vi: 'cửa API đưa phim của lệnh + camp gốc vào chan_cua' },
   { card: 'phim-cam-cong-1911', tep: 'apps/etp/ethopex_api.py', co: 'cts = [int(a["content_id"]) for a in ads if str(a.get("content_id") or "").isdigit()]', vi: 'cửa API soát MỌI phim trong lệnh tạo camp, không chỉ ad đầu' },
+  { card: 'phim-cam-con-lai-2011', tep: 'packages/db/migrations/0448_etp_cho_len_phim_cam.sql', co: "when phim_cam then 'phim trong sổ cấm (ethopex_phim_cam)", vi: 'kho chờ lên etp.cho_len_v: lý do phim cấm đứng đầu case → không creative phim cấm nào tự lên' },
+  { card: 'phim-cam-con-lai-2011', tep: 'apps/etp/cong.py', co: 'assert _ds and phim_cam(cts=_ds) is None', vi: 'tự kiểm sổ thật: mọi phim kho chờ lên cho tự lên đều qua cong.phim_cam, 167292 bị chặn' },
   { card: 'phim-cam-cong-1911', tep: 'apps/etp/lich-gio.py', co: '_cam = set(q(_CONG.SQL_CAMP_PHIM_CAM).split())', vi: 'lịch giờ không bật lại camp phim cấm' },
   { card: 'phim-cam-cong-1911', tep: 'apps/etp/hau_kiem.py', co: 'try: ra["phim_cam"] = xet_phim_cam(q, ngay)', vi: 'hậu kiểm dong-bo báo đỏ camp phim cấm đang ACTIVE' },
   { card: 'phim-cam-cong-1911', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"phim_cam": {"so": "ethopex_phim_cam", "chan": ["tao_camp", "nhan_ban", "bat", "tang", "len_creative"], "mien": []}', vi: 'sổ luật chung có mục phim_cam (chặn cả lên creative)' },

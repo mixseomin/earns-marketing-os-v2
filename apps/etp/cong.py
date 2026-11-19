@@ -577,7 +577,15 @@ if __name__ == "__main__":
         finally:
             os.environ.pop("ETP_VE", None)
             for x in (m, m2, m3): _q(f"update etp.ve_tay set da_dung = now(), dung_cho = 'tự kiểm phim cấm — đốt' where ma = '{x}' and da_dung is null")
-        print("✓ phim cấm: bật / nhân bản / ★ ROAS / tạo / tăng đều bị chặn kể cả vé thật"); sys.exit(0)
+        print("✓ phim cấm: bật / nhân bản / ★ ROAS / tạo / tăng đều bị chặn kể cả vé thật")
+        # KHO CHỜ LÊN (etp:phim-cam-con-lai-2011): view etp.cho_len_v (migration 0448) khớp hai đầu với phim_cam — phim 167292 không còn creative tự lên,
+        # mọi phim view cho tự lên đều qua phim_cam (một hàm), và vẫn còn phim thường đi qua
+        assert "sổ cấm" in (phim_cam(cts=[167292]) or ""), "phim 167292 phải trong sổ cấm"
+        assert _q("select count(*) from etp.cho_len_v where content_id = 167292 and ly_do is null") == "0", "LỌT: kho chờ lên còn creative tự lên của phim cấm 167292"
+        _ds = [int(x) for x in (_q("select string_agg(distinct content_id::text, ',') from etp.cho_len_v where ly_do is null") or "").split(",") if x]
+        assert _ds and phim_cam(cts=_ds) is None, f"LỌT: kho chờ lên cho tự lên phim cấm → {phim_cam(cts=_ds) if _ds else 'kho rỗng'}"
+        print(f"✓ kho chờ lên: 167292 bị chặn, {len(_ds)} phim thường (vd #{_ds[0]}) đi qua phim_cam")
+        sys.exit(0)
     if a[:1] == ["--xem-test"]:   # chỉ đọc: số camp test / phim lãi ổn định / chỗ còn của các phim đang chạy (trần camp test / phim, anh 18/11/2026) — không giữ chỗ
         print(_q(f"""select p.content_id || ' test ' || t.n || ' · lãi ổn định ' || t.on || ' · chỗ còn ' || coalesce({sql_test_con('p.content_id')}::text, 'không trần')
                      from (select distinct content_id from etp.camp where trang_thai = 'ACTIVE' and content_id is not null) p, lateral {_sql_test('p.content_id')} t order by t.n desc, 1 limit {int(a[1]) if len(a) > 1 else 15}""")); sys.exit(0)

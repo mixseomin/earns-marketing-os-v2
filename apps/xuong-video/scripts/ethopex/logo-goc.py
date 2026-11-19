@@ -7,7 +7,8 @@ MÀU CHỮ CHÍNH nên rụng mọi thứ khác màu của logo (American Sniper
   3. nền dưới logo ước từ vành quanh vùng (trung bình có trọng số, mượt) → điểm nào lệch nền rõ = thuộc logo, GIỮ NGUYÊN màu gốc của poster
   4. chỉ giữ các mảng dính / sát khối chữ tên phim; mảng rời xa = nền, bỏ
   5. cổng chất lượng của bản CẮT RỜI: nét phủ 10–62% hộp chữ, phần ngoài khối chữ ≤ 15%, mỗi dòng tên còn nét trên ≥ 85% bề ngang (không rụng chữ)
-  6. trượt cổng (nền poster dưới logo rối — thử 30 poster 20/11/2026: khoảng 2/3 số phim) → bản DẢI: lấy NGUYÊN dải poster chứa logo (logo + nền của chính nó,
+  6. trượt cổng mà bên gọi đưa hàm nen_sach → TẦNG AI: mô hình ảnh rẻ nhất xoá chữ khỏi poster, logo = chỗ poster gốc lệch nền sạch đó (cùng cổng chất lượng)
+  7. vẫn trượt (nền poster dưới logo rối — thử 30 poster 20/11/2026: khoảng 2/3 số phim) → bản DẢI: lấy NGUYÊN dải poster chứa logo (logo + nền của chính nó,
      không cắt nét nào), bỏ phần có nhãn nền tảng, bốn mép mờ dần để hoà vào khung. Hai bản đều là logo gốc; không bản nào vẽ lại chữ.
 Chạy tay để soát: logo-goc.py <poster.jpg> "<tên phim>" <ra.png>
 tra-repo-ok: bước xử lý ảnh nội bộ của máy dựng (numpy + scipy có sẵn trong venv poster-mau), thay một hàm đang có
@@ -26,8 +27,8 @@ def AT():
         s = importlib.util.spec_from_file_location("anh_tinh", os.path.join(D, "anh-tinh.py")); _at = importlib.util.module_from_spec(s); s.loader.exec_module(_at)
     return _at
 
-def tach(ten, poster, ra, ghi_ly_do=None):
-    """→ (đường dẫn PNG trong suốt, 'cat' | 'dai'), hoặc (None, None) kèm lý do qua ghi_ly_do(str)"""
+def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None):
+    """→ (đường dẫn PNG trong suốt, 'cat' | 'ai' | 'dai'), hoặc (None, None) kèm lý do qua ghi_ly_do(str). nen_sach(poster) → đường dẫn ảnh poster đã xoá chữ (tầng AI, tuỳ chọn)."""
     noi = ghi_ly_do or (lambda s: None)
     if not os.path.exists(poster): noi("thiếu poster"); return None, None
     j = json.loads(subprocess.run([AT().may_doc(), poster], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
@@ -57,30 +58,55 @@ def tach(ten, poster, ra, ghi_ly_do=None):
     def nen(sig):
         wv = nd.gaussian_filter((~trong).astype(np.float32), sig); return np.stack([nd.gaussian_filter(c[..., k] * ~trong, sig) for k in range(3)], -1) / np.maximum(wv, 1e-4)[..., None], wv
     b1, w1 = nen(max(6, 0.6 * lh)); b2, _ = nen(max(12, 2.2 * lh)); t = np.clip(w1 / 0.25, 0, 1)[..., None]; bg = b1 * t + b2 * (1 - t)
-    d = np.abs(c - bg).max(-1); d[~trong] = 0
     chu = np.zeros((h, w), bool)   # hộp các dòng tên phim
     for b in hp: chu[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)] = True
-    for t_, bx, by, bw, bh in j.get("khung") or []:   # chữ khác trên poster (nhãn nền tảng, khẩu hiệu): loại, kể cả biểu tượng nhỏ cạnh nó
-        if [bx, by, bw, bh] in hop: continue
-        k = 1.0 if bw * bh < 0.004 else 0.25; a, b_, e, f = px((bx - bw * k, by - bh * k, bw * (1 + 2 * k), bh * (1 + 2 * k)))
-        vung = np.zeros((h, w), bool); vung[int(max(0, b_ - Y0)):int(max(0, f - Y0)), int(max(0, a - X0)):int(max(0, e - X0))] = True; d[vung & ~chu] = 0
-    nguong = max(34.0, 0.42 * float(np.percentile(d[chu], 97)))
-    al = np.clip((d - 0.55 * nguong) / (0.45 * nguong), 0, 1)
-    dac = nd.median_filter(al > 0.5, size=3)
-    nhom, n = nd.label(nd.binary_dilation(dac, iterations=max(2, int(0.16 * lh))))   # mảng sát nhau gộp một nhóm
-    giu = np.zeros(n + 1, bool); giu[np.unique(nhom[chu & dac])] = True; giu[0] = False
-    al = al * giu[nhom]; dac = dac & giu[nhom]
-    ly = None
-    if not dac.any(): ly = "không còn nét logo sau khi tách"
-    else:
-        phu = dac[chu].mean(); ngoai = (dac & ~nd.binary_dilation(chu, iterations=int(0.3 * lh))).sum() / dac.sum()
-        du = min(dac[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)].any(0).mean() for b in hp)
-        if not 0.10 <= phu <= 0.62: ly = f"nét phủ {phu:.0%} hộp chữ"
-        elif ngoai > 0.15: ly = f"{ngoai:.0%} phần tách nằm ngoài khối chữ"
-        elif du < 0.85: ly = f"một dòng tên chỉ còn nét trên {du:.0%} bề ngang"
+    def cat(bg, that=False):
+        """nền dưới logo → (lớp trong suốt, nét đặc, lý do trượt cổng | None)"""
+        d = np.abs(c - bg).max(-1); d[~trong] = 0
+        if that:   # nền sạch THẬT (AI): poster hay phủ một dải tối sau logo mà nền sạch không có → chỗ poster chỉ TỐI hơn nền, không đổi màu = bóng nền, không phải nét logo
+            toi = (c.max(-1) < bg.max(-1)) & ((c.max(-1) - c.min(-1)) < 60) & (c.max(-1) < 120); d[toi] = 0
+        for t_, bx, by, bw, bh in j.get("khung") or []:   # chữ khác trên poster (nhãn nền tảng, khẩu hiệu): loại, kể cả biểu tượng nhỏ cạnh nó
+            if [bx, by, bw, bh] in hop: continue
+            k = 1.0 if bw * bh < 0.004 else 0.25; a, b_, e, f = px((bx - bw * k, by - bh * k, bw * (1 + 2 * k), bh * (1 + 2 * k)))
+            vung = np.zeros((h, w), bool); vung[int(max(0, b_ - Y0)):int(max(0, f - Y0)), int(max(0, a - X0)):int(max(0, e - X0))] = True; d[vung & ~chu] = 0
+        nguong = max(34.0, 0.42 * float(np.percentile(d[chu], 97)))
+        al = np.clip((d - 0.55 * nguong) / (0.45 * nguong), 0, 1)
+        dac = nd.median_filter(al > 0.5, size=3)
+        if that:   # nét logo trùng màu nền sạch (chữ vàng nhạt trên vải kem) bị thủng → lấp lỗ nhỏ hơn bề dày nét, không lấp lòng chữ
+            kin = nd.binary_closing(dac, iterations=max(1, int(0.05 * lh))); lo, nlo = nd.label(~kin)
+            cv = nd.sum(np.ones_like(lo), lo, np.arange(nlo + 1)); nho = cv < (0.22 * lh) ** 2; nho[0] = False
+            dac2 = kin | nho[lo]; al = np.maximum(al, nd.gaussian_filter((dac2 & ~dac).astype(np.float32), 1.0) * 1.6).clip(0, 1); dac = dac2
+        nhom, n = nd.label(nd.binary_dilation(dac, iterations=max(2, int(0.16 * lh))))   # mảng sát nhau gộp một nhóm
+        giu = np.zeros(n + 1, bool); giu[np.unique(nhom[chu & dac])] = True; giu[0] = False
+        al = al * giu[nhom]; dac = dac & giu[nhom]
+        ly = None
+        if not dac.any(): ly = "không còn nét logo sau khi tách"
+        else:
+            phu = dac[chu].mean(); ngoai = (dac & ~nd.binary_dilation(chu, iterations=int(0.3 * lh))).sum() / dac.sum()
+            du = min(dac[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)].any(0).mean() for b in hp)
+            if not 0.10 <= phu <= 0.62: ly = f"nét phủ {phu:.0%} hộp chữ"
+            elif ngoai > 0.15: ly = f"{ngoai:.0%} phần tách nằm ngoài khối chữ"
+            elif du < 0.85: ly = f"một dòng tên chỉ còn nét trên {du:.0%} bề ngang"
+        return al, ly
+    al, ly = cat(bg); cach = "cat"
+    if ly and nen_sach:   # TẦNG AI (anh 20/11/2026 "nếu ko đc thì vẫn phải cho AI vào support, dùng mô hình nào rẻ nhất"): mô hình ảnh rẻ nhất của cổng chung xoá chữ khỏi poster
+        # → NỀN SẠCH thật; logo = chỗ poster gốc lệch nền sạch, ĐIỂM ẢNH VẪN LẤY TỪ POSTER GỐC (AI không vẽ nét logo nào). Nền sạch phải khớp poster ở vùng không chữ, không thì bỏ.
+        try:
+            ns = nen_sach(poster)
+            if ns:
+                pl = np.asarray(Image.open(ns).convert("RGB").resize((X, Y), Image.LANCZOS)).astype(np.float32)
+                ngoai_chu = np.ones((Y, X), bool); ngoai_chu[max(0, Y0 - 2 * v):Y1 + 2 * v] = False
+                for t_, bx, by, bw, bh in j.get("khung") or []: a_, b_, e_, f_ = px((bx, by, bw, bh)); ngoai_chu[int(max(0, b_ - 20)):int(f_ + 20), int(max(0, a_ - 20)):int(e_ + 20)] = False
+                lech = float(np.abs(im - pl).max(-1)[ngoai_chu].mean()) if ngoai_chu.any() else 0.0
+                if lech > 24: noi(f"nền sạch AI lệch poster gốc {lech:.0f}/255 ở vùng không chữ (chuẩn ≤ 24) — AI vẽ lại bố cục, bỏ")
+                else:
+                    al2, ly2 = cat(pl[Y0:Y1, X0:X1], True)
+                    if ly2: noi(f"tách theo nền sạch AI vẫn trượt cổng ({ly2})")
+                    else: al, ly, cach = al2, None, "ai"
+        except Exception as e: noi(f"tầng AI lỗi: {str(e)[:160]}")
     if not ly:
         al = nd.gaussian_filter(al, 0.7); ys, xs = np.where(al > 0.08)
-        Image.fromarray(np.dstack([c, al * 255]).astype(np.uint8)[ys.min():ys.max() + 1, xs.min():xs.max() + 1], "RGBA").save(ra); return ra, "cat"
+        Image.fromarray(np.dstack([c, al * 255]).astype(np.uint8)[ys.min():ys.max() + 1, xs.min():xs.max() + 1], "RGBA").save(ra); return ra, cach
     noi(f"không cắt rời được ({ly}) → dùng dải poster")
     # BẢN DẢI: dải ngang poster quanh logo; chặn trên / dưới tại chữ khác (nhãn nền tảng) để không mang nhãn đó vào creative
     t0 = min(b[1] for b in hp); d0 = max(b[3] for b in hp); tren, duoi = max(0.0, t0 - 0.9 * lh), min(float(Y), d0 + 0.6 * lh)

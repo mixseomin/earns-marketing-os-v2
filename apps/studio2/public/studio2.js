@@ -345,12 +345,12 @@ const BC_MAU = Object.fromEntries(Object.entries(BO_CUC).map(([k, b]) => [k, Obj
 
 let D = duAnMau();
 const E = { man: 'dung', ban: 'pro', da: 'cn', nguon: 'anh', hop: true, tat: false, ttTab: 'may', bc: JSON.parse(JSON.stringify(BC_MAU)), menu: null,
-  t: 0, chon: null, pxs: 22, tab: 'Mẫu', chay: false, lui: [], toi: [], xuat: null, moDoi: false, moNv: false, moThem: false, dangGo: false, o: 'tv', vua: false, canhDang: null, solo: null, tap: null, tim: '', kq: undefined, kqLoi: '', nkBuoc: 'anh', nk: null, nkMo: null, nkCt: {}, qt: null, qtMo: '', gia: null, cho: '', dangBuoc: {}, loiBuoc: null, kb: { brief: '', giay: 45 }, goiY: null, viecNx: 0, xuatThat: null, tao: null, bcUrl: '', chuKy: '', nguoi: null, doi: null, dangLuu: false, luoi: { pb: 2, n: 12, hien: false, vi: {}, ten: {} }, tlCao: 0 };
+  t: 0, chon: null, pxs: 22, tab: 'Mẫu', chay: false, lui: [], toi: [], xuat: null, moDoi: false, moNv: false, moThem: false, dangGo: false, o: 'tv', vua: false, canhDang: null, solo: null, tap: null, tim: '', kq: undefined, kqLoi: '', nkBuoc: 'anh', nk: null, nkMo: null, nkCt: {}, qt: null, qtMo: '', gia: null, cho: '', dangBuoc: {}, loiBuoc: null, kb: { brief: '', giay: 45 }, goiY: null, viecNx: 0, xuatThat: null, tao: null, bcUrl: '', chuKy: '', nguoi: null, nhuMoi: false, doi: null, dangLuu: false, luoi: { pb: 2, n: 12, hien: false, vi: {}, ten: {} }, tlCao: 0 };
 try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { if (l.ban === 'gon' || l.ban === 'pro') E.ban = l.ban; if (DU_AN[l.da] || /^\d+$/.test(l.da || '')) { E.da = l.da; E.tap = +l.tap || null; } for (const k in BC_MAU) if (Array.isArray(l.bc?.[k]) && l.bc[k].includes('xem') && l.bc[k].every((w) => WG[w])) E.bc[k] = l.bc[k]; if ([6, 12, 24].includes(l.luoi?.n)) E.luoi.n = l.luoi.n; E.luoi.hien = !!l.luoi?.hien; if (l.luoi?.pb === 2 && l.luoi.vi && typeof l.luoi.vi === 'object') for (const k in BC_MAU) { if (BO_CUC[l.luoi.ten?.[k]]) E.luoi.ten[k] = l.luoi.ten[k];   // pb: bản 1 tự ghi bố cục một hàng vào sổ, che mất bố cục đặt sẵn → bỏ
-     if (l.luoi.vi[k]) E.luoi.vi[k] = l.luoi.vi[k]; } if (l.tlCao >= 110) E.tlCao = +l.tlCao; } } catch {}
+     if (l.luoi.vi[k]) E.luoi.vi[k] = l.luoi.vi[k]; } if (l.tlCao >= 110) E.tlCao = +l.tlCao; E.nhuMoi = !!l.nhuMoi; } } catch {}
 try { const q = new URLSearchParams(location.search); if (q.get('ban') === 'gon' || q.get('ban') === 'pro') E.ban = q.get('ban'); if (DU_AN[q.get('phim')] || /^\d+$/.test(q.get('phim') || '')) { E.da = q.get('phim'); E.tap = +q.get('tap') || null; } } catch {}
-const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc, luoi: E.luoi, tlCao: E.tlCao })); } catch {} try { history.replaceState(null, '', `?phim=${E.da}${E.tap ? `&tap=${E.tap}` : ''}&ban=${E.ban}${pro() && D.that && co('nk') ? `&nk=${E.nkBuoc}` : ''}${E.luoi.ten[D.loai] && E.luoi.vi[D.loai] ? `&bc=${E.luoi.ten[D.loai]}` : ''}`); } catch {} };
-const pro = () => E.ban === 'pro', boCuc = () => (pro() ? E.bc[D.loai].filter((w) => ((w !== 'nk' && w !== 'qt') || !!D.that) && (!D.that || ((w !== 'lp' || coLop()) && (w !== 'mb' || !!D.set)))) : BC_MAU.hinh), co = (w) => boCuc().includes(w);
+const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc, luoi: E.luoi, tlCao: E.tlCao, nhuMoi: E.nhuMoi })); } catch {} try { history.replaceState(null, '', `?${E.da ? `phim=${E.da}` : 'trang=moi'}${E.tap ? `&tap=${E.tap}` : ''}&ban=${E.ban}${pro() && D.that && co('nk') ? `&nk=${E.nkBuoc}` : ''}${E.luoi.ten[D.loai] && E.luoi.vi[D.loai] ? `&bc=${E.luoi.ten[D.loai]}` : ''}`); } catch {} };
+const pro = () => E.ban === 'pro', boCuc = () => (D.trongTrang ? ['qt', 'xem'] : pro() ? E.bc[D.loai].filter((w) => ((w !== 'nk' && w !== 'qt') || !!D.that) && (!D.that || ((w !== 'lp' || coLop()) && (w !== 'mb' || !!D.set)))) : D.that ? ['qt', 'xem', 'tt'] : BC_MAU.hinh), co = (w) => boCuc().includes(w);
 const tong = () => D.canh.reduce((a, c) => a + c.tg, 0), canh = (id) => D.canh.find((c) => c.id === id), vt = (id) => D.canh.findIndex((c) => c.id === id);
 const batDau = (i) => D.canh.slice(0, i).reduce((a, c) => a + c.tg, 0), lam2 = (x) => Math.round(x * 100) / 100;
 const gio = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -382,21 +382,21 @@ async function moPhimThat(pid, tid, khoiDong) {
     const ds = ds0 && tap.id === +tid ? ds0 : await goi('dsCanh', tap.id); if (so !== soMo) return;
     D = tuStudio(pd, tap, ds); E.nk = null; E.nkCt = {}; E.nkMo = null; datPhimThat(ds, tap); if (D.that.trong && !BO_CUC[E.bcUrl] && !E.bc[D.loai].includes('qt')) E.bcUrl = 'lam';   // phim chưa có cảnh: luôn mở bố cục Làm video mới (có widget Quy trình)
     if (BO_CUC[E.bcUrl]) { E.bc[D.loai] = [...BC_MAU[E.bcUrl]]; E.luoi.vi[D.loai] = viMau(E.bcUrl); E.luoi.ten[D.loai] = E.bcUrl; } E.bcUrl = ''; E.da = String(pd.phim.id); E.tap = tap.id; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.nguon = nguonDau(); E.solo = null; E.tab = 'Mẫu'; E.vua = false; E.dangMo = false; luu(); man('dung');
-  } catch (e) { if (so !== soMo) return; E.dangMo = false; if (khoiDong || D.cho) moDuAn('cn'); veD(); bao(`Không mở được phim #${pid}: ${e.message}`, false, 15000); }
+  } catch (e) { if (so !== soMo) return; E.dangMo = false; if (khoiDong || D.cho) { if (nguoiMoi()) { D = duAnTrong(); E.da = null; E.tap = null; } else moDuAn('cn'); } veD(); bao(`Không mở được phim #${pid}: ${e.message}`, false, 15000); }
 }
 /** danh sách phim của studio trong menu chọn phim: gõ là tìm (studio lọc theo tên), chưa gõ = phim sửa gần đây */
 let hTim = 0, soTim = 0;
 async function timPhim() {
   const so = ++soTim; E.kq = null; E.kqLoi = ''; veKq();
   // studio lọc theo quyền: quản trị thấy phim của studio (chưa gõ: bỏ creative quảng cáo hàng loạt), người trong đội chỉ thấy phim của mình
-  try { const r = await goi('dsPhimS2', E.tim.trim()); if (so !== soTim) return; E.kq = r.ds; E.kqTong = r.tong; }
+  try { const r = await goi('dsPhimS2', E.tim.trim(), nguoiMoi()); if (so !== soTim) return; E.kq = r.ds; E.kqTong = r.tong; }
   catch (e) { if (so !== soTim) return; E.kq = []; E.kqLoi = e.message; }
   veKq();
 }
 function veKqTim() {
   if (E.kqLoi) return `<div class="bao">Không đọc được danh sách phim: ${esc(E.kqLoi)}</div>`;
   if (!E.kq) return '<span class="nho">Đang tìm…</span>';
-  if (!E.kq.length) return `<span class="nho">${E.tim.trim() ? 'Không có phim nào khớp tên này.' : laQuanTri() ? 'Studio chưa có phim nào.' : 'Bạn chưa có phim nào. Bấm ＋ trên thanh trên để tạo video đầu tiên.'}</span>`;
+  if (!E.kq.length) return `<span class="nho">${E.tim.trim() ? 'Không có phim nào khớp tên này.' : !nguoiMoi() ? 'Studio chưa có phim nào.' : 'Bạn chưa có video nào. Bấm ＋ trên thanh trên để tạo video đầu tiên.'}</span>`;
   return E.kq.map((p) => { const tap = (p.tap_tom || []).filter((t) => t.so_canh > 0), dang = E.da === String(p.id);
     return `<button type="button" class="mn-da" data-d="phimThat" data-g="${p.id}" aria-pressed="${dang}" ${(p.tap_tom || []).length ? '' : 'disabled'}><img src="${nho(p.anh, 160)}" alt="" loading="lazy"><span><b>${esc(p.ten)}</b><small>#${p.id}${p.chu && !p.cua_toi ? ` · của ${esc(p.chu)}` : ''} · ${tap.length ? `${tap.length > 1 ? `${tap.length} tập · ` : ''}${tap.reduce((x, t) => x + t.so_canh, 0)} cảnh` : (p.tap_tom || []).length ? 'chưa có cảnh · mở để làm tiếp' : 'chưa có tập'}</small></span></button>`
       + (tap.length > 1 ? `<div class="day-bt mn-tap">${tap.slice(0, 60).map((t) => `<button type="button" class="bt" data-d="phimThat" data-g="${p.id}" data-k="${t.id}" aria-pressed="${dang && E.tap === t.id}" title="${esc(t.ten || '')} · ${t.so_canh} cảnh">Tập ${t.so}</button>`).join('')}</div>` : ''); }).join('')
@@ -562,7 +562,18 @@ function veGoiTao() { const o = E.tao; if (!o) return ''; if (!o.goiDs) return '
   if (!ds.length) return '<span class="nho">Không có thể loại nào khớp.</span>';
   return [...new Set(ds.map((g) => g.nhom))].map((n) => `<span class="nho">${esc(n)}</span><div class="day-bt">${ds.filter((g) => g.nhom === n).map((g) => `<button type="button" class="bt" data-d="taoGoi" data-g="${esc(g.key)}" aria-pressed="${o.goi === g.key}" title="${esc(g.mo_ta)} · ${g.ti_le} · ${g.do_dai_s[0]}–${g.do_dai_s[1]} giây">${esc(g.ten)}</button>`).join('')}</div>`).join(''); }
 async function napDoi() { if (!E.doi) return; try { const ds = await goi('dsDoiS2'); if (E.doi) { E.doi.ds = ds; E.doi.loi = ''; } } catch (e) { if (E.doi) { E.doi.ds = E.doi.ds || []; E.doi.loi = e.message; } } vePhu(); }
-const laQuanTri = () => !E.nguoi || E.nguoi.role === 'admin';   // chưa biết là ai thì coi như quản trị (máy chủ vẫn tự chặn), biết rồi mới ẩn bớt
+// NGƯỜI MỚI = người trong đội (không phải quản trị), hoặc quản trị đang bật "Xem như người mới" để tự đi thử đúng lối của họ: danh sách chỉ có video
+// chính mình tạo (không phim cũ của studio, không phim mẫu), không link sang studio, không mục Đội; vào là gặp video đang làm dở hoặc hộp tạo video.
+// Quyền ở máy chủ không đổi theo nút này (quản trị vẫn là quản trị) — nút chỉ đổi thứ được BÀY ra, để thấy người mới kẹt ở đâu.
+const laQtThat = () => !!E.nguoi && E.nguoi.role === 'admin', nguoiMoi = () => E.nhuMoi || (!!E.nguoi && E.nguoi.role !== 'admin');
+const laQuanTri = () => !E.nhuMoi && (!E.nguoi || E.nguoi.role === 'admin');   // chưa biết là ai thì coi như quản trị (máy chủ vẫn tự chặn), biết rồi mới ẩn bớt
+/** khung trống của người chưa có video nào (hoặc chưa mở video nào) */
+const duAnTrong = () => ({ ...duAnCho(), ten: 'Chưa có video', cho: false, trongTrang: true });
+/** màn bắt đầu của người mới: mở video mới sửa gần nhất của chính họ; chưa có cái nào thì mở hộp tạo video */
+async function veNhaMoi() { const so = ++soMo; dungChay(); E.menu = null; E.dangMo = true; D = duAnTrong(); GOC = {}; NEN = {}; E.da = null; E.tap = null; E.qt = null; E.nk = null; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.kq = undefined; if (E.man === 'dung') veD();
+  try { const r = await goi('dsPhimS2', '', true); if (so !== soMo) return; E.dangMo = false; const p = r.ds.find((x) => x.tap_tom.length);
+    if (p) return void moPhimThat(p.id, p.tap_tom[0].id); luu(); veD(); if (!E.tao) lamD('taoThat'); }
+  catch (e) { if (so !== soMo) return; E.dangMo = false; luu(); veD(); bao(`Chưa mở được danh sách video của bạn: ${e.message}`, false, 15000); } }
 
 // ── LƯU SỬA VỀ STUDIO (phim của studio): so từng cảnh với thứ studio đang giữ (NEN, đặt lúc đọc phim) → nút "Lưu về studio" trên thanh trên.
 //    Lưu được: lời / thoại, chữ màn, giây phát, cỡ cảnh · góc · ống kính · chuyển động máy, thứ tự cảnh. Chưa lưu được từ đây (báo rõ khi lưu):
@@ -596,7 +607,7 @@ async function luuVeStudio() { const t = D.that; if (!t || E.dangLuu) return; co
     E.dangLuu = false; await taiLai(true); bao(`Đã lưu về studio: ${ds.length} cảnh${tt ? ', thứ tự cảnh' : ''}.${kl ? ` Chưa lưu được từ đây: ${kl}.` : ''}`, false, kl ? 12000 : 5000); }
   catch (e) { E.dangLuu = false; veLuu(); bao(`Lưu dở dang (${xong}/${ds.length} cảnh đã ghi): ${e.message}`, false, 15000); } }
 function veQt() {
-  const el = $('#dQt'), t = D.that; if (!t) { el.innerHTML = '<div class="trong-w sang">Quy trình chỉ có ở phim của studio.<br>Bấm ＋ trên thanh trên để tạo video mới.</div>'; return; }
+  const el = $('#dQt'), t = D.that; if (!t) { el.innerHTML = D.trongTrang ? `<div class="qt-trong"><b>${E.dangMo ? 'Đang mở…' : 'Bắt đầu từ một ý tưởng'}</b><span class="nho">Gõ ý tưởng, chọn thể loại, máy viết kịch bản rồi chia thành cảnh. Bạn duyệt từng bước: ảnh, giọng đọc, clip, rồi xuất video.</span><button type="button" class="bt chinh" data-d="taoThat">＋ Tạo video mới</button></div>` : '<div class="trong-w sang">Quy trình chỉ có ở phim của studio.<br>Bấm ＋ trên thanh trên để tạo video mới.</div>'; return; }
   if (E.qt?.tap !== t.tap || E.qt.cu) napQt();
   const lk = laQuanTri() ? `<a class="qt-lk" href="https://studio.on.tc/?m=phim&mId=${t.phim}&tab=storyboard" target="_blank" rel="noopener">Làm ở studio ↗</a>` : '<span class="nho">Bước này hiện chỉ quản trị làm được ở studio.</span>', nut = (ds) => `<div class="qt-nut">${ds.map(nutBuoc).join('')}</div>`;
   const kb = t.kichBan ? `<details class="nk-ct"${t.trong ? ' open' : ''}><summary>Kịch bản đang có</summary><pre>${esc(t.kichBan)}</pre></details>` : '';
@@ -694,11 +705,12 @@ function veBoCuc() {
     $(`#wd-${w}`).innerHTML = `<span class="w-ten" tabindex="0" role="button" data-wg="${w}" aria-label="Widget ${WG[w][0]}: kéo để dời tới ô khác, phím mũi tên trái phải để đổi chỗ với widget bên cạnh" title="Kéo để dời · kéo mép hoặc góc widget để co giãn · phím ← → đổi chỗ">${ic(WG[w][0])}<b>${WG[w][0]}</b></span><span class="w-them">${them}</span><span class="w-nut">${w === 'xem' ? '' : `<button type="button" class="bt ic-bt" data-d="wg" data-g="${w}" title="Ẩn widget này" aria-label="Ẩn widget này">${ic('Đóng')}</button>`}</span>`; }
   dongBoLuoi(ds);
 }
+const chipMoi = () => (E.nhuMoi && laQtThat() ? '<button type="button" class="thu canh nut" data-d="nhuMoi" title="Đang ẩn phim cũ của studio, phim mẫu và mọi thứ chỉ quản trị thấy. Bấm để về lại chế độ quản trị.">Đang xem như người mới · Thoát</button>' : '');
 function veTren() {
   const p = pro(), ten = (t, d, them = '') => (p ? nutIc(t, d, '', them) : `<button type="button" class="bt" data-d="${d}" ${them}>${t === 'Hoàn tác' ? '↶ ' : t === 'Làm lại' ? '↷ ' : ''}${t}</button>`);
   $('#dTren').innerHTML = `<span class="ten-hang">Studio 2</span>
   <button type="button" class="bt da-nut" data-d="menu" data-g="da" aria-haspopup="true" aria-expanded="${E.menu?.loai === 'da'}"><b>${esc(D.ten)}</b><small>${LOAI[D.loai]}</small><span aria-hidden="true">▾</span></button>
-  ${D.that ? `<span class="thu that">Phim của studio${laQuanTri() ? ` <a href="https://studio.on.tc/?m=phim&mId=${D.that.phim}&tab=storyboard" target="_blank" rel="noopener">Mở trong studio ↗</a>` : ''}</span><span id="dLuu">${veLuuNut()}</span>` : `<span class="thu">${E.dangMo ? 'Đang đọc phim từ studio…' : 'Phim mẫu · dữ liệu đóng sẵn'}</span>${E.nguoi && !laQuanTri() && !E.nguoi.quyen.dung ? '<span class="thu canh" title="Phim mẫu vẫn xem được. Muốn tạo và làm video thật thì nhờ quản trị cấp quyền ở mục Đội.">Tài khoản chưa được cấp quyền dùng phim thật</span>' : ''}`}
+  ${D.that ? `<span class="thu that">${nguoiMoi() ? 'Video của bạn' : 'Phim của studio'}${laQuanTri() ? ` <a href="https://studio.on.tc/?m=phim&mId=${D.that.phim}&tab=storyboard" target="_blank" rel="noopener">Mở trong studio ↗</a>` : ''}</span><span id="dLuu">${veLuuNut()}</span>${chipMoi()}` : `<span class="thu">${E.dangMo ? 'Đang đọc…' : D.trongTrang ? 'Chưa mở video nào' : 'Phim mẫu · dữ liệu đóng sẵn'}</span>${E.nguoi && !laQuanTri() && !E.nguoi.quyen.dung ? '<span class="thu canh" title="Phim mẫu vẫn xem được. Muốn tạo và làm video thật thì nhờ quản trị cấp quyền ở mục Đội.">Tài khoản chưa được cấp quyền dùng phim thật</span>' : ''}${chipMoi()}`}
   <span class="day"><span class="doan-bt" role="group" aria-label="Phiên bản">${[['gon', 'Gọn'], ['pro', 'Pro']].map(([k, t]) => `<button type="button" class="bt" data-d="ban" data-g="${k}" aria-pressed="${E.ban === k}">${t}</button>`).join('')}</span>
   ${p ? `<button type="button" class="bt ic-bt" data-d="menu" data-g="bc" title="Bố cục widget" aria-label="Bố cục widget" aria-haspopup="true" aria-expanded="${E.menu?.loai === 'bc'}">${ic('Bố cục')}</button>` : ''}
   ${ten('Hoàn tác', 'lui', E.lui.length ? '' : 'disabled')}${ten('Làm lại', 'toi', E.toi.length ? '' : 'disabled')}
@@ -706,7 +718,9 @@ function veTren() {
 }
 function veMenu() {
   const m = $('#dMenu'); m.hidden = !E.menu; if (!E.menu) { m.innerHTML = ''; return; } let h = '';
-  if (E.menu.loai === 'da') h = `<h3>Phim của studio</h3><input type="text" id="mnTim" placeholder="Tìm theo tên phim" value="${esc(E.tim)}" aria-label="Tìm phim của studio" autocomplete="off"><div class="mn-kq" id="mnKq">${veKqTim()}</div>${laQuanTri() ? '<div><button type="button" class="bt" data-d="doiMo">Đội và quyền</button></div>' : ''}<h3>Video mẫu để thử</h3>${Object.entries(DU_AN).map(([k, a]) => `<button type="button" class="mn-da" data-d="duAn" data-g="${k}" aria-pressed="${E.da === k}"><img src="${a.bia}" alt=""><span><b>${esc(a.ten)}</b><small>${LOAI[a.loai]} · ${a.so} cảnh · ${gio(a.dai)}</small></span></button>`).join('')}`;
+  if (E.menu.loai === 'da') h = `<h3>${nguoiMoi() ? 'Video của bạn' : 'Phim của studio'}</h3><input type="text" id="mnTim" placeholder="Tìm theo tên" value="${esc(E.tim)}" aria-label="Tìm video" autocomplete="off"><div class="mn-kq" id="mnKq">${veKqTim()}</div>`
+    + (laQuanTri() ? '<div class="day-bt"><button type="button" class="bt" data-d="doiMo">Đội và quyền</button><button type="button" class="bt" data-d="nhuMoi" title="Ẩn phim cũ của studio, phim mẫu và mọi thứ chỉ quản trị thấy, để tự đi thử đúng lối của một người mới">Xem như người mới</button></div>' : '')
+    + (nguoiMoi() ? '<div><button type="button" class="bt chinh" data-d="taoThat">＋ Tạo video mới</button></div>' : `<h3>Video mẫu để thử</h3>${Object.entries(DU_AN).map(([k, a]) => `<button type="button" class="mn-da" data-d="duAn" data-g="${k}" aria-pressed="${E.da === k}"><img src="${a.bia}" alt=""><span><b>${esc(a.ten)}</b><small>${LOAI[a.loai]} · ${a.so} cảnh · ${gio(a.dai)}</small></span></button>`).join('')}`);
   else { const ds = boCuc();
     h = `<h3>Bố cục cho loại “${LOAI[D.loai]}”</h3><div class="mn-wg">${Object.keys(WG).map((w) => `<button type="button" class="bt" data-d="wg" data-g="${w}" aria-pressed="${ds.includes(w)}" ${w === 'xem' ? 'disabled' : ''}>${ic(WG[w][0])}${WG[w][0]}</button>`).join('')}</div>
     <h3>Bố cục đặt sẵn theo loại video</h3><div class="mn-bc">${Object.entries(BO_CUC).map(([k, b]) => `<button type="button" data-d="bcMau" data-g="${k}" aria-pressed="${dangBc() === k}" title="${esc(b.cho)}"><svg viewBox="-.5 -.5 25 17" aria-hidden="true">${Object.entries(b.o).map(([w, [x, y, rong, cao]]) => `<rect class="${w === 'xem' ? 'xem' : ''}" x="${x + 0.3}" y="${y + 0.3}" width="${rong - 0.6}" height="${cao - 0.6}" rx=".8"/>`).join('')}</svg><span><b>${b.ten}${k === D.loai ? ' <i>mặc định</i>' : ''}</b><small>${Object.keys(b.o).map((w) => WG[w][0]).join(' · ')}</small></span></button>`).join('')}</div>
@@ -919,7 +933,7 @@ function vePhu() {
     ${o.loi ? `<div class="bao">Studio không tạo được: ${esc(o.loi)}</div>` : ''}
     <div class="day-bt"><button type="button" class="bt chinh" data-d="taoChay" ${o.dang ? 'disabled' : ''}>${o.dang ? 'Đang tạo…' : 'Tạo video'}</button><button type="button" class="bt" data-d="taoDong">Thôi</button></div>
     <details class="nk-ct"><summary>Hoặc bắt đầu từ một mẫu dựng sẵn</summary><div class="tao-mau" id="taoMau">${veMauTao()}</div></details>
-    <span class="nho">Tạo khung phim không tốn tiền. Phim nằm trong studio; tạo xong ở đây mở widget Quy trình để làm từng bước. <button type="button" class="lk" data-d="moTao">Xem lối 5 bước (bản bấm thử)</button></span>`;
+    <span class="nho">Tạo khung phim không tốn tiền. Phim nằm trong studio; tạo xong ở đây mở widget Quy trình để làm từng bước.${nguoiMoi() ? '' : ' <button type="button" class="lk" data-d="moTao">Xem lối 5 bước (bản bấm thử)</button>'}</span>`;
     else if (!o.tpl) h += `<span class="nho">Template là phim đã dựng sẵn kịch bản, cảnh, chữ; chỉ cần điền vài ô (sản phẩm, ưu đãi…) là ra phim mới. Tạo từ template không tốn tiền.</span>${o.loi ? `<div class="bao">${esc(o.loi)}</div>` : ''}
     ${!o.tplDs ? '<span class="nho">Đang đọc danh sách template…</span>' : !o.tplDs.length ? '<span class="nho">Studio chưa có template nào.</span>' : `<div class="tao-tpl">${o.tplDs.map((t) => `<button type="button" class="mn-da" data-d="taoTpl" data-g="${t.id}" title="${esc(t.mo_ta)}"><img src="${nho(t.anh, 160)}" alt="" loading="lazy"><span><b>${esc(t.ten.replace(/^Template · /, ''))}</b><small>${t.so_shot} cảnh</small></span></button>`).join('')}</div>`}
     <div class="day-bt"><button type="button" class="bt" data-d="taoDong">Thôi</button></div>`;
@@ -997,6 +1011,7 @@ function lamD(a, d = {}, nut) {
     case 'qtGiay': E.kb.giay = +g; return veQt();
     case 'qtBat': { const ds = E.bc[D.loai]; if (!ds.includes('qt')) ds.unshift('qt'); delete E.luoi.ten[D.loai]; luu(); return veD(); }
     case 'taoThat': dungChay(); E.menu = null; E.xuat = null; E.tao = { ten: '', loai: 'short', y: '', dang: false, loi: '', mau: null, mauCho: '', tab: 'moi', goi: '', goiDs: null, timGoi: '', tplDs: null, tpl: null }; vePhu(); goi('dsGoiTheLoai').then((ds) => { if (E.tao) { E.tao.goiDs = ds || []; const o = $('#taoGoi'); if (o) o.innerHTML = veGoiTao(); } }).catch(() => { if (E.tao) E.tao.goiDs = []; }); veTren(); veMenu(); $('#taoTen')?.focus(); goi('dsMauPhim').then((ds) => { if (E.tao) { E.tao.mau = ds || []; const o = $('#taoMau'); if (o) o.innerHTML = veMauTao(); } }).catch(() => { if (E.tao) E.tao.mau = []; }); return;
+    case 'nhuMoi': E.nhuMoi = !E.nhuMoi; E.menu = null; E.kq = undefined; E.tim = ''; luu(); if (E.nhuMoi) return void veNhaMoi(); if (D.trongTrang) { moDuAn('cn'); return man('dung'); } return veD();
     case 'luuVe': return void luuVeStudio();
     case 'boSua': return void taiLai(true);
     case 'doiMo': E.menu = null; E.doi = { ds: null, loi: '' }; veTren(); veMenu(); vePhu(); return void napDoi();
@@ -1154,10 +1169,11 @@ function goD(t) {
 }
 for (const k in DU_AN) { const p = DU_AN[k].tao(); Object.assign(DU_AN[k], { ten: p.ten, loai: p.loai, so: p.canh.length, dai: p.canh.reduce((a, c) => a + c.tg, 0) }); }
 // link có &nk=<bước>: bật widget Nhật ký ở bước đó (đặt ở đây vì BUOC_NK khai sau khối đọc URL đầu tệp)
-goi('toiS2').then((t) => { E.nguoi = t; if (E.man === 'dung') { veTren(); veMenu(); if (co('qt')) veQt(); } }).catch(() => {});   // ai đang dùng + quyền (để ẩn thứ chỉ quản trị làm được; máy chủ vẫn tự chặn)
+goi('toiS2').then((t) => { E.nguoi = t; if (!laQtThat()) E.nhuMoi = false; if (nguoiMoi() && !D.that && (D.trongTrang || !E.dangMo)) return void veNhaMoi(); if (E.man === 'dung') { veTren(); veMenu(); if (co('qt')) veQt(); } }).catch(() => { if (D.trongTrang) { E.dangMo = false; veD(); } });   // ai đang dùng + quyền (để ẩn thứ chỉ quản trị làm được; máy chủ vẫn tự chặn)
 try { const bc = new URLSearchParams(location.search).get('bc'); if (BO_CUC[bc]) E.bcUrl = bc; } catch {}   // link có &bc=<tên bố cục đặt sẵn>: áp bố cục đó khi phim mở xong
 try { const nk = new URLSearchParams(location.search).get('nk'); if (BUOC_NK.some((x) => x[0] === nk)) { E.nkBuoc = nk; for (const k in E.bc) if (!E.bc[k].includes('nk')) E.bc[k].splice(E.bc[k].includes('tt') ? E.bc[k].indexOf('tt') : E.bc[k].length, 0, 'nk'); } } catch {}
-if (DU_AN[E.da]) { moDuAn(E.da); if (BO_CUC[E.bcUrl] && E.bcUrl !== D.loai) { E.bc[D.loai] = [...BC_MAU[E.bcUrl]]; E.luoi.vi[D.loai] = viMau(E.bcUrl); E.luoi.ten[D.loai] = E.bcUrl; } E.bcUrl = ''; } else moPhimThat(E.da, E.tap, true);
+if (E.nhuMoi && DU_AN[E.da]) { D = duAnTrong(); E.da = null; E.tap = null; E.dangMo = true; }
+else if (DU_AN[E.da]) { moDuAn(E.da); if (BO_CUC[E.bcUrl] && E.bcUrl !== D.loai) { E.bc[D.loai] = [...BC_MAU[E.bcUrl]]; E.luoi.vi[D.loai] = viMau(E.bcUrl); E.luoi.ten[D.loai] = E.bcUrl; } E.bcUrl = ''; } else moPhimThat(E.da, E.tap, true);
 
 document.addEventListener('change', (e) => { if (e.target.dataset?.f === 'nhoLai') goD(e.target); });
 man('dung');

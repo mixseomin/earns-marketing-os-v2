@@ -54,6 +54,7 @@ assert.equal(them([{ ...A, tabs: ['A1', 'B1'] }], 'B1', [24, 20]).ds.length, 1, 
 // tab
 const g = gop([A, B, C], 1, 2);
 assert.deepEqual(g, [A, { ...C, ma: 'B1', tabs: ['C1', 'B1'] }]); assert.deepEqual(maTrenMan(g), ['A1', 'C1', 'B1']);
+assert.deepEqual(gop([A, B, C], 2, 0), [B, { ...A, ma: 'C1', tabs: ['A1', 'C1'] }], 'ô nhận tab nổi lên trên cùng');
 assert.deepEqual(moTab(g, 1, 'C1')[1]!.ma, 'C1'); assert.deepEqual(moTab(g, 1, 'Z9')[1]!.ma, 'B1', 'tab lạ thì giữ');
 const mac = (): [number, number] => [24, 20];
 assert.deepEqual(boTab(g, 1, false, mac), [A, C], 'bỏ tab đang mở, còn một thì hết tabs');

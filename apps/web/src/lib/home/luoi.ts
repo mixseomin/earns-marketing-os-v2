@@ -95,11 +95,11 @@ export function them(ds: O[], ma: string, mac: [number, number]): { ds: O[]; kin
   return { ds: [...ds, { ma, x: 4, y: 4, w: Math.min(mac[0], CX - 4), h: Math.min(mac[1], CY - 4) }], kin: true };
 }
 
-/** Gộp ô `tu` vào ô `vao` thành tab; tab vừa thả vào là tab đang mở. */
+/** Gộp ô `tu` vào ô `vao` thành tab; tab vừa thả vào là tab đang mở, và ô nhận nổi lên TRÊN CÙNG (đang bị ô khác đè thì vẫn bấm được tab ngay). */
 export function gop(ds: O[], tu: number, vao: number): O[] {
   if (tu === vao || !ds[tu] || !ds[vao]) return ds;
   const a = ds[tu]!, b = ds[vao]!, moi: O = { ...b, ma: a.ma, tabs: [...tabsCua(b), ...tabsCua(a)] };
-  return ds.map((o, j) => (j === vao ? moi : o)).filter((_, j) => j !== tu);
+  return [...ds.filter((_, j) => j !== tu && j !== vao), moi];
 }
 
 /** Bỏ tab đang mở khỏi ô `i` (ô còn tab khác thì giữ ô, hết tab thì bỏ ô). tach = true: tab đó ra một ô riêng. */

@@ -4,6 +4,7 @@
 // mọi bộ lọc dùng chung một kiểu. Bảng nổi = AnchoredPopover (portal ra body, không lệch trong Drawer).
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnchoredPopover } from './anchored-popover';
+import { coChuot } from '@/lib/co-chuot';
 
 export interface Chon2Muc { value: string; label: ReactNode; nhom?: string; dem?: number; title?: string; tim?: string; /** nhãn gọn trên nút (danh sách vẫn hiện label đủ) */ ngan?: string }
 
@@ -60,7 +61,7 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
           <div style={{ padding: 6, borderBottom: '1px solid var(--line)' }}>
             {/* KHÔNG tự focus ô tìm trên màn cảm ứng (anh 01/11/2026 etp #1502: mở ô chọn trên điện thoại là bật bàn phím che danh sách) — chỉ máy có chuột (pointer: fine) mới focus để gõ / ↑ ↓ ngay */}
             <div style={{ display: 'flex', gap: 6 }}>
-              <input autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches} value={q} onChange={(e) => { setQ(e.target.value); setTro(0); }} placeholder="Tìm…"
+              <input autoFocus={coChuot()} value={q} onChange={(e) => { setQ(e.target.value); setTro(0); }} placeholder="Tìm…"
                 style={{ flex: 1, minWidth: 0, boxSizing: 'border-box', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' }} />
               <button type="button" data-k="chon2-xem-rong" onClick={doiRong} title={xemRong ? 'Thu bảng về cỡ gọn' : 'Xem rộng: bảng to hơn, nhãn dài không bị cắt, thấy nhiều mục hơn (máy nhớ cho mọi ô chọn)'}
                 style={{ flex: 'none', fontSize: 13, lineHeight: 1, padding: '0 8px', borderRadius: 6, border: `1px solid ${xemRong ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, background: xemRong ? 'var(--accent-soft, rgba(59,130,246,.15))' : 'var(--bg-1, #111)', color: 'inherit', cursor: 'pointer' }}>{xemRong ? '⤡' : '⤢'}</button>

@@ -7,6 +7,10 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1502, tep: 'apps/etp2/src/lib/co-chuot.ts', co: "window.matchMedia('(pointer: fine)').matches", vi: 'chỉ máy có chuột mới tự focus ô gõ (anh 01/11/2026 "Ko tự ý focus vào input như vậy. Trên mobile khó chịu")' },
+  { card: 1502, tep: 'apps/etp2/src/components/ui/chon2.tsx', co: 'autoFocus={coChuot()}', cam: '<input autoFocus value', vi: 'ô chọn dùng chung (TK, Người, Loại…): mở trên điện thoại không bật bàn phím' },
+  { card: 1502, tep: 'apps/etp2/src/components/ui/campaign-link-picker.tsx', co: 'autoFocus={coChuot()}', cam: '<input autoFocus value', vi: 'ô chọn link: không tự focus trên màn cảm ứng' },
+  { card: 1502, tep: 'apps/etp2/src/components/ui/resource-picker.tsx', co: 'autoFocus={coChuot()}', vi: 'ngăn chọn tài nguyên: không tự focus ô tìm trên màn cảm ứng' },
   { card: 1483, tep: 'apps/etp2/src/components/etp-noi.tsx', co: "window.addEventListener('mousemove', (e) => { CHUOT.x = e.clientX; CHUOT.y = e.clientY; }", vi: 'thẻ nổi đặt theo vị trí chuột LÚC MỞ (anh 29/10/2026 "Hover ở đâu thì bản phải ở đó để còn kéo chuột sang")' },
   { card: 1483, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'const CHONG = 4;', cam: 'const top = y + 12 + h <= H - 8', vi: 'mép thẻ cách con trỏ 4px, đầu thẻ ngang dòng đang rê — kéo chuột sang thẻ không băng qua dòng khác' },
   { card: 1483, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'const top = Math.max(8, Math.min(y - 24, H - h - 8));', vi: 'đầu thẻ ngang con trỏ, chỉ đẩy lên đúng phần thẻ vượt đáy màn (không bay lên xa như ảnh #1483)' },

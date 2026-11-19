@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { listCampaignLinks, type CampaignLink } from '@/lib/actions/campaign-links';
+import { coChuot } from '@/lib/co-chuot';
 
 const icon = (k: CampaignLink['kind']) => (k === 'offer' ? '💸' : '📦');
 
@@ -54,7 +55,7 @@ export function CampaignLinkPicker({ value, onChange, onSave, saving }: {
 
       {open && (
         <div style={{ position: 'absolute', zIndex: 40, top: '100%', left: 0, right: 0, marginTop: 4, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.4)', overflow: 'hidden' }}>
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm offer / product…" autoComplete="off"
+          <input autoFocus={coChuot()} value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm offer / product…" autoComplete="off"
             style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', background: 'var(--bg-2)', border: 'none', borderBottom: '1px solid var(--line)', color: 'var(--fg-0)', fontSize: 12, outline: 'none' }} />
           {links === null ? (
             <div style={{ padding: 12, fontSize: 12, color: 'var(--fg-3)', textAlign: 'center' }}>đang tải danh mục…</div>

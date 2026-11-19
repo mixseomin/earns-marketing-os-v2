@@ -19,6 +19,7 @@
 
 import { useState, useMemo, type ReactNode } from 'react';
 import { Drawer } from './drawer';
+import { coChuot } from '@/lib/co-chuot';
 
 export interface PickerItem {
   title: ReactNode;
@@ -81,7 +82,7 @@ export function ResourcePicker<T>({
               placeholder="Search…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              autoFocus
+              autoFocus={coChuot()}
               style={{
                 padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
                 borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, outline: 'none',

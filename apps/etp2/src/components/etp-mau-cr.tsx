@@ -143,8 +143,8 @@ function The({ m }: { m: MauCr }) {
     <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.45 }}>{m.mo_ta}</div>
     {m.spec?.length ? <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '3px 10px', fontSize: 11.5, padding: '6px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.03)' }}>
       {m.spec.map((x) => [<span key={`a${x.nhan}`} style={{ color: MO_SO }}>{x.nhan}</span>, <span key={`b${x.nhan}`}>{x.gia}</span>])}</div> : null}
-    {m.giong?.length ? <div style={{ fontSize: 11.5 }}><span style={{ color: MO_SO }}>Giọng đọc: </span>{m.giong.map((g) => { const r = g.chi > 0.5 ? ((g.thu - g.chi) / g.chi) * 100 : null;
-      return <span key={g.k} title={`${g.n} creative · chi $${g.chi.toFixed(0)} · thu $${g.thu.toFixed(0)}`} style={{ marginRight: 8, whiteSpace: 'nowrap' }}>{TEN_GIONG[g.k] ?? g.k} {g.n}{r != null ? <span style={{ color: r >= 0 ? XANH : DO }}> {r.toFixed(0)}%</span> : null}</span>; })}</div> : null}
+    {m.giong?.length ? <div style={{ fontSize: 11.5, display: 'flex', flexWrap: 'wrap', columnGap: 8, rowGap: 2 }}><span style={{ color: MO_SO }}>Giọng đọc:</span>{m.giong.map((g) => { const r = g.chi > 0.5 ? ((g.thu - g.chi) / g.chi) * 100 : null;
+      return <span key={g.k} title={`${g.n} creative · chi $${g.chi.toFixed(0)} · thu $${g.thu.toFixed(0)}`} style={{ whiteSpace: 'nowrap' }}>{TEN_GIONG[g.k] ?? g.k} {g.n}{r != null ? <span style={{ color: r >= 0 ? XANH : DO }}> {r.toFixed(0)}%</span> : null}</span>; })}</div> : null}
     {m.dung_cho.length ? <div style={{ fontSize: 11.5 }}><span style={{ color: MO_SO }}>Dùng cho: </span>{m.dung_cho.join(' · ')}</div> : null}
     {m.the_loai.length ? <div style={{ fontSize: 11.5 }}><span style={{ color: MO_SO }}>Hợp thể loại: </span>{m.the_loai.join(' · ')}</div> : null}
     {s ? <div style={{ fontSize: 11.5, display: 'flex', gap: 10, flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' }}>

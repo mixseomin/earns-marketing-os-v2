@@ -5,9 +5,6 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from './auth';
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import SO_KENH from '../../scripts/lich-su/so-kenh.json';
 import { docPhim, dsCanh, taoPhim, taoTap } from './actions';
 import { duocS2, quyenCua, type QuyenS2 } from './quyen-s2';
 import { GOI_THE_LOAI, goiTheoKey } from './xuong-video/goi-the-loai';
@@ -167,70 +164,67 @@ export async function datQuyenS2(userId: number, dung: boolean, sinh: boolean): 
   return { ok: true, data: undefined };
 }
 
-// ── Studio 2 · ĐẶT LÀM VIDEO KÊNH (anh 20/11/2026: đội Astrolas làm phim từ studio2, "thiếu gì thì chủ động mà bổ sung") ─────────────────────────────
-// Video kênh Astrolas không đi lối phim 16 mục: mỗi tập thuộc MỘT mẫu đã duyệt trong sổ kênh (scripts/lich-su/so-kenh.json), lời lấy từ dữ liệu thật của
-// site, hình dựng bằng mã trên iMac (scripts/lich-su/chay-so-kenh.mjs). Ở đây người dùng chỉ ĐẶT: chọn mẫu + một ý tưởng trong kho ý tưởng của mẫu
-// (scripts/lich-su/y-tuong/<kênh>-<mẫu>.json) → một dòng xv_s2_dat. Máy trên iMac nhận đơn ở lượt mỗi giờ (lich-su/lam-dat-s2.mjs, trong giờ làm, một lúc
-// một tập), làm xong thì tập nằm ở sổ máy đăng (xv_may_video) như mọi tập khác: Phòng Nội dung chấm, máy đăng tự đăng theo nhịp.
-type MauKenh = { ma: string; ten: string; loai?: string; kho?: string; nhip?: string; demo?: string };
-const KENH_DAT = ['astrolas'];
-const mauCua = (kenh: string): MauKenh[] => ((SO_KENH as unknown as Record<string, { mau?: MauKenh[] }>)[kenh]?.mau ?? []);
-const MA_HOP_LE = /^[a-z0-9][a-z0-9-]{1,90}$/;
-async function khoYTuong(kenh: string, mau: string): Promise<{ ma: string; chu: string }[]> {
-  if (!KENH_DAT.includes(kenh) || !MA_HOP_LE.test(mau)) return [];
-  try { const d = JSON.parse(await readFile(join(process.cwd(), 'scripts/lich-su/y-tuong', `${kenh}-${mau}.json`), 'utf8')) as { su_kien?: { ma: string; chu: string }[] };
-    return (d.su_kien ?? []).filter((x) => MA_HOP_LE.test(String(x.ma))).map((x) => ({ ma: String(x.ma), chu: String(x.chu ?? x.ma) })); }
-  catch { return []; }
-}
+// ── Studio 2 · CƠ SỞ PHÂN TÍCH TỪ ASTROLAS (anh 20/11/2026: nhóm làm video chia sẻ chiêm tinh theo GÓC NHÌN CÁ NHÂN, "sử dụng astrolas làm cơ sở
+//    phân tích" — KHÔNG dùng hệ thống Kênh nội dung của Astrolas) ──────────────────────────────────────────────────────────────────────────────────
+// Người làm video nêu câu hỏi + (nếu có) ngày giờ nơi sinh của người / cặp họ muốn nói tới → hỏi cầu nối mos2 của site (astrolas.com /api/v1/qa/answer,
+// đúng cầu mà mos2 đang dùng cho seeding): site dựng lá số bằng máy tính lá số của nó rồi trả bản phân tích có căn cứ. Bản đó lưu theo tập (xv_s2_co_so),
+// Studio 2 ghép vào đề bài của máy viết kịch bản: nhận định chiêm tinh lấy từ đây, còn quan điểm + giọng kể là của người làm video.
+export type NguoiSinh = { ten?: string; ngay?: string; gio?: string; noi?: string };
+export type CoSoS2 = { tap_id: number; cau_hoi: string; nguoi: NguoiSinh[]; phan_tich: string; nguon: { title: string; url: string }[];
+  la_so: { ten: string; mat_troi: string; mat_trang: string; moc: string; dung_duoc: boolean }[]; usd: number; luc: string };
+const coSoTu = (x: Row): CoSoS2 => ({ tap_id: Number(x.tap_id), cau_hoi: String(x.cau_hoi ?? ''), nguoi: (Array.isArray(x.nguoi) ? x.nguoi : []) as NguoiSinh[], phan_tich: String(x.phan_tich ?? ''),
+  nguon: (Array.isArray(x.nguon) ? x.nguon : []) as CoSoS2['nguon'], la_so: (Array.isArray(x.la_so) ? x.la_so : []) as CoSoS2['la_so'], usd: Number(x.usd ?? 0), luc: gio(x.updated_at) });
 
-/** Các mẫu của kênh đặt làm được từ Studio 2 = mẫu có kho ý tưởng: tên, mô tả kho, nhịp, link demo, số ý tưởng. */
-export async function dsMauKenhS2(kenh: string): Promise<{ ma: string; ten: string; loai: string; kho: string; demo: string; so_y_tuong: number }[]> {
-  if (!(await laAdmin()) || !KENH_DAT.includes(kenh)) return [];
-  const ra = [];
-  for (const m of mauCua(kenh)) { const n = (await khoYTuong(kenh, m.ma)).length; if (n) ra.push({ ma: m.ma, ten: m.ten, loai: String(m.loai ?? ''), kho: String(m.kho ?? ''), demo: String(m.demo ?? ''), so_y_tuong: n }); }
-  return ra;
-}
-
-/** Kho ý tưởng của một mẫu, kèm tình trạng: đã có video trong sổ máy đăng / đã có người đặt / còn trống. */
-export async function dsYTuongKenhS2(kenh: string, mau: string): Promise<{ ma: string; chu: string; tinh_trang: 'trong' | 'da_co' | 'da_dat' }[]> {
+/** Bản phân tích Astrolas đang gắn với một tập (chưa hỏi lần nào → null). */
+export async function docCoSoS2(tapId: number): Promise<CoSoS2 | null> {
   const db = getDb();
-  if (!db || !(await laAdmin())) return [];
-  const kho = await khoYTuong(kenh, mau);
-  if (!kho.length) return [];
-  const [co, dat] = await Promise.all([
-    db.execute(sql`SELECT v.slug FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${kenh}`),
-    db.execute(sql`SELECT ma FROM xv_s2_dat WHERE kenh = ${kenh} AND trang_thai <> 'loi'`)]);
-  const daCo = new Set((co as unknown as Row[]).map((x) => String(x.slug))), daDat = new Set((dat as unknown as Row[]).map((x) => String(x.ma)));
-  return kho.map((x) => ({ ...x, tinh_trang: daCo.has(x.ma) ? 'da_co' as const : daDat.has(x.ma) ? 'da_dat' as const : 'trong' as const }));
+  if (!db || !(await laAdmin())) return null;
+  const r = (await db.execute(sql`SELECT * FROM xv_s2_co_so WHERE tap_id = ${Number(tapId)}`)) as unknown as Row[];
+  return r[0] ? coSoTu(r[0]) : null;
 }
 
-/** Đặt làm một tập: ý tưởng phải có trong kho của mẫu, chưa có video, chưa ai đặt. Tốn tiền giọng đọc khi máy làm (vài trăm tới vài nghìn đồng một tập). */
-export async function datTapKenhS2(kenh: string, mau: string, ma: string): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
+/** Hỏi Astrolas cho một tập: câu hỏi + tối đa 3 người (tên, ngày sinh YYYY-MM-DD, giờ HH:MM, nơi sinh). TỐN TIỀN phía site (mô hình nhỏ, mức "standard":
+ *  lá số gốc + các thế góc chiếu) — site trả kèm số tiền ước, ghi vào bảng. Hỏi lại thì bản mới thay bản cũ của tập. */
+export async function phanTichAstrolasS2(tapId: number, d: { cauHoi?: string; nguoi?: NguoiSinh[]; ngonNgu?: string }): Promise<{ ok: true; data: CoSoS2 } | { ok: false; loi: string }> {
   const db = getDb(), me = await getCurrentUser();
   if (!db || !me || !(await laAdmin())) return { ok: false, loi: 'không có quyền' };
-  const y = (await dsYTuongKenhS2(kenh, mau)).find((x) => x.ma === ma);
-  if (!y) return { ok: false, loi: 'ý tưởng này không có trong kho của mẫu' };
-  if (y.tinh_trang === 'da_co') return { ok: false, loi: 'ý tưởng này đã có video rồi' };
-  if (y.tinh_trang === 'da_dat') return { ok: false, loi: 'ý tưởng này đã có người đặt, đang chờ máy làm' };
-  const r = (await db.execute(sql`INSERT INTO xv_s2_dat (user_id, kenh, mau, ma, chu_de) VALUES (${me.id}, ${kenh}, ${mau}, ${ma}, ${y.chu})
-    ON CONFLICT (kenh, ma) DO UPDATE SET trang_thai = 'cho', loi = '', lan = 0, user_id = ${me.id}, updated_at = now() RETURNING id`)) as unknown as Row[];
-  return { ok: true, data: Number(r[0]?.id) };
-}
-
-export type DatS2 = { id: number; kenh: string; mau: string; mau_ten: string; ma: string; chu_de: string; trang_thai: string; loi: string; tien_vnd: number; luc: string; xong_luc: string; cua_toi: boolean; nguoi: string;
-  video_url: string | null; anh: string | null; giay: number | null; cham: string; da_dang: string | null };
-/** Các đơn đặt làm video kênh: người dùng thường (và quản trị khi chiCuaToi) thấy đơn của chính họ, quản trị thấy mọi đơn. Kèm video khi máy đã làm xong. */
-export async function dsDatS2(chiCuaToi = false): Promise<DatS2[]> {
-  const db = getDb(), me = await getCurrentUser();
-  if (!db || !me || !(await laAdmin())) return [];
-  const tatCa = me.role === 'admin' && !chiCuaToi;
-  try {
-    const r = (await db.execute(sql`SELECT d.*, coalesce(mb.display_name, u.name, '') AS nguoi, v.video_url, v.anh->>0 AS anh, v.giay, coalesce(v.cham->>'ket', '') AS cham, v.da_dang->'youtube'->>'url' AS da_dang
-      FROM xv_s2_dat d LEFT JOIN users u ON u.id = d.user_id LEFT JOIN members mb ON mb.user_id = d.user_id AND mb.project_id IS NULL
-      LEFT JOIN xv_may_video v ON v.slug = d.ma AND v.may_id = (SELECT id FROM xv_may WHERE ma = d.kenh) AND v.xuat_luc IS NOT NULL
-      WHERE ${tatCa ? sql`true` : sql`d.user_id = ${me.id}`} ORDER BY d.id DESC LIMIT 60`)) as unknown as Row[];
-    return r.map((x) => ({ id: Number(x.id), kenh: String(x.kenh), mau: String(x.mau), mau_ten: mauCua(String(x.kenh)).find((m) => m.ma === x.mau)?.ten ?? String(x.mau), ma: String(x.ma), chu_de: String(x.chu_de ?? ''),
-      trang_thai: String(x.trang_thai), loi: String(x.loi ?? ''), tien_vnd: Number(x.tien_vnd ?? 0), luc: gio(x.created_at), xong_luc: gio(x.xong_luc), cua_toi: Number(x.user_id) === me.id, nguoi: String(x.nguoi ?? ''),
-      video_url: x.video_url ? String(x.video_url) : null, anh: x.anh ? String(x.anh) : null, giay: x.giay == null ? null : Number(x.giay), cham: String(x.cham ?? ''), da_dang: x.da_dang ? String(x.da_dang) : null }));
-  } catch (e) { console.error('[studio2 ds đặt]', e); return []; }
+  const goc = (process.env.ASTROLAS_API_URL || '').replace(/\/+$/, ''), khoa = process.env.ASTROLAS_QA_KEY || '';
+  if (!goc || !khoa) return { ok: false, loi: 'máy chủ chưa cấu hình cầu nối Astrolas (ASTROLAS_API_URL + ASTROLAS_QA_KEY)' };
+  const cauHoi = String(d.cauHoi ?? '').trim();
+  if (cauHoi.length < 8) return { ok: false, loi: 'câu hỏi quá ngắn: nêu rõ bạn muốn Astrolas phân tích điều gì' };
+  const nguoi: NguoiSinh[] = [];
+  for (const n of (Array.isArray(d.nguoi) ? d.nguoi : []).slice(0, 3)) {
+    const ten = String(n?.ten ?? '').trim().slice(0, 120), ngay = String(n?.ngay ?? '').trim(), gioSinh = String(n?.gio ?? '').trim(), noi = String(n?.noi ?? '').trim().slice(0, 200);
+    if (!ten && !ngay) continue;
+    if (ngay && !/^\d{4}-\d{2}-\d{2}$/.test(ngay)) return { ok: false, loi: `ngày sinh "${ngay}" phải theo dạng năm-tháng-ngày, ví dụ 1990-07-23` };
+    if (gioSinh && !/^\d{2}:\d{2}$/.test(gioSinh)) return { ok: false, loi: `giờ sinh "${gioSinh}" phải theo dạng giờ:phút, ví dụ 08:30` };
+    nguoi.push({ ...(ten ? { ten } : {}), ...(ngay ? { ngay } : {}), ...(gioSinh ? { gio: gioSinh } : {}), ...(noi ? { noi } : {}) });
+  }
+  const nn = ['vi', 'en', 'es', 'fr', 'de', 'pt', 'it', 'zh', 'ja', 'ko', 'ru'].includes(String(d.ngonNgu)) ? String(d.ngonNgu) : 'vi';
+  const than = { question_title: cauHoi.slice(0, 500),
+    question_body: `${cauHoi}\n\n[Purpose: a video creator needs a grounded ASTROLOGICAL ANALYSIS to base a personal-viewpoint video on. For every claim, name the real chart factor behind it (planet, sign, house, aspect, with degrees when available). No social-media small talk, no greeting, no sign-off. Write in language: ${nn}.]`,
+    question_lang: nn, platform: 'other', tone_target: 'expert', target_words: 380, depth: 'standard', request_id: `studio2-tap-${Number(tapId)}-${Date.now()}`,
+    ...(nguoi.length ? { entities: nguoi.map((n) => ({ ...(n.ten ? { name: n.ten } : {}), ...(n.ngay ? { dob: n.ngay } : {}), ...(n.gio ? { birth_time: n.gio } : {}), ...(n.noi ? { birth_place: n.noi } : {}) })) } : {}) };
+  type Tra = { ok?: boolean; answer_md?: string; error?: string; code?: string; details?: unknown; cost_estimate_usd?: number; sources?: { title?: string; url?: string }[];
+    entities_used?: { name?: string; sun_sign?: string | null; moon_sign?: string | null; rising?: string | null; resolved?: boolean }[] };
+  let tra: Tra | null = null, loiGoi = '';
+  for (let lan = 0; lan < 2 && !tra; lan++) {   // site đứng sau Cloudflare: 52x thoáng qua thì thử lại một lần
+    try {
+      const r = await fetch(`${goc}/api/v1/qa/answer`, { method: 'POST', headers: { authorization: `Bearer ${khoa}`, 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(than), signal: AbortSignal.timeout(95_000) });
+      const j = (await r.json().catch(() => null)) as Tra | null;
+      if (r.status >= 500 && r.status !== 500) { loiGoi = `Astrolas trả ${r.status}`; continue; }
+      if (!j) { loiGoi = `Astrolas trả ${r.status} không đọc được`; continue; }
+      tra = j; if (!r.ok && !j.error) tra.error = `Astrolas trả ${r.status}${j.details ? `: ${JSON.stringify(j.details).slice(0, 200)}` : ''}`;
+    } catch (e) { loiGoi = e instanceof Error && e.name === 'TimeoutError' ? 'Astrolas nghĩ quá 95 giây chưa trả lời' : `không gọi được Astrolas: ${e instanceof Error ? e.message : String(e)}`; }
+  }
+  if (!tra) return { ok: false, loi: loiGoi || 'không gọi được Astrolas' };
+  const vanBan = String(tra.answer_md ?? '').replace(/<details>[\s\S]*?<\/details>/gi, '').replace(/<\/?(?:details|summary)>/gi, '').replace(/\s*\[conf:\s*[\d.]+\]/gi, '').trim();
+  if (tra.ok === false || !vanBan) return { ok: false, loi: /\b429\b|rate.?limit/i.test(String(tra.error)) ? 'Astrolas đang giới hạn số lượt hỏi, thử lại sau ít phút' : `Astrolas không trả được bản phân tích: ${String(tra.error || tra.code || 'trả rỗng').slice(0, 240)}` };
+  const nguon = (tra.sources ?? []).filter((x) => x?.url).slice(0, 8).map((x) => ({ title: String(x.title ?? x.url), url: String(x.url) }));
+  const laSo = (tra.entities_used ?? []).map((x) => ({ ten: String(x.name ?? ''), mat_troi: String(x.sun_sign ?? ''), mat_trang: String(x.moon_sign ?? ''), moc: String(x.rising ?? ''), dung_duoc: x.resolved !== false }));
+  const r = (await db.execute(sql`INSERT INTO xv_s2_co_so (tap_id, user_id, cau_hoi, nguoi, phan_tich, nguon, la_so, usd)
+    VALUES (${Number(tapId)}, ${me.id}, ${cauHoi}, ${JSON.stringify(nguoi)}::jsonb, ${vanBan}, ${JSON.stringify(nguon)}::jsonb, ${JSON.stringify(laSo)}::jsonb, ${Number(tra.cost_estimate_usd ?? 0)})
+    ON CONFLICT (tap_id) DO UPDATE SET user_id = EXCLUDED.user_id, cau_hoi = EXCLUDED.cau_hoi, nguoi = EXCLUDED.nguoi, phan_tich = EXCLUDED.phan_tich, nguon = EXCLUDED.nguon, la_so = EXCLUDED.la_so,
+      usd = xv_s2_co_so.usd + EXCLUDED.usd, updated_at = now() RETURNING *`)) as unknown as Row[];
+  return { ok: true, data: coSoTu(r[0]!) };
 }

@@ -435,7 +435,7 @@ export const VietBaiDaiSchema = z.object({
   // 19/11/2026: checklist viết trong đoạn bị dính thành một dòng → Phòng Nội dung SỬA LẠI; tách trường riêng, máy dựng danh sách ô tick
   checklist: z.array(z.string().describe('one short action the reader can tick, starts with a verb')).min(4).max(6).optional(),
   vi_du: z.object({ tieu_de: z.string().describe('label marked as a sample, by role never by a personal name, like "Sample case: an E-6 with 20 years"'), dong: z.array(z.string()).min(3).max(6).describe('lines of ONE concrete worked case with real specific values of this topic, each line short like a statement row ("High-3 average: $5,000", "Sun: Taurus, 10th house"), no abstract steps; one line is a quoted sentence the person actually read or said, in quotes') }),
-  neu_da_lo: z.object({ h2: z.string().describe('heading starting with "If you already" (e.g. "If you already signed your retirement paperwork")'), doan: z.array(z.string()).min(1).max(2) }),
+  neu_da_lo: z.object({ h2: z.string().describe('heading starting with "If you already" (e.g. "If you already signed your retirement paperwork")'), doan: z.array(z.string()).min(1).max(4).describe('2-4 short paragraphs, each ONE concrete step in time order (first today, then this week, then before the deadline), calm tone') }),
   // 19/11/2026: câu hỏi có/không làm mô hình rẻ mở "Yes." rồi giải thích ngược lại (militarycalc dai-42971, astrolas dai-41253) → chỉ hỏi How/What/When…, máy chặn câu có/không
   faq: z.array(z.object({ hoi: z.string().describe('a question people search, phrased with How / What / When / Which / Where / Why, never a yes/no question'), dap: z.string().describe('2-3 sentences, the first sentence is the direct answer, the rest adds a condition or where to check') })).min(3).max(4),
   dan_cta: z.string().optional().describe('one sentence placed right before the mid-article button: why trying the tool on your own numbers settles the worry just described'),
@@ -454,7 +454,10 @@ export function htmlBaiDai(d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua'
   const img = (i: number) => anh[i] ? `<p><img src="${thoatHtml(anh[i]!)}" alt="${thoatHtml(d.tieu_de.trim())} (${i + 1})"></p>` : '';
   const khung = (k?: string[]) => (k?.filter((x) => x.trim()).length ?? 0) >= 2 ? `<blockquote class="mock">${k!.filter((x) => x.trim()).map(p).join('')}</blockquote>` : '';
   const muc = (m: { h2: string; doan: string[]; khung?: string[] }) => `<h2>${thoatHtml(m.h2.trim())}</h2>${m.doan.map(p).join('')}${khung(m.khung)}`;
-  const vd = `<blockquote class="mock"><p><strong>${thoatHtml(d.vi_du.tieu_de.trim())}</strong></p>${d.vi_du.dong.map(p).join('')}</blockquote>`;
+  // dòng ví dụ trùng nhãn / trùng nhau bị bỏ (19/11/2026: "Sample case: an E-7…" in hai lần liên tiếp, Phòng Nội dung trừ điểm)
+  const chuan = (x: string) => x.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(), thay = new Set([chuan(d.vi_du.tieu_de)]);
+  const dongVd = d.vi_du.dong.filter((x) => { const k = chuan(x); if (!k || thay.has(k)) return false; thay.add(k); return true; });
+  const vd = `<blockquote class="mock"><p><strong>${thoatHtml(d.vi_du.tieu_de.trim())}</strong></p>${dongVd.map(p).join('')}</blockquote>`;
   const vid = video ? `<p><iframe src="https://www.youtube.com/embed/${thoatHtml(video)}" title="${thoatHtml(d.tieu_de.trim())} video" width="560" height="315" allowfullscreen></iframe></p><p>Video: <a href="https://www.youtube.com/watch?v=${thoatHtml(video)}">https://www.youtube.com/watch?v=${thoatHtml(video)}</a></p>` : '';
   return `<article><h1>${thoatHtml(d.tieu_de.trim())}</h1><p><em>${thoatHtml(d.phu_de.trim())}</em></p>\n${p(d.canh)}${p(d.hua)}${img(0)}\n`
     + d.muc.slice(0, 2).map(muc).join('\n') + `\n${vd}\n${vid}\n${d.dan_cta?.trim() ? p(d.dan_cta) : ''}<p><a class="cta" href="${L}">Try it free on your own case</a></p>\n` + d.muc.slice(2).map(muc).join('\n') + `\n${ds}\n${img(1)}\n${muc(d.neu_da_lo)}\n${img(2)}\n`
@@ -464,7 +467,8 @@ export function htmlBaiDai(d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua'
 export const chuBaiDai = (d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket' | 'checklist' | 'dan_cta'>) =>
   [d.tieu_de, d.phu_de, d.canh, d.hua, ...d.muc.flatMap((m) => [m.h2, ...m.doan, ...(m.khung ?? [])]), ...(d.checklist ?? []), ...(d.dan_cta ? [d.dan_cta] : []), d.vi_du.tieu_de, ...d.vi_du.dong, d.neu_da_lo.h2, ...d.neu_da_lo.doan, ...d.faq.flatMap((f) => [f.hoi, f.dap]), d.ket].join('\n\n');
 /** Câu hỏi FAQ dạng có/không (Does / Is / Can …) — trả về các câu vi phạm. Thuần. */
-export const faqCoKhong = (faq: { hoi: string }[]) => faq.map((f) => f.hoi.trim()).filter((q) => /^(does|do|is|are|can|could|will|would|should|shall|has|have|was|were|did|am|may|must)\b/i.test(q));
+export const faqCoKhong = (faq: { hoi: string; dap?: string }[]) => faq.filter((f) => /^(does|do|is|are|can|could|will|would|should|shall|has|have|was|were|did|am|may|must)\b/i.test(f.hoi.trim())
+  || /^(yes|no)\b/i.test(String(f.dap ?? '').trim())).map((f) => f.hoi.trim());
 /** Kiểm bài Substack (chặn cứng như kiemBaiViet, độ dài bài dài). Thuần. */
 export function kiemBaiDai(chu: string, link: string): string[] {
   const loi = kiemBaiViet(chu, link).filter((x) => !x.startsWith('độ dài'));
@@ -498,7 +502,7 @@ export async function vietBaiDai(o: { sp: SanPhamDe; goc: GocDe; link: string; u
     const chu = tho.split('{LINK}').join(link);
     loiCu = [...kiemBaiDai(chu, link), ...(tho.split('{LINK}').length !== 2 ? ['token {LINK} phải có đúng một lần'] : []),
       ...(r.data.muc.filter((m) => (m.khung?.filter((x) => x.trim()).length ?? 0) >= 2).length < 2 ? ['at least 2 body sections need "khung": 2-4 concrete lines the reader sees'] : []),
-      ...faqCoKhong(r.data.faq).map((q) => `FAQ "${q}" is a yes/no question: rewrite it as How / What / When / Which`)];
+      ...faqCoKhong(r.data.faq).map((q) => `FAQ "${q}": the question must be How / What / When / Which and the answer must not start with Yes or No`)];
     if (!loiCu.length) return { ok: true, ...r.data, link, vnd, model: r.model };
   }
   return { ok: false, loi: `bài Substack sai luật sau 2 lượt: ${loiCu.join('; ')}`, vnd };

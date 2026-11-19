@@ -29,4 +29,7 @@ assert.equal((h3.match(/class="mock"/g) || []).length, 2, 'khung mục (≥2 dò
 assert.ok(h3.indexOf('Run your own numbers.') < h3.indexOf('Try it free') && h3.indexOf('Base pay') > h3.indexOf('<h2>A</h2>'), 'câu dẫn trước nút giữa, khung dưới mục');
 assert.ok(chuBaiDai({ ...d, dan_cta: 'Z9', muc: [{ h2: 'A', doan: ['a'], khung: ['K7', 'K8'] }] }).includes('K7') && chuBaiDai({ ...d, dan_cta: 'Z9' }).includes('Z9'), 'chữ kiểm gồm khung + câu dẫn');
 assert.deepEqual(faqCoKhong([{ hoi: 'Is BAH taxable?' }, { hoi: 'How is BAH taxed?' }, { hoi: 'Does rate protection follow me?' }, { hoi: 'Isaac rule?' }]), ['Is BAH taxable?', 'Does rate protection follow me?'], 'chặn câu hỏi có/không, không bắt nhầm');
-console.log('bai-dai: 14/14 ok');
+assert.deepEqual(faqCoKhong([{ hoi: 'How is BAH taxed?', dap: 'No, BAH is not taxed.' }, { hoi: 'What changes?', dap: 'Nothing changes.' }]), ['How is BAH taxed?'], 'đáp mở Yes/No bị chặn');
+const h4 = htmlBaiDai({ ...d, vi_du: { tieu_de: 'Sample case: an E-7', dong: ['Sample case: an E-7', 'High-3: $5,000', 'High-3: $5,000', 'Years: 20'] } }, L, [], null);
+assert.equal((h4.match(/Sample case: an E-7/g) || []).length, 1, 'dòng ví dụ trùng nhãn bỏ'); assert.equal((h4.match(/High-3: \$5,000/g) || []).length, 1, 'dòng trùng bỏ');
+console.log('bai-dai: 17/17 ok');

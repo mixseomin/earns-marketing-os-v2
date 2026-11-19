@@ -413,7 +413,7 @@ function HoanTac({ phimId, onDone }: { phimId: number; onDone: () => Promise<voi
 
 /** Nút 🗑 Thùng rác + ngăn liệt kê thứ đã bỏ (phimId null = phim đã xoá) với nút Khôi phục. Không có xoá vĩnh viễn (#1192). */
 function ThungRac({ phimId, onKhoiPhuc }: { phimId: number | null; onKhoiPhuc: () => Promise<void> }) {
-  const [mo, setMo] = useState(false);
+  const [mo, setMo] = useMoUrl(phimId == null ? 'rac' : `rac${phimId}`, false);   // ngăn đang mở nằm trên URL (?mo=rac / ?mo=rac<phim>) — F5 / link mở lại đúng thùng rác (#1192)
   const [ds, setDs] = useState<Awaited<ReturnType<typeof dsThungRac>> | null>(null);
   const [loi, setLoi] = useState('');
   const [ban, setBan] = useState<number | null>(null);

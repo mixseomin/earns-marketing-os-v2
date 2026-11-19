@@ -15,7 +15,8 @@ import { lopImpact, nhipHanhDong, themTieng } from '@/lib/xuong-video/nhip-hanh-
 import { theTenTap } from '@/lib/xuong-video/the-ten';
 import { nhipCat } from '@/lib/xuong-video/nhip-cat';
 import { lichSfx, urlSfx, amLuongXem, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, DU_XEM } from '@/lib/xuong-video/sfx';
-import { doLufsAm, chonNguonPhim, demNguonPhim, datBoSinhVideo, type NguonPhim } from '@/lib/actions';
+import { doLufsAm, chonNguonPhim, datBoSinhVideo, type NguonPhim } from '@/lib/actions';
+import { demNguonPhim } from '@/lib/doc';
 import { keHoachToc, kieuTocShot, nguonTai, diemVaoClip } from '@/lib/xuong-video/toc-do';
 import { NutChuyenCanh } from './chuyen-canh-ui';
 import { dongThoai, phatTiengClip, tenNoi, cungTen, timNv, lichGiong, giayGiuKet } from '@/lib/xuong-video/am-thanh';
@@ -196,7 +197,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const [dangDoiNguon, setDangDoiNguon] = useState(false);
   const [nguonPhim, setNguonPhim] = useState<NguonPhim | null>(null);
   const kyClip = canh.map((k) => k.video_url ?? '').join('|');
-  useEffect(() => { let bo = false; void demNguonPhim(tap.phim_id).then((x) => { if (!bo) setNguonPhim(x); }); return () => { bo = true; }; }, [tap.phim_id, kyClip]);
+  useEffect(() => { let bo = false; void demNguonPhim(tap.phim_id).then((x) => { if (!bo) setNguonPhim(x); }, (e: unknown) => { if (!bo) setBaoNhip(`⚠ Không đọc được nguồn clip / bộ sinh của phim: ${e instanceof Error ? e.message : String(e)}`); }); return () => { bo = true; }; }, [tap.phim_id, kyClip]);
   const [dangKhop, setDangKhop] = useState(false);
 
   // Đồng hồ phát: requestAnimationFrame đẩy t, hết tập thì dừng.

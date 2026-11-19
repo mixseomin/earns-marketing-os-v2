@@ -140,10 +140,12 @@ def dt_logo_chat_lieu(c):
     """tên phim vẽ bằng chất liệu theo chủ đề phim (nước / lửa / phép thuật / băng) + hào quang + gạch hoạ tiết (kiểu Surf God's Revenge / Luna's Revenge)"""
     tl = (c["p"].get("the_loai") or "").lower(); txt = c["ten"].lower()
     chu_de = ("nuoc" if re.search(r"sea|surf|ocean|water|mermaid|tide", txt) else "lua" if re.search(r"dragon|fire|flame|phoenix|inferno", txt) else
+              "thep" if re.search(r"sniper|soldier|war|army|marine|seal|military|commander|assassin|bullet|gun|prison|warrior|veteran|mercenary", txt) else
               "bang" if re.search(r"ice|frost|snow|winter", txt) else "phep" if tl in ("fantasy", "soi", "vien_tuong") else "vang")
     bang = {"nuoc": ((235, 252, 255), (70, 180, 235), (10, 70, 150), (120, 220, 255)), "lua": ((255, 248, 200), (255, 150, 30), (170, 30, 10), (255, 120, 20)),
             "bang": ((250, 255, 255), (160, 220, 255), (60, 120, 200), (170, 230, 255)), "phep": ((255, 235, 255), (200, 120, 255), (80, 20, 150), (190, 110, 255)),
-            "vang": ((255, 245, 205), (230, 175, 60), (130, 70, 10), (255, 200, 90))}[chu_de]
+            "vang": ((255, 245, 205), (230, 175, 60), (130, 70, 10), (255, 200, 90)),
+            "thep": ((250, 252, 255), (170, 178, 190), (60, 66, 78), (255, 120, 40))}[chu_de]   # thép xước + quầng cam lửa súng — phim quân đội / bắn tỉa / hành động
     lop = Image.new("RGBA", (W, H)); f, dong = vua(c["ten"].upper(), "copper", W - 110, 140, 3)
     cao = int(f.size * 1.0) * len(dong); y = int(max(H * 0.58, min(H * 0.80 - cao, c["mat_day"] + 50)))
     m, hop = mat_chu(dong, f, y, 1.0); phat_sang(lop, m, bang[3], 28, 230); vien(lop, m, 6, tuple(v // 3 for v in bang[2]))

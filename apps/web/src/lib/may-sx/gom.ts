@@ -150,16 +150,16 @@ async function gomMoi(): Promise<KetSx> {
       const d = getDb(); if (!d) throw new Error('không có DB');
       const co = ((await d.execute(sql`SELECT to_regclass('etp.mau_dung') IS NOT NULL AS c`)) as unknown as { c: boolean }[])[0]?.c;
       if (!co) return [];
-      const r = (await d.execute(sql`SELECT m.mau, m.content_id, p.ten, m.buoc, m.trang_thai, m.ghi, m.cap_nhat::text AS luc, m.bat_dau::text AS bat_dau, m.creative_ids, m.vnd
+      const r = (await d.execute(sql`SELECT m.mau, to_jsonb(m)->>'ten_mau' AS ten_mau, m.content_id, p.ten, m.buoc, m.trang_thai, m.ghi, m.cap_nhat::text AS luc, m.bat_dau::text AS bat_dau, m.creative_ids, m.vnd
         FROM etp.mau_dung m LEFT JOIN etp.phim p USING (content_id)
         WHERE m.trang_thai <> 'xong' OR m.cap_nhat > now() - interval '24 hours' ORDER BY m.cap_nhat DESC LIMIT 200`)) as unknown as
-        { mau: string; content_id: number; ten: string | null; buoc: string; trang_thai: string; ghi: string | null; luc: string; bat_dau: string | null; creative_ids: number[] | null; vnd: number }[];
+        { mau: string; ten_mau: string | null; content_id: number; ten: string | null; buoc: string; trang_thai: string; ghi: string | null; luc: string; bat_dau: string | null; creative_ids: number[] | null; vnd: number }[];
       const BUOC: [string, string][] = [['trang_phim', 'Trang phim'], ['tai_tap', 'Tải tập'], ['chon_khung', 'Chọn khung'], ['ve_mau', 'Vẽ mẫu'], ['giong', 'Giọng'], ['video', 'Video'], ['thu_vien', 'Thư viện'], ['creative', 'Creative']];
       return r.map((x): ViecSx => {
         const i = BUOC.findIndex(([k]) => k === x.buoc), xong = x.trang_thai === 'xong', loi = x.trang_thai === 'loi', cho = x.buoc === 'cho';
         const nhip: Nhip[] = BUOC.map(([, ten], j) => ({ ten, tt: xong || j < i ? 'xong' : j === i ? (loi ? 'loi' : 'dang') : 'cho', ghi: j === i ? x.ghi : null,
-          chu: j === BUOC.length - 1 && x.creative_ids?.length ? `${x.creative_ids.length} cr` : null }));
-        return { nguon: 'etp', khoa: `m-${x.mau}-${x.content_id}`, ten: x.ten ?? `phim ${x.content_id}`, cua: `mẫu ${x.mau}`,
+          chu: j === BUOC.length - 1 && x.creative_ids?.length ? `${x.creative_ids.length} creative` : null }));
+        return { nguon: 'etp', khoa: `m-${x.mau}-${x.content_id}`, ten: x.ten ?? `phim ${x.content_id}`, cua: x.ten_mau ? `mẫu ${x.ten_mau}` : 'mẫu học từ đối thủ',
           buoc: xong ? 'xong' : cho ? 'chờ máy dựng theo mẫu' : `${BUOC[i]?.[1] ?? x.buoc}${loi ? ' lỗi' : ' đang làm'}`, luc: x.luc,
           loi: loi ? x.ghi : null, ghi: loi ? null : [x.ghi, x.vnd ? `${x.vnd}₫` : null].filter(Boolean).join(' · ') || null, nhip,
           mo: { ed: 'etp-sx', id: String(x.content_id) } };

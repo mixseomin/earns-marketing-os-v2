@@ -208,21 +208,22 @@ export async function chonPhimMau(ma: string, contentId: number): Promise<{ ok: 
   if (!q || q.vai !== 'chu') return { loi: 'không có quyền' };
   const cid = Math.trunc(Number(contentId)); if (!(cid > 0)) return { loi: 'mã phim không hợp lệ' };
   const so = (SO_MAU.mau as MucSo[]).find((x) => x.ma === ma), d = DS_DANG.find((x) => x.ma === ma);
-  if (!so && !d) return { loi: `không có mẫu ${ma} trong sổ` };
+  if (!so && !d) return { loi: 'mẫu này không còn trong sổ' };
   const dong = d ? d.dong ?? null : so!.loai === 'cong_thuc' && so!.trang_thai === 'may' ? dongCua(so!.dang) : null;
   await getDb()!.execute(BANG_MAU_PHIM);
   let dongId: number | null = null, ghi: string;
   if (dong) {
     const r = await chayDong(cid, dong, '');
     if ('loi' in r) return { loi: `chưa sinh được: ${r.loi}` };
-    dongId = r.id; ghi = `đã tạo dòng phim #${r.id} (${dong}) — máy dòng phim sinh creative theo mẫu, xong hiện ở đây`;
+    dongId = r.id; ghi = 'máy dòng phim đã nhận — creative ra sẽ hiện ở chân thẻ';
   } else if (so && so.loai !== 'cong_thuc' && so.trang_thai !== 'chua' && (so.may ?? '').startsWith('dung-mau.py')) {
     await getDb()!.execute(sql`create table if not exists etp.mau_dung (mau text not null, content_id integer not null, buoc text not null default 'cho', trang_thai text not null default 'cho',
       ghi text, creative_ids integer[] not null default '{}', tv_ids integer[] not null default '{}', vnd integer not null default 0, bat_dau timestamptz, cap_nhat timestamptz not null default now(), primary key (mau, content_id))`);
-    await getDb()!.execute(sql`insert into etp.mau_dung (mau, content_id, buoc, trang_thai, ghi) values (${ma}, ${cid}, 'cho', 'cho', 'chờ máy dựng theo mẫu (iMac) nhận')
-      on conflict (mau, content_id) do update set buoc = 'cho', trang_thai = 'cho', ghi = excluded.ghi, cap_nhat = now() where etp.mau_dung.trang_thai in ('loi', 'cho')`);
-    ghi = 'đã xếp hàng máy dựng theo mẫu — trạng thái từng bước hiện ở chân thẻ';
-  } else ghi = 'đã ghi phim — mẫu này chưa có máy dựng nên chưa sinh được creative; dựng mã mẫu xong máy mới làm';
+    await getDb()!.execute(sql`alter table etp.mau_dung add column if not exists ten_mau text`);   // tên mẫu cho tab Máy SX mos2 (không in mã)
+    await getDb()!.execute(sql`insert into etp.mau_dung (mau, content_id, buoc, trang_thai, ghi, ten_mau) values (${ma}, ${cid}, 'cho', 'cho', 'chờ máy dựng theo mẫu (iMac) nhận', ${so.ten})
+      on conflict (mau, content_id) do update set buoc = 'cho', trang_thai = 'cho', ghi = excluded.ghi, ten_mau = excluded.ten_mau, cap_nhat = now() where etp.mau_dung.trang_thai in ('loi', 'cho')`);
+    ghi = 'đã vào hàng chờ — hàng chờ chưa có lịch tự chạy';
+  } else ghi = 'đã ghi phim — mẫu chưa có máy dựng nên chưa sinh creative';
   await getDb()!.execute(sql`insert into etp.mau_phim (mau, content_id, ai, dong_id) values (${ma}, ${cid}, ${me?.displayName ?? me?.email ?? 'chủ'}, ${dongId})
     on conflict (mau, content_id) do update set dong_id = coalesce(excluded.dong_id, etp.mau_phim.dong_id), luc = now()`);
   return { ok: true, ghi };

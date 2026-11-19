@@ -16,6 +16,8 @@ import { SU_KIEN_MAU } from '@/lib/etp-mau-su-kien';
 
 type Dong = PhimChon & { dt_dang: number; dt_lau: number; nhom: string };
 const NHOM = ['1 · Đã có creative mẫu này', '2 · Đang sinh / đã chọn', '3 · Nhà đang chạy — chưa có mẫu này', '4 · Đối thủ đang chạy — nhà chưa có mẫu này', '5 · Còn lại'] as const;
+/** số đầu nhãn nhóm chỉ để XẾP thứ tự — trên màn bỏ đi (YDNI 9a) */
+const tenNhom = (v: string, rs: unknown[]) => <span style={{ fontWeight: 600 }}>{v.replace(/^\d · /, '')} <span style={{ color: MO_SO, fontWeight: 400 }}>· {rs.length}</span></span>;
 const roi = (x: { chi: number; thu: number }) => (x.chi > 0.5 ? ((x.thu - x.chi) / x.chi) * 100 : null);
 type Loc = 'chua' | 'nha' | 'nha_lai' | 'doi_lai' | 'dt';
 const LOC: { value: Loc; label: string; title: string; f: (p: Dong) => boolean }[] = [
@@ -36,15 +38,25 @@ function ghiUrl(k: string, v: string | null) {
 // XEM "PHIM ĐỐI THỦ ĐANG CHẠY" (anh 19/11/2026: "Tao cần thấy danh sách film đối thủ đang chạy khi chọn phim!") — mặc định của ngăn: mỗi phim đối thủ còn QC chạy
 // (danh sách Phim đối thủ, useDoiThu) ghép phim Ethopex cùng tên → số mẫu này / nhà / đội + nút Sinh. Phim đối thủ chưa có trên Ethopex thì không sinh được (ghi rõ).
 type XemNgan = 'dt' | 'etp';
+type LocDt = 'sinh' | 'co_hoi' | 'da_co';
 type DongDt = PhimDoiThu & { e: Dong | null; nhom: string };
 // nhóm 3 = cơ hội: đối thủ chạy mà nhà chưa từng lên camp phim — đứng trước phim nhà đã chạy
 const NHOM_DT = ['1 · Đã có creative mẫu này', '2 · Đang sinh / đã chọn', '3 · Nhà chưa chạy phim — cơ hội', '4 · Nhà đã chạy phim — chưa có mẫu này', '5 · Không có trên Ethopex'] as const;
+
+const LOC_DT: { value: LocDt; label: string; title: string; f: (p: DongDt) => boolean }[] = [
+  { value: 'sinh', label: 'Sinh được', title: 'phim có trên Ethopex, chưa có creative mẫu này, chưa chọn', f: (p) => !!p.e && !p.e.cr_mau && !p.e.da_chon },
+  { value: 'co_hoi', label: 'Nhà chưa chạy', title: 'đối thủ đang chạy mà nhà chưa từng lên camp phim này', f: (p) => !!p.e && !p.e.nha.tong },
+  { value: 'da_co', label: 'Đã có mẫu này', title: 'nhà đã có creative của phim theo đúng mẫu này', f: (p) => !!p.e?.cr_mau },
+];
 
 export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => void }) {
   const [du, setDu] = useState<Awaited<ReturnType<typeof docPhimChon>> | null>(null);
   const { so: dt } = useDoiThu();
   const [loc, setLoc] = useState<Loc[]>(() => (docUrl('mpl') ?? '').split(',').filter((x): x is Loc => LOC.some((l) => l.value === x)));
   const [kq, setKq] = useState<Record<number, { dang?: boolean; loi?: string; ghi?: string }>>({});
+  const [locDt, setLocDt] = useState<LocDt[]>(() => (docUrl('mpd') ?? '').split(',').filter((x): x is LocDt => LOC_DT.some((l) => l.value === x)));
+  useEffect(() => { ghiUrl('mpd', locDt.length ? locDt.join(',') : null); }, [locDt]);
+  useEffect(() => () => ghiUrl('mpd', null), []);
   const [xem, setXem] = useState<XemNgan>(() => (docUrl('mpv') === 'etp' ? 'etp' : 'dt'));
   useEffect(() => { ghiUrl('mpv', xem === 'dt' ? null : xem); }, [xem]);
   useEffect(() => () => ghiUrl('mpv', null), []);
@@ -79,31 +91,31 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
   };
   function oSinh(p: Dong) {
     const k = kq[p.id];
-    if (k?.dang) return <span style={{ color: MO_SO }}>đang tạo dòng…</span>;
+    if (k?.dang) return <span style={{ color: MO_SO }}>đang gửi máy…</span>;
     if (k?.loi) return <span style={{ color: DO, fontSize: 11.5 }} title={k.loi}>✕ {k.loi}</span>;
     if (k?.ghi) return <span style={{ color: XANH, fontSize: 11.5 }} title={k.ghi}>✓ {k.ghi}</span>;
     if (p.da_chon) return <span style={{ color: MO_SO, fontSize: 11.5 }}>đã chọn cho mẫu này</span>;
     if (!p.co_link) return <span style={{ color: MO_SO, fontSize: 11.5 }} title="phim chưa có link tập trên Ethopex — máy không tải được tập để dựng; đồng bộ có link thì nút hiện lại">chưa có link tập</span>;
-    return <button type="button" onClick={(e) => { e.stopPropagation(); sinh(p); }} title={mau?.dong ? `tạo dòng phim ${mau.dong} — máy sinh creative theo mẫu, mọi cổng của dòng (soát, chấm, phanh chợ, luật lên camp) giữ nguyên` : 'mẫu chưa có máy dựng — chỉ ghi phim, dựng mã mẫu xong máy mới sinh'}
+    return <button type="button" onClick={(e) => { e.stopPropagation(); sinh(p); }} title={mau?.dong ? 'máy dòng phim bắt đầu sinh creative theo mẫu ngay — mọi cổng soát, chấm, phanh chợ, luật lên camp giữ nguyên' : 'đưa phim vào hàng chờ máy dựng theo mẫu — hàng chờ chưa có lịch tự chạy, chỉ chạy khi được gọi'}
       style={{ fontSize: 11.5, padding: '2px 10px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'var(--accent, #60a5fa)', cursor: 'pointer' }}>
-      {mau?.dong ? `Sinh (${mau.dong})` : 'Sinh (máy mẫu)'}</button>;
+      {mau?.dong ? 'Sinh ngay' : 'Vào hàng chờ'}</button>;
   }
   const nhomCot: DataGroup[] = [
     { key: 'mau', label: 'Mẫu này', color: '#a78bfa' }, { key: 'nha', label: 'Nhà', color: '#38bdf8' }, { key: 'doi', label: 'Đội', color: '#94a3b8' }, { key: 'dt', label: 'Đối thủ', color: '#fb923c' },
   ];
   const cot: DataColumn<Dong>[] = [
     { key: 'ten', header: 'Phim', align: 'left', width: 220, sortValue: (p) => p.ten, onCellClick: (p) => openEntityDrawer('etp-phim', p.id),
-      cell: (p) => <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }} title={`${p.ten} · phim #${p.id} — bấm mở ngăn phim`}>
+      cell: (p) => <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }} title={`${p.ten} — bấm mở ngăn phim`}>
         {p.dt_dang >= 3 && !p.cr_mau && !p.da_chon ? <span title="đối thủ đang chạy ≥ 3 QC mà nhà chưa có mẫu này" style={{ color: VANG, fontWeight: 700 }}>★</span> : null}
         <a style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{p.ten}</a></span> },
     { key: 'tl', header: 'Thể loại', align: 'left', width: 120, sortValue: (p) => p.tl, cell: (p) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 116 }} title={p.tl ?? ''}>{p.tl ?? '—'}</span> },
-    { key: 'lang', header: 'Lang', title: 'tiếng của phim', align: 'left', width: 50, sortValue: (p) => p.locale, cell: (p) => (p.locale ?? '?').toUpperCase() },
+    { key: 'lang', header: 'Tiếng', title: 'tiếng của phim', align: 'left', width: 50, sortValue: (p) => p.locale, cell: (p) => (p.locale ?? '?').toUpperCase() },
     { key: 'tuoi', header: 'Tuổi', title: 'số ngày từ khi phim có trang trên Ethopex', width: 66, sortValue: (p) => p.tuoi, cell: (p) => (p.tuoi == null ? <span style={{ color: MO_SO }}>—</span> : `${p.tuoi} ngày`) },
     { key: 'cr_mau', group: 'mau', header: 'Mẫu này', title: 'creative của phim dựng theo đúng mẫu này (cổng mẫu ghi từ 19/11/2026)', width: 78, sortValue: (p) => p.cr_mau, cell: (p) => (p.cr_mau ? <b style={{ color: XANH }}><Dem v={p.cr_mau} /></b> : <span style={{ color: MO_SO }}>0</span>) },
     { key: 'cr_dang', group: 'mau', header: 'Dạng', title: 'creative của phim cùng dạng với mẫu này (mọi thời)', width: 70, sortValue: (p) => p.cr_dang, cell: (p) => <Dem v={p.cr_dang} /> },
     { key: 'cr_tong', group: 'mau', header: 'Tổng', title: 'mọi creative của phim', width: 58, sortValue: (p) => p.cr_tong, cell: (p) => <Dem v={p.cr_tong} /> },
-    { key: 'dong', group: 'mau', header: 'Dòng chạy', align: 'left', title: 'dòng phim đang chạy (mã loại · số dòng) — bấm mở ngăn phim', width: 92, sortValue: (p) => p.dong_chay.length,
-      cell: (p) => (p.dong_chay.length ? <span style={{ fontSize: 11 }}>{p.dong_chay.map((x) => `${x.loai} #${x.id}`).join(' · ')}</span> : <span style={{ color: MO_SO }}>—</span>) },
+    { key: 'dong', group: 'mau', header: 'Đang sinh', title: 'số dòng phim nhà đang sinh creative cho phim này (mọi dạng)', width: 92, sortValue: (p) => p.dong_chay.length,
+      cell: (p) => (p.dong_chay.length ? <Dem v={p.dong_chay.length} /> : <span style={{ color: MO_SO }}>—</span>) },
     { key: 'nha', group: 'nha', header: 'Camp', title: 'camp nhà: đang chạy / từng lên', width: 66, sortValue: (p) => p.nha.dang * 1000 + p.nha.tong, cell: (p) => <OCamp x={p.nha} ai="Nhà" /> },
     { key: 'nha_chi', group: 'nha', header: 'Chi $', width: 56, sortValue: (p) => p.nha.chi, cell: (p) => (p.nha.chi ? p.nha.chi.toFixed(0) : <span style={{ color: MO_SO }}>—</span>) },
     { key: 'nha_roi', group: 'nha', header: 'ROI', width: 54, sortValue: (p) => roi(p.nha), cell: (p) => <ORoi x={p.nha} /> },
@@ -137,7 +149,7 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
       cell: (p) => (p.e ? oSinh(p.e) : <span style={{ fontSize: 11.5, color: MO_SO }} title="phim đối thủ chưa khớp phim nào trên Ethopex (tên khác / chưa có) — không sinh được">không có trên Ethopex</span>) },
   ];
   const dau = <div className="modal-head"><div><div className="id-line">chọn phim sinh creative theo mẫu</div><h2 style={{ margin: 0 }}>{mau?.ten ?? ma}</h2>
-    <div style={{ fontSize: 11.5, color: MO_SO, marginTop: 2 }}>{mau ? (mau.dong ? `dạng ${mau.dang} · máy dựng: dòng ${mau.dong}` : 'mẫu chưa có máy dựng — chọn phim chỉ ghi lại') : ''}</div></div>
+    <div style={{ fontSize: 11.5, color: MO_SO, marginTop: 2 }}>{mau ? (mau.dong ? `dạng ${mau.dang} · bấm Sinh ngay là máy dòng phim bắt đầu làm` : 'bấm Vào hàng chờ là phim xếp hàng máy dựng theo mẫu — hàng chờ chưa có lịch tự chạy') : ''}</div></div>
     <button className="modal-close" onClick={onClose}>✕</button></div>;
   return <Drawer onClose={onClose} width={1400} padding={0}>{dau}
     <div style={{ padding: '8px 12px' }}>
@@ -146,12 +158,14 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
           { value: 'etp', label: `Mọi phim Ethopex · ${rows.length}`, title: 'mọi phim Âu-Mỹ trên Ethopex, chia nhóm theo mẫu này / nhà / đối thủ' }]} /></div>
       {!du ? <div style={{ color: MO_SO }}>đang đọc danh sách phim…</div> : 'loi' in du ? <div style={{ color: DO }}>{du.loi}</div> : xem === 'dt' ? (!dt
         ? <div style={{ color: MO_SO }}>đang đọc danh sách phim đối thủ (kho Spy)…</div>
-        : <DataTable rows={dtRows} columns={cotDt} groups={nhomCot} groupHeader getRowKey={(p) => p.khoa} persistKey="etp-mau-phim-dt" minWidth={1250} pageSize={100} fixedLayout
-            groupBy={{ value: (p) => p.nhom }} locTuDong={false}   /* dòng nhóm dính hết giật từ bản sửa bảng chung 19/11/2026 (packages/bang data-table: trừ cao bản dính) */
+        : <DataTable rows={dtRows.filter((p) => locDt.every((k) => LOC_DT.find((l) => l.value === k)!.f(p)))} columns={cotDt} groups={nhomCot} groupHeader getRowKey={(p) => p.khoa} persistKey="etp-mau-phim-dt" minWidth={1250} pageSize={100} fixedLayout
+            groupBy={{ value: (p) => p.nhom, label: tenNhom }} locTuDong={false}
             searchText={(p) => `${p.ten} ${p.etp?.id ?? ''} ${p.mien.join(' ')} ${p.e?.tl ?? ''}`} searchPlaceholder="Tìm phim đối thủ, mã Ethopex…"
-            dauThanh={<span style={{ fontSize: 11.5, color: MO_SO }}>{dtRows.length} phim đối thủ còn chạy · {dtRows.filter((p) => p.e).length} có trên Ethopex (sinh được) · bấm tên phim xem creative đối thủ</span>} />) :
+            dauThanh={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <FilterChips<LocDt> options={LOC_DT.map(({ value, label, title }) => ({ value, label, title }))} values={locDt} onToggle={setLocDt} counts={Object.fromEntries(LOC_DT.map((l) => [l.value, dtRows.filter(l.f).length])) as Record<LocDt, number>} urlKey="mpd" />
+              <span style={{ fontSize: 11.5, color: MO_SO }} title="bấm tên phim để xem creative đối thủ của phim">{dtRows.filter((p) => p.e).length}/{dtRows.length} phim có trên Ethopex</span></span>} />) :
         <DataTable rows={loc_} columns={cot} groups={nhomCot} groupHeader getRowKey={(p) => String(p.id)} persistKey="etp-mau-phim" minWidth={1250} pageSize={100} fixedLayout   /* bề rộng theo khai báo từng cột — cột Phim không nuốt chỗ của Đối thủ / Sinh */
-          groupBy={{ value: (p) => p.nhom }} locTuDong={false}   /* dòng nhóm dính hết giật từ bản sửa bảng chung 19/11/2026 (packages/bang data-table: trừ cao bản dính) */
+          groupBy={{ value: (p) => p.nhom, label: tenNhom }} locTuDong={false}
           searchText={(p) => `${p.ten} ${p.id} ${p.tl ?? ''}`} searchPlaceholder="Tìm phim, mã, thể loại…"
           dauThanh={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <FilterChips<Loc> options={LOC.map(({ value, label, title }) => ({ value, label, title }))} values={loc} onToggle={setLoc} counts={dem} urlKey="mpl" />

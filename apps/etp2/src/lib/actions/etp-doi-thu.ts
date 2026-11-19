@@ -14,6 +14,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 import { r2Enabled, uploadToR2 } from '@/lib/r2';
 import { spy, type Pg } from '@/lib/spy-db';
+import SO_MAU_CR from '@/lib/etp-mau-cr.json';
 
 const MIEN_MAC_DINH = ['maybic.com', 'marcusbeilby.com', 'applodo.com'];
 const BO_TEN = new Set(['shortfilmlanding']);   // trang đích chung, không phải phim
@@ -300,7 +301,7 @@ export async function phanDangQc(ids: string[]): Promise<{ dang: Record<string, 
 export type QcDoi = { creative_id: number; anh: string | null; video: string | null; nguoi: string | null; dang: number; tong: number; chi: number; thu: number; tao: string | null; dang_cr: string | null };
 /** ĐANG SẢN XUẤT cho phim (anh 19/11/2026 "Phía qc của Đội thì show thêm cả creative đang sx nếu có"): dòng phim đang chạy (bước hiện tại) · việc dựng theo mẫu
  *  (etp.mau_dung chưa xong) · creative nhà dựng 7 ngày qua chưa có camp */
-export type SxPhim = { dong: { id: number; loai: string; buoc: string | null; tt: string | null; ghi: string | null }[]; mau: { mau: string; buoc: string; tt: string; ghi: string | null }[];
+export type SxPhim = { dong: { id: number; loai: string; buoc: string | null; tt: string | null; ghi: string | null }[]; mau: { mau: string; ten?: string | null; buoc: string; tt: string; ghi: string | null }[];
   cr: { creative_id: number; anh: string | null; video: string | null; dang: string | null; luc: string }[] };
 export async function docQcDoi(ids: number[]): Promise<{ qc: QcDoi[]; sx: SxPhim } | { loi: string }> {
   const q = await quyenEtp(await getCurrentUser());
@@ -327,7 +328,8 @@ export async function docQcDoi(ids: number[]): Promise<{ qc: QcDoi[]; sx: SxPhim
           and not exists (select 1 from etp.camp k where k.creative_id = c.creative_id) order by c.cap_nhat desc limit 12`),
     ]);
     const mau = coMau[0]?.c ? await run<SxPhim['mau'][number]>(sql`select mau, buoc, trang_thai tt, ghi from etp.mau_dung where content_id = any(${arr}::int[]) and trang_thai <> 'xong'`) : [];
-    return { qc, sx: { dong, mau, cr } };
+    const tenMau = new Map((SO_MAU_CR.mau as { ma: string; ten: string }[]).map((x) => [x.ma, x.ten]));
+    return { qc, sx: { dong, mau: mau.map((x) => ({ ...x, ten: tenMau.get(x.mau) ?? null })), cr } };
   } catch (e) {
     return { loi: `đọc QC đội không được: ${(e as Error).message}` };
   }

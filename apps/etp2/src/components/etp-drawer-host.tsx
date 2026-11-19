@@ -8,6 +8,7 @@ const EtpPhimDrawer = dynamic(() => import('./etp-phim-drawer').then((m) => m.Et
 const EtpSxDrawer = dynamic(() => import('./etp-sx-drawer').then((m) => m.EtpSxDrawer), { ssr: false });
 const EtpDoiThuDrawer = dynamic(() => import('./etp-doi-thu-drawer').then((m) => m.EtpDoiThuDrawer), { ssr: false });   // ngăn creative phim đối thủ (19/11/2026)
 const EtpMauDungDrawer = dynamic(() => import('./etp-mau-dung-drawer').then((m) => m.EtpMauDungDrawer), { ssr: false });   // chi tiết việc dựng theo mẫu — dòng thời gian (19/11/2026)
+const EtpMauDrawer = dynamic(() => import('./etp-mau-drawer').then((m) => m.EtpMauDrawer), { ssr: false });   // chi tiết một mẫu creative: thông số + phim sản xuất (19/11/2026)
 const EtpMauPhimDrawer = dynamic(() => import('./etp-mau-phim-drawer').then((m) => m.EtpMauPhimDrawer), { ssr: false });   // chọn phim sinh creative theo mẫu (19/11/2026)
 
 export function EtpDrawerHost() {
@@ -23,6 +24,7 @@ function Khung({ req, onClose }: { req: EntityDrawerReq; onClose: () => void }) 
   if (req.kind === 'etp-sx') return <EtpSxDrawer id={id} onClose={onClose} />;
   if (req.kind === 'etp-dt') return <EtpDoiThuDrawer khoa={String(req.id)} onClose={onClose} />;   // khoá = tên phim chuẩn hoá, không phải số
   if (req.kind === 'etp-mau-dung') return <EtpMauDungDrawer khoa={String(req.id)} onClose={onClose} />;   // id = <mã mẫu>:<mã phim>
+  if (req.kind === 'etp-mau') return <EtpMauDrawer khoa={String(req.id)} onClose={onClose} />;   // id = <loại>:<mã mẫu>
   if (req.kind === 'etp-mau-phim') return <EtpMauPhimDrawer ma={String(req.id)} onClose={onClose} />;   // id = mã mẫu (sổ etp-mau-cr.json / sổ dạng)
   return null;
 }

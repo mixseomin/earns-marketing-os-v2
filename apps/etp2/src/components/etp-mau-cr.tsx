@@ -12,15 +12,16 @@ import { Dem, MO_SO } from '@/components/etp-so';
 import { useSoNho } from '@/lib/so-nho';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { SU_KIEN_MAU } from '@/lib/etp-mau-su-kien';
+import { loiThuongMau } from '@/lib/etp-mau-loi';
 import { DS_DANG } from '@/lib/etp-dang';
 import { docMauCr, type DungMau, type LoaiMau, type MauCr, type NguonMau, type PhimSx, type TrangThaiMau } from '@/lib/actions/etp-mau-cr';
 import { DO, XANH, gioVn } from './etp-doi-thu';
 
 const thuVienQc = (id: string) => `https://href.li/?https://www.facebook.com/ads/library/?id=${id}`;   // link ra ngoài che referrer
-const TEN_LOAI: Record<LoaiMau, string> = { cong_thuc: 'Công thức máy dựng', dang: 'Dạng creative', bien_the: 'Biến thể của dạng', bo_cuc: 'Bố cục ảnh', lop_phu: 'Lớp phủ chữ / nút' };
-const TEN_NGUON: Record<NguonMau, string> = { nha: 'Nhà', doi_thu: 'Học từ đối thủ' };
+export const TEN_LOAI: Record<LoaiMau, string> = { cong_thuc: 'Công thức máy dựng', dang: 'Dạng creative', bien_the: 'Biến thể của dạng', bo_cuc: 'Bố cục ảnh', lop_phu: 'Lớp phủ chữ / nút' };
+export const TEN_NGUON: Record<NguonMau, string> = { nha: 'Nhà', doi_thu: 'Học từ đối thủ' };
 // màu chỉ cho TRẠNG THÁI (tín hiệu thật) — loại / nguồn để xám (YDNI kỷ luật màu)
-const TEN_TT: Record<TrangThaiMau, [string, string, string]> = {
+export const TEN_TT: Record<TrangThaiMau, [string, string, string]> = {
   chay: ['Đang chạy', '#4ade80', 'có camp đang chạy bằng dạng này'],
   may: ['Đã vào máy', '#60a5fa', 'máy đang dựng theo mẫu này / đã từng lên camp — hiện không camp nào chạy'],
   thu: ['Có mã dựng', '#fbbf24', 'đã có mã dựng (dựng thử được), chưa vào máy lên camp'],
@@ -31,10 +32,10 @@ const LOAI: LoaiMau[] = ['cong_thuc', 'dang', 'bien_the', 'bo_cuc', 'lop_phu'], 
 const DANG_TEN = DS_DANG.map((d) => d.dang);
 /** mẫu áp được cho dạng nào: dạng → chính nó; bố cục / lớp phủ → danh sách dung_cho */
 const choDang = (m: MauCr) => (m.loai === 'dang' ? [m.ten] : m.dung_cho);
-const TEN_GIONG: Record<string, string> = { thuong: 'thường', ky_di: 'kỳ dị', gao: 'gào', cam_xuc: 'cảm xúc', hao_hung: 'hào hứng' };
+export const TEN_GIONG: Record<string, string> = { thuong: 'thường', ky_di: 'kỳ dị', gao: 'gào', cam_xuc: 'cảm xúc', hao_hung: 'hào hứng' };
 
-const docUrl = (k: string) => (typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get(k));
-function ghiUrl(k: string, v: string | null) {
+export const docUrl = (k: string) => (typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get(k));
+export function ghiUrl(k: string, v: string | null) {
   const u = new URL(window.location.href);
   if ((u.searchParams.get(k) ?? null) === v) return;
   if (v) u.searchParams.set(k, v); else u.searchParams.delete(k);
@@ -50,12 +51,12 @@ function useLoc(k: string) {
 
 /** MỌI creative mẫu hiện NGUYÊN ngay trong thẻ (anh 19/11/2026 "cái này phải show ngay ra chứ ko phải bấm vào mới thấy" · "full creative"):
  *  lưới cạnh nhau, đúng khổ 9:16 không cắt, có video thì phát được tại chỗ (ảnh làm poster); nhãn = số ngày chạy (đối thủ) / thu (nhà) */
-function BanMauLuoi({ m }: { m: MauCr }) {
+export function BanMauLuoi({ m, cot = 3 }: { m: MauCr; cot?: number }) {
   if (!m.ban.length) return <div style={{ aspectRatio: '9 / 16', maxHeight: 300, display: 'grid', placeItems: 'center', background: 'var(--bg-2)', color: MO_SO, fontSize: 11.5, borderRadius: 6 }}>chưa có creative mẫu</div>;
   // SLIDES MỘT DÒNG (anh 19/11/2026 #1703 "Trình bày dạng slides 1 dòng thôi") — mọi bản nằm trên MỘT hàng, quá 3 bản thì trượt ngang (bám từng ô),
   // không xuống dòng; ô vẫn cùng một cỡ = 1/3 bề ngang thẻ (anh 19/11/2026 "ko cho hiển thị nơi to nơi bé")
-  return <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: 'calc((100% - 12px) / 3)', overflowX: 'auto', scrollSnapType: 'x mandatory', overscrollBehaviorX: 'contain', paddingBottom: m.ban.length > 3 ? 4 : 0, gap: 6 }}
-    title={m.ban.length > 3 ? `${m.ban.length} creative mẫu — kéo ngang / lăn chuột để xem hết` : undefined}>
+  return <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: `calc((100% - ${(cot - 1) * 6}px) / ${cot})`, overflowX: 'auto', scrollSnapType: 'x mandatory', overscrollBehaviorX: 'contain', paddingBottom: m.ban.length > cot ? 4 : 0, gap: 6 }}
+    title={m.ban.length > cot ? `${m.ban.length} creative mẫu — kéo ngang / lăn chuột để xem hết` : undefined}>
     {m.ban.map((b, i) => <div key={i} title={b.goi_y} style={{ scrollSnapAlign: 'start', position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: b.vai === 'dung' ? '2px solid rgba(37,99,235,0.9)' : undefined }}>
       {b.video
         ? <video src={b.video} poster={b.anh ?? undefined} controls muted loop playsInline preload="none" onClick={(e) => e.stopPropagation()} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
@@ -71,53 +72,78 @@ function BanMauLuoi({ m }: { m: MauCr }) {
 }
 type DsPhim = { id: number; ten: string }[];
 const TT_DONG: Record<string, [string, string]> = { chay: ['đang sinh', '#fbbf24'], xong: ['xong', '#4ade80'], dung: ['dừng', '#f87171'], loi: ['lỗi', '#f87171'] };
+/** máy nào dựng mẫu này — lời thường (YDNI 9a: không tên tệp, không mã) */
+export const mayDung = (m: MauCr) => (m.dong ? 'Máy dòng phim dựng — chọn phim là máy bắt đầu sinh creative' : m.may_mau ? 'Máy dựng theo mẫu — chọn phim là vào hàng chờ (hàng chờ chưa có lịch tự chạy)' : 'Chưa có máy dựng — chọn phim chỉ ghi lại, có máy rồi mới sinh creative');
+/** phim cần nhìn trước: lỗi → đang làm → chờ → đã có creative */
+const uuTien = (f: PhimSx) => (f.dung?.trang_thai === 'loi' || f.dong_tt === 'loi' ? 0 : f.dung && f.dung.trang_thai !== 'xong' ? 1 : f.dong_tt === 'chay' ? 1 : f.cr.length ? 3 : 2);
 /** CHÂN THẺ — phim sản xuất theo mẫu + creative thật của từng phim (anh 19/11/2026: "Ở footer mỗi card sẽ là danh sách creative thực của mỗi phim được lựa chọn
- *  để sản xuất từ creative mẫu tương ứng … Mỗi phim có thể có nhiều creative"). Chọn phim → chonPhimMau (mẫu có máy dựng: tạo dòng phim; chưa có: ghi chờ). */
+ *  để sản xuất từ creative mẫu tương ứng … Mỗi phim có thể có nhiều creative"). YDNI mục 10: mỗi phim MỘT dòng (đèn trạng thái · tên · bước · ảnh creative nhỏ),
+ *  tối đa 3 phim cần nhìn nhất, còn lại + chi tiết từng bước nằm trong ngăn mẫu (tab Phim sản xuất). */
 function ChanThe({ m }: { m: MauCr }) {
-  return <div onClick={(e) => e.stopPropagation()} style={{ borderTop: '1px solid var(--line)', paddingTop: 7, display: 'flex', flexDirection: 'column', gap: 6 }}>
+  const ds = [...m.phim_sx].sort((a, b) => uuTien(a) - uuTien(b)), n = m.phim_sx.length;
+  return <div onClick={(e) => e.stopPropagation()} style={{ borderTop: '1px solid var(--line)', paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ fontSize: 11.5, color: MO_SO, flex: 1 }}>Phim sản xuất · {m.phim_sx.length} phim · {m.phim_sx.reduce((a, f) => a + f.cr.length, 0)} creative</span>
-      <button type="button" onClick={() => openEntityDrawer('etp-mau-phim', m.ma)} title="bảng phim đủ số (nhà / đội / đối thủ / creative mẫu này) — chọn phim để máy sinh creative theo mẫu"
-        style={{ fontSize: 11.5, padding: '2px 10px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'var(--accent, #60a5fa)', cursor: 'pointer' }}>＋ Chọn phim</button>
+      <span style={{ fontSize: 11.5, color: MO_SO, flex: 1 }} title={`${n} phim đã chọn cho mẫu này · ${m.phim_sx.reduce((a, f) => a + f.cr.length, 0)} creative đã ra`}>Phim sản xuất{n ? <> · <Dem v={n} /></> : null}</span>
+      <button type="button" onClick={() => openEntityDrawer('etp-mau-phim', m.ma)} title={`Chọn phim để sinh creative theo mẫu này. ${mayDung(m)}`}
+        style={{ fontSize: 11.5, padding: '1px 9px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'var(--accent, #60a5fa)', cursor: 'pointer' }}>＋ Chọn phim</button>
     </div>
-    {!m.dong && !m.may_mau ? <div style={{ fontSize: 11, color: MO_SO }}>mẫu chưa có máy dựng — chọn phim chỉ ghi lại, dựng mã mẫu xong máy mới sinh creative</div> : null}
-    {m.phim_sx.map((f) => <DongPhimSx key={f.content_id} f={f} ma={m.ma} />)}
+    {ds.slice(0, 3).map((f) => <DongPhimGon key={f.content_id} f={f} ma={m.ma} />)}
+    {n > 3 ? <a onClick={() => { ghiUrl('mxt', 'phim'); openEntityDrawer('etp-mau', `${m.loai}:${m.ma}`); }} style={{ fontSize: 11, color: 'var(--accent, #60a5fa)', cursor: 'pointer' }}>xem cả {n} phim ›</a> : null}
+  </div>;
+}
+/** trạng thái một phim sản xuất → [màu đèn, chữ ngắn, chữ rê chuột] */
+export function ttPhim(f: PhimSx): [string, string, string] {
+  if (f.dung) { const i = BUOC_DUNG.findIndex(([k]) => k === f.dung!.buoc), b = BUOC_DUNG[i]?.[1] ?? 'đang làm', g = `${loiThuongMau(f.dung.ghi)} · cập nhật ${gioNgan(f.dung.cap_nhat)}`;
+    return f.dung.trang_thai === 'loi' ? [DO, `lỗi ở ${b}`, g] : f.dung.trang_thai === 'xong' ? [XANH, 'xong', g] : f.dung.buoc === 'cho' ? ['#94a3b8', 'chờ máy', g] : ['#fbbf24', b, g]; }
+  if (f.dong_tt) { const t = TT_DONG[f.dong_tt]; return [t?.[1] ?? '#94a3b8', t?.[0] ?? 'đang làm', f.dong_ly ?? 'máy dòng phim đang sinh creative']; }
+  return f.cr.length ? [XANH, 'đã có creative', ''] : ['#94a3b8', 'chờ máy', 'đã chọn phim, máy chưa nhận việc'];
+}
+const moPhimSx = (f: PhimSx, ma: string) => (f.dung || !f.dong_id ? () => openEntityDrawer('etp-mau-dung', `${ma}:${f.content_id}`) : () => openEntityDrawer('etp-sx', f.content_id));
+function DongPhimGon({ f, ma }: { f: PhimSx; ma: string }) {
+  const [mau, chu, goi] = ttPhim(f);
+  return <div onClick={moPhimSx(f, ma)} title={`${f.ten ?? ''} — ${chu}${goi ? ` · ${goi}` : ''} · bấm xem từng bước`} className="mau-dong-phim"
+    style={{ display: 'grid', gridTemplateColumns: '8px minmax(0, 1fr) auto auto', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', borderRadius: 5, padding: '2px 4px', margin: '0 -4px', height: 24 }}>
+    <span style={{ width: 7, height: 7, borderRadius: 4, background: mau }} />
+    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.ten ?? 'phim chưa có tên'}</span>
+    <span style={{ fontSize: 11, color: mau === DO ? DO : MO_SO, whiteSpace: 'nowrap' }}>{chu}</span>
+    <span style={{ display: 'inline-flex', gap: 2, alignItems: 'center' }}>{f.cr.slice(0, 3).map((c) => <span key={c.id} style={{ width: 11, height: 20, borderRadius: 2, overflow: 'hidden', background: '#000', display: 'block' }}>{c.anh ? <img src={c.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}</span>)}
+      {f.cr.length > 3 ? <span style={{ fontSize: 10.5, color: MO_SO }}>+{f.cr.length - 3}</span> : null}</span>
   </div>;
 }
 // các bước máy dựng theo mẫu (dung-mau.py) — thanh tiến độ trong chân thẻ
-const BUOC_DUNG: [string, string][] = [['cho', 'chờ máy'], ['trang_phim', 'trang phim'], ['tai_tap', 'tải tập'], ['chon_khung', 'chọn khung'], ['ve_mau', 'vẽ mẫu'], ['giong', 'giọng'], ['video', 'video'], ['thu_vien', 'thư viện'], ['creative', 'tải creative'], ['xong', 'xong']];
+export const BUOC_DUNG: [string, string][] = [['cho', 'chờ máy'], ['trang_phim', 'trang phim'], ['tai_tap', 'tải tập'], ['chon_khung', 'chọn khung'], ['ve_mau', 'vẽ mẫu'], ['giong', 'giọng'], ['video', 'video'], ['thu_vien', 'thư viện'], ['creative', 'tải creative'], ['xong', 'xong']];
 const gioNgan = (s: string) => new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 function TienDoDung({ d }: { d: DungMau }) {
   const i = Math.max(0, BUOC_DUNG.findIndex(([k]) => k === d.buoc)), loi = d.trang_thai === 'loi', xong = d.trang_thai === 'xong';
   const mau = loi ? DO : xong ? XANH : '#fbbf24';
-  return <div title={`${d.ghi ?? ''} · cập nhật ${gioNgan(d.cap_nhat)}`} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+  return <div title={`${loiThuongMau(d.ghi)} · cập nhật ${gioNgan(d.cap_nhat)}`} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BUOC_DUNG.length - 1}, 1fr)`, gap: 2 }}>
       {BUOC_DUNG.slice(1).map(([k, nh], j) => <span key={k} title={nh} style={{ height: 4, borderRadius: 2, background: xong || j < i - 1 ? XANH : j === i - 1 ? mau : 'var(--line)' }} />)}
     </div>
     <div style={{ fontSize: 11, color: loi ? DO : 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-      {loi ? '✕ lỗi' : xong ? '✓ xong' : `● ${BUOC_DUNG[i]?.[1] ?? d.buoc}`} · {d.ghi ?? ''} · {gioNgan(d.cap_nhat)}</div>
+      {loi ? '✕ lỗi' : xong ? '✓ xong' : `● ${BUOC_DUNG[i]?.[1] ?? 'đang làm'}`} · {loiThuongMau(d.ghi)} · {gioNgan(d.cap_nhat)}</div>
   </div>;
 }
-function DongPhimSx({ f, ma }: { f: PhimSx; ma: string }) {
+export function DongPhimSx({ f, ma }: { f: PhimSx; ma: string }) {
   const tt = f.dong_tt ? TT_DONG[f.dong_tt] : null;
   // BẤM PHIM = XEM CHI TIẾT CÁC BƯỚC THEO DÒNG THỜI GIAN (anh 19/11/2026): việc dựng theo mẫu → ngăn etp-mau-dung · dòng phim → ngăn Sản xuất phim (etp-sx) sẵn có
-  const mo = f.dung || !f.dong_id ? () => openEntityDrawer('etp-mau-dung', `${ma}:${f.content_id}`) : () => openEntityDrawer('etp-sx', f.content_id);
+  const mo = moPhimSx(f, ma);
   return <div onClick={mo} title="bấm xem chi tiết các bước + vấn đề theo dòng thời gian" style={{ display: 'flex', flexDirection: 'column', gap: 4, cursor: 'pointer', borderRadius: 6, padding: '3px 4px', margin: '0 -4px' }}
     onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={`${f.ten ?? ''} · phim #${f.content_id}`}>{f.ten ?? `phim #${f.content_id}`}</span>
-      {tt ? <span title={f.dong_ly ?? `dòng phim #${f.dong_id}`} style={{ fontSize: 10.5, color: tt[1], whiteSpace: 'nowrap' }}>● dòng #{f.dong_id} {tt[0]}</span>
-        : f.chon && !f.cr.length && !f.dung ? <span style={{ fontSize: 10.5, color: MO_SO }}>chờ dựng</span> : null}
-      <span style={{ fontSize: 11, color: MO_SO, fontVariantNumeric: 'tabular-nums' }}>{f.cr.length} cr</span>
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={f.ten ?? ''}>{f.ten ?? 'phim chưa có tên'}</span>
+      {tt ? <span title={f.dong_ly ?? 'máy dòng phim đang sinh creative'} style={{ fontSize: 10.5, color: tt[1], whiteSpace: 'nowrap' }}>● {tt[0]}</span>
+        : f.chon && !f.cr.length && !f.dung ? <span style={{ fontSize: 10.5, color: MO_SO }}>chờ máy</span> : null}
+      <span style={{ fontSize: 11, color: MO_SO, fontVariantNumeric: 'tabular-nums' }}>{f.cr.length} creative</span>
     </div>
     {f.dung ? <TienDoDung d={f.dung} /> : null}
     {f.cr.length ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 4 }}>
       {f.cr.map((c) => { const r = c.chi > 0.5 ? ((c.thu - c.chi) / c.chi) * 100 : null; return <a key={c.id} href={c.video ?? c.anh ?? undefined} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-        title={`creative #${c.id} · ${c.camp} camp${c.chay ? ' (đang chạy)' : ''} · chi $${c.chi.toFixed(2)} · thu $${c.thu.toFixed(2)}${r != null ? ` · ROI ${r.toFixed(0)}%` : ''} — mở video`}
+        title={`${c.camp} camp${c.chay ? ' (đang chạy)' : ''} · chi $${c.chi.toFixed(2)} · thu $${c.thu.toFixed(2)}${r != null ? ` · ROI ${r.toFixed(0)}%` : ''} — mở video`}
         style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 4, overflow: 'hidden', display: 'block' }}>
         {c.anh ? <img src={c.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
         <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 9.5, padding: '0 3px', background: 'rgba(0,0,0,0.7)', color: c.chay ? XANH : r != null ? (r >= 0 ? XANH : DO) : '#fff', fontVariantNumeric: 'tabular-nums', textAlign: 'center' }}>
-          {c.chay ? '● ' : ''}{r != null ? `${r.toFixed(0)}%` : `#${c.id}`}</span>
+          {c.chay ? '● ' : ''}{r != null ? `${r.toFixed(0)}%` : 'mới'}</span>
       </a>; })}
     </div> : null}
   </div>;
@@ -125,49 +151,43 @@ function DongPhimSx({ f, ma }: { f: PhimSx; ma: string }) {
 const Nhan = ({ children, mau = 'var(--fg-3)', title }: { children: React.ReactNode; mau?: string; title?: string }) =>
   <span title={title} style={{ fontSize: 10.5, padding: '1px 7px', borderRadius: 9, border: `1px solid ${mau}`, color: mau, whiteSpace: 'nowrap' }}>{children}</span>;
 const OTT = ({ m }: { m: MauCr }) => { const [t, c, ti] = TEN_TT[m.trang_thai]; return <Nhan mau={c} title={ti}>{t}</Nhan>; };
-const ORoi = ({ s }: { s: MauCr['so'] }) => { const r = roi(s); return r == null ? <span style={{ color: MO_SO }}>—</span>
+export const ORoi = ({ s }: { s: MauCr['so'] }) => { const r = roi(s); return r == null ? <span style={{ color: MO_SO }}>—</span>
   : <span title={`chi $${s!.chi.toFixed(0)} · thu $${s!.thu.toFixed(0)} · lãi $${(s!.thu - s!.chi).toFixed(0)}`} style={{ color: r >= 0 ? XANH : DO, fontVariantNumeric: 'tabular-nums' }}>{r.toFixed(0)}%</span>; };
-function ThamChieu({ m }: { m: MauCr }) {
+export function ThamChieu({ m }: { m: MauCr }) {
   if (!m.tham_chieu.length) return <span style={{ color: MO_SO }}>—</span>;
   return <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>{m.tham_chieu.map((t) =>
     <a key={t.id} href={thuVienQc(t.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={`${t.phim ?? 'QC đối thủ'} · chạy ${t.ngay ?? '?'} ngày${t.con_chay ? ' · còn chạy' : ''} — mở Thư viện QC Meta`}
       style={{ fontSize: 11.5, fontVariantNumeric: 'tabular-nums', color: t.con_chay ? XANH : 'var(--fg-2)' }}>{t.ngay ?? '?'} ngày{t.con_chay ? ' ●' : ''}</a>)}</span>;
 }
 
+/** THẺ MẪU — YDNI: chỉ thứ để CHỌN mẫu (creative mẫu · tên · đèn trạng thái · một dòng loại · 2 dòng mô tả · số nhà) + việc đang chạy (phim sản xuất).
+ *  Thông số biến thể giữ trên thẻ (anh 19/11/2026 "mở cái nào là sẽ biết mình sx loại creative nào"). Giọng đọc, dùng cho dạng nào, hợp thể loại, QC đối thủ gốc,
+ *  máy dựng → ngăn mẫu, bấm thẻ là mở (?ed=etp-mau~…). */
 function The({ m }: { m: MauCr }) {
-  const s = m.so;
-  return <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 7, height: '100%' }}>
+  const s = m.so, [, mauTt, goiTt] = TEN_TT[m.trang_thai];
+  return <div onClick={() => openEntityDrawer('etp-mau', `${m.loai}:${m.ma}`)} title="bấm xem đủ thông số mẫu + mọi phim sản xuất"
+    style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 6, height: '100%', cursor: 'pointer' }}>
     <BanMauLuoi m={m} />
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      {m.mau ? <span title="màu nhận diện của dạng (cùng màu badge ở các tab Creative)" style={{ width: 9, height: 9, borderRadius: 5, background: m.mau, flex: 'none' }} /> : null}
-      <b style={{ fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.ten}</b><span style={{ fontSize: 11, color: MO_SO, flex: 'none' }}>{m.ma}</span>
+      <span title={`${TEN_TT[m.trang_thai][0]} — ${goiTt}`} style={{ width: 8, height: 8, borderRadius: 4, background: mauTt, flex: 'none' }} />
+      <b style={{ fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={m.ten}>{m.ten}</b>
+      {s ? <span style={{ fontSize: 11.5, flex: 'none', fontVariantNumeric: 'tabular-nums' }} title={`${s.cr} creative nhà · camp đang chạy ${s.dang_chay} / đã lên ${s.camp} · chi $${s.chi.toFixed(0)}`}><span style={{ color: MO_SO }}>{s.dang_chay}/{s.camp} camp · ROI </span><ORoi s={s} /></span> : null}
     </div>
-    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}><Nhan>{TEN_LOAI[m.loai]}</Nhan>{m.vai ? <Nhan title="vai của format trong creative">{m.vai}</Nhan> : null}<Nhan>{TEN_NGUON[m.nguon]}</Nhan><OTT m={m} /></div>
-    <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.45 }}>{m.mo_ta}</div>
-    {m.spec?.length ? <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '3px 10px', fontSize: 11.5, padding: '6px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.03)' }}>
-      {m.spec.map((x) => [<span key={`a${x.nhan}`} style={{ color: MO_SO }}>{x.nhan}</span>, <span key={`b${x.nhan}`}>{x.gia}</span>])}</div> : null}
-    {m.giong?.length ? <div style={{ fontSize: 11.5, display: 'flex', flexWrap: 'wrap', columnGap: 8, rowGap: 2 }}><span style={{ color: MO_SO }}>Giọng đọc:</span>{m.giong.map((g) => { const r = g.chi > 0.5 ? ((g.thu - g.chi) / g.chi) * 100 : null;
-      return <span key={g.k} title={`${g.n} creative · chi $${g.chi.toFixed(0)} · thu $${g.thu.toFixed(0)}`} style={{ whiteSpace: 'nowrap' }}>{TEN_GIONG[g.k] ?? g.k} {g.n}{r != null ? <span style={{ color: r >= 0 ? XANH : DO }}> {r.toFixed(0)}%</span> : null}</span>; })}</div> : null}
-    {m.dung_cho.length ? <div style={{ fontSize: 11.5 }}><span style={{ color: MO_SO }}>Dùng cho: </span>{m.dung_cho.join(' · ')}</div> : null}
-    {m.the_loai.length ? <div style={{ fontSize: 11.5 }}><span style={{ color: MO_SO }}>Hợp thể loại: </span>{m.the_loai.join(' · ')}</div> : null}
-    {s ? <div style={{ fontSize: 11.5, display: 'flex', gap: 10, flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' }}>
-      <span title="số creative nhà của dạng"><span style={{ color: MO_SO }}>Creative </span><Dem v={s.cr} /></span>
-      <span title="camp đang chạy / đã lên"><span style={{ color: MO_SO }}>Camp </span>{s.dang_chay}/{s.camp}</span>
-      <span><span style={{ color: MO_SO }}>Chi </span>${s.chi.toFixed(0)}</span><span><span style={{ color: MO_SO }}>ROI </span><ORoi s={s} /></span>
-    </div> : null}
-    {m.tham_chieu.length ? <div style={{ fontSize: 11.5 }}><span style={{ color: MO_SO }}>QC đối thủ: </span><ThamChieu m={m} /></div> : null}
-    {m.may ? <div style={{ fontSize: 10.5, color: MO_SO, overflowWrap: 'anywhere' }}>máy dựng: {m.may}</div> : null}
+    <div style={{ fontSize: 11.5, color: MO_SO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{[TEN_LOAI[m.loai], m.vai, TEN_NGUON[m.nguon], s ? `${s.cr} creative` : null].filter(Boolean).join(' · ')}</div>
+    <div title={m.mo_ta} style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 34 }}>{m.mo_ta}</div>
+    {m.spec?.length ? <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', gap: '2px 10px', fontSize: 11.5 }}>
+      {m.spec.map((x) => [<span key={`a${x.nhan}`} style={{ color: MO_SO, whiteSpace: 'nowrap' }}>{x.nhan}</span>, <span key={`b${x.nhan}`} title={x.gia} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.gia}</span>])}</div> : null}
     <div style={{ marginTop: 'auto' }}><ChanThe m={m} /></div>
   </div>;
 }
 
 /** bản giữ trong máy đúng khuôn hiện tại (mỗi mẫu có mảng ban + tham_chieu + dung_cho + the_loai) — bản khuôn cũ thì bỏ, chờ bản mới */
 // khuôn bản giữ: đổi khuôn BanMau (thêm vai gốc / máy dựng) không cần đổi — trường tuỳ chọn
-const hopKhuon = (v: unknown) => { const ds = (v as { mau?: unknown })?.mau; return Array.isArray((v as { phim?: unknown })?.phim) && Array.isArray(ds) && ds.every((m) => typeof (m as Record<string, unknown>)?.may_mau === 'boolean' && typeof (m as Record<string, unknown>)?.nhom_tk === 'string' && ['ban', 'tham_chieu', 'dung_cho', 'the_loai', 'phim_sx', 'spec', 'giong'].every((k) => Array.isArray((m as Record<string, unknown>)?.[k]))); };
+export const hopKhuon = (v: unknown) => { const ds = (v as { mau?: unknown })?.mau; return Array.isArray((v as { phim?: unknown })?.phim) && Array.isArray(ds) && ds.every((m) => typeof (m as Record<string, unknown>)?.may_mau === 'boolean' && typeof (m as Record<string, unknown>)?.nhom_tk === 'string' && ['ban', 'tham_chieu', 'dung_cho', 'the_loai', 'phim_sx', 'spec', 'giong'].every((k) => Array.isArray((m as Record<string, unknown>)?.[k]))); };
 
 /** nhóm tầng 2 trong cây: Dạng creative · Công thức máy dựng · Format · <vai> */
 const nhom2 = (m: MauCr) => (m.loai === 'dang' ? 'Dạng creative' : m.loai === 'cong_thuc' ? 'Công thức máy dựng' : `Format · ${m.vai ?? 'khác'}`);
-const CHAM_TT: Record<TrangThaiMau, string> = { chay: '#4ade80', may: '#60a5fa', thu: '#fbbf24', chua: '#94a3b8' };
+export const CHAM_TT: Record<TrangThaiMau, string> = { chay: '#4ade80', may: '#60a5fa', thu: '#fbbf24', chua: '#94a3b8' };
 
 /** CÂY TỔNG QUÁT bên trái (anh 19/11/2026 "Ở tab Mẫu Creative, phải có tree view để còn nắm đc tổng quát"): Tất cả → thể loại → nhóm (dạng / công thức / format theo vai)
  *  → từng mẫu; số đếm theo bộ lọc đang bật; bấm nút = lọc lưới bên phải (?mcc=); cột kéo đổi rộng, nhớ theo máy. Mở / gập nhóm giữ trên URL (?mco=). */
@@ -244,7 +264,7 @@ export function TabMauCr() {
   const dem = (bo: string, ds: readonly string[], f: (m: MauCr, v: string) => boolean) => Object.fromEntries(ds.map((v) => [v, tatCa.filter((m) => qua(m, bo) && f(m, v)).length]));
   const cot: DataColumn<MauCr>[] = useMemo(() => [
     { key: 'ten', header: 'Mẫu', align: 'left', width: 220, sortValue: (m) => m.ten, cell: (m) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-      {m.mau ? <span style={{ width: 8, height: 8, borderRadius: 4, background: m.mau, flex: 'none' }} /> : null}<b>{m.ten}</b><span style={{ color: MO_SO, fontSize: 11 }}>{m.ma}</span></span> },
+      {m.mau ? <span style={{ width: 8, height: 8, borderRadius: 4, background: m.mau, flex: 'none' }} /> : null}<b>{m.ten}</b></span> },
     { key: 'anh', header: 'Creative mẫu', align: 'left', width: 200, cell: (m) => (m.ban.length ? <span style={{ display: 'inline-flex', gap: 4 }}>{m.ban.map((b, i) => <a key={i} href={b.video ?? b.anh ?? undefined} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={`${b.nhan ?? ''} — mở cỡ gốc`}><img src={b.anh ?? undefined} alt="" loading="lazy" style={{ width: 36, height: 64, objectFit: 'contain', background: '#000', borderRadius: 3, display: 'block' }} /></a>)}</span> : <span style={{ color: MO_SO }}>—</span>) },
     { key: 'loai', header: 'Loại', align: 'left', sortValue: (m) => TEN_LOAI[m.loai], cell: (m) => TEN_LOAI[m.loai] },
     { key: 'nguon', header: 'Nguồn', align: 'left', sortValue: (m) => TEN_NGUON[m.nguon], cell: (m) => TEN_NGUON[m.nguon] },
@@ -258,23 +278,24 @@ export function TabMauCr() {
     { key: 'roi', header: 'ROI', title: '(thu − chi) / chi — mọi camp nhà của dạng từ trước tới nay', loc: 'so', sortValue: (m) => roi(m.so), cell: (m) => <ORoi s={m.so} /> },
     { key: 'dt', header: 'QC đối thủ', title: 'QC đối thủ tham chiếu: số ngày chạy (● còn chạy) — bấm mở Thư viện QC Meta', align: 'left', sortValue: (m) => (m.tham_chieu.length ? Math.max(...m.tham_chieu.map((t) => t.ngay ?? 0)) : null), cell: (m) => <ThamChieu m={m} /> },
     { key: 'mo_ta', header: 'Mô tả', align: 'left', width: 420, cell: (m) => <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{m.mo_ta}</span> },
-    { key: 'may', header: 'Máy dựng', align: 'left', width: 240, cell: (m) => <span style={{ fontSize: 11, color: MO_SO }}>{m.may ?? '—'}</span> },
+    { key: 'may', header: 'Máy dựng', align: 'left', width: 300, cell: (m) => <span style={{ fontSize: 11, color: MO_SO }}>{mayDung(m)}</span> },
   ], []);
   if (loi && !du) return <div style={{ padding: 16, color: DO }}>{loi}</div>;
   if (!du) return <div style={{ padding: 16, color: MO_SO }}>đang đọc sổ mẫu creative…</div>;
+  const demL = dem('l', LOAI, (m, v) => m.loai === v), demN = dem('n', NGUON, (m, v) => m.nguon === v);
   const demD = dem('d', DANG_TEN, (m, v) => choDang(m).includes(v)), demTl = dem('tl', dsTl, (m, v) => m.the_loai.includes(v));
   return (<div style={{ display: 'flex', alignItems: 'flex-start' }}>
     <CayMau rows={[...locRows].sort((a, b) => tl1(a) - tl1(b) || tang2(a) - tang2(b) || manh(b) - manh(a))} chon={cayChon} setChon={setCayChon} mo={cayMo} setMo={setCayMo} />
     <div style={{ flex: 1, minWidth: 0 }}>
-    <DataTable rows={rows} columns={cot} getRowKey={(m) => `${m.loai}:${m.ma}`} persistKey="etp-mau-cr" minWidth={1500} pageSize={100} thanhDinh="var(--etp-dinh, 0px)"
+    <DataTable rows={rows} columns={cot} getRowKey={(m) => `${m.loai}:${m.ma}`} persistKey="etp-mau-cr" minWidth={1500} pageSize={24} onRowClick={(m) => openEntityDrawer('etp-mau', `${m.loai}:${m.ma}`)} thanhDinh="var(--etp-dinh, 0px)"
       locTuDong={false}   /* thanh lọc tự động của DataTable tách sai cột nhiều giá trị (Thể loại, Dùng cho) và trùng chip ở trên → một bộ lọc */
-      card={{ render: (m) => <The m={m} />, minWidth: 340 }} defaultView="card"
+      card={{ render: (m) => <The m={m} />, minWidth: 320 }} defaultView="card"
       groupBy={{ value: (m) => m.nhom_tk, label: (v, rs) => <span style={{ fontWeight: 700 }}>{v} <span style={{ color: MO_SO, fontWeight: 400 }}>· {rs.filter((x) => x.loai === 'dang').length} dạng · {rs.filter((x) => x.loai === 'cong_thuc').length} công thức · {rs.filter((x) => x.loai !== 'dang' && x.loai !== 'cong_thuc').length} format</span></span> }}
-      searchText={(m) => `${m.ten} ${m.ma} ${m.mo_ta} ${choDang(m).join(' ')} ${m.the_loai.join(' ')} ${m.tham_chieu.map((t) => t.phim ?? '').join(' ')}`} searchPlaceholder="Tìm mẫu, dạng, thể loại, phim đối thủ…"
+      searchText={(m) => `${m.ten} ${m.mo_ta} ${choDang(m).join(' ')} ${m.the_loai.join(' ')} ${m.tham_chieu.map((t) => t.phim ?? '').join(' ')}`} searchPlaceholder="Tìm mẫu, dạng, thể loại, phim đối thủ…"
       dauThanh={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <FilterChips<LoaiMau> options={LOAI.map((v) => ({ value: v, label: TEN_LOAI[v] }))} values={loai as LoaiMau[]} onToggle={(v) => setLoai(v)} counts={dem('l', LOAI, (m, v) => m.loai === v)} donVi="mẫu" urlKey="mcl" />
-        <FilterChips<NguonMau> options={NGUON.map((v) => ({ value: v, label: TEN_NGUON[v] }))} values={nguon as NguonMau[]} onToggle={(v) => setNguon(v)} counts={dem('n', NGUON, (m, v) => m.nguon === v)} donVi="mẫu" urlKey="mcn" />
         <FilterChips<TrangThaiMau> options={TT.map((v) => ({ value: v, label: TEN_TT[v][0], title: TEN_TT[v][2] }))} values={tt as TrangThaiMau[]} onToggle={(v) => setTt(v)} counts={dem('t', TT, (m, v) => m.trang_thai === v)} donVi="mẫu" urlKey="mct" />
+        <MultiSelect<string> label="Loại" options={LOAI.map((v) => ({ value: v, label: TEN_LOAI[v], count: demL[v] }))} selected={loai} onChange={setLoai} compact portal />
+        <MultiSelect<string> label="Nguồn" options={NGUON.map((v) => ({ value: v, label: TEN_NGUON[v], count: demN[v] }))} selected={nguon} onChange={setNguon} compact portal />
         <MultiSelect<string> label="Dùng cho dạng" options={DANG_TEN.map((v) => ({ value: v, label: v, count: demD[v] }))} selected={dang} onChange={setDang} searchPlaceholder="Tìm dạng…" compact portal />
         <MultiSelect<string> label="Thể loại" options={dsTl.map((v) => ({ value: v, label: v, count: demTl[v] }))} selected={tl} onChange={setTl} searchPlaceholder="Tìm thể loại…" compact portal />
         <span style={{ fontSize: 11.5, color: MO_SO }} title={`đọc lúc ${gioVn(du.luc)}`}>{rows.length}/{tatCa.length} mẫu</span>

@@ -113,11 +113,11 @@ function CotDoi({ p }: { p: PhimDoiThu }) {
     {coSx ? <div style={{ marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--line)' }}>
       <div style={{ fontSize: 11, color: MO_SO, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6 }}>Nhà đang sản xuất</div>
       {sx!.dong.map((x) => <div key={`d${x.id}`} title={x.ghi ?? ''} onClick={() => openEntityDrawer('etp-sx', ids[0]!)} style={{ fontSize: 11.5, padding: '3px 0', cursor: 'pointer' }}>
-        <b>dòng {x.loai} #{x.id}</b> · <span style={{ color: mauTt(x.tt) }}>{x.buoc ? TEN_B[x.buoc] ?? x.buoc : 'đang chạy'}{x.tt === 'loi' ? ' lỗi' : x.tt === 'dung' ? ' dừng' : x.tt === 'cho' ? ' chờ' : ''}</span></div>)}
+        <b>dòng phim {x.loai}</b> · <span style={{ color: mauTt(x.tt) }}>{x.buoc ? TEN_B[x.buoc] ?? x.buoc : 'đang chạy'}{x.tt === 'loi' ? ' lỗi' : x.tt === 'dung' ? ' dừng' : x.tt === 'cho' ? ' chờ' : ''}</span></div>)}
       {sx!.mau.map((x) => <div key={`m${x.mau}`} title={x.ghi ?? ''} onClick={() => openEntityDrawer('etp-mau-dung', `${x.mau}:${ids[0]}`)} style={{ fontSize: 11.5, padding: '3px 0', cursor: 'pointer' }}>
-        <b>mẫu {x.mau}</b> · <span style={{ color: mauTt(x.tt) }}>{TEN_B[x.buoc] ?? x.buoc}{x.tt === 'loi' ? ' lỗi' : x.tt === 'cho' ? ' chờ' : ''}</span></div>)}
+        <b title="dựng theo mẫu học từ đối thủ — bấm xem từng bước">{x.ten ?? 'dựng theo mẫu'}</b> · <span style={{ color: mauTt(x.tt) }}>{TEN_B[x.buoc] ?? x.buoc}{x.tt === 'loi' ? ' lỗi' : x.tt === 'cho' ? ' chờ' : ''}</span></div>)}
       {sx!.cr.length ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, marginTop: 6 }}>
-        {sx!.cr.map((x) => <a key={x.creative_id} href={x.video ?? x.anh ?? undefined} target="_blank" rel="noreferrer" title={`creative #${x.creative_id} · ${x.dang ?? ''} · chưa lên camp — mở video`}
+        {sx!.cr.map((x) => <a key={x.creative_id} href={x.video ?? x.anh ?? undefined} target="_blank" rel="noreferrer" title={`${x.dang ?? 'creative'} · chưa lên camp — mở video`}
           style={{ position: 'relative', display: 'block', aspectRatio: '9 / 16', background: '#000', borderRadius: 5, overflow: 'hidden' }}>
           {x.anh ? <img src={x.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
           <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 9.5, background: 'rgba(0,0,0,0.7)', color: '#fff', textAlign: 'center' }}>mới · chưa camp</span></a>)}
@@ -130,7 +130,7 @@ function CotDoi({ p }: { p: PhimDoiThu }) {
       : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
           {ds.map((x) => { const r = x.chi > 0.5 ? ((x.thu - x.chi) / x.chi) * 100 : null;
             return <div key={x.creative_id} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <a href={x.video ?? x.anh ?? undefined} target="_blank" rel="noreferrer" title={`creative #${x.creative_id} — mở video`} style={{ position: 'relative', display: 'block', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden' }}>
+              <a href={x.video ?? x.anh ?? undefined} target="_blank" rel="noreferrer" title="mở video" style={{ position: 'relative', display: 'block', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden' }}>
                 {x.anh ? <img src={x.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: MO_SO, fontSize: 11 }}>chưa có ảnh</span>}
                 <span style={{ position: 'absolute', top: 4, left: 4, fontSize: 10, padding: '0 5px', borderRadius: 8, background: 'rgba(0,0,0,0.7)', color: x.dang ? XANH : '#fff' }}>{x.dang ? '● đang chạy' : 'đã dừng'}</span>
               </a>

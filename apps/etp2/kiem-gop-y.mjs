@@ -326,7 +326,8 @@ const LUAT = [
   { card: 1524, tep: 'apps/etp2/src/components/etp-view.tsx', co: ': <span style={{ minWidth: 22 }} />}</span></span>; } },', vi: 'ô số bản nhân luôn chiếm 22px kể cả khi trống → badge loại CC / CT / KT thẳng một cột (anh "chỉnh thể loại thẳng cột")' },
   { card: 1522, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "trang_thai: 'MO_RONG'", vi: 'không dựng lại dòng giả MO_RONG trong cây camp' },
   { card: 1702, tep: 'apps/etp2/src/app/globals.css', mot: 'tr.dt-nhom:not(.etp-cay tr) > td { background: color-mix(in srgb, var(--accent) 16%, var(--bg-1)) !important;', vi: 'dòng nhóm bảng etp2 = tiêu đề phân nhóm: nền xanh đặc khác dòng dữ liệu (anh 19/11/2026 "Heading group phải format khác đi")' },
-  { card: 1702, tep: 'apps/etp2/src/app/globals.css', mot: 'tr.dt-nhom:not(.etp-cay tr) > td:first-child { color: var(--accent) !important; box-shadow: inset 3px 0 0 var(--accent); }', vi: 'tên nhóm chữ xanh + vạch xanh mép trái' },
+  { card: 1702, tep: 'apps/etp2/src/app/globals.css', mot: 'tr.dt-nhom:not(.etp-cay tr) > td:first-child { color: var(--accent) !important; box-shadow: inset 3px 0 0 var(--accent), 1px 0 0 var(--line) !important;', vi: 'tên nhóm chữ xanh + vạch xanh mép trái — PHẢI !important vì ô cột dính có box-shadow inline từ DataTable' },
+  { card: 1702, tep: 'apps/etp2/src/app/globals.css', mot: 'padding-top: 7px !important; padding-bottom: 7px !important; }', vi: 'dòng nhóm cao hơn — !important để thắng padding inline của DataTable' },
 ];
 
 const loi = [];

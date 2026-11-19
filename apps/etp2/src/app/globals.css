@@ -2009,6 +2009,7 @@ body.flow-debug [data-entity] {
 /* DÒNG NHÓM bảng (DataTable groupBy) = TIÊU ĐỀ PHÂN NHÓM, không phải một dòng dữ liệu (anh #1702 19/11/2026 "Heading group phải format khác đi"):
    trước chỉ nền --bg-2 + chữ đậm, gần trùng nền dòng thường. Nay: nền xanh nhạt đặc (bản dính không lộ dòng dưới), vạch xanh mép trái, kẻ trên,
    chữ xanh sáng hơi giãn. Áp mọi bảng etp2 (ngăn chọn phim theo mẫu, Insight, Mẫu Creative) — TRỪ cây camp .etp-cay (dòng nhóm ở đó là dòng PHIM, có luật riêng CSS_CAY). */
-tr.dt-nhom:not(.etp-cay tr) > td { background: color-mix(in srgb, var(--accent) 16%, var(--bg-1)) !important; border-top: 1px solid var(--accent-line); border-bottom: 1px solid var(--accent-line); color: var(--fg-0); font-size: 12.5px; letter-spacing: .02em; padding-top: 7px; padding-bottom: 7px; }
-tr.dt-nhom:not(.etp-cay tr) > td:first-child { color: var(--accent) !important; box-shadow: inset 3px 0 0 var(--accent); }
+/* Ô dòng nhóm mang style trực tiếp từ DataTable (padding / cỡ chữ / kẻ dưới / box-shadow cột dính) → mọi thuộc tính ở đây PHẢI !important, không thì bị đè im lặng. */
+tr.dt-nhom:not(.etp-cay tr) > td { background: color-mix(in srgb, var(--accent) 16%, var(--bg-1)) !important; border-top: 1px solid var(--accent-line) !important; border-bottom: 1px solid var(--accent-line) !important; color: var(--fg-0) !important; font-size: 12.5px !important; letter-spacing: .02em; padding-top: 7px !important; padding-bottom: 7px !important; }
+tr.dt-nhom:not(.etp-cay tr) > td:first-child { color: var(--accent) !important; box-shadow: inset 3px 0 0 var(--accent), 1px 0 0 var(--line) !important; padding-left: 10px !important; }
 tr.dt-nhom:not(.etp-cay tr):hover > td { background: color-mix(in srgb, var(--accent) 24%, var(--bg-1)) !important; }

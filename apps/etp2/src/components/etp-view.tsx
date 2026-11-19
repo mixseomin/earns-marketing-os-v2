@@ -21,6 +21,7 @@ import { maGiong } from '@/lib/etp-dang';
 import { lyDoChan, chuChan, type TieuChi } from '@/lib/etp-chan';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
+import { moTabNeuModifier } from '@/lib/url-mo-tab';
 import { quetPhimEtp } from '@/lib/actions/etp-phim';
 import { docGioNgay, type SoGio } from '@/lib/actions/etp-gio';
 import { NutLichPhim, PHA_HT } from '@/components/etp-lich-phim';
@@ -3170,7 +3171,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       {tab === 'camp' ? (
         <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
           {XEM_CAMP.map(([v, nhan, t]) => (
-            <button key={nhan} onClick={() => doiXemCamp(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
+            <button key={nhan} type="button" onClick={(e) => { if (moTabNeuModifier(e, urlCua({ ...hienTai, tab: 'camp', xemCamp: v }).href)) return; doiXemCamp(v); }} onAuxClick={(e) => { moTabNeuModifier(e, urlCua({ ...hienTai, tab: 'camp', xemCamp: v }).href); }} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
               background: xemCamp === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCamp === v ? 600 : 400 }}>{gon ? nhan.split(' ')[0] : nhan}</button>))}
         </span>) : null}
       {/* NÚT LOGS (anh 08/11/2026 "Bấm vào thì mở ra drawer để tao ko phải sang tab mới"): mở ngăn kéo đè lên kiểu xem đang dùng, không đổi Cây / Bảng */}
@@ -3183,7 +3184,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       {tab === 'creative' ? (
         <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
           {XEM_CR.map(([v, nhan, t]) => (
-            <button key={nhan} onClick={() => doiXemCr(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
+            <button key={nhan} type="button" onClick={(e) => { if (moTabNeuModifier(e, urlCua({ ...hienTai, tab: 'creative', xemCr: v }).href)) return; doiXemCr(v); }} onAuxClick={(e) => { moTabNeuModifier(e, urlCua({ ...hienTai, tab: 'creative', xemCr: v }).href); }} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
               background: xemCr === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCr === v ? 600 : 400 }}>{nhan}</button>))}
         </span>) : null}
       {hienLoc && (!gon || moLoc) ? <div style={gon ? { display: 'flex', flexDirection: 'column', gap: 6, width: '100%' } : { display: 'contents' }}>

@@ -64,26 +64,26 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
     { key: 'mau', label: 'Mẫu này', color: '#a78bfa' }, { key: 'nha', label: 'Nhà', color: '#38bdf8' }, { key: 'doi', label: 'Đội', color: '#94a3b8' }, { key: 'dt', label: 'Đối thủ', color: '#fb923c' },
   ];
   const cot: DataColumn<Dong>[] = [
-    { key: 'ten', header: 'Phim', align: 'left', width: 260, sortValue: (p) => p.ten, onCellClick: (p) => openEntityDrawer('etp-phim', p.id),
+    { key: 'ten', header: 'Phim', align: 'left', width: 220, sortValue: (p) => p.ten, onCellClick: (p) => openEntityDrawer('etp-phim', p.id),
       cell: (p) => <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }} title={`${p.ten} · phim #${p.id} — bấm mở ngăn phim`}>
         {p.dt_dang >= 3 && !p.cr_mau && !p.da_chon ? <span title="đối thủ đang chạy ≥ 3 QC mà nhà chưa có mẫu này" style={{ color: VANG, fontWeight: 700 }}>★</span> : null}
         <a style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{p.ten}</a></span> },
-    { key: 'tl', header: 'Thể loại', align: 'left', width: 130, sortValue: (p) => p.tl, cell: (p) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }} title={p.tl ?? ''}>{p.tl ?? '—'}</span> },
-    { key: 'lang', header: 'Tiếng', align: 'left', sortValue: (p) => p.locale, cell: (p) => (p.locale ?? '?').toUpperCase() },
-    { key: 'tuoi', header: 'Tuổi', title: 'số ngày từ khi phim có trang trên Ethopex', sortValue: (p) => p.tuoi, cell: (p) => (p.tuoi == null ? <span style={{ color: MO_SO }}>—</span> : `${p.tuoi} ngày`) },
-    { key: 'cr_mau', group: 'mau', header: 'Creative mẫu', title: 'creative của phim dựng theo đúng mẫu này (cổng mẫu ghi từ 19/11/2026)', sortValue: (p) => p.cr_mau, cell: (p) => (p.cr_mau ? <b style={{ color: XANH }}><Dem v={p.cr_mau} /></b> : <span style={{ color: MO_SO }}>0</span>) },
-    { key: 'cr_dang', group: 'mau', header: 'Cùng dạng', title: 'creative của phim cùng dạng với mẫu này (mọi thời)', sortValue: (p) => p.cr_dang, cell: (p) => <Dem v={p.cr_dang} /> },
-    { key: 'cr_tong', group: 'mau', header: 'Tổng cr', title: 'mọi creative của phim', sortValue: (p) => p.cr_tong, cell: (p) => <Dem v={p.cr_tong} /> },
-    { key: 'dong', group: 'mau', header: 'Dòng chạy', align: 'left', title: 'dòng phim đang chạy (mã loại · số dòng) — bấm mở ngăn phim', sortValue: (p) => p.dong_chay.length,
+    { key: 'tl', header: 'Thể loại', align: 'left', width: 120, sortValue: (p) => p.tl, cell: (p) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 116 }} title={p.tl ?? ''}>{p.tl ?? '—'}</span> },
+    { key: 'lang', header: 'Tiếng', align: 'left', width: 46, sortValue: (p) => p.locale, cell: (p) => (p.locale ?? '?').toUpperCase() },
+    { key: 'tuoi', header: 'Tuổi', title: 'số ngày từ khi phim có trang trên Ethopex', width: 66, sortValue: (p) => p.tuoi, cell: (p) => (p.tuoi == null ? <span style={{ color: MO_SO }}>—</span> : `${p.tuoi} ngày`) },
+    { key: 'cr_mau', group: 'mau', header: 'Creative mẫu', title: 'creative của phim dựng theo đúng mẫu này (cổng mẫu ghi từ 19/11/2026)', width: 78, sortValue: (p) => p.cr_mau, cell: (p) => (p.cr_mau ? <b style={{ color: XANH }}><Dem v={p.cr_mau} /></b> : <span style={{ color: MO_SO }}>0</span>) },
+    { key: 'cr_dang', group: 'mau', header: 'Cùng dạng', title: 'creative của phim cùng dạng với mẫu này (mọi thời)', width: 70, sortValue: (p) => p.cr_dang, cell: (p) => <Dem v={p.cr_dang} /> },
+    { key: 'cr_tong', group: 'mau', header: 'Tổng cr', title: 'mọi creative của phim', width: 58, sortValue: (p) => p.cr_tong, cell: (p) => <Dem v={p.cr_tong} /> },
+    { key: 'dong', group: 'mau', header: 'Dòng chạy', align: 'left', title: 'dòng phim đang chạy (mã loại · số dòng) — bấm mở ngăn phim', width: 96, sortValue: (p) => p.dong_chay.length,
       cell: (p) => (p.dong_chay.length ? <span style={{ fontSize: 11 }}>{p.dong_chay.map((x) => `${x.loai} #${x.id}`).join(' · ')}</span> : <span style={{ color: MO_SO }}>—</span>) },
-    { key: 'nha', group: 'nha', header: 'Camp', title: 'camp nhà: đang chạy / từng lên', sortValue: (p) => p.nha.dang * 1000 + p.nha.tong, cell: (p) => <OCamp x={p.nha} ai="Nhà" /> },
-    { key: 'nha_chi', group: 'nha', header: 'Chi $', sortValue: (p) => p.nha.chi, cell: (p) => (p.nha.chi ? p.nha.chi.toFixed(0) : <span style={{ color: MO_SO }}>—</span>) },
-    { key: 'nha_roi', group: 'nha', header: 'ROI', sortValue: (p) => roi(p.nha), cell: (p) => <ORoi x={p.nha} /> },
-    { key: 'doi', group: 'doi', header: 'Camp', title: 'camp đội: đang chạy / từng lên', sortValue: (p) => p.doi.dang * 1000 + p.doi.tong, cell: (p) => <OCamp x={p.doi} ai="Đội" /> },
-    { key: 'doi_roi', group: 'doi', header: 'ROI', sortValue: (p) => roi(p.doi), cell: (p) => <ORoi x={p.doi} /> },
-    { key: 'dt_dang', group: 'dt', header: 'QC chạy', title: 'QC đối thủ Spy còn thấy trong 2 ngày qua', sortValue: (p) => p.dt_dang, cell: (p) => (p.dt_dang ? <b>{p.dt_dang}</b> : <span style={{ color: MO_SO }}>—</span>) },
-    { key: 'dt_lau', group: 'dt', header: 'Lâu nhất', title: 'QC đối thủ chạy lâu nhất (ngày)', sortValue: (p) => p.dt_lau, cell: (p) => (p.dt_lau ? `${p.dt_lau} ngày` : <span style={{ color: MO_SO }}>—</span>) },
-    { key: 'sinh', header: 'Sinh creative', align: 'left', width: 230, sortValue: (p) => Number(p.da_chon),
+    { key: 'nha', group: 'nha', header: 'Camp', title: 'camp nhà: đang chạy / từng lên', width: 66, sortValue: (p) => p.nha.dang * 1000 + p.nha.tong, cell: (p) => <OCamp x={p.nha} ai="Nhà" /> },
+    { key: 'nha_chi', group: 'nha', header: 'Chi $', width: 56, sortValue: (p) => p.nha.chi, cell: (p) => (p.nha.chi ? p.nha.chi.toFixed(0) : <span style={{ color: MO_SO }}>—</span>) },
+    { key: 'nha_roi', group: 'nha', header: 'ROI', width: 54, sortValue: (p) => roi(p.nha), cell: (p) => <ORoi x={p.nha} /> },
+    { key: 'doi', group: 'doi', header: 'Camp', title: 'camp đội: đang chạy / từng lên', width: 66, sortValue: (p) => p.doi.dang * 1000 + p.doi.tong, cell: (p) => <OCamp x={p.doi} ai="Đội" /> },
+    { key: 'doi_roi', group: 'doi', header: 'ROI', width: 54, sortValue: (p) => roi(p.doi), cell: (p) => <ORoi x={p.doi} /> },
+    { key: 'dt_dang', group: 'dt', header: 'QC chạy', title: 'QC đối thủ Spy còn thấy trong 2 ngày qua', width: 60, sortValue: (p) => p.dt_dang, cell: (p) => (p.dt_dang ? <b>{p.dt_dang}</b> : <span style={{ color: MO_SO }}>—</span>) },
+    { key: 'dt_lau', group: 'dt', header: 'Lâu nhất', title: 'QC đối thủ chạy lâu nhất (ngày)', width: 66, sortValue: (p) => p.dt_lau, cell: (p) => (p.dt_lau ? `${p.dt_lau} ngày` : <span style={{ color: MO_SO }}>—</span>) },
+    { key: 'sinh', header: 'Sinh creative', align: 'left', width: 190, sortValue: (p) => Number(p.da_chon),
       cell: (p) => { const k = kq[p.id];
         if (k?.dang) return <span style={{ color: MO_SO }}>đang tạo dòng…</span>;
         if (k?.loi) return <span style={{ color: DO, fontSize: 11.5 }} title={k.loi}>✕ {k.loi}</span>;
@@ -99,7 +99,7 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
   return <Drawer onClose={onClose} width={1400} padding={0}>{dau}
     <div style={{ padding: '8px 12px' }}>
       {!du ? <div style={{ color: MO_SO }}>đang đọc danh sách phim…</div> : 'loi' in du ? <div style={{ color: DO }}>{du.loi}</div> :
-        <DataTable rows={loc_} columns={cot} groups={nhomCot} groupHeader getRowKey={(p) => String(p.id)} persistKey="etp-mau-phim" minWidth={1180} pageSize={100}
+        <DataTable rows={loc_} columns={cot} groups={nhomCot} groupHeader getRowKey={(p) => String(p.id)} persistKey="etp-mau-phim" minWidth={1250} pageSize={100} fixedLayout   /* bề rộng theo khai báo từng cột — cột Phim không nuốt chỗ của Đối thủ / Sinh */
           groupBy={{ value: (p) => p.nhom }} locTuDong={false}
           searchText={(p) => `${p.ten} ${p.id} ${p.tl ?? ''}`} searchPlaceholder="Tìm phim, mã, thể loại…"
           dauThanh={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>

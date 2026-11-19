@@ -7,6 +7,8 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1471, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '.etp-cay tr.sang-camp>td{background:rgba(245,158,11,.22)!important;', vi: 'rê mã camp #… trong thẻ luật tô dòng camp đó trên cây — cây là bảng (tr.dt-row), CSS phải nhắm tr chứ không chỉ .dong' },
+  { card: 1471, tep: 'apps/etp2/src/components/etp-view.tsx', co: "document.querySelectorAll(`[data-camp-dong=\"${id}\"]`).forEach((e) => e.classList.add('sang-camp'))", vi: 'sangCamp gắn lớp sang-camp lên dòng có data-camp-dong' },
   { card: 1546, tep: 'apps/etp2/src/components/etp-view.tsx', co: "border: `1px solid ${thu ? '#8b5cf6' : 'var(--line)'}` }}>{ab.ma}</span></ReThe>", cam: '>{ab.ma} · {ab.nhanhTen}</span>', vi: 'nhãn A/B chỉ ghi mã AB01, nhánh + ngày + giả thuyết ở thẻ nổi chung (anh 06/11/2026 "Cho gọn lại. Thông tin chi tiết vào hover")' },
   { card: 1546, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<HoverChu goc={cuonRef} />', vi: 'MỌI title= trong trang etp → thẻ nổi chung (anh "Format hover theo chuẩn đẹp đang có !! Tất cả hover !!")' },
   { card: 1546, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'rowTitle={(c) => { const l = loiNb.get(c.camp_id)', vi: 'cây không dùng rowTitle cả dòng (hộp chữ thô) — nghĩa vạch đỏ / cam ở chữ rê ô camp' },

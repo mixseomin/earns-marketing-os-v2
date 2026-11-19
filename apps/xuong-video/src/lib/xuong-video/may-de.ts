@@ -139,6 +139,12 @@ export const timHook = (ds: HookQc[] | undefined, ma: string | undefined): HookQ
   const so = (v: string) => String(v ?? '').replace(/^\D+/, '').replace(/\D+$/, '');
   return ds?.find((k) => k.id === ma) ?? ds?.find((k) => !!ma && so(k.id) !== '' && so(k.id) === so(ma)) ?? null;
 };
+/** Tiêu đề GHÉP từ hook QC và tiêu đề mô hình viết, tách ở dấu câu đầu (? ! .): [vế đầu hook + vế sau tiêu đề, vế đầu tiêu đề + vế sau hook].
+ *  Dùng khi nguyên câu hook đã là tiêu đề bài cũ, không chép lại được (esimfares 19/11/2026). Một trong hai không tách được → []. Thuần. */
+export const ghepHook = (title: string, hook: string): string[] => {
+  const tach = (v: string) => /^(.+?[?!.])\s+(\S.*)$/u.exec(v.trim()); const t = tach(title), h = tach(hook);
+  return t && h ? [`${h[1]} ${t[2]}`, `${t[1]} ${h[2]}`] : [];
+};
 /** Mã hook THẬT của tiêu đề: mô hình hay viết tiêu đề bám hook này mà khai mã hook khác (esimfares 10/11/2026: 4/4 đề làm lại trượt "sửa quá xa"
  *  so với cùng một hook "Landing in Italy…" dù chữ là hook khác). Hook đã khai mà tiêu đề trượt → lấy hook trong kho tiêu đề bám đạt (giữ nhiều chữ nhất). Thuần. */
 export const maHookKhop = (ds: HookQc[] | undefined, ma: string | undefined, title: string): string | undefined => {
@@ -315,6 +321,9 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     if (xa && hookCu) {
       if (!timHook(hooksLuot, r.data.hook_qc)) r.data.hook_qc = hookCu.id;
       if (loiHook([r.data.chu.title], hookCu.chu).length && !daCo.has(tdChuan(hookCu.chu))) r.data.chu.title = hookCu.chu;
+      // nguyên câu hook ĐÃ là tiêu đề bài cũ mà mô hình viết lại lệch quá xa (esimfares 19/11/2026: kho 6 hook "Landing in X? Do this before your plane touches down"
+      // đều đã dùng, lượt khoá viết "Landing abroad? Check passport rules before checkout" giữ 33% → --sinh-kho 0/5) → máy GHÉP: vế đầu hook + vế sau mô hình, hoặc ngược lại.
+      else if (loiHook([r.data.chu.title], hookCu.chu).length) { const g = ghepHook(r.data.chu.title, hookCu.chu).find((t) => !daCo.has(tdChuan(t)) && !loiHook([t], hookCu!.chu).length); if (g) r.data.chu.title = g; }
     }
     const maHook = maHookKhop(hooksLuot, r.data.hook_qc, r.data.chu.title); hookCu = timHook(hooksLuot, maHook) ?? hookCu;
     // mô hình không khai mã hook nào trong kho (bỏ trống / tự viết hook) → lượt sau KHOÁ vào hook gần tiêu đề nhất, đưa nguyên câu làm khuôn

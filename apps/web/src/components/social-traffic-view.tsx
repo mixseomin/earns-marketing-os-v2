@@ -76,7 +76,8 @@ export function ThanhPhoTai() {
  *  Không truyền = tab Social Traffic đủ như cũ. */
 export type ChiSocial = 'pho' | 'suc' | 'pheu' | 'canhbao' | 'ratien' | 'goc' | 'kehoach' | 'sx' | 'kenh' | 'lich' | 'landing' | 'trang' | 'tien';
 const MUC_CUA_CHI: Record<ChiSocial, string> = { pho: 'pho', suc: 'tong', pheu: 'tong', canhbao: 'tong', ratien: 'tong', goc: 'goc', kehoach: 'goc', sx: 'sx', kenh: 'kenh', lich: 'lich', landing: 'landing', trang: 'trang', tien: 'tien' };
-export function SocialTrafficView({ live, email, chi }: { live: SocialLive; email?: React.ReactNode; chi?: ChiSocial }) {
+/** soGoc: widget chỉ nhận phần kho góc nó vẽ (không phải cả 2.400 góc) — số góc của CẢ kho đi kèm ở đây để câu "Có N góc từ spy" vẫn đúng. */
+export function SocialTrafficView({ live, email, chi, soGoc }: { live: SocialLive; email?: React.ReactNode; chi?: ChiSocial; soGoc?: number }) {
   const [cheDoUrl, setCheDo] = useShallowParam('stm', 'live')   // LIVE mặc định (card #1408);
   const cheDo = chi ? 'live' : cheDoUrl;
   const [mucUrl, setMuc] = useShallowParam('sts', 'pho');   // mặc định thành phố (anh 22/10/2026 — màn chính của hệ sinh thái)
@@ -295,7 +296,7 @@ export function SocialTrafficView({ live, email, chi }: { live: SocialLive; emai
             ? <SimpleTable rows={d.goc.filter((g) => g.tt === 'thang').sort((a, b) => b.hh - a.hh)} getRowKey={(g) => String(g.id)} columns={[
                 { key: 'ten', header: 'Góc', cell: (g) => g.ten }, { key: 'v', header: 'Video', align: 'right', cell: (g) => g.video },
                 { key: 'c', header: 'Về site', align: 'right', cell: (g) => so(g.click) }, { key: 'h', header: 'Hoa hồng', align: 'right', cell: (g) => <span style={{ color: 'var(--ok)' }}>{usd(g.hh)}</span> }]} />
-            : trong('Chưa góc nào ra tiền', laLive ? `Có ${d.goc.length} góc từ spy sẵn sàng làm video — xem mục Góc.` : 'Chọn góc ở mục Góc rồi tạo lô video.')}
+            : trong('Chưa góc nào ra tiền', laLive ? `Có ${soGoc ?? d.goc.length} góc từ spy sẵn sàng làm video — xem mục Góc.` : 'Chọn góc ở mục Góc rồi tạo lô video.')}
         </Panel>}
       </div>}
 

@@ -33,7 +33,11 @@ export const WIDGET = {
   E1: { ten: 'SEO một site', moTa: 'chọn site → GSC / Bing 30 ngày + truy vấn', mac: [28, 36], ghi: true, tab: 'seo' },
   E2: { ten: 'SteamSolo ngôn ngữ', moTa: 'số liệu theo ngôn ngữ + engagement', mac: [20, 36], tuDe: true, tab: 'seo' },
   F1: { ten: 'Danh sách MailWizz', moTa: 'dải số + bảng list ba tầng', mac: [20, 40], tuDe: true, tab: 'email' },
-  F2: { ten: 'Gửi thư có tới không', moTa: 'domain gửi (SPF · DKIM · DMARC) · lịch warm-up · seed · engagement', mac: [28, 48], ghi: true, tab: 'email' },
+  F2: { ten: 'Domain gửi', moTa: 'SPF · DKIM · DMARC · inbox seed · uy tín Postmaster · spam-test; thêm domain, đo placement', mac: [28, 36], ghi: true, tab: 'email' },
+  F3: { ten: 'Lịch warm-up', moTa: 'lịch làm ấm từng domain đang gửi, bật / tắt tự làm ấm, soạn thư', mac: [28, 36], ghi: true, tab: 'email' },
+  F4: { ten: 'Hòm seed', moTa: 'các hòm thư seed dùng để đo vào Inbox hay Spam', mac: [20, 24], ghi: true, tab: 'email' },
+  F5: { ten: 'Engagement email', moTa: 'mở · bấm · huỷ theo tầng người nhận', mac: [20, 24], tab: 'email' },
+  F6: { ten: 'Lịch gửi gộp', moTa: 'lịch gửi của mọi domain trên một bảng', mac: [28, 24], tab: 'email' },
   G1: { ten: 'Lưới dự án', moTa: 'thẻ dự án, lọc theo sức khoẻ / loại / chế độ', mac: [32, 40], tab: 'duan' },
   H1: { ten: 'Số Ethopex', moTa: 'camp bật · chi · lãi · ROI · đủ điều kiện tăng / giảm · ad bị từ chối', mac: [48, 13], tuDe: true, tab: 'ethopex' },
   H2: { ten: 'Camp Ethopex', moTa: 'bảng camp + luật đang chạm, lọc đang bật / đã tắt / chạm luật', mac: [32, 48], tab: 'ethopex' },
@@ -92,7 +96,8 @@ export const MAN: Man[] = [
   { id: 'taisan', ten: 'Tài sản', kh: 'TS', nhom: 'Tài sản', o: o([['D1', 0, 0, 48, 10], ['D2', 0, 10, 28, 62], ['D3', 28, 10, 20, 62]]) },
   { id: 'kenh', ten: 'Kênh nội dung', kh: 'KN', nhom: 'Tài sản', o: o([['D6', 0, 0, 28, 72], ['D4', 28, 0, 20, 36], ['D5', 28, 36, 20, 36]]) },
   { id: 'seo', ten: 'SEO', kh: 'SE', nhom: 'Tài sản', o: o([['E1', 0, 0, 28, 72], ['E2', 28, 0, 20, 72]]) },   // bảng website (D2) nặng ~1,3 MB nên nằm ở màn Tài sản, không kéo sang đây
-  { id: 'email', ten: 'Email', kh: 'EM', nhom: 'Tài sản', o: o([['F1', 0, 0, 20, 72], ['F2', 20, 0, 28, 72]]) },
+  { id: 'email', ten: 'Email', kh: 'EM', nhom: 'Tài sản', o: o([['F2', 0, 0, 28, 36], ['F1', 28, 0, 20, 36], ['F3', 0, 36, 28, 36], ['F4', 28, 36, 20, 18], ['F5', 28, 54, 20, 18]]) },
+  { id: 'email2', ten: 'Lịch gửi thư', kh: 'LG', nhom: 'Tài sản', o: o([['F6', 0, 0, 48, 72]]) },
   { id: 'congcu', ten: 'Dự án và công cụ', kh: 'CC', nhom: 'Công cụ', o: o([['G1', 0, 0, 32, 40], ['C5', 32, 0, 16, 20], ['L2', 32, 20, 16, 20], ['L1', 0, 40, 48, 32]]) },
   { id: 'mt5', ten: 'Lệnh MT5', kh: 'MT', nhom: 'Công cụ', o: o([['C6', 0, 0, 48, 72]]) },
 ];

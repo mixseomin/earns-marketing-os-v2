@@ -234,10 +234,10 @@ function ChiTiet({ r, admin, xong, dong }: { r: Dong; admin: boolean; xong: () =
 /** tab con: lich (mặc định, anh 12/11/2026 "hiện kiểu lịch") · luot · loi · may */
 type Md = 'lich' | 'luot' | 'loi' | 'may';
 /** Trạng thái xem đọc từ URL khi mount (F5 / chia sẻ giữ nguyên). */
-function docUrl() {
+function docUrl(tt = 'md_') {
   const p = typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search);
-  const loc = locTrong(); for (const k of LOC) loc[k] = (p.get(`md_${k}`) ?? '').split(',').filter(Boolean);
-  const md = p.get('md'), ngay = p.get('md_ngay');
+  const loc = locTrong(); for (const k of LOC) loc[k] = (p.get(`${tt}${k}`) ?? '').split(',').filter(Boolean);
+  const md = p.get('md'), ngay = p.get(`${tt}ngay`);
   return { md: (md === 'luot' || md === 'loi' || md === 'may' ? md : 'lich') as Md, ngay: NGAY.some((x) => x.value === ngay) ? ngay! : '3', loc };
 }
 
@@ -255,19 +255,21 @@ function hoiChung(url: string): Promise<Record<string, unknown>> {
 /** chi: widget /home — chỉ vẽ MỘT phần ('so' = dải số; 'lich' / 'luot' / 'loi' / 'may' = đúng mục đó). Mục cố định nên không đọc / ghi trạng thái lên URL
  *  (hai widget cùng màn ghi chung tham số sẽ đè nhau). Không truyền = tab Máy Đăng đủ như cũ. */
 export function MayDangView({ chi }: { chi?: Md | 'so' } = {}) {
-  const dau = useMemo(docUrl, []), modal = useModalParam();
+  // widget /home: bộ lọc ghi lên URL bằng khoá RIÊNG từng widget (md-luot_ngay, md-loi_kq…) → F5 giữ nguyên, hai widget cùng màn không đè nhau; mục đang xem (md) thì cố định theo widget
+  const tt = chi ? `md-${chi}_` : 'md_';
+  const dau = useMemo(() => docUrl(tt), [tt]), modal = useModalParam();
   const canSo = !chi || chi === 'so' || chi === 'luot' || chi === 'loi';   // lịch + máy tự đọc số riêng, không cần sổ lượt
   const [mdUrl, setMd] = useState(dau.md), md: Md = chi === 'so' ? 'luot' : chi ?? mdUrl, [ngay, setNgay] = useState(dau.ngay), [loc, setLoc] = useState<Loc>(dau.loc), [q, setQ] = useState(''), [caDung, setCaDung] = useState(false);
   const [rows, setRows] = useState<Map<string, Dong>>(new Map()), [chay, setChay] = useState<Chay[]>([]), [admin, setAdmin] = useState(false), [loi, setLoi] = useState<string | null>(null), [tai, setTai] = useState(true);
   const moc = useRef<string | null>(null), ngayRef = useRef(ngay);
 
   useEffect(() => {
-    if (chi) return;
     const p = new URLSearchParams(window.location.search), dat = (k: string, v: string | null) => (v ? p.set(k, v) : p.delete(k));
-    dat('md', md === 'lich' ? null : md); dat('md_ngay', ngay === '3' ? null : ngay);
-    for (const k of LOC) dat(`md_${k}`, loc[k].length ? loc[k].join(',') : null);
+    if (!chi) dat('md', md === 'lich' ? null : md);
+    dat(`${tt}ngay`, ngay === '3' ? null : ngay);
+    for (const k of LOC) dat(`${tt}${k}`, loc[k].length ? loc[k].join(',') : null);
     window.history.replaceState(null, '', `${window.location.pathname}?${p}`);
-  }, [md, ngay, loc, chi]);
+  }, [md, ngay, loc, chi, tt]);
 
   // THỜI GIAN THỰC: lần đầu đọc cả khoảng; sau đó mỗi 5 giây chỉ hỏi dòng mới / vừa cập nhật từ mốc trước (lùi 15 giây chống lọt) + lượt đang chạy
   const hoi = useCallback(async (lai = false) => {
@@ -358,7 +360,7 @@ export function MayDangView({ chi }: { chi?: Md | 'so' } = {}) {
       <span style={{ ...nho, color: 'var(--fg-3)' }}>Máy đăng iMac, mỗi 10 phút · phụ trách: Phòng Social Traffic · Pinterest Front Porch (pin-hang) chưa vào sổ · sổ cũ bai_hen (dừng 25/10) và publications (dừng tháng 5) không còn chạy</span>
     </div>}
     {(md === 'luot' || md === 'loi') && chi !== 'so' && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-      <Segmented<string> options={NGAY} value={ngay} onChange={setNgay} hrefFor={(v) => urlVoiParam('md_ngay', v === '3' ? null : v)} />
+      <Segmented<string> options={NGAY} value={ngay} onChange={setNgay} hrefFor={(v) => urlVoiParam(`${tt}ngay`, v === '3' ? null : v)} />
       <MultiSelect label="Dự án" options={opt.da} selected={loc.da} onChange={(v) => dat('da', v)} compact />
       <MultiSelect label="Kênh" options={opt.km} selected={loc.km} onChange={(v) => dat('km', v)} compact />
       <MultiSelect label="Nền" options={opt.nen} selected={loc.nen} onChange={(v) => dat('nen', v)} compact />

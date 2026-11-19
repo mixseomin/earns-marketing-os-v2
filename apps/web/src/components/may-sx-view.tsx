@@ -73,19 +73,19 @@ const COT_LUOT: DataColumn<Luot>[] = [
 export function MaySxView({ chi }: { chi?: 'viec' | 'luot' } = {}) {
   const chuNgan = useChuNgan('may-sx');
   const sp = useModalParam('sp'), ob = useModalParam('ob'), ngan = useNganKenh();
-  const [ngay, setNgay] = useState(() => { try { return new URLSearchParams(window.location.search).get('sx_ngay') ?? '7'; } catch { return '7'; } });
+  // widget /home: bộ lọc ghi lên URL bằng khoá RIÊNG từng widget (sx-viec_nguon, sx-luot_ngay) → F5 giữ nguyên, hai widget cùng màn không đè nhau
+  const tt = chi ? `sx-${chi}_` : 'sx_';
+  const [ngay, setNgay] = useState(() => { try { return new URLSearchParams(window.location.search).get(`${tt}ngay`) ?? '7'; } catch { return '7'; } });
   const [du, setDu] = useState<{ luot: Luot[]; viec: ViecSx[]; kenh: KenhSp[]; loi: string[]; ghiChu?: string[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
-  const [nguon, setNguon] = useState<NguonSx | null>(() => { try { return (new URLSearchParams(window.location.search).get('sx_nguon') as NguonSx) || null; } catch { return null; } });
+  const [nguon, setNguon] = useState<NguonSx | null>(() => { try { return (new URLSearchParams(window.location.search).get(`${tt}nguon`) as NguonSx) || null; } catch { return null; } });
   useEffect(() => {
-    if (!chi) {
-      const p = new URLSearchParams(window.location.search); if (ngay === '7') p.delete('sx_ngay'); else p.set('sx_ngay', ngay);
-      if (nguon) p.set('sx_nguon', nguon); else p.delete('sx_nguon');
-      window.history.replaceState(null, '', `${window.location.pathname}?${p}`);
-    }
+    const p = new URLSearchParams(window.location.search); if (ngay === '7') p.delete(`${tt}ngay`); else p.set(`${tt}ngay`, ngay);
+    if (nguon) p.set(`${tt}nguon`, nguon); else p.delete(`${tt}nguon`);
+    window.history.replaceState(null, '', `${window.location.pathname}?${p}`);
     let dung = false;
     const hoi = async () => { try { const r = await fetch(`/api/may-sx/so?ngay=${ngay}`, { cache: 'no-store' }); const j = await r.json(); if (j.error) throw new Error(j.error); if (!dung) { setDu(j); setLoi(null); } } catch (e) { if (!dung) setLoi((e as Error).message); } };
     hoi(); const t = setInterval(hoi, 30_000); return () => { dung = true; clearInterval(t); };
-  }, [ngay, nguon, chi]);
+  }, [ngay, nguon, tt]);
   const moViec = (v: ViecSx) => {
     if ('ed' in v.mo) openEntityDrawer(v.mo.ed, v.mo.id); else if ('sp' in v.mo) sp.open('sp', v.mo.sp.x.khoa);
     else if ('kenh' in v.mo) ngan.mo('kenh', v.mo.kenh); else ob.open('o-lich', khoaBai(v.mo.bai));

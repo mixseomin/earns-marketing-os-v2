@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useCallback, type CSSProperties, type ReactNode } from 'react';
 import { MonthCalendar, type CalItem } from '@/components/ui/month-calendar';
 import { StatsStrip } from './ui/stats-strip';
 import { DataTable, type DataColumn } from './ui/data-table';
@@ -531,14 +531,28 @@ function EngagementPanel() {
   );
 }
 
-export function DeliverabilityCard() {
+// nhiều widget gửi thư cùng một màn /home đọc CÙNG /api/deliverability → dùng chung một lượt gọi trong 4 giây
+let dangDoc: { luc: number; p: Promise<Data | null> } | null = null;
+function docChung(moi: boolean): Promise<Data | null> {
+  const nay = Date.now();
+  if (!moi && dangDoc && nay - dangDoc.luc < 4000) return dangDoc.p;   // moi = đọc lại sau một thao tác (thêm domain, đo xong…) → luôn hỏi máy chủ
+  const p = fetch('/api/deliverability', { cache: 'no-store' }).then((r) => (r.ok ? (r.json() as Promise<Data>) : null));
+  dangDoc = { luc: nay, p };
+  return p;
+}
+
+/** chi: widget /home — chỉ vẽ MỘT phần: 'table' bảng domain (kèm thanh thêm domain / đo placement) · 'warmup' lịch warm-up từng domain · 'seed' hòm seed ·
+ *  'calendar' lịch gửi gộp · 'engagement'. Không vẽ tiêu đề + dãy nút đổi chế độ, không viền riêng (khung widget đã có). Không truyền = thẻ đủ như cũ. */
+export type ChiDeliverability = 'table' | 'warmup' | 'seed' | 'calendar' | 'engagement';
+export function DeliverabilityCard({ chi }: { chi?: ChiDeliverability } = {}) {
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState(false);
   const [newDomain, setNewDomain] = useState('');
   const [adding, setAdding] = useState(false);
   const [addMsg, setAddMsg] = useState('');
   const [measuring, setMeasuring] = useState(false);
-  const [view, setView] = useState<'table' | 'warmup' | 'calendar' | 'engagement'>('table');
+  const [viewChon, setView] = useState<'table' | 'warmup' | 'calendar' | 'engagement'>('table');
+  const view = chi === 'seed' ? 'warmup' : chi ?? viewChon;
   const [viewDomain, setViewDomain] = useState<string | null>(null);
   const [mw, setMw] = useState<MwView | null>(null);
   const [mwErr, setMwErr] = useState('');
@@ -558,11 +572,12 @@ export function DeliverabilityCard() {
     return () => { alive = false; };
   }, [viewDomain, mwNonce]);
 
+  const lanDau = useRef(true);
   const load = useCallback(async () => {
     try {
-      const r = await fetch('/api/deliverability', { cache: 'no-store' });
-      if (!r.ok) { setErr(true); return; }
-      setD(await r.json()); setErr(false);
+      const j = await docChung(!lanDau.current); lanDau.current = false;
+      if (!j) { setErr(true); return; }
+      setD(j); setErr(false);
     } catch { setErr(true); }
   }, []);
   useEffect(() => { load(); const t = setInterval(load, 300_000); return () => clearInterval(t); }, [load]);
@@ -602,7 +617,8 @@ export function DeliverabilityCard() {
     finally { setAdding(false); }
   }, [newDomain, adding, load]);
 
-  if (err || !d) return null;
+  // thẻ đủ: lỗi / chưa có số thì không vẽ gì (như cũ). Widget: phải nói rõ ngay trong ô, không để ô trống trơn.
+  if (err || !d) return chi ? <div role={err ? 'alert' : undefined} style={{ fontSize: 12, color: err ? 'var(--danger)' : 'var(--fg-3)' }}>{err ? 'Không đọc được số gửi thư — máy chủ trả lỗi.' : 'đang đọc…'}</div> : null;
 
   const lastPm = (r: Row) => (r.postmaster && r.postmaster.length ? r.postmaster[r.postmaster.length - 1] : null);
   const lastSt = (r: Row) => (r.spamTest && r.spamTest.length ? r.spamTest[r.spamTest.length - 1] : null);
@@ -668,9 +684,9 @@ export function DeliverabilityCard() {
   ];
 
   return (
-    <div style={{ margin: '0 0 16px', padding: '11px 14px 6px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div style={chi ? undefined : { margin: '0 0 16px', padding: '11px 14px 6px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)' }}>
+      {(!chi || chi === 'table') && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
+        {!chi && <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>✉️ Email deliverability</span>
           <div style={{ display: 'inline-flex', gap: 2, background: 'var(--bg-1)', borderRadius: 6, padding: 2 }}>
             {(['table', 'warmup', 'calendar', 'engagement'] as const).map((v) => (
@@ -681,8 +697,8 @@ export function DeliverabilityCard() {
               </button>
             ))}
           </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        </div>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {addMsg && <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>{addMsg}</span>}
           <input
             value={newDomain}
@@ -706,12 +722,14 @@ export function DeliverabilityCard() {
             title="Open Google Postmaster Tools"
             style={{ ...mono, fontSize: 10, color: 'var(--fg-2)', textDecoration: 'none' }}>Postmaster ↗</a>
         </div>
-      </div>
+      </div>}
       {view === 'engagement' ? (
         <EngagementPanel />
+      ) : chi === 'seed' ? (
+        <SeedPanel />
       ) : view === 'warmup' ? (
         <div style={{ paddingTop: 2 }}>
-          <SeedPanel />
+          {!chi && <SeedPanel />}
           {d.rows.filter((r) => r.send).length === 0
             ? <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>No sending domains yet — set up a send path first.</span>
             : d.rows.filter((r) => r.send).map((r) => <WarmupCalendar key={r.domain} row={r} onChange={load} onView={setViewDomain} onPreview={openPreview} onCompose={(dom, editUid) => setCompose({ domain: dom, editUid })} />)}

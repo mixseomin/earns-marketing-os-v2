@@ -504,6 +504,8 @@ function OGioLuat(p: VaoLuat) {
 }
 // GHI CHÚ LUẬT GẬP (anh 12/11/2026 #1558 "ko ghi hết chữ ra màn hình" — YDNI): ô tên luật chỉ còn tên · kết · ⏳ giờ · ℹ; giờ đầy đủ + lý do máy chặn ở chữ rê
 const GhiLuat = ({ t }: { t: string | null | undefined }) => (t ? <span title={t} style={{ marginLeft: 4, color: '#fb923c', cursor: 'help', fontSize: 11 }}>ℹ</span> : null);
+// Ô điều kiện / giá trị / ngưỡng của bảng luật: tối đa 2 dòng, chữ dài (vd TV "Từng ngày" 4 dòng) gập vào chữ rê (anh #1558 YDNI "ko ghi hết chữ ra màn hình")
+const Gon2 = ({ t, children }: { t: string | null | undefined; children?: React.ReactNode }) => (t ? <span title={t.length > 40 ? t : undefined} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', cursor: t.length > 40 ? 'help' : undefined }}>{children ?? t}</span> : null);
 function BangXet({ xet, gon, deXuat, don }: { xet: XetLuat[]; gon?: boolean; deXuat?: boolean; /** camp tiêu dồn (nạp sáng) — giờ tăng tính cả khung sáng */ don?: boolean }) {
   const thu = { dat: 0, gan: 1, xa: 2, khong_ap: 3 } as const;
   const ds = [...xet].sort((a, b) => thu[a.ket] - thu[b.ket]);
@@ -528,11 +530,11 @@ function BangXet({ xet, gon, deXuat, don }: { xet: XetLuat[]; gon?: boolean; deX
         // GỌN (ngăn hẹp / điện thoại — #1523 anh 04/11/2026 "drawer bị tràn"): mỗi điều kiện MỘT khối xếp chồng — dòng 1 tên + ✓/✗, dòng 2 giá trị (xuống dòng được) · ngưỡng;
         // không còn 4 cột chia nhau 360px (tên gãy từng chữ, giá trị nowrap đẩy tràn mép phải)
         if (gon) return khoi(<>{dauGon}{l.dk.map(([ten, gt, ng, ok], i) => <tr key={`${l.ma}${i}`} style={{ opacity: mo ? 0.6 : 1 }}><td colSpan={4} style={o}>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}><span style={{ flex: 1, minWidth: 0 }}>{ten}</span><b style={{ color: ok ? '#4ade80' : '#f87171', flex: 'none' }}>{ok ? '✓' : '✗'}</b></div>
-          <div style={{ ...KHONG_GIAN, display: 'flex', flexWrap: 'wrap', gap: '0 8px', fontSize: 11 }}><span style={{ color: ok ? 'var(--fg-1)' : '#f87171', overflowWrap: 'anywhere' }}><ChuCamp t={gt} /></span>
-            {ng ? <span style={{ color: 'var(--fg-3, #777)' }}>ngưỡng {ng}</span> : null}</div></td></tr>)}</>);
+          <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}><span style={{ flex: 1, minWidth: 0 }}><Gon2 t={ten} /></span><b style={{ color: ok ? '#4ade80' : '#f87171', flex: 'none' }}>{ok ? '✓' : '✗'}</b></div>
+          <div style={{ ...KHONG_GIAN, display: 'flex', flexWrap: 'wrap', gap: '0 8px', fontSize: 11 }}><span style={{ color: ok ? 'var(--fg-1)' : '#f87171', overflowWrap: 'anywhere' }}><Gon2 t={gt}><ChuCamp t={gt} /></Gon2></span>
+            {ng ? <span style={{ color: 'var(--fg-3, #777)' }}><Gon2 t={`ngưỡng ${ng}`} /></span> : null}</div></td></tr>)}</>);
         return khoi(l.dk.length ? l.dk.map(([ten, gt, ng, ok], i) => <tr key={`${l.ma}${i}`} style={{ opacity: mo ? 0.6 : 1 }}>{i === 0 ? dau : null}
-          <td style={{ ...o, overflowWrap: 'anywhere' }}>{ten}</td><td style={{ ...o, textAlign: 'right', overflowWrap: 'anywhere', color: ok ? 'var(--fg-1)' : '#f87171' }}><ChuCamp t={gt} /></td><td style={{ ...o, overflowWrap: 'anywhere', color: 'var(--fg-2)' }}>{ng}</td>
+          <td style={{ ...o, overflowWrap: 'anywhere' }}>{ten}</td><td style={{ ...o, textAlign: 'right', overflowWrap: 'anywhere', color: ok ? 'var(--fg-1)' : '#f87171' }}><Gon2 t={gt}><ChuCamp t={gt} /></Gon2></td><td style={{ ...o, overflowWrap: 'anywhere', color: 'var(--fg-2)' }}><Gon2 t={ng} /></td>
           <td style={{ ...o, color: ok ? '#4ade80' : '#f87171', fontWeight: 700 }}>{ok ? '✓' : '✗'}</td></tr>)
           : <tr key={l.ma}>{dau}<td colSpan={4} style={{ ...o, color: 'var(--fg-2)' }}><div style={KHONG_GIAN}>{l.mo_ta}</div></td></tr>); };
         return <>{chay.map(ve)}{dung.length ? <tbody key="dung"><tr><td colSpan={gon ? 4 : 5} onClick={() => setMoDung((x) => !x)} style={{ ...o, cursor: 'pointer', color: 'var(--fg-3, #777)', paddingTop: 6 }}>

@@ -436,9 +436,10 @@ export const VietBaiDaiSchema = z.object({
   checklist: z.array(z.string().describe('one short action the reader can tick, starts with a verb')).min(4).max(6).optional(),
   vi_du: z.object({ tieu_de: z.string().describe('label marked as a sample, by role never by a personal name, like "Sample case: an E-6 with 20 years"'), dong: z.array(z.string()).min(3).max(6).describe('lines of ONE concrete worked case with real specific values of this topic, each line short like a statement row ("High-3 average: $5,000", "Sun: Taurus, 10th house"), no abstract steps; one line is a quoted sentence the person actually read or said, in quotes') }),
   neu_da_lo: z.object({ h2: z.string().describe('heading starting with "If you already" (e.g. "If you already signed your retirement paperwork")'), doan: z.array(z.string()).min(1).max(2) }),
-  faq: z.array(z.object({ hoi: z.string(), dap: z.string().describe('2-3 sentences; the first word answers the question and the rest never contradicts it (no "No" followed by what is in fact allowed)') })).min(3).max(4),
+  // 19/11/2026: câu hỏi có/không làm mô hình rẻ mở "Yes." rồi giải thích ngược lại (militarycalc dai-42971, astrolas dai-41253) → chỉ hỏi How/What/When…, máy chặn câu có/không
+  faq: z.array(z.object({ hoi: z.string().describe('a question people search, phrased with How / What / When / Which / Where / Why, never a yes/no question'), dap: z.string().describe('2-3 sentences, the first sentence is the direct answer, the rest adds a condition or where to check') })).min(3).max(4),
   dan_cta: z.string().optional().describe('one sentence placed right before the mid-article button: why trying the tool on your own numbers settles the worry just described'),
-  ket: z.string().describe('closing paragraph, 2 short sentences, no repetition, contains the token {LINK} exactly once, saying why that page helps this reader'),
+  ket: z.string().describe('closing paragraph, 2-3 short sentences, no repetition, contains the token {LINK} exactly once, saying why that page helps this reader, and plainly disclosing that you run that site (and that it is free if it is)'),
   trang: z.string().describe('the ONE site page URL from the list given that best fits, copied exactly; empty string if no list was given'),
   truy: z.array(z.string().describe('3-6 English words for a real landscape stock photo (Pexels search), no brand names')).length(3).describe('three DIFFERENT photo searches for three images placed through the article'),
   video: z.string().describe('a YouTube search query (4-8 words) for a short explainer video on this exact topic, e.g. "military retirement pay high-3 explained"'),
@@ -462,6 +463,8 @@ export function htmlBaiDai(d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua'
 /** Mọi chữ của bài (để kiểm luật / độ dài). Thuần. */
 export const chuBaiDai = (d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket' | 'checklist' | 'dan_cta'>) =>
   [d.tieu_de, d.phu_de, d.canh, d.hua, ...d.muc.flatMap((m) => [m.h2, ...m.doan, ...(m.khung ?? [])]), ...(d.checklist ?? []), ...(d.dan_cta ? [d.dan_cta] : []), d.vi_du.tieu_de, ...d.vi_du.dong, d.neu_da_lo.h2, ...d.neu_da_lo.doan, ...d.faq.flatMap((f) => [f.hoi, f.dap]), d.ket].join('\n\n');
+/** Câu hỏi FAQ dạng có/không (Does / Is / Can …) — trả về các câu vi phạm. Thuần. */
+export const faqCoKhong = (faq: { hoi: string }[]) => faq.map((f) => f.hoi.trim()).filter((q) => /^(does|do|is|are|can|could|will|would|should|shall|has|have|was|were|did|am|may|must)\b/i.test(q));
 /** Kiểm bài Substack (chặn cứng như kiemBaiViet, độ dài bài dài). Thuần. */
 export function kiemBaiDai(chu: string, link: string): string[] {
   const loi = kiemBaiViet(chu, link).filter((x) => !x.startsWith('độ dài'));
@@ -494,7 +497,8 @@ export async function vietBaiDai(o: { sp: SanPhamDe; goc: GocDe; link: string; u
     const tho = chuBaiDai(r.data);
     const chu = tho.split('{LINK}').join(link);
     loiCu = [...kiemBaiDai(chu, link), ...(tho.split('{LINK}').length !== 2 ? ['token {LINK} phải có đúng một lần'] : []),
-      ...(r.data.muc.filter((m) => (m.khung?.filter((x) => x.trim()).length ?? 0) >= 2).length < 2 ? ['at least 2 body sections need "khung": 2-4 concrete lines the reader sees'] : [])];
+      ...(r.data.muc.filter((m) => (m.khung?.filter((x) => x.trim()).length ?? 0) >= 2).length < 2 ? ['at least 2 body sections need "khung": 2-4 concrete lines the reader sees'] : []),
+      ...faqCoKhong(r.data.faq).map((q) => `FAQ "${q}" is a yes/no question: rewrite it as How / What / When / Which`)];
     if (!loiCu.length) return { ok: true, ...r.data, link, vnd, model: r.model };
   }
   return { ok: false, loi: `bài Substack sai luật sau 2 lượt: ${loiCu.join('; ')}`, vnd };

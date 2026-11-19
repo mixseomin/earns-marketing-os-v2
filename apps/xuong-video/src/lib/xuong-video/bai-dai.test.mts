@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { htmlBaiDai, kiemBaiDai, chuBaiDai } from './may-de';
+import { htmlBaiDai, kiemBaiDai, chuBaiDai, faqCoKhong } from './may-de';
 
 const d = {
   tieu_de: 'A <b>', phu_de: 'Sub', canh: 'Imagine a sergeant at 6 a.m.', hua: 'In five minutes you will know.',
@@ -28,4 +28,5 @@ const h3 = htmlBaiDai({ ...d, dan_cta: 'Run your own numbers.', muc: [{ h2: 'A',
 assert.equal((h3.match(/class="mock"/g) || []).length, 2, 'khung mục (≥2 dòng) + khung ví dụ; khung 1 dòng bỏ');
 assert.ok(h3.indexOf('Run your own numbers.') < h3.indexOf('Try it free') && h3.indexOf('Base pay') > h3.indexOf('<h2>A</h2>'), 'câu dẫn trước nút giữa, khung dưới mục');
 assert.ok(chuBaiDai({ ...d, dan_cta: 'Z9', muc: [{ h2: 'A', doan: ['a'], khung: ['K7', 'K8'] }] }).includes('K7') && chuBaiDai({ ...d, dan_cta: 'Z9' }).includes('Z9'), 'chữ kiểm gồm khung + câu dẫn');
-console.log('bai-dai: 13/13 ok');
+assert.deepEqual(faqCoKhong([{ hoi: 'Is BAH taxable?' }, { hoi: 'How is BAH taxed?' }, { hoi: 'Does rate protection follow me?' }, { hoi: 'Isaac rule?' }]), ['Is BAH taxable?', 'Does rate protection follow me?'], 'chặn câu hỏi có/không, không bắt nhầm');
+console.log('bai-dai: 14/14 ok');

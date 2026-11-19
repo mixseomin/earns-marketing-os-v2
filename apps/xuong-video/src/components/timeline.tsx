@@ -82,7 +82,7 @@ function trangThaiBoc(c: Canh): { ky: string; mau: string; title: string } | nul
     : { ky: '✓', mau: '#4ade80', title: `Bóc tách + đối chiếu xong · khớp (${dc.length} mục)` };
 }
 
-export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onDoiKhungLai, onKhopNhip, onKhopGiong, theShot, onMoShot, theLoai, onDoiKhuon, goi, onNapShot, onDoiPhim }: {
+export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, moTaiShot, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onDoiKhungLai, onKhopNhip, onKhopGiong, theShot, onMoShot, theLoai, onDoiKhuon, goi, onNapShot, onDoiPhim }: {
   /** nạp lại shot của tập tại chỗ (không tải lại trang) — sau khi đổi nguồn clip chính của phim */ onNapShot?: () => Promise<void>;
   /** nạp lại phim (kinh_thanh) — sau khi đổi bộ sinh video chính */ onDoiPhim?: () => Promise<void>;
   /** thẻ shot đang chọn (CanhRow) — hiện ở panel THUỘC TÍNH khi không chọn lớp nào, như panel Properties của After Effects */ theShot?: ReactNode;
@@ -90,7 +90,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   /** gói thể loại của phim (kinh_thanh.goi, goi-the-loai.ts) — bố cục màn xem mặc định theo gói */ goi?: string;
   /** dòng phim (kinh_thanh.the_loai) — khuôn chuỗi kiểm có hợp dòng không + hover làn 🧭 Khuôn hiện quy chuẩn ngành của dòng */ theLoai?: TheLoai | '';
   /** đã lưu khuôn chuỗi của tập (ngăn 🧭 sửa khuôn) → nạp lại tập */ onDoiKhuon?: () => Promise<void>;
-  canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null; /** phim quảng cáo → câu chữ thiếu nguồn tham khảo hiện đỏ */ laQc?: boolean; /** đổi kiểu CTA của phim (thư viện CTA) */ onDoiCta?: (key: string) => void;
+  canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; /** shot được chọn TỪ NGOÀI trước khi mở timeline (lưới → "⏱ Mở trên timeline") — thắng vị trí nhớ ?tlt */ moTaiShot?: number | null; qc?: ThongTinQc | null; /** phim quảng cáo → câu chữ thiếu nguồn tham khảo hiện đỏ */ laQc?: boolean; /** đổi kiểu CTA của phim (thư viện CTA) */ onDoiCta?: (key: string) => void;
   onChon: (id: number) => void; onDoiGiay: (id: number, giay: number) => void;
   /** đổi chuyển cảnh SAU shot id (ky_thuat.chuyen_canh; '' = cắt thẳng) và/hoặc số giây đặt tay (giay: undefined = giữ, null = về mặc định) */ onDoiChuyenCanh?: (id: number, key: string, giay?: number | null) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
   /** khớp điểm cắt vào phách nhạc nền — trả câu báo */ onKhopNhip?: () => Promise<string>;
@@ -300,9 +300,13 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Mở lại thì tua tới đó + chọn đúng shot đang đứng; ghi trễ 400ms để lúc đang phát không ghi URL mỗi khung hình.
   const khoaT = `xv-tlt-${tap.id}`;
   const daKhoiPhuc = useRef(false);
+  const chonLucMo = useRef(moTaiShot ?? null);
   useEffect(() => {
     if (daKhoiPhuc.current || !canh.length) return;
     daKhoiPhuc.current = true;
+    // Mở timeline từ ngoài với một shot đã chọn (nút "⏱ Mở trên timeline" ở ngăn shot của lưới, #1357) → đứng đầu shot đó,
+    // không để vị trí cũ trong URL/localStorage kéo con trỏ về chỗ khác.
+    if (chonLucMo.current != null && canh.some((x) => x.id === chonLucMo.current)) return;
     // ?tlt=<tapId>:<giây> — ghi kèm id tập để đổi sang tập khác không mang vị trí của tập cũ theo.
     const [tu, giay] = (new URLSearchParams(window.location.search).get('tlt') ?? '').split(':');
     const g = Number(Number(tu) === tap.id ? giay : docLT(khoaT) ?? 0);

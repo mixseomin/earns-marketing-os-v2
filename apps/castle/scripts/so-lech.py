@@ -24,6 +24,7 @@ if '--ve' in sys.argv:  # vẽ ảnh báo cáo: mô hình | ảnh thật, khung 
         for k, r in enumerate(L['vung'], 1):
             d.rectangle([ox + r['u0'] * W, r['v0'] * H, ox + r['u1'] * W, r['v1'] * H], outline=(255, 30, 30), width=3)
             d.rectangle([ox + r['u0'] * W, r['v0'] * H, ox + r['u0'] * W + 22, r['v0'] * H + 18], fill=(255, 30, 30)); d.text((ox + r['u0'] * W + 6, r['v0'] * H + 3), str(k), fill=(255, 255, 255))
+    o.thumbnail((1000, 1000), Image.Resampling.LANCZOS)
     o.save(thu / 'bao-cao.png'); print('ảnh báo cáo:', thu / 'bao-cao.png'); sys.exit(0)
 A = Image.open(thu / 'mo-hinh.png').convert('RGB'); B = Image.open(thu / 'anh-that.png').convert('RGB').resize(A.size)
 W, H = A.size

@@ -220,7 +220,12 @@ if (!process.argv.includes('--ep') && !process.argv.includes('--chi-duyet') && !
 if (!process.argv.includes('--ep') && !arg('kenh')) { try { console.log(box('scripts/may-dung.mts --so-kenh --social')); } catch (e) { console.log(`⚠ đo số kênh social hỏng: ${String(e.stderr || e.message).trim().split('\n').pop()}`); } }
 
 // KÊNH CÓ SỔ MÁY VIẾT (G8 Astrolas, 07/11/2026): không qua lam-tap (máy viết + long-tieng + nap-tap riêng), cùng lượt mỗi giờ này, không có tiến trình nền riêng
-if (!process.argv.includes('--ep') && (!arg('kenh') || arg('kenh') === 'astrolas')) spawnSync(process.execPath, [join(DIR, 'chay-so-kenh.mjs')], { stdio: 'inherit', timeout: 150 * 60_000, killSignal: 'SIGKILL' });
+// ĐƠN ĐẶT TỪ STUDIO 2 đi trước (lam-dat-s2.mjs, anh 20/11/2026: đội Astrolas đặt làm video từ studio2): lượt này đã làm một đơn (mã thoát 10) thì không làm thêm
+// tập tự chạy trong cùng giờ — một lượt một tập. lam-dat-s2 hỏng / không có đơn thì lượt tự chạy đi như cũ.
+if (!process.argv.includes('--ep') && (!arg('kenh') || arg('kenh') === 'astrolas')) {
+  const dat = spawnSync(process.execPath, [join(DIR, 'lam-dat-s2.mjs')], { stdio: 'inherit', timeout: 210 * 60_000, killSignal: 'SIGKILL' });
+  if (dat.status !== 10) spawnSync(process.execPath, [join(DIR, 'chay-so-kenh.mjs')], { stdio: 'inherit', timeout: 150 * 60_000, killSignal: 'SIGKILL' });
+}
 
 // LƯU KHO CHUNG MỌI MÁY VIDEO (anh 08/11/2026: "chuẩn hoá toàn bộ theo cách YNT"): ngày một lần, lượt đầu tiên sau 02:00 giờ VN — video đã dùng xong rời iMac,
 // đủ 7 ngày thì R2 → Google Drive (scripts/luu-kho.mjs + luu-kho.json). Không tiến trình nền riêng. Có dòng ⚠ (chép / so khớp / máy hỏng) → báo Telegram nguyên văn.

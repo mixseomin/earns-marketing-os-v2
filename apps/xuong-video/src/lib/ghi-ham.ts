@@ -4,8 +4,8 @@
 // (chot-tien.ts) như khi bấm trên studio. Thêm một bước cho Studio 2 = thêm tên hàm vào đây. Hàm ĐỌC thì thêm ở doc-ham.ts.
 import { taoPhim, taoPhimMau, taoTap, suaPhim, suaTap, vietKichBanTap, tachCanhTap, batDauNguoiXem, duyetNguoiXemTayAction, goiYAIKinhThanh, goiYAIBoAnchor,
   sinhAnhThieuAction, sinhKeyframe, chonKeyframe, duyetCanh, sinhGiong, duyetAnimatic, sinhVideoCanh, sinhNhac, xuatTap, suaCanh, xepCanh, themCanh, taoPhimTuTemplate } from './actions';
-import { taoPhimS2, datQuyenS2 } from './actions-studio2';
+import { taoPhimS2, datQuyenS2, datTapKenhS2 } from './actions-studio2';
 
 export const HAM_GHI = { taoPhim, taoPhimMau, taoTap, suaPhim, suaTap, vietKichBanTap, tachCanhTap, batDauNguoiXem, duyetNguoiXemTayAction, goiYAIKinhThanh, goiYAIBoAnchor,
-  sinhAnhThieuAction, sinhKeyframe, chonKeyframe, duyetCanh, sinhGiong, duyetAnimatic, sinhVideoCanh, sinhNhac, xuatTap, suaCanh, xepCanh, themCanh, taoPhimTuTemplate, taoPhimS2, datQuyenS2 };
+  sinhAnhThieuAction, sinhKeyframe, chonKeyframe, duyetCanh, sinhGiong, duyetAnimatic, sinhVideoCanh, sinhNhac, xuatTap, suaCanh, xepCanh, themCanh, taoPhimTuTemplate, taoPhimS2, datQuyenS2, datTapKenhS2 };
 export type HamGhi = typeof HAM_GHI;

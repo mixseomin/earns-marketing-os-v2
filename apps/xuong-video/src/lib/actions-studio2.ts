@@ -5,6 +5,9 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from './auth';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import SO_KENH from '../../scripts/lich-su/so-kenh.json';
 import { docPhim, dsCanh, taoPhim, taoTap } from './actions';
 import { duocS2, quyenCua, type QuyenS2 } from './quyen-s2';
 import { GOI_THE_LOAI, goiTheoKey } from './xuong-video/goi-the-loai';
@@ -162,4 +165,72 @@ export async function datQuyenS2(userId: number, dung: boolean, sinh: boolean): 
   await db.execute(sql`INSERT INTO xv_s2_quyen (user_id, dung, sinh, boi) VALUES (${Number(userId)}, ${d}, ${s}, ${me.id})
     ON CONFLICT (user_id) DO UPDATE SET dung = ${d}, sinh = ${s}, boi = ${me.id}, updated_at = now()`);
   return { ok: true, data: undefined };
+}
+
+// ── Studio 2 · ĐẶT LÀM VIDEO KÊNH (anh 20/11/2026: đội Astrolas làm phim từ studio2, "thiếu gì thì chủ động mà bổ sung") ─────────────────────────────
+// Video kênh Astrolas không đi lối phim 16 mục: mỗi tập thuộc MỘT mẫu đã duyệt trong sổ kênh (scripts/lich-su/so-kenh.json), lời lấy từ dữ liệu thật của
+// site, hình dựng bằng mã trên iMac (scripts/lich-su/chay-so-kenh.mjs). Ở đây người dùng chỉ ĐẶT: chọn mẫu + một ý tưởng trong kho ý tưởng của mẫu
+// (scripts/lich-su/y-tuong/<kênh>-<mẫu>.json) → một dòng xv_s2_dat. Máy trên iMac nhận đơn ở lượt mỗi giờ (lich-su/lam-dat-s2.mjs, trong giờ làm, một lúc
+// một tập), làm xong thì tập nằm ở sổ máy đăng (xv_may_video) như mọi tập khác: Phòng Nội dung chấm, máy đăng tự đăng theo nhịp.
+type MauKenh = { ma: string; ten: string; loai?: string; kho?: string; nhip?: string; demo?: string };
+const KENH_DAT = ['astrolas'];
+const mauCua = (kenh: string): MauKenh[] => ((SO_KENH as unknown as Record<string, { mau?: MauKenh[] }>)[kenh]?.mau ?? []);
+const MA_HOP_LE = /^[a-z0-9][a-z0-9-]{1,90}$/;
+async function khoYTuong(kenh: string, mau: string): Promise<{ ma: string; chu: string }[]> {
+  if (!KENH_DAT.includes(kenh) || !MA_HOP_LE.test(mau)) return [];
+  try { const d = JSON.parse(await readFile(join(process.cwd(), 'scripts/lich-su/y-tuong', `${kenh}-${mau}.json`), 'utf8')) as { su_kien?: { ma: string; chu: string }[] };
+    return (d.su_kien ?? []).filter((x) => MA_HOP_LE.test(String(x.ma))).map((x) => ({ ma: String(x.ma), chu: String(x.chu ?? x.ma) })); }
+  catch { return []; }
+}
+
+/** Các mẫu của kênh đặt làm được từ Studio 2 = mẫu có kho ý tưởng: tên, mô tả kho, nhịp, link demo, số ý tưởng. */
+export async function dsMauKenhS2(kenh: string): Promise<{ ma: string; ten: string; loai: string; kho: string; demo: string; so_y_tuong: number }[]> {
+  if (!(await laAdmin()) || !KENH_DAT.includes(kenh)) return [];
+  const ra = [];
+  for (const m of mauCua(kenh)) { const n = (await khoYTuong(kenh, m.ma)).length; if (n) ra.push({ ma: m.ma, ten: m.ten, loai: String(m.loai ?? ''), kho: String(m.kho ?? ''), demo: String(m.demo ?? ''), so_y_tuong: n }); }
+  return ra;
+}
+
+/** Kho ý tưởng của một mẫu, kèm tình trạng: đã có video trong sổ máy đăng / đã có người đặt / còn trống. */
+export async function dsYTuongKenhS2(kenh: string, mau: string): Promise<{ ma: string; chu: string; tinh_trang: 'trong' | 'da_co' | 'da_dat' }[]> {
+  const db = getDb();
+  if (!db || !(await laAdmin())) return [];
+  const kho = await khoYTuong(kenh, mau);
+  if (!kho.length) return [];
+  const [co, dat] = await Promise.all([
+    db.execute(sql`SELECT v.slug FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${kenh}`),
+    db.execute(sql`SELECT ma FROM xv_s2_dat WHERE kenh = ${kenh} AND trang_thai <> 'loi'`)]);
+  const daCo = new Set((co as unknown as Row[]).map((x) => String(x.slug))), daDat = new Set((dat as unknown as Row[]).map((x) => String(x.ma)));
+  return kho.map((x) => ({ ...x, tinh_trang: daCo.has(x.ma) ? 'da_co' as const : daDat.has(x.ma) ? 'da_dat' as const : 'trong' as const }));
+}
+
+/** Đặt làm một tập: ý tưởng phải có trong kho của mẫu, chưa có video, chưa ai đặt. Tốn tiền giọng đọc khi máy làm (vài trăm tới vài nghìn đồng một tập). */
+export async function datTapKenhS2(kenh: string, mau: string, ma: string): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
+  const db = getDb(), me = await getCurrentUser();
+  if (!db || !me || !(await laAdmin())) return { ok: false, loi: 'không có quyền' };
+  const y = (await dsYTuongKenhS2(kenh, mau)).find((x) => x.ma === ma);
+  if (!y) return { ok: false, loi: 'ý tưởng này không có trong kho của mẫu' };
+  if (y.tinh_trang === 'da_co') return { ok: false, loi: 'ý tưởng này đã có video rồi' };
+  if (y.tinh_trang === 'da_dat') return { ok: false, loi: 'ý tưởng này đã có người đặt, đang chờ máy làm' };
+  const r = (await db.execute(sql`INSERT INTO xv_s2_dat (user_id, kenh, mau, ma, chu_de) VALUES (${me.id}, ${kenh}, ${mau}, ${ma}, ${y.chu})
+    ON CONFLICT (kenh, ma) DO UPDATE SET trang_thai = 'cho', loi = '', lan = 0, user_id = ${me.id}, updated_at = now() RETURNING id`)) as unknown as Row[];
+  return { ok: true, data: Number(r[0]?.id) };
+}
+
+export type DatS2 = { id: number; kenh: string; mau: string; mau_ten: string; ma: string; chu_de: string; trang_thai: string; loi: string; tien_vnd: number; luc: string; xong_luc: string; cua_toi: boolean; nguoi: string;
+  video_url: string | null; anh: string | null; giay: number | null; cham: string; da_dang: string | null };
+/** Các đơn đặt làm video kênh: người dùng thường (và quản trị khi chiCuaToi) thấy đơn của chính họ, quản trị thấy mọi đơn. Kèm video khi máy đã làm xong. */
+export async function dsDatS2(chiCuaToi = false): Promise<DatS2[]> {
+  const db = getDb(), me = await getCurrentUser();
+  if (!db || !me || !(await laAdmin())) return [];
+  const tatCa = me.role === 'admin' && !chiCuaToi;
+  try {
+    const r = (await db.execute(sql`SELECT d.*, coalesce(mb.display_name, u.name, '') AS nguoi, v.video_url, v.anh->>0 AS anh, v.giay, coalesce(v.cham->>'ket', '') AS cham, v.da_dang->'youtube'->>'url' AS da_dang
+      FROM xv_s2_dat d LEFT JOIN users u ON u.id = d.user_id LEFT JOIN members mb ON mb.user_id = d.user_id AND mb.project_id IS NULL
+      LEFT JOIN xv_may_video v ON v.slug = d.ma AND v.may_id = (SELECT id FROM xv_may WHERE ma = d.kenh) AND v.xuat_luc IS NOT NULL
+      WHERE ${tatCa ? sql`true` : sql`d.user_id = ${me.id}`} ORDER BY d.id DESC LIMIT 60`)) as unknown as Row[];
+    return r.map((x) => ({ id: Number(x.id), kenh: String(x.kenh), mau: String(x.mau), mau_ten: mauCua(String(x.kenh)).find((m) => m.ma === x.mau)?.ten ?? String(x.mau), ma: String(x.ma), chu_de: String(x.chu_de ?? ''),
+      trang_thai: String(x.trang_thai), loi: String(x.loi ?? ''), tien_vnd: Number(x.tien_vnd ?? 0), luc: gio(x.created_at), xong_luc: gio(x.xong_luc), cua_toi: Number(x.user_id) === me.id, nguoi: String(x.nguoi ?? ''),
+      video_url: x.video_url ? String(x.video_url) : null, anh: x.anh ? String(x.anh) : null, giay: x.giay == null ? null : Number(x.giay), cham: String(x.cham ?? ''), da_dang: x.da_dang ? String(x.da_dang) : null }));
+  } catch (e) { console.error('[studio2 ds đặt]', e); return []; }
 }

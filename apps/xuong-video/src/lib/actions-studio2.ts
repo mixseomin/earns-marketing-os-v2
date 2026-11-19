@@ -5,6 +5,10 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from './auth';
+import { docPhim, dsCanh } from './actions';
+import { quyTrinh, phimQt, type MucQt } from './xuong-video/quy-trinh';
+import { docKinhThanh, locNhanh } from './xuong-video/kieu';
+import { MAU_PHIM } from './xuong-video/mau';
 
 export type LuotSinh = { id: number; canh_id: number; loai: string; dich: string; provider: string; model: string; trang_thai: string; loi: string; cents: number;
   luc: string; xong_luc: string; output_url: string | null; nhan: string; nguon: unknown;
@@ -49,4 +53,22 @@ export async function nhatKyCanh(canhId: number): Promise<LuotSinh[]> {
     return (r as unknown as Row[]).map((x) => { const q = (x.request && typeof x.request === 'object' ? x.request : {}) as Row;
       return { ...dong(x), cau_lenh: String(q.prompt ?? q.text ?? ''), chi_tiet: gonChiTiet(q) }; });
   } catch { return []; }
+}
+
+/** 🎬 Quy trình của một tập — ĐÚNG hàm quyTrinh mà thanh Quy trình trên studio dùng (tap.tsx), tính ở máy chủ cho Studio 2: từng mục đạt / thiếu gì /
+ *  gác cổng nào / làm thế nào. Tập chưa có cảnh → danh sách rỗng (studio2 dẫn bước đầu: brief → viết kịch bản → tách cảnh). */
+export async function quyTrinhTap(phimId: number, tapId: number): Promise<MucQt[] | null> {
+  if (!(await laAdmin())) return null;
+  const [pd, canh] = await Promise.all([docPhim(Number(phimId)), dsCanh(Number(tapId))]);
+  const tap = pd?.tap.find((t) => t.id === Number(tapId));
+  if (!pd || !tap) return null;
+  if (!canh.length) return [];
+  try { return quyTrinh({ tap, phim: phimQt(pd.phim.loai, docKinhThanh(pd.phim.kinh_thanh)), canh: locNhanh(canh, null), canhA: locNhanh(canh, 'A'), nhanVat: pd.nhanVat }); }
+  catch (e) { console.error('[studio2 quy trình]', e); return null; }
+}
+
+/** Các mẫu phim dựng sẵn (mau.ts) cho hộp "Tạo video mới" của Studio 2: tạo từ mẫu = taoPhimMau(key). */
+export async function dsMauPhim(): Promise<{ key: string; nhan: string; loai: string; ten: string; mo_ta: string; so_tap: number }[]> {
+  if (!(await laAdmin())) return [];
+  return MAU_PHIM.map((m) => ({ key: m.key, nhan: m.nhan, loai: m.loai, ten: m.ten, mo_ta: m.mo_ta, so_tap: m.tap.length }));
 }

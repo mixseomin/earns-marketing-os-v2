@@ -83,6 +83,7 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
     if (k?.loi) return <span style={{ color: DO, fontSize: 11.5 }} title={k.loi}>✕ {k.loi}</span>;
     if (k?.ghi) return <span style={{ color: XANH, fontSize: 11.5 }} title={k.ghi}>✓ {k.ghi}</span>;
     if (p.da_chon) return <span style={{ color: MO_SO, fontSize: 11.5 }}>đã chọn cho mẫu này</span>;
+    if (!p.co_link) return <span style={{ color: MO_SO, fontSize: 11.5 }} title="phim chưa có link tập trên Ethopex — máy không tải được tập để dựng; đồng bộ có link thì nút hiện lại">chưa có link tập</span>;
     return <button type="button" onClick={(e) => { e.stopPropagation(); sinh(p); }} title={mau?.dong ? `tạo dòng phim ${mau.dong} — máy sinh creative theo mẫu, mọi cổng của dòng (soát, chấm, phanh chợ, luật lên camp) giữ nguyên` : 'mẫu chưa có máy dựng — chỉ ghi phim, dựng mã mẫu xong máy mới sinh'}
       style={{ fontSize: 11.5, padding: '2px 10px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'var(--accent, #60a5fa)', cursor: 'pointer' }}>
       {mau?.dong ? `Sinh (${mau.dong})` : 'Sinh (máy mẫu)'}</button>;

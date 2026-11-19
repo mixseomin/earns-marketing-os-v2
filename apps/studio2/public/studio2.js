@@ -276,7 +276,7 @@ const S_CD = { tinh: 'Đứng yên', cam_tay: 'Đứng yên', day: 'Phóng gần
 const MAU_NV = ['#c8553d', '#3d7ec8', '#5aa469', '#b08a2e', '#8a5ac8', '#c85a9a'];
 let GOC = {};
 function tuStudio(pd, tap, ds) {
-  const p = pd.phim, tl = TILE[p.kinh_thanh?.ti_le] ? p.kinh_thanh.ti_le : '9:16', so = (x) => Math.round(+x || 0), hoa = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const p = pd.phim, tile = TILE[p.kinh_thanh?.ti_le] ? p.kinh_thanh.ti_le : '9:16', so = (x) => Math.round(+x || 0), hoa = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   // phim nhiều tập có cả trăm anchor: chỉ lấy thứ tập này dùng
   const dung = new Set(ds.flatMap((c) => c.nhan_vat || []).filter((x) => x != null)), nvs = pd.nhanVat.filter((n) => (dung.size ? dung.has(n.id) || dung.has(n.ten) : pd.nhanVat.length <= 12)).slice(0, 40).map((n) => ({ id: `n${n.id}`, ten: n.ten, vai: S_VAI[n.loai] || 'Nhân vật', anh: nho(n.anh_ref?.[0], 320), mo: (n.mo_ta || '').slice(0, 140) }));
   // shot ghi anchor bằng số (phim thường) hoặc bằng tên (video máy dựng)
@@ -302,22 +302,38 @@ function tuStudio(pd, tap, ds) {
       kiem: (Array.isArray(kx?.kiem) ? kx.kiem : []).filter((k) => k.bat_buoc).map((k) => ({ n: k.nhan_vat, ok: !!k.trong_khung })), nv: (c.nhan_vat || []).map((n) => idNv.get(n)).filter(Boolean) });
     tu += tg; return o;
   });
-  const co3d = canh.some((c) => c.m3);
-  return { ten: p.ten + (pd.tap.length > 1 ? ` · tập ${tap.so}` : ''), loai: co3d ? 'phim' : 'tailieu', tile: tl, kieu: 'chart-chapters', vid: tap.video_url || tap.xuat?.[tap.xuat.length - 1]?.url || undefined,
+  const co3d = canh.some((c) => c.m3), tl = p.kinh_thanh?.the_loai || '';
+  // loại hình (chọn bố cục): có 3D → phim nhân vật 3D · quảng cáo · máy dựng · tài liệu / video cả tập lời dẫn → tài liệu · còn lại là phim ngắn / series
+  const loai = co3d ? 'phim' : p.loai === 'quang_cao' || /^qc_/.test(tl) ? 'qc' : p.loai === 'may_dung' ? 'may' : tl === 'tai_lieu' || laMoc ? 'tailieu' : 'doc';
+  return { ten: p.ten + (pd.tap.length > 1 ? ` · tập ${tap.so}` : ''), loai, tile, kieu: 'chart-chapters', vid: tap.video_url || tap.xuat?.[tap.xuat.length - 1]?.url || undefined,
     giong: GIONG[0], toc: 'Vừa', nhac: tap.nhac_url ? NHAC[1] : NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs, set: co3d ? { vat: [], khoi } : undefined, canh, that: { phim: p.id, tap: tap.id, soTap: pd.tap.length } };
 }
 /** dự án chờ: khung trống hiện trong lúc đọc phim thật */
 const duAnCho = () => ({ ten: 'Đang mở phim…', loai: 'hinh', tile: '9:16', kieu: 'chart-chapters', giong: GIONG[0], toc: 'Vừa', nhac: NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs: [], canh: [canhMoi({ nhan: 'Đang mở', anh: TRONG, tg: 4 })], cho: true });
-const LOAI = { hinh: 'Kể chuyện bằng hình', tailieu: 'Tài liệu lời dẫn', phim: 'Phim nhân vật 3D' };
+const LOAI = { hinh: 'Kể chuyện bằng hình', tailieu: 'Tài liệu lời dẫn', phim: 'Phim nhân vật 3D', doc: 'Phim ngắn · series', qc: 'Quảng cáo', may: 'Video máy dựng' };
 const DU_AN = { cn: { bia: 'v/cn/k14.jpg', tao: () => tuDL('cn') }, ynt: { bia: 'v/ynt/k3.jpg', tao: () => tuDL('ynt') }, leo: { bia: 'v/leo-k1.jpg', tao: duAnMau } };
 // ── widget: mỗi bảng là một widget; mỗi LOẠI HÌNH video có một bố cục (danh sách widget theo thứ tự trái sang phải), đổi được và nhớ lại
 const WG = { tv: ['Thư viện', '252px'], kb: ['Kịch bản', '300px'], pc: ['Phân cảnh', 'minmax(220px, .8fr)'], xem: ['Khung xem', 'minmax(0, 1.3fr)'], mb: ['Mặt bằng', 'minmax(190px, .75fr)'], lp: ['Lớp', '250px'], nk: ['Nhật ký', '300px'], tt: ['Thuộc tính', '300px'] };
-const BC_MAU = { hinh: ['tv', 'xem', 'tt'], tailieu: ['kb', 'xem', 'lp', 'tt'], phim: ['pc', 'xem', 'mb', 'tt'] };
+// BỐ CỤC ĐẶT SẴN theo loại video — mỗi bố cục là các widget đã đặt chỗ trên lưới 24 × 16 ([x, y, rộng, cao]); `cho` = các thể loại của studio.on.tc dùng bố cục này
+// (gói thể loại: apps/xuong-video/src/lib/xuong-video/goi-the-loai.ts · template QC: apps/xuong-video/mau/templates.json · video máy dựng: may-dung-*.ts).
+// Sáu bố cục đầu là mặc định của sáu loại hình (LOAI); 'soi' là bố cục làm việc dùng cho mọi loại. Thêm loại video mới = thêm một mục ở đây + tên ở LOAI.
+const BO_CUC = {
+  phim: { ten: 'Phim nhân vật 3D', cho: 'Series hoạt hình, phim ngắn dựng 3D: phân cảnh, mặt bằng, máy quay', o: { pc: [0, 0, 6, 16], xem: [6, 0, 10, 16], mb: [16, 0, 8, 8], tt: [16, 8, 8, 8] } },
+  doc: { ten: 'Phim ngắn · series', cho: 'Phim ngắn dọc, kinh dị, hài, tình cảm, anime, MV, trailer', o: { pc: [0, 0, 6, 16], xem: [6, 0, 8, 16], kb: [14, 0, 4, 16], tt: [18, 0, 6, 16] } },
+  qc: { ten: 'Quảng cáo', cho: 'UGC, khuyến mãi, demo sản phẩm, thử đồ, các template quảng cáo', o: { kb: [0, 0, 6, 16], xem: [6, 0, 8, 16], tt: [14, 0, 10, 8], nk: [14, 8, 10, 8] } },
+  tailieu: { ten: 'Tài liệu lời dẫn', cho: 'Tài liệu ngắn, giải thích, tin tức, video bản đồ: lời dẫn và lớp hình', o: { kb: [0, 0, 6, 16], xem: [6, 0, 10, 16], lp: [16, 0, 8, 8], tt: [16, 8, 8, 8] } },
+  hinh: { ten: 'Kể chuyện bằng hình', cho: 'Kể chuyện có người dẫn, thiếu nhi, slideshow ảnh: chọn hình và lời', o: { tv: [0, 0, 6, 16], xem: [6, 0, 12, 16], tt: [18, 0, 6, 16] } },
+  may: { ten: 'Video máy dựng', cho: 'Top, so sánh, câu đố, lật thẻ, carousel: máy dựng cả tập từ dữ liệu', o: { kb: [0, 0, 6, 16], xem: [6, 0, 12, 16], tt: [18, 0, 6, 16] } },
+  soi: { ten: 'Soi từng bước sinh', cho: 'Gỡ lỗi mọi loại video: phân cảnh và nhật ký lượt sinh (phim của studio)', o: { pc: [0, 0, 6, 16], xem: [6, 0, 8, 16], nk: [14, 0, 10, 8], tt: [14, 8, 10, 8] } },
+};
+const viMau = (k) => Object.fromEntries(Object.entries(BO_CUC[k].o).map(([w, [x, y, rong, cao]]) => [w, { x, y, w: rong, h: cao }]));
+const BC_MAU = Object.fromEntries(Object.entries(BO_CUC).map(([k, b]) => [k, Object.keys(b.o).sort((a, c) => b.o[a][0] - b.o[c][0] || b.o[a][1] - b.o[c][1])]));
 
 let D = duAnMau();
 const E = { man: 'dung', ban: 'pro', da: 'cn', nguon: 'anh', hop: true, tat: false, ttTab: 'may', bc: JSON.parse(JSON.stringify(BC_MAU)), menu: null,
-  t: 0, chon: null, pxs: 22, tab: 'Mẫu', chay: false, lui: [], toi: [], xuat: null, moDoi: false, moNv: false, moThem: false, dangGo: false, o: 'tv', vua: false, canhDang: null, solo: null, tap: null, tim: '', kq: undefined, kqLoi: '', nkBuoc: 'anh', nk: null, nkMo: null, nkCt: {}, luoi: { n: 12, hien: false, vi: {} }, tlCao: 0 };
-try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { if (l.ban === 'gon' || l.ban === 'pro') E.ban = l.ban; if (DU_AN[l.da] || /^\d+$/.test(l.da || '')) { E.da = l.da; E.tap = +l.tap || null; } for (const k in BC_MAU) if (Array.isArray(l.bc?.[k]) && l.bc[k].includes('xem') && l.bc[k].every((w) => WG[w])) E.bc[k] = l.bc[k]; if ([6, 12, 24].includes(l.luoi?.n)) E.luoi.n = l.luoi.n; E.luoi.hien = !!l.luoi?.hien; if (l.luoi?.vi && typeof l.luoi.vi === 'object') for (const k in BC_MAU) if (l.luoi.vi[k]) E.luoi.vi[k] = l.luoi.vi[k]; if (l.tlCao >= 110) E.tlCao = +l.tlCao; } } catch {}
+  t: 0, chon: null, pxs: 22, tab: 'Mẫu', chay: false, lui: [], toi: [], xuat: null, moDoi: false, moNv: false, moThem: false, dangGo: false, o: 'tv', vua: false, canhDang: null, solo: null, tap: null, tim: '', kq: undefined, kqLoi: '', nkBuoc: 'anh', nk: null, nkMo: null, nkCt: {}, luoi: { pb: 2, n: 12, hien: false, vi: {}, ten: {} }, tlCao: 0 };
+try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { if (l.ban === 'gon' || l.ban === 'pro') E.ban = l.ban; if (DU_AN[l.da] || /^\d+$/.test(l.da || '')) { E.da = l.da; E.tap = +l.tap || null; } for (const k in BC_MAU) if (Array.isArray(l.bc?.[k]) && l.bc[k].includes('xem') && l.bc[k].every((w) => WG[w])) E.bc[k] = l.bc[k]; if ([6, 12, 24].includes(l.luoi?.n)) E.luoi.n = l.luoi.n; E.luoi.hien = !!l.luoi?.hien; if (l.luoi?.pb === 2 && l.luoi.vi && typeof l.luoi.vi === 'object') for (const k in BC_MAU) { if (BO_CUC[l.luoi.ten?.[k]]) E.luoi.ten[k] = l.luoi.ten[k];   // pb: bản 1 tự ghi bố cục một hàng vào sổ, che mất bố cục đặt sẵn → bỏ
+     if (l.luoi.vi[k]) E.luoi.vi[k] = l.luoi.vi[k]; } if (l.tlCao >= 110) E.tlCao = +l.tlCao; } } catch {}
 try { const q = new URLSearchParams(location.search); if (q.get('ban') === 'gon' || q.get('ban') === 'pro') E.ban = q.get('ban'); if (DU_AN[q.get('phim')] || /^\d+$/.test(q.get('phim') || '')) { E.da = q.get('phim'); E.tap = +q.get('tap') || null; } } catch {}
 const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc, luoi: E.luoi, tlCao: E.tlCao })); } catch {} try { history.replaceState(null, '', `?phim=${E.da}${E.tap ? `&tap=${E.tap}` : ''}&ban=${E.ban}${pro() && D.that && co('nk') ? `&nk=${E.nkBuoc}` : ''}`); } catch {} };
 const pro = () => E.ban === 'pro', boCuc = () => (pro() ? E.bc[D.loai].filter((w) => (w !== 'nk' || !!D.that) && (!D.that || ((w !== 'lp' || coLop()) && (w !== 'mb' || !!D.set)))) : BC_MAU.hinh), co = (w) => boCuc().includes(w);
@@ -384,6 +400,8 @@ const veKq = () => { const el = $('#mnKq'); if (el) { el.innerHTML = veKqTim(); 
 const HANG = { 6: 4, 12: 8, 24: 16 }, NANG = { tv: 5, kb: 5, pc: 5, xem: 9, mb: 5, lp: 4, nk: 5, tt: 5 };
 let GS = null, gsDang = false, gsDau = '';
 for (const w in WG) { const s = $(`#w-${w}`), o = document.createElement('div'), c = document.createElement('div'); o.className = 'grid-stack-item w-o'; o.id = `o-${w}`; c.className = 'grid-stack-item-content'; s.before(o); c.append(s); o.append(c); }
+/** bố cục đặt sẵn đang dùng (để tô đậm trong menu): chưa sắp tay = của loại hình; đã sắp = bố cục nào trùng khít thì là nó */
+const dangBc = () => (E.luoi.vi[D.loai] ? E.luoi.ten[D.loai] || '' : D.loai);
 const luoiBat = () => pro() && window.innerWidth > 900 && E.man === 'dung' && typeof GridStack !== 'undefined', caoO = () => Math.max(24, $('#dGiua').clientHeight / HANG[E.luoi.n]);
 /** bố cục mặc định: một hàng cao hết khu, bề rộng chia theo NANG (Khung xem rộng nhất); nhiều widget hơn số cột thì xếp hai hàng */
 function luoiMau(ds, n, r) {
@@ -397,9 +415,11 @@ function luoiMau(ds, n, r) {
 function chenO(vi, n) { const ung = Object.entries(vi).filter(([, v]) => v.w >= 2).sort((a, b) => b[1].w * b[1].h - a[1].w * a[1].h || (b[0] === 'xem') - (a[0] === 'xem'))[0]; if (!ung) return null;
   const c = ung[1], nw = Math.max(1, Math.min(Math.round(n / 4), Math.floor(c.w / 2))); c.w -= nw; return { x: c.x + c.w, y: c.y, w: nw, h: c.h }; }
 /** tắt một widget: chỗ trống nhường cho widget liền kề cùng hàng cùng chiều cao (ưu tiên Khung xem, rồi bên trái) */
-function boO(vi, w) { const r = vi[w]; delete vi[w]; const ke = Object.entries(vi).filter(([, a]) => a.y === r.y && a.h === r.h && (a.x + a.w === r.x || a.x === r.x + r.w)).sort((a, b) => (b[0] === 'xem') - (a[0] === 'xem') || a[1].x - b[1].x)[0]; if (!ke) return;
-  if (ke[1].x > r.x) ke[1].x = r.x; ke[1].w += r.w; }
-function ghiLuoi() { if (!GS) return; const kc = 24 / E.luoi.n, kr = 16 / HANG[E.luoi.n], vi = {}; for (const nd of GS.engine.nodes) vi[nd.id] = { x: nd.x * kc, y: nd.y * kr, w: nd.w * kc, h: nd.h * kr }; E.luoi.vi[D.loai] = vi; gsDau = JSON.stringify([E.luoi.n, D.loai, vi]); }
+function boO(vi, w) { const r = vi[w]; delete vi[w]; const ke = Object.entries(vi).filter(([, a]) => a.y === r.y && a.h === r.h && (a.x + a.w === r.x || a.x === r.x + r.w)).sort((a, b) => (b[0] === 'xem') - (a[0] === 'xem') || a[1].x - b[1].x)[0];
+  if (ke) { if (ke[1].x > r.x) ke[1].x = r.x; ke[1].w += r.w; return; }
+  const doc = Object.entries(vi).find(([, a]) => a.x === r.x && a.w === r.w && (a.y + a.h === r.y || a.y === r.y + r.h)); if (doc) { if (doc[1].y > r.y) doc[1].y = r.y; doc[1].h += r.h; } }
+/** đọc vị trí thật trên lưới; `nho` = ghi vào sổ của loại hình (chỉ khi người dùng đã tự sắp — chưa sắp thì loại đó cứ theo bố cục đặt sẵn) */
+function ghiLuoi(nho = true) { if (!GS) return; const kc = 24 / E.luoi.n, kr = 16 / HANG[E.luoi.n], vi = {}; for (const nd of GS.engine.nodes) vi[nd.id] = { x: nd.x * kc, y: nd.y * kr, w: nd.w * kc, h: nd.h * kr }; if (nho) E.luoi.vi[D.loai] = vi; gsDau = JSON.stringify([E.luoi.n, D.loai, vi]); }
 function tatLuoi() { const g = $('#dGiua'); if (GS) { GS.destroy(false); GS = null; } gsDau = ''; g.classList.remove('luoi-bat', 'grid-stack', 'dang-keo', 'hien-luoi'); g.style.height = ''; g.style.minHeight = '';
   for (const w in WG) { const o = $(`#o-${w}`); o.hidden = false; o.removeAttribute('style'); for (const a of [...o.attributes]) if (a.name.startsWith('gs-')) o.removeAttribute(a.name); o.querySelectorAll(':scope > .ui-resizable-handle').forEach((x) => x.remove()); } }
 function dongBoLuoi(ds) {
@@ -408,9 +428,9 @@ function dongBoLuoi(ds) {
   if (!GS) { g.classList.add('luoi-bat');
     GS = GridStack.init({ column: n, maxRow: r, cellHeight: caoO(), margin: 4, mode: 'float', animate: false, auto: false, handle: '.w-dau', draggable: { handle: '.w-dau', cancel: 'button, input, a, textarea, select' }, resizable: { handles: 'e, se, s, sw, w' }, alwaysShowResizeHandle: false }, g);
     GS.on('dragstart resizestart', () => g.classList.add('dang-keo'));
-    GS.on('dragstop resizestop', () => { g.classList.remove('dang-keo'); if (gsDang) return; ghiLuoi(); luu(); veD(); }); }
+    GS.on('dragstop resizestop', () => { g.classList.remove('dang-keo'); if (gsDang) return; ghiLuoi(); delete E.luoi.ten[D.loai]; luu(); veD(); }); }
   g.style.setProperty('--so-cot', n); g.style.setProperty('--so-hang', r); g.classList.toggle('hien-luoi', E.luoi.hien);
-  const goc = E.luoi.vi[D.loai], kep = (v) => { const w = Math.max(1, Math.min(n, Math.round(v.w / kc))), h = Math.max(1, Math.min(r, Math.round(v.h / kr))); return { x: Math.max(0, Math.min(n - w, Math.round(v.x / kc))), y: Math.max(0, Math.min(r - h, Math.round(v.y / kr))), w, h }; };
+  const daSap = !!E.luoi.vi[D.loai], goc = E.luoi.vi[D.loai] || viMau(D.loai), mep = (a, b, k, toiDa) => { let m0 = Math.max(0, Math.min(toiDa - 1, Math.round(a / k))), m1 = Math.min(toiDa, Math.round((a + b) / k)); if (m1 <= m0) m1 = m0 + 1; return [m0, m1 - m0]; }, kep = (v) => { const [x, w] = mep(v.x, v.w, kc, n), [y, h] = mep(v.y, v.h, kr, r); return { x, y, w, h }; };
   let vi = goc ? Object.fromEntries(Object.entries(goc).filter(([w, v]) => WG[w] && v && v.w > 0 && v.h > 0).map(([w, v]) => [w, kep(v)])) : {};
   if (!Object.keys(vi).length) vi = luoiMau(ds, n, r);
   else { for (const w of Object.keys(vi)) if (!ds.includes(w)) boO(vi, w); for (const w of ds) if (!vi[w]) vi[w] = chenO(vi, n) || { w: Math.max(1, Math.round(n / 4)), h: r }; }
@@ -419,7 +439,7 @@ function dongBoLuoi(ds) {
   gsDang = true; GS.batchUpdate(); GS.removeAll(false, false);
   for (const w in WG) $(`#o-${w}`).hidden = !ds.includes(w);
   for (const w of [...ds].sort((a, b) => (vi[a].y ?? 99) - (vi[b].y ?? 99) || (vi[a].x ?? 99) - (vi[b].x ?? 99))) GS.makeWidget($(`#o-${w}`), { id: w, ...vi[w], autoPosition: vi[w].x == null });
-  GS.batchUpdate(false); gsDang = false; ghiLuoi();
+  GS.batchUpdate(false); gsDang = false; ghiLuoi(daSap);
 }
 // chiều cao một ô = chiều cao khu widget / số hàng: khu này co giãn theo cửa sổ + timeline (timeline vẽ SAU bố cục) nên đo lại mỗi khi nó đổi cỡ
 let caoCu = 0; new ResizeObserver(() => { if (!GS) return; const c = caoO(); if (Math.abs(c - caoCu) > 0.2) { caoCu = c; GS.cellHeight(c); } }).observe($('#dGiua'));
@@ -522,7 +542,7 @@ function veMenu() {
   if (E.menu.loai === 'da') h = `<h3>Phim của studio</h3><input type="text" id="mnTim" placeholder="Tìm theo tên phim" value="${esc(E.tim)}" aria-label="Tìm phim của studio" autocomplete="off"><div class="mn-kq" id="mnKq">${veKqTim()}</div><h3>Video mẫu để thử</h3>${Object.entries(DU_AN).map(([k, a]) => `<button type="button" class="mn-da" data-d="duAn" data-g="${k}" aria-pressed="${E.da === k}"><img src="${a.bia}" alt=""><span><b>${esc(a.ten)}</b><small>${LOAI[a.loai]} · ${a.so} cảnh · ${gio(a.dai)}</small></span></button>`).join('')}`;
   else { const ds = boCuc();
     h = `<h3>Bố cục cho loại “${LOAI[D.loai]}”</h3><div class="mn-wg">${Object.keys(WG).map((w) => `<button type="button" class="bt" data-d="wg" data-g="${w}" aria-pressed="${ds.includes(w)}" ${w === 'xem' ? 'disabled' : ''}>${ic(WG[w][0])}${WG[w][0]}</button>`).join('')}</div>
-    <h3>Lấy bố cục của loại khác</h3><div class="day-bt">${Object.keys(BC_MAU).map((k) => `<button type="button" class="bt" data-d="bcMau" data-g="${k}">${LOAI[k]}</button>`).join('')}</div>
+    <h3>Bố cục đặt sẵn theo loại video</h3><div class="mn-bc">${Object.entries(BO_CUC).map(([k, b]) => `<button type="button" data-d="bcMau" data-g="${k}" aria-pressed="${dangBc() === k}" title="${esc(b.cho)}"><svg viewBox="-.5 -.5 25 17" aria-hidden="true">${Object.entries(b.o).map(([w, [x, y, rong, cao]]) => `<rect class="${w === 'xem' ? 'xem' : ''}" x="${x + 0.3}" y="${y + 0.3}" width="${rong - 0.6}" height="${cao - 0.6}" rx=".8"/>`).join('')}</svg><span><b>${b.ten}${k === D.loai ? ' <i>mặc định</i>' : ''}</b><small>${Object.keys(b.o).map((w) => WG[w][0]).join(' · ')}</small></span></button>`).join('')}</div>
     <h3>Lưới</h3><div class="day-bt">${[[6, 'Thô 6 × 4'], [12, 'Vừa 12 × 8'], [24, 'Mịn 24 × 16']].map(([n, t]) => `<button type="button" class="bt" data-d="luoi" data-g="${n}" aria-pressed="${E.luoi.n === n}">${t}</button>`).join('')}</div>
     <div class="day-bt"><button type="button" class="bt" data-d="luoiHien" aria-pressed="${E.luoi.hien}">Luôn hiện lưới</button><button type="button" class="bt" data-d="luoiLai">Xếp lại một hàng</button></div>
     <span class="nho">Kéo đầu widget để dời tới ô khác, kéo mép hoặc góc widget để co giãn ngang và dọc. Mỗi loại hình video nhớ một bố cục riêng.</span>`; }
@@ -547,7 +567,7 @@ function veTv() {
 const veCb = (c) => (dai(c) ? `<div class="bao">${c.khop != null ? `Cảnh đang ngắn hơn lời đã thu (${c.khop} giây) nên lời sẽ bị cắt.` : `Lời này đọc mất khoảng ${docS(c).toFixed(1)} giây, cảnh chỉ dài ${c.tg} giây nên sẽ bị cắt.`}<button type="button" class="bt" data-d="vuaLoi">Kéo dài cảnh cho vừa</button></div>`
   : c.loi.trim() ? `<span class="nho">${c.khop != null ? 'Lời đã thu, vừa với cảnh' : `Đọc hết khoảng ${docS(c).toFixed(1)} giây · cảnh dài ${c.tg} giây`}</span>` : '');
 function canhBao() {
-  const o = D.canh.map((c, i) => (dai(c) ? `Cảnh ${i + 1} (${c.nhan}): lời dài hơn cảnh` : !c.loi.trim() && D.loai !== 'phim' ? `Cảnh ${i + 1} (${c.nhan}): chưa có lời đọc` : null)).filter(Boolean);
+  const o = D.canh.map((c, i) => (dai(c) ? `Cảnh ${i + 1} (${c.nhan}): lời dài hơn cảnh` : !c.loi.trim() && ['hinh', 'tailieu', 'may'].includes(D.loai) ? `Cảnh ${i + 1} (${c.nhan}): chưa có lời đọc` : null)).filter(Boolean);
   if (pro()) { const n = D.canh.filter((c) => c.soi?.length || c.ban3).length; if (n) o.push(`${n} cảnh còn điểm cần xem ở thẻ Soát`); }
   if (D.tile === '9:16' && tong() > 60) o.push(`Video dài ${Math.round(tong())} giây: Shorts và Reels chỉ nhận tới 60 giây`);
   return o;
@@ -773,16 +793,16 @@ function lamD(a, d = {}, nut) {
     case 'lopAn': { const y = canhTai(Math.min(E.t, tong() - 0.001)).c; ghi(); y.an = y.an || []; const k = y.an.indexOf(g); if (k >= 0) y.an.splice(k, 1); else y.an.push(g); E.solo = null; E.nguon = 'lop'; dungChay(); return veD(); }
     case 'lopSolo': { const y = canhTai(Math.min(E.t, tong() - 0.001)).c; E.solo = E.solo?.id === y.id && E.solo.k === g ? null : { id: y.id, k: g }; E.nguon = 'lop'; dungChay(); return veD(); }
     case 'lopHet': { const y = canhTai(Math.min(E.t, tong() - 0.001)).c; if (y.an?.length) { ghi(); y.an = []; } E.solo = null; return veD(); }
-    case 'wg': { const ds = E.bc[D.loai], i = ds.indexOf(g); if (i >= 0) ds.splice(i, 1); else ds.splice(g === 'tt' || g === 'mb' || g === 'lp' || g === 'nk' ? (ds.includes('tt') && g !== 'tt' ? ds.indexOf('tt') : ds.length) : Math.max(0, ds.indexOf('xem')), 0, g); luu(); return veD(); }
-    case 'wgDi': { const ds = E.bc[D.loai], vi = E.luoi.vi[D.loai], hien = luoiBat() && vi ? boCuc().filter((w) => vi[w]).sort((a, b) => vi[a].y - vi[b].y || vi[a].x - vi[b].x) : boCuc(), kia = hien[hien.indexOf(g) + +d.k]; if (!kia) return;
+    case 'wg': { delete E.luoi.ten[D.loai]; const ds = E.bc[D.loai], i = ds.indexOf(g); if (i >= 0) ds.splice(i, 1); else ds.splice(g === 'tt' || g === 'mb' || g === 'lp' || g === 'nk' ? (ds.includes('tt') && g !== 'tt' ? ds.indexOf('tt') : ds.length) : Math.max(0, ds.indexOf('xem')), 0, g); luu(); return veD(); }
+    case 'wgDi': { if (luoiBat() && GS) { ghiLuoi(); delete E.luoi.ten[D.loai]; } const ds = E.bc[D.loai], vi = E.luoi.vi[D.loai], hien = luoiBat() && vi ? boCuc().filter((w) => vi[w]).sort((a, b) => vi[a].y - vi[b].y || vi[a].x - vi[b].x) : boCuc(), kia = hien[hien.indexOf(g) + +d.k]; if (!kia) return;
       if (luoiBat() && vi) [vi[g], vi[kia]] = [vi[kia], vi[g]]; else { const i = ds.indexOf(g), j = ds.indexOf(kia); [ds[i], ds[j]] = [ds[j], ds[i]]; } luu(); veD(); return document.querySelector(`.w-ten[data-wg="${g}"]`)?.focus(); }
     case 'nkBuoc': E.nkBuoc = g; E.nkMo = null; luu(); return veNk();
     case 'nkMo': E.nkMo = E.nkMo === +g ? null : +g; veNk(); if (E.nkMo) napNkCanh(); return;
     case 'nkBat': { const ds = E.bc[D.loai]; if (!ds.includes('nk')) ds.splice(ds.includes('tt') ? ds.indexOf('tt') : ds.length, 0, 'nk'); if (g) E.nkBuoc = g; luu(); return veD(); }
-    case 'bcMau': E.bc[D.loai] = [...BC_MAU[g]]; delete E.luoi.vi[D.loai]; luu(); return veD();
+    case 'bcMau': E.bc[D.loai] = [...BC_MAU[g]]; delete E.luoi.ten[D.loai]; if (g === D.loai) delete E.luoi.vi[D.loai]; else { E.luoi.vi[D.loai] = viMau(g); E.luoi.ten[D.loai] = g; } luu(); return veD();
     case 'luoi': E.luoi.n = +g; tatLuoi(); luu(); return veD();
     case 'luoiHien': E.luoi.hien = !E.luoi.hien; luu(); return veD();
-    case 'luoiLai': delete E.luoi.vi[D.loai]; luu(); return veD();
+    case 'luoiLai': delete E.luoi.ten[D.loai]; E.luoi.vi[D.loai] = luoiMau(boCuc(), 24, 16); luu(); return veD();
     case 'moTao': dungChay(); E.menu = null; return man('tao');
     case 'veDung': return man('dung');
     case 'moDung': { const hm = HINH.find((h) => h[0] === S.hinh)?.[1];

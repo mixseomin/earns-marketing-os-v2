@@ -159,6 +159,15 @@ def main():
             q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'so_dang', 'so_dang:' || md5($N${nd}$N$), 'do', $N$Sổ dạng creative lệch / có bảng dạng tự khai:\n{nd}$N$
                   where not exists (select 1 from etp.canh_bao where khoa = 'so_dang:' || md5($N${nd}$N$))""")
     except Exception as e: loi.append(f"so_dang: {e}")
+    # ── SỔ MẪU (anh 19/11/2026 "Ko còn creative tự do nữa"): so_mau.py --tu-kiem mỗi lượt — dạng có dòng phim mà chưa có công thức (máy dòng phim sẽ bị chặn
+    # ở bước tải creative), hay có tệp mới gọi thẳng bulk-jobs ngoài cổng len-creative.py → cảnh báo Telegram (một lần mỗi nội dung)
+    try:
+        r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "so_mau.py"), "--tu-kiem"], capture_output=True, text=True, timeout=60)
+        if r.returncode:
+            nd = (r.stderr or r.stdout).strip()[:1500]
+            q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'so_mau', 'so_mau:' || md5($N${nd}$N$), 'do', $N$Sổ mẫu creative: có đường lên creative không theo mẫu:\n{nd}$N$
+                  where not exists (select 1 from etp.canh_bao where khoa = 'so_mau:' || md5($N${nd}$N$))""")
+    except Exception as e: loi.append(f"so_mau: {e}")
     # CPM THEO NƯỚC (anh 11/11/2026 "thông tin đúng hơn"): report chiều geo — 04/11 → 10/11 CPM chung +29% nhưng CPM Mỹ chỉ +13%, phần còn lại là tỉ trọng chi Mỹ
     # 78% → 86% (Mỹ đắt nhất, Tây Ban Nha $4,6). Ghi 8 nước chi nhiều nhất mỗi ngày vào cpm_ngay[ngày].nuoc {mã nước: {chi, cpm, roi}} — widget Thị trường etp2 đọc.
     def cpm_nuoc(ngay):

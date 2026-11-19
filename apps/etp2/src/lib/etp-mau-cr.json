@@ -1,60 +1,626 @@
 {
-  "_ghi": "SỔ MẪU CREATIVE — bố cục ảnh + lớp phủ chữ / nút (anh 19/11/2026: 'Tạo 1 tab mới là Mẫu Creative và tổng hợp vào đó'). DẠNG video / khung tĩnh KHÔNG khai ở đây — đọc từ etp-dang.json (sổ dạng duy nhất). Thêm mẫu = thêm MỘT mục. trang_thai: may = máy dựng đang dùng · thu = đã có mã dựng, chưa vào máy · chua = mới là mẫu tham chiếu, chưa có mã. tham_chieu = library_id QC đối thủ (ảnh img.on.tc/etp-doi-thu/<id>.jpg, link Thư viện QC Meta).",
-  "mau": [
-    { "ma": "kem", "ten": "Giấy kem", "loai": "bo_cuc", "nguon": "nha", "trang_thai": "thu", "dung_cho": ["poster động", "ảnh tĩnh"], "anh": "/mau-cr/kem.jpg", "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › kem",
-      "mo_ta": "Nền giấy ngả sắc phim, khung phim phía trên viền mảnh, tên phim chữ đậm + vạch + tagline (kiểu The Godfather / Titanic)." },
-    { "ma": "mot_mau", "ten": "Một màu", "loai": "bo_cuc", "nguon": "nha", "trang_thai": "thu", "dung_cho": ["poster động", "ảnh tĩnh"], "anh": "/mau-cr/mot_mau.jpg", "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › mot_mau",
-      "mo_ta": "Người tách nền đổ hai màu (tối + nhấn của phim) trên nền tối, tên phim phía trên (kiểu Joker / Oppenheimer)." },
-    { "ma": "chu_sau", "ten": "Chữ sau người", "loai": "bo_cuc", "nguon": "nha", "trang_thai": "thu", "dung_cho": ["poster động", "ảnh tĩnh"], "anh": "/mau-cr/chu_sau.jpg", "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › chu_sau",
-      "mo_ta": "Tên phim khổng lồ phía sau, người tách nền đè lên trước, nền khung mờ tối (kiểu Monster / The Batman)." },
-    { "ma": "ghep", "ten": "Ghép mảnh", "loai": "bo_cuc", "nguon": "nha", "trang_thai": "thu", "dung_cho": ["poster động", "ảnh tĩnh"], "anh": "/mau-cr/ghep.jpg", "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › ghep",
-      "mo_ta": "Ba khung thật xếp chéo, dải tên phim ở giữa trên nền sáng của phim." },
-    { "ma": "toi_gian", "ten": "Tối giản", "loai": "bo_cuc", "nguon": "nha", "trang_thai": "thu", "dung_cho": ["poster động", "ảnh tĩnh"], "anh": "/mau-cr/toi_gian.jpg", "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › toi_gian",
-      "mo_ta": "Người trắng đen trên nền giấy sắc phim + vệt màu nhấn chéo, tên phim phía dưới (kiểu The Substance)." },
-    { "ma": "leon", "ten": "Chữ dọc", "loai": "bo_cuc", "nguon": "nha", "trang_thai": "thu", "dung_cho": ["poster động", "ảnh tĩnh"], "anh": "/mau-cr/leon.jpg", "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › leon",
-      "mo_ta": "Người màu bên trái, từ dài nhất của tên xếp dọc từng chữ ở cột phải màu nhấn, cả tên nhỏ trên đầu (kiểu Léon)." },
-    { "ma": "chan_dung", "ten": "Cận mặt", "loai": "bo_cuc", "nguon": "nha", "trang_thai": "thu", "dung_cho": ["poster động", "ảnh tĩnh", "câu thoại sốc"], "anh": "/mau-cr/chan_dung.jpg", "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › chan_dung",
-      "mo_ta": "Cận mặt rất lớn, viền tối sắc phim, tên phim + tagline phía dưới (teaser kiểu Oppenheimer / The Batman)." },
-    { "ma": "khung_tron", "ten": "Khung tròn", "loai": "bo_cuc", "nguon": "nha", "trang_thai": "thu", "dung_cho": ["poster động", "ảnh tĩnh"], "anh": "/mau-cr/khung_tron.jpg", "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › khung_tron",
-      "mo_ta": "Khung phim trong vòng tròn giữa nền màu nhấn của phim + dải tối phía dưới (kiểu Train to Busan)." },
-    { "ma": "hai_nguoi", "ten": "Hai nhân vật", "loai": "bo_cuc", "nguon": "nha", "trang_thai": "thu", "dung_cho": ["poster động", "ảnh tĩnh"], "anh": "/mau-cr/hai_nguoi.jpg", "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › hai_nguoi",
-      "mo_ta": "Hai khung chia chéo trên / dưới, băng chéo màu nhấn mang tên phim (poster hai nhân vật)." },
-
-    { "ma": "dt_ten_vang", "ten": "Tên vàng nổi khối", "loai": "lop_phu", "nguon": "doi_thu", "trang_thai": "chua", "dung_cho": ["ảnh tĩnh", "câu thoại sốc", "cảnh thật", "cảnh cuối", "tập nguyên"], "the_loai": ["tỷ phú", "tình cảm", "fantasy"],
-      "tham_chieu": ["1468562788627941", "2210241639548499", "1419786253363654"],
-      "mo_ta": "Tên phim chữ vàng bóng nổi khối (vát cạnh, đổ bóng) đặt 1/3 dưới, đè thẳng lên khung phim điện ảnh — không nền, không nút. Hai QC chạy lâu nhất kho đối thủ (92 ngày)." },
-    { "ma": "dt_logo_chat_lieu", "ten": "Logo chất liệu chủ đề", "loai": "lop_phu", "nguon": "doi_thu", "trang_thai": "chua", "dung_cho": ["ảnh tĩnh", "poster động", "cảnh thật"], "the_loai": ["fantasy", "sói", "thần thoại"],
-      "tham_chieu": ["1787847032557362", "3003117683383697", "1851918955714094"],
-      "mo_ta": "Tên phim vẽ bằng chất liệu theo chủ đề phim (sóng nước, lửa, phép thuật, huy hiệu) có hoạ tiết bao quanh — logo như phim chiếu rạp." },
-    { "ma": "dt_ten_nut_vang", "ten": "Tên + nút WATCH NOW viền vàng", "loai": "lop_phu", "nguon": "doi_thu", "trang_thai": "chua", "dung_cho": ["ảnh tĩnh", "câu thoại sốc", "cảnh thật", "cảnh cuối"], "the_loai": [],
-      "tham_chieu": ["1077794738566345", "1092249746682945"],
-      "mo_ta": "Tên phim hai tầng (từ khoá tô đỏ) giữa khung + nút bo tròn WATCH NOW viền vàng ngay dưới tên." },
-    { "ma": "dt_key_art_neon", "ten": "Key-art neon + câu nhử", "loai": "bo_cuc", "nguon": "doi_thu", "trang_thai": "chua", "dung_cho": ["poster động", "ảnh tĩnh"], "the_loai": ["hành động", "tù ngục", "mafia"],
-      "tham_chieu": ["1889799045326032"],
-      "mo_ta": "Nhân vật tách nền chồng hai lớp (chính + phụ), nền chuyển đỏ–tím rực có tia sáng, câu nhử trên đỉnh tô đỏ một từ ('To fight crime, he became a criminal'), tên + nút dưới." },
-    { "ma": "dt_cau_nhu_dinh", "ten": "Câu nhử chữ nghiêng trên đỉnh", "loai": "lop_phu", "nguon": "doi_thu", "trang_thai": "chua", "dung_cho": ["cảnh thật", "cảnh cuối", "tập nguyên", "ảnh tĩnh"], "the_loai": [],
-      "tham_chieu": ["4503252533269379"],
-      "mo_ta": "Một câu nhử chữ có chân nghiêng trắng ở đỉnh khung, một từ tô đỏ ('A fighter is thrown into the death arena') — giữ cảnh phim sạch ở dưới." },
-    { "ma": "dt_su_thi", "ten": "Poster sử thi khắc chữ", "loai": "bo_cuc", "nguon": "doi_thu", "trang_thai": "chua", "dung_cho": ["poster động"], "the_loai": ["fantasy", "rồng", "cổ trang"],
-      "tham_chieu": ["2193667711364272", "1078372875245973"],
-      "mo_ta": "Poster vẽ sử thi (nhân vật + rồng / lửa), tên phim chữ có chân khắc ánh kim + dòng nhỏ dưới 'A FANTASY ROMANCE EPIC'." },
-    { "ma": "dt_hanh_dong_kim_loai", "ten": "Tên hành động kim loại", "loai": "lop_phu", "nguon": "doi_thu", "trang_thai": "chua", "dung_cho": ["ảnh tĩnh", "poster động", "cảnh thật"], "the_loai": ["hành động", "quân đội", "võ"],
-      "tham_chieu": ["2218759858703858", "28606044065745348"],
-      "mo_ta": "Tên phim chữ hẹp nghiêng đậm kiểu phim hành động, mặt kim loại xước / trắng viền tối, đặt giữa dưới." },
-    { "ma": "dt_khung_player", "ten": "Khung trình phát + EXCLUSIVE", "loai": "lop_phu", "nguon": "doi_thu", "trang_thai": "chua", "dung_cho": ["cảnh thật", "cảnh cuối", "tập nguyên", "ảnh tĩnh"], "the_loai": [],
-      "tham_chieu": ["1459936659424344"],
-      "mo_ta": "Cảnh phim đặt giữa hai dải đen như màn hình trình phát, nút play đỏ ở giữa, nhãn EXCLUSIVE + tên phim phía dưới." },
-    { "ma": "dt_dai_free", "ten": "Dải trắng WATCH FREE trên đỉnh", "loai": "lop_phu", "nguon": "doi_thu", "trang_thai": "chua", "dung_cho": ["cảnh thật", "cảnh cuối", "tập nguyên", "kể chuyện"], "the_loai": [],
-      "tham_chieu": ["1114104751104052"],
-      "mo_ta": "Một dải trắng mảnh trên đỉnh khung chữ đen 'WATCH MOVIES NOW! FREE' — báo miễn phí ngay giây đầu, cảnh phim giữ nguyên." },
-    { "ma": "dt_theo_mua", "ten": "Theo mùa (Giáng sinh)", "loai": "bo_cuc", "nguon": "doi_thu", "trang_thai": "chua", "dung_cho": ["poster động", "ảnh tĩnh"], "the_loai": ["tỷ phú", "tình cảm"],
-      "tham_chieu": ["1088302080694453"],
-      "mo_ta": "Key-art cặp nhân vật trên nền theo mùa (cây thông, tuyết, mũ Noel), tên phim nhiều tầng + nút WATCH NOW viền vàng." },
-    { "ma": "dt_logo_goc", "ten": "Logo phim nhỏ ở góc + phụ đề", "loai": "lop_phu", "nguon": "doi_thu", "trang_thai": "chua", "dung_cho": ["cảnh thật", "cảnh cuối", "tập nguyên"], "the_loai": [],
-      "tham_chieu": ["1262667959359716", "1069410726133558"],
-      "mo_ta": "Logo tên phim chữ nghiêng nhỏ ở góc trên trái, phụ đề thoại trơn giữa dưới — trông như cảnh trích từ phim thật." },
-    { "ma": "dt_nut_free_do", "ten": "Nút Watch Free đỏ nhỏ", "loai": "lop_phu", "nguon": "doi_thu", "trang_thai": "chua", "dung_cho": ["cảnh thật", "cảnh cuối", "tập nguyên", "ảnh tĩnh"], "the_loai": [],
-      "tham_chieu": ["2512666309260387"],
-      "mo_ta": "Nút bo tròn đỏ nhỏ 'Watch Free' đặt 1/3 dưới, đè thẳng lên cảnh phim — không tên phim, không nền." }
-  ]
+ "_ghi": "SỔ MẪU CREATIVE — MỘT NƠI (anh 19/11/2026: 'Tạo 1 tab mới là Mẫu Creative' · 'khi lên creative, phải dựa vào 1 mẫu nào đó! Nếu chưa có mẫu thì phải tìm cho ra hoặc phải bổ sung mới!! Ko còn creative tự do nữa'). Web (tab Mẫu Creative, lib/actions/etp-mau-cr.ts) và máy (apps/etp/so_mau.py → cổng len-creative.py: creative nào không gắn được mẫu thì KHÔNG được tải lên Ethopex) cùng đọc tệp này. DẠNG không khai ở đây — đọc etp-dang.json. loai: cong_thuc = công thức máy dựng creative (phải có 'dang' = dạng có dấu, 'nhan' = chữ nhận diện trong ghi chú bản dựng khi một dạng có nhiều công thức, 'mac_dinh' = công thức dùng khi không nhận ra) · bo_cuc / lop_phu = mẫu bố cục / lớp chữ-nút. trang_thai: may = máy đang dựng · thu = có mã, chưa vào máy · chua = mới là tham chiếu. CHỈ công thức trạng thái may / thu được tải lên. tham_chieu = library_id QC đối thủ.",
+ "mau": [
+  {
+   "ma": "cc_cta",
+   "ten": "Cảnh cuối + thẻ CTA",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "may",
+   "dang": "cảnh cuối",
+   "mac_dinh": true,
+   "dung_cho": [
+    "cảnh cuối"
+   ],
+   "may": "len-creative.py (dòng CC)",
+   "mo_ta": "Đoạn cao trào cắt từ phim (soát từng đoạn) + thẻ cuối poster sạch, câu hỏi vàng, nút CTA và giọng CTA."
+  },
+  {
+   "ma": "tn_cta",
+   "ten": "Tập nguyên + thẻ CTA",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "may",
+   "dang": "tập nguyên",
+   "mac_dinh": true,
+   "dung_cho": [
+    "tập nguyên"
+   ],
+   "may": "len-creative.py (dòng LT)",
+   "mo_ta": "Một đoạn liền trong tập 1–3, giữ nguyên thoại, thêm thẻ cuối CTA."
+  },
+  {
+   "ma": "ct_thoai",
+   "ten": "Cảnh thật thoại gốc",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "may",
+   "dang": "cảnh thật",
+   "mac_dinh": true,
+   "dung_cho": [
+    "cảnh thật"
+   ],
+   "may": "len-creative.py (đợt cắt cảnh thật)",
+   "mo_ta": "Chuỗi cảnh quay thật với thoại gốc, phụ đề, thẻ WATCH FREE."
+  },
+  {
+   "ma": "pd_dai",
+   "ten": "Phim dài ghép cảnh",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "may",
+   "dang": "phim dài",
+   "mac_dinh": true,
+   "dung_cho": [
+    "phim dài"
+   ],
+   "may": "len-creative.py (phim dài)",
+   "mo_ta": "70–175 giây nhiều cảnh liên tiếp, chèn thẻ WATCH FREE giữa chừng."
+  },
+  {
+   "ma": "lm_dung_lai",
+   "ten": "Làm mới creative cũ",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "may",
+   "dang": "làm mới",
+   "mac_dinh": true,
+   "dung_cho": [
+    "làm mới"
+   ],
+   "may": "len-creative.py (làm mới)",
+   "mo_ta": "Dựng lại dài từ một creative cũ đã chạy: cắt lại thân, giữ hook thắng."
+  },
+  {
+   "ma": "kt_vx",
+   "ten": "Kể chuyện VideoExpress",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "may",
+   "dang": "kể chuyện",
+   "mac_dinh": true,
+   "dung_cho": [
+    "kể chuyện"
+   ],
+   "may": "vx-ke-chuyen.mts → thu-vien-len.py",
+   "mo_ta": "Người kể ngôi thứ nhất tóm cốt truyện, ghép cảnh minh hoạ, chữ phụ chạy theo lời kể."
+  },
+  {
+   "ma": "cp_hoi",
+   "ten": "Chọn phe — thẻ câu hỏi",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dang": "chọn phe",
+   "mac_dinh": true,
+   "dung_cho": [
+    "chọn phe"
+   ],
+   "may": "kieu-moi.py chon_phe",
+   "mo_ta": "Cảnh cao trào, dừng hình + thẻ câu hỏi hai lựa chọn kéo bình luận."
+  },
+  {
+   "ma": "bl_bong_bong",
+   "ten": "Bình luận nổi",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dang": "bình luận",
+   "mac_dinh": true,
+   "dung_cho": [
+    "bình luận"
+   ],
+   "may": "kieu-moi.py binh_luan",
+   "mo_ta": "Cảnh thật + 2–3 bong bóng bình luận nổi lên phía trên."
+  },
+  {
+   "ma": "bk_top3",
+   "ten": "Ba khoảnh khắc #3 #2 #1",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dang": "ba khoảnh khắc",
+   "mac_dinh": true,
+   "dung_cho": [
+    "ba khoảnh khắc"
+   ],
+   "may": "kieu-moi.py top3",
+   "mo_ta": "Ba cảnh mạnh nhất đánh số 3 → 2 → 1, cảnh 1 là cú lật."
+  },
+  {
+   "ma": "ts_chia_doi",
+   "ten": "Trước / sau chia đôi",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dang": "trước sau",
+   "mac_dinh": true,
+   "dung_cho": [
+    "trước sau"
+   ],
+   "may": "kieu-moi.py truoc_sau",
+   "mo_ta": "Chia đôi màn: trên lúc bị coi thường, dưới lúc lật thế, rồi một cảnh toàn màn."
+  },
+  {
+   "ma": "ti_chat",
+   "ten": "Màn chat điện thoại",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dang": "tin nhắn",
+   "mac_dinh": true,
+   "dung_cho": [
+    "tin nhắn"
+   ],
+   "may": "kieu-moi.py tin_nhan",
+   "mo_ta": "Mở bằng màn chat (tin hiện từng dòng, tiếng ting) rồi vào cảnh thật."
+  },
+  {
+   "ma": "at_khung",
+   "ten": "Ảnh tĩnh khung đẹp",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "may",
+   "dang": "ảnh tĩnh",
+   "mac_dinh": true,
+   "dung_cho": [
+    "ảnh tĩnh"
+   ],
+   "may": "anh-tinh.py",
+   "mo_ta": "Một khung phim đẹp nét đứng yên ~9–12 giây + tên phim + giọng đọc ngắn."
+  },
+  {
+   "ma": "att_tom_tat",
+   "ten": "Ảnh tĩnh tóm tắt",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "may",
+   "dang": "ảnh tĩnh tóm tắt",
+   "mac_dinh": true,
+   "dung_cho": [
+    "ảnh tĩnh tóm tắt"
+   ],
+   "may": "tinh-ba-kieu.py --kieu tom_tat",
+   "mo_ta": "Một khung đứng yên, chữ là đoạn tóm tắt cốt truyện, giọng đọc tóm tắt."
+  },
+  {
+   "ma": "po_goc",
+   "ten": "Poster PO.1 gốc",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "may",
+   "dang": "poster động",
+   "nhan": "PO.1",
+   "mac_dinh": true,
+   "dung_cho": [
+    "poster động"
+   ],
+   "may": "tinh-ba-kieu.py --kieu poster --mau goc",
+   "mo_ta": "Poster gốc của phim, zoom / lắc nhẹ, lời đọc ngắn kêu xem miễn phí."
+  },
+  {
+   "ma": "po_ai",
+   "ten": "Poster PO.5 ảnh AI",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "may",
+   "dang": "poster động",
+   "nhan": "PO.5",
+   "mac_dinh": false,
+   "dung_cho": [
+    "poster động"
+   ],
+   "may": "tinh-ba-kieu.py --kieu poster --mau ai",
+   "mo_ta": "Poster dựng lại bằng ảnh AI (~111₫/ảnh) theo nhân vật phim, tên phim lớn."
+  },
+  {
+   "ma": "po_ghep",
+   "ten": "Poster PO.2 ghép",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dang": "poster động",
+   "nhan": "PO.2",
+   "mac_dinh": false,
+   "dung_cho": [
+    "poster động"
+   ],
+   "may": "tinh-ba-kieu.py --kieu poster --mau ghep",
+   "mo_ta": "Poster ghép nhiều khung phim (chỉ dựng thử bằng tay, chưa vào máy)."
+  },
+  {
+   "ma": "po_the",
+   "ten": "Poster PO.3 thẻ",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dang": "poster động",
+   "nhan": "PO.3",
+   "mac_dinh": false,
+   "dung_cho": [
+    "poster động"
+   ],
+   "may": "tinh-ba-kieu.py --kieu poster --mau the",
+   "mo_ta": "Poster dạng thẻ (chỉ dựng thử bằng tay, chưa vào máy)."
+  },
+  {
+   "ma": "cts_cau",
+   "ten": "Câu thoại sốc",
+   "loai": "cong_thuc",
+   "nguon": "nha",
+   "trang_thai": "may",
+   "dang": "câu thoại sốc",
+   "mac_dinh": true,
+   "dung_cho": [
+    "câu thoại sốc"
+   ],
+   "may": "tinh-ba-kieu.py --kieu cau_soc",
+   "mo_ta": "Một khung đứng yên, chữ là MỘT câu thoại gắt trong phim, giọng kỳ dị / gào."
+  },
+  {
+   "ma": "kem",
+   "ten": "Giấy kem",
+   "loai": "bo_cuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dung_cho": [
+    "poster động",
+    "ảnh tĩnh"
+   ],
+   "anh": "/mau-cr/kem.jpg",
+   "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › kem",
+   "mo_ta": "Nền giấy ngả sắc phim, khung phim phía trên viền mảnh, tên phim chữ đậm + vạch + tagline (kiểu The Godfather / Titanic)."
+  },
+  {
+   "ma": "mot_mau",
+   "ten": "Một màu",
+   "loai": "bo_cuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dung_cho": [
+    "poster động",
+    "ảnh tĩnh"
+   ],
+   "anh": "/mau-cr/mot_mau.jpg",
+   "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › mot_mau",
+   "mo_ta": "Người tách nền đổ hai màu (tối + nhấn của phim) trên nền tối, tên phim phía trên (kiểu Joker / Oppenheimer)."
+  },
+  {
+   "ma": "chu_sau",
+   "ten": "Chữ sau người",
+   "loai": "bo_cuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dung_cho": [
+    "poster động",
+    "ảnh tĩnh"
+   ],
+   "anh": "/mau-cr/chu_sau.jpg",
+   "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › chu_sau",
+   "mo_ta": "Tên phim khổng lồ phía sau, người tách nền đè lên trước, nền khung mờ tối (kiểu Monster / The Batman)."
+  },
+  {
+   "ma": "ghep",
+   "ten": "Ghép mảnh",
+   "loai": "bo_cuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dung_cho": [
+    "poster động",
+    "ảnh tĩnh"
+   ],
+   "anh": "/mau-cr/ghep.jpg",
+   "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › ghep",
+   "mo_ta": "Ba khung thật xếp chéo, dải tên phim ở giữa trên nền sáng của phim."
+  },
+  {
+   "ma": "toi_gian",
+   "ten": "Tối giản",
+   "loai": "bo_cuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dung_cho": [
+    "poster động",
+    "ảnh tĩnh"
+   ],
+   "anh": "/mau-cr/toi_gian.jpg",
+   "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › toi_gian",
+   "mo_ta": "Người trắng đen trên nền giấy sắc phim + vệt màu nhấn chéo, tên phim phía dưới (kiểu The Substance)."
+  },
+  {
+   "ma": "leon",
+   "ten": "Chữ dọc",
+   "loai": "bo_cuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dung_cho": [
+    "poster động",
+    "ảnh tĩnh"
+   ],
+   "anh": "/mau-cr/leon.jpg",
+   "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › leon",
+   "mo_ta": "Người màu bên trái, từ dài nhất của tên xếp dọc từng chữ ở cột phải màu nhấn, cả tên nhỏ trên đầu (kiểu Léon)."
+  },
+  {
+   "ma": "chan_dung",
+   "ten": "Cận mặt",
+   "loai": "bo_cuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dung_cho": [
+    "poster động",
+    "ảnh tĩnh",
+    "câu thoại sốc"
+   ],
+   "anh": "/mau-cr/chan_dung.jpg",
+   "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › chan_dung",
+   "mo_ta": "Cận mặt rất lớn, viền tối sắc phim, tên phim + tagline phía dưới (teaser kiểu Oppenheimer / The Batman)."
+  },
+  {
+   "ma": "khung_tron",
+   "ten": "Khung tròn",
+   "loai": "bo_cuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dung_cho": [
+    "poster động",
+    "ảnh tĩnh"
+   ],
+   "anh": "/mau-cr/khung_tron.jpg",
+   "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › khung_tron",
+   "mo_ta": "Khung phim trong vòng tròn giữa nền màu nhấn của phim + dải tối phía dưới (kiểu Train to Busan)."
+  },
+  {
+   "ma": "hai_nguoi",
+   "ten": "Hai nhân vật",
+   "loai": "bo_cuc",
+   "nguon": "nha",
+   "trang_thai": "thu",
+   "dung_cho": [
+    "poster động",
+    "ảnh tĩnh"
+   ],
+   "anh": "/mau-cr/hai_nguoi.jpg",
+   "may": "xuong-video/scripts/ethopex/bo-cuc-po.py › hai_nguoi",
+   "mo_ta": "Hai khung chia chéo trên / dưới, băng chéo màu nhấn mang tên phim (poster hai nhân vật)."
+  },
+  {
+   "ma": "dt_ten_vang",
+   "ten": "Tên vàng nổi khối",
+   "loai": "lop_phu",
+   "nguon": "doi_thu",
+   "trang_thai": "chua",
+   "dung_cho": [
+    "ảnh tĩnh",
+    "câu thoại sốc",
+    "cảnh thật",
+    "cảnh cuối",
+    "tập nguyên"
+   ],
+   "the_loai": [
+    "tỷ phú",
+    "tình cảm",
+    "fantasy"
+   ],
+   "tham_chieu": [
+    "1468562788627941",
+    "2210241639548499",
+    "1419786253363654"
+   ],
+   "mo_ta": "Tên phim chữ vàng bóng nổi khối (vát cạnh, đổ bóng) đặt 1/3 dưới, đè thẳng lên khung phim điện ảnh — không nền, không nút. Hai QC chạy lâu nhất kho đối thủ (92 ngày)."
+  },
+  {
+   "ma": "dt_logo_chat_lieu",
+   "ten": "Logo chất liệu chủ đề",
+   "loai": "lop_phu",
+   "nguon": "doi_thu",
+   "trang_thai": "chua",
+   "dung_cho": [
+    "ảnh tĩnh",
+    "poster động",
+    "cảnh thật"
+   ],
+   "the_loai": [
+    "fantasy",
+    "sói",
+    "thần thoại"
+   ],
+   "tham_chieu": [
+    "1787847032557362",
+    "3003117683383697",
+    "1851918955714094"
+   ],
+   "mo_ta": "Tên phim vẽ bằng chất liệu theo chủ đề phim (sóng nước, lửa, phép thuật, huy hiệu) có hoạ tiết bao quanh — logo như phim chiếu rạp."
+  },
+  {
+   "ma": "dt_ten_nut_vang",
+   "ten": "Tên + nút WATCH NOW viền vàng",
+   "loai": "lop_phu",
+   "nguon": "doi_thu",
+   "trang_thai": "chua",
+   "dung_cho": [
+    "ảnh tĩnh",
+    "câu thoại sốc",
+    "cảnh thật",
+    "cảnh cuối"
+   ],
+   "the_loai": [],
+   "tham_chieu": [
+    "1077794738566345",
+    "1092249746682945"
+   ],
+   "mo_ta": "Tên phim hai tầng (từ khoá tô đỏ) giữa khung + nút bo tròn WATCH NOW viền vàng ngay dưới tên."
+  },
+  {
+   "ma": "dt_key_art_neon",
+   "ten": "Key-art neon + câu nhử",
+   "loai": "bo_cuc",
+   "nguon": "doi_thu",
+   "trang_thai": "chua",
+   "dung_cho": [
+    "poster động",
+    "ảnh tĩnh"
+   ],
+   "the_loai": [
+    "hành động",
+    "tù ngục",
+    "mafia"
+   ],
+   "tham_chieu": [
+    "1889799045326032"
+   ],
+   "mo_ta": "Nhân vật tách nền chồng hai lớp (chính + phụ), nền chuyển đỏ–tím rực có tia sáng, câu nhử trên đỉnh tô đỏ một từ ('To fight crime, he became a criminal'), tên + nút dưới."
+  },
+  {
+   "ma": "dt_cau_nhu_dinh",
+   "ten": "Câu nhử chữ nghiêng trên đỉnh",
+   "loai": "lop_phu",
+   "nguon": "doi_thu",
+   "trang_thai": "chua",
+   "dung_cho": [
+    "cảnh thật",
+    "cảnh cuối",
+    "tập nguyên",
+    "ảnh tĩnh"
+   ],
+   "the_loai": [],
+   "tham_chieu": [
+    "4503252533269379"
+   ],
+   "mo_ta": "Một câu nhử chữ có chân nghiêng trắng ở đỉnh khung, một từ tô đỏ ('A fighter is thrown into the death arena') — giữ cảnh phim sạch ở dưới."
+  },
+  {
+   "ma": "dt_su_thi",
+   "ten": "Poster sử thi khắc chữ",
+   "loai": "bo_cuc",
+   "nguon": "doi_thu",
+   "trang_thai": "chua",
+   "dung_cho": [
+    "poster động"
+   ],
+   "the_loai": [
+    "fantasy",
+    "rồng",
+    "cổ trang"
+   ],
+   "tham_chieu": [
+    "2193667711364272",
+    "1078372875245973"
+   ],
+   "mo_ta": "Poster vẽ sử thi (nhân vật + rồng / lửa), tên phim chữ có chân khắc ánh kim + dòng nhỏ dưới 'A FANTASY ROMANCE EPIC'."
+  },
+  {
+   "ma": "dt_hanh_dong_kim_loai",
+   "ten": "Tên hành động kim loại",
+   "loai": "lop_phu",
+   "nguon": "doi_thu",
+   "trang_thai": "chua",
+   "dung_cho": [
+    "ảnh tĩnh",
+    "poster động",
+    "cảnh thật"
+   ],
+   "the_loai": [
+    "hành động",
+    "quân đội",
+    "võ"
+   ],
+   "tham_chieu": [
+    "2218759858703858",
+    "28606044065745348"
+   ],
+   "mo_ta": "Tên phim chữ hẹp nghiêng đậm kiểu phim hành động, mặt kim loại xước / trắng viền tối, đặt giữa dưới."
+  },
+  {
+   "ma": "dt_khung_player",
+   "ten": "Khung trình phát + EXCLUSIVE",
+   "loai": "lop_phu",
+   "nguon": "doi_thu",
+   "trang_thai": "chua",
+   "dung_cho": [
+    "cảnh thật",
+    "cảnh cuối",
+    "tập nguyên",
+    "ảnh tĩnh"
+   ],
+   "the_loai": [],
+   "tham_chieu": [
+    "1459936659424344"
+   ],
+   "mo_ta": "Cảnh phim đặt giữa hai dải đen như màn hình trình phát, nút play đỏ ở giữa, nhãn EXCLUSIVE + tên phim phía dưới."
+  },
+  {
+   "ma": "dt_dai_free",
+   "ten": "Dải trắng WATCH FREE trên đỉnh",
+   "loai": "lop_phu",
+   "nguon": "doi_thu",
+   "trang_thai": "chua",
+   "dung_cho": [
+    "cảnh thật",
+    "cảnh cuối",
+    "tập nguyên",
+    "kể chuyện"
+   ],
+   "the_loai": [],
+   "tham_chieu": [
+    "1114104751104052"
+   ],
+   "mo_ta": "Một dải trắng mảnh trên đỉnh khung chữ đen 'WATCH MOVIES NOW! FREE' — báo miễn phí ngay giây đầu, cảnh phim giữ nguyên."
+  },
+  {
+   "ma": "dt_theo_mua",
+   "ten": "Theo mùa (Giáng sinh)",
+   "loai": "bo_cuc",
+   "nguon": "doi_thu",
+   "trang_thai": "chua",
+   "dung_cho": [
+    "poster động",
+    "ảnh tĩnh"
+   ],
+   "the_loai": [
+    "tỷ phú",
+    "tình cảm"
+   ],
+   "tham_chieu": [
+    "1088302080694453"
+   ],
+   "mo_ta": "Key-art cặp nhân vật trên nền theo mùa (cây thông, tuyết, mũ Noel), tên phim nhiều tầng + nút WATCH NOW viền vàng."
+  },
+  {
+   "ma": "dt_logo_goc",
+   "ten": "Logo phim nhỏ ở góc + phụ đề",
+   "loai": "lop_phu",
+   "nguon": "doi_thu",
+   "trang_thai": "chua",
+   "dung_cho": [
+    "cảnh thật",
+    "cảnh cuối",
+    "tập nguyên"
+   ],
+   "the_loai": [],
+   "tham_chieu": [
+    "1262667959359716",
+    "1069410726133558"
+   ],
+   "mo_ta": "Logo tên phim chữ nghiêng nhỏ ở góc trên trái, phụ đề thoại trơn giữa dưới — trông như cảnh trích từ phim thật."
+  },
+  {
+   "ma": "dt_nut_free_do",
+   "ten": "Nút Watch Free đỏ nhỏ",
+   "loai": "lop_phu",
+   "nguon": "doi_thu",
+   "trang_thai": "chua",
+   "dung_cho": [
+    "cảnh thật",
+    "cảnh cuối",
+    "tập nguyên",
+    "ảnh tĩnh"
+   ],
+   "the_loai": [],
+   "tham_chieu": [
+    "2512666309260387"
+   ],
+   "mo_ta": "Nút bo tròn đỏ nhỏ 'Watch Free' đặt 1/3 dưới, đè thẳng lên cảnh phim — không tên phim, không nền."
+  }
+ ]
 }

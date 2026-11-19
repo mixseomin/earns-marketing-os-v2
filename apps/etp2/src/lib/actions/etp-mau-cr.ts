@@ -12,7 +12,7 @@ import { DS_DANG } from '@/lib/etp-dang';
 import SO_MAU from '@/lib/etp-mau-cr.json';
 import { spy } from '@/lib/spy-db';
 
-export type LoaiMau = 'dang' | 'bo_cuc' | 'lop_phu';
+export type LoaiMau = 'cong_thuc' | 'dang' | 'bo_cuc' | 'lop_phu';
 export type NguonMau = 'nha' | 'doi_thu';
 export type TrangThaiMau = 'chay' | 'may' | 'thu' | 'chua';
 export type ThamChieu = { id: string; phim: string | null; ngay: number | null; con_chay: boolean; anh: string | null; video: string | null };
@@ -24,7 +24,7 @@ export type MauCr = {
   so: { cr: number; camp: number; dang_chay: number; chi: number; thu: number; moi: string | null } | null;
   tham_chieu: ThamChieu[];
 };
-type MucSo = { ma: string; ten: string; loai: 'bo_cuc' | 'lop_phu'; nguon: NguonMau; trang_thai: 'may' | 'thu' | 'chua'; dung_cho: string[]; the_loai?: string[]; mo_ta: string; may?: string; anh?: string; tham_chieu?: string[] };
+type MucSo = { ma: string; ten: string; loai: 'cong_thuc' | 'bo_cuc' | 'lop_phu'; dang?: string; nguon: NguonMau; trang_thai: 'may' | 'thu' | 'chua'; dung_cho: string[]; the_loai?: string[]; mo_ta: string; may?: string; anh?: string; tham_chieu?: string[] };
 
 const run = async <T,>(q: ReturnType<typeof sql>) => (await getDb()!.execute(q)) as unknown as T[];
 
@@ -34,6 +34,22 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; luc: string } | { loi:
   try {
     const so = SO_MAU.mau as MucSo[];
     const ids = [...new Set(so.flatMap((x) => x.tham_chieu ?? []))];
+    // creative → mẫu (etp.creative_mau — cổng len-creative.py ghi từ 19/11/2026); bảng chưa có thì coi như chưa creative nào gắn mẫu
+    const coBangMau = (await run<{ c: boolean }>(sql`select to_regclass('etp.creative_mau') is not null c`))[0]?.c;
+    const [soMau, anhMau] = coBangMau ? await Promise.all([
+      run<{ mau: string; cr: number; camp: number; dang_chay: number; chi: number; thu: number; moi: string | null }>(sql`
+        select m.mau, count(distinct m.creative_id)::int cr, count(distinct k.camp_id)::int camp, count(distinct k.camp_id) filter (where k.trang_thai = 'ACTIVE')::int dang_chay,
+          coalesce(sum(s.chi), 0)::float chi, coalesce(sum(s.thu), 0)::float thu, max(m.luc)::text moi
+        from etp.creative_mau m left join etp.camp k on k.creative_id = m.creative_id
+        left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s on s.camp_id = k.camp_id group by 1`),
+      run<{ mau: string; anh: string; video: string | null; thu: number }>(sql`
+        select mau, anh, video, thu from (select m.mau, c.anh, c.video, coalesce(sum(s.thu), 0)::float thu, row_number() over (partition by m.mau order by coalesce(sum(s.thu), 0) desc, m.creative_id desc) h
+          from etp.creative_mau m join etp.creative c on c.creative_id = m.creative_id left join etp.camp k on k.creative_id = m.creative_id left join etp.so_ngay s on s.camp_id = k.camp_id
+          where c.anh is not null group by m.mau, c.anh, c.video, m.creative_id) x where h <= 3`),
+    ]) : [[], []];
+    const soTheoMau = new Map(soMau.map((x) => [x.mau, x]));
+    const banTheoMau = new Map<string, BanMau[]>();
+    for (const x of anhMau) banTheoMau.set(x.mau, [...(banTheoMau.get(x.mau) ?? []), { anh: x.anh, video: x.video, nhan: x.thu > 0 ? `thu $${x.thu.toFixed(0)}` : null, link: x.video ?? x.anh }]);
     const [soDang, anhDang, anhDt, qcDt, tenPhim] = await Promise.all([
       run<{ dang: string; cr: number; camp: number; dang_chay: number; chi: number; thu: number; moi: string | null }>(sql`
         select c.dang, count(distinct c.creative_id)::int cr, count(distinct k.camp_id)::int camp, count(distinct k.camp_id) filter (where k.trang_thai = 'ACTIVE')::int dang_chay,
@@ -65,11 +81,12 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; luc: string } | { loi:
           dung_cho: [], the_loai: [], mo_ta: d.mo_ta ?? '', may: d.dong ? `dòng ${d.dong} (apps/etp/dong_phim.py)` : d.kieu ? `kiểu ${d.kieu} (kieu-moi.py)` : null,
           ban: banTheo.get(d.dang) ?? [], so: s ? { cr: s.cr, camp: s.camp, dang_chay: s.dang_chay, chi: s.chi, thu: s.thu, moi: s.moi } : null, tham_chieu: [] };
       }),
-      ...so.map((m): MauCr => ({
-        ma: m.ma, ten: m.ten, loai: m.loai, nguon: m.nguon, trang_thai: m.trang_thai, nhom: null, mau: null, dung_cho: m.dung_cho, the_loai: m.the_loai ?? [],
-        mo_ta: m.mo_ta, may: m.may ?? null, ban: m.anh ? [{ anh: m.anh, video: null, nhan: 'mẫu nhà', link: m.anh }] : [], so: null,
+      ...so.map((m): MauCr => { const sm = soTheoMau.get(m.ma); return {
+        ma: m.ma, ten: m.ten, loai: m.loai, nguon: m.nguon, trang_thai: sm?.dang_chay ? 'chay' : m.trang_thai, nhom: null, mau: null, dung_cho: m.dung_cho, the_loai: m.the_loai ?? [],
+        mo_ta: m.mo_ta, may: m.may ?? null, ban: [...(m.anh ? [{ anh: m.anh, video: null, nhan: 'mẫu nhà', link: m.anh }] : []), ...(banTheoMau.get(m.ma) ?? [])],
+        so: sm ? { cr: sm.cr, camp: sm.camp, dang_chay: sm.dang_chay, chi: sm.chi, thu: sm.thu, moi: sm.moi } : null,
         tham_chieu: (m.tham_chieu ?? []).map((id) => { const x = qc.get(id); return { id, phim: x?.ma ? ten.get(`${x.mien}~${x.ma}`) ?? null : null, ngay: x?.ngay ?? null, con_chay: !!x?.con, anh: anhQc.get(id) ?? null, video: x?.video ?? null }; }),
-      })),
+      }; }),
     ];
     // mẫu học từ đối thủ: hiện NGUYÊN mọi QC tham chiếu (ảnh + video), nhãn = số ngày chạy
     for (const m of mau) if (m.tham_chieu.length) m.ban = [...m.ban, ...m.tham_chieu.filter((t) => t.anh || t.video).map((t): BanMau => ({ anh: t.anh, video: t.video, nhan: `${t.ngay ?? '?'} ngày`, link: `https://www.facebook.com/ads/library/?id=${t.id}`, con_chay: t.con_chay }))];

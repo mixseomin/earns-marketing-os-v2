@@ -1,6 +1,7 @@
 'use client';
 // TAB MẪU CREATIVE (anh 19/11/2026: "Tạo 1 tab mới là Mẫu Creative và tổng hợp vào đó. Có bộ lọc đầy đủ").
-// Một danh sách gộp: dạng creative nhà (sổ etp-dang.json + số thật) · bố cục ảnh nhà (bo-cuc-po.py) · mẫu học từ QC đối thủ (sổ etp-mau-cr.json).
+// LUẬT (anh 19/11/2026): mọi creative tải lên phải gắn MỘT công thức trong sổ (cổng len-creative.py + apps/etp/so_mau.py) — số Creative / Camp / ROI của công thức đo theo etp.creative_mau.
+// Một danh sách gộp: công thức máy dựng · dạng creative nhà (sổ etp-dang.json + số thật) · bố cục ảnh nhà (bo-cuc-po.py) · mẫu học từ QC đối thủ (sổ etp-mau-cr.json).
 // Lọc: Loại · Nguồn · Trạng thái (chip) · Dùng cho dạng · Thể loại (chọn nhiều, có tìm) — mọi lọc trên URL (?mcl ?mcn ?mct ?mcd ?mctl) + ô tìm + lọc theo cột số của DataTable (cột chữ lọc bằng chip / ô chọn ở trên, không dựng bộ thứ hai).
 // Xem Thẻ (mặc định, có ảnh mẫu) hoặc Bảng (đủ cột số). CHỈ ĐỌC. Dữ liệu: lib/actions/etp-mau-cr.ts.
 // tra-repo-ok: màn nội bộ dựng từ khối dùng chung của etp2 (DataTable thẻ / bảng, FilterChips, MultiSelect, useSoNho)
@@ -13,7 +14,7 @@ import { docMauCr, type LoaiMau, type MauCr, type NguonMau, type TrangThaiMau } 
 import { DO, XANH, gioVn } from './etp-doi-thu';
 
 const thuVienQc = (id: string) => `https://href.li/?https://www.facebook.com/ads/library/?id=${id}`;   // link ra ngoài che referrer
-const TEN_LOAI: Record<LoaiMau, string> = { dang: 'Dạng creative', bo_cuc: 'Bố cục ảnh', lop_phu: 'Lớp phủ chữ / nút' };
+const TEN_LOAI: Record<LoaiMau, string> = { cong_thuc: 'Công thức máy dựng', dang: 'Dạng creative', bo_cuc: 'Bố cục ảnh', lop_phu: 'Lớp phủ chữ / nút' };
 const TEN_NGUON: Record<NguonMau, string> = { nha: 'Nhà', doi_thu: 'Học từ đối thủ' };
 // màu chỉ cho TRẠNG THÁI (tín hiệu thật) — loại / nguồn để xám (YDNI kỷ luật màu)
 const TEN_TT: Record<TrangThaiMau, [string, string, string]> = {
@@ -23,7 +24,7 @@ const TEN_TT: Record<TrangThaiMau, [string, string, string]> = {
   chua: ['Chưa dựng', '#94a3b8', 'mới là mẫu tham chiếu từ QC đối thủ — chưa có mã dựng'],
 };
 const roi = (s: MauCr['so']) => (s && s.chi > 0.5 ? ((s.thu - s.chi) / s.chi) * 100 : null);
-const LOAI: LoaiMau[] = ['dang', 'bo_cuc', 'lop_phu'], NGUON: NguonMau[] = ['nha', 'doi_thu'], TT: TrangThaiMau[] = ['chay', 'may', 'thu', 'chua'];
+const LOAI: LoaiMau[] = ['cong_thuc', 'dang', 'bo_cuc', 'lop_phu'], NGUON: NguonMau[] = ['nha', 'doi_thu'], TT: TrangThaiMau[] = ['chay', 'may', 'thu', 'chua'];
 const DANG_TEN = DS_DANG.map((d) => d.dang);
 /** mẫu áp được cho dạng nào: dạng → chính nó; bố cục / lớp phủ → danh sách dung_cho */
 const choDang = (m: MauCr) => (m.loai === 'dang' ? [m.ten] : m.dung_cho);

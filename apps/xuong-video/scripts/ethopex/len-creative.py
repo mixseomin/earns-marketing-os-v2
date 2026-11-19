@@ -31,6 +31,21 @@ def main(lo_f, ma, dang):
     if not lo:
         ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True); json.dump([], open(f"{ra}/len.json", "w"))
         return print(f"không đoạn nào được đẩy — {giu} đoạn chờ soát (python3 {D}/soat_doan.py ds)")
+    # CỔNG MẪU — KHÔNG CÒN CREATIVE TỰ DO (anh 19/11/2026: "khi lên creative, phải dựa vào 1 mẫu nào đó! Nếu chưa có mẫu thì phải tìm cho ra hoặc phải bổ sung
+    # mới!!"). Tệp này là đường DUY NHẤT tải creative lên Ethopex (so_mau.py --tu-kiem đỏ nếu tệp khác gọi bulk-jobs) → mỗi bản phải gắn một công thức trong sổ mẫu
+    # (apps/etp2/src/lib/etp-mau-cr.json, tab https://etp2.on.tc/?t=mau); không gắn được thì bản đó bị chặn, len.json ghi lý do. Mẫu ghi vào etp.creative_mau.
+    sys.path.insert(0, os.path.join(D, "..", "..", "..", "etp")); import so_mau as SM
+    chan = []
+    for x in lo:
+        m = SM.chon(x.get("dang") or dang, " ".join(str(x.get(k) or "") for k in ("goi_y", "ghi", "lo")) + f" {ma}")
+        if m: x["mau"] = m["ma"]
+        else: x["loi"] = SM.ly_do(x.get("dang") or dang); chan.append(x)
+    lo = [x for x in lo if x.get("mau")]
+    if chan: print(f"✗ {len(chan)} bản bị chặn: {chan[0]['loi']}", flush=True)
+    if not lo:
+        ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True)
+        json.dump([{"content_id": x.get("content_id"), "creative_id": None, "lang": x.get("lang"), "ok": False, "loi": x["loi"]} for x in chan], open(f"{ra}/len.json", "w"), ensure_ascii=False, indent=1)
+        sys.exit(SM.ly_do(dang))
     for x in lo: x["ten_tep"] = f"{ma}-{x.get('lo', 'x')}-{os.path.basename(x['file'])}"
     ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True); json.dump(lo, open(f"{ra}/lo.json", "w"), ensure_ascii=False, indent=1)
     # 1. kho
@@ -84,6 +99,13 @@ EOF'""", timeout=3600)
         q = CQ.CTA[x["lang"]]
         st.append({"content_id": x["content_id"], "tu": x["tu"], "den": x["den"], "nguon_qc": x.get("nguon_qc"), "creative_id": c, "camp_id": None, "lang": x["lang"], "url": a[2],
                    "giay": round(float(a[1]), 1), "lo": ma, "anh": a[3], "anh_cuoi": a[4], "chu_cuoi": q["hoi"] + "\n" + q["nut"], "giong_cta": {"url": giong[x["lang"]], "loi": q["loi_giong"]}})
+    # GHI MẪU của từng creative vừa tạo (tab Mẫu Creative đo hiệu suất theo mẫu) — lỗi ghi thì báo to, creative vẫn giữ
+    try:
+        gm = [(int(x["creative_id"]), x["mau"], x.get("dang") or dang, ma) for x in lo if x.get("creative_id") and x.get("mau")]
+        if gm: SD.sql(SM.bang_sql() + " insert into etp.creative_mau (creative_id, mau, dang, lo) values " + ", ".join(f"({c}, '{m}', '{d_.replace(chr(39), '')}', '{l}')" for c, m, d_, l in gm)
+                      + " on conflict (creative_id) do update set mau = excluded.mau, dang = excluded.dang, lo = excluded.lo, luc = now()")
+        print(f"mẫu: {len(gm)} creative ghi etp.creative_mau ({', '.join(sorted({m for _, m, _, _ in gm}))})")
+    except Exception as e: print("✗ GHI MẪU LỖI (etp.creative_mau):", e, flush=True)
     # SỔ ĐIỂM CHẠM (anh 28/10/2026 "đo số điểm chạm như voice, text, hình, nội dung"): mỗi creative vừa tạo ghi hook · nội dung · voice · chữ video · CTA · ảnh đầu
     # · chữ QC vào etp.diem_cham (diem_cham.py) — chữ QC lấy theo phim từ creative.json (chu-qc.py)
     try:
@@ -122,7 +144,8 @@ EOF'""", timeout=3600)
     cap = [f"{x['camp']}:{x['creative_id']}" for x in lo if not x.get("loi") and x.get("camp") and x.get("creative_id")]
     if cap: print(sh(f"ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 ghi-cta-thay.py --camp {' '.join(cap)}'").stdout.strip())
     out = [{"camp_cu": x.get("camp"), "content_id": x["content_id"], "creative_id": x.get("creative_id"), "lang": x["lang"], "lo": x.get("lo", ma),
-            "ten": f"{x.get('lo', ma)} {ascii_(x['ten'])} {x['lang'].upper()} - {dang} {int(x['tu'])}-{int(x['den'])}s {ma}", "ok": not x.get("loi"), "loi": x.get("loi")} for x in lo]
+            "ten": f"{x.get('lo', ma)} {ascii_(x['ten'])} {x['lang'].upper()} - {dang} {int(x['tu'])}-{int(x['den'])}s {ma}", "ok": not x.get("loi"), "loi": x.get("loi"), "mau": x.get("mau")} for x in lo]
+    out += [{"camp_cu": x.get("camp"), "content_id": x.get("content_id"), "creative_id": None, "lang": x.get("lang"), "lo": x.get("lo", ma), "ten": x.get("ten"), "ok": False, "loi": x["loi"]} for x in chan]
     json.dump(out, open(f"{ra}/len.json", "w"), ensure_ascii=False, indent=1)
     # TỰ CHẤM CREATIVE MỚI (anh 25/10/2026: "các creative mới từ giờ có bước chấm tự động"): xếp hàng etp.cham_hang → Worker Cloudflare etp-cham chấm (mỗi phút).
     # CHỈ CHẤM — không chặn lên camp (anh: "chưa áp dụng vào camp hay rule nào hết").

@@ -147,6 +147,9 @@ def main():
     if can_bat:   # camp ít nước không bật lại (anh 09/11/2026) — cùng định nghĩa cổng cong.SQL_IT_NUOC; vẫn nằm trong lich_tat, không bao giờ tới lượt bật
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cong as _CONG
         _it = set(q(_CONG.SQL_IT_NUOC).split()); can_bat = [c for c in can_bat if str(c) not in _it]
+        # PHIM CẤM không bật lại (anh 19/11/2026, cong.SQL_CAMP_PHIM_CAM — cùng sổ cửa API chặn): lọc TRƯỚC lệnh bulk, kẻo một camp cấm làm cửa chặn cả lô bật lại
+        _cam = set(q(_CONG.SQL_CAMP_PHIM_CAM).split()); bo_cam = [c for c in can_bat if str(c) in _cam]; can_bat = [c for c in can_bat if str(c) not in _cam]
+        if bo_cam: print(f"lịch giờ: bỏ {len(bo_cam)} camp phim cấm khỏi lượt bật lại ({_CONG.KHOA_PHIM_CAM}): {bo_cam[:10]}")
     if can_bat:
         ok = dieu_khien(can_bat, "active")
         if len(ok) < len(can_bat): bao_tg(f"⚠️ <b>LỊCH GIỜ</b>: Ethopex không nhận lệnh bật lại {len(can_bat) - len(ok)}/{len(can_bat)} camp — lượt sau thử lại")

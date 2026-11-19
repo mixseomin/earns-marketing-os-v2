@@ -247,14 +247,42 @@ def doc_cau_hinh():
     return {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
 
 LY_DUNG_KHAN = "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"
-def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False):
+# PHIM CẤM (anh 19/11/2026, Ethopex báo 10:07 "Number One, Nobody" 94344 + 143938 và "Me and Six Girls Against the Apocalypse" 173160 dính vi phạm: "tắt hết, KHÔNG lên mới,
+# KHÔNG bật lại, kể cả ★ ROAS"): phim trong sổ studio xv_khoa_ngoai ten='ethopex_phim_cam' ({content_id: {ly_do, luc}} — cùng sổ cấm 18+ của kiem-phim-18.py) → MỌI việc
+# tăng chi (tạo camp, nhân bản, ★ ROAS, bật lại kể cả lịch giờ, tăng) của camp / phim đó bị chặn ở chan_cua — kiem() lẫn cửa API (ethopex_api.cua) — KHÔNG miễn vé tay,
+# KHÔNG miễn lịch giờ, KHÔNG miễn thay bài bị từ chối: phim cấm vì vi phạm nền tảng, chỉ gỡ khỏi sổ mới mở. Trước 19/11 sổ này chỉ được lộ trình / dòng phim / Mạnh /
+# chọn phim mới đọc → ★ ROAS, nhân bản, hồi chợ, AT, lịch giờ bật lại, sua-ngoai, nút anh bấm vẫn lên / bật được phim cấm.
+# Phim của lệnh đọc từ CHÍNH lệnh (content_id trong ad) + camp được bật / camp gốc (etp.camp, etp.camp_ngoai). Lỗi đọc sổ → CHẶN (an toàn trước).
+KHOA_PHIM_CAM = "ethopex_phim_cam"
+SQL_CAMP_PHIM_CAM = (f"select c.camp_id from (select camp_id, content_id from etp.camp union all select camp_id, content_id from etp.camp_ngoai) c join xv_khoa_ngoai k"
+                     f" on k.ten = '{KHOA_PHIM_CAM}' and jsonb_typeof(k.gia_tri) = 'object' and c.content_id is not null and k.gia_tri ? c.content_id::text")
+LY_PHIM_CAM = ("phim #{0} trong sổ cấm {1} ({2}) — không tạo / nhân bản / bật lại / tăng camp nào của phim này, kể cả ★ ROAS, kể cả vé tay, kể cả lịch giờ "
+               "(anh 19/11/2026); chỉ gỡ phim khỏi sổ mới mở")
+def phim_cam(camp_ids=(), cts=(), q=None):
+    """lý do chặn | None: phim của lệnh (cts) hoặc của camp (camp_ids — camp được bật / tăng / camp gốc nhân bản) nằm trong sổ ethopex_phim_cam. Lỗi đọc → chặn."""
+    ids = sorted({int(x) for x in camp_ids or () if str(x).strip().isdigit()}); ct = sorted({int(x) for x in cts or () if str(x).strip().isdigit()})
+    if not ids and not ct: return None
+    phan = ([f"select unnest(array[{','.join(map(str, ct))}]::int[]) c"] if ct else []) + \
+           ([f"select content_id from etp.camp where camp_id in ({','.join(map(str, ids))})", f"select content_id from etp.camp_ngoai where camp_id in ({','.join(map(str, ids))})"] if ids else [])
+    try:
+        r = (q or _q)(f"""select x.c || '|' || coalesce(k.gia_tri->(x.c::text)->>'ly_do', 'cấm') from ({' union '.join(phan)}) x, xv_khoa_ngoai k
+            where k.ten = '{KHOA_PHIM_CAM}' and jsonb_typeof(k.gia_tri) = 'object' and x.c is not null and k.gia_tri ? x.c::text order by 1 limit 1""")
+    except Exception as e: return f"không đọc được sổ phim cấm {KHOA_PHIM_CAM} ({str(e)[:80]}) — chặn cho an toàn"
+    r = (r or "").strip().splitlines()
+    if not r or "|" not in r[0]: return None
+    c, ly = r[0].split("|", 1)
+    return LY_PHIM_CAM.format(c, KHOA_PHIM_CAM, ly[:160])
+def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False, cts=(), goc=None, q=None):
     """PHẦN CỔNG KHÔNG TIN LỜI NGƯỜI GỌI (anh 18/11/2026) — một hàm cho kiem() và cửa API (ethopex_api.api, đọc dữ kiện từ chính lệnh gửi đi):
     dừng khẩn · camp ít nước / lô team tắt không bật lại · Ethopex bảo trì lên camp · PHANH CHỢ. ch = etp.cau_hinh {khoá: giá trị}.
     ve = vé thao tác tay hợp lệ (ve_hop_le) — thứ DUY NHẤT miễn phanh / bảo trì. ANH CHỐT 18/11/2026: trong phanh chợ máy KHÔNG còn được miễn ở ★ ROAS
     (tự lên ROAS, tăng ROAS), camp đội chạy Luật tự động, lệnh chat — chỉ thao tác tay có vé. thay = camp thay bài bị Meta từ chối (thay chỗ, không thêm chi).
-    lich = bật lại camp tạm dừng theo LỊCH GIỜ (etp.lich_tat, apps/etp/lich-gio.py): việc hợp lệ, chỉ dừng khẩn chặn."""
+    lich = bật lại camp tạm dừng theo LỊCH GIỜ (etp.lich_tat, apps/etp/lich-gio.py): việc hợp lệ, chỉ dừng khẩn + phim cấm chặn.
+    cts = phim trong chính lệnh, goc = camp gốc (nhân bản / ROAS) — cùng camp_id dùng để soát sổ phim cấm (phim_cam), đứng trước mọi miễn trừ (vé, lịch, thay)."""
     if viec not in TANG: return None
     if ch.get("dung_khan"): return LY_DUNG_KHAN
+    ly_cam = phim_cam([x for x in (camp_id, goc) if x], cts, q=q)
+    if ly_cam: return ly_cam
     if lich: return None
     if viec == "bat" and camp_id and str(int(camp_id)) in _q(SQL_IT_NUOC).split(): return LY_IT_NUOC
     # ETHOPEX BẢO TRÌ LÊN CAMP (anh 17/11/2026: "bên Etho team báo là đang bảo trì việc lên camp nên sẽ dừng tạo camp mới từ giờ đến ít nhất là sáng mai + báo lại"):
@@ -291,6 +319,9 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
     if viec not in TANG: return None
     try:
         ct = content_id if content_id is not None else (_q(f"select content_id from etp.camp where camp_id = {int(camp_id)}") or None) if camp_id else None
+        # PHIM CẤM (anh 19/11/2026) — trước bước chấm nhóm gốc (tốn AI): phim / camp trong sổ ethopex_phim_cam → chặn mọi việc tăng chi, kể cả ROAS / vé / lệnh anh / ngoai
+        ly_cam = phim_cam([camp_id] if camp_id else (), [ct] if ct else ())
+        if ly_cam: return ly_cam
         ng = _q(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {int(ct)}") if ct else ''
         if ct and not ng:   # KÍN (anh 29/10/2026 "làm cho kín"): phim chưa chấm → chấm poster NGAY (nhom_goc.py, ckey ~36₫/phim); không chấm được → CHẶN
             import importlib.util as _iu
@@ -309,7 +340,7 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         if ns_moi is not None and float(ns_moi) > TRAN_TUYET: return f"vượt trần tuyệt đối ${TRAN_TUYET:g}/camp (anh 14/11/2026: không bao giờ vượt $30) — đang gửi ${float(ns_moi):g}"
         # DỪNG KHẨN · ÍT NƯỚC · BẢO TRÌ · PHANH CHỢ — chan_cua (cùng hàm cửa API dùng). Miễn phanh CHỈ bằng vé (anh 18/11/2026); camp thay bài bị từ chối (thay) không bị phanh.
         # Lịch sử lọt: 17/11 00:01–00:12 dòng phim máy gọi nhan-ban --tay → 91 camp; 18/11 00:46–12:51 máy AT ghi ai "anh (chat 05/11/2026: …)" → 31 camp; ★ ROAS / ngoai / lenh_anh miễn bằng cờ.
-        ly_cua = chan_cua(viec, ch, camp_id, thay=thay, ve=ve)
+        ly_cua = chan_cua(viec, ch, camp_id, thay=thay, ve=ve, cts=[ct] if ct else ())
         if ly_cua: return ly_cua
         # HOÃN TĂNG THEO GIÁ ADSENSE: ĐÃ BỎ (anh 13/11/2026 "bỏ rule Hoãn đang áp dụng") — giá AdSense tụt không còn chặn tăng / nhân bản; máy đo giá
         # (apps/etp/gia_adsense.py) vẫn đo và vẫn bù giá cho luật cắt camp mới. Tham số thay= giữ cho người gọi cũ (nhan-ban.py --thay), không còn tác dụng.
@@ -494,7 +525,18 @@ def _tu_kiem():
     assert ly_at([(5, "ảnh tĩnh", "ảnh tĩnh", "watch_for_free", "tv1", True), (8, "ảnh tĩnh", "ảnh tĩnh", "kien", "tv2", True)]).startswith("creative #8")
     assert at_sai_dang([9], q=lambda s: "9|ảnh tĩnh|ảnh tĩnh|kien|tv1|t") and at_sai_dang([9], q=lambda s: "9|ảnh tĩnh|ảnh tĩnh|watch_for_free|tv1|t") is None and at_sai_dang([]) is None
     assert "chặn cho an toàn" in at_sai_dang([9], q=lambda s: (_ for _ in ()).throw(RuntimeError("x"))), "lỗi đọc sổ phải chặn"
-    print("✓ cong.py tự kiểm (nhận camp ROAS mọi kiểu tên + gốc đã có ROAS + camp mới $1 trên payload: 10 ca)")
+    # PHIM CẤM (anh 19/11/2026) — phá thử với sổ giả: chặn mọi việc tăng chi kể cả vé / lịch giờ / thay bài; giảm / tắt qua; không có phim / camp thì không đọc sổ; lỗi đọc → chặn
+    _cam = lambda s: "94344|Ethopex báo vi phạm" if ("94344" in s or "73303" in s) else ""
+    for _v in ("tao_camp", "nhan_ban", "bat", "tang"):
+        assert phim_cam(cts=[94344], q=_cam).startswith("phim #94344 trong sổ cấm"), _v
+        assert (chan_cua(_v, {}, None, cts=[94344], ve=True, q=_cam) or "").startswith("phim #94344"), f"{_v} phim cấm có vé phải bị chặn"
+        assert (chan_cua(_v, {}, 73303, ve=True, lich=True, thay=True, q=_cam) or "").startswith("phim #94344"), f"{_v} camp phim cấm (lịch / thay / vé) phải bị chặn"
+        assert (chan_cua(_v, {}, None, goc=73303, ve=True, q=_cam) or "").startswith("phim #94344"), f"{_v} camp gốc phim cấm (nhân bản / ROAS) phải bị chặn"
+    assert chan_cua("tat", {}, 73303, q=_cam) is None and chan_cua("giam", {}, 73303, q=_cam) is None, "tắt / giảm phim cấm luôn qua"
+    assert chan_cua("tang", {}, 5, cts=[7], q=lambda s: "") is None and phim_cam(q=lambda s: (_ for _ in ()).throw(RuntimeError("không được đọc"))) is None, "không phim / camp thì không đọc sổ"
+    assert "chặn cho an toàn" in phim_cam([5], q=lambda s: (_ for _ in ()).throw(RuntimeError("x"))), "lỗi đọc sổ phim cấm phải chặn"
+    assert "ethopex_phim_cam" in SQL_CAMP_PHIM_CAM and "camp_ngoai" in SQL_CAMP_PHIM_CAM
+    print("✓ cong.py tự kiểm (nhận camp ROAS mọi kiểu tên + gốc đã có ROAS + camp mới $1 trên payload + phim cấm chặn cả vé / lịch / ROAS)")
 
 if __name__ == "__main__":
     import sys; a = sys.argv[1:]
@@ -508,6 +550,23 @@ if __name__ == "__main__":
         assert ve_hop_le("tang", [999999991], dung=True, cho="tự kiểm", ma=m) and not ve_hop_le("tang", [999999991], dung=True, ma=m), "vé chỉ dùng một lần"
         _q(f"update etp.ve_tay set het_han = now() - interval '1 second' where ma = '{m2}'"); assert not ve_hop_le("nhan_ban", [], 999999992, ma=m2), "vé hết hạn"
         print("✓ vé thao tác tay: đúng việc / camp / phim, một lần, hết hạn"); sys.exit(0)
+    if a[:1] == ["--tu-kiem-phim-cam"]:   # trên box3, SỔ THẬT (anh 19/11/2026): camp + phim thật trong ethopex_phim_cam — bật / nhân bản / ★ ROAS / tăng đều bị chặn, kể cả vé thật.
+        # KHÔNG gửi gì lên Ethopex (chỉ gọi kiem). Vé thử ghi etp.ve_tay (ai 'tự kiểm phim cấm') rồi đốt ngay.
+        r = _q(f"select c.camp_id || '|' || c.content_id from etp.camp c where c.camp_id in ({SQL_CAMP_PHIM_CAM}) order by c.la_roas desc nulls last, 1 limit 1")
+        if not r: print("sổ phim cấm không có camp nhà nào — bỏ qua"); sys.exit(0)
+        cid, ct = map(int, r.split("|"))
+        m = xin_ve("bat", cid, None, "tự kiểm phim cấm"); m2 = xin_ve("nhan_ban", cid, ct, "tự kiểm phim cấm"); m3 = xin_ve("tang", cid, None, "tự kiểm phim cấm")
+        try:
+            for viec, ve, kw in (("bat", m, {}), ("nhan_ban", m2, {"content_id": ct}), ("nhan_ban", m2, {"content_id": ct, "roas": True, "lenh_anh": True}),
+                                 ("tao_camp", m2, {"content_id": ct, "tay": True, "anh_bam": True}), ("tang", m3, {"roas": True})):
+                os.environ["ETP_VE"] = ve
+                ly = kiem(viec, cid if viec in ("bat", "tang") else None, 2 if viec == "tang" else 1, 1, **kw)
+                assert ly and "sổ cấm" in ly, f"LỌT: {viec} camp #{cid} phim #{ct} {kw} có vé → {ly}"
+                print(f"chặn đúng: {viec} {kw or ''} camp #{cid} phim #{ct} (có vé) · {ly[:70]}")
+        finally:
+            os.environ.pop("ETP_VE", None)
+            for x in (m, m2, m3): _q(f"update etp.ve_tay set da_dung = now(), dung_cho = 'tự kiểm phim cấm — đốt' where ma = '{x}' and da_dung is null")
+        print("✓ phim cấm: bật / nhân bản / ★ ROAS / tạo / tăng đều bị chặn kể cả vé thật"); sys.exit(0)
     if a[:1] == ["--xem-test"]:   # chỉ đọc: số camp test / phim lãi ổn định / chỗ còn của các phim đang chạy (trần camp test / phim, anh 18/11/2026) — không giữ chỗ
         print(_q(f"""select p.content_id || ' test ' || t.n || ' · lãi ổn định ' || t.on || ' · chỗ còn ' || coalesce({sql_test_con('p.content_id')}::text, 'không trần')
                      from (select distinct content_id from etp.camp where trang_thai = 'ACTIVE' and content_id is not null) p, lateral {_sql_test('p.content_id')} t order by t.n desc, 1 limit {int(a[1]) if len(a) > 1 else 15}""")); sys.exit(0)

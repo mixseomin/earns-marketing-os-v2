@@ -246,11 +246,12 @@ def phan_loai(duong, body):
         ten = str(sp.get("name") or body.get("name") or "")
         goc, m = goc_tu_ten(ten), _THAY_TEN.search(ten)
         ads = [a for g in cp.get("ad_groups") or [] if isinstance(g, dict) for a in g.get("ads") or [] if isinstance(a, dict)]
-        ct = next((int(a["content_id"]) for a in ads if str(a.get("content_id") or "").isdigit()), None)
+        cts = [int(a["content_id"]) for a in ads if str(a.get("content_id") or "").isdigit()]   # MỌI phim trong lệnh — sổ phim cấm soát hết, không chỉ ad đầu
+        ct = cts[0] if cts else None
         roas = sp.get("bid_strategy") == "LOWEST_COST_WITH_MIN_ROAS"
         bai = bool(ads) and all(str(a.get("effective_object_story_id") or "").strip() and a.get("creative_id") is None for a in ads)
         thay = int(m.group(1)) if m else None
-        return [{"viec": "nhan_ban" if goc else "tao_camp", "camp_id": None, "goc": goc or thay, "thay_id": thay, "content_id": ct, "ns": sp.get("daily_budget"), "roas": roas,
+        return [{"viec": "nhan_ban" if goc else "tao_camp", "camp_id": None, "goc": goc or thay, "thay_id": thay, "content_id": ct, "cts": cts, "ns": sp.get("daily_budget"), "roas": roas,
                  "loai": "roas" if roas else "thang" if re.search(r"\(thang \$", ten) else "bai_cu" if bai else "thay" if thay else None, "ten": ten[:200]}]
     if duong.endswith("/campaigns/update") and isinstance(body, dict) and isinstance(body.get("campaign"), dict):
         cp = body["campaign"]; ns = _js(cp.get("source_payload")).get("daily_budget")
@@ -298,12 +299,13 @@ def cua(duong, body):
         ct = l.get("content_id") or (_q(f"select content_id from etp.camp where camp_id = {int(l['goc'])}") or None if l.get("goc") else None)
         ve = CG.ve_hop_le(v, ids, ct)
         thay = bool(l.get("thay_id")) and _bi_tu_choi(l["thay_id"])
-        ly = CG.chan_cua(v, ch, l.get("camp_id"), thay=thay, ve=bool(ve), lich=bool(l.get("lich")))
+        cts = [x for x in [ct] + list(l.get("cts") or []) if x]   # phim của lệnh + phim camp gốc → sổ phim cấm (cong.phim_cam, anh 19/11/2026)
+        ly = CG.chan_cua(v, ch, l.get("camp_id"), thay=thay, ve=bool(ve), lich=bool(l.get("lich")), cts=cts, goc=l.get("goc"), q=_q)
         if ly:
             _ghi_cua(l, False, ly)
             raise ChanCua(f"cửa API chặn {v}{' #' + str(l['camp_id']) if l.get('camp_id') else ''}{' (gốc #' + str(l['goc']) + ')' if l.get('goc') else ''}: {ly}")
         if ve and not CG.ve_hop_le(v, ids, ct, dung=True, cho=f"{v} {ids or ct}"):   # vé vừa bị lệnh khác đốt → hết miễn: chấm lại như lệnh máy
-            ve, ly = None, CG.chan_cua(v, ch, l.get("camp_id"), thay=thay, ve=False, lich=bool(l.get("lich")))
+            ve, ly = None, CG.chan_cua(v, ch, l.get("camp_id"), thay=thay, ve=False, lich=bool(l.get("lich")), cts=cts, goc=l.get("goc"), q=_q)
             if ly: _ghi_cua(l, False, ly); raise ChanCua(f"cửa API chặn {v}: {ly} (vé đã dùng cho lệnh khác)")
         ra.append((l, ve))
     return ra
@@ -410,6 +412,24 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
         assert any(v == "tang" and 999999997 in i for v, i, _c in _dot) and any(v == "nhan_ban" and 65110 in i for v, i, _c in _dot), f"vé phải bị đốt lúc gửi: {_dot}"
         assert len(_gui_that) == 4 and ("tang", True, True) in _so and ("tang", False, False) in _so, (_gui_that, _so)
         print("chặn đúng: một cửa — phanh chặn lệnh máy (camp mới / nhân bản / ★ ROAS / tăng), vé tay qua + bị đốt, giảm / tắt qua, sổ etp.cua ghi đủ")
+        # PHIM CẤM (anh 19/11/2026) — sổ THẬT ethopex_phim_cam, vé vẫn đang "hợp lệ" (ve_hop_le giả ở trên): bật (cả lịch giờ) / nhân bản / ★ ROAS / tạo camp phim cấm / tăng → chặn
+        _r = _q(f"select camp_id || '|' || content_id from etp.camp where camp_id in ({CG.SQL_CAMP_PHIM_CAM}) order by 1 limit 1")
+        if _r:
+            _cc, _ct = map(int, _r.split("|")); _TAO.add(_cc); _n0 = len(_gui_that)
+            _ca = (("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [_cc], "status": "active"}]),
+                   ("/api/v1/campaigns/update", {"campaign": {"campaign_id": _cc, "source_payload": {"daily_budget": 9}}}),
+                   ("/api/v1/campaigns/facebook", _pl(f"X (nhan ban 1 cua {_cc})")),
+                   ("/api/v1/campaigns/facebook", _pl(f"★ ROAS 1 · X roas 1 duplicate by {_cc}", bid_strategy="LOWEST_COST_WITH_MIN_ROAS")),
+                   ("/api/v1/campaigns/facebook", {**_pl("dp1 X EN - creative #2"), "campaign": {"source_payload": {"name": "dp1 X", "daily_budget": 1}, "ad_groups": [{"source_payload": {}, "ads": [{"content_id": _ct, "creative_id": 2}]}]}}))
+            try:
+                for _d, _b in _ca:
+                    try: api(_d, _b); raise SystemExit(f"LỌT PHIM CẤM: {_d} camp #{_cc} phim #{_ct}")
+                    except ChanCua as e: assert "sổ cấm" in str(e), e
+                _so_lich = CG.chan_cua("bat", {}, _cc, ve=True, lich=True, q=_q)   # bật theo lịch giờ (lich=True) cũng phải chặn — không ghi thử vào etp.lich_tat thật
+                assert _so_lich and "sổ cấm" in _so_lich, _so_lich
+            finally: _TAO.discard(_cc)
+            assert len(_gui_that) == _n0, f"phim cấm lọt tới Ethopex: {_gui_that[_n0:]}"
+            print(f"chặn đúng: phim cấm #{_ct} (camp #{_cc}) — bật / bật theo lịch / tăng / nhân bản / ★ ROAS / tạo camp đều chặn dù có vé, không lệnh nào tới Ethopex")
     finally:
         globals().update(_goi=_goc_goi, _ghi_cua=_goc_ghi); CG.doc_cau_hinh, CG.ve_hop_le = _goc_ch, _goc_ve; _TAO.discard(999999997); os.environ.pop("ETP_VE", None)
     # CAMP MỚI $1 Ở CỔNG (phá thử, KHÔNG gửi gì lên Ethopex — mọi ca đều phải bị chặn trước khi gửi)

@@ -56,6 +56,23 @@ def bao(q, khoa, chu):
     j = json.dumps([{"loai": LOAI, "muc": "do", "khoa": khoa, "noi_dung": chu}], ensure_ascii=False)
     q(f"insert into etp.canh_bao (loai, muc, khoa, noi_dung) select loai, muc, khoa, noi_dung from jsonb_to_recordset($J${j}$J$::jsonb) as x(loai text, muc text, khoa text, noi_dung text) on conflict (khoa) do nothing")
 
+def _cong():
+    import importlib.util as _iu
+    s = _iu.spec_from_file_location("cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cong.py")); m = _iu.module_from_spec(s); s.loader.exec_module(m); return m
+DAU_CAM = "🚨 PHIM CẤM ĐANG CHẠY"
+def xet_phim_cam(q, ngay):
+    """PHIM CẤM MÀ ACTIVE (anh 19/11/2026: phim Ethopex báo vi phạm — "tắt hết, không bật lại, kể cả ROAS"): camp nhà / camp team (kho vừa đồng bộ) có phim trong sổ
+    ethopex_phim_cam mà đang ACTIVE → etp.canh_bao đỏ (Telegram 📂 Ethopex), mỗi camp một lần / ngày. CHỈ BÁO — không tắt (tắt là việc của luật / người phụ trách)."""
+    CG = _cong()
+    ds = [l.split("|", 4) for l in q(f"""select c.camp_id, c.content_id, c.nguon, coalesce(c.ten, ''), coalesce(c.ngan_sach, 0) from (
+            select camp_id, content_id, 'nhà' nguon, ten, ngan_sach from etp.camp where trang_thai = 'ACTIVE'
+            union all select camp_id, content_id, 'team' nguon, ten, ngan_sach from etp.camp_ngoai where trang_thai = 'ACTIVE') c
+        where c.camp_id in ({CG.SQL_CAMP_PHIM_CAM}) order by 1""").splitlines() if l.count("|") >= 4]
+    for cid, ct, nguon, ten, ns in ds:
+        bao(q, f"phim_cam:{cid}:{ngay}", f"{DAU_CAM}: camp {nguon} #{cid} '{ten[:70]}' ${float(ns or 0):g} phim #{ct} nằm trong sổ cấm {CG.KHOA_PHIM_CAM} mà đang ACTIVE — "
+                                         f"cửa API không cho bật phim cấm, nên có thể do người bấm trên app.ethopex.dev / Ethopex tự bật. Máy chỉ báo, không tắt — anh / người phụ trách tắt camp này.")
+    return [f"{n}:{c}" for c, _ct, n, _t, _n in ds]
+
 def xet(q, chup_cu, ds, auto=None):
     """so + báo. chup_cu = chup() đầu lượt; ds = camp nhà vừa đọc; auto = hàm GET Ethopex (None = bỏ đọc Auto Camp Config). → {lot: [...], auto: {...}}"""
     cu, nay = chup_cu
@@ -69,6 +86,8 @@ def xet(q, chup_cu, ds, auto=None):
         bao(q, f"{LOAI}:{k}:{i}:{ngay}", f"{DAU}: {s} — Ethopex có thay đổi làm tăng chi mà cửa API không cho qua lệnh nào (máy không tự làm; có thể do Auto Camp Config của Ethopex, "
                                            f"người bấm trên app.ethopex.dev, hoặc đường gọi thẳng chưa qua cửa). Máy chỉ báo, không tắt — anh / người phụ trách xem camp này.")
     ra = {"lot": [f"{k}:{i}" for k, i, _ in lot]}
+    try: ra["phim_cam"] = xet_phim_cam(q, ngay)
+    except Exception as e: ra["phim_cam"] = f"không soát được: {str(e)[:120]}"
     if auto:
         try:
             d = auto("/api/v1/campaign-auto-configs?page=1&page_size=100") or {}

@@ -263,7 +263,7 @@ def phim_cam(camp_ids=(), cts=(), q=None):
     ids = sorted({int(x) for x in camp_ids or () if str(x).strip().isdigit()}); ct = sorted({int(x) for x in cts or () if str(x).strip().isdigit()})
     if not ids and not ct: return None
     phan = ([f"select unnest(array[{','.join(map(str, ct))}]::int[]) c"] if ct else []) + \
-           ([f"select content_id from etp.camp where camp_id in ({','.join(map(str, ids))})", f"select content_id from etp.camp_ngoai where camp_id in ({','.join(map(str, ids))})"] if ids else [])
+           ([f"select content_id c from etp.camp where camp_id in ({','.join(map(str, ids))})", f"select content_id c from etp.camp_ngoai where camp_id in ({','.join(map(str, ids))})"] if ids else [])   # cột tên c ở MỌI nhánh: lệnh chỉ có camp (bật / tăng) thì nhánh đầu là etp.camp
     try:
         r = (q or _q)(f"""select x.c || '|' || coalesce(k.gia_tri->(x.c::text)->>'ly_do', 'cấm') from ({' union '.join(phan)}) x, xv_khoa_ngoai k
             where k.ten = '{KHOA_PHIM_CAM}' and jsonb_typeof(k.gia_tri) = 'object' and x.c is not null and k.gia_tri ? x.c::text order by 1 limit 1""")
@@ -555,6 +555,10 @@ if __name__ == "__main__":
         r = _q(f"select c.camp_id || '|' || c.content_id from etp.camp c where c.camp_id in ({SQL_CAMP_PHIM_CAM}) order by c.la_roas desc nulls last, 1 limit 1")
         if not r: print("sổ phim cấm không có camp nhà nào — bỏ qua"); sys.exit(0)
         cid, ct = map(int, r.split("|"))
+        # CHỈ MÃ CAMP (lệnh bật / tăng không mang phim) trên sổ thật: camp phim cấm → chặn vì sổ cấm; camp thường → cho qua, KHÔNG được ra "không đọc được sổ" (19/11/2026 câu union sai tên cột chặn oan mọi bật / tăng)
+        _sach = int(_q(f"select camp_id from etp.camp where content_id is not null and camp_id not in ({SQL_CAMP_PHIM_CAM}) order by camp_id desc limit 1"))
+        assert "sổ cấm" in (phim_cam([cid]) or ""), f"camp phim cấm #{cid} chỉ mã camp phải bị chặn: {phim_cam([cid])}"
+        assert phim_cam([_sach]) is None and phim_cam([_sach], [1]) is None, f"camp thường #{_sach} phải qua: {phim_cam([_sach])}"
         m = xin_ve("bat", cid, None, "tự kiểm phim cấm"); m2 = xin_ve("nhan_ban", cid, ct, "tự kiểm phim cấm"); m3 = xin_ve("tang", cid, None, "tự kiểm phim cấm")
         try:
             for viec, ve, kw in (("bat", m, {}), ("nhan_ban", m2, {"content_id": ct}), ("nhan_ban", m2, {"content_id": ct, "roas": True, "lenh_anh": True}),

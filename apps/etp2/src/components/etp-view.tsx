@@ -871,7 +871,9 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
   return <>
     <button onClick={(e) => { e.stopPropagation(); setMo(true); setKq(null); setXem(null); setNs(String(c.ngan_sach)); }} title="điều khiển camp: bật / tắt · bậc ngân sách · nhân bản"
       style={lon ? { fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--accent, #60a5fa)', background: 'var(--accent-soft, #60a5fa18)', color: 'inherit', cursor: 'pointer', width: '100%', textAlign: 'left' }
-        : { border: 'none', background: 'transparent', color: 'var(--fg-3, #777)', cursor: 'pointer', padding: '0 2px', fontSize: 12 }}>{lon ? `⚙ Điều khiển camp${dsCho.length ? ` · ⏳ ${dsCho.length} chờ áp` : ''}` : '⚙'}</button>
+        // #1553 mở lại 19/11/2026: ⚙ xám 12px không viền chìm hẳn cạnh số ngân sách → trông như chưa có điều khiển. Nay là nút có viền, chữ sáng, cỡ như số ngân sách
+        // (màu trung tính — YDNI: một hàng một nút, không tô nhấn cả 74 dòng)
+        : { border: '1px solid var(--line)', borderRadius: 5, background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', padding: '0 5px', fontSize: 13, lineHeight: '18px' }}>{lon ? `⚙ Điều khiển camp${dsCho.length ? ` · ⏳ ${dsCho.length} chờ áp` : ''}` : '⚙'}</button>
     {mo ? <Drawer onClose={() => setMo(false)} width={520} padding={16}>
       <div onClick={(e) => e.stopPropagation()} style={{ fontSize: 12 }}>
         <DauCamp c={c} />

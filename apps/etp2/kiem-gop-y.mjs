@@ -78,6 +78,8 @@ const LUAT = [
   { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', co: "<DieuKhienCamp c={c} lon boDs=", vi: 'ngăn camp (điện thoại) có nút Điều khiển camp' },
   { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', co: '<b>Ép</b>{hd ?', vi: 'ưu tiên sửa tay: ô Ép bỏ chặn mềm (chữ giải thích gập sau ℹ — YDNI 09/11/2026)' },
   { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{ k: 'roas', ten: 'Camp ROAS'", vi: 'nhân bản ROAS có mô tả' },
+  { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "color: 'var(--fg-3, #777)', cursor: 'pointer', padding: '0 2px', fontSize: 12 }}>{lon ?", vi: 'nút ⚙ điều khiển camp không quay về dạng xám 12px không viền (mở lại 19/11/2026: chìm, trông như chưa có)' },
+  { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', co: "border: '1px solid var(--line)', borderRadius: 5, background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', padding: '0 5px', fontSize: 13", vi: 'nút ⚙ điều khiển camp có viền, chữ sáng, cỡ như số ngân sách' },
   { card: 'cho-ap-0911', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "await ghiCho({ camp_id: campId, viec", vi: 'lệnh tay xong ghi ngay sổ chờ áp (anh 09/11/2026 show vết khi chưa áp)' },
   { card: 'cho-ap-0911', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function DauCho({ ds }', vi: '⏳ cạnh ô ngân sách khi lệnh tay chưa vào kho' },
   { card: 'ls-0911', tep: 'apps/etp2/src/components/etp-view.tsx', co: "{ value: 'ls', label: '🕘 Lịch sử' }", vi: 'bảng điều khiển camp có tab Lịch sử thay đổi (anh 09/11/2026)' },

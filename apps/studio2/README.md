@@ -1,6 +1,6 @@
 # Studio 2 — studio2.on.tc
 
-Trình dựng video kiểu timeline cho team (hai bản Gọn / Pro, bố cục widget theo loại hình video). Trang là tệp tĩnh; dữ liệu phim THẬT đọc từ studio.on.tc (apps/xuong-video) qua đường đọc `POST /api/xv/doc` mà vhost chuyển sang cổng studio — menu tên phim có ô tìm phim của studio, cạnh ba phim mẫu đóng sẵn. Mới chỉ ĐỌC: sửa ở đây chưa lưu về studio; các nút vẽ lại, dựng lại, xuất video mới chỉ báo, chưa gọi máy thật.
+Trình dựng video kiểu timeline cho team (hai bản Gọn / Pro, bố cục widget theo loại hình video). Trang là tệp tĩnh; dữ liệu phim THẬT đọc từ studio.on.tc (apps/xuong-video) qua đường đọc `POST /api/xv/doc` mà vhost chuyển sang cổng studio — menu tên phim có ô tìm phim của studio, cạnh ba phim mẫu đóng sẵn. Với phim của studio, các BƯỚC LÀM PHIM chạy thật qua đường ghi `POST /api/xv/ghi` (sổ hàm `apps/xuong-video/src/lib/ghi-ham.ts`); riêng sửa lời / chữ / thời lượng trong Thuộc tính thì chưa lưu về studio. Ba phim mẫu vẫn là bản bấm thử.
 
 Ghép dữ liệu studio → mô hình dự án ở `public/studio2.js › tuStudio` (bản gốc từng cảnh giữ ở `GOC`). Hàm studio đang dùng: `dsNhomTuDo` (danh sách), `docPhim`, `dsCanh` — các hàm này chỉ trả dữ liệu cho tài khoản quản trị.
 
@@ -12,6 +12,8 @@ Widget **Nhật ký** (bản Pro, phim thật; bật ở menu Bố cục, ở Th
 - `scripts/du-lieu-goc/` — dữ liệu gốc lấy từ DB studio (`truy-van.sql`) và `lop/lop.json`.
 - `scripts/lop-ynt.cjs` — tách từng lớp của cảnh YNT bằng bộ dựng `apps/xuong-video/scripts/lich-su/ban-do.html` (chạy trên iMac, 0₫).
 - `deploy/studio2.on.tc.nginx` — vhost tĩnh sau SSO mos2; `deploy.sh` khối 5e3 tự cài, DNS do `deploy/dns-on-tc.sh` tạo.
+
+**Tạo video mới + widget Quy trình (phim của studio)** — khối "LÀM VIDEO THẬT" trong `studio2.js`: nút ＋ trên thanh trên mở hộp tạo (tên, loại Short / Phim nhiều tập / Quảng cáo, ý tưởng, hoặc mẫu dựng sẵn) → `taoPhim` / `taoPhimMau` trên studio → mở phim với bố cục "Làm video mới". Widget Quy trình: phim chưa có cảnh thì ba bước Ý tưởng → Máy viết kịch bản → Máy tách thành cảnh; có cảnh thì 16 mục của studio (`quyTrinhTap`: đạt / thiếu gì / chặn vẽ ảnh, dựng clip hay xuất) kèm nút bước: thử người xem, gợi ý phong cách, đề xuất nhân vật + bối cảnh, ảnh mẫu, vẽ ảnh, duyệt, đọc lời, chốt nhịp, dựng clip, nhạc, xuất. Bước tốn tiền: bấm lần đầu hiện giá ước (`GIA_CHU`, `uocTien`, `uocAm`), bấm lần nữa mới chạy, mỗi lần một bước; studio từ chối thì câu của studio hiện ngay dưới nút. Việc đang chạy bên studio được đọc lại mỗi 7 giây (`theoDoi`). Mục nào chưa có nút thì có link "Làm ở studio ↗".
 
 **Bố cục widget (bản Pro, màn rộng hơn 900px)** là lưới 2 chiều dựng bằng thư viện gridstack 14.1.0 (MIT, chép sẵn ở `public/lib/gridstack-14.1.0/`, không gọi CDN): nắm đầu widget kéo tới ô bất kỳ, kéo mép / góc để co giãn ngang + dọc, lưới vừa đúng một màn. Menu Bố cục chọn độ mịn lưới (6 × 4 · 12 × 8 · 24 × 16), "Luôn hiện lưới", "Xếp lại một hàng". Mép trên timeline kéo được để đổi chiều cao. Vị trí nhớ theo từng loại hình trong trình duyệt (`E.luoi`, khối "widget trên LƯỚI 2 CHIỀU" trong `studio2.js`). Bản Gọn và màn hẹp không dùng lưới.
 

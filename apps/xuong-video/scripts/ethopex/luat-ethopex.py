@@ -135,6 +135,8 @@ def _ab_lan(kieu):
         else: nh = "thu" if dem["thu"] <= dem["doi"] else "doi"; dem[nh] += 1; _AB_CO[cid] = f"{so['ma']}|{nh}"
         return so["ma"], nh, so["nhanh"][nh]["ten"]
     chon.dang = bool(so)
+    # chỉ ĐỌC nhánh camp đã mang (không chia, không đổi _AB_CO) — thẻ xét luật ghi trước lúc _dat_ab chia nhánh
+    chon.xem = lambda cid: (lambda co: (so["ma"], co.split("|")[1], so["nhanh"][co.split("|")[1]]["ten"]) if co and co.startswith(so["ma"] + "|") else (so["ma"], None, None))(_AB_CO.get(cid)) if so else None
     return chon
 # A/B TĂNG (anh 12/11/2026 "làm theo đề xuất" — đo có đối chứng apps/etp/phan-tich/bac-doi-chung.py; hai chỗ số còn mỏng nên THỬ thay vì đổi luật thẳng):
 #   tang_khung_giam (AB06): 15–21h VN (khung chỉ giảm / tắt), camp ĐÃ đủ luật tăng + đã tiêu 50–75% ngân sách + ROI hôm nay ≥ 100% → nhánh thử tăng ngay, đối chứng chờ 21h như luật
@@ -1458,12 +1460,13 @@ def _xet_luat():
             _kt = (lambda dk: dk + [["Máy xếp tăng nhịp này", f"không — {(_ly_tang(cid) or 'chưa rõ bộ lọc nào loại (thêm vào _ly_tang)')[:240]}", "có", False]]
                    if not b2 and all(x[3] for x in dk) and int(cid) not in vao["tang"] and not _h3_ly(cid) else
                    # KHUNG 15–21h GIỮ không tăng (anh 19/11/2026 xung đột 2, ca #105577): đạt hết mà đang khung giảm → nói giờ máy tăng, không ✓ rồi im; phanh chợ đã loại khỏi vao["tang"] → nhánh trên ghi lý do phanh, không hứa giờ
-                   dk + [["Máy xếp tăng nhịp này", f"đạt — máy tăng lúc {int(KD['giam'][1]):02d}:00 VN (khung {int(KD['giam'][0]):02d}–{int(KD['giam'][1]):02d}h chỉ giảm / tắt)", "có", True]]
+                   dk + [["Máy xếp tăng nhịp này", _chu_kg(cid), "có", True]]
                    if not b2 and all(x[3] for x in dk) and _GIAM_NAY else dk)   # _ly_tang None = bộ lọc mới chưa khai ở _ly_tang → dòng kêu, không im   # khoá L0 / H3 có dòng riêng (_khoa_dol)
             dk_tang = _kt(dk_tang)
             ls.append(L("thang_nb" if b2 else "tang", "Thang nhân bản (bộ 2)" if b2 else "Tăng bậc",
                 ("Bộ 2: đủ luật tăng thì KHÔNG đổi ngân sách mà mở bản mới ở bậc kế (creative khác cùng phim). " if b2 else "") + f"ROI khung dài ≥ {ROI_TANG}%, spending > {sp_min:g}% ngân sách, hôm nay không lỗ, chưa ở trần. Cổng phụ: tăng cách nhau ≥ 3 giờ, sau lần giảm phải ROI ≥ 50% lại." + (f" Bộ 2: camp gốc tiêu TB ≥ ${THANG_CHI_GOC:g}/ngày 3 ngày đã khép mới mở bản thang (29/10)." if b2 else ""),
                 dk_tang, ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] and all(x[3] for x in dk_tang) else None), ghi=_don_ghi))   # "máy đã xếp làm" chỉ trên khối tự đạt (11/11: #88408 xếp qua Tăng trong ngày, khối Tăng bậc ✗ vẫn ghi đã xếp)
+            if not b2: ls[-1]["chan"] = _chan_tang(cid)   # luật đang chặn tăng theo khoá uu_tien → etp2 luatThang
             if _cho_toi: ls[-1]["cho_toi"] = _cho_toi
             if _ts: ls[-1]["mo"] = _ts_mo(cid)   # TS chặn → mốc sớm nhất thôi chặn (trang etp ghi ⏳)
             _khoa_dol(ls[-1], cid)
@@ -1506,6 +1509,21 @@ def _xet_luat():
         except Exception as e:
             _LOI_THE.append(f"#{cid}: {type(e).__name__}: {str(e)[:120]}")
     return ra
+# A/B TĂNG TRONG KHUNG GIẢM (AB06) — chữ thẻ Tăng bậc 15–21h (etp:xung-dot-luat-b2-2011 ý 3): camp ứng viên AB06 không ghi "máy tăng lúc 21:00" chung mà ghi đúng nhánh — thử tăng ngay, đối chứng chờ 21h. Chỉ chữ; luật A/B giữ nguyên.
+def _ab_kg(cid):
+    return _AB_TANG["tang_khung_giam"].xem(int(cid)) if _AB_UNG.get(int(cid)) == "tang_khung_giam" else None
+def _chu_kg(cid):
+    h_, k_, ab = f"{int(KD['giam'][1]):02d}:00", f"{int(KD['giam'][0]):02d}–{int(KD['giam'][1]):02d}h", _ab_kg(cid)
+    if not ab: return f"đạt — máy tăng lúc {h_} VN (khung {k_} chỉ giảm / tắt)"
+    if ab[1] == "thu": return f"đạt — A/B {ab[0]} nhánh {ab[2]}: máy tăng ngay nhịp này (thử tăng trong khung {k_} khi đã tiêu 50–75% ngân sách)"
+    if ab[1] == "doi": return f"đạt — A/B {ab[0]} nhánh {ab[2]}: giữ như luật, máy tăng lúc {h_} VN"
+    return f"đạt — A/B {ab[0]} thử tăng trong khung {k_}: nhịp này máy chia nhánh — nhánh thử tăng ngay, nhánh đối chứng chờ {h_} VN"
+# LUẬT ĐANG CHẶN TĂNG của một camp theo khoá sổ uu_tien (ý 2): máy ghi cờ ở thẻ Tăng bậc (chan), trang etp2 etp-khung.luatThang chọn luật đứng trước — trang không đoán lại.
+# phim_cam / dung_khan_bao_tri không ghi ở đây: camp phim cấm đã khoá riêng (nhãn CẤM), dừng khẩn chặn cả máy.
+def _chan_tang(cid):
+    c = int(cid); ab = _ab_kg(c); ke_ = ke(float((thang.get(c) or {}).get("budget") or 0))
+    return {"phanh_cho": bool(_LY_PHANH), "khung_gio": bool(_GIAM_NAY and not (ab and ab[1] == "thu")),
+            "nap_roi3": bool(ke_ and ke_ > nap_tang(roi(gan.get(c) or {"chi": 0.0, "thu": 0.0}))), "cong_tang_ngay": not _nap_sang(c)}
 def _dat_ab():
     """danh sách tăng cho worker: camp ứng viên A/B tăng (_AB_UNG) còn lại sau mọi bộ lọc → chia nhánh lúc này, mang {"ab": [mã, nhánh]}"""
     ra = []

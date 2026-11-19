@@ -1461,7 +1461,7 @@ export const LUAT = [
   { card: 2011, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"qua_cong": bool(_nap_sang(int(i)))', vi: 'MỘT hàm cổng tăng: máy luật xuất cờ qua_cong (nhip_tang.qua_cong) cho worker, worker không tự tính cổng bằng SQL riêng (anh 19/11/2026 xung đột 1)' },
   { card: 2011, tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"uu_tien": ["phim_cam", "dung_khan_bao_tri", "phanh_cho", "khung_gio", "nap_roi3", "cong_tang_ngay", "nhan_ban_tran_test"]', vi: 'bảng thứ tự ưu tiên luật trong sổ: phim cấm > dừng khẩn > phanh chợ > khung giờ > nắp ROI 3 ngày > cổng tăng > nhân bản / trần test' },
   { card: 2011, tep: 'apps/etp2/src/lib/etp-khung.ts', co: 'export const luatThang', vi: 'etp2 tính luật đang thắng theo uu_tien của sổ' },
-  { card: 2011, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'đạt — máy tăng lúc {int(KD[\'giam\'][1]):02d}:00 VN', vi: 'camp đạt cổng trong khung 15–21h ghi rõ "đạt — máy tăng lúc 21:00 VN", không ✓ im lặng (anh 19/11/2026 xung đột 2, #105577)' },
+  { card: 2011, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'đạt — máy tăng lúc {h_} VN', vi: 'camp đạt cổng trong khung 15–21h ghi rõ "đạt — máy tăng lúc 21:00 VN", không ✓ im lặng (anh 19/11/2026 xung đột 2, #105577)' },
   { card: 1464, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'dk_ts] + ([cong_b2] if b2 else [])', vi: 'dòng "Cổng mở bản thang" chỉ nằm trong Tăng trong ngày của camp đi thang; thang tắt (thang_bo = [] từ 01/11) thì bộ 2 tăng ngân sách như bộ khác, không hiện dòng đó' },
   { card: 'phim-cam-quet-2011', tep: 'apps/etp/cong.py', co: 'def don_phim_cam(lam=True, q=None, tat=None, bao=None):', vi: 'máy quét phim cấm: tắt camp nhà phim cấm bị bật ngoài cổng + huỷ dòng phim / việc chờ (anh 20/11/2026 01:10)' },
   { card: 'phim-cam-quet-2011', tep: 'apps/etp/cong.py', co: '"tat-loat", ids, "--ep", "--bo-cam-bien"', vi: 'tắt ngay qua tat-loat --ep --bo-cam-bien (cả ★ ROAS, không chờ khung giờ, không qua lich_tat)' },
@@ -1489,4 +1489,12 @@ export const LUAT = [
   { card: 'ra-xung-dot-luat-1911', tep: 'apps/etp/kiem-xung-dot-luat.py', co: 'w_tang = vao_ds and (k == "tang" or (k == "sang" and dat))', vi: 'mô hình vòng tăng của worker trong lưới' },
   { card: 'ra-xung-dot-luat-1911', tep: 'apps/cty/worker/ethopex.mjs', co: "const napDuoc = (m) => khungDoi === 'sang' && m.qua_cong === true;", vi: 'worker nạp sáng chỉ theo cờ qua_cong của máy luật (cùng mô hình của lưới)' },
   { card: 'ra-xung-dot-luat-1911', tep: 'apps/cty/worker/ethopex.mjs', co: "(!(ab || khungDoi === 'tang' || napDuoc(m)) && hoan('tang', m))", vi: 'worker vòng tăng: khung tăng hoặc nạp sáng, còn lại ghi sổ hoãn (cùng mô hình của lưới)' },
+  // xung-dot-luat-b2-2011 ý 2 — thẻ xét luật hiện luật THẮNG theo sổ uu_tien (máy ghi cờ chan, etp2 luatThang)
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls[-1]["chan"] = _chan_tang(cid)', vi: 'máy luật ghi cờ chan (khoá uu_tien) lên thẻ tăng' },
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'chan?: Partial<Record<string, boolean>>', vi: 'kiểu XetLuat có cờ chan' },
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'luatThang(l.chan)', vi: 'thẻ xét luật etp2 hiện luật thắng' },
+  // ý 3 — camp A/B tăng trong khung 15–21h: thẻ ghi đúng nhánh, không ghi cứng "máy tăng lúc 21:00"
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'chon.xem =', vi: 'A/B có hàm chỉ đọc nhánh camp đang mang (không chia nhánh)' },
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'def _chu_kg(cid):', vi: 'chữ cổng khung giờ theo nhánh A/B' },
+  { card: 'xung-dot-luat-b2-2011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'nhánh {ab[2]}: máy tăng ngay nhịp này', vi: 'nhánh thử tăng ghi "máy tăng ngay nhịp này"' },
 ];

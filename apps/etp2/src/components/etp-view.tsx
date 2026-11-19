@@ -82,7 +82,7 @@ import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 import { phimDangSx, tvChuaCr } from '@/lib/etp-sx';
-import { KD, KHUNG_TEN, TANG_CHI, TRAN_CHI, chuCong, congTang, quaCong, chuLich, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucLam, type HuongLuat } from '@/lib/etp-khung';
+import { KD, KHUNG_TEN, TANG_CHI, TRAN_CHI, chuCong, congTang, quaCong, chuLich, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucLam, luatThang, UU_TIEN, UU_TIEN_TEN, type HuongLuat } from '@/lib/etp-khung';
 import { nhip } from '@/lib/nhip';   // tự làm mới chỉ khi tab hiện (12/11/2026)
 import { TabDoiThu } from './etp-doi-thu';   // tab Phim đối thủ (anh giao 19/11/2026)
 import { TabMauCr } from './etp-mau-cr';   // tab Mẫu creative (anh giao 19/11/2026)
@@ -533,10 +533,13 @@ function BangXet({ xet, gon, deXuat, don }: { xet: XetLuat[]; gon?: boolean; deX
     <table style={{ borderCollapse: 'collapse', width: gon ? '100%' : 'auto', fontSize: 11.5, maxWidth: '100%', tableLayout: gon ? 'fixed' : undefined, fontVariantNumeric: 'tabular-nums' }}>
       {gon ? null : <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}><th style={o}>Luật</th><th style={o}>Điều kiện</th><th style={{ ...o, textAlign: 'right' }}>Giá trị</th><th style={o}>Ngưỡng</th><th style={o} /></tr></thead>}
       {(() => { const ve = (l: XetLuat, vi: number) => { const [kt, km] = KET_XET[l.ket]; const mo = l.ket === 'xa' || l.ket === 'khong_ap'; const n = Math.max(1, l.dk.length);
+        // LUẬT THẮNG (sổ uu_tien, xung-dot-luat-b2-2011): máy ghi cờ chan trên thẻ tăng — luật đứng trước trong thứ tự ưu tiên đang chặn thì hiện tên nó
+        const lt = l.chan ? luatThang(l.chan) : null;
+        const thangL = lt ? <div title={`Thứ tự ưu tiên (luật đứng trước thắng): ${UU_TIEN.map((k) => UU_TIEN_TEN[k] ?? k).join(' › ')}`} style={{ fontSize: 10.5, color: 'var(--fg-2)', cursor: 'help' }}>luật thắng: <b>{lt}</b></div> : null;
         const dau = <td rowSpan={n} title={l.mo_ta} style={{ ...o, cursor: 'help', overflowWrap: 'anywhere', opacity: mo ? 0.6 : 1 }}>
-          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b><div style={{ whiteSpace: 'nowrap' }}><b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null} {deXuat ? null : <GioThe l={l} don={!!don} chip />}<GhiLuat t={l.ghi} /></div></td>;
+          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b><div style={{ whiteSpace: 'nowrap' }}><b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null} {deXuat ? null : <GioThe l={l} don={!!don} chip />}<GhiLuat t={l.ghi} /></div>{thangL}</td>;
         const dauGon = <tr key={`${l.ma}-t`} style={{ opacity: mo ? 0.6 : 1 }}><td colSpan={4} title={l.mo_ta} style={{ ...o, paddingTop: 8, borderTop: '1px solid var(--fg-3, #555)' }}>
-          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> · <b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null} {deXuat ? null : <GioThe l={l} don={!!don} chip />}<GhiLuat t={l.ghi} />{l.dk.length ? null : <div style={{ ...KHONG_GIAN, color: 'var(--fg-2)' }}>{l.mo_ta}</div>}</td></tr>;
+          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> · <b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null} {deXuat ? null : <GioThe l={l} don={!!don} chip />}<GhiLuat t={l.ghi} />{thangL}{l.dk.length ? null : <div style={{ ...KHONG_GIAN, color: 'var(--fg-2)' }}>{l.mo_ta}</div>}</td></tr>;
         // MỖI LUẬT MỘT KHỐI (anh 29/10/2026 "background khác nhau giữa các khối màu của bậc · hover thì highlight nhẹ bg"): <tbody> riêng, nền nhạt theo màu
         // luật, khối chẵn / lẻ đậm nhạt khác nhau (hai luật cùng màu đứng cạnh vẫn tách được), rê vào khối → nền đậm hơn
         const khoi = (con: React.ReactNode) => <tbody key={l.ma} className="bx-khoi" style={{ ['--bx' as string]: XET_CHIP[l.ma]?.[1] ?? '#94a3b8', ['--bx-a' as string]: vi % 2 ? '2.5%' : '5%' } as React.CSSProperties}>{con}</tbody>;

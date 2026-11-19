@@ -208,7 +208,7 @@ export function DataTable<T>({
     // chốt bề ngang HIỆN TẠI của mọi cột trước khi chuyển sang fixed — không thì các cột chưa khai width nhảy lung tung lúc bắt đầu kéo
     // Bề ngang GIỮ SỐ LẺ (2 chữ số): tổng các cột = đúng bề ngang bảng. Trước đây Math.ceil từng cột → lố ~1px/cột, 9 cột lố ~10px → bảng cuộn ngang, hết co theo màn (góp ý #giao-20261118T2101-chuyen-tz5p).
     const chot: Record<string, number> = {}; Array.from(hang.children).forEach((x, i) => { const k = visibleKeys[i]; if (k) chot[k] = Math.round((x as HTMLElement).getBoundingClientRect().width * 100) / 100; });
-    setRong((r) => ({ ...chot, ...r })); setDangKeo(true);
+    setRong((r) => ({ ...r, ...chot })); setDangKeo(true);
     batDauKeo(e, { dau: th.getBoundingClientRect().width, min: 36, max: () => 1600,
       doi: (v) => setRong((r) => ({ ...r, [key]: v })),
       xong: (v) => { setDangKeo(false); setRong((r) => { const n = { ...chot, ...r, [key]: v }; if (khoaRong) ghiRongCot(khoaRong, n); return n; }); } });

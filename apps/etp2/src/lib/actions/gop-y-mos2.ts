@@ -38,7 +38,7 @@ function huyDangLam(): string | null {
   try {
     const hang = (JSON.parse(fs.readFileSync(TEP_HUY, 'utf8')).hang ?? []) as Array<{ id: number; chu?: string; tt?: string }>;
     const v = hang.find((x) => x.tt === 'dang');
-    return v ? `#${v.id}${String(v.chu ?? '').replace(/<[^>]+>/g, '').split('\n')[0]!.slice(0, 60)}` : null;
+    return v ? `việc #${v.id}: ${String(v.chu ?? '').replace(/<[^>]+>/g, '').split('\n')[0]!.slice(0, 60)}` : null;
   } catch { return null; }   // chưa có hàng = không làm gì
 }
 

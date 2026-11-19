@@ -753,10 +753,13 @@ function SuaToken({ dongBo }: { dongBo: DuLieuEtp['dongBo'] }) {
   const ngay = (s: string | null | undefined) => (s ? new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—');
   const loi401 = /\b401\b|Unauthorized|invalid token|không còn token/i.test(dongBo?.loi ?? '');
   const duPhong = !!tk?.nguon?.startsWith('nguoi:'), chet = tk?.nguon === 'het' || (loi401 && !duPhong);
-  if (!chet && !duPhong) return null;
+  // #1667 lượt 2: lúc token Nhà còn sống nút vẫn hiện (xám) để dán TRƯỚC phiên dự phòng của Sơn — dự phòng hết hạn thì nói rõ, đừng đợi Nhà chết mới biết không có phao
+  const dpSong = (tk?.nguoi ?? []).filter((n) => n.het && Date.parse(n.het) > Date.now() + 600_000);
   const chuRe = [duPhong ? `Máy đang chạy bằng phiên Ethopex DỰ PHÒNG của ${tk?.ten} (hạn tới ${ngay(tk?.het)}) — lệnh ghi trên camp nhà mang tên người đó trong nhật ký Ethopex.`
-      : 'Ethopex từ chối token — đồng bộ, máy luật, phanh chợ đang mù; máy KHÔNG tăng / tắt camp nào tới khi có token.',
-    `Token Nhà hạn tới ${ngay(tk?.nhaHet)}.`, tk?.loi ? `Lý do: ${tk.loi}` : '', 'Bấm để dán token mới.'].filter(Boolean).join('\n');
+      : chet ? 'Ethopex từ chối token — đồng bộ, máy luật, phanh chợ đang mù; máy KHÔNG tăng / tắt camp nào tới khi có token.' : 'Máy đang dùng token Nhà.',
+    `Token Nhà hạn tới ${ngay(tk?.nhaHet)}.`,
+    dpSong.length ? `Dự phòng sẵn sàng: ${dpSong.map((n) => `${n.ten ?? `#${n.id}`} (tới ${ngay(n.het)})`).join(', ')}.` : 'Chưa có phiên dự phòng còn hạn — token Nhà hết hạn là máy mù. Dán token của Sơn để có dự phòng.',
+    tk?.loi ? `Lý do: ${tk.loi}` : '', 'Bấm để dán token mới.'].filter(Boolean).join('\n');
   const gui = async () => {
     setDang(true); setKq(null);
     const r = await catTokenEthopex(ai === 'nha' ? 'nha' : Number(ai), phien);
@@ -767,14 +770,16 @@ function SuaToken({ dongBo }: { dongBo: DuLieuEtp['dongBo'] }) {
   };
   const ds = [{ id: 'nha', ten: 'Nhà (htuan82) — token chính' }, ...(tk?.nguoi ?? []).map((n) => ({ id: String(n.id), ten: `${n.ten ?? `#${n.id}`} — dự phòng${n.het && Date.parse(n.het) > Date.now() ? ` (còn hạn tới ${ngay(n.het)})` : ' (hết hạn)'}` }))];
   return <>
-    <button ref={neo} onClick={() => { setMo((v) => !v); setKq(null); }} title={chuRe}
-      style={{ alignSelf: 'center', fontSize: 11, padding: '1px 8px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap',
-        border: `1px solid ${chet ? '#f87171' : '#facc15'}`, background: chet ? 'rgba(248,113,113,.15)' : 'rgba(250,204,21,.12)', color: chet ? '#fca5a5' : '#fde68a' }}>
-      🔑 {chet ? 'Sửa token' : `dự phòng: ${tk?.ten ?? '?'}`}</button>
+    <button ref={neo} data-o="sua-token" onClick={() => { setMo((v) => !v); setKq(null); if (!chet && !duPhong && !dpSong.length && ds[1]) setAi(ds[1].id); }} title={chuRe}
+      style={{ alignSelf: 'center', fontSize: 11, padding: '1px 8px', borderRadius: 8, cursor: 'pointer', fontWeight: chet || duPhong ? 600 : 400, whiteSpace: 'nowrap',
+        border: `1px solid ${chet ? '#f87171' : duPhong ? '#facc15' : 'var(--line)'}`, background: chet ? 'rgba(248,113,113,.15)' : duPhong ? 'rgba(250,204,21,.12)' : 'transparent',
+        color: chet ? '#fca5a5' : duPhong ? '#fde68a' : 'var(--fg-2)' }}>
+      🔑{chet ? ' Sửa token' : duPhong ? ` dự phòng: ${tk?.ten ?? '?'}` : dpSong.length ? '' : ' chưa có dự phòng'}</button>
     <AnchoredPopover anchorRef={neo} open={mo} onClose={() => setMo(false)}>
       <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, width: 330, fontSize: 12, lineHeight: 1.45,
         background: 'var(--bg-1)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>
-        <div style={{ color: chet ? '#fca5a5' : '#fde68a', fontWeight: 600 }}>{chet ? 'Token Ethopex không dùng được' : `Đang chạy bằng phiên dự phòng của ${tk?.ten}`}</div>
+        <div style={{ color: chet ? '#fca5a5' : duPhong ? '#fde68a' : 'var(--fg-1)', fontWeight: 600 }}>{chet ? 'Token Ethopex không dùng được' : duPhong ? `Đang chạy bằng phiên dự phòng của ${tk?.ten}`
+          : `Đang dùng token Nhà (hạn tới ${ngay(tk?.nhaHet)}) · ${dpSong.length ? `dự phòng: ${dpSong.map((n) => n.ten ?? `#${n.id}`).join(', ')}` : 'chưa có dự phòng còn hạn'}`}</div>
         <div style={{ color: 'var(--fg-2)' }}>Máy tự dùng token Nhà; Nhà hết hạn thì tự chuyển sang phiên dự phòng còn hạn, có token Nhà mới thì tự quay về.</div>
         <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--fg-2)' }}>
           <li>Đăng nhập app.ethopex.dev bằng đúng tài khoản chọn dưới, mở <a href="https://app.ethopex.dev/profile" target="_blank" rel="noreferrer" style={{ color: 'var(--accent, #60a5fa)' }}>Profile</a></li>

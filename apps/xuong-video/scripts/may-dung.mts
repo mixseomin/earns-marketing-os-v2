@@ -545,11 +545,14 @@ if (a.includes('--nap')) {
     // Gốc: trước đây viết lại mù → SỬA LẠI đúng lý do cũ (ratesbyroom-scam-or-real: 4/5 bài Quora SỬA LẠI vì né câu hỏi / link lạc đề / thiếu ví dụ).
     const gopY = x.slug ? await import('node:fs').then((f) => { try {
       const dir = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/vp-noi-dung/da-kiem`, url = `bai://${ma}/${x.slug}`;
-      const ds = f.readdirSync(dir).filter((n) => n.endsWith('.json')).sort().reverse();
+      // GỘP MỌI LẦN CHẤM của bài (19/11/2026, quora-40712 Trivago lắc 4 vòng SỬA LẠI): chỉ mang góp ý lần GẦN NHẤT thì bản viết lại sửa lỗi mới nhưng
+      // đánh rơi cái lần trước đã đòi (checklist tự kiểm, danh tính người trả lời, link hợp ngữ cảnh) → lỗi cũ quay lại. Gộp mọi lần, bỏ trùng, kèm cả góp ý giọng;
+      // lần mới nhất là DUYỆT thì không cần viết lại theo góp ý.
+      const ds = f.readdirSync(dir).filter((n) => n.endsWith('.json')).sort().reverse(), y: string[] = [];
       for (const n of ds) { const s = f.readFileSync(`${dir}/${n}`, 'utf8'); if (!s.includes(url)) continue; const d = JSON.parse(s); if (d.url !== url) continue;
-        const kq = d.kq ?? {}; if (kq.ket_luan === 'DUYET') return null;
-        return [kq.tom_tat, ...(kq.thieu ?? []).map((t: string) => `missing: ${t}`), ...(kq.thua ?? []).map((t: string) => `remove: ${t}`)].filter(Boolean).join(' | ') || null; }
-      return null; } catch { return null; } }) : null;
+        const kq = d.kq ?? {}; if (kq.ket_luan === 'DUYET') { if (!y.length) return null; continue; }
+        y.push(...(kq.thieu ?? []).map((t: string) => `missing: ${t}`), ...(kq.thua ?? []).map((t: string) => `remove: ${t}`), ...(kq.giong ?? []).map((t: string) => `tone: ${t}`)); }
+      return [...new Set(y)].slice(0, 16).join(' | ') || null; } catch { return null; } }) : null;
     console.log(JSON.stringify(await vietBai({ sp, goc: x.goc, cauHoi: x.cau_hoi, link, utm, suThat, gopY })));
   }
 } else if (lay('--sinh-de') != null) {

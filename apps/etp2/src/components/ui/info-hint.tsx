@@ -1,6 +1,6 @@
 'use client';
 
-// InfoHint — ẩn mô tả/comment dài, hover hiện NGAY (0ms, CSS thuần, không
+// InfoHint — ẩn mô tả/comment dài, rê đủ --tre-mo (700ms, #1514) mới hiện (CSS thuần, không
 // dùng native title). Thay cho các đoạn page-sub / "// chú thích" dài làm
 // rối UI. Dùng: <InfoHint>Giải thích…</InfoHint> cạnh tiêu đề/label.
 

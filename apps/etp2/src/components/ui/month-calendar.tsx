@@ -282,7 +282,7 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   return (
     <div data-comp="ui.MonthCalendar">
       {/* Hover pill có bàn giao → bung popover (pure CSS; !important thắng inline display:none). Nâng z-index để không bị ô sau che. */}
-      <style>{`.cal-pill-wrap:hover{z-index:40}.cal-pill-wrap:hover .cal-brief{display:block!important}`}</style>
+      <style>{`.cal-pill-wrap:hover{z-index:40}.cal-pill-wrap:hover .cal-brief{display:block!important;animation:tre-hien 0s var(--tre-mo) both}`}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
         <button type="button" onClick={() => step(-1)} style={navBtn} title="Lùi">◀</button>
         <div style={{ fontSize: 13, fontWeight: 700, minWidth: 190, textAlign: 'center', textTransform: 'capitalize' }}>{label}</div>

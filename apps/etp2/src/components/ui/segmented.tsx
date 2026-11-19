@@ -10,6 +10,7 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { moTabNeuModifier } from '@/lib/url-mo-tab';
+import { TRE_MO } from '@/lib/etp-tre';
 
 export interface SegmentedOption<T> {
   value: T;
@@ -26,7 +27,8 @@ function MenuCon({ menu, children }: { menu?: SegmentedMenuItem[]; children: (p:
   const ref = useRef<HTMLButtonElement | null>(null); const hen = useRef<number | undefined>(undefined);
   const [toaDo, setToaDo] = useState<{ x: number; y: number } | null>(null);
   const giu = () => { if (hen.current) window.clearTimeout(hen.current); };
-  const mo = () => { if (!menu?.length) return; giu(); const b = ref.current?.getBoundingClientRect(); if (b) setToaDo({ x: b.left, y: b.bottom + 2 }); };
+  // #1514 (anh 02/11/2026 "mọi hover đều phải chậm lại để xem có ý định thực"): menu con chờ TRE_MO như mọi thẻ nổi — trước bung ngay khi chuột lướt qua tab
+  const mo = () => { if (!menu?.length) return; giu(); hen.current = window.setTimeout(() => { const b = ref.current?.getBoundingClientRect(); if (b) setToaDo({ x: b.left, y: b.bottom + 2 }); }, TRE_MO); };
   const dong = () => { giu(); hen.current = window.setTimeout(() => setToaDo(null), 200); };
   return <>
     {children({ ref, mo, dong })}

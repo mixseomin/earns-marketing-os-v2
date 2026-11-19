@@ -299,6 +299,14 @@ const LUAT = [
   { card: 1485, tep: 'packages/bang/src/data-table.tsx', co: "querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { const r = tr.getBoundingClientRect(); if (r.top < day + r.height / 2)", cam: "if (tr.getBoundingClientRect().top < day - 1)", vi: 'dòng phim dính đổi sang phim kế khi dòng phim kế chui quá nửa dưới bản dính — không ghi phim cũ trên đầu camp của phim mới (rà lại 19/11/2026: cuộn vào Atravesando trên đầu vẫn ghi #0)' },
   { card: 1485, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const H = nhom ? 22 : 15, le = nhom ? 3 : 8,', vi: 'cột ROI camp cao 15 · hẹp hơn, cột ROI phim cao 22' },
   { card: 1515, tep: 'apps/etp2/src/components/etp-view.tsx', co: "const TUOI_MUC = [['0-3', '< 3 ngày'], ['0-7', '< 7 ngày'], ['0-14', '< 14 ngày'], ['7-', '≥ 7 ngày'], ['0-1', 'Dưới 1 ngày']", vi: 'ô lọc Tuổi: mốc cộng dồn < 3 / < 7 / < 14 / ≥ 7 ngày đứng ĐẦU, khoảng rời sau' },
+  // #1514 (anh 02/11/2026 "mọi hover đều phải chậm lại… ko show ngay"): mọi lớp nổi rê chuột chờ TRE_MO 700ms — thẻ nổi, menu con tab, lịch ngày, InfoHint, brief lịch tháng
+  { card: 1514, tep: 'apps/etp2/src/lib/etp-tre.ts', co: 'export const TRE_MO = 700;', vi: 'một hằng trễ mở 700ms' },
+  { card: 1514, tep: 'apps/etp2/src/components/ui/segmented.tsx', co: 'hen.current = window.setTimeout(() => { const b = ref.current?.getBoundingClientRect(); if (b) setToaDo({ x: b.left, y: b.bottom + 2 }); }, TRE_MO);', vi: 'menu con tab (Camp / Creative) chờ TRE_MO, không bung ngay' },
+  { card: 1514, tep: 'apps/etp2/src/components/ui/ngay-lich.tsx', co: 'window.setTimeout(() => datMo(true), TRE_MO)', cam: 'onMouseEnter={() => datMo(true)}', vi: 'lịch ngày chờ TRE_MO' },
+  { card: 1514, tep: 'apps/etp2/src/app/globals.css', co: ':root { --tre-mo: 700ms; }', vi: 'trễ CSS cùng số TRE_MO' },
+  { card: 1514, tep: 'apps/etp2/src/app/globals.css', co: 'opacity: 1; visibility: visible; animation: tre-hien 0s var(--tre-mo) both;', vi: 'InfoHint chờ --tre-mo' },
+  { card: 1514, tep: 'apps/etp2/src/components/ui/month-calendar.tsx', co: '.cal-pill-wrap:hover .cal-brief{display:block!important;animation:tre-hien 0s var(--tre-mo) both}', vi: 'brief lịch tháng chờ --tre-mo' },
+  { card: 1514, tep: 'apps/etp2/src/components/etp-noi.tsx', co: '}), TRE_MO);   // #1514', vi: 'thẻ nổi đang mở thẻ khác cũng chờ đủ trễ' },
 ];
 
 const loi = [];

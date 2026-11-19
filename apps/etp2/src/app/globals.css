@@ -976,7 +976,12 @@ button { font-family: inherit; color: inherit; }
 .btn.danger { background: var(--btn-danger-bg); color: var(--btn-danger-fg); border-color: var(--btn-danger-border); }
 .btn.success { background: var(--btn-success-bg); color: var(--btn-success-fg); border-color: var(--btn-success-border); }
 
-/* InfoHint — ẩn mô tả dài, hover hiện NGAY (0ms, không native title) */
+/* TRỄ HIỆN khi rê chuột cho lớp nổi CSS thuần (#1514 anh 02/11/2026 "mọi hover đều phải chậm lại để xem có ý định thực"):
+   cùng số với TRE_MO ở lib/etp-tre.ts (700ms). Gắn: animation: tre-hien 0s var(--tre-mo) both — trong lúc chờ giữ visibility:hidden, rời chuột là tắt ngay. */
+:root { --tre-mo: 700ms; }
+@keyframes tre-hien { from { visibility: hidden; } to { visibility: visible; } }
+
+/* InfoHint — ẩn mô tả dài, rê đủ --tre-mo mới hiện (không native title) */
 .info-hint {
   position: relative; display: inline-flex; align-items: center;
   color: var(--fg-4); cursor: help; vertical-align: middle;
@@ -992,9 +997,10 @@ button { font-family: inherit; color: inherit; }
   font-family: var(--font-sans); font-weight: 400; text-transform: none;
   letter-spacing: 0; white-space: normal;
   opacity: 0; visibility: hidden; pointer-events: none;
-  /* hiện NGAY khi hover — không delay, không transition vào */
 }
-.info-hint:hover .info-hint__pop,
+.info-hint:hover .info-hint__pop {
+  opacity: 1; visibility: visible; animation: tre-hien 0s var(--tre-mo) both;
+}
 .info-hint:focus-visible .info-hint__pop {
   opacity: 1; visibility: visible;
 }

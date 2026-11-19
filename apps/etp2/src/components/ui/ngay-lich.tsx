@@ -5,6 +5,7 @@
 // nên không kẹt-mở. Bọc quanh bất kỳ ô ngày nào (Đăng dự kiến, hạn, ngày đăng…) — không chỉ Tài sản.
 import { useRef, useState, type ReactNode } from 'react';
 import { AnchoredPopover } from './anchored-popover';
+import { TRE_MO } from '@/lib/etp-tre';
 import { MiniMonth, parseYmd, ymd } from './month-calendar';
 
 export function NgayLich({ ngay, nhan = 'mốc', mau = 'var(--accent)', children }: {
@@ -14,6 +15,7 @@ export function NgayLich({ ngay, nhan = 'mốc', mau = 'var(--accent)', children
 }) {
   const ref = useRef<HTMLSpanElement | null>(null);
   const [mo, datMo] = useState(false);
+  const hen = useRef<number | undefined>(undefined);   // #1514: rê đủ TRE_MO mới bung, lướt qua thì thôi
   const d = parseYmd(ngay);
   if (!d) return <>{children}</>;
   const hom = new Date(); hom.setHours(0, 0, 0, 0);
@@ -22,7 +24,7 @@ export function NgayLich({ ngay, nhan = 'mốc', mau = 'var(--accent)', children
   const sel = new Set<string>([ymd(hom), ngay]);
   if (Math.abs(cach) <= 120) { const [a, b] = cach >= 0 ? [hom, d] : [d, hom]; for (let x = new Date(a); x <= b; x.setDate(x.getDate() + 1)) sel.add(ymd(x)); }
   return (
-    <span ref={ref} onMouseEnter={() => datMo(true)} style={{ display: 'inline-block' }}>
+    <span ref={ref} onMouseEnter={() => { window.clearTimeout(hen.current); hen.current = window.setTimeout(() => datMo(true), TRE_MO); }} onMouseLeave={() => window.clearTimeout(hen.current)} style={{ display: 'inline-block' }}>
       {children}
       <AnchoredPopover anchorRef={ref} open={mo} onClose={() => datMo(false)} backdrop={false} closeOnPointerOutside>
         <div data-comp="ui.NgayLich" style={{ width: 216, padding: '8px 10px 6px', background: 'var(--bg-0, #0b0d12)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,.45)', color: 'var(--fg-1)' }}>

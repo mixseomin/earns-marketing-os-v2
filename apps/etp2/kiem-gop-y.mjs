@@ -7,6 +7,13 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1530, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'Nhận phim (giữ 24 giờ)', vi: 'menu ⋯ tab Phim không còn mục Nhận phim (anh 04/11/2026 "Bỏ tính năng nhận phim này đi")' },
+  { card: 1530, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "header: 'Người nhận'", vi: 'tab Phim không còn cột Người nhận' },
+  { card: 1530, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "header: 'Tiến độ nhận'", vi: 'tab Phim không còn cột Tiến độ nhận' },
+  { card: 1530, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'nhanPhimEtp(', vi: 'giao diện etp2 không gọi nhận phim' },
+  { card: 1530, tep: 'apps/etp2/src/components/etp-phim-drawer.tsx', cam: 'Nhận phim (giữ 24 giờ)', vi: 'ngăn phim không còn nút Nhận phim' },
+  { card: 1530, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'dauThanh={laNguoi || du.nguoi.ngoai || du.nguoi.doi ? undefined : <NutQuetPhim />}', vi: 'thanh lọc tab Phim có nút ↻ Quét, chấm lại phim chủ động (anh "Thêm chức năng quét, chấm lại phim chủ động")' },
+  { card: 1530, tep: 'apps/etp2/src/lib/actions/etp-phim.ts', co: "chay(['chon-phim-moi.py', '--co-the-test'], E)", vi: 'nút quét chạy đúng bộ chấm Có thể test' },
   { card: 1520, tep: 'apps/etp2/src/components/etp-dong.tsx', co: 'await lenCampCr(d.id, menuCr.id)', vi: 'bấm ô Lên camp của từng creative có nút lên camp riêng creative đó' },
   { card: 1520, tep: 'apps/etp2/src/components/etp-dong.tsx', co: "...(so != null ? { maxWidth: 40 } : { flex: '0 1 auto' })", cam: 'maxWidth: so != null ? 40 : 74', vi: 'chữ ô trạng thái (nút chờ / lên camp của phim) dùng hết bề rộng cột, không trần cứng 74px làm cụt chữ' },
   { card: 1516, tep: 'apps/etp2/src/components/etp-view.tsx', co: "(khK.den >= du.nay && (c.trang_thai === 'ACTIVE' || c.nay.chi > 0))", cam: "c.trang_thai === 'ACTIVE' || c.nay.chi > 0 || c.qua.chi > 0 ||", vi: 'kỳ không chứa hôm nay thì camp đang chạy / chỉ chi hôm nay, hôm qua KHÔNG được lọt vào cây (anh "giờ đang show all time")' },

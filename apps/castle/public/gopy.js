@@ -20,6 +20,11 @@ export function ganGopY({ nut, chupAnh = () => null, nguCanh = () => '', anhNgoa
   nut.title = 'Góp ý / báo lỗi — chọn có kèm ảnh màn hình hay không; tab thứ hai của hòm xem trạng thái + trả lời mọi thẻ đã gửi';
   if (!document.querySelector(`script[src="${NUT_HOM}"]`)) { const s = document.createElement('script'); s.src = NUT_HOM; s.defer = true; s.onerror = () => console.error('[castle] không nạp được hòm góp ý mos2', NUT_HOM); document.head.append(s); }
   const st = document.createElement('style'); st.textContent = CSS; document.head.append(st);
+  const dai = document.createElement('div'); dai.setAttribute('data-gy-dang-lam', ''); dai.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:12;display:none;padding:7px 10px;border:1px solid var(--vien,rgba(255,255,255,.18));border-radius:8px;background:var(--o,rgba(14,20,30,.92));color:var(--chu,#eee);font:12px system-ui,sans-serif;text-align:center;pointer-events:none'; document.body.append(dai);
+  const hienDai = () => { try { const f = document.querySelector('iframe[title="Góp ý / báo lỗi"]'); const d = f && f.contentDocument.querySelector('[data-gy-dang-lam]'); if (!d) return; dai.textContent = d.textContent.trim(); if (d.dataset.kySu) dai.dataset.kySu = d.dataset.kySu; dai.style.display = dai.textContent ? 'block' : 'none'; } catch {} };
+  const theoDoi = new MutationObserver(hienDai);
+  const timHom = new MutationObserver(() => { const f = document.querySelector('iframe[title="Góp ý / báo lỗi"]'); if (f && !f.dataset.theoDoi) { f.dataset.theoDoi = '1'; f.addEventListener('load', () => { try { theoDoi.observe(f.contentDocument.body, { childList: true, subtree: true, characterData: true }); hienDai(); } catch {} }); } if (!f) dai.style.display = 'none'; });
+  timHom.observe(document.body, { childList: true });
   const menu = document.createElement('div'); menu.id = 'gy-menu';
   menu.innerHTML = '<button data-anh="0">💬 Góp ý (không kèm ảnh)</button><button data-anh="1">📸 Góp ý kèm ảnh màn hình hiện tại</button>';
   document.body.append(menu);

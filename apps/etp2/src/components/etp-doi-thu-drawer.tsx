@@ -8,7 +8,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Drawer, Segmented, SiteFavicon } from '@/components/ui';
 import { Dem, MO_SO } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
-import { docQcDoiThu, phanDangQc, type DangQc, type PhimDoiThu, type QcDoiThu } from '@/lib/actions/etp-doi-thu';
+import { docQcDoi, docQcDoiThu, phanDangQc, type DangQc, type PhimDoiThu, type QcDoi, type QcDoiThu } from '@/lib/actions/etp-doi-thu';
 import { DO, OCamp, ORoi, VANG, XANH, gioVn, ngayVn, useDoiThu } from './etp-doi-thu';
 
 const ngoai = (u: string) => `https://href.li/?${u}`;   // link ra ngoài che referrer
@@ -87,9 +87,40 @@ function Ngan({ p, dau, onClose }: { p: PhimDoiThu; dau: (ten: ReactNode, phu: s
       {!d ? <div style={{ padding: 16, color: MO_SO }}>đang đọc QC đối thủ…</div>
         : 'loi' in d ? <div style={{ padding: 16, color: DO }}>{d.loi}</div>
           : !hien.length ? <div style={{ padding: 16, color: MO_SO }}>không có QC nào ở bộ lọc này {loc !== 'all' ? <a style={{ cursor: 'pointer' }} onClick={() => setLoc('all')}>— xem tất cả</a> : null}</div>
-            : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14, padding: 16 }}>{hien.map((x) => <TheQc key={x.library_id} x={x} />)}</div>}
+            : <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14, padding: 16 }}>{hien.map((x) => <TheQc key={x.library_id} x={x} />)}</div>
+                <CotDoi p={p} />
+              </div>}
     </Drawer>
   );
+}
+
+/** CỘT QC ĐỘI bên phải (anh 19/11/2026 "Show thêm qc của đội ở bên cạnh để so sánh!!"): creative đội cùng phim — ảnh 9:16, người chạy, camp đang / từng lên, chi, ROI.
+ *  Dính khi cuộn để luôn đặt cạnh QC đối thủ đang xem. Bấm ảnh mở video. */
+function CotDoi({ p }: { p: PhimDoiThu }) {
+  const [d, setD] = useState<QcDoi[] | { loi: string } | null>(null);
+  const ids = [p.etp?.id, ...p.etp_khac].filter((x): x is number => !!x);
+  useEffect(() => { let song = true; setD(null); if (!ids.length) { setD([]); return; }
+    docQcDoi(ids).then((r) => { if (song) setD('loi' in r ? r : r.qc); }).catch((e: unknown) => { if (song) setD({ loi: e instanceof Error ? e.message : String(e) }); });
+    return () => { song = false; }; }, [p.khoa]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const ds = Array.isArray(d) ? d : [];
+  return <div style={{ width: 300, flex: 'none', borderLeft: '1px solid var(--line)', padding: '16px 12px', position: 'sticky', top: 44, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}>
+    <div style={{ fontSize: 11, color: MO_SO, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>QC của đội · {ds.length}{ds.length ? ` · ${ds.filter((x) => x.dang).length} đang chạy` : ''}</div>
+    {!d ? <div style={{ fontSize: 12, color: MO_SO }}>đang đọc QC đội…</div> : 'loi' in d ? <div style={{ fontSize: 12, color: DO }}>{d.loi}</div>
+      : !ids.length ? <div style={{ fontSize: 12, color: MO_SO }}>phim không có trên Ethopex — đội không chạy được</div>
+      : !ds.length ? <div style={{ fontSize: 12, color: MO_SO }}>đội chưa chạy phim này</div>
+      : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+          {ds.map((x) => { const r = x.chi > 0.5 ? ((x.thu - x.chi) / x.chi) * 100 : null;
+            return <div key={x.creative_id} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <a href={x.video ?? x.anh ?? undefined} target="_blank" rel="noreferrer" title={`creative #${x.creative_id} — mở video`} style={{ position: 'relative', display: 'block', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden' }}>
+                {x.anh ? <img src={x.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: MO_SO, fontSize: 11 }}>chưa có ảnh</span>}
+                <span style={{ position: 'absolute', top: 4, left: 4, fontSize: 10, padding: '0 5px', borderRadius: 8, background: 'rgba(0,0,0,0.7)', color: x.dang ? XANH : '#fff' }}>{x.dang ? '● đang chạy' : 'đã dừng'}</span>
+              </a>
+              <div style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{x.nguoi ?? 'đội'} · {x.dang}/{x.tong} camp</div>
+              <div style={{ fontSize: 11, color: MO_SO, fontVariantNumeric: 'tabular-nums' }}>chi ${x.chi.toFixed(0)}{r != null ? <> · ROI <span style={{ color: r >= 0 ? XANH : DO }}>{r.toFixed(0)}%</span></> : ''}</div>
+            </div>; })}
+        </div>}
+  </div>;
 }
 
 function TheQc({ x }: { x: QcDoiThu }) {

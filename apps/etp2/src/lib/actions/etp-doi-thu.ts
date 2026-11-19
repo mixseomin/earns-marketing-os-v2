@@ -294,3 +294,26 @@ export async function phanDangQc(ids: string[]): Promise<{ dang: Record<string, 
     return { loi: `phân dạng creative không được: ${(e as Error).message}` };
   }
 }
+
+/** QC CỦA ĐỘI cùng phim — đặt cạnh QC đối thủ để so (anh 19/11/2026 "Show thêm qc của đội ở bên cạnh để so sánh!!"): camp đội (etp.camp_ngoai) của các mã Ethopex
+ *  cùng tên phim → creative (ảnh / video etp.anh_cr), người chạy (etp.tai_khoan), trạng thái, chi / thu cả đời (etp.so_ngay_ngoai). Một creative một thẻ (gộp camp). */
+export type QcDoi = { creative_id: number; anh: string | null; video: string | null; nguoi: string | null; dang: number; tong: number; chi: number; thu: number; tao: string | null; dang_cr: string | null };
+export async function docQcDoi(ids: number[]): Promise<{ qc: QcDoi[] } | { loi: string }> {
+  const q = await quyenEtp(await getCurrentUser());
+  if (!q || q.vai !== 'chu') return { loi: 'không có quyền' };
+  const ds = [...new Set(ids.map((x) => Math.trunc(Number(x))).filter((x) => x > 0))];
+  if (!ds.length) return { qc: [] };
+  try {
+    const qc = await run<QcDoi>(sql`
+      select k.creative_id, a.anh, a.video, max(t.nguoi) nguoi, count(*) filter (where k.trang_thai = 'ACTIVE')::int dang, count(*)::int tong,
+        coalesce(sum(s.chi), 0)::float chi, coalesce(sum(s.thu), 0)::float thu, min(k.tao)::text tao, max(c.dang) dang_cr
+      from etp.camp_ngoai k left join etp.anh_cr a on a.creative_id = k.creative_id left join etp.creative c on c.creative_id = k.creative_id
+      left join etp.tai_khoan t on t.ad_account_id = k.ad_account_id
+      left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay_ngoai group by 1) s on s.camp_id = k.camp_id
+      where k.content_id = any(${`{${ds.join(',')}}`}::int[]) and k.creative_id is not null
+      group by k.creative_id, a.anh, a.video order by count(*) filter (where k.trang_thai = 'ACTIVE') desc, coalesce(sum(s.chi), 0) desc limit 60`);
+    return { qc };
+  } catch (e) {
+    return { loi: `đọc QC đội không được: ${(e as Error).message}` };
+  }
+}

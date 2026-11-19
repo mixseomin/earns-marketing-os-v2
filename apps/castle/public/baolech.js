@@ -23,6 +23,10 @@ const CSS = `
 #bl-bao { position: fixed; right: 16px; bottom: 76px; z-index: 9; width: min(380px, calc(100vw - 32px)); padding: 12px 14px; background: var(--o); border: 1px solid #4ade80; border-radius: 12px; color: var(--chu); font-size: 13px; display: none; backdrop-filter: blur(6px); }
 #bl-bao b { color: #4ade80; } #bl-bao .dong { float: right; cursor: pointer; color: var(--mo); background: none; border: none; font-size: 15px; } #bl-bao p { margin: 6px 0 0; white-space: pre-wrap; } #bl-bao a { color: #ffd9a8; }
 #bl-bao.dang { border-color: #f59e0b; } #bl-bao.dang b { color: #f59e0b; }
+/* thẻ báo cáo không bao giờ phủ cả màn (anh 19/11/2026: điện thoại 8 báo cáo chiếm hết màn): cao tối đa 40% màn, cuộn bên trong; cái mới nhất mở, cái cũ gập thành một dòng */
+#bl-bao { max-height: min(40vh, 420px); overflow-y: auto; overscroll-behavior: contain; }
+#bl-bao details > summary { cursor: pointer; color: var(--mo); margin-top: 8px; list-style: none; } #bl-bao details > summary b { color: #4ade80; font-weight: 600; }
+@media (hover: none) { #bl-bao { right: 8px; left: 8px; width: auto; bottom: 64px; font-size: 12px; padding: 10px 12px; } }
 #bl button.chinh { background: #ffd9a8; color: #1a1208; border-color: #ffd9a8; } #bl button:disabled { opacity: .55; cursor: default; }`;
 
 export function ganBaoLech({ nut, chupHai, them = () => '', anhNgoai = () => [] }) { // them(): ngữ cảnh thêm (ảnh thật đã chọn ở 📷 — ANH-THAT-JSON)
@@ -108,11 +112,11 @@ export function ganBaoLech({ nut, chupHai, them = () => '', anhNgoai = () => [] 
   async function hoiTT() {
     try {
       const r = await fetch('/mp/lech', { cache: 'no-store' }); if (!r.ok) return; const j = await r.json(); ttMoi = { dang: j.dang || [], xong: j.xong || [] };
-      const dang = (j.dang || []).filter((x) => Date.now() - x.luc < 6 * 3600e3), moi = (j.xong || []).filter((x) => x.luc > daXem);
+      const dang = (j.dang || []).filter((x) => Date.now() - x.luc < 6 * 3600e3), moi = (j.xong || []).filter((x) => x.luc > daXem).sort((a, b) => b.luc - a.luc);
       nut.classList.toggle('bl-dang', dang.length > 0 && !moi.length);
       nut.title = dang.length ? `Đang xử báo lệch: ${dang.map((x) => '#' + x.id + ' ' + x.viec).join(' · ')}` : 'Báo chỗ ảnh thật khác mô hình 3D ở đúng góc đang nhìn (máy tự so hai bản, đánh dấu vùng lỗi nếu muốn)';
       if (moi.length) { if (!nut.classList.contains('bl-xong')) { nut.classList.add('bl-xong'); }
-        bao.className = ''; bao.innerHTML = '<button class="dong" title="Đã xem">✕</button>' + moi.map((x) => `<b>✅ Báo lệch #${esc(x.id)} đã xong</b><p>${esc(x.tom)}</p>${nutXem(x)}`).join('<hr style="border:0;border-top:1px solid var(--vien)">'); ganXem(bao);
+        bao.className = ''; bao.innerHTML = '<button class="dong" title="Đã xem">✕</button>' + moi.map((x, i) => i ? `<details><summary><b>✅ #${esc(x.id)}</b> ${esc(String(x.tom).slice(0, 60))}…</summary><p>${esc(x.tom)}</p>${nutXem(x)}</details>` : `<b>✅ Báo lệch #${esc(x.id)} đã xong</b>${moi.length > 1 ? ` <span style="color:var(--mo)">(+${moi.length - 1} báo cáo khác)</span>` : ''}<p>${esc(x.tom)}</p>${nutXem(x)}`).join(''); ganXem(bao);
         bao.style.display = 'block'; bao.querySelector('.dong').onclick = () => { daXem = Math.max(...moi.map((x) => x.luc)); try { localStorage.setItem('ns-lech-da-xem', String(daXem)); } catch {} bao.style.display = 'none'; nut.classList.remove('bl-xong'); hoiTT(); }; }
       else if (dang.length && bao.dataset.mo !== '0') { bao.className = 'dang'; bao.innerHTML = '<button class="dong">✕</button>' + dang.map((x) => `<b>⏳ Đang xử #${esc(x.id)}</b><p>${esc(x.viec)}</p>${nutXem(x)}`).join(''); ganXem(bao); bao.style.display = 'block'; bao.querySelector('.dong').onclick = () => { bao.dataset.mo = '0'; bao.style.display = 'none'; }; }
       else if (bao.className === 'dang') bao.style.display = 'none';

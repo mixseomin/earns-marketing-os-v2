@@ -1605,7 +1605,7 @@ let anh3d = null, anh3d_tk = null;
 // chi tiết — ảnh Google chụp từ máy bay, đứng sát đất tường bị kéo giãn méo (anh 15/11/2026 "tởm quá"); xem toàn cảnh / đứng xa thì ảnh thật.
 const datAnh3d = (bat) => {
   if (!anh3d) return; anh3d.bat = bat;
-  $('b-anh3d').textContent = bat ? '🧱 Mô hình' : '🌍 Ảnh thật 3D'; $('b-anh3d').title = bat ? 'Về mô hình dựng từ số đo' : 'Hiện lâu đài ảnh thật 3D (Google) khi xem toàn cảnh / từ xa';
+  $('b-anh3d').innerHTML = bat ? '🧱<span class="nhan"> Mô hình</span>' : '🌍<span class="nhan"> Ảnh thật 3D</span>';   // .nhan ẩn trên màn cảm ứng: hàng nút đáy không tràn (19/11/2026) $('b-anh3d').title = bat ? 'Về mô hình dựng từ số đo' : 'Hiện lâu đài ảnh thật 3D (Google) khi xem toàn cảnh / từ xa';
   try { localStorage.setItem('ns-anh3d-v2', bat ? '1' : '0'); } catch {} // khoá mới: lựa chọn cũ (mặc định bật trên máy tính) không kéo sang
   apDungAnh3d();
 };

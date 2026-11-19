@@ -18,5 +18,8 @@ server {
   # Phim thật: studio2 đọc qua đường đọc + ảnh nhỏ của studio (apps/xuong-video, cổng 3840). Chỉ mở đúng hai đường này (không mở /api/xv/xong, /tai…);
   # qua cổng SSO ở trên rồi studio tự kiểm phiên mos2 lần nữa (hàm đọc chỉ trả dữ liệu cho quản trị).
   location ~ ^/api/xv/(doc|nho)$ { proxy_pass http://127.0.0.1:3840; proxy_http_version 1.1; proxy_set_header Host studio.on.tc; proxy_set_header X-Forwarded-For $remote_addr; proxy_set_header X-Forwarded-Proto $scheme; proxy_read_timeout 60s; }
-  location / { add_header Cache-Control "no-cache"; add_header X-Robots-Tag "noindex, nofollow" always; try_files $uri /index.html; }
+  # Mã bản của tệp tĩnh (deploy.sh khối 5e3 ghi snippets/studio2-ban.conf = băm nội dung .js + .css): index.html gọi tệp kèm ?v=__BAN__, nginx thay ở đây.
+  # Lý do: Cloudflare zone on.tc giữ .js / .css 7 ngày dù ở đây gửi no-cache — không có ?v= thì deploy xong người dùng vẫn chạy mã cũ (dính thật 19/11/2026).
+  include snippets/studio2-ban.conf;
+  location / { add_header Cache-Control "no-cache"; add_header X-Robots-Tag "noindex, nofollow" always; sub_filter '__BAN__' $studio2_ban; sub_filter_once off; try_files $uri /index.html; }
 }

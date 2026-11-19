@@ -232,9 +232,13 @@ else
   echo "↺ etp2 unchanged — keep running build"
 fi
 
-# 5e3. STUDIO 2 (apps/studio2/public, studio2.on.tc) — tệp tĩnh sau SSO mos2, không có tiến trình riêng (anh 19/11/2026). git pull là xong mã; ở đây chỉ cài vhost.
-if ! cmp -s apps/studio2/deploy/studio2.on.tc.nginx /etc/nginx/sites-enabled/studio2.on.tc; then
-  cp apps/studio2/deploy/studio2.on.tc.nginx /etc/nginx/sites-enabled/studio2.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx studio2.on.tc cài/cập nhật" || { echo "✗ nginx studio2.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/studio2.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
+# 5e3. STUDIO 2 (apps/studio2/public, studio2.on.tc) — tệp tĩnh sau SSO mos2, không có tiến trình riêng (anh 19/11/2026). git pull là xong mã; ở đây cài vhost
+# + MÃ BẢN của tệp tĩnh: Cloudflare zone on.tc giữ .js / .css 7 ngày dù máy gốc gửi no-cache, nên trang gọi tệp kèm ?v=<băm nội dung> — nginx thay chữ
+# __BAN__ trong index.html bằng biến studio2_ban ghi ở snippets/studio2-ban.conf (đổi mã là đổi băm → trình duyệt + Cloudflare lấy tệp mới ngay).
+S2_BAN=$(cat apps/studio2/public/*.js apps/studio2/public/*.css | md5sum | cut -c1-12)
+echo "set \$studio2_ban \"$S2_BAN\";" > /tmp/studio2-ban.conf
+if ! cmp -s /tmp/studio2-ban.conf /etc/nginx/snippets/studio2-ban.conf || ! cmp -s apps/studio2/deploy/studio2.on.tc.nginx /etc/nginx/sites-enabled/studio2.on.tc; then
+  cp /tmp/studio2-ban.conf /etc/nginx/snippets/studio2-ban.conf && cp apps/studio2/deploy/studio2.on.tc.nginx /etc/nginx/sites-enabled/studio2.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx studio2.on.tc cài/cập nhật (bản $S2_BAN)" || { echo "✗ nginx studio2.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/studio2.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
 fi
 
 # 5z. vhost etp.on.tc cài từ repo (có trang "đang cập nhật" tự tải lại khi mos2-web khởi động lại) — chỉ khi tệp đổi

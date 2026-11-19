@@ -7,6 +7,10 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1516, tep: 'apps/etp2/src/components/etp-view.tsx', co: "(khK.den >= du.nay && (c.trang_thai === 'ACTIVE' || c.nay.chi > 0))", cam: "c.trang_thai === 'ACTIVE' || c.nay.chi > 0 || c.qua.chi > 0 ||", vi: 'kỳ không chứa hôm nay thì camp đang chạy / chỉ chi hôm nay, hôm qua KHÔNG được lọt vào cây (anh "giờ đang show all time")' },
+  { card: 1516, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'tenKy={khNhan} kyCay={kh === \'tat_ca\' ? undefined : khK} />', vi: 'cây camp nhận kỳ đang chọn' },
+  { card: 1516, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'for (let d = den; d >= kyTu && ds.length < 6; d = ngayCong(d, -1)) ds.unshift(d);', vi: 'cột ngày của cây = các ngày trong kỳ đã chọn, không cứng 6 ngày gần nhất' },
+  { card: 1516, tep: 'apps/etp2/src/components/etp-view.tsx', co: "...(!coNay ? [] : [{ key: 'nay', header: 'nay'", vi: 'cột ROI nay chỉ hiện khi kỳ chứa hôm nay' },
   { card: 1510, tep: 'apps/etp2/src/components/etp-view.tsx', co: '+{the.length - 1}</span>', vi: 'ô Luật dòng phim chỉ MỘT thẻ (nặng nhất) + "+N" (anh 02/11/2026 "Bố cục lại cả chỗ này" — trước 2 thẻ bị cắt chữ)' },
   { card: 1510, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{the.map((x) => <div key={x.ten} style={{ borderLeft: `3px ${x.cho ? 'dashed' : 'solid'} ${x.mau}`", vi: 'rê thẻ ô Luật dòng phim = thẻ nổi khuôn chung, mỗi trạng thái một khối viền màu, lý do chia dòng (anh "Hover format lại")' },
   { card: 1510, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'e.preventDefault(); e.stopPropagation(); moNgay(x, e); }, [moNgay]);', vi: 'useNoi.bam: bấm ô trong dòng bấm được thì mở thẻ ngay, không gập/mở dòng' },
@@ -296,7 +300,7 @@ const LUAT = [
   { card: 1460, tep: 'apps/etp2/src/components/etp-dong.tsx', co: 'const h = useCaoThat(ref, 240);', cam: 'window.innerHeight - 440', vi: 'khung xem trước tab Sản xuất đặt theo cao thật, không đẩy lên xa con trỏ' },
   // #1515 (anh 03/11/2026 "Thêm nhóm option nhanh khác nữa như <7 ngày, <=3 ngày.... chứ mỗi nhóm này ko hợp lý"): bản sửa 55f4e825 ở apps/web, đã chép sang etp2 lúc tách — giữ ở etp2
   // #1485 (anh 29/10/2026 "Sticky dòng phim khi scroll xuống. Cột ROI của camp bé hơn cột ROI của phim"): bảng chung @mos2/bang chép dòng phim đã cuộn qua vào khối tiêu đề dính; ROI camp 15px, phim 22px
-  { card: 1485, tep: 'packages/bang/src/data-table.tsx', co: "querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { const r = tr.getBoundingClientRect(); if (r.top < day + r.height / 2)", cam: "if (tr.getBoundingClientRect().top < day - 1)", vi: 'dòng phim dính đổi sang phim kế khi dòng phim kế chui quá nửa dưới bản dính — không ghi phim cũ trên đầu camp của phim mới (rà lại 19/11/2026: cuộn vào Atravesando trên đầu vẫn ghi #0)' },
+  { card: 1485, tep: 'packages/bang/src/data-table.tsx', co: "querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { const r = tr.getBoundingClientRect(); if (r.top - lech < day + r.height / 2)", cam: "if (tr.getBoundingClientRect().top < day - 1)", vi: 'dòng phim dính đổi sang phim kế khi dòng phim kế chui quá nửa dưới bản dính — không ghi phim cũ trên đầu camp của phim mới (rà lại 19/11/2026: cuộn vào Atravesando trên đầu vẫn ghi #0)' },
   { card: 1485, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const H = nhom ? 22 : 15, le = nhom ? 3 : 8,', vi: 'cột ROI camp cao 15 · hẹp hơn, cột ROI phim cao 22' },
   { card: 1515, tep: 'apps/etp2/src/components/etp-view.tsx', co: "const TUOI_MUC = [['0-3', '< 3 ngày'], ['0-7', '< 7 ngày'], ['0-14', '< 14 ngày'], ['7-', '≥ 7 ngày'], ['0-1', 'Dưới 1 ngày']", vi: 'ô lọc Tuổi: mốc cộng dồn < 3 / < 7 / < 14 / ≥ 7 ngày đứng ĐẦU, khoảng rời sau' },
   // #1514 (anh 02/11/2026 "mọi hover đều phải chậm lại… ko show ngay"): mọi lớp nổi rê chuột chờ TRE_MO 700ms — thẻ nổi, menu con tab, lịch ngày, InfoHint, brief lịch tháng

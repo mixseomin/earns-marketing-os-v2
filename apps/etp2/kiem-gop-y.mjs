@@ -7,6 +7,8 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1461, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const CSS_CAY = CSS_MUI_BANG + ', vi: 'cây camp máy tính (DataTable): mọi mũi tên phim + camp đi qua MỘT luật CSS_MUI_BANG (anh 28/10/2026 "Để cách mũi tên ko sát lề như vậy")' },
+  { card: 1461, tep: 'apps/etp2/src/components/etp-view.tsx', co: '{margin-left:8px;width:16px!important;flex:none;text-align:center;', vi: 'mũi tên cách mép trái ô 8px, ô 16px canh giữa — phim và camp gốc cùng một cột' },
   { card: 'so-nho-1311', tep: 'apps/etp2/src/components/etp-view-khach.tsx', cam: 'caches.open(', vi: 'giữ số trong máy chỉ qua lib/so-nho, không dựng kho thứ hai (/audit 13/11/2026)' },
   { card: 'so-nho-1311', tep: 'apps/etp2/src/lib/so-nho.ts', cam: 'localStorage', vi: 'một kho Cache API duy nhất cho số giữ trong máy' },
   { card: 'so-nho-1311', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', co: "useSoNho<SoTong2>('tong2', taiTong2, 120_000)", vi: 'widget Người / Tài khoản hiện ngay bản lần trước, không đứng "đang tải số…" (anh 13/11/2026 ảnh iPhone)' },

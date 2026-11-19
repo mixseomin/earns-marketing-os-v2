@@ -119,6 +119,14 @@ type ThamSoChu = { model: string; system?: string | Anthropic.TextBlockParam[]; 
 /** Khối JSON trong chữ trả về (bỏ ```json bọc ngoài, chữ thừa trước / sau). */
 const layJson = (t: string): string => { const a = t.indexOf('{'), b = t.lastIndexOf('}'); return a >= 0 && b > a ? t.slice(a, b + 1) : t; };
 type TinChu = Anthropic.Message & { parsed_output?: unknown; vnd?: number };
+/** LỖI MẠNG tới cổng AI (TypeError "fetch failed" — cổng đang khởi động lại lúc deploy, kết nối bị từ chối): yêu cầu chưa tới cổng nên chưa tốn tiền → thử lại
+ *  sau 5s / 20s / 60s. Lỗi HTTP / hết hạn / kết quả sai KHÔNG thử lại ở đây. (19/11/2026: militarycalc --sinh-kho 0/4 đề "fetch failed", 3 đề hỏng liền, dừng lượt.) */
+export async function goiLaiKhiMang<T>(lam: () => Promise<T>, cho: number[] = [5e3, 20e3, 60e3]): Promise<T> {
+  for (let i = 0; ; i++) {
+    try { return await lam(); }
+    catch (e) { if (!(e instanceof TypeError && /fetch failed/i.test(e.message)) || i >= cho.length) throw e; console.error(`cổng AI lỗi mạng (${e.message}) — thử lại sau ${cho[i]! / 1000}s`); await new Promise((ok) => setTimeout(ok, cho[i])); }
+  }
+}
 async function quaCong(p0: ThamSoChu): Promise<TinChu> {
   const { x_kiem: kiem, x_dua: _dua, ...p } = p0 as ThamSoChu & { x_kiem?: (d: unknown) => string | null; x_dua?: number };
   // script thiếu duyệt → dừng (chot-tien.ts); giá ước = trường hợp xấu nhất (viết hết max_tokens theo giá niêm yết) — lượt nhỏ dưới ngưỡng tự chạy (5.000₫, chot-tien.ts)
@@ -126,9 +134,9 @@ async function quaCong(p0: ThamSoChu): Promise<TinChu> {
   const f = p.output_config?.format;
   const system = typeof p.system === 'string' ? p.system : Array.isArray(p.system) ? p.system.map((b) => b.text).join('\n') : undefined;
   const doc = (kq: unknown) => (typeof kq === 'string' ? layJson(kq) : JSON.stringify(kq));
-  const r = await goiAi({ viec: 'studio', model: dongCua(p.model), max_tokens: Number(p.max_tokens) || 2000, system, messages: p.messages as TinNhan[],
+  const r = await goiLaiKhiMang(() => goiAi({ viec: 'studio', model: dongCua(p.model), max_tokens: Number(p.max_tokens) || 2000, system, messages: p.messages as TinNhan[],
     ...(f?.schema ? { schema: f.schema as Record<string, unknown> } : {}) }, {
-    kiem: f?.parse ? (kq) => { let du: unknown; try { du = f.parse!(doc(kq)); } catch (e) { return `không đọc được JSON theo khuôn: ${(e as Error).message.slice(0, 100)}`; } return kiem ? kiem(du) : null; } : null });
+    kiem: f?.parse ? (kq) => { let du: unknown; try { du = f.parse!(doc(kq)); } catch (e) { return `không đọc được JSON theo khuôn: ${(e as Error).message.slice(0, 100)}`; } return kiem ? kiem(du) : null; } : null }));
   const text = f ? doc(r.kq) : String(r.kq ?? '');
   return { id: '', type: 'message', role: 'assistant', model: r.model, content: [{ type: 'text', text, citations: null }], stop_reason: 'end_turn', stop_sequence: null,
     usage: { input_tokens: r.vao, output_tokens: r.ra }, ...(f?.parse ? { parsed_output: f.parse(text) } : {}), vnd: Math.round(r.chi_usd * 26000 * 100) / 100 } as unknown as TinChu;

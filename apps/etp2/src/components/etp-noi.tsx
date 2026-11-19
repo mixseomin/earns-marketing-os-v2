@@ -65,7 +65,15 @@ export function useNoi<T>() {
     giu(); hang.current = (e.currentTarget as Element | null)?.closest?.('.dong, summary, tr') ?? null; setV({ ...x, x: e.clientX, y: e.clientY });
   }, [giu]);
   useEffect(() => { if (!v) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') dong(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [v, dong]);
+  useDongKhiCuon(!!v, dong);
   return { v, mo, moNgay, giu, dongTre, dong };
+}
+// CUỘN LÀ ĐÓNG (góp ý #1460 anh 28/10/2026 "hover vào đâu thì phải để ở gần đó", đo 19/11/2026): lớp nổi neo position:fixed theo con trỏ lúc mở — cuộn trang / khung bảng
+// thì dòng đã rê chạy đi còn thẻ đứng yên, nằm cạnh một dòng khác. Một hàm cho MỌI lớp nổi khi rê (useNoi, HoverChu, khung xem trước tab Sản xuất);
+// bộ nghe capture bắt cả khung cuộn trong; cuộn bên trong chính thẻ ([data-khung-noi]) thì giữ.
+export function useDongKhiCuon(mo: boolean, dong: () => void) {
+  useEffect(() => { if (!mo) return; const c = (e: Event) => { const t = e.target; if (t instanceof Element && t.closest('[data-khung-noi]')) return; dong(); };
+    window.addEventListener('scroll', c, { capture: true, passive: true }); return () => window.removeEventListener('scroll', c, { capture: true }); }, [mo, dong]);
 }
 export type Noi = { giu: () => void; dongTre: () => void; dong: () => void };
 // CHIỀU CAO THẬT của lớp nổi (góp ý #1460 anh 28/10/2026 "hover vào đâu thì phải để ở gần đó"): đo offsetHeight + theo dõi đổi cỡ — trước dùng chiều cao ƯỚC
@@ -177,5 +185,6 @@ export function HoverChu({ goc }: { goc: React.RefObject<HTMLElement | null> }) 
     window.addEventListener(SU_KIEN_THE_RIENG, nhuong); window.addEventListener('keydown', esc);
     return () => { khung.removeEventListener('mouseover', vao); khung.removeEventListener('mouseout', ra); window.removeEventListener(SU_KIEN_THE_RIENG, nhuong); window.removeEventListener('keydown', esc); giu(); };
   }, [goc, giu, dongTre]);
+  useDongKhiCuon(!!v, dong);
   return v ? <KhungNoi chu x={v.x} y={v.y} rong={360} cao={160} noi={{ giu, dongTre, dong }}><TheChu chu={v.chu} /></KhungNoi> : null;
 }

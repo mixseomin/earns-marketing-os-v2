@@ -9,7 +9,7 @@ import { chuChan, type TieuChi } from '@/lib/etp-chan';
 import { duyetCham } from '@/lib/actions/etp-cham';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { TRE_MO } from '@/lib/etp-tre';
-import { KhungNoi, ReThe, TheChung, useCaoThat, useNoi, viTriNoi, type Moc, type TheNoi } from '@/components/etp-noi';
+import { KhungNoi, ReThe, TheChung, useCaoThat, useDongKhiCuon, useNoi, viTriNoi, type Moc, type TheNoi } from '@/components/etp-noi';
 import { chuLich } from '@/lib/etp-khung';
 import { choGio, chuHen, dangChay, dangTao } from '@/lib/etp-chay';
 import { batDauCamp, chayDong, docChiTiet, docDong, dungDong, fixBuoc, formDong, lenCampCr, type CampDong, type CrDong, type DongPhim, type BuocDong, type LoaiNoiDung, type LocDong } from '@/lib/actions/etp-dong';
@@ -119,6 +119,7 @@ let henXem: number | undefined;
 const datXem = (v: Xem | null) => { window.clearTimeout(henXem); if (!v) { datXemNgay(null); return; } henXem = window.setTimeout(() => datXemNgay(v), TRE_MO); };
 function KhungXem() {
   const [v, setV] = useState<Xem | null>(null); datXemNgay = setV;
+  const dong = useCallback(() => datXem(null), []); useDongKhiCuon(!!v, dong);
   return v ? <KhungXemMo v={v} /> : null;
 }
 // đặt bằng hàm chung viTriNoi + chiều cao THẬT (#1460 "hover vào đâu thì phải để ở gần đó") — trước ước cao 440px nên ảnh ngắn ở nửa dưới màn bị đẩy lên xa con trỏ

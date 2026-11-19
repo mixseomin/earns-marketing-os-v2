@@ -232,6 +232,11 @@ else
   echo "↺ etp2 unchanged — keep running build"
 fi
 
+# 5e3. STUDIO 2 (apps/studio2/public, studio2.on.tc) — tệp tĩnh sau SSO mos2, không có tiến trình riêng (anh 19/11/2026). git pull là xong mã; ở đây chỉ cài vhost.
+if ! cmp -s apps/studio2/deploy/studio2.on.tc.nginx /etc/nginx/sites-enabled/studio2.on.tc; then
+  cp apps/studio2/deploy/studio2.on.tc.nginx /etc/nginx/sites-enabled/studio2.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx studio2.on.tc cài/cập nhật" || { echo "✗ nginx studio2.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/studio2.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
+fi
+
 # 5z. vhost etp.on.tc cài từ repo (có trang "đang cập nhật" tự tải lại khi mos2-web khởi động lại) — chỉ khi tệp đổi
 if ! cmp -s apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc; then
   cp /etc/nginx/sites-enabled/etp.on.tc /tmp/etp.on.tc.nginx.cu 2>/dev/null

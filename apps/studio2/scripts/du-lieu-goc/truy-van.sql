@@ -1,0 +1,12 @@
+select json_build_object('kf', keyframe_url, 'v', video_url, 'kx', khung_xam, 'm3', may_3d, 'pb', jsonb_array_length(coalesce(video_phien_ban,'[]'::jsonb)), 'cx', cam_xuc, 'pd', phan_doan, 'nv', nhan_vat, 'kt', ky_thuat, 'ng', nguon_video) from xv_canh where tap_id=3074 order by thu_tu limit 2;
+select 'NV', id, ten, left(coalesce(mo_ta,''),80) from xv_nhan_vat where phim_id=3071;
+select 'TAP', video_url, thoi_luong_s, left(coalesce(nhac_mo_ta,''),80), left(xuat::text,500) from xv_tap where id=3074;
+select 'YNT', p.id, left(p.ten,60), p.loai, (select count(*) from xv_tap t where t.phim_id=p.id) from xv_phim p where p.ten ilike '%yesterday%' or p.ten ilike '%YNT%' or p.project ilike '%ynt%' or p.project ilike '%lich%' order by p.id desc limit 8;
+select 'PRJ', project, count(*) from xv_phim group by 1 order by 2 desc limit 12;
+select 'T', t.id, t.so, left(t.ten,60), t.trang_thai, t.thoi_luong_s, (t.video_url is not null), (select count(*) from xv_canh c where c.tap_id=t.id), (select count(*) from xv_canh c where c.tap_id=t.id and c.keyframe_url is not null), left(t.lop::text,200) from xv_tap t where t.phim_id=1195 order by t.id desc limit 8;
+select 'X', jsonb_array_length(xuat), xuat->-1->>'giay', xuat->-1->>'url', xuat->-1->>'luc', video_url from xv_tap where id=3074;
+select 'K', left(kinh_thanh::text, 1500) from xv_phim where id=1195;
+select json_agg(x order by tt) from (select thu_tu tt, id, tap_id, goc_may, hanh_dong_vi, hanh_dong, loi_thoai, thoai, am_thanh, thoi_luong_s, phat_s, chu_man, cam_xuc, phan_doan, nhan_vat, keyframe_url, keyframe_ket, keyframe_giua, video_url, trang_thai, canh,
+  jsonb_array_length(coalesce(video_phien_ban,'[]'::jsonb)) pb, khung_xam->>'mau' k3d, khung_xam->'clip'->>'url' c3d, khung_xam->'hop' hop, may_3d->'dat' dat, may_3d->'nhin' nhin, may_3d->'vi_tri' vt, ky_thuat, soat, soi_clip, kieu_chu from xv_canh where tap_id in (3074,1659)) x;
+select json_agg(x) from (select id, ten, loai, anh_ref, anh_mat, left(mo_ta,60) mo from xv_nhan_vat where phim_id in (3071,1195) and (phim_id=3071 or ten ilike '%samurai%' or ten ilike '%Mông Cổ%' or ten ilike '%1274%' or ten ilike '%1281%')) x;
+select json_agg(json_build_object('id', id, 'clip', khung_xam->'clip', 'thoai', thoai, 'kiem', (select json_agg(json_build_object('n', k->>'nhan_vat', 'ok', k->'trong_khung', 'bb', k->'bat_buoc')) from jsonb_array_elements(khung_xam->'kiem') k), 'soi', soi_clip->'loi', 'cd', ky_thuat->'cd', 'kt', ky_thuat - 'sd') order by thu_tu) from xv_canh where tap_id=3074;

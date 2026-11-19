@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Studio 2</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231d2550'/%3E%3Cpath d='M12 9.5v13l11-6.5z' fill='%23f3e6cf'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap&subset=vietnamese">
+<link rel="stylesheet" href="studio2.css">
+</head>
+<body>
+
+<div class="dung" id="dung" data-o="tv">
+  <header class="d-tren" id="dTren"></header>
+  <div class="d-giua" id="dGiua">
+    <section class="pn wg w-tv" id="w-tv" aria-label="Thư viện"><div class="w-dau" id="wd-tv"></div><div class="w-than d-tv" id="dTv"></div></section>
+    <section class="pn wg w-kb" id="w-kb" aria-label="Kịch bản" hidden><div class="w-dau" id="wd-kb"></div><div class="w-than d-kb" id="dKb"></div></section>
+    <section class="pn wg w-pc" id="w-pc" aria-label="Phân cảnh" hidden><div class="w-dau" id="wd-pc"></div><div class="w-than d-pc" id="dPc"></div></section>
+    <section class="pn wg w-xem" id="w-xem" aria-label="Khung xem"><div class="w-dau" id="wd-xem"></div><div class="w-than d-xem">
+      <div class="k-vung"><div class="k" id="k"><img id="kA" alt=""><video id="kV" playsinline preload="metadata" hidden></video><div class="k-lop" id="kLop"></div><div class="k-mo" id="kMo"></div><div class="k-chu" id="kChu"></div><div class="k-hop" id="kHop"></div><div class="k-ve" id="kVe" hidden>Đang vẽ…</div></div></div>
+      <div class="k-dk"><button type="button" class="bt" data-d="dau" aria-label="Về đầu">⏮</button><button type="button" class="bt chinh" id="kChay" data-d="chay">▶ Phát</button><button type="button" class="bt" data-d="cuoi" aria-label="Tới cuối">⏭</button><span class="so" id="kGio"></span></div>
+    </div></section>
+    <section class="pn wg w-mb" id="w-mb" aria-label="Mặt bằng" hidden><div class="w-dau" id="wd-mb"></div><div class="w-than d-mb" id="dMb"></div></section>
+    <section class="pn wg w-lp" id="w-lp" aria-label="Lớp" hidden><div class="w-dau" id="wd-lp"></div><div class="w-than d-lp" id="dLp"></div></section>
+    <section class="pn wg w-tt" id="w-tt" aria-label="Thuộc tính"><div class="w-dau" id="wd-tt"></div><div class="w-than d-tt" id="dTt"></div></section>
+  </div>
+  <section class="pn d-tl" aria-label="Timeline">
+    <div class="tl-cong" id="tlCong"></div>
+    <div class="tl-than"><div class="tl-nhan" id="tlNhan"></div><div class="tl-cuon" id="tlCuon"><div id="tlTrong"></div></div></div>
+  </section>
+  <div class="d-doi"><button type="button" class="bt" data-d="o" data-g="tv">Thư viện</button><button type="button" class="bt" data-d="o" data-g="tt">Thuộc tính</button></div>
+  <div class="d-bao" id="dBao" role="status" hidden></div>
+  <div class="d-menu" id="dMenu" hidden></div>
+  <div class="d-phu" id="dPhu" hidden></div>
+</div>
+
+<div class="khung" id="tao" hidden>
+  <div class="thu">Bản bấm thử · dữ liệu mẫu · bấm gì cũng không tạo video thật</div>
+  <header class="tren">
+    <h1>Video mới từ ý tưởng</h1>
+    <ol class="buoc" id="buoc"></ol>
+    <button type="button" class="nut phu2" data-d="veDung">← Về trình dựng</button>
+  </header>
+  <div class="ban">
+    <main class="trai" id="trai"></main>
+    <aside class="phai" id="phai"></aside>
+  </div>
+</div>
+
+<script src="du-lieu.js"></script>
+<script src="studio2.js"></script>
+</body>
+</html>

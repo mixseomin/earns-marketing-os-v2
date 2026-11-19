@@ -3,5 +3,5 @@ import { redirect } from 'next/navigation';
 
 export default async function PhuPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  redirect(`/?p=${encodeURIComponent(id)}`);
+  redirect(`/?tab=camp&p=${encodeURIComponent(id)}`);   // nêu rõ tab: '/' trần mở Social (tab mặc định), không phải Campaign
 }

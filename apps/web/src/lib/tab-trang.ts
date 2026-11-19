@@ -11,7 +11,8 @@ export type TabTrang = { key: string; label: string; title?: string; nhom?: stri
 type Trang = { param: string; mac?: string; tabs: readonly TabTrang[] };
 
 export const TAB_TRANG = {
-  '/': { param: 'tab', tabs: [
+  // mac: Social là màn mở đầu (anh 22/10/2026). Trước chỉ khai ở home-tabs.ts nên sổ này tưởng tab đầu (Campaign) là mặc định → menu "Campaign" trỏ về '/' và mở ra Social.
+  '/': { param: 'tab', mac: 'social', tabs: [
     { key: 'camp', label: 'Campaign', title: 'Mỗi dòng = một campaign: phễu + tiêu chí → phán xét' },
     { key: 'phu', label: 'Nền tảng phủ' },
     { key: 'nguon', label: 'Nguồn traffic' },

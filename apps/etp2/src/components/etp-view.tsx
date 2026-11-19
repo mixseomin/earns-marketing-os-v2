@@ -8,7 +8,7 @@ import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoan
 import { BienPhanhCho, NhietKeCho, canhBaoPhanh } from '@/components/etp-phanh-cho';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';   // SỔ LUẬT CHUNG — mọi thẻ / nhóm / hướng / bộ lọc luật đọc từ đây (anh 01/11/2026 "tìm nguyên nhân gốc")
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
-import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Segmented, StatsStrip, usePaged, type DataColumn, type SegmentedOption } from '@/components/ui';
+import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Pill, Segmented, StatsStrip, usePaged, type DataColumn, type SegmentedOption } from '@/components/ui';
 import { PhamViLuu, useKhoaLuu } from '@/components/ui/table-prefs';
 import { catTokenEthopex, datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/actions/etp-sua';
 import { campTay, nhanBanTay, xemNhanBan, type ChoAp, type KieuNb } from '@/lib/actions/etp-tay';
@@ -753,10 +753,13 @@ function SuaToken({ dongBo }: { dongBo: DuLieuEtp['dongBo'] }) {
   const ngay = (s: string | null | undefined) => (s ? new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—');
   const loi401 = /\b401\b|Unauthorized|invalid token|không còn token/i.test(dongBo?.loi ?? '');
   const duPhong = !!tk?.nguon?.startsWith('nguoi:'), chet = tk?.nguon === 'het' || (loi401 && !duPhong);
-  if (!chet && !duPhong) return null;
+  // #1667 lượt 2: lúc token Nhà còn sống nút vẫn hiện (xám) để dán TRƯỚC phiên dự phòng của Sơn — dự phòng hết hạn thì nói rõ, đừng đợi Nhà chết mới biết không có phao
+  const dpSong = (tk?.nguoi ?? []).filter((n) => n.het && Date.parse(n.het) > Date.now() + 600_000);
   const chuRe = [duPhong ? `Máy đang chạy bằng phiên Ethopex DỰ PHÒNG của ${tk?.ten} (hạn tới ${ngay(tk?.het)}) — lệnh ghi trên camp nhà mang tên người đó trong nhật ký Ethopex.`
-      : 'Ethopex từ chối token — đồng bộ, máy luật, phanh chợ đang mù; máy KHÔNG tăng / tắt camp nào tới khi có token.',
-    `Token Nhà hạn tới ${ngay(tk?.nhaHet)}.`, tk?.loi ? `Lý do: ${tk.loi}` : '', 'Bấm để dán token mới.'].filter(Boolean).join('\n');
+      : chet ? 'Ethopex từ chối token — đồng bộ, máy luật, phanh chợ đang mù; máy KHÔNG tăng / tắt camp nào tới khi có token.' : 'Máy đang dùng token Nhà.',
+    `Token Nhà hạn tới ${ngay(tk?.nhaHet)}.`,
+    dpSong.length ? `Dự phòng sẵn sàng: ${dpSong.map((n) => `${n.ten ?? `#${n.id}`} (tới ${ngay(n.het)})`).join(', ')}.` : 'Chưa có phiên dự phòng còn hạn — token Nhà hết hạn là máy mù. Dán token của Sơn để có dự phòng.',
+    tk?.loi ? `Lý do: ${tk.loi}` : '', 'Bấm để dán token mới.'].filter(Boolean).join('\n');
   const gui = async () => {
     setDang(true); setKq(null);
     const r = await catTokenEthopex(ai === 'nha' ? 'nha' : Number(ai), phien);
@@ -767,14 +770,16 @@ function SuaToken({ dongBo }: { dongBo: DuLieuEtp['dongBo'] }) {
   };
   const ds = [{ id: 'nha', ten: 'Nhà (htuan82) — token chính' }, ...(tk?.nguoi ?? []).map((n) => ({ id: String(n.id), ten: `${n.ten ?? `#${n.id}`} — dự phòng${n.het && Date.parse(n.het) > Date.now() ? ` (còn hạn tới ${ngay(n.het)})` : ' (hết hạn)'}` }))];
   return <>
-    <button ref={neo} onClick={() => { setMo((v) => !v); setKq(null); }} title={chuRe}
-      style={{ alignSelf: 'center', fontSize: 11, padding: '1px 8px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap',
-        border: `1px solid ${chet ? '#f87171' : '#facc15'}`, background: chet ? 'rgba(248,113,113,.15)' : 'rgba(250,204,21,.12)', color: chet ? '#fca5a5' : '#fde68a' }}>
-      🔑 {chet ? 'Sửa token' : `dự phòng: ${tk?.ten ?? '?'}`}</button>
+    <button ref={neo} data-o="sua-token" onClick={() => { setMo((v) => !v); setKq(null); if (!chet && !duPhong && !dpSong.length && ds[1]) setAi(ds[1].id); }} title={chuRe}
+      style={{ alignSelf: 'center', fontSize: 11, padding: '1px 8px', borderRadius: 8, cursor: 'pointer', fontWeight: chet || duPhong ? 600 : 400, whiteSpace: 'nowrap',
+        border: `1px solid ${chet ? '#f87171' : duPhong ? '#facc15' : 'var(--line)'}`, background: chet ? 'rgba(248,113,113,.15)' : duPhong ? 'rgba(250,204,21,.12)' : 'transparent',
+        color: chet ? '#fca5a5' : duPhong ? '#fde68a' : 'var(--fg-2)' }}>
+      🔑{chet ? ' Sửa token' : duPhong ? ` dự phòng: ${tk?.ten ?? '?'}` : dpSong.length ? '' : ' chưa có dự phòng'}</button>
     <AnchoredPopover anchorRef={neo} open={mo} onClose={() => setMo(false)}>
       <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, width: 330, fontSize: 12, lineHeight: 1.45,
         background: 'var(--bg-1)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>
-        <div style={{ color: chet ? '#fca5a5' : '#fde68a', fontWeight: 600 }}>{chet ? 'Token Ethopex không dùng được' : `Đang chạy bằng phiên dự phòng của ${tk?.ten}`}</div>
+        <div style={{ color: chet ? '#fca5a5' : duPhong ? '#fde68a' : 'var(--fg-1)', fontWeight: 600 }}>{chet ? 'Token Ethopex không dùng được' : duPhong ? `Đang chạy bằng phiên dự phòng của ${tk?.ten}`
+          : `Đang dùng token Nhà (hạn tới ${ngay(tk?.nhaHet)}) · ${dpSong.length ? `dự phòng: ${dpSong.map((n) => n.ten ?? `#${n.id}`).join(', ')}` : 'chưa có dự phòng còn hạn'}`}</div>
         <div style={{ color: 'var(--fg-2)' }}>Máy tự dùng token Nhà; Nhà hết hạn thì tự chuyển sang phiên dự phòng còn hạn, có token Nhà mới thì tự quay về.</div>
         <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--fg-2)' }}>
           <li>Đăng nhập app.ethopex.dev bằng đúng tài khoản chọn dưới, mở <a href="https://app.ethopex.dev/profile" target="_blank" rel="noreferrer" style={{ color: 'var(--accent, #60a5fa)' }}>Profile</a></li>
@@ -1090,6 +1095,12 @@ const TEN_NHOM_LUAT: Record<string, string> = { tang: 'Tăng chi — tăng bậc
 const NHOM_LUAT: [string, string, string[]][] = Object.entries(TEN_NHOM_LUAT).map(([k, ten]) => [k, ten, Object.entries(BANG_LUAT.the).filter(([, v]) => v[2] === k).map(([ma]) => ma)]);   // nhóm theo sổ luật chung
 /** MENU "⋯" CỘT KHOÁ CHÍNH của tab Phim (anh 02/11/2026: "cột key chính luôn có kèm 1 nút dropdown ở bên phải … với Phim thêm chức năng Nhận/trả phim") —
  *  primitive nhà MenuBaCham; Nhận / Trả gọi cùng server action với ngăn phim, xong làm mới trang; lỗi (người khác đang giữ…) báo ngay */
+// PHIM CẤM (anh 19/11/2026): nhãn đỏ CẤM cạnh tên phim — rê xem lúc cấm + lý do (sổ ethopex_phim_cam, cùng sổ cổng cong.phim_cam chặn camp mới / nhân bản / bật / tăng / lên creative)
+const MAU_CAM = '#f87171';
+const chuCam = (c: NonNullable<PhimEtpKho['cam']>) => `PHIM CẤM${c.luc ? ` từ ${c.luc}` : ''}${c.ly_do ? `\nLý do: ${c.ly_do}` : ''}\nMáy không mở camp mới, không nhân bản, không bật lại, không tăng, không lên creative cho phim này — kể cả ROAS và vé tay`;
+function NhanCam({ cam }: { cam: NonNullable<PhimEtpKho['cam']> }) {
+  return <span data-nhan="phim-cam" style={{ flex: '0 0 auto' }}><Pill color={MAU_CAM} tone="solid" size="xs" label="CẤM" title={chuCam(cam)} /></span>;
+}
 function MenuPhim({ p }: { p: PhimEtpKho }) {
   const router = useRouter();
   const lam = async (f: () => Promise<{ ok: true } | { loi: string }>) => { const r = await f(); if ('loi' in r) window.alert(r.loi); router.refresh(); };
@@ -3036,18 +3047,18 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const nguonPh = (p: PhimEtpKho) => NGUON_PH[(p.nguon ?? '').replace(/^www\./, '').split('.')[0]!] ?? (p.nguon ? 'Khác' : '—');
   const TD_NHAN: Record<string, string> = { cho_soat: 'Chờ soát 18+', loai_18: 'Loại 18+', cho_sinh: 'Chờ máy sinh', dang_sinh: 'Máy sinh đang làm', loi_sinh: 'Máy sinh lỗi', cho_creative: 'Chờ lên creative',
     cho_cham: 'Chờ chấm', cham_chan: 'Chấm chặn', cho_len: 'Chờ lên camp', loi: 'Lỗi', da_len: 'Đã lên camp', tay: 'Chế độ tay' };
-  const ttPh = (p: PhimEtpKho) => (p.moc ? 'Đã cất' : p.nhan?.trang_thai === 'giu' ? 'Đang nhận' : p.camp ? 'Đã có camp' : p.test ? (p.nhom_goc === 'au_my' ? 'Có thể test' : p.nhom_goc ? 'Ngoài Âu-Mỹ' : 'Chưa rõ nhóm gốc') : p.ws_moi ? 'Mới thêm, chưa camp' : '—');   // Đang nhận: anh 02/11/2026
+  const ttPh = (p: PhimEtpKho) => (p.cam ? 'Phim cấm' : p.moc ? 'Đã cất' : p.nhan?.trang_thai === 'giu' ? 'Đang nhận' : p.camp ? 'Đã có camp' : p.test ? (p.nhom_goc === 'au_my' ? 'Có thể test' : p.nhom_goc ? 'Ngoài Âu-Mỹ' : 'Chưa rõ nhóm gốc') : p.ws_moi ? 'Mới thêm, chưa camp' : '—');   // Đang nhận: anh 02/11/2026
   const ktPh = useMemo(() => { const m = new Map<number, string>(); for (const v of du.thuVien ?? []) if (tvChuaCr(v) && !m.has(v.content_id)) m.set(v.content_id, v.tv!); return m; }, [du.thuVien]);
   const sxPh = (p: PhimEtpKho) => { const d = (du.dongChay ?? []).filter((x) => x.content_id === p.content_id); const co = (t: string) => d.some((x) => (x.trang_thai ?? 'chay') === t);
     return phimSx.has(p.content_id) ? 'Đang sản xuất' : co('loi') ? 'Lỗi' : co('dung') ? 'Dừng' : co('xong') ? 'Xong (24 giờ)' : 'Chưa sản xuất'; };
   const cotPh: DataColumn<PhimEtpKho>[] = [
-    { key: 'ten', header: 'Phim', align: 'left', cell: (p) => <span style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}><Hex bo={p.bo} info={p.bo ? du.boTk[p.bo] : undefined} /><button type="button" onClick={() => openEntityDrawer('etp-phim', p.content_id)} title={`${p.ten ?? ''} · phim #${p.content_id} — bấm xem nội dung, điểm, trang phim`} style={{ all: 'unset', cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.ten ?? p.content_id}</button><MenuPhim p={p} /></span>, sortValue: (p) => p.ten ?? '' },   // tiếng / nguồn đã có cột riêng (YDNI: không lặp)
+    { key: 'ten', header: 'Phim', align: 'left', cell: (p) => <span style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}><Hex bo={p.bo} info={p.bo ? du.boTk[p.bo] : undefined} /><button type="button" onClick={() => openEntityDrawer('etp-phim', p.content_id)} title={`${p.ten ?? ''} · phim #${p.content_id} — bấm xem nội dung, điểm, trang phim`} style={{ all: 'unset', cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.ten ?? p.content_id}</button>{p.cam ? <NhanCam cam={p.cam} /> : null}<MenuPhim p={p} /></span>, sortValue: (p) => p.ten ?? '' },   // tiếng / nguồn đã có cột riêng (YDNI: không lặp)
     // SẢN XUẤT Ở TAB PHIM (anh 04/11/2026 "thêm bộ này vào tab phim để chủ động lên luôn. Phần này chỉ hiện ở tk David"): đồng hồ các đợt + nút ＋ — chỉ màn Nhà (không người / Team)
     // LỌC "ĐANG SẢN XUẤT" (anh 04/11/2026 "Tab phim cần thêm bộ lọc các phim đang sx"): sortValue chữ = cột danh mục → thanh lọc tự động của DataTable (sxPh)
     ...(!laNguoi && !du.nguoi.ngoai && !du.nguoi.doi ? [{ key: 'sx_ph', header: 'Sản xuất', align: 'right' as const, width: 90, loc: 'chu' as const, title: 'đợt sản xuất của phim (đồng hồ 9 bước) + nút ＋ mở rộng / chạy tự động · lọc: Đang sản xuất / Dừng / Lỗi / Xong (24 giờ) / Chưa sản xuất',
       cell: (p: PhimEtpKho) => <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2, whiteSpace: 'nowrap' }}>
         <BadgeSx cid={p.content_id} ds={du.dongChay ?? []} kt={ktPh.get(p.content_id)} /><NutMoRong cid={p.content_id} /></span>, sortValue: sxPh }] : []),
-    { key: 'tt_ph', header: 'Trạng thái', align: 'left', title: 'Có thể test (qua lọc chọn phim mới — nguồn, tiếng, thể loại, ít QC FB, chưa ai lên) · Đã có camp · Đã cất (máy cất, không mở camp mới) · Mới thêm vào workspace, chưa camp', cell: (p) => <span style={{ fontSize: 12, color: p.moc || !p.camp && !p.test ? MO : 'var(--fg-2)' }} title={p.moc ? `máy cất phim lúc ${vn(p.moc)} — không mở camp mới` : undefined}>{ttPh(p)}</span>, sortValue: ttPh },
+    { key: 'tt_ph', header: 'Trạng thái', align: 'left', title: 'Phim cấm (máy chặn camp mới / nhân bản / bật / tăng / lên creative) · Có thể test (qua lọc chọn phim mới — nguồn, tiếng, thể loại, ít QC FB, chưa ai lên) · Đã có camp · Đã cất (máy cất, không mở camp mới) · Mới thêm vào workspace, chưa camp', cell: (p) => p.cam ? <span style={{ fontSize: 12, color: MAU_CAM, display: 'block', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={chuCam(p.cam)}>Cấm{p.cam.luc ? ` · ${p.cam.luc}` : ''}{p.cam.ly_do ? ` — ${p.cam.ly_do}` : ''}</span> : <span style={{ fontSize: 12, color: p.moc || !p.camp && !p.test ? MO : 'var(--fg-2)' }} title={p.moc ? `máy cất phim lúc ${vn(p.moc)} — không mở camp mới` : undefined}>{ttPh(p)}</span>, sortValue: ttPh },
     // #1530 (anh 04/11/2026 "bỏ tính năng nhận phim này đi"): bỏ cột Người nhận + Tiến độ nhận — tab Sản xuất / đồng hồ sản xuất là chỗ xem tiến độ
     { key: 'hang', header: 'Hạng', title: 'hạng trong danh sách có thể test (điểm cao trước) — hover: điểm, lý do, trạng thái hàng chờ phim mới', cell: (p) => (p.test ? <span style={{ fontVariantNumeric: 'tabular-nums', cursor: 'help' }} title={`điểm ${p.test.diem} · ${p.test.vi_sao}${p.test.tt ? `\nhàng chờ phim mới: ${TT_MOI[p.test.tt] ?? p.test.tt}` : ''}`}>{p.test.hang}</span> : <span style={{ color: MO }}>—</span>), sortValue: (p) => p.test?.hang ?? null },
     { key: 'diem', header: 'Điểm', title: 'điểm chọn phim (chon-phim-moi.py): nguồn + tiếng + thể loại + ít QC FB — bấm tên phim xem bảng điểm từng tiêu chí', cell: (p) => (p.test ? <span style={{ fontVariantNumeric: 'tabular-nums' }}>{p.test.diem}</span> : <span style={{ color: MO }}>—</span>), sortValue: (p) => p.test?.diem ?? null },

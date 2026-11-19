@@ -550,6 +550,13 @@ if __name__ == "__main__":
         assert ve_hop_le("tang", [999999991], dung=True, cho="tự kiểm", ma=m) and not ve_hop_le("tang", [999999991], dung=True, ma=m), "vé chỉ dùng một lần"
         _q(f"update etp.ve_tay set het_han = now() - interval '1 second' where ma = '{m2}'"); assert not ve_hop_le("nhan_ban", [], 999999992, ma=m2), "vé hết hạn"
         print("✓ vé thao tác tay: đúng việc / camp / phim, một lần, hết hạn"); sys.exit(0)
+    if a[:1] == ["--phim-cam"]:   # python3 cong.py --phim-cam <content_id…> → mỗi phim cấm một dòng "cid|lý do" (len-creative.py gọi từ Mac qua ssh box3). Lỗi đọc → mã 2.
+        ds = [x for x in a[1:] if x.strip().isdigit()]
+        for c in ds:
+            ly = phim_cam(cts=[c])
+            if ly and "chặn cho an toàn" in ly: print(ly, file=sys.stderr); sys.exit(2)
+            if ly: print(f"{int(c)}|{ly}")
+        sys.exit(0)
     if a[:1] == ["--tu-kiem-phim-cam"]:   # trên box3, SỔ THẬT (anh 19/11/2026): camp + phim thật trong ethopex_phim_cam — bật / nhân bản / ★ ROAS / tăng đều bị chặn, kể cả vé thật.
         # KHÔNG gửi gì lên Ethopex (chỉ gọi kiem). Vé thử ghi etp.ve_tay (ai 'tự kiểm phim cấm') rồi đốt ngay.
         r = _q(f"select c.camp_id || '|' || c.content_id from etp.camp c where c.camp_id in ({SQL_CAMP_PHIM_CAM}) order by c.la_roas desc nulls last, 1 limit 1")

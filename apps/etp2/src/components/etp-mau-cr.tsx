@@ -52,8 +52,11 @@ function useLoc(k: string) {
  *  lưới cạnh nhau, đúng khổ 9:16 không cắt, có video thì phát được tại chỗ (ảnh làm poster); nhãn = số ngày chạy (đối thủ) / thu (nhà) */
 function BanMauLuoi({ m }: { m: MauCr }) {
   if (!m.ban.length) return <div style={{ aspectRatio: '9 / 16', maxHeight: 300, display: 'grid', placeItems: 'center', background: 'var(--bg-2)', color: MO_SO, fontSize: 11.5, borderRadius: 6 }}>chưa có creative mẫu</div>;
-  return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))'   /* MỌI creative mẫu cùng một cỡ (anh 19/11/2026 "ko cho hiển thị nơi to nơi bé") — luôn 3 cột, không giãn theo số bản */, gap: 6 }}>
-    {m.ban.map((b, i) => <div key={i} title={b.goi_y} style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: b.vai === 'dung' ? '2px solid rgba(37,99,235,0.9)' : undefined }}>
+  // SLIDES MỘT DÒNG (anh 19/11/2026 #1703 "Trình bày dạng slides 1 dòng thôi") — mọi bản nằm trên MỘT hàng, quá 3 bản thì trượt ngang (bám từng ô),
+  // không xuống dòng; ô vẫn cùng một cỡ = 1/3 bề ngang thẻ (anh 19/11/2026 "ko cho hiển thị nơi to nơi bé")
+  return <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: 'calc((100% - 12px) / 3)', overflowX: 'auto', scrollSnapType: 'x mandatory', overscrollBehaviorX: 'contain', paddingBottom: m.ban.length > 3 ? 4 : 0, gap: 6 }}
+    title={m.ban.length > 3 ? `${m.ban.length} creative mẫu — kéo ngang / lăn chuột để xem hết` : undefined}>
+    {m.ban.map((b, i) => <div key={i} title={b.goi_y} style={{ scrollSnapAlign: 'start', position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: b.vai === 'dung' ? '2px solid rgba(37,99,235,0.9)' : undefined }}>
       {b.video
         ? <video src={b.video} poster={b.anh ?? undefined} controls muted loop playsInline preload="none" onClick={(e) => e.stopPropagation()} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
         : b.anh ? <img src={b.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}

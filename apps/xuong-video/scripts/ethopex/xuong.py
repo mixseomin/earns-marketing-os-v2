@@ -6,6 +6,21 @@ import datetime as dt, json, os, shutil, subprocess, sys, time
 B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 _cuoi = {"t": 0.0, "buoc": None, "bat_dau": None}
 
+def phim_cam(ids):
+    """PHIM CẤM cho xưởng (anh 19/11/2026 "ko cho mở camp mới, lên creative dưới mọi hình thức") → {content_id: lý do} của phim trong sổ ethopex_phim_cam.
+    Đọc bằng MỘT hàm apps/etp/cong.py phim_cam: trên box3 (có DATABASE_URL) gọi thẳng, trên Mac qua ssh box3 'cong.py --phim-cam'. Không đọc được → ném lỗi (người gọi dừng)."""
+    ids = sorted({str(int(x)) for x in ids if str(x).strip().isdigit()})
+    if not ids: return {}
+    if os.environ.get("DATABASE_URL"):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import cong as CG
+        ra = {c: CG.phim_cam(cts=[c]) for c in ids}
+        hong = next((v for v in ra.values() if v and "chặn cho an toàn" in v), None)
+        if hong: raise RuntimeError(hong)
+        return {int(c): v for c, v in ra.items() if v}
+    r = subprocess.run(["ssh", B, f"{ENV} && python3 apps/etp/cong.py --phim-cam {' '.join(ids)}"], capture_output=True, text=True, timeout=120)
+    if r.returncode: raise RuntimeError(f"không đọc được sổ phim cấm qua box3 (mã {r.returncode}: {(r.stderr or r.stdout).strip()[-160:]}) — dừng, không làm creative")
+    return {int(l.split("|", 1)[0]): l.split("|", 1)[1] for l in r.stdout.splitlines() if "|" in l and l.split("|", 1)[0].isdigit()}
+
 def may():
     h = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).hour
     try: tai = round(os.getloadavg()[0], 1)

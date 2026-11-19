@@ -25,6 +25,17 @@ def ascii_(s):
 
 def main(lo_f, ma, dang):
     lo = [x for x in json.load(open(lo_f)) if not x.get("loi") and x.get("file")]
+    # CỔNG PHIM CẤM (anh 19/11/2026 "ko cho ... lên creative dưới mọi hình thức") — trước mọi bước (đẩy kho, chữ QC, bulk-jobs): bản của phim cấm bị loại, len.json ghi lý do.
+    # Đọc bằng xuong.phim_cam → cong.phim_cam (một hàm). Lỗi đọc → ném, cả lô dừng. Cổng API (ethopex_api.phim_cam_lenh) chặn thêm lần nữa ở lệnh gắn creative / tạo camp.
+    cam = XG.phim_cam([x.get("content_id") for x in lo])
+    if cam:
+        bo = [dict(x, loi=cam[int(x["content_id"])]) for x in lo if str(x.get("content_id") or "").isdigit() and int(x["content_id"]) in cam]
+        lo = [x for x in lo if not (str(x.get("content_id") or "").isdigit() and int(x["content_id"]) in cam)]
+        print(f"✗ {len(bo)} bản phim cấm bị loại: {bo[0]['loi'][:160]}", flush=True)
+        if not lo:
+            ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True)
+            json.dump([{"content_id": x.get("content_id"), "creative_id": None, "lang": x.get("lang"), "ok": False, "loi": x["loi"]} for x in bo], open(f"{ra}/len.json", "w"), ensure_ascii=False, indent=1)
+            sys.exit(f"mọi bản thuộc phim cấm — không tải creative nào ({bo[0]['loi'][:120]})")
     # CỔNG SOÁT THEO ĐOẠN (anh 24/10/2026, Meta từ chối góc mới Step Back vì cảnh cưỡng ép): đoạn chưa soát thì GIỮ LẠI, không đẩy — soat_doan.py
     import soat_doan as SD
     lo, giu = SD.loc(lo, ma, dang, da_soat="--da-soat" in sys.argv)

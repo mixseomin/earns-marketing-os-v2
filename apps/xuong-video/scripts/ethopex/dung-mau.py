@@ -41,15 +41,23 @@ def ghi_tt(mau, cid, buoc, tt="dang", ghi=None, **k):
            f"insert into etp.mau_dung_nk (mau, content_id, buoc, trang_thai, ghi, may) values ({s_(mau)}, {int(cid)}, {s_(buoc)}, {s_(tt)}, {s_(ghi)}, {s_(os.uname().nodename.split('.')[0])})")
     print(f"[{mau} · {cid}] {buoc} · {tt}{' · ' + ghi if ghi else ''}", flush=True)
 
-def ghi_poster(cid, url):
-    """POSTER GỐC CỦA PHIM (anh 19/11/2026 "POSTER GỐC CỦA PHIM ĐANG CHỌN CƠ MÀ"): link ảnh og:image trên trang phim công khai (đúng ảnh tai-tap tải về poster.jpg) ghi vào
-    etp.phim_poster → ngăn dựng theo mẫu etp2 đặt nó cạnh creative máy dựng để so. Hỏng thì báo ra stderr, không chặn việc dựng."""
+def ghi_poster(cid, url, tm=None):
+    """POSTER GỐC CỦA PHIM (anh 19/11/2026 "POSTER GỐC CỦA PHIM ĐANG CHỌN CƠ MÀ"): ảnh poster.jpg tai-tap đã tải về thư mục phim (og:image trang phim công khai) → thu còn rộng 540,
+    ghi THẲNG BẢN ẢNH (base64) + link gốc vào etp.phim_poster → ngăn dựng theo mẫu etp2 đặt cạnh creative máy dựng để so. Ghi bản ảnh chứ không chỉ link vì máy chủ ảnh
+    ReelShort trả trang chặn (HTML) cho nơi khác gọi — gắn link trực tiếp ra ô đen. Hỏng thì báo ra stderr, không chặn việc dựng."""
     try:
-        TT = _nap("tai_tap", "tai-tap.py"); link = TT.og_anh(TT.mo_rong(url))
-        if not link: print(f"poster gốc phim {cid}: trang phim không có og:image", file=sys.stderr); return None
+        import base64, io
+        tm = tm or os.path.expanduser(f"~/.cache/ethopex/anh-tinh/{int(cid)}"); po = os.path.join(tm, "poster.jpg")
+        if not os.path.exists(po): print(f"poster gốc phim {cid}: chưa có {po}", file=sys.stderr); return None
+        im = Image.open(po).convert("RGB"); im.thumbnail((540, 1200)); b = io.BytesIO(); im.save(b, "JPEG", quality=82)
+        link = None
+        try: TT = _nap("tai_tap", "tai-tap.py"); link = TT.og_anh(TT.mo_rong(url)) if url else None
+        except Exception as e: print(f"poster gốc phim {cid}: không đọc được link gốc ({e}) — vẫn ghi bản ảnh", file=sys.stderr)
         AT.sql("create table if not exists etp.phim_poster (content_id integer primary key, url text not null, luc timestamptz not null default now()); "
-               f"insert into etp.phim_poster (content_id, url) values ({int(cid)}, {s_(link)}) on conflict (content_id) do update set url = excluded.url, luc = now()")
-        return link
+               "alter table etp.phim_poster add column if not exists anh_b64 text; "
+               f"insert into etp.phim_poster (content_id, url, anh_b64) values ({int(cid)}, {s_(link or '')}, {s_(base64.b64encode(b.getvalue()).decode())}) "
+               "on conflict (content_id) do update set url = excluded.url, anh_b64 = excluded.anh_b64, luc = now()")
+        return len(b.getvalue())
     except Exception as e: print(f"poster gốc phim {cid} lỗi: {e}", file=sys.stderr); return None
 
 # ---------- câu nhử (cổng AI chung, haiku rẻ) ----------
@@ -479,7 +487,7 @@ def mot(ma, cid, xem=False, ban=1):
             return []
         if cid not in _NHO:   # một phim chỉ tải tập / xếp khung / viết câu nhử MỘT lần trong tiến trình (bảng xem trước vẽ 12 mẫu)
             uv = AT.khung(cid, p["url"], tm)
-            if not xem: ghi_poster(cid, p["url"])
+            if not xem: ghi_poster(cid, p["url"], tm)
             tt("chon_khung", g=f"{len(uv)} khung ứng viên → AI xếp hạng")
             uv, _, v = AT.xep_ai(ten, uv) if len(uv) > 1 else (uv, "", 0); vnd += v
             _NHO[cid] = {"uv": uv}

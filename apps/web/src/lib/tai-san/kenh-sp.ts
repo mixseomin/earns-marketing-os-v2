@@ -105,7 +105,9 @@ export async function docKenhSp(hom: string, loai: 'sp' | 'social' = 'sp'): Prom
       // ke.dangLam: nguon.dang_lam (một dấu / máy) = dạng cũ trước 05/11/2026, đọc tới khi lượt cuối viết dạng cũ xong; dang_lam_ds = mỗi tập một dấu
       ke: (() => {
         return { lichTap: l.chu, tapKe: l.ke, dangLam: [...(m.dang_lam?.id ? [m.dang_lam] : []), ...Object.values(m.dang_lam_ds ?? {})].sort((a, b) => a.luc.localeCompare(b.luc)), tapCho: m.tap_cho ?? [], gioDang: (m.dang ?? []).find((x) => x.nen === 'youtube')?.gio_tu ?? null,
-          lichDang: lich.filter((x) => x.may === m.ma && x.ngay >= hom).sort((a, b) => `${a.ngay}${a.gio ?? ''}`.localeCompare(`${b.ngay}${b.gio ?? ''}`)).slice(0, 10)
+          lichDang: lich.filter((x) => x.may === m.ma && x.ngay >= hom).sort((a, b) => `${a.ngay}${a.gio ?? ''}`.localeCompare(`${b.ngay}${b.gio ?? ''}`))
+            // góp ý #1583: trước cắt 10 dòng đầu → tập chờ đăng có lịch xa hơn (eSIM 50 lịch YouTube) mất ngày mờ; giữ 10 dòng đầu + mọi dòng khớp tập chờ đăng
+            .filter((x, i) => i < 10 || (!!x.slug && cua.some((v) => v.slug === x.slug && !v.da_dang)))
             .map((x) => ({ ngay: x.ngay, gio: x.gio ?? null, nen: x.nen, tieuDe: x.title ?? '', slug: x.slug ?? null })) }; })(),
       // 📡 Nền đăng cho MỌI kênh (anh 16/11/2026: trước chỉ kênh social có khối này): nền máy đã gắn + mọi nền khác trong sổ nền, hiện mờ "chưa gắn"
       videos, nen: tomNenDang(m.dang ?? [], cua, hom, SO_NEN), ...xa };

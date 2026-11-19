@@ -211,7 +211,7 @@ def nen_sach_ai(c):
         open(ra, "wb").write(base64.b64decode(j["anh_b64"])); v = round((j.get("chi_usd") or 0) * 26000); _CHI_LOGO[0] += v
         print(f"logo gốc: nền sạch AI {j.get('model')} {v}₫ → {ra}", flush=True); return ra
     return lam
-LOGO_BAN = 3   # đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại
+LOGO_BAN = 4   # đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại
 def logo_goc(c):
     """logo gốc đã tách của phim (MỘT lần / phim, nhớ logo-goc.png + .json) → (ảnh RGBA đã đưa về cỡ chuẩn, 'cat' | 'ai' | 'dai'); không tách được → dừng kêu to"""
     ra = os.path.join(c["tm"], "logo-goc.png"); so = ra[:-4] + ".json"; ly = []; kieu = None

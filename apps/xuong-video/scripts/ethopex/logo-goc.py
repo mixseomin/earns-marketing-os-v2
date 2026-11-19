@@ -27,6 +27,20 @@ def AT():
         s = importlib.util.spec_from_file_location("anh_tinh", os.path.join(D, "anh-tinh.py")); _at = importlib.util.module_from_spec(s); s.loader.exec_module(_at)
     return _at
 
+def tach_nen(rgb):
+    """BiRefNet (rembg, model birefnet-general-lite 214MB tải một lần về ~/.rembg; bản đầy đủ 970MB làm iMac 16GB nghẽn, chất lượng logo tương đương) → lớp tiền cảnh 0..1 của một vùng ảnh. Chạy trong TIẾN TRÌNH RIÊNG: model giữ nhiều GB RAM,
+    để nó nằm lại trong tiến trình dựng thì máy đọc chữ (Vision) gọi sau đó nghẽn > 120 giây (đo 20/11/2026) — xong một vùng là thoát, trả RAM. iMac CPU 10–140 giây / vùng, một lần / phim."""
+    import tempfile
+    with tempfile.TemporaryDirectory() as tm:
+        vao, ra = os.path.join(tm, "vao.png"), os.path.join(tm, "ra.png"); Image.fromarray(rgb.astype(np.uint8)).save(vao)
+        r = subprocess.run([sys.executable, os.path.abspath(__file__), "--nen", vao, ra], capture_output=True, text=True, timeout=900, env={**os.environ, "OMP_NUM_THREADS": "4"})
+        # HÂM NÓNG máy đọc chữ: BiRefNet ép bộ nhớ (≈ 6 GB trên iMac 16 GB) làm Vision bị đẩy khỏi RAM, lượt đọc chữ đầu tiên sau đó mất 20 giây tới hơn 2 phút — các bước dựng
+        # kế tiếp gọi máy đọc với hạn 120 giây sẽ rớt (đo 20/11/2026, phim 167274). Gọi một lượt ở đây với hạn dài, bỏ kết quả.
+        try: subprocess.run([AT().may_doc(), vao], capture_output=True, timeout=600)
+        except Exception as e: print("hâm nóng máy đọc chữ sau BiRefNet lỗi:", e, file=sys.stderr)
+        if not os.path.exists(ra): raise RuntimeError(f"BiRefNet không ra lớp nền: {(r.stderr or r.stdout)[-200:]}")
+        return np.asarray(Image.open(ra).convert("L")).astype(np.float32) / 255
+
 def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None):
     """→ (đường dẫn PNG trong suốt, 'cat' | 'ai' | 'dai'), hoặc (None, None) kèm lý do qua ghi_ly_do(str). nen_sach(poster) → đường dẫn ảnh poster đã xoá chữ (tầng AI, tuỳ chọn)."""
     noi = ghi_ly_do or (lambda s: None)
@@ -60,15 +74,19 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None):
     b1, w1 = nen(max(6, 0.6 * lh)); b2, _ = nen(max(12, 2.2 * lh)); t = np.clip(w1 / 0.25, 0, 1)[..., None]; bg = b1 * t + b2 * (1 - t)
     chu = np.zeros((h, w), bool)   # hộp các dòng tên phim
     for b in hp: chu[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)] = True
+    cam = np.zeros((h, w), bool)   # chữ KHÁC trên poster (nhãn nền tảng, khẩu hiệu) + biểu tượng đứng cạnh nó: không bao giờ thuộc logo
+    for t_, bx, by, bw, bh in j.get("khung") or []:
+        if [bx, by, bw, bh] in hop: continue
+        k = 1.0 if bw * bh < 0.004 else 0.25; trai = 2.4 * bh * Y / X if tu(t_) & NHAN else 0   # nhãn nền tảng luôn có biểu tượng bên trái chữ (DramaBox "M", ReelShort "R")
+        a, b_, e, f = px((bx - bw * k - trai, by - bh * (k + (0.5 if trai else 0)), bw * (1 + 2 * k) + trai, bh * (1 + 2 * k + (1.0 if trai else 0))))
+        cam[int(max(0, b_ - Y0)):int(max(0, f - Y0)), int(max(0, a - X0)):int(max(0, e - X0))] = True
+    cam &= ~chu
     def cat(bg, that=False):
         """nền dưới logo → (lớp trong suốt, nét đặc, lý do trượt cổng | None)"""
         d = np.abs(c - bg).max(-1); d[~trong] = 0
         if that:   # nền sạch THẬT (AI): poster hay phủ một dải tối sau logo mà nền sạch không có → chỗ poster chỉ TỐI hơn nền, không đổi màu = bóng nền, không phải nét logo
             toi = (c.max(-1) < bg.max(-1)) & ((c.max(-1) - c.min(-1)) < 60) & (c.max(-1) < 120); d[toi] = 0
-        for t_, bx, by, bw, bh in j.get("khung") or []:   # chữ khác trên poster (nhãn nền tảng, khẩu hiệu): loại, kể cả biểu tượng nhỏ cạnh nó
-            if [bx, by, bw, bh] in hop: continue
-            k = 1.0 if bw * bh < 0.004 else 0.25; a, b_, e, f = px((bx - bw * k, by - bh * k, bw * (1 + 2 * k), bh * (1 + 2 * k)))
-            vung = np.zeros((h, w), bool); vung[int(max(0, b_ - Y0)):int(max(0, f - Y0)), int(max(0, a - X0)):int(max(0, e - X0))] = True; d[vung & ~chu] = 0
+        d[cam] = 0
         nguong = max(34.0, 0.42 * float(np.percentile(d[chu], 97)))
         al = np.clip((d - 0.55 * nguong) / (0.45 * nguong), 0, 1)
         dac = nd.median_filter(al > 0.5, size=3)
@@ -79,16 +97,17 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None):
         nhom, n = nd.label(nd.binary_dilation(dac, iterations=max(2, int(0.16 * lh))))   # mảng sát nhau gộp một nhóm
         giu = np.zeros(n + 1, bool); giu[np.unique(nhom[chu & dac])] = True; giu[0] = False
         al = al * giu[nhom]; dac = dac & giu[nhom]
-        ly = None
-        if not dac.any(): ly = "không còn nét logo sau khi tách"
-        else:
-            phu = dac[chu].mean(); ngoai = (dac & ~nd.binary_dilation(chu, iterations=int(0.3 * lh))).sum() / dac.sum()
-            du = min(dac[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)].any(0).mean() for b in hp)
-            if not 0.10 <= phu <= 0.62: ly = f"nét phủ {phu:.0%} hộp chữ"
-            elif ngoai > 0.15: ly = f"{ngoai:.0%} phần tách nằm ngoài khối chữ"
-            elif du < 0.85: ly = f"một dòng tên chỉ còn nét trên {du:.0%} bề ngang"
-        return al, ly
-    al, ly = cat(bg); cach = "cat"
+        return al, dac, cong(dac)
+    def cong(dac, tran=0.62):
+        """cổng chất lượng của một lớp nét → lý do trượt | None"""
+        if not dac.any(): return "không còn nét logo sau khi tách"
+        phu = dac[chu].mean(); ngoai = (dac & ~nd.binary_dilation(chu, iterations=int(0.3 * lh))).sum() / dac.sum()
+        du = min(dac[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)].any(0).mean() for b in hp)
+        if not 0.10 <= phu <= tran: return f"nét phủ {phu:.0%} hộp chữ"
+        if ngoai > 0.15: return f"{ngoai:.0%} phần tách nằm ngoài khối chữ"
+        if du < 0.85: return f"một dòng tên chỉ còn nét trên {du:.0%} bề ngang"
+        return None
+    al, _, ly = cat(bg); cach = "cat"
     if ly and nen_sach:   # TẦNG AI (anh 20/11/2026 "nếu ko đc thì vẫn phải cho AI vào support, dùng mô hình nào rẻ nhất"): mô hình ảnh rẻ nhất của cổng chung xoá chữ khỏi poster
         # → NỀN SẠCH thật; logo = chỗ poster gốc lệch nền sạch, ĐIỂM ẢNH VẪN LẤY TỪ POSTER GỐC (AI không vẽ nét logo nào). Nền sạch phải khớp poster ở vùng không chữ, không thì bỏ.
         try:
@@ -100,9 +119,17 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None):
                 lech = float(np.abs(im - pl).max(-1)[ngoai_chu].mean()) if ngoai_chu.any() else 0.0
                 if lech > 24: noi(f"nền sạch AI lệch poster gốc {lech:.0f}/255 ở vùng không chữ (chuẩn ≤ 24) — AI vẽ lại bố cục, bỏ")
                 else:
-                    al2, ly2 = cat(pl[Y0:Y1, X0:X1], True)
-                    if ly2: noi(f"tách theo nền sạch AI vẫn trượt cổng ({ly2})")
-                    else: al, ly, cach = al2, None, "ai"
+                    al2, dac2, ly2 = cat(pl[Y0:Y1, X0:X1], True)
+                    # GHÉP BiRefNet (anh 20/11/2026 "vẫn còn bị nền bẩn … xem có git nào hỗ trợ việc này hoàn hảo hơn", ZhengPeng7/BiRefNet, MIT, chạy tại máy qua rembg, 0₫):
+                    # BiRefNet tách tiền cảnh rất sạch mép và đủ hoạ tiết logo nhưng lấy luôn người trong vùng cắt; lớp lệch nền sạch AI biết CHỖ có logo nhưng bẩn mép
+                    # → lớp cuối = BiRefNet, chỉ giữ trong vùng lệch nền sạch (nới nhẹ). Trượt cổng thì lùi về lớp lệch nền sạch, rồi mới tới dải poster.
+                    try:
+                        cua = nd.binary_dilation(dac2, iterations=max(3, int(0.14 * lh))); al3 = tach_nen(c) * cua * ~cam; ly3 = cong(nd.median_filter(al3 > 0.5, size=3), 0.82)
+                        if ly3: noi(f"BiRefNet + nền sạch AI trượt cổng ({ly3})")
+                        else: al, ly, cach = al3, None, "ai"
+                    except Exception as e: noi(f"BiRefNet lỗi: {str(e)[:140]}")
+                    if ly and not ly2: al, ly, cach = al2, None, "ai"
+                    elif ly: noi(f"tách theo nền sạch AI vẫn trượt cổng ({ly2})")
         except Exception as e: noi(f"tầng AI lỗi: {str(e)[:160]}")
     if not ly:
         al = nd.gaussian_filter(al, 0.7); ys, xs = np.where(al > 0.08)
@@ -124,4 +151,7 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None):
     Image.fromarray(np.dstack([g, a2 * 255]).astype(np.uint8), "RGBA").save(ra); return ra, "dai"
 
 if __name__ == "__main__":
+    if sys.argv[1] == "--nen":   # tiến trình riêng của tach_nen
+        from rembg import new_session, remove
+        remove(Image.open(sys.argv[2]).convert("RGB"), session=new_session("birefnet-general-lite", providers=["CPUExecutionProvider"]), only_mask=True).save(sys.argv[3]); sys.exit(0)
     print(tach(sys.argv[2], sys.argv[1], sys.argv[3], lambda s: print("✗", s, file=sys.stderr)))

@@ -221,7 +221,7 @@ const CO = ['Toàn', 'Trung', 'Trung cận', 'Cận', 'Đặc tả'], GM = ['Nga
 const TILE = { '9:16': 0.5625, '1:1': 1, '16:9': 1.7778 }, TOC = { 'Chậm': 0.88, 'Vừa': 1, 'Nhanh': 1.15 };
 const KHO_HINH = [...Array(9)].map((_, i) => `v/leo-k${i + 1}.jpg`).concat([...Array(7)].map((_, i) => `v/ryc-k${i + 1}.jpg`), KIEU.map((k) => ANH(k.ma)));
 const KHO_NV = [['heracles', 'Heracles'], ['su-tu-nemea', 'Sư tử Nemea'], ['hera', 'Hera'], ['zeus', 'Zeus'], ['athena', 'Athena'], ['apollo', 'Apollo'], ['artemis', 'Artemis'], ['hermes', 'Hermes']];
-const IC = { 'Mẫu': '<rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/>',
+const IC = { 'Nhật ký': '<path d="M5.500 4h8M5.500 8h8M5.500 12h5"/><circle cx="2.600" cy="4" r=".7"/><circle cx="2.600" cy="8" r=".7"/><circle cx="2.600" cy="12" r=".7"/>', 'Mẫu': '<rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/>',
   'Hình': '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2.5 11l3.5-3.5 2.5 2.5 2-2 3 3"/><circle cx="10.5" cy="6" r="1"/>', 'Nhân vật': '<circle cx="8" cy="5.5" r="2.6"/><path d="M2.8 14c.6-3 2.6-4.3 5.2-4.3s4.6 1.3 5.2 4.3"/>',
   'Chữ': '<path d="M3 4V3h10v1M8 3v10M6 13h4"/>', 'Giọng': '<rect x="6" y="2" width="4" height="7" rx="2"/><path d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v2"/>', 'Nhạc': '<path d="M6 12V3.5l7-1.5v8.5"/><circle cx="4.5" cy="12" r="1.6"/><circle cx="11.5" cy="10.5" r="1.6"/>',
   '3D': '<path d="M8 1.8l5.4 3v6.4L8 14.2l-5.4-3V4.8zM2.6 4.8L8 7.8l5.4-3M8 7.8v6.4"/>', 'Đoạn': '<path d="M3 2v12M3 3h8l-1.5 2.5L11 8H3"/>', 'Tiếng động': '<path d="M2 8h1.5M5 5v6M7.5 3v10M10 6v4M12.5 7v2"/>',
@@ -311,16 +311,16 @@ const duAnCho = () => ({ ten: 'Đang mở phim…', loai: 'hinh', tile: '9:16', 
 const LOAI = { hinh: 'Kể chuyện bằng hình', tailieu: 'Tài liệu lời dẫn', phim: 'Phim nhân vật 3D' };
 const DU_AN = { cn: { bia: 'v/cn/k14.jpg', tao: () => tuDL('cn') }, ynt: { bia: 'v/ynt/k3.jpg', tao: () => tuDL('ynt') }, leo: { bia: 'v/leo-k1.jpg', tao: duAnMau } };
 // ── widget: mỗi bảng là một widget; mỗi LOẠI HÌNH video có một bố cục (danh sách widget theo thứ tự trái sang phải), đổi được và nhớ lại
-const WG = { tv: ['Thư viện', '252px'], kb: ['Kịch bản', '300px'], pc: ['Phân cảnh', 'minmax(220px, .8fr)'], xem: ['Khung xem', 'minmax(0, 1.3fr)'], mb: ['Mặt bằng', 'minmax(190px, .75fr)'], lp: ['Lớp', '250px'], tt: ['Thuộc tính', '300px'] };
+const WG = { tv: ['Thư viện', '252px'], kb: ['Kịch bản', '300px'], pc: ['Phân cảnh', 'minmax(220px, .8fr)'], xem: ['Khung xem', 'minmax(0, 1.3fr)'], mb: ['Mặt bằng', 'minmax(190px, .75fr)'], lp: ['Lớp', '250px'], nk: ['Nhật ký', '300px'], tt: ['Thuộc tính', '300px'] };
 const BC_MAU = { hinh: ['tv', 'xem', 'tt'], tailieu: ['kb', 'xem', 'lp', 'tt'], phim: ['pc', 'xem', 'mb', 'tt'] };
 
 let D = duAnMau();
 const E = { man: 'dung', ban: 'pro', da: 'cn', nguon: 'anh', hop: true, tat: false, ttTab: 'may', bc: JSON.parse(JSON.stringify(BC_MAU)), menu: null,
-  t: 0, chon: null, pxs: 22, tab: 'Mẫu', chay: false, lui: [], toi: [], xuat: null, moDoi: false, moNv: false, moThem: false, dangGo: false, o: 'tv', vua: false, canhDang: null, solo: null, tap: null, tim: '', kq: undefined, kqLoi: '' };
+  t: 0, chon: null, pxs: 22, tab: 'Mẫu', chay: false, lui: [], toi: [], xuat: null, moDoi: false, moNv: false, moThem: false, dangGo: false, o: 'tv', vua: false, canhDang: null, solo: null, tap: null, tim: '', kq: undefined, kqLoi: '', nkBuoc: 'anh', nk: null, nkMo: null, nkCt: {} };
 try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { if (l.ban === 'gon' || l.ban === 'pro') E.ban = l.ban; if (DU_AN[l.da] || /^\d+$/.test(l.da || '')) { E.da = l.da; E.tap = +l.tap || null; } for (const k in BC_MAU) if (Array.isArray(l.bc?.[k]) && l.bc[k].includes('xem') && l.bc[k].every((w) => WG[w])) E.bc[k] = l.bc[k]; } } catch {}
 try { const q = new URLSearchParams(location.search); if (q.get('ban') === 'gon' || q.get('ban') === 'pro') E.ban = q.get('ban'); if (DU_AN[q.get('phim')] || /^\d+$/.test(q.get('phim') || '')) { E.da = q.get('phim'); E.tap = +q.get('tap') || null; } } catch {}
-const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc })); } catch {} try { history.replaceState(null, '', `?phim=${E.da}${E.tap ? `&tap=${E.tap}` : ''}&ban=${E.ban}`); } catch {} };
-const pro = () => E.ban === 'pro', boCuc = () => (pro() ? E.bc[D.loai].filter((w) => !D.that || ((w !== 'lp' || coLop()) && (w !== 'mb' || !!D.set))) : BC_MAU.hinh), co = (w) => boCuc().includes(w);
+const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc })); } catch {} try { history.replaceState(null, '', `?phim=${E.da}${E.tap ? `&tap=${E.tap}` : ''}&ban=${E.ban}${pro() && D.that && co('nk') ? `&nk=${E.nkBuoc}` : ''}`); } catch {} };
+const pro = () => E.ban === 'pro', boCuc = () => (pro() ? E.bc[D.loai].filter((w) => (w !== 'nk' || !!D.that) && (!D.that || ((w !== 'lp' || coLop()) && (w !== 'mb' || !!D.set)))) : BC_MAU.hinh), co = (w) => boCuc().includes(w);
 const tong = () => D.canh.reduce((a, c) => a + c.tg, 0), canh = (id) => D.canh.find((c) => c.id === id), vt = (id) => D.canh.findIndex((c) => c.id === id);
 const batDau = (i) => D.canh.slice(0, i).reduce((a, c) => a + c.tg, 0), lam2 = (x) => Math.round(x * 100) / 100;
 const gio = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -339,7 +339,7 @@ const ghi = () => { E.lui.push(JSON.stringify(D)); if (E.lui.length > 80) E.lui.
 function hoan(tu, sang) { if (!tu.length) return; sang.push(JSON.stringify(D)); D = JSON.parse(tu.pop()); if (E.chon && E.chon.id !== 'nhac' && !canh(E.chon.id)) E.chon = null; E.t = Math.min(E.t, tong()); veD(); }
 let hBao = 0;
 function bao(chu, hoanTac, lau) { const b = $('#dBao'); b.innerHTML = `<span>${esc(chu)}</span>${hoanTac ? '<button type="button" data-d="lui">Hoàn tác</button>' : ''}`; b.hidden = false; clearTimeout(hBao); hBao = setTimeout(() => { b.hidden = true; }, lau || 4500); }
-function moDuAn(k) { D = DU_AN[k].tao(); GOC = {}; E.da = k; E.tap = null; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.nguon = nguonDau(); E.solo = null; E.tab = 'Mẫu'; luu(); }
+function moDuAn(k) { D = DU_AN[k].tao(); GOC = {}; E.nk = null; E.nkCt = {}; E.da = k; E.tap = null; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.nguon = nguonDau(); E.solo = null; E.tab = 'Mẫu'; luu(); }
 
 /** mở một phim THẬT của studio: đọc phim + cảnh của tập, ghép về dự án. Lỗi thì báo ngay trên thanh báo và giữ phim đang mở (lúc khởi động: về phim mẫu). */
 let soMo = 0;
@@ -351,7 +351,7 @@ async function moPhimThat(pid, tid, khoiDong) {
     const tap = pd.tap.find((t) => t.id === +tid) || pd.tap.find((t) => t.so_canh > 0) || pd.tap[0]; if (!tap) throw new Error('phim này chưa có tập nào');
     const ds = ds0 && tap.id === +tid ? ds0 : await goi('dsCanh', tap.id); if (so !== soMo) return;
     if (!ds.length) throw new Error(`tập ${tap.so} của phim này chưa có cảnh nào`);
-    D = tuStudio(pd, tap, ds); E.da = String(pd.phim.id); E.tap = tap.id; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.nguon = nguonDau(); E.solo = null; E.tab = 'Mẫu'; E.vua = false; E.dangMo = false; luu(); man('dung');
+    D = tuStudio(pd, tap, ds); E.nk = null; E.nkCt = {}; E.nkMo = null; E.da = String(pd.phim.id); E.tap = tap.id; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.nguon = nguonDau(); E.solo = null; E.tab = 'Mẫu'; E.vua = false; E.dangMo = false; luu(); man('dung');
   } catch (e) { if (so !== soMo) return; E.dangMo = false; if (khoiDong || D.cho) moDuAn('cn'); veD(); bao(`Không mở được phim #${pid}: ${e.message}`, false, 15000); }
 }
 /** danh sách phim của studio trong menu chọn phim: gõ là tìm (studio lọc theo tên), chưa gõ = phim sửa gần đây */
@@ -377,13 +377,66 @@ function datMenu() { const m = $('#dMenu'); if (!E.menu || m.hidden) return; con
   m.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - w - 8))}px`; m.style.top = `${r.bottom + 6 + cao > window.innerHeight && r.top - cao - 6 > 0 ? r.top - cao - 6 : r.bottom + 6}px`; }
 const veKq = () => { const el = $('#mnKq'); if (el) { el.innerHTML = veKqTim(); datMenu(); } };
 
+// ── NHẬT KÝ (chỉ phim thật): dải BƯỚC của cảnh đang ở kim — mỗi bước một đèn (xong / thiếu / hỏng / cần xem / đang chạy) — và các LƯỢT SINH của bước đó
+//    đọc từ sổ lượt sinh của studio (nhatKyTap: bản gọn cả tập; nhatKyCanh: câu lệnh nguyên văn + tham số của một cảnh, chỉ tải khi mở một lượt).
+const BUOC_NK = [['kb', 'Kịch bản', 'Kịch bản'], ['3d', '3D', '3D'], ['anh', 'Ảnh', 'Hình'], ['clip', 'Clip', 'Khung xem'], ['giong', 'Giọng', 'Giọng'], ['soat', 'Soát', 'Soát']];
+const buocLuot = (j) => (j.loai === 'anh' ? 'anh' : j.loai === 'video' || j.loai === 'nang_cap' ? 'clip' : j.loai === 'am' ? 'giong' : 'soat');
+const gioVn = (iso) => { const d = new Date(iso); if (Number.isNaN(+d)) return ''; const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', hour12: false }).formatToParts(d).map((x) => [x.type, x.value])); return `${p.hour}:${p.minute} ${p.day}/${p.month}`; };
+const tienDo = (c) => (c > 0 ? `$${(c / 100).toFixed(c < 10 ? 3 : 2)}` : '');
+/** lượt còn "chờ / chạy" quá 20 phút coi là treo — không báo "đang chạy" khi máy không còn chạy thật */
+const ttLuot = (j) => (j.trang_thai === 'xong' ? ['xong', 'xong'] : j.trang_thai === 'loi' ? ['loi', 'hỏng'] : Date.now() - Date.parse(j.luc) < 20 * 60e3 ? ['dang', 'đang chạy'] : ['thieu', 'không thấy kết quả']);
+const luotCanh = (g) => (E.nk?.ds || []).filter((j) => j.canh_id === g.id);
+function buocCanh(c) {
+  const g = GOC[c.id]; if (!g) return null; const kx = g.khung_xam || null, js = luotCanh(g), cuoi = (b) => js.find((j) => buocLuot(j) === b), hong = (b) => cuoi(b)?.trang_thai === 'loi', chay = (b) => js.some((j) => buocLuot(j) === b && ttLuot(j)[0] === 'dang');
+  const thieuKhung = (Array.isArray(kx?.kiem) ? kx.kiem : []).filter((k) => k.bat_buoc && !k.trong_khung).map((k) => k.nhan_vat);
+  const cau = (Array.isArray(g.thoai) ? g.thoai : []).filter((t) => t.loi), coTieng = cau.filter((t) => t.url).length, coClip = !!(g.video_cuoi_url || g.video_url), soi = g.soi_clip && !g.soi_clip.bo_qua ? g.soi_clip.loi || [] : [];
+  const tapMay = !D.canh.some((x) => x.vid) && !!D.vid;   // video máy dựng: cả tập là một video, không có clip / tiếng riêng từng cảnh
+  return {
+    kb: g.hanh_dong || g.loi_thoai || cau.length ? ['xong', 'Đã có hành động và lời của cảnh'] : ['thieu', 'Chưa viết hành động cho cảnh này'],
+    '3d': !g.may_3d && !kx ? ['khong', 'Cảnh này không dựng 3D'] : thieuKhung.length ? ['loi', `Khung 3D thiếu: ${thieuKhung.join(', ')}`] : kx?.mau ? ['xong', 'Đã có khung 3D, đủ người cần thấy'] : ['thieu', 'Đã đặt máy nhưng chưa dựng khung 3D'],
+    anh: chay('anh') || g.dang_sinh_anh ? ['dang', 'Đang vẽ ảnh'] : g.keyframe_url ? (hong('anh') ? ['bao', 'Đã có ảnh, nhưng lượt vẽ gần nhất bị hỏng'] : ['xong', 'Đã có ảnh']) : hong('anh') ? ['loi', 'Chưa có ảnh: lượt vẽ gần nhất bị hỏng'] : ['thieu', 'Chưa vẽ ảnh'],
+    clip: chay('clip') || g.video_dang ? ['dang', `Đang dựng clip${g.video_dang?.ngan ? ` (${g.video_dang.ngan})` : ''}`] : coClip ? (hong('clip') ? ['bao', 'Đã có clip, nhưng lượt dựng gần nhất bị hỏng'] : ['xong', 'Đã có clip']) : hong('clip') ? ['loi', 'Chưa có clip: lượt dựng gần nhất bị hỏng'] : tapMay ? ['khong', 'Video này dựng cả tập một lần, không có clip riêng từng cảnh'] : ['thieu', 'Chưa dựng clip'],
+    giong: !cau.length && !g.loi_thoai ? ['khong', 'Cảnh này không có lời'] : tapMay && !coTieng && !g.thoai_url ? ['khong', 'Video này đọc lời cả tập một lần, không có tiếng riêng từng cảnh'] : chay('giong') || g.dang_sinh_giong ? ['dang', 'Đang đọc lời'] : (cau.length ? coTieng === cau.length : !!g.thoai_url) ? ['xong', 'Đã có tiếng cho mọi câu'] : hong('giong') ? ['loi', 'Thiếu tiếng: lượt đọc gần nhất bị hỏng'] : ['thieu', cau.length ? `Mới có tiếng ${coTieng}/${cau.length} câu` : 'Chưa có tiếng'],
+    soat: !coClip ? ['khong', 'Chưa có clip để soát'] : !g.soi_clip ? ['thieu', 'Clip chưa được máy soát'] : soi.length ? ['bao', `Máy soát thấy ${soi.length} điểm cần xem`] : ['xong', 'Máy soát không thấy lỗi'],
+  };
+}
+let soNk = 0;
+async function napNk() { if (!D.that || E.nk?.tap === D.that.tap) return; const so = ++soNk, tap = D.that.tap; E.nk = { tap, ds: null, loi: '' };
+  try { const ds = await goi('nhatKyTap', tap); if (so !== soNk) return; E.nk = { tap, ds, loi: '' }; } catch (e) { if (so !== soNk) return; E.nk = { tap, ds: [], loi: e.message }; }
+  if (D.that?.tap === tap && co('nk')) veNk(); }
+async function napNkCanh() { const c = canhTai(Math.min(E.t, tong() - 0.001)).c, g = GOC[c.id]; if (!g || E.nkCt[g.id]) return; E.nkCt[g.id] = 'dang';
+  try { const ds = await goi('nhatKyCanh', g.id); E.nkCt[g.id] = Object.fromEntries(ds.map((j) => [j.id, j])); } catch (e) { E.nkCt[g.id] = { loi: e.message }; }
+  if (co('nk')) veNk(); }
+function veNk() {
+  const el = $('#dNk'); if (!D.that) { el.innerHTML = '<div class="trong-w sang">Nhật ký chỉ có ở phim của studio.<br>Mở một phim thật trong menu tên phim.</div>'; return; }
+  if (E.nk?.tap !== D.that.tap) napNk();
+  const { c, i } = canhTai(Math.min(E.t, tong() - 0.001)), g = GOC[c.id]; if (!g) { el.innerHTML = '<div class="trong-w sang">Cảnh này mới thêm ở đây nên studio chưa có nhật ký.</div>'; return; }
+  const B = buocCanh(c), b = E.nkBuoc, [tt, cau] = B[b], js = luotCanh(g), cua = js.filter((j) => buocLuot(j) === b), tien = js.reduce((a, j) => a + j.cents, 0), ct = E.nkCt[g.id];
+  const pre = (t, chu) => (chu ? `<details class="nk-ct"><summary>${t}</summary><pre>${esc(chu)}</pre></details>` : ''), anh = (u, chu) => (u ? `<figure class="nk-anh"><img src="${nho(u, 320)}" alt=""><figcaption>${chu}</figcaption></figure>` : '');
+  const nguon = (u) => (u && g.nguon_tep?.[u] ? `<span class="nho" title="${esc(g.nguon_tep[u].day)}">${esc(g.nguon_tep[u].ngan)}</span>` : '');
+  let than = '';
+  if (b === 'kb') than = `<p class="nk-chu">${esc(g.hanh_dong_vi || g.hanh_dong || 'Chưa có mô tả hành động.')}</p>${g.goc_may ? `<p class="nho">Máy: ${esc(g.goc_may)}</p>` : ''}${c.loi ? `<p class="nk-chu">“${esc(c.loi)}”</p>` : ''}`;
+  if (b === '3d') than = anh(g.khung_xam?.mau, 'Khung 3D máy đang thấy') + (Array.isArray(g.khung_xam?.kiem) ? g.khung_xam.kiem.filter((k) => k.bat_buoc).map((k) => `<div class="soat ${k.trong_khung ? 'ok' : 'loi'}"><i></i><span>${esc(k.nhan_vat)} ${k.trong_khung ? 'có trong khung' : 'KHÔNG thấy trong khung'}</span></div>`).join('') : '');
+  if (b === 'anh') than = anh(g.keyframe_url, `Ảnh đang dùng${g.keyframe_luc ? ` · vẽ ${gioVn(g.keyframe_luc)}` : ''} ${nguon(g.keyframe_url)}`) + ((g.keyframe_uv || []).length > 1 ? `<span class="nho">Đã vẽ ${g.keyframe_uv.length} bản, đang dùng một.</span>` : '') + pre('Câu lệnh vẽ ảnh hiện tại', g.prompt_anh);
+  if (b === 'clip') than = ((g.video_phien_ban || []).length ? `<div class="nk-pb">${g.video_phien_ban.map((v, k) => { const dung = v.url === g.video_cuoi_url || v.url === g.video_url; return `<span class="${dung ? 'pb-dung' : ''}" title="${esc([v.model, v.luc ? gioVn(v.luc) : '', dung ? 'đang dùng' : ''].filter(Boolean).join(' · '))}">${k + 1}${v.nhan ? ` ${esc(v.nhan)}` : ''}</span>`; }).join('')}</div><span class="nho">${g.video_phien_ban.length} bản clip, bản tô đậm đang dùng. ${nguon(g.video_cuoi_url || g.video_url)}</span>` : '') + pre('Câu lệnh dựng clip hiện tại', g.prompt_video);
+  if (b === 'giong') than = (Array.isArray(g.thoai) ? g.thoai : []).filter((t) => t.loi).map((t) => `<div class="soat ${t.url ? 'ok' : 'canh'}"><i></i><span><b>${esc(t.nhan_vat || 'Lời dẫn')}:</b> ${esc(t.loi)}</span></div>`).join('');
+  if (b === 'soat') than = (g.soi_clip && !g.soi_clip.bo_qua ? (g.soi_clip.loi || []).map((s) => `<div class="soat canh"><i></i><span>${esc(s)}</span></div>`).join('') : '') + (g.loi ? `<div class="soat loi"><i></i><span>${esc(g.loi)}</span></div>` : '');
+  const dongLuot = (j) => { const [k, ten] = ttLuot(j), mo = E.nkMo === j.id, d = mo && ct && ct !== 'dang' ? ct[j.id] : null;
+    return `<div class="nk-l ${k}${mo ? ' mo' : ''}"><button type="button" data-d="nkMo" data-g="${j.id}" aria-expanded="${mo}"><i></i><span class="so">${gioVn(j.luc)}</span><b>${esc(j.model || j.provider)}</b><span class="nk-tt">${ten}</span><span class="so">${tienDo(j.cents)}</span></button>`
+      + (mo ? `<div class="nk-mo">${j.loi ? `<div class="bao"><b>Máy báo:</b> ${esc(j.loi)}</div>` : ''}${ct === 'dang' || !ct ? '<span class="nho">Đang đọc câu lệnh…</span>' : ct.loi ? `<div class="bao">Không đọc được chi tiết: ${esc(ct.loi)}</div>` : d ? `${d.cau_lenh ? `<span class="nho">Câu lệnh đã gửi</span><pre>${esc(d.cau_lenh)}</pre>` : ''}${Object.keys(d.chi_tiet || {}).length ? `<dl>${Object.entries(d.chi_tiet).map(([x, y]) => `<dt>${esc(x)}</dt><dd>${esc(Array.isArray(y) ? y.join('\n') : String(y))}</dd>`).join('')}</dl>` : ''}` : ''}${j.output_url ? `<a href="${esc(j.output_url)}" target="_blank" rel="noopener">Mở tệp kết quả ↗</a>` : ''}<span class="nho">Lượt #${j.id}${j.nhan ? ` · ${esc(j.nhan)}` : ''}${j.provider ? ` · qua ${esc(j.provider)}` : ''}</span></div>` : '') + '</div>'; };
+  el.innerHTML = `<div class="nk-dau"><b>Cảnh ${i + 1}</b><span class="nho">${esc(c.nhan)}</span><span class="so" title="Tổng tiền các lượt sinh của cảnh này">${tienDo(tien)}</span></div>
+    <div class="nk-buoc" role="tablist">${BUOC_NK.map(([k, ten, icn]) => `<button type="button" role="tab" data-d="nkBuoc" data-g="${k}" aria-selected="${b === k}" class="${B[k][0]}" title="${ten}: ${esc(B[k][1])}">${ic(icn)}<span>${ten}</span><i></i></button>`).join('')}</div>
+    <div class="nk-than"><div class="nk-cau ${tt}"><i></i><span>${esc(cau)}</span></div>${than}
+    ${E.nk?.loi ? `<div class="bao">Không đọc được sổ lượt sinh: ${esc(E.nk.loi)}</div>` : !E.nk?.ds ? '<span class="nho">Đang đọc sổ lượt sinh…</span>' : b === 'kb' || b === '3d' ? '' : cua.length ? `<h3>${cua.length} lượt sinh</h3>${cua.slice(0, 40).map(dongLuot).join('')}${cua.length > 40 ? `<span class="nho">Còn ${cua.length - 40} lượt cũ hơn.</span>` : ''}` : '<span class="nho">Bước này chưa có lượt sinh nào trong sổ.</span>'}</div>`;
+}
+
 // ── vẽ
 const chipD = (ds, cur, d, k) => `<div class="day-bt">${ds.map((x) => `<button type="button" class="bt" data-d="${d}"${k ? ` data-k="${k}"` : ''} data-g="${esc(x)}" aria-pressed="${cur === x}">${esc(x)}</button>`).join('')}</div>`;
 const muc = (t, than) => `<div class="muc"><h3>${t}</h3>${than}</div>`, hg = (t, than) => `<div class="hg"><span>${t}</span><div>${than}</div></div>`;
 const nutIc = (t, d, g = '', them = '') => `<button type="button" class="bt ic-bt" data-d="${d}" data-g="${g}" title="${t}" aria-label="${t}" ${them}>${ic(t)}</button>`;
 function veD() {
   const el = $('#dung'); el.classList.toggle('pro', pro()); el.dataset.o = E.o; veBoCuc(); veTren();
-  if (co('tv')) veTv(); if (co('tt')) veTt(); if (co('pc')) vePc(); if (co('kb')) veKb(); if (co('mb')) veMb(); if (co('lp')) veLp();
+  if (co('tv')) veTv(); if (co('tt')) veTt(); if (co('pc')) vePc(); if (co('kb')) veKb(); if (co('mb')) veMb(); if (co('lp')) veLp(); if (co('nk')) veNk();
   veTl(); veKhung(); veKim(); vePhu(); veMenu();
   document.querySelectorAll('.d-doi .bt').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.g === E.o)));
 }
@@ -493,7 +546,7 @@ function veTtPro(c) {
     if (c.ban3) d('canh', 'Khung 3D chưa khớp mặt bằng vừa sửa', '<button type="button" class="bt" data-d="dung3d">Dựng lại</button>');
     (c.soi || []).forEach((s, k) => d('canh', `Clip: ${esc(s.toLowerCase())}`, `<button type="button" class="bt" data-d="boSoi" data-g="${k}">Đã xem</button>`));
     if (i) d('ok', 'Nối với cảnh trước');
-    h = r.join('') || '<span class="nho">Chưa có gì để soát.</span>'; }
+    h = (r.join('') || '<span class="nho">Chưa có gì để soát.</span>') + (D.that && !co('nk') ? '<div><button type="button" class="bt" data-d="nkBat">Xem từng bước sinh của cảnh</button></div>' : ''); }
   return `<div class="tt-tab" role="tablist">${T.map(([k, ten]) => `<button type="button" role="tab" data-d="ttTab" data-g="${k}" aria-selected="${t === k}" title="${ten}">${ic(ten)}<span>${ten}</span>${k === 'soat' && n ? `<u>${n}</u>` : ''}</button>`).join('')}</div><div class="tt-pro">${h}</div>`;
 }
 function vePc() {
@@ -604,7 +657,7 @@ function veKhung() {
   $('#kMo').hidden = !chu; $('#kVe').hidden = !c.ve;
   const hop = hopBat ? c.id : '', lop = $('#kHop');
   if (lop.dataset.k !== hop) { lop.dataset.k = hop; lop.innerHTML = hop ? Object.entries(c.hop).filter(([, b]) => b[2] - b[0] > 0.02).map(([t, b]) => `<div style="left:${b[0] * 100}%;top:${b[1] * 100}%;width:${(b[2] - b[0]) * 100}%;height:${(b[3] - b[1]) * 100}%"><span>${esc(t)}</span></div>`).join('') : ''; }
-  if (E.canhDang !== c.id) { E.canhDang = c.id; E.solo = null; if (pro()) { if (co('mb')) veMb(); if (co('lp')) veLp(); document.querySelectorAll('.pc-o.dang').forEach((x) => x.classList.remove('dang')); document.querySelector(`.pc-o[data-g="${c.id}"]`)?.classList.add('dang'); } }
+  if (E.canhDang !== c.id) { E.canhDang = c.id; E.solo = null; if (pro()) { if (co('mb')) veMb(); if (co('lp')) veLp(); if (co('nk')) { E.nkMo = null; veNk(); } document.querySelectorAll('.pc-o.dang').forEach((x) => x.classList.remove('dang')); document.querySelector(`.pc-o[data-g="${c.id}"]`)?.classList.add('dang'); } }
 }
 function vePhu() {
   const p = $('#dPhu'); p.hidden = !E.xuat; if (!E.xuat) { p.innerHTML = ''; return; } let h = '';
@@ -663,8 +716,11 @@ function lamD(a, d = {}, nut) {
     case 'lopAn': { const y = canhTai(Math.min(E.t, tong() - 0.001)).c; ghi(); y.an = y.an || []; const k = y.an.indexOf(g); if (k >= 0) y.an.splice(k, 1); else y.an.push(g); E.solo = null; E.nguon = 'lop'; dungChay(); return veD(); }
     case 'lopSolo': { const y = canhTai(Math.min(E.t, tong() - 0.001)).c; E.solo = E.solo?.id === y.id && E.solo.k === g ? null : { id: y.id, k: g }; E.nguon = 'lop'; dungChay(); return veD(); }
     case 'lopHet': { const y = canhTai(Math.min(E.t, tong() - 0.001)).c; if (y.an?.length) { ghi(); y.an = []; } E.solo = null; return veD(); }
-    case 'wg': { const ds = E.bc[D.loai], i = ds.indexOf(g); if (i >= 0) ds.splice(i, 1); else ds.splice(g === 'tt' || g === 'mb' || g === 'lp' ? (ds.includes('tt') && g !== 'tt' ? ds.indexOf('tt') : ds.length) : Math.max(0, ds.indexOf('xem')), 0, g); luu(); return veD(); }
+    case 'wg': { const ds = E.bc[D.loai], i = ds.indexOf(g); if (i >= 0) ds.splice(i, 1); else ds.splice(g === 'tt' || g === 'mb' || g === 'lp' || g === 'nk' ? (ds.includes('tt') && g !== 'tt' ? ds.indexOf('tt') : ds.length) : Math.max(0, ds.indexOf('xem')), 0, g); luu(); return veD(); }
     case 'wgDi': { const ds = E.bc[D.loai], i = ds.indexOf(g), j = i + +d.k; if (j < 0 || j >= ds.length) return; [ds[i], ds[j]] = [ds[j], ds[i]]; luu(); return veD(); }
+    case 'nkBuoc': E.nkBuoc = g; E.nkMo = null; luu(); return veNk();
+    case 'nkMo': E.nkMo = E.nkMo === +g ? null : +g; veNk(); if (E.nkMo) napNkCanh(); return;
+    case 'nkBat': { const ds = E.bc[D.loai]; if (!ds.includes('nk')) ds.splice(ds.includes('tt') ? ds.indexOf('tt') : ds.length, 0, 'nk'); if (g) E.nkBuoc = g; luu(); return veD(); }
     case 'bcMau': E.bc[D.loai] = [...BC_MAU[g]]; luu(); return veD();
     case 'moTao': dungChay(); E.menu = null; return man('tao');
     case 'veDung': return man('dung');
@@ -797,6 +853,8 @@ function goD(t) {
   veTlClip(); veKhung(); if (pro() && co('kb') && (f === 'loi' || f === 'thoai')) veKb();
 }
 for (const k in DU_AN) { const p = DU_AN[k].tao(); Object.assign(DU_AN[k], { ten: p.ten, loai: p.loai, so: p.canh.length, dai: p.canh.reduce((a, c) => a + c.tg, 0) }); }
+// link có &nk=<bước>: bật widget Nhật ký ở bước đó (đặt ở đây vì BUOC_NK khai sau khối đọc URL đầu tệp)
+try { const nk = new URLSearchParams(location.search).get('nk'); if (BUOC_NK.some((x) => x[0] === nk)) { E.nkBuoc = nk; for (const k in E.bc) if (!E.bc[k].includes('nk')) E.bc[k].splice(E.bc[k].includes('tt') ? E.bc[k].indexOf('tt') : E.bc[k].length, 0, 'nk'); } } catch {}
 if (DU_AN[E.da]) moDuAn(E.da); else moPhimThat(E.da, E.tap, true);
 
 document.addEventListener('change', (e) => { if (e.target.dataset?.f === 'nhoLai') goD(e.target); });

@@ -4,6 +4,8 @@ Trình dựng video kiểu timeline cho team (hai bản Gọn / Pro, bố cục 
 
 Ghép dữ liệu studio → mô hình dự án ở `public/studio2.js › tuStudio` (bản gốc từng cảnh giữ ở `GOC`). Hàm studio đang dùng: `dsNhomTuDo` (danh sách), `docPhim`, `dsCanh` — các hàm này chỉ trả dữ liệu cho tài khoản quản trị.
 
+Widget **Nhật ký** (bản Pro, phim thật; bật ở menu Bố cục, ở Thuộc tính › Soát, hoặc link có `&nk=<bước>`): dải bước của cảnh đang ở kim — Kịch bản · 3D · Ảnh · Clip · Giọng · Soát, mỗi bước một đèn — và các lượt sinh của bước đó (model, giờ, xong / hỏng, tiền; bấm một lượt để xem câu lệnh nguyên văn + tham số). Đọc từ `apps/xuong-video/src/lib/actions-studio2.ts` (`nhatKyTap`, `nhatKyCanh`). Đèn tính ở `studio2.js › buocCanh`.
+
 - `public/index.html`, `public/studio2.css`, `public/studio2.js` — trang + mã trình dựng (sửa thẳng ở đây).
 - `public/du-lieu.js` — dữ liệu hai phim thật (Hai chai nước ngọt: studio phim #3071 tập 3074; YNT: phim #1195 tập 1659). Dựng lại: `python3 apps/studio2/scripts/dl.py`.
 - `public/v/` — ảnh, clip, lớp tách của ba phim mẫu.
@@ -11,4 +13,4 @@ Ghép dữ liệu studio → mô hình dự án ở `public/studio2.js › tuStu
 - `scripts/lop-ynt.cjs` — tách từng lớp của cảnh YNT bằng bộ dựng `apps/xuong-video/scripts/lich-su/ban-do.html` (chạy trên iMac, 0₫).
 - `deploy/studio2.on.tc.nginx` — vhost tĩnh sau SSO mos2; `deploy.sh` khối 5e3 tự cài, DNS do `deploy/dns-on-tc.sh` tạo.
 
-Link mở thẳng: phim mẫu `?phim=cn|ynt|leo&ban=gon|pro`; phim thật `?phim=<số phim>&tap=<số tập>&ban=gon|pro`.
+Link mở thẳng: phim mẫu `?phim=cn|ynt|leo&ban=gon|pro`; phim thật `?phim=<số phim>&tap=<số tập>&ban=gon|pro[&nk=kb|3d|anh|clip|giong|soat]`.

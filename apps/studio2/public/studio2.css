@@ -343,3 +343,25 @@ span.lp-than { cursor: default }
 .mn-da[disabled] { opacity: .5; cursor: default }
 .mn-tap { padding: 0 0 4px 64px; flex-wrap: wrap; max-height: 92px; overflow: auto }
 .thu.that { color: var(--ink-2, var(--ink)); background: var(--brass-nhat) } .thu a { color: inherit; font-weight: 600; margin-left: 6px; white-space: nowrap }
+
+/* Nhật ký: dải bước của cảnh + các lượt sinh */
+.d-nk { overflow: auto; padding: 8px 10px 12px; display: grid; gap: 8px; align-content: start; font-size: 13px }
+.nk-dau { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: baseline } .nk-dau .nho { overflow: hidden; text-overflow: ellipsis; white-space: nowrap } .nk-dau .so { font-family: var(--f-so); font-size: 11.5px; color: var(--ink-3) }
+.nk-buoc { display: grid; grid-template-columns: repeat(6, 1fr); border-bottom: 1px solid var(--line); margin: 0 -10px }
+.nk-buoc button { position: relative; display: grid; justify-items: center; gap: 3px; padding: 6px 2px 8px; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--ink-3); font: 500 11px var(--f-than); cursor: pointer }
+.nk-buoc button[aria-selected=true] { color: var(--ink); font-weight: 600; border-bottom-color: var(--brass) }
+.nk-buoc i, .nk-cau i, .nk-l i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); flex: none }
+.nk-buoc i { position: absolute; top: 4px; left: calc(50% + 8px); box-shadow: 0 0 0 2px var(--mat) }
+.xong > i, .nk-l.xong i { background: var(--ok) } .loi > i, .nk-l.loi i { background: var(--loi) } .bao > i { background: var(--cho) } .thieu > i, .nk-l.thieu i { background: none; border: 1.5px solid var(--ink-3) } .khong > i { background: none; border: 1.5px dashed var(--line) } .nk-buoc .khong { opacity: .55 }
+.dang > i, .nk-l.dang i { background: var(--brass); animation: nk-nhay 1.1s ease-in-out infinite } @keyframes nk-nhay { 50% { opacity: .25 } } @media (prefers-reduced-motion: reduce) { .dang > i, .nk-l.dang i { animation: none } }
+.nk-than { display: grid; gap: 8px; align-content: start } .nk-than h3 { font: 600 11px var(--f-than); letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); margin: 4px 0 0 }
+.nk-cau { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 8px; align-items: center; font-weight: 600 } .nk-cau.bao, .nk-cau.loi { background: none; border: 0; padding: 0; color: inherit }
+.nk-chu { margin: 0; line-height: 1.45 } .nk-than p.nho { margin: 0 }
+.nk-anh { margin: 0; display: grid; gap: 4px } .nk-anh img { width: 100%; max-height: 190px; object-fit: contain; background: var(--man); border-radius: 8px } .nk-anh figcaption { font-size: 12px; color: var(--ink-3) }
+.nk-ct summary { cursor: pointer; color: var(--ink-2); font-size: 12.5px } .nk-ct pre, .nk-mo pre { margin: 6px 0 0; padding: 8px; background: var(--bg); border-radius: 8px; font: 11.5px/1.45 var(--f-so); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto }
+.nk-pb { display: flex; flex-wrap: wrap; gap: 4px } .nk-pb span { font: 11.5px var(--f-so); padding: 2px 7px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink-3) } .nk-pb .pb-dung { border-color: var(--brass); background: var(--brass-nhat); color: var(--ink); font-weight: 600 }
+.nk-l { border: 1px solid var(--line); border-radius: 8px; overflow: hidden } .nk-l.mo { border-color: var(--brass) }
+.nk-l > button { display: grid; grid-template-columns: 8px auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; width: 100%; padding: 6px 8px; background: none; border: 0; color: var(--ink); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer }
+.nk-l > button:hover { background: var(--bg) } .nk-l b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap } .nk-l .so { font-family: var(--f-so); font-size: 11.5px; color: var(--ink-3) } .nk-tt { font-size: 11.5px; color: var(--ink-3) } .nk-l.loi .nk-tt { color: var(--loi); font-weight: 600 }
+.nk-mo { display: grid; gap: 6px; padding: 8px; border-top: 1px solid var(--line) } .nk-mo a { color: var(--brass); font-size: 12.5px } .nk-mo .bao { font-size: 12.5px; overflow-wrap: anywhere }
+.nk-mo dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 8px; margin: 0; font: 11.5px/1.4 var(--f-so) } .nk-mo dt { color: var(--ink-3) } .nk-mo dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 90px; overflow: auto }

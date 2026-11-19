@@ -1036,13 +1036,20 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               const cua = dongThoai(cc, nhanVat).filter((d) => cungTen(tenNoi(d), ten));
               const coMat = !!v && cc.nhan_vat.includes(v.id);
               if (!cua.length && !coMat) return null;
+              // #1244: thoại chưa ghi diễn xuất thì làn toàn "chưa ghi" — lấy tiếp diễn xuất ở dàn dựng shot, rồi hành động của shot
+              // (nhân vật này một mình trong shot, hoặc hành động gọi tên họ) — đó chính là cảm xúc diễn ra trên màn.
               const dx = [...new Set(cua.map((d) => d.dien_xuat.trim()).filter(Boolean))].join(' → ');
-              const chu = dx || (cua.length ? 'nói, chưa ghi diễn xuất' : 'có mặt, không nói');
-              return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!dx, mauNv(v), chu, `${ten} · shot #${cc.thu_tu}\nCảm xúc: ${chu}${cc.hanh_dong ? `\nHành động: ${cc.hanh_dong}` : ''}`, `cx${cc.id}`, () => { bamShot(cc.id, i); });
+              const dien = cc.dan_dung?.dien?.trim() ?? '';
+              const hd = cc.hanh_dong?.trim() ?? '';
+              const hdCua = hd && coMat && (cc.nhan_vat.length === 1 || hd.toLowerCase().includes(ten.toLowerCase())) ? (hd.toLowerCase().startsWith(ten.toLowerCase()) ? hd.slice(ten.length).trim() : hd) : '';
+              const camXucCo = dx || dien || hdCua;
+              const chu = camXucCo || (cua.length ? 'nói, chưa ghi diễn xuất' : 'có mặt, không nói');
+              const nguon = dx ? 'diễn xuất của thoại' : dien ? 'diễn xuất ở dàn dựng shot' : hdCua ? 'hành động của shot' : '';
+              return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!camXucCo, mauNv(v), chu, `${ten} · shot #${cc.thu_tu}\nCảm xúc: ${chu}${nguon ? `\n(lấy từ ${nguon})` : ''}${cua.length ? `\nThoại: ${cua.map((d) => d.loi).join(' · ')}` : '\nKhông nói trong shot này'}`, `cx${cc.id}`, () => { bamShot(cc.id, i); });
             });
             return (
               <div key={ten} className="xv-tl-nhom" style={{ '--mau-nhom': mauNv(v), marginTop: 4 } as React.CSSProperties}>
-                {track(`🎭 ${ten}`, `Cảm xúc / diễn xuất của ${ten} theo từng shot (lấy từ diễn xuất của dòng thoại; nét đứt = có mặt nhưng chưa ghi cảm xúc) — sửa ở form shot`, camXuc)}
+                {track(`🎭 ${ten}`, `Cảm xúc / diễn xuất của ${ten} theo từng shot (lấy từ diễn xuất của thoại → diễn xuất dàn dựng → hành động của shot; nét đứt = có mặt nhưng chưa ghi gì) — sửa ở form shot`, camXuc)}
                 {coThoai && track(`🗣 ${ten} · thoại`, `Thoại của ${ten} theo từng shot — bấm khối để sinh giọng cả shot`, canh.map((cc, i) => {
               const dsT = dongThoai(cc, nhanVat);
               const cua = dsT.filter((d) => cungTen(tenNoi(d), ten));

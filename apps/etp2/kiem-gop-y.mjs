@@ -7,6 +7,10 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1483, tep: 'apps/etp2/src/components/etp-noi.tsx', co: "window.addEventListener('mousemove', (e) => { CHUOT.x = e.clientX; CHUOT.y = e.clientY; }", vi: 'thẻ nổi đặt theo vị trí chuột LÚC MỞ (anh 29/10/2026 "Hover ở đâu thì bản phải ở đó để còn kéo chuột sang")' },
+  { card: 1483, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'const CHONG = 4;', cam: 'const top = y + 12 + h <= H - 8', vi: 'mép thẻ cách con trỏ 4px, đầu thẻ ngang dòng đang rê — kéo chuột sang thẻ không băng qua dòng khác' },
+  { card: 1483, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'const top = Math.max(8, Math.min(y - 24, H - h - 8));', vi: 'đầu thẻ ngang con trỏ, chỉ đẩy lên đúng phần thẻ vượt đáy màn (không bay lên xa như ảnh #1483)' },
+  { card: 1483, tep: 'apps/etp2/src/components/etp-noi.tsx', co: '<div ref={ref} data-khung-noi="" onMouseEnter={noi.giu} onMouseLeave={noi.dongTre}', vi: 'rê vào thẻ thì giữ thẻ mở' },
   { card: 1471, tep: 'apps/etp2/src/components/etp-view.tsx', mot: '.etp-cay tr.sang-camp>td:first-child{box-shadow:inset 3px 0 0 #f59e0b,inset 0 2px 0 #f59e0b,inset 0 -2px 0 #f59e0b!important}', cam: 'tr.sang-camp>td{background:rgba(', vi: 'rê mã camp #… trong thẻ luật tô CẢ dòng camp đó trên cây, kể cả ô mã camp (cột dính có nền + box-shadow trong thẻ) — nền đặc pha cam + viền !important' },
   { card: 1471, tep: 'apps/etp2/src/components/etp-view.tsx', co: "document.querySelectorAll(`[data-camp-dong=\"${id}\"]`).forEach((e) => e.classList.add('sang-camp'))", vi: 'sangCamp gắn lớp sang-camp lên dòng có data-camp-dong' },
   { card: 1472, tep: 'apps/etp2/src/lib/url-mo-tab.ts', co: 'e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1', vi: '⇧-click (cùng ⌘/Ctrl, chuột giữa) lên tab / menu con / bộ lọc mở tab mới (anh 28/10/2026 "Shift Click phải cho mở tab mới")' },

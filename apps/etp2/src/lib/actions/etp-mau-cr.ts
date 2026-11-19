@@ -13,7 +13,7 @@ import SO_MAU from '@/lib/etp-mau-cr.json';
 import { spy } from '@/lib/spy-db';
 import { chayDong } from '@/lib/actions/etp-dong';
 
-export type LoaiMau = 'cong_thuc' | 'dang' | 'bo_cuc' | 'lop_phu';
+export type LoaiMau = 'cong_thuc' | 'dang' | 'bien_the' | 'bo_cuc' | 'lop_phu';
 export type NguonMau = 'nha' | 'doi_thu';
 export type TrangThaiMau = 'chay' | 'may' | 'thu' | 'chua';
 export type ThamChieu = { id: string; phim: string | null; ngay: number | null; con_chay: boolean; anh: string | null; video: string | null };
@@ -26,6 +26,10 @@ export type MauCr = {
   /** TẦNG 1 — THỂ LOẠI CREATIVE (anh 19/11/2026 "Creative phải chia theo thể loại, rồi mới đến format chi tiết bên trong"): nhóm của dạng chính trong sổ dạng
    *  (cắt cảnh · kể chuyện · chèn khung · ảnh tĩnh · poster động), có số thứ tự để xếp */
   nhom_tk: string;
+  /** BIẾN THỂ của một dạng (anh 19/11/2026 "Mỗi loại AT lại có những format về font, chữ, widget… khác nhau thì phải ghi cụ thể ra"): mã dạng cha + thông số đọc được */
+  cha: string | null;
+  spec: { nhan: string; gia: string }[];
+  giong: { k: string; n: number; chi: number; thu: number }[];
   /** TẦNG 2 — VAI của format trong creative (tên phim · nút / CTA · băng chữ / câu nhử · bố cục / key-art · bố cục nhà); dạng / công thức = null */
   vai: string | null;
   dung_cho: string[]; the_loai: string[]; mo_ta: string; may: string | null; ban: BanMau[];
@@ -124,21 +128,57 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
       run<{ mien: string; ma: string; ten: string | null }>(sql`select mien, ma, ten from etp.doi_thu_phim`),
     ]);
     const soTheo = new Map(soDang.map((x) => [x.dang, x]));
+    // BIẾN THỂ = (bố cục, kiểu chữ tên phim, widget CTA) máy ghi vào sổ điểm chạm lúc tải creative (etp.diem_cham.cham) — ≥ 3 creative mới thành một biến thể
+    const btR = await run<{ dang: string; bc: string; ten: string; cta: string; giong: string; n: number; camp: number; dang_chay: number; chi: number; thu: number }>(sql`
+      with d as (select c.creative_id, c.dang, coalesce(d.cham->'chu_video'->>'bo_cuc', '') bc, coalesce(d.cham->'chu_video'->>'ten', '') ten, coalesce(d.cham->'cta'->>'mau', '') cta,
+                        coalesce(d.cham->'voice'->>'giong', '') giong from etp.diem_cham d join etp.creative c using (creative_id) where c.dang is not null and c.dang <> 'team'),
+           s as (select k.creative_id, count(distinct k.camp_id) camp, count(distinct k.camp_id) filter (where k.trang_thai = 'ACTIVE') dang_chay, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu
+                 from etp.camp k left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) n using (camp_id) group by 1)
+      select d.dang, d.bc, d.ten, d.cta, d.giong, count(*)::int n, coalesce(sum(s.camp), 0)::int camp, coalesce(sum(s.dang_chay), 0)::int dang_chay, coalesce(sum(s.chi), 0)::float chi, coalesce(sum(s.thu), 0)::float thu
+      from d left join s using (creative_id) group by 1, 2, 3, 4, 5`);
+    const btAnh = await run<{ dang: string; bc: string; ten: string; cta: string; anh: string; video: string | null; thu: number }>(sql`
+      select dang, bc, ten, cta, anh, video, thu from (select c.dang, coalesce(d.cham->'chu_video'->>'bo_cuc', '') bc, coalesce(d.cham->'chu_video'->>'ten', '') ten, coalesce(d.cham->'cta'->>'mau', '') cta,
+        c.anh, c.video, coalesce(sum(n.thu), 0)::float thu, row_number() over (partition by c.dang, d.cham->'chu_video'->>'bo_cuc', d.cham->'chu_video'->>'ten', d.cham->'cta'->>'mau' order by coalesce(sum(n.thu), 0) desc, c.creative_id desc) h
+        from etp.diem_cham d join etp.creative c using (creative_id) left join etp.camp k on k.creative_id = c.creative_id left join etp.so_ngay n on n.camp_id = k.camp_id
+        where c.dang is not null and c.dang <> 'team' and c.anh is not null group by c.dang, d.cham, c.anh, c.video, c.creative_id) x where h <= 3`);
     const banTheo = new Map<string, BanMau[]>();
     for (const x of anhDang) banTheo.set(x.dang, [...(banTheo.get(x.dang) ?? []), { anh: x.anh, video: x.video, nhan: x.thu > 0 ? `thu $${x.thu.toFixed(0)}` : null, link: x.video ?? x.anh }]);
     const anhQc = new Map(anhDt.map((x) => [x.id, x.anh]));
     const ten = new Map(tenPhim.map((x) => [`${x.mien}~${x.ma}`, x.ten]));
     const qc = new Map(qcDt.map((x) => [x.id, x]));
+    const TEN_BC: Record<string, string> = { anh_tinh_ten_phim: 'Khung phim đứng yên (phóng chậm) + tên phim', giu_bo_cuc_app_goc: 'Giữ nguyên bố cục QC gốc của app' };
+    const TEN_TEN: Record<string, string> = { poster: 'Tên tách từ poster gốc (đúng kiểu chữ của phim)', chu_vang: 'Tên chữ vàng Georgia nghiêng đậm, viền nâu, đổ bóng' };
+    const TEN_CTA: Record<string, string> = { watch_for_free: "Lớp Free: nhãn tím 'All Episodes Released' trên đỉnh + nút xanh 'Watch For Free' dưới tên", khong_nut: 'Không nút / không nhãn', kien: "Thẻ cuối WATCH NOW (kiểu Kiên)" };
+    const NGAN_TEN: Record<string, string> = { poster: 'tên từ poster', chu_vang: 'chữ vàng' }, NGAN_CTA: Record<string, string> = { watch_for_free: 'nút Watch For Free', khong_nut: 'không nút', kien: 'thẻ cuối WATCH NOW' };
+    const btGom = new Map<string, { dang: string; bc: string; ten: string; cta: string; n: number; camp: number; dang_chay: number; chi: number; thu: number; giong: Map<string, { n: number; chi: number; thu: number }> }>();
+    for (const x of btR) {
+      const k = [x.dang, x.bc, x.ten, x.cta].join('|'); const g = btGom.get(k) ?? { dang: x.dang, bc: x.bc, ten: x.ten, cta: x.cta, n: 0, camp: 0, dang_chay: 0, chi: 0, thu: 0, giong: new Map() };
+      g.n += x.n; g.camp += x.camp; g.dang_chay += x.dang_chay; g.chi += x.chi; g.thu += x.thu;
+      if (x.giong) { const v = g.giong.get(x.giong) ?? { n: 0, chi: 0, thu: 0 }; v.n += x.n; v.chi += x.chi; v.thu += x.thu; g.giong.set(x.giong, v); }
+      btGom.set(k, g);
+    }
+    const bienThe: MauCr[] = [...btGom.values()].filter((g) => g.n >= 3).map((g): MauCr => {
+      const d = DS_DANG.find((x) => x.dang === g.dang);
+      const ten = [g.bc === 'giu_bo_cuc_app_goc' ? 'bố cục app gốc' : NGAN_TEN[g.ten] ?? (g.ten || 'không ghi kiểu tên'), NGAN_CTA[g.cta] ?? (g.cta || 'không ghi nút')].join(' · ');
+      return { nhom_tk: theLoaiCua(g.dang), vai: null, cha: d?.ma ?? null, ma: `${d?.ma ?? g.dang}.${[g.bc, g.ten, g.cta].map((x) => x || '_').join('.')}`, ten: `${d?.ma ?? ''} · ${ten}`,
+        loai: 'bien_the', nguon: 'nha', trang_thai: g.dang_chay ? 'chay' : g.camp ? 'may' : 'thu', nhom: null, mau: d?.mau ?? null, dung_cho: [g.dang], the_loai: [],
+        mo_ta: `Biến thể của dạng ${g.dang} — ${g.n} creative đã dựng theo đúng thông số dưới.`,
+        spec: [{ nhan: 'Bố cục', gia: TEN_BC[g.bc] ?? (g.bc || '—') }, { nhan: 'Kiểu chữ tên phim', gia: TEN_TEN[g.ten] ?? (g.ten || 'máy không ghi') }, { nhan: 'Widget / CTA trên khung', gia: TEN_CTA[g.cta] ?? (g.cta || 'máy không ghi') }],
+        giong: [...g.giong].map(([k, v]) => ({ k, ...v })).sort((a, b) => b.n - a.n),
+        may: d?.dong ? `dòng ${d.dong} (apps/etp/dong_phim.py)` : null, ban: btAnh.filter((a) => a.dang === g.dang && a.bc === g.bc && a.ten === g.ten && a.cta === g.cta).map((a) => ({ anh: a.anh, video: a.video, nhan: a.thu > 0 ? `thu $${a.thu.toFixed(0)}` : null, link: a.video ?? a.anh })),
+        so: { cr: g.n, camp: g.camp, dang_chay: g.dang_chay, chi: g.chi, thu: g.thu, moi: null }, tham_chieu: [], dong: d?.dong ?? null, may_mau: false, phim_sx: [] };
+    });
     const mau: MauCr[] = [
+      ...bienThe,
       ...DS_DANG.map((d): MauCr => {
         const s = soTheo.get(d.dang);
-        return { nhom_tk: theLoaiCua(d.dang), vai: null, ma: d.ma, ten: d.dang, loai: 'dang', nguon: 'nha', trang_thai: s?.dang_chay ? 'chay' : s?.camp ? 'may' : 'thu', nhom: d.nhom ?? null, mau: d.mau,
+        return { nhom_tk: theLoaiCua(d.dang), vai: null, cha: null, spec: [], giong: [], ma: d.ma, ten: d.dang, loai: 'dang', nguon: 'nha', trang_thai: s?.dang_chay ? 'chay' : s?.camp ? 'may' : 'thu', nhom: d.nhom ?? null, mau: d.mau,
           dung_cho: [], the_loai: [], mo_ta: d.mo_ta ?? '', may: d.dong ? `dòng ${d.dong} (apps/etp/dong_phim.py)` : d.kieu ? `kiểu ${d.kieu} (kieu-moi.py)` : null,
           ban: banTheo.get(d.dang) ?? [], so: s ? { cr: s.cr, camp: s.camp, dang_chay: s.dang_chay, chi: s.chi, thu: s.thu, moi: s.moi } : null, tham_chieu: [],
           dong: d.dong ?? null, may_mau: false, phim_sx: sxCua(d.ma) };
       }),
       ...so.map((m): MauCr => { const sm = soTheoMau.get(m.ma); return {
-        nhom_tk: theLoaiCua(m.loai === 'cong_thuc' ? m.dang : m.dung_cho[0]), vai: m.loai === 'cong_thuc' ? null : (m.nhom ?? '').replace(/^\d+ · /, '') || null, ma: m.ma, ten: m.ten, loai: m.loai, nguon: m.nguon, trang_thai: sm?.dang_chay ? 'chay' : m.trang_thai, nhom: null, mau: null, dung_cho: m.dung_cho, the_loai: m.the_loai ?? [],
+        cha: null, spec: [], giong: [], nhom_tk: theLoaiCua(m.loai === 'cong_thuc' ? m.dang : m.dung_cho[0]), vai: m.loai === 'cong_thuc' ? null : (m.nhom ?? '').replace(/^\d+ · /, '') || null, ma: m.ma, ten: m.ten, loai: m.loai, nguon: m.nguon, trang_thai: sm?.dang_chay ? 'chay' : m.trang_thai, nhom: null, mau: null, dung_cho: m.dung_cho, the_loai: m.the_loai ?? [],
         mo_ta: m.mo_ta, may: m.may ?? null, ban: [...(m.anh ? [{ anh: m.anh, video: null, nhan: 'mẫu nhà', link: m.anh }] : []), ...(banTheoMau.get(m.ma)
           // công thức chưa có creative nào ghi mẫu (cổng mới từ 19/11/2026) → mượn creative thu cao nhất của CÙNG DẠNG, nhãn ghi rõ là của dạng
           ?? (m.loai === 'cong_thuc' && m.dang ? (banTheo.get(m.dang) ?? []).map((b) => ({ ...b, nhan: `dạng · ${b.nhan ?? ''}`.trim() })) : []))],

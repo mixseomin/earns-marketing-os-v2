@@ -17,7 +17,7 @@ import { docMauCr, type DungMau, type LoaiMau, type MauCr, type NguonMau, type P
 import { DO, XANH, gioVn } from './etp-doi-thu';
 
 const thuVienQc = (id: string) => `https://href.li/?https://www.facebook.com/ads/library/?id=${id}`;   // link ra ngoài che referrer
-const TEN_LOAI: Record<LoaiMau, string> = { cong_thuc: 'Công thức máy dựng', dang: 'Dạng creative', bo_cuc: 'Bố cục ảnh', lop_phu: 'Lớp phủ chữ / nút' };
+const TEN_LOAI: Record<LoaiMau, string> = { cong_thuc: 'Công thức máy dựng', dang: 'Dạng creative', bien_the: 'Biến thể của dạng', bo_cuc: 'Bố cục ảnh', lop_phu: 'Lớp phủ chữ / nút' };
 const TEN_NGUON: Record<NguonMau, string> = { nha: 'Nhà', doi_thu: 'Học từ đối thủ' };
 // màu chỉ cho TRẠNG THÁI (tín hiệu thật) — loại / nguồn để xám (YDNI kỷ luật màu)
 const TEN_TT: Record<TrangThaiMau, [string, string, string]> = {
@@ -27,10 +27,11 @@ const TEN_TT: Record<TrangThaiMau, [string, string, string]> = {
   chua: ['Chưa dựng', '#94a3b8', 'mới là mẫu tham chiếu từ QC đối thủ — chưa có mã dựng'],
 };
 const roi = (s: MauCr['so']) => (s && s.chi > 0.5 ? ((s.thu - s.chi) / s.chi) * 100 : null);
-const LOAI: LoaiMau[] = ['cong_thuc', 'dang', 'bo_cuc', 'lop_phu'], NGUON: NguonMau[] = ['nha', 'doi_thu'], TT: TrangThaiMau[] = ['chay', 'may', 'thu', 'chua'];
+const LOAI: LoaiMau[] = ['cong_thuc', 'dang', 'bien_the', 'bo_cuc', 'lop_phu'], NGUON: NguonMau[] = ['nha', 'doi_thu'], TT: TrangThaiMau[] = ['chay', 'may', 'thu', 'chua'];
 const DANG_TEN = DS_DANG.map((d) => d.dang);
 /** mẫu áp được cho dạng nào: dạng → chính nó; bố cục / lớp phủ → danh sách dung_cho */
 const choDang = (m: MauCr) => (m.loai === 'dang' ? [m.ten] : m.dung_cho);
+const TEN_GIONG: Record<string, string> = { thuong: 'thường', ky_di: 'kỳ dị', gao: 'gào', cam_xuc: 'cảm xúc', hao_hung: 'hào hứng' };
 
 const docUrl = (k: string) => (typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get(k));
 function ghiUrl(k: string, v: string | null) {
@@ -140,6 +141,10 @@ function The({ m }: { m: MauCr }) {
     </div>
     <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}><Nhan>{TEN_LOAI[m.loai]}</Nhan>{m.vai ? <Nhan title="vai của format trong creative">{m.vai}</Nhan> : null}<Nhan>{TEN_NGUON[m.nguon]}</Nhan><OTT m={m} /></div>
     <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.45 }}>{m.mo_ta}</div>
+    {m.spec?.length ? <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '3px 10px', fontSize: 11.5, padding: '6px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.03)' }}>
+      {m.spec.map((x) => [<span key={`a${x.nhan}`} style={{ color: MO_SO }}>{x.nhan}</span>, <span key={`b${x.nhan}`}>{x.gia}</span>])}</div> : null}
+    {m.giong?.length ? <div style={{ fontSize: 11.5 }}><span style={{ color: MO_SO }}>Giọng đọc: </span>{m.giong.map((g) => { const r = g.chi > 0.5 ? ((g.thu - g.chi) / g.chi) * 100 : null;
+      return <span key={g.k} title={`${g.n} creative · chi $${g.chi.toFixed(0)} · thu $${g.thu.toFixed(0)}`} style={{ marginRight: 8, whiteSpace: 'nowrap' }}>{TEN_GIONG[g.k] ?? g.k} {g.n}{r != null ? <span style={{ color: r >= 0 ? XANH : DO }}> {r.toFixed(0)}%</span> : null}</span>; })}</div> : null}
     {m.dung_cho.length ? <div style={{ fontSize: 11.5 }}><span style={{ color: MO_SO }}>Dùng cho: </span>{m.dung_cho.join(' · ')}</div> : null}
     {m.the_loai.length ? <div style={{ fontSize: 11.5 }}><span style={{ color: MO_SO }}>Hợp thể loại: </span>{m.the_loai.join(' · ')}</div> : null}
     {s ? <div style={{ fontSize: 11.5, display: 'flex', gap: 10, flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' }}>
@@ -155,7 +160,7 @@ function The({ m }: { m: MauCr }) {
 
 /** bản giữ trong máy đúng khuôn hiện tại (mỗi mẫu có mảng ban + tham_chieu + dung_cho + the_loai) — bản khuôn cũ thì bỏ, chờ bản mới */
 // khuôn bản giữ: đổi khuôn BanMau (thêm vai gốc / máy dựng) không cần đổi — trường tuỳ chọn
-const hopKhuon = (v: unknown) => { const ds = (v as { mau?: unknown })?.mau; return Array.isArray((v as { phim?: unknown })?.phim) && Array.isArray(ds) && ds.every((m) => typeof (m as Record<string, unknown>)?.may_mau === 'boolean' && typeof (m as Record<string, unknown>)?.nhom_tk === 'string' && ['ban', 'tham_chieu', 'dung_cho', 'the_loai', 'phim_sx'].every((k) => Array.isArray((m as Record<string, unknown>)?.[k]))); };
+const hopKhuon = (v: unknown) => { const ds = (v as { mau?: unknown })?.mau; return Array.isArray((v as { phim?: unknown })?.phim) && Array.isArray(ds) && ds.every((m) => typeof (m as Record<string, unknown>)?.may_mau === 'boolean' && typeof (m as Record<string, unknown>)?.nhom_tk === 'string' && ['ban', 'tham_chieu', 'dung_cho', 'the_loai', 'phim_sx', 'spec', 'giong'].every((k) => Array.isArray((m as Record<string, unknown>)?.[k]))); };
 
 /** nhóm tầng 2 trong cây: Dạng creative · Công thức máy dựng · Format · <vai> */
 const nhom2 = (m: MauCr) => (m.loai === 'dang' ? 'Dạng creative' : m.loai === 'cong_thuc' ? 'Công thức máy dựng' : `Format · ${m.vai ?? 'khác'}`);
@@ -172,7 +177,8 @@ function CayMau({ rows, chon, setChon, mo, setMo }: { rows: MauCr[]; chon: strin
     document.body.style.userSelect = 'none'; window.addEventListener('pointermove', di); window.addEventListener('pointerup', tha);
   };
   const theoTl = new Map<string, Map<string, MauCr[]>>();
-  for (const m of rows) { const a = theoTl.get(m.nhom_tk) ?? new Map<string, MauCr[]>(); theoTl.set(m.nhom_tk, a); a.set(nhom2(m), [...(a.get(nhom2(m)) ?? []), m]); }
+  for (const m of rows) { if (m.loai === 'bien_the') continue; const a = theoTl.get(m.nhom_tk) ?? new Map<string, MauCr[]>(); theoTl.set(m.nhom_tk, a); a.set(nhom2(m), [...(a.get(nhom2(m)) ?? []), m]); }
+  const conCua = (m: MauCr) => (m.loai === 'dang' ? rows.filter((x) => x.loai === 'bien_the' && x.cha === m.ma) : []);
   const doiMo = (k: string) => setMo(mo.includes(k) ? mo.filter((x) => x !== k) : [...mo, k]);
   const so = (n: number) => <span style={{ color: MO_SO, fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>{n}</span>;
   return <div style={{ width: rong, flex: 'none', position: 'sticky', top: 8, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 24px)', overflowY: 'auto', borderRight: '1px solid var(--line)', paddingRight: 6, marginRight: 12 }}>
@@ -184,11 +190,15 @@ function CayMau({ rows, chon, setChon, mo, setMo }: { rows: MauCr[]; chon: strin
         return <NutCay key={kt} ten={<b>{tl}</b>} phai={so(tong)} chon={chon === kt} onChon={() => setChon(kt)} mo={mo.includes(kt)} onDoi={() => doiMo(kt)}>
           {[...nhom].map(([n2, ds]) => { const kn = `n:${tl}|${n2}`;
             return <NutCay key={kn} ten={<span>{n2}</span>} phai={so(ds.length)} chon={chon === kn} onChon={() => setChon(kn)} mo={mo.includes(kn)} onDoi={() => doiMo(kn)}>
-              {ds.map((m) => { const km = `m:${m.loai}:${m.ma}`;
-                return <NutCay key={km} chon={chon === km} onChon={() => setChon(km)}
+              {ds.map((m) => { const km = `m:${m.loai}:${m.ma}`, con = conCua(m);
+                return <NutCay key={km} chon={chon === km} onChon={() => setChon(km)} mo={con.length ? mo.includes(km) : undefined} onDoi={con.length ? () => doiMo(km) : undefined}
                   dau={<span title={TEN_TT[m.trang_thai][0]} style={{ width: 7, height: 7, borderRadius: 4, background: CHAM_TT[m.trang_thai], flex: 'none' }} />}
                   ten={<span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.mo_ta}>{m.ten}</span>}
-                  phai={m.so?.cr ? so(m.so.cr) : m.phim_sx.length ? <span style={{ fontSize: 11, color: '#fbbf24' }}>{m.phim_sx.length} phim</span> : undefined} />; })}
+                  phai={m.so?.cr ? so(m.so.cr) : m.phim_sx.length ? <span style={{ fontSize: 11, color: '#fbbf24' }}>{m.phim_sx.length} phim</span> : undefined}>
+                  {con.length ? con.map((b) => { const kb = `m:${b.loai}:${b.ma}`;
+                    return <NutCay key={kb} chon={chon === kb} onChon={() => setChon(kb)} dau={<span style={{ width: 6, height: 6, borderRadius: 3, background: CHAM_TT[b.trang_thai], flex: 'none' }} />}
+                      ten={<span style={{ fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={b.spec.map((x) => `${x.nhan}: ${x.gia}`).join('\n')}>{b.ten.replace(/^\S+ · /, '')}</span>} phai={so(b.so?.cr ?? 0)} />; }) : null}
+                </NutCay>; })}
             </NutCay>; })}
         </NutCay>; })}
     </Cay>
@@ -207,7 +217,7 @@ export function TabMauCr() {
   useEffect(() => { ghiUrl('mcc', cayChon || null); }, [cayChon]);
   useEffect(() => () => ghiUrl('mcc', null), []);
   const [cayMo, setCayMo] = useLoc('mco');
-  const quaCay = (m: MauCr) => !cayChon || (cayChon.startsWith('t:') ? m.nhom_tk === cayChon.slice(2) : cayChon.startsWith('n:') ? `${m.nhom_tk}|${nhom2(m)}` === cayChon.slice(2) : `m:${m.loai}:${m.ma}` === cayChon);
+  const quaCay = (m: MauCr) => !cayChon || (cayChon.startsWith('t:') ? m.nhom_tk === cayChon.slice(2) : cayChon.startsWith('n:') ? `${m.nhom_tk}|${nhom2(m)}` === cayChon.slice(2) : (`m:${m.loai}:${m.ma}` === cayChon || (m.loai === 'bien_the' && cayChon === `m:dang:${m.cha}`)));
   const dsTl = useMemo(() => [...new Set(tatCa.flatMap((m) => m.the_loai))].sort(), [tatCa]);
   // bo = nhóm lọc bỏ qua khi đếm số trên chip của chính nhóm đó (số = bấm thêm chip đó thì còn bao nhiêu mẫu)
   const qua = (m: MauCr, bo?: string) => (bo === 'l' || !loai.length || loai.includes(m.loai)) && (bo === 'n' || !nguon.length || nguon.includes(m.nguon))
@@ -216,11 +226,13 @@ export function TabMauCr() {
   // KHOA HỌC (anh 19/11/2026): gom theo NHÓM THIẾT KẾ 1 → 7; trong nhóm, mẫu có QC gốc chạy lâu nhất / chi nhiều nhất đứng trước (bảng dùng chung gom nhóm theo thứ tự xuất hiện)
   const manh = (m: MauCr) => Math.max(0, ...m.tham_chieu.map((t) => t.ngay ?? 0)) * 1000 + (m.so?.chi ?? 0);
   // tầng 2 trong mỗi thể loại: dạng → công thức máy dựng → format theo vai (tên phim → nút → băng chữ → bố cục) → mạnh trước
-  const THU_LOAI: Record<LoaiMau, number> = { dang: 0, cong_thuc: 1, lop_phu: 2, bo_cuc: 3 }, THU_VAI = ['Tên phim', 'Nút / CTA', 'Băng chữ / câu nhử', 'Bố cục / key-art', 'Bố cục ảnh nhà'];
+  const THU_LOAI: Record<LoaiMau, number> = { dang: 0, bien_the: 0, cong_thuc: 1, lop_phu: 2, bo_cuc: 3 }, THU_VAI = ['Tên phim', 'Nút / CTA', 'Băng chữ / câu nhử', 'Bố cục / key-art', 'Bố cục ảnh nhà'];
   const tang2 = (m: MauCr) => THU_LOAI[m.loai] * 10 + (m.vai ? Math.max(0, THU_VAI.indexOf(m.vai)) : 0);
   const TL = ['Cắt cảnh', 'Kể chuyện', 'Chèn khung', 'Ảnh tĩnh', 'Poster động'], tl1 = (m: MauCr) => { const i = TL.indexOf(m.nhom_tk); return i < 0 ? 99 : i; };
   const locRows = tatCa.filter((m) => qua(m));
-  const rows = locRows.filter(quaCay).sort((a, b) => tl1(a) - tl1(b) || tang2(a) - tang2(b) || manh(b) - manh(a) || a.ten.localeCompare(b.ten));
+  // biến thể đứng NGAY SAU dạng cha (khoá chung = mã dạng cha), dạng trước biến thể
+  const cha = (m: MauCr) => (m.loai === 'bien_the' ? m.cha ?? '' : m.loai === 'dang' ? m.ma : '');
+  const rows = locRows.filter(quaCay).sort((a, b) => tl1(a) - tl1(b) || tang2(a) - tang2(b) || cha(a).localeCompare(cha(b)) || Number(a.loai === 'bien_the') - Number(b.loai === 'bien_the') || manh(b) - manh(a) || a.ten.localeCompare(b.ten));
   const dem = (bo: string, ds: readonly string[], f: (m: MauCr, v: string) => boolean) => Object.fromEntries(ds.map((v) => [v, tatCa.filter((m) => qua(m, bo) && f(m, v)).length]));
   const cot: DataColumn<MauCr>[] = useMemo(() => [
     { key: 'ten', header: 'Mẫu', align: 'left', width: 220, sortValue: (m) => m.ten, cell: (m) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>

@@ -23,4 +23,9 @@ const h2 = htmlBaiDai({ ...d, checklist: ['Check one', 'Check two', 'Check three
 assert.ok(h2.includes('<ul class="checklist"><li>☐ Check one</li>') && chuBaiDai({ ...d, checklist: ['Check one'] }).includes('Check one'), 'checklist thành danh sách ô tick');
 assert.ok(kiemBaiDai('x'.repeat(100), 'L').some((x) => x.startsWith('độ dài')), 'bài ngắn bị chặn');
 assert.ok(kiemBaiDai(`${'word '.repeat(900)} L`, 'L').length === 0, 'bài đủ dài, có link: qua');
-console.log('bai-dai: 10/10 ok');
+// khung từng mục + câu dẫn nút giữa bài (19/11/2026: Phòng Nội dung chê "chỉ 1 khung ví dụ", "nút giữa bài thiếu lời dẫn")
+const h3 = htmlBaiDai({ ...d, dan_cta: 'Run your own numbers.', muc: [{ h2: 'A', doan: ['a'], khung: ['Base pay: $4,000', '"BAH: $1,900"'] }, { h2: 'B', doan: ['b'], khung: ['one'] }, { h2: 'C', doan: ['c'] }] }, L, [], null);
+assert.equal((h3.match(/class="mock"/g) || []).length, 2, 'khung mục (≥2 dòng) + khung ví dụ; khung 1 dòng bỏ');
+assert.ok(h3.indexOf('Run your own numbers.') < h3.indexOf('Try it free') && h3.indexOf('Base pay') > h3.indexOf('<h2>A</h2>'), 'câu dẫn trước nút giữa, khung dưới mục');
+assert.ok(chuBaiDai({ ...d, dan_cta: 'Z9', muc: [{ h2: 'A', doan: ['a'], khung: ['K7', 'K8'] }] }).includes('K7') && chuBaiDai({ ...d, dan_cta: 'Z9' }).includes('Z9'), 'chữ kiểm gồm khung + câu dẫn');
+console.log('bai-dai: 13/13 ok');

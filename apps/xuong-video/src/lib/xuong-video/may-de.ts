@@ -428,13 +428,16 @@ export const VietBaiDaiSchema = z.object({
   phu_de: z.string().describe('one-sentence subtitle, 80-160 characters'),
   canh: z.string().describe('opening SCENE, 3-5 sentences written to the reader as "you" (second person, never she/he): where you are, what notice or number you just saw, how you feel. Starts with "Imagine" or a time of day. No definitions, no personal names'),
   hua: z.string().describe('one sentence right after the scene promising what the reader will be able to do after reading, and in how many minutes'),
-  muc: z.array(z.object({ h2: z.string().describe('section heading written as an informative sentence, not a label like "Common mistakes"'), doan: z.array(z.string()).min(2).max(4).describe('short paragraphs, plain text, no markdown') })).min(3).max(4)
+  // 19/11/2026 (astrolas 6-7/10 SỬA LẠI cả lô: "chỉ 1 khung ví dụ, các mục toàn chữ giải thích"): mỗi mục một khung nhìn thấy được, máy dựng thành blockquote.mock
+  muc: z.array(z.object({ h2: z.string().describe('section heading written as an informative sentence, not a label like "Common mistakes"'), doan: z.array(z.string()).min(2).max(4).describe('short paragraphs, plain text, no markdown; mix one short punchy sentence into longer ones'),
+    khung: z.array(z.string()).max(4).optional().describe('2-4 short lines shown in a framed box under this section: the exact words a reader sees (a line of a pay statement, a notice, a text message, a reading, a before/after row), one of them in quotes; concrete, never abstract') })).min(3).max(4)
     .describe('body sections in order: the direct answer; how it works; why sensible people still get pulled in or get it wrong (the psychology: wanting control when anxious, confirmation bias…); common mistakes where EVERY mistake gets its own one-line concrete mini example'),
   // 19/11/2026: checklist viết trong đoạn bị dính thành một dòng → Phòng Nội dung SỬA LẠI; tách trường riêng, máy dựng danh sách ô tick
   checklist: z.array(z.string().describe('one short action the reader can tick, starts with a verb')).min(4).max(6).optional(),
   vi_du: z.object({ tieu_de: z.string().describe('label marked as a sample, by role never by a personal name, like "Sample case: an E-6 with 20 years"'), dong: z.array(z.string()).min(3).max(6).describe('lines of ONE concrete worked case with real specific values of this topic, each line short like a statement row ("High-3 average: $5,000", "Sun: Taurus, 10th house"), no abstract steps; one line is a quoted sentence the person actually read or said, in quotes') }),
   neu_da_lo: z.object({ h2: z.string().describe('heading starting with "If you already" (e.g. "If you already signed your retirement paperwork")'), doan: z.array(z.string()).min(1).max(2) }),
-  faq: z.array(z.object({ hoi: z.string(), dap: z.string().describe('2-3 sentences') })).min(3).max(4),
+  faq: z.array(z.object({ hoi: z.string(), dap: z.string().describe('2-3 sentences; the first word answers the question and the rest never contradicts it (no "No" followed by what is in fact allowed)') })).min(3).max(4),
+  dan_cta: z.string().optional().describe('one sentence placed right before the mid-article button: why trying the tool on your own numbers settles the worry just described'),
   ket: z.string().describe('closing paragraph, 2 short sentences, no repetition, contains the token {LINK} exactly once, saying why that page helps this reader'),
   trang: z.string().describe('the ONE site page URL from the list given that best fits, copied exactly; empty string if no list was given'),
   truy: z.array(z.string().describe('3-6 English words for a real landscape stock photo (Pexels search), no brand names')).length(3).describe('three DIFFERENT photo searches for three images placed through the article'),
@@ -444,20 +447,21 @@ export type BaiDai = z.infer<typeof VietBaiDaiSchema>;
 const thoatHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 /** HTML bài Substack: cảnh mở · lời hứa · ảnh 1 · mục 1-2 · khung ví dụ (class mock) · video · mục còn lại · ảnh 2 · "nếu đã lỡ" · ảnh 3 · FAQ · kết + nút CTA.
  *  {LINK} thành thẻ a + chữ link thuần (nap-bai lấy link đích từ chữ). Thuần. */
-export function htmlBaiDai(d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket' | 'checklist'>, link: string, anh: string[], video: string | null): string {
+export function htmlBaiDai(d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket' | 'checklist' | 'dan_cta'>, link: string, anh: string[], video: string | null): string {
   const ds = d.checklist?.length ? `<h2>Your quick checklist</h2><ul class="checklist">${d.checklist.map((x) => `<li>☐ ${thoatHtml(x.trim())}</li>`).join('')}</ul>` : '';
   const L = thoatHtml(link), t = (x: string) => thoatHtml(x.trim()).split('{LINK}').join(`<a href="${L}">${L}</a>`), p = (x: string) => `<p>${t(x)}</p>`;
   const img = (i: number) => anh[i] ? `<p><img src="${thoatHtml(anh[i]!)}" alt="${thoatHtml(d.tieu_de.trim())} (${i + 1})"></p>` : '';
-  const muc = (m: { h2: string; doan: string[] }) => `<h2>${thoatHtml(m.h2.trim())}</h2>${m.doan.map(p).join('')}`;
+  const khung = (k?: string[]) => (k?.filter((x) => x.trim()).length ?? 0) >= 2 ? `<blockquote class="mock">${k!.filter((x) => x.trim()).map(p).join('')}</blockquote>` : '';
+  const muc = (m: { h2: string; doan: string[]; khung?: string[] }) => `<h2>${thoatHtml(m.h2.trim())}</h2>${m.doan.map(p).join('')}${khung(m.khung)}`;
   const vd = `<blockquote class="mock"><p><strong>${thoatHtml(d.vi_du.tieu_de.trim())}</strong></p>${d.vi_du.dong.map(p).join('')}</blockquote>`;
   const vid = video ? `<p><iframe src="https://www.youtube.com/embed/${thoatHtml(video)}" title="${thoatHtml(d.tieu_de.trim())} video" width="560" height="315" allowfullscreen></iframe></p><p>Video: <a href="https://www.youtube.com/watch?v=${thoatHtml(video)}">https://www.youtube.com/watch?v=${thoatHtml(video)}</a></p>` : '';
   return `<article><h1>${thoatHtml(d.tieu_de.trim())}</h1><p><em>${thoatHtml(d.phu_de.trim())}</em></p>\n${p(d.canh)}${p(d.hua)}${img(0)}\n`
-    + d.muc.slice(0, 2).map(muc).join('\n') + `\n${vd}\n${vid}\n<p><a class="cta" href="${L}">Try it free on your own case</a></p>\n` + d.muc.slice(2).map(muc).join('\n') + `\n${ds}\n${img(1)}\n${muc(d.neu_da_lo)}\n${img(2)}\n`
+    + d.muc.slice(0, 2).map(muc).join('\n') + `\n${vd}\n${vid}\n${d.dan_cta?.trim() ? p(d.dan_cta) : ''}<p><a class="cta" href="${L}">Try it free on your own case</a></p>\n` + d.muc.slice(2).map(muc).join('\n') + `\n${ds}\n${img(1)}\n${muc(d.neu_da_lo)}\n${img(2)}\n`
     + `<h2>Questions people ask</h2>${d.faq.map((f) => `<h3>${thoatHtml(f.hoi.trim())}</h3>${p(f.dap)}`).join('')}\n${p(d.ket)}<p><a class="cta" href="${L}">Open the free tool</a></p></article>`;
 }
 /** Mọi chữ của bài (để kiểm luật / độ dài). Thuần. */
-export const chuBaiDai = (d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket' | 'checklist'>) =>
-  [d.tieu_de, d.phu_de, d.canh, d.hua, ...d.muc.flatMap((m) => [m.h2, ...m.doan]), ...(d.checklist ?? []), d.vi_du.tieu_de, ...d.vi_du.dong, d.neu_da_lo.h2, ...d.neu_da_lo.doan, ...d.faq.flatMap((f) => [f.hoi, f.dap]), d.ket].join('\n\n');
+export const chuBaiDai = (d: Pick<BaiDai, 'tieu_de' | 'phu_de' | 'canh' | 'hua' | 'muc' | 'vi_du' | 'neu_da_lo' | 'faq' | 'ket' | 'checklist' | 'dan_cta'>) =>
+  [d.tieu_de, d.phu_de, d.canh, d.hua, ...d.muc.flatMap((m) => [m.h2, ...m.doan, ...(m.khung ?? [])]), ...(d.checklist ?? []), ...(d.dan_cta ? [d.dan_cta] : []), d.vi_du.tieu_de, ...d.vi_du.dong, d.neu_da_lo.h2, ...d.neu_da_lo.doan, ...d.faq.flatMap((f) => [f.hoi, f.dap]), d.ket].join('\n\n');
 /** Kiểm bài Substack (chặn cứng như kiemBaiViet, độ dài bài dài). Thuần. */
 export function kiemBaiDai(chu: string, link: string): string[] {
   const loi = kiemBaiViet(chu, link).filter((x) => !x.startsWith('độ dài'));
@@ -473,6 +477,7 @@ export async function vietBaiDai(o: { sp: SanPhamDe; goc: GocDe; link: string; u
     'Plain human voice, no hype, no em dashes (— or –), no hashtags, no markdown, never these words: ' + TU_MAY.join(', ') + '.',
     'Put the token {LINK} exactly once, only in "ket", in a sentence that says why that page helps this reader (do not write any URL yourself).',
     'Readers arrive from social media on a phone: open with a concrete scene (not a definition), keep paragraphs to 2-4 sentences, make the example visible as short pay-statement-like lines, include a section for readers who already made the decision or mistake, and FAQ answers that each add something new.',
+    'Every body section shows, not only tells: give it a "khung" box with the exact lines the reader would see (statement rows, a notice, a message), so no section is only explanation.',
     // 19/11/2026 (astrolas substack, Phòng Nội dung 6/10 SỬA LẠI): ví dụ là các bước trừu tượng, thân bài kể giá gói / tính năng → luật chung mọi máy
     'Never use personal first names (no "Maya", "John"): people are "you" or a role ("a graduate student"); the example is labelled as a sample case.',
     'The worked example must be ONE specific case with concrete values a reader can see (actual numbers, names of signs/ranks/items, dates), never abstract steps like "date: entered".',
@@ -488,7 +493,8 @@ export async function vietBaiDai(o: { sp: SanPhamDe; goc: GocDe; link: string; u
     const link = trangs.includes(r.data.trang) && o.utm ? ganUtm(r.data.trang, o.utm) : o.link;
     const tho = chuBaiDai(r.data);
     const chu = tho.split('{LINK}').join(link);
-    loiCu = [...kiemBaiDai(chu, link), ...(tho.split('{LINK}').length !== 2 ? ['token {LINK} phải có đúng một lần'] : [])];
+    loiCu = [...kiemBaiDai(chu, link), ...(tho.split('{LINK}').length !== 2 ? ['token {LINK} phải có đúng một lần'] : []),
+      ...(r.data.muc.filter((m) => (m.khung?.filter((x) => x.trim()).length ?? 0) >= 2).length < 2 ? ['at least 2 body sections need "khung": 2-4 concrete lines the reader sees'] : [])];
     if (!loiCu.length) return { ok: true, ...r.data, link, vnd, model: r.model };
   }
   return { ok: false, loi: `bài Substack sai luật sau 2 lượt: ${loiCu.join('; ')}`, vnd };

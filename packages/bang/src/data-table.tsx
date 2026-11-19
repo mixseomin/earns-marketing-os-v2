@@ -548,6 +548,9 @@ export function DataTable<T>({
       const lech = dauRef.current?.querySelector<HTMLTableRowElement>('tr.dt-nhom-dinh')?.getBoundingClientRect().height ?? 0;
       for (const tr of Array.from(bang.querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { const r = tr.getBoundingClientRect(); if (r.top - lech < day + r.height / 2) { v = tr.dataset.nhom ?? null; cuoi = tr; } else break; }
       if (v != null && (gapNhom(v) || bang.getBoundingClientRect().bottom - lech <= day + (cuoi?.getBoundingClientRect().height ?? 0))) v = null;   // nhóm gập hoặc bảng đã cuộn hết
+      // KHÔNG HIỆN 2 DẢI NHÓM (anh 19/11/2026 "sao lại có 2 nhóm?!"): dòng nhóm thật vẫn nằm NGUYÊN dưới tiêu đề (chưa bị cuộn khuất) thì không chép lên khối dính —
+      // trước đây dòng nhóm đầu ngay dưới tiêu đề (top = mép dưới tiêu đề) vẫn qua ngưỡng + nửa dòng → bản dính + dòng thật = hai dải giống hệt nhau
+      if (v != null && cuoi && cuoi.getBoundingClientRect().top - lech >= day - 1) v = null;
       setNhomDinh((o) => (o === v ? o : v));
     };
     const nghe = () => { if (!hen) hen = requestAnimationFrame(xet); };

@@ -233,6 +233,8 @@ const LUAT = [
   { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'const h = useCaoThat(ref, cao);', vi: 'KhungNoi đặt theo chiều cao THẬT của thẻ, không theo cao ước' },
   { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'const top = Math.max(8, Math.min(y - 24, H - h - 8));', vi: 'đầu thẻ ngang con trỏ, chỉ đẩy lên phần vượt đáy màn' },
   { card: 1460, tep: 'apps/etp2/src/components/etp-dong.tsx', co: 'const h = useCaoThat(ref, 240);', cam: 'window.innerHeight - 440', vi: 'khung xem trước tab Sản xuất đặt theo cao thật, không đẩy lên xa con trỏ' },
+  // #1515 (anh 03/11/2026 "Thêm nhóm option nhanh khác nữa như <7 ngày, <=3 ngày.... chứ mỗi nhóm này ko hợp lý"): bản sửa 55f4e825 ở apps/web, đã chép sang etp2 lúc tách — giữ ở etp2
+  { card: 1515, tep: 'apps/etp2/src/components/etp-view.tsx', co: "const TUOI_MUC = [['0-3', '< 3 ngày'], ['0-7', '< 7 ngày'], ['0-14', '< 14 ngày'], ['7-', '≥ 7 ngày'], ['0-1', 'Dưới 1 ngày']", vi: 'ô lọc Tuổi: mốc cộng dồn < 3 / < 7 / < 14 / ≥ 7 ngày đứng ĐẦU, khoảng rời sau' },
 ];
 
 const loi = [];

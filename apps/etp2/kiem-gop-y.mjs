@@ -7,6 +7,11 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1510, tep: 'apps/etp2/src/components/etp-view.tsx', co: '+{the.length - 1}</span>', vi: 'ô Luật dòng phim chỉ MỘT thẻ (nặng nhất) + "+N" (anh 02/11/2026 "Bố cục lại cả chỗ này" — trước 2 thẻ bị cắt chữ)' },
+  { card: 1510, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{the.map((x) => <div key={x.ten} style={{ borderLeft: `3px ${x.cho ? 'dashed' : 'solid'} ${x.mau}`", vi: 'rê thẻ ô Luật dòng phim = thẻ nổi khuôn chung, mỗi trạng thái một khối viền màu, lý do chia dòng (anh "Hover format lại")' },
+  { card: 1510, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'e.preventDefault(); e.stopPropagation(); moNgay(x, e); }, [moNgay]);', vi: 'useNoi.bam: bấm ô trong dòng bấm được thì mở thẻ ngay, không gập/mở dòng' },
+  { card: 1510, tep: 'apps/etp2/src/components/etp-view.tsx', co: "onMouseLeave={noi.dongTre} onClick={(e) => noi.bam({ id: 0 }, e)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4", vi: 'thẻ ô Luật dòng phim bấm là mở (điện thoại xem được)' },
+  { card: 1510, tep: 'apps/etp2/src/components/etp-view.tsx', co: "onMouseLeave={noi.dongTre} onClick={(e) => noi.bam({ id: 0 }, e)} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 3", vi: 'thẻ ô Luật dòng camp bấm là mở' },
   { card: 1502, tep: 'apps/etp2/src/lib/co-chuot.ts', co: "window.matchMedia('(pointer: fine)').matches", vi: 'chỉ máy có chuột mới tự focus ô gõ (anh 01/11/2026 "Ko tự ý focus vào input như vậy. Trên mobile khó chịu")' },
   { card: 1502, tep: 'apps/etp2/src/components/ui/chon2.tsx', co: 'autoFocus={coChuot()}', cam: '<input autoFocus value', vi: 'ô chọn dùng chung (TK, Người, Loại…): mở trên điện thoại không bật bàn phím' },
   { card: 1502, tep: 'apps/etp2/src/components/ui/campaign-link-picker.tsx', co: 'autoFocus={coChuot()}', cam: '<input autoFocus value', vi: 'ô chọn link: không tự focus trên màn cảm ứng' },
@@ -286,7 +291,7 @@ const LUAT = [
   { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'const h = useCaoThat(ref, cao);', vi: 'KhungNoi đặt theo chiều cao THẬT của thẻ, không theo cao ước' },
   { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'const top = Math.max(8, Math.min(y - 24, H - h - 8));', vi: 'đầu thẻ ngang con trỏ, chỉ đẩy lên phần vượt đáy màn' },
   { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', co: "window.addEventListener('scroll', c, { capture: true, passive: true });", vi: 'cuộn trang / khung bảng thì đóng thẻ nổi — thẻ fixed không nằm lại cạnh dòng khác' },
-  { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', co: '  useDongKhiCuon(!!v, dong);\n  return { v, mo, moNgay, giu, dongTre, dong };', vi: 'useNoi (mọi thẻ luật / thẻ chung) đóng khi cuộn' },
+  { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', co: '  useDongKhiCuon(!!v, dong);\n  return { v, mo, moNgay, bam, giu, dongTre, dong };', vi: 'useNoi (mọi thẻ luật / thẻ chung) đóng khi cuộn' },
   { card: 1460, tep: 'apps/etp2/src/components/etp-dong.tsx', co: 'const dong = useCallback(() => datXem(null), []); useDongKhiCuon(!!v, dong);', vi: 'khung xem trước tab Sản xuất đóng khi cuộn' },
   { card: 1460, tep: 'apps/etp2/src/components/etp-dong.tsx', co: 'const h = useCaoThat(ref, 240);', cam: 'window.innerHeight - 440', vi: 'khung xem trước tab Sản xuất đặt theo cao thật, không đẩy lên xa con trỏ' },
   // #1515 (anh 03/11/2026 "Thêm nhóm option nhanh khác nữa như <7 ngày, <=3 ngày.... chứ mỗi nhóm này ko hợp lý"): bản sửa 55f4e825 ở apps/web, đã chép sang etp2 lúc tách — giữ ở etp2

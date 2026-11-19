@@ -64,9 +64,12 @@ export function useNoi<T>() {
   const moNgay = useCallback((x: T, e: React.MouseEvent) => {
     giu(); hang.current = (e.currentTarget as Element | null)?.closest?.('.dong, summary, tr') ?? null; setV({ ...x, x: e.clientX, y: e.clientY });
   }, [giu]);
+  // BẤM Ô NẰM TRONG DÒNG BẤM ĐƯỢC (#1510 rà 19/11/2026: thẻ ô Luật của dòng phim / dòng camp chỉ mở khi rê — điện thoại không xem được; ô nằm trong <summary> dòng phim
+  // nên bấm còn gập/mở cả dòng): chặn bấm lan lên dòng rồi mở ngay; bấm bên trong thẻ nổi (portal, không nằm trong ô) thì để nguyên
+  const bam = useCallback((x: T, e: React.MouseEvent) => { if (!(e.currentTarget as Element).contains(e.target as Node)) return; e.preventDefault(); e.stopPropagation(); moNgay(x, e); }, [moNgay]);
   useEffect(() => { if (!v) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') dong(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [v, dong]);
   useDongKhiCuon(!!v, dong);
-  return { v, mo, moNgay, giu, dongTre, dong };
+  return { v, mo, moNgay, bam, giu, dongTre, dong };
 }
 // CUỘN LÀ ĐÓNG (góp ý #1460 anh 28/10/2026 "hover vào đâu thì phải để ở gần đó", đo 19/11/2026): lớp nổi neo position:fixed theo con trỏ lúc mở — cuộn trang / khung bảng
 // thì dòng đã rê chạy đi còn thẻ đứng yên, nằm cạnh một dòng khác. Một hàm cho MỌI lớp nổi khi rê (useNoi, HoverChu, khung xem trước tab Sản xuất);

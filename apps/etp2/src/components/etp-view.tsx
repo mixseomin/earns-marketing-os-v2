@@ -619,7 +619,7 @@ function ChipLuat(p: VaoLuat) {
   // GIỜ MÁY LÀM của thẻ đang hiện — CÙNG gioLuat với cột ⏳ (#1559), gioThe với ô tên luật trong bảng xét (audit 10/11/2026: chip và bảng từng tính hai kiểu)
   const gl = gioLuat(p, t, hoan), cho = gl?.cho != null ? `${gl.cho}h` : null, g = gl && gl.cho == null ? gl : null;
   return (
-    <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
+    <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => noi.bam({ id: 0 }, e)} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
       {t.chinh ? <ChipO chinh={t.chinh} /> : <span style={{ color: 'var(--fg-3, #777)', padding: '0 6px' }}>…</span>}
       {p.khongGio ? null : cho ? <span style={{ fontSize: 10.5, color: KHUNG_TEN.bang[2], whiteSpace: 'nowrap' }}>⏳{cho}</span> : g ? <ChuGio g={g} chip /> : null}
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={R} cao={t.xet ? 520 : 300} noi={noi}><div style={{ ...(t.xet ? { width: 'max-content', minWidth: 340, maxWidth: R } : { width: R }), maxHeight: 520, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
@@ -2107,7 +2107,7 @@ function ChipPhim({ ph, bh }: { ph: PhimEtpKho | undefined; bh?: DuLieuEtp['baoH
   if (bh?.chan_nb && ph?.thu?.vong !== 'cat') the.push({ chu: '⏸ ROI tụt', mau: 'var(--fg-2)', cho: true, ten: 'ROI phim tụt — chỉ cảnh báo, không chặn nhân bản', ly: bh.chan_nb.split(' · ') });
   if (!the.length) return null;
   const a = the[0]!;
-  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%', cursor: 'help' }}>
+  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => noi.bam({ id: 0 }, e)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%', cursor: 'help' }}>
     <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 10.5, fontWeight: 600, color: a.mau, border: `1px ${a.cho ? 'dashed' : 'solid'} ${a.mau}`, borderRadius: 10, padding: '0 6px' }}>{a.chu}</span>
     {the.length > 1 ? <span style={{ flex: 'none', fontSize: 10, color: 'var(--fg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '0 4px' }}>+{the.length - 1}</span> : null}
     {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={340} cao={320} noi={noi}><div style={{ width: 340, maxWidth: '92vw', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)', display: 'flex', flexDirection: 'column', gap: 10 }}>

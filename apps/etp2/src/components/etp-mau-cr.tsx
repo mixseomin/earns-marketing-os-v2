@@ -52,9 +52,9 @@ function useLoc(k: string) {
 /** MỌI creative mẫu hiện NGUYÊN ngay trong thẻ (anh 19/11/2026 "cái này phải show ngay ra chứ ko phải bấm vào mới thấy" · "full creative"):
  *  lưới cạnh nhau, đúng khổ 9:16 không cắt, có video thì phát được tại chỗ (ảnh làm poster); nhãn = số ngày chạy (đối thủ) / thu (nhà) */
 /** CREATIVE HIỆN Ở NGOÀI (thẻ / bảng) — anh 19/11/2026: "ko đc để creative lên đây. Tao đã duyệt đéo đâu. Tao sẽ đặt lên nếu muốn. Ở ngoài chỉ đc để creative từ nguồn".
- *  Mẫu học từ đối thủ: CHỈ creative gốc của đối thủ. Bản máy dựng thử + creative máy sinh cho phim chưa được anh duyệt làm mẫu → chỉ nằm trong ngăn
+ *  Mẫu học từ đối thủ: creative gốc của đối thủ + bản anh ĐÃ DUYỆT làm mẫu (mau_duyet). Bản máy dựng thử + creative máy sinh cho phim chưa được anh duyệt làm mẫu → chỉ nằm trong ngăn
  *  (tab Phim sản xuất, dải So với gốc). Mẫu nhà: creative nhà chính là nguồn → giữ. */
-export const banNguon = (m: MauCr) => (m.nguon === 'doi_thu' ? m.ban.filter((b) => b.vai === 'goc') : m.ban);
+export const banNguon = (m: MauCr) => (m.nguon === 'doi_thu' ? m.ban.filter((b) => b.vai === 'goc' || b.vai === 'duyet') : m.ban);   // + bản anh đã duyệt làm mẫu (20/11/2026)
 export function BanMauLuoi({ m: mGoc, cot = 3 }: { m: MauCr; cot?: number }) {
   const m = { ...mGoc, ban: banNguon(mGoc) };
   if (!m.ban.length) return <div style={{ aspectRatio: '9 / 16', maxHeight: 300, display: 'grid', placeItems: 'center', background: 'var(--bg-2)', color: MO_SO, fontSize: 11.5, borderRadius: 6 }}>chưa lưu creative gốc</div>;
@@ -62,12 +62,12 @@ export function BanMauLuoi({ m: mGoc, cot = 3 }: { m: MauCr; cot?: number }) {
   // không xuống dòng; ô vẫn cùng một cỡ = 1/3 bề ngang thẻ (anh 19/11/2026 "ko cho hiển thị nơi to nơi bé")
   return <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: `calc((100% - ${(cot - 1) * 6}px) / ${cot})`, overflowX: 'auto', scrollSnapType: 'x mandatory', overscrollBehaviorX: 'contain', paddingBottom: m.ban.length > cot ? 4 : 0, gap: 6 }}
     title={m.ban.length > cot ? `${m.ban.length} creative mẫu — kéo ngang / lăn chuột để xem hết` : undefined}>
-    {m.ban.map((b, i) => <div key={i} title={b.goi_y} style={{ scrollSnapAlign: 'start', position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: b.vai === 'dung' ? '2px solid rgba(37,99,235,0.9)' : undefined }}>
+    {m.ban.map((b, i) => <div key={i} title={b.goi_y} style={{ scrollSnapAlign: 'start', position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: b.vai === 'dung' ? '2px solid rgba(37,99,235,0.9)' : b.vai === 'duyet' ? '2px solid rgba(22,163,74,0.9)' : undefined }}>
       {b.video
         ? <video src={b.video} poster={b.anh ?? undefined} controls muted loop playsInline preload="none" onClick={(e) => e.stopPropagation()} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
         : b.anh ? <img src={b.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
       <span style={{ position: 'absolute', left: 4, top: 4, display: 'inline-flex', gap: 4, pointerEvents: 'none' }}>
-        {b.nhan ? <span style={{ fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: b.vai === 'dung' ? 'rgba(37,99,235,0.92)' : b.vai === 'goc' ? 'rgba(194,65,12,0.92)' : 'rgba(0,0,0,0.7)', color: b.con_chay && b.vai !== 'goc' ? XANH : '#fff', fontWeight: b.vai ? 600 : undefined, fontVariantNumeric: 'tabular-nums' }}>{b.nhan}{b.con_chay ? ' ●' : ''}</span> : null}
+        {b.nhan ? <span style={{ fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: b.vai === 'dung' ? 'rgba(37,99,235,0.92)' : b.vai === 'duyet' ? 'rgba(22,163,74,0.92)' : b.vai === 'goc' ? 'rgba(194,65,12,0.92)' : 'rgba(0,0,0,0.7)', color: b.con_chay && b.vai !== 'goc' ? XANH : '#fff', fontWeight: b.vai ? 600 : undefined, fontVariantNumeric: 'tabular-nums' }}>{b.nhan}{b.con_chay ? ' ●' : ''}</span> : null}
       </span>
       {b.link ? <a href={b.link.startsWith('https://www.facebook.com') ? `https://href.li/?${b.link}` : b.link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
         title={b.link.startsWith('https://www.facebook.com') ? 'mở QC trong Thư viện QC Meta' : 'mở creative cỡ gốc'}

@@ -1,5 +1,5 @@
 {
- "_ghi": "SỔ MẪU CREATIVE — MỘT NƠI (anh 19/11/2026: 'Tạo 1 tab mới là Mẫu Creative' · 'khi lên creative, phải dựa vào 1 mẫu nào đó! Nếu chưa có mẫu thì phải tìm cho ra hoặc phải bổ sung mới!! Ko còn creative tự do nữa'). Web (tab Mẫu Creative, lib/actions/etp-mau-cr.ts) và máy (apps/etp/so_mau.py → cổng len-creative.py: creative nào không gắn được mẫu thì KHÔNG được tải lên Ethopex) cùng đọc tệp này. DẠNG không khai ở đây — đọc etp-dang.json. loai: cong_thuc = công thức máy dựng creative (phải có 'dang' = dạng có dấu, 'nhan' = chữ nhận diện trong ghi chú bản dựng khi một dạng có nhiều công thức, 'mac_dinh' = công thức dùng khi không nhận ra) · bo_cuc / lop_phu = mẫu bố cục / lớp chữ-nút. trang_thai: may = máy đang dựng · thu = có mã, chưa vào máy · chua = mới là tham chiếu. CHỈ công thức trạng thái may / thu được tải lên. tham_chieu = library_id QC đối thủ. anh_dung = bản MÁY DỰNG theo mẫu (dung-mau.py --bang) đặt cạnh QC GỐC đối thủ để so có dựng đúng mẫu không (anh 19/11/2026). nhom = nhóm thiết kế hiện trên tab (1 công thức · 2 dạng · 3 tên phim · 4 nút / CTA · 5 băng chữ / câu nhử · 6 bố cục / key-art · 7 bố cục ảnh nhà).",
+ "_ghi": "SỔ MẪU CREATIVE — MỘT NƠI (anh 19/11/2026: 'Tạo 1 tab mới là Mẫu Creative' · 'khi lên creative, phải dựa vào 1 mẫu nào đó! Nếu chưa có mẫu thì phải tìm cho ra hoặc phải bổ sung mới!! Ko còn creative tự do nữa'). Web (tab Mẫu Creative, lib/actions/etp-mau-cr.ts) và máy (apps/etp/so_mau.py → cổng len-creative.py: creative nào không gắn được mẫu thì KHÔNG được tải lên Ethopex) cùng đọc tệp này. DẠNG không khai ở đây — đọc etp-dang.json. loai: cong_thuc = công thức máy dựng creative (phải có 'dang' = dạng có dấu, 'nhan' = chữ nhận diện trong ghi chú bản dựng khi một dạng có nhiều công thức, 'mac_dinh' = công thức dùng khi không nhận ra) · bo_cuc / lop_phu = mẫu bố cục / lớp chữ-nút. trang_thai: may = máy đang dựng · thu = có mã, chưa vào máy · chua = mới là tham chiếu. CHỈ công thức trạng thái may / thu được tải lên. tham_chieu = library_id QC đối thủ. anh_dung = bản MÁY DỰNG theo mẫu (dung-mau.py --bang) đặt cạnh QC GỐC đối thủ để so có dựng đúng mẫu không (anh 19/11/2026). nhom = nhóm thiết kế hiện trên tab (1 công thức · 2 dạng · 3 tên phim · 4 nút / CTA · 5 băng chữ / câu nhử · 6 bố cục / key-art · 7 bố cục ảnh nhà). mau_duyet = creative máy dựng theo mẫu mà ANH ĐÃ DUYỆT làm mẫu (anh 20/11/2026 'Ổn rồi. Lưu vào creative mẫu đó') — chỉ những bản này được lên thẻ cạnh QC gốc đối thủ; anh_dung (bản thử) vẫn chỉ nằm trong ngăn.",
  "mau": [
   {
    "ma": "cc_cta",
@@ -466,11 +466,34 @@
     "3003117683383697",
     "1851918955714094"
    ],
-   "mo_ta": "Logo tên phim lấy NGUYÊN từ poster gốc của phim (giữ kiểu chữ, màu, hoạ tiết của logo) đặt lên khung cảnh phim — không vẽ lại bằng phông khác. Đối thủ dùng logo thiết kế riêng theo chủ đề phim (sóng nước, lửa, phép thuật, huy hiệu).",
+   "mo_ta": "Logo tên phim lấy NGUYÊN từ poster gốc của phim (giữ kiểu chữ, màu, hoạ tiết) đặt lên khung cảnh phim, không vẽ lại bằng phông khác. Quy trình chuẩn: tách logo ba tầng (nền poster êm: cắt rời tại máy · nền rối: AI xoá chữ lấy nền sạch + BiRefNet tách mép · vẫn trượt: dải poster mép mờ), logo rộng 90% khung, nằm trong dải 56–86% chiều cao, dưới mặt ≥ 100px, khung chật thì đổi khung khác.",
    "may": "dung-mau.py › dt_logo_chat_lieu",
    "anh_dung": "/mau-cr/dt_logo_chat_lieu.jpg",
    "anh_dung_phim": "Undercover Prison King",
-   "nhom": "3 · Tên phim"
+   "nhom": "3 · Tên phim",
+   "mau_duyet": [
+    {
+     "anh": "/mau-cr/dt_logo_chat_lieu-171373.jpg",
+     "phim": "Don't Mess with the Don's Wife",
+     "content_id": 171373
+    },
+    {
+     "anh": "/mau-cr/dt_logo_chat_lieu-167274.jpg",
+     "phim": "Hidden Judge's Grandson Rescue",
+     "content_id": 167274
+    },
+    {
+     "anh": "/mau-cr/dt_logo_chat_lieu-172511.jpg",
+     "phim": "Don't Mess With Madam CEO",
+     "content_id": 172511
+    },
+    {
+     "anh": "/mau-cr/dt_logo_chat_lieu-185527.jpg",
+     "phim": "I Gained 1 Billion Times HP and Became Invincible",
+     "content_id": 185527
+    }
+   ],
+   "duyet_luc": "2026-11-20"
   },
   {
    "ma": "dt_ten_nut_vang",

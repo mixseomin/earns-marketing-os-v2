@@ -43,16 +43,22 @@ function useLoc(k: string) {
   return [v, setV] as const;
 }
 
-function AnhMau({ m, cao }: { m: MauCr; cao: number }) {
-  const [i, setI] = useState(0);
-  if (!m.anh.length) return <div style={{ height: cao, display: 'grid', placeItems: 'center', background: 'var(--bg-2)', color: MO_SO, fontSize: 11.5, borderRadius: 6 }}>chưa có ảnh mẫu</div>;
-  const u = m.anh[i % m.anh.length];
-  return <div style={{ position: 'relative' }}>
-    <a href={u} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="mở ảnh cỡ lớn">
-      <img src={u} alt="" loading="lazy" style={{ width: '100%', height: cao, objectFit: 'cover', objectPosition: 'top', display: 'block', borderRadius: 6, background: '#000' }} />
-    </a>
-    {m.anh.length > 1 ? <button type="button" title="xem ảnh mẫu kế" onClick={(e) => { e.stopPropagation(); setI(i + 1); }}
-      style={{ position: 'absolute', right: 6, bottom: 6, fontSize: 11, padding: '1px 7px', borderRadius: 10, border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer' }}>{(i % m.anh.length) + 1}/{m.anh.length} ›</button> : null}
+/** MỌI creative mẫu hiện NGUYÊN ngay trong thẻ (anh 19/11/2026 "cái này phải show ngay ra chứ ko phải bấm vào mới thấy" · "full creative"):
+ *  lưới cạnh nhau, đúng khổ 9:16 không cắt, có video thì phát được tại chỗ (ảnh làm poster); nhãn = số ngày chạy (đối thủ) / thu (nhà) */
+function BanMauLuoi({ m }: { m: MauCr }) {
+  if (!m.ban.length) return <div style={{ aspectRatio: '9 / 16', maxHeight: 300, display: 'grid', placeItems: 'center', background: 'var(--bg-2)', color: MO_SO, fontSize: 11.5, borderRadius: 6 }}>chưa có creative mẫu</div>;
+  return <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(m.ban.length, 3)}, minmax(0, 1fr))`, gap: 6 }}>
+    {m.ban.map((b, i) => <div key={i} style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden' }}>
+      {b.video
+        ? <video src={b.video} poster={b.anh ?? undefined} controls muted loop playsInline preload="none" onClick={(e) => e.stopPropagation()} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+        : b.anh ? <img src={b.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
+      <span style={{ position: 'absolute', left: 4, top: 4, display: 'inline-flex', gap: 4, pointerEvents: 'none' }}>
+        {b.nhan ? <span style={{ fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: 'rgba(0,0,0,0.7)', color: b.con_chay ? XANH : '#fff', fontVariantNumeric: 'tabular-nums' }}>{b.nhan}{b.con_chay ? ' ●' : ''}</span> : null}
+      </span>
+      {b.link ? <a href={b.link.startsWith('https://www.facebook.com') ? `https://href.li/?${b.link}` : b.link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+        title={b.link.startsWith('https://www.facebook.com') ? 'mở QC trong Thư viện QC Meta' : 'mở creative cỡ gốc'}
+        style={{ position: 'absolute', right: 4, top: 4, fontSize: 11, padding: '0 6px', borderRadius: 8, background: 'rgba(0,0,0,0.7)', color: '#fff', textDecoration: 'none' }}>↗</a> : null}
+    </div>)}
   </div>;
 }
 const Nhan = ({ children, mau = 'var(--fg-3)', title }: { children: React.ReactNode; mau?: string; title?: string }) =>
@@ -70,7 +76,7 @@ function ThamChieu({ m }: { m: MauCr }) {
 function The({ m }: { m: MauCr }) {
   const s = m.so;
   return <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 7, height: '100%' }}>
-    <AnhMau m={m} cao={300} />
+    <BanMauLuoi m={m} />
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       {m.mau ? <span title="màu nhận diện của dạng (cùng màu badge ở các tab Creative)" style={{ width: 9, height: 9, borderRadius: 5, background: m.mau, flex: 'none' }} /> : null}
       <b style={{ fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.ten}</b><span style={{ fontSize: 11, color: MO_SO, flex: 'none' }}>{m.ma}</span>
@@ -103,7 +109,7 @@ export function TabMauCr() {
   const cot: DataColumn<MauCr>[] = useMemo(() => [
     { key: 'ten', header: 'Mẫu', align: 'left', width: 220, sortValue: (m) => m.ten, cell: (m) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
       {m.mau ? <span style={{ width: 8, height: 8, borderRadius: 4, background: m.mau, flex: 'none' }} /> : null}<b>{m.ten}</b><span style={{ color: MO_SO, fontSize: 11 }}>{m.ma}</span></span> },
-    { key: 'anh', header: 'Ảnh', align: 'left', width: 56, cell: (m) => (m.anh[0] ? <a href={m.anh[0]} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="mở ảnh cỡ lớn"><img src={m.anh[0]} alt="" loading="lazy" style={{ width: 36, height: 54, objectFit: 'cover', borderRadius: 3, display: 'block' }} /></a> : <span style={{ color: MO_SO }}>—</span>) },
+    { key: 'anh', header: 'Creative mẫu', align: 'left', width: 200, cell: (m) => (m.ban.length ? <span style={{ display: 'inline-flex', gap: 4 }}>{m.ban.map((b, i) => <a key={i} href={b.video ?? b.anh ?? undefined} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={`${b.nhan ?? ''} — mở cỡ gốc`}><img src={b.anh ?? undefined} alt="" loading="lazy" style={{ width: 36, height: 64, objectFit: 'contain', background: '#000', borderRadius: 3, display: 'block' }} /></a>)}</span> : <span style={{ color: MO_SO }}>—</span>) },
     { key: 'loai', header: 'Loại', align: 'left', sortValue: (m) => TEN_LOAI[m.loai], cell: (m) => TEN_LOAI[m.loai] },
     { key: 'nguon', header: 'Nguồn', align: 'left', sortValue: (m) => TEN_NGUON[m.nguon], cell: (m) => TEN_NGUON[m.nguon] },
     { key: 'tt', header: 'Trạng thái', align: 'left', sortValue: (m) => TT.indexOf(m.trang_thai), cell: (m) => <OTT m={m} /> },
@@ -124,7 +130,7 @@ export function TabMauCr() {
   return (
     <DataTable rows={rows} columns={cot} getRowKey={(m) => `${m.loai}:${m.ma}`} persistKey="etp-mau-cr" minWidth={1500} pageSize={100}
       locTuDong={false}   /* thanh lọc tự động của DataTable tách sai cột nhiều giá trị (Thể loại, Dùng cho) và trùng chip ở trên → một bộ lọc */
-      card={{ render: (m) => <The m={m} />, minWidth: 250 }} defaultView="card" defaultSort={[{ key: 'tt', dir: 'asc' }]}
+      card={{ render: (m) => <The m={m} />, minWidth: 340 }} defaultView="card" defaultSort={[{ key: 'tt', dir: 'asc' }]}
       searchText={(m) => `${m.ten} ${m.ma} ${m.mo_ta} ${choDang(m).join(' ')} ${m.the_loai.join(' ')} ${m.tham_chieu.map((t) => t.phim ?? '').join(' ')}`} searchPlaceholder="Tìm mẫu, dạng, thể loại, phim đối thủ…"
       dauThanh={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <FilterChips<LoaiMau> options={LOAI.map((v) => ({ value: v, label: TEN_LOAI[v] }))} values={loai as LoaiMau[]} onToggle={(v) => setLoai(v)} counts={dem('l', LOAI, (m, v) => m.loai === v)} urlKey="mcl" />

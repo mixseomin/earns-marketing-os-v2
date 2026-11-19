@@ -7,6 +7,7 @@
 // tra-repo-ok: màn nội bộ dựng từ khối dùng chung của etp2 (DataTable thẻ / bảng, FilterChips, MultiSelect, useSoNho)
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable, FilterChips, MultiSelect, type DataColumn } from '@/components/ui';
+import { Cay, NutCay } from '@/components/ui/cay';
 import { Dem, MO_SO } from '@/components/etp-so';
 import { useSoNho } from '@/lib/so-nho';
 import { openEntityDrawer } from '@/lib/entity-drawer';
@@ -156,6 +157,44 @@ function The({ m }: { m: MauCr }) {
 // khuôn bản giữ: đổi khuôn BanMau (thêm vai gốc / máy dựng) không cần đổi — trường tuỳ chọn
 const hopKhuon = (v: unknown) => { const ds = (v as { mau?: unknown })?.mau; return Array.isArray((v as { phim?: unknown })?.phim) && Array.isArray(ds) && ds.every((m) => typeof (m as Record<string, unknown>)?.may_mau === 'boolean' && typeof (m as Record<string, unknown>)?.nhom_tk === 'string' && ['ban', 'tham_chieu', 'dung_cho', 'the_loai', 'phim_sx'].every((k) => Array.isArray((m as Record<string, unknown>)?.[k]))); };
 
+/** nhóm tầng 2 trong cây: Dạng creative · Công thức máy dựng · Format · <vai> */
+const nhom2 = (m: MauCr) => (m.loai === 'dang' ? 'Dạng creative' : m.loai === 'cong_thuc' ? 'Công thức máy dựng' : `Format · ${m.vai ?? 'khác'}`);
+const CHAM_TT: Record<TrangThaiMau, string> = { chay: '#4ade80', may: '#60a5fa', thu: '#fbbf24', chua: '#94a3b8' };
+
+/** CÂY TỔNG QUÁT bên trái (anh 19/11/2026 "Ở tab Mẫu Creative, phải có tree view để còn nắm đc tổng quát"): Tất cả → thể loại → nhóm (dạng / công thức / format theo vai)
+ *  → từng mẫu; số đếm theo bộ lọc đang bật; bấm nút = lọc lưới bên phải (?mcc=); cột kéo đổi rộng, nhớ theo máy. Mở / gập nhóm giữ trên URL (?mco=). */
+function CayMau({ rows, chon, setChon, mo, setMo }: { rows: MauCr[]; chon: string; setChon: (v: string) => void; mo: string[]; setMo: (v: string[]) => void }) {
+  const [rong, setRong] = useState(() => { try { return Number(localStorage.getItem('etp-mau-cay-rong')) || 280; } catch { return 280; } });
+  const keo = (e: React.PointerEvent) => {
+    e.preventDefault(); const x0 = e.clientX, r0 = rong; let cuoi = r0;
+    const di = (ev: PointerEvent) => { cuoi = Math.max(200, Math.min(520, r0 + ev.clientX - x0)); setRong(cuoi); };
+    const tha = () => { window.removeEventListener('pointermove', di); window.removeEventListener('pointerup', tha); document.body.style.userSelect = ''; try { localStorage.setItem('etp-mau-cay-rong', String(cuoi)); } catch { /* kho chặn */ } };
+    document.body.style.userSelect = 'none'; window.addEventListener('pointermove', di); window.addEventListener('pointerup', tha);
+  };
+  const theoTl = new Map<string, Map<string, MauCr[]>>();
+  for (const m of rows) { const a = theoTl.get(m.nhom_tk) ?? new Map<string, MauCr[]>(); theoTl.set(m.nhom_tk, a); a.set(nhom2(m), [...(a.get(nhom2(m)) ?? []), m]); }
+  const doiMo = (k: string) => setMo(mo.includes(k) ? mo.filter((x) => x !== k) : [...mo, k]);
+  const so = (n: number) => <span style={{ color: MO_SO, fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>{n}</span>;
+  return <div style={{ width: rong, flex: 'none', position: 'sticky', top: 8, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 24px)', overflowY: 'auto', borderRight: '1px solid var(--line)', paddingRight: 6, marginRight: 12 }}>
+    <span onPointerDown={keo} onDoubleClick={() => { setRong(280); try { localStorage.removeItem('etp-mau-cay-rong'); } catch { /* */ } }} title="kéo để đổi rộng · nhấp đúp về mặc định"
+      style={{ position: 'absolute', top: 0, right: -4, width: 8, height: '100%', cursor: 'col-resize', zIndex: 2 }} />
+    <Cay label="cây mẫu creative">
+      <NutCay ten={<b>Tất cả mẫu</b>} phai={so(rows.length)} chon={!chon} onChon={() => setChon('')} />
+      {[...theoTl].map(([tl, nhom]) => { const kt = `t:${tl}`, tong = [...nhom.values()].reduce((a, x) => a + x.length, 0);
+        return <NutCay key={kt} ten={<b>{tl}</b>} phai={so(tong)} chon={chon === kt} onChon={() => setChon(kt)} mo={mo.includes(kt)} onDoi={() => doiMo(kt)}>
+          {[...nhom].map(([n2, ds]) => { const kn = `n:${tl}|${n2}`;
+            return <NutCay key={kn} ten={<span>{n2}</span>} phai={so(ds.length)} chon={chon === kn} onChon={() => setChon(kn)} mo={mo.includes(kn)} onDoi={() => doiMo(kn)}>
+              {ds.map((m) => { const km = `m:${m.loai}:${m.ma}`;
+                return <NutCay key={km} chon={chon === km} onChon={() => setChon(km)}
+                  dau={<span title={TEN_TT[m.trang_thai][0]} style={{ width: 7, height: 7, borderRadius: 4, background: CHAM_TT[m.trang_thai], flex: 'none' }} />}
+                  ten={<span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.mo_ta}>{m.ten}</span>}
+                  phai={m.so?.cr ? so(m.so.cr) : m.phim_sx.length ? <span style={{ fontSize: 11, color: '#fbbf24' }}>{m.phim_sx.length} phim</span> : undefined} />; })}
+            </NutCay>; })}
+        </NutCay>; })}
+    </Cay>
+  </div>;
+}
+
 export function TabMauCr() {
   const { so: duNho, loi } = useSoNho<{ mau: MauCr[]; phim: DsPhim; luc: string }>('mau-cr', docMauCr, 20_000, hopKhuon);   // 20 giây: trạng thái máy dựng ở chân thẻ đổi từng bước
   const [moi, setMoi] = useState<{ mau: MauCr[]; phim: DsPhim; luc: string } | null>(null);   // bản tải lại ngay sau khi chọn phim (khỏi chờ nhịp)
@@ -164,6 +203,11 @@ export function TabMauCr() {
   useEffect(() => { const f = () => { void docMauCr().then((r) => { if (!('loi' in r)) setMoi(r); }); }; window.addEventListener(SU_KIEN_MAU, f); return () => window.removeEventListener(SU_KIEN_MAU, f); }, []);
   const [loai, setLoai] = useLoc('mcl'), [nguon, setNguon] = useLoc('mcn'), [tt, setTt] = useLoc('mct'), [dang, setDang] = useLoc('mcd'), [tl, setTl] = useLoc('mctl');
   const tatCa = useMemo(() => du?.mau ?? [], [du]);
+  const [cayChon, setCayChon] = useState<string>(() => docUrl('mcc') ?? '');
+  useEffect(() => { ghiUrl('mcc', cayChon || null); }, [cayChon]);
+  useEffect(() => () => ghiUrl('mcc', null), []);
+  const [cayMo, setCayMo] = useLoc('mco');
+  const quaCay = (m: MauCr) => !cayChon || (cayChon.startsWith('t:') ? m.nhom_tk === cayChon.slice(2) : cayChon.startsWith('n:') ? `${m.nhom_tk}|${nhom2(m)}` === cayChon.slice(2) : `m:${m.loai}:${m.ma}` === cayChon);
   const dsTl = useMemo(() => [...new Set(tatCa.flatMap((m) => m.the_loai))].sort(), [tatCa]);
   // bo = nhóm lọc bỏ qua khi đếm số trên chip của chính nhóm đó (số = bấm thêm chip đó thì còn bao nhiêu mẫu)
   const qua = (m: MauCr, bo?: string) => (bo === 'l' || !loai.length || loai.includes(m.loai)) && (bo === 'n' || !nguon.length || nguon.includes(m.nguon))
@@ -175,7 +219,8 @@ export function TabMauCr() {
   const THU_LOAI: Record<LoaiMau, number> = { dang: 0, cong_thuc: 1, lop_phu: 2, bo_cuc: 3 }, THU_VAI = ['Tên phim', 'Nút / CTA', 'Băng chữ / câu nhử', 'Bố cục / key-art', 'Bố cục ảnh nhà'];
   const tang2 = (m: MauCr) => THU_LOAI[m.loai] * 10 + (m.vai ? Math.max(0, THU_VAI.indexOf(m.vai)) : 0);
   const TL = ['Cắt cảnh', 'Kể chuyện', 'Chèn khung', 'Ảnh tĩnh', 'Poster động'], tl1 = (m: MauCr) => { const i = TL.indexOf(m.nhom_tk); return i < 0 ? 99 : i; };
-  const rows = tatCa.filter((m) => qua(m)).sort((a, b) => tl1(a) - tl1(b) || tang2(a) - tang2(b) || manh(b) - manh(a) || a.ten.localeCompare(b.ten));
+  const locRows = tatCa.filter((m) => qua(m));
+  const rows = locRows.filter(quaCay).sort((a, b) => tl1(a) - tl1(b) || tang2(a) - tang2(b) || manh(b) - manh(a) || a.ten.localeCompare(b.ten));
   const dem = (bo: string, ds: readonly string[], f: (m: MauCr, v: string) => boolean) => Object.fromEntries(ds.map((v) => [v, tatCa.filter((m) => qua(m, bo) && f(m, v)).length]));
   const cot: DataColumn<MauCr>[] = useMemo(() => [
     { key: 'ten', header: 'Mẫu', align: 'left', width: 220, sortValue: (m) => m.ten, cell: (m) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -198,7 +243,9 @@ export function TabMauCr() {
   if (loi && !du) return <div style={{ padding: 16, color: DO }}>{loi}</div>;
   if (!du) return <div style={{ padding: 16, color: MO_SO }}>đang đọc sổ mẫu creative…</div>;
   const demD = dem('d', DANG_TEN, (m, v) => choDang(m).includes(v)), demTl = dem('tl', dsTl, (m, v) => m.the_loai.includes(v));
-  return (
+  return (<div style={{ display: 'flex', alignItems: 'flex-start' }}>
+    <CayMau rows={[...locRows].sort((a, b) => tl1(a) - tl1(b) || tang2(a) - tang2(b) || manh(b) - manh(a))} chon={cayChon} setChon={setCayChon} mo={cayMo} setMo={setCayMo} />
+    <div style={{ flex: 1, minWidth: 0 }}>
     <DataTable rows={rows} columns={cot} getRowKey={(m) => `${m.loai}:${m.ma}`} persistKey="etp-mau-cr" minWidth={1500} pageSize={100}
       locTuDong={false}   /* thanh lọc tự động của DataTable tách sai cột nhiều giá trị (Thể loại, Dùng cho) và trùng chip ở trên → một bộ lọc */
       card={{ render: (m) => <The m={m} />, minWidth: 340 }} defaultView="card"
@@ -212,5 +259,6 @@ export function TabMauCr() {
         <MultiSelect<string> label="Thể loại" options={dsTl.map((v) => ({ value: v, label: v, count: demTl[v] }))} selected={tl} onChange={setTl} searchPlaceholder="Tìm thể loại…" compact portal />
         <span style={{ fontSize: 11.5, color: MO_SO }} title={`đọc lúc ${gioVn(du.luc)}`}>{rows.length}/{tatCa.length} mẫu</span>
       </span>} />
+    </div></div>
   );
 }

@@ -80,7 +80,7 @@ function ChanThe({ m }: { m: MauCr }) {
   </div>;
 }
 // các bước máy dựng theo mẫu (dung-mau.py) — thanh tiến độ trong chân thẻ
-const BUOC_DUNG: [string, string][] = [['cho', 'chờ máy'], ['tai_tap', 'tải tập'], ['chon_khung', 'chọn khung'], ['ve_mau', 'vẽ mẫu'], ['giong', 'giọng'], ['video', 'video'], ['thu_vien', 'thư viện'], ['creative', 'tải creative'], ['xong', 'xong']];
+const BUOC_DUNG: [string, string][] = [['cho', 'chờ máy'], ['trang_phim', 'trang phim'], ['tai_tap', 'tải tập'], ['chon_khung', 'chọn khung'], ['ve_mau', 'vẽ mẫu'], ['giong', 'giọng'], ['video', 'video'], ['thu_vien', 'thư viện'], ['creative', 'tải creative'], ['xong', 'xong']];
 const gioNgan = (s: string) => new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 function TienDoDung({ d }: { d: DungMau }) {
   const i = Math.max(0, BUOC_DUNG.findIndex(([k]) => k === d.buoc)), loi = d.trang_thai === 'loi', xong = d.trang_thai === 'xong';

@@ -282,6 +282,13 @@ def ngu_canh(cid, tm_rieng=None):
     the_loai = AT.sql(f"select coalesce(the_loai, '') from etp.phim where content_id = {int(cid)}"); p["the_loai"] = the_loai
     return p, lang, ten, tm
 
+# cổng trang phim của dòng phim (apps/etp/dong_phim.py TRANG) — chạy trên box3 trong /opt/earns-marketing-os-v2
+TRANG = r'''
+import importlib.util, sys, json
+s = importlib.util.spec_from_file_location("nb", "apps/xuong-video/scripts/ethopex/nhan-ban.py"); m = importlib.util.module_from_spec(s); sys.argv = ["nb"]; s.loader.exec_module(m)
+tk = m.q("select ad_account_id from etp.tai_khoan where nha and ad_account_id is not null order by nguoi_id limit 1")
+print(json.dumps({"ly": m.trang_chua_san(%d, tk)}, ensure_ascii=False))
+'''
 _NHO = {}
 def mot(ma, cid, xem=False, ban=1):
     """dựng ban bản theo mẫu ma cho phim cid → danh sách creative_id (xem=True: chỉ tệp)"""
@@ -297,7 +304,15 @@ def mot(ma, cid, xem=False, ban=1):
     try:
         tt("tai_tap", g="tải 3 tập miễn phí + trích khung")
         p, lang, ten, tm = ngu_canh(cid)
-        if not p.get("url"): raise RuntimeError("phim chưa có link tập trên Ethopex (etp.phim.url trống) — không tải được tập để dựng; chọn phim khác hoặc đợi đồng bộ có link")
+        if not p.get("url"):
+            # PHIM CHƯA CÓ LINK TẬP (anh 19/11/2026 "lỗi thì chúng mày phải chủ động mà sửa đi"): làm ĐÚNG bước Trang phim của dòng phim — thêm phim vào workspace
+            # Ethopex của Nhà (nhan-ban.trang_chua_san → ensure-clone, idempotent) rồi gọi đồng bộ; trang có link tập 1 thì dong-bo điền etp.phim.url → lượt sau dựng tiếp
+            tt("trang_phim", g="phim chưa có link tập — máy thêm phim vào workspace Ethopex của Nhà để lấy link tập 1")
+            r = AT.sh("ssh", AT.B, f"{AT.ENV}; python3 - <<'PYEOF'\n{TRANG % int(cid)}\nPYEOF", han=300)
+            m = re.findall(r'^\{"ly".*$', r.stdout, re.M); ly = json.loads(m[-1])["ly"] if m else f"không đọc được cổng trang phim: {(r.stderr or r.stdout)[-200:]}"
+            AT.sh("ssh", AT.B, "systemctl start --no-block etp-dong-bo", han=60)   # đồng bộ kho trang phim ngay, không chờ 10 phút
+            tt("trang_phim", "cho", f"chờ Ethopex sinh trang + link tập 1 (lượt sau tự dựng tiếp) · {ly or 'trang phim đã đủ, chờ đồng bộ điền link'}"[:300])
+            return []
         if cid not in _NHO:   # một phim chỉ tải tập / xếp khung / viết câu nhử MỘT lần trong tiến trình (bảng xem trước vẽ 12 mẫu)
             uv = AT.khung(cid, p["url"], tm)
             tt("chon_khung", g=f"{len(uv)} khung ứng viên → AI xếp hạng")
@@ -346,7 +361,7 @@ def mot(ma, cid, xem=False, ban=1):
 def hang():
     """mọi phim anh chọn (etp.mau_phim) cho mẫu có hàm vẽ ở đây mà chưa dựng xong / chưa đang dựng"""
     ds = AT.sql(bang_sql() + " select m.mau || ':' || m.content_id from etp.mau_phim m left join etp.mau_dung d using (mau, content_id) "
-                f"where m.mau in ({','.join(s_(x) for x in HAM)}) and (d.mau is null or d.trang_thai = 'cho') order by m.luc")
+                f"where m.mau in ({','.join(s_(x) for x in HAM)}) and (d.mau is null or d.trang_thai = 'cho') order by d.cap_nhat nulls first, m.luc")
     for l in [x for x in (ds or "").splitlines() if ":" in x]:
         ma, cid = l.split(":")
         try: mot(ma, int(cid))

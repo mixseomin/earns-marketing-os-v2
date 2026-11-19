@@ -316,10 +316,10 @@ const BC_MAU = { hinh: ['tv', 'xem', 'tt'], tailieu: ['kb', 'xem', 'lp', 'tt'], 
 
 let D = duAnMau();
 const E = { man: 'dung', ban: 'pro', da: 'cn', nguon: 'anh', hop: true, tat: false, ttTab: 'may', bc: JSON.parse(JSON.stringify(BC_MAU)), menu: null,
-  t: 0, chon: null, pxs: 22, tab: 'Mẫu', chay: false, lui: [], toi: [], xuat: null, moDoi: false, moNv: false, moThem: false, dangGo: false, o: 'tv', vua: false, canhDang: null, solo: null, tap: null, tim: '', kq: undefined, kqLoi: '', nkBuoc: 'anh', nk: null, nkMo: null, nkCt: {}, rong: { hinh: {}, tailieu: {}, phim: {} } };
-try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { if (l.ban === 'gon' || l.ban === 'pro') E.ban = l.ban; if (DU_AN[l.da] || /^\d+$/.test(l.da || '')) { E.da = l.da; E.tap = +l.tap || null; } for (const k in BC_MAU) { if (Array.isArray(l.bc?.[k]) && l.bc[k].includes('xem') && l.bc[k].every((w) => WG[w])) E.bc[k] = l.bc[k]; for (const w in l.rong?.[k] || {}) if (WG[w] && w !== 'xem' && l.rong[k][w] >= 160 && l.rong[k][w] <= 720) E.rong[k][w] = +l.rong[k][w]; } } } catch {}
+  t: 0, chon: null, pxs: 22, tab: 'Mẫu', chay: false, lui: [], toi: [], xuat: null, moDoi: false, moNv: false, moThem: false, dangGo: false, o: 'tv', vua: false, canhDang: null, solo: null, tap: null, tim: '', kq: undefined, kqLoi: '', nkBuoc: 'anh', nk: null, nkMo: null, nkCt: {}, luoi: { n: 12, hien: false, vi: {} }, tlCao: 0 };
+try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { if (l.ban === 'gon' || l.ban === 'pro') E.ban = l.ban; if (DU_AN[l.da] || /^\d+$/.test(l.da || '')) { E.da = l.da; E.tap = +l.tap || null; } for (const k in BC_MAU) if (Array.isArray(l.bc?.[k]) && l.bc[k].includes('xem') && l.bc[k].every((w) => WG[w])) E.bc[k] = l.bc[k]; if ([6, 12, 24].includes(l.luoi?.n)) E.luoi.n = l.luoi.n; E.luoi.hien = !!l.luoi?.hien; if (l.luoi?.vi && typeof l.luoi.vi === 'object') for (const k in BC_MAU) if (l.luoi.vi[k]) E.luoi.vi[k] = l.luoi.vi[k]; if (l.tlCao >= 110) E.tlCao = +l.tlCao; } } catch {}
 try { const q = new URLSearchParams(location.search); if (q.get('ban') === 'gon' || q.get('ban') === 'pro') E.ban = q.get('ban'); if (DU_AN[q.get('phim')] || /^\d+$/.test(q.get('phim') || '')) { E.da = q.get('phim'); E.tap = +q.get('tap') || null; } } catch {}
-const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc, rong: E.rong })); } catch {} try { history.replaceState(null, '', `?phim=${E.da}${E.tap ? `&tap=${E.tap}` : ''}&ban=${E.ban}${pro() && D.that && co('nk') ? `&nk=${E.nkBuoc}` : ''}`); } catch {} };
+const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc, luoi: E.luoi, tlCao: E.tlCao })); } catch {} try { history.replaceState(null, '', `?phim=${E.da}${E.tap ? `&tap=${E.tap}` : ''}&ban=${E.ban}${pro() && D.that && co('nk') ? `&nk=${E.nkBuoc}` : ''}`); } catch {} };
 const pro = () => E.ban === 'pro', boCuc = () => (pro() ? E.bc[D.loai].filter((w) => (w !== 'nk' || !!D.that) && (!D.that || ((w !== 'lp' || coLop()) && (w !== 'mb' || !!D.set)))) : BC_MAU.hinh), co = (w) => boCuc().includes(w);
 const tong = () => D.canh.reduce((a, c) => a + c.tg, 0), canh = (id) => D.canh.find((c) => c.id === id), vt = (id) => D.canh.findIndex((c) => c.id === id);
 const batDau = (i) => D.canh.slice(0, i).reduce((a, c) => a + c.tg, 0), lam2 = (x) => Math.round(x * 100) / 100;
@@ -377,29 +377,60 @@ function datMenu() { const m = $('#dMenu'); if (!E.menu || m.hidden) return; con
   m.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - w - 8))}px`; m.style.top = `${r.bottom + 6 + cao > window.innerHeight && r.top - cao - 6 > 0 ? r.top - cao - 6 : r.bottom + 6}px`; }
 const veKq = () => { const el = $('#mnKq'); if (el) { el.innerHTML = veKqTim(); datMenu(); } };
 
-// ── widget KÉO THẢ (bản Pro, màn ngang): nắm ĐẦU widget kéo sang chỗ khác để đổi thứ tự (vạch đồng chỉ chỗ sẽ rơi); kéo MÉP PHẢI widget để đổi bề rộng
-//    (Khung xem lấy phần còn lại, không hẹp hơn 260px; bấm đúp mép = về mặc định). Thứ tự + bề rộng nhớ theo từng loại hình video.
-let keoWg = null;
-const oWg = () => boCuc().map((w) => [w, $(`#w-${w}`).getBoundingClientRect()]), ngang = () => pro() && window.innerWidth > 900;
-const xongKeoWg = () => { const k = keoWg; keoWg = null; document.body.classList.remove('keo-wg', 'keo-rong'); document.querySelector('.wg.nhac')?.classList.remove('nhac'); const v = $('#wgCho'); if (v) v.hidden = true; return k; };
-document.addEventListener('pointerdown', (e) => { if (e.button || !ngang() || E.man !== 'dung') return;
-  const kh = e.target.closest('.w-keo');
-  if (kh) { const ds = boCuc(), i = ds.indexOf(kh.dataset.w), dich = ds[i] === 'xem' ? ds[i + 1] : ds[i]; if (!dich || dich === 'xem') return; e.preventDefault();
-    keoWg = { loai: 'rong', w: dich, dau: ds[i] === 'xem' ? -1 : 1, x: e.clientX, r0: $(`#w-${dich}`).getBoundingClientRect().width, xem0: $('#w-xem').getBoundingClientRect().width }; document.body.classList.add('keo-rong'); return; }
-  const dau = e.target.closest('.w-dau'); if (!dau || e.target.closest('button, input, a')) return;
-  keoWg = { loai: 'cho', w: dau.id.slice(3), x: e.clientX, y: e.clientY, da: false, den: null }; });
-document.addEventListener('pointermove', (e) => { const k = keoWg; if (!k) return;
-  if (k.loai === 'rong') { const moi = Math.round(Math.max(160, Math.min(720, k.r0 + k.xem0 - 260, k.r0 + (e.clientX - k.x) * k.dau))); E.rong[D.loai][k.w] = moi; $('#dGiua').style.gridTemplateColumns = cotWg(boCuc()); return; }
-  if (!k.da) { if (Math.hypot(e.clientX - k.x, e.clientY - k.y) < 6) return; k.da = true; document.body.classList.add('keo-wg'); $(`#w-${k.w}`).classList.add('nhac'); }
-  const kia = oWg().filter(([w]) => w !== k.w), j = kia.filter(([, r]) => e.clientX > r.left + r.width / 2).length, g = $('#dGiua').getBoundingClientRect(); k.den = j;
-  let v = $('#wgCho'); if (!v) { $('#dung').insertAdjacentHTML('beforeend', '<i class="wg-cho" id="wgCho"></i>'); v = $('#wgCho'); }
-  v.hidden = false; v.style.top = `${g.top}px`; v.style.height = `${g.height}px`; v.style.left = `${(kia[j] ? kia[j][1].left - 5 : kia.length ? kia[kia.length - 1][1].right + 3 : g.left)}px`; });
-document.addEventListener('pointerup', () => { const k = xongKeoWg(); if (!k) return;
-  if (k.loai === 'rong') { luu(); return veD(); }
-  if (!k.da || k.den == null) return; const ds = E.bc[D.loai], kia = boCuc().filter((w) => w !== k.w), truoc = kia[k.den];
-  ds.splice(ds.indexOf(k.w), 1); ds.splice(truoc ? ds.indexOf(truoc) : kia.length ? ds.indexOf(kia[kia.length - 1]) + 1 : ds.length, 0, k.w); luu(); veD(); });
-document.addEventListener('pointercancel', () => { if (xongKeoWg()) veD(); });
-document.addEventListener('dblclick', (e) => { const kh = e.target.closest('.w-keo'); if (!kh || !ngang()) return; const ds = boCuc(), i = ds.indexOf(kh.dataset.w), dich = ds[i] === 'xem' ? ds[i + 1] : ds[i]; if (dich && E.rong[D.loai][dich]) { delete E.rong[D.loai][dich]; luu(); veD(); } });
+// ── widget trên LƯỚI 2 CHIỀU (bản Pro, màn ngang) — thư viện gridstack 14.1.0 (MIT, lib/gridstack-14.1.0): nắm ĐẦU widget kéo tới ô bất kỳ,
+//    kéo MÉP / GÓC để co giãn ngang + dọc, widget khác tự nhường chỗ; lưới vừa đúng một màn (không cuộn). Độ mịn lưới chọn ở menu Bố cục (6 × 4 · 12 × 8 · 24 × 16).
+//    Vị trí nhớ theo từng loại hình ở E.luoi.vi[loại][widget] = { x, y, w, h } tính theo lưới MỊN NHẤT 24 × 16 (đổi độ mịn không mất bố cục).
+//    Bản Gọn + màn hẹp không dùng lưới: lớp bọc .w-o thành display: contents, bố cục cũ chạy như trước. E.bc[loại] vẫn là danh sách widget đang bật.
+const HANG = { 6: 4, 12: 8, 24: 16 }, NANG = { tv: 5, kb: 5, pc: 5, xem: 9, mb: 5, lp: 4, nk: 5, tt: 5 };
+let GS = null, gsDang = false, gsDau = '';
+for (const w in WG) { const s = $(`#w-${w}`), o = document.createElement('div'), c = document.createElement('div'); o.className = 'grid-stack-item w-o'; o.id = `o-${w}`; c.className = 'grid-stack-item-content'; s.before(o); c.append(s); o.append(c); }
+const luoiBat = () => pro() && window.innerWidth > 900 && E.man === 'dung' && typeof GridStack !== 'undefined', caoO = () => Math.max(24, $('#dGiua').clientHeight / HANG[E.luoi.n]);
+/** bố cục mặc định: một hàng cao hết khu, bề rộng chia theo NANG (Khung xem rộng nhất); nhiều widget hơn số cột thì xếp hai hàng */
+function luoiMau(ds, n, r) {
+  const hang = ds.length > n ? [ds.slice(0, Math.ceil(ds.length / 2)), ds.slice(Math.ceil(ds.length / 2))] : [ds], vi = {};
+  hang.forEach((hg, k) => { const tong = hg.reduce((a, w) => a + NANG[w], 0), rong = hg.map((w) => Math.max(1, Math.floor(NANG[w] / tong * n))); let du = n - rong.reduce((a, x) => a + x, 0);
+    for (const w of ['xem', ...hg]) { if (du <= 0) break; const i = hg.indexOf(w); if (i >= 0) { rong[i]++; du--; } }
+    let x = 0; const h = Math.floor(r / hang.length), y = k * h; hg.forEach((w, i) => { vi[w] = { x, y, w: rong[i], h: k === hang.length - 1 ? r - y : h }; x += rong[i]; }); });
+  return vi;
+}
+/** bật thêm một widget: lấy phần bên phải của widget đang rộng nhất (thường là Khung xem); không ai đủ rộng → để gridstack tự tìm chỗ */
+function chenO(vi, n) { const ung = Object.entries(vi).filter(([, v]) => v.w >= 2).sort((a, b) => b[1].w * b[1].h - a[1].w * a[1].h || (b[0] === 'xem') - (a[0] === 'xem'))[0]; if (!ung) return null;
+  const c = ung[1], nw = Math.max(1, Math.min(Math.round(n / 4), Math.floor(c.w / 2))); c.w -= nw; return { x: c.x + c.w, y: c.y, w: nw, h: c.h }; }
+/** tắt một widget: chỗ trống nhường cho widget liền kề cùng hàng cùng chiều cao (ưu tiên Khung xem, rồi bên trái) */
+function boO(vi, w) { const r = vi[w]; delete vi[w]; const ke = Object.entries(vi).filter(([, a]) => a.y === r.y && a.h === r.h && (a.x + a.w === r.x || a.x === r.x + r.w)).sort((a, b) => (b[0] === 'xem') - (a[0] === 'xem') || a[1].x - b[1].x)[0]; if (!ke) return;
+  if (ke[1].x > r.x) ke[1].x = r.x; ke[1].w += r.w; }
+function ghiLuoi() { if (!GS) return; const kc = 24 / E.luoi.n, kr = 16 / HANG[E.luoi.n], vi = {}; for (const nd of GS.engine.nodes) vi[nd.id] = { x: nd.x * kc, y: nd.y * kr, w: nd.w * kc, h: nd.h * kr }; E.luoi.vi[D.loai] = vi; gsDau = JSON.stringify([E.luoi.n, D.loai, vi]); }
+function tatLuoi() { const g = $('#dGiua'); if (GS) { GS.destroy(false); GS = null; } gsDau = ''; g.classList.remove('luoi-bat', 'grid-stack', 'dang-keo', 'hien-luoi'); g.style.height = ''; g.style.minHeight = '';
+  for (const w in WG) { const o = $(`#o-${w}`); o.hidden = false; o.removeAttribute('style'); for (const a of [...o.attributes]) if (a.name.startsWith('gs-')) o.removeAttribute(a.name); o.querySelectorAll(':scope > .ui-resizable-handle').forEach((x) => x.remove()); } }
+function dongBoLuoi(ds) {
+  if (!luoiBat() || !$('#dGiua').clientHeight) return tatLuoi();
+  const g = $('#dGiua'), n = E.luoi.n, r = HANG[n], kc = 24 / n, kr = 16 / r;
+  if (!GS) { g.classList.add('luoi-bat');
+    GS = GridStack.init({ column: n, maxRow: r, cellHeight: caoO(), margin: 4, mode: 'float', animate: false, auto: false, handle: '.w-dau', draggable: { handle: '.w-dau', cancel: 'button, input, a, textarea, select' }, resizable: { handles: 'e, se, s, sw, w' }, alwaysShowResizeHandle: false }, g);
+    GS.on('dragstart resizestart', () => g.classList.add('dang-keo'));
+    GS.on('dragstop resizestop', () => { g.classList.remove('dang-keo'); if (gsDang) return; ghiLuoi(); luu(); veD(); }); }
+  g.style.setProperty('--so-cot', n); g.style.setProperty('--so-hang', r); g.classList.toggle('hien-luoi', E.luoi.hien);
+  const goc = E.luoi.vi[D.loai], kep = (v) => { const w = Math.max(1, Math.min(n, Math.round(v.w / kc))), h = Math.max(1, Math.min(r, Math.round(v.h / kr))); return { x: Math.max(0, Math.min(n - w, Math.round(v.x / kc))), y: Math.max(0, Math.min(r - h, Math.round(v.y / kr))), w, h }; };
+  let vi = goc ? Object.fromEntries(Object.entries(goc).filter(([w, v]) => WG[w] && v && v.w > 0 && v.h > 0).map(([w, v]) => [w, kep(v)])) : {};
+  if (!Object.keys(vi).length) vi = luoiMau(ds, n, r);
+  else { for (const w of Object.keys(vi)) if (!ds.includes(w)) boO(vi, w); for (const w of ds) if (!vi[w]) vi[w] = chenO(vi, n) || { w: Math.max(1, Math.round(n / 4)), h: r }; }
+  const dau = JSON.stringify([n, D.loai, Object.fromEntries(Object.entries(vi).map(([w, v]) => [w, { x: v.x * kc, y: v.y * kr, w: v.w * kc, h: v.h * kr }]))]);
+  if (dau === gsDau && ds.every((w) => $(`#o-${w}`).gridstackNode) && GS.engine.nodes.length === ds.length) return;   // lưới đang đúng như sổ: không đụng (veD gọi rất dày)
+  gsDang = true; GS.batchUpdate(); GS.removeAll(false, false);
+  for (const w in WG) $(`#o-${w}`).hidden = !ds.includes(w);
+  for (const w of [...ds].sort((a, b) => (vi[a].y ?? 99) - (vi[b].y ?? 99) || (vi[a].x ?? 99) - (vi[b].x ?? 99))) GS.makeWidget($(`#o-${w}`), { id: w, ...vi[w], autoPosition: vi[w].x == null });
+  GS.batchUpdate(false); gsDang = false; ghiLuoi();
+}
+// chiều cao một ô = chiều cao khu widget / số hàng: khu này co giãn theo cửa sổ + timeline (timeline vẽ SAU bố cục) nên đo lại mỗi khi nó đổi cỡ
+let caoCu = 0; new ResizeObserver(() => { if (!GS) return; const c = caoO(); if (Math.abs(c - caoCu) > 0.2) { caoCu = c; GS.cellHeight(c); } }).observe($('#dGiua'));
+// kéo mép trên timeline để đổi chiều cao (bản Pro, màn ngang); bấm đúp = về chiều cao tự nhiên
+const datTlCao = () => { $('#dung').style.setProperty('--tl-cao', E.tlCao ? `${E.tlCao}px` : 'auto'); $('#dung').classList.toggle('tl-tay', !!E.tlCao); };
+let keoTl = null; datTlCao();
+$('#tlKeo').addEventListener('pointerdown', (e) => { if (e.button || !luoiBat()) return; e.preventDefault(); keoTl = { y: e.clientY, h0: $('#dTl').getBoundingClientRect().height }; $('#tlKeo').setPointerCapture(e.pointerId); document.body.classList.add('keo-doc'); });
+$('#tlKeo').addEventListener('pointermove', (e) => { if (!keoTl) return; E.tlCao = Math.round(Math.max(110, Math.min(window.innerHeight * 0.62, keoTl.h0 + keoTl.y - e.clientY))); datTlCao(); if (GS) GS.cellHeight(caoO()); });
+const thaTl = () => { if (!keoTl) return; keoTl = null; document.body.classList.remove('keo-doc'); luu(); veD(); if (GS) GS.cellHeight(caoO()); };
+$('#tlKeo').addEventListener('pointerup', thaTl); $('#tlKeo').addEventListener('pointercancel', thaTl);
+$('#tlKeo').addEventListener('dblclick', () => { E.tlCao = 0; datTlCao(); luu(); veD(); if (GS) GS.cellHeight(caoO()); });
 
 // ── NHẬT KÝ (chỉ phim thật): dải BƯỚC của cảnh đang ở kim — mỗi bước một đèn (xong / thiếu / hỏng / cần xem / đang chạy) — và các LƯỢT SINH của bước đó
 //    đọc từ sổ lượt sinh của studio (nhatKyTap: bản gọn cả tập; nhatKyCanh: câu lệnh nguyên văn + tham số của một cảnh, chỉ tải khi mở một lượt).
@@ -464,18 +495,17 @@ function veD() {
   veTl(); veKhung(); veKim(); vePhu(); veMenu();
   document.querySelectorAll('.d-doi .bt').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.g === E.o)));
 }
-/** cột của từng widget: bề rộng người dùng đã kéo (nhớ theo loại hình) thay cho mặc định; Khung xem luôn co giãn lấy phần còn lại */
-const cotWg = (ds) => ds.map((w) => (w !== 'xem' && E.rong[D.loai]?.[w] ? `${E.rong[D.loai][w]}px` : WG[w][1])).join(' ');
 function veBoCuc() {
   const ds = boCuc();
-  $('#dGiua').style.gridTemplateColumns = pro() ? cotWg(ds) : '292px minmax(0, 1fr) 304px';
-  for (const w in WG) { const el = $(`#w-${w}`), i = ds.indexOf(w); el.hidden = i < 0; el.style.order = i + 10; let kh = el.querySelector(':scope > .w-keo'); if (!kh) { el.insertAdjacentHTML('beforeend', '<i class="w-keo" title="Kéo để đổi bề rộng · bấm đúp để về mặc định"></i>'); kh = el.lastElementChild; } kh.dataset.w = w; kh.hidden = !pro() || i < 0 || i === ds.length - 1; if (i < 0 || !pro()) continue;
+  $('#dGiua').style.gridTemplateColumns = luoiBat() ? '' : pro() ? ds.map((w) => WG[w][1]).join(' ') : '292px minmax(0, 1fr) 304px';
+  for (const w in WG) { const el = $(`#w-${w}`), i = ds.indexOf(w); el.hidden = i < 0; el.style.order = i + 10; if (i < 0 || !pro()) continue;
     let them = '';
     if (w === 'xem') { const ng = nguonCo(), ten = TEN_NG;
       them = (ng.length > 1 ? `<span class="doan-bt">${ng.map((n) => `<button type="button" class="bt" data-d="nguon" data-g="${n}" aria-pressed="${E.nguon === n}">${ten[n]}</button>`).join('')}</span>` : '')
         + (D.canh.some((c) => c.hop) ? `<button type="button" class="bt ic-bt" data-d="hopBat" title="Khung nhân vật trên hình 3D" aria-label="Khung nhân vật trên hình 3D" aria-pressed="${E.hop}">${ic('Khung')}</button>` : '')
         + (coClip() ? `<button type="button" class="bt ic-bt" data-d="tat" title="${E.tat ? 'Bật tiếng' : 'Tắt tiếng'}" aria-label="${E.tat ? 'Bật tiếng' : 'Tắt tiếng'}">${ic(E.tat ? 'Tắt tiếng' : 'Tiếng')}</button>` : ''); }
-    $(`#wd-${w}`).innerHTML = `<span class="w-ten" tabindex="0" role="button" data-wg="${w}" aria-label="Widget ${WG[w][0]}: kéo để đổi chỗ, phím mũi tên trái phải để dời" title="Kéo để đổi chỗ · phím ← → để dời">${ic(WG[w][0])}<b>${WG[w][0]}</b></span><span class="w-them">${them}</span><span class="w-nut">${w === 'xem' ? '' : `<button type="button" class="bt ic-bt" data-d="wg" data-g="${w}" title="Ẩn widget này" aria-label="Ẩn widget này">${ic('Đóng')}</button>`}</span>`; }
+    $(`#wd-${w}`).innerHTML = `<span class="w-ten" tabindex="0" role="button" data-wg="${w}" aria-label="Widget ${WG[w][0]}: kéo để dời tới ô khác, phím mũi tên trái phải để đổi chỗ với widget bên cạnh" title="Kéo để dời · kéo mép hoặc góc widget để co giãn · phím ← → đổi chỗ">${ic(WG[w][0])}<b>${WG[w][0]}</b></span><span class="w-them">${them}</span><span class="w-nut">${w === 'xem' ? '' : `<button type="button" class="bt ic-bt" data-d="wg" data-g="${w}" title="Ẩn widget này" aria-label="Ẩn widget này">${ic('Đóng')}</button>`}</span>`; }
+  dongBoLuoi(ds);
 }
 function veTren() {
   const p = pro(), ten = (t, d, them = '') => (p ? nutIc(t, d, '', them) : `<button type="button" class="bt" data-d="${d}" ${them}>${t === 'Hoàn tác' ? '↶ ' : t === 'Làm lại' ? '↷ ' : ''}${t}</button>`);
@@ -493,7 +523,9 @@ function veMenu() {
   else { const ds = boCuc();
     h = `<h3>Bố cục cho loại “${LOAI[D.loai]}”</h3><div class="mn-wg">${Object.keys(WG).map((w) => `<button type="button" class="bt" data-d="wg" data-g="${w}" aria-pressed="${ds.includes(w)}" ${w === 'xem' ? 'disabled' : ''}>${ic(WG[w][0])}${WG[w][0]}</button>`).join('')}</div>
     <h3>Lấy bố cục của loại khác</h3><div class="day-bt">${Object.keys(BC_MAU).map((k) => `<button type="button" class="bt" data-d="bcMau" data-g="${k}">${LOAI[k]}</button>`).join('')}</div>
-    <span class="nho">Mỗi loại hình video nhớ một bố cục riêng. Kéo đầu widget để đổi chỗ, kéo mép phải của widget để đổi bề rộng (bấm đúp mép = về mặc định).</span>`; }
+    <h3>Lưới</h3><div class="day-bt">${[[6, 'Thô 6 × 4'], [12, 'Vừa 12 × 8'], [24, 'Mịn 24 × 16']].map(([n, t]) => `<button type="button" class="bt" data-d="luoi" data-g="${n}" aria-pressed="${E.luoi.n === n}">${t}</button>`).join('')}</div>
+    <div class="day-bt"><button type="button" class="bt" data-d="luoiHien" aria-pressed="${E.luoi.hien}">Luôn hiện lưới</button><button type="button" class="bt" data-d="luoiLai">Xếp lại một hàng</button></div>
+    <span class="nho">Kéo đầu widget để dời tới ô khác, kéo mép hoặc góc widget để co giãn ngang và dọc. Mỗi loại hình video nhớ một bố cục riêng.</span>`; }
   m.innerHTML = h; datMenu();
 }
 function veTv() {
@@ -742,11 +774,15 @@ function lamD(a, d = {}, nut) {
     case 'lopSolo': { const y = canhTai(Math.min(E.t, tong() - 0.001)).c; E.solo = E.solo?.id === y.id && E.solo.k === g ? null : { id: y.id, k: g }; E.nguon = 'lop'; dungChay(); return veD(); }
     case 'lopHet': { const y = canhTai(Math.min(E.t, tong() - 0.001)).c; if (y.an?.length) { ghi(); y.an = []; } E.solo = null; return veD(); }
     case 'wg': { const ds = E.bc[D.loai], i = ds.indexOf(g); if (i >= 0) ds.splice(i, 1); else ds.splice(g === 'tt' || g === 'mb' || g === 'lp' || g === 'nk' ? (ds.includes('tt') && g !== 'tt' ? ds.indexOf('tt') : ds.length) : Math.max(0, ds.indexOf('xem')), 0, g); luu(); return veD(); }
-    case 'wgDi': { const ds = E.bc[D.loai], hien = boCuc(), kia = hien[hien.indexOf(g) + +d.k]; if (!kia) return; const i = ds.indexOf(g), j = ds.indexOf(kia); [ds[i], ds[j]] = [ds[j], ds[i]]; luu(); veD(); return document.querySelector(`.w-ten[data-wg="${g}"]`)?.focus(); }
+    case 'wgDi': { const ds = E.bc[D.loai], vi = E.luoi.vi[D.loai], hien = luoiBat() && vi ? boCuc().filter((w) => vi[w]).sort((a, b) => vi[a].y - vi[b].y || vi[a].x - vi[b].x) : boCuc(), kia = hien[hien.indexOf(g) + +d.k]; if (!kia) return;
+      if (luoiBat() && vi) [vi[g], vi[kia]] = [vi[kia], vi[g]]; else { const i = ds.indexOf(g), j = ds.indexOf(kia); [ds[i], ds[j]] = [ds[j], ds[i]]; } luu(); veD(); return document.querySelector(`.w-ten[data-wg="${g}"]`)?.focus(); }
     case 'nkBuoc': E.nkBuoc = g; E.nkMo = null; luu(); return veNk();
     case 'nkMo': E.nkMo = E.nkMo === +g ? null : +g; veNk(); if (E.nkMo) napNkCanh(); return;
     case 'nkBat': { const ds = E.bc[D.loai]; if (!ds.includes('nk')) ds.splice(ds.includes('tt') ? ds.indexOf('tt') : ds.length, 0, 'nk'); if (g) E.nkBuoc = g; luu(); return veD(); }
-    case 'bcMau': E.bc[D.loai] = [...BC_MAU[g]]; E.rong[D.loai] = {}; luu(); return veD();
+    case 'bcMau': E.bc[D.loai] = [...BC_MAU[g]]; delete E.luoi.vi[D.loai]; luu(); return veD();
+    case 'luoi': E.luoi.n = +g; tatLuoi(); luu(); return veD();
+    case 'luoiHien': E.luoi.hien = !E.luoi.hien; luu(); return veD();
+    case 'luoiLai': delete E.luoi.vi[D.loai]; luu(); return veD();
     case 'moTao': dungChay(); E.menu = null; return man('tao');
     case 'veDung': return man('dung');
     case 'moDung': { const hm = HINH.find((h) => h[0] === S.hinh)?.[1];
@@ -866,7 +902,7 @@ document.addEventListener('keydown', (e) => {
 });
 document.addEventListener('toggle', (e) => { if (e.target.id === 'iThem') E.moThem = e.target.open; }, true);
 document.addEventListener('focusin', (e) => { if (e.target.dataset?.f) E.dangGo = false; });
-window.addEventListener('resize', () => { if (E.menu) { E.menu = null; veTren(); veMenu(); } });
+window.addEventListener('resize', () => { if (E.menu) { E.menu = null; veTren(); veMenu(); } if (E.man === 'dung') { veBoCuc(); if (GS) GS.cellHeight(caoO()); } });
 /** ô gõ của trình dựng: sửa thẳng vào dự án, không vẽ lại bảng đang gõ (giữ con trỏ) */
 function goD(t) {
   const f = t.dataset.f, c = canhChon(); if (!E.dangGo) { ghi(); E.dangGo = true; const n = document.querySelector('#dTren [data-d=lui]'); if (n) n.disabled = false; }

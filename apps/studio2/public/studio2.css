@@ -366,12 +366,24 @@ span.lp-than { cursor: default }
 .nk-mo { display: grid; gap: 6px; padding: 8px; border-top: 1px solid var(--line) } .nk-mo a { color: var(--brass); font-size: 12.5px } .nk-mo .bao { font-size: 12.5px; overflow-wrap: anywhere }
 .nk-mo dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 8px; margin: 0; font: 11.5px/1.4 var(--f-so) } .nk-mo dt { color: var(--ink-3) } .nk-mo dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 90px; overflow: auto }
 
-/* widget kéo thả: đầu widget là tay nắm đổi chỗ, mép phải là tay nắm đổi bề rộng */
-.wg { position: relative }
-@media (min-width: 901px) { .pro .w-dau { cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none } .pro .w-dau button { cursor: pointer } }
+/* widget trên lưới 2 chiều (gridstack): lớp bọc .w-o chỉ có nghĩa khi lưới bật; tắt lưới (bản Gọn, màn hẹp) thì coi như không có */
+.d-giua:not(.luoi-bat) .w-o, .d-giua:not(.luoi-bat) .w-o > .grid-stack-item-content { display: contents !important }
+.d-giua.luoi-bat { display: block; position: relative; height: auto !important; min-height: 0 !important; margin: -4px; overflow: hidden; border-radius: 12px }
+.luoi-bat > .w-o > .grid-stack-item-content { overflow: visible } .luoi-bat .wg { height: 100%; box-sizing: border-box }
+.luoi-bat .w-dau { cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none } .luoi-bat .w-dau button { cursor: pointer }
 .w-ten { border-radius: 6px; padding: 2px 4px; margin-left: -4px } .w-ten:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px }
-.w-keo { position: absolute; top: 0; right: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 3; touch-action: none; border-radius: 0 12px 12px 0 } .w-keo:hover, .keo-rong .w-keo:active { background: color-mix(in srgb, var(--brass) 35%, transparent) }
-@media (max-width: 900px) { .w-keo { display: none } }
-.keo-wg, .keo-wg * { cursor: grabbing !important; user-select: none; -webkit-user-select: none } .keo-rong, .keo-rong * { cursor: col-resize !important; user-select: none; -webkit-user-select: none }
-.wg.nhac { opacity: .45; outline: 2px dashed var(--brass); outline-offset: -2px }
-.wg-cho { position: fixed; width: 4px; border-radius: 2px; background: var(--brass); z-index: 40; pointer-events: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--brass) 25%, transparent) }
+/* tay nắm co giãn nằm trong khe giữa các widget, không đè lên thanh cuộn của widget */
+.luoi-bat .ui-resizable-handle { background: none; z-index: 5 !important; border-radius: 3px }
+.luoi-bat .ui-resizable-e { right: 0; width: 7px; top: 12px; bottom: 12px } .luoi-bat .ui-resizable-w { left: 0; width: 7px; top: 12px; bottom: 12px } .luoi-bat .ui-resizable-s { bottom: 0; height: 7px; left: 12px; right: 12px }
+.luoi-bat .ui-resizable-se { right: 0; bottom: 0; width: 14px; height: 14px; transform: none; cursor: se-resize } .luoi-bat .ui-resizable-sw { left: 0; bottom: 0; width: 14px; height: 14px; transform: none; cursor: sw-resize }
+.luoi-bat .ui-resizable-handle:hover, .luoi-bat .ui-resizable-resizing > .ui-resizable-handle { background: color-mix(in srgb, var(--brass) 45%, transparent) }
+.luoi-bat .grid-stack-placeholder > .placeholder-content { background: color-mix(in srgb, var(--brass) 18%, transparent); border: 2px dashed var(--brass); border-radius: 12px }
+.luoi-bat .ui-draggable-dragging .wg, .luoi-bat .ui-resizable-resizing .wg { box-shadow: 0 10px 30px rgba(5, 7, 15, .28); opacity: .92 } .luoi-bat .ui-draggable-dragging .w-dau { cursor: grabbing }
+/* đường lưới: hiện lúc đang kéo / co giãn, hoặc luôn hiện khi bật ở menu Bố cục */
+.d-giua.dang-keo, .d-giua.hien-luoi { background-image: linear-gradient(to right, color-mix(in srgb, var(--brass) 30%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--brass) 30%, transparent) 1px, transparent 1px);
+  background-size: calc(100% / var(--so-cot, 12)) calc(100% / var(--so-hang, 8)) }
+/* timeline: kéo mép trên để đổi chiều cao; đã đặt tay thì phần hàng cuộn dọc bên trong */
+.d-tl { position: relative } .tl-keo { display: none }
+@media (min-width: 901px) { .pro .tl-keo { display: block; position: absolute; top: 0; left: 12px; right: 12px; height: 7px; cursor: row-resize; z-index: 6; border-radius: 3px; touch-action: none } .pro .tl-keo:hover, .keo-doc .tl-keo { background: color-mix(in srgb, var(--brass) 45%, transparent) }
+  .dung.pro.tl-tay .d-tl { height: var(--tl-cao) } .dung.pro.tl-tay .tl-than { overflow-y: auto } }
+.keo-doc, .keo-doc * { cursor: row-resize !important; user-select: none; -webkit-user-select: none }

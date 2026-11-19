@@ -13,4 +13,6 @@ Widget **Nhật ký** (bản Pro, phim thật; bật ở menu Bố cục, ở Th
 - `scripts/lop-ynt.cjs` — tách từng lớp của cảnh YNT bằng bộ dựng `apps/xuong-video/scripts/lich-su/ban-do.html` (chạy trên iMac, 0₫).
 - `deploy/studio2.on.tc.nginx` — vhost tĩnh sau SSO mos2; `deploy.sh` khối 5e3 tự cài, DNS do `deploy/dns-on-tc.sh` tạo.
 
+**Bố cục widget (bản Pro, màn rộng hơn 900px)** là lưới 2 chiều dựng bằng thư viện gridstack 14.1.0 (MIT, chép sẵn ở `public/lib/gridstack-14.1.0/`, không gọi CDN): nắm đầu widget kéo tới ô bất kỳ, kéo mép / góc để co giãn ngang + dọc, lưới vừa đúng một màn. Menu Bố cục chọn độ mịn lưới (6 × 4 · 12 × 8 · 24 × 16), "Luôn hiện lưới", "Xếp lại một hàng". Mép trên timeline kéo được để đổi chiều cao. Vị trí nhớ theo từng loại hình trong trình duyệt (`E.luoi`, khối "widget trên LƯỚI 2 CHIỀU" trong `studio2.js`). Bản Gọn và màn hẹp không dùng lưới.
+
 Link mở thẳng: phim mẫu `?phim=cn|ynt|leo&ban=gon|pro`; phim thật `?phim=<số phim>&tap=<số tập>&ban=gon|pro[&nk=kb|3d|anh|clip|giong|soat]`.

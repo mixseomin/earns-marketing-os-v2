@@ -18,7 +18,9 @@ export type NguonMau = 'nha' | 'doi_thu';
 export type TrangThaiMau = 'chay' | 'may' | 'thu' | 'chua';
 export type ThamChieu = { id: string; phim: string | null; ngay: number | null; con_chay: boolean; anh: string | null; video: string | null };
 /** một creative mẫu hiện NGUYÊN trong thẻ (anh 19/11/2026 "phải show ngay ra" · "full creative"): ảnh + video nếu có, nhãn ngắn */
-export type BanMau = { anh: string | null; video: string | null; nhan: string | null; link: string | null; con_chay?: boolean };
+export type BanMau = { anh: string | null; video: string | null; nhan: string | null; link: string | null; con_chay?: boolean;
+  /** goc = QC gốc của đối thủ · dung = bản máy dựng theo mẫu (so cạnh nhau — anh 19/11/2026 "Mẫu phải có poster gốc để so sánh mày dựng có đúng ko") */
+  vai?: 'goc' | 'dung' };
 export type MauCr = {
   ma: string; ten: string; loai: LoaiMau; nguon: NguonMau; trang_thai: TrangThaiMau; nhom: string | null; mau: string | null;
   dung_cho: string[]; the_loai: string[]; mo_ta: string; may: string | null; ban: BanMau[];
@@ -35,7 +37,7 @@ export type CrSx = { id: number; anh: string | null; video: string | null; chay:
 /** trạng thái máy dựng theo mẫu (dung-mau.py, etp.mau_dung) — anh 19/11/2026 "Tao cần xem trạng thái quá trình dựng ở đó luôn" */
 export type DungMau = { buoc: string; trang_thai: string; ghi: string | null; cap_nhat: string; creative_ids: number[] };
 export type PhimSx = { content_id: number; ten: string | null; chon: boolean; dong_id: number | null; dong_tt: string | null; dong_ly: string | null; cr: CrSx[]; dung: DungMau | null };
-type MucSo = { ma: string; ten: string; loai: 'cong_thuc' | 'bo_cuc' | 'lop_phu'; dang?: string; nguon: NguonMau; trang_thai: 'may' | 'thu' | 'chua'; dung_cho: string[]; the_loai?: string[]; mo_ta: string; may?: string; anh?: string; tham_chieu?: string[] };
+type MucSo = { ma: string; ten: string; loai: 'cong_thuc' | 'bo_cuc' | 'lop_phu'; dang?: string; anh_dung?: string; anh_dung_phim?: string; nguon: NguonMau; trang_thai: 'may' | 'thu' | 'chua'; dung_cho: string[]; the_loai?: string[]; mo_ta: string; may?: string; anh?: string; tham_chieu?: string[] };
 
 const run = async <T,>(q: ReturnType<typeof sql>) => (await getDb()!.execute(q)) as unknown as T[];
 
@@ -138,7 +140,12 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
       }; }),
     ];
     // mẫu học từ đối thủ: hiện NGUYÊN mọi QC tham chiếu (ảnh + video), nhãn = số ngày chạy
-    for (const m of mau) if (m.tham_chieu.length) m.ban = [...m.ban, ...m.tham_chieu.filter((t) => t.anh || t.video).map((t): BanMau => ({ anh: t.anh, video: t.video, nhan: `${t.ngay ?? '?'} ngày`, link: `https://www.facebook.com/ads/library/?id=${t.id}`, con_chay: t.con_chay }))];
+    // SO GỐC ↔ MÁY DỰNG: QC gốc đối thủ đứng ĐẦU, bản máy dựng theo mẫu ngay cạnh, rồi các QC gốc còn lại — cùng cỡ ô, nhãn GỐC / MÁY DỰNG
+    for (const m of mau) if (m.tham_chieu.length) {
+      const goc = m.tham_chieu.filter((t) => t.anh || t.video).map((t): BanMau => ({ anh: t.anh, video: t.video, nhan: `gốc · ${t.ngay ?? '?'} ngày`, link: `https://www.facebook.com/ads/library/?id=${t.id}`, con_chay: t.con_chay, vai: 'goc' }));
+      const s0 = so.find((x) => x.ma === m.ma), dung: BanMau[] = s0?.anh_dung ? [{ anh: s0.anh_dung, video: null, nhan: `máy dựng · ${s0.anh_dung_phim ?? ''}`.trim(), link: s0.anh_dung, vai: 'dung' }] : [];
+      m.ban = [...m.ban, ...goc.slice(0, 1), ...dung, ...goc.slice(1)];
+    }
     return { mau, phim, luc: new Date().toISOString() };
   } catch (e) {
     return { loi: `đọc mẫu creative không được: ${(e as Error).message}` };

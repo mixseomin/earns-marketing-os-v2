@@ -56,7 +56,7 @@ function BanMauLuoi({ m }: { m: MauCr }) {
         ? <video src={b.video} poster={b.anh ?? undefined} controls muted loop playsInline preload="none" onClick={(e) => e.stopPropagation()} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
         : b.anh ? <img src={b.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
       <span style={{ position: 'absolute', left: 4, top: 4, display: 'inline-flex', gap: 4, pointerEvents: 'none' }}>
-        {b.nhan ? <span style={{ fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: 'rgba(0,0,0,0.7)', color: b.con_chay ? XANH : '#fff', fontVariantNumeric: 'tabular-nums' }}>{b.nhan}{b.con_chay ? ' ●' : ''}</span> : null}
+        {b.nhan ? <span style={{ fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: b.vai === 'dung' ? 'rgba(37,99,235,0.92)' : b.vai === 'goc' ? 'rgba(194,65,12,0.92)' : 'rgba(0,0,0,0.7)', color: b.con_chay && b.vai !== 'goc' ? XANH : '#fff', fontWeight: b.vai ? 600 : undefined, fontVariantNumeric: 'tabular-nums' }}>{b.nhan}{b.con_chay ? ' ●' : ''}</span> : null}
       </span>
       {b.link ? <a href={b.link.startsWith('https://www.facebook.com') ? `https://href.li/?${b.link}` : b.link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
         title={b.link.startsWith('https://www.facebook.com') ? 'mở QC trong Thư viện QC Meta' : 'mở creative cỡ gốc'}
@@ -150,6 +150,7 @@ function The({ m }: { m: MauCr }) {
 }
 
 /** bản giữ trong máy đúng khuôn hiện tại (mỗi mẫu có mảng ban + tham_chieu + dung_cho + the_loai) — bản khuôn cũ thì bỏ, chờ bản mới */
+// khuôn bản giữ: đổi khuôn BanMau (thêm vai gốc / máy dựng) không cần đổi — trường tuỳ chọn
 const hopKhuon = (v: unknown) => { const ds = (v as { mau?: unknown })?.mau; return Array.isArray((v as { phim?: unknown })?.phim) && Array.isArray(ds) && ds.every((m) => typeof (m as Record<string, unknown>)?.may_mau === 'boolean' && ['ban', 'tham_chieu', 'dung_cho', 'the_loai', 'phim_sx'].every((k) => Array.isArray((m as Record<string, unknown>)?.[k]))); };
 
 export function TabMauCr() {

@@ -1,5 +1,5 @@
 {
- "_ghi": "SỔ MẪU CREATIVE — MỘT NƠI (anh 19/11/2026: 'Tạo 1 tab mới là Mẫu Creative' · 'khi lên creative, phải dựa vào 1 mẫu nào đó! Nếu chưa có mẫu thì phải tìm cho ra hoặc phải bổ sung mới!! Ko còn creative tự do nữa'). Web (tab Mẫu Creative, lib/actions/etp-mau-cr.ts) và máy (apps/etp/so_mau.py → cổng len-creative.py: creative nào không gắn được mẫu thì KHÔNG được tải lên Ethopex) cùng đọc tệp này. DẠNG không khai ở đây — đọc etp-dang.json. loai: cong_thuc = công thức máy dựng creative (phải có 'dang' = dạng có dấu, 'nhan' = chữ nhận diện trong ghi chú bản dựng khi một dạng có nhiều công thức, 'mac_dinh' = công thức dùng khi không nhận ra) · bo_cuc / lop_phu = mẫu bố cục / lớp chữ-nút. trang_thai: may = máy đang dựng · thu = có mã, chưa vào máy · chua = mới là tham chiếu. CHỈ công thức trạng thái may / thu được tải lên. tham_chieu = library_id QC đối thủ.",
+ "_ghi": "SỔ MẪU CREATIVE — MỘT NƠI (anh 19/11/2026: 'Tạo 1 tab mới là Mẫu Creative' · 'khi lên creative, phải dựa vào 1 mẫu nào đó! Nếu chưa có mẫu thì phải tìm cho ra hoặc phải bổ sung mới!! Ko còn creative tự do nữa'). Web (tab Mẫu Creative, lib/actions/etp-mau-cr.ts) và máy (apps/etp/so_mau.py → cổng len-creative.py: creative nào không gắn được mẫu thì KHÔNG được tải lên Ethopex) cùng đọc tệp này. DẠNG không khai ở đây — đọc etp-dang.json. loai: cong_thuc = công thức máy dựng creative (phải có 'dang' = dạng có dấu, 'nhan' = chữ nhận diện trong ghi chú bản dựng khi một dạng có nhiều công thức, 'mac_dinh' = công thức dùng khi không nhận ra) · bo_cuc / lop_phu = mẫu bố cục / lớp chữ-nút. trang_thai: may = máy đang dựng · thu = có mã, chưa vào máy · chua = mới là tham chiếu. CHỈ công thức trạng thái may / thu được tải lên. tham_chieu = library_id QC đối thủ. anh_dung = bản MÁY DỰNG theo mẫu (dung-mau.py --bang) đặt cạnh QC GỐC đối thủ để so có dựng đúng mẫu không (anh 19/11/2026).",
  "mau": [
   {
    "ma": "cc_cta",
@@ -408,7 +408,9 @@
     "1419786253363654"
    ],
    "mo_ta": "Tên phim chữ vàng bóng nổi khối (vát cạnh, đổ bóng) đặt 1/3 dưới, đè thẳng lên khung phim điện ảnh — không nền, không nút. Hai QC chạy lâu nhất kho đối thủ (92 ngày).",
-   "may": "dung-mau.py › dt_ten_vang"
+   "may": "dung-mau.py › dt_ten_vang",
+   "anh_dung": "/mau-cr/dt_ten_vang.jpg",
+   "anh_dung_phim": "Undercover Prison King"
   },
   {
    "ma": "dt_logo_chat_lieu",
@@ -432,7 +434,9 @@
     "1851918955714094"
    ],
    "mo_ta": "Tên phim vẽ bằng chất liệu theo chủ đề phim (sóng nước, lửa, phép thuật, huy hiệu) có hoạ tiết bao quanh — logo như phim chiếu rạp.",
-   "may": "dung-mau.py › dt_logo_chat_lieu"
+   "may": "dung-mau.py › dt_logo_chat_lieu",
+   "anh_dung": "/mau-cr/dt_logo_chat_lieu.jpg",
+   "anh_dung_phim": "Undercover Prison King"
   },
   {
    "ma": "dt_ten_nut_vang",
@@ -452,7 +456,9 @@
     "1092249746682945"
    ],
    "mo_ta": "Tên phim hai tầng (từ khoá tô đỏ) giữa khung + nút bo tròn WATCH NOW viền vàng ngay dưới tên.",
-   "may": "dung-mau.py › dt_ten_nut_vang"
+   "may": "dung-mau.py › dt_ten_nut_vang",
+   "anh_dung": "/mau-cr/dt_ten_nut_vang.jpg",
+   "anh_dung_phim": "Undercover Prison King"
   },
   {
    "ma": "dt_key_art_neon",
@@ -473,7 +479,9 @@
     "1889799045326032"
    ],
    "mo_ta": "Nhân vật tách nền chồng hai lớp (chính + phụ), nền chuyển đỏ–tím rực có tia sáng, câu nhử trên đỉnh tô đỏ một từ ('To fight crime, he became a criminal'), tên + nút dưới.",
-   "may": "dung-mau.py › dt_key_art_neon"
+   "may": "dung-mau.py › dt_key_art_neon",
+   "anh_dung": "/mau-cr/dt_key_art_neon.jpg",
+   "anh_dung_phim": "Undercover Prison King"
   },
   {
    "ma": "dt_cau_nhu_dinh",
@@ -492,7 +500,9 @@
     "4503252533269379"
    ],
    "mo_ta": "Một câu nhử chữ có chân nghiêng trắng ở đỉnh khung, một từ tô đỏ ('A fighter is thrown into the death arena') — giữ cảnh phim sạch ở dưới.",
-   "may": "dung-mau.py › dt_cau_nhu_dinh"
+   "may": "dung-mau.py › dt_cau_nhu_dinh",
+   "anh_dung": "/mau-cr/dt_cau_nhu_dinh.jpg",
+   "anh_dung_phim": "Undercover Prison King"
   },
   {
    "ma": "dt_su_thi",
@@ -513,7 +523,9 @@
     "1078372875245973"
    ],
    "mo_ta": "Poster vẽ sử thi (nhân vật + rồng / lửa), tên phim chữ có chân khắc ánh kim + dòng nhỏ dưới 'A FANTASY ROMANCE EPIC'.",
-   "may": "dung-mau.py › dt_su_thi"
+   "may": "dung-mau.py › dt_su_thi",
+   "anh_dung": "/mau-cr/dt_su_thi.jpg",
+   "anh_dung_phim": "Undercover Prison King"
   },
   {
    "ma": "dt_hanh_dong_kim_loai",
@@ -536,7 +548,9 @@
     "28606044065745348"
    ],
    "mo_ta": "Tên phim chữ hẹp nghiêng đậm kiểu phim hành động, mặt kim loại xước / trắng viền tối, đặt giữa dưới.",
-   "may": "dung-mau.py › dt_hanh_dong_kim_loai"
+   "may": "dung-mau.py › dt_hanh_dong_kim_loai",
+   "anh_dung": "/mau-cr/dt_hanh_dong_kim_loai.jpg",
+   "anh_dung_phim": "Undercover Prison King"
   },
   {
    "ma": "dt_khung_player",
@@ -555,7 +569,9 @@
     "1459936659424344"
    ],
    "mo_ta": "Cảnh phim đặt giữa hai dải đen như màn hình trình phát, nút play đỏ ở giữa, nhãn EXCLUSIVE + tên phim phía dưới.",
-   "may": "dung-mau.py › dt_khung_player"
+   "may": "dung-mau.py › dt_khung_player",
+   "anh_dung": "/mau-cr/dt_khung_player.jpg",
+   "anh_dung_phim": "Undercover Prison King"
   },
   {
    "ma": "dt_dai_free",
@@ -574,7 +590,9 @@
     "1114104751104052"
    ],
    "mo_ta": "Một dải trắng mảnh trên đỉnh khung chữ đen 'WATCH MOVIES NOW! FREE' — báo miễn phí ngay giây đầu, cảnh phim giữ nguyên.",
-   "may": "dung-mau.py › dt_dai_free"
+   "may": "dung-mau.py › dt_dai_free",
+   "anh_dung": "/mau-cr/dt_dai_free.jpg",
+   "anh_dung_phim": "Undercover Prison King"
   },
   {
    "ma": "dt_theo_mua",
@@ -594,7 +612,9 @@
     "1088302080694453"
    ],
    "mo_ta": "Key-art cặp nhân vật trên nền theo mùa (cây thông, tuyết, mũ Noel), tên phim nhiều tầng + nút WATCH NOW viền vàng.",
-   "may": "dung-mau.py › dt_theo_mua"
+   "may": "dung-mau.py › dt_theo_mua",
+   "anh_dung": "/mau-cr/dt_theo_mua.jpg",
+   "anh_dung_phim": "Undercover Prison King"
   },
   {
    "ma": "dt_logo_goc",
@@ -613,7 +633,9 @@
     "1069410726133558"
    ],
    "mo_ta": "Logo tên phim chữ nghiêng nhỏ ở góc trên trái, phụ đề thoại trơn giữa dưới — trông như cảnh trích từ phim thật.",
-   "may": "dung-mau.py › dt_logo_goc"
+   "may": "dung-mau.py › dt_logo_goc",
+   "anh_dung": "/mau-cr/dt_logo_goc.jpg",
+   "anh_dung_phim": "Undercover Prison King"
   },
   {
    "ma": "dt_nut_free_do",
@@ -632,7 +654,9 @@
     "2512666309260387"
    ],
    "mo_ta": "Nút bo tròn đỏ nhỏ 'Watch Free' đặt 1/3 dưới, đè thẳng lên cảnh phim — không tên phim, không nền.",
-   "may": "dung-mau.py › dt_nut_free_do"
+   "may": "dung-mau.py › dt_nut_free_do",
+   "anh_dung": "/mau-cr/dt_nut_free_do.jpg",
+   "anh_dung_phim": "Undercover Prison King"
   }
  ]
 }

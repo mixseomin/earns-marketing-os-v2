@@ -383,7 +383,7 @@ function ChonSo({ v, dat, may }: { v: number; dat: (n: number) => void; may: num
     {!SO_NHANH.includes(v) ? <b style={{ marginLeft: 6, fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>{v}</b> : null}
   </div>;
 }
-// THẺ MỘT LOẠI NỘI DUNG trong form (#1540): tên + giá · thời gian + mô tả 3 dòng + 2 video ví dụ thu nhỏ (rê chạy); Máy làm / khoá đầy đủ ở thẻ nổi ⓘ
+// THẺ MỘT LOẠI NỘI DUNG trong form (#1540): tên + giá · thời gian + mô tả 2 dòng (video ví dụ ở cột XemViDu của loại đang chọn); Máy làm / khoá đầy đủ ở thẻ nổi ⓘ
 function TheLoai({ l, chon, dat }: { l: LoaiNoiDung; chon: boolean; dat: () => void }) {
   return <label style={{ display: 'flex', flexDirection: 'column', gap: 4, border: `1px solid ${chon ? '#60a5fa' : 'var(--line)'}`, borderRadius: 8, padding: '8px 10px', minWidth: 0,
     cursor: l.chay ? 'pointer' : 'not-allowed', opacity: l.chay ? 1 : 0.5, background: chon ? 'rgba(96,165,250,.08)' : undefined }}>
@@ -394,16 +394,23 @@ function TheLoai({ l, chon, dat }: { l: LoaiNoiDung; chon: boolean; dat: () => v
         <span style={{ color: 'var(--fg-3)', cursor: 'help', fontSize: 12 }}>ⓘ</span></ReThe></span>
     </div>
     <div style={{ fontSize: 10.5, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.gia.split(' (')[0]} · {l.thoi_gian.split(' (')[0]}</div>
-    <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{l.mo_ta}</div>
+    <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{l.mo_ta}</div>
     {l.khoa ? <div style={{ fontSize: 10.5, color: '#fbbf24', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Chưa chạy được: {l.khoa}</div> : null}
-    {l.vi_du.length ? <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
-      {l.vi_du.slice(0, 2).map((v) => <div key={v.creative_id} style={{ fontSize: 10, color: 'var(--fg-2)', width: 72, minWidth: 0 }}>
-        <video src={`${v.video}#t=3`} muted playsInline preload="metadata" onMouseEnter={(e) => void e.currentTarget.play().catch(() => {})} onMouseLeave={(e) => e.currentTarget.pause()}
-          style={{ width: 72, height: 128, objectFit: 'cover', background: '#000', borderRadius: 5, display: 'block' }} />
-        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>#{v.creative_id}</div>
-        <div style={{ fontVariantNumeric: 'tabular-nums' }}>lãi <b style={{ color: v.lai >= 0 ? '#4ade80' : '#f87171' }}>{v.lai >= 0 ? '+' : '−'}${Math.abs(v.lai)}</b></div></div>)}
-    </div> : <div style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>Chưa có ví dụ chạy ≥ $5 trong 14 ngày.</div>}
   </label>;
+}
+// XEM TRƯỚC loại đang chọn (#1540 lượt 2): video ví dụ chỉ hiện cho MỘT loại, ở cột phải — thẻ loại không mang video nên 9+ loại vẫn vừa 2 hàng thấp, form một màn
+function XemViDu({ l }: { l: LoaiNoiDung | undefined }) {
+  if (!l) return null;
+  return <div style={{ flex: 'none', width: 196, display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <div style={{ fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ví dụ {l.ten.split(' — ')[0]} · rê để chạy</div>
+    {l.vi_du.length ? <div style={{ display: 'flex', gap: 8 }}>
+      {l.vi_du.slice(0, 2).map((v) => <div key={v.creative_id} style={{ fontSize: 10, color: 'var(--fg-2)', width: 90, minWidth: 0 }}>
+        <video src={`${v.video}#t=3`} muted playsInline preload="metadata" onMouseEnter={(e) => void e.currentTarget.play().catch(() => {})} onMouseLeave={(e) => e.currentTarget.pause()}
+          style={{ width: 90, height: 160, objectFit: 'cover', background: '#000', borderRadius: 5, display: 'block' }} />
+        <div style={{ display: 'flex', gap: 4, marginTop: 2, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>#{v.creative_id}
+          <b style={{ marginLeft: 'auto', color: v.lai >= 0 ? '#4ade80' : '#f87171' }}>{v.lai >= 0 ? '+' : '−'}${Math.abs(v.lai)}</b></div></div>)}
+    </div> : <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Chưa có ví dụ chạy ≥ $5 trong 14 ngày.</div>}
+  </div>;
 }
 export function FormChayDong({ contentId, onClose, moRong }: { contentId: number; onClose: () => void; /** mở rộng phim đang chạy: hỏi thêm số camp mới (anh 04/11/2026) */ moRong?: boolean }) {
   const [f, setF] = useState<Awaited<ReturnType<typeof formDong>> | null>(null);
@@ -444,8 +451,11 @@ export function FormChayDong({ contentId, onClose, moRong }: { contentId: number
       </FormModalSection>
       <FormModalSection>
         <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Loại nội dung QC</div>
-        <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fill, minmax(196px, 1fr))' }}>
-          {f.loai.map((l: LoaiNoiDung) => <TheLoai key={l.ma} l={l} chon={loai === l.ma} dat={() => setLoai(l.ma)} />)}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <div style={{ flex: '1 1 0', minWidth: 0, display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
+            {f.loai.map((l: LoaiNoiDung) => <TheLoai key={l.ma} l={l} chon={loai === l.ma} dat={() => setLoai(l.ma)} />)}
+          </div>
+          <XemViDu l={f.loai.find((l: LoaiNoiDung) => l.ma === loai)} />
         </div>
         {loi ? <div style={{ color: '#f87171', marginTop: 8 }}>{loi}</div> : null}
       </FormModalSection>

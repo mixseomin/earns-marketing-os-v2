@@ -7,6 +7,9 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1540, tep: 'apps/etp2/src/components/etp-dong.tsx', mot: '<ChonSo v={soCamp} dat={setSoCamp} may={f.kPlan ?? null} />', cam: 'type="number"', vi: 'form Mở rộng phim: chọn số camp bằng nút 1–10 + −/+, không ô nhập số (anh 05/11/2026 "ko dùng format số khó dùng")' },
+  { card: 1540, tep: 'apps/etp2/src/components/etp-dong.tsx', mot: "<XemViDu l={f.loai.find((l: LoaiNoiDung) => l.ma === loai)} />", vi: 'form Mở rộng phim một màn: video ví dụ chỉ cho loại đang chọn ở cột phải — thẻ loại không mang video (9 loại 2 hàng thấp, không cuộn; anh "Bố cục lại theo YDNI để ko phải scroll")' },
+  { card: 1540, tep: 'apps/etp2/src/components/etp-dong.tsx', co: "gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))'", cam: "style={{ width: 72, height: 128, objectFit: 'cover'", vi: 'lưới thẻ loại nội dung gọn, không nhét video 72×128 vào từng thẻ' },
   { card: 1530, tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'Nhận phim (giữ 24 giờ)', vi: 'menu ⋯ tab Phim không còn mục Nhận phim (anh 04/11/2026 "Bỏ tính năng nhận phim này đi")' },
   { card: 1530, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "header: 'Người nhận'", vi: 'tab Phim không còn cột Người nhận' },
   { card: 1530, tep: 'apps/etp2/src/components/etp-view.tsx', cam: "header: 'Tiến độ nhận'", vi: 'tab Phim không còn cột Tiến độ nhận' },

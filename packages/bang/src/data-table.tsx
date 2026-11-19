@@ -200,6 +200,7 @@ export function DataTable<T>({
   const khoaRong = persistKey ? `tbl-rong.${persistKey}` : null;
   const [rong, setRong] = useState<Record<string, number>>({});
   const [dangKeo, setDangKeo] = useState<string | null>(null);   // khoá cột đang kéo
+  const tuChotRef = useRef<string | null>(null);   // chuỗi khoá cột lúc tự chốt (KHOÁ BỀ RỘNG LÀM MẶC ĐỊNH, dưới); null = chưa tự chốt / người đã kéo tay
   const [khung, setKhung] = useState(0);   // bề ngang khung chứa bảng — khung hẹp hơn tổng bề ngang đã lưu thì co các cột theo tỉ lệ
   useEffect(() => { if (khoaRong) setRong(docRongCot(khoaRong)); }, [khoaRong]);
   const keoCot = (e: ReactPointerEvent<HTMLSpanElement>, key: string) => {
@@ -208,6 +209,7 @@ export function DataTable<T>({
     // chốt bề ngang HIỆN TẠI của mọi cột trước khi chuyển sang fixed — không thì các cột chưa khai width nhảy lung tung lúc bắt đầu kéo
     // Bề ngang GIỮ SỐ LẺ (2 chữ số): tổng các cột = đúng bề ngang bảng. Trước đây Math.ceil từng cột → lố ~1px/cột, 9 cột lố ~10px → bảng cuộn ngang, hết co theo màn (góp ý #giao-20261118T2101-chuyen-tz5p).
     const chot: Record<string, number> = {}; Array.from(hang.children).forEach((x, i) => { const k = visibleKeys[i]; if (k) chot[k] = Math.round((x as HTMLElement).getBoundingClientRect().width * 100) / 100; });
+    tuChotRef.current = null;   // người kéo tay → bề ngang thành của người, đổi bộ cột không xoá
     setRong((r) => ({ ...r, ...chot })); setDangKeo(key);
     batDauKeo(e, { dau: th.getBoundingClientRect().width, min: 36, max: () => 1600,
       doi: (v) => setRong((r) => ({ ...r, [key]: v })),
@@ -537,18 +539,22 @@ export function DataTable<T>({
     const ro = new ResizeObserver(doKhung); ro.observe(cha); doKhung();
     return () => ro.disconnect();
   }, [coDinh, effView]);
-  // CO THEO KHUNG NGAY TỪ ĐẦU (góp ý #giao-20261119T0917-chuyen-n7dt): chưa kéo cột lần nào → table-layout auto giãn theo nội dung, có thể vượt khung
-  // (cty /nhan-su 1480px trong khung 1334px) → cuộn ngang. Bảng tràn khung (và khung ≥ minWidth) → chốt bề ngang đang hiện của các cột vào `rong`
-  // (KHÔNG ghi localStorage) → bảng chuyển fixed và hienRef co theo tỉ lệ đúng như sau khi kéo. Khung hẹp hơn minWidth thì vẫn cuộn ngang như cũ.
+  // KHOÁ BỀ RỘNG LÀM MẶC ĐỊNH (góp ý #giao-20261119T1724-chuyen-e09q; trước đó #giao-20261119T0917-chuyen-n7dt chỉ chốt khi bảng tràn khung):
+  // chưa kéo cột lần nào → table-layout auto chia cột theo NỘI DUNG → mỗi lần vẽ lại (sang trang, lọc, dữ liệu làm tươi) các cột nhảy bề ngang.
+  // Lần vẽ đầu CÓ DỮ LIỆU: chốt bề ngang đang hiện của mọi cột vào `rong` (KHÔNG ghi localStorage) → bảng chuyển fixed, bề ngang đứng yên; bảng
+  // tràn khung thì hienRef co theo tỉ lệ như sau khi kéo. Đổi bộ cột (ẩn / hiện / thêm cột) mà bề ngang là bản TỰ CHỐT → bỏ chốt, đo lại theo bộ mới.
+  // Bản đã lưu từ lần kéo tay (docRongCot) luôn thắng: setRong dạng hàm chỉ ghi khi `rong` còn trống.
+  const boCot = visibleKeys.join('|');
   useEffect(() => {
-    if (coDinh || effView !== 'table') return;
-    const bang = bangRef.current, cha = bang?.parentElement; if (!bang || !cha) return;
+    if (tuChotRef.current != null && tuChotRef.current !== boCot && !dangKeo) { tuChotRef.current = null; setRong({}); return; }
+    if (coDinh || effView !== 'table' || pageRows.length === 0) return;
+    const bang = bangRef.current; if (!bang) return;
     const hangs = bang.querySelectorAll('thead tr'); const hang = hangs[hangs.length - 1]; if (!hang) return;
-    const w = cha.clientWidth;
-    if (w < minWidth || bang.getBoundingClientRect().width <= w + 1) return;
     const chot: Record<string, number> = {};
     Array.from(hang.children).forEach((x, i) => { const k = visibleKeys[i]; if (k) chot[k] = Math.round((x as HTMLElement).getBoundingClientRect().width * 100) / 100; });
-    if (Object.keys(chot).length) setRong(chot);
+    if (!Object.values(chot).some((v) => v > 0)) return;   // bảng đang ẩn (tab khác, display:none) → chưa đo được, đợi lần vẽ sau
+    tuChotRef.current = boCot;
+    setRong((r) => { if (Object.keys(r).length) { tuChotRef.current = null; return r; } return chot; });   // r có sẵn = bản kéo tay đã lưu → không phải tự chốt
   });
   // NHÓM DÍNH: dòng nhóm đã cuộn qua mép dưới khối tiêu đề mà nhóm vẫn còn dòng dưới → chép dòng nhóm đó vào khối tiêu đề dính (thân bảng nằm trong
   // hộp overflow-x nên position:sticky của chính <tr> không dính theo trang được — cùng lý do tiêu đề là bảng riêng)

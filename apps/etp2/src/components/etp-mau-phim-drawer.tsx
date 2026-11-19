@@ -37,7 +37,8 @@ function ghiUrl(k: string, v: string | null) {
 // (danh sách Phim đối thủ, useDoiThu) ghép phim Ethopex cùng tên → số mẫu này / nhà / đội + nút Sinh. Phim đối thủ chưa có trên Ethopex thì không sinh được (ghi rõ).
 type XemNgan = 'dt' | 'etp';
 type DongDt = PhimDoiThu & { e: Dong | null; nhom: string };
-const NHOM_DT = ['1 · Đã có creative mẫu này', '2 · Đang sinh / đã chọn', '3 · Nhà đang chạy phim — chưa có mẫu này', '4 · Nhà chưa chạy phim', '5 · Không có trên Ethopex'] as const;
+// nhóm 3 = cơ hội: đối thủ chạy mà nhà chưa từng lên camp phim — đứng trước phim nhà đã chạy
+const NHOM_DT = ['1 · Đã có creative mẫu này', '2 · Đang sinh / đã chọn', '3 · Nhà chưa chạy phim — cơ hội', '4 · Nhà đã chạy phim — chưa có mẫu này', '5 · Không có trên Ethopex'] as const;
 
 export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => void }) {
   const [du, setDu] = useState<Awaited<ReturnType<typeof docPhimChon>> | null>(null);
@@ -62,7 +63,7 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
   const theoId = useMemo(() => new Map(rows.map((p) => [p.id, p])), [rows]);
   const dtRows: DongDt[] = useMemo(() => (dt?.phim ?? []).filter((p) => p.qc_dang > 0).map((p) => {
     const e = p.etp ? theoId.get(p.etp.id) ?? null : null;
-    const nhom = !p.etp ? NHOM_DT[4] : !e ? NHOM_DT[4] : e.cr_mau ? NHOM_DT[0] : e.nhom === NHOM[1] ? NHOM_DT[1] : e.nha.dang || e.nha.tong ? NHOM_DT[2] : NHOM_DT[3];
+    const nhom = !p.etp ? NHOM_DT[4] : !e ? NHOM_DT[4] : e.cr_mau ? NHOM_DT[0] : e.nhom === NHOM[1] ? NHOM_DT[1] : e.nha.dang || e.nha.tong ? NHOM_DT[3] : NHOM_DT[2];
     return { ...p, e, nhom };
   }).sort((a, b) => a.nhom.localeCompare(b.nhom) || b.qc_dang - a.qc_dang || b.lau_nhat - a.lau_nhat), [dt, theoId]);
   const loc_ = rows.filter((p) => loc.every((k) => LOC.find((l) => l.value === k)!.f(p)));

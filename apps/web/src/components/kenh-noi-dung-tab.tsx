@@ -10,7 +10,8 @@ import { ChonKySocial } from './tai-san-social';
 
 // Kênh social ĐÃ CHUYỂN (so-kenh.json loai 'social', lộ trình _chuyen_social — anh 14/11/2026 "cho sang đây") nằm CÙNG bảng, sau kênh sản phẩm;
 // social trỏ về của nó tính theo SITE ĐÍCH của máy, của kênh sản phẩm theo link kênh.
-export async function KenhNoiDungTab({ ky: kyThu }: { ky?: string } = {}) {
+/** anKy: widget D6 của /home — bộ chọn kỳ social nằm ở thanh đầu trang, không vẽ thêm ở đây */
+export async function KenhNoiDungTab({ ky: kyThu, anKy }: { ky?: string; anKy?: boolean } = {}) {
   const ky = (KY_SOCIAL as readonly number[]).includes(Number(kyThu)) ? Number(kyThu) : 7;
   const hom = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }), loi: string[] = [];
   const [kenh0, kenhSo, tro] = await Promise.all([
@@ -25,7 +26,7 @@ export async function KenhNoiDungTab({ ky: kyThu }: { ky?: string } = {}) {
   return (
     <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'minmax(0, 1fr)' }}>
       {loi.length > 0 && <div style={{ color: 'var(--bad)', fontSize: 12 }}>{loi.join(' · ')}</div>}
-      <ChonKySocial ky={ky} />
+      {!anKy && <ChonKySocial ky={ky} />}
       <TaiSanKenhSp kenh={kenh} kySocial={ky} />
     </div>
   );

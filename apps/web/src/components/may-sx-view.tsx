@@ -8,6 +8,7 @@ import { InfoHint } from '@/components/ui/info-hint';
 import { ChuoiNhip } from '@/components/ui/chuoi-nhip';
 import { ChuoiBuoc } from '@/components/etp-dong';
 import { useModalParam } from '@/lib/use-modal-param';
+import { useChuNgan } from '@/lib/home/chu-ngan';
 import { ChiTietSp } from '@/components/tai-san-view';
 import { ChiTietBai } from '@/components/social-lich-luoi';
 import { KenhNgan, useNganKenh } from '@/components/kenh-ngan';
@@ -67,19 +68,24 @@ const COT_LUOT: DataColumn<Luot>[] = [
   { key: 'tep', header: 'Tệp', width: 60, cell: (x) => (x.tep ? <span style={{ color: '#60a5fa' }}>xem</span> : '—') },   // tệp xem trong ngăn bài (bấm cả dòng), không mở tab mới
 ];
 
-export function MaySxView() {
+/** chi: widget /home — 'viec' = chỉ bảng Đang sản xuất, 'luot' = chỉ bảng Lượt đã dựng; không ghi bộ lọc lên URL (hai widget cùng màn sẽ đè nhau).
+ *  Không truyền = tab Máy SX đủ như cũ. Ngăn chi tiết chỉ MỘT bản vẽ (useChuNgan) dù màn có cả hai widget. */
+export function MaySxView({ chi }: { chi?: 'viec' | 'luot' } = {}) {
+  const chuNgan = useChuNgan('may-sx');
   const sp = useModalParam('sp'), ob = useModalParam('ob'), ngan = useNganKenh();
   const [ngay, setNgay] = useState(() => { try { return new URLSearchParams(window.location.search).get('sx_ngay') ?? '7'; } catch { return '7'; } });
   const [du, setDu] = useState<{ luot: Luot[]; viec: ViecSx[]; kenh: KenhSp[]; loi: string[]; ghiChu?: string[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
   const [nguon, setNguon] = useState<NguonSx | null>(() => { try { return (new URLSearchParams(window.location.search).get('sx_nguon') as NguonSx) || null; } catch { return null; } });
   useEffect(() => {
-    const p = new URLSearchParams(window.location.search); if (ngay === '7') p.delete('sx_ngay'); else p.set('sx_ngay', ngay);
-    if (nguon) p.set('sx_nguon', nguon); else p.delete('sx_nguon');
-    window.history.replaceState(null, '', `${window.location.pathname}?${p}`);
+    if (!chi) {
+      const p = new URLSearchParams(window.location.search); if (ngay === '7') p.delete('sx_ngay'); else p.set('sx_ngay', ngay);
+      if (nguon) p.set('sx_nguon', nguon); else p.delete('sx_nguon');
+      window.history.replaceState(null, '', `${window.location.pathname}?${p}`);
+    }
     let dung = false;
     const hoi = async () => { try { const r = await fetch(`/api/may-sx/so?ngay=${ngay}`, { cache: 'no-store' }); const j = await r.json(); if (j.error) throw new Error(j.error); if (!dung) { setDu(j); setLoi(null); } } catch (e) { if (!dung) setLoi((e as Error).message); } };
     hoi(); const t = setInterval(hoi, 30_000); return () => { dung = true; clearInterval(t); };
-  }, [ngay, nguon]);
+  }, [ngay, nguon, chi]);
   const moViec = (v: ViecSx) => {
     if ('ed' in v.mo) openEntityDrawer(v.mo.ed, v.mo.id); else if ('sp' in v.mo) sp.open('sp', v.mo.sp.x.khoa);
     else if ('kenh' in v.mo) ngan.mo('kenh', v.mo.kenh); else ob.open('o-lich', khoaBai(v.mo.bai));
@@ -92,17 +98,17 @@ export function MaySxView() {
     // chỗ xuống dòng) và kéo cả trang cuộn ngang 2.634px (do-man cuon 11/11/2026). Chặn ở khung: bảng tự cuộn ngang trong dt-scroll của nó.
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
       {/* ĐẦU TRANG MỘT DÒNG (audit 11/11/2026: đoạn giải thích chiếm 523px trên điện thoại nằm ngang, hơn một màn trước hàng dữ liệu đầu) — chữ đầy đủ vào InfoHint */}
-      <div style={{ fontSize: 13, color: 'var(--fg-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+      {!chi && <div style={{ fontSize: 13, color: 'var(--fg-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
         <span>Việc sản xuất của mọi nguồn · bấm dòng mở chi tiết · tự chạy 06:00 và 18:00</span>
         <InfoHint label="Máy SX hoạt động thế nào">
           Mọi việc sản xuất của Ethopex, Kênh nội dung, Social / Page và Puzzle gom về đây — bấm một dòng mở ngăn chi tiết ngay tại chỗ.
           Máy SX của Page dựng tệp cho bài đã lên lịch rồi nộp Phòng Nội dung chấm; Máy Đăng lấy bài đã DUYỆT. Sổ dạng bài: apps/xuong-video/kieu-sx.json.
           Tự chạy trên iMac lúc 06:00 và 18:00 (sổ việc nền cty). Dựng hỏng thử lại một lần; vẫn hỏng hoặc treo quá 40 phút thì Khang (Phòng Social Traffic) nhận việc sửa.
         </InfoHint>
-      </div>
+      </div>}
       {loi ? <div role="alert" style={{ border: '1px solid var(--bad, #dc2626)', color: 'var(--bad, #dc2626)', borderRadius: 8, padding: 10, fontSize: 13 }}>Không đọc được sổ Máy SX: {loi}</div> : null}
       {du?.loi?.length ? <div role="alert" style={{ border: '1px solid var(--warn, #d97706)', color: 'var(--warn, #d97706)', borderRadius: 8, padding: 10, fontSize: 13 }}>{du.loi.join(' · ')}</div> : null}
-      <section>
+      {chi !== 'luot' && <section>
         <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Đang sản xuất — mọi nguồn {du ? <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {du.viec.length} việc · {du.viec.filter((v) => v.loi).length} lỗi · {du.viec.filter((v) => v.ghi?.startsWith('⏸')).length} dừng có chủ đích</span> : null}
           {du?.ghiChu?.length ? <InfoHint label="Phạm vi bảng">{du.ghiChu.join(' · ')}</InfoHint> : null}</h3>
         {du ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
@@ -117,8 +123,8 @@ export function MaySxView() {
               getRowKey={(v) => v.khoa} onRowClick={(v) => moViec(v)} rowTitle={() => 'bấm xem chi tiết'}
               rowStyle={(v) => (v.loi ? { background: 'color-mix(in srgb, var(--bad, #dc2626) 7%, transparent)' } : undefined)}
               pageSize={20} persistKey="may-sx-viec" minWidth={760} />}
-      </section>
-      <section>
+      </section>}
+      {chi !== 'viec' && <section>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
           <h3 style={{ margin: 0, fontSize: 15 }}>Lượt đã dựng</h3>
           {du ? <span style={{ fontSize: 13, color: 'var(--fg-2)' }}>{du.luot.length} lượt · {hong} hỏng · {tien.toLocaleString('vi-VN')}₫</span> : null}
@@ -128,11 +134,11 @@ export function MaySxView() {
         </div>
         {!du ? null : !du.luot.length ? <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Chưa có lượt dựng nào trong {ngay} ngày.</div>
           : <DataTable rows={du.luot} columns={COT_LUOT} getRowKey={(x) => String(x.id)} onRowClick={(x) => { if (x.bai) ob.open('o-lich', khoaBai(x.bai)); }} rowTitle={(x) => (x.bai ? 'bấm mở ngăn bài' : 'bài không còn trong sổ bài')} pageSize={20} persistKey="may-sx-luot" minWidth={900} />}
-      </section>
-      {/* NGĂN SẴN CÓ của từng nguồn — không có ngăn riêng của Máy SX */}
-      {spMo ? <ChiTietSp key={spMo.x.khoa} s={spMo.s} x={spMo.x} onClose={sp.close} /> : null}
-      {baiMo ? <ChiTietBai x={baiMo} onClose={ob.close} /> : null}
-      {du ? <KenhNgan kenh={du.kenh} /> : null}
+      </section>}
+      {/* NGĂN SẴN CÓ của từng nguồn — không có ngăn riêng của Máy SX. chuNgan: màn /home có cả hai widget Máy SX thì chỉ một bản vẽ ngăn. */}
+      {chuNgan && spMo ? <ChiTietSp key={spMo.x.khoa} s={spMo.s} x={spMo.x} onClose={sp.close} /> : null}
+      {chuNgan && baiMo ? <ChiTietBai x={baiMo} onClose={ob.close} /> : null}
+      {chuNgan && du ? <KenhNgan kenh={du.kenh} /> : null}
     </div>
   );
 }

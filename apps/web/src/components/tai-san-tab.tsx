@@ -1,6 +1,8 @@
 // Tab TÀI SẢN của trang chủ (anh chốt 05/10/2026): mọi thứ sinh tiền hoặc sắp sinh tiền, một màn —
 // website (bảng SEO cũ), shop → sản phẩm (cây; có cả hàng đang làm: sách KDP, Etsy…).
 // Thuần SEO (chi tiết một site, keyword research, SteamSolo) đã sang tab SEO (seo-tab.tsx).
+// Từ 20/11/2026: đọc + tính MỘT chỗ (docTaiSanTab, React cache) — tab cũ vẽ cả năm khối, /home vẽ từng khối thành widget riêng (D1–D5), cùng số.
+import { cache } from 'react';
 import { StatsStrip, type StatCard } from '@/components/ui';
 import { SeoSitesPanel, docSeoSites } from './seo-sites-panel';
 import { TaiSanView } from './tai-san-view';
@@ -15,8 +17,10 @@ import { KY_SOCIAL } from '@/lib/tai-san/social-tro-ve-tinh';
 import { ChonKySocial } from './tai-san-social';
 import type { TrangThaiSp } from '@/lib/tai-san/kieu';
 
-export async function TaiSanTab({ ky: kyThu }: { ky?: string } = {}) {
-  const ky = (KY_SOCIAL as readonly number[]).includes(Number(kyThu)) ? Number(kyThu) : 7;
+export const kySocial = (raw?: string | number): number => ((KY_SOCIAL as readonly number[]).includes(Number(raw)) ? Number(raw) : 7);
+
+/** mọi thứ tab Tài sản cần, đọc một lần cho cả lượt vẽ */
+export const docTaiSanTab = cache(async (ky: number) => {
   const [sites, ban, kenhDoc, libDoc, luot, so, vso] = await Promise.all([docSeoSites(), docTaiSanBan(), docKenh().catch((e: Error) => e), docPhuongPhap().catch((e: Error) => e), docLuotNguon().catch(() => ({})), docKenhSo().catch(() => ({})), docVideoSo().catch((e: Error) => e)]);
   if (vso instanceof Error) ban.loi.push(`số video short (kenh_so_ngay): ${vso.message}`);
   // SOCIAL TRỎ VỀ (anh 02/11/2026): mỗi site / sản phẩm / kênh nội dung — số kênh social trỏ về + số trong khung ky ngày
@@ -31,11 +35,10 @@ export async function TaiSanTab({ ky: kyThu }: { ky?: string } = {}) {
   // Áp thư viện lên MỌI sản phẩm trên cây (ap-dung.ts): tựa + ô theo nhắm, ô thiếu dòng sổ = chưa làm, shop không ai nhắm = thiếu.
   const ap = ganSo(ganLuot(apDung(ban.shops, lib, kenhDoc instanceof Error ? [] : kenhDoc), luot), so);
   const web = sites.ok ? sites.rows : [];
-  const nha = web;
   const sp = ban.shops.flatMap((s) => s.sp);
   const dem = (k: TrangThaiSp) => sp.filter((x) => x.trangThai === k).length;
   const cards: StatCard[] = [
-    { key: 'web', label: 'Website', value: nha.length, sub: `${nha.reduce((t, r) => t + (r.ga4_users_7d ?? 0), 0).toLocaleString('en-US')} users 7d` },
+    { key: 'web', label: 'Website', value: web.length, sub: `${web.reduce((t, r) => t + (r.ga4_users_7d ?? 0), 0).toLocaleString('en-US')} users 7d` },
     { key: 'shop', label: 'Shop', value: ban.shops.length, sub: `${sp.length} sản phẩm` },
     { key: 'ban', label: 'Đang bán', value: dem('dang_ban'), color: 'var(--ok)' },
     { key: 'anh', label: 'Chờ anh duyệt', value: dem('cho_anh'), color: dem('cho_anh') ? 'var(--accent)' : undefined },
@@ -43,16 +46,28 @@ export async function TaiSanTab({ ky: kyThu }: { ky?: string } = {}) {
     { key: 'san', label: 'Sẵn sàng', value: dem('san_sang'), sub: 'xong, chưa đăng' },
     { key: 'lam', label: 'Đang làm', value: dem('dang_lam'), sub: `${dem('du_kien')} dự kiến` },
   ];
+  return { ky, sites, ban, cards, vid, tenSp: vso instanceof Error ? {} : vso.tenSp, pin: tinhPin(so), hom, ap, lib };
+});
+
+// năm khối của tab — mỗi khối một hàm để /home dựng thành widget riêng (cùng docTaiSanTab nên cùng số)
+export async function TaiSanSo({ ky }: { ky: number }) { const d = await docTaiSanTab(ky); return <StatsStrip cards={d.cards} minColWidth={120} />; }
+export async function TaiSanWeb({ ky }: { ky: number }) { const d = await docTaiSanTab(ky); return <SeoSitesPanel d={d.sites} kySocial={ky} />; }
+export async function TaiSanShop({ ky }: { ky: number }) { const d = await docTaiSanTab(ky); return <TaiSanView ban={d.ban} kySocial={ky} />; }
+export async function TaiSanVideoNgan({ ky }: { ky: number }) { const d = await docTaiSanTab(ky); return <TaiSanVideo nen={d.vid.nen} video={d.vid.video} tenSp={d.tenSp} pin={d.pin} hom={d.hom} />; }
+export async function TaiSanMaTran({ ky }: { ky: number }) { const d = await docTaiSanTab(ky); return <TaiSanKenh ap={d.ap} lib={d.lib} shops={d.ban.shops.map((x) => ({ khoa: x.khoa, ten: x.ten }))} />; }
+
+export async function TaiSanTab({ ky: kyThu }: { ky?: string } = {}) {
+  const ky = kySocial(kyThu), d = await docTaiSanTab(ky);
   // minmax(0,1fr): ô grid mặc định min-width:auto → bảng rộng (cột Site width 100%) NỞ theo nội dung, đẩy mọi cột số ra ngoài
   // khung thay vì cuộn ngang (anh bắt 05/10/2026).
   return (
     <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'minmax(0, 1fr)' }}>
-      <StatsStrip cards={cards} />
+      <StatsStrip cards={d.cards} />
       <ChonKySocial ky={ky} />
-      <SeoSitesPanel d={sites} kySocial={ky} />
-      <TaiSanView ban={ban} kySocial={ky} />
-      <TaiSanVideo nen={vid.nen} video={vid.video} tenSp={vso instanceof Error ? {} : vso.tenSp} pin={tinhPin(so)} hom={hom} />
-      <TaiSanKenh ap={ap} lib={lib} shops={ban.shops.map((x) => ({ khoa: x.khoa, ten: x.ten }))} />
+      <SeoSitesPanel d={d.sites} kySocial={ky} />
+      <TaiSanView ban={d.ban} kySocial={ky} />
+      <TaiSanVideo nen={d.vid.nen} video={d.vid.video} tenSp={d.tenSp} pin={d.pin} hom={d.hom} />
+      <TaiSanKenh ap={d.ap} lib={d.lib} shops={d.ban.shops.map((x) => ({ khoa: x.khoa, ten: x.ten }))} />
     </div>
   );
 }

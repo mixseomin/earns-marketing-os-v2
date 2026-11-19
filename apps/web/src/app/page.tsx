@@ -1,7 +1,4 @@
-import { SocialTrafficView } from '@/components/social-traffic-view';
-import { getSocialLive } from '@/lib/social-traffic';
-import { EthopexView } from '@/components/ethopex-view';
-import { docEthopex } from '@/lib/ethopex-doc';
+import { EthopexKhoi, SocialKhoi } from '@/components/trang-chu/khoi-lon';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
@@ -26,7 +23,7 @@ import { DeliverabilityCard } from '@/components/deliverability-card';
 import { MailwizzListsPanel } from '@/components/mailwizz-lists-panel';
 import { AwarenessFunnelPanel } from '@/components/awareness-funnel-panel';
 import { AwinDailyPanel } from '@/components/awin-daily-panel';
-import { PortfolioGrid } from '@/components/portfolio-grid';
+import { DuAnLuoi } from '@/components/trang-chu/du-an';
 import { getMode, getAiUsageSummary, type listProjects } from '@/lib/data';
 import { ThuVienTab } from '@/components/thu-vien-tab';
 import { MayDangView } from '@/components/may-dang-view';
@@ -107,39 +104,22 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           {tab === 'luat' && <LuatView />}
           {tab === 'lenh' && <LenhMt5 />}
           {tab === 'duan' && <DuAn projects={projects} />}
-          {tab === 'social' && <Suspense fallback={cho}><SocialTab /></Suspense>}
+          {tab === 'social' && <Suspense fallback={cho}><SocialKhoi /></Suspense>}
           {tab === 'maydang' && <Suspense fallback={cho}><MayDangView /></Suspense>}
           {tab === 'maysx' && <Suspense fallback={cho}><MaySxView /></Suspense>}
           {tab === 'thuvien' && <Suspense fallback={cho}><ThuVienTab tv={sp.tv} /></Suspense>}
-          {tab === 'ethopex' && <Suspense fallback={cho}><EthopexTab /></Suspense>}
+          {tab === 'ethopex' && <Suspense fallback={cho}><EthopexKhoi /></Suspense>}
         </div>
       </div>
     </AppShell>
   );
 }
 
-// Ethopex — camp FB phim ngắn: kéo sống API Ethopex (nhớ 60s) + luật từng camp (lib/ethopex-luat.ts)
-async function EthopexTab() {
-  return <EthopexView du={await docEthopex()} />;
-}
-
-// Social Traffic — góc thật đọc từ spy.on.tc (nhớ 5 phút) cho chế độ LIVE; DEMO nằm sẵn trong view.
-async function SocialTab() {
-  // tab Social gửi số thô xuống trình duyệt; phần HỆ SINH THÁI (~820 KB, chỉ city dùng) bỏ lại — tab 🏙 Thành phố tự lấy mô hình dựng sẵn qua /api/social/thanh-pho
-  // (anh 25/10/2026: trang Social › Lịch đăng 1,9 MB, "tối ưu cho load nhanh hơn")
-  // lưới lịch đăng (~750 KB) cũng bỏ: tab Lịch đăng tự tải khi mở (anh 30/10/2026: trang 1,87 MB "load chậm vãi")
-  const { heSinhThai: _bo, ...nhe } = await getSocialLive({ hst: false, luoi: false });
-  return <SocialTrafficView live={{ ...nhe, heSinhThai: undefined as never }} email={<Suspense fallback={<div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Đang đọc MailWizz…</div>}><MailwizzListsPanel /></Suspense>} />;
-}
-
 async function DuAn({ projects }: { projects: Awaited<ReturnType<typeof listProjects>> }) {
   const aiUsage = await getAiUsageSummary();
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-        <Link href="/p/new" style={{ background: 'var(--accent)', color: 'var(--bg-0)', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>+ New Project</Link>
-      </div>
-      <PortfolioGrid projects={projects} totalBudget={projects.reduce((s, p) => s + p.budget, 0)} />
+      <DuAnLuoi projects={projects} />
       <AiUsageCard usage={aiUsage} />
     </div>
   );

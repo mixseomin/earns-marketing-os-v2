@@ -241,32 +241,47 @@ function docUrl() {
   return { md: (md === 'luot' || md === 'loi' || md === 'may' ? md : 'lich') as Md, ngay: NGAY.some((x) => x.value === ngay) ? ngay! : '3', loc };
 }
 
-export function MayDangView() {
+// nhiều widget Máy Đăng cùng một màn /home hỏi CÙNG một URL trong cùng nhịp → dùng chung một lượt gọi trong 4 giây (không nhân số lần gọi theo số widget)
+const DANG_HOI = new Map<string, { luc: number; p: Promise<Record<string, unknown>> }>();
+function hoiChung(url: string): Promise<Record<string, unknown>> {
+  const nay = Date.now(), c = DANG_HOI.get(url);
+  if (c && nay - c.luc < 4000) return c.p;
+  const p = fetch(url, { cache: 'no-store' }).then((r) => r.json() as Promise<Record<string, unknown>>);
+  DANG_HOI.set(url, { luc: nay, p });
+  if (DANG_HOI.size > 20) for (const [k, v] of DANG_HOI) if (nay - v.luc > 10_000) DANG_HOI.delete(k);
+  return p;
+}
+
+/** chi: widget /home — chỉ vẽ MỘT phần ('so' = dải số; 'lich' / 'luot' / 'loi' / 'may' = đúng mục đó). Mục cố định nên không đọc / ghi trạng thái lên URL
+ *  (hai widget cùng màn ghi chung tham số sẽ đè nhau). Không truyền = tab Máy Đăng đủ như cũ. */
+export function MayDangView({ chi }: { chi?: Md | 'so' } = {}) {
   const dau = useMemo(docUrl, []), modal = useModalParam();
-  const [md, setMd] = useState(dau.md), [ngay, setNgay] = useState(dau.ngay), [loc, setLoc] = useState<Loc>(dau.loc), [q, setQ] = useState(''), [caDung, setCaDung] = useState(false);
+  const canSo = !chi || chi === 'so' || chi === 'luot' || chi === 'loi';   // lịch + máy tự đọc số riêng, không cần sổ lượt
+  const [mdUrl, setMd] = useState(dau.md), md: Md = chi === 'so' ? 'luot' : chi ?? mdUrl, [ngay, setNgay] = useState(dau.ngay), [loc, setLoc] = useState<Loc>(dau.loc), [q, setQ] = useState(''), [caDung, setCaDung] = useState(false);
   const [rows, setRows] = useState<Map<string, Dong>>(new Map()), [chay, setChay] = useState<Chay[]>([]), [admin, setAdmin] = useState(false), [loi, setLoi] = useState<string | null>(null), [tai, setTai] = useState(true);
   const moc = useRef<string | null>(null), ngayRef = useRef(ngay);
 
   useEffect(() => {
+    if (chi) return;
     const p = new URLSearchParams(window.location.search), dat = (k: string, v: string | null) => (v ? p.set(k, v) : p.delete(k));
     dat('md', md === 'lich' ? null : md); dat('md_ngay', ngay === '3' ? null : ngay);
     for (const k of LOC) dat(`md_${k}`, loc[k].length ? loc[k].join(',') : null);
     window.history.replaceState(null, '', `${window.location.pathname}?${p}`);
-  }, [md, ngay, loc]);
+  }, [md, ngay, loc, chi]);
 
   // THỜI GIAN THỰC: lần đầu đọc cả khoảng; sau đó mỗi 5 giây chỉ hỏi dòng mới / vừa cập nhật từ mốc trước (lùi 15 giây chống lọt) + lượt đang chạy
   const hoi = useCallback(async (lai = false) => {
     try {
       const tu = lai ? null : moc.current;
-      const r = await fetch(`/api/may-dang/so?ngay=${ngayRef.current}${tu ? `&tu=${encodeURIComponent(tu)}` : ''}`, { cache: 'no-store' });
-      const j = await r.json(); if (j.error) throw new Error(j.error);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- gói JSON của /api/may-dang/so, kiểu từng trường kiểm ở chỗ dùng như trước
+      const j = (await hoiChung(`/api/may-dang/so?ngay=${ngayRef.current}${tu ? `&tu=${encodeURIComponent(tu)}` : ''}`)) as any; if (j.error) throw new Error(j.error);
       moc.current = new Date(Date.parse(j.luc) - 15_000).toISOString();
       setAdmin(!!j.admin); setChay(j.chay ?? []); setLoi(null);
       setRows((cu) => { const m = lai ? new Map<string, Dong>() : new Map(cu); for (const x of j.rows as Dong[]) m.set(String(x.id), x); return m; });
     } catch (e) { setLoi((e as Error).message); } finally { setTai(false); }
   }, []);
-  useEffect(() => { ngayRef.current = ngay; moc.current = null; setTai(true); void hoi(true); }, [ngay, hoi]);
-  useEffect(() => { const id = setInterval(() => { if (document.visibilityState === 'visible') void hoi(); }, 5_000); return () => clearInterval(id); }, [hoi]);
+  useEffect(() => { if (!canSo) return; ngayRef.current = ngay; moc.current = null; setTai(true); void hoi(true); }, [ngay, hoi, canSo]);
+  useEffect(() => { if (!canSo) return; const id = setInterval(() => { if (document.visibilityState === 'visible') void hoi(); }, 5_000); return () => clearInterval(id); }, [hoi, canSo]);
   const xong = useCallback(() => { void hoi(); }, [hoi]);
 
   const tat = useMemo(() => [...chay.map(dongTam), ...rows.values()].sort((a, b) => Date.parse(b.bd) - Date.parse(a.bd)), [rows, chay]);
@@ -334,15 +349,15 @@ export function MayDangView() {
   const coLoc = LOC.some((k) => loc[k].length) || !!q;
 
   return <div style={{ display: 'grid', gap: 10 }}>
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+    {!chi && <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
       <Segmented<Md> value={md} onChange={setMd} hrefFor={(v) => urlVoiParam('md', v === 'lich' ? null : v)} options={[
         { value: 'lich', label: 'Lịch', title: 'đã đăng + máy sẽ đăng theo tuần / tháng / giờ — cùng lịch với Social Traffic, lọc theo dự án, kênh, nền, tài khoản' },
         { value: 'luot', label: 'Lượt đăng', title: 'mỗi dòng một lượt máy đăng xét một kênh × một nền, mới nhất trên đầu, 7 bước thành 7 cột' },
         { value: 'loi', label: 'Lỗi hay gặp', title: 'gom theo bước dừng × khâu kẹt × nhóm lý do để tập trung sửa — bấm một dòng là lọc ra các lượt đó' },
         { value: 'may', label: 'Máy', title: 'bật / tắt máy, cho nền nghỉ, vòng 10 phút gần nhất, kế hoạch hôm nay' }]} />
       <span style={{ ...nho, color: 'var(--fg-3)' }}>Máy đăng iMac, mỗi 10 phút · phụ trách: Phòng Social Traffic · Pinterest Front Porch (pin-hang) chưa vào sổ · sổ cũ bai_hen (dừng 25/10) và publications (dừng tháng 5) không còn chạy</span>
-    </div>
-    {(md === 'luot' || md === 'loi') && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+    </div>}
+    {(md === 'luot' || md === 'loi') && chi !== 'so' && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
       <Segmented<string> options={NGAY} value={ngay} onChange={setNgay} hrefFor={(v) => urlVoiParam('md_ngay', v === '3' ? null : v)} />
       <MultiSelect label="Dự án" options={opt.da} selected={loc.da} onChange={(v) => dat('da', v)} compact />
       <MultiSelect label="Kênh" options={opt.km} selected={loc.km} onChange={(v) => dat('km', v)} compact />
@@ -355,9 +370,9 @@ export function MayDangView() {
       {LOC.some((k) => loc[k].length) && <button type="button" onClick={() => setLoc(locTrong())} style={{ border: 0, background: 'none', color: 'var(--accent, #60a5fa)', cursor: 'pointer', fontSize: 12 }}>bỏ lọc</button>}
       <span style={{ ...nho, color: loi ? 'var(--danger, #dc2626)' : 'var(--fg-3)', marginLeft: 'auto' }}>{loi ? `không đọc được sổ: ${loi}` : tai ? 'đang đọc…' : `${loc1.length} dòng · tự làm mới 5 giây`}</span>
     </div>}
-    {(md === 'luot' || md === 'loi') && <StatsStrip cards={the} minColWidth={120} />}
+    {(md === 'luot' || md === 'loi') && (!chi || chi === 'so') && <StatsStrip cards={the} minColWidth={120} />}
     {md === 'lich' && <MayDangLich />}
-    {md === 'luot' && (loc1.length || tai
+    {md === 'luot' && chi !== 'so' && (loc1.length || tai
       ? <DataTable rows={loc1} columns={cot} groups={nhom} getRowKey={(r) => String(r.id)} persistKey="may-dang-luot-2" minWidth={1500} pageSize={100} locTuDong={false}
           searchText={(r) => `${r.slug ?? ''} ${r.loi ?? ''} ${r.may_ten} ${r.nen} ${r.url ?? ''}`} searchPlaceholder="Tìm bài / lỗi / kênh…" onTimDoi={setQ}
           defaultSort={[{ key: 'bd', dir: 'desc' }]} onRowClick={moChiTiet}
@@ -372,7 +387,7 @@ export function MayDangView() {
       : <EmptyState icon="📭" title="Không có lượt nào" description={coLoc ? 'Không lượt nào khớp bộ lọc — bỏ bớt lọc hoặc chọn khoảng ngày dài hơn.' : 'Chưa có lượt nào trong khoảng này.'} />)}
     {md === 'loi' && <>
       <label style={{ ...nho, display: 'inline-flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={caDung} onChange={(e) => setCaDung(e.target.checked)} />gồm cả dừng đúng luật / bỏ lượt (mặc định chỉ hỏng, mất dấu, kho cạn)</label>
-      <DataTable rows={gom} getRowKey={(g) => g.khoa} persistKey="may-dang-loi" minWidth={900} locTuDong={false} defaultSort={[{ key: 'lan', dir: 'desc' }]} onRowClick={locLoi} card
+      <DataTable rows={gom} getRowKey={(g) => g.khoa} persistKey="may-dang-loi" minWidth={900} locTuDong={false} defaultSort={[{ key: 'lan', dir: 'desc' }]} onRowClick={chi ? undefined : locLoi} card
         columns={[
           { key: 'ml', header: 'Nhóm lý do', align: 'left', sortValue: (g) => tenLy(g.ml), cell: (g) => <b>{tenLy(g.ml)}</b> },
           { key: 'bd', header: 'Bước', align: 'left', sortValue: (g) => g.bd, cell: (g) => (g.bd ? TEN_BUOC[g.bd] ?? g.bd : '—') },
@@ -385,6 +400,6 @@ export function MayDangView() {
         ]} />
     </>}
     {md === 'may' && <MayDang />}
-    {moR && <ChiTiet r={moR} admin={admin} xong={xong} dong={() => modal.close()} />}
+    {moR && (!chi || chi === 'luot') && <ChiTiet r={moR} admin={admin} xong={xong} dong={() => modal.close()} />}
   </div>;
 }

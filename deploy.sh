@@ -128,6 +128,8 @@ else
     node scripts/check-canon.mjs || { echo "✗ Behavioral-canon guard failed — abort deploy"; exit 1; }
     # Guard: tab cấp trang phải khai ở lib/tab-trang.ts (sidebar tự sinh mục con) — anh chốt 01/10/2026.
     node scripts/check-tab-trang.mjs || { echo "✗ Tab-trang guard failed — abort deploy"; exit 1; }
+    # Guard: /home phải phủ hết trang chủ cũ — tab nào của `/` cũng có widget nhận thay, widget nào cũng có hàm vẽ + nằm trên một màn (anh 20/11/2026).
+    node scripts/check-home-widget.mjs || { echo "✗ /home thiếu widget cho một tab trang chủ hoặc bố cục dựng sẵn hỏng — abort deploy"; exit 1; }
     # Guard: file 'use client' không được kéo DB/fs (next build gãy) — dính 01/10/2026 ở màn hồ sơ /shop.
     node scripts/check-client-db.mjs || { echo "✗ Client-DB guard failed — abort deploy"; exit 1; }
     node apps/xuong-video/scripts/lich-su/kiem-so-kenh.mjs || { echo "✗ sổ kênh (apps/xuong-video/scripts/lich-su/so-kenh.json) hỏng hoặc có bản song song — abort deploy"; exit 1; }

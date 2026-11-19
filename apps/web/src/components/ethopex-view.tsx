@@ -270,16 +270,20 @@ function TabTheLoai({ du }: { du: DuLieuEthopex }) {
   );
 }
 
-export function EthopexView({ du }: { du: DuLieuEthopex }) {
+/** chi: widget /home — chỉ vẽ MỘT phần ('so' = dòng trạng thái + dải số; còn lại = đúng một mục), mục cố định nên không đọc / ghi ?etx và không tự làm mới
+ *  (nhịp làm mới của /home do thanh chân trang giữ). Không truyền = tab Ethopex đủ như cũ. */
+export type ChiEthopex = Xem | 'so';
+export function EthopexView({ du, chi }: { du: DuLieuEthopex; chi?: ChiEthopex }) {
   const modal = useModalParam('em');
   const [loc, setLoc] = useState<Loc>('all');
-  const [xem, setXem] = useState<Xem>('camp');
+  const [xemUrl, setXem] = useState<Xem>('camp');
+  const xem: Xem = chi && chi !== 'so' ? chi : xemUrl;
   const router = useRouter();
-  useEffect(() => { if (xem !== 'ngay') return; const t = setInterval(() => router.refresh(), 60_000); return () => clearInterval(t); }, [xem, router]);   // "realtime": làm mới mỗi phút (server nhớ 60s)
+  useEffect(() => { if (xem !== 'ngay' || chi) return; const t = setInterval(() => router.refresh(), 60_000); return () => clearInterval(t); }, [xem, chi, router]);   // "realtime": làm mới mỗi phút (server nhớ 60s)
   const [hep, setHep] = useState(false);
   useEffect(() => { const mq = window.matchMedia('(max-width: 640px)'); const f = () => setHep(mq.matches); f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
-  useEffect(() => { const q = new URLSearchParams(location.search); const v = q.get('etl') as Loc | null; if (v) setLoc(v); const x = q.get('etx') as Xem | null; if (x) setXem(x); }, []);
-  useEffect(() => { const u = new URL(location.href); if (xem === 'camp') u.searchParams.delete('etx'); else u.searchParams.set('etx', xem); history.replaceState(null, '', u); }, [xem]);
+  useEffect(() => { const q = new URLSearchParams(location.search); const v = q.get('etl') as Loc | null; if (v) setLoc(v); const x = q.get('etx') as Xem | null; if (x && !chi) setXem(x); }, [chi]);
+  useEffect(() => { if (chi) return; const u = new URL(location.href); if (xem === 'camp') u.searchParams.delete('etx'); else u.searchParams.set('etx', xem); history.replaceState(null, '', u); }, [xem, chi]);
   useEffect(() => { const u = new URL(location.href); if (loc === 'all') u.searchParams.delete('etl'); else u.searchParams.set('etl', loc); history.replaceState(null, '', u); }, [loc]);
   const dong: Dong[] = useMemo(() => {
     const soCamp = new Map<number, number>();
@@ -332,6 +336,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
 
   return (
     <div>
+      {(!chi || chi === 'so') && <>
       <div style={{ ...mono, fontSize: 11, color: 'var(--fg-3)', marginBottom: 10 }}>
         Số liệu sống từ Ethopex · cập nhật {truoc(du.luc)} · ROI/lãi từ đầu tháng ({du.ngayUtc ? 'ngày Ethopex 07:00–07:00 giờ VN; tiền chi ghi theo đợt, hôm nay + hôm qua chưa chốt' : 'giờ VN'}) · luật chỉ báo, tăng / giảm / tắt anh duyệt từng camp
         {du.loi ? <span style={{ color: MUC_MAU.dung }}> · lỗi: {du.loi}</span> : null}
@@ -348,8 +353,9 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
       ] as { key: string; label: string; value: React.ReactNode; title?: string }[]).filter((c) => !hep || ['lai', 'roi', 'tb', 'gb'].includes(c.key))
         // màn hẹp (điện thoại): chỉ 4 số chính, cả dải nằm ở hover của "Lãi tháng" — để bảng còn chỗ, trang không cuộn (YDNI)
         .map((c) => (hep && c.key === 'lai' ? { ...c, title: `Camp bật ${dong.filter((d) => d.trang_thai === 'ACTIVE').length}/${dong.length} · chi tháng ${usd(tong.chi)} · cần xem giảm/tắt ${dem('GT')} · ad bị từ chối ${dem('TC')}` } : c))} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', margin: '12px 0 8px' }}>
-        <Segmented<Xem> value={xem} onChange={setXem} hrefFor={(v) => `?tab=ethopex${v === 'camp' ? '' : `&etx=${v}`}`} options={[
+      </>}
+      {chi !== 'so' && <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', margin: chi ? '0 0 8px' : '12px 0 8px' }}>
+        {!chi && <Segmented<Xem> value={xem} onChange={setXem} hrefFor={(v) => `?tab=ethopex${v === 'camp' ? '' : `&etx=${v}`}`} options={[
           { value: 'camp', label: 'Camp', title: `${dong.length} camp` },
           { value: 'test', label: 'Lên test', title: 'Mỗi ngày: camp mới · phim mới · phim test lại · còn bật / đã tắt · ROI lứa camp' },
           { value: 'ngay', label: 'Theo ngày', title: 'Mỗi ngày kiếm được bao nhiêu — biểu đồ lãi, lọc theo phim / camp / dạng / ngôn ngữ, tự làm mới mỗi phút' },
@@ -357,12 +363,12 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
           { value: 'phim', label: 'Theo phim', title: `${phim.length} phim — đề xuất dạng creative (luật DC)` },
           { value: 'cho', label: 'Hàng chờ', title: `${du.hangCho.length} phim chờ test` },
           { value: 'luat', label: 'Sổ luật', title: `${LUAT.length} luật · kb #261 mục 8–8i` },
-        ]} />
+        ]} />}
         {xem === 'camp' ? <FilterChips<Loc> urlKey="etl" value={loc} onChange={setLoc}
           counts={{ all: dong.length, chay: dong.filter((d) => d.trang_thai === 'ACTIVE').length, tat: dong.filter((d) => d.trang_thai !== 'ACTIVE').length, cham: dong.filter(coCham).length }}
           options={[{ value: 'all', label: 'Tất cả' }, { value: 'chay', label: 'Đang bật' }, { value: 'tat', label: 'Đã tắt' }, { value: 'cham', label: 'Chạm luật', title: 'Có luật tăng / giảm / từ chối đang chạm' }]} /> : null}
-      </div>
-      <div>   {/* cuộn THEO TRANG: đầu tab trôi đi, tiêu đề bảng + thanh trang dính (DataTable mặc định, học Ethopex 22/10/2026) */}
+      </div>}
+      {chi !== 'so' && <div>   {/* cuộn THEO TRANG: đầu tab trôi đi, tiêu đề bảng + thanh trang dính (DataTable mặc định, học Ethopex 22/10/2026) */}
         {xem === 'camp' ? (
           <DataTable<Dong> rows={hien} columns={cot} getRowKey={(d) => String(d.id)} persistKey="ethopex-camp" minWidth={1100} pageSize={50}
             groups={[{ key: 'thang', label: 'Từ đầu tháng' }, { key: 'xu', label: 'Xu hướng ROI' }]}
@@ -401,8 +407,8 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
             </div>
           ))
         )}
-      </div>
-      {dangMo && modal.is('camp') ? <NganCamp c={dangMo} onClose={modal.close} /> : null}
+      </div>}
+      {dangMo && modal.is('camp') && (!chi || chi === 'camp') ? <NganCamp c={dangMo} onClose={modal.close} /> : null}
     </div>
   );
 }

@@ -33,7 +33,7 @@ const hopLeTr = (v: string) => (v.startsWith('/') && !v.startsWith('//') && !v.s
 
 export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
   manId: string; tuy: TuyChon; bo: O[]; nguon: NguonBoCuc; noi: Record<string, ReactNode>;
-  ngu: { duAnPhu: string[]; pid?: string; days: number; p?: string; daysRaw?: string }; docLuc: string;
+  ngu: { duAnPhu: string[]; pid?: string; days: number; p?: string; daysRaw?: string; ky: number }; docLuc: string;
 }) {
   const router = useRouter(), man = manCua(manId);
   const [tuy, setTuy] = useState(tuyDau);
@@ -58,11 +58,12 @@ export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
     document.cookie = `${KHUNG_COOKIE}=${encodeURIComponent(JSON.stringify(moi))}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
     return moi;
   });
-  const href = (kv: { man?: string; p?: string; days?: string }) => {
-    const v = { man: man.id, p: ngu.p ?? '', days: ngu.daysRaw ?? '', ...kv }, q = new URLSearchParams();
+  const href = (kv: { man?: string; p?: string; days?: string; ky?: string }) => {
+    const v = { man: man.id, p: ngu.p ?? '', days: ngu.daysRaw ?? '', ky: String(ngu.ky), ...kv }, q = new URLSearchParams();
     if (v.man && v.man !== MAN_MAC_DINH) q.set('man', v.man);
     if (v.p) q.set('p', v.p);
     if (v.days && v.days !== '7') q.set('days', v.days);
+    if (v.ky && v.ky !== '7') q.set('ky', v.ky);
     const s = q.toString(); return s ? `/home?${s}` : '/home';
   };
 
@@ -141,6 +142,7 @@ export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
           <div className="hm-ngu">
             {canNgu.has('p') && ngu.duAnPhu.length > 1 && <Segmented size="sm" options={ngu.duAnPhu.map((p) => ({ value: p, label: p, title: `Sổ phủ của ${p}` }))} value={ngu.pid ?? ''} onChange={(p) => router.push(href({ p }))} hrefFor={(p) => href({ p })} />}
             {canNgu.has('days') && <Segmented size="sm" options={KY.map((n) => ({ value: n, label: `${n} ngày` }))} value={ngu.days} onChange={(n) => router.push(href({ days: String(n) }))} hrefFor={(n) => href({ days: String(n) })} />}
+            {canNgu.has('ky') && <Segmented size="sm" options={KY.map((n) => ({ value: n, label: `social ${n} ngày`, title: `Social trỏ về · khung ${n} ngày` }))} value={ngu.ky} onChange={(n) => router.push(href({ ky: String(n) }))} hrefFor={(n) => href({ ky: String(n) })} />}
             {sua && <Segmented size="sm" options={[{ value: 12, label: '12×18' }, { value: 24, label: '24×36' }, { value: 48, label: '48×72' }, { value: 0, label: 'Tự do', title: 'Không bắt dính vào lưới' }]} value={tuy.luoi} onChange={(v) => datTuy({ luoi: v as TuyChon['luoi'] })} />}
           </div>
           {sua && soLichSu > 0 && <button type="button" className="hm-nut hm-chi-may" onClick={hoanTac} title="Hoàn tác (Ctrl+Z)">Hoàn tác</button>}

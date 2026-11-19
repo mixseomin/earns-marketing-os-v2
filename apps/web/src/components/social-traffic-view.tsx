@@ -71,12 +71,19 @@ function ThanhPhoTai() {
   return <SocialThanhPho mh={ban.mh} luc={ban.luc} />;
 }
 /** email: bảng list MailWizz dựng sẵn ở server (MailwizzListsPanel — cùng bảng tab Email trang chủ, chỉ xem; anh 29/10/2026 "vào MailWizz cho tập trung, thêm một bản ở đây để view"). */
-export function SocialTrafficView({ live, email }: { live: SocialLive; email?: React.ReactNode }) {
-  const [cheDo, setCheDo] = useShallowParam('stm', 'live')   // LIVE mặc định (card #1408);
-  const [muc, setMuc] = useShallowParam('sts', 'pho');   // mặc định thành phố (anh 22/10/2026 — màn chính của hệ sinh thái)
+/** chi: widget /home — chỉ vẽ MỘT phần, luôn ở chế độ LIVE (số thật), không vẽ dòng DEMO / LIVE, dải luồng, dãy tab:
+ *  'pho' 'goc' 'sx' 'kenh' 'lich' 'landing' 'trang' 'tien' = đúng mục đó · 'suc' 'pheu' 'canhbao' 'ratien' = từng khối của mục Tổng · 'kehoach' = mục Góc ở chế độ Kế hoạch.
+ *  Không truyền = tab Social Traffic đủ như cũ. */
+export type ChiSocial = 'pho' | 'suc' | 'pheu' | 'canhbao' | 'ratien' | 'goc' | 'kehoach' | 'sx' | 'kenh' | 'lich' | 'landing' | 'trang' | 'tien';
+const MUC_CUA_CHI: Record<ChiSocial, string> = { pho: 'pho', suc: 'tong', pheu: 'tong', canhbao: 'tong', ratien: 'tong', goc: 'goc', kehoach: 'goc', sx: 'sx', kenh: 'kenh', lich: 'lich', landing: 'landing', trang: 'trang', tien: 'tien' };
+export function SocialTrafficView({ live, email, chi }: { live: SocialLive; email?: React.ReactNode; chi?: ChiSocial }) {
+  const [cheDoUrl, setCheDo] = useShallowParam('stm', 'live')   // LIVE mặc định (card #1408);
+  const cheDo = chi ? 'live' : cheDoUrl;
+  const [mucUrl, setMuc] = useShallowParam('sts', 'pho');   // mặc định thành phố (anh 22/10/2026 — màn chính của hệ sinh thái)
+  const muc = chi ? MUC_CUA_CHI[chi] : mucUrl;
   const [locGoc, setLocGoc] = useShallowParam('stg', 'all');
   // Góc: mặc định xem theo tài sản (anh 25/10/2026: quản lý danh sách góc của từng social asset); kho góc spy toàn bộ là chế độ thứ hai
-  const [gocXem, setGocXem] = useShallowParam('stgx', 'taisan');   // ?stgx: taisan · kho · dang (kho dạng bài) · kehoach (kế hoạch Dạng × Góc × Sản phẩm, 26/10/2026)
+  const [gocXemUrl, setGocXem] = useShallowParam('stgx', 'taisan'), gocXem = chi === 'kehoach' ? 'kehoach' : gocXemUrl;   // ?stgx: taisan · kho · dang (kho dạng bài) · kehoach (kế hoạch Dạng × Góc × Sản phẩm, 26/10/2026)
   // Bảng Kênh: lọc nền tảng / góc (nhóm) + gộp theo một trong hai (card #1414). URL: ?skn nền · ?skg góc · ?skb gộp.
   const [skn, setSkn] = useShallowParam('skn', '');   // nền đang lọc, CHỌN NHIỀU nối bằng ',' ('' = mọi nền)
   // (eaf4df89 không lên máy chủ: run của nó bị huỷ vì lượt đẩy sau, run kế chỉ so event.before nên bỏ build web — 18/10/2026)
@@ -103,12 +110,12 @@ export function SocialTrafficView({ live, email }: { live: SocialLive; email?: R
   // Số người đang trên site aff — badge trên tab Trực tiếp (card #1411), gọi lại mỗi 10 giây khi trang đang hiện, chỉ ở LIVE.
   const [online, setOnline] = useState<number | null>(null);
   useEffect(() => {
-    if (!laLive) { setOnline(null); return; }
+    if (!laLive || chi) { setOnline(null); return; }   // số này chỉ dùng cho huy hiệu trên dãy tab — widget /home không có dãy tab nên không hỏi
     let song = true;
     const nap = () => socialPhien('online').then((r) => song && setOnline(r.phien.filter((p) => p.online).length)).catch(() => song && setOnline(null));
     nap(); const id = setInterval(() => document.visibilityState === 'visible' && nap(), 10_000);
     return () => { song = false; clearInterval(id); };
-  }, [laLive]);
+  }, [laLive, chi]);
   // DEMO đổi được tại chỗ (state cục bộ, F5 về mẫu gốc); LIVE chỉ đọc
   const [demo, setDemo] = useState<StDuLieu>(() => structuredClone(ST_DEMO));
   const [gia, setGia] = useState(ST_GIA_MAC);
@@ -248,7 +255,7 @@ export function SocialTrafficView({ live, email }: { live: SocialLive; email?: R
 
   return (
     <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'minmax(0, 1fr)' }}>   {/* minmax(0,1fr): bảng rộng (minWidth) cuộn trong khung của nó, không kéo giãn cả trang */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+      {!chi && <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <Segmented<string> options={[{ value: 'demo', label: '🧪 DEMO', title: 'Dữ liệu mẫu để thử luồng' }, { value: 'live', label: '🟢 LIVE', title: 'Số thật' }]}
           value={cheDo} onChange={(v) => { setCheDo(v); setBao(''); setCatKenh(null); }} />
         <span style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, color: laLive ? 'var(--ok)' : 'var(--warn)', background: `color-mix(in srgb, ${laLive ? 'var(--ok)' : 'var(--warn)'} 12%, transparent)` }}>
@@ -257,18 +264,18 @@ export function SocialTrafficView({ live, email }: { live: SocialLive; email?: R
             : <>Dữ liệu mẫu — bấm thoải mái, không ghi gì · F5 về mẫu gốc</>}
         </span>
         {bao && <span role="status" style={{ ...nho, color: 'var(--fg-2)' }}>{bao}</span>}
-      </div>
+      </div>}
       {laLive && live.loi.length > 0 && <div style={{ fontSize: 12, color: 'var(--bad)' }}>Spy trả lỗi: {live.loi.join(' · ')}</div>}
 
-      <DaiLuong nut={nut} value={changDang} onChange={(k) => setMuc(CHANG[k] ?? 'tong')} urlKey="sts" />
+      {!chi && <DaiLuong nut={nut} value={changDang} onChange={(k) => setMuc(CHANG[k] ?? 'tong')} urlKey="sts" />}
 
-      <Tabs<Muc> items={MUC.map((m) => ({ ...m, ...(m.key === 'trang' && online != null ? { badge: <span title={`${online} người đang trên site aff (90 giây qua)`} style={{ color: online ? 'var(--ok)' : undefined }}>{online ? `● ${online}` : 0}</span> } : {}), title: m.key === 'goc' ? `${d.goc.length} góc` : m.key === 'sx' ? `${d.lo.length} video chờ` : m.key === 'kenh' ? `${d.kenh.length} kênh` : m.key === 'lich' ? `${live.lich.length} nơi đăng` : m.key === 'trang' ? `${d.trang.length} trang` : undefined }))}
-        value={muc as Muc} onChange={setMuc} dinh={false} />
+      {!chi && <Tabs<Muc> items={MUC.map((m) => ({ ...m, ...(m.key === 'trang' && online != null ? { badge: <span title={`${online} người đang trên site aff (90 giây qua)`} style={{ color: online ? 'var(--ok)' : undefined }}>{online ? `● ${online}` : 0}</span> } : {}), title: m.key === 'goc' ? `${d.goc.length} góc` : m.key === 'sx' ? `${d.lo.length} video chờ` : m.key === 'kenh' ? `${d.kenh.length} kênh` : m.key === 'lich' ? `${live.lich.length} nơi đăng` : m.key === 'trang' ? `${d.trang.length} trang` : undefined }))}
+        value={muc as Muc} onChange={setMuc} dinh={false} />}
 
       {muc === 'pho' && (laLive ? <ThanhPhoTai /> : <span style={nho}>Thành phố dựng từ số thật — bật LIVE để xem.</span>)}
-      {muc === 'tong' && laLive && <SucKhoeDang suc={live.suc} />}
-      {muc === 'tong' && <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))' }}>
-        <Panel title="🔻 Phễu" subtitle={laLive ? 'video cộng dồn + Pinterest 30 ngày · tỉ lệ so với bước trên' : '30 ngày · tỉ lệ so với bước trên'}>
+      {muc === 'tong' && laLive && (!chi || chi === 'suc') && <SucKhoeDang suc={live.suc} />}
+      {muc === 'tong' && chi !== 'suc' && <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))' }}>
+        {(!chi || chi === 'pheu') && <Panel title="🔻 Phễu" subtitle={laLive ? 'video cộng dồn + Pinterest 30 ngày · tỉ lệ so với bước trên' : '30 ngày · tỉ lệ so với bước trên'}>
           {t.xem ? <div style={{ display: 'grid', gap: 8 }}>{pheu.map(([ten, v], i) => (
             <div key={ten} style={{ display: 'grid', gridTemplateColumns: '140px minmax(0,1fr) 90px', gap: 10, alignItems: 'center', fontSize: 12 }}>
               <span>{ten}</span>
@@ -276,23 +283,23 @@ export function SocialTrafficView({ live, email }: { live: SocialLive; email?: R
               <span style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{so(v)}{i > 0 && <span style={{ ...nho, display: 'block' }}>{((v / (pheu[i - 1]?.[1] || 1)) * 100).toFixed(1)}%</span>}</span>
             </div>))}</div>
             : trong('Chưa có lượt xem', 'Phễu hiện khi kênh đầu tiên đăng video và trang đích bắt đầu nhận khách.')}
-        </Panel>
-        <Panel title="⚠️ Kênh & đo lường" subtitle={canhBao.length ? `${canhBao.length} việc` : undefined}>
+        </Panel>}
+        {(!chi || chi === 'canhbao') && <Panel title="⚠️ Kênh & đo lường" subtitle={canhBao.length ? `${canhBao.length} việc` : undefined}>
           {canhBao.length ? <div style={{ display: 'grid', gap: 6 }}>{canhBao.map((c, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, padding: '6px 8px', background: 'var(--bg-2)', borderRadius: 6 }}>
               <Pill color={c.mau} label={`${c.mau === 'var(--bad)' ? '⛔' : '⚠️'} ${c.nhan}`} uppercase={false} /><span>{c.chu}</span></div>))}</div>
             : <span style={nho}>Không có việc gấp.</span>}
-        </Panel>
-        <Panel title="💰 Góc đang ra tiền" subtitle="tiền từng góc chảy ngược về spy để chấm Sức mạnh">
+        </Panel>}
+        {(!chi || chi === 'ratien') && <Panel title="💰 Góc đang ra tiền" subtitle="tiền từng góc chảy ngược về spy để chấm Sức mạnh">
           {d.goc.some((g) => g.tt === 'thang')
             ? <SimpleTable rows={d.goc.filter((g) => g.tt === 'thang').sort((a, b) => b.hh - a.hh)} getRowKey={(g) => String(g.id)} columns={[
                 { key: 'ten', header: 'Góc', cell: (g) => g.ten }, { key: 'v', header: 'Video', align: 'right', cell: (g) => g.video },
                 { key: 'c', header: 'Về site', align: 'right', cell: (g) => so(g.click) }, { key: 'h', header: 'Hoa hồng', align: 'right', cell: (g) => <span style={{ color: 'var(--ok)' }}>{usd(g.hh)}</span> }]} />
             : trong('Chưa góc nào ra tiền', laLive ? `Có ${d.goc.length} góc từ spy sẵn sàng làm video — xem mục Góc.` : 'Chọn góc ở mục Góc rồi tạo lô video.')}
-        </Panel>
+        </Panel>}
       </div>}
 
-      {muc === 'goc' && <div style={{ display: 'flex', margin: '2px 0 8px' }}><Segmented<string> options={[{ value: 'taisan', label: '🗂 Theo tài sản', title: 'góc của từng tài sản social: nhóm góc spy, đã đăng, kế hoạch tuần, bật / tắt góc' }, { value: 'kho', label: '🎯 Kho góc spy' }, { value: 'dang', label: '🧩 Dạng bài', title: 'kho dạng bài: cách dựng, nền, ngách, loại góc nuôi, mẫu đã có' }, { value: 'kehoach', label: '📋 Kế hoạch', title: 'kế hoạch Dạng × Góc × Sản phẩm, 7 bước, số thật' }]} value={gocXem} onChange={setGocXem} hrefFor={(v) => `?tab=social&sts=goc&stgx=${v}`} /></div>}
+      {muc === 'goc' && chi !== 'kehoach' && <div style={{ display: 'flex', margin: '2px 0 8px' }}><Segmented<string> options={[{ value: 'taisan', label: '🗂 Theo tài sản', title: 'góc của từng tài sản social: nhóm góc spy, đã đăng, kế hoạch tuần, bật / tắt góc' }, { value: 'kho', label: '🎯 Kho góc spy' }, { value: 'dang', label: '🧩 Dạng bài', title: 'kho dạng bài: cách dựng, nền, ngách, loại góc nuôi, mẫu đã có' }, { value: 'kehoach', label: '📋 Kế hoạch', title: 'kế hoạch Dạng × Góc × Sản phẩm, 7 bước, số thật' }]} value={gocXem} onChange={setGocXem} hrefFor={(v) => `?tab=social&sts=goc&stgx=${v}`} /></div>}
       {muc === 'goc' && gocXem === 'taisan' && <GocTaiSan />}
       {muc === 'goc' && gocXem === 'dang' && <KhoDangBai />}
       {muc === 'goc' && gocXem === 'kehoach' && <KeHoachDangGoc />}

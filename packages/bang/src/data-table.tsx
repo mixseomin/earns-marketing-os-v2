@@ -540,7 +540,9 @@ export function DataTable<T>({
       const day = dauRef.current?.querySelector('thead')?.getBoundingClientRect().bottom, bang = bangRef.current;   // đo mép dưới hàng tiêu đề (không tính dòng nhóm đang dính)
       if (day == null || !bang) return;
       let v: string | null = null, cuoi: HTMLTableRowElement | null = null;
-      for (const tr of Array.from(bang.querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { if (tr.getBoundingClientRect().top < day - 1) { v = tr.dataset.nhom ?? null; cuoi = tr; } else break; }
+      // ngưỡng = mép dưới tiêu đề + NỬA cao dòng nhóm: bản dính tự che dải [day, day + cao dòng] → dòng nhóm kế chui quá nửa dưới bản dính thì đổi sang nó,
+      // không để bản dính ghi phim cũ trong khi camp bên dưới đã là của phim mới (etp #1485 rà lại 19/11/2026: cuộn vào Atravesando mà trên đầu vẫn ghi "#0")
+      for (const tr of Array.from(bang.querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { const r = tr.getBoundingClientRect(); if (r.top < day + r.height / 2) { v = tr.dataset.nhom ?? null; cuoi = tr; } else break; }
       if (v != null && (gapNhom(v) || bang.getBoundingClientRect().bottom <= day + (cuoi?.getBoundingClientRect().height ?? 0))) v = null;   // nhóm gập hoặc bảng đã cuộn hết
       setNhomDinh((o) => (o === v ? o : v));
     };

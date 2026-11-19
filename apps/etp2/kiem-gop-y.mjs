@@ -279,6 +279,9 @@ const LUAT = [
   { card: 1460, tep: 'apps/etp2/src/components/etp-dong.tsx', co: 'const dong = useCallback(() => datXem(null), []); useDongKhiCuon(!!v, dong);', vi: 'khung xem trước tab Sản xuất đóng khi cuộn' },
   { card: 1460, tep: 'apps/etp2/src/components/etp-dong.tsx', co: 'const h = useCaoThat(ref, 240);', cam: 'window.innerHeight - 440', vi: 'khung xem trước tab Sản xuất đặt theo cao thật, không đẩy lên xa con trỏ' },
   // #1515 (anh 03/11/2026 "Thêm nhóm option nhanh khác nữa như <7 ngày, <=3 ngày.... chứ mỗi nhóm này ko hợp lý"): bản sửa 55f4e825 ở apps/web, đã chép sang etp2 lúc tách — giữ ở etp2
+  // #1485 (anh 29/10/2026 "Sticky dòng phim khi scroll xuống. Cột ROI của camp bé hơn cột ROI của phim"): bảng chung @mos2/bang chép dòng phim đã cuộn qua vào khối tiêu đề dính; ROI camp 15px, phim 22px
+  { card: 1485, tep: 'packages/bang/src/data-table.tsx', co: "querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { const r = tr.getBoundingClientRect(); if (r.top < day + r.height / 2)", cam: "if (tr.getBoundingClientRect().top < day - 1)", vi: 'dòng phim dính đổi sang phim kế khi dòng phim kế chui quá nửa dưới bản dính — không ghi phim cũ trên đầu camp của phim mới (rà lại 19/11/2026: cuộn vào Atravesando trên đầu vẫn ghi #0)' },
+  { card: 1485, tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const H = nhom ? 22 : 15, le = nhom ? 3 : 8,', vi: 'cột ROI camp cao 15 · hẹp hơn, cột ROI phim cao 22' },
   { card: 1515, tep: 'apps/etp2/src/components/etp-view.tsx', co: "const TUOI_MUC = [['0-3', '< 3 ngày'], ['0-7', '< 7 ngày'], ['0-14', '< 14 ngày'], ['7-', '≥ 7 ngày'], ['0-1', 'Dưới 1 ngày']", vi: 'ô lọc Tuổi: mốc cộng dồn < 3 / < 7 / < 14 / ≥ 7 ngày đứng ĐẦU, khoảng rời sau' },
 ];
 

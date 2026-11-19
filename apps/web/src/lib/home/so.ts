@@ -77,7 +77,7 @@ type OTho = [MaWidget, number, number, number, number];
 const o = (ds: OTho[]): O[] => ds.map(([ma, x, y, w, h]) => ({ ma, x, y, w, h }));
 export type Man = { id: string; ten: string; kh: string; nhom: string; o: O[] };
 export const MAN: Man[] = [
-  { id: 'sang', ten: 'Sáng nay', kh: 'SN', nhom: 'Toàn cảnh', o: o([['A1', 0, 0, 48, 10], ['A2', 0, 10, 14, 26], ['C1', 14, 10, 34, 26], ['I1', 0, 36, 14, 36], ['H1', 14, 36, 34, 13], ['K1', 14, 49, 34, 9], ['K5', 14, 58, 34, 14]]) },
+  { id: 'sang', ten: 'Sáng nay', kh: 'SN', nhom: 'Toàn cảnh', o: o([['A1', 0, 0, 48, 10], ['A2', 0, 10, 14, 26], ['C1', 14, 10, 34, 26], ['I1', 0, 36, 14, 36], ['K1', 14, 36, 34, 10], ['K5', 14, 46, 34, 26]]) },   // không đặt dải số Ethopex ở màn mở đầu: nó kéo theo lần đọc Ethopex ~35 giây khi bộ nhớ đệm 60 giây đã hết
   { id: 'camp', ten: 'Campaign', kh: 'CP', nhom: 'Campaign và tiền', o: o([['A1', 0, 0, 48, 10], ['A2', 0, 10, 12, 62], ['B1', 12, 10, 36, 62]]) },
   { id: 'hatang', ten: 'Hạ tầng phủ', kh: 'HT', nhom: 'Campaign và tiền', o: o([['B2', 0, 0, 24, 36], ['B3', 24, 0, 24, 36], ['B4', 0, 36, 24, 36], ['B5', 24, 36, 24, 36]]) },
   { id: 'tien', ten: 'Tiền', kh: 'TI', nhom: 'Campaign và tiền', o: o([['C1', 0, 0, 32, 36], ['C3', 32, 0, 16, 36], ['C2', 0, 36, 24, 24], ['C4', 24, 36, 24, 24], ['C5', 0, 60, 48, 12]]) },

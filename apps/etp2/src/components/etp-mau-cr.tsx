@@ -51,8 +51,13 @@ function useLoc(k: string) {
 
 /** MỌI creative mẫu hiện NGUYÊN ngay trong thẻ (anh 19/11/2026 "cái này phải show ngay ra chứ ko phải bấm vào mới thấy" · "full creative"):
  *  lưới cạnh nhau, đúng khổ 9:16 không cắt, có video thì phát được tại chỗ (ảnh làm poster); nhãn = số ngày chạy (đối thủ) / thu (nhà) */
-export function BanMauLuoi({ m, cot = 3 }: { m: MauCr; cot?: number }) {
-  if (!m.ban.length) return <div style={{ aspectRatio: '9 / 16', maxHeight: 300, display: 'grid', placeItems: 'center', background: 'var(--bg-2)', color: MO_SO, fontSize: 11.5, borderRadius: 6 }}>chưa có creative mẫu</div>;
+/** CREATIVE HIỆN Ở NGOÀI (thẻ / bảng) — anh 19/11/2026: "ko đc để creative lên đây. Tao đã duyệt đéo đâu. Tao sẽ đặt lên nếu muốn. Ở ngoài chỉ đc để creative từ nguồn".
+ *  Mẫu học từ đối thủ: CHỈ creative gốc của đối thủ. Bản máy dựng thử + creative máy sinh cho phim chưa được anh duyệt làm mẫu → chỉ nằm trong ngăn
+ *  (tab Phim sản xuất, dải So với gốc). Mẫu nhà: creative nhà chính là nguồn → giữ. */
+export const banNguon = (m: MauCr) => (m.nguon === 'doi_thu' ? m.ban.filter((b) => b.vai === 'goc') : m.ban);
+export function BanMauLuoi({ m: mGoc, cot = 3 }: { m: MauCr; cot?: number }) {
+  const m = { ...mGoc, ban: banNguon(mGoc) };
+  if (!m.ban.length) return <div style={{ aspectRatio: '9 / 16', maxHeight: 300, display: 'grid', placeItems: 'center', background: 'var(--bg-2)', color: MO_SO, fontSize: 11.5, borderRadius: 6 }}>chưa lưu creative gốc</div>;
   // SLIDES MỘT DÒNG (anh 19/11/2026 #1703 "Trình bày dạng slides 1 dòng thôi") — mọi bản nằm trên MỘT hàng, quá 3 bản thì trượt ngang (bám từng ô),
   // không xuống dòng; ô vẫn cùng một cỡ = 1/3 bề ngang thẻ (anh 19/11/2026 "ko cho hiển thị nơi to nơi bé")
   return <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: `calc((100% - ${(cot - 1) * 6}px) / ${cot})`, overflowX: 'auto', scrollSnapType: 'x mandatory', overscrollBehaviorX: 'contain', paddingBottom: m.ban.length > cot ? 4 : 0, gap: 6 }}
@@ -265,7 +270,7 @@ export function TabMauCr() {
   const cot: DataColumn<MauCr>[] = useMemo(() => [
     { key: 'ten', header: 'Mẫu', align: 'left', width: 220, sortValue: (m) => m.ten, cell: (m) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
       {m.mau ? <span style={{ width: 8, height: 8, borderRadius: 4, background: m.mau, flex: 'none' }} /> : null}<b>{m.ten}</b></span> },
-    { key: 'anh', header: 'Creative mẫu', align: 'left', width: 200, cell: (m) => (m.ban.length ? <span style={{ display: 'inline-flex', gap: 4 }}>{m.ban.map((b, i) => <a key={i} href={b.video ?? b.anh ?? undefined} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={`${b.nhan ?? ''} — mở cỡ gốc`}><img src={b.anh ?? undefined} alt="" loading="lazy" style={{ width: 36, height: 64, objectFit: 'contain', background: '#000', borderRadius: 3, display: 'block' }} /></a>)}</span> : <span style={{ color: MO_SO }}>—</span>) },
+    { key: 'anh', header: 'Creative mẫu', align: 'left', width: 200, cell: (m) => (banNguon(m).length ? <span style={{ display: 'inline-flex', gap: 4 }}>{banNguon(m).map((b, i) => <a key={i} href={b.video ?? b.anh ?? undefined} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={`${b.nhan ?? ''} — mở cỡ gốc`}><img src={b.anh ?? undefined} alt="" loading="lazy" style={{ width: 36, height: 64, objectFit: 'contain', background: '#000', borderRadius: 3, display: 'block' }} /></a>)}</span> : <span style={{ color: MO_SO }}>—</span>) },
     { key: 'loai', header: 'Loại', align: 'left', sortValue: (m) => TEN_LOAI[m.loai], cell: (m) => TEN_LOAI[m.loai] },
     { key: 'nguon', header: 'Nguồn', align: 'left', sortValue: (m) => TEN_NGUON[m.nguon], cell: (m) => TEN_NGUON[m.nguon] },
     { key: 'tt', header: 'Trạng thái', align: 'left', sortValue: (m) => TT.indexOf(m.trang_thai), cell: (m) => <OTT m={m} /> },

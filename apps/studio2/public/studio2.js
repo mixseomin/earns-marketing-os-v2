@@ -586,7 +586,10 @@ async function veNhaMoi() { const so = ++soMo; dungChay(); E.menu = null; E.dang
 const DAU_GHEP = '\n\n=== CÁCH KỂ (Studio 2 tự ghép, đừng sửa từ dòng này) ===\n';
 const tachBrief = (s) => String(s || '').split(DAU_GHEP)[0];
 function briefDayDu() { const c = E.coSo, ls = (c?.la_so || []).filter((x) => x.dung_duoc && (x.mat_troi || x.mat_trang));
-  return E.kb.brief.trim() + DAU_GHEP + 'Đây là video chia sẻ GÓC NHÌN CÁ NHÂN của người làm video về chiêm tinh: viết ngôi thứ nhất ("tôi"), giữ đúng quan điểm và trải nghiệm họ nêu ở trên, giọng trò chuyện, không giảng bài, không nói thay cho "các nhà chiêm tinh".'
+  return E.kb.brief.trim() + DAU_GHEP + 'Đây là video CHIA SẺ GÓC NHÌN CÁ NHÂN về chiêm tinh: chính người làm video kể với người xem.\n'
+    + '- Lời kể ngôi thứ nhất ("tôi") xuyên suốt, giọng trò chuyện, nói thẳng với người xem. KHÔNG dựng thành phim có nhân vật khác; KHÔNG bịa thêm người, tên riêng, đoạn hội thoại hay sự kiện đời tư nào mà người làm video không nêu ở trên.\n'
+    + '- Mỗi cảnh là một ý họ chia sẻ, kèm hình minh hoạ được: người kể trong không gian đời thường của họ, màn hình lá số, hình tượng trưng cho vị trí sao đang nói tới.\n'
+    + '- Giữ đúng quan điểm của họ; không nói thay "các nhà chiêm tinh", không hứa đoán tương lai.'
     + (c?.phan_tich ? `\n\nCƠ SỞ PHÂN TÍCH TỪ ASTROLAS (astrolas.com tính từ lá số thật). Mọi vị trí sao, cung, nhà, góc chiếu nhắc trong kịch bản PHẢI lấy từ phần này, không tự thêm, không đổi số:\n${ls.map((x) => `- ${x.ten || 'Lá số'}: Mặt Trời ${x.mat_troi}, Mặt Trăng ${x.mat_trang}${x.moc ? `, cung Mọc ${x.moc}` : ''}`).join('\n')}${ls.length ? '\n' : ''}${c.phan_tich}\n\nCâu kết: mời người xem tự xem lá số của họ trên astrolas.com.`
       : '\n\nChưa có bản phân tích Astrolas cho video này: không nêu vị trí sao cụ thể của ai, chỉ chia sẻ ở mức quan điểm cá nhân.'); }
 function veCoSo() { const c = E.coSo, s = E.cs;

@@ -1,5 +1,5 @@
 // KHUNG MÁY TỰ ĐỔI CAMP (anh 04/11/2026) — đọc sổ luật chung etp-bang-luat.json.khung_doi, cùng chỗ worker apps/cty/worker/ethopex.mjs đọc.
-// tang = mọi luật tự tăng (21–07h, qua nửa đêm) · giam = mọi luật tự giảm / tắt, không tăng (15–21h) · sang = chỉ nạp camp đã tiêu ≥ nap_chi × ngân sách + ROI hôm nay ≥ sang_roi% (07–15h)
+// tang = mọi luật tự tăng (21–07h, qua nửa đêm) · giam = mọi luật tự giảm / tắt, không tăng (15–21h) · sang = chỉ nạp camp đã tiêu 50–75% ngân sách + ROI hôm nay ≥ 0 (07–15h, sang_nap)
 // (anh 05/11/2026 đảo khung theo số toàn đội — xem _ghi trong sổ luật). bang = đóng băng (không còn giờ nào, giữ cho an toàn).
 import BANG_LUAT from './etp-bang-luat.json';
 
@@ -15,15 +15,18 @@ export const gioLam = (huong: HuongLuat) => (huong === 'tang' ? KD.tang[0] : KD.
 export const gioVnNay = (now = Date.now()) => { const d = new Date(now + 7 * 3600_000); return d.getUTCHours() + d.getUTCMinutes() / 60; };
 const trong = (h: number, [a, b]: [number, number]) => (a <= b ? h >= a && h < b : h >= a || h < b);   // [21, 7] = qua nửa đêm
 export const khungLuc = (h: number): KhungDoi => (trong(h, KD.giam) ? 'giam' : trong(h, KD.tang) ? 'tang' : KD.sang && trong(h, KD.sang) ? 'sang' : 'bang');   // cùng thứ tự với khungCua của worker (kiểm chéo ở etp-khung.test.mts)
-// KHUNG TĂNG NHANH (anh 10/11/2026 — sổ luật chung khung_doi.nhanh, máy: nhip_tang.trong_nhanh): camp ROI hôm nay ≥ sang_roi% + tiêu ≥ nap_chi × ngân sách lên bậc ngay mỗi nhịp
+// KHUNG TĂNG NHANH (anh 10/11/2026 — sổ luật chung khung_doi.nhanh, máy: nhip_tang.trong_nhanh): camp đạt cổng tăng theo giờ (congTang) lên bậc ngay mỗi nhịp
 export const NHANH = ((BANG_LUAT.khung_doi as unknown as { nhanh?: [number, number][] }).nhanh ?? []);
 export const trongNhanh = (h: number) => NHANH.some((k) => trong(h, k));
 // CỔNG TĂNG THEO GIỜ (anh 12/11/2026 — sổ luật khung_doi.sang_nap, máy: nhip_tang.cong): khung sáng 07–15h tăng khi đã tiêu 50–75% ngân sách + ROI hôm nay ≥ 0
-// (tiêu ≥ 75% buổi sáng = tiêu dồn → không tăng); ngoài khung sáng: tiêu ≥ nap_chi + ROI ≥ sang_roi%. Kiểm chéo với worker congNap ở etp-khung.test.mts.
+// (tiêu ≥ 75% buổi sáng = tiêu dồn → không tăng); ngoài khung sáng: luật 12/11 tang_ngay — tiêu ≥ 50% + ROI ≥ 50%, tiêu 30–50% + ROI ≥ 100%
+// (anh 19/11/2026 chọn 50% luật 12/11, bỏ cổng ROI ≥ 100% sau 15:00). Kiểm chéo với worker congNap ở etp-khung.test.mts.
 const SANG_NAP = (BANG_LUAT.khung_doi as unknown as { sang_nap: { chi: [number, number]; roi: number } }).sang_nap;
-export const congTang = (h = gioVnNay()): { tu: number; den: number | null; roi: number } => (trong(h, KD.sang) ? { tu: SANG_NAP.chi[0], den: SANG_NAP.chi[1], roi: SANG_NAP.roi } : { tu: KD.nap_chi, den: null, roi: KD.sang_roi });
-export const quaCong = (chi: number, thu: number, ns: number, h?: number) => { const c = congTang(h); return ns > 0 && chi > 0 && chi >= c.tu * ns && (c.den == null || chi < c.den * ns) && thu >= (1 + c.roi / 100) * chi; };
-export const chuCong = (h?: number) => { const c = congTang(h), p = (x: number) => `${Math.round(x * 100)}%`; return `${c.den == null ? `đã tiêu ≥ ${p(c.tu)}` : `đã tiêu ${p(c.tu)}–${p(c.den)}`} ngân sách + ROI hôm nay ≥ ${c.roi}%`; };
+const TN = BANG_LUAT.tang_ngay as { chi: number; roi: number; duoi: number; roi_duoi: number };
+const tnRoi = (chi: number, ns: number) => (ns > 0 && chi < TN.duoi * ns ? TN.roi_duoi : TN.roi);
+export const congTang = (h = gioVnNay(), chi?: number, ns?: number): { tu: number; den: number | null; roi: number } => (trong(h, KD.sang) ? { tu: SANG_NAP.chi[0], den: SANG_NAP.chi[1], roi: SANG_NAP.roi } : { tu: TN.chi, den: null, roi: chi != null && ns ? tnRoi(chi, ns) : TN.roi });
+export const quaCong = (chi: number, thu: number, ns: number, h?: number) => { const c = congTang(h, chi, ns); return ns > 0 && chi > 0 && chi >= c.tu * ns && (c.den == null || chi < c.den * ns) && thu >= (1 + c.roi / 100) * chi; };
+export const chuCong = (h?: number) => { const c = congTang(h), p = (x: number) => `${Math.round(x * 100)}%`; return `${c.den == null ? `đã tiêu ≥ ${p(c.tu)}` : `đã tiêu ${p(c.tu)}–${p(c.den)}`} ngân sách + ROI hôm nay ≥ ${c.roi}%${c.den == null ? ` (tiêu < ${p(TN.duoi)} thì ≥ ${TN.roi_duoi}%)` : ''}`; };
 export const NHANH_TEN: [string, string, string] = ['⚡', `Tăng nhanh ${NHANH.map(([a, b]) => `${a}–${b}h`).join(' · ')}: đạt cổng thì lên bậc kế ngay mỗi nhịp, không chờ 24 giờ — đêm ${chuCong(KD.tang[0] + 1)} · sáng ${chuCong(KD.sang[0] + 2)}`, '#facc15'];
 /** khung đang chạy kéo tới mấy giờ (giờ nguyên, 0–23) */
 export const hetKhung = (h: number) => { const k = khungLuc(h); for (let i = 1; i <= 24; i++) { const g = (Math.floor(h) + i) % 24; if (khungLuc(g) !== k) return g; } return Math.floor(h); };

@@ -12,7 +12,7 @@ BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__
 NGHI_GIO, TOI_DA_NGAY = int(BANG_LUAT["khung_doi"]["nghi_gio"]), None   # sổ luật chung (trang đọc cùng số)
 # NGOẠI LỆ TĂNG DỒN (anh 05/11/2026 "sửa đi"; số toàn đội 20/10–05/11: tăng lần nữa < 24h khi camp đã tiêu ≥ 90% ngân sách MỚI (07/11/2026 hạ còn ≥ 50% — sổ luật chung nap_chi) + ROI hôm nay ≥ 100%,
 # bước ≤ ×1,5 → lãi 24h hơn để nguyên $12,77/camp, 0% âm, n=9; mọi tăng dồn < 6h +$6,58): đạt cổng thì được tăng tiếp sau NGHI_DON_GIO giờ.
-# Cổng = khung_doi.nap_chi / sang_roi của sổ luật chung (cùng cổng tăng trong ngày của máy luật — du_so là MỘT công thức cho cả hai).
+# Cổng = du_so (ngoài khung sáng: luật tăng trong ngày tang_ngay 12/11 — anh 19/11/2026 bỏ nap_chi / sang_roi; du_so là MỘT công thức cho máy luật + nhịp).
 NGHI_DON_GIO = int(BANG_LUAT["khung_doi"]["nghi_don_gio"])
 # NHỊP NGẮN CHO CAMP NHỎ (anh 16/11/2026 "tăng bậc có nhanh hơn được không" — camp trẻ lãi 3 ngày mới lên $9): lần tăng trước đưa camp tới ≤ NGHI_THAP_NS
 # thì chỉ nghỉ NGHI_THAP_GIO giờ (bước kế ≤ $9). Đo 30 ngày camp nhà, ROI 3 ngày khép sau lần tăng: tới $2–4 cách 6–20 giờ +21% vs ≥ 20 giờ +6%;
@@ -40,25 +40,42 @@ def so_13h(cid, ngay_utc):
     return (float(p[0]) if p[0] else None), (float(p[1]) if p[1] else None)
 # CỔNG KHUNG SÁNG (anh 12/11/2026 "làm theo đề xuất" — sổ luật chung khung_doi.sang_nap; đo có đối chứng apps/etp/phan-tich/bac-doi-chung.py): 07–15h VN
 # tăng khi đã tiêu 50–75% ngân sách + ROI hôm nay ≥ 0 (3 ngày sau +2,67/$ vs không tăng +0,06/$); tiêu ≥ 75% trước 15h = tiêu dồn, 3 ngày sau lỗ dù tăng hay không → không tăng.
-# Ngoài khung sáng giữ nap_chi + sang_roi. MỘT chỗ: máy luật (_nap_sang, _du_tang, khung nhanh), máy làm (du_don), nhịp (cho_tang) cùng gọi.
+# NGOÀI KHUNG SÁNG = LUẬT TĂNG TRONG NGÀY 12/11 (anh 19/11/2026 18:15 chốt sau ca #105577 — chi 74%, ROI +70% mà máy chặn ở 100%): sổ luật tang_ngay —
+# chi ≥ tang_ngay.chi × NS và ROI hôm nay ≥ tn_roi(chi, NS) (chi < duoi × NS → roi_duoi, còn lại roi). Bỏ cổng chung nap_chi 40% + sang_roi 100% (luật 05/11).
+# MỘT chỗ: máy luật (_nap_sang, _du_tang, tb_ngay, khung nhanh), máy làm (du_don), nhịp (cho_tang) cùng gọi; worker congNap + etp2 congTang đọc cùng số.
 SANG, SANG_NAP = tuple(KD["sang"]), KD["sang_nap"]
+TN = BANG_LUAT["tang_ngay"]
+def tn_roi(chi, ns):
+    """ROI hôm nay tối thiểu (%) theo luật tăng trong ngày: chi < duoi × NS → roi_duoi, còn lại roi"""
+    return float(TN["roi_duoi"]) if ns and float(chi or 0) < float(TN["duoi"]) * float(ns) else float(TN["roi"])
 SANG_MAU = dt.datetime(2026, 1, 1, (SANG[0] + 2 - 7) % 24, tzinfo=dt.timezone.utc)   # một giờ UTC nằm trong khung sáng (sáng + 2 giờ) — để in câu cổng sáng
 def trong_sang(bay_gio=None):
     h = ((bay_gio or dt.datetime.now(dt.timezone.utc)) + dt.timedelta(hours=7)).hour
     return SANG[0] <= h < SANG[1]
-def cong(bay_gio=None):
-    """cổng tăng lúc này: (chi từ, chi tới hoặc None, ROI hôm nay tối thiểu %) — chi tính theo × ngân sách đang chạy"""
+def cong(bay_gio=None, chi=None, ns=None):
+    """cổng tăng lúc này: (chi từ, chi tới hoặc None, ROI hôm nay tối thiểu %) — chi tính theo × ngân sách đang chạy;
+    ngoài khung sáng ROI tối thiểu theo chi (tn_roi) — không đưa chi thì lấy mức của bậc trên (chi ≥ duoi × NS)"""
     if trong_sang(bay_gio): return float(SANG_NAP["chi"][0]), float(SANG_NAP["chi"][1]), float(SANG_NAP["roi"])
-    return float(KD["nap_chi"]), None, float(KD["sang_roi"])
+    return float(TN["chi"]), None, (tn_roi(chi, ns) if chi is not None and ns else float(TN["roi"]))
 def chu_cong(bay_gio=None):
-    a, b, r = cong(bay_gio)
-    return (f"đã tiêu {a:.0%}–{b:.0%}" if b else f"đã tiêu ≥ {a:.0%}") + f" ngân sách đang chạy + ROI hôm nay ≥ {r:g}%"
+    if trong_sang(bay_gio):
+        a, b, r = cong(bay_gio)
+        return f"đã tiêu {a:.0%}–{b:.0%} ngân sách đang chạy + ROI hôm nay ≥ {r:g}%"
+    return (f"đã tiêu ≥ {float(TN['chi']):.0%} ngân sách đang chạy + ROI hôm nay ≥ {float(TN['roi']):g}%"
+            f" (tiêu < {float(TN['duoi']):.0%} thì ≥ {float(TN['roi_duoi']):g}%)")
+def chu_so(chi, thu, ns, bay_gio=None):
+    """câu số thật của camp so với cổng: 'chi x% (≥ y%) · ROI x% (≥ y%)' — cho dòng 'Máy xếp tăng nhịp này'"""
+    chi, thu, ns = float(chi or 0), float(thu or 0), float(ns or 0)
+    a, b, r = cong(bay_gio, chi, ns)
+    tl = f"{chi / ns:.0%}" if ns > 0 else "—"
+    roi = f"{(thu - chi) / chi * 100:+.0f}%" if chi > 0 else "—"
+    return f"chi {tl} ngân sách (cần {f'{a:.0%}–{b:.0%}' if b else f'≥ {a:.0%}'}) · ROI hôm nay {roi} (cần ≥ {r:g}%)"
 def qua_cong(chi, thu, ns, bay_gio=None):
     """chỉ cổng chi + ROI (không xét tiêu dồn) — khung sáng có cả trần chi"""
-    a, b, r = cong(bay_gio); chi, thu, ns = float(chi or 0), float(thu or 0), float(ns or 0)
+    chi, thu, ns = float(chi or 0), float(thu or 0), float(ns or 0); a, b, r = cong(bay_gio, chi, ns)
     return ns > 0 and chi > 0 and chi >= a * ns and (b is None or chi < b * ns) and thu >= (1 + r / 100) * chi
 def du_so(chi, thu, ns, chi_13h=None, ns_13h=None, bay_gio=None):
-    """đạt cổng tăng: qua_cong (khung sáng: tiêu 50–75% + ROI ≥ 0 · ngoài: tiêu ≥ nap_chi + ROI ≥ sang_roi%); KHÔNG tiêu dồn (chi_13h / ns_13h — None = không xét)"""
+    """đạt cổng tăng: qua_cong (khung sáng: tiêu 50–75% + ROI ≥ 0 · ngoài: luật tang_ngay 12/11); KHÔNG tiêu dồn (chi_13h / ns_13h — None = không xét)"""
     if not trong_nhanh(bay_gio):   # khung tăng nhanh (anh 10/11/2026): không hoãn tiêu dồn; ngoài khung giữ nguyên
         if tieu_don(chi_13h, ns_13h or ns): return False
     return qua_cong(chi, thu, ns, bay_gio)
@@ -180,15 +197,22 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     assert chan_tang(api, 1, u("2026-10-21T19:00:00"), du=False).startswith("vừa tăng") and chan_tang(api, 1, u("2026-10-21T19:40:00"), du=False) is None, "camp nhỏ: 11,4 giờ còn chặn, 12 giờ thì được (16/11/2026)"
     _gia_to = {"data": [{"created_at": "2026-10-21T07:37:10Z", "changes": [{"field": "budget_daily", "old": 6, "new": 9}]}]}; _CACHE.clear()
     assert chan_tang(lambda p: _gia_to, 2, u("2026-10-21T20:00:00"), du=False).startswith("vừa tăng") and chan_tang(lambda p: _gia_to, 2, u("2026-10-22T07:40:00"), du=False) is None, "camp vừa lên $9: vẫn 24 giờ"
-    assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=True) is None, "3 giờ + đạt cổng (tiêu ≥ nap_chi × NS mới, ROI ≥ 100%) → tăng dồn được"
+    assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=True) is None, "3 giờ + đạt cổng (du_so) → tăng dồn được"
     assert chan_tang(api, 1, u("2026-10-22T08:00:00"), du=False) is None, "đủ 24 giờ thì tăng, không cần cổng dồn"
-    _n, _dem = float(KD["nap_chi"]), u("2026-10-21T16:00:00")   # 23h VN: ngoài khung sáng
-    assert du_so(_n + 0.01, 2 * (_n + 0.01), 1, bay_gio=_dem) and not du_so(_n - 0.01, 2, 1, bay_gio=_dem) and not du_so(1, 1.9, 1, bay_gio=_dem) and not du_so(1, 2, 0, bay_gio=_dem), "cổng ngoài khung sáng: chi ≥ nap_chi × NS (sổ luật chung) + thu ≥ 2 × chi"
+    _dem, _18h = u("2026-10-21T16:00:00"), u("2026-11-19T11:00:00")   # 23h VN · 18h VN 19/11: ngoài khung sáng
+    # luật tăng trong ngày 12/11 (anh 19/11/2026 18:15, ca #105577 chi 74% ROI +70%): chi ≥ 50% NS → ROI ≥ 50%; chi 30–50% → ROI ≥ 100%
+    assert TN["chi"] == 0.3 and TN["duoi"] == 0.5 and TN["roi"] == 50 and TN["roi_duoi"] == 100, f"sổ luật tang_ngay đổi — soát lại các bài dưới: {TN}"
+    assert du_so(0.74, 1.26, 1, bay_gio=_18h), "19/11 18h: chi 74% + ROI +70% → TĂNG (ca #105577)"
+    assert not du_so(0.45, 0.8, 1, bay_gio=_18h), "chi 45% (< 50%) thì cần ROI ≥ 100% — +78% không đạt"
+    assert du_so(0.45, 0.9, 1, bay_gio=_18h) and not du_so(0.29, 2, 1, bay_gio=_18h), "chi 45% + ROI 100% đạt; chi < 30% không tăng dù ROI cao"
+    assert not du_so(0.74, 0.74 * 1.4, 1, bay_gio=_18h) and du_so(0.5, 0.75, 1, bay_gio=_18h), "ROI +40% không đạt; chi đúng 50% + ROI 50% đạt"
+    assert du_so(1, 1.5, 1, bay_gio=_dem) and not du_so(1, 1.49, 1, bay_gio=_dem) and not du_so(1, 2, 0, bay_gio=_dem), "23h: cùng luật — không còn cổng ROI ≥ 100% sau 15h"
+    assert "chi 74% ngân sách (cần ≥ 30%)" in chu_so(0.74, 1.26, 1, _18h) and "ROI hôm nay +70% (cần ≥ 50%)" in chu_so(0.74, 1.26, 1, _18h) and "(cần ≥ 100%)" in chu_so(0.45, 0.8, 1, _18h), f"câu số đủ cả ngưỡng: {chu_so(0.74, 1.26, 1, _18h)}"
     _sg = u("2026-10-21T02:00:00")   # 09h VN: khung sáng — tiêu 50–75% + ROI ≥ 0 (anh 12/11/2026)
     assert trong_sang(_sg) and not trong_sang(_dem) and not trong_sang(u("2026-10-21T08:00:00")), "khung sáng 07–15h VN"
     assert du_so(0.6, 0.6, 1, bay_gio=_sg) and du_so(0.5, 0.5, 1, bay_gio=_sg) and not du_so(0.75, 3, 1, bay_gio=_sg) and not du_so(1, 3, 1, bay_gio=_sg), "sáng: 50% ≤ chi < 75% ngân sách — tiêu ≥ 75% (tiêu dồn) không tăng dù ROI cao"
     assert not du_so(0.49, 2, 1, bay_gio=_sg) and not du_so(0.6, 0.59, 1, bay_gio=_sg) and not du_so(0, 0, 1, bay_gio=_sg), "sáng: dưới 50% / ROI âm / chưa chi → không"
-    assert "50%–75%" in chu_cong(_sg) and "≥ 0%" in chu_cong(_sg) and "≥ 40%" in chu_cong(_dem), "câu cổng theo giờ"
+    assert "50%–75%" in chu_cong(_sg) and "≥ 0%" in chu_cong(_sg) and "≥ 30%" in chu_cong(_dem) and "≥ 50%" in chu_cong(_dem) and "≥ 100%" in chu_cong(_dem), "câu cổng theo giờ"
     assert chan_tang(lambda p: _gia_to, 2, u("2026-10-22T01:30:00"), du=False).startswith("vừa tăng"), "camp vừa lên $9: 18 giờ sau (8h30 VN hôm sau), không đạt cổng → còn chặn (nhịp 24 giờ, 05/11/2026)"
     assert chan_tang(api, 1, u("2026-10-22T01:30:00"), du=True) is None, "18 giờ sau + đạt cổng → được"
     _CACHE.clear()

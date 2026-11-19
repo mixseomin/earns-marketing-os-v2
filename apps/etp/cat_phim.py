@@ -55,6 +55,12 @@ def so_phim():
                          (select string_agg('#' || h.camp_id || ' ROI ' || h.roi || '%', ', ' order by h.roi desc) from etp.camp_co_hoi h where h.content_id = p.content_id) lai   -- CAMP CƠ HỘI (migration 0437, anh 06/11/2026)
                   from p left join etp.phim f using (content_id) left join t using (content_id)""".replace("{HS}", GA.hs_sql("n.ngay")))
 
+# PHIM CẤM (etp:phim-cam-cho-3-2011, anh 20/11/2026 "fix triệt để các phim cấm là ko đc bật"): phim trong sổ ethopex_phim_cam bị bỏ qua ngay đầu vòng xét — hỏi đúng
+# MỘT bộ đọc cong.phim_cam (lỗi đọc → chặn), không đọc sổ lần hai ở đây.
+def la_cam(ct, doc=None):
+    import cong as CG
+    return bool((doc or CG.phim_cam)(cts=[ct], q=_q))
+
 def dat(content, vong, ly, that, bo=None):
     v = lambda x: "null" if x is None else f"'{s_(x)}'"
     if that: _q(f"update etp.phim set thu_vong = {v(vong)}, thu_ly = {v(ly)}, thu_bo = {v(bo)}, thu_luc = now() where content_id = {int(content)}")
@@ -71,6 +77,7 @@ def xet(that=False):
     for p in so_phim():
         ct, chi, thu, vong = int(p["content_id"]), float(p["chi"] or 0), float(p["thu"] or 0), p.get("thu_vong")
         ten = p.get("ten") or f"phim {ct}"; so_thu = int(p.get("so_thu") or 0)
+        if la_cam(ct): continue   # phim cấm: không đổi vòng, không vào doi_bo (camp mới lên bộ khác), không mở lại (etp:phim-cam-cho-3-2011)
         # ĐỘI CÒN LÃI = tổng đội 14 ngày lãi HOẶC đội có ≥ 1 camp chi ≥ $3 thu > chi trong 7 ngày (anh 09/11/2026: tổng đội âm vì camp thử khác vẫn che mất camp đội đang thắng)
         team_lai = (float(p["team_chi"] or 0) >= 10 and float(p["team_thu"] or 0) > float(p["team_chi"] or 0)) or int(p.get("doi_camp_lai") or 0) > 0
         # BÃO HOÀ KHÔNG CÒN LÀ LÝ DO CẤT (anh 06/11/2026 "Phim bão hoà chỉ cảnh báo"): phim đã cất vì bão hoà → mở lại; phim bão hoà chỉ hiện cảnh báo (etp.phim_bao_hoa)
@@ -119,6 +126,11 @@ def xet(that=False):
     return bao, doi_bo
 
 if __name__ == "__main__":
+    if "--tu-kiem-phim-cam" in sys.argv:   # trên box3, SỔ THẬT: 167292 bị bỏ qua, một phim thường đi qua
+        thuong = int(_q("select content_id from etp.phim where not coalesce((select gia_tri ? content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_cam'), false) order by content_id desc limit 1"))
+        assert la_cam(167292), "LỌT: cat_phim không bỏ qua phim cấm 167292"
+        assert not la_cam(thuong), f"phim thường #{thuong} bị bỏ nhầm"
+        print(f"cat_phim phim cấm: 167292 bị bỏ qua, phim thường #{thuong} đi qua"); sys.exit()
     if "--mo" in sys.argv:
         ct = int(sys.argv[sys.argv.index("--mo") + 1]); dat(ct, None, None, True); print(f"mở lại phim {ct}"); sys.exit()
     b, d = xet("--that" in sys.argv)

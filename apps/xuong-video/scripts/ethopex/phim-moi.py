@@ -15,7 +15,7 @@ Hằng ngày trên iMac (mỗi bước in việc kế tiếp):
   (phim-moi.py gop <lô>: gộp lại kết quả lô từ hàng đợi khi thợ làm thêm sau lúc cat kết thúc — xếp lại việc kẹt, cắt lại…)
   Thiếu chỉ tiêu sau bước 6 → quay lại 4 (máy tự lấy phim kế, gồm phim cat_loi chưa quá 2 lần)."""
 import datetime as dt, importlib.util, json, math, os, subprocess, sys, urllib.request
-D = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, D); import loi_ky_thuat as LK
+D = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, D); import loi_ky_thuat as LK, xuong as XG
 D = D; B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 KTT, KDS, CHI_TIEU, NGAY_DU = "ethopex_phim_moi_tt", "ethopex_200_phim", 30, 2
@@ -46,8 +46,19 @@ def ghi(cap):
 def dpm():
     s = importlib.util.spec_from_file_location("dpm", os.path.join(D, "dot-phim-moi.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 
+def dong_cam(tt, doc=None, viet=True):
+    """PHIM CẤM (etp:phim-cam-cho-3-2011, anh 20/11/2026 "fix triệt để các phim cấm là ko đc bật"): phim trong sổ ethopex_phim_cam → trạng thái 'phim_cam'
+    (sổ ethopex_phim_moi_tt + etp.phim_moi, ghi rõ "PHIM CẤM (trước: …)"). Mọi bước chỉ bắt poster_ok / cat_loi / da_cat nên phim cấm không còn được cắt / dựng / lên.
+    Gọi đầu so_lieu (tinh / cat) và len_. Một bộ đọc xuong.phim_cam → cong.phim_cam; đọc lỗi → ném, máy dừng. da_len giữ nguyên (đã qua, chỉ tiêu ngày đếm nó)."""
+    ung = [int(k) for k, v in tt.items() if str(k).isdigit() and v.get("tt") not in ("phim_cam", "da_len")]
+    cam = (doc or XG.phim_cam)(ung) if ung else {}
+    cap = {str(c): ("phim_cam", f"PHIM CẤM (trước: {tt[str(c)].get('tt')}) — {ly}") for c, ly in cam.items() if str(c) in tt}
+    if cap and viet: ghi(cap); print(f"phim cấm: {len(cap)} phim chuyển 'phim_cam' — không cắt / dựng / lên", flush=True)
+    for k, (t, g) in cap.items(): tt[k] = {**tt[k], "tt": t, "ghi": g[:200]}
+    return tt
+
 def so_lieu():
-    ds, tt = khoa(KDS, "[]"), khoa(KTT); hom = vn().strftime("%d/%m/%Y")
+    ds, tt = khoa(KDS, "[]"), dong_cam(khoa(KTT)); hom = vn().strftime("%d/%m/%Y")
     dem = {}; [dem.__setitem__(v["tt"], dem.get(v["tt"], 0) + 1) for v in tt.values()]
     xong = sum(dem.get(k, 0) for k in ("da_len", "soat_loai", "cong_loai", "cat_loai"))
     ty_le = dem.get("da_len", 0) / xong if xong >= 10 else 0.6
@@ -187,7 +198,7 @@ def chon_ngay():
 
 def len_(ten):
     lich, da = chon_ngay(); print(f"lên cho ngày {NGAY_LEN} (lịch {lich}, đã có {da}/{CHI_TIEU} phim)", flush=True)
-    tt = khoa(KTT); kq = dpm().len_ds(ten, ten.replace("-", ""), lich, "quy trình phim mới " + ten)
+    tt = dong_cam(khoa(KTT)); kq = dpm().len_ds(ten, ten.replace("-", ""), lich, "quy trình phim mới " + ten)
     lo = json.load(open(os.path.join(C, "ra", ten, "lo.json"))); ids = {str(x["content_id"]) for x in lo if x.get("content_id")}
     cap = {}
     for i in ids:
@@ -206,6 +217,10 @@ def len_(ten):
 if __name__ == "__main__":
     a = sys.argv[1:] or ["tinh"]; g = a[a.index("--ghi") + 1] if "--ghi" in a else ""
     ids = [x for x in a[1:] if x.isdigit()]
+    if a[0] == "--tu-kiem-phim-cam":   # SỔ THẬT qua box3: 167292 thành phim_cam, phim thường giữ trạng thái; không ghi gì
+        _t = dong_cam({"167292": {"tt": "da_cat"}, "1": {"tt": "poster_ok"}}, viet=False)
+        assert _t["167292"]["tt"] == "phim_cam" and _t["167292"]["ghi"].startswith("PHIM CẤM (trước: da_cat)") and _t["1"]["tt"] == "poster_ok", _t
+        print("phim-moi phim cấm: 167292 → phim_cam, phim thường #1 giữ poster_ok"); sys.exit()
     if a[0] == "tinh": tinh()
     elif a[0] == "don": don_mac()   # cất tay lên Drive (giữ phim / lô đang chờ trên máy)
     elif a[0] == "them": them(int(ids[0]) if ids else len(khoa(KDS, "[]")) + 200)

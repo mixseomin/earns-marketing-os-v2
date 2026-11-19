@@ -48,7 +48,7 @@ def xet(s, tran, con_toi_da=None):
     cho_cong = set(s.get("cho_cong") or []) - set(dang_sx)   # dòng đã có creative, dừng ở bước camp vì cổng đóng (SQL_CHO_CONG) — không xếp dòng thứ hai
     if p.get("thu_vong") == "cat": return "cat", f"Đã cất phim: {p.get('thu_ly') or ''}"[:160], 0, []
     # BƯỚC NHẬN CHẤM RA NGOÀI ÂU-MỸ / CẤM 18+ (15:25 07/11: 9 dòng dừng vì 'hoat_hinh' / sổ cấm) → dừng hẳn, không xếp lại tới 3 lần hỏng mỗi dạng
-    if p.get("cam"): return "cam", "Phim trong sổ cấm 18+ — không lên camp", 0, []
+    if p.get("cam"): return "cam", CHU_CAM, 0, []
     if p.get("nhom_goc") and p.get("nhom_goc") != "au_my": return "ngoai", f"Phim ngoài Âu-Mỹ (nhóm {p['nhom_goc']}) — không lên camp", 0, []
     # PHIM KHÔNG CÓ LINK TẢI TẬP (09/11/2026: dòng PO / AT chết ở bước tải tập, 29 dòng / 24 giờ — spy + trang phim đều không có link): mọi dạng máy làm đều tải tập
     if p and p.get("co_url") is False: return "khong_nguon", "Phim không có link tải tập (spy + trang phim đều trống) — máy không dựng được creative; có link thì tự xếp", 0, []
@@ -252,7 +252,18 @@ def ghi_ngung(q, chu):
           where not exists (select 1 from etp.nhat_ky where viec = 'lo_trinh' and left(luat, 40) = '{dau}' and (luc at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date)""")
 
 AT_KQ = [0]
+CHU_CAM = "Phim trong sổ cấm 18+ — không lên camp"
+def sql_cam_tt(goc):
+    """PHIM CẤM (etp:phim-cam-cho-3-2011): biểu thức jsonb = lo_trinh_tt <goc> với MỌI khoá phim nằm trong sổ ethopex_phim_cam đổi ma 'cam' (giữ dang).
+    Gốc lỗi #143938 (cấm 10:30 19/11, vẫn 'thu_dang'): chay() chỉ tính lại phim còn trong lo_trinh_tu_dong.phim — phim đã rời danh sách giữ mã cũ mãi."""
+    return (f"({goc}) || coalesce((select jsonb_object_agg(e.key, e.value || jsonb_build_object('ma', 'cam', 'chu', $C${CHU_CAM}$C$, 'ke', 0)) from jsonb_each({goc}) e"
+            f" join xv_khoa_ngoai k on k.ten = 'ethopex_phim_cam' and jsonb_typeof(k.gia_tri) = 'object' and k.gia_tri ? e.key where e.value->>'ma' is distinct from 'cam'), '{{}}'::jsonb)")
+def dong_cam_tt(q):   # đầu MỖI nhịp, trước mọi return sớm (ngừng sx / đủ hàng / dừng camp mới / trần ngày) → phim vào sổ cấm có mã cam ở nhịp kế
+    return q(f"update etp.cau_hinh set gia_tri = {sql_cam_tt('gia_tri')} where khoa = 'lo_trinh_tt' and gia_tri <> {sql_cam_tt('gia_tri')} returning 1")
+
 def chay(q):
+    try: dong_cam_tt(q)
+    except Exception as e: print(f"lo_trinh_tt phim cấm: {e}"[:200], file=_s.stderr)
     try: GAC.clear(); GAC.update(str(x) for x in json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'gac_dang'), '[]')") or "[]"))
     except Exception: pass
     kq = {}
@@ -327,6 +338,13 @@ def chay(q):
         cu[str(cid)] = {"ma": ma, "chu": chu, "ke": ke, "dang": dang}
     q(f"""insert into etp.cau_hinh (khoa, gia_tri) values ('lo_trinh_tt', $J${json.dumps(cu, ensure_ascii=False)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri""")
     return {"lo_trinh_phim": len(ds), "lo_trinh_xep": xep, "at_uu_tien": AT_KQ[0]}
+
+if __name__ == "__main__" and "--tu-kiem-phim-cam" in _s.argv:   # trên box3, SỔ THẬT, không ghi: 167292 'thu_dang' → 'cam' (giữ dang), phim thường giữ nguyên
+    _thuong = CG._q("select content_id from etp.phim where not coalesce((select gia_tri ? content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_cam'), false) order by content_id desc limit 1").strip()
+    _g = f"""'{json.dumps({"167292": {"ma": "thu_dang", "dang": {"PO": 1}}, _thuong: {"ma": "thu_dang"}})}'::jsonb"""
+    _r = json.loads(CG._q(f"select ({sql_cam_tt(_g)})::text"))
+    assert _r["167292"] == {"ma": "cam", "chu": CHU_CAM, "ke": 0, "dang": {"PO": 1}} and _r[_thuong] == {"ma": "thu_dang"}, _r
+    print(f"lo_trinh phim cấm: 167292 thu_dang → cam, phim thường #{_thuong} giữ thu_dang"); _s.exit()
 
 if __name__ == "__main__":
     # bài tự kiểm theo CAN = PO → CC → AT (anh 08/11/2026 PO trước; bộ cũ viết khi chưa có PO nên đỏ từ 08/11 — sửa lại 09/11/2026 cùng lượt rà xung đột luật)

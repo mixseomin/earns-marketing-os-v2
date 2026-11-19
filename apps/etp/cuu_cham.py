@@ -45,6 +45,13 @@ def ghi(cr, cid, tt, ly, moi=None, lo=None, tang=False):
             on conflict (creative_id) do update set trang_thai = excluded.trang_thai, ly_do = excluded.ly_do, creative_moi = coalesce(excluded.creative_moi, etp.cuu_cham.creative_moi),
               lo = coalesce(excluded.lo, etp.cuu_cham.lo), lan = etp.cuu_cham.lan + excluded.lan, luc = now()""")
 
+# PHIM CẤM (etp:phim-cam-cho-3-2011, anh 20/11/2026 "fix triệt để các phim cấm là ko đc bật"): creative của phim trong sổ ethopex_phim_cam không cắt bỏ khung / không đưa
+# lại hàng chấm — hỏi đúng MỘT bộ đọc xuong.phim_cam (→ cong.phim_cam, Mac đi qua ssh box3; đọc lỗi → ném, lượt dừng). Không ghi trạng thái 'bo': gỡ khỏi sổ thì cứu tiếp.
+def loc_cam(ds, doc=None):
+    if doc is None: import xuong as XG; doc = XG.phim_cam
+    cam = doc({x["content_id"] for x in ds if x.get("content_id")})
+    return [x for x in ds if int(x.get("content_id") or 0) not in cam], [x for x in ds if int(x.get("content_id") or 0) in cam]
+
 def chay(kho=False, so=None, chi=None):
     """một lượt. Trả câu tóm tắt cho nhật ký máy dòng phim."""
     sql(KHO)
@@ -58,6 +65,9 @@ def chay(kho=False, so=None, chi=None):
           {CHAN} {dk} and (u.creative_id is null or (u.trang_thai = 'loi' and u.lan < {THU_TOI_DA} and u.luc < now() - interval '1 hour')
                  or (u.trang_thai = 'dang' and u.luc < now() - interval '2 hours'))   -- 'dang' quá 2 giờ = máy chết giữa lượt (nạp lại mã / tắt máy) → làm lại
           order by r.creative_id desc) t""".replace("join etp.cham h using (creative_id)", "join etp.cham h using (creative_id) left join etp.cuu_cham u using (creative_id)")) or "[]")
+    ds, cam = loc_cam(ds)
+    if kho:
+        for x in cam: print("CẤM", x["creative_id"], x["content_id"], "phim trong sổ cấm — không cắt / chấm lại")
     M = cbc(); bo, cat = [], []
     for x in ds:
         if x["la_ban_cat"]: bo.append((x, f"bản đã cắt bỏ khung mà vẫn trượt cổng chấm ({(x['chan_boi'] or '')[:120]}) — không cắt lần hai")); continue
@@ -142,6 +152,11 @@ def _tu_kiem():
 if __name__ == "__main__":
     a = sys.argv[1:]
     if "--tu-kiem" in a: _tu_kiem(); sys.exit()
+    if "--tu-kiem-phim-cam" in a:   # SỔ THẬT: 167292 bị bỏ, một phim thường đi qua
+        thuong = int(sql("select content_id from etp.phim where not coalesce((select gia_tri ? content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_cam'), false) order by content_id desc limit 1"))
+        giu, cam = loc_cam([{"creative_id": 1, "content_id": 167292}, {"creative_id": 2, "content_id": thuong}])
+        assert [x["creative_id"] for x in giu] == [2] and [x["creative_id"] for x in cam] == [1], f"lọc phim cấm sai: {giu} / {cam}"
+        print(f"cuu_cham phim cấm: 167292 bị bỏ, phim thường #{thuong} đi qua"); sys.exit()
     so = int(a[a.index("--so") + 1]) if "--so" in a else None
     chi = [int(x) for x in a if x.isdigit() and (so is None or x != str(so))]
     print(chay(kho="--kho" in a, so=so, chi=chi or None))

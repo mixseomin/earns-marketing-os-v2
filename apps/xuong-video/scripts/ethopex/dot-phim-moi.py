@@ -26,9 +26,17 @@ def ds(a, b):
 def cat(a, b, n=2):
     return cat_ds(ds(a, b), f"moi-{a}-{b}", n)
 
+def bo_cam(phim, doc=None):
+    """PHIM CẤM (etp:phim-cam-cho-3-2011): bỏ phim trong sổ ethopex_phim_cam trước khi cắt — một bộ đọc xuong.phim_cam → cong.phim_cam; đọc lỗi → ném, dừng lô"""
+    cam = (doc or XG.phim_cam)([int(p["id"]) for p in phim])
+    for p in phim:
+        if int(p["id"]) in cam: print(f"bỏ {p['id']} {p.get('ten', '')[:40]}: {cam[int(p['id'])][:120]}", flush=True)
+    return [p for p in phim if int(p["id"]) not in cam]
+
 def cat_ds(phim, ten, n=2):
     """cắt một danh sách phim {id, locale, nguon, ten, url} vào ~/.cache/ethopex/ra/<ten>/ (phim-moi.py gọi theo trạng thái, không theo dải hạng)"""
-    ra = os.path.expanduser(f"~/.cache/ethopex/ra/{ten}"); os.makedirs(ra, exist_ok=True)
+    phim = bo_cam(phim)
+    ra =os.path.expanduser(f"~/.cache/ethopex/ra/{ten}"); os.makedirs(ra, exist_ok=True)
     from concurrent.futures import ThreadPoolExecutor
     dem = [0]
     def tai(p):   # tải 4 phim cùng lúc (mạng, không tốn CPU) — từng phim một thì 30 phim mất hàng giờ
@@ -76,7 +84,8 @@ def cat_box(a, b, n=2):
 
 def cat_box_ds(phim, ten, n=2):
     """như cat_box nhưng nhận danh sách phim {id, locale, nguon, ten, url} — dùng cho cắt lại phim lỗi (dot-phim-moi.py cat-lai <lo.tsv> <tên>)"""
-    ra = os.path.expanduser(f"~/.cache/ethopex/ra/{ten}"); os.makedirs(ra, exist_ok=True)
+    phim = bo_cam(phim)
+    ra =os.path.expanduser(f"~/.cache/ethopex/ra/{ten}"); os.makedirs(ra, exist_ok=True)
     rb = f"/root/.cache/ethopex/ra/{ten}"; tsv = os.path.join(ra, "lo.tsv")
     with open(tsv, "w") as f:
         for p in phim: f.write(f"{p['id']}\t{p['locale']}\t{p['nguon']}\t{p['ten']}\t{p['url']}\n")

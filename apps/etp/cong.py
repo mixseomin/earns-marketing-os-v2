@@ -200,6 +200,10 @@ def phim_chan_len():
     for l in _q("select content_id, coalesce(nhom_goc, ''), coalesce(thu_vong, ''), coalesce(thu_ly, '') from etp.phim where (nhom_goc is not null and nhom_goc <> 'au_my') or thu_vong = 'cat'").splitlines():
         cid, ng, tv, tl = l.split("|", 3)
         ra[int(cid)] = LY_AU_MY.format(ng) if ng and ng != "au_my" else LY_CAT.format(cid, tl)
+    # PHIM CẤM (etp:phim-cam-cho-3-2011): sổ ethopex_phim_cam cũng là chặn chắc — anh-tinh / thay-the lọc trước bằng hàm này nên không dựng / thay creative phim cấm
+    for l in _q(f"select k.key || '|' || coalesce(k.value->>'ly_do', 'cấm') from xv_khoa_ngoai x, jsonb_each(x.gia_tri) k where x.ten = '{KHOA_PHIM_CAM}'"
+                f" and jsonb_typeof(x.gia_tri) = 'object' and k.key ~ '^[0-9]+$'").splitlines():
+        cid, ly = l.split("|", 1); ra[int(cid)] = LY_PHIM_CAM.format(cid, KHOA_PHIM_CAM, ly[:160])
     return ra
 
 # NHÂN BẢN BÀI CŨ (anh 11/11/2026, Dol: "chạy lại post cũ để $2 luôn cũng được" — anh chốt "$2 cho camp dùng bài cũ thắng"): bản nhân bản camp thắng thường

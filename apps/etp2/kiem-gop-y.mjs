@@ -224,6 +224,10 @@ const LUAT = [
   { card: 1673, tep: 'apps/etp2/src/components/gop-y-mos2.tsx', co: '`🤖 ${KY_SU_ETP} đang rảnh`', cam: "'AI đang rảnh'", vi: 'dải đầu hòm: "Huy đang làm: …" / "Huy đang rảnh", không còn "AI đang rảnh"' },
   { card: 1673, tep: 'apps/etp2/src/components/gop-y-mos2.tsx', co: "const d = await hd.demGopY(); setDem(d); return d;", vi: 'dải tên dùng chính lượt nạp 60 giây của gói, không nạp thêm' },
   { card: 1561, tep: 'apps/etp2/src/components/etp-lich-phim.tsx', co: 'bản USED POST (dùng lại bài đăng camp gốc) ở nhịp kế', cam: 'bản $1 ở nhịp kế', vi: 'chữ rê Nhân bản nói máy nhân bản used post' },
+  { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', mot: 'export function viTriNoi(', vi: 'một hàm đặt lớp nổi cạnh con trỏ cho mọi thẻ rê (anh 28/10/2026 "hover vào đâu thì phải để ở gần đó")' },
+  { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'const h = useCaoThat(ref, cao);', vi: 'KhungNoi đặt theo chiều cao THẬT của thẻ, không theo cao ước' },
+  { card: 1460, tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'const top = Math.max(8, Math.min(y - 24, H - h - 8));', vi: 'đầu thẻ ngang con trỏ, chỉ đẩy lên phần vượt đáy màn' },
+  { card: 1460, tep: 'apps/etp2/src/components/etp-dong.tsx', co: 'const h = useCaoThat(ref, 240);', cam: 'window.innerHeight - 440', vi: 'khung xem trước tab Sản xuất đặt theo cao thật, không đẩy lên xa con trỏ' },
 ];
 
 const loi = [];

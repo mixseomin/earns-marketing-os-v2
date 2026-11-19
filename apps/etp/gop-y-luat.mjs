@@ -1406,4 +1406,5 @@ export const LUAT = [
   { card: 'qua-tai-nhan-ban-1911', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if sys.platform.startswith("linux") and os.nice(0) < 10: os.nice(10 - os.nice(0))', vi: 'nhan-ban chạy nice 10 trên box3, nhường web / đồng bộ' },
   { card: 'qua-tai-nhan-ban-1911', tep: 'apps/xuong-video/scripts/ethopex/qc-fb-phim.py', co: 'tinh = can_dem(da_tra, cu, bay_gio)', vi: 'qc-fb-phim --dem chỉ đếm lại từ khoá có lượt cào mới / quá 24 giờ (câu regexp 39 giây mỗi 10 phút)' },
   { card: 'qua-tai-nhan-ban-1911', tep: 'apps/xuong-video/scripts/ethopex/qc-fb-phim.py', cam: 'left join qc_meta q on k.tu = any(q.tu_khoa)', vi: 'lọc từ khoá bằng @> (chỉ mục GIN), không = any' },
+  { card: 1460, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'a1["chi"] > 0 and a2["chi"] > 0 and a["chi"] > ROAS_CHI and roi(a) < ROAS_ROI and roi(a1) < 0 and roi(a2) < 0', vi: 'luật RL chỉ báo tắt camp ROAS khi 2 ngày đã khép ĐỀU lỗ, cộng chi > $20, ROI < 0% — một ngày âm không đòi tắt (anh 28/10/2026)' },
 ];

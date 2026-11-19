@@ -1,7 +1,7 @@
 'use client';
 // DÒNG PHIM TỰ ĐỘNG (anh 03/11/2026, etp.on.tc): FormChayDong = form hỏi loại nội dung QC (KT / CC / CT…, mô tả + cách làm + giá + ví dụ thật) + thể loại;
 // TabDong = mỗi phim một dòng, 8 bước có giờ bắt đầu / kết thúc, nút FIX từng bước, Dừng dòng. Máy: apps/etp/dong_phim.py (iMac) · canh: apps/etp/manh.py (box3).
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Chon2 } from '@/components/ui/chon2';
 import { DongHo, EmptyState, FormModal, FormModalFooter, FormModalSection, SearchInput, SelectField } from '@/components/ui';
 import { BadgeDangNgan, KeToan, mauLai } from '@/components/etp-so';
@@ -9,7 +9,7 @@ import { chuChan, type TieuChi } from '@/lib/etp-chan';
 import { duyetCham } from '@/lib/actions/etp-cham';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { TRE_MO } from '@/lib/etp-tre';
-import { KhungNoi, ReThe, TheChung, useNoi, type Moc, type TheNoi } from '@/components/etp-noi';
+import { KhungNoi, ReThe, TheChung, useCaoThat, useNoi, viTriNoi, type Moc, type TheNoi } from '@/components/etp-noi';
 import { chuLich } from '@/lib/etp-khung';
 import { choGio, chuHen, dangChay, dangTao } from '@/lib/etp-chay';
 import { batDauCamp, chayDong, docChiTiet, docDong, dungDong, fixBuoc, formDong, lenCampCr, type CampDong, type CrDong, type DongPhim, type BuocDong, type LoaiNoiDung, type LocDong } from '@/lib/actions/etp-dong';
@@ -119,9 +119,13 @@ let henXem: number | undefined;
 const datXem = (v: Xem | null) => { window.clearTimeout(henXem); if (!v) { datXemNgay(null); return; } henXem = window.setTimeout(() => datXemNgay(v), TRE_MO); };
 function KhungXem() {
   const [v, setV] = useState<Xem | null>(null); datXemNgay = setV;
-  if (!v) return null;
-  const W = v.video ? 240 : 200; const left = Math.min(v.x + 14, window.innerWidth - W - 12); const top = Math.max(8, Math.min(v.y - 60, window.innerHeight - 440));
-  return <div style={{ position: 'fixed', left, top, zIndex: 70, width: W, padding: 6, borderRadius: 8, background: 'var(--bg-1)', border: '1px solid var(--line)', boxShadow: '0 8px 24px rgba(0,0,0,.55)', pointerEvents: 'none' }}>
+  return v ? <KhungXemMo v={v} /> : null;
+}
+// đặt bằng hàm chung viTriNoi + chiều cao THẬT (#1460 "hover vào đâu thì phải để ở gần đó") — trước ước cao 440px nên ảnh ngắn ở nửa dưới màn bị đẩy lên xa con trỏ
+function KhungXemMo({ v }: { v: Xem }) {
+  const ref = useRef<HTMLDivElement>(null); const h = useCaoThat(ref, 240);
+  const W = v.video ? 240 : 200; const { left, top } = viTriNoi(v.x + 10, v.y, W, h, window.innerWidth, window.innerHeight);
+  return <div ref={ref} style={{ position: 'fixed', left, top, zIndex: 70, width: W, padding: 6, borderRadius: 8, background: 'var(--bg-1)', border: '1px solid var(--line)', boxShadow: '0 8px 24px rgba(0,0,0,.55)', pointerEvents: 'none' }}>
     {v.video ? <video src={v.video} poster={v.anh ?? undefined} autoPlay muted loop playsInline style={{ width: '100%', borderRadius: 5, display: 'block' }} />
       : v.anh ? <img src={v.anh} alt="" style={{ width: '100%', borderRadius: 5, display: 'block' }} /> : null}
     {v.chu ? <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 4, whiteSpace: 'pre-wrap' }}>{v.chu}</div> : null}</div>;

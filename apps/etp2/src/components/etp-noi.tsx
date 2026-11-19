@@ -68,21 +68,33 @@ export function useNoi<T>() {
   return { v, mo, moNgay, giu, dongTre, dong };
 }
 export type Noi = { giu: () => void; dongTre: () => void; dong: () => void };
+// CHIỀU CAO THẬT của lớp nổi (góp ý #1460 anh 28/10/2026 "hover vào đâu thì phải để ở gần đó"): đo offsetHeight + theo dõi đổi cỡ — trước dùng chiều cao ƯỚC
+// (520 / 440px) → thẻ ngắn ở nửa dưới màn bị đẩy lên xa con trỏ. Mọi lớp nổi khi rê của etp2 (KhungNoi, khung xem trước tab Sản xuất) dùng chung hàm này.
+export function useCaoThat(ref: React.RefObject<HTMLElement | null>, cao: number) {
+  const [h, setH] = useState(cao);
+  useLayoutEffect(() => { const el = ref.current; if (!el) return; const f = () => setH(el.offsetHeight); f(); const ro = new ResizeObserver(f); ro.observe(el); return () => ro.disconnect(); }, [ref]);
+  return h;
+}
+// VỊ TRÍ LỚP NỔI CẠNH CON TRỎ — một hàm cho mọi lớp nổi khi rê.
+// ĐẶT BÊN CẠNH CON TRỎ (góp ý #1531 anh 04/11/2026 "hover box phải nằm ngoài vị trí con chuột … đéo ai bấm bên dưới được"): trước thẻ đè lên con trỏ rồi tràn
+// xuống (#1483) → che mọi dòng phía dưới. Nay mép trái thẻ cách con trỏ CHONG px về bên PHẢI, đầu thẻ ngang dòng đang rê — kéo chuột sang thẻ chỉ đi ngang trong
+// cùng dòng, không băng qua dòng khác (giữ ý #1483); cột dưới con trỏ để trống bấm được. Không đủ chỗ bên phải thì lật sang trái con trỏ.
+// Dọc: đầu thẻ ngang con trỏ; chỉ đẩy lên đúng phần thẻ (cao THẬT h) vượt đáy màn.
+export function viTriNoi(x: number, y: number, r: number, h: number, W: number, H: number) {
+  const CHONG = 4;
+  const left = x + CHONG + r <= W - 8 ? x + CHONG : Math.max(8, Math.min(x - CHONG - r, W - 8 - r));
+  const top = Math.max(8, Math.min(y - 24, H - h - 8));
+  return { left, top };
+}
 export function KhungNoi({ x, y, rong, cao, noi, children, style }: { x: number; y: number; rong: number; cao: number; noi: Noi; children: React.ReactNode; style?: React.CSSProperties }) {
   const W = typeof window !== 'undefined' ? window.innerWidth : 1400, H = typeof window !== 'undefined' ? window.innerHeight : 900;
   // PORTAL ra <body> (anh 28/10/2026: thẻ xét luật trong Bảng không hiện): position:fixed nằm trong khung cuộn / có transform của DataTable bị neo + cắt theo khung đó
   // ĐẶT SÁT CON TRỎ (góp ý #1460 anh 28/10/2026 "hover vào đâu thì phải để ở gần đó"): đo chiều cao THẬT của thẻ (trước dùng `cao` ước 520px → thẻ ngắn
   // ở nửa dưới màn bị đẩy lên xa) — đủ chỗ thì nằm ngay dưới con trỏ, không đủ thì lật lên trên con trỏ, chỉ kẹp mép khi cao hơn cả hai phía
-  const ref = useRef<HTMLDivElement>(null); const [h, setH] = useState(cao);
-  useLayoutEffect(() => { const el = ref.current; if (!el) return; const f = () => setH(el.offsetHeight); f(); const ro = new ResizeObserver(f); ro.observe(el); return () => ro.disconnect(); }, []);
-  // ĐẶT BÊN CẠNH CON TRỎ (góp ý #1531 anh 04/11/2026 "hover box phải nằm ngoài vị trí con chuột … đéo ai bấm bên dưới được"): trước thẻ đè lên con trỏ rồi tràn
-  // xuống (#1483) → che mọi dòng phía dưới. Nay mép trái thẻ cách con trỏ CHONG px về bên PHẢI, đầu thẻ ngang dòng đang rê — kéo chuột sang thẻ chỉ đi ngang trong
-  // cùng dòng, không băng qua dòng khác (giữ ý #1483); cột dưới con trỏ để trống bấm được. Không đủ chỗ bên phải thì lật sang trái con trỏ.
-  const CHONG = 4;
+  const ref = useRef<HTMLDivElement>(null); const h = useCaoThat(ref, cao);
   // MÀN HẸP (anh 05/11/2026 "pop khung thời gian trên mobile bị tràn"): bề rộng thẻ kẹp theo màn (W − 16) — mọi thẻ nổi, không vá từng thẻ
   const r = Math.min(rong, W - 16);
-  const left = x + CHONG + r <= W - 8 ? x + CHONG : Math.max(8, Math.min(x - CHONG - r, W - 8 - r));
-  const top = Math.max(8, Math.min(y - 24, H - h - 8));
+  const { left, top } = viTriNoi(x, y, r, h, W, H);
   if (typeof document === 'undefined') return null;
   return createPortal((<>
     {/* lớp tô dòng đang mở thẻ (useNoi) — đặt cùng thẻ nên có ở mọi màn (Cây, Bảng, ROAS) */}

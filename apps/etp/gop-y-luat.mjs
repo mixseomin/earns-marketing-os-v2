@@ -4,6 +4,8 @@
 //   { card: <id>, tep: <tệp từ gốc repo>, mot | co | cam: '<chuỗi>', vi: '<anh muốn gì>' }   mot = đúng 1 lần · co = phải có · cam = không được có
 export const V = 'apps/web/src/components/etp-view.tsx';
 export const LUAT = [
+  { card: 'nhan-viec-1669', tep: 'apps/cty/may/gop-y-ky-su.mjs', co: 'export function baoNhanViec(nguoi, ket, log = () => {}) {', vi: 'một hàm chung đẩy dòng ◆ nhận việc về nhật ký nhịp — ô ĐANG LÀM cty.on.tc/nhan-su hiện đúng việc (Khôi #1669, 19/11/2026)' },
+  { card: 'nhan-viec-1669', tep: 'apps/cty/may/etp-sua.mjs', co: 'baoNhanViec(NGUOI, dongNhanViec({ ...v, card: gopY }, `${model} ${muc.effort}`), log);', vi: 'runner Huy báo đúng việc vừa nhận (việc hàng / việc giao / card góp ý) lên bảng nhân sự' },
   { card: 'quyen-20-1011', tep: 'apps/cty/worker/ethopex.mjs', co: "const trongQuyen = (k, m) => tuTang && ['tang', 'dau_phien', 'hoi_g10'].includes(k)", vi: 'tăng trong quyền máy ($20) không gửi nút xin duyệt — ngoài khung thì máy hoãn rồi tự tăng (anh 10/11/2026)' },
   { card: 'anh-tay-1011', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "'nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that'", vi: 'anh nhân bản tay trên etp2: máy không chặn bằng luật mềm, anh chịu trách nhiệm (anh 10/11/2026)' },
   { card: 'anh-tay-1011', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'anh = "--anh" in a and bool(CONG.ve_hop_le("nhan_ban", [goc])); ep = ep or anh', vi: 'cờ --anh đi như lệnh đích danh — chỉ khi mang vé thao tác tay của đúng camp gốc (18/11/2026)' },

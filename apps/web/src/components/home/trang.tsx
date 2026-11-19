@@ -92,6 +92,8 @@ export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
   const datTeam = () => batDauLuu(async () => { const r = await datTeamHome(man.id, ds); setBao('loi' in r ? r.loi : `Màn ${man.ten}: bố cục này giờ là mặc định của team.`); });
   const trinhChieu = (bat: boolean) => { datKs(bat ? '1' : ''); if (bat) setBao('Trình chiếu: Esc hoặc nút ở góc trên để hiện lại khung.'); };
   const vongNav = () => datTuy({ nav: tuy.nav === 'rong' ? 'hep' : tuy.nav === 'hep' ? 'an' : 'rong' });
+  /** bật / tắt sửa bố cục — MỘT hàm cho nút, phím E và bảng tìm: bật thì mở luôn Kho widget */
+  const doiSua = () => { datSua(sua ? '' : '1'); if (!sua) { datTuy({ pn: 'rong' }); setTheP('kho'); setBao('Kéo tiêu đề để dời, kéo cạnh hoặc góc để đổi cỡ.'); } };
 
   // tự làm mới: đọc lại ruột widget theo nhịp đã chọn — đứng yên khi tab ẩn, đang sửa bố cục hoặc đang mở trang nhúng
   useEffect(() => {
@@ -110,7 +112,7 @@ export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
       if (e.key === '/') { e.preventDefault(); setPal(true); }
       else if (e.key === '[') vongNav();
       else if (e.key === ']') datTuy({ pn: tuy.pn === 'rong' ? 'an' : 'rong' });
-      else if (k === 'e') datSua(sua ? '' : '1');
+      else if (k === 'e') doiSua();
       else if (k === 'f') trinhChieu(ks !== '1');
     };
     window.addEventListener('keydown', phim);
@@ -148,7 +150,7 @@ export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
           {sua && soLichSu > 0 && <button type="button" className="hm-nut hm-chi-may" onClick={hoanTac} title="Hoàn tác (Ctrl+Z)">Hoàn tác</button>}
           <button type="button" className="hm-nut" onClick={() => setPal(true)} title="Tìm màn, widget, lệnh (Ctrl+K hoặc /)">Tìm</button>
           <button type="button" className={`hm-nut hm-chi-may${sua ? ' hm-bat' : ''}`} title="Kéo thả, đổi cỡ, thêm bớt widget (phím E)"
-            onClick={() => { datSua(sua ? '' : '1'); if (!sua) { datTuy({ pn: 'rong' }); setTheP('kho'); setBao('Kéo tiêu đề để dời, kéo cạnh hoặc góc để đổi cỡ.'); } }}>{sua ? 'Xong sửa' : 'Sửa bố cục'}</button>
+            onClick={doiSua}>{sua ? 'Xong sửa' : 'Sửa bố cục'}</button>
           <button type="button" className="hm-vuong hm-chi-may" onClick={() => datTuy({ pn: tuy.pn === 'rong' ? 'an' : 'rong' })} title="Mở hoặc đóng panel phụ (phím ])" aria-label="Mở hoặc đóng panel phụ" aria-pressed={tuy.pn === 'rong'}>◨</button>
         </header>
       )}
@@ -230,7 +232,7 @@ export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
       {pal && <BangTim dong={() => setPal(false)} muc={[
         ...MAN.map((m) => ({ loai: 'Màn', ten: m.ten, lam: () => router.push(href({ man: m.id })) })),
         ...Object.keys(WIDGET).map((ma) => ({ loai: tren.has(ma) ? 'Đã có' : 'Thêm widget', ten: `${widgetCua(ma)!.ten} · ${ma}`, lam: () => themWidget(ma) })),
-        { loai: 'Lệnh', ten: sua ? 'Xong sửa bố cục' : 'Sửa bố cục', lam: () => datSua(sua ? '' : '1') },
+        { loai: 'Lệnh', ten: sua ? 'Xong sửa bố cục' : 'Sửa bố cục', lam: doiSua },
         { loai: 'Lệnh', ten: 'Trình chiếu: ẩn hoặc hiện hết khung', lam: () => trinhChieu(!an) },
         { loai: 'Lệnh', ten: 'Hoàn tác', lam: hoanTac },
         { loai: 'Lệnh', ten: 'Về bố cục mặc định của màn này', lam: veMacDinh },

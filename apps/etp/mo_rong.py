@@ -5,7 +5,17 @@ Chỉ ĐỌC số + GHI plan ($0, không AI, không tạo camp). Một chỗ kha
   PHIM MỚI (camp đầu < 4 ngày): chỉ cần 1 ngày khép, chi ≥ $0.8, ROI ≥ 20% → đợt đầu 6
   ĐO TỔNG THỂ: camp mới nhất của phim chưa qua trọn 1 ngày khép → cho_do · ROI tụt > 10 điểm so với 3 ngày khép trước → giu
   cần sản xuất = k − creative sạch chưa có camp"""
-import json, math
+import json, math, os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cong   # cong.phim_cam — một bộ đọc sổ phim cấm
+
+def chan_cam(ghi, q):
+    """PHIM CẤM KHÔNG MỞ RỘNG (anh 19/11/2026 "ko cho mở camp mới, lên creative dưới mọi hình thức" — etp:phim-cam-con-lai-2011): plan của phim trong sổ cấm
+    về 'khong', k = 0, can_sx = 0 (không sản xuất creative, không thêm camp), ly = lý do cong.phim_cam. Chỉ hỏi phim có plan làm gì đó."""
+    for g in ghi:
+        if g["trang_thai"] == "khong" and not g["k"]: continue
+        ly = cong.phim_cam(cts=[g["content_id"]], q=q)
+        if ly: g.update(k=0, can_sx=0, trang_thai="khong", ly=ly[:300])
+    return ghi
 
 DICH, DAU, HOA, LAI, TUT = 30, 6, 0, 20, 10
 # ĐỢT ĐẦU PHIM MỚI 2 CAMP (anh 09/11/2026 "Chốt. Triển khai luôn" — review: 1 ngày khép $0,8 là quá ít bằng chứng cho 6 camp; 14 ngày qua 4 phim mở sớm 18 camp lỗ $22, 0 phim lãi).
@@ -62,7 +72,7 @@ def tinh_bu(q):
     bu = {}
     for r in rows:
         k = int(r["tat"]) + int(r["giam"]) - int(r["tao"])
-        if k > 0: bu[str(r["content_id"])] = {"k": k, "tat": int(r["tat"]), "giam": int(r["giam"]), "tao": int(r["tao"])}
+        if k > 0 and not cong.phim_cam(cts=[r["content_id"]], q=q): bu[str(r["content_id"])] = {"k": k, "tat": int(r["tat"]), "giam": int(r["giam"]), "tao": int(r["tao"])}   # phim cấm không bù camp
     q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('bu_camp', $J${json.dumps(bu)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
     return bu
 
@@ -105,6 +115,7 @@ def chay(q):
                     "san": san, "can_sx": max(0, k - san) if tt == "them" else 0, "trang_thai": tt, "ly": ly,
                     "roi_bien": r.get("roi_bien"), "r2": r.get("r2"), "chi_tb": r.get("chi_tb"), "so_ngay": r.get("so_ngay"), **(lambda t: {"muc_hut": t[0], "chi_gan": t[1]} if t else {"muc_hut": None, "chi_gan": None})(muc_toi_uu(r["content_id"]))})
         ghi[-1]["pha"] = pha_theo_muc(ghi[-1])
+    chan_cam(ghi, q)
     try: bu = tinh_bu(q)
     except Exception as e: bu = {"_loi": str(e)[:200]}
     j = json.dumps(ghi, ensure_ascii=False).replace("$J$", "")
@@ -118,3 +129,12 @@ def chay(q):
     them = [g for g in ghi if g["trang_thai"] == "them"]
     return {"mo_rong_phim": len(them), "mo_rong_camp": sum(g["k"] for g in them), "mo_rong_can_sx": sum(g["can_sx"] for g in them),
             "bu_phim": len([v for k_, v in bu.items() if not k_.startswith("_")]), "bu_camp": sum(v["k"] for k_, v in bu.items() if not k_.startswith("_")), **({"bu_loi": bu["_loi"]} if "_loi" in bu else {})}
+
+if __name__ == "__main__" and "--tu-kiem" in sys.argv:   # trên box3: python3 apps/etp/mo_rong.py --tu-kiem (sổ cấm thật)
+    _q = cong._q
+    thuong = int(_q("select min(content_id) from etp.cho_len_v where ly_do is null") or 0)
+    assert thuong and cong.phim_cam(cts=[thuong], q=_q) is None, f"cần một phim thường không cấm (#{thuong})"
+    g = chan_cam([{"content_id": 167292, "k": 3, "can_sx": 2, "trang_thai": "them", "ly": "lãi"}, {"content_id": thuong, "k": 3, "can_sx": 2, "trang_thai": "them", "ly": "lãi"}], _q)
+    assert g[0]["trang_thai"] == "khong" and g[0]["k"] == 0 and g[0]["can_sx"] == 0 and "sổ cấm" in g[0]["ly"], f"LỌT: phim 167292 vẫn có plan mở rộng {g[0]}"
+    assert g[1]["trang_thai"] == "them" and g[1]["k"] == 3 and g[1]["can_sx"] == 2, f"phim thường #{thuong} bị chặn nhầm {g[1]}"
+    print(f"✓ mo_rong: phim 167292 không mở rộng / không sản xuất, phim thường #{thuong} giữ plan")

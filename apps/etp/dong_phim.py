@@ -43,6 +43,7 @@ HAN_RIENG = {("KT", "creative"): 4 * 3600, **{(k, "creative"): 60 * 60 for k in 
 def tu_bat_dau(cid, ly):
     """MÁY TỰ BẮT ĐẦU LÊN CAMP (anh 05/11/2026: "Ko cần tao vào bấm duyệt nữa. Các camp ở tab sx") — ghi lo_trinh[phim].bat_dau như nút anh từng bấm
     (batDauCamp, etp-dong.ts) để nhan-ban miễn luật một camp / phim / ngày cho lộ trình test rộng; giờ chạy vẫn do nhan-ban.lich_len, mọi cổng luật khác giữ nguyên"""
+    if CG.phim_cam(cts=[cid], q=sql): return   # phim trong sổ cấm: máy không tự bắt đầu lộ trình (etp:phim-cam-con-lai-2011)
     sql(f"""insert into etp.cau_hinh (khoa, gia_tri) values ('lo_trinh', jsonb_build_object('{int(cid)}', jsonb_build_object('bat_dau', true, 'ai', {s(ly)}, 'luc', now()::text)))
             on conflict (khoa) do update set gia_tri = coalesce(etp.cau_hinh.gia_tri, '{{}}'::jsonb) || jsonb_build_object('{int(cid)}',
               coalesce(etp.cau_hinh.gia_tri->'{int(cid)}', '{{}}'::jsonb) || jsonb_build_object('bat_dau', true, 'ai', {s(ly)}, 'luc', now()::text))""")
@@ -136,7 +137,7 @@ def b_nhan(d):
         goc2, ghi_ = cham_bang_canh(cid)
         if goc2: goc = goc2
         if goc != "au_my": return "dung", f"nhóm gốc phim là '{goc or 'chưa rõ'}' (poster + cảnh: {ghi_[:160]}) — chỉ chạy phim Âu-Mỹ (luật anh 02/11/2026)", None
-    if str(cid) in khoa_studio("ethopex_phim_cam"): return "dung", "phim nằm trong sổ cấm 18+ (ethopex_phim_cam)", None
+    if (ly_cam := CG.phim_cam(cts=[cid], q=sql)): return "dung", ly_cam, None
     nhan_bb = nhan_bat_buoc()
     doi = "" if not nhan_bb else sql(f"select coalesce(max(nguoi), '') from etp.phim_nhan_v where content_id = {cid} and trang_thai in ('giu', 'da_len') and nguoi_id not in (select nguoi_id from etp.tai_khoan where nha)")
     if doi: return "dung", f"{doi} (đội) đang giữ phim này", None
@@ -203,7 +204,7 @@ def b_poster(d):
     rc, out = box(f"python3 apps/etp/soat_18_ai.py {cid} --ghi", 600)
     # dòng PHÁN "<cid>: False · 12₫ · AI soát poster …" — không lấy dòng cuối: đó là "tổng N₫" (04/11/2026 dòng #48 hiện lý do "tổng 36₫")
     phan = next((l.split(" · ", 2)[-1] for l in out.splitlines() if l.startswith(f"{cid}: ")), "")
-    if str(cid) in khoa_studio("ethopex_phim_cam"): return "dung", f"AI soát poster cấm 18+: {(phan or (khoa_studio('ethopex_soat_18').get(str(cid)) or {}).get('ghi', 'cấm'))[:300]}", None
+    if CG.phim_cam(cts=[cid], q=sql): return "dung", f"AI soát poster cấm 18+: {(phan or (khoa_studio('ethopex_soat_18').get(str(cid)) or {}).get('ghi', 'cấm'))[:300]}", None
     v = khoa_studio("ethopex_soat_18").get(str(cid)) or {}
     if v.get("ok") is False: return "dung", f"soát 18+: {v.get('ghi', 'cấm')}", None
     if rc: return "loi", f"soát poster lỗi (mã {rc}): {out[-200:]}", None
@@ -623,7 +624,7 @@ def sang_ke_chuyen(d, buoc, ghi):
     if d.get("loai") == "KT" or buoc not in ("cat", "soat", "creative") or not HET_NL.search(ghi or ""): return None
     if gac_kt(): return (doi_at(d, "hết nguyên liệu cắt", ("CC", "LT", None)).lstrip(" ·") or None)   # gác KT → ảnh tĩnh
     cid = int(d["content_id"])
-    if str(cid) in khoa_studio("ethopex_phim_cam"): return None
+    if CG.phim_cam(cts=[cid], q=sql): return None
     co = sql(f"select id from etp.dong_phim where content_id = {cid} and loai = 'KT' and tao_luc > now() - interval '3 days' order by id desc limit 1")
     if co: return f"đã có dòng kể chuyện #{co} cho phim"
     moi = sql(f"""insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp) select content_id, ten, the_loai, 'KT', 'máy: dòng #{d["id"]} hết nguyên liệu cắt', so_camp
@@ -645,7 +646,10 @@ def cho_phanh(sx, d, buoc):
 
 def lam_buoc(d, buoc):
     truoc = {k: (v.get("ket_qua") or {}) for k, v in (d.get("buoc") or {}).items() if v.get("trang_thai") == "xong"}
-    try: ket, ghi, kq = HAM[buoc](d) if buoc in ("nhan", "ws", "poster", "cat") else HAM[buoc](d, truoc)
+    # PHIM CẤM ĐỨNG ĐẦU MỌI BƯỚC (anh 19/11/2026 "ko cho mở camp mới, lên creative dưới mọi hình thức" — etp:phim-cam-con-lai-2011): dòng nào (lộ trình, mở rộng,
+    # phim đội lãi, tự FIX) của phim trong sổ cấm cũng dừng trước khi cắt / soát / dựng / chấm / lên camp — cùng một bộ đọc cong.phim_cam (lỗi đọc → chặn)
+    ly_cam = CG.phim_cam(cts=[d.get("content_id")], q=sql)
+    try: ket, ghi, kq = ("dung", ly_cam, None) if ly_cam else HAM[buoc](d) if buoc in ("nhan", "ws", "poster", "cat") else HAM[buoc](d, truoc)
     except Exception as e: ket, ghi, kq = "loi", f"{type(e).__name__}: {str(e)[:300]}", None
     if ket == "cho" and buoc == "creative" and (ly := cho_phanh(SX[0], d, buoc)):   # creative đã dựng, chờ máy chấm mà phanh bật → trả bước về hàng, giữ kết quả
         sql(f"""update etp.dong_buoc set trang_thai = 'cho', bat_dau = null, nhip = now(), pid = null, lan = greatest(lan - 1, 0), ghi = {s(f'{ly} · {ghi}'[:500])}{', ket_qua = ' + js(kq) if kq else ''}
@@ -847,6 +851,11 @@ def tu_kiem():
     assert cho_phanh(p, {"content_id": 7}, "creative") is None and cho_phanh(p, {"content_id": 7}, "camp") == p["phanh"], "phim hồi chợ thiếu kho dự trữ vẫn sản xuất, không lên camp"
     assert cho_phanh({}, {"content_id": 1}, "nhan") is None and cho_phanh({"phanh": None}, {"content_id": 1}, "nhan") is None and cho_phanh(None, {"content_id": 1}, "nhan") is None, "không phanh / khoá quá hạn → chạy như cũ"
     assert set(BUOC_SX) == {b for b, _ in BUOC} - {"chay"} and "not exists" in KHONG_TRUNG
+    # phim cấm (etp:phim-cam-con-lai-2011): cùng bộ đọc cong.phim_cam qua ssh — 167292 dừng mọi bước, phim thường đi qua
+    thuong = int(sql("select min(content_id) from etp.cho_len_v where ly_do is null") or 0)
+    assert "sổ cấm" in (CG.phim_cam(cts=[167292], q=sql) or ""), "LỌT: dòng phim 167292 không bị chặn"
+    assert thuong and CG.phim_cam(cts=[thuong], q=sql) is None, f"phim thường #{thuong} bị chặn nhầm"
+    print(f"✓ phim cấm: dòng phim 167292 dừng trước mọi bước, phim thường #{thuong} đi qua")
     print("✓ dong_phim.py tự kiểm (sản xuất theo chợ: bước chờ phanh, kho dự trữ hồi chợ, mở lại không trùng)")
 
 def main(a):

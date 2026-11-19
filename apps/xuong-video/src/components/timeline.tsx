@@ -451,9 +451,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const tiLeKhung = (w: number) => Math.round(doc916 ? (w * 16) / 9 : (w * 9) / 16);
   let caoXem = hangPan.v - 44, rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9);
   if (xemCanh) {
-    const caoToiDa = Math.max(360, man.h - 80);
+    // Chừa ~50px dưới khung cho cụm nút phát nằm cùng cột (#1230) — khung + nút vẫn vừa một màn.
+    const caoToiDa = Math.max(360, man.h - 130);
     if (cotTay > 0) { rongXem = Math.max(220, Math.min(cotTay, Math.round(man.w * 0.75))); caoXem = tiLeKhung(rongXem); }
-    else { caoXem = Math.max(360, man.h - 120); rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9); const tran = Math.round(man.w * 0.4); if (rongXem > tran) { rongXem = tran; caoXem = tiLeKhung(tran); } }
+    else { caoXem = Math.max(360, man.h - 170); rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9); const tran = Math.round(man.w * 0.4); if (rongXem > tran) { rongXem = tran; caoXem = tiLeKhung(tran); } }
     if (caoXem > caoToiDa) { caoXem = caoToiDa; rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9); }
   }
   // CÓ KHUNG SO SÁNH → THU khung chính để khung chính + khe 6px + hàng so sánh (cao caoXem/n) vừa đúng chiều cao cũ (góp ý #1637, anh làm lại 17/11/2026:
@@ -617,22 +618,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           </div>}
         </main>
   );
-  const tranNgang = xemCanh && !doc916;
-  const cotXem = <div style={{ position: 'absolute', top: 0, bottom: 0, [boCuc === 'phai' ? 'right' : 'left']: 0, width: rongXem + 17, [boCuc === 'phai' ? 'borderLeft' : 'borderRight']: '1px solid var(--line)', background: 'var(--bg-0, #0b0b0d)' }}>
-        <div style={{ position: 'sticky', top: 0 }}>{khungXem}</div>
-        <TayKeo truc="x" onPointerDown={keoCot} onDoubleClick={() => { setCotTay(0); ghiLT(khoaCot, null); }} title="Kéo để đổi bề rộng màn xem · nhấp đúp = về tự động"
-          style={{ position: 'absolute', top: 0, bottom: 0, [boCuc === 'phai' ? 'left' : 'right']: -2, width: 5, zIndex: 3 }} />
-      </div>;
-  return (
-    <div ref={khungRef} className="xv-panel" style={{ marginTop: 8, padding: 0, overflow: 'clip', position: 'relative', ...(xemCanh && !tranNgang ? { [boCuc === 'phai' ? 'paddingRight' : 'paddingLeft']: rongXem + 17 } : {}) }} data-ngu-canh={`timeline ${t.toFixed(1)}s/${tong}s · cảnh #${c?.thu_tu ?? '?'} đang ở đầu phát`}>
-      {xemCanh && !tranNgang && cotXem}
-      {/* PHIM NGANG + màn xem cột (anh 13/11/2026: "video ngang thì phần timeline kéo dài hết sang ngang"): cột xem chỉ cao bằng khung 16:9, nên chỉ
-          thanh công cụ + hàng panel nằm cạnh nó; các làn timeline bên dưới chạy hết bề ngang. Phim dọc giữ cột cao hết màn như cũ. */}
-      <div style={tranNgang ? { position: 'relative', [boCuc === 'phai' ? 'paddingRight' : 'paddingLeft']: rongXem + 17, minHeight: caoXem + 50 } : undefined}>
-      {tranNgang && cotXem}
-      {/* Bố cục kiểu After Effects (anh 11/10/2026): thanh công cụ · 3 panel CỐ ĐỊNH (Dự án | Khung hình | Thuộc tính) · timeline thứ tự lớp.
-          Hàng panel cao cố định = khung hình, panel tự cuộn bên trong → chọn/bỏ chọn lớp chỉ đổi NỘI DUNG panel, không xô timeline (YDNI §bố cục đứng yên). */}
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '6px 10px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
+  // NÚT PHÁT ĐI CÙNG MÀN XEM (góp ý #1230 "cái nào cho khối nào thì phải ở gần nhau"): ⏮ ▶ ⏭ · đồng hồ · ⛶ · 3D/Keyframe/Video · So sánh điều khiển MÀN XEM.
+  // Màn xem là cột (trái / phải) → cụm này nằm ngay dưới khung hình trong cột đó; màn xem ở giữa hàng panel → giữ đầu thanh công cụ (ngay trên màn xem).
+  const thanhPhat = (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', ...(xemCanh ? { padding: '0 8px 8px', justifyContent: 'center' } : {}) }}>
         <button type="button" className="xv-btn" title="Cảnh trước (←)" onClick={() => tuaToi(batDau[Math.max(0, idx - 1)] ?? 0)}>⏮</button>
         <button type="button" className="xv-btn chinh" style={{ minWidth: 80 }} title="Chạy / dừng (Space)" onClick={() => { if (!chay && t >= tong - 0.05) setT(0); setChay(!chay); }}>{chay ? '⏸ Dừng' : '▶ Chạy'}</button>
         <button type="button" className="xv-btn" title="Cảnh sau (→)" onClick={() => tuaToi(batDau[Math.min(canh.length - 1, idx + 1)] ?? 0)}>⏭</button>
@@ -653,6 +642,25 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           return <button key={k} type="button" className="xv-btn" title={`Thêm / bớt khung so sánh nguồn ${x} (phiên bản clip của shot, cắt đúng đoạn theo mốc riêng của nguồn đó)`}
             onClick={() => setSoSanh((s) => (s.includes(k) ? s.filter((y) => y !== k) : [...s, k]))}
             style={bat ? { background: 'rgba(37,99,235,.35)' } : undefined}>🎬 {x}</button>; })}
+    </div>
+  );
+  const tranNgang = xemCanh && !doc916;
+  const cotXem = <div style={{ position: 'absolute', top: 0, bottom: 0, [boCuc === 'phai' ? 'right' : 'left']: 0, width: rongXem + 17, [boCuc === 'phai' ? 'borderLeft' : 'borderRight']: '1px solid var(--line)', background: 'var(--bg-0, #0b0b0d)' }}>
+        <div style={{ position: 'sticky', top: 0 }}>{khungXem}{thanhPhat}</div>
+        <TayKeo truc="x" onPointerDown={keoCot} onDoubleClick={() => { setCotTay(0); ghiLT(khoaCot, null); }} title="Kéo để đổi bề rộng màn xem · nhấp đúp = về tự động"
+          style={{ position: 'absolute', top: 0, bottom: 0, [boCuc === 'phai' ? 'left' : 'right']: -2, width: 5, zIndex: 3 }} />
+      </div>;
+  return (
+    <div ref={khungRef} className="xv-panel" style={{ marginTop: 8, padding: 0, overflow: 'clip', position: 'relative', ...(xemCanh && !tranNgang ? { [boCuc === 'phai' ? 'paddingRight' : 'paddingLeft']: rongXem + 17 } : {}) }} data-ngu-canh={`timeline ${t.toFixed(1)}s/${tong}s · cảnh #${c?.thu_tu ?? '?'} đang ở đầu phát`}>
+      {xemCanh && !tranNgang && cotXem}
+      {/* PHIM NGANG + màn xem cột (anh 13/11/2026: "video ngang thì phần timeline kéo dài hết sang ngang"): cột xem chỉ cao bằng khung 16:9, nên chỉ
+          thanh công cụ + hàng panel nằm cạnh nó; các làn timeline bên dưới chạy hết bề ngang. Phim dọc giữ cột cao hết màn như cũ. */}
+      <div style={tranNgang ? { position: 'relative', [boCuc === 'phai' ? 'paddingRight' : 'paddingLeft']: rongXem + 17, minHeight: caoXem + 100 } : undefined}>
+      {tranNgang && cotXem}
+      {/* Bố cục kiểu After Effects (anh 11/10/2026): thanh công cụ · 3 panel CỐ ĐỊNH (Dự án | Khung hình | Thuộc tính) · timeline thứ tự lớp.
+          Hàng panel cao cố định = khung hình, panel tự cuộn bên trong → chọn/bỏ chọn lớp chỉ đổi NỘI DUNG panel, không xô timeline (YDNI §bố cục đứng yên). */}
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '6px 10px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
+        {!xemCanh && thanhPhat}
         {/* NGUỒN CLIP CHÍNH CẢ PHIM (góp ý #1638): ô hiện nguồn ĐANG dùng (đếm shot mọi tập) · chọn = mọi shot có bản của nguồn đó dùng bản mới nhất — 0₫, đổi lại được, không tải lại trang */}
         {nguonPhim && nguonPhim.nhan.length > 0 && (() => {
           const co = Object.entries(nguonPhim.dem).filter(([, v]) => v > 0);

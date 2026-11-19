@@ -34,6 +34,8 @@ a { color: var(--cyan); }
 .xv-ta { resize: vertical; min-height: 60px; }
 .xv-in:focus, .xv-ta:focus, .xv-sel:focus { outline: 1px solid var(--cyan); }
 .xv-field { margin-bottom: 8px; }
+/* Ô chọn trong một ô form rộng hết cột như .xv-in — trước là inline-block co theo chữ, mép phải lệch ô nhập cùng cột (góp ý #1220). */
+.xv-field > .xv-chon { display: block !important; }
 .xv-hint { font-size: 10.5px; color: var(--fg-3); margin-top: 3px; }
 .xv-loi { font-size: 11px; color: var(--red); margin-top: 4px; }
 .xv-pill { display: inline-flex; align-items: center; white-space: nowrap; flex-shrink: 0; padding: 1px 7px; border-radius: 999px; font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; border: 1px solid currentColor; }

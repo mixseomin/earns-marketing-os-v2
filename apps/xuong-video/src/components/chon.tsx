@@ -33,7 +33,7 @@ export function Chon({ value, onChange, options, multi, values, onValues, placeh
   const nhom = [...new Set(loc.map((o) => o.nhom ?? ''))];
   const nhan = chon.length ? (multi ? chon.map((o) => o.ngan ?? o.label).join(', ') : chon[0]!.ngan ?? chon[0]!.label) : (placeholder ?? 'Chọn…');
   return (
-    <span ref={ref} style={{ position: 'relative', display: 'inline-block', minWidth: nho || nut != null ? undefined : `min(${minWidth}px, 100%)`, maxWidth: '100%' }} title={title}>
+    <span ref={ref} className="xv-chon" style={{ position: 'relative', display: 'inline-block', minWidth: nho || nut != null ? undefined : `min(${minWidth}px, 100%)`, maxWidth: '100%' }} title={title}>
       {nut != null ? <button type="button" className="xv-btn" onClick={() => setMo(!mo)} style={{ padding: '1px 8px', fontSize: 12, opacity: mo ? 1 : 0.75 }}>{nut}</button>
       : <button type="button" className="xv-in" onClick={() => setMo(!mo)} style={{ textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 6, alignItems: 'center', minWidth: 0, overflow: 'hidden', padding: nho ? '3px 8px' : undefined, fontSize: nho ? 11 : undefined }}>
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>

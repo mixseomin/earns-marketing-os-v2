@@ -3,6 +3,8 @@
 // ghi nen_url rồi mới dựng. Một chỗ cho mọi mẫu / máy / phim mới tự làm — không mẫu nào phải nhớ tự đi lấy ảnh. Khoá PEXELS_KEY (env box3).
 // Pexels: free, dùng thương mại, không cần ghi nguồn; WAF chặn UA mặc định → luôn gửi UA trình duyệt (skill design/stock-photo-apis).
 
+import { goiLaiKhiMang } from './claude';
+
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 type AnhPexels = { id: number; src: { original: string }; avg_color?: string | null };
 
@@ -22,7 +24,7 @@ export async function timAnhNen(truyVan: string, daDung: Set<number>, key = proc
   if (!key) throw new Error('thiếu PEXELS_KEY — không dựng video thiếu ảnh nền thật');
   const tu = truyVan.trim().split(/\s+/); let toiNhat: AnhPexels | null = null;
   for (const q of [...new Set([tu.join(' '), tu.slice(0, 2).join(' ')])].filter(Boolean)) {
-    const r = await fetch(`https://api.pexels.com/v1/search?${new URLSearchParams({ query: q, orientation: 'portrait', per_page: '30' })}`, { headers: { Authorization: key, 'User-Agent': UA }, signal: AbortSignal.timeout(20_000) });
+    const r = await goiLaiKhiMang(() => fetch(`https://api.pexels.com/v1/search?${new URLSearchParams({ query: q, orientation: 'portrait', per_page: '30' })}`, { headers: { Authorization: key, 'User-Agent': UA }, signal: AbortSignal.timeout(20_000) }));
     if (!r.ok) throw new Error(`Pexels ${r.status} cho "${q}"`);
     const ds = ((await r.json()) as { photos?: AnhPexels[] }).photos ?? [];
     const p = chonChuaDung(ds, daDung);
@@ -38,7 +40,7 @@ export async function timAnhNgang(truyVan: string, daDung: Set<number>, key = pr
   if (!key) throw new Error('thiếu PEXELS_KEY — không nạp bài viết thiếu ảnh thật');
   const tu = truyVan.trim().split(/\s+/);
   for (const q of [...new Set([tu.join(' '), tu.slice(0, 2).join(' ')])].filter(Boolean)) {
-    const r = await fetch(`https://api.pexels.com/v1/search?${new URLSearchParams({ query: q, orientation: 'landscape', per_page: '30' })}`, { headers: { Authorization: key, 'User-Agent': UA }, signal: AbortSignal.timeout(20_000) });
+    const r = await goiLaiKhiMang(() => fetch(`https://api.pexels.com/v1/search?${new URLSearchParams({ query: q, orientation: 'landscape', per_page: '30' })}`, { headers: { Authorization: key, 'User-Agent': UA }, signal: AbortSignal.timeout(20_000) }));
     if (!r.ok) throw new Error(`Pexels ${r.status} cho "${q}"`);
     const p = chonChuaDung(((await r.json()) as { photos?: AnhPexels[] }).photos ?? [], daDung);
     if (p) return `${p.src.original}?auto=compress&cs=tinysrgb&w=1600`;

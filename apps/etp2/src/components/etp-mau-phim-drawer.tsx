@@ -46,7 +46,9 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
     const d = dtTheo.get(p.id), dt_dang = d?.qc_dang ?? 0, dt_lau = d?.lau_nhat ?? 0;
     const nhom = p.cr_mau ? NHOM[0] : p.da_chon || p.dong_chay.some((x) => x.loai === (du && 'mau' in du ? du.mau.dong : '')) ? NHOM[1] : p.nha.dang ? NHOM[2] : dt_dang ? NHOM[3] : NHOM[4];
     return { ...p, dt_dang, dt_lau, nhom };
-  }), [du, dtTheo]);
+  })
+    // thứ tự mặc định: nhóm 1 → 5 (bảng dùng chung gom nhóm theo thứ tự xuất hiện), trong nhóm chi nhà nhiều trước, rồi QC đối thủ đang chạy
+    .sort((a, b) => a.nhom.localeCompare(b.nhom) || b.nha.chi - a.nha.chi || b.dt_dang - a.dt_dang), [du, dtTheo]);
   const loc_ = rows.filter((p) => loc.every((k) => LOC.find((l) => l.value === k)!.f(p)));
   const dem = Object.fromEntries(LOC.map((l) => [l.value, rows.filter(l.f).length])) as Record<Loc, number>;
   const mau = du && 'mau' in du ? du.mau : null;
@@ -62,12 +64,11 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
     { key: 'mau', label: 'Mẫu này', color: '#a78bfa' }, { key: 'nha', label: 'Nhà', color: '#38bdf8' }, { key: 'doi', label: 'Đội', color: '#94a3b8' }, { key: 'dt', label: 'Đối thủ', color: '#fb923c' },
   ];
   const cot: DataColumn<Dong>[] = [
-    { key: 'ten', header: 'Phim', align: 'left', width: 280, sortValue: (p) => p.ten, onCellClick: (p) => openEntityDrawer('etp-phim', p.id),
+    { key: 'ten', header: 'Phim', align: 'left', width: 260, sortValue: (p) => p.ten, onCellClick: (p) => openEntityDrawer('etp-phim', p.id),
       cell: (p) => <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }} title={`${p.ten} · phim #${p.id} — bấm mở ngăn phim`}>
         {p.dt_dang >= 3 && !p.cr_mau && !p.da_chon ? <span title="đối thủ đang chạy ≥ 3 QC mà nhà chưa có mẫu này" style={{ color: VANG, fontWeight: 700 }}>★</span> : null}
         <a style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{p.ten}</a></span> },
-    { key: 'nhom', header: 'Nhóm', align: 'left', width: 120, sortValue: (p) => p.nhom, cell: (p) => <span style={{ fontSize: 11, color: MO_SO }}>{p.nhom.slice(4)}</span> },
-    { key: 'tl', header: 'Thể loại', align: 'left', sortValue: (p) => p.tl, cell: (p) => p.tl ?? <span style={{ color: MO_SO }}>—</span> },
+    { key: 'tl', header: 'Thể loại', align: 'left', width: 130, sortValue: (p) => p.tl, cell: (p) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }} title={p.tl ?? ''}>{p.tl ?? '—'}</span> },
     { key: 'lang', header: 'Tiếng', align: 'left', sortValue: (p) => p.locale, cell: (p) => (p.locale ?? '?').toUpperCase() },
     { key: 'tuoi', header: 'Tuổi', title: 'số ngày từ khi phim có trang trên Ethopex', sortValue: (p) => p.tuoi, cell: (p) => (p.tuoi == null ? <span style={{ color: MO_SO }}>—</span> : `${p.tuoi} ngày`) },
     { key: 'cr_mau', group: 'mau', header: 'Creative mẫu', title: 'creative của phim dựng theo đúng mẫu này (cổng mẫu ghi từ 19/11/2026)', sortValue: (p) => p.cr_mau, cell: (p) => (p.cr_mau ? <b style={{ color: XANH }}><Dem v={p.cr_mau} /></b> : <span style={{ color: MO_SO }}>0</span>) },
@@ -95,11 +96,11 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
   const dau = <div className="modal-head"><div><div className="id-line">chọn phim sinh creative theo mẫu</div><h2 style={{ margin: 0 }}>{mau?.ten ?? ma}</h2>
     <div style={{ fontSize: 11.5, color: MO_SO, marginTop: 2 }}>{mau ? (mau.dong ? `dạng ${mau.dang} · máy dựng: dòng ${mau.dong}` : 'mẫu chưa có máy dựng — chọn phim chỉ ghi lại') : ''}</div></div>
     <button className="modal-close" onClick={onClose}>✕</button></div>;
-  return <Drawer onClose={onClose} width={1320} padding={0}>{dau}
+  return <Drawer onClose={onClose} width={1400} padding={0}>{dau}
     <div style={{ padding: '8px 12px' }}>
       {!du ? <div style={{ color: MO_SO }}>đang đọc danh sách phim…</div> : 'loi' in du ? <div style={{ color: DO }}>{du.loi}</div> :
-        <DataTable rows={loc_} columns={cot} groups={nhomCot} groupHeader getRowKey={(p) => String(p.id)} persistKey="etp-mau-phim" minWidth={1500} pageSize={100}
-          groupBy={{ value: (p) => p.nhom }} locTuDong={false} defaultSort={[{ key: 'nha_chi', dir: 'desc' }]}
+        <DataTable rows={loc_} columns={cot} groups={nhomCot} groupHeader getRowKey={(p) => String(p.id)} persistKey="etp-mau-phim" minWidth={1180} pageSize={100}
+          groupBy={{ value: (p) => p.nhom }} locTuDong={false}
           searchText={(p) => `${p.ten} ${p.id} ${p.tl ?? ''}`} searchPlaceholder="Tìm phim, mã, thể loại…"
           dauThanh={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <FilterChips<Loc> options={LOC.map(({ value, label, title }) => ({ value, label, title }))} values={loc} onToggle={setLoc} counts={dem} urlKey="mpl" />

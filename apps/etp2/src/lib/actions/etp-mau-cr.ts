@@ -191,7 +191,9 @@ export async function docPhimChon(ma: string): Promise<{ mau: { ma: string; ten:
     ]);
     const z: SoCamp = { dang: 0, tong: 0, chi: 0, thu: 0 }, tenTl = tlR[0]?.v ?? {};
     const M = <T extends { id: number }>(a: T[]) => new Map(a.map((x) => [Number(x.id), x]));
-    const nhaM = M(nha), doiM = M(doi), tuoiM = M(tuoi), crM = M(cr), crMauM = M(crMau), dongM = M(dongR), chonS = new Set(chon.map((x) => Number(x.id)));
+    // tuổi phim trên Ethopex: ethopex_content.tao (kho Spy — mọi phim), thiếu thì trang phim workspace sớm nhất (cùng cách tab Phim đối thủ)
+    const tuoiSpy = await spy().then((p) => p<{ id: number; ngay: number }[]>`select id, (current_date - tao::date)::int ngay from ethopex_content where id = any(${phim.map((x) => Number(x.id))})`).catch(() => [] as { id: number; ngay: number }[]);
+    const nhaM = M(nha), doiM = M(doi), tuoiM = M([...tuoi, ...tuoiSpy]), crM = M(cr), crMauM = M(crMau), dongM = M(dongR), chonS = new Set(chon.map((x) => Number(x.id)));
     const so_ = (x?: SoCamp) => (x ? { dang: Number(x.dang), tong: Number(x.tong), chi: Number(x.chi), thu: Number(x.thu) } : z);
     return { mau: { ma, ten: so?.ten ?? d!.dang, dang, dong }, luc: new Date().toISOString(), phim: phim.map((p) => { const id = Number(p.id); return {
       id, ten: p.ten, tl: p.the_loai ? tenTl[p.the_loai] ?? p.the_loai : null, locale: p.locale, tuoi: tuoiM.get(id)?.ngay ?? null, nha: so_(nhaM.get(id)), doi: so_(doiM.get(id)),

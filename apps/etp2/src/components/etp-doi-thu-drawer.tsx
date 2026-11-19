@@ -8,7 +8,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Drawer, Segmented, SiteFavicon } from '@/components/ui';
 import { Dem, MO_SO } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
-import { docQcDoi, docQcDoiThu, phanDangQc, type DangQc, type PhimDoiThu, type QcDoi, type QcDoiThu } from '@/lib/actions/etp-doi-thu';
+import { docQcDoi, docQcDoiThu, phanDangQc, type DangQc, type PhimDoiThu, type QcDoi, type QcDoiThu, type SxPhim } from '@/lib/actions/etp-doi-thu';
 import { DO, OCamp, ORoi, VANG, XANH, gioVn, ngayVn, useDoiThu } from './etp-doi-thu';
 
 const ngoai = (u: string) => `https://href.li/?${u}`;   // link ra ngoài che referrer
@@ -98,13 +98,31 @@ function Ngan({ p, dau, onClose }: { p: PhimDoiThu; dau: (ten: ReactNode, phu: s
 /** CỘT QC ĐỘI bên phải (anh 19/11/2026 "Show thêm qc của đội ở bên cạnh để so sánh!!"): creative đội cùng phim — ảnh 9:16, người chạy, camp đang / từng lên, chi, ROI.
  *  Dính khi cuộn để luôn đặt cạnh QC đối thủ đang xem. Bấm ảnh mở video. */
 function CotDoi({ p }: { p: PhimDoiThu }) {
-  const [d, setD] = useState<QcDoi[] | { loi: string } | null>(null);
+  const [d, setD] = useState<QcDoi[] | { loi: string } | null>(null), [sx, setSx] = useState<SxPhim | null>(null);
   const ids = [p.etp?.id, ...p.etp_khac].filter((x): x is number => !!x);
   useEffect(() => { let song = true; setD(null); if (!ids.length) { setD([]); return; }
-    docQcDoi(ids).then((r) => { if (song) setD('loi' in r ? r : r.qc); }).catch((e: unknown) => { if (song) setD({ loi: e instanceof Error ? e.message : String(e) }); });
+    docQcDoi(ids).then((r) => { if (!song) return; setD('loi' in r ? r : r.qc); if (!('loi' in r)) setSx(r.sx); }).catch((e: unknown) => { if (song) setD({ loi: e instanceof Error ? e.message : String(e) }); });
     return () => { song = false; }; }, [p.khoa]);   // eslint-disable-line react-hooks/exhaustive-deps
   const ds = Array.isArray(d) ? d : [];
+  const TEN_B: Record<string, string> = { nhan: 'Nhận phim', ws: 'Trang phim', poster: 'Soát poster', cat: 'Cắt đoạn', soat: 'Soát đoạn', creative: 'Tải + chấm', camp: 'Lên camp', chay: 'Camp chạy',
+    cho: 'Chờ máy', trang_phim: 'Trang phim', tai_tap: 'Tải tập', chon_khung: 'Chọn khung', ve_mau: 'Vẽ mẫu', giong: 'Giọng', video: 'Video', thu_vien: 'Thư viện' };
+  const mauTt = (t: string | null) => (t === 'loi' ? DO : t === 'dung' ? '#fbbf24' : t === 'cho' ? MO_SO : '#60a5fa');
+  const coSx = sx && (sx.dong.length || sx.mau.length || sx.cr.length);
   return <div style={{ width: 300, flex: 'none', borderLeft: '1px solid var(--line)', padding: '16px 12px', position: 'sticky', top: 44, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}>
+    {/* NHÀ ĐANG SẢN XUẤT cho phim — dòng phim · dựng theo mẫu · creative mới chưa lên camp */}
+    {coSx ? <div style={{ marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--line)' }}>
+      <div style={{ fontSize: 11, color: MO_SO, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6 }}>Nhà đang sản xuất</div>
+      {sx!.dong.map((x) => <div key={`d${x.id}`} title={x.ghi ?? ''} onClick={() => openEntityDrawer('etp-sx', ids[0]!)} style={{ fontSize: 11.5, padding: '3px 0', cursor: 'pointer' }}>
+        <b>dòng {x.loai} #{x.id}</b> · <span style={{ color: mauTt(x.tt) }}>{x.buoc ? TEN_B[x.buoc] ?? x.buoc : 'đang chạy'}{x.tt === 'loi' ? ' lỗi' : x.tt === 'dung' ? ' dừng' : x.tt === 'cho' ? ' chờ' : ''}</span></div>)}
+      {sx!.mau.map((x) => <div key={`m${x.mau}`} title={x.ghi ?? ''} onClick={() => openEntityDrawer('etp-mau-dung', `${x.mau}:${ids[0]}`)} style={{ fontSize: 11.5, padding: '3px 0', cursor: 'pointer' }}>
+        <b>mẫu {x.mau}</b> · <span style={{ color: mauTt(x.tt) }}>{TEN_B[x.buoc] ?? x.buoc}{x.tt === 'loi' ? ' lỗi' : x.tt === 'cho' ? ' chờ' : ''}</span></div>)}
+      {sx!.cr.length ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, marginTop: 6 }}>
+        {sx!.cr.map((x) => <a key={x.creative_id} href={x.video ?? x.anh ?? undefined} target="_blank" rel="noreferrer" title={`creative #${x.creative_id} · ${x.dang ?? ''} · chưa lên camp — mở video`}
+          style={{ position: 'relative', display: 'block', aspectRatio: '9 / 16', background: '#000', borderRadius: 5, overflow: 'hidden' }}>
+          {x.anh ? <img src={x.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
+          <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 9.5, background: 'rgba(0,0,0,0.7)', color: '#fff', textAlign: 'center' }}>mới · chưa camp</span></a>)}
+      </div> : null}
+    </div> : null}
     <div style={{ fontSize: 11, color: MO_SO, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>QC của đội · {ds.length}{ds.length ? ` · ${ds.filter((x) => x.dang).length} đang chạy` : ''}</div>
     {!d ? <div style={{ fontSize: 12, color: MO_SO }}>đang đọc QC đội…</div> : 'loi' in d ? <div style={{ fontSize: 12, color: DO }}>{d.loi}</div>
       : !ids.length ? <div style={{ fontSize: 12, color: MO_SO }}>phim không có trên Ethopex — đội không chạy được</div>

@@ -51,8 +51,7 @@ const BANG_MAU_PHIM = sql`create table if not exists etp.mau_phim (mau text not 
 const dongCua = (dang: string | undefined | null) => DS_DANG.find((d) => d.dang === dang)?.dong ?? null;
 /** thể loại (nhóm trong sổ dạng) của một dạng → nhãn có số thứ tự để xếp nhóm trên tab */
 const THU_TU_TL = ['cắt cảnh', 'kể chuyện', 'chèn khung', 'ảnh tĩnh', 'poster động'];
-const theLoaiCua = (dang: string | null | undefined) => { const n = (dang && NHOM_DANG[dang]) || 'khác'; const i = THU_TU_TL.indexOf(n);
-  return `${i < 0 ? 9 : i + 1} · ${n.charAt(0).toUpperCase()}${n.slice(1)}`; };
+const theLoaiCua = (dang: string | null | undefined) => { const n = (dang && NHOM_DANG[dang]) || 'khác'; void THU_TU_TL; return `${n.charAt(0).toUpperCase()}${n.slice(1)}`; };
 
 export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; ten: string }[]; luc: string } | { loi: string }> {
   const q = await quyenEtp(await getCurrentUser());

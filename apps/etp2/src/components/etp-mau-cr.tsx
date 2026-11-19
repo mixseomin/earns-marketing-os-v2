@@ -174,7 +174,8 @@ export function TabMauCr() {
   // tầng 2 trong mỗi thể loại: dạng → công thức máy dựng → format theo vai (tên phim → nút → băng chữ → bố cục) → mạnh trước
   const THU_LOAI: Record<LoaiMau, number> = { dang: 0, cong_thuc: 1, lop_phu: 2, bo_cuc: 3 }, THU_VAI = ['Tên phim', 'Nút / CTA', 'Băng chữ / câu nhử', 'Bố cục / key-art', 'Bố cục ảnh nhà'];
   const tang2 = (m: MauCr) => THU_LOAI[m.loai] * 10 + (m.vai ? Math.max(0, THU_VAI.indexOf(m.vai)) : 0);
-  const rows = tatCa.filter((m) => qua(m)).sort((a, b) => a.nhom_tk.localeCompare(b.nhom_tk) || tang2(a) - tang2(b) || manh(b) - manh(a) || a.ten.localeCompare(b.ten));
+  const TL = ['Cắt cảnh', 'Kể chuyện', 'Chèn khung', 'Ảnh tĩnh', 'Poster động'], tl1 = (m: MauCr) => { const i = TL.indexOf(m.nhom_tk); return i < 0 ? 99 : i; };
+  const rows = tatCa.filter((m) => qua(m)).sort((a, b) => tl1(a) - tl1(b) || tang2(a) - tang2(b) || manh(b) - manh(a) || a.ten.localeCompare(b.ten));
   const dem = (bo: string, ds: readonly string[], f: (m: MauCr, v: string) => boolean) => Object.fromEntries(ds.map((v) => [v, tatCa.filter((m) => qua(m, bo) && f(m, v)).length]));
   const cot: DataColumn<MauCr>[] = useMemo(() => [
     { key: 'ten', header: 'Mẫu', align: 'left', width: 220, sortValue: (m) => m.ten, cell: (m) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -201,7 +202,7 @@ export function TabMauCr() {
     <DataTable rows={rows} columns={cot} getRowKey={(m) => `${m.loai}:${m.ma}`} persistKey="etp-mau-cr" minWidth={1500} pageSize={100}
       locTuDong={false}   /* thanh lọc tự động của DataTable tách sai cột nhiều giá trị (Thể loại, Dùng cho) và trùng chip ở trên → một bộ lọc */
       card={{ render: (m) => <The m={m} />, minWidth: 340 }} defaultView="card"
-      groupBy={{ value: (m) => m.nhom_tk, label: (v, rs) => <span style={{ fontWeight: 700 }}>{v.replace(/^\d+ · /, '')} <span style={{ color: MO_SO, fontWeight: 400 }}>· {rs.filter((x) => x.loai === 'dang').length} dạng · {rs.filter((x) => x.loai === 'cong_thuc').length} công thức · {rs.filter((x) => x.loai !== 'dang' && x.loai !== 'cong_thuc').length} format</span></span> }}
+      groupBy={{ value: (m) => m.nhom_tk, label: (v, rs) => <span style={{ fontWeight: 700 }}>{v} <span style={{ color: MO_SO, fontWeight: 400 }}>· {rs.filter((x) => x.loai === 'dang').length} dạng · {rs.filter((x) => x.loai === 'cong_thuc').length} công thức · {rs.filter((x) => x.loai !== 'dang' && x.loai !== 'cong_thuc').length} format</span></span> }}
       searchText={(m) => `${m.ten} ${m.ma} ${m.mo_ta} ${choDang(m).join(' ')} ${m.the_loai.join(' ')} ${m.tham_chieu.map((t) => t.phim ?? '').join(' ')}`} searchPlaceholder="Tìm mẫu, dạng, thể loại, phim đối thủ…"
       dauThanh={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <FilterChips<LoaiMau> options={LOAI.map((v) => ({ value: v, label: TEN_LOAI[v] }))} values={loai as LoaiMau[]} onToggle={(v) => setLoai(v)} counts={dem('l', LOAI, (m, v) => m.loai === v)} donVi="mẫu" urlKey="mcl" />

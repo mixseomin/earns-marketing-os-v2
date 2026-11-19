@@ -298,11 +298,15 @@ export async function phanDangQc(ids: string[]): Promise<{ dang: Record<string, 
 /** QC CỦA ĐỘI cùng phim — đặt cạnh QC đối thủ để so (anh 19/11/2026 "Show thêm qc của đội ở bên cạnh để so sánh!!"): camp đội (etp.camp_ngoai) của các mã Ethopex
  *  cùng tên phim → creative (ảnh / video etp.anh_cr), người chạy (etp.tai_khoan), trạng thái, chi / thu cả đời (etp.so_ngay_ngoai). Một creative một thẻ (gộp camp). */
 export type QcDoi = { creative_id: number; anh: string | null; video: string | null; nguoi: string | null; dang: number; tong: number; chi: number; thu: number; tao: string | null; dang_cr: string | null };
-export async function docQcDoi(ids: number[]): Promise<{ qc: QcDoi[] } | { loi: string }> {
+/** ĐANG SẢN XUẤT cho phim (anh 19/11/2026 "Phía qc của Đội thì show thêm cả creative đang sx nếu có"): dòng phim đang chạy (bước hiện tại) · việc dựng theo mẫu
+ *  (etp.mau_dung chưa xong) · creative nhà dựng 7 ngày qua chưa có camp */
+export type SxPhim = { dong: { id: number; loai: string; buoc: string | null; tt: string | null; ghi: string | null }[]; mau: { mau: string; buoc: string; tt: string; ghi: string | null }[];
+  cr: { creative_id: number; anh: string | null; video: string | null; dang: string | null; luc: string }[] };
+export async function docQcDoi(ids: number[]): Promise<{ qc: QcDoi[]; sx: SxPhim } | { loi: string }> {
   const q = await quyenEtp(await getCurrentUser());
   if (!q || q.vai !== 'chu') return { loi: 'không có quyền' };
   const ds = [...new Set(ids.map((x) => Math.trunc(Number(x))).filter((x) => x > 0))];
-  if (!ds.length) return { qc: [] };
+  if (!ds.length) return { qc: [], sx: { dong: [], mau: [], cr: [] } };
   try {
     const qc = await run<QcDoi>(sql`
       select k.creative_id, a.anh, a.video, max(t.nguoi) nguoi, count(*) filter (where k.trang_thai = 'ACTIVE')::int dang, count(*)::int tong,
@@ -312,7 +316,18 @@ export async function docQcDoi(ids: number[]): Promise<{ qc: QcDoi[] } | { loi: 
       left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay_ngoai group by 1) s on s.camp_id = k.camp_id
       where k.content_id = any(${`{${ds.join(',')}}`}::int[]) and k.creative_id is not null
       group by k.creative_id, a.anh, a.video order by count(*) filter (where k.trang_thai = 'ACTIVE') desc, coalesce(sum(s.chi), 0) desc limit 60`);
-    return { qc };
+    const arr = `{${ds.join(',')}}`;
+    const [dong, coMau, cr] = await Promise.all([
+      run<SxPhim['dong'][number]>(sql`select p.id, p.loai, b.buoc, b.trang_thai tt, b.ghi from etp.dong_phim p left join lateral (select buoc, trang_thai, ghi from etp.dong_buoc x
+        where x.dong_id = p.id and x.trang_thai in ('dang', 'cho', 'loi', 'dung') order by array_position(array['nhan','ws','poster','cat','soat','creative','camp','chay'], x.buoc) limit 1) b on true
+        where p.content_id = any(${arr}::int[]) and p.trang_thai = 'chay' order by p.id desc`),
+      run<{ c: boolean }>(sql`select to_regclass('etp.mau_dung') is not null c`),
+      run<SxPhim['cr'][number]>(sql`select c.creative_id, c.anh, c.video, c.dang, c.cap_nhat::text luc from etp.creative c
+        where c.content_id = any(${arr}::int[]) and coalesce(c.dang, '') <> 'team' and c.cap_nhat > now() - interval '7 days'
+          and not exists (select 1 from etp.camp k where k.creative_id = c.creative_id) order by c.cap_nhat desc limit 12`),
+    ]);
+    const mau = coMau[0]?.c ? await run<SxPhim['mau'][number]>(sql`select mau, buoc, trang_thai tt, ghi from etp.mau_dung where content_id = any(${arr}::int[]) and trang_thai <> 'xong'`) : [];
+    return { qc, sx: { dong, mau, cr } };
   } catch (e) {
     return { loi: `đọc QC đội không được: ${(e as Error).message}` };
   }

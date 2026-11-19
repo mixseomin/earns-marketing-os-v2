@@ -146,6 +146,12 @@ submit)
   # #1681 vào Review 01:51 khi bản dựng chưa lên). Card không phải câu hỏi → link phải là commit GitHub, và commit đó phải nằm trong bản
   # ĐANG CHẠY trên box3 (HEAD của thư mục deploy). Mọi kỹ sư (cty, mos2, castle, studio, etp) và máy (cty may/chot-card.mjs) nộp qua đây nên chặn
   # một chỗ là đủ. spy-on-tc không có git (deploy rsync) → không kiểm được commit, cho qua.
+  # LỜI NỘP TỰ NHẬN CÒN PHẦN CHƯA LÀM (anh 19/11/2026, #1673: Huy viết "ngoài phần Ethopex, con chưa sửa" rồi vẫn nộp Review): không cho sang Review —
+  # làm nốt, hoặc CHUYỂN phần ngoài quyền cho đúng kỹ sư và để card ở Đang làm tới khi xong cả. Xét lời nộp + tin trả lời gần nhất của AI (thường ghi chi tiết ở reply).
+  tra_cuoi=$(psql "$DATABASE_URL" -At -c "SELECT COALESCE((SELECT t->>'noiDung' FROM jsonb_array_elements(COALESCE(prep_payload->'trao_doi','[]'::jsonb)) WITH ORDINALITY e(t, i) WHERE lower(t->>'nguoi') IN ('claude','ai') ORDER BY i DESC LIMIT 1), '') FROM human_tasks WHERE id = $id AND $SCOPE")
+  if printf '%s\n%s' "$loi" "$tra_cuoi" | grep -qiE 'con chưa (sửa|làm|xong|kiểm)|chưa (sửa|làm|xong) (phần|chỗ|mục)|ngoài phần .{0,60}chưa|để (lượt|phiên|bước) sau|làm sau|phần còn lại (chưa|để)'; then
+    echo "submit #$id bị chặn: lời nộp tự nhận còn phần chưa làm — làm nốt (hoặc CHUYỂN cho đúng kỹ sư) rồi mới nộp; card giữ ở Đang làm." >&2; exit 1
+  fi
   la_hoi=$(psql "$DATABASE_URL" -At -c "SELECT (COALESCE(prep_payload->>'loai','') = 'cau_hoi' OR title LIKE 'Hỏi: %') FROM human_tasks WHERE id = $id AND $SCOPE")
   if [ "$la_hoi" != "t" ] && [ "$P" != "spy" ]; then
     if [[ "$url" =~ ^https://github\.com/mixseomin/([A-Za-z0-9._-]+)/commit/([0-9a-f]{7,40})$ ]]; then

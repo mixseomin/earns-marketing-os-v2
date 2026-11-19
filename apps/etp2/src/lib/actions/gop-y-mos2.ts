@@ -18,7 +18,9 @@ const DU_AN = 'mos2';
 const NGUON_ETP = /^https?:\/\/etp2?\.on\.tc(\/|$)/;
 /** Card claimed quá trần phiên kỹ sư (CHUAN.md: 45 phút) coi là phiên đã chết — không rung mãi. */
 const TRAN_DANG_LAM_MS = 45 * 60_000;
-const TEP_HUY = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/etp-sua.json`;
+/** Kỹ sư AI phụ trách góp ý Phòng Ethopex (id sổ /opt/cty/cong-ty/nhan-su/huy) — hàng việc etp-sua.json bên dưới là hàng của người này. */
+const KY_SU_ETP = 'huy';
+const TEP_HUY =`${process.env.CTY_DATA_DIR || '/var/lib/cty'}/etp-sua.json`;
 
 /** Hòm etp2 chỉ cho admin (layout gắn nút cho admin; guiGopY của gói cũng admin-only) — đọc / trả lời luồng cũng vậy, kẻo người đăng nhập khác đọc card mos2. */
 const admin = async () => { const me = await getCurrentUser(); return me && me.role === 'admin' ? me : null; };
@@ -36,7 +38,7 @@ function huyDangLam(): string | null {
   try {
     const hang = (JSON.parse(fs.readFileSync(TEP_HUY, 'utf8')).hang ?? []) as Array<{ id: number; chu?: string; tt?: string }>;
     const v = hang.find((x) => x.tt === 'dang');
-    return v ? `Huy #${v.id} ${String(v.chu ?? '').replace(/<[^>]+>/g, '').split('\n')[0]!.slice(0, 60)}` : null;
+    return v ? `#${v.id}${String(v.chu ?? '').replace(/<[^>]+>/g, '').split('\n')[0]!.slice(0, 60)}` : null;
   } catch { return null; }   // chưa có hàng = không làm gì
 }
 
@@ -47,5 +49,6 @@ export async function demGopY(): Promise<hom.DemGopY> {
   const huy = huyDangLam();
   const dangLam = huy ? [huy, ...lam] : lam;
   const cho = ds.filter((b) => b.choYKien);
-  return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id) };
+  // tên kỹ sư phụ trách phòng: cùng sổ SOUL.md + cờ tắt nhip-chinh.json như mọi hòm của gói (góp ý #1673) — dải đầu hòm của gói tự ghi "Huy đang …"
+  return { working: dangLam.length, dangLam, can_y_kien: cho.length, choYKien: cho.map((b) => b.id), kySu: hom.kySuPhuTrach(KY_SU_ETP) };
 }

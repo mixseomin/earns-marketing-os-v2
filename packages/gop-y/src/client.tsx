@@ -8,6 +8,7 @@ import { createContext, useContext, useEffect, useRef, useState, type CSSPropert
 import { ChonTim } from '@mos2/bang/chon-tim';
 import type { GopYCuaToi, TinTraoDoi, Kq, HangGiao, ViecGiao } from './server';
 import { demTuDs, chuDaiKySu, DEM_RONG, type DemGopY } from './dem';
+import { VanBan } from './van-ban';
 
 export type HanhDongGopY = {
   /** Số cho nút 💬 (CHUAN.md: counts.working + counts.can_y_kien) — app bọc `demGopY` của @mos2/gop-y/server. Thiếu thì nút đếm từ dsGopYCuaToi. */
@@ -441,7 +442,7 @@ function Luong({ id, onXong }: { id: number; onXong: () => void }) {
           <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
             <b style={{ color: 'var(--fg-2)' }}>{t.nguoi}</b> · {gioVN(t.luc)}{t.xuLy ? ` · ${t.xuLy === 'duyet' ? 'đã duyệt' : 'làm lại'}` : ''}
           </div>
-          <div style={{ fontSize: 12.5, whiteSpace: 'pre-wrap', marginTop: 2 }}>{t.noiDung}</div>
+          <VanBan chu={t.noiDung} style={{ marginTop: 2 }} />
           {t.nguCanh && <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 2 }}>{t.nguCanh}</div>}
           {!!t.anh?.length && <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>{t.anh.map((u) => <img key={u} src={u} alt="" onClick={() => (c.xemAnh ?? xemAnhTaiCho)(u)} style={{ width: 90, height: 60, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)', cursor: 'zoom-in' }} />)}</div>}
         </div>

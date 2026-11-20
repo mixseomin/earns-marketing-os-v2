@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from 're
 import { docTraoDoiCard, guiTraoDoiCard } from '@/lib/actions/gop-y-mos2';
 import { uploadImage, deleteImage } from '@/lib/actions/uploads';
 import { StatusSegmented } from '@/components/ui';
+import { VanBan } from '@mos2/gop-y/van-ban';
 
 const btn: CSSProperties = { fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' };
 
@@ -134,7 +135,7 @@ export function TraoDoiCard({ feedbackId, taskId, onChange }: { feedbackId?: num
                   {t.xuLy === 'rework' && <span style={{ border: '1px solid var(--warn,#ffb03c)', color: 'var(--warn,#ffb03c)', borderRadius: 4, padding: '0 5px', fontSize: 10 }}>rework</span>}
                   <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>{t.luc.slice(0, 16).replace('T', ' ')}</span>
                 </div>
-                <div style={{ fontSize: 12.5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{t.noiDung}</div>
+                <VanBan chu={t.noiDung} />
                 {/* TRANG BỊ LỖI — câu trả lời cho "sửa ở đâu", tức thứ cần trước cả lời báo.
                     Trước 29/08/2026 drawer không có đường nào tới nó: link chỉ nằm trong
                     `draft`, mà draft chỉ hiện khi luồng RỖNG (`phao` bên dưới) — luồng thì

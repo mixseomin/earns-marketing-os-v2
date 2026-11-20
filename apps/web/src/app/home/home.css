@@ -98,7 +98,7 @@
 .hm-ob [data-comp="ui.Pill"] { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 /* Panel là con của lưới / flex trong khối cũ: min-width:auto làm panel NỞ theo bảng bên trong (Sức khoẻ đăng 631 px trong ô 357 px) → khoá về bề ngang ô,
    bảng thường trong panel tự cuộn ngang trong chính panel thay vì kéo cả ô tràn */
-.hm-ob [data-comp="ui.Panel"] { min-width: 0; max-width: 100%; }
+.hm-ob [data-comp="ui.Panel"], .hm-ob [data-comp="ui.Panel"] div { min-width: 0; max-width: 100%; }   /* ô lưới con (grid item) mặc định min-width:auto → nở theo nhãn dài nhất (Sự cố đang chặn đăng 441 px trong ô 341 px) */
 .hm-ob [data-comp="ui.Panel"] > table, .hm-ob [data-comp="ui.Panel"] > div > table { display: block; max-width: 100%; overflow-x: auto; }
 .hm-ob [data-comp="ui.Pill"] > span:last-child { overflow: hidden; text-overflow: ellipsis; }
 .hm-ob [data-panel-dau] > div { flex-wrap: nowrap !important; overflow: hidden; }

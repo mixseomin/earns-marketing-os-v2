@@ -9,6 +9,10 @@ const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
   { card: 1730, tep: 'apps/etp2/src/lib/actions/etp-mau-cr.ts', mot: 'const tvChuaLen = ', vi: 'bản máy đã dựng xong nằm trong thư viện mà chưa có mã creative Ethopex vẫn hiện ở tab Phim sản xuất + ngăn chi tiết dựng (anh 20/11/2026 "Show creative đã sx tại đây": 2 phim mà 0 creative)' },
   { card: 1730, tep: 'apps/etp2/src/lib/actions/etp-mau-cr.ts', mot: 'cr.unshift(...(await tvChuaLen(ma, cid)).map(crTv))', vi: 'ngăn chi tiết dựng đọc cùng một hàm với tab, không truy vấn riêng' },
+  { card: 1730, tep: 'apps/etp2/src/components/etp-mau-cr.tsx', mot: 'function nhanCr(', vi: 'nhãn dưới ảnh creative theo trạng thái thật (chưa lên / chưa camp / ROI), số tiền chỉ ở chữ rê, không "0 camp · chi $0.00" (anh 20/11/2026 "trình bày ngu thế")' },
+  { card: 1730, tep: 'apps/etp2/src/components/etp-mau-cr.tsx', mot: "width: 56, display: 'flex'", vi: 'ảnh creative tab Phim sản xuất cỡ cố định 56px, không chia 1/6 khung thành ảnh to choán màn' },
+  { card: 1730, tep: 'apps/etp2/src/components/etp-mau-cr.tsx', cam: "gridTemplateColumns: 'repeat(6, minmax(0, 1fr))'", vi: 'không quay về lưới 6 cột co giãn làm ảnh creative to' },
+  { card: 1730, tep: 'apps/etp2/src/components/etp-mau-cr.tsx', cam: "`●${BUOC_DUNG[i]", vi: 'không in ghi chú máy thô + "●tải tập" dính chữ dưới thanh bước; trạng thái nằm ở hàng tên phim (ttPhim)' },
   { card: 1728, tep: 'apps/etp2/src/lib/so-nho.ts', mot: 'export function lamMoiSo(khoa: string)', vi: 'mọi chỗ cùng khoá useSoNho dùng CHUNG một bản: bản mới của bất kỳ chỗ nào về là cả trang đổi theo (anh 20/11/2026 "Phim đã sinh xong mà ko thấy update ngay")' },
   { card: 1728, tep: 'apps/etp2/src/components/etp-mau-dung-drawer.tsx', mot: "lamMoiSo('mau-cr')", vi: 'ngăn chi tiết dựng thấy bước / trạng thái khác dòng phim của tab (vd vừa Xong) thì kéo bản chung ngay, dòng phim đổi cùng lúc' },
   { card: 1728, tep: 'apps/etp2/src/components/etp-mau-dung-drawer.tsx', cam: "du.hien?.trang_thai !== 'xong') void tai()", vi: 'không đọc `du` cũ trong setInterval (luôn null → việc đã Xong vẫn tải lại mãi)' },

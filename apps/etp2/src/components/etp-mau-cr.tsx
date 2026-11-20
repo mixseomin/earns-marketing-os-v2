@@ -181,37 +181,47 @@ export function MayDungDong({ may }: { may: MayDung | null | undefined }) {
       {so.map(([n, t, c]) => <span key={t}>· <b style={{ color: n ? c : MO_SO, fontWeight: 600 }}>{n}</b> {t}</span>)}
     </span></ReThe></div>;
 }
+/** THANH BƯỚC của việc đang dựng — chỉ thanh; chữ trạng thái nằm ở hàng tên phim (ttPhim), ghi chú máy gập vào chữ rê. Lỗi thì câu lỗi đỏ đủ câu ngay dưới (kêu to). */
 function TienDoDung({ d }: { d: DungMau }) {
-  const i = Math.max(0, BUOC_DUNG.findIndex(([k]) => k === d.buoc)), loi = d.trang_thai === 'loi', xong = d.trang_thai === 'xong', dung = d.trang_thai === 'dung';
-  const mau = loi ? DO : xong ? XANH : dung ? XAM_DUNG : '#fbbf24';
-  return <div title={`${loiThuongMau(d.ghi)} · cập nhật ${gioNgan(d.cap_nhat)}`} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BUOC_DUNG.length - 1}, 1fr)`, gap: 2 }}>
-      {BUOC_DUNG.slice(1).map(([k, nh], j) => <span key={k} title={nh} style={{ height: 4, borderRadius: 2, background: xong || j < i - 1 ? XANH : j === i - 1 ? mau : 'var(--line)' }} />)}
+  const i = Math.max(0, BUOC_DUNG.findIndex(([k]) => k === d.buoc)), loi = d.trang_thai === 'loi', dung = d.trang_thai === 'dung';
+  const mau = loi ? DO : dung ? XAM_DUNG : '#fbbf24';
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingLeft: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BUOC_DUNG.length - 1}, 1fr)`, gap: 2, maxWidth: 320 }}>
+      {BUOC_DUNG.slice(1).map(([k, nh], j) => <span key={k} title={nh} style={{ height: 3, borderRadius: 2, background: j < i - 1 ? XANH : j === i - 1 ? mau : 'var(--line)' }} />)}
     </div>
-    <div style={{ fontSize: 11, color: loi ? DO : 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-      {loi ? '✕ lỗi' : xong ? '✓ xong' : dung ? `⏸ dừng ở ${BUOC_DUNG[i]?.[1] ?? 'giữa chừng'}` : `●${BUOC_DUNG[i]?.[1] ?? 'đang làm'}`} · {loiThuongMau(d.ghi)} · {gioNgan(d.cap_nhat)}</div>
+    {loi ? <div style={{ fontSize: 11.5, color: DO }}>{loiThuongMau(d.ghi)}</div> : null}
   </div>;
 }
+/** NHÃN + CHỮ RÊ một creative của phim — bản chưa lên / đã lên chưa camp / đang chạy / ROI; không in "0 camp · chi $0.00" cho bản chưa có camp */
+function nhanCr(c: PhimSx['cr'][number]): { chu: string; mau: string; re: string } {
+  const r = c.chi > 0.5 ? ((c.thu - c.chi) / c.chi) * 100 : null;
+  if (c.tv) return { chu: 'chưa lên', mau: MO_SO, re: 'máy vừa dựng xong, đang chờ tải lên Ethopex — bấm mở video' };
+  if (!c.camp) return { chu: 'chưa camp', mau: MO_SO, re: `creative #${c.id} đã lên Ethopex, chưa có camp nào — bấm mở video` };
+  const so = `#${c.id} · ${c.camp} camp${c.chay ? ' (đang chạy)' : ''} · chi $${c.chi.toFixed(2)} · thu $${c.thu.toFixed(2)}${r != null ? ` · ROI ${r.toFixed(0)}%` : ''} — bấm mở video`;
+  return { chu: `${c.chay ? '● ' : ''}${r != null ? `${r.toFixed(0)}%` : `${c.camp} camp`}`, mau: r != null ? (r >= 0 ? XANH : DO) : c.chay ? XANH : MO_SO, re: so };
+}
+// HÀNG MỘT PHIM ĐANG SẢN XUẤT (góp ý #1730 anh 20/11/2026 "trình bày ngu thế": ảnh creative to choán cả khung, chữ máy thô "1 creative: #112754",
+// thanh xanh kín khi đã xong, ô rê "0 camp · chi $0.00"): hàng đầu = đèn trạng thái · tên phim · trạng thái + giờ · số creative (ttPhim dùng chung với DongPhimGon,
+// ghi chú máy gập vào chữ rê) · thanh bước CHỈ khi còn đang dựng / lỗi / dừng · dải ảnh creative cỡ cố định 56 px, nhãn dưới ảnh (nhanCr), số tiền ở chữ rê.
 export function DongPhimSx({ f, ma }: { f: PhimSx; ma: string }) {
-  const tt = f.dong_tt ? TT_DONG[f.dong_tt] : null;
-  // BẤM PHIM = XEM CHI TIẾT CÁC BƯỚC THEO DÒNG THỜI GIAN (anh 19/11/2026): việc dựng theo mẫu → ngăn etp-mau-dung · dòng phim → ngăn Sản xuất phim (etp-sx) sẵn có
+  const [mau, chu, goi] = ttPhim(f);
+  const gio = f.dung ? gioNgan(f.dung.cap_nhat) : null;
   const mo = moPhimSx(f, ma);
-  return <div onClick={mo} title="bấm xem chi tiết các bước + vấn đề theo dòng thời gian" style={{ display: 'flex', flexDirection: 'column', gap: 4, cursor: 'pointer', borderRadius: 6, padding: '3px 4px', margin: '0 -4px' }}
+  return <div onClick={mo} title={`${f.ten ?? ''} — ${chu}${goi ? ` · ${goi}` : ''} · bấm xem từng bước theo dòng thời gian`} style={{ display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer', borderRadius: 6, padding: '6px', margin: '0 -6px' }}
     onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={f.ten ?? ''}>{f.ten ?? 'phim chưa có tên'}</span>
-      {tt ? <span title={f.dong_ly ?? 'máy dòng phim đang sinh creative'} style={{ fontSize: 10.5, color: tt[1], whiteSpace: 'nowrap' }}>● {tt[0]}</span>
-        : f.chon && !f.cr.length && !f.dung ? <span style={{ fontSize: 10.5, color: MO_SO }}>chờ máy</span> : null}
-      <span style={{ fontSize: 11, color: MO_SO, fontVariantNumeric: 'tabular-nums' }}>{f.cr.length} creative</span>
+    <div style={{ display: 'grid', gridTemplateColumns: '8px minmax(0, 1fr) auto auto', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
+      <span style={{ width: 7, height: 7, borderRadius: 4, background: mau }} />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--fg-1)' }}>{f.ten ?? 'phim chưa có tên'}</span>
+      <span style={{ fontSize: 11, color: mau === DO ? DO : MO_SO, whiteSpace: 'nowrap' }}>{chu}{gio ? ` · ${gio}` : ''}</span>
+      <span style={{ fontSize: 11, color: MO_SO, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', minWidth: 62, textAlign: 'right' }}>{f.cr.length ? `${f.cr.length} creative` : '—'}</span>
     </div>
-    {f.dung ? <TienDoDung d={f.dung} /> : null}
-    {f.cr.length ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 4 }}>
-      {f.cr.map((c) => { const r = c.chi > 0.5 ? ((c.thu - c.chi) / c.chi) * 100 : null; return <a key={c.id} href={c.video ?? c.anh ?? undefined} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-        title={c.tv ? 'bản máy vừa dựng xong, đang chờ tải lên Ethopex — chưa có camp — mở video' : `${c.camp} camp${c.chay ? ' (đang chạy)' : ''} · chi $${c.chi.toFixed(2)} · thu $${c.thu.toFixed(2)}${r != null ? ` · ROI ${r.toFixed(0)}%` : ''} — mở video`}
-        style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 4, overflow: 'hidden', display: 'block' }}>
-        {c.anh ? <img src={c.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
-        <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 9.5, padding: '0 3px', background: 'rgba(0,0,0,0.7)', color: c.chay ? XANH : r != null ? (r >= 0 ? XANH : DO) : '#fff', fontVariantNumeric: 'tabular-nums', textAlign: 'center' }}>
-          {c.tv ? 'chưa lên' : <>{c.chay ? '● ' : ''}{r != null ? `${r.toFixed(0)}%` : 'mới'}</>}</span>
+    {f.dung && f.dung.trang_thai !== 'xong' && f.dung.buoc !== 'cho' ? <TienDoDung d={f.dung} /> : null}
+    {f.cr.length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingLeft: 16 }}>
+      {f.cr.map((c) => { const n = nhanCr(c); return <a key={c.id} href={c.video ?? c.anh ?? undefined} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={n.re}
+        style={{ width: 56, display: 'flex', flexDirection: 'column', gap: 3, textDecoration: 'none' }}>
+        <span style={{ aspectRatio: '9 / 16', background: '#000', borderRadius: 4, overflow: 'hidden', display: 'block' }}>
+          {c.anh ? <img src={c.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}</span>
+        <span style={{ fontSize: 10.5, color: n.mau, textAlign: 'center', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{n.chu}</span>
       </a>; })}
     </div> : null}
   </div>;

@@ -167,7 +167,7 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
   Trước hết liệt kê đặc điểm người dùng đòi (vd: nữ). Một nhân vật chỉ HỢP khi mo_ta của nó GHI RÕ đúng các đặc điểm đó; mo_ta không nói, nói chung chung hay "không nhấn mạnh giới tính" = KHÔNG hợp.
   1. Trong dan_nhan_vat_cua_phim có người HỢP → gan_nhan_vat, nhan_vat_ids = id các NGƯỜI sẽ có trong cảnh (thay hết người cũ; thành phần không phải người giữ nguyên).
   2. Người đang gắn ở cảnh sai ngoại hình VÀ (so_canh_dung ≤ 1 HOẶC người dùng nói sửa nhân vật đó cho cả phim) → ve_mau, nhan_vat_ids = [id người đó], yeu_cau = ngoại hình mới (tiếng Việt, cụ thể: giới tính, tuổi, tóc, trang phục có màu). tra_loi nhắc mọi cảnh dùng nhân vật này sẽ theo ảnh mẫu mới.
-  3. Còn lại (kể cả khi người gần đúng đang dùng ở nhiều cảnh khác) → tao_nhan_vat, gia_tri = tên ngắn, yeu_cau = mô tả ngoại hình đầy đủ suy từ cảnh + lệnh (tiếng Việt). Nhân vật mới tự gắn vào cảnh thay người cũ.
+  3. Còn lại (kể cả khi người gần đúng đang dùng ở nhiều cảnh khác) → tao_nhan_vat, gia_tri = tên ngắn 1–3 chữ (vd "Lan", "Cô gái"), yeu_cau = mô tả ngoại hình đầy đủ suy từ cảnh + lệnh (tiếng Việt). Nhân vật mới tự gắn vào cảnh thay người cũ.
   Bước 2 và 3 tốn credit (vẽ một ảnh mẫu); tra_loi nói rõ chạy thẻ nhân vật trước, ảnh mẫu xong rồi mới chạy thẻ sinh lại keyframe.
 - sinh_lai_anh / sinh_lai_clip / sinh_lai_giong / sinh_td / sinh_nhac: tốn credit, chỉ đề xuất khi người dùng muốn hình / clip / giọng / âm thanh khác đi; yeu_cau = mô tả ngắn cái cần khác (tiếng Việt).
 Gọi cảnh bằng "cảnh <so>" (so trong NGỮ CẢNH), không lấy số trong tên cảnh. Trường không dùng để chuỗi rỗng, dong = 0, nhan_vat_ids = []. Không bịa dữ liệu ngoài ngữ cảnh. Lệnh chỉ hỏi thì hanh_dong = [].`;
@@ -193,13 +193,16 @@ Gọi cảnh bằng "cảnh <so>" (so trong NGỮ CẢNH), không lấy số tro
       const x = dan.find((d) => Number(d.id) === Number(v.nhan_vat_ids[0])); if (!x) continue;
       de_xuat.push({ loai: 've_mau', nhanVatId: Number(x.id), canhId: Number(cn.id), tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: `Vẽ lại ảnh mẫu ${String(x.ten)}` });
     } else if (v.loai === 'tao_nhan_vat' && cn && v.yeu_cau.trim()) {
-      const ten = (v.gia_tri.trim() || 'Nhân vật mới').slice(0, 60);
+      const ten = v.gia_tri.trim().split(/[,;.]/)[0].split(/\s+/).slice(0, 4).join(' ').slice(0, 30) || 'Nhân vật mới';   // tên ngắn: model hay nhét cả mô tả vào tên
       de_xuat.push({ loai: 'tao_nhan_vat', ten, canhId: Number(cn.id), tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: `Tạo nhân vật ${ten} cho cảnh ${Math.round(Number(cn.thu_tu))}` });
     } else if (v.loai.startsWith('sinh_')) {
       const nhan = { sinh_lai_anh: 'Sinh lại keyframe', sinh_lai_clip: 'Sinh lại clip', sinh_lai_giong: 'Đọc lại lời', sinh_td: 'Sinh lại tiếng động', sinh_nhac: 'Sinh lại nhạc nền' }[v.loai as 'sinh_td'];
       de_xuat.push({ loai: v.loai, canhId: cn ? Number(cn.id) : undefined, tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: cn ? `${nhan} cảnh ${Math.round(Number(cn.thu_tu))}` : nhan });
     }
   }
+  // đổi người của cảnh mà chưa có thẻ vẽ lại keyframe → máy tự thêm (ảnh cảnh chỉ đổi người khi vẽ lại; không để model quên)
+  if (cn && (de_xuat.some((x) => x.loai === 've_mau' || x.loai === 'tao_nhan_vat') || 'nhan_vat' in vaCanh) && !de_xuat.some((x) => x.loai === 'sinh_lai_anh'))
+    de_xuat.push({ loai: 'sinh_lai_anh', canhId: Number(cn.id), tapId: tid, yeu_cau: '', nhan: `Sinh lại keyframe cảnh ${Math.round(Number(cn.thu_tu))}` });
   if (thoaiMoi) { vaCanh.thoai = thoaiMoi; da_lam.push({ loai: 'sua_canh', truong: 'thoai', cu: thoai, moi: thoaiMoi, canhId: Number(cn!.id), nhan: `Sửa lời đọc cảnh ${Math.round(Number(cn!.thu_tu))}` }); }
   else if ('loi_thoai' in vaCanh) da_lam.push({ loai: 'sua_canh', truong: 'loi_thoai', cu: cn!.loi_thoai ?? '', moi: vaCanh.loi_thoai, canhId: Number(cn!.id), nhan: `Sửa lời đọc cảnh ${Math.round(Number(cn!.thu_tu))}` });
   if (cn && Object.keys(vaCanh).length) { const k = await suaCanh(Number(cn.id), vaCanh as Parameters<typeof suaCanh>[1]); if (k && (k as { ok?: boolean }).ok === false) return { ok: false, loi: `không sửa được cảnh: ${(k as { loi?: string }).loi}` }; }

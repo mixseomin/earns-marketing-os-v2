@@ -217,18 +217,18 @@ export async function sinhLaiCanhS2(canhId: number, loai: 'anh' | 'giong' | 'cli
   return sinhVideoCanh(id);
 }
 
-export type ViecHangDoi = { id: number; loai: string; nhan: string; doi_tuong: string; provider: string; model: string; trang_thai: string; loi: string; cents: number; luc: string; xong_luc: string };
+export type ViecHangDoi = { id: number; canh_id: number | null; nhan_vat_id: number | null; loai: string; nhan: string; doi_tuong: string; provider: string; model: string; trang_thai: string; loi: string; cents: number; luc: string; xong_luc: string };
 /** HÀNG ĐỢI SINH của cả phim (Studio 2 › widget Hàng đợi — anh 20/11/2026: "cần chỗ quản lý các queue sinh ảnh, video, voice… để xem lỗi, thành công cũng như chi phí"):
  *  300 việc mới nhất trong sổ xv_job của phim (ảnh cảnh, ảnh mẫu, giọng, nhạc, clip, chữ, xuất) + tổng theo trạng thái và tổng tiền của cả phim. Chỉ đọc. */
 export async function hangDoiS2(phimId: number): Promise<{ viec: ViecHangDoi[]; tong: { cho: number; chay: number; loi: number; xong: number; cents: number } }> {
   const db = getDb(), id = Number(phimId), rong = { viec: [], tong: { cho: 0, chay: 0, loi: 0, xong: 0, cents: 0 } };
   if (!db || !id) return rong;
   const dk = sql`(j.phim_id = ${id} OR j.canh_id IN (SELECT c.id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${id}) OR j.nhan_vat_id IN (SELECT v.id FROM xv_nhan_vat v WHERE v.phim_id = ${id})) AND j.loai <> 'viec_nen'`;
-  const r = (await db.execute(sql`SELECT j.id, j.loai, j.nhan, j.provider, j.model, j.trang_thai, j.loi, j.chi_phi_cents, j.created_at, j.updated_at, c.thu_tu, v.ten AS mau_ten
+  const r = (await db.execute(sql`SELECT j.id, j.canh_id, j.nhan_vat_id, j.loai, j.nhan, j.provider, j.model, j.trang_thai, j.loi, j.chi_phi_cents, j.created_at, j.updated_at, c.thu_tu, v.ten AS mau_ten
     FROM xv_job j LEFT JOIN xv_canh c ON c.id = j.canh_id LEFT JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id WHERE ${dk} ORDER BY j.id DESC LIMIT 300`)) as unknown as Row[];
   const t = ((await db.execute(sql`SELECT count(*) FILTER (WHERE j.trang_thai IN ('cho', 'hang', 'hang_h3')) AS cho, count(*) FILTER (WHERE j.trang_thai = 'chay') AS chay, count(*) FILTER (WHERE j.trang_thai = 'loi') AS loi,
     count(*) FILTER (WHERE j.trang_thai = 'xong') AS xong, coalesce(sum(j.chi_phi_cents), 0) AS cents FROM xv_job j WHERE ${dk}`)) as unknown as Row[])[0] ?? {};
-  return { viec: r.map((x) => ({ id: Number(x.id), loai: String(x.loai ?? ''), nhan: String(x.nhan ?? ''), doi_tuong: x.thu_tu != null ? `Cảnh ${Math.round(Number(x.thu_tu))}` : x.mau_ten ? `Mẫu ${String(x.mau_ten)}` : '',
+  return { viec: r.map((x) => ({ id: Number(x.id), canh_id: x.canh_id == null ? null : Number(x.canh_id), nhan_vat_id: x.nhan_vat_id == null ? null : Number(x.nhan_vat_id), loai: String(x.loai ?? ''), nhan: String(x.nhan ?? ''), doi_tuong: x.thu_tu != null ? `Cảnh ${Math.round(Number(x.thu_tu))}` : x.mau_ten ? `Mẫu ${String(x.mau_ten)}` : '',
       provider: String(x.provider ?? ''), model: String(x.model ?? ''), trang_thai: String(x.trang_thai ?? ''), loi: String(x.loi ?? ''), cents: Number(x.chi_phi_cents ?? 0), luc: gio(x.created_at), xong_luc: gio(x.updated_at) })),
     tong: { cho: Number(t.cho ?? 0), chay: Number(t.chay ?? 0), loi: Number(t.loi ?? 0), xong: Number(t.xong ?? 0), cents: Number(t.cents ?? 0) } };
 }

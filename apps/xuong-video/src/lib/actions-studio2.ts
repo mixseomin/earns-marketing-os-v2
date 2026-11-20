@@ -146,12 +146,13 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
   const nvIds = cn && Array.isArray(cn.nhan_vat) ? (cn.nhan_vat as unknown[]).map(Number).filter(Number.isFinite) : [];
   const nguoi = nvIds.length ? ((await db.execute(sql`SELECT id, ten, loai, left(coalesce(mo_ta, ''), 200) AS mo_ta FROM xv_nhan_vat WHERE id = ANY(${`{${nvIds.join(',')}}`}::int[])`)) as unknown as Row[]) : [];
   // dàn người của phim: AI chọn người có sẵn để gắn vào cảnh trước khi tính tới vẽ lại / tạo mới
-  const dan = cn ? ((await db.execute(sql`SELECT id, ten, left(coalesce(mo_ta, ''), 240) AS mo_ta, jsonb_array_length(coalesce(anh_ref, '[]'::jsonb)) > 0 AS co_anh FROM xv_nhan_vat WHERE phim_id = ${pid} AND loai = 'nhan_vat' ORDER BY id LIMIT 30`)) as unknown as Row[]) : [];
+  const dan = cn ? ((await db.execute(sql`SELECT id, ten, left(coalesce(mo_ta, ''), 240) AS mo_ta, jsonb_array_length(coalesce(anh_ref, '[]'::jsonb)) > 0 AS co_anh,
+    (SELECT count(*) FROM xv_canh c2 JOIN xv_tap t2 ON t2.id = c2.tap_id WHERE t2.phim_id = ${pid} AND c2.nhan_vat @> to_jsonb(v.id))::int AS so_canh FROM xv_nhan_vat v WHERE phim_id = ${pid} AND loai = 'nhan_vat' ORDER BY id LIMIT 30`)) as unknown as Row[]) : [];
   const thoai = cn && Array.isArray(cn.thoai) ? (cn.thoai as { nhan_vat?: string; loi?: string; dien_xuat?: string }[]) : [];
   const ngCanh = loai === 'tap' || loai === 'nhac'
     ? { tap: { ten: tap.ten, tom_tat: tap.tom_tat, y_tuong: String(tap.brief ?? '').slice(0, 1500), nhac_mo_ta: tap.nhac_mo_ta, thoi_luong_s: tap.thoi_luong_s } }
     : { tap: { ten: tap.ten, tom_tat: tap.tom_tat }, canh: { so: cn!.thu_tu, ten: cn!.canh, goc_may: cn!.goc_may, hanh_dong_vi: cn!.hanh_dong_vi || cn!.hanh_dong, chu_man: cn!.chu_man,
-        am_thanh: cn!.am_thanh, thoi_luong_s: cn!.thoi_luong_s, cam_xuc: cn!.cam_xuc, thanh_phan_trong_canh: nguoi.map((v) => ({ id: Number(v.id), ten: v.ten, loai: v.loai, mo_ta: v.mo_ta })), dan_nhan_vat_cua_phim: dan.map((v) => ({ id: Number(v.id), ten: v.ten, mo_ta: v.mo_ta, co_anh_mau: v.co_anh, so_canh_dung: 0 })), co_anh: cn!.co_anh, co_clip: cn!.co_clip,
+        am_thanh: cn!.am_thanh, thoi_luong_s: cn!.thoi_luong_s, cam_xuc: cn!.cam_xuc, thanh_phan_trong_canh: nguoi.map((v) => ({ id: Number(v.id), ten: v.ten, loai: v.loai, mo_ta: v.mo_ta })), dan_nhan_vat_cua_phim: dan.map((v) => ({ id: Number(v.id), ten: v.ten, mo_ta: v.mo_ta, co_anh_mau: v.co_anh, so_canh_dung: Number(v.so_canh) })), co_anh: cn!.co_anh, co_clip: cn!.co_clip,
         thoai: thoai.length ? thoai.map((t, i) => ({ dong: i, nguoi_noi: t.nhan_vat, loi: t.loi, dien_xuat: t.dien_xuat })) : [{ dong: 0, loi: cn!.loi_thoai }] } };
   const duoc = VIEC_THEO_LOAI[loai];
   const VIEC = z.object({ loai: z.enum(['sua_canh', 'sua_thoai', 'sua_tap', 'gan_nhan_vat', 've_mau', 'tao_nhan_vat', 'sinh_lai_anh', 'sinh_lai_clip', 'sinh_lai_giong', 'sinh_td', 'sinh_nhac']),
@@ -163,9 +164,10 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
 - sua_thoai: dong = số dòng thoại, gia_tri = câu mới đầy đủ (giữ ngôn ngữ gốc của câu).
 - sua_tap: truong ∈ {ten, tom_tat, nhac_mo_ta}, gia_tri = giá trị mới.
 - Đổi NGƯỜI trong cảnh (giới tính, tuổi, dân tộc, thay người khác): người trong hình theo ẢNH MẪU của nhân vật gắn vào cảnh, câu thêm không đổi được người. Tự xử theo thứ tự, rồi LUÔN kèm sinh_lai_anh cho cảnh:
-  1. Trong dan_nhan_vat_cua_phim có người đúng ý → gan_nhan_vat, nhan_vat_ids = id các NGƯỜI sẽ có trong cảnh (thay hết người cũ; thành phần không phải người giữ nguyên).
-  2. Người đang gắn ở cảnh chỉ sai ngoại hình VÀ người dùng muốn sửa nhân vật đó cho cả phim → ve_mau, nhan_vat_ids = [id người đó], yeu_cau = ngoại hình mới (tiếng Việt, cụ thể: giới tính, tuổi, tóc, trang phục có màu). tra_loi nhắc mọi cảnh dùng nhân vật này sẽ theo ảnh mẫu mới.
-  3. Không có ai hợp → tao_nhan_vat, gia_tri = tên ngắn, yeu_cau = mô tả ngoại hình đầy đủ suy từ cảnh + lệnh (tiếng Việt). Nhân vật mới tự gắn vào cảnh thay người cũ.
+  Trước hết liệt kê đặc điểm người dùng đòi (vd: nữ). Một nhân vật chỉ HỢP khi mo_ta của nó GHI RÕ đúng các đặc điểm đó; mo_ta không nói, nói chung chung hay "không nhấn mạnh giới tính" = KHÔNG hợp.
+  1. Trong dan_nhan_vat_cua_phim có người HỢP → gan_nhan_vat, nhan_vat_ids = id các NGƯỜI sẽ có trong cảnh (thay hết người cũ; thành phần không phải người giữ nguyên).
+  2. Người đang gắn ở cảnh sai ngoại hình VÀ (so_canh_dung ≤ 1 HOẶC người dùng nói sửa nhân vật đó cho cả phim) → ve_mau, nhan_vat_ids = [id người đó], yeu_cau = ngoại hình mới (tiếng Việt, cụ thể: giới tính, tuổi, tóc, trang phục có màu). tra_loi nhắc mọi cảnh dùng nhân vật này sẽ theo ảnh mẫu mới.
+  3. Còn lại (kể cả khi người gần đúng đang dùng ở nhiều cảnh khác) → tao_nhan_vat, gia_tri = tên ngắn, yeu_cau = mô tả ngoại hình đầy đủ suy từ cảnh + lệnh (tiếng Việt). Nhân vật mới tự gắn vào cảnh thay người cũ.
   Bước 2 và 3 tốn credit (vẽ một ảnh mẫu); tra_loi nói rõ chạy thẻ nhân vật trước, ảnh mẫu xong rồi mới chạy thẻ sinh lại keyframe.
 - sinh_lai_anh / sinh_lai_clip / sinh_lai_giong / sinh_td / sinh_nhac: tốn credit, chỉ đề xuất khi người dùng muốn hình / clip / giọng / âm thanh khác đi; yeu_cau = mô tả ngắn cái cần khác (tiếng Việt).
 Trường không dùng để chuỗi rỗng, dong = 0, nhan_vat_ids = []. Không bịa dữ liệu ngoài ngữ cảnh. Lệnh chỉ hỏi thì hanh_dong = [].`;

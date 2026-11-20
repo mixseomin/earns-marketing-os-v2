@@ -252,6 +252,7 @@ html.dung-mo body { padding-block: 10px }
 .pro .w-dau { display: flex }
 .w-ten { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); font-size: 12px; white-space: nowrap } .w-ten b { font-weight: 600 }
 .w-them { margin-left: auto; display: inline-flex; gap: 4px; align-items: center } .w-nut { display: inline-flex; opacity: .55 } .wg:hover .w-nut, .w-nut:focus-within { opacity: 1 }
+.bt.gop-y { padding: 5px 8px; white-space: nowrap }
 .ic-bt { padding: 5px 6px; display: inline-grid; place-items: center; line-height: 0 } .w-nut .ic-bt { border-color: transparent; padding: 4px }
 .doan-bt { display: inline-flex } .doan-bt .bt { border-radius: 0; margin-left: -1px; padding: 5px 10px } .doan-bt .bt:first-child { border-radius: 8px 0 0 8px; margin-left: 0 } .doan-bt .bt:last-child { border-radius: 0 8px 8px 0 }
 .doan-bt .bt[aria-pressed=true] { position: relative; z-index: 1 }

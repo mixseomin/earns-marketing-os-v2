@@ -21,4 +21,12 @@ assert.equal(hien('mos2.on.tc', refC, C), true);
 assert.equal(hien('mos2.on.tc', refC, M), false);
 assert.equal(hien('mos2.on.tc', refC, E), false);
 assert.equal(hien('castle.on.tc', null, C), true);
+// studio2: hòm nhúng mos2.on.tc/nhung/gop-y?trang=studio2 → chỉ card studio2; mos2 / castle / etp không thấy card studio2
+const S2 = 'https://studio2.on.tc/?phim=7999&tap=8007', refS = 'https://mos2.on.tc/nhung/gop-y?trang=' + encodeURIComponent(S2);
+assert.equal(hien('mos2.on.tc', refS, S2), true);
+assert.equal(hien('mos2.on.tc', refS, M), false);
+assert.equal(hien('mos2.on.tc', refS, C), false);
+assert.equal(hien('mos2.on.tc', null, S2), false);
+assert.equal(hien('mos2.on.tc', refC, S2), false);
+assert.equal(hien('etp2.on.tc', null, S2), false);
 console.log('gop-y-loc-nguon: đạt');

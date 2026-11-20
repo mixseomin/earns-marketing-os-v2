@@ -761,6 +761,7 @@ function veTren() {
   <span class="day"><span class="doan-bt" role="group" aria-label="Phiên bản">${[['gon', 'Gọn'], ['pro', 'Pro']].map(([k, t]) => `<button type="button" class="bt" data-d="ban" data-g="${k}" aria-pressed="${E.ban === k}">${t}</button>`).join('')}</span>
   ${p ? `<button type="button" class="bt ic-bt" data-d="menu" data-g="bc" title="Bố cục widget" aria-label="Bố cục widget" aria-haspopup="true" aria-expanded="${E.menu?.loai === 'bc'}">${ic('Bố cục')}</button>` : ''}
   ${ten('Hoàn tác', 'lui', E.lui.length ? '' : 'disabled')}${ten('Làm lại', 'toi', E.toi.length ? '' : 'disabled')}
+  <button type="button" class="bt gop-y" data-gop-y-mo title="Góp ý / báo lỗi về Studio 2: gửi kèm ảnh, xem trả lời và theo dõi từng góp ý ở tab Của tôi" aria-label="Góp ý, báo lỗi">💬${p ? '' : ' Góp ý'}</button>
   ${p ? `<button type="button" class="bt ic-bt" data-d="taoThat" title="Tạo video mới trên studio" aria-label="Tạo video mới trên studio">${ic('Thêm')}</button>` : '<button type="button" class="bt" data-d="taoThat">＋ Tạo video mới</button>'}<button type="button" class="bt chinh" data-d="xuat">Xuất video</button></span>`;
 }
 function veMenu() {
@@ -1222,6 +1223,13 @@ try { const bc = new URLSearchParams(location.search).get('bc'); if (BO_CUC[bc])
 try { const nk = new URLSearchParams(location.search).get('nk'); if (BUOC_NK.some((x) => x[0] === nk)) { E.nkBuoc = nk; for (const k in E.bc) if (!E.bc[k].includes('nk')) E.bc[k].splice(E.bc[k].includes('tt') ? E.bc[k].indexOf('tt') : E.bc[k].length, 0, 'nk'); } } catch {}
 if (E.nhuMoi && DU_AN[E.da]) { D = duAnTrong(); E.da = null; E.tap = null; E.dangMo = true; }
 else if (DU_AN[E.da]) { moDuAn(E.da); if (BO_CUC[E.bcUrl] && E.bcUrl !== D.loai) { E.bc[D.loai] = [...BC_MAU[E.bcUrl]]; E.luoi.vi[D.loai] = viMau(E.bcUrl); E.luoi.ten[D.loai] = E.bcUrl; } E.bcUrl = ''; } else moPhimThat(E.da, E.tap, true);
+
+// GÓP Ý = hòm chuẩn mos2 (packages/gop-y/CHUAN.md): index.html nạp script https://mos2.on.tc/api/gop-y-ngoai/nut, nút 💬 trên thanh trên mang data-gop-y-mo.
+// Hòm đọc hàm này lúc mở để card mang đúng chỗ người gửi đang đứng (phim, tập, bản, bố cục, cảnh đang chọn, bước đang chạy / vừa bị từ chối).
+window.__nguCanhTrang = () => { const t = D.that, c = E.chon && E.chon.id !== 'nhac' ? D.canh.findIndex((x) => x.id === E.chon.id) + 1 : 0, dang = Object.keys(E.dangBuoc || {});
+  return [`Studio 2 · bản ${E.ban === 'pro' ? 'Pro' : 'Gọn'}${nguoiMoi() ? ' · đang xem như người mới' : ''}`, t ? `phim #${t.phim} "${D.ten}" · tập ${t.tap} · ${D.canh.length} cảnh` : `phim mẫu "${D.ten}"`,
+    E.luoi?.ten?.[D.loai] ? `bố cục: ${E.luoi.ten[D.loai]}` : '', c ? `đang chọn cảnh ${c}` : '', t && E.qtMo ? `mục quy trình đang mở: ${E.qtMo}` : '', dang.length ? `bước đang chạy: ${dang.join(', ')}` : '',
+    E.loiBuoc ? `studio vừa từ chối bước ${E.loiBuoc.k}: ${E.loiBuoc.loi}` : ''].filter(Boolean).join(' · ').slice(0, 1000); };
 
 document.addEventListener('change', (e) => { if (e.target.dataset?.f === 'nhoLai') goD(e.target); });
 man('dung');

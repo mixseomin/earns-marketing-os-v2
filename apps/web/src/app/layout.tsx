@@ -35,8 +35,11 @@ export const viewport = {
 // on F5 when user has picked light. Must NOT use modern syntax that could
 // fail to parse in older WebViews.
 const NO_FLASH_SCRIPT = `(function(){
-  // trang đang được /home mở NHÚNG trong ngăn (iframe cùng gốc) → data-nhung: globals.css bỏ khung ngoài. Khác gốc thì đọc parent ném lỗi → không gắn.
-  try{ if (window.self !== window.top && window.parent.location.pathname.indexOf('/home') === 0) document.documentElement.setAttribute('data-nhung', '1'); }catch(e){}
+  // trang đang được một TRANG WIDGET (/home, /outreach, outreach.on.tc — mọi trang chạy khung components/home/trang.tsx, gốc .hm) mở NHÚNG trong ngăn (iframe cùng gốc)
+  // → data-nhung: globals.css bỏ khung ngoài; thanh bên / thanh trên ẩn nên các link trong đó cũng không gọi trước trang khác (đo 20/11/2026: 6 lượt gọi trước,
+  // riêng trang chủ 1,4 MB + trang plays 1,6 MB mỗi lần mở ngăn). Nhận theo KHUNG của trang mẹ chứ không theo đường dẫn: trước chỉ nhận /home nên mở từ outreach
+  // hiện nguyên cả khung MOS2 trong ngăn. Khác gốc thì đọc parent ném lỗi → không gắn.
+  try{ if (window.self !== window.top && (window.parent.document.querySelector('.hm') || window.parent.location.pathname.indexOf('/home') === 0)) document.documentElement.setAttribute('data-nhung', '1'); }catch(e){}
   try{
   var raw = localStorage.getItem('mos.tweaks');
   var t = raw ? JSON.parse(raw) : null;

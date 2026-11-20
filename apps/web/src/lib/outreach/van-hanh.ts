@@ -137,3 +137,37 @@ export async function datCachGui(campaignId: number, o: { tuGui?: boolean; tran?
     cau_hinh = case when ${o.tuGui === true} then coalesce(cau_hinh, '{}'::jsonb) - 'phanh' else cau_hinh end, updated_at = now() where id = ${campaignId}`);
   return { ok: true };
 }
+
+/** sửa MỘT PHẦN lời chào của chiến dịch (các trường không truyền giữ nguyên); phat_hien truyền thì thay cả danh sách. Kiểm đủ bên gửi, tên ký, câu bán gì, ≥ 2 phát hiện. */
+export async function suaChao(campaignId: number, patch: Partial<LoiChao>): Promise<{ ok: true; chao: LoiChao } | Loi> {
+  const db = getDb(); if (!db) return khongDb;
+  const r = ((await db.execute(sql`select cau_hinh->'chao' as chao from outreach_campaigns where id = ${campaignId} limit 1`)) as unknown as { chao: LoiChao | null }[])[0];
+  if (!r) return { ok: false, loi: 'Không thấy chiến dịch này.' };
+  const tron = { ...(r.chao ?? { ben_gui: '', ky_ten: '', ban_gi: '', phat_hien: [] }), ...patch };
+  const c: LoiChao = { ...tron, ben_gui: String(tron.ben_gui ?? '').trim(), ky_ten: String(tron.ky_ten ?? '').trim(), ban_gi: String(tron.ban_gi ?? '').trim(), phat_hien: (tron.phat_hien ?? []).map((x) => String(x).trim()).filter(Boolean) };
+  if (!c.ben_gui || !c.ky_ten || !c.ban_gi) return { ok: false, loi: 'Lời chào cần đủ: bên gửi, tên ký, một câu bán gì.' };
+  if (c.phat_hien.length < 2) return { ok: false, loi: 'Cần ít nhất 2 phát hiện để máy có cái nêu trong thư đầu và thư nhắc.' };
+  await db.execute(sql`update outreach_campaigns set cau_hinh = jsonb_set(coalesce(cau_hinh, '{}'::jsonb), '{chao}', ${JSON.stringify(c)}::jsonb), updated_at = now() where id = ${campaignId}`);
+  return { ok: true, chao: c };
+}
+
+/** sửa một đường gửi: chân thư (tên + địa chỉ bưu chính bên gửi), địa chỉ nhận trả lời, trần ngày đầy đủ, bật / tắt */
+export async function suaDuongGui(mien: string, o: { chanThu?: string; traLoi?: string; tranNgay?: number; bat?: boolean }): Promise<{ ok: true } | Loi> {
+  const db = getDb(); if (!db) return khongDb;
+  const m = mien.trim().toLowerCase();
+  const co = (await db.execute(sql`select 1 from outreach_duong_gui where mien = ${m} limit 1`)) as unknown as unknown[];
+  if (!co.length) return { ok: false, loi: `Chưa có đường gửi cho tên miền ${m}.` };
+  await db.execute(sql`update outreach_duong_gui set chan_thu = coalesce(${o.chanThu == null ? null : o.chanThu.trim()}, chan_thu),
+    tra_loi = coalesce(${o.traLoi == null ? null : o.traLoi.trim().toLowerCase()}, tra_loi), hop_den = coalesce(${o.traLoi == null ? null : o.traLoi.trim().toLowerCase()}, hop_den),
+    tran_ngay = coalesce(${o.tranNgay == null ? null : Math.max(1, Math.min(500, Math.round(o.tranNgay)))}, tran_ngay), bat = coalesce(${o.bat ?? null}, bat), cap_nhat = now() where mien = ${m}`);
+  return { ok: true };
+}
+
+/** người nhận của một chiến dịch, dạng gọn cho dòng lệnh (lọc theo trạng thái nếu có) */
+export async function dsNguoi(campaignId: number, tt: string | null, so: number) {
+  const db = getDb(); if (!db) return [];
+  return (await db.execute(sql`
+    select p.id::int as id, coalesce(nullif(p.company, ''), p.agent_name) as ten, p.email, p.status as tt, (p.du_lieu->'cham'->>'diem')::int as diem, p.email_subject as tieu_de,
+           p.followup_count::int as nhac, p.sent_at as gui, p.replied_at as tra_loi, p.du_lieu->>'khong_hop' as khong_hop
+    from outreach_prospects p where p.campaign_id = ${campaignId} ${tt ? sql`and p.status = ${tt}` : sql``} order by p.id limit ${Math.max(1, Math.min(500, so))}`)) as unknown as Record<string, unknown>[];
+}

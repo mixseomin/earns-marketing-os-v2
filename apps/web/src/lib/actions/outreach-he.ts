@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
-import { chaoTuReport, datCachGui, docMotChienDich, guiThuThu, taoChienDich, type MotChienDich } from '@/lib/outreach/van-hanh';
+import { chaoTuReport, datCachGui, docMotChienDich, guiThuThu, suaChao, taoChienDich, type MotChienDich } from '@/lib/outreach/van-hanh';
 import { dsNgachSpy, napCsv, napTuSpy, type KetNap, type NgachSpy } from '@/lib/outreach/nap';
 import { soanChuoi, type KetSoan, type LoiChao } from '@/lib/outreach/soan-thu';
 import { doThuDen, type KetThuDen } from '@/lib/outreach/thu-den';
@@ -63,13 +63,9 @@ export async function obThuDen(): Promise<KetThuDen> {
   if (!(await quanTri())) return { ok: false, doc: 0, moi: 0, traLoi: 0, thoi: 0, doi: 0, tuDong: 0, chanUyTin: 0, khongKhop: 0, loi: CAM.loi };
   const kq = await doThuDen(); moi(); return kq;
 }
-/** sửa lời chào của chiến dịch (ngăn vận hành) */
+/** sửa lời chào của chiến dịch (ngăn vận hành) — cùng lõi suaChao với cổng lệnh */
 export async function obLuuChao(cd: number, chao: LoiChao): Promise<{ ok: true } | Loi> {
   if (!(await quanTri())) return CAM;
-  const db = getDb(); if (!db) return { ok: false, loi: 'Chưa nối được cơ sở dữ liệu.' };
-  const c: LoiChao = { ...chao, ben_gui: String(chao.ben_gui ?? '').trim(), ky_ten: String(chao.ky_ten ?? '').trim(), ban_gi: String(chao.ban_gi ?? '').trim(), phat_hien: (chao.phat_hien ?? []).map((x) => String(x).trim()).filter(Boolean) };
-  if (!c.ben_gui || !c.ky_ten || !c.ban_gi) return { ok: false, loi: 'Lời chào cần đủ: bên gửi, tên ký, một câu bán gì.' };
-  if (c.phat_hien.length < 2) return { ok: false, loi: 'Cần ít nhất 2 phát hiện để máy có cái nêu trong thư đầu và thư nhắc.' };
-  await db.execute(sql`update outreach_campaigns set cau_hinh = jsonb_set(coalesce(cau_hinh, '{}'::jsonb), '{chao}', ${JSON.stringify(c)}::jsonb), updated_at = now() where id = ${cd}`);
-  return { ok: true };
+  const r = await suaChao(cd, chao);
+  return r.ok ? { ok: true } : r;
 }

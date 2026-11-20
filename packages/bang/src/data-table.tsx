@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { batDauKeo, docRongCot, ghiRongCot } from './keo-rong';
 import { useTableSort, type SortSpec, type ThSort } from './use-table-sort';
 import { AnchoredPopover } from './anchored-popover';
@@ -572,10 +572,9 @@ export function DataTable<T>({
       let v: string | null = null, cuoi: HTMLTableRowElement | null = null;
       // ngưỡng = mép dưới tiêu đề + NỬA cao dòng nhóm: bản dính tự che dải [day, day + cao dòng] → dòng nhóm kế chui quá nửa dưới bản dính thì đổi sang nó,
       // không để bản dính ghi phim cũ trong khi camp bên dưới đã là của phim mới (etp #1485 rà lại 19/11/2026: cuộn vào Atravesando mà trên đầu vẫn ghi "#0")
-      // CHỐNG GIẬT (anh 19/11/2026 "Màn hình cứ giật giật đéo bấm nổi" · "Rất nhiều table bị như vậy"): bản dính nằm TRONG khối tiêu đề dính, mà phần tử sticky vẫn chiếm
-      // chỗ trong dòng chảy → hiện bản dính là đẩy cả thân bảng xuống đúng một dòng → dòng nhóm thật vượt ngưỡng → gỡ bản dính → thân nhảy lên → hiện lại… (đo trong ngăn chọn
-      // phim etp2: 35 lần đổi / 4,5 giây khi đứng yên). Đo vị trí dòng như KHI CHƯA CÓ bản dính: trừ cao bản dính đang hiện (không có bản dính thì lech = 0, như cũ).
-      const lech = dauRef.current?.querySelector<HTMLTableRowElement>('tr.dt-nhom-dinh')?.getBoundingClientRect().height ?? 0;
+      // CHỐNG GIẬT (anh 19/11/2026 "Màn hình cứ giật giật" · etp2 #1713 20/11/2026 "sticky của phim cứ giật giật hiện/ẩn liên tục"): bản dính KHÔNG chiếm chỗ trong
+      // dòng chảy nữa — useLayoutEffect "BẢN DÍNH KHÔNG CHIẾM CHỖ" bên dưới kéo thân bảng lên đúng cao bản dính → thân không xê dịch khi bản dính hiện/ẩn, đo thẳng không trừ gì.
+      const lech = 0;
       for (const tr of Array.from(bang.querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { const r = tr.getBoundingClientRect(); if (r.top - lech < day + r.height / 2) { v = tr.dataset.nhom ?? null; cuoi = tr; } else break; }
       if (v != null && (gapNhom(v) || bang.getBoundingClientRect().bottom - lech <= day + (cuoi?.getBoundingClientRect().height ?? 0))) v = null;   // nhóm gập hoặc bảng đã cuộn hết
       // KHÔNG HIỆN 2 DẢI NHÓM (anh 19/11/2026 "sao lại có 2 nhóm?!"): dòng nhóm thật vẫn nằm NGUYÊN dưới tiêu đề (chưa bị cuộn khuất) thì không chép lên khối dính —
@@ -588,6 +587,17 @@ export function DataTable<T>({
     return () => { nguon.removeEventListener('scroll', nghe); window.removeEventListener('resize', nghe); if (hen) cancelAnimationFrame(hen); };
   });
   const nhDinh = nhomDinh != null ? cacNhom.find((x) => x.v === nhomDinh) : undefined;
+  // BẢN DÍNH KHÔNG CHIẾM CHỖ (etp2 #1713 anh 20/11/2026, đáy Cây camp): bản dính dòng nhóm nằm trong khối tiêu đề .dt-dau (phần tử sticky vẫn chiếm chỗ) → hiện là đẩy
+  // thân bảng xuống một dòng. Hai hệ quả cùng gốc: (1) trang dài/ngắn một dòng → ở đáy trình duyệt kẹp vị trí cuộn; (2) neo cuộn (scroll anchoring) của trình duyệt
+  // bù đúng một dòng vào vị trí cuộn → đo lại thấy khác → gỡ/hiện… (đo: scrollTop 4952 ↔ 5006 mỗi khung, 36 lần đổi / giây khi đứng yên ở đáy). Gốc là CHIẾM CHỖ:
+  // kéo thân bảng lên đúng cao bản dính (cùng chỗ đã kéo lên cao hàng tiêu đề) trước khi trình duyệt vẽ → thân và tổng chiều cao trang không đổi, bản dính phủ lên dòng dưới nó.
+  useLayoutEffect(() => {
+    const b = bangRef.current;
+    if (!b || !theoTrang) return;
+    const h = dauRef.current?.querySelector<HTMLTableRowElement>('tr.dt-nhom-dinh')?.getBoundingClientRect().height ?? 0;
+    const mt = `${-(cotDo.cao || 0) - h}px`;
+    if (b.style.marginTop !== mt) b.style.marginTop = mt;
+  });
   // hàng tiêu đề: dao=true là bản bấm được (sort / lọc / kéo giãn); dao=false là bản ĐO bề rộng nằm ẩn trong thân bảng (cùng nội dung, không tay cầm)
   // hàng nhãn nhóm (groupHeader): dải cột liền nhau cùng group → một ô colSpan; cột không nhóm → ô trống
   const hangNhom = () => {

@@ -107,7 +107,7 @@ export const MAN: Man[] = [
   { id: 'lich', ten: 'Lịch đăng', kh: 'LD', nhom: 'Social', o: o([['I10', 0, 0, 48, 72, ['K7']]]) },
   { id: 'khach', ten: 'Khách trên trang', kh: 'KH', nhom: 'Social', o: o([['I12', 0, 0, 48, 42], ['I11', 0, 42, 48, 30, ['I13']]]) },
   { id: 'may', ten: 'Máy', kh: 'MA', nhom: 'Máy', o: o([['K1', 0, 0, 48, 9], ['K2', 0, 9, 48, 37, ['K3', 'K4']], ['K5', 0, 46, 48, 26, ['K6']]]) },
-  { id: 'agents', ten: 'Agents', kh: 'AG', nhom: 'Công ty AI', o: o([['M1', 0, 0, 48, 9], ['M2', 0, 9, 48, 39, ['M3', 'M6']], ['M4', 0, 48, 48, 24, ['M5']]]) },
+  { id: 'agents', ten: 'Agents', kh: 'AG', nhom: 'Công ty AI', o: o([['M1', 0, 0, 48, 9], ['M2', 0, 9, 48, 36, ['M3', 'M6']], ['M4', 0, 45, 48, 27, ['M5']]]) },
   { id: 'taisan', ten: 'Tài sản', kh: 'TS', nhom: 'Tài sản', o: o([['D1', 0, 0, 48, 10], ['D2', 0, 10, 48, 62, ['D3']]]) },
   { id: 'kenh', ten: 'Kênh nội dung', kh: 'KN', nhom: 'Tài sản', o: o([['D6', 0, 0, 48, 44], ['D4', 0, 44, 24, 28], ['D5', 24, 44, 24, 28]]) },
   { id: 'seo', ten: 'SEO', kh: 'SE', nhom: 'Tài sản', o: o([['E1', 0, 0, 28, 72], ['E2', 28, 0, 20, 72]]) },   // bảng website (D2) nặng ~1,3 MB nên nằm ở màn Tài sản, không kéo sang đây

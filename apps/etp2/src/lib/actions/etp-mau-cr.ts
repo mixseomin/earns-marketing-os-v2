@@ -27,6 +27,8 @@ export type MauCr = {
   /** TẦNG 1 — THỂ LOẠI CREATIVE (anh 19/11/2026 "Creative phải chia theo thể loại, rồi mới đến format chi tiết bên trong"): nhóm của dạng chính trong sổ dạng
    *  (cắt cảnh · kể chuyện · chèn khung · ảnh tĩnh · poster động), có số thứ tự để xếp */
   nhom_tk: string;
+  /** số bản nhà anh đã LOẠI (góp ý #1729) — chi tiết mẫu hiện "đã loại N · khôi phục" */
+  da_loai?: number;
   /** BIẾN THỂ của một dạng (anh 19/11/2026 "Mỗi loại AT lại có những format về font, chữ, widget… khác nhau thì phải ghi cụ thể ra"): mã dạng cha + thông số đọc được */
   cha: string | null;
   spec: { nhan: string; gia: string }[];
@@ -223,11 +225,17 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
     ];
     // mẫu học từ đối thủ: hiện NGUYÊN mọi QC tham chiếu (ảnh + video), nhãn = số ngày chạy
     // SO GỐC ↔ MÁY DỰNG: QC gốc đối thủ đứng ĐẦU, bản máy dựng theo mẫu ngay cạnh, rồi các QC gốc còn lại — cùng cỡ ô, nhãn GỐC / MÁY DỰNG
+    // BẢN NHÀ ANH ĐÃ LOẠI (góp ý #1729 "Cần chức năng loại"): etp.mau_loai — bản máy dựng / bản đã duyệt anh bấm Loại thì không hiện ở thẻ lẫn chi tiết mẫu
+    const coBangLoai = (await run<{ c: boolean }>(sql`select to_regclass('etp.mau_loai') is not null c`))[0]?.c;
+    const loaiTheo = new Map<string, Set<string>>();
+    if (coBangLoai) for (const r of await run<{ mau: string; anh: string }>(sql`select mau, anh from etp.mau_loai where loai`)) { const s = loaiTheo.get(r.mau) ?? new Set<string>(); s.add(r.anh); loaiTheo.set(r.mau, s); }
     for (const m of mau) if (m.tham_chieu.length) {
       const goc = m.tham_chieu.filter((t) => t.anh || t.video).map((t): BanMau => ({ anh: t.anh, video: t.video, nhan: `gốc · ${t.ngay ?? '?'} ngày`, link: `https://www.facebook.com/ads/library/?id=${t.id}`, con_chay: t.con_chay, vai: 'goc' }));
-      const s0 = so.find((x) => x.ma === m.ma), dung: BanMau[] = s0?.anh_dung ? [{ anh: s0.anh_dung, video: null, nhan: 'máy dựng', link: s0.anh_dung, vai: 'dung', goi_y: `bản máy dựng theo mẫu trên phim ${s0.anh_dung_phim ?? ''} — so với QC gốc đối thủ ô bên trái` }] : [];
-      const duyet: BanMau[] = (s0?.mau_duyet ?? []).map((x) => ({ anh: x.anh, video: null, nhan: 'đã duyệt', link: x.anh, vai: 'duyet', goi_y: `creative máy dựng theo mẫu trên phim ${x.phim} — anh đã duyệt làm mẫu` }));
+      const bo = loaiTheo.get(m.ma), conGiu = (b: BanMau) => !b.anh || !bo?.has(b.anh);
+      const s0 = so.find((x) => x.ma === m.ma), dung: BanMau[] = (s0?.anh_dung ? [{ anh: s0.anh_dung, video: null, nhan: 'máy dựng', link: s0.anh_dung, vai: 'dung' as const, goi_y: `bản máy dựng theo mẫu trên phim ${s0.anh_dung_phim ?? ''} — so với QC gốc đối thủ ô bên trái` }] : []).filter(conGiu);
+      const duyet: BanMau[] = (s0?.mau_duyet ?? []).map((x): BanMau => ({ anh: x.anh, video: null, nhan: 'đã duyệt', link: x.anh, vai: 'duyet', goi_y: `creative máy dựng theo mẫu trên phim ${x.phim} — anh đã duyệt làm mẫu` })).filter(conGiu);
       m.ban = [...m.ban, ...goc.slice(0, 1), ...duyet, ...dung, ...goc.slice(1)];
+      if (bo?.size) m.da_loai = bo.size;
     }
     return { mau, phim, may_dung: await docMayDung(coBangDung), luc: new Date().toISOString() };
   } catch (e) {
@@ -264,6 +272,23 @@ export async function chonPhimMau(ma: string, contentId: number): Promise<{ ok: 
   await getDb()!.execute(sql`insert into etp.mau_phim (mau, content_id, ai, dong_id) values (${ma}, ${cid}, ${me?.displayName ?? me?.email ?? 'chủ'}, ${dongId})
     on conflict (mau, content_id) do update set dong_id = coalesce(excluded.dong_id, etp.mau_phim.dong_id), luc = now()`);
   return { ok: true, ghi };
+}
+
+/** LOẠI một bản nhà của mẫu (góp ý #1729 anh 20/11/2026 "Cần chức năng loại"): bản máy dựng chưa duyệt / bản đã duyệt mà anh thấy không đạt → ghi etp.mau_loai,
+ *  thẻ + chi tiết mẫu không hiện nó nữa. Không xoá ảnh, không xoá dòng: khôi phục = đặt loai = false (nút "khôi phục" ở chi tiết mẫu). */
+export async function loaiBanMau(ma: string, anh: string | null, khoiPhuc = false): Promise<{ ok: true } | { loi: string }> {
+  const me = await getCurrentUser(), q = await quyenEtp(me);
+  if (!q || q.vai !== 'chu') return { loi: 'không có quyền' };
+  const so = (SO_MAU.mau as MucSo[]).find((x) => x.ma === ma);
+  if (!so) return { loi: 'mẫu này không còn trong sổ' };
+  const db = getDb()!;
+  await db.execute(sql`create table if not exists etp.mau_loai (mau text not null, anh text not null, loai boolean not null default true, ai text, luc timestamptz not null default now(), primary key (mau, anh))`);
+  if (khoiPhuc) { await db.execute(sql`update etp.mau_loai set loai = false, ai = ${me?.displayName ?? me?.email ?? 'chủ'}, luc = now() where mau = ${ma} and loai`); return { ok: true }; }
+  const nha = [so.anh_dung, ...(so.mau_duyet ?? []).map((x) => x.anh)].filter(Boolean);
+  if (!anh || !nha.includes(anh)) return { loi: 'bản này không phải bản nhà của mẫu — chỉ loại được bản máy dựng / bản đã duyệt' };
+  await db.execute(sql`insert into etp.mau_loai (mau, anh, ai) values (${ma}, ${anh}, ${me?.displayName ?? me?.email ?? 'chủ'})
+    on conflict (mau, anh) do update set loai = true, ai = excluded.ai, luc = now()`);
+  return { ok: true };
 }
 
 /** BẢNG CHỌN PHIM cho một mẫu (anh 19/11/2026: "Bảng chọn phim đang ngu. Nhìn mỗi tên sẽ ko biết làm gì tiếp. Phải có chi tiết các cột, các thông số, chia nhóm…

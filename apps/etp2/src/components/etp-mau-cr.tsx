@@ -14,7 +14,7 @@ import { openEntityDrawer } from '@/lib/entity-drawer';
 import { SU_KIEN_MAU } from '@/lib/etp-mau-su-kien';
 import { loiThuongMau } from '@/lib/etp-mau-loi';
 import { DS_DANG } from '@/lib/etp-dang';
-import { docMauCr, type DungMau, type LoaiMau, type MauCr, type MayDung, type NguonMau, type PhimSx, type TrangThaiMau } from '@/lib/actions/etp-mau-cr';
+import { docMauCr, loaiBanMau, type BanMau, type DungMau, type LoaiMau, type MauCr, type MayDung, type NguonMau, type PhimSx, type TrangThaiMau } from '@/lib/actions/etp-mau-cr';
 import { DO, XANH, gioVn } from './etp-doi-thu';
 import { ChiTietMau, DauMau } from './etp-mau-drawer';
 import { KhungNoi, ReThe, useNoi, type TheNoi } from './etp-noi';
@@ -62,17 +62,36 @@ export const banNguon = (m: MauCr) => { if (m.nguon !== 'doi_thu') return m.ban;
   const g = m.ban.filter((b) => b.vai === 'goc'), d = m.ban.filter((b) => b.vai === 'duyet'); return [...d.slice(0, 1), ...g.slice(0, 1), ...d.slice(1), ...g.slice(1)]; };   // bản NHÀ đứng trước nguồn đối thủ (anh 20/11/2026 "creative máy dựng cho lên trước")
 /** đếm theo vai của một mẫu học từ đối thủ — chữ dùng chung cho thẻ / cây */
 export const demBan = (m: MauCr) => ({ goc: m.ban.filter((b) => b.vai === 'goc').length, duyet: m.ban.filter((b) => b.vai === 'duyet').length });
-export function BanMauLuoi({ m: mGoc, cot = 3, nhom = false, oRong }: { m: MauCr; cot?: number; /** ô rộng cố định (px) thay cho chia đều theo cột */ oRong?: number; /** chi tiết mẫu: chia HAI NHÓM có nhãn (nguồn đối thủ / nhà đã duyệt), mỗi nhóm một dải */ nhom?: boolean }) {
-  if (nhom && mGoc.nguon === 'doi_thu') { const g = mGoc.ban.filter((b) => b.vai === 'goc'), d = mGoc.ban.filter((b) => b.vai === 'duyet');
+export function BanMauLuoi({ m: mGoc, cot = 3, nhom = false, oRong, onLoai }: { m: MauCr; cot?: number; /** ô rộng cố định (px) thay cho chia đều theo cột */ oRong?: number; /** chi tiết mẫu: chia HAI NHÓM có nhãn (nguồn đối thủ / nhà đã duyệt), mỗi nhóm một dải */ nhom?: boolean;
+  /** nút Loại trên ô bản nhà (máy dựng / đã duyệt) — chỉ chi tiết mẫu truyền xuống */ onLoai?: (b: BanMau) => void }) {
+  // LOẠI BẢN NHÀ (góp ý #1729 "Cần chức năng loại"): bấm Loại là ô biến mất ngay, sổ ghi bảng loại; lỗi hiện ô đỏ ngay dưới dải, có khôi phục
+  const [boLoai, setBoLoai] = useState<Set<string>>(() => new Set());
+  const [loiLoai, setLoiLoai] = useState<string | null>(null), [kp, setKp] = useState<'' | 'dang' | 'xong'>('');
+  if (nhom && mGoc.nguon === 'doi_thu') { const con = (b: BanMau) => !b.anh || !boLoai.has(b.anh);
+    const g = mGoc.ban.filter((b) => b.vai === 'goc'), d = mGoc.ban.filter((b) => b.vai === 'duyet' && con(b));
+    const traLai = (a: string) => setBoLoai((s) => { const n = new Set(s); n.delete(a); return n; });
+    const loai = (b: BanMau) => { if (!b.anh) return; const a = b.anh; setLoiLoai(null); setKp(''); setBoLoai((s) => new Set(s).add(a));
+      loaiBanMau(mGoc.ma, a).then((r) => { if ('loi' in r) { setLoiLoai(`Chưa loại được: ${r.loi}`); traLai(a); } },
+        (e) => { setLoiLoai(`Chưa loại được: ${(e as Error).message}`); traLai(a); }); };
+    const khoiPhuc = () => { setLoiLoai(null); setKp('dang'); loaiBanMau(mGoc.ma, null, true).then((r) => { if ('loi' in r) { setLoiLoai(`Chưa khôi phục được: ${r.loi}`); setKp(''); } else { setBoLoai(new Set()); setKp('xong'); } },
+      (e) => { setLoiLoai(`Chưa khôi phục được: ${(e as Error).message}`); setKp(''); }); };
+    const soLoai = kp === 'xong' ? 0 : (mGoc.da_loai ?? 0) + mGoc.ban.filter((b) => b.anh && boLoai.has(b.anh)).length;
+    const chan = <>
+      {soLoai > 0 ? <div style={{ fontSize: 11.5, color: MO_SO, marginTop: 6 }}>đã loại <Dem v={soLoai} /> bản nhà ·{' '}
+        <button type="button" onClick={khoiPhuc} disabled={kp === 'dang'} title="hiện lại mọi bản nhà đã loại của mẫu này" style={{ fontSize: 11.5, padding: 0, border: 'none', background: 'none', color: 'var(--accent, #60a5fa)', cursor: 'pointer' }}>{kp === 'dang' ? 'đang khôi phục…' : 'khôi phục'}</button></div> : null}
+      {kp === 'xong' ? <div style={{ fontSize: 11.5, color: MO_SO, marginTop: 6 }}>đã khôi phục — bản nhà hiện lại trong vòng 20 giây</div> : null}
+      {loiLoai ? <div role="alert" style={{ marginTop: 6, padding: '8px 12px', borderRadius: 6, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.5)', color: '#fca5a5', fontSize: 12.5 }}>{loiLoai}</div> : null}
+    </>;
     // hai nhóm CẠNH NHAU trên một hàng, ô nhỏ cố định 128px (ô to chia theo cột đẩy mô tả + quy trình xuống dưới màn — đo 20/11/2026); hẹp thì nhóm sau tự xuống dòng
     // + nhóm "Nhà dựng · chưa duyệt" (anh 20/11/2026 "3 mẫu này tìm ở đâu ?"): bản máy nhà dựng theo mẫu mà anh chưa duyệt CHỈ hiện ở chi tiết mẫu, có nhãn rõ — thẻ ngoài lưới vẫn chỉ hiện nguồn + bản đã duyệt
-    const u = d.length ? [] : mGoc.ban.filter((b) => b.vai === 'dung');   // mẫu đã có bản anh duyệt thì bản dựng thử cũ không hiện nữa (bản duyệt thay nó)
+    const u = d.length ? [] : mGoc.ban.filter((b) => b.vai === 'dung' && con(b));   // mẫu đã có bản anh duyệt thì bản dựng thử cũ không hiện nữa (bản duyệt thay nó)
     const nh = ([['Nhà đã duyệt', d, 'creative máy dựng theo mẫu, anh đã duyệt làm mẫu'], ['Nhà dựng · chưa duyệt', u, 'bản máy nhà dựng theo mẫu này — anh chưa duyệt làm mẫu'], ['Nguồn đối thủ', g, 'QC gốc của đối thủ mà mẫu này học theo']] as const).filter((x) => x[1].length);   // bản nhà trước, nguồn đối thủ sau (anh 20/11/2026)
-    if (nh.length >= 2) return <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 22px' }}>
+    if (nh.length >= 2) return <div><div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 22px' }}>
       {nh.map(([ten, ds, goi]) => <div key={ten} style={{ maxWidth: '100%', minWidth: 0 }}>
         <div title={goi} style={{ fontSize: 11.5, color: MO_SO, marginBottom: 4 }}>{ten} · <Dem v={ds.length} /></div>
-        <BanMauLuoi m={{ ...mGoc, nguon: 'nha', ban: [...ds] }} cot={cot} oRong={128} /></div>)}
-    </div>; }
+        <BanMauLuoi m={{ ...mGoc, nguon: 'nha', ban: [...ds] }} cot={cot} oRong={128} onLoai={loai} /></div>)}
+    </div>{chan}</div>;
+    if (soLoai > 0 || loiLoai) return <div><BanMauLuoi m={{ ...mGoc, ban: mGoc.ban.filter(con) }} cot={cot} oRong={oRong} />{chan}</div>; }
   const m = { ...mGoc, ban: banNguon(mGoc) };
   if (!m.ban.length) return <div style={{ aspectRatio: '9 / 16', maxHeight: 300, display: 'grid', placeItems: 'center', background: 'var(--bg-2)', color: MO_SO, fontSize: 11.5, borderRadius: 6 }}>chưa lưu creative gốc</div>;
   // SLIDES MỘT DÒNG (anh 19/11/2026 #1703 "Trình bày dạng slides 1 dòng thôi") — mọi bản nằm trên MỘT hàng, quá 3 bản thì trượt ngang (bám từng ô),
@@ -89,6 +108,9 @@ export function BanMauLuoi({ m: mGoc, cot = 3, nhom = false, oRong }: { m: MauCr
       {b.link ? <a href={b.link.startsWith('https://www.facebook.com') ? `https://href.li/?${b.link}` : b.link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
         title={b.link.startsWith('https://www.facebook.com') ? 'mở QC trong Thư viện QC Meta' : 'mở creative cỡ gốc'}
         style={{ position: 'absolute', right: 4, top: 4, fontSize: 11, padding: '0 6px', borderRadius: 8, background: 'rgba(0,0,0,0.7)', color: '#fff', textDecoration: 'none' }}>↗</a> : null}
+      {onLoai && b.anh && (b.vai === 'dung' || b.vai === 'duyet') ? <button type="button" onClick={(e) => { e.stopPropagation(); onLoai(b); }}
+        title={b.vai === 'duyet' ? 'loại bản này khỏi mẫu (bỏ duyệt) — thẻ ngoài lưới không hiện nó nữa; khôi phục được ở dòng dưới dải' : 'loại bản máy dựng này — không đạt, không hiện ở mẫu nữa; khôi phục được ở dòng dưới dải'}
+        style={{ position: 'absolute', right: 4, top: 26, fontSize: 11, padding: '1px 7px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.8)', background: 'rgba(0,0,0,0.75)', color: '#fca5a5', cursor: 'pointer' }}>✕ Loại</button> : null}
     </div>)}
   </div>;
 }

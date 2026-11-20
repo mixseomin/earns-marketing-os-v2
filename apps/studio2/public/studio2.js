@@ -798,6 +798,21 @@ const giaiQt = (k) => (QT_GIAI[k] ? ` <span class="qt-i" title="${esc(QT_GIAI[k]
 const BUOC_NK = [['kb', 'Kịch bản', 'Kịch bản'], ['3d', '3D', '3D'], ['anh', 'Ảnh', 'Hình'], ['clip', 'Clip', 'Khung xem'], ['giong', 'Giọng', 'Giọng'], ['soat', 'Soát', 'Soát']];
 const buocLuot = (j) => (j.loai === 'anh' ? 'anh' : j.loai === 'video' || j.loai === 'nang_cap' ? 'clip' : j.loai === 'am' ? 'giong' : 'soat');
 const gioVn = (iso) => { const d = new Date(iso); if (Number.isNaN(+d)) return ''; const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', hour12: false }).formatToParts(d).map((x) => [x.type, x.value])); return `${p.hour}:${p.minute} ${p.day}/${p.month}`; };
+/** đổi tỉ lệ khung của phim thật: ảnh khung chính và clip đã sinh theo tỉ lệ cũ → báo cảnh nào phải sinh lại + tiền ước, người bấm đồng ý mới vẽ lại (card #1735) */
+const tiLeAnh = () => canhThat().filter((c) => c.keyframe_url), tiLeClip = () => canhThat().filter((c) => c.video_url || c.video_cuoi_url);
+function veTiLe() { const g = E.tiLe; if (!g || !D.that) return '';
+  const a = tiLeAnh(), v = tiLeClip(), so = (ds) => ds.map((c) => '#' + Math.round(+c.thu_tu)).join(', '), anh1 = E.gia?.anh1;
+  const giaAnh = anh1 ? 'khoảng ' + tienDo(anh1 * a.length) : 'có tốn tiền, chưa ước được', giaClip = xepHang() ? `xếp hàng H3, khoảng ${(2550 * v.length).toLocaleString('vi-VN')}₫ khi lô chạy` : E.gia?.giay1 ? 'khoảng ' + tienDo(E.gia.giay1 * v.reduce((t, c) => t + (+c.thoi_luong_s || 0), 0)) : 'có tốn tiền, chưa ước được';
+  if (!a.length && !v.length) return `<div class="bao"><b>Đổi sang ${esc(g)}</b><span>Tập chưa có ảnh hay clip nào, đổi không tốn gì.</span><div class="day-bt"><button type="button" class="bt" data-d="tiLeDoi" data-g="0">Đổi tỉ lệ</button><button type="button" class="bt" data-d="tiLeHuy">Thôi</button></div></div>`;
+  return `<div class="bao"><b>Đổi ${esc(D.tile)} → ${esc(g)}: phải sinh lại</b>${a.length ? `<span>${a.length} ảnh khung chính (cảnh ${so(a)}): vẽ lại ${giaAnh}</span>` : ''}${v.length ? `<span>${v.length} clip (cảnh ${so(v)}): dựng lại sau khi duyệt ảnh mới, ${giaClip}</span>` : ''}<span>Ảnh và clip cũ vẫn giữ trong lịch sử của cảnh.</span>
+    <div class="day-bt">${a.length ? `<button type="button" class="bt" data-d="tiLeDoi" data-g="1">Đồng ý, đổi và vẽ lại ${a.length} ảnh</button>` : ''}<button type="button" class="bt" data-d="tiLeDoi" data-g="0">Chỉ đổi tỉ lệ, chưa sinh</button><button type="button" class="bt" data-d="tiLeHuy">Thôi</button></div></div>`; }
+async function doiTiLe(veLai) { const t = D.that, g = E.tiLe; if (!t || !TILE[g]) return;
+  if (coSua()) return bao('Có chỗ sửa chưa lưu. Bấm “Lưu về studio” trước rồi đổi tỉ lệ.', false, 9000);
+  const ds = veLai ? tiLeAnh() : []; E.tiLe = '';
+  try { await ghiSv('suaPhim', t.phim, { kinh_thanh: { ...t.kt, ti_le: g } }); D.tile = g; veD();
+    if (ds.length) { bao(`Đã đổi sang ${g}. Đang gửi vẽ lại ${ds.length} ảnh…`, false, 9000); await lanLuot(ds, veLaiCanh); }
+    await taiLai(true); bao(ds.length ? `Đã đổi sang ${g} và gửi vẽ lại ${ds.length} ảnh. Ảnh mới về sẽ tự thay; sau đó duyệt rồi dựng lại clip.` : `Đã đổi sang ${g}.`, false, 9000); }
+  catch (e) { bao('Đổi tỉ lệ không được: ' + e.message, false, 12000); await taiLai(true).catch(() => {}); } veD(); }
 const tienDo = (c) => (c > 0 ? `$${(c / 100).toFixed(c < 1 ? 4 : c < 10 ? 3 : 2)}` : '');   // dưới 1¢ hiện bốn số lẻ, không thì bước rẻ thành "$0.000"
 /** lượt còn "chờ / chạy" quá 20 phút coi là treo — không báo "đang chạy" khi máy không còn chạy thật */
 const ttLuot = (j) => (j.trang_thai === 'xong' ? ['xong', 'xong'] : j.trang_thai === 'loi' ? ['loi', 'hỏng'] : Date.now() - Date.parse(j.luc) < 20 * 60e3 ? ['dang', 'đang chạy'] : ['thieu', 'không thấy kết quả']);
@@ -1043,7 +1058,7 @@ function veTt() {
   const ch = E.chon, c = canhChon(), o = [];
   let dau = 'Video';
   if (!ch) { const cb = canhBao();
-    o.push(muc('Tên video', `<input type="text" id="dTen" data-f="ten" value="${esc(D.ten)}">`), muc('Tỉ lệ khung', chipD(Object.keys(TILE), D.tile, 'tile')), muc('Tổng quan', `<span>${D.canh.length} cảnh · dài <b class="so">${gio(tong())}</b></span>`),
+    o.push(muc('Tên video', `<input type="text" id="dTen" data-f="ten" value="${esc(D.ten)}">`), muc('Tỉ lệ khung', chipD(Object.keys(TILE), D.tile, 'tile') + veTiLe()), muc('Tổng quan', `<span>${D.canh.length} cảnh · dài <b class="so">${gio(tong())}</b></span>`),
       cb.length ? `<div class="bao"><b>${cb.length} chỗ nên xem</b>${cb.slice(0, 4).map((x) => `<span>${esc(x)}</span>`).join('')}${cb.length > 4 ? `<span>và ${cb.length - 4} chỗ nữa</span>` : ''}${D.canh.some(dai) ? '<button type="button" class="bt" data-d="suaHet">Sửa giúp tôi</button>' : ''}</div>` : '',
       `<span class="nho">Bấm một đoạn trên timeline để sửa đoạn đó. Kéo mép phải của cảnh để đổi độ dài, kéo cả cảnh để đổi thứ tự.</span>`);
   } else if (ch.id === 'nhac') { dau = 'Nhạc nền';
@@ -1384,7 +1399,9 @@ function lamD(a, d = {}, nut) {
     case 'giong': return doi(() => { D.giong = g; });
     case 'toc': return doi(() => { D.toc = g; });
     case 'nhac': return doi(() => { D.nhac = g; });
-    case 'tile': return doi(() => { D.tile = g; });
+    case 'tile': { if (g === D.tile) return; if (!D.that) return doi(() => { D.tile = g; }); E.tiLe = g; return veD(); }
+    case 'tiLeHuy': E.tiLe = ''; return veD();
+    case 'tiLeDoi': return doiTiLe(g === '1');
     case 'nghe': return bao('Bản bấm thử chưa có tiếng mẫu. Bản thật phát mẫu 5 giây.');
     case 'moNv': E.moNv = true; return veTv();
     case 'themNv': return doi(() => { D.nvs.push({ id: g, ten: KHO_NV.find(([i]) => i === g)[1], vai: 'Nhân vật', mo: '' }); E.moNv = false; });

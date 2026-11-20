@@ -577,12 +577,16 @@ export function DataTable<T>({
     if (!Object.values(chot).some((v) => v > 0)) return;   // bảng đang ẩn (tab khác, display:none) → chưa đo được, đợi lần vẽ sau
     tuChotRef.current = boCot;
     setRong((r) => { if (Object.keys(r).length) { tuChotRef.current = null; return r; } return chot; });   // r có sẵn = bản kéo tay đã lưu → không phải tự chốt
-  });
+    // KHAI ĐIỀU KIỆN CHẠY (góp ý #giao-20261120T1141-chuyen-ie76): trước đây chạy sau MỌI lần vẽ → đo + đặt lại trạng thái liên tục, bỏ đói lệnh chuyển trang
+  }, [boCot, coDinh, effView, pageRows.length, dangKeo]);   // eslint-disable-line react-hooks/exhaustive-deps
   // NHÓM DÍNH: dòng nhóm đã cuộn qua mép dưới khối tiêu đề mà nhóm vẫn còn dòng dưới → chép dòng nhóm đó vào khối tiêu đề dính (thân bảng nằm trong
   // hộp overflow-x nên position:sticky của chính <tr> không dính theo trang được — cùng lý do tiêu đề là bảng riêng)
   const [nhomDinh, setNhomDinh] = useState<string | null>(null);
+  const gapNhomRef = useRef(gapNhom); gapNhomRef.current = gapNhom;
+  const coGom = !!cotGom;
   useEffect(() => {
-    if (!theoTrang || effView !== 'table' || !cotGom) { setNhomDinh(null); return; }
+    if (!theoTrang || effView !== 'table' || !coGom) { setNhomDinh((o) => (o === null ? o : null)); return; }
+    const gapNhom = (v: string) => gapNhomRef.current(v);
     let sc: HTMLElement | null = thanRef.current?.parentElement ?? null;
     while (sc && !/(auto|scroll)/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement;
     const nguon: HTMLElement | Window = sc ?? window;
@@ -607,7 +611,7 @@ export function DataTable<T>({
     const nghe = () => { if (!hen) hen = requestAnimationFrame(xet); };
     nguon.addEventListener('scroll', nghe, { passive: true }); window.addEventListener('resize', nghe); xet();
     return () => { nguon.removeEventListener('scroll', nghe); window.removeEventListener('resize', nghe); if (hen) cancelAnimationFrame(hen); };
-  });
+  }, [theoTrang, effView, coGom, pageRows, visible.length]);   // chỉ gắn lại khi bảng / dòng đổi — cuộn đã có bộ nghe riêng (góp ý #giao-20261120T1141-chuyen-ie76)
   const nhDinh = nhomDinh != null ? cacNhom.find((x) => x.v === nhomDinh) : undefined;
   // BẢN DÍNH KHÔNG CHIẾM CHỖ (etp2 #1713 anh 20/11/2026, đáy Cây camp): bản dính dòng nhóm nằm trong khối tiêu đề .dt-dau (phần tử sticky vẫn chiếm chỗ) → hiện là đẩy
   // thân bảng xuống một dòng. Hai hệ quả cùng gốc: (1) trang dài/ngắn một dòng → ở đáy trình duyệt kẹp vị trí cuộn; (2) neo cuộn (scroll anchoring) của trình duyệt
@@ -706,7 +710,7 @@ export function DataTable<T>({
     if (!trongO || giuCot || hienHet || effView !== 'table') return;
     const k = thanRef.current, b = bangRef.current; if (!k || !b) return;
     if (b.scrollWidth > k.clientWidth + 2 && soCotDu - anTu > 2) setAnTu((n) => n + 1);
-  });
+  }, [trongO, giuCot, hienHet, effView, anTu, soCotDu, rongO, pageRows, rong]);   // lặp nhờ anTu trong điều kiện; không chạy sau mọi lần vẽ (góp ý #giao-20261120T1141-chuyen-ie76)
   const [moTim, setMoTim] = useState(false), [moLoc, setMoLoc] = useState(false); const nutLocRef = useRef<HTMLButtonElement | null>(null);
   return (
     // minWidth 0: bảng thường là con của grid/flex — min-width:auto mặc định làm khối giãn theo bề rộng bảng (minWidth cột), tràn khỏi ngăn

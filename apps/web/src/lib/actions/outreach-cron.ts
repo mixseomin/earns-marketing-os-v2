@@ -13,16 +13,23 @@ import { getDb } from '@mos2/db';
 import { sendProspectEmail } from './outreach-send';
 import { dauNgayVn } from '@/lib/outreach/gui';
 import { doThuDen } from '@/lib/outreach/thu-den';
+import { apPhanh } from '@/lib/outreach/phanh';
 
 // Thư đầu mỗi ngày đi theo TRẦN CỦA TỪNG CHIẾN DỊCH (outreach_campaigns.daily_cap) trừ số thư đầu chiến dịch đó đã gửi hôm nay (giờ Việt Nam);
 // trần của cả tên miền gửi do lõi gửi (lib/outreach/gui.ts) chặn thêm một lớp. Trước 20/11/2026 là một con số cứng 15 cho mọi chiến dịch cộng lại.
 const TRAN_MOT_LUOT = 300; // chốt chặn cuối cho một lượt máy chạy
+// GIÃN CÁCH (20/11/2026, học warmbly scheduler + sellbird sender: không gửi liền một mạch, không đúng mốc tròn): giữa hai thư nghỉ ngẫu nhiên 35–170 giây.
+// Vì thế lượt gọi cron CHỈ xếp hàng rồi trả lời ngay; việc gửi chạy tiếp trong tiến trình máy chủ đang sống (không thêm tiến trình mới).
+// Máy chủ khởi động lại giữa chừng → thư chưa gửi vẫn ở trạng thái chờ, lượt ngày mai gửi tiếp. Một lúc chỉ MỘT hàng đang gửi.
+const NGHI_MS: [number, number] = [35_000, 170_000];
+let dangGui = false;
 const FOLLOWUP_PER_RUN = 25; // generous - follow-ups go to already-contacted, lower risk
 
 type Row = { id: number; project_id: string };
 
 export async function runOutreachCron(): Promise<{
   ok: boolean;
+  /** số thư nhắc / thư đầu ĐÃ XẾP HÀNG gửi nền (có giãn cách) trong lượt này */
   followups: number;
   initials: number;
   errors: string[];
@@ -36,6 +43,9 @@ export async function runOutreachCron(): Promise<{
   let thuDen: Awaited<ReturnType<typeof doThuDen>> | undefined;
   try { thuDen = await doThuDen(); if (!thuDen.ok && thuDen.loi) errors.push(`thư đến: ${thuDen.loi}`); }
   catch (e) { errors.push(`thư đến: ${String((e as Error).message ?? e).slice(0, 160)}`); }
+
+  // 0b) PHANH: chiến dịch nào 7 ngày qua dội / bị chặn / xin thôi quá ngưỡng thì tắt tự gửi của nó TRƯỚC khi xếp hàng lượt này (lib/outreach/phanh.ts).
+  try { errors.push(...(await apPhanh())); } catch (e) { errors.push(`phanh: ${String((e as Error).message ?? e).slice(0, 160)}`); }
 
   // Auto-send ONLY campaigns with auto_send=true + status=active. A manual campaign
   // (auto_send=false, e.g. quality .edu backlink) is left for the operator to send by hand
@@ -53,13 +63,6 @@ export async function runOutreachCron(): Promise<{
       AND (p.snooze_until IS NULL OR p.snooze_until <= now())
     ORDER BY p.next_followup_at ASC
     LIMIT ${FOLLOWUP_PER_RUN}`)) as unknown as Row[];
-
-  let followups = 0;
-  for (const r of due) {
-    const res = await sendProspectEmail(String(r.project_id), Number(r.id));
-    if (res.ok) followups++;
-    else errors.push(`followup#${r.id}: ${res.error}`);
-  }
 
   // 2) Paced fresh cold pitches (active email campaigns: embed + backlink).
   const dauNgay = dauNgayVn();
@@ -79,11 +82,21 @@ export async function runOutreachCron(): Promise<{
     ORDER BY id ASC
     LIMIT ${TRAN_MOT_LUOT}`)) as unknown as Row[];
 
-  let initials = 0;
-  for (const r of fresh) {
-    const res = await sendProspectEmail(String(r.project_id), Number(r.id));
-    if (res.ok) initials++;
-    else errors.push(`initial#${r.id}: ${res.error}`);
+  // 3) Gửi NỀN có giãn cách: thư nhắc trước, thư đầu sau. `followups` / `initials` trả về là số thư ĐÃ XẾP HÀNG của lượt này;
+  //    kết quả từng thư (gửi được hay bị từ chối, vì sao) nằm ở nhật ký outreach_thu và hiện trên outreach.on.tc.
+  const hang = [...due, ...fresh];
+  const followups = due.length, initials = fresh.length;
+  if (hang.length && dangGui) errors.push('lượt trước còn đang gửi nên lượt này không xếp thêm');
+  else if (hang.length) {
+    dangGui = true;
+    void (async () => {
+      try {
+        for (const [i, r] of hang.entries()) {
+          await sendProspectEmail(String(r.project_id), Number(r.id)).catch(() => undefined);   // lỗi từng thư đã ghi vào outreach_thu
+          if (i < hang.length - 1) await new Promise((xong) => setTimeout(xong, NGHI_MS[0] + Math.random() * (NGHI_MS[1] - NGHI_MS[0])));
+        }
+      } finally { dangGui = false; }
+    })();
   }
 
   return { ok: true, followups, initials, errors, thuDen };

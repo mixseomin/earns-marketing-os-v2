@@ -8,6 +8,8 @@ import { readFileSync } from 'node:fs';
 import nodemailer from 'nodemailer';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
+import { resolveTxt } from 'node:dns/promises';
+import { chuanEmail, tranTangDan } from './thuan';
 
 export type DuongGui = {
   id: number; mien: string; host: string; cong: number; khoaTep: string; khoaUser: string; khoaPass: string; dkimTep: string | null; dkimSelector: string | null;
@@ -22,14 +24,38 @@ const tuDong = (r: Record<string, unknown>): DuongGui => ({
   hopDen: r.hop_den ? String(r.hop_den) : null, chanThu: r.chan_thu ? String(r.chan_thu) : null, tranNgay: Number(r.tran_ngay), bat: r.bat === true, ghiChu: r.ghi_chu ? String(r.ghi_chu) : null,
 });
 
-export async function dsDuongGui(): Promise<(DuongGui & { homNay: number })[]> {
+/** số NGÀY (giờ Việt Nam, trước hôm nay, trong 30 ngày) tên miền này đã gửi thư outreach — đầu vào của trần tăng dần */
+const SQL_NGAY_DA_GUI = (mien: ReturnType<typeof sql>, dauNgay: string) => sql`(select count(distinct (t.luc at time zone 'Asia/Ho_Chi_Minh')::date)::int from outreach_thu t
+  where t.chieu = 'di' and t.trang_thai = 'ok' and t.luc < ${dauNgay} and t.luc >= now() - interval '30 days' and split_part(lower(t.tu), '@', 2) = ${mien})`;
+
+/** homNay = đã gửi hôm nay · tranHomNay = trần hôm nay sau khi áp TĂNG DẦN (5 thư ngày đầu, mỗi ngày đã gửi cộng 5, không vượt tranNgay) */
+export async function dsDuongGui(): Promise<(DuongGui & { homNay: number; tranHomNay: number })[]> {
   const db = getDb(); if (!db) return [];
   try {
+    const dau = dauNgayVn();
     const rs = (await db.execute(sql`
-      select d.*, (select count(*)::int from outreach_thu t where t.chieu = 'di' and t.trang_thai = 'ok' and t.luc >= ${dauNgayVn()} and split_part(lower(t.tu), '@', 2) = d.mien) as hom_nay
+      select d.*, (select count(*)::int from outreach_thu t where t.chieu = 'di' and t.trang_thai = 'ok' and t.luc >= ${dau} and split_part(lower(t.tu), '@', 2) = d.mien) as hom_nay,
+             ${SQL_NGAY_DA_GUI(sql`d.mien`, dau)} as so_ngay
       from outreach_duong_gui d order by d.mien`)) as unknown as Record<string, unknown>[];
-    return rs.map((r) => ({ ...tuDong(r), homNay: Number(r.hom_nay) }));
+    return rs.map((r) => { const d = tuDong(r); return { ...d, homNay: Number(r.hom_nay), tranHomNay: tranTangDan(d.tranNgay, Number(r.so_ngay)) }; });
   } catch { return []; }   // bảng chưa có (máy chưa chạy migration 0453)
+}
+
+/** Kiểm ba bản ghi DNS quyết định thư có được tin không (học lệnh kiểm "sẵn sàng gửi" của sellbird/deliverability.py): SPF, DMARC, DKIM theo selector.
+ *  Trả danh sách cảnh báo bằng lời thường; rỗng = đủ. Mỗi lần tra chờ tối đa 3 giây, tra hỏng thì ghi "không tra được" chứ không coi là đạt. */
+export async function kiemDns(mien: string, selector: string | null): Promise<string[]> {
+  const tra = async (ten: string): Promise<string[] | null> => {
+    try { return (await Promise.race([resolveTxt(ten), new Promise<never>((_, tu) => setTimeout(() => tu(new Error('quá giờ')), 3000))])).map((x) => x.join('')); }
+    catch (e) { return /ENOTFOUND|ENODATA/.test(String((e as { code?: string }).code ?? e)) ? [] : null; }
+  };
+  const [goc, dmarc, dkim] = await Promise.all([tra(mien), tra(`_dmarc.${mien}`), selector ? tra(`${selector}._domainkey.${mien}`) : Promise.resolve<string[] | null>(['-'])]);
+  const ra: string[] = [];
+  if (goc == null || dmarc == null || dkim == null) ra.push('không tra được DNS lúc này');
+  if (goc && !goc.some((x) => /^v=spf1/i.test(x))) ra.push('thiếu bản ghi SPF');
+  if (dmarc && !dmarc.some((x) => /^v=DMARC1/i.test(x))) ra.push('thiếu bản ghi DMARC');
+  else if (dmarc?.some((x) => /p=none/i.test(x))) ra.push('DMARC đang ở mức chỉ theo dõi (p=none)');
+  if (dkim && !dkim.length) ra.push(`thiếu khoá ký DKIM (${selector}._domainkey)`);
+  return ra;
 }
 
 /** 00:00 hôm nay giờ Việt Nam, dạng ISO — "trần ngày" đếm theo ngày Việt Nam */
@@ -91,10 +117,13 @@ export async function guiThuOutreach(o: {
   if (thieu) return hong(`Đường gửi ${mien} chưa dùng được: ${thieu}.`);
 
   if (!o.thu) {
-    const chan = (await db.execute(sql`select ly_do from outreach_chan where email = ${toi} limit 1`)) as unknown as { ly_do: string }[];
+    const chan = (await db.execute(sql`select ly_do from outreach_chan where email in (${toi}, ${chuanEmail(toi)}) limit 1`)) as unknown as { ly_do: string }[];   // a+nhãn@x.com và a@x.com là một người
     if (chan[0]) return hong(`${toi} nằm trong sổ chặn (${chan[0].ly_do === 'thoi' ? 'đã xin thôi nhận thư' : chan[0].ly_do === 'doi' ? 'thư từng bị dội' : 'chặn tay'}) nên không gửi.`);
-    const dem = (await db.execute(sql`select count(*)::int as n from outreach_thu where chieu = 'di' and trang_thai = 'ok' and luc >= ${dauNgayVn()} and split_part(lower(tu), '@', 2) = ${mien}`)) as unknown as { n: number }[];
-    if (Number(dem[0]?.n ?? 0) >= d.tranNgay) return hong(`Tên miền ${mien} đã gửi đủ ${d.tranNgay} thư hôm nay (trần ngày của tên miền). Thư này để ngày mai.`);
+    // TRẦN HÔM NAY tăng dần theo số ngày tên miền đã gửi (thuan.ts › tranTangDan): tên miền mới bắt đầu 5 thư/ngày, không nhảy thẳng lên trần đầy đủ
+    const dau = dauNgayVn();
+    const dem = (await db.execute(sql`select count(*)::int as n, ${SQL_NGAY_DA_GUI(sql`${mien}`, dau)} as so_ngay from outreach_thu where chieu = 'di' and trang_thai = 'ok' and luc >= ${dau} and split_part(lower(tu), '@', 2) = ${mien}`)) as unknown as { n: number; so_ngay: number }[];
+    const tran = tranTangDan(d.tranNgay, Number(dem[0]?.so_ngay ?? 0));
+    if (Number(dem[0]?.n ?? 0) >= tran) return hong(`Tên miền ${mien} đã gửi đủ ${tran} thư hôm nay (trần hôm nay; trần đầy đủ ${d.tranNgay} thư, đang tăng dần mỗi ngày 5 thư). Thư này để ngày mai.`);
   }
 
   // chân thư: câu xin thôi (trả lời là dừng) + dòng tên/địa chỉ bên gửi nếu đã khai. Không gắn link trang nội bộ vào thư.

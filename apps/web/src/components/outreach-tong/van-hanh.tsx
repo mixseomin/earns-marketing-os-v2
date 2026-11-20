@@ -36,9 +36,10 @@ const GIAI = {
   ngach: 'Chọn ngách thì máy lấy các phát hiện của report ngách đó làm nội dung được phép nêu trong thư, và nạp được nhà quảng cáo của ngách.',
   spy: 'Thương hiệu còn chạy quảng cáo trong 21 ngày gần nhất, nhiều quảng cáo trước. Máy vào website từng thương hiệu tìm email liên hệ công khai; không thấy email thì không nạp.',
   chao: 'Máy soạn thư chỉ được nói những gì ghi ở đây về bên gửi, cộng với dữ kiện về quảng cáo của từng người nhận. Sửa lời chào không đổi thư đã soạn; muốn áp thì soạn lại.',
-  soan: 'Mỗi người nhận một chuỗi ba thư (thư đầu, nhắc 1, nhắc 2) viết theo quảng cáo của chính họ. Thương hiệu không bán đúng ngách thì máy loại khỏi hàng chờ và ghi lý do. Soạn xong máy không gửi gì. Tiền mô hình vài chục đồng mỗi người, số thật hiện sau từng mẻ.',
+  lamLai: 'Chuỗi thư của những người này soạn theo số thư hoặc luật cũ. Soạn lại theo kế hoạch hiện tại; bản cũ vẫn được giữ.',
+  soan: 'Mỗi người nhận một chuỗi thư (số thư = số lần nhắc + 1, tối đa 4) viết theo quảng cáo của chính họ; thư đầu không gắn link và được chấm điểm. Thương hiệu không bán đúng ngách thì máy loại khỏi hàng chờ và ghi lý do. Soạn xong máy không gửi gì. Tiền mô hình vài chục đồng mỗi người, số thật hiện sau từng mẻ.',
   thu: 'Gửi thư đầu của người nhận đầu tiên qua đúng đường gửi thật. Không đổi trạng thái ai, không tính vào trần ngày.',
-  tuGui: 'Khi bật: mỗi ngày lúc 21:00 giờ Việt Nam máy dò thư trả lời, gửi thư nhắc tới hạn, rồi gửi thư đầu cho người chờ gửi theo trần. Ai trả lời, xin thôi hoặc bị dội thì ra khỏi chuỗi.',
+  tuGui: 'Khi bật: thứ Hai tới thứ Sáu lúc 21:00 giờ Việt Nam (sáng ở Mỹ) máy dò thư trả lời, xét phanh, rồi gửi thư nhắc tới hạn và thư đầu theo trần, mỗi thư cách nhau 35 tới 170 giây. Thư dội từ 5% hoặc xin thôi quá 2% trong 7 ngày thì máy tự tắt. Ai trả lời, xin thôi hoặc bị dội thì ra khỏi chuỗi.',
 };
 
 /** nút + ngăn tạo chiến dịch (đặt trên đầu Bảng chiến dịch) */
@@ -204,44 +205,48 @@ function TheSoan({ cd, xong }: { cd: MotChienDich; xong: () => Promise<void> }) 
   const thieu = cd.chuaSoan;
   const [tin, setTin] = useState<ReactNode>(null), [loi, setLoi] = useState<string | null>(null), [dang, setDang] = useState(false), [mo, setMo] = useState<number | null>(cd.nhap[0]?.id ?? null);
   // soạn theo MẺ 5 người: mỗi mẻ một lượt gọi máy chủ, hiện số đã xong + tiền thật sau từng mẻ; mẻ nào không soạn được thư nào thì dừng và in lỗi đầu tiên
-  const soan = async () => {
-    setDang(true); setLoi(null); let xongN = 0, loai = 0, hong = 0, usd = 0;
+  const soan = async (lamLai = false) => {
+    setDang(true); setLoi(null); let xongN = 0, loai = 0, hong = 0, yeu = 0, usd = 0;
     try {
       for (let luot = 0; luot < 60; luot++) {
-        const r = await obSoan(cd.id, 5);
+        const r = await obSoan(cd.id, 5, undefined, lamLai);
         if (!r.ok) { setLoi(r.loi ?? 'Máy chủ không trả lý do.'); break; }
-        xongN += r.xong; loai += r.loai; hong += r.hong; usd += r.usd;
-        setTin(<>Đã soạn <b>{xongN}</b> · {loai} không hợp ngách (đã loại) · {hong} chưa viết được · còn {r.con} người · ~{vnd(usd)}{r.con > 0 && r.xong + r.loai > 0 ? ' · đang soạn tiếp…' : ''}</>);
+        xongN += r.xong; loai += r.loai; hong += r.hong; yeu += r.yeu; usd += r.usd;
+        setTin(<>Đã soạn <b>{xongN}</b> · {yeu} điểm thấp · {loai} không hợp ngách · {hong} chưa viết được · còn {r.con} · ~{vnd(usd)}{r.con > 0 && r.xong + r.loai > 0 ? ' · đang soạn tiếp…' : ''}</>);
         if (r.con <= 0) break;
         if (r.xong + r.loai === 0) { setLoi(`Mẻ vừa rồi không soạn được thư nào nên máy dừng. Lỗi đầu tiên: ${r.loiDau ?? 'không rõ'}`); break; }
       }
     } finally { setDang(false); await xong(); }
   };
   return (<>
-    <Dau giai={GIAI.soan}>Chuỗi ba thư cho từng người</Dau>
-    <GuardedButton reason={dang ? 'Đang soạn…' : !cd.chao ? 'Chiến dịch chưa có lời chào (thẻ Lời chào)' : thieu <= 0 ? 'Mọi người nhận đã có chuỗi thư' : ''} style={nutChinh} onClick={soan}>{dang ? 'Đang soạn…' : `Soạn cho ${Math.max(0, thieu)} người chưa có thư`}</GuardedButton>
+    <Dau giai={GIAI.soan}>Chuỗi {cd.soNhac + 1} thư cho từng người</Dau>
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <GuardedButton reason={dang ? 'Đang soạn…' : !cd.chao ? 'Chiến dịch chưa có lời chào (thẻ Lời chào)' : thieu <= 0 ? 'Mọi người nhận đã có chuỗi thư' : ''} style={nutChinh} onClick={() => soan(false)}>{dang ? 'Đang soạn…' : `Soạn cho ${Math.max(0, thieu)} người chưa có thư`}</GuardedButton>
+      {cd.banCu > 0 && <GuardedButton reason={dang ? 'Đang soạn…' : ''} style={nut} title={GIAI.lamLai} onClick={() => soan(true)}>Soạn lại {cd.banCu} người theo kế hoạch mới</GuardedButton>}
+    </div>
     <Bao loi={loi} tin={tin} />
     <Dau giai={cd.khongHop ? `${cd.khongHop} thương hiệu máy xét không bán đúng ngách đã ra khỏi hàng chờ; xem ở bảng Người nhận, lọc trạng thái Không hợp ngách.` : undefined}>Thư nháp · {cd.nhap.length} người đầu đang chờ gửi</Dau>
     {cd.nhap.length ? cd.nhap.map((p) => (
       <div key={p.id} style={{ border: '1px solid var(--line)', borderRadius: 6, marginBottom: 6 }}>
         <button type="button" onClick={() => setMo(mo === p.id ? null : p.id)} aria-expanded={mo === p.id} title={`${p.email}${p.soQc ? ` · ${p.soQc} quảng cáo` : ''}`}
           style={{ display: 'flex', width: '100%', gap: 8, padding: '7px 10px', background: 'none', border: 0, color: 'var(--fg-0)', fontSize: 12, cursor: 'pointer', textAlign: 'left' }}>
-          <span>{mo === p.id ? '▾' : '▸'}</span><b>{p.ten}</b><span style={{ marginLeft: 'auto', color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.chuoi[0]?.tieu_de}</span>
+          <span>{mo === p.id ? '▾' : '▸'}</span><b>{p.ten}</b>{p.diem != null && <span title={`Điểm thư đầu ${p.diem}/100 (từ 85 gửi được, dưới 70 nên viết lại). ${p.nhanXet ?? ''}`} style={{ color: p.diem >= 85 ? XANH : p.diem >= 70 ? 'var(--fg-2)' : DO, fontVariantNumeric: 'tabular-nums' }}>{p.diem}</span>}<span style={{ marginLeft: 'auto', color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.chuoi[0]?.tieu_de}</span>
         </button>
         {mo === p.id && <div style={{ padding: '0 10px 10px', display: 'grid', gap: 8 }}>{p.chuoi.map((t, i) => (
-          <div key={i}><div style={{ fontSize: 10, color: MO, textTransform: 'uppercase', letterSpacing: '0.06em' }} title={i === 0 ? undefined : 'nối cùng luồng thư với thư đầu'}>{i === 0 ? `Thư đầu · ${t.tieu_de}` : `Thư nhắc ${i} · sau ${cd.cachNgay * i} ngày`}</div>
+          <div key={i}><div style={{ fontSize: 10, color: MO, textTransform: 'uppercase', letterSpacing: '0.06em' }} title={i === 0 ? undefined : 'nối cùng luồng thư với thư đầu'}>{i === 0 ? `Thư đầu · ${t.tieu_de}` : `Thư ${i + 1} · sau ${cd.cachNgay * i} ngày${t.tieu_de ? ` · luồng mới: ${t.tieu_de}` : ''}`}</div>
             <pre style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap', font: '12px/1.5 var(--font-sans)', color: 'var(--fg-1)' }}>{t.noi_dung}</pre></div>))}</div>}
       </div>)) : <p style={{ margin: 0, fontSize: 12, color: MO }}>Chưa có thư nháp nào.</p>}
   </>);
 }
 
 function TheGui({ cd, xong, emailNha }: { cd: MotChienDich; xong: () => Promise<void>; emailNha: string }) {
-  const [toi, setToi] = useState(emailNha), [tran, setTran] = useState(cd.tran);
+  const [toi, setToi] = useState(emailNha), [tran, setTran] = useState(cd.tran), [soNhac, setSoNhac] = useState(cd.soNhac), [cachNgay, setCachNgay] = useState(cd.cachNgay);
+  const doiNhip = soNhac !== cd.soNhac || cachNgay !== cd.cachNgay;
   const [loi, setLoi] = useState<string | null>(null), [tin, setTin] = useState<ReactNode>(null), [dang, chay] = useTransition();
   const [loi2, setLoi2] = useState<string | null>(null), [tin2, setTin2] = useState<ReactNode>(null), [dang2, chay2] = useTransition(), [chac, setChac] = useState(false);
   const datGui = (tuGui: boolean) => chay2(async () => {
     setLoi2(null); setTin2(null); setChac(false);
-    const r = await obCachGui(cd.id, { tuGui, tran });
+    const r = await obCachGui(cd.id, { tuGui, tran, soNhac, cachNgay });
     if (!r.ok) setLoi2(r.loi); else { setTin2(tuGui ? `Đã bật tự gửi, tối đa ${tran} thư đầu mỗi ngày, lượt kế 21:00.` : 'Đã tắt tự gửi.'); await xong(); }
   });
   return (<>
@@ -253,8 +258,12 @@ function TheGui({ cd, xong, emailNha }: { cd: MotChienDich; xong: () => Promise<
     </div>
     <Bao loi={loi} tin={tin} />
     <Dau giai={`${GIAI.tuGui} Thư nhắc cách nhau ${cd.cachNgay} ngày, tối đa ${cd.soNhac} lần.`}>Máy tự gửi · {cd.tuGui ? <b style={{ color: XANH }}>đang bật</b> : 'đang tắt'}</Dau>
+    {cd.phanh && <div role="alert" title="Máy không tự bật lại. Xem lý do, lọc danh sách rồi bật tay." style={{ marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: `1px solid ${DO}`, color: DO, fontSize: 12 }}>Máy đã tự tắt tự gửi: {cd.phanh.ly_do}</div>}
     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
       <TextField label="Thư đầu mỗi ngày (trần)" type="number" min={1} max={200} value={tran} onChange={(e) => setTran(Math.max(1, Math.min(200, Number(e.target.value) || 1)))} style={{ width: 120 }} />
+      <TextField label="Số lần nhắc" type="number" min={0} max={3} value={soNhac} onChange={(e) => setSoNhac(Math.max(0, Math.min(3, Number(e.target.value) || 0)))} style={{ width: 90 }} hint="Chuỗi có số thư = số lần nhắc + 1. Đổi số này thì soạn lại thư ở thẻ Soạn thư." />
+      <TextField label="Cách nhau (ngày)" type="number" min={1} max={30} value={cachNgay} onChange={(e) => setCachNgay(Math.max(1, Math.min(30, Number(e.target.value) || 1)))} style={{ width: 110 }} />
+      {doiNhip && <GuardedButton reason={dang2 ? 'Đang lưu…' : ''} style={nut} onClick={() => chay2(async () => { setLoi2(null); const r = await obCachGui(cd.id, { soNhac, cachNgay }); if (!r.ok) setLoi2(r.loi); else { setTin2('Đã lưu nhịp nhắc.'); await xong(); } })}>Lưu nhịp nhắc</GuardedButton>}
       {cd.tuGui ? <GuardedButton reason={dang2 ? 'Đang lưu…' : ''} style={nut} onClick={() => datGui(false)}>Tắt tự gửi</GuardedButton>
         : chac ? <><b style={{ fontSize: 12, color: DO }}>Gửi thư thật cho {cd.choGui} người từ 21:00 hôm nay?</b>
             <GuardedButton reason={dang2 ? 'Đang lưu…' : ''} style={{ ...nut, borderColor: DO, color: DO }} onClick={() => datGui(true)}>Bật tự gửi</GuardedButton><button type="button" style={nut} onClick={() => setChac(false)}>Thôi</button></>

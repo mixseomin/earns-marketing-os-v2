@@ -7,6 +7,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { moSpy } from '@/lib/ke-hoach-goc';
+import { resolveMx } from 'node:dns/promises';
 import { chonEmail, docCsv } from './thuan';
 export { chonEmail, docCsv };
 
@@ -27,6 +28,17 @@ export async function timEmail(mien: string): Promise<{ email: string; trang: st
     } catch { /* trang lỗi / chặn máy → thử trang kế */ }
   }
   return null;
+}
+
+/** tên miền của địa chỉ có máy chủ nhận thư (MX) không — không có thì thư chắc chắn dội (bước kiểm đầu tiên của sellbird email_finder + warmbly emailverify).
+ *  Không dò SMTP từng địa chỉ: việc đó phải chạy từ IP không dùng để gửi thư. Tra hỏng vì mạng → coi là CÓ (không loại oan). */
+const mxDaTra = new Map<string, boolean>();
+export async function coMx(mien: string): Promise<boolean> {
+  const m = mien.toLowerCase(); if (mxDaTra.has(m)) return mxDaTra.get(m)!;
+  let co = true;
+  try { co = (await Promise.race([resolveMx(m), new Promise<never>((_, tu) => setTimeout(() => tu(new Error('quá giờ')), 4000))])).length > 0; }
+  catch (e) { co = !/ENOTFOUND|ENODATA/.test(String((e as { code?: string }).code ?? e)); }
+  mxDaTra.set(m, co); return co;
 }
 
 export type NgachSpy = { spId: number; ten: string; slug: string; nhaQc: number };
@@ -84,7 +96,7 @@ export async function napTuSpy(campaignId: number, spId: number, so: number): Pr
     while (i < hang.length && ra.them + giu < so && Date.now() < han) {
       const n = hang[i++]!; ra.xet++; moiXet.add(n.mien);
       const e = await timEmail(n.mien);
-      if (!e || chan.has(e.email)) { ra.khongEmail++; continue; }
+      if (!e || chan.has(e.email) || !(await coMx(e.email.split('@')[1]!))) { ra.khongEmail++; continue; }   // không thấy email · đã xin thôi · tên miền email không nhận thư
       if (ra.them + giu >= so) { moiXet.delete(n.mien); ra.xet--; break; }   // thợ khác vừa đủ số → tên miền này để lượt nạp sau xét lại
       giu++;
       const duLieu = { nguon: 'spy_nha_qc', ngach: nguon.ten, slug: nguon.slug, sp_id: spId, so_qc: n.soQc, chay_tu: n.chayTu, thay_cuoi: n.thayCuoi, qc_mau: n.mau, trang_dich: n.dich, trang_tim_email: e.trang };

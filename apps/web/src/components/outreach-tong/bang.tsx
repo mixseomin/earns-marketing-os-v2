@@ -88,7 +88,7 @@ export function BangThuDen({ ds }: { ds: ThuDen[] }) {
     { key: 'luc', header: 'Lúc', title: 'giờ Việt Nam', sortValue: (t) => t.luc, cell: (t) => gioVn(t.luc) },
   ];
   const nut = <button type="button" disabled={dang} title="Đọc hộp thư chung ngay bây giờ. Máy cũng tự dò mỗi ngày trước lượt gửi."
-    onClick={() => chay(async () => { setLoi(null); setTin(null); const r = await obThuDen(); if (!r.ok) setLoi(r.loi ?? 'Máy chủ không trả lý do.'); else { setTin(`Đọc ${r.doc} thư · mới ${r.moi}: ${r.traLoi} trả lời, ${r.thoi} xin thôi, ${r.doi} thư dội, ${r.khongKhop} chưa khớp`); router.refresh(); } })}
+    onClick={() => chay(async () => { setLoi(null); setTin(null); const r = await obThuDen(); if (!r.ok) setLoi(r.loi ?? 'Máy chủ không trả lý do.'); else { setTin(`Đọc ${r.doc} thư · mới ${r.moi}: ${r.traLoi} trả lời, ${r.thoi} xin thôi, ${r.doi} thư dội, ${r.tuDong} tự động, ${r.khongKhop} chưa khớp`); router.refresh(); } })}
     style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)', fontSize: 12, cursor: 'pointer' }}>{dang ? 'Đang dò…' : 'Dò thư đến'}</button>;
   return (<>
     {loi && <div role="alert" style={{ marginBottom: 6, padding: '6px 10px', borderRadius: 6, border: `1px solid ${DO}`, color: DO, fontSize: 12 }}>{loi}</div>}

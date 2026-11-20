@@ -9,7 +9,8 @@ import { EmptyState, SimpleTable, StatsStrip } from '@/components/ui';
 import type { MaWidgetOb } from '@/lib/outreach/so';
 import { KIEU, NGUON, TT_TRA_LOI, nguonCua, ttCua, type MaKieu } from '@/lib/outreach/kieu';
 import { SO_NGAY_DUNG, dangDung, docChienDich, docMoiDuAn, docNguoiNhan, docThuDen, locDa, soNgayTu, type ChienDich } from '@/lib/outreach/du-lieu';
-import { dsDuongGui, kiemDuongGui } from '@/lib/outreach/gui';
+import { dsDuongGui, kiemDns, kiemDuongGui } from '@/lib/outreach/gui';
+import { docPhanh } from '@/lib/outreach/phanh';
 import { BangChienDich, BangNguoiNhan, BangThuDen } from './bang';
 import { TaoChienDich } from './van-hanh';
 
@@ -37,17 +38,24 @@ async function DaiSo({ n }: { n: NguOb }) {
     { key: 'cd', label: 'Chiến dịch đang chạy', value: `${cd.filter((c) => c.chay).length}/${cd.length}`, color: dung.length ? DO : undefined, sub: dung.length ? `${dung.length} đang đứng` : `${new Set(cd.map((c) => c.da)).size} dự án`, title: 'đang chạy / tổng số chiến dịch' },
     { key: 'nn', label: 'Người nhận', value: so(cong(cd, (c) => c.n)), sub: `${so(cong(cd, (c) => c.coEmail))} có email` },
     { key: 'gui', label: 'Đã gửi', value: so(gui), sub: cuoi ? `thư gần nhất ${gioVn(cuoi)}` : 'chưa gửi thư nào', color: nghi != null && nghi > SO_NGAY_DUNG && cho + han > 0 ? VANG : undefined, title: cuoi ? `${nghi} ngày trước, giờ Việt Nam` : undefined },
-    { key: 'tl', label: 'Trả lời', value: so(tl), color: tl ? XANH : undefined, sub: `${pct(tl, gui)} số thư đã gửi` },
+    { key: 'tl', label: 'Trả lời', value: so(tl), color: tl ? XANH : undefined, sub: `${pct(tl, gui)} số thư đã gửi`, title: 'mốc tham khảo cho thư lạnh: cả chuỗi 2 tới 5% là bình thường, dưới 1% là có vấn đề (cần từ khoảng 200 thư mới đọc được)' },
     { key: 'thang', label: 'Thắng', value: so(thang), color: thang ? XANH : undefined, sub: `${pct(thang, gui)} số thư đã gửi`, title: 'đạt đích của kiểu chiến dịch: nhúng công cụ, đặt link, mua hàng, chốt hợp tác' },
     { key: 'cho', label: 'Chờ gửi', value: so(cho), sub: `${so(han)} thư nhắc tới hạn`, color: han ? VANG : undefined },
-    { key: 'doi', label: 'Thư dội', value: so(cong(cd, (c) => c.doi)), color: cong(cd, (c) => c.doi) ? DO : undefined, sub: `${pct(cong(cd, (c) => c.doi), gui)} số thư đã gửi`, title: 'thư bị máy chủ nhận trả lại — nhiều thư dội làm hỏng uy tín domain gửi' },
+    { key: 'doi', label: 'Thư dội', value: so(cong(cd, (c) => c.doi)), color: cong(cd, (c) => c.doi) ? DO : undefined, sub: `${pct(cong(cd, (c) => c.doi), gui)} số thư đã gửi`, title: 'thư bị máy chủ nhận trả lại. Dưới 1% rất tốt, 1 tới 2% bình thường, trên 3% phải lọc danh sách, từ 5% trong 7 ngày máy tự tắt tự gửi của chiến dịch' },
   ]} />;
 }
 
 async function CanXu({ n }: { n: NguOb }) {
-  const [cdAll, nn] = await Promise.all([docChienDich(), docNguoiNhan()]);
+  const [cdAll, nn, phanh] = await Promise.all([docChienDich(), docNguoiNhan(), docPhanh()]);
   const cd = locDa(cdAll, n.da);
   const viec: { key: string; mau: string; chu: ReactNode; phu: string }[] = [];
+  // phanh: máy đã tự tắt tự gửi (đỏ) hoặc chỉ số đã quá nửa ngưỡng dừng (vàng)
+  for (const p of locDa(phanh, n.da)) {
+    const link = <a href={`/p/${p.da}/outreach?c=${p.id}`} style={a}>{p.ten}</a>;
+    if (p.daPhanh) viec.push({ key: `ph${p.id}`, mau: DO, chu: link, phu: `${p.da} · máy đã tự tắt tự gửi: ${p.daPhanh.ly_do}` });
+    else if (p.dung) viec.push({ key: `pd${p.id}`, mau: DO, chu: link, phu: `${p.da} · ${p.dung}${p.tuGui ? ', lượt gửi kế máy sẽ tự tắt tự gửi' : ''}` });
+    else if (p.canh) viec.push({ key: `pc${p.id}`, mau: VANG, chu: link, phu: `${p.da} · ${p.canh}` });
+  }
   for (const c of cd.filter(dangDung)) viec.push({ key: `dung${c.id}`, mau: DO, chu: <a href={linkCd(c)} style={a}>{c.ten}</a>, phu: `${c.da} · bật tự gửi, còn ${c.choGui + c.toiHan} thư chờ, ${c.guiCuoi ? `${soNgayTu(c.guiCuoi)} ngày không gửi được thư nào` : 'chưa gửi được thư nào'}` });
   for (const c of cd.filter((x) => x.chay && !x.tuEmail && x.n > 0)) viec.push({ key: `from${c.id}`, mau: VANG, chu: <a href={linkCd(c)} style={a}>{c.ten}</a>, phu: `${c.da} · chưa đặt người gửi, thư sẽ đi từ địa chỉ mặc định của máy` });
   for (const c of cd.filter((x) => x.daGui >= 20 && x.doi / x.daGui > 0.05)) viec.push({ key: `doi${c.id}`, mau: DO, chu: <a href={linkCd(c)} style={a}>{c.ten}</a>, phu: `${c.da} · ${pct(c.doi, c.daGui)} thư dội (${c.doi}/${c.daGui}), danh sách cần lọc lại` });
@@ -147,12 +155,14 @@ async function NguonNhan() {
 
 async function DuongGui({ n }: { n: NguOb }) {
   const [tat, duong] = await Promise.all([docChienDich(), dsDuongGui()]), cd = locDa(tat, n.da);
+  const dns = new Map(await Promise.all(duong.map(async (d) => [d.mien, await kiemDns(d.mien, d.dkimSelector)] as const)));
   const mienCd = (c: ChienDich) => (c.tuEmail ?? '').split('@')[1]?.toLowerCase() ?? '';
   return (<div style={{ display: 'grid', gap: 12 }}>
     {duong.length ? <SimpleTable rows={duong} getRowKey={(d) => d.mien} columns={[
       { key: 'mien', header: 'Tên miền gửi', cell: (d) => <b title={d.ghiChu ?? undefined}>{d.mien}</b> },
       { key: 'tt', header: 'Trạng thái', cell: (d) => { const thieu = kiemDuongGui(d); return thieu ? <span style={{ color: DO }} title={thieu}>chưa dùng được</span> : <span style={{ color: XANH }} title={`máy chủ thư ${d.host}, cổng ${d.cong}${d.dkimTep ? ', có chữ ký tên miền' : ', không có chữ ký tên miền'}`}>sẵn sàng</span>; } },
-      { key: 'nay', header: 'Hôm nay', align: 'right', title: 'thư outreach đã gửi hôm nay (giờ Việt Nam) / trần ngày của cả tên miền', cell: (d) => <span style={{ color: d.homNay >= d.tranNgay ? VANG : undefined }}>{d.homNay}/{d.tranNgay}</span> },
+      { key: 'nay', header: 'Hôm nay', align: 'right', title: 'thư outreach đã gửi hôm nay (giờ Việt Nam) / trần hôm nay. Trần tăng dần: 5 thư ngày đầu, mỗi ngày đã gửi cộng 5, tới trần đầy đủ', cell: (d) => <span style={{ color: d.homNay >= d.tranHomNay ? VANG : undefined }} title={`trần đầy đủ ${d.tranNgay} thư mỗi ngày`}>{d.homNay}/{d.tranHomNay}</span> },
+      { key: 'dns', header: 'Bản ghi DNS', title: 'SPF, DMARC và khoá ký DKIM của tên miền gửi: thiếu thì thư dễ vào spam', cell: (d) => { const w = dns.get(d.mien) ?? []; return w.length ? <span style={{ color: VANG }} title={w.join('\n')}>{w.length} điểm cần xem</span> : <span style={{ color: XANH }}>đủ</span>; } },
       { key: 'tl', header: 'Thư trả lời về', cell: (d) => d.traLoi ?? <span style={{ color: MO }}>địa chỉ gửi</span>, title: 'địa chỉ nhận thư trả lời; máy dò thư trả lời theo địa chỉ này' },
       { key: 'chan', header: 'Chân thư', title: 'dòng tên + địa chỉ bưu chính của bên gửi gắn cuối mọi thư', cell: (d) => (d.chanThu ? <span title={d.chanThu}>đã khai</span> : <span style={{ color: VANG }} title="Thư lạnh gửi sang Mỹ cần có địa chỉ bưu chính của bên gửi ở cuối thư">chưa khai</span>) },
       { key: 'cd', header: 'Chiến dịch dùng', align: 'right', cell: (d) => tat.filter((c) => mienCd(c) === d.mien).length },

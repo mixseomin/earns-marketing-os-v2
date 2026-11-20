@@ -47,20 +47,20 @@ export async function obNapCsv(cd: number, chu: string) {
   if (!(await quanTri())) return { ok: false as const, them: 0, daCo: 0, hong: 0, loi: CAM.loi };
   const kq = await napCsv(cd, chu); moi(); return kq;
 }
-export async function obSoan(cd: number, so: number, lai?: number): Promise<KetSoan> {
-  if (!(await quanTri())) return { ok: false, xong: 0, loai: 0, hong: 0, con: 0, usd: 0, loi: CAM.loi };
-  const kq = await soanChuoi(cd, Math.max(1, Math.min(10, so)), lai); moi(); return kq;
+export async function obSoan(cd: number, so: number, lai?: number, lamLai = false): Promise<KetSoan> {
+  if (!(await quanTri())) return { ok: false, xong: 0, loai: 0, hong: 0, yeu: 0, con: 0, usd: 0, loi: CAM.loi };
+  const kq = await soanChuoi(cd, Math.max(1, Math.min(10, so)), lai, lamLai); moi(); return kq;
 }
 export async function obGuiThu(cd: number, toi: string) {
   if (!(await quanTri())) return CAM;
   return guiThuThu(cd, toi);
 }
-export async function obCachGui(cd: number, o: { tuGui?: boolean; tran?: number }) {
+export async function obCachGui(cd: number, o: { tuGui?: boolean; tran?: number; soNhac?: number; cachNgay?: number }) {
   if (!(await quanTri())) return CAM;
   const kq = await datCachGui(cd, o); if (kq.ok) moi(); return kq;
 }
 export async function obThuDen(): Promise<KetThuDen> {
-  if (!(await quanTri())) return { ok: false, doc: 0, moi: 0, traLoi: 0, thoi: 0, doi: 0, khongKhop: 0, loi: CAM.loi };
+  if (!(await quanTri())) return { ok: false, doc: 0, moi: 0, traLoi: 0, thoi: 0, doi: 0, tuDong: 0, chanUyTin: 0, khongKhop: 0, loi: CAM.loi };
   const kq = await doThuDen(); moi(); return kq;
 }
 /** sửa lời chào của chiến dịch (ngăn vận hành) */

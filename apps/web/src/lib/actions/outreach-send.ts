@@ -57,12 +57,15 @@ export async function sendProspectEmail(
   const buoc = status === 'to_send' ? 0 : Number(r.followup_count ?? 0) + 1;
   const chuoi = (r.du_lieu as { chuoi?: { tieu_de?: string; noi_dung?: string }[] } | null)?.chuoi;
   const buocChuoi = buoc > 0 && Array.isArray(chuoi) && chuoi[buoc]?.noi_dung ? chuoi[buoc]! : null;
-  let subject: string, body: string;
+  let subject: string, body: string, luongMoi = false;
   if (override?.subject?.trim() || override?.body?.trim()) {
     subject = override.subject?.trim() || savedSubject;
     body = override.body?.trim() || savedBody;
   } else if (buocChuoi) {
-    const dau = String(chuoi![0]?.tieu_de || savedSubject || '').replace(/^(re:\s*)+/i, '');
+    // bước có tiêu đề riêng = MỞ LUỒNG MỚI; bước trống tiêu đề = nối luồng của bước gần nhất có tiêu đề ("Re: …")
+    let goc = buoc - 1; while (goc > 0 && !chuoi![goc]?.tieu_de?.trim()) goc--;
+    const dau = String(chuoi![goc]?.tieu_de || savedSubject || '').replace(/^(re:\s*)+/i, '');
+    luongMoi = !!buocChuoi.tieu_de?.trim();
     subject = buocChuoi.tieu_de?.trim() || `Re: ${dau}`; body = String(buocChuoi.noi_dung);
   } else if (savedBody) {
     subject = savedSubject; body = savedBody;
@@ -84,7 +87,7 @@ export async function sendProspectEmail(
 
   // thư nhắc nối vào luồng của thư trước (Message-ID thư đi gần nhất của người này)
   let noiVao: string | null = null;
-  if (buoc > 0) {
+  if (buoc > 0 && !luongMoi) {
     try {
       const truoc = (await db.execute(sql`select ma_thu from outreach_thu where prospect_id = ${id} and chieu = 'di' and trang_thai = 'ok' and ma_thu is not null order by id desc limit 1`)) as unknown as { ma_thu: string }[];
       noiVao = truoc[0]?.ma_thu ?? null;

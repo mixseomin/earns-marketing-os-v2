@@ -57,19 +57,63 @@ FREE = {"en": ("All Episodes Released", "Watch For Free"), "es": ("Todos los epi
 FONT_FREE, TIM, XANH, TEN_DAY_FREE = "/System/Library/Fonts/Supplemental/Arial Bold.ttf", (124, 58, 237, 255), (34, 197, 94, 255), 0.72
 if "--khong-free" in sys.argv: sys.exit("--khong-free đã bỏ: AT chỉ còn MỘT dạng có Free (anh chốt 19/11/2026, sổ luật at_chi_dang_free)")
 CO_FREE = True
-def lop_free(lop, lang, day_ten=None):
-    """vẽ nhãn tím trên cùng + nút xanh dưới tên phim (day_ten = mép dưới tên, px; None = sát vùng giao diện Meta ở đáy — PO, tên nằm sẵn trên poster) lên lớp chữ RGBA đứng yên"""
+# KIỂU NHÃN + NÚT CỦA LỚP FREE (anh 20/11/2026 "cần các mẫu Button và Text ở trên All Episodes... dạng khác theo mẫu spy đẹp hơn"): chữ GIỮ NGUYÊN (FREE — cổng kiem-thoai
+# gỡ đúng hai câu này), chỉ đổi cách vẽ theo các kiểu đối thủ dùng trên mẫu spy. Mỗi bản của một phim một kiểu (bản b → FREE_KIEU[b % n]) để đo kiểu nào hơn:
+#   vang — nhãn hộp tối viền vàng mảnh chữ vàng · nút viên thuốc tối viền vàng đôi (mẫu "Watch Now" viền vàng)
+#   do   — nhãn dải trắng trọn ngang chữ đen đậm (mẫu "Watch Movies Now! Free") · nút viên thuốc đỏ chữ trắng (mẫu "Watch Free" đỏ)
+#   kinh — nhãn chữ trắng không hộp, hai vạch vàng hai bên · nút trắng chữ tối kèm nút phát đỏ (mẫu khung trình phát)
+#   tim  — kiểu cũ: nhãn tím, nút xanh lá (giữ để so, không nằm trong vòng xoay)
+FREE_KIEU = ["vang", "do", "kinh"]; FREE_BAN = [0]   # FREE_BAN[0] = số bản đang vẽ (anh() / tinh-ba-kieu đặt trước khi vẽ)
+VANG_F, DO_F = (240, 200, 112, 255), (225, 29, 46, 255)
+def lop_free(lop, lang, day_ten=None, kieu=None):
+    """vẽ nhãn trên cùng + nút dưới tên phim (day_ten = mép dưới tên, px; None = sát vùng giao diện Meta ở đáy — PO, tên nằm sẵn trên poster) lên lớp chữ RGBA đứng yên"""
     if day_ten is None: day_ten = H
+    kieu = kieu or FREE_KIEU[FREE_BAN[0] % len(FREE_KIEU)]
     nhan, nut = FREE.get(lang, FREE["en"]); d = ImageDraw.Draw(lop)
-    def o(chu, c, y, mau, dem_x, dem_y, max_w):
-        while c > 40 and ImageFont.truetype(FONT_FREE, c).getlength(chu) > max_w - 2 * dem_x: c -= 4
-        f = ImageFont.truetype(FONT_FREE, c); x0, y0, x1, y1 = f.getbbox(chu); w, h = x1 - x0 + 2 * dem_x, y1 - y0 + 2 * dem_y; x = (W - w) // 2
-        bong = Image.new("RGBA", (W, H)); ImageDraw.Draw(bong).rounded_rectangle((x + 4, y + 8, x + w + 4, y + h + 8), radius=h // 4, fill=(0, 0, 0, 120))
-        lop.alpha_composite(bong.filter(ImageFilter.GaussianBlur(10)))
-        d.rounded_rectangle((x, y, x + w, y + h), radius=h // 4, fill=mau); d.text((x + dem_x - x0, y + dem_y - y0), chu, font=f, fill=(255, 255, 255, 255))
-        return y + h
-    o(nhan, 76, int(H * 0.055), TIM, 44, 26, W - 160)
-    o(nut, 84, int(min(day_ten + 44, H * 0.86 - 140)), XANH, 70, 34, W - 260)
+    def co(chu, c, max_w):
+        while c > 40 and ImageFont.truetype(FONT_FREE, c).getlength(chu) > max_w: c -= 4
+        f = ImageFont.truetype(FONT_FREE, c); return f, f.getbbox(chu)
+    def bong(hop, r, lech=(4, 8), do=120, mo=10):
+        bo = Image.new("RGBA", (W, H)); ImageDraw.Draw(bo).rounded_rectangle((hop[0] + lech[0], hop[1] + lech[1], hop[2] + lech[0], hop[3] + lech[1]), radius=r, fill=(0, 0, 0, do)); lop.alpha_composite(bo.filter(ImageFilter.GaussianBlur(mo)))
+    def chu_bong(x, y, chu, f, mau):
+        bo = Image.new("RGBA", (W, H)); ImageDraw.Draw(bo).text((x + 2, y + 4), chu, font=f, fill=(0, 0, 0, 255)); bo = bo.filter(ImageFilter.GaussianBlur(6)); lop.alpha_composite(bo); lop.alpha_composite(bo);   # bóng đôi: chữ trắng vẫn đọc được trên nền sáng
+        d.text((x, y), chu, font=f, fill=mau)
+    yn, yb = int(H * 0.055), int(min(day_ten + 44, H * 0.86 - 140))
+    if kieu == "tim":
+        for chu, c, y, mau, dx, dy, mw in ((nhan, 76, yn, TIM, 44, 26, W - 160), (nut, 84, yb, XANH, 70, 34, W - 260)):
+            f, (x0, y0, x1, y1) = co(chu, c, mw - 2 * dx); w, h = x1 - x0 + 2 * dx, y1 - y0 + 2 * dy; x = (W - w) // 2
+            bong((x, y, x + w, y + h), h // 4); d.rounded_rectangle((x, y, x + w, y + h), radius=h // 4, fill=mau); d.text((x + dx - x0, y + dy - y0), chu, font=f, fill=(255, 255, 255, 255))
+        return lop
+    # ── NHÃN ──
+    if kieu == "vang":
+        f, (x0, y0, x1, y1) = co(nhan, 66, W - 300); dx, dy = 50, 26; w, h = x1 - x0 + 2 * dx, y1 - y0 + 2 * dy; x = (W - w) // 2
+        bong((x, yn, x + w, yn + h), 14); d.rounded_rectangle((x, yn, x + w, yn + h), radius=14, fill=(14, 12, 10, 215), outline=VANG_F, width=4)
+        d.text((x + dx - x0, yn + dy - y0), nhan, font=f, fill=VANG_F)
+    elif kieu == "do":
+        f, (x0, y0, x1, y1) = co(nhan, 70, W - 120); h = y1 - y0 + 2 * 30
+        bong((0, yn, W, yn + h), 0, (0, 8), 110, 12); d.rectangle((0, yn, W, yn + h), fill=(255, 255, 255, 255)); d.rectangle((0, yn + h - 8, W, yn + h), fill=DO_F)
+        d.text(((W - (x1 - x0)) // 2 - x0, yn + 26 - y0), nhan, font=f, fill=(14, 14, 16, 255))
+    else:   # kinh
+        f, (x0, y0, x1, y1) = co(nhan, 64, W - 340); w, h = x1 - x0, y1 - y0; x = (W - w) // 2; ym = yn + 20
+        chu_bong(x - x0, ym - y0, nhan, f, (255, 255, 255, 255))
+        for a_, b_ in ((60, x - 28), (x + w + 28, W - 60)):
+            if b_ - a_ > 30: d.rectangle((a_, ym + h // 2 - 2, b_, ym + h // 2 + 2), fill=VANG_F)
+    # ── NÚT ──
+    if kieu == "vang":
+        f, (x0, y0, x1, y1) = co(nut, 80, W - 420); dx, dy = 84, 36; w, h = x1 - x0 + 2 * dx, y1 - y0 + 2 * dy; x = (W - w) // 2; r = h // 2
+        bong((x, yb, x + w, yb + h), r, do=150, mo=12); d.rounded_rectangle((x, yb, x + w, yb + h), radius=r, fill=(16, 13, 10, 235), outline=VANG_F, width=6)
+        d.rounded_rectangle((x + 12, yb + 12, x + w - 12, yb + h - 12), radius=r - 12, outline=(240, 200, 112, 150), width=2)
+        d.text((x + dx - x0, yb + dy - y0), nut, font=f, fill=VANG_F)
+    elif kieu == "do":
+        f, (x0, y0, x1, y1) = co(nut, 84, W - 400); dx, dy = 90, 36; w, h = x1 - x0 + 2 * dx, y1 - y0 + 2 * dy; x = (W - w) // 2; r = h // 2
+        bong((x, yb, x + w, yb + h), r, do=150, mo=12); d.rounded_rectangle((x - 5, yb - 5, x + w + 5, yb + h + 5), radius=r + 5, fill=(255, 255, 255, 235)); d.rounded_rectangle((x, yb, x + w, yb + h), radius=r, fill=DO_F)
+        d.text((x + dx - x0, yb + dy - y0), nut, font=f, fill=(255, 255, 255, 255))
+    else:
+        f, (x0, y0, x1, y1) = co(nut, 78, W - 520); dy = 36; h = y1 - y0 + 2 * dy; tron = h - 28; w = x1 - x0 + 70 + tron + 26 + 60; x = (W - w) // 2; r = h // 2
+        bong((x, yb, x + w, yb + h), r, do=150, mo=12); d.rounded_rectangle((x, yb, x + w, yb + h), radius=r, fill=(250, 250, 250, 248))
+        cx, cy = x + 14 + tron // 2, yb + h // 2; d.ellipse((cx - tron // 2, cy - tron // 2, cx + tron // 2, cy + tron // 2), fill=DO_F)
+        tg = tron * 0.24; d.polygon([(cx - tg * 0.7, cy - tg), (cx - tg * 0.7, cy + tg), (cx + tg * 1.1, cy)], fill=(255, 255, 255, 255))
+        d.text((x + 14 + tron + 26 - x0, yb + dy - y0), nut, font=f, fill=(18, 18, 22, 255))
     return lop
 MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "8M" if MOI else "3M", "-maxrate", "10M" if MOI else "4500k",   # HD (anh 08/11/2026 "nhớ là dạng HD"): 1080x1920, 8 Mb/s (trước 3M)
            "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100"]   # như cat-canh.MA_HOA (Mac)
@@ -300,6 +344,7 @@ def _logo_sach(ten, poster, ra, cid=None):
     except Exception as e: print("logo gốc cắt rời lỗi — dùng cách tách cũ:", e, file=sys.stderr); return None
 def anh(cid, ten, k, tm, ban=0):
     """khung gốc → nền 1080x1920 (nền.png, sẽ phóng chậm) + lớp tên phim (chu.png, đứng yên) đặt dưới mặt"""
+    FREE_BAN[0] = ban   # mỗi bản một kiểu nhãn + nút (FREE_KIEU)
     goc = os.path.join(tm, f"goc-{ban}.png")
     # khung gốc lấy bằng ĐÚNG chuỗi lọc đã trích khung nhỏ + số thứ tự khung (05/11/2026: tính giây tay lệch sang cảnh khác — chấm mặt cận, dựng ra cảnh đám đông)
     sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k["tap"] + ".mp4"), "-vf", f"{LOC},select=eq(n\\,{k['so'] - 1})", "-frames:v", "1", goc)

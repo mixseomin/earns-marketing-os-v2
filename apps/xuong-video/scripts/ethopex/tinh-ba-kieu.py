@@ -161,7 +161,7 @@ def main(cid, kieu, ban=1, xem=False, mau_ep=None):
         dang, ma = KIEU[kk]
         uvk = AT.xoay_khung(tm, ma, uv); con = list(uvk); da_mau = []   # khung chưa dùng cho dạng này đứng trước (bản sau khác bản trước)
         for b in range(ban):
-            kg = ks[(ks.index(kg0) + b) % len(ks)]; k = uvk[b % len(uvk)]; chu_dau = None
+            kg = ks[(ks.index(kg0) + b) % len(ks)]; k = uvk[b % len(uvk)]; chu_dau = None; AT.FREE_BAN[0] = b   # mỗi bản một kiểu nhãn + nút của lớp Free
             try:
                 if kk == "tom_tat":
                     ds = kq["chu"].get("tom_tat") or []

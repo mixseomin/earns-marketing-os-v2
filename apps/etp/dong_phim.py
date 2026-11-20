@@ -643,7 +643,9 @@ BUOC_SX = tuple(CG.SXC["buoc_cho"])   # sổ luật chung san_xuat_theo_cho.buoc
 SX = [{}]
 def cho_phanh(sx, d, buoc):
     """hàm thuần: khoá san_xuat_cho + dòng + bước → câu lý do chờ | None (chạy)"""
-    if not (sx or {}).get("phanh") or buoc not in BUOC_SX: return None
+    if not (sx or {}).get("phanh"): return None
+    if sx.get("khan"): return None if buoc == "chay" else sx["phanh"]   # DỪNG KHẨN: mọi bước chưa bắt đầu đứng chờ, không miễn du_tru / chi_sx
+    if buoc not in BUOC_SX: return None
     if buoc != "camp" and int(d.get("content_id") or 0) in {int(x) for x in [*(sx.get("du_tru") or []), *(sx.get("chi_sx") or [])]}: return None   # chi_sx: phim chỉ sản xuất không lên camp nên không chờ phanh
     return sx["phanh"]
 
@@ -770,7 +772,7 @@ def vong():
     # PHIM CHỈ SẢN XUẤT (anh 20/11/2026 "chỉ sx", sổ cong.KHOA_CHI_SX): bước sản xuất chạy cả khi phanh, tới bước camp thì khép dòng. Đọc hỏng → {} (cổng chan_cua vẫn chặn tạo camp)
     try: chi_sx = CG.ds_chi_sx(q=sql)
     except Exception: chi_sx = {}
-    if chi_sx: SX[0] = {**SX[0], "chi_sx": list(chi_sx)}
+    if chi_sx and not SX[0].get("khan"): SX[0] = {**SX[0], "chi_sx": list(chi_sx)}
     cho_ph = {}   # câu chờ phanh → [dòng] — ghi gộp một câu SQL cuối vòng
     gac = gac_dang(); ds_dong = doc_dong()
     # loại lượt nặng đang CHỜ khe (cắt CC / creative tĩnh) — khe_nang giữ một khe cho loại kia khi nó có việc chờ
@@ -850,7 +852,7 @@ def vong():
 # không giữ chân vòng dòng phim). Lượt đang chạy thì không bật lượt mới. Chỉ ở iMac (cắt video — cấm dựng video trên box3).
 CUU = {"luot": 0.0, "th": None}
 def cuu():
-    if time.time() - CUU["luot"] < 900 or (CUU["th"] and CUU["th"].is_alive()): return
+    if SX[0].get("khan") or time.time() - CUU["luot"] < 900 or (CUU["th"] and CUU["th"].is_alive()): return   # dừng khẩn: không cắt lại creative
     CUU["luot"] = time.time()
     def chay():
         try: print(f"[{time.strftime('%H:%M:%S')}] cứu creative bị chặn: {CU.chay()}", flush=True)
@@ -862,7 +864,7 @@ def cuu():
 # dung-mau.py --hang bằng môi trường ~/.venvs/poster-mau trong một luồng riêng — một lượt một lúc, lượt đang chạy thì không bật lượt mới. Nhật ký: ~/Library/Logs/ethopex/dung-mau.log
 MAU_HANG = {"luot": 0.0, "th": None}
 def mau_hang():
-    if time.time() - MAU_HANG["luot"] < 120 or (MAU_HANG["th"] and MAU_HANG["th"].is_alive()): return
+    if SX[0].get("khan") or time.time() - MAU_HANG["luot"] < 120 or (MAU_HANG["th"] and MAU_HANG["th"].is_alive()): return   # dừng khẩn: không dựng theo mẫu
     MAU_HANG["luot"] = time.time(); py = os.path.expanduser("~/.venvs/poster-mau/bin/python")
     if not os.path.exists(py): return
     try: n = int(sql("select count(*) from etp.mau_phim m left join etp.mau_dung d using (mau, content_id) where d.mau is null or (d.trang_thai = 'cho' and (d.buoc = 'cho' or d.cap_nhat < now() - interval '20 minutes'))") or 0)
@@ -882,6 +884,8 @@ def tu_kiem():
     assert cho_phanh(p, {"content_id": 1}, "poster") == p["phanh"] and cho_phanh(p, {"content_id": 1}, "camp") == p["phanh"] and cho_phanh(p, {"content_id": 1}, "chay") is None, "phanh: bước sản xuất + camp chờ, bước chờ camp chạy giữ nguyên"
     assert cho_phanh(p, {"content_id": 7}, "creative") is None and cho_phanh(p, {"content_id": 7}, "camp") == p["phanh"], "phim hồi chợ thiếu kho dự trữ vẫn sản xuất, không lên camp"
     assert cho_phanh({**p, "chi_sx": [9]}, {"content_id": 9}, "creative") is None and cho_phanh({**p, "chi_sx": [9]}, {"content_id": 1}, "creative") == p["phanh"], "phim chỉ sản xuất không chờ phanh ở bước sản xuất"
+    k = {"phanh": "chờ phanh nhả: ĐANG DỪNG KHẨN", "khan": True, "du_tru": [7], "chi_sx": [9]}
+    assert cho_phanh(k, {"content_id": 7}, "creative") == k["phanh"] and cho_phanh(k, {"content_id": 9}, "cat") == k["phanh"] and cho_phanh(k, {"content_id": 1}, "chay") is None, "dừng khẩn: không miễn du_tru / chi_sx"
     assert cho_phanh({}, {"content_id": 1}, "nhan") is None and cho_phanh({"phanh": None}, {"content_id": 1}, "nhan") is None and cho_phanh(None, {"content_id": 1}, "nhan") is None, "không phanh / khoá quá hạn → chạy như cũ"
     assert set(BUOC_SX) == {b for b, _ in BUOC} - {"chay"} and "not exists" in KHONG_TRUNG
     # phim cấm (etp:phim-cam-con-lai-2011): cùng bộ đọc cong.phim_cam qua ssh — 167292 dừng mọi bước, phim thường đi qua

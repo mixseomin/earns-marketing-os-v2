@@ -223,7 +223,10 @@ def ghi_sx(q):
     import hoi_cho as HC
     ch = CG.doc_cau_hinh(); ly = CG.phanh_sx(ch)
     sx = {"phanh": ly, "du_tru": [], "luc": q("select now()::text")}
-    if ly: sx["du_tru_tt"] = HC.du_tru(q); sx["du_tru"] = sx["du_tru_tt"]["thieu"]
+    # DỪNG KHẨN (anh 20/11/2026 "off hết các camp 2-3 ngày, ngừng mọi việc từ sx, lên camp mới, nhân bản… đến khi có thông báo"): khan = ngừng MỌI sản xuất —
+    # không kho dự trữ hồi chợ, không miễn phim chỉ-sx, không máy dựng theo mẫu / cứu creative (dong_phim đọc sx.khan); hàng chấm giữ hết trừ nút anh bấm
+    if ch.get("dung_khan"): sx["khan"] = True
+    elif ly: sx["du_tru_tt"] = HC.du_tru(q); sx["du_tru"] = sx["du_tru_tt"]["thieu"]
     else:
         tcm = ch.get(CG.KHOA_TRAN_NGAY)
         dot = False

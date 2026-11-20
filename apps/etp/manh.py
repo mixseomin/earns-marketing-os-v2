@@ -39,7 +39,8 @@ def sql_giu_phanh(a="d"):
     """dòng a dừng ở bước camp vì một phanh / dừng lên camp mới đang còn hiệu lực (khoá cong.KHOA_SX còn hạn có phanh · cong.KHOA_DUNG_CAMP_MOI bật)"""
     return (f"(split_part(coalesce({a}.ly_do, ''), ':', 1) = 'camp' and ((strpos({a}.ly_do, 'PHANH') > 0 and coalesce((select gia_tri->>'phanh' from etp.cau_hinh"
             f" where khoa = '{CG.KHOA_SX}' and (gia_tri->>'het')::timestamptz > now()), '') <> '')"
-            f" or (strpos({a}.ly_do, 'DỪNG LÊN CAMP MỚI') > 0 and ({CG.SQL_DUNG_CAMP_MOI}))))")
+            f" or (strpos({a}.ly_do, 'DỪNG LÊN CAMP MỚI') > 0 and ({CG.SQL_DUNG_CAMP_MOI}))"
+            f" or (strpos({a}.ly_do, 'DỪNG KHẨN') > 0 and coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'dung_khan'), 'false') = 'true')))")   # dừng khẩn (anh 20/11/2026) — không mở lại
 HA_TANG = r"ssh:|mux_client|Session open refused|Operation timed out|Connection (closed|reset|refused|timed out)|Broken pipe|kex_exchange|im [0-9]+ phút \(máy chạy dòng"
 # DÒNG LỖI MỤC 6 CÒN TỰ THỬ LẠI (hạ tầng < 10 lần · khác < 6 lần, trong 3 ngày) — mục 3 dùng để tách lỗi "máy tự lo" (gom tin giờ) khỏi lỗi "cần người" (báo ngay)
 THU_HA_TANG, THU_KHAC = 10, 6   # trần lượt tự thử lại của mục 6 — mục 3 dùng cùng số để biết dòng nào hết lượt

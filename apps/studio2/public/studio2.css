@@ -169,6 +169,9 @@ html.dung-mo body { padding-block: 10px }
 .d-xem { grid-area: xem; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 8px; padding: 10px; overflow: hidden }
 .k-vung { container-type: size; display: grid; place-items: center; min-height: 0 }
 .k { width: min(100cqw, calc(100cqh * var(--r))); aspect-ratio: var(--r); background: var(--man); border-radius: 10px; overflow: hidden; position: relative }
+.k-vung.ss { grid-auto-flow: column; gap: 8px; justify-content: center }
+.k-vung.ss .k { width: min(calc((100cqw - (var(--n) - 1) * 8px) / var(--n)), calc((100cqh - 22px) * var(--r))) }
+.k-vung.ss .k::after { content: attr(data-ten); position: absolute; left: 6px; top: 6px; z-index: 5; padding: 1px 7px; border-radius: 6px; background: rgba(0,0,0,.6); color: #fff; font-size: 11px; font-weight: 600; pointer-events: none }
 .k img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; will-change: transform }
 .k-mo { position: absolute; inset: 0; background: linear-gradient(to top, rgba(5,7,15,.95) 0%, rgba(5,7,15,.9) 27%, rgba(5,7,15,.08) 46%, rgba(5,7,15,.3) 100%) }
 .k-chu { position: absolute; left: 8%; right: 8%; text-align: center; color: var(--man-chu); font: 700 clamp(13px, 5.2cqh, 26px)/1.15 var(--f-hien); text-wrap: balance; overflow-wrap: anywhere }

@@ -14,7 +14,7 @@
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
    "vung": {
     "dinh": {
-     "tu": 21.5,
+     "tu": 29.1,
      "dem": {
       "rang_cua": 10,
       "thap_canh": 2
@@ -22,8 +22,8 @@
      "ghi_chu": "hai lớp răng cưa (ảnh anh khoanh 16/11/2026): lớp đá kem phía trước 5 răng + lớp gạch đỏ phía sau 5 răng · thẻ #1623 lần 3: khối kem hạ 26,6 → 24,0 nên vùng đỉnh (tháp canh treo + răng) từ 21,5"
     },
     "than_tren": {
-     "tu": 16.26,
-     "den": 21.5,
+     "tu": 23.86,
+     "den": 29.1,
      "dem": {
       "huy_hieu": 1,
       "o_vuong": 1,
@@ -31,15 +31,16 @@
      }
     },
     "than_duoi": {
-     "tu": 10.17,
-     "den": 16.26,
+     "tu": 17.77,
+     "den": 23.86,
      "dem": {
       "cong_vom": 1,
       "canh_cua": 2,
       "o_vuong": 1
      }
     }
-   }
+   },
+   "doi_dom20": 7.6
   },
   {
    "ten": "Torbau — cánh nam gạch đỏ (mặt đông)",
@@ -49,15 +50,15 @@
    "anh": "Mapillary 360° 493003245182754 (phương vị 290–320°)",
    "vung": {
     "dinh": {
-     "tu": 23.43,
+     "tu": 28.53,
      "dem": {
       "rang_cua": 7,
       "vom_nho": 10
      }
     },
     "than_tren": {
-     "tu": 17.88,
-     "den": 23.43,
+     "tu": 22.98,
+     "den": 28.53,
      "dem": {
       "cua_so": 4,
       "neo": 4,
@@ -65,14 +66,15 @@
      }
     },
     "than_duoi": {
-     "tu": 10.19,
-     "den": 17.88,
+     "tu": 15.29,
+     "den": 22.98,
      "dem": {
       "cua_so": 2,
       "o_vuong": 1
      }
     }
-   }
+   },
+   "doi_dom20": 5.1
   },
   {
    "ten": "Torbau — tháp tròn góc nam",
@@ -87,7 +89,8 @@
       "o_vuong": 12
      }
     }
-   }
+   },
+   "doi_dom20": 6.3
   },
   {
    "ten": "Torbau — đầu hồi bậc thang gạch đỏ",
@@ -101,7 +104,8 @@
       "hoi_bac": 2
      }
     }
-   }
+   },
+   "doi_dom20": 5.4
   },
   {
    "ten": "Torbau — mặt tây cánh nam (sân dưới)",
@@ -170,7 +174,7 @@
       ]
      ],
      "tu_v": 0.54,
-     "den_v": 1.0
+     "den_v": 1
     },
     "than_duoi": {
      "dem": {
@@ -202,7 +206,8 @@
      "tu_v": -0.1,
      "den_v": 0.54
     }
-   }
+   },
+   "doi_dom20": 5.1
   },
   {
    "ten": "Torbau — mặt tây khối giữa (vòm cổng, ban công, đồng hồ)",
@@ -244,7 +249,8 @@
       "dong_ho": 1
      }
     }
-   }
+   },
+   "doi_dom20": 7.8
   }
  ]
 }

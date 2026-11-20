@@ -1277,7 +1277,7 @@ function veKim(theo) {
 }
 function veKhung() {
   const T = tong(), { c, s } = canhTai(Math.min(E.t, T - 0.001)), p = Math.min(1, Math.max(0, (E.t - s) / c.tg)), a = $('#kA'), v = $('#kV');
-  const ng = pro() && nguonCo().includes(E.nguon) ? E.nguon : 'anh', rieng = ng === 'clip' ? c.vid : ng === '3d' ? c.vid3 : null, src = rieng || (ng === 'clip' ? D.vid : ng === '3d' ? D.vid3 : null), tu0 = rieng ? (ng === 'clip' ? c.tuV : c.tu3) : c.tu, hopBat = pro() && E.hop && ng === '3d' && !E.chay && !!c.hop && Math.abs(E.t - s) < 0.05, coVid = !!src && tu0 != null && !hopBat, laLop = ng === 'lop' && !!c.lop, anh = laLop ? c.nen : ng === '3d' && c.k3 ? c.k3 : c.anh;
+  const ng = pro() && nguonCo().includes(E.nguon) ? E.nguon : 'anh', rieng = ng === 'clip' ? c.vid : ng === '3d' ? c.vid3 : null, src = rieng || (ng === 'clip' ? (D.that && GOC[c.id] ? null : D.vid) : ng === '3d' ? D.vid3 : null), tu0 = rieng ? (ng === 'clip' ? c.tuV : c.tu3) : c.tu, hopBat = pro() && E.hop && ng === '3d' && !E.chay && !!c.hop && Math.abs(E.t - s) < 0.05, coVid = !!src && tu0 != null && !hopBat, laLop = ng === 'lop' && !!c.lop, anh = laLop ? c.nen : ng === '3d' && c.k3 ? c.k3 : c.anh;
   $('#w-xem').style.setProperty('--r', TILE[D.tile]);
   if (a.dataset.src !== anh) { a.dataset.src = anh; a.src = anh; }
   a.style.transform = ng !== 'anh' && !(ng === 'lop' && !laLop) ? 'none' : { 'Phóng gần': `scale(${1 + 0.14 * p})`, 'Lùi xa': `scale(${1.14 - 0.14 * p})`, 'Lia ngang': `scale(1.12) translateX(${(p - 0.5) * 7}%)`, 'Đứng yên': 'none' }[c.cd];
@@ -1303,7 +1303,7 @@ function veSs(c, s, ng) {
   if (vg.dataset.ss !== key) { vg.dataset.ss = key; vg.querySelectorAll('.k-ss').forEach((x) => x.remove());
     ds.forEach((n) => vg.insertAdjacentHTML('beforeend', `<div class="k k-ss" data-ng="${n}" data-ten="${TEN_NG[n]}"><img alt=""><video playsinline muted preload="metadata" hidden></video></div>`)); }
   vg.querySelectorAll('.k-ss').forEach((o) => { const n = o.dataset.ng, a = o.querySelector('img'), v = o.querySelector('video');
-    const rieng = n === 'clip' ? c.vid : n === '3d' ? c.vid3 : null, src = rieng || (n === 'clip' ? D.vid : n === '3d' ? D.vid3 : null), tu0 = rieng ? (n === 'clip' ? c.tuV : c.tu3) : c.tu, coVid = !!src && tu0 != null;
+    const rieng = n === 'clip' ? c.vid : n === '3d' ? c.vid3 : null, src = rieng || (n === 'clip' ? (D.that && GOC[c.id] ? null : D.vid) : n === '3d' ? D.vid3 : null), tu0 = rieng ? (n === 'clip' ? c.tuV : c.tu3) : c.tu, coVid = !!src && tu0 != null;
     const anh = n === 'lop' && c.nen ? c.nen : n === '3d' && c.k3 ? c.k3 : c.anh; if (a.dataset.src !== anh) { a.dataset.src = anh; a.src = anh; }
     v.hidden = !coVid; if (!coVid) { if (!v.paused) v.pause(); return; }
     if (v.dataset.src !== src) { v.dataset.src = src; v.src = src; } const d = tu0 + Math.min(E.t - s, c.tg);

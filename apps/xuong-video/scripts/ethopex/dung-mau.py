@@ -61,12 +61,13 @@ def ghi_poster(cid, url, tm=None):
     except Exception as e: print(f"poster gốc phim {cid} lỗi: {e}", file=sys.stderr); return None
 
 # ---------- câu nhử (cổng AI chung, haiku rẻ) ----------
-def cau_nhu(ten, mo_ta, lang):
+def cau_nhu(ten, mo_ta, lang, tranh=()):
     """câu nhử 4–10 chữ + MỘT từ nhấn (tô đỏ) — kiểu 'To fight crime, he became a criminal'. Chữ trơn hai dòng HOOK / WORD (19/11/2026: khuôn JSON qua tuyến
     rẻ bị điền lệch ô — 'cau' ra lại đề bài, câu thật lạc sang 'nhan'), kiểm độ dài, hỏng thì gọi lại một lần; hai lần hỏng → câu dự phòng (báo to)."""
     k = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/.secrets/cong-ai.env")) if "=" in l)["CONG_AI_KEY"].strip().strip('"')
     de = (f"Short drama: {ten}\nSynopsis: {mo_ta[:700]}\n\nWrite ONE intriguing movie-poster hook line in {'Spanish' if lang == 'es' else 'English'} (4-10 words, no spoiler of the ending, "
-          "no quotes, no emoji, do not repeat the title). Then the single most dramatic word of that line.\nAnswer EXACTLY two lines:\nHOOK: <line>\nWORD: <word>")
+          "no quotes, no emoji, do not repeat the title). Then the single most dramatic word of that line.\nAnswer EXACTLY two lines:\nHOOK: <line>\nWORD: <word>"
+          + ("\n\nEarlier ads for this drama already used these hooks - write a clearly DIFFERENT angle (another character, another emotion or another story beat):\n- " + "\n- ".join(tranh[-6:]) if tranh else ""))
     chi = 0
     for lan in range(2):
         try:
@@ -75,7 +76,7 @@ def cau_nhu(ten, mo_ta, lang):
             j = json.loads(r.read()); chi += round((j.get("chi_usd") or 0) * 26000); t = str(j.get("kq") or "")
             h = re.search(r"HOOK:\s*(.+)", t); w = re.search(r"WORD:\s*([^\s]+)", t)
             cau = (h.group(1).strip().strip('"“”').rstrip(".") if h else ""); nhan = (w.group(1).strip('"“”.,!') if w else "")
-            if 4 <= len(cau.split()) <= 10 and ten.lower() not in cau.lower() and not re.search(r"(?i)hook|poster|line", cau):
+            if 4 <= len(cau.split()) <= 10 and ten.lower() not in cau.lower() and not re.search(r"(?i)hook|poster|line", cau) and cau.lower() not in [x.lower() for x in tranh]:
                 return cau, (nhan if nhan.lower() in cau.lower() else cau.split()[-1]), chi
             print(f"✗ câu nhử lần {lan + 1} không đạt: {t[:120]!r}", file=sys.stderr, flush=True)
         except Exception as e: print(f"✗ câu nhử lần {lan + 1} lỗi: {e}", file=sys.stderr, flush=True)
@@ -571,17 +572,31 @@ def mot(ma, cid, xem=False, ban=1):
             uv = AT.khung(cid, p["url"], tm)
             if not xem: ghi_poster(cid, p["url"], tm)
             tt("chon_khung", g=f"{len(uv)} khung ứng viên → AI xếp hạng")
-            uv, _, v = AT.xep_ai(ten, uv) if len(uv) > 1 else (uv, "", 0); vnd += v
-            _NHO[cid] = {"uv": uv}
+            mt = TB.mo_ta(p["url"])
+            uv, ly_xep, v = AT.xep_ai(ten, uv, mt, p.get("the_loai") or "") if len(uv) > 1 else (uv, "", 0); vnd += v
+            if ly_xep: print(f"xếp khung: {ly_xep[:300]}", flush=True)
+            _NHO[cid] = {"uv": uv, "mo_ta": mt}
         uv = _NHO[cid]["uv"]
-        if ma in CAN_CAU and "cau" not in _NHO[cid]: c_, n_, v = cau_nhu(ten, TB.mo_ta(p["url"]), lang); vnd += v; _NHO[cid]["cau"] = (c_, n_)
+        # BẢN SAU KHÁC BẢN TRƯỚC (anh 20/11/2026 "khi chọn cắt tiếp creative 1 lần nữa cho cùng phim thì làm sao để mẫu có sự khác đi ?"): trước đây lần nào cũng lấy khung xếp hạng 1,
+        # cùng câu nhử, cùng câu đọc → ra bản y hệt. Giờ sổ etp.mau_dung nhớ khung + câu nhử đã dùng của (mẫu, phim): lần sau bỏ khung đã dùng, ưu tiên khung KHÁC CẢM XÚC,
+        # câu nhử viết góc khác, câu đọc xoay theo số bản. Hết khung mới → dừng nói rõ (không lặp bản cũ).
+        da_khung, da_cau = [], []
+        if not xem:
+            r_ = AT.sql(bang_sql() + " alter table etp.mau_dung add column if not exists khung_dung text[] not null default '{}'; alter table etp.mau_dung add column if not exists cau_dung text[] not null default '{}'; "
+                        f"select coalesce(array_to_string(khung_dung, ';'), '') || E'\t' || coalesce(array_to_string(cau_dung, ';'), '') from etp.mau_dung where mau = {s_(ma)} and content_id = {int(cid)}") or "\t"
+            da_khung, da_cau = ([x for x in y.split(";") if x] for y in (r_.split("\t") + [""])[:2])
+        khoa = lambda u: f"{u['tap']}#{u['so']}"; cx_dung = {x.split("|")[1] for x in da_khung if "|" in x}
+        uv = [u for u in uv if khoa(u) not in {x.split("|")[0] for x in da_khung}]
+        if not uv: raise RuntimeError(f"phim này đã dùng hết {len(da_khung)} khung ứng viên cho mẫu — không còn khung mới để ra bản khác")
+        if da_khung: uv = sorted(uv, key=lambda u: bool(u.get("cam_xuc")) and u.get("cam_xuc") in cx_dung)   # khác cảm xúc lên trước, giữ thứ hạng AI trong từng nhóm
+        if ma in CAN_CAU and (da_cau or "cau" not in _NHO[cid]): c_, n_, v = cau_nhu(ten, _NHO[cid].get("mo_ta") or TB.mo_ta(p["url"]), lang, tuple(da_cau)); vnd += v; _NHO[cid]["cau"] = (c_, n_)
         cau, nhan = _NHO[cid].get("cau", ("", "")) if ma in CAN_CAU else ("", "")
         cr = []
         for b in range(ban):
             cao_cho = CAN_CHO[ma]({"tm": tm, "ten": ten, "p": p, "cid": cid}) if ma in CAN_CHO else None; vnd += _CHI_LOGO[0]; _CHI_LOGO[0] = 0   # tách logo TRƯỚC khi chọn khung: không có logo thì dừng luôn, chưa tốn gì
             tot = None   # (che mặt, khung, nền, lớp, c) tốt nhất đã thử
             for lan in range(min(len(uv), KHUNG_THU)):
-                k = uv[(b + lan) % len(uv)]; k["lang"] = lang
+                k = uv[(b + lan) % len(uv)]; k["lang"] = lang   # uv đã bỏ khung các bản trước dùng
                 tt("ve_mau", g=f"bản {b + 1}/{ban}: vẽ mẫu trên khung {k['tap']}#{k['so']}" + (f" (khung xếp hạng {lan + 1} — các khung trước chữ che mặt / không đủ chỗ)" if lan else ""))
                 AT.CO_FREE, cu = False, AT.CO_FREE   # nền sạch không lớp Free — mẫu tự quyết lớp CTA của nó
                 try: nen, _ = AT.anh(cid, ten, k, tm, 100 + b)
@@ -615,13 +630,15 @@ def mot(ma, cid, xem=False, ban=1):
             if xem:   # xem: ảnh ghép tĩnh, không giọng
                 Image.alpha_composite(Image.open(nen).convert("RGBA"), lop).convert("RGB").save(out.replace(".mp4", ".jpg"), quality=88); cr.append(out.replace(".mp4", ".jpg")); continue
             tt("giong", g="giọng đọc (cổng giọng chung)")
-            kg = AT.xoay_giong([p], None)[cid]; mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, b % len(AT.CAU[lang])); vnd += v
+            kg = AT.xoay_giong([p], None)[cid]; mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, (len(da_khung) + b) % len(AT.CAU[lang])); vnd += v   # câu đọc xoay theo số bản đã dựng
             tt("video", g="dựng video 1080×1920")
             giay = AT.dung(nen, chu, mp3, out)
             tt("thu_vien", g=f"nạp thư viện ({giay}s)")
-            tv = TB.nap(cid, lang, out, dang, f"mẫu:{ma} · {muc['ten']} · bản {b + 1}/{ban} · khung {k['tap']}#{k['so']}", v)
+            tv = TB.nap(cid, lang, out, dang, f"mẫu:{ma} · {muc['ten']} · bản {len(da_khung) + 1} · khung {k['tap']}#{k['so']}" + (f" · {k['cam_xuc']} · {k.get('nhan_vat') or ''}" if k.get("cam_xuc") else ""), v)
             if not tv: raise RuntimeError("nạp thư viện không ra mã")
-            AT.sql(f"update etp.mau_dung set tv_ids = array_append(tv_ids, {int(tv)}) where mau = {s_(ma)} and content_id = {int(cid)}")
+            AT.sql(f"update etp.mau_dung set tv_ids = array_append(tv_ids, {int(tv)}), khung_dung = array_append(khung_dung, {s_(khoa(k) + '|' + (k.get('cam_xuc') or ''))})"
+                   + (f", cau_dung = array_append(cau_dung, {s_(cau.replace(';', ','))})" if cau else "") + f" where mau = {s_(ma)} and content_id = {int(cid)}")
+            uv = [u for u in uv if khoa(u) != khoa(k)]; da_khung.append(khoa(k) + "|" + (k.get("cam_xuc") or ""))
             tt("creative", g=f"tải lên Ethopex qua cổng mẫu (tv{tv})")
             subprocess.run(["python3", os.path.join(D, "thu-vien-len.py"), str(tv)], check=False)
             c_id = AT.sql(f"select coalesce(creative_id::text, '') from etp.thu_vien where id = {int(tv)}")

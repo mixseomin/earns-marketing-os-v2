@@ -225,7 +225,9 @@ export async function chonPhimMau(ma: string, contentId: number): Promise<{ ok: 
       ghi text, creative_ids integer[] not null default '{}', tv_ids integer[] not null default '{}', vnd integer not null default 0, bat_dau timestamptz, cap_nhat timestamptz not null default now(), primary key (mau, content_id))`);
     await getDb()!.execute(sql`alter table etp.mau_dung add column if not exists ten_mau text`);   // tên mẫu cho tab Máy SX mos2 (không in mã)
     await getDb()!.execute(sql`insert into etp.mau_dung (mau, content_id, buoc, trang_thai, ghi, ten_mau) values (${ma}, ${cid}, 'cho', 'cho', 'chờ máy dựng theo mẫu (iMac) nhận', ${so.ten})
-      on conflict (mau, content_id) do update set buoc = 'cho', trang_thai = 'cho', ghi = excluded.ghi, ten_mau = excluded.ten_mau, cap_nhat = now() where etp.mau_dung.trang_thai in ('loi', 'cho')`);
+      on conflict (mau, content_id) do update set buoc = 'cho', trang_thai = 'cho', ten_mau = excluded.ten_mau, cap_nhat = now(),
+        ghi = case when etp.mau_dung.trang_thai = 'xong' then 'chờ máy dựng thêm một bản mới (khung và câu khác các bản trước)' else excluded.ghi end
+      where etp.mau_dung.trang_thai in ('loi', 'cho', 'xong')`);   // CHỌN LẠI phim đã xong = dựng THÊM một bản khác (anh 20/11/2026) — máy nhớ khung + câu đã dùng
     ghi = 'đã vào hàng chờ — hàng chờ chưa có lịch tự chạy';
   } else ghi = 'đã ghi phim — mẫu chưa có máy dựng nên chưa sinh creative';
   await getDb()!.execute(sql`insert into etp.mau_phim (mau, content_id, ai, dong_id) values (${ma}, ${cid}, ${me?.displayName ?? me?.email ?? 'chủ'}, ${dongId})

@@ -379,6 +379,7 @@ export function kiemBaiViet(chu: string, link: string): string[] {
   if (/[—–]/.test(chu)) loi.push('có gạch ngang dài');
   const tm = TU_MAY.filter((w) => new RegExp(`(^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`).test(t)); if (tm.length) loi.push(`từ máy: ${tm.join(', ')}`);
   if (/(^|\s)#\w+/.test(chu)) loi.push('có hashtag');
+  if (CHU_VIET.test(chu)) loi.push('có chữ tiếng Việt — viết toàn bộ bằng tiếng Anh');
   return loi;
 }
 const giaVnd = (r: { model: string; tokens: { in: number; out: number; vnd?: number } }) => r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260;

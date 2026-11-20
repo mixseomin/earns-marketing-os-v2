@@ -1,6 +1,9 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-de.test.mts — phần thuần của máy sinh đề (không gọi mô hình)
 import assert from 'node:assert';
-import { kiemDe, rapDe, slugDe, MAU_CUA_DANG, vanHeThong, vanNguoiDung, giuHook, GIU_HOOK_TOI_THIEU, timHook, maHookKhop, ghepHook } from './may-de';
+import { kiemDe, kiemBaiViet, rapDe, slugDe, MAU_CUA_DANG, vanHeThong, vanNguoiDung, giuHook, GIU_HOOK_TOI_THIEU, timHook, maHookKhop, ghepHook } from './may-de';
+
+assert.ok(kiemBaiViet('A practical English answer with the correct link https://example.com/pay and enough text to pass review. '.repeat(15), 'https://example.com/pay').some((l) => /chữ tiếng Việt/.test(l)) === false, 'bài tiếng Anh không bị chặn oan');
+assert.ok(kiemBaiViet('A practical English answer. Lương quân nhân varies by rule. https://example.com/pay ' + 'plain '.repeat(220), 'https://example.com/pay').some((l) => /chữ tiếng Việt/.test(l)), 'bài Quora có chữ Việt bị chặn trước khi nạp');
 
 const sp = { ma: 'front-porch-only-one', ten: 'Only ONE', ngach: ['cao-tuoi'], site: 'pickjot.com', link: 'https://pickjot.com/printables/large-print-word-search/', nhan: 'Front Porch Puzzles', mo_ta: 'large print word search puzzles for seniors', book: 'nostalgia' };
 const goc = { sp: 1435, id: 37192, loai: 'ai_tinh_huong', ten: 'Đi đường dài bằng ô tô' };

@@ -27,12 +27,7 @@ def thoai(tm):
                 if len(t) >= 12 and k[2] > 0.5 and t not in ra: ra.append(t)   # nửa dưới khung = phụ đề
     return ra
 
-def mo_ta(url):
-    try:
-        h = TT.lay(url).decode("utf-8", "ignore")
-        m = re.search(r'<meta[^>]+(?:property|name)="(?:og:)?description"[^>]+content="([^"]+)"', h)
-        return TT.H.unescape(m.group(1)) if m else ""
-    except Exception: return ""
+mo_ta = TT.mo_ta   # tóm tắt thật của phim — hàm nằm ở tai-tap.py (dùng chung với anh-tinh.py)
 
 def giong_cau(cid, lang, cau, kieu, tm):
     """giọng đọc một câu tuỳ ý — cùng đường ckey của anh-tinh.doc_giong, giữ thẻ cách đọc đầu mẫu của kiểu"""
@@ -145,7 +140,7 @@ def poster_mau(mau, tm, nen_khung, ra, ban=0):
 def main(cid, kieu, ban=1, xem=False, mau_ep=None):
     p = AT.phim([cid])[0]; lang = "es" if str(p.get("locale")).startswith("es") else "en"; ten = AT.ten_sach(p["ten"])
     tm = os.path.join(AT.C, str(cid)); os.makedirs(tm, exist_ok=True); vnd = 0; kq = {"content_id": cid, "ban": []}
-    uv = AT.khung(cid, p["url"], tm); uv, ly_ai, v_ai = AT.xep_ai(ten, uv) if len(uv) > 1 else (uv, "", 0); vnd += v_ai
+    uv = AT.khung(cid, p["url"], tm); uv, ly_ai, v_ai = AT.xep_ai(ten, uv, mo_ta(p["url"])) if len(uv) > 1 else (uv, "", 0); vnd += v_ai   # + tóm tắt phim: khung đúng móc câu chuyện (20/11/2026)
     ks = list(AT.KIEU_GIONG); kg0 = AT.xoay_giong([p], None)[cid]
     if "tom_tat" in kieu or "cau_soc" in kieu:
         th = thoai(tm); md = mo_ta(p["url"])

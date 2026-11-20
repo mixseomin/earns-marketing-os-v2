@@ -56,6 +56,19 @@ def da_het(ra):
     po = os.path.join(ra, "poster.jpg")
     return k > 0 and os.path.exists(po) and os.path.getsize(po) > 2000 and all(os.path.exists(os.path.join(ra, f"tap{n:02d}.mp4")) for n in range(1, k + 1))
 
+def mo_ta(url):
+    """TÓM TẮT THẬT của phim (20/11/2026: link rút gọn reelslink.com dẫn về trang App Store → máy đọc lời giới thiệu ỨNG DỤNG "Download ReelShort - Stream Drama & TV…" làm tóm tắt phim,
+    câu nhử + AI xếp khung viết / chọn theo một câu chuyện không có thật — American Sniper ra khung người mẹ thay vì tay bắn tỉa). Mở rộng link về trang phim (tai-tap.mo_rong), lấy đoạn
+    giới thiệu ĐẦY ĐỦ trong dữ liệu trang (meta description bị cắt "…"); chữ giới thiệu ứng dụng / cửa hàng → coi như không có tóm tắt (trả rỗng, bên gọi tự biết thiếu)."""
+    try:
+        h = lay(mo_rong(url)).decode("utf-8", "ignore")
+        m = re.search(r'<meta[^>]+(?:property|name)="(?:og:)?description"[^>]+content="([^"]+)"', h)
+        og = H.unescape(m.group(1)) if m else ""; loi = re.sub(r"\.{3}$|…$", "", og.split("; ")[-1]).strip()[:60]
+        dai = [json.loads('"' + x + '"') for x in re.findall(r'"(?:special_desc|introduction|book_desc|description|desc|synopsis)"\s*:\s*"((?:[^"\\]|\\.){40,2000})"', h)]
+        dai = [x for x in dai if loi and loi in x]; t = max(dai, key=len) if dai else og
+        return "" if re.search(r"(?i)download reelshort|app store|google play|stream drama & tv", t[:120]) else t
+    except Exception: return ""
+
 def og_anh(goc):
     """link ảnh og:image (poster) trên trang phim công khai, không tải ảnh. Dùng chung: main() tải poster.jpg · nhom_goc.py khi Ethopex thiếu poster (anh 07/11/2026 "vào site của phim mà lấy")."""
     html1 = lay(goc).decode("utf-8", "ignore")

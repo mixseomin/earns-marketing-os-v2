@@ -164,6 +164,19 @@ export async function datQuyenS2(userId: number, dung: boolean, sinh: boolean): 
   return { ok: true, data: undefined };
 }
 
+/** CHẾ ĐỘ CHO PHÉP VIDEO TRẢ PHÍ của một tập (anh 20/11/2026: "B9 bật chế độ cho phép chạy trả phí") — chỉ quản trị thật. Bật = ghi ky_thuat.tra_phi cho mọi shot
+ *  của tập (cổng sinh-video.ts › videoTraPhi): shot đi được đường trả phí (H3 / Seedance / model của phim) mà không phải thử VideoExpress trước. Tắt = gỡ cờ.
+ *  0đ: tiền chỉ phát sinh khi lô dựng chạy. Ghi thẳng SQL vì suaCanh lọc ky_thuat qua lamSachKyThuat (bỏ mọi khoá ngoài thư viện, kể cả tra_phi). */
+export async function moTraPhiS2(tapId: number, bat = true): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
+  const db = getDb(), me = await getCurrentUser();
+  if (!db || !me || me.role !== 'admin') return { ok: false, loi: 'chỉ quản trị mở được video trả phí' };
+  const id = Number(tapId);
+  const r = (bat
+    ? await db.execute(sql`UPDATE xv_canh SET ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || '{"tra_phi": true}'::jsonb, updated_at = now() WHERE tap_id = ${id} AND NOT coalesce(ky_thuat, '{}'::jsonb) ? 'tra_phi' RETURNING id`)
+    : await db.execute(sql`UPDATE xv_canh SET ky_thuat = ky_thuat - 'tra_phi', updated_at = now() WHERE tap_id = ${id} AND coalesce(ky_thuat, '{}'::jsonb) ? 'tra_phi' RETURNING id`)) as unknown as Row[];
+  return { ok: true, data: r.length };
+}
+
 // ── Studio 2 · CƠ SỞ PHÂN TÍCH TỪ ASTROLAS (anh 20/11/2026: nhóm làm video chia sẻ chiêm tinh theo GÓC NHÌN CÁ NHÂN, "sử dụng astrolas làm cơ sở
 //    phân tích" — KHÔNG dùng hệ thống Kênh nội dung của Astrolas) ──────────────────────────────────────────────────────────────────────────────────
 // Người làm video nêu câu hỏi + (nếu có) ngày giờ nơi sinh của người / cặp họ muốn nói tới → hỏi cầu nối mos2 của site (astrolas.com /api/v1/qa/answer,

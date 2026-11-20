@@ -112,6 +112,7 @@ def cach_mep(x, z, v):  # khoảng cách từ điểm tới viền mặt bằng 
         (ax, az), (bx_, bz_) = v[i], v[(i + 1) % n]; L2_ = (bx_ - ax) ** 2 + (bz_ - az) ** 2
         t = 0 if L2_ == 0 else max(0, min(1, ((x - ax) * (bx_ - ax) + (z - az) * (bz_ - az)) / L2_)); m = min(m, math.hypot(x - ax - t * (bx_ - ax), z - az - t * (bz_ - az)))
     return m
+MAI_ANH = json.load(open(PUB / 'neuschwanstein-mai.json'))['khoi'] if (PUB / 'neuschwanstein-mai.json').exists() else {}
 KT = {k['id']: k for k in json.load(open(G / 'diem-mo-hinh.json'))['ds']} if (G / 'diem-mo-hinh.json').exists() else {}
 ra = {}; bang = []
 for k in K['ds']:
@@ -181,6 +182,20 @@ for k in K['ds']:
             if ya - da > 0.05 or yb - db > 0.05: tuong.append([round(ax, 3), round(az, 3), round(min(da, ya), 3), round(ya, 3), round(bx_, 3), round(bz_, 3), round(min(db, yb), 3), round(yb, 3)])
     ra[k['id']] = {'y0': round(min(vien) if len(vien) >= 4 else min(ys), 3),  # y0 = mái thấp nhất ĐO ở viền trong 0,3 m, không lấy đỉnh mảnh: mảnh dốc chạm chân tường (nhà chân Viereckturm 21,45 m) kéo sàn khối xuống thấp hơn thật 2 m
                    'y1': round(y1, 3), 'y2': round(y2, 3), 'mat': mat, 'tuong': tuong, 'mh': r['mh'], 'l2': r['l2']}
+    # cửa mái / chóp nhỏ đo trên ảnh 3D (do-mai.mjs) đặt lên mái LoD2: giữ chỉ khi DOM20 thấy khối nhô (trung vị DOM20 − mái LoD2 trong vết ≥ 0,35 m; DOM lấy trung vị 1 m nên cửa mái nhỏ chỉ còn nhô ~0,4–0,6 m).
+    # Mái LoD2 đã mang dáng thật (mái hông nhiều mặt) nên cửa mái đo ảnh trên đó thường là chính mặt mái bị đo nhầm → nhô 1,5–2,8 m mà DOM20 phẳng
+    # (tháp đa giác 223179004 bắc Palas lệch −2,2 m, trọng tài chặn, 21/11/2026)
+    cm = []
+    for cq in (MAI_ANH.get(k['id']) or []):
+        R = max(0.6, min(3.0, cq.get('rong', 1) / 2)); ch = []
+        for ox in np.arange(-R, R + 0.01, 0.5):
+            for oz in np.arange(-R, R + 0.01, 0.5):
+                if ox * ox + oz * oz > R * R: continue
+                h = cao_mai(cq['x'] + ox, cq['z'] + oz, manh)
+                if h is not None: ch.append(cao_dom(cq['x'] + ox, cq['z'] + oz) - h)
+        tv = float(np.median(ch)) if ch else None
+        cm.append({'x': cq['x'], 'z': cq['z'], 'loai': cq.get('loai'), 'chenh': None if tv is None else round(tv, 2), 'giu': tv is not None and tv >= 0.35})
+    if cm: ra[k['id']]['cua_mai'] = cm; print(k['id'], 'cửa mái/chóp:', ' '.join(f"{c['loai']}({c['x']:.1f},{c['z']:.1f}) {c['chenh']} {'giữ' if c['giu'] else 'BỎ'}" for c in cm))
 print('khối'.ljust(16), 'tên'.ljust(12), 'điểm', ' phủ', ' |mô hình| tv/p90', ' |LoD2| tv/p90', ' nhận')
 for r in sorted(bang, key=lambda r: -(r['mh'] - r['l2'])):
     print(r['id'].ljust(16), str(r['ten'] or '')[:11].ljust(12), str(r['diem']).rjust(4), f"{r['phu']:5.2f}", f"{r['mh']:8.2f} / {r['mh90']:5.2f}", f"{r['l2']:7.2f} / {r['l290']:5.2f}", '  ✓' if r['nhan'] else ('  ' + (r['ly_do'] or '')))

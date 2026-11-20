@@ -810,7 +810,8 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
   if (MAI?.khoi) { const ds = [];
     for (const [id, cs] of Object.entries(MAI.khoi)) { const k = dsKhoi.find((q) => q.id === id); if (!k?.hinh?.[1]?.length) continue;
       const tg = k.hinh[1], mai = (x, z) => { let y = null; for (let i = 0; i + 8 < tg.length; i += 9) { const [ax, ay, az, bx, by, bz, cx, cy, cz] = tg.slice(i, i + 9), d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz); if (Math.abs(d) < 1e-6) continue; const u = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / d, v = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / d, w = 1 - u - v; if (u < -1e-4 || v < -1e-4 || w < -1e-4) continue; const yy = u * ay + v * by + w * cy; if (y == null || yy > y) y = yy; } return y; };
-      for (const c of cs) { if (c.rong < 0.8 || c.rong > 6 || c.nho > 10) continue; const y = mai(c.x, c.z); if (y == null) continue; ds.push({ ...c, y: y - 0.2 }); } }
+      const kt = MAI_LOD2?.khoi?.[id]?.cua_mai; // khối mái LoD2: chỉ giữ cửa mái / chóp mà DOM20 thấy nhô (scripts/mai-lod2.py)
+      for (const c of cs) { if (c.rong < 0.8 || c.rong > 6 || c.nho > 10) continue; if (kt && !kt.some((q) => Math.abs(q.x - c.x) < 0.05 && Math.abs(q.z - c.z) < 0.05 && q.giu)) continue; const y = mai(c.x, c.z); if (y == null) continue; ds.push({ ...c, y: y - 0.2 }); } }
     for (const m of datMai({ THREE, mergeGeometries, ds, nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
     for (const [id, cs] of Object.entries(MAI?.khoi || {})) for (const c of cs || []) ghiKK(id + '#mai', c.loai === 'chop' ? 'chop' : 'cua_mai', c.y, 1, c.x, c.z);
     console.info('[ns] cửa mái / chóp trên mái (đo ảnh 3D):', ds.filter((c) => c.loai === 'cuaMai').length, '/', ds.filter((c) => c.loai === 'chop').length); }

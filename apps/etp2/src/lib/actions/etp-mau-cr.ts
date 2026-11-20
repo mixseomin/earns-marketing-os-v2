@@ -118,7 +118,7 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
     // MỚI ĐẾN CŨ (anh 20/11/2026 "sort creative từ mới đến cũ"): creative trong một phim theo mã giảm dần; phim theo lần dựng / creative mới nhất
     const moiNhat = (f: PhimSx) => Math.max(0, ...f.cr.map((c) => c.id));
     const sxCua = (ma: string) => [...(phimSx.get(ma)?.values() ?? [])].map((f) => ({ ...f, cr: [...f.cr].sort((a, b) => b.id - a.id) }))
-      .sort((a, b) => (b.dung?.cap_nhat ?? '').localeCompare(a.dung?.cap_nhat ?? '') || moiNhat(b) - moiNhat(a));
+      .sort((a, b) => moiNhat(b) - moiNhat(a) || (b.dung?.cap_nhat ?? '').localeCompare(a.dung?.cap_nhat ?? ''));   // phim có creative mới nhất đứng đầu; phim chưa ra creative (đang chờ) xuống cuối
     const phim = await run<{ id: number; ten: string }>(sql`select content_id id, ten from etp.phim where ten is not null and coalesce(nhom_goc, 'au_my') = 'au_my' order by ten`);
     const banTheoMau = new Map<string, BanMau[]>();
     for (const x of anhMau) banTheoMau.set(x.mau, [...(banTheoMau.get(x.mau) ?? []), { anh: x.anh, video: x.video, nhan: x.thu > 0 ? `thu $${x.thu.toFixed(0)}` : null, link: x.video ?? x.anh }]);

@@ -66,7 +66,7 @@ export function BanMauLuoi({ m: mGoc, cot = 3, nhom = false, oRong }: { m: MauCr
   if (nhom && mGoc.nguon === 'doi_thu') { const g = mGoc.ban.filter((b) => b.vai === 'goc'), d = mGoc.ban.filter((b) => b.vai === 'duyet');
     // hai nhóm CẠNH NHAU trên một hàng, ô nhỏ cố định 128px (ô to chia theo cột đẩy mô tả + quy trình xuống dưới màn — đo 20/11/2026); hẹp thì nhóm sau tự xuống dòng
     // + nhóm "Nhà dựng · chưa duyệt" (anh 20/11/2026 "3 mẫu này tìm ở đâu ?"): bản máy nhà dựng theo mẫu mà anh chưa duyệt CHỈ hiện ở chi tiết mẫu, có nhãn rõ — thẻ ngoài lưới vẫn chỉ hiện nguồn + bản đã duyệt
-    const u = mGoc.ban.filter((b) => b.vai === 'dung');
+    const u = d.length ? [] : mGoc.ban.filter((b) => b.vai === 'dung');   // mẫu đã có bản anh duyệt thì bản dựng thử cũ không hiện nữa (bản duyệt thay nó)
     const nh = ([['Nhà đã duyệt', d, 'creative máy dựng theo mẫu, anh đã duyệt làm mẫu'], ['Nhà dựng · chưa duyệt', u, 'bản máy nhà dựng theo mẫu này — anh chưa duyệt làm mẫu'], ['Nguồn đối thủ', g, 'QC gốc của đối thủ mà mẫu này học theo']] as const).filter((x) => x[1].length);   // bản nhà trước, nguồn đối thủ sau (anh 20/11/2026)
     if (nh.length >= 2) return <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 22px' }}>
       {nh.map(([ten, ds, goi]) => <div key={ten} style={{ maxWidth: '100%', minWidth: 0 }}>

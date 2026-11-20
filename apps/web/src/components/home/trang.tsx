@@ -5,6 +5,7 @@
 // Trạng thái: màn + ngữ cảnh (?man ?p ?days) trên URL do máy chủ đọc · đang sửa / phóng to / trình chiếu / trang nhúng trên URL kiểu shallow ·
 // tuỳ chọn khung của từng người ở cookie home-khung (máy chủ đọc → lần vẽ đầu đã đúng, không nháy) · bố cục lưu bảng home_bo_cuc.
 // tra-repo-ok: đã tra react-grid-layout, gridstack, dockview, FlexLayout, cmdk, kiosk Grafana (20/11/2026) — học cách làm, tự viết phần khung để không thêm thư viện.
+// NHIỀU TRANG MỘT KHUNG (20/11/2026): prop `so` chọn bộ sổ (lib/luoi-trang/bo-so.ts) — /home và /outreach chạy chung khung này, khác nhau ở sổ widget + màn + đường gốc.
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -12,29 +13,30 @@ import { Drawer, Segmented } from '@/components/ui';
 import { useShallowParam } from '@/lib/url-shallow';
 import { useTieuDe } from '@/lib/tieu-de';
 import { apKhung, maTrenMan, them, type O } from '@/lib/home/luoi';
-import { KHUNG, KHUNG_COOKIE, MAN, MAN_MAC_DINH, NHOM, WIDGET, macCua, manCua, nhomCua, widgetCua, type NhomWidget, type TuyChon } from '@/lib/home/so';
+import { KHUNG, KHUNG_COOKIE, type TuyChon } from '@/lib/home/so';
+import { BO_SO, macCuaBo, manCuaBo, nhomCuaMa, widgetCuaBo, type BoSoId } from '@/lib/luoi-trang/bo-so';
 import type { NguonBoCuc } from '@/lib/home/bo-cuc';
 import { datTeamHome, luuBoCucHome, veMacDinhHome } from '@/lib/actions/home-bo-cuc';
 import { Bang } from './bang';
 
 const KY = [7, 30, 90];
 const NHAN_NGUON: Record<NguonBoCuc, string> = { rieng: 'bố cục của anh', team: 'bố cục của team', san: 'bố cục dựng sẵn' };
-/** trang khác của MOS2 — mở trong ngăn trang nhúng, không rời /home */
-const TRANG_KHAC = [
-  { kh: 'TC', ten: 'Trang chủ cũ', href: '/' },
-  { kh: 'PL', ten: 'Plays', href: '/plays' },
-  { kh: 'SH', ten: 'Shop', href: '/shop' },
-  { kh: 'TD', ten: 'Tiến độ', href: '/plays?view=tiendo' },
-];
 const PHIM_TAT = ['[  thu / mở thanh màn', ']  mở / đóng panel phụ', 'E  sửa bố cục', 'F  trình chiếu', 'Ctrl+K hoặc /  tìm', 'Ctrl+Z  hoàn tác', 'Bấm đúp tiêu đề  phóng to', 'Thả widget lên tiêu đề widget khác  gộp tab'].join('\n');
 const khongDau = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 const dangGo = (t: EventTarget | null) => { const e = t as HTMLElement | null; return !!e && (/^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName) || e.isContentEditable); };
-const hopLeTr = (v: string) => (v.startsWith('/') && !v.startsWith('//') && !v.startsWith('/home') ? v : '');
+/** đường mở được trong ngăn trang nhúng: trang MOS2 khác, không phải chính trang đang đứng */
+const hopLeTrang = (v: string, goc: string) => (v.startsWith('/') && !v.startsWith('//') && v !== goc && !v.startsWith(`${goc}?`) && !v.startsWith(`${goc}/`) ? v : '');
 
-export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
+export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
+  /** bộ sổ của trang (lib/luoi-trang/bo-so.ts); không truyền = /home */
+  so?: BoSoId;
   manId: string; tuy: TuyChon; bo: O[]; nguon: NguonBoCuc; noi: Record<string, ReactNode>;
-  ngu: { duAnPhu: string[]; pid?: string; days: number; p?: string; daysRaw?: string; ky: number }; docLuc: string;
+  /** duAn + da: bộ chọn dự án của trang outreach (widget khai ngu 'da') */
+  ngu: { duAnPhu: string[]; pid?: string; days: number; p?: string; daysRaw?: string; ky: number; duAn?: string[]; da?: string }; docLuc: string;
 }) {
+  const S = BO_SO[so], MAN = S.man, MAN_MAC_DINH = S.manMacDinh, NHOM = S.nhom, WIDGET = S.widget, TRANG_KHAC = S.trangKhac;
+  const manCua = (id: string | undefined) => manCuaBo(S, id), widgetCua = (ma: string) => widgetCuaBo(S, ma), macCua = (ma: string) => macCuaBo(S, ma), nhomCua = nhomCuaMa;
+  const hopLeTr = (v: string) => hopLeTrang(v, S.goc);
   const router = useRouter(), man = manCua(manId);
   const [tuy, setTuy] = useState(tuyDau);
   const [boSua, setBoSua] = useState<Record<string, { o: O[]; nguon: NguonBoCuc }>>({});
@@ -47,7 +49,7 @@ export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
   const [navMo, setNavMo] = useState(false), [pal, setPal] = useState(false);
   const [bao, setBao] = useState<string | null>(null);
   const [, batDauLuu] = useTransition();
-  useTieuDe([man.ten, 'Home'], 2);
+  useTieuDe([man.ten, S.ten], 2);
 
   // đổi màn: lịch sử hoàn tác là của màn cũ
   useEffect(() => { lichSu.current = []; setSoLichSu(0); setNavMo(false); }, [man.id]);
@@ -58,13 +60,14 @@ export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
     document.cookie = `${KHUNG_COOKIE}=${encodeURIComponent(JSON.stringify(moi))}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
     return moi;
   });
-  const href = (kv: { man?: string; p?: string; days?: string; ky?: string }) => {
-    const v = { man: man.id, p: ngu.p ?? '', days: ngu.daysRaw ?? '', ky: String(ngu.ky), ...kv }, q = new URLSearchParams();
+  const href = (kv: { man?: string; p?: string; days?: string; ky?: string; da?: string }) => {
+    const v = { man: man.id, p: ngu.p ?? '', days: ngu.daysRaw ?? '', ky: String(ngu.ky), da: ngu.da ?? '', ...kv }, q = new URLSearchParams();
     if (v.man && v.man !== MAN_MAC_DINH) q.set('man', v.man);
     if (v.p) q.set('p', v.p);
     if (v.days && v.days !== '7') q.set('days', v.days);
     if (v.ky && v.ky !== '7') q.set('ky', v.ky);
-    const s = q.toString(); return s ? `/home?${s}` : '/home';
+    if (v.da) q.set('da', v.da);
+    const s = q.toString(); return s ? `${S.goc}?${s}` : S.goc;
   };
 
   /** đổi bố cục: cất bản cũ để hoàn tác, vẽ ngay, lưu về máy chủ; có widget mới chưa có ruột thì đọc lại trang để máy chủ vẽ ruột đó */
@@ -129,9 +132,9 @@ export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
     e.preventDefault(); e.stopPropagation(); datTr(u.pathname + u.search);
   };
 
-  const canNgu = useMemo(() => new Set(maTrenMan(ds).flatMap((ma) => widgetCua(ma)?.ngu ?? [])), [ds]);
+  const canNgu = useMemo(() => new Set<string>(maTrenMan(ds).flatMap((ma) => [...(widgetCuaBo(S, ma)?.ngu ?? [])])), [ds, S]);
   const tren = useMemo(() => new Set(maTrenMan(ds)), [ds]);
-  const nhomMan = useMemo(() => { const ra: { ten: string; man: typeof MAN }[] = []; for (const m of MAN) { const c = ra[ra.length - 1]; if (c && c.ten === m.nhom) c.man.push(m); else ra.push({ ten: m.nhom, man: [m] }); } return ra; }, []);
+  const nhomMan = useMemo(() => { const ra: { ten: string; man: typeof MAN }[] = []; for (const m of MAN) { const c = ra[ra.length - 1]; if (c && c.ten === m.nhom) c.man.push(m); else ra.push({ ten: m.nhom, man: [m] }); } return ra; }, [MAN]);
   const an = ks === '1';
 
   return (
@@ -143,6 +146,7 @@ export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
           <div className="hm-ten">{man.ten}</div>
           <div className="hm-ngu">
             {canNgu.has('p') && ngu.duAnPhu.length > 1 && <Segmented size="sm" options={ngu.duAnPhu.map((p) => ({ value: p, label: p, title: `Sổ phủ của ${p}` }))} value={ngu.pid ?? ''} onChange={(p) => router.push(href({ p }))} hrefFor={(p) => href({ p })} />}
+            {canNgu.has('da') && (ngu.duAn?.length ?? 0) > 1 && <Segmented size="sm" options={[{ value: '', label: 'Mọi dự án', title: 'Số của mọi dự án có outreach' }, ...ngu.duAn!.map((p) => ({ value: p, label: p, title: `Chỉ outreach của ${p}` }))]} value={ngu.da ?? ''} onChange={(da) => router.push(href({ da }))} hrefFor={(da) => href({ da })} />}
             {canNgu.has('days') && <Segmented size="sm" options={KY.map((n) => ({ value: n, label: `${n} ngày` }))} value={ngu.days} onChange={(n) => router.push(href({ days: String(n) }))} hrefFor={(n) => href({ days: String(n) })} />}
             {canNgu.has('ky') && <Segmented size="sm" options={KY.map((n) => ({ value: n, label: `social ${n} ngày`, title: `Social trỏ về · khung ${n} ngày` }))} value={ngu.ky} onChange={(n) => router.push(href({ ky: String(n) }))} hrefFor={(n) => href({ ky: String(n) })} />}
             {sua && <Segmented size="sm" options={[{ value: 12, label: '12×18' }, { value: 24, label: '24×36' }, { value: 48, label: '48×72' }, { value: 0, label: 'Tự do', title: 'Không bắt dính vào lưới' }]} value={tuy.luoi} onChange={(v) => datTuy({ luoi: v as TuyChon['luoi'] })} />}
@@ -172,7 +176,7 @@ export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
         {navMo && <div className="hm-man" onClick={() => setNavMo(false)} />}
 
         <main className="hm-main" onClickCapture={batLink}>
-          <Bang ds={ds} noi={noi} sua={sua} luoi={tuy.luoi} cham={tuy.cham} to={to} onDoi={doi} onTo={datTo} onBao={setBao} onThuLai={() => router.refresh()} />
+          <Bang so={so} ds={ds} noi={noi} sua={sua} luoi={tuy.luoi} cham={tuy.cham} to={to} onDoi={doi} onTo={datTo} onBao={setBao} onThuLai={() => router.refresh()} />
         </main>
 
         <aside className="hm-pn" aria-label="Panel phụ">
@@ -184,7 +188,7 @@ export function HomeTrang({ manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
           <div className="hm-pb">
             {theP === 'kho' ? (<>
               <input type="search" value={loc} onChange={(e) => setLoc(e.target.value)} placeholder={`Lọc ${Object.keys(WIDGET).length} widget`} aria-label="Lọc widget" />
-              {(Object.keys(NHOM) as NhomWidget[]).map((k) => {
+              {Object.keys(NHOM).map((k) => {
                 const q = khongDau(loc.trim()), muc = Object.keys(WIDGET).filter((ma) => nhomCua(ma) === k && (!q || khongDau(`${widgetCua(ma)!.ten} ${widgetCua(ma)!.moTa} ${ma}`).includes(q)));
                 return muc.length ? (<div key={k}><h4>{NHOM[k]}</h4>{muc.map((ma) => (
                   <button key={ma} type="button" className="hm-kho" disabled={tren.has(ma)} title={tren.has(ma) ? 'Đã có trên màn đang mở' : `${widgetCua(ma)!.moTa} — bấm để thêm vào màn đang mở`} onClick={() => themWidget(ma)}>

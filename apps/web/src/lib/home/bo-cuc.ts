@@ -3,11 +3,15 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { hopLe, type O } from './luoi';
-import { coWidget, manCua } from './so';
+import { boCuaMan, coWidgetBo } from '@/lib/luoi-trang/bo-so';
 
 export type NguonBoCuc = 'rieng' | 'team' | 'san';
+/** `man` là mã màn của BẤT KỲ bộ sổ nào (lib/luoi-trang/bo-so.ts: /home, /outreach) — bộ sổ tự tìm theo mã màn; mã lạ → bố cục rỗng. */
 export async function docBoCucHome(userId: number, man: string): Promise<{ o: O[]; nguon: NguonBoCuc }> {
-  const san = { o: manCua(man).o, nguon: 'san' as const };
+  const bo = boCuaMan(man);
+  if (!bo) return { o: [], nguon: 'san' };
+  const coWidget = coWidgetBo(bo);
+  const san = { o: bo.man.find((m) => m.id === man)!.o, nguon: 'san' as const };
   const db = getDb(); if (!db) return san;
   try {
     const rs = (await db.execute(sql`select user_id::int u, o from home_bo_cuc where man = ${man} and user_id in (${userId}, 0)`)) as unknown as { u: number; o: unknown }[];

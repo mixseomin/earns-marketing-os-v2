@@ -258,6 +258,11 @@ if [ "${MANH_DOI:-false}" = "true" ]; then systemctl daemon-reload; fi
 systemctl is-enabled --quiet etp-manh.timer 2>/dev/null || systemctl enable --now etp-manh.timer >/dev/null 2>&1
 systemctl is-active --quiet etp-manh.timer && echo "✓ etp-manh.timer active" || echo "✗ etp-manh.timer chưa chạy (không chặn deploy)"
 
+# 5e4. OUTREACH (outreach.on.tc) — trang /outreach của chính mos2-web, không có tiến trình riêng (anh 20/11/2026). Mã đi theo bản dựng web; ở đây chỉ cài vhost.
+if ! cmp -s deploy/nginx-outreach.conf /etc/nginx/sites-enabled/outreach.on.tc; then
+  cp deploy/nginx-outreach.conf /etc/nginx/sites-enabled/outreach.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx outreach.on.tc cài/cập nhật" || { echo "✗ nginx outreach.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/outreach.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
+fi
+
 # 6. Restart mos2-web CHỈ khi web có bản mới / deps đổi (anh chốt 13/10/2026: deploy app con không được kéo mos2 khởi động lại).
 if [ "${WEB_RESTART:-false}" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-web; then
   # THAY BẢN DỰNG + KHỞI ĐỘNG LẠI LIỀN NHAU (02/11/2026): hai lần đổi tên + restart cách nhau mili giây, server cũ không bao giờ đọc bản mới

@@ -5,7 +5,7 @@
 // tra-repo-ok: đã tra react-grid-layout, gridstack, dockview, FlexLayout (20/11/2026) — tự viết vì cần thả tự do + tab trong ô + không thêm thư viện.
 import { Component, useMemo, useRef, type CSSProperties, type ReactNode } from 'react';
 import { CAC_TAY, CX, CY, boTab, buocCua, gop, keo, khoa, moTab, tabsCua, tha as thaO, type CheDoCham, type O, type Tay } from '@/lib/home/luoi';
-import { macCua, widgetCua } from '@/lib/home/so';
+import { BO_SO, macCuaBo, widgetCuaBo, type BoSoId } from '@/lib/luoi-trang/bo-so';
 
 /** Một widget lỗi (đọc dữ liệu hỏng, khối vỡ) không được kéo sập cả màn: báo ngay trong ô đó, kèm câu máy nói + nút thử lại. */
 class LoiWidget extends Component<{ ten: string; onThuLai: () => void; children: ReactNode }, { loi: string | null }> {
@@ -23,11 +23,14 @@ class LoiWidget extends Component<{ ten: string; onThuLai: () => void; children:
   }
 }
 
-export function Bang({ ds, noi, sua, luoi, cham, to, onDoi, onTo, onBao, onThuLai }: {
+export function Bang({ so = 'home', ds, noi, sua, luoi, cham, to, onDoi, onTo, onBao, onThuLai }: {
+  /** bộ sổ của trang (lib/luoi-trang/bo-so.ts) */
+  so?: BoSoId;
   ds: O[]; noi: Record<string, ReactNode>; sua: boolean; luoi: number; cham: CheDoCham; to: string;
   /** bố cục mới; nho = false khi không cần đưa vào lịch sử hoàn tác (đổi tab) */
   onDoi: (moi: O[], nho?: boolean) => void; onTo: (ma: string) => void; onBao: (chu: string) => void; onThuLai: () => void;
 }) {
+  const S = BO_SO[so], widgetCua = (ma: string) => widgetCuaBo(S, ma), macCua = (ma: string) => macCuaBo(S, ma);
   const ref = useRef<HTMLDivElement>(null);
   // thứ tự DOM = trên → dưới, trái → phải (điện thoại xếp một cột theo đúng thứ tự đọc); ô nào nằm trên khi đè nhau thì theo thứ tự mảng (zIndex)
   const thuTu = useMemo(() => ds.map((_, i) => i).sort((a, b) => ds[a]!.y - ds[b]!.y || ds[a]!.x - ds[b]!.x), [ds]);

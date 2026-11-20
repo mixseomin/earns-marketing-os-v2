@@ -22,6 +22,8 @@ const MAC_DINH = [
   'apps/etp2/src/components/etp-mau-drawer.tsx',
   'apps/etp2/src/components/etp-mau-phim-drawer.tsx',
   'apps/etp2/src/components/etp-mau-dung-drawer.tsx',
+  'apps/web/src/components/outreach-tong/ve.tsx',   // outreach.on.tc
+  'apps/web/src/components/outreach-tong/bang.tsx',
 ];
 const tep = process.argv.slice(2).filter((x) => !x.startsWith('--')).length ? process.argv.slice(2).filter((x) => !x.startsWith('--')) : MAC_DINH;
 // TỰ KIỂM (--tu-kiem): đúng các câu anh chỉ ra 25/10/2026 phải bị chặn; câu lời thường phải qua

@@ -131,10 +131,16 @@ export function tachChuRe(t: string): { tieu: string; dong: string[] } {
   const dong = sau.split(/\n|\s+·\s+|\s+—\s+/).map((x) => x.trim()).filter(Boolean);
   return { tieu, dong };
 }
+// #1715 (anh 20/11/2026 "Tởm, ko đọc đc"): only a SHORT title is shown in bold. A long description with no separator
+// (vd mô tả mẫu creative) used to be one bold 13px block → hard to read. Above TIEU_DAM characters it becomes a plain paragraph, regular weight, wider line height.
+const TIEU_DAM = 60;
 export function TheChu({ chu }: { chu: string }) {
   const { tieu, dong } = tachChuRe(chu);
-  return <div style={{ width: 'max-content', maxWidth: 360, padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)', lineHeight: 1.4 }}>
-    <b style={{ fontSize: 13 }}>{tieu}</b>
+  const dam = tieu.length <= TIEU_DAM;
+  return <div style={{ width: 'max-content', maxWidth: 360, padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)', lineHeight: 1.45 }}>
+    {dam
+      ? <b style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)' }}>{tieu}</b>
+      : <div style={{ fontSize: 12.5, fontWeight: 400, lineHeight: 1.55, color: 'var(--fg-0)' }}>{tieu}</div>}
     {dong.length ? <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--line)', display: 'grid', gap: 4 }}>
       {dong.map((x, i) => <div key={i} style={{ position: 'relative', paddingLeft: 12, color: 'var(--fg-2)' }}>
         <span style={{ position: 'absolute', left: 0, top: 6, width: 5, height: 5, borderRadius: 3, background: 'var(--fg-3, #777)' }} />{x}</div>)}

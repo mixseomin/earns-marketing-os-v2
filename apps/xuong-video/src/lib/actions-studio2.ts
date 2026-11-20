@@ -324,6 +324,21 @@ export async function veLaiAnhMauS2(phimId: number, nhanVatId: number, yeuCau = 
   return k.ok ? { ok: true, data: k.data } : { ok: false, loi: k.loi };
 }
 
+/** THÊM / SỬA MẪU của phim từ khung "Nhân vật, bối cảnh" (góp ý #1745: "ko xem đc chi tiết… ko thêm đc mới… phải cho khả năng điều khiển"):
+ *  id có → sửa tên + mô tả (giữ ảnh, giọng, quan hệ); id trống → thêm mẫu mới chưa có ảnh. KHÔNG tốn tiền — vẽ ảnh mẫu là nút riêng (veLaiAnhMauS2). */
+export async function luuMauS2(phimId: number, d: { id?: number; ten: string; mo_ta: string; loai?: string }): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
+  const db = getDb(); if (!db) return { ok: false, loi: 'no db' };
+  const ten = String(d?.ten ?? '').trim().slice(0, 60), mt = String(d?.mo_ta ?? '').trim().slice(0, 1200);
+  if (!ten) return { ok: false, loi: 'thiếu tên' }; if (!mt) return { ok: false, loi: 'thiếu mô tả: máy vẽ ảnh mẫu theo mô tả này' };
+  if (d.id) {
+    const r = (await db.execute(sql`UPDATE xv_nhan_vat SET ten = ${ten}, mo_ta = ${mt}, updated_at = now() WHERE id = ${Number(d.id)} AND phim_id = ${Number(phimId)} RETURNING id`)) as unknown as Row[];
+    return r[0] ? { ok: true, data: Number(d.id) } : { ok: false, loi: 'mẫu này không thuộc phim' };
+  }
+  const lo = (['nhan_vat', 'dao_cu', 'san_pham', 'boi_canh'].includes(String(d.loai)) ? d.loai : 'nhan_vat') as Parameters<typeof luuNhanVat>[0]['loai'];
+  const k = await luuNhanVat({ phim_id: Number(phimId), loai: lo, ten, mo_ta: mt, anh_ref: [], giong: '' });
+  return k.ok ? { ok: true, data: k.data } : { ok: false, loi: k.loi };
+}
+
 /** TẠO NHÂN VẬT MỚI cho một cảnh (thẻ "Tạo nhân vật" của Lệnh AI — anh 21/11/2026): lưu nhân vật theo mô tả, gắn vào cảnh thay các NGƯỜI đang gắn
  *  (thành phần khác giữ), rồi vẽ một ảnh mẫu. TỐN TIỀN: một lượt model ảnh. Ảnh mẫu xong thì sinh lại keyframe cảnh đó. */
 export async function taoNhanVatS2(canhId: number, ten: string, moTa: string, loaiTp = 'nhan_vat'): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {

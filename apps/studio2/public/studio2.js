@@ -322,7 +322,7 @@ function tuStudio(pd, tap, ds) {
   const loai = co3d ? 'phim' : p.loai === 'quang_cao' || /^qc_/.test(tl) ? 'qc' : p.loai === 'may_dung' ? 'may' : tl === 'tai_lieu' || laMoc ? 'tailieu' : 'doc';
   if (ds.length) for (const c of ds) if (!GOC[`s${c.id}`]) GOC[`s${c.id}`] = c;
   return { ten: p.ten + (pd.tap.length > 1 ? ` · tập ${tap.so}` : ''), loai, tile, kieu: 'chart-chapters', vid: tap.video_url || tap.xuat?.[tap.xuat.length - 1]?.url || undefined,
-    giong: GIONG[0], toc: 'Vừa', nhac: tap.nhac_url ? NHAC[1] : NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs, set: co3d ? { vat: [], khoi } : undefined, canh, that: { phim: p.id, tap: tap.id, nhacUrl: tap.nhac_url || '', soTap: pd.tap.length, trong: !ds.length, kt: p.kinh_thanh || {}, moTa: p.mo_ta || '', loaiPhim: p.loai, brief: String(tap.brief || '').split('\n\n=== CÁCH KỂ (Studio 2 tự ghép')[0], kichBan: tap.kich_ban || '', xuatUrl: tap.video_url || '', laMoc, nx: tap.thu_nguoi_xem || null, mau: pd.nhanVat.map((x) => ({ id: x.id, ten: x.ten, loai: x.loai, anh: x.anh_ref?.[0] || '' })), coCachKe: String(tap.brief || '').includes('=== CÁCH KỂ (Studio 2 tự ghép'), mauNguoi: pd.nhanVat.filter((x) => x.loai === 'nhan_vat').map((x) => x.id) } };
+    giong: GIONG[0], toc: 'Vừa', nhac: tap.nhac_url ? NHAC[1] : NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs, set: co3d ? { vat: [], khoi } : undefined, canh, that: { phim: p.id, tap: tap.id, nhacUrl: tap.nhac_url || '', soTap: pd.tap.length, trong: !ds.length, kt: p.kinh_thanh || {}, moTa: p.mo_ta || '', loaiPhim: p.loai, brief: String(tap.brief || '').split('\n\n=== CÁCH KỂ (Studio 2 tự ghép')[0], kichBan: tap.kich_ban || '', xuatUrl: tap.video_url || '', laMoc, nx: tap.thu_nguoi_xem || null, mau: pd.nhanVat.map((x) => ({ id: x.id, ten: x.ten, loai: x.loai, anh: x.anh_ref?.[0] || '', moTa: x.mo_ta || '' })), coCachKe: String(tap.brief || '').includes('=== CÁCH KỂ (Studio 2 tự ghép'), mauNguoi: pd.nhanVat.filter((x) => x.loai === 'nhan_vat').map((x) => x.id) } };
 }
 /** dự án chờ: khung trống hiện trong lúc đọc phim thật */
 const duAnCho = () => ({ ten: 'Đang mở phim…', loai: 'hinh', tile: '9:16', kieu: 'chart-chapters', giong: GIONG[0], toc: 'Vừa', nhac: NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs: [], canh: [canhMoi({ nhan: 'Đang mở', anh: TRONG, tg: 4 })], cho: true });
@@ -759,11 +759,25 @@ function veNx() { const x = D.that?.nx; if (!x) return ''; const dong = (c, s) =
     + (E.nxSua?.tap === D.that.tap ? `<p class="qt-da-sua">Máy vừa sửa ${+E.nxSua.sua} cảnh, thêm ${+E.nxSua.them} cảnh${E.nxSua.ghi_chu ? `: ${esc(E.nxSua.ghi_chu)}` : ''}. Bấm "Thử người xem" để chấm lại bản mới.</p>` : '') + '</div>'; }
 /** từng mẫu của phim (người, bối cảnh, đồ vật): ảnh mẫu đang dùng + nút vẽ lại ảnh mẫu + nút vẽ lại các cảnh đang gắn mẫu đó */
 // Widget Nhân vật, bối cảnh: mẫu của phim xếp theo loại, chỉ xem, không nút tốn tiền — ai cũng thấy, kể cả người mới (góp ý #giao-20261120T1813-chuyen-zm6w)
-function veMu() { const o = $('#dMu'); if (!o) return; const ds = D.that?.mau || [];
-  if (!ds.length) { o.innerHTML = `<p class="mu-trong">${D.that ? 'Phim này chưa có nhân vật hay bối cảnh nào. Khi kịch bản xong, máy tự tách nhân vật và bối cảnh ra đây.' : 'Mở một phim của studio để xem nhân vật và bối cảnh của phim.'}</p>`; return; }
+// Góp ý #1745: bấm một mẫu → mở chi tiết (ảnh lớn bấm để phóng to, mô tả sửa được, các cảnh dùng bấm để nhảy tới, nút vẽ lại ảnh mẫu); nút "＋ Thêm" tạo mẫu mới (0đ, ảnh vẽ sau bằng nút riêng)
+const MU_LOAI = ['nhan_vat', 'boi_canh', 'dao_cu', 'san_pham'];
+function veMuForm(x) { const moi = !x; return `<div class="mu-form" data-mu="${moi ? '' : x.id}">${moi ? `<label>Loại<select class="mu-loai">${MU_LOAI.map((k) => `<option value="${k}">${esc(S_VAI[k] || k)}</option>`).join('')}</select></label>` : ''}<label>Tên<input class="mu-ten" maxlength="60" value="${esc(x?.ten || '')}" placeholder="vd: Cô gái áo đỏ"></label><label>Mô tả <small>máy vẽ ảnh mẫu và mọi cảnh có mẫu này theo đúng mô tả</small><textarea class="mu-mt" rows="5" maxlength="1200" placeholder="Ngoại hình, tuổi, quần áo, chất liệu, ánh sáng…">${esc(x?.moTa || '')}</textarea></label><div class="qt-nut"><button type="button" class="bt chinh" data-d="muLuu">${moi ? 'Thêm mẫu' : 'Lưu mô tả'}</button><button type="button" class="bt" data-d="${moi ? 'muThem' : 'muSua'}" data-g="">Huỷ</button></div><p class="mu-loi" hidden></p></div>`; }
+function veMu() { const o = $('#dMu'); if (!o) return; const ds = D.that?.mau || [], a = document.activeElement;
+  if (a && /TEXTAREA|INPUT|SELECT/.test(a.tagName) && a.closest('#dMu')) return;   // đang gõ trong ô thêm / sửa mẫu: không vẽ lại dưới tay người dùng
+  const dau = D.that ? `<div class="mu-dau"><button type="button" class="bt" data-d="muThem" data-g="${E.muThem ? '' : '1'}">${E.muThem ? 'Đóng' : '＋ Thêm nhân vật, bối cảnh, đồ vật'}</button></div>${E.muThem ? veMuForm(null) : ''}` : '';
+  if (!ds.length) { o.innerHTML = dau + `<p class="mu-trong">${D.that ? 'Phim này chưa có nhân vật hay bối cảnh nào. Bấm Thêm ở trên, hoặc chờ máy tự tách khi kịch bản xong.' : 'Mở một phim của studio để xem nhân vật và bối cảnh của phim.'}</p>`; return; }
   const nhom = {}; for (const x of ds) (nhom[x.loai] ||= []).push(x);
   const thu = ['nhan_vat', 'boi_canh', 'dao_cu'], hang = (k) => (thu.indexOf(k) + 1) || 9;
-  o.innerHTML = Object.keys(nhom).sort((a, b) => hang(a) - hang(b)).map((k) => `<section class="mu-nhom"><h4>${esc(S_VAI[k] || k)} <small>${nhom[k].length}</small></h4>${nhom[k].map((x) => { const n = canhMau(x.id).length; return `<div class="qt-mau-o">${x.anh ? `<img src="${esc(nho(x.anh, 320))}" alt="${esc(x.ten)}" loading="lazy">` : '<i>chưa có ảnh</i>'}<div><b>${esc(x.ten)}</b><small>${n ? `${n} cảnh dùng` : 'chưa cảnh nào dùng'}</small></div></div>`; }).join('')}</section>`).join(''); }
+  const ct = (x) => { const cs = canhMau(x.id); return `<div class="mu-ct">${x.anh ? `<button type="button" class="mu-lon" data-d="muZoom" data-g="${x.id}" title="Bấm để phóng to"><img src="${esc(nho(x.anh, 640))}" alt="${esc(x.ten)}"></button>` : '<p class="mu-trong">Mẫu này chưa có ảnh. Bấm "Vẽ lại ảnh mẫu" để máy vẽ theo mô tả.</p>'}
+    ${E.muSua === x.id ? veMuForm(x) : `<p class="mu-mota">${x.moTa ? esc(x.moTa) : '<i>chưa có mô tả</i>'}</p><div class="qt-nut"><button type="button" class="bt" data-d="muSua" data-g="${x.id}">Sửa tên, mô tả</button>${nutBuoc(`mauVe:${x.id}`)}</div>`}
+    <h5>Cảnh dùng mẫu này</h5>${cs.length ? `<div class="mu-canh">${cs.map((c) => `<button type="button" class="bt" data-d="chonCanh" data-g="${c.id}">Cảnh ${vt(c.id) + 1}</button>`).join('')}</div>` : '<p class="mu-trong">Chưa cảnh nào dùng.</p>'}</div>`; };
+  o.innerHTML = dau + Object.keys(nhom).sort((a, b) => hang(a) - hang(b)).map((k) => `<section class="mu-nhom"><h4>${esc(S_VAI[k] || k)} <small>${nhom[k].length}</small></h4>${nhom[k].map((x) => { const n = canhMau(x.id).length, mo = E.muMo === x.id; return `<button type="button" class="qt-mau-o mu-o${mo ? ' mo' : ''}" data-d="muMo" data-g="${x.id}" aria-expanded="${mo}">${x.anh ? `<img src="${esc(nho(x.anh, 320))}" alt="${esc(x.ten)}" loading="lazy">` : '<i>chưa có ảnh</i>'}<div><b>${esc(x.ten)}</b><small>${n ? `${n} cảnh dùng` : 'chưa cảnh nào dùng'} · ${mo ? 'thu gọn' : 'bấm xem chi tiết'}</small></div></button>${mo ? ct(x) : ''}`; }).join('')}</section>`).join(''); }
+function muZoom(x) { const z = document.createElement('div'); z.className = 'mu-zoom'; z.innerHTML = `<img src="${esc(x.anh)}" alt="${esc(x.ten)}"><p>${esc(x.ten)} · bấm ra ngoài hoặc Esc để đóng</p>`; const tat = () => { z.remove(); document.removeEventListener('keydown', esc1); }, esc1 = (e) => { if (e.key === 'Escape') tat(); }; z.addEventListener('click', tat); document.addEventListener('keydown', esc1); document.body.append(z); }
+async function muLuu(nut) { const f = nut.closest('.mu-form'), loi = f.querySelector('.mu-loi'), id = +f.dataset.mu || undefined;
+  const d = { id, ten: f.querySelector('.mu-ten').value, mo_ta: f.querySelector('.mu-mt').value, loai: f.querySelector('.mu-loai')?.value };
+  nut.disabled = true; loi.hidden = true;
+  try { const moi = await ghiSv('luuMauS2', D.that.phim, d); E.muThem = false; E.muSua = null; E.muMo = id || moi; await taiLai(true); veMu(); bao(id ? 'Đã lưu mô tả. Bấm "Vẽ lại ảnh mẫu" nếu muốn ảnh theo mô tả mới.' : 'Đã thêm mẫu. Bấm "Vẽ lại ảnh mẫu" để máy vẽ ảnh cho mẫu này.', false, 8000); }
+  catch (e) { loi.textContent = `Studio không lưu được: ${e.message}`; loi.hidden = false; nut.disabled = false; } }
 function veMau() { const ds = D.that?.mau || []; if (!ds.length) return '';
   return `<details class="nk-ct qt-mau" open><summary>${ds.length} mẫu của phim: vẽ lại từng mẫu</summary>${ds.map((x) => `<div class="qt-mau-o">${x.anh ? `<img src="${esc(nho(x.anh, 320))}" alt="" loading="lazy"${tqAttr(`Ảnh mẫu ${x.ten}`, ['mau', x.id])}>` : '<i>chưa có ảnh</i>'}<div><b>${esc(x.ten)}</b><small>${S_VAI[x.loai] || x.loai}${canhMau(x.id).length ? ` · ${canhMau(x.id).length} cảnh dùng` : ' · chưa cảnh nào dùng'}</small><div class="qt-nut">${nutBuoc(`mauVe:${x.id}`)}${canhMau(x.id).length ? nutBuoc(`kfMau:${x.id}`) : ''}</div></div></div>`).join('')}</details>`; }
 function veQt() {
@@ -1380,6 +1394,11 @@ function lamD(a, d = {}, nut) {
   const doi = (f) => { ghi(); f(); veD(); };
   switch (a) {
     case 'tab': E.tab = g; E.moNv = false; luu(); return veTv();
+    case 'muMo': E.muMo = E.muMo === +g ? null : +g; E.muSua = null; return veMu();
+    case 'muSua': E.muSua = g ? +g : null; return veMu();
+    case 'muThem': E.muThem = !!g; return veMu();
+    case 'muZoom': { const x = (D.that?.mau || []).find((m) => m.id === +g); return x?.anh ? muZoom(x) : undefined; }
+    case 'muLuu': return void muLuu(nut);
     case 'o': E.o = g; return veD();
     case 'lui': return hoan(E.lui, E.toi);
     case 'toi': return hoan(E.toi, E.lui);

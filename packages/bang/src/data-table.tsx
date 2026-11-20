@@ -185,7 +185,9 @@ const STICKY_MAX = '33vw';
 const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
 const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
-const TONG_BG = 'color-mix(in srgb, var(--accent, #60a5fa) 14%, var(--bg-2))';   // nền dòng tổng
+// nền ĐẶC cho khối dính (dòng tổng): chuỗi biến có sẵn ở cả mos2 (--bg-2) lẫn cty (--bg-2 → --surface), cuối cùng mã màu — không bao giờ trong suốt
+const NEN_DAC = 'var(--bg-2, var(--surface, #16181d))';
+const TONG_BG = `color-mix(in srgb, var(--accent, #60a5fa) 14%, ${NEN_DAC})`;   // nền dòng tổng (pha trên nền đặc → vẫn đặc)
 const RONG_MAC_DINH = 96;   // px — bề ngang cột chưa khai width khi bảng ở chế độ fixed
 export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey: persistKeyGoc, onRowClick, minWidth = 640, rowTitle, rowStyle, fullRow, renderExpanded,
@@ -853,8 +855,10 @@ export function DataTable<T>({
                 {q.trim() ? <>Không dòng nào khớp &quot;{q.trim()}&quot;.{khiTimTrong ? <div style={{ marginTop: 6, fontFamily: 'var(--font-sans, inherit)', fontSize: 12, color: 'var(--fg-2)' }}>{khiTimTrong}</div> : null}</> : anyColFilter ? 'Không dòng nào khớp bộ lọc — sửa/xoá ở thanh lọc trên bảng hoặc nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}
               </td></tr>
             )}
-            {hasTotals && sortedRows.length > 0 && !(theoTrang && cotDo.w.length) && hangTong()}
+            {hasTotals && sortedRows.length > 0 && theoTrang && !cotDo.w.length && hangTong()}
           </tbody>
+          {/* hộp cuộn (hopCuon): dòng tổng ở tfoot DÍNH ĐÁY vùng cuộn, nền đặc — không nằm cuối tbody bị cuộn mất, không nổi đè (#1721) */}
+          {hasTotals && sortedRows.length > 0 && !theoTrang ? <tfoot className="dt-chan-tf" style={{ position: 'sticky', bottom: 0, zIndex: 3, background: NEN_DAC }}>{hangTong()}</tfoot> : null}
         </table>
       </div>
       </>
@@ -878,15 +882,17 @@ export function DataTable<T>({
         );
       })()}
       {(() => { const chan = hasTotals && sortedRows.length > 0 && theoTrang && effView === 'table' && cotDo.w.length > 0;
-        // chân dính MỘT khối: dòng tổng (nếu có) + thanh trang — hai thứ sticky riêng thì chồng lên nhau
-        if (!chan && !(pager && theoTrang && effView === 'table')) return pager;
-        return <div className="dt-trang" style={{ position: 'sticky', bottom: -leDuoi, zIndex: 6, background: 'var(--bg-0)', boxShadow: '0 -1px 0 var(--line), 0 -6px 12px rgba(0,0,0,.25)', paddingTop: chan ? 0 : 2 }}>
-          {chan ? <div ref={chanRef} className="dt-chan" style={{ overflowX: 'hidden', margin: '0 -8px', background: 'var(--bg-2)' }}>
+        // (#1721) CHỈ dòng tổng dính đáy khung cuộn của trang (nền đặc); thanh trang là một hàng RIÊNG theo dòng chảy dưới bảng, KHÔNG dính.
+        // Trước: dòng tổng + thanh trang gộp một khối dính, nền var(--bg-0) mà trang cty không khai → khối trong suốt, cao gấp đôi, đè giữa khung
+        // nhúng thấp (widget Lượt chạy kỹ sư ở mos2 /home). Dòng tổng là bảng riêng (thân bảng là hộp overflow-x nên tfoot trong đó không dính theo trang được).
+        return <>
+          {chan ? <div ref={chanRef} className="dt-chan" style={{ position: 'sticky', bottom: -leDuoi, zIndex: 6, overflowX: 'hidden', margin: '0 -8px', background: NEN_DAC, boxShadow: '0 -1px 0 var(--line)' }}>
             <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: cotDo.bang || '100%' }}>
               <colgroup>{cotDo.w.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
-              <tbody>{hangTong()}</tbody>
+              <tfoot>{hangTong()}</tfoot>
             </table>
-          </div> : null}{pager}</div>; })()}
+          </div> : null}
+          {pager ? <div className="dt-trang" style={{ position: 'relative', zIndex: 0 }}>{pager}</div> : null}</>; })()}
     </div>
   );
 }

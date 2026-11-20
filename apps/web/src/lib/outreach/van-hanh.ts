@@ -85,7 +85,7 @@ export async function docMotChienDich(id: number, soNhap = 5): Promise<MotChienD
            c.followup_gap_days::int as cach_ngay, c.max_followups::int as so_nhac, c.cau_hinh,
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id) as n,
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.status = 'to_send') as cho_gui,
-           (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.du_lieu ? 'chuoi') as co_chuoi,
+           (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.du_lieu ? 'chuoi' and p.status <> 'khong_hop') as co_chuoi,
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.sent_at is not null) as da_gui,
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.replied_at is not null) as tra_loi,
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.status = 'to_send' and p.email is not null and p.email <> '' and not (p.du_lieu ? 'chuoi')) as chua_soan,

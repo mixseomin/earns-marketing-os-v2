@@ -7,7 +7,10 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
-  { card: 1713, tep: 'packages/bang/src/data-table.tsx', mot: 'const mt = `${-(cotDo.cao || 0) - h}px`;', vi: 'bản dính dòng nhóm không chiếm chỗ: thân bảng kéo lên đúng cao bản dính → trang và vị trí cuộn không đổi khi nó hiện/ẩn — hết giật ở đáy Cây camp (anh 20/11/2026 "sticky của phim cứ giật giật hiện/ẩn liên tục")' },
+  { card: 1726, tep: 'apps/etp2/src/lib/actions/etp-mau-cr.ts', mot: 'may_dung: await docMayDung(coBangDung)', vi: 'sổ mẫu creative trả kèm trạng thái máy dựng: nhịp máy iMac + số việc đang dựng / chờ / lỗi / dừng (anh 20/11/2026 "Cần show thêm trạng thái máy dựng")' },
+  { card: 1726, tep: 'apps/etp2/src/components/etp-mau-drawer.tsx', mot: '<MayDungDong may={may} />', vi: 'tab Phim sản xuất của mẫu có dòng Máy dựng (đang sống / im N phút / chưa bật + số việc), chi tiết ở thẻ rê chuột' },
+  { card: 1726, tep: 'apps/etp2/src/components/etp-mau-cr.tsx', co: "f.dung.trang_thai === 'dung' ? [XAM_DUNG", vi: 'việc máy đã dừng hiện xám "dừng ở <bước>", không hiện vàng như đang chạy' },
+  { card: 1713, tep: 'packages/bang/src/data-table.tsx', mot: 'const mt =`${-(cotDo.cao || 0) - h}px`;', vi: 'bản dính dòng nhóm không chiếm chỗ: thân bảng kéo lên đúng cao bản dính → trang và vị trí cuộn không đổi khi nó hiện/ẩn — hết giật ở đáy Cây camp (anh 20/11/2026 "sticky của phim cứ giật giật hiện/ẩn liên tục")' },
   { card: 1713, tep: 'packages/bang/src/data-table.tsx', mot: 'const lech = 0;', vi: 'đo dòng nhóm thẳng, không trừ cao bản dính (bản dính không còn đẩy thân bảng)' },
   { card: 1713, tep: 'apps/etp2/src/components/ui/data-table.tsx', cam: 'dt-dem-dinh', vi: 'không còn ô đệm sau bảng (đệm làm trang đổi chiều cao theo bản dính)' },
   { card: 1540, tep: 'apps/etp2/src/components/etp-dong.tsx', mot: '<ChonSo v={soCamp} dat={setSoCamp} may={f.kPlan ?? null} />', cam: 'type="number"', vi: 'form Mở rộng phim: chọn số camp bằng nút 1–10 + −/+, không ô nhập số (anh 05/11/2026 "ko dùng format số khó dùng")' },

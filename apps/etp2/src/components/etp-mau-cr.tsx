@@ -14,10 +14,10 @@ import { openEntityDrawer } from '@/lib/entity-drawer';
 import { SU_KIEN_MAU } from '@/lib/etp-mau-su-kien';
 import { loiThuongMau } from '@/lib/etp-mau-loi';
 import { DS_DANG } from '@/lib/etp-dang';
-import { docMauCr, type DungMau, type LoaiMau, type MauCr, type NguonMau, type PhimSx, type TrangThaiMau } from '@/lib/actions/etp-mau-cr';
+import { docMauCr, type DungMau, type LoaiMau, type MauCr, type MayDung, type NguonMau, type PhimSx, type TrangThaiMau } from '@/lib/actions/etp-mau-cr';
 import { DO, XANH, gioVn } from './etp-doi-thu';
 import { ChiTietMau, DauMau } from './etp-mau-drawer';
-import { KhungNoi, useNoi } from './etp-noi';
+import { KhungNoi, ReThe, useNoi, type TheNoi } from './etp-noi';
 
 const thuVienQc = (id: string) => `https://href.li/?https://www.facebook.com/ads/library/?id=${id}`;   // link ra ngoài che referrer
 export const TEN_LOAI: Record<LoaiMau, string> = { cong_thuc: 'Công thức máy dựng', dang: 'Dạng creative', bien_the: 'Biến thể của dạng', bo_cuc: 'Bố cục ảnh', lop_phu: 'Lớp phủ chữ / nút' };
@@ -116,7 +116,7 @@ function ChanThe({ m }: { m: MauCr }) {
 /** trạng thái một phim sản xuất → [màu đèn, chữ ngắn, chữ rê chuột] */
 export function ttPhim(f: PhimSx): [string, string, string] {
   if (f.dung) { const i = BUOC_DUNG.findIndex(([k]) => k === f.dung!.buoc), b = BUOC_DUNG[i]?.[1] ?? 'đang làm', g = `${loiThuongMau(f.dung.ghi)} · cập nhật ${gioNgan(f.dung.cap_nhat)}`;
-    return f.dung.trang_thai === 'loi' ? [DO, `lỗi ở ${b}`, g] : f.dung.trang_thai === 'xong' ? [XANH, 'xong', g] : f.dung.buoc === 'cho' ? ['#94a3b8', 'chờ máy', g] : ['#fbbf24', b, g]; }
+    return f.dung.trang_thai === 'loi' ? [DO, `lỗi ở ${b}`, g] : f.dung.trang_thai === 'dung' ? [XAM_DUNG, `dừng ở ${b}`, `máy đã dừng việc này, không làm tiếp — ${g}`] : f.dung.trang_thai === 'xong' ? [XANH, 'xong', g] : f.dung.buoc === 'cho' ? ['#94a3b8', 'chờ máy', g] : ['#fbbf24', b, g]; }
   if (f.dong_tt) { const t = TT_DONG[f.dong_tt]; return [t?.[1] ?? '#94a3b8', t?.[0] ?? 'đang làm', f.dong_ly ?? 'máy dòng phim đang sinh creative']; }
   return f.cr.length ? [XANH, 'đã có creative', ''] : ['#94a3b8', 'chờ máy', 'đã chọn phim, máy chưa nhận việc'];
 }
@@ -136,15 +136,38 @@ function DongPhimGon({ f, ma, anAnh = false }: { f: PhimSx; ma: string; /** mẫ
 // các bước máy dựng theo mẫu (dung-mau.py) — thanh tiến độ trong chân thẻ
 export const BUOC_DUNG: [string, string][] = [['cho', 'chờ máy'], ['trang_phim', 'chờ link tập'], ['tai_tap', 'tải tập'], ['chon_khung', 'chọn khung'], ['ve_mau', 'vẽ mẫu'], ['giong', 'giọng'], ['video', 'video'], ['thu_vien', 'thư viện'], ['creative', 'tải creative'], ['xong', 'xong']];
 const gioNgan = (s: string) => new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+const XAM_DUNG = '#94a3b8';   // việc máy đã dừng (trang_thai 'dung') — không phải đang chạy, không phải lỗi
+/** TRẠNG THÁI MÁY DỰNG (góp ý #1726 anh 20/11/2026 "Cần show thêm trạng thái máy dựng"): một dòng — máy iMac còn sống không (nhịp etp.dong_may, ngưỡng 60 giây
+ *  như ô Máy dòng phim ở tab Dòng phim) + số việc đang dựng / chờ / lỗi / dừng của mọi mẫu; chi tiết (việc đang dựng, lần làm cuối, nhịp lấy hàng) ở thẻ rê chuột */
+export function MayDungDong({ may }: { may: MayDung | null | undefined }) {
+  if (!may) return null;
+  const im = may.nhip ? Math.round((Date.now() - new Date(may.nhip).getTime()) / 1000) : null;
+  const song = im != null && im < 60, mau = song ? XANH : im == null ? XAM_DUNG : DO;
+  const chu = song ? 'đang sống' : im == null ? 'chưa bật' : `im ${im < 3600 ? `${Math.max(1, Math.round(im / 60))} phút` : `${Math.round(im / 3600)} giờ`}`;
+  const so: [number, string, string][] = ([[may.dang, 'đang dựng', '#fbbf24'], [may.cho, 'chờ', MO_SO], [may.loi, 'lỗi', DO], [may.dung, 'dừng', XAM_DUNG]] as [number, string, string][]).filter(([n], k) => n > 0 || k < 2);
+  const the = (): TheNoi => ({ ten: may.may ?? 'máy dựng', tieu: `Máy dựng · ${chu}`, mau, moc: ([
+    ['Nhịp cuối', may.nhip ? gioNgan(may.nhip) : 'chưa thấy máy báo lần nào'],
+    ['Cách làm', 'máy lấy việc mỗi 2 phút, dựng một phim một lúc'],
+    ...may.viec.map((v): [string, string] => ['Đang dựng', `${v.ten ?? 'phim chưa có tên'} · ${BUOC_DUNG.find(([k]) => k === v.buoc)?.[1] ?? 'đang làm'} · từ ${gioNgan(v.cap_nhat)}`]),
+    ['Làm cuối', may.lam_cuoi ? gioNgan(may.lam_cuoi) : null],
+    ['Đã xong', may.xong ? `${may.xong} phim` : null],
+  ] as [string, string | null][]).filter(([, c]) => c).map(([t, c]) => ({ ten: t, mau, chu: c })) });
+  return <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: MO_SO, minWidth: 0 }}>
+    <ReThe the={the}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'help', whiteSpace: 'nowrap' }}>
+      <span style={{ width: 7, height: 7, borderRadius: 4, background: mau, flex: 'none' }} />
+      <span style={{ color: 'var(--fg-1)' }}>Máy dựng</span><span style={{ color: song ? MO_SO : mau }}>{chu}</span>
+      {so.map(([n, t, c]) => <span key={t}>· <b style={{ color: n ? c : MO_SO, fontWeight: 600 }}>{n}</b> {t}</span>)}
+    </span></ReThe></div>;
+}
 function TienDoDung({ d }: { d: DungMau }) {
-  const i = Math.max(0, BUOC_DUNG.findIndex(([k]) => k === d.buoc)), loi = d.trang_thai === 'loi', xong = d.trang_thai === 'xong';
-  const mau = loi ? DO : xong ? XANH : '#fbbf24';
+  const i = Math.max(0, BUOC_DUNG.findIndex(([k]) => k === d.buoc)), loi = d.trang_thai === 'loi', xong = d.trang_thai === 'xong', dung = d.trang_thai === 'dung';
+  const mau = loi ? DO : xong ? XANH : dung ? XAM_DUNG : '#fbbf24';
   return <div title={`${loiThuongMau(d.ghi)} · cập nhật ${gioNgan(d.cap_nhat)}`} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BUOC_DUNG.length - 1}, 1fr)`, gap: 2 }}>
       {BUOC_DUNG.slice(1).map(([k, nh], j) => <span key={k} title={nh} style={{ height: 4, borderRadius: 2, background: xong || j < i - 1 ? XANH : j === i - 1 ? mau : 'var(--line)' }} />)}
     </div>
     <div style={{ fontSize: 11, color: loi ? DO : 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-      {loi ? '✕ lỗi' : xong ? '✓ xong' : `● ${BUOC_DUNG[i]?.[1] ?? 'đang làm'}`} · {loiThuongMau(d.ghi)} · {gioNgan(d.cap_nhat)}</div>
+      {loi ? '✕ lỗi' : xong ? '✓ xong' : dung ? `⏸ dừng ở ${BUOC_DUNG[i]?.[1] ?? 'giữa chừng'}` : `●${BUOC_DUNG[i]?.[1] ?? 'đang làm'}`} · {loiThuongMau(d.ghi)} · {gioNgan(d.cap_nhat)}</div>
   </div>;
 }
 export function DongPhimSx({ f, ma }: { f: PhimSx; ma: string }) {
@@ -293,7 +316,7 @@ function CayMau({ rows, chon, setChon, mo, setMo }: { rows: MauCr[]; chon: strin
 }
 
 export function TabMauCr() {
-  const { so: duNho, loi } = useSoNho<{ mau: MauCr[]; phim: DsPhim; luc: string }>('mau-cr', docMauCr, 20_000, hopKhuon);   // 20 giây: trạng thái máy dựng ở chân thẻ đổi từng bước
+  const { so: duNho, loi } = useSoNho<{ mau: MauCr[]; phim: DsPhim; may_dung?: MayDung; luc: string }>('mau-cr', docMauCr, 20_000, hopKhuon);   // 20 giây: trạng thái máy dựng ở chân thẻ đổi từng bước
   const [moi, setMoi] = useState<{ mau: MauCr[]; phim: DsPhim; luc: string } | null>(null);   // bản tải lại ngay sau khi chọn phim (khỏi chờ nhịp)
   const du = moi ?? duNho;
   // ngăn chọn phim (etp-mau-phim-drawer) sinh xong → tải lại chân thẻ ngay, khỏi chờ nhịp
@@ -350,7 +373,7 @@ export function TabMauCr() {
       {/* CHỌN MỘT MẪU TRÊN CÂY = XEM LUÔN CHI TIẾT (20/11/2026: trước đây cả khung phải chỉ có một thẻ 360px, muốn xem phải bấm thêm lần nữa mở ngăn) */}
       <div style={{ padding: '12px 16px 4px', display: 'flex', alignItems: 'flex-start', gap: 10 }}><DauMau m={motMau} />
         <a onClick={() => setCayChon(`n:${motMau.nhom_tk}|${nhom2(motMau)}`)} title="về lưới các mẫu cùng nhóm" style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--accent, #60a5fa)', cursor: 'pointer', whiteSpace: 'nowrap' }}>‹ cả nhóm {nhom2(motMau).replace(/^Format · /, '')}</a></div>
-      <ChiTietMau key={`${motMau.loai}:${motMau.ma}`} m={motMau} />
+      <ChiTietMau key={`${motMau.loai}:${motMau.ma}`} m={motMau} may={duNho?.may_dung} />
     </div> : <div style={{ flex: 1, minWidth: 0 }}>
     <DataTable rows={rows} columns={cot} getRowKey={(m) => `${m.loai}:${m.ma}`} persistKey="etp-mau-cr" minWidth={1500} pageSize={24} onRowClick={(m) => openEntityDrawer('etp-mau', `${m.loai}:${m.ma}`)} thanhDinh="var(--etp-dinh, 0px)"
       locTuDong={false}   /* thanh lọc tự động của DataTable tách sai cột nhiều giá trị (Thể loại, Dùng cho) và trùng chip ở trên → một bộ lọc */

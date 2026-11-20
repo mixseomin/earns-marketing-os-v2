@@ -12,8 +12,8 @@ import { Drawer, SiteFavicon, Tabs } from '@/components/ui';
 import { Dem, MO_SO } from '@/components/etp-so';
 import { useSoNho } from '@/lib/so-nho';
 import { openEntityDrawer } from '@/lib/entity-drawer';
-import { docMauCr, type MauCr } from '@/lib/actions/etp-mau-cr';
-import { BanMauLuoi, DongPhimSx, ORoi, TEN_GIONG, TEN_LOAI, TEN_NGUON, TEN_TT, docUrl, ghiUrl, hopKhuon, mayDung } from './etp-mau-cr';
+import { docMauCr, type MauCr, type MayDung } from '@/lib/actions/etp-mau-cr';
+import { BanMauLuoi, DongPhimSx, MayDungDong, ORoi, TEN_GIONG, TEN_LOAI, TEN_NGUON, TEN_TT, docUrl, ghiUrl, hopKhuon, mayDung } from './etp-mau-cr';
 import { DO, XANH } from './etp-doi-thu';
 
 type TabMau = 'mau' | 'phim';
@@ -29,7 +29,7 @@ export function DauMau({ m }: { m: MauCr | null }) {
       {tt ? <span style={{ fontSize: 12, fontWeight: 400, color: tt[1] }}>{tt[0]}</span> : null}</h2></div>;
 }
 
-export function ChiTietMau({ m }: { m: MauCr }) {
+export function ChiTietMau({ m, may }: { m: MauCr; /** trạng thái máy dựng (góp ý #1726) — hiện ở đầu tab Phim sản xuất */ may?: MayDung | null }) {
   const [tab, setTab] = useState<TabMau>(() => (docUrl('mxt') === 'phim' ? 'phim' : 'mau'));
   useEffect(() => { ghiUrl('mxt', tab === 'mau' ? null : tab); }, [tab]);
   useEffect(() => () => ghiUrl('mxt', null), []);
@@ -60,6 +60,7 @@ export function ChiTietMau({ m }: { m: MauCr }) {
           <Muc ten="Máy dựng">{mayDung(m)}</Muc>
         </div>
       </> : <>
+        <MayDungDong may={may} />
         <div style={{ fontSize: 12, color: MO_SO }}>{m.phim_sx.length} phim đã chọn · {soCr} creative đã ra — bấm một phim để xem từng bước và vấn đề theo dòng thời gian</div>
         {!m.phim_sx.length ? <div style={{ fontSize: 12.5, color: MO_SO }}>chưa chọn phim nào cho mẫu này — bấm ＋ Chọn phim ở góc phải</div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{m.phim_sx.map((f) => <DongPhimSx key={f.content_id} f={f} ma={m.ma} />)}</div>}
@@ -69,9 +70,9 @@ export function ChiTietMau({ m }: { m: MauCr }) {
 }
 
 export function EtpMauDrawer({ khoa, onClose }: { khoa: string; onClose: () => void }) {
-  const { so: du, loi } = useSoNho<{ mau: MauCr[]; phim: { id: number; ten: string }[]; luc: string }>('mau-cr', docMauCr, 20_000, hopKhuon);
+  const { so: du, loi } = useSoNho<{ mau: MauCr[]; phim: { id: number; ten: string }[]; may_dung?: MayDung; luc: string }>('mau-cr', docMauCr, 20_000, hopKhuon);
   const m = du?.mau.find((x) => `${x.loai}:${x.ma}` === khoa) ?? null;
   const dau = <div className="modal-head"><DauMau m={m} /><button className="modal-close" onClick={onClose}>✕</button></div>;
   if (!m) return <Drawer onClose={onClose} width={860} padding={0}>{dau}<div style={{ padding: 16, color: loi ? DO : MO_SO }}>{loi ?? (du ? 'không còn mẫu này trong sổ' : 'đang đọc sổ mẫu creative…')}</div></Drawer>;
-  return <Drawer onClose={onClose} width={860} padding={0}>{dau}<ChiTietMau m={m} /></Drawer>;
+  return <Drawer onClose={onClose} width={860} padding={0}>{dau}<ChiTietMau m={m} may={du?.may_dung} /></Drawer>;
 }

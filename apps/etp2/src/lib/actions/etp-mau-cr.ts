@@ -49,6 +49,27 @@ export type CrSx = { id: number; anh: string | null; video: string | null; chay:
 /** trạng thái máy dựng theo mẫu (dung-mau.py, etp.mau_dung) — anh 19/11/2026 "Tao cần xem trạng thái quá trình dựng ở đó luôn" */
 export type DungMau = { buoc: string; trang_thai: string; ghi: string | null; cap_nhat: string; creative_ids: number[]; /** ₫ AI ngoài cả việc (chỉ ngăn chi tiết đọc) */ vnd?: number };
 export type PhimSx = { content_id: number; ten: string | null; chon: boolean; dong_id: number | null; dong_tt: string | null; dong_ly: string | null; cr: CrSx[]; dung: DungMau | null };
+/** trạng thái MÁY DỰNG theo mẫu (góp ý #1726 "cần show thêm trạng thái máy dựng"): nhịp sống của máy iMac (etp.dong_may — dong_phim.py ghi ~10s, cũng là tiến trình gọi dung-mau.py --hang mỗi 2 phút)
+ *  + hàng việc của mọi mẫu (etp.mau_dung) + lần máy làm gần nhất (etp.mau_dung_nk) */
+export type MayDung = { may: string | null; nhip: string | null; dang: number; cho: number; loi: number; dung: number; xong: number;
+  viec: { ten: string | null; mau: string; buoc: string; cap_nhat: string }[]; lam_cuoi: string | null };
+async function docMayDung(coBangDung: boolean | undefined): Promise<MayDung> {
+  const [may] = await run<{ may: string; nhip: string }>(sql`select may, nhip::text nhip from etp.dong_may order by nhip desc limit 1`);
+  const rong: MayDung = { may: may?.may ?? null, nhip: may?.nhip ?? null, dang: 0, cho: 0, loi: 0, dung: 0, xong: 0, viec: [], lam_cuoi: null };
+  if (!coBangDung) return rong;
+  // "chờ" đếm như máy lấy hàng (dung-mau.py --hang): phim đã chọn cho mẫu mà chưa có việc, cộng việc đang ở trạng thái chờ
+  const [[d], viec, [nk]] = await Promise.all([
+    run<{ dang: number; cho: number; loi: number; dung: number; xong: number }>(sql`
+      select count(*) filter (where d.trang_thai = 'dang')::int dang, count(*) filter (where d.mau is null or d.trang_thai = 'cho')::int cho,
+        count(*) filter (where d.trang_thai = 'loi')::int loi, count(*) filter (where d.trang_thai = 'dung')::int dung, count(*) filter (where d.trang_thai = 'xong')::int xong
+      from etp.mau_phim m full join etp.mau_dung d using (mau, content_id)`),
+    run<{ ten: string | null; mau: string; buoc: string; cap_nhat: string }>(sql`
+      select p.ten, d.mau, d.buoc, d.cap_nhat::text cap_nhat from etp.mau_dung d left join etp.phim p using (content_id) where d.trang_thai = 'dang' order by d.cap_nhat desc`),
+    (async () => (await run<{ c: boolean }>(sql`select to_regclass('etp.mau_dung_nk') is not null c`))[0]?.c
+      ? run<{ luc: string }>(sql`select max(luc)::text luc from etp.mau_dung_nk`) : [{ luc: null as unknown as string }])(),
+  ]);
+  return { ...rong, ...d, viec, lam_cuoi: nk?.luc ?? null };
+}
 type MucSo = { ma: string; ten: string; loai: 'cong_thuc' | 'bo_cuc' | 'lop_phu'; dang?: string; nhom?: string; anh_dung?: string; anh_dung_phim?: string;
   /** creative máy dựng anh ĐÃ DUYỆT làm mẫu (anh 20/11/2026 'Ổn rồi. Lưu vào creative mẫu đó') — lên thẻ cạnh QC gốc */ mau_duyet?: { anh: string; phim: string; content_id?: number }[]; /** ngày chuẩn hoá quy trình + anh duyệt bản mẫu */ chuan?: string; quy_trinh?: string[]; nguon: NguonMau; trang_thai: 'may' | 'thu' | 'chua'; dung_cho: string[]; the_loai?: string[]; mo_ta: string; may?: string; anh?: string; tham_chieu?: string[] };
 
@@ -61,7 +82,7 @@ const dongCua = (dang: string | undefined | null) => DS_DANG.find((d) => d.dang 
 const THU_TU_TL = ['cắt cảnh', 'kể chuyện', 'chèn khung', 'ảnh tĩnh', 'poster động'];
 const theLoaiCua = (dang: string | null | undefined) => { const n = (dang && NHOM_DANG[dang]) || 'khác'; void THU_TU_TL; return `${n.charAt(0).toUpperCase()}${n.slice(1)}`; };
 
-export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; ten: string }[]; luc: string } | { loi: string }> {
+export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; ten: string }[]; may_dung: MayDung; luc: string } | { loi: string }> {
   const q = await quyenEtp(await getCurrentUser());
   if (!q || q.vai !== 'chu') return { loi: 'không có quyền' };
   try {
@@ -208,7 +229,7 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
       const duyet: BanMau[] = (s0?.mau_duyet ?? []).map((x) => ({ anh: x.anh, video: null, nhan: 'đã duyệt', link: x.anh, vai: 'duyet', goi_y: `creative máy dựng theo mẫu trên phim ${x.phim} — anh đã duyệt làm mẫu` }));
       m.ban = [...m.ban, ...goc.slice(0, 1), ...duyet, ...dung, ...goc.slice(1)];
     }
-    return { mau, phim, luc: new Date().toISOString() };
+    return { mau, phim, may_dung: await docMayDung(coBangDung), luc: new Date().toISOString() };
   } catch (e) {
     return { loi: `đọc mẫu creative không được: ${(e as Error).message}` };
   }

@@ -1,7 +1,7 @@
 'use server';
 
-// Gửi thư của một người nhận rồi đẩy trạng thái trong MỘT lần bấm. Từ 20/11/2026 thư đi qua lõi gửi chung lib/outreach/gui.ts
-// (đường gửi theo tên miền người gửi, sổ chặn, trần ngày, nhật ký outreach_thu) — không còn gắn cứng Mailjet (cổng đó đã chết).
+// Gửi thư của một người nhận rồi đẩy trạng thái trong MỘT lần bấm. Từ 20/11/2026 thư đi qua lõi gửi của app outreach (repo riêng, cổng lệnh 'gui' —
+// lib/outreach/app-outreach.ts): đường gửi theo tên miền người gửi, sổ chặn, trần ngày, nhật ký outreach_thu — không còn gắn cứng Mailjet (cổng đó đã chết).
 // Auto-send a prospect's pitch email and advance the
 // pipeline in one click. Email-only — form-only prospects must be sent manually. The email body is
 // rebuilt server-side from the same template the preview drawer shows, so what you see is what sends.
@@ -11,7 +11,7 @@ import { touchEntity } from '@/lib/touch-entity';
 import { buildEmailForProspect } from '@/lib/outreach-template';
 import { syncProspectToTask } from './backlink-outreach-sync';
 import { fillSignoff, firstNameOf } from '@/lib/outreach/link-task';
-import { guiThuOutreach } from '@/lib/outreach/gui';
+import { goiOutreach } from '@/lib/outreach/app-outreach';
 
 const FROM_EMAIL = process.env.MAILJET_FROM || 'hello@militarycalc.com';
 const FROM_NAME = 'Jake Miller';
@@ -93,11 +93,12 @@ export async function sendProspectEmail(
       noiVao = truoc[0]?.ma_thu ?? null;
     } catch { /* chưa có nhật ký thư → gửi như thư rời */ }
   }
-  const kq = await guiThuOutreach({
-    tuEmail: String(fromEmail), tuTen: String(fromName), toi: email, toiTen: String(r.agent_name ?? ''), tieuDe: subject, noiDung: body,
-    prospectId: id, campaignId: r.campaign_id == null ? null : Number(r.campaign_id), projectId, buoc, noiVao,
+  // gửi qua lõi gửi của APP OUTREACH (repo riêng, outreach.on.tc): đường gửi theo tên miền, sổ chặn, trần ngày, nhật ký outreach_thu
+  const kq = await goiOutreach<{ ok: boolean; loi?: string; maThu?: string }>('gui', {
+    tu_email: String(fromEmail), tu_ten: String(fromName), toi: email, toi_ten: String(r.agent_name ?? ''), tieu_de: subject, noi_dung: body,
+    prospect_id: id, campaign_id: r.campaign_id == null ? null : Number(r.campaign_id), project_id: projectId, buoc, noi_vao: noiVao,
   });
-  if (!kq.ok) return { ok: false, error: kq.loi };
+  if (!kq.ok) return { ok: false, error: kq.loi ?? 'App outreach không gửi được thư này.' };
 
   // nhịp nhắc theo CHIẾN DỊCH (followup_gap_days, max_followups) — trước 20/11/2026 gắn cứng 3 ngày / 4 ngày / tối đa 2 lần
   const gap = Math.max(1, Number(r.c_gap ?? 3)), max = Math.max(0, Number(r.c_max ?? 2));

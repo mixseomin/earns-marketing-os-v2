@@ -11,9 +11,10 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { sendProspectEmail } from './outreach-send';
-import { dauNgayVn } from '@/lib/outreach/gui';
-import { doThuDen } from '@/lib/outreach/thu-den';
-import { apPhanh } from '@/lib/outreach/phanh';
+import { dauNgayVn, goiOutreach } from '@/lib/outreach/app-outreach';
+
+/** kết quả dò thư đến của app outreach (cổng lệnh 'thu-den') */
+type KetThuDen = { ok: boolean; loi?: string; doc?: number; moi?: number; traLoi?: number; thoi?: number; doi?: number; tuDong?: number; chanUyTin?: number; khongKhop?: number };
 
 // Thư đầu mỗi ngày đi theo TRẦN CỦA TỪNG CHIẾN DỊCH (outreach_campaigns.daily_cap) trừ số thư đầu chiến dịch đó đã gửi hôm nay (giờ Việt Nam);
 // trần của cả tên miền gửi do lõi gửi (lib/outreach/gui.ts) chặn thêm một lớp. Trước 20/11/2026 là một con số cứng 15 cho mọi chiến dịch cộng lại.
@@ -33,19 +34,21 @@ export async function runOutreachCron(): Promise<{
   followups: number;
   initials: number;
   errors: string[];
-  thuDen?: Awaited<ReturnType<typeof doThuDen>>;
+  thuDen?: KetThuDen;
 }> {
   const db = getDb();
   if (!db) return { ok: false, followups: 0, initials: 0, errors: ['DB unavailable'] };
   const errors: string[] = [];
 
   // 0) Dò thư trả lời TRƯỚC khi gửi: ai đã trả lời / xin thôi / bị dội thì ra khỏi chuỗi nhắc ngay trong lượt này.
-  let thuDen: Awaited<ReturnType<typeof doThuDen>> | undefined;
-  try { thuDen = await doThuDen(); if (!thuDen.ok && thuDen.loi) errors.push(`thư đến: ${thuDen.loi}`); }
-  catch (e) { errors.push(`thư đến: ${String((e as Error).message ?? e).slice(0, 160)}`); }
+  // (dò thư đến + phanh chạy ở app outreach — repo riêng; mos2 chỉ gọi sang)
+  const thuDen = await goiOutreach<KetThuDen>('thu-den', { so_ngay: 30 }, 120_000);
+  if (!thuDen.ok && thuDen.loi) errors.push(`thư đến: ${thuDen.loi}`);
 
   // 0b) PHANH: chiến dịch nào 7 ngày qua dội / bị chặn / xin thôi quá ngưỡng thì tắt tự gửi của nó TRƯỚC khi xếp hàng lượt này (lib/outreach/phanh.ts).
-  try { errors.push(...(await apPhanh())); } catch (e) { errors.push(`phanh: ${String((e as Error).message ?? e).slice(0, 160)}`); }
+  const phanh = await goiOutreach<{ ok: boolean; loi?: string; da?: string[] }>('phanh-ap');
+  if (!phanh.ok) errors.push(`phanh: ${phanh.loi}`); else errors.push(...(phanh.da ?? []));
+  if (!phanh.ok) return { ok: false, followups: 0, initials: 0, errors, thuDen };   // không xét được phanh thì KHÔNG gửi lượt này (an toàn hơn gửi khi chưa biết chỉ số)
 
   // Auto-send ONLY campaigns with auto_send=true + status=active. A manual campaign
   // (auto_send=false, e.g. quality .edu backlink) is left for the operator to send by hand

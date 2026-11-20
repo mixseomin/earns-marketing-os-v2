@@ -54,9 +54,6 @@ function allowedOnStaffPortal(pathname: string): boolean {
     || pathname === '/icon.svg' || pathname === '/favicon.ico';
 }
 
-// outreach.on.tc = hệ thống outreach nhiều dự án (trang /outreach của app này, vhost deploy/nginx-outreach.conf)
-const OUTREACH_HOST = 'outreach.on.tc';
-
 const SESSION_COOKIE = 'mos2-session';
 
 function corsHeaders() {
@@ -122,14 +119,6 @@ export function middleware(req: NextRequest) {
     url.pathname = '/login';
     url.searchParams.set('next', pathname + req.nextUrl.search);
     return NextResponse.redirect(url);
-  }
-
-  // outreach.on.tc: cùng app, cùng phiên .on.tc — gốc của host này là trang /outreach (giữ ?man ?da); mọi đường khác chạy như mos2.on.tc
-  // (trang nhúng trong ngăn, server action, /p/<dự án>/outreach).
-  if (host === OUTREACH_HOST && pathname === '/') {
-    const url = req.nextUrl.clone();
-    url.pathname = '/outreach';
-    return NextResponse.rewrite(url);
   }
 
   return NextResponse.next();

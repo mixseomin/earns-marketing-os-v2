@@ -1,15 +1,15 @@
 // BỘ SỔ của khung trang widget — khung (components/home/trang.tsx + bang.tsx) và phần lưu bố cục (lib/home/bo-cuc.ts, actions/home-bo-cuc.ts)
-// đọc sổ qua đây nên MỘT khung chạy được nhiều trang: /home (sổ lib/home/so.ts) và /outreach (sổ lib/outreach/so.ts).
+// đọc sổ qua đây nên MỘT khung chạy được nhiều trang: /home (sổ lib/home/so.ts). Outreach (outreach.on.tc) đã tách repo riêng 20/11/2026 và ghim khung này
+// (repo outreach scripts/keo-goi.mjs) kèm bộ sổ của chính nó.
 // File THƯỜNG (không 'use client'): máy chủ và trình duyệt cùng import. Thêm một trang widget mới = một mục BO_SO + sổ riêng của trang đó.
-// Bố cục của mọi bộ lưu chung bảng home_bo_cuc (khoá user_id + mã màn) → mã màn phải KHÁC nhau giữa các bộ (so.test.mts của outreach kiểm).
+// Bố cục của mọi bộ lưu chung bảng home_bo_cuc (khoá user_id + mã màn) → mã màn phải KHÁC nhau giữa các bộ (app outreach dùng tiền tố ob-, bài kiểm ở repo đó).
 import type { O } from '../home/luoi';
 import { MAN, MAN_MAC_DINH, NHOM, WIDGET } from '../home/so';
-import { MAN_OB, MAN_OB_MAC_DINH, NHOM_OB, WIDGET_OB } from '../outreach/so';
 
-/** ngu: tham số ngữ cảnh widget đọc — p / days / ky của /home, da (dự án) của /outreach · tuDe, ghi, rong: như sổ /home */
+/** ngu: tham số ngữ cảnh widget đọc — p / days / ky của /home, tuDe, ghi, rong: như sổ /home */
 export type BoSoWidget = { ten: string; moTa: string; mac: readonly [number, number]; ngu?: readonly string[]; tuDe?: true; ghi?: true; rong?: true };
 export type BoSoMan = { id: string; ten: string; kh: string; nhom: string; o: O[] };
-export type BoSoId = 'home' | 'outreach';
+export type BoSoId = 'home';
 export type BoSo = {
   id: BoSoId;
   /** đường của trang */
@@ -32,13 +32,6 @@ export const BO_SO: Record<BoSoId, BoSo> = {
       { kh: 'PL', ten: 'Plays', href: '/plays' },
       { kh: 'SH', ten: 'Shop', href: '/shop' },
       { kh: 'TD', ten: 'Tiến độ', href: '/plays?view=tiendo' },
-    ],
-  },
-  outreach: {
-    id: 'outreach', goc: '/outreach', ten: 'Outreach', widget: WIDGET_OB, nhom: NHOM_OB, man: MAN_OB, manMacDinh: MAN_OB_MAC_DINH,
-    trangKhac: [
-      { kh: 'HM', ten: 'Home', href: '/home' },
-      { kh: 'PL', ten: 'Plays', href: '/plays' },
     ],
   },
 };

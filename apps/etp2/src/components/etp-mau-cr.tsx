@@ -61,18 +61,19 @@ export const banNguon = (m: MauCr) => { if (m.nguon !== 'doi_thu') return m.ban;
   const g = m.ban.filter((b) => b.vai === 'goc'), d = m.ban.filter((b) => b.vai === 'duyet'); return [...g.slice(0, 1), ...d.slice(0, 1), ...g.slice(1), ...d.slice(1)]; };
 /** đếm theo vai của một mẫu học từ đối thủ — chữ dùng chung cho thẻ / cây */
 export const demBan = (m: MauCr) => ({ goc: m.ban.filter((b) => b.vai === 'goc').length, duyet: m.ban.filter((b) => b.vai === 'duyet').length });
-export function BanMauLuoi({ m: mGoc, cot = 3, nhom = false }: { m: MauCr; cot?: number; /** chi tiết mẫu: chia HAI NHÓM có nhãn (nguồn đối thủ / nhà đã duyệt), mỗi nhóm một dải */ nhom?: boolean }) {
+export function BanMauLuoi({ m: mGoc, cot = 3, nhom = false, oRong }: { m: MauCr; cot?: number; /** ô rộng cố định (px) thay cho chia đều theo cột */ oRong?: number; /** chi tiết mẫu: chia HAI NHÓM có nhãn (nguồn đối thủ / nhà đã duyệt), mỗi nhóm một dải */ nhom?: boolean }) {
   if (nhom && mGoc.nguon === 'doi_thu') { const g = mGoc.ban.filter((b) => b.vai === 'goc'), d = mGoc.ban.filter((b) => b.vai === 'duyet');
-    if (g.length && d.length) return <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {([['Nguồn đối thủ', g, 'QC gốc của đối thủ mà mẫu này học theo'], ['Nhà đã duyệt', d, 'creative máy dựng theo mẫu, anh đã duyệt làm mẫu']] as const).map(([ten, ds, goi]) => <div key={ten}>
+    // hai nhóm CẠNH NHAU trên một hàng, ô nhỏ cố định 128px (ô to chia theo cột đẩy mô tả + quy trình xuống dưới màn — đo 20/11/2026); hẹp thì nhóm sau tự xuống dòng
+    if (g.length && d.length) return <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 22px' }}>
+      {([['Nguồn đối thủ', g, 'QC gốc của đối thủ mà mẫu này học theo'], ['Nhà đã duyệt', d, 'creative máy dựng theo mẫu, anh đã duyệt làm mẫu']] as const).map(([ten, ds, goi]) => <div key={ten} style={{ maxWidth: '100%', minWidth: 0 }}>
         <div title={goi} style={{ fontSize: 11.5, color: MO_SO, marginBottom: 4 }}>{ten} · <Dem v={ds.length} /></div>
-        <BanMauLuoi m={{ ...mGoc, nguon: 'nha', ban: [...ds] }} cot={cot} /></div>)}
+        <BanMauLuoi m={{ ...mGoc, nguon: 'nha', ban: [...ds] }} cot={cot} oRong={128} /></div>)}
     </div>; }
   const m = { ...mGoc, ban: banNguon(mGoc) };
   if (!m.ban.length) return <div style={{ aspectRatio: '9 / 16', maxHeight: 300, display: 'grid', placeItems: 'center', background: 'var(--bg-2)', color: MO_SO, fontSize: 11.5, borderRadius: 6 }}>chưa lưu creative gốc</div>;
   // SLIDES MỘT DÒNG (anh 19/11/2026 #1703 "Trình bày dạng slides 1 dòng thôi") — mọi bản nằm trên MỘT hàng, quá 3 bản thì trượt ngang (bám từng ô),
   // không xuống dòng; ô vẫn cùng một cỡ = 1/3 bề ngang thẻ (anh 19/11/2026 "ko cho hiển thị nơi to nơi bé")
-  return <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: `calc((100% - ${(cot - 1) * 6}px) / ${cot})`, overflowX: 'auto', scrollSnapType: 'x mandatory', overscrollBehaviorX: 'contain', paddingBottom: m.ban.length > cot ? 4 : 0, gap: 6 }}
+  return <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: oRong ? `${oRong}px` : `calc((100% - ${(cot - 1) * 6}px) / ${cot})`, overflowX: 'auto', scrollSnapType: 'x mandatory', overscrollBehaviorX: 'contain', paddingBottom: m.ban.length > cot ? 4 : 0, gap: 6 }}
     title={m.ban.length > cot ? `${m.ban.length} creative mẫu — kéo ngang / lăn chuột để xem hết` : undefined}>
     {m.ban.map((b, i) => <div key={i} title={b.goi_y} style={{ scrollSnapAlign: 'start', position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: b.vai === 'dung' ? '2px solid rgba(37,99,235,0.9)' : b.vai === 'duyet' ? '2px solid rgba(22,163,74,0.9)' : undefined }}>
       {b.video
@@ -191,7 +192,7 @@ function The({ m }: { m: MauCr }) {
       <b style={{ fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={m.ten}>{m.ten}</b>
       {s ? <span style={{ fontSize: 11.5, flex: 'none', fontVariantNumeric: 'tabular-nums' }} title={`${s.cr} creative nhà · camp đang chạy ${s.dang_chay} / đã lên ${s.camp} · chi $${s.chi.toFixed(0)}`}><span style={{ color: MO_SO }}>{s.dang_chay}/{s.camp} camp · ROI </span><ORoi s={s} /></span> : null}
     </div>
-    <div style={{ fontSize: 11.5, color: MO_SO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{[TEN_LOAI[m.loai], m.vai, TEN_NGUON[m.nguon], ...(m.nguon === 'doi_thu' ? [`${demBan(m).goc} QC gốc`, demBan(m).duyet ? `${demBan(m).duyet} đã duyệt` : null] : []), s ? `${s.cr} creative nhà` : null].filter(Boolean).join(' · ')}</div>
+    <div style={{ fontSize: 11.5, color: MO_SO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(m.nguon === 'doi_thu' ? [m.vai ?? TEN_LOAI[m.loai], `${demBan(m).goc} QC gốc đối thủ`, demBan(m).duyet ? `${demBan(m).duyet} đã duyệt` : null] : [TEN_LOAI[m.loai], m.vai, TEN_NGUON[m.nguon], s ? `${s.cr} creative nhà` : null]).filter(Boolean).join(' · ')}</div>
     <div title={m.mo_ta} style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 34 }}>{m.mo_ta}</div>
     {m.spec?.length ? <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', gap: '2px 10px', fontSize: 11.5 }}>
       {m.spec.map((x) => [<span key={`a${x.nhan}`} style={{ color: MO_SO, whiteSpace: 'nowrap' }}>{x.nhan}</span>, <span key={`b${x.nhan}`} title={x.gia} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.gia}</span>])}</div> : null}
@@ -315,12 +316,12 @@ export function TabMauCr() {
       locTuDong={false}   /* thanh lọc tự động của DataTable tách sai cột nhiều giá trị (Thể loại, Dùng cho) và trùng chip ở trên → một bộ lọc */
       card={{ render: (m) => <The m={m} />, minWidth: 320 }} defaultView="card"
       groupBy={{ value: (m) => m.nhom_tk, label: (v, rs) => <span style={{ fontWeight: 700 }}>{v} <span style={{ color: MO_SO, fontWeight: 400 }}>· {rs.filter((x) => x.loai === 'dang').length} dạng · {rs.filter((x) => x.loai === 'cong_thuc').length} công thức · {rs.filter((x) => x.loai !== 'dang' && x.loai !== 'cong_thuc').length} format</span></span> }}
-      searchText={(m) => `${m.ten} ${m.mo_ta} ${choDang(m).join(' ')} ${m.the_loai.join(' ')} ${m.tham_chieu.map((t) => t.phim ?? '').join(' ')}`} searchPlaceholder="Tìm mẫu, dạng, thể loại, phim đối thủ…"
+      searchText={(m) => `${m.ten} ${m.mo_ta} ${choDang(m).join(' ')} ${m.the_loai.join(' ')} ${m.tham_chieu.map((t) => t.phim ?? '').join(' ')}`} searchPlaceholder="Tìm mẫu, dạng, phim…"
       dauThanh={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <FilterChips<TrangThaiMau> options={TT.map((v) => ({ value: v, label: TEN_TT[v][0], title: TEN_TT[v][2] }))} values={tt as TrangThaiMau[]} onToggle={(v) => setTt(v)} counts={dem('t', TT, (m, v) => m.trang_thai === v)} donVi="mẫu" urlKey="mct" />
         <MultiSelect<string> label="Loại" options={LOAI.map((v) => ({ value: v, label: TEN_LOAI[v], count: demL[v] }))} selected={loai} onChange={setLoai} compact portal />
         <MultiSelect<string> label="Nguồn" options={NGUON.map((v) => ({ value: v, label: TEN_NGUON[v], count: demN[v] }))} selected={nguon} onChange={setNguon} compact portal />
-        <MultiSelect<string> label="Dùng cho dạng" options={DANG_TEN.map((v) => ({ value: v, label: v, count: demD[v] }))} selected={dang} onChange={setDang} searchPlaceholder="Tìm dạng…" compact portal />
+        <MultiSelect<string> label="Dạng" options={DANG_TEN.map((v) => ({ value: v, label: v, count: demD[v] }))} selected={dang} onChange={setDang} searchPlaceholder="Tìm dạng…" compact portal />
         <MultiSelect<string> label="Thể loại" options={dsTl.map((v) => ({ value: v, label: v, count: demTl[v] }))} selected={tl} onChange={setTl} searchPlaceholder="Tìm thể loại…" compact portal />
         <span style={{ fontSize: 11.5, color: MO_SO }} title={`đọc lúc ${gioVn(du.luc)}`}>{rows.length}/{tatCa.length} mẫu</span>
       </span>} />

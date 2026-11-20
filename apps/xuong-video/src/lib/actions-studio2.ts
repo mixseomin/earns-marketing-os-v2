@@ -173,7 +173,7 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
   · Bớt thứ đang có trong thanh_phan_trong_canh → bo_thanh_phan, nhan_vat_ids = [id] (ảnh mẫu của nó thôi được gửi cho model).
   · Thêm thứ có trong thu_vien_thanh_phan_cua_phim → them_thanh_phan, nhan_vat_ids = [id].
   · Thêm thứ chưa có: xuất hiện lại ở cảnh khác hoặc phải giống hệt (sản phẩm, đạo cụ chính) → tao_nhan_vat với loai_tp = dao_cu / san_pham / boi_canh; vật phụ chỉ trong cảnh này → chỉ sinh_lai_anh.
-  · Người dùng nói rõ "đạo cụ hoá / thành đạo cụ / thành sản phẩm / thành bối cảnh / thêm vào thư viện" một vật (đang có trong ảnh hoặc mới) → LUÔN tao_nhan_vat với loai_tp tương ứng (mặc định dao_cu), gia_tri = tên ngắn, yeu_cau = mô tả vật giống hệt trong ảnh hiện tại; thứ tự này đè luật "vật phụ" ở trên. Vật đã có trong thu_vien_thanh_phan_cua_phim → them_thanh_phan thay vì tạo trùng.
+  · Người dùng nói rõ "đạo cụ hoá / thành đạo cụ / thành sản phẩm / thành bối cảnh / thêm vào thư viện" một vật (đang có trong ảnh hoặc mới) → LUÔN tao_nhan_vat với loai_tp tương ứng (mặc định dao_cu), gia_tri = tên ngắn, yeu_cau = mô tả vật giống hệt trong ảnh hiện tại; thứ tự này đè luật "vật phụ" ở trên; vật đã nằm trong ảnh thì KHÔNG kèm sinh_lai_anh. Vật đã có trong thanh_phan_trong_canh → không làm gì, tra_loi nói đã có, không cần tạo. Vật có trong thu_vien_thanh_phan_cua_phim → them_thanh_phan thay vì tạo trùng.
   · Bớt thứ model tự vẽ (không nằm trong thanh_phan_trong_canh) → chỉ sinh_lai_anh, yeu_cau = "bỏ <vật>".
   Bước 2 và 3 tốn credit (vẽ một ảnh mẫu); tra_loi nói rõ chạy thẻ nhân vật trước, ảnh mẫu xong rồi mới chạy thẻ sinh lại keyframe.
 - sinh_lai_anh / sinh_lai_clip / sinh_lai_giong / sinh_td / sinh_nhac: tốn credit, chỉ đề xuất khi người dùng muốn hình / clip / giọng / âm thanh khác đi; yeu_cau = mô tả ngắn cái cần khác (tiếng Việt).
@@ -182,6 +182,7 @@ Gọi cảnh bằng "cảnh <so>" (so trong NGỮ CẢNH), không lấy số tro
   const r = await sinhJson({ schema: KHUON, system, user, max_tokens: 1500, ten: 'lenh-ai-s2' });
   if (!r.ok) return { ok: false, loi: `máy AI chưa trả lời được: ${r.loi}` };
   const da_lam: ViecAi[] = [], de_xuat: ViecAi[] = [], vaCanh: Record<string, unknown> = {}, vaTap: Record<string, unknown> = {}; let thoaiMoi: typeof thoai | null = null;
+  const ghiChu: string[] = [];   // câu báo thay lời model khi máy chặn tạo trùng
   for (const v of r.data.hanh_dong.slice(0, 8)) {
     if (!duoc.includes(v.loai)) continue;
     if (v.loai === 'sua_canh' && cn && TRUONG_CANH[v.truong] && (loai !== 'td' || v.truong === 'am_thanh')) {
@@ -206,6 +207,13 @@ Gọi cảnh bằng "cảnh <so>" (so trong NGỮ CẢNH), không lấy số tro
       de_xuat.push({ loai: 've_mau', nhanVatId: Number(x.id), canhId: Number(cn.id), tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: `Vẽ lại ảnh mẫu ${String(x.ten)}` });
     } else if (v.loai === 'tao_nhan_vat' && cn && v.yeu_cau.trim()) {
       const ten = v.gia_tri.trim().split(/[,;.]/)[0].split(/\s+/).slice(0, 4).join(' ').slice(0, 30) || 'Nhân vật mới';   // tên ngắn: model hay nhét cả mô tả vào tên
+      // đã có thành phần cùng loại, cùng tên trong thư viện phim → không tạo trùng: đã gắn cảnh thì báo không cần, chưa gắn thì gắn bản có sẵn
+      const chuan = (x: unknown) => String(x ?? '').toLowerCase().normalize('NFC').replace(/\s+/g, ' ').trim(), cuTen = chuan(ten);
+      const trung = dan.find((d) => d.loai === v.loai_tp && cuTen && (chuan(d.ten) === cuTen || chuan(d.ten).includes(cuTen) || cuTen.includes(chuan(d.ten))));
+      if (trung) { const tid0 = Number(trung.id), cu = (vaCanh.nhan_vat as number[] | undefined) ?? nvIds;
+        if (cu.includes(tid0)) { ghiChu.push(`${String(trung.ten)} đã là ${TEN_LOAI[v.loai_tp] ?? 'thành phần'} của phim và đã gắn vào cảnh này, không cần tạo lại.`); continue; }
+        vaCanh.nhan_vat = [...cu, tid0]; da_lam.push({ loai: 'sua_canh', truong: 'nhan_vat', cu: nvIds, moi: vaCanh.nhan_vat, hien: String(trung.ten), canhId: Number(cn.id), nhan: `Thêm vào cảnh ${Math.round(Number(cn.thu_tu))}` });
+        ghiChu.push(`${String(trung.ten)} đã có trong thư viện phim nên gắn bản có sẵn vào cảnh, không tạo mới.`); continue; }
       de_xuat.push({ loai: 'tao_nhan_vat', ten, loai_tp: v.loai_tp, canhId: Number(cn.id), tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: `Tạo ${v.loai_tp === 'nhan_vat' ? 'nhân vật' : TEN_LOAI[v.loai_tp]?.toLowerCase() ?? 'thành phần'} ${ten} cho cảnh ${Math.round(Number(cn.thu_tu))}` });
     } else if (v.loai.startsWith('sinh_')) {
       const nhan = { sinh_lai_anh: 'Sinh lại keyframe', sinh_lai_clip: 'Sinh lại clip', sinh_lai_giong: 'Đọc lại lời', sinh_td: 'Sinh lại tiếng động', sinh_nhac: 'Sinh lại nhạc nền' }[v.loai as 'sinh_td'];
@@ -213,13 +221,14 @@ Gọi cảnh bằng "cảnh <so>" (so trong NGỮ CẢNH), không lấy số tro
     }
   }
   // đổi người của cảnh mà chưa có thẻ vẽ lại keyframe → máy tự thêm (ảnh cảnh chỉ đổi người khi vẽ lại; không để model quên)
-  if (cn && (de_xuat.some((x) => x.loai === 've_mau' || x.loai === 'tao_nhan_vat') || 'nhan_vat' in vaCanh) && !de_xuat.some((x) => x.loai === 'sinh_lai_anh'))
+  // tạo đạo cụ / sản phẩm / bối cảnh từ ảnh đang có thì ảnh cảnh không đổi gì → không kèm vẽ lại
+  if (cn && (de_xuat.some((x) => x.loai === 've_mau' || (x.loai === 'tao_nhan_vat' && x.loai_tp === 'nhan_vat')) || ('nhan_vat' in vaCanh && !ghiChu.length)) && !de_xuat.some((x) => x.loai === 'sinh_lai_anh'))
     de_xuat.push({ loai: 'sinh_lai_anh', canhId: Number(cn.id), tapId: tid, yeu_cau: '', nhan: `Sinh lại keyframe cảnh ${Math.round(Number(cn.thu_tu))}` });
   if (thoaiMoi) { vaCanh.thoai = thoaiMoi; da_lam.push({ loai: 'sua_canh', truong: 'thoai', cu: thoai, moi: thoaiMoi, canhId: Number(cn!.id), nhan: `Sửa lời đọc cảnh ${Math.round(Number(cn!.thu_tu))}` }); }
   else if ('loi_thoai' in vaCanh) da_lam.push({ loai: 'sua_canh', truong: 'loi_thoai', cu: cn!.loi_thoai ?? '', moi: vaCanh.loi_thoai, canhId: Number(cn!.id), nhan: `Sửa lời đọc cảnh ${Math.round(Number(cn!.thu_tu))}` });
   if (cn && Object.keys(vaCanh).length) { const k = await suaCanh(Number(cn.id), vaCanh as Parameters<typeof suaCanh>[1]); if (k && (k as { ok?: boolean }).ok === false) return { ok: false, loi: `không sửa được cảnh: ${(k as { loi?: string }).loi}` }; }
   if (Object.keys(vaTap).length) { const k = await suaTap(tid, vaTap as Parameters<typeof suaTap>[1]); if (k && (k as { ok?: boolean }).ok === false) return { ok: false, loi: `không sửa được tập: ${(k as { loi?: string }).loi}` }; }
-  return { ok: true, tra_loi: r.data.tra_loi, da_lam, de_xuat, model: r.model };
+  return { ok: true, tra_loi: ghiChu.length ? ghiChu.join(' ') : r.data.tra_loi, da_lam, de_xuat, model: r.model };
 }
 
 export type PhimS2 = { id: number; ten: string; loai: string; updated_at: string; anh: string | null; cua_toi: boolean; chu: string; tap_tom: { id: number; so: number; ten: string; so_canh: number }[] };

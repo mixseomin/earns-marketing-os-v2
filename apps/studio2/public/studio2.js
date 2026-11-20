@@ -598,6 +598,8 @@ function briefDayDu() { const c = E.coSo, ls = (c?.la_so || []).filter((x) => x.
   return E.kb.brief.trim() + DAU_GHEP + 'Đây là video CHIA SẺ GÓC NHÌN CÁ NHÂN về chiêm tinh: chính người làm video kể với người xem.\n'
     + '- Lời kể ngôi thứ nhất ("tôi") xuyên suốt, giọng trò chuyện, nói thẳng với người xem. KHÔNG dựng thành phim có nhân vật khác; KHÔNG bịa thêm người, tên riêng, đoạn hội thoại hay sự kiện đời tư nào mà người làm video không nêu ở trên.\n'
     + '- Mỗi cảnh là một ý họ chia sẻ, kèm hình minh hoạ được: người kể trong không gian đời thường của họ, màn hình lá số, hình tượng trưng cho vị trí sao đang nói tới.\n'
+    + '- Các dữ kiện lá số lấy từ Astrolas (hành tinh, cung, nhà, góc chiếu, số độ) là căn cứ của video. Khi rút gọn, chia cảnh hay sửa lời vẫn phải GIỮ chúng trong lời kể: câu dài thì tách ra nhiều cảnh ngắn, không thay bằng câu chung chung.\n'
+    + '- Lời là lời KỂ phủ lên hình minh hoạ, không phải thoại phim: không cần cận mặt người nói cho từng câu, không cần tình tiết hay cú lật.\n'
     + '- Giữ đúng quan điểm của họ; không nói thay "các nhà chiêm tinh", không hứa đoán tương lai.'
     + (c?.phan_tich ? `\n\nCƠ SỞ PHÂN TÍCH TỪ ASTROLAS (astrolas.com tính từ lá số thật). Mọi vị trí sao, cung, nhà, góc chiếu nhắc trong kịch bản PHẢI lấy từ phần này, không tự thêm, không đổi số:\n${ls.map((x) => `- ${x.ten || 'Lá số'}: Mặt Trời ${x.mat_troi}, Mặt Trăng ${x.mat_trang}${x.moc ? `, cung Mọc ${x.moc}` : ''}`).join('\n')}${ls.length ? '\n' : ''}${c.phan_tich}\n\nCâu kết: mời người xem tự xem lá số của họ trên astrolas.com.`
       : '\n\nChưa có bản phân tích Astrolas cho video này: không nêu vị trí sao cụ thể của ai, chỉ chia sẻ ở mức quan điểm cá nhân.'); }

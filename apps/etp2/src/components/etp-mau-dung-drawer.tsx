@@ -20,6 +20,20 @@ const BUOC: [string, string][] = [['cho', 'Chờ máy'], ['trang_phim', 'Trang p
 const tenBuoc = (b: string) => BUOC.find(([k]) => k === b)?.[1] ?? 'Bước khác';
 const TEN_TT: Record<string, string> = { loi: 'lỗi', cho: 'chờ', xong: 'xong', dang: 'đang làm' };
 type LocMoc = 'tat' | 'loi';
+// BƯỚC DÙNG AI NGOÀI = MẤT TIỀN (anh 20/11/2026 #1716 "Thêm thông tin đoạn dùng AI, mất chi phí ngoài") — đúng các lệnh gọi trả phí của dung-mau.py;
+// bước khác (tải tập, vẽ mẫu, dựng video, thư viện, tải lên) chạy máy nhà, 0₫. Số ₫ từng bước máy ghi vào etp.mau_dung_nk.vnd.
+const AI_BUOC: Record<string, string> = {
+  chon_khung: 'AI xếp hạng khung ứng viên (gửi ảnh qua cổng AI chung) · mẫu có câu nhử: AI viết câu nhử · mẫu có logo: AI tách nền logo gốc',
+  giong: 'giọng đọc AI (cổng giọng chung, tính tiền theo số ký tự)',
+};
+const dongVnd = (v: number) => `${v.toLocaleString('vi-VN')}₫`;
+const AMBER = '#fbbf24';
+function NhanAi({ buoc, vnd }: { buoc: string; vnd: number | null | undefined }) {
+  const ai = AI_BUOC[buoc]; if (!ai && !vnd) return null;
+  const ve = vnd ? `chi ${dongVnd(vnd)} ở bước này` : vnd === 0 ? 'bước này 0₫ (dùng lại kết quả đã có)' : 'dòng cũ — máy chưa ghi tiền từng bước (ghi từ 20/11/2026)';
+  return <span title={`${ai ?? 'AI ngoài'} — ${ve}`}
+    style={{ marginLeft: 6, fontSize: 10.5, padding: '0 5px', borderRadius: 6, border: `1px solid ${AMBER}`, color: AMBER, whiteSpace: 'nowrap', fontWeight: 600 }}>AI{vnd ? ` · ${dongVnd(vnd)}` : ''}</span>;
+}
 const gio = (s: string) => new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' });
 const khoang = (a: string, b: string) => { const s = Math.max(0, Math.round((Date.parse(b) - Date.parse(a)) / 1000)); return s < 60 ? `${s} giây` : s < 3600 ? `${Math.round(s / 60)} phút` : `${(s / 3600).toFixed(1)} giờ`; };
 const MAU_TT: Record<string, string> = { xong: XANH, loi: DO, cho: '#fbbf24', dang: '#60a5fa' };
@@ -52,10 +66,11 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BUOC.length - 1}, 1fr)`, gap: 4 }}>
         {BUOC.slice(1).map(([k, ten], j) => { const tt = xong || j + 1 < i ? 'xong' : j + 1 === i ? (loi ? 'loi' : h?.trang_thai ?? 'dang') : 'chua';
           return <div key={k} title={j + 1 === i ? loiThuongMau(h?.ghi) : ten} style={{ padding: '4px 2px', borderRadius: 6, textAlign: 'center', fontSize: 10.5, border: `1px solid ${tt === 'chua' ? 'var(--line)' : MAU_TT[tt] ?? '#60a5fa'}`,
-            color: tt === 'chua' ? MO_SO : MAU_TT[tt] ?? '#60a5fa', background: tt === 'chua' ? 'transparent' : 'rgba(255,255,255,0.03)' }}>{tt === 'xong' ? '✓ ' : tt === 'loi' ? '✕ ' : ''}{ten}</div>; })}
+            color: tt === 'chua' ? MO_SO : MAU_TT[tt] ?? '#60a5fa', background: tt === 'chua' ? 'transparent' : 'rgba(255,255,255,0.03)' }}>{tt === 'xong' ? '✓ ' : tt === 'loi' ? '✕ ' : ''}{ten}{AI_BUOC[k] ? <sup style={{ color: AMBER, fontWeight: 700, marginLeft: 2 }} title={`dùng AI ngoài, mất tiền: ${AI_BUOC[k]}`}>AI</sup> : null}</div>; })}
       </div>
       {h ? <div style={{ fontSize: 12.5, padding: '8px 10px', borderRadius: 8, border: `1px solid ${loi ? DO : 'var(--line)'}`, color: loi ? DO : 'var(--fg-1)' }}>
-        <b>{xong ? 'Xong' : `${loi ? 'Lỗi ở' : h.trang_thai === 'cho' ? 'Đang chờ ·' : 'Đang làm ·'} ${tenBuoc(h.buoc)}`}</b> — {loiThuongMau(h.ghi)} <span style={{ color: MO_SO }}>· cập nhật {gio(h.cap_nhat)}</span></div>
+        <b>{xong ? 'Xong' : `${loi ? 'Lỗi ở' : h.trang_thai === 'cho' ? 'Đang chờ ·' : 'Đang làm ·'} ${tenBuoc(h.buoc)}`}</b> — {loiThuongMau(h.ghi)} <span style={{ color: MO_SO }}>· cập nhật {gio(h.cap_nhat)}</span>
+        <div style={{ marginTop: 4, color: AMBER, fontSize: 12 }} title={`${Object.entries(AI_BUOC).map(([k, v]) => `${tenBuoc(k)}: ${v}`).join('\n')}\nBước khác chạy máy nhà, 0₫.`}>Chi AI ngoài: <b>{dongVnd(h.vnd ?? 0)}</b> <span style={{ color: MO_SO }}>· bước dùng AI: {Object.keys(AI_BUOC).map(tenBuoc).join(', ')}</span></div></div>
         : <div style={{ color: MO_SO, fontSize: 12.5 }}>phim đã chọn nhưng máy chưa nhận việc</div>}
       {loiCuoi && !loi ? <div style={{ fontSize: 11.5, color: MO_SO }}>lỗi gần nhất (đã qua): <span style={{ color: DO }}>{loiThuongMau(loiCuoi.ghi)}</span> · {gio(loiCuoi.luc)}</div> : null}
       {/* SO VỚI GỐC (anh 19/11/2026 "POSTER GỐC CỦA PHIM ĐANG CHỌN CƠ MÀ"): poster gốc của CHÍNH PHIM NÀY (viền cam) | creative máy dựng cho phim (viền xanh) — cùng cỡ, cùng hàng */}
@@ -95,7 +110,7 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
                   {sau && locMoc === 'tat' ? <span style={{ position: 'absolute', left: 7.5, top: 14, bottom: -2, width: 1, background: 'var(--line)' }} /> : null}
                 </div>
                 <b style={{ fontSize: 12.5, color: c }}>{x.trang_thai === 'loi' ? '✕ ' : ''}{tenBuoc(x.buoc)}</b>
-                <div style={{ fontSize: 12, color: x.trang_thai === 'loi' ? DO : 'var(--fg-2)', overflowWrap: 'anywhere', lineHeight: 1.45, paddingBottom: 6 }}>{loiThuongMau(x.ghi)}</div>
+                <div style={{ fontSize: 12, color: x.trang_thai === 'loi' ? DO : 'var(--fg-2)', overflowWrap: 'anywhere', lineHeight: 1.45, paddingBottom: 6 }}>{loiThuongMau(x.ghi)}<NhanAi buoc={x.buoc} vnd={x.vnd} /></div>
                 <span style={{ fontSize: 11, color: MO_SO, fontVariantNumeric: 'tabular-nums' }}>{sau ? khoang(x.luc, sau.luc) : ''}</span>
               </div>; })}
           </div>}

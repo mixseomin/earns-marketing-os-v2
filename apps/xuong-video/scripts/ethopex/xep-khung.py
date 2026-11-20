@@ -19,13 +19,13 @@ LUAT = ("You are a senior short-drama ad creative director. These are candidate 
 TAM_LY = ("\n\nGenre: {tl}\nSynopsis: {mt}\n\nMOST IMPORTANT: the frame must sell THIS story to its audience. Prefer the protagonist (the character the title and synopsis are about) "
           "in a moment that shows the story's core hook and emotion (for example: revenge → cold fury or a power stance; forbidden romance → longing or tension between the couple; "
           "action / military → danger, focus, a weapon or uniform; betrayal → shock or tears). A beautiful frame of a side character, or an emotion that contradicts the hook, ranks "
-          "BELOW a slightly less polished frame that tells the right story. Also return, for EVERY frame, its dominant emotion (one of: fury, tears, fear, shock, tension, longing, "
+          "BELOW a slightly less polished frame that tells the right story. First work out from the synopsis who the protagonist is (gender, role, look) and which frames show that person; those frames lead the ranking unless they are technically unusable. Also return, for EVERY frame, its dominant emotion (one of: fury, tears, fear, shock, tension, longing, "
           "joy, pride, cold, neutral) and a 2-4 word description of who is shown (e.g. 'soldier aiming rifle', 'crying mother with child').")
 
 def xep(ten, anh, mo_ta="", the_loai=""):
     noi = []
     for i, u in enumerate(anh): noi += [{"type": "text", "text": f"Frame {i}:"}, {"type": "image_url", "image_url": {"url": u}}]
-    a, chi, model, loi = AI.goi([*noi, {"type": "text", "text": LUAT.format(t=ten) + (TAM_LY.format(tl=the_loai or "unknown", mt=mo_ta[:900]) if mo_ta else "")}], max_tokens=1200 if mo_ta else 400, timeout=180,
+    a, chi, model, loi = AI.goi([*noi, {"type": "text", "text": LUAT.format(t=ten) + (TAM_LY.format(tl=the_loai or "unknown", mt=mo_ta[:900]) if mo_ta else "")}], max_tokens=1200 if mo_ta else 400, timeout=180, uu="sonnet" if mo_ta else "haiku",   # có tóm tắt = phải hiểu câu chuyện để nhận ra nhân vật chính → model khá hơn (vài chục đồng / phim, một lần)
         cong_cu=("xep_hang", {"type": "object", "required": ["thu_tu", "ly_do"],
         "properties": {"thu_tu": {"type": "array", "items": {"type": "integer"}}, "ly_do": {"type": "string"},
                        "khung": {"type": "array", "items": {"type": "object", "properties": {"i": {"type": "integer"}, "cam_xuc": {"type": "string"}, "nhan_vat": {"type": "string"}}}}}}))   # donk → ckey: apps/etp/ai_chu.py

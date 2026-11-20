@@ -32,11 +32,16 @@ def bang_sql():
             "cap_nhat timestamptz not null default now(), primary key (mau, content_id)); "
             # NHẬT KÝ (anh 19/11/2026 "Bấm vào từng phim đang sx thì xem đc chi tiết các bước, các vấn đề theo timeline"): mỗi lần đổi bước / lỗi một dòng
             "create table if not exists etp.mau_dung_nk (id bigserial primary key, mau text not null, content_id integer not null, luc timestamptz not null default now(), "
-            "buoc text not null, trang_thai text not null, ghi text, may text); create index if not exists mau_dung_nk_viec on etp.mau_dung_nk (mau, content_id, luc);")
+            "buoc text not null, trang_thai text not null, ghi text, may text); create index if not exists mau_dung_nk_viec on etp.mau_dung_nk (mau, content_id, luc); "
+            # TIỀN AI NGOÀI TỪNG BƯỚC (anh 20/11/2026 #1716 "Thêm thông tin đoạn dùng AI, mất chi phí ngoài"): ₫ của bước ghi lên đúng dòng nhật ký bước đó
+            "alter table etp.mau_dung_nk add column if not exists vnd integer;")
 def s_(v): return "null" if v is None else "$Q$" + str(v).replace("$Q$", "") + "$Q$"
-def ghi_tt(mau, cid, buoc, tt="dang", ghi=None, **k):
+def ghi_tt(mau, cid, buoc, tt="dang", ghi=None, vnd_truoc=0, **k):
+    """vnd_truoc: ₫ AI ngoài bước VỪA XONG tiêu (xếp khung, câu nhử, tách logo, giọng) — cộng vào dòng nhật ký cuối của việc này (chính bước đó) trước khi ghi dòng mới"""
     them = "".join(f", {c} = {v}" for c, v in k.items())
-    AT.sql(bang_sql() + f" insert into etp.mau_dung (mau, content_id, buoc, trang_thai, ghi, bat_dau) values ({s_(mau)}, {int(cid)}, {s_(buoc)}, {s_(tt)}, {s_(ghi)}, now()) "
+    don = (f" update etp.mau_dung_nk set vnd = coalesce(vnd, 0) + {int(vnd_truoc)} where id = (select max(id) from etp.mau_dung_nk where mau = {s_(mau)} and content_id = {int(cid)});"
+           if vnd_truoc > 0 else "")
+    AT.sql(bang_sql() + don + f" insert into etp.mau_dung (mau, content_id, buoc, trang_thai, ghi, bat_dau) values ({s_(mau)}, {int(cid)}, {s_(buoc)}, {s_(tt)}, {s_(ghi)}, now()) "
            f"on conflict (mau, content_id) do update set buoc = excluded.buoc, trang_thai = excluded.trang_thai, ghi = excluded.ghi, cap_nhat = now(){them}; "
            f"insert into etp.mau_dung_nk (mau, content_id, buoc, trang_thai, ghi, may) values ({s_(mau)}, {int(cid)}, {s_(buoc)}, {s_(tt)}, {s_(ghi)}, {s_(os.uname().nodename.split('.')[0])})")
     print(f"[{mau} · {cid}] {buoc} · {tt}{' · ' + ghi if ghi else ''}", flush=True)
@@ -543,9 +548,10 @@ def mot(ma, cid, xem=False, ban=1):
     if not muc: raise SystemExit(f"mẫu {ma} không có trong sổ")
     dang = "poster động" if muc["loai"] == "bo_cuc" and "poster động" in muc["dung_cho"] else "ảnh tĩnh"
     dang_o = ["tai_tap"]   # bước đang làm — lỗi thì ghi ĐÚNG bước hỏng (19/11/2026: ghi buoc='loi' làm Máy SX không biết hỏng ở nhịp nào)
+    da_ghi = [0]   # ₫ đã ghi lên nhật ký — mỗi lần đổi bước, phần tiêu thêm (vnd − da_ghi) ghi vào dòng của bước vừa xong (#1716)
     def tt(b, t="dang", g=None, **k):
         if b not in ("xong", "loi"): dang_o[0] = b
-        if not xem: ghi_tt(ma, cid, dang_o[0] if b == "loi" else b, t, g, **k)
+        if not xem: ghi_tt(ma, cid, dang_o[0] if b == "loi" else b, t, g, vnd_truoc=vnd - da_ghi[0], **({"vnd": vnd} | k)); da_ghi[0] = vnd
     vnd = 0
     # PHIM CẤM (anh 19/11/2026 "ko cho mở camp mới, lên creative dưới mọi hình thức"): không dựng creative cho phim trong sổ ethopex_phim_cam — trước bước tốn AI.
     # Đọc bằng xuong.phim_cam → cong.phim_cam (một hàm); lỗi đọc → coi như cấm (an toàn trước).

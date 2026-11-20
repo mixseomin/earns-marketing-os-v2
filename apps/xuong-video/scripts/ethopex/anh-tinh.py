@@ -185,6 +185,12 @@ def khung(cid, url, tm):
         if len(uv) >= UNG_VIEN: break
     return uv
 
+def _mo_ta(url):
+    """tóm tắt thật của phim (tai-tap.mo_ta) — lỗi thì rỗng, AI xếp theo luật chung"""
+    try:
+        import importlib.util
+        s = importlib.util.spec_from_file_location("tt_mo_ta", os.path.join(D, "tai-tap.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m.mo_ta(url)
+    except Exception as e: print("không đọc được tóm tắt phim:", e, file=sys.stderr); return ""
 def xep_ai(ten, uv, mo_ta="", the_loai=""):
     """AI xếp hạng ứng viên theo độ ấn tượng / đẹp (box3 xep-khung.py, ckey) → (danh sách theo thứ tự, lý do, ₫). Lỗi → giữ thứ tự điểm máy."""
     import base64, io
@@ -382,7 +388,7 @@ def mot(p, xem, kieu, ban=1):
     cid, lang = int(p["content_id"]), "es" if str(p.get("locale")).startswith("es") else "en"; ten = ten_sach(p["ten"])
     tm = os.path.join(C, str(cid)); os.makedirs(tm, exist_ok=True)
     try:
-        uv = khung(cid, p["url"], tm); uv, ly_ai, vnd_ai = xep_ai(ten, uv) if MOI and len(uv) > 1 else (uv, "", 0)
+        uv = khung(cid, p["url"], tm); uv, ly_ai, vnd_ai = xep_ai(ten, uv, _mo_ta(p["url"])) if MOI and len(uv) > 1 else (uv, "", 0)   # + tóm tắt phim: khung đúng móc câu chuyện (20/11/2026)
     except Exception as e:
         return [{"content_id": cid, "ten": ten, "loi": str(e)[-300:]}]
     mau0 = random.randrange(len(CAU[lang])); ra = []

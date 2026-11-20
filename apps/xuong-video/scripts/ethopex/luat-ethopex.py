@@ -1557,7 +1557,16 @@ if JSON:
         if _p.returncode: loi_may.append((0, f"ghi xét luật lỗi: {_p.stderr.strip()[:80]}"))
     except Exception as e:
         loi_may.append((0, f"xét luật lỗi: {str(e)[:80]}"))
-    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_l0": m(tat_l0), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat2": m(tat2), "tat1": m(tat1), "tat_t8": m(tat_t8), "tat_tv": m(tat_tv), "tat_cx": m(tat_cx), "t1_cho": m(t1_cho), "giu_cuoi": m(giu_cuoi), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "h3": m(h3), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(_dat_ab()), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "hoi_g10": m(hoi_g10)}
+    # LỆNH TRỰC TIẾP của anh (anh 20/11/2026 09:35): camp anh vừa lệnh (vé truc_tiep đã dùng < 24 giờ) — máy luật KHÔNG hạ / tắt trong 24 giờ.
+    # Phim cấm không đi qua các danh sách này (khoá riêng, xem dòng phim_cam) nên vẫn chặn.
+    giu_tt, _TT = [], CONG.camp_truc_tiep_24h()
+    if _TT:
+        for _L in (tat_d24, tat_l3, tat_l4, tat_l0, tat_pl, tat_l, tat2, tat1, tat_t8, tat_tv, tat_cx, tat_roas, tat_r0, tat_g10, giam, ha, dung_dem):
+            if not isinstance(_L, list): continue
+            _bo = [x for x in _L if isinstance(x, (tuple, list)) and x and str(x[0]).isdigit() and int(x[0]) in _TT]
+            giu_tt += [(int(x[0]), f"TRỰC TIẾP — anh lệnh trong 24 giờ, máy luật không hạ / tắt (bỏ: {str(x[1] if len(x) > 1 else '')[:80]})") for x in _bo]
+            _L[:] = [x for x in _L if x not in _bo]
+    ra_ = {"luc":f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_l0": m(tat_l0), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat2": m(tat2), "tat1": m(tat1), "tat_t8": m(tat_t8), "tat_tv": m(tat_tv), "tat_cx": m(tat_cx), "t1_cho": m(t1_cho), "giu_cuoi": m(giu_cuoi), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "h3": m(h3), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(_dat_ab()), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "hoi_g10": m(hoi_g10), "giu_truc_tiep": m(giu_tt)}
     # SỔ LUẬT CHUNG (apps/web/src/lib/etp-bang-luat.json): mọi danh sách máy luật xuất ra phải có mục ở sổ — thiếu là trang etp / bộ lọc / worker không biết luật đó (gốc vụ G10 01/11/2026)
     _thieu = sorted(k for k in ra_ if k != "luc" and k not in BANG_LUAT["khoa"])
     if _thieu: ra_["loi_may"] = ra_.get("loi_may", []) + [{"id": 0, "chu": f"luật chưa có trong sổ luật chung etp-bang-luat.json: {', '.join(_thieu)}"}]

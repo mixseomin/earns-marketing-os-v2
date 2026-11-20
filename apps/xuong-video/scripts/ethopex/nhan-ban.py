@@ -681,7 +681,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
             lo_, hi_ = HOI_CHO["ns_khoang"]
             _sl = _iuc.spec_from_file_location("etp_lenh_cho", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "lenh_cho.py")); LC = _iuc.module_from_spec(_sl); _sl.loader.exec_module(LC)
             if not (lo_ <= ns <= hi_ and LC.hop_le(goc, roas, ns)): raise ValueError(f"--lenh-cho: không có lệnh chờ phanh đang chạy cho #{goc} roas {roas:g} ${ns} (hoặc ngoài ${lo_:g}–{hi_:g})")
-        elif not 15 <= ns <= 20: raise ValueError("ngân sách camp ROAS $15–20 (Support 26/10/2026)")
+        elif not 15 <= ns <= 20 and not CONG.truc_tiep("nhan_ban", [goc]): raise ValueError("ngân sách camp ROAS $15–20 (Support 26/10/2026) — lệnh trực tiếp của anh: cấp vé cong.py --ve-truc-tiep")   # LỆNH TRỰC TIẾP (anh 20/11/2026 09:35) miễn khoảng $15–20
         d, ten, cid, pl = payload(goc, lich, moi=moi, bo=bo if moi else None, roas=roas, ns_roas=ns, nhan=nhan); kq["ten"] = ten; bo = pl.pop("bo")
         if moi:
             kq["content"], kq["creative"] = cid, int(moi["creative"])

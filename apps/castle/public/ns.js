@@ -1350,7 +1350,7 @@ function khungAnh(a) { // khung lớn nhất cùng tỉ lệ ảnh, giữa màn
 }
 function datCamSo() {
   const [x, z] = raMet(dangSo.lat, dangSo.lng);
-  camera.position.set(x, cam.y, z); camera.fov = cam.fov; camera.rotation.set(cam.pitch, cam.yaw, 0, 'YXZ'); camera.updateProjectionMatrix();
+  camera.position.set(x, cam.y, z); camera.fov = cam.fov; camera.rotation.set(cam.pitch, cam.yaw, cam.roll || 0, 'YXZ'); camera.updateProjectionMatrix(); // roll: camera giải bằng PnP (scripts/khop-lg.py) có nghiêng máy
   $('so-tt').textContent = `cao ${(cam.y + GOC_Y).toFixed(0)} m (so mặt biển) · quay ${(cam.yaw * 180 / Math.PI).toFixed(1)}° · ngẩng ${(cam.pitch * 180 / Math.PI).toFixed(1)}° · ống kính ${cam.fov.toFixed(1)}°`;
 }
 function moSo(i) {

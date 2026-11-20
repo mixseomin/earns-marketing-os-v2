@@ -2776,6 +2776,10 @@
   "doi_dom20": 1.68
  },
  "way/223110818#7": {
+  "vom_nho": 11,
+  "do_may_vom_nho": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI) + soát bằng mắt trên ảnh nắn: 2 ảnh Commons cùng ra 11 vòm (nhịp 0,75 m trên cạnh 8,5 m) — commons-Dvorac-Neuschwanstein---dio-pročelja (Silverije, CC BY-SA 4.0), định vị LightGlue + PnP",
+  "rang_cua": 7,
+  "do_may_rang_cua": "máy đo 2026-11-20 (không AI) + soát bằng mắt: 4 răng liền nhau thấy rõ, nhịp 1,17 m (độ tin 0,99) → 8,5 m / 1,17 = 7; ảnh dio-pročelja (Silverije, CC BY-SA 4.0)",
   "hang": [
    {
     "y0": 25.4,

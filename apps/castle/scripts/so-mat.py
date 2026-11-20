@@ -126,12 +126,16 @@ def do_thu_muc(d):
                          'y_day': c['y_day'], 'y_dinh': c['y_dinh'], 'cham_day': c['cham_day'], 'mat': f"{m['khoi']}#{m['canh']}"})
     return xoe, cong
 
+MEP_TOI_THIEU = 2  # số mép xoè tối thiểu để nhận một lớp xoè (gop_xoe + lọc lại lớp cũ khi --ghi)
+
 def gop_xoe(xoe):
-    """mỗi khối: số mép đo được, số mép xoè; ≥ một nửa xoè (và ≥ 1) → đỉnh xoè = trung vị y_tren, độ dốc = trung vị ra / (y_tren − y_day)"""
+    """mỗi khối: số mép đo được, số mép xoè; ≥ một nửa xoè VÀ ≥ MEP_TOI_THIEU mép → đỉnh xoè = trung vị y_tren, độ dốc = trung vị ra / (y_tren − y_day).
+    Một mép lẻ không đủ: đá núi / bụi cây dính chân một mép trên lưới Google trông y như chân xoè (223179004 tháp đa giác bắc Palas đo một mép #6 → doc 0,349,
+    ra 1,81 m → chân hình nêm, thật là thân thẳng — anh 21/11/2026 ô đỏ 'ngay bên cạnh đang bị sai')"""
     kq = {}
     for k in sorted({e['khoi'] for e in xoe}):
         e = [a for a in xoe if a['khoi'] == k]; c = [a for a in e if a['xoe']]
-        if not c or len(c) * 2 < len(e): kq[k] = {'do': len(e), 'xoe': len(c)}; continue
+        if len(c) < MEP_TOI_THIEU or len(c) * 2 < len(e): kq[k] = {'do': len(e), 'xoe': len(c)}; continue
         yt = float(np.median([a['xoe'][0] for a in c])); doc = float(np.median([a['xoe'][1] / max(0.5, a['xoe'][0] - a['y_day']) for a in c]))
         kq[k] = {'do': len(e), 'xoe': len(c), 'y_tren': round(yt, 2), 'doc': round(doc, 3), 'ra': round(float(np.median([a['xoe'][1] for a in c])), 2), 'mat': sorted({a['mat'] for a in c})}
     return kq
@@ -204,8 +208,11 @@ if __name__ == '__main__':
         for k, v in kx.items():
             lop = [{a: l[a] for a in ('y_tren', 'doc', 'ra')} for l in (nen[k].get('lop') or [nen[k]])] if k in nen else []
             if 'doc' in v: lop.append({a: v[a] for a in ('y_tren', 'doc', 'ra')})
-            if lop: D['chan_xoe'][k] = {'lop': lop, 'do': v['do'], 'xoe': v['xoe'], 'mat': v.get('mat') or D['chan_xoe'].get(k, {}).get('mat', [])}
+            if lop: D['chan_xoe'][k] = {'lop': lop, 'do': v['do'], 'xoe': v['xoe'], 'mep': v['xoe'] if 'doc' in v else D['chan_xoe'].get(k, {}).get('mep'), 'mat': v.get('mat') or D['chan_xoe'].get(k, {}).get('mat', [])}
             else: D['chan_xoe'].pop(k, None)
+        # lọc lại cả lớp đã ghi từ trước khi có luật MEP_TOI_THIEU: khối mà lần đo đầu chỉ có < 2 mép xoè (số mép cũ không lưu → đếm mặt) thì bỏ hẳn
+        for k in [k for k, e in D['chan_xoe'].items() if (e.get('mep') if e.get('mep') is not None else len(e.get('mat') or [])) < MEP_TOI_THIEU]:
+            print('  bỏ chân xoè đo < 2 mép:', k); D['chan_xoe'].pop(k)
         kc = [c for c in kc if not c['cham_day']]  # cổng chạm đáy ảnh = khe giữa hai khối, không phải cổng — không ghi
         D['cong'] = [d for d in D['cong'] if not d.get('cham_day') and not any(abs(c['x'] - d['x']) < 2 and abs(c['z'] - d['z']) < 2 for c in kc)] + kc
         json.dump(D, open(p, 'w'), ensure_ascii=False, indent=1); print('ghi', p)

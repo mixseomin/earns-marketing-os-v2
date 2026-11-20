@@ -225,12 +225,12 @@ function The({ m }: { m: MauCr }) {
     style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 6, height: '100%', cursor: 'pointer' }}>
     <BanMauLuoi m={m} />
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span title={`${TEN_TT[m.trang_thai][0]} — ${goiTt}`} style={{ width: 8, height: 8, borderRadius: 4, background: mauTt, flex: 'none' }} />
+      <span onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', flex: 'none' }}><ReMau m={m}><ChamRe mau={mauTt} co={8} /></ReMau></span>
       <b style={{ fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={m.ten}>{m.ten}</b>
       {s ? <span style={{ fontSize: 11.5, flex: 'none', fontVariantNumeric: 'tabular-nums' }} title={`${s.cr} creative nhà · camp đang chạy ${s.dang_chay} / đã lên ${s.camp} · chi $${s.chi.toFixed(0)}`}><span style={{ color: MO_SO }}>{s.dang_chay}/{s.camp} camp · ROI </span><ORoi s={s} /></span> : null}
     </div>
     <div style={{ fontSize: 11.5, color: MO_SO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(m.nguon === 'doi_thu' ? [m.vai ?? TEN_LOAI[m.loai], `${demBan(m).goc} QC gốc đối thủ`, demBan(m).duyet ? `${demBan(m).duyet} đã duyệt` : null] : [TEN_LOAI[m.loai], m.vai, TEN_NGUON[m.nguon], s ? `${s.cr} creative nhà` : null]).filter(Boolean).join(' · ')}</div>
-    <ReMau m={m} khoi><div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 34 }}>{m.mo_ta}</div></ReMau>
+    <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 34 }}>{m.mo_ta}</div>
     {m.spec?.length ? <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', gap: '2px 10px', fontSize: 11.5 }}>
       {m.spec.map((x) => [<span key={`a${x.nhan}`} style={{ color: MO_SO, whiteSpace: 'nowrap' }}>{x.nhan}</span>, <span key={`b${x.nhan}`} title={x.gia} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.gia}</span>])}</div> : null}
     <div style={{ marginTop: 'auto' }}><ChanThe m={m} /></div>

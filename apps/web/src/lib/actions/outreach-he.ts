@@ -48,7 +48,7 @@ export async function obNapCsv(cd: number, chu: string) {
   const kq = await napCsv(cd, chu); moi(); return kq;
 }
 export async function obSoan(cd: number, so: number, lai?: number): Promise<KetSoan> {
-  if (!(await quanTri())) return { ok: false, xong: 0, hong: 0, con: 0, usd: 0, loi: CAM.loi };
+  if (!(await quanTri())) return { ok: false, xong: 0, loai: 0, hong: 0, con: 0, usd: 0, loi: CAM.loi };
   const kq = await soanChuoi(cd, Math.max(1, Math.min(10, so)), lai); moi(); return kq;
 }
 export async function obGuiThu(cd: number, toi: string) {

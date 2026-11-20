@@ -65,6 +65,10 @@ const linkTrong = (s: string) => s.match(/https?:\/\/[^\s)>\]]+/g) ?? [];
 
 /** Cửa kiểm chuỗi thư trước khi lưu. Trả câu lỗi (mô hình viết lại) hoặc null. Thuần — có bài tự kiểm. */
 export function kiemChuoi(v: unknown, c: LoiChao): string | null {
+  // thương hiệu KHÔNG bán đúng ngách: mô hình trả hop 'no' + lý do, không viết thư — hợp lệ, người gọi loại người nhận này
+  const hop = (v as { hop?: string; ly_do?: string })?.hop;
+  if (hop !== 'yes' && hop !== 'no') return 'thiếu hop: yes hoặc no';
+  if (hop === 'no') return String((v as { ly_do?: string }).ly_do ?? '').trim().length >= 8 ? null : 'hop no thì phải ghi ly_do';
   const ds = (v as { emails?: { subject?: string; body?: string }[] })?.emails;
   if (!Array.isArray(ds) || ds.length !== 3) return 'cần đúng 3 thư trong emails';
   const choPhep = new Set([c.link_mien_phi, c.link_ban].filter(Boolean).map((x) => String(x).replace(/\/$/, '')));

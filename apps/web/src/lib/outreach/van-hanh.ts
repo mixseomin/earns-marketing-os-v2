@@ -70,6 +70,7 @@ export type MotChienDich = {
   id: number; da: string; ten: string; kieu: string; tuEmail: string | null; tuTen: string | null; tuGui: boolean; tran: number; cachNgay: number; soNhac: number;
   chao: LoiChao | null; ngach: { spId: number; ten: string; slug: string } | null; daXet: number;
   n: number; choGui: number; coChuoi: number; daGui: number; traLoi: number;
+  /** chờ gửi, có email, chưa có chuỗi thư */ chuaSoan: number; /** máy xét không bán đúng ngách → đã đưa khỏi hàng chờ */ khongHop: number;
   nhap: { id: number; ten: string; email: string; website: string; soQc: number | null; chuoi: ThuChuoi[] }[];
 };
 /** số liệu + thư nháp (tối đa `soNhap` người chờ gửi đã có chuỗi) của một chiến dịch — cho ngăn vận hành và cho việc duyệt */
@@ -82,7 +83,9 @@ export async function docMotChienDich(id: number, soNhap = 5): Promise<MotChienD
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.status = 'to_send') as cho_gui,
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.du_lieu ? 'chuoi') as co_chuoi,
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.sent_at is not null) as da_gui,
-           (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.replied_at is not null) as tra_loi
+           (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.replied_at is not null) as tra_loi,
+           (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.status = 'to_send' and p.email is not null and p.email <> '' and not (p.du_lieu ? 'chuoi')) as chua_soan,
+           (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.status = 'khong_hop') as khong_hop
     from outreach_campaigns c where c.id = ${id} limit 1`)) as unknown as Record<string, unknown>[])[0];
   if (!c) return null;
   const ch = (c.cau_hinh ?? {}) as { chao?: LoiChao; ngach?: MotChienDich['ngach']; da_xet?: string[] };
@@ -92,7 +95,7 @@ export async function docMotChienDich(id: number, soNhap = 5): Promise<MotChienD
   return {
     id: Number(c.id), da: String(c.da), ten: String(c.ten), kieu: String(c.kieu), tuEmail: c.tu_email ? String(c.tu_email) : null, tuTen: c.tu_ten ? String(c.tu_ten) : null,
     tuGui: c.tu_gui === true, tran: Number(c.tran), cachNgay: Number(c.cach_ngay), soNhac: Number(c.so_nhac), chao: ch.chao ?? null, ngach: ch.ngach ?? null, daXet: ch.da_xet?.length ?? 0,
-    n: Number(c.n), choGui: Number(c.cho_gui), coChuoi: Number(c.co_chuoi), daGui: Number(c.da_gui), traLoi: Number(c.tra_loi),
+    n: Number(c.n), choGui: Number(c.cho_gui), coChuoi: Number(c.co_chuoi), daGui: Number(c.da_gui), traLoi: Number(c.tra_loi), chuaSoan: Number(c.chua_soan), khongHop: Number(c.khong_hop),
     nhap: nhap.map((p) => ({ id: p.id, ten: p.ten, email: p.email, website: p.website, soQc: p.so_qc, chuoi: Array.isArray(p.chuoi) ? p.chuoi : [] })),
   };
 }

@@ -13,12 +13,13 @@ import { kiemChuoi, type LoiChao, type ThuChuoi } from './thuan';
 export { kiemChuoi };
 export type { LoiChao, ThuChuoi };
 
-const SCHEMA = { type: 'object', additionalProperties: false, required: ['emails'], properties: { emails: { type: 'array', minItems: 3, maxItems: 3,
+const SCHEMA = { type: 'object', additionalProperties: false, required: ['hop', 'ly_do', 'emails'], properties: { hop: { type: 'string', enum: ['yes', 'no'] }, ly_do: { type: 'string' }, emails: { type: 'array', minItems: 0, maxItems: 3,
   items: { type: 'object', additionalProperties: false, required: ['subject', 'body'], properties: { subject: { type: 'string' }, body: { type: 'string' } } } } } };
 
 function cauLenh(c: LoiChao) {
   return [
     `You write a 3-email cold outreach sequence from ${c.ky_ten} at ${c.ben_gui} to the marketing owner of a brand. ${c.ben_gui}: ${c.ban_gi}`,
+    `STEP 0 - FIT CHECK: decide whether this brand actually sells a product that ${c.ngach ?? 'this niche'} buyers would buy INSTEAD OF or AS their ${c.ngach ?? 'niche'} purchase (the product in their ad is ${c.ngach ?? 'the niche product'} or a direct substitute). A brand that only mentions the niche in passing, sells an accessory or an unrelated product, or is a publisher, link service, destination or event is NOT a fit. If not a fit return {"hop":"no","ly_do":"<what they actually sell, one short sentence>","emails":[]} and stop. If it is a fit set hop to "yes", ly_do to what they sell, and write the emails.`,
     `Use ONLY the facts given in the user message. Never invent numbers, results, customers, testimonials or claims. Never promise outcomes (no ROAS, CTR, revenue claims).`,
     `Voice: one busy operator writing to another. Plain text, short sentences, specific, calm. No hype, no flattery, no "I hope this finds you well", no "quick question", no exclamation marks, no emojis, no bullet lists, no em dashes or en dashes (use "-" or a new sentence).`,
     `Do not say or imply how their ads were found beyond having seen their ad. Do not mention tools, software, scraping, or how the research is produced.`,
@@ -27,7 +28,7 @@ function cauLenh(c: LoiChao) {
     `EMAIL 3 (15-80 words, last note): say this is the last note, mention in one sentence that the full ${c.ngach ?? ''} report exists${c.gia ? ` (${c.gia})` : ''}${c.link_ban ? ` at ${c.link_ban}` : ''}, and make it easy to ignore. Subject: empty string.`,
     `Sign each email with just "${c.ky_ten}" on the last line and "${c.ben_gui}" on the line after it. Do not add an unsubscribe line (it is appended automatically).`,
     ...(c.cam?.length ? [`Never say or imply: ${c.cam.join('; ')}.`] : []),
-    `Return JSON: {"emails":[{"subject":"...","body":"..."},{"subject":"","body":"..."},{"subject":"","body":"..."}]}`,
+    `Return JSON: {"hop":"yes","ly_do":"...","emails":[{"subject":"...","body":"..."},{"subject":"","body":"..."},{"subject":"","body":"..."}]}`,
   ].join('\n');
 }
 
@@ -44,11 +45,12 @@ function deBai(p: { ten: string; website: string; du_lieu: DuLieuNhan | null }, 
   ].filter((x) => x !== '').join('\n');
 }
 
-export type KetSoan = { ok: boolean; xong: number; hong: number; con: number; usd: number; loi?: string; loiDau?: string };
+/** loai = số thương hiệu máy xét là KHÔNG bán đúng ngách → đưa khỏi hàng chờ gửi (trạng thái khong_hop, lý do ở du_lieu.khong_hop) */
+export type KetSoan = { ok: boolean; xong: number; loai: number; hong: number; con: number; usd: number; loi?: string; loiDau?: string };
 
 /** Soạn chuỗi thư cho tối đa `so` người nhận CHƯA có chuỗi của chiến dịch (trạng thái chờ gửi, có email). `lai` = id người nhận cần soạn lại. */
 export async function soanChuoi(campaignId: number, so: number, lai?: number): Promise<KetSoan> {
-  const ra: KetSoan = { ok: true, xong: 0, hong: 0, con: 0, usd: 0 };
+  const ra: KetSoan = { ok: true, xong: 0, loai: 0, hong: 0, con: 0, usd: 0 };
   const db = getDb(); if (!db) return { ...ra, ok: false, loi: 'Chưa nối được cơ sở dữ liệu.' };
   const cd = ((await db.execute(sql`select cau_hinh from outreach_campaigns where id = ${campaignId} limit 1`)) as unknown as { cau_hinh: { chao?: LoiChao } | null }[])[0];
   if (!cd) return { ...ra, ok: false, loi: 'Không thấy chiến dịch này.' };
@@ -62,13 +64,19 @@ export async function soanChuoi(campaignId: number, so: number, lai?: number): P
   const sys = cauLenh(c);
   await Promise.all(ds.map(async (p) => {
     try {
-      const r = await goiAi<{ emails: { subject: string; body: string }[] }>(
+      const r = await goiAi<{ hop: 'yes' | 'no'; ly_do: string; emails: { subject: string; body: string }[] }>(
         { viec: 'mos2-outreach-soan-thu', model: MO_HINH.haiku, max_tokens: 1400, system: sys, noi_dung: deBai(p, c), schema: SCHEMA },
         { kiem: (kq) => kiemChuoi(kq, c), lan: 3, hanMs: 90_000 });
       ra.usd += r.chi_usd || 0;
+      if (r.kq.hop === 'no' && !lai) {
+        await db.execute(sql`update outreach_prospects set status = 'khong_hop', next_followup_at = null,
+          du_lieu = jsonb_set(coalesce(du_lieu, '{}'::jsonb), '{khong_hop}', ${JSON.stringify(String(r.kq.ly_do).slice(0, 300))}::jsonb), updated_at = now() where id = ${p.id} and status = 'to_send'`);
+        ra.loai++; return;
+      }
+      if (r.kq.hop === 'no') throw new Error(`máy xét không hợp ngách: ${r.kq.ly_do}`);
       const chuoi: ThuChuoi[] = r.kq.emails.map((t) => ({ tieu_de: String(t.subject ?? '').trim(), noi_dung: String(t.body ?? '').trim() }));
       await db.execute(sql`update outreach_prospects set email_subject = ${chuoi[0]!.tieu_de}, email_body = ${chuoi[0]!.noi_dung},
-        du_lieu = jsonb_set(jsonb_set(coalesce(du_lieu, '{}'::jsonb), '{chuoi}', ${JSON.stringify(chuoi)}::jsonb), '{soan}', ${JSON.stringify({ model: r.model, luc: new Date().toISOString() })}::jsonb), updated_at = now()
+        du_lieu = jsonb_set(jsonb_set(coalesce(du_lieu, '{}'::jsonb), '{chuoi}', ${JSON.stringify(chuoi)}::jsonb), '{soan}', ${JSON.stringify({ model: r.model, luc: new Date().toISOString(), ban: String(r.kq.ly_do).slice(0, 200) })}::jsonb), updated_at = now()
         where id = ${p.id}`);
       ra.xong++;
     } catch (e) { ra.hong++; ra.loiDau ??= `${p.ten}: ${String((e as Error).message ?? e).slice(0, 200)}`; }

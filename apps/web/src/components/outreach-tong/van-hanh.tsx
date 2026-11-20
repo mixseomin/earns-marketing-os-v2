@@ -36,7 +36,7 @@ const GIAI = {
   ngach: 'Chọn ngách thì máy lấy các phát hiện của report ngách đó làm nội dung được phép nêu trong thư, và nạp được nhà quảng cáo của ngách.',
   spy: 'Thương hiệu còn chạy quảng cáo trong 21 ngày gần nhất, nhiều quảng cáo trước. Máy vào website từng thương hiệu tìm email liên hệ công khai; không thấy email thì không nạp.',
   chao: 'Máy soạn thư chỉ được nói những gì ghi ở đây về bên gửi, cộng với dữ kiện về quảng cáo của từng người nhận. Sửa lời chào không đổi thư đã soạn; muốn áp thì soạn lại.',
-  soan: 'Mỗi người nhận một chuỗi ba thư (thư đầu, nhắc 1, nhắc 2) viết theo quảng cáo của chính họ. Soạn xong máy không gửi gì. Tiền mô hình vài chục đồng mỗi người, số thật hiện sau từng mẻ.',
+  soan: 'Mỗi người nhận một chuỗi ba thư (thư đầu, nhắc 1, nhắc 2) viết theo quảng cáo của chính họ. Thương hiệu không bán đúng ngách thì máy loại khỏi hàng chờ và ghi lý do. Soạn xong máy không gửi gì. Tiền mô hình vài chục đồng mỗi người, số thật hiện sau từng mẻ.',
   thu: 'Gửi thư đầu của người nhận đầu tiên qua đúng đường gửi thật. Không đổi trạng thái ai, không tính vào trần ngày.',
   tuGui: 'Khi bật: mỗi ngày lúc 21:00 giờ Việt Nam máy dò thư trả lời, gửi thư nhắc tới hạn, rồi gửi thư đầu cho người chờ gửi theo trần. Ai trả lời, xin thôi hoặc bị dội thì ra khỏi chuỗi.',
 };
@@ -123,7 +123,7 @@ export function NganChienDich({ emailNha }: { emailNha: string }) {
         </p>
         <Segmented size="sm" value={the} onChange={(v) => datThe(v === 'nap' ? '' : v)} options={[
           { value: 'nap', label: 'Nạp người nhận', title: `${cd.n} người nhận` }, { value: 'chao', label: 'Lời chào' },
-          { value: 'soan', label: 'Soạn thư', title: `${cd.coChuoi}/${cd.n} người đã có chuỗi thư` }, { value: 'gui', label: 'Gửi', title: cd.tuGui ? 'tự gửi đang bật' : 'đang gửi tay' }]} />
+          { value: 'soan', label: 'Soạn thư', title: `${cd.coChuoi} người đã có chuỗi thư · ${cd.chuaSoan} chưa soạn · ${cd.khongHop} không hợp ngách` }, { value: 'gui', label: 'Gửi', title: cd.tuGui ? 'tự gửi đang bật' : 'đang gửi tay' }]} />
         {the === 'nap' && <TheNap cd={cd} xong={doc} />}
         {the === 'chao' && <TheChao cd={cd} xong={doc} />}
         {the === 'soan' && <TheSoan cd={cd} xong={doc} />}
@@ -201,19 +201,19 @@ function TheChao({ cd, xong }: { cd: MotChienDich; xong: () => Promise<void> }) 
 }
 
 function TheSoan({ cd, xong }: { cd: MotChienDich; xong: () => Promise<void> }) {
-  const thieu = cd.n - cd.coChuoi;
+  const thieu = cd.chuaSoan;
   const [tin, setTin] = useState<ReactNode>(null), [loi, setLoi] = useState<string | null>(null), [dang, setDang] = useState(false), [mo, setMo] = useState<number | null>(cd.nhap[0]?.id ?? null);
   // soạn theo MẺ 5 người: mỗi mẻ một lượt gọi máy chủ, hiện số đã xong + tiền thật sau từng mẻ; mẻ nào không soạn được thư nào thì dừng và in lỗi đầu tiên
   const soan = async () => {
-    setDang(true); setLoi(null); let xongN = 0, hong = 0, usd = 0;
+    setDang(true); setLoi(null); let xongN = 0, loai = 0, hong = 0, usd = 0;
     try {
       for (let luot = 0; luot < 60; luot++) {
         const r = await obSoan(cd.id, 5);
         if (!r.ok) { setLoi(r.loi ?? 'Máy chủ không trả lý do.'); break; }
-        xongN += r.xong; hong += r.hong; usd += r.usd;
-        setTin(<>Đã soạn <b>{xongN}</b> · {hong} chưa viết được · còn {r.con} người · ~{vnd(usd)}{r.con > 0 && r.xong > 0 ? ' · đang soạn tiếp…' : ''}</>);
+        xongN += r.xong; loai += r.loai; hong += r.hong; usd += r.usd;
+        setTin(<>Đã soạn <b>{xongN}</b> · {loai} không hợp ngách (đã loại) · {hong} chưa viết được · còn {r.con} người · ~{vnd(usd)}{r.con > 0 && r.xong + r.loai > 0 ? ' · đang soạn tiếp…' : ''}</>);
         if (r.con <= 0) break;
-        if (r.xong === 0) { setLoi(`Mẻ vừa rồi không soạn được thư nào nên máy dừng. Lỗi đầu tiên: ${r.loiDau ?? 'không rõ'}`); break; }
+        if (r.xong + r.loai === 0) { setLoi(`Mẻ vừa rồi không soạn được thư nào nên máy dừng. Lỗi đầu tiên: ${r.loiDau ?? 'không rõ'}`); break; }
       }
     } finally { setDang(false); await xong(); }
   };
@@ -221,7 +221,7 @@ function TheSoan({ cd, xong }: { cd: MotChienDich; xong: () => Promise<void> }) 
     <Dau giai={GIAI.soan}>Chuỗi ba thư cho từng người</Dau>
     <GuardedButton reason={dang ? 'Đang soạn…' : !cd.chao ? 'Chiến dịch chưa có lời chào (thẻ Lời chào)' : thieu <= 0 ? 'Mọi người nhận đã có chuỗi thư' : ''} style={nutChinh} onClick={soan}>{dang ? 'Đang soạn…' : `Soạn cho ${Math.max(0, thieu)} người chưa có thư`}</GuardedButton>
     <Bao loi={loi} tin={tin} />
-    <Dau>Thư nháp · {cd.nhap.length} người đầu đang chờ gửi</Dau>
+    <Dau giai={cd.khongHop ? `${cd.khongHop} thương hiệu máy xét không bán đúng ngách đã ra khỏi hàng chờ; xem ở bảng Người nhận, lọc trạng thái Không hợp ngách.` : undefined}>Thư nháp · {cd.nhap.length} người đầu đang chờ gửi</Dau>
     {cd.nhap.length ? cd.nhap.map((p) => (
       <div key={p.id} style={{ border: '1px solid var(--line)', borderRadius: 6, marginBottom: 6 }}>
         <button type="button" onClick={() => setMo(mo === p.id ? null : p.id)} aria-expanded={mo === p.id} title={`${p.email}${p.soQc ? ` · ${p.soQc} quảng cáo` : ''}`}

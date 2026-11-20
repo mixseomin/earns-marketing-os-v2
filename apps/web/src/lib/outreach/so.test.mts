@@ -53,10 +53,13 @@ assert.equal(chonEmail('contact [at] trail.co', 'trail.co'), 'contact@trail.co')
 // cửa kiểm chuỗi thư
 const CH: LoiChao = { ben_gui: 'AngleBrief', ky_ten: 'Sam', ban_gi: 'x', phat_hien: ['a', 'b'], link_mien_phi: 'https://anglebrief.net/guides/hiking-boots-ad-hooks', link_ban: 'https://anglebrief.net/r/hiking-boots', gia: 'from $24' };
 const tu = (n: number) => Array.from({ length: n }, (_, i) => `word${i}`).join(' ');
-const tot = () => ({ emails: [{ subject: 'your waterproof boot ad', body: `${tu(60)}\nhttps://anglebrief.net/guides/hiking-boots-ad-hooks\nSam\nAngleBrief` }, { subject: '', body: tu(30) }, { subject: '', body: `${tu(25)} from $24 https://anglebrief.net/r/hiking-boots` }] });
+const tot = () => ({ hop: 'yes' as string, ly_do: 'sells hiking boots', emails: [{ subject: 'your waterproof boot ad', body: `${tu(60)}\nhttps://anglebrief.net/guides/hiking-boots-ad-hooks\nSam\nAngleBrief` }, { subject: '', body: tu(30) }, { subject: '', body: `${tu(25)} from $24 https://anglebrief.net/r/hiking-boots` }] });
 assert.equal(kiemChuoi(tot(), CH), null, 'chuỗi đúng phải qua');
 const hong = (sua: (v: ReturnType<typeof tot>) => void) => { const v = tot(); sua(v); return kiemChuoi(v, CH); };
 assert.ok(hong((v) => { v.emails.pop(); }), 'thiếu thư');
+assert.equal(kiemChuoi({ hop: 'no', ly_do: 'sells chocolate sticks', emails: [] }, CH), null, 'không hợp ngách + có lý do là kết quả hợp lệ');
+assert.ok(kiemChuoi({ hop: 'no', ly_do: '', emails: [] }, CH), 'không hợp mà thiếu lý do');
+assert.ok(hong((v) => { v.hop = 'maybe'; }), 'hop lạ');
 assert.ok(hong((v) => { v.emails[0]!.body = tu(200); }), 'thư đầu quá dài');
 assert.ok(hong((v) => { v.emails[0]!.body += ' — wow'; }), 'gạch dài');
 assert.ok(hong((v) => { v.emails[1]!.body += ' our AI found this'; }), 'lộ AI');

@@ -11,7 +11,7 @@ import { chonEmail, docCsv } from './thuan';
 export { chonEmail, docCsv };
 
 /** tên miền không phải website riêng của thương hiệu: sàn, mạng xã hội, link rút gọn, kho ứng dụng */
-const BO_MIEN = /(^|\.)(amazon\.[a-z.]+|amzn\.to|facebook\.com|fb\.com|fb\.me|instagram\.com|tiktok\.com|youtube\.com|youtu\.be|linktr\.ee|bit\.ly|apple\.com|google\.com|walmart\.com|etsy\.com|ebay\.com|shopify\.com|myshopify\.com|clickbank\.net|hop\.clickbank\.net|digistore24\.com|t\.co|whatsapp\.com|wa\.me|messenger\.com|m\.me|typeform\.com|calendly\.com|gumroad\.com|kickstarter\.com|indiegogo\.com)$/i;
+const BO_MIEN = /(^|\.)(amazon\.[a-z.]+|amzn\.to|facebook\.com|fb\.com|fb\.me|instagram\.com|tiktok\.com|youtube\.com|youtu\.be|linktr\.ee|bit\.ly|apple\.com|google\.com|walmart\.com|etsy\.com|ebay\.com|shopify\.com|myshopify\.com|clickbank\.net|hop\.clickbank\.net|digistore24\.com|t\.co|whatsapp\.com|wa\.me|messenger\.com|m\.me|typeform\.com|calendly\.com|gumroad\.com|kickstarter\.com|indiegogo\.com|urlgeni\.us|geni\.us|go2cloud\.org|tinyurl\.com|rebrand\.ly|ltk\.app|shopltk\.com|liketk\.it)$/i;
 const TRANG = ['/', '/contact', '/pages/contact', '/contact-us', '/pages/contact-us', '/about', '/pages/about-us', '/pages/about'];
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 

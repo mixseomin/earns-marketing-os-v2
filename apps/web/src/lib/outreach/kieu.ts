@@ -61,7 +61,7 @@ export function nguonCua(raw: string | null | undefined): NguonSo {
 export const TT_CHO = ['to_send'];
 export const TT_DANG = ['sent', 'followup_1', 'followup_2'];
 export const TT_TRA_LOI = ['replied', 'interested', 'embedded', 'won'];
-export const TT_CHET = ['declined', 'bounced', 'no_response', 'unreachable'];
+export const TT_CHET = ['declined', 'bounced', 'no_response', 'unreachable', 'khong_hop'];
 export const NHAN_TT: Record<string, { ten: string; mau: string }> = {
   to_send: { ten: 'Chờ gửi', mau: 'var(--fg-3)' },
   sent: { ten: 'Đã gửi', mau: 'var(--accent)' },
@@ -75,5 +75,6 @@ export const NHAN_TT: Record<string, { ten: string; mau: string }> = {
   bounced: { ten: 'Thư dội', mau: 'var(--bad, #f87171)' },
   no_response: { ten: 'Không trả lời', mau: 'var(--fg-3)' },
   unreachable: { ten: 'Không liên lạc được', mau: 'var(--fg-3)' },
+  khong_hop: { ten: 'Không hợp ngách', mau: 'var(--fg-3)' },
 };
 export const ttCua = (raw: string) => (Object.prototype.hasOwnProperty.call(NHAN_TT, raw) ? NHAN_TT[raw]! : { ten: raw, mau: 'var(--fg-2)' });

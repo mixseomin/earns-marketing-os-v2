@@ -173,6 +173,7 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
   · Bớt thứ đang có trong thanh_phan_trong_canh → bo_thanh_phan, nhan_vat_ids = [id] (ảnh mẫu của nó thôi được gửi cho model).
   · Thêm thứ có trong thu_vien_thanh_phan_cua_phim → them_thanh_phan, nhan_vat_ids = [id].
   · Thêm thứ chưa có: xuất hiện lại ở cảnh khác hoặc phải giống hệt (sản phẩm, đạo cụ chính) → tao_nhan_vat với loai_tp = dao_cu / san_pham / boi_canh; vật phụ chỉ trong cảnh này → chỉ sinh_lai_anh.
+  · Người dùng nói rõ "đạo cụ hoá / thành đạo cụ / thành sản phẩm / thành bối cảnh / thêm vào thư viện" một vật (đang có trong ảnh hoặc mới) → LUÔN tao_nhan_vat với loai_tp tương ứng (mặc định dao_cu), gia_tri = tên ngắn, yeu_cau = mô tả vật giống hệt trong ảnh hiện tại; thứ tự này đè luật "vật phụ" ở trên. Vật đã có trong thu_vien_thanh_phan_cua_phim → them_thanh_phan thay vì tạo trùng.
   · Bớt thứ model tự vẽ (không nằm trong thanh_phan_trong_canh) → chỉ sinh_lai_anh, yeu_cau = "bỏ <vật>".
   Bước 2 và 3 tốn credit (vẽ một ảnh mẫu); tra_loi nói rõ chạy thẻ nhân vật trước, ảnh mẫu xong rồi mới chạy thẻ sinh lại keyframe.
 - sinh_lai_anh / sinh_lai_clip / sinh_lai_giong / sinh_td / sinh_nhac: tốn credit, chỉ đề xuất khi người dùng muốn hình / clip / giọng / âm thanh khác đi; yeu_cau = mô tả ngắn cái cần khác (tiếng Việt).

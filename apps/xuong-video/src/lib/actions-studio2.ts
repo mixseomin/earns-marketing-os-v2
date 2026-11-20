@@ -501,17 +501,23 @@ export async function phanTichAstrolasS2(tapId: number, d: { cauHoi?: string; ng
 }
 
 // BẢN ĐÃ SINH (anh 21/11/2026: "các ảnh, video, voice… đã sinh nhiều lần thì vẫn cho chọn thay đổi") — đọc mọi bản cũ của một shot / tập và chọn lại, 0đ.
-export type BanDaSinh = { anh: { ds: string[]; dung: string }; video: { ds: { url: string; ban: string; luc: string; model: string }[]; nhap: string; cuoi: string }; giong: { dong: number; loi: string; dung: string; ds: { url: string; luc: string }[] }[] };
+export type BanDaSinh = { anh: { ds: string[]; dung: string }; video: { ds: { url: string; ban: string; luc: string; model: string; kf: string }[]; nhap: string; cuoi: string; lech: '' | 'chua_co' | 'anh_khac' }; giong: { dong: number; loi: string; dung: string; ds: { url: string; luc: string }[] }[] };
 export async function banDaSinhS2(canhId: number): Promise<BanDaSinh | null> {
   const db = getDb(), id = Number(canhId); if (!db || !id) return null;
   const c = ((await db.execute(sql`SELECT keyframe_url, keyframe_uv, video_url, video_cuoi_url, video_phien_ban, thoai FROM xv_canh WHERE id = ${id}`)) as unknown as Row[])[0]; if (!c) return null;
   const uv = ((c.keyframe_uv ?? []) as string[]).filter(Boolean), kf = String(c.keyframe_url ?? '');
   const pb = ((c.video_phien_ban ?? []) as Row[]).filter((v) => v.url).map((v) => ({ url: String(v.url), ban: String(v.ban ?? 'nhap'), luc: String(v.luc ?? ''), model: String(v.model ?? '') }));
+  // clip nào dựng từ ảnh nào: lượt video ghi nguyên ảnh đầu vào trong request → khớp theo URL ảnh của shot (anh 21/11/2026: đổi ảnh thì clip đi theo)
+  const anhDs = kf && !uv.includes(kf) ? [...uv, kf] : uv;
+  const jv = pb.length ? (await db.execute(sql`SELECT output_url, request::text AS rq FROM xv_job WHERE canh_id = ${id} AND loai IN ('video', 'nang_cap') AND coalesce(output_url, '') <> ''`)) as unknown as Row[] : [];
+  const pbK = pb.map((v) => { const rq = String(jv.find((j) => j.output_url === v.url)?.rq ?? ''); return { ...v, kf: anhDs.find((a) => rq.includes(a)) ?? '' }; });
+  const vDung = pbK.find((v) => v.url === String(c.video_cuoi_url || c.video_url || ''));
+  const coVid = !!(c.video_cuoi_url || c.video_url), lech: '' | 'chua_co' | 'anh_khac' = !kf ? '' : !coVid ? 'chua_co' : vDung?.kf && vDung.kf !== kf ? 'anh_khac' : '';
   const th = (Array.isArray(c.thoai) ? c.thoai : []) as Row[];
   const jb = (await db.execute(sql`SELECT (request->>'dong')::int AS dong, output_url, created_at FROM xv_job WHERE canh_id = ${id} AND loai = 'am' AND request->>'dich' = 'thoai' AND trang_thai = 'xong' AND coalesce(output_url, '') <> '' ORDER BY id DESC`)) as unknown as Row[];
   const giong = th.map((t, i) => { const dung = String(t.url ?? ''), ds = jb.filter((j) => Number(j.dong ?? 0) === i).map((j) => ({ url: String(j.output_url), luc: String(j.created_at ?? '') }));
     if (dung && !ds.some((x) => x.url === dung)) ds.unshift({ url: dung, luc: '' }); return { dong: i, loi: String(t.loi ?? t.gon ?? ''), dung, ds }; });
-  return { anh: { ds: kf && !uv.includes(kf) ? [...uv, kf] : uv, dung: kf }, video: { ds: pb, nhap: String(c.video_url ?? ''), cuoi: String(c.video_cuoi_url ?? '') }, giong };
+  return { anh: { ds: anhDs, dung: kf }, video: { ds: pbK, nhap: String(c.video_url ?? ''), cuoi: String(c.video_cuoi_url ?? ''), lech }, giong };
 }
 export async function banNhacS2(tapId: number): Promise<{ dung: string; ds: { url: string; luc: string }[] } | null> {
   const db = getDb(), id = Number(tapId); if (!db || !id) return null;
@@ -526,7 +532,10 @@ export async function chonBanS2(canhId: number, loai: 'anh' | 'video' | 'giong',
   const db = getDb(), id = Number(canhId), u = String(url ?? ''); if (!db || !id || !u) return { ok: false, loi: 'thiếu cảnh / bản' };
   const b = await banDaSinhS2(id); if (!b) return { ok: false, loi: 'không thấy cảnh' };
   if (loai === 'anh') { if (!b.anh.ds.includes(u)) return { ok: false, loi: 'ảnh không thuộc shot này' };
-    await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${u}, trang_thai = CASE WHEN trang_thai IN ('nhap', 'loi') THEN 'co_keyframe' ELSE trang_thai END, updated_at = now() WHERE id = ${id}`); return { ok: true, data: undefined }; }
+    await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${u}, trang_thai = CASE WHEN trang_thai IN ('nhap', 'loi') THEN 'co_keyframe' ELSE trang_thai END, updated_at = now() WHERE id = ${id}`);
+    // ảnh này đã có clip → đổi clip theo luôn (bản mới nhất dựng từ ảnh đó); chưa có thì giữ clip, trang báo lệch
+    const v = [...b.video.ds].reverse().find((x) => x.kf === u); if (v) return chonBanS2(id, 'video', v.url);
+    return { ok: true, data: undefined }; }
   if (loai === 'video') { const v = b.video.ds.find((x) => x.url === u); if (!v) return { ok: false, loi: 'clip không thuộc shot này' };
     const pb = (((await db.execute(sql`SELECT video_phien_ban FROM xv_canh WHERE id = ${id}`)) as unknown as Row[])[0]?.video_phien_ban ?? []) as Row[], r = pb.find((x) => x.url === u) ?? {};
     const doan = { ...(r.vao_s != null ? { vao_s: r.vao_s } : {}), ...(r.toc_khop != null ? { toc_khop: r.toc_khop } : {}) };

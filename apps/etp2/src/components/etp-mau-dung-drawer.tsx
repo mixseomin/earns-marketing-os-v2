@@ -5,12 +5,12 @@
 // thời lượng từng bước, lỗi đỏ đủ câu. Dưới: creative đã ra (ảnh, camp, chi / thu / ROI). Tự tải lại 15 giây khi việc chưa xong. CHỈ ĐỌC.
 // ngan-moi-ok: việc dựng theo mẫu (mẫu × phim) — đã tra: etp-sx là dòng phim của bảng Sản xuất (bước khác hẳn), chưa có ngăn nào cho việc này
 // tra-repo-ok: màn nội bộ dựng từ khối dùng chung của etp2 (Drawer)
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Drawer } from '@/components/ui';
 import { MO_SO } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { docDungChiTiet, docMauCr, type MauCr } from '@/lib/actions/etp-mau-cr';
-import { useSoNho } from '@/lib/so-nho';
+import { lamMoiSo, useSoNho } from '@/lib/so-nho';
 import { hopKhuon } from './etp-mau-cr';
 import { loiThuongMau } from '@/lib/etp-mau-loi';
 import { FilterChips, useMediaViewer } from '@/components/ui';
@@ -43,8 +43,15 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
   const [ma = '', cidS = ''] = khoa.split(':'); const cid = Number(cidS);
   const [du, setDu] = useState<Awaited<ReturnType<typeof docDungChiTiet>> | null>(null);
   useEffect(() => {
-    let song = true; const tai = () => docDungChiTiet(ma, cid).then((r) => { if (song) setDu(r); }).catch((e: unknown) => { if (song) setDu({ loi: e instanceof Error ? e.message : String(e) }); });
-    void tai(); const t = setInterval(() => { if (!du || 'loi' in du || du.hien?.trang_thai !== 'xong') void tai(); }, 15_000);
+    // ngăn thấy bước / trạng thái KHÁC dòng phim của tab (vd vừa Xong) → kéo bản chung 'mau-cr' NGAY để dòng phim ở tab Phim sản xuất đổi cùng lúc (góp ý #1728);
+    // nhớ "đã xong" trong biến của effect (trước đây đọc `du` của lần dựng đầu = luôn null nên việc đã Xong vẫn tải lại mãi 15 giây)
+    let song = true, xongRoi = false;
+    const tai = () => docDungChiTiet(ma, cid).then((r) => { if (!song) return; setDu(r);
+      const h = 'loi' in r ? null : r.hien;
+      const tab = soMauRef.current?.mau.find((x) => x.ma === ma)?.phim_sx.find((p) => p.content_id === cid)?.dung ?? null;
+      if (h && soMauRef.current && `${h.buoc}|${h.trang_thai}` !== `${tab?.buoc}|${tab?.trang_thai}`) lamMoiSo('mau-cr');
+      xongRoi = h?.trang_thai === 'xong'; }).catch((e: unknown) => { if (song) setDu({ loi: e instanceof Error ? e.message : String(e) }); });
+    void tai(); const t = setInterval(() => { if (!xongRoi) void tai(); }, 15_000);
     return () => { song = false; clearInterval(t); };
   }, [ma, cid]);   // eslint-disable-line react-hooks/exhaustive-deps
   // lọc dòng thời gian (YDNI mục 12) — giữ trên URL ?mdl=loi
@@ -54,6 +61,7 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
   const datMoCam = (v: boolean) => { setMoCam(v); const u = new URL(window.location.href); if (v) u.searchParams.set('mdc', '1'); else u.searchParams.delete('mdc'); window.history.replaceState(window.history.state, '', u.toString()); };
   // ad gốc của đối thủ mà mẫu học theo (anh 19/11/2026 "Vẫn show thêm ad gốc của đối thủ cũng đc") — cùng bản nhớ của tab
   const { so: soMau } = useSoNho<{ mau: MauCr[]; phim: { id: number; ten: string }[]; luc: string }>('mau-cr', docMauCr, 20_000, hopKhuon);
+  const soMauRef = useRef(soMau); soMauRef.current = soMau;
   const goc = (soMau?.mau.find((x) => x.ma === ma)?.ban ?? []).filter((b) => b.vai === 'goc' && b.anh);
   // BẤM ẢNH = XEM NGAY TRONG TRANG (anh 19/11/2026 "khi bấm vào ko đc mở ra ngoài. Tao cần xem trong page đó") — lớp xem dùng chung, Esc / bấm nền / ✕ để đóng
   const mv = useMediaViewer();

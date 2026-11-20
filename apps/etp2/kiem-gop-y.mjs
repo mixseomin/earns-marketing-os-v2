@@ -7,6 +7,9 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1728, tep: 'apps/etp2/src/lib/so-nho.ts', mot: 'export function lamMoiSo(khoa: string)', vi: 'mọi chỗ cùng khoá useSoNho dùng CHUNG một bản: bản mới của bất kỳ chỗ nào về là cả trang đổi theo (anh 20/11/2026 "Phim đã sinh xong mà ko thấy update ngay")' },
+  { card: 1728, tep: 'apps/etp2/src/components/etp-mau-dung-drawer.tsx', mot: "lamMoiSo('mau-cr')", vi: 'ngăn chi tiết dựng thấy bước / trạng thái khác dòng phim của tab (vd vừa Xong) thì kéo bản chung ngay, dòng phim đổi cùng lúc' },
+  { card: 1728, tep: 'apps/etp2/src/components/etp-mau-dung-drawer.tsx', cam: "du.hien?.trang_thai !== 'xong') void tai()", vi: 'không đọc `du` cũ trong setInterval (luôn null → việc đã Xong vẫn tải lại mãi)' },
   { card: 1726, tep: 'apps/etp2/src/lib/actions/etp-mau-cr.ts', mot: 'may_dung: await docMayDung(coBangDung)', vi: 'sổ mẫu creative trả kèm trạng thái máy dựng: nhịp máy iMac + số việc đang dựng / chờ / lỗi / dừng (anh 20/11/2026 "Cần show thêm trạng thái máy dựng")' },
   { card: 1726, tep: 'apps/etp2/src/components/etp-mau-drawer.tsx', mot: '<MayDungDong may={may} />', vi: 'tab Phim sản xuất của mẫu có dòng Máy dựng (đang sống / im N phút / chưa bật + số việc), chi tiết ở thẻ rê chuột' },
   { card: 1726, tep: 'apps/etp2/src/components/etp-mau-cr.tsx', co: "f.dung.trang_thai === 'dung' ? [XAM_DUNG", vi: 'việc máy đã dừng hiện xám "dừng ở <bước>", không hiện vàng như đang chạy' },

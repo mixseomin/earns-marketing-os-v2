@@ -246,13 +246,19 @@ def _mo_ta(url):
         import importlib.util
         s = importlib.util.spec_from_file_location("tt_mo_ta", os.path.join(D, "tai-tap.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m.mo_ta(url)
     except Exception as e: print("không đọc được tóm tắt phim:", e, file=sys.stderr); return ""
-def xep_ai(ten, uv, mo_ta="", the_loai=""):
-    """AI xếp hạng ứng viên theo độ ấn tượng / đẹp (box3 xep-khung.py, ckey) → (danh sách theo thứ tự, lý do, ₫). Lỗi → giữ thứ tự điểm máy."""
+def xep_ai(ten, uv, mo_ta="", the_loai="", poster=None):
+    """AI xếp hạng ứng viên theo độ ấn tượng / đẹp (box3 xep-khung.py, ckey) → (danh sách theo thứ tự, lý do, ₫). Lỗi → giữ thứ tự điểm máy.
+    poster: POSTER GỐC của phim làm ảnh đối chiếu (anh 20/11/2026 "Sao nó ko liên quan gì đến poster gốc?" — Undercover Prison King ra khung người lính quân phục trong khi
+    poster + mọi ad đối thủ là nhân vật chính áo tù cam) → AI ưu tiên khung đúng nhân vật chính, đúng tạo hình như trên poster. Không truyền thì tự tìm poster.jpg cạnh thư mục khung."""
     import base64, io
-    anh = []
-    for u in uv:
-        b = io.BytesIO(); Image.open(u["nho"]).convert("RGB").save(b, "JPEG", quality=80); anh.append("data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode())
-    r = subprocess.run(["ssh", B, f"{ENV}; python3 apps/xuong-video/scripts/ethopex/xep-khung.py"], input=json.dumps({"ten": ten, "anh": anh, "mo_ta": mo_ta, "the_loai": the_loai}), capture_output=True, text=True, timeout=300)
+    def du(p_, q=80, cao=None):
+        im = Image.open(p_).convert("RGB")
+        if cao and im.height > cao: im = im.resize((round(im.width * cao / im.height), cao))
+        b = io.BytesIO(); im.save(b, "JPEG", quality=q); return "data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode()
+    anh = [du(u["nho"]) for u in uv]
+    poster = poster or (os.path.join(os.path.dirname(os.path.dirname(uv[0]["nho"])), "poster.jpg") if uv else None)
+    pa = du(poster, 82, 640) if poster and os.path.exists(poster) else None
+    r = subprocess.run(["ssh", B, f"{ENV}; python3 apps/xuong-video/scripts/ethopex/xep-khung.py"], input=json.dumps({"ten": ten, "anh": anh, "mo_ta": mo_ta, "the_loai": the_loai, **({"poster": pa} if pa else {})}), capture_output=True, text=True, timeout=300)
     try: j = json.loads(r.stdout.strip().splitlines()[-1])
     except Exception: j = {"thu_tu": [], "ly_do": (r.stderr or r.stdout)[-200:], "vnd": 0}
     tt = j.get("thu_tu") or list(range(len(uv)))

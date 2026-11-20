@@ -22,10 +22,15 @@ TAM_LY = ("\n\nGenre: {tl}\nSynopsis: {mt}\n\nMOST IMPORTANT: the frame must sel
           "BELOW a slightly less polished frame that tells the right story. First work out from the synopsis who the protagonist is (gender, role, look) and which frames show that person; those frames lead the ranking unless they are technically unusable. A smiling or relaxed face ranks near the bottom unless the story is a comedy or a sweet romance (soát American Sniper 20/11/2026: khung người lính cười đứng hạng 1 cho một phim hành động). Also return, for EVERY frame, its dominant emotion (one of: fury, tears, fear, shock, tension, longing, "
           "joy, pride, cold, neutral) and a 2-4 word description of who is shown (e.g. 'soldier aiming rifle', 'crying mother with child').")
 
-def xep(ten, anh, mo_ta="", the_loai=""):
-    noi = []
+# POSTER GỐC LÀM ĐỐI CHIẾU (anh 20/11/2026 "Sao nó ko liên quan gì đến poster gốc?"): poster chính thức cho biết NHÂN VẬT CHÍNH + TẠO HÌNH (trang phục, bối cảnh) mà mọi ad
+# đối thủ đều bám theo → khung đúng người đó, đúng tạo hình đó đứng đầu.
+POSTER = ("\n\nThe image labelled OFFICIAL POSTER is the drama's official key art — it is NOT a candidate. It shows who the protagonist is and the signature look the audience "
+          "expects (costume, setting, mood). Strongly prefer candidate frames that show THE SAME ACTOR as the largest figure on the poster, ideally in the same costume / look "
+          "(e.g. poster shows him in an orange prison jumpsuit → prison-jumpsuit frames beat frames of him in a different outfit). A frame of a different person ranks below any usable frame of the poster's lead.")
+def xep(ten, anh, mo_ta="", the_loai="", poster=None):
+    noi = [{"type": "text", "text": "OFFICIAL POSTER (reference only, not a candidate):"}, {"type": "image_url", "image_url": {"url": poster}}] if poster else []
     for i, u in enumerate(anh): noi += [{"type": "text", "text": f"Frame {i}:"}, {"type": "image_url", "image_url": {"url": u}}]
-    a, chi, model, loi = AI.goi([*noi, {"type": "text", "text": LUAT.format(t=ten) + (TAM_LY.format(tl=the_loai or "unknown", mt=mo_ta[:900]) if mo_ta else "")}], max_tokens=1200 if mo_ta else 400, timeout=180, uu="sonnet" if mo_ta else "haiku",   # có tóm tắt = phải hiểu câu chuyện để nhận ra nhân vật chính → model khá hơn (vài chục đồng / phim, một lần)
+    a, chi, model, loi = AI.goi([*noi, {"type": "text", "text": LUAT.format(t=ten) + (TAM_LY.format(tl=the_loai or "unknown", mt=mo_ta[:900]) if mo_ta else "") + (POSTER if poster else "")}], max_tokens=1200 if mo_ta else 400, timeout=180, uu="sonnet" if mo_ta else "haiku",   # có tóm tắt = phải hiểu câu chuyện để nhận ra nhân vật chính → model khá hơn (vài chục đồng / phim, một lần)
         cong_cu=("xep_hang", {"type": "object", "required": ["thu_tu", "ly_do"],
         "properties": {"thu_tu": {"type": "array", "items": {"type": "integer"}}, "ly_do": {"type": "string"},
                        "khung": {"type": "array", "items": {"type": "object", "properties": {"i": {"type": "integer"}, "cam_xuc": {"type": "string"}, "nhan_vat": {"type": "string"}}}}}}))   # donk → ckey: apps/etp/ai_chu.py
@@ -36,4 +41,4 @@ def xep(ten, anh, mo_ta="", the_loai=""):
     return {"thu_tu": tt, "ly_do": str(a.get("ly_do"))[:400], "khung": kh, "vnd": round(chi), "mo_hinh": model}
 
 if __name__ == "__main__":
-    j = json.load(sys.stdin); print(json.dumps(xep(j["ten"], j["anh"], j.get("mo_ta") or "", j.get("the_loai") or ""), ensure_ascii=False))
+    j = json.load(sys.stdin); print(json.dumps(xep(j["ten"], j["anh"], j.get("mo_ta") or "", j.get("the_loai") or "", j.get("poster")), ensure_ascii=False))

@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { Drawer, Segmented } from '@/components/ui';
 import { useShallowParam } from '@/lib/url-shallow';
 import { useTieuDe } from '@/lib/tieu-de';
-import { apKhung, maTrenMan, them, type O } from '@/lib/home/luoi';
+import { apKhung, batLuoi, buocCua, maTrenMan, them, type O } from '@/lib/home/luoi';
 import { KHUNG, KHUNG_COOKIE, type TuyChon } from '@/lib/home/so';
 import { BO_SO, macCuaBo, manCuaBo, nhomCuaMa, widgetCuaBo, type BoSoId } from '@/lib/luoi-trang/bo-so';
 import type { NguonBoCuc } from '@/lib/home/bo-cuc';
@@ -40,7 +40,9 @@ export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu
   const router = useRouter(), man = manCua(manId);
   const [tuy, setTuy] = useState(tuyDau);
   const [boSua, setBoSua] = useState<Record<string, { o: O[]; nguon: NguonBoCuc }>>({});
-  const ds = boSua[man.id]?.o ?? bo, nguonHien = boSua[man.id]?.nguon ?? nguon;
+  const goc = boSua[man.id]?.o ?? bo, nguonHien = boSua[man.id]?.nguon ?? nguon;
+  // góp ý #1731: bố cục lưu lúc Tự do / trước khi bắt lưới vẫn vẽ khít lưới đang chọn (dữ liệu lưu không đổi tới lần kéo / lưu kế)
+  const ds = useMemo(() => batLuoi(goc, buocCua(tuy.luoi)), [goc, tuy.luoi]);
   const lichSu = useRef<O[][]>([]);
   const [soLichSu, setSoLichSu] = useState(0);
   const [suaP, datSua] = useShallowParam('sua', ''), [to, datTo] = useShallowParam('to', ''), [ks, datKs] = useShallowParam('ks', ''), [trRaw, datTr] = useShallowParam('tr', '');

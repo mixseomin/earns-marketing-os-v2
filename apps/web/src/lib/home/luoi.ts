@@ -40,6 +40,17 @@ export function hopLe(v: unknown, coWidget: (ma: string) => boolean): O[] | null
 }
 
 /** Hình mới của ô khi kéo: tay = '' là dời cả ô, còn lại là đổi cỡ từ cạnh / góc đó. dx, dy tính bằng ô lưới mịn. Luôn nằm trong màn và ≥ cỡ tối thiểu. */
+/** Bắt cả bố cục vào lưới đang chọn (góp ý #1731): bố cục lưu lúc Tự do / trước khi bắt lưới vẫn vẽ khít lưới — làm tròn từng CẠNH để ô chung cạnh vẫn khít, giữ ≥ cỡ tối thiểu và trong màn. buoc 0 = giữ nguyên. */
+export function batLuoi(ds: O[], buoc: number): O[] {
+  if (!buoc) return ds;
+  const b = (v: number) => Math.round(v / buoc) * buoc, rn = Math.ceil(RONG_NHO / buoc) * buoc, cn = Math.ceil(CAO_NHO / buoc) * buoc;
+  return ds.map((o) => {
+    const x = kep(b(o.x), 0, CX - rn), y = kep(b(o.y), 0, CY - cn);
+    const w = kep(b(o.x + o.w), x + rn, CX) - x, h = kep(b(o.y + o.h), y + cn, CY) - y;
+    return x === o.x && y === o.y && w === o.w && h === o.h ? o : { ...o, x, y, w, h };
+  });
+}
+
 export function keo(goc: O, tay: Tay | '', dx: number, dy: number, buoc: number): O {
   const c = { ...goc }, b = (v: number) => batDinh(v, buoc);
   if (!tay) { c.x = kep(b(goc.x + dx), 0, CX - goc.w); c.y = kep(b(goc.y + dy), 0, CY - goc.h); return c; }

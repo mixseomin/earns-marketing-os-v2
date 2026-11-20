@@ -40,16 +40,93 @@ export async function docThietKe(id: number): Promise<ThietKe | null> {
   return r[0] ? { ...ngan(r[0]), du_lieu: r[0].du_lieu } : null;
 }
 
-/** mẫu creative etp (apps/etp2/src/lib/etp-mau-cr.json) để gắn bản thiết kế vào đúng mẫu; tệp nằm cùng repo trên box3 */
-export async function dsMauCrS2(): Promise<{ ma: string; ten: string; mo_ta: string; nhom: string }[]> {
+/** mẫu creative etp (apps/etp2/src/lib/etp-mau-cr.json) để gắn bản thiết kế vào đúng mẫu — ĐỦ thông tin + ảnh xem trước (anh 20/11/2026: "Các mẫu này phải
+ *  trực quan, cho xem trước, thông tin đầy đủ chứ không phải mỗi text"). Ảnh: 'mau-cr:<tệp>' = ảnh trong apps/etp2/public/mau-cr (đọc lười bằng anhMauCrS2,
+ *  vì vhost studio2 chỉ mở /api/xv/doc|nho|ghi) · https = QC đối thủ gốc (etp.doi_thu_qc) và creative máy đã dựng theo mẫu (etp.creative_mau → etp.creative). */
+export type AnhMau = { src: string; nhan: string };
+export type MauS2 = { ma: string; ten: string; mo_ta: string; nhom: string; loai: string; dang: string; nhan: string; trang_thai: string; dung_cho: string[]; the_loai: string[];
+  may: string; quy_trinh: string[]; anh: AnhMau[] };
+const THU_MUC_MAU = () => [path.join(process.cwd(), '../etp2/public/mau-cr'), path.join(process.cwd(), 'apps/etp2/public/mau-cr')];
+const chuoi = (x: unknown) => (x == null ? '' : String(x));
+const ds = (x: unknown) => (Array.isArray(x) ? x.map(String).filter(Boolean) : []);
+const tepMau = (x: unknown) => { const m = /^\/mau-cr\/([\w.-]+\.(?:jpe?g|png|webp))$/i.exec(chuoi(x)); return m ? `mau-cr:${m[1]}` : ''; };
+export async function dsMauCrS2(): Promise<MauS2[]> {
   if (!(await nguoi())) return [];
+  let mau: Row[] | null = null;
   for (const p of [path.join(process.cwd(), '../etp2/src/lib/etp-mau-cr.json'), path.join(process.cwd(), 'apps/etp2/src/lib/etp-mau-cr.json')]) {
-    try { const j = JSON.parse(await readFile(p, 'utf8')) as { mau?: Row[] };
-      return (j.mau ?? []).map((m) => ({ ma: String(m.ma ?? ''), ten: String(m.ten ?? ''), mo_ta: String(m.mo_ta ?? '').slice(0, 300), nhom: String(m.nhom ?? '') })).filter((m) => m.ma); }
-    catch { /* thử đường kế */ }
+    try { mau = ((JSON.parse(await readFile(p, 'utf8')) as { mau?: Row[] }).mau ?? []); break; } catch { /* thử đường kế */ }
   }
-  console.error('[thiết kế] không đọc được etp-mau-cr.json từ', process.cwd());
-  return [];
+  if (!mau) { console.error('[thiết kế] không đọc được etp-mau-cr.json từ', process.cwd()); return []; }
+  // ảnh trong kho etp: QC đối thủ gốc theo tham_chieu + tối đa 4 creative mới nhất máy đã dựng theo mỗi mẫu (bảng chưa có thì bỏ, không chết cả danh sách)
+  const qc = new Map<string, string>(), crMau = new Map<string, AnhMau[]>(), db = getDb();
+  if (db) {
+    const ids = [...new Set(mau.flatMap((m) => ds(m.tham_chieu)))].filter((x) => /^\d+$/.test(x));
+    try {
+      if (ids.length) for (const r of (await db.execute(sql`SELECT library_id::text AS id, anh FROM etp.doi_thu_qc WHERE anh LIKE 'https://%' AND library_id::text IN (${sql.join(ids.map((i) => sql`${i}`), sql`, `)})`)) as unknown as Row[]) qc.set(chuoi(r.id), chuoi(r.anh));
+    } catch (e) { console.error('[thiết kế] đọc QC đối thủ của mẫu lỗi:', (e as Error).message); }
+    try {
+      const r = (await db.execute(sql`SELECT mau, anh, ten FROM (SELECT m.mau, c.anh, p.ten, row_number() OVER (PARTITION BY m.mau ORDER BY m.luc DESC) AS hang
+        FROM etp.creative_mau m JOIN etp.creative c ON c.creative_id = m.creative_id LEFT JOIN etp.phim p ON p.content_id = c.content_id WHERE c.anh LIKE 'https://%') x WHERE hang <= 4`)) as unknown as Row[];
+      for (const x of r) { const k = chuoi(x.mau); crMau.set(k, [...(crMau.get(k) ?? []), { src: chuoi(x.anh), nhan: `Creative máy đã dựng · ${chuoi(x.ten) || 'phim ?'}` }]); }
+    } catch (e) { console.error('[thiết kế] đọc creative theo mẫu lỗi:', (e as Error).message); }
+  }
+  return mau.map((m): MauS2 => {
+    const ma = chuoi(m.ma), anh: AnhMau[] = [];
+    const them = (src: string, nhan: string) => { if (src && !anh.some((a) => a.src === src)) anh.push({ src, nhan }); };
+    them(tepMau(m.anh_dung), `Bản máy dựng${m.anh_dung_phim ? ` · ${chuoi(m.anh_dung_phim)}` : ''}`);
+    for (const d of (Array.isArray(m.mau_duyet) ? m.mau_duyet : []) as Row[]) them(tepMau(d.anh), `Bản anh đã duyệt${d.phim ? ` · ${chuoi(d.phim)}` : ''}`);
+    them(tepMau(m.anh), 'Bố cục');
+    for (const a of crMau.get(ma) ?? []) them(a.src, a.nhan);
+    for (const id of ds(m.tham_chieu)) if (qc.has(id)) them(qc.get(id)!, `QC đối thủ gốc · #${id}`);
+    return { ma, ten: chuoi(m.ten), mo_ta: chuoi(m.mo_ta), nhom: chuoi(m.nhom), loai: chuoi(m.loai), dang: chuoi(m.dang), nhan: chuoi(m.nhan), trang_thai: chuoi(m.trang_thai),
+      dung_cho: ds(m.dung_cho), the_loai: ds(m.the_loai), may: chuoi(m.may), quy_trinh: ds(m.quy_trinh), anh };
+  }).filter((m) => m.ma);
+}
+
+const nhoAnh = new Map<string, string>();
+const KIEU: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+/** ảnh mẫu trong apps/etp2/public/mau-cr dạng data URL (chỉ tên tệp trơn, không đường dẫn) */
+export async function anhMauCrS2(ten: string): Promise<string | null> {
+  if (!(await nguoi())) return null;
+  const m = /^([\w.-]+)\.(jpe?g|png|webp)$/i.exec(chuoi(ten).replace(/^mau-cr:/, '')); if (!m) return null;
+  const k = `mau:${m[0]}`; if (nhoAnh.has(k)) return nhoAnh.get(k)!;
+  for (const d of THU_MUC_MAU()) {
+    try { const b = await readFile(path.join(d, m[0])); const u = `data:${KIEU[(m[2] ?? "jpg").toLowerCase()] ?? "image/jpeg"};base64,${b.toString('base64')}`; nhoAnh.set(k, u); return u; } catch { /* thử thư mục kế */ }
+  }
+  return null;
+}
+
+/** PHIM THẬT để xem template áp lên (anh 20/11/2026: "Chỗ đó là thiết kế Template. Theo đó mỗi phim khi áp dụng sẽ nhìn thấy kết quả khác nhau") —
+ *  phim etp có ảnh bìa sạch (chưa phủ chữ QC): poster gốc máy dựng đã lưu (etp.phim_poster) + ảnh bìa trang phim (etp.noi_dung_phim.thumbnail). */
+export type PhimThu = { content_id: number; ten: string; locale: string; mo_ta: string };
+export async function dsPhimThuS2(): Promise<PhimThu[]> {
+  const db = getDb(); if (!db || !(await nguoi())) return [];
+  try {
+    const r = (await db.execute(sql`SELECT x.content_id, coalesce(p.ten, x.ten, '') AS ten, coalesce(p.locale, '') AS locale, coalesce(x.mo_ta, '') AS mo_ta FROM (
+        SELECT content_id::bigint AS content_id, NULL::text AS ten, NULL::text AS mo_ta, 0 AS uu FROM etp.phim_poster WHERE anh_b64 IS NOT NULL
+        UNION ALL SELECT content_id, du_lieu->>'title', du_lieu->>'short_description', 1 FROM etp.noi_dung_phim WHERE du_lieu->>'thumbnail' LIKE 'https://%') x
+      LEFT JOIN etp.phim p ON p.content_id = x.content_id ORDER BY x.uu, x.content_id DESC`)) as unknown as Row[];
+    const da = new Set<number>();
+    return r.filter((x) => { const id = Number(x.content_id); if (da.has(id)) return false; da.add(id); return true; })
+      .map((x) => ({ content_id: Number(x.content_id), ten: chuoi(x.ten), locale: chuoi(x.locale), mo_ta: chuoi(x.mo_ta).slice(0, 400) })).filter((x) => x.ten);
+  } catch (e) { console.error('[thiết kế] đọc phim thử lỗi:', (e as Error).message); return []; }
+}
+/** ảnh bìa một phim dạng data URL — máy chủ tự tải (link lấy từ kho theo content_id, không nhận link từ trình duyệt) để khung vẽ xuất ảnh được (không vướng CORS) */
+export async function anhPhimS2(contentId: number): Promise<string | null> {
+  const db = getDb(); if (!db || !(await nguoi())) return null;
+  const id = Math.trunc(Number(contentId)); if (!(id > 0)) return null;
+  const k = `phim:${id}`; if (nhoAnh.has(k)) return nhoAnh.get(k)!;
+  const r = (await db.execute(sql`SELECT (SELECT anh_b64 FROM etp.phim_poster WHERE content_id = ${id}) AS b64, (SELECT du_lieu->>'thumbnail' FROM etp.noi_dung_phim WHERE content_id = ${id}) AS url`)) as unknown as Row[];
+  let u: string | null = r[0]?.b64 ? `data:image/jpeg;base64,${chuoi(r[0].b64)}` : null;
+  const url = chuoi(r[0]?.url);
+  if (!u && /^https:\/\//.test(url)) {
+    try { const t = await fetch(url, { signal: AbortSignal.timeout(15000), headers: { 'user-agent': 'Mozilla/5.0' } }); const kieu = t.headers.get('content-type') || '';
+      if (t.ok && /^image\//.test(kieu)) { const b = Buffer.from(await t.arrayBuffer()); if (b.length <= 6_000_000) u = `data:${kieu.split(';')[0]};base64,${b.toString('base64')}`; }
+      else console.error(`[thiết kế] ảnh bìa phim ${id}: ${t.status} ${kieu}`); }
+    catch (e) { console.error(`[thiết kế] ảnh bìa phim ${id} lỗi:`, (e as Error).message); }
+  }
+  if (u) { if (nhoAnh.size > 200) nhoAnh.clear(); nhoAnh.set(k, u); }
+  return u;
 }
 
 export async function luuThietKe(d: { id?: number | null; ten: string; ma_mau?: string | null; thu_muc?: string | null; rong: number; cao: number; du_lieu: unknown; anh_xem?: string | null }): Promise<Kq<number>> {

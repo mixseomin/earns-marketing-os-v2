@@ -16,7 +16,8 @@
   <a class="tk-ve" href="/" title="Về trình dựng video">◀ Studio 2</a>
   <strong class="tk-tieu">Thiết kế creative</strong>
   <input id="tenBan" class="tk-o" placeholder="Tên bản thiết kế" maxlength="160">
-  <select id="maMau" class="tk-o" title="Bản này dựng cho mẫu creative etp nào"><option value="">— không gắn mẫu etp —</option></select>
+  <input type="hidden" id="maMau">
+  <button id="nutMau" class="tk-nut-mau" data-lam="chonMau" title="Bản này dựng cho mẫu creative etp nào — bấm để xem ảnh + thông tin từng mẫu"><span class="tk-nut-mau-anh"></span><span class="tk-nut-mau-chu">— không gắn mẫu etp —</span></button>
   <input id="thuMuc" class="tk-o" list="dsTM" placeholder="📁 Thư mục (để trống = gốc)" maxlength="380" title="Bấm Lưu thì bản nằm trong thư mục này; gõ a/b để lồng thư mục">
   <datalist id="dsTM"></datalist>
   <select id="kho" class="tk-o" title="Khổ khung">
@@ -28,6 +29,7 @@
   <button data-lam="mo">Mở…</button>
   <button data-lam="hoanTac" title="Ctrl+Z">↶</button>
   <button data-lam="lamLai" title="Ctrl+Shift+Z">↷</button>
+  <button data-lam="apPhim" title="Template này áp lên từng phim thật trông ra sao">🎬 Áp lên phim thật</button>
   <button data-lam="xuat">Xuất PNG</button>
   <button data-lam="luu" class="tk-chinh">Lưu</button>
 </header>
@@ -77,6 +79,18 @@
     <button data-tm="moi">+ Thư mục</button><button data-tm="doi" id="tmDoi">Đổi tên / chuyển thư mục</button><button data-tm="dong" title="Đóng (Esc)">✕</button></header>
   <div class="tk-ql"><nav id="cayTM" class="tk-cay"></nav><div id="dsBan" class="tk-ban"></div></div>
   <p class="tk-ghichu tk-ql-chan">Kéo bản (hoặc thư mục) thả vào một thư mục bên trái để chuyển · bấm ảnh để mở · “Cất đi” chỉ ẩn khỏi danh sách, không xoá.</p>
+</dialog>
+<dialog id="hopMau" class="tk-hop tk-hop-rong">
+  <header><strong>Chọn mẫu creative etp</strong><nav id="mauNhom" class="tk-chip"></nav><span class="tk-gian"></span>
+    <input id="timMau" class="tk-o" type="search" placeholder="Tìm mã / tên / mô tả"><button data-mau="dong" title="Đóng (Esc)">✕</button></header>
+  <div class="tk-mau-than"><div id="dsMau" class="tk-mau-luoi"></div><section id="ctMau" class="tk-mau-ct"></section></div>
+</dialog>
+<dialog id="hopPhim" class="tk-hop tk-hop-rong">
+  <header><strong>Template áp lên phim thật</strong><span id="ptGhi" class="tk-ghichu"></span><span class="tk-gian"></span>
+    <label class="tk-hang tk-ghichu">Cỡ <input type="range" id="ptCo" min="110" max="320" value="170"></label>
+    <button data-pt="lai" title="Vẽ lại theo bản đang sửa">↻ Vẽ lại</button><button data-pt="dong" title="Đóng (Esc)">✕</button></header>
+  <div id="ptLuoi" class="tk-pt-luoi"></div>
+  <div id="ptLon" class="tk-pt-lon" hidden></div>
 </dialog>
 <input type="file" id="chonAnh" accept="image/*" hidden>
 <script src="lib/fabric-7.4.0/fabric.min.js"></script>

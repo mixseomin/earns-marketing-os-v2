@@ -249,10 +249,10 @@ $('#thuocTinh').addEventListener('change', (ev) => { if (ev.target.tagName === '
 
 // ── nút trên thanh + nút trong thuộc tính
 const LAM = {
-  moi: () => { if (cv.getObjects().length && !confirm('Mở bản trống mới? Bản đang vẽ chưa lưu sẽ chỉ còn trong nháp trình duyệt.')) return; S.id = null; S.tc = null; $('#tenBan').value = ''; $('#maMau').value = ''; $('#thuMuc').value = QL.tm === '*' ? '' : QL.tm; cv.clear(); cv.backgroundColor = '#111111'; S.hoan = []; chup(); veThamChieu(); veLop(); veThuocTinh(); },
+  moi: () => { if (cv.getObjects().length && !confirm('Mở bản trống mới? Bản đang vẽ chưa lưu sẽ chỉ còn trong nháp trình duyệt.')) return; S.id = null; S.tc = null; $('#tenBan').value = ''; $('#maMau').value = ''; veNutMau(); $('#thuMuc').value = QL.tm === '*' ? '' : QL.tm; cv.clear(); cv.backgroundColor = '#111111'; S.hoan = []; chup(); veThamChieu(); veLop(); veThuocTinh(); },
   hoanTac, lamLai,
   xuat: () => { cv.discardActiveObject(); cv.requestRenderAll(); const a = document.createElement('a'); a.download = `${($('#tenBan').value || 'thiet-ke').replace(/[^\p{L}\p{N}]+/gu, '-')}-${S.w}x${S.h}.png`; a.href = cv.toDataURL({ format: 'png', multiplier: S.w / cv.width }); a.click(); },
-  luu, mo,
+  luu, mo, chonMau: () => moHopMau(), apPhim: () => moHopPhim(),
   thamChieu: async () => { const f = await chonTep(); if (!f) return; try { S.tc = await thuNho(await docTep(f), 900); veThamChieu(); chup(); } catch (e) { bao(`Không nạp được ảnh tham chiếu: ${e.message}`, true); } },
   boThamChieu: () => { S.tc = null; veThamChieu(); },
   giuaNgang: () => { const o = cv.getActiveObject(); if (o) { const r = o.getBoundingRect(); o.set('left', o.left + (S.w - r.width) / 2 - r.left); o.setCoords(); cv.requestRenderAll(); chup(); veThuocTinh(); } },
@@ -338,7 +338,7 @@ $('#hopMo').addEventListener('drop', (ev) => {
 async function datKho(w, h) { S.w = w; S.h = h; $('#kho').value = `${w}x${h}`; if (![...$('#kho').options].some((o) => o.value === `${w}x${h}`)) $('#kho').add(new Option(`${w}×${h}`, `${w}x${h}`)); vuaKhung(); }
 async function moBan(id) {
   try { const b = await doc('docThietKe', id); if (!b) return bao(`Không có bản #${id}.`, true);
-    S.id = b.id; $('#tenBan').value = b.ten; $('#maMau').value = b.ma_mau || ''; $('#thuMuc').value = b.thu_muc || ''; await datKho(b.rong, b.cao);
+    S.id = b.id; $('#tenBan').value = b.ten; $('#maMau').value = b.ma_mau || ''; veNutMau(); $('#thuMuc').value = b.thu_muc || ''; await datKho(b.rong, b.cao);
     const d = b.du_lieu || {}; S.tc = d.tham_chieu?.anh || null; if (d.tham_chieu) { $('#moTC').value = d.tham_chieu.mo ?? 45; $('#tren').checked = !!d.tham_chieu.tren; }
     for (const [k, v] of Object.entries(d.du_lieu_thu || {})) { const i = document.querySelector(`[data-thu="${k}"]`); if (i) i.value = v; }
     S.hoan = []; await nap(d.fabric || { objects: [] }); chup(); veThamChieu(); if (S.thu) apThu(); history.replaceState(null, '', `?id=${b.id}`); bao(`Đã mở bản #${b.id} “${b.ten}”.`); }
@@ -359,14 +359,124 @@ document.addEventListener('keydown', (e) => {
   if (mv) { e.preventDefault(); o.set({ left: o.left + mv[0], top: o.top + mv[1] }); o.setCoords(); cv.requestRenderAll(); chup(); veThuocTinh(true); }
 });
 
+// ── chọn mẫu etp BẰNG ẢNH (anh 20/11/2026: "phải trực quan, cho xem trước, thông tin đầy đủ") — #maMau là ô ẩn giữ mã, nút trên thanh hiện ảnh + tên
+const MAU = { ds: [], nhom: '', tim: '', chon: '' };
+const anhNho = new Map();
+/** 'mau-cr:<tệp>' → data URL qua máy chủ (ảnh nằm trong apps/etp2, studio2 không phục vụ thẳng) · link https dùng nguyên */
+function srcAnh(src) { if (!/^mau-cr:/.test(src)) return Promise.resolve(src); if (!anhNho.has(src)) anhNho.set(src, doc('anhMauCrS2', src).catch(() => null)); return anhNho.get(src); }
+const xemAnh = new IntersectionObserver((ds) => ds.forEach((d) => { if (!d.isIntersecting) return; xemAnh.unobserve(d.target); const i = d.target;
+  srcAnh(i.dataset.src).then((u) => { if (u) i.src = u; else i.replaceWith(Object.assign(document.createElement('span'), { textContent: 'ảnh không tải được' })); }); }), { rootMargin: '200px' });
+const lazy = (root) => root.querySelectorAll('img[data-src]').forEach((i) => xemAnh.observe(i));
+const mauCua = (ma) => MAU.ds.find((m) => m.ma === ma);
+const nhanTT = (t) => `<span class="tk-nhan ${/chạy|dùng|duyệt|on|live/i.test(t) ? 'ok' : /tắt|bỏ|off|cũ/i.test(t) ? 'xam' : ''}">${esc(t || 'chưa ghi trạng thái')}</span>`;
+async function napMau() { MAU.ds = await doc('dsMauCrS2') || []; veNutMau(); }
+function veNutMau() {
+  const m = mauCua($('#maMau').value), a = $('#nutMau .tk-nut-mau-anh');
+  $('#nutMau .tk-nut-mau-chu').textContent = m ? `${m.ma} · ${m.ten}` : $('#maMau').value ? `${$('#maMau').value} (mẫu không còn trong sổ)` : '— không gắn mẫu etp —';
+  a.style.backgroundImage = ''; const s = m?.anh?.[0]?.src; if (s) srcAnh(s).then((u) => { if (u && mauCua($('#maMau').value) === m) a.style.backgroundImage = `url("${u}")`; });
+}
+async function moHopMau() {
+  if (!MAU.ds.length) { try { await napMau(); } catch (e) { return bao(`Không đọc được danh sách mẫu etp: ${e.message}`, true); } }
+  MAU.chon = $('#maMau').value || MAU.ds[0]?.ma || ''; veHopMau(); $('#hopMau').showModal();
+  $(`#dsMau [data-ma="${CSS.escape(MAU.chon)}"]`)?.scrollIntoView({ block: 'nearest' });
+}
+function veHopMau() {
+  const nhom = [...new Set(MAU.ds.map((m) => m.nhom || 'khác'))];
+  $('#mauNhom').innerHTML = ['', ...nhom].map((n) => `<button data-mau-nhom="${esc(n)}" class="${MAU.nhom === n ? 'chon' : ''}">${n ? esc(n) : 'Tất cả'} <small>${n ? MAU.ds.filter((m) => (m.nhom || 'khác') === n).length : MAU.ds.length}</small></button>`).join('');
+  const q = MAU.tim.toLowerCase(), dang = $('#maMau').value;
+  const ds = MAU.ds.filter((m) => (!MAU.nhom || (m.nhom || 'khác') === MAU.nhom) && (!q || `${m.ma} ${m.ten} ${m.mo_ta} ${m.loai}`.toLowerCase().includes(q)));
+  $('#dsMau').innerHTML = ds.map((m) => `<button class="tk-mau-the ${m.ma === MAU.chon ? 'chon' : ''} ${m.ma === dang ? 'dang' : ''}" data-ma="${esc(m.ma)}" title="${esc(m.mo_ta)}">
+      <span class="tk-mau-anh">${m.anh[0] ? `<img data-src="${esc(m.anh[0].src)}" alt="">` : `<span class="tk-mau-chu"><i>chưa có ảnh mẫu</i>${esc(m.mo_ta.slice(0, 220))}</span>`}${m.anh.length > 1 ? `<span class="tk-so-anh">${m.anh.length} ảnh</span>` : ''}</span>
+      <b>${esc(m.ten)}</b><small>${esc(m.ma)}${m.ma === dang ? ' · đang gắn' : ''}</small><span>${nhanTT(m.trang_thai)}</span></button>`).join('') || '<p class="tk-mo">Không có mẫu khớp.</p>';
+  lazy($('#dsMau')); veCtMau();
+}
+function veCtMau() {
+  const m = mauCua(MAU.chon), ct = $('#ctMau'); if (!m) { ct.innerHTML = '<p class="tk-mo">Chọn một mẫu bên trái để xem đủ ảnh và thông tin.</p>'; return; }
+  const dong = (k, v) => (v && (!Array.isArray(v) || v.length) ? `<dt>${k}</dt><dd>${esc(Array.isArray(v) ? v.join(', ') : v)}</dd>` : '');
+  ct.innerHTML = `<h4>${esc(m.ten)}</h4><div>${nhanTT(m.trang_thai)} <span class="tk-nhan xam">${esc(m.ma)}</span> ${m.nhom ? `<span class="tk-nhan xam">${esc(m.nhom)}</span>` : ''}</div>
+    ${m.anh.length ? `<div class="tk-mau-dai">${m.anh.map((a) => `<figure><img data-src="${esc(a.src)}" alt="" data-phong="1"><figcaption>${esc(a.nhan)}</figcaption></figure>`).join('')}</div>` : '<p class="tk-mo">Mẫu này chưa có ảnh mẫu nào trong kho etp (chưa máy dựng, chưa có QC gốc).</p>'}
+    ${m.mo_ta ? `<p>${esc(m.mo_ta)}</p>` : ''}
+    <dl>${dong('Loại', m.loai)}${dong('Dạng', m.dang)}${dong('Nhãn', m.nhan)}${dong('Dùng cho', m.dung_cho)}${dong('Thể loại', m.the_loai)}${dong('Máy dựng', m.may)}</dl>
+    ${m.quy_trinh.length ? `<div><h3>Quy trình máy dựng</h3><ol>${m.quy_trinh.map((x) => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
+    <div class="tk-mau-nut"><button class="tk-chinh" data-mau="gan">Gắn mẫu này</button><button data-mau="bo">Không gắn mẫu</button></div>`;
+  lazy(ct);
+}
+function ganMau(ma) { $('#maMau').value = ma; veNutMau(); nhapNhap(); $('#hopMau').close(); bao(ma ? `Bản này gắn mẫu ${ma} — bấm Lưu để giữ.` : 'Đã bỏ gắn mẫu etp — bấm Lưu để giữ.'); }
+$('#hopMau').addEventListener('click', (ev) => {
+  const i = ev.target.closest('img[data-phong]'); if (i?.src) return window.open(i.src, '_blank', 'noopener');
+  const b = ev.target.closest('button'); if (!b) return;
+  if (b.dataset.mauNhom != null) { MAU.nhom = b.dataset.mauNhom; return veHopMau(); }
+  if (b.dataset.ma) { MAU.chon = b.dataset.ma; document.querySelectorAll('#dsMau .tk-mau-the').forEach((x) => x.classList.toggle('chon', x === b)); return veCtMau(); }
+  if (b.dataset.mau === 'dong') return $('#hopMau').close();
+  if (b.dataset.mau === 'gan') return ganMau(MAU.chon);
+  if (b.dataset.mau === 'bo') return ganMau('');
+});
+$('#hopMau').addEventListener('dblclick', (ev) => { const b = ev.target.closest('.tk-mau-the'); if (b) ganMau(b.dataset.ma); });
+$('#timMau').addEventListener('input', () => { MAU.tim = $('#timMau').value.trim(); veHopMau(); });
+
+// ── TEMPLATE áp lên PHIM THẬT (anh 20/11/2026: "mỗi phim khi áp dụng sẽ nhìn thấy kết quả khác nhau") — mỗi phim vẽ trên một khung ẩn từ bản gốc ({ten}…),
+//    {ten} = tên phim, ô ảnh phim = ảnh bìa thật, {cau_nhu} / {nhan} = dữ liệu thử bên trái (máy sinh câu nhử lúc dựng). Khung đang sửa không bị đụng.
+const PT = { ds: null, kq: new Map(), luot: 0 };
+async function moHopPhim() {
+  $('#ptLon').hidden = true; $('#hopPhim').showModal();
+  if (!PT.ds) { $('#ptLuoi').innerHTML = '<p class="tk-mo">Đang đọc danh sách phim…</p>'; try { PT.ds = await doc('dsPhimThuS2') || []; } catch (e) { PT.ds = null; $('#ptLuoi').innerHTML = `<p class="tk-bao loi">Không đọc được phim: ${esc(e.message)}</p>`; return; } }
+  veLuoiPhim();
+}
+async function veLuoiPhim() {
+  const luot = ++PT.luot, goc = jsonGoc(), g = thuGiaTri(), co = !!cv.getObjects().some((o) => o.vai === 'anh_phim');
+  $('#ptGhi').textContent = `${PT.ds.length} phim có ảnh bìa sạch · {cau_nhu} = “${g.cau_nhu.slice(0, 40)}${g.cau_nhu.length > 40 ? '…' : ''}”, {nhan} = “${g.nhan}” (dữ liệu thử)${co ? '' : ' · bản này CHƯA có Ô ảnh phim nên ảnh phim không hiện'}`;
+  if (!PT.ds.length) { $('#ptLuoi').innerHTML = '<p class="tk-mo">Kho etp chưa có phim nào có ảnh bìa sạch.</p>'; return; }
+  $('#ptLuoi').innerHTML = PT.ds.map((p, i) => `<button class="tk-pt" data-pt-i="${i}"><span class="tk-pt-anh" style="aspect-ratio:${S.w}/${S.h}">đang vẽ…</span><b>${esc(p.ten)}</b><small>#${p.content_id}${p.locale ? ' · ' + esc(p.locale) : ''} · ${p.ten.length} ký tự</small></button>`).join('');
+  PT.kq.clear(); let i = 0;
+  const lam = async () => { while (i < PT.ds.length && luot === PT.luot) { const k = i++, p = PT.ds[k];
+    const o = $(`#ptLuoi [data-pt-i="${k}"] .tk-pt-anh`);
+    try { const kq = await veLenPhim(goc, p, g); if (luot !== PT.luot) return; PT.kq.set(k, kq);
+      o.innerHTML = `<img src="${kq.url}" alt="">${kq.tran.length ? `<span class="tk-tran" title="${esc(kq.tran.join(' · '))}">⚠ chữ tràn</span>` : ''}`; }
+    catch (e) { o.textContent = `không vẽ được: ${e.message}`; } } };
+  await Promise.all([lam(), lam(), lam()]);
+}
+async function anhPhim(id) { const k = `phim:${id}`; if (!anhNho.has(k)) anhNho.set(k, doc('anhPhimS2', id).catch(() => null)); return anhNho.get(k); }
+async function veLenPhim(goc, p, g) {
+  const sc = new F.StaticCanvas(null, { width: S.w, height: S.h, renderOnAddRemove: false });
+  try {
+    await sc.loadFromJSON(JSON.parse(JSON.stringify(goc)));
+    const thay = (o) => { if (typeof o.text === 'string' && /\{(ten|cau_nhu|nhan)\}/.test(o.text)) { o.set('text', o.text.replace(/\{(ten|cau_nhu|nhan)\}/g, (_, k) => (k === 'ten' ? p.ten : g[k] || ''))); o.initDimensions?.(); }
+      (o._objects || []).forEach(thay); if (o.type === 'group') o.triggerLayout?.(); };
+    sc.getObjects().forEach(thay);
+    const o = sc.getObjects().filter((x) => x.vai === 'anh_phim');
+    if (o.length) { const u = await anhPhim(p.content_id); if (u) for (const im of o) { const w = im.getScaledWidth(), h = im.getScaledHeight(), x = im.left, y = im.top; await im.setSrc(u); im.set({ scaleX: 1, scaleY: 1 }); phuKin(im, w, h, x, y); } }
+    const tran = [];   // chữ nào thò ra ngoài khung, hoặc dài xuống vùng chắc chắn bị nút / chữ QC che (80% — vạch đỏ cuối), sau khi thay tên thật
+    const coChu = (x) => typeof x.text === 'string' || (x._objects || []).some(coChu);
+    const xet = (x) => { if (!coChu(x)) return; x.setCoords(); const r = x.getBoundingRect(), ten = x.ten_lop || String(x.text || 'nhóm chữ').slice(0, 24);
+      if (r.left < -2 || r.top < -2 || r.left + r.width > S.w + 2 || r.top + r.height > S.h + 2) tran.push(`${ten}: ra ngoài khung`);
+      else if (S.h > S.w && r.top < S.h * 0.8 && r.top + r.height > S.h * 0.8 + 2) tran.push(`${ten}: lấn xuống vùng bị che (80%)`); };
+    sc.getObjects().forEach(xet);
+    sc.renderAll();
+    return { url: sc.toDataURL({ format: 'jpeg', quality: 0.86, multiplier: Math.min(1, 560 / S.w) }), tran };
+  } finally { sc.dispose(); }
+}
+$('#ptCo').addEventListener('input', () => $('#ptLuoi').style.setProperty('--co', `${$('#ptCo').value}px`));
+$('#hopPhim').addEventListener('click', (ev) => {
+  const b = ev.target.closest('button');
+  if (!b) { if (ev.target.closest('#ptLon') && !ev.target.closest('#ptLon div')) $('#ptLon').hidden = true; return; }
+  if (b.dataset.pt === 'dong') return $('#hopPhim').close();
+  if (b.dataset.pt === 'lai') { $('#ptLon').hidden = true; return veLuoiPhim(); }
+  if (b.dataset.pt === 'tat') { $('#ptLon').hidden = true; return; }
+  if (b.dataset.pt === 'thu') { const p = PT.ds[+b.dataset.i]; $('[data-thu="ten"]').value = p.ten; $('#xemThu').checked = true; S.thu = true; apThu(); $('#hopPhim').close(); return bao(`Khung đang sửa hiện tên “${p.ten}” (chỉ là dữ liệu thử, bản lưu vẫn giữ {ten}).`); }
+  if (b.dataset.ptI != null) { const k = +b.dataset.ptI, kq = PT.kq.get(k), p = PT.ds[k]; if (!kq) return;
+    $('#ptLon').innerHTML = `<img src="${kq.url}" alt=""><div><strong>${esc(p.ten)}</strong><p>#${p.content_id}${p.locale ? ' · ' + esc(p.locale) : ''} · tên dài ${p.ten.length} ký tự</p>
+      ${kq.tran.length ? `<p style="color:#ff8a80">⚠ ${esc(kq.tran.join(' · '))} — sửa cỡ chữ / độ rộng khung chữ rồi bấm ↻ Vẽ lại.</p>` : '<p>Chữ nằm gọn trong khung.</p>'}
+      ${p.mo_ta ? `<p>${esc(p.mo_ta)}</p>` : ''}<button data-pt="thu" data-i="${k}">Xem tên phim này trên khung đang sửa</button><button data-pt="tat">Đóng ảnh lớn</button></div>`;
+    $('#ptLon').hidden = false; }
+});
+
 // ── khởi động: mẫu etp để gắn · mở bản trên URL, hoặc nháp, hoặc bản trống có sẵn ô ảnh phim
 (async () => {
   vuaKhung(); napTM();
-  doc('dsMauCrS2').then((ds) => { $('#maMau').insertAdjacentHTML('beforeend', ds.map((m) => `<option value="${esc(m.ma)}" title="${esc(m.mo_ta)}">${esc(m.ma)} · ${esc(m.ten)}</option>`).join('')); })
-    .catch((e) => bao(`Không đọc được danh sách mẫu etp: ${e.message}`, true));
+  napMau().catch((e) => bao(`Không đọc được danh sách mẫu etp: ${e.message}`, true));
   const id = Number(new URLSearchParams(location.search).get('id'));
   if (id) return moBan(id);
   let n = null; try { n = JSON.parse(localStorage.getItem(NHAP) || 'null'); } catch { n = null; }
-  if (n?.fabric?.objects?.length) { S.id = n.id || null; $('#tenBan').value = n.ten || ''; $('#thuMuc').value = n.tm || ''; await datKho(n.w || 1080, n.h || 1920); await nap(n.fabric); setTimeout(() => { $('#maMau').value = n.ma || ''; }, 1500); chup(); bao('Đã mở lại bản nháp trên trình duyệt này (chưa chắc đã lưu — bấm Lưu để giữ).'); return; }
+  if (n?.fabric?.objects?.length) { S.id = n.id || null; $('#tenBan').value = n.ten || ''; $('#thuMuc').value = n.tm || ''; await datKho(n.w || 1080, n.h || 1920); await nap(n.fabric); $('#maMau').value = n.ma || ''; veNutMau(); chup(); bao('Đã mở lại bản nháp trên trình duyệt này (chưa chắc đã lưu — bấm Lưu để giữ).'); return; }
   await themAnhPhim(); chup();
 })();

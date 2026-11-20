@@ -18,7 +18,7 @@ button:hover { border-color: var(--ink-3) } button:disabled { opacity: .45; curs
 .tk-o { font: inherit; color: var(--ink); background: var(--mat); border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; min-width: 0 }
 .tk-tren { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 14px; background: var(--mat); border-bottom: 1px solid var(--line) }
 .tk-ve { color: var(--ink-2); text-decoration: none; font-size: 12.5px } .tk-tieu { font-size: 15px }
-#tenBan { width: 220px } #maMau { max-width: 260px } .tk-gian { flex: 1 }
+#tenBan { width: 180px } .tk-gian { flex: 1 }
 .tk-bao { margin: 8px 14px 0; padding: 8px 12px; border-radius: 8px; background: var(--ok-nhat); color: var(--ok); font-weight: 500 }
 .tk-bao.loi { background: var(--loi-nhat); color: var(--loi) }
 .tk-than { flex: 1; min-height: 0; display: grid; grid-template-columns: 230px 1fr 290px }
@@ -67,3 +67,40 @@ h3 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color:
 .tk-ql-chan { margin: 0; padding: 8px 14px; border-top: 1px solid var(--line) }
 #thuMuc { width: 190px }
 @media (max-width: 900px) { body { overflow: auto } .tk-than { grid-template-columns: 1fr } .tk-giua { min-height: 70vh } }
+
+/* nút chọn mẫu etp (thay ô thả xuống chỉ có chữ) + hộp chọn mẫu có ảnh, thông tin đầy đủ */
+.tk-nut-mau { display: flex; align-items: center; gap: 6px; max-width: 300px; padding: 3px 8px 3px 3px }
+.tk-nut-mau-anh { width: 22px; height: 30px; border-radius: 3px; background: var(--line) center/cover no-repeat; flex: none }
+.tk-nut-mau-chu { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px }
+.tk-hop-rong { width: min(1320px, 97vw) }
+.tk-chip { display: flex; flex-wrap: wrap; gap: 4px } .tk-chip button { font-size: 12px; padding: 2px 9px; border-radius: 99px } .tk-chip button.chon { background: var(--sky); color: var(--mat); border-color: var(--sky) }
+.tk-mau-than { display: grid; grid-template-columns: 1fr 400px; height: min(76vh, 800px) }
+.tk-mau-luoi { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); align-content: start; gap: 10px; padding: 14px; overflow: auto }
+.tk-mau-the { display: grid; gap: 3px; padding: 6px; text-align: left; align-content: start; font-size: 12px }
+.tk-mau-the.chon { border-color: var(--brass); box-shadow: 0 0 0 2px var(--brass-nhat) } .tk-mau-the.dang { border-color: var(--ok) }
+.tk-mau-the .tk-mau-anh { position: relative; aspect-ratio: 9/16; border-radius: 5px; background: #20253d; overflow: hidden; display: grid; place-items: center; color: #9aa0bd; font-size: 11.5px; text-align: center; padding: 6px }
+.tk-mau-anh img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
+.tk-mau-anh .tk-so-anh { position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,.65); color: #fff; font: 500 10.5px var(--f-so); padding: 1px 5px; border-radius: 3px }
+.tk-mau-the b { font-size: 12.5px; line-height: 1.3 } .tk-mau-the small { color: var(--ink-3); font: 10.5px var(--f-so) }
+.tk-nhan { display: inline-block; font-size: 10.5px; padding: 0 6px; border-radius: 99px; background: var(--brass-nhat); color: var(--brass); white-space: nowrap }
+.tk-nhan.ok { background: var(--ok-nhat); color: var(--ok) } .tk-nhan.xam { background: var(--line); color: var(--ink-2) }
+.tk-mau-ct { border-left: 1px solid var(--line); overflow: auto; padding: 14px; display: grid; gap: 10px; align-content: start }
+.tk-mau-ct h4 { margin: 0; font-size: 15px } .tk-mau-ct p { margin: 0; color: var(--ink-2); white-space: pre-wrap }
+.tk-mau-ct ol { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 12.5px } .tk-mau-ct dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 12px } .tk-mau-ct dt { color: var(--ink-3) }
+.tk-mau-dai { display: grid; grid-auto-flow: column; grid-auto-columns: 150px; gap: 8px; overflow-x: auto; padding-bottom: 4px }
+.tk-mau-dai figure { margin: 0; display: grid; gap: 3px; font-size: 11px; color: var(--ink-3) } .tk-mau-dai img { width: 100%; aspect-ratio: 9/16; object-fit: cover; border-radius: 5px; background: #20253d; cursor: zoom-in }
+.tk-mau-nut { display: flex; gap: 8px; position: sticky; bottom: -14px; background: var(--mat); padding: 8px 0 }
+/* template áp lên phim thật: một ô mỗi phim, vẽ ngoài khung chính */
+.tk-pt-luoi { --co: 170px; display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--co), 1fr)); gap: 12px; padding: 14px; overflow: auto; height: min(76vh, 800px); align-content: start }
+.tk-pt { display: grid; gap: 4px; padding: 5px; text-align: left; align-content: start; font-size: 12px }
+.tk-pt .tk-pt-anh { position: relative; border-radius: 5px; background: #20253d; overflow: hidden; display: grid; place-items: center; color: #9aa0bd; font-size: 11.5px }
+.tk-pt img { width: 100%; display: block }
+.tk-pt b { font-size: 12px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical } .tk-pt small { color: var(--ink-3); font: 10.5px var(--f-so) }
+.tk-pt .tk-tran { position: absolute; left: 4px; top: 4px; background: var(--loi); color: #fff; font-size: 10.5px; font-weight: 600; padding: 1px 6px; border-radius: 3px }
+.tk-pt-lon { position: absolute; inset: 0; background: rgba(5,7,15,.88); display: grid; grid-template-columns: auto 320px; gap: 18px; padding: 18px; place-content: center }
+.tk-pt-lon img { max-height: calc(min(76vh, 800px) + 20px); max-width: 60vw; border-radius: 6px } .tk-pt-lon div { color: #e8eaf4; display: grid; gap: 8px; align-content: center }
+.tk-pt-lon p { margin: 0; color: #aab0cc; font-size: 12.5px } .tk-hop-rong { position: relative }
+@media (max-width: 900px) { .tk-mau-than { grid-template-columns: 1fr; height: auto } .tk-mau-luoi { max-height: 50vh } .tk-pt-lon { grid-template-columns: 1fr } }
+.tk-pt-lon[hidden] { display: none }
+.tk-mau-chu { display: grid; gap: 6px; align-content: center; font-size: 11.5px; line-height: 1.4; color: #c4c9e2; text-align: left; overflow: hidden }
+.tk-mau-chu i { font-style: normal; font-size: 10.5px; color: #8a90ad; text-transform: uppercase; letter-spacing: .05em }

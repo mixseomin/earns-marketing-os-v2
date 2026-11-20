@@ -1,7 +1,7 @@
 // Tự kiểm bộ chấm prompt: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/kiem-prompt.test.mts
 import assert from 'node:assert';
 import { chamPrompt, loiPrompt, noiChonPhongCach } from './kiem-prompt';
-import { hanhDongTrongMoTa, khoi, KHONG_THEM_FLUX } from './prompt-khoi';
+import { hanhDongTrongMoTa, khoi, KHONG_THEM_FLUX, gocNguoiMacDinh } from './prompt-khoi';
 
 const VEST = 'Tailored white power suit (single-breasted blazer, wide-leg trousers)';
 const s = { nguoi: [{ ten: 'Lâm Hạ', trang_phuc: VEST }], vat: [] };
@@ -126,4 +126,19 @@ console.log('kiem-prompt: ok');
   const tot = chamPrompt([{ ten: 'một bước', duong: 'mot_buoc', khoi: k("Blocks in that layout image, by name: Nhóc (bottom-centre, 11%). Also in this frame, too small to be a block of its own: Tờ 5 nghìn = banknote (in Nhóc's hand).", boVeNhac(pc, tu)) }], s);
   assert.deepEqual(tot.loi, [], JSON.stringify(tot.loi));
   console.log('kiem-prompt.test: ok (câu lệnh tự mâu thuẫn)');
+}
+// GỐC NGƯỜI MẶC ĐỊNH (phim #7999, 20/11/2026: mẫu người kể không nêu người nước nào → ảnh mẫu ra mặt Âu cho phim tiếng Việt)
+{
+  const M7999 = 'Một người trưởng thành trẻ, giới tính không nhấn mạnh, sống nội tâm và có thói quen tự phân tích. Trang phục ở nhà tối giản với tông trung tính, giữ nguyên suốt phim.';
+  assert.match(gocNguoiMacDinh(M7999, 'vi'), /Vietnamese/, 'đúng ca #7999: phải chèn người Việt');
+  assert.match(gocNguoiMacDinh(M7999), /Vietnamese/, 'không ghi ngôn ngữ = phim tiếng Việt');
+  assert.equal(gocNguoiMacDinh(M7999, 'en'), '', 'phim tiếng Anh: chưa có mặc định, không chèn');
+  assert.equal(gocNguoiMacDinh('Phi công Nhật 19 tuổi, một thanh niên gầy, đội mũ bay da nâu', 'vi'), '', 'đã nêu người Nhật: không đè');
+  assert.equal(gocNguoiMacDinh('Cô gái tóc vàng, mắt xanh, váy đỏ', 'vi'), '', 'đã tả nét ngoại hình theo vùng: không đè');
+  assert.equal(gocNguoiMacDinh('Người đàn ông Việt 40 tuổi, áo sơ mi trắng', 'vi'), '', 'đã nêu người Việt: không lặp');
+  assert.equal(gocNguoiMacDinh('Một con mèo mướp béo, lông vàng sọc', 'vi'), '', 'không phải người: không chèn');
+  assert.equal(gocNguoiMacDinh('Người máy cao hai mét, vỏ thép xước', 'vi'), '', 'người máy: không chèn');
+  assert.equal(gocNguoiMacDinh('Trẻ, vai rộng, khoác da sư tử', 'vi'), '', 'mô tả không nói là người (Heracles): không chèn');
+  assert.match(gocNguoiMacDinh('Cô gái hai mươi tuổi, tóc dài buộc thấp, áo len xám', 'vi'), /Vietnamese/, 'tả người, không nêu gốc: chèn');
+  console.log('kiem-prompt.test: ok (gốc người mặc định của mẫu nhân vật)');
 }

@@ -277,3 +277,16 @@ export const boVeNhac = (pc: string, tu: string[]): string => (tu.length ? pc.sp
  *  Cổng: chan-gui-video.ts › loiShotPrompt chặn câu lệnh còn chứa nó. */
 export const DIEN_RONG = ['hold the action clear and readable, settle at the end'];
 export const laDienRong = (t?: string | null): boolean => { const x = (t ?? '').trim().toLowerCase().replace(/[.\s]+$/, ''); return !!x && DIEN_RONG.includes(x); };
+
+/** GỐC NGƯỜI MẶC ĐỊNH của mẫu nhân vật (anh 20/11/2026, phim #7999: "Nhân vật Tây nhưng lại chữ tiếng Việt"). Mẫu là NGƯỜI mà mô tả không nêu người
+ *  nước nào thì model ảnh tự chọn mặt Âu, và ảnh mẫu đó đè lên mọi keyframe dù câu lệnh shot ghi "Vietnamese". Phim tiếng Việt → câu chèn nói rõ người Việt.
+ *  KHÔNG chèn khi: mô tả đã nêu gốc người / vùng / nét ngoại hình theo vùng (Nhật, Tây, tóc vàng…), mô tả không nói đây là người (con vật, robot, linh vật,
+ *  nhân vật thần thoại tả bằng đồ khoác), hoặc phim ngôn ngữ khác (chưa có mặc định). Sai về phía KHÔNG chèn là an toàn: giữ như trước. */
+const LA_NGUOI = /người|đàn ông|phụ nữ|cô gái|chàng trai|thanh niên|thiếu nữ|cậu bé|cô bé|bé trai|bé gái|em bé|\b(?:man|woman|girl|boy|person|adult|teenager|child|lady|guy)\b/i;
+const KHONG_NGUOI = /người máy|người tuyết|người ngoài hành tinh|người sói|người cá|robot|alien|linh vật|quái vật|mascot|con vật|động vật/i;
+const DA_NEU_GOC = /việt|vietnam|asian|châu á|châu âu|châu phi|châu mỹ|phương tây|người tây|western|european|american|african|korean|japanese|chinese|indian|latin|arab|caucasian|da trắng|da đen|da màu|da nâu|tóc vàng|tóc đỏ|tóc bạch kim|blond|mắt xanh|ngoại quốc|nước ngoài/i;
+const TEN_NUOC = /(?<![\p{L}])(?:Nhật|Hàn|Mỹ|Pháp|Đức|Nga|Ý|Úc|Ấn|Thái|Lào|Miên|Tàu|Tây|Âu|Phi|Á|Anh|Trung Quốc|Trung Hoa|Hoa Kỳ|Do Thái|Ả Rập|La Mã|Hy Lạp|Ai Cập|Mông Cổ|Ba Tư|Viking|Samurai)(?![\p{L}])/u;
+export function gocNguoiMacDinh(moTa: string, ngonNgu?: string): string {
+  if ((ngonNgu || 'vi') !== 'vi' || !LA_NGUOI.test(moTa) || KHONG_NGUOI.test(moTa) || DA_NEU_GOC.test(moTa) || TEN_NUOC.test(moTa)) return '';
+  return 'The character is Vietnamese: Vietnamese facial features, natural black hair, light-tan skin.';
+}

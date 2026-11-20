@@ -7,6 +7,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
 import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, khoaKhung, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
 import type { BienThe, DoiChieu, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
+import { gocNguoiMacDinh } from './prompt-khoi';
 import { giayDoc } from './nhip-hinh';
 import { vanLuatDung, LUAT_DUNG_CANH, luatDung } from './luat-dung';
 import { vanKhuonChuoi } from './khuon-chuoi';
@@ -350,10 +351,12 @@ export const cauDungMoTa = (moTa: string): string => {
   return `WHITELIST: the subject has EXACTLY the features, colours, materials and style the description names — nothing added, nothing upgraded or restyled. ${chu.length ? `The only lettering is ${chu.map((c) => `"${c}"`).join(', ')}, spelled exactly; no other text, numbers or symbols.` : 'No text, numbers, labels or symbols on it.'}`;
 };
 export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: KinhThanh, daCo = 0): string {
+  // mẫu NGƯỜI không nêu người nước nào → theo ngôn ngữ phim (prompt-khoi.ts › gocNguoiMacDinh); không thì model vẽ mặt Âu cho phim tiếng Việt (#7999)
+  const gocNguoi = nv.loai === 'nhan_vat' ? gocNguoiMacDinh(nv.mo_ta, docKinhThanh(kt).ngon_ngu) : '';
   if (daCo > 0) {
     const ds = GOC_THEM[nv.loai] ?? GOC_THEM.boi_canh!;
     const goc = ds[(daCo - 1) % ds.length]!;
-    return `${goc}. Subject: ${nv.mo_ta}. Visual style: ${phongCachHinh(docKinhThanh(kt).phong_cach) || 'consistent cinematic look'}. `
+    return `${goc}. Subject: ${nv.mo_ta}.${gocNguoi ? ` ${gocNguoi}` : ''} Visual style: ${phongCachHinh(docKinhThanh(kt).phong_cach) || 'consistent cinematic look'}. `
       + 'The reference images only define the identity/design of the subject — create a NEW image with a clearly DIFFERENT camera angle and composition; do NOT reproduce the reference image.'
       + (nv.loai === 'dao_cu' || nv.loai === 'san_pham' || nv.loai === 'cau_kien' ? ' ' + CO_LAP_VAT : '') + ' ' + cauDungMoTa(nv.mo_ta);
   }
@@ -367,7 +370,7 @@ export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: Ki
   // Đạo cụ / sản phẩm: câu CÔ LẬP đứng SAU phong cách phim — phong cách kiểu "luxury corporate drama" kéo cả văn phòng + người vào ảnh mẫu
   // (tổng tài 17/10/2026: điện thoại cầm trong tay một người đàn ông, thẻ nhân viên in ảnh + tên một cô gái khác) → keyframe nhận người lạ làm tham chiếu.
   const coLap = nv.loai === 'dao_cu' || nv.loai === 'san_pham' || nv.loai === 'cau_kien' ? ' ' + CO_LAP_VAT : '';
-  return `${loai}. ${nv.mo_ta}. Visual style: ${phongCachHinh(k.phong_cach) || 'consistent cinematic look'}.${coLap} ${cauDungMoTa(nv.mo_ta)}`;
+  return `${loai}. ${nv.mo_ta}.${gocNguoi ? ` ${gocNguoi}` : ''} Visual style: ${phongCachHinh(k.phong_cach) || 'consistent cinematic look'}.${coLap} ${cauDungMoTa(nv.mo_ta)}`;
 }
 export const CO_LAP_VAT = 'ISOLATED object only, on a plain seamless light-grey studio background: no people, no hands, no faces, no room, no scenery, no other objects. Only if the object itself carries an ID photo or a printed name (badge, card), leave that area blank — never add grey patches, stickers or labels to any other object.';
 
@@ -534,10 +537,10 @@ export const goiYKinhThanh = (nc: NguCanhPhim) =>
   hoi(KinhThanhSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết PHONG CÁCH HÌNH ẢNH cố định, TIỀN ĐỀ, THỂ LOẠI, LOGLINE và CHỦ ĐỀ cho bộ phim này. Nếu đã có thì giữ ý, viết rõ và cụ thể hơn (chất liệu, màu, ánh sáng, lens).`);
 
 export const goiYAnchor = (nc: NguCanhPhim, a: { loai: LoaiNhanVat; ten: string; mo_ta: string }) =>
-  hoi(AnchorSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết đặc tính CỐ ĐỊNH cho anchor mới: loại=${a.loai}, tên="${a.ten}"${a.mo_ta ? `, ý đã có: ${a.mo_ta}` : ''}. Phải hợp phong cách và không trùng/đụng với các anchor đã có.`);
+  hoi(AnchorSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết đặc tính CỐ ĐỊNH cho anchor mới: loại=${a.loai}, tên="${a.ten}"${a.mo_ta ? `, ý đã có: ${a.mo_ta}` : ''}. Phải hợp phong cách và không trùng/đụng với các anchor đã có. Anchor là NGƯỜI: câu đầu mô tả nêu rõ người nước nào / vùng nào theo bối cảnh truyện (truyện không nói khác thì theo ngôn ngữ phim: phim tiếng Việt → người Việt), tuổi, kiểu tóc, dáng người, và trang phục có MÀU cụ thể giữ suốt phim.`);
 
 export const goiYBoAnchor = (nc: NguCanhPhim) =>
-  hoi(BoAnchorSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nĐề xuất tuyến nhân vật / sản phẩm / bối cảnh / đạo cụ còn THIẾU (không lặp lại anchor đã có) dựa trên tiền đề và kịch bản các tập. Phim ngắn nhiều tập: 2-4 nhân vật chính, 1-2 bối cảnh, đạo cụ then chốt. Quảng cáo: sản phẩm + 1 người dùng + 1 bối cảnh.`);
+  hoi(BoAnchorSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nĐề xuất tuyến nhân vật / sản phẩm / bối cảnh / đạo cụ còn THIẾU (không lặp lại anchor đã có) dựa trên tiền đề và kịch bản các tập. Phim ngắn nhiều tập: 2-4 nhân vật chính, 1-2 bối cảnh, đạo cụ then chốt. Quảng cáo: sản phẩm + 1 người dùng + 1 bối cảnh. Anchor là NGƯỜI: câu đầu mô tả nêu rõ người nước nào / vùng nào theo bối cảnh truyện (truyện không nói khác thì theo ngôn ngữ phim: phim tiếng Việt → người Việt), tuổi, kiểu tóc, dáng người, và trang phục có MÀU cụ thể giữ suốt phim.`);
 
 export const goiYBrief = (nc: NguCanhPhim, tapSo: number, thoiLuongS: number) =>
   hoi(BriefSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết BRIEF cho tập ${tapSo} (tổng ${thoiLuongS} giây) để sau đó viết kịch bản: nối mạch tập trước, có xung đột và kết mở (hoặc CTA nếu là quảng cáo/short).`);

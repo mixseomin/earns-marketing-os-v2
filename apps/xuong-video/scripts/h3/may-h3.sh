@@ -50,7 +50,7 @@ thue_vast() {   # máy một card ≥ 24GB, đời card ≥ 8.0 (INT8 ConvRot �
     | python3 -c 'import json,sys; [print("%s|%s|%.3f|%s" % (o["id"], o["gpu_name"], o["dph_total"], o.get("geolocation") or "")) for o in json.load(sys.stdin).get("offers",[])]' 2>/dev/null)
   [ -n "$DS" ] || { echo "  Vast: không có máy hợp (≤ \$${XV_H3_GIA_TOI_DA:-0.6}/giờ, driver CUDA 13)" >&2; return 1; }
   while IFS='|' read -r i g gia noi; do
-    case "$g" in CMP*) echo "  bỏ $g (card đào coin — 17/11/2026 thuê được mà không lên SSH)" >&2; continue ;; esac
+    case "$g" in CMP*) echo "  bỏ $g (card đào coin — 17/11/2026 thuê được mà không lên SSH)" >&2; continue ;; GB10*) echo "  bỏ $g (máy chip ARM — image x86 không chạy, 20/11/2026)" >&2; continue ;; esac
     # vùng không kéo nổi image ghcr (20/11/2026: máy Shanghai, CN rẻ nhất, thuê được nhưng không bao giờ lên SSH) — XV_H3_BO_VUNG="CN RU" để đổi
     case " ${XV_H3_BO_VUNG:-CN} " in *" ${noi##*, } "*) echo "  bỏ máy ở $noi (vùng không kéo được image)" >&2; continue ;; esac
     R=$(VAPI PUT "/asks/$i/" "$(python3 -c 'import json,sys; print(json.dumps({"client_id":"me","image":sys.argv[1],"disk":int(sys.argv[2]),"runtype":"ssh_direc ssh_proxy","onstart":"touch /root/.no_auto_tmux","label":"xv-h3-thu"}))' "$ANH" "${XV_H3_O:-70}")")

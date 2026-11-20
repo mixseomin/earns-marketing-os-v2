@@ -201,6 +201,9 @@
   "ly_do_ti_le": "16/11/2026 so dáng từ cầu Marienbrücke (scripts/so-dang.py + đo tia trên ảnh 3D): đỉnh thật 41,5–42,7 m, mô hình 44,7–45,0"
  },
  "way/223110819": {
+  "y_tren": 67.3,
+  "roof:height": "13.5",
+  "ly_do_mai_dom20": "máy đo 2026-11-20 (không AI): Palas mái chính theo DOM20 chính thức Bavaria (20 cm, CC BY 4.0; 1.682 điểm lộ thiên, mốc cảnh −4,16 m): phân vị 8 / 50 / 95 = 56,8 / 61,5 / 66,7 → nóc ~67,3; chân mái lấy số đã đo trên ảnh chính diện (cua-so.json yHien 53,8 — DOM20 lùi mép 0,8 m nên phân vị thấp cao hơn chân mái thật ~2 m). Trước: nóc 79,6 (cao hơn thật ~12 m), mái cao 25,8 m",
   "height": "57.3",
   "ly_do_tu_xu": "tự xử thẻ báo lệch #1623: đỉnh ảnh 3D 79.63 m, mô hình 68.28 m → height 46 → 57.3"
  },
@@ -222,7 +225,8 @@
   "ly_do_cao": "17/11/2026 thẻ máy quét #1631: khối lô-gia mặt tây Palas (mái một dốc) thấp hơn ảnh thật. Đo theo TIA ở 2 góc chuẩn: tây +2,6 m (7 cột), nam +3,5 m (5 cột) → trung vị +3,05; từ trên xuống đỉnh 47,73 m, bản đồ độ cao (cách 3) 47,71 m; ảnh gần (camera (-140, 56, 40)) cho thấy bản thật cao hơn mô hình khoảng một tầng vòm. y_tren 45,28 → 48,3"
  },
  "them/nha-chan-viereckturm": {
-  "y_tren": 31.12,
+  "y_tren": 31.1,
+  "roof:height": "2.4",
   "y_tren_truoc_dom20": 28.3,
   "ly_do_dom20": "máy đo 2026-11-20 (scripts/sua-theo-dom20.mjs, không AI): DOM20 chính thức Bavaria (mặt trên 20 cm, CC BY 4.0) − mặt trên mô hình = +2.8 m (trung vị 10 điểm lưới 1 m nằm sâu ≥ 0.75 m trong mặt bằng, độ trải 1.8 m, đã trừ mốc cảnh ↔ DHHN2016 -4.16 m); đỉnh ảnh 3D Google không đo, đỉnh mô hình trước 973.9 m",
   "ngoai": [
@@ -249,12 +253,21 @@
   "roof:colour": "black",
   "roof:shape": "skillion",
   "roof:direction": "337",
-  "roof:height": "2.4",
   "ly_do": "17/11/2026 góp ý #1632 (nút 🔍, 'thiếu 1 căn nhà nhỏ ở chân'): OSM không có. Bản đồ độ cao ảnh 3D Google (neuschwanstein-cach3.json, ô 0,4 m, loại mái tối) có khối mái 26–28 m nằm ở góc giữa mặt tường way/223069513#5 và mặt tây Viereckturm, toạ độ dọc tường tính từ góc Viereckturm 0,1 → 6,6 m, nhô ra 0,05 → 3,5 m (mặt bằng = hình chữ nhật đó). Mái một dốc: cao 28,3 m sát tường, dốc ra ngoài ~0,7 m/m → mép hiên ~25,9 m (roof:height 2,4), hướng dốc xuống = pháp tuyến ngoài tường 337°. Chân: mặt đất đo quanh 17–20 m (ns.js tự lấy). Ảnh 3D trước đây coi mái này là mặt đất → gò đá xám giả ở chân tường (ns.js nay bỏ điểm đất trong khối thêm)."
  },
  "way/223179004": {
   "y_tren": 59.37,
   "y_tren_truoc_dom20": 61.28,
   "ly_do_dom20": "máy đo 2026-11-20 (scripts/sua-theo-dom20.mjs, không AI): DOM20 chính thức Bavaria (mặt trên 20 cm, CC BY 4.0) − mặt trên mô hình = -1.9 m (trung vị 12 điểm lưới 1 m nằm sâu ≥ 1.5 m trong mặt bằng, độ trải 0.7 m, đã trừ mốc cảnh ↔ DHHN2016 -4.16 m); đỉnh ảnh 3D Google 1008.9 m, đỉnh mô hình trước 1009.4 m"
+ },
+ "way/1573767740": {
+  "y_tren": 43.8,
+  "roof:height": "2",
+  "ly_do_mai_dom20": "máy đo 2026-11-20 (không AI): chân mái / nóc theo DOM20 chính thức Bavaria (20 cm, CC BY 4.0), phần lộ thiên lùi 0,8 m khỏi mép, phân vị 8 / 95, toạ độ cảnh với mốc −4,16 m — Kemenate (529 điểm): DOM20 chân mái 41,8 · giữa 42,9 · nóc 43,7 — mô hình trước: tường 39,6, nóc 44,6 (mái cao 5 m; thật mái thoải ~2 m)"
+ },
+ "way/1573767742": {
+  "y_tren": 43.8,
+  "roof:height": "1.4",
+  "ly_do_mai_dom20": "máy đo 2026-11-20 (không AI): chân mái / nóc theo DOM20 chính thức Bavaria (20 cm, CC BY 4.0), phần lộ thiên lùi 0,8 m khỏi mép, phân vị 8 / 95, toạ độ cảnh với mốc −4,16 m — Kemenate (141 điểm): DOM20 chân mái 42,6 · giữa 43,4 · nóc 43,7 — mô hình trước: tường 39,6, nóc 44,6"
  }
 }

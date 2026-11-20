@@ -293,7 +293,8 @@ if (!GOC_OSM) {
 if (!GOC_OSM) for (const k of dsKhoi) {
   const ds = Object.entries(CUA_SO).filter(([key, v]) => key.startsWith(k.id + '#') && Number.isFinite(v?.yHien)).map(([, v]) => v.yHien);
   if (!ds.length || (k.tags['roof:shape'] || 'flat') === 'flat' || k.ref == null || k.id === MAT_BO?.neo?.khoi) continue; // khối neo mặt sân: mái do tệp bố cục mặt sân quyết
-  const dinh = k.ref + chieuCao(k.tags), rh = dinh - giua(ds); if (rh > 1 && rh < chieuCao(k.tags) - 3) { k.tags['roof:height'] = String(rh); k.maiHienDo = +giua(ds).toFixed(1); }
+  if (SUA[k.id]?.ly_do_mai_dom20) continue; // chân mái + nóc đã ghi theo số đo chính thức (sua.json roof:height + y_tren) — không tính lại từ đỉnh cũ
+  const dinh = k.tags.y_tren != null ? +k.tags.y_tren : k.ref + chieuCao(k.tags), rh /* 20/11/2026: khối có y_tren thì đỉnh LÀ y_tren (trước lấy đỉnh cũ → hạ nóc Palas 12,9 m mà mái vẫn cao 25,8 m, tường tụt 13 m) */ = dinh - giua(ds); if (rh > 1 && rh < chieuCao(k.tags) - 3) { k.tags['roof:height'] = String(rh); k.maiHienDo = +giua(ds).toFixed(1); }
 }
 // ĐỘ CAO TUYỆT ĐỐI trong tệp sửa theo ảnh (y_tren / y_duoi, toạ độ cảnh đo trên ảnh 3D) → height / min_height theo mốc chân nhà vừa tính (thắng mọi chỉnh trên)
 for (const k of dsKhoi) { const t = k.tags; if (t.y_tren == null && t.y_duoi == null) continue; const goc = k.ref ?? k.day;

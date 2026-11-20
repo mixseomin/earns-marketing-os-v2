@@ -186,6 +186,7 @@ const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
 const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
 const TONG_BG = 'color-mix(in srgb, var(--accent, #60a5fa) 14%, var(--bg-2))';   // nền dòng tổng
+const KHUNG_DINH_MIN = 420;   // px — khung cuộn thấp hơn mức này thì tiêu đề / chân bảng không dính (góp ý #1721)
 const RONG_MAC_DINH = 96;   // px — bề ngang cột chưa khai width khi bảng ở chế độ fixed
 export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey: persistKeyGoc, onRowClick, minWidth = 640, rowTitle, rowStyle, fullRow, renderExpanded,
@@ -505,6 +506,9 @@ export function DataTable<T>({
   const [cotDo, setCotDo] = useState<{ w: number[]; bang: number; cao: number }>({ w: [], bang: 0, cao: 0 });
   const [dinhTren, setDinhTren] = useState(0);
   const [leDuoi, setLeDuoi] = useState(0);   // lề dưới của khung cuộn (main.main 56px máy tính) — thanh trang dính sát MÉP, không nổi giữa chừng
+  // KHUNG THẤP (góp ý #1721): bảng nằm trong khung cuộn thấp (widget nhúng trên /home cao ~250px) — tiêu đề dính trên + chân dính dưới (dòng tổng + thanh trang) chiếm gần hết
+  // khung, đè lên chính các dòng dữ liệu. Khung cuộn thấp hơn KHUNG_DINH_MIN thì KHÔNG dính: tiêu đề, dòng tổng, thanh trang nằm đúng chỗ trong dòng chảy của bảng.
+  const [khungThap, setKhungThap] = useState(false);
   useEffect(() => {
     if (!theoTrang || effView !== 'table') return;
     const doNgay = () => {
@@ -524,11 +528,14 @@ export function DataTable<T>({
       setDinhTren((o) => (Math.abs(o - tren) < 0.5 ? o : tren));
       const le = sc ? parseFloat(getComputedStyle(sc).paddingBottom) || 0 : 0;
       setLeDuoi((o) => (Math.abs(o - le) < 0.5 ? o : le));
+      const caoKhung = sc ? sc.clientHeight : window.innerHeight;
+      setKhungThap(caoKhung > 0 && caoKhung < KHUNG_DINH_MIN);
     };
     const ro = new ResizeObserver(() => doNgay()), dinhDo = new Set<HTMLElement>();
     doNgay();
     if (bangRef.current) ro.observe(bangRef.current);
     if (doRef.current) ro.observe(doRef.current);
+    { let k: HTMLElement | null = thanRef.current?.parentElement ?? null; while (k && !/(auto|scroll)/.test(getComputedStyle(k).overflowY)) k = k.parentElement; if (k) ro.observe(k); }   // khung cuộn đổi cao (kéo giãn widget) → đo lại khungThap
     window.addEventListener('resize', doNgay);
     return () => { ro.disconnect(); window.removeEventListener('resize', doNgay); };
   }, [theoTrang, effView, visible.length, rong, pageRows.length]);
@@ -800,7 +807,7 @@ export function DataTable<T>({
       <>
       {theoTrang && (
         <div ref={dauRef} className="dt-dau" onScroll={dongCuon('dau')}
-             style={{ position: 'sticky', top: dinhTren, zIndex: 6, overflowX: 'auto', margin: '0 -8px', background: 'var(--bg-2)', boxShadow: '0 1px 0 var(--line)' }}>
+             style={{ position: khungThap ? 'relative' : 'sticky', top: khungThap ? 0 : dinhTren, zIndex: 6, overflowX: 'auto', margin: '0 -8px', background: 'var(--bg-2)', boxShadow: '0 1px 0 var(--line)' }}>
           <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: cotDo.bang || '100%', minWidth: cotDo.bang ? undefined : minWidth }}>
             {cotDo.w.length ? <colgroup>{cotDo.w.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup> : null}{/* bảng tiêu đề dính và bảng thân là HAI <table>: luôn khai bề rộng đo từ thân bằng colgroup (có hay không hàng nhãn nhóm) để cột tiêu đề luôn khớp cột thân */}
             <thead>{hangNhom()}{hangDau(true)}</thead>
@@ -880,7 +887,7 @@ export function DataTable<T>({
       {(() => { const chan = hasTotals && sortedRows.length > 0 && theoTrang && effView === 'table' && cotDo.w.length > 0;
         // chân dính MỘT khối: dòng tổng (nếu có) + thanh trang — hai thứ sticky riêng thì chồng lên nhau
         if (!chan && !(pager && theoTrang && effView === 'table')) return pager;
-        return <div className="dt-trang" style={{ position: 'sticky', bottom: -leDuoi, zIndex: 6, background: 'var(--bg-0)', boxShadow: '0 -1px 0 var(--line), 0 -6px 12px rgba(0,0,0,.25)', paddingTop: chan ? 0 : 2 }}>
+        return <div className="dt-trang" style={{ position: khungThap ? 'relative' : 'sticky', bottom: khungThap ? 0 : -leDuoi, zIndex: 6, background: 'var(--bg-0, #0b0b0c)', boxShadow: '0 -1px 0 var(--line), 0 -6px 12px rgba(0,0,0,.25)', paddingTop: chan ? 0 : 2 }}>
           {chan ? <div ref={chanRef} className="dt-chan" style={{ overflowX: 'hidden', margin: '0 -8px', background: 'var(--bg-2)' }}>
             <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: cotDo.bang || '100%' }}>
               <colgroup>{cotDo.w.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>

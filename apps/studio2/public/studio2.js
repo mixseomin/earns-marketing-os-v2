@@ -354,7 +354,9 @@ try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { 
      const nh = (Array.isArray(l.luoi.nhom?.[k]) ? l.luoi.nhom[k] : []).filter((x) => Array.isArray(x?.ds) && x.ds.length > 1 && x.ds.every((w) => WG[w])); if (nh.length) (E.luoi.nhom ||= {})[k] = nh.map((x) => ({ ds: [...new Set(x.ds)], mo: x.mo })); }   // nhóm tab trong ô
    if (l.tlCao >= 110) E.tlCao = +l.tlCao; E.nhuMoi = !!l.nhuMoi; E.qtXem = !!l.qtXem; } } catch {}
 try { const q = new URLSearchParams(location.search); if (q.get('ban') === 'gon' || q.get('ban') === 'pro') E.ban = q.get('ban'); if (DU_AN[q.get('phim')] || /^\d+$/.test(q.get('phim') || '')) { E.da = q.get('phim'); E.tap = +q.get('tap') || null; } } catch {}
-const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc, luoi: E.luoi, tlCao: E.tlCao, nhuMoi: E.nhuMoi, qtXem: E.qtXem, muDa: 1 })); } catch {} try { history.replaceState(null, '', `?${E.da ? `phim=${E.da}` : 'trang=moi'}${E.tap ? `&tap=${E.tap}` : ''}&ban=${E.ban}${pro() && D.that && co('nk') ? `&nk=${E.nkBuoc}` : ''}${E.luoi.ten[D.loai] && E.luoi.vi[D.loai] ? `&bc=${E.luoi.ten[D.loai]}` : ''}`); } catch {} };
+const VT_K = () => (E.da && E.tap ? `s2-vt-${E.da}-${E.tap}` : '');   // vị trí đang đứng theo từng phim + tập: cảnh chọn, tab, khung, kim — F5 về đúng chỗ (#1743)
+function apVt() { const k = VT_K(); if (!k) return; let v = null; try { v = JSON.parse(localStorage.getItem(k) || 'null'); } catch {} const q = +new URLSearchParams(location.search).get('canh'); const cq = q > 0 && D.canh[q - 1] ? { id: D.canh[q - 1].id, loai: 'canh' } : null; const c = cq || (v?.c && (v.c.id === 'nhac' || canh(v.c.id)) ? v.c : null); if (v) { if (typeof v.tab === 'string') E.tab = v.tab; if (typeof v.tt === 'string') E.ttTab = v.tt; if (typeof v.o === 'string') E.o = v.o; if (v.ng && nguonCo().includes(v.ng)) E.nguon = v.ng; if (v.t >= 0) E.t = Math.min(v.t, Math.max(0, tong() - 0.01)); } if (c) { E.chon = c; if (c.id !== 'nhac') { const i = vt(c.id), s = batDau(i); if (E.t < s || E.t >= s + D.canh[i].tg) E.t = s + 0.001; } } }
+const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc, luoi: E.luoi, tlCao: E.tlCao, nhuMoi: E.nhuMoi, qtXem: E.qtXem, muDa: 1 })); } catch {} try { const k = VT_K(); if (k && !E.dangMo && !D.cho) localStorage.setItem(k, JSON.stringify({ c: E.chon, tab: E.tab, tt: E.ttTab, o: E.o, ng: E.nguon, t: E.t })); } catch {} const iC = E.chon && E.chon.id !== 'nhac' && !E.dangMo ? vt(E.chon.id) : -1; try { history.replaceState(null, '', `?${E.da ? `phim=${E.da}` : 'trang=moi'}${E.tap ? `&tap=${E.tap}` : ''}${iC >= 0 ? `&canh=${iC + 1}` : ''}&ban=${E.ban}${pro() && D.that && co('nk') ? `&nk=${E.nkBuoc}` : ''}${E.luoi.ten[D.loai] && E.luoi.vi[D.loai] ? `&bc=${E.luoi.ten[D.loai]}` : ''}`); } catch {} };
 const pro = () => E.ban === 'pro', boCuc = () => (D.trongTrang ? ['qt', 'xem'] : pro() ? E.bc[D.loai].filter((w) => ((w !== 'nk' && w !== 'qt' && w !== 'hd') || !!D.that) && (!D.that || ((w !== 'lp' || coLop()) && (w !== 'mb' || !!D.set)))) : D.that ? ['qt', 'xem', 'tt'] : BC_MAU.hinh), co = (w) => boCuc().includes(w);
 const tong = () => D.canh.reduce((a, c) => a + c.tg, 0), canh = (id) => D.canh.find((c) => c.id === id), vt = (id) => D.canh.findIndex((c) => c.id === id);
 const batDau = (i) => D.canh.slice(0, i).reduce((a, c) => a + c.tg, 0), lam2 = (x) => Math.round(x * 100) / 100;
@@ -386,7 +388,7 @@ async function moPhimThat(pid, tid, khoiDong) {
     const tap = pd.tap.find((t) => t.id === +tid) || pd.tap.find((t) => t.so_canh > 0) || pd.tap[0]; if (!tap) throw new Error('phim này chưa có tập nào (mở trong studio để thêm tập)');
     const ds = ds0 && tap.id === +tid ? ds0 : await goi('dsCanh', tap.id); if (so !== soMo) return;
     D = tuStudio(pd, tap, ds); E.nk = null; E.nkCt = {}; E.nkMo = null; datPhimThat(ds, tap); if (D.that.trong && !BO_CUC[E.bcUrl] && !E.bc[D.loai].includes('qt')) E.bcUrl = 'lam';   // phim chưa có cảnh: luôn mở bố cục Làm video mới (có widget Quy trình)
-    if (BO_CUC[E.bcUrl]) { E.bc[D.loai] = [...BC_MAU[E.bcUrl]]; E.luoi.vi[D.loai] = viMau(E.bcUrl); E.luoi.ten[D.loai] = E.bcUrl; if (E.luoi.nhom) delete E.luoi.nhom[D.loai]; } E.bcUrl = ''; E.da = String(pd.phim.id); E.tap = tap.id; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.nguon = nguonDau(); E.solo = null; E.tab = 'Mẫu'; E.vua = false; E.dangMo = false; luu(); man('dung');
+    if (BO_CUC[E.bcUrl]) { E.bc[D.loai] = [...BC_MAU[E.bcUrl]]; E.luoi.vi[D.loai] = viMau(E.bcUrl); E.luoi.ten[D.loai] = E.bcUrl; if (E.luoi.nhom) delete E.luoi.nhom[D.loai]; } E.bcUrl = ''; E.da = String(pd.phim.id); E.tap = tap.id; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.nguon = nguonDau(); E.solo = null; E.tab = 'Mẫu'; E.vua = false; E.dangMo = false; apVt(); luu(); man('dung');
   } catch (e) { if (so !== soMo) return; E.dangMo = false; if (khoiDong || D.cho) { if (nguoiMoi()) { D = duAnTrong(); E.da = null; E.tap = null; } else moDuAn('cn'); } veD(); bao(`Không mở được phim #${pid}: ${e.message}`, false, 15000); }
 }
 /** danh sách phim của studio trong menu chọn phim: gõ là tìm (studio lọc theo tên), chưa gõ = phim sửa gần đây */
@@ -1351,7 +1353,7 @@ function chon(id, loai) {
   else if (loai !== 'canh') E.ttTab = 'thoai'; else if (E.ttTab === 'thoai') E.ttTab = 'may';
   E.chon = { id, loai }; E.moDoi = false; E.o = 'tt';
   if (id !== 'nhac') { const i = vt(id), s = batDau(i); if (E.t < s || E.t >= s + D.canh[i].tg) E.t = s + 0.001; }
-  veD(); window.aiChon?.();
+  luu(); veD(); window.aiChon?.();
 }
 function vuaKhung() { const w = $('#tlCuon').clientWidth - 90; E.pxs = Math.max(6, Math.min(70, w / tong())); }
 
@@ -1360,7 +1362,7 @@ function lamD(a, d = {}, nut) {
   const c = canhChon(), g = d.g;
   const doi = (f) => { ghi(); f(); veD(); };
   switch (a) {
-    case 'tab': E.tab = g; E.moNv = false; return veTv();
+    case 'tab': E.tab = g; E.moNv = false; luu(); return veTv();
     case 'o': E.o = g; return veD();
     case 'lui': return hoan(E.lui, E.toi);
     case 'toi': return hoan(E.toi, E.lui);
@@ -1371,7 +1373,7 @@ function lamD(a, d = {}, nut) {
     case 'loai': return chon(E.chon.id, g);
     case 'chonCanh': return chon(g, 'canh');
     case 'chonLoi': return chon(g, 'giong');
-    case 'ttTab': E.ttTab = g; E.moDoi = false; return veTt();
+    case 'ttTab': E.ttTab = g; E.moDoi = false; luu(); return veTt();
     case 'menu': { const r = ((nut.closest('#dMenu') && document.querySelector(`#dTren [data-d=menu][data-g=${g}]`)) || nut).getBoundingClientRect(); E.menu = E.menu?.loai === g ? null : { loai: g, r: { left: r.left, top: r.top, bottom: r.bottom } }; veTren(); veMenu(); if (E.menu?.loai === 'da' && E.kq === undefined) timPhim(); return; }
     case 'ban': dungChay(); E.ban = g; E.menu = null; luu(); E.nguon = nguonDau(); E.vua = false; return man('dung');
     case 'duAn': soMo++; E.dangMo = false; dungChay(); E.menu = null; moDuAn(g); E.vua = false; return man('dung');

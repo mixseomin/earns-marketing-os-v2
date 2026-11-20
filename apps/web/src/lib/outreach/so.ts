@@ -33,6 +33,6 @@ export const MAN_OB: BoSoMan[] = [
   { id: 'ob-cd', ten: 'Chiến dịch', kh: 'CD', nhom: 'Outreach', o: o([['C1', 0, 0, 48, 44], ['C2', 0, 44, 48, 28]]) },
   { id: 'ob-nn', ten: 'Người nhận', kh: 'NN', nhom: 'Outreach', o: o([['N1', 0, 0, 48, 72]]) },
   { id: 'ob-kn', ten: 'Kiểu và nguồn', kh: 'KN', nhom: 'Thiết lập', o: o([['K1', 0, 0, 28, 72], ['K2', 28, 0, 20, 72]]) },
-  { id: 'ob-gui', ten: 'Hạ tầng gửi', kh: 'HG', nhom: 'Thiết lập', o: o([['H1', 0, 0, 48, 22], ['H2', 0, 22, 48, 50, ['H3', 'H4']]]) },
+  { id: 'ob-gui', ten: 'Hạ tầng gửi', kh: 'HG', nhom: 'Thiết lập', o: o([['H1', 0, 0, 48, 32], ['H2', 0, 32, 48, 40, ['H3', 'H4']]]) },   // Đường gửi có hai bảng (tên miền + chiến dịch): ô 22 hàng cắt mất dòng cuối — đo 20/11/2026
 ];
 export const MAN_OB_MAC_DINH = 'ob-tong';

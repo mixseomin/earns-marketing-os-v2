@@ -13,6 +13,7 @@
     "./table-prefs": "./src/table-prefs.tsx",
     "./url-shallow": "./src/url-shallow.ts",
     "./phan-trang": "./src/phan-trang.tsx",
+    "./khung-o": "./src/khung-o.tsx",
     "./bang.css": "./src/bang.css"
   },
   "peerDependencies": {

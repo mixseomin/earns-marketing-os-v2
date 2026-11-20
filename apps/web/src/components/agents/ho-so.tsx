@@ -71,7 +71,7 @@ function ViecCua({ hs, admin }: { hs: HoSo; admin: boolean }) {
   ];
   return <div className="ag-hs-phan">
     {hs.viecTuLam.length > 0 && <ul className="ag-ds">{hs.viecTuLam.map((v) => <li key={v.ma}><b>{v.ten}</b> <span className="ag-mo">· {v.lich}</span></li>)}</ul>}
-    {hs.viecMay.length ? <DataTable rows={hs.viecMay} columns={cot} getRowKey={(v) => v.id} persistKey="ag-hs-viec" minWidth={0} locTuDong={false} timNgoai fixedLayout />
+    {hs.viecMay.length ? <DataTable rows={hs.viecMay} columns={cot} getRowKey={(v) => v.id} persistKey="ag-hs-viec" minWidth={0} locTuDong={false} timNgoai giuCot fixedLayout />
       : !hs.viecTuLam.length && <div className="ag-mo ag-trong">Người này chưa có việc tự làm nào (heartbeat: {hs.heartbeat}).</div>}
   </div>;
 }
@@ -84,7 +84,7 @@ function LanCua({ ds }: { ds: LanChay[] }) {
     { key: 'dai', header: 'Dài', align: 'left', width: 70, cell: (x) => <span className="ag-mo">{x.dai || '—'}</span> },
     { key: 'tom', header: 'Tóm tắt', align: 'left', cell: (x) => <span className="ag-mot-dong ag-mo" title={x.tom}>{x.tom}</span> },
   ];
-  return ds.length ? <DataTable rows={ds} columns={cot} getRowKey={(x, i) => `${x.tu ?? ''}${x.xong ?? ''}${i}`} persistKey="ag-hs-lan" minWidth={0} locTuDong={false} timNgoai fixedLayout pageSize={40} />
+  return ds.length ? <DataTable rows={ds} columns={cot} getRowKey={(x, i) => `${x.tu ?? ''}${x.xong ?? ''}${i}`} persistKey="ag-hs-lan" minWidth={0} locTuDong={false} timNgoai giuCot fixedLayout pageSize={40} />
     : <div className="ag-mo ag-trong">Chưa có lần chạy nào trong nhật ký nhịp.</div>;
 }
 
@@ -96,6 +96,6 @@ function PhienCua({ ds }: { ds: PhienDoi[] }) {
     { key: 'tok', header: 'Token vào / ra', width: 110, cell: (p) => <span className="ag-mo">{soGon(p.vao)} / {soGon(p.ra)}</span> },
     { key: 'usd', header: 'Chi', width: 64, cell: (p) => tien(p.usd), sortValue: (p) => p.usd ?? -1, total: (rs) => <b>{tien(rs.reduce((t, p) => t + (p.usd ?? 0), 0))}</b> },
   ];
-  return ds.length ? <DataTable rows={ds} columns={cot} getRowKey={(p) => p.id} persistKey="ag-hs-phien" minWidth={0} locTuDong={false} timNgoai fixedLayout />
+  return ds.length ? <DataTable rows={ds} columns={cot} getRowKey={(p) => p.id} persistKey="ag-hs-phien" minWidth={0} locTuDong={false} timNgoai giuCot fixedLayout />
     : <div className="ag-mo ag-trong">Người này chưa có phiên Claude Code nào.</div>;
 }

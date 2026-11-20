@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { RaKhoiO } from '@mos2/bang/khung-o';
 
 // Escape must close only the TOPMOST drawer, not every mounted one. Each drawer registered a document
 // keydown listener that closed ITSELF → a stack (task → outreach → picker → detail) collapsed entirely on
@@ -231,7 +232,7 @@ export function Drawer({
         {/* Nút đóng của CHÍNH drawer, chỉ hiện trên điện thoại (globals.css .drawer-x): drawer phủ gần hết màn, dải nền
             bấm-ra-ngoài còn vài px, không có Esc — mở ra là kẹt (anh bắt 05/10/2026). Máy tính đã có nền + Esc + nút riêng. */}
         <button type="button" className="drawer-x" aria-label="Đóng" onClick={requestClose}>✕</button>
-        {children}
+        <RaKhoiO>{children}</RaKhoiO>{/* ngăn mở từ trong ô widget /home không còn là ruột ô */}
         {askClose && (
           // Inline discard-confirm (no native dialog). Only reachable when dirty.
           <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.45)' }}

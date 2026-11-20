@@ -11,6 +11,7 @@ import { useKhoaLuu, useTablePref, writeTablePref } from './table-prefs';
 import { readShallowParam, writeShallowParam } from './url-shallow';
 import { cotDanhMuc, chuoiTim, gomNhom, locChon, docChon, type CotLoc } from './loc-tu-dong';
 import { LocChonNhieu, ChonGomNhom } from './thanh-loc';
+import { useKhungO } from './khung-o';
 
 // DataTable — the house pattern for "a LOT of columns without overflowing the layout".
 // Lifted from the SEO Sites Overview table (the reference): dense mono cells + optional
@@ -131,6 +132,8 @@ interface DataTableProps<T> {
   sliced?: boolean;
   /** bên gọi đã có ô tìm riêng (vd thanh lọc mỏng của ô widget /home — components/home/khung-o.tsx ThanhO) → bảng KHÔNG vẽ ô "lọc bảng…" thứ hai (anh 20/11/2026: hai hàng lọc chồng nhau trong một ô) */
   timNgoai?: boolean;
+  /** bên gọi tự chọn cột theo cỡ ô (cotTheoRong của khung-o.tsx) → trong ô widget bảng KHÔNG tự ẩn thêm cột */
+  giuCot?: boolean;
   /**
    * `sliced` một mình = tắt sort/tìm, vì bảng chỉ cầm 1 trang. Nhưng người dùng vẫn mong bấm được
    * tiêu đề cột như mọi bảng khác (đúng phản hồi 14/08 ở /offers). Đưa 2 cái này vào thì bảng
@@ -194,7 +197,7 @@ const KHUNG_DINH_MIN = 420;   // px — khung cuộn thấp hơn mức này thì
 const RONG_MAC_DINH = 96;   // px — bề ngang cột chưa khai width khi bảng ở chế độ fixed
 export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey: persistKeyGoc, onRowClick, minWidth = 640, rowTitle, rowStyle, fullRow, renderExpanded,
-  searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced, timNgoai,
+  searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced, timNgoai, giuCot,
   stickyFirst = true, stickyCols, fixedLayout = false,
   serverSort, serverFilter, hopCuon = false, tree, groupBy, rowData, dauThanh, thanhDinh, locTuDong = true, onTimDoi, khiTimTrong,
 }: DataTableProps<T>) {
@@ -375,7 +378,12 @@ export function DataTable<T>({
     return out;
   }, [rows, q, timCuaDong, activeFilters, columns]);
 
-  const visible = columns.filter((c) => !c.group || shown[c.group] !== false);
+  const visibleDu = columns.filter((c) => !c.group || shown[c.group] !== false);
+  // TRONG Ô WIDGET /home (khung-o.tsx KhungO — anh 20/11/2026 "màn hình đã bé lại mà show hết ra thì xem được à"): cột không vừa ô thì tự ẩn từ phải
+  // sang (giữ tối thiểu 2 cột đầu), chip "+n cột" trên thanh công cụ bật lại cả bảng (khi đó cuộn ngang trong khung). Ngoài ô (trang thường) không đổi gì.
+  const rongO = useKhungO(), trongO = rongO > 0;
+  const [anTu, setAnTu] = useState(0), [hienHet, setHienHet] = useState(false);
+  const visible = trongO && !hienHet && anTu > 0 ? visibleDu.slice(0, Math.max(2, visibleDu.length - anTu)) : visibleDu;
   const visibleKeys = visible.map((c) => c.key);   // thứ tự ô tiêu đề — keoCot chốt bề ngang theo đúng cột
   // Hàng tổng chỉ vẽ khi CÒN dòng: lọc ra rỗng mà vẫn hiện "TỔNG (0) · $0" cạnh dòng báo
   // không khớp là hai câu nói cùng một chuyện, cái sau còn trông như số liệu thật.
@@ -691,11 +699,107 @@ export function DataTable<T>({
     if (tu === 'than' && a && chanRef.current) chanRef.current.scrollLeft = a.scrollLeft;
   };
 
+  // đo sau khi vẽ: bảng còn tràn khung → ẩn thêm một cột (lặp tới khi vừa); ô rộng ra / đổi bộ cột → tính lại từ đầu
+  const soCotDu = visibleDu.length;
+  useEffect(() => { setAnTu(0); }, [rongO, soCotDu]);
+  useLayoutEffect(() => {
+    if (!trongO || giuCot || hienHet || effView !== 'table') return;
+    const k = thanRef.current, b = bangRef.current; if (!k || !b) return;
+    if (b.scrollWidth > k.clientWidth + 2 && soCotDu - anTu > 2) setAnTu((n) => n + 1);
+  });
+  const [moTim, setMoTim] = useState(false), [moLoc, setMoLoc] = useState(false); const nutLocRef = useRef<HTMLButtonElement | null>(null);
   return (
     // minWidth 0: bảng thường là con của grid/flex — min-width:auto mặc định làm khối giãn theo bề rộng bảng (minWidth cột), tràn khỏi ngăn
     // kéo thay vì cuộn ngang trong .dt-scroll; thanh lọc phía trên rơi ra ngoài màn (#1416).
     <div data-comp="ui.DataTable" style={{ minWidth: 0, maxWidth: '100%' }}>
-      {(coTim || danhMuc.length > 0 || (groups && groups.length > 0) || showViewToggle || anyColFilter || dauThanh) && (
+      {(coTim || danhMuc.length > 0 || (groups && groups.length > 0) || showViewToggle || anyColFilter || dauThanh || anTu > 0 || hienHet) && (trongO ? (
+        // TRONG Ô: MỘT hàng — tìm thu thành 🔍, lọc cột / gom nhóm / Columns / Thẻ-Bảng gập trong nút "Lọc", chip "+n cột" khi đã ẩn cột cho vừa ô
+        <div data-comp="ui.ThanhBangO" style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4, marginBottom: 6, minWidth: 0, overflow: 'hidden' }}>
+          {dauThanh}
+          {anyColFilter && (
+            <button type="button" onClick={clearColFilters} title="Xoá tất cả lọc-cột đang bật"
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              ✕ Xoá lọc cột <span style={{ opacity: 0.7 }}>{activeColFilters.length}</span>
+            </button>
+          )}
+          {coTim && (moTim || q.trim() ? <>
+              <>
+                <input
+                  value={q} onChange={(e) => setQ(e.target.value)}
+                  placeholder={searchPlaceholder ?? 'lọc bảng…'}
+                  // Ô TÌM CÓ CHỮ = ĐANG LỌC → sáng viền + nền như ô lọc đang chọn (Chon2 coLoc) — anh 02/11/2026 "highlight khi search có giá trị giống bộ lọc"; 0 dòng thì đỏ
+                  data-dang-loc={q.trim() ? (sortedRows.length ? '1' : '0') : undefined}
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, color: 'var(--fg-1)', width: 190,
+                    ...(!q.trim() ? { border: '1px solid var(--line)', background: 'var(--bg-2)' }
+                      : sortedRows.length ? { border: '1px solid var(--accent, #60a5fa)', background: 'var(--accent-soft, rgba(59,130,246,.15))' }
+                      : { border: '1px solid #f87171', background: 'rgba(248,113,113,.15)', boxShadow: '0 0 0 2px rgba(248,113,113,.35)' }) }}
+                />
+                {/* Đang lọc thì phải nói rõ đang nhìn bao nhiêu trên tổng bao nhiêu — không thì bảng
+                    ngắn đi trông như mất dữ liệu. */}
+                {q.trim() && (
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>
+                    {shownRows.length}/{rows.length}
+                    <button type="button" onClick={() => setQ('')} title="bỏ lọc"
+                      style={{ marginLeft: 6, background: 'transparent', border: 0, color: 'var(--fg-3)', cursor: 'pointer', fontSize: 12 }}>✕</button>
+                  </span>
+                )}
+              </>
+          </> : <button type="button" onClick={() => setMoTim(true)} title={searchPlaceholder ?? 'lọc bảng…'} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', whiteSpace: 'nowrap', flex: 'none' }}>🔍</button>)}
+          {(danhMuc.length > 0 || (effView === 'table' && groups && groups.length > 0) || showViewToggle) && <>
+            <button ref={nutLocRef} type="button" onClick={() => setMoLoc((m) => !m)} aria-expanded={moLoc} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', whiteSpace: 'nowrap', flex: 'none' }}>Lọc ▾</button>
+            <AnchoredPopover anchorRef={nutLocRef} open={moLoc} onClose={() => setMoLoc(false)}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', padding: 10, maxWidth: 420, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.35)' }}>
+          {danhMuc.map((c) => <LocChonNhieu key={c.key} cot={c} chon={docChon(colFilters[c.key])} onDoi={(ds) => setColFilter(c.key, locChon(ds))} />)}
+          {danhMuc.length > 0 && !groupBy && <ChonGomNhom ds={danhMuc} value={cotGom ? gom : ''} onDoi={setGom} />}
+          {effView === 'table' && groups && groups.length > 0 && (
+          // ⚙ Columns — collapsed by default (YDNI). <details> cho phần mở/đóng; bấm ra ngoài đóng
+          // bằng listener ở trên. Right-aligned so it sits where controls conventionally live. Chế độ THẺ
+          // không có cột nên ẩn nút này (cột là khái niệm của bảng).
+          <details ref={colsRef} className="dt-cols" style={{ position: 'relative' }}>
+            <summary style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', userSelect: 'none' }}>
+              ⚙ Columns <span style={{ color: 'var(--fg-3)' }}>{onCount}/{groups.length}</span>
+            </summary>
+            <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 20, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 150, boxShadow: '0 6px 20px rgba(0,0,0,.35)' }}>
+              {groups.map((g) => {
+                const on = shown[g.key] !== false;
+                return (
+                  <button key={g.key} type="button" onClick={() => toggle(g.key)} title={g.title}
+                    style={{
+                      padding: '4px 9px', borderRadius: 4, textAlign: 'left',
+                      background: on ? band(g.color) ?? 'var(--bg-1)' : 'transparent',
+                      border: `1px solid ${on ? g.color ?? 'var(--line)' : 'transparent'}`,
+                      color: on ? g.color ?? 'var(--fg-1)' : 'var(--fg-3)',
+                      cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)',
+                      textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: on ? 600 : 400, whiteSpace: 'nowrap',
+                    }}>
+                    {on ? '✓ ' : '  '}{g.label}
+                  </button>
+                );
+              })}
+            </div>
+          </details>
+          )}
+          {/* Chuyển ▪ Thẻ / ≡ Bảng — chỉ khi uncontrolled (controlled thì caller tự làm nút chung). */}
+          {showViewToggle && (
+            <div style={{ display: 'flex', gap: 2, border: '1px solid var(--line)', borderRadius: 6, padding: 2, background: 'var(--bg-2)' }}>
+              {(['card', 'table'] as const).map((v) => (
+                <button key={v} type="button" onClick={() => setView(v)}
+                  title={v === 'card' ? 'Xem dạng thẻ' : 'Xem dạng bảng dày'}
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '2px 9px', borderRadius: 4, cursor: 'pointer', border: 'none',
+                    background: effView === v ? 'var(--accent)' : 'transparent', color: effView === v ? 'var(--bg-0, #0b0d12)' : 'var(--fg-3)', fontWeight: effView === v ? 600 : 400 }}>
+                  {v === 'card' ? '▪ Thẻ' : '≡ Bảng'}
+                </button>
+              ))}
+            </div>
+          )}
+              </div>
+            </AnchoredPopover>
+          </>}
+          <span style={{ flex: 1 }} />
+          {(anTu > 0 || hienHet) && <button type="button" onClick={() => setHienHet((h) => !h)} title={hienHet ? 'Thu gọn lại cho vừa ô' : `Đang ẩn ${anTu} cột cho vừa ô — bấm để hiện đủ (cuộn ngang trong ô)`}
+            style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', whiteSpace: 'nowrap', flex: 'none' }}>{hienHet ? 'Gọn lại' : `+${anTu} cột`}</button>}
+        </div>
+      ) : (
         <div data-comp={thanhDinh ? 'ui.StickyBar' : undefined} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 6,
           ...(thanhDinh ? { position: 'sticky', top: thanhDinh, zIndex: 7, background: 'var(--bg-0, #0b0b0c)', padding: '4px 0' } : {}) }}>
           {dauThanh}
@@ -774,7 +878,7 @@ export function DataTable<T>({
             </div>
           )}
         </div>
-      )}
+      ))}
 
       {effView === 'card' && cardOn ? (
         <div className="dt-cards" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${cardCfg.minWidth ?? 260}px, 1fr))`, gap: 12 }}>
@@ -823,7 +927,7 @@ export function DataTable<T>({
         </div>
       )}
       <div ref={thanRef} className={`dt-scroll${theoTrang ? '' : ' dt-hop'}`} onScroll={theoTrang ? dongCuon('than') : undefined} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
-        <table ref={bangRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: fixedLayout || Object.keys(rong).length ? 'fixed' : 'auto', minWidth, ...(theoTrang && cotDo.cao ? { marginTop: -cotDo.cao } : {}) }}>
+        <table ref={bangRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: fixedLayout || Object.keys(rong).length ? 'fixed' : 'auto', minWidth: trongO && !hienHet ? 0 : minWidth, ...(theoTrang && cotDo.cao ? { marginTop: -cotDo.cao } : {}) }}>
           {groupHeader ? <colgroup>{visible.map((c) => <col key={c.key} style={{ width: rongCot(c.key) ?? c.width }} />)}</colgroup> : null}{/* hàng nhãn nhóm (ô gộp) đứng ĐẦU thead → table-layout:fixed bỏ qua bề rộng ở hàng cột → kéo giãn cột bị chia đều; khai bề rộng bằng colgroup */}
           {!hideHeader && (theoTrang
             ? <thead ref={doRef} style={{ visibility: 'hidden' }}>{hangNhom()}{hangDau(false)}</thead>

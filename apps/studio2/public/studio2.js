@@ -1215,7 +1215,7 @@ function vePc() {
     <img src="${E.nguon === '3d' && c.k3 ? c.k3 : c.anh}" alt="" loading="lazy"><b>${i + 1}</b><i>${c.tg}s</i>${soLoi(c) ? '<u title="Có điểm cần xem"></u>' : ''}</button>`).join('')}</div>`).join('');
 }
 function veKb() {
-  $('#dKb').innerHTML = D.canh.map((c, i) => `<button type="button" class="kb-d${E.chon?.id === c.id ? ' chon' : ''}" data-d="chonLoi" data-g="${c.id}"><b class="so">${i + 1}</b><span>${c.thoai.length ? c.thoai.map((l) => `<em>${esc(l.ai)}</em> ${esc(l.cau)}`).join(' ') : esc(c.loi) || '<span class="nho">Không lời</span>'}</span><i class="so">${c.tg}s</i></button>`).join('');
+  $('#dKb').innerHTML = D.canh.map((c, i) => `<button type="button" class="kb-d${E.chon?.id === c.id ? ' chon' : ''}" data-d="chonLoi" data-g="${c.id}"><b class="so">${i + 1}</b><span class="kb-than">${c.mota ? `<small class="kb-hd">${esc(c.mota)}</small>` : ''}<span class="kb-loi">${c.thoai.length ? c.thoai.map((l) => `<em>${esc(l.ai)}</em> ${esc(l.cau)}`).join(' ') : esc(c.loi) || '<span class="nho">Không lời</span>'}</span>${c.td ? `<small class="kb-td">♪ ${esc(c.td)}</small>` : ''}</span><i class="so">${c.tg}s</i></button>`).join('');
 }
 /** widget Lớp: các thành phần ghép nên cảnh đang ở kim, lớp trên cùng đứng đầu (như bảng lớp của AE). Mắt = ẩn / hiện, bấm tên = chỉ xem lớp đó. */
 function veLp() {

@@ -185,16 +185,24 @@ def khung(cid, url, tm):
         if len(uv) >= UNG_VIEN: break
     return uv
 
-def xep_ai(ten, uv):
+def _mo_ta(url):
+    """tóm tắt thật của phim (tai-tap.mo_ta) — lỗi thì rỗng, AI xếp theo luật chung"""
+    try:
+        import importlib.util
+        s = importlib.util.spec_from_file_location("tt_mo_ta", os.path.join(D, "tai-tap.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m.mo_ta(url)
+    except Exception as e: print("không đọc được tóm tắt phim:", e, file=sys.stderr); return ""
+def xep_ai(ten, uv, mo_ta="", the_loai=""):
     """AI xếp hạng ứng viên theo độ ấn tượng / đẹp (box3 xep-khung.py, ckey) → (danh sách theo thứ tự, lý do, ₫). Lỗi → giữ thứ tự điểm máy."""
     import base64, io
     anh = []
     for u in uv:
         b = io.BytesIO(); Image.open(u["nho"]).convert("RGB").save(b, "JPEG", quality=80); anh.append("data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode())
-    r = subprocess.run(["ssh", B, f"{ENV}; python3 apps/xuong-video/scripts/ethopex/xep-khung.py"], input=json.dumps({"ten": ten, "anh": anh}), capture_output=True, text=True, timeout=300)
+    r = subprocess.run(["ssh", B, f"{ENV}; python3 apps/xuong-video/scripts/ethopex/xep-khung.py"], input=json.dumps({"ten": ten, "anh": anh, "mo_ta": mo_ta, "the_loai": the_loai}), capture_output=True, text=True, timeout=300)
     try: j = json.loads(r.stdout.strip().splitlines()[-1])
     except Exception: j = {"thu_tu": [], "ly_do": (r.stderr or r.stdout)[-200:], "vnd": 0}
     tt = j.get("thu_tu") or list(range(len(uv)))
+    for x in j.get("khung") or []:   # nhãn cảm xúc + nhân vật từng khung (có khi gửi tóm tắt phim) — bản dựng lần sau cho cùng phim chọn khung khác cảm xúc
+        if 0 <= x.get("i", -1) < len(uv): uv[x["i"]]["cam_xuc"] = x.get("cam_xuc") or ""; uv[x["i"]]["nhan_vat"] = x.get("nhan_vat") or ""
     return [uv[i] for i in tt], j.get("ly_do", ""), int(j.get("vnd") or 0)
 
 def hop_ten(ten, j):
@@ -380,7 +388,7 @@ def mot(p, xem, kieu, ban=1):
     cid, lang = int(p["content_id"]), "es" if str(p.get("locale")).startswith("es") else "en"; ten = ten_sach(p["ten"])
     tm = os.path.join(C, str(cid)); os.makedirs(tm, exist_ok=True)
     try:
-        uv = khung(cid, p["url"], tm); uv, ly_ai, vnd_ai = xep_ai(ten, uv) if MOI and len(uv) > 1 else (uv, "", 0)
+        uv = khung(cid, p["url"], tm); uv, ly_ai, vnd_ai = xep_ai(ten, uv, _mo_ta(p["url"])) if MOI and len(uv) > 1 else (uv, "", 0)   # + tóm tắt phim: khung đúng móc câu chuyện (20/11/2026)
     except Exception as e:
         return [{"content_id": cid, "ten": ten, "loi": str(e)[-300:]}]
     mau0 = random.randrange(len(CAU[lang])); ra = []

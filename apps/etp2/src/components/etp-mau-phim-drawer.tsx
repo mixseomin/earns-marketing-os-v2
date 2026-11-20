@@ -94,6 +94,9 @@ export function EtpMauPhimDrawer({ ma, onClose }: { ma: string; onClose: () => v
     if (k?.dang) return <span style={{ color: MO_SO }}>đang gửi máy…</span>;
     if (k?.loi) return <span style={{ color: DO, fontSize: 11.5 }} title={k.loi}>✕ {k.loi}</span>;
     if (k?.ghi) return <span style={{ color: XANH, fontSize: 11.5 }} title={k.ghi}>✓ {k.ghi}</span>;
+    // PHIM ĐÃ CÓ creative của mẫu (máy dựng theo mẫu): bấm THÊM BẢN = dựng một bản KHÁC — máy nhớ khung + câu nhử đã dùng, lấy khung khác cảm xúc, câu khác (anh 20/11/2026)
+    if (p.da_chon && p.cr_mau && !mau?.dong && p.co_link) return <button type="button" onClick={(e) => { e.stopPropagation(); sinh(p); }} title="dựng thêm một bản khác cho phim này: khung khác (ưu tiên khác cảm xúc), câu nhử góc khác, câu đọc khác — vào hàng chờ máy dựng theo mẫu"
+      style={{ fontSize: 11.5, padding: '2px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer' }}>＋ Thêm bản</button>;
     if (p.da_chon) return <span style={{ color: MO_SO, fontSize: 11.5 }}>đã chọn cho mẫu này</span>;
     if (!p.co_link) return <span style={{ color: MO_SO, fontSize: 11.5 }} title="phim chưa có link tập trên Ethopex — máy không tải được tập để dựng; đồng bộ có link thì nút hiện lại">chưa có link tập</span>;
     return <button type="button" onClick={(e) => { e.stopPropagation(); sinh(p); }} title={mau?.dong ? 'máy dòng phim bắt đầu sinh creative theo mẫu ngay — mọi cổng soát, chấm, phanh chợ, luật lên camp giữ nguyên' : 'đưa phim vào hàng chờ máy dựng theo mẫu — hàng chờ chưa có lịch tự chạy, chỉ chạy khi được gọi'}

@@ -4,14 +4,40 @@
   "vong_rang": 14,
   "ly_do_vong_rang": "góp ý #1650 (17/11/2026): tháp tròn góc BẮC Torbau. Ảnh sân trên commons-Schloss-Neuschwanstein-6870.jpg (nhìn về đông, tháp bên trái = bắc) thấy 7 răng trên nửa vành; khớp vị trí chiếu x = tâm + R·sin(θ0 + i·360°/n): n=14 lệch trung bình 6,4 px (n=13: 9,5 · n=15: 9,7 · n=16: 13,9). Ảnh mặt đông commons-Dvorac-Neuschwanstein---dio-pročelja.jpg (máy gần, ngửa) cho n=13–14. Chốt 14",
   "cua_thap": [
-   [110, 26.5, 1.05, 0.44],
-   [110, 21.35, 1.2, 0.44],
-   [110, 16.05, 1.3, 0.43],
-   [183, 28.4, 0.9, 0.42],
-   [237, 26.8, 0.75, 0.95]
+   [
+    110,
+    30.1,
+    1.05,
+    0.44
+   ],
+   [
+    110,
+    24.95,
+    1.2,
+    0.44
+   ],
+   [
+    110,
+    19.65,
+    1.3,
+    0.43
+   ],
+   [
+    183,
+    32,
+    0.9,
+    0.42
+   ],
+   [
+    237,
+    30.4,
+    0.75,
+    0.95
+   ]
   ],
   "ly_do_cua_thap": "góp ý #1650 (17/11/2026), đo ô kính trên ảnh, [hướng la bàn °, y đáy, cao, rộng]. (1) Ba ô mặt đông chồng thẳng một đường sinh (cùng nằm trên đường qua điểm tụ đứng (590, −616) của ảnh dio-pročelja.jpg): toạ độ ảnh ô kính s = 395–452 · 712–800 · 1155–1290, chân vành con sơn s = 220, mép trên chân đá s = 1530; khớp ánh xạ xạ ảnh s(h) theo ba ô cùng cỡ (sai 1,6 px) → vị trí tương đối giữa chân vành và mép chân đá (đáy ô ở 0,265 · 0,570 · 0,881 của đoạn). Đối chiếu ảnh 3D Google cùng phía (so-lech.mjs --cam p [60, 23, −20], hướng 110,6° tới tâm tháp): ba ô đứng thẳng giữa thân, đáy ô theo thước đất 11,1 (neuschwanstein-nen.json) → đỉnh vành 34,0 (bản đồ độ cao): 26,4 · 21,1 · 15,6; theo tỉ lệ ảnh chụp với chân vành 31,1 / mép chân đá 14,5 đo trên ảnh 3D đó: 26,7 · 21,6 · 16,5 → lấy trung bình 26,5 · 21,35 · 16,05 (±0,5 m; cách nhau ~5,3 m — cầu thang tháp). Hướng 110° (±10°): ô nằm giữa thân tháp nhìn từ hướng 110,6° trên ảnh 3D; ảnh chụp cho ~105° (chỗ tường đông gặp tháp ở hướng 161° theo mặt bằng OSM, ở mép trái tháp trên ảnh). (2) Ô nhìn qua mái Torbau về nam: thấy cả ở mép phải tháp trên ảnh sân 6870 (hướng ~198°, đáy 28,7 theo thước đường kính tháp 4,38 m) lẫn sát mép trái trên ảnh mặt đông (~169°, đáy ~28,1 sau bù phối cảnh) → 183°, đáy 28,4. (3) Cửa vòm ra mái cánh bắc trên ảnh sân 6870 (giữa thân tháp phía sân, đỉnh vòm 27,5, chân khuất sau mái ~26,8). Không ghi: ô nhỏ trong vòm con sơn của vành (mô hình chưa dựng vòm con sơn, ô sẽ chìm trong vành); phía bắc chưa có ảnh",
-  "anh": "commons-Schloss-Neuschwanstein-6870.jpg (sân trên) · commons-Dvorac-Neuschwanstein---dio-pročelja.jpg (Silverije, CC BY-SA 4.0, mặt đông)"
+  "anh": "commons-Schloss-Neuschwanstein-6870.jpg (sân trên) · commons-Dvorac-Neuschwanstein---dio-pročelja.jpg (Silverije, CC BY-SA 4.0, mặt đông)",
+  "doi_dom20": 3.6
  },
  "way/223069512#4": {
   "hang": [
@@ -85,7 +111,7 @@
      ],
      [
       11.62,
-      13.0,
+      13,
       2
      ]
     ]
@@ -106,7 +132,7 @@
      ],
      [
       11.62,
-      13.0,
+      13,
       2
      ]
     ]
@@ -122,7 +148,7 @@
      ],
      [
       9.88,
-      12.0,
+      12,
       3
      ]
     ]
@@ -137,7 +163,7 @@
       2
      ],
      [
-      3.0,
+      3,
       5.62,
       3
      ],
@@ -148,7 +174,7 @@
      ],
      [
       13.5,
-      14.0,
+      14,
       1
      ]
     ]
@@ -237,7 +263,7 @@
      ],
      [
       18.38,
-      20.0,
+      20,
       2
      ]
     ]
@@ -252,13 +278,13 @@
       1
      ],
      [
-      16.0,
+      16,
       16.25,
       1
      ],
      [
       18.38,
-      20.0,
+      20,
       2
      ]
     ],
@@ -307,7 +333,7 @@
     "cum": [
      [
       3.5,
-      5.0,
+      5,
       2
      ]
     ]
@@ -323,7 +349,7 @@
      ],
      [
       3.5,
-      5.0,
+      5,
       2
      ]
     ]
@@ -334,7 +360,7 @@
     "cum": [
      [
       4.75,
-      5.0,
+      5,
       1
      ]
     ]
@@ -389,21 +415,21 @@
     "cum": [
      [
       0.5,
-      1.0,
+      1,
       1
      ],
      [
-      2.0,
-      3.0,
+      2,
+      3,
       1
      ],
      [
-      4.0,
+      4,
       5.12,
       1
      ],
      [
-      7.0,
+      7,
       7.25,
       1
      ],
@@ -420,16 +446,16 @@
     "cum": [
      [
       0.5,
-      1.0,
+      1,
       1
      ],
      [
-      2.0,
-      3.0,
+      2,
+      3,
       1
      ],
      [
-      4.0,
+      4,
       5.12,
       1
      ],
@@ -510,7 +536,7 @@
     "y1": 31.53,
     "cum": [
      [
-      0.0,
+      0,
       0.25,
       1
      ],
@@ -609,7 +635,7 @@
     "y1": 58.9,
     "cum": [
      [
-      0.0,
+      0,
       1.38,
       2
      ],
@@ -625,7 +651,7 @@
     "y1": 56.65,
     "cum": [
      [
-      0.0,
+      0,
       2.5,
       3
      ]
@@ -636,7 +662,7 @@
     "y1": 51.28,
     "cum": [
      [
-      0.0,
+      0,
       0.62,
       1
      ]
@@ -696,7 +722,7 @@
     "cum": [
      [
       0.75,
-      1.0,
+      1,
       1
      ],
      [
@@ -722,7 +748,7 @@
     "cum": [
      [
       0.12,
-      1.0,
+      1,
       2
      ],
      [
@@ -785,7 +811,7 @@
      ],
      [
       5.38,
-      7.0,
+      7,
       2
      ],
      [
@@ -800,7 +826,7 @@
     "y1": 30.9,
     "cum": [
      [
-      2.0,
+      2,
       2.25,
       1
      ],
@@ -900,7 +926,7 @@
   ],
   "mai": [
    [
-    0.0,
+    0,
     1.12
    ]
   ],
@@ -924,7 +950,7 @@
      ],
      [
       11.88,
-      14.0,
+      14,
       3
      ]
     ]
@@ -935,7 +961,7 @@
     "cum": [
      [
       5.88,
-      7.0,
+      7,
       1
      ],
      [
@@ -945,7 +971,7 @@
      ],
      [
       12.88,
-      14.0,
+      14,
       2
      ]
     ]
@@ -971,7 +997,7 @@
      ],
      [
       12.88,
-      14.0,
+      14,
       2
      ]
     ]
@@ -1018,7 +1044,7 @@
      ],
      [
       5.88,
-      7.0,
+      7,
       1
      ],
      [
@@ -1036,7 +1062,7 @@
   ],
   "mai": [
    [
-    0.0,
+    0,
     2.38
    ]
   ],
@@ -1050,17 +1076,17 @@
     "cum": [
      [
       0.38,
-      1.0,
+      1,
       1
      ],
      [
       2.12,
-      3.0,
+      3,
       1
      ],
      [
-      4.0,
-      5.0,
+      4,
+      5,
       1
      ],
      [
@@ -1081,21 +1107,72 @@
  },
  "way/223179004#0": {
   "hang": [
-   {"y0": 29.3, "y1": 31.2, "cum": [[2.84, 3.44, 1]]},
-   {"y0": 32.3, "y1": 34.1, "cum": [[2.84, 3.44, 1]]},
-   {"y0": 36.7, "y1": 38.3, "cum": [[2.84, 3.44, 1]]},
-   {"y0": 41.5, "y1": 43.4, "cum": [[2.44, 3.71, 2]]},
-   {"y0": 46.3, "y1": 48.3, "cum": [[2.77, 3.4, 1]]}
+   {
+    "y0": 27.39,
+    "y1": 29.29,
+    "cum": [
+     [
+      2.84,
+      3.44,
+      1
+     ]
+    ]
+   },
+   {
+    "y0": 30.39,
+    "y1": 32.19,
+    "cum": [
+     [
+      2.84,
+      3.44,
+      1
+     ]
+    ]
+   },
+   {
+    "y0": 34.79,
+    "y1": 36.39,
+    "cum": [
+     [
+      2.84,
+      3.44,
+      1
+     ]
+    ]
+   },
+   {
+    "y0": 39.59,
+    "y1": 41.49,
+    "cum": [
+     [
+      2.44,
+      3.71,
+      2
+     ]
+    ]
+   },
+   {
+    "y0": 44.39,
+    "y1": 46.39,
+    "cum": [
+     [
+      2.77,
+      3.4,
+      1
+     ]
+    ]
+   }
   ],
   "mai": [],
   "yHien": null,
-  "ly_do": "17/11/2026 góp ý #1632 ('thiếu cửa sổ', vùng tô phải): đo tay trên ảnh chính diện 3D Google (nan-google.mjs, 8 px/m, lưới 1 m) — tháp hẹp chóp nón: 4 cửa đơn + 1 cửa đôi xếp thẳng cột (bản dò cũ ra 0 hàng). s tính từ ĐỈNH ĐẦU cạnh (đúng ghi_chu tệp): ảnh nan-google nhìn từ ngoài có mép trái = đỉnh CUỐI, nên s = L − x_ảnh (kiểm bằng sống mái hồi Ritterhaus trên bản đồ độ cao)."
+  "ly_do": "17/11/2026 góp ý #1632 ('thiếu cửa sổ', vùng tô phải): đo tay trên ảnh chính diện 3D Google (nan-google.mjs, 8 px/m, lưới 1 m) — tháp hẹp chóp nón: 4 cửa đơn + 1 cửa đôi xếp thẳng cột (bản dò cũ ra 0 hàng). s tính từ ĐỈNH ĐẦU cạnh (đúng ghi_chu tệp): ảnh nan-google nhìn từ ngoài có mép trái = đỉnh CUỐI, nên s = L − x_ảnh (kiểm bằng sống mái hồi Ritterhaus trên bản đồ độ cao).",
+  "doi_dom20": -1.91
  },
  "way/223179004#6": {
   "hang": [
    {
-    "y0": 53.4,
-    "y1": 54.28,
+    "y0": 51.49,
+    "y1": 52.37,
     "cum": [
      [
       0.25,
@@ -1103,20 +1180,20 @@
       1
      ],
      [
-      3.0,
+      3,
       3.5,
       1
      ],
      [
-      5.0,
+      5,
       5.25,
       1
      ]
     ]
    },
    {
-    "y0": 48.9,
-    "y1": 51.28,
+    "y0": 46.99,
+    "y1": 49.37,
     "cum": [
      [
       5.38,
@@ -1126,54 +1203,54 @@
     ]
    },
    {
-    "y0": 42.78,
-    "y1": 43.65,
+    "y0": 40.87,
+    "y1": 41.74,
     "cum": [
      [
-      5.0,
+      5,
       5.25,
       1
      ]
     ]
    },
    {
-    "y0": 38.53,
-    "y1": 40.4,
+    "y0": 36.62,
+    "y1": 38.49,
     "cum": [
      [
-      5.0,
+      5,
       6.12,
       2
      ]
     ]
    },
    {
-    "y0": 35.03,
-    "y1": 36.65,
+    "y0": 33.12,
+    "y1": 34.74,
     "cum": [
      [
-      3.0,
+      3,
       3.5,
       1
      ],
      [
-      5.0,
+      5,
       5.25,
       1
      ]
     ]
    },
    {
-    "y0": 33.03,
-    "y1": 34.03,
+    "y0": 31.12,
+    "y1": 32.12,
     "cum": [
      [
-      0.0,
+      0,
       0.88,
       1
      ],
      [
-      5.0,
+      5,
       5.25,
       1
      ]
@@ -1181,7 +1258,8 @@
    }
   ],
   "mai": [],
-  "yHien": null
+  "yHien": null,
+  "doi_dom20": -1.91
  },
  "way/221599098#0": {
   "hang": [
@@ -1238,7 +1316,7 @@
      ],
      [
       7.75,
-      8.0,
+      8,
       1
      ]
     ]
@@ -1270,7 +1348,7 @@
     "cum": [
      [
       8.56,
-      9.0,
+      9,
       1
      ]
     ]
@@ -1292,12 +1370,12 @@
      ],
      [
       2.56,
-      3.0,
+      3,
       1
      ],
      [
       3.25,
-      4.0,
+      4,
       1
      ]
     ],
@@ -1308,7 +1386,7 @@
     "y1": 57.24,
     "cum": [
      [
-      0.0,
+      0,
       0.56,
       1
      ],
@@ -1330,7 +1408,7 @@
      ],
      [
       3.25,
-      4.0,
+      4,
       1
      ]
     ]
@@ -1340,7 +1418,7 @@
     "y1": 37.43,
     "cum": [
      [
-      1.0,
+      1,
       1.88,
       1
      ]
@@ -1351,7 +1429,7 @@
     "y1": 32.43,
     "cum": [
      [
-      1.0,
+      1,
       2.5,
       2
      ]
@@ -1360,7 +1438,7 @@
   ],
   "mai": [
    [
-    0.0,
+    0,
     1.62
    ]
   ],
@@ -1373,13 +1451,13 @@
     "y1": 59.62,
     "cum": [
      [
-      0.0,
+      0,
       0.19,
       1
      ],
      [
-      3.0,
-      4.0,
+      3,
+      4,
       2
      ]
     ]
@@ -1410,7 +1488,7 @@
       1
      ],
      [
-      3.0,
+      3,
       4.69,
       2
      ]
@@ -1570,7 +1648,7 @@
     "y1": 42.01,
     "cum": [
      [
-      0.0,
+      0,
       0.5,
       1
      ],
@@ -1591,7 +1669,7 @@
     "y1": 35.14,
     "cum": [
      [
-      0.0,
+      0,
       0.5,
       1
      ],
@@ -1612,7 +1690,7 @@
     "y1": 31.32,
     "cum": [
      [
-      0.0,
+      0,
       0.5,
       1
      ],
@@ -1649,8 +1727,8 @@
  "way/223069513#0": {
   "hang": [
    {
-    "y0": 44.76,
-    "y1": 45.57,
+    "y0": 42.05,
+    "y1": 42.86,
     "cum": [
      [
       2.44,
@@ -1660,8 +1738,8 @@
     ]
    },
    {
-    "y0": 41.45,
-    "y1": 43.38,
+    "y0": 38.74,
+    "y1": 40.67,
     "cum": [
      [
       2.44,
@@ -1671,8 +1749,8 @@
     ]
    },
    {
-    "y0": 38.32,
-    "y1": 41.13,
+    "y0": 35.61,
+    "y1": 38.42,
     "cum": [
      [
       2.44,
@@ -1683,13 +1761,14 @@
    }
   ],
   "mai": [],
-  "yHien": null
+  "yHien": null,
+  "doi_dom20": -2.71
  },
  "way/223069513#7": {
   "hang": [
    {
-    "y0": 38.51,
-    "y1": 39.7,
+    "y0": 35.8,
+    "y1": 36.99,
     "cum": [
      [
       1.12,
@@ -1713,7 +1792,7 @@
      ],
      [
       14.75,
-      16.0,
+      16,
       1
      ],
      [
@@ -1733,7 +1812,7 @@
      ],
      [
       27.56,
-      28.0,
+      28,
       1
      ],
      [
@@ -1744,8 +1823,8 @@
     ]
    },
    {
-    "y0": 35.57,
-    "y1": 37.88,
+    "y0": 32.86,
+    "y1": 35.17,
     "cum": [
      [
       0.62,
@@ -1769,7 +1848,7 @@
      ],
      [
       14.75,
-      16.0,
+      16,
       1
      ],
      [
@@ -1804,7 +1883,7 @@
      ],
      [
       34.56,
-      36.0,
+      36,
       2
      ],
      [
@@ -1821,8 +1900,8 @@
     "bo_sung": 2
    },
    {
-    "y0": 32.88,
-    "y1": 34.88,
+    "y0": 30.17,
+    "y1": 32.17,
     "cum": [
      [
       0.25,
@@ -1851,7 +1930,7 @@
      ],
      [
       14.75,
-      16.0,
+      16,
       1
      ],
      [
@@ -1893,7 +1972,8 @@
    }
   ],
   "mai": [],
-  "yHien": null
+  "yHien": null,
+  "doi_dom20": -2.71
  },
  "way/223069515#1": {
   "hang": [
@@ -1902,7 +1982,7 @@
     "y1": 61.39,
     "cum": [
      [
-      4.0,
+      4,
       5.69,
       2
      ]
@@ -2028,10 +2108,65 @@
  },
  "way/223179003#0": {
   "hang": [
-   {"y0": 29.4, "y1": 31.1, "cum": [[2.35, 2.95, 1], [5.35, 6.55, 2]]},
-   {"y0": 34.0, "y1": 35.8, "cum": [[1.75, 2.91, 2], [5.0, 6.45, 2], [8.35, 8.85, 1]]},
-   {"y0": 39.2, "y1": 40.9, "cum": [[3.85, 5.1, 2]]},
-   {"y0": 44.0, "y1": 47.0, "cum": [[1.05, 7.9, 6]]}
+   {
+    "y0": 29.4,
+    "y1": 31.1,
+    "cum": [
+     [
+      2.35,
+      2.95,
+      1
+     ],
+     [
+      5.35,
+      6.55,
+      2
+     ]
+    ]
+   },
+   {
+    "y0": 34,
+    "y1": 35.8,
+    "cum": [
+     [
+      1.75,
+      2.91,
+      2
+     ],
+     [
+      5,
+      6.45,
+      2
+     ],
+     [
+      8.35,
+      8.85,
+      1
+     ]
+    ]
+   },
+   {
+    "y0": 39.2,
+    "y1": 40.9,
+    "cum": [
+     [
+      3.85,
+      5.1,
+      2
+     ]
+    ]
+   },
+   {
+    "y0": 44,
+    "y1": 47,
+    "cum": [
+     [
+      1.05,
+      7.9,
+      6
+     ]
+    ]
+   }
   ],
   "mai": [],
   "yHien": null,
@@ -2039,25 +2174,157 @@
  },
  "way/1573692063#4": {
   "hang": [
-   {"y0": 28.95, "y1": 30.4, "cum": [[3.41, 4.01, 1], [6.01, 6.51, 1], [8.51, 9.06, 1]]},
-   {"y0": 33.75, "y1": 35.6, "cum": [[3.36, 4.01, 1], [5.41, 7.16, 2], [8.51, 9.07, 1]]},
-   {"y0": 38.55, "y1": 40.2, "cum": [[3.12, 4.32, 2], [5.71, 6.91, 2], [8.22, 9.42, 2]]}
+   {
+    "y0": 28.95,
+    "y1": 30.4,
+    "cum": [
+     [
+      3.41,
+      4.01,
+      1
+     ],
+     [
+      6.01,
+      6.51,
+      1
+     ],
+     [
+      8.51,
+      9.06,
+      1
+     ]
+    ]
+   },
+   {
+    "y0": 33.75,
+    "y1": 35.6,
+    "cum": [
+     [
+      3.36,
+      4.01,
+      1
+     ],
+     [
+      5.41,
+      7.16,
+      2
+     ],
+     [
+      8.51,
+      9.07,
+      1
+     ]
+    ]
+   },
+   {
+    "y0": 38.55,
+    "y1": 40.2,
+    "cum": [
+     [
+      3.12,
+      4.32,
+      2
+     ],
+     [
+      5.71,
+      6.91,
+      2
+     ],
+     [
+      8.22,
+      9.42,
+      2
+     ]
+    ]
+   }
   ],
-  "o_tron": [[6.21, 44.1, 0.35]],
+  "o_tron": [
+   [
+    6.21,
+    44.1,
+    0.35
+   ]
+  ],
   "mai": [],
   "yHien": null,
   "ly_do": "17/11/2026 góp ý #1632 ('thiếu cửa sổ', vùng tô giữa — mặt hồi Ritterhaus): đo tay trên ảnh chính diện 3D Google (8 px/m, lưới 1 m): hàng 38,5–40,2 m ba cửa đôi (bề cụm gọn 1,2 m để khung vòm ba cụm không chạm nhau), hàng 33,8–35,6 m đơn · đôi · đơn, hàng 29–30,4 m ba cửa đơn, ô tròn trên đầu hồi 44,1 m. Bản dò cũ lấy hai mép mái dốc đầu hồi làm 6 ô (43,97–47,78 m) và đặt ngược trái-phải. s = L − x_ảnh (đỉnh sống hồi ở s 6,1 m khớp bản đồ độ cao cach3 — xác nhận chiều)."
  },
  "way/223069513#5": {
   "hang": [
-   {"y0": 28.5, "y1": 29.3, "cum": [[2.39, 2.79, 1], [5.69, 5.99, 1]]},
-   {"y0": 30.6, "y1": 32.4, "cum": [[3.99, 4.29, 1], [6.99, 7.39, 1], [12.19, 12.49, 1]]},
-   {"y0": 32.7, "y1": 34.5, "cum": [[2.29, 2.59, 1], [5.59, 5.99, 1], [9.24, 10.29, 1]]},
-   {"y0": 35.2, "y1": 36.0, "cum": [[7.19, 7.84, 1]]}
+   {
+    "y0": 25.79,
+    "y1": 26.59,
+    "cum": [
+     [
+      2.39,
+      2.79,
+      1
+     ],
+     [
+      5.69,
+      5.99,
+      1
+     ]
+    ]
+   },
+   {
+    "y0": 27.89,
+    "y1": 29.69,
+    "cum": [
+     [
+      3.99,
+      4.29,
+      1
+     ],
+     [
+      6.99,
+      7.39,
+      1
+     ],
+     [
+      12.19,
+      12.49,
+      1
+     ]
+    ]
+   },
+   {
+    "y0": 29.99,
+    "y1": 31.79,
+    "cum": [
+     [
+      2.29,
+      2.59,
+      1
+     ],
+     [
+      5.59,
+      5.99,
+      1
+     ],
+     [
+      9.24,
+      10.29,
+      1
+     ]
+    ]
+   },
+   {
+    "y0": 32.49,
+    "y1": 33.29,
+    "cum": [
+     [
+      7.19,
+      7.84,
+      1
+     ]
+    ]
+   }
   ],
   "mai": [],
   "yHien": null,
-  "ly_do": "17/11/2026 góp ý #1632 ('thiếu cửa sổ', vùng tô trái — tường giữa Viereckturm và Ritterhaus, trên căn nhà nhỏ): mặt chưa có số đo (dựng theo luật đoán 2 hàng vòm). Đo tay trên ảnh chính diện 3D Google (8 px/m, lưới 1 m): cửa nhỏ lệch tầng — 1 cửa sát mái 35–36 m, cửa vòm lớn + 2 khe 32,7–34,5 m, 3 cửa 30,6–32,4 m, 2 cửa 28,5–29,3 m. Bộ dò do-cua-so.py lấy nhầm dải mái. s = L − x_ảnh (đỉnh đầu = phía Ritterhaus)."
+  "ly_do": "17/11/2026 góp ý #1632 ('thiếu cửa sổ', vùng tô trái — tường giữa Viereckturm và Ritterhaus, trên căn nhà nhỏ): mặt chưa có số đo (dựng theo luật đoán 2 hàng vòm). Đo tay trên ảnh chính diện 3D Google (8 px/m, lưới 1 m): cửa nhỏ lệch tầng — 1 cửa sát mái 35–36 m, cửa vòm lớn + 2 khe 32,7–34,5 m, 3 cửa 30,6–32,4 m, 2 cửa 28,5–29,3 m. Bộ dò do-cua-so.py lấy nhầm dải mái. s = L − x_ảnh (đỉnh đầu = phía Ritterhaus).",
+  "doi_dom20": -2.71
  },
  "way/1573692064#3": {
   "hang": [
@@ -2066,7 +2333,7 @@
     "y1": 44.6,
     "cum": [
      [
-      0.0,
+      0,
       0.69,
       1
      ],
@@ -2082,7 +2349,7 @@
     "y1": 39.72,
     "cum": [
      [
-      0.0,
+      0,
       0.69,
       1
      ],
@@ -2202,7 +2469,7 @@
     "y1": 41.95,
     "cum": [
      [
-      0.0,
+      0,
       0.56,
       1
      ],
@@ -2218,7 +2485,7 @@
     "y1": 33.58,
     "cum": [
      [
-      0.0,
+      0,
       0.56,
       1
      ]
@@ -2235,12 +2502,12 @@
     "y1": 41.08,
     "cum": [
      [
-      0.0,
+      0,
       0.19,
       1
      ],
      [
-      3.0,
+      3,
       3.44,
       1
      ],
@@ -2300,7 +2567,7 @@
     "cum": [
      [
       1.81,
-      3.0,
+      3,
       2
      ]
     ]
@@ -2311,7 +2578,7 @@
     "cum": [
      [
       2.5,
-      3.0,
+      3,
       1
      ]
     ]
@@ -2377,7 +2644,7 @@
     "y1": 69.09,
     "cum": [
      [
-      0.0,
+      0,
       0.38,
       1
      ],
@@ -2393,7 +2660,7 @@
     "y1": 62.21,
     "cum": [
      [
-      0.0,
+      0,
       0.38,
       1
      ]
@@ -2421,7 +2688,7 @@
     "y1": 69.09,
     "cum": [
      [
-      0.0,
+      0,
       1.25,
       1
      ],
@@ -2437,7 +2704,7 @@
     "y1": 50.71,
     "cum": [
      [
-      0.0,
+      0,
       1.25,
       1
      ]
@@ -2448,7 +2715,7 @@
     "y1": 41.34,
     "cum": [
      [
-      0.0,
+      0,
       1.25,
       1
      ]
@@ -2459,7 +2726,7 @@
     "y1": 30.53,
     "cum": [
      [
-      0.0,
+      0,
       2.5,
       2
      ]
@@ -2472,16 +2739,16 @@
  "way/221599086#2": {
   "hang": [
    {
-    "y0": 21.82,
-    "y1": 25.57,
+    "y0": 23.5,
+    "y1": 27.25,
     "cum": [
      [
-      0.0,
+      0,
       0.25,
       1
      ],
      [
-      2.0,
+      2,
       3.5,
       1
      ],
@@ -2505,13 +2772,14 @@
   ],
   "mai": [],
   "yHien": null,
-  "ly_do": "dò ảnh 3D + soát mắt: hàng trên là mép mái (bỏ); mỗi ô là một cửa đơn"
+  "ly_do": "dò ảnh 3D + soát mắt: hàng trên là mép mái (bỏ); mỗi ô là một cửa đơn",
+  "doi_dom20": 1.68
  },
  "way/223110818#7": {
   "hang": [
    {
-    "y0": 21.3,
-    "y1": 23.4,
+    "y0": 25.4,
+    "y1": 27.5,
     "cum": [
      [
       1.6,
@@ -2526,11 +2794,11 @@
     ]
    },
    {
-    "y0": 16.7,
-    "y1": 18.5,
+    "y0": 20.8,
+    "y1": 22.6,
     "cum": [
      [
-      2.0,
+      2,
       2.8,
       1
      ],
@@ -2543,13 +2811,14 @@
    }
   ],
   "ly_do": "ảnh Mapillary 360° cổng Torbau (990990575063069, 493003245182754): tầng trên cửa đôi vòm trong vòm kem, tầng dưới cửa đơn; mặt nhìn ra sân trước cổng (mặt đất 11,3 m)",
-  "ly_do_cao": "16/11/2026 thẻ #1624 (\"2 cánh đỏ sai\"): độ cao cũ 24–26 / 18,6–20,4 ghi khi đỉnh tường còn cao — sau #1623 đỉnh tường 25,0 nên hàng trên chọc vào răng cưa (mô hình: cửa đôi nằm ngay dưới răng). Đo trên cặp ảnh so-lech --the 1624 cùng camera (mặt cách ~50 m, ~14,3 điểm ảnh/m đứng), mốc chân răng cưa = 25,0: cửa đôi trong vòm kem 21,3–23,4 (khung 355–395 px), cửa đơn dưới 16,7–18,5 (438–462 px)"
+  "ly_do_cao": "16/11/2026 thẻ #1624 (\"2 cánh đỏ sai\"): độ cao cũ 24–26 / 18,6–20,4 ghi khi đỉnh tường còn cao — sau #1623 đỉnh tường 25,0 nên hàng trên chọc vào răng cưa (mô hình: cửa đôi nằm ngay dưới răng). Đo trên cặp ảnh so-lech --the 1624 cùng camera (mặt cách ~50 m, ~14,3 điểm ảnh/m đứng), mốc chân răng cưa = 25,0: cửa đôi trong vòm kem 21,3–23,4 (khung 355–395 px), cửa đơn dưới 16,7–18,5 (438–462 px)",
+  "doi_dom20": 4.1
  },
  "way/223110820#14": {
   "hang": [
    {
-    "y0": 25.8,
-    "y1": 27.5,
+    "y0": 33.6,
+    "y1": 35.3,
     "cum": [
      [
       2.18,
@@ -2566,29 +2835,31 @@
   ],
   "mai": [],
   "yHien": null,
-  "ly_do": "16/11/2026 thẻ #1623 lần 3: cặp ảnh so-lech cùng camera (mặt đông cách 65,4 m): trên răng cưa khối kem chỉ có HAI cửa vòm đơn rộng ~0,8 m, 25,8–27,5 m, đối xứng ±1,27 m quanh tâm đầu hồi (cạnh dài 7,61 m, tâm 3,85) — trước: một cụm ba cửa 23,63–27,51 lệch về một đầu (dò ảnh 3D)"
+  "ly_do": "16/11/2026 thẻ #1623 lần 3: cặp ảnh so-lech cùng camera (mặt đông cách 65,4 m): trên răng cưa khối kem chỉ có HAI cửa vòm đơn rộng ~0,8 m, 25,8–27,5 m, đối xứng ±1,27 m quanh tâm đầu hồi (cạnh dài 7,61 m, tâm 3,85) — trước: một cụm ba cửa 23,63–27,51 lệch về một đầu (dò ảnh 3D)",
+  "doi_dom20": 7.8
  },
  "way/223110820#0": {
   "hang": [
    {
-    "y0": 26.2,
-    "y1": 27.2,
+    "y0": 34,
+    "y1": 35,
     "cum": [
      [
-      2.0,
+      2,
       2.6,
       1
      ]
     ]
    }
   ],
-  "ly_do": "16/11/2026 thẻ #1623 lần 3: mấu gạch đỏ phía nam chân đầu hồi (răng cưa ~30 m) có một cửa đơn 26,2–27,2 m nhìn trên ảnh 3D mặt đông, ngay trên mái cánh nam; ngang cách mũi đầu hồi ~5,1 m trên ảnh (÷ 0,83 nhìn xiên → ~6,1 m dọc mặt) → cách đầu giáp đầu hồi ~2,3 m"
+  "ly_do": "16/11/2026 thẻ #1623 lần 3: mấu gạch đỏ phía nam chân đầu hồi (răng cưa ~30 m) có một cửa đơn 26,2–27,2 m nhìn trên ảnh 3D mặt đông, ngay trên mái cánh nam; ngang cách mũi đầu hồi ~5,1 m trên ảnh (÷ 0,83 nhìn xiên → ~6,1 m dọc mặt) → cách đầu giáp đầu hồi ~2,3 m",
+  "doi_dom20": 7.8
  },
  "way/223110820#13": {
   "hang": [
    {
-    "y0": 26.2,
-    "y1": 27.2,
+    "y0": 34,
+    "y1": 35,
     "cum": [
      [
       1.9,
@@ -2598,7 +2869,8 @@
     ]
    }
   ],
-  "ly_do": "16/11/2026 thẻ #1623 lần 3: mấu gạch đỏ phía bắc chân đầu hồi có một cửa đơn 26,2–27,2 m nhìn trên ảnh 3D mặt đông, ngay trên răng cưa cánh bắc; ngang cách mũi đầu hồi ~4,0 m trên ảnh (~4,8 m dọc mặt) → cách đầu giáp đầu hồi ~1,0 m (cạnh dài 3,23 m)"
+  "ly_do": "16/11/2026 thẻ #1623 lần 3: mấu gạch đỏ phía bắc chân đầu hồi có một cửa đơn 26,2–27,2 m nhìn trên ảnh 3D mặt đông, ngay trên răng cưa cánh bắc; ngang cách mũi đầu hồi ~4,0 m trên ảnh (~4,8 m dọc mặt) → cách đầu giáp đầu hồi ~1,0 m (cạnh dài 3,23 m)",
+  "doi_dom20": 7.8
  },
  "way/223110825#6": {
   "khung": true,
@@ -2641,7 +2913,7 @@
     ]
    },
    {
-    "v0": 0.0,
+    "v0": 0,
     "v1": 0.292,
     "cum": [
      [
@@ -2675,7 +2947,8 @@
    "tren": "#d7b46e",
    "v": 0.54
   },
-  "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới (gần chính diện): mặt tây cánh nam — toạ độ khung u (trái→phải nhìn từ sân) / v (chân→mái hiên): tầng trên 3 cửa đôi (tâm u .10/.21 · .39/.50 · .70/.85, sill v .61, đỉnh v .80), tầng dưới 2 cửa (u .15 .45, v .16–.33) + cửa đi (u .80, v 0–.29), 3 ô tròn (u .16 .44 .77, v .86), gờ đổi màu v .54"
+  "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới (gần chính diện): mặt tây cánh nam — toạ độ khung u (trái→phải nhìn từ sân) / v (chân→mái hiên): tầng trên 3 cửa đôi (tâm u .10/.21 · .39/.50 · .70/.85, sill v .61, đỉnh v .80), tầng dưới 2 cửa (u .15 .45, v .16–.33) + cửa đi (u .80, v 0–.29), 3 ô tròn (u .16 .44 .77, v .86), gờ đổi màu v .54",
+  "doi_dom20": 5.1
  },
  "way/1573767740#0": {
   "hang": [
@@ -2768,7 +3041,7 @@
     "cum": [
      [
       1.25,
-      4.0,
+      4,
       2
      ]
     ]
@@ -2790,7 +3063,7 @@
     "cum": [
      [
       1.25,
-      4.0,
+      4,
       2
      ]
     ]
@@ -2823,7 +3096,7 @@
     "y1": 39.39,
     "cum": [
      [
-      2.0,
+      2,
       4.12,
       2
      ]
@@ -2839,7 +3112,7 @@
       1
      ],
      [
-      3.0,
+      3,
       4.62,
       2
      ]
@@ -2875,8 +3148,8 @@
  "way/223110825#0": {
   "hang": [
    {
-    "y0": 19.93,
-    "y1": 21.55,
+    "y0": 25.03,
+    "y1": 26.65,
     "cum": [
      [
       1.9,
@@ -2891,8 +3164,8 @@
     ]
    },
    {
-    "y0": 15.74,
-    "y1": 17.28,
+    "y0": 20.84,
+    "y1": 22.38,
     "cum": [
      [
       2.3,
@@ -2911,33 +3184,34 @@
   "o_vuong": [
    [
     0.9,
-    20.27,
+    25.37,
     0.55,
     0.9
    ],
    [
     0.9,
-    16.0,
+    21.1,
     0.55,
     0.9
    ]
   ],
   "rang_cua": 7,
   "vom_nho": 10,
-  "neo_y": 18.39
+  "neo_y": 23.49,
+  "doi_dom20": 5.1
  },
  "way/223110823#4": {
   "hang": [],
   "o_vuong": [
    [
     1.8,
-    18.25,
+    25.85,
     0.45,
     0.6
    ],
    [
     1.8,
-    15.04,
+    22.64,
     0.3,
     0.4
    ]
@@ -2948,12 +3222,13 @@
   "thap_canh": [
    [
     3.33,
-    20.9,
-    25.4,
+    28.5,
+    33,
     1.05
    ]
   ],
-  "ly_do_thap_canh": "góp ý #1648 (17/11/2026): ảnh Commons 'Entering the Neuschwanstein Castle (25121020852)' (Ștefan Jurcă, CC BY 2.0, nhìn thẳng mặt cổng đông, cửa giữa ảnh x 635 ≈ giữa mảng kem 345–930 px → 77 px/m trên mặt 7,6 m): tháp canh NAM (trái ảnh) tâm x 366 px = cách góc nam mảng kem 0,3 m vào trong → cạnh #4 (chạy từ chỗ gãy giữa mặt về góc nam, dài 3,63) s = 3,33; thân 160 px → bán kính 1,05 m; tháp chìa ra ngoài mép kem 0,8 m nhìn thẳng (ảnh 60 px) nhưng đứng TRƯỚC mặt kem, không chạm tường gạch đỏ lùi sau. Đỉnh vành răng cưa = răng cưa khối kem 25,4 (đo tia ảnh 3D #1623: 25,1–25,5); mũi chân côn ngang mép trên khung huy hiệu (ảnh: mũi 500 px, khung 490 px) — khớp phối cảnh ba mốc (đất 11,3 · đỉnh vòm cổng 17,5 · răng cưa 25,4) cho 21,3 trên mặt tường, trừ thị sai mũi nhô 1,1 m trước mặt → 20,9; ô vuông cạnh huy hiệu (s 1,8, y 18,25–18,85) thấp hơn mũi, không bị che"
+  "ly_do_thap_canh": "góp ý #1648 (17/11/2026): ảnh Commons 'Entering the Neuschwanstein Castle (25121020852)' (Ștefan Jurcă, CC BY 2.0, nhìn thẳng mặt cổng đông, cửa giữa ảnh x 635 ≈ giữa mảng kem 345–930 px → 77 px/m trên mặt 7,6 m): tháp canh NAM (trái ảnh) tâm x 366 px = cách góc nam mảng kem 0,3 m vào trong → cạnh #4 (chạy từ chỗ gãy giữa mặt về góc nam, dài 3,63) s = 3,33; thân 160 px → bán kính 1,05 m; tháp chìa ra ngoài mép kem 0,8 m nhìn thẳng (ảnh 60 px) nhưng đứng TRƯỚC mặt kem, không chạm tường gạch đỏ lùi sau. Đỉnh vành răng cưa = răng cưa khối kem 25,4 (đo tia ảnh 3D #1623: 25,1–25,5); mũi chân côn ngang mép trên khung huy hiệu (ảnh: mũi 500 px, khung 490 px) — khớp phối cảnh ba mốc (đất 11,3 · đỉnh vòm cổng 17,5 · răng cưa 25,4) cho 21,3 trên mặt tường, trừ thị sai mũi nhô 1,1 m trước mặt → 20,9; ô vuông cạnh huy hiệu (s 1,8, y 18,25–18,85) thấp hơn mũi, không bị che",
+  "doi_dom20": 7.6
  },
  "way/223110823#3": {
   "hang": [],
@@ -2962,12 +3237,13 @@
   "thap_canh": [
    [
     0.3,
-    20.9,
-    25.4,
+    28.5,
+    33,
     1.05
    ]
   ],
-  "ly_do_thap_canh": "góp ý #1648 (17/11/2026): cùng ảnh 'Entering the Neuschwanstein Castle (25121020852)' — tháp canh BẮC (phải ảnh) tâm x 907 px, mép kem 930 px → cách góc bắc mảng kem 0,3 m → cạnh #3 (từ góc bắc về chỗ gãy giữa mặt) s = 0,3; thân 165 px ≈ bán kính 1,05; đối xứng tháp nam (cùng mũi 500 px, cùng đỉnh 235 px trên ảnh) → mũi 20,9, đỉnh 25,4. Ảnh 'Dvorac Neuschwanstein - pročelje' (Silverije, CC BY-SA 4.0, nhìn chéo từ đông nam) xác nhận: tháp bắc treo ở góc trên mảng kem, nhô trước mặt kem, phía bắc chìa ra trên tường gạch đỏ lùi sau"
+  "ly_do_thap_canh": "góp ý #1648 (17/11/2026): cùng ảnh 'Entering the Neuschwanstein Castle (25121020852)' — tháp canh BẮC (phải ảnh) tâm x 907 px, mép kem 930 px → cách góc bắc mảng kem 0,3 m → cạnh #3 (từ góc bắc về chỗ gãy giữa mặt) s = 0,3; thân 165 px ≈ bán kính 1,05; đối xứng tháp nam (cùng mũi 500 px, cùng đỉnh 235 px trên ảnh) → mũi 20,9, đỉnh 25,4. Ảnh 'Dvorac Neuschwanstein - pročelje' (Silverije, CC BY-SA 4.0, nhìn chéo từ đông nam) xác nhận: tháp bắc treo ở góc trên mảng kem, nhô trước mặt kem, phía bắc chìa ra trên tường gạch đỏ lùi sau",
+  "doi_dom20": 7.6
  },
  "way/223110818#0": {
   "hang": [],
@@ -2978,7 +3254,8 @@
   },
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m",
   "rang_cua": 0,
-  "ly_do_rang": "góp ý #1645 (17/11/2026, ảnh Commons Neuschwanstein pano1 + 2004 neuschwanstein castle anh đính): cánh bắc Torbau nhìn từ sân dưới (trái khối cổng) có MÁI ĐÁ PHIẾN XÁM lộ ngay trên mái hiên, dải vòm nhỏ dưới mái hiên, KHÔNG có răng cưa — răng cưa của khối (thẻ rang_cua, dựng theo mặt đông Mapillary) chỉ đúng phía cổng ngoài"
+  "ly_do_rang": "góp ý #1645 (17/11/2026, ảnh Commons Neuschwanstein pano1 + 2004 neuschwanstein castle anh đính): cánh bắc Torbau nhìn từ sân dưới (trái khối cổng) có MÁI ĐÁ PHIẾN XÁM lộ ngay trên mái hiên, dải vòm nhỏ dưới mái hiên, KHÔNG có răng cưa — răng cưa của khối (thẻ rang_cua, dựng theo mặt đông Mapillary) chỉ đúng phía cổng ngoài",
+  "doi_dom20": 4.1
  },
  "way/223110818#1": {
   "hang": [],
@@ -2988,7 +3265,8 @@
    "v": 0.54
   },
   "rang_cua": 0,
-  "ly_do": "góp ý #1645 (17/11/2026): đoạn tiếp theo của mặt hướng sân cánh bắc (cùng phương với #0, lệch ~1°) — trước không có số đo màu nên lấy màu gạch đỏ OSM (mảng hồng trên mô hình); ảnh pano1 + 2004 neuschwanstein castle: cả mặt cánh bắc hướng sân tầng dưới đá vôi trắng, tầng trên sa thạch vàng, mái xám lộ, không răng cưa — như #0"
+  "ly_do": "góp ý #1645 (17/11/2026): đoạn tiếp theo của mặt hướng sân cánh bắc (cùng phương với #0, lệch ~1°) — trước không có số đo màu nên lấy màu gạch đỏ OSM (mảng hồng trên mô hình); ảnh pano1 + 2004 neuschwanstein castle: cả mặt cánh bắc hướng sân tầng dưới đá vôi trắng, tầng trên sa thạch vàng, mái xám lộ, không răng cưa — như #0",
+  "doi_dom20": 4.1
  },
  "way/223110818#2": {
   "hang": [],
@@ -2998,7 +3276,8 @@
    "v": 0.54
   },
   "rang_cua": 0,
-  "ly_do": "góp ý #1645 (17/11/2026): như way/223110818#1 — đoạn cuối mặt hướng sân cánh bắc trước khi giáp khối trắng way/221599086"
+  "ly_do": "góp ý #1645 (17/11/2026): như way/223110818#1 — đoạn cuối mặt hướng sân cánh bắc trước khi giáp khối trắng way/221599086",
+  "doi_dom20": 4.1
  },
  "way/223110818#10": {
   "hang": [],
@@ -3007,7 +3286,8 @@
    "tren": "#d7b46e",
    "v": 0.54
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m"
+  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m",
+  "doi_dom20": 4.1
  },
  "way/223110820#5": {
   "hang": [],
@@ -3016,14 +3296,15 @@
    "tren": "#d7b46e",
    "v": 0.54
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m"
+  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m",
+  "doi_dom20": 7.8
  },
  "way/223110820#6": {
   "khung": true,
   "hang_khung": [
    {
     "d0": 1.3,
-    "d1": 3.0,
+    "d1": 3,
     "cum": [
      [
       0.85,
@@ -3033,7 +3314,7 @@
     ]
    },
    {
-    "d0": 6.0,
+    "d0": 6,
     "d1": 7.5,
     "cum": [
      [
@@ -3060,13 +3341,14 @@
    "tren": "#d7b46e",
    "v": 0.54
   },
-  "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới, thước 55,8 px/m, gốc chân vòm cổng (y 1035): cột cửa đơn bên phải vòm (ảnh cách tâm vòm 4,3 m; cạnh OSM chỉ dài 3,6 m → đặt sát đầu phải): 3 tầng 1,3–3,0 / 6,0–7,5 / 10,4–11,7 m"
+  "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới, thước 55,8 px/m, gốc chân vòm cổng (y 1035): cột cửa đơn bên phải vòm (ảnh cách tâm vòm 4,3 m; cạnh OSM chỉ dài 3,6 m → đặt sát đầu phải): 3 tầng 1,3–3,0 / 6,0–7,5 / 10,4–11,7 m",
+  "doi_dom20": 7.8
  },
  "way/223110820#7": {
   "khung": true,
   "hang_khung": [
    {
-    "d0": 6.0,
+    "d0": 6,
     "d1": 7.8,
     "cum": [
      [
@@ -3090,15 +3372,15 @@
   ],
   "ban_cong_khung": [
    [
-    1.0,
+    1,
     10.1,
-    4.0,
-    1.0
+    4,
+    1
    ]
   ],
   "dong_ho_khung": [
    [
-    1.0,
+    1,
     14.2,
     0.42
    ]
@@ -3108,7 +3390,8 @@
    "tren": "#d7b46e",
    "v": 0.54
   },
-  "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới, thước 55,8 px/m, gốc chân vòm cổng (y 1035): khối giữa (tâm vòm = đỉnh p của cạnh, u 1): cửa ba vòm 6,0–7,8 m, ban công lồi sàn 10,1 m rộng 4,0 m, hàng ba vòm trên ban công 10,4–12,1 m, đồng hồ tâm 14,2 m"
+  "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới, thước 55,8 px/m, gốc chân vòm cổng (y 1035): khối giữa (tâm vòm = đỉnh p của cạnh, u 1): cửa ba vòm 6,0–7,8 m, ban công lồi sàn 10,1 m rộng 4,0 m, hàng ba vòm trên ban công 10,4–12,1 m, đồng hồ tâm 14,2 m",
+  "doi_dom20": 7.8
  },
  "way/223110820#8": {
   "hang": [],
@@ -3117,7 +3400,8 @@
    "tren": "#d7b46e",
    "v": 0.54
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m"
+  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m",
+  "doi_dom20": 7.8
  },
  "way/223110823#8": {
   "hang": [],
@@ -3127,7 +3411,8 @@
    "v": 0.54
   },
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m",
-  "ly_do": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m: trên vòm cổng ban công lồi 3 cửa vòm"
+  "ly_do": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m: trên vòm cổng ban công lồi 3 cửa vòm",
+  "doi_dom20": 7.6
  },
  "way/223110825#7": {
   "rang_cua": 0,
@@ -3138,7 +3423,8 @@
   },
   "ly_do": "ảnh Commons neuschwanstein-9.jpg đo trên lưới (55,8 px/m): khối giữa phía nam cổng: một cửa tầng trên + một cửa tầng dưới, cách tâm vòm cổng 4,3 m",
   "ly_do_mau": " · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m",
-  "hang": []
+  "hang": [],
+  "doi_dom20": 5.1
  },
  "way/951894999#4": {
   "mau": {
@@ -3148,7 +3434,8 @@
   },
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m; đầu hồi bậc mặt tây sa thạch vàng",
   "ly_do": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m: đầu hồi — cửa đôi dưới đồng hồ",
-  "hang": []
+  "hang": [],
+  "doi_dom20": 5.4
  },
  "way/951894999#5": {
   "hang": [],
@@ -3157,11 +3444,13 @@
    "tren": "#d7b46e",
    "y": 0
   },
-  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m; đầu hồi bậc mặt tây sa thạch vàng"
+  "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m; đầu hồi bậc mặt tây sa thạch vàng",
+  "doi_dom20": 5.4
  },
  "way/951894999#0": {
   "hang": [],
   "ly_do": "16/11/2026 thẻ #1623 lần 3 (anh: \"số lượng cửa sổ không khớp, sai cả vị trí\"): cặp ảnh so-lech cùng camera — tam giác đầu hồi 30–35 m chỉ có nắp đá bậc, KHÔNG có cửa; hai cửa vòm thật nằm DƯỚI chân đầu hồi trên mặt gạch đỏ way/223110820#14 (25,8–27,5 m)",
-  "ly_do_cu": "ảnh 3D mặt đông (anh khoanh 16/11/2026): mặt đầu hồi đỏ quay ra cổng — hàng dưới 3 cửa, hàng trên 2 cửa (đọc nhầm: hai cửa vòm + bốn vết bậc nắp đá khi đầu hồi còn đặt cao)"
+  "ly_do_cu": "ảnh 3D mặt đông (anh khoanh 16/11/2026): mặt đầu hồi đỏ quay ra cổng — hàng dưới 3 cửa, hàng trên 2 cửa (đọc nhầm: hai cửa vòm + bốn vết bậc nắp đá khi đầu hồi còn đặt cao)",
+  "doi_dom20": 5.4
  }
 }

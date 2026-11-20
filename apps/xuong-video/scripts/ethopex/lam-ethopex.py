@@ -196,6 +196,8 @@ def main(a):
             if ns not in MUC: raise ValueError(f"${ns} không phải mức hợp lệ {sorted(MUC)}")
             if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đang {truoc['tt']}, không tăng")
             if ns <= float(truoc["ns"] or 0): raise ValueError(f"camp đã ${truoc['ns']} ≥ ${ns}")
+            # LỆNH TRỰC TIẾP của anh (vé truc_tiep, cong.py --ve-truc-tiep — anh 20/11/2026 09:35): miễn nhịp 24 giờ + khoá sau giảm; cổng kiem vẫn chặn phim cấm
+            if CONG.truc_tiep("tang", [cid]): bo_nhip = ep = True
             if du_luat and not bo_nhip: ly = NT.chan_tang(api, cid, du=True)   # cổng đã chấm ở máy luật (xem --du-luat)
             else: ly = None if bo_nhip else NT.chan_tang(api, cid)   # nhịp tăng: ≥ 24 giờ, hoặc ≥ 3 giờ khi đã tiêu ≥ 90% NS mới + ROI hôm nay ≥ 100% (nút cũ bấm muộn cũng bị chặn)
             if ly: raise ValueError(ly)
@@ -238,10 +240,13 @@ def main(a):
         elif viec == "bat":   # bật lại camp đã tắt — chỉ khi anh lệnh (vd 22/10/2026 "camp nào lãi hơn 20% thì bật lại")
             if truoc["tt"] == "ACTIVE": raise ValueError("camp đã ACTIVE")
             # camp đang tạm dừng vì LỊCH GIỜ (etp.lich_tat): không bật giữa khung TẮT — apps/etp/lich-gio.py tự bật khi tới khung BẬT (≤ 10 phút sau mốc)
-            if q(f"select 1 from etp.lich_tat where camp_id = {cid}"):
+            tt_bat = CONG.truc_tiep("bat", [cid])   # LỆNH TRỰC TIẾP của anh: miễn khung lịch giờ + luật tắt quá 24 giờ (anh 20/11/2026 09:35); phim cấm / camp đội vẫn chặn ở kiem
+            if tt_bat and q(f"delete from etp.lich_tat where camp_id = {cid} returning camp_id"): kq["lich"] = "bỏ khỏi lịch giờ — lệnh trực tiếp của anh"
+            elif q(f"select 1 from etp.lich_tat where camp_id = {cid}"):
                 kq.update(ok=True, sau=truoc, loi=None, lich="đang tạm dừng theo lịch giờ — lịch tự bật lại khi tới khung BẬT"); ghi_nhat_ky(kq, luat, ai); print(json.dumps(kq, ensure_ascii=False)); return
             # TẮT QUÁ 24 GIỜ THÌ KHÔNG BAO GIỜ BẬT LẠI (anh 26/10/2026) — mọi đường bật đi qua đây (nút anh, máy thay creative bị từ chối…)
             ly = ly_khong_bat(cid, truoc["ns"])
+            if tt_bat and ly: ly = CONG.kiem("bat", cid, float(truoc["ns"] or 0), 0)   # lệnh trực tiếp: bỏ luật tắt quá 24 giờ, chỉ còn cổng kiem (phim cấm / camp đội)
             if ly: raise ValueError(ly)
             r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "active"}])
             d0 = (r.get("data") or [{}])[0]

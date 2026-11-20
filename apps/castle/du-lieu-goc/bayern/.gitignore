@@ -1,0 +1,9 @@
+# dữ liệu gốc Bavaria tải lại được (scripts/tai-bayern.sh) — không vào git
+*.tif
+*.gml
+diem-mo-hinh.json
+diem-dat.json
+so-dat.json
+so-chieu-cao.json
+so-lod2.json
+so-dom20.json

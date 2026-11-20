@@ -1696,7 +1696,7 @@ async function aiBam(e) {
   if (k === 'chay') { b.disabled = true; b.textContent = 'Đang gửi…';
     try { if (v.loai === 've_mau') await ghiSv('veLaiAnhMauS2', D.that.phim, v.nhanVatId, v.yeu_cau || '');
       else if (v.loai === 'tao_nhan_vat') await ghiSv('taoNhanVatS2', v.canhId, v.ten || '', v.yeu_cau || '', v.loai_tp || 'nhan_vat');
-      else if (v.loai === 'sinh_lai_anh') await ghiSv('sinhLaiCanhS2', v.canhId, 'anh', v.yeu_cau || '');
+      else if (v.loai === 'sinh_lai_anh') { const g = GOC[`s${v.canhId}`]; (E.thayUv ||= {})[v.canhId] = Array.isArray(g?.keyframe_uv) ? g.keyframe_uv.length : 0; await ghiSv('sinhLaiCanhS2', v.canhId, 'anh', v.yeu_cau || ''); }   // ảnh mới về → tự dùng ngay (apUvMoi), không để nằm thành ứng viên
       else if (v.loai === 'sinh_lai_clip') await ghiSv('sinhLaiCanhS2', v.canhId, 'clip', v.yeu_cau || '');
       else if (v.loai === 'sinh_lai_giong') await ghiSv('sinhLaiCanhS2', v.canhId, 'giong', v.yeu_cau || '');
       else if (v.loai === 'sinh_td') await ghiSv('sinhAmS2', v.tapId, 'td', v.canhId ?? null, v.yeu_cau || '');

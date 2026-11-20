@@ -46,7 +46,7 @@ export type MauCr = {
 };
 export type CrSx = { id: number; anh: string | null; video: string | null; chay: boolean; camp: number; chi: number; thu: number };
 /** trạng thái máy dựng theo mẫu (dung-mau.py, etp.mau_dung) — anh 19/11/2026 "Tao cần xem trạng thái quá trình dựng ở đó luôn" */
-export type DungMau = { buoc: string; trang_thai: string; ghi: string | null; cap_nhat: string; creative_ids: number[] };
+export type DungMau = { buoc: string; trang_thai: string; ghi: string | null; cap_nhat: string; creative_ids: number[]; /** ₫ AI ngoài cả việc (chỉ ngăn chi tiết đọc) */ vnd?: number };
 export type PhimSx = { content_id: number; ten: string | null; chon: boolean; dong_id: number | null; dong_tt: string | null; dong_ly: string | null; cr: CrSx[]; dung: DungMau | null };
 type MucSo = { ma: string; ten: string; loai: 'cong_thuc' | 'bo_cuc' | 'lop_phu'; dang?: string; nhom?: string; anh_dung?: string; anh_dung_phim?: string;
   /** creative máy dựng anh ĐÃ DUYỆT làm mẫu (anh 20/11/2026 'Ổn rồi. Lưu vào creative mẫu đó') — lên thẻ cạnh QC gốc */ mau_duyet?: { anh: string; phim: string; content_id?: number }[]; /** ngày chuẩn hoá quy trình + anh duyệt bản mẫu */ chuan?: string; quy_trinh?: string[]; nguon: NguonMau; trang_thai: 'may' | 'thu' | 'chua'; dung_cho: string[]; the_loai?: string[]; mo_ta: string; may?: string; anh?: string; tham_chieu?: string[] };
@@ -280,7 +280,7 @@ export async function docPhimChon(ma: string): Promise<{ mau: { ma: string; ten:
 }
 
 /** CHI TIẾT MỘT VIỆC DỰNG THEO MẪU (ngăn etp-mau-dung): trạng thái hiện tại + dòng thời gian từng bước (etp.mau_dung_nk) + creative đã ra (ảnh, camp, chi / thu) */
-export type NkDung = { luc: string; buoc: string; trang_thai: string; ghi: string | null; may: string | null };
+export type NkDung = { luc: string; buoc: string; trang_thai: string; ghi: string | null; may: string | null; /** ₫ AI ngoài máy dựng chi trong bước này (dung-mau.py ghi từ 20/11/2026, #1716) — null = dòng cũ chưa ghi */ vnd: number | null };
 export async function docDungChiTiet(ma: string, contentId: number): Promise<{ mau: { ma: string; ten: string }; phim: { id: number; ten: string | null; url: string | null; /** poster gốc của phim (og:image trang phim — máy dựng ghi etp.phim_poster) */ poster: string | null };
   hien: DungMau | null; nk: NkDung[]; cr: CrSx[] } | { loi: string }> {
   const q = await quyenEtp(await getCurrentUser());
@@ -290,8 +290,8 @@ export async function docDungChiTiet(ma: string, contentId: number): Promise<{ m
     const [co] = await run<{ d: boolean; n: boolean; m: boolean }>(sql`select to_regclass('etp.mau_dung') is not null d, to_regclass('etp.mau_dung_nk') is not null n, to_regclass('etp.creative_mau') is not null m`);
     const [ph] = await run<{ ten: string | null; url: string | null }>(sql`select ten, url from etp.phim where content_id = ${cid}`);
     const poster = (await run<{ c: boolean }>(sql`select to_regclass('etp.phim_poster') is not null c`))[0]?.c ? (await run<{ a: string | null }>(sql`select 'data:image/jpeg;base64,' || nullif(to_jsonb(p)->>'anh_b64', '') a from etp.phim_poster p where content_id = ${cid}`))[0]?.a ?? null : null;   // bản ảnh máy dựng lưu (máy chủ ảnh ReelShort chặn gắn link trực tiếp)
-    const hien = co?.d ? (await run<DungMau>(sql`select buoc, trang_thai, ghi, cap_nhat::text cap_nhat, creative_ids from etp.mau_dung where mau = ${ma} and content_id = ${cid}`))[0] ?? null : null;
-    const nk = co?.n ? await run<NkDung>(sql`select luc::text luc, buoc, trang_thai, ghi, may from etp.mau_dung_nk where mau = ${ma} and content_id = ${cid} order by luc, id`) : [];
+    const hien = co?.d ? (await run<DungMau>(sql`select buoc, trang_thai, ghi, cap_nhat::text cap_nhat, creative_ids, coalesce(vnd, 0)::int vnd from etp.mau_dung where mau = ${ma} and content_id = ${cid}`))[0] ?? null : null;
+    const nk = co?.n ? await run<NkDung>(sql`select luc::text luc, buoc, trang_thai, ghi, may, nullif(to_jsonb(n)->>'vnd', '')::int vnd from etp.mau_dung_nk n where mau = ${ma} and content_id = ${cid} order by luc, id`) : [];
     const ids = [...new Set([...(hien?.creative_ids ?? []), ...(co?.m ? (await run<{ id: number }>(sql`select m.creative_id id from etp.creative_mau m join etp.creative c using (creative_id) where m.mau = ${ma} and c.content_id = ${cid}`)).map((x) => Number(x.id)) : [])])];
     const cr = ids.length ? await run<CrSx>(sql`select c.creative_id id, c.anh, c.video, coalesce(bool_or(k.trang_thai = 'ACTIVE'), false) chay, count(distinct k.camp_id)::int camp,
         coalesce(sum(s.chi), 0)::float chi, coalesce(sum(s.thu), 0)::float thu from etp.creative c left join etp.camp k on k.creative_id = c.creative_id

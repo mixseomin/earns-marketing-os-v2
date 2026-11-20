@@ -1516,4 +1516,6 @@ export const LUAT = [
   { card: 'lenh-cho-phanh-2011', tep: 'apps/etp/lenh_cho.py', co: 'return ("tat" if r < 0 else "giu")', vi: 'dò đường 20/11: ROI 2 ngày đã khép âm thì máy tắt, dương thì giữ + bỏ nhãn' },
   { card: 'lenh-cho-phanh-2011', tep: 'apps/etp/nuoi_bo.py', co: 'import lenh_cho; lc = lenh_cho.chay(xem)', vi: 'gắn vào nhịp worker sẵn có (không timer mới)' },
   { card: 'lenh-cho-phanh-2011', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'LC.hop_le(goc, roas, ns)', vi: '★ ROAS $5–10 chỉ khi hàng đang chạy đúng lệnh đó' },
+  { card: 1716, tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'alter table etp.mau_dung_nk add column if not exists vnd integer;', vi: 'nhật ký dựng theo mẫu có cột ₫ AI ngoài từng bước (anh 20/11/2026 "Thêm thông tin đoạn dùng AI, mất chi phí ngoài")' },
+  { card: 1716, tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'vnd_truoc=vnd - da_ghi[0]', vi: 'mỗi lần đổi bước, ₫ bước vừa xong tiêu ghi lên dòng nhật ký của chính bước đó' },
 ];

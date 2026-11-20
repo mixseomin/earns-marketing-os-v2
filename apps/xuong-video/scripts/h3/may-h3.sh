@@ -25,7 +25,8 @@ MAY=""; LOAI=""; GIA=0; HOST=""
 xoa() { [ -n "$MAY" ] || return 0
   if [ "$LOAI" = vast ]; then VAPI DELETE "/instances/$MAY/" >/dev/null; else GQ "mutation { podTerminate(input: {podId: \"$MAY\"}) }" >/dev/null; fi
   echo "đã XOÁ máy $LOAI $MAY sau $(( ($(date +%s) - T0) / 60 )) phút (từ lúc bắt đầu mạch)"; MAY=""; }
-trap xoa EXIT INT TERM
+# INT / TERM phải THOÁT (EXIT sẽ xoá máy): trước đây trap chỉ gọi xoa rồi script chạy tiếp — bị bảo dừng thì xoá máy đang thuê rồi lại thuê máy khác (20/11/2026)
+trap xoa EXIT; trap 'exit 143' INT TERM
 cho_ssh() {   # đợi SSH vào được rồi kiểm driver ≥ 580; in "ip cổng" hoặc rỗng (đã xoá máy). $1 = hàm in "ip cổng" của máy hiện tại
   # TRẦN CHỜ THEO GIỜ THẬT (20/11/2026, lượt thử phim #7999): trước đếm 60 vòng × (10 s nghỉ + gọi API + ssh 10 s) — đo được ~25 phút cho MỖI máy không lên,
   # ghi là "10 phút". Giờ dừng sau XV_H3_CHO_SSH giây (mặc định 480: máy tốt kéo image + lên SSH trong 2–6 phút).

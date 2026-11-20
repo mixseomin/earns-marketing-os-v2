@@ -45,6 +45,7 @@ const MAT_TB_BO = await fetch(`./du-lieu/${ten}-mat-torbau-san.json`, { cache: '
 // ĐO TRÊN ẢNH 3D GOOGLE (scripts/do-khoi-google.mjs): mặt đất quanh lâu đài, mặt sân trên, đỉnh từng khối — mốc chân nhà + mặt đất thật
 const NEN = await fetch(`./du-lieu/${ten}-nen.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 // SÂN TRƯỚC CỔNG theo ảnh trực giao + bề mặt chính thức Bavaria (scripts/san-cong-dop.py, 20/11/2026): { san: đa giác, co: [bồn cỏ], y } — thay sân suy từ tim đường
+const CAY = await fetch(`./du-lieu/${ten}-cay.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // ngọn cây theo tán chính thức (scripts/cay-tu-dom.py)
 const SAN_CONG = await fetch(`./du-lieu/${ten}-san-cong.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const CHOP = await fetch(`./du-lieu/${ten}-chop.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // chóp / tháp nhỏ OSM không có (scripts/them-chop.mjs)
 const CUA_SO = await fetch(`./du-lieu/${ten}-cua-so.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})); // cửa sổ đo từ ảnh từng mặt (scripts/nan-google.mjs + do-cua-so.py)
@@ -937,9 +938,12 @@ const RUNG = []; let RUNG_O = []; // ẩn khi so ảnh thật (cây mọc ở m�
   const r2 = T.rngTu(23), viTri = [];
   // nhà + nền sân trên: không mọc cây xuyên qua
   const hopNha = [...dsKhoi, ...(SAN_TRONG ? [{ v: SAN_TRONG }] : [])].map((k) => { let a = 1e9, b = -1e9, c = 1e9, d = -1e9; for (const [x, z] of k.v) { a = Math.min(a, x); b = Math.max(b, x); c = Math.min(c, z); d = Math.max(d, z); } return [a - 6, b + 6, c - 6, d + 6]; });
-  for (let t = 0; t < 9000 && viTri.length < 2600; t++) {
+  // TRONG VÙNG CÓ SỐ ĐO TÁN CHÍNH THỨC (DOM20 − DGM1, 20/11/2026): cây đứng đúng ngọn cây đo được, cao đúng tán (thân + nón cao ~15 m ở tỉ lệ 1); ngoài vùng rải như cũ
+  const V = CAY?.vung, trongV = (x, z) => V && x >= V[0] && x <= V[1] && z >= V[2] && z <= V[3];
+  for (const [x, z, h] of CAY?.cay || []) { if (Math.abs(x) > NUA - 15 || Math.abs(z) > NUA - 15 || (SAN_TRONG && trongDa(x, z, SAN_TRONG))) continue; viTri.push([x, datThat(x, z) - 0.3, z, Math.max(0.35, Math.min(2.4, h / 15)), r2() * 6.28]); }
+  for (let t = 0; t < 9000 && viTri.length < 2600 + (CAY?.cay?.length || 0); t++) {
     const x = (r2() * 2 - 1) * (NUA - 15), z = (r2() * 2 - 1) * (NUA - 15);
-    if (hopNha.some(([a, b, c, d]) => x > a && x < b && z > c && z < d)) continue;
+    if (trongV(x, z) || hopNha.some(([a, b, c, d]) => x > a && x < b && z > c && z < d)) continue;
     const dx = caoDat(x + 2, z) - caoDat(x - 2, z), dz = caoDat(x, z + 2) - caoDat(x, z - 2);
     if (Math.hypot(dx, dz) / 4 > 0.9) continue; // vách đá: ít cây
     viTri.push([x, datThat(x, z) - 0.3, z, 0.7 + r2() * 0.6, r2() * 6.28]);

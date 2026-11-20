@@ -62,8 +62,12 @@ def main():
     try:
         import hoi_cho; hc = hoi_cho.chay(xem)
     except Exception as e: hc = {"loi": f"{type(e).__name__}: {str(e)[:200]}"}
+    # HÀNG LỆNH CHỜ PHANH NHẢ (anh 20/11/2026, apps/etp/lenh_cho.py): lệnh anh ra lúc phanh đang bật — nhịp đầu tiên cổng nhả thì làm qua cổng; + camp dò đường
+    try:
+        import lenh_cho; lc = lenh_cho.chay(xem)
+    except Exception as e: lc = {"loi": f"{type(e).__name__}: {str(e)[:200]}"}
     ds, ly = ke_hoach()
-    if ly or xem: print(json.dumps({"ok": True, "ke_hoach": ds, "ly": ly, "hoi_cho": hc}, ensure_ascii=False, default=str)); return
+    if ly or xem: print(json.dumps({"ok": True, "ke_hoach": ds, "ly": ly, "hoi_cho": hc, "lenh_cho": lc}, ensure_ascii=False, default=str)); return
     ra = []
     for v in ds:
         luat = f"{LUAT} {v['bo']} · phim #{v['phim']} 7 ngày {v['r7']}% · 3 ngày {v['r3']}% · gốc #{v['goc']}"
@@ -73,6 +77,6 @@ def main():
             k = json.loads((r.stdout.strip().splitlines() or ["{}"])[-1])
         except Exception as e: k = {"ok": False, "loi": str(e)[:200]}
         ra.append({**v, "ok": bool(k.get("ok")), "moi": k.get("moi"), "loi": k.get("loi")})
-    print(json.dumps({"ok": True, "da": ra, "hoi_cho": hc}, ensure_ascii=False, default=str))
+    print(json.dumps({"ok": True, "da": ra, "hoi_cho": hc, "lenh_cho": lc}, ensure_ascii=False, default=str))
 
 if __name__ == "__main__": main()

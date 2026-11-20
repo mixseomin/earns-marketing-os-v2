@@ -904,8 +904,8 @@ export const LUAT = [
   { card: 'trang-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if not con: return None', vi: 'điền mô tả / cốt truyện xong mà không thiếu gì khác thì lên camp luôn, không chờ đồng bộ (03/11/2026)' },
   { card: 'nha-0311', tep: 'apps/xuong-video/scripts/ethopex/phim-moi.py', co: 'python3 apps/etp/soat_18_ai.py {', vi: 'lô cắt phim mới soát poster 18+ trước khi cắt, phim cấm thay bằng phim kế' },
   { card: 'nha-0311', tep: 'apps/xuong-video/scripts/ethopex/kiem-phim-18.py', co: 'def nha_phim_cam(cid):', vi: 'phim bị cấm 18+ tự nhả nhận (anh 03/11/2026)' },
-  { card: 'roas-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'luat, ai, lay("--nhan"), "--mien-cham" in a, tay, moi=moi, bo=bo)', vi: 'nhánh ROAS nhận tay từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết) — 18/11/2026 thêm moi / bo cho ★ ROAS creative mới' },
-  { card: 'roas-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'nhan=None, mien_cham=False, tay=False, moi=None, bo=None):', vi: 'roas_main khai tham số tay (+ moi / bo đợt hồi chợ 18/11/2026)' },
+  { card: 'roas-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'luat, ai, lay("--nhan"), "--mien-cham" in a, tay, moi=moi, bo=bo, lenh_cho="--lenh-cho" in a)', vi: 'nhánh ROAS nhận tay từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết) — 18/11/2026 thêm moi / bo cho ★ ROAS creative mới; 20/11/2026 thêm lenh_cho' },
+  { card: 'roas-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'nhan=None, mien_cham=False, tay=False, moi=None, bo=None, lenh_cho=False):', vi: 'roas_main khai tham số tay (+ moi / bo đợt hồi chợ 18/11/2026, + lenh_cho 20/11/2026)' },
   { card: 'roas-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'kq.update(loi=(f"LỖI MÃ {type(e).__name__}: " if ma else "") + str(e)[:220], may=ma or isinstance(e, OSError))', vi: 'lỗi mã / mạng đánh dấu may → worker thử lại, không giữ gốc cả ngày như luật từ chối' },
   { card: 'roas-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: '    except Exception as e:\n        kq["loi"] = str(e)[:240]', vi: 'không quay lại nuốt lỗi mã thành lỗi thường' },
   { card: 'roas-0511', tep: 'apps/etp/manh.py', co: '("mục 6", muc6), ("mục 7", muc7)):', vi: 'Mạnh mục 7 báo lỗi mã ở máy luật / lên camp' },
@@ -1500,4 +1500,11 @@ export const LUAT = [
   // xem-bai-qc-2011 — đồng bộ chữ QC / Page / CTA / tên miền mỗi lượt (etp2 khung bài QC đọc bai_cr / bai_camp)
   { card: 'xem-bai-qc-2011', tep: 'apps/etp/dong-bo.py', co: 'bai-qc.py', vi: 'dong-bo gọi bai-qc.py mỗi lượt' },
   { card: 'xem-bai-qc-2011', tep: 'apps/etp/bai-qc.py', co: 'etp.bai_camp', vi: 'bai-qc ghi Page + tên miền của camp' },
+  // lenh-cho-phanh-2011 — hàng lệnh chờ phanh nhả (anh 20/11/2026 "Làm 1, 2, 5" + 2 camp dò đường): điều kiện giữ lúc thực hiện + hạn 72 giờ + dò đường 2 ngày
+  { card: 'lenh-cho-phanh-2011', tep: 'apps/etp/lenh_cho.py', co: 'HAN_GIO, MOI_NHIP = 72, 4', vi: 'lệnh quá 72 giờ mà phanh chưa nhả thì huỷ; mỗi nhịp làm tối đa 4 lệnh' },
+  { card: 'lenh-cho-phanh-2011', tep: 'apps/etp/lenh_cho.py', co: 'if r3 is None or r3 < 0: return "bo"', vi: 'giữ bước 1: gốc còn ACTIVE + ROI 3 ngày đã khép ≥ 0' },
+  { card: 'lenh-cho-phanh-2011', tep: 'apps/etp/lenh_cho.py', co: 'if r3 is None or r3 <= 0 or r7 is None or r7 <= 0: return "bo"', vi: 'giữ bước 2: camp còn ACTIVE + ROI 3 ngày và 7 ngày còn dương' },
+  { card: 'lenh-cho-phanh-2011', tep: 'apps/etp/lenh_cho.py', co: 'return ("tat" if r < 0 else "giu")', vi: 'dò đường 20/11: ROI 2 ngày đã khép âm thì máy tắt, dương thì giữ + bỏ nhãn' },
+  { card: 'lenh-cho-phanh-2011', tep: 'apps/etp/nuoi_bo.py', co: 'import lenh_cho; lc = lenh_cho.chay(xem)', vi: 'gắn vào nhịp worker sẵn có (không timer mới)' },
+  { card: 'lenh-cho-phanh-2011', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'LC.hop_le(goc, roas, ns)', vi: '★ ROAS $5–10 chỉ khi hàng đang chạy đúng lệnh đó' },
 ];

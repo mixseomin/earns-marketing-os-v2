@@ -370,6 +370,14 @@ span.lp-than { cursor: default }
 .nk-mo { display: grid; gap: 6px; padding: 8px; border-top: 1px solid var(--line) } .nk-mo a { color: var(--brass); font-size: 12.5px } .nk-mo .bao { font-size: 12.5px; overflow-wrap: anywhere }
 .nk-mo dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 8px; margin: 0; font: 11.5px/1.4 var(--f-so) } .nk-mo dt { color: var(--ink-3) } .nk-mo dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 90px; overflow: auto }
 
+/* tab trong ô: nhiều widget chung một ô lưới, chỉ tab đang mở hiện; dải "Thả vào đây" hiện trên đầu các widget khác lúc đang kéo một widget */
+.wg.tab-an { display: none !important }
+.w-tabs { display: flex; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; margin: 0 0 -5px -6px; align-self: flex-end } .w-tabs::-webkit-scrollbar { display: none }
+.w-tab { display: inline-flex; gap: 5px; align-items: center; padding: 5px 9px 6px; border: 1px solid transparent; border-bottom: 0; border-radius: 8px 8px 0 0; background: none; color: var(--ink-3); font: 500 12px var(--f-than); white-space: nowrap; cursor: pointer }
+.w-tab:hover { color: var(--ink) } .w-tab[aria-selected="true"] { color: var(--ink); background: var(--bg); border-color: var(--line); font-weight: 600 } .w-tab b { font-weight: inherit } .w-tab:focus-visible { outline: 2px solid var(--brass); outline-offset: -2px }
+.bt.w-tach { font-size: 11.5px; padding: 3px 7px; white-space: nowrap }
+.tab-dich { position: fixed; z-index: 900; pointer-events: none; box-sizing: border-box; display: grid; place-items: center; padding: 0 8px; border: 2px dashed var(--brass); border-radius: 9px; background: color-mix(in srgb, var(--brass) 18%, var(--mat)); color: var(--ink); font: 600 12px var(--f-than); white-space: nowrap; overflow: hidden }
+.tab-dich.trung { border-style: solid; background: var(--brass); color: #fff }
 /* widget trên lưới 2 chiều (gridstack): lớp bọc .w-o chỉ có nghĩa khi lưới bật; tắt lưới (bản Gọn, màn hẹp) thì coi như không có */
 .d-giua:not(.luoi-bat) .w-o, .d-giua:not(.luoi-bat) .w-o > .grid-stack-item-content { display: contents !important }
 .d-giua.luoi-bat { display: block; position: relative; height: auto !important; min-height: 0 !important; margin: -4px; overflow: hidden; border-radius: 12px }

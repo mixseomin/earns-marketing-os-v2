@@ -1038,7 +1038,10 @@ function apChoDung(dt = 0) { // gọi mỗi khung + trước / sau khi chụp
 }
 // trả lại camera đi bộ đúng như lúc rời (vao() đặt camera sau lưng mặc định; F5 khôi phục chỗ đứng cũng gọi hàm này)
 function traCamCho() { if (!cho || !di) return; if (cho.yaw != null) { di.yaw = cho.yaw; di.pitch = cho.pitch; } if (cho.kc) di.camXa = cho.kc; if (cho.gn && cho.gn !== di.gocNhin) di.doiGocNhin(); }
-$('b-di').onclick = () => { if (cho && di) { if (dangSo) tatSo(); di.vao(cho.x, cho.y + 0.05, cho.z, cho.h); traCamCho(); } else vaoCong(); };
+// CHỖ ĐỨNG CŨ NẰM DƯỚI ĐẤT MỚI (20/11/2026: nền sân trước cổng nâng 8,7 m theo số đo chính thức → link #g=d,… và chỗ đứng đã lưu ở cổng rơi vào trong tường chắn):
+// chân thấp hơn mặt đứng được tại đó quá 0,3 m thì đặt lên mặt đất
+const chanAnToan = (x, z, y) => { const d = matDat(x, z); return Number.isFinite(d) && y < d - 0.3 ? d : y; };
+$('b-di').onclick = () => { if (cho && di) { if (dangSo) tatSo(); di.vao(cho.x, chanAnToan(cho.x, cho.z, cho.y) + 0.05, cho.z, cho.h); traCamCho(); } else vaoCong(); };
 $('b-toan').onclick = () => { luuCho(); di?.ra(); camera.position.set(-170, 90, 230); orbit.target.set(0, 25, 0); orbit.update(); apChoDung(); };
 addEventListener('keydown', (e) => { if (e.code === 'Escape' && di?.dang && $('doc').style.display !== 'block') $('b-toan').click(); }); // đang mở bảng giới thiệu thì Esc chỉ đóng bảng
 { // nhấp đúp xuống đất / mái khi đang xem toàn cảnh → đi bộ tại đó
@@ -1403,7 +1406,7 @@ const CAU = [[47.554991, 10.7492138], [47.5549237, 10.7495946]].map(([la, ln]) =
 // ---------- BẢN ĐỒ + DI CHUYỂN NHANH (bando.js dùng chung): khối nhà OSM, rừng, cầu; bấm vào đâu là tới đó
 function diNhanhNS(x, z, yTang) {
   if (!di) return false; if (dangSo) tatSo(); boTuongTac();
-  if (yTang != null) { const h = di.dang ? di.huong : 0; if (!di.dang) di.vao(x, yTang + 0.05, z, h); else di.datCho({ x, y: yTang + 1.0, z }, h - Math.PI, -0.1, h); return true; } // vào thẳng trong nhà
+  if (yTang != null) { yTang = chanAnToan(x, z, yTang); const h = di.dang ? di.huong : 0; if (!di.dang) di.vao(x, yTang + 0.05, z, h); else di.datCho({ x, y: yTang + 1.0, z }, h - Math.PI, -0.1, h); return true; } // vào thẳng trong nhà
   const doY = (xx, zz) => { const h = world.castRay(new RAPIER.Ray({ x: xx, y: 900, z: zz }, { x: 0, y: -1, z: 0 }), 3000, true); return h ? 900 - h.timeOfImpact : null; };
   let tot = null; // trúng mái nhà thì dò vòng quanh tới 14 m tìm mặt đất / mặt cầu
   for (let r = 0; r <= 14 && !tot; r += 1) for (let a = 0; a < Math.PI * 2 && !tot; a += r ? 0.6 / r + 0.2 : 7) {

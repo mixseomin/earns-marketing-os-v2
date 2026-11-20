@@ -203,4 +203,7 @@ if __name__ == "__main__":
     if sys.argv[1] == "--nen":   # tiến trình riêng của tach_nen
         from rembg import new_session, remove
         remove(Image.open(sys.argv[2]).convert("RGB"), session=new_session("birefnet-general-lite", providers=["CPUExecutionProvider"]), only_mask=True).save(sys.argv[3]); sys.exit(0)
-    print(tach(sys.argv[2], sys.argv[1], sys.argv[3], lambda s: print("✗", s, file=sys.stderr)))
+    # --khoa <link poster công khai> <mã phim>: cho phép tầng khoá màu (chuẩn tách nền) — máy gọi bằng tiến trình con vì Python hệ thống của dòng phim không có numpy / scipy
+    a_ = sys.argv; kl = a_[a_.index("--khoa") + 1:a_.index("--khoa") + 3] if "--khoa" in a_ else None
+    r_ = tach(a_[2], a_[1], a_[3], lambda s: print("✗", s, file=sys.stderr), None, (lambda p_: anh_khoa(kl[0], os.path.join(os.path.dirname(os.path.abspath(a_[1])), "logo-khoa.png"), kl[1])[0]) if kl and kl[0] else None)
+    print(json.dumps({"ra": r_[0], "kieu": r_[1]}))

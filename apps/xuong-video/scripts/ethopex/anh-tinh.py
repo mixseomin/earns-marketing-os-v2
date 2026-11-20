@@ -277,16 +277,21 @@ def _logo_sach(ten, poster, ra, cid=None):
     """LOGO GỐC CẮT RỜI theo chuẩn mẫu Logo gốc (logo-goc.py, tầng không AI, 0₫) cho dòng ảnh tĩnh — 20/11/2026 soát American Sniper: ten_poster để lại HỘP TỐI vuông sau logo và
     rụng hoạ tiết khác màu (tâm ngắm đỏ). Chỉ nhận khi logo-goc cắt rời sạch ('cat'); nền poster rối (cần AI / dải poster) → None, bên gọi dùng ten_poster như cũ."""
     try:
-        import importlib.util
-        s = importlib.util.spec_from_file_location("logo_goc_at", os.path.join(D, "logo-goc.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
         # CHUẨN TÁCH NỀN (anh 20/11/2026 "Sửa thành chuẩn tách nền"): nền poster rối → ảnh khoá màu của mô hình ảnh rẻ nhất (~200₫ / phim, một lần, nhớ logo-khoa.png cùng thư mục
         # với máy dựng theo mẫu). Chỉ nhận logo cắt rời sạch ('cat' 0₫ | 'khoa'); còn lại → None, bên gọi dùng ten_poster như cũ.
-        def khoa(_p):
-            if not cid: return None
+        # Chạy logo-goc.py bằng TIẾN TRÌNH CON của môi trường ~/.venvs/poster-mau (20/11/2026: máy dòng phim chạy python3 hệ thống không có scipy → nạp thẳng thì lỗi
+        # "No module named 'scipy'", bước này âm thầm lùi về cách tách cũ ở MỌI phim — logo hộp tối vẫn ra dù mã đã lên main)
+        py = os.path.expanduser("~/.venvs/poster-mau/bin/python")
+        if not os.path.exists(py): print("logo gốc cắt rời: thiếu môi trường ~/.venvs/poster-mau — dùng cách tách cũ", file=sys.stderr); return None
+        link = ""
+        if cid:
+            import importlib.util
             s2 = importlib.util.spec_from_file_location("tai_tap_lg", os.path.join(D, "tai-tap.py")); TT = importlib.util.module_from_spec(s2); s2.loader.exec_module(TT)
-            url = sql(f"select coalesce(url, '') from etp.phim where content_id = {int(cid)}"); link = TT.og_anh(TT.mo_rong(url)) if url else None
-            return m.anh_khoa(link, os.path.join(os.path.dirname(poster), "logo-khoa.png"), cid)[0]
-        tam = ra[:-4] + "-tam.png"; r, kieu = m.tach(ten, poster, tam, lambda s_: print("logo gốc:", s_, file=sys.stderr), None, khoa)
+            url = sql(f"select coalesce(url, '') from etp.phim where content_id = {int(cid)}"); link = (TT.og_anh(TT.mo_rong(url)) if url else "") or ""
+        tam = ra[:-4] + "-tam.png"
+        rr = subprocess.run([py, os.path.join(D, "logo-goc.py"), poster, ten, tam, *(["--khoa", link, str(cid)] if link else [])], capture_output=True, text=True, timeout=900)
+        if rr.stderr.strip(): print("logo gốc:", rr.stderr.strip()[-300:], file=sys.stderr)
+        j_ = json.loads(rr.stdout.strip().splitlines()[-1]) if rr.stdout.strip() else {}; r, kieu = j_.get("ra"), j_.get("kieu")
         if not r or kieu not in ("cat", "khoa"): return None
         lg = Image.open(r).convert("RGBA"); dem = 40; to_ = Image.new("RGBA", (lg.width + 2 * dem, lg.height + 2 * dem)); to_.paste(lg, (dem, dem), lg); al = to_.split()[3]
         nen = Image.new("RGBA", to_.size, (0, 0, 0, 0)); nen.putalpha(ImageChops.lighter(al.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3)).point(lambda v: min(235, int(v * 1.4))),
@@ -404,6 +409,38 @@ def dung(nen, chu, mp3, ra):
     if r.returncode != 0: raise RuntimeError(f"ffmpeg: {r.stderr[-300:]}")
     return round(L, 1)
 
+# BẢN SAU KHÁC BẢN TRƯỚC + CỔNG CHỮ CHE MẶT cho các DÒNG TĨNH THẬT (anh 20/11/2026 "làm nốt các việc còn lại" — rà cách sản xuất: chạy lại cùng phim ra gần y hệt vì
+# luôn lấy khung hạng 1; không dòng nào ĐO chữ có che mặt không). Dùng chung cho anh-tinh (AT) và tinh-ba-kieu (ATT / CTS / PO):
+#   · sổ khung đã dùng theo từng dạng: <thư mục phim>/khung-da-dung.json — khung chưa dùng đứng trước (giữ thứ tự AI xếp), hết khung mới thì quay vòng
+#   · lớp chữ phủ quá CHE_MAT_TOI_DA hộp mặt → đổi khung kế (tối đa 3 khung / bản), vẫn che thì bản đó dừng kêu rõ — cùng ngưỡng máy dựng theo mẫu (dung-mau.CHE_MAT_TOI_DA)
+CHE_MAT_TOI_DA = 0.04
+_ma_khung = lambda k: f"{k['tap']}#{k['so']}"
+def _so_khung(tm):
+    try: return json.load(open(os.path.join(tm, "khung-da-dung.json")))
+    except Exception: return {}
+def xoay_khung(tm, dang, uv):
+    da = set(_so_khung(tm).get(dang) or []); return [k for k in uv if _ma_khung(k) not in da] + [k for k in uv if _ma_khung(k) in da]
+def ghi_khung(tm, dang, k):
+    so = _so_khung(tm); so[dang] = [*[x for x in so.get(dang) or [] if x != _ma_khung(k)], _ma_khung(k)]; json.dump(so, open(os.path.join(tm, "khung-da-dung.json"), "w"), ensure_ascii=False)
+def che_mat(chu, k):
+    """phần hộp mặt (k['mat'] = x, y, rộng, cao theo tỉ lệ khung 9:16) bị lớp chữ phủ — 0 khi khung không có hộp mặt"""
+    m = k.get("mat")
+    if not m or len(m) < 4: return 0.0
+    al = Image.open(chu).convert("RGBA").split()[3]; w_, h_ = al.size
+    hop = (int(max(0, m[0] * w_)), int(max(0, m[1] * h_)), int(min(w_, (m[0] + m[2]) * w_)), int(min(h_, (m[1] + m[3]) * h_)))
+    if hop[2] <= hop[0] or hop[3] <= hop[1]: return 0.0
+    return ImageStat.Stat(al.crop(hop).point(lambda v: 255 if v > 60 else 0)).mean[0] / 255
+def khung_sach_mat(con, ve, goc=None, thu=3):
+    """khung kế trong hàng `con` mà lớp chữ (ve(k) → (nền, chữ)) không che mặt → (k, nền, chữ); `con` cạn thì nạp lại từ `goc`"""
+    te = []
+    for _ in range(thu):
+        if not con and goc: con.extend(goc)
+        if not con: break
+        k = con.pop(0); nen, chu = ve(k); c = che_mat(chu, k)
+        if c <= CHE_MAT_TOI_DA: return k, nen, chu
+        te.append(f"{_ma_khung(k)} chữ phủ {c:.0%} mặt"); print(f"cổng che mặt: khung {te[-1]} — đổi khung", file=sys.stderr, flush=True)
+    raise RuntimeError("chữ che mặt ở mọi khung đã thử (" + ", ".join(te) + ")" if te else "hết khung ứng viên")
+
 def mot(p, xem, kieu, ban=1):
     """một phim → `ban` creative (anh 08/11/2026 "3 camp mỗi loại"): mỗi bản một khung khác (AI xếp hạng), mẫu câu giọng xoay vòng → danh sách kq"""
     cid, lang = int(p["content_id"]), "es" if str(p.get("locale")).startswith("es") else "en"; ten = ten_sach(p["ten"])
@@ -413,12 +450,13 @@ def mot(p, xem, kieu, ban=1):
     except Exception as e:
         return [{"content_id": cid, "ten": ten, "loi": str(e)[-300:]}]
     mau0 = random.randrange(len(CAU[lang])); ra = []
-    for b, k in enumerate(uv[:ban]):
+    uv = xoay_khung(tm, DANG, uv); con = list(uv)
+    for b in range(min(ban, len(uv))):
         try:
             so_mau = (mau0 + b) % len(CAU[lang])   # bốc ngẫu nhiên mẫu đầu, các bản sau xoay vòng (anh 06/11/2026)
             # MỖI BẢN MỘT KIỂU GIỌNG chỉ khi --giong xoay (anh 08/11/2026 đo kiểu voice; 18/11/2026 đã có số → mặc định mọi bản cùng giọng tốt nhất)
             kieu_b = kieu_ban(kieu, b, XOAY)
-            k["lang"] = lang; nen, chu = anh(cid, ten, k, tm, b); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu_b, tm, so_mau)
+            k, nen, chu = khung_sach_mat(con, lambda k_: (k_.__setitem__("lang", lang), anh(cid, ten, k_, tm, b))[1], uv); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu_b, tm, so_mau)
             out = os.path.join(tm, f"anh-tinh-{cid}-{b + 1}.mp4"); giay = dung(nen, chu, mp3, out)
             r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay)) if not k.get("free") else sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay), "--free")   # cổng chữ trên video (tên phim) — cùng cổng mọi creative; --free: gỡ đúng câu lớp Free nhà vẽ
             if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
@@ -431,6 +469,7 @@ def mot(p, xem, kieu, ban=1):
                 r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={kq['vnd']} --ghi='{ghi}' --them{' --lop-free' if k.get('free') else ''}", han=600)   # --them: mỗi bản một dòng thư viện
                 if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
                 kq["tv"] = int(sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{DANG}' and nguon = '{NGUON}' and creative_id is null order by id desc limit 1") or 0)
+                ghi_khung(tm, DANG, k)
             ra.append(kq)
         except Exception as e:
             ra.append({"content_id": cid, "ten": ten, "ban": b + 1, "loi": str(e)[-300:]})

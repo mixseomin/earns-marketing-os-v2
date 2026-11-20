@@ -758,13 +758,36 @@ function veQt() {
   else { const ds = E.qt.ds, mo = E.qtMo || ds.find((m) => !m.ok)?.key || '', coClip = canhThat().filter((c) => c.video_url || c.video_cuoi_url).length, CONG = { keyframe: 'vẽ ảnh', video: 'dựng clip', xuat: 'xuất' };
     for (const nhom of ['Tiền kỳ', 'Sản xuất', 'Hậu kỳ']) { h += `<h3>${nhom}</h3>`;
       for (const m of ds.filter((x) => x.nhom === nhom)) { const dangMo = mo === m.key;
-        h += `<div class="qt-m ${m.ok ? 'xong' : m.cong ? 'loi' : 'bao'}${dangMo ? ' mo' : ''}"><button type="button" data-d="qtMo" data-g="${m.key}" aria-expanded="${dangMo}"><i></i><b>${esc(m.ten)}</b>${m.ok ? '' : `<span class="so">${m.thieu.length}</span>`}${!m.ok && m.cong ? `<u title="Chưa đạt thì studio không cho ${CONG[m.cong]}">chặn ${CONG[m.cong]}</u>` : ''}</button>`
+        h += `<div class="qt-m ${m.ok ? 'xong' : m.cong ? 'loi' : 'bao'}${dangMo ? ' mo' : ''}"><button type="button" data-d="qtMo" data-g="${m.key}" aria-expanded="${dangMo}"><i></i><b>${esc(m.ten)}${giaiQt(m.key)}</b>${m.ok ? '' : `<span class="so">${m.thieu.length}</span>`}${!m.ok && m.cong ? `<u title="Chưa đạt thì studio không cho ${CONG[m.cong]}">chặn ${CONG[m.cong]}</u>` : ''}</button>`
           + (dangMo ? `<div class="qt-mo">${m.thieu.length ? `<ul>${m.thieu.slice(0, 5).map((x) => `<li>${esc(x)}</li>`).join('')}${m.thieu.length > 5 ? `<li>và ${m.thieu.length - 5} chỗ nữa</li>` : ''}</ul>` : ''}<span class="nho">${esc(m.lam)}</span>${m.key === 'brief' ? `${yTuong}<h3>Cơ sở từ Astrolas</h3>${veCoSo()}` : ''}${m.key === 'kich_ban' ? kb : ''}${m.key === 'nguoi_xem' ? veNx() : ''}${m.key === 'mau_doi_tuong' ? veMau() : ''}${(m.key === 'keyframe' || m.key === 'clip') && /khuôn "/.test(E.loiBuoc?.loi || '') ? `<span class="nho">Studio đang ép các cảnh theo khuôn dựng của phim truyện. Video chia sẻ góc nhìn không cần khuôn đó:</span>${nut(['boKhuon'])}` : ''}
             ${m.key === 'phong_cach' && E.goiY ? `<div class="qt-goi-y"><b>Máy gợi ý</b><p>${esc(E.goiY.phong_cach)}</p>${nut(['pcDung'])}</div>` : ''}${NUT_QT[m.key] ? nut(NUT_QT[m.key]) : ''}${laQuanTri() || !NUT_QT[m.key] ? lk : ''}</div>` : '') + '</div>';
-        if (m.key === 'giong') h += `<div class="qt-m ${coClip === canhThat().length ? 'xong' : 'thieu'}${mo === 'clip' ? ' mo' : ''}"><button type="button" data-d="qtMo" data-g="clip" aria-expanded="${mo === 'clip'}"><i></i><b>Dựng clip</b><span class="so">${coClip}/${canhThat().length}</span></button>${mo === 'clip' ? `<div class="qt-mo"><span class="nho">Thứ tự: máy kiểm khung các ảnh → bấm Xuất video một lần (bản dựng từ ảnh, để nghe nhịp) → chốt nhịp → dựng clip cho cảnh đã duyệt ảnh. Bộ dựng lấy theo thiết lập của phim; clip đang chờ máy thì hiện "đang dựng" ở Nhật ký.</span>${canhThieu('lech').length ? `<details class="nk-ct"><summary>${canhThieu('lech').length} ảnh máy báo lệch so với kịch bản</summary><ul>${canhThieu('lech').map((c) => `<li><b>Cảnh ${Math.round(+c.thu_tu)}</b> ${esc((c.kiem_khung.loi || []).map((x) => x.mo_ta).join(' · ').slice(0, 420))}</li>`).join('')}</ul></details><span class="nho">Vẽ lại thì phải duyệt và kiểm lại ảnh mới; thấy máy báo quá tay thì nhận ảnh đang có.</span>` : ''}${nut(['kiemKhung', 'kfLech', 'khungNhan', 'animatic', ...(laQtThat() && canhThat().some((c) => !c.ky_thuat?.tra_phi && !c.ky_thuat?.vx?.uuid) ? ['traPhi'] : []), 'clip'])}${lk}</div>` : ''}</div>`; } }
+        if (m.key === 'giong') h += `<div class="qt-m ${coClip === canhThat().length ? 'xong' : 'thieu'}${mo === 'clip' ? ' mo' : ''}"><button type="button" data-d="qtMo" data-g="clip" aria-expanded="${mo === 'clip'}"><i></i><b>Dựng clip${giaiQt('clip')}</b><span class="so">${coClip}/${canhThat().length}</span></button>${mo === 'clip' ? `<div class="qt-mo"><span class="nho">Thứ tự: máy kiểm khung các ảnh → bấm Xuất video một lần (bản dựng từ ảnh, để nghe nhịp) → chốt nhịp → dựng clip cho cảnh đã duyệt ảnh. Bộ dựng lấy theo thiết lập của phim; clip đang chờ máy thì hiện "đang dựng" ở Nhật ký.</span>${canhThieu('lech').length ? `<details class="nk-ct"><summary>${canhThieu('lech').length} ảnh máy báo lệch so với kịch bản</summary><ul>${canhThieu('lech').map((c) => `<li><b>Cảnh ${Math.round(+c.thu_tu)}</b> ${esc((c.kiem_khung.loi || []).map((x) => x.mo_ta).join(' · ').slice(0, 420))}</li>`).join('')}</ul></details><span class="nho">Vẽ lại thì phải duyệt và kiểm lại ảnh mới; thấy máy báo quá tay thì nhận ảnh đang có.</span>` : ''}${nut(['kiemKhung', 'kfLech', 'khungNhan', 'animatic', ...(laQtThat() && canhThat().some((c) => !c.ky_thuat?.tra_phi && !c.ky_thuat?.vx?.uuid) ? ['traPhi'] : []), 'clip'])}${lk}</div>` : ''}</div>`; } }
     h += `<div class="qt-buoc"><h3>Xuất</h3>${E.xuatThat?.tt === 'chay' ? '<div class="qt-chay"><i></i>Studio đang ghép video…</div>' : ''}${E.xuatThat?.tt === 'loi' ? `<div class="bao">Xuất hỏng: ${esc(E.xuatThat.loi)}</div>` : ''}${nut(['xuat'])}</div>`; }
   el.innerHTML = h;
 }
+
+// Mỗi dòng Quy trình của tập có một dấu (i): rê chuột vào hiện một câu phần đó dùng để làm gì (card #1724 studio2)
+const QT_GIAI = {
+  brief: 'Bản giao việc của tập: muốn nói gì, cho ai xem, giọng phim thế nào. Mọi bước sau bám vào đây.',
+  truyen: 'Các nhịp truyện chính (mở, dồn, lật, kết) để tập có xương sống trước khi viết lời.',
+  kich_ban: 'Lời thoại và diễn biến từng đoạn, máy chấm điểm theo các tiêu chí của một kịch bản tốt.',
+  nguoi_xem: 'Máy đóng vai người xem lần đầu, kiểm xem họ có hiểu và theo kịp câu chuyện không.',
+  tham_khao: 'Câu chữ lấy từ quảng cáo mẫu đang chạy tốt, làm chỗ dựa cho lời của mình.',
+  phan_canh: 'Chia kịch bản thành từng cảnh: ở đâu, ai, làm gì, nói gì.',
+  phong_cach: 'Ánh sáng, bảng màu, chất hình chung của cả tập để mọi ảnh trông cùng một phim.',
+  mau_doi_tuong: 'Ảnh mẫu của nhân vật / sản phẩm để máy vẽ giữ đúng mặt, đúng dáng ở mọi cảnh.',
+  mau_boi_canh: 'Ảnh mẫu của từng bối cảnh để các cảnh cùng nơi trông giống nhau.',
+  shot_list: 'Cỡ cảnh, góc máy, độ dài từng shot để hình có nhịp, không đều đều.',
+  keyframe: 'Ảnh khung chính của từng shot; duyệt xong mới được dựng clip.',
+  giong: 'Thu giọng đọc lời thoại trước, để clip dựng khớp đúng độ dài câu nói.',
+  clip: 'Biến ảnh khung đã duyệt thành đoạn video chuyển động cho từng cảnh.',
+  tieng: 'Máy nghe lại từng câu: không bị cắt, không chồng tiếng, đủ to để nghe rõ.',
+  nhac: 'Nhạc nền của tập, đặt cả tập hoặc theo từng phân cảnh.',
+  sfx: 'Tiếng động (bước chân, cửa, va chạm…) ở các điểm cắt để phim sống hơn.',
+  chuyen_canh: 'Cách nối giữa hai shot (cắt thẳng, mờ dần…) ở các điểm cắt.',
+  logo: 'Logo và lời kêu gọi hành động ở cuối video quảng cáo.',
+};
+const giaiQt = (k) => (QT_GIAI[k] ? ` <span class="qt-i" title="${esc(QT_GIAI[k])}" aria-label="${esc(QT_GIAI[k])}">i</span>` : '');
 
 // ── NHẬT KÝ (chỉ phim thật): dải BƯỚC của cảnh đang ở kim — mỗi bước một đèn (xong / thiếu / hỏng / cần xem / đang chạy) — và các LƯỢT SINH của bước đó
 //    đọc từ sổ lượt sinh của studio (nhatKyTap: bản gọn cả tập; nhatKyCanh: câu lệnh nguyên văn + tham số của một cảnh, chỉ tải khi mở một lượt).

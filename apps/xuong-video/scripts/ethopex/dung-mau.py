@@ -99,12 +99,15 @@ def vua(chu, ten_ph, rong, co, toi_da=3, co_min=48):
         dong.append(cur)
         if (len(dong) <= toi_da and max(f.getlength(x) for x in dong) <= rong) or co <= co_min: return f, dong
         co -= 6
-def mat_chu(dong, f, y, gian=1.08, can="giua", x0=None):
-    """mặt nạ L của các dòng chữ + hộp bao"""
-    m = Image.new("L", (W, H)); d = ImageDraw.Draw(m); cao = int(f.size * gian); hop = [W, H, 0, 0]
+def mat_chu(dong, f, y, gian=1.08, can="giua", x0=None, khung=None):
+    """mặt nạ L của các dòng chữ + hộp bao. khung = bề rộng tấm vẽ (mặc định W; rộng hơn W khi chữ sẽ bị _ep_ngang ép lại).
+    CỔNG CHỮ TRÀN KHUNG (anh 20/11/2026 "lởm thế này": chữ 'S' đầu tên phim bị cắt ở mẫu Watch more gián — chữ vẽ rộng 1.143px trên tấm 1.080px rồi mới ép):
+    chữ chạm mép tấm vẽ thì DỪNG kêu rõ, không ra bản cụt chữ."""
+    Wk = int(khung or W); m = Image.new("L", (Wk, H)); d = ImageDraw.Draw(m); cao = int(f.size * gian); hop = [Wk, H, 0, 0]
     for i, t in enumerate(dong):
-        w = f.getlength(t); x = (W - w) / 2 if can == "giua" else (x0 or 60); yy = y + i * cao
+        w = f.getlength(t); x = (Wk - w) / 2 if can == "giua" else (x0 or 60); yy = y + i * cao
         d.text((x, yy), t, font=f, fill=255); bb = d.textbbox((x, yy), t, font=f)
+        if bb[0] < 4 or bb[2] > Wk - 4: raise RuntimeError(f"chữ tràn khung: dòng '{t}' rộng {bb[2] - bb[0]}px trên tấm {Wk}px — co chữ / chia dòng trước khi vẽ")
         hop = [min(hop[0], bb[0]), min(hop[1], bb[1]), max(hop[2], bb[2]), max(hop[3], bb[3])]
     return m, hop
 def doc(c1, c2, c3=None):
@@ -124,11 +127,12 @@ def doc_trong(c1, c2, c3, hop):
         g.putpixel((0, r), tuple(int(a[i] + (b[i] - a[i]) * u) for i in range(3)))
     nen = Image.new("RGB", (W, H)); nen.paste(g.resize((W, h)), (0, hop[1])); return nen
 def bong(lop, m, lech=(6, 10), mo=10, a=190):
-    s = Image.new("RGBA", (W, H), (0, 0, 0, 0)); s.putalpha(m.point(lambda v: v * a // 255)); s = s.filter(ImageFilter.GaussianBlur(mo))
-    t = Image.new("RGBA", (W, H)); t.paste(s, lech); lop.alpha_composite(t)
+    s = Image.new("RGBA", m.size, (0, 0, 0, 0)); s.putalpha(m.point(lambda v: v * a // 255)); s = s.filter(ImageFilter.GaussianBlur(mo))
+    t = Image.new("RGBA", lop.size); t.paste(s, lech); lop.alpha_composite(t)
 def to(lop, m, mat):
     """tô mặt chữ m bằng ảnh / màu mat"""
-    img = mat if isinstance(mat, Image.Image) else Image.new("RGB", (W, H), mat)
+    img = mat if isinstance(mat, Image.Image) else Image.new("RGB", m.size, mat)
+    if img.size != m.size: img = img.resize(m.size)   # tấm vẽ rộng (chữ sắp ép ngang): dải màu dọc giãn ngang, không đổi theo chiều dọc
     l = img.convert("RGBA"); l.putalpha(m); lop.alpha_composite(l)
 def vien(lop, m, day, mau):
     v = m.filter(ImageFilter.MaxFilter(day * 2 + 1)); to(lop, v, mau)
@@ -137,7 +141,7 @@ def sang_khoi(lop, m, mau=(255, 255, 240), toi=(60, 30, 0)):
     tren = ImageChops.subtract(m, ImageChops.offset(m, 3, 4)).filter(ImageFilter.GaussianBlur(1.2))
     duoi = ImageChops.subtract(m, ImageChops.offset(m, -3, -4)).filter(ImageFilter.GaussianBlur(1.2))
     for mm, c, a in ((tren, mau, 230), (duoi, toi, 200)):
-        l = Image.new("RGBA", (W, H), c + (0,)); l.putalpha(mm.point(lambda v: v * a // 255)); lop.alpha_composite(l)
+        l = Image.new("RGBA", m.size, c + (0,)); l.putalpha(mm.point(lambda v: v * a // 255)); lop.alpha_composite(l)
 def phat_sang(lop, m, mau, mo=24, a=200):
     g = Image.new("RGBA", (W, H), mau + (0,)); g.putalpha(m.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(mo)).point(lambda v: min(255, v * a // 255))); lop.alpha_composite(g)
 def nut(lop, chu, y, f, nen, chu_mau=(255, 255, 255), vien_mau=None, dem=(56, 26), bo_tron=None, rong_min=0, x_tam=None):
@@ -429,7 +433,10 @@ def dt_nut_free_do(c):
 
 def _ep_ngang(lop, ty=0.82, cy=None):
     """ép chữ hẹp lại theo chiều ngang quanh giữa khung (kiểu chữ cao, hẹp của poster)"""
-    hep = lop.resize((int(W * ty), H), Image.LANCZOS); o = Image.new("RGBA", (W, H)); o.alpha_composite(hep, ((W - hep.width) // 2, 0)); return o
+    # lop có thể RỘNG hơn W (vẽ ở tấm W / ty để chữ không bị cắt trước khi ép) — ép theo bề rộng thật của lop, rồi đặt giữa khung W
+    hep = lop.resize((int(lop.width * ty), H), Image.LANCZOS)
+    if hep.width > W: hep = hep.crop(((hep.width - W) // 2, 0, (hep.width - W) // 2 + W, H))
+    o = Image.new("RGBA", (W, H)); o.alpha_composite(hep, ((W - hep.width) // 2, 0)); return o
 def _goc2(c):
     """khung phụ (khung xếp hạng kế) — ảnh nhỏ / tách nền"""
     return c["goc_khac"][0] if c.get("goc_khac") else c["goc"]
@@ -491,18 +498,27 @@ def _ten_nghieng(c, y):
     l = Image.new("RGBA", (W, H)); bong(l, m, (6, 10), 10, 220); vien(l, m, 4, (0, 0, 0)); to(l, m, (255, 255, 255))
     return l.transform((W, H), Image.AFFINE, (1, 0.17, -0.17 * (hop[1] + hop[3]) / 2, 0, 1, 0), Image.BICUBIC), hop
 def dt_watch_more_gian(c):
-    """nhãn nhỏ 'WATCH MORE' trong hộp tối giữa đỉnh + phần đầu tên phim CHỮ GIÃN mảnh trắng + phần cuối tên phim chữ hẹp cao VÀNG nổi khối (kiểu Undercover Prison King,
-    hầu hết QC mới của phim — 'U N D E R C O V E R / PRISON KING')"""
-    lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop); y0 = int(H * TREN_AN); f = ph("arial_b", 34); t = "WATCH MORE" if c["lang"] != "es" else "VER MÁS"; w = f.getlength(t) + 40
-    d.rectangle(((W - w) / 2, y0, (W + w) / 2, y0 + 56), fill=(40, 34, 20, 220)); d.text(((W - f.getlength(t)) / 2, y0 + 9), t, font=f, fill=(255, 226, 150, 255))
+    """nhãn 'WATCH MORE' trong hộp tối viền vàng + phần đầu tên phim CHỮ GIÃN mảnh trắng + phần cuối tên phim chữ hẹp cao VÀNG nổi khối (kiểu Undercover Prison King,
+    hầu hết QC mới của phim — 'U N D E R C O V E R / PRISON KING').
+    Sửa 20/11/2026 (anh "lởm thế này"): tên phim vẽ trên tấm RỘNG W / 0,84 rồi mới ép (trước vẽ rộng hơn khung → cắt chữ đầu / cuối dòng); nhãn to hơn, viền vàng,
+    NÉ MẶT: đỉnh khung khi trên trán còn chỗ, không thì xuống ngay dưới tên phim."""
+    EP = 0.84; WR = int(W / EP); lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop)
     tu = c["ten"].upper().split(); dau, cuoi = (" ".join(tu[:1]), " ".join(tu[1:])) if len(tu) > 2 else ((tu[0], " ".join(tu[1:])) if len(tu) == 2 else ("", tu[0]))
-    f2, dong = vua(cuoi, "impact", int((W - 120) / 0.84), 190, 2)
-    y = dat_y(c, (74 if dau else 0) + int(f2.size * 0.98) * len(dong), 0.60)
+    f2, dong = vua(cuoi, "impact", WR - int(120 / EP), 190, 2)
+    y = dat_y(c, (74 if dau else 0) + int(f2.size * 0.98) * len(dong), 0.60); y_ten = y
     if dau:
-        gian = " ".join(dau); f1 = ph("didot", 54); d.text(((W - f1.getlength(gian)) / 2, y), gian, font=f1, fill=(245, 245, 245, 255)); y += 74
-    m, hop = mat_chu(dong, f2, y, 0.98)
-    l2 = Image.new("RGBA", (W, H)); bong(l2, m, (6, 10), 12, 220); vien(l2, m, 5, (60, 34, 4)); to(l2, m, doc_trong((255, 244, 190), (236, 176, 50), (150, 90, 12), hop)); sang_khoi(l2, m)
-    lop.alpha_composite(_ep_ngang(l2, 0.84)); return None, lop
+        gian = " ".join(dau); f1, _ = vua(gian, "didot", W - 120, 54, 1, 30); d.text(((W - f1.getlength(gian)) / 2, y), gian, font=f1, fill=(245, 245, 245, 255)); y += 74
+    m, hop = mat_chu(dong, f2, y, 0.98, khung=WR)
+    l2 = Image.new("RGBA", (WR, H)); bong(l2, m, (6, 10), 12, 220); vien(l2, m, 5, (60, 34, 4)); to(l2, m, doc_trong((255, 244, 190), (236, 176, 50), (150, 90, 12), hop)); sang_khoi(l2, m)
+    lop.alpha_composite(_ep_ngang(l2, EP))
+    # NHÃN WATCH MORE: chữ 46px, hộp tối viền vàng mảnh; đáy nhãn phải cách đỉnh mặt cao nhất ≥ 40% chiều cao mặt (trán) — không đủ chỗ thì đặt dưới tên phim
+    f = ph("arial_b", 46); t = "WATCH MORE" if c["lang"] != "es" else "VER MÁS"; x0, y0_, x1, y1_ = f.getbbox(t); w, h = x1 - x0 + 64, y1_ - y0_ + 34
+    mats = c.get("mats") or [(c["mat_day"] - 1, c["mat_day"])]; tren = min(a for a, _ in mats); cao_mat = max(b - a for a, b in mats)
+    yn = int(H * TREN_AN)
+    if yn + h > tren - 0.4 * cao_mat: yn = int(hop[3] + 34)   # trên trán không đủ chỗ → nhãn xuống dưới tên phim, như nút
+    xn = (W - w) // 2; bo = Image.new("RGBA", (W, H)); ImageDraw.Draw(bo).rectangle((xn + 3, yn + 6, xn + w + 3, yn + h + 6), fill=(0, 0, 0, 140)); lop.alpha_composite(bo.filter(ImageFilter.GaussianBlur(8)))
+    d.rectangle((xn, yn, xn + w, yn + h), fill=(28, 22, 12, 230), outline=(240, 200, 112, 255), width=3); d.text((xn + 32 - x0, yn + 17 - y0_), t, font=f, fill=(255, 226, 150, 255))
+    return None, lop
 def dt_vang_do_script(c):
     """tên phim HAI MÀU: 'The' nhỏ vàng nghiêng · thân tên chữ có chân VÀNG nổi khối · phần cuối chữ viết tay ĐỎ đè lên (kiểu The Godmother's New Heir, 9 QC đang chạy)"""
     lop = Image.new("RGBA", (W, H)); tu = c["ten"].split(); mo = tu[0] if tu[0].lower() in ("the", "a", "my", "el", "la") and len(tu) > 2 else ""
@@ -686,6 +702,11 @@ def bang_xem(cid):
 if __name__ == "__main__":
     a = sys.argv[1:]
     if not a: sys.exit(__doc__)
+    if a[0] == "--nang-cap-xong":   # mẫu đã nâng cấp theo lý do "Sinh lại" của anh (etp.mau_sinh_lai) → đưa việc về hàng chờ, máy dựng bản mới
+        ma_, cid_, ghi_ = a[1], int(a[2]), (a[3] if len(a) > 3 else "đã nâng cấp mẫu")
+        print(AT.sql(f"""update etp.mau_sinh_lai set trang_thai = 'xong', nang_cap = {s_(ghi_)}, xong_luc = now() where mau = {s_(ma_)} and content_id = {cid_} and trang_thai = 'cho_nang_cap';
+            update etp.mau_dung set buoc = 'cho', trang_thai = 'cho', cap_nhat = now(), ghi = {s_(('mẫu đã nâng cấp: ' + ghi_ + ' — chờ máy dựng bản mới')[:500])}
+            where mau = {s_(ma_)} and content_id = {cid_} and trang_thai = 'cho_nang_cap' returning mau || ' · ' || content_id || ' → hàng chờ'""") or "không có việc nào đang chờ nâng cấp cho mẫu + phim này"); sys.exit(0)
     if a[0] == "--hang": hang()
     elif a[0] == "--bang": bang_xem(int(a[1]))
     elif a[0] == "--poster": print(ghi_poster(int(a[1]), ngu_canh(int(a[1]))[0].get("url")))   # ghi bù poster gốc cho phim đã dựng trước 19/11/2026

@@ -156,7 +156,7 @@ function DongPhimGon({ f, ma, anAnh = false }: { f: PhimSx; ma: string; /** mẫ
   </div>;
 }
 // các bước máy dựng theo mẫu (dung-mau.py) — thanh tiến độ trong chân thẻ
-export const BUOC_DUNG: [string, string][] = [['cho', 'chờ máy'], ['trang_phim', 'chờ link tập'], ['tai_tap', 'tải tập'], ['chon_khung', 'chọn khung'], ['ve_mau', 'vẽ mẫu'], ['giong', 'giọng'], ['video', 'video'], ['thu_vien', 'thư viện'], ['creative', 'tải creative'], ['xong', 'xong']];
+export const BUOC_DUNG: [string, string][] = [['cho', 'chờ máy'], ['nang_cap', 'chờ nâng cấp mẫu'], ['trang_phim', 'chờ link tập'], ['tai_tap', 'tải tập'], ['chon_khung', 'chọn khung'], ['ve_mau', 'vẽ mẫu'], ['giong', 'giọng'], ['video', 'video'], ['thu_vien', 'thư viện'], ['creative', 'tải creative'], ['xong', 'xong']];
 const gioNgan = (s: string) => new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 const XAM_DUNG = '#94a3b8';   // việc máy đã dừng (trang_thai 'dung') — không phải đang chạy, không phải lỗi
 /** TRẠNG THÁI MÁY DỰNG (góp ý #1726 anh 20/11/2026 "Cần show thêm trạng thái máy dựng"): một dòng — máy iMac còn sống không (nhịp etp.dong_may, ngưỡng 60 giây
@@ -190,6 +190,7 @@ function TienDoDung({ d }: { d: DungMau }) {
       {BUOC_DUNG.slice(1).map(([k, nh], j) => <span key={k} title={nh} style={{ height: 3, borderRadius: 2, background: j < i - 1 ? XANH : j === i - 1 ? mau : 'var(--line)' }} />)}
     </div>
     {loi ? <div style={{ fontSize: 11.5, color: DO }}>{loiThuongMau(d.ghi)}</div> : null}
+    {d.trang_thai === 'cho_nang_cap' ? <div style={{ fontSize: 11.5, color: '#c084fc' }}>{loiThuongMau(d.ghi)}</div> : null}
   </div>;
 }
 /** NHÃN + CHỮ RÊ một creative của phim — bản chưa lên / đã lên chưa camp / đang chạy / ROI; không in "0 camp · chi $0.00" cho bản chưa có camp */

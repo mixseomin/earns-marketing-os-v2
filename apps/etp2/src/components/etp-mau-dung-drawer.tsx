@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Drawer } from '@/components/ui';
 import { MO_SO } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
-import { docDungChiTiet, docMauCr, type MauCr } from '@/lib/actions/etp-mau-cr';
+import { docDungChiTiet, docMauCr, sinhLaiMau, type MauCr } from '@/lib/actions/etp-mau-cr';
 import { lamMoiSo, useSoNho } from '@/lib/so-nho';
 import { hopKhuon } from './etp-mau-cr';
 import { loiThuongMau } from '@/lib/etp-mau-loi';
@@ -17,9 +17,9 @@ import { FilterChips, useMediaViewer } from '@/components/ui';
 import { DO, XANH } from './etp-doi-thu';
 import { KhungPhimCam } from './etp-phim-cam';
 
-const BUOC: [string, string][] = [['cho', 'Chờ máy'], ['trang_phim', 'Trang phim'], ['tai_tap', 'Tải tập'], ['chon_khung', 'Chọn khung'], ['ve_mau', 'Vẽ mẫu'], ['giong', 'Giọng'], ['video', 'Video'], ['thu_vien', 'Thư viện'], ['creative', 'Tải creative'], ['xong', 'Xong']];
+const BUOC: [string, string][] = [['nang_cap', 'Chờ nâng cấp mẫu'], ['cho', 'Chờ máy'], ['trang_phim', 'Trang phim'], ['tai_tap', 'Tải tập'], ['chon_khung', 'Chọn khung'], ['ve_mau', 'Vẽ mẫu'], ['giong', 'Giọng'], ['video', 'Video'], ['thu_vien', 'Thư viện'], ['creative', 'Tải creative'], ['xong', 'Xong']];
 const tenBuoc = (b: string) => BUOC.find(([k]) => k === b)?.[1] ?? 'Bước khác';
-const TEN_TT: Record<string, string> = { loi: 'lỗi', cho: 'chờ', xong: 'xong', dang: 'đang làm' };
+const TEN_TT: Record<string, string> = { loi: 'lỗi', cho: 'chờ', xong: 'xong', dang: 'đang làm', cho_nang_cap: 'chờ nâng cấp mẫu' };
 type LocMoc = 'tat' | 'loi';
 // BƯỚC DÙNG AI NGOÀI = MẤT TIỀN (anh 20/11/2026 #1716 "Thêm thông tin đoạn dùng AI, mất chi phí ngoài") — đúng các lệnh gọi trả phí của dung-mau.py;
 // bước khác (tải tập, vẽ mẫu, dựng video, thư viện, tải lên) chạy máy nhà, 0₫. Số ₫ từng bước máy ghi vào etp.mau_dung_nk.vnd.
@@ -37,7 +37,29 @@ function NhanAi({ buoc, vnd }: { buoc: string; vnd: number | null | undefined })
 }
 const gio = (s: string) => new Date(s).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' });
 const khoang = (a: string, b: string) => { const s = Math.max(0, Math.round((Date.parse(b) - Date.parse(a)) / 1000)); return s < 60 ? `${s} giây` : s < 3600 ? `${Math.round(s / 60)} phút` : `${(s / 3600).toFixed(1)} giờ`; };
-const MAU_TT: Record<string, string> = { xong: XANH, loi: DO, cho: '#fbbf24', dang: '#60a5fa' };
+const MAU_TT: Record<string, string> = { xong: XANH, loi: DO, cho: '#fbbf24', dang: '#60a5fa', cho_nang_cap: '#c084fc' };
+
+/** NÚT SINH LẠI + LÝ DO (anh 20/11/2026 "Bản máy dựng cần có nút để bắt sinh lại + mô tả lý do. Khi submit thì mày phải chủ động nâng cấp lúc sinh lại"):
+ *  gửi lý do → máy chủ mở góp ý cho kỹ sư nâng cấp hàm vẽ của mẫu, việc dựng đứng ở "chờ nâng cấp mẫu" tới khi sửa xong mới dựng bản mới. Lỗi hiện ngay dưới nút. */
+function SinhLai({ ma, cid, cho }: { ma: string; cid: number; cho: boolean }) {
+  const [mo, setMo] = useState(false), [ly, setLy] = useState(''), [gui, setGui] = useState(false), [kq, setKq] = useState<{ ok: boolean; chu: string } | null>(null);
+  const nop = async () => { setGui(true); setKq(null);
+    try { const r = await sinhLaiMau(ma, cid, ly); setKq('loi' in r ? { ok: false, chu: r.loi } : { ok: true, chu: r.ghi }); if (!('loi' in r)) { setMo(false); setLy(''); lamMoiSo('mau-cr'); } }
+    catch (e) { setKq({ ok: false, chu: e instanceof Error ? e.message : String(e) }); } finally { setGui(false); } };
+  return <div style={{ fontSize: 12.5 }}>
+    {!mo ? <button type="button" onClick={() => setMo(true)} title="bản máy dựng chưa đạt: ghi lý do → kỹ sư nâng cấp mẫu theo lý do đó rồi máy dựng bản mới"
+      style={{ fontSize: 12, padding: '4px 12px', borderRadius: 6, border: '1px solid #c084fc', background: 'transparent', color: '#c084fc', cursor: 'pointer' }}>↻ Sinh lại{cho ? ' (thêm lý do)' : ''}</button>
+      : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 10, borderRadius: 8, border: '1px solid #c084fc' }}>
+        <div style={{ color: MO_SO, fontSize: 12 }}>Bản này chưa đạt ở đâu? Máy nâng cấp mẫu theo đúng lý do này (so với QC đối thủ của mẫu) rồi mới dựng bản mới.</div>
+        <textarea value={ly} onChange={(e) => setLy(e.target.value)} rows={3} autoFocus placeholder="vd: chữ tên phim cắt mép trái; nhãn WATCH MORE nhỏ và đè trán; phong cách chưa giống ad đối thủ"
+          style={{ width: '100%', resize: 'vertical', fontSize: 12.5, padding: 8, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)' }} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" disabled={gui || ly.trim().length < 5} onClick={() => void nop()} style={{ fontSize: 12, padding: '4px 14px', borderRadius: 6, border: 'none', background: '#9333ea', color: '#fff', cursor: gui ? 'wait' : 'pointer', opacity: gui || ly.trim().length < 5 ? 0.5 : 1 }}>{gui ? 'đang gửi…' : 'Gửi lý do + sinh lại'}</button>
+          <button type="button" onClick={() => { setMo(false); setKq(null); }} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: MO_SO, cursor: 'pointer' }}>Huỷ</button>
+        </div></div>}
+    {kq ? <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 6, border: `1px solid ${kq.ok ? XANH : DO}`, color: kq.ok ? XANH : DO }}>{kq.chu}</div> : null}
+  </div>;
+}
 
 export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () => void }) {
   const [ma = '', cidS = ''] = khoa.split(':'); const cid = Number(cidS);
@@ -76,13 +98,13 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
   return <Drawer onClose={onClose} width={760} padding={0}>{dau}
     <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* chuỗi nhịp */}
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BUOC.length - 1}, 1fr)`, gap: 4 }}>
-        {BUOC.slice(1).map(([k, ten], j) => { const tt = xong || j + 1 < i ? 'xong' : j + 1 === i ? (loi ? 'loi' : h?.trang_thai ?? 'dang') : 'chua';
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BUOC.length - 2}, 1fr)`, gap: 4 }}>
+        {BUOC.slice(2).map(([k, ten], j) => { const tt = xong || j + 2 < i ? 'xong' : j + 2 === i ? (loi ? 'loi' : h?.trang_thai ?? 'dang') : 'chua';
           return <div key={k} title={j + 1 === i ? loiThuongMau(h?.ghi) : ten} style={{ padding: '4px 2px', borderRadius: 6, textAlign: 'center', fontSize: 10.5, border: `1px solid ${tt === 'chua' ? 'var(--line)' : MAU_TT[tt] ?? '#60a5fa'}`,
             color: tt === 'chua' ? MO_SO : MAU_TT[tt] ?? '#60a5fa', background: tt === 'chua' ? 'transparent' : 'rgba(255,255,255,0.03)' }}>{tt === 'xong' ? '✓ ' : tt === 'loi' ? '✕ ' : ''}{ten}{AI_BUOC[k] ? <sup style={{ color: AMBER, fontWeight: 700, marginLeft: 2 }} title={`dùng AI ngoài, mất tiền: ${AI_BUOC[k]}`}>AI</sup> : null}</div>; })}
       </div>
       {h ? <div style={{ fontSize: 12.5, padding: '8px 10px', borderRadius: 8, border: `1px solid ${loi ? DO : 'var(--line)'}`, color: loi ? DO : 'var(--fg-1)' }}>
-        <b>{xong ? 'Xong' : `${loi ? 'Lỗi ở' : h.trang_thai === 'cho' ? 'Đang chờ ·' : 'Đang làm ·'} ${tenBuoc(h.buoc)}`}</b> — {phimCam
+        <b>{xong ? 'Xong' : h.trang_thai === 'cho_nang_cap' ? 'Chờ nâng cấp mẫu' : `${loi ? 'Lỗi ở' : h.trang_thai === 'cho' ? 'Đang chờ ·' : 'Đang làm ·'} ${tenBuoc(h.buoc)}`}</b> — {phimCam
           // PHIM CẤM BẤM ĐƯỢC (góp ý #1725 "bấm vào phải show lý do chi tiết: nguồn cấm, do điểm số hay do bên team Etho lọc cấm") — mở / gập khung chi tiết ngay dưới, giữ trên URL ?mdc=1
           ? <><button type="button" onClick={() => datMoCam(!moCam)} title="bấm xem nguồn cấm, điểm số (nếu có), lúc cấm, cách gỡ"
               style={{ font: 'inherit', fontWeight: 700, color: DO, background: 'rgba(248,113,113,0.1)', border: `1px solid ${DO}`, borderRadius: 6, padding: '0 6px', cursor: 'pointer' }}>🚫 PHIM CẤM · {moCam ? 'gập ▾' : 'xem lý do ▸'}</button> {loiThuongMau(h.ghi).replace(/^\s*PHIM CẤM\s*:?\s*/i, '')}</>
@@ -90,6 +112,7 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
         {phimCam && moCam ? <div style={{ marginTop: 8, color: 'var(--fg-1)' }}><KhungPhimCam cid={cid} gon /></div> : null}
         <div style={{ marginTop: 4, color: AMBER, fontSize: 12 }} title={`${Object.entries(AI_BUOC).map(([k, v]) => `${tenBuoc(k)}: ${v}`).join('\n')}\nBước khác chạy máy nhà, 0₫.`}>Chi AI ngoài: <b>{dongVnd(h.vnd ?? 0)}</b> <span style={{ color: MO_SO }}>· bước dùng AI: {Object.keys(AI_BUOC).map(tenBuoc).join(', ')}</span></div></div>
         : <div style={{ color: MO_SO, fontSize: 12.5 }}>phim đã chọn nhưng máy chưa nhận việc</div>}
+      {h && h.trang_thai !== 'dang' ? <SinhLai ma={ma} cid={cid} cho={h.trang_thai === 'cho_nang_cap'} /> : null}
       {loiCuoi && !loi ? <div style={{ fontSize: 11.5, color: MO_SO }}>lỗi gần nhất (đã qua): <span style={{ color: DO }}>{loiThuongMau(loiCuoi.ghi)}</span> · {gio(loiCuoi.luc)}</div> : null}
       {/* SO VỚI GỐC (anh 19/11/2026 "POSTER GỐC CỦA PHIM ĐANG CHỌN CƠ MÀ"): poster gốc của CHÍNH PHIM NÀY (viền cam) | creative máy dựng cho phim (viền xanh) — cùng cỡ, cùng hàng */}
       <div>

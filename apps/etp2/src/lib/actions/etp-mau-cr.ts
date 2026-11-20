@@ -4,6 +4,7 @@
 //   bố cục / lớp phủ (sổ mẫu lib/etp-mau-cr.json) + QC đối thủ tham chiếu (kho Spy qc_meta: số ngày chạy, còn chạy; ảnh R2 etp.doi_thu_qc)
 // CHỈ ĐỌC. Không khai lại bảng dạng ở đây — đọc từ sổ.
 // tra-repo-ok: mã dán keo nội bộ — gộp hai sổ của nhà với số trong kho etp / Spy
+import { guiGopY } from './gop-y-mos2';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
@@ -276,11 +277,45 @@ export async function chonPhimMau(ma: string, contentId: number): Promise<{ ok: 
       on conflict (mau, content_id) do update set buoc = 'cho', trang_thai = 'cho', ten_mau = excluded.ten_mau, cap_nhat = now(),
         ghi = case when etp.mau_dung.trang_thai = 'xong' then 'chờ máy dựng thêm một bản mới (khung và câu khác các bản trước)' else excluded.ghi end
       where etp.mau_dung.trang_thai in ('loi', 'cho', 'xong')`);   // CHỌN LẠI phim đã xong = dựng THÊM một bản khác (anh 20/11/2026) — máy nhớ khung + câu đã dùng
-    ghi = 'đã vào hàng chờ — hàng chờ chưa có lịch tự chạy';
+    ghi = 'đã vào hàng chờ — máy trên iMac tự lấy hàng mỗi 2 phút';
   } else ghi = 'đã ghi phim — mẫu chưa có máy dựng nên chưa sinh creative';
   await getDb()!.execute(sql`insert into etp.mau_phim (mau, content_id, ai, dong_id) values (${ma}, ${cid}, ${me?.displayName ?? me?.email ?? 'chủ'}, ${dongId})
     on conflict (mau, content_id) do update set dong_id = coalesce(excluded.dong_id, etp.mau_phim.dong_id), luc = now()`);
   return { ok: true, ghi };
+}
+
+/** SINH LẠI + LÝ DO (anh 20/11/2026 "Bản máy dựng cần có nút để bắt sinh lại + mô tả lý do. Khi submit thì mày phải chủ động nâng cấp lúc sinh lại"):
+ *  (1) ghi lý do vào etp.mau_sinh_lai, (2) việc dựng đứng ở 'cho_nang_cap' — máy dựng theo mẫu KHÔNG dựng lại bản cũ (hàng chờ chỉ lấy trang_thai 'cho'),
+ *  (3) mở một card góp ý vào hòm etp (kỹ sư phụ trách Ethopex tự nhận) kèm ảnh creative + lý do: nâng cấp hàm vẽ của mẫu trước, xong thì
+ *  `dung-mau.py --nang-cap-xong <mã mẫu> <mã phim> "<đã sửa gì>"` đưa việc về hàng chờ → máy dựng bản mới theo mẫu đã nâng cấp. */
+export async function sinhLaiMau(ma: string, contentId: number, lyDo: string): Promise<{ ok: true; ghi: string } | { loi: string }> {
+  const me = await getCurrentUser(), q = await quyenEtp(me);
+  if (!q || q.vai !== 'chu') return { loi: 'không có quyền' };
+  const cid = Math.trunc(Number(contentId)), ly = String(lyDo ?? '').trim();
+  if (!(cid > 0)) return { loi: 'mã phim không hợp lệ' };
+  if (ly.length < 5) return { loi: 'ghi lý do cụ thể (ít nhất vài chữ: xấu ở đâu, muốn giống gì) — máy nâng cấp mẫu theo đúng lý do này' };
+  const so = (SO_MAU.mau as MucSo[]).find((x) => x.ma === ma);
+  if (!so || !(so.may ?? '').startsWith('dung-mau.py')) return { loi: 'mẫu này không do máy dựng theo mẫu dựng — chưa sinh lại được ở đây' };
+  const db = getDb()!;
+  await db.execute(sql`create table if not exists etp.mau_sinh_lai (id serial primary key, mau text not null, content_id integer not null, creative_ids integer[] not null default '{}',
+    ly_do text not null, ai text, luc timestamptz not null default now(), trang_thai text not null default 'cho_nang_cap', the_id integer, nang_cap text, xong_luc timestamptz)`);
+  const [d] = await run<{ creative_ids: number[] | null; trang_thai: string }>(sql`select creative_ids, trang_thai from etp.mau_dung where mau = ${ma} and content_id = ${cid}`);
+  if (!d) return { loi: 'phim này chưa có việc dựng theo mẫu — bấm ＋ Chọn phim trước' };
+  if (d.trang_thai === 'dang') return { loi: 'máy đang dựng phim này — đợi xong rồi bấm sinh lại' };
+  const ids = (d.creative_ids ?? []).map(Number);
+  const anh = ids.length ? (await run<{ a: string | null }>(sql`select coalesce(c.anh, t.anh) a from unnest(${`{${ids.join(',')}}`}::int[]) i(id) left join etp.creative c on c.creative_id = i.id
+      left join lateral (select anh from etp.thu_vien v where v.creative_id = i.id order by v.id desc limit 1) t on true`)).map((x) => x.a).filter((x): x is string => !!x) : [];
+  const [ph] = await run<{ ten: string | null }>(sql`select ten from etp.phim where content_id = ${cid}`);
+  const trang = `https://etp2.on.tc/?t=mau&k=1&mxt=phim&ed=etp-mau-dung~${encodeURIComponent(`${ma}:${cid}`)}`;
+  const the = await guiGopY({ loai: 'loi', trang, anhUrls: anh.slice(0, 4), noiDung: [
+    `Sinh lại creative máy dựng — mẫu "${so.ten}" · phim ${ph?.ten ?? cid} (#${cid})${ids.length ? ` · creative ${ids.map((x) => `#${x}`).join(', ')}` : ''}`,
+    `Lý do anh ghi: ${ly}`,
+    `Việc cần làm: NÂNG CẤP hàm vẽ ${so.may} theo lý do trên (so với QC đối thủ của mẫu, giống phong cách tới 99%), dựng thử --xem, rồi chạy`,
+    `dung-mau.py --nang-cap-xong ${ma} ${cid} "<đã sửa gì>" để máy dựng bản mới. Việc dựng đang đứng ở "chờ nâng cấp mẫu", máy không tự dựng lại bản cũ.`].join('\n') });
+  const [r] = await run<{ id: number }>(sql`insert into etp.mau_sinh_lai (mau, content_id, creative_ids, ly_do, ai, the_id) values (${ma}, ${cid}, ${`{${ids.join(',')}}`}::int[], ${ly},
+    ${me?.displayName ?? me?.email ?? 'chủ'}, ${the.ok ? the.id ?? null : null}) returning id`);
+  await db.execute(sql`update etp.mau_dung set buoc = 'nang_cap', trang_thai = 'cho_nang_cap', cap_nhat = now(), ghi = ${`chờ nâng cấp mẫu rồi dựng lại — lý do: ${ly}`.slice(0, 500)} where mau = ${ma} and content_id = ${cid}`);
+  return { ok: true, ghi: the.ok ? `đã ghi lý do (#${r?.id}) và mở góp ý #${the.id} cho kỹ sư nâng cấp mẫu — sửa xong máy tự dựng bản mới` : `đã ghi lý do (#${r?.id}) nhưng chưa mở được góp ý: ${the.error ?? 'không rõ'}` };
 }
 
 /** LOẠI một bản nhà của mẫu (góp ý #1729 anh 20/11/2026 "Cần chức năng loại"): bản máy dựng chưa duyệt / bản đã duyệt mà anh thấy không đạt → ghi etp.mau_loai,

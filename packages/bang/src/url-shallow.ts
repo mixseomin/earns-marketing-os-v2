@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 // Đọc/ghi MỘT param trên URL kiểu SHALLOW (window.history.replaceState) — KHÔNG trigger RSC roundtrip
@@ -32,8 +32,12 @@ export function writeShallowParam(key: string, value: string | null): void {
     if (value) sp.set(key, value); else sp.delete(key);
     const qs = sp.toString();
     shallowReplaceUrl(qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+    window.dispatchEvent(new CustomEvent(SU_KIEN_PARAM, { detail: { key, value } }));
   } catch { /* ignore */ }
 }
+/** báo cho MỌI useShallowParam cùng khoá trên trang (vd thẻ số ở widget này lọc bảng ở widget kia, tên người ở bảng mở ngăn do khối khác vẽ) —
+ *  replaceState không làm state React của bản khác đổi theo; trước 20/11/2026 bấm thẻ "Đang làm" trên /home không lọc được bảng cùng màn. */
+export const SU_KIEN_PARAM = 'mos2:shallow-param';
 
 /** State React gắn MỘT param URL shallow — thay cho cặp "useState đọc location + useEffect ghi replaceState" chép tay ở từng màn.
  *  Giá trị đầu: URL TƯƠI (thấy cả param vừa ghi shallow ngay trước đó), lúc render ở server thì useSearchParams (không lệch hydrate).
@@ -41,6 +45,10 @@ export function writeShallowParam(key: string, value: string | null): void {
 export function useShallowParam(key: string, mac: string): [string, (v: string) => void] {
   const sp = useSearchParams();
   const [v, setV] = useState(() => readShallowParam(key) ?? sp.get(key) ?? mac);
+  useEffect(() => {
+    const nghe = (e: Event) => { const d = (e as CustomEvent<{ key: string; value: string | null }>).detail; if (d?.key === key) setV(d.value ?? mac); };
+    window.addEventListener(SU_KIEN_PARAM, nghe); return () => window.removeEventListener(SU_KIEN_PARAM, nghe);
+  }, [key, mac]);
   const dat = (x: string) => { setV(x); writeShallowParam(key, x && x !== mac ? x : null); };
   return [v, dat];
 }

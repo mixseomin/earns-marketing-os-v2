@@ -96,7 +96,12 @@
 
 /* đang sửa */
 .hm-sua .hm-o { border-style: dashed; border-color: var(--accent-line, var(--accent)); }
-.hm-sua .hm-od { cursor: grab; background: var(--bg-2); touch-action: none; padding-left: 16px; }
+/* bật sửa KHÔNG được đổi chỗ ruột widget (góp ý #1722): thanh tiêu đề giữ nguyên lề, tay nắm nằm trong lề trái (không đẩy chữ); ô tự có tiêu đề không mọc thêm thanh
+   mà có thanh NỔI nhỏ góc phải (kéo / khoá / bỏ) đè lên ruột, ruột vẫn đúng chỗ như lúc xem */
+.hm-sua .hm-od { cursor: grab; background: var(--bg-2); touch-action: none; position: relative; }
+.hm-sua .hm-od:not(.hm-od-noi) > .hm-nam { position: absolute; left: 1px; top: 50%; transform: translateY(-50%); }
+.hm-od-noi { position: absolute; top: 4px; right: 4px; z-index: 4; min-height: 0; border: 1px solid var(--line-2); border-radius: 5px; padding: 1px 4px; max-width: calc(100% - 8px); box-shadow: 0 2px 8px rgba(0, 0, 0, .3); }
+.hm-od-noi > b { font-size: 11px; }
 .hm-sua .hm-khoa .hm-od { cursor: default; }
 .hm-keo { opacity: .92; z-index: 95 !important; box-shadow: 0 8px 24px rgba(0, 0, 0, .35); }
 .hm-nhan { border-style: solid !important; box-shadow: 0 0 0 2px var(--accent); }

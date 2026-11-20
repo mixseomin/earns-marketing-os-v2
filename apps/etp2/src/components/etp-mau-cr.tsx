@@ -65,8 +65,11 @@ export const demBan = (m: MauCr) => ({ goc: m.ban.filter((b) => b.vai === 'goc')
 export function BanMauLuoi({ m: mGoc, cot = 3, nhom = false, oRong }: { m: MauCr; cot?: number; /** ô rộng cố định (px) thay cho chia đều theo cột */ oRong?: number; /** chi tiết mẫu: chia HAI NHÓM có nhãn (nguồn đối thủ / nhà đã duyệt), mỗi nhóm một dải */ nhom?: boolean }) {
   if (nhom && mGoc.nguon === 'doi_thu') { const g = mGoc.ban.filter((b) => b.vai === 'goc'), d = mGoc.ban.filter((b) => b.vai === 'duyet');
     // hai nhóm CẠNH NHAU trên một hàng, ô nhỏ cố định 128px (ô to chia theo cột đẩy mô tả + quy trình xuống dưới màn — đo 20/11/2026); hẹp thì nhóm sau tự xuống dòng
-    if (g.length && d.length) return <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 22px' }}>
-      {([['Nguồn đối thủ', g, 'QC gốc của đối thủ mà mẫu này học theo'], ['Nhà đã duyệt', d, 'creative máy dựng theo mẫu, anh đã duyệt làm mẫu']] as const).map(([ten, ds, goi]) => <div key={ten} style={{ maxWidth: '100%', minWidth: 0 }}>
+    // + nhóm "Nhà dựng · chưa duyệt" (anh 20/11/2026 "3 mẫu này tìm ở đâu ?"): bản máy nhà dựng theo mẫu mà anh chưa duyệt CHỈ hiện ở chi tiết mẫu, có nhãn rõ — thẻ ngoài lưới vẫn chỉ hiện nguồn + bản đã duyệt
+    const u = mGoc.ban.filter((b) => b.vai === 'dung');
+    const nh = ([['Nguồn đối thủ', g, 'QC gốc của đối thủ mà mẫu này học theo'], ['Nhà đã duyệt', d, 'creative máy dựng theo mẫu, anh đã duyệt làm mẫu'], ['Nhà dựng · chưa duyệt', u, 'bản máy nhà dựng theo mẫu này — anh chưa duyệt làm mẫu']] as const).filter((x) => x[1].length);
+    if (nh.length >= 2) return <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 22px' }}>
+      {nh.map(([ten, ds, goi]) => <div key={ten} style={{ maxWidth: '100%', minWidth: 0 }}>
         <div title={goi} style={{ fontSize: 11.5, color: MO_SO, marginBottom: 4 }}>{ten} · <Dem v={ds.length} /></div>
         <BanMauLuoi m={{ ...mGoc, nguon: 'nha', ban: [...ds] }} cot={cot} oRong={128} /></div>)}
     </div>; }
@@ -92,7 +95,7 @@ export function BanMauLuoi({ m: mGoc, cot = 3, nhom = false, oRong }: { m: MauCr
 type DsPhim = { id: number; ten: string }[];
 const TT_DONG: Record<string, [string, string]> = { chay: ['đang sinh', '#fbbf24'], xong: ['xong', '#4ade80'], dung: ['dừng', '#f87171'], loi: ['lỗi', '#f87171'] };
 /** máy nào dựng mẫu này — lời thường (YDNI 9a: không tên tệp, không mã) */
-export const mayDung = (m: MauCr) => (m.dong ? 'Máy dòng phim dựng — chọn phim là máy bắt đầu sinh creative' : m.may_mau ? 'Máy dựng theo mẫu — chọn phim là vào hàng chờ (hàng chờ chưa có lịch tự chạy)' : 'Chưa có máy dựng — chọn phim chỉ ghi lại, có máy rồi mới sinh creative');
+export const mayDung = (m: MauCr) => (m.dong ? 'Máy dòng phim dựng — chọn phim là máy bắt đầu sinh creative' : m.may_mau ? 'Máy dựng theo mẫu — chọn phim là vào hàng chờ, máy trên iMac tự lấy hàng mỗi 2 phút' : (m.may ?? '').startsWith('anh-tinh.py') ? 'Máy dòng phim dựng — các dòng ảnh tĩnh tự xoay kiểu này theo từng bản của phim, không cần chọn phim ở đây' : 'Chưa có máy dựng — chọn phim chỉ ghi lại, có máy rồi mới sinh creative');
 /** phim cần nhìn trước: lỗi → đang làm → chờ → đã có creative */
 const uuTien = (f: PhimSx) => (f.dung?.trang_thai === 'loi' || f.dong_tt === 'loi' ? 0 : f.dung && f.dung.trang_thai !== 'xong' ? 1 : f.dong_tt === 'chay' ? 1 : f.cr.length ? 3 : 2);
 /** CHÂN THẺ — phim sản xuất theo mẫu + creative thật của từng phim (anh 19/11/2026: "Ở footer mỗi card sẽ là danh sách creative thực của mỗi phim được lựa chọn
@@ -225,12 +228,12 @@ function The({ m }: { m: MauCr }) {
     style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 6, height: '100%', cursor: 'pointer' }}>
     <BanMauLuoi m={m} />
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span title={`${TEN_TT[m.trang_thai][0]} — ${goiTt}`} style={{ width: 8, height: 8, borderRadius: 4, background: mauTt, flex: 'none' }} />
+      <span onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', flex: 'none' }}><ReMau m={m}><ChamRe mau={mauTt} co={8} /></ReMau></span>
       <b style={{ fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={m.ten}>{m.ten}</b>
       {s ? <span style={{ fontSize: 11.5, flex: 'none', fontVariantNumeric: 'tabular-nums' }} title={`${s.cr} creative nhà · camp đang chạy ${s.dang_chay} / đã lên ${s.camp} · chi $${s.chi.toFixed(0)}`}><span style={{ color: MO_SO }}>{s.dang_chay}/{s.camp} camp · ROI </span><ORoi s={s} /></span> : null}
     </div>
     <div style={{ fontSize: 11.5, color: MO_SO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(m.nguon === 'doi_thu' ? [m.vai ?? TEN_LOAI[m.loai], `${demBan(m).goc} QC gốc đối thủ`, demBan(m).duyet ? `${demBan(m).duyet} đã duyệt` : null] : [TEN_LOAI[m.loai], m.vai, TEN_NGUON[m.nguon], s ? `${s.cr} creative nhà` : null]).filter(Boolean).join(' · ')}</div>
-    <ReMau m={m} khoi><div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 34 }}>{m.mo_ta}</div></ReMau>
+    <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 34 }}>{m.mo_ta}</div>
     {m.spec?.length ? <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', gap: '2px 10px', fontSize: 11.5 }}>
       {m.spec.map((x) => [<span key={`a${x.nhan}`} style={{ color: MO_SO, whiteSpace: 'nowrap' }}>{x.nhan}</span>, <span key={`b${x.nhan}`} title={x.gia} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.gia}</span>])}</div> : null}
     <div style={{ marginTop: 'auto' }}><ChanThe m={m} /></div>

@@ -79,12 +79,12 @@ export function Bang({ so = 'home', ds, noi, sua, luoi, cham, to, onDoi, onTo, o
       style={cot ? { '--ox': `${100 / cot}%`, '--oy': `${100 / (cot * 1.5)}%` } as CSSProperties : undefined}
       onDoubleClick={(e) => { const d = (e.target as HTMLElement).closest('.hm-od'); if (!d || (e.target as HTMLElement).closest('button')) return; const c = ds[Number((d.parentElement as HTMLElement).dataset.i)]; if (c) onTo(to === c.ma ? '' : c.ma); }}>
       {thuTu.map((i) => {
-        const c = ds[i]!, w = widgetCua(c.ma), ts = tabsCua(c), ten = w?.ten ?? c.ma, coDau = sua || !w?.tuDe || ts.length > 1;
+        const c = ds[i]!, w = widgetCua(c.ma), ts = tabsCua(c), ten = w?.ten ?? c.ma, coDau = !w?.tuDe || ts.length > 1;   // KHÔNG phụ thuộc sua (góp ý #1722): bật sửa mà thêm thanh tiêu đề cho ô tự có tiêu đề là đẩy ruột xuống, widget lệch so với lúc xem — ô đó dùng thanh nổi góc phải
         return (
           <section key={c.ma} data-i={i} data-ma={c.ma} className={`hm-o${c.k ? ' hm-khoa' : ''}${to === c.ma ? ' hm-to' : ''}${coDau ? '' : ' hm-tran'}`}
             style={{ '--x': c.x, '--y': c.y, '--w': c.w, '--h': c.h, zIndex: i + 1 } as CSSProperties} aria-label={ten}>
-            {coDau ? (
-              <div className="hm-od">
+            {coDau || sua ? (
+              <div className={`hm-od${coDau ? '' : ' hm-od-noi'}`}>
                 {sua && <i className="hm-nam" aria-hidden="true">⋮⋮</i>}
                 {ts.length > 1
                   ? ts.map((t) => <button key={t} type="button" className="hm-tb" aria-pressed={t === c.ma} title={widgetCua(t)?.moTa} onClick={() => { if (t !== c.ma) { if (to === c.ma) onTo(t); onDoi(moTab(ds, i, t), false); } }}>{widgetCua(t)?.ten ?? t}</button>)

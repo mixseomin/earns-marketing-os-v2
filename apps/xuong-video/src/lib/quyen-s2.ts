@@ -22,7 +22,7 @@ const LUAT: Record<string, { doi: Doi; tien?: boolean }> = {
   docViecNen: { doi: 'viec' }, trangThaiXuat: { doi: 'job' },
   // ghi không tốn tiền
   taoPhimS2: { doi: 'khong' }, taoPhimTuTemplate: { doi: 'khong' }, taoTap: { doi: 'phim' }, suaPhim: { doi: 'phim' }, suaTap: { doi: 'tap' }, suaCanh: { doi: 'canh' }, xepCanh: { doi: 'tap' }, themCanh: { doi: 'tap' },
-  duyetNguoiXemTayAction: { doi: 'tap' }, chonKeyframe: { doi: 'canh' }, duyetCanh: { doi: 'canh' }, duyetAnimatic: { doi: 'tap' }, xuatTap: { doi: 'tap' },
+  duyetNguoiXemTayAction: { doi: 'tap' }, luuKhuonChuoi: { doi: 'tap' }, chonKeyframe: { doi: 'canh' }, duyetCanh: { doi: 'canh' }, duyetAnimatic: { doi: 'tap' }, xuatTap: { doi: 'tap' },
   // ghi tốn tiền
   taoPhimMau: { doi: 'khong', tien: true }, phanTichAstrolasS2: { doi: 'tap', tien: true }, vietKichBanTap: { doi: 'tap', tien: true }, tachCanhTap: { doi: 'tap', tien: true }, batDauNguoiXem: { doi: 'tap', tien: true }, suaTheoNguoiXem: { doi: 'tap', tien: true },
   goiYAIKinhThanh: { doi: 'phim', tien: true }, goiYAIBoAnchor: { doi: 'phim', tien: true }, sinhAnhThieuAction: { doi: 'phim', tien: true }, sinhKeyframe: { doi: 'canh', tien: true },

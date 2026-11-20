@@ -412,7 +412,7 @@ span.lp-than { cursor: default }
 .qt-buoc { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 10px } .qt-buoc h3 { margin: 0 }
 .qt-nx { display: grid; gap: 6px; font-size: 13px; padding: 8px 10px; background: var(--bg); border-radius: 8px } .qt-nx p { margin: 0; overflow-wrap: anywhere } .qt-nx i { color: var(--ink-3); font-style: normal }
 .qt-nx summary { cursor: pointer; font-weight: 500 } .qt-mo .qt-nx ul { margin: 6px 0 0; gap: 7px; color: var(--ink) } .qt-nx li b { font-weight: 600 } .qt-da-sua { border-left: 3px solid var(--brass); padding-left: 8px }
-.qt-nut { display: grid; gap: 5px; justify-items: start } .qt-nut .bt { text-align: left; white-space: normal } .qt-nut .bao { font-size: 12.5px; padding: 8px 10px; overflow-wrap: anywhere; justify-self: stretch }
+.qt-nut { display: grid; gap: 5px; justify-items: start } .qt-nut .bt { text-align: left; white-space: normal } .qt-nut .bao { font-size: 12.5px; padding: 8px 10px; overflow-wrap: anywhere; justify-self: stretch; max-height: 220px; overflow: auto }
 .qt-m { border: 1px solid var(--line); border-radius: 8px; overflow: hidden } .qt-m.mo { border-color: var(--brass) }
 .qt-m > button { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; width: 100%; padding: 6px 8px; background: none; border: 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer }
 .qt-m > button:hover { background: var(--bg) } .qt-m > button > i { width: 8px; height: 8px; border-radius: 50% } .qt-m b { font-weight: 500 } .qt-m .so { font: 11.5px var(--f-so); color: var(--ink-3) }

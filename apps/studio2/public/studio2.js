@@ -321,7 +321,7 @@ function tuStudio(pd, tap, ds) {
   const loai = co3d ? 'phim' : p.loai === 'quang_cao' || /^qc_/.test(tl) ? 'qc' : p.loai === 'may_dung' ? 'may' : tl === 'tai_lieu' || laMoc ? 'tailieu' : 'doc';
   if (ds.length) for (const c of ds) if (!GOC[`s${c.id}`]) GOC[`s${c.id}`] = c;
   return { ten: p.ten + (pd.tap.length > 1 ? ` · tập ${tap.so}` : ''), loai, tile, kieu: 'chart-chapters', vid: tap.video_url || tap.xuat?.[tap.xuat.length - 1]?.url || undefined,
-    giong: GIONG[0], toc: 'Vừa', nhac: tap.nhac_url ? NHAC[1] : NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs, set: co3d ? { vat: [], khoi } : undefined, canh, that: { phim: p.id, tap: tap.id, soTap: pd.tap.length, trong: !ds.length, kt: p.kinh_thanh || {}, moTa: p.mo_ta || '', loaiPhim: p.loai, brief: String(tap.brief || '').split('\n\n=== CÁCH KỂ (Studio 2 tự ghép')[0], kichBan: tap.kich_ban || '', xuatUrl: tap.video_url || '', laMoc, nx: tap.thu_nguoi_xem || null } };
+    giong: GIONG[0], toc: 'Vừa', nhac: tap.nhac_url ? NHAC[1] : NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs, set: co3d ? { vat: [], khoi } : undefined, canh, that: { phim: p.id, tap: tap.id, soTap: pd.tap.length, trong: !ds.length, kt: p.kinh_thanh || {}, moTa: p.mo_ta || '', loaiPhim: p.loai, brief: String(tap.brief || '').split('\n\n=== CÁCH KỂ (Studio 2 tự ghép')[0], kichBan: tap.kich_ban || '', xuatUrl: tap.video_url || '', laMoc, nx: tap.thu_nguoi_xem || null, mauNguoi: pd.nhanVat.filter((x) => x.loai === 'nhan_vat').map((x) => x.id) } };
 }
 /** dự án chờ: khung trống hiện trong lúc đọc phim thật */
 const duAnCho = () => ({ ten: 'Đang mở phim…', loai: 'hinh', tile: '9:16', kieu: 'chart-chapters', giong: GIONG[0], toc: 'Vừa', nhac: NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs: [], canh: [canhMoi({ nhan: 'Đang mở', anh: TRONG, tg: 4 })], cho: true });
@@ -503,18 +503,21 @@ $('#tlKeo').addEventListener('dblclick', () => { E.tlCao = 0; datTlCao(); luu();
 //    Mỗi nút gọi đúng một bước của studio qua đường ghi; studio tự gác cổng quy trình + cổng tiền, từ chối thì câu của studio hiện ngay dưới nút.
 //    Bước tốn tiền: bấm lần đầu hiện giá ước, bấm lần nữa mới chạy — mỗi lần bấm một bước, xem kết quả rồi mới bấm bước kế (không chạy chuỗi).
 const GIA_CHU = { viet: 0.05, tach: 0.06, nx: 0.02, nxSua: 0.05, pc: 3.7, anchor: 0.1 };   // ¢ mỗi lượt máy viết, chỉ để báo trước; tiền thật xem ở Nhật ký. Viết kịch bản + tách cảnh: số thật của ba lượt 20/11/2026 trên đường chữ studio đang đi (donk:claude-opus-5-5: 0,05¢ · 0,05¢ · 0,06¢); con số cũ 7¢ / 43¢ là của đường Claude chính hãng, đường ấy giờ chỉ chạy khi các cổng rẻ đều hỏng
-const TEN_BUOC = { astro: 'Hỏi Astrolas', brief: 'Lưu ý tưởng', viet: 'Máy viết kịch bản', tach: 'Máy tách thành cảnh', nx: 'Thử người xem', nxSua: 'Máy sửa theo góp ý người xem', nxNhan: 'Tôi nhận kịch bản này', pc: 'Máy gợi ý phong cách', pcDung: 'Dùng gợi ý này', anchor: 'Máy đề xuất nhân vật, bối cảnh', anhMau: 'Vẽ ảnh mẫu còn thiếu',
+const TEN_BUOC = { astro: 'Hỏi Astrolas', brief: 'Lưu ý tưởng', viet: 'Máy viết kịch bản', tach: 'Máy tách thành cảnh', nx: 'Thử người xem', nxSua: 'Máy sửa theo góp ý người xem', vaiTt: 'Đặt shot tổng thể cho phân cảnh còn thiếu', ganNguoi: 'Gắn mẫu người vào các cảnh có người', boKhuon: 'Bỏ khuôn dựng phim truyện của tập này', nxNhan: 'Tôi nhận kịch bản này', pc: 'Máy gợi ý phong cách', pcDung: 'Dùng gợi ý này', anchor: 'Máy đề xuất nhân vật, bối cảnh', anhMau: 'Vẽ ảnh mẫu còn thiếu',
   kf: 'Vẽ ảnh các cảnh chưa có', kf1: 'Vẽ lại ảnh cảnh này', duyet: 'Duyệt các ảnh đã có', duyet1: 'Duyệt ảnh cảnh này', giong: 'Đọc lời cả tập', animatic: 'Chốt nhịp trước khi dựng clip', clip: 'Dựng clip các cảnh đã duyệt', clip1: 'Dựng clip cảnh này', nhac: 'Sinh nhạc nền', xuat: 'Xuất video' };
-const NUT_QT = { brief: ['brief'], truyen: ['tach'], kich_ban: ['viet', 'tach'], nguoi_xem: ['nx', 'nxSua', 'nxNhan'], phong_cach: ['pc'], mau_doi_tuong: ['anchor', 'anhMau'], mau_boi_canh: ['anchor', 'anhMau'], keyframe: ['kf', 'duyet'], giong: ['giong'], nhac: ['nhac'] };
+const NUT_QT = { brief: ['brief'], truyen: ['tach'], kich_ban: ['viet', 'tach'], nguoi_xem: ['nx', 'nxSua', 'nxNhan'], phong_cach: ['pc'], phan_canh: ['vaiTt'], mau_doi_tuong: ['anchor', 'anhMau'], mau_boi_canh: ['ganNguoi', 'anchor', 'anhMau'], keyframe: ['kf', 'duyet'], giong: ['giong'], nhac: ['nhac'] };
 const canhThat = () => D.canh.map((c) => GOC[c.id]).filter(Boolean);
 const canhThieu = (b) => canhThat().filter((c) => (b === 'kf' ? !c.keyframe_url && !c.dang_sinh_anh : b === 'duyet' ? c.keyframe_url && (c.trang_thai === 'co_keyframe' || c.trang_thai === 'nhap') : c.trang_thai === 'duyet' && !c.video_url && !c.video_cuoi_url && !c.video_dang));
 /** giá ước của một bước (¢): 0 = không tốn · null = có tốn nhưng chưa ước được */
 function giaBuoc(k) { const g = E.gia || {}, [b, sid] = k.split(':'), giay = (ds) => ds.reduce((a, c) => a + (+c.thoi_luong_s || 0), 0);
-  switch (b) { case 'brief': case 'nxNhan': case 'pcDung': case 'duyet': case 'duyet1': case 'animatic': case 'xuat': return 0;
+  switch (b) { case 'vaiTt': case 'ganNguoi': case 'boKhuon': case 'brief': case 'nxNhan': case 'pcDung': case 'duyet': case 'duyet1': case 'animatic': case 'xuat': return 0;
     case 'viet': case 'tach': case 'nx': case 'nxSua': case 'pc': case 'anchor': return GIA_CHU[b];
     case 'kf': return g.anh1 ? g.anh1 * canhThieu('kf').length : null; case 'kf1': return g.anh1 || null;
     case 'clip': return g.giay1 ? g.giay1 * giay(canhThieu('clip')) : null; case 'clip1': return g.giay1 && GOC[sid] ? g.giay1 * (+GOC[sid].thoi_luong_s || 0) : null;
     case 'giong': return g.giong ?? null; case 'nhac': return g.nhac ?? null; default: return null; } }
+/** chạy một việc lần lượt cho từng cảnh; cảnh nào studio từ chối thì ghi lại rồi ĐI TIẾP cảnh sau (trước đây dừng cả loạt ở cảnh đầu tiên bị từ chối), cuối cùng báo đủ từng cảnh */
+async function lanLuot(ds, lam) { const loi = []; let ok = 0; for (const c of ds) { try { await lam(c); ok++; } catch (e) { loi.push(`cảnh ${Math.round(+c.thu_tu)}: ${String(e.message).replace(/^Shot #\d+ /, '')}`); } }
+  if (loi.length) throw new Error(`${ok}/${ds.length} cảnh chạy được, ${loi.length} cảnh bị từ chối — ${loi.join(' ‖ ')}`); }
 const BUOC_SV = {
   brief: (t) => ghiSv('suaTap', t.tap, { brief: E.kb.brief.trim() }),
   astro: async (t) => { const q = (E.cs.cauHoi || E.kb.brief).trim(); if (q.length < 8) throw new Error('gõ điều bạn muốn Astrolas phân tích'); E.coSo = await ghiSv('phanTichAstrolasS2', t.tap, { cauHoi: q, nguoi: E.cs.nguoi, ngonNgu: t.kt.ngon_ngu || 'vi' }); },
@@ -526,14 +529,32 @@ const BUOC_SV = {
   pc: async (t) => { E.goiY = await ghiSv('goiYAIKinhThanh', t.phim); },
   pcDung: async (t) => { const g = E.goiY; if (!g) return; await ghiSv('suaPhim', t.phim, { mo_ta: g.mo_ta || t.moTa, kinh_thanh: { ...t.kt, phong_cach: g.phong_cach, ...(g.logline ? { logline: g.logline } : {}), ...(g.chu_de ? { chu_de: g.chu_de } : {}) } }); E.goiY = null; },
   anchor: (t) => ghiSv('goiYAIBoAnchor', t.phim),
-  anhMau: (t) => ghiSv('sinhAnhThieuAction', t.phim),
-  kf: async () => { for (const c of canhThieu('kf')) await ghiSv('sinhKeyframe', c.id, 1); },
+  // studio chỉ vẽ ảnh cho mẫu mà cảnh đang dùng; trả 0 ảnh thì phải nói ra, không thì người làm tưởng nút chết
+  anhMau: async (t) => { const r = await ghiSv('sinhAnhThieuAction', t.phim) || {}, so = (+r.goc || 0) + (+r.bienThe || 0), phu = [...(r.loi || []), ...(r.cho || []).map((x) => `${x}: chờ ảnh gốc`)];
+    if (!so) throw new Error(phu.join(' · ') || 'studio không vẽ ảnh nào: mẫu còn thiếu ảnh chưa được gắn vào cảnh nào (studio chỉ vẽ mẫu mà cảnh đang dùng). Gắn mẫu vào cảnh, hoặc mở phim ở studio để bỏ mẫu thừa.');
+    bao(`Studio đang vẽ ${so} ảnh mẫu, xong sẽ tự hiện.${phu.length ? ' Chưa vẽ được: ' + phu.join(' · ') : ''}`, false, 9000); },
+  // phân cảnh từ 3 shot trở lên phải có một shot tổng thể (ai ở đâu): lấy shot rộng nhất của phân cảnh đó, tránh shot đang là vai duy nhất của cả tập (phản ứng / tâm trạng / chủ quan)
+  vaiTt: async () => { const ds = canhThat(), v = (c) => c.ky_thuat?.vai || '', dem = (x) => ds.filter((c) => v(c) === x).length, RONG = ['ews', 'ws', 'trung_toan', 'two', 'ms'], pd = {}; let sua = 0;
+    for (const c of ds) if (c.phan_doan) (pd[c.phan_doan] ||= []).push(c);
+    for (const g of Object.values(pd)) { if (g.length < 3 || g.some((c) => ['tong_the', 'thiet_lap'].includes(v(c)))) continue;
+      const ung = g.filter((c) => !(['phan_ung', 'tam_trang', 'chu_quan', 'nguoi_thu_ba'].includes(v(c)) && dem(v(c)) < 2)), hang = (c) => { const i = RONG.indexOf(c.ky_thuat?.co_canh); return i < 0 ? 9 : i; }, c = (ung.length ? ung : g).slice().sort((a, b) => hang(a) - hang(b))[0];
+      await ghiSv('suaCanh', c.id, { ky_thuat: { ...(c.ky_thuat || {}), vai: 'tong_the' } }); sua++; }
+    if (!sua) throw new Error('không thấy phân cảnh nào thiếu shot tổng thể; bấm ↻ đọc lại quy trình'); },
+  // studio báo "shot có người mà chưa gắn mẫu người": phim có đúng MỘT mẫu người (người kể) thì gắn vào các cảnh đó
+  ganNguoi: async (t) => { const m = t.mauNguoi || [], so = (E.qt?.ds?.find((x) => x.key === 'mau_boi_canh')?.thieu || []).map((x) => +(x.match(/^#(\d+)/) || [])[1]).filter(Boolean);
+    if (!m.length) throw new Error('phim chưa có mẫu người nào. Bấm "Máy đề xuất nhân vật, bối cảnh" trước.'); if (m.length > 1) throw new Error('phim có nhiều mẫu người, máy không biết cảnh nào của ai. Gắn từng cảnh ở studio.');
+    if (!so.length) throw new Error('quy trình không báo cảnh nào thiếu mẫu người; bấm ↻ đọc lại'); let gan = 0;
+    for (const c of canhThat()) { const cu = Array.isArray(c.nhan_vat) ? c.nhan_vat : []; if (!so.includes(Math.round(+c.thu_tu)) || cu.includes(m[0])) continue; await ghiSv('suaCanh', c.id, { nhan_vat: [...cu, m[0]] }); gan++; }
+    bao(`Đã gắn mẫu người vào ${gan} cảnh. Mẫu chưa có ảnh thì bấm "Vẽ ảnh mẫu còn thiếu".`, false, 8000); },
+  // khuôn dựng (Phát hiện, Vả mặt, Kết treo…) là của phim truyện; video chia sẻ góc nhìn không theo khuôn đó thì gỡ, studio chụp bản trước để hoàn tác
+  boKhuon: (t) => ghiSv('luuKhuonChuoi', t.tap, []),
+  kf: () => lanLuot(canhThieu('kf'), (c) => ghiSv('sinhKeyframe', c.id, 1)),
   kf1: (t, sid) => ghiSv('sinhKeyframe', GOC[sid].id, 1),
-  duyet: async () => { for (const c of canhThieu('duyet')) await ghiSv('duyetCanh', c.id, true); },
+  duyet: () => lanLuot(canhThieu('duyet'), (c) => ghiSv('duyetCanh', c.id, true)),
   duyet1: (t, sid) => ghiSv('duyetCanh', GOC[sid].id, true),
   giong: (t) => ghiSv('sinhGiong', t.tap),
   animatic: (t) => ghiSv('duyetAnimatic', t.tap),
-  clip: async () => { for (const c of canhThieu('clip')) await ghiSv('sinhVideoCanh', c.id); },
+  clip: () => lanLuot(canhThieu('clip'), (c) => ghiSv('sinhVideoCanh', c.id)),
   clip1: (t, sid) => ghiSv('sinhVideoCanh', GOC[sid].id),
   nhac: (t) => ghiSv('sinhNhac', t.tap),
   xuat: async (t) => { E.xuatThat = { job: await ghiSv('xuatTap', t.tap), tt: 'chay', url: null, loi: '' }; },
@@ -702,7 +723,7 @@ function veQt() {
     for (const nhom of ['Tiền kỳ', 'Sản xuất', 'Hậu kỳ']) { h += `<h3>${nhom}</h3>`;
       for (const m of ds.filter((x) => x.nhom === nhom)) { const dangMo = mo === m.key;
         h += `<div class="qt-m ${m.ok ? 'xong' : m.cong ? 'loi' : 'bao'}${dangMo ? ' mo' : ''}"><button type="button" data-d="qtMo" data-g="${m.key}" aria-expanded="${dangMo}"><i></i><b>${esc(m.ten)}</b>${m.ok ? '' : `<span class="so">${m.thieu.length}</span>`}${!m.ok && m.cong ? `<u title="Chưa đạt thì studio không cho ${CONG[m.cong]}">chặn ${CONG[m.cong]}</u>` : ''}</button>`
-          + (dangMo ? `<div class="qt-mo">${m.thieu.length ? `<ul>${m.thieu.slice(0, 5).map((x) => `<li>${esc(x)}</li>`).join('')}${m.thieu.length > 5 ? `<li>và ${m.thieu.length - 5} chỗ nữa</li>` : ''}</ul>` : ''}<span class="nho">${esc(m.lam)}</span>${m.key === 'brief' ? `${yTuong}<h3>Cơ sở từ Astrolas</h3>${veCoSo()}` : ''}${m.key === 'kich_ban' ? kb : ''}${m.key === 'nguoi_xem' ? veNx() : ''}
+          + (dangMo ? `<div class="qt-mo">${m.thieu.length ? `<ul>${m.thieu.slice(0, 5).map((x) => `<li>${esc(x)}</li>`).join('')}${m.thieu.length > 5 ? `<li>và ${m.thieu.length - 5} chỗ nữa</li>` : ''}</ul>` : ''}<span class="nho">${esc(m.lam)}</span>${m.key === 'brief' ? `${yTuong}<h3>Cơ sở từ Astrolas</h3>${veCoSo()}` : ''}${m.key === 'kich_ban' ? kb : ''}${m.key === 'nguoi_xem' ? veNx() : ''}${(m.key === 'keyframe' || m.key === 'clip') && /khuôn "/.test(E.loiBuoc?.loi || '') ? `<span class="nho">Studio đang ép các cảnh theo khuôn dựng của phim truyện. Video chia sẻ góc nhìn không cần khuôn đó:</span>${nut(['boKhuon'])}` : ''}
             ${m.key === 'phong_cach' && E.goiY ? `<div class="qt-goi-y"><b>Máy gợi ý</b><p>${esc(E.goiY.phong_cach)}</p>${nut(['pcDung'])}</div>` : ''}${NUT_QT[m.key] ? nut(NUT_QT[m.key]) : ''}${laQuanTri() || !NUT_QT[m.key] ? lk : ''}</div>` : '') + '</div>';
         if (m.key === 'giong') h += `<div class="qt-m ${coClip === canhThat().length ? 'xong' : 'thieu'}${mo === 'clip' ? ' mo' : ''}"><button type="button" data-d="qtMo" data-g="clip" aria-expanded="${mo === 'clip'}"><i></i><b>Dựng clip</b><span class="so">${coClip}/${canhThat().length}</span></button>${mo === 'clip' ? `<div class="qt-mo"><span class="nho">Studio dựng clip cho cảnh đã duyệt ảnh, sau khi chốt nhịp (ảnh + giây từng cảnh). Bộ dựng lấy theo thiết lập của phim; clip đang chờ máy thì hiện "đang dựng" ở Nhật ký.</span>${nut(['animatic', 'clip'])}${lk}</div>` : ''}</div>`; } }
     h += `<div class="qt-buoc"><h3>Xuất</h3>${E.xuatThat?.tt === 'chay' ? '<div class="qt-chay"><i></i>Studio đang ghép video…</div>' : ''}${E.xuatThat?.tt === 'loi' ? `<div class="bao">Xuất hỏng: ${esc(E.xuatThat.loi)}</div>` : ''}${nut(['xuat'])}</div>`; }

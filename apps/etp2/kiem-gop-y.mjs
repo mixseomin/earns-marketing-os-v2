@@ -7,6 +7,8 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1713, tep: 'apps/etp2/src/components/ui/data-table.tsx', mot: "const h = tr ? 0 : cao;", vi: 'mọi DataTable etp2 có ô đệm giữ tổng chiều cao trang khi bản dính dòng nhóm hiện/ẩn — hết giật ở đáy Cây camp (anh 20/11/2026 "sticky của phim cứ giật giật hiện/ẩn liên tục")' },
+  { card: 1713, tep: 'apps/etp2/src/components/ui/data-table.tsx', mot: 'export const DataTable = ((props: Parameters<typeof BangGoc>[0]) =>', vi: 'DataTable của etp2 là lớp bọc chống giật, không xuất thẳng bản gói chung' },
   { card: 1540, tep: 'apps/etp2/src/components/etp-dong.tsx', mot: '<ChonSo v={soCamp} dat={setSoCamp} may={f.kPlan ?? null} />', cam: 'type="number"', vi: 'form Mở rộng phim: chọn số camp bằng nút 1–10 + −/+, không ô nhập số (anh 05/11/2026 "ko dùng format số khó dùng")' },
   { card: 1540, tep: 'apps/etp2/src/components/etp-dong.tsx', mot: "<XemViDu l={f.loai.find((l: LoaiNoiDung) => l.ma === loai)} />", vi: 'form Mở rộng phim một màn: video ví dụ chỉ cho loại đang chọn ở cột phải — thẻ loại không mang video (9 loại 2 hàng thấp, không cuộn; anh "Bố cục lại theo YDNI để ko phải scroll")' },
   { card: 1540, tep: 'apps/etp2/src/components/etp-dong.tsx', co: "gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))'", cam: "style={{ width: 72, height: 128, objectFit: 'cover'", vi: 'lưới thẻ loại nội dung gọn, không nhét video 72×128 vào từng thẻ' },

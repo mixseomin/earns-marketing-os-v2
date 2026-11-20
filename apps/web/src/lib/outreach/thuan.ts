@@ -74,6 +74,9 @@ const CAM_CUM = [
 ];
 const CAM_TIEU_DE = ['quick question', 'curious', 'checking in', 'following up', 'touching base'];
 
+/** dấu bản của kế hoạch + luật soạn: tăng số này khi đổi luật viết → nút "soạn lại theo kế hoạch mới" biết chuỗi nào còn bản cũ (soan-thu.ts ghi, van-hanh.ts so) */
+export const BAN_SOAN = '3';
+
 /** một bước của chuỗi thư: thư mở luồng mới (có tiêu đề riêng) hay nối luồng trước; được gắn link nào; khoảng số từ */
 export type BuocThu = { moi: boolean; link: 'khong' | 'mien_phi' | 'ban'; tu: [number, number]; gia: boolean };
 /**
@@ -122,6 +125,8 @@ export function kiemChuoi(v: unknown, c: LoiChao, kh: BuocThu[] = keHoachChuoi(3
     const duoc = k.link === 'mien_phi' ? mienPhi : k.link === 'ban' ? ban : '';
     for (const l of links) if (!duoc || l !== duoc) return `thư ${i + 1} có link không thuộc bước này: ${l}`;
     if (links.length > 1) return `thư ${i + 1} có hơn một link`;
+    // link phải đứng MỘT MÌNH trên một dòng: link dính dấu chấm / nằm giữa câu dễ gãy khi hộp thư tự nhận link
+    if (links.length && !body.split('\n').some((d) => sach(d.trim()) === links[0])) return `thư ${i + 1}: link phải nằm riêng một dòng, không kèm chữ hay dấu câu`;
     if (duoc && k.link === 'mien_phi' && !links.length) return `thư ${i + 1} phải gắn link miễn phí ${duoc}`;
     if (!k.gia && /\$\s?\d/.test(body)) return `thư ${i + 1} không được nêu giá (chỉ thư cuối)`;
   }

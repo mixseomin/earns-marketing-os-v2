@@ -13,6 +13,8 @@ export const LUAT = [
   { card: 'quyen-20-1011', tep: 'apps/cty/worker/ethopex.mjs', co: "const trongQuyen = (k, m) => tuTang && ['tang', 'dau_phien', 'hoi_g10'].includes(k)", vi: 'tăng trong quyền máy ($20) không gửi nút xin duyệt — ngoài khung thì máy hoãn rồi tự tăng (anh 10/11/2026)' },
   { card: 'anh-tay-1011', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "'nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that'", vi: 'anh nhân bản tay trên etp2: máy không chặn bằng luật mềm, anh chịu trách nhiệm (anh 10/11/2026)' },
   { card: 'anh-tay-1011', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'anh = "--anh" in a and bool(CONG.ve_hop_le("nhan_ban", [goc])); ep = ep or anh', vi: 'cờ --anh đi như lệnh đích danh — chỉ khi mang vé thao tác tay của đúng camp gốc (18/11/2026)' },
+  { card: 'qua-tai-nhan-ban-2011', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB); return f', vi: 'nhan-ban.py giữ khe flock trước phần nạp nặng — tối đa SONG_SONG bản cùng lúc (box3 rỗi 0% 20/11/2026, 10–18 bản)' },
+  { card: 'qua-tai-nhan-ban-2011', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'SONG_SONG = 2', vi: 'trần song song nhan-ban.py = 2' },
   { card: 'anh-tay-1011', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: "khoa = 'camp_anh_tay'", vi: 'camp anh nhân bản tay được đánh dấu (sổ camp_anh_tay)' },
   { card: 'anh-tay-1011', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: 'camp mới ${chayLuc()}', vi: 'nhân bản tay báo rõ ngày giờ camp thực sự chạy' },
   { card: 'tu-van-1011', tep: 'apps/cty/worker/etp-tu-van.mjs', co: "export const GIO_GUI = ['06:45', '11:45', '14:45', '20:45'];", vi: 'tư vấn Ethopex gửi 4 lần / ngày, trước phiên 15 phút (anh 10/11/2026)' },

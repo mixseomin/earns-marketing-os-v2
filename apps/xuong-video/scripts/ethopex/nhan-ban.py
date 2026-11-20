@@ -32,6 +32,30 @@ Chạy trên box3 (khoá ở studio):
 In một dòng JSON {ok, goc, moi, ten, loi}."""
 import datetime as dt, importlib.util, json, os, re, subprocess, sys, time, urllib.request
 
+# TRẦN SONG SONG + NHƯỜNG CPU — đặt TRƯỚC mọi việc nặng của tệp (nạp cong.py, psql, Ethopex), chỉ khi chạy như lệnh (dong_phim.py nạp tệp làm module thì bỏ qua).
+# 19/11 và 20/11/2026 19:40 VN box3 rỗi 0% suốt 80 giây: dong_phim.py mở mỗi dòng một tiến trình → 10–18 bản nhan-ban.py cùng lúc, chồng nạp spy + next build.
+# Bản trước chỉ nice 10 ở đầu main() — lúc đó phần nạp đầu tệp đã chạy ở nice 0, và không có trần số bản. Giờ: nice 10 ngay đây + tối đa SONG_SONG bản cùng
+# lúc (flock khe /run/lock/etp-nhan-ban.<k>), bản dư ngủ chờ khe (không ăn CPU). Chờ quá hạn thì chạy luôn (không làm hỏng lượt lên camp / nút anh bấm có hạn
+# 120–170 giây); cờ --anh (anh bấm tay) chờ ngắn hơn. Không đổi luật lên camp — chỉ xếp hàng.
+SONG_SONG = 2
+def _giu_khe(cho_toi_da):
+    import fcntl
+    thu_muc = "/run/lock" if os.access("/run/lock", os.W_OK) else "/tmp"
+    het = time.time() + cho_toi_da
+    while True:
+        for k in range(SONG_SONG):
+            f = open(os.path.join(thu_muc, f"etp-nhan-ban.{k}"), "a")
+            try:
+                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB); return f   # giữ tệp mở tới hết tiến trình = giữ khe
+            except OSError:
+                f.close()
+        if time.time() >= het:
+            print(f"nhan-ban: chờ khe quá {cho_toi_da}s ({SONG_SONG} bản đang chạy) — chạy luôn", file=sys.stderr); return None
+        time.sleep(0.5)
+if __name__ == "__main__":
+    if sys.platform.startswith("linux") and os.nice(0) < 10: os.nice(10 - os.nice(0))
+    if sys.platform.startswith("linux"): _KHE = _giu_khe(20 if "--anh" in sys.argv else 90)
+
 # RÀO CHẮN etp (etp.on.tc bước 3, 24/10/2026): dừng khẩn / trần camp / trần ngày / trần bộ — apps/etp/cong.py
 import importlib.util as _iuc
 _sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
@@ -482,9 +506,7 @@ def ghi_nhat_ky(kq, luat, ai):
                     **({"nguoi": EA.SUA or EA.XEM} if NGOAI else {})})   # team cũng ghi (anh 02/11/2026: sổ luật đo được việc máy làm cho Sơn / Kiên); nguoi tách khỏi đếm Nhà
 
 def main(a):
-    # NHƯỜNG CPU (19/11/2026 box3 tải 21–43: 6–10 bản nhan-ban cùng lúc + postgres, web / đồng bộ chậm theo): mọi đường gọi (dòng phim qua ssh, worker,
-    # nút etp2) chạy ở nice 10 — việc lên camp chờ vài giây không sao, trang + đồng bộ không được nghẽn. Giờ lên camp vẫn do lich_len, không đổi luật.
-    if sys.platform.startswith("linux") and os.nice(0) < 10: os.nice(10 - os.nice(0))
+    # NHƯỜNG CPU + TRẦN SONG SONG: đã làm ở ĐẦU TỆP (_giu_khe), trước phần nạp nặng — không lặp ở đây.
     goc = int(a[0]); that = "--that" in a
     tay = "--tay" in a   # camp anh yêu cầu bằng tay (dòng phim etp.on.tc) → miễn luật không trùng phim với đội (cong.kiem tay=True), 04/11/2026
     lay = lambda k, md=None: next((a[i + 1] for i, x in enumerate(a[:-1]) if x == k), md)

@@ -276,7 +276,7 @@ const TRONG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www
 async function goiDuong(duong, ham, args) {
   let r; try { r = await fetch(`/api/xv/${duong}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ham, args }) }); } catch { throw new Error('không gọi được máy chủ studio (có thể phiên đăng nhập đã hết, hãy tải lại trang)'); }
   const j = await r.json().catch(() => null);
-  if (r.status === 524 || r.status === 504) throw new Error('studio chưa trả lời kịp; việc có thể vẫn đang chạy bên đó, chờ một phút rồi bấm ↻ đọc lại');
+  if (r.status === 524 || r.status === 504) throw Object.assign(new Error('studio chưa trả lời kịp; việc có thể vẫn đang chạy bên đó, chờ một phút rồi bấm ↻ đọc lại'), { chuaKip: true });
   if (!r.ok || !j || j.loi) throw new Error(j?.loi || `máy chủ studio trả lỗi ${r.status}`); return j.kq;
 }
 const goi = (ham, ...args) => goiDuong('doc', ham, args);
@@ -470,7 +470,7 @@ $('#tlKeo').addEventListener('dblclick', () => { E.tlCao = 0; datTlCao(); luu();
 // ── LÀM VIDEO THẬT trên studio (chỉ phim của studio): hộp tạo video, widget QUY TRÌNH (16 mục studio tính: đạt / thiếu gì / gác cổng nào) và các NÚT BƯỚC.
 //    Mỗi nút gọi đúng một bước của studio qua đường ghi; studio tự gác cổng quy trình + cổng tiền, từ chối thì câu của studio hiện ngay dưới nút.
 //    Bước tốn tiền: bấm lần đầu hiện giá ước, bấm lần nữa mới chạy — mỗi lần bấm một bước, xem kết quả rồi mới bấm bước kế (không chạy chuỗi).
-const GIA_CHU = { viet: 7, tach: 43, nx: 0.3, pc: 3.7, anchor: 0.1 };   // ¢ mỗi lượt máy viết — trung bình thật 45 ngày tới 20/11/2026 trong sổ lượt sinh của studio (tách cảnh 6 lượt: 43¢, cao nhất 76¢); chỉ để báo trước, tiền thật xem ở Nhật ký
+const GIA_CHU = { viet: 0.05, tach: 0.06, nx: 0.3, pc: 3.7, anchor: 0.1 };   // ¢ mỗi lượt máy viết, chỉ để báo trước; tiền thật xem ở Nhật ký. Viết kịch bản + tách cảnh: số thật của ba lượt 20/11/2026 trên đường chữ studio đang đi (donk:claude-opus-5-5: 0,05¢ · 0,05¢ · 0,06¢); con số cũ 7¢ / 43¢ là của đường Claude chính hãng, đường ấy giờ chỉ chạy khi các cổng rẻ đều hỏng
 const TEN_BUOC = { astro: 'Hỏi Astrolas', brief: 'Lưu ý tưởng', viet: 'Máy viết kịch bản', tach: 'Máy tách thành cảnh', nx: 'Thử người xem', nxNhan: 'Tôi nhận kịch bản này', pc: 'Máy gợi ý phong cách', pcDung: 'Dùng gợi ý này', anchor: 'Máy đề xuất nhân vật, bối cảnh', anhMau: 'Vẽ ảnh mẫu còn thiếu',
   kf: 'Vẽ ảnh các cảnh chưa có', kf1: 'Vẽ lại ảnh cảnh này', duyet: 'Duyệt các ảnh đã có', duyet1: 'Duyệt ảnh cảnh này', giong: 'Đọc lời cả tập', animatic: 'Chốt nhịp trước khi dựng clip', clip: 'Dựng clip các cảnh đã duyệt', clip1: 'Dựng clip cảnh này', nhac: 'Sinh nhạc nền', xuat: 'Xuất video' };
 const NUT_QT = { brief: ['brief'], truyen: ['tach'], kich_ban: ['viet', 'tach'], nguoi_xem: ['nx', 'nxNhan'], phong_cach: ['pc'], mau_doi_tuong: ['anchor', 'anhMau'], mau_boi_canh: ['anchor', 'anhMau'], keyframe: ['kf', 'duyet'], giong: ['giong'], nhac: ['nhac'] };
@@ -511,15 +511,23 @@ async function chayBuoc(k) {
   if (coSua()) return bao('Có chỗ sửa chưa lưu. Bấm “Lưu về studio” trên thanh trên trước, rồi chạy bước này (chạy bước sẽ đọc lại phim từ studio).', false, 9000);
   if (gia !== 0 && E.cho !== k) { E.cho = k; E.loiBuoc = null; veBuoc(); setTimeout(() => { if (E.cho === k) { E.cho = ''; veBuoc(); } }, 8000); return bao(`${TEN_BUOC[b]}: ${gia == null ? 'bước này có tốn tiền' : `khoảng ${tienDo(gia)}`}. Bấm lần nữa để chạy.`); }
   E.cho = ''; E.dangBuoc[k] = true; E.loiBuoc = null; veBuoc();
+  const truoc = E.chuKy;
   try { await BUOC_SV[b](t, k.split(':')[1]); delete E.dangBuoc[k]; await taiLai(true); theoDoi(); }
-  catch (e) { delete E.dangBuoc[k]; E.loiBuoc = { k, loi: e.message }; await taiLai(true).catch(() => {}); }
+  catch (e) { if (e.chuaKip) { E.dangBuoc[k] = 'lau'; veBuoc(); return choBuoc(k, truoc, t.tap); } delete E.dangBuoc[k]; E.loiBuoc = { k, loi: e.message }; await taiLai(true).catch(() => {}); }
   veBuoc();
 }
+/** cổng mạng cắt câu trả lời ở 100 giây mà bước vẫn chạy bên studio (tách cảnh thật 20/11/2026: 298 giây): giữ nút ở "vẫn đang chạy", 10 giây đọc lại phim một lần, dữ liệu đổi thì hiện kết quả; quá 12 phút mới báo */
+function choBuoc(k, truoc, tap, lan = 0) { setTimeout(async () => { if (D.that?.tap !== tap || E.dangBuoc[k] !== 'lau') return;
+  try { await taiLai(false); } catch {}
+  if (D.that?.tap !== tap) return;
+  if (E.chuKy !== truoc) { delete E.dangBuoc[k]; await taiLai(true).catch(() => {}); theoDoi(); return veBuoc(); }
+  if (lan >= 72) { delete E.dangBuoc[k]; E.loiBuoc = { k, loi: 'đã chờ 12 phút mà phim chưa có gì mới. Bấm ↻ đọc lại; vẫn chưa có thì chạy lại bước này.' }; return veBuoc(); }
+  choBuoc(k, truoc, tap, lan + 1); }, 10000); }
 function nutBuoc(k) { const b = k.split(':')[0], sid = k.split(':')[1], gia = giaBuoc(k), cho = E.cho === k, ban = E.dangBuoc[k], c = sid ? GOC[sid] : null;
   const n = b === 'kf' || b === 'duyet' || b === 'clip' ? canhThieu(b).length : -1;
   const tat = ban || n === 0 || (b === 'duyet1' && !(c?.keyframe_url && (c.trang_thai === 'co_keyframe' || c.trang_thai === 'nhap'))) || (b === 'clip1' && c?.trang_thai !== 'duyet') || (b === 'pcDung' && !E.goiY);
   const ten = b === 'kf1' && c && !c.keyframe_url ? 'Vẽ ảnh cảnh này' : b === 'clip1' && c && (c.video_url || c.video_cuoi_url) ? 'Dựng lại clip cảnh này' : TEN_BUOC[b];
-  return `<button type="button" class="bt${cho ? ' chinh' : ''}" data-d="buoc" data-g="${k}" ${tat ? 'disabled' : ''}${b === 'clip1' && c?.trang_thai !== 'duyet' ? ' title="Duyệt ảnh của cảnh trước, studio mới cho dựng clip"' : ''}>${ban ? 'Đang chạy…' : cho ? `Bấm lần nữa để chạy${gia ? ` · khoảng ${tienDo(gia)}` : ''}` : `${ten}${n > 0 ? ` (${n})` : ''}${gia === 0 ? '' : gia == null ? ' · có tốn tiền' : ` · khoảng ${tienDo(gia)}`}`}</button>`
+  return `<button type="button" class="bt${cho ? ' chinh' : ''}" data-d="buoc" data-g="${k}" ${tat ? 'disabled' : ''}${b === 'clip1' && c?.trang_thai !== 'duyet' ? ' title="Duyệt ảnh của cảnh trước, studio mới cho dựng clip"' : ''}>${ban === 'lau' ? 'Vẫn đang chạy bên studio… xong sẽ tự hiện (có bước mất 5 phút)' : ban ? 'Đang chạy…' : cho ? `Bấm lần nữa để chạy${gia ? ` · khoảng ${tienDo(gia)}` : ''}` : `${ten}${n > 0 ? ` (${n})` : ''}${gia === 0 ? '' : gia == null ? ' · có tốn tiền' : ` · khoảng ${tienDo(gia)}`}`}</button>`
     + (E.loiBuoc?.k === k ? `<div class="bao">Studio không chạy bước này: ${esc(E.loiBuoc.loi)}</div>` : ''); }
 /** thứ studio đang giữ về phim này sau mỗi lần đọc: ô ý tưởng, chữ ký dữ liệu (để vòng theo dõi biết có gì đổi) */
 function datPhimThat(ds, tap) { E.cho = ''; E.dangBuoc = {}; E.loiBuoc = null; E.goiY = null; E.xuatThat = null; E.viecNx = 0; E.qtMo = ''; dungTheo(); E.kb = { brief: tachBrief(tap.brief), giay: +tap.thoi_luong_s || 45 }; E.coSo = undefined; E.cs = { cauHoi: '', nguoi: [{}] }; E.chuKy = chuKy(ds, tap); E.qt = null; }
@@ -664,7 +672,7 @@ function veQt() {
 const BUOC_NK = [['kb', 'Kịch bản', 'Kịch bản'], ['3d', '3D', '3D'], ['anh', 'Ảnh', 'Hình'], ['clip', 'Clip', 'Khung xem'], ['giong', 'Giọng', 'Giọng'], ['soat', 'Soát', 'Soát']];
 const buocLuot = (j) => (j.loai === 'anh' ? 'anh' : j.loai === 'video' || j.loai === 'nang_cap' ? 'clip' : j.loai === 'am' ? 'giong' : 'soat');
 const gioVn = (iso) => { const d = new Date(iso); if (Number.isNaN(+d)) return ''; const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', hour12: false }).formatToParts(d).map((x) => [x.type, x.value])); return `${p.hour}:${p.minute} ${p.day}/${p.month}`; };
-const tienDo = (c) => (c > 0 ? `$${(c / 100).toFixed(c < 10 ? 3 : 2)}` : '');
+const tienDo = (c) => (c > 0 ? `$${(c / 100).toFixed(c < 1 ? 4 : c < 10 ? 3 : 2)}` : '');   // dưới 1¢ hiện bốn số lẻ, không thì bước rẻ thành "$0.000"
 /** lượt còn "chờ / chạy" quá 20 phút coi là treo — không báo "đang chạy" khi máy không còn chạy thật */
 const ttLuot = (j) => (j.trang_thai === 'xong' ? ['xong', 'xong'] : j.trang_thai === 'loi' ? ['loi', 'hỏng'] : Date.now() - Date.parse(j.luc) < 20 * 60e3 ? ['dang', 'đang chạy'] : ['thieu', 'không thấy kết quả']);
 const luotCanh = (g) => (E.nk?.ds || []).filter((j) => j.canh_id === g.id);

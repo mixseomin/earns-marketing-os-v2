@@ -12,7 +12,7 @@ import type { OutreachProspect } from '@/lib/actions/outreach';
 import { buildEmailForProspect } from '@/lib/outreach-template';
 import { setProspectStatus, markFollowupSent, snoozeProspect, markFormSubmitted, updateProspectContact, updateProspectDraft } from '@/lib/actions/outreach-mutations';
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
-import { MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, ListToolbar, FilterChips, MultiSelect, type CalItem } from '@/components/ui';
+import { MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, ListToolbar, FilterChips, MultiSelect, StatsStrip, SimpleTable, type StatCard, type CalItem } from '@/components/ui';
 import { createCampaign, updateCampaign, importBacklinkTasks, type OutreachCampaign } from '@/lib/actions/outreach-campaigns';
 import { generateIdentityAI, type IdentityRow } from '@/lib/actions/identities';
 import { TaskOutreachDrawer } from '@/components/task-outreach-drawer';
@@ -304,20 +304,36 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const prospects = useMemo(() => (campId == null ? allProspects : allProspects.filter((p) => p.campaignId === campId)), [allProspects, campId]);
 
-  const kpi = useMemo(() => {
-    const c = (f: (p: OutreachProspect) => boolean) => prospects.filter(f).length;
-    const sent = c((p) => !!p.sentAt);
-    const embedded = c((p) => p.status === 'embedded');
+  // Mỗi ô số giữ đúng danh sách prospect nó đếm + cách tính bằng lời thường → bấm ô mở khung
+  // "vì sao ra con số này" (góp ý #1719). Ô đang mở nằm trên URL (?kpi=) để F5 giữ nguyên.
+  const kpiSets = useMemo(() => {
+    const pick = (f: (p: OutreachProspect) => boolean) => prospects.filter(f);
+    const sentL = pick((p) => !!p.sentAt);
+    const embL = pick((p) => p.status === 'embedded');
+    const conv = sentL.length ? Math.round((embL.length / sentL.length) * 100) : 0;
     return {
-      total: prospects.length,
-      toSend: c((p) => p.status === 'to_send'),
-      sent,
-      replied: c((p) => p.status === 'replied' || p.status === 'interested'),
-      embedded,
-      due: c(dueNow),
-      conv: sent ? Math.round((embedded / sent) * 100) : 0,
+      total: { label: 'Prospects', value: String(prospects.length), rule: 'Tất cả prospect thuộc campaign đang chọn.', items: prospects },
+      toSend: { label: 'To send', value: '', rule: 'Prospect chưa gửi email đầu (đang chờ gửi).', items: pick((p) => p.status === 'to_send') },
+      sent: { label: 'Sent', value: '', rule: 'Prospect đã có ngày gửi email đầu — kể cả những người sau đó đã trả lời hay đã nhúng.', items: sentL },
+      replied: { label: 'Replied', value: '', rule: 'Prospect đã hồi âm (trả lời hoặc tỏ ý quan tâm).', items: pick((p) => p.status === 'replied' || p.status === 'interested') },
+      embedded: { label: 'Embedded', value: '', rule: 'Site của prospect đã nhúng / đặt link (GA4 tự phát hiện hoặc đánh dấu tay).', items: embL },
+      conv: { label: 'Conv %', value: `${conv}%`, rule: `Embedded chia Sent = ${embL.length} / ${sentL.length}${sentL.length ? ` = ${conv}%` : ' (chưa gửi ai nên là 0%)'}. Danh sách dưới là các prospect đã nhúng.`, items: embL },
+      due: { label: 'Due now', value: '', rule: 'Prospect đã gửi, lịch follow-up đã tới hạn và không đang hoãn → cần gửi follow-up ngay.', items: pick(dueNow) },
     };
   }, [prospects]);
+  type KpiKey = keyof typeof kpiSets;
+  const kpi = {
+    total: kpiSets.total.items.length, toSend: kpiSets.toSend.items.length, sent: kpiSets.sent.items.length,
+    replied: kpiSets.replied.items.length, embedded: kpiSets.embedded.items.length, due: kpiSets.due.items.length,
+    conv: kpiSets.conv.value,
+  };
+  const [kpiOpen, setKpiOpenState] = useState<KpiKey | null>(() => { const k = sp.get('kpi'); return k && ['total', 'toSend', 'sent', 'replied', 'embedded', 'conv', 'due'].includes(k) ? (k as KpiKey) : null; });
+  const setKpiOpen = (k: KpiKey | null) => {
+    setKpiOpenState(k);
+    const u = new URL(window.location.href);
+    if (k) u.searchParams.set('kpi', k); else u.searchParams.delete('kpi');
+    shallowReplaceUrl(u.toString());
+  };
 
   const bases = useMemo(() => Array.from(new Set(prospects.map((p) => p.base).filter(Boolean) as string[])).sort(), [prospects]);
   const chanCounts = useMemo(() => ({
@@ -584,12 +600,11 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
     </button>
   );
 
-  const Kpi = ({ label, value, color }: { label: string; value: number | string; color?: string }) => (
-    <div style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--bg-2)', minWidth: 72 }}>
-      <div style={{ fontSize: 18, fontWeight: 800, color: color || 'var(--fg-0)' }}>{value}</div>
-      <div style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{label}</div>
-    </div>
-  );
+  const kpiCard = (k: KpiKey, value: number | string, color?: string): StatCard => ({
+    key: k, label: (kpiOpen === k ? '▾ ' : '▸ ') + kpiSets[k].label, value, color,
+    onClick: () => setKpiOpen(kpiOpen === k ? null : k), title: 'Bấm để xem cách tính + danh sách prospect làm ra con số này',
+  });
+  const kpiDetail = kpiOpen ? kpiSets[kpiOpen] : null;
 
   const activeCamp = campId != null ? campaigns.find((c) => c.id === campId) : null;
   const doImport = async () => {
@@ -632,15 +647,42 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 14px' }}>
-        <Kpi label="Prospects" value={kpi.total} />
-        <Kpi label="To send" value={kpi.toSend} />
-        <Kpi label="Sent" value={kpi.sent} color="var(--neon-cyan)" />
-        <Kpi label="Replied" value={kpi.replied} color="var(--neon-violet)" />
-        <Kpi label="Embedded" value={kpi.embedded} color="var(--neon-lime)" />
-        <Kpi label="Conv %" value={`${kpi.conv}%`} color="var(--neon-lime)" />
-        <Kpi label="Due now" value={kpi.due} color={kpi.due ? 'var(--bad)' : undefined} />
+      <div style={{ maxWidth: 760 }}>
+        <StatsStrip minColWidth={96} cards={[
+          kpiCard('total', kpi.total),
+          kpiCard('toSend', kpi.toSend),
+          kpiCard('sent', kpi.sent, 'var(--neon-cyan)'),
+          kpiCard('replied', kpi.replied, 'var(--neon-violet)'),
+          kpiCard('embedded', kpi.embedded, 'var(--neon-lime)'),
+          kpiCard('conv', kpi.conv, 'var(--neon-lime)'),
+          kpiCard('due', kpi.due, kpi.due ? 'var(--bad)' : undefined),
+        ]} />
       </div>
+      {kpiDetail && (
+        <div data-kpi-detail style={{ margin: '0 0 14px', padding: '10px 12px', borderRadius: 6, background: 'var(--bg-1)', border: '1px solid var(--line)' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+            <b style={{ fontSize: 13 }}>{kpiDetail.label}: {kpiDetail.items.length} prospect</b>
+            <span style={{ flex: 1 }} />
+            <button onClick={() => setKpiOpen(null)} style={{ ...btn, padding: '2px 8px' }}>✕ Đóng</button>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 8 }}><b>Cách tính:</b> {kpiDetail.rule}</div>
+          {kpiDetail.items.length === 0 ? (
+            <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không có prospect nào khớp.</div>
+          ) : (
+            <SimpleTable rows={kpiDetail.items} getRowKey={(p) => String(p.id)} columns={[
+              { key: 'p', header: 'Prospect', cell: (p) => (
+                <><button onClick={() => setPreview(p)} title="Mở prospect" style={{ background: 'none', border: 'none', padding: 0, color: 'var(--neon-cyan)', fontWeight: 700, cursor: 'pointer', font: 'inherit' }}>{p.agentName || p.company || p.websiteEtld1 || p.website}</button>
+                <span style={{ color: 'var(--fg-3)', marginLeft: 6 }}>{p.websiteEtld1 || hostOf(p.website)}</span></>
+              ) },
+              { key: 's', header: 'Trạng thái', cell: (p) => <Badge status={p.status} /> },
+              { key: 'g', header: 'Gửi', cell: (p) => fmtDate(p.sentAt) },
+              { key: 'r', header: 'Trả lời', cell: (p) => fmtDate(p.repliedAt) },
+              { key: 'f', header: 'Follow-up kế', cell: (p) => <span style={{ color: dueNow(p) ? 'var(--bad)' : undefined }}>{fmtDate(p.nextFollowupAt)}</span> },
+              { key: 'n', header: 'Số lần FU', align: 'right', cell: (p) => p.followupCount },
+            ]} />
+          )}
+        </div>
+      )}
 
       <ListToolbar
         search={q} onSearch={setQ} searchPlaceholder="Search agent / company / email…"

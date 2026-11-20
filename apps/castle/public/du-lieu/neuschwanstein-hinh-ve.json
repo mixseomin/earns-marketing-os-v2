@@ -1,0 +1,51 @@
+{
+ "ghi_chu": "Sổ hình vẽ cho scripts/khop-hinh.py: loai mat_bang | mat_dung | anh; tin hien_trang (được kéo mô hình) | thiet_ke (chỉ tham khảo, không kéo); cat = [x0,y0,x1,y1] px bỏ phần chú thích.",
+ "ds": [
+  {
+   "tep": "du-lieu-goc/Schloss_Neuschwanstein_-_Grundriss_der_Gesamtanlage.jpg",
+   "loai": "mat_bang",
+   "tin": "hien_trang",
+   "cat": [
+    0,
+    0,
+    2000,
+    790
+   ],
+   "nguon": "Wikimedia Commons, mặt bằng tổng thể tầng trệt",
+   "dang_ky": {
+    "s_px_m": 13.5891,
+    "xoay": 0.40204,
+    "doi": [
+     1356.5,
+     373.1
+    ],
+    "lat": false,
+    "khop_1m": 0.98,
+    "loss": 15.73
+   }
+  },
+  {
+   "tep": "du-lieu-goc/Grundriss_Parterre_Neuschwanstein.jpg",
+   "loai": "mat_bang",
+   "tin": "thiet_ke",
+   "cat": [
+    0,
+    240,
+    1600,
+    761
+   ],
+   "nguon": "Wikimedia Commons, bản thiết kế 'Neues Schloss bei Hohenschwangau' (có nhà thờ Bergfried chưa xây)",
+   "dang_ky": {
+    "s_px_m": 9.0571,
+    "xoay": 0.37149,
+    "doi": [
+     1113.19,
+     174.77
+    ],
+    "lat": false,
+    "khop_1m": 0.722,
+    "loss": 30.5
+   }
+  }
+ ]
+}

@@ -5,7 +5,7 @@ Mái OSM dựng bằng hộp bao + sống mái giữa hộp (ns.js dungKhoi) →
   1. Mỗi mặt mái LoD2: khớp lại mặt phẳng theo DOM20 20 cm bên trong mặt đó (bình phương nhỏ nhất, lặp bỏ điểm xa; LoD2 thô đo ±1 m 66% → khớp lại 75%).
   2. Đổi sang toạ độ cảnh (dời mặt bằng dx, dz + bù mốc độ cao từ so-dom20.json), chia tam giác, cắt theo mặt bằng từng khối OSM.
   3. Mỗi khối: so DOM20 − mô hình hiện tại với DOM20 − mái LoD2 trên cùng lưới 1 m (diem-mo-hinh.json). Chỉ nhận khối mái LoD2 phủ ≥ 85% mặt bằng
-     VÀ trung vị |lệch| giảm ≥ 0,25 m VÀ phân vị 90 không tệ hơn quá 0,3 m. Khối có cách dựng riêng (đầu hồi bậc, tháp góc, khối neo mặt Palas hướng sân) không đụng.
+     VÀ (trung vị |lệch| giảm ≥ 0,25 m VÀ phân vị 90 không tệ hơn quá 0,3 m — HOẶC trung vị không tệ hơn VÀ phân vị 90 giảm ≥ 0,5 m xuống ≤ 1 m). Khối có cách dựng riêng (đầu hồi bậc, tháp góc, khối neo mặt Palas hướng sân) không đụng.
   4. Ghi public/du-lieu/<lâu>-mai-lod2.json: { khoi: { id: { y0 (mái thấp nhất = nắp lấp), y1 (máng xối), y2, mat: [[x, z, y] × 3 …], tuong: [[x1, z1, yd1, yt1, x2, z2, yd2, yt2] …] } } }
      — ns.js dựng mái từ đó (tường khối lên tới y1 = chỗ mái thấp nhất, phần trên tới mép mái là dải tường "tuong").
   ~/.venvs/castle-khop/bin/python apps/castle/scripts/mai-lod2.py [--ghi] [--tu-kiem]
@@ -128,23 +128,30 @@ for k in K['ds']:
         if math.hypot(pl3[0], pl3[1]) > 3: continue  # mặt dốc > 72°: tường / vách LoD2 lẫn vào mái (nhà chân Viereckturm có mảnh sát chân tường → nắp rơi xuống móng, 20/11/2026)
         manh.append((q, pl3))
     if not manh: continue
-    em, el, co, sau = [], [], 0, []
+    em, el, co, sau, ngoai = [], [], 0, [], 0
+    thap = min(float(np.min(q[:, 0] * pl3[0] + q[:, 1] * pl3[1] + pl3[2])) for q, pl3 in manh)  # mặt mái LoD2 thấp nhất trong mặt bằng
     for x, z, y in k['d']:
         d = cao_dom(x, z); h = cao_mai(x, z, manh)
-        if h is None: continue
+        if h is None:
+            if d < thap - 3: ngoai += 1  # mặt bằng OSM chìa ra ngoài nhà thật (DOM20 rơi xuống đất / mái dưới): không tính là LoD2 thiếu mái (223110824: mép nam thừa 1 m → phủ 0,77, 20/11/2026)
+            continue
         co += 1; em.append(d - y); el.append(d - h)
         if cach_mep(x, z, v) >= 1.5: sau.append(d - h)
-    phu = co / len(k['d'])
+    phu = co / max(1, len(k['d']) - ngoai)
     if co < 6: continue
     am, al = np.abs(em), np.abs(el); r = {'id': k['id'], 'ten': k.get('ten'), 'diem': len(k['d']), 'phu': round(phu, 2), 'mh': round(float(np.median(am)), 2), 'l2': round(float(np.median(al)), 2),
                                          'mh90': round(float(np.percentile(am, 90)), 2), 'l290': round(float(np.percentile(al, 90)), 2)}
     kt = KT.get(k['id']); yk = np.array([y for _, _, y in k['d']]); tren = float(np.mean(yk > np.percentile(yk, 5) + 3))  # phần mặt bằng có khối KHÁC đứng trên: mái phẳng thì mọi tia từ trên (mô hình OSM, trước LoD2) phải dừng cùng một mặt; > 3 m trên mặt thấp nhất = trúng khối đặt lên (tháp tròn trên thân vuông)
-    r['nhan'] = k['id'] not in RIENG and phu >= 0.85 and r['l2'] + 0.25 <= r['mh'] and r['l290'] <= r['mh90'] + 0.3
+    r['nhan'] = k['id'] not in RIENG and phu >= 0.85 and (r['l2'] + 0.25 <= r['mh'] and r['l290'] <= r['mh90'] + 0.3 or r['l2'] <= r['mh'] and r['l290'] + 0.5 <= r['mh90'] and r['l290'] <= 1.0)  # hoặc: trung vị đã tốt, LoD2 sửa phần đuôi (mái sai dáng ở mép — Kemenate p90 1,2 → 0,28 m, 20/11/2026)
     sau_tv = float(np.median(sau)) if len(sau) >= 4 else 0.0  # cùng phép đo với trọng tài (sua-theo-dom20 --kiem: điểm sâu ≥ 1,5 m, trung vị có dấu): mái LoD2 phải tự qua bài đó, không chỉ thắng mô hình cũ trên cả mép
     if abs(sau_tv) >= 1.0: r['nhan'] = False; r['ly_do'] = f'phần sâu lệch {sau_tv:+.1f}'
     if (kt or {}).get('mai') == 'flat' and tren > 0.5 and r['l290'] > 3: r['nhan'] = False; r['ly_do'] = f'khối khác đứng trên {tren:.0%}'  # thân vuông Viereckturm: mặt LoD2 trên mặt bằng là tháp tròn + chóp (khối riêng) → nâng thân lên 70 m, hàng cửa đo ảnh lơ lửng (20/11/2026); khối đặt lên mà mái LoD2 vẫn khớp DOM20 ở 90% điểm (Torbau: 0,39 m) thì giữ
     r['ly_do'] = r.get('ly_do') or ('cách dựng riêng' if k['id'] in RIENG else 'mái nón/chóp' if k['id'] in CHOP else None)
-    r['nhan'] = r['nhan'] and k['id'] not in CHOP; bang.append(r)
+    # nhãn chóp OSM chỉ là đoán: chóp thật mà LoD2 mất mũi thì DOM20 vượt mái LoD2 ở giữa → p90 lớn. LoD2 bám DOM20 (p90 ≤ 0,6 m) trong khi
+    # chóp OSM lệch ≥ 1 m = khối KHÔNG có chóp (223110824 cạnh Kemenate: chóp đen 12 m, thật là mái hông thấp 44,8–46,5 m, 20/11/2026)
+    chop_that = k['id'] in CHOP and not (r['l290'] <= 0.6 and r['mh'] >= 1.0)
+    if k['id'] in CHOP and not chop_that and r['ly_do'] == 'mái nón/chóp': r['ly_do'] = None
+    r['nhan'] = r['nhan'] and not chop_that; bang.append(r)
     if not r['nhan']: continue
     ys = [pl3[0] * x + pl3[1] * z + pl3[2] for p, pl3 in manh for x, z in p]; y2 = max(ys)
     # y1 = MÁNG XỐI: trung vị mặt mái ngay trong viền khối (0,3 m, mỗi 0,5 m) — không lấy min mọi đỉnh mảnh: một mái phụ thấp lọt vào mặt bằng

@@ -76,8 +76,10 @@ export function ThanhO({ chinh, phu = [], tim, setTim, dem, them, goiYTim = 'Tì
  *  · ngoài ô widget (trang thường): một hàng flex-wrap như trước — chinh, phu, nút bỏ lọc, phai dạt phải;
  *  · trong ô widget: một hàng mỏng — chinh trên hàng (ô hẹp < 520 px thì gập luôn), phu gập vào nút "Lọc" (kèm số bộ lọc đang bật), phai thành số nhỏ.
  *  trongBang: hàng này đặt vào khe dauThanh của DataTable (cùng hàng với 🔍 / ⚙ của bảng) → không vẽ khung hàng riêng. */
-export function HangLoc({ chinh, phu, phai, soLoc = 0, boLoc, trongBang }: { chinh?: ReactNode; phu?: ReactNode; phai?: ReactNode; soLoc?: number; boLoc?: () => void; trongBang?: boolean }) {
-  const rong = useKhungO(); const nut = useRef<HTMLButtonElement | null>(null); const [mo, setMo] = useState(false);
+export function HangLoc({ chinh, phu, phai, soLoc = 0, boLoc, trongBang, tim }: { chinh?: ReactNode; phu?: ReactNode; phai?: ReactNode; soLoc?: number; boLoc?: () => void; trongBang?: boolean;
+  /** ô tìm của hàng: trong ô widget thu thành 🔍, bấm mới bung (ngoài ô bên gọi tự vẽ ô tìm của mình) */
+  tim?: { v: string; doi: (s: string) => void; goiY?: string } }) {
+  const rong = useKhungO(); const nut = useRef<HTMLButtonElement | null>(null); const [mo, setMo] = useState(false); const [moTim, setMoTim] = useState(false);
   const nutBo = soLoc > 0 && boLoc ? <button type="button" onClick={boLoc} style={{ border: 0, background: 'none', color: 'var(--accent, #60a5fa)', cursor: 'pointer', fontSize: 12, flex: 'none' }}>bỏ lọc</button> : null;
   if (!rong) return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>{chinh}{phu}{nutBo}{phai != null && <span style={{ marginLeft: 'auto' }}>{phai}</span>}</div>;
   const hep = rong < 520, coPhu = !!phu || (hep && !!chinh);
@@ -91,6 +93,10 @@ export function HangLoc({ chinh, phu, phai, soLoc = 0, boLoc, trongBang }: { chi
     </>}
     {!coPhu && nutBo}
     {phai != null && <span className="hm-dem" style={trongBang ? undefined : { marginLeft: 'auto' }}>{phai}</span>}
+    {tim && (moTim || tim.v
+      ? <input autoFocus={moTim && !tim.v} className="hm-tim" value={tim.v} placeholder={tim.goiY ?? 'Tìm…'} onChange={(e) => tim.doi(e.target.value)} onBlur={() => { if (!tim.v) setMoTim(false); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { tim.doi(''); setMoTim(false); } }} style={phai == null && !trongBang ? { marginLeft: 'auto' } : undefined} />
+      : <button type="button" className="hm-chip" title={tim.goiY ?? 'Tìm'} aria-label={tim.goiY ?? 'Tìm'} onClick={() => setMoTim(true)} style={phai == null && !trongBang ? { marginLeft: 'auto' } : undefined}>🔍</button>)}
   </>;
   return trongBang ? than : <div className="hm-thanh">{than}</div>;
 }

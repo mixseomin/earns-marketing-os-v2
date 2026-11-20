@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback, type CSSProperties, type Reac
 import { MonthCalendar, type CalItem } from '@/components/ui/month-calendar';
 import { StatsStrip } from './ui/stats-strip';
 import { DataTable, type DataColumn } from './ui/data-table';
+import { HangLoc, useKhungO } from '@/components/home/khung-o';
 
 interface Auth { spf: boolean; dkim: boolean; dmarc: string | null }
 interface PmPoint { date: string; reputation: string | null; spam: number | null; dkim: number | null; spf: number | null; dmarc: number | null }
@@ -683,22 +684,9 @@ export function DeliverabilityCard({ chi }: { chi?: ChiDeliverability } = {}) {
     } },
   ];
 
-  return (
-    <div style={chi ? undefined : { margin: '0 0 16px', padding: '11px 14px 6px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)' }}>
-      {(!chi || chi === 'table') && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
-        {!chi && <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>✉️ Email deliverability</span>
-          <div style={{ display: 'inline-flex', gap: 2, background: 'var(--bg-1)', borderRadius: 6, padding: 2 }}>
-            {(['table', 'warmup', 'calendar', 'engagement'] as const).map((v) => (
-              <button key={v} onClick={() => setView(v)}
-                style={{ ...mono, fontSize: 10, padding: '2px 9px', borderRadius: 4, border: 'none', cursor: 'pointer',
-                  background: view === v ? 'var(--bg-2)' : 'transparent', color: view === v ? 'var(--fg-0)' : 'var(--fg-3)', fontWeight: view === v ? 700 : 400 }}>
-                {v === 'table' ? 'Domains' : v === 'warmup' ? '🔥 Warm-up' : v === 'calendar' ? '📅 Calendar' : '📊 Engagement'}
-              </button>
-            ))}
-          </div>
-        </div>}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+  // TRONG Ô WIDGET /home: hàng thêm domain + đo placement vào chính thanh công cụ bảng Domain (một hàng; đo + Postmaster gập vào Lọc)
+  const trongO = useKhungO() > 0;
+  const oNhap = <>
           {addMsg && <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>{addMsg}</span>}
           <input
             value={newDomain}
@@ -713,6 +701,8 @@ export function DeliverabilityCard({ chi }: { chi?: ChiDeliverability } = {}) {
             style={{ ...mono, fontSize: 11, padding: '3px 10px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: adding ? 'var(--fg-3)' : 'var(--accent, #37d4c2)', cursor: adding ? 'default' : 'pointer' }}>
             {adding ? '…' : '+ Register'}
           </button>
+  </>;
+  const oKhac = <>
           <button onClick={runPlacement} disabled={measuring}
             title="Send a probe from every sending domain to your seed inboxes and save inbox-vs-spam placement (~2 min). Occasional re-check — not per load."
             style={{ ...mono, fontSize: 11, padding: '3px 10px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: measuring ? 'var(--fg-3)' : 'var(--accent, #37d4c2)', cursor: measuring ? 'default' : 'pointer' }}>
@@ -721,7 +711,23 @@ export function DeliverabilityCard({ chi }: { chi?: ChiDeliverability } = {}) {
           <a href="https://postmaster.google.com/managedomains" target="_blank" rel="noopener noreferrer"
             title="Open Google Postmaster Tools"
             style={{ ...mono, fontSize: 10, color: 'var(--fg-2)', textDecoration: 'none' }}>Postmaster ↗</a>
-        </div>
+  </>;
+  return (
+    <div style={chi ? undefined : { margin: '0 0 16px', padding: '11px 14px 6px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)' }}>
+      {(!chi || chi === 'table') && !(trongO && chi) && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
+        {!chi && <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>✉️ Email deliverability</span>
+          <div style={{ display: 'inline-flex', gap: 2, background: 'var(--bg-1)', borderRadius: 6, padding: 2 }}>
+            {(['table', 'warmup', 'calendar', 'engagement'] as const).map((v) => (
+              <button key={v} onClick={() => setView(v)}
+                style={{ ...mono, fontSize: 10, padding: '2px 9px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                  background: view === v ? 'var(--bg-2)' : 'transparent', color: view === v ? 'var(--fg-0)' : 'var(--fg-3)', fontWeight: view === v ? 700 : 400 }}>
+                {v === 'table' ? 'Domains' : v === 'warmup' ? '🔥 Warm-up' : v === 'calendar' ? '📅 Calendar' : '📊 Engagement'}
+              </button>
+            ))}
+          </div>
+        </div>}
+        {!trongO && <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>{oNhap}{oKhac}</div>}
       </div>}
       {view === 'engagement' ? (
         <EngagementPanel />
@@ -740,7 +746,8 @@ export function DeliverabilityCard({ chi }: { chi?: ChiDeliverability } = {}) {
       ) : view === 'calendar' ? (
         <CalendarView rows={d.rows} />
       ) : (
-      <DataTable rows={domainRows} columns={domainCols} getRowKey={(r) => r.domain} card defaultView="table" persistKey="deliverability_domains" />
+      <DataTable rows={domainRows} columns={domainCols} getRowKey={(r) => r.domain} card defaultView="table" persistKey="deliverability_domains"
+        dauThanh={trongO && chi ? <HangLoc trongBang chinh={oNhap} phu={oKhac} /> : undefined} />
       )}
       {viewDomain && (
         <MailwizzDrawer domain={viewDomain} data={mw} err={mwErr} onClose={() => setViewDomain(null)} onPreview={openPreview} onChanged={() => { setMwNonce((n) => n + 1); load(); }} />

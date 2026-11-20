@@ -12,6 +12,7 @@
 // COLOUR: everything here is neutral by default (YDNI colour discipline). The ONLY accent is the
 // active filter chip. Pagination/search/toolbar are chrome → grey. Don't paint them.
 
+import { HangLoc, useKhungO } from '@mos2/bang/khung-o';
 import { type ReactNode } from 'react';
 import { urlVoiParam } from '@/lib/url-mo-tab';
 import { Segmented } from './segmented';
@@ -49,6 +50,8 @@ export function ListToolbar({ children, search, onSearch, searchPlaceholder, sea
   searchAutoFocus?: boolean;
   right?: ReactNode;
 }) {
+  // trong ô widget /home (khung-o.tsx): MỘT hàng mỏng — chip / ô chọn của hàng giữ trên hàng (ô hẹp gập vào Lọc), ô tìm thu thành 🔍
+  if (useKhungO() > 0) return <div data-comp="ui.ListToolbar"><HangLoc chinh={children} phai={right} tim={onSearch ? { v: search ?? '', doi: onSearch, goiY: searchPlaceholder } : undefined} /></div>;
   return (
     <div data-comp="ui.ListToolbar" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
       {children}

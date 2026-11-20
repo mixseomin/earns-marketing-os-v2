@@ -65,9 +65,9 @@ async function Phu({ n, phan }: { n: Ngu; phan: PhuPhan }) {
 async function LichDoanhThu() {
   const byDay = await docThuTheoNgay(30);
   return (<>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 6, fontSize: 11, color: 'var(--fg-3)' }}>
-      <span>30 ngày gần nhất · mọi nguồn</span>
-      <Link href="/revenue" prefetch={false} style={{ color: 'var(--accent)', textDecoration: 'none' }}>Lịch chi tiết →</Link>
+    {/* một dòng mỏng góc phải: khoảng 30 ngày nằm ở hover, không chiếm cả một hàng chữ */}
+    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 2, fontSize: 11, lineHeight: '14px' }}>
+      <Link href="/revenue" prefetch={false} title="30 ngày gần nhất · mọi nguồn" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Lịch chi tiết →</Link>
     </div>
     <RevenueCalendar rows={byDay.rows} errors={byDay.errors} scannedNetworks={byDay.scannedNetworks} foldCalendar />
   </>);

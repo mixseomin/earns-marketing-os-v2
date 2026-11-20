@@ -94,6 +94,9 @@
 .hm-ob [data-panel-dau] { flex-wrap: nowrap !important; align-items: center !important; margin-bottom: 6px !important; min-width: 0; }
 .hm-ob [data-panel-ten] { font-size: 12px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .hm-ob [data-panel-phu] { display: none; }
+/* nhãn một dòng (Pill) dài hơn ô hẹp thì cắt "…" (chữ đủ ở hover) — trước đó kéo cả ô cuộn ngang (Sức khoẻ đăng +92 px, đo 20/11/2026) */
+.hm-ob [data-comp="ui.Pill"] { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.hm-ob [data-comp="ui.Pill"] > span:last-child { overflow: hidden; text-overflow: ellipsis; }
 .hm-ob [data-panel-dau] > div { flex-wrap: nowrap !important; overflow: hidden; }
 /* Tiêu đề dính CHỈ cho bảng tự dựng (bảng phủ…). Bảng nhà DataTable (.dt-dau / .dt-scroll) đã tự lo dính tiêu đề + thanh lọc + thanh trang theo khung cuộn gần nhất —
    ép thêm ở đây làm dòng tiêu đề đè lên thanh tìm kiếm của bảng (anh 20/11/2026, ảnh bảng Lượt đăng). */

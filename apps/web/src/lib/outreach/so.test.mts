@@ -75,6 +75,7 @@ assert.ok(hong((v) => { v.emails[1]!.body += ' we scraped your ads'; }), 'lộ c
 assert.ok(hong((v) => { v.emails[0]!.body += ' https://anglebrief.net/guides/hiking-boots-ad-hooks'; }), 'thư đầu không được có link');
 assert.ok(hong((v) => { v.emails[1]!.body = tu(30); }), 'thư 2 thiếu link miễn phí');
 assert.ok(hong((v) => { v.emails[1]!.body += ' https://evil.example/x'; }), 'link ngoài kế hoạch');
+assert.ok(hong((v) => { v.emails[1]!.body = `${tu(30)} see https://anglebrief.net/guides/hiking-boots-ad-hooks now`; }), 'link nằm giữa câu');
 assert.ok(hong((v) => { v.emails[2]!.body += ' https://anglebrief.net/r/hiking-boots'; }), 'thư 3 không được gắn link bán');
 assert.ok(hong((v) => { v.emails[0]!.body += ' only $24'; }), 'nêu giá trước thư cuối');
 assert.ok(hong((v) => { v.emails[0]!.subject = 'Re: your ad'; }), 'tiêu đề giả thư trả lời');

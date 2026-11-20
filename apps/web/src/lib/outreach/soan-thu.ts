@@ -13,7 +13,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { goiAi, MO_HINH } from '@mos2/cong-ai';
-import { keHoachChuoi, kiemChuoi, type BuocThu, type LoiChao, type ThuChuoi } from './thuan';
+import { BAN_SOAN, keHoachChuoi, kiemChuoi, type BuocThu, type LoiChao, type ThuChuoi } from './thuan';
 export { kiemChuoi };
 export type { LoiChao, ThuChuoi };
 
@@ -24,7 +24,7 @@ const SCHEMA_CHAM = { type: 'object', additionalProperties: false, required: ['d
 function moTaBuoc(k: BuocThu, i: number, kh: BuocThu[], c: LoiChao): string {
   const tu = `${k.tu[0]}-${k.tu[1]} words`, dau = i === 0, cuoi = i === kh.length - 1 && k.link === 'ban';
   const tieuDe = k.moi ? 'Subject: 2-5 words, lower-case, specific to them, something a colleague could plausibly send, no question mark.' : 'Subject: empty string (it is sent as a reply in the previous thread).';
-  if (dau) return `EMAIL 1 (${tu}): open with "Hi <brand name> team," on its own line. Do not start any sentence in this email with "I" or "We". First sentence: restate, in your own plain words and without quotation marks, the main promise of THEIR ad (use only claims that appear in their ad copy). Then, naming the basis once${c.co_so ? ` ("${c.co_so}")` : ''}, give ONE buyer finding from the list that their ad does not cover and why it matters for their next ad test. ${k.link === 'mien_phi' && c.link_mien_phi ? `Then one soft line offering the free guide with this exact link on its own line: ${c.link_mien_phi}` : `End with ONE short question they can answer in five words or fewer, offering to send the free guide (for example "Want me to send it over?"). No links at all in this email.`} ${tieuDe}`;
+  if (dau) return `EMAIL 1 (${tu}): open with "Hi <brand name> team," on its own line. Do not start any sentence in this email with "I" or "We". First sentence: restate, in your own plain words and without quotation marks, the main promise of THEIR ad (use only claims that appear in their ad copy). Then, naming the basis once${c.co_so ? ` ("${c.co_so}")` : ''}, give ONE buyer finding from the list that their ad does not cover and why it matters for their next ad test. ${k.link === 'mien_phi' && c.link_mien_phi ? `Then one soft line offering the free guide with this exact link on its own line: ${c.link_mien_phi}` : `End with ONE short question they can answer in five words or fewer that NAMES what you would send (for example "Want the free ad hooks guide?"), never a vague "it". No links at all in this email.`} ${tieuDe}`;
   if (k.link === 'mien_phi') return `EMAIL ${i + 1} (${tu}, a few days later, same thread): must read fine on its own and must NOT mention any earlier email. Give one DIFFERENT finding from the list in one or two sentences as a test idea for their ads${c.link_mien_phi ? `, then say the free guide is here and put this exact link on its own line: ${c.link_mien_phi}` : ''}. No question needed. ${tieuDe}`;
   if (cuoi) return `EMAIL ${i + 1} (${tu}, same thread as the email before it): must NOT mention any earlier email and must not say this is a last message. In one or two sentences say the full ${c.ngach ?? ''} report covers the rest (personas, objections, hooks)${c.gia ? `, ${c.gia}` : ''}${c.link_ban ? `, and put this exact link on its own line: ${c.link_ban}` : ''}. Calm, no pressure. ${tieuDe}`;
   return `EMAIL ${i + 1} (${tu}, a NEW thread with its own subject): must read fine on its own and must NOT mention any earlier email. Open with "Hi <brand name> team,". Take a DIFFERENT angle from the list (an objection or a buying trigger not used before) and turn it into one concrete ad test for them. End with ONE short question answerable in five words or fewer. No links. ${tieuDe}`;
@@ -89,7 +89,7 @@ export async function soanChuoi(campaignId: number, so: number, lai?: number, la
   if (!cd) return { ...ra, ok: false, loi: 'Không thấy chiến dịch này.' };
   const c = cd.cau_hinh?.chao;
   if (!c?.ben_gui || !c.ky_ten || !c.phat_hien?.length) return { ...ra, ok: false, loi: 'Chiến dịch chưa có lời chào (bên gửi, tên ký, các phát hiện được nêu) nên máy chưa soạn được thư.' };
-  const kh = keHoachChuoi(Number(cd.so_nhac ?? 2) + 1, c.link_dau === true), ban = `kh${kh.length}${c.link_dau ? 'l' : ''}-2`;   // dấu bản kế hoạch: đổi kế hoạch thì "làm lại" biết người nào còn bản cũ
+  const kh = keHoachChuoi(Number(cd.so_nhac ?? 2) + 1, c.link_dau === true), ban = `kh${kh.length}${c.link_dau ? 'l' : ''}-${BAN_SOAN}`;   // dấu bản kế hoạch: đổi kế hoạch thì "làm lại" biết người nào còn bản cũ
   const chuaCo = sql`p.status = 'to_send' and not (p.du_lieu ? 'chuoi')`, banCu = sql`p.status = 'to_send' and coalesce(p.du_lieu->'soan'->>'ke_hoach', '') <> ${ban}`;
   const dk = lai ? sql`p.id = ${lai}` : lamLai ? banCu : chuaCo;
   const ds = (await db.execute(sql`
@@ -97,7 +97,8 @@ export async function soanChuoi(campaignId: number, so: number, lai?: number, la
     from outreach_prospects p where p.campaign_id = ${campaignId} and p.email is not null and p.email <> '' and p.sent_at is null and ${dk} order by p.id limit ${Math.max(1, Math.min(25, so))}`)) as unknown as Nhan[];
 
   const sys = cauLenh(c, kh), schema = schemaChuoi(kh.length);
-  const thang = (x: string) => x.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").trim();   // nháy cong → nháy thẳng
+  // nháy cong → nháy thẳng; dấu câu dính ngay sau link ở cuối dòng thì bỏ (link dính dấu chấm dễ gãy)
+  const thang = (x: string) => x.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'").replace(/(https?:\/\/\S+?)[.,;:!?]+(\s*)$/gm, '$1$2').trim();
   const viet = async (p: Nhan, them = '') => {
     const r = await goiAi<{ hop: 'yes' | 'no'; ly_do: string; emails: { subject: string; body: string }[] }>(
       { viec: 'mos2-outreach-soan-thu', model: MO_HINH.haiku, max_tokens: 1800, system: sys, noi_dung: deBai(p, c) + them, schema },

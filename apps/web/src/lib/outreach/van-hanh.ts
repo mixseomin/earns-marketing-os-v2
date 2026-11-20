@@ -6,6 +6,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { moSpy } from '@/lib/ke-hoach-goc';
 import { KIEU, maKieu } from './kieu';
+import { BAN_SOAN } from './thuan';
 import { guiThuOutreach, mienCua } from './gui';
 import type { LoiChao, ThuChuoi } from './soan-thu';
 
@@ -90,7 +91,7 @@ export async function docMotChienDich(id: number, soNhap = 5): Promise<MotChienD
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.status = 'to_send' and p.email is not null and p.email <> '' and not (p.du_lieu ? 'chuoi')) as chua_soan,
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.status = 'khong_hop') as khong_hop,
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.status = 'to_send' and p.sent_at is null and p.du_lieu ? 'chuoi'
-              and coalesce(p.du_lieu->'soan'->>'ke_hoach', '') <> ('kh' || least(4, c.max_followups + 1)::text || case when coalesce((c.cau_hinh->'chao'->>'link_dau')::boolean, false) then 'l' else '' end || '-2')) as ban_cu
+              and coalesce(p.du_lieu->'soan'->>'ke_hoach', '') <> ('kh' || least(4, c.max_followups + 1)::text || case when coalesce((c.cau_hinh->'chao'->>'link_dau')::boolean, false) then 'l' else '' end || ${`-${BAN_SOAN}`})) as ban_cu
     from outreach_campaigns c where c.id = ${id} limit 1`)) as unknown as Record<string, unknown>[])[0];
   if (!c) return null;
   const ch = (c.cau_hinh ?? {}) as { chao?: LoiChao; ngach?: MotChienDich['ngach']; da_xet?: string[]; phanh?: { ly_do?: string; luc?: string } };

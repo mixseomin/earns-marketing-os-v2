@@ -5,6 +5,7 @@
 // /p/<id>/phu chỉ còn redirect); trang chủ cầm tab + số tổng + project, đây chỉ vẽ MỘT phần (`phan`).
 // Sửa gì cũng qua Drawer (quy ước UI nhà), số liệu đổ vào từ /api/phu/ingest + /api/phu/postback, chỉ đọc bảng phu_*.
 
+import { APP_TZ } from '@/lib/local-day';
 import { useEffect, useState, useTransition } from 'react';
 import { Collapsible, Drawer, EmptyState, Pager, Panel, Pill, SearchInput, SelectField, TextAreaField, TextField, usePaged } from '@/components/ui';
 import type { PhuCamp, PhuData, PhuLuat, PhuNguon, PhuNguonCamp, PhuPlatform, PhuZone } from '@/lib/phu-shared';
@@ -22,7 +23,8 @@ const mono: React.CSSProperties = { fontFamily: 'var(--font-mono)' };
 const lienKetNho: React.CSSProperties = { background: 'none', border: 0, padding: 0, cursor: 'pointer', color: 'var(--fg-3)', fontSize: 10, textDecoration: 'underline' };
 const btn: React.CSSProperties = { padding: '4px 10px', fontSize: 11, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer' };
 const usd = (v: number) => (v ? `$${v.toFixed(2)}` : '—');
-const khi = (iso: string | null) => (iso ? new Date(iso).toLocaleString('vi-VN', { hour12: false }).replace(/:\d\d( |$)/, ' ') : '—');
+// giờ VN cố định (APP_TZ): không khai múi giờ thì máy chủ (UTC) và trình duyệt (GMT+7) in hai giờ khác nhau → lệch 7 tiếng lúc máy chủ vẽ + React báo lệch hydrate #418 (đo trên /home 20/11/2026)
+const khi = (iso: string | null) => (iso ? new Date(iso).toLocaleString('vi-VN', { hour12: false, timeZone: APP_TZ }).replace(/:\d\d( |$)/, ' ') : '—');
 const cu = (iso: string | null, phut: number) => !iso || Date.now() - new Date(iso).getTime() > phut * 60_000;
 
 /** 'lander' / 'adapter' = từng nửa của 'hatang' — widget /home vẽ riêng từng bảng (anh 20/11/2026) */

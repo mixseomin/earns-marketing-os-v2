@@ -4,7 +4,7 @@
 // Bài thử SỬA bố cục màn "Hạ tầng phủ" của tài khoản đang dùng rồi tự trả về mặc định ở bước 11 (đầu bài cũng dọn bản thử cũ nếu lượt trước chết giữa chừng).
 //
 // Cách chạy (máy làm việc, cần Playwright — mượn của courseforge-demo như ~/bin/do-man, đổi bằng DO_MAN_PW):
-//   1. đường hầm tới box3:   ssh -f -N -L 13821:127.0.0.1:3821 root@167.233.241.16      (máy đã có sẵn đường hầm cổng 13821 thì bỏ qua)
+//   1. đường hầm tới box3:   ssh -f -N -L 13821:127.0.0.1:3821 root@167.233.241.16      (hoặc chạy thẳng tên miền thật: HOME_GOC=https://mos2.on.tc)
 //   2. phiên 15 phút (CLAUDE.md › Phiên đo màn): INSERT auth_sessions (session_token, user_id, expires_at) → lấy token
 //   3. node scripts/thu-home.mjs <token>          (HOME_GOC=http://127.0.0.1:13821 mặc định)
 import { createRequire } from 'node:module';
@@ -13,7 +13,8 @@ const { chromium } = require(process.env.DO_MAN_PW ?? `${process.env.HOME}/Me/Ea
 const GOC = process.env.HOME_GOC ?? 'http://127.0.0.1:13821', tk = process.argv[2];
 if (!tk) { console.error('thiếu token phiên: node scripts/thu-home.mjs <token>'); process.exit(2); }
 
-const b = await chromium.launch(), ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+// UA trình duyệt thường: qua tên miền thật Cloudflare chặn UA "HeadlessChrome"
+const b = await chromium.launch(), ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36' });
 await ctx.addCookies([{ name: 'mos2-session', value: tk, url: GOC }]);
 const p = await ctx.newPage(); const loi = []; p.on('pageerror', (e) => loi.push(String(e).slice(0, 160)));
 let hong = 0;
@@ -24,7 +25,8 @@ const keo = async (chon, dx, dy, lech = [5, 5]) => { const d = await p.locator(c
 const MAC_B2 = '0,0,48,40', MAC_B5 = '24,40,24,32';
 const veMacDinh = async () => { await p.locator('.hm-the button', { hasText: 'Khung' }).click(); await p.locator('.hm-nut', { hasText: 'Về mặc định' }).click(); await p.waitForTimeout(2500); };
 
-await p.goto(`${GOC}/home?man=hatang`, { waitUntil: 'networkidle', timeout: 60000 }); await p.waitForTimeout(800);
+// không đợi networkidle: trang có vòng làm mới nền nên qua tên miền thật mạng không bao giờ "lặng" — đợi ô đầu tiên vẽ xong
+await p.goto(`${GOC}/home?man=hatang`, { waitUntil: 'domcontentloaded', timeout: 90000 }); await p.waitForSelector('.hm-o[data-ma="B2"]', { timeout: 60000 }); await p.waitForTimeout(1500);
 if ((await o('B2')) !== MAC_B2) { await p.keyboard.press(']'); await veMacDinh(); await p.keyboard.press(']'); console.log('· dọn bản thử cũ:', await o('B2')); }
 const dau = await o('B2');
 await buoc(`bố cục dựng sẵn B2 = ${MAC_B2}`, () => dau === MAC_B2 || `!${dau}`);
@@ -33,7 +35,7 @@ await buoc('kéo B2 xuống, bắt dính lưới 12×18', async () => { await ke
 const sauKeo = await o('B2');
 await buoc('đổi cỡ B2 từ góc dưới phải', async () => { await keo('.hm-o[data-ma="B2"] .hm-tay[data-h="se"]', -125, -65); const v = await o('B2'); return v !== sauKeo ? v : false; });
 const sauCo = await o('B2');
-await buoc('F5 vẫn giữ bố cục vừa sửa (đã lưu máy chủ)', async () => { await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(600); const v = await o('B2'); return v === sauCo ? v : `!mong ${sauCo}, thấy ${v}`; });
+await buoc('F5 vẫn giữ bố cục vừa sửa (đã lưu máy chủ)', async () => { await p.reload({ waitUntil: 'domcontentloaded' }); await p.waitForSelector('.hm-o[data-ma="B2"]', { timeout: 60000 }); await p.waitForTimeout(1200); const v = await o('B2'); return v === sauCo ? v : `!mong ${sauCo}, thấy ${v}`; });
 await buoc('đổi cỡ B5 từ cạnh trái', async () => { const t = await o('B5'), d = await p.locator('.hm-o[data-ma="B5"] .hm-tay[data-h="w"]').boundingBox(); await keo('.hm-o[data-ma="B5"] .hm-tay[data-h="w"]', 117, 0, [3, d.height / 2]); const v = await o('B5'); return v !== t ? `${t} → ${v}` : false; });
 await buoc('Ctrl+Z hoàn tác bước vừa rồi', async () => { await p.keyboard.press('Control+z'); await p.waitForTimeout(700); const v = await o('B5'); return v === MAC_B5 ? v : `!mong ${MAC_B5}, thấy ${v}`; });
 await buoc('Kho widget: thêm A1, ruột do máy chủ vẽ lên', async () => { await p.locator('.hm-kho', { hasText: 'Dải số chính' }).click(); await p.waitForSelector('.hm-o[data-ma="A1"]', { timeout: 8000 }); await p.waitForFunction(() => !document.querySelector('.hm-o[data-ma="A1"] .hm-cho'), null, { timeout: 30000 }); return (await p.locator('.hm-o[data-ma="A1"] [data-comp="ui.StatsStrip"]').count()) === 1; });
@@ -45,7 +47,7 @@ await buoc('Ctrl+K: gõ "tien" + Enter → sang màn Tiền', async () => { awai
 await buoc('link trong widget mở trang nhúng, không rời /home', async () => { await p.locator('a', { hasText: 'Lịch chi tiết' }).click(); await p.waitForSelector('iframe.hm-nhung', { timeout: 8000 }); const u = new URL(p.url()); return u.pathname === '/home' && u.searchParams.get('tr') === '/revenue' ? u.pathname + u.search : `!${p.url()}`; });
 await buoc('trang nhúng bỏ khung ngoài (topbar ẩn)', async () => { await p.waitForTimeout(3000); const f = p.frames().find((x) => x.url().includes('/revenue')); if (!f) return '!không thấy khung trang nhúng'; return await f.evaluate(() => { const t = document.querySelector('.topbar'); return document.documentElement.hasAttribute('data-nhung') && (!t || getComputedStyle(t).display === 'none'); }); });
 // màn Agents: ô nhóm M do MOS2 tự vẽ từ dữ liệu cty (components/agents/*) — KHÔNG có khung nhúng nào; mỗi ô có đúng một hàng lọc mỏng (ThanhO)
-await buoc('màn Agents: widget tự vẽ, không khung nhúng, mỗi ô một hàng lọc', async () => { await p.goto(`${GOC}/home?man=agents`, { waitUntil: 'networkidle', timeout: 90000 }); await p.waitForSelector('.hm-o[data-ma="M2"] .ag-o', { timeout: 60000 });
+await buoc('màn Agents: widget tự vẽ, không khung nhúng, mỗi ô một hàng lọc', async () => { await p.goto(`${GOC}/home?man=agents`, { waitUntil: 'domcontentloaded', timeout: 90000 }); await p.waitForSelector('.hm-o[data-ma="M2"] .ag-o', { timeout: 60000 });
   const d = await p.evaluate(() => ({ iframe: document.querySelectorAll('.hm-ob iframe').length, thanh: [...document.querySelectorAll('.hm-o[data-ma="M2"] .hm-thanh')].length, dong: document.querySelectorAll('.hm-o[data-ma="M2"] tbody tr').length }));
   return !d.iframe && d.thanh === 1 && d.dong > 5 ? `${d.dong} dòng bảng agents · 0 khung nhúng` : `!${JSON.stringify(d)}`; });
 if (loi.length) { hong++; console.log('LỖI TRANG:', [...new Set(loi)].join(' | ')); }

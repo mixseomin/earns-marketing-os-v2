@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_TZ } from '@/lib/local-day';
 import { useEffect, useRef, useState, useCallback, type CSSProperties, type ReactNode } from 'react';
 import { MonthCalendar, type CalItem } from '@/components/ui/month-calendar';
 import { StatsStrip } from './ui/stats-strip';
@@ -526,7 +527,7 @@ function EngagementPanel() {
             <div style={{ fontSize: 10, color: 'var(--fg-3)', lineHeight: 1.5 }}>Mailjet contact list · subscriber count only. Engagement tiers + open/click appear once a tracked send campaign runs for this list.</div>
           </>
         )}
-        <div style={{ fontSize: 10, color: 'var(--fg-3)' }}>updated {new Date(e.updatedAt).toLocaleString()}</div>
+        <div style={{ fontSize: 10, color: 'var(--fg-3)' }}>updated {new Date(e.updatedAt).toLocaleString('vi-VN', { timeZone: APP_TZ })}</div>
       </div>
     </div>
   );

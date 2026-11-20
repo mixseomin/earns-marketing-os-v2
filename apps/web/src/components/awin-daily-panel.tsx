@@ -4,6 +4,7 @@
 // programmes is manual via the mos2-crew Chrome extension, so this panel's job
 // is to surface "did you run today's batch?" + the remaining backlog.
 
+import { APP_TZ } from '@/lib/local-day';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { Panel } from './ui/panel';
 import { StatsStrip } from './ui/stats-strip';
@@ -67,9 +68,10 @@ export async function AwinDailyPanel() {
   const best = d.streak_best ?? 0;
   const missed = d.missed_30d ?? 0;
 
-  const updated = new Date(d.updated_at).toLocaleString('en-US', {
+  const updated = new Date(d.updated_at).toLocaleString('vi-VN', {
     dateStyle: 'short',
     timeStyle: 'short',
+    timeZone: APP_TZ,   // giờ VN — máy chủ chạy UTC
   });
 
   return (

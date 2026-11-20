@@ -1,4 +1,5 @@
 import { RefreshGscBtn } from './refresh-gsc-btn';
+import { APP_TZ } from '@/lib/local-day';
 import { SeoSitesTable, type RowData } from './seo-sites-table';
 import { Panel } from './ui/panel';
 import { loadGscTimeSeries, pickSiteSeries } from '@/lib/projects/gsc-timeseries';
@@ -162,7 +163,7 @@ export async function docSeoSites(): Promise<DocSites> {
     if (seen.has(domain) || HIDDEN_DOMAINS.has(domain) || !pickGa4(ga4Payload, domain)) continue;
     rows.push({ domain, stats: { pages_with_impressions_7d: 0, clicks_7d: 0, impressions_7d: 0, avg_position_7d: 0, sitemaps_count: 0, sitemap_urls_submitted: 0, sitemap_urls_indexed: 0, period: 'no-gsc' } });
   }
-  const updated = new Date(payload.updated_at).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
+  const updated = new Date(payload.updated_at).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short', timeZone: APP_TZ });   // giờ VN — máy chủ chạy UTC
 
   const out: RowData[] = rows.map((r) => {
     const meta = SITE_META[r.domain] || { emoji: '🌐' };

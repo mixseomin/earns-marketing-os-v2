@@ -641,7 +641,7 @@ SX = [{}]
 def cho_phanh(sx, d, buoc):
     """hàm thuần: khoá san_xuat_cho + dòng + bước → câu lý do chờ | None (chạy)"""
     if not (sx or {}).get("phanh") or buoc not in BUOC_SX: return None
-    if buoc != "camp" and int(d.get("content_id") or 0) in {int(x) for x in sx.get("du_tru") or []}: return None
+    if buoc != "camp" and int(d.get("content_id") or 0) in {int(x) for x in [*(sx.get("du_tru") or []), *(sx.get("chi_sx") or [])]}: return None   # chi_sx: phim chỉ sản xuất không lên camp nên không chờ phanh
     return sx["phanh"]
 
 def lam_buoc(d, buoc):
@@ -764,6 +764,10 @@ def vong():
     except Exception as e: print(f"mở lại dòng chạm trần camp test / phim lỗi: {str(e)[:200]}", flush=True)
     try: SX[0] = json.loads(sql(CG.SQL_SX) or "{}")   # khoá san_xuat_cho (lo_trinh_phim.ghi_sx) — quá hạn / đọc hỏng = {} → chạy như cũ
     except Exception: SX[0] = {}
+    # PHIM CHỈ SẢN XUẤT (anh 20/11/2026 "chỉ sx", sổ cong.KHOA_CHI_SX): bước sản xuất chạy cả khi phanh, tới bước camp thì khép dòng. Đọc hỏng → {} (cổng chan_cua vẫn chặn tạo camp)
+    try: chi_sx = CG.ds_chi_sx(q=sql)
+    except Exception: chi_sx = {}
+    if chi_sx: SX[0] = {**SX[0], "chi_sx": list(chi_sx)}
     cho_ph = {}   # câu chờ phanh → [dòng] — ghi gộp một câu SQL cuối vòng
     gac = gac_dang(); ds_dong = doc_dong()
     # loại lượt nặng đang CHỜ khe (cắt CC / creative tĩnh) — khe_nang giữ một khe cho loại kia khi nó có việc chờ
@@ -813,6 +817,11 @@ def vong():
         t = CHAY.get((d["id"], ke))
         if t and t[0].is_alive(): continue
         if dang and t and time.time() - t[1] < CHO_LAI: continue   # bước đang "chờ": quay lại sau CHO_LAI giây
+        if not dang and ke == "camp" and int(d["content_id"]) in chi_sx:   # creative đã dựng + chấm xong → khép dòng, không gọi nhan-ban
+            ly_sx = f"chỉ sản xuất — creative đã dựng + chấm, không lên camp ({chi_sx[int(d['content_id'])][:120]}; sổ etp.cau_hinh.{CG.KHOA_CHI_SX})"
+            sql(f"""update etp.dong_buoc set trang_thai = 'bo_qua', ghi = {s(ly_sx)}, nhip = now() where dong_id = {d['id']} and buoc in ('camp', 'chay') and trang_thai = 'cho';
+                    update etp.dong_phim set trang_thai = 'xong', ly_do = {s(ly_sx)}, xong_luc = now() where id = {d['id']} and trang_thai = 'chay'""")
+            DON[0] = 0; print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} — {ly_sx}", flush=True); continue
         if not dang and (ly := cho_phanh(SX[0], d, ke)): cho_ph.setdefault(f"{ke}: {ly}", []).append(d["id"]); continue   # phanh chợ: bước chưa bắt đầu đứng chờ (BUOC_SX)
         # LƯỢT NẶNG trên iMac = bước cắt + bước creative AT (anh-tinh.py cũng tải tập + ffmpeg + Vision) → chung trần TRAN_CAT, kẻo 13 dòng AT xếp một lúc chạy đồng loạt
         LOAI_DONG[d["id"]] = d.get("loai"); nang = lambda i, b: kieu_nang(i, b) is not None
@@ -849,6 +858,7 @@ def tu_kiem():
     p = {"phanh": "chờ phanh nhả: PHANH CHỢ: x", "du_tru": [7]}
     assert cho_phanh(p, {"content_id": 1}, "poster") == p["phanh"] and cho_phanh(p, {"content_id": 1}, "camp") == p["phanh"] and cho_phanh(p, {"content_id": 1}, "chay") is None, "phanh: bước sản xuất + camp chờ, bước chờ camp chạy giữ nguyên"
     assert cho_phanh(p, {"content_id": 7}, "creative") is None and cho_phanh(p, {"content_id": 7}, "camp") == p["phanh"], "phim hồi chợ thiếu kho dự trữ vẫn sản xuất, không lên camp"
+    assert cho_phanh({**p, "chi_sx": [9]}, {"content_id": 9}, "creative") is None and cho_phanh({**p, "chi_sx": [9]}, {"content_id": 1}, "creative") == p["phanh"], "phim chỉ sản xuất không chờ phanh ở bước sản xuất"
     assert cho_phanh({}, {"content_id": 1}, "nhan") is None and cho_phanh({"phanh": None}, {"content_id": 1}, "nhan") is None and cho_phanh(None, {"content_id": 1}, "nhan") is None, "không phanh / khoá quá hạn → chạy như cũ"
     assert set(BUOC_SX) == {b for b, _ in BUOC} - {"chay"} and "not exists" in KHONG_TRUNG
     # phim cấm (etp:phim-cam-con-lai-2011): cùng bộ đọc cong.phim_cam qua ssh — 167292 dừng mọi bước, phim thường đi qua

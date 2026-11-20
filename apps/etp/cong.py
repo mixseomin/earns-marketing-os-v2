@@ -31,7 +31,7 @@ SQL_BO_PHIM = ("select coalesce((select thu_bo from etp.phim where content_id = 
 # + PHANH CHỢ / BẢO TRÌ / RÚT (18/11/2026): dòng dừng ở bước camp vì phanh cũng là dừng đúng luật — trước đếm là hỏng, 3 lần thì lộ trình bỏ hẳn dạng đó của phim
 SQL_DONG_HONG = ("(trang_thai = 'loi' or (trang_thai = 'dung' and coalesce(ly_do, '') not like 'tạm gác dòng%' and strpos(coalesce(ly_do, ''), 'chạm trần') = 0"
                  " and strpos(coalesce(ly_do, ''), 'DỪNG LÊN CAMP MỚI') = 0 and strpos(coalesce(ly_do, ''), 'PHANH') = 0 and strpos(coalesce(ly_do, ''), 'BẢO TRÌ') = 0"
-                 " and strpos(coalesce(ly_do, ''), 'RÚT KHỎI CHỢ') = 0 and coalesce(ly_do, '') not like 'ws: trang phim Nhà%' and coalesce(ly_do, '') not like 'nhan: nhóm gốc%'))")
+                 " and strpos(coalesce(ly_do, ''), 'RÚT KHỎI CHỢ') = 0 and strpos(coalesce(ly_do, ''), 'CHỈ SẢN XUẤT') = 0 and coalesce(ly_do, '') not like 'ws: trang phim Nhà%' and coalesce(ly_do, '') not like 'nhan: nhóm gốc%'))")
 # CAMP ÍT NƯỚC KHÔNG BẬT LẠI (anh 09/11/2026 theo Dol / Ethopex: "phải target đúng cả list quốc gia" — team tắt camp ít nước, "Ko bật lại", bỏ A/B nước):
 # camp nhánh THỬ của mọi lần A/B kiểu 'nuoc' (AB01 "4 nước") → mọi đường bật (lam-ethopex bat, lịch giờ, máy thay creative bị từ chối) đều chặn.
 # + LÔ TEAM ETHOPEX TẮT (anh 09/11/2026 "1 lô vừa tắt từ bên team etho thì ko tự bật lại"): etp.cau_hinh.team_tat = mảng camp_id (201 camp tắt 15:46 09/11) — thêm lô mới = nối vào mảng
@@ -396,6 +396,23 @@ def don_phim_cam(lam=True, q=None, tat=None, bao=None):
         try: (bao or _bao_tg)("\n".join(d))
         except Exception as x: print(f"báo Telegram lỗi: {x}", file=sys.stderr)
     return kq
+# PHIM CHỈ SẢN XUẤT (anh 20/11/2026 "chỉ sx" — thêm American Sniper vào từng dạng để soát cách máy sinh creative, KHÔNG lên camp): sổ etp.cau_hinh.phim_chi_sx
+# {content_id: {ly_do, luc, ai}} → máy vẫn cắt / dựng / chấm creative của phim, nhưng MỌI đường máy tạo camp MỚI từ creative (tao_camp: dòng phim, kho chờ lên, máy dựng theo
+# mẫu, nuôi bộ) bị chặn ở chan_cua — một hàm cho kiem() và cửa API. Anh bấm tay (vé) / lệnh trực tiếp vẫn lên được; nhân bản / tăng / bật camp đang có không đổi.
+# Dòng phim: bước sản xuất không chờ phanh chợ, tới bước camp thì khép dòng (dong_phim.vong). Gỡ: xoá khoá phim khỏi sổ. Lỗi đọc → chặn.
+KHOA_CHI_SX = "phim_chi_sx"
+LY_CHI_SX = "phim #{0} CHỈ SẢN XUẤT (etp.cau_hinh.phim_chi_sx: {1}) — máy dựng + chấm creative, không tự lên camp; anh bấm tay / lệnh trực tiếp vẫn lên được"
+def ds_chi_sx(q=None):
+    """{content_id: lý do} của sổ phim chỉ sản xuất — lỗi đọc thì NÉM (người gọi quyết: cổng chặn, dòng phim chạy như cũ + cổng vẫn chặn)"""
+    r = (q or _q)(f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{KHOA_CHI_SX}' and jsonb_typeof(gia_tri) = 'object'), '{{}}')")
+    return {int(k): str((v or {}).get("ly_do") or "chỉ sản xuất") if isinstance(v, dict) else "chỉ sản xuất" for k, v in json.loads(r or "{}").items() if str(k).isdigit()}
+def phim_chi_sx(cts=(), q=None):
+    """lý do chặn | None: phim của lệnh nằm trong sổ phim_chi_sx. Lỗi đọc → chặn."""
+    ct = sorted({int(x) for x in cts or () if str(x).strip().isdigit()})
+    if not ct: return None
+    try: so = ds_chi_sx(q)
+    except Exception as e: return f"không đọc được sổ {KHOA_CHI_SX} ({str(e)[:80]}) — chặn cho an toàn"
+    return next((LY_CHI_SX.format(c, so[c][:120]) for c in ct if c in so), None)
 def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False, cts=(), goc=None, q=None, tt=False):
     """PHẦN CỔNG KHÔNG TIN LỜI NGƯỜI GỌI (anh 18/11/2026) — một hàm cho kiem() và cửa API (ethopex_api.api, đọc dữ kiện từ chính lệnh gửi đi):
     dừng khẩn · camp ít nước / lô team tắt không bật lại · Ethopex bảo trì lên camp · PHANH CHỢ. ch = etp.cau_hinh {khoá: giá trị}.
@@ -410,6 +427,7 @@ def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False, cts=(), g
     if tt: return None
     if ch.get("dung_khan"): return LY_DUNG_KHAN
     if lich: return None
+    if viec == "tao_camp" and not ve and (ly_sx := phim_chi_sx(cts, q=q)): return ly_sx   # phim chỉ sản xuất: máy không tạo camp mới từ creative (vé tay / lệnh trực tiếp qua)
     if viec == "bat" and camp_id and str(int(camp_id)) in _q(SQL_IT_NUOC).split(): return LY_IT_NUOC
     # ETHOPEX BẢO TRÌ LÊN CAMP (anh 17/11/2026: "bên Etho team báo là đang bảo trì việc lên camp nên sẽ dừng tạo camp mới từ giờ đến ít nhất là sáng mai + báo lại"):
     # etp.cau_hinh.bao_tri_len {bat, tu, ly_do} → MỌI đường máy tạo camp / nhân bản dừng, kể cả ★ ROAS, camp team, bản thang — đứng trước mọi miễn trừ. KHÔNG tự hết hạn:
@@ -666,6 +684,10 @@ def _tu_kiem():
         assert (chan_cua(_v, {}, 73303, ve=True, lich=True, thay=True, q=_cam) or "").startswith("phim #94344"), f"{_v} camp phim cấm (lịch / thay / vé) phải bị chặn"
         assert (chan_cua(_v, {}, None, goc=73303, ve=True, q=_cam) or "").startswith("phim #94344"), f"{_v} camp gốc phim cấm (nhân bản / ROAS) phải bị chặn"
     assert chan_cua("tat", {}, 73303, q=_cam) is None and chan_cua("giam", {}, 73303, q=_cam) is None, "tắt / giảm phim cấm luôn qua"
+    _sx = lambda s: '{"49428": {"ly_do": "soát cách sinh creative"}}' if "phim_chi_sx" in s else ""
+    assert "CHỈ SẢN XUẤT" in chan_cua("tao_camp", {}, cts=[49428], q=_sx) and chan_cua("tao_camp", {}, cts=[49428], ve=True, q=_sx) is None and chan_cua("tao_camp", {}, cts=[49428], tt=True, q=_sx) is None, "phim chỉ sản xuất: máy bị chặn, vé tay / lệnh trực tiếp qua"
+    assert chan_cua("tao_camp", {}, cts=[7], q=_sx) is None and chan_cua("nhan_ban", {}, cts=[49428], q=_sx) is None and chan_cua("tang", {}, cts=[49428], q=_sx) is None, "phim khác / nhân bản / tăng không bị sổ chỉ sản xuất chặn"
+    assert "chặn cho an toàn" in phim_chi_sx([49428], q=lambda s: (_ for _ in ()).throw(RuntimeError("x"))) and phim_chi_sx([], q=lambda s: (_ for _ in ()).throw(RuntimeError("x"))) is None, "lỗi đọc sổ chỉ sản xuất phải chặn; không phim thì không đọc"
     assert chan_cua("tang", {}, 5, cts=[7], q=lambda s: "") is None and phim_cam(q=lambda s: (_ for _ in ()).throw(RuntimeError("không được đọc"))) is None, "không phim / camp thì không đọc sổ"
     assert "chặn cho an toàn" in phim_cam([5], q=lambda s: (_ for _ in ()).throw(RuntimeError("x"))), "lỗi đọc sổ phim cấm phải chặn"
     assert "ethopex_phim_cam" in SQL_CAMP_PHIM_CAM and "camp_ngoai" in SQL_CAMP_PHIM_CAM

@@ -503,7 +503,7 @@ $('#tlKeo').addEventListener('dblclick', () => { E.tlCao = 0; datTlCao(); luu();
 //    Mỗi nút gọi đúng một bước của studio qua đường ghi; studio tự gác cổng quy trình + cổng tiền, từ chối thì câu của studio hiện ngay dưới nút.
 //    Bước tốn tiền: bấm lần đầu hiện giá ước, bấm lần nữa mới chạy — mỗi lần bấm một bước, xem kết quả rồi mới bấm bước kế (không chạy chuỗi).
 const GIA_CHU = { viet: 0.05, tach: 0.06, nx: 0.02, nxSua: 0.05, pc: 3.7, anchor: 0.1 };   // ¢ mỗi lượt máy viết, chỉ để báo trước; tiền thật xem ở Nhật ký. Viết kịch bản + tách cảnh: số thật của ba lượt 20/11/2026 trên đường chữ studio đang đi (donk:claude-opus-5-5: 0,05¢ · 0,05¢ · 0,06¢); con số cũ 7¢ / 43¢ là của đường Claude chính hãng, đường ấy giờ chỉ chạy khi các cổng rẻ đều hỏng
-const TEN_BUOC = { astro: 'Hỏi Astrolas', brief: 'Lưu ý tưởng', viet: 'Máy viết kịch bản', tach: 'Máy tách thành cảnh', nx: 'Thử người xem', nxSua: 'Máy sửa theo góp ý người xem', vaiTt: 'Đặt shot tổng thể cho phân cảnh còn thiếu', ganNguoi: 'Gắn mẫu người vào các cảnh có người', boKhuon: 'Bỏ khuôn dựng phim truyện của tập này', kiemKhung: 'Máy kiểm khung các ảnh', uvMoi: 'Dùng ảnh mới vẽ cho các cảnh', mauVe: 'Vẽ lại ảnh mẫu', kfMau: 'Vẽ lại các cảnh dùng mẫu này', giong1: 'Đọc lại lời cảnh này', traPhi: 'Cho phép video trả phí cho tập này', kfLech: 'Vẽ lại các ảnh máy báo lệch', khungNhan: 'Nhận các ảnh máy báo lệch', nxNhan: 'Tôi nhận kịch bản này', pc: 'Máy gợi ý phong cách', pcDung: 'Dùng gợi ý này', anchor: 'Máy đề xuất nhân vật, bối cảnh', anhMau: 'Vẽ ảnh mẫu còn thiếu',
+const TEN_BUOC = { astro: 'Hỏi Astrolas', brief: 'Lưu ý tưởng', viet: 'Máy viết kịch bản', tach: 'Máy tách thành cảnh', nx: 'Thử người xem', nxSua: 'Máy sửa theo góp ý người xem', vaiTt: 'Đặt shot tổng thể cho phân cảnh còn thiếu', ganNguoi: 'Gắn mẫu người vào các cảnh có người', boKhuon: 'Bỏ khuôn dựng phim truyện của tập này', kiemKhung: 'Máy kiểm khung các ảnh', soiBo: 'Nhận các clip máy soi báo lỗi', uvMoi: 'Dùng ảnh mới vẽ cho các cảnh', mauVe: 'Vẽ lại ảnh mẫu', kfMau: 'Vẽ lại các cảnh dùng mẫu này', giong1: 'Đọc lại lời cảnh này', traPhi: 'Cho phép video trả phí cho tập này', kfLech: 'Vẽ lại các ảnh máy báo lệch', khungNhan: 'Nhận các ảnh máy báo lệch', nxNhan: 'Tôi nhận kịch bản này', pc: 'Máy gợi ý phong cách', pcDung: 'Dùng gợi ý này', anchor: 'Máy đề xuất nhân vật, bối cảnh', anhMau: 'Vẽ ảnh mẫu còn thiếu',
   kf: 'Vẽ ảnh các cảnh chưa có', kf1: 'Vẽ lại ảnh cảnh này', duyet: 'Duyệt các ảnh đã có', duyet1: 'Duyệt ảnh cảnh này', giong: 'Đọc lời cả tập', animatic: 'Chốt nhịp trước khi dựng clip', clip: 'Dựng clip các cảnh đã duyệt', clip1: 'Dựng clip cảnh này', nhac: 'Sinh nhạc nền', xuat: 'Xuất video' };
 const NUT_QT = { brief: ['brief'], truyen: ['tach'], kich_ban: ['viet', 'tach'], nguoi_xem: ['nx', 'nxSua', 'nxNhan'], phong_cach: ['pc'], phan_canh: ['vaiTt'], mau_doi_tuong: ['anchor', 'anhMau'], mau_boi_canh: ['ganNguoi', 'anchor', 'anhMau'], keyframe: ['kf', 'uvMoi', 'duyet'], giong: ['giong'], nhac: ['nhac'] };
 const canhThat = () => D.canh.map((c) => GOC[c.id]).filter(Boolean);
@@ -514,7 +514,7 @@ const boSinh = () => D.that?.kt?.bo_sinh_video || 'h3', xepHang = () => boSinh()
 /** các cảnh đang gắn mẫu `id` */
 const canhMau = (id) => canhThat().filter((c) => (Array.isArray(c.nhan_vat) ? c.nhan_vat : []).map(Number).includes(+id));
 function giaBuoc(k) { const g = E.gia || {}, [b, sid] = k.split(':'), giay = (ds) => ds.reduce((a, c) => a + (+c.thoi_luong_s || 0), 0);
-  switch (b) { case 'uvMoi': case 'traPhi': case 'khungNhan': case 'vaiTt': case 'ganNguoi': case 'boKhuon': case 'brief': case 'nxNhan': case 'pcDung': case 'duyet': case 'duyet1': case 'animatic': case 'xuat': return 0;
+  switch (b) { case 'soiBo': case 'uvMoi': case 'traPhi': case 'khungNhan': case 'vaiTt': case 'ganNguoi': case 'boKhuon': case 'brief': case 'nxNhan': case 'pcDung': case 'duyet': case 'duyet1': case 'animatic': case 'xuat': return 0;
     case 'viet': case 'tach': case 'nx': case 'nxSua': case 'pc': case 'anchor': return GIA_CHU[b];
     case 'kf': return g.anh1 ? g.anh1 * canhThieu('kf').length : null; case 'kfLech': return g.anh1 ? g.anh1 * canhThieu('lech').length : null; case 'mauVe': return g.anh1 || null; case 'kfMau': return g.anh1 ? g.anh1 * canhMau(sid).length : null; case 'kf1': return g.anh1 || null;
     case 'clip': return xepHang() ? 0 : g.giay1 ? g.giay1 * giay(canhThieu('clip')) : null; case 'clip1': return xepHang() ? 0 : g.giay1 && GOC[sid] ? g.giay1 * (+GOC[sid].thoi_luong_s || 0) : null;
@@ -572,6 +572,8 @@ const BUOC_SV = {
   kfMau: (t, id) => lanLuot(canhMau(id), veLaiCanh),
   giong1: (t, sid) => ghiSv('sinhLaiCanhS2', GOC[sid].id, 'giong', layYc()),
   traPhi: async (t) => { const so = await ghiSv('moTraPhiS2', t.tap, true); bao(`Đã mở video trả phí cho ${+so || 0} cảnh. Mở khoá không tốn tiền; tiền chỉ phát sinh khi lô dựng chạy.`, false, 9000); },
+  // studio không cho xuất khi máy soi báo clip có lỗi (chữ lạ, vật thể lạ…): người làm xem clip thấy máy báo quá tay thì nhận clip đó (boQuaSoiClipAction, 0đ)
+  soiBo: () => { const so = [...String(E.loiXuat || '').matchAll(/#(\d+):/g)].map((m) => +m[1]); return lanLuot(canhThat().filter((c) => so.includes(Math.round(+c.thu_tu))), (c) => ghiSv('boQuaSoiClipAction', c.id)).then(() => { E.loiXuat = ''; }); },
   kfLech: () => lanLuot(canhThieu('lech'), veLaiCanh),
   khungNhan: () => lanLuot(canhThieu('lech'), (c) => ghiSv('duyetKhungTayAction', c.id)),
   kiemKhung: async (t) => { const r = await ghiSv('kiemKhungTapAction', t.tap) || {}; bao(`Máy đã kiểm ${+r.shot || 0} ảnh trong ${+r.khoi || 0} khối cảnh: ${+r.lech ? `${+r.lech} ảnh lệch, xem ở mục Storyboard rồi vẽ lại ảnh đó` : 'không ảnh nào lệch'}.`, false, 9000); },
@@ -588,7 +590,8 @@ async function chayBuoc(k) {
   E.cho = ''; E.dangBuoc[k] = true; E.loiBuoc = null; veBuoc();
   const truoc = E.chuKy;
   try { await BUOC_SV[b](t, k.split(':')[1]); delete E.dangBuoc[k]; await taiLai(true); napHd(true); theoDoi(); }
-  catch (e) { if (e.chuaKip) { E.dangBuoc[k] = 'lau'; veBuoc(); return choBuoc(k, truoc, t.tap); } delete E.dangBuoc[k]; E.loiBuoc = { k, loi: e.message }; await taiLai(true).catch(() => {}); }
+  catch (e) { if (b === 'xuat' && /lỗi soi/.test(e.message)) E.loiXuat = e.message;
+    if (e.chuaKip) { E.dangBuoc[k] = 'lau'; veBuoc(); return choBuoc(k, truoc, t.tap); } delete E.dangBuoc[k]; E.loiBuoc = { k, loi: e.message }; await taiLai(true).catch(() => {}); }
   veBuoc();
 }
 /** cổng mạng cắt câu trả lời ở 100 giây mà bước vẫn chạy bên studio (tách cảnh thật 20/11/2026: 298 giây): giữ nút ở "vẫn đang chạy", 10 giây đọc lại phim một lần, dữ liệu đổi thì hiện kết quả; quá 12 phút mới báo */
@@ -758,36 +761,13 @@ function veQt() {
   else { const ds = E.qt.ds, mo = E.qtMo || ds.find((m) => !m.ok)?.key || '', coClip = canhThat().filter((c) => c.video_url || c.video_cuoi_url).length, CONG = { keyframe: 'vẽ ảnh', video: 'dựng clip', xuat: 'xuất' };
     for (const nhom of ['Tiền kỳ', 'Sản xuất', 'Hậu kỳ']) { h += `<h3>${nhom}</h3>`;
       for (const m of ds.filter((x) => x.nhom === nhom)) { const dangMo = mo === m.key;
-        h += `<div class="qt-m ${m.ok ? 'xong' : m.cong ? 'loi' : 'bao'}${dangMo ? ' mo' : ''}"><button type="button" data-d="qtMo" data-g="${m.key}" aria-expanded="${dangMo}"><i></i><b>${esc(m.ten)}${giaiQt(m.key)}</b>${m.ok ? '' : `<span class="so">${m.thieu.length}</span>`}${!m.ok && m.cong ? `<u title="Chưa đạt thì studio không cho ${CONG[m.cong]}">chặn ${CONG[m.cong]}</u>` : ''}</button>`
+        h += `<div class="qt-m ${m.ok ? 'xong' : m.cong ? 'loi' : 'bao'}${dangMo ? ' mo' : ''}"><button type="button" data-d="qtMo" data-g="${m.key}" aria-expanded="${dangMo}"><i></i><b>${esc(m.ten)}</b>${m.ok ? '' : `<span class="so">${m.thieu.length}</span>`}${!m.ok && m.cong ? `<u title="Chưa đạt thì studio không cho ${CONG[m.cong]}">chặn ${CONG[m.cong]}</u>` : ''}</button>`
           + (dangMo ? `<div class="qt-mo">${m.thieu.length ? `<ul>${m.thieu.slice(0, 5).map((x) => `<li>${esc(x)}</li>`).join('')}${m.thieu.length > 5 ? `<li>và ${m.thieu.length - 5} chỗ nữa</li>` : ''}</ul>` : ''}<span class="nho">${esc(m.lam)}</span>${m.key === 'brief' ? `${yTuong}<h3>Cơ sở từ Astrolas</h3>${veCoSo()}` : ''}${m.key === 'kich_ban' ? kb : ''}${m.key === 'nguoi_xem' ? veNx() : ''}${m.key === 'mau_doi_tuong' ? veMau() : ''}${(m.key === 'keyframe' || m.key === 'clip') && /khuôn "/.test(E.loiBuoc?.loi || '') ? `<span class="nho">Studio đang ép các cảnh theo khuôn dựng của phim truyện. Video chia sẻ góc nhìn không cần khuôn đó:</span>${nut(['boKhuon'])}` : ''}
             ${m.key === 'phong_cach' && E.goiY ? `<div class="qt-goi-y"><b>Máy gợi ý</b><p>${esc(E.goiY.phong_cach)}</p>${nut(['pcDung'])}</div>` : ''}${NUT_QT[m.key] ? nut(NUT_QT[m.key]) : ''}${laQuanTri() || !NUT_QT[m.key] ? lk : ''}</div>` : '') + '</div>';
-        if (m.key === 'giong') h += `<div class="qt-m ${coClip === canhThat().length ? 'xong' : 'thieu'}${mo === 'clip' ? ' mo' : ''}"><button type="button" data-d="qtMo" data-g="clip" aria-expanded="${mo === 'clip'}"><i></i><b>Dựng clip${giaiQt('clip')}</b><span class="so">${coClip}/${canhThat().length}</span></button>${mo === 'clip' ? `<div class="qt-mo"><span class="nho">Thứ tự: máy kiểm khung các ảnh → bấm Xuất video một lần (bản dựng từ ảnh, để nghe nhịp) → chốt nhịp → dựng clip cho cảnh đã duyệt ảnh. Bộ dựng lấy theo thiết lập của phim; clip đang chờ máy thì hiện "đang dựng" ở Nhật ký.</span>${canhThieu('lech').length ? `<details class="nk-ct"><summary>${canhThieu('lech').length} ảnh máy báo lệch so với kịch bản</summary><ul>${canhThieu('lech').map((c) => `<li><b>Cảnh ${Math.round(+c.thu_tu)}</b> ${esc((c.kiem_khung.loi || []).map((x) => x.mo_ta).join(' · ').slice(0, 420))}</li>`).join('')}</ul></details><span class="nho">Vẽ lại thì phải duyệt và kiểm lại ảnh mới; thấy máy báo quá tay thì nhận ảnh đang có.</span>` : ''}${nut(['kiemKhung', 'kfLech', 'khungNhan', 'animatic', ...(laQtThat() && canhThat().some((c) => !c.ky_thuat?.tra_phi && !c.ky_thuat?.vx?.uuid) ? ['traPhi'] : []), 'clip'])}${lk}</div>` : ''}</div>`; } }
-    h += `<div class="qt-buoc"><h3>Xuất</h3>${E.xuatThat?.tt === 'chay' ? '<div class="qt-chay"><i></i>Studio đang ghép video…</div>' : ''}${E.xuatThat?.tt === 'loi' ? `<div class="bao">Xuất hỏng: ${esc(E.xuatThat.loi)}</div>` : ''}${nut(['xuat'])}</div>`; }
+        if (m.key === 'giong') h += `<div class="qt-m ${coClip === canhThat().length ? 'xong' : 'thieu'}${mo === 'clip' ? ' mo' : ''}"><button type="button" data-d="qtMo" data-g="clip" aria-expanded="${mo === 'clip'}"><i></i><b>Dựng clip</b><span class="so">${coClip}/${canhThat().length}</span></button>${mo === 'clip' ? `<div class="qt-mo"><span class="nho">Thứ tự: máy kiểm khung các ảnh → bấm Xuất video một lần (bản dựng từ ảnh, để nghe nhịp) → chốt nhịp → dựng clip cho cảnh đã duyệt ảnh. Bộ dựng lấy theo thiết lập của phim; clip đang chờ máy thì hiện "đang dựng" ở Nhật ký.</span>${canhThieu('lech').length ? `<details class="nk-ct"><summary>${canhThieu('lech').length} ảnh máy báo lệch so với kịch bản</summary><ul>${canhThieu('lech').map((c) => `<li><b>Cảnh ${Math.round(+c.thu_tu)}</b> ${esc((c.kiem_khung.loi || []).map((x) => x.mo_ta).join(' · ').slice(0, 420))}</li>`).join('')}</ul></details><span class="nho">Vẽ lại thì phải duyệt và kiểm lại ảnh mới; thấy máy báo quá tay thì nhận ảnh đang có.</span>` : ''}${nut(['kiemKhung', 'kfLech', 'khungNhan', 'animatic', ...(laQtThat() && canhThat().some((c) => !c.ky_thuat?.tra_phi && !c.ky_thuat?.vx?.uuid) ? ['traPhi'] : []), 'clip'])}${lk}</div>` : ''}</div>`; } }
+    h += `<div class="qt-buoc"><h3>Xuất</h3>${E.xuatThat?.tt === 'chay' ? '<div class="qt-chay"><i></i>Studio đang ghép video…</div>' : ''}${E.xuatThat?.tt === 'loi' ? `<div class="bao">Xuất hỏng: ${esc(E.xuatThat.loi)}</div>` : ''}${nut(['xuat'])}${E.loiXuat ? `<span class="nho">Xem lại các clip studio nêu ở trên. Clip sai thật thì dựng lại cảnh đó; thấy máy soi báo quá tay thì:</span>${nut(['soiBo'])}` : ''}</div>`; }
   el.innerHTML = h;
 }
-
-// Mỗi dòng Quy trình của tập có một dấu (i): rê chuột vào hiện một câu phần đó dùng để làm gì (card #1724 studio2)
-const QT_GIAI = {
-  brief: 'Bản giao việc của tập: muốn nói gì, cho ai xem, giọng phim thế nào. Mọi bước sau bám vào đây.',
-  truyen: 'Các nhịp truyện chính (mở, dồn, lật, kết) để tập có xương sống trước khi viết lời.',
-  kich_ban: 'Lời thoại và diễn biến từng đoạn, máy chấm điểm theo các tiêu chí của một kịch bản tốt.',
-  nguoi_xem: 'Máy đóng vai người xem lần đầu, kiểm xem họ có hiểu và theo kịp câu chuyện không.',
-  tham_khao: 'Câu chữ lấy từ quảng cáo mẫu đang chạy tốt, làm chỗ dựa cho lời của mình.',
-  phan_canh: 'Chia kịch bản thành từng cảnh: ở đâu, ai, làm gì, nói gì.',
-  phong_cach: 'Ánh sáng, bảng màu, chất hình chung của cả tập để mọi ảnh trông cùng một phim.',
-  mau_doi_tuong: 'Ảnh mẫu của nhân vật / sản phẩm để máy vẽ giữ đúng mặt, đúng dáng ở mọi cảnh.',
-  mau_boi_canh: 'Ảnh mẫu của từng bối cảnh để các cảnh cùng nơi trông giống nhau.',
-  shot_list: 'Cỡ cảnh, góc máy, độ dài từng shot để hình có nhịp, không đều đều.',
-  keyframe: 'Ảnh khung chính của từng shot; duyệt xong mới được dựng clip.',
-  giong: 'Thu giọng đọc lời thoại trước, để clip dựng khớp đúng độ dài câu nói.',
-  clip: 'Biến ảnh khung đã duyệt thành đoạn video chuyển động cho từng cảnh.',
-  tieng: 'Máy nghe lại từng câu: không bị cắt, không chồng tiếng, đủ to để nghe rõ.',
-  nhac: 'Nhạc nền của tập, đặt cả tập hoặc theo từng phân cảnh.',
-  sfx: 'Tiếng động (bước chân, cửa, va chạm…) ở các điểm cắt để phim sống hơn.',
-  chuyen_canh: 'Cách nối giữa hai shot (cắt thẳng, mờ dần…) ở các điểm cắt.',
-  logo: 'Logo và lời kêu gọi hành động ở cuối video quảng cáo.',
-};
-const giaiQt = (k) => (QT_GIAI[k] ? ` <span class="qt-i" title="${esc(QT_GIAI[k])}" aria-label="${esc(QT_GIAI[k])}">i</span>` : '');
 
 // ── NHẬT KÝ (chỉ phim thật): dải BƯỚC của cảnh đang ở kim — mỗi bước một đèn (xong / thiếu / hỏng / cần xem / đang chạy) — và các LƯỢT SINH của bước đó
 //    đọc từ sổ lượt sinh của studio (nhatKyTap: bản gọn cả tập; nhatKyCanh: câu lệnh nguyên văn + tham số của một cảnh, chỉ tải khi mở một lượt).

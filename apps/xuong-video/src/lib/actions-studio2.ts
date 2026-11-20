@@ -7,7 +7,10 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from './auth';
 import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, sinhAnhMau, sinhGiong, sinhVideoCanh, sinhNhac, sinhAmThanh, suaCanh, suaTap } from './actions';
 import { z } from 'zod/v4';
-import { sinhKeyframeCanh } from './xuong-video/sinh-anh';
+import { sinhKeyframeCanh, lyChanKeyframe, chuanBiKeyframe } from './xuong-video/sinh-anh';
+import { boiCanhCanh } from './xuong-video/doc-db';
+import { promptVideoCanh } from './xuong-video/sinh-video';
+import { laDungLop, cauDoMang } from './xuong-video/dung-lop';
 import { dichChuoi, sinhJson } from './xuong-video/claude';
 import type { KinhThanh } from './xuong-video/kieu';
 import { duocS2, quyenCua, type QuyenS2 } from './quyen-s2';
@@ -136,15 +139,17 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
   if (!tap) return { ok: false, loi: 'tập không thuộc phim này' };
   let cn: Row | null = null;
   if (loai !== 'tap' && loai !== 'nhac') {
-    cn = ((await db.execute(sql`SELECT id, thu_tu, canh, goc_may, hanh_dong_vi, hanh_dong, thoai, loi_thoai, chu_man, am_thanh, thoi_luong_s, cam_xuc, (keyframe_url IS NOT NULL) AS co_anh,
+    cn = ((await db.execute(sql`SELECT id, thu_tu, canh, goc_may, hanh_dong_vi, hanh_dong, thoai, loi_thoai, chu_man, am_thanh, thoi_luong_s, cam_xuc, nhan_vat, (keyframe_url IS NOT NULL) AS co_anh,
       (coalesce(video_cuoi_url, video_url) IS NOT NULL) AS co_clip FROM xv_canh WHERE id = ${Number(doiTuong.canhId)} AND tap_id = ${tid}`)) as unknown as Row[])[0] ?? null;
     if (!cn) return { ok: false, loi: 'cảnh không thuộc tập này' };
   }
+  const nvIds = cn && Array.isArray(cn.nhan_vat) ? (cn.nhan_vat as unknown[]).map(Number).filter(Number.isFinite) : [];
+  const nguoi = nvIds.length ? ((await db.execute(sql`SELECT ten, loai, left(coalesce(mo_ta, ''), 200) AS mo_ta FROM xv_nhan_vat WHERE id = ANY(${`{${nvIds.join(',')}}`}::int[])`)) as unknown as Row[]) : [];
   const thoai = cn && Array.isArray(cn.thoai) ? (cn.thoai as { nhan_vat?: string; loi?: string; dien_xuat?: string }[]) : [];
   const ngCanh = loai === 'tap' || loai === 'nhac'
     ? { tap: { ten: tap.ten, tom_tat: tap.tom_tat, y_tuong: String(tap.brief ?? '').slice(0, 1500), nhac_mo_ta: tap.nhac_mo_ta, thoi_luong_s: tap.thoi_luong_s } }
     : { tap: { ten: tap.ten, tom_tat: tap.tom_tat }, canh: { so: cn!.thu_tu, ten: cn!.canh, goc_may: cn!.goc_may, hanh_dong_vi: cn!.hanh_dong_vi || cn!.hanh_dong, chu_man: cn!.chu_man,
-        am_thanh: cn!.am_thanh, thoi_luong_s: cn!.thoi_luong_s, cam_xuc: cn!.cam_xuc, co_anh: cn!.co_anh, co_clip: cn!.co_clip,
+        am_thanh: cn!.am_thanh, thoi_luong_s: cn!.thoi_luong_s, cam_xuc: cn!.cam_xuc, thanh_phan_trong_canh: nguoi.map((v) => ({ ten: v.ten, loai: v.loai, mo_ta: v.mo_ta })), co_anh: cn!.co_anh, co_clip: cn!.co_clip,
         thoai: thoai.length ? thoai.map((t, i) => ({ dong: i, nguoi_noi: t.nhan_vat, loi: t.loi, dien_xuat: t.dien_xuat })) : [{ dong: 0, loi: cn!.loi_thoai }] } };
   const duoc = VIEC_THEO_LOAI[loai];
   const VIEC = z.object({ loai: z.enum(['sua_canh', 'sua_thoai', 'sua_tap', 'sinh_lai_anh', 'sinh_lai_clip', 'sinh_lai_giong', 'sinh_td', 'sinh_nhac']),
@@ -155,6 +160,7 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
 - sua_canh: truong là MỘT trong: ${Object.keys(TRUONG_CANH).map((k) => `${k} = ${TEN_TRUONG[k]}`).join('; ')}. Chọn đúng trường người dùng nói tới ("chữ trên màn" = chu_man, KHÔNG phải hanh_dong_vi). gia_tri = giá trị mới đầy đủ (số thì ghi số). ${loai === 'td' ? 'Ở đây chỉ dùng truong am_thanh.' : ''}
 - sua_thoai: dong = số dòng thoại, gia_tri = câu mới đầy đủ (giữ ngôn ngữ gốc của câu).
 - sua_tap: truong ∈ {ten, tom_tat, nhac_mo_ta}, gia_tri = giá trị mới.
+- Đổi NGƯỜI trong cảnh (giới tính, tuổi, thay người khác): KHÔNG đề xuất sinh lại — ảnh mẫu nhân vật quyết định người trong hình, câu thêm không đổi được; tra_loi nói phải đổi nhân vật của cảnh (hoặc ảnh mẫu của nhân vật đó) trước, hanh_dong = [].
 - sinh_lai_anh / sinh_lai_clip / sinh_lai_giong / sinh_td / sinh_nhac: tốn credit, chỉ đề xuất khi người dùng muốn hình / clip / giọng / âm thanh khác đi; yeu_cau = mô tả ngắn cái cần khác (tiếng Việt).
 Trường không dùng để chuỗi rỗng, dong = 0. Không bịa dữ liệu ngoài ngữ cảnh. Lệnh chỉ hỏi thì hanh_dong = [].`;
   const user = `NGỮ CẢNH:\n${JSON.stringify(ngCanh)}\n\n${lichSu.slice(-6).map((m) => `${m.ai === 'nguoi' ? 'Người dùng' : 'Bạn'}: ${String(m.chu).slice(0, 400)}`).join('\n')}\nNgười dùng: ${hoi}`;
@@ -322,6 +328,34 @@ export async function sinhAmS2(tapId: number, loai: 'nhac' | 'td', canhId: numbe
   const c = ((await db.execute(sql`SELECT id, am_thanh FROM xv_canh WHERE id = ${Number(canhId)} AND tap_id = ${tap}`)) as unknown as Row[])[0];
   if (!c) return { ok: false, loi: 'cảnh không thuộc tập này' };
   return sinhAmThanh(tap, [Number(c.id)], 'sonilo/v1.1/text-to-sound-effects', en ? { moTa: [String(c.am_thanh ?? '').trim(), en].filter(Boolean).join('. ') } : {});
+}
+
+export type LenhXem = { duong: string; model: string; chan: string[]; nguoi: { ten: string; mo_ta: string }[]; tham_chieu: { url: string; nhan: string }[]; them: string; buoc: { ten: string; prompt: string }[] };
+/** XEM LỆNH SẼ GỬI của thẻ đề xuất (Studio 2 › Lệnh AI, chỉ quản trị — anh 21/11/2026: "khi là Admin sẽ xem được các thành phần gửi đi"). 0đ, không sinh, không dịch:
+ *  dựng câu lệnh bằng CHÍNH hàm lúc sinh thật (chuanBiKeyframe / promptVideoCanh) nên thấy đúng cái model nhận; ý riêng hiện tiếng Việt kèm chỗ nó được nối vào. */
+export async function xemLenhS2(canhId: number, loai: string, yeuCau = ''): Promise<LenhXem | null> {
+  const db = getDb(); if (!db || !(await laQuanTri())) return null;
+  const id = Number(canhId), yc = String(yeuCau ?? '').trim().slice(0, 600);
+  const bc = await boiCanhCanh(db, id); if (!bc) return null;
+  const trong = bc.nhanVat.filter((v) => bc.canh.nhan_vat.includes(v.id));
+  const nguoi = trong.filter((v) => v.loai === 'nhan_vat').map((v) => ({ ten: v.ten, mo_ta: String(v.mo_ta ?? '').slice(0, 160) }));
+  const them = !yc ? '' : loai === 'sinh_lai_giong' ? `Ghi vào chỉ dẫn diễn xuất của từng dòng lời: "${yc}"` : loai === 'sinh_lai_clip' ? `Dịch sang tiếng Anh, nối cuối hành động: "Extra direction: <${yc}>"` : loai === 'sinh_lai_anh' ? `Dịch sang tiếng Anh, nối cuối câu lệnh: "EXTRA REQUEST FOR THIS FRAME (must be followed, everything else stays as described): <${yc}>"` : `Dịch sang tiếng Anh, nối vào mô tả: "${yc}"`;
+  const goc = { duong: '', model: '', chan: [] as string[], nguoi, tham_chieu: [] as { url: string; nhan: string }[], them, buoc: [] as { ten: string; prompt: string }[] };
+  if (loai === 'sinh_lai_anh') {
+    const g = await lyChanKeyframe(db, id, false); if (g?.chan.length) goc.chan = g.chan;
+    goc.model = String(bc.kt.mo_hinh_anh || '');
+    if (laDungLop(bc.kt)) return { ...goc, duong: 'Dựng lớp: tấm nền chung + lớp từng người (câu lệnh dựng riêng mỗi lớp)' };
+    const k = chuanBiKeyframe(bc), dm = cauDoMang(trong);
+    goc.tham_chieu = k.vai;
+    const cuoi = (p: string) => [p, dm].filter(Boolean).join(' ');
+    if (k.haiBuoc?.lop) return { ...goc, duong: 'Ghép từng người (cả khung một lượt, rồi sửa mặt từng người)', buoc: [{ ten: 'Cả khung', prompt: cuoi(k.prompt) }] };
+    if (k.haiBuoc) return { ...goc, duong: 'Hai bước: độ sâu 3D, rồi giữ nhân dạng theo ảnh mẫu', buoc: [{ ten: 'Bước 1 · độ sâu', prompt: k.haiBuoc.prompt1 }, { ten: 'Bước 2 · nhân dạng', prompt: cuoi(k.haiBuoc.prompt2) }] };
+    return { ...goc, duong: 'Một bước', buoc: [{ ten: 'Câu lệnh', prompt: cuoi(k.prompt) }] };
+  }
+  if (loai === 'sinh_lai_clip') return { ...goc, duong: 'Clip từ keyframe đang chọn', tham_chieu: bc.canh.keyframe_url ? [{ url: bc.canh.keyframe_url, nhan: 'Khung đầu (keyframe đang chọn)' }] : [], buoc: [{ ten: 'Câu lệnh clip', prompt: promptVideoCanh(bc) }] };
+  if (loai === 'sinh_lai_giong') return { ...goc, duong: 'Đọc lại lời của cảnh', buoc: [{ ten: 'Lời đọc', prompt: ((bc.canh.thoai ?? []) as { nhan_vat?: string; loi?: string; dien_xuat?: string }[]).filter((t) => t.loi).map((t) => `${t.nhan_vat ?? ''}: ${t.loi}${t.dien_xuat ? ` (${t.dien_xuat})` : ''}`).join('\n') || '(cảnh không có lời)' }] };
+  if (loai === 'sinh_td') return { ...goc, duong: 'Tiếng động của cảnh', buoc: [{ ten: 'Mô tả âm thanh', prompt: String(bc.canh.am_thanh ?? '') || '(trống)' }] };
+  return goc;
 }
 
 export type ViecHangDoi = { id: number; canh_id: number | null; nhan_vat_id: number | null; loai: string; nhan: string; doi_tuong: string; provider: string; model: string; trang_thai: string; loi: string; cents: number; luc: string; xong_luc: string };

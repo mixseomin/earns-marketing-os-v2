@@ -1588,7 +1588,8 @@ man('dung');
 
 // ── LỆNH AI (anh 20/11/2026): ô chat cố định bên phải. Chọn clip trên timeline → chip "Đang sửa: …" + gợi ý theo loại; gõ lệnh → máy chủ lenhAiS2.
 // Sửa chữ chạy ngay (nút Hoàn tác); sinh lại tốn credit hiện thẻ xác nhận, bấm Chạy mới gọi đường ghi. Lịch sử chat giữ theo tập trong trình duyệt.
-const AI = { mo: false, dang: false, ls: {} };
+const AI = { mo: (() => { try { return localStorage.getItem('s2-ai-mo') === '1'; } catch { return false; } })(), dang: false, ls: {}, xem: {} };
+const aiNhap = (v) => { const k = aiKhoa(); if (!k) return ''; try { if (v === undefined) return localStorage.getItem(`${k}-nhap`) || ''; if (v) localStorage.setItem(`${k}-nhap`, v); else localStorage.removeItem(`${k}-nhap`); } catch { /* bỏ qua */ } return v; };
 const aiKhoa = () => (D.that ? `s2-ai-${D.that.tap}` : '');
 const aiLs = () => { const k = aiKhoa(); if (!k) return []; if (!AI.ls[k]) { try { AI.ls[k] = JSON.parse(localStorage.getItem(k) || '[]'); } catch { AI.ls[k] = []; } } return AI.ls[k]; };
 const aiLuu = () => { try { localStorage.setItem(aiKhoa(), JSON.stringify(aiLs().slice(-40))); } catch { /* bỏ qua */ } };
@@ -1607,12 +1608,13 @@ function aiVe() {
   let o = document.getElementById('aiDock');
   if (!o) { o = document.createElement('aside'); o.id = 'aiDock'; o.className = 'ai-dock'; document.body.append(o);
     const n = document.createElement('button'); n.type = 'button'; n.id = 'aiMoNut'; n.className = 'ai-mo-nut'; n.textContent = '✦ Lệnh AI'; n.title = 'Mở ô lệnh AI: sửa đối tượng đang chọn bằng câu lệnh'; document.body.append(n);
-    n.onclick = () => { AI.mo = !AI.mo; aiVe(); if (AI.mo) setTimeout(() => document.getElementById('aiO')?.focus(), 30); };
-    o.addEventListener('click', aiBam); o.addEventListener('input', (e) => { const t = e.target; if (!t.classList.contains('ai-y')) return; const v = aiLs()[+t.dataset.i]?.de_xuat?.[+t.dataset.j]; if (!v) return;
-      v.yeu_cau = t.value.slice(0, 600); const g = t.closest('.ai-the')?.querySelector('.ai-gia'); if (g) g.textContent = aiGia(v); aiLuu(); }); o.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'aiO') { e.preventDefault(); aiGui(); } }); }
+    n.onclick = () => { AI.mo = !AI.mo; try { localStorage.setItem('s2-ai-mo', AI.mo ? '1' : '0'); } catch { /* bỏ qua */ } aiVe(); if (AI.mo) setTimeout(() => document.getElementById('aiO')?.focus(), 30); };
+    o.addEventListener('click', aiBam); o.addEventListener('input', (e) => { const t = e.target; if (t.id === 'aiO') { aiNhap(t.value); return; } if (!t.classList.contains('ai-y')) return; const v = aiLs()[+t.dataset.i]?.de_xuat?.[+t.dataset.j]; if (!v) return;
+      v.yeu_cau = t.value.slice(0, 600); const g = t.closest('.ai-the')?.querySelector('.ai-gia'); if (g) g.textContent = aiGia(v); const x = AI.xem[`${t.dataset.i}:${t.dataset.j}`]; if (x) x.cu = true; aiLuu(); }); o.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'aiO') { e.preventDefault(); aiGui(); } }); }
   document.body.classList.toggle('ai-mo', AI.mo); o.hidden = !AI.mo; document.getElementById('aiMoNut').hidden = AI.mo; if (!AI.mo) return;
   if (!D.that) { o.innerHTML = `<div class="ai-dau"><strong>Lệnh AI</strong><button type="button" class="bt" data-ai="dong">Đóng</button></div><p class="nho">Mở một phim thật của studio để dùng lệnh AI.</p>`; return; }
-  const d = aiDoi(), ls = aiLs(), giu = document.getElementById('aiO')?.value || '';
+  const d = aiDoi(), ls = aiLs(), giu = document.getElementById('aiO')?.value || aiNhap();
+  const cuoi = ls.at(-1); if (cuoi?.ai === 'nguoi' && !AI.dang) ls.push({ ai: 'may', loi: true, chu: 'Lượt này bị ngắt (trang tải lại khi máy đang nghĩ).', gui_lai: cuoi.chu });
   o.innerHTML = `<div class="ai-dau"><strong>Lệnh AI</strong><button type="button" class="bt" data-ai="dong">Đóng</button></div>
     <div class="ai-chip">Đang sửa: <b>${esc(d.nhan)}</b>${d.loai !== 'tap' ? ' <button type="button" class="ai-x" data-ai="bo" title="Bỏ chọn, ra lệnh cho cả tập">×</button>' : ''}</div>
     <div class="ai-ls">${ls.length ? ls.map(aiTin).join('') : '<p class="nho">Chọn một clip trên timeline (keyframe, lời, tiếng động, nhạc) rồi gõ điều muốn đổi. Sửa chữ chạy ngay và hoàn tác được; sinh lại hình / clip / giọng tốn credits nên con hỏi trước.</p>'}${AI.dang ? '<div class="ai-tin may"><span class="nho">Đang nghĩ…</span></div>' : ''}</div>
@@ -1622,11 +1624,29 @@ function aiVe() {
   if (!E.gia && !AI.napGia && ls.some((m) => (m.de_xuat || []).some((v) => !v.xong))) { AI.napGia = true; napQt(true).catch(() => {}).finally(() => { AI.napGia = false; if (E.gia) aiVe(); }); }
 }
 function aiTin(m, i) {
+  if (m.gui_lai) return `<div class="ai-tin may loi">${esc(m.chu)} <button type="button" class="bt" data-ai="guilai" data-i="${i}">Gửi lại</button></div>`;
   if (m.ai === 'nguoi') return `<div class="ai-tin nguoi"><span class="nho">${esc(m.doi || '')}</span>${esc(m.chu)}</div>`;
   const lam = (m.da_lam || []).map((v) => `<li>${esc(v.nhan)}: <i>${esc(typeof v.moi === 'object' ? (v.moi || []).map((t) => t.loi).join(' / ') : String(v.moi))}</i></li>`).join('');
-  const dx = (m.de_xuat || []).map((v, j) => `<div class="ai-the"><b>${esc(v.nhan)}</b>${v.xong ? (v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : '') : `<label class="nho">Ý cho lượt sinh (sửa hoặc bổ sung tuỳ ý)<textarea class="ai-y" rows="2" data-i="${i}" data-j="${j}">${esc(v.yeu_cau || '')}</textarea></label>`}<span class="nho ai-gia">${esc(aiGia(v))}</span>
+  const dx = (m.de_xuat || []).map((v, j) => v.xong ? `<details class="ai-gon"><summary>${v.xong === 'Đã bỏ.' ? '✕' : '✓'} ${esc(v.nhan)} · ${esc(v.xong)}</summary>${v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : ''}</details>` : `<div class="ai-the"><b>${esc(v.nhan)}</b>${v.xong ? (v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : '') : `<label class="nho">Ý cho lượt sinh (sửa hoặc bổ sung tuỳ ý)<textarea class="ai-y" rows="2" data-i="${i}" data-j="${j}">${esc(v.yeu_cau || '')}</textarea></label>`}<span class="nho ai-gia">${esc(aiGia(v))}</span>${laQtThat() ? aiXemHtml(i, j) : ''}
     ${v.xong ? `<span class="nho ok">${esc(v.xong)}</span>` : `<button type="button" class="bt chinh" data-ai="chay" data-i="${i}" data-j="${j}">Chạy</button> <button type="button" class="bt" data-ai="bodx" data-i="${i}" data-j="${j}">Bỏ</button>`}</div>`).join('');
+  if (lam && m.hoan) return `<div class="ai-tin may"><details class="ai-gon"><summary>↶ Đã hoàn tác: ${esc(m.chu)}</summary><ul>${lam}</ul></details>${dx}</div>`;
   return `<div class="ai-tin may${m.loi ? ' loi' : ''}">${esc(m.chu)}${lam ? `<ul>${lam}</ul>${m.hoan ? '<span class="nho">Đã hoàn tác.</span>' : `<button type="button" class="bt" data-ai="hoan" data-i="${i}">Hoàn tác</button>`}` : ''}${dx}</div>`;
+}
+/** XEM LỆNH SẼ GỬI (chỉ quản trị): gập sẵn, mở ra mới đọc máy chủ (xemLenhS2, 0đ) — đường sinh, model, người trong khung, ảnh tham chiếu, ý riêng nối vào đâu, câu lệnh từng bước */
+function aiXemHtml(i, j) {
+  const x = AI.xem[`${i}:${j}`];
+  const nd = !x?.mo ? '' : x.dang ? '<span class="nho">Đang dựng câu lệnh…</span>' : x.loi ? `<div class="bao">${esc(x.loi)}</div>` : !x.kq ? '<span class="nho">Không xem được (cần quyền quản trị).</span>' : (() => { const k = x.kq;
+    return `${x.cu ? '<span class="nho">Ý vừa sửa, bấm Dựng lại để xem bản mới.</span>' : ''}${k.chan.length ? `<div class="bao">Sẽ bị chặn: ${esc(k.chan.join(' · '))}</div>` : ''}
+    <dl class="ai-dl"><dt>Đường</dt><dd>${esc(k.duong)}${k.model ? ` · <code>${esc(k.model)}</code>` : ''}</dd>
+    ${k.nguoi.length ? `<dt>Người</dt><dd>${k.nguoi.map((v) => `<span title="${esc(v.mo_ta)}"><b>${esc(v.ten)}</b> ${esc(v.mo_ta.slice(0, 60))}</span>`).join('<br>')}</dd>` : ''}
+    ${k.tham_chieu.length ? `<dt>Ảnh mẫu</dt><dd class="ai-ref">${k.tham_chieu.map((r) => `<a href="${esc(r.url)}" target="_blank" rel="noreferrer" title="${esc(r.nhan)}"><img src="${esc(r.url)}" alt="${esc(r.nhan)}" loading="lazy"><small>${esc(r.nhan)}</small></a>`).join('')}</dd>` : ''}
+    ${k.them ? `<dt>Ý riêng</dt><dd>${esc(k.them)}</dd>` : ''}</dl>
+    ${k.buoc.map((b) => `<details class="ai-p"><summary>${esc(b.ten)} · ${b.prompt.length} ký tự</summary><pre>${esc(b.prompt)}</pre></details>`).join('')}`; })();
+  return `<details class="ai-xem" data-i="${i}" data-j="${j}"${x?.mo ? ' open' : ''}><summary>Xem lệnh sẽ gửi${x?.mo && !x.dang ? ' <button type="button" class="ai-x" data-ai="xemlai" data-i="' + i + '" data-j="' + j + '" title="Dựng lại theo ý mới">↻</button>' : ''}</summary>${nd}</details>`;
+}
+async function aiXem(i, j) {
+  const v = aiLs()[i]?.de_xuat?.[j]; if (!v) return; const key = `${i}:${j}`, x = AI.xem[key] = { mo: true, dang: true };
+  aiVe(); try { x.kq = await goi('xemLenhS2', v.canhId, v.loai, v.yeu_cau || ''); } catch (e) { x.loi = e.message; } x.dang = false; if (AI.xem[key] === x) aiVe();
 }
 /** giá thẻ đề xuất: giá bước sinh + một lượt dịch nhỏ khi có ý riêng (giọng không dịch); ý đổi → tính lại ngay */
 const aiGia = (v) => { const sid = `s${v.canhId}`, k = { sinh_lai_anh: `kf1:${sid}`, sinh_lai_clip: `clip1:${sid}`, sinh_lai_giong: 'giong', sinh_nhac: 'nhac1', sinh_td: 'td' }[v.loai];
@@ -1636,7 +1656,7 @@ const aiGia = (v) => { const sid = `s${v.canhId}`, k = { sinh_lai_anh: `kf1:${si
 async function aiGui(cau) {
   const o = document.getElementById('aiO'), hoi = String(cau ?? o?.value ?? '').trim(); if (!hoi || AI.dang || !D.that) return;
   const d = aiDoi(), ls = aiLs(), lich = ls.slice(-6).map((m) => ({ ai: m.ai, chu: m.chu }));
-  ls.push({ ai: 'nguoi', chu: hoi, doi: d.nhan }); if (o) o.value = ''; AI.dang = true; aiVe();
+  ls.push({ ai: 'nguoi', chu: hoi, doi: d.nhan }); if (o) o.value = ''; aiNhap(''); AI.dang = true; aiLuu(); aiVe();
   try { const k = await ghiSv('lenhAiS2', D.that.phim, D.that.tap, { loai: d.loai, canhId: d.canhId ?? null }, hoi, lich);
     ls.push({ ai: 'may', chu: k.tra_loi || 'Xong.', da_lam: k.da_lam || [], de_xuat: k.de_xuat || [] }); if ((k.da_lam || []).length) await taiLai(true);
   } catch (e) { ls.push({ ai: 'may', loi: true, chu: `Không chạy được: ${e.message}` }); }
@@ -1648,6 +1668,8 @@ async function aiBam(e) {
   if (k === 'bo') { E.chon = null; veD(); aiVe(); return; }
   if (k === 'g') { aiGui(b.textContent); return; }
   if (k === 'gui') { aiGui(); return; }
+  if (k === 'xemlai') { e.preventDefault(); aiXem(+b.dataset.i, +b.dataset.j); return; }
+  if (k === 'guilai') { const h = ls[+b.dataset.i]?.gui_lai; ls.splice(+b.dataset.i - 1, 2); aiLuu(); aiGui(h); return; }
   const m = ls[+b.dataset.i]; if (!m) return;
   if (k === 'hoan') { b.disabled = true;
     try { for (const v of [...m.da_lam].reverse()) { if (v.loai === 'sua_tap') await ghiSv('suaTap', v.tapId, { [v.truong]: v.cu }); else await ghiSv('suaCanh', v.canhId, { [v.truong]: v.cu }); }
@@ -1666,4 +1688,6 @@ async function aiBam(e) {
     aiLuu(); aiVe(); }
 }
 window.aiChon = () => { if (AI.mo) aiVe(); };
+document.addEventListener('toggle', (e) => { const t = e.target; if (!t.classList?.contains('ai-xem')) return; const key = `${t.dataset.i}:${t.dataset.j}`;
+  if (t.open && !AI.xem[key]?.mo) aiXem(+t.dataset.i, +t.dataset.j); else if (!t.open && AI.xem[key]) AI.xem[key].mo = false; }, true);
 setTimeout(aiVe, 0);

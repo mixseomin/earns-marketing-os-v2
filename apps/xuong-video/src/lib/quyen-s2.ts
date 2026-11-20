@@ -18,7 +18,7 @@ type Doi = 'phim' | 'tap' | 'canh' | 'job' | 'viec' | 'khong';
 const LUAT: Record<string, { doi: Doi; tien?: boolean }> = {
   // đọc
   toiS2: { doi: 'khong' }, creditS2: { doi: 'khong' }, camNangS2: { doi: 'khong' }, dsPhimS2: { doi: 'khong' }, dsGoiTheLoai: { doi: 'khong' }, dsTemplateS2: { doi: 'khong' }, dsMauPhim: { doi: 'khong' }, docTemplate: { doi: 'khong' },
-  docPhim: { doi: 'phim' }, quyTrinhTap: { doi: 'phim' }, dsCanh: { doi: 'tap' }, uocTien: { doi: 'tap' }, uocAm: { doi: 'tap' }, nhatKyTap: { doi: 'tap' }, nhatKyCanh: { doi: 'canh' }, docCoSoS2: { doi: 'tap' }, hangDoiS2: { doi: 'phim' },
+  docPhim: { doi: 'phim' }, quyTrinhTap: { doi: 'phim' }, dsCanh: { doi: 'tap' }, uocTien: { doi: 'tap' }, uocAm: { doi: 'tap' }, nhatKyTap: { doi: 'tap' }, nhatKyCanh: { doi: 'canh' }, docCoSoS2: { doi: 'tap' }, hangDoiS2: { doi: 'phim' }, xemLenhS2: { doi: 'canh' },
   docViecNen: { doi: 'viec' }, trangThaiXuat: { doi: 'job' },
   // công cụ thiết kế (actions-thiet-ke.ts)
   dsThietKe: { doi: 'khong' }, docThietKe: { doi: 'khong' }, dsMauCrS2: { doi: 'khong' }, anhMauCrS2: { doi: 'khong' }, dsPhimThuS2: { doi: 'khong' }, anhPhimS2: { doi: 'khong' }, luuThietKe: { doi: 'khong' }, luuTruThietKe: { doi: 'khong' }, dsThuMucTK: { doi: 'khong' }, taoThuMucTK: { doi: 'khong' }, chuyenThuMucTK: { doi: 'khong' }, doiThuMucTK: { doi: 'khong' },

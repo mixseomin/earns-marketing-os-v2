@@ -8,8 +8,10 @@ import dynamic from 'next/dynamic';
 import { EmptyState, SimpleTable, StatsStrip } from '@/components/ui';
 import type { MaWidgetOb } from '@/lib/outreach/so';
 import { KIEU, NGUON, TT_TRA_LOI, nguonCua, ttCua, type MaKieu } from '@/lib/outreach/kieu';
-import { SO_NGAY_DUNG, dangDung, docChienDich, docNguoiNhan, locDa, soNgayTu, type ChienDich } from '@/lib/outreach/du-lieu';
-import { BangChienDich, BangNguoiNhan } from './bang';
+import { SO_NGAY_DUNG, dangDung, docChienDich, docMoiDuAn, docNguoiNhan, docThuDen, locDa, soNgayTu, type ChienDich } from '@/lib/outreach/du-lieu';
+import { dsDuongGui, kiemDuongGui } from '@/lib/outreach/gui';
+import { BangChienDich, BangNguoiNhan, BangThuDen } from './bang';
+import { TaoChienDich } from './van-hanh';
 
 const DeliverabilityCard = dynamic(() => import('@/components/deliverability-card').then((m) => m.DeliverabilityCard));
 
@@ -57,9 +59,14 @@ async function CanXu({ n }: { n: NguOb }) {
 }
 
 async function ChienDichBang({ n }: { n: NguOb }) {
-  const cd = locDa(await docChienDich(), n.da);
-  if (!cd.length) return <ChuaCo da={n.da} />;
-  return <BangChienDich ds={cd} dung={cd.filter(dangDung).map((c) => c.id)} />;
+  const [tat, duAn] = await Promise.all([docChienDich(), docMoiDuAn()]), cd = locDa(tat, n.da);
+  if (!cd.length) return <><div style={{ marginBottom: 8 }}><TaoChienDich duAn={duAn} /></div><ChuaCo da={n.da} /></>;
+  return <BangChienDich ds={cd} dung={cd.filter(dangDung).map((c) => c.id)} duAn={duAn} />;
+}
+
+async function ThuDenBang({ n }: { n: NguOb }) {
+  const ds = (await docThuDen()).filter((t) => !n.da || t.da === n.da || !t.prospectId);
+  return <BangThuDen ds={ds} />;
 }
 
 async function PheuKieu({ n }: { n: NguOb }) {
@@ -139,23 +146,27 @@ async function NguonNhan() {
 }
 
 async function DuongGui({ n }: { n: NguOb }) {
-  const cd = locDa(await docChienDich(), n.da);
-  if (!cd.length) return <ChuaCo da={n.da} />;
-  const coKhoa = !!(process.env.MAILJET_API_KEY && process.env.MAILJET_SECRET);
-  return (<>
-    <div style={{ fontSize: 11, color: coKhoa ? 'var(--fg-2)' : DO, marginBottom: 6 }} role={coKhoa ? undefined : 'alert'}>
-      {coKhoa ? 'Thư outreach hiện đi qua một cổng gửi duy nhất của máy chủ; người gửi lấy theo chiến dịch.' : 'Máy chủ chưa có khoá cổng gửi thư: bấm gửi ở chiến dịch nào cũng sẽ bị từ chối.'}
-    </div>
-    <SimpleTable rows={cd} getRowKey={(c) => String(c.id)} rowStyle={(c) => (dangDung(c) ? { background: 'rgba(248,113,113,0.08)' } : undefined)} columns={[
+  const [tat, duong] = await Promise.all([docChienDich(), dsDuongGui()]), cd = locDa(tat, n.da);
+  const mienCd = (c: ChienDich) => (c.tuEmail ?? '').split('@')[1]?.toLowerCase() ?? '';
+  return (<div style={{ display: 'grid', gap: 12 }}>
+    {duong.length ? <SimpleTable rows={duong} getRowKey={(d) => d.mien} columns={[
+      { key: 'mien', header: 'Tên miền gửi', cell: (d) => <b title={d.ghiChu ?? undefined}>{d.mien}</b> },
+      { key: 'tt', header: 'Trạng thái', cell: (d) => { const thieu = kiemDuongGui(d); return thieu ? <span style={{ color: DO }} title={thieu}>chưa dùng được</span> : <span style={{ color: XANH }} title={`máy chủ thư ${d.host}, cổng ${d.cong}${d.dkimTep ? ', có chữ ký tên miền' : ', không có chữ ký tên miền'}`}>sẵn sàng</span>; } },
+      { key: 'nay', header: 'Hôm nay', align: 'right', title: 'thư outreach đã gửi hôm nay (giờ Việt Nam) / trần ngày của cả tên miền', cell: (d) => <span style={{ color: d.homNay >= d.tranNgay ? VANG : undefined }}>{d.homNay}/{d.tranNgay}</span> },
+      { key: 'tl', header: 'Thư trả lời về', cell: (d) => d.traLoi ?? <span style={{ color: MO }}>địa chỉ gửi</span>, title: 'địa chỉ nhận thư trả lời; máy dò thư trả lời theo địa chỉ này' },
+      { key: 'chan', header: 'Chân thư', title: 'dòng tên + địa chỉ bưu chính của bên gửi gắn cuối mọi thư', cell: (d) => (d.chanThu ? <span title={d.chanThu}>đã khai</span> : <span style={{ color: VANG }} title="Thư lạnh gửi sang Mỹ cần có địa chỉ bưu chính của bên gửi ở cuối thư">chưa khai</span>) },
+      { key: 'cd', header: 'Chiến dịch dùng', align: 'right', cell: (d) => tat.filter((c) => mienCd(c) === d.mien).length },
+    ]} /> : <div role="alert" style={{ fontSize: 12, color: DO }}>Chưa có đường gửi nào: mọi chiến dịch đều chưa gửi được thư.</div>}
+    {cd.length ? <SimpleTable rows={cd} getRowKey={(c) => String(c.id)} rowStyle={(c) => (dangDung(c) ? { background: 'rgba(248,113,113,0.08)' } : undefined)} columns={[
       { key: 'ten', header: 'Chiến dịch', cell: (c) => <><a href={linkCd(c)} style={a}>{c.ten}</a><span style={{ color: MO }}> · {c.da}</span></> },
-      { key: 'tu', header: 'Người gửi', cell: (c) => (c.tuEmail ? <span title={c.tuTen ?? undefined}>{c.tuTen ? `${c.tuTen} · ` : ''}{c.tuEmail}</span> : <span style={{ color: VANG }}>chưa đặt</span>) },
+      { key: 'tu', header: 'Người gửi', cell: (c) => (c.tuEmail ? <span title={c.tuTen ?? undefined}>{c.tuEmail}</span> : <span style={{ color: VANG }}>chưa đặt</span>) },
+      { key: 'duong', header: 'Đường gửi', cell: (c) => (!c.tuEmail ? <span style={{ color: MO }}>—</span> : duong.some((d) => d.mien === mienCd(c) && !kiemDuongGui(d)) ? <span style={{ color: XANH }}>có</span> : <span style={{ color: DO }} title={`Chưa có đường gửi cho tên miền ${mienCd(c)}: bấm gửi sẽ bị từ chối`}>chưa có</span>) },
       { key: 'cach', header: 'Cách gửi', cell: (c) => (c.tuGui ? `tự gửi · ${c.tran}/ngày` : 'gửi tay') },
       { key: 'gui', header: 'Đã gửi', align: 'right', cell: (c) => so(c.daGui) },
-      { key: 'doi', header: 'Thư dội', align: 'right', cell: (c) => <span style={{ color: c.doi ? DO : MO }}>{c.doi}</span> },
       { key: 'cuoi', header: 'Gửi cuối', align: 'right', title: 'giờ Việt Nam', cell: (c) => gioVn(c.guiCuoi) },
       { key: 'ket', header: 'Thư đang kẹt', align: 'right', title: 'thư chờ + thư nhắc tới hạn của chiến dịch đang đứng', cell: (c) => (dangDung(c) ? <b style={{ color: DO }}>{so(c.choGui + c.toiHan)}</b> : <span style={{ color: MO }}>0</span>) },
-    ]} />
-  </>);
+    ]} /> : <ChuaCo da={n.da} />}
+  </div>);
 }
 
 export const VE_OB: Record<MaWidgetOb, Ve> = {
@@ -166,6 +177,7 @@ export const VE_OB: Record<MaWidgetOb, Ve> = {
   N1: (n) => <NguoiNhanBang n={n} />,
   N2: (n) => <HangCho n={n} />,
   N3: (n) => <TraLoi n={n} />,
+  N4: (n) => <ThuDenBang n={n} />,
   K1: () => <SoKieu />,
   K2: () => <NguonNhan />,
   H1: (n) => <DuongGui n={n} />,

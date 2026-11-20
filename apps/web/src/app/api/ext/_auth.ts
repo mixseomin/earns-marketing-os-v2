@@ -11,6 +11,7 @@ import { sql } from 'drizzle-orm';
 //           siết thành ALLOW-list khi flow ext bản nhân sự chốt + test được.
 const STAFF_DENY = [
   '/admin/', 'save-selector', 'clear-selector', 'selectors/set', 'selectors/verify',
+  '/ext/outreach',   // cổng lệnh hệ outreach (tạo chiến dịch, nạp, soạn, gửi thử) — chỉ khoá quản trị
   'crew-capabilities', 'vision/', 'brief/update', 'project-brand', 'profile-fields/rename', 'media/generate',
 ];
 

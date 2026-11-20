@@ -86,3 +86,21 @@ const ngayTu = (isoStr: string | null) => (isoStr ? Math.floor((Date.now() - Dat
 /** chiến dịch bật tự gửi, còn thư chờ có email, mà quá SO_NGAY_DUNG ngày không gửi được thư nào → đang ĐỨNG (đường gửi hỏng, lịch không chạy, hoặc thiếu nội dung thư) */
 export const dangDung = (c: ChienDich) => c.chay && c.tuGui && c.tran > 0 && c.choGui + c.toiHan > 0 && (ngayTu(c.guiCuoi) ?? 999) > SO_NGAY_DUNG;
 export const soNgayTu = ngayTu;
+
+export type ThuDen = { id: number; prospectId: number | null; da: string; ten: string | null; tu: string; tieuDe: string; trich: string; tt: string | null; luc: string };
+/** thư đến đã nạp vào outreach_thu (mới nhất trước) — bảng chưa có (migration 0453 chưa chạy) thì rỗng */
+export const docThuDen = cache(async (): Promise<ThuDen[]> => {
+  const db = getDb(); if (!db) return [];
+  try {
+    const rs = (await db.execute(sql`
+      select t.id::int as id, t.prospect_id::int as prospect_id, coalesce(t.project_id, '') as da, coalesce(nullif(p.company, ''), p.agent_name) as ten, coalesce(t.tu, '') as tu,
+             coalesce(t.tieu_de, '') as tieu_de, left(coalesce(t.noi_dung, ''), 400) as trich, p.status as tt, t.luc
+      from outreach_thu t left join outreach_prospects p on p.id = t.prospect_id where t.chieu = 'den' order by t.luc desc limit 300`)) as unknown as Record<string, unknown>[];
+    return rs.map((r) => ({ id: Number(r.id), prospectId: r.prospect_id == null ? null : Number(r.prospect_id), da: String(r.da), ten: r.ten ? String(r.ten) : null, tu: String(r.tu), tieuDe: String(r.tieu_de), trich: String(r.trich), tt: r.tt ? String(r.tt) : null, luc: iso(r.luc) ?? '' }));
+  } catch { return []; }
+});
+/** mọi dự án của MOS2 (ô chọn dự án khi tạo chiến dịch) */
+export const docMoiDuAn = cache(async (): Promise<string[]> => {
+  const db = getDb(); if (!db) return [];
+  return ((await db.execute(sql`select id from projects order by id`)) as unknown as { id: string }[]).map((r) => String(r.id));
+});

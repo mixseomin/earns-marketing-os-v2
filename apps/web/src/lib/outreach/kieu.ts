@@ -37,10 +37,10 @@ export const kieuCua = (raw: string | null | undefined): KieuSo => KIEU[maKieu(r
 
 export type NguonSo = { ten: string; moTa: string; /** bộ nạp đã chạy được chưa */ noi: boolean };
 export const NGUON = {
-  spy_nha_qc: { ten: 'Nhà quảng cáo từ spy', moTa: 'thương hiệu đang chạy quảng cáo trong một ngách (kho spy: Meta, TikTok, Google) → người nhận kèm quảng cáo của chính họ', noi: false },
+  spy_nha_qc: { ten: 'Nhà quảng cáo từ spy', moTa: 'thương hiệu đang chạy quảng cáo trong một ngách (kho spy: Meta, TikTok, Google) → người nhận kèm quảng cáo của chính họ', noi: true },
   backlink: { ten: 'Việc backlink', moTa: 'việc backlink cần thư ngỏ trên bảng việc của dự án', noi: true },
   markdown_pack: { ten: 'Gói danh sách soạn sẵn', moTa: 'danh sách người nhận nạp theo gói (đợt MilitaryCalc)', noi: true },
-  csv: { ten: 'Tệp CSV', moTa: 'dán hoặc tải danh sách tên · email · website', noi: false },
+  csv: { ten: 'Dán danh sách', moTa: 'dán danh sách tên · email · website, mỗi dòng một người', noi: true },
   manual: { ten: 'Thêm tay', moTa: 'thêm từng người trong trang outreach của dự án', noi: true },
   // nguồn do máy tìm người nhận ghi (mẫu thư riêng từng nguồn ở lib/outreach-template.ts)
   'resource-engine': { ten: 'Máy tìm trang tài nguyên', moTa: 'trang tổng hợp tài nguyên / link hữu ích do máy tìm người nhận dò ra', noi: true },

@@ -27,9 +27,11 @@ xoa() { [ -n "$MAY" ] || return 0
   echo "đã XOÁ máy $LOAI $MAY sau $(( ($(date +%s) - T0) / 60 )) phút (từ lúc bắt đầu mạch)"; MAY=""; }
 trap xoa EXIT INT TERM
 cho_ssh() {   # đợi SSH vào được rồi kiểm driver ≥ 580; in "ip cổng" hoặc rỗng (đã xoá máy). $1 = hàm in "ip cổng" của máy hiện tại
-  local h="" i drv
-  for i in $(seq 1 60); do sleep 10; h=$($1); [ -n "$h" ] && ssh -p "${h#* }" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o BatchMode=yes root@"${h% *}" true 2>/dev/null && break; h=""; done
-  [ -n "$h" ] || { echo "  máy không lên SSH sau 10 phút → xoá, sang máy kế" >&2; xoa >&2; return 0; }   # xoa ra stderr: stdout của hàm này CHỈ là "ip cổng" (17/11/2026: "Bad port 'XOÁ'")
+  # TRẦN CHỜ THEO GIỜ THẬT (20/11/2026, lượt thử phim #7999): trước đếm 60 vòng × (10 s nghỉ + gọi API + ssh 10 s) — đo được ~25 phút cho MỖI máy không lên,
+  # ghi là "10 phút". Giờ dừng sau XV_H3_CHO_SSH giây (mặc định 480: máy tốt kéo image + lên SSH trong 2–6 phút).
+  local h="" i drv t1; t1=$(date +%s)
+  for i in $(seq 1 60); do [ $(( $(date +%s) - t1 )) -ge "${XV_H3_CHO_SSH:-480}" ] && break; sleep 10; h=$($1); [ -n "$h" ] && ssh -p "${h#* }" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o BatchMode=yes root@"${h% *}" true 2>/dev/null && break; h=""; done
+  [ -n "$h" ] || { echo "  máy không lên SSH sau $(( ($(date +%s) - t1) / 60 )) phút → xoá, sang máy kế" >&2; xoa >&2; return 0; }   # xoa ra stderr: stdout của hàm này CHỈ là "ip cổng" (17/11/2026: "Bad port 'XOÁ'")
   drv=$(ssh -p "${h#* }" -o BatchMode=yes root@"${h% *}" 'nvidia-smi --query-gpu=driver_version --format=csv,noheader' 2>/dev/null | head -1)
   if [ "${drv%%.*}" -ge 580 ] 2>/dev/null; then echo "driver $drv · SSH sau $(( $(date +%s) - T0 ))s" >&2; echo "$h"; return 0; fi
   echo "  driver ${drv:-?} < 580 (PyTorch CUDA 13 không chạy) → xoá, sang máy kế" >&2; xoa >&2; }
@@ -49,6 +51,8 @@ thue_vast() {   # máy một card ≥ 24GB, đời card ≥ 8.0 (INT8 ConvRot �
   [ -n "$DS" ] || { echo "  Vast: không có máy hợp (≤ \$${XV_H3_GIA_TOI_DA:-0.6}/giờ, driver CUDA 13)" >&2; return 1; }
   while IFS='|' read -r i g gia noi; do
     case "$g" in CMP*) echo "  bỏ $g (card đào coin — 17/11/2026 thuê được mà không lên SSH)" >&2; continue ;; esac
+    # vùng không kéo nổi image ghcr (20/11/2026: máy Shanghai, CN rẻ nhất, thuê được nhưng không bao giờ lên SSH) — XV_H3_BO_VUNG="CN RU" để đổi
+    case " ${XV_H3_BO_VUNG:-CN} " in *" ${noi##*, } "*) echo "  bỏ máy ở $noi (vùng không kéo được image)" >&2; continue ;; esac
     R=$(VAPI PUT "/asks/$i/" "$(python3 -c 'import json,sys; print(json.dumps({"client_id":"me","image":sys.argv[1],"disk":int(sys.argv[2]),"runtype":"ssh_direc ssh_proxy","onstart":"touch /root/.no_auto_tmux","label":"xv-h3-thu"}))' "$ANH" "${XV_H3_O:-70}")")
     N=$(echo "$R" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("new_contract") or "")' 2>/dev/null)
     [ -n "$N" ] || { echo "  Vast $g ($noi): không thuê được $(echo "$R" | head -c 100)" >&2; continue; }

@@ -216,7 +216,7 @@ TRAN_TUYET = 30   # trần tuyệt đối $/camp/ngày (anh 14/11/2026) — kiem
 # BẢO TRÌ / TRẦN CAMP TEST khi vé hợp lệ: đúng việc, đúng camp (hoặc camp gốc / phim của lệnh tạo), chưa hết hạn VE_PHUT phút, chưa dùng. Cửa API
 # (ethopex_api.api) đốt vé lúc gửi lệnh — một vé một lệnh. Lỗi đọc vé = không vé (an toàn trước).
 VE_PHUT = int(_BL["mot_cua"]["ve_phut"])   # sổ luật chung mot_cua (anh 18/11/2026)
-assert _BL["mot_cua"]["mien_phanh"] == ["ve_tay"], "phanh chợ chỉ miễn thao tác tay có vé (anh 18/11/2026) — sổ luật mot_cua lệch mã"
+assert _BL["mot_cua"]["mien_phanh"] == ["ve_tay", "truc_tiep"], "phanh chợ chỉ miễn thao tác tay có vé (18/11) + vé lệnh trực tiếp của anh (20/11/2026) — sổ luật mot_cua lệch mã"
 VE_VIEC = {"tang": "tang", "bat": "bat", "nhan_ban": "nhan_ban", "tao_camp": "nhan_ban"}   # tạo camp từ creative = cùng loại vé lên camp
 VE_XIN = ("apps/etp2/src/lib/actions/etp-tay.ts", "apps/etp2/src/lib/actions/etp-dong.ts", "apps/etp2/src/lib/actions/etp-sua.ts", "apps/etp2/src/lib/etp-ve.ts",
           "apps/web/src/lib/actions/etp-dong.ts", "apps/web/src/lib/actions/etp-sua.ts", "apps/web/src/lib/etp-ve.ts")   # + worker/ethopex.mjs xuNut (nút Telegram) ở repo cty
@@ -237,17 +237,61 @@ def xin_ve(viec, camp_id=None, content_id=None, ai=""):
         coalesce({ct if ct is not None else 'null'}, (select content_id from etp.camp where camp_id = {cid if cid is not None else 'null'}),
                  (select content_id from etp.camp_ngoai where camp_id = {cid if cid is not None else 'null'})), $A${a}$A$, now() + interval '{VE_PHUT} minutes')""")
     return ma
-def ve_hop_le(viec, camp_ids=(), content_id=None, dung=False, cho="", ma=None):
-    """người bấm (chữ ai của vé) nếu vé ETP_VE hợp lệ cho lệnh này, None nếu không. dung=True: đốt vé (cửa API, lúc gửi)."""
+def ve_hop_le(viec, camp_ids=(), content_id=None, dung=False, cho="", ma=None, loai=None):
+    """người bấm (chữ ai của vé) nếu vé ETP_VE hợp lệ cho lệnh này, None nếu không. dung=True: đốt vé (cửa API, lúc gửi). loai='truc_tiep': chỉ vé lệnh trực tiếp."""
     ma, v = _ma_ve(ma), VE_VIEC.get(viec)
     if not ma or not v: return None
     ids = sorted({int(x) for x in camp_ids or () if str(x).isdigit()})
     khop = " or ".join(([f"camp_id in ({','.join(map(str, ids))})"] if ids else []) + ([f"content_id = {int(content_id)}"] if content_id not in (None, "") else [])) or "false"
-    dk = f"ma = '{ma}' and viec = '{v}' and da_dung is null and het_han > now() and ({khop})"
+    dk = f"ma = '{ma}' and viec = '{v}' and da_dung is null and het_han > now() and loai in ('tay', 'truc_tiep') and ({khop})" + (" and loai = 'truc_tiep'" if loai == "truc_tiep" else "")
     try:
         if dung: return _q(f"update etp.ve_tay set da_dung = now(), dung_cho = $C${str(cho).replace('$', '')[:200]}$C$ where {dk} returning ai") or None
         return _q(f"select ai from etp.ve_tay where {dk}") or None
     except Exception: return None
+
+# LỆNH TRỰC TIẾP CỦA ANH (anh 20/11/2026 09:35 VN, nguyên văn: "Không PHANH nào được hạn chế quyền trực tiếp từ tao cả. Sửa lại ngay lập tức. Các camp do tao yêu cầu
+# thì đánh dấu là Trực tiếp !! PHANH chỉ được cảnh báo thêm 1 lần trước khi bắt buộc phải thực hiện mọi yêu cầu của tao") — THAY phần "lệnh chat không miễn phanh" (18/11).
+# Vé loai 'truc_tiep' chỉ cấp từ CLI `cong.py --ve-truc-tiep` (gop-y-luat.mjs giữ danh sách nơi gọi VE_TRUC_TIEP_XIN — máy luật / worker / dòng phim / kỹ sư máy KHÔNG gọi),
+# mỗi vé ghi nguyên văn câu lệnh + phiên + MỘT dòng Telegram. Miễn MỌI phanh (phanh chợ + báo sớm + rút chợ, bảo trì, khung giờ, nhịp 24 giờ, trần camp test / phim,
+# trần camp mới / ngày, nắp ROI 3 ngày, tran_camp, trần $30, ngân sách ROAS ngoài $15–20, camp mới $1); KHÔNG miễn: phim cấm, camp đội (camp_ngoai), giới hạn của Ethopex / Meta.
+VE_TRUC_TIEP_XIN = ("apps/etp/cong.py",)   # chỉ CLI của chính tệp này (Claude gõ theo câu anh trong chat)
+CANH_BAO_PHUT = int(_BL["mot_cua"]["truc_tiep"]["canh_bao_phut"])   # sổ luật mot_cua.truc_tiep (30 phút)
+def truc_tiep(viec, camp_ids=(), content_id=None, ma=None):
+    """chữ ai của vé TRỰC TIẾP hợp lệ cho lệnh này (chưa đốt) | None — mọi chỗ phanh hỏi hàm này để miễn"""
+    return ve_hop_le(viec, camp_ids, content_id, ma=ma, loai="truc_tiep")
+SQL_TRUC_TIEP_24H = "select camp_id from etp.ve_tay where loai = 'truc_tiep' and da_dung > now() - interval '24 hours' and camp_id is not null"
+def camp_truc_tiep_24h(q=None):
+    """camp vừa được anh lệnh trực tiếp (vé đã dùng) trong 24 giờ — máy luật không hạ / tắt lại (trừ phim cấm)"""
+    try: return {int(x) for x in (q or _q)(SQL_TRUC_TIEP_24H).split() if x.isdigit()}
+    except Exception: return set()
+def ve_truc_tiep(viec, camp_id=None, content_id=None, lenh="", ns=None, phien=""):
+    """CLI --ve-truc-tiep: lần đầu có phanh → (None, [câu phanh]) + ghi dấu đã cảnh báo; gọi lại trong CANH_BAO_PHUT phút (hoặc không phanh) → (mã vé, [câu phanh đã bỏ qua])."""
+    import secrets
+    v = VE_VIEC.get(viec)
+    if not v: raise ValueError(f"vé không cho việc '{viec}' (chỉ {sorted(VE_VIEC)})")
+    cid = int(camp_id) if camp_id not in (None, "", "-") else None; ct = int(content_id) if content_id not in (None, "", "-") else None
+    if cid is None and ct is None: raise ValueError("vé phải gắn --camp hoặc --phim")
+    lenh = str(lenh or "").replace("$", "").strip()
+    if len(lenh) < 4: raise ValueError("vé trực tiếp phải ghi NGUYÊN VĂN câu lệnh của anh (--lenh)")
+    if cid is not None and _q(f"select 1 from etp.camp_ngoai where camp_id = {cid}") == "1": raise ValueError(f"camp #{cid} là camp đội (camp_ngoai) — lệnh trực tiếp chỉ cho tài khoản nhà")
+    ly_cam = phim_cam([cid] if cid else (), [ct] if ct else ())
+    if ly_cam: raise ValueError(f"phim cấm — lệnh trực tiếp cũng không miễn: {ly_cam}")
+    os.environ.pop("ETP_VE", None)
+    ly = kiem(viec, cid, ns, float(_q(f"select coalesce(ngan_sach, 0) from etp.camp where camp_id = {cid}") or 0) if cid else 0, content_id=ct)
+    phanh = [ly] if ly else []
+    dk = f"viec = '{v}' and {'camp_id = ' + str(cid) if cid is not None else 'camp_id is null'} and {'content_id = ' + str(ct) if ct is not None else 'content_id is null'}"
+    if phanh and _q(f"select 1 from etp.ve_canh_bao where {dk} and da_cap is null and luc > now() - interval '{CANH_BAO_PHUT} minutes' limit 1") != "1":
+        _q(f"insert into etp.ve_canh_bao (viec, camp_id, content_id, lenh, phanh) values ('{v}', {cid if cid is not None else 'null'}, {ct if ct is not None else 'null'}, $L${lenh[:500]}$L$, $P${phanh[0].replace('$', '')[:500]}$P$)")
+        return None, phanh
+    if phanh: _q(f"update etp.ve_canh_bao set da_cap = now() where {dk} and da_cap is null")
+    ma = secrets.token_hex(16); ai = f"anh — TRỰC TIẾP: {lenh[:90]}"; ph = str(phien or os.environ.get("CLAUDE_SESSION_ID") or os.environ.get("USER") or "?").replace("$", "")[:120]
+    _q(f"""insert into etp.ve_tay (ma, viec, camp_id, content_id, ai, het_han, loai, lenh, phien) values ('{ma}', '{v}', {cid if cid is not None else 'null'},
+        coalesce({ct if ct is not None else 'null'}, (select content_id from etp.camp where camp_id = {cid if cid is not None else 'null'})), $A${ai}$A$,
+        now() + interval '{VE_PHUT} minutes', 'truc_tiep', $L${lenh[:1000]}$L$, $S${ph}$S$)""")
+    try: _bao_tg(f"⚡ lệnh trực tiếp của anh: {viec} {'camp #' + str(cid) if cid else 'phim #' + str(ct)}{' $' + str(ns) if ns else ''} — \"{lenh[:200]}\""
+                 + (f" · đã bỏ qua phanh: {phanh[0][:160]}" if phanh else "") + " (vé không phải của anh → báo ngay)")
+    except Exception as e: print(f"⚠ không gửi được Telegram: {str(e)[:100]}", file=__import__("sys").stderr)
+    return ma, phanh
 
 def phanh_cho(tt, viec, bay_gio=None, thay=False):
     """hàm thuần: trạng thái etp.cau_hinh.phanh_cho + việc → câu lý do chặn | None (miễn trừ ROAS / lệnh anh / ngoài do kiem() xét)"""
@@ -352,7 +396,7 @@ def don_phim_cam(lam=True, q=None, tat=None, bao=None):
         try: (bao or _bao_tg)("\n".join(d))
         except Exception as x: print(f"báo Telegram lỗi: {x}", file=sys.stderr)
     return kq
-def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False, cts=(), goc=None, q=None):
+def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False, cts=(), goc=None, q=None, tt=False):
     """PHẦN CỔNG KHÔNG TIN LỜI NGƯỜI GỌI (anh 18/11/2026) — một hàm cho kiem() và cửa API (ethopex_api.api, đọc dữ kiện từ chính lệnh gửi đi):
     dừng khẩn · camp ít nước / lô team tắt không bật lại · Ethopex bảo trì lên camp · PHANH CHỢ. ch = etp.cau_hinh {khoá: giá trị}.
     ve = vé thao tác tay hợp lệ (ve_hop_le) — thứ DUY NHẤT miễn phanh / bảo trì. ANH CHỐT 18/11/2026: trong phanh chợ máy KHÔNG còn được miễn ở ★ ROAS
@@ -360,9 +404,11 @@ def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False, cts=(), g
     lich = bật lại camp tạm dừng theo LỊCH GIỜ (etp.lich_tat, apps/etp/lich-gio.py): việc hợp lệ, chỉ dừng khẩn + phim cấm chặn.
     cts = phim trong chính lệnh, goc = camp gốc (nhân bản / ROAS) — cùng camp_id dùng để soát sổ phim cấm (phim_cam), đứng trước mọi miễn trừ (vé, lịch, thay)."""
     if viec not in TANG: return None
-    if ch.get("dung_khan"): return LY_DUNG_KHAN
     ly_cam = phim_cam([x for x in (camp_id, goc) if x], cts, q=q)
     if ly_cam: return ly_cam
+    # tt = vé LỆNH TRỰC TIẾP của anh (anh 20/11/2026 09:35): miễn dừng khẩn / ít nước / bảo trì / phanh chợ — đã cảnh báo một lần lúc cấp vé (cong.py --ve-truc-tiep)
+    if tt: return None
+    if ch.get("dung_khan"): return LY_DUNG_KHAN
     if lich: return None
     if viec == "bat" and camp_id and str(int(camp_id)) in _q(SQL_IT_NUOC).split(): return LY_IT_NUOC
     # ETHOPEX BẢO TRÌ LÊN CAMP (anh 17/11/2026: "bên Etho team báo là đang bảo trì việc lên camp nên sẽ dừng tạo camp mới từ giờ đến ít nhất là sáng mai + báo lại"):
@@ -402,6 +448,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         # PHIM CẤM (anh 19/11/2026) — trước bước chấm nhóm gốc (tốn AI): phim / camp trong sổ ethopex_phim_cam → chặn mọi việc tăng chi, kể cả ROAS / vé / lệnh anh / ngoai
         ly_cam = phim_cam([camp_id] if camp_id else (), [ct] if ct else ())
         if ly_cam: return ly_cam
+        # LỆNH TRỰC TIẾP CỦA ANH (anh 20/11/2026 09:35): vé loai 'truc_tiep' (CLI --ve-truc-tiep, đã cảnh báo một lần lúc cấp) miễn MỌI phanh phía sau — chỉ phim cấm (trên) và camp đội chặn
+        if not ngoai and truc_tiep(viec, [camp_id] if camp_id else (), ct): return None
         ng = _q(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {int(ct)}") if ct else ''
         if ct and not ng:   # KÍN (anh 29/10/2026 "làm cho kín"): phim chưa chấm → chấm poster NGAY (nhom_goc.py, ckey ~36₫/phim); không chấm được → CHẶN
             import importlib.util as _iu
@@ -636,6 +684,15 @@ if __name__ == "__main__":
     if a[:1] == ["--tu-kiem"]: _tu_kiem(); sys.exit(0)
     if a[:1] == ["--xin-ve"]:   # --xin-ve <tang|bat|nhan_ban|tao_camp> <camp_id|-> <content_id|-> <người bấm> — CHỈ đường nút (VE_XIN) gọi; in mã vé
         print(xin_ve(a[1], a[2], a[3], " ".join(a[4:]))); sys.exit(0)
+    if a[:1] == ["--ve-truc-tiep"]:   # --ve-truc-tiep <tang|bat|nhan_ban|tao_camp> --camp <id> | --phim <id> --lenh "<nguyên văn câu anh>" [--ns N] — CHỈ Claude gõ theo câu anh trong chat
+        o = {k: (a[i + 1] if i + 1 < len(a) else "") for i, k in enumerate(a) if k in ("--camp", "--phim", "--lenh", "--ns")}
+        if len(a) < 2 or not o.get("--lenh"): print('dùng: cong.py --ve-truc-tiep <việc> --camp <id> | --phim <id> --lenh "<câu lệnh của anh>" [--ns N]', file=sys.stderr); sys.exit(2)
+        try: ma, ph = ve_truc_tiep(a[1], o.get("--camp"), o.get("--phim"), o["--lenh"], float(o["--ns"]) if o.get("--ns") else None)
+        except ValueError as e: print(f"✗ không cấp: {e}", file=sys.stderr); sys.exit(3)
+        if not ma:
+            print(f"⚠ CẢNH BÁO MỘT LẦN — phanh sẽ bị bỏ qua: {ph[0]}\n   → báo anh câu này; anh vẫn muốn thì gõ lại đúng lệnh trong {CANH_BAO_PHUT} phút là cấp vé (anh 20/11/2026: phanh chỉ cảnh báo một lần)", file=sys.stderr); sys.exit(4)
+        if ph: print(f"⚡ đã bỏ qua phanh (đã cảnh báo): {ph[0]}", file=sys.stderr)
+        print(ma); sys.exit(0)
     if a[:1] == ["--tu-kiem-ve"]:   # trên box3: vé thật trong etp.ve_tay (camp giả 999999991, ai 'tự kiểm') — đúng / sai camp, sai việc, đốt hai lần, hết hạn
         m = xin_ve("tang", 999999991, None, "tự kiểm cong.py"); m2 = xin_ve("nhan_ban", None, 999999992, "tự kiểm cong.py")
         assert ve_hop_le("tang", [999999991], ma=m) and not ve_hop_le("tang", [999999990], ma=m) and not ve_hop_le("bat", [999999991], ma=m), "vé phải đúng việc + đúng camp"

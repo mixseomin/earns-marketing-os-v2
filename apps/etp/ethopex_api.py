@@ -279,7 +279,7 @@ def _ghi_cua(l, ok, ly=None, ve=None, camp_id=None):
         f = lambda v: "null" if v in (None, "") else (str(float(v)) if isinstance(v, (int, float)) or str(v).replace(".", "", 1).isdigit() else "null")
         s = lambda v: "null" if v in (None, "") else f"$X${str(v).replace('$', '')[:400]}$X$"
         cid = camp_id or l.get("camp_id")
-        _q(f"""insert into etp.cua (viec, loai, camp_id, goc, content_id, ns, ns_cu, ve, ok, ly, tep) values ({s(l.get('viec'))}, {s(('tay' if ve else 'may') + (':' + l['loai'] if l.get('loai') else ''))},
+        _q(f"""insert into etp.cua (viec, loai, camp_id, goc, content_id, ns, ns_cu, ve, ok, ly, tep) values ({s(l.get('viec'))}, {s(('truc_tiep' if l.get('truc_tiep') else 'tay' if ve else 'may') + (':' + l['loai'] if l.get('loai') else ''))},
             {int(cid) if cid else 'null'}, {int(l['goc']) if l.get('goc') else 'null'}, {int(l['content_id']) if l.get('content_id') else 'null'}, {f(l.get('ns'))}, {f(l.get('ns_cu'))},
             {s(ve)}, {'null' if ok is None else ('true' if ok else 'false')}, {s(ly)}, {s(os.path.basename(_sys.argv[0] or '?') + (f' · sửa người #{SUA}' if SUA else ''))})""")
     except Exception as e: print(f"⚠ cửa API không ghi được sổ etp.cua: {str(e)[:160]}", file=_sys.stderr)
@@ -298,9 +298,11 @@ def cua(duong, body):
         ids = [x for x in (l.get("camp_id"), l.get("goc")) if x]
         ct = l.get("content_id") or (_q(f"select content_id from etp.camp where camp_id = {int(l['goc'])}") or None if l.get("goc") else None)
         ve = CG.ve_hop_le(v, ids, ct)
+        tt = bool(ve) and bool(CG.truc_tiep(v, ids, ct))   # vé LỆNH TRỰC TIẾP của anh (anh 20/11/2026) — miễn mọi phanh của cửa trừ phim cấm; sổ cửa ghi loai 'truc_tiep'
+        if tt: l["truc_tiep"] = True
         thay = bool(l.get("thay_id")) and _bi_tu_choi(l["thay_id"])
         cts = [x for x in [ct] + list(l.get("cts") or []) if x]   # phim của lệnh + phim camp gốc → sổ phim cấm (cong.phim_cam, anh 19/11/2026)
-        ly = CG.chan_cua(v, ch, l.get("camp_id"), thay=thay, ve=bool(ve), lich=bool(l.get("lich")), cts=cts, goc=l.get("goc"), q=_q)
+        ly = CG.chan_cua(v, ch, l.get("camp_id"), thay=thay, ve=bool(ve), lich=bool(l.get("lich")), cts=cts, goc=l.get("goc"), q=_q, tt=tt)
         if ly:
             _ghi_cua(l, False, ly)
             raise ChanCua(f"cửa API chặn {v}{' #' + str(l['camp_id']) if l.get('camp_id') else ''}{' (gốc #' + str(l['goc']) + ')' if l.get('goc') else ''}: {ly}")
@@ -430,7 +432,7 @@ if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
         api("/api/v1/campaigns/update", {"campaign": {"campaign_id": 999999997, "source_payload": {"daily_budget": 3}}})   # giảm luôn qua
         api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [999999997], "status": "paused"}])   # tắt luôn qua
         _dot = []
-        CG.ve_hop_le = lambda viec, ids=(), ct=None, dung=False, cho="", ma=None: (_dot.append((viec, tuple(ids), ct)) if dung else None) or "anh (tự kiểm)"
+        CG.ve_hop_le = lambda viec, ids=(), ct=None, dung=False, cho="", ma=None, loai=None: None if loai == "truc_tiep" else (_dot.append((viec, tuple(ids), ct)) if dung else None) or "anh (tự kiểm)"
         api("/api/v1/campaigns/update", {"campaign": {"campaign_id": 999999997, "source_payload": {"daily_budget": 9}}})
         api("/api/v1/campaigns/facebook", _pl(f"X (nhan ban 1 cua {_G})"))
         assert any(v == "tang" and 999999997 in i for v, i, _c in _dot) and any(v == "nhan_ban" and _G in i for v, i, _c in _dot), f"vé phải bị đốt lúc gửi: {_dot}"

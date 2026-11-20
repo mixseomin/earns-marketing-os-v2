@@ -16,6 +16,24 @@ create table if not exists etp.ve_tay (
   dung_cho text
 );
 create index if not exists etp_ve_tay_tao on etp.ve_tay (tao desc);
+-- LỆNH TRỰC TIẾP CỦA ANH (anh 20/11/2026 09:35 VN: "Không PHANH nào được hạn chế quyền trực tiếp từ tao cả … PHANH chỉ được cảnh báo thêm 1 lần"):
+--   loai 'truc_tiep' = vé cấp từ CLI cong.py --ve-truc-tiep (chỉ Claude trong chat với anh gọi) — miễn MỌI phanh trừ phim cấm / camp đội; lenh = nguyên văn câu anh,
+--   phien = phiên gọi. Camp có vé trực tiếp đã dùng mang nhãn "Trực tiếp" (etp2, Telegram), máy luật không hạ / tắt lại trong 24 giờ đầu.
+alter table etp.ve_tay add column if not exists loai text not null default 'tay';
+alter table etp.ve_tay add column if not exists lenh text;
+alter table etp.ve_tay add column if not exists phien text;
+create index if not exists etp_ve_tay_truc_tiep on etp.ve_tay (camp_id, da_dung desc) where loai = 'truc_tiep';
+-- dấu ĐÃ CẢNH BÁO MỘT LẦN: lần gọi đầu có phanh → in câu phanh, ghi dấu (viec, camp / phim); gọi lại trong 30 phút → cấp vé
+create table if not exists etp.ve_canh_bao (
+  id bigserial primary key,
+  viec text not null,
+  camp_id integer,
+  content_id integer,
+  lenh text,
+  phanh text,
+  luc timestamptz not null default now(),
+  da_cap timestamptz
+);
 
 create table if not exists etp.cua (
   id bigserial primary key,

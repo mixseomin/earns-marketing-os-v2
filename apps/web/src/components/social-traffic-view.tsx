@@ -20,6 +20,7 @@ import { KeHoachDangGoc, KhoDangBai } from './social-ke-hoach-dang-goc';
 import { SucKhoeDang } from './social-suc-khoe';
 import { SocialTrucTiep } from '@/components/social-truc-tiep';
 import { SocialThanhPho } from './social-thanh-pho';
+import { HangLoc, useKhungO } from '@/components/home/khung-o';
 
 type Muc = 'tong' | 'pho' | 'goc' | 'sx' | 'kenh' | 'lich' | 'landing' | 'trang' | 'email' | 'tien';
 const MUC: { key: Muc; label: string }[] = [
@@ -78,6 +79,7 @@ export type ChiSocial = 'pho' | 'suc' | 'pheu' | 'canhbao' | 'ratien' | 'goc' | 
 const MUC_CUA_CHI: Record<ChiSocial, string> = { pho: 'pho', suc: 'tong', pheu: 'tong', canhbao: 'tong', ratien: 'tong', goc: 'goc', kehoach: 'goc', sx: 'sx', kenh: 'kenh', lich: 'lich', landing: 'landing', trang: 'trang', tien: 'tien' };
 /** soGoc: widget chỉ nhận phần kho góc nó vẽ (không phải cả 2.400 góc) — số góc của CẢ kho đi kèm ở đây để câu "Có N góc từ spy" vẫn đúng. */
 export function SocialTrafficView({ live, email, chi, soGoc }: { live: SocialLive; email?: React.ReactNode; chi?: ChiSocial; soGoc?: number }) {
+  const trongO = useKhungO() > 0;   // ruột ô widget /home: hàng lọc của từng mục gom một hàng (khung-o.tsx HangLoc)
   const [cheDoUrl, setCheDo] = useShallowParam('stm', 'live')   // LIVE mặc định (card #1408);
   const cheDo = chi ? 'live' : cheDoUrl;
   const [mucUrl, setMuc] = useShallowParam('sts', 'pho');   // mặc định thành phố (anh 22/10/2026 — màn chính của hệ sinh thái)
@@ -345,18 +347,22 @@ export function SocialTrafficView({ live, email, chi, soGoc }: { live: SocialLiv
             const loc = d.kenh.filter((k) => (!nenChon.length || nenChon.includes(k.nenTang)) && (!gocChon.length || gocChon.includes(k.nhom)));
             const khoa = gopKenh === 'nen' ? (k: StKenh) => k.nenTang : gopKenh === 'goc' ? (k: StKenh) => k.nhom : null;
             const nhom = khoa ? [...new Set(loc.map(khoa))].map((g) => ({ g, ks: loc.filter((k) => khoa(k) === g) })) : [{ g: '', ks: loc }];
+            const chipNen = <FilterChips values={nenChon.length ? nenChon : ['all']} onToggle={(v) => setSkn(v.includes('all') && nenChon.length ? '' : v.filter((x) => x !== 'all').join(','))} counts={{ all: d.kenh.length, ...soNen }}
+              options={[{ value: 'all', label: 'Mọi nền' }, ...Object.keys(soNen).map((n) => ({ value: n, label: n, icon: <Logo ten={n} khoa={d.kenh.find((k) => k.nenTang === n)?.nenKey} co={12} /> }))]} />;
+            // Góc là danh sách ĐỘNG (sẽ hàng nghìn) → ô chọn có tìm, không bày chip (YDNI § select; anh 18/10: "1000 góc mà show thế này")
+            const chonGoc = <MultiSelect<string> label="🎯 Mọi góc" options={Object.entries(soNhom).sort((a, b) => b[1] - a[1]).map(([value, count]) => ({ value, label: value, count }))}
+              selected={gocChon} onChange={(v) => setSkg(v.join(','))} popupWidth={340} compact />;
+            const chonGop = <Segmented<string> value={gopKenh} onChange={setGopKenh}
+              options={[{ value: 'khong', label: '☰ Không gộp' }, { value: 'nen', label: '📺 Gộp theo nền' }, { value: 'goc', label: '🎯 Gộp theo góc' }]} />;
+            // trong ô widget: nền / góc / gộp gập vào nút Lọc, cùng một hàng với 🔍 ⚙ của bảng (gộp nhóm thì hàng lọc đứng riêng trên các bảng nhóm)
+            const hangO = (trongBang: boolean) => <HangLoc trongBang={trongBang} soLoc={(nenChon.length ? 1 : 0) + (gocChon.length ? 1 : 0) + (gopKenh !== 'khong' ? 1 : 0)} boLoc={() => { setSkn(''); setSkg(''); setGopKenh('khong'); }}
+              phu={<>{chipNen}{chonGoc}{chonGop}</>} phai={`${loc.length} kênh`} />;
             const bang = (ks: StKenh[], key: string) => <DataTable key={key} rows={ks} columns={cotKenh} getRowKey={(k) => String(k.id)} persistKey="st_kenh" minWidth={1380}
-              searchText={(k) => `${k.ten} ${k.nenTang} ${k.nhom} ${k.landing ?? ''}`} searchPlaceholder="Tìm kênh / góc / landing…" />;
+              searchText={(k) => `${k.ten} ${k.nenTang} ${k.nhom} ${k.landing ?? ''}`} searchPlaceholder="Tìm kênh / góc / landing…" dauThanh={trongO && !khoa ? hangO(true) : undefined} />;
             return <>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <FilterChips values={nenChon.length ? nenChon : ['all']} onToggle={(v) => setSkn(v.includes('all') && nenChon.length ? '' : v.filter((x) => x !== 'all').join(','))} counts={{ all: d.kenh.length, ...soNen }}
-                  options={[{ value: 'all', label: 'Mọi nền' }, ...Object.keys(soNen).map((n) => ({ value: n, label: n, icon: <Logo ten={n} khoa={d.kenh.find((k) => k.nenTang === n)?.nenKey} co={12} /> }))]} />
-                {/* Góc là danh sách ĐỘNG (sẽ hàng nghìn) → ô chọn có tìm, không bày chip (YDNI § select; anh 18/10: "1000 góc mà show thế này") */}
-                <MultiSelect<string> label="🎯 Mọi góc" options={Object.entries(soNhom).sort((a, b) => b[1] - a[1]).map(([value, count]) => ({ value, label: value, count }))}
-                  selected={gocChon} onChange={(v) => setSkg(v.join(','))} popupWidth={340} compact />
-                <Segmented<string> value={gopKenh} onChange={setGopKenh}
-                  options={[{ value: 'khong', label: '☰ Không gộp' }, { value: 'nen', label: '📺 Gộp theo nền' }, { value: 'goc', label: '🎯 Gộp theo góc' }]} />
-              </div>
+              {trongO ? (khoa ? hangO(false) : null) : <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                {chipNen}{chonGoc}{chonGop}
+              </div>}
               {nhom.map(({ g, ks }) => (g
                 ? <div key={g} style={{ display: 'grid', gap: 6 }}>
                     <h4 style={{ margin: '6px 0 0', fontSize: 13, display: 'inline-flex', gap: 6, alignItems: 'center' }}>{gopKenh === 'nen' ? <Logo ten={g} khoa={ks[0]?.nenKey} /> : '🎯'} {g}
@@ -365,7 +371,7 @@ export function SocialTrafficView({ live, email, chi, soGoc }: { live: SocialLiv
                 : bang(ks, 'tat-ca')))}
               {!loc.length && <span style={nho}>Không kênh nào khớp bộ lọc.</span>}
             </>; })()}
-            <span style={nho}>Mỗi kênh một thiết bị + một proxy riêng. Luật cắt: sau {ST_CAT_NGAY} ngày trung vị dưới {ST_CAT_TRUNG_VI} lượt xem thì dừng, dồn video sang kênh đang lên.</span></>
+            {!trongO && <span style={nho}>Mỗi kênh một thiết bị + một proxy riêng. Luật cắt: sau {ST_CAT_NGAY} ngày trung vị dưới {ST_CAT_TRUNG_VI} lượt xem thì dừng, dồn video sang kênh đang lên.</span>}</>
         : trong('Chưa có kênh nào', 'Kênh lấy từ vault tài khoản (Resources › Accounts), mỗi kênh một thiết bị + proxy riêng. Có kênh đầu tiên thì bảng hiện trung vị lượt xem, click về site, hoa hồng.'))}
 
       {muc === 'lich' && (!laLive

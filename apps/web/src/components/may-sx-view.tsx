@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { DataTable, type DataColumn } from '@/components/ui/data-table';
+import { HangLoc, useKhungO } from '@/components/home/khung-o';
 import { InfoHint } from '@/components/ui/info-hint';
 import { ChuoiNhip } from '@/components/ui/chuoi-nhip';
 import { ChuoiBuoc } from '@/components/etp-dong';
@@ -93,10 +94,22 @@ export function MaySxView({ chi }: { chi?: 'viec' | 'luot' } = {}) {
   const spMo = sp.is('sp') ? du?.viec.map((v) => ('sp' in v.mo ? v.mo.sp : null)).find((x) => x?.x.khoa === sp.id) ?? null : null;
   const baiMo = ob.is('o-lich') ? [...(du?.viec.map((v) => ('bai' in v.mo ? v.mo.bai : null)) ?? []), ...(du?.luot.map((l) => l.bai) ?? [])].find((x) => x && khoaBai(x) === ob.id) ?? null : null;
   const tien = du?.luot.reduce((t, x) => t + (x.vnd ?? 0), 0) ?? 0, hong = du?.luot.filter((x) => tinhTrang(x).chu !== '✓ xong' && tinhTrang(x).chu !== '⏳ đang dựng').length ?? 0;
+  // TRONG Ô WIDGET /home (khung-o.tsx): ô đã có tiêu đề → bỏ tiêu đề h3 trong ruột, chip nguồn + số đếm thành MỘT hàng đặt vào thanh công cụ của bảng
+  const trongO = useKhungO() > 0;
+  const chipNguon = du ? <span style={{ display: 'inline-flex', flexWrap: trongO ? 'nowrap' : 'wrap', gap: 6 }}>
+    {NGUON.map((n) => { const so = du.viec.filter((v) => v.nguon === n.k).length, hong = du.viec.filter((v) => v.nguon === n.k && v.loi).length, on = nguon === n.k;
+      return <button key={n.k} type="button" aria-pressed={on} onClick={() => setNguon(on ? null : n.k)} title={`${so} việc${hong ? ` · ${hong} lỗi` : ''} · bấm để ${on ? 'bỏ lọc' : 'chỉ xem nguồn này'}`}
+        style={{ border: `1px solid ${n.mau}`, background: on ? n.mau : 'transparent', color: on ? '#fff' : n.mau, borderRadius: 999, padding: trongO ? '1px 8px' : '2px 10px', fontSize: trongO ? 11 : 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flex: 'none' }}>
+        {n.ten} {so}{hong ? <span style={{ color: on ? '#fff' : 'var(--bad, #dc2626)' }}> · {hong} lỗi</span> : null}{on ? ' ✕' : ''}</button>; })}
+  </span> : null;
+  const demViec = du ? `${du.viec.length} việc · ${du.viec.filter((v) => v.loi).length} lỗi` : '';
+  const chonNgay = <span role="group" aria-label="khoảng ngày" style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', flex: 'none' }}>
+    {['1', '7', '30'].map((n) => <button key={n} type="button" aria-pressed={ngay === n} onClick={() => setNgay(n)} style={{ border: 0, padding: trongO ? '2px 8px' : '4px 10px', fontSize: trongO ? 11 : 12, cursor: 'pointer', background: ngay === n ? 'var(--accent-soft, rgba(37,99,235,.14))' : 'var(--bg-1)', color: 'inherit', fontWeight: ngay === n ? 700 : 400 }}>{n} ngày</button>)}
+  </span>;
   return (
     // minmax(0, 1fr): ô lưới mặc định min-width:auto → NỞ theo chuỗi dài nhất trong bảng (dòng lỗi "TimeoutExpired: Command '['nice', …" không có
     // chỗ xuống dòng) và kéo cả trang cuộn ngang 2.634px (do-man cuon 11/11/2026). Chặn ở khung: bảng tự cuộn ngang trong dt-scroll của nó.
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: trongO ? 8 : 18 }}>
       {/* ĐẦU TRANG MỘT DÒNG (audit 11/11/2026: đoạn giải thích chiếm 523px trên điện thoại nằm ngang, hơn một màn trước hàng dữ liệu đầu) — chữ đầy đủ vào InfoHint */}
       {!chi && <div style={{ fontSize: 13, color: 'var(--fg-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
         <span>Việc sản xuất của mọi nguồn · bấm dòng mở chi tiết · tự chạy 06:00 và 18:00</span>
@@ -109,29 +122,23 @@ export function MaySxView({ chi }: { chi?: 'viec' | 'luot' } = {}) {
       {loi ? <div role="alert" style={{ border: '1px solid var(--bad, #dc2626)', color: 'var(--bad, #dc2626)', borderRadius: 8, padding: 10, fontSize: 13 }}>Không đọc được sổ Máy SX: {loi}</div> : null}
       {du?.loi?.length ? <div role="alert" style={{ border: '1px solid var(--warn, #d97706)', color: 'var(--warn, #d97706)', borderRadius: 8, padding: 10, fontSize: 13 }}>{du.loi.join(' · ')}</div> : null}
       {chi !== 'luot' && <section>
-        <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Đang sản xuất — mọi nguồn {du ? <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {du.viec.length} việc · {du.viec.filter((v) => v.loi).length} lỗi · {du.viec.filter((v) => v.ghi?.startsWith('⏸')).length} dừng có chủ đích</span> : null}
-          {du?.ghiChu?.length ? <InfoHint label="Phạm vi bảng">{du.ghiChu.join(' · ')}</InfoHint> : null}</h3>
-        {du ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-          {NGUON.map((n) => { const so = du.viec.filter((v) => v.nguon === n.k).length, hong = du.viec.filter((v) => v.nguon === n.k && v.loi).length, on = nguon === n.k;
-            return <button key={n.k} type="button" aria-pressed={on} onClick={() => setNguon(on ? null : n.k)} title={`${so} việc${hong ? ` · ${hong} lỗi` : ''} · bấm để ${on ? 'bỏ lọc' : 'chỉ xem nguồn này'}`}
-              style={{ border: `1px solid ${n.mau}`, background: on ? n.mau : 'transparent', color: on ? '#fff' : n.mau, borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-              {n.ten} {so}{hong ? <span style={{ color: on ? '#fff' : 'var(--bad, #dc2626)' }}> · {hong} lỗi</span> : null}{on ? ' ✕' : ''}</button>; })}
-        </div> : null}
+        {!trongO && <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Đang sản xuất — mọi nguồn {du ? <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {du.viec.length} việc · {du.viec.filter((v) => v.loi).length} lỗi · {du.viec.filter((v) => v.ghi?.startsWith('⏸')).length} dừng có chủ đích</span> : null}
+          {du?.ghiChu?.length ? <InfoHint label="Phạm vi bảng">{du.ghiChu.join(' · ')}</InfoHint> : null}</h3>}
+        {!trongO && du ? <div style={{ marginBottom: 8 }}>{chipNguon}</div> : null}
         {/* DataTable nhà (audit 11/11/2026: bảng tự dựng dài 4.000–7.000px không tiêu đề dính, không phân trang — do-man cuon 3/3 khổ) */}
         {!du ? <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Đang tải…</div>
           : <DataTable rows={du.viec.filter((v) => !nguon || v.nguon === nguon).sort((a, b) => Number(!!b.loi) - Number(!!a.loi))} columns={COT_VIEC}
               getRowKey={(v) => v.khoa} onRowClick={(v) => moViec(v)} rowTitle={() => 'bấm xem chi tiết'}
               rowStyle={(v) => (v.loi ? { background: 'color-mix(in srgb, var(--bad, #dc2626) 7%, transparent)' } : undefined)}
-              pageSize={20} persistKey="may-sx-viec" minWidth={760} />}
+              pageSize={20} persistKey="may-sx-viec" minWidth={760} dauThanh={trongO ? <HangLoc trongBang chinh={chipNguon} phai={demViec} /> : undefined} />}
       </section>}
       {chi !== 'viec' && <section>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+        {trongO ? <HangLoc chinh={chonNgay} phai={du ? `${du.luot.length} lượt · ${hong} hỏng · ${tien.toLocaleString('vi-VN')}₫` : null} />
+          : <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
           <h3 style={{ margin: 0, fontSize: 15 }}>Lượt đã dựng</h3>
           {du ? <span style={{ fontSize: 13, color: 'var(--fg-2)' }}>{du.luot.length} lượt · {hong} hỏng · {tien.toLocaleString('vi-VN')}₫</span> : null}
-          <span role="group" aria-label="khoảng ngày" style={{ marginLeft: 'auto', display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-            {['1', '7', '30'].map((n) => <button key={n} type="button" aria-pressed={ngay === n} onClick={() => setNgay(n)} style={{ border: 0, padding: '4px 10px', fontSize: 12, cursor: 'pointer', background: ngay === n ? 'var(--accent-soft, rgba(37,99,235,.14))' : 'var(--bg-1)', color: 'inherit', fontWeight: ngay === n ? 700 : 400 }}>{n} ngày</button>)}
-          </span>
-        </div>
+          <span style={{ marginLeft: 'auto' }}>{chonNgay}</span>
+        </div>}
         {!du ? null : !du.luot.length ? <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Chưa có lượt dựng nào trong {ngay} ngày.</div>
           : <DataTable rows={du.luot} columns={COT_LUOT} getRowKey={(x) => String(x.id)} onRowClick={(x) => { if (x.bai) ob.open('o-lich', khoaBai(x.bai)); }} rowTitle={(x) => (x.bai ? 'bấm mở ngăn bài' : 'bài không còn trong sổ bài')} pageSize={20} persistKey="may-sx-luot" minWidth={900} />}
       </section>}

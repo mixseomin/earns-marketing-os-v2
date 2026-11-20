@@ -9,6 +9,7 @@ import type { StKho, StLuoi, StLuoiO } from '@/lib/social-traffic';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { pkCua } from '@/lib/ho-nen';
+import { HangLoc, useKhungO } from '@/components/home/khung-o';
 
 const NEN_NHAN: Record<string, string> = { youtube: 'YT', facebook: 'FB', fb_anh: 'FB ảnh', fb_link: 'FB link', x: 'X', x_anh: 'X ảnh', x_link: 'X link', tiktok: 'TikTok', instagram: 'IG', dailymotion: 'DM', threads: 'Threads' };
 // Page cũ gắn vào máy (S06): khoá 'facebook:<acct>' → 'FB Page cũ'
@@ -302,6 +303,20 @@ export function BangNoiDung({ luoi, kenhMo, doiKenh }: { luoi: StLuoi; kenhMo?: 
   const nhanGoc = (x: StLuoiO) => (x.goc ? loaiGoc(x.goc.loai)[0] : 'chưa có góc');
   const baiKy = c ? trong(c) : [], bai = baiKy.filter((x) => (!loc || FMT_NEN(x.nen) === loc) && (!locGoc || nhanGoc(x) === locGoc)), coXem = c ? c.bai.some((x) => x.xem != null) : false;
   const dem = (f: (x: StLuoiO) => string) => [...baiKy.reduce((m, x) => m.set(f(x), (m.get(f(x)) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
+  // TRONG Ô WIDGET /home (khung-o.tsx): hai dải chip format + góc gập vào nút "Lọc" ngay trên hàng đầu kênh — ô chỉ một hàng điều khiển
+  const trongO = useKhungO() > 0;
+  const noiFmt = <>
+          {dem((x) => FMT_NEN(x.nen)).map(([k, n]) => <button key={k} type="button" onClick={() => setLoc((l) => (l === k ? null : k))} aria-pressed={loc === k} title={`${n} bài · bấm để ${loc === k ? 'bỏ lọc' : 'chỉ xem format này'}`}
+            style={{ background: !loc || loc === k ? MAU_FMT[k] ?? '#64748b' : 'transparent', color: !loc || loc === k ? '#fff' : 'var(--fg-2)', border: `1px solid ${MAU_FMT[k] ?? '#64748b'}`, borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            {IC_FMT[k] ?? '•'} {k} {n}{loc === k ? ' ✕' : ''}</button>)}
+          {dem((x) => x.nhom ?? 'chưa phân kiểu').map(([k, n]) => <span key={k} title={`${n} bài`} style={{ border: '1px solid var(--border)', borderRadius: 999, padding: '2px 10px', fontSize: 12, color: 'var(--fg-2)' }}>{k}</span>)}
+  </>;
+  const noiGoc = <>
+          <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>Góc</span>
+          {dem(nhanGoc).map(([k, n]) => { const mau = k === 'chưa có góc' ? '#64748b' : (baiKy.find((x) => nhanGoc(x) === k)?.goc ? loaiGoc(baiKy.find((x) => nhanGoc(x) === k)!.goc!.loai)[1] : '#64748b'), on = !locGoc || locGoc === k;
+            return <button key={k} type="button" aria-pressed={locGoc === k} onClick={() => setLocGoc((l) => (l === k ? null : k))} title={`${n} bài · bấm để ${locGoc === k ? 'bỏ lọc' : 'chỉ xem loại góc này'}`}
+              style={{ border: `1px solid ${mau}`, background: 'transparent', color: on ? mau : 'var(--fg-3)', borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', borderStyle: k === 'chưa có góc' ? 'dashed' : 'solid' }}>{k}{locGoc === k ? ' ✕' : ''}</button>; })}
+  </>;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(210px, 250px) minmax(0, 1fr)', gap: 14, margin: '4px 0 14px', alignItems: 'start' }}>
       {/* YDNI: cây không có hộp cuộn riêng (một thanh cuộn = trang), nhãn chỉ ghi tên — số bài ở hover, kênh không có bài trong khoảng thì mờ */}
@@ -339,22 +354,14 @@ export function BangNoiDung({ luoi, kenhMo, doiKenh }: { luoi: StLuoi; kenhMo?: 
               <input type="checkbox" checked={chiTiet} onChange={(e) => setChiTiet(e.target.checked)} />Chi tiết</label> : null}
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }} title={coXem ? 'lượt xem + lượt vào site từ bài' : 'kênh này chưa đo lượt xem — chỉ có lượt vào site từ bài'}>
               <input type="checkbox" checked={so} onChange={(e) => setSo(e.target.checked)} />📊</label>
+            {trongO && baiKy.length ? <HangLoc trongBang soLoc={(loc ? 1 : 0) + (locGoc ? 1 : 0)} boLoc={() => { setLoc(null); setLocGoc(null); }}
+              phu={<div style={{ display: 'grid', gap: 8 }}><div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{noiFmt}</div><div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>{noiGoc}</div></div>} /> : null}
           </div>
         </header>
         {/* đếm format = dải lọc (bấm để lọc, bấm lại bỏ lọc); kiểu nội dung = chip xám */}
-        {baiKy.length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {dem((x) => FMT_NEN(x.nen)).map(([k, n]) => <button key={k} type="button" onClick={() => setLoc((l) => (l === k ? null : k))} aria-pressed={loc === k} title={`${n} bài · bấm để ${loc === k ? 'bỏ lọc' : 'chỉ xem format này'}`}
-            style={{ background: !loc || loc === k ? MAU_FMT[k] ?? '#64748b' : 'transparent', color: !loc || loc === k ? '#fff' : 'var(--fg-2)', border: `1px solid ${MAU_FMT[k] ?? '#64748b'}`, borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            {IC_FMT[k] ?? '•'} {k} {n}{loc === k ? ' ✕' : ''}</button>)}
-          {dem((x) => x.nhom ?? 'chưa phân kiểu').map(([k, n]) => <span key={k} title={`${n} bài`} style={{ border: '1px solid var(--border)', borderRadius: 999, padding: '2px 10px', fontSize: 12, color: 'var(--fg-2)' }}>{k}</span>)}
-        </div> : null}
+        {baiKy.length && !trongO ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{noiFmt}</div> : null}
         {/* GÓC: dải lọc theo loại góc (màu như spy), bấm để lọc — đếm cả bài chưa có góc để thấy độ phủ */}
-        {baiKy.length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>Góc</span>
-          {dem(nhanGoc).map(([k, n]) => { const mau = k === 'chưa có góc' ? '#64748b' : (baiKy.find((x) => nhanGoc(x) === k)?.goc ? loaiGoc(baiKy.find((x) => nhanGoc(x) === k)!.goc!.loai)[1] : '#64748b'), on = !locGoc || locGoc === k;
-            return <button key={k} type="button" aria-pressed={locGoc === k} onClick={() => setLocGoc((l) => (l === k ? null : k))} title={`${n} bài · bấm để ${locGoc === k ? 'bỏ lọc' : 'chỉ xem loại góc này'}`}
-              style={{ border: `1px solid ${mau}`, background: 'transparent', color: on ? mau : 'var(--fg-3)', borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', borderStyle: k === 'chưa có góc' ? 'dashed' : 'solid' }}>{k}{locGoc === k ? ' ✕' : ''}</button>; })}
-        </div> : null}
+        {baiKy.length && !trongO ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>{noiGoc}</div> : null}
         {!bai.length ? <div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Không có bài trong khoảng ngày này — bấm ◀ ▶ để xem tuần khác.</div>
           : <ct.Boc>{xem === 'lich' ? <LichBai ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} gon={!chiTiet} />
           : <DongThoiGian ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} />}</ct.Boc>}

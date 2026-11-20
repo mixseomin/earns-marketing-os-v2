@@ -11,6 +11,7 @@ import { SiteFavicon } from '@/components/ui/site-favicon';
 import { TienDo } from '@/components/ui/tien-do';
 import { DataTable, Drawer, EntityRef, FilterChips, LinkChip, NgayLich, Panel, Pill, SelectField, Tabs, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
+import { HangLoc, useKhungO } from '@/components/home/khung-o';
 import { BanXem, canDuyet } from './tai-san-ban-xem';
 import { cotSocial, nhomSocial } from './tai-san-social';
 import { BaoCaoAppStore } from './tai-san-bao-cao-app';
@@ -119,11 +120,14 @@ export function TaiSanView({ ban, kySocial = 7 }: { ban: TaiSanBan; kySocial?: n
   const choViec = (d: DongShop) => d.dem.cho_anh + d.dem.cho_duyet + d.dem.dang_lam > 0;
   const dangChon = ds.find((d) => d.s.khoa === sh) ?? ds.find(choViec) ?? ds[0] ?? null;
   const sp = dangChon ? dangChon.s.sp.filter((x) => loc === 'all' || x.trangThai === loc) : [];
+  // trong ô widget /home: 8 chip trạng thái xuống 2–3 dòng ở ô hẹp → HangLoc (ô < 520 px gập vào nút Lọc)
+  const trongO = useKhungO() > 0;
+  const chipTt = <FilterChips value={loc} onChange={(v) => datLoc(v)} urlKey="tt"
+    options={[{ value: 'all', label: 'Tất cả' }, ...TT_SP.map((t) => ({ value: t.key, label: t.chu }))]} counts={{ all: tatCa.length, ...dem }} />;
 
   return (
     <Panel title="🛒 Shop → sản phẩm" subtitle={`${ban.shops.length} shop · ${tatCa.length} sản phẩm${ban.viewsToi ? ` · views Gumroad tới ${ban.viewsToi}` : ''}`}
-      actions={<FilterChips value={loc} onChange={(v) => datLoc(v)} urlKey="tt"
-        options={[{ value: 'all', label: 'Tất cả' }, ...TT_SP.map((t) => ({ value: t.key, label: t.chu }))]} counts={{ all: tatCa.length, ...dem }} />}>
+      actions={trongO ? <HangLoc trongBang chinh={chipTt} soLoc={loc !== 'all' ? 1 : 0} boLoc={() => datLoc('all')} /> : chipTt}>
       {ban.loi.length > 0 && (
         <ul style={{ margin: '0 0 10px', paddingLeft: 18, fontSize: 11, color: 'var(--warn)', fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}>
           {ban.loi.map((l) => <li key={l}>{l}</li>)}

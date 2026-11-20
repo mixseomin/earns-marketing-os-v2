@@ -71,3 +71,26 @@ export function ThanhO({ chinh, phu = [], tim, setTim, dem, them, goiYTim = 'Tì
     </div>
   );
 }
+
+/** HÀNG LỌC TỰ DỰNG của một khối cũ (Segmented, MultiSelect, nút…) — MỘT chỗ quyết định dáng theo nơi vẽ:
+ *  · ngoài ô widget (trang thường): một hàng flex-wrap như trước — chinh, phu, nút bỏ lọc, phai dạt phải;
+ *  · trong ô widget: một hàng mỏng — chinh trên hàng (ô hẹp < 520 px thì gập luôn), phu gập vào nút "Lọc" (kèm số bộ lọc đang bật), phai thành số nhỏ.
+ *  trongBang: hàng này đặt vào khe dauThanh của DataTable (cùng hàng với 🔍 / ⚙ của bảng) → không vẽ khung hàng riêng. */
+export function HangLoc({ chinh, phu, phai, soLoc = 0, boLoc, trongBang }: { chinh?: ReactNode; phu?: ReactNode; phai?: ReactNode; soLoc?: number; boLoc?: () => void; trongBang?: boolean }) {
+  const rong = useKhungO(); const nut = useRef<HTMLButtonElement | null>(null); const [mo, setMo] = useState(false);
+  const nutBo = soLoc > 0 && boLoc ? <button type="button" onClick={boLoc} style={{ border: 0, background: 'none', color: 'var(--accent, #60a5fa)', cursor: 'pointer', fontSize: 12, flex: 'none' }}>bỏ lọc</button> : null;
+  if (!rong) return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>{chinh}{phu}{nutBo}{phai != null && <span style={{ marginLeft: 'auto' }}>{phai}</span>}</div>;
+  const hep = rong < 520, coPhu = !!phu || (hep && !!chinh);
+  const than = <>
+    {!hep && chinh}
+    {coPhu && <>
+      <button ref={nut} type="button" className={`hm-chip${soLoc ? ' on' : ''}`} onClick={() => setMo((m) => !m)} aria-expanded={mo} title="Bộ lọc">Lọc{soLoc > 0 && <small>{soLoc}</small>} ▾</button>
+      <AnchoredPopover anchorRef={nut} open={mo} onClose={() => setMo(false)}>
+        <div className="hm-loc-pop hm-loc-tu-do">{hep && chinh}{phu}{nutBo}</div>
+      </AnchoredPopover>
+    </>}
+    {!coPhu && nutBo}
+    {phai != null && <span className="hm-dem" style={trongBang ? undefined : { marginLeft: 'auto' }}>{phai}</span>}
+  </>;
+  return trongBang ? than : <div className="hm-thanh">{than}</div>;
+}

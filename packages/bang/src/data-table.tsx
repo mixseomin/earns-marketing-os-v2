@@ -711,10 +711,13 @@ export function DataTable<T>({
   return (
     // minWidth 0: bảng thường là con của grid/flex — min-width:auto mặc định làm khối giãn theo bề rộng bảng (minWidth cột), tràn khỏi ngăn
     // kéo thay vì cuộn ngang trong .dt-scroll; thanh lọc phía trên rơi ra ngoài màn (#1416).
-    <div data-comp="ui.DataTable" style={{ minWidth: 0, maxWidth: '100%' }}>
+    <div data-comp="ui.DataTable" style={{ minWidth: 0, maxWidth: '100%', ...(trongO ? { position: 'relative' } : {}) }}>
       {(coTim || danhMuc.length > 0 || (groups && groups.length > 0) || showViewToggle || anyColFilter || dauThanh || anTu > 0 || hienHet) && (trongO ? (
         // TRONG Ô: MỘT hàng — tìm thu thành 🔍, lọc cột / gom nhóm / Columns / Thẻ-Bảng gập trong nút "Lọc", chip "+n cột" khi đã ẩn cột cho vừa ô
-        <div data-comp="ui.ThanhBangO" style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4, marginBottom: 6, minWidth: 0, overflow: 'hidden' }}>
+        // chỉ còn ⚙ / "+n cột" (không tìm, không lọc riêng) → không chiếm một hàng: nổi ở góc phải hàng tiêu đề bảng
+        <div data-comp="ui.ThanhBangO" style={!coTim && !dauThanh && !anyColFilter
+          ? { position: 'absolute', top: 2, right: 2, zIndex: 9, display: 'flex', gap: 4, alignItems: 'center', opacity: 0.92 }
+          : { display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4, marginBottom: 6, minWidth: 0, overflow: 'hidden' }}>
           {dauThanh}
           {anyColFilter && (
             <button type="button" onClick={clearColFilters} title="Xoá tất cả lọc-cột đang bật"
@@ -746,7 +749,7 @@ export function DataTable<T>({
               </>
           </> : <button type="button" onClick={() => setMoTim(true)} title={searchPlaceholder ?? 'lọc bảng…'} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', whiteSpace: 'nowrap', flex: 'none' }}>🔍</button>)}
           {(danhMuc.length > 0 || (effView === 'table' && groups && groups.length > 0) || showViewToggle) && <>
-            <button ref={nutLocRef} type="button" onClick={() => setMoLoc((m) => !m)} aria-expanded={moLoc} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', whiteSpace: 'nowrap', flex: 'none' }}>Lọc ▾</button>
+            <button ref={nutLocRef} type="button" onClick={() => setMoLoc((m) => !m)} aria-expanded={moLoc} title="Lọc theo cột · gom nhóm · ẩn hiện cột · thẻ / bảng" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: `1px solid ${anyColFilter ? 'var(--accent)' : 'var(--line)'}`, background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', whiteSpace: 'nowrap', flex: 'none' }}>⚙ ▾</button>
             <AnchoredPopover anchorRef={nutLocRef} open={moLoc} onClose={() => setMoLoc(false)}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', padding: 10, maxWidth: 420, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.35)' }}>
           {danhMuc.map((c) => <LocChonNhieu key={c.key} cot={c} chon={docChon(colFilters[c.key])} onDoi={(ds) => setColFilter(c.key, locChon(ds))} />)}
@@ -795,7 +798,7 @@ export function DataTable<T>({
               </div>
             </AnchoredPopover>
           </>}
-          <span style={{ flex: 1 }} />
+          {(coTim || dauThanh || anyColFilter) && <span style={{ flex: 1 }} />}
           {(anTu > 0 || hienHet) && <button type="button" onClick={() => setHienHet((h) => !h)} title={hienHet ? 'Thu gọn lại cho vừa ô' : `Đang ẩn ${anTu} cột cho vừa ô — bấm để hiện đủ (cuộn ngang trong ô)`}
             style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', whiteSpace: 'nowrap', flex: 'none' }}>{hienHet ? 'Gọn lại' : `+${anTu} cột`}</button>}
         </div>

@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { MODES } from '@/lib/mock/modes';
 import type { Project } from '@/lib/mock/types';
 import { DataTable, type DataColumn } from './ui/data-table';
+import type { ReactNode } from 'react';
+import { ThanhO, useKhungO } from '@/components/home/khung-o';
 
 const healthColor = (h: number) => (h > 80 ? 'var(--ok)' : h > 65 ? 'var(--warn)' : 'var(--bad)');
 const healthBucket = (h: number): 'healthy' | 'watch' | 'critical' => (h > 80 ? 'healthy' : h > 65 ? 'watch' : 'critical');
@@ -21,7 +23,8 @@ type PortfolioUI = { modeFilter: string; healthFilter: 'all' | 'healthy' | 'watc
 const UI_KEY = 'portfolio-ui';
 const DEFAULT_UI: PortfolioUI = { modeFilter: 'all', healthFilter: 'all', kindFilter: 'all', sortBy: 'health', sortDir: 'desc', groupBy: 'flat', view: 'card' };
 
-export function PortfolioGrid({ projects: PROJECTS, totalBudget }: { projects: Project[]; totalBudget: number }) {
+export function PortfolioGrid({ projects: PROJECTS, totalBudget, nutMoi }: { projects: Project[]; totalBudget: number; nutMoi?: ReactNode }) {
+  const trongO = useKhungO() > 0;   // ruột ô widget /home: 5 hàng lọc → MỘT hàng (ThanhO: health trên hàng, kind / mode / group / sort / card-compact gập vào Lọc)
   const [q, setQ] = useState('');
   const [ui, setUiState] = useState<PortfolioUI>(DEFAULT_UI);
   useEffect(() => { try { const raw = localStorage.getItem(UI_KEY); if (raw) setUiState((u) => ({ ...u, ...JSON.parse(raw) })); } catch { /* ignore */ } }, []);
@@ -93,8 +96,18 @@ export function PortfolioGrid({ projects: PROJECTS, totalBudget }: { projects: P
   };
   const chipActive: React.CSSProperties = { ...chipBase, background: 'var(--accent)', color: 'var(--bg-0)', borderColor: 'var(--accent)', fontWeight: 600 };
 
+  const dau = (v: string, ds: string[], doi: (v: string) => void, nhan: string, ten?: (v: string) => string) => ({ nhan, v, doi, ds: ds.map((x) => ({ v: x, nhan: ten ? ten(x) : x })) });
   return (
     <div>
+      {trongO ? <ThanhO tim={q} setTim={setQ} goiYTim="Tìm dự án…" dem={`${sorted.length}/${PROJECTS.length}`}
+        chinh={dau(healthFilter, ['all', 'healthy', 'watch', 'critical'], (v) => setUi({ healthFilter: v as PortfolioUI['healthFilter'] }), 'Health', (k) => (k === 'all' ? 'all' : k === 'healthy' ? '🟢 healthy' : k === 'watch' ? '🟡 watch' : '🔴 critical'))}
+        phu={[dau(kindFilter, ['all', 'real', 'demo'], (v) => setUi({ kindFilter: v as PortfolioUI['kindFilter'] }), 'Kind'),
+          dau(modeFilter, ['all', ...allModes], (v) => setUi({ modeFilter: v }), 'Mode', (m) => (m === 'all' ? 'all' : MODES[m]?.label ?? m)),
+          dau(groupBy, ['flat', 'mode', 'health', 'kind'], (v) => setUi({ groupBy: v as PortfolioUI['groupBy'] }), 'Group'),
+          dau(sortBy, ['health', 'name', 'budget', 'alerts'], (v) => setUi(sortBy === v ? { sortDir: sortDir === 'asc' ? 'desc' : 'asc' } : { sortBy: v as PortfolioUI['sortBy'] }), 'Sort', (s) => `${s}${sortBy === s ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}`),
+          dau(view, ['card', 'compact'], (v) => setUi({ view: v as ViewKey }), 'Xem', (v) => (v === 'card' ? '▦ card' : '≡ compact'))]}
+        them={nutMoi} /> : <>
+      {nutMoi && <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>{nutMoi}</div>}
       {/* Filter bar */}
       <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -150,6 +163,7 @@ export function PortfolioGrid({ projects: PROJECTS, totalBudget }: { projects: P
           ))}
         </div>
       </div>
+      </>}
 
       {/* Groups */}
       {groups.map((g) => (
@@ -168,7 +182,7 @@ export function PortfolioGrid({ projects: PROJECTS, totalBudget }: { projects: P
             getRowKey={(p) => p.id}
             card={{ render: (p) => renderProjectCard(p, totalBudget), minWidth: 360 }}
             view={view === 'card' ? 'card' : 'table'}
-            minWidth={680}
+            minWidth={680} timNgoai
           />
         </div>
       ))}

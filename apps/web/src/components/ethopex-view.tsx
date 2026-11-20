@@ -9,6 +9,7 @@ import { CotAmDuong } from '@/components/cot-am-duong';
 import { useModalParam } from '@/lib/use-modal-param';
 import { LUAT, LUAT_THEO_MA, MUC_MAU, chamLuat, dangCamp, deXuatPhim, nangNhat, roi, type CampEtp, type DangCr, type LuatCham, type PhimDeXuat } from '@/lib/ethopex-luat';
 import type { DuLieuEthopex } from '@/lib/ethopex-doc';
+import { HangLoc, useKhungO } from '@/components/home/khung-o';
 
 type Dong = CampEtp & { luat: LuatCham[] };
 type Loc = 'all' | 'chay' | 'tat' | 'cham';
@@ -274,6 +275,7 @@ function TabTheLoai({ du }: { du: DuLieuEthopex }) {
  *  (nhịp làm mới của /home do thanh chân trang giữ). Không truyền = tab Ethopex đủ như cũ. */
 export type ChiEthopex = Xem | 'so';
 export function EthopexView({ du, chi }: { du: DuLieuEthopex; chi?: ChiEthopex }) {
+  const trongO = useKhungO() > 0;   // ruột ô widget /home: bỏ câu giải thích dài (vào hover), chip lọc camp vào chính hàng công cụ của bảng
   const modal = useModalParam('em');
   const [loc, setLoc] = useState<Loc>('all');
   const [xemUrl, setXem] = useState<Xem>('camp');
@@ -335,10 +337,13 @@ export function EthopexView({ du, chi }: { du: DuLieuEthopex; chi?: ChiEthopex }
     { key: 'roi4', group: 'xu', header: 'ROI 4 ngày trước', cell: (d) => pct(roi(d.truoc)), sortValue: (d) => roi(d.truoc) ?? -1e9 },
   ];
 
+  const chipLoc = <FilterChips<Loc> urlKey="etl" value={loc} onChange={setLoc}
+    counts={{ all: dong.length, chay: dong.filter((d) => d.trang_thai === 'ACTIVE').length, tat: dong.filter((d) => d.trang_thai !== 'ACTIVE').length, cham: dong.filter(coCham).length }}
+    options={[{ value: 'all', label: 'Tất cả' }, { value: 'chay', label: 'Đang bật' }, { value: 'tat', label: 'Đã tắt' }, { value: 'cham', label: 'Chạm luật', title: 'Có luật tăng / giảm / từ chối đang chạm' }]} />;
   return (
     <div>
       {(!chi || chi === 'so') && <>
-      <div style={{ ...mono, fontSize: 11, color: 'var(--fg-3)', marginBottom: 10 }}>
+      <div style={{ ...mono, fontSize: 11, color: 'var(--fg-3)', marginBottom: 10, ...(trongO ? { display: 'none' } : {}) }}>
         Số liệu sống từ Ethopex · cập nhật {truoc(du.luc)} · ROI/lãi từ đầu tháng ({du.ngayUtc ? 'ngày Ethopex 07:00–07:00 giờ VN; tiền chi ghi theo đợt, hôm nay + hôm qua chưa chốt' : 'giờ VN'}) · luật chỉ báo, tăng / giảm / tắt anh duyệt từng camp
         {du.loi ? <span style={{ color: MUC_MAU.dung }}> · lỗi: {du.loi}</span> : null}
       </div>
@@ -355,7 +360,7 @@ export function EthopexView({ du, chi }: { du: DuLieuEthopex; chi?: ChiEthopex }
         // màn hẹp (điện thoại): chỉ 4 số chính, cả dải nằm ở hover của "Lãi tháng" — để bảng còn chỗ, trang không cuộn (YDNI)
         .map((c) => (hep && c.key === 'lai' ? { ...c, title: `Camp bật ${dong.filter((d) => d.trang_thai === 'ACTIVE').length}/${dong.length} · chi tháng ${usd(tong.chi)} · cần xem giảm/tắt ${dem('GT')} · ad bị từ chối ${dem('TC')}` } : c))} />
       </>}
-      {chi !== 'so' && <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', margin: chi ? '0 0 8px' : '12px 0 8px' }}>
+      {chi !== 'so' && !(trongO && chi) && <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', margin: chi ? '0 0 8px' : '12px 0 8px' }}>
         {!chi && <Segmented<Xem> value={xem} onChange={setXem} hrefFor={(v) => `?tab=ethopex${v === 'camp' ? '' : `&etx=${v}`}`} options={[
           { value: 'camp', label: 'Camp', title: `${dong.length} camp` },
           { value: 'test', label: 'Lên test', title: 'Mỗi ngày: camp mới · phim mới · phim test lại · còn bật / đã tắt · ROI lứa camp' },
@@ -365,15 +370,13 @@ export function EthopexView({ du, chi }: { du: DuLieuEthopex; chi?: ChiEthopex }
           { value: 'cho', label: 'Hàng chờ', title: `${du.hangCho.length} phim chờ test` },
           { value: 'luat', label: 'Sổ luật', title: `${LUAT.length} luật · kb #261 mục 8–8i` },
         ]} />}
-        {xem === 'camp' ? <FilterChips<Loc> urlKey="etl" value={loc} onChange={setLoc}
-          counts={{ all: dong.length, chay: dong.filter((d) => d.trang_thai === 'ACTIVE').length, tat: dong.filter((d) => d.trang_thai !== 'ACTIVE').length, cham: dong.filter(coCham).length }}
-          options={[{ value: 'all', label: 'Tất cả' }, { value: 'chay', label: 'Đang bật' }, { value: 'tat', label: 'Đã tắt' }, { value: 'cham', label: 'Chạm luật', title: 'Có luật tăng / giảm / từ chối đang chạm' }]} /> : null}
+        {xem === 'camp' && !trongO ? chipLoc : null}
       </div>}
       {chi !== 'so' && <div>   {/* cuộn THEO TRANG: đầu tab trôi đi, tiêu đề bảng + thanh trang dính (DataTable mặc định, học Ethopex 22/10/2026) */}
         {xem === 'camp' ? (
           <DataTable<Dong> rows={hien} columns={cot} getRowKey={(d) => String(d.id)} persistKey="ethopex-camp" minWidth={1100} pageSize={50}
             groups={[{ key: 'thang', label: 'Từ đầu tháng' }, { key: 'xu', label: 'Xu hướng ROI' }]}
-            searchText={(d) => `${d.id} ${d.ten} ${d.phim ?? ''} ${d.creative_id ?? ''}`} searchPlaceholder="Tìm camp, phim, creative…"
+            searchText={(d) => `${d.id} ${d.ten} ${d.phim ?? ''} ${d.creative_id ?? ''}`} searchPlaceholder="Tìm camp, phim, creative…" dauThanh={trongO ? <HangLoc trongBang chinh={chipLoc} /> : undefined}
             onRowClick={(d) => modal.open('camp', d.id)} rowStyle={(d) => (d.trang_thai === 'ACTIVE' ? undefined : { opacity: 0.6 })} />
         ) : xem === 'test' ? (
           <TabTest du={du} />

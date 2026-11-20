@@ -32,12 +32,13 @@ export function Panel({
       style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, padding: pad, marginBottom: 16, ...style }}
     >
       {(title != null || actions != null) && (
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        // data-panel-*: trong ô widget /home (home.css .hm-ob) đầu panel thu thành MỘT dòng — dòng phụ dài ẩn, đọc ở hover tiêu đề
+        <div data-panel-dau="" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
           {title != null && (
-            <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, margin: 0 }}>
+            <h2 data-panel-ten="" title={typeof subtitle === 'string' ? subtitle : undefined} style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, margin: 0 }}>
               {title}
               {subtitle != null && (
-                <small style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', marginLeft: 10, letterSpacing: '0.06em' }}>// {subtitle}</small>
+                <small data-panel-phu="" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', marginLeft: 10, letterSpacing: '0.06em' }}>// {subtitle}</small>
               )}
             </h2>
           )}

@@ -9,6 +9,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type React
 import { AnchoredPopover, DataTable, Drawer, EmptyState, MultiSelect, NutViec, Segmented, StatsStrip, TextField, type DataColumn, type DataGroup, type MultiSelectOption } from '@/components/ui';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { MayDang } from '@/components/social-may-dang';
+import { HangLoc, useKhungO } from '@/components/home/khung-o';
 import { MayDangLich } from '@/components/may-dang-lich';
 import { pkCua } from '@/lib/ho-nen';
 import { wrapExternalUrl } from '@/lib/external-url';
@@ -255,6 +256,7 @@ function hoiChung(url: string): Promise<Record<string, unknown>> {
 /** chi: widget /home — chỉ vẽ MỘT phần ('so' = dải số; 'lich' / 'luot' / 'loi' / 'may' = đúng mục đó). Mục cố định nên không đọc / ghi trạng thái lên URL
  *  (hai widget cùng màn ghi chung tham số sẽ đè nhau). Không truyền = tab Máy Đăng đủ như cũ. */
 export function MayDangView({ chi }: { chi?: Md | 'so' } = {}) {
+  const trongO = useKhungO() > 0;   // đang là ruột một ô widget /home (khung-o.tsx) → hàng lọc gọn một hàng
   // widget /home: bộ lọc ghi lên URL bằng khoá RIÊNG từng widget (md-luot_ngay, md-loi_kq…) → F5 giữ nguyên, hai widget cùng màn không đè nhau; mục đang xem (md) thì cố định theo widget
   const tt = chi ? `md-${chi}_` : 'md_';
   const dau = useMemo(() => docUrl(tt), [tt]), modal = useModalParam();
@@ -350,6 +352,24 @@ export function MayDangView({ chi }: { chi?: Md | 'so' } = {}) {
   const locLoi = (g: Gom) => { setLoc((c) => ({ ...c, bd: g.bd ? [g.bd] : [], kh: g.kh ? [g.kh] : [], ml: g.ml ? [g.ml] : [], kq: [] })); setMd('luot'); };
   const coLoc = LOC.some((k) => loc[k].length) || !!q;
 
+  // HÀNG LỌC: trang thường = một hàng wrap như trước; trong ô widget /home = một hàng mỏng (khoảng ngày trên hàng, 8 bộ lọc gập vào "Lọc"), bảng Lượt đăng
+  // nhận hàng này vào chính thanh công cụ của nó (dauThanh) → cả ô chỉ một hàng điều khiển (anh 20/11/2026 "các bộ lọc đều phải bố cục lại hết")
+  const oCaDung = <label style={{ ...nho, display: 'inline-flex', gap: 6, alignItems: 'center' }} title="mặc định chỉ hỏng, mất dấu, kho cạn"><input type="checkbox" checked={caDung} onChange={(e) => setCaDung(e.target.checked)} />gồm cả dừng đúng luật / bỏ lượt</label>;
+  const hangLoc = (trongBang: boolean) => <HangLoc trongBang={trongBang} soLoc={LOC.filter((k) => loc[k].length).length} boLoc={() => setLoc(locTrong())}
+    chinh={<Segmented<string> options={NGAY} value={ngay} onChange={setNgay} hrefFor={(v) => urlVoiParam(`${tt}ngay`, v === '3' ? null : v)} />}
+    phu={<>
+      <MultiSelect label="Dự án" options={opt.da} selected={loc.da} onChange={(v) => dat('da', v)} compact />
+      <MultiSelect label="Kênh" options={opt.km} selected={loc.km} onChange={(v) => dat('km', v)} compact />
+      <MultiSelect label="Nền" options={opt.nen} selected={loc.nen} onChange={(v) => dat('nen', v)} compact />
+      <MultiSelect label="Tài khoản / profile" options={opt.tk} selected={loc.tk} onChange={(v) => dat('tk', v)} compact />
+      <MultiSelect label="Kết quả" options={opt.kq} selected={loc.kq} onChange={(v) => dat('kq', v)} compact />
+      <MultiSelect label="Dừng ở bước" options={opt.bd} selected={loc.bd} onChange={(v) => dat('bd', v)} compact />
+      <MultiSelect label="Kẹt ở khâu" options={opt.kh} selected={loc.kh} onChange={(v) => dat('kh', v)} compact />
+      <MultiSelect label="Nhóm lý do" options={opt.ml} selected={loc.ml} onChange={(v) => dat('ml', v)} compact />
+      {trongO && md === 'loi' && oCaDung}
+    </>}
+    phai={<span style={{ ...nho, color: loi ? 'var(--danger, #dc2626)' : 'var(--fg-3)' }}>{loi ? `không đọc được sổ: ${loi}` : tai ? 'đang đọc…' : trongO ? `${loc1.length} dòng` : `${loc1.length} dòng · tự làm mới 5 giây`}</span>} />;
+
   return <div style={{ display: 'grid', gap: 10 }}>
     {!chi && <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
       <Segmented<Md> value={md} onChange={setMd} hrefFor={(v) => urlVoiParam('md', v === 'lich' ? null : v)} options={[
@@ -359,24 +379,12 @@ export function MayDangView({ chi }: { chi?: Md | 'so' } = {}) {
         { value: 'may', label: 'Máy', title: 'bật / tắt máy, cho nền nghỉ, vòng 10 phút gần nhất, kế hoạch hôm nay' }]} />
       <span style={{ ...nho, color: 'var(--fg-3)' }}>Máy đăng iMac, mỗi 10 phút · phụ trách: Phòng Social Traffic · Pinterest Front Porch (pin-hang) chưa vào sổ · sổ cũ bai_hen (dừng 25/10) và publications (dừng tháng 5) không còn chạy</span>
     </div>}
-    {(md === 'luot' || md === 'loi') && chi !== 'so' && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-      <Segmented<string> options={NGAY} value={ngay} onChange={setNgay} hrefFor={(v) => urlVoiParam(`${tt}ngay`, v === '3' ? null : v)} />
-      <MultiSelect label="Dự án" options={opt.da} selected={loc.da} onChange={(v) => dat('da', v)} compact />
-      <MultiSelect label="Kênh" options={opt.km} selected={loc.km} onChange={(v) => dat('km', v)} compact />
-      <MultiSelect label="Nền" options={opt.nen} selected={loc.nen} onChange={(v) => dat('nen', v)} compact />
-      <MultiSelect label="Tài khoản / profile" options={opt.tk} selected={loc.tk} onChange={(v) => dat('tk', v)} compact />
-      <MultiSelect label="Kết quả" options={opt.kq} selected={loc.kq} onChange={(v) => dat('kq', v)} compact />
-      <MultiSelect label="Dừng ở bước" options={opt.bd} selected={loc.bd} onChange={(v) => dat('bd', v)} compact />
-      <MultiSelect label="Kẹt ở khâu" options={opt.kh} selected={loc.kh} onChange={(v) => dat('kh', v)} compact />
-      <MultiSelect label="Nhóm lý do" options={opt.ml} selected={loc.ml} onChange={(v) => dat('ml', v)} compact />
-      {LOC.some((k) => loc[k].length) && <button type="button" onClick={() => setLoc(locTrong())} style={{ border: 0, background: 'none', color: 'var(--accent, #60a5fa)', cursor: 'pointer', fontSize: 12 }}>bỏ lọc</button>}
-      <span style={{ ...nho, color: loi ? 'var(--danger, #dc2626)' : 'var(--fg-3)', marginLeft: 'auto' }}>{loi ? `không đọc được sổ: ${loi}` : tai ? 'đang đọc…' : `${loc1.length} dòng · tự làm mới 5 giây`}</span>
-    </div>}
+    {(md === 'luot' || md === 'loi') && chi !== 'so' && !(trongO && md === 'luot') && hangLoc(false)}
     {(md === 'luot' || md === 'loi') && (!chi || chi === 'so') && <StatsStrip cards={the} minColWidth={120} />}
     {md === 'lich' && <MayDangLich />}
     {md === 'luot' && chi !== 'so' && (loc1.length || tai
       ? <DataTable rows={loc1} columns={cot} groups={nhom} getRowKey={(r) => String(r.id)} persistKey="may-dang-luot-2" minWidth={1500} pageSize={100} locTuDong={false}
-          searchText={(r) => `${r.slug ?? ''} ${r.loi ?? ''} ${r.may_ten} ${r.nen} ${r.url ?? ''}`} searchPlaceholder="Tìm bài / lỗi / kênh…" onTimDoi={setQ}
+          searchText={(r) => `${r.slug ?? ''} ${r.loi ?? ''} ${r.may_ten} ${r.nen} ${r.url ?? ''}`} searchPlaceholder="Tìm bài / lỗi / kênh…" onTimDoi={setQ} dauThanh={trongO ? hangLoc(true) : undefined}
           defaultSort={[{ key: 'bd', dir: 'desc' }]} onRowClick={moChiTiet}
           rowStyle={(r) => (r.ket === 'hong' || r.ket === 'mat_dau' ? { boxShadow: 'inset 3px 0 0 var(--danger, #dc2626)' } : r.ket === 'chay' ? { boxShadow: 'inset 3px 0 0 var(--info, #3b82f6)' } : undefined)}
           card={{ minWidth: 280, render: (r) => <div onClick={() => moChiTiet(r)} style={{ display: 'grid', gap: 3, padding: 10, border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', cursor: 'pointer', fontSize: 12 }}>
@@ -388,7 +396,7 @@ export function MayDangView({ chi }: { chi?: Md | 'so' } = {}) {
           </div> }} />
       : <EmptyState icon="📭" title="Không có lượt nào" description={coLoc ? 'Không lượt nào khớp bộ lọc — bỏ bớt lọc hoặc chọn khoảng ngày dài hơn.' : 'Chưa có lượt nào trong khoảng này.'} />)}
     {md === 'loi' && <>
-      <label style={{ ...nho, display: 'inline-flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={caDung} onChange={(e) => setCaDung(e.target.checked)} />gồm cả dừng đúng luật / bỏ lượt (mặc định chỉ hỏng, mất dấu, kho cạn)</label>
+      {!trongO && oCaDung}
       <DataTable rows={gom} getRowKey={(g) => g.khoa} persistKey="may-dang-loi" minWidth={900} locTuDong={false} defaultSort={[{ key: 'lan', dir: 'desc' }]} onRowClick={chi ? undefined : locLoi} card
         columns={[
           { key: 'ml', header: 'Nhóm lý do', align: 'left', sortValue: (g) => tenLy(g.ml), cell: (g) => <b>{tenLy(g.ml)}</b> },

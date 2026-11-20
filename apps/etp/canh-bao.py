@@ -97,7 +97,8 @@ def ws_chan(nay, khung="30 minutes"):
 
 # THẺ XÉT LUẬT ĐỨNG (10/11/2026: etp.xet_luat ngừng ghi 16:08 09/11 → 20 giờ trang vẽ chip theo số cũ, không ai biết): thẻ mới nhất quá 90 phút → báo ĐỎ một lần / giờ
 def the_dung(nay):
-    p = int(float(q("select coalesce(extract(epoch from now() - max(luc)) / 60, 9999) from etp.xet_luat") or 0))
+    # không camp ACTIVE (dừng khẩn 20/11/2026: 2231 camp PAUSED) → máy luật không có camp để ghi thẻ, thẻ cũ già đi là ĐÚNG, không phải máy luật hỏng
+    p = int(float(q("select case when exists (select 1 from etp.camp where trang_thai = 'ACTIVE') then coalesce(extract(epoch from now() - max(luc)) / 60, 9999) else 0 end from etp.xet_luat") or 0))
     if p <= 90: return 0   # 90 phút = 3 nhịp Phát (nhịp có lúc 44 phút) — cùng ngưỡng trang etp / etp2 lọc thẻ
     bao("the_dung", "do", f"the_dung:{nay}:{dt.datetime.now(dt.timezone.utc):%H}", f"Thẻ xét luật (etp.xet_luat) không ghi {p} phút — trang etp đã ẩn chip tăng / tắt; máy luật luat-ethopex.py có lỗi ở bước ghi thẻ, xem tin LỖI MÁY LUẬT")
     return 1

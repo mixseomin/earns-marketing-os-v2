@@ -44,7 +44,8 @@ export function ChiTietMau({ m }: { m: MauCr }) {
         <BanMauLuoi m={m} cot={5} nhom />
         <div style={{ fontSize: 13, lineHeight: 1.5 }}>{m.mo_ta}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'max-content minmax(0, 1fr)', gap: '6px 14px', alignItems: 'baseline' }}>
-          {m.quy_trinh.length ? <Muc ten="Quy trình chuẩn"><ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>{m.quy_trinh.map((x) => <li key={x}>{x}</li>)}</ol></Muc> : null}
+          <Muc ten="Quy trình triển khai">{m.quy_trinh.length ? <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>{m.quy_trinh.map((x) => <li key={x}>{x}</li>)}</ol>
+            : <span style={{ color: MO_SO }}>chưa có máy dựng cho mẫu này — mới là mẫu tham chiếu, chọn phim chỉ ghi lại</span>}</Muc>
           {m.spec.map((x) => <Muc key={x.nhan} ten={x.nhan}>{x.gia}</Muc>)}
           {m.giong.length ? <Muc ten="Giọng đọc"><span style={{ display: 'inline-flex', flexWrap: 'wrap', columnGap: 12 }}>{m.giong.map((g) => { const r = g.chi > 0.5 ? ((g.thu - g.chi) / g.chi) * 100 : null;
             return <span key={g.k} title={`${g.n} creative · chi $${g.chi.toFixed(0)} · thu $${g.thu.toFixed(0)}`} style={{ whiteSpace: 'nowrap' }}>{TEN_GIONG[g.k] ?? 'khác'} <Dem v={g.n} />{r != null ? <span style={{ color: r >= 0 ? XANH : DO }}> {r.toFixed(0)}%</span> : null}</span>; })}</span></Muc> : null}

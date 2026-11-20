@@ -59,7 +59,7 @@ function useLoc(k: string) {
  *  (tab Phim sản xuất, dải So với gốc). Mẫu nhà: creative nhà chính là nguồn → giữ. */
 export const banNguon = (m: MauCr) => { if (m.nguon !== 'doi_thu') return m.ban;
   // THỨ TỰ (20/11/2026 rà tổ chức): nguồn đối thủ đầu tiên · bản nhà đã duyệt đầu tiên đứng NGAY CẠNH để so · rồi nguồn còn lại · rồi bản duyệt còn lại — thẻ 3 ô không còn đẩy khuất QC gốc
-  const g = m.ban.filter((b) => b.vai === 'goc'), d = m.ban.filter((b) => b.vai === 'duyet'); return [...g.slice(0, 1), ...d.slice(0, 1), ...g.slice(1), ...d.slice(1)]; };
+  const g = m.ban.filter((b) => b.vai === 'goc'), d = m.ban.filter((b) => b.vai === 'duyet'); return [...d.slice(0, 1), ...g.slice(0, 1), ...d.slice(1), ...g.slice(1)]; };   // bản NHÀ đứng trước nguồn đối thủ (anh 20/11/2026 "creative máy dựng cho lên trước")
 /** đếm theo vai của một mẫu học từ đối thủ — chữ dùng chung cho thẻ / cây */
 export const demBan = (m: MauCr) => ({ goc: m.ban.filter((b) => b.vai === 'goc').length, duyet: m.ban.filter((b) => b.vai === 'duyet').length });
 export function BanMauLuoi({ m: mGoc, cot = 3, nhom = false, oRong }: { m: MauCr; cot?: number; /** ô rộng cố định (px) thay cho chia đều theo cột */ oRong?: number; /** chi tiết mẫu: chia HAI NHÓM có nhãn (nguồn đối thủ / nhà đã duyệt), mỗi nhóm một dải */ nhom?: boolean }) {
@@ -67,7 +67,7 @@ export function BanMauLuoi({ m: mGoc, cot = 3, nhom = false, oRong }: { m: MauCr
     // hai nhóm CẠNH NHAU trên một hàng, ô nhỏ cố định 128px (ô to chia theo cột đẩy mô tả + quy trình xuống dưới màn — đo 20/11/2026); hẹp thì nhóm sau tự xuống dòng
     // + nhóm "Nhà dựng · chưa duyệt" (anh 20/11/2026 "3 mẫu này tìm ở đâu ?"): bản máy nhà dựng theo mẫu mà anh chưa duyệt CHỈ hiện ở chi tiết mẫu, có nhãn rõ — thẻ ngoài lưới vẫn chỉ hiện nguồn + bản đã duyệt
     const u = mGoc.ban.filter((b) => b.vai === 'dung');
-    const nh = ([['Nguồn đối thủ', g, 'QC gốc của đối thủ mà mẫu này học theo'], ['Nhà đã duyệt', d, 'creative máy dựng theo mẫu, anh đã duyệt làm mẫu'], ['Nhà dựng · chưa duyệt', u, 'bản máy nhà dựng theo mẫu này — anh chưa duyệt làm mẫu']] as const).filter((x) => x[1].length);
+    const nh = ([['Nhà đã duyệt', d, 'creative máy dựng theo mẫu, anh đã duyệt làm mẫu'], ['Nhà dựng · chưa duyệt', u, 'bản máy nhà dựng theo mẫu này — anh chưa duyệt làm mẫu'], ['Nguồn đối thủ', g, 'QC gốc của đối thủ mà mẫu này học theo']] as const).filter((x) => x[1].length);   // bản nhà trước, nguồn đối thủ sau (anh 20/11/2026)
     if (nh.length >= 2) return <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 22px' }}>
       {nh.map(([ten, ds, goi]) => <div key={ten} style={{ maxWidth: '100%', minWidth: 0 }}>
         <div title={goi} style={{ fontSize: 11.5, color: MO_SO, marginBottom: 4 }}>{ten} · <Dem v={ds.length} /></div>

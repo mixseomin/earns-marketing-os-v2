@@ -75,8 +75,15 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
       {loiCuoi && !loi ? <div style={{ fontSize: 11.5, color: MO_SO }}>lỗi gần nhất (đã qua): <span style={{ color: DO }}>{loiThuongMau(loiCuoi.ghi)}</span> · {gio(loiCuoi.luc)}</div> : null}
       {/* SO VỚI GỐC (anh 19/11/2026 "POSTER GỐC CỦA PHIM ĐANG CHỌN CƠ MÀ"): poster gốc của CHÍNH PHIM NÀY (viền cam) | creative máy dựng cho phim (viền xanh) — cùng cỡ, cùng hàng */}
       <div>
-        <div style={{ fontSize: 11, color: MO_SO, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6 }}>So với gốc · poster phim · {goc.length} ad đối thủ · {ok.cr.length} máy dựng</div>
+        <div style={{ fontSize: 11, color: MO_SO, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6 }}>So với gốc · {ok.cr.length} máy dựng · poster phim · {goc.length} ad đối thủ</div>
           <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: 'calc((100% - 32px) / 5)', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+            {/* CREATIVE MÁY DỰNG ĐỨNG TRƯỚC (anh 20/11/2026 "creative máy dựng cho lên trước"): bản vừa dựng là thứ cần nhìn đầu tiên, rồi mới tới poster gốc + ad đối thủ để so */}
+            {ok.cr.map((c) => { const r = c.chi > 0.5 ? ((c.thu - c.chi) / c.chi) * 100 : null;
+              return <a key={c.id} onClick={() => { const u = c.video ?? c.anh; if (u) mv.open({ url: u, label: 'Creative máy dựng', kind: c.video ? 'frame' : 'image' }); }} style={{ display: 'block', color: 'inherit', cursor: 'zoom-in' }} title="creative máy dựng cho phim này — bấm xem video ngay tại đây">
+                <div style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: '2px solid rgba(37,99,235,0.9)' }}>{c.anh ? <img src={c.anh} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
+                  <span style={{ position: 'absolute', left: 4, top: 4, fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: 'rgba(37,99,235,0.92)', color: '#fff', fontWeight: 600 }}>máy dựng</span></div>
+                <div style={{ fontSize: 11, marginTop: 3, fontVariantNumeric: 'tabular-nums', color: MO_SO }}>{c.camp} camp{c.chay ? <span style={{ color: XANH }}> ●</span> : ''} · chi ${c.chi.toFixed(2)}{r != null ? <> · ROI <span style={{ color: r >= 0 ? XANH : DO }}>{r.toFixed(0)}%</span></> : ''}</div>
+              </a>; })}
             {ok.phim.poster ? <a onClick={() => mv.open({ url: ok.phim.poster!, label: 'Poster gốc của phim', kind: 'image' })} title="poster gốc của phim (ảnh trên trang phim) — bấm phóng to" style={{ display: 'block', color: 'inherit', cursor: 'zoom-in' }}>
               <div style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: '2px solid rgba(194,65,12,0.9)' }}><img src={ok.phim.poster} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                 <span style={{ position: 'absolute', left: 4, top: 4, fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: 'rgba(194,65,12,0.92)', color: '#fff', fontWeight: 600 }}>poster gốc</span></div>
@@ -87,12 +94,6 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
                 <span style={{ position: 'absolute', left: 4, top: 4, fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: 'rgba(51,65,85,0.92)', color: '#fff', fontWeight: 600 }}>ad đối thủ</span></div>
               <div style={{ fontSize: 11, marginTop: 3, color: MO_SO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.nhan ?? 'mẫu học theo'}</div>
             </a>)}
-            {ok.cr.map((c) => { const r = c.chi > 0.5 ? ((c.thu - c.chi) / c.chi) * 100 : null;
-              return <a key={c.id} onClick={() => { const u = c.video ?? c.anh; if (u) mv.open({ url: u, label: 'Creative máy dựng', kind: c.video ? 'frame' : 'image' }); }} style={{ display: 'block', color: 'inherit', cursor: 'zoom-in' }} title="creative máy dựng cho phim này — bấm xem video ngay tại đây">
-                <div style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: '2px solid rgba(37,99,235,0.9)' }}>{c.anh ? <img src={c.anh} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
-                  <span style={{ position: 'absolute', left: 4, top: 4, fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: 'rgba(37,99,235,0.92)', color: '#fff', fontWeight: 600 }}>máy dựng</span></div>
-                <div style={{ fontSize: 11, marginTop: 3, fontVariantNumeric: 'tabular-nums', color: MO_SO }}>{c.camp} camp{c.chay ? <span style={{ color: XANH }}> ●</span> : ''} · chi ${c.chi.toFixed(2)}{r != null ? <> · ROI <span style={{ color: r >= 0 ? XANH : DO }}>{r.toFixed(0)}%</span></> : ''}</div>
-              </a>; })}
           </div>
       </div>
       {/* dòng thời gian */}

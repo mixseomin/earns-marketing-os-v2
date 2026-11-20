@@ -26,7 +26,8 @@ TAM_LY = ("\n\nGenre: {tl}\nSynopsis: {mt}\n\nMOST IMPORTANT: the frame must sel
 # đối thủ đều bám theo → khung đúng người đó, đúng tạo hình đó đứng đầu.
 POSTER = ("\n\nThe image labelled OFFICIAL POSTER is the drama's official key art — it is NOT a candidate. It shows who the protagonist is and the signature look the audience "
           "expects (costume, setting, mood). Strongly prefer candidate frames that show THE SAME ACTOR as the largest figure on the poster, ideally in the same costume / look "
-          "(e.g. poster shows him in an orange prison jumpsuit → prison-jumpsuit frames beat frames of him in a different outfit). A frame of a different person ranks below any usable frame of the poster's lead.")
+          "(e.g. poster shows him in an orange prison jumpsuit → prison-jumpsuit frames beat frames of him in a different outfit). A frame of a different person ranks below any usable frame of the poster's lead. "
+          "RANKING ORDER (this overrides the synopsis-hook preference above): first the poster's lead in the poster's signature look, then the poster's lead in other looks, then everyone else.")
 def xep(ten, anh, mo_ta="", the_loai="", poster=None):
     noi = [{"type": "text", "text": "OFFICIAL POSTER (reference only, not a candidate):"}, {"type": "image_url", "image_url": {"url": poster}}] if poster else []
     for i, u in enumerate(anh): noi += [{"type": "text", "text": f"Frame {i}:"}, {"type": "image_url", "image_url": {"url": u}}]

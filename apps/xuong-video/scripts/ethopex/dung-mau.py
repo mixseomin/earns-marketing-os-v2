@@ -143,7 +143,7 @@ def sang_khoi(lop, m, mau=(255, 255, 240), toi=(60, 30, 0)):
     for mm, c, a in ((tren, mau, 230), (duoi, toi, 200)):
         l = Image.new("RGBA", m.size, c + (0,)); l.putalpha(mm.point(lambda v: v * a // 255)); lop.alpha_composite(l)
 def phat_sang(lop, m, mau, mo=24, a=200):
-    g = Image.new("RGBA", (W, H), mau + (0,)); g.putalpha(m.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(mo)).point(lambda v: min(255, v * a // 255))); lop.alpha_composite(g)
+    g = Image.new("RGBA", m.size, mau + (0,)); g.putalpha(m.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(mo)).point(lambda v: min(255, v * a // 255))); lop.alpha_composite(g)
 def nut(lop, chu, y, f, nen, chu_mau=(255, 255, 255), vien_mau=None, dem=(56, 26), bo_tron=None, rong_min=0, x_tam=None):
     d = ImageDraw.Draw(lop); x0, y0, x1, y1 = f.getbbox(chu); w = max(rong_min, x1 - x0 + 2 * dem[0]); h = y1 - y0 + 2 * dem[1]; x = int((x_tam or W / 2) - w / 2)
     r = bo_tron if bo_tron is not None else h // 2
@@ -498,26 +498,39 @@ def _ten_nghieng(c, y):
     l = Image.new("RGBA", (W, H)); bong(l, m, (6, 10), 10, 220); vien(l, m, 4, (0, 0, 0)); to(l, m, (255, 255, 255))
     return l.transform((W, H), Image.AFFINE, (1, 0.17, -0.17 * (hop[1] + hop[3]) / 2, 0, 1, 0), Image.BICUBIC), hop
 def dt_watch_more_gian(c):
-    """nhãn 'WATCH MORE' trong hộp tối viền vàng + phần đầu tên phim CHỮ GIÃN mảnh trắng + phần cuối tên phim chữ hẹp cao VÀNG nổi khối (kiểu Undercover Prison King,
-    hầu hết QC mới của phim — 'U N D E R C O V E R / PRISON KING').
-    Sửa 20/11/2026 (anh "lởm thế này"): tên phim vẽ trên tấm RỘNG W / 0,84 rồi mới ép (trước vẽ rộng hơn khung → cắt chữ đầu / cuối dòng); nhãn to hơn, viền vàng,
-    NÉ MẶT: đỉnh khung khi trên trán còn chỗ, không thì xuống ngay dưới tên phim."""
+    """nhãn 'WATCH MORE' hộp tối chữ vàng SÁT ĐỈNH + phần đầu tên phim chữ có chân GIÃN RỘNG bằng bề ngang dòng vàng + phần cuối tên phim chữ hẹp cao VÀNG kim loại
+    to gần trọn bề ngang, SÁT ĐÁY khung (kiểu Undercover Prison King — 5 QC đối thủ đang chạy).
+    Chuẩn phong cách 20/11/2026 (anh "mẫu ad của đối thủ đẹp hơn hẳn … clone phải giống phong cách đến 99%"), số đo từ 3 QC gốc 1220111703796822 / 29095625563443078 /
+    1162363903114246: dòng vàng rộng ~86% khung, đáy ở ~95% chiều cao; dòng giãn rộng ~84% khung, cao ~1/4 dòng vàng; nhãn ở ~4% từ đỉnh, không viền.
+    Tên phim vẽ trên tấm rộng W / 0,84 rồi mới ép (không cắt chữ đầu / cuối dòng)."""
     EP = 0.84; WR = int(W / EP); lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop)
     tu = c["ten"].upper().split(); dau, cuoi = (" ".join(tu[:1]), " ".join(tu[1:])) if len(tu) > 2 else ((tu[0], " ".join(tu[1:])) if len(tu) == 2 else ("", tu[0]))
-    f2, dong = vua(cuoi, "impact", WR - int(120 / EP), 190, 2)
-    y = dat_y(c, (74 if dau else 0) + int(f2.size * 0.98) * len(dong), 0.60); y_ten = y
-    if dau:
-        gian = " ".join(dau); f1, _ = vua(gian, "didot", W - 120, 54, 1, 30); d.text(((W - f1.getlength(gian)) / 2, y), gian, font=f1, fill=(245, 245, 245, 255)); y += 74
+    f2, dong = vua(cuoi, "impact", int(W * 0.86 / EP), 300, 1, 40)   # QC gốc: phần vàng MỘT dòng trọn bề ngang; tên quá dài (chữ < 130px) mới xuống hai dòng
+    if f2.size < 130: f2, dong = vua(cuoi, "impact", int(W * 0.86 / EP), 220, 2)
+    cao2 = int(f2.size * 0.98) * len(dong); ro_v = min(int(W * 0.86), int(max(f2.getlength(x) for x in dong) * EP))   # bề ngang dòng vàng sau khi ép
+    f1 = None
+    if dau:   # chữ giãn: cỡ ~ 0,26 cỡ vàng, khoảng giãn tính cho vừa đúng bề ngang dòng vàng
+        f1 = ph("didot", max(34, int(f2.size * 0.26))); kt = list(dau); rk = sum(f1.getlength(x) for x in kt)
+        gian = max(4.0, (ro_v * 0.97 - rk) / max(1, len(kt) - 1))
+        if rk + gian * (len(kt) - 1) > W - 80: f1 = ph("didot", max(28, int(f1.size * (W - 80) / (rk + gian * (len(kt) - 1))))); rk = sum(f1.getlength(x) for x in kt); gian = max(4.0, (min(ro_v, W - 80) * 0.97 - rk) / max(1, len(kt) - 1))
+    cao1 = int(f1.size * 1.25) if f1 else 0
+    tong = cao1 + cao2; y = int(H * 0.955 - tong)
+    mats = c.get("mats") or [(c["mat_day"] - 1, c["mat_day"])]
+    if y < max(b for _, b in mats) + 20: y = dat_y(c, tong, 0.60, 0.955)   # mặt quá thấp (chữ sát đáy sẽ che mặt) → chỗ trống gần nhất như các mẫu khác
+    if f1:
+        x = (W - (rk + gian * (len(kt) - 1))) / 2; m1 = Image.new("L", (W, H)); d1 = ImageDraw.Draw(m1)
+        for ch in kt: d1.text((x, y), ch, font=f1, fill=255); x += f1.getlength(ch) + gian
+        bong(lop, m1, (2, 4), 6, 200); to(lop, m1, (242, 236, 222)); y += cao1
     m, hop = mat_chu(dong, f2, y, 0.98, khung=WR)
-    l2 = Image.new("RGBA", (WR, H)); bong(l2, m, (6, 10), 12, 220); vien(l2, m, 5, (60, 34, 4)); to(l2, m, doc_trong((255, 244, 190), (236, 176, 50), (150, 90, 12), hop)); sang_khoi(l2, m)
+    l2 = Image.new("RGBA", (WR, H)); phat_sang(l2, m, (255, 170, 40), 30, 120); bong(l2, m, (5, 9), 10, 230); vien(l2, m, 4, (58, 30, 4))
+    to(l2, m, doc_trong((255, 250, 210), (246, 196, 72), (170, 104, 16), hop)); sang_khoi(l2, m, (255, 255, 235), (90, 48, 6))
     lop.alpha_composite(_ep_ngang(l2, EP))
-    # NHÃN WATCH MORE: chữ 46px, hộp tối viền vàng mảnh; đáy nhãn phải cách đỉnh mặt cao nhất ≥ 40% chiều cao mặt (trán) — không đủ chỗ thì đặt dưới tên phim
-    f = ph("arial_b", 46); t = "WATCH MORE" if c["lang"] != "es" else "VER MÁS"; x0, y0_, x1, y1_ = f.getbbox(t); w, h = x1 - x0 + 64, y1_ - y0_ + 34
-    mats = c.get("mats") or [(c["mat_day"] - 1, c["mat_day"])]; tren = min(a for a, _ in mats); cao_mat = max(b - a for a, b in mats)
-    yn = int(H * TREN_AN)
-    if yn + h > tren - 0.4 * cao_mat: yn = int(hop[3] + 34)   # trên trán không đủ chỗ → nhãn xuống dưới tên phim, như nút
-    xn = (W - w) // 2; bo = Image.new("RGBA", (W, H)); ImageDraw.Draw(bo).rectangle((xn + 3, yn + 6, xn + w + 3, yn + h + 6), fill=(0, 0, 0, 140)); lop.alpha_composite(bo.filter(ImageFilter.GaussianBlur(8)))
-    d.rectangle((xn, yn, xn + w, yn + h), fill=(28, 22, 12, 230), outline=(240, 200, 112, 255), width=3); d.text((xn + 32 - x0, yn + 17 - y0_), t, font=f, fill=(255, 226, 150, 255))
+    # NHÃN WATCH MORE sát đỉnh (~4% chiều cao), hộp tối không viền, chữ vàng nhạt — như QC gốc; đỉnh khung thường là tường / nền, không phải mặt
+    f = ph("arial_b", 40); t = "WATCH MORE" if c["lang"] != "es" else "VER MÁS"; x0, y0_, x1, y1_ = f.getbbox(t); w, h = x1 - x0 + 44, y1_ - y0_ + 26
+    yn = int(H * 0.04); xn = (W - w) // 2
+    tren = min(a for a, _ in mats)
+    if yn + h > tren - 10: yn = max(8, tren - h - 14)   # đầu sát mép trên: nhãn lùi lên, không đè tóc / trán
+    d.rectangle((xn, yn, xn + w, yn + h), fill=(24, 20, 14, 225)); d.text((xn + 22 - x0, yn + 13 - y0_), t, font=f, fill=(248, 212, 140, 255))
     return None, lop
 def dt_vang_do_script(c):
     """tên phim HAI MÀU: 'The' nhỏ vàng nghiêng · thân tên chữ có chân VÀNG nổi khối · phần cuối chữ viết tay ĐỎ đè lên (kiểu The Godmother's New Heir, 9 QC đang chạy)"""

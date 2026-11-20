@@ -207,11 +207,11 @@ export function DongPhimSx({ f, ma }: { f: PhimSx; ma: string }) {
     {f.dung ? <TienDoDung d={f.dung} /> : null}
     {f.cr.length ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 4 }}>
       {f.cr.map((c) => { const r = c.chi > 0.5 ? ((c.thu - c.chi) / c.chi) * 100 : null; return <a key={c.id} href={c.video ?? c.anh ?? undefined} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-        title={`${c.camp} camp${c.chay ? ' (đang chạy)' : ''} · chi $${c.chi.toFixed(2)} · thu $${c.thu.toFixed(2)}${r != null ? ` · ROI ${r.toFixed(0)}%` : ''} — mở video`}
+        title={c.tv ? 'bản máy vừa dựng xong, đang chờ tải lên Ethopex — chưa có camp — mở video' : `${c.camp} camp${c.chay ? ' (đang chạy)' : ''} · chi $${c.chi.toFixed(2)} · thu $${c.thu.toFixed(2)}${r != null ? ` · ROI ${r.toFixed(0)}%` : ''} — mở video`}
         style={{ position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 4, overflow: 'hidden', display: 'block' }}>
         {c.anh ? <img src={c.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
         <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 9.5, padding: '0 3px', background: 'rgba(0,0,0,0.7)', color: c.chay ? XANH : r != null ? (r >= 0 ? XANH : DO) : '#fff', fontVariantNumeric: 'tabular-nums', textAlign: 'center' }}>
-          {c.chay ? '● ' : ''}{r != null ? `${r.toFixed(0)}%` : 'mới'}</span>
+          {c.tv ? 'chưa lên' : <>{c.chay ? '● ' : ''}{r != null ? `${r.toFixed(0)}%` : 'mới'}</>}</span>
       </a>; })}
     </div> : null}
   </div>;

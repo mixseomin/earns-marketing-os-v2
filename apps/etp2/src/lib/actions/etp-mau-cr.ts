@@ -47,7 +47,8 @@ export type MauCr = {
   /** PHIM SẢN XUẤT theo mẫu (anh 19/11/2026: "tao sẽ chọn phim, sau đó chúng mày phải sinh ra được creative mới. Mỗi phim có thể có nhiều creative") */
   phim_sx: PhimSx[];
 };
-export type CrSx = { id: number; anh: string | null; video: string | null; chay: boolean; camp: number; chi: number; thu: number };
+export type CrSx = { id: number; anh: string | null; video: string | null; chay: boolean; camp: number; chi: number; thu: number;
+  /** BẢN ĐÃ DỰNG, CHƯA LÊN ETHOPEX (góp ý #1730 "Show creative đã sx tại đây"): mục thư viện máy dựng vừa nạp, chưa có mã creative — id = −mã thư viện */ tv?: boolean };
 /** trạng thái máy dựng theo mẫu (dung-mau.py, etp.mau_dung) — anh 19/11/2026 "Tao cần xem trạng thái quá trình dựng ở đó luôn" */
 export type DungMau = { buoc: string; trang_thai: string; ghi: string | null; cap_nhat: string; creative_ids: number[]; /** ₫ AI ngoài cả việc (chỉ ngăn chi tiết đọc) */ vnd?: number };
 export type PhimSx = { content_id: number; ten: string | null; chon: boolean; dong_id: number | null; dong_tt: string | null; dong_ly: string | null; cr: CrSx[]; dung: DungMau | null };
@@ -76,6 +77,13 @@ type MucSo = { ma: string; ten: string; loai: 'cong_thuc' | 'bo_cuc' | 'lop_phu'
   /** creative máy dựng anh ĐÃ DUYỆT làm mẫu (anh 20/11/2026 'Ổn rồi. Lưu vào creative mẫu đó') — lên thẻ cạnh QC gốc */ mau_duyet?: { anh: string; phim: string; content_id?: number }[]; /** ngày chuẩn hoá quy trình + anh duyệt bản mẫu */ chuan?: string; quy_trinh?: string[]; nguon: NguonMau; trang_thai: 'may' | 'thu' | 'chua'; dung_cho: string[]; the_loai?: string[]; mo_ta: string; may?: string; anh?: string; tham_chieu?: string[] };
 
 const run = async <T,>(q: ReturnType<typeof sql>) => (await getDb()!.execute(q)) as unknown as T[];
+/** CREATIVE ĐÃ DỰNG MÀ CHƯA LÊN ETHOPEX (góp ý #1730): dung-mau.py nạp thư viện (etp.thu_vien, ghi "mẫu:<mã> · …") rồi mới tải lên Ethopex lấy mã creative —
+ *  giữa hai bước (hoặc khi bước tải lên kẹt / lỗi) bản đã dựng chỉ nằm ở thư viện. Một chỗ đọc cho cả thẻ mẫu lẫn ngăn chi tiết dựng (ma / cid bỏ trống = mọi mẫu, mọi phim). */
+const tvChuaLen = (ma?: string, cid?: number) => run<{ mau: string; content_id: number; ten: string | null; id: number; anh: string | null; video: string | null }>(sql`
+  select substr(split_part(v.ghi, ' · ', 1), 5) mau, v.content_id, p.ten, -v.id::int id, v.anh, v.video from etp.thu_vien v left join etp.phim p using (content_id)
+  where v.creative_id is null and v.ghi like 'mẫu:%' and coalesce(v.anh, v.video) is not null
+    ${ma ? sql`and split_part(v.ghi, ' · ', 1) = ${`mẫu:${ma}`}` : sql``} ${cid != null ? sql`and v.content_id = ${cid}` : sql``} order by v.id desc`);
+const crTv = (x: { id: number; anh: string | null; video: string | null }): CrSx => ({ id: Number(x.id), anh: x.anh, video: x.video, chay: false, camp: 0, chi: 0, thu: 0, tv: true });
 
 const BANG_MAU_PHIM = sql`create table if not exists etp.mau_phim (mau text not null, content_id integer not null, ai text, dong_id integer, luc timestamptz not null default now(), primary key (mau, content_id))`;
 /** mã dòng phim của một dạng (sổ dạng: trường dong) */
@@ -138,9 +146,10 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
     const tvCr = thieu.length ? await run<{ id: number; anh: string | null; video: string | null }>(sql`select creative_id id, anh, video from etp.thu_vien where creative_id = any(${`{${thieu.join(',')}}`}::int[])`) : [];
     for (const x of dung) { const f = lay(x.mau, x.content_id, x.ten);
       for (const i of (x.creative_ids ?? []).map(Number)) if (!f.cr.some((c) => c.id === i)) { const v = tvCr.find((y) => Number(y.id) === i); f.cr.push({ id: i, anh: v?.anh ?? null, video: v?.video ?? null, chay: false, camp: 0, chi: 0, thu: 0 }); } }
+    for (const x of await tvChuaLen()) lay(x.mau, x.content_id, x.ten).cr.push(crTv(x));   // bản đã dựng chưa lên Ethopex (#1730) — hiện ngay ở tab Phim sản xuất
     // MỚI ĐẾN CŨ (anh 20/11/2026 "sort creative từ mới đến cũ"): creative trong một phim theo mã giảm dần; phim theo lần dựng / creative mới nhất
-    const moiNhat = (f: PhimSx) => Math.max(0, ...f.cr.map((c) => c.id));
-    const sxCua = (ma: string) => [...(phimSx.get(ma)?.values() ?? [])].map((f) => ({ ...f, cr: [...f.cr].sort((a, b) => b.id - a.id) }))
+    const moiNhat = (f: PhimSx) => Math.max(0, ...f.cr.map((c) => (c.tv ? Number.MAX_SAFE_INTEGER : c.id)));   // phim có bản vừa dựng chưa lên (#1730) là việc mới nhất
+    const sxCua = (ma: string) => [...(phimSx.get(ma)?.values() ?? [])].map((f) => ({ ...f, cr: [...f.cr].sort((a, b) => Number(!!b.tv) - Number(!!a.tv) || Math.abs(b.id) - Math.abs(a.id)) }))   // bản chưa lên (#1730) là bản mới nhất → đứng đầu
       .sort((a, b) => moiNhat(b) - moiNhat(a) || (b.dung?.cap_nhat ?? '').localeCompare(a.dung?.cap_nhat ?? ''));   // phim có creative mới nhất đứng đầu; phim chưa ra creative (đang chờ) xuống cuối
     const phim = await run<{ id: number; ten: string }>(sql`select content_id id, ten from etp.phim where ten is not null and coalesce(nhom_goc, 'au_my') = 'au_my' order by ten`);
     const banTheoMau = new Map<string, BanMau[]>();
@@ -356,6 +365,7 @@ export async function docDungChiTiet(ma: string, contentId: number): Promise<{ m
         coalesce(sum(s.chi), 0)::float chi, coalesce(sum(s.thu), 0)::float thu from unnest(${`{${ids.join(',')}}`}::int[]) i(id) left join etp.creative c on c.creative_id = i.id
         left join lateral (select anh, video from etp.thu_vien v where v.creative_id = i.id order by v.id desc limit 1) t on true left join etp.camp k on k.creative_id = i.id
         left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s on s.camp_id = k.camp_id group by 1, 2, 3 order by 1 desc`) : [];
+    cr.unshift(...(await tvChuaLen(ma, cid)).map(crTv));   // bản đã dựng chưa lên Ethopex đứng đầu (#1730)
     return { mau: { ma, ten: so?.ten ?? ma }, phim: { id: cid, ten: ph?.ten ?? null, url: ph?.url ?? null, poster }, hien, nk, cr };
   } catch (e) {
     return { loi: `đọc chi tiết việc dựng không được: ${(e as Error).message}` };

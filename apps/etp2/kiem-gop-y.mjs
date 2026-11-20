@@ -7,6 +7,8 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 1730, tep: 'apps/etp2/src/lib/actions/etp-mau-cr.ts', mot: 'const tvChuaLen = ', vi: 'bản máy đã dựng xong nằm trong thư viện mà chưa có mã creative Ethopex vẫn hiện ở tab Phim sản xuất + ngăn chi tiết dựng (anh 20/11/2026 "Show creative đã sx tại đây": 2 phim mà 0 creative)' },
+  { card: 1730, tep: 'apps/etp2/src/lib/actions/etp-mau-cr.ts', mot: 'cr.unshift(...(await tvChuaLen(ma, cid)).map(crTv))', vi: 'ngăn chi tiết dựng đọc cùng một hàm với tab, không truy vấn riêng' },
   { card: 1728, tep: 'apps/etp2/src/lib/so-nho.ts', mot: 'export function lamMoiSo(khoa: string)', vi: 'mọi chỗ cùng khoá useSoNho dùng CHUNG một bản: bản mới của bất kỳ chỗ nào về là cả trang đổi theo (anh 20/11/2026 "Phim đã sinh xong mà ko thấy update ngay")' },
   { card: 1728, tep: 'apps/etp2/src/components/etp-mau-dung-drawer.tsx', mot: "lamMoiSo('mau-cr')", vi: 'ngăn chi tiết dựng thấy bước / trạng thái khác dòng phim của tab (vd vừa Xong) thì kéo bản chung ngay, dòng phim đổi cùng lúc' },
   { card: 1728, tep: 'apps/etp2/src/components/etp-mau-dung-drawer.tsx', cam: "du.hien?.trang_thai !== 'xong') void tai()", vi: 'không đọc `du` cũ trong setInterval (luôn null → việc đã Xong vẫn tải lại mãi)' },

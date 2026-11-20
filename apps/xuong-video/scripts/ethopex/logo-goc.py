@@ -41,7 +41,7 @@ def tach_nen(rgb):
         if not os.path.exists(ra): raise RuntimeError(f"BiRefNet không ra lớp nền: {(r.stderr or r.stdout)[-200:]}")
         return np.asarray(Image.open(ra).convert("L")).astype(np.float32) / 255
 
-def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None):
+def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     """→ (đường dẫn PNG trong suốt, 'cat' | 'ai' | 'dai'), hoặc (None, None) kèm lý do qua ghi_ly_do(str). nen_sach(poster) → đường dẫn ảnh poster đã xoá chữ (tầng AI, tuỳ chọn)."""
     noi = ghi_ly_do or (lambda s: None)
     if not os.path.exists(poster): noi("thiếu poster"); return None, None
@@ -98,16 +98,46 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None):
         giu = np.zeros(n + 1, bool); giu[np.unique(nhom[chu & dac])] = True; giu[0] = False
         al = al * giu[nhom]; dac = dac & giu[nhom]
         return al, dac, cong(dac)
-    def cong(dac, tran=0.62):
+    def cong(dac, tran=0.62, du_min=0.85):
         """cổng chất lượng của một lớp nét → lý do trượt | None"""
         if not dac.any(): return "không còn nét logo sau khi tách"
         phu = dac[chu].mean(); ngoai = (dac & ~nd.binary_dilation(chu, iterations=int(0.3 * lh))).sum() / dac.sum()
         du = min(dac[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)].any(0).mean() for b in hp)
         if not 0.10 <= phu <= tran: return f"nét phủ {phu:.0%} hộp chữ"
         if ngoai > 0.15: return f"{ngoai:.0%} phần tách nằm ngoài khối chữ"
-        if du < 0.85: return f"một dòng tên chỉ còn nét trên {du:.0%} bề ngang"
+        if du < du_min: return f"một dòng tên chỉ còn nét trên {du:.0%} bề ngang"
         return None
     al, _, ly = cat(bg); cach = "cat"
+    # TẦNG KHOÁ MÀU (anh 20/11/2026 "các mẫu này khi nhìn lại vẫn ko đẹp, nhất là các viền xung quanh"): cách nền sạch + BiRefNet để dính mảng nền (da người, bóng tối)
+    # quanh logo. Nay mô hình ảnh rẻ nhất GIỮ NGUYÊN logo, tô mọi thứ còn lại một màu hồng phẳng → khoá màu hồng ra lớp trong suốt (mép + ánh sáng quanh chữ mờ dần tự nhiên,
+    # gỡ ám hồng ở mép). Cổng: đủ nét như các tầng khác + nét đặc phải KHỚP poster gốc (AI vẽ lại chữ thì bỏ, lùi về tầng nền sạch). khoa(poster) → đường dẫn ảnh nền hồng.
+    if ly and khoa:
+        try:
+            kp = khoa(poster)
+            if kp:
+                Kh = np.asarray(Image.open(kp).convert("RGB")).astype(np.float32); KY, KX = Kh.shape[:2]
+                k = np.minimum(Kh[..., 0], Kh[..., 2]) - Kh[..., 1]; nen_h = k > 175
+                if nen_h.mean() < 0.35: noi("ảnh khoá màu: nền hồng chưa tới 35% ảnh — AI không tô nền, bỏ")
+                else:
+                    M = np.median(Kh[nen_h], 0); a = 1 - np.clip((k - 45) / 125, 0, 1)
+                    lon = lambda m: np.asarray(Image.fromarray(m.astype(np.uint8) * 255).resize((KX, KY), Image.NEAREST)) > 127   # mặt nạ cỡ poster → cỡ ảnh khoá
+                    CHU = np.zeros((Y, X), bool); CHU[Y0:Y1, X0:X1] = chu; CAM = np.zeros((Y, X), bool); CAM[Y0:Y1, X0:X1] = cam
+                    a[lon(CAM)] = 0; tl = KY / Y; dac = nd.median_filter(a > 0.5, size=3)
+                    nhom, n = nd.label(nd.binary_dilation(a > 0.12, iterations=max(2, int(0.16 * lh * tl)))); giu = np.zeros(n + 1, bool); giu[np.unique(nhom[lon(CHU) & dac])] = True; giu[0] = False
+                    a = a * giu[nhom]; dac = dac & giu[nhom]
+                    nho = lambda m: np.asarray(Image.fromarray(m.astype(np.uint8) * 255).resize((X, Y), Image.BILINEAR)) > 127
+                    lyk = cong(nho(dac)[Y0:Y1, X0:X1], 0.82, 0.75)   # dòng chữ nhỏ thưa ("and Became …") có khe giữa các từ; đã có cổng khớp poster gốc gác phía sau
+                    F = np.clip((Kh - (1 - a)[..., None] * M) / np.maximum(a, 0.06)[..., None], 0, 255)   # gỡ ám hồng: màu thật của nét ở mép bán trong suốt
+                    du_h = np.clip(np.minimum(F[..., 0], F[..., 2]) - F[..., 1], 0, None) * (nd.minimum_filter(a, size=5) < 0.97)   # ám hồng còn lại ở viền + nét mảnh: rút phần đỏ-lam thừa
+                    F[..., 0] -= 0.85 * du_h; F[..., 2] -= 0.85 * du_h
+                    goc_lon = np.asarray(Image.fromarray(im.astype(np.uint8)).resize((KX, KY), Image.LANCZOS)).astype(np.float32); loi_ = nd.binary_erosion(a > 0.95, iterations=3)
+                    lech = float(np.abs(goc_lon - F).mean(-1)[loi_].mean()) if loi_.any() else 255.0
+                    if lyk: noi(f"khoá màu trượt cổng ({lyk})")
+                    elif lech > 38: noi(f"khoá màu: nét logo lệch poster gốc {lech:.0f}/255 (chuẩn ≤ 38) — AI vẽ lại chữ, bỏ")
+                    else:
+                        a = nd.gaussian_filter(a, 0.6); ys, xs = np.where(a > 0.06)
+                        Image.fromarray(np.dstack([F, a * 255]).astype(np.uint8)[ys.min():ys.max() + 1, xs.min():xs.max() + 1], "RGBA").save(ra); return ra, "khoa"
+        except Exception as e: noi(f"tầng khoá màu lỗi: {str(e)[:160]}")
     if ly and nen_sach:   # TẦNG AI (anh 20/11/2026 "nếu ko đc thì vẫn phải cho AI vào support, dùng mô hình nào rẻ nhất"): mô hình ảnh rẻ nhất của cổng chung xoá chữ khỏi poster
         # → NỀN SẠCH thật; logo = chỗ poster gốc lệch nền sạch, ĐIỂM ẢNH VẪN LẤY TỪ POSTER GỐC (AI không vẽ nét logo nào). Nền sạch phải khớp poster ở vùng không chữ, không thì bỏ.
         try:

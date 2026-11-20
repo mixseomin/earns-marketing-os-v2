@@ -217,7 +217,28 @@ def nen_sach_ai(c):
         open(ra, "wb").write(base64.b64decode(j["anh_b64"])); v = round((j.get("chi_usd") or 0) * 26000); _CHI_LOGO[0] += v
         print(f"logo gốc: nền sạch AI {j.get('model')} {v}₫ → {ra}", flush=True); return ra
     return lam
-LOGO_BAN = 4   # đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại
+DE_LOGO_KHOA = ("Edit this movie poster. Keep the movie TITLE LOGO exactly as it is: same letters, same font, same colors, same ornaments, same size and same position. "
+    "Replace absolutely everything else in the image (people, background, other small text and app labels) with one flat solid pure magenta color #FF00FF. "
+    "No shadows, no glow, no gradient on the magenta. The result is only the unchanged title logo on a flat magenta background.")
+def logo_khoa_ai(c):
+    """ảnh 'logo giữ nguyên trên nền hồng phẳng' của mô hình ảnh rẻ nhất (cổng chung) — logo-goc.py khoá màu ra lớp trong suốt; nhớ logo-khoa.png, MỘT lần / phim"""
+    def lam(poster):
+        import base64
+        ra = os.path.join(c["tm"], "logo-khoa.png")
+        if os.path.exists(ra) and os.path.getsize(ra) > 20000: return ra
+        TT = _nap("tai_tap", "tai-tap.py"); link = TT.og_anh(TT.mo_rong(c["p"]["url"])) if c.get("p", {}).get("url") else None
+        if not link: raise RuntimeError("không có link poster công khai để gửi mô hình ảnh")
+        k = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/.secrets/cong-ai.env")) if "=" in l)["CONG_AI_KEY"].strip().strip('"')
+        try:
+            r = urllib.request.urlopen(urllib.request.Request("https://spy.on.tc/api/ai", method="POST", headers={"authorization": f"Bearer {k}", "content-type": "application/json", "user-agent": "Mozilla/5.0 dung-mau"},
+                data=json.dumps({"loai": "anh", "viec": "etp-dung-mau", "ma": str(c.get("cid") or ""), "prompt": DE_LOGO_KHOA, "ti_le": "3:4", "tham_chieu": [link], "bo_chinh_hang": True}).encode()), timeout=400)
+            j = json.loads(r.read())
+        except urllib.error.HTTPError as e: raise RuntimeError(f"cổng ảnh từ chối: {e.read()[:200].decode('utf8', 'replace')}")
+        if not j.get("anh_b64"): raise RuntimeError(f"cổng ảnh không trả ảnh: {str(j.get('loi'))[:160]}")
+        open(ra, "wb").write(base64.b64decode(j["anh_b64"])); v = round((j.get("chi_usd") or 0) * 26000); _CHI_LOGO[0] += v
+        print(f"logo gốc: ảnh khoá màu AI {j.get('model')} {v}₫ → {ra}", flush=True); return ra
+    return lam
+LOGO_BAN = 5   # đổi cách tách thì tăng số này → logo đã nhớ của mọi phim tách lại
 def logo_goc(c):
     """logo gốc đã tách của phim (MỘT lần / phim, nhớ logo-goc.png + .json) → (ảnh RGBA đã đưa về cỡ chuẩn, 'cat' | 'ai' | 'dai'); không tách được → dừng kêu to"""
     ra = os.path.join(c["tm"], "logo-goc.png"); so = ra[:-4] + ".json"; ly = []; kieu = None
@@ -226,7 +247,7 @@ def logo_goc(c):
         if n.get("ban") == LOGO_BAN and os.path.exists(ra): kieu = n["kieu"]
     except Exception: pass
     if not kieu:
-        tp, kieu = _nap("logo_goc", "logo-goc.py").tach(c["ten"], os.path.join(c["tm"], "poster.jpg"), ra, ly.append, nen_sach_ai(c))
+        tp, kieu = _nap("logo_goc", "logo-goc.py").tach(c["ten"], os.path.join(c["tm"], "poster.jpg"), ra, ly.append, nen_sach_ai(c), logo_khoa_ai(c))
         if not tp: raise RuntimeError(f"không lấy được logo gốc từ poster phim ({'; '.join(ly) or 'không rõ'}) — mẫu Logo gốc không dựng bằng chữ vẽ thay")
         json.dump({"ban": LOGO_BAN, "kieu": kieu, "ghi": ly}, open(so, "w"), ensure_ascii=False)
         print(f"logo gốc: kiểu {kieu}" + (f" · {'; '.join(ly)}" if ly else ""), flush=True)

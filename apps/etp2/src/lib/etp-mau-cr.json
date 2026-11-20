@@ -497,7 +497,7 @@
    "chuan": "2026-11-20",
    "quy_trinh": [
     "Tách logo từ poster gốc của phim. Nền poster êm: cắt rời tại máy, 0₫.",
-    "Nền poster rối: AI xoá chữ lấy nền sạch (khoảng 200₫ một phim, một lần), rồi tách mép bằng BiRefNet tại máy.",
+    "Nền poster rối: AI giữ nguyên logo, tô phần còn lại một màu phẳng (khoảng 200₫ một phim, một lần); máy khoá màu đó ra logo trong suốt, viền sạch. AI vẽ lệch chữ thì bỏ, lùi về cách xoá chữ lấy nền sạch + BiRefNet.",
     "Vẫn không sạch: lấy nguyên dải poster chứa logo, bốn mép mờ dần. Không đọc ra tên phim trên poster thì dừng, không vẽ chữ thay.",
     "Logo rộng 90% khung, cao không quá 26%, nằm trong dải 56–86% chiều cao, cách đáy mặt ít nhất 100px.",
     "Khung chật thì đổi sang khung xếp hạng kế (tối đa 10 khung); chữ phủ quá 4% mặt thì không dựng."

@@ -129,7 +129,18 @@ for k in K['ds']:
     r['ly_do'] = 'cách dựng riêng' if k['id'] in RIENG else 'mái nón/chóp' if k['id'] in CHOP else None
     r['nhan'] = r['nhan'] and k['id'] not in CHOP; bang.append(r)
     if not r['nhan']: continue
-    ys = [pl3[0] * x + pl3[1] * z + pl3[2] for p, pl3 in manh for x, z in p]; y1, y2 = min(ys), max(ys)
+    ys = [pl3[0] * x + pl3[1] * z + pl3[2] for p, pl3 in manh for x, z in p]; y2 = max(ys)
+    # y1 = MÁNG XỐI: trung vị mặt mái ngay trong viền khối (0,3 m, mỗi 0,5 m) — không lấy min mọi đỉnh mảnh: một mái phụ thấp lọt vào mặt bằng
+    # kéo cả khối xuống (223110825 tường còn 1,3 m, nhà chân Viereckturm tường 0 m) → hàng cửa theo ảnh mất (trọng tài kiểm kê 8 → 48 lỗi, 20/11/2026)
+    vv = np.array(v, float); ar_v = dien_tich(vv); vien = []
+    for i in range(len(vv)):
+        (ax, az), (bx_, bz_) = vv[i], vv[(i + 1) % len(vv)]; L = math.hypot(bx_ - ax, bz_ - az)
+        if L < 0.6: continue
+        ux, uz = (bx_ - ax) / L, (bz_ - az) / L; nx, nz = (-uz, ux) if ar_v > 0 else (uz, -ux)  # pháp tuyến vào trong
+        for t in np.arange(0.3, L - 0.29, 0.5):
+            h = cao_mai(ax + ux * t + nx * 0.3, az + uz * t + nz * 0.3, manh)
+            if h is not None: vien.append(h)
+    y1 = float(np.median(vien)) if len(vien) >= 4 else min(ys)
     mat = [[[round(x, 3), round(z, 3), round(pl3[0] * x + pl3[1] * z + pl3[2], 3)] for x, z in p] for p, pl3 in manh]
     tuong = []  # dải tường đứng: mép mảnh mà ngay bên ngoài thấp hơn (mép khối → xuống y1; bậc giữa hai mặt → xuống mặt thấp)
     for p, pl3 in manh:

@@ -129,6 +129,8 @@ interface DataTableProps<T> {
    * Dùng khi tập dữ liệu quá lớn để đẩy hết xuống trình duyệt; còn lại thì đưa ĐỦ dòng + `pageSize`.
    */
   sliced?: boolean;
+  /** bên gọi đã có ô tìm riêng (vd thanh lọc mỏng của ô widget /home — components/home/khung-o.tsx ThanhO) → bảng KHÔNG vẽ ô "lọc bảng…" thứ hai (anh 20/11/2026: hai hàng lọc chồng nhau trong một ô) */
+  timNgoai?: boolean;
   /**
    * `sliced` một mình = tắt sort/tìm, vì bảng chỉ cầm 1 trang. Nhưng người dùng vẫn mong bấm được
    * tiêu đề cột như mọi bảng khác (đúng phản hồi 14/08 ở /offers). Đưa 2 cái này vào thì bảng
@@ -192,7 +194,7 @@ const KHUNG_DINH_MIN = 420;   // px — khung cuộn thấp hơn mức này thì
 const RONG_MAC_DINH = 96;   // px — bề ngang cột chưa khai width khi bảng ở chế độ fixed
 export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey: persistKeyGoc, onRowClick, minWidth = 640, rowTitle, rowStyle, fullRow, renderExpanded,
-  searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
+  searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced, timNgoai,
   stickyFirst = true, stickyCols, fixedLayout = false,
   serverSort, serverFilter, hopCuon = false, tree, groupBy, rowData, dauThanh, thanhDinh, locTuDong = true, onTimDoi, khiTimTrong,
 }: DataTableProps<T>) {
@@ -339,7 +341,7 @@ export function DataTable<T>({
   // THANH LỌC TỰ ĐỘNG (#1416, loc-tu-dong.ts): ô tìm trên mọi cột khi bảng không khai searchText · lọc chọn nhiều mỗi cột danh mục ·
   // gom nhóm theo một cột. Bảng không phải khai gì. Bảng `sliced` (chỉ cầm một trang) không có — danh mục của một trang là nói dối.
   const timCuaDong = useMemo(() => searchText ?? ((r: T) => chuoiTim(r, columns)), [searchText, columns]);
-  const coTim = !sliced && (!!searchText || rows.length >= 6);
+  const coTim = !sliced && !timNgoai && (!!searchText || rows.length >= 6);
   const danhMuc = useMemo(() => (sliced || !locTuDong ? [] : cotDanhMuc(rows, columns)), [rows, columns, sliced, locTuDong]);
   const gUrlKey = persistKey ? `${persistKey}.g` : undefined;
   const [gom, setGomTho] = useState(() => pref.g ?? '');

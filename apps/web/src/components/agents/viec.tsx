@@ -58,8 +58,8 @@ export function ViecAgents({ may, nen, luc, loiDo, admin, tenNguoi }: { may: Vie
         { nhan: 'Máy', v: mayLoc, doi: datMay, ds: [{ v: '', nhan: 'Mọi máy' }, ...cacMay.map((m) => ({ v: m, nhan: m, so: ds.filter((v) => v.may === m).length }))] }]} />
     {loiChu && !laMac && <div className="ag-loi" role="alert">Không dò được: {loiChu}. Đang hiện ảnh cũ của máy đó.</div>}
     {laMac
-      ? <DataTable rows={mac} columns={cotTheoRong(cotNen, rong)} getRowKey={(v) => v.nhan} persistKey="ag-viec-mac" minWidth={0} locTuDong={false} pageSize={60} rowStyle={(v) => (v.loi ? { boxShadow: 'inset 3px 0 0 #f87171' } : undefined)} />
-      : <DataTable rows={box} columns={cotTheoRong(cotBox, rong)} getRowKey={(v) => v.id} persistKey="ag-viec-box" minWidth={0} locTuDong={false} pageSize={60} rowStyle={(v) => (v.hong ? { boxShadow: 'inset 3px 0 0 #f87171' } : undefined)} />}
+      ? <DataTable rows={mac} columns={cotTheoRong(cotNen, rong)} getRowKey={(v) => v.nhan} persistKey="ag-viec-mac" minWidth={0} locTuDong={false} timNgoai fixedLayout pageSize={60} rowStyle={(v) => (v.loi ? { boxShadow: 'inset 3px 0 0 #f87171' } : undefined)} />
+      : <DataTable rows={box} columns={cotTheoRong(cotBox, rong)} getRowKey={(v) => v.id} persistKey="ag-viec-box" minWidth={0} locTuDong={false} timNgoai fixedLayout pageSize={60} rowStyle={(v) => (v.hong ? { boxShadow: 'inset 3px 0 0 #f87171' } : undefined)} />}
     <NganAgent />
   </div>;
 }

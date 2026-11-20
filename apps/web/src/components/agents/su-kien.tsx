@@ -36,7 +36,7 @@ export function SuKienAgents({ ds: dau, tenNguoi }: { ds: SuKien[]; tenNguoi: Re
       chinh={{ nhan: 'Loại', v: loai, doi: datLoai, ds: [{ v: '', nhan: 'Tất cả' }, ...Object.entries(LOAI).map(([v, n]) => ({ v, nhan: n, xau: v === 'loi', so: v === 'loi' ? dau.filter((e) => e.loai === 'loi').length : undefined }))] }}
       phu={[{ nhan: 'Người', v: tu, doi: datTu, ds: [{ v: '', nhan: 'Mọi người' }, ...nguoi.map((n) => ({ v: n, nhan: tenNguoi[n]! }))] }]} />
     <BaoLoi loi={loi} onBo={() => setLoi('')} />
-    {hien.length ? <DataTable rows={hien} columns={cotTheoRong(cot, rong)} getRowKey={(e, i) => `${e.ts}:${i}`} persistKey="ag-su-kien" minWidth={0} locTuDong={false} pageSize={60} />
+    {hien.length ? <DataTable rows={hien} columns={cotTheoRong(cot, rong)} getRowKey={(e, i) => `${e.ts}:${i}`} persistKey="ag-su-kien" minWidth={0} locTuDong={false} timNgoai fixedLayout pageSize={60} />
       : <div className="ag-mo ag-trong">Không có sự kiện nào khớp.</div>}
     <NganAgent />
   </div>;

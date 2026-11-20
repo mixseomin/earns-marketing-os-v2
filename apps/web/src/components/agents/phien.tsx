@@ -44,7 +44,7 @@ export function PhienAgents({ du, tenNguoi }: { du: DuPhien; tenNguoi: Record<st
       phu={[{ nhan: 'Kết', v: ket, doi: datKet, ds: [{ v: '', nhan: 'Mọi kết' }, ...Object.entries(KET).map(([v, n]) => ({ v, nhan: n, so: trongKhoang.filter((p) => p.ket === v).length })), { v: 'khac', nhan: 'Khác' }] },
         { nhan: 'Người', v: nguoi, doi: datNguoi, ds: [{ v: '', nhan: 'Mọi người' }, ...cacNguoi.map((n) => ({ v: n, nhan: tenNguoi[n] ?? n, so: trongKhoang.filter((p) => p.nguoi === n).length }))] }]} />
     {du.hong.map((l) => <div key={l} className="ag-loi" role="alert">{l}</div>)}
-    {hien.length ? <DataTable rows={hien} columns={cotTheoRong(cot, rong)} getRowKey={(p) => `${p.nguoi}:${p.id}`} persistKey="ag-phien" minWidth={0} locTuDong={false} pageSize={50} defaultSort={[{ key: 'luc', dir: 'desc' }]} />
+    {hien.length ? <DataTable rows={hien} columns={cotTheoRong(cot, rong)} getRowKey={(p) => `${p.nguoi}:${p.id}`} persistKey="ag-phien" minWidth={0} locTuDong={false} timNgoai fixedLayout pageSize={50} defaultSort={[{ key: 'luc', dir: 'desc' }]} />
       : <div className="ag-mo ag-trong">Không có phiên nào khớp.</div>}
     <NganAgent />
   </div>;

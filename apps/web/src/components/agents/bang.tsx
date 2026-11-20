@@ -47,7 +47,7 @@ export function BangAgents({ ds, admin, thang }: { ds: Agent[]; admin: boolean; 
         { v: 'ket', nhan: 'Kẹt', so: dem((a) => khopTt(a, 'ket')), xau: true }, { v: 'ranh', nhan: 'Rảnh', so: dem((a) => khopTt(a, 'ranh')) }, { v: 'tat', nhan: 'Tắt', so: dem((a) => khopTt(a, 'tat')) }] }}
       phu={[{ nhan: 'Loại', v: loai, doi: datLoai, ds: [{ v: '', nhan: 'Mọi loại' }, { v: 'cli', nhan: 'CLI', so: dem((a) => a.loai === 'cli' || a.loai === 'cong') }, { v: 'api', nhan: 'API', so: dem((a) => a.loai === 'api') }, { v: 'nguoi', nhan: 'Người', so: dem((a) => a.loai === 'nguoi') }] },
         { nhan: 'Phòng', v: phong, doi: datPhong, ds: [{ v: '', nhan: 'Mọi phòng' }, ...phongs.map(([v, t]) => ({ v, nhan: t, so: dem((a) => a.phong === v) }))] }]} />
-    {hien.length ? <DataTable rows={hien} columns={cotTheoRong(cot, rong)} getRowKey={(a) => a.id} persistKey="ag-bang" minWidth={0} locTuDong={false} pageSize={60}
+    {hien.length ? <DataTable rows={hien} columns={cotTheoRong(cot, rong)} getRowKey={(a) => a.id} persistKey="ag-bang" minWidth={0} locTuDong={false} timNgoai fixedLayout pageSize={60}
       rowStyle={(a) => (a.tt.ket.length ? { boxShadow: 'inset 3px 0 0 #f87171' } : undefined)} />
       : <div className="ag-mo ag-trong">Không ai khớp bộ lọc.</div>}
     <NganAgent />

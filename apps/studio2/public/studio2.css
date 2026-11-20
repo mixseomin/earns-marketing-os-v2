@@ -130,6 +130,7 @@ html.dung-mo body { padding-block: 10px }
 .bt[aria-pressed=true] { background: var(--brass-nhat); border-color: var(--brass); font-weight: 600 }
 .bt.chinh { background: var(--sky); border-color: var(--sky); color: var(--mat); font-weight: 600 }
 .bt.tron { border-color: transparent; color: var(--brass); padding-inline: 4px }
+.chu-o { display: flex; gap: 6px; align-items: center; min-width: 0 } .chu-o input { flex: 1; min-width: 0 } .chu-o .bt { flex: none }
 .day-bt { display: flex; flex-wrap: wrap; gap: 6px }
 
 .d-tren { grid-area: tren; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px }

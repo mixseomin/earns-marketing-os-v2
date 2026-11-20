@@ -17,7 +17,7 @@ type Doi = 'phim' | 'tap' | 'canh' | 'job' | 'viec' | 'khong';
 /** hàm người dùng thường được gọi qua Studio 2: đối số đầu trỏ vào thứ gì (để dò ra phim) · tien = bước tốn tiền (cần quyền `sinh`) */
 const LUAT: Record<string, { doi: Doi; tien?: boolean }> = {
   // đọc
-  toiS2: { doi: 'khong' }, camNangS2: { doi: 'khong' }, dsPhimS2: { doi: 'khong' }, dsGoiTheLoai: { doi: 'khong' }, dsTemplateS2: { doi: 'khong' }, dsMauPhim: { doi: 'khong' }, docTemplate: { doi: 'khong' },
+  toiS2: { doi: 'khong' }, creditS2: { doi: 'khong' }, camNangS2: { doi: 'khong' }, dsPhimS2: { doi: 'khong' }, dsGoiTheLoai: { doi: 'khong' }, dsTemplateS2: { doi: 'khong' }, dsMauPhim: { doi: 'khong' }, docTemplate: { doi: 'khong' },
   docPhim: { doi: 'phim' }, quyTrinhTap: { doi: 'phim' }, dsCanh: { doi: 'tap' }, uocTien: { doi: 'tap' }, uocAm: { doi: 'tap' }, nhatKyTap: { doi: 'tap' }, nhatKyCanh: { doi: 'canh' }, docCoSoS2: { doi: 'tap' }, hangDoiS2: { doi: 'phim' },
   docViecNen: { doi: 'viec' }, trangThaiXuat: { doi: 'job' },
   // ghi không tốn tiền
@@ -57,8 +57,11 @@ const idPhimTu = (kq: unknown): number | null => { const d = (kq && typeof kq ==
 /** Chạy một hàm của route Studio 2 dưới đúng quyền của người đang đăng nhập. Bị từ chối → ném lỗi có câu nói rõ vì sao (route trả câu đó cho trang). */
 export async function chayS2<T>(loai: 'doc' | 'ghi', ham: string, args: unknown[], f: () => Promise<T>): Promise<T> {
   const me = await getCurrentUser(), db = getDb(), t0 = Date.now(), luat = LUAT[ham];
+  const maxJob = async (): Promise<number | null> => { if (!db || !luat?.tien) return null; const r = (await db.execute(sql`SELECT coalesce(max(id), 0) AS m FROM xv_job`).catch(() => [])) as unknown as Row[]; return r[0] ? Number(r[0].m) : null; };
+  const jobTu = loai === 'ghi' ? await maxJob() : null;   // credit: việc xv_job sinh ra trong lượt này nằm trong (jobTu, jobDen]
   const so = async (phimId: number | null, ok: boolean, loi: string) => { if (loai !== 'ghi' || !db || !me) return;
-    await db.execute(sql`INSERT INTO xv_s2_luot (user_id, email, ham, phim_id, ok, loi, ms) VALUES (${me.id}, ${me.email}, ${ham}, ${phimId}, ${ok}, ${loi.slice(0, 500)}, ${Date.now() - t0})`).catch((e) => console.error('[studio2 sổ lượt]', e)); };
+    const jobDen = jobTu == null ? null : await maxJob();
+    await db.execute(sql`INSERT INTO xv_s2_luot (user_id, email, ham, phim_id, ok, loi, ms, tien, job_tu, job_den) VALUES (${me.id}, ${me.email}, ${ham}, ${phimId}, ${ok}, ${loi.slice(0, 500)}, ${Date.now() - t0}, ${!!luat?.tien}, ${jobTu}, ${jobDen})`).catch((e) => console.error('[studio2 sổ lượt]', e)); };
   const chay = async (phimId: number | null, trongS2: boolean): Promise<T> => {
     try { const kq = await (trongS2 && me ? ALS.run({ userId: me.id }, f) : f());
       const tuChoi = kq && typeof kq === 'object' && (kq as Row).ok === false ? String((kq as Row).loi ?? '') : '';

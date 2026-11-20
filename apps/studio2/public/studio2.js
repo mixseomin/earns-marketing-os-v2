@@ -522,7 +522,7 @@ function giaBuoc(k) { const g = E.gia || {}, [b, sid] = k.split(':'), giay = (ds
     case 'giong': return g.giong ?? null; case 'nhac': case 'nhac1': return g.nhac ?? null; default: return null; } }
 /** chạy một việc lần lượt cho từng cảnh; cảnh nào studio từ chối thì ghi lại rồi ĐI TIẾP cảnh sau (trước đây dừng cả loạt ở cảnh đầu tiên bị từ chối), cuối cùng báo đủ từng cảnh */
 async function lanLuot(ds, lam) { const loi = []; let ok = 0, khoaVx = 0; for (const c of ds) { try { await lam(c); ok++; } catch (e) { if (/chưa thử VideoExpress/.test(e.message)) khoaVx++; else loi.push(`cảnh ${Math.round(+c.thu_tu)}: ${String(e.message).replace(/^Shot #\d+ /, '')}`); } }
-  if (khoaVx) loi.unshift(`${khoaVx} cảnh: studio đang khoá video trả phí. Luật của studio là thử dựng bằng VideoExpress (0₫) trước, hoặc quản trị bấm "Cho phép video trả phí cho tập này" ngay trong mục Dựng clip`);
+  if (khoaVx) loi.unshift(`${khoaVx} cảnh: studio đang khoá video trả phí. Luật của studio là thử dựng bằng VideoExpress (miễn phí) trước, hoặc quản trị bấm "Cho phép video trả phí cho tập này" ngay trong mục Dựng clip`);
   if (loi.length) throw new Error(`${ok}/${ds.length} cảnh chạy được, ${ds.length - ok} cảnh bị từ chối — ${loi.join(' ‖ ')}`); }
 /** VẼ LẠI ảnh của cảnh đã có ảnh: studio chỉ thêm ỨNG VIÊN (keyframe_uv), ảnh đang dùng giữ nguyên. Người bấm "vẽ lại" là muốn ảnh mới → nhớ số ứng viên lúc bấm
  *  (E.thayUv), lần đọc lại nào thấy cảnh đó có thêm ứng viên thì chọn ứng viên mới nhất (chonKeyframe, 0đ). Trang đóng trước khi ảnh về thì còn nút "Dùng ảnh mới vẽ". */
@@ -589,7 +589,7 @@ const veBuoc = () => { veAm(); if (co('qt')) veQt(); if (co('tt')) veTt(); if (E
 async function chayBuoc(k) {
   const t = D.that, b = k.split(':')[0]; if (!t || E.dangBuoc[k] || !BUOC_SV[b]) return; const gia = giaBuoc(k);
   if (coSua()) return bao('Có chỗ sửa chưa lưu. Bấm “Lưu về studio” trên thanh trên trước, rồi chạy bước này (chạy bước sẽ đọc lại phim từ studio).', false, 9000);
-  if (gia !== 0 && E.cho !== k) { E.cho = k; E.loiBuoc = null; veBuoc(); setTimeout(() => { if (E.cho === k) { E.cho = ''; veBuoc(); } }, 8000); return bao(`${TEN_BUOC[b]}: ${gia == null ? 'bước này có tốn tiền' : `khoảng ${tienDo(gia)}`}. Bấm lần nữa để chạy.`); }
+  if (gia !== 0 && E.cho !== k) { E.cho = k; E.loiBuoc = null; veBuoc(); setTimeout(() => { if (E.cho === k) { E.cho = ''; veBuoc(); } }, 8000); return bao(`${TEN_BUOC[b]}: ${gia == null ? (xemQt() ? 'bước này có tốn tiền' : 'bước này có tốn credits') : `khoảng ${tienDo(gia)}`}. Bấm lần nữa để chạy.`); }
   E.cho = ''; E.dangBuoc[k] = true; E.loiBuoc = null; veBuoc();
   const truoc = E.chuKy;
   try { await BUOC_SV[b](t, k.split(':')[1]); delete E.dangBuoc[k]; await taiLai(true); napHd(true); theoDoi(); }
@@ -607,8 +607,8 @@ function choBuoc(k, truoc, tap, lan = 0) { setTimeout(async () => { if (D.that?.
 /** SINH LẠI có ô yêu cầu riêng (anh 20/11/2026: "ảnh, clip, voice luôn có kèm 1 nút để sinh lại; bấm vào thì hiện 1 input để thêm yêu cầu riêng (optional)…
  *  có cảnh báo về chi phí trước khi bấm submit"). Bấm nút → hộp: ô yêu cầu (bỏ trống = sinh lại theo cấu trúc chung) + dòng chi phí + nút Sinh lại. */
 const SINH_LAI = { kf1: 'anh', clip1: 'clip', giong1: 'giong', td1: 'td', nhac1: 'nhac', mauVe: 'mau' };
-const giaSl = (k) => { const b = k.split(':')[0], g = giaBuoc(k); if (b === 'clip1' && xepHang()) return 'Xếp hàng không tốn tiền. Khi lô H3 chạy trên máy thuê: khoảng 2.550₫ cho cảnh này (3 bản, máy tự chọn bản tốt nhất).';
-  return `${g ? `Chi phí khoảng ${tienDo(g)} theo giá studio báo` : 'Bước này có tốn tiền (studio chưa báo được giá)'}${b === 'giong1' ? '' : '; có yêu cầu riêng thì thêm một lượt dịch nhỏ'}. Tiền thật xem ở Hàng đợi.`; };
+const giaSl = (k) => { const b = k.split(':')[0], g = giaBuoc(k); if (b === 'clip1' && xepHang()) return `Xếp hàng không tốn ${xemQt() ? 'tiền' : 'credits'}. Khi lô H3 chạy trên máy thuê: khoảng ${tienVnd(2550)} cho cảnh này (3 bản, máy tự chọn bản tốt nhất).`;
+  const q = xemQt(); return `${g ? `Chi phí khoảng ${tienDo(g)}${q ? ' theo giá studio báo' : ''}` : `Bước này có tốn ${q ? 'tiền (studio chưa báo được giá)' : 'credits (chưa ước được số)'}`}${b === 'giong1' ? '' : '; có yêu cầu riêng thì thêm một lượt dịch nhỏ'}. ${q ? 'Tiền thật' : 'Credits đã dùng'} xem ở Hàng đợi.${q ? '' : ' Hiện tài khoản không giới hạn credits.'}`; };
 const hopSl = (k) => (E.sl?.k === k ? `<div class="sl-hop"><textarea id="slYc" rows="2" maxlength="600" placeholder="Yêu cầu riêng cho lần sinh này (không bắt buộc). Bỏ trống = sinh theo cấu trúc chung" aria-label="Yêu cầu riêng">${esc(E.sl.yc)}</textarea>`
   + `<span class="nho sl-gia">${giaSl(k)}</span><div class="day-bt"><button type="button" class="bt chinh" data-d="slChay" data-g="${k}">${E.sl.moi ? 'Sinh' : 'Sinh lại'}</button><button type="button" class="bt" data-d="slThoi">Thôi</button></div></div>` : '');
 const layYc = () => { const y = E.slYc || ''; E.slYc = ''; return y; };
@@ -808,7 +808,7 @@ const gioVn = (iso) => { const d = new Date(iso); if (Number.isNaN(+d)) return '
 const tiLeAnh = () => canhThat().filter((c) => c.keyframe_url), tiLeClip = () => canhThat().filter((c) => c.video_url || c.video_cuoi_url);
 function veTiLe() { const g = E.tiLe; if (!g || !D.that) return '';
   const a = tiLeAnh(), v = tiLeClip(), so = (ds) => ds.map((c) => '#' + Math.round(+c.thu_tu)).join(', '), anh1 = E.gia?.anh1;
-  const giaAnh = anh1 ? 'khoảng ' + tienDo(anh1 * a.length) : 'có tốn tiền, chưa ước được', giaClip = xepHang() ? `xếp hàng H3, khoảng ${(2550 * v.length).toLocaleString('vi-VN')}₫ khi lô chạy` : E.gia?.giay1 ? 'khoảng ' + tienDo(E.gia.giay1 * v.reduce((t, c) => t + (+c.thoi_luong_s || 0), 0)) : 'có tốn tiền, chưa ước được';
+  const giaAnh = anh1 ? 'khoảng ' + tienDo(anh1 * a.length) : 'có tốn tiền, chưa ước được', giaClip = xepHang() ? `xếp hàng H3, khoảng ${tienVnd(2550 * v.length)} khi lô chạy` : E.gia?.giay1 ? 'khoảng ' + tienDo(E.gia.giay1 * v.reduce((t, c) => t + (+c.thoi_luong_s || 0), 0)) : 'có tốn tiền, chưa ước được';
   if (!a.length && !v.length) return `<div class="bao"><b>Đổi sang ${esc(g)}</b><span>Tập chưa có ảnh hay clip nào, đổi không tốn gì.</span><div class="day-bt"><button type="button" class="bt" data-d="tiLeDoi" data-g="0">Đổi tỉ lệ</button><button type="button" class="bt" data-d="tiLeHuy">Thôi</button></div></div>`;
   return `<div class="bao"><b>Đổi ${esc(D.tile)} → ${esc(g)}: phải sinh lại</b>${a.length ? `<span>${a.length} ảnh khung chính (cảnh ${so(a)}): vẽ lại ${giaAnh}</span>` : ''}${v.length ? `<span>${v.length} clip (cảnh ${so(v)}): dựng lại sau khi duyệt ảnh mới, ${giaClip}</span>` : ''}<span>Ảnh và clip cũ vẫn giữ trong lịch sử của cảnh.</span>
     <div class="day-bt">${a.length ? `<button type="button" class="bt" data-d="tiLeDoi" data-g="1">Đồng ý, đổi và vẽ lại ${a.length} ảnh</button>` : ''}<button type="button" class="bt" data-d="tiLeDoi" data-g="0">Chỉ đổi tỉ lệ, chưa sinh</button><button type="button" class="bt" data-d="tiLeHuy">Thôi</button></div></div>`; }
@@ -819,7 +819,11 @@ async function doiTiLe(veLai) { const t = D.that, g = E.tiLe; if (!t || !TILE[g]
     if (ds.length) { bao(`Đã đổi sang ${g}. Đang gửi vẽ lại ${ds.length} ảnh…`, false, 9000); await lanLuot(ds, veLaiCanh); }
     await taiLai(true); bao(ds.length ? `Đã đổi sang ${g} và gửi vẽ lại ${ds.length} ảnh. Ảnh mới về sẽ tự thay; sau đó duyệt rồi dựng lại clip.` : `Đã đổi sang ${g}.`, false, 9000); }
   catch (e) { bao('Đổi tỉ lệ không được: ' + e.message, false, 12000); await taiLai(true).catch(() => {}); } veD(); }
-const tienDo = (c) => (c > 0 ? `$${(c / 100).toFixed(c < 1 ? 4 : c < 10 ? 3 : 2)}` : '');   // dưới 1¢ hiện bốn số lẻ, không thì bước rẻ thành "$0.000"
+/** TIỀN → CREDITS (anh 20/11/2026): người dùng (và quản trị khi tắt Chế độ quản trị) thấy credits, 1 credit = 0,1 cent; chế độ quản trị thấy tiền thật. */
+const credit = (c) => (c > 0 ? `${Math.max(1, Math.ceil(c * 10)).toLocaleString('vi-VN')} credits` : '');
+const tienDo = (c) => (!xemQt() ? credit(c) : c > 0 ? `$${(c / 100).toFixed(c < 1 ? 4 : c < 10 ? 3 : 2)}` : '');
+const KHONG = () => (xemQt() ? '$0' : '0 credits');
+const tienVnd = (d) => (xemQt() ? `${d.toLocaleString('vi-VN')}₫` : credit(d / 255));   // giá ghi bằng ₫ (máy thuê H3): 1 credit ≈ 25,5₫   // dưới 1¢ hiện bốn số lẻ, không thì bước rẻ thành "$0.000"
 /** lượt còn "chờ / chạy" quá 20 phút coi là treo — không báo "đang chạy" khi máy không còn chạy thật */
 const ttLuot = (j) => (j.trang_thai === 'xong' ? ['xong', 'xong'] : j.trang_thai === 'loi' ? ['loi', 'hỏng'] : Date.now() - Date.parse(j.luc) < 20 * 60e3 ? ['dang', 'đang chạy'] : ['thieu', 'không thấy kết quả']);
 const luotCanh = (g) => (E.nk?.ds || []).filter((j) => j.canh_id === g.id);
@@ -899,7 +903,7 @@ function tipHtml(ten, phan) { const g = (x) => { const d = new Date(x); return N
   return `<b class="tq-ten">${esc(ten)}</b>` + phan.map(([kieu, id]) => { const ds = tipViec(kieu, id);
     if (!ds) return `<div class="tq-p"><div class="tq-dau"><span>${TIP_TEN[kieu]}</span><i>đang đọc sổ việc…</i></div></div>`;
     const tong = ds.reduce((a, v) => a + v.cents, 0);
-    return `<div class="tq-p"><div class="tq-dau"><span>${TIP_TEN[kieu]}</span><strong>${tienDo(tong) || '$0'}</strong><i>${ds.length} lượt</i></div>`
+    return `<div class="tq-p"><div class="tq-dau"><span>${TIP_TEN[kieu]}</span><strong>${tienDo(tong) || KHONG()}</strong><i>${ds.length} lượt</i></div>`
       + (ds.length ? `<table>${ds.slice(-8).reverse().map((v) => `<tr class="${v.trang_thai}"><td>${g(v.luc)}</td><td>${esc((v.model || v.provider).replace(/^.*[:/]/, ''))}</td><td><u>${HD_TT[v.trang_thai] || esc(v.trang_thai)}</u></td><td>${v.cents ? tienDo(v.cents) : '—'}</td></tr>${v.loi ? `<tr class="tq-loi"><td colspan="4">${esc(v.loi.slice(0, 160))}</td></tr>` : ''}`).join('')}</table>${ds.length > 8 ? `<small>và ${ds.length - 8} lượt cũ hơn, xem ở Hàng đợi</small>` : ''}` : '<small>Chưa có lượt sinh nào trong 300 việc gần nhất của phim.</small>') + '</div>'; }).join(''); }
 /** gắn vào phần tử: data-tq="tên|kiểu:id|kiểu:id" — chỉ khi bật chế độ quản trị */
 const tqAttr = (ten, ...phan) => (xemQt() && D.that ? ` data-tq="${esc([ten, ...phan.map(([k, id]) => `${k}:${id ?? ''}`)].join('|'))}"` : '');
@@ -955,7 +959,7 @@ function veHd() { const el = $('#dHd'), t = D.that; if (!t) { el.innerHTML = '<d
   const g = E.hd.tong || { cho: 0, chay: 0, loi: 0, xong: 0, cents: 0 }, loc = E.hdLoc || 'het', LOC = [['het', 'Tất cả'], ['dang', `Chờ + chạy (${g.cho + g.chay})`], ['loi', `Lỗi (${g.loi})`], ['anh', 'Ảnh'], ['video', 'Clip'], ['am', 'Tiếng']];
   const ds = (E.hd.viec || []).filter((v) => loc === 'het' || (loc === 'dang' ? ['cho', 'hang', 'hang_h3', 'chay'].includes(v.trang_thai) : loc === 'loi' ? v.trang_thai === 'loi' : v.loai === loc));
   const gioN = (x) => { const d = new Date(x); return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }); }, giay = (v) => { const a = new Date(v.luc), b = new Date(v.xong_luc), k = Math.round((b - a) / 1000); return v.trang_thai === 'xong' && k > 0 ? ` · ${k < 90 ? `${k} giây` : `${Math.round(k / 60)} phút`}` : ''; };
-  el.innerHTML = `<div class="qt-dau"><b>Hàng đợi sinh</b><span class="nho">${g.xong} xong · tổng ${tienDo(g.cents) || '$0'}</span><button type="button" class="bt ic-bt" data-d="hdTai" title="Đọc lại từ studio" aria-label="Đọc lại từ studio">↻</button></div>`
+  el.innerHTML = `<div class="qt-dau"><b>Hàng đợi sinh</b><span class="nho">${g.xong} xong · tổng ${tienDo(g.cents) || KHONG()}${xemQt() ? '' : ' · không giới hạn credits'}</span><button type="button" class="bt ic-bt" data-d="hdTai" title="Đọc lại từ studio" aria-label="Đọc lại từ studio">↻</button></div>`
     + (E.hd.loi ? `<div class="bao">Không đọc được hàng đợi: ${esc(E.hd.loi)}</div>` : '')
     + `<div class="day-bt hd-loc">${LOC.map(([k, ten]) => `<button type="button" class="bt" data-d="hdLoc" data-g="${k}" aria-pressed="${loc === k}">${ten}</button>`).join('')}</div>`
     + (ds.length ? ds.map((v) => `<div class="hd-v ${v.trang_thai}"><b>${HD_LOAI[v.loai] || esc(v.loai)}</b><span class="hd-ten">${esc(v.doi_tuong || v.nhan || '')}${v.doi_tuong && v.nhan ? `<small>${esc(v.nhan)}</small>` : ''}</span><u>${HD_TT[v.trang_thai] || esc(v.trang_thai)}</u>`

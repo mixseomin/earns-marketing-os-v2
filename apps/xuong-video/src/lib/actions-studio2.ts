@@ -93,6 +93,28 @@ export async function toiS2(): Promise<{ id: number; ten: string; role: string; 
   return { id: me.id, ten: me.displayName || me.email, role: me.role, quyen: me.role === 'admin' ? { dung: true, sinh: true } : await quyenCua(me.id) };
 }
 
+/** CREDITS (anh 20/11/2026): 1 credit = 0,1 cent tiền thật. Mọi người hiện KHÔNG GIỚI HẠN; credit đã dùng = tổng chi_phi_cents × 10 của việc xv_job mà các lượt
+ *  bước tốn tiền của người đó sinh ra (sổ xv_s2_luot, khoảng job_tu..job_den, cùng phim). Việc chạy nền tính tiền sau thì số tự lên khi việc xong. */
+const CREDIT_SQL = (dk: ReturnType<typeof sql>) => sql`SELECT l.user_id, max(l.email) AS email, count(*)::int AS luot,
+    coalesce(sum((SELECT sum(j.chi_phi_cents) FROM xv_job j WHERE j.id > l.job_tu AND j.id <= l.job_den
+      AND coalesce(j.phim_id, (SELECT t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = j.canh_id)) IS NOT DISTINCT FROM l.phim_id)), 0)::float AS cents,
+    max(l.created_at) AS luc
+  FROM xv_s2_luot l WHERE l.tien AND l.ok AND l.job_tu IS NOT NULL AND ${dk} GROUP BY l.user_id`;
+export type CreditS2 = { khong_gioi_han: true; da_dung: number; luot: number };
+export async function creditS2(): Promise<CreditS2 | null> {
+  const me = await getCurrentUser(), db = getDb();
+  if (!me || !db) return null;
+  const r = (await db.execute(CREDIT_SQL(sql`l.user_id = ${me.id}`))) as unknown as Record<string, unknown>[];
+  return { khong_gioi_han: true, da_dung: Math.ceil(Number(r[0]?.cents ?? 0) * 10), luot: Number(r[0]?.luot ?? 0) };
+}
+/** quản trị: credit đã dùng của từng người (kèm tiền thật) */
+export async function soCreditS2(): Promise<{ user_id: number; email: string; luot: number; credit: number; cents: number; luc: string }[]> {
+  const me = await getCurrentUser(), db = getDb();
+  if (!me || me.role !== 'admin' || !db) return [];
+  const r = (await db.execute(CREDIT_SQL(sql`true`))) as unknown as Record<string, unknown>[];
+  return r.map((x) => ({ user_id: Number(x.user_id), email: String(x.email ?? ''), luot: Number(x.luot), cents: Number(x.cents), credit: Math.ceil(Number(x.cents) * 10), luc: x.luc ? new Date(String(x.luc)).toISOString() : '' })).sort((a, b) => b.credit - a.credit);
+}
+
 export type PhimS2 = { id: number; ten: string; loai: string; updated_at: string; anh: string | null; cua_toi: boolean; chu: string; tap_tom: { id: number; so: number; ten: string; so_canh: number }[] };
 /** Danh sách phim cho menu của Studio 2 — một câu SQL nhẹ (thay cho dsNhomTuDo tải cả ~7.800 phim rồi lọc). Quản trị: chưa gõ → phim không phải creative
  *  quảng cáo hàng loạt + phim do người trong đội tạo; gõ tên → tìm mọi loại. Người dùng thường (và quản trị khi chiCuaToi): chỉ phim chính họ tạo.

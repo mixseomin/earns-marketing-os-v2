@@ -90,7 +90,12 @@ export const nhomCua = (ma: string) => ma.replace(/\d+$/, '') as NhomWidget;
 
 /** ô dựng sẵn theo lưới mịn 48 × 72: [mã, x, y, rộng, cao, (các widget xếp thành tab cùng ô)] — widget đầu là tab đang mở */
 type OTho = [MaWidget, number, number, number, number, MaWidget[]?];
-const o = (ds: OTho[]): O[] => ds.map(([ma, x, y, w, h, tabs]) => (tabs?.length ? { ma, x, y, w, h, tabs: [ma, ...tabs] } : { ma, x, y, w, h }));
+// góp ý #1731: bố cục mặc định luôn BẮT vào lưới thô 12×18 (bước 4 ô mịn) — làm tròn từng CẠNH (không làm tròn cỡ) nên hai ô chung cạnh vẫn khít nhau
+const BUOC_MAC = 4, bat = (v: number) => Math.round(v / BUOC_MAC) * BUOC_MAC;
+const o = (ds: OTho[]): O[] => ds.map(([ma, x0, y0, w0, h0, tabs]) => {
+  const x = bat(x0), y = bat(y0), w = bat(x0 + w0) - x, h = bat(y0 + h0) - y;
+  return tabs?.length ? { ma, x, y, w, h, tabs: [ma, ...tabs] } : { ma, x, y, w, h };
+});
 export type Man = { id: string; ten: string; kh: string; nhom: string; o: O[] };
 // NGUYÊN TẮC XẾP (anh 20/11/2026): bảng rộng (rong) trọn bề ngang; bảng phụ đi kèm thành TAB trong cùng ô; dải số một hàng mỏng trên cùng; ô hẹp chỉ dành cho danh sách / thẻ số.
 export const MAN: Man[] = [

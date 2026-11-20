@@ -121,7 +121,7 @@
 .hm-nhan { border-style: solid !important; box-shadow: 0 0 0 2px var(--accent); }
 .hm-nhan > .hm-od { background: var(--accent); }
 .hm-nhan > .hm-od * { color: var(--bg-0); }
-.hm-tay { position: absolute; z-index: 3; touch-action: none; }
+.hm-tay { position: absolute; z-index: 5; touch-action: none; }   /* góp ý #1731: trên thanh nổi .hm-od-noi (z 4) — góc trên phải từng bị thanh che, không kéo được */
 .hm-tay[data-h="n"], .hm-tay[data-h="s"] { left: 12px; right: 12px; height: 7px; cursor: ns-resize; }
 .hm-tay[data-h="e"], .hm-tay[data-h="w"] { top: 12px; bottom: 12px; width: 7px; cursor: ew-resize; }
 .hm-tay[data-h="n"] { top: 0; } .hm-tay[data-h="s"] { bottom: 0; } .hm-tay[data-h="e"] { right: 0; } .hm-tay[data-h="w"] { left: 0; }

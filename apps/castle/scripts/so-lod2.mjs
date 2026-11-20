@@ -17,13 +17,14 @@ const mp = mai.map((p) => { const [a, b, c] = [p[0], p[1], p.find((q, i) => i > 
   return { p, a, n, xs: [Math.min(...p.map((q) => q[0])), Math.max(...p.map((q) => q[0]))], zs: [Math.min(...p.map((q) => q[1])), Math.max(...p.map((q) => q[1]))] }; }).filter((m) => Math.abs(m.n[2]) > 1e-6);
 const trong = (x, z, v) => { let t = false; for (let i = 0, j = v.length - 1; i < v.length; j = i++) { const [xi, zi] = v[i], [xj, zj] = v[j]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) t = !t; } return t; };
 const caoLod2 = (x, z) => { let h = null; for (const m of mp) { if (x < m.xs[0] || x > m.xs[1] || z < m.zs[0] || z > m.zs[1] || !trong(x, z, m.p)) continue; const y = m.a[2] - (m.n[0] * (x - m.a[0]) + m.n[1] * (z - m.a[1])) / m.n[2]; if (h === null || y > h) h = y; } return h; };
-const { pg, dong } = await moTrang({ anh3d: false });
+const OSM = process.argv.includes('--osm'); // --osm: đo mô hình mái CÁCH CŨ (?mai=osm) → diem-mo-hinh-osm.json, mốc so của scripts/mai-lod2.py
+const { pg, dong } = await moTrang({ anh3d: false, them: OSM ? 'mai=osm' : '' });
 const K = await pg.evaluate(() => { const n = window.__ns, T = n.THREE, rc = new T.Raycaster(), xuong = new T.Vector3(0, -1, 0), lop = n.LOP_OSM.filter((o) => o.visible !== false);
   const trong = (x, z, v) => { let t = false; for (let i = 0, j = v.length - 1; i < v.length; j = i++) { const [xi, zi] = v[i], [xj, zj] = v[j]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) t = !t; } return t; };
   return { goc: n.GOC_Y, ds: n.TUONG_MT.filter((t) => t.k?.id).map((t) => { const xs = t.v.map((p) => p[0]), zs = t.v.map((p) => p[1]), d = [];
     for (let x = Math.ceil(Math.min(...xs)) + 0.5; x < Math.max(...xs); x += 1) for (let z = Math.ceil(Math.min(...zs)) + 0.5; z < Math.max(...zs); z += 1) { if (!trong(x, z, t.v)) continue; rc.set(new T.Vector3(x, 400, z), xuong); const h = rc.intersectObjects(lop, true)[0]; if (h) d.push([x, z, +h.point.y.toFixed(2)]); }
-    return { id: t.k.id, ten: t.ten, d }; }) }; }); await dong();
-writeFileSync(join(GOC, 'du-lieu-goc/bayern/diem-mo-hinh.json'), JSON.stringify(K)); // điểm đo mô hình (x, z, y cảnh) từng khối — scripts/so-dom20.py so tiếp với DOM20
+    return { id: t.k.id, ten: t.ten, v: t.v, d }; }) }; }); await dong();
+writeFileSync(join(GOC, `du-lieu-goc/bayern/diem-mo-hinh${OSM ? '-osm' : ''}.json`), JSON.stringify(K)); // điểm đo mô hình (x, z, y cảnh) từng khối — scripts/so-dom20.py so tiếp với DOM20
 const DX = +(process.env.DX || 0), DZ = +(process.env.DZ || 0); // dời mặt bằng OSM → dữ liệu chính thức (scripts/so-dom20.py dò ra: +7, +1)
 const tv = (a) => { const b = [...a].sort((x, y) => x - y); return b[b.length >> 1]; }, ra = [], moi = [];
 for (const k of K.ds) { const l = []; for (const [x, z, y] of k.d) { const h = caoLod2(x + DX, z + DZ); if (h !== null) { l.push(h - (y + K.goc)); moi.push(h - (y + K.goc)); } }

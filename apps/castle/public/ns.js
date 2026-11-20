@@ -55,6 +55,8 @@ const DAN_ANH = false;
 const MAT_ANH = DAN_ANH ? await fetch(`./du-lieu/${ten}-mat-anh.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})) : {};
 const DUONG = await fetch(`./du-lieu/${ten}-duong.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // đường + cầu thang OSM (scripts/tai-duong.mjs)
 const MAI = await fetch(`./du-lieu/${ten}-mai.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // cửa mái / chóp nhỏ đo trên ảnh 3D (scripts/do-mai.mjs)
+// MÁI THEO LoD2 CHÍNH THỨC Bavaria, khớp lại theo DOM20 (scripts/mai-lod2.py, 20/11/2026): khối có trong tệp dựng mái từ mặt mái đo đạc thay cho hộp bao + sống giữa; ?mai=osm = cách cũ để so
+const MAI_LOD2 = new URLSearchParams(location.search).get('mai') === 'osm' ? null : await fetch(`./du-lieu/${ten}-mai-lod2.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const NT = await fetch(`./du-lieu/${ten}-noi-that.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // nội thất (có thì dựng)
 // KHỐI OSM KHÔNG CÓ (ảnh thật có, OSM chưa vẽ): mục sua.json khoá "them/<tên>" mang "ngoai" = mặt bằng [[x, z], …] (đo trên bản đồ độ cao ảnh 3D,
 // scripts/khop-khoi.mjs → <lâu>-cach3.json) + thẻ như khối OSM — dựng chung đường với khối OSM (căn nhà nhỏ chân Viereckturm, góp ý #1632)
@@ -490,7 +492,8 @@ function dungKhoi(k, G) {
   const kieu = (t['roof:shape'] || 'flat').toLowerCase();
   let hMai = kieu === 'flat' ? 0 : so(t['roof:height']) ?? Math.min(12, Math.max(2, Math.sqrt(Math.abs(dienTich(v))) * (kieu === 'cone' || kieu === 'pyramidal' ? 0.9 : 0.45)));
   hMai = Math.min(hMai, Math.max(0, h - hMin - 0.5));
-  const goc = k.ref ?? k.day, y0 = hMin > 0 ? goc + hMin : Math.min(k.day, goc), y1 = goc + h - hMai, y2 = goc + h; // chiều cao từ mốc chân nhà; tường không treo thì chạy xuống tới đất thấp nhất
+  const L2 = MAI_LOD2?.khoi?.[k.id];
+  const goc = k.ref ?? k.day, y0 = hMin > 0 ? goc + hMin : Math.min(k.day, goc), y1 = L2 ? L2.y1 : goc + h - hMai, y2 = L2 ? L2.y2 : goc + h; // chiều cao từ mốc chân nhà; tường không treo thì chạy xuống tới đất thấp nhất
   const yMong = hMin > 0 ? y0 : Math.min(y1, Math.max(y0, k.datCao + 1.2)); // móng đá thô tới quá mặt đất cao nhất 1,2 m
   k._yMong = yMong; k._y1 = y1; // loCanh khoét lỗ cửa sổ theo cùng bố cục với khung cửa 3D (mattien.js bocCuc)
   const mai = [], da = [], hoi = []; // hoi: tam giác đầu hồi đứng [{ p, mau }] — màu theo mặt tường bên dưới
@@ -503,7 +506,14 @@ function dungKhoi(k, G) {
     s0 += Math.hypot(x2 - x1, z2 - z1);
   }
   const napPhang = (y, arr) => { const sh = new THREE.Shape(v.map(([x, z]) => new THREE.Vector2(x, -z))); const g = new THREE.ShapeGeometry(sh); const p = g.toNonIndexed().attributes.position; for (let i = 0; i < p.count; i += 3) for (const j of [0, 2, 1]) arr.push(p.getX(i + j), y, -p.getY(i + j)); };
-  if (kieu === 'pyramidal' || kieu === 'cone' || kieu === 'dome' || kieu === 'onion') {
+  if (L2) {
+    // mặt mái LoD2 đã cắt theo mặt bằng khối: chia tam giác, quay pháp tuyến lên trên; dải tường "tuong" từ mép mái xuống chỗ thấp ngay ngoài (mép khối → y1, bậc giữa hai mặt → mặt thấp)
+    for (const m of L2.mat) { const tg = THREE.ShapeUtils.triangulateShape(m.map(([x, z]) => new THREE.Vector2(x, z)), []);
+      for (const [i, j, l] of tg) { const A = m[i], B = m[j], C = m[l], len = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]); // >0: (x, z) ngược kim → pháp tuyến hướng xuống trong three (y lên, z nam)
+        const P = (q) => [q[0], q[2], q[1]]; if (len > 0) tamGiac(mai, P(A), P(C), P(B)); else tamGiac(mai, P(A), P(B), P(C)); } }
+    for (const [x1, z1, d1, t1, x2, z2, d2, t2] of L2.tuong) tamGiac(da, [x1, d1, z1], [x2, d2, z2], [x2, t2, z2], [x1, d1, z1], [x2, t2, z2], [x1, t1, z1], [x1, d1, z1], [x2, t2, z2], [x2, d2, z2], [x1, d1, z1], [x1, t1, z1], [x2, t2, z2]); // hai mặt: hướng ra ngoài không ghi trong tệp
+    napPhang(y1, da); // lấp chỗ mặt mái LoD2 không phủ (≤ 15% mặt bằng)
+  } else if (kieu === 'pyramidal' || kieu === 'cone' || kieu === 'dome' || kieu === 'onion') {
     const [cx, cz] = tamDa(v);
     for (let i = 0; i < v.length; i++) { const [x1, z1] = v[i], [x2, z2] = v[(i + 1) % v.length]; tamGiac(mai, [x1, y1, z1], [x2, y1, z2], [cx, y2, cz]); }
   } else if (kieu === 'gabled' || kieu === 'hipped' || kieu === 'side_hipped' || kieu === 'half-hipped' || kieu === 'skillion') {
@@ -558,7 +568,7 @@ function dungKhoi(k, G) {
       }
     }
   }
-  const mauM = kieu === 'flat' ? null : mauOSM(t['roof:colour'], MAU_MAI).lerp(new THREE.Color(1, 1, 1), 0.55); // pha nhẹ lên vân đá phiến
+  const mauM = kieu === 'flat' && !L2 ? null : mauOSM(t['roof:colour'], MAU_MAI).lerp(new THREE.Color(1, 1, 1), 0.55); // pha nhẹ lên vân đá phiến
   G.da.p.push(...da); G.da.uv.push(...uvChieu(da, 4)); for (let i = 0; i < da.length; i += 3) G.da.c.push(mauT.r, mauT.g, mauT.b);
   // tam giác đầu hồi đứng: màu riêng từng đầu (mauHoi); vẫn nằm trong da trả về (va chạm + công cụ đo dùng hình khối)
   for (const e of hoi) { G.da.p.push(...e.p); G.da.uv.push(...uvChieu(e.p, 4)); for (let i = 0; i < e.p.length; i += 3) G.da.c.push(e.mau.r, e.mau.g, e.mau.b); da.push(...e.p); }

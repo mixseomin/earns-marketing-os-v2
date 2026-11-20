@@ -201,7 +201,13 @@ function TheMau({ m }: { m: MauCr }) {
     <div style={{ marginTop: 8, fontSize: 11, color: MO_SO }}>Bấm để xem đủ thông số + mọi phim sản xuất</div>
   </div>;
 }
-/** bọc chỗ rê (tên trong cây, mô tả trên thẻ) — không còn title= thô */
+/** CHẤM TRẠNG THÁI = chỗ DUY NHẤT mở thẻ mẫu (#1720 anh 20/11/2026 "Ko tự hiện cái này ở mọi chỗ. Hover vào icon của dòng mới hiện"): trước bọc cả tên mẫu → lướt
+ *  chuột qua cây là thẻ bật khắp nơi. Nay tên chỉ để đọc / bấm chọn; vùng rê là ô 16px quanh chấm (dễ trúng, không lan sang chữ). */
+function ChamRe({ mau, co }: { mau: string; co: number }) {
+  return <span style={{ width: 16, height: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', cursor: 'help' }}>
+    <span style={{ width: co, height: co, borderRadius: co / 2, background: mau }} /></span>;
+}
+/** bọc chỗ rê (chấm trạng thái trong cây) — không còn title= thô */
 function ReMau({ m, children, khoi = false }: { m: MauCr; children: React.ReactNode; khoi?: boolean }) {
   const noi = useNoi<{ id: 0 }>();
   return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre}
@@ -266,12 +272,12 @@ function CayMau({ rows, chon, setChon, mo, setMo }: { rows: MauCr[]; chon: strin
             return <NutCay key={kn} ten={<span>{n2}</span>} phai={so(ds.length)} chon={chon === kn} onChon={() => setChon(kn)} mo={mo.includes(kn)} onDoi={() => doiMo(kn)}>
               {ds.map((m) => { const km = `m:${m.loai}:${m.ma}`, con = conCua(m);
                 return <NutCay key={km} chon={chon === km} onChon={() => setChon(km)} mo={con.length ? mo.includes(km) : undefined} onDoi={con.length ? () => doiMo(km) : undefined}
-                  dau={<span title={TEN_TT[m.trang_thai][0]} style={{ width: 7, height: 7, borderRadius: 4, background: CHAM_TT[m.trang_thai], flex: 'none' }} />}
-                  ten={<ReMau m={m}><span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.ten}</span></ReMau>}
+                  dau={<ReMau m={m}><ChamRe mau={CHAM_TT[m.trang_thai]} co={7} /></ReMau>}
+                  ten={<span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.ten}</span>}
                   phai={m.phim_sx.length ? <span title={`${m.phim_sx.length} phim đã chọn để sản xuất theo mẫu này`} style={{ fontSize: 11, color: MO_SO, whiteSpace: 'nowrap' }}>{m.phim_sx.length} phim</span> : undefined}>
                   {con.length ? con.map((b) => { const kb = `m:${b.loai}:${b.ma}`;
-                    return <NutCay key={kb} chon={chon === kb} onChon={() => setChon(kb)} dau={<span style={{ width: 6, height: 6, borderRadius: 3, background: CHAM_TT[b.trang_thai], flex: 'none' }} />}
-                      ten={<ReMau m={b}><span style={{ fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.ten.replace(/^\S+ · /, '')}</span></ReMau>} />; }) : null}
+                    return <NutCay key={kb} chon={chon === kb} onChon={() => setChon(kb)} dau={<ReMau m={b}><ChamRe mau={CHAM_TT[b.trang_thai]} co={6} /></ReMau>}
+                      ten={<span style={{ fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.ten.replace(/^\S+ · /, '')}</span>} />; }) : null}
                 </NutCay>; })}
             </NutCay>; })}
         </NutCay>; })}

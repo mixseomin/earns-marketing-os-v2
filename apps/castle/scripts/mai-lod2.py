@@ -130,7 +130,7 @@ for k in K['ds']:
     r['nhan'] = r['nhan'] and k['id'] not in CHOP; bang.append(r)
     if not r['nhan']: continue
     ys = [pl3[0] * x + pl3[1] * z + pl3[2] for p, pl3 in manh for x, z in p]; y2 = max(ys)
-    # y1 = MÁNG XỐI: phân vị 25 mặt mái ngay trong viền khối (0,3 m, mỗi 0,5 m) — không lấy min mọi đỉnh mảnh: một mái phụ thấp lọt vào mặt bằng
+    # y1 = MÁNG XỐI: trung vị mặt mái ngay trong viền khối (0,3 m, mỗi 0,5 m) — không lấy min mọi đỉnh mảnh: một mái phụ thấp lọt vào mặt bằng
     # kéo cả khối xuống (223110825 tường còn 1,3 m, nhà chân Viereckturm tường 0 m) → hàng cửa theo ảnh mất (trọng tài kiểm kê 8 → 48 lỗi, 20/11/2026)
     vv = np.array(v, float); ar_v = dien_tich(vv); vien = []
     for i in range(len(vv)):
@@ -140,7 +140,7 @@ for k in K['ds']:
         for t in np.arange(0.3, L - 0.29, 0.5):
             h = cao_mai(ax + ux * t + nx * 0.3, az + uz * t + nz * 0.3, manh)
             if h is not None: vien.append(h)
-    y1 = float(np.percentile(vien, 25)) if len(vien) >= 4 else min(ys)  # phân vị 25: đầu hồi + bậc mái cao nằm trên viền, không phải máng xối
+    y1 = float(np.median(vien)) if len(vien) >= 4 else min(ys)  # phân vị 25 thử 20/11: tường thấp dưới hàng cửa đo theo ảnh (cửa lơ lửng) — trung vị đúng hơn
     mat = [[[round(x, 3), round(z, 3), round(pl3[0] * x + pl3[1] * z + pl3[2], 3)] for x, z in p] for p, pl3 in manh]
     tuong = []  # dải tường đứng: mép mảnh mà ngay bên ngoài thấp hơn (mép khối → xuống y1; bậc giữa hai mặt → xuống mặt thấp)
     for p, pl3 in manh:

@@ -713,7 +713,7 @@ function veCoSo() { const c = E.coSo, s = E.cs;
 //    Lưu được: lời / thoại, chữ màn, giây phát, cỡ cảnh · góc · ống kính · chuyển động máy, thứ tự cảnh. Chưa lưu được từ đây (báo rõ khi lưu):
 //    mô tả, tên cảnh, đoạn, tiếng động, cảm xúc, nhân vật có mặt, vào cảnh, thêm / xoá / tách cảnh — các thứ này studio giữ ở dạng khác (tiếng Anh, mã phân cảnh…).
 let NEN = {}, THU_TU0 = [];
-const nenCanh = (o) => ({ loi: o.loi, thoai: JSON.stringify(o.thoai), chu: o.chu, tg: o.tg, co: o.co, gm: o.gm, ong: o.ong, cd: o.cd, khac: JSON.stringify([o.mota, o.nhan, o.pd, o.td, o.cx, o.viTri, o.nv, o.chuyen]) });
+const nenCanh = (o) => ({ loi: o.loi, thoai: JSON.stringify(o.thoai), chu: o.chu, tg: o.tg, co: o.co, gm: o.gm, ong: o.ong, cd: o.cd, pd: o.pd || '', khac: JSON.stringify([o.mota, o.nhan, o.td, o.cx, o.viTri, o.nv, o.chuyen]) });
 const N_CO = { 'Toàn': 'ws', 'Trung': 'ms', 'Trung cận': 'mcu', 'Cận': 'cu', 'Đặc tả': 'ecu' }, N_GOC = { 'Ngang': 'ngang', 'Thấp': 'thap', 'Cao': 'cao' }, N_ONG = { 'Rộng': 'rong', 'Chuẩn': 'chuan', 'Chân dung': 'chan_dung', 'Macro': 'macro' }, N_CD = { 'Đứng yên': 'tinh', 'Phóng gần': 'day', 'Lùi xa': 'lui', 'Lia ngang': 'lia' };
 /** các cảnh có chỗ sửa lưu được: [{ id số của studio, d = đúng phần đổi gửi cho suaCanh }] */
 function suaDs() { const ra = []; if (!D.that) return ra;
@@ -722,6 +722,7 @@ function suaDs() { const ra = []; if (!D.that) return ra;
       for (; i < c.thoai.length; i++) moi.push({ nhan_vat: c.thoai[i].ai === 'Lời dẫn' ? '' : c.thoai[i].ai, dien_xuat: '', loi: c.thoai[i].cau }); d.thoai = moi.map((x) => ({ nhan_vat: x.nhan_vat || '', dien_xuat: x.dien_xuat || '', loi: x.loi || '', ...(typeof x.tre === 'number' ? { tre: x.tre } : {}) })); }
     else if (!c.thoai.length && c.loi !== n.loi) d.loi_thoai = c.loi;
     if (c.chu !== n.chu) d.chu_man = c.chu;
+    if ((c.pd || '') !== n.pd) d.phan_doan = c.pd || '';
     if (Math.abs(c.tg - n.tg) > 0.01 && !D.that.laMoc) d.phat_s = c.tg;
     const kt = {}; if (c.co !== n.co && N_CO[c.co]) kt.co_canh = N_CO[c.co]; if (c.gm !== n.gm && N_GOC[c.gm]) kt.goc = N_GOC[c.gm]; if (c.ong !== n.ong && N_ONG[c.ong]) kt.ong_kinh = N_ONG[c.ong]; if (c.cd !== n.cd && N_CD[c.cd]) kt.chuyen_dong = N_CD[c.cd];
     if (Object.keys(kt).length) d.ky_thuat = { ...(g.ky_thuat || {}), ...kt };
@@ -730,7 +731,7 @@ function suaDs() { const ra = []; if (!D.that) return ra;
 /** thứ tự cảnh đổi (cùng tập cảnh như studio đang giữ) → danh sách id theo thứ tự mới; có thêm / mất cảnh thì không xếp */
 function thuTuDoi() { const that = D.canh.filter((c) => GOC[c.id]).map((c) => c.id); if (that.length !== THU_TU0.length || that.length !== D.canh.length || that.every((id, i) => id === THU_TU0[i])) return null; return that.map((id) => GOC[id].id); }
 function khongLuuDuoc() { const r = new Set(); if (!D.that) return ''; if (D.canh.some((c) => !GOC[c.id]) && !D.that.trong) r.add('cảnh mới thêm / tách'); if (THU_TU0.some((id) => !canh(id))) r.add('cảnh đã xoá');
-  for (const c of D.canh) { const n = NEN[c.id]; if (n && JSON.stringify([c.mota, c.nhan, c.pd, c.td, c.cx, c.viTri, c.nv, c.chuyen]) !== n.khac) r.add('mô tả, tên cảnh, đoạn, tiếng động, cảm xúc, nhân vật, vào cảnh'); if (n && Math.abs(c.tg - n.tg) > 0.01 && D.that.laMoc) r.add('độ dài cảnh của video máy dựng'); }
+  for (const c of D.canh) { const n = NEN[c.id]; if (n && JSON.stringify([c.mota, c.nhan, c.td, c.cx, c.viTri, c.nv, c.chuyen]) !== n.khac) r.add('mô tả, tên cảnh, tiếng động, cảm xúc, nhân vật, vào cảnh'); if (n && Math.abs(c.tg - n.tg) > 0.01 && D.that.laMoc) r.add('độ dài cảnh của video máy dựng'); }
   return [...r].join('; '); }
 const coSua = () => !!D.that && !D.that.trong && (suaDs().length > 0 || !!thuTuDoi() || !!khongLuuDuoc());
 function veLuuNut() { if (!D.that || D.that.trong) return ''; const n = suaDs().length + (thuTuDoi() ? 1 : 0), kl = khongLuuDuoc(); if (!n && !kl) return '';
@@ -1150,6 +1151,8 @@ function veTtPro(c) {
     h = (r.join('') || '<span class="nho">Chưa có gì để soát.</span>') + (D.that && !co('nk') ? '<div><button type="button" class="bt" data-d="nkBat">Xem từng bước sinh của cảnh</button></div>' : ''); }
   return `<div class="tt-tab" role="tablist">${T.map(([k, ten]) => `<button type="button" role="tab" data-d="ttTab" data-g="${k}" aria-selected="${t === k}" title="${ten}">${ic(ten)}<span>${ten}</span>${k === 'soat' && n ? `<u>${n}</u>` : ''}</button>`).join('')}</div><div class="tt-pro">${h}</div>`;
 }
+/** các phân cảnh liền nhau theo thứ tự timeline: [{ k = tên ('' = chưa phân cảnh), ds = các shot }] */
+function nhomPc() { const g = []; D.canh.forEach((c) => { const k = c.pd || ''; if (!g.length || g.at(-1).k !== k) g.push({ k, ds: [] }); g.at(-1).ds.push(c); }); return g; }
 function vePc() {
   const g = []; D.canh.forEach((c, i) => { const k = c.pd || ''; if (!g.length || g.at(-1).k !== k) g.push({ k, ds: [] }); g.at(-1).ds.push([c, i]); });
   const { c: dang } = canhTai(Math.min(E.t, tong() - 0.001));
@@ -1193,7 +1196,7 @@ function veMb() {
 /** các hàng của timeline: bản Gọn có 4 hàng cố định; Pro thêm hàng theo dữ liệu dự án có (đoạn, 3D, từng người nói, tiếng động, cảm xúc) */
 function hangTl() {
   const p = pro(), r = [['thuoc', p ? 20 : 22, '']];
-  if (p && D.canh.some((c) => c.pd)) r.push(['doan', 16, 'Đoạn']);
+  if (p) r.push(['doan', 18, 'Phân cảnh']);
   if (!p || D.canh.some((c) => c.chu)) r.push(['chu', p ? 22 : 30, 'Chữ']); r.push(['hinh', p ? 46 : 58, 'Hình']);
   if (p && D.canh.some((c) => c.k3)) r.push(['k3', 22, '3D']);
   if (p && coLop()) r.push(['lp', 22, 'Lớp']);
@@ -1208,9 +1211,9 @@ function veTlClip() {
   const p = pro(), R = hangTl(), T = tong(), W = T * E.pxs, kc = p ? 3 : 4, buoc = E.pxs >= 34 ? 1 : E.pxs >= 16 ? 2 : E.pxs >= 9 ? 5 : 10, la = (id, l) => (E.chon?.id === id && (p ? id !== 'nhac' || l === 'nhac' : E.chon.loai === l) ? ' chon' : '');
   let vach = ''; for (let s = 0; s <= T; s += buoc) vach += `<span style="left:${s * E.pxs}px">${gio(s)}</span>`;
   const H = {}, them = (k, h) => { H[k] = (H[k] || '') + h; }, coNoi = p && nguoiNoi().length > 0; let x = 0, doan = null; const diem = [];
-  const dongDoan = () => { if (doan) them('doan', `<div class="dn" style="left:${doan.x}px;width:${doan.w - 2}px">${esc(doan.k)}</div>`); };
+  const dongDoan = () => { if (doan) them('doan', `<div class="dn${doan.k ? '' : ' trong'}${E.chon && doan.ids.includes(E.chon.id) ? ' chon' : ''}" data-doan="${doan.i}" style="left:${doan.x}px;width:${doan.w - 2}px" title="${doan.k ? `Phân cảnh ${esc(doan.k)} · kéo để dời cả phân cảnh` : 'Các shot chưa thuộc phân cảnh nào'}">${doan.k ? esc(doan.k) : 'chưa phân cảnh'}</div>`); };
   D.canh.forEach((c, i) => { const w = c.tg * E.pxs, st = `left:${x}px;width:${Math.max(4, w - 2)}px`, a = `role="button" tabindex="0" data-clip="${c.id}"`;
-    if (c.pd && doan?.k === c.pd) doan.w += w; else { dongDoan(); doan = c.pd ? { k: c.pd, x, w } : null; }
+    if (doan && doan.k === (c.pd || '')) { doan.w += w; doan.ids.push(c.id); } else { dongDoan(); doan = { k: c.pd || '', x, w, i, ids: [c.id] }; }
     if (D.kieuChu !== 'Tắt chữ' && (c.chu || !p)) them('chu', `<div class="clip chu${la(c.id, 'chu')}" ${a} data-loai="chu" style="${st}"><span>${esc(c.chu) || '＋ chữ'}</span></div>`);
     them('hinh', `<div class="clip canh${la(c.id, 'canh')}${c.vid ? ' co-clip' : ''}" ${a} data-loai="canh" aria-label="Cảnh ${i + 1} ${esc(c.nhan)}, ${c.tg} giây${c.vid ? ', đã có clip' : ', chưa có clip'}" title="${i + 1} · ${esc(c.nhan)}${c.vid ? ' · đã có clip' : ' · chưa có clip (đang dùng ảnh)'}"${GOC[c.id] ? tqAttr(`Cảnh ${i + 1} · ${c.nhan}`, ['anh', c.id], ...(c.vid ? [['clip', c.id]] : [])) : ''} style="${st};background-image:url('${c.anh}')"><b>${w < 76 ? i + 1 : `${i + 1} · ${esc(c.nhan)}`}</b>${w >= 44 ? `<i>${c.tg}s</i>` : ''}${c.vid ? '<em class="nhan-clip" aria-hidden="true">▶ clip</em>' : ''}${p && soLoi(c) ? '<u></u>' : ''}<span class="tay" data-tay="${c.id}"></span></div>`);
     if (c.k3) them('k3', `<div class="clip k3${c.ban3 ? ' loi' : ''}" ${a} data-loai="k3" title="Khung 3D cảnh ${i + 1}" style="${st};background-image:url('${c.k3}')"></div>`);
@@ -1232,7 +1235,7 @@ function veTlClip() {
 }
 function veTlCong() {
   const p = pro(), c = canhChon(), n = (t, d, them = '') => (p ? `<button type="button" class="bt ic-bt" data-d="${d}" title="${t}" aria-label="${t}" ${them}>${ic(t)}</button>` : `<button type="button" class="bt" data-d="${d}" ${them}>${t === 'Tách' ? '✂ Tách tại kim' : t}</button>`);
-  $('#tlCong').innerHTML = `${n('Tách', 'tach')}${n('Nhân đôi', 'nhanDoi', c ? '' : 'disabled')}${n('Xoá', 'xoa', c ? '' : 'disabled')}
+  $('#tlCong').innerHTML = `${n('Tách', 'tach')}${n('Nhân đôi', 'nhanDoi', c ? '' : 'disabled')}${n('Xoá', 'xoa', c ? '' : 'disabled')}${p ? `<button type="button" class="bt" data-d="pcMoi" ${c ? '' : 'disabled'} title="Mở phân cảnh mới bắt đầu từ shot đang chọn (các shot sau nó trong cùng phân cảnh đi theo)">＋ Phân cảnh</button><button type="button" class="bt" data-d="pcBo" ${c ? '' : 'disabled'} title="Bỏ phân cảnh chứa shot đang chọn: các shot của nó gộp vào phân cảnh liền trước">－ Phân cảnh</button>` : ''}
     <span class="gian"></span><span class="so" id="tlGio"></span><button type="button" class="bt" data-d="vua">Vừa khung</button><input type="range" id="tlZoom" min="6" max="70" value="${Math.round(E.pxs)}" aria-label="Phóng to timeline">`;
 }
 function veKim(theo) {
@@ -1461,6 +1464,8 @@ function lamD(a, d = {}, nut) {
       if (o < 0.5 || x.tg - o < 0.5) return bao('Đặt kim vào giữa một cảnh, cách hai mép ít nhất nửa giây, rồi bấm Tách.');
       ghi(); const w = x.loi.split(/\s+/).filter(Boolean), k = Math.round(w.length * o / x.tg), sau = canhMoi({ ...x, id: idMoi(), nv: [...x.nv], thoai: [], soi: [], nhan: `${x.nhan} (tiếp)`, loi: w.slice(k).join(' '), tg: lam2(x.tg - o), tu: x.tu != null ? lam2(x.tu + o) : undefined, tuV: x.vid ? lam2(x.tuV + o) : undefined, tu3: x.vid3 ? lam2(x.tu3 + o) : undefined, khop: null });
       if (x.thoai.length) sau.loi = ''; else x.loi = w.slice(0, k).join(' '); x.tg = o; x.khop = null; D.canh.splice(i + 1, 0, sau); E.chon = { id: sau.id, loai: 'canh' }; return veD(); }
+    case 'pcMoi': if (!c) return; { const i = vt(c.id), cu = c.pd || '', ten = new Set(D.canh.map((x) => x.pd)); let k = 1; while (ten.has(`Phân cảnh ${k}`)) k++; ghi(); for (let j = i; j < D.canh.length && (D.canh[j].pd || '') === cu; j++) D.canh[j].pd = `Phân cảnh ${k}`; bao(`Đã mở Phân cảnh ${k} từ shot ${i + 1}. Đổi tên ở ô Đoạn của Thuộc tính.`); } return veD();
+    case 'pcBo': if (!c) return; { const g = nhomPc(), n = g.findIndex((x) => x.ds.includes(c)), moi = n > 0 ? g[n - 1].k : ''; ghi(); g[n].ds.forEach((x) => { x.pd = moi; }); bao(moi ? `Đã gộp các shot vào phân cảnh ${moi}.` : 'Các shot này giờ chưa thuộc phân cảnh nào.'); } return veD();
     case 'nhanDoi': if (!c) return; ghi(); { const b = canhMoi({ ...JSON.parse(JSON.stringify(c)), id: idMoi() }); D.canh.splice(vt(c.id) + 1, 0, b); E.chon = { id: b.id, loai: 'canh' }; } return veD();
     case 'xoa': if (!c) return;
       if (E.chon.loai === 'chu') return doi(() => { c.chu = ''; });
@@ -1493,8 +1498,9 @@ cuon.addEventListener('scroll', datAm, { passive: true });
 function denDau(id, dx) { const i0 = vt(id), tam = (batDau(i0) + D.canh[i0].tg / 2) * E.pxs + dx; let den = 0, x = 0; D.canh.forEach((c, i) => { if (i !== i0 && tam > (x + c.tg / 2) * E.pxs) den++; x += c.tg; }); return den; }
 cuon.addEventListener('pointerdown', (e) => {
   if (e.button || e.target.closest('[data-d]')) return;
-  const tay = e.target.closest('[data-tay]'), cl = e.target.closest('[data-clip]');
-  if (tay) { const c = canh(tay.dataset.tay); ghi(); E.chon = { id: c.id, loai: 'canh' }; keo = { loai: 'cat', c, x0: e.clientX, tg0: c.tg }; }
+  const tay = e.target.closest('[data-tay]'), cl = e.target.closest('[data-clip]'), dn = e.target.closest('[data-doan]');
+  if (dn) { const g = nhomPc(), gi = g.findIndex((x) => x.ds[0] === D.canh[+dn.dataset.doan]); keo = { loai: 'pc', g, gi, x0: e.clientX, el: dn, dong: false }; }
+  else if (tay) { const c = canh(tay.dataset.tay); ghi(); E.chon = { id: c.id, loai: 'canh' }; keo = { loai: 'cat', c, x0: e.clientX, tg0: c.tg }; }
   else if (cl) keo = { loai: cl.dataset.loai === 'canh' ? 'doi' : 'bam', id: cl.dataset.clip, l: cl.dataset.loai, x0: e.clientX, el: cl, dong: false };
   else { keo = { loai: 'tua' }; dungChay(); tua(xT(e) / E.pxs); }
   try { cuon.setPointerCapture(e.pointerId); } catch {}
@@ -1502,13 +1508,17 @@ cuon.addEventListener('pointerdown', (e) => {
 cuon.addEventListener('pointermove', (e) => {
   if (!keo) return; const dx = e.clientX - keo.x0;
   if (keo.loai === 'tua') tua(xT(e) / E.pxs);
+  else if (keo.loai === 'pc' && (keo.dong || Math.abs(dx) > 6)) { keo.dong = true; keo.el.style.transform = `translateX(${dx}px)`; keo.el.classList.add('dang-keo');
+    const dai = (x) => x.ds.reduce((a, c) => a + c.tg, 0); let x = 0, tam = 0; keo.g.forEach((x2, j) => { if (j === keo.gi) tam = (x + dai(x2) / 2) * E.pxs + dx; x += dai(x2); });
+    x = 0; keo.den = 0; keo.g.forEach((x2, j) => { if (j !== keo.gi && tam > (x + dai(x2) / 2) * E.pxs) keo.den++; x += dai(x2); }); }
   else if (keo.loai === 'cat') { keo.c.tg = Math.max(1, Math.min(30, Math.round((keo.tg0 + dx / E.pxs) * 2) / 2)); veTlClip(); veKhung(); }
   else if (keo.loai === 'doi' && (keo.dong || Math.abs(dx) > 6)) { keo.dong = true; keo.el.style.transform = `translateX(${dx}px)`; keo.el.classList.add('dang-keo');
     keo.den = denDau(keo.id, dx); const i0 = vt(keo.id), j = keo.den < i0 ? keo.den : keo.den + 1, th = $('#tha'); th.hidden = false; th.style.left = `${batDau(j) * E.pxs - 2}px`; }
 });
 const tha = () => { if (!keo) return; const k = keo; keo = null;
   if (k.loai === 'cat') return veD();
-  if (k.loai === 'doi' && k.dong) { const i0 = vt(k.id); if (k.den !== i0) { ghi(); const [c] = D.canh.splice(i0, 1); D.canh.splice(k.den, 0, c); } E.chon = { id: k.id, loai: 'canh' }; return veD(); }
+  if (k.loai === 'pc') { if (!k.dong) { const c = k.g[k.gi].ds[0]; chon(c.id, 'canh'); return tua(batDau(vt(c.id))); } if (k.den !== k.gi) { ghi(); const g = k.g.slice(), [m] = g.splice(k.gi, 1); g.splice(k.den, 0, m); D.canh = g.flatMap((x) => x.ds); } return veD(); }
+  if (k.loai === 'doi' && k.dong) { const i0 = vt(k.id); if (k.den !== i0) { ghi(); const [c] = D.canh.splice(i0, 1); D.canh.splice(k.den, 0, c); if (pro()) { const tr = D.canh[k.den - 1], sau = D.canh[k.den + 1]; c.pd = (tr || sau).pd || ''; } } E.chon = { id: k.id, loai: 'canh' }; return veD(); }
   if (k.loai === 'doi' || k.loai === 'bam') chon(k.id, k.l); };
 cuon.addEventListener('pointerup', tha);
 cuon.addEventListener('pointercancel', () => { const k = keo; keo = null; if (k && (k.loai === 'cat' || k.dong)) veD(); });

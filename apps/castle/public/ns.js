@@ -19,6 +19,7 @@ import { ganBaoLech } from './baolech.js';
 import { datCach3 } from './cach3.js';
 import { ganDanhGia } from './danhgia.js';
 import { taoCamUng, CHAM } from './camung.js';
+import { datAnhSang } from './anhsang.js';
 import { taoChieuAnh } from './chieuanh.js';
 import { datDuong } from './duong.js';
 import { datTrangTri, datCuaCong } from './trangtri.js';
@@ -76,6 +77,7 @@ const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.5, 25
 scene.add(new THREE.HemisphereLight(0xdfe9f5, 0x55603a, 1.3));
 const nang = new THREE.DirectionalLight(0xfff1dc, 2.6); nang.position.set(-260, 380, 180); nang.castShadow = true;
 nang.shadow.mapSize.set(CHAM ? 1024 : 2048, CHAM ? 1024 : 2048); Object.assign(nang.shadow.camera, { left: -200, right: 200, top: 200, bottom: -200, near: 50, far: 1200 }); nang.shadow.bias = -0.0004; scene.add(nang);
+const ANH_SANG = datAnhSang({ THREE, renderer, scene, nang, nhe: CHAM, mauChanTroi: 0xa9c4dc }); // vòm trời + ánh trời + bóng nắng đi theo người (anhsang.js)
 
 // ---------- địa hình: lưới độ cao, gốc toạ độ = độ cao tâm lâu đài
 const G = D.diaHinh, n = G.n, B = G.buoc, NUA = G.nua;
@@ -1169,7 +1171,7 @@ async function chupHaiBanTrong(datCam) {
     anh3d.epHien = true; apDungAnh3d(); const t0 = performance.now();
     // chờ ô tải đủ: TỰ gọi t.update mỗi nhịp (vòng vẽ của trang có thể đang hãm 10 khung/s hoặc chưa kịp xin ô ở góc mới → loadProgress báo xong GIẢ,
     // ảnh thật chụp ra toàn trời — thẻ #1623), tối thiểu 4 s, rồi kiểm ảnh: còn > 92 % là nền trời thì chờ tiếp (tối đa 40 s)
-    const troi = () => { const c = document.createElement('canvas'); c.width = 64; c.height = 40; const g = c.getContext('2d'); renderer.render(scene, camera); g.drawImage(renderer.domElement, 0, 0, 64, 40);
+    const troi = () => { const c = document.createElement('canvas'); c.width = 64; c.height = 40; const g = c.getContext('2d'); ANH_SANG.vom.visible = false; renderer.render(scene, camera); ANH_SANG.vom.visible = true; // vòm trời chuyển màu → tắt khi đếm điểm ảnh nền trời g.drawImage(renderer.domElement, 0, 0, 64, 40);
       const d = g.getImageData(0, 0, 64, 40).data, b = scene.background?.isColor ? [scene.background.r * 255, scene.background.g * 255, scene.background.b * 255] : [d[0], d[1], d[2]]; let n = 0;
       for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - b[0]) + Math.abs(d[i + 1] - b[1]) + Math.abs(d[i + 2] - b[2]) < 30) n++; return n / (d.length / 4); };
     for (let on = 0; performance.now() - t0 < 40000;) {
@@ -1369,7 +1371,7 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
   if (!di?.dang) apChoDung(dt); // toàn cảnh: nhân vật đứng thở ở chỗ đã rời + ghim "Bạn"
   if (noiThat) { const p = di?.dang ? di.viTri() : null; noiThat.hien(!!p && Math.hypot(p.x - noiThat.tam[0], p.z - noiThat.tam[1]) < 75); }
   noiThat?.capNhat(dt); timTuongTac(now); camUng?.capNhat(); anCayXa(now); nhieuNguoi?.capNhat(dt); capNhatAnh3d();
-  capNhatHd(now); veBanDoNS(now);
+  capNhatHd(now); veBanDoNS(now); ANH_SANG.capNhat(camera, di?.dang ? di.viTri() : orbit.target);
   renderer.render(scene, camera);
 }
 // ---------- SO VỚI ẢNH THẬT (bước 3): camera đặt đúng chỗ người chụp đứng (toạ độ Commons), ảnh chồng mờ lên khung hình cùng tỉ lệ.

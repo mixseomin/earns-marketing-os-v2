@@ -871,6 +871,17 @@ def tu_kiem():
     print(f"✓ phim cấm: dòng phim 167292 dừng trước mọi bước, phim thường #{thuong} đi qua")
     print("✓ dong_phim.py tự kiểm (sản xuất theo chợ: bước chờ phanh, kho dự trữ hồi chợ, mở lại không trùng)")
 
+# BẢN SAO BÁM MAIN (anh 20/11/2026 "tiếp và hoàn thiện b3"): máy từng chạy từ cây làm việc chung /Users/htuan/Me/GitHub/earns-marketing-os-v2 — cây đó chậm main 327 commit
+# (việc dở của nhiều phiên), nên luật dòng phim từ 18/11, logo cắt rời, xếp khung theo tóm tắt đều chưa có ở máy sản xuất thật. Nay máy chạy từ bản sao riêng
+# (thư mục gốc có tệp dấu .may-bam-main, không ai sửa tay ở đó): mỗi 10 phút kéo origin/main kiểu chỉ-tiến (không gộp, không ghi đè) → tệp mã đổi thì vòng tự nạp lại.
+# Không có tệp dấu (cây làm việc thường) → không đụng git.
+GOC_REPO = os.path.abspath(os.path.join(R, "..", "..")); BAM = [0.0]
+def bam_main():
+    if time.time() - BAM[0] < 600 or not os.path.exists(os.path.join(GOC_REPO, ".may-bam-main")): return
+    BAM[0] = time.time()
+    r = subprocess.run(f"git -C '{GOC_REPO}' fetch -q origin main && git -C '{GOC_REPO}' merge -q --ff-only FETCH_HEAD", shell=True, capture_output=True, text=True, timeout=180)
+    if r.returncode: print(f"[{time.strftime('%H:%M:%S')}] kéo main cho bản sao máy dòng phim lỗi: {(r.stderr or r.stdout).strip()[-200:]}", flush=True)
+
 def main(a):
     if a and a[0] == "--tu-kiem": return tu_kiem()
     if a and a[0] == "mot": vong(); time.sleep(int(a[1]) if len(a) > 1 else 60); return   # một vòng rồi chờ các bước vừa bật (thử)
@@ -881,10 +892,12 @@ def main(a):
     print(f"[{MAY}] máy chạy dòng phim bắt đầu (pid {os.getpid()})", flush=True)
     # TỰ NẠP MÃ MỚI (04/11/2026: tiến trình chạy liền từ 13:49 giữ mã cũ trong bộ nhớ — --tay, lý do poster, chờ KT sửa xong đều chưa có hiệu lực,
     # dòng #49 vẫn bị chặn trùng đội sau deploy): tệp mã của máy đổi → thôi nhận bước mới, chờ các bước đang chạy xong rồi execv chính nó
-    ma = [os.path.abspath(__file__), os.path.join(E, "loi_ky_thuat.py"), os.path.join(R, "cuu_cham.py"), os.path.join(E, "cat-bo-cham.py")]
+    ma = [os.path.abspath(__file__), os.path.join(E, "loi_ky_thuat.py"), os.path.join(R, "cuu_cham.py"), os.path.join(E, "cat-bo-cham.py"), os.path.join(R, "cong.py"), os.path.join(R, "so_dang.py")]
     dau = lambda: [os.path.getmtime(f) for f in ma if os.path.exists(f)]
     goc = dau()
     while True:
+        try: bam_main()
+        except Exception as e: print(f"kéo main lỗi: {str(e)[:160]}", flush=True)
         if dau() != goc:
             if not any(th.is_alive() for th, _ in CHAY.values()) and not (CUU["th"] and CUU["th"].is_alive()):
                 print(f"[{MAY}] mã máy đổi — nạp lại", flush=True); os.execv(sys.executable, [sys.executable, "-u", os.path.abspath(__file__), *a])

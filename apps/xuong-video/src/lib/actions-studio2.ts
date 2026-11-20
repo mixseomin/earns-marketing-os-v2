@@ -5,7 +5,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from './auth';
-import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, sinhAnhMau, sinhGiong, sinhVideoCanh, sinhNhac, sinhAmThanh, suaCanh, suaTap } from './actions';
+import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, luuNhanVat, sinhAnhMau, sinhGiong, sinhVideoCanh, sinhNhac, sinhAmThanh, suaCanh, suaTap } from './actions';
 import { z } from 'zod/v4';
 import { sinhKeyframeCanh, lyChanKeyframe, chuanBiKeyframe } from './xuong-video/sinh-anh';
 import { boiCanhCanh } from './xuong-video/doc-db';
@@ -123,11 +123,11 @@ export async function soCreditS2(): Promise<{ user_id: number; email: string; lu
  *  việc sửa chữ (không tốn tiền) chạy luôn và trả giá trị cũ để hoàn tác; việc sinh lại (tốn credit) chỉ trả thành ĐỀ XUẤT, người dùng bấm xác nhận
  *  mới gọi sinhLaiCanhS2 / sinhAmS2 qua đường ghi có kiểm quyền. Mã cảnh / tập luôn lấy từ ngữ cảnh máy chủ đã kiểm, không bao giờ lấy từ mô hình. */
 export type DoiTuongAi = { loai: 'canh' | 'giong' | 'td' | 'nhac' | 'tap'; canhId?: number | null };
-export type ViecAi = { loai: string; truong?: string; cu?: unknown; moi?: unknown; canhId?: number; tapId?: number; yeu_cau?: string; nhan: string };
+export type ViecAi = { loai: string; truong?: string; cu?: unknown; moi?: unknown; hien?: string; canhId?: number; tapId?: number; nhanVatId?: number; ten?: string; yeu_cau?: string; nhan: string };
 const TRUONG_CANH: Record<string, 'so' | 'chu'> = { hanh_dong_vi: 'chu', goc_may: 'chu', chu_man: 'chu', thoi_luong_s: 'so', cam_xuc: 'so', am_thanh: 'chu' };
 const TRUONG_TAP = new Set(['ten', 'tom_tat', 'nhac_mo_ta']);
 const VIEC_THEO_LOAI: Record<DoiTuongAi['loai'], string[]> = {
-  canh: ['sua_canh', 'sinh_lai_anh', 'sinh_lai_clip'], giong: ['sua_thoai', 'sinh_lai_giong'], td: ['sua_canh', 'sinh_td'], nhac: ['sua_tap', 'sinh_nhac'], tap: ['sua_tap', 'sinh_nhac'] };
+  canh: ['sua_canh', 'gan_nhan_vat', 've_mau', 'tao_nhan_vat', 'sinh_lai_anh', 'sinh_lai_clip'], giong: ['sua_thoai', 'sinh_lai_giong'], td: ['sua_canh', 'sinh_td'], nhac: ['sua_tap', 'sinh_nhac'], tap: ['sua_tap', 'sinh_nhac'] };
 const TEN_TRUONG: Record<string, string> = { hanh_dong_vi: 'mô tả hành động', goc_may: 'góc máy', chu_man: 'chữ trên màn', thoi_luong_s: 'thời lượng (giây)', cam_xuc: 'cảm xúc 1–10',
   am_thanh: 'tiếng động', ten: 'tên tập', tom_tat: 'tóm tắt', nhac_mo_ta: 'mô tả nhạc nền' };
 export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuongAi, cau: string, lichSu: { ai: 'nguoi' | 'may'; chu: string }[] = []):
@@ -144,25 +144,31 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
     if (!cn) return { ok: false, loi: 'cảnh không thuộc tập này' };
   }
   const nvIds = cn && Array.isArray(cn.nhan_vat) ? (cn.nhan_vat as unknown[]).map(Number).filter(Number.isFinite) : [];
-  const nguoi = nvIds.length ? ((await db.execute(sql`SELECT ten, loai, left(coalesce(mo_ta, ''), 200) AS mo_ta FROM xv_nhan_vat WHERE id = ANY(${`{${nvIds.join(',')}}`}::int[])`)) as unknown as Row[]) : [];
+  const nguoi = nvIds.length ? ((await db.execute(sql`SELECT id, ten, loai, left(coalesce(mo_ta, ''), 200) AS mo_ta FROM xv_nhan_vat WHERE id = ANY(${`{${nvIds.join(',')}}`}::int[])`)) as unknown as Row[]) : [];
+  // dàn người của phim: AI chọn người có sẵn để gắn vào cảnh trước khi tính tới vẽ lại / tạo mới
+  const dan = cn ? ((await db.execute(sql`SELECT id, ten, left(coalesce(mo_ta, ''), 240) AS mo_ta, jsonb_array_length(coalesce(anh_ref, '[]'::jsonb)) > 0 AS co_anh FROM xv_nhan_vat WHERE phim_id = ${pid} AND loai = 'nhan_vat' ORDER BY id LIMIT 30`)) as unknown as Row[]) : [];
   const thoai = cn && Array.isArray(cn.thoai) ? (cn.thoai as { nhan_vat?: string; loi?: string; dien_xuat?: string }[]) : [];
   const ngCanh = loai === 'tap' || loai === 'nhac'
     ? { tap: { ten: tap.ten, tom_tat: tap.tom_tat, y_tuong: String(tap.brief ?? '').slice(0, 1500), nhac_mo_ta: tap.nhac_mo_ta, thoi_luong_s: tap.thoi_luong_s } }
     : { tap: { ten: tap.ten, tom_tat: tap.tom_tat }, canh: { so: cn!.thu_tu, ten: cn!.canh, goc_may: cn!.goc_may, hanh_dong_vi: cn!.hanh_dong_vi || cn!.hanh_dong, chu_man: cn!.chu_man,
-        am_thanh: cn!.am_thanh, thoi_luong_s: cn!.thoi_luong_s, cam_xuc: cn!.cam_xuc, thanh_phan_trong_canh: nguoi.map((v) => ({ ten: v.ten, loai: v.loai, mo_ta: v.mo_ta })), co_anh: cn!.co_anh, co_clip: cn!.co_clip,
+        am_thanh: cn!.am_thanh, thoi_luong_s: cn!.thoi_luong_s, cam_xuc: cn!.cam_xuc, thanh_phan_trong_canh: nguoi.map((v) => ({ id: Number(v.id), ten: v.ten, loai: v.loai, mo_ta: v.mo_ta })), dan_nhan_vat_cua_phim: dan.map((v) => ({ id: Number(v.id), ten: v.ten, mo_ta: v.mo_ta, co_anh_mau: v.co_anh, so_canh_dung: 0 })), co_anh: cn!.co_anh, co_clip: cn!.co_clip,
         thoai: thoai.length ? thoai.map((t, i) => ({ dong: i, nguoi_noi: t.nhan_vat, loi: t.loi, dien_xuat: t.dien_xuat })) : [{ dong: 0, loi: cn!.loi_thoai }] } };
   const duoc = VIEC_THEO_LOAI[loai];
-  const VIEC = z.object({ loai: z.enum(['sua_canh', 'sua_thoai', 'sua_tap', 'sinh_lai_anh', 'sinh_lai_clip', 'sinh_lai_giong', 'sinh_td', 'sinh_nhac']),
-    truong: z.enum(['', ...Object.keys(TRUONG_CANH), ...TRUONG_TAP] as [string, ...string[]]), gia_tri: z.string(), dong: z.number(), yeu_cau: z.string() });
+  const VIEC = z.object({ loai: z.enum(['sua_canh', 'sua_thoai', 'sua_tap', 'gan_nhan_vat', 've_mau', 'tao_nhan_vat', 'sinh_lai_anh', 'sinh_lai_clip', 'sinh_lai_giong', 'sinh_td', 'sinh_nhac']),
+    truong: z.enum(['', ...Object.keys(TRUONG_CANH), ...TRUONG_TAP] as [string, ...string[]]), gia_tri: z.string(), dong: z.number(), yeu_cau: z.string(), nhan_vat_ids: z.array(z.number()) });
   const KHUON = z.object({ tra_loi: z.string(), hanh_dong: z.array(VIEC) });
   const system = `Bạn là trợ lý dựng video trong Studio 2. Người dùng đang chọn MỘT đối tượng (${loai === 'canh' ? 'một cảnh / keyframe' : loai === 'giong' ? 'lời đọc của một cảnh' : loai === 'td' ? 'tiếng động của một cảnh' : loai === 'nhac' ? 'nhạc nền của tập' : 'cả tập'}).
 Đọc câu lệnh, trả JSON: tra_loi = một hai câu tiếng Việt có dấu, không xưng "tôi" (viết kiểu "Đã đổi …" / "Đề xuất …"), nói đã làm gì (hoặc hỏi lại nếu lệnh không rõ); hanh_dong = các việc cần làm, CHỈ dùng các loại: ${duoc.join(', ')}.
 - sua_canh: truong là MỘT trong: ${Object.keys(TRUONG_CANH).map((k) => `${k} = ${TEN_TRUONG[k]}`).join('; ')}. Chọn đúng trường người dùng nói tới ("chữ trên màn" = chu_man, KHÔNG phải hanh_dong_vi). gia_tri = giá trị mới đầy đủ (số thì ghi số). ${loai === 'td' ? 'Ở đây chỉ dùng truong am_thanh.' : ''}
 - sua_thoai: dong = số dòng thoại, gia_tri = câu mới đầy đủ (giữ ngôn ngữ gốc của câu).
 - sua_tap: truong ∈ {ten, tom_tat, nhac_mo_ta}, gia_tri = giá trị mới.
-- Đổi NGƯỜI trong cảnh (giới tính, tuổi, thay người khác): KHÔNG đề xuất sinh lại — ảnh mẫu nhân vật quyết định người trong hình, câu thêm không đổi được; tra_loi nói phải đổi nhân vật của cảnh (hoặc ảnh mẫu của nhân vật đó) trước, hanh_dong = [].
+- Đổi NGƯỜI trong cảnh (giới tính, tuổi, dân tộc, thay người khác): người trong hình theo ẢNH MẪU của nhân vật gắn vào cảnh, câu thêm không đổi được người. Tự xử theo thứ tự, rồi LUÔN kèm sinh_lai_anh cho cảnh:
+  1. Trong dan_nhan_vat_cua_phim có người đúng ý → gan_nhan_vat, nhan_vat_ids = id các NGƯỜI sẽ có trong cảnh (thay hết người cũ; thành phần không phải người giữ nguyên).
+  2. Người đang gắn ở cảnh chỉ sai ngoại hình VÀ người dùng muốn sửa nhân vật đó cho cả phim → ve_mau, nhan_vat_ids = [id người đó], yeu_cau = ngoại hình mới (tiếng Việt, cụ thể: giới tính, tuổi, tóc, trang phục có màu). tra_loi nhắc mọi cảnh dùng nhân vật này sẽ theo ảnh mẫu mới.
+  3. Không có ai hợp → tao_nhan_vat, gia_tri = tên ngắn, yeu_cau = mô tả ngoại hình đầy đủ suy từ cảnh + lệnh (tiếng Việt). Nhân vật mới tự gắn vào cảnh thay người cũ.
+  Bước 2 và 3 tốn credit (vẽ một ảnh mẫu); tra_loi nói rõ chạy thẻ nhân vật trước, ảnh mẫu xong rồi mới chạy thẻ sinh lại keyframe.
 - sinh_lai_anh / sinh_lai_clip / sinh_lai_giong / sinh_td / sinh_nhac: tốn credit, chỉ đề xuất khi người dùng muốn hình / clip / giọng / âm thanh khác đi; yeu_cau = mô tả ngắn cái cần khác (tiếng Việt).
-Trường không dùng để chuỗi rỗng, dong = 0. Không bịa dữ liệu ngoài ngữ cảnh. Lệnh chỉ hỏi thì hanh_dong = [].`;
+Trường không dùng để chuỗi rỗng, dong = 0, nhan_vat_ids = []. Không bịa dữ liệu ngoài ngữ cảnh. Lệnh chỉ hỏi thì hanh_dong = [].`;
   const user = `NGỮ CẢNH:\n${JSON.stringify(ngCanh)}\n\n${lichSu.slice(-6).map((m) => `${m.ai === 'nguoi' ? 'Người dùng' : 'Bạn'}: ${String(m.chu).slice(0, 400)}`).join('\n')}\nNgười dùng: ${hoi}`;
   const r = await sinhJson({ schema: KHUON, system, user, max_tokens: 1500, ten: 'lenh-ai-s2' });
   if (!r.ok) return { ok: false, loi: `máy AI chưa trả lời được: ${r.loi}` };
@@ -177,6 +183,16 @@ Trường không dùng để chuỗi rỗng, dong = 0. Không bịa dữ liệu 
       else { vaCanh.loi_thoai = v.gia_tri.trim(); }
     } else if (v.loai === 'sua_tap' && TRUONG_TAP.has(v.truong)) {
       vaTap[v.truong] = v.gia_tri; da_lam.push({ loai: 'sua_tap', truong: v.truong, cu: tap[v.truong] ?? '', moi: v.gia_tri, tapId: tid, nhan: `Sửa ${TEN_TRUONG[v.truong]} của tập` });
+    } else if (v.loai === 'gan_nhan_vat' && cn) {
+      const hop = new Map(dan.map((x) => [Number(x.id), String(x.ten)])), moiNg = [...new Set(v.nhan_vat_ids.map(Number))].filter((x) => hop.has(x)); if (!moiNg.length) continue;
+      const laNg = new Set(nguoi.filter((x) => x.loai === 'nhan_vat').map((x) => Number(x.id))), moi = [...nvIds.filter((x) => !laNg.has(x)), ...moiNg];
+      vaCanh.nhan_vat = moi; da_lam.push({ loai: 'sua_canh', truong: 'nhan_vat', cu: nvIds, moi, hien: moiNg.map((x) => hop.get(x)).join(', '), canhId: Number(cn.id), nhan: `Gắn nhân vật vào cảnh ${Math.round(Number(cn.thu_tu))}` });
+    } else if (v.loai === 've_mau' && cn) {
+      const x = dan.find((d) => Number(d.id) === Number(v.nhan_vat_ids[0])); if (!x) continue;
+      de_xuat.push({ loai: 've_mau', nhanVatId: Number(x.id), canhId: Number(cn.id), tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: `Vẽ lại ảnh mẫu ${String(x.ten)}` });
+    } else if (v.loai === 'tao_nhan_vat' && cn && v.yeu_cau.trim()) {
+      const ten = (v.gia_tri.trim() || 'Nhân vật mới').slice(0, 60);
+      de_xuat.push({ loai: 'tao_nhan_vat', ten, canhId: Number(cn.id), tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: `Tạo nhân vật ${ten} cho cảnh ${Math.round(Number(cn.thu_tu))}` });
     } else if (v.loai.startsWith('sinh_')) {
       const nhan = { sinh_lai_anh: 'Sinh lại keyframe', sinh_lai_clip: 'Sinh lại clip', sinh_lai_giong: 'Đọc lại lời', sinh_td: 'Sinh lại tiếng động', sinh_nhac: 'Sinh lại nhạc nền' }[v.loai as 'sinh_td'];
       de_xuat.push({ loai: v.loai, canhId: cn ? Number(cn.id) : undefined, tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: cn ? `${nhan} cảnh ${Math.round(Number(cn.thu_tu))}` : nhan });
@@ -289,6 +305,20 @@ export async function veLaiAnhMauS2(phimId: number, nhanVatId: number, yeuCau = 
   for (const url of (Array.isArray(r.anh_ref) ? r.anh_ref : []) as string[]) { const x = await xoaAnhGoc(Number(nhanVatId), url); if (!x.ok) return { ok: false, loi: x.loi }; }
   const k = await sinhAnhMau(Number(nhanVatId), 1);
   return k.ok ? { ok: true, data: k.data } : { ok: false, loi: k.loi };
+}
+
+/** TẠO NHÂN VẬT MỚI cho một cảnh (thẻ "Tạo nhân vật" của Lệnh AI — anh 21/11/2026): lưu nhân vật theo mô tả, gắn vào cảnh thay các NGƯỜI đang gắn
+ *  (thành phần khác giữ), rồi vẽ một ảnh mẫu. TỐN TIỀN: một lượt model ảnh. Ảnh mẫu xong thì sinh lại keyframe cảnh đó. */
+export async function taoNhanVatS2(canhId: number, ten: string, moTa: string): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
+  const db = getDb(); if (!db) return { ok: false, loi: 'no db' };
+  const c = ((await db.execute(sql`SELECT c.id, c.nhan_vat, t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${Number(canhId)}`)) as unknown as Row[])[0];
+  if (!c) return { ok: false, loi: 'không thấy cảnh' };
+  const mt = String(moTa ?? '').trim().slice(0, 1200), tn = String(ten ?? '').trim().slice(0, 60) || 'Nhân vật mới'; if (!mt) return { ok: false, loi: 'thiếu mô tả nhân vật' };
+  const k = await luuNhanVat({ phim_id: Number(c.phim_id), loai: 'nhan_vat', ten: tn, mo_ta: mt, anh_ref: [], giong: '' }); if (!k.ok) return { ok: false, loi: k.loi };
+  const cu = (Array.isArray(c.nhan_vat) ? c.nhan_vat as unknown[] : []).map(Number).filter(Number.isFinite);
+  const ng = cu.length ? new Set(((await db.execute(sql`SELECT id FROM xv_nhan_vat WHERE loai = 'nhan_vat' AND id = ANY(${`{${cu.join(',')}}`}::int[])`)) as unknown as Row[]).map((x) => Number(x.id))) : new Set<number>();
+  const g = await suaCanh(Number(c.id), { nhan_vat: [...cu.filter((x) => !ng.has(x)), k.data] }); if (g && (g as { ok?: boolean }).ok === false) return { ok: false, loi: (g as { loi?: string }).loi ?? 'không gắn được vào cảnh' };
+  const a = await sinhAnhMau(k.data, 1); return a.ok ? { ok: true, data: k.data } : { ok: false, loi: a.loi };
 }
 
 /** SINH LẠI một thứ của CẢNH kèm YÊU CẦU RIÊNG (Studio 2 — anh 20/11/2026: "ảnh, clip, voice luôn có kèm 1 nút để sinh lại; bấm vào thì hiện 1 input để thêm

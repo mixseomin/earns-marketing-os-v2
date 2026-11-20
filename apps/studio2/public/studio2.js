@@ -1626,8 +1626,8 @@ function aiVe() {
 function aiTin(m, i) {
   if (m.gui_lai) return `<div class="ai-tin may loi">${esc(m.chu)} <button type="button" class="bt" data-ai="guilai" data-i="${i}">Gửi lại</button></div>`;
   if (m.ai === 'nguoi') return `<div class="ai-tin nguoi"><span class="nho">${esc(m.doi || '')}</span>${esc(m.chu)}</div>`;
-  const lam = (m.da_lam || []).map((v) => `<li>${esc(v.nhan)}: <i>${esc(typeof v.moi === 'object' ? (v.moi || []).map((t) => t.loi).join(' / ') : String(v.moi))}</i></li>`).join('');
-  const dx = (m.de_xuat || []).map((v, j) => v.xong ? `<details class="ai-gon"><summary>${v.xong === 'Đã bỏ.' ? '✕' : '✓'} ${esc(v.nhan)} · ${esc(v.xong)}</summary>${v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : ''}</details>` : `<div class="ai-the"><b>${esc(v.nhan)}</b>${v.xong ? (v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : '') : `<label class="nho">Ý bổ sung<textarea class="ai-y" rows="2" data-i="${i}" data-j="${j}">${esc(v.yeu_cau || '')}</textarea></label>`}<span class="nho ai-gia">${esc(aiGia(v))}</span>${laQtThat() ? aiXemHtml(i, j) : ''}
+  const lam = (m.da_lam || []).map((v) => `<li>${esc(v.nhan)}: <i>${esc(v.hien ?? (typeof v.moi === 'object' ? (v.moi || []).map((t) => t.loi).join(' / ') : String(v.moi)))}</i></li>`).join('');
+  const dx = (m.de_xuat || []).map((v, j) => v.xong ? `<details class="ai-gon"><summary>${v.xong === 'Đã bỏ.' ? '✕' : '✓'} ${esc(v.nhan)} · ${esc(v.xong)}</summary>${v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : ''}</details>` : `<div class="ai-the"><b>${esc(v.nhan)}</b>${v.xong ? (v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : '') : `<label class="nho">Ý bổ sung<textarea class="ai-y" rows="2" data-i="${i}" data-j="${j}">${esc(v.yeu_cau || '')}</textarea></label>`}<span class="nho ai-gia">${esc(aiGia(v))}</span>${laQtThat() && v.loai.startsWith('sinh_') ? aiXemHtml(i, j) : ''}
     ${v.xong ? `<span class="nho ok">${esc(v.xong)}</span>` : `<button type="button" class="bt chinh" data-ai="chay" data-i="${i}" data-j="${j}">Chạy</button> <button type="button" class="bt" data-ai="bodx" data-i="${i}" data-j="${j}">Bỏ</button>`}</div>`).join('');
   if (lam && m.hoan) return `<div class="ai-tin may"><details class="ai-gon"><summary>↶ Đã hoàn tác: ${esc(m.chu)}</summary><ul>${lam}</ul></details>${dx}</div>`;
   return `<div class="ai-tin may${m.loi ? ' loi' : ''}">${esc(m.chu)}${lam ? `<ul>${lam}</ul>${m.hoan ? '<span class="nho">Đã hoàn tác.</span>' : `<button type="button" class="bt" data-ai="hoan" data-i="${i}">Hoàn tác</button>`}` : ''}${dx}</div>`;
@@ -1650,7 +1650,7 @@ async function aiXem(i, j) {
   aiVe(); try { x.kq = await goi('xemLenhS2', v.canhId, v.loai, v.yeu_cau || ''); } catch (e) { x.loi = e.message; } x.dang = false; if (AI.xem[key] === x) aiVe();
 }
 /** giá thẻ đề xuất: giá bước sinh + một lượt dịch nhỏ khi có ý riêng (giọng không dịch); ý đổi → tính lại ngay */
-const aiGia = (v) => { const sid = `s${v.canhId}`, k = { sinh_lai_anh: `kf1:${sid}`, sinh_lai_clip: `clip1:${sid}`, sinh_lai_giong: 'giong', sinh_nhac: 'nhac1', sinh_td: 'td' }[v.loai];
+const aiGia = (v) => { const sid = `s${v.canhId}`, k = { ve_mau: 'mauVe', tao_nhan_vat: 'mauVe', sinh_lai_anh: `kf1:${sid}`, sinh_lai_clip: `clip1:${sid}`, sinh_lai_giong: 'giong', sinh_nhac: 'nhac1', sinh_td: 'td' }[v.loai];
   if (k.startsWith('clip1') && xepHang()) return giaSl(k); if (!E.gia) return 'Đang tính credits…';
   const g = giaBuoc(k), dich = (v.yeu_cau || '').trim() && v.loai !== 'sinh_lai_giong' ? GIA_CHU.nx / 2 : 0;
   return g == null ? `Bước này tốn ${xemQt() ? 'tiền' : 'credits'} (studio chưa báo được giá cho bước này).` : `Khoảng ${tienDo(g + dich)}${dich ? ' (gồm một lượt dịch ý riêng)' : ''}.${xemQt() ? '' : ' Hiện tài khoản không giới hạn credits.'}`; };
@@ -1679,7 +1679,9 @@ async function aiBam(e) {
   const v = m.de_xuat?.[+b.dataset.j]; if (!v) return;
   if (k === 'bodx') { v.xong = 'Đã bỏ.'; aiLuu(); aiVe(); return; }
   if (k === 'chay') { b.disabled = true; b.textContent = 'Đang gửi…';
-    try { if (v.loai === 'sinh_lai_anh') await ghiSv('sinhLaiCanhS2', v.canhId, 'anh', v.yeu_cau || '');
+    try { if (v.loai === 've_mau') await ghiSv('veLaiAnhMauS2', D.that.phim, v.nhanVatId, v.yeu_cau || '');
+      else if (v.loai === 'tao_nhan_vat') await ghiSv('taoNhanVatS2', v.canhId, v.ten || '', v.yeu_cau || '');
+      else if (v.loai === 'sinh_lai_anh') await ghiSv('sinhLaiCanhS2', v.canhId, 'anh', v.yeu_cau || '');
       else if (v.loai === 'sinh_lai_clip') await ghiSv('sinhLaiCanhS2', v.canhId, 'clip', v.yeu_cau || '');
       else if (v.loai === 'sinh_lai_giong') await ghiSv('sinhLaiCanhS2', v.canhId, 'giong', v.yeu_cau || '');
       else if (v.loai === 'sinh_td') await ghiSv('sinhAmS2', v.tapId, 'td', v.canhId ?? null, v.yeu_cau || '');

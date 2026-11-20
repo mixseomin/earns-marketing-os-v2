@@ -63,12 +63,23 @@ CO_FREE = True
 #   do   — nhãn dải trắng trọn ngang chữ đen đậm (mẫu "Watch Movies Now! Free") · nút viên thuốc đỏ chữ trắng (mẫu "Watch Free" đỏ)
 #   kinh — nhãn chữ trắng không hộp, hai vạch vàng hai bên · nút trắng chữ tối kèm nút phát đỏ (mẫu khung trình phát)
 #   tim  — kiểu cũ: nhãn tím, nút xanh lá (giữ để so, không nằm trong vòng xoay)
-FREE_KIEU = ["vang", "do", "kinh"]; FREE_BAN = [0]   # FREE_BAN[0] = số bản đang vẽ (anh() / tinh-ba-kieu đặt trước khi vẽ)
+# KIỂU LẤY TỪ THƯ VIỆN MẪU (anh 20/11/2026 "mọi mẫu creative đều phải lưu vào thư viện và việc sx đều phải dựa vào đó"): danh sách kiểu = các mục của sổ
+# apps/etp2/src/lib/etp-mau-cr.json có trường lop_free và đang dùng được (trang_thai may / thu) — tắt / thêm một kiểu là sửa SỔ (tab Mẫu Creative), không sửa mã.
+# Sổ không còn kiểu nào → dừng kêu rõ (không tự vẽ kiểu ngoài thư viện). FREE_MAU: kiểu → mã mẫu trong sổ (ghi vào ghi chú bản dựng để đo từng kiểu).
+def _free_tu_so():
+    import importlib.util
+    s = importlib.util.spec_from_file_location("so_mau_free", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "so_mau.py")); SM = importlib.util.module_from_spec(s); s.loader.exec_module(SM)
+    return {x["lop_free"]: x["ma"] for x in SM.DS if x.get("lop_free") and x.get("trang_thai") in SM.DUOC_LEN}
+FREE_MAU = _free_tu_so(); FREE_KIEU = list(FREE_MAU); FREE_BAN = [0]   # FREE_BAN[0] = số bản đang vẽ (anh() / tinh-ba-kieu đặt trước khi vẽ)
+def free_mau(ban=None):
+    """mã mẫu thư viện của kiểu nhãn + nút dùng cho bản `ban` (mặc định bản đang vẽ)"""
+    if not FREE_KIEU: raise RuntimeError("thư viện mẫu (apps/etp2/src/lib/etp-mau-cr.json) không còn kiểu nhãn + nút Free nào đang dùng được (trường lop_free) — thêm / bật lại ở tab Mẫu Creative")
+    return FREE_MAU[FREE_KIEU[(FREE_BAN[0] if ban is None else ban) % len(FREE_KIEU)]]
 VANG_F, DO_F = (240, 200, 112, 255), (225, 29, 46, 255)
 def lop_free(lop, lang, day_ten=None, kieu=None):
     """vẽ nhãn trên cùng + nút dưới tên phim (day_ten = mép dưới tên, px; None = sát vùng giao diện Meta ở đáy — PO, tên nằm sẵn trên poster) lên lớp chữ RGBA đứng yên"""
     if day_ten is None: day_ten = H
-    kieu = kieu or FREE_KIEU[FREE_BAN[0] % len(FREE_KIEU)]
+    if not kieu: free_mau(); kieu = FREE_KIEU[FREE_BAN[0] % len(FREE_KIEU)]   # kiểu của thư viện mẫu; hết kiểu → free_mau() dừng kêu rõ
     nhan, nut = FREE.get(lang, FREE["en"]); d = ImageDraw.Draw(lop)
     def co(chu, c, max_w):
         while c > 40 and ImageFont.truetype(FONT_FREE, c).getlength(chu) > max_w: c -= 4
@@ -506,11 +517,11 @@ def mot(p, xem, kieu, ban=1):
             r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay)) if not k.get("free") else sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay), "--free")   # cổng chữ trên video (tên phim) — cùng cổng mọi creative; --free: gỡ đúng câu lớp Free nhà vẽ
             if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
             kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "ban": b + 1, "giay": giay, "vnd": vnd + (vnd_ai if b == 0 else 0), "giong": kieu_, "mau": so_mau,
-                  "ten_poster": bool(k.get("ten_poster")), "free": bool(k.get("free")), "ai": ly_ai[:200] if b == 0 else "", **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
+                  "ten_poster": bool(k.get("ten_poster")), "free": bool(k.get("free")), **({"free_mau": free_mau(b)} if k.get("free") else {}), "ai": ly_ai[:200] if b == 0 else "", **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
             if not xem:
                 xa = f"/var/tmp/anh-tinh/{cid}"; sh("ssh", B, f"mkdir -p {xa}"); sh("rsync", "-a", out, f"{B}:{xa}/", han=900)
                 ghi = (f"ảnh tĩnh bản {b + 1}/{ban} · giọng {kieu_} · mẫu câu {so_mau + 1} ({p.get('the_loai') or '?'}): {k['tap']} khung #{k['so']} (mỗi 1,5 giây từ giây 3) · "
-                       f"điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt) · AI xếp hạng {b + 1} · tên {'từ poster' if k.get('ten_poster') else 'chữ vàng'}" + (" · lớp Free (nhãn All Episodes Released + nút Watch For Free)" if k.get("free") else ""))
+                       f"điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt) · AI xếp hạng {b + 1} · tên {'từ poster' if k.get('ten_poster') else 'chữ vàng'}" + (f" · lớp Free kiểu {free_mau(b)} (nhãn All Episodes Released + nút Watch For Free)" if k.get("free") else ""))
                 r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={kq['vnd']} --ghi='{ghi}' --them{' --lop-free' if k.get('free') else ''}", han=600)   # --them: mỗi bản một dòng thư viện
                 if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
                 kq["tv"] = int(sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{DANG}' and nguon = '{NGUON}' and creative_id is null order by id desc limit 1") or 0)

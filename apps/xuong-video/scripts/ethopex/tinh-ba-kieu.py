@@ -186,10 +186,10 @@ def main(cid, kieu, ban=1, xem=False, mau_ep=None):
                     k, nen, chu = AT.khung_sach_mat(con, lambda k_: (k_.__setitem__("lang", lang), AT.anh(cid, ten, k_, tm, b)[0], lop_cau(c, tm, os.path.join(tm, f"chu-cau-{b}.png"), (k_["mat"][1] + k_["mat"][3]) * H, lang))[1:], uvk)   # cổng chữ che mặt: câu thoại to là dạng dễ che nhất
                     mp3, v = giong_cau(cid, lang, f"{c} ... {moi}", kg, tm)
                 vnd += v; out = os.path.join(tm, f"{BAN_PO[mau].lower().replace('.', '')}-{cid}-{b + 1}.mp4" if kk == "poster" else f"{ma.lower()}-{cid}-{b + 1}.mp4"); giay = AT.dung(nen, chu, mp3, out)
-                x = {"kieu": ma, "dang": dang, "ban": b + 1, "file": out, "giay": giay, "giong": kg, "vnd": v, "tap": k["tap"], "khung_so": k["so"], "ten_poster": bool(k.get("ten_poster")), "free": AT.CO_FREE,
+                x = {"kieu": ma, "dang": dang, "ban": b + 1, "file": out, "giay": giay, "giong": kg, "vnd": v, "tap": k["tap"], "khung_so": k["so"], "ten_poster": bool(k.get("ten_poster")), "free": AT.CO_FREE, **({"free_mau": AT.free_mau(b)} if AT.CO_FREE else {}),
                      **({"chu_dau": chu_dau} if chu_dau else {}), **({"cau": c} if kk == "cau_soc" else {}), **({"mau": BAN_PO[mau]} if kk == "poster" else {})}
                 if not xem:
-                    ghi = f"{dang} ({ma}){' ' + BAN_PO[mau] if kk == 'poster' else ''} bản {b + 1}/{ban} · giọng {kg} · khung {k['tap']}#{k['so']} AI xếp hạng · tên {'từ poster' if k.get('ten_poster') or kk == 'poster' else 'chữ vàng'}" + (" · lớp Free (All Episodes Released + Watch For Free)" if AT.CO_FREE else "")
+                    ghi = f"{dang} ({ma}){' ' + BAN_PO[mau] if kk == 'poster' else ''} bản {b + 1}/{ban} · giọng {kg} · khung {k['tap']}#{k['so']} AI xếp hạng · tên {'từ poster' if k.get('ten_poster') or kk == 'poster' else 'chữ vàng'}" + (f" · lớp Free kiểu {AT.free_mau(b)} (All Episodes Released + Watch For Free)" if AT.CO_FREE else "")
                     x["tv"] = nap(cid, lang, out, dang, ghi, v, chu_dau); tv.append(x)
                     if kk != "poster" or nk: AT.ghi_khung(tm, ma, k)
                 kq["ban"].append(x)

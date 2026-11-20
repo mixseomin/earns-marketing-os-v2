@@ -923,6 +923,9 @@
    "anh_dung": "/mau-cr/dt_ten_tren_nut_duoi.jpg",
    "anh_dung_phim": "Undercover Prison King",
    "nhom": "4 · Nút / CTA"
-  }
- ]
+  },
+    {"ma": "free_vang", "ten": "Nhãn + nút Free viền vàng", "loai": "lop_phu", "nguon": "doi_thu", "trang_thai": "may", "dung_cho": ["ảnh tĩnh", "ảnh tĩnh tóm tắt", "câu thoại sốc", "poster động"], "the_loai": [], "tham_chieu": ["1077794738566345", "1092249746682945"], "mo_ta": "Nhãn All Episodes Released trong hộp tối viền vàng mảnh, chữ vàng; nút Watch For Free dạng viên thuốc tối viền vàng đôi. Học từ nút Watch Now viền vàng của đối thủ.", "may": "anh-tinh.py › lop_free (kiểu vang)", "anh_dung": "/mau-cr/free_vang.jpg", "anh_dung_phim": "American Sniper: The Last Round", "nhom": "4 · Nút / CTA", "lop_free": "vang"},
+    {"ma": "free_do", "ten": "Nhãn dải trắng + nút Free đỏ", "loai": "lop_phu", "nguon": "doi_thu", "trang_thai": "may", "dung_cho": ["ảnh tĩnh", "ảnh tĩnh tóm tắt", "câu thoại sốc", "poster động"], "the_loai": [], "tham_chieu": ["1114104751104052", "2512666309260387"], "mo_ta": "Nhãn All Episodes Released trên dải trắng trọn ngang, chữ đen, gạch đỏ dưới; nút Watch For Free viên thuốc đỏ chữ trắng. Học từ dải Watch Movies Now và nút Watch Free đỏ của đối thủ.", "may": "anh-tinh.py › lop_free (kiểu do)", "anh_dung": "/mau-cr/free_do.jpg", "anh_dung_phim": "American Sniper: The Last Round", "nhom": "4 · Nút / CTA", "lop_free": "do"},
+    {"ma": "free_kinh", "ten": "Nhãn chữ trắng vạch vàng + nút Free có nút phát", "loai": "lop_phu", "nguon": "doi_thu", "trang_thai": "may", "dung_cho": ["ảnh tĩnh", "ảnh tĩnh tóm tắt", "câu thoại sốc", "poster động"], "the_loai": [], "tham_chieu": ["1459936659424344"], "mo_ta": "Nhãn All Episodes Released chữ trắng không hộp, hai vạch vàng hai bên; nút Watch For Free nền trắng chữ tối kèm nút phát đỏ. Học từ khung trình phát của đối thủ.", "may": "anh-tinh.py › lop_free (kiểu kinh)", "anh_dung": "/mau-cr/free_kinh.jpg", "anh_dung_phim": "American Sniper: The Last Round", "nhom": "4 · Nút / CTA", "lop_free": "kinh"}
+  ]
 }

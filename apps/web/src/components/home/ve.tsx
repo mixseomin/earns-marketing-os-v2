@@ -24,7 +24,15 @@ import { SeoMotSite } from '@/components/seo-tab';
 import { SteamsoloLangPanel } from '@/components/steamsolo-lang-panel';
 import { MailwizzListsPanel } from '@/components/mailwizz-lists-panel';
 import { ThuVienTab } from '@/components/thu-vien-tab';
-import { ManhCty } from './manh-cty';
+import { docAgents } from '@/lib/cty-agents';
+import type { Agent, DuPhien, PhongSoDo, SoAgents, SuKien, ViecMay, ViecNen } from '@/lib/cty-agents-kieu';
+import { LoiCty } from '@/components/agents/chung';
+import { SoAgentsW } from '@/components/agents/so';
+import { BangAgents } from '@/components/agents/bang';
+import { ViecAgents } from '@/components/agents/viec';
+import { PhienAgents } from '@/components/agents/phien';
+import { SuKienAgents } from '@/components/agents/su-kien';
+import { SoDoAgents } from '@/components/agents/so-do';
 
 const PhuView = dynamic(() => import('@/components/phu-view').then((m) => m.PhuView));
 const PhuCanChuY = dynamic(() => import('@/components/phu-view').then((m) => m.PhuCanChuY));
@@ -83,6 +91,18 @@ function LoiTat() {
     </div>
   );
 }
+
+// tên người theo mã — widget phiên / sự kiện / việc nền chỉ có mã người; đọc chung phần 'nguoi' (React cache: một lần hỏi cty cho cả màn)
+async function tenAgents(): Promise<Record<string, string>> { const r = await docAgents<{ ds: Agent[] }>('nguoi'); return r.ok ? Object.fromEntries(r.du.ds.map((a) => [a.id, a.ten])) : {}; }
+async function AgSo() { const r = await docAgents<SoAgents>('so'); return r.ok ? <SoAgentsW du={r.du} /> : <LoiCty loi={r.loi} />; }
+async function AgBang() { const r = await docAgents<{ ds: Agent[]; thang: number }>('nguoi'); return r.ok ? <BangAgents ds={r.du.ds} admin={r.admin} thang={r.du.thang} /> : <LoiCty loi={r.loi} />; }
+async function AgViec() {
+  const [r, ten] = await Promise.all([docAgents<{ may: { luc: string | null; loiDo: Record<string, string>; ds: ViecMay[] }; nen: ViecNen[] }>('viec'), tenAgents()]);
+  return r.ok ? <ViecAgents may={r.du.may.ds} nen={r.du.nen} luc={r.du.may.luc} loiDo={r.du.may.loiDo} admin={r.admin} tenNguoi={ten} /> : <LoiCty loi={r.loi} />;
+}
+async function AgPhien() { const [r, ten] = await Promise.all([docAgents<DuPhien>('phien'), tenAgents()]); return r.ok ? <PhienAgents du={r.du} tenNguoi={ten} /> : <LoiCty loi={r.loi} />; }
+async function AgSuKien() { const [r, ten] = await Promise.all([docAgents<{ ds: SuKien[] }>('su-kien'), tenAgents()]); return r.ok ? <SuKienAgents ds={r.du.ds} tenNguoi={ten} /> : <LoiCty loi={r.loi} />; }
+async function AgSoDo() { const r = await docAgents<{ phong: PhongSoDo[] }>('so-do'); return r.ok ? <SoDoAgents phong={r.du.phong} /> : <LoiCty loi={r.loi} />; }
 
 export const VE: Record<MaWidget, Ve> = {
   A1: (n) => <SoChinh n={n} />,
@@ -143,11 +163,11 @@ export const VE: Record<MaWidget, Ve> = {
   K7: () => <MayDangView chi="lich" />,
   L1: (n) => <ThuVienTab tv={n.tv} />,
   L2: () => <LoiTat />,
-  // nhóm M — mảnh của cty.on.tc nhúng vào ô: màn sẵn có của cty (/nhan-su, /nhat-ky, /) hoặc mảnh cả công ty (/manh/* — repo cty src/app/manh/[ma]/page.tsx)
-  M1: () => <ManhCty duong="/manh/so" ten="Số agents" thap />,
-  M2: () => <ManhCty duong="/nhan-su" ten="Bảng agents" />,
-  M3: () => <ManhCty duong="/manh/viec-may" ten="Việc máy và việc nền" />,
-  M4: () => <ManhCty duong="/manh/logs" ten="Lượt chạy kỹ sư" />,
-  M5: () => <ManhCty duong="/nhat-ky" ten="Sổ sự kiện cty" />,
-  M6: () => <ManhCty duong="/" ten="Sơ đồ tổ chức" />,
+  // nhóm M — Agents của cty.on.tc: DỮ LIỆU từ cổng /api/agents của cty (lib/cty-agents.ts), MOS2 tự vẽ — cấm nhúng trang cty vào ô (anh 20/11/2026)
+  M1: () => <AgSo />,
+  M2: () => <AgBang />,
+  M3: () => <AgViec />,
+  M4: () => <AgPhien />,
+  M5: () => <AgSuKien />,
+  M6: () => <AgSoDo />,
 };

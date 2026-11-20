@@ -5,8 +5,9 @@
 //   2. mọi widget trong sổ có hàm vẽ trong components/home/ve.tsx và ngược lại;
 //   3. bố cục dựng sẵn của từng màn: mã widget có thật, không lặp trong một màn (kể cả trong tab), nằm trong lưới 48 × 72, không đè nhau; mọi widget nằm trên ít nhất một màn;
 //   4. widget BẢNG RỘNG (rong: true) chỉ được nằm trong ô rộng ≥ RONG_BANG cột — bảng nhiều cột nhét vào ô hẹp là "bị kẹp kích thước" (anh 20/11/2026).
-//   5. mỗi widget khai đúng một trong hai: `tab` (thay tab nào của trang chủ cũ) hoặc `nguon` (mảnh nhúng từ app khác, vd nhóm M của cty.on.tc).
-// Chạy: node scripts/check-home-widget.mjs   ·   node scripts/check-home-widget.mjs --tu-kiem (tự phá năm chỗ, phải đỏ cả năm)
+//   5. mỗi widget khai đúng một trong hai: `tab` (thay tab nào của trang chủ cũ) hoặc `nguon` (đọc dữ liệu app khác qua cổng, vd nhóm M của cty.on.tc);
+//   6. CẤM nhúng nguyên trang vào ô (anh 20/11/2026): tệp vẽ widget (ve.tsx + mọi tệp nó import trong components/) không có <iframe / <embed / <object.
+// Chạy: node scripts/check-home-widget.mjs   ·   node scripts/check-home-widget.mjs --tu-kiem (tự phá sáu chỗ, phải đỏ cả sáu)
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,8 +15,19 @@ import { fileURLToPath } from 'node:url';
 const GOC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'apps/web/src');
 const doc = (p) => fs.readFileSync(path.join(GOC, p), 'utf8');
 
-export function kiem(so, ve, tabTrang) {
+// luật 6: đọc tệp vẽ widget + các tệp components/ nó import (một tầng — khối widget đứng ngay dưới ve.tsx), tìm thẻ nhúng trang
+const SRC = path.join(GOC, 'apps/web/src');
+function tepWidget(ve) {
+  const ra = [['components/home/ve.tsx', ve]];
+  for (const [, m] of ve.matchAll(/from '(@\/components\/[^']+|\.\/[^']+)'/g)) {
+    const goc = m.startsWith('@/') ? m.slice(2) : `components/home/${m.slice(2)}`;
+    for (const duoi of ['.tsx', '.ts', '/index.tsx', '/index.ts']) { const f = path.join(SRC, goc + duoi); if (fs.existsSync(f)) { ra.push([goc + duoi, fs.readFileSync(f, 'utf8')]); break; } }
+  }
+  return ra;
+}
+export function kiem(so, ve, tabTrang, cacTep = tepWidget(ve)) {
   const loi = [];
+  for (const [ten, chu] of cacTep) for (const m of chu.matchAll(/<(iframe|embed|object)\b/g)) loi.push(`${ten}: <${m[1]}> trong tệp vẽ widget — cấm nhúng nguyên trang vào ô; lấy DỮ LIỆU rồi tự vẽ (anh 20/11/2026)`);
   const khoiTab = tabTrang.slice(tabTrang.indexOf("'/': {"), tabTrang.indexOf("'/shop'"));
   const tabs = [...khoiTab.matchAll(/\{ key: '([a-z0-9_]+)'/g)].map((m) => m[1]);
   const khoiW = so.slice(so.indexOf('export const WIDGET = {'), so.indexOf('} as const satisfies'));
@@ -63,6 +75,7 @@ if (process.argv.includes('--tu-kiem')) {
     ['bỏ widget duy nhất của tab luat', kiem(so.replace(/^\s+L2: \{.*$/m, ''), ve, tabTrang)],
     ['bỏ hàm vẽ A1', kiem(so, ve.replace(/^\s+A1: \(.*$/m, ''), tabTrang)],
     ['cho hai ô đè nhau', kiem(so.replace("['A2', 0, 10, 10, 62]", "['A2', 0, 0, 10, 62]"), ve, tabTrang)],
+    ['nhúng trang vào ô', kiem(so, ve, tabTrang, [...tepWidget(ve), ['components/agents/gia.tsx', '<iframe src="https://cty.on.tc/nhan-su" />']])],
     ['widget không khai tab lẫn nguon', kiem(so.replace("nguon: 'cty' },\n  M2", "},\n  M2"), ve, tabTrang)],
     ['nhét bảng rộng vào ô hẹp', kiem(so.replace("['B1', 10, 10, 38, 62]", "['B1', 10, 10, 20, 62]"), ve, tabTrang)],
   ];

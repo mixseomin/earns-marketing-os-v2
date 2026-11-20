@@ -6,6 +6,7 @@
 import { Component, useMemo, useRef, type CSSProperties, type ReactNode } from 'react';
 import { CAC_TAY, CX, CY, boTab, buocCua, gop, keo, khoa, moTab, tabsCua, tha as thaO, type CheDoCham, type O, type Tay } from '@/lib/home/luoi';
 import { BO_SO, macCuaBo, widgetCuaBo, type BoSoId } from '@/lib/luoi-trang/bo-so';
+import { KhungO } from './khung-o';
 
 /** Một widget lỗi (đọc dữ liệu hỏng, khối vỡ) không được kéo sập cả màn: báo ngay trong ô đó, kèm câu máy nói + nút thử lại. */
 class LoiWidget extends Component<{ ten: string; onThuLai: () => void; children: ReactNode }, { loi: string | null }> {
@@ -99,7 +100,7 @@ export function Bang({ so = 'home', ds, noi, sua, luoi, cham, to, onDoi, onTo, o
               </div>
             ) : <button type="button" className="hm-ic hm-noi-to" title={`${ten} · phóng to hoặc thu lại`} aria-label={`Phóng to ${ten}`} onClick={() => onTo(to === c.ma ? '' : c.ma)}>⤢</button>}
             <div className="hm-ob">
-              <LoiWidget ten={ten} onThuLai={onThuLai}>{noi[c.ma] ?? <div className="hm-cho">đang đọc…</div>}</LoiWidget>
+              <LoiWidget ten={ten} onThuLai={onThuLai}><KhungO>{noi[c.ma] ?? <div className="hm-cho">đang đọc…</div>}</KhungO></LoiWidget>
             </div>
             {sua && !c.k && CAC_TAY.map((t) => <i key={t} className="hm-tay" data-h={t} />)}
           </section>

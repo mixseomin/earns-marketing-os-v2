@@ -11,8 +11,8 @@ export const NHOM: Record<NhomWidget, string> = { A: 'Toàn cảnh', B: 'Campaig
  *  ghi: có nút ghi dữ liệu · tab: tab của trang chủ cũ mà widget này thay (sổ lib/tab-trang.ts) ·
  *  rong: ruột là BẢNG RỘNG nhiều cột — bố cục dựng sẵn phải cho nó ô rộng ≥ RONG_BANG cột (anh 20/11/2026: bảng cũ cho vào ô hẹp "bị kẹp kích thước");
  *  nhiều bảng rộng cùng màn thì xếp thành tab trong MỘT ô trọn bề ngang, không chia đôi màn. scripts/check-home-widget.mjs chặn bố cục sai.
- *  nguon: 'cty' — widget KHÔNG thay tab nào của trang chủ cũ mà là một MẢNH của cty.on.tc nhúng vào ô (components/home/manh-cty.tsx): cty tự vẽ và tự ghi,
- *  /home chỉ xếp chỗ. Mỗi widget khai đúng một trong hai: tab hoặc nguon. */
+ *  nguon: 'cty' — widget KHÔNG thay tab nào của trang chủ cũ mà đọc DỮ LIỆU của cty.on.tc qua cổng /api/agents (lib/cty-agents.ts) rồi tự vẽ (components/agents/*).
+ *  CẤM nhúng nguyên trang app khác vào ô (anh 20/11/2026) — scripts/check-home-widget.mjs luật 6 chặn. Mỗi widget khai đúng một trong hai: tab hoặc nguon. */
 export type WidgetSo = { ten: string; moTa: string; mac: [number, number]; ngu?: ('p' | 'days' | 'ky')[]; tuDe?: true; ghi?: true; rong?: true; tab?: string; nguon?: 'cty' };
 export const RONG_BANG = 32;
 export const WIDGET = {
@@ -73,7 +73,7 @@ export const WIDGET = {
   K6: { ten: 'Lượt đã dựng', moTa: 'lượt dựng 1 / 7 / 30 ngày, tiền thật, lỗi', mac: [48, 28], tuDe: true, rong: true, tab: 'maysx' },
   K7: { ten: 'Lịch máy đăng', moTa: 'lịch đăng lọc theo dự án, kênh, nền, tài khoản', mac: [48, 36], rong: true, tab: 'maydang' },
   L1: { ten: 'Thư viện', moTa: 'thiết kế (mẫu + ảnh) và các trang Library: công cụ, kiến thức, catalog, offers, nền tảng, công nghệ', mac: [48, 60], rong: true, tab: 'thuvien' },
-  // M — AGENTS của công ty AI (anh 20/11/2026 "thêm 1 layout + widgets mới để quản lý các agents trong cty.on.tc"): mảnh do cty.on.tc vẽ, đường ở components/home/ve.tsx
+  // M — AGENTS của công ty AI (anh 20/11/2026 "thêm 1 layout + widgets mới để quản lý các agents trong cty.on.tc"): dữ liệu cty, MOS2 tự vẽ (components/agents/*)
   M1: { ten: 'Số agents', moTa: 'nhân sự · đang làm · kẹt · rảnh · tắt · việc máy bật / lỗi · chi API tháng · phiên CLI hôm nay', mac: [48, 9], tuDe: true, nguon: 'cty' },
   M2: { ten: 'Bảng agents', moTa: 'bật / tắt tự làm · đổi mô hình · chỉnh ca và lịch · trạng thái thật · chi; kèm so sánh bộ não và đề xuất', mac: [48, 40], ghi: true, rong: true, nguon: 'cty' },
   M3: { ten: 'Việc máy và việc nền', moTa: 'timer, cron trên box3 / box1 + sổ bộ điều phối Mac: bật / tắt, đổi lịch, lần cuối, lỗi', mac: [48, 36], ghi: true, rong: true, nguon: 'cty' },

@@ -18,14 +18,14 @@ type Doi = 'phim' | 'tap' | 'canh' | 'job' | 'viec' | 'khong';
 const LUAT: Record<string, { doi: Doi; tien?: boolean }> = {
   // đọc
   toiS2: { doi: 'khong' }, dsPhimS2: { doi: 'khong' }, dsGoiTheLoai: { doi: 'khong' }, dsTemplateS2: { doi: 'khong' }, dsMauPhim: { doi: 'khong' }, docTemplate: { doi: 'khong' },
-  docPhim: { doi: 'phim' }, quyTrinhTap: { doi: 'phim' }, dsCanh: { doi: 'tap' }, uocTien: { doi: 'tap' }, uocAm: { doi: 'tap' }, nhatKyTap: { doi: 'tap' }, nhatKyCanh: { doi: 'canh' }, docCoSoS2: { doi: 'tap' },
+  docPhim: { doi: 'phim' }, quyTrinhTap: { doi: 'phim' }, dsCanh: { doi: 'tap' }, uocTien: { doi: 'tap' }, uocAm: { doi: 'tap' }, nhatKyTap: { doi: 'tap' }, nhatKyCanh: { doi: 'canh' }, docCoSoS2: { doi: 'tap' }, hangDoiS2: { doi: 'phim' },
   docViecNen: { doi: 'viec' }, trangThaiXuat: { doi: 'job' },
   // ghi không tốn tiền
   taoPhimS2: { doi: 'khong' }, taoPhimTuTemplate: { doi: 'khong' }, taoTap: { doi: 'phim' }, suaPhim: { doi: 'phim' }, suaTap: { doi: 'tap' }, suaCanh: { doi: 'canh' }, xepCanh: { doi: 'tap' }, themCanh: { doi: 'tap' },
   duyetNguoiXemTayAction: { doi: 'tap' }, luuKhuonChuoi: { doi: 'tap' }, chonKeyframe: { doi: 'canh' }, duyetKhungTayAction: { doi: 'canh' }, boQuaSoiClipAction: { doi: 'canh' }, duyetCanh: { doi: 'canh' }, duyetAnimatic: { doi: 'tap' }, xuatTap: { doi: 'tap' }, moTraPhiS2: { doi: 'tap' },
   // ghi tốn tiền
   taoPhimMau: { doi: 'khong', tien: true }, phanTichAstrolasS2: { doi: 'tap', tien: true }, vietKichBanTap: { doi: 'tap', tien: true }, tachCanhTap: { doi: 'tap', tien: true }, batDauNguoiXem: { doi: 'tap', tien: true }, kiemKhungTapAction: { doi: 'tap', tien: true }, suaTheoNguoiXem: { doi: 'tap', tien: true },
-  goiYAIKinhThanh: { doi: 'phim', tien: true }, goiYAIBoAnchor: { doi: 'phim', tien: true }, sinhAnhThieuAction: { doi: 'phim', tien: true }, veLaiAnhMauS2: { doi: 'phim', tien: true }, sinhKeyframe: { doi: 'canh', tien: true },
+  goiYAIKinhThanh: { doi: 'phim', tien: true }, goiYAIBoAnchor: { doi: 'phim', tien: true }, sinhAnhThieuAction: { doi: 'phim', tien: true }, veLaiAnhMauS2: { doi: 'phim', tien: true }, sinhKeyframe: { doi: 'canh', tien: true }, sinhLaiCanhS2: { doi: 'canh', tien: true },
   sinhGiong: { doi: 'tap', tien: true }, sinhVideoCanh: { doi: 'canh', tien: true }, sinhNhac: { doi: 'tap', tien: true },
 };
 /** hàm vừa tạo ra một phim → phim đó thuộc về người bấm */

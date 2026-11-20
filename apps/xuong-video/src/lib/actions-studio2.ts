@@ -5,7 +5,10 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from './auth';
-import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, sinhAnhMau } from './actions';
+import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, sinhAnhMau, sinhGiong, sinhVideoCanh } from './actions';
+import { sinhKeyframeCanh } from './xuong-video/sinh-anh';
+import { dichChuoi } from './xuong-video/claude';
+import type { KinhThanh } from './xuong-video/kieu';
 import { duocS2, quyenCua, type QuyenS2 } from './quyen-s2';
 import { GOI_THE_LOAI, goiTheoKey } from './xuong-video/goi-the-loai';
 import type { LoaiPhim } from './xuong-video/kieu';
@@ -166,13 +169,54 @@ export async function datQuyenS2(userId: number, dung: boolean, sinh: boolean): 
 
 /** VẼ LẠI ẢNH MẪU của một anchor (Studio 2 › nút "Vẽ lại ảnh mẫu" — anh 20/11/2026 "Đổi ảnh… phải có các nút sinh thủ công cho người dùng"): ảnh mẫu cũ vào
  *  thùng rác của studio (xoaAnhGoc, khôi phục được ở studio) rồi sinh MỘT ảnh gốc mới từ mô tả — không lấy ảnh cũ làm danh tính. TỐN TIỀN: một lượt model ảnh. */
-export async function veLaiAnhMauS2(phimId: number, nhanVatId: number): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
+export async function veLaiAnhMauS2(phimId: number, nhanVatId: number, yeuCau = ''): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
   const db = getDb(); if (!db) return { ok: false, loi: 'no db' };
   const r = ((await db.execute(sql`SELECT anh_ref FROM xv_nhan_vat WHERE id = ${Number(nhanVatId)} AND phim_id = ${Number(phimId)}`)) as unknown as Row[])[0];
   if (!r) return { ok: false, loi: 'mẫu này không thuộc phim' };
+  // yêu cầu riêng cho mẫu = thêm vào MÔ TẢ của mẫu (mô tả là danh tính của mẫu: ảnh mẫu này và mọi cảnh về sau đều theo)
+  const yc = String(yeuCau ?? '').trim().slice(0, 600);
+  if (yc) await db.execute(sql`UPDATE xv_nhan_vat SET mo_ta = rtrim(coalesce(mo_ta, '')) || ${` ${yc}`}, updated_at = now() WHERE id = ${Number(nhanVatId)}`);
   for (const url of (Array.isArray(r.anh_ref) ? r.anh_ref : []) as string[]) { const x = await xoaAnhGoc(Number(nhanVatId), url); if (!x.ok) return { ok: false, loi: x.loi }; }
   const k = await sinhAnhMau(Number(nhanVatId), 1);
   return k.ok ? { ok: true, data: k.data } : { ok: false, loi: k.loi };
+}
+
+/** SINH LẠI một thứ của CẢNH kèm YÊU CẦU RIÊNG (Studio 2 — anh 20/11/2026: "ảnh, clip, voice luôn có kèm 1 nút để sinh lại; bấm vào thì hiện 1 input để thêm
+ *  yêu cầu riêng (optional); không có thì sinh lại theo cấu trúc chung"). Yêu cầu của người làm (tiếng nào cũng được) được dịch sang tiếng Anh cho câu lệnh ảnh / clip.
+ *   anh   → nối vào CHÍNH câu lệnh nguồn của lượt vẽ này (sinh-anh.ts › sinhKeyframeCanh, khối siết) — không sửa thẻ cảnh; ảnh mới là ứng viên
+ *   giong → ghi vào chỉ dẫn diễn xuất của từng dòng lời của cảnh rồi đọc lại cảnh đó
+ *   clip  → ghi thêm vào hành động của cảnh (câu lệnh clip dựng từ đó) rồi dựng lại / xếp hàng lại
+ *  TỐN TIỀN như bước gốc (+ một lượt dịch nhỏ khi có yêu cầu cho ảnh / clip). */
+export async function sinhLaiCanhS2(canhId: number, loai: 'anh' | 'giong' | 'clip', yeuCau = ''): Promise<{ ok: true; data: unknown } | { ok: false; loi: string }> {
+  const db = getDb(), me = await getCurrentUser(); if (!db || !me) return { ok: false, loi: 'không có quyền' };
+  const id = Number(canhId), yc = String(yeuCau ?? '').trim().slice(0, 600);
+  const c = ((await db.execute(sql`SELECT c.tap_id, p.kinh_thanh FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id JOIN xv_phim p ON p.id = t.phim_id WHERE c.id = ${id}`)) as unknown as Row[])[0];
+  if (!c) return { ok: false, loi: 'không thấy cảnh' };
+  let en = '';
+  if (yc && loai !== 'giong') { const d = await dichChuoi({ kinhThanh: (c.kinh_thanh ?? {}) as KinhThanh, sang: 'en', ds: [yc], thuatNgu: [] }); if (!d.ok) return { ok: false, loi: `không dịch được yêu cầu: ${d.loi}` }; en = String(d.data[0] ?? '').trim(); }
+  if (loai === 'anh') return sinhKeyframeCanh(db, id, 1, undefined, undefined, false, en ? `EXTRA REQUEST FOR THIS FRAME (must be followed, everything else stays as described): ${en}` : '');
+  if (loai === 'giong') {
+    if (yc) await db.execute(sql`UPDATE xv_canh SET thoai = (SELECT coalesce(jsonb_agg(CASE WHEN coalesce(x->>'loi', '') <> '' THEN x || jsonb_build_object('dien_xuat', ${yc}::text) ELSE x END), '[]'::jsonb) FROM jsonb_array_elements(coalesce(thoai, '[]'::jsonb)) x), updated_at = now() WHERE id = ${id}`);
+    return sinhGiong(Number(c.tap_id), [id]);
+  }
+  if (en) await db.execute(sql`UPDATE xv_canh SET hanh_dong = rtrim(coalesce(hanh_dong, '')) || ${` Extra direction: ${en}`}, prompt_video = rtrim(coalesce(prompt_video, '')) || ${` Extra direction: ${en}`}, updated_at = now() WHERE id = ${id}`);
+  return sinhVideoCanh(id);
+}
+
+export type ViecHangDoi = { id: number; loai: string; nhan: string; doi_tuong: string; provider: string; model: string; trang_thai: string; loi: string; cents: number; luc: string; xong_luc: string };
+/** HÀNG ĐỢI SINH của cả phim (Studio 2 › widget Hàng đợi — anh 20/11/2026: "cần chỗ quản lý các queue sinh ảnh, video, voice… để xem lỗi, thành công cũng như chi phí"):
+ *  300 việc mới nhất trong sổ xv_job của phim (ảnh cảnh, ảnh mẫu, giọng, nhạc, clip, chữ, xuất) + tổng theo trạng thái và tổng tiền của cả phim. Chỉ đọc. */
+export async function hangDoiS2(phimId: number): Promise<{ viec: ViecHangDoi[]; tong: { cho: number; chay: number; loi: number; xong: number; cents: number } }> {
+  const db = getDb(), id = Number(phimId), rong = { viec: [], tong: { cho: 0, chay: 0, loi: 0, xong: 0, cents: 0 } };
+  if (!db || !id) return rong;
+  const dk = sql`(j.phim_id = ${id} OR j.canh_id IN (SELECT c.id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${id}) OR j.nhan_vat_id IN (SELECT v.id FROM xv_nhan_vat v WHERE v.phim_id = ${id})) AND j.loai <> 'viec_nen'`;
+  const r = (await db.execute(sql`SELECT j.id, j.loai, j.nhan, j.provider, j.model, j.trang_thai, j.loi, j.chi_phi_cents, j.created_at, j.updated_at, c.thu_tu, v.ten AS mau_ten
+    FROM xv_job j LEFT JOIN xv_canh c ON c.id = j.canh_id LEFT JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id WHERE ${dk} ORDER BY j.id DESC LIMIT 300`)) as unknown as Row[];
+  const t = ((await db.execute(sql`SELECT count(*) FILTER (WHERE j.trang_thai IN ('cho', 'hang', 'hang_h3')) AS cho, count(*) FILTER (WHERE j.trang_thai = 'chay') AS chay, count(*) FILTER (WHERE j.trang_thai = 'loi') AS loi,
+    count(*) FILTER (WHERE j.trang_thai = 'xong') AS xong, coalesce(sum(j.chi_phi_cents), 0) AS cents FROM xv_job j WHERE ${dk}`)) as unknown as Row[])[0] ?? {};
+  return { viec: r.map((x) => ({ id: Number(x.id), loai: String(x.loai ?? ''), nhan: String(x.nhan ?? ''), doi_tuong: x.thu_tu != null ? `Cảnh ${Math.round(Number(x.thu_tu))}` : x.mau_ten ? `Mẫu ${String(x.mau_ten)}` : '',
+      provider: String(x.provider ?? ''), model: String(x.model ?? ''), trang_thai: String(x.trang_thai ?? ''), loi: String(x.loi ?? ''), cents: Number(x.chi_phi_cents ?? 0), luc: gio(x.created_at), xong_luc: gio(x.updated_at) })),
+    tong: { cho: Number(t.cho ?? 0), chay: Number(t.chay ?? 0), loi: Number(t.loi ?? 0), xong: Number(t.xong ?? 0), cents: Number(t.cents ?? 0) } };
 }
 
 /** CHẾ ĐỘ CHO PHÉP VIDEO TRẢ PHÍ của một tập (anh 20/11/2026: "B9 bật chế độ cho phép chạy trả phí") — chỉ quản trị thật. Bật = ghi ky_thuat.tra_phi cho mọi shot

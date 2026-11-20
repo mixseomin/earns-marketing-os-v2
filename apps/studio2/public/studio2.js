@@ -1140,9 +1140,13 @@ function veTt() {
   $('#dTt').innerHTML = `<div class="tt-dau"><b>${dau}</b>${ch ? '<button type="button" class="bt tron" data-d="boChon">Bỏ chọn</button>' : ''}</div>${o.join('')}`;
 }
 /** BẢN ĐÃ SINH (anh 21/11/2026): mọi ảnh / clip / giọng đã sinh của cảnh, chọn lại bản nào cũng được (0đ). Nạp lười theo cảnh đang chọn, tươi 20 giây. */
-const banSinh = (c, phan) => { if (!D.that || !GOC[c.id]) return ''; const k = c.id, o = (E.bs ||= {})[k];
-  if ((!o || Date.now() - o.luc > 20000) && !o?.dang) { (E.bs[k] = { ...(o || {}), dang: true }); goi('banDaSinhS2', GOC[k].id).then((d) => { E.bs[k] = { d, luc: Date.now() }; if (E.chon?.id === k) veD(); }, () => { E.bs[k] = { d: o?.d, luc: Date.now() }; }); }
-  const d = o?.d; if (!d) return ''; const r = [];
+/** nạp lười một bộ bản đã sinh (khoá k), tươi 20 giây; về thì vẽ lại nếu vẫn đang chọn mục đó; lỗi thì báo, không im */
+const napBs = (k, ham, arg, chonId) => { const o = (E.bs ||= {})[k];
+  if ((!o || Date.now() - o.luc > 20000) && !o?.dang) { E.bs[k] = { ...(o || {}), dang: true }; goi(ham, arg).then((d) => { E.bs[k] = { d, luc: Date.now() }; if (E.chon?.id === chonId) veD(); }, (e) => { E.bs[k] = { d: o?.d, luc: Date.now() }; bao(`Studio không đọc được các bản đã sinh: ${e.message}`, false, 8000); }); }
+  return o?.d; };
+/** khung xem Clip: shot phim thật chưa có clip riêng thì hiện ảnh, không mượn đoạn video cả tập (có thể là bản xuất cũ) */
+const vidTap = (c) => (D.that && GOC[c.id] ? null : D.vid);
+const banSinh = (c, phan) => { if (!D.that || !GOC[c.id]) return ''; const d = napBs(c.id, 'banDaSinhS2', GOC[c.id].id, c.id); if (!d) return ''; const r = [];
   if (phan.includes('v') && d.video.lech) r.push(`<div class="bao"><b>${d.video.lech === 'anh_khac' ? 'Clip đang dùng dựng từ ảnh cũ, chưa có ảnh đang dùng' : 'Ảnh đang dùng chưa có clip'}</b><span>${d.video.lech === 'anh_khac' ? 'Khung xem Clip vẫn phát clip cũ.' : 'Khung xem Clip đang hiện ảnh thay cho clip.'} Dựng clip từ ảnh này để khớp (tốn credits, giá hiện khi bấm).</span><button type="button" class="bt" data-d="dungClip">Dựng clip từ ảnh này</button></div>`);
   const nut = (loai, u, dung, i = 0) => `<button type="button" class="bt" data-d="bsChon" data-k="${loai}" data-i="${i}" data-g="${esc(u)}" aria-pressed="${dung}">${dung ? 'Đang dùng' : 'Dùng bản này'}</button>`;
   if (phan.includes('a') && d.anh.ds.length > 1) r.push(muc(`Ảnh đã vẽ · ${d.anh.ds.length} bản`, `<div class="luoi3">${d.anh.ds.slice().reverse().map((u) => `<button type="button" class="o-hinh" data-d="bsChon" data-k="anh" data-g="${esc(u)}" aria-pressed="${u === d.anh.dung}" aria-label="Dùng ảnh này"><img src="${esc(u)}" alt="" loading="lazy">${d.video.ds.some((v) => v.kf === u) ? '<small>có clip</small>' : ''}</button>`).join('')}</div>`));
@@ -1150,9 +1154,7 @@ const banSinh = (c, phan) => { if (!D.that || !GOC[c.id]) return ''; const k = c
     return `<div class="bs-o"><video src="${esc(v.url)}" preload="metadata" muted controls playsinline></video><span class="nho">${v.ban === 'cuoi' ? 'Bản cuối' : 'Nháp'}${v.model ? ` · ${esc(v.model)}` : ''}${v.luc ? ` · ${gioVn(v.luc)}` : ''}</span>${nut('video', v.url, dung)}</div>`; }).join('')}</div>`));
   if (phan.includes('g')) d.giong.filter((x) => x.ds.length > 1).forEach((x) => r.push(muc(`Giọng dòng ${x.dong + 1} · ${x.ds.length} bản${x.loi ? ` · “${esc(x.loi.slice(0, 40))}”` : ''}`, `<div class="bs-ds">${x.ds.map((v) => `<div class="bs-o"><audio src="${esc(v.url)}" preload="none" controls></audio><span class="nho">${v.luc ? gioVn(v.luc) : ''}</span>${nut('giong', v.url, v.url === x.dung, x.dong)}</div>`).join('')}</div>`)));
   return r.join(''); };
-const nhacSinh = () => { if (!D.that) return ''; const k = `t${D.that.tap}`, o = (E.bs ||= {})[k];
-  if ((!o || Date.now() - o.luc > 20000) && !o?.dang) { E.bs[k] = { ...(o || {}), dang: true }; goi('banNhacS2', D.that.tap).then((d) => { E.bs[k] = { d, luc: Date.now() }; if (E.chon?.id === 'nhac') veD(); }, () => { E.bs[k] = { d: o?.d, luc: Date.now() }; }); }
-  const d = o?.d; if (!d || d.ds.length < 2) return '';
+const nhacSinh = () => { if (!D.that) return ''; const d = napBs(`t${D.that.tap}`, 'banNhacS2', D.that.tap, 'nhac'); if (!d || d.ds.length < 2) return '';
   return muc(`Nhạc đã sinh · ${d.ds.length} bản`, `<div class="bs-ds">${d.ds.map((v) => `<div class="bs-o"><audio src="${esc(v.url)}" preload="none" controls></audio><span class="nho">${v.luc ? gioVn(v.luc) : ''}</span><button type="button" class="bt" data-d="bsChon" data-k="nhac" data-g="${esc(v.url)}" aria-pressed="${v.url === d.dung}">${v.url === d.dung ? 'Đang dùng' : 'Dùng bản này'}</button></div>`).join('')}</div>`); };
 const luoiDoi = (c) => (E.moDoi ? `<div class="luoi3">${khoHinh().slice(0, 18).map((a) => `<button type="button" class="o-hinh" data-d="doiHinh" data-g="${a}" aria-pressed="${c.anh === a}" aria-label="Dùng hình này"><img src="${a}" alt="" loading="lazy"></button>`).join('')}</div>` : '');
 const chipNv = (c, coTieuDe) => { if (!D.nvs.length) return ''; const h = `<div class="day-bt">${D.nvs.map((n) => `<button type="button" class="bt nv-bt" data-d="nvCanh" data-g="${n.id}" aria-pressed="${c.nv.includes(n.id)}"><img src="${anhNv(n)}" alt="">${esc(n.ten)}</button>`).join('')}</div>`; return coTieuDe ? muc('Nhân vật trong cảnh', h) : h; };
@@ -1279,7 +1281,7 @@ function veKim(theo) {
 }
 function veKhung() {
   const T = tong(), { c, s } = canhTai(Math.min(E.t, T - 0.001)), p = Math.min(1, Math.max(0, (E.t - s) / c.tg)), a = $('#kA'), v = $('#kV');
-  const ng = pro() && nguonCo().includes(E.nguon) ? E.nguon : 'anh', rieng = ng === 'clip' ? c.vid : ng === '3d' ? c.vid3 : null, src = rieng || (ng === 'clip' ? (D.that && GOC[c.id] ? null : D.vid) : ng === '3d' ? D.vid3 : null), tu0 = rieng ? (ng === 'clip' ? c.tuV : c.tu3) : c.tu, hopBat = pro() && E.hop && ng === '3d' && !E.chay && !!c.hop && Math.abs(E.t - s) < 0.05, coVid = !!src && tu0 != null && !hopBat, laLop = ng === 'lop' && !!c.lop, anh = laLop ? c.nen : ng === '3d' && c.k3 ? c.k3 : c.anh;
+  const ng = pro() && nguonCo().includes(E.nguon) ? E.nguon : 'anh', rieng = ng === 'clip' ? c.vid : ng === '3d' ? c.vid3 : null, src = rieng || (ng === 'clip' ? vidTap(c) : ng === '3d' ? D.vid3 : null), tu0 = rieng ? (ng === 'clip' ? c.tuV : c.tu3) : c.tu, hopBat = pro() && E.hop && ng === '3d' && !E.chay && !!c.hop && Math.abs(E.t - s) < 0.05, coVid = !!src && tu0 != null && !hopBat, laLop = ng === 'lop' && !!c.lop, anh = laLop ? c.nen : ng === '3d' && c.k3 ? c.k3 : c.anh;
   $('#w-xem').style.setProperty('--r', TILE[D.tile]);
   if (a.dataset.src !== anh) { a.dataset.src = anh; a.src = anh; }
   a.style.transform = ng !== 'anh' && !(ng === 'lop' && !laLop) ? 'none' : { 'Phóng gần': `scale(${1 + 0.14 * p})`, 'Lùi xa': `scale(${1.14 - 0.14 * p})`, 'Lia ngang': `scale(1.12) translateX(${(p - 0.5) * 7}%)`, 'Đứng yên': 'none' }[c.cd];
@@ -1305,7 +1307,7 @@ function veSs(c, s, ng) {
   if (vg.dataset.ss !== key) { vg.dataset.ss = key; vg.querySelectorAll('.k-ss').forEach((x) => x.remove());
     ds.forEach((n) => vg.insertAdjacentHTML('beforeend', `<div class="k k-ss" data-ng="${n}" data-ten="${TEN_NG[n]}"><img alt=""><video playsinline muted preload="metadata" hidden></video></div>`)); }
   vg.querySelectorAll('.k-ss').forEach((o) => { const n = o.dataset.ng, a = o.querySelector('img'), v = o.querySelector('video');
-    const rieng = n === 'clip' ? c.vid : n === '3d' ? c.vid3 : null, src = rieng || (n === 'clip' ? (D.that && GOC[c.id] ? null : D.vid) : n === '3d' ? D.vid3 : null), tu0 = rieng ? (n === 'clip' ? c.tuV : c.tu3) : c.tu, coVid = !!src && tu0 != null;
+    const rieng = n === 'clip' ? c.vid : n === '3d' ? c.vid3 : null, src = rieng || (n === 'clip' ? vidTap(c) : n === '3d' ? D.vid3 : null), tu0 = rieng ? (n === 'clip' ? c.tuV : c.tu3) : c.tu, coVid = !!src && tu0 != null;
     const anh = n === 'lop' && c.nen ? c.nen : n === '3d' && c.k3 ? c.k3 : c.anh; if (a.dataset.src !== anh) { a.dataset.src = anh; a.src = anh; }
     v.hidden = !coVid; if (!coVid) { if (!v.paused) v.pause(); return; }
     if (v.dataset.src !== src) { v.dataset.src = src; v.src = src; } const d = tu0 + Math.min(E.t - s, c.tg);

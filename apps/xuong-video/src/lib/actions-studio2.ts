@@ -5,7 +5,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from './auth';
-import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, luuNhanVat, sinhAnhMau, sinhGiong, sinhVideoCanh, sinhNhac, sinhAmThanh, suaCanh, suaTap } from './actions';
+import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, luuNhanVat, sinhAnhMau, sinhGiong, sinhVideoCanh, sinhNhac, sinhAmThanh, suaCanh, suaTap, chonKeyframe, chonPhienBan } from './actions';
 import { z } from 'zod/v4';
 import { sinhKeyframeCanh, lyChanKeyframe, chuanBiKeyframe } from './xuong-video/sinh-anh';
 import { boiCanhCanh } from './xuong-video/doc-db';
@@ -531,18 +531,13 @@ export async function banNhacS2(tapId: number): Promise<{ dung: string; ds: { ur
 export async function chonBanS2(canhId: number, loai: 'anh' | 'video' | 'giong', url: string, dong = 0): Promise<{ ok: true; data: undefined } | { ok: false; loi: string }> {
   const db = getDb(), id = Number(canhId), u = String(url ?? ''); if (!db || !id || !u) return { ok: false, loi: 'thiếu cảnh / bản' };
   const b = await banDaSinhS2(id); if (!b) return { ok: false, loi: 'không thấy cảnh' };
+  // ảnh / clip đi qua đúng hàm gốc của studio (chụp sổ hoàn tác, bóc tách ảnh, chép mốc đoạn) — không chép lại câu UPDATE ở đây
   if (loai === 'anh') { if (!b.anh.ds.includes(u)) return { ok: false, loi: 'ảnh không thuộc shot này' };
-    await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${u}, trang_thai = CASE WHEN trang_thai IN ('nhap', 'loi') THEN 'co_keyframe' ELSE trang_thai END, updated_at = now() WHERE id = ${id}`);
+    const k = await chonKeyframe(id, u); if (!k.ok) return k;
     // ảnh này đã có clip → đổi clip theo luôn (bản mới nhất dựng từ ảnh đó); chưa có thì giữ clip, trang báo lệch
-    const v = [...b.video.ds].reverse().find((x) => x.kf === u); if (v) return chonBanS2(id, 'video', v.url);
-    return { ok: true, data: undefined }; }
+    const v = [...b.video.ds].reverse().find((x) => x.kf === u); return v ? chonPhienBan(id, v.url, v.ban === 'cuoi' ? 'cuoi' : 'nhap') : k; }
   if (loai === 'video') { const v = b.video.ds.find((x) => x.url === u); if (!v) return { ok: false, loi: 'clip không thuộc shot này' };
-    const pb = (((await db.execute(sql`SELECT video_phien_ban FROM xv_canh WHERE id = ${id}`)) as unknown as Row[])[0]?.video_phien_ban ?? []) as Row[], r = pb.find((x) => x.url === u) ?? {};
-    const doan = { ...(r.vao_s != null ? { vao_s: r.vao_s } : {}), ...(r.toc_khop != null ? { toc_khop: r.toc_khop } : {}) };
-    if (Object.keys(doan).length) await db.execute(sql`UPDATE xv_canh SET ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || ${JSON.stringify(doan)}::jsonb WHERE id = ${id}`);
-    if (v.ban === 'cuoi') await db.execute(sql`UPDATE xv_canh SET video_cuoi_url = ${u}, updated_at = now() WHERE id = ${id}`);
-    else await db.execute(sql`UPDATE xv_canh SET video_url = ${u}, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${id}`);
-    return { ok: true, data: undefined }; }
+    return chonPhienBan(id, u, v.ban === 'cuoi' ? 'cuoi' : 'nhap'); }
   const d = b.giong[Number(dong)]; if (!d || !d.ds.some((x) => x.url === u)) return { ok: false, loi: 'giọng không thuộc dòng thoại này' };
   await db.execute(sql`UPDATE xv_canh SET thoai = jsonb_set(thoai, ${`{${Number(dong)},url}`}::text[], ${JSON.stringify(u)}::jsonb), updated_at = now() WHERE id = ${id}`);
   return { ok: true, data: undefined };

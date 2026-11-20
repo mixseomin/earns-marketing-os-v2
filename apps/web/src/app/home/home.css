@@ -96,6 +96,10 @@
 .hm-ob [data-panel-phu] { display: none; }
 /* nhãn một dòng (Pill) dài hơn ô hẹp thì cắt "…" (chữ đủ ở hover) — trước đó kéo cả ô cuộn ngang (Sức khoẻ đăng +92 px, đo 20/11/2026) */
 .hm-ob [data-comp="ui.Pill"] { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+/* Panel là con của lưới / flex trong khối cũ: min-width:auto làm panel NỞ theo bảng bên trong (Sức khoẻ đăng 631 px trong ô 357 px) → khoá về bề ngang ô,
+   bảng thường trong panel tự cuộn ngang trong chính panel thay vì kéo cả ô tràn */
+.hm-ob [data-comp="ui.Panel"] { min-width: 0; max-width: 100%; }
+.hm-ob [data-comp="ui.Panel"] > table, .hm-ob [data-comp="ui.Panel"] > div > table { display: block; max-width: 100%; overflow-x: auto; }
 .hm-ob [data-comp="ui.Pill"] > span:last-child { overflow: hidden; text-overflow: ellipsis; }
 .hm-ob [data-panel-dau] > div { flex-wrap: nowrap !important; overflow: hidden; }
 /* Tiêu đề dính CHỈ cho bảng tự dựng (bảng phủ…). Bảng nhà DataTable (.dt-dau / .dt-scroll) đã tự lo dính tiêu đề + thanh lọc + thanh trang theo khung cuộn gần nhất —

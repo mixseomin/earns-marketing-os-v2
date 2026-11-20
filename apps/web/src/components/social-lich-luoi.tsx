@@ -10,6 +10,7 @@ import { wrapExternalUrl } from '@/lib/external-url';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { pkCua } from '@/lib/ho-nen';
 import { HangLoc, useKhungO } from '@/components/home/khung-o';
+import { ChonTim } from '@mos2/bang/chon-tim';
 
 const NEN_NHAN: Record<string, string> = { youtube: 'YT', facebook: 'FB', fb_anh: 'FB ảnh', fb_link: 'FB link', x: 'X', x_anh: 'X ảnh', x_link: 'X link', tiktok: 'TikTok', instagram: 'IG', dailymotion: 'DM', threads: 'Threads' };
 // Page cũ gắn vào máy (S06): khoá 'facebook:<acct>' → 'FB Page cũ'
@@ -318,9 +319,10 @@ export function BangNoiDung({ luoi, kenhMo, doiKenh }: { luoi: StLuoi; kenhMo?: 
               style={{ border: `1px solid ${mau}`, background: 'transparent', color: on ? mau : 'var(--fg-3)', borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', borderStyle: k === 'chưa có góc' ? 'dashed' : 'solid' }}>{k}{locGoc === k ? ' ✕' : ''}</button>; })}
   </>;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(210px, 250px) minmax(0, 1fr)', gap: 14, margin: '4px 0 14px', alignItems: 'start' }}>
+    // trong ô widget: cây kênh (250 px) thu thành ô chọn có tìm ở đầu hàng → lịch 7 ngày có trọn bề ngang (trước đó cột ngày hẹp hơn thẻ bài, thẻ T7/CN đè nhau)
+    <div style={{ display: 'grid', gridTemplateColumns: trongO ? 'minmax(0, 1fr)' : 'minmax(210px, 250px) minmax(0, 1fr)', gap: 14, margin: '4px 0 14px', alignItems: 'start' }}>
       {/* YDNI: cây không có hộp cuộn riêng (một thanh cuộn = trang), nhãn chỉ ghi tên — số bài ở hover, kênh không có bài trong khoảng thì mờ */}
-      <nav aria-label="Nền tảng và kênh" style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 6, position: 'sticky', top: 8 }}>
+      {!trongO && <nav aria-label="Nền tảng và kênh" style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 6, position: 'sticky', top: 8 }}>
         {nhom.map(([khoa, ds]) => (
           <div key={khoa}>
             <button type="button" onClick={() => setDong((d) => ({ ...d, [khoa]: !d[khoa] }))} aria-expanded={!dong[khoa]} title={`${ds.length} kênh`}
@@ -336,9 +338,11 @@ export function BangNoiDung({ luoi, kenhMo, doiKenh }: { luoi: StLuoi; kenhMo?: 
                 {coSo ? <span aria-label="có lượt xem" style={{ fontSize: 11, color: 'var(--fg-3)' }}>👁</span> : null}
               </button>; })}
           </div>))}
-      </nav>
+      </nav>}
       {c ? <section style={{ display: 'grid', gap: 10, minWidth: 0 }}>
-        <header style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+        <header style={{ display: 'flex', flexWrap: trongO ? 'nowrap' : 'wrap', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          {trongO && <ChonTim value={c.k} title="Chọn kênh" onChange={(v) => { chonKenh(v); setLoc(null); setLocGoc(null); }}
+            ds={nhom.flatMap(([khoa, ds]) => [...ds].sort((a, b) => a.tk.localeCompare(b.tk)).map((x) => ({ v: x.k, nhan: `${TEN_NEN[khoa] ?? khoa} · ${x.tk} (${trong(x).length})` })))} />}
           <SiteFavicon platformKey={c.khoa} size={24} title={c.khoa} />
           <span title={`${c.may} · ${c.nen.map(nhanNen).join(' · ')}`} style={{ minWidth: 0 }}>
             {c.url ? <a href={wrapExternalUrl(c.url)} target="_blank" rel="noreferrer" style={{ fontSize: 16, fontWeight: 700, color: 'inherit' }}>{c.tk} ↗</a> : <b style={{ fontSize: 16 }}>{c.tk}</b>}</span>

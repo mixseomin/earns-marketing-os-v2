@@ -148,11 +148,11 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
         thoai: thoai.length ? thoai.map((t, i) => ({ dong: i, nguoi_noi: t.nhan_vat, loi: t.loi, dien_xuat: t.dien_xuat })) : [{ dong: 0, loi: cn!.loi_thoai }] } };
   const duoc = VIEC_THEO_LOAI[loai];
   const VIEC = z.object({ loai: z.enum(['sua_canh', 'sua_thoai', 'sua_tap', 'sinh_lai_anh', 'sinh_lai_clip', 'sinh_lai_giong', 'sinh_td', 'sinh_nhac']),
-    truong: z.string(), gia_tri: z.string(), dong: z.number(), yeu_cau: z.string() });
+    truong: z.enum(['', ...Object.keys(TRUONG_CANH), ...TRUONG_TAP] as [string, ...string[]]), gia_tri: z.string(), dong: z.number(), yeu_cau: z.string() });
   const KHUON = z.object({ tra_loi: z.string(), hanh_dong: z.array(VIEC) });
   const system = `Bạn là trợ lý dựng video trong Studio 2. Người dùng đang chọn MỘT đối tượng (${loai === 'canh' ? 'một cảnh / keyframe' : loai === 'giong' ? 'lời đọc của một cảnh' : loai === 'td' ? 'tiếng động của một cảnh' : loai === 'nhac' ? 'nhạc nền của tập' : 'cả tập'}).
-Đọc câu lệnh, trả JSON: tra_loi = một hai câu tiếng Việt có dấu nói bạn làm gì (hoặc hỏi lại nếu lệnh không rõ); hanh_dong = các việc cần làm, CHỈ dùng các loại: ${duoc.join(', ')}.
-- sua_canh: truong ∈ {${Object.keys(TRUONG_CANH).join(', ')}}, gia_tri = giá trị mới đầy đủ (số thì ghi số). ${loai === 'td' ? 'Ở đây chỉ dùng truong am_thanh.' : ''}
+Đọc câu lệnh, trả JSON: tra_loi = một hai câu tiếng Việt có dấu, không xưng "tôi" (viết kiểu "Đã đổi …" / "Đề xuất …"), nói đã làm gì (hoặc hỏi lại nếu lệnh không rõ); hanh_dong = các việc cần làm, CHỈ dùng các loại: ${duoc.join(', ')}.
+- sua_canh: truong là MỘT trong: ${Object.keys(TRUONG_CANH).map((k) => `${k} = ${TEN_TRUONG[k]}`).join('; ')}. Chọn đúng trường người dùng nói tới ("chữ trên màn" = chu_man, KHÔNG phải hanh_dong_vi). gia_tri = giá trị mới đầy đủ (số thì ghi số). ${loai === 'td' ? 'Ở đây chỉ dùng truong am_thanh.' : ''}
 - sua_thoai: dong = số dòng thoại, gia_tri = câu mới đầy đủ (giữ ngôn ngữ gốc của câu).
 - sua_tap: truong ∈ {ten, tom_tat, nhac_mo_ta}, gia_tri = giá trị mới.
 - sinh_lai_anh / sinh_lai_clip / sinh_lai_giong / sinh_td / sinh_nhac: tốn credit, chỉ đề xuất khi người dùng muốn hình / clip / giọng / âm thanh khác đi; yeu_cau = mô tả ngắn cái cần khác (tiếng Việt).

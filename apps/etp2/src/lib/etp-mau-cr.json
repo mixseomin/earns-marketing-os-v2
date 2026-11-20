@@ -1,5 +1,5 @@
 {
- "_ghi": "SỔ MẪU CREATIVE — MỘT NƠI (anh 19/11/2026: 'Tạo 1 tab mới là Mẫu Creative' · 'khi lên creative, phải dựa vào 1 mẫu nào đó! Nếu chưa có mẫu thì phải tìm cho ra hoặc phải bổ sung mới!! Ko còn creative tự do nữa'). Web (tab Mẫu Creative, lib/actions/etp-mau-cr.ts) và máy (apps/etp/so_mau.py → cổng len-creative.py: creative nào không gắn được mẫu thì KHÔNG được tải lên Ethopex) cùng đọc tệp này. DẠNG không khai ở đây — đọc etp-dang.json. loai: cong_thuc = công thức máy dựng creative (phải có 'dang' = dạng có dấu, 'nhan' = chữ nhận diện trong ghi chú bản dựng khi một dạng có nhiều công thức, 'mac_dinh' = công thức dùng khi không nhận ra) · bo_cuc / lop_phu = mẫu bố cục / lớp chữ-nút. trang_thai: may = máy đang dựng · thu = có mã, chưa vào máy · chua = mới là tham chiếu. CHỈ công thức trạng thái may / thu được tải lên. tham_chieu = library_id QC đối thủ. anh_dung = bản MÁY DỰNG theo mẫu (dung-mau.py --bang) đặt cạnh QC GỐC đối thủ để so có dựng đúng mẫu không (anh 19/11/2026). nhom = nhóm thiết kế hiện trên tab (1 công thức · 2 dạng · 3 tên phim · 4 nút / CTA · 5 băng chữ / câu nhử · 6 bố cục / key-art · 7 bố cục ảnh nhà). mau_duyet = creative máy dựng theo mẫu mà ANH ĐÃ DUYỆT làm mẫu (anh 20/11/2026 'Ổn rồi. Lưu vào creative mẫu đó') — chỉ những bản này được lên thẻ cạnh QC gốc đối thủ; anh_dung (bản thử) vẫn chỉ nằm trong ngăn.",
+ "_ghi": "SỔ MẪU CREATIVE — MỘT NƠI (anh 19/11/2026: 'Tạo 1 tab mới là Mẫu Creative' · 'khi lên creative, phải dựa vào 1 mẫu nào đó! Nếu chưa có mẫu thì phải tìm cho ra hoặc phải bổ sung mới!! Ko còn creative tự do nữa'). Web (tab Mẫu Creative, lib/actions/etp-mau-cr.ts) và máy (apps/etp/so_mau.py → cổng len-creative.py: creative nào không gắn được mẫu thì KHÔNG được tải lên Ethopex) cùng đọc tệp này. DẠNG không khai ở đây — đọc etp-dang.json. loai: cong_thuc = công thức máy dựng creative (phải có 'dang' = dạng có dấu, 'nhan' = chữ nhận diện trong ghi chú bản dựng khi một dạng có nhiều công thức, 'mac_dinh' = công thức dùng khi không nhận ra) · bo_cuc / lop_phu = mẫu bố cục / lớp chữ-nút. trang_thai: may = máy đang dựng · thu = có mã, chưa vào máy · chua = mới là tham chiếu. CHỈ công thức trạng thái may / thu được tải lên. tham_chieu = library_id QC đối thủ. anh_dung = bản MÁY DỰNG theo mẫu (dung-mau.py --bang) đặt cạnh QC GỐC đối thủ để so có dựng đúng mẫu không (anh 19/11/2026). nhom = nhóm thiết kế hiện trên tab (1 công thức · 2 dạng · 3 tên phim · 4 nút / CTA · 5 băng chữ / câu nhử · 6 bố cục / key-art · 7 bố cục ảnh nhà). mau_duyet = creative máy dựng theo mẫu mà ANH ĐÃ DUYỆT làm mẫu (anh 20/11/2026 'Ổn rồi. Lưu vào creative mẫu đó') — chỉ những bản này được lên thẻ cạnh QC gốc đối thủ; anh_dung (bản thử) vẫn chỉ nằm trong ngăn. chuan = ngày quy trình dựng của mẫu được chuẩn hoá VÀ anh đã duyệt bản mẫu → web hiện trạng thái 'Đã chuẩn hoá' (máy vẫn đọc trang_thai như cũ). quy_trinh = các bước chuẩn, hiện thành danh sách trong chi tiết mẫu.",
  "mau": [
   {
    "ma": "cc_cta",
@@ -466,7 +466,7 @@
     "3003117683383697",
     "1851918955714094"
    ],
-   "mo_ta": "Logo tên phim lấy NGUYÊN từ poster gốc của phim (giữ kiểu chữ, màu, hoạ tiết) đặt lên khung cảnh phim, không vẽ lại bằng phông khác. Quy trình chuẩn: tách logo ba tầng (nền poster êm: cắt rời tại máy · nền rối: AI xoá chữ lấy nền sạch + BiRefNet tách mép · vẫn trượt: dải poster mép mờ), logo rộng 90% khung, nằm trong dải 56–86% chiều cao, dưới mặt ≥ 100px, khung chật thì đổi khung khác.",
+   "mo_ta": "Logo tên phim lấy NGUYÊN từ poster gốc của phim (giữ kiểu chữ, màu, hoạ tiết) đặt lên khung cảnh phim, không vẽ lại bằng phông khác.",
    "may": "dung-mau.py › dt_logo_chat_lieu",
    "anh_dung": "/mau-cr/dt_logo_chat_lieu.jpg",
    "anh_dung_phim": "Undercover Prison King",
@@ -493,7 +493,15 @@
      "content_id": 185527
     }
    ],
-   "duyet_luc": "2026-11-20"
+   "duyet_luc": "2026-11-20",
+   "chuan": "2026-11-20",
+   "quy_trinh": [
+    "Tách logo từ poster gốc của phim. Nền poster êm: cắt rời tại máy, 0₫.",
+    "Nền poster rối: AI xoá chữ lấy nền sạch (khoảng 200₫ một phim, một lần), rồi tách mép bằng BiRefNet tại máy.",
+    "Vẫn không sạch: lấy nguyên dải poster chứa logo, bốn mép mờ dần. Không đọc ra tên phim trên poster thì dừng, không vẽ chữ thay.",
+    "Logo rộng 90% khung, cao không quá 26%, nằm trong dải 56–86% chiều cao, cách đáy mặt ít nhất 100px.",
+    "Khung chật thì đổi sang khung xếp hạng kế (tối đa 10 khung); chữ phủ quá 4% mặt thì không dựng."
+   ]
   },
   {
    "ma": "dt_ten_nut_vang",

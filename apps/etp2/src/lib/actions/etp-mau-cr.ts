@@ -15,7 +15,7 @@ import { chayDong } from '@/lib/actions/etp-dong';
 
 export type LoaiMau = 'cong_thuc' | 'dang' | 'bien_the' | 'bo_cuc' | 'lop_phu';
 export type NguonMau = 'nha' | 'doi_thu';
-export type TrangThaiMau = 'chay' | 'may' | 'thu' | 'chua';
+export type TrangThaiMau = 'chay' | 'may' | 'chuan' | 'thu' | 'chua';
 export type ThamChieu = { id: string; phim: string | null; ngay: number | null; con_chay: boolean; anh: string | null; video: string | null };
 /** một creative mẫu hiện NGUYÊN trong thẻ (anh 19/11/2026 "phải show ngay ra" · "full creative"): ảnh + video nếu có, nhãn ngắn */
 export type BanMau = { anh: string | null; video: string | null; nhan: string | null; link: string | null; con_chay?: boolean;
@@ -33,6 +33,8 @@ export type MauCr = {
   /** TẦNG 2 — VAI của format trong creative (tên phim · nút / CTA · băng chữ / câu nhử · bố cục / key-art · bố cục nhà); dạng / công thức = null */
   vai: string | null;
   dung_cho: string[]; the_loai: string[]; mo_ta: string; may: string | null; ban: BanMau[];
+  /** các bước của QUY TRÌNH CHUẨN (sổ: quy_trinh) — rỗng = mẫu chưa chuẩn hoá */
+  quy_trinh: string[];
   so: { cr: number; camp: number; dang_chay: number; chi: number; thu: number; moi: string | null } | null;
   tham_chieu: ThamChieu[];
   /** mã dòng phim máy dựng được mẫu này (CC / KT / AT / ATT / PO / CTS / LT) — null = không đi dòng phim */
@@ -47,7 +49,7 @@ export type CrSx = { id: number; anh: string | null; video: string | null; chay:
 export type DungMau = { buoc: string; trang_thai: string; ghi: string | null; cap_nhat: string; creative_ids: number[] };
 export type PhimSx = { content_id: number; ten: string | null; chon: boolean; dong_id: number | null; dong_tt: string | null; dong_ly: string | null; cr: CrSx[]; dung: DungMau | null };
 type MucSo = { ma: string; ten: string; loai: 'cong_thuc' | 'bo_cuc' | 'lop_phu'; dang?: string; nhom?: string; anh_dung?: string; anh_dung_phim?: string;
-  /** creative máy dựng anh ĐÃ DUYỆT làm mẫu (anh 20/11/2026 'Ổn rồi. Lưu vào creative mẫu đó') — lên thẻ cạnh QC gốc */ mau_duyet?: { anh: string; phim: string; content_id?: number }[]; nguon: NguonMau; trang_thai: 'may' | 'thu' | 'chua'; dung_cho: string[]; the_loai?: string[]; mo_ta: string; may?: string; anh?: string; tham_chieu?: string[] };
+  /** creative máy dựng anh ĐÃ DUYỆT làm mẫu (anh 20/11/2026 'Ổn rồi. Lưu vào creative mẫu đó') — lên thẻ cạnh QC gốc */ mau_duyet?: { anh: string; phim: string; content_id?: number }[]; /** ngày chuẩn hoá quy trình + anh duyệt bản mẫu */ chuan?: string; quy_trinh?: string[]; nguon: NguonMau; trang_thai: 'may' | 'thu' | 'chua'; dung_cho: string[]; the_loai?: string[]; mo_ta: string; may?: string; anh?: string; tham_chieu?: string[] };
 
 const run = async <T,>(q: ReturnType<typeof sql>) => (await getDb()!.execute(q)) as unknown as T[];
 
@@ -161,7 +163,7 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
     const bienThe: MauCr[] = [...btGom.values()].filter((g) => g.n >= 3).map((g): MauCr => {
       const d = DS_DANG.find((x) => x.dang === g.dang);
       const ten = [g.bc === 'giu_bo_cuc_app_goc' ? 'bố cục app gốc' : NGAN_TEN[g.ten] ?? (g.ten || 'không ghi kiểu tên'), NGAN_CTA[g.cta] ?? (g.cta || 'không ghi nút')].join(' · ');
-      return { nhom_tk: theLoaiCua(g.dang), vai: null, cha: d?.ma ?? null, ma: `${d?.ma ?? g.dang}.${[g.bc, g.ten, g.cta].map((x) => x || '_').join('.')}`, ten: `${d?.ma ?? ''} · ${ten}`,
+      return { nhom_tk: theLoaiCua(g.dang), vai: null, quy_trinh: [], cha: d?.ma ?? null, ma: `${d?.ma ?? g.dang}.${[g.bc, g.ten, g.cta].map((x) => x || '_').join('.')}`, ten: `${d?.ma ?? ''} · ${ten}`,
         loai: 'bien_the', nguon: 'nha', trang_thai: g.dang_chay ? 'chay' : g.camp ? 'may' : 'thu', nhom: null, mau: d?.mau ?? null, dung_cho: [g.dang], the_loai: [],
         mo_ta: `Biến thể của dạng ${g.dang} — ${g.n} creative đã dựng theo đúng thông số dưới.`,
         spec: [{ nhan: 'Bố cục', gia: TEN_BC[g.bc] ?? (g.bc || '—') }, { nhan: 'Kiểu chữ tên phim', gia: TEN_TEN[g.ten] ?? (g.ten || 'máy không ghi') }, { nhan: 'Widget / CTA trên khung', gia: TEN_CTA[g.cta] ?? (g.cta || 'máy không ghi') }],
@@ -173,13 +175,13 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
       ...bienThe,
       ...DS_DANG.map((d): MauCr => {
         const s = soTheo.get(d.dang);
-        return { nhom_tk: theLoaiCua(d.dang), vai: null, cha: null, spec: [], giong: [], ma: d.ma, ten: d.dang, loai: 'dang', nguon: 'nha', trang_thai: s?.dang_chay ? 'chay' : s?.camp ? 'may' : 'thu', nhom: d.nhom ?? null, mau: d.mau,
+        return { nhom_tk: theLoaiCua(d.dang), vai: null, cha: null, spec: [], giong: [], quy_trinh: [], ma: d.ma, ten: d.dang, loai: 'dang', nguon: 'nha', trang_thai: s?.dang_chay ? 'chay' : s?.camp ? 'may' : 'thu', nhom: d.nhom ?? null, mau: d.mau,
           dung_cho: [], the_loai: [], mo_ta: d.mo_ta ?? '', may: d.dong ? `dòng ${d.dong} (apps/etp/dong_phim.py)` : d.kieu ? `kiểu ${d.kieu} (kieu-moi.py)` : null,
           ban: banTheo.get(d.dang) ?? [], so: s ? { cr: s.cr, camp: s.camp, dang_chay: s.dang_chay, chi: s.chi, thu: s.thu, moi: s.moi } : null, tham_chieu: [],
           dong: d.dong ?? null, may_mau: false, phim_sx: sxCua(d.ma) };
       }),
       ...so.map((m): MauCr => { const sm = soTheoMau.get(m.ma); return {
-        cha: null, spec: [], giong: [], nhom_tk: theLoaiCua(m.loai === 'cong_thuc' ? m.dang : m.dung_cho[0]), vai: m.loai === 'cong_thuc' ? null : (m.nhom ?? '').replace(/^\d+ · /, '') || null, ma: m.ma, ten: m.ten, loai: m.loai, nguon: m.nguon, trang_thai: sm?.dang_chay ? 'chay' : m.trang_thai, nhom: null, mau: null, dung_cho: m.dung_cho, the_loai: m.the_loai ?? [],
+        cha: null, spec: [], giong: [], nhom_tk: theLoaiCua(m.loai === 'cong_thuc' ? m.dang : m.dung_cho[0]), vai: m.loai === 'cong_thuc' ? null : (m.nhom ?? '').replace(/^\d+ · /, '') || null, ma: m.ma, ten: m.ten, loai: m.loai, nguon: m.nguon, trang_thai: sm?.dang_chay ? 'chay' : m.trang_thai === 'thu' && m.chuan ? 'chuan' : m.trang_thai, quy_trinh: m.quy_trinh ?? [], nhom: null, mau: null, dung_cho: m.dung_cho, the_loai: m.the_loai ?? [],
         mo_ta: m.mo_ta, may: m.may ?? null, ban: [...(m.anh ? [{ anh: m.anh, video: null, nhan: 'mẫu nhà', link: m.anh }] : []), ...(banTheoMau.get(m.ma)
           // công thức chưa có creative nào ghi mẫu (cổng mới từ 19/11/2026) → mượn creative thu cao nhất của CÙNG DẠNG, nhãn ghi rõ là của dạng
           ?? (m.loai === 'cong_thuc' && m.dang ? (banTheo.get(m.dang) ?? []).map((b) => ({ ...b, nhan: `dạng · ${b.nhan ?? ''}`.trim() })) : []))],

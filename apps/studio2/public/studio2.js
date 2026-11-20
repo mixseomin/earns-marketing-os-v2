@@ -658,7 +658,7 @@ function theoDoi() { if (hTheo || !D.that) return; demTheo = 0; hTheo = setInter
     await taiLai(false); } catch {}
   if (co('hd')) await napHd(true).catch(() => {});
   const con = (E.hd?.tong && (E.hd.tong.cho || E.hd.tong.chay)) || E.viecNx || E.xuatThat?.tt === 'chay' || canhThat().some((c) => c.dang_sinh_anh || c.dang_sinh_giong || c.dang_sinh_sfx || c.video_dang);
-  if ((!con && demTheo >= 3) || demTheo > 260) dungTheo(); }, 7000); }
+  if ((!con && demTheo >= 3) || demTheo > 260) dungTheo(); window.aiChon?.(); }, 7000); }
 const veMauTao = () => { const o = E.tao; if (!o) return ''; if (!o.mau) return '<span class="nho">Đang đọc danh sách mẫu…</span>'; if (!o.mau.length) return '<span class="nho">Studio không trả mẫu nào.</span>';
   return o.mau.map((m) => `<button type="button" class="bt${o.mauCho === m.key ? ' chinh' : ''}" data-d="taoMau" data-g="${esc(m.key)}" ${o.dang ? 'disabled' : ''} title="${esc(m.mo_ta)}">${o.mauCho === m.key ? `Bấm lần nữa để tạo · máy tách cảnh ngay, khoảng ${tienDo(GIA_CHU.tach * m.so_tap)}` : esc(m.nhan)}</button>`).join(''); };
 async function taoVideo(mau) { const o = E.tao; if (!o || o.dang) return; if (!mau && !o.ten.trim()) { o.loi = 'chưa đặt tên video'; return vePhu(); } o.dang = true; o.loi = ''; vePhu();
@@ -1699,11 +1699,17 @@ async function aiBam(e) {
       else if (v.loai === 'sinh_lai_giong') await ghiSv('sinhLaiCanhS2', v.canhId, 'giong', v.yeu_cau || '');
       else if (v.loai === 'sinh_td') await ghiSv('sinhAmS2', v.tapId, 'td', v.canhId ?? null, v.yeu_cau || '');
       else if (v.loai === 'sinh_nhac') await ghiSv('sinhAmS2', v.tapId, 'nhac', null, v.yeu_cau || '');
-      v.xong = 'Đã gửi cho studio, theo dõi ở Hàng đợi.'; taiLai(true);
+      v.xong = 'Đang chạy bên studio…'; v.cho = Date.now(); taiLai(true).catch(() => {}).finally(theoDoi);
     } catch (er) { v.xong = ''; ls.push({ ai: 'may', loi: true, chu: `${v.nhan} bị từ chối: ${er.message}` }); }
     aiLuu(); aiVe(); }
 }
-window.aiChon = () => { if (AI.mo) aiVe(); };
+/** thẻ đề xuất đã gửi: đọc cờ đang-chạy của cảnh sau mỗi vòng theo dõi; hết cờ (hoặc vòng theo dõi đã dừng vì hết việc) → Xong */
+function aiCapNhat() { let doi = false; const CO = { sinh_lai_anh: 'dang_sinh_anh', tao_nhan_vat: 'dang_sinh_anh', sinh_lai_clip: 'video_dang', sinh_lai_giong: 'dang_sinh_giong', sinh_td: 'dang_sinh_sfx' };
+  for (const m of aiLs()) for (const v of m.de_xuat || []) { if (v.xong === 'Đã gửi cho studio, theo dõi ở Hàng đợi.') v.cho = 1; if (!v.cho) continue; const c = v.canhId != null && canhThat().find((x) => x.id === v.canhId), k = CO[v.loai];
+    const dang = c && k ? !!c[k] : !!hTheo; if (dang) { v.thay = true; continue; } if (!v.thay && hTheo && Date.now() - v.cho < 60000) continue;
+    v.xong = 'Xong, đã cập nhật lên phim.'; delete v.cho; doi = true; }
+  if (doi) aiLuu(); return doi; }
+window.aiChon = () => { const a = document.activeElement; aiCapNhat(); if (AI.mo && !(a && a.closest?.('#aiDock') && /TEXTAREA|INPUT/.test(a.tagName))) aiVe(); };
 document.addEventListener('toggle', (e) => { const t = e.target; if (!t.classList?.contains('ai-xem')) return; const key = `${t.dataset.i}:${t.dataset.j}`;
   if (t.open && !AI.xem[key]?.mo) aiXem(+t.dataset.i, +t.dataset.j); else if (!t.open && AI.xem[key]) AI.xem[key].mo = false; }, true);
 setTimeout(aiVe, 0);

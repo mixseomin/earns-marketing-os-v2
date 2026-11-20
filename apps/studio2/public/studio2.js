@@ -930,7 +930,7 @@ function datAm() { const o = document.getElementById('tlAm'); if (!o || o.hidden
 document.addEventListener('input', (e) => { if (e.target.id === 'slYc' && E.sl) E.sl.yc = e.target.value; });   // gõ dở yêu cầu không mất khi trang vẽ lại
 /** "＋ Lớp lời" (anh 20/11/2026: "Giờ muốn thêm lớp voice thì làm thế nào ?"): thêm một người nói nữa vào cảnh — Lời dẫn, một nhân vật của phim, hoặc gõ tên mới.
  *  Câu mới là một dòng thoại trống của người đó; bản Pro hiện mỗi người nói thành một lớp riêng trên timeline. Gõ câu → Lưu về studio → bấm clip lời đó → Sinh. */
-function veLopLoi() { const co = nguoiNoi(), ai = [...new Set(['Lời dẫn', ...co, ...D.nvs.filter((n) => n.vai === 'Nhân vật').map((n) => n.ten)])];
+function veLopLoi(c) { const co = nguoiNoi(), ai = [...new Set(['Lời dẫn', ...co, ...D.nvs.filter((n) => n.vai === 'Nhân vật' && c.nv.includes(n.id)).map((n) => n.ten)])];   // chỉ nhân vật có mặt ở cảnh này: sổ studio hay xếp cả đồ vật vào "Nhân vật"
   return `<div class="lop-loi"><div class="day-bt">${co.length ? '<button type="button" class="bt" data-d="themThoai">＋ Câu thoại</button>' : ''}<button type="button" class="bt" data-d="lopLoi" aria-expanded="${!!E.themAi}">＋ Lớp lời</button></div>`
     + (E.themAi ? `<div class="lop-chon"><span class="nho">Ai nói câu mới ở cảnh này? Mỗi người nói là một lớp lời riêng trên timeline (bản Pro). Gõ câu, bấm "Lưu về studio", rồi bấm clip lời đó trên timeline để sinh giọng.</span><div class="day-bt">${ai.map((t) => `<button type="button" class="bt" data-d="themAi" data-g="${esc(t)}">${esc(t)}</button>`).join('')}</div><div class="chu-o"><input type="text" id="iAiMoi" maxlength="40" placeholder="Hoặc gõ tên người nói mới" aria-label="Tên người nói mới"><button type="button" class="bt" data-d="themAi">Thêm</button></div></div>` : '') + '</div>'; }
 /** MENU TỔNG ☰ (anh 20/11/2026: "Cần 1 cái menu tổng cho cả hệ thống. Bấm vào mới hiện ra đầy đủ các chức năng khi cần"): mọi chức năng xếp theo nhóm; các nút cũ trên thanh trên vẫn giữ. */
@@ -1136,7 +1136,7 @@ function veTtPro(c) {
     + hg('Cảm xúc', `<div class="cx">${[0, 1, 2, 3].map((v) => `<button type="button" data-d="dat" data-k="cx" data-g="${v}" aria-pressed="${c.cx === v}" aria-label="Mức ${v}"${giaiNut(`cx${v}`)}></button>`).join('')}</div>`);
   if (t === 'thoai') h = (c.thoai.length ? c.thoai.map((l, k) => `<div class="thoai-d"><i class="dau" title="${esc(l.ai)}">${esc(l.ai[0])}</i><textarea id="iTh${k}" data-f="thoai" data-i="${k}" rows="2">${esc(l.cau)}</textarea></div>`).join('')
       : `<textarea id="iLoi" data-f="loi" rows="4" placeholder="Lời đọc của cảnh này">${esc(c.loi)}</textarea>`) + `<div id="iCb">${veCb(c)}</div>`
-    + veLopLoi()
+    + veLopLoi(c)
     + hg('Chữ', `<div class="chu-o"><input type="text" id="iChu" data-f="chu" value="${esc(c.chu)}" placeholder="Chữ trên màn hình">${nutGiongThoai(c)}</div>`) + hg('Vị trí', chipD(VITRI, c.viTri, 'viTri')) + hg('Tiếng', `<input type="text" id="iTd" data-f="td" value="${esc(c.td)}" placeholder="Tiếng động của cảnh">`);
   if (t === 'hinh') { const ng = nguonCo(), ten = TEN_NG;
     h = `<div class="ba-anh">${ng.map((g) => `<button type="button" class="o-hinh" data-d="nguon" data-g="${g}" aria-pressed="${E.nguon === g}"${giaiNut(g)}><img src="${g === 'lop' && c.nen ? c.nen : g === '3d' && c.k3 ? c.k3 : c.anh}" alt="" style="aspect-ratio:${TILE[D.tile]}"><small>${ten[g]}</small></button>`).join('')}</div>`

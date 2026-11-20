@@ -19,7 +19,9 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { GOC, PUB, LAU, du, doiSo, moTrang } from './chung.mjs';
 import { chenTruong } from './chen-json.mjs';
-const BY = join(GOC, 'du-lieu-goc/bayern'), PY = join(homedir(), '.venvs/castle-khop/bin/python'), DOI = [7, 1], NGUONG = 1.5;
+const BY = join(GOC, 'du-lieu-goc/bayern'), PY = join(homedir(), '.venvs/castle-khop/bin/python'), NGUONG = 1.5;
+// dời mặt bằng OSM → DOM20: đúng số scripts/so-dom20.py dò ra (ít trải nhất trên mọi điểm, hiện +6 đông +1 nam) — mái LoD2 (mai-lod2.py) đặt theo cùng số đó; trước 20/11 viết cứng +7 (theo ảnh Google) nên khối mái dốc nhỏ lệch 2 m chỉ vì hai bên đo lệch nhau 1 m
+const SD = join(BY, 'so-dom20.json'), DOI = existsSync(SD) ? (({ dx, dz }) => [dx, dz])(JSON.parse(readFileSync(SD, 'utf8'))) : [7, 1];
 const tv = (a) => { const b = [...a].sort((x, y) => x - y); return b.length ? b[b.length >> 1] : NaN; };
 /** thuần: [{ id, mh (đỉnh mô hình, m biển), dom (đỉnh DOM20), gg (đỉnh Google | null), n }] → { moc, ds: [{ …, lech }] } — mốc = trung vị (dom − mh) của khối mô hình trùng Google */
 export function tinh(ds) {

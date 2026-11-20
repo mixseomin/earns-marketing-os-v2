@@ -512,7 +512,7 @@ function dungKhoi(k, G) {
       for (const [i, j, l] of tg) { const A = m[i], B = m[j], C = m[l], len = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]); // >0: (x, z) ngược kim → pháp tuyến hướng xuống trong three (y lên, z nam)
         const P = (q) => [q[0], q[2], q[1]]; if (len > 0) tamGiac(mai, P(A), P(C), P(B)); else tamGiac(mai, P(A), P(B), P(C)); } }
     for (const [x1, z1, d1, t1, x2, z2, d2, t2] of L2.tuong) tamGiac(da, [x1, d1, z1], [x2, d2, z2], [x2, t2, z2], [x1, d1, z1], [x2, t2, z2], [x1, t1, z1], [x1, d1, z1], [x2, t2, z2], [x2, d2, z2], [x1, d1, z1], [x1, t1, z1], [x2, t2, z2]); // hai mặt: hướng ra ngoài không ghi trong tệp
-    napPhang(y1, da); // lấp chỗ mặt mái LoD2 không phủ (≤ 15% mặt bằng)
+    napPhang(Math.min(y1, L2.y0 ?? y1), da); // lấp chỗ mặt mái LoD2 không phủ (≤ 15% mặt bằng) — ở mái THẤP nhất: nắp ở máng xối đè lên mái phụ thấp hơn (Torbau 223110818 cao hơn DOM20 4 m, 20/11/2026)
   } else if (kieu === 'pyramidal' || kieu === 'cone' || kieu === 'dome' || kieu === 'onion') {
     const [cx, cz] = tamDa(v);
     for (let i = 0; i < v.length; i++) { const [x1, z1] = v[i], [x2, z2] = v[(i + 1) % v.length]; tamGiac(mai, [x1, y1, z1], [x2, y1, z2], [cx, y2, cz]); }

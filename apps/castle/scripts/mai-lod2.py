@@ -6,7 +6,7 @@ Mái OSM dựng bằng hộp bao + sống mái giữa hộp (ns.js dungKhoi) →
   2. Đổi sang toạ độ cảnh (dời mặt bằng dx, dz + bù mốc độ cao từ so-dom20.json), chia tam giác, cắt theo mặt bằng từng khối OSM.
   3. Mỗi khối: so DOM20 − mô hình hiện tại với DOM20 − mái LoD2 trên cùng lưới 1 m (diem-mo-hinh.json). Chỉ nhận khối mái LoD2 phủ ≥ 85% mặt bằng
      VÀ trung vị |lệch| giảm ≥ 0,25 m VÀ phân vị 90 không tệ hơn quá 0,3 m. Khối có cách dựng riêng (đầu hồi bậc, tháp góc, khối neo mặt Palas hướng sân) không đụng.
-  4. Ghi public/du-lieu/<lâu>-mai-lod2.json: { khoi: { id: { y1, y2, mat: [[x, z, y] × 3 …], tuong: [[x1, z1, yd1, yt1, x2, z2, yd2, yt2] …] } } }
+  4. Ghi public/du-lieu/<lâu>-mai-lod2.json: { khoi: { id: { y0 (mái thấp nhất = nắp lấp), y1 (máng xối), y2, mat: [[x, z, y] × 3 …], tuong: [[x1, z1, yd1, yt1, x2, z2, yd2, yt2] …] } } }
      — ns.js dựng mái từ đó (tường khối lên tới y1 = chỗ mái thấp nhất, phần trên tới mép mái là dải tường "tuong").
   ~/.venvs/castle-khop/bin/python apps/castle/scripts/mai-lod2.py [--ghi] [--tu-kiem]
 Chạy sau node apps/castle/scripts/so-lod2.mjs và scripts/so-dom20.py; kiểm lại bằng scripts/ban-do-lech.py."""
@@ -106,6 +106,12 @@ OSMK = {k['id']: dict(k.get('tags') or {}) for k in json.load(open(PUB / 'neusch
 for i, e in SUA.items():
     if isinstance(e, dict): OSMK.setdefault(i, {}).update({a: b for a, b in e.items() if a.startswith('roof')})
 CHOP = {i for i, t in OSMK.items() if str(t.get('roof:shape', '')).lower() in ('cone', 'pyramidal', 'dome', 'onion')}
+def cach_mep(x, z, v):  # khoảng cách từ điểm tới viền mặt bằng (m)
+    n = len(v); m = 1e9
+    for i in range(n):
+        (ax, az), (bx_, bz_) = v[i], v[(i + 1) % n]; L2_ = (bx_ - ax) ** 2 + (bz_ - az) ** 2
+        t = 0 if L2_ == 0 else max(0, min(1, ((x - ax) * (bx_ - ax) + (z - az) * (bz_ - az)) / L2_)); m = min(m, math.hypot(x - ax - t * (bx_ - ax), z - az - t * (bz_ - az)))
+    return m
 ra = {}; bang = []
 for k in K['ds']:
     v = k['v']
@@ -114,19 +120,27 @@ for k in K['ds']:
     for p, pl3 in TG:
         if p[:, 0].max() < bx0 or p[:, 0].min() > bx1 or p[:, 1].max() < bz0 or p[:, 1].min() > bz1: continue
         q = cat(v, [tuple(r) for r in p])
-        if q: manh.append((np.array(q), pl3))
+        if not q: continue
+        q = np.array(q); ar_q = abs(dien_tich(q))
+        if ar_q < 0.3: continue  # mảnh vụn ở mép cắt
+        cx_, cz_ = q.mean(0)
+        if math.hypot(pl3[0], pl3[1]) > 3: continue  # mặt dốc > 72°: tường / vách LoD2 lẫn vào mái (nhà chân Viereckturm có mảnh sát chân tường → nắp rơi xuống móng, 20/11/2026)
+        manh.append((q, pl3))
     if not manh: continue
-    em, el, co = [], [], 0
+    em, el, co, sau = [], [], 0, []
     for x, z, y in k['d']:
         d = cao_dom(x, z); h = cao_mai(x, z, manh)
         if h is None: continue
         co += 1; em.append(d - y); el.append(d - h)
+        if cach_mep(x, z, v) >= 1.5: sau.append(d - h)
     phu = co / len(k['d'])
     if co < 6: continue
     am, al = np.abs(em), np.abs(el); r = {'id': k['id'], 'ten': k.get('ten'), 'diem': len(k['d']), 'phu': round(phu, 2), 'mh': round(float(np.median(am)), 2), 'l2': round(float(np.median(al)), 2),
                                          'mh90': round(float(np.percentile(am, 90)), 2), 'l290': round(float(np.percentile(al, 90)), 2)}
     r['nhan'] = k['id'] not in RIENG and phu >= 0.85 and r['l2'] + 0.25 <= r['mh'] and r['l290'] <= r['mh90'] + 0.3
-    r['ly_do'] = 'cách dựng riêng' if k['id'] in RIENG else 'mái nón/chóp' if k['id'] in CHOP else None
+    sau_tv = float(np.median(sau)) if len(sau) >= 4 else 0.0  # cùng phép đo với trọng tài (sua-theo-dom20 --kiem: điểm sâu ≥ 1,5 m, trung vị có dấu): mái LoD2 phải tự qua bài đó, không chỉ thắng mô hình cũ trên cả mép
+    if abs(sau_tv) >= 1.0: r['nhan'] = False; r['ly_do'] = f'phần sâu lệch {sau_tv:+.1f}'
+    r['ly_do'] = r.get('ly_do') or ('cách dựng riêng' if k['id'] in RIENG else 'mái nón/chóp' if k['id'] in CHOP else None)
     r['nhan'] = r['nhan'] and k['id'] not in CHOP; bang.append(r)
     if not r['nhan']: continue
     ys = [pl3[0] * x + pl3[1] * z + pl3[2] for p, pl3 in manh for x, z in p]; y2 = max(ys)
@@ -154,7 +168,8 @@ for k in K['ds']:
             ya, yb = pl3[0] * ax + pl3[1] * az + pl3[2], pl3[0] * bx_ + pl3[1] * bz_ + pl3[2]; t0, t1 = min(0.05, L / 3), max(L - 0.05, 2 * L / 3)
             da, db = ngoai(t0), ngoai(t1)
             if ya - da > 0.05 or yb - db > 0.05: tuong.append([round(ax, 3), round(az, 3), round(min(da, ya), 3), round(ya, 3), round(bx_, 3), round(bz_, 3), round(min(db, yb), 3), round(yb, 3)])
-    ra[k['id']] = {'y1': round(y1, 3), 'y2': round(y2, 3), 'mat': mat, 'tuong': tuong, 'mh': r['mh'], 'l2': r['l2']}
+    ra[k['id']] = {'y0': round(min(vien) if len(vien) >= 4 else min(ys), 3),  # y0 = mái thấp nhất ĐO ở viền trong 0,3 m, không lấy đỉnh mảnh: mảnh dốc chạm chân tường (nhà chân Viereckturm 21,45 m) kéo sàn khối xuống thấp hơn thật 2 m
+                   'y1': round(y1, 3), 'y2': round(y2, 3), 'mat': mat, 'tuong': tuong, 'mh': r['mh'], 'l2': r['l2']}
 print('khối'.ljust(16), 'tên'.ljust(12), 'điểm', ' phủ', ' |mô hình| tv/p90', ' |LoD2| tv/p90', ' nhận')
 for r in sorted(bang, key=lambda r: -(r['mh'] - r['l2'])):
     print(r['id'].ljust(16), str(r['ten'] or '')[:11].ljust(12), str(r['diem']).rjust(4), f"{r['phu']:5.2f}", f"{r['mh']:8.2f} / {r['mh90']:5.2f}", f"{r['l2']:7.2f} / {r['l290']:5.2f}", '  ✓' if r['nhan'] else ('  ' + (r['ly_do'] or '')))

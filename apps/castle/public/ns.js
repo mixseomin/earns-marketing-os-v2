@@ -48,6 +48,7 @@ const NEN = await fetch(`./du-lieu/${ten}-nen.json`, { cache: 'no-cache' }).then
 const CAY = await fetch(`./du-lieu/${ten}-cay.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // ngọn cây theo tán chính thức (scripts/cay-tu-dom.py)
 const SAN_CONG = await fetch(`./du-lieu/${ten}-san-cong.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const CHOP = await fetch(`./du-lieu/${ten}-chop.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // chóp / tháp nhỏ OSM không có (scripts/them-chop.mjs)
+const MAT_DUNG = await fetch(`./du-lieu/${ten}-mat-dung.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // số đo mặt đứng ảnh 3D ↔ mô hình (scripts/so-mat.py): chân tháp xoè, cổng xuyên
 const CUA_SO = await fetch(`./du-lieu/${ten}-cua-so.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})); // cửa sổ đo từ ảnh từng mặt (scripts/nan-google.mjs + do-cua-so.py)
 // KHÔNG DÁN ẢNH LÊN MÔ HÌNH (anh 16/11/2026: 'không được dùng ảnh ghép vào 3D, phải dựng thành đối tượng 3D') — ảnh chỉ dùng để ĐO; mọi chi tiết dựng hình khối.
 // Lớp ảnh dán tường (dan-mat.py) và chiếu ảnh (chieuanh.js) tắt; công cụ giữ lại cho việc đo.
@@ -469,6 +470,24 @@ function tuongCoLo(G, x1, z1, x2, z2, ya, yMong, yb, s0, k, mau, lo) {
     for (const [p, q] of tu) { if (q <= p) continue; vachTuong(G.mong, ax, az, bx, bz, p, Math.min(q, yMong), s0 + a, k.day, 3); matTuong(G, ax, az, bx, bz, Math.max(p, yMong), q, s0 + a, yMong, mau); }
   }
 }
+// CHÂN THÁP XOÈ (anh 21/11/2026: "chân các tháp còn có xu hướng xoè rộng hơn"): <lâu>-mat-dung.json chan_xoe[khối].lop = [{ y_tren, doc, ra }] đo bằng scripts/so-mat.py
+// (mép bóng ảnh 3D Google lấn ra ngoài mép mô hình ở chân; đo lại trên mô hình đã xoè → thêm lớp phần còn lệch). Vỏ đá móng bọc CẢ chu vi: mặt bằng nở ra
+// Σ min(ra, doc·(y_tren − y)) mét — mỗi lớp nghiêng từ y_tren xuống tới chỗ đạt ra rồi thẳng đứng; giữa hai mốc gãy liền nhau độ nở tuyến tính → một vòng mặt nghiêng.
+// Đỉnh nở theo góc vát (miter) mỗi đỉnh mặt bằng → các mặt khép kín, không hở góc. Chỉ khối có số đo, không số viết tay.
+function chanXoe(k, G, y0) {
+  const cx = MAT_DUNG?.chan_xoe?.[k.id], lop = (cx?.lop || (cx ? [cx] : [])).filter((l) => l.doc > 0 && l.ra > 0 && l.y_tren > y0); if (!lop.length) return;
+  const v = k.v, n = v.length, no = (y) => lop.reduce((t, l) => t + Math.max(0, Math.min(l.ra, l.doc * (l.y_tren - y))), 0);
+  const nn = v.map(([x1, z1], i) => { const [x2, z2] = v[(i + 1) % n], L = Math.hypot(x2 - x1, z2 - z1) || 1; return [(z2 - z1) / L, -(x2 - x1) / L]; });
+  const vong = (d) => v.map(([x, z], i) => { const a = nn[(i + n - 1) % n], b = nn[i], f = Math.min(1.5, 1 / Math.max(1 + a[0] * b[0] + a[1] * b[1], 0.22)); // miter (a + b) / (1 + a·b), chặn góc nhọn
+    return [x + (a[0] + b[0]) * f * d, z + (a[1] + b[1]) * f * d]; });
+  const moc = [...new Set([y0, ...lop.flatMap((l) => [l.y_tren, l.y_tren - l.ra / l.doc]).filter((y) => y > y0), Math.max(...lop.map((l) => l.y_tren))])].sort((p, q) => p - q);
+  for (let m = 0; m + 1 < moc.length; m++) {
+    const ya = moc[m], yb = moc[m + 1], A = vong(no(ya)), B = vong(no(yb)); if (yb - ya < 0.01) continue; let s0 = 0;
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n, L = Math.hypot(v[j][0] - v[i][0], v[j][1] - v[i][1]); // bậc dưới A[i]→A[j] ở ya, bậc trên B[i]→B[j] ở yb; cùng thứ tự đỉnh với vachTuong (mặt hướng ra ngoài)
+      G.mong.p.push(A[i][0], ya, A[i][1], A[j][0], ya, A[j][1], B[j][0], yb, B[j][1], A[i][0], ya, A[i][1], B[j][0], yb, B[j][1], B[i][0], yb, B[i][1]);
+      const u0 = s0 / 3, u1 = (s0 + L) / 3, va = (ya - k.day) / 3, vb = (yb - k.day) / 3; G.mong.uv.push(u0, va, u1, va, u1, vb, u0, va, u1, vb, u0, vb); s0 += L; }
+  }
+}
 function vachTuong(G, x1, z1, x2, z2, ya, yb, s0, yRef, coi, mau) {
   if (yb - ya < 0.01) return; const L = Math.hypot(x2 - x1, z2 - z1), u0 = s0 / coi, u1 = (s0 + L) / coi, va = (ya - yRef) / coi, vb = (yb - yRef) / coi;
   G.p.push(x1, ya, z1, x2, ya, z2, x2, yb, z2, x1, ya, z1, x2, yb, z2, x1, yb, z1); G.uv.push(u0, va, u1, va, u1, vb, u0, va, u1, vb, u0, vb);
@@ -505,6 +524,7 @@ function dungKhoi(k, G) {
     tuongCoLo(G, x1, z1, x2, z2, y0, hMin > 0 ? yMong : mongCanh(k, x1, z1, x2, z2, y0, y1, yMong), y1, s0, k, mauMat, loCanh(k, i, x1, z1, x2, z2));
     s0 += Math.hypot(x2 - x1, z2 - z1);
   }
+  chanXoe(k, G, y0);
   const napPhang = (y, arr) => { const sh = new THREE.Shape(v.map(([x, z]) => new THREE.Vector2(x, -z))); const g = new THREE.ShapeGeometry(sh); const p = g.toNonIndexed().attributes.position; for (let i = 0; i < p.count; i += 3) for (const j of [0, 2, 1]) arr.push(p.getX(i + j), y, -p.getY(i + j)); };
   if (L2) {
     // mặt mái LoD2 đã cắt theo mặt bằng khối: chia tam giác, quay pháp tuyến lên trên; dải tường "tuong" từ mép mái xuống chỗ thấp ngay ngoài (mép khối → y1, bậc giữa hai mặt → mặt thấp)

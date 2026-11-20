@@ -1,0 +1,68 @@
+{
+ "ghi_chu": "Số đo mặt đứng ảnh 3D Google ↔ mô hình (scripts/so-mat.py): chan_xoe theo khối (y_tren đỉnh đoạn xoè, doc m ngang / m đứng), cong = cổng xuyên (tâm, pháp tuyến, rộng, đáy, đỉnh vòm).",
+ "chan_xoe": {
+  "way/1573767747": {
+   "lop": [
+    {
+     "y_tren": 42.28,
+     "doc": 0.117,
+     "ra": 1.75
+    },
+    {
+     "y_tren": 32.88,
+     "doc": 0.109,
+     "ra": 0.7
+    }
+   ],
+   "do": 3,
+   "xoe": 2,
+   "mat": [
+    "way/1573767747#1",
+    "way/1573767747#3"
+   ]
+  },
+  "way/221599098": {
+   "lop": [
+    {
+     "y_tren": 37.75,
+     "doc": 0.065,
+     "ra": 0.76
+    }
+   ],
+   "do": 2,
+   "xoe": 0,
+   "mat": [
+    "way/221599098#3"
+   ]
+  },
+  "way/223110824": {
+   "lop": [
+    {
+     "y_tren": 28.14,
+     "doc": 0.099,
+     "ra": 1.07
+    }
+   ],
+   "do": 1,
+   "xoe": 0,
+   "mat": [
+    "way/223110824#5"
+   ]
+  },
+  "way/223179004": {
+   "lop": [
+    {
+     "y_tren": 31.18,
+     "doc": 0.349,
+     "ra": 1.81
+    }
+   ],
+   "do": 1,
+   "xoe": 0,
+   "mat": [
+    "way/223179004#6"
+   ]
+  }
+ },
+ "cong": []
+}

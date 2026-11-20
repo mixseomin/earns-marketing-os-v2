@@ -151,7 +151,7 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
   const thoai = cn && Array.isArray(cn.thoai) ? (cn.thoai as { nhan_vat?: string; loi?: string; dien_xuat?: string }[]) : [];
   const ngCanh = loai === 'tap' || loai === 'nhac'
     ? { tap: { ten: tap.ten, tom_tat: tap.tom_tat, y_tuong: String(tap.brief ?? '').slice(0, 1500), nhac_mo_ta: tap.nhac_mo_ta, thoi_luong_s: tap.thoi_luong_s } }
-    : { tap: { ten: tap.ten, tom_tat: tap.tom_tat }, canh: { so: cn!.thu_tu, ten: cn!.canh, goc_may: cn!.goc_may, hanh_dong_vi: cn!.hanh_dong_vi || cn!.hanh_dong, chu_man: cn!.chu_man,
+    : { tap: { ten: tap.ten, tom_tat: tap.tom_tat }, canh: { so: Math.round(Number(cn!.thu_tu)), ten: String(cn!.canh ?? '').replace(/^\s*cảnh\s*\d+\s*[·:.-]?\s*/i, ''), goc_may: cn!.goc_may, hanh_dong_vi: cn!.hanh_dong_vi || cn!.hanh_dong, chu_man: cn!.chu_man,
         am_thanh: cn!.am_thanh, thoi_luong_s: cn!.thoi_luong_s, cam_xuc: cn!.cam_xuc, thanh_phan_trong_canh: nguoi.map((v) => ({ id: Number(v.id), ten: v.ten, loai: v.loai, mo_ta: v.mo_ta })), dan_nhan_vat_cua_phim: dan.map((v) => ({ id: Number(v.id), ten: v.ten, mo_ta: v.mo_ta, co_anh_mau: v.co_anh, so_canh_dung: Number(v.so_canh) })), co_anh: cn!.co_anh, co_clip: cn!.co_clip,
         thoai: thoai.length ? thoai.map((t, i) => ({ dong: i, nguoi_noi: t.nhan_vat, loi: t.loi, dien_xuat: t.dien_xuat })) : [{ dong: 0, loi: cn!.loi_thoai }] } };
   const duoc = VIEC_THEO_LOAI[loai];
@@ -170,7 +170,7 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
   3. Còn lại (kể cả khi người gần đúng đang dùng ở nhiều cảnh khác) → tao_nhan_vat, gia_tri = tên ngắn, yeu_cau = mô tả ngoại hình đầy đủ suy từ cảnh + lệnh (tiếng Việt). Nhân vật mới tự gắn vào cảnh thay người cũ.
   Bước 2 và 3 tốn credit (vẽ một ảnh mẫu); tra_loi nói rõ chạy thẻ nhân vật trước, ảnh mẫu xong rồi mới chạy thẻ sinh lại keyframe.
 - sinh_lai_anh / sinh_lai_clip / sinh_lai_giong / sinh_td / sinh_nhac: tốn credit, chỉ đề xuất khi người dùng muốn hình / clip / giọng / âm thanh khác đi; yeu_cau = mô tả ngắn cái cần khác (tiếng Việt).
-Trường không dùng để chuỗi rỗng, dong = 0, nhan_vat_ids = []. Không bịa dữ liệu ngoài ngữ cảnh. Lệnh chỉ hỏi thì hanh_dong = [].`;
+Gọi cảnh bằng "cảnh <so>" (so trong NGỮ CẢNH), không lấy số trong tên cảnh. Trường không dùng để chuỗi rỗng, dong = 0, nhan_vat_ids = []. Không bịa dữ liệu ngoài ngữ cảnh. Lệnh chỉ hỏi thì hanh_dong = [].`;
   const user = `NGỮ CẢNH:\n${JSON.stringify(ngCanh)}\n\n${lichSu.slice(-6).map((m) => `${m.ai === 'nguoi' ? 'Người dùng' : 'Bạn'}: ${String(m.chu).slice(0, 400)}`).join('\n')}\nNgười dùng: ${hoi}`;
   const r = await sinhJson({ schema: KHUON, system, user, max_tokens: 1500, ten: 'lenh-ai-s2' });
   if (!r.ok) return { ok: false, loi: `máy AI chưa trả lời được: ${r.loi}` };

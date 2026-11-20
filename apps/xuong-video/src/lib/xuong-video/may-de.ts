@@ -274,8 +274,9 @@ export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: Mau
     return { slug: slugDe('link', o.goc.id, o.chu.title), chu_de: o.goc.ten, de: de as never,
       dang: { loai: 'link', title: o.chu.title, description: mota2, link, nhom: 'Góc spy', dang_bai: o.dang_bai, goc: { sp: o.goc.sp, id: o.goc.id, loai: o.goc.loai, ten: o.goc.ten }, ...(o.hook ? { hook: { qc: o.hook.id, goc: o.hook.chu, page: o.hook.page, ngay: o.hook.ngay } } : {}) } as DeNapMay['dang'] } as DeNapMay & { mau: MauMayDung };
   }
+  const title = o.hook && loiHook([o.chu.title], o.hook.chu).some((l) => l.includes('thêm con số')) ? o.hook.chu : o.chu.title;
   return { slug: slugDe(o.dang_bai, o.goc.id, (de.tieu_de as string | undefined) ?? (de.tinh_huong as string | undefined) ?? (de.cau_hoi as string | undefined) ?? ((de.cau as { khang_dinh: string }[] | undefined)?.[0]?.khang_dinh) ?? (de.moc as string | undefined) ?? (de.chu as string | undefined) ?? o.goc.ten), chu_de: o.goc.ten, mau: o.mau, de: de as never,
-    dang: { title: o.chu.title, description: mota, link, nhom: 'Góc spy', ...(o.mau === 'binh-chon' ? { loai: 'poll', lua: (o.de as z.infer<typeof DePollSchema>).lua, ngay: (o.de as z.infer<typeof DePollSchema>).ngay } : {}), dang_bai: o.dang_bai, goc: { sp: o.goc.sp, id: o.goc.id, loai: o.goc.loai, ten: o.goc.ten }, ...(o.hook ? { hook: { qc: o.hook.id, goc: o.hook.chu, page: o.hook.page, ngay: o.hook.ngay } } : {}), ...(o.sp.book ? { book: o.sp.book } : {}) } as DeNapMay['dang'] };
+    dang: { title, description: mota, link, nhom: 'Góc spy', ...(o.mau === 'binh-chon' ? { loai: 'poll', lua: (o.de as z.infer<typeof DePollSchema>).lua, ngay: (o.de as z.infer<typeof DePollSchema>).ngay } : {}), dang_bai: o.dang_bai, goc: { sp: o.goc.sp, id: o.goc.id, loai: o.goc.loai, ten: o.goc.ten }, ...(o.hook ? { hook: { qc: o.hook.id, goc: o.hook.chu, page: o.hook.page, ngay: o.hook.ngay } } : {}), ...(o.sp.book ? { book: o.sp.book } : {}) } as DeNapMay['dang'] };
 }
 
 /** Sinh một đề (gọi mô hình, tối đa 2 lượt nếu lượt đầu sai luật). Trả dòng nạp + tiền. */

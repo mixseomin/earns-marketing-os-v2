@@ -76,6 +76,10 @@ assert.ok(vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('3496181930676276') 
     assert.ok(giuHook(g[0]!, hk) >= GIU_HOOK_TOI_THIEU, 'bản ghép đạt luật giữ chữ');
     assert.deepEqual(ghepHook('No split here', hk), [], 'không tách được = không ghép'); }
   assert.equal(maHookKhop(ds, 'it', 'Totally new words here'), 'it', 'không hook nào khớp thì giữ mã cũ (kiemDe vẫn chặn)'); }
+// ráp đề tự bỏ con số không có trong hook QC khỏi tiêu đề đăng, để lỗi "thêm con số" không lặp lại sau khi sinh.
+{ const hk = { id: 'rates:1', chu: 'Scam or real? This hotel app says "Your reservation will be cancelled"', ngay: 10, page: 'Hotel Alerts' };
+  const r = rapDe({ sp, goc, dang_bai: 'dung-sai', mau: 'lat-dap-an', de: { tieu_de: '3 scam checks', cau: [{ khang_dinh: 'A hotel app can cancel your reservation', dung: false, ly_do: 'Fake apps use urgency', truy: 'hotel phone message' }, { khang_dinh: 'Check the sender first', dung: true, ly_do: 'The sender can be spoofed', truy: 'phone sender screen' }, { khang_dinh: 'Call the hotel directly', dung: true, ly_do: 'Use a trusted number', truy: 'hotel phone call' }], ket: [], am: 'im' }, chu: { title: 'Scam or real? This hotel app says 3 reservations will be cancelled', description: 'Urgent hotel messages can be fake. Check the sender and contact the hotel through a number you find yourself.' }, hook: hk });
+  assert.equal(r.dang.title, hk.chu, 'không giữ con số không có trong hook QC'); }
 // BÀI LINK (18/11/2026): dòng nạp không mẫu dựng (napVideo chặn mẫu lạ), de.loai 'bai-link' + ảnh theo truy, dang.loai 'link', link ở cuối chữ, giữ hook QC
 { const hk = { id: '77', chu: 'Got this text from your hotel?', ngay: 120, page: 'X' };
   const l = rapDe({ sp, goc, dang_bai: 'bai-link', mau: 'bai-link' as never, de: { truy: 'phone message hotel' } as never, chu: { title: 'Got this text from your hotel?', description: 'Open the app you booked with first. If the stay shows confirmed, the message is fake.' }, hook: hk });

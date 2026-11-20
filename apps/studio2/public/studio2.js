@@ -778,7 +778,7 @@ function veBoCuc() {
   for (const w in WG) { const el = $(`#w-${w}`), i = ds.indexOf(w); el.hidden = i < 0; el.style.order = i + 10; if (i < 0 || !pro()) continue;
     let them = '';
     if (w === 'xem') { const ng = nguonCo(), ten = TEN_NG;
-      them = (ng.length > 1 ? `<span class="doan-bt">${ng.map((n) => `<button type="button" class="bt" data-d="nguon" data-g="${n}" aria-pressed="${E.nguon === n}">${ten[n]}</button>`).join('')}</span>` : '')
+      them = (ng.length > 1 ? `<span class="doan-bt">${ng.map((n) => `<button type="button" class="bt" data-d="nguon" data-g="${n}" aria-pressed="${E.nguon === n}">${ten[n]}</button>`).join('')}</span>` + `<button type="button" class="bt" data-d="ss" aria-pressed="${!!E.ss}" title="Xem các nguồn cạnh nhau cùng lúc để so sánh">So sánh</button>` : '')
         + (D.canh.some((c) => c.hop) ? `<button type="button" class="bt ic-bt" data-d="hopBat" title="Khung nhân vật trên hình 3D" aria-label="Khung nhân vật trên hình 3D" aria-pressed="${E.hop}">${ic('Khung')}</button>` : '')
         + (coClip() ? `<button type="button" class="bt ic-bt" data-d="tat" title="${E.tat ? 'Bật tiếng' : 'Tắt tiếng'}" aria-label="${E.tat ? 'Bật tiếng' : 'Tắt tiếng'}">${ic(E.tat ? 'Tắt tiếng' : 'Tiếng')}</button>` : ''); }
     const gr = nhT[chuT[w]];
@@ -996,7 +996,22 @@ function veKhung() {
   $('#kMo').hidden = !chu; $('#kVe').hidden = !c.ve;
   const hop = hopBat ? c.id : '', lop = $('#kHop');
   if (lop.dataset.k !== hop) { lop.dataset.k = hop; lop.innerHTML = hop ? Object.entries(c.hop).filter(([, b]) => b[2] - b[0] > 0.02).map(([t, b]) => `<div style="left:${b[0] * 100}%;top:${b[1] * 100}%;width:${(b[2] - b[0]) * 100}%;height:${(b[3] - b[1]) * 100}%"><span>${esc(t)}</span></div>`).join('') : ''; }
+  veSs(c, s, ng);
   if (E.canhDang !== c.id) { E.canhDang = c.id; E.solo = null; if (pro()) { if (co('mb')) veMb(); if (co('lp')) veLp(); if (co('nk')) { E.nkMo = null; veNk(); } document.querySelectorAll('.pc-o.dang').forEach((x) => x.classList.remove('dang')); document.querySelector(`.pc-o[data-g="${c.id}"]`)?.classList.add('dang'); } }
+}
+// So sánh (góp ý #1714): các nguồn khác (Lớp / 3D / Ảnh / Clip) hiện cạnh khung chính, cùng cảnh, cùng thời điểm
+function veSs(c, s, ng) {
+  const k = $('#k'), vg = k.parentElement, ds = E.ss && pro() ? nguonCo().filter((n) => n !== ng) : [], key = ds.join();
+  vg.classList.toggle('ss', ds.length > 0); vg.style.setProperty('--n', ds.length + 1); k.dataset.ten = ds.length ? TEN_NG[ng] : '';
+  if (vg.dataset.ss !== key) { vg.dataset.ss = key; vg.querySelectorAll('.k-ss').forEach((x) => x.remove());
+    ds.forEach((n) => vg.insertAdjacentHTML('beforeend', `<div class="k k-ss" data-ng="${n}" data-ten="${TEN_NG[n]}"><img alt=""><video playsinline muted preload="metadata" hidden></video></div>`)); }
+  vg.querySelectorAll('.k-ss').forEach((o) => { const n = o.dataset.ng, a = o.querySelector('img'), v = o.querySelector('video');
+    const rieng = n === 'clip' ? c.vid : n === '3d' ? c.vid3 : null, src = rieng || (n === 'clip' ? D.vid : n === '3d' ? D.vid3 : null), tu0 = rieng ? (n === 'clip' ? c.tuV : c.tu3) : c.tu, coVid = !!src && tu0 != null;
+    const anh = n === 'lop' && c.nen ? c.nen : n === '3d' && c.k3 ? c.k3 : c.anh; if (a.dataset.src !== anh) { a.dataset.src = anh; a.src = anh; }
+    v.hidden = !coVid; if (!coVid) { if (!v.paused) v.pause(); return; }
+    if (v.dataset.src !== src) { v.dataset.src = src; v.src = src; } const d = tu0 + Math.min(E.t - s, c.tg);
+    if (E.chay) { if (v.paused) { try { v.currentTime = d; } catch {} v.play().catch(() => {}); } else if (Math.abs(v.currentTime - d) > 0.35) v.currentTime = d; }
+    else { if (!v.paused) v.pause(); if (Math.abs(v.currentTime - d) > 0.04) { try { v.currentTime = d; } catch {} } } });
 }
 function vePhu() {
   const p = $('#dPhu'); p.hidden = !E.xuat && !E.tao && !E.doi; if (!E.xuat && !E.tao && !E.doi) { p.innerHTML = ''; return; } let h = '';
@@ -1078,6 +1093,7 @@ function lamD(a, d = {}, nut) {
     case 'duAn': soMo++; E.dangMo = false; dungChay(); E.menu = null; moDuAn(g); E.vua = false; return man('dung');
     case 'phimThat': return void moPhimThat(g, d.k || null);
     case 'nguon': E.nguon = g; return veD();
+    case 'ss': E.ss = !E.ss; return veD();
     case 'hopBat': E.hop = !E.hop; if (E.hop && E.nguon !== '3d' && nguonCo().includes('3d')) { dungChay(); E.nguon = '3d'; } return veD();
     case 'tat': E.tat = !E.tat; return veD();
     case 'lopAn': { const y = canhTai(Math.min(E.t, tong() - 0.001)).c; ghi(); y.an = y.an || []; const k = y.an.indexOf(g); if (k >= 0) y.an.splice(k, 1); else y.an.push(g); E.solo = null; E.nguon = 'lop'; dungChay(); return veD(); }

@@ -330,7 +330,7 @@ export async function sinhAmS2(tapId: number, loai: 'nhac' | 'td', canhId: numbe
   return sinhAmThanh(tap, [Number(c.id)], 'sonilo/v1.1/text-to-sound-effects', en ? { moTa: [String(c.am_thanh ?? '').trim(), en].filter(Boolean).join('. ') } : {});
 }
 
-export type LenhXem = { duong: string; model: string; chan: string[]; nguoi: { ten: string; mo_ta: string }[]; tham_chieu: { url: string; nhan: string }[]; them: string; buoc: { ten: string; prompt: string }[] };
+export type LenhXem = { duong: string; model: string; chan: string[]; nguoi: { ten: string; mo_ta: string }[]; thanh_phan: { ten: string; loai: string }[]; tham_chieu: { url: string; nhan: string }[]; them: string; buoc: { ten: string; prompt: string }[] };
 /** XEM LỆNH SẼ GỬI của thẻ đề xuất (Studio 2 › Lệnh AI, chỉ quản trị — anh 21/11/2026: "khi là Admin sẽ xem được các thành phần gửi đi"). 0đ, không sinh, không dịch:
  *  dựng câu lệnh bằng CHÍNH hàm lúc sinh thật (chuanBiKeyframe / promptVideoCanh) nên thấy đúng cái model nhận; ý riêng hiện tiếng Việt kèm chỗ nó được nối vào. */
 export async function xemLenhS2(canhId: number, loai: string, yeuCau = ''): Promise<LenhXem | null> {
@@ -340,7 +340,9 @@ export async function xemLenhS2(canhId: number, loai: string, yeuCau = ''): Prom
   const trong = bc.nhanVat.filter((v) => bc.canh.nhan_vat.includes(v.id));
   const nguoi = trong.filter((v) => v.loai === 'nhan_vat').map((v) => ({ ten: v.ten, mo_ta: String(v.mo_ta ?? '').slice(0, 160) }));
   const them = !yc ? '' : loai === 'sinh_lai_giong' ? `Ghi vào chỉ dẫn diễn xuất của từng dòng lời: "${yc}"` : loai === 'sinh_lai_clip' ? `Dịch sang tiếng Anh, nối cuối hành động: "Extra direction: <${yc}>"` : loai === 'sinh_lai_anh' ? `Dịch sang tiếng Anh, nối cuối câu lệnh: "EXTRA REQUEST FOR THIS FRAME (must be followed, everything else stays as described): <${yc}>"` : `Dịch sang tiếng Anh, nối vào mô tả: "${yc}"`;
-  const goc = { duong: '', model: '', chan: [] as string[], nguoi, tham_chieu: [] as { url: string; nhan: string }[], them, buoc: [] as { ten: string; prompt: string }[] };
+  const TEN_LOAI: Record<string, string> = { boi_canh: 'bối cảnh', dao_cu: 'đạo cụ', cau_kien: 'chi tiết', san_pham: 'sản phẩm', phong_cach: 'phong cách' };
+  const thanh_phan = trong.filter((v) => v.loai !== 'nhan_vat').map((v) => ({ ten: v.ten, loai: TEN_LOAI[v.loai] ?? v.loai }));
+  const goc = { duong: '', model: '', chan: [] as string[], nguoi, thanh_phan, tham_chieu: [] as { url: string; nhan: string }[], them, buoc: [] as { ten: string; prompt: string }[] };
   if (loai === 'sinh_lai_anh') {
     const g = await lyChanKeyframe(db, id, false); if (g?.chan.length) goc.chan = g.chan;
     goc.model = String(bc.kt.mo_hinh_anh || '');

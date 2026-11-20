@@ -1638,7 +1638,8 @@ function aiXemHtml(i, j) {
   const nd = !x?.mo ? '' : x.dang ? '<span class="nho">Đang dựng câu lệnh…</span>' : x.loi ? `<div class="bao">${esc(x.loi)}</div>` : !x.kq ? '<span class="nho">Không xem được (cần quyền quản trị).</span>' : (() => { const k = x.kq;
     return `${x.cu ? '<span class="nho">Ý vừa sửa, bấm Dựng lại để xem bản mới.</span>' : ''}${k.chan.length ? `<div class="bao">Sẽ bị chặn: ${esc(k.chan.join(' · '))}</div>` : ''}
     <dl class="ai-dl"><dt>Đường</dt><dd>${esc(k.duong)}${k.model ? ` · <code>${esc(k.model)}</code>` : ''}</dd>
-    ${k.nguoi.length ? `<dt>Người</dt><dd>${k.nguoi.map((v) => `<span title="${esc(v.mo_ta)}"><b>${esc(v.ten)}</b> ${esc(v.mo_ta.slice(0, 60))}</span>`).join('<br>')}</dd>` : ''}
+    <dt>Nhân vật</dt><dd>${k.nguoi.length ? k.nguoi.map((v) => `<span title="${esc(v.mo_ta)}"><b>${esc(v.ten)}</b> ${esc(v.mo_ta.slice(0, 60))}</span>`).join('<br>') : '<i>Cảnh không gắn nhân vật nào: người xuất hiện trong hình do model tự vẽ, không theo ảnh mẫu.</i>'}</dd>
+    ${k.thanh_phan?.length ? `<dt>Thành phần</dt><dd>${k.thanh_phan.map((v) => `${esc(v.ten)} <small>(${esc(v.loai)})</small>`).join(', ')}</dd>` : ''}
     ${k.tham_chieu.length ? `<dt>Ảnh mẫu</dt><dd class="ai-ref">${k.tham_chieu.map((r) => `<a href="${esc(r.url)}" target="_blank" rel="noreferrer" title="${esc(r.nhan)}"><img src="${esc(r.url)}" alt="${esc(r.nhan)}" loading="lazy"><small>${esc(r.nhan)}</small></a>`).join('')}</dd>` : ''}
     ${k.them ? `<dt>Ý riêng</dt><dd>${esc(k.them)}</dd>` : ''}</dl>
     ${k.buoc.map((b) => `<details class="ai-p"><summary>${esc(b.ten)} · ${b.prompt.length} ký tự</summary><pre>${esc(b.prompt)}</pre></details>`).join('')}`; })();

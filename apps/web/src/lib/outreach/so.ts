@@ -28,7 +28,7 @@ type OTho = [MaWidgetOb, number, number, number, number, MaWidgetOb[]?];
 const o = (ds: OTho[]): O[] => ds.map(([ma, x, y, w, h, tabs]) => (tabs?.length ? { ma, x, y, w, h, tabs: [ma, ...tabs] } : { ma, x, y, w, h }));
 // Nguyên tắc xếp như /home: bảng rộng trọn bề ngang, bảng phụ thành tab cùng ô, dải số một hàng mỏng trên cùng.
 export const MAN_OB: BoSoMan[] = [
-  { id: 'ob-tong', ten: 'Toàn cảnh', kh: 'TC', nhom: 'Outreach', o: o([['T1', 0, 0, 48, 10], ['T2', 0, 10, 14, 30], ['C1', 14, 10, 34, 30], ['N2', 0, 40, 24, 32], ['N3', 24, 40, 24, 32]]) },
+  { id: 'ob-tong', ten: 'Toàn cảnh', kh: 'TC', nhom: 'Outreach', o: o([['T1', 0, 0, 48, 10], ['C1', 0, 10, 48, 26], ['T2', 0, 36, 13, 36], ['N2', 13, 36, 20, 36], ['N3', 33, 36, 15, 36]]) },   // bảng chiến dịch 14 cột: trọn bề ngang (ô 34 cột làm tiêu đề cột bị cắt chữ — đo 20/11/2026)
   { id: 'ob-cd', ten: 'Chiến dịch', kh: 'CD', nhom: 'Outreach', o: o([['C1', 0, 0, 48, 44], ['C2', 0, 44, 48, 28]]) },
   { id: 'ob-nn', ten: 'Người nhận', kh: 'NN', nhom: 'Outreach', o: o([['N1', 0, 0, 48, 72]]) },
   { id: 'ob-kn', ten: 'Kiểu và nguồn', kh: 'KN', nhom: 'Thiết lập', o: o([['K1', 0, 0, 28, 72], ['K2', 28, 0, 20, 72]]) },

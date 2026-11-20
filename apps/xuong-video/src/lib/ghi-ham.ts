@@ -5,8 +5,8 @@
 import { taoPhim, taoPhimMau, taoTap, suaPhim, suaTap, vietKichBanTap, tachCanhTap, batDauNguoiXem, suaTheoNguoiXem, duyetNguoiXemTayAction, goiYAIKinhThanh, goiYAIBoAnchor,
   sinhAnhThieuAction, sinhKeyframe, chonKeyframe, duyetCanh, sinhGiong, duyetAnimatic, sinhVideoCanh, sinhNhac, xuatTap, suaCanh, xepCanh, themCanh, luuKhuonChuoi, kiemKhungTapAction, duyetKhungTayAction, boQuaSoiClipAction, taoPhimTuTemplate } from './actions';
 import { taoPhimS2, datQuyenS2, phanTichAstrolasS2, moTraPhiS2, veLaiAnhMauS2, sinhLaiCanhS2, sinhAmS2 } from './actions-studio2';
-import { luuThietKe, luuTruThietKe } from './actions-thiet-ke';
+import { luuThietKe, luuTruThietKe, taoThuMucTK, chuyenThuMucTK, doiThuMucTK } from './actions-thiet-ke';
 
 export const HAM_GHI = { taoPhim, taoPhimMau, taoTap, suaPhim, suaTap, vietKichBanTap, tachCanhTap, batDauNguoiXem, suaTheoNguoiXem, duyetNguoiXemTayAction, goiYAIKinhThanh, goiYAIBoAnchor,
-  sinhAnhThieuAction, sinhKeyframe, chonKeyframe, duyetCanh, sinhGiong, duyetAnimatic, sinhVideoCanh, sinhNhac, xuatTap, suaCanh, xepCanh, themCanh, luuKhuonChuoi, kiemKhungTapAction, duyetKhungTayAction, boQuaSoiClipAction, taoPhimTuTemplate, taoPhimS2, datQuyenS2, phanTichAstrolasS2, moTraPhiS2, veLaiAnhMauS2, sinhLaiCanhS2, sinhAmS2, luuThietKe, luuTruThietKe };
+  sinhAnhThieuAction, sinhKeyframe, chonKeyframe, duyetCanh, sinhGiong, duyetAnimatic, sinhVideoCanh, sinhNhac, xuatTap, suaCanh, xepCanh, themCanh, luuKhuonChuoi, kiemKhungTapAction, duyetKhungTayAction, boQuaSoiClipAction, taoPhimTuTemplate, taoPhimS2, datQuyenS2, phanTichAstrolasS2, moTraPhiS2, veLaiAnhMauS2, sinhLaiCanhS2, sinhAmS2, luuThietKe, luuTruThietKe, taoThuMucTK, chuyenThuMucTK, doiThuMucTK };
 export type HamGhi = typeof HAM_GHI;

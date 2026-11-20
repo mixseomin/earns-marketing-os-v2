@@ -45,9 +45,25 @@ h3 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color:
 .tk-cot input[type=color] { width: 100%; height: 30px; padding: 2px; border: 1px solid var(--line); border-radius: 6px; background: var(--mat) }
 .tk-cot textarea { font: inherit; color: var(--ink); background: var(--mat); border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; resize: vertical; min-height: 54px }
 .tk-ghichu { font-size: 11.5px; color: var(--ink-3) }
-.tk-hop { border: 1px solid var(--line); border-radius: 12px; padding: 0; width: min(860px, 94vw); background: var(--mat); color: var(--ink) }
-.tk-hop header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line) }
-.tk-ban { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 14px; max-height: 70vh; overflow: auto }
-.tk-ban button { display: grid; gap: 4px; padding: 6px; text-align: left; font-size: 12px }
-.tk-ban img { width: 100%; aspect-ratio: 9/16; object-fit: contain; background: #222; border-radius: 4px }
+.tk-hop { border: 1px solid var(--line); border-radius: 12px; padding: 0; width: min(1100px, 96vw); background: var(--mat); color: var(--ink) }
+.tk-hop header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line) }
+.tk-hop #timBan { width: 230px }
+.tk-vet { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; font-size: 12.5px; color: var(--ink-3) }
+.tk-vet button { border: 0; background: transparent; padding: 2px 4px; color: var(--ink-2) } .tk-vet button:last-child { color: var(--ink); font-weight: 600 }
+.tk-ql { display: grid; grid-template-columns: 240px 1fr; height: min(70vh, 720px) }
+.tk-cay { border-right: 1px solid var(--line); overflow: auto; padding: 8px 6px }
+.tk-cay button { display: flex; width: 100%; align-items: center; gap: 4px; border: 1px solid transparent; background: transparent; padding: 4px 6px; text-align: left; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.tk-cay button span { flex: 1; overflow: hidden; text-overflow: ellipsis } .tk-cay button small { color: var(--ink-3); font: 11px var(--f-so) }
+.tk-cay button.chon { background: var(--brass-nhat); border-color: var(--brass) }
+.tk-tha { outline: 2px dashed var(--brass); outline-offset: -2px; background: var(--brass-nhat) !important }
+.tk-ban { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); align-content: start; gap: 10px; padding: 14px; overflow: auto }
+.tk-the { display: grid; gap: 4px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; background: var(--mat) }
+.tk-the.dang { border-color: var(--brass) }
+.tk-the > button.tk-the-mo { padding: 0; border: 0; background: transparent; display: grid; gap: 4px; text-align: left }
+.tk-the img { width: 100%; aspect-ratio: 9/16; object-fit: contain; background: #222; border-radius: 4px }
+.tk-the .tk-the-hang { display: flex; gap: 4px } .tk-the .tk-the-hang select { flex: 1; font-size: 11.5px; padding: 3px 4px } .tk-the .tk-the-hang button { font-size: 11.5px; padding: 3px 6px }
+.tk-tm { display: grid; place-items: center; gap: 4px; aspect-ratio: 9/16; padding: 8px; font-size: 12.5px; text-align: center; border: 1px dashed var(--line); border-radius: 8px; background: var(--bg) }
+.tk-tm b { font-size: 38px; line-height: 1 }
+.tk-ql-chan { margin: 0; padding: 8px 14px; border-top: 1px solid var(--line) }
+#thuMuc { width: 190px }
 @media (max-width: 900px) { body { overflow: auto } .tk-than { grid-template-columns: 1fr } .tk-giua { min-height: 70vh } }

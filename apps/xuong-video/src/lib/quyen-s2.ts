@@ -21,7 +21,7 @@ const LUAT: Record<string, { doi: Doi; tien?: boolean }> = {
   docPhim: { doi: 'phim' }, quyTrinhTap: { doi: 'phim' }, dsCanh: { doi: 'tap' }, uocTien: { doi: 'tap' }, uocAm: { doi: 'tap' }, nhatKyTap: { doi: 'tap' }, nhatKyCanh: { doi: 'canh' }, docCoSoS2: { doi: 'tap' }, hangDoiS2: { doi: 'phim' },
   docViecNen: { doi: 'viec' }, trangThaiXuat: { doi: 'job' },
   // công cụ thiết kế (actions-thiet-ke.ts)
-  dsThietKe: { doi: 'khong' }, docThietKe: { doi: 'khong' }, dsMauCrS2: { doi: 'khong' }, luuThietKe: { doi: 'khong' }, luuTruThietKe: { doi: 'khong' },
+  dsThietKe: { doi: 'khong' }, docThietKe: { doi: 'khong' }, dsMauCrS2: { doi: 'khong' }, luuThietKe: { doi: 'khong' }, luuTruThietKe: { doi: 'khong' }, dsThuMucTK: { doi: 'khong' }, taoThuMucTK: { doi: 'khong' }, chuyenThuMucTK: { doi: 'khong' }, doiThuMucTK: { doi: 'khong' },
   // ghi không tốn tiền
   taoPhimS2: { doi: 'khong' }, taoPhimTuTemplate: { doi: 'khong' }, taoTap: { doi: 'phim' }, suaPhim: { doi: 'phim' }, suaTap: { doi: 'tap' }, suaCanh: { doi: 'canh' }, xepCanh: { doi: 'tap' }, themCanh: { doi: 'tap' },
   duyetNguoiXemTayAction: { doi: 'tap' }, luuKhuonChuoi: { doi: 'tap' }, chonKeyframe: { doi: 'canh' }, duyetKhungTayAction: { doi: 'canh' }, boQuaSoiClipAction: { doi: 'canh' }, duyetCanh: { doi: 'canh' }, duyetAnimatic: { doi: 'tap' }, xuatTap: { doi: 'tap' }, moTraPhiS2: { doi: 'tap' },

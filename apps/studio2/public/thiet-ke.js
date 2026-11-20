@@ -64,7 +64,7 @@ cv.on('object:moving', () => veThuocTinh(true)); cv.on('object:scaling', () => v
 // ── nháp trên máy người dùng (mất điện / đóng tab không mất việc) — chỉ là tiện, bản thật là nút Lưu
 const NHAP = 'tk-nhap-v1';
 let nhapHen;
-function nhapNhap() { clearTimeout(nhapHen); nhapHen = setTimeout(() => { try { localStorage.setItem(NHAP, JSON.stringify({ id: S.id, w: S.w, h: S.h, ten: $('#tenBan').value, ma: $('#maMau').value, fabric: json() })); } catch { /* đầy bộ nhớ trình duyệt: bỏ nháp */ } }, 800); }
+function nhapNhap() { clearTimeout(nhapHen); nhapHen = setTimeout(() => { try { localStorage.setItem(NHAP, JSON.stringify({ id: S.id, w: S.w, h: S.h, ten: $('#tenBan').value, ma: $('#maMau').value, tm: $('#thuMuc').value, fabric: json() })); } catch { /* đầy bộ nhớ trình duyệt: bỏ nháp */ } }, 800); }
 
 // ── phông: nạp đủ các phông mà lớp chữ dùng rồi mới vẽ (không thì Fabric đo chữ theo phông dự phòng, khung chữ lệch)
 async function napPhong() {
@@ -249,7 +249,7 @@ $('#thuocTinh').addEventListener('change', (ev) => { if (ev.target.tagName === '
 
 // ── nút trên thanh + nút trong thuộc tính
 const LAM = {
-  moi: () => { if (cv.getObjects().length && !confirm('Mở bản trống mới? Bản đang vẽ chưa lưu sẽ chỉ còn trong nháp trình duyệt.')) return; S.id = null; S.tc = null; $('#tenBan').value = ''; $('#maMau').value = ''; cv.clear(); cv.backgroundColor = '#111111'; S.hoan = []; chup(); veThamChieu(); veLop(); veThuocTinh(); },
+  moi: () => { if (cv.getObjects().length && !confirm('Mở bản trống mới? Bản đang vẽ chưa lưu sẽ chỉ còn trong nháp trình duyệt.')) return; S.id = null; S.tc = null; $('#tenBan').value = ''; $('#maMau').value = ''; $('#thuMuc').value = QL.tm === '*' ? '' : QL.tm; cv.clear(); cv.backgroundColor = '#111111'; S.hoan = []; chup(); veThamChieu(); veLop(); veThuocTinh(); },
   hoanTac, lamLai,
   xuat: () => { cv.discardActiveObject(); cv.requestRenderAll(); const a = document.createElement('a'); a.download = `${($('#tenBan').value || 'thiet-ke').replace(/[^\p{L}\p{N}]+/gu, '-')}-${S.w}x${S.h}.png`; a.href = cv.toDataURL({ format: 'png', multiplier: S.w / cv.width }); a.click(); },
   luu, mo,
@@ -271,19 +271,74 @@ async function luu() {
   cv.discardActiveObject(); cv.requestRenderAll();
   const du = { ban: 1, fabric: jsonGoc(), tham_chieu: S.tc ? { anh: S.tc, mo: Number($('#moTC').value), tren: $('#tren').checked } : null, du_lieu_thu: thuGiaTri() };
   const anh = cv.toDataURL({ format: 'jpeg', quality: 0.8, multiplier: 240 / cv.width });
-  try { S.id = await ghi('luuThietKe', { id: S.id, ten, ma_mau: $('#maMau').value || null, rong: S.w, cao: S.h, du_lieu: du, anh_xem: anh }); history.replaceState(null, '', `?id=${S.id}`); bao(`Đã lưu bản #${S.id} “${ten}”.`); }
+  try { S.id = await ghi('luuThietKe', { id: S.id, ten, ma_mau: $('#maMau').value || null, thu_muc: $('#thuMuc').value, rong: S.w, cao: S.h, du_lieu: du, anh_xem: anh }); history.replaceState(null, '', `?id=${S.id}`); const tm = chuanTM($('#thuMuc').value); $('#thuMuc').value = tm; QL.ban = null; napTM(); bao(`Đã lưu bản #${S.id} “${ten}” vào ${tm ? '📁 ' + tm : 'thư mục gốc'}.`); }
   catch (e) { bao(`Chưa lưu được: ${e.message}`, true); }
 }
+// ── quản lý tệp: thư mục dạng đường 'a/b' ('' = gốc, '*' = mọi bản mới sửa). Thư mục là cột thu_muc + bảng xv_thiet_ke_thu_muc (giữ thư mục trống) — actions-thiet-ke.ts
+const QL = { tm: '', ban: null, cay: [], tim: '' };
+const chuanTM = (x) => String(x ?? '').split('/').map((t) => t.trim().replace(/\s+/g, ' ').slice(0, 60)).filter(Boolean).slice(0, 6).join('/');
+const chaTM = (d) => d.split('/').slice(0, -1).join('/'), tenTM = (d) => d.split('/').at(-1);
+/** cây thư mục cho ô chọn thư mục trên thanh + hộp Mở (đọc lại sau mỗi lần đổi) */
+async function napTM() { try { QL.cay = await doc('dsThuMucTK'); } catch { QL.cay = QL.cay || []; } $('#dsTM').innerHTML = QL.cay.map((d) => `<option value="${esc(d)}">`).join(''); return QL.cay; }
 async function mo() {
-  const h = $('#hopMo'), ds = $('#dsBan'); ds.innerHTML = '<p class="tk-mo">Đang đọc…</p>'; h.showModal();
-  try { const r = await doc('dsThietKe'); ds.innerHTML = r.length ? r.map((b) => `<button value="${b.id}" type="submit"><img src="${esc(b.anh_xem || '')}" alt=""><strong>#${b.id} ${esc(b.ten)}</strong><span class="tk-ghichu">${b.rong}×${b.cao}${b.ma_mau ? ' · ' + esc(b.ma_mau) : ''}</span></button>`).join('') : '<p class="tk-mo">Chưa có bản nào được lưu.</p>'; }
-  catch (e) { ds.innerHTML = `<p class="tk-bao loi">Không đọc được danh sách: ${esc(e.message)}</p>`; }
+  const h = $('#hopMo'); if (!h.open) h.showModal();
+  if (!QL.ban) { $('#dsBan').innerHTML = '<p class="tk-mo">Đang đọc…</p>'; try { [QL.ban] = await Promise.all([doc('dsThietKe'), napTM()]); } catch (e) { $('#dsBan').innerHTML = `<p class="tk-bao loi">Không đọc được danh sách: ${esc(e.message)}</p>`; return; } }
+  veQL();
 }
-$('#hopMo').addEventListener('close', () => { const v = Number($('#hopMo').returnValue); if (v) moBan(v); });
+function veQL() {
+  const ban = QL.ban || [], cay = QL.cay, tm = QL.tm, tim = QL.tim.trim().toLowerCase();
+  const dem = (d) => ban.filter((b) => b.thu_muc === d || b.thu_muc.startsWith(d + '/')).length;
+  const nut = (d, nhan, sau, so) => `<button data-di="${esc(d)}" data-tha="${esc(d)}" class="${d === tm && !tim ? 'chon' : ''}" style="padding-left:${6 + sau * 14}px" title="${esc(d || 'Thư mục gốc')}"><span>${nhan}</span><small>${so}</small></button>`;
+  $('#cayTM').innerHTML = nut('*', '🕘 Mới sửa (mọi thư mục)', 0, ban.length) + nut('', '🏠 Gốc', 0, ban.filter((b) => !b.thu_muc).length)
+    + cay.map((d) => nut(d, `📁 ${esc(tenTM(d))}`, d.split('/').length, dem(d))).join('');
+  const vet = tim ? [`🔎 “${esc(QL.tim)}”`] : tm === '*' ? ['🕘 Mới sửa'] : ['<button data-di="">🏠 Gốc</button>', ...tm.split('/').filter(Boolean).map((t, i, a) => `<button data-di="${esc(a.slice(0, i + 1).join('/'))}">${esc(t)}</button>`)];
+  $('#tmVet').innerHTML = vet.join('<span>›</span>');
+  $('#tmDoi').disabled = !!tim || tm === '' || tm === '*';
+  const con = tim || tm === '*' ? [] : cay.filter((d) => chaTM(d) === tm);
+  const ds = tim ? ban.filter((b) => `${b.ten} ${b.ma_mau || ''} ${b.thu_muc} #${b.id}`.toLowerCase().includes(tim)) : tm === '*' ? ban.slice(0, 60) : ban.filter((b) => b.thu_muc === tm);
+  const chon = `<option value="">Chuyển tới…</option><option value="/">🏠 Gốc</option>${cay.map((d) => `<option value="${esc(d)}">📁 ${esc(d)}</option>`).join('')}<option value="+">+ thư mục mới…</option>`;
+  $('#dsBan').innerHTML = con.map((d) => `<button class="tk-tm" data-di="${esc(d)}" data-tha="${esc(d)}" draggable="true" data-keo-tm="${esc(d)}"><b>📁</b>${esc(tenTM(d))}<span class="tk-ghichu">${dem(d)} bản</span></button>`).join('')
+    + ds.map((b) => `<div class="tk-the${b.id === S.id ? ' dang' : ''}" draggable="true" data-keo="${b.id}"><button class="tk-the-mo" data-mo="${b.id}" title="Mở bản này"><img src="${esc(b.anh_xem || '')}" alt=""><strong>#${b.id} ${esc(b.ten)}</strong></button>
+      <span class="tk-ghichu">${b.rong}×${b.cao}${b.ma_mau ? ' · ' + esc(b.ma_mau) : ''}${(tim || tm === '*') ? `<br>${b.thu_muc ? '📁 ' + esc(b.thu_muc) : '🏠 gốc'}` : ''}</span>
+      <div class="tk-the-hang"><select class="tk-o" data-chuyen="${b.id}" title="Chuyển bản này sang thư mục khác">${chon}</select><button data-cat="${b.id}" title="Ẩn khỏi danh sách (không xoá)">Cất đi</button></div></div>`).join('')
+    || '';
+  if (!con.length && !ds.length) $('#dsBan').innerHTML = `<p class="tk-mo">${tim ? 'Không có bản nào khớp.' : 'Thư mục trống. Bấm Lưu khi ô 📁 trên thanh ghi thư mục này để cất bản vào đây, hoặc kéo bản từ thư mục khác thả vào.'}</p>`;
+}
+/** mọi thao tác thư mục: làm xong thì đọc lại cả danh sách lẫn cây (vài trăm dòng, rẻ) */
+async function lamQL(viec, tb) { try { await viec(); QL.ban = null; await mo(); if (tb) bao(tb); } catch (e) { bao(`Chưa làm được: ${e.message}`, true); } }
+const chuyenBan = (id, d) => lamQL(async () => { await ghi('chuyenThuMucTK', [id], d); if (id === S.id) $('#thuMuc').value = d; }, `Đã chuyển bản #${id} vào ${d ? '📁 ' + d : 'thư mục gốc'}.`);
+const chuyenTM = (a, cha) => { const b = chuanTM(cha ? `${cha}/${tenTM(a)}` : tenTM(a)); if (b === a || b.startsWith(a + '/')) return; return lamQL(async () => { await ghi('doiThuMucTK', a, b); if (QL.tm === a || QL.tm.startsWith(a + '/')) QL.tm = b + QL.tm.slice(a.length); }, `Đã chuyển thư mục “${a}” thành “${b}”.`); };
+$('#hopMo').addEventListener('click', (ev) => {
+  const t = ev.target.closest('button'); if (!t || t.tagName !== 'BUTTON') return;
+  if (t.dataset.tm === 'dong') return $('#hopMo').close();
+  if (t.dataset.mo) { $('#hopMo').close(); return moBan(Number(t.dataset.mo)); }
+  if (t.dataset.di !== undefined) { QL.tm = t.dataset.di; QL.tim = ''; $('#timBan').value = ''; return veQL(); }
+  if (t.dataset.cat) { const b = QL.ban?.find((x) => x.id === Number(t.dataset.cat)); if (!confirm(`Cất bản #${t.dataset.cat} “${b?.ten || ''}” khỏi danh sách? (Không xoá — bản vẫn còn trong kho.)`)) return; return lamQL(() => ghi('luuTruThietKe', Number(t.dataset.cat), true), `Đã cất bản #${t.dataset.cat}.`); }
+  if (t.dataset.tm === 'moi') { const goc = QL.tm === '*' ? '' : QL.tm, ten = chuanTM(prompt(`Tên thư mục mới${goc ? ` (nằm trong “${goc}”)` : ''} — gõ a/b để lồng:`) || ''); if (!ten) return;
+    const d = chuanTM(goc ? `${goc}/${ten}` : ten); return lamQL(async () => { await ghi('taoThuMucTK', d); QL.tm = d; }, `Đã tạo 📁 ${d}.`); }
+  if (t.dataset.tm === 'doi') { const a = QL.tm, b = chuanTM(prompt('Tên mới (gõ cả đường để chuyển chỗ, vd “Ethopex/Tên vàng”):', a) || ''); if (!b || b === a) return;
+    return lamQL(async () => { await ghi('doiThuMucTK', a, b); QL.tm = b; if (chuanTM($('#thuMuc').value).startsWith(a)) $('#thuMuc').value = b + chuanTM($('#thuMuc').value).slice(a.length); }, `Đã đổi “${a}” thành “${b}”.`); }
+});
+$('#hopMo').addEventListener('change', (ev) => {
+  const id = Number(ev.target.dataset.chuyen); if (!id) return; let v = ev.target.value; ev.target.value = ''; if (!v) return;
+  if (v === '+') { v = chuanTM(prompt('Tên thư mục mới (gõ a/b để lồng):') || ''); if (!v) return; }
+  chuyenBan(id, v === '/' ? '' : v);
+});
+$('#timBan').addEventListener('input', (ev) => { QL.tim = ev.target.value; veQL(); });
+// kéo-thả: bản → thư mục (chuyển bản) · thư mục → thư mục (chuyển cả thư mục vào trong)
+$('#hopMo').addEventListener('dragstart', (ev) => { const k = ev.target.closest('[data-keo],[data-keo-tm]'); if (!k) return; ev.dataTransfer.setData('text/plain', k.dataset.keo ? `ban:${k.dataset.keo}` : `tm:${k.dataset.keoTm}`); ev.dataTransfer.effectAllowed = 'move'; });
+$('#hopMo').addEventListener('dragover', (ev) => { const d = ev.target.closest('[data-tha]'); if (!d || d.dataset.tha === '*') return; ev.preventDefault(); document.querySelectorAll('.tk-tha').forEach((x) => x !== d && x.classList.remove('tk-tha')); d.classList.add('tk-tha'); });
+$('#hopMo').addEventListener('dragleave', (ev) => ev.target.closest?.('[data-tha]')?.classList.remove('tk-tha'));
+$('#hopMo').addEventListener('drop', (ev) => {
+  const d = ev.target.closest('[data-tha]'); document.querySelectorAll('.tk-tha').forEach((x) => x.classList.remove('tk-tha')); if (!d || d.dataset.tha === '*') return; ev.preventDefault();
+  const [loai, gt] = ev.dataTransfer.getData('text/plain').split(/:(.*)/s);
+  if (loai === 'ban') { const b = QL.ban?.find((x) => x.id === Number(gt)); if (b && b.thu_muc !== d.dataset.tha) chuyenBan(b.id, d.dataset.tha); }
+  if (loai === 'tm' && gt !== d.dataset.tha) chuyenTM(gt, d.dataset.tha);
+});
 async function datKho(w, h) { S.w = w; S.h = h; $('#kho').value = `${w}x${h}`; if (![...$('#kho').options].some((o) => o.value === `${w}x${h}`)) $('#kho').add(new Option(`${w}×${h}`, `${w}x${h}`)); vuaKhung(); }
 async function moBan(id) {
   try { const b = await doc('docThietKe', id); if (!b) return bao(`Không có bản #${id}.`, true);
-    S.id = b.id; $('#tenBan').value = b.ten; $('#maMau').value = b.ma_mau || ''; await datKho(b.rong, b.cao);
+    S.id = b.id; $('#tenBan').value = b.ten; $('#maMau').value = b.ma_mau || ''; $('#thuMuc').value = b.thu_muc || ''; await datKho(b.rong, b.cao);
     const d = b.du_lieu || {}; S.tc = d.tham_chieu?.anh || null; if (d.tham_chieu) { $('#moTC').value = d.tham_chieu.mo ?? 45; $('#tren').checked = !!d.tham_chieu.tren; }
     for (const [k, v] of Object.entries(d.du_lieu_thu || {})) { const i = document.querySelector(`[data-thu="${k}"]`); if (i) i.value = v; }
     S.hoan = []; await nap(d.fabric || { objects: [] }); chup(); veThamChieu(); if (S.thu) apThu(); history.replaceState(null, '', `?id=${b.id}`); bao(`Đã mở bản #${b.id} “${b.ten}”.`); }
@@ -306,12 +361,12 @@ document.addEventListener('keydown', (e) => {
 
 // ── khởi động: mẫu etp để gắn · mở bản trên URL, hoặc nháp, hoặc bản trống có sẵn ô ảnh phim
 (async () => {
-  vuaKhung();
+  vuaKhung(); napTM();
   doc('dsMauCrS2').then((ds) => { $('#maMau').insertAdjacentHTML('beforeend', ds.map((m) => `<option value="${esc(m.ma)}" title="${esc(m.mo_ta)}">${esc(m.ma)} · ${esc(m.ten)}</option>`).join('')); })
     .catch((e) => bao(`Không đọc được danh sách mẫu etp: ${e.message}`, true));
   const id = Number(new URLSearchParams(location.search).get('id'));
   if (id) return moBan(id);
   let n = null; try { n = JSON.parse(localStorage.getItem(NHAP) || 'null'); } catch { n = null; }
-  if (n?.fabric?.objects?.length) { S.id = n.id || null; $('#tenBan').value = n.ten || ''; await datKho(n.w || 1080, n.h || 1920); await nap(n.fabric); setTimeout(() => { $('#maMau').value = n.ma || ''; }, 1500); chup(); bao('Đã mở lại bản nháp trên trình duyệt này (chưa chắc đã lưu — bấm Lưu để giữ).'); return; }
+  if (n?.fabric?.objects?.length) { S.id = n.id || null; $('#tenBan').value = n.ten || ''; $('#thuMuc').value = n.tm || ''; await datKho(n.w || 1080, n.h || 1920); await nap(n.fabric); setTimeout(() => { $('#maMau').value = n.ma || ''; }, 1500); chup(); bao('Đã mở lại bản nháp trên trình duyệt này (chưa chắc đã lưu — bấm Lưu để giữ).'); return; }
   await themAnhPhim(); chup();
 })();

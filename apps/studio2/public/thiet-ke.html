@@ -17,6 +17,8 @@
   <strong class="tk-tieu">Thiết kế creative</strong>
   <input id="tenBan" class="tk-o" placeholder="Tên bản thiết kế" maxlength="160">
   <select id="maMau" class="tk-o" title="Bản này dựng cho mẫu creative etp nào"><option value="">— không gắn mẫu etp —</option></select>
+  <input id="thuMuc" class="tk-o" list="dsTM" placeholder="📁 Thư mục (để trống = gốc)" maxlength="380" title="Bấm Lưu thì bản nằm trong thư mục này; gõ a/b để lồng thư mục">
+  <datalist id="dsTM"></datalist>
   <select id="kho" class="tk-o" title="Khổ khung">
     <option value="1080x1920">9:16 · 1080×1920</option><option value="1080x1350">4:5 · 1080×1350</option>
     <option value="1080x1080">1:1 · 1080×1080</option><option value="1920x1080">16:9 · 1920×1080</option>
@@ -70,8 +72,11 @@
   </aside>
 </main>
 <dialog id="hopMo" class="tk-hop">
-  <form method="dialog"><header><strong>Mở bản thiết kế</strong><button value="huy">✕</button></header>
-  <div id="dsBan" class="tk-ban"></div></form>
+  <header><strong>Bản thiết kế</strong><nav id="tmVet" class="tk-vet"></nav><span class="tk-gian"></span>
+    <input id="timBan" class="tk-o" type="search" placeholder="Tìm tên / mẫu trong mọi thư mục">
+    <button data-tm="moi">+ Thư mục</button><button data-tm="doi" id="tmDoi">Đổi tên / chuyển thư mục</button><button data-tm="dong" title="Đóng (Esc)">✕</button></header>
+  <div class="tk-ql"><nav id="cayTM" class="tk-cay"></nav><div id="dsBan" class="tk-ban"></div></div>
+  <p class="tk-ghichu tk-ql-chan">Kéo bản (hoặc thư mục) thả vào một thư mục bên trái để chuyển · bấm ảnh để mở · “Cất đi” chỉ ẩn khỏi danh sách, không xoá.</p>
 </dialog>
 <input type="file" id="chonAnh" accept="image/*" hidden>
 <script src="lib/fabric-7.4.0/fabric.min.js"></script>

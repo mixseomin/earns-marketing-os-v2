@@ -286,7 +286,7 @@ async function ghiSv(ham, ...args) { const kq = await goiDuong('ghi', ham, args)
 /** ảnh trong kho studio → bản thu nhỏ (studio tự thu + nhớ); thứ khác giữ nguyên; không có ảnh → ô xám */
 const nho = (u, w = 640) => (!u ? TRONG : /^https:\/\/img\.on\.tc\/xuong-video\/(?!nho\/).+\.(jpe?g|png|webp)$/i.test(u) ? `/api/xv/nho?u=${encodeURIComponent(u)}&w=${w}` : u);
 const S_CO = { ws: 'Toàn', els: 'Toàn', ls: 'Toàn', ms: 'Trung', two: 'Trung', ots: 'Trung', pov: 'Trung', mcu: 'Trung cận', cu: 'Cận', ecu: 'Đặc tả', insert: 'Đặc tả' }, S_GOC = { ngang: 'Ngang', thap: 'Thấp', sat_dat: 'Thấp', cao: 'Cao' }, S_ONG = { rong: 'Rộng', chuan: 'Chuẩn', chan_dung: 'Chân dung', macro: 'Macro' };
-const S_CD = { tinh: 'Đứng yên', cam_tay: 'Đứng yên', day: 'Phóng gần', day_vao: 'Phóng gần', lui: 'Lùi xa', lia: 'Lia ngang', truot: 'Lia ngang', theo: 'Lia ngang' }, S_VAI = { nhan_vat: 'Nhân vật', dao_cu: 'Đồ vật', boi_canh: 'Bối cảnh' };
+const S_CD = { tinh: 'Đứng yên', cam_tay: 'Đứng yên', day: 'Phóng gần', day_vao: 'Phóng gần', lui: 'Lùi xa', lia: 'Lia ngang', truot: 'Lia ngang', theo: 'Lia ngang' }, S_VAI = { nhan_vat: 'Nhân vật', dao_cu: 'Đồ vật', boi_canh: 'Bối cảnh', san_pham: 'Sản phẩm' };
 const MAU_NV = ['#c8553d', '#3d7ec8', '#5aa469', '#b08a2e', '#8a5ac8', '#c85a9a'];
 let GOC = {};
 function tuStudio(pd, tap, ds) {

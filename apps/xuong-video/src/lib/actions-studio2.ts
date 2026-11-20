@@ -11,6 +11,9 @@ import { dichChuoi } from './xuong-video/claude';
 import type { KinhThanh } from './xuong-video/kieu';
 import { duocS2, quyenCua, type QuyenS2 } from './quyen-s2';
 import { GOI_THE_LOAI, goiTheoKey } from './xuong-video/goi-the-loai';
+import { CAU_TRUC, khoaKhung } from './xuong-video/dien-anh';
+import { hieuUngKG } from './xuong-video/khan-gia';
+import { luatDung } from './xuong-video/luat-dung';
 import type { LoaiPhim } from './xuong-video/kieu';
 import { quyTrinh, phimQt, type MucQt } from './xuong-video/quy-trinh';
 import { docKinhThanh, locNhanh } from './xuong-video/kieu';
@@ -165,6 +168,17 @@ export async function datQuyenS2(userId: number, dung: boolean, sinh: boolean): 
   await db.execute(sql`INSERT INTO xv_s2_quyen (user_id, dung, sinh, boi) VALUES (${Number(userId)}, ${d}, ${s}, ${me.id})
     ON CONFLICT (user_id) DO UPDATE SET dung = ${d}, sinh = ${s}, boi = ${me.id}, updated_at = now()`);
   return { ok: true, data: undefined };
+}
+
+/** CẨM NANG theo từng loại video (Studio 2 › widget Cẩm nang — anh 20/11/2026: "cần 1 widget hay checklist về quy trình sx từng loại film, video như tài liệu tham khảo").
+ *  Đọc thẳng thư viện của studio, không chép tay: gói thể loại (goi-the-loai.ts) + khung beat của gói (dien-anh.ts › CAU_TRUC) + cung cảm xúc người xem (khan-gia.ts)
+ *  + luật dựng nhấn (luat-dung.ts). Thư viện đổi thì cẩm nang đổi theo. Chỉ đọc, ai dùng được Studio 2 cũng xem được. */
+export async function camNangS2(): Promise<{ key: string; ten: string; ic: string; nhom: string; mo_ta: string; loai: string; ti_le: string; do_dai_s: [number, number]; tham_chieu: string;
+  khung: { ten: string; beats: { ten: string; mo_ta: string }[] } | null; khan_gia: string[]; luat: { ten: string; luat: string }[] }[]> {
+  return GOI_THE_LOAI.map((g) => { const k = CAU_TRUC[khoaKhung(g.loai, g.the_loai, g.khung)];
+    return { key: g.key, ten: g.ten, ic: g.ic, nhom: g.nhom, mo_ta: g.mo_ta, loai: g.loai, ti_le: g.ti_le, do_dai_s: g.do_dai_s, tham_chieu: g.tham_chieu,
+      khung: k ? { ten: k.ten, beats: k.beats.map((b) => ({ ten: b.ten, mo_ta: b.mo_ta })) } : null, khan_gia: g.khan_gia.map((y) => hieuUngKG(y)?.ten ?? y),
+      luat: g.luat.map((l) => { const x = luatDung(l); return { ten: x?.ten ?? l, luat: x?.luat ?? '' }; }) }; });
 }
 
 /** VẼ LẠI ẢNH MẪU của một anchor (Studio 2 › nút "Vẽ lại ảnh mẫu" — anh 20/11/2026 "Đổi ảnh… phải có các nút sinh thủ công cho người dùng"): ảnh mẫu cũ vào

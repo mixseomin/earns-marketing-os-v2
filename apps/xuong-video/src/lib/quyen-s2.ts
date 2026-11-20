@@ -17,7 +17,7 @@ type Doi = 'phim' | 'tap' | 'canh' | 'job' | 'viec' | 'khong';
 /** hàm người dùng thường được gọi qua Studio 2: đối số đầu trỏ vào thứ gì (để dò ra phim) · tien = bước tốn tiền (cần quyền `sinh`) */
 const LUAT: Record<string, { doi: Doi; tien?: boolean }> = {
   // đọc
-  toiS2: { doi: 'khong' }, dsPhimS2: { doi: 'khong' }, dsGoiTheLoai: { doi: 'khong' }, dsTemplateS2: { doi: 'khong' }, dsMauPhim: { doi: 'khong' }, docTemplate: { doi: 'khong' },
+  toiS2: { doi: 'khong' }, camNangS2: { doi: 'khong' }, dsPhimS2: { doi: 'khong' }, dsGoiTheLoai: { doi: 'khong' }, dsTemplateS2: { doi: 'khong' }, dsMauPhim: { doi: 'khong' }, docTemplate: { doi: 'khong' },
   docPhim: { doi: 'phim' }, quyTrinhTap: { doi: 'phim' }, dsCanh: { doi: 'tap' }, uocTien: { doi: 'tap' }, uocAm: { doi: 'tap' }, nhatKyTap: { doi: 'tap' }, nhatKyCanh: { doi: 'canh' }, docCoSoS2: { doi: 'tap' }, hangDoiS2: { doi: 'phim' },
   docViecNen: { doi: 'viec' }, trangThaiXuat: { doi: 'job' },
   // ghi không tốn tiền

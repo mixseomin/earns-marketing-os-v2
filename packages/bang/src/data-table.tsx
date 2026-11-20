@@ -531,7 +531,10 @@ export function DataTable<T>({
       const le = sc ? parseFloat(getComputedStyle(sc).paddingBottom) || 0 : 0;
       setLeDuoi((o) => (Math.abs(o - le) < 0.5 ? o : le));
       const caoKhung = sc ? sc.clientHeight : window.innerHeight;
-      setKhungThap(caoKhung > 0 && caoKhung < KHUNG_DINH_MIN);
+      // NHÚNG (iframe, vd widget Lượt chạy kỹ sư trên mos2 /home — góp ý #giao-20261120T0708-chuyen-gdp4): khung nhúng cao theo nội dung, trang ngoài mới là chỗ cuộn
+      // → đo innerHeight ra "cao" nhưng người xem chỉ thấy một khe thấp; không có khung cuộn riêng trong trang nhúng thì coi là khung thấp, thôi dính.
+      let nhung = false; try { nhung = window.self !== window.top; } catch { nhung = true; }
+      setKhungThap((nhung && !sc) || (caoKhung > 0 && caoKhung < KHUNG_DINH_MIN));
     };
     const ro = new ResizeObserver(() => doNgay()), dinhDo = new Set<HTMLElement>();
     doNgay();

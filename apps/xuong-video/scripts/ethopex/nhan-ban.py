@@ -506,7 +506,7 @@ def main(a):
     if roas is not None:
         if thang or hoi_cho: raise SystemExit("--roas không đi kèm --thang / --hoi-cho")
         if not ROAS_MIN <= roas <= ROAS_MAX: raise SystemExit(f"--roas phải trong {ROAS_MIN}–{ROAS_MAX} (Support 26/10/2026)")
-        return roas_main(goc, roas, int(float(lay("--ns", str(HOI_CHO["ns"]) if moi else "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a, tay, moi=moi, bo=bo)
+        return roas_main(goc, roas, int(float(lay("--ns", str(HOI_CHO["ns"]) if moi else "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a, tay, moi=moi, bo=bo, lenh_cho="--lenh-cho" in a)
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None, "chay": lich}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep, hoi_cho=hoi_cho and not moi and not thang); kq["ten"] = ten; bo = pl.pop("bo"); bai0 = bai = pl.pop("bai_cu", None); cr_bai = pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"]
@@ -666,7 +666,7 @@ assert ten_sach_roas("3010 The Dragon Lord Comes Home EN - tap nguyen ep8 (cr tk
 assert ten_sach_roas("dp20lt Bound to the Wrong Dragon Prince EN - canh that 267-394s (thay 81599)") == "dp20lt Bound to the Wrong Dragon Prince EN - canh that 267-394s"
 assert ten_sach_roas("2110 Number One Nobody EN - ke chuyen (nhan ban 1 cua 65725)") == "2110 Number One Nobody EN - ke chuyen"
 
-def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False, tay=False, moi=None, bo=None):   # tay truyền từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)
+def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False, tay=False, moi=None, bo=None, lenh_cho=False):   # tay truyền từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)
     """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim.
     moi = {creative, content, ten} (anh 18/11/2026, đợt lên hồi chợ): ★ ROAS từ CREATIVE MỚI trên khuôn `goc` — ngân sách trong sổ luật hoi_cho.ns_khoang ($5–10),
     creative mới nên PHẢI qua cổng chấm Sạch + cổng 18+ / CTA / bài học + trang phim + một creative một camp (khác ★ ROAS bài cũ)."""
@@ -675,6 +675,12 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
         if moi:
             lo_, hi_ = HOI_CHO["ns_khoang"]
             if not lo_ <= ns <= hi_: raise ValueError(f"ngân sách ★ ROAS creative mới ${lo_:g}–{hi_:g} (anh 18/11/2026, sổ luật hoi_cho)")
+        elif lenh_cho:
+            # LỆNH CHỜ PHANH NHẢ (anh 20/11/2026 "Làm 1": ★ ROAS bài cũ $5–10 từ #66055 / #70189) — chỉ khi hàng apps/etp/lenh_cho.py đang chạy ĐÚNG lệnh
+            # (gốc, roas, ns) này; ngân sách vẫn trong hoi_cho.ns_khoang. Mọi cổng sau (phanh, trần, phim cấm) giữ nguyên.
+            lo_, hi_ = HOI_CHO["ns_khoang"]
+            _sl = _iuc.spec_from_file_location("etp_lenh_cho", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "lenh_cho.py")); LC = _iuc.module_from_spec(_sl); _sl.loader.exec_module(LC)
+            if not (lo_ <= ns <= hi_ and LC.hop_le(goc, roas, ns)): raise ValueError(f"--lenh-cho: không có lệnh chờ phanh đang chạy cho #{goc} roas {roas:g} ${ns} (hoặc ngoài ${lo_:g}–{hi_:g})")
         elif not 15 <= ns <= 20: raise ValueError("ngân sách camp ROAS $15–20 (Support 26/10/2026)")
         d, ten, cid, pl = payload(goc, lich, moi=moi, bo=bo if moi else None, roas=roas, ns_roas=ns, nhan=nhan); kq["ten"] = ten; bo = pl.pop("bo")
         if moi:

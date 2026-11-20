@@ -256,9 +256,9 @@
   "ly_do": "17/11/2026 góp ý #1632 (nút 🔍, 'thiếu 1 căn nhà nhỏ ở chân'): OSM không có. Bản đồ độ cao ảnh 3D Google (neuschwanstein-cach3.json, ô 0,4 m, loại mái tối) có khối mái 26–28 m nằm ở góc giữa mặt tường way/223069513#5 và mặt tây Viereckturm, toạ độ dọc tường tính từ góc Viereckturm 0,1 → 6,6 m, nhô ra 0,05 → 3,5 m (mặt bằng = hình chữ nhật đó). Mái một dốc: cao 28,3 m sát tường, dốc ra ngoài ~0,7 m/m → mép hiên ~25,9 m (roof:height 2,4), hướng dốc xuống = pháp tuyến ngoài tường 337°. Chân: mặt đất đo quanh 17–20 m (ns.js tự lấy). Ảnh 3D trước đây coi mái này là mặt đất → gò đá xám giả ở chân tường (ns.js nay bỏ điểm đất trong khối thêm)."
  },
  "way/223179004": {
-  "y_tren": 59.37,
+  "y_tren": 61.08,
   "y_tren_truoc_dom20": 61.28,
-  "ly_do_dom20": "máy đo 2026-11-20 (scripts/sua-theo-dom20.mjs, không AI): DOM20 chính thức Bavaria (mặt trên 20 cm, CC BY 4.0) − mặt trên mô hình = -1.9 m (trung vị 12 điểm lưới 1 m nằm sâu ≥ 1.5 m trong mặt bằng, độ trải 0.7 m, đã trừ mốc cảnh ↔ DHHN2016 -4.16 m); đỉnh ảnh 3D Google 1008.9 m, đỉnh mô hình trước 1009.4 m"
+  "ly_do_dom20": "máy đo 2026-11-20 (scripts/sua-theo-dom20.mjs, không AI): DOM20 chính thức Bavaria (mặt trên 20 cm, CC BY 4.0) − mặt trên mô hình = -2.2 m (trung vị 12 điểm lưới 1 m nằm sâu ≥ 1.5 m trong mặt bằng, độ trải 1.4 m, đã trừ mốc cảnh ↔ DHHN2016 -4.37 m); đỉnh ảnh 3D Google 1008.9 m, đỉnh mô hình trước 1009.6 m"
  },
  "way/1573767740": {
   "y_tren": 43.8,

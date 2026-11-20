@@ -44,6 +44,8 @@ const MAT_BO = await fetch(`./du-lieu/${ten}-mat-palas-san.json`, { cache: 'no-c
 const MAT_TB_BO = await fetch(`./du-lieu/${ten}-mat-torbau-san.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 // ĐO TRÊN ẢNH 3D GOOGLE (scripts/do-khoi-google.mjs): mặt đất quanh lâu đài, mặt sân trên, đỉnh từng khối — mốc chân nhà + mặt đất thật
 const NEN = await fetch(`./du-lieu/${ten}-nen.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+// SÂN TRƯỚC CỔNG theo ảnh trực giao + bề mặt chính thức Bavaria (scripts/san-cong-dop.py, 20/11/2026): { san: đa giác, co: [bồn cỏ], y } — thay sân suy từ tim đường
+const SAN_CONG = await fetch(`./du-lieu/${ten}-san-cong.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const CHOP = await fetch(`./du-lieu/${ten}-chop.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // chóp / tháp nhỏ OSM không có (scripts/them-chop.mjs)
 const CUA_SO = await fetch(`./du-lieu/${ten}-cua-so.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})); // cửa sổ đo từ ảnh từng mặt (scripts/nan-google.mjs + do-cua-so.py)
 // KHÔNG DÁN ẢNH LÊN MÔ HÌNH (anh 16/11/2026: 'không được dùng ảnh ghép vào 3D, phải dựng thành đối tượng 3D') — ảnh chỉ dùng để ĐO; mọi chi tiết dựng hình khối.
@@ -240,7 +242,11 @@ const NEN_LUOI = (() => {
     // (dải bồn sát chân nhà), nhìn thấy từ đường ngoài cổng → thêm vào bao lồi
     const nhaCong = cg && nhaVo.find((k) => k.v.some((q) => kc(cg.c, q) < 0.3)), mt = !nhaCong ? [] : nhaCong.v.filter((q) => kc(q, cg.c) <= 20).map((q) => { const l = kc(q, cg.p) || 1; return [q[0] + (cg.p[0] - q[0]) / l * 3, q[1] + (cg.p[1] - q[1]) / l * 3]; }).filter((q) => !trongNha0(q[0], q[1]) && thay(q, cg.p));
     // nới bao lồi = nửa bề rộng đường + 3 m: lan can phía vực cách tim đường ~7 m (ảnh Mapillary 360° 990990575063069 tại khúc cua, 461885445095370 trước cổng: lan can cách ~8 m)
-    if (mau.length > 6) { const r = cg.rong / 2 + 3, ds = [...mt, ...mau.flatMap(([x, z]) => Array.from({ length: 12 }, (_, a) => [x + Math.cos(a * Math.PI / 6) * r, z + Math.sin(a * Math.PI / 6) * r]))];
+    if (SAN_CONG?.san?.length > 2) { // sân đo trên ảnh trực giao: mặt phẳng đúng cao độ đo, mép đúng đa giác (lan can / tường chắn bám theo vungLat)
+      sanCong = SAN_CONG.san; caoSan = () => SAN_CONG.y;
+      for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = x0 + i * B, z = z0 + j * B; if (!trongDa(x, z, sanCong) || trongNha0(x, z)) continue; const q = id(i, j); G[q] = SAN_CONG.y; nang[q] = Math.max(nang[q], 0.2); }
+      console.info('[ns] sân trước cổng theo ảnh trực giao:', JSON.stringify({ dinh: sanCong.length, y: SAN_CONG.y, co: (SAN_CONG.co || []).length }));
+    } else if (mau.length > 6) { const r = cg.rong / 2 + 3, ds = [...mt, ...mau.flatMap(([x, z]) => Array.from({ length: 12 }, (_, a) => [x + Math.cos(a * Math.PI / 6) * r, z + Math.sin(a * Math.PI / 6) * r]))];
       ds.sort((a, b) => a[0] - b[0] || a[1] - b[1]); const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], hi = [];
       for (const p of ds) { while (lo.length >= 2 && cr(lo.at(-2), lo.at(-1), p) <= 0) lo.pop(); lo.push(p); } for (const p of ds.slice().reverse()) { while (hi.length >= 2 && cr(hi.at(-2), hi.at(-1), p) <= 0) hi.pop(); hi.push(p); }
       sanCong = [...lo.slice(0, -1), ...hi.slice(0, -1)];
@@ -885,6 +891,13 @@ if (DUONG?.duong?.length) {
   const tx = (t, lap) => { for (const x of [t.map, t.bump]) if (x) { x.wrapS = x.wrapT = THREE.RepeatWrapping; } return t; };
   // sân lát Unterer / Oberer Hof: ảnh 3D Google (góp ý #1629) là đá vôi xám sáng; vân sáng 50 nhân màu #b9b3a8 trước đây ra nâu đất
   const nhua = tx(T.daXay(T.rngTu(61), 40, 76)), dat = tx(T.cuoi(T.rngTu(62))), bac = tx(T.daXay(T.rngTu(63), 30, 60));
+  // BỒN CỎ SÂN TRƯỚC CỔNG (ảnh trực giao DOP20, scripts/san-cong-dop.py): mặt cỏ cao hơn mặt sân 0,15 m + bó vỉa đá
+  if (SAN_CONG?.co?.length) { const vc = vlTu(T.co(T.rngTu(5))), vb = new THREE.MeshStandardMaterial({ color: '#cfcac0', roughness: 0.85 });
+    for (const v of SAN_CONG.co) { const sh = new THREE.Shape(v.map(([x, z]) => new THREE.Vector2(x, -z))), g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, SAN_CONG.y + 0.15, 0);
+      const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 3, uv.getY(i) / 3);
+      const m = new THREE.Mesh(g, vc); m.receiveShadow = true; scene.add(m); LOP_OSM.push(m);
+      for (let i = 0; i < v.length; i++) { const [ax, az] = v[i], [bx, bz] = v[(i + 1) % v.length], L = Math.hypot(bx - ax, bz - az); if (L < 0.05) continue;
+        const k = new THREE.Mesh(new THREE.BoxGeometry(L + 0.15, 0.22, 0.15), vb); k.position.set((ax + bx) / 2, SAN_CONG.y + 0.08, (az + bz) / 2); k.rotation.y = -Math.atan2(bz - az, bx - ax); scene.add(k); LOP_OSM.push(k); } } }
   const { ra, dem } = datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds: DUONG.duong, cao: datThat, trongNha: (x, z) => dsKhoi.some((k) => trongDa(x, z, k.v)), vungLat: NEN_LUOI?.sanCong ? [{ v: NEN_LUOI.sanCong, cao: NEN_LUOI.caoSan }] : [],
     tuongSan: SAN_PHANG ? [{ v: SAN_PHANG.v, mat: () => SAN_PHANG.y }] : [], // nền sân trên: tường chắn + lan can mép tụt xuống sân dưới (góp ý #1633)
     vl: { nhua: new THREE.MeshStandardMaterial({ map: nhua.map, bumpMap: nhua.bump, bumpScale: 0.8, roughness: 0.92, color: '#d8d4cc' }),

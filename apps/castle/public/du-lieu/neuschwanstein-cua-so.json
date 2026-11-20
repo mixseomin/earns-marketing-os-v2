@@ -1106,6 +1106,10 @@
   "yHien": null
  },
  "way/223179004#0": {
+  "da_goc": 7,
+  "do_may_da_goc": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI): ảnh commons-Dvorac-Neuschwanstein---sjeverna-strana.jpg (Silverije, CC BY-SA 4.0) định vị 1010 điểm khớp · sai số 2.91 px, nắn 24 px/m, độ tin 0.62",
+  "rang_cua": 4,
+  "do_may_rang_cua": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI): ảnh commons-Dvorac-Neuschwanstein---sjeverna-strana.jpg (Silverije, CC BY-SA 4.0) định vị 1010 điểm khớp · sai số 2.91 px, nắn 24 px/m, nhịp đo 1.04 m, độ tin 0.89",
   "hang": [
    {
     "y0": 27.39,
@@ -2877,6 +2881,8 @@
   "doi_dom20": 7.8
  },
  "way/223110825#6": {
+  "hang": [{"y0":20.37,"y1":22.53,"cum":[[7.08,8.21,1]]}],
+  "do_may_hang": "máy đo 2026-11-20 (scripts/do-anh.mjs --cua, không AI): ảnh c-Castelul-Neuschwanstein-17.jpg (Cezar Suceveanu, CC BY-SA 4.0) định vị 445 điểm khớp, phủ 100 % cạnh, độ tin 0.73",
   "khung": true,
   "hang_khung": [
    {
@@ -3294,7 +3300,12 @@
   "doi_dom20": 4.1
  },
  "way/223110820#5": {
-  "hang": [],
+  "hang": [{"y0":26.43,"y1":28.56,"cum":[[2.33,3.17,1]]}],
+  "do_may_hang": "máy đo 2026-11-20 (scripts/do-anh.mjs --cua, không AI): ảnh c-Castelul-Neuschwanstein18.jpg (Cezar Suceveanu, CC BY-SA 3.0) định vị 225 điểm khớp, phủ 100 % cạnh, độ tin 0.67",
+  "da_goc": 4,
+  "do_may_da_goc": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI): ảnh c-Castelul-Neuschwanstein22.jpg (Cezar Suceveanu, CC BY-SA 3.0) định vị 131 điểm khớp · sai số 2.82 px, nắn 24 px/m, độ tin 0.7",
+  "vom_nho": 7,
+  "do_may_vom_nho": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI): ảnh c-Castelul-Neuschwanstein22.jpg (Cezar Suceveanu, CC BY-SA 3.0) định vị 131 điểm khớp · sai số 2.82 px, nắn 24 px/m, nhịp đo 0.46 m, độ tin 1",
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
@@ -3304,6 +3315,8 @@
   "doi_dom20": 7.8
  },
  "way/223110820#6": {
+  "vom_nho": 7,
+  "do_may_vom_nho": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI): ảnh c-Castelul-Neuschwanstein20.jpg (Cezar Suceveanu, CC BY-SA 3.0) định vị 146 điểm khớp · sai số 2.84 px, nắn 24 px/m, nhịp đo 0.52 m, độ tin 1",
   "khung": true,
   "hang_khung": [
    {
@@ -3349,6 +3362,10 @@
   "doi_dom20": 7.8
  },
  "way/223110820#7": {
+  "hang": [{"y0":26.93,"y1":28.98,"cum":[[0.67,2.17,1]]}],
+  "do_may_hang": "máy đo 2026-11-20 (scripts/do-anh.mjs --cua, không AI): ảnh c-Hohenschwangau-3410092980-.jpg (Pedro from Maia (Porto), Portugal, CC BY 2.0) định vị 118 điểm khớp, phủ 100 % cạnh, độ tin 0.71",
+  "da_goc": 3,
+  "do_may_da_goc": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI): ảnh c-Castelul-Neuschwanstein20.jpg (Cezar Suceveanu, CC BY-SA 3.0) định vị 146 điểm khớp · sai số 2.84 px, nắn 24 px/m, độ tin 0.64",
   "khung": true,
   "hang_khung": [
    {
@@ -3398,7 +3415,10 @@
   "doi_dom20": 7.8
  },
  "way/223110820#8": {
-  "hang": [],
+  "hang": [{"y0":27.31,"y1":29.35,"cum":[[2.29,3.12,1]]}],
+  "do_may_hang": "máy đo 2026-11-20 (scripts/do-anh.mjs --cua, không AI): ảnh c-Castelul-Neuschwanstein18.jpg (Cezar Suceveanu, CC BY-SA 3.0) định vị 225 điểm khớp, phủ 100 % cạnh, độ tin 0.59",
+  "da_goc": 2,
+  "do_may_da_goc": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI): ảnh c-Castelul-Neuschwanstein-17.jpg (Cezar Suceveanu, CC BY-SA 4.0) định vị 445 điểm khớp · sai số 2.51 px, nắn 24 px/m, độ tin 0.8",
   "mau": {
    "duoi": "#e9e7e1",
    "tren": "#d7b46e",
@@ -3419,6 +3439,8 @@
   "doi_dom20": 7.6
  },
  "way/223110825#7": {
+  "vom_nho": 6,
+  "do_may_vom_nho": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI): ảnh c-Castelul-Neuschwanstein22.jpg (Cezar Suceveanu, CC BY-SA 3.0) định vị 131 điểm khớp · sai số 2.82 px, nắn 24 px/m, nhịp đo 0.58 m, độ tin 0.67",
   "rang_cua": 0,
   "mau": {
    "duoi": "#e9e7e1",
@@ -3431,6 +3453,8 @@
   "doi_dom20": 5.1
  },
  "way/951894999#4": {
+  "hang": [{"y0":26.08,"y1":28.66,"cum":[[1.21,2.67,1]]}],
+  "do_may_hang": "máy đo 2026-11-20 (scripts/do-anh.mjs --cua, không AI): ảnh c-Hohenschwangau-3410092980-.jpg (Pedro from Maia (Porto), Portugal, CC BY 2.0) định vị 118 điểm khớp, phủ 100 % cạnh, độ tin 0.68",
   "mau": {
    "duoi": "#d7b46e",
    "tren": "#d7b46e",
@@ -3438,11 +3462,13 @@
   },
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m; đầu hồi bậc mặt tây sa thạch vàng",
   "ly_do": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m: đầu hồi — cửa đôi dưới đồng hồ",
-  "hang": [],
   "doi_dom20": 5.4
  },
  "way/951894999#5": {
-  "hang": [],
+  "hang": [{"y0":26.95,"y1":28.91,"cum":[[0.75,2.08,1]]}],
+  "do_may_hang": "máy đo 2026-11-20 (scripts/do-anh.mjs --cua, không AI): ảnh c-Hohenschwangau-3410092980-.jpg (Pedro from Maia (Porto), Portugal, CC BY 2.0) định vị 118 điểm khớp, phủ 100 % cạnh, độ tin 0.73",
+  "da_goc": 4,
+  "do_may_da_goc": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI): ảnh c-Castelul-Neuschwanstein22.jpg (Cezar Suceveanu, CC BY-SA 3.0) định vị 131 điểm khớp · sai số 2.82 px, nắn 24 px/m, độ tin 0.65, 2 ảnh cùng số (±1)",
   "mau": {
    "duoi": "#d7b46e",
    "tren": "#d7b46e",
@@ -3456,5 +3482,11 @@
   "ly_do": "16/11/2026 thẻ #1623 lần 3 (anh: \"số lượng cửa sổ không khớp, sai cả vị trí\"): cặp ảnh so-lech cùng camera — tam giác đầu hồi 30–35 m chỉ có nắp đá bậc, KHÔNG có cửa; hai cửa vòm thật nằm DƯỚI chân đầu hồi trên mặt gạch đỏ way/223110820#14 (25,8–27,5 m)",
   "ly_do_cu": "ảnh 3D mặt đông (anh khoanh 16/11/2026): mặt đầu hồi đỏ quay ra cổng — hàng dưới 3 cửa, hàng trên 2 cửa (đọc nhầm: hai cửa vòm + bốn vết bậc nắp đá khi đầu hồi còn đặt cao)",
   "doi_dom20": 5.4
+ },
+ "way/223179004#1": {
+  "hang": [{"y0":36.06,"y1":36.77,"cum":[[0.62,1.21,1]]}],
+  "do_may_hang": "máy đo 2026-11-20 (scripts/do-anh.mjs --cua, không AI): ảnh mapillary-1074776346769620.jpg (gpsvid / Mapillary, CC BY-SA 4.0) định vị 304 điểm khớp, phủ 100 % cạnh, độ tin 0.61",
+  "da_goc": 2,
+  "do_may_da_goc": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI): ảnh commons-Dvorac-Neuschwanstein---sjeverna-strana.jpg (Silverije, CC BY-SA 4.0) định vị 1010 điểm khớp · sai số 2.91 px, nắn 24 px/m, độ tin 0.61"
  }
 }

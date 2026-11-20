@@ -1,0 +1,29 @@
+{
+ "ghi_chu": "scripts/tai-canh-xa.py — cảnh xa: ảnh trực giao trên địa hình thật",
+ "vong": {
+  "noi": {
+   "nua": 420,
+   "anh": "anh/xa/noi.jpg"
+  },
+  "giua": {
+   "nua": 2100,
+   "anh": "anh/xa/giua.jpg",
+   "n": 211,
+   "buoc": 20,
+   "cao": "neuschwanstein-xa-giua.bin"
+  },
+  "xa": {
+   "nua": 10000,
+   "anh": "anh/xa/xa.jpg",
+   "n": 401,
+   "buoc": 50,
+   "cao": "neuschwanstein-xa-xa.bin"
+  }
+ },
+ "cay": {
+  "tep": "neuschwanstein-xa-cay.bin",
+  "so": 27952
+ },
+ "xa_mac": "xa-2k.jpg cho máy yếu",
+ "nguon": "Ảnh: Bayerische Vermessungsverwaltung DOP20 (CC BY 4.0), basemap.at (CC BY 4.0). Địa hình: Bayerische Vermessungsverwaltung DGM1 (CC BY 4.0), Copernicus GLO-30 (© DLR e.V. 2010-2014 và © Airbus Defence and Space GmbH 2014-2018, cung cấp theo chương trình COPERNICUS của Liên minh châu Âu và ESA)."
+}

@@ -86,11 +86,11 @@
   <div class="mo" id="so-nguon"></div>
   </div>
 </div>
-<div id="nguon" class="o"><span id="nguon-3d"></span>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> · EU-DEM (Copernicus) · người: Quaternius (CC0) · đồ đạc: KayKit (Kay Lousberg, CC0) · tranh tường: photochrom ~1900, Josef Albert / Library of Congress · tranh mặt Palas: <a href="https://commons.wikimedia.org/wiki/File:Oberer_Schlosshof_Neuschwanstein.jpg" target="_blank" rel="noopener">Naturliebhaberin, CC BY-SA 4.0</a></div>
+<div id="nguon" class="o"><span id="nguon-3d"></span>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> · EU-DEM, Copernicus GLO-30 (© DLR, Airbus) · ảnh trực giao + DGM1: Bayerische Vermessungsverwaltung (CC BY 4.0), basemap.at (CC BY 4.0) · người: Quaternius (CC0) · đồ đạc: KayKit (Kay Lousberg, CC0) · tranh tường: photochrom ~1900, Josef Albert / Library of Congress · tranh mặt Palas: <a href="https://commons.wikimedia.org/wiki/File:Oberer_Schlosshof_Neuschwanstein.jpg" target="_blank" rel="noopener">Naturliebhaberin, CC BY-SA 4.0</a></div>
 <script>
 // cùng cách nạp theo dấu phiên bản như index.html (Cloudflare zone on.tc giữ .js 30 ngày): hỏi ETag rồi nạp ./x.js?v=<ETag>
 (async () => {
-  const TEP = ['ns.js', 'tex.js', 'nguoi3d.js', 'dibo.js', 'bando.js', 'noithat.js', 'gopy.js', 'camung.js', 'mattien.js', 'nhieunguoi.js', 'chieuanh.js', 'duong.js', 'trangtri.js', 'baolech.js', 'cach3.js', 'danhgia.js', 'anhquanh.js'];
+  const TEP = ['ns.js', 'tex.js', 'nguoi3d.js', 'dibo.js', 'bando.js', 'noithat.js', 'gopy.js', 'camung.js', 'mattien.js', 'nhieunguoi.js', 'chieuanh.js', 'duong.js', 'trangtri.js', 'baolech.js', 'cach3.js', 'danhgia.js', 'anhquanh.js', 'canhxa.js'];
   const lay = (f) => fetch(`./${f}?ban=${Date.now()}`, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' })
     .then((r) => (r.ok && (r.headers.get('etag') || r.headers.get('last-modified')) || '').replace(/[^\w-]/g, '')).catch(() => '');
   const dau = await Promise.all(TEP.map(lay));

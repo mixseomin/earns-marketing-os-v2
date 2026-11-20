@@ -25,6 +25,7 @@ import { datTrangTri, datCuaCong } from './trangtri.js';
 import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, tiLeDung, datChop, oCum, boTriDo, datMai, banDoMat, datMatRieng } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 import { ganAnhQuanh } from './anhquanh.js';
+import { datCanhXa } from './canhxa.js';
 
 const $ = (id) => document.getElementById(id);
 const ten = new URLSearchParams(location.search).get('lau') || 'neuschwanstein';
@@ -70,8 +71,8 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'hi
 renderer.setPixelRatio(Math.min(devicePixelRatio, CHAM ? 1 : 1.5)); renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1; renderer.shadowMap.enabled = true; renderer.shadowMap.type = CHAM ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
-const scene = new THREE.Scene(); scene.background = new THREE.Color(0xa9c4dc); scene.fog = new THREE.Fog(0xa9c4dc, 600, 2200);
-const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.5, 5000);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xa9c4dc); scene.fog = new THREE.Fog(0xa9c4dc, 2500, 18000);
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.5, 25000);
 scene.add(new THREE.HemisphereLight(0xdfe9f5, 0x55603a, 1.3));
 const nang = new THREE.DirectionalLight(0xfff1dc, 2.6); nang.position.set(-260, 380, 180); nang.castShadow = true;
 nang.shadow.mapSize.set(CHAM ? 1024 : 2048, CHAM ? 1024 : 2048); Object.assign(nang.shadow.camera, { left: -200, right: 200, top: 200, bottom: -200, near: 50, far: 1200 }); nang.shadow.bias = -0.0004; scene.add(nang);
@@ -111,6 +112,8 @@ const LOP_OSM = [], CAY_VA = [], CAY_XZ = []; // lớp vẽ dựng-từ-số-đo
   }
   g.setAttribute('color', new THREE.BufferAttribute(mau, 3));
   const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 })); m.receiveShadow = true; scene.add(m); LOP_OSM.push(m);
+  // CẢNH XA (canhxa.js): ảnh trực giao lên lưới này + vòng 2,1 km và 10 km quanh — tải sau, không chặn trang; ảnh thật 3D đang bật thì ẩn như lớp mô hình
+  datCanhXa({ THREE, scene, ten, luoiTrong: m, caoDat, NUA, GOC_Y, nhe: CHAM }).then((ds) => { for (const o of ds) { o.visible = !LOP_OSM.dangAn; LOP_OSM.push(o); } }).catch((e) => console.warn('[ns] cảnh xa', e));
 }
 
 // ---------- vật lý: mặt đất = lưới độ cao (Rapier heightfield, cột trước: heights[i*n + j] với i theo x, j theo z)
@@ -1004,7 +1007,7 @@ const RUNG = []; let RUNG_O = []; // ẩn khi so ảnh thật (cây mọc ở m�
 // ---------- điều khiển + nhãn
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }; // cảm ứng: hai ngón vừa chụm / mở (phóng) vừa xoay như kéo chuột trái (anh 15/11/2026); mặc định là phóng + dời
-orbit.target.set(0, 25, 0); camera.position.set(-170, 90, 230); orbit.enableDamping = true; orbit.maxPolarAngle = 1.52; orbit.minDistance = 15; orbit.maxDistance = 1500; orbit.update();
+orbit.target.set(0, 25, 0); camera.position.set(-170, 90, 230); orbit.enableDamping = true; orbit.maxPolarAngle = 1.52; orbit.minDistance = 15; orbit.maxDistance = 6000; orbit.update(); // trần 1500 → 6000 m: có cảnh xa 10 km (canhxa.js) thì lùi ra phải thấy được hồ Forggensee + dãy Alps
 // DỜI CAMERA TOÀN CẢNH TRÊN PC (thẻ #1640, anh 17/11/2026 "thêm tính năng span trên pc"): giữ chuột phải kéo (touchpad Mac: bấm hai ngón rồi kéo)
 // hoặc Shift / Ctrl / ⌘ + kéo chuột trái = dời ngang theo MẶT ĐẤT như bản đồ (screenSpacePanning tắt: điểm nhìn không bay lên trời / chui xuống núi);
 // W A S D / mũi tên = dời theo hướng camera, giữ Shift nhanh gấp 3; tốc độ theo khoảng cách camera ↔ điểm nhìn (xem xa thì dời nhanh).
@@ -1308,13 +1311,14 @@ function thayDiem(lat, lng, d) {
 const aq = ganAnhQuanh({ THREE, scene, nut: $('b-aq'), moGopY: () => hopGopY.mo(), thay: thayDiem,
   raLatLng: raLatLngNS,
   layDiem: diemGiuaMan });
-// VẬT Ở XA KHÔNG VẼ: đi bộ thì sương mù kéo về 180–520 m + camera chỉ vẽ tới 600 m, ô rừng xa hơn 560 m tắt; xem toàn cảnh thì tầm theo độ cao / khoảng cách camera
+// VẬT Ở XA: ô rừng gần (3D đầy đủ) xa hơn 560 m tắt khi đi bộ — phía ngoài là cảnh xa (canhxa.js: rừng vòng giữa một lệnh vẽ + ảnh trực giao trên địa hình tới 10 km), nên sương chỉ còn là
+// hơi núi (đi bộ 1,5 → 14 km, toàn cảnh 2,5 → 18 km) và camera vẽ tới chân trời; trước đây sương 180–520 m + tầm 600 m che hết núi (anh 21/11/2026, bước 2)
 let lucXa = 0;
 function anCayXa(now) {
   if (now - lucXa < 250) return; lucXa = now;
   const dang = !!di?.dang, c = camera.position, xa = dang ? 560 : Math.max(900, c.length() * 2.2);
-  const fog = scene.fog, near = dang ? 180 : 600, far = dang ? 520 : 2200; if (fog.near !== near) { fog.near = near; fog.far = far; }
-  const cf = dang ? 600 : 5000; if (camera.far !== cf) { camera.far = cf; camera.updateProjectionMatrix(); }
+  const fog = scene.fog, near = dang ? 1500 : 2500, far = dang ? 14000 : 18000; if (fog.near !== near) { fog.near = near; fog.far = far; }
+  const cf = dang ? 16000 : 25000; if (camera.far !== cf) { camera.far = cf; camera.updateProjectionMatrix(); }
   for (const o of RUNG_O) o.visible = o.userData.tam.distanceTo(c) < xa;
   batCayGan();
 }

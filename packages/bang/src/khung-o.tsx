@@ -21,8 +21,14 @@ export function KhungO({ children }: { children: ReactNode }) {
 }
 /** ngăn kéo / lớp nổi mở TỪ trong ô: nội dung của nó không còn là ruột ô → đặt lại cỡ ô = 0 (bảng trong ngăn vẽ như trang thường) */
 export const RaKhoiO = ({ children }: { children: ReactNode }) => <Ctx.Provider value={0}>{children}</Ctx.Provider>;
-/** bề ngang ô đang chứa (px); 0 = không nằm trong ô widget (trang cũ, đủ rộng) */
-export const useKhungO = () => useContext(Ctx);
+/** bề ngang ô đang chứa (px); 0 = không nằm trong ô widget (trang cũ, đủ rộng).
+ *  Trả 0 cho tới khi CHÍNH khối gọi đã gắn xong: máy chủ luôn vẽ với 0, khối stream về muộn mà lúc gắn đã đọc cỡ ô thật thì vẽ khác HTML máy chủ
+ *  → React lệch hydrate #418 (đo 20/11/2026: Tiền, SEO, Dự án và công cụ, lúc có lúc không theo thứ tự stream). Gắn xong mới đổi sang dáng gọn. */
+export function useKhungO() {
+  const rong = useContext(Ctx); const [gan, setGan] = useState(false);
+  useEffect(() => { setGan(true); }, []);
+  return gan ? rong : 0;
+}
 export const MOC_COT = { 1: 0, 2: 560, 3: 860 } as const;
 /** giữ cột theo bề ngang ô: uu 1 luôn có · 2 từ 560 px · 3 từ 860 px. rong 0 (ngoài ô) = giữ hết. */
 export function cotTheoRong<C extends { uu?: 1 | 2 | 3 }>(cot: C[], rong: number): C[] {

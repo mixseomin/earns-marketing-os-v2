@@ -123,17 +123,20 @@ export function KhungNoi({ x, y, rong, cao, noi, children, style, chu = false }:
   </>), document.body);
 }
 // CHỮ RÊ → KHỐI THẺ: dòng đầu đậm (phần trước " — " / ": " đầu tiên), phần sau tách theo " · " / xuống dòng thành các dòng có chấm — cùng khung TheChung
-export function tachChuRe(t: string): { tieu: string; dong: string[] } {
-  const s = t.trim(); const m = /\s+—\s+|\n/.exec(s);
-  let tieu = s, sau = '';
-  if (m) { tieu = s.slice(0, m.index); sau = s.slice(m.index + m[0].length); }
-  else if (s.length > 70) { const i = s.indexOf(' · '); if (i > 0) { tieu = s.slice(0, i); sau = s.slice(i + 3); } }
-  const dong = sau.split(/\n|\s+·\s+|\s+—\s+/).map((x) => x.trim()).filter(Boolean);
-  return { tieu, dong };
-}
 // #1715 (anh 20/11/2026 "Tởm, ko đọc đc"): only a SHORT title is shown in bold. A long description with no separator
 // (vd mô tả mẫu creative) used to be one bold 13px block → hard to read. Above TIEU_DAM characters it becomes a plain paragraph, regular weight, wider line height.
 const TIEU_DAM = 60;
+export function tachChuRe(t: string): { tieu: string; dong: string[] } {
+  const s = t.trim(); const m = /\s+—\s+|\n/.exec(s);
+  let tieu = s, sau = '';
+  // #1715 lượt 2: " — " chỉ là dấu tách tiêu đề khi phần trước NGẮN (≤ TIEU_DAM). Câu dài có " — " giữa câu (mô tả mẫu) trước bị chặt đôi:
+  // nửa đầu thành đoạn, nửa sau thành một chấm cụt → đọc như hai mẩu rời. Nay câu dài giữ nguyên một đoạn; chỉ xuống dòng thật mới tách.
+  if (m && (m[0] === '\n' || m.index <= TIEU_DAM)) { tieu = s.slice(0, m.index); sau = s.slice(m.index + m[0].length); }
+  else if (m) { const i = s.indexOf('\n'); if (i > 0) { tieu = s.slice(0, i); sau = s.slice(i + 1); } }
+  else if (s.length > 70) { const i = s.indexOf(' · '); if (i > 0 && i <= TIEU_DAM) { tieu = s.slice(0, i); sau = s.slice(i + 3); } }
+  const dong = sau.split(/\n|\s+·\s+/).map((x) => x.trim()).filter(Boolean);
+  return { tieu, dong };
+}
 export function TheChu({ chu }: { chu: string }) {
   const { tieu, dong } = tachChuRe(chu);
   const dam = tieu.length <= TIEU_DAM;

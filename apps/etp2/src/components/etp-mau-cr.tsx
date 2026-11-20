@@ -17,6 +17,7 @@ import { DS_DANG } from '@/lib/etp-dang';
 import { docMauCr, type DungMau, type LoaiMau, type MauCr, type NguonMau, type PhimSx, type TrangThaiMau } from '@/lib/actions/etp-mau-cr';
 import { DO, XANH, gioVn } from './etp-doi-thu';
 import { ChiTietMau, DauMau } from './etp-mau-drawer';
+import { KhungNoi, useNoi } from './etp-noi';
 
 const thuVienQc = (id: string) => `https://href.li/?https://www.facebook.com/ads/library/?id=${id}`;   // link ra ngoài che referrer
 export const TEN_LOAI: Record<LoaiMau, string> = { cong_thuc: 'Công thức máy dựng', dang: 'Dạng creative', bien_the: 'Biến thể của dạng', bo_cuc: 'Bố cục ảnh', lop_phu: 'Lớp phủ chữ / nút' };
@@ -179,6 +180,36 @@ export function ThamChieu({ m }: { m: MauCr }) {
       style={{ fontSize: 11.5, fontVariantNumeric: 'tabular-nums', color: t.con_chay ? XANH : 'var(--fg-2)' }}>{t.ngay ?? '?'} ngày{t.con_chay ? ' ●' : ''}</a>)}</span>;
 }
 
+/** THẺ NỔI CỦA MỘT MẪU (#1715 anh 20/11/2026 "Không dùng cái hover này default như vậy !! Tởm, ko đọc đc"): rê vào tên mẫu trong cây / mô tả trên thẻ trước rơi về
+ *  title= thô → thẻ chữ chung: không biết đang xem mẫu nào, câu mô tả dài in đậm cả khối rồi bị chặt ở dấu "—". Nay thẻ riêng của mẫu: dòng loại xám · đèn + tên + trạng thái ·
+ *  mô tả chữ thường dễ đọc · bảng thông số · số phim / camp. Trễ mở, ✕, Esc, giữ khi rê vào thẻ (KhungNoi); thẻ chữ chung tự nhường. */
+function TheMau({ m }: { m: MauCr }) {
+  const [tenTt, mauTt] = TEN_TT[m.trang_thai], s = m.so;
+  const loai = [m.vai ?? TEN_LOAI[m.loai], m.nhom_tk, TEN_NGUON[m.nguon]].filter(Boolean).join(' · ');
+  return <div style={{ width: 400, maxWidth: '92vw', padding: '10px 34px 12px 14px', color: 'var(--fg-1)', whiteSpace: 'normal' }}>
+    <div style={{ fontSize: 11.5, color: MO_SO, marginBottom: 4 }}>{loai}</div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, paddingBottom: 8, marginBottom: 8, borderBottom: '1px solid var(--line)' }}>
+      <span style={{ width: 8, height: 8, borderRadius: 4, background: mauTt, flex: 'none' }} />
+      <b style={{ fontSize: 13.5, color: 'var(--fg-0)', flex: 1, minWidth: 0 }}>{m.ten}</b>
+      <span style={{ fontSize: 11.5, color: mauTt, flex: 'none' }}>{tenTt}</span>
+    </div>
+    {m.mo_ta ? <p style={{ margin: 0, fontSize: 12.5, fontWeight: 400, lineHeight: 1.6, color: 'var(--fg-1)' }}>{m.mo_ta}</p> : null}
+    {m.spec?.length ? <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', gap: '3px 12px', fontSize: 12, lineHeight: 1.45, marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--line)' }}>
+      {m.spec.map((x) => [<span key={`a${x.nhan}`} style={{ color: MO_SO, whiteSpace: 'nowrap' }}>{x.nhan}</span>, <span key={`b${x.nhan}`}>{x.gia}</span>])}</div> : null}
+    {s || m.phim_sx.length ? <div style={{ marginTop: 10, fontSize: 11.5, color: MO_SO, fontVariantNumeric: 'tabular-nums' }}>
+      {[m.phim_sx.length ? `${m.phim_sx.length} phim đang sản xuất theo mẫu` : null, s ? `${s.dang_chay}/${s.camp} camp đang chạy · ${s.cr} creative nhà` : null].filter(Boolean).join(' · ')}</div> : null}
+    <div style={{ marginTop: 8, fontSize: 11, color: MO_SO }}>Bấm để xem đủ thông số + mọi phim sản xuất</div>
+  </div>;
+}
+/** bọc chỗ rê (tên trong cây, mô tả trên thẻ) — không còn title= thô */
+function ReMau({ m, children, khoi = false }: { m: MauCr; children: React.ReactNode; khoi?: boolean }) {
+  const noi = useNoi<{ id: 0 }>();
+  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre}
+    style={{ display: khoi ? 'block' : 'inline-flex', alignItems: 'center', minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}>
+    {/* bấm trong thẻ nổi (✕, chữ) không lan lên dòng cây / thẻ — portal vẫn lan sự kiện theo cây React */}
+    {noi.v ? <span onClick={(e) => e.stopPropagation()}><KhungNoi x={noi.v.x} y={noi.v.y} rong={400} cao={360} noi={noi}><TheMau m={m} /></KhungNoi></span> : null}{children}</span>;
+}
+
 /** THẺ MẪU — YDNI: chỉ thứ để CHỌN mẫu (creative mẫu · tên · đèn trạng thái · một dòng loại · 2 dòng mô tả · số nhà) + việc đang chạy (phim sản xuất).
  *  Thông số biến thể giữ trên thẻ (anh 19/11/2026 "mở cái nào là sẽ biết mình sx loại creative nào"). Giọng đọc, dùng cho dạng nào, hợp thể loại, QC đối thủ gốc,
  *  máy dựng → ngăn mẫu, bấm thẻ là mở (?ed=etp-mau~…). */
@@ -193,7 +224,7 @@ function The({ m }: { m: MauCr }) {
       {s ? <span style={{ fontSize: 11.5, flex: 'none', fontVariantNumeric: 'tabular-nums' }} title={`${s.cr} creative nhà · camp đang chạy ${s.dang_chay} / đã lên ${s.camp} · chi $${s.chi.toFixed(0)}`}><span style={{ color: MO_SO }}>{s.dang_chay}/{s.camp} camp · ROI </span><ORoi s={s} /></span> : null}
     </div>
     <div style={{ fontSize: 11.5, color: MO_SO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(m.nguon === 'doi_thu' ? [m.vai ?? TEN_LOAI[m.loai], `${demBan(m).goc} QC gốc đối thủ`, demBan(m).duyet ? `${demBan(m).duyet} đã duyệt` : null] : [TEN_LOAI[m.loai], m.vai, TEN_NGUON[m.nguon], s ? `${s.cr} creative nhà` : null]).filter(Boolean).join(' · ')}</div>
-    <div title={m.mo_ta} style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 34 }}>{m.mo_ta}</div>
+    <ReMau m={m} khoi><div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 34 }}>{m.mo_ta}</div></ReMau>
     {m.spec?.length ? <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', gap: '2px 10px', fontSize: 11.5 }}>
       {m.spec.map((x) => [<span key={`a${x.nhan}`} style={{ color: MO_SO, whiteSpace: 'nowrap' }}>{x.nhan}</span>, <span key={`b${x.nhan}`} title={x.gia} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.gia}</span>])}</div> : null}
     <div style={{ marginTop: 'auto' }}><ChanThe m={m} /></div>
@@ -236,11 +267,11 @@ function CayMau({ rows, chon, setChon, mo, setMo }: { rows: MauCr[]; chon: strin
               {ds.map((m) => { const km = `m:${m.loai}:${m.ma}`, con = conCua(m);
                 return <NutCay key={km} chon={chon === km} onChon={() => setChon(km)} mo={con.length ? mo.includes(km) : undefined} onDoi={con.length ? () => doiMo(km) : undefined}
                   dau={<span title={TEN_TT[m.trang_thai][0]} style={{ width: 7, height: 7, borderRadius: 4, background: CHAM_TT[m.trang_thai], flex: 'none' }} />}
-                  ten={<span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.mo_ta}>{m.ten}</span>}
+                  ten={<ReMau m={m}><span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.ten}</span></ReMau>}
                   phai={m.phim_sx.length ? <span title={`${m.phim_sx.length} phim đã chọn để sản xuất theo mẫu này`} style={{ fontSize: 11, color: MO_SO, whiteSpace: 'nowrap' }}>{m.phim_sx.length} phim</span> : undefined}>
                   {con.length ? con.map((b) => { const kb = `m:${b.loai}:${b.ma}`;
                     return <NutCay key={kb} chon={chon === kb} onChon={() => setChon(kb)} dau={<span style={{ width: 6, height: 6, borderRadius: 3, background: CHAM_TT[b.trang_thai], flex: 'none' }} />}
-                      ten={<span style={{ fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={b.spec.map((x) => `${x.nhan}: ${x.gia}`).join('\n')}>{b.ten.replace(/^\S+ · /, '')}</span>} />; }) : null}
+                      ten={<ReMau m={b}><span style={{ fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.ten.replace(/^\S+ · /, '')}</span></ReMau>} />; }) : null}
                 </NutCay>; })}
             </NutCay>; })}
         </NutCay>; })}

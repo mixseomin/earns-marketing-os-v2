@@ -9,6 +9,7 @@
 #   5) đóng hàng (hang-video.mts --dong): shot có clip mới của bộ = xong, chưa có = lỗi (bấm Sinh lại) — không tự chạy lại cụm hỏng
 #   bash apps/xuong-video/scripts/h3/chay-hang.sh          → in hàng + cụm sẽ chạy + giá Seedance (0đ)
 #   bash apps/xuong-video/scripts/h3/chay-hang.sh --chay   → TỐN TIỀN (Kie / máy thuê) — chỉ chạy khi anh bảo
+#   Tự chạy: việc nền iMac scripts/h3/tu-chay-hang.sh (anh duyệt 20/11/2026) gọi lệnh này cho hàng H3 khi hàng đã lặng — xem đầu tệp đó
 set -uo pipefail
 CHAY=${1:-}
 DIR=$(cd "$(dirname "$0")" && pwd); TAPSH="$DIR/../bo-set/cum-seedance-tap.sh"
@@ -17,6 +18,8 @@ TSX="set -a; . ../../.env.production; set +a; NODE_OPTIONS=--conditions=react-se
 TM=$(mktemp -d); trap 'rm -rf "$TM"' EXIT
 ssh "$BOX" "cd $RBOX && $TSX scripts/hang-video.mts --ds" > "$TM/hang.json" || { echo "✗ không đọc được hàng trên box3"; exit 1; }
 python3 -c 'import json,sys; [print(h["tap"], h["bo"], ",".join(map(str, h["so"]))) for h in json.load(open(sys.argv[1]))]' "$TM/hang.json" > "$TM/hang.txt"
+# XV_HANG_BO="h3" → chỉ chạy hàng của các bộ được khai (việc nền tu-chay-hang.sh chỉ tự chạy H3; hàng Seedance chờ người gõ lệnh)
+[ -n "${XV_HANG_BO:-}" ] && { awk -v b=" ${XV_HANG_BO} " 'index(b, " " $2 " ")' "$TM/hang.txt" > "$TM/hang.loc"; mv "$TM/hang.loc" "$TM/hang.txt"; }
 [ -s "$TM/hang.txt" ] || echo "hàng trống — không có shot nào đang chờ cụm"
 while read -r TAP BO SO; do
   echo "── tập $TAP · bộ $BO · shot trong hàng #${SO//,/ #}"

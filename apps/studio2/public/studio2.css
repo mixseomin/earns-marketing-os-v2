@@ -460,3 +460,13 @@ button.thu.nut { border: 0; cursor: pointer; font-family: var(--f-so) } button.t
 .d-qt input:focus, .d-qt textarea:focus { outline: 2px solid var(--brass); outline-offset: 1px; border-color: var(--brass) }
 .cs-n { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, .8fr); gap: 5px } .cs-n input[data-cs=noi] { grid-column: 1 / -1 }
 .cs-kq { display: grid; gap: 6px } .cs-ls { font: 12px var(--f-so); padding: 4px 8px; border-radius: 6px; background: var(--brass-nhat); justify-self: start } .cs-kq a { color: var(--brass) }
+
+/* menu tổng ☰ */
+.mn-tong-nut { font-size: 16px; line-height: 1 }
+.mn-tong { display: grid; gap: 10px; min-width: 250px; max-height: min(70vh, 640px); overflow: auto } .mn-nhom { display: grid; gap: 1px } .mn-nhom h3 { margin: 0 0 3px }
+.mn-muc { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border: 0; border-radius: 7px; background: none; color: var(--ink); font: inherit; text-align: left; text-decoration: none; cursor: pointer }
+.mn-muc:hover, .mn-muc:focus-visible { background: var(--brass-nhat) } .mn-muc[disabled] { opacity: .45; cursor: default; background: none } .mn-muc i { font-style: normal; color: var(--brass); margin-left: auto }
+/* hộp âm thanh nổi trên timeline + lớp lời */
+.tl-am { position: fixed; z-index: 1500; width: min(340px, calc(100vw - 16px)); display: grid; gap: 7px; padding: 10px; background: var(--mat); color: var(--ink); border: 1px solid var(--brass); border-radius: 10px; box-shadow: 0 10px 30px rgba(5, 7, 15, .28); font: 400 13px var(--f-than) }
+.tl-am-dau { display: flex; gap: 8px; align-items: center; justify-content: space-between } .tl-am-nut { display: grid; gap: 6px; justify-items: start } .tl-am .nho { max-height: 90px; overflow: auto }
+.lop-loi { display: grid; gap: 6px } .lop-chon { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--mat) }

@@ -182,6 +182,7 @@ function sua(p) {
 document.addEventListener('click', (e) => {
   if (E.menu && !e.target.closest('#dMenu, [data-d=menu]')) { E.menu = null; veTren(); veMenu(); }
   const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+  if (E.menu?.loai === 'tong' && b.closest('#dMenu') && !['menu', 'wg'].includes(d.d)) { E.menu = null; veTren(); veMenu(); }
   if (d.d) return lamD(d.d, d, b);
   if (d.b && +d.b <= S.max && !S.xong && !S.dang) return di(+d.b);
   if (d.y) { S.y = d.y; return ve(); }
@@ -321,7 +322,7 @@ function tuStudio(pd, tap, ds) {
   const loai = co3d ? 'phim' : p.loai === 'quang_cao' || /^qc_/.test(tl) ? 'qc' : p.loai === 'may_dung' ? 'may' : tl === 'tai_lieu' || laMoc ? 'tailieu' : 'doc';
   if (ds.length) for (const c of ds) if (!GOC[`s${c.id}`]) GOC[`s${c.id}`] = c;
   return { ten: p.ten + (pd.tap.length > 1 ? ` · tập ${tap.so}` : ''), loai, tile, kieu: 'chart-chapters', vid: tap.video_url || tap.xuat?.[tap.xuat.length - 1]?.url || undefined,
-    giong: GIONG[0], toc: 'Vừa', nhac: tap.nhac_url ? NHAC[1] : NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs, set: co3d ? { vat: [], khoi } : undefined, canh, that: { phim: p.id, tap: tap.id, soTap: pd.tap.length, trong: !ds.length, kt: p.kinh_thanh || {}, moTa: p.mo_ta || '', loaiPhim: p.loai, brief: String(tap.brief || '').split('\n\n=== CÁCH KỂ (Studio 2 tự ghép')[0], kichBan: tap.kich_ban || '', xuatUrl: tap.video_url || '', laMoc, nx: tap.thu_nguoi_xem || null, mau: pd.nhanVat.map((x) => ({ id: x.id, ten: x.ten, loai: x.loai, anh: x.anh_ref?.[0] || '' })), coCachKe: String(tap.brief || '').includes('=== CÁCH KỂ (Studio 2 tự ghép'), mauNguoi: pd.nhanVat.filter((x) => x.loai === 'nhan_vat').map((x) => x.id) } };
+    giong: GIONG[0], toc: 'Vừa', nhac: tap.nhac_url ? NHAC[1] : NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs, set: co3d ? { vat: [], khoi } : undefined, canh, that: { phim: p.id, tap: tap.id, nhacUrl: tap.nhac_url || '', soTap: pd.tap.length, trong: !ds.length, kt: p.kinh_thanh || {}, moTa: p.mo_ta || '', loaiPhim: p.loai, brief: String(tap.brief || '').split('\n\n=== CÁCH KỂ (Studio 2 tự ghép')[0], kichBan: tap.kich_ban || '', xuatUrl: tap.video_url || '', laMoc, nx: tap.thu_nguoi_xem || null, mau: pd.nhanVat.map((x) => ({ id: x.id, ten: x.ten, loai: x.loai, anh: x.anh_ref?.[0] || '' })), coCachKe: String(tap.brief || '').includes('=== CÁCH KỂ (Studio 2 tự ghép'), mauNguoi: pd.nhanVat.filter((x) => x.loai === 'nhan_vat').map((x) => x.id) } };
 }
 /** dự án chờ: khung trống hiện trong lúc đọc phim thật */
 const duAnCho = () => ({ ten: 'Đang mở phim…', loai: 'hinh', tile: '9:16', kieu: 'chart-chapters', giong: GIONG[0], toc: 'Vừa', nhac: NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs: [], canh: [canhMoi({ nhan: 'Đang mở', anh: TRONG, tg: 4 })], cho: true });
@@ -503,7 +504,7 @@ $('#tlKeo').addEventListener('dblclick', () => { E.tlCao = 0; datTlCao(); luu();
 //    Mỗi nút gọi đúng một bước của studio qua đường ghi; studio tự gác cổng quy trình + cổng tiền, từ chối thì câu của studio hiện ngay dưới nút.
 //    Bước tốn tiền: bấm lần đầu hiện giá ước, bấm lần nữa mới chạy — mỗi lần bấm một bước, xem kết quả rồi mới bấm bước kế (không chạy chuỗi).
 const GIA_CHU = { viet: 0.05, tach: 0.06, nx: 0.02, nxSua: 0.05, pc: 3.7, anchor: 0.1 };   // ¢ mỗi lượt máy viết, chỉ để báo trước; tiền thật xem ở Nhật ký. Viết kịch bản + tách cảnh: số thật của ba lượt 20/11/2026 trên đường chữ studio đang đi (donk:claude-opus-5-5: 0,05¢ · 0,05¢ · 0,06¢); con số cũ 7¢ / 43¢ là của đường Claude chính hãng, đường ấy giờ chỉ chạy khi các cổng rẻ đều hỏng
-const TEN_BUOC = { astro: 'Hỏi Astrolas', brief: 'Lưu ý tưởng', viet: 'Máy viết kịch bản', tach: 'Máy tách thành cảnh', nx: 'Thử người xem', nxSua: 'Máy sửa theo góp ý người xem', vaiTt: 'Đặt shot tổng thể cho phân cảnh còn thiếu', ganNguoi: 'Gắn mẫu người vào các cảnh có người', boKhuon: 'Bỏ khuôn dựng phim truyện của tập này', kiemKhung: 'Máy kiểm khung các ảnh', soiBo: 'Nhận các clip máy soi báo lỗi', uvMoi: 'Dùng ảnh mới vẽ cho các cảnh', mauVe: 'Vẽ lại ảnh mẫu', kfMau: 'Vẽ lại các cảnh dùng mẫu này', giong1: 'Đọc lại lời cảnh này', traPhi: 'Cho phép video trả phí cho tập này', kfLech: 'Vẽ lại các ảnh máy báo lệch', khungNhan: 'Nhận các ảnh máy báo lệch', nxNhan: 'Tôi nhận kịch bản này', pc: 'Máy gợi ý phong cách', pcDung: 'Dùng gợi ý này', anchor: 'Máy đề xuất nhân vật, bối cảnh', anhMau: 'Vẽ ảnh mẫu còn thiếu',
+const TEN_BUOC = { astro: 'Hỏi Astrolas', brief: 'Lưu ý tưởng', viet: 'Máy viết kịch bản', tach: 'Máy tách thành cảnh', nx: 'Thử người xem', nxSua: 'Máy sửa theo góp ý người xem', vaiTt: 'Đặt shot tổng thể cho phân cảnh còn thiếu', ganNguoi: 'Gắn mẫu người vào các cảnh có người', boKhuon: 'Bỏ khuôn dựng phim truyện của tập này', kiemKhung: 'Máy kiểm khung các ảnh', soiBo: 'Nhận các clip máy soi báo lỗi', uvMoi: 'Dùng ảnh mới vẽ cho các cảnh', mauVe: 'Vẽ lại ảnh mẫu', kfMau: 'Vẽ lại các cảnh dùng mẫu này', giong1: 'Đọc lại lời cảnh này', td1: 'Sinh lại tiếng động cảnh này', nhac1: 'Sinh lại nhạc nền', traPhi: 'Cho phép video trả phí cho tập này', kfLech: 'Vẽ lại các ảnh máy báo lệch', khungNhan: 'Nhận các ảnh máy báo lệch', nxNhan: 'Tôi nhận kịch bản này', pc: 'Máy gợi ý phong cách', pcDung: 'Dùng gợi ý này', anchor: 'Máy đề xuất nhân vật, bối cảnh', anhMau: 'Vẽ ảnh mẫu còn thiếu',
   kf: 'Vẽ ảnh các cảnh chưa có', kf1: 'Vẽ lại ảnh cảnh này', duyet: 'Duyệt các ảnh đã có', duyet1: 'Duyệt ảnh cảnh này', giong: 'Đọc lời cả tập', animatic: 'Chốt nhịp trước khi dựng clip', clip: 'Dựng clip các cảnh đã duyệt', clip1: 'Dựng clip cảnh này', nhac: 'Sinh nhạc nền', xuat: 'Xuất video' };
 const NUT_QT = { brief: ['brief'], truyen: ['tach'], kich_ban: ['viet', 'tach'], nguoi_xem: ['nx', 'nxSua', 'nxNhan'], phong_cach: ['pc'], phan_canh: ['vaiTt'], mau_doi_tuong: ['anchor', 'anhMau'], mau_boi_canh: ['ganNguoi', 'anchor', 'anhMau'], keyframe: ['kf', 'uvMoi', 'duyet'], giong: ['giong'], nhac: ['nhac'] };
 const canhThat = () => D.canh.map((c) => GOC[c.id]).filter(Boolean);
@@ -518,7 +519,7 @@ function giaBuoc(k) { const g = E.gia || {}, [b, sid] = k.split(':'), giay = (ds
     case 'viet': case 'tach': case 'nx': case 'nxSua': case 'pc': case 'anchor': return GIA_CHU[b];
     case 'kf': return g.anh1 ? g.anh1 * canhThieu('kf').length : null; case 'kfLech': return g.anh1 ? g.anh1 * canhThieu('lech').length : null; case 'mauVe': return g.anh1 || null; case 'kfMau': return g.anh1 ? g.anh1 * canhMau(sid).length : null; case 'kf1': return g.anh1 || null;
     case 'clip': return xepHang() ? 0 : g.giay1 ? g.giay1 * giay(canhThieu('clip')) : null; case 'clip1': return xepHang() ? 0 : g.giay1 && GOC[sid] ? g.giay1 * (+GOC[sid].thoi_luong_s || 0) : null;
-    case 'giong': return g.giong ?? null; case 'nhac': return g.nhac ?? null; default: return null; } }
+    case 'giong': return g.giong ?? null; case 'nhac': case 'nhac1': return g.nhac ?? null; default: return null; } }
 /** chạy một việc lần lượt cho từng cảnh; cảnh nào studio từ chối thì ghi lại rồi ĐI TIẾP cảnh sau (trước đây dừng cả loạt ở cảnh đầu tiên bị từ chối), cuối cùng báo đủ từng cảnh */
 async function lanLuot(ds, lam) { const loi = []; let ok = 0, khoaVx = 0; for (const c of ds) { try { await lam(c); ok++; } catch (e) { if (/chưa thử VideoExpress/.test(e.message)) khoaVx++; else loi.push(`cảnh ${Math.round(+c.thu_tu)}: ${String(e.message).replace(/^Shot #\d+ /, '')}`); } }
   if (khoaVx) loi.unshift(`${khoaVx} cảnh: studio đang khoá video trả phí. Luật của studio là thử dựng bằng VideoExpress (0₫) trước, hoặc quản trị bấm "Cho phép video trả phí cho tập này" ngay trong mục Dựng clip`);
@@ -580,9 +581,11 @@ const BUOC_SV = {
   clip: async () => { const ds = canhThieu('clip'); await lanLuot(ds, (c) => ghiSv('sinhVideoCanh', c.id)); if (xepHang()) bao(`Đã xếp hàng ${ds.length} cảnh cho bộ ${boSinh() === 'h3' ? 'H3 (máy thuê)' : 'Seedance'}. Hàng chạy theo lô do quản trị khởi động; clip xong sẽ tự hiện ở đây.`, false, 12000); },
   clip1: (t, sid) => ghiSv('sinhLaiCanhS2', GOC[sid].id, 'clip', layYc()),
   nhac: (t) => ghiSv('sinhNhac', t.tap),
+  nhac1: (t) => ghiSv('sinhAmS2', t.tap, 'nhac', null, layYc()),
+  td1: (t, sid) => ghiSv('sinhAmS2', t.tap, 'td', GOC[sid].id, layYc()),
   xuat: async (t) => { E.xuatThat = { job: await ghiSv('xuatTap', t.tap), tt: 'chay', url: null, loi: '' }; },
 };
-const veBuoc = () => { if (co('qt')) veQt(); if (co('tt')) veTt(); if (E.xuat === 'that') vePhu(); };
+const veBuoc = () => { veAm(); if (co('qt')) veQt(); if (co('tt')) veTt(); if (E.xuat === 'that') vePhu(); };
 async function chayBuoc(k) {
   const t = D.that, b = k.split(':')[0]; if (!t || E.dangBuoc[k] || !BUOC_SV[b]) return; const gia = giaBuoc(k);
   if (coSua()) return bao('Có chỗ sửa chưa lưu. Bấm “Lưu về studio” trên thanh trên trước, rồi chạy bước này (chạy bước sẽ đọc lại phim từ studio).', false, 9000);
@@ -603,17 +606,19 @@ function choBuoc(k, truoc, tap, lan = 0) { setTimeout(async () => { if (D.that?.
   choBuoc(k, truoc, tap, lan + 1); }, 10000); }
 /** SINH LẠI có ô yêu cầu riêng (anh 20/11/2026: "ảnh, clip, voice luôn có kèm 1 nút để sinh lại; bấm vào thì hiện 1 input để thêm yêu cầu riêng (optional)…
  *  có cảnh báo về chi phí trước khi bấm submit"). Bấm nút → hộp: ô yêu cầu (bỏ trống = sinh lại theo cấu trúc chung) + dòng chi phí + nút Sinh lại. */
-const SINH_LAI = { kf1: 'anh', clip1: 'clip', giong1: 'giong', mauVe: 'mau' };
+const SINH_LAI = { kf1: 'anh', clip1: 'clip', giong1: 'giong', td1: 'td', nhac1: 'nhac', mauVe: 'mau' };
 const giaSl = (k) => { const b = k.split(':')[0], g = giaBuoc(k); if (b === 'clip1' && xepHang()) return 'Xếp hàng không tốn tiền. Khi lô H3 chạy trên máy thuê: khoảng 2.550₫ cho cảnh này (3 bản, máy tự chọn bản tốt nhất).';
   return `${g ? `Chi phí khoảng ${tienDo(g)} theo giá studio báo` : 'Bước này có tốn tiền (studio chưa báo được giá)'}${b === 'giong1' ? '' : '; có yêu cầu riêng thì thêm một lượt dịch nhỏ'}. Tiền thật xem ở Hàng đợi.`; };
-const hopSl = (k) => (E.sl?.k === k ? `<div class="sl-hop"><textarea id="slYc" rows="2" maxlength="600" placeholder="Yêu cầu riêng cho lần sinh này (không bắt buộc). Bỏ trống = sinh lại theo cấu trúc chung" aria-label="Yêu cầu riêng">${esc(E.sl.yc)}</textarea>`
-  + `<span class="nho sl-gia">${giaSl(k)}</span><div class="day-bt"><button type="button" class="bt chinh" data-d="slChay" data-g="${k}">Sinh lại</button><button type="button" class="bt" data-d="slThoi">Thôi</button></div></div>` : '');
+const hopSl = (k) => (E.sl?.k === k ? `<div class="sl-hop"><textarea id="slYc" rows="2" maxlength="600" placeholder="Yêu cầu riêng cho lần sinh này (không bắt buộc). Bỏ trống = sinh theo cấu trúc chung" aria-label="Yêu cầu riêng">${esc(E.sl.yc)}</textarea>`
+  + `<span class="nho sl-gia">${giaSl(k)}</span><div class="day-bt"><button type="button" class="bt chinh" data-d="slChay" data-g="${k}">${E.sl.moi ? 'Sinh' : 'Sinh lại'}</button><button type="button" class="bt" data-d="slThoi">Thôi</button></div></div>` : '');
 const layYc = () => { const y = E.slYc || ''; E.slYc = ''; return y; };
 function nutBuoc(k) { const b = k.split(':')[0], sid = k.split(':')[1], gia = giaBuoc(k), cho = E.cho === k, ban = E.dangBuoc[k], c = sid ? GOC[sid] : null;
   const n = b === 'kf' || b === 'duyet' || b === 'clip' ? canhThieu(b).length : b === 'kfLech' || b === 'khungNhan' ? canhThieu('lech').length : b === 'kfMau' ? canhMau(sid).length : b === 'uvMoi' ? canhThieu('uv').length : -1;
   const tat = ban || n === 0 || (b === 'duyet1' && !(c?.keyframe_url && (c.trang_thai === 'co_keyframe' || c.trang_thai === 'nhap'))) || (b === 'clip1' && !['duyet', 'xong'].includes(c?.trang_thai)) || (b === 'pcDung' && !E.goiY) || (b === 'nxSua' && !(D.that?.nx && !D.that.nx.dat));
-  const ten = b === 'clip' && xepHang() ? `Xếp hàng dựng clip bằng ${boSinh() === 'h3' ? 'H3' : 'Seedance'}` : b === 'kf1' && c && !c.keyframe_url ? 'Vẽ ảnh cảnh này' : b === 'clip1' && c && (c.video_url || c.video_cuoi_url) ? 'Dựng lại clip cảnh này' : TEN_BUOC[b];
-  if (SINH_LAI[b] && !ban) return `<button type="button" class="bt" data-d="slMo" data-g="${k}" aria-expanded="${E.sl?.k === k}" ${tat ? 'disabled' : ''}${tqAttr(ten, [SINH_LAI[b], sid])}>↻ ${ten}</button>${hopSl(k)}`
+  const ten = b === 'clip' && xepHang() ? `Xếp hàng dựng clip bằng ${boSinh() === 'h3' ? 'H3' : 'Seedance'}` : b === 'kf1' && c && !c.keyframe_url ? 'Vẽ ảnh cảnh này' : b === 'clip1' && c && (c.video_url || c.video_cuoi_url) ? 'Dựng lại clip cảnh này' : b === 'giong1' && c && !coGiong(c) ? 'Đọc lời cảnh này'
+    : b === 'td1' && c && !c.am_thanh_url ? 'Sinh tiếng động cảnh này' : b === 'nhac1' && !D.that?.nhacUrl ? 'Sinh nhạc nền' : TEN_BUOC[b];
+  const moi = (b === 'kf1' && c && !c.keyframe_url) || (b === 'giong1' && c && !coGiong(c)) || (b === 'td1' && c && !c.am_thanh_url) || (b === 'nhac1' && !D.that?.nhacUrl);
+  if (SINH_LAI[b] && !ban) return `<button type="button" class="bt" data-d="slMo" data-g="${k}" data-moi="${moi ? 1 : ''}" aria-expanded="${E.sl?.k === k}" ${tat ? 'disabled' : ''}${tqAttr(ten, [SINH_LAI[b], sid])}>${moi ? '＋' : '↻'} ${ten}</button>${hopSl(k)}`
     + (E.loiBuoc?.k === k ? `<div class="bao">Studio không chạy bước này: ${esc(E.loiBuoc.loi)}</div>` : '');
   return `<button type="button" class="bt${cho ? ' chinh' : ''}" data-d="buoc" data-g="${k}" ${tat ? 'disabled' : ''}${b === 'clip1' && !['duyet', 'xong'].includes(c?.trang_thai) ? ' title="Duyệt ảnh của cảnh trước, studio mới cho dựng clip"' : ''}>${ban === 'lau' ? 'Vẫn đang chạy bên studio… xong sẽ tự hiện (có bước mất 5 phút)' : ban ? 'Đang chạy…' : cho ? `Bấm lần nữa để chạy${gia ? ` · khoảng ${tienDo(gia)}` : ''}` : `${ten}${n > 0 ? ` (${n})` : ''}${gia === 0 ? '' : gia == null ? ' · có tốn tiền' : ` · khoảng ${tienDo(gia)}`}`}</button>`
     + (E.loiBuoc?.k === k ? `<div class="bao">Studio không chạy bước này: ${esc(E.loiBuoc.loi)}</div>` : ''); }
@@ -879,15 +884,15 @@ function veCn() { const el = $('#dCn'); if (!E.cn?.ds) { el.innerHTML = '<span c
     + '<span class="nho">Số tiền và thời gian là số đo thật ngày 20/11/2026 trên phim #7999; giá từng lượt xem ở Hàng đợi.</span>'; }
 /** TIỀN THẬT KHI RÊ CHUỘT (chỉ quản trị thật): mọi thứ tốn tiền — ảnh cảnh, clip, lời đọc, nhạc, ảnh mẫu — có title ghi tổng tiền thật + từng lượt đã sinh ra nó
  *  (giờ, model, trạng thái, tiền, lỗi) đọc từ sổ việc của studio (E.hd, hangDoiS2). Sổ chưa đọc thì title nói đang đọc. Người dùng thường không thấy dòng này. */
-const LOAI_TIP = { anh: ['anh'], clip: ['video'], giong: ['am'], nhac: ['am'], mau: ['anh'] };
+const LOAI_TIP = { anh: ['anh'], clip: ['video'], giong: ['am'], td: ['am'], nhac: ['am'], mau: ['anh'] };
 /** CHẾ ĐỘ QUẢN TRỊ (anh 20/11/2026: "thêm 1 option để chọn chế độ của admin riêng. Default vẫn như của mọi người"): mặc định TẮT — quản trị thấy giao diện như mọi người;
  *  bật công tắc trên thanh trên thì mới hiện tiền thật + các lượt sinh khi rê chuột. Người không phải quản trị không có công tắc. */
 const xemQt = () => laQtThat() && !!E.qtXem;
 /** các lượt sinh của một thứ (ảnh / clip / lời đọc của cảnh, nhạc, ảnh mẫu) trong sổ việc của phim; null = sổ chưa đọc xong */
 function tipViec(kieu, id) { if (E.hd?.phim !== D.that?.phim) { if (!E.hdDang && D.that) { E.hdDang = 1; napHd(true).finally(() => { E.hdDang = 0; }); } return null; }   // một lượt đọc cho cả trang
   const cid = kieu === 'mau' ? null : GOC[id]?.id, la = LOAI_TIP[kieu] || [];
-  return (E.hd.viec || []).filter((v) => la.includes(v.loai) && (kieu === 'mau' ? v.nhan_vat_id === +id : kieu === 'nhac' ? v.canh_id == null && v.nhan_vat_id == null && /nhạc|music/i.test(`${v.nhan} ${v.model}`) : v.canh_id === cid)).sort((a, b) => a.id - b.id); }
-const TIP_TEN = { anh: 'Ảnh', clip: 'Clip', giong: 'Lời đọc', nhac: 'Nhạc nền', mau: 'Ảnh mẫu' };
+  return (E.hd.viec || []).filter((v) => la.includes(v.loai) && (kieu === 'mau' ? v.nhan_vat_id === +id : kieu === 'nhac' ? v.canh_id == null && v.nhan_vat_id == null && /nhạc|music/i.test(`${v.nhan} ${v.model}`) : v.canh_id === cid && (kieu === 'td' ? /^Âm thanh/.test(v.nhan) : kieu === 'giong' ? !/^Âm thanh/.test(v.nhan) : true))).sort((a, b) => a.id - b.id); }
+const TIP_TEN = { anh: 'Ảnh', clip: 'Clip', giong: 'Lời đọc', td: 'Tiếng động', nhac: 'Nhạc nền', mau: 'Ảnh mẫu' };
 /** ô thông tin quản trị: tiêu đề + mỗi phần một khối (tổng tiền, số lượt, bảng 8 lượt gần nhất: giờ · model · trạng thái · tiền, lỗi ở dòng riêng) */
 function tipHtml(ten, phan) { const g = (x) => { const d = new Date(x); return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }); };
   return `<b class="tq-ten">${esc(ten)}</b>` + phan.map(([kieu, id]) => { const ds = tipViec(kieu, id);
@@ -904,6 +909,39 @@ const tqAttr = (ten, ...phan) => (xemQt() && D.that ? ` data-tq="${esc([ten, ...
   document.addEventListener('mousemove', (e) => { if (dang) dat(e); });
   document.addEventListener('mousedown', () => { o.hidden = true; dang = null; });
   E.veTq = () => { if (dang && document.body.contains(dang)) ve(dang); else { o.hidden = true; dang = null; } }; })();
+/** ÂM THANH NGAY TRÊN TIMELINE (anh 20/11/2026: "các phần âm thanh phải cho nút để sinh mới, sinh lại, modify với prompt thêm… ngay tại vị trí của chúng trên timeline"):
+ *  bấm một clip lời đọc / tiếng động / thanh nhạc nền → hộp nổi sát clip đó: "＋ Sinh…" khi chưa có, "↻ Sinh lại…" khi đã có; bấm vào là ô yêu cầu thêm (không bắt buộc) + chi phí, rồi mới chạy.
+ *  Hộp gắn vào body (timeline cuộn và cắt tràn), đặt lại vị trí khi cuộn timeline. */
+const coGiong = (g) => !!(g && (g.thoai_url || (Array.isArray(g.thoai) ? g.thoai : []).some((x) => x.url)));
+const amEl = () => (E.amL ? document.querySelector(E.amL === 'nhac' ? '#dTl .clip.nhac' : `#dTl .clip.${E.amL}[data-clip="${E.chon?.id}"]`) : null);
+function veAm() { let o = document.getElementById('tlAm'); if (!o) { o = document.createElement('div'); o.id = 'tlAm'; o.className = 'tl-am'; o.hidden = true; document.body.append(o); }
+  const l = E.amL, id = E.chon?.id, g = id && id !== 'nhac' ? GOC[id] : null, el = D.that && E.man === 'dung' ? amEl() : null;
+  if (!el || (l !== 'nhac' && !g)) { o.hidden = true; o.innerHTML = ''; return; }
+  const i = l === 'nhac' ? -1 : vt(id), c = i >= 0 ? D.canh[i] : null, k = l === 'nhac' ? 'nhac1' : `${l === 'td' ? 'td1' : 'giong1'}:${id}`;
+  const dau = l === 'nhac' ? `Nhạc nền · ${D.that.nhacUrl ? 'đã có bản nhạc' : 'chưa có nhạc'}` : l === 'td' ? `Tiếng động cảnh ${i + 1} · ${g.am_thanh_url ? 'đã có' : 'chưa sinh'}` : `Lời đọc cảnh ${i + 1} · ${coGiong(g) ? 'đã có giọng' : 'chưa có giọng'}`;
+  const ta = l === 'giong' && c ? (c.thoai.length ? c.thoai.map((t) => `<b>${esc(t.ai)}:</b> ${esc(t.cau.slice(0, 70)) || '<i>chưa có câu</i>'}`).join('<br>') : esc(c.loi.slice(0, 120)) || 'Cảnh chưa có lời') : l === 'td' && c ? esc(c.td) : esc(D.nhac);
+  o.innerHTML = `<div class="tl-am-dau"><b>${esc(dau)}</b><button type="button" class="bt ic-bt" data-d="amDong" title="Đóng" aria-label="Đóng">✕</button></div><span class="nho">${ta}</span>`
+    + `<div class="tl-am-nut">${nutBuoc(k)}${l === 'giong' ? '<button type="button" class="bt" data-d="lopLoi" data-g="mo" title="Thêm một người nói nữa ở cảnh này (lớp lời mới trên timeline)">＋ Lớp lời</button>' : ''}</div>`;
+  o.hidden = false; datAm(); }
+function datAm() { const o = document.getElementById('tlAm'); if (!o || o.hidden) return; const el = amEl(); if (!el) { o.hidden = true; return; }
+  const r = el.getBoundingClientRect(), cu = $('#tlCuon').getBoundingClientRect(), w = o.offsetWidth, h = o.offsetHeight;
+  o.style.left = `${Math.max(8, Math.min(Math.max(r.left, cu.left + 90), window.innerWidth - w - 8))}px`; o.style.top = `${r.top - h - 8 > 8 ? r.top - h - 8 : Math.min(r.bottom + 8, window.innerHeight - h - 8)}px`; }
+document.addEventListener('input', (e) => { if (e.target.id === 'slYc' && E.sl) E.sl.yc = e.target.value; });   // gõ dở yêu cầu không mất khi trang vẽ lại
+/** "＋ Lớp lời" (anh 20/11/2026: "Giờ muốn thêm lớp voice thì làm thế nào ?"): thêm một người nói nữa vào cảnh — Lời dẫn, một nhân vật của phim, hoặc gõ tên mới.
+ *  Câu mới là một dòng thoại trống của người đó; bản Pro hiện mỗi người nói thành một lớp riêng trên timeline. Gõ câu → Lưu về studio → bấm clip lời đó → Sinh. */
+function veLopLoi() { const co = nguoiNoi(), ai = [...new Set(['Lời dẫn', ...co, ...D.nvs.filter((n) => n.vai === 'Nhân vật').map((n) => n.ten)])];
+  return `<div class="lop-loi"><div class="day-bt">${co.length ? '<button type="button" class="bt" data-d="themThoai">＋ Câu thoại</button>' : ''}<button type="button" class="bt" data-d="lopLoi" aria-expanded="${!!E.themAi}">＋ Lớp lời</button></div>`
+    + (E.themAi ? `<div class="lop-chon"><span class="nho">Ai nói câu mới ở cảnh này? Mỗi người nói là một lớp lời riêng trên timeline (bản Pro). Gõ câu, bấm "Lưu về studio", rồi bấm clip lời đó trên timeline để sinh giọng.</span><div class="day-bt">${ai.map((t) => `<button type="button" class="bt" data-d="themAi" data-g="${esc(t)}">${esc(t)}</button>`).join('')}</div><div class="chu-o"><input type="text" id="iAiMoi" maxlength="40" placeholder="Hoặc gõ tên người nói mới" aria-label="Tên người nói mới"><button type="button" class="bt" data-d="themAi">Thêm</button></div></div>` : '') + '</div>'; }
+/** MENU TỔNG ☰ (anh 20/11/2026: "Cần 1 cái menu tổng cho cả hệ thống. Bấm vào mới hiện ra đầy đủ các chức năng khi cần"): mọi chức năng xếp theo nhóm; các nút cũ trên thanh trên vẫn giữ. */
+function veMenuTong() { const p = pro(), qt = laQuanTri(), m = (d, t, them = '') => `<button type="button" class="mn-muc" data-d="${d}" ${them}>${t}</button>`, nhom = (t, h) => `<div class="mn-nhom"><h3>${t}</h3>${h}</div>`, dau = (x) => (x ? ' <i>✓</i>' : '');
+  return '<div class="mn-tong">'
+    + nhom('Video', m('menu', 'Mở / tìm video khác', 'data-g="da"') + m('taoThat', '＋ Tạo video mới') + (coSua() ? m('luuVe', 'Lưu chỗ sửa về studio') : '') + m('xuat', 'Xuất video')
+      + (D.that && qt ? `<a class="mn-muc" href="https://studio.on.tc/?m=phim&mId=${D.that.phim}&tab=storyboard" target="_blank" rel="noopener">Mở trong studio ↗</a>` : ''))
+    + nhom('Chế độ', m('ban', `Bản Gọn${dau(E.ban === 'gon')}`, 'data-g="gon"') + m('ban', `Bản Pro${dau(E.ban === 'pro')}`, 'data-g="pro"') + (laQtThat() ? m('qtXem', `Chế độ quản trị${dau(E.qtXem)}`) : '') + (qt ? m('nhuMoi', 'Xem như người mới') + m('doiMo', 'Đội và quyền') : ''))
+    + (p ? nhom('Widget', Object.keys(WG).filter((w) => w !== 'xem').map((w) => m('wg', `${ic(WG[w][0])}${WG[w][0]}${dau(boCuc().includes(w))}`, `data-g="${w}"`)).join('') + m('menu', `${ic('Bố cục')}Bố cục và lưới…`, 'data-g="bc"')) : '')
+    + nhom('Hỗ trợ', m('cnBat', `${ic('Cẩm nang')}Cẩm nang quy trình`) + (p ? m('hdBat', 'Hàng đợi sinh (lỗi, tiền)') + m('nkBat', 'Nhật ký từng cảnh') : '') + '<button type="button" class="mn-muc" data-gop-y-mo>💬 Góp ý / báo lỗi</button>')
+    + nhom('Sửa', m('lui', '↶ Hoàn tác', E.lui.length ? '' : 'disabled') + m('toi', '↷ Làm lại', E.toi.length ? '' : 'disabled'))
+    + '</div>'; }
 /** HÀNG ĐỢI SINH của cả phim (anh 20/11/2026: "cần chỗ quản lý các queue sinh ảnh, video, voice… để xem lỗi, thành công cũng như chi phí"): 300 việc mới nhất
  *  trong sổ việc của studio (hangDoiS2) — ảnh cảnh, ảnh mẫu, lời đọc, nhạc, clip, chữ, xuất — kèm trạng thái, lỗi nguyên văn, tiền thật. Tự đọc lại theo vòng theo dõi. */
 const HD_LOAI = { anh: 'Ảnh', video: 'Clip', am: 'Tiếng', chu: 'Chữ', xuat: 'Xuất' }, HD_TT = { cho: 'Đang chờ', hang: 'Trong hàng H3', hang_h3: 'Chờ máy thuê', chay: 'Đang chạy', xong: 'Xong', loi: 'Lỗi' };
@@ -1007,7 +1045,7 @@ function veBoCuc() {
 const chipMoi = () => (E.nhuMoi && laQtThat() ? '<button type="button" class="thu canh nut" data-d="nhuMoi" title="Đang ẩn phim cũ của studio, phim mẫu và mọi thứ chỉ quản trị thấy. Bấm để về lại chế độ quản trị.">Đang xem như người mới · Thoát</button>' : '');
 function veTren() {
   const p = pro(), ten = (t, d, them = '') => (p ? nutIc(t, d, '', them) : `<button type="button" class="bt" data-d="${d}" ${them}>${t === 'Hoàn tác' ? '↶ ' : t === 'Làm lại' ? '↷ ' : ''}${t}</button>`);
-  $('#dTren').innerHTML = `<span class="ten-hang">Studio 2</span>
+  $('#dTren').innerHTML = `<button type="button" class="bt ic-bt mn-tong-nut" data-d="menu" data-g="tong" title="Menu: mọi chức năng" aria-label="Menu tổng" aria-haspopup="true" aria-expanded="${E.menu?.loai === 'tong'}">☰</button><span class="ten-hang">Studio 2</span>
   <button type="button" class="bt da-nut" data-d="menu" data-g="da" aria-haspopup="true" aria-expanded="${E.menu?.loai === 'da'}"><b>${esc(D.ten)}</b><small>${LOAI[D.loai]}</small><span aria-hidden="true">▾</span></button>
   ${D.that ? `<span class="thu that">${nguoiMoi() ? 'Video của bạn' : 'Phim của studio'}${laQuanTri() ? ` <a href="https://studio.on.tc/?m=phim&mId=${D.that.phim}&tab=storyboard" target="_blank" rel="noopener">Mở trong studio ↗</a>` : ''}</span><span id="dLuu">${veLuuNut()}</span>${chipMoi()}` : `<span class="thu">${E.dangMo ? 'Đang đọc…' : D.trongTrang ? 'Chưa mở video nào' : 'Phim mẫu · dữ liệu đóng sẵn'}</span>${E.nguoi && !laQuanTri() && !E.nguoi.quyen.dung ? '<span class="thu canh" title="Phim mẫu vẫn xem được. Muốn tạo và làm video thật thì nhờ quản trị cấp quyền ở mục Đội.">Tài khoản chưa được cấp quyền dùng phim thật</span>' : ''}${chipMoi()}`}
   <span class="day"><span class="doan-bt" role="group" aria-label="Phiên bản">${[['gon', 'Gọn'], ['pro', 'Pro']].map(([k, t]) => `<button type="button" class="bt" data-d="ban" data-g="${k}" aria-pressed="${E.ban === k}">${t}</button>`).join('')}</span>
@@ -1019,7 +1057,8 @@ function veTren() {
 }
 function veMenu() {
   const m = $('#dMenu'); m.hidden = !E.menu; if (!E.menu) { m.innerHTML = ''; return; } let h = '';
-  if (E.menu.loai === 'da') h = `<h3>${nguoiMoi() ? 'Video của bạn' : 'Phim của studio'}</h3><input type="text" id="mnTim" placeholder="Tìm theo tên" value="${esc(E.tim)}" aria-label="Tìm video" autocomplete="off"><div class="mn-kq" id="mnKq">${veKqTim()}</div>`
+  if (E.menu.loai === 'tong') h = veMenuTong();
+  else if (E.menu.loai === 'da') h = `<h3>${nguoiMoi() ? 'Video của bạn' : 'Phim của studio'}</h3><input type="text" id="mnTim" placeholder="Tìm theo tên" value="${esc(E.tim)}" aria-label="Tìm video" autocomplete="off"><div class="mn-kq" id="mnKq">${veKqTim()}</div>`
     + (laQuanTri() ? '<div class="day-bt"><button type="button" class="bt" data-d="doiMo">Đội và quyền</button><button type="button" class="bt" data-d="nhuMoi" title="Ẩn phim cũ của studio, phim mẫu và mọi thứ chỉ quản trị thấy, để tự đi thử đúng lối của một người mới">Xem như người mới</button></div>' : '')
     + (nguoiMoi() ? '<div><button type="button" class="bt chinh" data-d="taoThat">＋ Tạo video mới</button></div>' : `<h3>Video mẫu để thử</h3>${Object.entries(DU_AN).map(([k, a]) => `<button type="button" class="mn-da" data-d="duAn" data-g="${k}" aria-pressed="${E.da === k}"><img src="${a.bia}" alt=""><span><b>${esc(a.ten)}</b><small>${LOAI[a.loai]} · ${a.so} cảnh · ${gio(a.dai)}</small></span></button>`).join('')}`);
   else { const ds = boCuc();
@@ -1096,7 +1135,7 @@ function veTtPro(c) {
     + hg('Cảm xúc', `<div class="cx">${[0, 1, 2, 3].map((v) => `<button type="button" data-d="dat" data-k="cx" data-g="${v}" aria-pressed="${c.cx === v}" aria-label="Mức ${v}"${giaiNut(`cx${v}`)}></button>`).join('')}</div>`);
   if (t === 'thoai') h = (c.thoai.length ? c.thoai.map((l, k) => `<div class="thoai-d"><i class="dau" title="${esc(l.ai)}">${esc(l.ai[0])}</i><textarea id="iTh${k}" data-f="thoai" data-i="${k}" rows="2">${esc(l.cau)}</textarea></div>`).join('')
       : `<textarea id="iLoi" data-f="loi" rows="4" placeholder="Lời đọc của cảnh này">${esc(c.loi)}</textarea>`) + `<div id="iCb">${veCb(c)}</div>`
-    + (nguoiNoi().length ? `<div><button type="button" class="bt" data-d="themThoai">＋ Câu thoại</button></div>` : '')
+    + veLopLoi()
     + hg('Chữ', `<div class="chu-o"><input type="text" id="iChu" data-f="chu" value="${esc(c.chu)}" placeholder="Chữ trên màn hình">${nutGiongThoai(c)}</div>`) + hg('Vị trí', chipD(VITRI, c.viTri, 'viTri')) + hg('Tiếng', `<input type="text" id="iTd" data-f="td" value="${esc(c.td)}" placeholder="Tiếng động của cảnh">`);
   if (t === 'hinh') { const ng = nguonCo(), ten = TEN_NG;
     h = `<div class="ba-anh">${ng.map((g) => `<button type="button" class="o-hinh" data-d="nguon" data-g="${g}" aria-pressed="${E.nguon === g}"${giaiNut(g)}><img src="${g === 'lop' && c.nen ? c.nen : g === '3d' && c.k3 ? c.k3 : c.anh}" alt="" style="aspect-ratio:${TILE[D.tile]}"><small>${ten[g]}</small></button>`).join('')}</div>`
@@ -1189,7 +1228,7 @@ function veTlClip() {
   nh.innerHTML = R.map(([k, , t]) => (k === 'thuoc' ? '<span></span>' : `<span title="${esc(t)}">${k.startsWith('noi:') ? `<i class="dau">${esc(t[0])}</i>` : ic(t)}<b>${esc(t)}</b></span>`)).join('');
   tr.innerHTML = R.map(([k]) => (k === 'thuoc' ? `<div class="thuoc" id="thuoc">${vach}</div>` : `<div class="track">${H[k] || ''}</div>`)).join('')
     + `<div class="kim" id="kim"><i></i></div><div class="tha" id="tha" hidden style="top:${y}px;height:${p ? 46 : 58}px"></div>`;
-  veKim();
+  veKim(); veAm();
 }
 function veTlCong() {
   const p = pro(), c = canhChon(), n = (t, d, them = '') => (p ? `<button type="button" class="bt ic-bt" data-d="${d}" title="${t}" aria-label="${t}" ${them}>${ic(t)}</button>` : `<button type="button" class="bt" data-d="${d}" ${them}>${t === 'Tách' ? '✂ Tách tại kim' : t}</button>`);
@@ -1286,6 +1325,7 @@ function chay() {
 }
 function tua(t) { E.t = Math.max(0, Math.min(tong(), t)); if (E.chay) moc = performance.now() - E.t * 1000; veKhung(); veKim(); }
 function chon(id, loai) {
+  E.amL = ['giong', 'td', 'nhac'].includes(loai) ? loai : null;
   if (loai === 'k3') { loai = 'canh'; E.ttTab = 'hinh'; if (nguonCo().includes('3d')) E.nguon = '3d'; } else if (loai === 'lp') { loai = 'canh'; E.nguon = 'lop'; } else if (loai === 'td') { loai = 'giong'; E.ttTab = 'thoai'; }
   else if (loai !== 'canh') E.ttTab = 'thoai'; else if (E.ttTab === 'thoai') E.ttTab = 'may';
   E.chon = { id, loai }; E.moDoi = false; E.o = 'tt';
@@ -1311,7 +1351,7 @@ function lamD(a, d = {}, nut) {
     case 'chonCanh': return chon(g, 'canh');
     case 'chonLoi': return chon(g, 'giong');
     case 'ttTab': E.ttTab = g; E.moDoi = false; return veTt();
-    case 'menu': { const r = nut.getBoundingClientRect(); E.menu = E.menu?.loai === g ? null : { loai: g, r: { left: r.left, top: r.top, bottom: r.bottom } }; veTren(); veMenu(); if (E.menu?.loai === 'da' && E.kq === undefined) timPhim(); return; }
+    case 'menu': { const r = ((nut.closest('#dMenu') && document.querySelector(`#dTren [data-d=menu][data-g=${g}]`)) || nut).getBoundingClientRect(); E.menu = E.menu?.loai === g ? null : { loai: g, r: { left: r.left, top: r.top, bottom: r.bottom } }; veTren(); veMenu(); if (E.menu?.loai === 'da' && E.kq === undefined) timPhim(); return; }
     case 'ban': dungChay(); E.ban = g; E.menu = null; luu(); E.nguon = nguonDau(); E.vua = false; return man('dung');
     case 'duAn': soMo++; E.dangMo = false; dungChay(); E.menu = null; moDuAn(g); E.vua = false; return man('dung');
     case 'phimThat': return void moPhimThat(g, d.k || null);
@@ -1357,9 +1397,9 @@ function lamD(a, d = {}, nut) {
     case 'cnGoi': E.cn = { ...(E.cn || {}), goi: g }; return veCn();
     case 'hdLoc': E.hdLoc = g; return veHd();
     case 'hdTai': return void napHd(true);
-    case 'slMo': E.sl = E.sl?.k === g ? null : { k: g, yc: '' }; veBuoc(); return void document.querySelector('#slYc')?.focus();
+    case 'slMo': { const tu = nut.closest('#tlAm') ? '#tlAm ' : ''; E.sl = E.sl?.k === g ? null : { k: g, yc: '', moi: !!d.moi }; veBuoc(); return void document.querySelector(`${tu}#slYc`)?.focus(); }
     case 'slThoi': E.sl = null; return veBuoc();
-    case 'slChay': { E.slYc = (document.querySelector('#slYc')?.value || '').trim(); E.sl = null; E.cho = g; return void chayBuoc(g); }
+    case 'slChay': { E.slYc = ((nut.closest('.sl-hop') || document).querySelector('#slYc')?.value || '').trim(); E.sl = null; E.cho = g; return void chayBuoc(g); }
     case 'nkBat': { const ds = E.bc[D.loai]; if (!ds.includes('nk')) ds.splice(ds.includes('tt') ? ds.indexOf('tt') : ds.length, 0, 'nk'); if (g) E.nkBuoc = g; luu(); return veD(); }
     case 'bcMau': E.bc[D.loai] = [...BC_MAU[g]]; if (E.luoi.nhom) delete E.luoi.nhom[D.loai]; delete E.luoi.ten[D.loai]; if (g === D.loai) delete E.luoi.vi[D.loai]; else { E.luoi.vi[D.loai] = viMau(g); E.luoi.ten[D.loai] = g; } luu(); return veD();
     case 'luoi': E.luoi.n = +g; tatLuoi(); luu(); return veD();
@@ -1385,6 +1425,12 @@ function lamD(a, d = {}, nut) {
     case 'dung3d': { const y = c || canhTai(Math.min(E.t, tong() - 0.001)).c; bao('Bản thật dựng lại khung 3D theo mặt bằng mới trong vài giây.'); setTimeout(() => { y.ban3 = false; veD(); }, 1200); return; }
     case 'boSoi': return doi(() => { c.soi.splice(+g, 1); });
     case 'chuThoai': return doi(() => { c.chu = giongThoai(c) ? '' : c.loi.trim(); });
+    case 'amDong': E.amL = null; return veAm();
+    case 'lopLoi': if (g === 'mo') { E.themAi = true; E.ttTab = 'thoai'; E.amL = null; veAm(); if (pro()) { const ds = E.bc[D.loai]; if (ds && !ds.includes('tt')) { ds.push('tt'); luu(); } } veD(); return void setTimeout(() => $('#iAiMoi')?.focus(), 60); }
+      E.themAi = !E.themAi; veTt(); return void $('#iAiMoi')?.focus();
+    case 'themAi': { const ai = (g || $('#iAiMoi')?.value || '').trim().slice(0, 40); if (!c) return; if (!ai) return bao('Gõ tên người nói mới, hoặc bấm chọn một người có sẵn.'); E.themAi = false;
+      doi(() => { if (!c.thoai.length && c.loi) c.thoai.push({ ai: 'Lời dẫn', cau: c.loi }); c.thoai.push({ ai, cau: '' }); c.khop = null; });   // cảnh chỉ có lời đọc trơn: lời đó thành dòng Lời dẫn trước, câu mới đứng sau
+      return void setTimeout(() => $(`#iTh${c.thoai.length - 1}`)?.focus(), 40); }
     case 'themThoai': return doi(() => { c.thoai.push({ ai: nguoiNoi()[0], cau: '' }); c.khop = null; });
     case 'dat': return doi(() => { const k = d.k; c[k] = k === 'cx' ? +g : c[k] === g ? '' : g; if (k === 'ong' && c.m3) c.ban3 = true; });
     case 'moDoi': E.moDoi = !E.moDoi; return veTt();
@@ -1443,6 +1489,7 @@ function man(m) {
 // ── timeline: bấm chọn · kéo cảnh đổi thứ tự · kéo mép phải đổi độ dài · bấm / kéo thước để tua
 let keo = null;
 const cuon = $('#tlCuon'), xT = (e) => e.clientX - $('#tlTrong').getBoundingClientRect().left;
+cuon.addEventListener('scroll', datAm, { passive: true });
 function denDau(id, dx) { const i0 = vt(id), tam = (batDau(i0) + D.canh[i0].tg / 2) * E.pxs + dx; let den = 0, x = 0; D.canh.forEach((c, i) => { if (i !== i0 && tam > (x + c.tg / 2) * E.pxs) den++; x += c.tg; }); return den; }
 cuon.addEventListener('pointerdown', (e) => {
   if (e.button || e.target.closest('[data-d]')) return;
@@ -1478,6 +1525,7 @@ mbEl.addEventListener('pointerup', thaMb); mbEl.addEventListener('pointercancel'
 document.addEventListener('keydown', (e) => {
   if (E.man !== 'dung') return; const a = document.activeElement, go = a && /INPUT|TEXTAREA|SELECT/.test(a.tagName), m = e.metaKey || e.ctrlKey;
   if (a?.dataset?.wg && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); return lamD('wgDi', { g: a.dataset.wg, k: e.key === 'ArrowLeft' ? -1 : 1 }); }
+  if (e.key === 'Escape' && E.amL && !E.menu && !e.target.closest?.('textarea, input')) { E.amL = null; return veAm(); }
   if (e.key === 'Escape' && E.menu) { E.menu = null; veTren(); return veMenu(); }
   if (e.key === 'Escape' && E.xuat) return lamD('dong');
   if (go || E.xuat) return;

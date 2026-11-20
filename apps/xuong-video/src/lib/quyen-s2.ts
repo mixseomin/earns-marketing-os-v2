@@ -26,7 +26,7 @@ const LUAT: Record<string, { doi: Doi; tien?: boolean }> = {
   // ghi tốn tiền
   taoPhimMau: { doi: 'khong', tien: true }, phanTichAstrolasS2: { doi: 'tap', tien: true }, vietKichBanTap: { doi: 'tap', tien: true }, tachCanhTap: { doi: 'tap', tien: true }, batDauNguoiXem: { doi: 'tap', tien: true }, kiemKhungTapAction: { doi: 'tap', tien: true }, suaTheoNguoiXem: { doi: 'tap', tien: true },
   goiYAIKinhThanh: { doi: 'phim', tien: true }, goiYAIBoAnchor: { doi: 'phim', tien: true }, sinhAnhThieuAction: { doi: 'phim', tien: true }, veLaiAnhMauS2: { doi: 'phim', tien: true }, sinhKeyframe: { doi: 'canh', tien: true }, sinhLaiCanhS2: { doi: 'canh', tien: true },
-  sinhGiong: { doi: 'tap', tien: true }, sinhVideoCanh: { doi: 'canh', tien: true }, sinhNhac: { doi: 'tap', tien: true },
+  sinhGiong: { doi: 'tap', tien: true }, sinhVideoCanh: { doi: 'canh', tien: true }, sinhNhac: { doi: 'tap', tien: true }, sinhAmS2: { doi: 'tap', tien: true },
 };
 /** hàm vừa tạo ra một phim → phim đó thuộc về người bấm */
 const TAO_PHIM = new Set(['taoPhim', 'taoPhimMau', 'taoPhimTuTemplate']);

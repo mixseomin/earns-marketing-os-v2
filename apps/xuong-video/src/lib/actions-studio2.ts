@@ -5,7 +5,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from './auth';
-import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, sinhAnhMau, sinhGiong, sinhVideoCanh } from './actions';
+import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, sinhAnhMau, sinhGiong, sinhVideoCanh, sinhNhac, sinhAmThanh } from './actions';
 import { sinhKeyframeCanh } from './xuong-video/sinh-anh';
 import { dichChuoi } from './xuong-video/claude';
 import type { KinhThanh } from './xuong-video/kieu';
@@ -215,6 +215,23 @@ export async function sinhLaiCanhS2(canhId: number, loai: 'anh' | 'giong' | 'cli
   }
   if (en) await db.execute(sql`UPDATE xv_canh SET hanh_dong = rtrim(coalesce(hanh_dong, '')) || ${` Extra direction: ${en}`}, prompt_video = rtrim(coalesce(prompt_video, '')) || ${` Extra direction: ${en}`}, updated_at = now() WHERE id = ${id}`);
   return sinhVideoCanh(id);
+}
+
+/** ÂM THANH SINH MỚI / SINH LẠI ngay trên timeline Studio 2 (anh 20/11/2026: "các phần âm thanh phải cho nút để sinh mới, sinh lại, modify với prompt thêm… ngay tại vị trí của chúng trên timeline").
+ *  loai 'nhac' = nhạc nền cả tập (một bản cho cả tập, yêu cầu riêng nối vào mô tả nhạc); 'td' = tiếng động của MỘT cảnh (mô tả âm thanh của cảnh + yêu cầu riêng).
+ *  Yêu cầu tiếng Việt dịch sang tiếng Anh trước (model âm thanh đọc tiếng Anh). Bọc riêng vì studio2 gửi JSON: undefined thành null, mà sinhNhac coi null khác "cả tập". */
+export async function sinhAmS2(tapId: number, loai: 'nhac' | 'td', canhId: number | null = null, yeuCau = ''): Promise<{ ok: true; data: unknown } | { ok: false; loi: string }> {
+  const db = getDb(), me = await getCurrentUser(); if (!db || !me) return { ok: false, loi: 'không có quyền' };
+  const tap = Number(tapId), yc = String(yeuCau ?? '').trim().slice(0, 600);
+  const t = ((await db.execute(sql`SELECT p.kinh_thanh FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tap}`)) as unknown as Row[])[0];
+  if (!t) return { ok: false, loi: 'không thấy tập' };
+  let en = '';
+  if (yc) { const d = await dichChuoi({ kinhThanh: (t.kinh_thanh ?? {}) as KinhThanh, sang: 'en', ds: [yc], thuatNgu: [] }); if (!d.ok) return { ok: false, loi: `không dịch được yêu cầu: ${d.loi}` }; en = String(d.data[0] ?? '').trim(); }
+  if (loai === 'nhac') return sinhNhac(tap, 'cassetteai/music-generator', undefined, en);
+  if (loai !== 'td') return { ok: false, loi: 'loại âm thanh không hợp lệ' };
+  const c = ((await db.execute(sql`SELECT id, am_thanh FROM xv_canh WHERE id = ${Number(canhId)} AND tap_id = ${tap}`)) as unknown as Row[])[0];
+  if (!c) return { ok: false, loi: 'cảnh không thuộc tập này' };
+  return sinhAmThanh(tap, [Number(c.id)], 'sonilo/v1.1/text-to-sound-effects', en ? { moTa: [String(c.am_thanh ?? '').trim(), en].filter(Boolean).join('. ') } : {});
 }
 
 export type ViecHangDoi = { id: number; canh_id: number | null; nhan_vat_id: number | null; loai: string; nhan: string; doi_tuong: string; provider: string; model: string; trang_thai: string; loi: string; cents: number; luc: string; xong_luc: string };

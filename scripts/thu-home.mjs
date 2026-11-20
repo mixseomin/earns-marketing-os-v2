@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // THỬ THẬT /home BẰNG TRÌNH DUYỆT CỤC BỘ (không chạy trên máy chủ): bật sửa → kéo → đổi cỡ góc + cạnh → F5 còn nguyên → hoàn tác → thêm widget →
-// gộp tab → đổi tab → về mặc định → trình chiếu → bảng tìm → mở trang nhúng. 15 bước, bước nào hỏng in ✗ + lý do, mã thoát 1.
+// gộp tab → đổi tab → về mặc định → trình chiếu → bảng tìm → mở trang nhúng → màn Agents (ô nhúng mảnh cty.on.tc). 16 bước, bước nào hỏng in ✗ + lý do, mã thoát 1.
 // Bài thử SỬA bố cục màn "Hạ tầng phủ" của tài khoản đang dùng rồi tự trả về mặc định ở bước 11 (đầu bài cũng dọn bản thử cũ nếu lượt trước chết giữa chừng).
 //
 // Cách chạy (máy làm việc, cần Playwright — mượn của courseforge-demo như ~/bin/do-man, đổi bằng DO_MAN_PW):
@@ -44,7 +44,10 @@ await buoc('phím F trình chiếu ẩn khung, Esc hiện lại', async () => { 
 await buoc('Ctrl+K: gõ "tien" + Enter → sang màn Tiền', async () => { await p.keyboard.press('Control+k'); await p.locator('.hm-palh input').fill('tien'); await p.keyboard.press('Enter'); await p.waitForURL(/man=tien/, { timeout: 15000 }); return (await p.locator('.hm-ten').textContent()) === 'Tiền'; });
 await buoc('link trong widget mở trang nhúng, không rời /home', async () => { await p.locator('a', { hasText: 'Lịch chi tiết' }).click(); await p.waitForSelector('iframe.hm-nhung', { timeout: 8000 }); const u = new URL(p.url()); return u.pathname === '/home' && u.searchParams.get('tr') === '/revenue' ? u.pathname + u.search : `!${p.url()}`; });
 await buoc('trang nhúng bỏ khung ngoài (topbar ẩn)', async () => { await p.waitForTimeout(3000); const f = p.frames().find((x) => x.url().includes('/revenue')); if (!f) return '!không thấy khung trang nhúng'; return await f.evaluate(() => { const t = document.querySelector('.topbar'); return document.documentElement.hasAttribute('data-nhung') && (!t || getComputedStyle(t).display === 'none'); }); });
+// màn Agents: ô nhóm M là khung nhúng mảnh cty.on.tc; tên khung là giao kèo với cty (components/home/manh-cty.tsx). Ruột khung do cty vẽ — kiểm bằng do-man / br trên cty.on.tc.
+await buoc('màn Agents: ba ô nhúng mảnh cty.on.tc, đúng tên khung', async () => { await p.goto(`${GOC}/home?man=agents`, { waitUntil: 'domcontentloaded', timeout: 60000 }); await p.waitForSelector('iframe.hm-manh', { timeout: 15000 }); await p.waitForTimeout(500);
+  const ds = await p.$$eval('iframe.hm-manh', (xs) => xs.map((x) => `${x.name} ${x.getAttribute('src')}`)); return ds.length === 3 && ds.every((x) => /^hm-o-(dark|light) https:\/\/cty\.on\.tc\//.test(x)) ? ds.map((x) => x.split('cty.on.tc')[1]).join(' · ') : `!${ds.join(' | ')}`; });
 if (loi.length) { hong++; console.log('LỖI TRANG:', [...new Set(loi)].join(' | ')); }
 await b.close();
-console.log(hong ? `✗ thu-home: ${hong} bước hỏng` : '✓ thu-home: 15 bước đạt');
+console.log(hong ? `✗ thu-home: ${hong} bước hỏng` : '✓ thu-home: 16 bước đạt');
 process.exit(hong ? 1 : 0);

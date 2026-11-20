@@ -5,13 +5,15 @@
 // Cỡ tính theo lưới mịn 48 × 72 (lib/home/luoi.ts): một ô của lưới 12×18 = 4 × 4.
 import type { O } from './luoi';
 
-export type NhomWidget = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'K' | 'L';
-export const NHOM: Record<NhomWidget, string> = { A: 'Toàn cảnh', B: 'Campaign phủ', C: 'Tiền', D: 'Tài sản và kênh', E: 'SEO', F: 'Email', G: 'Dự án', H: 'Ethopex', I: 'Social Traffic', K: 'Máy', L: 'Thư viện' };
+export type NhomWidget = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'K' | 'L' | 'M';
+export const NHOM: Record<NhomWidget, string> = { A: 'Toàn cảnh', B: 'Campaign phủ', C: 'Tiền', D: 'Tài sản và kênh', E: 'SEO', F: 'Email', G: 'Dự án', H: 'Ethopex', I: 'Social Traffic', K: 'Máy', L: 'Thư viện', M: 'Agents công ty AI' };
 /** ngu: tham số ngữ cảnh widget đọc (thanh đầu trang chỉ hiện bộ chọn mà màn đang mở cần) · tuDe: ruột đã có tiêu đề riêng → khung không vẽ thêm thanh tiêu đề lúc xem ·
  *  ghi: có nút ghi dữ liệu · tab: tab của trang chủ cũ mà widget này thay (sổ lib/tab-trang.ts) ·
  *  rong: ruột là BẢNG RỘNG nhiều cột — bố cục dựng sẵn phải cho nó ô rộng ≥ RONG_BANG cột (anh 20/11/2026: bảng cũ cho vào ô hẹp "bị kẹp kích thước");
- *  nhiều bảng rộng cùng màn thì xếp thành tab trong MỘT ô trọn bề ngang, không chia đôi màn. scripts/check-home-widget.mjs chặn bố cục sai. */
-export type WidgetSo = { ten: string; moTa: string; mac: [number, number]; ngu?: ('p' | 'days' | 'ky')[]; tuDe?: true; ghi?: true; rong?: true; tab: string };
+ *  nhiều bảng rộng cùng màn thì xếp thành tab trong MỘT ô trọn bề ngang, không chia đôi màn. scripts/check-home-widget.mjs chặn bố cục sai.
+ *  nguon: 'cty' — widget KHÔNG thay tab nào của trang chủ cũ mà là một MẢNH của cty.on.tc nhúng vào ô (components/home/manh-cty.tsx): cty tự vẽ và tự ghi,
+ *  /home chỉ xếp chỗ. Mỗi widget khai đúng một trong hai: tab hoặc nguon. */
+export type WidgetSo = { ten: string; moTa: string; mac: [number, number]; ngu?: ('p' | 'days' | 'ky')[]; tuDe?: true; ghi?: true; rong?: true; tab?: string; nguon?: 'cty' };
 export const RONG_BANG = 32;
 export const WIDGET = {
   A1: { ten: 'Dải số chính', moTa: 'doanh thu 30 ngày · chi QC · view → click → out · signup · camp chạy', mac: [48, 10], ngu: ['p', 'days'], tuDe: true, tab: 'camp' },
@@ -71,6 +73,13 @@ export const WIDGET = {
   K6: { ten: 'Lượt đã dựng', moTa: 'lượt dựng 1 / 7 / 30 ngày, tiền thật, lỗi', mac: [48, 28], tuDe: true, rong: true, tab: 'maysx' },
   K7: { ten: 'Lịch máy đăng', moTa: 'lịch đăng lọc theo dự án, kênh, nền, tài khoản', mac: [48, 36], rong: true, tab: 'maydang' },
   L1: { ten: 'Thư viện', moTa: 'thiết kế (mẫu + ảnh) và các trang Library: công cụ, kiến thức, catalog, offers, nền tảng, công nghệ', mac: [48, 60], rong: true, tab: 'thuvien' },
+  // M — AGENTS của công ty AI (anh 20/11/2026 "thêm 1 layout + widgets mới để quản lý các agents trong cty.on.tc"): mảnh do cty.on.tc vẽ, đường ở components/home/ve.tsx
+  M1: { ten: 'Số agents', moTa: 'nhân sự · đang làm · kẹt · rảnh · tắt · việc máy bật / lỗi · chi API tháng · phiên CLI hôm nay', mac: [48, 9], tuDe: true, nguon: 'cty' },
+  M2: { ten: 'Bảng agents', moTa: 'bật / tắt tự làm · đổi mô hình · chỉnh ca và lịch · trạng thái thật · chi; kèm so sánh bộ não và đề xuất', mac: [48, 40], ghi: true, rong: true, nguon: 'cty' },
+  M3: { ten: 'Việc máy và việc nền', moTa: 'timer, cron trên box3 / box1 + sổ bộ điều phối Mac: bật / tắt, đổi lịch, lần cuối, lỗi', mac: [48, 36], ghi: true, rong: true, nguon: 'cty' },
+  M4: { ten: 'Lượt chạy kỹ sư', moTa: 'mọi phiên Claude Code của kỹ sư CLI: việc · kết · token vào / ra · chi phí', mac: [48, 32], rong: true, nguon: 'cty' },
+  M5: { ten: 'Sổ sự kiện cty', moTa: 'ai gọi mô hình gì, gửi tin cho ai, quyết định, lỗi — lọc theo lượt / người / loại', mac: [48, 32], rong: true, nguon: 'cty' },
+  M6: { ten: 'Sơ đồ tổ chức', moTa: 'cây phòng ban và nhân sự, bấm vào người hoặc phòng để mở hồ sơ', mac: [48, 40], nguon: 'cty' },
   L2: { ten: 'Lối tắt', moTa: 'Luật campaign · Strategy Tests · Keyword Research · Lịch doanh thu', mac: [16, 20], tab: 'luat' },
 } as const satisfies Record<string, WidgetSo>;
 export type MaWidget = keyof typeof WIDGET;
@@ -98,6 +107,7 @@ export const MAN: Man[] = [
   { id: 'lich', ten: 'Lịch đăng', kh: 'LD', nhom: 'Social', o: o([['I10', 0, 0, 48, 72, ['K7']]]) },
   { id: 'khach', ten: 'Khách trên trang', kh: 'KH', nhom: 'Social', o: o([['I12', 0, 0, 48, 42], ['I11', 0, 42, 48, 30, ['I13']]]) },
   { id: 'may', ten: 'Máy', kh: 'MA', nhom: 'Máy', o: o([['K1', 0, 0, 48, 9], ['K2', 0, 9, 48, 37, ['K3', 'K4']], ['K5', 0, 46, 48, 26, ['K6']]]) },
+  { id: 'agents', ten: 'Agents', kh: 'AG', nhom: 'Công ty AI', o: o([['M1', 0, 0, 48, 9], ['M2', 0, 9, 48, 39, ['M3', 'M6']], ['M4', 0, 48, 48, 24, ['M5']]]) },
   { id: 'taisan', ten: 'Tài sản', kh: 'TS', nhom: 'Tài sản', o: o([['D1', 0, 0, 48, 10], ['D2', 0, 10, 48, 62, ['D3']]]) },
   { id: 'kenh', ten: 'Kênh nội dung', kh: 'KN', nhom: 'Tài sản', o: o([['D6', 0, 0, 48, 44], ['D4', 0, 44, 24, 28], ['D5', 24, 44, 24, 28]]) },
   { id: 'seo', ten: 'SEO', kh: 'SE', nhom: 'Tài sản', o: o([['E1', 0, 0, 28, 72], ['E2', 28, 0, 20, 72]]) },   // bảng website (D2) nặng ~1,3 MB nên nằm ở màn Tài sản, không kéo sang đây

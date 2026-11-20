@@ -18,14 +18,16 @@ import { BO_SO, macCuaBo, manCuaBo, nhomCuaMa, widgetCuaBo, type BoSoId } from '
 import type { NguonBoCuc } from '@/lib/home/bo-cuc';
 import { datTeamHome, luuBoCucHome, veMacDinhHome } from '@/lib/actions/home-bo-cuc';
 import { Bang } from './bang';
+import { laTrangCty, useGiaoMos2 } from './manh-cty';
+import { CTY_GOC } from '@/lib/cty-duong';
 
 const KY = [7, 30, 90];
 const NHAN_NGUON: Record<NguonBoCuc, string> = { rieng: 'bố cục của anh', team: 'bố cục của team', san: 'bố cục dựng sẵn' };
 const PHIM_TAT = ['[  thu / mở thanh màn', ']  mở / đóng panel phụ', 'E  sửa bố cục', 'F  trình chiếu', 'Ctrl+K hoặc /  tìm', 'Ctrl+Z  hoàn tác', 'Bấm đúp tiêu đề  phóng to', 'Thả widget lên tiêu đề widget khác  gộp tab'].join('\n');
 const khongDau = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 const dangGo = (t: EventTarget | null) => { const e = t as HTMLElement | null; return !!e && (/^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName) || e.isContentEditable); };
-/** đường mở được trong ngăn trang nhúng: trang MOS2 khác, không phải chính trang đang đứng */
-const hopLeTrang = (v: string, goc: string) => (v.startsWith('/') && !v.startsWith('//') && v !== goc && !v.startsWith(`${goc}?`) && !v.startsWith(`${goc}/`) ? v : '');
+/** đường mở được trong ngăn trang nhúng: trang MOS2 khác (không phải chính trang đang đứng), hoặc một trang của cty.on.tc (ô nhóm M gửi lên) */
+const hopLeTrang = (v: string, goc: string) => (laTrangCty(v) ? v : v.startsWith('/') && !v.startsWith('//') && v !== goc && !v.startsWith(`${goc}?`) && !v.startsWith(`${goc}/`) ? v : '');
 
 export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu, docLuc }: {
   /** bộ sổ của trang (lib/luoi-trang/bo-so.ts); không truyền = /home */
@@ -121,6 +123,18 @@ export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu
     window.addEventListener('keydown', phim);
     return () => window.removeEventListener('keydown', phim);
   });
+
+  // ô nhúng mảnh cty.on.tc (nhóm M): bấm người / phòng / số trong ô → cty gửi đường lên, mở ở ngăn trang nhúng của trang này (giao kèo ở components/home/manh-cty.tsx)
+  const giao = useGiaoMos2();
+  useEffect(() => {
+    const nhan = (e: MessageEvent) => {
+      const d = e.data as { nguon?: string; mo?: unknown } | null;
+      if (e.origin !== CTY_GOC || d?.nguon !== 'cty' || typeof d.mo !== 'string' || !d.mo.startsWith('/') || d.mo.startsWith('//')) return;
+      datTr(CTY_GOC + d.mo);
+    };
+    window.addEventListener('message', nhan);
+    return () => window.removeEventListener('message', nhan);
+  }, [datTr]);
 
   // link sang trang khác của MOS2 nằm trong ruột widget → mở trang nhúng thay vì rời /home (⌘/Ctrl-click vẫn mở tab mới như thường)
   const batLink = (e: React.MouseEvent) => {
@@ -243,9 +257,9 @@ export function HomeTrang({ so = 'home', manId, tuy: tuyDau, bo, nguon, noi, ngu
         ...TRANG_KHAC.map((t) => ({ loai: 'Trang', ten: t.ten, lam: () => datTr(t.href) })),
       ]} />}
       {/* ngan-moi-ok: trang MOS2 nhúng — đã tra, chưa có ngăn nào mở nguyên một TRANG khác tại chỗ; ngăn chi tiết của từng thực thể vẫn là ngăn sẵn có của khối đó */}
-      {tr && (
+      {tr && (!laTrangCty(tr) || giao) && (
         <Drawer onClose={() => datTr('')} width={1180} padding={0} bodyStyle={{ height: '100%' }}>
-          <iframe src={tr} title="Trang MOS2 mở tại chỗ" className="hm-nhung" />
+          <iframe key={tr} src={tr} name={laTrangCty(tr) ? `hm-tr-${giao}` : undefined} title="Trang mở tại chỗ" className="hm-nhung" />
         </Drawer>
       )}
     </div>

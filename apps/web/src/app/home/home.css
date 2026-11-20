@@ -125,6 +125,10 @@
 .hm-palds small { width: 84px; flex: none; color: var(--fg-3); }
 .hm-palds p { margin: 0; padding: 10px 12px; color: var(--fg-2); }
 .hm-nhung { width: 100%; height: 100vh; border: 0; display: block; background: var(--bg-0); }
+/* mảnh cty.on.tc nhúng trong ô (components/home/manh-cty.tsx): khung chiếm trọn ruột ô; ruột bỏ lề và không tự cuộn — mảnh tự cuộn bên trong nó */
+.hm-ob:has(> .hm-manh) { padding: 0; overflow: hidden; display: flex; }
+.hm-manh { flex: 1; min-width: 0; min-height: 0; width: 100%; border: 0; display: block; background: var(--bg-1); }
+.hm-sua .hm-manh { pointer-events: none; }   /* đang sửa bố cục: khung nhúng không nuốt chuột lúc kéo / đổi cỡ ô */
 
 @media (min-width: 769px) {
   /* thanh hẹp: rê chuột vào thì bung ĐÈ lên lưới (không đẩy lưới), rời chuột thu lại */
@@ -157,6 +161,8 @@
   .hm-luoi { height: auto; display: flex; flex-direction: column; gap: 8px; background-image: none; }
   .hm-o { position: static; width: auto; height: auto; z-index: auto !important; }
   .hm-ob { max-height: 72vh; }
+  .hm-manh { flex: none; height: 70vh; }
+  .hm-manh.hm-manh-thap { height: 240px; }
   .hm-noi-to { display: none; }
   .hm-to { position: fixed; inset: 0; z-index: 108 !important; border-radius: 0; }
   .hm-to .hm-ob { max-height: none; }

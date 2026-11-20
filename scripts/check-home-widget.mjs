@@ -5,7 +5,8 @@
 //   2. mọi widget trong sổ có hàm vẽ trong components/home/ve.tsx và ngược lại;
 //   3. bố cục dựng sẵn của từng màn: mã widget có thật, không lặp trong một màn (kể cả trong tab), nằm trong lưới 48 × 72, không đè nhau; mọi widget nằm trên ít nhất một màn;
 //   4. widget BẢNG RỘNG (rong: true) chỉ được nằm trong ô rộng ≥ RONG_BANG cột — bảng nhiều cột nhét vào ô hẹp là "bị kẹp kích thước" (anh 20/11/2026).
-// Chạy: node scripts/check-home-widget.mjs   ·   node scripts/check-home-widget.mjs --tu-kiem (tự phá bốn chỗ, phải đỏ cả bốn)
+//   5. mỗi widget khai đúng một trong hai: `tab` (thay tab nào của trang chủ cũ) hoặc `nguon` (mảnh nhúng từ app khác, vd nhóm M của cty.on.tc).
+// Chạy: node scripts/check-home-widget.mjs   ·   node scripts/check-home-widget.mjs --tu-kiem (tự phá năm chỗ, phải đỏ cả năm)
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,14 +19,21 @@ export function kiem(so, ve, tabTrang) {
   const khoiTab = tabTrang.slice(tabTrang.indexOf("'/': {"), tabTrang.indexOf("'/shop'"));
   const tabs = [...khoiTab.matchAll(/\{ key: '([a-z0-9_]+)'/g)].map((m) => m[1]);
   const khoiW = so.slice(so.indexOf('export const WIDGET = {'), so.indexOf('} as const satisfies'));
-  const widget = new Map([...khoiW.matchAll(/^\s+([A-Z]\d+): \{.*?tab: '([a-z0-9_]+)'/gm)].map((m) => [m[1], m[2]]));
+  // mỗi widget khai đúng một trong hai: tab (thay tab nào của trang chủ cũ) hoặc nguon (mảnh nhúng từ app khác — hiện chỉ 'cty')
+  const NGUON = ['cty'];
+  const moi = [...khoiW.matchAll(/^\s+([A-Z]\d+): \{(.*)$/gm)].map((m) => ({ ma: m[1], tab: (m[2].match(/\btab: '([a-z0-9_]+)'/) || [])[1], nguon: (m[2].match(/\bnguon: '([a-z0-9_]+)'/) || [])[1] }));
+  for (const w of moi) {
+    if (!w.tab === !w.nguon) loi.push(`widget ${w.ma} phải khai đúng một trong hai: tab hoặc nguon`);
+    if (w.nguon && !NGUON.includes(w.nguon)) loi.push(`widget ${w.ma} khai nguon "${w.nguon}" lạ (đang có: ${NGUON.join(', ')})`);
+  }
+  const widget = new Map(moi.map((w) => [w.ma, w.tab ?? '']));
   const rong = new Set([...khoiW.matchAll(/^\s+([A-Z]\d+): \{.*?rong: true/gm)].map((m) => m[1]));
   const RONG = Number((so.match(/RONG_BANG = (\d+)/) || [])[1] || 32);
   if (!tabs.length) loi.push('không đọc được danh sách tab của trang chủ trong lib/tab-trang.ts');
   if (!widget.size) loi.push('không đọc được sổ widget trong lib/home/so.ts');
   const nhan = new Set(widget.values());
   for (const t of tabs) if (!nhan.has(t)) loi.push(`tab "${t}" của trang chủ cũ chưa có widget nào nhận thay — thêm widget (trường tab: '${t}') vào lib/home/so.ts`);
-  for (const [ma, t] of widget) if (!tabs.includes(t)) loi.push(`widget ${ma} khai tab "${t}" không có trong sổ tab trang chủ`);
+  for (const [ma, t] of widget) if (t && !tabs.includes(t)) loi.push(`widget ${ma} khai tab "${t}" không có trong sổ tab trang chủ`);
   const coVe = new Set([...ve.slice(ve.indexOf('export const VE')).matchAll(/^\s+([A-Z]\d+): \(/gm)].map((m) => m[1]));
   for (const ma of widget.keys()) if (!coVe.has(ma)) loi.push(`widget ${ma} có trong sổ nhưng thiếu hàm vẽ trong components/home/ve.tsx`);
   for (const ma of coVe) if (!widget.has(ma)) loi.push(`components/home/ve.tsx vẽ ${ma} nhưng sổ không có widget này`);
@@ -55,6 +63,7 @@ if (process.argv.includes('--tu-kiem')) {
     ['bỏ widget duy nhất của tab luat', kiem(so.replace(/^\s+L2: \{.*$/m, ''), ve, tabTrang)],
     ['bỏ hàm vẽ A1', kiem(so, ve.replace(/^\s+A1: \(.*$/m, ''), tabTrang)],
     ['cho hai ô đè nhau', kiem(so.replace("['A2', 0, 10, 10, 62]", "['A2', 0, 0, 10, 62]"), ve, tabTrang)],
+    ['widget không khai tab lẫn nguon', kiem(so.replace("nguon: 'cty' },\n  M2", "},\n  M2"), ve, tabTrang)],
     ['nhét bảng rộng vào ô hẹp', kiem(so.replace("['B1', 10, 10, 38, 62]", "['B1', 10, 10, 20, 62]"), ve, tabTrang)],
   ];
   let hong = 0;

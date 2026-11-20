@@ -24,6 +24,7 @@ import { SeoMotSite } from '@/components/seo-tab';
 import { SteamsoloLangPanel } from '@/components/steamsolo-lang-panel';
 import { MailwizzListsPanel } from '@/components/mailwizz-lists-panel';
 import { ThuVienTab } from '@/components/thu-vien-tab';
+import { ManhCty } from './manh-cty';
 
 const PhuView = dynamic(() => import('@/components/phu-view').then((m) => m.PhuView));
 const PhuCanChuY = dynamic(() => import('@/components/phu-view').then((m) => m.PhuCanChuY));
@@ -142,4 +143,11 @@ export const VE: Record<MaWidget, Ve> = {
   K7: () => <MayDangView chi="lich" />,
   L1: (n) => <ThuVienTab tv={n.tv} />,
   L2: () => <LoiTat />,
+  // nhóm M — mảnh của cty.on.tc nhúng vào ô: màn sẵn có của cty (/nhan-su, /nhat-ky, /) hoặc mảnh cả công ty (/manh/* — repo cty src/app/manh/[ma]/page.tsx)
+  M1: () => <ManhCty duong="/manh/so" ten="Số agents" thap />,
+  M2: () => <ManhCty duong="/nhan-su" ten="Bảng agents" />,
+  M3: () => <ManhCty duong="/manh/viec-may" ten="Việc máy và việc nền" />,
+  M4: () => <ManhCty duong="/manh/logs" ten="Lượt chạy kỹ sư" />,
+  M5: () => <ManhCty duong="/nhat-ky" ten="Sổ sự kiện cty" />,
+  M6: () => <ManhCty duong="/" ten="Sơ đồ tổ chức" />,
 };

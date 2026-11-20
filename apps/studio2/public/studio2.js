@@ -1686,7 +1686,7 @@ async function aiBam(e) {
   if (k === 'bodx') { v.xong = 'Đã bỏ.'; aiLuu(); aiVe(); return; }
   if (k === 'chay') { b.disabled = true; b.textContent = 'Đang gửi…';
     try { if (v.loai === 've_mau') await ghiSv('veLaiAnhMauS2', D.that.phim, v.nhanVatId, v.yeu_cau || '');
-      else if (v.loai === 'tao_nhan_vat') await ghiSv('taoNhanVatS2', v.canhId, v.ten || '', v.yeu_cau || '');
+      else if (v.loai === 'tao_nhan_vat') await ghiSv('taoNhanVatS2', v.canhId, v.ten || '', v.yeu_cau || '', v.loai_tp || 'nhan_vat');
       else if (v.loai === 'sinh_lai_anh') await ghiSv('sinhLaiCanhS2', v.canhId, 'anh', v.yeu_cau || '');
       else if (v.loai === 'sinh_lai_clip') await ghiSv('sinhLaiCanhS2', v.canhId, 'clip', v.yeu_cau || '');
       else if (v.loai === 'sinh_lai_giong') await ghiSv('sinhLaiCanhS2', v.canhId, 'giong', v.yeu_cau || '');

@@ -123,13 +123,14 @@ export async function soCreditS2(): Promise<{ user_id: number; email: string; lu
  *  việc sửa chữ (không tốn tiền) chạy luôn và trả giá trị cũ để hoàn tác; việc sinh lại (tốn credit) chỉ trả thành ĐỀ XUẤT, người dùng bấm xác nhận
  *  mới gọi sinhLaiCanhS2 / sinhAmS2 qua đường ghi có kiểm quyền. Mã cảnh / tập luôn lấy từ ngữ cảnh máy chủ đã kiểm, không bao giờ lấy từ mô hình. */
 export type DoiTuongAi = { loai: 'canh' | 'giong' | 'td' | 'nhac' | 'tap'; canhId?: number | null };
-export type ViecAi = { loai: string; truong?: string; cu?: unknown; moi?: unknown; hien?: string; canhId?: number; tapId?: number; nhanVatId?: number; ten?: string; yeu_cau?: string; nhan: string };
+export type ViecAi = { loai: string; truong?: string; cu?: unknown; moi?: unknown; hien?: string; canhId?: number; tapId?: number; nhanVatId?: number; ten?: string; loai_tp?: string; yeu_cau?: string; nhan: string };
 const TRUONG_CANH: Record<string, 'so' | 'chu'> = { hanh_dong_vi: 'chu', goc_may: 'chu', chu_man: 'chu', thoi_luong_s: 'so', cam_xuc: 'so', am_thanh: 'chu' };
 const TRUONG_TAP = new Set(['ten', 'tom_tat', 'nhac_mo_ta']);
 const VIEC_THEO_LOAI: Record<DoiTuongAi['loai'], string[]> = {
-  canh: ['sua_canh', 'gan_nhan_vat', 've_mau', 'tao_nhan_vat', 'sinh_lai_anh', 'sinh_lai_clip'], giong: ['sua_thoai', 'sinh_lai_giong'], td: ['sua_canh', 'sinh_td'], nhac: ['sua_tap', 'sinh_nhac'], tap: ['sua_tap', 'sinh_nhac'] };
+  canh: ['sua_canh', 'gan_nhan_vat', 'them_thanh_phan', 'bo_thanh_phan', 've_mau', 'tao_nhan_vat', 'sinh_lai_anh', 'sinh_lai_clip'], giong: ['sua_thoai', 'sinh_lai_giong'], td: ['sua_canh', 'sinh_td'], nhac: ['sua_tap', 'sinh_nhac'], tap: ['sua_tap', 'sinh_nhac'] };
 const TEN_TRUONG: Record<string, string> = { hanh_dong_vi: 'mô tả hành động', goc_may: 'góc máy', chu_man: 'chữ trên màn', thoi_luong_s: 'thời lượng (giây)', cam_xuc: 'cảm xúc 1–10',
   am_thanh: 'tiếng động', ten: 'tên tập', tom_tat: 'tóm tắt', nhac_mo_ta: 'mô tả nhạc nền' };
+const TEN_LOAI: Record<string, string> = { boi_canh: 'bối cảnh', dao_cu: 'đạo cụ', cau_kien: 'chi tiết', san_pham: 'sản phẩm', phong_cach: 'phong cách' };
 export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuongAi, cau: string, lichSu: { ai: 'nguoi' | 'may'; chu: string }[] = []):
   Promise<{ ok: true; tra_loi: string; da_lam: ViecAi[]; de_xuat: ViecAi[]; model: string } | { ok: false; loi: string }> {
   const db = getDb(), me = await getCurrentUser(); if (!db || !me) return { ok: false, loi: 'không có quyền' };
@@ -146,17 +147,17 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
   const nvIds = cn && Array.isArray(cn.nhan_vat) ? (cn.nhan_vat as unknown[]).map(Number).filter(Number.isFinite) : [];
   const nguoi = nvIds.length ? ((await db.execute(sql`SELECT id, ten, loai, left(coalesce(mo_ta, ''), 200) AS mo_ta FROM xv_nhan_vat WHERE id = ANY(${`{${nvIds.join(',')}}`}::int[])`)) as unknown as Row[]) : [];
   // dàn người của phim: AI chọn người có sẵn để gắn vào cảnh trước khi tính tới vẽ lại / tạo mới
-  const dan = cn ? ((await db.execute(sql`SELECT id, ten, left(coalesce(mo_ta, ''), 240) AS mo_ta, jsonb_array_length(coalesce(anh_ref, '[]'::jsonb)) > 0 AS co_anh,
-    (SELECT count(*) FROM xv_canh c2 JOIN xv_tap t2 ON t2.id = c2.tap_id WHERE t2.phim_id = ${pid} AND c2.nhan_vat @> to_jsonb(v.id))::int AS so_canh FROM xv_nhan_vat v WHERE phim_id = ${pid} AND loai = 'nhan_vat' ORDER BY id LIMIT 30`)) as unknown as Row[]) : [];
+  const dan = cn ? ((await db.execute(sql`SELECT id, ten, loai, left(coalesce(mo_ta, ''), 240) AS mo_ta, jsonb_array_length(coalesce(anh_ref, '[]'::jsonb)) > 0 AS co_anh,
+    (SELECT count(*) FROM xv_canh c2 JOIN xv_tap t2 ON t2.id = c2.tap_id WHERE t2.phim_id = ${pid} AND c2.nhan_vat @> to_jsonb(v.id))::int AS so_canh FROM xv_nhan_vat v WHERE phim_id = ${pid} ORDER BY (loai = 'nhan_vat') DESC, id LIMIT 60`)) as unknown as Row[]) : [];
   const thoai = cn && Array.isArray(cn.thoai) ? (cn.thoai as { nhan_vat?: string; loi?: string; dien_xuat?: string }[]) : [];
   const ngCanh = loai === 'tap' || loai === 'nhac'
     ? { tap: { ten: tap.ten, tom_tat: tap.tom_tat, y_tuong: String(tap.brief ?? '').slice(0, 1500), nhac_mo_ta: tap.nhac_mo_ta, thoi_luong_s: tap.thoi_luong_s } }
     : { tap: { ten: tap.ten, tom_tat: tap.tom_tat }, canh: { so: Math.round(Number(cn!.thu_tu)), ten: String(cn!.canh ?? '').replace(/^\s*cảnh\s*\d+\s*[·:.-]?\s*/i, ''), goc_may: cn!.goc_may, hanh_dong_vi: cn!.hanh_dong_vi || cn!.hanh_dong, chu_man: cn!.chu_man,
-        am_thanh: cn!.am_thanh, thoi_luong_s: cn!.thoi_luong_s, cam_xuc: cn!.cam_xuc, thanh_phan_trong_canh: nguoi.map((v) => ({ id: Number(v.id), ten: v.ten, loai: v.loai, mo_ta: v.mo_ta })), dan_nhan_vat_cua_phim: dan.map((v) => ({ id: Number(v.id), ten: v.ten, mo_ta: v.mo_ta, co_anh_mau: v.co_anh, so_canh_dung: Number(v.so_canh) })), co_anh: cn!.co_anh, co_clip: cn!.co_clip,
+        am_thanh: cn!.am_thanh, thoi_luong_s: cn!.thoi_luong_s, cam_xuc: cn!.cam_xuc, thanh_phan_trong_canh: nguoi.map((v) => ({ id: Number(v.id), ten: v.ten, loai: v.loai, mo_ta: v.mo_ta })), thu_vien_thanh_phan_cua_phim: dan.map((v) => ({ id: Number(v.id), ten: v.ten, loai: v.loai, mo_ta: v.mo_ta, co_anh_mau: v.co_anh, so_canh_dung: Number(v.so_canh) })), co_anh: cn!.co_anh, co_clip: cn!.co_clip,
         thoai: thoai.length ? thoai.map((t, i) => ({ dong: i, nguoi_noi: t.nhan_vat, loi: t.loi, dien_xuat: t.dien_xuat })) : [{ dong: 0, loi: cn!.loi_thoai }] } };
   const duoc = VIEC_THEO_LOAI[loai];
-  const VIEC = z.object({ loai: z.enum(['sua_canh', 'sua_thoai', 'sua_tap', 'gan_nhan_vat', 've_mau', 'tao_nhan_vat', 'sinh_lai_anh', 'sinh_lai_clip', 'sinh_lai_giong', 'sinh_td', 'sinh_nhac']),
-    truong: z.enum(['', ...Object.keys(TRUONG_CANH), ...TRUONG_TAP] as [string, ...string[]]), gia_tri: z.string(), dong: z.number(), yeu_cau: z.string(), nhan_vat_ids: z.array(z.number()) });
+  const VIEC = z.object({ loai: z.enum(['sua_canh', 'sua_thoai', 'sua_tap', 'gan_nhan_vat', 'them_thanh_phan', 'bo_thanh_phan', 've_mau', 'tao_nhan_vat', 'sinh_lai_anh', 'sinh_lai_clip', 'sinh_lai_giong', 'sinh_td', 'sinh_nhac']),
+    truong: z.enum(['', ...Object.keys(TRUONG_CANH), ...TRUONG_TAP] as [string, ...string[]]), gia_tri: z.string(), dong: z.number(), yeu_cau: z.string(), nhan_vat_ids: z.array(z.number()), loai_tp: z.enum(['nhan_vat', 'dao_cu', 'san_pham', 'boi_canh']) });
   const KHUON = z.object({ tra_loi: z.string(), hanh_dong: z.array(VIEC) });
   const system = `Bạn là trợ lý dựng video trong Studio 2. Người dùng đang chọn MỘT đối tượng (${loai === 'canh' ? 'một cảnh / keyframe' : loai === 'giong' ? 'lời đọc của một cảnh' : loai === 'td' ? 'tiếng động của một cảnh' : loai === 'nhac' ? 'nhạc nền của tập' : 'cả tập'}).
 Đọc câu lệnh, trả JSON: tra_loi = một hai câu tiếng Việt có dấu, không xưng "tôi" (viết kiểu "Đã đổi …" / "Đề xuất …"), nói đã làm gì (hoặc hỏi lại nếu lệnh không rõ); hanh_dong = các việc cần làm, CHỈ dùng các loại: ${duoc.join(', ')}.
@@ -165,9 +166,14 @@ export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuong
 - sua_tap: truong ∈ {ten, tom_tat, nhac_mo_ta}, gia_tri = giá trị mới.
 - Đổi NGƯỜI trong cảnh (giới tính, tuổi, dân tộc, thay người khác): người trong hình theo ẢNH MẪU của nhân vật gắn vào cảnh, câu thêm không đổi được người. Tự xử theo thứ tự, rồi LUÔN kèm sinh_lai_anh cho cảnh:
   Trước hết liệt kê đặc điểm người dùng đòi (vd: nữ). Một nhân vật chỉ HỢP khi mo_ta của nó GHI RÕ đúng các đặc điểm đó; mo_ta không nói, nói chung chung hay "không nhấn mạnh giới tính" = KHÔNG hợp.
-  1. Trong dan_nhan_vat_cua_phim có người HỢP → gan_nhan_vat, nhan_vat_ids = id các NGƯỜI sẽ có trong cảnh (thay hết người cũ; thành phần không phải người giữ nguyên).
+  1. Trong thu_vien_thanh_phan_cua_phim (loai nhan_vat) có người HỢP → gan_nhan_vat, nhan_vat_ids = id các NGƯỜI sẽ có trong cảnh (thay hết người cũ; thành phần không phải người giữ nguyên).
   2. Người đang gắn ở cảnh sai ngoại hình VÀ (so_canh_dung ≤ 1 HOẶC người dùng nói sửa nhân vật đó cho cả phim) → ve_mau, nhan_vat_ids = [id người đó], yeu_cau = ngoại hình mới (tiếng Việt, cụ thể: giới tính, tuổi, tóc, trang phục có màu). tra_loi nhắc mọi cảnh dùng nhân vật này sẽ theo ảnh mẫu mới.
-  3. Còn lại (kể cả khi người gần đúng đang dùng ở nhiều cảnh khác) → tao_nhan_vat, gia_tri = tên ngắn 1–3 chữ (vd "Lan", "Cô gái"), yeu_cau = mô tả ngoại hình đầy đủ suy từ cảnh + lệnh (tiếng Việt). Nhân vật mới tự gắn vào cảnh thay người cũ.
+  3. Còn lại (kể cả khi người gần đúng đang dùng ở nhiều cảnh khác) → tao_nhan_vat, loai_tp = nhan_vat, gia_tri = tên ngắn 1–3 chữ (vd "Lan", "Cô gái"), yeu_cau = mô tả ngoại hình đầy đủ suy từ cảnh + lệnh (tiếng Việt). Nhân vật mới tự gắn vào cảnh thay người cũ.
+- THÊM / BỚT một ĐỐI TƯỢNG (đồ vật, sản phẩm, bối cảnh) trong ảnh — luôn kèm sinh_lai_anh, yeu_cau nói rõ thêm / bỏ cái gì, đặt ở đâu:
+  · Bớt thứ đang có trong thanh_phan_trong_canh → bo_thanh_phan, nhan_vat_ids = [id] (ảnh mẫu của nó thôi được gửi cho model).
+  · Thêm thứ có trong thu_vien_thanh_phan_cua_phim → them_thanh_phan, nhan_vat_ids = [id].
+  · Thêm thứ chưa có: xuất hiện lại ở cảnh khác hoặc phải giống hệt (sản phẩm, đạo cụ chính) → tao_nhan_vat với loai_tp = dao_cu / san_pham / boi_canh; vật phụ chỉ trong cảnh này → chỉ sinh_lai_anh.
+  · Bớt thứ model tự vẽ (không nằm trong thanh_phan_trong_canh) → chỉ sinh_lai_anh, yeu_cau = "bỏ <vật>".
   Bước 2 và 3 tốn credit (vẽ một ảnh mẫu); tra_loi nói rõ chạy thẻ nhân vật trước, ảnh mẫu xong rồi mới chạy thẻ sinh lại keyframe.
 - sinh_lai_anh / sinh_lai_clip / sinh_lai_giong / sinh_td / sinh_nhac: tốn credit, chỉ đề xuất khi người dùng muốn hình / clip / giọng / âm thanh khác đi; yeu_cau = mô tả ngắn cái cần khác (tiếng Việt).
 Gọi cảnh bằng "cảnh <so>" (so trong NGỮ CẢNH), không lấy số trong tên cảnh. Trường không dùng để chuỗi rỗng, dong = 0, nhan_vat_ids = []. Không bịa dữ liệu ngoài ngữ cảnh. Lệnh chỉ hỏi thì hanh_dong = [].`;
@@ -189,12 +195,17 @@ Gọi cảnh bằng "cảnh <so>" (so trong NGỮ CẢNH), không lấy số tro
       const hop = new Map(dan.map((x) => [Number(x.id), String(x.ten)])), moiNg = [...new Set(v.nhan_vat_ids.map(Number))].filter((x) => hop.has(x)); if (!moiNg.length) continue;
       const laNg = new Set(nguoi.filter((x) => x.loai === 'nhan_vat').map((x) => Number(x.id))), moi = [...nvIds.filter((x) => !laNg.has(x)), ...moiNg];
       vaCanh.nhan_vat = moi; da_lam.push({ loai: 'sua_canh', truong: 'nhan_vat', cu: nvIds, moi, hien: moiNg.map((x) => hop.get(x)).join(', '), canhId: Number(cn.id), nhan: `Gắn nhân vật vào cảnh ${Math.round(Number(cn.thu_tu))}` });
+    } else if ((v.loai === 'them_thanh_phan' || v.loai === 'bo_thanh_phan') && cn) {
+      const ten = new Map(dan.map((x) => [Number(x.id), String(x.ten)])), cu = (vaCanh.nhan_vat as number[] | undefined) ?? nvIds, ids = [...new Set(v.nhan_vat_ids.map(Number))];
+      const moi = v.loai === 'them_thanh_phan' ? [...cu, ...ids.filter((x) => ten.has(x) && !cu.includes(x))] : cu.filter((x) => !ids.includes(x)); if (moi.length === cu.length) continue;
+      const doi = v.loai === 'them_thanh_phan' ? moi.filter((x) => !cu.includes(x)) : cu.filter((x) => !moi.includes(x));
+      vaCanh.nhan_vat = moi; da_lam.push({ loai: 'sua_canh', truong: 'nhan_vat', cu: nvIds, moi, hien: doi.map((x) => ten.get(x) ?? `#${x}`).join(', '), canhId: Number(cn.id), nhan: `${v.loai === 'them_thanh_phan' ? 'Thêm vào' : 'Bỏ khỏi'} cảnh ${Math.round(Number(cn.thu_tu))}` });
     } else if (v.loai === 've_mau' && cn) {
       const x = dan.find((d) => Number(d.id) === Number(v.nhan_vat_ids[0])); if (!x) continue;
       de_xuat.push({ loai: 've_mau', nhanVatId: Number(x.id), canhId: Number(cn.id), tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: `Vẽ lại ảnh mẫu ${String(x.ten)}` });
     } else if (v.loai === 'tao_nhan_vat' && cn && v.yeu_cau.trim()) {
       const ten = v.gia_tri.trim().split(/[,;.]/)[0].split(/\s+/).slice(0, 4).join(' ').slice(0, 30) || 'Nhân vật mới';   // tên ngắn: model hay nhét cả mô tả vào tên
-      de_xuat.push({ loai: 'tao_nhan_vat', ten, canhId: Number(cn.id), tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: `Tạo nhân vật ${ten} cho cảnh ${Math.round(Number(cn.thu_tu))}` });
+      de_xuat.push({ loai: 'tao_nhan_vat', ten, loai_tp: v.loai_tp, canhId: Number(cn.id), tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: `Tạo ${v.loai_tp === 'nhan_vat' ? 'nhân vật' : TEN_LOAI[v.loai_tp]?.toLowerCase() ?? 'thành phần'} ${ten} cho cảnh ${Math.round(Number(cn.thu_tu))}` });
     } else if (v.loai.startsWith('sinh_')) {
       const nhan = { sinh_lai_anh: 'Sinh lại keyframe', sinh_lai_clip: 'Sinh lại clip', sinh_lai_giong: 'Đọc lại lời', sinh_td: 'Sinh lại tiếng động', sinh_nhac: 'Sinh lại nhạc nền' }[v.loai as 'sinh_td'];
       de_xuat.push({ loai: v.loai, canhId: cn ? Number(cn.id) : undefined, tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: cn ? `${nhan} cảnh ${Math.round(Number(cn.thu_tu))}` : nhan });
@@ -314,14 +325,15 @@ export async function veLaiAnhMauS2(phimId: number, nhanVatId: number, yeuCau = 
 
 /** TẠO NHÂN VẬT MỚI cho một cảnh (thẻ "Tạo nhân vật" của Lệnh AI — anh 21/11/2026): lưu nhân vật theo mô tả, gắn vào cảnh thay các NGƯỜI đang gắn
  *  (thành phần khác giữ), rồi vẽ một ảnh mẫu. TỐN TIỀN: một lượt model ảnh. Ảnh mẫu xong thì sinh lại keyframe cảnh đó. */
-export async function taoNhanVatS2(canhId: number, ten: string, moTa: string): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
+export async function taoNhanVatS2(canhId: number, ten: string, moTa: string, loaiTp = 'nhan_vat'): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
   const db = getDb(); if (!db) return { ok: false, loi: 'no db' };
   const c = ((await db.execute(sql`SELECT c.id, c.nhan_vat, t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${Number(canhId)}`)) as unknown as Row[])[0];
   if (!c) return { ok: false, loi: 'không thấy cảnh' };
   const mt = String(moTa ?? '').trim().slice(0, 1200), tn = String(ten ?? '').trim().slice(0, 60) || 'Nhân vật mới'; if (!mt) return { ok: false, loi: 'thiếu mô tả nhân vật' };
-  const k = await luuNhanVat({ phim_id: Number(c.phim_id), loai: 'nhan_vat', ten: tn, mo_ta: mt, anh_ref: [], giong: '' }); if (!k.ok) return { ok: false, loi: k.loi };
+  const lo = (['nhan_vat', 'dao_cu', 'san_pham', 'boi_canh'].includes(loaiTp) ? loaiTp : 'nhan_vat') as Parameters<typeof luuNhanVat>[0]['loai'];
+  const k = await luuNhanVat({ phim_id: Number(c.phim_id), loai: lo, ten: tn, mo_ta: mt, anh_ref: [], giong: '' }); if (!k.ok) return { ok: false, loi: k.loi };
   const cu = (Array.isArray(c.nhan_vat) ? c.nhan_vat as unknown[] : []).map(Number).filter(Number.isFinite);
-  const ng = cu.length ? new Set(((await db.execute(sql`SELECT id FROM xv_nhan_vat WHERE loai = 'nhan_vat' AND id = ANY(${`{${cu.join(',')}}`}::int[])`)) as unknown as Row[]).map((x) => Number(x.id))) : new Set<number>();
+  const ng = cu.length && lo === 'nhan_vat' ? new Set(((await db.execute(sql`SELECT id FROM xv_nhan_vat WHERE loai = 'nhan_vat' AND id = ANY(${`{${cu.join(',')}}`}::int[])`)) as unknown as Row[]).map((x) => Number(x.id))) : new Set<number>();
   const g = await suaCanh(Number(c.id), { nhan_vat: [...cu.filter((x) => !ng.has(x)), k.data] }); if (g && (g as { ok?: boolean }).ok === false) return { ok: false, loi: (g as { loi?: string }).loi ?? 'không gắn được vào cảnh' };
   const a = await sinhAnhMau(k.data, 1); return a.ok ? { ok: true, data: k.data } : { ok: false, loi: a.loi };
 }
@@ -339,7 +351,7 @@ export async function sinhLaiCanhS2(canhId: number, loai: 'anh' | 'giong' | 'cli
   if (!c) return { ok: false, loi: 'không thấy cảnh' };
   let en = '';
   if (yc && loai !== 'giong') { const d = await dichChuoi({ kinhThanh: (c.kinh_thanh ?? {}) as KinhThanh, sang: 'en', ds: [yc], thuatNgu: [] }); if (!d.ok) return { ok: false, loi: `không dịch được yêu cầu: ${d.loi}` }; en = String(d.data[0] ?? '').trim(); }
-  if (loai === 'anh') return sinhKeyframeCanh(db, id, 1, undefined, undefined, false, en ? `EXTRA REQUEST FOR THIS FRAME (must be followed, everything else stays as described): ${en}` : '');
+  if (loai === 'anh') return sinhKeyframeCanh(db, id, 1, undefined, undefined, false, en ? `EXTRA REQUEST FOR THIS FRAME (must be followed; where it conflicts with the description above — e.g. removing or adding an object — this request wins; everything else stays as described): ${en}` : '');
   if (loai === 'giong') {
     if (yc) await db.execute(sql`UPDATE xv_canh SET thoai = (SELECT coalesce(jsonb_agg(CASE WHEN coalesce(x->>'loi', '') <> '' THEN x || jsonb_build_object('dien_xuat', ${yc}::text) ELSE x END), '[]'::jsonb) FROM jsonb_array_elements(coalesce(thoai, '[]'::jsonb)) x), updated_at = now() WHERE id = ${id}`);
     return sinhGiong(Number(c.tap_id), [id]);
@@ -375,7 +387,6 @@ export async function xemLenhS2(canhId: number, loai: string, yeuCau = ''): Prom
   const trong = bc.nhanVat.filter((v) => bc.canh.nhan_vat.includes(v.id));
   const nguoi = trong.filter((v) => v.loai === 'nhan_vat').map((v) => ({ ten: v.ten, mo_ta: String(v.mo_ta ?? '').slice(0, 160) }));
   const them = !yc ? '' : loai === 'sinh_lai_giong' ? `Ghi vào chỉ dẫn diễn xuất của từng dòng lời: "${yc}"` : loai === 'sinh_lai_clip' ? `Dịch sang tiếng Anh, nối cuối hành động: "Extra direction: <${yc}>"` : loai === 'sinh_lai_anh' ? `Dịch sang tiếng Anh, nối cuối câu lệnh: "EXTRA REQUEST FOR THIS FRAME (must be followed, everything else stays as described): <${yc}>"` : `Dịch sang tiếng Anh, nối vào mô tả: "${yc}"`;
-  const TEN_LOAI: Record<string, string> = { boi_canh: 'bối cảnh', dao_cu: 'đạo cụ', cau_kien: 'chi tiết', san_pham: 'sản phẩm', phong_cach: 'phong cách' };
   const thanh_phan = trong.filter((v) => v.loai !== 'nhan_vat').map((v) => ({ ten: v.ten, loai: TEN_LOAI[v.loai] ?? v.loai }));
   const goc = { duong: '', model: '', chan: [] as string[], nguoi, thanh_phan, tham_chieu: [] as { url: string; nhan: string }[], them, buoc: [] as { ten: string; prompt: string }[] };
   if (loai === 'sinh_lai_anh') {

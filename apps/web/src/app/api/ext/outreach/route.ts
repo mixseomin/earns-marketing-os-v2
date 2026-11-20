@@ -4,7 +4,7 @@
 //   chao-report {sp_id, ben_gui, ky_ten, goc_site, ban_gi, gia?}   → lời chào dựng từ report của ngách
 //   tao {da, ten, kieu, tu_email, tu_ten, tran?, cach_ngay?, so_nhac?, chao?, ngach?}
 //   nap-spy {cd, sp_id, so}  ·  nap-csv {cd, chu}  ·  soan {cd, so, lai?, lam_lai?}  ·  xem {cd, so_nhap?}
-//   gui-thu {cd, toi, prospect?}  ·  cach-gui {cd, tu_gui?, tran?, so_nhac?, cach_ngay?}  ·  thu-den {so_ngay?}
+//   gui-thu {cd, toi, prospect?}  ·  cach-gui {cd, tu_gui?, tran?, so_nhac?, cach_ngay?, chay?}  ·  thu-den {so_ngay?}
 // Không viec nào ở đây gửi thư cho người nhận thật: gửi thật chỉ qua nút gửi của trang outreach dự án hoặc máy tự gửi của chiến dịch đã bật.
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       case 'soan': return NextResponse.json(await soanChuoi(so('cd'), so('so', 5), b.lai == null ? undefined : so('lai'), b.lam_lai === true));
       case 'xem': return NextResponse.json({ ok: true, cd: await docMotChienDich(so('cd'), so('so_nhap', 5)) });
       case 'gui-thu': return NextResponse.json(await guiThuThu(so('cd'), chu('toi'), b.prospect == null ? undefined : so('prospect')));
-      case 'cach-gui': return NextResponse.json(await datCachGui(so('cd'), { tuGui: typeof b.tu_gui === 'boolean' ? b.tu_gui : undefined, tran: b.tran == null ? undefined : so('tran'), soNhac: b.so_nhac == null ? undefined : so('so_nhac'), cachNgay: b.cach_ngay == null ? undefined : so('cach_ngay') }));
+      case 'cach-gui': return NextResponse.json(await datCachGui(so('cd'), { tuGui: typeof b.tu_gui === 'boolean' ? b.tu_gui : undefined, tran: b.tran == null ? undefined : so('tran'), soNhac: b.so_nhac == null ? undefined : so('so_nhac'), cachNgay: b.cach_ngay == null ? undefined : so('cach_ngay'), chay: typeof b.chay === 'boolean' ? b.chay : undefined }));
       case 'thu-den': return NextResponse.json(await doThuDen(so('so_ngay', 30)));
       default: return NextResponse.json({ ok: false, loi: 'viec không có: ngach · chao-report · tao · nap-spy · nap-csv · soan · xem · gui-thu · cach-gui · thu-den' }, { status: 400 });
     }

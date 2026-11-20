@@ -55,7 +55,7 @@ export async function obGuiThu(cd: number, toi: string) {
   if (!(await quanTri())) return CAM;
   return guiThuThu(cd, toi);
 }
-export async function obCachGui(cd: number, o: { tuGui?: boolean; tran?: number; soNhac?: number; cachNgay?: number }) {
+export async function obCachGui(cd: number, o: { tuGui?: boolean; tran?: number; soNhac?: number; cachNgay?: number; chay?: boolean }) {
   if (!(await quanTri())) return CAM;
   const kq = await datCachGui(cd, o); if (kq.ok) moi(); return kq;
 }

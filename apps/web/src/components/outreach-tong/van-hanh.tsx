@@ -38,6 +38,7 @@ const GIAI = {
   chao: 'Máy soạn thư chỉ được nói những gì ghi ở đây về bên gửi, cộng với dữ kiện về quảng cáo của từng người nhận. Sửa lời chào không đổi thư đã soạn; muốn áp thì soạn lại.',
   lamLai: 'Chuỗi thư của những người này soạn theo số thư hoặc luật cũ. Soạn lại theo kế hoạch hiện tại; bản cũ vẫn được giữ.',
   soan: 'Mỗi người nhận một chuỗi thư (số thư = số lần nhắc + 1, tối đa 4) viết theo quảng cáo của chính họ; thư đầu không gắn link và được chấm điểm. Thương hiệu không bán đúng ngách thì máy loại khỏi hàng chờ và ghi lý do. Soạn xong máy không gửi gì. Tiền mô hình vài chục đồng mỗi người, số thật hiện sau từng mẻ.',
+  dung: 'Tạm dừng thì máy tự gửi bỏ qua chiến dịch này dù tự gửi đang bật: không thư đầu, không thư nhắc nào đi. Người nhận, thư nháp và các thiết lập giữ nguyên. Bấm chạy tiếp là máy gửi lại từ lượt 21:00 kế.',
   thu: 'Gửi thư đầu của người nhận đầu tiên qua đúng đường gửi thật. Không đổi trạng thái ai, không tính vào trần ngày.',
   tuGui: 'Khi bật: thứ Hai tới thứ Sáu lúc 21:00 giờ Việt Nam (sáng ở Mỹ) máy dò thư trả lời, xét phanh, rồi gửi thư nhắc tới hạn và thư đầu theo trần, mỗi thư cách nhau 35 tới 170 giây. Thư dội từ 5% hoặc xin thôi quá 2% trong 7 ngày thì máy tự tắt. Ai trả lời, xin thôi hoặc bị dội thì ra khỏi chuỗi.',
 };
@@ -124,7 +125,7 @@ export function NganChienDich({ emailNha }: { emailNha: string }) {
         </p>
         <Segmented size="sm" value={the} onChange={(v) => datThe(v === 'nap' ? '' : v)} options={[
           { value: 'nap', label: 'Nạp người nhận', title: `${cd.n} người nhận` }, { value: 'chao', label: 'Lời chào' },
-          { value: 'soan', label: 'Soạn thư', title: `${cd.coChuoi} người đã có chuỗi thư · ${cd.chuaSoan} chưa soạn · ${cd.khongHop} không hợp ngách` }, { value: 'gui', label: 'Gửi', title: cd.tuGui ? 'tự gửi đang bật' : 'đang gửi tay' }]} />
+          { value: 'soan', label: 'Soạn thư', title: `${cd.coChuoi} người đã có chuỗi thư · ${cd.chuaSoan} chưa soạn · ${cd.khongHop} không hợp ngách` }, { value: 'gui', label: 'Gửi', title: `${cd.chay ? 'đang chạy' : 'đang tạm dừng'} · ${cd.tuGui ? 'tự gửi bật' : 'gửi tay'}` }]} />
         {the === 'nap' && <TheNap cd={cd} xong={doc} />}
         {the === 'chao' && <TheChao cd={cd} xong={doc} />}
         {the === 'soan' && <TheSoan cd={cd} xong={doc} />}
@@ -244,12 +245,27 @@ function TheGui({ cd, xong, emailNha }: { cd: MotChienDich; xong: () => Promise<
   const doiNhip = soNhac !== cd.soNhac || cachNgay !== cd.cachNgay;
   const [loi, setLoi] = useState<string | null>(null), [tin, setTin] = useState<ReactNode>(null), [dang, chay] = useTransition();
   const [loi2, setLoi2] = useState<string | null>(null), [tin2, setTin2] = useState<ReactNode>(null), [dang2, chay2] = useTransition(), [chac, setChac] = useState(false);
+  const [loi3, setLoi3] = useState<string | null>(null), [tin3, setTin3] = useState<ReactNode>(null), [dang3, chay3] = useTransition(), [chac3, setChac3] = useState(false);
+  // tạm dừng / chạy tiếp CẢ chiến dịch: đang tạm dừng thì máy tự gửi bỏ qua nó dù tự gửi đang bật. Chạy tiếp khi tự gửi đang bật = thư thật bắt đầu đi → hỏi lại một lần.
+  const datChay = (chay: boolean) => chay3(async () => {
+    setLoi3(null); setTin3(null); setChac3(false);
+    const r = await obCachGui(cd.id, { chay });
+    if (!r.ok) setLoi3(r.loi); else { setTin3(chay ? 'Chiến dịch đã chạy tiếp.' : 'Đã tạm dừng. Không thư nào của chiến dịch này được gửi.'); await xong(); }
+  });
   const datGui = (tuGui: boolean) => chay2(async () => {
     setLoi2(null); setTin2(null); setChac(false);
     const r = await obCachGui(cd.id, { tuGui, tran, soNhac, cachNgay });
     if (!r.ok) setLoi2(r.loi); else { setTin2(tuGui ? `Đã bật tự gửi, tối đa ${tran} thư đầu mỗi ngày, lượt kế 21:00.` : 'Đã tắt tự gửi.'); await xong(); }
   });
   return (<>
+    <Dau giai={GIAI.dung}>Chiến dịch · {cd.chay ? <b style={{ color: XANH }}>đang chạy</b> : <b style={{ color: DO }}>đang tạm dừng</b>}</Dau>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+      {cd.chay ? <GuardedButton reason={dang3 ? 'Đang lưu…' : ''} style={nut} onClick={() => datChay(false)}>Tạm dừng chiến dịch</GuardedButton>
+        : chac3 ? <><b style={{ fontSize: 12, color: DO }}>{cd.tuGui ? `Tự gửi đang bật: thư thật đi cho ${cd.choGui} người từ 21:00. Chạy tiếp?` : 'Chạy tiếp chiến dịch?'}</b>
+            <GuardedButton reason={dang3 ? 'Đang lưu…' : ''} style={{ ...nut, borderColor: DO, color: DO }} onClick={() => datChay(true)}>Chạy tiếp</GuardedButton><button type="button" style={nut} onClick={() => setChac3(false)}>Thôi</button></>
+          : <GuardedButton reason="" style={nutChinh} onClick={() => setChac3(true)}>Chạy tiếp…</GuardedButton>}
+    </div>
+    <Bao loi={loi3} tin={tin3} />
     <Dau giai={GIAI.thu}>Gửi thử về địa chỉ của nhà</Dau>
     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
       <TextField label="Gửi tới" value={toi} onChange={(e) => setToi(e.target.value)} style={{ width: 260 }} />

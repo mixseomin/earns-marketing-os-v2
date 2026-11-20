@@ -69,6 +69,7 @@ export async function chaoTuReport(spId: number, o: { benGui: string; kyTen: str
 
 export type MotChienDich = {
   id: number; da: string; ten: string; kieu: string; tuEmail: string | null; tuTen: string | null; tuGui: boolean; tran: number; cachNgay: number; soNhac: number;
+  /** false = chiến dịch TẠM DỪNG: máy tự gửi bỏ qua nó dù tự gửi đang bật */ chay: boolean;
   chao: LoiChao | null; ngach: { spId: number; ten: string; slug: string } | null; daXet: number;
   n: number; choGui: number; coChuoi: number; daGui: number; traLoi: number;
   /** chờ gửi, có email, chưa có chuỗi thư */ chuaSoan: number; /** máy xét không bán đúng ngách → đã đưa khỏi hàng chờ */ khongHop: number;
@@ -81,7 +82,7 @@ export type MotChienDich = {
 export async function docMotChienDich(id: number, soNhap = 5): Promise<MotChienDich | null> {
   const db = getDb(); if (!db) return null;
   const c = ((await db.execute(sql`
-    select c.id::int as id, coalesce(c.project_id, '') as da, c.name as ten, c.type as kieu, c.from_email as tu_email, c.from_name as tu_ten, c.auto_send as tu_gui, c.daily_cap::int as tran,
+    select c.id::int as id, coalesce(c.project_id, '') as da, c.name as ten, c.type as kieu, c.from_email as tu_email, c.from_name as tu_ten, c.auto_send as tu_gui, c.daily_cap::int as tran, c.status as trang_thai,
            c.followup_gap_days::int as cach_ngay, c.max_followups::int as so_nhac, c.cau_hinh,
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id) as n,
            (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.status = 'to_send') as cho_gui,
@@ -101,7 +102,7 @@ export async function docMotChienDich(id: number, soNhap = 5): Promise<MotChienD
     from outreach_prospects p where p.campaign_id = ${id} and p.status = 'to_send' and p.du_lieu ? 'chuoi' order by p.id limit ${Math.max(0, Math.min(200, soNhap))}`)) as unknown as { id: number; ten: string; email: string; website: string; so_qc: number | null; chuoi: ThuChuoi[]; diem: number | null; nhan_xet: string | null }[];
   return {
     id: Number(c.id), da: String(c.da), ten: String(c.ten), kieu: String(c.kieu), tuEmail: c.tu_email ? String(c.tu_email) : null, tuTen: c.tu_ten ? String(c.tu_ten) : null,
-    tuGui: c.tu_gui === true, tran: Number(c.tran), cachNgay: Number(c.cach_ngay), soNhac: Number(c.so_nhac), chao: ch.chao ?? null, ngach: ch.ngach ?? null, daXet: ch.da_xet?.length ?? 0,
+    tuGui: c.tu_gui === true, chay: String(c.trang_thai) === 'active', tran: Number(c.tran), cachNgay: Number(c.cach_ngay), soNhac: Number(c.so_nhac), chao: ch.chao ?? null, ngach: ch.ngach ?? null, daXet: ch.da_xet?.length ?? 0,
     n: Number(c.n), choGui: Number(c.cho_gui), coChuoi: Number(c.co_chuoi), daGui: Number(c.da_gui), traLoi: Number(c.tra_loi), chuaSoan: Number(c.chua_soan), khongHop: Number(c.khong_hop), banCu: Number(c.ban_cu),
     phanh: ch.phanh?.ly_do ? { ly_do: String(ch.phanh.ly_do), luc: String(ch.phanh.luc ?? '') } : null,
     nhap: nhap.map((p) => ({ id: p.id, ten: p.ten, email: p.email, website: p.website, soQc: p.so_qc, chuoi: Array.isArray(p.chuoi) ? p.chuoi : [], diem: p.diem == null ? null : Number(p.diem), nhanXet: p.nhan_xet ?? null })),
@@ -122,7 +123,8 @@ export async function guiThuThu(campaignId: number, toi: string, prospectId?: nu
 }
 
 /** bật / tắt máy tự gửi + trần thư đầu mỗi ngày + nhịp nhắc (số lần nhắc 0–3 → chuỗi 1–4 thư; cách nhau mấy ngày). Bật lại tự gửi thì gỡ dấu phanh cũ. */
-export async function datCachGui(campaignId: number, o: { tuGui?: boolean; tran?: number; soNhac?: number; cachNgay?: number }): Promise<{ ok: true } | Loi> {
+/** `chay`: false = TẠM DỪNG chiến dịch (trạng thái paused: máy tự gửi bỏ qua, không thư nào đi), true = chạy tiếp. Tạm dừng không đổi gì khác: người nhận, thư nháp, tự gửi giữ nguyên. */
+export async function datCachGui(campaignId: number, o: { tuGui?: boolean; tran?: number; soNhac?: number; cachNgay?: number; chay?: boolean }): Promise<{ ok: true } | Loi> {
   const db = getDb(); if (!db) return khongDb;
   if (o.tuGui) {
     const c = ((await db.execute(sql`select (select count(*)::int from outreach_prospects p where p.campaign_id = c.id and p.status = 'to_send' and p.email is not null and p.email <> '' and coalesce(p.email_body, '') = '') as thieu from outreach_campaigns c where c.id = ${campaignId}`)) as unknown as { thieu: number }[])[0];
@@ -131,6 +133,7 @@ export async function datCachGui(campaignId: number, o: { tuGui?: boolean; tran?
   }
   await db.execute(sql`update outreach_campaigns set auto_send = coalesce(${o.tuGui ?? null}, auto_send), daily_cap = coalesce(${o.tran == null ? null : Math.max(1, Math.min(200, o.tran))}, daily_cap),
     max_followups = coalesce(${o.soNhac == null ? null : Math.max(0, Math.min(3, Math.round(o.soNhac)))}, max_followups), followup_gap_days = coalesce(${o.cachNgay == null ? null : Math.max(1, Math.min(30, Math.round(o.cachNgay)))}, followup_gap_days),
+    status = coalesce(${o.chay == null ? null : o.chay ? 'active' : 'paused'}, status),
     cau_hinh = case when ${o.tuGui === true} then coalesce(cau_hinh, '{}'::jsonb) - 'phanh' else cau_hinh end, updated_at = now() where id = ${campaignId}`);
   return { ok: true };
 }

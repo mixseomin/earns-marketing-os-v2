@@ -1608,7 +1608,8 @@ function aiVe() {
   if (!o) { o = document.createElement('aside'); o.id = 'aiDock'; o.className = 'ai-dock'; document.body.append(o);
     const n = document.createElement('button'); n.type = 'button'; n.id = 'aiMoNut'; n.className = 'ai-mo-nut'; n.textContent = '✦ Lệnh AI'; n.title = 'Mở ô lệnh AI: sửa đối tượng đang chọn bằng câu lệnh'; document.body.append(n);
     n.onclick = () => { AI.mo = !AI.mo; aiVe(); if (AI.mo) setTimeout(() => document.getElementById('aiO')?.focus(), 30); };
-    o.addEventListener('click', aiBam); o.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'aiO') { e.preventDefault(); aiGui(); } }); }
+    o.addEventListener('click', aiBam); o.addEventListener('input', (e) => { const t = e.target; if (!t.classList.contains('ai-y')) return; const v = aiLs()[+t.dataset.i]?.de_xuat?.[+t.dataset.j]; if (!v) return;
+      v.yeu_cau = t.value.slice(0, 600); const g = t.closest('.ai-the')?.querySelector('.ai-gia'); if (g) g.textContent = aiGia(v); aiLuu(); }); o.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'aiO') { e.preventDefault(); aiGui(); } }); }
   document.body.classList.toggle('ai-mo', AI.mo); o.hidden = !AI.mo; document.getElementById('aiMoNut').hidden = AI.mo; if (!AI.mo) return;
   if (!D.that) { o.innerHTML = `<div class="ai-dau"><strong>Lệnh AI</strong><button type="button" class="bt" data-ai="dong">Đóng</button></div><p class="nho">Mở một phim thật của studio để dùng lệnh AI.</p>`; return; }
   const d = aiDoi(), ls = aiLs(), giu = document.getElementById('aiO')?.value || '';
@@ -1618,15 +1619,20 @@ function aiVe() {
     <div class="ai-goi">${(AI_GOI_Y[d.loai] || []).map((g) => `<button type="button" class="ai-g" data-ai="g">${esc(g)}</button>`).join('')}</div>
     <div class="ai-nhap"><textarea id="aiO" rows="2" placeholder="Ví dụ: cận mặt hơn, lời đọc ngắn lại…"${AI.dang ? ' disabled' : ''}>${esc(giu)}</textarea><button type="button" class="bt chinh" data-ai="gui"${AI.dang ? ' disabled' : ''}>Gửi</button></div>`;
   const l = o.querySelector('.ai-ls'); l.scrollTop = l.scrollHeight;
+  if (!E.gia && !AI.napGia && ls.some((m) => (m.de_xuat || []).some((v) => !v.xong))) { AI.napGia = true; napQt(true).catch(() => {}).finally(() => { AI.napGia = false; if (E.gia) aiVe(); }); }
 }
 function aiTin(m, i) {
   if (m.ai === 'nguoi') return `<div class="ai-tin nguoi"><span class="nho">${esc(m.doi || '')}</span>${esc(m.chu)}</div>`;
   const lam = (m.da_lam || []).map((v) => `<li>${esc(v.nhan)}: <i>${esc(typeof v.moi === 'object' ? (v.moi || []).map((t) => t.loi).join(' / ') : String(v.moi))}</i></li>`).join('');
-  const dx = (m.de_xuat || []).map((v, j) => `<div class="ai-the"><b>${esc(v.nhan)}</b>${v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : ''}<span class="nho">${esc(aiGia(v))}</span>
+  const dx = (m.de_xuat || []).map((v, j) => `<div class="ai-the"><b>${esc(v.nhan)}</b>${v.xong ? (v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : '') : `<label class="nho">Ý cho lượt sinh (sửa hoặc bổ sung tuỳ ý)<textarea class="ai-y" rows="2" data-i="${i}" data-j="${j}">${esc(v.yeu_cau || '')}</textarea></label>`}<span class="nho ai-gia">${esc(aiGia(v))}</span>
     ${v.xong ? `<span class="nho ok">${esc(v.xong)}</span>` : `<button type="button" class="bt chinh" data-ai="chay" data-i="${i}" data-j="${j}">Chạy</button> <button type="button" class="bt" data-ai="bodx" data-i="${i}" data-j="${j}">Bỏ</button>`}</div>`).join('');
   return `<div class="ai-tin may${m.loi ? ' loi' : ''}">${esc(m.chu)}${lam ? `<ul>${lam}</ul>${m.hoan ? '<span class="nho">Đã hoàn tác.</span>' : `<button type="button" class="bt" data-ai="hoan" data-i="${i}">Hoàn tác</button>`}` : ''}${dx}</div>`;
 }
-const aiGia = (v) => { const sid = `s${v.canhId}`; const k = { sinh_lai_anh: `kf1:${sid}`, sinh_lai_clip: `clip1:${sid}`, sinh_lai_giong: 'giong', sinh_nhac: 'nhac1', sinh_td: 'td' }[v.loai]; try { return giaSl(k); } catch { return 'Bước này tốn credits.'; } };
+/** giá thẻ đề xuất: giá bước sinh + một lượt dịch nhỏ khi có ý riêng (giọng không dịch); ý đổi → tính lại ngay */
+const aiGia = (v) => { const sid = `s${v.canhId}`, k = { sinh_lai_anh: `kf1:${sid}`, sinh_lai_clip: `clip1:${sid}`, sinh_lai_giong: 'giong', sinh_nhac: 'nhac1', sinh_td: 'td' }[v.loai];
+  if (k.startsWith('clip1') && xepHang()) return giaSl(k); if (!E.gia) return 'Đang tính credits…';
+  const g = giaBuoc(k), dich = (v.yeu_cau || '').trim() && v.loai !== 'sinh_lai_giong' ? GIA_CHU.nx / 2 : 0;
+  return g == null ? `Bước này tốn ${xemQt() ? 'tiền' : 'credits'} (studio chưa báo được giá cho bước này).` : `Khoảng ${tienDo(g + dich)}${dich ? ' (gồm một lượt dịch ý riêng)' : ''}.${xemQt() ? '' : ' Hiện tài khoản không giới hạn credits.'}`; };
 async function aiGui(cau) {
   const o = document.getElementById('aiO'), hoi = String(cau ?? o?.value ?? '').trim(); if (!hoi || AI.dang || !D.that) return;
   const d = aiDoi(), ls = aiLs(), lich = ls.slice(-6).map((m) => ({ ai: m.ai, chu: m.chu }));

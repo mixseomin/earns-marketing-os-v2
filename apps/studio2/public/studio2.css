@@ -493,3 +493,4 @@ body.ai-mo{padding-right:360px}
 .ai-goi{display:flex;flex-wrap:wrap;gap:5px}.ai-g{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink-2);cursor:pointer}
 .ai-nhap{display:flex;gap:6px;align-items:flex-end}.ai-nhap textarea{flex:1;min-width:0;resize:vertical;font:13px var(--f-than);padding:7px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 @media (max-width:760px){body.ai-mo{padding-right:0}.ai-dock{width:100%;top:auto;height:70vh;border-left:0;border-top:1px solid var(--line)}}
+.ai-the label{display:flex;flex-direction:column;gap:3px}.ai-y{font:13px var(--f-than);padding:6px;border-radius:6px;border:1px solid var(--line);background:var(--mat);color:var(--ink);resize:vertical}

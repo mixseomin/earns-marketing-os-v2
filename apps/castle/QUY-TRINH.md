@@ -30,6 +30,17 @@ Bước kế: gắn bộ chi tiết (cửa, răng cưa, tháp canh… — trangt
 2. Ảnh 3D lệch ngang so với OSM → dò dời (mái Google trùng mặt bằng OSM cao nhất) rồi ghi `google3d.json` `lech`.
 3. Sửa riêng theo ảnh (màu, phóng mặt bằng, tháp đặc biệt) → `<tên>-sua.json` (mỗi mục có `ly_do`).
 
+### 1b. Khung theo SỐ ĐO CHÍNH THỨC của Bavaria (chuẩn từ 20/11/2026 — thước của trọng tài)
+
+Nguồn: dữ liệu mở Bayerische Vermessungsverwaltung (geodaten.bayern.de/opengeodata, CC BY 4.0), ô 631_5268 — `bash scripts/tai-bayern.sh` tải DOM20 (mặt trên 20 cm), DGM1 (địa hình 1 m), LoD2 (toà "Schloss Neuschwanstein": 214 mặt mái) vào `du-lieu-goc/bayern/` (tệp lớn không vào git).
+Mặt bằng OSM của cảnh lệch dữ liệu chính thức +7 m đông, +1 m nam (các công cụ tự dời). Lưới ảnh 3D Google bẹp ở khối nhỏ (cụm cổng Torbau thấp hơn thật 4–8 m, sân trước cổng 8,7 m) → KHÔNG lấy Google làm thước chiều cao nữa.
+
+- `node scripts/sua-theo-dom20.mjs [--ghi | --kiem]` — đỉnh từng khối so DOM20 (điểm nằm sâu trong mặt bằng); khối lệch đều ≥ 1,5 m → dời `y_tren`; lệch không đều → "dựng lại mái theo LoD2"; tháp chóp nhọn không dời. Khối bị khối cao hơn phủ lên (cụm Torbau): đo đỉnh RIÊNG trên phần lộ thiên rồi ghi tay `y_tren` kèm `ly_do_dom20`.
+- `node scripts/dat-theo-dgm1.mjs --ghi` — mặt đất (`<tên>-nen.json` diem + neo sân) theo DGM1 / DOM20. `node scripts/so-dat-dgm1.mjs` đo lại.
+- `node scripts/doi-chi-tiet.mjs --ghi` — sau khi dời khối: dời theo mọi số đo độ cao tuyệt đối của mặt khối đó (`<tên>-cua-so.json`) và dải của sổ kiểm kê.
+- `node scripts/chup-goc.mjs <thư mục> truoc|sau` + `--ghep truoc sau` — ảnh trước / sau ở bộ góc cố định.
+- Trọng tài (`trong-tai.mjs`) chấm chiều cao bằng `sua-theo-dom20.mjs --kiem`.
+
 ## 2. Camera ảnh so
 
 4. `node scripts/khop-camera.mjs --lau <tên> [chỉ số ảnh]` → camera mỗi ảnh khớp viền ảnh 3D với viền ảnh thật (ghi `<tên>-anh.json`). Đạt khi trung vị lệch viền ≤ 10 px.

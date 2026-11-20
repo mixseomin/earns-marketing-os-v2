@@ -857,6 +857,26 @@ def cuu():
         except Exception as e: print(f"[{time.strftime('%H:%M:%S')}] cứu creative lỗi: {type(e).__name__}: {str(e)[:300]}", flush=True)
     CUU["th"] = threading.Thread(target=chay, daemon=True); CUU["th"].start()
 
+# HÀNG CHỜ MÁY DỰNG THEO MẪU (anh 20/11/2026 "Sao ko tự chạy ? Máy dựng chờ cái gì ?" — phim anh chọn ở tab Mẫu Creative nằm "chờ máy dựng" vì không tiến trình nào gọi
+# dung-mau.py --hang): máy dòng phim (tiến trình đã có trên iMac, không thêm tiến trình mới) mỗi 2 phút xem hàng etp.mau_phim / etp.mau_dung, có việc chờ thì chạy
+# dung-mau.py --hang bằng môi trường ~/.venvs/poster-mau trong một luồng riêng — một lượt một lúc, lượt đang chạy thì không bật lượt mới. Nhật ký: ~/Library/Logs/ethopex/dung-mau.log
+MAU_HANG = {"luot": 0.0, "th": None}
+def mau_hang():
+    if time.time() - MAU_HANG["luot"] < 120 or (MAU_HANG["th"] and MAU_HANG["th"].is_alive()): return
+    MAU_HANG["luot"] = time.time(); py = os.path.expanduser("~/.venvs/poster-mau/bin/python")
+    if not os.path.exists(py): return
+    try: n = int(sql("select count(*) from etp.mau_phim m left join etp.mau_dung d using (mau, content_id) where d.mau is null or (d.trang_thai = 'cho' and (d.buoc = 'cho' or d.cap_nhat < now() - interval '20 minutes'))") or 0)
+    except Exception: return   # bảng chưa có / box3 không tới được → lượt sau
+    if not n: return
+    def chay():
+        print(f"[{time.strftime('%H:%M:%S')}] máy dựng theo mẫu: {n} việc chờ → chạy hàng", flush=True)
+        try:
+            with open(os.path.expanduser("~/Library/Logs/ethopex/dung-mau.log"), "a") as f:
+                rc = subprocess.run([py, os.path.join(E, "dung-mau.py"), "--hang"], stdout=f, stderr=subprocess.STDOUT, timeout=3 * 3600).returncode
+            print(f"[{time.strftime('%H:%M:%S')}] máy dựng theo mẫu: xong lượt (mã thoát {rc})", flush=True)
+        except Exception as e: print(f"[{time.strftime('%H:%M:%S')}] máy dựng theo mẫu lỗi: {type(e).__name__}: {str(e)[:300]}", flush=True)
+    MAU_HANG["th"] = threading.Thread(target=chay, daemon=True); MAU_HANG["th"].start()
+
 def tu_kiem():
     p = {"phanh": "chờ phanh nhả: PHANH CHỢ: x", "du_tru": [7]}
     assert cho_phanh(p, {"content_id": 1}, "poster") == p["phanh"] and cho_phanh(p, {"content_id": 1}, "camp") == p["phanh"] and cho_phanh(p, {"content_id": 1}, "chay") is None, "phanh: bước sản xuất + camp chờ, bước chờ camp chạy giữ nguyên"
@@ -907,6 +927,8 @@ def main(a):
         try: vong()
         except Exception as e: print(f"vòng lỗi: {type(e).__name__}: {str(e)[:300]}", flush=True)
         cuu()
+        try: mau_hang()
+        except Exception as e: print(f"hàng máy dựng theo mẫu lỗi: {str(e)[:160]}", flush=True)
         time.sleep(10)
 
 if __name__ == "__main__": main(sys.argv[1:])

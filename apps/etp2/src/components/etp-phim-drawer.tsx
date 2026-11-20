@@ -64,19 +64,19 @@ export function EtpPhimDrawer({ id, onClose }: { id: number; onClose: () => void
       </div>
       {/* CREATIVE ĐÃ TẠO (anh 20/11/2026 "ở phần drawer của phim, hãy show các creatives đã tạo"): chia theo dạng, mới nhất trước; bấm ảnh mở video thật ở kho nhà */}
       <div style={{ padding: '0 16px 16px' }}>
-        <div style={{ fontSize: 12, color: MO, marginBottom: 8 }}>Creative đã tạo · <Dem v={p.cr.length} />{p.cr.length >= 80 ? ' (80 cái mới nhất)' : ''}</div>
+        <div style={{ fontSize: 12, color: MO, marginBottom: 8 }}>Creative đã tạo · <Dem v={p.cr.length} /> · sạch <Dem v={p.cr.filter((c) => c.sach).length} /> · mới đến cũ{p.cr.length >= 80 ? ' (80 cái mới nhất)' : ''}</div>
         {!p.cr.length ? <div style={{ fontSize: 12.5, color: MO }}>phim này chưa có creative nào của nhà</div>
-          : <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[...new Set(p.cr.map((c) => c.dang ?? 'chưa rõ dạng'))].map((dang) => { const ds = p.cr.filter((c) => (c.dang ?? 'chưa rõ dạng') === dang);
-            return <div key={dang}>
-              <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginBottom: 5 }}>{dang} · <Dem v={ds.length} /> · sạch <Dem v={ds.filter((c) => c.sach).length} /></div>
+          : <div>{(() => { const ds = p.cr;   /* MỘT danh sách, MỚI ĐẾN CŨ (anh 20/11/2026 "sort creative từ mới đến cũ") — dạng ghi ngay dưới từng ô */
+            return <div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{ds.map((c) => { const tt: [string, string] = c.tu_choi ? ['bị từ chối', '#f87171'] : c.sach ? ['sạch', '#4ade80'] : c.sach === false ? ['chặn', '#f87171'] : ['chờ chấm', '#94a3b8'];
                 return <a key={c.id} href={c.video ?? c.anh ?? undefined} target="_blank" rel="noreferrer noopener" title={`creative #${c.id} · ${tt[0]}${c.chan && !c.sach ? ` — ${c.chan}` : ''}${c.camp ? ` · ${c.camp} camp` : ' · chưa có camp'} — bấm mở video`}
                   style={{ width: 104, textDecoration: 'none', color: 'inherit' }}>
                   {c.anh ? <img src={c.anh} alt="" loading="lazy" style={{ width: '100%', aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 6, display: 'block', border: `1px solid ${tt[1]}66`, background: '#000' }} />
                     : <div style={{ aspectRatio: '9 / 16', borderRadius: 6, border: '1px dashed var(--line)', display: 'grid', placeItems: 'center', color: MO, fontSize: 11 }}>chưa có ảnh</div>}
                   <div style={{ fontSize: 11, marginTop: 3, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>#{c.id} <span style={{ color: tt[1] }}>{tt[0]}</span>{c.camp ? <span style={{ color: MO }}> · {c.camp} camp</span> : null}</div>
+                  <div style={{ fontSize: 10.5, color: MO, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.dang ?? 'chưa rõ dạng'}</div>
                 </a>; })}</div>
-            </div>; })}</div>}
+            </div>; })()}</div>}
       </div>
       {/* VIDEO CHỜ DUYỆT LÊN CAMP (anh 03/11/2026): xem từng đoạn đã dựng trước khi anh xác nhận lên camp — preload none, bấm mới tải */}
       {p.cho_duyet.length ? <div style={{ padding: '0 16px 16px' }}>

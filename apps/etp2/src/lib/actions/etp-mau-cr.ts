@@ -109,7 +109,16 @@ export async function docMauCr(): Promise<{ mau: MauCr[]; phim: { id: number; te
       select d.mau, d.content_id, p.ten, d.buoc, d.trang_thai, d.ghi, d.cap_nhat::text cap_nhat, d.creative_ids from etp.mau_dung d left join etp.phim p using (content_id)`) : [];
     for (const x of dung) lay(x.mau, x.content_id, x.ten).dung = { buoc: x.buoc, trang_thai: x.trang_thai, ghi: x.ghi, cap_nhat: x.cap_nhat, creative_ids: x.creative_ids ?? [] };
     for (const x of [...crMau, ...crDang]) { const f = lay(x.mau, x.content_id, x.ten); if (!f.cr.some((c) => c.id === x.id)) f.cr.push({ id: x.id, anh: x.anh, video: x.video, chay: !!x.chay, camp: x.camp, chi: x.chi, thu: x.thu }); }
-    const sxCua = (ma: string) => [...(phimSx.get(ma)?.values() ?? [])];
+    // CREATIVE VỪA DỰNG CHƯA VỀ etp.creative (anh 20/11/2026 "Xong thì creative đâu ?"): máy dựng ghi creative_ids ngay lúc xong, còn etp.creative chờ lượt đồng bộ 10 phút
+    // → thẻ báo Xong mà không có hình. Thiếu ở etp.creative thì lấy ảnh + video từ mục thư viện của chính creative đó (etp.thu_vien, có ngay từ bước Thư viện).
+    const thieu = [...new Set(dung.flatMap((x) => { const f = lay(x.mau, x.content_id, x.ten); return (x.creative_ids ?? []).map(Number).filter((i) => !f.cr.some((c) => c.id === i)); }))];
+    const tvCr = thieu.length ? await run<{ id: number; anh: string | null; video: string | null }>(sql`select creative_id id, anh, video from etp.thu_vien where creative_id = any(${`{${thieu.join(',')}}`}::int[])`) : [];
+    for (const x of dung) { const f = lay(x.mau, x.content_id, x.ten);
+      for (const i of (x.creative_ids ?? []).map(Number)) if (!f.cr.some((c) => c.id === i)) { const v = tvCr.find((y) => Number(y.id) === i); f.cr.push({ id: i, anh: v?.anh ?? null, video: v?.video ?? null, chay: false, camp: 0, chi: 0, thu: 0 }); } }
+    // MỚI ĐẾN CŨ (anh 20/11/2026 "sort creative từ mới đến cũ"): creative trong một phim theo mã giảm dần; phim theo lần dựng / creative mới nhất
+    const moiNhat = (f: PhimSx) => Math.max(0, ...f.cr.map((c) => c.id));
+    const sxCua = (ma: string) => [...(phimSx.get(ma)?.values() ?? [])].map((f) => ({ ...f, cr: [...f.cr].sort((a, b) => b.id - a.id) }))
+      .sort((a, b) => (b.dung?.cap_nhat ?? '').localeCompare(a.dung?.cap_nhat ?? '') || moiNhat(b) - moiNhat(a));
     const phim = await run<{ id: number; ten: string }>(sql`select content_id id, ten from etp.phim where ten is not null and coalesce(nhom_goc, 'au_my') = 'au_my' order by ten`);
     const banTheoMau = new Map<string, BanMau[]>();
     for (const x of anhMau) banTheoMau.set(x.mau, [...(banTheoMau.get(x.mau) ?? []), { anh: x.anh, video: x.video, nhan: x.thu > 0 ? `thu $${x.thu.toFixed(0)}` : null, link: x.video ?? x.anh }]);
@@ -296,9 +305,11 @@ export async function docDungChiTiet(ma: string, contentId: number): Promise<{ m
     const hien = co?.d ? (await run<DungMau>(sql`select buoc, trang_thai, ghi, cap_nhat::text cap_nhat, creative_ids, coalesce(vnd, 0)::int vnd from etp.mau_dung where mau = ${ma} and content_id = ${cid}`))[0] ?? null : null;
     const nk = co?.n ? await run<NkDung>(sql`select luc::text luc, buoc, trang_thai, ghi, may, nullif(to_jsonb(n)->>'vnd', '')::int vnd from etp.mau_dung_nk n where mau = ${ma} and content_id = ${cid} order by luc, id`) : [];
     const ids = [...new Set([...(hien?.creative_ids ?? []), ...(co?.m ? (await run<{ id: number }>(sql`select m.creative_id id from etp.creative_mau m join etp.creative c using (creative_id) where m.mau = ${ma} and c.content_id = ${cid}`)).map((x) => Number(x.id)) : [])])];
-    const cr = ids.length ? await run<CrSx>(sql`select c.creative_id id, c.anh, c.video, coalesce(bool_or(k.trang_thai = 'ACTIVE'), false) chay, count(distinct k.camp_id)::int camp,
-        coalesce(sum(s.chi), 0)::float chi, coalesce(sum(s.thu), 0)::float thu from etp.creative c left join etp.camp k on k.creative_id = c.creative_id
-        left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s on s.camp_id = k.camp_id where c.creative_id = any(${`{${ids.join(',')}}`}::int[]) group by 1, 2, 3 order by 1 desc`) : [];
+    // creative vừa dựng chưa về etp.creative (đồng bộ 10 phút) → ảnh + video lấy từ mục thư viện của nó, để ngăn hiện ngay bản vừa xong (anh 20/11/2026 "Xong thì creative đâu ?")
+    const cr = ids.length ? await run<CrSx>(sql`select i.id, coalesce(c.anh, t.anh) anh, coalesce(c.video, t.video) video, coalesce(bool_or(k.trang_thai = 'ACTIVE'), false) chay, count(distinct k.camp_id)::int camp,
+        coalesce(sum(s.chi), 0)::float chi, coalesce(sum(s.thu), 0)::float thu from unnest(${`{${ids.join(',')}}`}::int[]) i(id) left join etp.creative c on c.creative_id = i.id
+        left join lateral (select anh, video from etp.thu_vien v where v.creative_id = i.id order by v.id desc limit 1) t on true left join etp.camp k on k.creative_id = i.id
+        left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s on s.camp_id = k.camp_id group by 1, 2, 3 order by 1 desc`) : [];
     return { mau: { ma, ten: so?.ten ?? ma }, phim: { id: cid, ten: ph?.ten ?? null, url: ph?.url ?? null, poster }, hien, nk, cr };
   } catch (e) {
     return { loi: `đọc chi tiết việc dựng không được: ${(e as Error).message}` };

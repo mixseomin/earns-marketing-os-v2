@@ -5,9 +5,10 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from './auth';
-import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, sinhAnhMau, sinhGiong, sinhVideoCanh, sinhNhac, sinhAmThanh } from './actions';
+import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, sinhAnhMau, sinhGiong, sinhVideoCanh, sinhNhac, sinhAmThanh, suaCanh, suaTap } from './actions';
+import { z } from 'zod/v4';
 import { sinhKeyframeCanh } from './xuong-video/sinh-anh';
-import { dichChuoi } from './xuong-video/claude';
+import { dichChuoi, sinhJson } from './xuong-video/claude';
 import type { KinhThanh } from './xuong-video/kieu';
 import { duocS2, quyenCua, type QuyenS2 } from './quyen-s2';
 import { GOI_THE_LOAI, goiTheoKey } from './xuong-video/goi-the-loai';
@@ -113,6 +114,73 @@ export async function soCreditS2(): Promise<{ user_id: number; email: string; lu
   if (!me || me.role !== 'admin' || !db) return [];
   const r = (await db.execute(CREDIT_SQL(sql`true`))) as unknown as Record<string, unknown>[];
   return r.map((x) => ({ user_id: Number(x.user_id), email: String(x.email ?? ''), luot: Number(x.luot), cents: Number(x.cents), credit: Math.ceil(Number(x.cents) * 10), luc: x.luc ? new Date(String(x.luc)).toISOString() : '' })).sort((a, b) => b.credit - a.credit);
+}
+
+/** LỆNH AI (anh 20/11/2026): một ô chat cho đối tượng đang chọn. Máy đọc dữ liệu đối tượng, mô hình rẻ (cổng /api/ai) trả DANH SÁCH VIỆC theo khuôn;
+ *  việc sửa chữ (không tốn tiền) chạy luôn và trả giá trị cũ để hoàn tác; việc sinh lại (tốn credit) chỉ trả thành ĐỀ XUẤT, người dùng bấm xác nhận
+ *  mới gọi sinhLaiCanhS2 / sinhAmS2 qua đường ghi có kiểm quyền. Mã cảnh / tập luôn lấy từ ngữ cảnh máy chủ đã kiểm, không bao giờ lấy từ mô hình. */
+export type DoiTuongAi = { loai: 'canh' | 'giong' | 'td' | 'nhac' | 'tap'; canhId?: number | null };
+export type ViecAi = { loai: string; truong?: string; cu?: unknown; moi?: unknown; canhId?: number; tapId?: number; yeu_cau?: string; nhan: string };
+const TRUONG_CANH: Record<string, 'so' | 'chu'> = { hanh_dong_vi: 'chu', goc_may: 'chu', chu_man: 'chu', thoi_luong_s: 'so', cam_xuc: 'so', am_thanh: 'chu' };
+const TRUONG_TAP = new Set(['ten', 'tom_tat', 'nhac_mo_ta']);
+const VIEC_THEO_LOAI: Record<DoiTuongAi['loai'], string[]> = {
+  canh: ['sua_canh', 'sinh_lai_anh', 'sinh_lai_clip'], giong: ['sua_thoai', 'sinh_lai_giong'], td: ['sua_canh', 'sinh_td'], nhac: ['sua_tap', 'sinh_nhac'], tap: ['sua_tap', 'sinh_nhac'] };
+const TEN_TRUONG: Record<string, string> = { hanh_dong_vi: 'mô tả hành động', goc_may: 'góc máy', chu_man: 'chữ trên màn', thoi_luong_s: 'thời lượng (giây)', cam_xuc: 'cảm xúc 1–10',
+  am_thanh: 'tiếng động', ten: 'tên tập', tom_tat: 'tóm tắt', nhac_mo_ta: 'mô tả nhạc nền' };
+export async function lenhAiS2(phimId: number, tapId: number, doiTuong: DoiTuongAi, cau: string, lichSu: { ai: 'nguoi' | 'may'; chu: string }[] = []):
+  Promise<{ ok: true; tra_loi: string; da_lam: ViecAi[]; de_xuat: ViecAi[]; model: string } | { ok: false; loi: string }> {
+  const db = getDb(), me = await getCurrentUser(); if (!db || !me) return { ok: false, loi: 'không có quyền' };
+  const pid = Number(phimId), tid = Number(tapId), loai = (VIEC_THEO_LOAI[doiTuong?.loai] ? doiTuong.loai : 'tap') as DoiTuongAi['loai'], hoi = String(cau ?? '').trim().slice(0, 1500);
+  if (!hoi) return { ok: false, loi: 'chưa có câu lệnh' };
+  const tap = ((await db.execute(sql`SELECT id, ten, tom_tat, brief, nhac_mo_ta, thoi_luong_s FROM xv_tap WHERE id = ${tid} AND phim_id = ${pid}`)) as unknown as Row[])[0];
+  if (!tap) return { ok: false, loi: 'tập không thuộc phim này' };
+  let cn: Row | null = null;
+  if (loai !== 'tap' && loai !== 'nhac') {
+    cn = ((await db.execute(sql`SELECT id, thu_tu, canh, goc_may, hanh_dong_vi, hanh_dong, thoai, loi_thoai, chu_man, am_thanh, thoi_luong_s, cam_xuc, (keyframe_url IS NOT NULL) AS co_anh,
+      (coalesce(video_cuoi_url, video_url) IS NOT NULL) AS co_clip FROM xv_canh WHERE id = ${Number(doiTuong.canhId)} AND tap_id = ${tid}`)) as unknown as Row[])[0] ?? null;
+    if (!cn) return { ok: false, loi: 'cảnh không thuộc tập này' };
+  }
+  const thoai = cn && Array.isArray(cn.thoai) ? (cn.thoai as { nhan_vat?: string; loi?: string; dien_xuat?: string }[]) : [];
+  const ngCanh = loai === 'tap' || loai === 'nhac'
+    ? { tap: { ten: tap.ten, tom_tat: tap.tom_tat, y_tuong: String(tap.brief ?? '').slice(0, 1500), nhac_mo_ta: tap.nhac_mo_ta, thoi_luong_s: tap.thoi_luong_s } }
+    : { tap: { ten: tap.ten, tom_tat: tap.tom_tat }, canh: { so: cn!.thu_tu, ten: cn!.canh, goc_may: cn!.goc_may, hanh_dong_vi: cn!.hanh_dong_vi || cn!.hanh_dong, chu_man: cn!.chu_man,
+        am_thanh: cn!.am_thanh, thoi_luong_s: cn!.thoi_luong_s, cam_xuc: cn!.cam_xuc, co_anh: cn!.co_anh, co_clip: cn!.co_clip,
+        thoai: thoai.length ? thoai.map((t, i) => ({ dong: i, nguoi_noi: t.nhan_vat, loi: t.loi, dien_xuat: t.dien_xuat })) : [{ dong: 0, loi: cn!.loi_thoai }] } };
+  const duoc = VIEC_THEO_LOAI[loai];
+  const VIEC = z.object({ loai: z.enum(['sua_canh', 'sua_thoai', 'sua_tap', 'sinh_lai_anh', 'sinh_lai_clip', 'sinh_lai_giong', 'sinh_td', 'sinh_nhac']),
+    truong: z.string(), gia_tri: z.string(), dong: z.number(), yeu_cau: z.string() });
+  const KHUON = z.object({ tra_loi: z.string(), hanh_dong: z.array(VIEC) });
+  const system = `Bạn là trợ lý dựng video trong Studio 2. Người dùng đang chọn MỘT đối tượng (${loai === 'canh' ? 'một cảnh / keyframe' : loai === 'giong' ? 'lời đọc của một cảnh' : loai === 'td' ? 'tiếng động của một cảnh' : loai === 'nhac' ? 'nhạc nền của tập' : 'cả tập'}).
+Đọc câu lệnh, trả JSON: tra_loi = một hai câu tiếng Việt có dấu nói bạn làm gì (hoặc hỏi lại nếu lệnh không rõ); hanh_dong = các việc cần làm, CHỈ dùng các loại: ${duoc.join(', ')}.
+- sua_canh: truong ∈ {${Object.keys(TRUONG_CANH).join(', ')}}, gia_tri = giá trị mới đầy đủ (số thì ghi số). ${loai === 'td' ? 'Ở đây chỉ dùng truong am_thanh.' : ''}
+- sua_thoai: dong = số dòng thoại, gia_tri = câu mới đầy đủ (giữ ngôn ngữ gốc của câu).
+- sua_tap: truong ∈ {ten, tom_tat, nhac_mo_ta}, gia_tri = giá trị mới.
+- sinh_lai_anh / sinh_lai_clip / sinh_lai_giong / sinh_td / sinh_nhac: tốn credit, chỉ đề xuất khi người dùng muốn hình / clip / giọng / âm thanh khác đi; yeu_cau = mô tả ngắn cái cần khác (tiếng Việt).
+Trường không dùng để chuỗi rỗng, dong = 0. Không bịa dữ liệu ngoài ngữ cảnh. Lệnh chỉ hỏi thì hanh_dong = [].`;
+  const user = `NGỮ CẢNH:\n${JSON.stringify(ngCanh)}\n\n${lichSu.slice(-6).map((m) => `${m.ai === 'nguoi' ? 'Người dùng' : 'Bạn'}: ${String(m.chu).slice(0, 400)}`).join('\n')}\nNgười dùng: ${hoi}`;
+  const r = await sinhJson({ schema: KHUON, system, user, max_tokens: 1500, ten: 'lenh-ai-s2' });
+  if (!r.ok) return { ok: false, loi: `máy AI chưa trả lời được: ${r.loi}` };
+  const da_lam: ViecAi[] = [], de_xuat: ViecAi[] = [], vaCanh: Record<string, unknown> = {}, vaTap: Record<string, unknown> = {}; let thoaiMoi: typeof thoai | null = null;
+  for (const v of r.data.hanh_dong.slice(0, 8)) {
+    if (!duoc.includes(v.loai)) continue;
+    if (v.loai === 'sua_canh' && cn && TRUONG_CANH[v.truong] && (loai !== 'td' || v.truong === 'am_thanh')) {
+      const moi = TRUONG_CANH[v.truong] === 'so' ? Number(v.gia_tri) : v.gia_tri; if (TRUONG_CANH[v.truong] === 'so' && !Number.isFinite(moi)) continue;
+      vaCanh[v.truong] = moi; da_lam.push({ loai: 'sua_canh', truong: v.truong, cu: cn[v.truong] ?? '', moi, canhId: Number(cn.id), nhan: `Sửa ${TEN_TRUONG[v.truong]} cảnh ${Math.round(Number(cn.thu_tu))}` });
+    } else if (v.loai === 'sua_thoai' && cn && v.gia_tri.trim()) {
+      if (thoai.length) { const i = Math.max(0, Math.min(thoai.length - 1, Math.round(v.dong))); thoaiMoi ??= thoai.map((t) => ({ ...t })); thoaiMoi[i].loi = v.gia_tri.trim(); }
+      else { vaCanh.loi_thoai = v.gia_tri.trim(); }
+    } else if (v.loai === 'sua_tap' && TRUONG_TAP.has(v.truong)) {
+      vaTap[v.truong] = v.gia_tri; da_lam.push({ loai: 'sua_tap', truong: v.truong, cu: tap[v.truong] ?? '', moi: v.gia_tri, tapId: tid, nhan: `Sửa ${TEN_TRUONG[v.truong]} của tập` });
+    } else if (v.loai.startsWith('sinh_')) {
+      const nhan = { sinh_lai_anh: 'Sinh lại keyframe', sinh_lai_clip: 'Sinh lại clip', sinh_lai_giong: 'Đọc lại lời', sinh_td: 'Sinh lại tiếng động', sinh_nhac: 'Sinh lại nhạc nền' }[v.loai as 'sinh_td'];
+      de_xuat.push({ loai: v.loai, canhId: cn ? Number(cn.id) : undefined, tapId: tid, yeu_cau: v.yeu_cau.slice(0, 600), nhan: cn ? `${nhan} cảnh ${Math.round(Number(cn.thu_tu))}` : nhan });
+    }
+  }
+  if (thoaiMoi) { vaCanh.thoai = thoaiMoi; da_lam.push({ loai: 'sua_canh', truong: 'thoai', cu: thoai, moi: thoaiMoi, canhId: Number(cn!.id), nhan: `Sửa lời đọc cảnh ${Math.round(Number(cn!.thu_tu))}` }); }
+  else if ('loi_thoai' in vaCanh) da_lam.push({ loai: 'sua_canh', truong: 'loi_thoai', cu: cn!.loi_thoai ?? '', moi: vaCanh.loi_thoai, canhId: Number(cn!.id), nhan: `Sửa lời đọc cảnh ${Math.round(Number(cn!.thu_tu))}` });
+  if (cn && Object.keys(vaCanh).length) { const k = await suaCanh(Number(cn.id), vaCanh as Parameters<typeof suaCanh>[1]); if (k && (k as { ok?: boolean }).ok === false) return { ok: false, loi: `không sửa được cảnh: ${(k as { loi?: string }).loi}` }; }
+  if (Object.keys(vaTap).length) { const k = await suaTap(tid, vaTap as Parameters<typeof suaTap>[1]); if (k && (k as { ok?: boolean }).ok === false) return { ok: false, loi: `không sửa được tập: ${(k as { loi?: string }).loi}` }; }
+  return { ok: true, tra_loi: r.data.tra_loi, da_lam, de_xuat, model: r.model };
 }
 
 export type PhimS2 = { id: number; ten: string; loai: string; updated_at: string; anh: string | null; cua_toi: boolean; chu: string; tap_tom: { id: number; so: number; ten: string; so_canh: number }[] };

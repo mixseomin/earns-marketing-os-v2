@@ -464,7 +464,9 @@ function boO(vi, w) { const r = vi[w]; delete vi[w]; const ke = Object.entries(v
 function ghiLuoi(nho = true) { if (!GS) return; const kc = 24 / E.luoi.n, kr = 16 / HANG[E.luoi.n], vi = {}; for (const nd of GS.engine.nodes) vi[nd.id] = { x: nd.x * kc, y: nd.y * kr, w: nd.w * kc, h: nd.h * kr }; if (nho) E.luoi.vi[D.loai] = vi; gsDau = JSON.stringify([E.luoi.n, D.loai, vi]); }
 function tatLuoi() { const g = $('#dGiua'); if (GS) { GS.destroy(false); GS = null; } gsDau = ''; g.classList.remove('luoi-bat', 'grid-stack', 'dang-keo', 'hien-luoi'); g.style.height = ''; g.style.minHeight = '';
   ketKeoTab(); for (const w in WG) { const o = $(`#o-${w}`), noi = o.firstElementChild, k = $(`#w-${w}`); if (k.parentElement !== noi) noi.append(k); k.classList.remove('tab-an'); o.hidden = false; o.removeAttribute('style'); for (const a of [...o.attributes]) if (a.name.startsWith('gs-')) o.removeAttribute(a.name); o.querySelectorAll(':scope > .ui-resizable-handle').forEach((x) => x.remove()); } }
+let nhayW = null;   // widget vừa phải xếp chồng vào ô khác vì hết chỗ: sáng lên vài giây cho người dùng thấy nó mở ở đâu
 function dongBoLuoi(ds) {
+  const ds0 = ds;
   if (!luoiBat() || !$('#dGiua').clientHeight) return tatLuoi();
   const g = $('#dGiua'), n = E.luoi.n, r = HANG[n], kc = 24 / n, kr = 16 / r;
   // nhóm tab: chỉ widget chủ là ô trên lưới; khung các widget cùng nhóm nằm trong ô của chủ, tab đang mở mới hiện
@@ -481,13 +483,18 @@ function dongBoLuoi(ds) {
   let vi = goc ? Object.fromEntries(Object.entries(goc).filter(([w, v]) => WG[w] && v && v.w > 0 && v.h > 0).map(([w, v]) => [w, kep(v)])) : {};
   for (const [c, x] of Object.entries(nh)) { if (!vi[c]) { const m = x.goc.find((y) => vi[y]); if (m) vi[c] = vi[m]; } for (const y of x.goc) if (y !== c) delete vi[y]; }   // vị trí của ô đi theo widget chủ hiện tại
   if (!Object.keys(vi).length) vi = luoiMau(ds, n, r);
-  else { for (const w of Object.keys(vi)) if (!ds.includes(w)) boO(vi, w); for (const w of ds) if (!vi[w]) vi[w] = chenO(vi, n) || { w: Math.max(1, Math.round(n / 4)), h: r }; }
+  else { for (const w of Object.keys(vi)) if (!ds.includes(w)) boO(vi, w); for (const w of ds) if (!vi[w]) { const o = chenO(vi, n); if (o) { vi[w] = o; continue; }
+    // hết chỗ trên màn (góp ý #1742): không ép thêm ô (gridstack từ chối, khung không mở) mà xếp chồng thành tab vào ô liên quan đang hiện — ô kề nó trong danh sách, không có thì Khung xem
+    const i = ds0.indexOf(w), ke = [ds0[i + 1], ds0[i - 1], 'xem'].map((x) => x && (vi[x] ? x : Object.keys(nh).find((c) => nh[c].ds.includes(x)))).find((x) => x && vi[x]) || Object.keys(vi)[0];
+    if (!ke) continue; const ns = (E.luoi.nhom ||= {})[D.loai] ||= [], gr = ns.find((g) => g.ds.includes(ke));
+    if (gr) { if (!gr.ds.includes(w)) gr.ds.push(w); gr.mo = w; } else ns.push({ ds: [ke, w], mo: w }); nhayW = w; gsDau = ''; luu(); return dongBoLuoi(ds0); } }
   const dau = JSON.stringify([n, D.loai, Object.fromEntries(Object.entries(vi).map(([w, v]) => [w, { x: v.x * kc, y: v.y * kr, w: v.w * kc, h: v.h * kr }]))]);
   if (dau === gsDau && ds.every((w) => $(`#o-${w}`).gridstackNode) && GS.engine.nodes.length === ds.length) return;   // lưới đang đúng như sổ: không đụng (veD gọi rất dày)
   gsDang = true; GS.batchUpdate(); GS.removeAll(false, false);
   for (const w in WG) $(`#o-${w}`).hidden = !ds.includes(w);
   for (const w of [...ds].sort((a, b) => (vi[a].y ?? 99) - (vi[b].y ?? 99) || (vi[a].x ?? 99) - (vi[b].x ?? 99))) GS.makeWidget($(`#o-${w}`), { id: w, ...vi[w], autoPosition: vi[w].x == null });
   GS.batchUpdate(false); gsDang = false; ghiLuoi(daSap);
+  if (nhayW) { const w = nhayW, k = $(`#w-${w}`); nhayW = null; if (k) { k.classList.remove('vua-mo'); void k.offsetWidth; k.classList.add('vua-mo'); setTimeout(() => k.classList.remove('vua-mo'), 3200); bao(`Màn hết chỗ: đã mở ${WG[w][0]} thành tab trong ô bên cạnh. Bấm "Tách" để đưa ra ô riêng.`); } }
 }
 // chiều cao một ô = chiều cao khu widget / số hàng: khu này co giãn theo cửa sổ + timeline (timeline vẽ SAU bố cục) nên đo lại mỗi khi nó đổi cỡ
 let caoCu = 0; new ResizeObserver(() => { if (!GS) return; const c = caoO(); if (Math.abs(c - caoCu) > 0.2) { caoCu = c; GS.cellHeight(c); } }).observe($('#dGiua'));

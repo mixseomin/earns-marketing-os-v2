@@ -228,7 +228,10 @@ def b_cat(d):
     tr = CU.dang_truot(sql, cid, d.get("loai"))
     if tr: return "dung", tr + doi_at(d, "dạng trượt cổng chấm", ("CC", "LT", None)), None
     r = sql(f"select ten, url, locale, nguon from ethopex_content where id = {cid}", spy=True).split("\t")
-    if len(r) < 2 or not r[1]: return "loi", "không tìm thấy link tập trong ethopex_content (spy)", None
+    if len(r) < 2 or not r[1]:   # kho spy thiếu link (693 phim, 20/11/2026: American Sniper 49428) → link tập 1 của trang phim Nhà (etp.phim.url — cùng nguồn các dòng ảnh tĩnh dùng, tai-tap tự mở link rút gọn)
+        u = sql(f"select coalesce(url, '') || chr(9) || coalesce(ten, '') || chr(9) || coalesce(locale, 'en') from etp.phim where content_id = {int(cid)}").split("\t")
+        if not u[0]: return "loi", "không tìm thấy link tập: kho spy ethopex_content và trang phim Nhà (etp.phim.url) đều trống", None
+        r = [(r[0] if r and r[0] else u[1]), u[0], (r[2] if len(r) > 2 and r[2] else u[2]), (r[3] if len(r) > 3 else "")]
     sql(f"""delete from etp.viec where lo = '{lo}';   -- lô riêng của dòng: chạy lại bước = xếp lại từ đầu
             insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(2, int(d.get("so_camp") or 0) - san_cua(cid, d.get("loai"))) + 1 if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {}), "cam_them": json.loads(sql(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'cam_them'), '[]'::jsonb)::text") or "[]")})}) on conflict do nothing""")
     if d["id"] in CAT_NGOAI:   # chế độ ngoài (CAT_NGOAI): việc đã vào hàng chung — chờ HP / VPS nhận, quá CHO_NGOAI không ai nhận thì iMac cắt

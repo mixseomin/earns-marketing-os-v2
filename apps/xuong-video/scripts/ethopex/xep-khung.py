@@ -19,7 +19,7 @@ LUAT = ("You are a senior short-drama ad creative director. These are candidate 
 TAM_LY = ("\n\nGenre: {tl}\nSynopsis: {mt}\n\nMOST IMPORTANT: the frame must sell THIS story to its audience. Prefer the protagonist (the character the title and synopsis are about) "
           "in a moment that shows the story's core hook and emotion (for example: revenge → cold fury or a power stance; forbidden romance → longing or tension between the couple; "
           "action / military → danger, focus, a weapon or uniform; betrayal → shock or tears). A beautiful frame of a side character, or an emotion that contradicts the hook, ranks "
-          "BELOW a slightly less polished frame that tells the right story. First work out from the synopsis who the protagonist is (gender, role, look) and which frames show that person; those frames lead the ranking unless they are technically unusable. Also return, for EVERY frame, its dominant emotion (one of: fury, tears, fear, shock, tension, longing, "
+          "BELOW a slightly less polished frame that tells the right story. First work out from the synopsis who the protagonist is (gender, role, look) and which frames show that person; those frames lead the ranking unless they are technically unusable. A smiling or relaxed face ranks near the bottom unless the story is a comedy or a sweet romance (soát American Sniper 20/11/2026: khung người lính cười đứng hạng 1 cho một phim hành động). Also return, for EVERY frame, its dominant emotion (one of: fury, tears, fear, shock, tension, longing, "
           "joy, pride, cold, neutral) and a 2-4 word description of who is shown (e.g. 'soldier aiming rifle', 'crying mother with child').")
 
 def xep(ten, anh, mo_ta="", the_loai=""):

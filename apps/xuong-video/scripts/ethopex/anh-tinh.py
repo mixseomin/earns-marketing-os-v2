@@ -273,6 +273,19 @@ def ten_poster(ten, poster, ra):
     nen = Image.new("RGBA", out.size, (0, 0, 0, 0)); nen.putalpha(m.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3)).point(lambda v: min(230, int(v * 1.3))))
     Image.alpha_composite(nen, out).save(ra); return ra
 
+def _logo_sach(ten, poster, ra):
+    """LOGO GỐC CẮT RỜI theo chuẩn mẫu Logo gốc (logo-goc.py, tầng không AI, 0₫) cho dòng ảnh tĩnh — 20/11/2026 soát American Sniper: ten_poster để lại HỘP TỐI vuông sau logo và
+    rụng hoạ tiết khác màu (tâm ngắm đỏ). Chỉ nhận khi logo-goc cắt rời sạch ('cat'); nền poster rối (cần AI / dải poster) → None, bên gọi dùng ten_poster như cũ."""
+    try:
+        import importlib.util
+        s = importlib.util.spec_from_file_location("logo_goc_at", os.path.join(D, "logo-goc.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+        tam = ra[:-4] + "-tam.png"; r, kieu = m.tach(ten, poster, tam)
+        if not r or kieu != "cat": return None
+        lg = Image.open(r).convert("RGBA"); dem = 40; to_ = Image.new("RGBA", (lg.width + 2 * dem, lg.height + 2 * dem)); to_.paste(lg, (dem, dem), lg); al = to_.split()[3]
+        nen = Image.new("RGBA", to_.size, (0, 0, 0, 0)); nen.putalpha(ImageChops.lighter(al.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3)).point(lambda v: min(235, int(v * 1.4))),
+                                                                              al.filter(ImageFilter.GaussianBlur(26)).point(lambda v: min(130, int(v * 1.5)))))
+        Image.alpha_composite(nen, to_).save(ra); return ra
+    except Exception as e: print("logo gốc cắt rời lỗi — dùng cách tách cũ:", e, file=sys.stderr); return None
 def anh(cid, ten, k, tm, ban=0):
     """khung gốc → nền 1080x1920 (nền.png, sẽ phóng chậm) + lớp tên phim (chu.png, đứng yên) đặt dưới mặt"""
     goc = os.path.join(tm, f"goc-{ban}.png")
@@ -288,7 +301,8 @@ def anh(cid, ten, k, tm, ban=0):
     toi = Image.new("L", (1, 256)); toi.putdata([0 if i < 140 else min(190, (i - 140) * 2) for i in range(256)])   # dải tối nửa dưới cho chữ đọc rõ
     im = Image.composite(Image.new("RGB", (W, H)), im, toi.resize((W, H)))
     nen = os.path.join(tm, f"nen-{ban}.png"); im.save(nen); mat_day = (k["mat"][1] + k["mat"][3]) * H
-    tp = None if not MOI else ten_poster(ten, os.path.join(tm, "poster.jpg"), os.path.join(tm, "ten-poster.png")) if ban == 0 or not os.path.exists(os.path.join(tm, "ten-poster.png")) else os.path.join(tm, "ten-poster.png")
+    tpp = os.path.join(tm, "ten-poster.png")
+    tp = None if not MOI else (_logo_sach(ten, os.path.join(tm, "poster.jpg"), tpp) or ten_poster(ten, os.path.join(tm, "poster.jpg"), tpp)) if ban == 0 or not os.path.exists(tpp) else tpp
     if tp:   # tên phim đúng kiểu chữ poster: rộng ≤ W − 120, cao ≤ 22% màn, đặt dưới mặt, chừa ~20% đáy
         t_ = Image.open(tp); s_ = min((W - 120) / t_.width, H * 0.22 / t_.height); t_ = t_.resize((round(t_.width * s_), round(t_.height * s_)), Image.LANCZOS)
         y = int(min(max(H * 0.66 - t_.height / 2, mat_day + 60), H * (TEN_DAY_FREE if CO_FREE else 0.80) - t_.height)); lop = Image.new("RGBA", (W, H)); lop.paste(t_, ((W - t_.width) // 2, y), t_)

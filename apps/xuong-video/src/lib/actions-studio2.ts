@@ -499,3 +499,47 @@ export async function phanTichAstrolasS2(tapId: number, d: { cauHoi?: string; ng
       usd = xv_s2_co_so.usd + EXCLUDED.usd, updated_at = now() RETURNING *`)) as unknown as Row[];
   return { ok: true, data: coSoTu(r[0]!) };
 }
+
+// BẢN ĐÃ SINH (anh 21/11/2026: "các ảnh, video, voice… đã sinh nhiều lần thì vẫn cho chọn thay đổi") — đọc mọi bản cũ của một shot / tập và chọn lại, 0đ.
+export type BanDaSinh = { anh: { ds: string[]; dung: string }; video: { ds: { url: string; ban: string; luc: string; model: string }[]; nhap: string; cuoi: string }; giong: { dong: number; loi: string; dung: string; ds: { url: string; luc: string }[] }[] };
+export async function banDaSinhS2(canhId: number): Promise<BanDaSinh | null> {
+  const db = getDb(), id = Number(canhId); if (!db || !id) return null;
+  const c = ((await db.execute(sql`SELECT keyframe_url, keyframe_uv, video_url, video_cuoi_url, video_phien_ban, thoai FROM xv_canh WHERE id = ${id}`)) as unknown as Row[])[0]; if (!c) return null;
+  const uv = ((c.keyframe_uv ?? []) as string[]).filter(Boolean), kf = String(c.keyframe_url ?? '');
+  const pb = ((c.video_phien_ban ?? []) as Row[]).filter((v) => v.url).map((v) => ({ url: String(v.url), ban: String(v.ban ?? 'nhap'), luc: String(v.luc ?? ''), model: String(v.model ?? '') }));
+  const th = (Array.isArray(c.thoai) ? c.thoai : []) as Row[];
+  const jb = (await db.execute(sql`SELECT (request->>'dong')::int AS dong, output_url, created_at FROM xv_job WHERE canh_id = ${id} AND loai = 'am' AND request->>'dich' = 'thoai' AND trang_thai = 'xong' AND coalesce(output_url, '') <> '' ORDER BY id DESC`)) as unknown as Row[];
+  const giong = th.map((t, i) => { const dung = String(t.url ?? ''), ds = jb.filter((j) => Number(j.dong ?? 0) === i).map((j) => ({ url: String(j.output_url), luc: String(j.created_at ?? '') }));
+    if (dung && !ds.some((x) => x.url === dung)) ds.unshift({ url: dung, luc: '' }); return { dong: i, loi: String(t.loi ?? t.gon ?? ''), dung, ds }; });
+  return { anh: { ds: kf && !uv.includes(kf) ? [...uv, kf] : uv, dung: kf }, video: { ds: pb, nhap: String(c.video_url ?? ''), cuoi: String(c.video_cuoi_url ?? '') }, giong };
+}
+export async function banNhacS2(tapId: number): Promise<{ dung: string; ds: { url: string; luc: string }[] } | null> {
+  const db = getDb(), id = Number(tapId); if (!db || !id) return null;
+  const t = ((await db.execute(sql`SELECT nhac_url FROM xv_tap WHERE id = ${id}`)) as unknown as Row[])[0]; if (!t) return null;
+  const dung = String(t.nhac_url ?? '');
+  const ds = ((await db.execute(sql`SELECT output_url, created_at FROM xv_job WHERE loai = 'am' AND request->>'dich' = 'nhac' AND trang_thai = 'xong' AND output_url LIKE ${`%/nhac/${id}-%`} ORDER BY id DESC LIMIT 40`)) as unknown as Row[]).map((j) => ({ url: String(j.output_url), luc: String(j.created_at ?? '') }));
+  if (dung && !ds.some((x) => x.url === dung)) ds.unshift({ url: dung, luc: '' });
+  return { dung, ds };
+}
+/** chọn lại một bản đã sinh của shot — chỉ nhận URL thuộc đúng shot đó (không cho trỏ sang tệp lạ) */
+export async function chonBanS2(canhId: number, loai: 'anh' | 'video' | 'giong', url: string, dong = 0): Promise<{ ok: true; data: undefined } | { ok: false; loi: string }> {
+  const db = getDb(), id = Number(canhId), u = String(url ?? ''); if (!db || !id || !u) return { ok: false, loi: 'thiếu cảnh / bản' };
+  const b = await banDaSinhS2(id); if (!b) return { ok: false, loi: 'không thấy cảnh' };
+  if (loai === 'anh') { if (!b.anh.ds.includes(u)) return { ok: false, loi: 'ảnh không thuộc shot này' };
+    await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${u}, trang_thai = CASE WHEN trang_thai IN ('nhap', 'loi') THEN 'co_keyframe' ELSE trang_thai END, updated_at = now() WHERE id = ${id}`); return { ok: true, data: undefined }; }
+  if (loai === 'video') { const v = b.video.ds.find((x) => x.url === u); if (!v) return { ok: false, loi: 'clip không thuộc shot này' };
+    const pb = (((await db.execute(sql`SELECT video_phien_ban FROM xv_canh WHERE id = ${id}`)) as unknown as Row[])[0]?.video_phien_ban ?? []) as Row[], r = pb.find((x) => x.url === u) ?? {};
+    const doan = { ...(r.vao_s != null ? { vao_s: r.vao_s } : {}), ...(r.toc_khop != null ? { toc_khop: r.toc_khop } : {}) };
+    if (Object.keys(doan).length) await db.execute(sql`UPDATE xv_canh SET ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || ${JSON.stringify(doan)}::jsonb WHERE id = ${id}`);
+    if (v.ban === 'cuoi') await db.execute(sql`UPDATE xv_canh SET video_cuoi_url = ${u}, updated_at = now() WHERE id = ${id}`);
+    else await db.execute(sql`UPDATE xv_canh SET video_url = ${u}, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${id}`);
+    return { ok: true, data: undefined }; }
+  const d = b.giong[Number(dong)]; if (!d || !d.ds.some((x) => x.url === u)) return { ok: false, loi: 'giọng không thuộc dòng thoại này' };
+  await db.execute(sql`UPDATE xv_canh SET thoai = jsonb_set(thoai, ${`{${Number(dong)},url}`}::text[], ${JSON.stringify(u)}::jsonb), updated_at = now() WHERE id = ${id}`);
+  return { ok: true, data: undefined };
+}
+export async function chonNhacS2(tapId: number, url: string): Promise<{ ok: true; data: undefined } | { ok: false; loi: string }> {
+  const db = getDb(), id = Number(tapId), u = String(url ?? ''); const b = await banNhacS2(id); if (!db || !b) return { ok: false, loi: 'không thấy tập' };
+  if (!b.ds.some((x) => x.url === u)) return { ok: false, loi: 'nhạc không thuộc tập này' };
+  await db.execute(sql`UPDATE xv_tap SET nhac_url = ${u}, updated_at = now() WHERE id = ${id}`); return { ok: true, data: undefined };
+}

@@ -1122,12 +1122,12 @@ function veTt() {
       `<span class="nho">Bấm một đoạn trên timeline để sửa đoạn đó. Kéo mép phải của cảnh để đổi độ dài, kéo cả cảnh để đổi thứ tự.</span>`);
   } else if (ch.id === 'nhac') { dau = 'Nhạc nền';
     o.push(muc('Bản nhạc', chipD(NHAC, D.nhac, 'nhac')), muc(`Âm lượng · <span id="iAmSo">${D.am}</span>%`, `<input type="range" id="iAm" data-f="am" min="0" max="100" value="${D.am}" aria-label="Âm lượng nhạc">`),
-      `<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="iNho" data-f="nhoLai" ${D.nhoLai ? 'checked' : ''}> Tự nhỏ lại khi có giọng đọc</label>`);
+      `<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="iNho" data-f="nhoLai" ${D.nhoLai ? 'checked' : ''}> Tự nhỏ lại khi có giọng đọc</label>`, nhacSinh());
   } else if (pro()) { dau = `${vt(c.id) + 1} · ${esc(c.nhan)}`; o.push(veTtPro(c));
   } else { const i = vt(c.id); dau = `Cảnh ${i + 1} · ${esc(c.nhan)}`;
     o.push(`<div class="day-bt" role="group" aria-label="Phần đang sửa">${[['canh', 'Hình'], ['chu', 'Chữ'], ['giong', 'Lời đọc']].map(([l, t]) => `<button type="button" class="bt" data-d="loai" data-g="${l}" aria-pressed="${ch.loai === l}">${t}</button>`).join('')}</div>`);
     if (ch.loai === 'canh') o.push(
-      `<div class="tt-anh"><img src="${c.anh}" alt=""><div class="day-bt"><button type="button" class="bt" data-d="moDoi" aria-pressed="${E.moDoi}">Đổi hình</button><button type="button" class="bt" data-d="veLai">${c.ve ? 'Đang vẽ…' : 'Vẽ lại cảnh'}</button></div></div>`, luoiDoi(c),
+      `<div class="tt-anh"><img src="${c.anh}" alt=""><div class="day-bt"><button type="button" class="bt" data-d="moDoi" aria-pressed="${E.moDoi}">Đổi hình</button><button type="button" class="bt" data-d="veLai">${c.ve ? 'Đang vẽ…' : 'Vẽ lại cảnh'}</button></div></div>`, luoiDoi(c), banSinh(c, 'av'),
       muc('Tả cảnh bạn muốn thấy', `<input type="text" id="iMoTa" data-f="mota" placeholder="vd: Heracles ôm cổ sư tử trong hang tối" value="${esc(c.mota)}">`), chipNv(c, true),
       muc('Chuyển động', chipD(CD, c.cd, 'cd')), muc('Thời lượng', nutTg(c)),
       `<details id="iThem" ${E.moThem ? 'open' : ''}><summary>Thêm: cách vào cảnh, thứ tự, tên cảnh</summary>${[muc('Vào cảnh bằng', chipD(CHUYEN, c.chuyen, 'chuyen')), muc('Thứ tự', nutThuTu(i)), muc('Tên cảnh', `<input type="text" id="iNhan" data-f="nhan" value="${esc(c.nhan)}">`)].join('')}</details>`);
@@ -1135,10 +1135,23 @@ function veTt() {
       muc('Vị trí', chipD(VITRI, c.viTri, 'viTri')), muc('Kiểu chữ (cả video)', chipD(KCHU, D.kieuChu, 'kchu')));
     if (ch.loai === 'giong') o.push(muc('Lời đọc của cảnh này', `<textarea id="iLoi" data-f="loi" rows="4" placeholder="Gõ lời đọc bằng tiếng Anh">${esc(c.loi)}</textarea><div id="iCb">${veCb(c)}</div>
         <div class="day-bt"><button type="button" class="bt" data-d="nganLoi">Rút gọn</button>${i === 0 ? '<button type="button" class="bt" data-d="goiY">↻ Câu mở khác</button>' : ''}</div>`),
-      muc('Giọng đọc (cả video)', chipD(GIONG, D.giong, 'giong')), muc('Tốc độ đọc', chipD(Object.keys(TOC), D.toc, 'toc')));
+      muc('Giọng đọc (cả video)', chipD(GIONG, D.giong, 'giong')), muc('Tốc độ đọc', chipD(Object.keys(TOC), D.toc, 'toc')), banSinh(c, 'g'));
   }
   $('#dTt').innerHTML = `<div class="tt-dau"><b>${dau}</b>${ch ? '<button type="button" class="bt tron" data-d="boChon">Bỏ chọn</button>' : ''}</div>${o.join('')}`;
 }
+/** BẢN ĐÃ SINH (anh 21/11/2026): mọi ảnh / clip / giọng đã sinh của cảnh, chọn lại bản nào cũng được (0đ). Nạp lười theo cảnh đang chọn, tươi 20 giây. */
+const banSinh = (c, phan) => { if (!D.that || !GOC[c.id]) return ''; const k = c.id, o = (E.bs ||= {})[k];
+  if ((!o || Date.now() - o.luc > 20000) && !o?.dang) { (E.bs[k] = { ...(o || {}), dang: true }); goi('banDaSinhS2', GOC[k].id).then((d) => { E.bs[k] = { d, luc: Date.now() }; if (E.chon?.id === k) veD(); }, () => { E.bs[k] = { d: o?.d, luc: Date.now() }; }); }
+  const d = o?.d; if (!d) return ''; const r = [], nut = (loai, u, dung, i = 0) => `<button type="button" class="bt" data-d="bsChon" data-k="${loai}" data-i="${i}" data-g="${esc(u)}" aria-pressed="${dung}">${dung ? 'Đang dùng' : 'Dùng bản này'}</button>`;
+  if (phan.includes('a') && d.anh.ds.length > 1) r.push(muc(`Ảnh đã vẽ · ${d.anh.ds.length} bản`, `<div class="luoi3">${d.anh.ds.slice().reverse().map((u) => `<button type="button" class="o-hinh" data-d="bsChon" data-k="anh" data-g="${esc(u)}" aria-pressed="${u === d.anh.dung}" aria-label="Dùng ảnh này"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join('')}</div>`));
+  if (phan.includes('v') && d.video.ds.length > 1) r.push(muc(`Clip đã dựng · ${d.video.ds.length} bản`, `<div class="bs-ds">${d.video.ds.slice().reverse().map((v) => { const dung = v.url === (v.ban === 'cuoi' ? d.video.cuoi : d.video.nhap);
+    return `<div class="bs-o"><video src="${esc(v.url)}" preload="metadata" muted controls playsinline></video><span class="nho">${v.ban === 'cuoi' ? 'Bản cuối' : 'Nháp'}${v.model ? ` · ${esc(v.model)}` : ''}${v.luc ? ` · ${gioVn(v.luc)}` : ''}</span>${nut('video', v.url, dung)}</div>`; }).join('')}</div>`));
+  if (phan.includes('g')) d.giong.filter((x) => x.ds.length > 1).forEach((x) => r.push(muc(`Giọng dòng ${x.dong + 1} · ${x.ds.length} bản${x.loi ? ` · “${esc(x.loi.slice(0, 40))}”` : ''}`, `<div class="bs-ds">${x.ds.map((v) => `<div class="bs-o"><audio src="${esc(v.url)}" preload="none" controls></audio><span class="nho">${v.luc ? gioVn(v.luc) : ''}</span>${nut('giong', v.url, v.url === x.dung, x.dong)}</div>`).join('')}</div>`)));
+  return r.join(''); };
+const nhacSinh = () => { if (!D.that) return ''; const k = `t${D.that.tap}`, o = (E.bs ||= {})[k];
+  if ((!o || Date.now() - o.luc > 20000) && !o?.dang) { E.bs[k] = { ...(o || {}), dang: true }; goi('banNhacS2', D.that.tap).then((d) => { E.bs[k] = { d, luc: Date.now() }; if (E.chon?.id === 'nhac') veD(); }, () => { E.bs[k] = { d: o?.d, luc: Date.now() }; }); }
+  const d = o?.d; if (!d || d.ds.length < 2) return '';
+  return muc(`Nhạc đã sinh · ${d.ds.length} bản`, `<div class="bs-ds">${d.ds.map((v) => `<div class="bs-o"><audio src="${esc(v.url)}" preload="none" controls></audio><span class="nho">${v.luc ? gioVn(v.luc) : ''}</span><button type="button" class="bt" data-d="bsChon" data-k="nhac" data-g="${esc(v.url)}" aria-pressed="${v.url === d.dung}">${v.url === d.dung ? 'Đang dùng' : 'Dùng bản này'}</button></div>`).join('')}</div>`); };
 const luoiDoi = (c) => (E.moDoi ? `<div class="luoi3">${khoHinh().slice(0, 18).map((a) => `<button type="button" class="o-hinh" data-d="doiHinh" data-g="${a}" aria-pressed="${c.anh === a}" aria-label="Dùng hình này"><img src="${a}" alt="" loading="lazy"></button>`).join('')}</div>` : '');
 const chipNv = (c, coTieuDe) => { if (!D.nvs.length) return ''; const h = `<div class="day-bt">${D.nvs.map((n) => `<button type="button" class="bt nv-bt" data-d="nvCanh" data-g="${n.id}" aria-pressed="${c.nv.includes(n.id)}"><img src="${anhNv(n)}" alt="">${esc(n.ten)}</button>`).join('')}</div>`; return coTieuDe ? muc('Nhân vật trong cảnh', h) : h; };
 /** chữ trên màn giống hệt lời thoại của cảnh: bật = chép lời vào chữ và giữ theo khi sửa lời (lưu về studio như chữ màn); bấm lần nữa = bỏ chữ */
@@ -1156,10 +1169,10 @@ function veTtPro(c) {
   if (t === 'thoai') h = (c.thoai.length ? c.thoai.map((l, k) => `<div class="thoai-d"><i class="dau" title="${esc(l.ai)}">${esc(l.ai[0])}</i><textarea id="iTh${k}" data-f="thoai" data-i="${k}" rows="2">${esc(l.cau)}</textarea></div>`).join('')
       : `<textarea id="iLoi" data-f="loi" rows="4" placeholder="Lời đọc của cảnh này">${esc(c.loi)}</textarea>`) + `<div id="iCb">${veCb(c)}</div>`
     + veLopLoi(c)
-    + hg('Chữ', `<div class="chu-o"><input type="text" id="iChu" data-f="chu" value="${esc(c.chu)}" placeholder="Chữ trên màn hình">${nutGiongThoai(c)}</div>`) + hg('Vị trí', chipD(VITRI, c.viTri, 'viTri')) + hg('Tiếng', `<input type="text" id="iTd" data-f="td" value="${esc(c.td)}" placeholder="Tiếng động của cảnh">`);
+    + hg('Chữ', `<div class="chu-o"><input type="text" id="iChu" data-f="chu" value="${esc(c.chu)}" placeholder="Chữ trên màn hình">${nutGiongThoai(c)}</div>`) + hg('Vị trí', chipD(VITRI, c.viTri, 'viTri')) + hg('Tiếng', `<input type="text" id="iTd" data-f="td" value="${esc(c.td)}" placeholder="Tiếng động của cảnh">`) + banSinh(c, 'g');
   if (t === 'hinh') { const ng = nguonCo(), ten = TEN_NG;
     h = `<div class="ba-anh">${ng.map((g) => `<button type="button" class="o-hinh" data-d="nguon" data-g="${g}" aria-pressed="${E.nguon === g}"${giaiNut(g)}><img src="${g === 'lop' && c.nen ? c.nen : g === '3d' && c.k3 ? c.k3 : c.anh}" alt="" style="aspect-ratio:${TILE[D.tile]}"><small>${ten[g]}</small></button>`).join('')}</div>`
-      + (c.pb ? hg('Bản dựng', `<div class="day-bt">${[...Array(Math.min(c.pb, 6))].map((_, k) => `<button type="button" class="bt" data-d="banPb" aria-pressed="${k === Math.min(c.pb, 6) - 1}">${c.pb - Math.min(c.pb, 6) + k + 1}</button>`).join('')}</div>`) : '')
+      + (D.that && GOC[c.id] ? banSinh(c, 'av') : c.pb ? hg('Bản dựng', `<div class="day-bt">${[...Array(Math.min(c.pb, 6))].map((_, k) => `<button type="button" class="bt" data-d="banPb" aria-pressed="${k === Math.min(c.pb, 6) - 1}">${c.pb - Math.min(c.pb, 6) + k + 1}</button>`).join('')}</div>`) : '')
       + `<div class="day-bt"><button type="button" class="bt" data-d="moDoi" aria-pressed="${E.moDoi}">Đổi ảnh</button>${GOC[c.id] && D.that ? '' : `<button type="button" class="bt" data-d="veLai">${c.ve ? 'Đang vẽ…' : 'Vẽ lại ảnh'}</button><button type="button" class="bt" data-d="dungClip">Dựng lại clip</button>`}${c.m3 ? '<button type="button" class="bt" data-d="dung3d">Dựng lại 3D</button>' : ''}</div>` + (GOC[c.id] && D.that ? `<div class="qt-nut">${nutBuoc(`kf1:${c.id}`)}${nutBuoc(`duyet1:${c.id}`)}${c.thoai.length || c.loi ? nutBuoc(`giong1:${c.id}`) : ''}${nutBuoc(`clip1:${c.id}`)}</div>${(GOC[c.id].keyframe_uv || []).length > 1 ? `<span class="nho">Các ảnh đã vẽ của cảnh này, bấm để dùng:</span><div class="luoi3">${GOC[c.id].keyframe_uv.slice(-9).map((u) => `<button type="button" class="o-hinh" data-d="uvChon" data-g="${esc(u)}" aria-pressed="${GOC[c.id].keyframe_url === u}" aria-label="Dùng ảnh này"><img src="${esc(nho(u, 320))}" alt="" loading="lazy"></button>`).join('')}</div>` : ''}` : '') + luoiDoi(c); }
   if (t === 'soat') { const r = [], d = (l, chu, nut = '') => r.push(`<div class="soat ${l}"><i></i><span>${chu}</span>${nut}</div>`);
     if (c.kiem?.length) { const th = c.kiem.filter((k) => !k.ok).map((k) => k.n); if (th.length) d('loi', `Thiếu trong khung 3D: ${esc(th.join(', '))}`); else d('ok', 'Đủ nhân vật trong khung 3D'); }
@@ -1444,6 +1457,10 @@ function lamD(a, d = {}, nut) {
     case 'uvChon': if (D.that && c && GOC[c.id]) return void ghiSv('chonKeyframe', GOC[c.id].id, g).then(() => taiLai(true), (e) => bao(`Studio không đổi được ảnh: ${e.message}`, false, 8000)); return;
     case 'veLai': if (D.that && c && GOC[c.id]) return void chayBuoc(`kf1:${c.id}`); if (!c || c.ve) return; ghi(); c.ve = true; veD(); return veXongCanh(c.id, 'Bản thật vẽ lại riêng cảnh này, nhân vật giữ nguyên vẻ ngoài.');
     case 'dungClip': if (D.that && c && GOC[c.id]) return void chayBuoc(`clip1:${c.id}`); return bao('Bản thật dựng lại clip của riêng cảnh này và thêm thành một bản dựng mới.');
+    case 'bsChon': { if (!D.that) return; const nhac = d.k === 'nhac'; if (!nhac && !(c && GOC[c.id])) return;
+      const p = nhac ? ghiSv('chonNhacS2', D.that.tap, g) : ghiSv('chonBanS2', GOC[c.id].id, d.k, g, +d.i || 0);
+      bao('Đang đổi sang bản đã chọn…');
+      return void p.then(() => { delete E.bs[nhac ? `t${D.that.tap}` : c.id]; bao('Đã đổi sang bản đã chọn.'); return taiLai(true); }, (e) => bao(`Studio không đổi được bản: ${e.message}`, false, 8000)); }
     case 'banPb': return bao('Bản thật đổi cảnh sang bản dựng đó, các cảnh khác giữ nguyên.');
     case 'dung3d': { const y = c || canhTai(Math.min(E.t, tong() - 0.001)).c; bao('Bản thật dựng lại khung 3D theo mặt bằng mới trong vài giây.'); setTimeout(() => { y.ban3 = false; veD(); }, 1200); return; }
     case 'boSoi': return doi(() => { c.soi.splice(+g, 1); });

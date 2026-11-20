@@ -42,13 +42,17 @@ const db = getDb()!;
 const bcs = await Promise.all(ids.map((id) => boiCanhCanh(db, id))); if (bcs.some((b) => !b?.canh.keyframe_url)) { console.error('có shot thiếu keyframe'); process.exit(1); }
 const cum = bcs.map((b) => ({ canh: b!.canh, nhanVat: b!.nhanVat, look: b!.look }));
 const tong = cum.reduce((a, x) => a + giayPhat(x.canh), 0);
+// PHIM KHÔNG DỰNG 3D (anh 20/11/2026 "Đổi ảnh, sinh H3"): mọi shot của cụm không có máy 3D lẫn clip 3D → H3 dựng thẳng từ ẢNH CẢNH: không clip tham chiếu,
+// một shot một cụm, clip CÂM (lời là lời kể ngoài khung — giọng studio ghép lúc xuất, không qua khớp miệng). Chỉ H3; Seedance vẫn cần clip 3D.
+const khong3d = (bo === 'h3' || !!napH3) && cum.every((x) => !x.canh.may_3d && !x.canh.khung_xam?.clip);
+if (khong3d && cum.length !== 1) { console.error('phim không dựng 3D: mỗi lần một shot (không có clip nối để giữ nhịp cắt)'); process.exit(1); }
 if (tong > 15) { console.error(`cụm dài ${tong.toFixed(1)} s > 15 s (trần Seedance)`); process.exit(1); }
 // MỘT SHOT NGẮN HƠN 4 s (sàn thời lượng Seedance, anh 15/11/2026): gửi NGUYÊN clip 3D của shot (có đoạn dư đầu / cuối clip.vao / clip.ra) — clip ra có phần đệm hai
 // đầu để cắt, điểm vào = clip.vao. Không cần clip nối từ iMac. Nhiều shot → clip 3D nối của cụm (--video-file, cum-seedance-tap.sh).
 // LUẬT 15/11/2026 (#6 phim #3071): có --video-file thì LUÔN dùng clip đã cắt đúng đoạn phát (shot bắt đầu ở giây 0). Clip nguyên có đoạn dư đầu 1,65 s im lặng
 // + đuôi trống → Seedance dồn câu thoại vào đuôi (tiếng ở 3,7–4,9 s, đoạn shot im). clip1 chỉ còn là đường dự phòng khi chạy tay không có tệp.
 const clip1 = !fileVideo && cum.length === 1 && tong < 4 && clip3dMoi(cum[0]!.canh) ? cum[0]!.canh.khung_xam!.clip! : null;
-if (!clip1 && !fileVideo && !napH3) { console.error('cần --video-file=<clip 3D nối của cụm> (cụm nhiều shot / shot ≥ 4 s)'); process.exit(1); }
+if (!clip1 && !fileVideo && !napH3 && !khong3d) { console.error('cần --video-file=<clip 3D nối của cụm> (cụm nhiều shot / shot ≥ 4 s)'); process.exit(1); }
 // KHỚP MÔI KHI SINH (khop-moi-cach.ts): cách 'seedance_audio' → gửi file giọng làm Audio 1, câu thoại đặt đúng mốc trong clip ra (mốc shot + trễ câu), kèm nguyên văn câu
 const nguoiNoi = [...new Set(cum.flatMap((x) => (x.canh.thoai ?? []).filter((d) => d.url && d.loi?.trim()).map((d) => d.nhan_vat)))];
 const cachKhop = nguoiNoi.length ? chonCachKhopMoi({ chatLieu: chatLieuPhim(bcs[0]!.kt), ngonNgu: bcs[0]!.kt.ngon_ngu, soNguoiNoi: nguoiNoi.length }) : null;
@@ -57,7 +61,7 @@ let mocShot = clip1 ? clip1.vao : 0; const cauAm: { url: string; t: number; tre:
 // MỐC TỪNG CÂU = lịch phát của timeline / bản xuất (am-thanh.ts › lichGiong: câu nối tiếp, cách 0,15 s, tôn trọng tre). Trước 17/11/2026 lấy `tre ?? 0` → shot
 // 2 câu không ghi tre (phim #3071 #18 "Xin lỗi chú…" + "Đây là tiền thừa.") đặt CẢ HAI câu ở giây 0: tệp giọng cụm hai câu đè nhau, khớp thoại đo câu còn 0,47 s
 // → H3 hai lượt đều "lệch xa câu", không gắn.
-for (const [i, x] of cum.entries()) {
+for (const [i, x] of khong3d ? [] : cum.entries()) {
   const daiTep = new Map((x.canh.thoai ?? []).filter((d) => d.url).map((d) => [d.url!, typeof d.dai === 'number' ? d.dai : null]));
   const moc = new Map(lichGiong([x.canh], x.nhanVat, (u) => daiTep.get(u) ?? null).map((m) => [m.url, m.tu]));
   for (const d of x.canh.thoai ?? []) if (d.url && d.loi?.trim()) { const tre = moc.get(d.url) ?? d.tre ?? 0; cauAm.push({ url: d.url, t: mocShot + tre, tre, ai: d.nhan_vat, loi: d.loi.trim(), so: i + 1 }); }
@@ -82,19 +86,20 @@ const goiKf = kf.map((_, i) => `Reference image ${tc.anh.length + i + 1} is the 
 // câu lệnh ghi giây phát THẬT (làm tròn 0,5 như promptCumMoi), không làm tròn lên số nguyên: #8 3,3 s trước ghi "about 4 s"
 const giayNoi = Math.max(0.5, Math.round(tong * 2) / 2); const giayGui = giayRaGiong;
 const cauDu = giayGui - giayNoi >= 1 ? ` The clip runs ${giayGui} s but the action above ends at about ${giayNoi} s: for the remaining time everyone just holds the final pose in the same framing — silent, mouths closed, no new action, no new line, no cut.` : '';
-const than = promptCumMoi(cum, { tag: tc.tag, them: tc.them, tiLe: bcs[0]!.kt.ti_le });
+const than = promptCumMoi(khong3d ? cum.map((x) => ({ ...x, canh: { ...x.canh, thoai: [], loi_thoai: '' } })) : cum, { tag: tc.tag, them: tc.them, tiLe: bcs[0]!.kt.ti_le });
 // Câu thoại nói MỘT lần trong câu lệnh: câu shot (promptCumMoi) đã có "<người> says: <câu>" thì ở đây không nhắc lại — nhắc hai lần model nói hai lần (#6: tiếng
 // ở 1,2 s và 2,6 s). Chỉ câu nào chưa có nguyên văn trong câu shot mới ghi thêm. Luật chặn: chan-gui-video.ts › loiThoaiPrompt.
 const cauThieu = cauAm.filter((c) => !than.includes(c.loi.replace(/["“”]/g, '').replace(/[.\s]+$/, '')));
 // H3 không nhận rãnh giọng tham chiếu (chay-h3.py: ảnh + video) — tự sinh tiếng theo câu chữ: chỉ giữ câu thoại chưa có nguyên văn, bỏ câu Audio 1
 const cauGiong = guiGiong && bo === 'h3' ? cauThieu.map((c) => ` In shot ${c.so}, ${nhanNoi.get(c.ai) ?? 'the speaker'} speaks out loud and says: ${c.loi.replace(/["“”]/g, '')}.`).join('')
   : guiGiong ? ` Audio 1 is the dialogue track: every spoken line above is exactly Audio 1, said once, at the moment Audio 1 has speech — lip-sync to Audio 1: while Audio 1 has speech the speaker clearly opens the mouth and the lips visibly form every syllable, loud and expressive; the mouth is closed when Audio 1 is silent.${cauThieu.map((c) => ` In shot ${c.so}, ${nhanNoi.get(c.ai) ?? 'the speaker'} speaks out loud and says: ${c.loi.replace(/["“”]/g, '')}.`).join('')}` : '';
-const prompt = `${tc.goi}. ${goiKf} Reference video 1 is a rough grey 3D blockout of this whole ${cum.length}-shot sequence with hard cuts: copy ONLY its cuts, camera angles, timing, where everyone stands and how they move — never its grey mannequin look; every shot must look like its reference image. ${than} ${cauNgoaiCua(cum.map((x) => x.canh))}${cauDu}${cauGiong}`.trim();
+const prompt = khong3d ? `${tc.goi}. ${goiKf} The shot starts exactly as its reference image shows — same framing, people, clothes, props and light — then moves naturally and gently; no cut, no new person or object enters. Nobody speaks on camera: every mouth stays closed, the narration is a voice-over added later. ${than} ${cauNgoaiCua(cum.map((x) => x.canh))}${cauDu}`.trim()
+  : `${tc.goi}. ${goiKf} Reference video 1 is a rough grey 3D blockout of this whole ${cum.length}-shot sequence with hard cuts: copy ONLY its cuts, camera angles, timing, where everyone stands and how they move — never its grey mannequin look; every shot must look like its reference image. ${than} ${cauNgoaiCua(cum.map((x) => x.canh))}${cauDu}${cauGiong}`.trim();
 console.log(`cụm ${cum.map((x) => `#${x.canh.thu_tu}`).join(' ')} · ${tong.toFixed(1)} s → clip ${giayGui} s · ${model} ${dpg} · ${anh.length} ảnh · prompt ${prompt.length} ký tự`);
 // LUẬT CHẤM TRƯỚC KHI GỬI (chan-gui-video.ts — anh 14/11/2026): lỗi nào cũng chặn, không tốn tiền
 const loiGui = [...loiPromptGui(prompt, { tiLe: bcs[0]!.kt.ti_le, tenNhanVat: [...new Set(cum.flatMap((x) => x.nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten)))] }),
   ...loiThoaiPrompt(prompt, cauAm.map((c) => c.loi)), ...loiShotPrompt(prompt), ...loiAnhCum(cum.length, kf.length), ...(guiGiong ? loiThoaiCuoiCum(cauAm.map((c) => c.so), cum.length) : []),
-  ...loiClipThamChieu(cum.map((x) => ({ so: x.canh.thu_tu, clip: x.canh.khung_xam?.clip }))), ...loiCoMay(cum.map((x) => shotCoMay(x.canh))),
+  ...(khong3d ? [] : loiClipThamChieu(cum.map((x) => ({ so: x.canh.thu_tu, clip: x.canh.khung_xam?.clip })))), ...loiCoMay(cum.map((x) => shotCoMay(x.canh))),
   ...Object.entries(dangChongBau(cum.map((x) => x.canh))).flatMap(([id, l]) => l.map((y) => `#${cum.find((x) => x.canh.id === Number(id))?.canh.thu_tu}: ${y}`))];
 // THIẾU GIỌNG (luật 15/11/2026: #6 sinh không kèm giọng → miệng không theo câu): shot có câu thoại có file giọng mà lượt này không gửi giọng → chặn
 if (cauAm.length && !guiGiong) loiGui.push(`cụm có thoại (${cauAm.map((c) => `#${cum[c.so - 1]!.canh.thu_tu}`).join(' ')}) mà không gửi giọng (cách khớp môi: ${cachKhop?.cach ?? '?'} — ${cachKhop?.vi ?? ''}) — tách cụm mỗi lần một người nói`);
@@ -136,7 +141,8 @@ if (process.argv.includes('--chinh-giong')) {
 /** GẮN KẾT QUẢ một clip cụm đã có (tệp f, url kho): đo cú cắt → điểm vào → khớp thoại → kẹp đoạn → ghi từng shot. Dùng sau khi sinh và cho --tu-job (0đ). */
 async function ganKetQua(f: string, url: string, job: number, urlGiong: string | null, promptGui: string, t0: number): Promise<number> {
   const dai = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim());
-  const cat = clip1 ? [] : catThat(f, dai); const v = clip1 ? { vao: [clip1.vao], theoDo: true, ngan: [] as number[] } : vaoTuCatThat(cum.map((x) => x.canh), cat, dai);
+  // không 3D: một shot, không cú cắt — điểm vào = đầu clip (H3 mở đúng ảnh cảnh)
+  const cat = clip1 || khong3d ? [] : catThat(f, dai); const v = clip1 ? { vao: [clip1.vao], theoDo: true, ngan: [] as number[] } : khong3d ? { vao: [0], theoDo: true, ngan: [] as number[] } : vaoTuCatThat(cum.map((x) => x.canh), cat, dai);
   // LUẬT CHẤM SAU KHI SINH (anh 14/11/2026 — phát sinh nào cũng vào luật): model chia giờ sai (cụm #2–7 lần 2: #3 giữ 2,3 s, #4 còn 0,84 s < 2 s phát) → đoạn
   // của shot ngắn hơn giây phát thì phát lố sang shot kế. Shot thiếu giờ (vaoTuCatThat › ngan) hoặc clip không đo đủ cú cắt → KHÔNG gắn, gỡ clip cũ của shot
   // đó (video_url NULL) để kế hoạch cụm lần sau tự đưa vào sinh lại (cum-seedance.mts).
@@ -225,8 +231,8 @@ if (napH3) {
 // --bo=h3: XẾP HÀNG H3 (0đ) — đầu vào y như lượt Seedance của cụm (ảnh ≤ 9, clip 3D nối, câu lệnh đã qua luật chấm), đổi cách gọi tham chiếu theo H3
 // ("Reference image N" → "<Picture N>", "Reference video 1" → "<Video 1>"; docs/h3-may-thue.md). Khung 864×480 / 480×864 như lô thử phim #3071.
 if (bo === 'h3') {
-  const urlVideo = clip1 ? clip1.url : await uploadToR2(`xuong-video/khung-xam/cum-${ids.join('-')}-${randomUUID()}.mp4`, readFileSync(fileVideo), 'video/mp4');
-  if (!urlVideo) { console.error('đẩy clip 3D nối lên kho hỏng'); process.exit(1); }
+  const urlVideo = khong3d ? null : clip1 ? clip1.url : await uploadToR2(`xuong-video/khung-xam/cum-${ids.join('-')}-${randomUUID()}.mp4`, readFileSync(fileVideo), 'video/mp4');
+  if (!urlVideo && !khong3d) { console.error('đẩy clip 3D nối lên kho hỏng'); process.exit(1); }
   const ngang = bcs[0]!.kt.ti_le !== '9:16';
   // LUẬT CHUẨN H3 (docs/h3-may-thue.md): H3_SO_BAN bản / cụm (máy chọn bản ít lỗi khi gắn) + neo giọng studio của cụm (khớp khẩu hình, giọng đồng nhất giữa cụm)
   const giong = cauAm.length ? await fileGiongCum('h3') : null;

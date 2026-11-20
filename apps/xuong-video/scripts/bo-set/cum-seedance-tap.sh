@@ -26,6 +26,14 @@ with open(f"{sys.argv[3]}/shot.txt", 'w') as f:
 open(f"{sys.argv[3]}/ra.txt", 'w').write(str(c['ra']))
 print(f"cụm {c['ten']}: #{' #'.join(str(s['so']) for s in c['shot'])} · {c['tong']} s · ~{c['cents']}¢")
 PY
+# CỤM KHÔNG DỰNG 3D (phim Studio 2, 20/11/2026): không có clip three.js để nối — H3 dựng thẳng từ ảnh cảnh, thu-seedance-cum.mts tự nhận. Chỉ bộ H3.
+if python3 -c "import json,sys; c=next(x for x in json.load(open(sys.argv[1])) if x['ten']==sys.argv[2]); sys.exit(0 if c.get('khong3d') else 1)" "$TM/ke.json" "$CUM"; then
+  [ "$BO" = h3 ] || { echo "cụm $CUM không có dựng 3D — chỉ bộ H3 dựng được từ ảnh cảnh (BO=h3)"; exit 1; }
+  IDS=$(cut -d' ' -f1 "$TM/shot.txt" | paste -sd, -)
+  if [ "$CHAY" = "--chay" ]; then ssh "$BOX" "cd $RBOX && export DUYET_SINH_1_LAN=1; $TSX scripts/thu-seedance-cum.mts --canh=$IDS --bo=h3 | grep -v '^Reference\|^https' | tail -3"
+  else ssh "$BOX" "cd $RBOX && $TSX scripts/thu-seedance-cum.mts --canh=$IDS --bo=h3 --xem | head -1"; fi
+  exit 0
+fi
 i=0; : > "$TM/list.txt"; IDS=""
 while read -r id url vao phat; do
   i=$((i+1)); curl -sf -o "$TM/s$i.mp4" "$url"

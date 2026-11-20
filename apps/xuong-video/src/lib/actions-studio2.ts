@@ -5,7 +5,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from './auth';
-import { docPhim, dsCanh, taoPhim, taoTap } from './actions';
+import { docPhim, dsCanh, taoPhim, taoTap, xoaAnhGoc, sinhAnhMau } from './actions';
 import { duocS2, quyenCua, type QuyenS2 } from './quyen-s2';
 import { GOI_THE_LOAI, goiTheoKey } from './xuong-video/goi-the-loai';
 import type { LoaiPhim } from './xuong-video/kieu';
@@ -162,6 +162,17 @@ export async function datQuyenS2(userId: number, dung: boolean, sinh: boolean): 
   await db.execute(sql`INSERT INTO xv_s2_quyen (user_id, dung, sinh, boi) VALUES (${Number(userId)}, ${d}, ${s}, ${me.id})
     ON CONFLICT (user_id) DO UPDATE SET dung = ${d}, sinh = ${s}, boi = ${me.id}, updated_at = now()`);
   return { ok: true, data: undefined };
+}
+
+/** VẼ LẠI ẢNH MẪU của một anchor (Studio 2 › nút "Vẽ lại ảnh mẫu" — anh 20/11/2026 "Đổi ảnh… phải có các nút sinh thủ công cho người dùng"): ảnh mẫu cũ vào
+ *  thùng rác của studio (xoaAnhGoc, khôi phục được ở studio) rồi sinh MỘT ảnh gốc mới từ mô tả — không lấy ảnh cũ làm danh tính. TỐN TIỀN: một lượt model ảnh. */
+export async function veLaiAnhMauS2(phimId: number, nhanVatId: number): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
+  const db = getDb(); if (!db) return { ok: false, loi: 'no db' };
+  const r = ((await db.execute(sql`SELECT anh_ref FROM xv_nhan_vat WHERE id = ${Number(nhanVatId)} AND phim_id = ${Number(phimId)}`)) as unknown as Row[])[0];
+  if (!r) return { ok: false, loi: 'mẫu này không thuộc phim' };
+  for (const url of (Array.isArray(r.anh_ref) ? r.anh_ref : []) as string[]) { const x = await xoaAnhGoc(Number(nhanVatId), url); if (!x.ok) return { ok: false, loi: x.loi }; }
+  const k = await sinhAnhMau(Number(nhanVatId), 1);
+  return k.ok ? { ok: true, data: k.data } : { ok: false, loi: k.loi };
 }
 
 /** CHẾ ĐỘ CHO PHÉP VIDEO TRẢ PHÍ của một tập (anh 20/11/2026: "B9 bật chế độ cho phép chạy trả phí") — chỉ quản trị thật. Bật = ghi ky_thuat.tra_phi cho mọi shot

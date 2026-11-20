@@ -237,7 +237,10 @@ function guiPlenxGian<T>(f: () => Promise<T>): Promise<T> {
  *  (provider = bộ), không gọi model. scripts/h3/chay-hang.sh (iMac) đọc hàng (scripts/hang-video.mts), gom shot vào cụm của kế hoạch cụm rồi chạy đúng bộ.
  *  Shot cần clip 3D còn mới (cụm gửi clip 3D nối làm tham chiếu). Bấm lại khi đã có hàng → giữ một hàng, đổi bộ nếu phim vừa đổi bộ. */
 export async function xepHangCum(db: Db, canh: Canh, bo: 'seedance' | 'h3', ban: 'nhap' | 'cuoi'): Promise<Kq<number>> {
-  if (!clip3dMoi(canh)) return loi(`Shot #${canh.thu_tu}: bộ sinh ${bo === 'h3' ? 'H3' : 'Seedance'} sinh theo cụm từ clip 3D — shot chưa có clip 3D còn mới, dựng 3D lại trước`);
+  // PHIM KHÔNG DỰNG 3D (Studio 2 — anh 20/11/2026 "Đổi ảnh, sinh H3"): shot không có máy 3D lẫn clip 3D thì H3 dựng thẳng từ ẢNH CẢNH, mỗi shot một cụm, clip câm,
+  // lời kể ghép lúc xuất (scripts/thu-seedance-cum.mts tự nhận). Seedance vẫn cần clip 3D làm tham chiếu.
+  const khong3d = bo === 'h3' && !canh.may_3d && !canh.khung_xam?.clip && !!canh.keyframe_url;
+  if (!khong3d && !clip3dMoi(canh)) return loi(`Shot #${canh.thu_tu}: bộ sinh ${bo === 'h3' ? 'H3' : 'Seedance'} sinh theo cụm từ clip 3D — shot chưa có clip 3D còn mới, dựng 3D lại trước`);
   const model = bo === 'h3' ? 'h3:ref2va-int8-turbo' : 'kie:bytedance/seedance-2-fast';
   const co = ((await db.execute(sql`UPDATE xv_job SET provider = ${bo}, model = ${model}, updated_at = now() WHERE canh_id = ${canh.id} AND loai = 'video' AND trang_thai = 'hang' RETURNING id`)) as unknown as Row[])[0];
   if (co) return { ok: true, data: Number(co.id) };

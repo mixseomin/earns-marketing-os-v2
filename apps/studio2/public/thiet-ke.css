@@ -1,0 +1,53 @@
+/* Công cụ thiết kế creative tĩnh — studio2.on.tc/thiet-ke.html (anh 20/11/2026). Cùng bộ màu studio2.css, tệp riêng để không đụng trình dựng video. */
+:root {
+  --bg: #eef0f5; --mat: #ffffff; --ink: #141a33; --ink-2: #4b5373; --ink-3: #7d849f; --line: #d9dce8; --sky: #1d2550; --brass: #a8721f; --brass-nhat: #f3e6cf;
+  --loi: #b3261e; --loi-nhat: #fbe3e1; --ok: #1f7a4d; --ok-nhat: #dcf0e5; --nen-san: #c9ccd8;
+  --f-than: "IBM Plex Sans", system-ui, sans-serif; --f-so: "IBM Plex Mono", ui-monospace, Menlo, monospace; color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0c0f1f; --mat: #151a31; --ink: #e8eaf4; --ink-2: #aab0cc; --ink-3: #757b99; --line: #262c4a; --sky: #c9cff0; --brass: #e0a94f; --brass-nhat: #3a2d17;
+  --loi: #ff8a80; --loi-nhat: #3d1a18; --ok: #5fcf93; --ok-nhat: #163627; --nen-san: #05070f; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #0c0f1f; --mat: #151a31; --ink: #e8eaf4; --ink-2: #aab0cc; --ink-3: #757b99; --line: #262c4a; --sky: #c9cff0; --brass: #e0a94f; --brass-nhat: #3a2d17;
+  --loi: #ff8a80; --loi-nhat: #3d1a18; --ok: #5fcf93; --ok-nhat: #163627; --nen-san: #05070f; color-scheme: dark }
+* { box-sizing: border-box }
+html, body { height: 100% }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 13.5px/1.45 var(--f-than); display: flex; flex-direction: column; overflow: hidden }
+button { font: inherit; color: var(--ink); background: var(--mat); border: 1px solid var(--line); border-radius: 7px; padding: 5px 10px; cursor: pointer }
+button:hover { border-color: var(--ink-3) } button:disabled { opacity: .45; cursor: default }
+.tk-chinh { background: var(--sky); color: var(--mat); border-color: var(--sky); font-weight: 600 }
+.tk-o { font: inherit; color: var(--ink); background: var(--mat); border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; min-width: 0 }
+.tk-tren { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 14px; background: var(--mat); border-bottom: 1px solid var(--line) }
+.tk-ve { color: var(--ink-2); text-decoration: none; font-size: 12.5px } .tk-tieu { font-size: 15px }
+#tenBan { width: 220px } #maMau { max-width: 260px } .tk-gian { flex: 1 }
+.tk-bao { margin: 8px 14px 0; padding: 8px 12px; border-radius: 8px; background: var(--ok-nhat); color: var(--ok); font-weight: 500 }
+.tk-bao.loi { background: var(--loi-nhat); color: var(--loi) }
+.tk-than { flex: 1; min-height: 0; display: grid; grid-template-columns: 230px 1fr 290px }
+.tk-trai, .tk-phai { background: var(--mat); overflow: auto; padding: 4px 12px 16px }
+.tk-trai { border-right: 1px solid var(--line) } .tk-phai { border-left: 1px solid var(--line) }
+h3 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); margin: 14px 0 6px } h3 small { text-transform: none; letter-spacing: 0; font-weight: 400 }
+.tk-luoi-nut { display: grid; grid-template-columns: 1fr 1fr; gap: 6px } .tk-luoi-nut button { text-align: left; font-size: 12.5px; padding: 6px 8px }
+.tk-hang { display: flex; align-items: center; gap: 8px; margin: 4px 0 } .tk-hang input[type=range] { flex: 1 }
+.tk-cot { display: grid; gap: 7px } .tk-cot label { display: grid; gap: 2px; font-size: 12px; color: var(--ink-2) }
+.tk-mo { color: var(--ink-3) }
+.tk-giua { position: relative; overflow: hidden; display: grid; place-items: center; background: var(--nen-san) }
+.tk-san { position: relative; box-shadow: 0 6px 30px rgba(0,0,0,.25) }
+.tk-tc { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; pointer-events: none; z-index: 2 }
+.tk-tc.duoi { z-index: 0; mix-blend-mode: normal }
+.tk-an { position: absolute; inset: 0; pointer-events: none; z-index: 3 }
+.tk-an i { position: absolute; left: 0; right: 0; border-top: 1.5px dashed rgba(255,70,70,.85) }
+.tk-an b { position: absolute; right: 6px; opacity: .75; font: 500 10px var(--f-so); color: #fff; background: rgba(200,40,40,.8); padding: 1px 5px; border-radius: 3px }
+.tk-lop { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px }
+.tk-lop li { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-size: 12.5px }
+.tk-lop li.chon { border-color: var(--brass); background: var(--brass-nhat) }
+.tk-lop li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.tk-lop li button { padding: 0 5px; border: 0; background: transparent; font-size: 12px }
+.tk-luoi2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px } .tk-luoi3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px }
+.tk-cot input[type=color] { width: 100%; height: 30px; padding: 2px; border: 1px solid var(--line); border-radius: 6px; background: var(--mat) }
+.tk-cot textarea { font: inherit; color: var(--ink); background: var(--mat); border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; resize: vertical; min-height: 54px }
+.tk-ghichu { font-size: 11.5px; color: var(--ink-3) }
+.tk-hop { border: 1px solid var(--line); border-radius: 12px; padding: 0; width: min(860px, 94vw); background: var(--mat); color: var(--ink) }
+.tk-hop header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line) }
+.tk-ban { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 14px; max-height: 70vh; overflow: auto }
+.tk-ban button { display: grid; gap: 4px; padding: 6px; text-align: left; font-size: 12px }
+.tk-ban img { width: 100%; aspect-ratio: 9/16; object-fit: contain; background: #222; border-radius: 4px }
+@media (max-width: 900px) { body { overflow: auto } .tk-than { grid-template-columns: 1fr } .tk-giua { min-height: 70vh } }

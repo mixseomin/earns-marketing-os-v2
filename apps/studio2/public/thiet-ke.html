@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thiết kế creative</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231d2550'/%3E%3Crect x='8' y='7' width='16' height='18' rx='2' fill='none' stroke='%23f3e6cf' stroke-width='2.4'/%3E%3Cpath d='M11 20l4-5 3 3 3-4' fill='none' stroke='%23e0a94f' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap&subset=vietnamese">
+<!-- Phông cho THIẾT KẾ: toàn bộ Google Fonts giấy phép OFL (dùng thương mại được), có bộ chữ tiếng Việt khi phông có. Máy dựng trên iMac nạp đúng danh sách này. -->
+<link rel="stylesheet" id="phong-tk" href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Oswald:wght@400;700&family=Montserrat:ital,wght@0,400;0,700;0,900;1,700;1,900&family=Roboto+Condensed:ital,wght@0,400;0,700;1,700&family=Be+Vietnam+Pro:ital,wght@0,400;0,700;0,900;1,700&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&family=Cinzel:wght@700;900&family=Bangers&family=Archivo+Black&family=Dancing+Script:wght@700&family=Great+Vibes&family=Teko:wght@500;700&family=Barlow+Condensed:ital,wght@0,700;0,900;1,700;1,900&family=Lobster&display=block&subset=vietnamese">
+<link rel="stylesheet" href="thiet-ke.css?v=__BAN__">
+</head>
+<body>
+<header class="tk-tren">
+  <a class="tk-ve" href="/" title="Về trình dựng video">◀ Studio 2</a>
+  <strong class="tk-tieu">Thiết kế creative</strong>
+  <input id="tenBan" class="tk-o" placeholder="Tên bản thiết kế" maxlength="160">
+  <select id="maMau" class="tk-o" title="Bản này dựng cho mẫu creative etp nào"><option value="">— không gắn mẫu etp —</option></select>
+  <select id="kho" class="tk-o" title="Khổ khung">
+    <option value="1080x1920">9:16 · 1080×1920</option><option value="1080x1350">4:5 · 1080×1350</option>
+    <option value="1080x1080">1:1 · 1080×1080</option><option value="1920x1080">16:9 · 1920×1080</option>
+  </select>
+  <span class="tk-gian"></span>
+  <button data-lam="moi">Mới</button>
+  <button data-lam="mo">Mở…</button>
+  <button data-lam="hoanTac" title="Ctrl+Z">↶</button>
+  <button data-lam="lamLai" title="Ctrl+Shift+Z">↷</button>
+  <button data-lam="xuat">Xuất PNG</button>
+  <button data-lam="luu" class="tk-chinh">Lưu</button>
+</header>
+<div id="bao" class="tk-bao" role="status" hidden></div>
+<main class="tk-than">
+  <aside class="tk-trai">
+    <h3>Thêm lớp</h3>
+    <div class="tk-luoi-nut">
+      <button data-them="anhPhim">Ô ảnh phim</button>
+      <button data-them="anh">Ảnh từ máy</button>
+      <button data-them="chu">Chữ</button>
+      <button data-them="hinh">Khối chữ nhật</button>
+      <button data-them="tron">Hình tròn</button>
+    </div>
+    <h3>Khối mẫu</h3>
+    <div class="tk-luoi-nut" id="dsKhoi"></div>
+    <h3>QC tham chiếu <small>(chỉ để đồ theo, không xuất)</small></h3>
+    <div class="tk-hang"><button data-lam="thamChieu">Chọn ảnh…</button><button data-lam="boThamChieu">Bỏ</button></div>
+    <label class="tk-hang">Độ hiện <input type="range" id="moTC" min="0" max="100" value="45"></label>
+    <label class="tk-hang"><input type="checkbox" id="tren" > Đặt trên các lớp</label>
+    <h3>Hiển thị</h3>
+    <label class="tk-hang"><input type="checkbox" id="vungAn" checked> Vùng an toàn 9:16</label>
+    <label class="tk-hang"><input type="checkbox" id="xemThu"> Xem với dữ liệu thử</label>
+    <div id="duLieuThu" class="tk-cot">
+      <label>{ten} <input class="tk-o" data-thu="ten" value="The Billionaire's Secret Bride"></label>
+      <label>{cau_nhu} <input class="tk-o" data-thu="cau_nhu" value="She was the maid. He never knew she owned the company."></label>
+      <label>{nhan} <input class="tk-o" data-thu="nhan" value="All Episodes Released"></label>
+    </div>
+  </aside>
+  <section class="tk-giua" id="vung">
+    <div class="tk-san" id="san">
+      <canvas id="cv"></canvas>
+      <img id="anhTC" class="tk-tc" alt="" hidden>
+      <div id="luoiAn" class="tk-an"></div>
+    </div>
+  </section>
+  <aside class="tk-phai">
+    <h3>Lớp</h3>
+    <ol id="dsLop" class="tk-lop"></ol>
+    <h3>Thuộc tính</h3>
+    <div id="thuocTinh" class="tk-cot"><p class="tk-mo">Chọn một lớp trên khung để chỉnh.</p></div>
+  </aside>
+</main>
+<dialog id="hopMo" class="tk-hop">
+  <form method="dialog"><header><strong>Mở bản thiết kế</strong><button value="huy">✕</button></header>
+  <div id="dsBan" class="tk-ban"></div></form>
+</dialog>
+<input type="file" id="chonAnh" accept="image/*" hidden>
+<script src="lib/fabric-7.4.0/fabric.min.js"></script>
+<script src="thiet-ke.js?v=__BAN__"></script>
+<script src="https://mos2.on.tc/api/gop-y-ngoai/nut" defer></script>
+</body>
+</html>

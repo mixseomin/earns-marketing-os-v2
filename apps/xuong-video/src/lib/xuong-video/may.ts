@@ -123,8 +123,11 @@ export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ mo
   return { moi, doi, giu };
 }
 
-/** Lần chấm trước của dòng có chặn cứng về ẢNH ("hình: …", vd logo / watermark lạ) không. Thuần. */
-export const hinhBiChan = (cham: unknown) => ((cham as { chan_cung?: unknown } | null)?.chan_cung as unknown[] | undefined ?? []).some((x) => /^hình:/.test(String(x)));
+/** Lần chấm trước của dòng có chặn cứng hoặc cảnh báo chắc về ẢNH (vd logo / watermark lạ / ảnh lệch chủ đề) không. Thuần. */
+export const hinhBiChan = (cham: unknown) => {
+  const c = cham as { chan_cung?: unknown; canh_bao?: unknown } | null;
+  return [...(c?.chan_cung as unknown[] ?? []), ...(c?.canh_bao as unknown[] ?? [])].some((x) => /^(hình:|hình lệch chủ đề tiêu đề)/.test(String(x)));
+};
 /** Dựng video của một dòng (0đ) → video_url + 3 khung. */
 export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
   const r = ((await db.execute(sql`SELECT v.slug, v.de, v.nen_url, coalesce(v.nen_them, '{}') AS nen_them, v.chu_de, v.may_id, coalesce(v.mau, m.mau) AS mau, v.hinh_code, v.cham FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];

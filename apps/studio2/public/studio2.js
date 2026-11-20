@@ -917,7 +917,40 @@ function veNk() {
 }
 
 // ── vẽ
-const chipD = (ds, cur, d, k) => `<div class="day-bt">${ds.map((x) => `<button type="button" class="bt" data-d="${d}"${k ? ` data-k="${k}"` : ''} data-g="${esc(x)}" aria-pressed="${cur === x}">${esc(x)}</button>`).join('')}</div>`;
+// chú giải nút ngăn Thuộc tính — câu lấy thẳng từ thư viện điện ảnh studio.on.tc (apps/xuong-video/src/lib/xuong-video/dien-anh.ts); góp ý #giao-20261120T1045-chuyen-7dc1
+const GIAI_NUT = {
+  'Toàn': 'Toàn cảnh — Thấy trọn người và không gian quanh: hành động lớn, vị trí nhân vật.',
+  'Trung': 'Trung cảnh — Từ hông trở lên: hội thoại, cử chỉ tay. Cỡ cảnh "kể chuyện" mặc định.',
+  'Trung cận': 'Cận trung — Từ ngực trở lên: thoại có cảm xúc, nói vào máy (UGC).',
+  'Cận': 'Cận mặt — Cảm xúc chiếm trọn khung: phản ứng, nước mắt, quyết định.',
+  'Đặc tả': 'Đặc tả — Chỉ một chi tiết: mắt, bàn tay, giọt mồ hôi. Căng thẳng tột độ hoặc chi tiết sản phẩm.',
+  'Ngang': 'Ngang tầm mắt — Trung tính, gần gũi: khán giả ngang hàng nhân vật.',
+  'Thấp': 'Góc thấp (hất lên) — Nhân vật trông mạnh, oai, đáng sợ hoặc anh hùng.',
+  'Cao': 'Góc cao (nhìn xuống) — Nhân vật nhỏ bé, yếu thế, cô đơn.',
+  'Rộng': 'Góc rộng 24mm — Không gian giãn, gần mà méo nhẹ: phiêu lưu, hài.',
+  'Chuẩn': 'Chuẩn 35–50mm — Gần mắt người, tự nhiên.',
+  'Chân dung': 'Chân dung 85mm — Nền xoá mịn, mặt nổi bật: cảm xúc, sản phẩm.',
+  'Macro': 'Macro — Chi tiết siêu cận: chất vải, đường may, giọt nước.',
+  'Phóng gần': 'Đẩy chậm vào (push-in) — Máy tiến dần vào mặt: khoảnh khắc nhận ra, cảm xúc dâng.',
+  'Lùi xa': 'Lùi ra (pull-out) — Máy lùi xa: hé lộ bối cảnh, cô đơn, kết cảnh.',
+  'Lia ngang': 'Lia ngang (pan) — Quét không gian, theo hướng nhìn của nhân vật.',
+  'Đứng yên': 'Máy đứng yên — Để diễn xuất tự nói; hợp hài (đúng nhịp) và chính kịch.',
+  'Cắt thẳng': 'Cắt thẳng — Mặc định, gọn.',
+  'Mờ dần': 'Hoà tan (dissolve) — Hình chồng mờ: thời gian trôi, hồi ức.',
+  'Trên': 'Chữ ở trên — Đặt chữ phía trên khung, chừa chỗ cho mặt và hành động ở giữa, dưới.',
+  'Giữa': 'Chữ ở giữa — Chữ là tâm điểm của cảnh (câu hook, con số); dùng khi không có mặt người ở giữa khung.',
+  'Dưới': 'Chữ ở dưới — Kiểu phụ đề quen mắt, người xem đọc mà không rời hành động.',
+  'cx0': 'Mức 0 — Bình thường: cảnh dẫn, thông tin, người xem nghỉ nhịp.',
+  'cx1': 'Mức 1 — Hơi gợn: tò mò, bắt đầu để ý.',
+  'cx2': 'Mức 2 — Căng: lo lắng, hồi hộp, cảm xúc dâng.',
+  'cx3': 'Mức 3 — Đỉnh: khoảnh khắc nhận ra, nước mắt, cú sốc. Người xem nín thở.',
+  'lop': 'Lớp — Ảnh dựng từ các lớp (nền, nhân vật, đồ vật) tách riêng, sửa từng lớp không phải sinh lại cả ảnh.',
+  '3d': '3D — Khung dựng sơ bộ 3D: kiểm vị trí, góc máy trước khi sinh ảnh thật.',
+  'anh': 'Ảnh — Khung hình chính của cảnh, dùng làm khung đầu khi sinh clip.',
+  'clip': 'Clip — Đoạn video đã sinh của cảnh.',
+};
+const giaiNut = (k) => (GIAI_NUT[k] ? ` title="${esc(GIAI_NUT[k])}"` : '');
+const chipD = (ds, cur, d, k) => `<div class="day-bt">${ds.map((x) => `<button type="button" class="bt" data-d="${d}"${k ? ` data-k="${k}"` : ''} data-g="${esc(x)}" aria-pressed="${cur === x}"${giaiNut(x)}>${esc(x)}</button>`).join('')}</div>`;
 const muc = (t, than) => `<div class="muc"><h3>${t}</h3>${than}</div>`, hg = (t, than) => `<div class="hg"><span>${t}</span><div>${than}</div></div>`;
 const nutIc = (t, d, g = '', them = '') => `<button type="button" class="bt ic-bt" data-d="${d}" data-g="${g}" title="${t}" aria-label="${t}" ${them}>${ic(t)}</button>`;
 function veD() {
@@ -1025,13 +1058,13 @@ function veTtPro(c) {
   if (t === 'may') h = hg('Cỡ cảnh', chipD(CO, c.co, 'dat', 'co')) + hg('Góc', chipD(GM, c.gm, 'dat', 'gm')) + hg('Ống kính', chipD(ONG, c.ong, 'dat', 'ong')) + hg('Máy', chipD(CD, c.cd, 'cd')) + hg('Vào cảnh', chipD(CHUYEN, c.chuyen, 'chuyen'))
     + hg('Dài', nutTg(c)) + hg('Thứ tự', nutThuTu(i)) + hg('Đoạn', `<input type="text" id="iPd" data-f="pd" value="${esc(c.pd)}" placeholder="Tên đoạn">`) + hg('Tên', `<input type="text" id="iNhan" data-f="nhan" value="${esc(c.nhan)}">`);
   if (t === 'dien') h = `<textarea id="iMoTa" data-f="mota" rows="4" placeholder="Chuyện gì xảy ra trong cảnh này">${esc(c.mota)}</textarea>` + hg('Có mặt', chipNv(c) || '<span class="nho">Chưa có nhân vật</span>')
-    + hg('Cảm xúc', `<div class="cx">${[0, 1, 2, 3].map((v) => `<button type="button" data-d="dat" data-k="cx" data-g="${v}" aria-pressed="${c.cx === v}" aria-label="Mức ${v}" title="Mức ${v}"></button>`).join('')}</div>`);
+    + hg('Cảm xúc', `<div class="cx">${[0, 1, 2, 3].map((v) => `<button type="button" data-d="dat" data-k="cx" data-g="${v}" aria-pressed="${c.cx === v}" aria-label="Mức ${v}"${giaiNut(`cx${v}`)}></button>`).join('')}</div>`);
   if (t === 'thoai') h = (c.thoai.length ? c.thoai.map((l, k) => `<div class="thoai-d"><i class="dau" title="${esc(l.ai)}">${esc(l.ai[0])}</i><textarea id="iTh${k}" data-f="thoai" data-i="${k}" rows="2">${esc(l.cau)}</textarea></div>`).join('')
       : `<textarea id="iLoi" data-f="loi" rows="4" placeholder="Lời đọc của cảnh này">${esc(c.loi)}</textarea>`) + `<div id="iCb">${veCb(c)}</div>`
     + (nguoiNoi().length ? `<div><button type="button" class="bt" data-d="themThoai">＋ Câu thoại</button></div>` : '')
     + hg('Chữ', `<input type="text" id="iChu" data-f="chu" value="${esc(c.chu)}" placeholder="Chữ trên màn hình">`) + hg('Vị trí', chipD(VITRI, c.viTri, 'viTri')) + hg('Tiếng', `<input type="text" id="iTd" data-f="td" value="${esc(c.td)}" placeholder="Tiếng động của cảnh">`);
   if (t === 'hinh') { const ng = nguonCo(), ten = TEN_NG;
-    h = `<div class="ba-anh">${ng.map((g) => `<button type="button" class="o-hinh" data-d="nguon" data-g="${g}" aria-pressed="${E.nguon === g}"><img src="${g === 'lop' && c.nen ? c.nen : g === '3d' && c.k3 ? c.k3 : c.anh}" alt="" style="aspect-ratio:${TILE[D.tile]}"><small>${ten[g]}</small></button>`).join('')}</div>`
+    h = `<div class="ba-anh">${ng.map((g) => `<button type="button" class="o-hinh" data-d="nguon" data-g="${g}" aria-pressed="${E.nguon === g}"${giaiNut(g)}><img src="${g === 'lop' && c.nen ? c.nen : g === '3d' && c.k3 ? c.k3 : c.anh}" alt="" style="aspect-ratio:${TILE[D.tile]}"><small>${ten[g]}</small></button>`).join('')}</div>`
       + (c.pb ? hg('Bản dựng', `<div class="day-bt">${[...Array(Math.min(c.pb, 6))].map((_, k) => `<button type="button" class="bt" data-d="banPb" aria-pressed="${k === Math.min(c.pb, 6) - 1}">${c.pb - Math.min(c.pb, 6) + k + 1}</button>`).join('')}</div>`) : '')
       + `<div class="day-bt"><button type="button" class="bt" data-d="moDoi" aria-pressed="${E.moDoi}">Đổi ảnh</button>${GOC[c.id] && D.that ? '' : `<button type="button" class="bt" data-d="veLai">${c.ve ? 'Đang vẽ…' : 'Vẽ lại ảnh'}</button><button type="button" class="bt" data-d="dungClip">Dựng lại clip</button>`}${c.m3 ? '<button type="button" class="bt" data-d="dung3d">Dựng lại 3D</button>' : ''}</div>` + (GOC[c.id] && D.that ? `<div class="qt-nut">${nutBuoc(`kf1:${c.id}`)}${nutBuoc(`duyet1:${c.id}`)}${c.thoai.length || c.loi ? nutBuoc(`giong1:${c.id}`) : ''}${nutBuoc(`clip1:${c.id}`)}</div>${(GOC[c.id].keyframe_uv || []).length > 1 ? `<span class="nho">Các ảnh đã vẽ của cảnh này, bấm để dùng:</span><div class="luoi3">${GOC[c.id].keyframe_uv.slice(-9).map((u) => `<button type="button" class="o-hinh" data-d="uvChon" data-g="${esc(u)}" aria-pressed="${GOC[c.id].keyframe_url === u}" aria-label="Dùng ảnh này"><img src="${esc(nho(u, 320))}" alt="" loading="lazy"></button>`).join('')}</div>` : ''}` : '') + luoiDoi(c); }
   if (t === 'soat') { const r = [], d = (l, chu, nut = '') => r.push(`<div class="soat ${l}"><i></i><span>${chu}</span>${nut}</div>`);

@@ -568,7 +568,7 @@ export function DataTable<T>({
   // Bản đã lưu từ lần kéo tay (docRongCot) luôn thắng: setRong dạng hàm chỉ ghi khi `rong` còn trống.
   const boCot = visibleKeys.join('|');
   useEffect(() => {
-    if (tuChotRef.current != null && tuChotRef.current !== boCot && !dangKeo) { tuChotRef.current = null; setRong({}); return; }
+    if (tuChotRef.current != null && tuChotRef.current !== boCot && !dangKeo) { tuChotRef.current = null; setRong((r) => (Object.keys(r).length ? {} : r)); return; }
     if (coDinh || effView !== 'table' || pageRows.length === 0) return;
     const bang = bangRef.current; if (!bang) return;
     const hangs = bang.querySelectorAll('thead tr'); const hang = hangs[hangs.length - 1]; if (!hang) return;
@@ -576,7 +576,7 @@ export function DataTable<T>({
     Array.from(hang.children).forEach((x, i) => { const k = visibleKeys[i]; if (k) chot[k] = Math.round((x as HTMLElement).getBoundingClientRect().width * 100) / 100; });
     if (!Object.values(chot).some((v) => v > 0)) return;   // bảng đang ẩn (tab khác, display:none) → chưa đo được, đợi lần vẽ sau
     tuChotRef.current = boCot;
-    setRong((r) => { if (Object.keys(r).length) { tuChotRef.current = null; return r; } return chot; });   // r có sẵn = bản kéo tay đã lưu → không phải tự chốt
+    setRong((r) => { if (Object.keys(r).length) { tuChotRef.current = null; return r; } const ks = Object.keys(chot); return ks.length === Object.keys(r).length && ks.every((k) => r[k] === chot[k]) ? r : chot; });   // r có sẵn = bản kéo tay đã lưu → không phải tự chốt
     // KHAI ĐIỀU KIỆN CHẠY (góp ý #giao-20261120T1141-chuyen-ie76): trước đây chạy sau MỌI lần vẽ → đo + đặt lại trạng thái liên tục, bỏ đói lệnh chuyển trang
   }, [boCot, coDinh, effView, pageRows.length, dangKeo]);   // eslint-disable-line react-hooks/exhaustive-deps
   // NHÓM DÍNH: dòng nhóm đã cuộn qua mép dưới khối tiêu đề mà nhóm vẫn còn dòng dưới → chép dòng nhóm đó vào khối tiêu đề dính (thân bảng nằm trong
@@ -705,7 +705,7 @@ export function DataTable<T>({
 
   // đo sau khi vẽ: bảng còn tràn khung → ẩn thêm một cột (lặp tới khi vừa); ô rộng ra / đổi bộ cột → tính lại từ đầu
   const soCotDu = visibleDu.length;
-  useEffect(() => { setAnTu(0); }, [rongO, soCotDu]);
+  useEffect(() => { setAnTu((n) => (n === 0 ? n : 0)); }, [rongO, soCotDu]);
   useLayoutEffect(() => {
     if (!trongO || giuCot || hienHet || effView !== 'table') return;
     const k = thanRef.current, b = bangRef.current; if (!k || !b) return;

@@ -23,8 +23,8 @@ function cauLenh(c: LoiChao) {
     `Use ONLY the facts given in the user message. Never invent numbers, results, customers, testimonials or claims. Never promise outcomes (no ROAS, CTR, revenue claims).`,
     `Voice: one busy operator writing to another. Plain text, short sentences, specific, calm. No hype, no flattery, no "I hope this finds you well", no "quick question", no exclamation marks, no emojis, no bullet lists, no em dashes or en dashes (use "-" or a new sentence).`,
     `Do not say or imply how their ads were found beyond having seen their ad. Do not mention tools, software, scraping, or how the research is produced.`,
-    `EMAIL 1 (45-120 words): line 1 names something concrete and true from THEIR ad copy (quote 3-8 of their own words). Then ONE buyer finding from the list that their ad does not cover, stated as what buyers say, and why it matters for their next ad test. Then one soft line offering the free guide${c.link_mien_phi ? ` with this exact link on its own line: ${c.link_mien_phi}` : ''}. No price, no paid product link. Subject: 3-7 words, lower-case style, specific to them, no clickbait, not "Re:".`,
-    `EMAIL 2 (15-80 words, sent a few days later in the same thread): one different finding from the list in one or two sentences, framed as a test idea for their ads. No link. No price. Subject: empty string.`,
+    `EMAIL 1 (45-120 words): open with "Hi <brand name> team," on its own line. The first sentence says you saw their ad and quotes 3-8 of their own words inside a normal sentence (never a bare quote as a line of its own). Then, naming the basis once${c.co_so ? ` ("${c.co_so}")` : ''}, give ONE buyer finding from the list that their ad does not cover, stated as what buyers say, and why it matters for their next ad test. Then one soft line offering the free guide${c.link_mien_phi ? ` with this exact link on its own line: ${c.link_mien_phi}` : ''}. No price, no paid product link. Subject: 3-7 words, lower-case style, specific to them, no clickbait, not "Re:".`,
+    `EMAIL 2 (15-80 words, sent a few days later in the same thread, no greeting line needed beyond "Hi again,"): one different finding from the list in one or two sentences, framed as a test idea for their ads. No link. No price. Subject: empty string.`,
     `EMAIL 3 (15-80 words, last note): say this is the last note, mention in one sentence that the full ${c.ngach ?? ''} report exists${c.gia ? ` (${c.gia})` : ''}${c.link_ban ? ` at ${c.link_ban}` : ''}, and make it easy to ignore. Subject: empty string.`,
     `Sign each email with just "${c.ky_ten}" on the last line and "${c.ben_gui}" on the line after it. Do not add an unsubscribe line (it is appended automatically).`,
     ...(c.cam?.length ? [`Never say or imply: ${c.cam.join('; ')}.`] : []),
@@ -74,7 +74,9 @@ export async function soanChuoi(campaignId: number, so: number, lai?: number): P
         ra.loai++; return;
       }
       if (r.kq.hop === 'no') throw new Error(`máy xét không hợp ngách: ${r.kq.ly_do}`);
-      const chuoi: ThuChuoi[] = r.kq.emails.map((t) => ({ tieu_de: String(t.subject ?? '').trim(), noi_dung: String(t.body ?? '').trim() }));
+      // dấu nháy cong → nháy thẳng (thư chữ thuần: nháy cong là một dấu hiệu máy viết + có hộp thư hiện lỗi mã)
+      const thang = (x: string) => x.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'").trim();
+      const chuoi: ThuChuoi[] = r.kq.emails.map((t) => ({ tieu_de: thang(String(t.subject ?? '')), noi_dung: thang(String(t.body ?? '')) }));
       await db.execute(sql`update outreach_prospects set email_subject = ${chuoi[0]!.tieu_de}, email_body = ${chuoi[0]!.noi_dung},
         du_lieu = jsonb_set(jsonb_set(coalesce(du_lieu, '{}'::jsonb), '{chuoi}', ${JSON.stringify(chuoi)}::jsonb), '{soan}', ${JSON.stringify({ model: r.model, luc: new Date().toISOString(), ban: String(r.kq.ly_do).slice(0, 200) })}::jsonb), updated_at = now()
         where id = ${p.id}`);

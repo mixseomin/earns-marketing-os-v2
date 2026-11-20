@@ -112,6 +112,7 @@ def cach_mep(x, z, v):  # khoảng cách từ điểm tới viền mặt bằng 
         (ax, az), (bx_, bz_) = v[i], v[(i + 1) % n]; L2_ = (bx_ - ax) ** 2 + (bz_ - az) ** 2
         t = 0 if L2_ == 0 else max(0, min(1, ((x - ax) * (bx_ - ax) + (z - az) * (bz_ - az)) / L2_)); m = min(m, math.hypot(x - ax - t * (bx_ - ax), z - az - t * (bz_ - az)))
     return m
+KT = {k['id']: k for k in json.load(open(G / 'diem-mo-hinh.json'))['ds']} if (G / 'diem-mo-hinh.json').exists() else {}
 ra = {}; bang = []
 for k in K['ds']:
     v = k['v']
@@ -137,9 +138,11 @@ for k in K['ds']:
     if co < 6: continue
     am, al = np.abs(em), np.abs(el); r = {'id': k['id'], 'ten': k.get('ten'), 'diem': len(k['d']), 'phu': round(phu, 2), 'mh': round(float(np.median(am)), 2), 'l2': round(float(np.median(al)), 2),
                                          'mh90': round(float(np.percentile(am, 90)), 2), 'l290': round(float(np.percentile(al, 90)), 2)}
+    kt = KT.get(k['id']); yk = np.array([y for _, _, y in k['d']]); tren = float(np.mean(yk > np.percentile(yk, 5) + 3))  # phần mặt bằng có khối KHÁC đứng trên: mái phẳng thì mọi tia từ trên (mô hình OSM, trước LoD2) phải dừng cùng một mặt; > 3 m trên mặt thấp nhất = trúng khối đặt lên (tháp tròn trên thân vuông)
     r['nhan'] = k['id'] not in RIENG and phu >= 0.85 and r['l2'] + 0.25 <= r['mh'] and r['l290'] <= r['mh90'] + 0.3
     sau_tv = float(np.median(sau)) if len(sau) >= 4 else 0.0  # cùng phép đo với trọng tài (sua-theo-dom20 --kiem: điểm sâu ≥ 1,5 m, trung vị có dấu): mái LoD2 phải tự qua bài đó, không chỉ thắng mô hình cũ trên cả mép
     if abs(sau_tv) >= 1.0: r['nhan'] = False; r['ly_do'] = f'phần sâu lệch {sau_tv:+.1f}'
+    if (kt or {}).get('mai') == 'flat' and tren > 0.5 and r['l290'] > 3: r['nhan'] = False; r['ly_do'] = f'khối khác đứng trên {tren:.0%}'  # thân vuông Viereckturm: mặt LoD2 trên mặt bằng là tháp tròn + chóp (khối riêng) → nâng thân lên 70 m, hàng cửa đo ảnh lơ lửng (20/11/2026); khối đặt lên mà mái LoD2 vẫn khớp DOM20 ở 90% điểm (Torbau: 0,39 m) thì giữ
     r['ly_do'] = r.get('ly_do') or ('cách dựng riêng' if k['id'] in RIENG else 'mái nón/chóp' if k['id'] in CHOP else None)
     r['nhan'] = r['nhan'] and k['id'] not in CHOP; bang.append(r)
     if not r['nhan']: continue

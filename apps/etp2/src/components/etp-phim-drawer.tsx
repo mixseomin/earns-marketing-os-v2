@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Drawer } from '@/components/ui';
 import { Dem } from '@/components/etp-so';
 import { docPhimEtp, type PhimNoiDung } from '@/lib/actions/etp-phim';
+import { KhungPhimCam } from './etp-phim-cam';
 
 const MO = 'var(--fg-3)';
 const ngoai = (u: string) => `https://href.li/?${u}`;   // link ra ngoài che referrer
@@ -32,6 +33,8 @@ export function EtpPhimDrawer({ id, onClose }: { id: number; onClose: () => void
   return (
     <Drawer onClose={onClose} width={1100} zIndex={300} padding={0}>
       {dau(p.ten ?? `phim #${p.id}`)}
+      {/* phim bị cấm → nguồn cấm + điểm số + cách gỡ ngay đầu ngăn (góp ý #1725); không cấm thì khung tự ẩn */}
+      <div style={{ padding: '12px 16px 0' }}><KhungPhimCam cid={p.id} /></div>
       <div style={{ display: 'grid', gridTemplateColumns: '220px 300px 1fr', gap: 18, padding: 16 }}>
         <div>
           {p.anh ? <img src={p.anh} alt="" referrerPolicy="no-referrer" style={{ width: '100%', borderRadius: 8, display: 'block', border: '1px solid var(--line)' }} />

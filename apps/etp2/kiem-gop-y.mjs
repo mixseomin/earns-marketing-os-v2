@@ -388,6 +388,16 @@ const LUAT = [
   { card: 'xem-bai-qc-2011', tep: 'apps/etp2/src/components/etp-view.tsx', mot: '<KhungBaiQc cr={c.creative_id} camp={c.camp_id}', vi: 'ngăn camp hiện khung bài QC đúng camp' },
   { card: 'xem-bai-qc-2011', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', mot: 'chưa lên camp — chữ dự kiến', vi: 'creative chưa lên camp ghi rõ chữ là dự kiến' },
   { card: 'xem-bai-qc-2011', tep: 'apps/etp2/src/components/etp-bai-qc.tsx', mot: "'… Xem thêm'", vi: 'chữ QC cắt "… Xem thêm" như Facebook' },
+  // #1725 (anh 20/11/2026 "Nếu bị cấm thì bấm vào phải show lý do chi tiết do cái gì : nguồn cấm, do điểm số hay do bên team Etho lọc cấm")
+  { card: '1725', tep: 'apps/etp2/src/lib/etp-phim-cam.ts', mot: 'export function nguonCam', vi: 'một hàm đọc nguồn cấm + điểm số từ lý do sổ cấm' },
+  { card: '1725', tep: 'apps/etp2/src/lib/etp-phim-cam.ts', mot: "'Ethopex / đội Etho báo vi phạm'", vi: 'nhận ra phim do đội Etho báo cấm' },
+  { card: '1725', tep: 'apps/etp2/src/lib/etp-phim-cam.ts', mot: "'Máy soát 18+ chấm điểm (NudeNet)'", vi: 'nhận ra phim cấm do điểm số máy soát' },
+  { card: '1725', tep: 'apps/etp2/src/lib/actions/etp-phim-cam.ts', mot: 'export async function docPhimCam', vi: 'đọc sổ cấm + soát 18+ + lần gỡ của một phim' },
+  { card: '1725', tep: 'apps/etp2/src/components/etp-phim-cam.tsx', mot: 'không có điểm số — cấm theo nhận xét', vi: 'khung chi tiết ghi rõ có / không do điểm số' },
+  { card: '1725', tep: 'apps/etp2/src/components/etp-mau-dung-drawer.tsx', mot: '<KhungPhimCam cid={cid} gon />', vi: 'ngăn dựng theo mẫu: bấm PHIM CẤM mở khung lý do' },
+  { card: '1725', tep: 'apps/etp2/src/components/etp-mau-dung-drawer.tsx', mot: "get('mdc') === '1'", vi: 'khung lý do mở/gập đi theo URL' },
+  { card: '1725', tep: 'apps/etp2/src/components/etp-phim-drawer.tsx', mot: '<KhungPhimCam cid={p.id} />', vi: 'ngăn phim hiện khung lý do cấm ở đầu' },
+  { card: '1725', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const n = nguonCam(c.ly_do)', vi: 'chữ nổi PHIM CẤM ở tab Phim ghi nguồn + điểm' },
 ];
 
 const loi = [];

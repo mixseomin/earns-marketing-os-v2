@@ -15,6 +15,7 @@ import { hopKhuon } from './etp-mau-cr';
 import { loiThuongMau } from '@/lib/etp-mau-loi';
 import { FilterChips, useMediaViewer } from '@/components/ui';
 import { DO, XANH } from './etp-doi-thu';
+import { KhungPhimCam } from './etp-phim-cam';
 
 const BUOC: [string, string][] = [['cho', 'Chờ máy'], ['trang_phim', 'Trang phim'], ['tai_tap', 'Tải tập'], ['chon_khung', 'Chọn khung'], ['ve_mau', 'Vẽ mẫu'], ['giong', 'Giọng'], ['video', 'Video'], ['thu_vien', 'Thư viện'], ['creative', 'Tải creative'], ['xong', 'Xong']];
 const tenBuoc = (b: string) => BUOC.find(([k]) => k === b)?.[1] ?? 'Bước khác';
@@ -48,6 +49,9 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
   }, [ma, cid]);   // eslint-disable-line react-hooks/exhaustive-deps
   // lọc dòng thời gian (YDNI mục 12) — giữ trên URL ?mdl=loi
   const [locMoc, setLocMoc] = useState<LocMoc>(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('mdl') === 'loi' ? 'loi' : 'tat'));
+  // khung chi tiết PHIM CẤM mở / gập (góp ý #1725) — giữ trên URL ?mdc=1 để F5 còn nguyên (YDNI 9e)
+  const [moCam, setMoCam] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('mdc') === '1');
+  const datMoCam = (v: boolean) => { setMoCam(v); const u = new URL(window.location.href); if (v) u.searchParams.set('mdc', '1'); else u.searchParams.delete('mdc'); window.history.replaceState(window.history.state, '', u.toString()); };
   // ad gốc của đối thủ mà mẫu học theo (anh 19/11/2026 "Vẫn show thêm ad gốc của đối thủ cũng đc") — cùng bản nhớ của tab
   const { so: soMau } = useSoNho<{ mau: MauCr[]; phim: { id: number; ten: string }[]; luc: string }>('mau-cr', docMauCr, 20_000, hopKhuon);
   const goc = (soMau?.mau.find((x) => x.ma === ma)?.ban ?? []).filter((b) => b.vai === 'goc' && b.anh);
@@ -60,6 +64,7 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
   if (!ok) return <Drawer onClose={onClose} width={760} padding={0}>{dau}<div style={{ padding: 16, color: du && 'loi' in du ? DO : MO_SO }}>{du && 'loi' in du ? du.loi : 'đang đọc…'}</div></Drawer>;
   const h = ok.hien, i = h ? BUOC.findIndex(([k]) => k === h.buoc) : -1, xong = h?.trang_thai === 'xong', loi = h?.trang_thai === 'loi';
   const loiCuoi = [...ok.nk].reverse().find((x) => x.trang_thai === 'loi');
+  const phimCam = /^\s*PHIM CẤM/i.test(h?.ghi ?? '');
   return <Drawer onClose={onClose} width={760} padding={0}>{dau}
     <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* chuỗi nhịp */}
@@ -69,7 +74,12 @@ export function EtpMauDungDrawer({ khoa, onClose }: { khoa: string; onClose: () 
             color: tt === 'chua' ? MO_SO : MAU_TT[tt] ?? '#60a5fa', background: tt === 'chua' ? 'transparent' : 'rgba(255,255,255,0.03)' }}>{tt === 'xong' ? '✓ ' : tt === 'loi' ? '✕ ' : ''}{ten}{AI_BUOC[k] ? <sup style={{ color: AMBER, fontWeight: 700, marginLeft: 2 }} title={`dùng AI ngoài, mất tiền: ${AI_BUOC[k]}`}>AI</sup> : null}</div>; })}
       </div>
       {h ? <div style={{ fontSize: 12.5, padding: '8px 10px', borderRadius: 8, border: `1px solid ${loi ? DO : 'var(--line)'}`, color: loi ? DO : 'var(--fg-1)' }}>
-        <b>{xong ? 'Xong' : `${loi ? 'Lỗi ở' : h.trang_thai === 'cho' ? 'Đang chờ ·' : 'Đang làm ·'} ${tenBuoc(h.buoc)}`}</b> — {loiThuongMau(h.ghi)} <span style={{ color: MO_SO }}>· cập nhật {gio(h.cap_nhat)}</span>
+        <b>{xong ? 'Xong' : `${loi ? 'Lỗi ở' : h.trang_thai === 'cho' ? 'Đang chờ ·' : 'Đang làm ·'} ${tenBuoc(h.buoc)}`}</b> — {phimCam
+          // PHIM CẤM BẤM ĐƯỢC (góp ý #1725 "bấm vào phải show lý do chi tiết: nguồn cấm, do điểm số hay do bên team Etho lọc cấm") — mở / gập khung chi tiết ngay dưới, giữ trên URL ?mdc=1
+          ? <><button type="button" onClick={() => datMoCam(!moCam)} title="bấm xem nguồn cấm, điểm số (nếu có), lúc cấm, cách gỡ"
+              style={{ font: 'inherit', fontWeight: 700, color: DO, background: 'rgba(248,113,113,0.1)', border: `1px solid ${DO}`, borderRadius: 6, padding: '0 6px', cursor: 'pointer' }}>🚫 PHIM CẤM · {moCam ? 'gập ▾' : 'xem lý do ▸'}</button> {loiThuongMau(h.ghi).replace(/^\s*PHIM CẤM\s*:?\s*/i, '')}</>
+          : loiThuongMau(h.ghi)} <span style={{ color: MO_SO }}>· cập nhật {gio(h.cap_nhat)}</span>
+        {phimCam && moCam ? <div style={{ marginTop: 8, color: 'var(--fg-1)' }}><KhungPhimCam cid={cid} gon /></div> : null}
         <div style={{ marginTop: 4, color: AMBER, fontSize: 12 }} title={`${Object.entries(AI_BUOC).map(([k, v]) => `${tenBuoc(k)}: ${v}`).join('\n')}\nBước khác chạy máy nhà, 0₫.`}>Chi AI ngoài: <b>{dongVnd(h.vnd ?? 0)}</b> <span style={{ color: MO_SO }}>· bước dùng AI: {Object.keys(AI_BUOC).map(tenBuoc).join(', ')}</span></div></div>
         : <div style={{ color: MO_SO, fontSize: 12.5 }}>phim đã chọn nhưng máy chưa nhận việc</div>}
       {loiCuoi && !loi ? <div style={{ fontSize: 11.5, color: MO_SO }}>lỗi gần nhất (đã qua): <span style={{ color: DO }}>{loiThuongMau(loiCuoi.ghi)}</span> · {gio(loiCuoi.luc)}</div> : null}

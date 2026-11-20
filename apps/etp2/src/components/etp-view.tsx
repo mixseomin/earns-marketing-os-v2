@@ -16,6 +16,7 @@ import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import type { TrangPhim } from '@/lib/etp-doc';
 import { moXet, type DuLieuEtpGui } from '@/lib/etp-xet-gon';
 import { Dem, KeToan, tienKT, mauLai, MAU_DANG, MA_DANG, BadgeDang, BadgeDangNgan } from '@/components/etp-so';
+import { CAM_CHAN, nguonCam } from '@/lib/etp-phim-cam';
 import { NHOM_DANG } from '@/lib/etp-dang';
 import { maGiong } from '@/lib/etp-dang';
 import { lyDoChan, chuChan, type TieuChi } from '@/lib/etp-chan';
@@ -1117,7 +1118,8 @@ const NHOM_LUAT: [string, string, string[]][] = Object.entries(TEN_NHOM_LUAT).ma
  *  primitive nhà MenuBaCham; Nhận / Trả gọi cùng server action với ngăn phim, xong làm mới trang; lỗi (người khác đang giữ…) báo ngay */
 // PHIM CẤM (anh 19/11/2026): nhãn đỏ CẤM cạnh tên phim — rê xem lúc cấm + lý do (sổ ethopex_phim_cam, cùng sổ cổng cong.phim_cam chặn camp mới / nhân bản / bật / tăng / lên creative)
 const MAU_CAM = '#f87171';
-const chuCam = (c: NonNullable<PhimEtpKho['cam']>) => `PHIM CẤM${c.luc ? ` từ ${c.luc}` : ''}${c.ly_do ? `\nLý do: ${c.ly_do}` : ''}\nMáy không mở camp mới, không nhân bản, không bật lại, không tăng, không lên creative cho phim này — kể cả ROAS và vé tay`;
+// #1725: chữ nổi ghi rõ NGUỒN cấm + điểm số (nếu có) — cùng hàm nguonCam với khung chi tiết ở ngăn phim
+const chuCam = (c: NonNullable<PhimEtpKho['cam']>) => { const n = nguonCam(c.ly_do); return `PHIM CẤM${c.luc ? ` từ ${c.luc}` : ''}\nNguồn: ${n.nguon}${n.mo_hinh ? ` · ${n.mo_hinh}` : ''}\nĐiểm số: ${n.diem.length ? n.diem.map((d) => `${d.nhan} ${d.diem.toFixed(2)}`).join(', ') : 'không có — cấm theo nhận xét'}\nLý do: ${n.vi_sao}\n${CAM_CHAN}\n(bấm tên phim để xem chi tiết)`; };
 function NhanCam({ cam }: { cam: NonNullable<PhimEtpKho['cam']> }) {
   return <span data-nhan="phim-cam" style={{ flex: '0 0 auto' }}><Pill color={MAU_CAM} tone="solid" size="xs" label="CẤM" title={chuCam(cam)} /></span>;
 }

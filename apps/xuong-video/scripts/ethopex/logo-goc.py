@@ -41,6 +41,25 @@ def tach_nen(rgb):
         if not os.path.exists(ra): raise RuntimeError(f"BiRefNet không ra lớp nền: {(r.stderr or r.stdout)[-200:]}")
         return np.asarray(Image.open(ra).convert("L")).astype(np.float32) / 255
 
+# CHUẨN TÁCH NỀN LOGO (anh 20/11/2026 "Đẹp hẳn. Sửa thành chuẩn tách nền"): poster nền rối → ảnh KHOÁ MÀU. MỘT hàm gọi mô hình ảnh cho mọi máy (máy dựng theo mẫu, dòng ảnh tĩnh):
+# mô hình ảnh rẻ nhất của cổng chung giữ nguyên logo, tô phần còn lại hồng phẳng; nhớ tệp ra (MỘT lần / phim). → (đường dẫn, tiền ₫ lượt này — 0 nếu đã có)
+DE_LOGO_KHOA = ("Edit this movie poster. Keep the movie TITLE LOGO exactly as it is: same letters, same font, same colors, same ornaments, same size and same position. "
+    "Replace absolutely everything else in the image (people, background, other small text and app labels) with one flat solid pure magenta color #FF00FF. "
+    "No shadows, no glow, no gradient on the magenta. The result is only the unchanged title logo on a flat magenta background.")
+def anh_khoa(link, ra, ma=""):
+    import base64, urllib.request, urllib.error
+    if os.path.exists(ra) and os.path.getsize(ra) > 20000: return ra, 0
+    if not link: raise RuntimeError("không có link poster công khai để gửi mô hình ảnh")
+    k = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/.secrets/cong-ai.env")) if "=" in l)["CONG_AI_KEY"].strip().strip('"')
+    try:
+        r = urllib.request.urlopen(urllib.request.Request("https://spy.on.tc/api/ai", method="POST", headers={"authorization": f"Bearer {k}", "content-type": "application/json", "user-agent": "Mozilla/5.0 logo-goc"},
+            data=json.dumps({"loai": "anh", "viec": "etp-logo-khoa", "ma": str(ma), "prompt": DE_LOGO_KHOA, "ti_le": "3:4", "tham_chieu": [link], "bo_chinh_hang": True}).encode()), timeout=400)
+        j = json.loads(r.read())
+    except urllib.error.HTTPError as e: raise RuntimeError(f"cổng ảnh từ chối: {e.read()[:200].decode('utf8', 'replace')}")
+    if not j.get("anh_b64"): raise RuntimeError(f"cổng ảnh không trả ảnh: {str(j.get('loi'))[:160]}")
+    open(ra, "wb").write(base64.b64decode(j["anh_b64"])); v = round((j.get("chi_usd") or 0) * 26000)
+    print(f"logo gốc: ảnh khoá màu AI {j.get('model')} {v}₫ → {ra}", flush=True); return ra, v
+
 def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     """→ (đường dẫn PNG trong suốt, 'cat' | 'ai' | 'dai'), hoặc (None, None) kèm lý do qua ghi_ly_do(str). nen_sach(poster) → đường dẫn ảnh poster đã xoá chữ (tầng AI, tuỳ chọn)."""
     noi = ghi_ly_do or (lambda s: None)

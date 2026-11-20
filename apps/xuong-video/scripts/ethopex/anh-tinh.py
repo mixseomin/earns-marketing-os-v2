@@ -273,14 +273,21 @@ def ten_poster(ten, poster, ra):
     nen = Image.new("RGBA", out.size, (0, 0, 0, 0)); nen.putalpha(m.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3)).point(lambda v: min(230, int(v * 1.3))))
     Image.alpha_composite(nen, out).save(ra); return ra
 
-def _logo_sach(ten, poster, ra):
+def _logo_sach(ten, poster, ra, cid=None):
     """LOGO GỐC CẮT RỜI theo chuẩn mẫu Logo gốc (logo-goc.py, tầng không AI, 0₫) cho dòng ảnh tĩnh — 20/11/2026 soát American Sniper: ten_poster để lại HỘP TỐI vuông sau logo và
     rụng hoạ tiết khác màu (tâm ngắm đỏ). Chỉ nhận khi logo-goc cắt rời sạch ('cat'); nền poster rối (cần AI / dải poster) → None, bên gọi dùng ten_poster như cũ."""
     try:
         import importlib.util
         s = importlib.util.spec_from_file_location("logo_goc_at", os.path.join(D, "logo-goc.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
-        tam = ra[:-4] + "-tam.png"; r, kieu = m.tach(ten, poster, tam)
-        if not r or kieu != "cat": return None
+        # CHUẨN TÁCH NỀN (anh 20/11/2026 "Sửa thành chuẩn tách nền"): nền poster rối → ảnh khoá màu của mô hình ảnh rẻ nhất (~200₫ / phim, một lần, nhớ logo-khoa.png cùng thư mục
+        # với máy dựng theo mẫu). Chỉ nhận logo cắt rời sạch ('cat' 0₫ | 'khoa'); còn lại → None, bên gọi dùng ten_poster như cũ.
+        def khoa(_p):
+            if not cid: return None
+            s2 = importlib.util.spec_from_file_location("tai_tap_lg", os.path.join(D, "tai-tap.py")); TT = importlib.util.module_from_spec(s2); s2.loader.exec_module(TT)
+            url = sql(f"select coalesce(url, '') from etp.phim where content_id = {int(cid)}"); link = TT.og_anh(TT.mo_rong(url)) if url else None
+            return m.anh_khoa(link, os.path.join(os.path.dirname(poster), "logo-khoa.png"), cid)[0]
+        tam = ra[:-4] + "-tam.png"; r, kieu = m.tach(ten, poster, tam, lambda s_: print("logo gốc:", s_, file=sys.stderr), None, khoa)
+        if not r or kieu not in ("cat", "khoa"): return None
         lg = Image.open(r).convert("RGBA"); dem = 40; to_ = Image.new("RGBA", (lg.width + 2 * dem, lg.height + 2 * dem)); to_.paste(lg, (dem, dem), lg); al = to_.split()[3]
         nen = Image.new("RGBA", to_.size, (0, 0, 0, 0)); nen.putalpha(ImageChops.lighter(al.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3)).point(lambda v: min(235, int(v * 1.4))),
                                                                               al.filter(ImageFilter.GaussianBlur(26)).point(lambda v: min(130, int(v * 1.5)))))
@@ -302,7 +309,7 @@ def anh(cid, ten, k, tm, ban=0):
     im = Image.composite(Image.new("RGB", (W, H)), im, toi.resize((W, H)))
     nen = os.path.join(tm, f"nen-{ban}.png"); im.save(nen); mat_day = (k["mat"][1] + k["mat"][3]) * H
     tpp = os.path.join(tm, "ten-poster.png")
-    tp = None if not MOI else (_logo_sach(ten, os.path.join(tm, "poster.jpg"), tpp) or ten_poster(ten, os.path.join(tm, "poster.jpg"), tpp)) if ban == 0 or not os.path.exists(tpp) else tpp
+    tp = None if not MOI else (_logo_sach(ten, os.path.join(tm, "poster.jpg"), tpp, cid) or ten_poster(ten, os.path.join(tm, "poster.jpg"), tpp)) if ban == 0 or not os.path.exists(tpp) else tpp
     if tp:   # tên phim đúng kiểu chữ poster: rộng ≤ W − 120, cao ≤ 22% màn, đặt dưới mặt, chừa ~20% đáy
         t_ = Image.open(tp); s_ = min((W - 120) / t_.width, H * 0.22 / t_.height); t_ = t_.resize((round(t_.width * s_), round(t_.height * s_)), Image.LANCZOS)
         y = int(min(max(H * 0.66 - t_.height / 2, mat_day + 60), H * (TEN_DAY_FREE if CO_FREE else 0.80) - t_.height)); lop = Image.new("RGBA", (W, H)); lop.paste(t_, ((W - t_.width) // 2, y), t_)

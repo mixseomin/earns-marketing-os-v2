@@ -47,6 +47,10 @@ if not p and x.get("ssh_host"): ip, p = x["ssh_host"], str(x["ssh_port"])   # ch
 print(f"{ip} {p}" if ip and p else "")' 2>/dev/null; }
 thue_vast() {   # máy một card ≥ 24GB, đời card ≥ 8.0 (INT8 ConvRot — V100 / Quadro RTX 6000 không chạy), driver CUDA ≥ 13, ổ ≥ 70GB, tin cậy ≥ 0,97, mạng ≥ 500 Mbps — rẻ trước. SSH: chế độ ssh_direc của Vast tự nạp khoá SSH của tài khoản
   local DS i g gia noi R N
+  # VAST HẾT TIỀN (20/11/2026, lượt thử phim #7999: số dư −0,05$): vẫn thuê được, vài phút sau Vast tự DỪNG máy giữa lúc tải mô hình, iMac chờ suông.
+  # Số dư (credit + balance) không quá XV_H3_VAST_SO_DU (mặc định 0,3$) → bỏ qua Vast, sang nhà kế (RunPod).
+  local SD; SD=$(VAPI GET "/users/current/" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(round(float(d.get("credit") or 0) + float(d.get("balance") or 0), 3))' 2>/dev/null)
+  python3 -c "import sys; sys.exit(0 if float('${SD:-0}') > float('${XV_H3_VAST_SO_DU:-0.3}') else 1)" 2>/dev/null || { echo "  Vast: số dư ${SD:-?}\$ không đủ (cần hơn ${XV_H3_VAST_SO_DU:-0.3}\$) → bỏ qua Vast, sang nhà kế. Nạp tiền Vast thì lượt sau tự dùng lại (rẻ hơn RunPod ~2,5 lần)" >&2; return 1; }
   DS=$(VAPI GET "/bundles/?q=$(python3 -c 'import json,urllib.parse,sys; print(urllib.parse.quote(json.dumps({"verified":{"eq":True},"rentable":{"eq":True},"num_gpus":{"eq":1},"gpu_frac":{"gte":0.99},"cuda_max_good":{"gte":13.0},"disk_space":{"gte":int(sys.argv[3])},"reliability2":{"gte":0.97},"inet_down":{"gte":500},"gpu_ram":{"gte":int(sys.argv[2])},"compute_cap":{"gte":800},"dph_total":{"lte":float(sys.argv[1])},"type":"on-demand","order":[["dph_total","asc"]],"limit":8})))' "${XV_H3_GIA_TOI_DA:-0.6}" "${XV_H3_VRAM:-23000}" "${XV_H3_O:-70}")" \
     | python3 -c 'import json,sys; [print("%s|%s|%.3f|%s" % (o["id"], o["gpu_name"], o["dph_total"], o.get("geolocation") or "")) for o in json.load(sys.stdin).get("offers",[])]' 2>/dev/null)
   [ -n "$DS" ] || { echo "  Vast: không có máy hợp (≤ \$${XV_H3_GIA_TOI_DA:-0.6}/giờ, driver CUDA 13)" >&2; return 1; }
@@ -85,7 +89,12 @@ done
 echo "đã thả lô lên máy lúc $(date +%H:%M) — iMac ghé kéo clip mỗi 30 giây"
 XONG=""; for i in $(seq 1 $(( (TRAN + 25) * 2 ))); do
   sleep 30
-  rsync -aq -e "ssh -p $P -o ConnectTimeout=15 -o BatchMode=yes" root@$IP:/root/h3/ra/ "$RA/" 2>/dev/null || continue
+  # không kéo được: máy Vast còn chạy không? 3 lần liền không thấy máy (nhà cung cấp dừng: hết tiền / chủ máy thu hồi) → dừng lượt, không chờ suông tới trần
+  if ! rsync -aq -e "ssh -p $P -o ConnectTimeout=15 -o BatchMode=yes" root@$IP:/root/h3/ra/ "$RA/" 2>/dev/null; then
+    if [ "$LOAI" = vast ] && [ -z "$(cong_vast)" ]; then MAT=$(( ${MAT:-0} + 1 )); else MAT=0; fi
+    [ "${MAT:-0}" -ge 3 ] && { echo "✗ máy $LOAI $MAY không còn chạy (bị nhà cung cấp dừng: hết tiền hoặc chủ máy thu hồi) — dừng lượt"; break; }
+    continue
+  fi; MAT=0
   [ -f "$RA/XONG" ] && { XONG=1; break; }
 done
 grep -h . "$RA/so.jsonl" 2>/dev/null | python3 -c '

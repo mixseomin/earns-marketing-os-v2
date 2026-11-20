@@ -321,7 +321,7 @@ function tuStudio(pd, tap, ds) {
   const loai = co3d ? 'phim' : p.loai === 'quang_cao' || /^qc_/.test(tl) ? 'qc' : p.loai === 'may_dung' ? 'may' : tl === 'tai_lieu' || laMoc ? 'tailieu' : 'doc';
   if (ds.length) for (const c of ds) if (!GOC[`s${c.id}`]) GOC[`s${c.id}`] = c;
   return { ten: p.ten + (pd.tap.length > 1 ? ` · tập ${tap.so}` : ''), loai, tile, kieu: 'chart-chapters', vid: tap.video_url || tap.xuat?.[tap.xuat.length - 1]?.url || undefined,
-    giong: GIONG[0], toc: 'Vừa', nhac: tap.nhac_url ? NHAC[1] : NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs, set: co3d ? { vat: [], khoi } : undefined, canh, that: { phim: p.id, tap: tap.id, soTap: pd.tap.length, trong: !ds.length, kt: p.kinh_thanh || {}, moTa: p.mo_ta || '', loaiPhim: p.loai, brief: String(tap.brief || '').split('\n\n=== CÁCH KỂ (Studio 2 tự ghép')[0], kichBan: tap.kich_ban || '', xuatUrl: tap.video_url || '', laMoc, nx: tap.thu_nguoi_xem || null, mauNguoi: pd.nhanVat.filter((x) => x.loai === 'nhan_vat').map((x) => x.id) } };
+    giong: GIONG[0], toc: 'Vừa', nhac: tap.nhac_url ? NHAC[1] : NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs, set: co3d ? { vat: [], khoi } : undefined, canh, that: { phim: p.id, tap: tap.id, soTap: pd.tap.length, trong: !ds.length, kt: p.kinh_thanh || {}, moTa: p.mo_ta || '', loaiPhim: p.loai, brief: String(tap.brief || '').split('\n\n=== CÁCH KỂ (Studio 2 tự ghép')[0], kichBan: tap.kich_ban || '', xuatUrl: tap.video_url || '', laMoc, nx: tap.thu_nguoi_xem || null, coCachKe: String(tap.brief || '').includes('=== CÁCH KỂ (Studio 2 tự ghép'), mauNguoi: pd.nhanVat.filter((x) => x.loai === 'nhan_vat').map((x) => x.id) } };
 }
 /** dự án chờ: khung trống hiện trong lúc đọc phim thật */
 const duAnCho = () => ({ ten: 'Đang mở phim…', loai: 'hinh', tile: '9:16', kieu: 'chart-chapters', giong: GIONG[0], toc: 'Vừa', nhac: NHAC[2], am: 55, nhoLai: true, kieuChu: KCHU[0], nvs: [], canh: [canhMoi({ nhan: 'Đang mở', anh: TRONG, tg: 4 })], cho: true });
@@ -518,10 +518,11 @@ function giaBuoc(k) { const g = E.gia || {}, [b, sid] = k.split(':'), giay = (ds
     case 'clip': return xepHang() ? 0 : g.giay1 ? g.giay1 * giay(canhThieu('clip')) : null; case 'clip1': return xepHang() ? 0 : g.giay1 && GOC[sid] ? g.giay1 * (+GOC[sid].thoi_luong_s || 0) : null;
     case 'giong': return g.giong ?? null; case 'nhac': return g.nhac ?? null; default: return null; } }
 /** chạy một việc lần lượt cho từng cảnh; cảnh nào studio từ chối thì ghi lại rồi ĐI TIẾP cảnh sau (trước đây dừng cả loạt ở cảnh đầu tiên bị từ chối), cuối cùng báo đủ từng cảnh */
-async function lanLuot(ds, lam) { const loi = []; let ok = 0; for (const c of ds) { try { await lam(c); ok++; } catch (e) { loi.push(`cảnh ${Math.round(+c.thu_tu)}: ${String(e.message).replace(/^Shot #\d+ /, '')}`); } }
-  if (loi.length) throw new Error(`${ok}/${ds.length} cảnh chạy được, ${loi.length} cảnh bị từ chối — ${loi.join(' ‖ ')}`); }
+async function lanLuot(ds, lam) { const loi = []; let ok = 0, khoaVx = 0; for (const c of ds) { try { await lam(c); ok++; } catch (e) { if (/chưa thử VideoExpress/.test(e.message)) khoaVx++; else loi.push(`cảnh ${Math.round(+c.thu_tu)}: ${String(e.message).replace(/^Shot #\d+ /, '')}`); } }
+  if (khoaVx) loi.unshift(`${khoaVx} cảnh: studio đang khoá video trả phí. Luật của studio là thử dựng bằng VideoExpress (0₫) trước, hoặc quản trị mở khoá trả phí cho cảnh; cả hai việc hiện chỉ quản trị làm được ở studio`);
+  if (loi.length) throw new Error(`${ok}/${ds.length} cảnh chạy được, ${ds.length - ok} cảnh bị từ chối — ${loi.join(' ‖ ')}`); }
 const BUOC_SV = {
-  brief: (t) => ghiSv('suaTap', t.tap, { brief: E.kb.brief.trim() }),
+  brief: (t) => { if (t.coCachKe && E.coSo === undefined) throw new Error('đang đọc cơ sở Astrolas của video, bấm lại sau vài giây'); return ghiSv('suaTap', t.tap, { brief: t.coCachKe ? briefDayDu() : E.kb.brief.trim() }); },
   astro: async (t) => { const q = (E.cs.cauHoi || E.kb.brief).trim(); if (q.length < 8) throw new Error('gõ điều bạn muốn Astrolas phân tích'); E.coSo = await ghiSv('phanTichAstrolasS2', t.tap, { cauHoi: q, nguoi: E.cs.nguoi, ngonNgu: t.kt.ngon_ngu || 'vi' }); },
   viet: (t) => { if (!E.kb.brief.trim()) throw new Error('chưa có ý tưởng: gõ điều bạn muốn chia sẻ và bạn nghĩ gì về nó'); return ghiSv('vietKichBanTap', t.tap, briefDayDu(), E.kb.giay); },
   tach: (t) => ghiSv('tachCanhTap', t.tap, 0, E.kb.giay),

@@ -422,7 +422,7 @@ span.lp-than { cursor: default }
 .bt.hd-mo { font-size: 11.5px; padding: 3px 8px; white-space: nowrap }
 .sl-hop { display: grid; gap: 6px; justify-self: stretch; padding: 8px; border: 1px solid var(--brass); border-radius: 8px; background: var(--mat) } .sl-hop textarea { width: 100%; font: 400 13px var(--f-than); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px; resize: vertical } .sl-gia { color: var(--ink-2) }
 .qt-nut { display: grid; gap: 5px; justify-items: start } .qt-nut .bt { text-align: left; white-space: normal } .qt-nut .bao { font-size: 12.5px; padding: 8px 10px; overflow-wrap: anywhere; justify-self: stretch; max-height: 220px; overflow: auto }
-.qt-m { border: 1px solid var(--line); border-radius: 8px; overflow: hidden } .qt-m.mo { border-color: var(--brass) }
+.qt-m { border: 1px solid var(--line); border-radius: 8px; overflow: hidden } .qt-m.bao, .qt-m.loi { padding: 0; margin: 0; font-size: inherit; color: inherit; border-radius: 8px; background: var(--loi-nhat) } .qt-m.mo > button { background: var(--brass-nhat) }
 .qt-m > button { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; width: 100%; padding: 6px 8px; background: none; border: 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer }
 .qt-m > button:hover { background: var(--bg) } .qt-m > button > i { width: 8px; height: 8px; border-radius: 50% } .qt-m b { font-weight: 500 } .qt-m .so { font: 11.5px var(--f-so); color: var(--ink-3) }
 .qt-m u { text-decoration: none; font-size: 10.5px; color: var(--loi); background: var(--loi-nhat); padding: 1px 6px; border-radius: 6px; white-space: nowrap }

@@ -1517,5 +1517,10 @@ export const LUAT = [
   { card: 'lenh-cho-phanh-2011', tep: 'apps/etp/nuoi_bo.py', co: 'import lenh_cho; lc = lenh_cho.chay(xem)', vi: 'gắn vào nhịp worker sẵn có (không timer mới)' },
   { card: 'lenh-cho-phanh-2011', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'LC.hop_le(goc, roas, ns)', vi: '★ ROAS $5–10 chỉ khi hàng đang chạy đúng lệnh đó' },
   { card: 1716, tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'alter table etp.mau_dung_nk add column if not exists vnd integer;', vi: 'nhật ký dựng theo mẫu có cột ₫ AI ngoài từng bước (anh 20/11/2026 "Thêm thông tin đoạn dùng AI, mất chi phí ngoài")' },
+  // man-bai-viet-2011 — KHO BÀI VIẾT (anh 20/11/2026 "trong etp2 chưa có chỗ quản lý danh sách bài viết này để từ đó lên camp mới"): mã bài mỗi camp + view một dòng một bài
+  { card: 'man-bai-viet-2011', tep: 'apps/etp/dong-bo.py', co: '"bai_viet": a.get("effective_object_story_id") or None', vi: 'đồng bộ camp ghi mã bài của ad' },
+  { card: 'man-bai-viet-2011', tep: 'apps/etp/dong-bo.py', co: 'where bai_doc is null order by tao desc nulls last', vi: 'lấp ngược mã bài theo lô (150 camp / lượt)' },
+  { card: 'man-bai-viet-2011', tep: 'apps/etp/dong-bo.py', co: 'insert into etp.bang_luat (id, gia_tri)', vi: 'chép sổ luật chung cho view mốc (không ngưỡng riêng)' },
+  { card: 'man-bai-viet-2011', tep: 'packages/db/migrations/0454_etp_bai_viet.sql', co: "jsonb_array_elements(l.g->'nhan_ban'->'nac')", vi: 'mốc nấc nhân bản đọc từ sổ luật chung' },
   { card: 1716, tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'vnd_truoc=vnd - da_ghi[0]', vi: 'mỗi lần đổi bước, ₫ bước vừa xong tiêu ghi lên dòng nhật ký của chính bước đó' },
 ];

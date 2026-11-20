@@ -68,6 +68,11 @@ def main():
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lich-gio.py")], capture_output=True, text=True, timeout=300)
         print((r.stdout or "").strip()[-300:]); r.stderr.strip() and loi.append(f"lich_gio: {r.stderr.strip()[-200:]}")
     except Exception as e: loi.append(f"lich_gio: {e}")
+    # ── SỔ LUẬT CHUNG → etp.bang_luat (một bản chép, ghi đè mỗi lượt): view kho bài viết etp.bai_viet_v đọc ngưỡng mốc ở đây, không tự đặt ngưỡng (0454)
+    try:
+        _bl = json.dumps(json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web", "src", "lib", "etp-bang-luat.json"))))
+        q(f"insert into etp.bang_luat (id, gia_tri) values (1, $J${_bl}$J$::jsonb) on conflict (id) do update set gia_tri = excluded.gia_tri, luc = now() where etp.bang_luat.gia_tri is distinct from excluded.gia_tri")
+    except Exception as e: loi.append(f"bang_luat: {e}")
     # ── camp
     try:
         # TÀI KHOẢN NHÀ / NGOÀI (anh 28/10/2026): danh sách đủ mọi trang (tối đa 1.000/trang); camp tài khoản nhà vào kho luật như cũ, camp tài khoản
@@ -129,14 +134,21 @@ def main():
         # + camp ACTIVE ≤ 3 ngày mà kho còn ghi giao ≠ ACTIVE: Ethopex KHÔNG đổi updated_at của camp khi nhóm QC được duyệt / tới giờ chạy (05/11/2026: 60 camp
         #   ACTIVE từ 08:29 mà kho đứng ADSET_PAUSED) → đọc lại chi tiết tới khi giao khớp thật
         cho = set() if day_du else {int(x) for x in q("select camp_id from etp.camp where trang_thai = 'ACTIVE' and giao is distinct from 'ACTIVE' and tao > now() - interval '3 days'").split()}
-        doi = [c for c in ds if day_du or c["id"] not in cu or c["id"] in cho or str(c.get("updated_at") or "")[:19] != (cu.get(c["id"]) or "")[:19].replace(" ", "T")]
+        # + LẤP NGƯỢC MÃ BÀI (kho bài viết, anh 20/11/2026): camp chưa từng đọc mã bài (bai_doc trống) — tối đa 150 camp / lượt, mới trước; chỉ camp còn trong danh sách
+        _ids = {c["id"] for c in ds}
+        lap = set() if day_du else set([x for x in (int(v) for v in q("select camp_id from etp.camp where bai_doc is null order by tao desc nulls last").split()) if x in _ids][:150])
+        doi = [c for c in ds if day_du or c["id"] not in cu or c["id"] in lap or c["id"] in cho or str(c.get("updated_at") or "")[:19] != (cu.get(c["id"]) or "")[:19].replace(" ", "T")]
+        kq["so_lap_bai"] = len(lap)
         def ct(c):
             try: d = api(f"/api/v1/campaigns/{c['id']}")
             except Exception as e: return c, None
             return c, d
-        rows = []
+        rows = []; _luc = dt.datetime.now(dt.timezone.utc).isoformat()
         with ThreadPoolExecutor(10) as ex:
             for c, d in ex.map(ct, doi):
+                # đọc chi tiết lỗi với camp ĐÃ có trong kho → BỎ dòng, lượt sau đọc lại (trước đây ghi đè creative / phim / ad / mã bài bằng trống);
+                # camp mới vẫn vào kho bằng số của danh sách, bai_doc trống nên lượt sau đọc lại
+                if not d and (day_du or c["id"] in cu): continue
                 a = ((d or {}).get("ad_groups") or [{}])[0].get("ads", [{}])[0] if d else {}
                 sp = ((d or {}).get("ad_groups") or [{}])[0].get("source_payload") if d else None
                 sp = json.loads(sp) if isinstance(sp, str) and sp.strip().startswith("{") else (sp or {})
@@ -145,9 +157,11 @@ def main():
                              "trang_thai": c.get("state"), "giao": a.get("delivery_status"), "dong_bo": c.get("sync_status"), "ngan_sach": c.get("budget_daily"),
                              "creative_id": a.get("creative_id"), "content_id": a.get("content_id"), "ad_id": a.get("id"), "goc": goc,
                              "lich": sp.get("start_time"), "loi": (a.get("error") or c.get("error") or None), "tao": c.get("created_at"), "cap_nhat_etp": c.get("updated_at"),
-                             "roas": _roas(sp), "chien_luoc": (d or {}).get("campaign", {}).get("source_bidding_strategy") or c.get("source_bidding_strategy")})
+                             "roas": _roas(sp), "chien_luoc": (d or {}).get("campaign", {}).get("source_bidding_strategy") or c.get("source_bidding_strategy"),
+                             "bai_viet": a.get("effective_object_story_id") or None, "bai_doc": _luc if d else None})   # mã bài "<fb page>_<post>" → kho bài viết etp.bai_viet_v (0454)
         kq["so_chi_tiet"] = ghi("camp", rows, ["camp_id"], {"camp_id": "int", "ten": "text", "bo": "text", "ad_account_id": "bigint", "trang_thai": "text", "giao": "text", "dong_bo": "text",
-            "ngan_sach": "numeric", "creative_id": "int", "content_id": "int", "ad_id": "int", "goc": "int", "lich": "timestamptz", "loi": "text", "tao": "timestamptz", "cap_nhat_etp": "timestamptz", "roas": "numeric", "chien_luoc": "text"})
+            "ngan_sach": "numeric", "creative_id": "int", "content_id": "int", "ad_id": "int", "goc": "int", "lich": "timestamptz", "loi": "text", "tao": "timestamptz", "cap_nhat_etp": "timestamptz", "roas": "numeric", "chien_luoc": "text",
+            "bai_viet": "text", "bai_doc": "timestamptz"})
         # camp ROAS chạy BÀI ĐĂNG CŨ: ad không mang content/creative → nhận phim của camp gốc (cây camp + số theo phim trên etp.on.tc)
         q("""update etp.camp c set content_id = g.content_id from etp.camp g where c.goc = g.camp_id and coalesce(c.content_id, 0) = 0 and coalesce(g.content_id, 0) <> 0""")
     except Exception as e: loi.append(f"camp: {e}")

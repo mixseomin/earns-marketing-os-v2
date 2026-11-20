@@ -420,7 +420,7 @@ export function DataTable<T>({
   // tập cũ rồi thấy rỗng.
   const paged = usePaged(sortedRows, pageSize ?? Math.max(sortedRows.length, 1));
   const { setPage } = paged;
-  useEffect(() => { setPage(0); }, [q, activeFilters.length, rows.length, setPage]);
+  useEffect(() => { setPage((o) => (o === 0 ? o : 0)); }, [q, activeFilters.length, rows.length, setPage]);
   const pageRows = pageSize ? paged.pageItems : sortedRows;
   const viTriDong = useMemo(() => new Map(pageRows.map((r, i) => [r, i] as const)), [pageRows]);   // chỉ số gốc của dòng khi vẽ theo nhóm
   // xếp một tập dòng (đã lọc + sắp) thành cây: { dòng, cấp, số dòng con cháu } theo thứ tự duyệt sâu, chỉ đi vào nhánh đang mở
@@ -544,7 +544,9 @@ export function DataTable<T>({
       // NHÚNG (iframe, vd widget Lượt chạy kỹ sư trên mos2 /home — góp ý #giao-20261120T0708-chuyen-gdp4): khung nhúng cao theo nội dung, trang ngoài mới là chỗ cuộn
       // → đo innerHeight ra "cao" nhưng người xem chỉ thấy một khe thấp; không có khung cuộn riêng trong trang nhúng thì coi là khung thấp, thôi dính.
       let nhung = false; try { nhung = window.self !== window.top; } catch { nhung = true; }
-      setKhungThap((nhung && !sc) || (caoKhung > 0 && caoKhung < KHUNG_DINH_MIN));
+      // chỉ đặt khi đổi: đặt trần lúc hydrate để lại cập nhật kẹt làn Idle, treo lệnh chuyển màn (góp ý #giao-20261120T1231-chuyen-oaoy)
+      const thap = (nhung && !sc) || (caoKhung > 0 && caoKhung < KHUNG_DINH_MIN);
+      setKhungThap((o) => (o === thap ? o : thap));
     };
     const ro = new ResizeObserver(() => doNgay()), dinhDo = new Set<HTMLElement>();
     doNgay();

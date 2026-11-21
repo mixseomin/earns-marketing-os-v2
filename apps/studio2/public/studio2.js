@@ -470,6 +470,7 @@ function boO(vi, w) { const r = vi[w]; delete vi[w]; const ke = Object.entries(v
 function ghiLuoi(nho = true) { if (!GS) return; const kc = 24 / E.luoi.n, kr = 16 / HANG[E.luoi.n], vi = {}; for (const nd of GS.engine.nodes) vi[nd.id] = { x: nd.x * kc, y: nd.y * kr, w: nd.w * kc, h: nd.h * kr }; if (nho) E.luoi.vi[D.loai] = vi; gsDau = JSON.stringify([E.luoi.n, D.loai, vi]); }
 function tatLuoi() { const g = $('#dGiua'); if (GS) { GS.destroy(false); GS = null; } gsDau = ''; g.classList.remove('luoi-bat', 'grid-stack', 'dang-keo', 'hien-luoi'); g.style.height = ''; g.style.minHeight = '';
   ketKeoTab(); for (const w in WG) { const o = $(`#o-${w}`), noi = o.firstElementChild, k = $(`#w-${w}`); if (k.parentElement !== noi) noi.append(k); k.classList.remove('tab-an'); o.hidden = false; o.removeAttribute('style'); for (const a of [...o.attributes]) if (a.name.startsWith('gs-')) o.removeAttribute(a.name); o.querySelectorAll(':scope > .ui-resizable-handle').forEach((x) => x.remove()); } }
+let keoDoi = null, phimShift = false; for (const t of ['keydown', 'keyup']) document.addEventListener(t, (e) => { phimShift = e.shiftKey; }, true); document.addEventListener('pointerdown', (e) => { phimShift = e.shiftKey; }, true);
 let nhayW = null;   // widget vừa phải xếp chồng vào ô khác vì hết chỗ: sáng lên vài giây cho người dùng thấy nó mở ở đâu
 function dongBoLuoi(ds) {
   const ds0 = ds;
@@ -480,8 +481,24 @@ function dongBoLuoi(ds) {
   for (const w in WG) { const c = chuT[w], noi = $(`#o-${c || w}`).firstElementChild, k = $(`#w-${w}`); if (k.parentElement !== noi) noi.append(k); k.classList.toggle('tab-an', !!c && nh[c].mo !== w); }
   if (!GS) { g.classList.add('luoi-bat');
     GS = GridStack.init({ column: n, maxRow: r, cellHeight: caoO(), margin: 4, mode: 'float', animate: false, auto: false, handle: '.w-dau', draggable: { handle: '.w-dau', cancel: 'button, input, a, textarea, select' }, resizable: { handles: 'e, se, s, sw, w' }, alwaysShowResizeHandle: false }, g);
-    GS.on('dragstart resizestart', (e, el) => { g.classList.add('dang-keo'); if (e?.type === 'dragstart') batDauKeoTab(el); });
-    GS.on('dragstop resizestop', (e) => { g.classList.remove('dang-keo'); const k = keoTab, d = k && e?.type === 'dragstop' ? dichDuoi(e) : null, vao = d?.dataset.chu; ketKeoTab(); if (gsDang) return;
+    GS.on('dragstart resizestart', (e, el) => { g.classList.add('dang-keo'); if (e?.type === 'dragstart') batDauKeoTab(el);
+      // góp ý #1750: giữ Shift khi kéo mép = kéo MÉP CHUNG — ô sát bên co / giãn theo, không bị đẩy đi
+      if (e?.type === 'resizestart') keoDoi = phimShift ? { el, cu: GS.engine.nodes.map((nd) => ({ nd, x: nd.x, y: nd.y, w: nd.w, h: nd.h })) } : null; });
+    GS.on('resizestop', (e, el) => { const k = keoDoi; keoDoi = null; if (!k || k.el !== el) return; const a = el.gridstackNode, c0 = k.cu.find((o) => o.nd === a); if (!a || !c0) return;
+      const chong = (p0, p1, q0, q1) => p0 < q1 && q0 < p1, doi = [];
+      for (const o of k.cu) { if (o.nd === a) continue; let v = null;
+        if (chong(o.y, o.y + o.h, c0.y, c0.y + c0.h)) {
+          if (o.x === c0.x + c0.w && a.x + a.w !== c0.x + c0.w) { const r = o.x + o.w, x = Math.min(r - 1, a.x + a.w); v = { x, y: o.y, w: r - x, h: o.h }; }
+          else if (o.x + o.w === c0.x && a.x !== c0.x) { const w = Math.max(1, a.x - o.x); v = { x: o.x, y: o.y, w, h: o.h }; } }
+        if (!v && chong(o.x, o.x + o.w, c0.x, c0.x + c0.w) && o.y === c0.y + c0.h && a.y + a.h !== c0.y + c0.h) { const b = o.y + o.h, y = Math.min(b - 1, a.y + a.h); v = { x: o.x, y, w: o.w, h: b - y }; }
+        if (v) doi.push([o.nd, v]); }
+      if (!doi.length) return;
+      // ô sát bên chỉ chừa được tới 1 ô lưới: ô đang kéo cắt lại cho khít, rồi đặt từng ô (gridstack đã đẩy chúng lúc kéo)
+      for (const [, v] of doi) { if (v.x >= a.x + a.w || v.x + v.w <= a.x || v.y >= a.y + a.h || v.y + v.h <= a.y) continue; if (v.x > a.x) a.w = v.x - a.x; else if (v.y > a.y) a.h = v.y - a.y; else { const x1 = a.x + a.w; a.x = v.x + v.w; a.w = x1 - a.x; } }
+      gsDang = true; GS.batchUpdate(); for (const o of k.cu) if (o.nd !== a && !doi.some(([n]) => n === o.nd)) GS.update(o.nd.el, { x: o.x, y: o.y, w: o.w, h: o.h });
+      GS.update(a.el, { x: a.x, y: a.y, w: a.w, h: a.h }); for (const [n, v] of doi) GS.update(n.el, v);
+      GS.batchUpdate(false); gsDang = false; ghiLuoi(); delete E.luoi.ten[D.loai]; luu(); veD(); });
+    GS.on('dragstop resizestop', (e) => { g.classList.remove('dang-keo'); const k = keoTab, d = k && e?.type === 'dragstop' ? dichDuoi(e) : null, vao = d?.dataset.chu; ketKeoTab(); if (gsDang || keoDoi) return;
       if (vao) return void setTimeout(() => gopTab(k.w, vao, k.truoc), 0);   // thả trong dải "Thả vào đây": gộp thành tab (làm sau khi gridstack khép lượt kéo)
       ghiLuoi(); delete E.luoi.ten[D.loai]; luu(); veD(); }); }
   g.style.setProperty('--so-cot', n); g.style.setProperty('--so-hang', r); g.classList.toggle('hien-luoi', E.luoi.hien);
@@ -1109,7 +1126,7 @@ function veMenu() {
     <h3>Bố cục đặt sẵn theo loại video</h3><div class="mn-bc">${Object.entries(BO_CUC).map(([k, b]) => `<button type="button" data-d="bcMau" data-g="${k}" aria-pressed="${dangBc() === k}" title="${esc(b.cho)}"><svg viewBox="-.5 -.5 25 17" aria-hidden="true">${Object.entries(b.o).map(([w, [x, y, rong, cao]]) => `<rect class="${w === 'xem' ? 'xem' : ''}" x="${x + 0.3}" y="${y + 0.3}" width="${rong - 0.6}" height="${cao - 0.6}" rx=".8"/>`).join('')}</svg><span><b>${b.ten}${k === D.loai ? ' <i>mặc định</i>' : ''}</b><small>${Object.keys(b.o).map((w) => WG[w][0]).join(' · ')}</small></span></button>`).join('')}</div>
     <h3>Lưới</h3><div class="day-bt">${[[6, 'Thô 6 × 4'], [12, 'Vừa 12 × 8'], [24, 'Mịn 24 × 16'], [48, 'Dày 48 × 32']].map(([n, t]) => `<button type="button" class="bt" data-d="luoi" data-g="${n}" aria-pressed="${E.luoi.n === n}">${t}</button>`).join('')}</div>
     <div class="day-bt"><button type="button" class="bt" data-d="luoiHien" aria-pressed="${E.luoi.hien}">Luôn hiện lưới</button><button type="button" class="bt" data-d="luoiLai">Xếp lại một hàng</button></div>
-    <span class="nho">Kéo đầu widget để dời tới ô khác, kéo mép hoặc góc widget để co giãn ngang và dọc. Mỗi loại hình video nhớ một bố cục riêng.</span>`; }
+    <span class="nho">Kéo đầu widget để dời tới ô khác, kéo mép hoặc góc widget để co giãn ngang và dọc; giữ Shift khi kéo mép để hai widget sát nhau cùng co giãn theo mép chung. Mỗi loại hình video nhớ một bố cục riêng.</span>`; }
   m.innerHTML = h; datMenu();
 }
 function veTv() {

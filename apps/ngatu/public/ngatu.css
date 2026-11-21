@@ -24,7 +24,22 @@ button { flex: 1 1 auto; font: inherit; font-size: 12px; color: var(--chu); back
 button:hover { background: rgba(255,255,255,0.16); }
 button.on { background: var(--nhan); color: #1a1a1a; border-color: var(--nhan); }
 .goiy { margin: 0; color: var(--mo); font-size: 12px; }
+#mo { display: none; flex: 0 0 auto; }
+#than { display: flex; flex-direction: column; gap: 10px; }
 @media (max-width: 640px) {
-  .ben { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 45vh; overflow: auto; }
+  .bang { padding: 7px 9px; border-radius: 10px; font-size: 12px; }
+  .tren { top: 8px; left: 8px; max-width: calc(100% - 16px); gap: 6px 10px; }
+  .tren h1 { font-size: 15px; }
   .tren h1 small { display: none; }
+  #den { gap: 6px; }
+  .den { padding: 3px 8px; font-size: 11px; }
+  .ben { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; gap: 8px; }
+  .nut.cam { flex-wrap: nowrap; gap: 4px; }
+  .nut.cam button { padding: 6px 4px; font-size: 11px; }
+  #mo { display: block; padding: 6px 10px; font-size: 14px; }
+  #than { display: none; flex-direction: column; gap: 8px; max-height: 38vh; overflow: auto; }
+  .ben.mo-ra #than { display: flex; }
+  .ben.mo-ra #mo { background: var(--nhan); color: #1a1a1a; }
+  #so { grid-template-columns: 1fr 1fr 1fr; font-size: 11px; }
+  #so b { font-size: 13px; }
 }

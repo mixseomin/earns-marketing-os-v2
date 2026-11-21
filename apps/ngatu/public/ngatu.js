@@ -730,6 +730,7 @@ const $ = (id) => document.getElementById(id);
 $('md').addEventListener('input', (e) => { CAI.matDo = +e.target.value; $('vMd').textContent = CAI.matDo; });
 $('lieu').addEventListener('input', (e) => { CAI.lieu = +e.target.value / 100; $('vLieu').textContent = e.target.value + '%'; });
 $('rp').addEventListener('change', (e) => (CAI.rePhai = e.target.checked));
+$('mo').addEventListener('click', () => document.querySelector('.ben').classList.toggle('mo-ra'));
 $('dung').addEventListener('click', (e) => { CAI.dung = !CAI.dung; e.target.textContent = CAI.dung ? 'Chạy tiếp' : 'Tạm dừng'; });
 $('toc').addEventListener('click', (e) => { CAI.toc = CAI.toc === 1 ? 2 : CAI.toc === 2 ? 4 : CAI.toc === 4 ? 0.5 : 1; e.target.textContent = 'Tốc độ ' + String(CAI.toc).replace('.', ',') + '×'; });
 

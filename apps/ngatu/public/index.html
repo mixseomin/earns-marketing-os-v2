@@ -24,21 +24,24 @@
   <div id="den"></div>
 </header>
 <aside class="bang ben">
-  <div id="so"></div>
-  <label>Mật độ xe máy <b id="vMd">450</b><input id="md" type="range" min="50" max="1000" step="10" value="450"></label>
-  <label>Liều (vượt đèn) <b id="vLieu">12%</b><input id="lieu" type="range" min="0" max="60" value="12"></label>
-  <label class="chk"><input id="rp" type="checkbox" checked> Xe máy rẽ phải khi đèn đỏ</label>
-  <div class="nut">
+  <div class="nut cam">
     <button data-cam="tong" class="on">Toàn cảnh</button>
     <button data-cam="tren">Từ trên</button>
-    <button data-cam="goc">Ban công góc phố</button>
-    <button data-cam="theo">Theo một xe</button>
+    <button data-cam="goc">Ban công</button>
+    <button data-cam="theo">Theo xe</button>
+    <button id="mo" title="Số liệu và điều khiển">⚙</button>
   </div>
-  <div class="nut">
-    <button id="dung">Tạm dừng</button>
-    <button id="toc">Tốc độ 1×</button>
+  <div id="than">
+    <div id="so"></div>
+    <label>Mật độ xe máy <b id="vMd">450</b><input id="md" type="range" min="50" max="1000" step="10" value="450"></label>
+    <label>Liều (vượt đèn) <b id="vLieu">12%</b><input id="lieu" type="range" min="0" max="60" value="12"></label>
+    <label class="chk"><input id="rp" type="checkbox" checked> Xe máy rẽ phải khi đèn đỏ</label>
+    <div class="nut">
+      <button id="dung">Tạm dừng</button>
+      <button id="toc">Tốc độ 1×</button>
+    </div>
+    <p class="goiy">Kéo để xoay, lăn (hoặc chụm hai ngón) để phóng. Bấm vào một xe máy để đi theo nó.</p>
   </div>
-  <p class="goiy">Kéo để xoay, lăn để phóng. Bấm vào một xe máy để đi theo nó.</p>
 </aside>
 <script type="module" src="ngatu.js?v=__BAN__"></script>
 </body>

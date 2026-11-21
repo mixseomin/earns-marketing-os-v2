@@ -50,6 +50,7 @@ const NEN = await fetch(`./du-lieu/${ten}-nen.json`, { cache: 'no-cache' }).then
 const CAY = await fetch(`./du-lieu/${ten}-cay.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // ngọn cây theo tán chính thức (scripts/cay-tu-dom.py)
 const SAN_CONG = await fetch(`./du-lieu/${ten}-san-cong.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const CHOP = await fetch(`./du-lieu/${ten}-chop.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // chóp / tháp nhỏ OSM không có (scripts/them-chop.mjs)
+const NON_TIA = new URLSearchParams(location.search).get('non_tia') === '0' ? null : await fetch(`./du-lieu/${ten}-non-tia.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // đỉnh nón + mũi + chân đo bằng tia ảnh định vị (scripts/non-theo-tia.mjs)
 const MAT_DUNG = await fetch(`./du-lieu/${ten}-mat-dung.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // số đo mặt đứng ảnh 3D ↔ mô hình (scripts/so-mat.py): chân tháp xoè, cổng xuyên
 const CUA_SO = await fetch(`./du-lieu/${ten}-cua-so.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})); // cửa sổ đo từ ảnh từng mặt (scripts/nan-google.mjs + do-cua-so.py)
 // KHÔNG DÁN ẢNH LÊN MÔ HÌNH (anh 16/11/2026: 'không được dùng ảnh ghép vào 3D, phải dựng thành đối tượng 3D') — ảnh chỉ dùng để ĐO; mọi chi tiết dựng hình khối.
@@ -337,6 +338,18 @@ if (BO_MET) {
   if (THAP_TIA) console.info('[ns] tháp góc theo tia camera: mũi', Object.entries(THAP_TIA.muiTung).map(([id, y]) => id + ' ' + y.toFixed(2)).join(' · '), '· chân nón', THAP_TIA.chanChop.toFixed(2), '· chân thân', THAP_TIA.chanThan.toFixed(2), '· r thân', THAP_TIA.rThan?.toFixed(2), '· xa', THAP_TIA.xa.toFixed(1), 'm');
   console.info('[ns] mặt Palas hướng sân: tỉ lệ đứng', PX_DUNG.toFixed(1), 'px/m · đầu hồi', BO_MET.gableCao.toFixed(1), 'm · mái', MAI_SAN.toFixed(1), '· sân', MAT_SAN.toFixed(1));
 }
+// NÓN THEO TIA ẢNH ĐỊNH VỊ (non-tia.json, non-theo-tia.py: trục liền từ đỉnh mô hình tới trời, ≥ 3 ảnh tách mũi khớp ±1 m): luật chung mọi khối mái nón / chóp —
+// chỉ sửa khi đỉnh nón lệch > 1,5 m hoặc chân nón hẹp hơn 80% mặt bằng; mũi (thánh giá / chong chóng) cao hơn đỉnh nón > 0,4 m thì thêm cột mũi. Khối THAP_TIA đã đo riêng → chỉ đối chiếu
+const MUI_TIA = [];
+if (!GOC_OSM && NON_TIA?.khoi) { const giu = [], ap = [];
+  for (const [id, d] of Object.entries(NON_TIA.khoi)) { const k = dsKhoi.find((q) => q.id === id); if (!k || k.ref == null || !Number.isFinite(d.y_dinh)) continue;
+    const dinh = k.ref + chieuCao(k.tags), [cx, cz] = tamDa(k.v), r0 = Math.max(...k.v.map(([x, z]) => Math.hypot(x - cx, z - cz))), lech = d.y_dinh - dinh;
+    if (THAP_TIA?.ids?.includes(id) || (Math.abs(lech) <= 1.5 && !(d.r_chan < r0 * 0.8))) { giu.push(`${id} ${lech >= 0 ? '+' : ''}${lech.toFixed(2)} m`); continue; }
+    const y1 = Number.isFinite(d.y1) ? d.y1 : dinh - (+k.tags['roof:height'] || 0); k.tags.height = String(d.y_dinh - k.ref); k.tags['roof:height'] = String(Math.max(0.5, d.y_dinh - y1));
+    if (d.r_chan < r0 * 0.8) { const f = d.r_chan / r0; k.v = k.v.map(([x, z]) => [cx + (x - cx) * f, cz + (z - cz) * f]); }
+    if (d.y_mui > d.y_dinh + 0.4) MUI_TIA.push({ x: cx, z: cz, yChan: d.y_dinh - 0.1, yDinh: d.y_mui, r: 0.12 });
+    ap.push(`${id} ${lech >= 0 ? '+' : ''}${lech.toFixed(2)} m`); }
+  console.info('[ns] nón theo tia ảnh: áp', ap.join(' · ') || '0', '· giữ (lệch ≤ 1,5 m hoặc đã đo riêng)', giu.join(' · ') || '0'); }
 console.info('[ns] mốc chân nhà theo ảnh 3D:', dsKhoi.filter((k) => k.suaGoogle != null).map((k) => `${k.tags.name || k.id} ${k.suaGoogle > 0 ? '+' : ''}${k.suaGoogle}`).join(' · '));
 
 // hộp chữ nhật bao nhỏ nhất (theo cạnh dài nhất) cho mái đầu hồi / bốn mái / một mái
@@ -826,8 +839,8 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
     for (const m of datMai({ THREE, mergeGeometries, ds, nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
     for (const [id, cs] of Object.entries(MAI?.khoi || {})) for (const c of cs || []) ghiKK(id + '#mai', c.loai === 'chop' ? 'chop' : 'cua_mai', c.y, 1, c.x, c.z);
     console.info('[ns] cửa mái / chóp trên mái (đo ảnh 3D):', ds.filter((c) => c.loai === 'cuaMai').length, '/', ds.filter((c) => c.loai === 'chop').length); }
-  if (CHOP?.chop?.length) for (const m of datChop({ THREE, mergeGeometries, ds: CHOP.chop, nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
-  console.info('[ns] mặt tiền chi tiết:', JSON.stringify({ ...dem, thapGoc: goc.length, chop: CHOP?.chop?.length || 0 }));
+  if (CHOP?.chop?.length || MUI_TIA.length) for (const m of datChop({ THREE, mergeGeometries, ds: [...(CHOP?.chop || []), ...MUI_TIA], nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
+  console.info('[ns] mặt tiền chi tiết:', JSON.stringify({ ...dem, thapGoc: goc.length, chop: (CHOP?.chop?.length || 0) + MUI_TIA.length }));
 }
 const LOP_NHA = new Set(LOP_OSM.slice(LOP_NHA_TU));
 // CÁCH 3 (anh 16/11/2026): lâu đài dựng từ bản đồ độ cao thật (cach3.js, du-lieu/<lâu>-cach3.json) — lớp XEM để so với cách cũ; đi bộ / va chạm vẫn theo cách cũ

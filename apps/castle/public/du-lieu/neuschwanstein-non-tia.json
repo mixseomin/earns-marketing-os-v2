@@ -1,0 +1,14 @@
+{
+ "khoi": {
+  "way/223145712": {
+   "y_dinh": 62.17,
+   "y_mui": 63.02,
+   "r_chan": 1.53,
+   "y1": 54.84,
+   "so_anh": 7,
+   "so_anh_tach": 7,
+   "ly_do": "đầu mũi + đỉnh nón + bán kính chân đo bằng tia ảnh định vị (non-theo-tia.py), 7/7 ảnh tách mũi"
+  }
+ },
+ "luat": "ns.js chỉ áp khi đỉnh nón đo lệch mô hình > 1,5 m hoặc bán kính chân < 80% mặt bằng: nón chân r_chan tới đỉnh y_dinh; y_mui > y_dinh + 0,4 m thì thêm cột mũi (thánh giá / chong chóng / quả cầu) tới y_mui. ?non_tia=0 tắt."
+}

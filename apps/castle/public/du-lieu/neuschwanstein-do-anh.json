@@ -1,0 +1,2143 @@
+{
+ "anh": {
+  "anh/web/commons-Schloss-Neuschwanstein-6870.jpg": {
+   "hong": "chỉ 16 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Schloss-Neuschwanstein-IMG-6898.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Entering-the-Neuschwanstein-Castle-25121020852-.jpg": {
+   "hong": "chỉ 9 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Dvorac-Neuschwanstein---pročelje.jpg": {
+   "hong": "chỉ 16 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Dvorac-Neuschwanstein---dio-pročelja.jpg": {
+   "lat": 47.5577928,
+   "lng": 10.7503729,
+   "rong": 768,
+   "cao": 1024,
+   "tacGia": "Silverije",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Dvorac_Neuschwanstein_-_dio_pro%C4%8Delja.jpg",
+   "camera": {
+    "y": 14.35,
+    "yaw": 1.2727,
+    "pitch": 0.5221,
+    "roll": -0.1115,
+    "fov": 63
+   },
+   "dung": 78,
+   "lech_px": 3.01,
+   "tach_m": 0.4,
+   "x": 43,
+   "z": -21.5,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/mapillary-181719180454445.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Allg-u.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Bavaria-Neuschwanstein-9812966024-.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castelul-Neuschwanstein-14.jpg": {
+   "hong": "chỉ 16 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castelul-Neuschwanstein-15.jpg": {
+   "hong": "chỉ 9 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castelul-Neuschwanstein13.jpg": {
+   "hong": "máy nghiêng -33° — lời giải lật",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castelul-Neuschwanstein14.jpg": {
+   "hong": "chỉ 13 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castillo-de-Neuschwanstein-Alemania-XIII.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Detalles-del-castillo-de-Neuschwanstein-F-ssen-Ale.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau 10.2 m (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Die-Neuschwanstein-and-the-Valley.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau không giải được (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Dvorac-Neuschwanstein-dio-pro-elja.jpg": {
+   "lat": 47.5577928,
+   "lng": 10.7503729,
+   "rong": 768,
+   "cao": 1024,
+   "tacGia": "Silverije",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Dvorac_Neuschwanstein_-_dio_pro%C4%8Delja.jpg",
+   "camera": {
+    "y": 14.35,
+    "yaw": 1.2727,
+    "pitch": 0.5221,
+    "roll": -0.1115,
+    "fov": 63
+   },
+   "dung": 78,
+   "lech_px": 3.01,
+   "tach_m": 0.4,
+   "x": 43,
+   "z": -21.5,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Dvorac-Neuschwanstein-pro-elje.jpg": {
+   "hong": "chỉ 29 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Eingang-Neuschwanstein.jpg": {
+   "hong": "chỉ 9 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Eingang-Schloss-Neuschwanstein.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Entering-the-Neuschwanstein-Castle-25121020852-.jpg": {
+   "hong": "chỉ 9 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Fale-Monaco-194.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Hohenschwangau-Schloss-Neuschwanstein-5144.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Hohenschwangau-Schloss-Neuschwanstein-5147.jpg": {
+   "hong": "chỉ 8 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Il-castello-di-Neuschwanstein-panoramio-2-.jpg": {
+   "hong": "mắt ở độ cao -4 m — ngoài vùng người đứng được",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Ludwig-II-Wappen.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Neu-Schwanstein.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau 4.7 m (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Neuschwanstein-Castle-as-seen-from-east-gate-20101.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau 3.0 m (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-02-10-2010-Hohenschwangau-panoramio-3-.jpg": {
+   "hong": "mắt ở độ cao 5 m — ngoài vùng người đứng được",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-2004-neuschwanstein-castle.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castelul-Neuschwanstein-17.jpg": {
+   "lat": 47.5574376,
+   "lng": 10.7500319,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Cezar Suceveanu",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Castelul_Neuschwanstein_17.jpg",
+   "camera": {
+    "y": 16.69,
+    "yaw": -0.6367,
+    "pitch": 0.1747,
+    "roll": 0.0009,
+    "fov": 49
+   },
+   "dung": 445,
+   "lech_px": 2.51,
+   "tach_m": 0.63,
+   "x": 17.4,
+   "z": 18.1,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Castelul-Neuschwanstein-18.jpg": {
+   "lat": 47.557398,
+   "lng": 10.7499105,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Cezar Suceveanu",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Castelul_Neuschwanstein_18.jpg",
+   "camera": {
+    "y": 14.92,
+    "yaw": -0.7244,
+    "pitch": 0.2247,
+    "roll": 0.017,
+    "fov": 34.5
+   },
+   "dung": 373,
+   "lech_px": 3.08,
+   "tach_m": 1.22,
+   "x": 8.3,
+   "z": 22.5,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Castelul-Neuschwanstein-19.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castelul-Neuschwanstein18.jpg": {
+   "lat": 47.5574384,
+   "lng": 10.7500208,
+   "rong": 768,
+   "cao": 1024,
+   "tacGia": "Cezar Suceveanu",
+   "giayPhep": "CC BY-SA 3.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Castelul_Neuschwanstein18.jpg",
+   "camera": {
+    "y": 16.87,
+    "yaw": -0.4031,
+    "pitch": 0.2614,
+    "roll": 0.0103,
+    "fov": 43.5
+   },
+   "dung": 225,
+   "lech_px": 3.12,
+   "tach_m": 0.93,
+   "x": 16.6,
+   "z": 18,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Castelul-Neuschwanstein19.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castelul-Neuschwanstein20.jpg": {
+   "lat": 47.5574177,
+   "lng": 10.7501356,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Cezar Suceveanu",
+   "giayPhep": "CC BY-SA 3.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Castelul_Neuschwanstein20.jpg",
+   "camera": {
+    "y": 14.61,
+    "yaw": -0.2457,
+    "pitch": 0.3484,
+    "roll": -0.0135,
+    "fov": 32
+   },
+   "dung": 146,
+   "lech_px": 2.84,
+   "tach_m": 1.83,
+   "x": 25.2,
+   "z": 20.3,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Castelul-Neuschwanstein21.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castelul-Neuschwanstein22.jpg": {
+   "lat": 47.5574419,
+   "lng": 10.750133,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Cezar Suceveanu",
+   "giayPhep": "CC BY-SA 3.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Castelul_Neuschwanstein22.jpg",
+   "camera": {
+    "y": 15.8,
+    "yaw": -0.5016,
+    "pitch": 0.4001,
+    "roll": -0.0139,
+    "fov": 36.5
+   },
+   "dung": 131,
+   "lech_px": 2.82,
+   "tach_m": 1.82,
+   "x": 25,
+   "z": 17.6,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Castelul-Neuschwanstein23.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castillo-de-Neuschwanstein-Alemania-XIV.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castillo-de-Neuschwanstein-Alemania-XIX.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castillo-de-Neuschwanstein-Alemania-XVII.jpg": {
+   "hong": "chỉ 11 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castillo-de-Neuschwanstein-Alemania-XVIII.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castillo-de-Neuschwanstein-Alemania-XX.jpg": {
+   "hong": "chỉ 10 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Hohenschwangau-3387792969-.jpg": {
+   "hong": "chỉ 9 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Hohenschwangau-3410092980-.jpg": {
+   "lat": 47.5575963,
+   "lng": 10.7499761,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Pedro from Maia (Porto), Portugal",
+   "giayPhep": "CC BY 2.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Hohenschwangau_(3410092980).jpg",
+   "camera": {
+    "y": 28.03,
+    "yaw": -1.1515,
+    "pitch": -0.0244,
+    "roll": -0.0981,
+    "fov": 77
+   },
+   "dung": 118,
+   "lech_px": 2.18,
+   "tach_m": 2.28,
+   "x": 13.2,
+   "z": 0.4,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Hohenschwangau-Schloss-Neuschwanstein-5151.jpg": {
+   "hong": "chỉ 9 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-02-10-2010-Hohenschwangau-panoramio-4-.jpg": {
+   "lat": 47.5576035,
+   "lng": 10.7499387,
+   "rong": 768,
+   "cao": 1024,
+   "tacGia": "Sandor Bordas",
+   "giayPhep": "CC BY-SA 3.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:02.10.2010._Hohenschwangau_-_panoramio_(4).jpg",
+   "camera": {
+    "y": 26.9,
+    "yaw": 1.828,
+    "pitch": 0.3518,
+    "roll": -0.0046,
+    "fov": 48.5
+   },
+   "dung": 1407,
+   "lech_px": 2.79,
+   "tach_m": 0.35,
+   "x": 10.4,
+   "z": -0.4,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Innenhof-vom-Schloss-Neuschwanstein-Bayern.jpg": {
+   "lat": 47.5575753,
+   "lng": 10.7499938,
+   "rong": 683,
+   "cao": 1024,
+   "tacGia": "Woffka rus",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Innenhof_vom_Schloss_Neuschwanstein,_Bayern.jpg",
+   "camera": {
+    "y": 25.43,
+    "yaw": 1.7893,
+    "pitch": 0.5072,
+    "roll": -0.0293,
+    "fov": 60
+   },
+   "dung": 1851,
+   "lech_px": 2.32,
+   "tach_m": 0.44,
+   "x": 14.6,
+   "z": 2.7,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Ch-teau-de-Neuschwanstein-Cour-d-entr-e-20000815.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau 3.6 m (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-BAVIERA-CASTILLO-DE-NEUSCHWANSTEIN.jpg": {
+   "hong": "mắt ở độ cao 1 m — ngoài vùng người đứng được",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-BAVIERA-Neuschwanstein-Patio-de-entrada.jpg": {
+   "lat": 47.5576118,
+   "lng": 10.749961,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Tony Castle",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:BAVIERA._Neuschwanstein._Patio_de_entrada.jpg",
+   "camera": {
+    "y": 27,
+    "yaw": 1.8235,
+    "pitch": 0.3813,
+    "roll": -0.0051,
+    "fov": 37
+   },
+   "dung": 1495,
+   "lech_px": 2.77,
+   "tach_m": 0.74,
+   "x": 12.1,
+   "z": -1.3,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Castelul-Neuschwanstein-16.jpg": {
+   "lat": 47.5576354,
+   "lng": 10.7498449,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Cezar Suceveanu",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Castelul_Neuschwanstein_16.jpg",
+   "camera": {
+    "y": 28.51,
+    "yaw": 2.0444,
+    "pitch": 0.343,
+    "roll": 0.0317,
+    "fov": 58
+   },
+   "dung": 1679,
+   "lech_px": 2.41,
+   "tach_m": 1.37,
+   "x": 3.4,
+   "z": -3.9,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Castelul-Neuschwanstein15.jpg": {
+   "hong": "chỉ 14 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Castelul-Neuschwanstein25.jpg": {
+   "lat": 47.55765,
+   "lng": 10.7498831,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Cezar Suceveanu",
+   "giayPhep": "CC BY-SA 3.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Castelul_Neuschwanstein25.jpg",
+   "camera": {
+    "y": 25.68,
+    "yaw": 2.4503,
+    "pitch": 0.2749,
+    "roll": -0.0123,
+    "fov": 36
+   },
+   "dung": 482,
+   "lech_px": 3.09,
+   "tach_m": 0.48,
+   "x": 6.2,
+   "z": -5.6,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Castillo-de-Neuschwanstein-Alemania-I.jpg": {
+   "hong": "mắt ở độ cao -31 m — ngoài vùng người đứng được",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Castillo-de-Neuschwanstein-Alemania-XV.jpg": {
+   "lat": 47.5575951,
+   "lng": 10.7499841,
+   "rong": 768,
+   "cao": 1024,
+   "tacGia": "Dbarralm",
+   "giayPhep": "CC BY-SA 3.0 es",
+   "trang": "https://commons.wikimedia.org/wiki/File:Castillo_de_Neuschwanstein_(Alemania)_XV.JPG",
+   "camera": {
+    "y": 25.74,
+    "yaw": 1.829,
+    "pitch": 0.305,
+    "roll": 0.0003,
+    "fov": 49.5
+   },
+   "dung": 1493,
+   "lech_px": 2.72,
+   "tach_m": 0.84,
+   "x": 13.8,
+   "z": 0.5,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Castillo-de-Neuschwanstein-Alemania-XVI.jpg": {
+   "lat": 47.5575962,
+   "lng": 10.7498933,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Dbarralm",
+   "giayPhep": "CC BY-SA 3.0 es",
+   "trang": "https://commons.wikimedia.org/wiki/File:Castillo_de_Neuschwanstein_(Alemania)_XVI.JPG",
+   "camera": {
+    "y": 28.19,
+    "yaw": 1.5918,
+    "pitch": 0.4919,
+    "roll": 0.0774,
+    "fov": 43
+   },
+   "dung": 1893,
+   "lech_px": 2.72,
+   "tach_m": 0.27,
+   "x": 7,
+   "z": 0.4,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Castle-Neuschwanstein-panoramio.jpg": {
+   "lat": 47.557566,
+   "lng": 10.7503598,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "ykeiko",
+   "giayPhep": "CC BY-SA 3.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Castle_Neuschwanstein_-_panoramio.jpg",
+   "camera": {
+    "y": 15.47,
+    "yaw": 1.7258,
+    "pitch": 0.4017,
+    "roll": -0.011,
+    "fov": 31.5
+   },
+   "dung": 895,
+   "lech_px": 2.51,
+   "tach_m": 0.48,
+   "x": 42.1,
+   "z": 3.8,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Dvorac-Neuschwanstein-gornje-dvori-te.jpg": {
+   "lat": 47.5576191,
+   "lng": 10.749581,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Silverije",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Dvorac_Neuschwanstein_-_gornje_dvori%C5%A1te.jpg",
+   "camera": {
+    "y": 31.76,
+    "yaw": 3.1095,
+    "pitch": 0.1511,
+    "roll": 0.0041,
+    "fov": 52
+   },
+   "dung": 160,
+   "lech_px": 2.98,
+   "tach_m": 0.65,
+   "x": -16.5,
+   "z": -2.1,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Dvorac-Neuschwanstein-pogled-iz-donjeg-dvori-ta.jpg": {
+   "hong": "chỗ đứng (5, 77) nằm ngoài vùng kho góc nhìn — lời giải trượt",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-East-building-Courtyard-of-Neueschwanstein-Castle-.jpg": {
+   "lat": 47.5576406,
+   "lng": 10.7500629,
+   "rong": 709,
+   "cao": 1024,
+   "tacGia": "José Luiz",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:East_building_-_Courtyard_of_Neueschwanstein_Castle_-_Germany_2017.jpg",
+   "camera": {
+    "y": 23.7,
+    "yaw": 1.9302,
+    "pitch": 0.4416,
+    "roll": 0.0144,
+    "fov": 33.5
+   },
+   "dung": 1360,
+   "lech_px": 2.8,
+   "tach_m": 2.81,
+   "x": 19.8,
+   "z": -4.5,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Fale-Monaco-195.jpg": {
+   "lat": 47.5577249,
+   "lng": 10.7504208,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Fabio Alessandro Locati",
+   "giayPhep": "CC BY-SA 3.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Fale_-_Monaco_-_195.jpg",
+   "camera": {
+    "y": 7.77,
+    "yaw": 1.9098,
+    "pitch": 0.5292,
+    "roll": 0.0114,
+    "fov": 18
+   },
+   "dung": 859,
+   "lech_px": 2.85,
+   "tach_m": 1.66,
+   "x": 46.6,
+   "z": -13.9,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Hohenschwangau-3387781455-.jpg": {
+   "lat": 47.5576349,
+   "lng": 10.7500361,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Pedro from Maia (Porto), Portugal",
+   "giayPhep": "CC BY 2.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Hohenschwangau_(3387781455).jpg",
+   "camera": {
+    "y": 25.97,
+    "yaw": 1.8419,
+    "pitch": 0.579,
+    "roll": -0.0546,
+    "fov": 21
+   },
+   "dung": 562,
+   "lech_px": 2.95,
+   "tach_m": 2.63,
+   "x": 17.7,
+   "z": -3.9,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Hohenschwangau-3390836296-.jpg": {
+   "lat": 47.5575586,
+   "lng": 10.7498823,
+   "rong": 768,
+   "cao": 1024,
+   "tacGia": "Pedro from Maia (Porto), Portugal",
+   "giayPhep": "CC BY 2.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Hohenschwangau_(3390836296).jpg",
+   "camera": {
+    "y": 27.97,
+    "yaw": 1.851,
+    "pitch": 0.4187,
+    "roll": 0.0073,
+    "fov": 44
+   },
+   "dung": 433,
+   "lech_px": 2.98,
+   "tach_m": 0.16,
+   "x": 6.2,
+   "z": 4.6,
+   "vung": "-140_20_-50_100_vong",
+   "luc": "2026-11-21"
+  },
+  "anh/web/c-Hohenschwangau-Schloss-Neuschwanstein-5154.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau 5.4 m (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/c-Hohenschwangau-Schloss-Neuschwanstein5-retouched.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau 74.1 m (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-20"
+  },
+  "anh/web/mapillary-1009139763158636.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-1217197145408026.jpg": {
+   "hong": "chỉ 15 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-519438972534837.jpg": {
+   "hong": "chỉ 8 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-1123259288502048.jpg": {
+   "hong": "chỉ 11 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-314156293716478.jpg": {
+   "hong": "chỉ 10 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-4205541182816499.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-566389218119867.jpg": {
+   "hong": "chỉ 25 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-820446235546123.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-1439312723095518.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-190906249607183.jpg": {
+   "lat": 47.5578692,
+   "lng": 10.749477,
+   "rong": 1024,
+   "cao": 576,
+   "tacGia": "gpsvid / Mapillary",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://www.mapillary.com/app/?pKey=190906249607183",
+   "camera": {
+    "y": 12.01,
+    "yaw": 2.3686,
+    "pitch": 0.063,
+    "roll": 0.2264,
+    "fov": 67
+   },
+   "dung": 401,
+   "lech_px": 2.46,
+   "tach_m": 1.6,
+   "x": -24.3,
+   "z": -30,
+   "vung": "-100_10_-50_70",
+   "luc": "2026-11-20"
+  },
+  "anh/web/mapillary-1074776346769620.jpg": {
+   "lat": 47.5579112,
+   "lng": 10.7496392,
+   "rong": 1024,
+   "cao": 576,
+   "tacGia": "gpsvid / Mapillary",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://www.mapillary.com/app/?pKey=1074776346769620",
+   "camera": {
+    "y": 13.57,
+    "yaw": 1.9395,
+    "pitch": 0.0432,
+    "roll": 0.2425,
+    "fov": 64
+   },
+   "dung": 304,
+   "lech_px": 2.09,
+   "tach_m": 1.45,
+   "x": -12.1,
+   "z": -34.6,
+   "vung": "-100_10_-50_70",
+   "luc": "2026-11-20"
+  },
+  "anh/web/mapillary-316033329889299.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-487888779142727.jpg": {
+   "hong": "chỉ 26 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-340914298943468.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-4029060807179660.jpg": {
+   "hong": "máy nghiêng -46° — lời giải lật",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-379905038116561.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-644886189813343.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-820595695552916.jpg": {
+   "hong": "chỉ 8 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-468371667564734.jpg": {
+   "hong": "chỉ 18 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-195624255796594.jpg": {
+   "lat": 47.5579858,
+   "lng": 10.7495865,
+   "rong": 1024,
+   "cao": 576,
+   "tacGia": "gpsvid / Mapillary",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://www.mapillary.com/app/?pKey=195624255796594",
+   "camera": {
+    "y": 9.2,
+    "yaw": 2.5586,
+    "pitch": 0.1762,
+    "roll": -0.0311,
+    "fov": 63.5
+   },
+   "dung": 729,
+   "lech_px": 2.13,
+   "tach_m": 0.74,
+   "x": -16,
+   "z": -42.9,
+   "vung": "-100_10_-50_70",
+   "luc": "2026-11-20"
+  },
+  "anh/web/mapillary-294669615663037.jpg": {
+   "hong": "chỉ 11 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-3386608651442176.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-1442064562812811.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-198716315350497.jpg": {
+   "hong": "chỉ 19 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-3150374608530038.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-403568669025744.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-202468245052347.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-1110483442772378.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-El-castillo-desde-Neuschwanstein---panoramio.jpg": {
+   "hong": "chỉ 9 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Hohenschwangau---Schloss-Neuschwanstein---panoramio-1-.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-La-frontera-con-Austria---panoramio.jpg": {
+   "hong": "chỉ 14 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Вид-из-замка-Нойшванштайн---panoramio.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Ausblick-vom-Schloss-Neuschwanstein-Richtung-Alpsee-und-Schloss-Hohenschwangau--.jpg": {
+   "hong": "chỉ 14 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Neuschwanstein-Castle-25193660816-.jpg": {
+   "lat": 47.5576869,
+   "lng": 10.7492215,
+   "rong": 1024,
+   "cao": 682,
+   "tacGia": "Ștefan Jurcă from Munich, Germany",
+   "giayPhep": "CC BY 2.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Neuschwanstein_Castle_(25193660816).jpg",
+   "camera": {
+    "y": 16.3,
+    "yaw": 2.9956,
+    "pitch": 0.8598,
+    "roll": -0.0173,
+    "fov": 65.5
+   },
+   "dung": 262,
+   "lech_px": 2.72,
+   "tach_m": 0.48,
+   "x": -43.5,
+   "z": -9.7,
+   "vung": "-100_10_-50_70",
+   "luc": "2026-11-20"
+  },
+  "anh/web/commons-Hohenschwangau-Castle---panoramio-2-.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Marienbrücke-vom-Schloss-Neuschwanstein-aus-gesehen---panoramio.jpg": {
+   "hong": "chỉ 9 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Bavaria---panoramio-6-.jpg": {
+   "hong": "chỉ 25 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Vista-do-Castelo-Neuschwanstain---Fussen---Alemanha-8745224915-.jpg": {
+   "hong": "máy nghiêng 29° — lời giải lật",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-2004-neuschwanstein-castle.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Dvorac-Neuschwanstein---sjeverna-strana.jpg": {
+   "lat": 47.5579448,
+   "lng": 10.7495901,
+   "rong": 1024,
+   "cao": 768,
+   "tacGia": "Silverije",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Dvorac_Neuschwanstein_-_sjeverna_strana.jpg",
+   "camera": {
+    "y": 12.83,
+    "yaw": 2.8029,
+    "pitch": 0.6045,
+    "roll": -0.1025,
+    "fov": 52.5
+   },
+   "dung": 1010,
+   "lech_px": 2.91,
+   "tach_m": 0.24,
+   "x": -15.8,
+   "z": -38.4,
+   "vung": "-100_10_-50_70",
+   "luc": "2026-11-20"
+  },
+  "anh/web/commons-Neuschwanstein-Castle-above-the-village-of-Hohenschwangau-in-Bavaria-Germany.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Neuschwanstein-Castle-05.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Neuschwanstein-Castle-08.jpg": {
+   "hong": "chỉ 14 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Neuschwanstein-Castle-14.jpg": {
+   "hong": "chỉ 9 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Neuschwanstein-Castle-15.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau không giải được (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Ostallgaeu-Schwangau-Neuschwanstein-north-side-02ASD.jpg": {
+   "hong": "chỉ 12 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-486000729321705.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-1094778890931216.jpg": {
+   "hong": "chỉ 12 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-782799649088531.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-1221736284906938.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-488412352443778.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-1479806209018734.jpg": {
+   "lat": 47.5579559,
+   "lng": 10.749751,
+   "rong": 1024,
+   "cao": 576,
+   "tacGia": "gpsvid / Mapillary",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://www.mapillary.com/app/?pKey=1479806209018734",
+   "camera": {
+    "y": 9.27,
+    "yaw": 1.928,
+    "pitch": 0.1122,
+    "roll": 0.2304,
+    "fov": 56.5
+   },
+   "dung": 344,
+   "lech_px": 2.23,
+   "tach_m": 0.59,
+   "x": -3.7,
+   "z": -39.6,
+   "vung": "-100_10_-50_70",
+   "luc": "2026-11-20"
+  },
+  "anh/web/mapillary-479210820165272.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-125831612963774.jpg": {
+   "lat": 47.5578845,
+   "lng": 10.7495373,
+   "rong": 1024,
+   "cao": 576,
+   "tacGia": "gpsvid / Mapillary",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://www.mapillary.com/app/?pKey=125831612963774",
+   "camera": {
+    "y": 11.13,
+    "yaw": 2.5679,
+    "pitch": 0.1463,
+    "roll": 0.1069,
+    "fov": 67.5
+   },
+   "dung": 640,
+   "lech_px": 2.38,
+   "tach_m": 1.31,
+   "x": -19.7,
+   "z": -31.7,
+   "vung": "-100_10_-50_70",
+   "luc": "2026-11-20"
+  },
+  "anh/web/mapillary-392870166694460.jpg": {
+   "hong": "chỉ 14 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-487561372357897.jpg": {
+   "hong": "chỉ 14 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-184168456907752.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-587960225502562.jpg": {
+   "hong": "chỉ 22 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-312601300502353.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-339627089073204.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70",
+    "-140_20_-50_100_vong"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-The-chef-room---O-quarto-do-cozinheiro-no-Castelo-Neuschwanstain---Fussen---Alem.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-100_10_-50_70"
+   ],
+   "luc": "2026-11-20"
+  }
+ },
+ "mat": {
+  "way/223110818#7": {
+   "vom_nho": {
+    "gia_tri": 11,
+    "tin": 1,
+    "anh": "anh/web/commons-Dvorac-Neuschwanstein---dio-pročelja.jpg",
+    "nhip_m": 0.75,
+    "thay": 0.65,
+    "so_anh": 2,
+    "ung_vien": [
+     {
+      "gia_tri": 11,
+      "tin": 1,
+      "anh": "anh/web/commons-Dvorac-Neuschwanstein---dio-pročelja.jpg",
+      "nhip_m": 0.75,
+      "thay": 0.65
+     },
+     {
+      "gia_tri": 11,
+      "tin": 1,
+      "anh": "anh/web/c-Dvorac-Neuschwanstein-dio-pro-elja.jpg",
+      "nhip_m": 0.75,
+      "thay": 0.65
+     }
+    ],
+    "luc": "2026-11-20"
+   },
+   "cua_so": {
+    "hang": [
+     {
+      "y0": 20.43,
+      "y1": 21.87,
+      "cum": [
+       [
+        3.71,
+        4.29,
+        1
+       ],
+       [
+        6.83,
+        7.38,
+        1
+       ]
+      ]
+     }
+    ],
+    "tin": 0.62,
+    "phu": 0.94,
+    "anh": "anh/web/commons-Dvorac-Neuschwanstein---dio-pročelja.jpg",
+    "so_anh": 2,
+    "tep_dang_ghi": "2+2 / 1+1",
+    "luc": "2026-11-20"
+   }
+  },
+  "way/223110820#5": {
+   "vom_nho": {
+    "gia_tri": 7,
+    "tin": 1,
+    "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+    "nhip_m": 0.46,
+    "thay": 0.72,
+    "so_anh": 1,
+    "ung_vien": [
+     {
+      "gia_tri": 4,
+      "tin": 0,
+      "anh": "anh/web/c-Castelul-Neuschwanstein-17.jpg",
+      "nhip_m": 0.9,
+      "thay": 0.72
+     },
+     {
+      "gia_tri": 7,
+      "tin": 1,
+      "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+      "nhip_m": 0.46,
+      "thay": 0.72
+     }
+    ],
+    "luc": "2026-11-20",
+    "da_ghi": true
+   },
+   "da_goc": {
+    "gia_tri": 4,
+    "tin": 0.7,
+    "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+    "thay": 0.72,
+    "so_anh": 1,
+    "ung_vien": [
+     {
+      "gia_tri": 4,
+      "tin": 0.5,
+      "anh": "anh/web/c-Castelul-Neuschwanstein20.jpg",
+      "thay": 0.7
+     },
+     {
+      "gia_tri": 4,
+      "tin": 0.7,
+      "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+      "thay": 0.72
+     }
+    ],
+    "luc": "2026-11-20",
+    "da_ghi": true
+   },
+   "cua_so": {
+    "hang": [
+     {
+      "y0": 26.43,
+      "y1": 28.56,
+      "cum": [
+       [
+        2.33,
+        3.17,
+        1
+       ]
+      ]
+     }
+    ],
+    "tin": 0.67,
+    "phu": 1,
+    "anh": "anh/web/c-Castelul-Neuschwanstein18.jpg",
+    "so_anh": 1,
+    "tep_dang_ghi": "—",
+    "luc": "2026-11-20",
+    "da_ghi": true
+   }
+  },
+  "way/223110820#6": {
+   "vom_nho": {
+    "gia_tri": 7,
+    "tin": 1,
+    "anh": "anh/web/c-Castelul-Neuschwanstein20.jpg",
+    "nhip_m": 0.52,
+    "thay": 0.6,
+    "so_anh": 1,
+    "ung_vien": [
+     {
+      "gia_tri": 7,
+      "tin": 1,
+      "anh": "anh/web/c-Castelul-Neuschwanstein20.jpg",
+      "nhip_m": 0.52,
+      "thay": 0.6
+     }
+    ],
+    "luc": "2026-11-20",
+    "da_ghi": true
+   },
+   "da_goc": {
+    "khong_ghi": "các ảnh lệch nhau: 5 (c-Castelul-Neuschwanstein-17.jpg, tin 0.82) · 5 (c-Castelul-Neuschwanstein22.jpg, tin 0.81) · 2 (c-Castelul-Neuschwanstein20.jpg, tin 0.78)",
+    "ung_vien": [
+     {
+      "gia_tri": 5,
+      "tin": 0.82,
+      "anh": "anh/web/c-Castelul-Neuschwanstein-17.jpg",
+      "thay": 0.65
+     },
+     {
+      "gia_tri": 2,
+      "tin": 0.78,
+      "anh": "anh/web/c-Castelul-Neuschwanstein20.jpg",
+      "thay": 0.6
+     },
+     {
+      "gia_tri": 5,
+      "tin": 0.81,
+      "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+      "thay": 0.62
+     },
+     {
+      "gia_tri": 2,
+      "tin": 0.58,
+      "anh": "anh/web/c-Hohenschwangau-3410092980-.jpg",
+      "thay": 0.43
+     }
+    ],
+    "luc": "2026-11-20"
+   },
+   "cua_so": {
+    "hang": [
+     {
+      "y0": 26.89,
+      "y1": 28.98,
+      "cum": [
+       [
+        0.17,
+        1,
+        1
+       ]
+      ]
+     }
+    ],
+    "tin": 0.54,
+    "phu": 1,
+    "anh": "anh/web/c-Castelul-Neuschwanstein20.jpg",
+    "so_anh": 1,
+    "khong_ghi": "độ tin hàng thấp nhất 0.54",
+    "tep_dang_ghi": "—",
+    "luc": "2026-11-20"
+   }
+  },
+  "way/223110820#7": {
+   "da_goc": {
+    "gia_tri": 3,
+    "tin": 0.64,
+    "anh": "anh/web/c-Castelul-Neuschwanstein20.jpg",
+    "thay": 0.7,
+    "so_anh": 1,
+    "ung_vien": [
+     {
+      "gia_tri": 3,
+      "tin": 0.64,
+      "anh": "anh/web/c-Castelul-Neuschwanstein20.jpg",
+      "thay": 0.7
+     },
+     {
+      "gia_tri": 4,
+      "tin": 0.55,
+      "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+      "thay": 0.71
+     }
+    ],
+    "luc": "2026-11-20",
+    "da_ghi": true
+   },
+   "cua_so": {
+    "hang": [
+     {
+      "y0": 26.93,
+      "y1": 28.98,
+      "cum": [
+       [
+        0.67,
+        2.17,
+        1
+       ]
+      ]
+     }
+    ],
+    "tin": 0.71,
+    "phu": 1,
+    "anh": "anh/web/c-Hohenschwangau-3410092980-.jpg",
+    "so_anh": 2,
+    "tep_dang_ghi": "—",
+    "luc": "2026-11-20",
+    "da_ghi": true
+   }
+  },
+  "way/223110820#8": {
+   "da_goc": {
+    "gia_tri": 2,
+    "tin": 0.8,
+    "anh": "anh/web/c-Castelul-Neuschwanstein-17.jpg",
+    "thay": 0.82,
+    "so_anh": 1,
+    "ung_vien": [
+     {
+      "gia_tri": 2,
+      "tin": 0.8,
+      "anh": "anh/web/c-Castelul-Neuschwanstein-17.jpg",
+      "thay": 0.82
+     },
+     {
+      "gia_tri": 3,
+      "tin": 0.5,
+      "anh": "anh/web/c-Hohenschwangau-3410092980-.jpg",
+      "thay": 0.61
+     }
+    ],
+    "luc": "2026-11-20",
+    "da_ghi": true
+   },
+   "cua_so": {
+    "hang": [
+     {
+      "y0": 27.31,
+      "y1": 29.35,
+      "cum": [
+       [
+        2.29,
+        3.12,
+        1
+       ]
+      ]
+     }
+    ],
+    "tin": 0.59,
+    "phu": 1,
+    "anh": "anh/web/c-Castelul-Neuschwanstein18.jpg",
+    "so_anh": 1,
+    "tep_dang_ghi": "—",
+    "luc": "2026-11-20",
+    "da_ghi": true
+   }
+  },
+  "way/223110825#6": {
+   "vom_nho": {
+    "khong_ghi": "các ảnh lệch nhau: 6 (c-Castelul-Neuschwanstein22.jpg, tin 0.75) · 20 (c-Castelul-Neuschwanstein20.jpg, tin 0.6)",
+    "ung_vien": [
+     {
+      "gia_tri": 13,
+      "tin": 0.5,
+      "anh": "anh/web/c-Castelul-Neuschwanstein-17.jpg",
+      "nhip_m": 0.79,
+      "thay": 0.46
+     },
+     {
+      "gia_tri": 20,
+      "tin": 0.6,
+      "anh": "anh/web/c-Castelul-Neuschwanstein20.jpg",
+      "nhip_m": 0.54,
+      "thay": 0.35
+     },
+     {
+      "gia_tri": 6,
+      "tin": 0.75,
+      "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+      "nhip_m": 1.85,
+      "thay": 0.54
+     }
+    ],
+    "luc": "2026-11-20"
+   },
+   "cua_so": {
+    "hang": [
+     {
+      "y0": 20.37,
+      "y1": 22.53,
+      "cum": [
+       [
+        7.08,
+        8.21,
+        1
+       ]
+      ]
+     }
+    ],
+    "tin": 0.73,
+    "phu": 1,
+    "anh": "anh/web/c-Castelul-Neuschwanstein-17.jpg",
+    "so_anh": 1,
+    "tep_dang_ghi": "—",
+    "luc": "2026-11-20",
+    "da_ghi": true
+   }
+  },
+  "way/223110825#7": {
+   "vom_nho": {
+    "gia_tri": 6,
+    "tin": 0.67,
+    "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+    "nhip_m": 0.58,
+    "thay": 0.89,
+    "so_anh": 1,
+    "ung_vien": [
+     {
+      "gia_tri": 6,
+      "tin": 0.67,
+      "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+      "nhip_m": 0.58,
+      "thay": 0.89
+     }
+    ],
+    "luc": "2026-11-20",
+    "da_ghi": true
+   },
+   "da_goc": {
+    "khong_ghi": "các ảnh lệch nhau: 3 (c-Castelul-Neuschwanstein18.jpg, tin 0.83) · 3 (c-Castelul-Neuschwanstein22.jpg, tin 0.82) · 6 (c-Castelul-Neuschwanstein-18.jpg, tin 0.75) · 2 (c-Castelul-Neuschwanstein20.jpg, tin 0.62)",
+    "ung_vien": [
+     {
+      "gia_tri": 6,
+      "tin": 0.75,
+      "anh": "anh/web/c-Castelul-Neuschwanstein-18.jpg",
+      "thay": 0.74
+     },
+     {
+      "gia_tri": 3,
+      "tin": 0.83,
+      "anh": "anh/web/c-Castelul-Neuschwanstein18.jpg",
+      "thay": 0.81
+     },
+     {
+      "gia_tri": 2,
+      "tin": 0.62,
+      "anh": "anh/web/c-Castelul-Neuschwanstein20.jpg",
+      "thay": 0.85
+     },
+     {
+      "gia_tri": 3,
+      "tin": 0.82,
+      "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+      "thay": 0.89
+     }
+    ],
+    "luc": "2026-11-20"
+   }
+  },
+  "way/951894999#4": {
+   "vom_nho": {
+    "khong_ghi": "các ảnh lệch nhau: 2 (c-Castelul-Neuschwanstein18.jpg, tin 1) · 5 (c-Castelul-Neuschwanstein20.jpg, tin 1)",
+    "ung_vien": [
+     {
+      "gia_tri": 2,
+      "tin": 1,
+      "anh": "anh/web/c-Castelul-Neuschwanstein18.jpg",
+      "nhip_m": 1.46,
+      "thay": 0.49
+     },
+     {
+      "gia_tri": 5,
+      "tin": 1,
+      "anh": "anh/web/c-Castelul-Neuschwanstein20.jpg",
+      "nhip_m": 0.71,
+      "thay": 0.49
+     }
+    ],
+    "luc": "2026-11-20"
+   },
+   "da_goc": {
+    "khong_ghi": "các ảnh lệch nhau: 5 (c-Castelul-Neuschwanstein-17.jpg, tin 0.67) · 5 (c-Castelul-Neuschwanstein22.jpg, tin 0.67) · 2 (c-Castelul-Neuschwanstein20.jpg, tin 0.64)",
+    "ung_vien": [
+     {
+      "gia_tri": 5,
+      "tin": 0.67,
+      "anh": "anh/web/c-Castelul-Neuschwanstein-17.jpg",
+      "thay": 0.54
+     },
+     {
+      "gia_tri": 2,
+      "tin": 0.64,
+      "anh": "anh/web/c-Castelul-Neuschwanstein20.jpg",
+      "thay": 0.49
+     },
+     {
+      "gia_tri": 5,
+      "tin": 0.67,
+      "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+      "thay": 0.51
+     }
+    ],
+    "luc": "2026-11-20"
+   },
+   "cua_so": {
+    "hang": [
+     {
+      "y0": 26.08,
+      "y1": 28.66,
+      "cum": [
+       [
+        1.21,
+        2.67,
+        1
+       ]
+      ]
+     }
+    ],
+    "tin": 0.68,
+    "phu": 1,
+    "anh": "anh/web/c-Hohenschwangau-3410092980-.jpg",
+    "so_anh": 1,
+    "tep_dang_ghi": "—",
+    "luc": "2026-11-20",
+    "da_ghi": true
+   }
+  },
+  "way/951894999#5": {
+   "da_goc": {
+    "gia_tri": 4,
+    "tin": 0.65,
+    "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+    "thay": 0.66,
+    "so_anh": 2,
+    "ung_vien": [
+     {
+      "gia_tri": 3,
+      "tin": 0.64,
+      "anh": "anh/web/c-Castelul-Neuschwanstein20.jpg",
+      "thay": 0.63
+     },
+     {
+      "gia_tri": 4,
+      "tin": 0.65,
+      "anh": "anh/web/c-Castelul-Neuschwanstein22.jpg",
+      "thay": 0.66
+     }
+    ],
+    "luc": "2026-11-20",
+    "da_ghi": true
+   },
+   "cua_so": {
+    "hang": [
+     {
+      "y0": 26.95,
+      "y1": 28.91,
+      "cum": [
+       [
+        0.75,
+        2.08,
+        1
+       ]
+      ]
+     }
+    ],
+    "tin": 0.73,
+    "phu": 1,
+    "anh": "anh/web/c-Hohenschwangau-3410092980-.jpg",
+    "so_anh": 2,
+    "tep_dang_ghi": "—",
+    "luc": "2026-11-20",
+    "da_ghi": true
+   }
+  },
+  "way/223179004#0": {
+   "rang_cua": {
+    "gia_tri": 4,
+    "tin": 0.89,
+    "anh": "anh/web/commons-Dvorac-Neuschwanstein---sjeverna-strana.jpg",
+    "nhip_m": 1.04,
+    "thay": 0.65,
+    "so_anh": 1,
+    "ung_vien": [
+     {
+      "gia_tri": 4,
+      "tin": 0.89,
+      "anh": "anh/web/commons-Dvorac-Neuschwanstein---sjeverna-strana.jpg",
+      "nhip_m": 1.04,
+      "thay": 0.65
+     }
+    ],
+    "luc": "2026-11-20",
+    "da_ghi": true
+   },
+   "da_goc": {
+    "gia_tri": 7,
+    "tin": 0.62,
+    "anh": "anh/web/commons-Dvorac-Neuschwanstein---sjeverna-strana.jpg",
+    "thay": 0.65,
+    "so_anh": 1,
+    "ung_vien": [
+     {
+      "gia_tri": 7,
+      "tin": 0.62,
+      "anh": "anh/web/commons-Dvorac-Neuschwanstein---sjeverna-strana.jpg",
+      "thay": 0.65
+     }
+    ],
+    "luc": "2026-11-20",
+    "da_ghi": true
+   },
+   "cua_so": {
+    "hang": [
+     {
+      "y0": 36.18,
+      "y1": 37.56,
+      "cum": [
+       [
+        3.21,
+        3.58,
+        1
+       ]
+      ]
+     },
+     {
+      "y0": 32.1,
+      "y1": 33.64,
+      "cum": [
+       [
+        2.71,
+        3.42,
+        1
+       ]
+      ]
+     },
+     {
+      "y0": 28.64,
+      "y1": 30.98,
+      "cum": [
+       [
+        2.12,
+        3.17,
+        1
+       ]
+      ]
+     },
+     {
+      "y0": 26.35,
+      "y1": 27.43,
+      "cum": [
+       [
+        3.92,
+        4.38,
+        1
+       ]
+      ]
+     }
+    ],
+    "tin": 0.59,
+    "phu": 1,
+    "anh": "anh/web/mapillary-195624255796594.jpg",
+    "so_anh": 1,
+    "tep_dang_ghi": "1 / 1 / 1 / 2 / 1",
+    "luc": "2026-11-20"
+   }
+  },
+  "way/223179004#1": {
+   "da_goc": {
+    "gia_tri": 2,
+    "tin": 0.61,
+    "anh": "anh/web/commons-Dvorac-Neuschwanstein---sjeverna-strana.jpg",
+    "thay": 0.83,
+    "so_anh": 1,
+    "ung_vien": [
+     {
+      "gia_tri": 2,
+      "tin": 0.61,
+      "anh": "anh/web/commons-Dvorac-Neuschwanstein---sjeverna-strana.jpg",
+      "thay": 0.83
+     }
+    ],
+    "luc": "2026-11-20",
+    "da_ghi": true
+   },
+   "cua_so": {
+    "hang": [
+     {
+      "y0": 36.06,
+      "y1": 36.77,
+      "cum": [
+       [
+        0.62,
+        1.21,
+        1
+       ]
+      ]
+     }
+    ],
+    "tin": 0.61,
+    "phu": 1,
+    "anh": "anh/web/mapillary-1074776346769620.jpg",
+    "so_anh": 1,
+    "tep_dang_ghi": "—",
+    "luc": "2026-11-20",
+    "da_ghi": true
+   }
+  },
+  "way/223179004#2": {
+   "rang_cua": {
+    "khong_ghi": "độ tin cao nhất 0.72 < 0.6",
+    "ung_vien": [
+     {
+      "gia_tri": 3,
+      "tin": 0.72,
+      "anh": "anh/web/mapillary-195624255796594.jpg",
+      "nhip_m": 1.21,
+      "thay": 0.14
+     }
+    ],
+    "luc": "2026-11-20"
+   }
+  },
+  "way/223179003#0": {
+   "cua_so": {
+    "hang": [
+     {
+      "y0": 45.53,
+      "y1": 47.28,
+      "cum": [
+       [
+        6.08,
+        6.92,
+        1
+       ]
+      ]
+     },
+     {
+      "y0": 34.44,
+      "y1": 35.57,
+      "cum": [
+       [
+        5.38,
+        6.38,
+        2
+       ]
+      ]
+     },
+     {
+      "y0": 30.48,
+      "y1": 31.44,
+      "cum": [
+       [
+        1.58,
+        1.92,
+        1
+       ]
+      ]
+     },
+     {
+      "y0": 24.19,
+      "y1": 25.19,
+      "cum": [
+       [
+        5.67,
+        6,
+        1
+       ]
+      ]
+     }
+    ],
+    "tin": 0.57,
+    "phu": 1,
+    "anh": "anh/web/mapillary-125831612963774.jpg",
+    "so_anh": 1,
+    "tep_dang_ghi": "1+2 / 2+2+1 / 2 / 6",
+    "luc": "2026-11-20"
+   }
+  }
+ }
+}

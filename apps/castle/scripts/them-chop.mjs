@@ -3,10 +3,12 @@
 // tia từ camera ĐÃ KHỚP (khop-camera.mjs) qua điểm ảnh ngay dưới viền mô hình cắt MÁI MÔ HÌNH (đã khớp ảnh 3D) = chân chóp (x, y, z);
 // tia qua mũi chóp trên ảnh → điểm gần đường thẳng đứng qua chân nhất = độ cao mũi; bề ngang đoạn → bán kính.
 // Gộp chóp trùng giữa các ảnh (< 2,5 m), chỉ giữ chóp nằm trên mái lâu đài (chân cao hơn mặt sân trên, trong / sát mặt bằng khối lâu đài).
-// Ghi apps/castle/public/du-lieu/<lâu>-chop.json — ns.js dựng (nón bát giác + chóp).
+// Ghi apps/castle/public/du-lieu/<lâu>-chop.json — ns.js dựng (nón bát giác + chóp). Cuối cùng loc-chop-troi.py bỏ chóp mà ≥ 2 ảnh thật đã định vị thấy TRỜI ở chỗ đó.
 //   node apps/castle/scripts/chup-so-anh.mjs <thư mục> && python3 apps/castle/scripts/kiem-vien.py <thư mục>; node apps/castle/scripts/them-chop.mjs <thư mục>
 // tra-repo-ok: công cụ nội bộ của cảnh (Raycaster three.js trên lớp ảnh 3D đã nạp).
 import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { homedir } from 'node:os';
 import { GOC, PUB, LAU, du, doiSo, moTrang } from './chung.mjs';
 import { join } from 'node:path';
 const THU = doiSo[0];
@@ -44,3 +46,5 @@ const ra = chac.map((c) => ({ x: +c.x.toFixed(2), z: +c.z.toFixed(2), yChan: +c.
 const TEP = du('chop');
 writeFileSync(TEP, JSON.stringify({ ghi_chu: 'CHÓP / THÁP NHỎ OSM không có, tìm bằng máy kiểm đường viền (scripts/kiem-vien.py) + tia từ camera đã khớp xuống ảnh 3D Google (scripts/them-chop.mjs). Toạ độ cảnh: chân (x, yChan, z), mũi yDinh, bán kính r; anh = chỉ số ảnh so thấy chóp', luc: new Date().toISOString(), chop: ra }, null, 1) + '\n');
 console.log(`${tim.length} điểm dò → lọc ${loc.length} → gộp ${gop.length} → chắc ${ra.length} chóp → ${TEP}`); for (const c of ra) console.log(' ', JSON.stringify(c));
+// lọc bằng ảnh thật đã định vị (do-anh.json): chóp một ảnh + trùng tâm khối OSM từng lọt dù mọi ảnh khác thấy trời (223140028, 21/11/2026)
+process.exit(spawnSync(join(homedir(), '.venvs/castle-khop/bin/python'), ['-W', 'ignore', join(GOC, 'scripts', 'loc-chop-troi.py'), '--ghi'], { stdio: 'inherit' }).status ?? 1);

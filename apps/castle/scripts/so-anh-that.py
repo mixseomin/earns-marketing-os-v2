@@ -252,6 +252,13 @@ def chan_kq(kq):
     return ra
 
 
+def net_chung(mt, mk, chon):
+    # nét F gộp trọng số net_anh trên mặt có ở CẢ HAI lượt (ưu tiên mặt của khối chọn, không có thì mọi mặt chung) → (F trước, F sau, mặt chọn biến mất)
+    chung = set(mt) & set(mk); trong = [m for m in chung if m.split('#')[0] in chon] or list(chung)
+    def F(ms): return sum(ms[m]['F'] * ms[m]['net_anh'] for m in trong) / max(1, sum(ms[m]['net_anh'] for m in trong))
+    return F(mt), F(mk), sorted(m for m in set(mt) - set(mk) if m.split('#')[0] in chon)
+
+
 def chay(thu_goc, nhan):
     thu = thu_goc / nhan; meta = json.loads((thu / 'ds.json').read_text()); bd = BanDo(meta['khoi']); chon = set(meta['chon']); tong, hong = [], 0
     for d in meta['ds']:
@@ -267,12 +274,15 @@ def chay(thu_goc, nhan):
         cu = thu_goc / 'truoc' / f"{d['ten']}.json"
         if nhan == 'sau' and cu.exists():
             t = json.loads(cu.read_text()); tc = Image.open(thu_goc / 'truoc' / f"{d['ten']}-chong.png")
-            dong = [f"TRƯỚC viền {t['vien_khop'] * 100:.0f} % · nét F {t['net_chon']:.2f}   →   SAU viền {kq['vien_khop'] * 100:.0f} % · nét F {kq['net_chon']:.2f}"]
+            # so nét CHỈ trên mặt có ở cả hai lượt: sửa làm một mặt biến mất (vd bỏ chóp giả) thì net_chon từng lượt gộp tập mặt khác nhau → tụt / tăng giả
+            nt, nk, mat_mat = net_chung(t['mat'], kq['mat'], chon)
+            dong = [f"TRƯỚC viền {t['vien_khop'] * 100:.0f} % · nét F {nt:.2f}   →   SAU viền {kq['vien_khop'] * 100:.0f} % · nét F {nk:.2f} (mặt chung hai lượt)"]
+            if mat_mat: dong.append('mặt không còn ở SAU: ' + ', '.join(mat_mat[:4]))
             for m in sorted(set(t['mat']) & set(kq['mat']), key=lambda m: kq['mat'][m]['F'] - t['mat'][m]['F'])[:3] + sorted(set(t['mat']) & set(kq['mat']), key=lambda m: t['mat'][m]['F'] - kq['mat'][m]['F'])[:3]:
                 dong.append(f"{m}: F {t['mat'][m]['F']:.2f} → {kq['mat'][m]['F']:.2f}")
             ghep([anh_pil, tc, chong], ['ẢNH THẬT', 'TRƯỚC', 'SAU'], list(dict.fromkeys(dong))).save(thu_goc / f"{d['ten']}-truoc-sau.png")
-            kem = kq['vien_khop'] < t['vien_khop'] - 0.02 or kq['net_chon'] < t['net_chon'] - 0.03
-            print(f"      TRƯỚC → SAU: viền {t['vien_khop'] * 100:.0f} → {kq['vien_khop'] * 100:.0f} % · nét {t['net_chon']:.2f} → {kq['net_chon']:.2f}{'  ✗ KÉM HƠN TRƯỚC' if kem else ''} → {thu_goc / (d['ten'] + '-truoc-sau.png')}")
+            kem = kq['vien_khop'] < t['vien_khop'] - 0.02 or nk < nt - 0.03
+            print(f"      TRƯỚC → SAU: viền {t['vien_khop'] * 100:.0f} → {kq['vien_khop'] * 100:.0f} % · nét (mặt chung) {nt:.2f} → {nk:.2f}{'  ✗ KÉM HƠN TRƯỚC' if kem else ''}{'  · mặt không còn: ' + ', '.join(mat_mat[:4]) if mat_mat else ''} → {thu_goc / (d['ten'] + '-truoc-sau.png')}")
             hong += kem
     (thu / 'tong.json').write_text(json.dumps(tong, ensure_ascii=False, indent=1))
     return 1 if hong else 0
@@ -309,6 +319,12 @@ def tu_kiem():
     k3 = phan_tich(cat, d, thu, bd, chon); th = [s_ for s_ in k3['doan'] if s_['kieu'] == 'THỪA' and s_['x1'] >= a0 + 5 and s_['x0'] <= a1 - 5]
     ok(bool(th) and any(18 <= s_['lech_px'] <= 32 for s_ in th), f"cắt đỉnh 25 px cột {a0}–{a1}: đoạn THỪA {[(s_['x0'], s_['x1'], s_['lech_px']) for s_ in th]}")
     ok(k3['vien_khop'] < k1['vien_khop'] - 0.03, f"cắt đỉnh: viền tụt {k1['vien_khop'] * 100:.0f} → {k3['vien_khop'] * 100:.0f} %")
+    # 4. TRƯỚC/SAU so trên mặt chung: bỏ một mặt (chóp giả) mà mặt còn lại y nguyên → không tụt; mặt chung tụt thật → tụt
+    A = {'k/1#0': {'F': 0.8, 'net_anh': 300}, 'k/1#1': {'F': 0.3, 'net_anh': 100}, 'k/2#0': {'F': 0.5, 'net_anh': 200}}
+    nt, nk, mm = net_chung(A, {m: v for m, v in A.items() if m != 'k/1#0'}, {'k/1'})
+    ok(abs(nt - nk) < 1e-9 and mm == ['k/1#0'], f"bỏ một mặt: nét mặt chung {nt:.2f} → {nk:.2f}, mặt không còn {mm}")
+    nt, nk, _ = net_chung(A, {**A, 'k/1#1': {'F': 0.1, 'net_anh': 100}}, {'k/1'})
+    ok(nk < nt - 0.03, f"mặt chung tụt thật: {nt:.2f} → {nk:.2f}")
     return 1 if loi else 0
 
 

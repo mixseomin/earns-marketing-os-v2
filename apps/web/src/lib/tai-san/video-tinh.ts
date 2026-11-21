@@ -23,7 +23,14 @@ function tai(ds: DongSo[], slug: string, den: string, ngayDang?: string): number
   return ngayDang && ngayDang > den ? 0 : null;
 }
 
-export function tinhVideo(dongs: DongSo[], hom: string): { nen: NenTong[]; video: VideoDong[] } {
+/** Khoá nhận diện video: slug, máy không ghi slug (FB Reels từ 11/11/2026 chỉ có url) thì lấy url; không có cả hai thì bỏ —
+ *  không theo dõi được qua ngày, và để lọt vào thì tiêu đề undefined làm sập cả trang Tài sản (21/11/2026). */
+const chuanHoa = (ds: DongSo[]): DongSo[] => ds.map((d) => ({ ...d, videos: (d.videos ?? []).flatMap((v) => {
+  const slug = v?.slug || v?.url; return slug ? [{ ...v, slug: String(slug), tieuDe: v.tieuDe ? String(v.tieuDe) : undefined }] : [];
+}) }));
+
+export function tinhVideo(dongsVao: DongSo[], hom: string): { nen: NenTong[]; video: VideoDong[] } {
+  const dongs = chuanHoa(dongsVao);
   const d7 = lui(hom, 7), d14 = lui(hom, 14), video = new Map<string, VideoDong>();
   const nen = KENH_VIDEO.map(({ key, nhan }): NenTong => {
     const cua = dongs.filter((d) => d.kenh === key);

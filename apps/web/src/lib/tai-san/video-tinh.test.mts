@@ -23,3 +23,13 @@ import { doi, tinhVideo, type DongSo, type VideoSo, soCu, tinhPin } from './vide
   const so = { 'pinterest|p:a': { ngay: '2026-10-12', hien: 12, tuongTac: 1, click: 2, soMuc: 4 }, 'pinterest|p:b': { ngay: '2026-10-07', hien: 3, tuongTac: 0, click: 0, soMuc: 1 }, 'youtube|p:a': { ngay: '2026-10-12', hien: 999, tuongTac: 0, click: 0, soMuc: 9 } };
   a.deepEqual(tinhPin(so), { hien30: 15, click30: 2, tuongTac30: 1, soGhimCoHien: 5, ngay: '2026-10-12' }); a.equal(tinhPin({}), null);
   console.log('video-tinh: 15/15 ok');
+
+// 21/11/2026: FB Reels ghi video chỉ có url (không slug, không tiêu đề) → trước đây sập localeCompare cả trang Tài sản
+{
+  const r = tinhVideo([
+    { kenh: 'fb-reels', sanPham: 'p', ngay: '2026-11-14', videos: [{ url: 'https://www.facebook.com/reel/1/', xem: 272 } as never, { xem: 5 } as never, { slug: 'a', xem: 3 }] },
+  ], '2026-11-21');
+  assert.equal(r.video.length, 2);
+  assert.ok(r.video.some((v) => v.slug === 'https://www.facebook.com/reel/1/' && v.tieuDe === v.slug));
+}
+console.log('video-tinh: url-only ok');

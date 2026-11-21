@@ -1539,4 +1539,8 @@ export const LUAT = [
   { card: 'man-bai-viet-2011', tep: 'packages/db/migrations/0454_etp_bai_viet.sql', co: "jsonb_array_elements(l.g->'nhan_ban'->'nac')", vi: 'mốc nấc nhân bản đọc từ sổ luật chung' },
   { card: 1716, tep: 'apps/xuong-video/scripts/ethopex/dung-mau.py', co: 'vnd_truoc=vnd - da_ghi[0]', vi: 'mỗi lần đổi bước, ₫ bước vừa xong tiêu ghi lên dòng nhật ký của chính bước đó' },
   { card: 'the-dung-2011', tep: 'apps/etp/canh-bao.py', co: "select case when exists (select 1 from etp.camp where trang_thai = 'ACTIVE') then coalesce(extract(epoch from now() - max(luc))", vi: 'thẻ xét luật đứng chỉ báo khi còn camp ACTIVE — dừng khẩn (mọi camp PAUSED) không báo nhầm máy luật hỏng' },
+  { card: 'cho-anh-duyet-2211', tep: 'packages/db/migrations/0460_etp_cho_anh_duyet.sql', co: "AND NOT (giu IS NOT NULL AND duyet IS NULL)) AS duoc_len", vi: 'creative máy giữ chưa duyệt thì cham_cong chặn mọi đường lên camp' },
+  { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/components/etp-view.tsx', co: "<ChoDuyetCr />", vi: 'ô Chờ anh duyệt nằm ở tab Camp etp2' },
+  { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: 'lenCampCr(-1, id)', vi: 'Duyệt = lên camp $1 bằng đúng đường nút Lên camp (lich_len)' },
+  { card: 'cho-anh-duyet-2211', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'insert into etp.cho_anh_duyet (tv_id, ghi)', vi: 'khung chỉ định --anh tự vào hàng chờ anh duyệt' },
 ];

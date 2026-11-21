@@ -251,9 +251,9 @@ def tat_cham():
         from etp.cham_cong g where g.cho_duyet is not null""").splitlines() if "|" in l]
     if cho and {cr for cr, _ in cho} - bao:
         chay = sum(1 for _, n in cho if n != "0"); camp = sum(int(n) for _, n in cho)
-        mid = bao_tg(f"🔎 <b>CHỜ NGƯỜI DUYỆT: {len(cho)} creative 5 điểm</b> ({len({cr for cr, _ in cho} - bao)} mới)\n"
+        mid = bao_tg(f"🔎 <b>CHỜ ANH DUYỆT: {len(cho)} creative</b> ({len({cr for cr, _ in cho} - bao)} mới)\n"
                      f"<b>{chay}</b> creative đang chạy · {camp} camp — chưa duyệt thì không lên camp mới, camp đang chạy vẫn chạy\n"
-                     f'👉 <a href="https://etp2.on.tc/?t=creative&v=soat&l=duyet">Duyệt trên etp2</a>')   # etp2 = bản của anh (09/11/2026); người không phải admin tự về etp.on.tc giữ bộ lọc
+                     f'👉 <a href="https://etp2.on.tc/?t=camp&v=cay">Duyệt trên etp2 › Camp</a>')   # etp2 = bản của anh (09/11/2026); người không phải admin tự về etp.on.tc giữ bộ lọc
         if mid: json.dump(sorted(bao | {cr for cr, _ in cho}), open(DUYET_TEP, "w"))
 
 NGUONG_HUT = 0.4               # trước 13h mà đã chi ≥ 40% tổng ngân sách ngày → cảnh báo đang hút nhanh

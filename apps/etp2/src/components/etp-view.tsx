@@ -35,6 +35,7 @@ import { Tong2 } from '@/components/etp-tong2';
 import { NenLam } from '@/components/etp-tu-van';
 import { TabInsight } from '@/components/etp-insight';
 import { TabLogs } from '@/components/etp-logs';
+import { ChoDuyetCr } from '@/components/etp-cho-duyet';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLenCamp, datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 // CHỈ XEM (anh 29/10/2026 "sso thêm 1 người … chỉ view"): khách một trang etp (users.chi_host) — ẩn mọi nút ghi; action máy chủ cũng đòi admin
@@ -3336,6 +3337,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       {gon ? null : thanhTren}
       </div>
       {gon ? thanhTren : null}
+      {tab === 'camp' && !laNguoi ? <ChoDuyetCr /> : null}   {/* creative máy giữ chờ anh duyệt (anh 22/11/2026) — components/etp-cho-duyet.tsx */}
       {tab === 'tong' ? (   /* TỔNG QUAN = lưới widget (anh 11/11/2026 "Tổng quan 2 giờ thay thế luôn tổng quan… xoá Tổng quan cũ"); số theo quyền cắt ở máy chủ (actions/etp-tong2.ts, etp-quyen.ts) */
         <Tong2 laChu={!chiXem} ky={khK} ve={{ bieu_do_ngay: (k) => bieuDoNgay(k.cao), bang_ngay: () => bangNgay, nen_lam: () => <NenLam ds={du.tuVan ?? []} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} />, ...veTach }} dau={Object.fromEntries(Object.keys(veTach).map((k) => [k, DAU_TACH]))} />
       ) : tab === 'roas' ? (

@@ -39,10 +39,21 @@
   </div>
   <div id="than">
     <div id="so"></div>
-    <label>Mật độ xe máy <b id="vMd">450</b><input id="md" type="range" min="50" max="1000" step="10" value="450"></label>
+    <label>Mật độ xe máy <b id="vMd">250</b><input id="md" type="range" min="50" max="1000" step="10" value="250"></label>
     <label>Liều (vượt đèn) <b id="vLieu">12%</b><input id="lieu" type="range" min="0" max="60" value="12"></label>
     <label>Ô tô so với xe máy <b id="vOto">7%</b><input id="oto" type="range" min="0" max="40" value="7"></label>
     <label class="chk"><input id="rp" type="checkbox" checked> Xe máy rẽ phải khi đèn đỏ</label>
+    <label class="chk"><input id="cn" type="checkbox"> Lòng ngã tư kẹt thì chờ ở vạch (luật nước ngoài)</label>
+    <label>Kiểu đèn
+      <select id="kp">
+        <option value="2pha">2 pha (Đông–Tây / Bắc–Nam)</option>
+        <option value="trai">Có pha rẽ trái riêng (4 pha)</option>
+        <option value="huong">Từng hướng một (4 pha)</option>
+      </select>
+    </label>
+    <label>Chờ thoát ngã tư (đỏ cả 4 hướng) <b id="vCt">3 s</b><input id="ct" type="range" min="0" max="8" step="1" value="3"></label>
+    <label class="chk"><input id="ai" type="checkbox"> Đèn AI (xanh theo lượng xe chờ)</label>
+    <label class="chk"><input id="px" type="checkbox"> Mũi tên rẽ phải luôn xanh</label>
     <div class="nut">
       <button id="dung">Tạm dừng</button>
       <button id="toc">Tốc độ 1×</button>

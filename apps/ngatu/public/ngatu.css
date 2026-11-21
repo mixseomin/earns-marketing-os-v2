@@ -18,6 +18,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #bcd3e6; fon
 label { display: flex; flex-direction: column; gap: 4px; color: var(--mo); }
 label b { color: var(--nhan); }
 label.chk { flex-direction: row; align-items: center; gap: 8px; color: var(--chu); }
+label select { font: inherit; color: var(--chu); background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 5px 6px; }
+label select option { background: #222; }
+.den.ai { font-weight: 700; color: #7fd4ff; }
 input[type=range] { width: 100%; accent-color: var(--nhan); }
 .nut { display: flex; flex-wrap: wrap; gap: 6px; }
 button { flex: 1 1 auto; font: inherit; font-size: 12px; color: var(--chu); background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 6px 8px; cursor: pointer; }

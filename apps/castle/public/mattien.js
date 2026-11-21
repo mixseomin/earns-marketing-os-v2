@@ -283,10 +283,10 @@ export function uvMet(THREE, g, coi = 4) {
 // vật liệu đá có vân (vanDa = { map, bump } của tex.js, chung với tường) — không có vân thì màu trơn như cũ
 const vlDa = (THREE, mau, vanDa, ro = 0.8) => new THREE.MeshStandardMaterial({ color: mau, roughness: ro, ...(vanDa ? { map: vanDa.map, bumpMap: vanDa.bump, bumpScale: 1.5 } : {}) });
 
-export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {}, vanDa = null }) {
+export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {}, vanDa = null, vanKhoi = null }) {
   const { x1, z1, x2, z2, y1 } = tuong, L = Math.hypot(x2 - x1, z2 - z1), ux = (x2 - x1) / L, uz = (z2 - z1) / L, nx = uz, nz = -ux;
   const mx = (x1 + x2) / 2, mz = (z1 + z2) / 2, quay = Math.atan2(nx, nz), ra = [];
-  const DA = vlDa(THREE, '#f3eee4', vanDa);
+  const DA = vlDa(THREE, '#f3eee4', vanDa), DA_KHOI = vlDa(THREE, '#f3eee4', vanKhoi || vanDa);
   // khối cùng vật liệu gộp thành MỘT lưới lúc cuối (diềm răng cưa đầu hồi có vài chục khối nhỏ — để riêng thì mỗi khối một lệnh vẽ); tranh giữ lưới riêng
   const gom = new Map();
   const dat = (m, s, y, ra_) => { m.position.set(mx + ux * s + nx * ra_, y, mz + uz * s + nz * ra_); m.rotation.y = quay; m.castShadow = false; m.receiveShadow = true;
@@ -315,6 +315,18 @@ export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {}, vanDa =
     dat(new THREE.Mesh(g, SA), C - x, y, z0); dBong(x, rong, y - cao / 2, Math.min(0.45, cao * 2), z0 + 0.012); };
   // mảng nổi chứa điểm (x sang phải ảnh, yr = độ cao so với chân đầu hồi) → độ nổi (cửa, tranh, cửa tròn nằm trên mảng phải đẩy ra theo)
   const noiTai = (x, yr) => { let n = 0; for (const o of bo?.oNoi || []) if (x >= o.x0 - 0.02 && x <= o.x1 + 0.02 && yr >= o.chan && (yr <= o.vai || o.u.some((u) => Math.abs(x - u.x) <= u.r && yr <= u.tam + u.r))) n = Math.max(n, o.noi); return n; };
+  // VIỀN BÓNG ngoài mép một hình nổi (mảng nổi, ...): dải rộng w chạy theo đường viền, đậm sát mép → trong suốt ở ngoài (bóng tiếp xúc, máy không đổ bóng
+  // đủ mịn cho 0,1 m). Đậm hơn ở mép dưới + phải (phía khuất nắng trên ảnh sân trên), bỏ đoạn nằm ở chân (yBo) vì chân mảng đứng trên gờ
+  const vienBong = (sh, yBo, w = 0.13, dam = 0.55) => {
+    const p = sh.getPoints(8); if (p.length > 2 && p[0].distanceTo(p[p.length - 1]) < 1e-4) p.pop();
+    let dt = 0; for (let i = 0; i < p.length; i++) { const a = p[i], b = p[(i + 1) % p.length]; dt += (b.x - a.x) * (b.y + a.y); } const chieu = dt > 0 ? 1 : -1; // > 0: theo kim đồng hồ
+    const n = p.length, ph = p.map((a, i) => { const t = p[(i + n - 1) % n], s = p[(i + 1) % n]; const n1 = new THREE.Vector2(-(a.y - t.y), a.x - t.x).normalize(), n2 = new THREE.Vector2(-(s.y - a.y), s.x - a.x).normalize();
+      const m = n1.clone().add(n2); const l = m.length(); if (l < 1e-6) return n1.multiplyScalar(chieu); m.divideScalar(l); return m.multiplyScalar(chieu / Math.max(0.5, m.dot(n1))); });
+    const vt = [], cl = [], hs = (q) => dam * (0.55 + 0.45 * Math.max(0, q.x * 0.45 - q.y * 0.9));
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n, a = p[i], b = p[j]; if (Math.abs(a.y - yBo) < 1e-3 && Math.abs(b.y - yBo) < 1e-3) continue;
+      const ao = a.clone().addScaledVector(ph[i], w), bo_ = b.clone().addScaledVector(ph[j], w), da = hs(ph[i]), db = hs(ph[j]);
+      for (const [q, al] of [[a, da], [b, db], [bo_, 0], [a, da], [bo_, 0], [ao, 0]]) { vt.push(q.x, q.y, 0); cl.push(0, 0, 0, al); } }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(vt, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(cl, 4)); g.setAttribute('normal', new THREE.Float32BufferAttribute(vt.map((_, i) => i % 3 === 2 ? 1 : 0), 3)); return g; }; // pháp tuyến cho gộp chung lưới BONG
   if (!bo) console.warn('[mattien] thiếu tệp bố cục mặt Palas — không dựng chi tiết mặt'); else {
     for (const t of bo.tranh) {
       const tx = tranh[t.ten]; if (!tx) continue;
@@ -330,10 +342,11 @@ export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {}, vanDa =
       const sh = new THREE.Shape(); sh.moveTo(o.x0, o.chan); sh.lineTo(o.x0, o.vai);
       for (const u of [...o.u].sort((p, q) => p.x - q.x)) { const tam = Math.max(u.tam, o.vai); sh.lineTo(u.x - u.r, o.vai); sh.lineTo(u.x - u.r, tam); sh.absarc(u.x, tam, u.r, Math.PI, 0, true); sh.lineTo(u.x + u.r, o.vai); }
       sh.lineTo(o.x1, o.vai); sh.lineTo(o.x1, o.chan); sh.lineTo(o.x0, o.chan);
-      dat(new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: o.noi, bevelEnabled: false, curveSegments: 6 }), DA), C, y1, 0);
-      // bóng mảng nổi in xuống tường (lệch xuống + sang theo nắng, dài gấp ~1,2 lần độ nổi): không có nó, mảng nổi 0,1 m cùng màu tường là vô hình từ sân
-      const gb = new THREE.ShapeGeometry(sh, 6); gb.translate(o.noi * 0.8, -o.noi * 1.2, 0); const nb = gb.attributes.position.count, cb = new Float32Array(nb * 4);
-      for (let i = 0; i < nb; i++) cb[i * 4 + 3] = 0.38; gb.setAttribute('color', new THREE.BufferAttribute(cb, 4)); dat(new THREE.Mesh(gb, BONG), C, y1, 0.012);
+      // ảnh thật (anh khoanh 21/11/2026): mảng nổi là ĐÁ KHỐI mạch sáng trên nền đầu hồi trơn, mép u tròn sắc nhờ bóng. Trước: cùng vân tường + hộp 0,1 m cạnh vuông,
+      // nhìn gần thẳng mặt thì mặt bên ~1 px, bóng lệch nằm sau mảng → vô hình. Nay: vân đá khối riêng + VÁT cạnh (mặt vát bắt sáng khác mặt tường) + viền bóng ngoài mép
+      const vat = Math.min(0.04, o.noi * 0.4);
+      dat(new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: o.noi - vat, bevelEnabled: true, bevelThickness: vat, bevelSize: vat, bevelOffset: -vat, bevelSegments: 2, curveSegments: 8 }), DA_KHOI), C, y1, 0);
+      dat(new THREE.Mesh(vienBong(sh, o.chan), BONG), C, y1, 0.012);
     }
     for (const o of bo.oTron) { // cửa sổ tròn + lỗ tròn mù: lòng tối, vành sa thạch — đúng chỗ, đúng cỡ đo trên ảnh
       const z = noiTai(o.x, o.y), s = C - o.x, yy = y1 + o.y;

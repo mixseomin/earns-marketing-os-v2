@@ -194,6 +194,14 @@ export function matTron(r) {
   hat(g, r, 12, 1);
   return { map: tex(c), bump: tex(c, false) };
 }
+// đá ĐẼO KHỐI của mảng nổi đầu hồi (ảnh san-tren-naturliebhaberin 1600 px, vùng đầu hồi): khối xám hơn tường trơn phía sau, MẠCH SÁNG (vữa trắng giữa khối),
+// hàng ~0,3 m — chính tương phản đá khối ↔ tường trơn vẽ ra hình mảng nổi xếp bậc nhìn từ sân; cùng 512 px = 4 m với matTron
+export function matKhoi(r) {
+  const [c, g] = bang();
+  g.fillStyle = '#e2ddd2'; g.fillRect(0, 0, N, N); khoiDa(g, r, 13, 79, 8, 40, 6, 0.6);
+  hat(g, r, 12, 1);
+  return { map: tex(c), bump: tex(c, false) };
+}
 export function daVoi(r) { const [c, g] = bang(); g.fillStyle = '#a9a294'; g.fillRect(0, 0, N, N); khoiDa(g, r, 12, 82, 12); hat(g, r, 12, 1); return { map: tex(c), bump: tex(c, false) }; }
 export function mongDa(r) { const [c, g] = bang(); g.fillStyle = '#5d5850'; g.fillRect(0, 0, N, N); khoiDa(g, r, 7, 62, 22, 35, 8); hat(g, r, 30, 1); return { map: tex(c), bump: tex(c, false) }; }
 export function daPhien(r) { // mái đá phiến: vảy nhỏ xám xanh

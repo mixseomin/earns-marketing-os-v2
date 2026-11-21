@@ -647,7 +647,8 @@ const vlTu = (t, o = {}) => { for (const x of [t.map, t.bump]) x && x.wrapS && (
 // mặt tiền: vân TRƠN (matTron) — cửa sổ là hình 3D của mattien.js, không vẽ lên vân nữa
 const VL = { mong: vlTu(T.daVoi(T.rngTu(9)), { bump: 3 }), // móng / tường chắn: đá vôi sáng như ảnh thật (trước vân đá xám tối, anh 16/11/2026)
    mat: vlTu(T.matTron(r1), { mau: true }), da: vlTu(T.daVoi(r1), { mau: true }), mai: vlTu(T.daPhien(r1), { ro: 0.5, mau: true }) };
-const VAN_DA = { map: VL.mat.map, bump: VL.mat.bumpMap }; // vân đá mặt tiền dùng chung cho chi tiết dựng riêng (mặt Palas, tháp góc) — không thêm ảnh vân nào
+const VAN_DA = { map: VL.mat.map, bump: VL.mat.bumpMap }; // vân đá mặt tiền dùng chung cho chi tiết dựng riêng (mặt Palas, tháp góc)
+const VAN_KHOI = (() => { const t = T.matKhoi(r1); for (const x of [t.map, t.bump]) x.wrapS = x.wrapT = THREE.RepeatWrapping; return t; })(); // đá đẽo khối của mảng nổi đầu hồi (mạch sáng, xám hơn tường trơn)
 const LOP_NHA_TU = LOP_OSM.length; // từ đây tới LOP_NHA_DEN: lớp LÂU ĐÀI của cách dựng cũ (nút 🧩 Cách 3 ẩn / hiện để so)
 for (const [ten, G] of Object.entries(NHOM)) {
   if (!G.p.length) continue;
@@ -906,7 +907,7 @@ function apHienCach3() { // gọi lại sau mọi chỗ đặt hiện / ẩn LOP
     if (tot) (async () => { // tranh tải nền, không chặn trang
       const tl = new THREE.TextureLoader(), TR = {};
       for (const ten of ['palas-thanh-george', 'palas-duc-me']) try { const t = await tl.loadAsync(`./du-lieu/anh/ngoai/${ten}.jpg`); t.colorSpace = THREE.SRGBColorSpace; TR[ten] = t; } catch (e) { console.warn('[ns] không tải được tranh mặt Palas', ten, e); }
-      const mp = datMatPalas({ THREE, mergeGeometries, tuong: tot, tranh: TR, vanDa: VAN_DA }); CUA.push(...(mp.cua || []));
+      const mp = datMatPalas({ THREE, mergeGeometries, tuong: tot, tranh: TR, vanDa: VAN_DA, vanKhoi: VAN_KHOI }); CUA.push(...(mp.cua || []));
       for (const m of mp) { m.visible = !LOP_OSM.dangAn && !CACH3.bat; scene.add(m); LOP_OSM.push(m); LOP_NHA.add(m); } // cờ trên LOP_OSM (khai sớm) — anh3d khai sau, đọc ở đây dễ dính lỗi chưa khai báo
     })();
     // sân lát đá trong mặt bằng sân trên (OSM courtyard), nhô 6 cm. Nền phẳng (SAN_PHANG): một mặt phẳng cắt ĐÚNG mép đa giác + va chạm — mép là tường chắn

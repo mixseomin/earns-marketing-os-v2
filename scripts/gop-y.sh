@@ -77,6 +77,14 @@ RETURNING id;
 SQL
 }
 
+# Mã card ghép vào SQL ở show/submit → chỉ nhận số nguyên dương, chặn trước mọi lệnh psql.
+case "$cmd" in
+  show|claim|reply|submit)
+    case "${2:-}" in
+      ''|*[!0-9]*) echo "gop-y.sh $cmd: mã card phải là số (nhận được: '${2:-}')." >&2; exit 1 ;;
+    esac ;;
+esac
+
 case "$cmd" in
 list)
   # Mặc định giấu nhóm đã đóng sổ (CLOSED_SITE_STATUSES trong lib/site-status.ts) — nhìn vào là

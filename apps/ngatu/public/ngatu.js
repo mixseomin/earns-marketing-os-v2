@@ -166,9 +166,11 @@ const MAC_DINH = { matDo: DD ? 200 : 250, lieu: 0.12, rePhai: true, tyLeOto: 7, 
 const KHOA_LUU = 'ngatu-tuy-chon';
 const daLuu = (() => { try { const o = JSON.parse(localStorage.getItem(KHOA_LUU) || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
 const CAI = { ...MAC_DINH, dung: false, vuot: 0, don: 0, nghich: 0 };
+// Bản lưu cũ (trước 21/11/2026, chưa có _ban) còn mật độ 450 → bỏ mật độ đã lưu, về mặc định mới 250.
+if (daLuu._ban !== 2) delete daLuu.matDo;
 for (const k of Object.keys(MAC_DINH)) if (typeof daLuu[k] === typeof MAC_DINH[k]) CAI[k] = daLuu[k];
 function luuTuyChon() {
-  try { localStorage.setItem(KHOA_LUU, JSON.stringify(Object.fromEntries(Object.keys(MAC_DINH).map((k) => [k, CAI[k]])))); } catch {}
+  try { localStorage.setItem(KHOA_LUU, JSON.stringify({ _ban: 2, ...Object.fromEntries(Object.keys(MAC_DINH).map((k) => [k, CAI[k]])) })); } catch {}
 }
 const NGUONG_KET = 22, NGUONG_CAT = 8;
 let tg = 0, ketNga = 0; // ketNga: số xe đang đứng kẹt trong lòng ngã tư

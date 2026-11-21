@@ -551,7 +551,7 @@ function buocXe(a, dt) {
   const fx = a.fx, fz = a.fz, rx = -fz, rz = fx;
   const look = xm ? 11 : 18;
   let ai = null, chan = null;
-  let f0 = 99, fL = 99, fR = 99, vj = 0, day = 0, hoT = 99, hoP = 99, neBo = 0;
+  let f0 = 99, fL = 99, fR = 99, vj = 0, day = 0, hoT = 99, hoP = 99, neBo = 0, boG = 99, boJ = null;
   const lanCat = []; // làn trước mũi các xe đang cắt ngang đường mình: [mép gần, mép xa, xe]
   const cr = xm ? 2 : 3, off = xm ? 1.3 : a.wid + 0.5;
   const cx = cellX(a.x), cz = cellX(a.z);
@@ -597,7 +597,7 @@ function buocXe(a, dt) {
           const sJ = j.fx * rx + j.fz * rz;
           if (Math.abs(sJ) > 0.5 && lat * sJ > 0 && Math.abs(lat) > 0.25) {
             const lui = -Math.sign(sJ) * (nL + 0.35 - Math.abs(lat)); // cần dạt bao xa về phía sau lưng người
-            if (Math.abs(lui) < (xm ? 1.6 : 1.2)) { neBo = Math.abs(lui) > Math.abs(neBo) ? lui : neBo; continue; }
+            if (Math.abs(lui) < (xm ? 1.6 : 1.2)) { neBo = Math.abs(lui) > Math.abs(neBo) ? lui : neBo; if (lon - hl < boG) { boG = lon - hl; boJ = j; } continue; }
           }
         }
         if (lon > 0.1 && j.fx * fx + j.fz * fz < 0.7 && hon(j, a) && !(j.lui > 0) && (j.loai === 'bo' ? j.trenDuong : !chanMui(a, j) || chanMui(j, a)) && !choMinh()) {
@@ -641,6 +641,14 @@ function buocXe(a, dt) {
         if (Math.abs(lat - off) < hw) fR = Math.min(fR, g);
       }
     }
+  }
+  // Luồn sau lưng người đi bộ chỉ khi bên đó CÓ KHOẢNG TRỐNG thật (anh 22/11/2026: "luồn lách nhưng phải có khoảng
+  // trống"): sườn bên đó hở hơn một thân xe + lề, phía trước bên đó trống quá chỗ người đứng, không lấn ra ngoài mép
+  // đường. Không đủ thì người đi bộ vẫn là vật cản — dừng chờ như thường.
+  if (neBo) {
+    const [lo0, hi0] = bien(a), trai = neBo < 0;
+    const ho = trai ? hoT : hoP, fS = trai ? fL : fR, dich = a.dlat + neBo;
+    if (!(ho > Math.abs(neBo) + 0.3 && fS > boG + a.len && dich > lo0 && dich < hi0)) { neBo = 0; if (boG < f0) { f0 = boG; vj = 0; ai = boJ; } }
   }
   const T = xm ? 0.75 : a.loai === 'bus' ? 1.6 : 1.3, s0 = xm ? 0.45 : 1.6;
   // Không dừng chắn ngang trước mũi xe khác: phía trước không đủ chỗ để thân mình qua HẾT làn của xe đang cắt ngang thì

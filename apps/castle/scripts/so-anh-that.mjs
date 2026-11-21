@@ -7,24 +7,31 @@
 //   4. --nhan sau: ghép ẢNH THẬT · TRƯỚC · SAU từng ảnh + bảng điểm từng mặt; SAU kém hơn TRƯỚC → mã thoát 1 (sửa làm hỏng chỗ khác)
 //   node apps/castle/scripts/so-anh-that.mjs --khoi way/221599090[,…] [--nhan truoc|sau] [--anh <tệp,…>] [--ra <thư mục>]
 //       --khoi  chọn mọi ảnh có camera nhìn thấy khối (tâm khối trong khung, ≤ 450 m); --anh chọn tay. Kết quả: apps/castle/.so-anh/<khối>/<nhãn>/
+//       --dung  BƯỚC DỰNG: chi tiết THIẾU xác nhận (≥ 2 ảnh) ghi cộng dồn vào du-lieu/neuschwanstein-chi-tiet-do.json, mattien.js datChiTietDo dựng; chạy lại --nhan sau để thấy vòng khép
 //   node apps/castle/scripts/so-anh-that.mjs --tu-kiem   bài kiểm có thể hỏng (so-anh-that.py --tu-kiem: mô hình so với chính nó phải khớp, dời 20 px phải ra lệch)
 // tra-repo-ok: keo nội bộ — camera ảnh đo từ do-anh.mjs, đo bằng OpenCV; không thư viện nào so mô hình three.js của cảnh với ảnh chụp theo mặt OSM.
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
-import { GOC, PUB, LAU, du, doiSo, moTrang } from './chung.mjs';
+import { GOC, PUB, LAU, du, doiSo, moTrang, nhip } from './chung.mjs';
 const co = (c) => doiSo.includes(c), gt = (c) => { const k = doiSo.indexOf(c); return k < 0 ? null : doiSo[k + 1]; };
 const PY = join(homedir(), '.venvs/castle-khop/bin/python'), PYS = join(GOC, 'scripts', 'so-anh-that.py');
 if (co('--tu-kiem')) process.exit(spawnSync(PY, ['-W', 'ignore', PYS, '--tu-kiem'], { stdio: 'inherit' }).status);
 const D = JSON.parse(readFileSync(join(PUB, 'du-lieu', `${LAU}.json`), 'utf8')), SO = JSON.parse(readFileSync(du('do-anh'), 'utf8')).anh;
+// ảnh BỐ CỤC mặt tiền (<lâu>-mat-*.json, khối anh có camera PnP riêng): là ảnh đo hoa văn nên phải có trong mọi lượt so trước / sau — không chỉ ảnh của do-anh.json
+for (const f of readdirSync(join(PUB, 'du-lieu')).filter((f) => f.startsWith(`${LAU}-mat-`) && f.endsWith('.json'))) {
+  const a = JSON.parse(readFileSync(join(PUB, 'du-lieu', f), 'utf8')).anh, c = a?.camera; if (!c || !a.tep || SO[a.tep]) continue;
+  SO[a.tep] = { x: c.x, z: c.z, camera: c, rong: a.rong, cao: a.cao, tacGia: a.tacGia, giayPhep: a.giayPhep, dung: 'bố cục ' + f, duong: join(GOC, a.tep) };
+}
+const duongAnh = (t) => SO[t]?.duong || join(PUB, 'du-lieu', t);
 const KHOI = (gt('--khoi') || '').split(',').filter(Boolean), NHAN = gt('--nhan') || 'truoc';
 if (!['truoc', 'sau'].includes(NHAN)) { console.error('--nhan truoc | sau'); process.exit(1); }
 const tamKhoi = KHOI.map((id) => { const k = D.khoi.find((b) => b.id === id); if (!k) { console.error('không có khối ' + id); process.exit(1); } const v = k.ngoai[0]; return [v.reduce((a, p) => a + p[0], 0) / v.length, v.reduce((a, p) => a + p[1], 0) / v.length]; });
 // ảnh thấy khối: tâm khối nằm trong góc ngang của khung (hướng nhìn three.js: −Z xoay theo yaw) và đủ gần
 const thay = (a) => tamKhoi.some(([x, z]) => { const kc = Math.hypot(x - a.x, z - a.z), huong = Math.atan2(-(x - a.x), -(z - a.z)), nua = Math.atan(Math.tan(a.camera.fov * Math.PI / 360) * a.rong / a.cao);
   return kc < 450 && Math.abs(((huong - a.camera.yaw + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI) < nua * 0.9; });
-const VIEC = (gt('--anh') ? gt('--anh').split(',') : Object.keys(SO).filter((t) => SO[t].camera && KHOI.length && thay(SO[t]))).filter((t) => existsSync(join(PUB, 'du-lieu', t)) && SO[t]?.camera); // --anh chọn tay vẫn bỏ ảnh chưa định vị
+const VIEC = (gt('--anh') ? gt('--anh').split(',') : Object.keys(SO).filter((t) => SO[t].camera && KHOI.length && thay(SO[t]))).filter((t) => SO[t]?.camera && existsSync(duongAnh(t))); // --anh chọn tay vẫn bỏ ảnh chưa định vị
 if (!VIEC.length) { console.error('không ảnh nào có camera nhìn thấy ' + (KHOI.join(',') || '(chưa chọn --khoi / --anh)') + ' — định vị thêm ảnh: do-anh.mjs --khoi … [--vong]'); process.exit(1); }
 const RA = gt('--ra') || join(GOC, '.so-anh', (KHOI.join('+') || 'anh').split('/').join('-')), THU = join(RA, NHAN); mkdirSync(THU, { recursive: true });
 console.log(`${VIEC.length} ảnh có camera nhìn thấy ${KHOI.join(', ') || 'đã chọn'} → ${THU}`);
@@ -64,11 +71,11 @@ await pg.evaluate((XA) => { const n = window.__ns, T = n.THREE;
 const ds = [];
 for (const t of VIEC) {
   const a = SO[t], ten = t.split('/').pop().replace(/\.[a-z]+$/i, ''), H = CAO, W = Math.round(CAO * a.rong / a.cao);
-  const r = await pg.evaluate((o) => window.__veAnh(o), { x: a.x, y: a.camera.y, z: a.z, yaw: a.camera.yaw, pitch: a.camera.pitch, roll: a.camera.roll, fov: a.camera.fov, W, H });
+  nhip(`vẽ ảnh ${ten}`); const r = await pg.evaluate((o) => window.__veAnh(o), { x: a.x, y: a.camera.y, z: a.z, yaw: a.camera.yaw, pitch: a.camera.pitch, roll: a.camera.roll, fov: a.camera.fov, W, H });
   writeFileSync(join(THU, `${ten}-mo-hinh.jpg`), Buffer.from(r.mau.split(',')[1], 'base64')); writeFileSync(join(THU, `${ten}-sau.png`), Buffer.from(r.sau.split(',')[1], 'base64')); writeFileSync(join(THU, `${ten}-hinh.png`), Buffer.from(r.hinh.split(',')[1], 'base64'));
-  ds.push({ ten, anh: join(PUB, 'du-lieu', t), tep: t, W, H, fov: a.camera.fov, xa: XA, m: r.m, tacGia: a.tacGia || '', giayPhep: a.giayPhep || '' });
+  ds.push({ ten, anh: duongAnh(t), tep: t, W, H, fov: a.camera.fov, xa: XA, m: r.m, tacGia: a.tacGia || '', giayPhep: a.giayPhep || '' });
   console.log(`   ${ten}: chỗ đứng (${a.x}, ${a.camera.y}, ${a.z}) · ống ${a.camera.fov}° · ${a.dung} điểm khớp${r.nang ? ` · camera dưới mặt đứng → nâng ${r.nang.toFixed(2)} m` : ''}`);
 }
 await dong();
 writeFileSync(join(THU, 'ds.json'), JSON.stringify({ khoi: D.khoi.map((k) => ({ id: k.id, ten: k.ten || '', v: k.ngoai[0] })), chon: KHOI, ds }));
-process.exit(spawnSync(PY, ['-W', 'ignore', PYS, RA, NHAN], { stdio: 'inherit' }).status);
+process.exit(spawnSync(PY, ['-W', 'ignore', PYS, RA, NHAN, ...(co('--dung') ? ['--dung'] : [])], { stdio: 'inherit' }).status); // --dung: bước dựng (sổ chi-tiet-do)

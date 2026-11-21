@@ -23,7 +23,7 @@ import { datAnhSang } from './anhsang.js';
 import { taoChieuAnh } from './chieuanh.js';
 import { datDuong } from './duong.js';
 import { datTrangTri, datCuaCong } from './trangtri.js';
-import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, caoTheoTia, diemTheoTia, thapTheoTia, tiLeDung, datChop, oCum, boTriDo, datMai, banDoMat, datMatRieng, xMatRieng } from './mattien.js';
+import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, caoTheoTia, diemTheoTia, thapTheoTia, tiLeDung, datChop, datChiTietDo, cuaDiDuoc, loTrung, cachMat, SAU_CUA, oCum, boTriDo, datMai, banDoMat, datMatRieng, xMatRieng } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 import { ganAnhQuanh } from './anhquanh.js';
 import { datCanhXa } from './canhxa.js';
@@ -49,6 +49,7 @@ const NEN = await fetch(`./du-lieu/${ten}-nen.json`, { cache: 'no-cache' }).then
 // SÂN TRƯỚC CỔNG theo ảnh trực giao + bề mặt chính thức Bavaria (scripts/san-cong-dop.py, 20/11/2026): { san: đa giác, co: [bồn cỏ], y } — thay sân suy từ tim đường
 const CAY = await fetch(`./du-lieu/${ten}-cay.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // ngọn cây theo tán chính thức (scripts/cay-tu-dom.py)
 const SAN_CONG = await fetch(`./du-lieu/${ten}-san-cong.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+const CT_DO = await fetch(`./du-lieu/${ten}-chi-tiet-do.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // chi tiết dựng theo đo (so-anh-that.mjs --dung)
 const CHOP = await fetch(`./du-lieu/${ten}-chop.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // chóp / tháp nhỏ OSM không có (scripts/them-chop.mjs)
 const NON_TIA = new URLSearchParams(location.search).get('non_tia') === '0' ? null : await fetch(`./du-lieu/${ten}-non-tia.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // đỉnh nón + mũi + chân đo bằng tia ảnh định vị (scripts/non-theo-tia.mjs)
 const MAT_DUNG = await fetch(`./du-lieu/${ten}-mat-dung.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // số đo mặt đứng ảnh 3D ↔ mô hình (scripts/so-mat.py): chân tháp xoè, cổng xuyên
@@ -437,6 +438,15 @@ function cong(x1, z1, x2, z2) {
 function loCanh(k, i, x1, z1, x2, z2) {
   const lo = [], L = Math.hypot(x2 - x1, z2 - z1);
   for (const c of cong(x1, z1, x2, z2)) { lo.push({ s0: c.s0, s1: c.s1, y0: c.y0, y1: c.y1 }); if (c.trong && !VOM_CONG.some((v) => Math.hypot(v.x - c.x, v.z - c.z) < 1.5)) VOM_CONG.push({ ...c, mat: k.id + '#' + i }); }
+  // cửa vào đo từ ảnh (sổ chi-tiet-do, cua 'cua_vao' + mặt đứng ngoài cửa khớp ngưỡng — mattien.js cuaDiDuoc): khoét thật từ dưới mặt đứng tới đỉnh lỗ, đi bộ qua được
+  // đoạn trong sổ khớp cạnh theo hình học (song song + nằm trên cạnh), không theo số thứ tự cạnh — cạnh OSM đổi chiều / đánh số lại vẫn đúng
+  for (const c of CT_DO?.muc || []) if (c.khoi === k.id && c.cua === 'cua_vao') for (const d of c.doan || []) {
+    const ex = (x2 - x1) / L, ez = (z2 - z1) / L, t = (d.t0 + d.t1) / 2, px = d.a0[0] + d.u[0] * t - x1, pz = d.a0[1] + d.u[1] * t - z1;
+    if (Math.abs(d.u[0] * ex + d.u[1] * ez) < 0.95 || Math.abs(px * ez - pz * ex) > (d.ra || 0) + 0.5) continue;
+    const yg = cuaDiDuoc(c, d, datThat, CT_DO?.nguong); if (yg == null) continue;
+    const s = px * ex + pz * ez, nua = Math.min(c.w ?? (d.t1 - d.t0), d.t1 - d.t0) / 2; if (s + nua < 0 || s - nua > L) continue;
+    lo.push({ s0: s - nua, s1: s + nua, y0: yg - 0.6, y1: c.y1 ?? (c.y + (c.h ?? 0) / 2) });
+  }
   if (!NOI) return lo;
   if (k.trongPalas || k === NOI.thap) { const mx = (x1 + x2) / 2, mz = (z1 + z2) / 2; if (trongDa(mx, mz, NOI.palas.v) && kcVien(mx, mz, NOI.palas.v) > 0.6) {
     // vách trong: chỉ khoét tới đỉnh tường của khối bên kia (vách lộ ra trên mái khối thấp hơn mà khoét thì thủng ra trời — ô hổng mặt tây Palas, anh 16/11/2026)
@@ -658,6 +668,7 @@ for (const [ten, G] of Object.entries(NHOM)) {
   const m = new THREE.Mesh(g, VL[ten]); m.castShadow = m.receiveShadow = true; m.userData.nha = true; scene.add(m); LOP_OSM.push(m); // nha: nhận ảnh chiếu (chieuanh.js)
 }
 // mặt Palas hướng sân trên (đầu hồi đông, gần sân nhất): chọn TRƯỚC khi đặt cửa sổ để chừa dải trên cho tranh + ban công
+let CT_DO_MAT_RIENG = [], CUA_DA_CO_MT = []; // sổ đo phần nằm trên mặt dựng riêng + ô cửa đã có lúc dựng mặt tiền — dựng sau datMatPalas (tachSo)
 const CUA = []; // cửa sổ 3D mặt tiền (mattien.js): { x, y: bậu, z, nx, nz: pháp tuyến ra ngoài, nua: nửa bề ngang, cao, ten } — leo sát cửa có phòng phía sau thì E mở cửa trèo vào
 const SAN_TRONG = D.khoi.find((k) => k.tags.building === 'courtyard')?.ngoai?.[0];
 // NỀN SÂN TRÊN PHẲNG (NEN_LUOI đặt mặt đất trong đa giác sân = NEN.san): mặt lát + tường chắn mép dựng theo mức này (góp ý #1633)
@@ -761,9 +772,7 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
     if (e.ban_cong_khung) e.ban_cong = e.ban_cong_khung.map(([u, d, w, nh]) => [f.s(u), f.yDat + d, w, nh]);
     if (e.dong_ho_khung) e.dong_ho = e.dong_ho_khung.map(([u, d, r]) => [f.s(u), f.yDat + d, r]);
     if (e.o_vuong_khung) e.o_vuong = e.o_vuong_khung.map(([u, v, w, h]) => [f.s(u), f.y(v) - h / 2, w, h]); }
-  const { ra, cua, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe, nhe: CHAM, cuaSo: CUA_SO, matAnh: MAT_ANH,
-    matNgoai: (x, z, nx, nz) => { // mép sân OSM có chỗ cách chân tường vài mét → dò 2 / 5 / 8 m trước mặt tường; độ cao lấy ngay trước chân tường
-      const san = !!SAN_TRONG && [2, 5, 8].some((d) => trongDa(x + nx * d, z + nz * d, SAN_TRONG)); return { san, yDat: matDat(x + nx * 1.5, z + nz * 1.5) }; } });
+  const { ra, cua, dem } = datMatTien({ THREE, mergeGeometries, tuong: TUONG_MT, biChe, nhe: CHAM, cuaSo: CUA_SO, matAnh: MAT_ANH, doSo: CT_DO?.muc || [], nguongDo: CT_DO?.nguong });
   // mesh có mức chi tiết (userData.lod) nằm trong nhóm riêng: lớp ảnh 3D bật / tắt cả NHÓM (LOP_OSM), mức chi tiết bật / tắt từng mesh con — không giẫm nhau
   for (const m of ra) { if (m.userData.lod) { LOD_MT[m.userData.lod].add(m); continue; } scene.add(m); LOP_OSM.push(m); }
   for (const g of [LOD_MT.gan, LOD_MT.xa]) { scene.add(g); LOP_OSM.push(g); }
@@ -857,7 +866,18 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
     for (const [id, cs] of Object.entries(MAI?.khoi || {})) for (const c of cs || []) ghiKK(id + '#mai', c.loai === 'chop' ? 'chop' : 'cua_mai', c.y, 1, c.x, c.z);
     console.info('[ns] cửa mái / chóp trên mái (đo ảnh 3D):', ds.filter((c) => c.loai === 'cuaMai').length, '/', ds.filter((c) => c.loai === 'chop').length); }
   if (CHOP?.chop?.length || MUI_TIA.length) for (const m of datChop({ THREE, mergeGeometries, ds: [...(CHOP?.chop || []), ...MUI_TIA], nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
-  console.info('[ns] mặt tiền chi tiết:', JSON.stringify({ ...dem, thapGoc: goc.length, chop: (CHOP?.chop?.length || 0) + MUI_TIA.length }));
+  const CUA_DA_CO = (CUA_DA_CO_MT = [...CUA]), MAT_RIENG = MAT_PALAS ? [{ x1: MAT_PALAS.x1, z1: MAT_PALAS.z1, x2: MAT_PALAS.x2, z2: MAT_PALAS.z2 }] : []; // sổ ô cửa đã có (datMatTien + mặt Torbau) + mặt dựng riêng toàn bộ
+  // sổ đo chia hai: đoạn trên MẶT DỰNG RIÊNG (mặt Palas hướng sân) chờ mặt đó dựng xong rồi mới dựng — nhường đúng ô cửa dựng tay có thật, phần còn lại (cửa tầng cao,
+  // gờ…) đặt lên ĐÚNG mặt phẳng mặt dựng tay. Trước 21/11/2026 cả mặt bị bỏ (38 lỗ đo trên ≥ 2 ảnh), gờ đặt trên cạnh OSM chìm sau mặt dựng tay → bên kiểm báo THIẾU mãi
+  const tachSo = (trenMat) => (CT_DO?.muc || []).map((c) => ({ ...c, doan: (c.doan || []).flatMap((d) => { const k = MAT_RIENG.map((m) => cachMat(d, m)).find((v) => v != null);
+    return trenMat ? (k == null ? [] : [{ ...d, ra: (d.ra || 0) + k }]) : (k == null ? [d] : []); }) })).filter((c) => c.doan.length);
+  CT_DO_MAT_RIENG = tachSo(true);
+  const ctDo = CT_DO?.muc?.length ? datChiTietDo({ THREE, mergeGeometries, ds: tachSo(false), nhe: CHAM, nguong: CT_DO.nguong, matDat, daCo: CUA_DA_CO, matRieng: [] }) : []; for (const m of ctDo) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
+  // sàn trong lòng cửa vào (mặt trên = mặt đứng ngoài cửa, sâu SAU_CUA): bước qua cửa không hụt chân xuống đất mô hình dưới khối
+  for (const c of CT_DO?.muc || []) for (const d of c.doan || []) { if (loTrung(c, d, CUA_DA_CO, MAT_RIENG)) continue; const yg = cuaDiDuoc(c, d, matDat, CT_DO?.nguong); if (yg == null) continue;
+    const t = (d.t0 + d.t1) / 2, w = Math.min(c.w ?? (d.t1 - d.t0), d.t1 - d.t0), r = (d.ra || 0) - SAU_CUA / 2, q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(d.n[0], d.n[1]));
+    world.createCollider(RAPIER.ColliderDesc.cuboid(w / 2, 0.15, SAU_CUA / 2 + 0.4).setTranslation(d.a0[0] + d.u[0] * t + d.n[0] * r, yg - 0.15, d.a0[1] + d.u[1] * t + d.n[1] * r).setRotation(q), tinh); }
+  console.info('[ns] mặt tiền chi tiết:', JSON.stringify({ ...dem, thapGoc: goc.length, chop: (CHOP?.chop?.length || 0) + MUI_TIA.length, chiTietDo: ctDo.dem ? { ...ctDo.dem, boTrung: ctDo.dem.boTrung.length } : null })); window.__nsBoTrung = ctDo.dem?.boTrung || [];
 }
 const LOP_NHA = new Set(LOP_OSM.slice(LOP_NHA_TU));
 // CÁCH 3 (anh 16/11/2026): lâu đài dựng từ bản đồ độ cao thật (cach3.js, du-lieu/<lâu>-cach3.json) — lớp XEM để so với cách cũ; đi bộ / va chạm vẫn theo cách cũ
@@ -907,7 +927,10 @@ function apHienCach3() { // gọi lại sau mọi chỗ đặt hiện / ẩn LOP
     if (tot) (async () => { // tranh tải nền, không chặn trang
       const tl = new THREE.TextureLoader(), TR = {};
       for (const ten of ['palas-thanh-george', 'palas-duc-me']) try { const t = await tl.loadAsync(`./du-lieu/anh/ngoai/${ten}.jpg`); t.colorSpace = THREE.SRGBColorSpace; TR[ten] = t; } catch (e) { console.warn('[ns] không tải được tranh mặt Palas', ten, e); }
-      const mp = datMatPalas({ THREE, mergeGeometries, tuong: tot, tranh: TR, vanDa: VAN_DA, vanKhoi: VAN_KHOI }); CUA.push(...(mp.cua || []));
+      const mp = datMatPalas({ THREE, mergeGeometries, tuong: tot, tranh: TR, vanDa: VAN_DA, vanKhoi: VAN_KHOI, doSo: CT_DO_MAT_RIENG, nguong: CT_DO?.nguong }); CUA.push(...(mp.cua || []));
+      window.__nsKhopCum = mp.cua?.khop || []; console.info('[ns] cụm cửa Palas khớp sổ đo:', JSON.stringify(window.__nsKhopCum)); // cụm tay nào đã theo lỗ đo nhiều ảnh
+      if (CT_DO_MAT_RIENG.length) { const ct = datChiTietDo({ THREE, mergeGeometries, ds: CT_DO_MAT_RIENG, nhe: CHAM, nguong: CT_DO.nguong, matDat, daCo: [...CUA_DA_CO_MT, ...(mp.cua || [])] }); // chi tiết đo trên mặt này (xem tachSo)
+        for (const m of ct) { m.userData.nha = true; mp.push(m); } window.__nsBoTrung = [...(window.__nsBoTrung || []), ...(ct.dem?.boTrung || [])]; console.info('[ns] chi tiết đo trên mặt dựng riêng:', JSON.stringify({ ...ct.dem, boTrung: ct.dem?.boTrung?.length })); }
       for (const m of mp) { m.visible = !LOP_OSM.dangAn && !CACH3.bat; scene.add(m); LOP_OSM.push(m); LOP_NHA.add(m); } // cờ trên LOP_OSM (khai sớm) — anh3d khai sau, đọc ở đây dễ dính lỗi chưa khai báo
     })();
     // sân lát đá trong mặt bằng sân trên (OSM courtyard), nhô 6 cm. Nền phẳng (SAN_PHANG): một mặt phẳng cắt ĐÚNG mép đa giác + va chạm — mép là tường chắn
@@ -1486,7 +1509,7 @@ if (ANH.length) {
 }
 addEventListener('resize', () => { if (dangSo) moSo(ANH.indexOf(dangSo)); });
 
-window.__ns = { D, dsKhoi, camera, orbit, caoDat, GOC_Y, scene, renderer, world, RAPIER, di: () => di, toi: () => toi, vaoCong, ANH, moSo, tatSo, cam: () => cam, datCam: (c) => { Object.assign(cam, c); datCamSo(); } };
+window.__ns = { D, dsKhoi, camera, orbit, caoDat, GOC_Y, scene, renderer, world, RAPIER, di: () => di, toi: () => toi, vaoCong, ANH, moSo, tatSo, thapTia: () => THAP_TIA, cam: () => cam, datCam: (c) => { Object.assign(cam, c); datCamSo(); } };
 // ---------- cầu Marienbrücke (toạ độ hai đầu từ OpenStreetMap way "Marienbrücke"): sàn + lan can, đứng ngắm lâu đài như ảnh thật
 const CAU = [[47.554991, 10.7492138], [47.5549237, 10.7495946]].map(([la, ln]) => raMet(la, ln));
 {

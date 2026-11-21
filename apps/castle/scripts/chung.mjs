@@ -27,6 +27,16 @@ function kiemChuThich() {
     try { execFileSync(process.execPath, [join(GOC, 'scripts', tep)], { stdio: 'pipe' }); } catch (e) { console.error(String(e.stderr || '') + String(e.stdout || e.message)); console.error(`✗ dừng: ${ly} — sửa trước khi đo / kiểm`); process.exit(1); }
 }
 // suaTam: { 'way/…': { y_tren: '…' } } trộn TẠM vào <lâu>-sua.json khi trang nạp (không đổi tệp) — bài phá thử của cham-goc.mjs, chấm bản sửa chưa ghi
+// GÁC TREO (anh 21/11/2026: "Chạy ngầm phải đảm bảo ko có lỗi khiến bị trơ đơ mãi ko xong"): mọi công cụ mở Chromium qua moTrang có một đồng hồ —
+// HAN_TREO giây (mặc định 600) không có nhịp nào (mở trình duyệt, nạp trang, nhip() công cụ gọi mỗi việc — KHÔNG tính tin console: trang kẹt vẫn ghi lỗi đều) → in việc đang kẹt, giết trình duyệt, thoát 124.
+// Công cụ có vòng lâu: gọi nhip('<việc>') mỗi lần xong một việc (so-anh-that.mjs: mỗi ảnh). dong() cũng có hạn: 20 s không đóng xong → giết cứng.
+export function taoGac(hanMs, khiTreo) {
+  let viec = 'khởi động', t = null;
+  const nhip = (ten) => { if (ten) viec = ten; clearTimeout(t); t = setTimeout(() => khiTreo(viec), hanMs); t.unref?.(); };
+  return { nhip, tat: () => clearTimeout(t), viec: () => viec };
+}
+let gacTrang = null;
+export const nhip = (ten) => gacTrang?.nhip(ten);
 export async function moTrang({ anh3d = false, them = '', khung = { width: 1600, height: 1200 }, nhanLog = null, suaTam = null } = {}) {
   kiemChuThich();
   const may = http.createServer((q, r) => {
@@ -48,15 +58,22 @@ export async function moTrang({ anh3d = false, them = '', khung = { width: 1600,
   }
   const { chromium } = await import(PW);
   const b = await chromium.launch({ args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
+  const HAN = Number(process.env.HAN_TREO || 600);
+  gacTrang = taoGac(HAN * 1e3, (viec) => { console.error(`✗ TREO: "${viec}" quá ${HAN} s không nhúc nhích → giết trình duyệt, thoát 124`);
+    try { b.process?.()?.kill('SIGKILL'); } catch {} try { may.close(); } catch {} process.exit(124); });
+  gacTrang.nhip('mở trình duyệt');
   const cong = may.address().port;
   // trangMoi(): thêm một trang cùng trình duyệt, cùng máy chủ (đo nhiều góc song song — cham-goc.mjs)
   const trangMoi = async () => { const pg = await b.newPage({ viewport: khung });
     pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message));
     if (nhanLog) pg.on('console', (m) => { if (m.text().startsWith(nhanLog)) console.log(m.text()); });
     await pg.addInitScript((a) => { try { localStorage.setItem('ns-anh3d', a ? '1' : '0'); localStorage.setItem('ns-anh3d-cong-cu', '1'); localStorage.setItem('ns-dau-thu', '1'); } catch {} }, anh3d);
-    await pg.goto(`http://127.0.0.1:${cong}/neuschwanstein.html?lau=${encodeURIComponent(LAU)}${them ? '&' + them : ''}`);
+    nhip('nạp trang'); await pg.goto(`http://127.0.0.1:${cong}/neuschwanstein.html?lau=${encodeURIComponent(LAU)}${them ? '&' + them : ''}`);
     await pg.waitForFunction((a) => window.__ns?.tt && (!a || window.__ns.anh3d()), anh3d, { timeout: 180000 });
-    return pg; };
+    nhip('trang sẵn sàng'); return pg; };
   const pg = await trangMoi();
-  return { pg, trangMoi, dong: async () => { await b.close(); may.close(); } };
+  return { pg, trangMoi, dong: async () => { nhip('đóng trình duyệt');
+    const xong = await Promise.race([b.close().then(() => true), new Promise((ok) => setTimeout(ok, 20e3, false))]);
+    if (!xong) { console.error('✗ trình duyệt không đóng sau 20 s → giết cứng'); try { b.process?.()?.kill('SIGKILL'); } catch {} }
+    gacTrang?.tat(); gacTrang = null; may.close(); } };
 }

@@ -81,13 +81,45 @@ dò mỗi vùng ra mặt tường (`window.__ns.diemTaiAnh`). Phá thử đã ch
 ### 4c. So ảnh thật đúng camera — TRƯỚC / SAU mỗi lần sửa (bắt buộc)
 
 `node apps/castle/scripts/so-anh-that.mjs --khoi <khối OSM> --nhan truoc` trước khi sửa, `--nhan sau` sau khi sửa: mọi ảnh đã định vị (`<lâu>-do-anh.json`) thấy khối → vẽ mô hình đúng
-camera ảnh, so viền trời + nét từng mặt (`scripts/so-anh-that.py`), ghép ẢNH THẬT · TRƯỚC · SAU vào `apps/castle/.so-anh/<khối>/`. Mã thoát 1 = có ảnh kém đi (viền −2 điểm hoặc nét −0,03)
+camera ảnh, so viền trời + nét từng mặt (`scripts/so-anh-that.py`), ghép ẢNH THẬT · TRƯỚC · SAU vào `apps/castle/.so-anh/<khối>/`. Mã thoát 1 = có ảnh kém đi (viền −2 điểm hoặc nét −0,03); mã 3 = không ảnh nào kém nhưng khối còn chi tiết THIẾU đã xác nhận (chưa xong, vòng kế dựng tiếp)
 → chưa xong. Gửi anh ảnh ghép các ảnh có số đổi. Chấm hồng = viền DOM20 (mặt số chính thức Bavaria).
 
 **Mặt dựng theo ảnh có camera** (mẫu: Palas mặt sân, 21/11/2026): đổi điểm ảnh ra mét bằng TIA camera cắt mặt đứng (`mattien.js diemTheoTia` / `caoTheoTia`, mặt đứng qua hai mốc mặt bằng),
 không thước px/m tuyến tính (ảnh chụp ngửa → sai dần theo độ cao). Đường viền nhìn thấy (mép đầu hồi, mép tháp) đo HAI điểm ảnh mỗi mép ghi vào tệp bố cục (vd `tiLe.hoiMep`)
 → tia → đường thẳng trên mặt đứng; không lấy chân tam giác từ đầu mút tường OSM (đầu mút = tâm tháp, mép thật dốc hơn: viền cao 8–13 px ở 3 ảnh). Bề ngang bố cục mặt (tháp tới tháp)
 và chân mép đầu hồi là HAI trường riêng (`hoi.sA/sB` · `hoi.mA/mB`).
+
+### 4d. Vòng dò → dựng chi tiết mặt (gờ / dãy / lỗ) — tự khép, không chờ anh chỉ (chuẩn 21/11/2026)
+
+Một vòng: `node apps/castle/scripts/so-anh-that.mjs --khoi <khối> --nhan sau` (vẽ + so) → `python apps/castle/scripts/so-anh-that.py apps/castle/.so-anh/<khối> sau --dung` (ghi sổ
+`public/du-lieu/<lâu>-chi-tiet-do.json`, `mattien.js datChiTietDo` dựng thẳng lên đoạn tường) → vẽ lại. Xong khi khối đang làm còn **0 THIẾU / SAI_NHIP xác nhận** và lượt kế không đổi sổ.
+
+- **Khung khoá**: canh khung mỗi ảnh ghi một lần vào `.so-anh/canh-khung.json`, mọi lượt / khối sau dùng đúng khung đó (không canh lại theo mô hình mới → lệch giả).
+- **Xác nhận = ≥ 2 ảnh camera tin** cùng chỗ (`doc_mat.cung_cho`); một ảnh = nghi.
+- **Ngưỡng một nguồn**: `doc_mat.NGUONG` ghi vào sổ, mattien.js đọc từ sổ — không chép số.
+- **Dải phẳng mảnh = gờ**; dải tối dẹt dưới phần nhô = BÓNG của gờ (báo THIẾU gờ, không phải lỗ).
+- **Chi tiết hẹp** (< 0,4 m): cạnh giữ nhiều cột nhất luôn giữ đoạn, không thì không dựng được → THIẾU mãi.
+- **Mặt trên phào không phải mái** (`BanDo.GO_SAU` 0,6 m): mặt ngang sát tường thuộc mặt tường đó.
+- **Gờ của mô hình đọc từ hình học** (`doc_mat.go_nho`, `GO_CAO` 0,8 m): sống nhô khỏi mặt tường, không chỉ từ bóng giả lập — bóng một hướng nắng làm phào mảnh thành dải mờ, máy không thấy gờ vừa dựng.
+- **Gỡ THỪA bằng phiếu**: chỉ gỡ chi tiết trong sổ khi số ảnh báo THỪA **nhiều hơn** số ảnh thấy đúng chi tiết đó (`doc_mat.thay`). ≥ 2 ảnh THỪA là gỡ ngay → gỡ / dựng luân phiên.
+- **Cửa vào ≠ cửa sổ** (`doc_mat.loai_lo`, chuẩn 21/11/2026): lỗ có đáy ≤ `NGUONG.cua_chan` (0,45 m) trên chân tường thấy được, cao ≥ `cua_h` 1,8 m, rộng ≥ `cua_w` 0,7 m → `cua_vao`; còn lại `cua_so`. Ảnh nói cửa sổ mà mô hình dựng cửa chạm đất (hay ngược lại) → `SAI_LOAI`, `--dung` ghi lại `cua` vào sổ. Nhiều ảnh bất đồng → `cua_so` (không khoét khi chưa chắc).
+- **Cửa vào dựng thành lỗ đi qua được** chỉ khi bên dựng cũng thấy mặt đứng ngay ngoài cửa (0,8 m) trong 0,6 m dưới ngưỡng (`mattien.js cuaDiDuoc` — dùng chung cho khung + lòng tối sâu `SAU_CUA` trong `datChiTietDo`, `ns.js loCanh` khoét tường + va chạm, và sàn va chạm trong lòng cửa). Không đoán cửa / dãy vòm chạm đất ở mặt chưa đo: bố cục chung (`bocCuc`) chỉ đặt cửa sổ.
+- Mỗi luật có bài tự kiểm phải đỏ được (`doc_mat.py --tu-kiem`, `so-anh-that.py --tu-kiem`): sửa luật = thêm bài + phá thử.
+- **Lỗ chồng lỗ = LỆCH, không phải THIẾU** (`doc_mat.chong` ≥ 0,25 diện tích hộp nhỏ): ảnh thấy một ô mà mô hình có ô lệch chỗ đè lên → báo LỆCH (không dựng thêm khung thứ hai).
+- **Một sổ ô cửa** (`mattien.js loTrung`): chi tiết `lo` trong sổ đo bị bỏ khi đè ≥ 25 % lên ô cửa đã dựng (`CUA` từ mặt tiền / bố cục) hay nằm trên mặt dựng riêng toàn bộ (`MAT_PALAS`) — cả khung, lòng tối lẫn sàn va chạm.
+- **Cổng THỪA CHI TIẾT** (`so-anh-that.py day_net`): độ dày nét mô hình / ảnh trên mặt chung > `NGUONG_DAY` 1,3 và dày thêm > 15 % so TRƯỚC → KÉM, dù F không tụt (F chỉ chấm "nét gần nét", khung chồng vẫn đúng chỗ).
+
+### 4e. Một lệnh cho cả vòng — không tốn lượt Claude (chuẩn 21/11/2026)
+
+`node apps/castle/scripts/lam-mat.mjs --khoi <khối> [--vong 4] [--moi]` tự chạy 4d tới khi sổ không đổi: đo TRƯỚC + dựng → chụp SAU → cổng (viền, nét, THỪA CHI TIẾT).
+Cổng đỏ → trả sổ về bản trước vòng (`.so-anh/<khối>/so-truoc-vong-N.json`, bản hỏng `so-hong-vong-N.json`), mã thoát 1. Ảnh ẢNH THẬT · TRƯỚC · SAU mỗi vòng ở
+`.so-anh/<khối>/vong-N/`. Claude chỉ vào khi mã thoát 1 (đọc bảng cuối) hoặc khi thêm luật đo mới.
+- **TRƯỚC đúng mã:** `.so-anh/<khối>/truoc/dau-ma.txt` = băm máy chụp + mọi .js / .json trang (trừ sổ). Dấu lệch → tự chụp lại TRƯỚC; mã đổi giữa lúc chạy → mã thoát 1.
+  Lý do: TRƯỚC cũ chụp bằng mã cũ → sổ không đổi mà SAU vẫn KÉM 4 ảnh, đổ oan cho chi tiết.
+- **Trả sổ theo khối:** đỏ vì THỪA CHI TIẾT → `so-anh-that.py` ghi `.so-anh/<khối>/thua-khoi.json` (khối có mặt dày nét > 1,3 × ảnh VÀ dày thêm > 15 % so TRƯỚC, đếm số ảnh);
+  `lam-mat.mjs` chỉ trả sổ các khối đó về bản trước vòng, giữ chi tiết mới của khối khác, chụp SAU lại một lần — vẫn đỏ mới trả cả sổ.
+- **Tường chung:** hai khối áp nhau có hai cạnh trùng đường, pháp tuyến ngược. Điểm trên tường gán vào mặt **quay về camera** (`BanDo.mat(..., cam)`);
+  mặt quay lưng thì đổi sang cạnh khối khác trong 0,6 m quay về camera — trước đây chi tiết dựng lên cả mặt bị che của khối thấp (khung chồng).
 
 ## 5. Không lùi
 

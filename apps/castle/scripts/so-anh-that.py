@@ -15,6 +15,7 @@ Mỗi ảnh:
 """
 import json, sys, math, pathlib
 import numpy as np, cv2
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import doc_mat
 from PIL import Image, ImageDraw, ImageFont
 
 FONT = '/System/Library/Fonts/Supplemental/Arial.ttf'
@@ -45,15 +46,37 @@ class BanDo:
             cv2.fillPoly(s.lab, [np.round((np.array(khoi[i]['v']) - [s.x0, s.z0]) / s.b).astype(np.int32)], i + 1)
         s.lab = np.where(s.lab > 0, s.lab, cv2.dilate(s.lab, np.ones((9, 9), np.uint8)))  # điểm sát chân tường (độ sâu lệch vài tấc) vẫn thuộc khối
 
-    def mat(s, P, nhan_mai):
-        """P (N,3) → mảng chuỗi tên mặt ('' = không thuộc khối)"""
+    # mặt NẰM NGANG cách đường tường ≤ GO_SAU là mặt trên / dưới của gờ, phào, bậu cửa — thuộc MẶT TƯỜNG, không phải mái.
+    # Trước đây mọi điểm |pháp tuyến y| > 0,7 đều gán 'mái' rồi bị bỏ khỏi đo mặt: gờ dựng theo sổ chỉ còn mặt đứng (sáng như tường) → mô hình
+    # không bao giờ thấy gờ mình vừa dựng, vòng đo → dựng không khép (21/11/2026 khối 223140032: 1.025 điểm mặt trên phào 33 m bị bỏ, gờ 33,05 THIẾU mãi)
+    GO_SAU = 0.6
+
+    # TƯỜNG CHUNG (21/11/2026): hai khối áp nhau có hai cạnh trùng một đường, pháp tuyến ngược nhau (221599101#14 ↔ 223140032#9). Phần tường khối cao lộ trên mái khối thấp
+    # nằm đúng đường đó → ô lưới có thể thuộc khối thấp → điểm bị gán mặt khối thấp (mặt QUAY LƯNG camera, bị khối cao che) → chi tiết dựng lên cả hai khối, khung chồng.
+    # Mặt thấy được phải quay về camera: cạnh đã chọn quay lưng (pháp tuyến ngoài · (camera − điểm) < 0) → tìm cạnh khối khác trong GO_SAU quay về camera.
+    def phap_ngoai(s, kk):
+        v = np.array(s.khoi[kk]['v'], float); ab = np.roll(v, -1, 0) - v; dt = (v[:, 0] * np.roll(v[:, 1], -1) - np.roll(v[:, 0], -1) * v[:, 1]).sum()
+        n = np.stack([ab[:, 1], -ab[:, 0]], 1) * (1 if dt > 0 else -1); return v, ab, n / np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-9)
+
+    def mat(s, P, nhan_mai, cam=None):
+        """P (N,3) → mảng chuỗi tên mặt ('' = không thuộc khối); cam (x, y, z) = vị trí camera → sửa điểm trên tường chung về mặt quay về camera"""
         i = np.clip(np.round((P[:, 2] - s.z0) / s.b).astype(int), 0, s.lab.shape[0] - 1); j = np.clip(np.round((P[:, 0] - s.x0) / s.b).astype(int), 0, s.lab.shape[1] - 1)
         k = s.lab[i, j].astype(int) - 1; ra = np.full(len(P), '', dtype=object)
         for kk in np.unique(k[k >= 0]):
             c = np.where(k == kk)[0]; v = np.array(s.khoi[kk]['v'], float); a, b = v, np.roll(v, -1, 0); q = P[c][:, [0, 2]]
             ab = b - a; t = np.clip(((q[:, None, :] - a[None]) * ab[None]).sum(-1) / np.maximum((ab ** 2).sum(-1), 1e-9)[None], 0, 1)
-            canh = np.argmin(((a[None] + t[..., None] * ab[None] - q[:, None, :]) ** 2).sum(-1), 1)
-            ra[c] = [f"{s.khoi[kk]['id']}#{'mái' if m else e}" for e, m in zip(canh, nhan_mai[c])]
+            d2 = ((a[None] + t[..., None] * ab[None] - q[:, None, :]) ** 2).sum(-1); canh = np.argmin(d2, 1); sat_tuong = d2.min(1) <= s.GO_SAU ** 2
+            ra[c] = [f"{s.khoi[kk]['id']}#{'mái' if m and not g else e}" for e, m, g in zip(canh, nhan_mai[c], sat_tuong)]
+            if cam is None: continue
+            _, _, nn = s.phap_ngoai(kk); toi = np.asarray(cam, float)[[0, 2]] - q
+            lung = np.where(sat_tuong & ~(nhan_mai[c] & ~sat_tuong) & ((nn[canh] * toi).sum(1) < 0))[0]
+            for kj in range(len(s.khoi)) if len(lung) else ():
+                if kj == kk or not len(lung): continue
+                v2, ab2, n2 = s.phap_ngoai(kj); q2 = q[lung]; t2 = np.clip(((q2[:, None, :] - v2[None]) * ab2[None]).sum(-1) / np.maximum((ab2 ** 2).sum(-1), 1e-9)[None], 0, 1)
+                d2b = ((v2[None] + t2[..., None] * ab2[None] - q2[:, None, :]) ** 2).sum(-1); d2b[(n2[None] * toi[lung][:, None, :]).sum(-1) <= 0] = np.inf
+                e2 = np.argmin(d2b, 1); hop = d2b[np.arange(len(lung)), e2] <= s.GO_SAU ** 2
+                for a_, e_ in zip(lung[hop], e2[hop]): ra[c[a_]] = f"{s.khoi[kj]['id']}#{e_}"
+                lung = lung[~hop]
         return ra
 
 
@@ -166,60 +189,108 @@ def canh_khung(eA, eM, co_mh):
     """KHUNG TRƯỚC, CHI TIẾT SAU: camera định vị còn sai vài phần trăm (ống kính, hướng) → mọi mặt lệch cùng một kiểu, đọc thành lỗi mô hình là sai.
     Dò phép đồng dạng (tỉ lệ 0,85–1,18 · xoay ±2° · dời ±8 % khung) đưa nét mô hình trùng nét ảnh nhiều nhất (chamfer hai chiều, thô → mịn) → trả ma trận 2×3.
     Phần lệch còn lại sau khi canh mới là lỗi hình khối của từng mặt."""
-    H, W = eA.shape; k = 4; h, w = H // k, W // k
-    a = cv2.dilate(eA.astype(np.uint8), np.ones((k, k), np.uint8))[::k, ::k] > 0; m = cv2.dilate(eM.astype(np.uint8), np.ones((k, k), np.uint8))[::k, ::k] > 0
-    dA = cv2.distanceTransform((~a).astype(np.uint8), cv2.DIST_L2, 3); ys, xs = np.where(m); vung = cv2.dilate(co_mh.astype(np.uint8), np.ones((25, 25), np.uint8))[::k, ::k] > 0
-    ya, xa = np.where(a & vung)
-    if len(xs) < 50 or len(xa) < 50: return np.float32([[1, 0, 0], [0, 1, 0]]), 0.0
-    dM0 = cv2.distanceTransform((~m).astype(np.uint8), cv2.DIST_L2, 3)
-    def diem(s, r, dx, dy):
-        M = cv2.getRotationMatrix2D((w / 2, h / 2), r, s); M[:, 2] += (dx, dy)
+    H, W = eA.shape; vung0 = cv2.dilate(co_mh.astype(np.uint8), np.ones((25, 25), np.uint8)) > 0
+    def lop(k):  # nét hai bên thu nhỏ k lần + bản đồ khoảng cách; dời (dx, dy) tính bằng điểm ảnh GỐC ở mọi lớp
+        a = cv2.dilate(eA.astype(np.uint8), np.ones((k, k), np.uint8))[::k, ::k] > 0; m = cv2.dilate(eM.astype(np.uint8), np.ones((k, k), np.uint8))[::k, ::k] > 0
+        h, w = a.shape; ys, xs = np.where(m); ya, xa = np.where(a & vung0[::k, ::k])
+        return dict(k=k, h=h, w=w, xs=xs, ys=ys, xa=xa, ya=ya, dA=cv2.distanceTransform((~a).astype(np.uint8), cv2.DIST_L2, 3), dM=cv2.distanceTransform((~m).astype(np.uint8), cv2.DIST_L2, 3))
+    def diem(L, s, r, dx, dy):
+        k, h, w, xs, ys, xa, ya = L['k'], L['h'], L['w'], L['xs'], L['ys'], L['xa'], L['ya']
+        M = cv2.getRotationMatrix2D((w / 2, h / 2), r, s); M[:, 2] += (dx / k, dy / k)
         X = M[0, 0] * xs + M[0, 1] * ys + M[0, 2]; Y = M[1, 0] * xs + M[1, 1] * ys + M[1, 2]; ok = (X >= 0) & (X < w) & (Y >= 0) & (Y < h)
         if ok.mean() < 0.5: return -1
-        tr = float((dA[Y[ok].astype(int), X[ok].astype(int)] <= 2).mean())
+        tr = float((L['dA'][Y[ok].astype(int), X[ok].astype(int)] <= 2).mean())
         Mi = cv2.invertAffineTransform(M); X2 = Mi[0, 0] * xa + Mi[0, 1] * ya + Mi[0, 2]; Y2 = Mi[1, 0] * xa + Mi[1, 1] * ya + Mi[1, 2]; o2 = (X2 >= 0) & (X2 < w) & (Y2 >= 0) & (Y2 < h)
-        nguoc = float((dM0[Y2[o2].astype(int), X2[o2].astype(int)] <= 2).mean()) if o2.any() else 0
+        nguoc = float((L['dM'][Y2[o2].astype(int), X2[o2].astype(int)] <= 2).mean()) if o2.any() else 0
         return 2 * tr * nguoc / max(tr + nguoc, 1e-9)
-    g0 = diem(1, 0, 0, 0); tot = (g0, 1.0, 0.0, 0, 0); D = 0.08
+    T = lop(4)
+    if len(T['xs']) < 50 or len(T['xa']) < 50: return np.float32([[1, 0, 0], [0, 1, 0]]), 0.0
+    # THÔ (¼ khổ, dung sai 2 ô = 8 px): tìm vùng đúng — đáy rộng, không kẹt cực trị địa phương; bước 12 px
+    g0 = diem(T, 1, 0, 0, 0); tot = (g0, 1.0, 0.0, 0.0, 0.0); D = 0.08
     for s in np.arange(0.85, 1.19, 0.03):
-        for dx in np.arange(-D * w, D * w + 1, 3):
-            for dy in np.arange(-D * h, D * h + 1, 3):
-                f = diem(s, 0, dx, dy)
+        for dx in np.arange(-D * W, D * W + 1, 12):
+            for dy in np.arange(-D * H, D * H + 1, 12):
+                f = diem(T, s, 0, dx, dy)
                 if f > tot[0]: tot = (f, s, 0.0, dx, dy)
-    for _ in range(2):  # mịn: tỉ lệ ±0,015, xoay ±2°, dời ±2 ô nhỏ
+    # MỊN (½ khổ, dung sai 2 ô = 4 px): ở lớp thô điểm F gần phẳng trong ±8 px quanh đỉnh — chọn bừa một điểm lệch 6 px (tự kiểm 21/11/2026,
+    # mặt cửa sổ lặp đều) → viền sau canh 45 %. Lớp mịn đủ nét để phân biệt; dò dời ±12 px bước 2 rồi tỉ lệ / xoay, hai vòng
+    M2 = lop(2); _, s0, r0, x0, y0 = tot; tot = (diem(M2, s0, r0, x0, y0), s0, r0, x0, y0); f_tho = diem(M2, 1, 0, 0, 0)
+    for _ in range(2):
+        f0, s0, r0, x0, y0 = tot
+        for dx in np.arange(x0 - 12, x0 + 13, 2):
+            for dy in np.arange(y0 - 12, y0 + 13, 2):
+                f = diem(M2, s0, r0, dx, dy)
+                if f > tot[0]: tot = (f, s0, r0, dx, dy)
         f0, s0, r0, x0, y0 = tot
         for s in (s0 - 0.015, s0, s0 + 0.015):
             for r in (r0 - 1, r0, r0 + 1):
-                for dx in (x0 - 1.5, x0, x0 + 1.5):
-                    for dy in (y0 - 1.5, y0, y0 + 1.5):
-                        if abs(r) <= 2:
-                            f = diem(s, r, dx, dy)
-                            if f > tot[0]: tot = (f, s, r, dx, dy)
+                if abs(r) <= 2:
+                    f = diem(M2, s, r, x0, y0)
+                    if f > tot[0]: tot = (f, s, r, x0, y0)
+    # GỐC (khổ thật, dung sai 2 px): viền trời so từng cột với dung sai ~5 px — lệch 2 px ngang ở mép tháp dốc đứng đã đủ làm viền 98 % → 66 % (tự kiểm 21/11/2026)
+    G = lop(1); _, s0, r0, x0, y0 = tot; tot = (diem(G, s0, r0, x0, y0), s0, r0, x0, y0); f_tho = diem(G, 1, 0, 0, 0)
+    for dx in np.arange(x0 - 3, x0 + 4, 1):
+        for dy in np.arange(y0 - 3, y0 + 4, 1):
+            f = diem(G, s0, r0, dx, dy)
+            if f > tot[0]: tot = (f, s0, r0, dx, dy)
     f, s, r, dx, dy = tot
-    if f < g0 + 0.03: return np.float32([[1, 0, 0], [0, 1, 0]]), 0.0  # không hơn rõ → giữ camera đo
-    M = cv2.getRotationMatrix2D((W / 2, H / 2), r, s); M[:, 2] += (dx * k, dy * k); return M.astype(np.float32), round(f - g0, 3)
+    if f < f_tho + 0.03: return np.float32([[1, 0, 0], [0, 1, 0]]), 0.0  # không hơn rõ → giữ camera đo
+    M = cv2.getRotationMatrix2D((W / 2, H / 2), r, s); M[:, 2] += (dx, dy); return M.astype(np.float32), round(f - f_tho, 3)
 
 
-def phan_tich(anh, d, thu, bd, chon):
+# phiên bản thuật toán canh khung: đổi cách giải (21/11/2026 ck2: dò nhiều tầng tới 1 px, bản cũ lệch tới 6 px) → tăng số này, mọi khoá cũ tự hết hiệu lực
+CK_BAN = 'ck2'
+
+
+def khoa_khung(d):
+    """khoá canh khung: tệp ảnh + camera (ma trận, ống kính, khổ) + phiên bản thuật toán — camera đo lại hay cách giải đổi thì khoá cũ tự hết hiệu lực"""
+    return d['tep'] + '|' + ','.join(f'{v:.2f}' for v in d['m']) + f"|{d['fov']}|{d['W']}x{d['H']}|{CK_BAN}"
+
+
+def ck_ghi(CK, W, H, loi):
+    """ghi canh khung ra số người đọc được + ma trận gốc — đúng nghịch đảo của ck_tu_so (tự kiểm: khứ hồi ma trận)"""
+    a, b = float(CK[0, 0]), float(CK[0, 1])
+    return {'ti_le': round(float(np.hypot(a, b)), 3), 'xoay': round(float(np.degrees(np.arctan2(b, a))), 2),
+            'doi_px': [round(float(CK[0, 2] - (1 - a) * W / 2 + b * H / 2)), round(float(CK[1, 2] - (1 - CK[1, 1]) * H / 2 + CK[1, 0] * W / 2))],
+            'tang_F': loi, 'M': np.asarray(CK, dtype=float).round(6).tolist(), 'ban': CK_BAN}
+
+
+def ck_tu_so(c, W, H):
+    """dựng lại ma trận 2×3 từ canh_khung đã ghi. Có 'M' → dùng thẳng. Bản ghi cũ (trước 21/11/2026, không có M) ghi sai quy ước:
+    xoay ngược dấu và dời dọc cộng thừa 2·s·sin(góc)·W/2 → quy đổi về đúng góc / dời trước khi dựng (Castillo-XV: dựng nhầm xoay +2° thay vì −2°, nét 0,64 → 0,50)"""
+    if not c.get('tang_F'): return np.float32([[1, 0, 0], [0, 1, 0]])
+    if c.get('M'): return np.float32(c['M'])
+    r = -c['xoay']; dx, dy = c['doi_px']; dy -= 2 * c['ti_le'] * np.sin(np.radians(r)) * W / 2
+    M = cv2.getRotationMatrix2D((W / 2, H / 2), r, c['ti_le']); M[:, 2] += (dx, dy); return M.astype(np.float32)
+
+
+def phan_tich(anh, d, thu, bd, chon, khoa=None):
+    """khoa: sổ canh khung dùng chung mọi lượt (dict). Canh khung bù SAI SỐ CAMERA — thuộc về ảnh + camera, không thuộc mô hình: giải một lần rồi khoá.
+    Không khoá thì mỗi lần thêm chi tiết (nét mới) khung lại trôi 3–7 % → mọi mặt xê dịch, TRƯỚC/SAU so hai khung khác nhau, chỗ thiếu dò ra lệch chỗ
+    (21/11/2026: dựng 32 chi tiết, ảnh mapillary-1956… khung ×0,865 → ×0,895, nét F 0,95 → 0,63 dù camera y nguyên)."""
     H, W = d['H'], d['W']; ten = d['ten']
     mh = cv2.imread(str(thu / f'{ten}-mo-hinh.jpg')); sau = giai_sau(thu / f'{ten}-sau.png', d['xa'])
     troiM = (sau <= 1e-6) | (sau >= 0.999 * d['xa']); sau = np.where(troiM, 0, sau)
     P = diem3d(sau, d); n = phap_tuyen(P); mai = np.abs(n[..., 1]) > 0.7
     co = ~troiM; idx = np.where(co.ravel())[0]
-    MAT = np.full(H * W, '', dtype=object); MAT[idx] = bd.mat(P.reshape(-1, 3)[idx], mai.ravel()[idx]); MAT = MAT.reshape(H, W)
+    MAT = np.full(H * W, '', dtype=object); MAT[idx] = bd.mat(P.reshape(-1, 3)[idx], mai.ravel()[idx], np.array(d['m']).reshape(4, 4).T[:3, 3]); MAT = MAT.reshape(H, W)
     # canh khung: dời / phóng mọi lớp mô hình cho nét trùng nét ảnh, rồi mới đo
     # canh khung chỉ bằng nét HÌNH (lượt vẽ màu pháp tuyến <ten>-hinh.png, không vân / vật liệu): vân đá, mạch vữa đổi theo vật liệu — nếu được kéo khung thì mỗi lần
     # sửa vật liệu khung lại trôi, viền so với TRƯỚC tụt mà hình khối không đổi (21/11/2026: viền 66 → 6 %, khung dời 130 px chỉ vì thêm vân đá)
     hinh = cv2.imread(str(thu / f'{ten}-hinh.png')); hinh = mh if hinh is None else hinh  # thư mục cũ chưa có lượt hình
     eM0 = net_mo_hinh(hinh, sau, n) & (MAT != ''); eA0 = net_anh(anh) & ~(troiM & (np.arange(H)[:, None] < vien(troiM)[None, :] - 0.08 * H))
-    CK, loi_ck = canh_khung(eA0, eM0, MAT != '')
+    kk = khoa_khung(d) if khoa is not None else None
+    if kk and kk in khoa: CK = ck_tu_so(khoa[kk], W, H); loi_ck = khoa[kk]['tang_F']
+    else: CK, loi_ck = canh_khung(eA0, eM0, MAT != '')
+    goc = (P, MAT.copy(), mai, hinh, mh.copy(), sau.copy())  # khung mô hình CHƯA canh: dò chi tiết mặt cần toạ độ 3D gốc, tra ảnh qua CK
     if loi_ck:
         wa = lambda x, nen=0: cv2.warpAffine(x, CK, (W, H), flags=cv2.INTER_NEAREST, borderMode=cv2.BORDER_CONSTANT, borderValue=nen)
         mh = cv2.warpAffine(mh, CK, (W, H), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE); sau = wa(sau.astype(np.float32)).astype(np.float64)
         troiM = wa(troiM.astype(np.uint8), 1).astype(bool); n = np.stack([wa(n[..., i].astype(np.float32)) for i in range(3)], -1)
         _, inv = np.unique(MAT, return_inverse=True); ten_m = np.unique(MAT); MAT = ten_m[wa(inv.reshape(H, W).astype(np.float32), float(np.where(ten_m == '')[0][0]) if '' in ten_m else 0).astype(int)]
         MAT[troiM] = ''
-    vM = vien(troiM); vA = vien(troi_anh(anh, troiM, vM))
+    vM = vien(troiM); troiA = troi_anh(anh, troiM, vM); vA = vien(troiA)
+    chi_tiet = doc_mat.trai_mat(anh, troiA, CK, goc[0], goc[1], goc[2], goc[3], goc[4], goc[5], d, bd.khoi)
     lau = MAT != ''
     cot = np.where(lau.any(0))[0]
     if not len(cot): return None
@@ -281,9 +352,13 @@ def phan_tich(anh, d, thu, bd, chon):
         mats[m]['doi_px'] = list(best); mats[m]['doi_m'] = [round(best[0] * mats[m]['m_px'], 2), round(-best[1] * mats[m]['m_px'], 2)]
     trong = [m for m in mats if m.split('#')[0] in chon] or list(mats)
     F_chon = sum(mats[m]['F'] * mats[m]['net_anh'] for m in trong) / max(1, sum(mats[m]['net_anh'] for m in trong))
-    ck = {'ti_le': round(float(np.hypot(CK[0, 0], CK[0, 1])), 3), 'xoay': round(float(np.degrees(np.arctan2(CK[1, 0], CK[0, 0]))), 2), 'doi_px': [round(float(CK[0, 2] - (1 - CK[0, 0]) * W / 2 + CK[0, 1] * H / 2)), round(float(CK[1, 2] - (1 - CK[1, 1]) * H / 2 - CK[1, 0] * W / 2))], 'tang_F': loi_ck}
+    ck = ck_ghi(CK, W, H, loi_ck)
+    if kk and (kk not in khoa or 'M' not in khoa[kk]): khoa[kk] = ck  # bản ghi cũ không ma trận → thay bằng ma trận đã quy đổi
     return {'ten': ten, 'tep': d['tep'], 'canh_khung': ck, 'tacGia': d.get('tacGia', ''), 'giayPhep': d.get('giayPhep', ''), 'vien_khop': round(vien_khop, 3), 'net_chon': round(F_chon, 3),
-            'doan': ra_doan, 'dom': nhan_chung, 'mat': mats, 'kem': kem, '_ve': {'vA': vA.tolist(), 'vM': vM.tolist(), 'eM': eM, 'eA': eA, 'mh': mh}}
+            'doan': ra_doan, 'dom': nhan_chung, 'mat': mats, 'kem': kem,
+            'chi_tiet': [{'khoi': m['khoi'], 'rho': round(m['rho'], 1), 'go_anh': len(m['do_A']['bang']), 'day_anh': len(m['do_A']['day']), 'lo_anh': len(m['do_A']['lo']),
+                          'go_mh': len(m['do_M']['bang']), 'day_mh': len(m['do_M']['day']), 'lo_mh': len(m['do_M']['lo']), 'lech': [doc_mat.mo_ta(m, x) for x in m['lech']], 'thay': doc_mat.thay(m)} for m in chi_tiet],
+            '_ct': chi_tiet, '_ve': {'vA': vA.tolist(), 'vM': vM.tolist(), 'eM': eM, 'eA': eA, 'mh': mh}}
 
 
 def cho_sua(s_, d, Ci, vA, vM, sau, dom):
@@ -354,16 +429,96 @@ def net_chung(mt, mk, chon):
     return F(mt), F(mk), sorted(m for m in set(mt) - set(mk) if m.split('#')[0] in chon)
 
 
-def chay(thu_goc, nhan):
-    thu = thu_goc / nhan; meta = json.loads((thu / 'ds.json').read_text()); bd = BanDo(meta['khoi']); chon = set(meta['chon']); tong, hong = [], 0
+def day_net(mt, mk, chon):
+    # ĐỘ DÀY NÉT trên mặt chung (khối chọn trước): Σ nét mô hình / Σ nét ảnh. F chấm "nét mô hình nằm gần nét ảnh" trong r px → khung thứ hai đặt sát / đè ô cửa đã có
+    # vẫn "đúng chỗ" nên F không tụt (21/11/2026 mặt Palas chi chít khung chồng mà nét còn tăng). Mô hình dày nét hơn ảnh quá NGUONG_DAY và dày lên so với TRƯỚC = THỪA CHI TIẾT
+    chung = set(mt) & set(mk); trong = [m for m in chung if m.split('#')[0] in chon] or list(chung)
+    def r(ms): return sum(ms[m]['net_mh'] for m in trong) / max(1, sum(ms[m]['net_anh'] for m in trong))
+    return r(mt), r(mk)
+
+
+NGUONG_DAY = 1.3  # mô hình được dày nét hơn ảnh tối đa 30 % (ảnh thật có bóng / nhoè mất nét mảnh) — quá thế mà còn dày thêm 15 % so TRƯỚC = KÉM
+
+
+def thua_chi_tiet(dt, dk):
+    return dk > NGUONG_DAY and dk > dt * 1.15
+
+
+def mat_day_len(mt, mk, them=40):
+    # mặt nào gây THỪA: dày nét quá NGUONG_DAY × ảnh VÀ dày thêm > 15 % + ≥ them px so TRƯỚC → khối của mặt đó (lam-mat.mjs chỉ trả sổ khối này, giữ chi tiết tốt khối khác)
+    return sorted({m.split('#')[0] for m in set(mt) & set(mk)
+                   if mk[m]['net_mh'] > NGUONG_DAY * max(1, mk[m]['net_anh']) and mk[m]['net_mh'] > 1.15 * mt[m]['net_mh'] and mk[m]['net_mh'] - mt[m]['net_mh'] >= them})
+
+
+TEP_DUNG = pathlib.Path(__file__).resolve().parent.parent / 'public' / 'du-lieu' / 'neuschwanstein-chi-tiet-do.json'
+LOAI_DUNG = {'gờ': 'go', 'dãy': 'day', 'lỗ': 'lo'}
+
+
+def dung(xn, xn_thua, thay=(), tep=TEP_DUNG):
+    """BƯỚC DỰNG: chi tiết THIẾU đã xác nhận (≥ 2 ảnh, camera tin) → sổ CỘNG DỒN chi tiết dựng theo đo (mattien.js datChiTietDo dựng lên đúng đoạn tường).
+    Cộng dồn: chi tiết đã dựng thì lượt sau hết THIẾU → không còn trong xn nhưng vẫn giữ; chỉ gỡ khi THỪA xác nhận đúng chỗ (dựng nhầm).
+    Gặp lại chỗ đã có → hợp đoạn (ảnh mới thấy thêm phần mặt). SAI_NHIP chỉ sửa nhịp dãy do chính sổ này dựng (dãy viết tay trong mattien: báo, không dựng chồng)."""
+    so = json.loads(tep.read_text()) if tep.exists() else {'muc': []}; muc = so['muc']; moi = sua = go_ = giu = 0
+    def doi_cua(m, x):  # đổi loại cửa KÈM cỡ của cùng lượt đo (loại mới, cỡ cũ = lỗ không có thật: cửa vào 0,52 m 21/11/2026) rồi chốt bằng ngưỡng chung
+        m['cua'] = x['cua']; m.update({k: x[k] for k in ('w', 'h', 'y0', 'y1') if x.get(k) is not None}); doc_mat.chot_cua(m)
+    def tim(x):
+        y = x.get('y', (x.get('y0', 0) + x.get('y1', 0)) / 2)
+        return next((m for m in muc if doc_mat.cung_cho({**m, 'loai': 'THIẾU'}, {**x, 'loai': 'THIẾU'}, y)), None)
+    for x in xn:
+        if x['chi_tiet'] not in LOAI_DUNG or not x.get('doan'): continue
+        m = tim(x)
+        if x['loai'] == 'SAI_NHIP':
+            if m and m['chi_tiet'] == 'dãy': m['p'] = x['p']; sua += 1
+            continue
+        if x['loai'] == 'SAI_LOAI':  # cửa vào ↔ cửa sổ: lỗ do sổ dựng → đổi loại; lỗ viết tay trong mattien → chỉ báo (như dãy viết tay SAI_NHIP)
+            if m and m['chi_tiet'] == 'lỗ' and x.get('cua'): doi_cua(m, x); sua += 1
+            else: print(f"      ⚠ SAI_LOAI lỗ viết tay {x['khoi']} y {x.get('y0')}–{x.get('y1')} m: ảnh {x.get('cua')} · mô hình {x.get('cua_mh')} — sửa bố cục trong mattien.js")
+            continue
+        if m:
+            m['doan'] = doc_mat.hop_doan(m['doan'], x['doan'])
+            if x.get('cua') and x['so_anh'] >= m['so_anh']: doi_cua(m, x)  # loại cửa theo lượt nhiều ảnh hơn
+            m['so_anh'] = max(m['so_anh'], x['so_anh']); m['anh'] = sorted(set(m['anh']) | set(x['anh'])); sua += 1; continue
+        y = x.get('y', (x.get('y0', 0) + x.get('y1', 0)) / 2)
+        muc.append({k: v for k, v in {'chi_tiet': x['chi_tiet'], 'loai': LOAI_DUNG[x['chi_tiet']], 'khoi': x['khoi'], 'y': round(y, 2), 'y0': x.get('y0'), 'y1': x.get('y1'), 'p': x.get('p'),
+                                       'w': x.get('w'), 'h': x.get('h'), 'cua': x.get('cua'), 'doan': x['doan'], 'so_anh': x['so_anh'], 'anh': x['anh']}.items() if v is not None}); doc_mat.chot_cua(muc[-1]); moi += 1
+    # THỪA = mô hình có mà ảnh không thấy. Gỡ chỉ khi ảnh báo THỪA NHIỀU HƠN ảnh thấy đúng chi tiết đó (bỏ phiếu theo ảnh, camera tin):
+    # trước đây ≥ 2 ảnh THỪA là gỡ, bỏ qua 3 ảnh đang thấy rõ → gỡ / dựng lại luân phiên, vòng không bao giờ khép (21/11/2026 gờ 33,15 khối 223140032)
+    for x in xn_thua:
+        m = tim(x)
+        if not m: continue
+        co = {a for a, t in thay if doc_mat.cung_cho({**m, 'loai': 'THIẾU'}, {**t, 'loai': 'THIẾU'}, t.get('y', (t.get('y0', 0) + t.get('y1', 0)) / 2))}
+        if x['so_anh'] > len(co - set(x['anh'])): muc.remove(m); go_ += 1
+        else: giu += 1
+    so.update({'ghi': 'sinh bởi scripts/so-anh-that.py --dung (bước dựng) — chi tiết THIẾU xác nhận ≥ 2 ảnh; mattien.js datChiTietDo dựng; không sửa tay', 'nguong': doc_mat.NGUONG, 'muc': muc})
+    tep.write_text(json.dumps(so, ensure_ascii=False, indent=1)); print(f"   BƯỚC DỰNG: +{moi} chi tiết mới · {sua} cập nhật · {go_} gỡ (THỪA thắng phiếu) · {giu} giữ (ảnh thấy ≥ ảnh THỪA) → {len(muc)} trong sổ {tep}")
+    return moi, sua, go_
+
+
+MA_KEM, MA_CHUA_XONG = 1, 3
+def chay(thu_goc, nhan, lam_dung=False):
+    thu = thu_goc / nhan; meta = json.loads((thu / 'ds.json').read_text()); bd = BanDo(meta['khoi']); chon = set(meta['chon']); tong, hong, ds_ct, ds_thua, ds_thay = [], 0, [], [], []; khoi_thua = {}
+    # sổ khoá canh khung dùng chung mọi khối (.so-anh/canh-khung.json): ảnh nào đã canh một lần thì mọi lượt sau — TRƯỚC, SAU, khối khác — dùng đúng khung đó.
+    # Lượt SAU gặp ảnh chưa có trong sổ mà TRƯỚC cùng khối đã đo với cùng camera → nhận khung của TRƯỚC (thư mục cũ trước khi có sổ)
+    tk = thu_goc.parent / 'canh-khung.json'; khoa = json.loads(tk.read_text()) if tk.exists() else {}
+    ds_t = {x['ten']: x for x in json.loads((thu_goc / 'truoc' / 'ds.json').read_text())['ds']} if nhan == 'sau' and (thu_goc / 'truoc' / 'ds.json').exists() else {}
     for d in meta['ds']:
-        anh = cv2.resize(cv2.imread(d['anh']), (d['W'], d['H']), interpolation=cv2.INTER_AREA); kq = phan_tich(anh, d, thu, bd, chon)
+        kk = khoa_khung(d); cu = thu_goc / 'truoc' / f"{d['ten']}.json"
+        if kk not in khoa and d['ten'] in ds_t and khoa_khung(ds_t[d['ten']]) == kk and cu.exists() and json.loads(cu.read_text())['canh_khung'].get('ban') == CK_BAN: khoa[kk] = json.loads(cu.read_text())['canh_khung']
+        anh = cv2.resize(cv2.imread(d['anh']), (d['W'], d['H']), interpolation=cv2.INTER_AREA); kq = phan_tich(anh, d, thu, bd, chon, khoa)
+        tk.write_text(json.dumps(khoa, ensure_ascii=False, indent=1))
         if not kq: print(f"   {d['ten']}: khung không có khối nào — bỏ"); continue
         anh_pil = Image.fromarray(cv2.cvtColor(anh, cv2.COLOR_BGR2RGB)); ImageDraw.Draw(anh_pil).line([(x, kq['_ve']['vA'][x]) for x in range(d['W']) if kq['_ve']['vA'][x] < d['H']], fill=(255, 60, 60), width=2)
         mh = Image.fromarray(cv2.cvtColor(kq['_ve']['mh'], cv2.COLOR_BGR2RGB)); ImageDraw.Draw(mh).line([(x, kq['_ve']['vM'][x]) for x in range(d['W']) if kq['_ve']['vM'][x] < d['H']], fill=(60, 230, 60), width=2)
         chong = ve_chong(anh, kq); ghep([anh_pil, mh, chong], ['ẢNH THẬT', 'MÔ HÌNH', 'CHỒNG: xanh = nét mô hình · đỏ = thiếu · lam = thừa · vàng = mặt kém'], chan_kq(kq)).save(thu / f"{d['ten']}-so.png")
         chong.save(thu / f"{d['ten']}-chong.png")
-        luu = {k: v for k, v in kq.items() if k != '_ve'}; (thu / f"{d['ten']}.json").write_text(json.dumps(luu, ensure_ascii=False, indent=1)); tong.append(luu)
+        for m in kq['_ct']: cv2.imwrite(str(thu / f"{d['ten']}-mat-{m['khoi'].replace('/', '_')}.png"), doc_mat.ve(m, d['ten']))
+        tin = kq['dom']['camera_tin'] if kq['dom']['co'] else True
+        ds_ct += [(d['ten'], x) for m in kq['chi_tiet'] for x in m['lech'] if tin and x['loai'] != 'THỪA']; ds_thua += [(d['ten'], x) for m in kq['chi_tiet'] for x in m['lech'] if tin and x['loai'] == 'THỪA']
+        ds_thay += [(d['ten'], x) for m in kq['chi_tiet'] for x in m['thay'] if tin]
+        for m in kq['chi_tiet']:
+            lt = [x for x in m['lech'] if x['loai'] != 'THỪA']
+            print(f"      chi tiết {m['khoi']}: ảnh gờ {m['go_anh']} · dãy {m['day_anh']} · lỗ {m['lo_anh']} | mô hình gờ {m['go_mh']} · dãy {m['day_mh']} · lỗ {m['lo_mh']} → {len(lt)} lệch{'' if tin else ' (camera chưa tin — không tính)'}")
+        luu = {k: v for k, v in kq.items() if k not in ('_ve', '_ct')}; (thu / f"{d['ten']}.json").write_text(json.dumps(luu, ensure_ascii=False, indent=1)); tong.append(luu)
         print(f"   {d['ten']}: viền khớp {kq['vien_khop'] * 100:.0f} % · nét F {kq['net_chon']:.2f} · {len(kq['doan'])} đoạn viền lệch → {thu / (d['ten'] + '-so.png')}")
         for t in chan_kq(kq)[:2] + chan_kq(kq)[3:]: print('      ' + t)
         cu = thu_goc / 'truoc' / f"{d['ten']}.json"
@@ -379,12 +534,31 @@ def chay(thu_goc, nhan):
             rac = lambda nh: (lambda s: float(((s <= 1e-6) | (s >= 0.999 * d['xa'])).mean()) < 0.005)(giai_sau(thu_goc / nh / f"{d['ten']}-sau.png", d['xa']))
             rac_t, rac_k = rac('truoc'), rac('sau')
             if rac_t or rac_k: dong.insert(0, f"viền không so: camera {'TRƯỚC' if rac_t else 'SAU'} nằm trong vật (khung độ sâu không có trời)")
-            kem = (not (rac_t or rac_k) and kq['vien_khop'] < t['vien_khop'] - 0.02) or rac_k and not rac_t or nk < nt - 0.03
-            print(f"      TRƯỚC → SAU: viền {t['vien_khop'] * 100:.0f}{' (rác: camera trong vật)' if rac_t else ''} → {kq['vien_khop'] * 100:.0f}{' (rác: camera trong vật)' if rac_k else ''} % · nét (mặt chung) {nt:.2f} → {nk:.2f}{'  ✗ KÉM HƠN TRƯỚC' if kem else ''}{'  · mặt không còn: ' + ', '.join(mat_mat[:4]) if mat_mat else ''} → {thu_goc / (d['ten'] + '-truoc-sau.png')}")
+            dt_, dk_ = day_net(t['mat'], kq['mat'], chon); thua = thua_chi_tiet(dt_, dk_)
+            dong.insert(1, f"độ dày nét mô hình / ảnh {dt_:.2f} → {dk_:.2f}{'  ✗ THỪA CHI TIẾT (khung chồng / nét không có trong ảnh)' if thua else ''}")
+            kem = (not (rac_t or rac_k) and kq['vien_khop'] < t['vien_khop'] - 0.02) or rac_k and not rac_t or nk < nt - 0.03 or thua
+            print(f"      TRƯỚC → SAU: viền {t['vien_khop'] * 100:.0f}{' (rác: camera trong vật)' if rac_t else ''} → {kq['vien_khop'] * 100:.0f}{' (rác: camera trong vật)' if rac_k else ''} % · nét (mặt chung) {nt:.2f} → {nk:.2f}{f' · dày nét {dt_:.2f} → {dk_:.2f}'}{'  ✗ THỪA CHI TIẾT' if thua else ''}{'  ✗ KÉM HƠN TRƯỚC' if kem else ''}{'  · mặt không còn: ' + ', '.join(mat_mat[:4]) if mat_mat else ''} → {thu_goc / (d['ten'] + '-truoc-sau.png')}")
             ghep([anh_pil, tc, chong], ['ẢNH THẬT', 'TRƯỚC', 'SAU'], list(dict.fromkeys(dong))).save(thu_goc / f"{d['ten']}-truoc-sau.png")
             hong += kem
+            if thua:
+                for k in mat_day_len(t['mat'], kq['mat']): khoi_thua[k] = khoi_thua.get(k, 0) + 1
     (thu / 'tong.json').write_text(json.dumps(tong, ensure_ascii=False, indent=1))
-    return 1 if hong else 0
+    if nhan == 'sau':  # khối gây THỪA CHI TIẾT, đếm số ảnh — lam-mat.mjs đọc để trả sổ đúng khối
+        (thu_goc / 'thua-khoi.json').write_text(json.dumps(khoi_thua, ensure_ascii=False, indent=1))
+        if khoi_thua: print('   KHỐI GÂY THỪA: ' + ', '.join(f'{k} ({n} ảnh)' for k, n in sorted(khoi_thua.items(), key=lambda kv: -kv[1])))
+    # CHI TIẾT MẶT gộp mọi ảnh: cùng chỗ thấy trên ≥ 2 ảnh = xác nhận (một ảnh = nghi: bóng đổ / người đứng / camera lệch)
+    g = doc_mat.gop(ds_ct); (thu / 'chi-tiet.json').write_text(json.dumps(g, ensure_ascii=False, indent=1))
+    xn = [x for x in g if x['so_anh'] >= 2]; thieu_chon = [x for x in xn if x['khoi'] in chon and x['loai'] in ('THIẾU', 'SAI_NHIP', 'SAI_LOAI')]
+    print(f"   CHI TIẾT MẶT: {len(xn)} chỗ xác nhận (≥ 2 ảnh), {len(g) - len(xn)} nghi → {thu / 'chi-tiet.json'}")
+    for x in xn[:40]:
+        cho = f"y {x['y']:.1f} m" if x['chi_tiet'] == 'gờ' else f"y {x['y0']:.1f}–{x['y1']:.1f} m"
+        print(f"      {x['loai']} {x['chi_tiet']}{' ' + x['cua'] if x.get('cua') else ''} {x['khoi']} {cho}" + (f" nhịp {x['p']} m" + (f" (mô hình {x['p_mh']})" if x.get('p_mh') else '') + f" dài {x['dai_m']} m" if x['chi_tiet'] == 'dãy' else '')
+              + (f" mặt {','.join(x['mat'][:3])}" if x['mat'] else '') + f" · {x['so_anh']} ảnh")
+    if lam_dung: dung(xn, [x for x in doc_mat.gop(ds_thua) if x['so_anh'] >= 2], ds_thay)
+    if thieu_chon: print(f"   ✗ khối đang làm còn {len(thieu_chon)} chi tiết THIẾU / SAI NHỊP đã xác nhận")
+    # mã thoát: 1 = KÉM ĐI (cổng đỏ, trả sổ) · 3 = CHƯA XONG (còn THIẾU đã xác nhận → vòng kế dựng tiếp, KHÔNG phải hỏng) · 0 = xong
+    # 21/11/2026 gộp chung mã 1 → lam-mat 18/18 ảnh đạt vẫn trả sổ vì 'còn 12 chi tiết THIẾU'
+    return MA_KEM if hong else MA_CHUA_XONG if thieu_chon else 0
 
 
 def tu_kiem():
@@ -397,6 +571,29 @@ def tu_kiem():
     thu = ds[0].parent; meta = json.loads(ds[0].read_text()); bd = BanDo(meta['khoi']); chon = set(meta['chon']); loi = 0; XANH = (235, 190, 140)
     def ok(c, t):
         nonlocal loi; print(('✓ ' if c else '✗ ') + t); loi += not c
+    # 0b. bước dựng cân phiếu THỪA: 2 ảnh THỪA mà 3 ảnh thấy → giữ; 3 THỪA, 1 thấy → gỡ (sổ tạm, không đụng sổ thật)
+    import tempfile
+    dn = {'canh': 1, 't0': 0, 't1': 5, 'a0': [0, 0], 'u': [1, 0], 'n': [0, -1], 'ra': 0}; g_ = lambda y: {'chi_tiet': 'gờ', 'khoi': 'k', 'y': y, 'doan': [dn]}
+    with tempfile.TemporaryDirectory() as td:
+        st = pathlib.Path(td) / 's.json'
+        for n_thua, n_thay, con in ((2, 3, True), (3, 1, False)):
+            st.write_text(json.dumps({'muc': [{**g_(33.15), 'loai': 'go', 'so_anh': 3, 'anh': []}]}))
+            dung([], [{**g_(33.1), 'loai': 'THỪA', 'so_anh': n_thua, 'anh': [f't{i}' for i in range(n_thua)]}], [(f'c{i}', {**g_(33.12), 'loai': 'CÓ'}) for i in range(n_thay)], tep=st)
+            ok(bool(json.loads(st.read_text())['muc']) == con, f"cân phiếu THỪA {n_thua} ảnh · thấy {n_thay} ảnh → {'giữ' if con else 'gỡ'}")
+        # 0c. đổi loại cửa phải kèm cỡ cùng lượt đo, rồi chốt bằng ngưỡng chung (sổ từng giữ cửa vào 0,52 m — 21/11/2026)
+        lo_ = lambda **k: {'chi_tiet': 'lỗ', 'khoi': 'k', 'y0': 0, 'y1': 2.0, 'y': 1.0, 'doan': [{**dn, 't0': 2, 't1': 2.6}], **k}
+        for w_moi, cua_ra in ((0.8, 'cua_vao'), (0.5, 'cua_so')):
+            st.write_text(json.dumps({'muc': [{**lo_(w=0.52, h=2.0, cua='cua_so'), 'loai': 'lo', 'so_anh': 2, 'anh': []}]}))
+            dung([{**lo_(w=w_moi, h=2.0, cua='cua_vao'), 'loai': 'SAI_LOAI', 'so_anh': 2, 'anh': ['a', 'b']}], [], tep=st); m0 = json.loads(st.read_text())['muc'][0]
+            ok((m0['cua'], m0['w']) == (cua_ra, w_moi), f"SAI_LOAI → cửa vào, cỡ mới {w_moi} m → sổ {cua_ra}, rộng {w_moi}: {(m0['cua'], m0['w'])}")
+    # 0. mặt ngang sát tường (mặt trên phào nhô 0,14 m) thuộc mặt tường; mặt ngang sâu trong khối là mái
+    bv = BanDo([{'id': 'vuong', 'v': [[0, 0], [10, 0], [10, 10], [0, 10]]}]); nh = bv.mat(np.array([[5.0, 20, -0.14], [5.0, 20, 0.3], [5.0, 20, 5.0], [5.0, 20, 0.3]]), np.array([True, True, True, False]))
+    ok(list(nh) == ['vuong#0', 'vuong#0', 'vuong#mái', 'vuong#0'], f"mặt trên phào / bậu → cạnh tường, giữa khối → mái: {list(nh)}")
+    # 0b. tường chung: khối cao A [0..10] và khối thấp B [10..20] chung đường x = 10, camera ở x = 30 — điểm trên tường A lộ phía trên B thuộc A (mặt quay về camera), không thuộc B
+    bc = BanDo([{'id': 'A', 'v': [[0, 0], [10, 0], [10, 10], [0, 10]]}, {'id': 'B', 'v': [[10, 0], [20, 0], [20, 10], [10, 10]]}])
+    for x_ in (10.0, 10.1):
+        nb = bc.mat(np.array([[x_, 30, 5.0]]), np.array([False]), np.array([30.0, 20, 5])); ok(nb[0] == 'A#1', f"tường chung x={x_}: điểm lộ trên khối thấp gán mặt khối cao quay về camera A#1: {nb[0]}")
+    nb = bc.mat(np.array([[20.0, 5, 5.0]]), np.array([False]), np.array([30.0, 20, 5])); ok(nb[0] == 'B#1', f"mặt ngoài khối thấp quay về camera giữ nguyên B#1: {nb[0]}")
     # chọn ảnh có viền lâu đài dài nhất (dải cột cắt phải nằm trên lâu đài)
     tot = None
     for d in meta['ds']:
@@ -409,7 +606,17 @@ def tu_kiem():
     ok(k1['net_chon'] >= 0.6, f"so với chính nó: nét F {k1['net_chon']:.2f} ≥ 0,6")
     ok(not k1['canh_khung']['tang_F'], f"so với chính nó: canh khung giữ nguyên ({k1['canh_khung']})")
     dich = np.roll(gia, 20, 0); dich[:20] = XANH; k2 = phan_tich(dich, d, thu, bd, chon); c2 = k2['canh_khung']
-    ok(c2['tang_F'] and abs(c2['doi_px'][1] - 20) <= 6 and abs(c2['ti_le'] - 1) < 0.04, f"cả khung dời 20 px: canh khung tìm ra dời {c2['doi_px']} · tỉ lệ ×{c2['ti_le']}")
+    ok(c2['tang_F'] and abs(c2['doi_px'][1] - 20) <= 2 and abs(c2['doi_px'][0]) <= 2 and abs(c2['ti_le'] - 1) < 0.02, f"cả khung dời 20 px: canh khung tìm ra dời {c2['doi_px']} · tỉ lệ ×{c2['ti_le']}")
+    # khoá canh khung: ghi ↔ dựng phải khứ hồi đúng ma trận (cả bản ghi cũ sai quy ước), lượt sau dùng đúng khung đã khoá, camera đổi thì khoá cũ hết hiệu lực
+    W_, H_ = d['W'], d['H']; sai = 0.0
+    for r, sc, dx, dy in [(2, 0.9, 0, -40), (-1.5, 1.1, 25, 10), (0.7, 0.95, -30, 5)]:
+        M = cv2.getRotationMatrix2D((W_ / 2, H_ / 2), r, sc); M[:, 2] += (dx, dy); c = ck_ghi(M, W_, H_, 0.1)
+        cu = {'ti_le': c['ti_le'], 'xoay': -r, 'doi_px': [dx, round(dy + 2 * sc * np.sin(np.radians(r)) * W_ / 2)], 'tang_F': 0.1}  # đúng cách ghi trước 21/11/2026
+        sai = max(sai, float(np.abs(ck_tu_so(c, W_, H_) - M).max()), float(np.abs(ck_tu_so(cu, W_, H_) - M).max()), abs(c['xoay'] - r), abs(c['doi_px'][1] - dy))
+    ok(sai < 1.5, f"canh khung ghi ↔ dựng khứ hồi (xoay, dời, bản ghi cũ): sai lớn nhất {sai:.2f}")
+    kh = {}; k3 = phan_tich(dich, d, thu, bd, chon, kh); k4 = phan_tich(gia, d, thu, bd, chon, kh)
+    ok(len(kh) == 1 and k4['canh_khung']['M'] == k3['canh_khung']['M'], f"khoá: lượt sau (ảnh đổi) dùng đúng khung đã khoá {k4['canh_khung']['doi_px']}")
+    d2 = {**d, 'fov': d['fov'] + 3}; ok(khoa_khung(d2) not in kh, "khoá: camera đổi ống kính → khoá cũ không áp")
     ok(k2['vien_khop'] >= 0.9, f"cả khung dời 20 px: viền sau canh {k2['vien_khop'] * 100:.0f} % ≥ 90 % (lỗi camera không đổ cho mô hình)")
     # 5. nhân chứng DOM20: điểm mái đã đo (-19,4; 47; -1,5) — tia từ camera ảnh mẫu tới điểm phải chạm, tới điểm cao hơn 3 m phải không chạm (nằm trên mái → trời)
     if DOM.ok:
@@ -432,9 +639,19 @@ def tu_kiem():
     ok(abs(nt - nk) < 1e-9 and mm == ['k/1#0'], f"bỏ một mặt: nét mặt chung {nt:.2f} → {nk:.2f}, mặt không còn {mm}")
     nt, nk, _ = net_chung(A, {**A, 'k/1#1': {'F': 0.1, 'net_anh': 100}}, {'k/1'})
     ok(nk < nt - 0.03, f"mặt chung tụt thật: {nt:.2f} → {nk:.2f}")
+    # 5. THỪA CHI TIẾT: khung chồng làm nét mô hình dày gấp đôi mà F vẫn y nguyên → phải KÉM; nét dày vừa phải (≤ 1,3 × ảnh) hay không dày thêm → không
+    B = {'k/1#0': {'F': 0.8, 'net_anh': 300, 'net_mh': 330}}
+    dt_, dk_ = day_net(B, {'k/1#0': {**B['k/1#0'], 'net_mh': 660}}, {'k/1'})
+    ok(thua_chi_tiet(dt_, dk_), f"khung chồng: dày nét {dt_:.2f} → {dk_:.2f} = THỪA")
+    dt_, dk_ = day_net(B, {'k/1#0': {**B['k/1#0'], 'net_mh': 370}}, {'k/1'})
+    ok(not thua_chi_tiet(dt_, dk_), f"thêm vừa đủ: dày nét {dt_:.2f} → {dk_:.2f} không THỪA")
+    dt_, dk_ = day_net({'k/1#0': {**B['k/1#0'], 'net_mh': 600}}, {'k/1#0': {**B['k/1#0'], 'net_mh': 600}}, {'k/1'})
+    ok(not thua_chi_tiet(dt_, dk_), f"đã dày từ trước, không dày thêm: {dt_:.2f} → {dk_:.2f} không chặn")
+    T = {'k/1#0': {'net_anh': 300, 'net_mh': 330}, 'k/2#0': {'net_anh': 300, 'net_mh': 330}}
+    ok(mat_day_len(T, {'k/1#0': {'net_anh': 300, 'net_mh': 660}, 'k/2#0': {'net_anh': 300, 'net_mh': 360}}) == ['k/1'], "chỉ khối có mặt dày lên bị quy THỪA (k/1), khối thêm vừa phải (k/2) giữ")
     return 1 if loi else 0
 
 
 if __name__ == '__main__':
     if '--tu-kiem' in sys.argv: sys.exit(tu_kiem())
-    sys.exit(chay(pathlib.Path(sys.argv[1]), sys.argv[2]))
+    sys.exit(chay(pathlib.Path(sys.argv[1]), sys.argv[2], '--dung' in sys.argv))

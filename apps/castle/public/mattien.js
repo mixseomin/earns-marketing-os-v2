@@ -410,12 +410,24 @@ export function banDoMat(bo, { neo, yGo, yMai }) {
   return { s, y: (x, yy) => yGo + (go(x) - yy) / (go(x) - mai(x)) * (yMai - yGo), m: (x0, x1) => Math.abs(s(x1) - s(x0)), n: neo.length };
 }
 
+// mọi x ảnh mà datMatRieng đặt phần tử (cùng danh sách loại với hàm dưới) → nơi gọi lấy khoảng s phủ HẾT phần tử, không chỉ khoảng giữa các mốc ngang (góp ý #1655: cánh bắc ngoài mốc 752 bị bỏ)
+export function xMatRieng(bo) {
+  const xs = [], d = (a, k = 2) => { if (Array.isArray(a)) xs.push(...a.slice(0, k)); };
+  for (const c of bo.cum || []) { for (const o of c.o) d(o); d(c.vom); d(c.mui); }
+  for (const o of [...(bo.oTron || []), ...(bo.dongHo ? [bo.dongHo] : [])]) xs.push(o.x - o.r, o.x + o.r);
+  for (const e of [...(bo.dieMVom || []), ...(bo.khungTam || []), ...(bo.be || [])]) xs.push(e.tu, e.den);
+  for (const c of bo.cuaDi || []) { d(c.o); d(c.vom); d(c.vien); }
+  for (const v of bo.vomMu || []) xs.push(v.x0, v.x1);
+  if (bo.loGia) { d(bo.loGia.hop); d(bo.loGia.maiRong); }
+  return xs.filter(Number.isFinite);
+}
+
 // MẶT DỰNG RIÊNG THEO ẢNH CHỤP (mặt Torbau hướng sân dưới, góp ý #1641): mọi chi tiết lấy từ tệp bố cục (điểm ảnh thô) qua banDoMat — không số đo trong mã.
 // viTri(s, y) → { x, z, nx, nz, mat } điểm trên MẶT TƯỜNG NGOÀI CÙNG tại s, độ cao y (null: không có tường ở đó → bỏ, ghi vào boQua);
 // datTai(x, z) → mặt đất. Trục x cục bộ = sang PHẢI trên ảnh (nhìn từ ngoài), y lên, z ra ngoài. → { ra: [Mesh], cua: [...], kk: [{ mat, loai, y, x, z }], boQua: [tên] }
 export function datMatRieng({ THREE, mergeGeometries, bo, bd, viTri, datTai, nhe = false }) {
   const cb = (g) => { g = g.index ? g.toNonIndexed() : g; for (const k of Object.keys(g.attributes)) if (!['position', 'normal'].includes(k)) g.deleteAttribute(k); return g; };
-  const nhom = { da: [], kinh: [], go: [], mat: [], kim: [], mai: [] }, cua = [], kk = [], boQua = [];
+  const nhom = { da: [], kinh: [], go: [], mat: [], kim: [], mai: [], lom: [] }, cua = [], kk = [], boQua = [];
   // đặt hình cục bộ g tại điểm p của mặt tường (gốc cục bộ ở độ cao y)
   const dat = (ten, g, p, y, ra = 0) => { g = cb(g); g.rotateY(Math.atan2(p.nx, p.nz)); g.translate(p.x + p.nx * ra, y, p.z + p.nz * ra); nhom[ten].push(g); };
   const hop = (w, h, d, x, y, z) => { const g = new THREE.BoxGeometry(Math.max(0.01, w), Math.max(0.01, h), Math.max(0.01, d)); g.translate(x, y, z); return g; };
@@ -479,6 +491,14 @@ export function datMatRieng({ THREE, mergeGeometries, bo, bd, viTri, datTai, nhe
       cua.push({ x: p.x, y: yS, z: p.z, nx: p.nx, nz: p.nz, nua: W / 2, cao: yDinh - yS, ten: G.ten, mat: p.mat, vien: { ngang: 0, tren: yMT - yDinh } });
       kk.push({ mat: p.mat, loai: 'ban_cong', y: yS, x: p.x, z: p.z });
       for (const [a, b] of G.o) { const q = viTri(bd.s((a + b) / 2), (yS + yDinh) / 2) || p; kk.push({ mat: p.mat, loai: 'cua_so', y: (yS + yDinh) / 2, x: q.x, z: q.z }); } } }
+  // VÒM MÙ (hốc vòm lõm trên đầu hồi bậc, góp ý #1655): lòng hốc tối từ chân dốc (dayTrai → dayPhai) lên đỉnh vòm + vành đá bán nguyệt + hai má — số đo từ tệp
+  for (const v of bo.vomMu || []) { const xc = (v.x0 + v.x1) / 2, s = bd.s(xc), R = bd.m(v.x0, v.x1) / 2, yT = bd.y(xc, v.dinh), yC = yT - R, yL = bd.y(v.x0, v.dayTrai), yR = bd.y(v.x1, v.dayPhai);
+    if (!(R > 0.05) || !(yC > Math.max(yL, yR))) { boQua.push(v.ten); continue; } const p = choTuong(v.ten, s, Math.min(yL, yR), yT); if (!p) continue;
+    const sh = new THREE.Shape(); sh.moveTo(-R, yL); sh.lineTo(R, yR); sh.lineTo(R, yC); sh.absarc(0, yC, R, 0, Math.PI, false); sh.lineTo(-R, yL);
+    const g = new THREE.ShapeGeometry(sh, nhe ? 4 : 10); g.translate(0, 0, 0.02); dat('lom', g, p, 0);
+    const o = Math.min(0.06, R * 0.15); dat('da', vong(R, o, 0, yC, 0.04), p, 0);
+    dat('da', hop(o * 2, yC - yL, o * 2, -R, (yC + yL) / 2, 0.04), p, 0); dat('da', hop(o * 2, yC - yR, o * 2, R, (yC + yR) / 2, 0.04), p, 0);
+    kk.push({ mat: p.mat, loai: 'vom_mu', y: (yT + Math.min(yL, yR)) / 2, x: p.x, z: p.z }); }
   // ĐỒNG HỒ: vành đá, mặt số sáng, hai kim
   const H = bo.dongHo;
   if (H) { const s = bd.s(H.x), y = bd.y(H.x, H.y), r = bd.m(H.x - H.r, H.x + H.r) / 2, p = choTuong(H.ten, s, y - r, y + r); if (p) {
@@ -486,7 +506,7 @@ export function datMatRieng({ THREE, mergeGeometries, bo, bd, viTri, datTai, nhe
     dat('kim', hop(0.05, r * 0.55, 0.03, 0, r * 0.25, 0.08), p, y); dat('kim', hop(r * 0.42, 0.05, 0.03, r * 0.19, 0, 0.08), p, y); kk.push({ mat: p.mat, loai: 'dong_ho', y, x: p.x, z: p.z }); } }
   const VL = { da: new THREE.MeshStandardMaterial({ color: '#ece6da', roughness: 0.8 }), kinh: new THREE.MeshStandardMaterial({ color: '#4d5560', roughness: 0.3, metalness: 0.2, emissive: '#22272e' }),
     go: new THREE.MeshStandardMaterial({ color: '#7a4f2c', roughness: 0.75 }), mat: new THREE.MeshStandardMaterial({ color: '#efe9dc', roughness: 0.7 }), kim: new THREE.MeshStandardMaterial({ color: '#1d2228', roughness: 0.5 }),
-    mai: new THREE.MeshStandardMaterial({ color: '#4b5058', roughness: 0.6, metalness: 0.15 }) };
+    mai: new THREE.MeshStandardMaterial({ color: '#4b5058', roughness: 0.6, metalness: 0.15 }), lom: new THREE.MeshStandardMaterial({ color: '#8c7a5c', roughness: 0.9 }) };
   const ra = [];
   for (const [ten, gs] of Object.entries(nhom)) { if (!gs.length) continue; const m = new THREE.Mesh(mergeGeometries(gs), VL[ten]); m.castShadow = !nhe && ten === 'da'; m.receiveShadow = true; ra.push(m); }
   return { ra, cua, kk, boQua };

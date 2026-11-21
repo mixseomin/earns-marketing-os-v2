@@ -26,10 +26,11 @@
    [752, "way/223110820", 9, "góc bắc khối cổng (giáp cánh bắc thấp, mái tôn) — lưới 450–1000 / 700–1600"],
    [1350, "cong", null, "tâm vòm cổng: lòng vòm 1150–1550 px ở chân vòm"]
   ],
-  "go": [[1000, 1910], [1700, 1938], [2200, 1946], [2250, 1982], [2950, 1990], [3000, 2000], [3700, 2025]],
+  "go": [[745, 1786], [755, 1910], [1000, 1910], [1700, 1938], [2200, 1946], [2250, 1982], [2950, 1990], [3000, 2000], [3700, 2025]],
   "ly_do_go": "tâm dải gờ đá chia tầng: khối cổng 1895–1925 (x 1000), 1920–1955 (x 1700); cánh nam 1965–2000 (x 2250), 1975–2025 (x 3000), 2000–2050 (x 3700); khối cổng nhô ~1 m nên gờ nhảy ~30 px ở ống máng",
-  "maiHien": [[2250, 1275], [3700, 1268]],
-  "ly_do_maiHien": "đỉnh gờ mái hiên cánh nam ngay dưới máng xối (lưới 2200–3000 / 1150–1950 và 2980–3780): gần như nằm ngang = tầm máy ảnh"
+  "maiHien": [[745, 1178], [755, 1275], [2250, 1275], [3700, 1268]],
+  "ly_do_maiHien": "đỉnh gờ mái hiên cánh nam ngay dưới máng xối (lưới 2200–3000 / 1150–1950 và 2980–3780): gần như nằm ngang = tầm máy ảnh",
+  "ly_do_canh_bac": "góp ý #1655: cánh bắc thấp (way/223110818, x < 752 — trái góc bắc khối cổng) KHÔNG có gờ đổi màu / mái hiên cùng độ cao với khung nên hai điểm đầu của go và maiHien (x 745) suy từ chính cánh đó trên lưới 0–800 / 1300–2700: chân tường mặt sân 2480 px ↔ chân khối 818 (20 m), gờ mái hiên dưới mái tôn 1352 px ↔ đỉnh tường 818 (29,1 m) → 124 px/m → độ cao gờ khung 25,6 m rơi vào 1786 px, đỉnh tường khung 30,5 m rơi vào 1178 px. Điểm x 755 = đúng giá trị đầu mút cũ nên khối cổng và cánh nam không đổi"
  },
  "cum": [
   { "ten": "cặp cửa tầng trên cánh nam — ô trái", "o": [[2332, 2434], [2492, 2600]], "dinhO": 1567, "bau": 1822 },
@@ -43,12 +44,17 @@
   { "ten": "cửa đơn phải cổng tầng trệt", "o": [[1890, 1987]], "dinhO": 2217, "bau": 2472, "vom": [1825, 2025, 2180] },
   { "ten": "cửa đơn trái cổng tầng trên", "o": [[922, 975]], "dinhO": 1064, "bau": 1225, "vom": [900, 997, 1045] },
   { "ten": "cửa đơn trái cổng tầng giữa", "o": [[889, 946]], "dinhO": 1581, "bau": 1784, "vom": [855, 960, 1559] },
-  { "ten": "cửa đơn trái cổng tầng trệt", "o": [[847, 915]], "dinhO": 2144, "bau": 2346, "vom": [802, 937, 2095] }
+  { "ten": "cửa đơn trái cổng tầng trệt", "o": [[847, 915]], "dinhO": 2144, "bau": 2346, "vom": [802, 937, 2095] },
+  { "ten": "cánh bắc tầng trên — cặp cửa vòm phần đá xám", "o": [[84, 150], [175, 252]], "dinhO": 1573, "bau": 1751, "vom": [80, 301, 1478], "ly_do": "góp ý #1655, lưới 0–800 / 1300–2700: hai ô vòm tròn trong một hốc vòm lớn 80–301 đỉnh 1478" },
+  { "ten": "cánh bắc tầng trên — cửa vòm đầu cầu thang đá", "o": [[455, 525]], "dinhO": 1555, "bau": 1755, "vom": [402, 532, 1538], "ly_do": "góp ý #1655: viền đá vòm 402–532 đỉnh 1538, lòng cửa 455–525 đỉnh 1555, ngưỡng ~1755 ở đầu cầu thang đá" },
+  { "ten": "cánh bắc tầng trên — cặp cửa vòm phần sa thạch", "o": [[600, 665], [690, 738]], "dinhO": 1576, "bau": 1769, "ly_do": "góp ý #1655: hai ô vòm tròn, đỉnh 1576, bậu 1769" },
+  { "ten": "cánh bắc tầng trệt — cửa vòm lớn (số 1)", "o": [[280, 420]], "dinhO": 2150, "bau": 2480, "ly_do": "góp ý #1655: cửa vòm đá vôi xám 280–420, đỉnh lòng vòm ~2150, chân chạm mặt sân 2480" }
  ],
  "oTron": [
   { "ten": "ô tròn trên cặp trái", "x": 2454, "y": 1487, "r": 36 },
   { "ten": "ô tròn trên cặp giữa", "x": 2896, "y": 1481, "r": 38 },
-  { "ten": "ô tròn trên cặp phải", "x": 3400, "y": 1474, "r": 42 }
+  { "ten": "ô tròn trên cặp phải", "x": 3400, "y": 1474, "r": 42 },
+  { "ten": "ô tròn trên cặp cửa sa thạch cánh bắc", "x": 682, "y": 1515, "r": 26, "ly_do": "góp ý #1655, lưới 0–800 / 1300–2700" }
  ],
  "dieMVom": [
   { "ten": "diềm vòm dưới mái hiên — ô trái", "tu": 2278, "den": 2628, "y0": 1355, "y1": 1412, "n": 7 },
@@ -67,8 +73,19 @@
   { "ten": "bệ đá nhô dưới ba vòm trên cổng", "tu": 1115, "den": 1590, "tren": 1800, "duoi": 1920, "nho": 0.3, "ly_do_nho": "mặt bên bệ thấy ~25 px trên ảnh (khối cổng ~100 px/m, nhìn chéo) → nhô ~0,3 m" }
  ],
  "cuaDi": [
-  { "ten": "cửa vào đầu nam cánh nam (lunette chạm nổi)", "o": [3325, 3552], "dinhO": 2477, "vom": [3325, 3555, 2297], "vien": [3260, 3617, 2255], "ly_do": "chân cửa bị người đứng che, ra ngoài khung ảnh → cánh cửa kéo xuống mặt đất mô hình trước tường" }
+  { "ten": "cửa vào đầu nam cánh nam (lunette chạm nổi)", "o": [3325, 3552], "dinhO": 2477, "vom": [3325, 3555, 2297], "vien": [3260, 3617, 2255], "ly_do": "chân cửa bị người đứng che, ra ngoài khung ảnh → cánh cửa kéo xuống mặt đất mô hình trước tường" },
+  { "ten": "cánh bắc tầng trệt — cửa gỗ có lunette chạm", "o": [592, 686], "dinhO": 2150, "vom": [602, 690, 2073], "vien": [581, 700, 2066], "ly_do": "góp ý #1655, lưới 0–800 / 1300–2700: cánh gỗ 592–686 tới lanh tô ~2150, lunette chạm 602–690 đỉnh 2073, viền đá 581–700 đỉnh 2066; chân cửa xuống mặt sân" }
  ],
+ "vomMu": [
+  { "ten": "vòm mù đầu hồi bậc — A (ngoài cùng trái)", "x0": 1132, "x1": 1187, "dinh": 641, "dayTrai": 760, "dayPhai": 695, "ly_do": "lưới 1080–1720 / 300–760: má phải dừng ở móc cuộn 695; má trái còn thấy tới mép lưới 760 rồi khuất sau mái lô-gia — chân thật thấp hơn, ảnh không thấy" },
+  { "ten": "vòm mù đầu hồi bậc — B", "x0": 1211, "x1": 1267, "dinh": 521, "dayTrai": 700, "dayPhai": 570, "ly_do": "lưới 1080–1720 / 300–760: má phải dừng ở móc cuộn 570, má trái xuống ~700" },
+  { "ten": "vòm mù đầu hồi bậc — C", "x0": 1295, "x1": 1350, "dinh": 398, "dayTrai": 575, "dayPhai": 455, "ly_do": "lưới 1080–1720 / 300–760: móc cuộn má phải 455, má trái xuống ~575" },
+  { "ten": "vòm mù đầu hồi bậc — D (giữa, bậc cao nhất)", "x0": 1377, "x1": 1430, "dinh": 275, "dayTrai": 460, "dayPhai": 445, "ly_do": "lưới 1340–1500 / 100–460 (×4): đỉnh 275, lòng 1377–1430; chân hai má không rõ (má phải lẫn vào vòm E, má trái mờ dần quanh 460) — lấy chỗ thấp nhất còn thấy" },
+  { "ten": "vòm mù đầu hồi bậc — E", "x0": 1452, "x1": 1510, "dinh": 368, "dayTrai": 440, "dayPhai": 535, "ly_do": "lưới 1080–1720 / 300–760 và 1340–1500 / 100–460: móc cuộn má trái 440, má phải xuống ~535" },
+  { "ten": "vòm mù đầu hồi bậc — F", "x0": 1532, "x1": 1590, "dinh": 465, "dayTrai": 535, "dayPhai": 640, "ly_do": "lưới 1080–1720 / 300–760: móc cuộn má trái 535, má phải xuống ~640" },
+  { "ten": "vòm mù đầu hồi bậc — G (ngoài cùng phải)", "x0": 1612, "x1": 1675, "dinh": 562, "dayTrai": 635, "dayPhai": 700, "ly_do": "lưới 1080–1720 / 300–760: móc cuộn má trái 635; má phải thấy tới ~700 rồi khuất sau mái lô-gia" }
+ ],
+ "ly_do_vomMu": "góp ý #1655: mỗi bậc đầu hồi sa thạch có hốc vòm tròn lõm (tối hơn mặt đá), xếp đối xứng quanh đồng hồ: 7 hốc, đỉnh cao dần vào giữa. Chân hốc dốc theo bậc: má phía trong dừng ở một móc đá cuộn, má phía ngoài xuống thấp hơn (ngang móc cuộn của hốc bên ngoài kế đó). Mô hình dựng lòng hốc tối + vành đá bán nguyệt + hai má; móc cuộn chưa dựng hình riêng",
  "loGia": {
   "ten": "lô-gia (ban công lồi) ba vòm trên cổng",
   "o": [[1130, 1235], [1250, 1372], [1395, 1515]],

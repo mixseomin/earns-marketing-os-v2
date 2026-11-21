@@ -23,7 +23,7 @@ import { datAnhSang } from './anhsang.js';
 import { taoChieuAnh } from './chieuanh.js';
 import { datDuong } from './duong.js';
 import { datTrangTri, datCuaCong } from './trangtri.js';
-import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, caoTheoTia, diemTheoTia, thapTheoTia, tiLeDung, datChop, oCum, boTriDo, datMai, banDoMat, datMatRieng } from './mattien.js';
+import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, caoTheoTia, diemTheoTia, thapTheoTia, tiLeDung, datChop, oCum, boTriDo, datMai, banDoMat, datMatRieng, xMatRieng } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 import { ganAnhQuanh } from './anhquanh.js';
 import { datCanhXa } from './canhxa.js';
@@ -721,7 +721,9 @@ const MAT_TB = (() => {
     const k = dsKhoi.find((q) => q.id === id), p = k?.v?.[j]; if (p) neo.push([px, sTai(p[0], p[1])]);
   }
   const bd = banDoMat(bo, { neo, yGo: f.y(bo.mat.vGo), yMai: f.y1 }); if (!bd) return null;
-  const s0 = Math.min(...neo.map((n) => n[1])), s1 = Math.max(...neo.map((n) => n[1])), ung = [], khoa = new Set();
+  // khoảng mặt dựng riêng = phủ mốc ngang VÀ mọi phần tử của tệp (bd.s ngoại suy ngoài mốc) — trước chỉ lấy mốc nên cánh bắc (x < 752) không vào ung → phần tử bị bỏ, cửa chung hang: [] vẫn áp (góp ý #1655)
+  const sMat = [...neo.map((n) => n[1]), ...xMatRieng(bo).map((x) => bd.s(x))].filter(Number.isFinite);
+  const s0 = Math.min(...sMat), s1 = Math.max(...sMat), ung = [], khoa = new Set();
   for (const t of TUONG_MT) for (let i = 0; i < t.v.length; i++) {
     const [x1, z1] = t.v[i], [x2, z2] = t.v[(i + 1) % t.v.length], L = Math.hypot(x2 - x1, z2 - z1); if (L < 0.5) continue;
     if (((z2 - z1) / L) * nx + (-(x2 - x1) / L) * nz < 0.97 || Math.abs(dTai(x1, z1)) > 1.5 || Math.abs(dTai(x2, z2)) > 1.5) continue;

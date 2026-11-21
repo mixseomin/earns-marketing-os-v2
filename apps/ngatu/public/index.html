@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Ngã Tư</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23333'/><rect x='13' y='2' width='6' height='28' fill='%23777'/><rect x='2' y='13' width='28' height='6' fill='%23777'/><circle cx='16' cy='16' r='4' fill='%23f2c230'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ngatu.css?v=__BAN__">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="nap">Đang cho xe chạy trước…</div>
+<header class="bang tren">
+  <h1>Ngã Tư <small>giờ tan tầm</small></h1>
+  <div id="den"></div>
+</header>
+<aside class="bang ben">
+  <div id="so"></div>
+  <label>Mật độ xe máy <b id="vMd">450</b><input id="md" type="range" min="50" max="1000" step="10" value="450"></label>
+  <label>Liều (vượt đèn) <b id="vLieu">12%</b><input id="lieu" type="range" min="0" max="60" value="12"></label>
+  <label class="chk"><input id="rp" type="checkbox" checked> Xe máy rẽ phải khi đèn đỏ</label>
+  <div class="nut">
+    <button data-cam="tong" class="on">Toàn cảnh</button>
+    <button data-cam="tren">Từ trên</button>
+    <button data-cam="goc">Ban công góc phố</button>
+    <button data-cam="theo">Theo một xe</button>
+  </div>
+  <div class="nut">
+    <button id="dung">Tạm dừng</button>
+    <button id="toc">Tốc độ 1×</button>
+  </div>
+  <p class="goiy">Kéo để xoay, lăn để phóng. Bấm vào một xe máy để đi theo nó.</p>
+</aside>
+<script type="module" src="ngatu.js?v=__BAN__"></script>
+</body>
+</html>

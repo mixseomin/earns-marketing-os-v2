@@ -243,6 +243,13 @@ if ! cmp -s /tmp/studio2-ban.conf /etc/nginx/snippets/studio2-ban.conf || ! cmp 
   cp /tmp/studio2-ban.conf /etc/nginx/snippets/studio2-ban.conf && cp apps/studio2/deploy/studio2.on.tc.nginx /etc/nginx/sites-enabled/studio2.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx studio2.on.tc cài/cập nhật (bản $S2_BAN)" || { echo "✗ nginx studio2.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/studio2.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
 fi
 
+# 5e4. NGÃ TƯ (apps/ngatu/public, ngatu.on.tc) — mô phỏng ngã tư VN trên three.js, tệp tĩnh sau SSO mos2 (anh 21/11/2026). Cùng khuôn 5e3: mã bản ?v= = băm .js + .css.
+NG_BAN=$(cat apps/ngatu/public/*.js apps/ngatu/public/*.css | md5sum | cut -c1-12)
+echo "set \$ngatu_ban \"$NG_BAN\";" > /tmp/ngatu-ban.conf
+if ! cmp -s /tmp/ngatu-ban.conf /etc/nginx/snippets/ngatu-ban.conf || ! cmp -s apps/ngatu/deploy/ngatu.on.tc.nginx /etc/nginx/sites-enabled/ngatu.on.tc; then
+  cp /tmp/ngatu-ban.conf /etc/nginx/snippets/ngatu-ban.conf && cp apps/ngatu/deploy/ngatu.on.tc.nginx /etc/nginx/sites-enabled/ngatu.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx ngatu.on.tc cài/cập nhật (bản $NG_BAN)" || { echo "✗ nginx ngatu.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/ngatu.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
+fi
+
 # 5z. vhost etp.on.tc cài từ repo (có trang "đang cập nhật" tự tải lại khi mos2-web khởi động lại) — chỉ khi tệp đổi
 if ! cmp -s apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc; then
   cp /etc/nginx/sites-enabled/etp.on.tc /tmp/etp.on.tc.nginx.cu 2>/dev/null

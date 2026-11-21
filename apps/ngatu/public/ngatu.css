@@ -1,0 +1,30 @@
+:root { --nen: rgba(18, 20, 24, 0.78); --chu: #f2f2f2; --mo: #a9b0b8; --nhan: #f2c230; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #bcd3e6; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: var(--chu); }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#nap { position: fixed; inset: 0; display: grid; place-items: center; background: #1c1f24; font-size: 18px; z-index: 9; }
+#nap[hidden] { display: none; }
+.bang { position: fixed; background: var(--nen); backdrop-filter: blur(6px); border-radius: 12px; padding: 12px 14px; font-size: 13px; }
+.tren { top: 12px; left: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; max-width: calc(100% - 24px); }
+.tren h1 { margin: 0; font-size: 18px; font-weight: 700; }
+.tren h1 small { font-weight: 400; color: var(--mo); font-size: 13px; margin-left: 4px; }
+#den { display: flex; gap: 10px; flex-wrap: wrap; }
+.den { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.06); }
+.den i { width: 10px; height: 10px; border-radius: 50%; }
+.den.x i { background: #2bff5e; box-shadow: 0 0 8px #2bff5e; } .den.v i { background: #ffc21a; box-shadow: 0 0 8px #ffc21a; } .den.d i { background: #ff2a1f; box-shadow: 0 0 8px #ff2a1f; }
+.ben { top: 76px; right: 12px; width: 250px; display: flex; flex-direction: column; gap: 10px; }
+#so { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; color: var(--mo); }
+#so b { color: var(--chu); font-size: 15px; }
+label { display: flex; flex-direction: column; gap: 4px; color: var(--mo); }
+label b { color: var(--nhan); }
+label.chk { flex-direction: row; align-items: center; gap: 8px; color: var(--chu); }
+input[type=range] { width: 100%; accent-color: var(--nhan); }
+.nut { display: flex; flex-wrap: wrap; gap: 6px; }
+button { flex: 1 1 auto; font: inherit; font-size: 12px; color: var(--chu); background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+button:hover { background: rgba(255,255,255,0.16); }
+button.on { background: var(--nhan); color: #1a1a1a; border-color: var(--nhan); }
+.goiy { margin: 0; color: var(--mo); font-size: 12px; }
+@media (max-width: 640px) {
+  .ben { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 45vh; overflow: auto; }
+  .tren h1 small { display: none; }
+}

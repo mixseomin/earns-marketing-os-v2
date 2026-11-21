@@ -9,17 +9,19 @@
    "nhom": [
     "way/223110823#3",
     "way/223110823#4",
-    "way/223110820#14"
+    "way/223110820#14",
+    "way/223110820#0",
+    "way/223110820#13"
    ],
    "anh": "Mapillary 360° 493003245182754 + 990990575063069 (2019)",
    "vung": {
     "dinh": {
      "tu": 29.1,
      "dem": {
-      "rang_cua": 10,
+      "rang_cua": 11,
       "thap_canh": 2
      },
-     "ghi_chu": "hai lớp răng cưa (ảnh anh khoanh 16/11/2026): lớp đá kem phía trước 5 răng + lớp gạch đỏ phía sau 5 răng · thẻ #1623 lần 3: khối kem hạ 26,6 → 24,0 nên vùng đỉnh (tháp canh treo + răng) từ 21,5"
+     "ghi_chu": "hai lớp răng cưa (ảnh anh khoanh 16/11/2026): lớp đá kem phía trước 5 răng + lớp gạch đỏ phía sau 5 răng · thẻ #1623 lần 3: khối kem hạ 26,6 → 24,0 nên vùng đỉnh (tháp canh treo + răng) từ 21,5 · 21/11/2026 đếm lại trên ảnh c-Entering-the-Neuschwanstein-Castle-25121020852-.jpg: lớp gạch đỏ phía sau là hai cánh 223110820#0 / #13, mỗi cánh 3 răng (răng sát đầu hồi dính một phần vào khung đá) → 5 kem + 6 đỏ = 11"
     },
     "than_tren": {
      "tu": 23.86,

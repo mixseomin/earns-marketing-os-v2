@@ -2861,7 +2861,9 @@
    }
   ],
   "ly_do": "16/11/2026 thẻ #1623 lần 3: mấu gạch đỏ phía nam chân đầu hồi (răng cưa ~30 m) có một cửa đơn 26,2–27,2 m nhìn trên ảnh 3D mặt đông, ngay trên mái cánh nam; ngang cách mũi đầu hồi ~5,1 m trên ảnh (÷ 0,83 nhìn xiên → ~6,1 m dọc mặt) → cách đầu giáp đầu hồi ~2,3 m",
-  "doi_dom20": 7.8
+  "doi_dom20": 7.8,
+  "rang_cua": 3,
+  "ly_do_rang_cua": "21/11/2026: ảnh c-Entering-the-Neuschwanstein-Castle-25121020852-.jpg đếm 3 răng cưa trên mỗi cánh gạch đỏ hai bên đầu hồi (răng sát đầu hồi dính một phần vào khung đá) → 3 răng mỗi cạnh"
  },
  "way/223110820#13": {
   "hang": [
@@ -2878,7 +2880,9 @@
    }
   ],
   "ly_do": "16/11/2026 thẻ #1623 lần 3: mấu gạch đỏ phía bắc chân đầu hồi có một cửa đơn 26,2–27,2 m nhìn trên ảnh 3D mặt đông, ngay trên răng cưa cánh bắc; ngang cách mũi đầu hồi ~4,0 m trên ảnh (~4,8 m dọc mặt) → cách đầu giáp đầu hồi ~1,0 m (cạnh dài 3,23 m)",
-  "doi_dom20": 7.8
+  "doi_dom20": 7.8,
+  "rang_cua": 3,
+  "ly_do_rang_cua": "21/11/2026: ảnh c-Entering-the-Neuschwanstein-Castle-25121020852-.jpg đếm 3 răng cưa trên mỗi cánh gạch đỏ hai bên đầu hồi (răng sát đầu hồi dính một phần vào khung đá) → 3 răng mỗi cạnh"
  },
  "way/223110825#6": {
   "hang": [
@@ -3250,7 +3254,11 @@
    ]
   ],
   "ly_do_thap_canh": "góp ý #1648 (17/11/2026): ảnh Commons 'Entering the Neuschwanstein Castle (25121020852)' (Ștefan Jurcă, CC BY 2.0, nhìn thẳng mặt cổng đông, cửa giữa ảnh x 635 ≈ giữa mảng kem 345–930 px → 77 px/m trên mặt 7,6 m): tháp canh NAM (trái ảnh) tâm x 366 px = cách góc nam mảng kem 0,3 m vào trong → cạnh #4 (chạy từ chỗ gãy giữa mặt về góc nam, dài 3,63) s = 3,33; thân 160 px → bán kính 1,05 m; tháp chìa ra ngoài mép kem 0,8 m nhìn thẳng (ảnh 60 px) nhưng đứng TRƯỚC mặt kem, không chạm tường gạch đỏ lùi sau. Đỉnh vành răng cưa = răng cưa khối kem 25,4 (đo tia ảnh 3D #1623: 25,1–25,5); mũi chân côn ngang mép trên khung huy hiệu (ảnh: mũi 500 px, khung 490 px) — khớp phối cảnh ba mốc (đất 11,3 · đỉnh vòm cổng 17,5 · răng cưa 25,4) cho 21,3 trên mặt tường, trừ thị sai mũi nhô 1,1 m trước mặt → 20,9; ô vuông cạnh huy hiệu (s 1,8, y 18,25–18,85) thấp hơn mũi, không bị che",
-  "doi_dom20": 7.6
+  "doi_dom20": 7.6,
+  "go_y": [
+   23.9,
+   28.9
+  ]
  },
  "way/223110823#3": {
   "hang": [],
@@ -3265,7 +3273,11 @@
    ]
   ],
   "ly_do_thap_canh": "góp ý #1648 (17/11/2026): cùng ảnh 'Entering the Neuschwanstein Castle (25121020852)' — tháp canh BẮC (phải ảnh) tâm x 907 px, mép kem 930 px → cách góc bắc mảng kem 0,3 m → cạnh #3 (từ góc bắc về chỗ gãy giữa mặt) s = 0,3; thân 165 px ≈ bán kính 1,05; đối xứng tháp nam (cùng mũi 500 px, cùng đỉnh 235 px trên ảnh) → mũi 20,9, đỉnh 25,4. Ảnh 'Dvorac Neuschwanstein - pročelje' (Silverije, CC BY-SA 4.0, nhìn chéo từ đông nam) xác nhận: tháp bắc treo ở góc trên mảng kem, nhô trước mặt kem, phía bắc chìa ra trên tường gạch đỏ lùi sau",
-  "doi_dom20": 7.6
+  "doi_dom20": 7.6,
+  "go_y": [
+   23.9,
+   28.9
+  ]
  },
  "way/223110818#0": {
   "hang": [],
@@ -3573,5 +3585,85 @@
   "da_goc": 2,
   "do_may_da_goc": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI): ảnh commons-Dvorac-Neuschwanstein---sjeverna-strana.jpg (Silverije, CC BY-SA 4.0) định vị 1010 điểm khớp · sai số 2.91 px, nắn 24 px/m, độ tin 0.61",
   "doi_dom20": -0.2
+ },
+ "way/221599084#*": {
+  "vong_rang": 14,
+  "ly_do_vong_rang": "21/11/2026: tháp tròn góc NAM Torbau, ảnh c-Dvorac-Neuschwanstein-pro-elje.jpg (nhìn từ phía bắc cổng, tháp bên trái) thấy 7–8 răng trên nửa vành nhìn được; bán kính 2,1 m ≈ tháp bắc (2,2 m, đã đo 14 răng) → 14",
+  "cua_thap": [
+   [
+    20,
+    32.6,
+    1.1,
+    0.44
+   ],
+   [
+    20,
+    28.4,
+    1.1,
+    0.44
+   ],
+   [
+    20,
+    24.2,
+    1.1,
+    0.44
+   ],
+   [
+    80,
+    31.8,
+    1.1,
+    0.44
+   ],
+   [
+    80,
+    27.6,
+    1.1,
+    0.44
+   ],
+   [
+    80,
+    23.4,
+    1.1,
+    0.44
+   ],
+   [
+    140,
+    31.0,
+    1.1,
+    0.44
+   ],
+   [
+    140,
+    26.8,
+    1.1,
+    0.44
+   ],
+   [
+    140,
+    22.6,
+    1.1,
+    0.44
+   ],
+   [
+    200,
+    30.2,
+    1.1,
+    0.44
+   ],
+   [
+    200,
+    26.0,
+    1.1,
+    0.44
+   ],
+   [
+    200,
+    21.8,
+    1.1,
+    0.44
+   ]
+  ],
+  "ly_do_cua_thap": "21/11/2026: cùng ảnh thấy ba ô cửa hẹp lệch hướng nhau theo thang xoắn (một ô ngay dưới vành con sơn, hai ô thấp dần sang trái); kiểm kê ghi 3 ô mỗi phía × 4 phía. Đặt 4 hướng phía ngoài (20/80/140/200°, tránh nửa tây áp vào khối 223110825), mỗi hướng 3 ô cách 4,2 m, hướng sau thấp hơn 0,8 m (bậc xoắn); kích thước ô theo tháp bắc (cao 1,1 · rộng 0,44). Độ cao ô là ước theo tỉ lệ ảnh, chưa đo từng ô",
+  "anh": "c-Dvorac-Neuschwanstein-pro-elje.jpg"
  }
 }

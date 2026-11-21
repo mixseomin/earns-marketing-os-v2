@@ -3708,6 +3708,8 @@
    ]
   ],
   "ly_do_cua_thap": "21/11/2026: cùng ảnh thấy ba ô cửa hẹp lệch hướng nhau theo thang xoắn (một ô ngay dưới vành con sơn, hai ô thấp dần sang trái); kiểm kê ghi 3 ô mỗi phía × 4 phía. Đặt 4 hướng phía ngoài (20/80/140/200°, tránh nửa tây áp vào khối 223110825), mỗi hướng 3 ô cách 4,2 m, hướng sau thấp hơn 0,8 m (bậc xoắn); kích thước ô theo tháp bắc (cao 1,1 · rộng 0,44). Độ cao ô là ước theo tỉ lệ ảnh, chưa đo từng ô",
-  "anh": "c-Dvorac-Neuschwanstein-pro-elje.jpg"
+  "anh": "c-Dvorac-Neuschwanstein-pro-elje.jpg",
+  "doi_dom20": 6.3,
+  "ly_do_doi_dom20": "21/11/2026 thẻ #1651: cua_thap ghi ngày 21/11, SAU lần dời tháp +6,3 m theo DOM20 (20/11, sua.json 32,9 → 39,2), nên số đã ở độ cao mới; doi-chi-tiet.mjs --ghi dời thêm +6,3 đưa ô cửa trên cùng lên 38,9 m, nằm trong chóp nón (thân tháp dựng tới ~36 m) → giữ số cũ, chỉ ghi doi_dom20 để máy không dời lần nữa"
  }
 }

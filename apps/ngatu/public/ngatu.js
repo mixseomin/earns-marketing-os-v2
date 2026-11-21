@@ -41,6 +41,7 @@ function doan(out, A, B, buoc) {
   for (let i = 0; i < k; i++) out.push([A[0] + ((B[0] - A[0]) * i) / k, A[1] + ((B[1] - A[1]) * i) / k]);
 }
 // Đường đi của một xe: đoạn thẳng vào → cung Bézier trong lòng ngã tư → đoạn thẳng ra. o1/o2 = khoảng cách sang phải tim đường.
+const RE_TRAI_CACH = 1.6; // nửa khoảng cách hai luồng rẽ trái ngược chiều (m)
 function taoDuongXe(d, d2, o1, o2) {
   const r1 = right(d), r2 = right(d2), e1 = eAlong(d), e2 = eAlong(d2);
   const P0 = [-L * d[0] + o1 * r1[0], -L * d[1] + o1 * r1[1]];
@@ -54,6 +55,24 @@ function taoDuongXe(d, d2, o1, o2) {
     const bx = Pe[0] - Pi[0], bz = Pe[1] - Pi[1];
     const t = (bx * d2[1] - bz * d2[0]) / cross;
     C = [Pi[0] + t * d[0], Pi[1] + t * d[1]];
+  }
+  // Rẽ trái: hai luồng rẽ trái ngược chiều phải là HAI đường riêng, lướt qua nhau (anh 22/11/2026 khoanh ảnh). Đường rẽ
+  // trái hướng ngược lại là ảnh đối xứng qua tâm ngã tư, nên giữ cả đường cong ở hẳn một phía đường chéo qua tâm
+  // (u = d + r1), cách tâm ít nhất RE_TRAI_CACH → hai luồng cách nhau gấp đôi. Trước: xe máy vào ngoài lề (o1 lớn) cua
+  // vòng qua tâm, đè lên luồng rẽ trái đối diện → hai đám gặp nhau giữa lòng ngã tư, kẹt chết.
+  if (cross < -0.5) {
+    const ux = d[0] + r1[0], uz = d[1] + r1[1], tren = (P) => P[0] * ux + P[1] * uz;
+    for (let lap = 0; lap < 6; lap++) {
+      let mx = -Infinity, tm = 0.5;
+      for (let i = 1; i < 20; i++) {
+        const t = i / 20, q = 1 - t, v = q * q * tren(Pi) + 2 * q * t * tren(C) + t * t * tren(Pe);
+        if (v > mx) { mx = v; tm = t; }
+      }
+      const du = mx + RE_TRAI_CACH * Math.SQRT2; // |u| = √2
+      if (du <= 0.01) break;
+      const k = du / (2 * tm * (1 - tm) * 2); // dời điểm uốn ngược hướng u: tren(C) giảm 2k
+      C = [C[0] - k * ux, C[1] - k * uz];
+    }
   }
   const pts = [];
   doan(pts, P0, Pi, 2);
@@ -616,7 +635,8 @@ function buocXe(a, dt) {
     for (const [gan, xa, j, nl] of lanCat) if ((nl || toi < xa) && gan < f0 && !(choToi(j, a) && (!choToi(a, j) || hon(a, j)))) { f0 = gan; vj = 0; ai = j; }
   }
   a.trongNga = a.s > p.sIn && a.s < p.sOut;
-  let vt = a.vmax * (a.trongNga && xm ? 0.8 : 1);
+  // trong lòng ngã tư xe máy đi chậm lại khi đông, nhưng trước mũi thoáng thì vít ga thoát ra cho nhanh (anh 22/11/2026)
+  let vt = a.vmax * (a.trongNga && xm && f0 < 8 ? 0.8 : 1);
   vt = Math.min(vt, Math.max(0, (f0 - s0) / T + vj * 0.85));
   if (f0 < s0 * 0.6) a.sp = Math.min(a.sp, vj); // sát đuôi xe trước: không bao giờ nhanh hơn nó → không húc
   a.choDen = false;
@@ -649,8 +669,12 @@ function buocXe(a, dt) {
     if (m === 'x') a.lenhDung = false;
     const khongKip = !a.lenhDung && dau < p.sStop && p.sStop - dau < (a.sp * a.sp) / 8 + a.sp * 0.25;
     duoc = m === 'x';
-    if (m === 'v') duoc = khongKip || lieu;
-    if (m === 'd') duoc = (khongKip && qua < 1.5) || (xm && a.quay === 'phai' && CAI.rePhai) || (lieu && (qua < 3 || con < 2.5));
+    // Xe liều chỉ vượt vàng/đỏ khi lòng ngã tư phía trước thật sự trống: hướng kia chưa có xe trong lòng, không ai đứng kẹt,
+    // trước mũi thoáng một quãng dài (anh 22/11/2026: "vượt đèn đỏ là nguyên nhân lớn nhất"). Trước liều là lao bất kể,
+    // đứng chết giữa dòng hướng kia đang xanh → nút vòng cả lòng ngã tư.
+    const loTrong = trongNgaG[1 - a.g] <= 1 && ketNga === 0 && f0 > a.len + 8;
+    if (m === 'v') duoc = khongKip || (lieu && loTrong);
+    if (m === 'd') duoc = (khongKip && qua < 1.5) || (xm && a.quay === 'phai' && CAI.rePhai) || (lieu && loTrong && (qua < 3 || con < 2.5));
     // Tuỳ chọn (mặc định tắt): lòng ngã tư đã kẹt / hướng kia còn đầy xe thì đứng chờ ở vạch kể cả đèn xanh.
     if (CAI.choNga && (ketNga > NGUONG_KET || trongNgaG[1 - a.g] > NGUONG_CAT) && dau < p.sStop) duoc = false;
     // Mặc định, kiểu người VN: vẫn lao vào khe — nhưng không lao khi ngay sau vạch phía trước mũi đã kín (không đủ một thân
@@ -686,7 +710,7 @@ function buocXe(a, dt) {
   }
   if (a.lui > 0) { a.lui -= dt; vt = 0; if (a.lui <= 0 && a.luiDuoc === 0) a.camLui = 6; } // đang lùi nhường lối: không tiến lại vào chỗ vừa chừa
   if (a.camLui > 0) a.camLui -= dt;
-  const ac = (xm ? 2.6 : a.loai === 'bus' ? 1.0 : 1.8) * (a.ket > 1 ? 1.8 : 1);
+  const ac = (xm ? 2.6 : a.loai === 'bus' ? 1.0 : 1.8) * (a.ket > 1 ? 1.8 : a.trongNga && f0 > 4 ? 1.5 : 1); // có chỗ thoát khỏi lòng ngã tư → tăng tốc gấp
   a.sp = vt > a.sp ? Math.min(vt, a.sp + ac * dt) : Math.max(vt, a.sp - 9 * dt);
   if (a.sp < 0.2 && !a.choDen && !a.dangDon) a.ket = Math.min(10, a.ket + dt); else a.ket = Math.max(0, a.ket - dt * 0.5);
   {
@@ -839,6 +863,7 @@ function buocXe(a, dt) {
 }
 const BONG = { x: 0, z: 0, goc: 0, len: 0, wid: 0 };
 function xeTruocMat(a) {
+  let tMin = Infinity;
   const g = Math.atan2(-a.fz, a.fx), qx = a.x + a.fx * 1.5, qz = a.z + a.fz * 1.5;
   const cx = cellX(qx), cz = cellX(qz);
   for (let gx = cx - 1; gx <= cx + 1; gx++) for (let gz = cz - 1; gz <= cz + 1; gz++) {
@@ -847,13 +872,13 @@ function xeTruocMat(a) {
       const j = DS[k];
       if (!j || j.loai === 'bo' || j.y > 1 || j.nga || j.sp < 0.8) continue;
       BONG.goc = j.goc; BONG.len = j.len; BONG.wid = j.wid + 0.3;
-      for (let t = 0; t <= 1.5; t += 0.5) {
+      for (let t = 0; t <= 3 && t < tMin; t += 0.5) {
         BONG.x = j.x + j.fx * j.sp * t; BONG.z = j.z + j.fz * j.sp * t;
-        if (lanSau(qx, qz, g, 2.6, 1.0, BONG) > 0) return true;
+        if (lanSau(qx, qz, g, 2.6, 1.0, BONG) > 0) { tMin = t; break; }
       }
     }
   }
-  return false;
+  return tMin;
 }
 // Trên đường người sắp băng qua (từ chỗ đứng tới hết vạch) có xe đang đứng — xe dồn lên vạch vì ngã tư tắc, xe nằm ngã.
 function vachKet(a, c) {
@@ -885,7 +910,9 @@ function buocBo(a, dt) {
   a.choDen = cho; // đứng chờ đèn (kể cả giữa dải phân cách) — xe không coi là "sắp bước ra" mà nhường mãi
   // Có xe đang chạy tới trước mặt (thân xe sẽ quét qua khoảng 0,2–2,8 m trước người trong 1,5 s tới) → đứng chờ xe qua
   // rồi mới bước, kể cả người liều (anh 21/11/2026). Xe đã dừng nhường người thì không tính, không thành hai bên chờ nhau.
-  if (vt > 0 && xeTruocMat(a)) { vt = 0; a.choXe = true; } else a.choXe = false;
+  // Xe còn xa hơn (1,5–3 s) → bước chậm lại, nhường xe qua trước, không cắm đầu chạy (anh 22/11/2026).
+  const tXe = vt > 0 ? xeTruocMat(a) : Infinity;
+  if (tXe <= 1.5) { vt = 0; a.choXe = true; } else { a.choXe = false; if (tXe <= 3) vt *= 0.3 + 0.25 * (tXe - 1.5); }
   a.sp += (vt - a.sp) * Math.min(1, dt * (vt === 0 ? 8 : 3));
   // người đi bộ cũng không đi xuyên xe: vướng thân xe thì né sang bên, né không được thì đứng chờ
   const sT = a.s, kT = a.k, xT = a.x, zT = a.z, gT = a.goc;

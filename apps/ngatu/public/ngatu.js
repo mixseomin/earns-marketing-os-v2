@@ -95,7 +95,8 @@ function den(g, t) {
   return ['d', con, qua];
 }
 
-const CAI = { matDo: 450, lieu: 0.12, rePhai: true, toc: 1, dung: false, vuot: 0 };
+const DD = matchMedia('(pointer: coarse)').matches || innerWidth < 700; // điện thoại / máy tính bảng → giảm tải cho máy khỏi nóng
+const CAI = { matDo: DD ? 280 : 450, lieu: 0.12, rePhai: true, toc: 1, dung: false, vuot: 0 };
 let tc = 0, tg = 0;
 
 // ───────────────────────── lưới tra láng giềng ─────────────────────────
@@ -351,10 +352,13 @@ function buoc(dt) {
 
 // ───────────────────────── cảnh 3D ─────────────────────────
 const cv = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: !DD, powerPreference: DD ? 'low-power' : 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, DD ? 1.25 : 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// Bóng đổ chỉ tính MỘT lần cho nhà, cây, cột (đứng yên). Xe và người dùng bóng dán sát đất (BONG bên dưới): rẻ hơn hẳn,
+// và bóng sát bánh xe nhìn mới thấy xe chạm đất — bóng từ bản đồ bóng lệch + nhoè khiến xe trông như bay (anh 21/11/2026).
+renderer.shadowMap.autoUpdate = false;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#bcd3e6');
 scene.fog = new THREE.Fog('#c8d9e6', 150, 430);
@@ -370,7 +374,7 @@ scene.add(new THREE.HemisphereLight('#dfefff', '#8a7a66', 1.1));
 const sun = new THREE.DirectionalLight('#fff1dc', 1.9);
 sun.position.set(90, 160, 60);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(DD ? 1024 : 2048, DD ? 1024 : 2048);
 Object.assign(sun.shadow.camera, { left: -170, right: 170, top: 170, bottom: -170, near: 10, far: 500 });
 sun.shadow.bias = -0.0005;
 scene.add(sun);
@@ -387,12 +391,18 @@ function ghep(parts) {
 }
 const box = (x, y, z) => new THREE.BoxGeometry(x, y, z);
 const banh = (r, w, x, y, z) => new THREE.CylinderGeometry(r, r, w, 14).rotateX(Math.PI / 2).translate(x, y, z);
+const vanh = (r, w, x, y, z) => new THREE.CylinderGeometry(r * 0.5, r * 0.5, w + 0.02, 10).rotateX(Math.PI / 2).translate(x, y, z);
 const TRANG = '#ffffff', DEN_B = '#151515';
 
 const geoXm = ghep([
-  [box(1.25, 0.42, 0.36).translate(0, 0.52, 0), TRANG],
+  // dáng xe tay ga: sàn để chân thấp giữa hai bánh + thân sau + yếm trước — thân không còn lơ lửng ngang trục bánh
+  [box(0.62, 0.1, 0.3).translate(0.02, 0.27, 0), '#2a2a2a'],
+  [box(0.72, 0.4, 0.36).translate(-0.3, 0.5, 0), TRANG],
+  [box(0.16, 0.6, 0.36).translate(0.4, 0.55, 0), TRANG],
+  [box(0.06, 0.3, 0.08).translate(0.6, 0.42, 0), '#555555'],
   [box(0.6, 0.12, 0.3).translate(-0.2, 0.8, 0), '#202020'],
-  [banh(0.29, 0.11, 0.62, 0.29, 0), DEN_B], [banh(0.29, 0.11, -0.6, 0.29, 0), DEN_B],
+  [banh(0.29, 0.14, 0.62, 0.29, 0), DEN_B], [banh(0.29, 0.14, -0.6, 0.29, 0), DEN_B],
+  [vanh(0.29, 0.14, 0.62, 0.29, 0), '#9a9ea4'], [vanh(0.29, 0.14, -0.6, 0.29, 0), '#9a9ea4'],
   [box(0.12, 0.5, 0.1).translate(0.58, 0.78, 0), '#555555'],
   [box(0.06, 0.06, 0.64).translate(0.55, 1.02, 0), '#888888'],
 ]);
@@ -437,7 +447,7 @@ const vatLieu = new THREE.MeshLambertMaterial();
 function inst(geo, mat, n) {
   const m = new THREE.InstancedMesh(geo, mat, n);
   m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  m.count = 0; m.castShadow = true; m.frustumCulled = false;
+  m.count = 0; m.castShadow = false; m.frustumCulled = false;
   m.setColorAt(0, new THREE.Color());
   scene.add(m);
   return m;
@@ -448,6 +458,17 @@ const mCho = inst(geoCho, vatLieuMau, MAX_XM), mHang = inst(geoHang, vatLieu, MA
 const mOto = inst(geoOto, vatLieuMau, 160), mBus = inst(geoBus, vatLieuMau, 16);
 const mBo = inst(geoBo, vatLieuMau, 400), mDau = inst(geoDau, vatLieu, 400), mNon = inst(geoNon, vatLieu, 400);
 const NON_MAU = new THREE.Color('#e8d7a6');
+const mBong = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 4, 32, 32, 32);
+  g.addColorStop(0, 'rgba(0,0,0,0.62)'); g.addColorStop(0.6, 'rgba(0,0,0,0.38)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  const mat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
+  const m = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), mat, MAX_XM + 600);
+  m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.renderOrder = 1;
+  scene.add(m); return m;
+})();
+const SB = new THREE.Vector3();
 
 // ── mặt đất, vỉa hè, vạch kẻ
 const mat0 = new THREE.Mesh(new THREE.PlaneGeometry(900, 900).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: '#4a4c50' }));
@@ -681,9 +702,10 @@ const KHONG = new THREE.Vector3(0, 0, 0), MOT = new THREE.Vector3(1, 1, 1);
 const veXm = [];
 function datMa(m, i, pos, q, s, c) { M4.compose(pos, q, s); m.setMatrixAt(i, M4); if (c) m.setColorAt(i, c); }
 function ve() {
-  let ix = 0, io = 0, ib = 0, ip = 0;
+  let ix = 0, io = 0, ib = 0, ip = 0, is = 0;
   veXm.length = 0;
   for (const a of DS) {
+    if (is < MAX_XM + 600) { Q.setFromAxisAngle(UP, a.goc); V.set(a.x, a.y + 0.03, a.z); datMa(mBong, is++, V, Q, a.loai === 'bo' ? SB.set(0.75, 1, 0.75) : SB.set(a.len * 1.15, 1, a.wid * 1.7)); }
     if (a.loai === 'bo') {
       Q.setFromAxisAngle(UP, a.goc);
       V.set(a.x, a.y + Math.abs(Math.sin(a.buoc)) * 0.04, a.z);
@@ -701,7 +723,7 @@ function ve() {
     } else if (a.loai === 'oto') datMa(mOto, io++, V, Q, MOT, a.c1);
     else datMa(mBus, ib++, V, Q, MOT, a.c1);
   }
-  for (const [m, n] of [[mXm, ix], [mNguoi, ix], [mMu, ix], [mCho, ix], [mHang, ix], [mOto, io], [mBus, ib], [mBo, ip], [mDau, ip], [mNon, ip]]) {
+  for (const [m, n] of [[mXm, ix], [mNguoi, ix], [mMu, ix], [mCho, ix], [mHang, ix], [mOto, io], [mBus, ib], [mBo, ip], [mDau, ip], [mNon, ip], [mBong, is]]) {
     m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
   }
 }
@@ -727,6 +749,7 @@ function chonXeTheo() {
 }
 document.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => datCam(b.dataset.cam)));
 const $ = (id) => document.getElementById(id);
+$('md').value = CAI.matDo; $('vMd').textContent = CAI.matDo;
 $('md').addEventListener('input', (e) => { CAI.matDo = +e.target.value; $('vMd').textContent = CAI.matDo; });
 $('lieu').addEventListener('input', (e) => { CAI.lieu = +e.target.value / 100; $('vLieu').textContent = e.target.value + '%'; });
 $('rp').addEventListener('change', (e) => (CAI.rePhai = e.target.checked));
@@ -784,10 +807,12 @@ function khoiDong() {
   $('nap').hidden = true;
   console.log('ngatu: làm nóng', Math.round(performance.now() - t0), 'ms,', DS.length, 'đối tượng');
   datCam('tong');
-  let truoc = performance.now();
+  renderer.shadowMap.needsUpdate = true;
+  let truoc = performance.now(), boQua = false;
   renderer.setAnimationLoop(() => {
+    if (DD && (boQua = !boQua)) return; // điện thoại: vẽ 30 khung/giây thay vì 60 — đủ mượt, máy mát hơn nhiều
     const bay = performance.now();
-    const dtThuc = Math.min(0.05, (bay - truoc) / 1000);
+    const dtThuc = Math.min(0.1, (bay - truoc) / 1000);
     truoc = bay;
     if (!CAI.dung) {
       let con = dtThuc * CAI.toc;

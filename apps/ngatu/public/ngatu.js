@@ -302,7 +302,7 @@ function duongBo() {
   for (let i = 0; i < goc.length - 1; i++) doan(pts, goc[i], goc[i + 1], 1.5);
   pts.push(goc[goc.length - 1]);
   const p = taoPath(pts);
-  p.qua = quaDs.map((c) => ({ g: c.g, s0: sV[c.i] + 1.4, s1: sV[c.i + 1] - 1.4, ok: false }));
+  p.qua = quaDs.map((c) => ({ g: c.g, s0: sV[c.i] + 1.4, s1: sV[c.i + 1] - 1.4 }));
   return { p };
 }
 function sinhBo() {
@@ -417,7 +417,7 @@ let vuongJ = null; // xe vừa chặn nước đi bị từ chối gần nhất
 // Liều theo thanh trượt, áp ngay cho cả xe đang chạy: 0% là không ai cố ý vượt đèn.
 function laLieu(a) {
   const l = CAI.lieu;
-  const nguong = a.loai === 'xm' ? l : a.loai === 'bo' ? Math.min(0.9, l * 2.5) : a.taxi ? Math.min(0.9, l * 3) : a.loai === 'oto' ? l * 0.5 : 0;
+  const nguong = a.loai === 'xm' ? l : a.loai === 'bo' ? l : a.taxi ? Math.min(0.9, l * 3) : a.loai === 'oto' ? l * 0.5 : 0;
   return a.rL < nguong;
 }
 // Hai xe cùng nằm trong hành lang phía trước của nhau (cắt ngang nhau trong lòng ngã tư) → xe "được quyền" bỏ qua xe kia.
@@ -693,6 +693,17 @@ function xeTruocMat(a) {
   }
   return false;
 }
+// Trên đường người sắp băng qua (từ chỗ đứng tới hết vạch) có xe đang đứng — xe dồn lên vạch vì ngã tư tắc, xe nằm ngã.
+function vachKet(a, c) {
+  const dai = c.s1 - a.s + 0.5;
+  for (const j of DS) {
+    if (j.loai === 'bo' || j.y > 1 || j.sp >= 0.8) continue;
+    const ex = j.x - a.x, ez = j.z - a.z, lo = ex * a.fx + ez * a.fz;
+    if (lo < -0.5 || lo > dai) continue;
+    if (Math.abs(ex * -a.fz + ez * a.fx) < nua(j, -a.fz, a.fx) + 0.35) return true;
+  }
+  return false;
+}
 function buocBo(a, dt) {
   if (a.nhac) return bay(a, dt);
   if (a.nga && nam(a, dt)) return;
@@ -700,10 +711,13 @@ function buocBo(a, dt) {
   let trenDuong = false, cho = false;
   for (const c of a.p.qua) {
     if (a.s > c.s0 && a.s < c.s1) trenDuong = true;
-    if (!c.ok && a.s < c.s0 && c.s0 - a.s < 2) {
+    // Còn đứng trên lề thì xét lại MỖI khoảnh khắc, chưa bước xuống thì chưa có gì "đã quyết": đèn chuyển xanh cho xe
+    // trong lúc đang đứng chờ thì thôi không bước nữa (trước quyết một lần rồi giữ, đứng chờ xe xong vẫn bước giữa đèn
+    // xanh). Bước khi: đèn cho người (hoặc người liều) VÀ đường qua không có xe đang đứng kẹt (ngã tư tắc, xe dồn lên
+    // vạch) — anh 21/11/2026: người đi bộ phải chờ đèn, chờ xe, chờ cả khi ngã tư đang tắc.
+    if (a.s < c.s0 && c.s0 - a.s < 2) {
       const [m, con] = denBo(c.g);
-      if (laLieu(a) || (m === 'd' && con > 6)) c.ok = true;
-      else { vt = Math.min(vt, Math.max(0, c.s0 - 0.4 - a.s) * 1.5); cho = true; }
+      if (!((laLieu(a) || (m === 'd' && con > 6)) && !vachKet(a, c))) { vt = Math.min(vt, Math.max(0, c.s0 - 0.4 - a.s) * 1.5); cho = true; }
     }
   }
   a.choDen = cho; // đứng chờ đèn (kể cả giữa dải phân cách) — xe không coi là "sắp bước ra" mà nhường mãi

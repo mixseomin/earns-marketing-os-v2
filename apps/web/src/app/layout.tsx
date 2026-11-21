@@ -65,7 +65,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const u = await getCurrentUser();
   // nút góp ý: admin mọi host; etp.on.tc thêm người có quyền etp (anh 02/11/2026 "bật phần góp ý cho tk của Sơn")
   // + KHÁCH trang công khai (dantranh, người vào từ VN — middleware gắn mã khách vào khung nhúng /nhung/gop-y, lib/gop-y-khach.ts)
-  const coGopY = u?.role === 'admin' || (host === 'etp.on.tc' && !!(await quyenEtp(u))) || (!u && !!hd.get(HEADER_KHACH));
+  const coGopY = u?.role === 'admin' || (host === 'etp.on.tc' && !!(await quyenEtp(u)));
+  const hienGopY = coGopY || (!u && !!hd.get(HEADER_KHACH));
   if (host === 'mos2.on.tc' && u && u.role === 'viewer') redirect('https://user.on.tc/review');
   // Cột/sort/lọc của MỌI bảng — đọc ở đây để lần sơn đầu đã đúng (hết nháy khi F5).
   const tablePrefs = await readTablePrefs();
@@ -94,7 +95,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <RootProviders>
             {children}
             {/* Hòm góp ý của chính MOS2 — admin (kênh của người chủ; nhân sự có 🚩 blocker) + người team etp trên etp.on.tc. city.on.tc: hòm riêng 'city' (/tasks-city). */}
-            {coGopY && <GopYMos2 hom={host === 'city.on.tc' ? 'city' : 'mos2'} tren={host === 'etp.on.tc'} />}
+            {hienGopY && <GopYMos2 hom={host === 'city.on.tc' ? 'city' : 'mos2'} tren={host === 'etp.on.tc'} />}
           </RootProviders>
         </TablePrefsProvider>
       </body>

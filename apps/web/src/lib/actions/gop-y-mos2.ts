@@ -56,10 +56,13 @@ async function tuyChonDoc(): Promise<hom.TuyChon> {
 }
 
 export async function guiGopYMos2(input: { loai: string; noiDung: string; trang: string; anhUrls: string[]; nguCanh?: string; hom?: string }) {
-  const me = await nguoiGui(), h = await homCua(input.hom);
-  if (me?.role === 'khach' && (await khachQuaNhieu(me.email))) return { ok: false, error: 'Bạn đã gửi 6 góp ý trong một giờ — đợi một lúc rồi gửi tiếp; nháp vẫn giữ.' };
-  const choPhepGui = !!me && me.role !== 'admin' && h === 'mos2'
-    && ((me.role === 'khach' && laTrangKhach(hostCua(input.trang))) || (laTrangEtp(String(input.trang || '')) && !!(await quyenEtp(await getCurrentUser()))));
+  const nguoi = await nguoiGui(), h = await homCua(input.hom);
+  if (nguoi?.role === 'khach') {   // khách trang công khai: chỉ hòm mos2, chỉ từ trang khách, trần 6 góp ý / giờ
+    if (await khachQuaNhieu(nguoi.email)) return { ok: false, error: 'Bạn đã gửi 6 góp ý trong một giờ — đợi một lúc rồi gửi tiếp; nháp vẫn giữ.' };
+    return hom.guiGopY(h, nguoi, input, { ...ghiTrangThai, choPhepGui: h === 'mos2' && laTrangKhach(hostCua(input.trang)) });
+  }
+  const me = await getCurrentUser();
+  const choPhepGui = !!me && me.role !== 'admin' && h === 'mos2' && laTrangEtp(String(input.trang || '')) && (await quyenEtp(me));
   return hom.guiGopY(h, me, input, { ...ghiTrangThai, choPhepGui });
 }
 export async function dsGopYCuaToi(homVao?: string) { return hom.dsGopYCuaToi(await homCua(homVao), await nguoiGui(), await tuyChonDoc()); }

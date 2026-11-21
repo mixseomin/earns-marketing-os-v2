@@ -10,7 +10,7 @@ giữa chiều cao ô kính, tính độ sáng theo cột, tìm các đoạn T�
 --anh: vẽ khung các ô đã ghi (xanh) và ô máy tìm thấy (đỏ) lên ảnh để nhìn.
 --luoi x0,y0,x1,y1 ra.png: ĐO — cắt vùng ảnh gốc (toạ độ điểm ảnh gốc), kẻ lưới 10 px (mờ) / 50 px (đậm, có số toạ độ tuyệt đối), phóng cho dễ đọc;
   đọc số đo thẳng trên ảnh này rồi ghi vào tệp bố cục (không đo trên ảnh đã thu nhỏ).
---ve-tep ra.png: vẽ MỌI phần tử của tệp bố cục (cụm cửa, ô tròn, diềm vòm, cửa đi, mốc chân / mái hiên, mốc ngang) lên ảnh gốc để soát bằng mắt.
+--ve-tep ra.png: vẽ MỌI phần tử của tệp bố cục (cụm cửa, gờ, mảng nổi, ô tròn, diềm vòm, cửa đi, mốc chân / mái hiên, mốc ngang) lên ảnh gốc để soát bằng mắt.
 """
 import json, sys, pathlib
 from PIL import Image, ImageDraw
@@ -46,6 +46,11 @@ if ve_tep:
     for c in B.get('cum', []):
         for a, b in c['o']: dv.rectangle([a, c['dinhO'], b, c['bau']], outline=(0, 200, 255), width=4)
         if c.get('vom'): dv.arc([c['vom'][0], c['vom'][2], c['vom'][1], c['vom'][2] + (c['vom'][1] - c['vom'][0])], 180, 360, fill=(0, 255, 0), width=4)
+    for g in B.get('go', []):  # gờ / bệ: liền cả mặt hoặc từng đoạn
+        for a, b in (g.get('doan') or [[0, ve0.size[0]]]): dv.line([a, g['y'], b, g['y']], fill=(255, 220, 0), width=4)
+    for o in B.get('oNoi', []):  # mảng nổi: thân + u tròn đỉnh
+        dv.rectangle([o['tu'], o['vai'], o['den'], o['chan']], outline=(0, 255, 160), width=3)
+        for a, b in o.get('u', []): dv.rectangle([a, o['dinh'], b, o['vai']], outline=(0, 255, 160), width=2)
     for o in B.get('oTron', []): dv.ellipse([o['x'] - o['r'], o['y'] - o['r'], o['x'] + o['r'], o['y'] + o['r']], outline=(255, 0, 255), width=4)
     for d in B.get('dieMVom', []): dv.rectangle([d['tu'], d['y0'], d['den'], d['y1']], outline=(255, 140, 0), width=4)
     for d in B.get('cuaDi', []): dv.rectangle([d['o'][0], d['dinhO'], d['o'][1], ve0.size[1]], outline=(255, 60, 60), width=4); dv.rectangle([d['vien'][0], d['vien'][2], d['vien'][1], d['dinhO']], outline=(255, 60, 60), width=2)

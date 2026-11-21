@@ -1032,6 +1032,7 @@ const RUNG = []; let RUNG_O = []; // ẩn khi so ảnh thật (cây mọc ở m�
 // ---------- điều khiển + nhãn
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }; // cảm ứng: một ngón xoay, hai ngón vừa chụm / mở (phóng) vừa dời camera; mặc định là xoay + dời
+orbit.panSpeed = 1; // pan hai ngón giữ cùng tốc độ chuẩn trên mobile, không bị chậm theo thiết bị
 orbit.target.set(0, 25, 0); camera.position.set(-170, 90, 230); orbit.enableDamping = true; orbit.maxPolarAngle = 1.52; orbit.minDistance = 15; orbit.maxDistance = 6000; orbit.update(); // trần 1500 → 6000 m: có cảnh xa 10 km (canhxa.js) thì lùi ra phải thấy được hồ Forggensee + dãy Alps
 // DỜI CAMERA TOÀN CẢNH TRÊN PC (thẻ #1640, anh 17/11/2026 "thêm tính năng span trên pc"): giữ chuột phải kéo (touchpad Mac: bấm hai ngón rồi kéo)
 // hoặc Shift / Ctrl / ⌘ + kéo chuột trái = dời ngang theo MẶT ĐẤT như bản đồ (screenSpacePanning tắt: điểm nhìn không bay lên trời / chui xuống núi);

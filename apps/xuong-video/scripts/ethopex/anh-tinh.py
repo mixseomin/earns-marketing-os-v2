@@ -266,13 +266,30 @@ def xep_ai(ten, uv, mo_ta="", the_loai="", poster=None):
         if 0 <= x.get("i", -1) < len(uv): uv[x["i"]]["cam_xuc"] = x.get("cam_xuc") or ""; uv[x["i"]]["nhan_vat"] = x.get("nhan_vat") or ""
     return [uv[i] for i in tt], j.get("ly_do", ""), int(j.get("vnd") or 0)
 
+def giong_tu(a, b):
+    """hai từ coi là MỘT khi máy đọc chữ đọc lệch một ký tự (21/11/2026: chữ viết tay "Bugatti" đọc thành "Bugattis" → không khớp tên, logo bị coi là chữ khác và cắt mất)"""
+    if a == b: return True
+    if min(len(a), len(b)) < 4 or abs(len(a) - len(b)) > 1: return False
+    if len(a) > len(b): a, b = b, a
+    i = 0
+    while i < len(a) and a[i] == b[i]: i += 1
+    return a[i + (len(a) == len(b)):] == b[i + 1:]
+
+def khop_tu(doc, can):
+    """các từ của tên phim (can) có trong tập từ máy đọc (doc), cho phép lệch một ký tự"""
+    return {c for c in can if any(giong_tu(d, c) for d in doc)}
+
+def thieu_tu(ten, j, hop):
+    """từ của tên phim mà các hộp tên KHÔNG đọc ra (đã khớp được một phần tên) — 21/11/2026 Get Out of My Bugatti: chữ "Bugatti" viết tay máy đọc chữ bỏ sót,
+    cắt theo hộp chữ thì logo chỉ còn "Get Out of My". Hộp lấy theo khối chữ to nhất (không khớp từ nào) → set() (không đo được)."""
+    tu = lambda x: set(re.findall(r"[a-z0-9áéíóúñü]+", x.lower())); can = tu(ten)
+    doc = khop_tu(set().union(*[tu(k[0]) for k in j.get("khung") or [] if k[1:] in hop]), can)
+    return can - doc if doc else set()
+
 def hop_ten(ten, j):
     """các hộp chữ (x, y, rộng, cao — tỉ lệ ảnh) là TÊN PHIM trong kết quả máy đọc chữ một poster; không thấy → [] (dùng chung: ten_poster + logo-goc.py)"""
     tu = lambda x: set(re.findall(r"[a-z0-9áéíóúñü]+", x.lower()))
-    can = tu(ten); hop = [k[1:] for k in j.get("khung") or [] if tu(k[0]) and len(tu(k[0]) & can) / len(tu(k[0])) >= 0.6]
-    # TÊN PHẢI ĐỦ TỪ (21/11/2026 Get Out of My Bugatti: "Bugatti" chữ viết tay Vision không đọc ra, 4/5 từ khớp ≥ 60% → cắt mất chữ Bugatti, 3 creative
-    # chỉ còn "Get Out of My"): đã khớp được dòng chữ của tên mà còn thiếu từ → tên trên poster có phần máy không đọc được → bỏ, chữ vàng gõ đủ tên
-    if hop and set().union(*[tu(k[0]) for k in j.get("khung") or [] if k[1:] in hop]) & can != can: return None
+    can = tu(ten); hop = [k[1:] for k in j.get("khung") or [] if tu(k[0]) and sum(1 for d in tu(k[0]) if khop_tu({d}, can)) / len(tu(k[0])) >= 0.6]
     if not hop:
         # CHỮ HOA VĂN (08/11/2026 The Dragon's Silly Captive: chữ gothic, Vision đọc lệch → không khớp tên): tên phim gần như luôn là KHỐI CHỮ TO NHẤT nửa dưới poster
         # → dòng cao nhất (y > 0,45) + các dòng liền trên / dưới cao ≥ 50% nó; khối phải rộng ≥ 35% poster, không thì bỏ (chữ vàng)
@@ -293,7 +310,7 @@ def ten_poster(ten, poster, ra):
     from collections import Counter
     j = json.loads(subprocess.run([may_doc(), poster], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
     hop = hop_ten(ten, j)
-    if not hop: return None
+    if not hop or thieu_tu(ten, j, hop): return None   # tên thiếu từ → cắt theo hộp chữ sẽ mất phần đó; chữ vàng gõ đủ tên
     im = Image.open(poster).convert("RGB"); X, Y = im.size
     x0 = max(0, int(min(b[0] for b in hop) * X) - 12); y0 = max(0, int(min(b[1] for b in hop) * Y) - 12)
     x1 = min(X, int(max(b[0] + b[2] for b in hop) * X) + 12); y1 = min(Y, int(max(b[1] + b[3] for b in hop) * Y) + 12)

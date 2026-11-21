@@ -77,8 +77,8 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
             b = k[1:]
             if b in hop or tu(k[0]) & NHAN or len(k[0].strip()) < 3 or b[3] < 0.45 * cao or b[0] + b[2] < l_ or b[0] > r_: continue
             if -0.9 * cao <= b[1] - d_ <= 0.9 * cao or -0.9 * cao <= t_ - (b[1] + b[3]) <= 0.9 * cao or (b[1] >= t_ and b[1] + b[3] <= d_): hop.append(b); them = True
-    doc = set().union(*[tu(k[0]) for k in kh if k[1:] in hop]); can = tu(ten)
-    if len(doc & can) < 0.5 * len(can): noi(f"chữ đọc được trên poster chỉ khớp {len(doc & can)}/{len(can)} từ của tên phim"); return None, None
+    can = tu(ten); doc = AT().khop_tu(set().union(*[tu(k[0]) for k in kh if k[1:] in hop]), can)
+    if len(doc) < 0.5 * len(can): noi(f"chữ đọc được trên poster chỉ khớp {len(doc)}/{len(can)} từ của tên phim"); return None, None
     im = np.asarray(Image.open(poster).convert("RGB")).astype(np.float32); Y, X = im.shape[:2]
     px = lambda b: (b[0] * X, b[1] * Y, (b[0] + b[2]) * X, (b[1] + b[3]) * Y)
     hp = [px(b) for b in hop]; lh = float(np.median([b[3] - b[1] for b in hp]))
@@ -93,12 +93,14 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     b1, w1 = nen(max(6, 0.6 * lh)); b2, _ = nen(max(12, 2.2 * lh)); t = np.clip(w1 / 0.25, 0, 1)[..., None]; bg = b1 * t + b2 * (1 - t)
     chu = np.zeros((h, w), bool)   # hộp các dòng tên phim
     for b in hp: chu[int(max(0, b[1] - Y0)):int(b[3] - Y0), int(max(0, b[0] - X0)):int(b[2] - X0)] = True
+    cam_nhan = np.zeros((Y, X), bool)   # riêng nhãn nền tảng, cỡ poster — tầng khoá màu khi tên thiếu từ chỉ cấm vùng này
     cam = np.zeros((h, w), bool)   # chữ KHÁC trên poster (nhãn nền tảng, khẩu hiệu) + biểu tượng đứng cạnh nó: không bao giờ thuộc logo
     for t_, bx, by, bw, bh in j.get("khung") or []:
         if [bx, by, bw, bh] in hop: continue
         k = 1.0 if bw * bh < 0.004 else 0.25; trai = 2.4 * bh * Y / X if tu(t_) & NHAN else 0   # nhãn nền tảng luôn có biểu tượng bên trái chữ (DramaBox "M", ReelShort "R")
         a, b_, e, f = px((bx - bw * k - trai, by - bh * (k + (0.5 if trai else 0)), bw * (1 + 2 * k) + trai, bh * (1 + 2 * k + (1.0 if trai else 0))))
         cam[int(max(0, b_ - Y0)):int(max(0, f - Y0)), int(max(0, a - X0)):int(max(0, e - X0))] = True
+        if trai: cam_nhan[int(max(0, b_)):int(max(0, f)), int(max(0, a)):int(max(0, e))] = True
     cam &= ~chu
     def cat(bg, that=False):
         """nền dưới logo → (lớp trong suốt, nét đặc, lý do trượt cổng | None)"""
@@ -127,10 +129,16 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
         if du < du_min: return f"một dòng tên chỉ còn nét trên {du:.0%} bề ngang"
         return None
     al, _, ly = cat(bg); cach = "cat"
+    # TÊN THIẾU TỪ (21/11/2026 Get Out of My Bugatti: "Bugatti" viết tay máy đọc chữ bỏ sót): các tầng cắt theo HỘP CHỮ đều mất phần đó → chỉ nhận tầng khoá màu,
+    # nơi AI tô hồng mọi thứ trừ logo nên lấy được cả phần chữ máy không đọc ra (dải ngang quanh khối tên, bỏ chữ khác của poster). Khoá màu trượt → không có logo.
+    thieu = can - doc
+    if thieu and not ly: ly = f"máy đọc chữ không ra từ {' '.join(sorted(thieu))} — cắt theo hộp chữ sẽ mất phần đó"
     # TẦNG KHOÁ MÀU (anh 20/11/2026 "các mẫu này khi nhìn lại vẫn ko đẹp, nhất là các viền xung quanh"): cách nền sạch + BiRefNet để dính mảng nền (da người, bóng tối)
     # quanh logo. Nay mô hình ảnh rẻ nhất GIỮ NGUYÊN logo, tô mọi thứ còn lại một màu hồng phẳng → khoá màu hồng ra lớp trong suốt (mép + ánh sáng quanh chữ mờ dần tự nhiên,
     # gỡ ám hồng ở mép). Cổng: đủ nét như các tầng khác + nét đặc phải KHỚP poster gốc (AI vẽ lại chữ thì bỏ, lùi về tầng nền sạch). khoa(poster) → đường dẫn ảnh nền hồng.
-    if ly and khoa:
+    # KHOÁ MÀU ĐI TRƯỚC (21/11/2026 Get Out of My Bugatti: tầng cắt 0₫ qua cổng mà vẫn dính mảng áo + đốm nền quanh logo): có khoa thì luôn thử khoá màu trước,
+    # trượt cổng mới giữ kết quả tầng cắt 0₫ (ly của nó không đổi)
+    if khoa:
         try:
             kp = khoa(poster)
             if kp:
@@ -141,11 +149,20 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
                     M = np.median(Kh[nen_h], 0); a = 1 - np.clip((k - 45) / 125, 0, 1)
                     lon = lambda m: np.asarray(Image.fromarray(m.astype(np.uint8) * 255).resize((KX, KY), Image.NEAREST)) > 127   # mặt nạ cỡ poster → cỡ ảnh khoá
                     CHU = np.zeros((Y, X), bool); CHU[Y0:Y1, X0:X1] = chu; CAM = np.zeros((Y, X), bool); CAM[Y0:Y1, X0:X1] = cam
+                    if thieu: CAM = cam_nhan & ~CHU   # chữ "khác" đọc lệch quanh khối tên có thể chính là phần tên máy không đọc ra
                     a[lon(CAM)] = 0; tl = KY / Y; dac = nd.median_filter(a > 0.5, size=3)
-                    nhom, n = nd.label(nd.binary_dilation(a > 0.12, iterations=max(2, int(0.16 * lh * tl)))); giu = np.zeros(n + 1, bool); giu[np.unique(nhom[lon(CHU) & dac])] = True; giu[0] = False
+                    nhom, n = nd.label(nd.binary_dilation(a > 0.12, iterations=max(2, int(0.16 * lh * tl)))); giu = np.zeros(n + 1, bool)
+                    if thieu:   # mọi mảng logo trong dải ngang quanh khối tên (phần chữ máy không đọc ra thường to hơn, nằm sát trên / dưới)
+                        DAI = np.zeros((Y, X), bool); DAI[int(max(0, min(b[1] for b in hp) - 2.0 * lh)):int(min(Y, max(b[3] for b in hp) + 5.0 * lh))] = True
+                        giu[np.unique(nhom[lon(DAI & ~CAM) & dac])] = True
+                    else: giu[np.unique(nhom[lon(CHU) & dac])] = True
+                    giu[0] = False
                     a = a * giu[nhom]; dac = dac & giu[nhom]
                     nho = lambda m: np.asarray(Image.fromarray(m.astype(np.uint8) * 255).resize((X, Y), Image.BILINEAR)) > 127
-                    lyk = cong(nho(dac)[Y0:Y1, X0:X1], 0.82, 0.75)   # dòng chữ nhỏ thưa ("and Became …") có khe giữa các từ; đã có cổng khớp poster gốc gác phía sau
+                    lyk = cong(nho(dac)[Y0:Y1, X0:X1], 0.82, 0.75)
+                    if thieu:   # cổng hộp chữ không áp được (phần thiếu nằm ngoài hộp): đủ nét trong hộp đã đọc + khối giữ phải lớn hơn hẳn hộp đã đọc (đã lấy thêm phần thiếu)
+                        ys_ = np.where(dac.any(1))[0]; cao_doc = (max(b[3] for b in hp) - min(b[1] for b in hp)) * tl
+                        lyk = "không còn nét logo" if not len(ys_) else (None if ys_.max() - ys_.min() > 1.3 * cao_doc and nho(dac)[Y0:Y1, X0:X1][chu].mean() > 0.10 else "khoá màu không lấy thêm được phần chữ thiếu")   # dòng chữ nhỏ thưa ("and Became …") có khe giữa các từ; đã có cổng khớp poster gốc gác phía sau
                     F = np.clip((Kh - (1 - a)[..., None] * M) / np.maximum(a, 0.06)[..., None], 0, 255)   # gỡ ám hồng: màu thật của nét ở mép bán trong suốt
                     du_h = np.clip(np.minimum(F[..., 0], F[..., 2]) - F[..., 1], 0, None) * (nd.minimum_filter(a, size=5) < 0.97)   # ám hồng còn lại ở viền + nét mảnh: rút phần đỏ-lam thừa
                     F[..., 0] -= 0.85 * du_h; F[..., 2] -= 0.85 * du_h
@@ -183,6 +200,7 @@ def tach(ten, poster, ra, ghi_ly_do=None, nen_sach=None, khoa=None):
     if not ly:
         al = nd.gaussian_filter(al, 0.7); ys, xs = np.where(al > 0.08)
         Image.fromarray(np.dstack([c, al * 255]).astype(np.uint8)[ys.min():ys.max() + 1, xs.min():xs.max() + 1], "RGBA").save(ra); return ra, cach
+    if thieu: noi(f"không cắt rời được ({ly}) — tên thiếu từ nên không dùng dải poster"); return None, None
     noi(f"không cắt rời được ({ly}) → dùng dải poster")
     # BẢN DẢI: dải ngang poster quanh logo; chặn trên / dưới tại chữ khác (nhãn nền tảng) để không mang nhãn đó vào creative
     t0 = min(b[1] for b in hp); d0 = max(b[3] for b in hp); tren, duoi = max(0.0, t0 - 0.9 * lh), min(float(Y), d0 + 0.6 * lh)

@@ -100,12 +100,14 @@ const DD = matchMedia('(pointer: coarse)').matches || innerWidth < 700; // đi�
 const MAC_DINH = { matDo: DD ? 280 : 450, lieu: 0.12, rePhai: true, tyLeOto: 7, toc: 1 };
 const KHOA_LUU = 'ngatu-tuy-chon';
 const daLuu = (() => { try { const o = JSON.parse(localStorage.getItem(KHOA_LUU) || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
-const CAI = { ...MAC_DINH, dung: false, vuot: 0, don: 0 };
+const CAI = { ...MAC_DINH, dung: false, vuot: 0, don: 0, nghich: 0 };
 for (const k of Object.keys(MAC_DINH)) if (typeof daLuu[k] === typeof MAC_DINH[k]) CAI[k] = daLuu[k];
 function luuTuyChon() {
   try { localStorage.setItem(KHOA_LUU, JSON.stringify(Object.fromEntries(Object.keys(MAC_DINH).map((k) => [k, CAI[k]])))); } catch {}
 }
-let tc = 0, tg = 0;
+const NGUONG_KET = 22, NGUONG_CAT = 8;
+let tc = 0, tg = 0, ketNga = 0; // ketNga: số xe đang đứng kẹt trong lòng ngã tư
+const trongNgaG = [0, 0]; // số xe mỗi hướng đèn còn nằm trong lòng ngã tư
 
 // ───────────────────────── lưới tra láng giềng ─────────────────────────
 const CELL = 6, G = 64, OFF = 32;
@@ -147,23 +149,28 @@ function chonArm(chiEW) {
   for (const a of ds) { r -= a.w; if (r <= 0) return a; }
   return ds[0];
 }
-function sinhXe(loai) {
+// Một đường đi ngẫu nhiên cho xe loại `loai`: hướng vào, rẽ gì, cách tim đường bao xa.
+function duongXe(loai) {
   const arm = chonArm(loai === 'bus');
   const d = arm.d;
   let quay = 'thang';
   if (loai !== 'bus') { const r = Math.random(); quay = r < 0.6 ? 'thang' : r < 0.8 ? 'phai' : 'trai'; }
   const d2 = quay === 'thang' ? d : quay === 'phai' ? right(d) : neg(right(d));
   const hw1 = hwAlong(d), hw2 = hwAlong(d2);
-  let o1, o2, len, wid, vmax;
+  let o1, o2;
   if (loai === 'xm') {
-    len = 1.9; wid = 0.75; vmax = rnd(6.5, 9.5);
     o1 = quay === 'phai' ? rnd(hw1 * 0.55, hw1 - 0.6) : quay === 'trai' ? rnd(0.8, hw1 * 0.75) : rnd(0.8, hw1 - 0.6);
     o2 = quay === 'phai' ? rnd(hw2 * 0.55, hw2 - 0.6) : rnd(0.8, hw2 - 0.6);
-  } else if (loai === 'oto') {
-    len = 4.4; wid = 1.8; vmax = rnd(8, 11);
-    o1 = quay === 'phai' ? hw1 * 0.5 : 2.2; o2 = quay === 'phai' ? hw2 * 0.5 : 2.2;
-  } else { len = 10.5; wid = 2.5; vmax = 7.5; o1 = o2 = hw1 * 0.55; }
-  const p = taoDuongXe(d, d2, o1, o2);
+  } else if (loai === 'oto') { o1 = quay === 'phai' ? hw1 * 0.5 : 2.2; o2 = quay === 'phai' ? hw2 * 0.5 : 2.2; }
+  else o1 = o2 = hw1 * 0.55;
+  return { arm, quay, p: taoDuongXe(d, d2, o1, o2) };
+}
+function sinhXe(loai) {
+  const { arm, quay, p } = duongXe(loai);
+  let len, wid, vmax;
+  if (loai === 'xm') { len = 1.9; wid = 0.75; vmax = rnd(6.5, 9.5); }
+  else if (loai === 'oto') { len = 4.4; wid = 1.8; vmax = rnd(8, 11); }
+  else { len = 10.5; wid = 2.5; vmax = 7.5; }
   const r0 = loai === 'xm' ? 2.3 : loai === 'oto' ? 6.5 : 9.5;
   if (gan(p.x[0], p.z[0], r0)) return null;
   const grab = loai === 'xm' && Math.random() < 0.14;
@@ -194,7 +201,7 @@ function sinhXe(loai) {
   return a;
 }
 const DA = ['#f1c9a5', '#e0ac85', '#c68e64', '#f5d3b3'];
-function sinhBo() {
+function duongBo() {
   let qx = Math.random() < 0.5 ? -1 : 1, qz = Math.random() < 0.5 ? -1 : 1;
   const C = (ax, az) => [ax * (HW_NS + 2), az * (HW_EW + 2)];
   const ngoai = (ax, az) => (Math.random() < 0.6 ? [ax * rnd(25, 110), az * (HW_EW + 2)] : [ax * (HW_NS + 2), az * rnd(28, 110)]);
@@ -213,6 +220,10 @@ function sinhBo() {
   pts.push(goc[goc.length - 1]);
   const p = taoPath(pts);
   p.qua = quaDs.map((c) => ({ g: c.g, s0: sV[c.i] + 1.4, s1: sV[c.i + 1] - 1.4, ok: false }));
+  return { p };
+}
+function sinhBo() {
+  const { p } = duongBo();
   if (gan(p.x[0], p.z[0], 1.2)) return null;
   const a = {
     id: idDem++, loai: 'bo', p, s: 0, k: 0, dlat: 0, lv: 0, sp: 1.2, vmax: rnd(1.05, 1.5), len: 0.5, wid: 0.5,
@@ -226,6 +237,57 @@ function sinhBo() {
 }
 
 // ───────────────────────── luật đi của xe ─────────────────────────
+// Độ lấn sâu nhất của thân xe a (đặt ở x, z, góc g) vào thân j; 0 là không chạm. Hai hình chữ nhật, kiểm theo trục tách.
+function lanSau(x, z, g, al, aw, j) {
+  const ax = Math.cos(g), az = -Math.sin(g), bx = Math.cos(j.goc), bz = -Math.sin(j.goc);
+  const dx = j.x - x, dz = j.z - z;
+  let m = 99;
+  for (let t = 0; t < 4; t++) {
+    const ux = t === 0 ? ax : t === 1 ? -az : t === 2 ? bx : -bz;
+    const uz = t === 0 ? az : t === 1 ? ax : t === 2 ? bz : bx;
+    const ra = (al / 2) * Math.abs(ax * ux + az * uz) + (aw / 2) * Math.abs(-az * ux + ax * uz);
+    const rb = (j.len / 2) * Math.abs(bx * ux + bz * uz) + (j.wid / 2) * Math.abs(-bz * ux + bx * uz);
+    const o = ra + rb - Math.abs(dx * ux + dz * uz);
+    if (o <= 0) return 0;
+    if (o < m) m = o;
+  }
+  return m;
+}
+// Xe a dời từ chỗ cũ (xT, zT, gT) sang chỗ mới (x, z, g) có lấn sâu thêm vào xe / người nào không — so từng cặp một,
+// nên đang dính xe này không thành giấy phép lấn xe kia.
+function vuong(a, x, z, g, xT, zT, gT) {
+  const cx = cellX(x), cz = cellX(z);
+  for (let gx = cx - 2; gx <= cx + 2; gx++) {
+    if (gx < 0 || gx >= G) continue;
+    for (let gz = cz - 2; gz <= cz + 2; gz++) {
+      if (gz < 0 || gz >= G) continue;
+      for (let k = head[gx * G + gz]; k !== -1; k = nxt[k]) {
+        const j = DS[k];
+        if (!j || j === a || j.nhac) continue;
+        const dx = j.x - x, dz = j.z - z, r = (a.len + j.len) / 2 + 0.3;
+        if (dx * dx + dz * dz > r * r) continue;
+        // Lối thoát cuối cho nút khoá chết: hai xe máy đứng kẹt lâu, cắt ngang nhau thì cho lách sát qua nhau.
+        // Ô tô, xe buýt, người đi bộ thì không bao giờ — xe to không đi xuyên ai, không ai đi xuyên xe to.
+        if (a.ma > 0 && a.loai === 'xm' && j.loai === 'xm' && j.sp < 0.3 && j.fx * a.fx + j.fz * a.fz < 0.5) continue;
+        const o = lanSau(x, z, g, a.len, a.wid, j);
+        if (o > 0.02 && o > lanSau(xT, zT, gT, a.len, a.wid, j) + 0.005) return true;
+      }
+    }
+  }
+  return false;
+}
+function datCho(a, s, d, k) {
+  a.s = s; a.dlat = d; a.k = k;
+  mau(a.p, a);
+  a.x = a.px - a.fz * a.dlat; a.z = a.pz + a.fx * a.dlat;
+  return Math.atan2(-a.fz, a.fx) - Math.atan2(a.lv, a.sp + 1.2);
+}
+// a đang đứng chắn ngay trước mũi j → j không qua được chừng nào a chưa đi, nên a nhường j chỉ thành kẹt cứng cả hai.
+function chanMui(a, j) {
+  const ex = a.x - j.x, ez = a.z - j.z;
+  const lon = ex * j.fx + ez * j.fz, lat = ex * -j.fz + ez * j.fx;
+  return lon > 0 && lon < (a.len + j.len) / 2 + 2.5 && Math.abs(lat) < (a.wid + j.wid) / 2 + 0.3;
+}
 const hang = (a) => (a.trongNga ? 1e7 : 0) - a.id;
 // Liều theo thanh trượt, áp ngay cho cả xe đang chạy: 0% là không ai cố ý vượt đèn.
 function laLieu(a) {
@@ -248,10 +310,12 @@ function bien(a) {
     return [0.5 - p.o1, p.hw1 - 0.45 - p.o1 + leo];
   }
   if (a.s > p.sOut) return [0.5 - p.o2, p.hw2 - 0.45 - p.o2];
-  const b = Math.max(1.2, 3.5 - (a.s - p.sIn) * 0.35);
+  const b = Math.max(1.2, 3.5 - (a.s - p.sIn) * 0.35) + (a.ma > 0 ? 1.5 : 0);
   return [-b, b];
 }
 function buocXe(a, dt) {
+  if (a.nhac) return bay(a, dt);
+  if (a.nga && nam(a, dt)) return;
   const xm = a.loai === 'xm';
   const p = a.p;
   const fx = a.fx, fz = a.fz, rx = -fz, rz = fx;
@@ -282,7 +346,7 @@ function buocXe(a, dt) {
         }
         // Xe cắt ngang (khác hướng): đoán chỗ nó sẽ ở khi mình tới — nếu đường quét của nó chắn trước mũi mình thì
         // xe kém quyền (hang thấp hơn) nhường, xe kia đi. Trước chỉ thấy xe cắt ngang khi đã sát bên → húc rồi bật ra.
-        if (a.ma <= 0 && j.loai !== 'bo' && lon > 0.1 && j.fx * fx + j.fz * fz < 0.7 && hang(a) < hang(j)) {
+        if (a.ma <= 0 && j.loai !== 'bo' && lon > 0.1 && j.fx * fx + j.fz * fz < 0.7 && hang(a) < hang(j) && !chanMui(a, j)) {
           const tau = lon / Math.max(a.sp, 1.5);
           if (tau < 2.5) {
             const latT = lat + j.sp * (j.fx * rx + j.fz * rz) * tau;
@@ -331,6 +395,9 @@ function buocXe(a, dt) {
     let duoc = m === 'x' || a.camKet;
     if (m === 'v') duoc = duoc || lieu;
     if (m === 'd') duoc = duoc || (xm && a.quay === 'phai' && CAI.rePhai) || (lieu && (qua < 3 || con < 2.5));
+    // Lòng ngã tư đã kẹt cứng thì xe chưa vào đứng chờ ở vạch, kể cả đèn xanh — vào thêm chỉ thành nút thắt không gỡ được.
+    // Hướng kia còn đầy xe trong lòng ngã tư (vừa hết pha của họ) thì chờ họ ra hết đã — hai luồng cắt nhau mà cùng chen vào là khoá chết.
+    if ((ketNga > NGUONG_KET || trongNgaG[1 - a.g] > NGUONG_CAT) && a.s < p.sStop - 0.3) duoc = false;
     if (!duoc) {
       const gap = p.sStop + a.lan - a.s - a.len / 2;
       vt = Math.min(vt, gap < 0.3 ? 0 : Math.sqrt(2 * 3.2 * gap));
@@ -361,27 +428,48 @@ function buocXe(a, dt) {
     const lvt = Math.max(-lim, Math.min(lim, (latDich - a.dlat) * 1.2)) * Math.min(1, a.sp / 2 + (a.dangDon ? 0 : 0.3));
     a.lv += (lvt - a.lv) * Math.min(1, dt * 3);
   }
-  const sTruoc = a.s;
-  a.s += a.sp * dt;
+  const sTruoc = a.s, dTruoc = a.dlat, kTruoc = a.k, xT = a.x, zT = a.z, gT = a.goc;
   // không tạt ngang quá khoảng hở thật bên đó
   let dl = a.lv * dt;
   if (dl > 0 && dl > hoP - 0.05) { dl = Math.max(0, hoP - 0.05); a.lv *= 0.5; }
   else if (dl < 0 && -dl > hoT - 0.05) { dl = -Math.max(0, hoT - 0.05); a.lv *= 0.5; }
   if (day) dl += day * 0.6 * dt; // tách khỏi chồng lấn (nếu có) — chậm, không giật
-  a.dlat += dl;
+  // Đặt thử chỗ mới. Thân xe lấn sâu thêm vào xe / người khác thì bỏ bớt: đi thẳng thôi → tạt ngang thôi → đứng yên.
+  // Đây là chốt cứng cuối cùng: luật bám đuôi / nhường ở trên có đoán sai thì xe vẫn không đi xuyên qua nhau.
+  let goc = datCho(a, sTruoc + a.sp * dt, dTruoc + dl, kTruoc);
+  if (a.sp * dt > 1e-4 || Math.abs(dl) > 1e-4) {
+    const ket = (g) => vuong(a, a.x, a.z, g, xT, zT, gT);
+    if (ket(goc)) {
+      a.lv *= 0.5;
+      goc = datCho(a, sTruoc + a.sp * dt, dTruoc, kTruoc);
+      // xe máy bị chặn mũi thì lách sang bên còn trống (như ngoài đời), thay vì đứng chờ thành kẹt cứng
+      // (đang kẹt lâu — a.ma — thì lách mạnh hơn, kể cả đứng tại chỗ mà nhích ngang)
+      const len = a.sp * dt, ne = (xm ? (a.ma > 0 ? 2.2 : 1.4) : 0.4) * dt * Math.max(1, a.sp);
+      const huong = a.id & 1 ? [1, -1] : [-1, 1];
+      for (const tien of a.ma > 0 ? [0.6, 0] : [0.6]) for (const h of huong) {
+        if (!ket(goc)) break;
+        goc = datCho(a, sTruoc + len * tien, dTruoc + h * ne, kTruoc);
+        if (!ket(goc)) a.lv = h * ne / dt;
+      }
+      if (ket(goc)) {
+        a.sp = 0;
+        goc = datCho(a, sTruoc, dTruoc + dl, kTruoc);
+        if (ket(goc)) { datCho(a, sTruoc, dTruoc, kTruoc); goc = gT; a.lv = 0; }
+      }
+    }
+  }
   if (m === 'x') a.camKet = true; // vào lúc xanh: phần còn lại không tính là vượt
   // Đếm vượt đèn đỏ khi lao vào lòng ngã tư lúc đỏ mà không cam kết từ trước — nhích qua vạch dừng thì không tính
   if (sTruoc < p.sIn && a.s >= p.sIn && m === 'd' && !a.camKet && !(xm && a.quay === 'phai' && CAI.rePhai)) CAI.vuot++;
-  mau(p, a);
-  a.x = a.px - a.fz * a.dlat; a.z = a.pz + a.fx * a.dlat;
   a.y = xm && a.s < p.sIn && p.o1 + a.dlat > p.hw1 ? 0.15 : 0;
-  const goc = Math.atan2(-a.fz, a.fx) - Math.atan2(a.lv, a.sp + 1.2);
   let dg = goc - a.goc;
   if (dg > Math.PI) dg -= 2 * Math.PI; else if (dg < -Math.PI) dg += 2 * Math.PI;
   a.goc = goc;
   if (xm) a.nghieng += (Math.max(-0.4, Math.min(0.4, (-dg / Math.max(dt, 1e-3)) * a.sp * 0.05)) - a.nghieng) * Math.min(1, dt * 4);
 }
 function buocBo(a, dt) {
+  if (a.nhac) return bay(a, dt);
+  if (a.nga && nam(a, dt)) return;
   let vt = a.vmax;
   let trenDuong = false;
   for (const c of a.p.qua) {
@@ -402,6 +490,62 @@ function buocBo(a, dt) {
   a.buoc += a.sp * dt * 5.5;
 }
 
+// ───────────────────────── nghịch: nhấc đặt bừa, đẩy ngã ─────────────────────────
+// Nhấc một xe / người lên trời rồi thả xuống một chỗ trống bất kỳ trên một đường đi mới; thả xong đi tiếp từ đó.
+function nhac(a) {
+  if (a.nhac || a.nga) return;
+  let dich = null;
+  for (let t = 0; t < 40 && !dich; t++) {
+    const r = a.loai === 'bo' ? duongBo() : duongXe(a.loai);
+    const tam = { k: 0, s: rnd(8, r.p.len - 30) };
+    mau(r.p, tam);
+    if (!gan(tam.px, tam.pz, a.loai === 'bo' ? 1.2 : a.len / 2 + 1.6)) dich = { ...r, s: tam.s, x: tam.px, z: tam.pz, goc: Math.atan2(-tam.fz, tam.fx) };
+  }
+  if (!dich) return;
+  a.nhac = { t: 0, x0: a.x, z0: a.z, y0: a.y, g0: a.goc, d: dich };
+  CAI.nghich++;
+}
+const CAO = 8;
+function bay(a, dt) {
+  const n = a.nhac, D = n.d;
+  n.t += dt / 2;
+  const t = Math.min(1, n.t);
+  let dg = D.goc - n.g0; dg = Math.atan2(Math.sin(dg), Math.cos(dg)) + 2 * Math.PI; // xoay một vòng trên không
+  if (t < 0.25) { const u = t / 0.25; a.y = n.y0 + (CAO - n.y0) * (1 - (1 - u) * (1 - u)); }
+  else if (t < 0.72) {
+    const u = (t - 0.25) / 0.47, e = u * u * (3 - 2 * u);
+    a.x = n.x0 + (D.x - n.x0) * e; a.z = n.z0 + (D.z - n.z0) * e; a.y = CAO + Math.sin(u * Math.PI) * 3; a.goc = n.g0 + dg * e;
+  } else { const u = (t - 0.72) / 0.28; a.x = D.x; a.z = D.z; a.goc = D.goc; a.y = CAO * (1 - u * u); }
+  if (n.t < 1) return;
+  // chạm đất: lấy đường mới, đứng yên rồi tự đi tiếp
+  a.nhac = null; a.p = D.p; a.s = D.s; a.k = 0; a.dlat = 0; a.lv = 0; a.sp = 0; a.y = 0; a.ket = 0; a.ma = 0;
+  if (a.loai !== 'bo') { a.g = D.arm.g; a.quay = D.quay; a.camKet = false; a.sDon = -1; if (a.dangDon) a.dangDon = false; a.nghieng = 0; }
+  mau(a.p, a);
+  a.x = a.px; a.z = a.pz; a.goc = D.goc;
+  if ((a.loai === 'xm' || a.loai === 'bo') && Math.random() < 0.5) dayNga(a); // rơi từ trên cao xuống: một nửa số lần ngã luôn
+}
+// Đẩy ngã: đổ nghiêng xuống đường, nằm một lúc (xe khác phải đứng chờ / lách qua), rồi tự dựng dậy đi tiếp.
+function dayNga(a) {
+  if (a.nhac || a.nga) return;
+  a.nga = { t: 0, h: Math.random() < 0.5 ? 1 : -1, nam: a.loai === 'bo' ? rnd(3, 5) : a.loai === 'xm' ? rnd(5, 8) : rnd(8, 11) };
+  a.sp = 0; a.lv = 0;
+  CAI.nghich++;
+}
+function nam(a, dt) {
+  const n = a.nga;
+  n.t += dt;
+  const MAX = a.loai === 'xm' ? 1.42 : a.loai === 'bo' ? 1.5 : Math.PI / 2, T0 = 0.5, T1 = T0 + n.nam, T2 = T1 + 1.2;
+  let r;
+  if (n.t < T0) r = MAX * (n.t / T0) ** 2; // đổ xuống, nhanh dần
+  else if (n.t < T1) r = MAX - (n.t < T0 + 0.25 ? Math.sin(((n.t - T0) / 0.25) * Math.PI) * 0.1 : 0); // chạm đất nẩy nhẹ
+  else if (n.t < T2) { const u = (n.t - T1) / 1.2; r = MAX * (1 - u * u * (3 - 2 * u)); } // dựng dậy
+  else { a.nga = null; a.lac = 0; if (a.loai === 'xm') a.nghieng = 0; return false; }
+  a.lac = r * n.h;
+  if (a.loai === 'xm') a.nghieng = a.lac;
+  a.sp = 0;
+  return true;
+}
+
 // Khung nhìn của máy quay — bớt xe khi giảm mật độ thì bớt chiếc ngoài khung trước, người xem không thấy xe biến mất
 const KHUNG = new THREE.Frustum(), MK = new THREE.Matrix4(), VK = new THREE.Vector3();
 let daCoKhung = false;
@@ -410,13 +554,16 @@ function buoc(dt) {
   tc = (tc + dt) % CHU_KY; tg += dt;
   dungLuoi();
   moi = [];
+  ketNga = 0;
+  trongNgaG[0] = trongNgaG[1] = 0;
+  for (const a of DS) if (a.loai !== 'bo' && a.trongNga) { trongNgaG[a.g]++; if (a.sp < 0.3) ketNga++; }
   for (let i = 0; i < DS.length; i++) { const a = DS[i]; if (a.loai === 'bo') buocBo(a, dt); else buocXe(a, dt); }
   const muc = { xm: CAI.matDo, oto: Math.min(MAX_OTO, Math.round(CAI.matDo * CAI.tyLeOto / 100)), bus: 3, bo: Math.round(60 + CAI.matDo / 10) };
   const dem = { xm: 0, oto: 0, bus: 0, bo: 0 };
   for (const a of DS) dem[a.loai]++;
   // Giảm mật độ / tỷ lệ ô tô → bớt ngay xe ở rìa bản đồ (xa máy quay, trong sương), không đợi chúng đi hết
   const du = { xm: dem.xm - muc.xm, oto: dem.oto - muc.oto };
-  if (du.xm > 0 || du.oto > 0) for (const a of DS) if (du[a.loai] > 0 && (a.s < 30 || a.s > a.p.len - 30 || ngoaiKhung(a) || camera.position.distanceTo(VK.set(a.x, 1, a.z)) > 70) && a !== theoXe) { a.s = a.p.len; du[a.loai]--; dem[a.loai]--; }
+  if (du.xm > 0 || du.oto > 0) for (const a of DS) if (du[a.loai] > 0 && (a.s < 30 || a.s > a.p.len - 30 || ngoaiKhung(a) || camera.position.distanceTo(VK.set(a.x, 1, a.z)) > 70) && a !== theoXe && !a.nhac && !a.nga) { a.s = a.p.len; du[a.loai]--; dem[a.loai]--; }
   for (let i = DS.length - 1; i >= 0; i--) if (DS[i].s >= DS[i].p.len - 0.5) { DS[i].het = true; DS[i] = DS[DS.length - 1]; DS.pop(); }
   for (let t = 0; t < 4 && dem.xm < muc.xm; t++) if (sinhXe('xm')) dem.xm++;
   if (dem.oto < muc.oto) sinhXe('oto');
@@ -777,29 +924,32 @@ tinh(geoXm.clone(), XM_DO, (b) => { Q.setFromAxisAngle(UP, b[2]); M4.compose(V.s
 
 // ───────────────────────── vẽ xe mỗi khung ─────────────────────────
 const KHONG = new THREE.Vector3(0, 0, 0), MOT = new THREE.Vector3(1, 1, 1);
-const veXm = [];
+const veXm = [], veOto = [], veBus = [], veBo = [];
 function datMa(m, i, pos, q, s, c) { M4.compose(pos, q, s); m.setMatrixAt(i, M4); if (c) m.setColorAt(i, c); }
 function ve() {
   let ix = 0, io = 0, ib = 0, ip = 0, is = 0;
-  veXm.length = 0;
+  veXm.length = 0; veOto.length = 0; veBus.length = 0; veBo.length = 0;
   for (const a of DS) {
-    if (is < MAX_XM + 900) { Q.setFromAxisAngle(UP, a.goc); V.set(a.x, a.y + 0.03, a.z); datMa(mBong, is++, V, Q, a.loai === 'bo' ? SB.set(0.75, 1, 0.75) : SB.set(a.len * 1.15, 1, a.wid * 1.7)); }
+    if (is < MAX_XM + 900) { Q.setFromAxisAngle(UP, a.goc); V.set(a.x, a.nhac ? 0.03 : a.y + 0.03, a.z); datMa(mBong, is++, V, Q, a.loai === 'bo' ? SB.set(0.75, 1, 0.75) : SB.set(a.len * 1.15, 1, a.wid * 1.7)); }
     if (a.loai === 'bo') {
       Q.setFromAxisAngle(UP, a.goc);
       V.set(a.x, a.y + Math.abs(Math.sin(a.buoc)) * 0.04, a.z);
+      if (a.lac) { Q.multiply(Q2.setFromAxisAngle(TRUC_X, a.lac)); V.y += 0.12 * Math.abs(Math.sin(a.lac)); }
+      veBo[ip] = a;
       datMa(mBo, ip, V, Q, MOT, a.c2); datMa(mDau, ip, V, Q, MOT, a.c3); datMa(mNon, ip, V, Q, a.non ? MOT : KHONG, NON_MAU);
       ip++; continue;
     }
     Q.setFromAxisAngle(UP, a.goc);
-    V.set(a.x, a.y, a.z);
+    V.set(a.x, a.y + (a.lac ? (a.wid / 2) * Math.abs(Math.sin(a.lac)) : 0), a.z); // nằm nghiêng: nhấc thân lên để không chìm xuống mặt đường
+    if (a.loai !== 'xm' && a.lac) Q.multiply(Q2.setFromAxisAngle(TRUC_X, a.lac));
     if (a.loai === 'xm') {
       if (ix >= MAX_XM) continue;
       Q2.setFromAxisAngle(TRUC_X, a.nghieng); Q.multiply(Q2);
       datMa(mXm, ix, V, Q, MOT, a.c1); datMa(mNguoi, ix, V, Q, MOT, a.c2); datMa(mMu, ix, V, Q, MOT, a.c3);
       datMa(mCho, ix, V, Q, a.cho ? MOT : KHONG, a.c4); datMa(mHang, ix, V, Q, a.hang ? MOT : KHONG, a.c5);
       veXm[ix] = a; ix++;
-    } else if (a.loai === 'oto') { datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, a.c1); }
-    else datMa(mBus, ib++, V, Q, MOT, a.c1);
+    } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, a.c1); }
+    else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, a.c1); }
   }
   for (const [m, n] of [[mXm, ix], [mNguoi, ix], [mMu, ix], [mCho, ix], [mHang, ix], [mOto, io], [mMui, io], [mBus, ib], [mBo, ip], [mDau, ip], [mNon, ip], [mBong, is]]) {
     m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
@@ -816,7 +966,6 @@ const CAM = {
 function datCam(k) {
   cam = k;
   document.querySelectorAll('[data-cam]').forEach((b) => b.classList.toggle('on', b.dataset.cam === k));
-  controls.enabled = k !== 'theo';
   if (k === 'theo') { if (!theoXe || theoXe.het) theoXe = chonXeTheo(); return; }
   theoXe = null;
   camera.position.set(...CAM[k][0]); controls.target.set(...CAM[k][1]); controls.update();
@@ -826,6 +975,13 @@ function chonXeTheo() {
   return ds.length ? chon(ds) : DS.find((a) => a.loai === 'xm') || null;
 }
 document.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => datCam(b.dataset.cam)));
+// Đang đi theo xe mà người xem kéo xoay / lăn phóng → thả xe ra, máy quay tự do đúng chỗ đang đứng. Esc → về toàn cảnh.
+controls.addEventListener('change', () => {
+  if (cam !== 'theo') return;
+  cam = 'tu'; theoXe = null;
+  document.querySelectorAll('[data-cam]').forEach((b) => b.classList.remove('on'));
+});
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && cam === 'theo') datCam('tong'); });
 const $ = (id) => document.getElementById(id);
 const chuToc = () => 'Tốc độ ' + String(CAI.toc).replace('.', ',') + '×';
 function hienTuyChon() {
@@ -856,10 +1012,20 @@ cv.addEventListener('pointerup', (e) => {
   if (!xuong || Math.hypot(e.clientX - xuong[0], e.clientY - xuong[1]) > 6) return;
   chuot.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(chuot, camera);
-  mXm.computeBoundingSphere(); mNguoi.computeBoundingSphere();
-  const hit = ray.intersectObjects([mXm, mNguoi], false)[0];
-  if (hit && veXm[hit.instanceId]) { theoXe = veXm[hit.instanceId]; datCam('theo'); theoXe = veXm[hit.instanceId]; }
+  const BANG = new Map([[mXm, veXm], [mNguoi, veXm], [mOto, veOto], [mBus, veBus], [mBo, veBo], [mDau, veBo]]);
+  for (const m of BANG.keys()) m.computeBoundingSphere();
+  const hit = ray.intersectObjects([...BANG.keys()], false)[0];
+  const a = hit && BANG.get(hit.object)[hit.instanceId];
+  if (!a) return;
+  if (cong === 'nhac') nhac(a);
+  else if (cong === 'nga') dayNga(a);
+  else { theoXe = a; datCam('theo'); theoXe = a; }
 });
+let cong = 'theo';
+document.querySelectorAll('[data-cong]').forEach((b) => b.addEventListener('click', () => {
+  cong = b.dataset.cong;
+  document.querySelectorAll('[data-cong]').forEach((c) => c.classList.toggle('on', c === b));
+}));
 
 function capNhatCamTheo(dt) {
   if (!theoXe || theoXe.het) theoXe = chonXeTheo();
@@ -880,7 +1046,7 @@ function hud() {
   let cho = 0, leo = 0, taxi = 0, don = 0;
   for (const a of DS) { if (a.loai === 'xm') { if (a.choDen && a.sp < 0.5) cho++; if (a.y > 0) leo++; } else if (a.taxi) { taxi++; if (a.dangDon) don++; } }
   $('so').innerHTML = `<div><b>${demCu.xm}</b> xe máy</div><div><b>${demCu.oto}</b> ô tô (${taxi} taxi)</div><div><b>${demCu.bus}</b> xe buýt</div><div><b>${demCu.bo}</b> người đi bộ</div>`
-    + `<div><b>${cho}</b> xe đang chờ đèn</div><div><b>${leo}</b> xe leo lề</div><div><b>${CAI.vuot}</b> lượt vượt đèn đỏ</div><div><b>${don}</b> taxi tấp lề đón khách</div>`;
+    + `<div><b>${cho}</b> xe đang chờ đèn</div><div><b>${leo}</b> xe leo lề</div><div><b>${CAI.vuot}</b> lượt vượt đèn đỏ</div><div><b>${don}</b> taxi tấp lề đón khách</div><div><b>${CAI.nghich}</b> lượt bị nghịch</div>`;
 }
 
 function coKhung() {

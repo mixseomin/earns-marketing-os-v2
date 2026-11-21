@@ -23,6 +23,8 @@ input[type=range] { width: 100%; accent-color: var(--nhan); }
 button { flex: 1 1 auto; font: inherit; font-size: 12px; color: var(--chu); background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 6px 8px; cursor: pointer; }
 button:hover { background: rgba(255,255,255,0.16); }
 button.on { background: var(--nhan); color: #1a1a1a; border-color: var(--nhan); }
+.nut.cong { align-items: center; }
+.nut.cong span { flex: 1 0 100%; color: var(--mo); font-size: 12px; }
 .goiy { margin: 0; color: var(--mo); font-size: 12px; }
 #mo { display: none; flex: 0 0 auto; }
 #than { display: flex; flex-direction: column; gap: 10px; }
@@ -35,7 +37,9 @@ button.on { background: var(--nhan); color: #1a1a1a; border-color: var(--nhan); 
   .den { padding: 3px 8px; font-size: 11px; }
   .ben { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; gap: 8px; }
   .nut.cam { flex-wrap: nowrap; gap: 4px; }
-  .nut.cam button { padding: 6px 4px; font-size: 11px; }
+  .nut.cam button, .nut.cong button { padding: 6px 4px; font-size: 11px; }
+  .nut.cong { flex-wrap: nowrap; gap: 4px; }
+  .nut.cong span { flex: 0 0 auto; font-size: 11px; }
   #mo { display: block; padding: 6px 10px; font-size: 14px; }
   #than { display: none; flex-direction: column; gap: 8px; max-height: 38vh; overflow: auto; }
   .ben.mo-ra #than { display: flex; }

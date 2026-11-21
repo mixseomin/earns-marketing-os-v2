@@ -355,10 +355,11 @@ if (a.includes('--nap')) {
   const N = Math.max(1, Math.min(20, Number(lay('--toi-da')) || 5)), m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
   // "dính đuôi nhãn của QC gốc" (hook-qc.mjs › loiHook) cũng là lỗi hook nhưng câu không có chữ "hook" → bài saidly kẹt mãi (10/11/2026)
   // "hình: chữ … đè / undefined" do MẪU dựng (đã sửa ở mau-dung.ts) — đề mới dựng lại bằng mẫu hiện hành xử luôn; vẫn hỏng thì sau 3 lần in ✗ cho người (saidly #1008, 11/11/2026)
-  const SUA_DUOC = /hook|tiêu đề trùng|chưa gắn góc|sửa quá xa|đuôi nhãn|^hình:|đã \d+\/\d+ lượt chấm chưa DUYỆT/;
-  const ds = ((await db.execute(sql`SELECT v.id, v.slug, v.mau, v.dang, v.cham->'chan_cung' AS chan FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)
-    AND v.cham->>'ket' = 'SUA_LAI' AND coalesce(v.da_dang, '{}'::jsonb) = '{}'::jsonb ORDER BY v.id`)) as unknown as { id: number; slug: string; mau: string | null; dang: Record<string, unknown> | null; chan: string[] | null }[])
-    .filter((v) => (v.chan ?? []).length && (v.chan ?? []).every((c) => SUA_DUOC.test(c)));
+  const SUA_DUOC = /hook|câu móc|tiêu đề trùng|chưa gắn góc|sửa quá xa|đuôi nhãn|^hình:|^hình lệch chủ đề tiêu đề|đã \d+\/\d+ lượt chấm chưa DUYỆT/;
+  const LOI_BAO_NGOAI = /^Phòng Nội dung \(kiem-bai\) chưa DUYỆT bản này: (?:KHONG_DUYET|SUA_LAI)$/;
+  const ds = ((await db.execute(sql`SELECT v.id, v.slug, v.mau, v.dang, v.cham->'chan_cung' AS chan, v.cham->'canh_bao' AS canh FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)
+    AND v.cham->>'ket' = 'SUA_LAI' AND coalesce(v.da_dang, '{}'::jsonb) = '{}'::jsonb ORDER BY v.id`)) as unknown as { id: number; slug: string; mau: string | null; dang: Record<string, unknown> | null; chan: string[] | null; canh: string[] | null }[])
+    .filter((v) => [...(v.chan ?? []), ...(v.canh ?? [])].filter((c) => !LOI_BAO_NGOAI.test(c)).length > 0 && [...(v.chan ?? []), ...(v.canh ?? [])].filter((c) => !LOI_BAO_NGOAI.test(c)).every((c) => SUA_DUOC.test(c)));
   if (!ds.length) { console.log(`làm lại ${ma}: không có bài SỬA LẠI sửa được bằng đề mới`); process.exit(0); }
   const { sinhDe } = await import('../src/lib/xuong-video/may-de');
   const sp = await spCua(ma), { tt, gocs, hooksCho, hookDaDung, hookCho } = await khoGocHook(ma, Number(m.id), sp), xetHook = await xetHookNhuCham(ma);

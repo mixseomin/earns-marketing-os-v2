@@ -256,18 +256,27 @@ function buocDen(dt) {
 const DD = matchMedia('(pointer: coarse)').matches || innerWidth < 700; // điện thoại / máy tính bảng → giảm tải cho máy khỏi nóng
 // Tuỳ chọn người xem chỉnh được — lưu vào trình duyệt, F5 vẫn giữ (anh 21/11/2026); nút "Mặc định" đưa về như lúc đầu.
 // choNga: luật "lòng ngã tư kẹt thì đứng chờ ở vạch" — ở VN không ai làm vậy, nên chỉ là tuỳ chọn, mặc định tắt.
-const MAC_DINH = { matDo: DD ? 200 : 250, lieu: 0.12, rePhai: true, tyLeOto: 7, toc: 1, choNga: false, nhuongLoi: false, choThoat: 3, denAI: false, kieuPha: '2pha', phaiXanh: false, nguoiBo: DD ? 80 : 85, lanCfg: lanMau('vn'), danTrai: true };
+const MAC_DINH = { matDo: DD ? 200 : 250, lieu: 0.12, rePhai: true, tyLeOto: 7, toc: 1, choNga: false, nhuongLoi: false, lanTrai: true, choThoat: 3, denAI: false, kieuPha: '2pha', phaiXanh: false, nguoiBo: DD ? 80 : 85, lanCfg: lanMau('vn'), danTrai: true, denLan: true };
 const KHOA_LUU = 'ngatu-tuy-chon';
 const daLuu = (() => { try { const o = JSON.parse(localStorage.getItem(KHOA_LUU) || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
 const CAI = { ...MAC_DINH, lanCfg: structuredClone(MAC_DINH.lanCfg), dung: false, vuot: 0, don: 0, nghich: 0 };
 // Bản lưu cũ (trước 21/11/2026, chưa có _ban) còn mật độ 450 → bỏ mật độ đã lưu, về mặc định mới 250.
 if (daLuu._ban !== 2) delete daLuu.matDo;
-for (const k of Object.keys(MAC_DINH)) if (typeof daLuu[k] === typeof MAC_DINH[k] && (k !== 'lanCfg' || lanHopLe(daLuu[k]))) CAI[k] = daLuu[k];
+const napCai = (o) => { for (const k of Object.keys(MAC_DINH)) if (typeof o[k] === typeof MAC_DINH[k] && (k !== 'lanCfg' || lanHopLe(o[k]))) CAI[k] = o[k]; };
+napCai(daLuu);
+// Link chia sẻ #pa=<base64 JSON các mục khác mặc định> đè lên bản lưu của máy này — mở là ra đúng phương án người gửi
+const KHONG_CHIA = new Set(['toc']);
+const maPA = () => { const o = {}; for (const k of Object.keys(MAC_DINH)) if (!KHONG_CHIA.has(k) && JSON.stringify(CAI[k]) !== JSON.stringify(MAC_DINH[k])) o[k] = CAI[k];
+  return btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+const PA_LINK = (() => { const m = /[#&]pa=([\w-]*)/.exec(location.hash); if (!m) return null;
+  try { const o = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(m[1].replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)))); return o && typeof o === 'object' ? o : null; } catch { return null; } })();
+if (PA_LINK) { Object.assign(CAI, MAC_DINH, { lanCfg: structuredClone(MAC_DINH.lanCfg) }); napCai(PA_LINK); }
 function luuTuyChon() {
   try { localStorage.setItem(KHOA_LUU, JSON.stringify({ _ban: 2, ...Object.fromEntries(Object.keys(MAC_DINH).map((k) => [k, CAI[k]])) })); } catch {}
 }
 const NGUONG_KET = 22, NGUONG_CAT = 8;
 let tg = 0, ketNga = 0; // ketNga: số xe đang đứng kẹt trong lòng ngã tư
+let DIEM = null, DIEM_CHAY = false; // bảng chấm phương án: đang đo thì cộng dồn chỉ số; đang chạy chấm thì bớt xe không phụ thuộc máy quay
 const trongNgaG = [0, 0]; // số xe mỗi hướng đèn còn nằm trong lòng ngã tư
 
 // ───────────────────────── lưới tra láng giềng ─────────────────────────
@@ -571,9 +580,9 @@ function bien(a) {
   }
   if (a.s < p.sIn) {
     const leo = a.hayLeo && a.s < p.sStop && a.sp < 2.5 ? 2.0 : 0; // leo lề khi kẹt trước đèn đỏ
-    return [h - p.o1, p.hw1 - h2 - p.o1 + leo];
+    return [h - p.o1 - (a.lanTrai || 0), p.hw1 - h2 - p.o1 + leo];
   }
-  if (a.s > p.sOut) return [h - p.o2, p.hw2 - h2 - p.o2];
+  if (a.s > p.sOut) return [h - p.o2 - (a.lanTrai || 0), p.hw2 - h2 - p.o2];
   const b = a.loai === 'xm' ? Math.max(2.2, 4.5 - (a.s - p.sIn) * 0.3) + Math.min(3, a.ket * 0.6) : Math.max(0.8, 3.5 - (a.s - p.sIn) * 0.35) + Math.min(2, a.ket * 0.4);
   return [-b, b];
 }
@@ -589,7 +598,8 @@ function buocXe(a, dt) {
   let f0 = 99, fL = 99, fR = 99, vj = 0, day = 0, hoT = 99, hoP = 99, neBo = 0, boG = 99, boJ = null;
   const lanCat = []; // làn trước mũi các xe đang cắt ngang đường mình: [mép gần, mép xa, xe]
   const cr = xm ? 2 : 3, off = xm ? 1.3 : a.wid + 0.5;
-  const cx = cellX(a.x), cz = cellX(a.z);
+  const cx = cellX(a.x), cz = cellX(a.z), tim = a.dlat + (a.s < p.sIn ? p.o1 : p.o2); // tim: mình cách tim đường bao xa
+  let nguoc = false; // có xe ngược chiều đang đi tới trên nửa đường bên kia, trước mặt mình
   for (let gx = cx - cr; gx <= cx + cr; gx++) {
     if (gx < 0 || gx >= G) continue;
     for (let gz = cz - cr; gz <= cz + cr; gz++) {
@@ -601,6 +611,7 @@ function buocXe(a, dt) {
         const lon = ex * fx + ez * fz;
         if (lon < -2.5 || lon > look) continue;
         const lat = ex * rx + ez * rz;
+        if (j.loai !== 'bo' && lon > -1 && j.fx * fx + j.fz * fz < -0.3 && tim + lat < nua(j, rx, rz) + 0.6) nguoc = true;
         // bề ngang / bề dọc chung của hai thân theo hướng mình đi, tính cả góc nằm của từng xe (xe cắt ngang chiếm cả làn)
         const nL = nua(a, rx, rz) + nua(j, rx, rz);
         // Hai xe rẽ trái ngược chiều đi hai làn rẽ riêng đã kẻ vạch, lướt qua nhau → không coi nhau là vật cản, không phanh
@@ -677,6 +688,10 @@ function buocXe(a, dt) {
       }
     }
   }
+  // Né / lách sang TRÁI được lấn qua tim đường sang nửa ngược chiều khi bên đó đang trống (anh 22/11/2026: "xe ở VN khi
+  // né không nhất thiết chỉ bên phải, mà cả bên trái nếu còn khoảng trống"). Trước biên trái là tim đường → xe sát tim
+  // hết chỗ dạt, chỉ còn né phải. Có xe ngược chiều tới trên nửa kia thì biên co về tim, xe tự lách trả về làn mình.
+  a.lanTrai = CAI.lanTrai && !nguoc && !p.ve ? (xm ? 1.8 : 2.8) : 0;
   // Luồn sau lưng người đi bộ chỉ khi bên đó CÓ KHOẢNG TRỐNG thật (anh 22/11/2026: "luồn lách nhưng phải có khoảng
   // trống"): sườn bên đó sau khi dạt vẫn hở ≥ 0,2 m, phía trước bên đó trống quá chỗ người đứng, không lấn ra ngoài mép
   // đường. Không đủ thì người đi bộ vẫn là vật cản — dừng chờ như thường.
@@ -1086,7 +1101,7 @@ function nam(a, dt) {
 // Khung nhìn của máy quay — bớt xe khi giảm mật độ thì bớt chiếc ngoài khung trước, người xem không thấy xe biến mất
 const KHUNG = new THREE.Frustum(), MK = new THREE.Matrix4(), VK = new THREE.Vector3();
 let daCoKhung = false;
-const ngoaiKhung = (a) => !daCoKhung || !KHUNG.containsPoint(VK.set(a.x, 1, a.z));
+const ngoaiKhung = (a) => !daCoKhung || DIEM_CHAY || !KHUNG.containsPoint(VK.set(a.x, 1, a.z));
 function buoc(dt) {
   tg += dt;
   dungLuoi();
@@ -1102,13 +1117,18 @@ function buoc(dt) {
   buocDen(dt);
   tinhQuyen(dt);
   for (let i = 0; i < DS.length; i++) { const a = DS[i]; if (a.loai === 'bo') buocBo(a, dt); else buocXe(a, dt); }
+  for (const a of DS) if (a.loai !== 'bo' && !a.nhac && a.sp < 0.5 && a.s < a.p.sStop) a.tCho = (a.tCho || 0) + dt; // giây đứng chờ trước vạch của từng xe
+  if (DIEM) { DIEM.t += dt; DIEM.ket += ketNga * dt; if (ketNga > DIEM.ketMax) DIEM.ketMax = ketNga; }
   const muc = { xm: CAI.matDo, oto: Math.min(MAX_OTO, Math.round(CAI.matDo * CAI.tyLeOto / 100)), bus: 3, bo: CAI.nguoiBo }; // người đi bộ có thanh kéo riêng — không phố nào cũng đông như nhau (anh 22/11/2026)
   const dem = { xm: 0, oto: 0, bus: 0, bo: 0 };
   for (const a of DS) dem[a.loai]++;
   // Giảm mật độ / tỷ lệ ô tô → bớt ngay xe ở rìa bản đồ (xa máy quay, trong sương), không đợi chúng đi hết
   const du = { xm: dem.xm - muc.xm, oto: dem.oto - muc.oto, bo: dem.bo - muc.bo };
-  if (du.xm > 0 || du.oto > 0 || du.bo > 0) for (const a of DS) if (du[a.loai] > 0 && !a.trenDuong && (a.loai === 'bo' || a.s < 30 || a.s > a.p.len - 30 || ngoaiKhung(a) || camera.position.distanceTo(VK.set(a.x, 1, a.z)) > 70) && a !== theoXe && !a.nhac && !a.nga) { a.s = a.p.len; du[a.loai]--; dem[a.loai]--; }
-  for (let i = DS.length - 1; i >= 0; i--) if (DS[i].s >= DS[i].p.len - 0.5) { DS[i].het = true; DS[i] = DS[DS.length - 1]; DS.pop(); }
+  if (du.xm > 0 || du.oto > 0 || du.bo > 0) for (const a of DS) if (du[a.loai] > 0 && !a.trenDuong && (a.loai === 'bo' || a.s < 30 || a.s > a.p.len - 30 || ngoaiKhung(a) || camera.position.distanceTo(VK.set(a.x, 1, a.z)) > 70) && a !== theoXe && !a.nhac && !a.nga) { a.s = a.p.len; a.bot = true; du[a.loai]--; dem[a.loai]--; }
+  for (let i = DS.length - 1; i >= 0; i--) if (DS[i].s >= DS[i].p.len - 0.5) {
+    const a = DS[i];
+    if (DIEM && !a.bot) { if (a.loai === 'bo') DIEM.bo++; else { DIEM.qua++; DIEM.cho += a.tCho || 0; } } // bị bớt vì giảm mật độ thì không tính là qua
+    a.het = true; DS[i] = DS[DS.length - 1]; DS.pop(); }
   dungLuoi(); // xe vừa đi / vừa bị bớt làm lệch chỉ số lưới — dựng lại để chỗ sinh xe kiểm đúng thân từng xe
   for (let t = 0; t < 4 && dem.xm < muc.xm; t++) if (sinhXe('xm')) dem.xm++;
   if (dem.oto < muc.oto) sinhXe('oto');
@@ -1529,6 +1549,48 @@ for (const arm of ARMS) {
 // Vạch theo sổ lanCfg: nửa đường chiều vào của mỗi hướng — vạch chia làn (đứt / liền / không, đoạn `dai` m trước vạch
 // dừng; xa hơn luôn đứt), mũi tên theo công năng làn (làn tự do không kẻ), vạch dẫn rẽ trái trong lòng ngã tư.
 let LAN_MESH = null;
+// ── đèn mũi tên trên từng làn: hướng nào có làn chuyên (không tự do) thì dựng giá ngang trên vạch dừng, mỗi làn một mặt đèn
+// mang đúng mũi tên các hướng làn đó được đi, mỗi mũi tên sáng màu đèn của chính hướng ấy (xe trong làn vẫn chạy theo đèn hướng mình).
+const DEN_LAN = new THREE.Group(); scene.add(DEN_LAN);
+const MAT_GIA = new THREE.MeshLambertMaterial({ color: '#5f6368' });
+let MAT_DEN = [];
+function veDenLan() {
+  for (const c of DEN_LAN.children) { c.geometry.dispose(); if (c.material !== MAT_GIA) { c.material.map?.dispose(); c.material.dispose(); } }
+  DEN_LAN.clear(); MAT_DEN = [];
+  if (!CAI.denLan) return;
+  ARMS.forEach((arm, ia) => {
+    const h = CAI.lanCfg[ia]; if (h.lan.every((c) => c === 'tudo')) return;
+    const d = arm.d, r = right(d), n = neg(d), hw = hwAlong(d), u = eAlong(d) + CW + 1;
+    const at = (b) => [-u * d[0] + b * r[0], -u * d[1] + b * r[1]];
+    const [gx, gz] = at((hw + 1.2) / 2), gia = new THREE.Mesh(new THREE.BoxGeometry(hw + 1.6, 0.16, 0.16), MAT_GIA);
+    gia.position.set(gx, 6.1, gz); gia.rotation.y = Math.atan2(-r[1], r[0]); DEN_LAN.add(gia);
+    h.lan.forEach((cn, i) => {
+      const [l0, l1] = lanKhoang(h, i, hw), [x, z] = at((l0 + l1) / 2);
+      const qs = cn === 'tudo' ? ['trai', 'thang', 'phai'] : cn.split('-');
+      const c = document.createElement('canvas'); c.width = 64 * qs.length; c.height = 64;
+      const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+      const w = Math.min(0.55 * qs.length, (l1 - l0) * 0.9);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w / qs.length), new THREE.MeshBasicMaterial({ map: tex }));
+      m.position.set(x, 5.65, z); m.rotation.y = Math.atan2(n[0], n[1]); DEN_LAN.add(m);
+      MAT_DEN.push({ c, tex, mv: qs.map((q) => ia * 3 + QI[q]), qs, k: '' });
+    });
+  });
+}
+// mũi tên vẽ tay trên canvas (không phụ thuộc phông có ký tự ↰ ↱): góc 0 = lên (đi thẳng), -90° = trái, +90° = phải
+function muiTenDen(x, cx, goc, mau) {
+  x.save(); x.translate(cx, 32); x.rotate(goc); x.fillStyle = mau;
+  x.fillRect(-5, -6, 10, 26); x.beginPath(); x.moveTo(0, -24); x.lineTo(16, -4); x.lineTo(-16, -4); x.closePath(); x.fill(); x.restore();
+}
+function capNhatDenLan() {
+  for (const o of MAT_DEN) {
+    const ms = o.mv.map((k) => den(k)[0]), key = ms.join('');
+    if (key === o.k) continue;
+    o.k = key; const x = o.c.getContext('2d');
+    x.fillStyle = '#060606'; x.fillRect(0, 0, o.c.width, 64);
+    o.qs.forEach((q, j) => muiTenDen(x, 32 + 64 * j, q === 'thang' ? 0 : q === 'trai' ? -Math.PI / 2 : Math.PI / 2, MAU_DEN[ms[j]][0]));
+    o.tex.needsUpdate = true;
+  }
+}
 function veLan() {
   const A = [];
   ARMS.forEach((arm, ia) => {
@@ -1552,6 +1614,7 @@ function veLan() {
     });
   });
   if (CAI.danTrai) danReTrai(A);
+  veDenLan();
   if (LAN_MESH) { scene.remove(LAN_MESH); LAN_MESH.geometry.dispose(); LAN_MESH.material.dispose(); LAN_MESH = null; }
   if (!A.length) return;
   const m = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ polygonOffset: true, polygonOffsetFactor: -2 }), A.length);
@@ -1653,8 +1716,8 @@ function hienTuyChon() {
   $('md').value = CAI.matDo; $('vMd').textContent = CAI.matDo;
   $('lieu').value = Math.round(CAI.lieu * 100); $('vLieu').textContent = Math.round(CAI.lieu * 100) + '%';
   $('oto').value = CAI.tyLeOto; $('vOto').textContent = CAI.tyLeOto + '%';
-  $('nb').value = CAI.nguoiBo; $('vNb').textContent = CAI.nguoiBo; MV_MESH.visible = CAI.choNga; $('dt').checked = CAI.danTrai; hienLan();
-  $('rp').checked = CAI.rePhai; $('cn').checked = CAI.choNga; $('nl').checked = CAI.nhuongLoi; $('toc').textContent = chuToc();
+  $('nb').value = CAI.nguoiBo; $('vNb').textContent = CAI.nguoiBo; MV_MESH.visible = CAI.choNga; $('dt').checked = CAI.danTrai; $('dl').checked = CAI.denLan; hienLan();
+  $('rp').checked = CAI.rePhai; $('cn').checked = CAI.choNga; $('nl').checked = CAI.nhuongLoi; $('lt').checked = CAI.lanTrai; $('toc').textContent = chuToc();
   $('ct').value = CAI.choThoat; $('vCt').textContent = CAI.choThoat + ' s';
   $('kp').value = CAI.kieuPha; $('ai').checked = CAI.denAI; $('px').checked = CAI.phaiXanh;
 }
@@ -1671,6 +1734,7 @@ $('rp').addEventListener('change', (e) => { CAI.rePhai = e.target.checked; luuTu
 $('cn').addEventListener('change', (e) => { CAI.choNga = e.target.checked; MV_MESH.visible = CAI.choNga; luuTuyChon(); });
 $('nb').addEventListener('input', (e) => { CAI.nguoiBo = +e.target.value; $('vNb').textContent = CAI.nguoiBo; luuTuyChon(); });
 $('nl').addEventListener('change', (e) => { CAI.nhuongLoi = e.target.checked; luuTuyChon(); });
+$('lt').addEventListener('change', (e) => { CAI.lanTrai = e.target.checked; luuTuyChon(); });
 $('lanHuong').addEventListener('change', (e) => { lanChon = e.target.value; hienLan(); });
 $('lanMau').addEventListener('change', (e) => { const k = e.target.value; e.target.value = ''; if (k) doiLan((h) => Object.assign(h, structuredClone(MAU_LAN[k].h))); });
 $('lanSo').addEventListener('change', (e) => doiLan((h) => { const n = +e.target.value; h.lan = Array.from({ length: n }, (_, i) => h.lan[i] || 'tudo'); h.soLan = n; }));
@@ -1678,6 +1742,15 @@ $('lanVach').addEventListener('change', (e) => doiLan((h) => { h.vach = e.target
 $('lanDai').addEventListener('input', (e) => doiLan((h) => { h.dai = +e.target.value; }));
 $('lanDs').addEventListener('change', (e) => { const i = +e.target.dataset.lan; if (e.target.dataset.lan != null) doiLan((h) => { if (i < h.soLan) h.lan[i] = e.target.value; }); });
 $('dt').addEventListener('change', (e) => { CAI.danTrai = e.target.checked; veLan(); luuTuyChon(); });
+$('dl').addEventListener('change', (e) => { CAI.denLan = e.target.checked; veLan(); luuTuyChon(); });
+$('chiaSe').addEventListener('click', async () => {
+  const u = new URL(location.href); u.hash = 'pa=' + maPA();
+  const o = $('linkPA'); o.hidden = false; o.value = u.href; o.select();
+  try { await navigator.clipboard.writeText(u.href); $('chiaSe').textContent = '✓ Đã chép link'; } catch { $('chiaSe').textContent = 'Chép link ô dưới'; }
+  setTimeout(() => ($('chiaSe').textContent = '🔗 Chép link phương án này'), 2500);
+});
+if (PA_LINK) { luuTuyChon(); history.replaceState(null, '', location.pathname + location.search); } // đã nạp vào máy này → bỏ #pa để sửa tiếp không bị link cũ đè khi F5
+
 $('macdinh').addEventListener('click', () => {
   const doiPha = CAI.kieuPha !== MAC_DINH.kieuPha;
   Object.assign(CAI, MAC_DINH, { lanCfg: structuredClone(MAC_DINH.lanCfg) });
@@ -1925,6 +1998,67 @@ function coKhung() {
 addEventListener('resize', coKhung);
 coKhung();
 
+// ───────────────────────── chấm phương án ─────────────────────────
+// Mỗi phương án chạy CÙNG một dòng xe: 3 hạt ngẫu nhiên cố định, mỗi hạt 40 s làm nóng + 120 s đo, bước 1/20 s.
+// Math.random chỉ bị thay bằng bộ sinh có hạt trong lúc chạy bước chấm — vẽ cảnh vẫn dùng Math.random thật.
+const HAT = [11, 23, 37], CHAM_NONG = 800, CHAM_DO = 2400, KHOA_CHAM = 'ngatu-cham';
+const sinhHat = (h) => () => { h = (h + 0x6D2B79F5) | 0; let t = Math.imul(h ^ (h >>> 15), 1 | h); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const CHI_SO = [ // [tên, đơn vị, khoá, 1 = càng cao càng tốt / -1 = càng thấp càng tốt, số lẻ]
+  ['Xe qua ngã tư', 'xe/phút', 'qua', 1, 1], ['Chờ trung bình mỗi xe', 's', 'cho', -1, 1], ['Xe kẹt trong lòng (TB)', 'xe', 'ket', -1, 1],
+  ['Lúc kẹt đông nhất', 'xe', 'ketMax', -1, 0], ['Vượt đèn đỏ', 'lượt/phút', 'vuot', -1, 1], ['Người đi bộ qua', 'người/phút', 'bo', 1, 1]];
+const PA = (() => { try { const o = JSON.parse(localStorage.getItem(KHOA_CHAM) || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
+const luuPA = () => { try { localStorage.setItem(KHOA_CHAM, JSON.stringify({ A: PA.A, B: PA.B })); } catch {} };
+function moTaPA() {
+  const tat = (h) => `${h.soLan} làn ${h.lan.map((c) => (c === 'tudo' ? 'tự do' : CONG_NANG[c].split(' ')[0])).join(' / ')}, vạch ${{ dut: 'đứt', lien: 'liền', khong: 'không kẻ' }[h.vach]}`;
+  const giong = CAI.lanCfg.every((h) => JSON.stringify(h) === JSON.stringify(CAI.lanCfg[0]));
+  return `${$('kp').selectedOptions[0].text}${CAI.denAI ? ' · đèn AI' : ''}${CAI.phaiXanh ? ' · phải luôn xanh' : ''} · ${giong ? tat(CAI.lanCfg[0]) : 'làn khác nhau theo hướng'} · ${CAI.matDo} xe máy`;
+}
+function hienDiem() {
+  const cot = [['Vừa chấm', PA.hien], ['A', PA.A], ['B', PA.B]].filter((c) => c[1]);
+  const o = $('chamKq');
+  if (!cot.length) { o.innerHTML = ''; return; }
+  const dong = CHI_SO.map(([ten, dv, k, huong, le]) => {
+    const ds = cot.map((c) => c[1].kq[k]), tot = huong > 0 ? Math.max(...ds) : Math.min(...ds);
+    return `<tr><th>${ten} <i>${dv}</i></th>${ds.map((v) => `<td${cot.length > 1 && v === tot && ds.some((x) => x !== tot) ? ' class="tot"' : ''}>${v.toFixed(le)}</td>`).join('')}</tr>`;
+  }).join('');
+  o.innerHTML = `<table><tr><th></th>${cot.map((c) => `<th>${c[0]}</th>`).join('')}</tr>${dong}</table>`
+    + cot.map(([t, p]) => `<p class="goiy"><b>${t}:</b> ${p.ten}</p>`).join('')
+    + `<div class="nut">${PA.hien ? '<button data-pa="luuA">Lưu làm A</button><button data-pa="luuB">Lưu làm B</button>' : ''}${PA.A ? '<button data-pa="apA">Áp lại A</button>' : ''}${PA.B ? '<button data-pa="apB">Áp lại B</button>' : ''}</div>`;
+}
+$('chamKq').addEventListener('click', (e) => {
+  const v = e.target.dataset.pa; if (!v) return;
+  const k = v.slice(-1);
+  if (v.startsWith('luu')) { PA[k] = PA.hien; luuPA(); }
+  else { Object.assign(CAI, structuredClone(PA[k].cfg)); hienTuyChon(); dungPha(); veLan(); luuTuyChon(); }
+  hienDiem();
+});
+function chamPA() {
+  if (DIEM_CHAY) return;
+  const dungCu = CAI.dung, goc = Math.random, nut = $('chamChay'), kq = [], tong = HAT.length * (CHAM_NONG + CHAM_DO);
+  const cfg = Object.fromEntries(Object.keys(MAC_DINH).map((k) => [k, structuredClone(CAI[k])])), ten = moTaPA();
+  CAI.dung = true; DIEM_CHAY = true; dongChinh(); theoXe = null; nut.disabled = true;
+  let h = 0, n = 0, xong = 0, rand = null;
+  const lam = () => {
+    Math.random = rand || goc;
+    try {
+      for (let k = 0; k < 150 && h < HAT.length; k++) {
+        if (n === 0) { for (const a of DS) { a.het = true; boNet(a); } DS.length = 0; tg = 0; dungPha(); Math.random = rand = sinhHat(HAT[h]); }
+        if (n === CHAM_NONG) { DIEM = { t: 0, ket: 0, ketMax: 0, qua: 0, cho: 0, bo: 0 }; CAI.vuot = 0; }
+        demCu = buoc(1 / 20); n++; xong++;
+        if (n === CHAM_NONG + CHAM_DO) { kq.push({ ...DIEM, vuot: CAI.vuot }); DIEM = null; h++; n = 0; rand = null; }
+      }
+    } finally { Math.random = goc; }
+    if (h < HAT.length) { nut.textContent = `Đang chấm… ${Math.round((xong / tong) * 100)}%`; setTimeout(lam, 0); return; }
+    const c = (k) => kq.reduce((t, x) => t + x[k], 0), phut = c('t') / 60;
+    PA.hien = { ten, cfg, kq: { qua: c('qua') / phut, cho: c('qua') ? c('cho') / c('qua') : 0, ket: c('ket') / c('t'), ketMax: Math.max(...kq.map((x) => x.ketMax)), vuot: c('vuot') / phut, bo: c('bo') / phut } };
+    CAI.dung = dungCu; DIEM_CHAY = false; CAI.vuot = 0; nut.disabled = false; nut.textContent = '▶ Chấm cài đặt hiện tại';
+    hienDiem();
+  };
+  setTimeout(lam, 0);
+}
+$('chamChay').addEventListener('click', chamPA);
+hienDiem();
+
 // Cho xe chạy trước 45 giây mô phỏng để mở trang là thấy dòng xe đã đầy, không phải một đợt xe ùa vào cùng lúc.
 function khoiDong() {
   const t0 = performance.now();
@@ -1944,7 +2078,7 @@ function khoiDong() {
       let con = dtThuc * CAI.toc;
       while (con > 1e-4) { const d = Math.min(con, 1 / 30); demCu = buoc(d); con -= d; }
     }
-    capNhatDen();
+    capNhatDen(); capNhatDenLan();
     capNhatNet();
     ve();
     if (cam === 'theo') capNhatCamTheo(dtThuc); else controls.update();

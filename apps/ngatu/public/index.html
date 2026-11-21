@@ -64,6 +64,7 @@
       <label>Ô tô so với xe máy <b id="vOto">7%</b><input id="oto" type="range" min="0" max="40" value="7"></label>
       <label class="chk"><input id="rp" type="checkbox" checked> Xe máy rẽ phải khi đèn đỏ</label>
       <label class="chk"><input id="cn" type="checkbox"> Vạch mắt võng: lòng ngã tư kẹt thì chờ ở vạch, không dừng trong ô vàng</label>
+      <label class="chk"><input id="lt" type="checkbox" checked> Né sang trái, lấn qua tim đường khi bên ngược chiều trống (kiểu VN)</label>
       <label class="chk"><input id="nl" type="checkbox"> Nhường lối thoát (không lấn vào chỗ trống trước mũi xe đang kẹt)</label>
     </details>
     <details name="ngan" data-ngan="lan">
@@ -99,6 +100,15 @@
       </label>
       <label>Độ dài đoạn vạch <b id="vLanDai">30 m</b><input id="lanDai" type="range" min="10" max="60" step="2" value="30"></label>
       <label class="chk"><input id="dt" type="checkbox" checked> Vạch dẫn rẽ trái trong lòng ngã tư</label>
+      <label class="chk"><input id="dl" type="checkbox" checked> Đèn mũi tên trên từng làn (hướng có làn chuyên)</label>
+    </details>
+    <details name="ngan" data-ngan="cham">
+      <summary>📐 Chấm phương án</summary>
+      <p class="goiy">Chạy cùng một dòng xe (3 lượt, mỗi lượt 1 phút làm nóng + 3 phút đo) với cài đặt hiện tại, rồi lưu làm A hoặc B để so. Ô xanh là phương án tốt hơn ở chỉ số đó.</p>
+      <button id="chamChay">▶ Chấm cài đặt hiện tại</button>
+      <div id="chamKq"></div>
+      <button id="chiaSe" title="Link mang theo toàn bộ cài đặt; người mở bấm Chấm sẽ ra đúng số như anh">🔗 Chép link phương án này</button>
+      <input id="linkPA" readonly hidden>
     </details>
     <details name="ngan" data-ngan="so">
       <summary>📊 Số liệu &amp; cách dùng</summary>

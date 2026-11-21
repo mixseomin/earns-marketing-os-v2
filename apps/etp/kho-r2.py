@@ -172,17 +172,21 @@ def tu_kiem():
     if not all(NHOM[n][0] is False for n in NHOM if n.startswith("giu_")): sai.append(("NHOM", "giu_* phải là giữ", ""))
     d = [_dong_chuyen(G+"thanh-pham/2026-10/cta-en-1.mp3"), _dong_chuyen(G+"thanh-pham/2026-11/cta-x.mp4"), _dong_chuyen(G+"thu-vien/a.mp4"), _dong_chuyen("khac/a.mp4")]
     if d != [None, None, "thu-vien/a.mp4", None]: sai.append(("_dong_chuyen", d, "cta/khác không đi, giữ đường tương đối"))
+    c = chon_ds(ra, ["tv_bo", "tp_tu_choi", "tv_mo_coi"])
+    if c != sorted([G+"thu-vien/a.mp4", G+"thanh-pham/2026-11/y.mp4", G+"thu-vien/d.mp4"]): sai.append(("chon_ds", c, "đủ 3 nhóm, một danh sách đã xếp"))
     for s in sai: print("SAI", *s)
-    print(f"kho-r2 tự kiểm: {len(mong) + 3 - len(sai)}/{len(mong) + 3} đạt"); return not sai
+    print(f"kho-r2 tự kiểm: {len(mong) + 4 - len(sai)}/{len(mong) + 4} đạt"); return not sai
+
+def chon_ds(ra, nhoms):   # khoá thuộc bất kỳ nhóm nào trong nhoms, xếp tăng
+    return sorted(k for k, n in ra.items() if n in set(nhoms))
 
 if __name__ == "__main__":
     a = sys.argv[1:]
     if a[:1] == ["--tu-kiem"]: sys.exit(0 if tu_kiem() else 1)
     if a[:1] == ["do"]: do(); sys.exit(0)
     if a[:1] == ["chuyen"]: sys.exit(0 if chuyen(a[1:]) else 1)
-    if a[:1] == ["ds"] and len(a) == 2 and a[1] in NHOM:
+    if a[:1] == ["ds"] and len(a) >= 2 and all(n in NHOM for n in a[1:]):   # nhiều nhóm một lần nạp (máy chuyển lạnh cty gọi ds <5 nhóm an toàn>)
         tep, ref, tv, nong, tu_choi = nap()
-        for k, n in sorted(phan_loai(tep, ref, tv, nong, tu_choi, time.time()).items()):
-            if n == a[1]: print(k)
+        for k in chon_ds(phan_loai(tep, ref, tv, nong, tu_choi, time.time()), a[1:]): print(k)
         sys.exit(0)
     print(__doc__ or "kho-r2.py do | ds <nhom> | --tu-kiem   nhóm: " + " ".join(NHOM)); sys.exit(2)

@@ -2457,7 +2457,8 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, dongCr, 
   const nhomCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x.nhom_goc])), [du.phims]);
   const phCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x])), [du.phims]);
   const bhCua = useMemo(() => new Map((du.baoHoa ?? []).map((x) => [x.content_id, x])), [du.baoHoa]);
-  const nhanPhim = (k: string) => { const p = phimMap.get(k); if (!p) return `#${k}`;
+  const nhanPhim = (k: string) => { const p = phimMap.get(k);
+    if (!p) { const h = du.hangCr?.find((x) => String(x.content_id ?? 0) === k); return h?.phim ? <b title={`phim #${k}`}>{h.phim}</b> : `#${k}`; }   // nhóm chỉ có dòng ⏳ xếp hàng
     return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>{<HexBo bos={p.all.map((c) => c.bo)} boTk={du.boTk} />}
       <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 520 }} title={p.all[0]?.phim ?? ''}>{p.all[0]?.phim ?? `#${k}`}</b><NhomGoc g={nhomCua.get(Number(k))} /><MocPhim ph={phCua.get(Number(k))} chay={p.all.filter((c) => c.trang_thai === 'ACTIVE').length} />
 

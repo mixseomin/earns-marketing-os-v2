@@ -73,7 +73,12 @@ def main(lo_f, ma, dang):
             time.sleep(5 * (lan + 1))
         raise RuntimeError(f"đẩy {x['file']} lỗi 3 lần")
     with ThreadPoolExecutor(8) as ex: list(ex.map(day, lo))
-    r = sh(f"""ssh {B} 'cd /var/lib/ethopex/creative/{ma} && for f in {ma}-*.mp4; do b=${{f%.mp4}}; ffmpeg -v error -y -ss 2 -i $f -frames:v 1 -q:v 3 $b.jpg; ffmpeg -v error -y -sseof -1.5 -i $f -frames:v 1 -q:v 3 tc-$b.jpg; echo "$b|$(ffprobe -v error -show_entries format=duration -of csv=p=0 $f)|$(kho phat $f ethopex thanh-pham $f | tail -1)|$(kho phat $b.jpg ethopex thanh-pham $b.jpg | tail -1)|$(kho phat tc-$b.jpg ethopex thanh-pham tc-$b.jpg | tail -1)"; done'""", timeout=3600)
+    r = sh(f"""ssh {B} 'cd /var/lib/ethopex/creative/{ma} && for f in {ma}-*.mp4; do b=${{f%.mp4}}; ffmpeg -v error -y -ss 2 -i $f -frames:v 1 -q:v 3 $b.jpg; ffmpeg -v error -y -sseof -1.5 -i $f -frames:v 1 -q:v 3 tc-$b.jpg; echo "$b|$(ffprobe -v error -show_entries format=duration -of csv=p=0 $f)|$(kho phat $f ethopex thanh-pham $f | tail -1)|$(kho phat $b.jpg ethopex thanh-pham $b.jpg | tail -1)|$(kho phat tc-$b.jpg ethopex thanh-pham tc-$b.jpg | tail -1)"; kho cat $f ethopex thanh-pham $f >/dev/null 2>&1 || echo "kho-cat-loi $f" >&2; done'""", timeout=3600)
+    # CẤT DRIVE NGAY (sm94 21/11/2026, R2 142 GB / ngưỡng 50): mp4 vừa đăng chép luôn sang Drive kho-may/ethopex/thanh-pham/<YYYY-MM>/ — CÙNG đường dẫn
+    # tương đối với R2 (kho cat và kho phat cùng lấy tháng UTC lúc chạy), nên gỡ khỏi R2 sau này chỉ là xoá bản R2, kéo lại thì chép ngược đúng khoá.
+    # Drive lỗi không chặn lô (creative đọc bản R2); chỉ kêu ra stderr để kho-r2.py / người giữ kho biết tệp nào chưa có bản Drive.
+    for l in r.stderr.splitlines():
+        if l.startswith("kho-cat-loi"): print(f"⚠ {l} — chưa có bản Drive, chưa được gỡ khỏi R2", file=sys.stderr)
     anh = {l.split("|")[0]: l.split("|") for l in r.stdout.splitlines() if l.count("|") == 4}
     goc = {os.path.dirname(v[2]) for v in anh.values() if v[2].startswith("http")}
     if len(goc) != 1: raise RuntimeError(f"kho phat không trả đúng một thư mục cho lô {ma}: {sorted(goc) or r.stderr[-200:]}")

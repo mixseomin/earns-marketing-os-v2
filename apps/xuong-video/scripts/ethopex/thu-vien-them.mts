@@ -1,5 +1,5 @@
 // ĐƯA MỘT BẢN KỂ CHUYỆN VÀO THƯ VIỆN etp (0đ — R2 + một dòng etp.thu_vien). Bước cuối của máy sinh (may-sinh-ke-chuyen.mjs) sau vx-ke-chuyen --cta.
-// Nạp MP4 + ảnh bìa (khung giây 1) lên kho R2 kho/ethopex/thu-vien/, ghi dòng theo tap_id (chạy lại = cập nhật, không tạo trùng).
+// Nạp MP4 + ảnh bìa (khung giây 1) lên kho R2 kho/ethopex/thu-vien/<YYYY-MM>/, ghi dòng theo tap_id (chạy lại = cập nhật, không tạo trùng).
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/ethopex/thu-vien-them.mts <tap_id> <tệp.mp4> [--trang-thai=san_sang] [--chi-vnd=N] [--ghi="…"]
 // Bản KHÔNG từ tập VideoExpress (kiểu dựng 0đ kieu-moi.py — anh 29/10/2026 "đa dạng cách tạo nội dung"): thay <tap_id> bằng 0 + --content=<id phim> --dang="<nhãn>" [--nguon=kieu_moi]
@@ -26,8 +26,11 @@ const giay = Number(execSync(`ffprobe -v error -show_entries format=duration -of
 const anhTep = `${tep}.bia.jpg`;
 execSync(`ffmpeg -v error -y -ss 1 -i ${JSON.stringify(tep)} -frames:v 1 -vf scale=540:-1 ${JSON.stringify(anhTep)}`);
 const ma = `${content}-${tapId}-${randomUUID().slice(0, 8)}`;
-const video = await uploadToR2(`kho/ethopex/thu-vien/${ma}.mp4`, readFileSync(tep), 'video/mp4');
-const anh = await uploadToR2(`kho/ethopex/thu-vien/${ma}.jpg`, readFileSync(anhTep), 'image/jpeg');
+// THEO THÁNG (sm94 21/11/2026): thư mục phẳng 38,8 GB không cất lạnh theo tháng được — kho/ethopex/thu-vien/<YYYY-MM>/ như kho phat (giờ UTC).
+// Người đọc lấy URL từ etp.thu_vien.video / anh, nên đổi đường dẫn không gãy bản cũ.
+const thang = new Date().toISOString().slice(0, 7);
+const video = await uploadToR2(`kho/ethopex/thu-vien/${thang}/${ma}.mp4`, readFileSync(tep), 'video/mp4');
+const anh = await uploadToR2(`kho/ethopex/thu-vien/${thang}/${ma}.jpg`, readFileSync(anhTep), 'image/jpeg');
 if (!video || !anh) { console.error('✗ nạp R2 hỏng'); process.exit(1); }
 const ten = String(p.kinh_thanh.qc?.ten ?? '').split(' — ')[0]!.trim() || p.ten.split(' · ')[1] || p.ten;
 const lang = p.kinh_thanh.ngon_ngu === 'es' ? 'es' : 'en';

@@ -1303,7 +1303,7 @@ cv.addEventListener('pointerup', (e) => {
   else if (cong === 'nga') dayNga(a);
   else { theoXe = a; datCam('theo'); theoXe = a; }
 });
-let cong = 'theo';
+let cong = 'nhac'; // 'theo' (đi theo xe) tạm bỏ khỏi giao diện 21/11/2026, mã giữ để bật lại
 document.querySelectorAll('[data-cong]').forEach((b) => b.addEventListener('click', () => {
   cong = b.dataset.cong;
   document.querySelectorAll('[data-cong]').forEach((c) => c.classList.toggle('on', c === b));

@@ -484,7 +484,7 @@ function dongBoLuoi(ds) {
     GS.on('dragstart resizestart', (e, el) => { g.classList.add('dang-keo'); if (e?.type === 'dragstart') batDauKeoTab(el);
       // góp ý #1750: giữ Shift khi kéo mép = kéo MÉP CHUNG — ô sát bên co / giãn theo, không bị đẩy đi
       if (e?.type === 'resizestart') keoDoi = phimShift ? { el, cu: GS.engine.nodes.map((nd) => ({ nd, x: nd.x, y: nd.y, w: nd.w, h: nd.h })) } : null; });
-    GS.on('resizestop', (e, el) => { const k = keoDoi; keoDoi = null; if (!k || k.el !== el) return; const a = el.gridstackNode, c0 = k.cu.find((o) => o.nd === a); if (!a || !c0) return;
+    const mepChung = (el) => { const k = keoDoi; keoDoi = null; if (!k || k.el !== el) return; const a = el.gridstackNode, c0 = k.cu.find((o) => o.nd === a); if (!a || !c0) return;
       const chong = (p0, p1, q0, q1) => p0 < q1 && q0 < p1, doi = [];
       for (const o of k.cu) { if (o.nd === a) continue; let v = null;
         if (chong(o.y, o.y + o.h, c0.y, c0.y + c0.h)) {
@@ -497,8 +497,8 @@ function dongBoLuoi(ds) {
       for (const [, v] of doi) { if (v.x >= a.x + a.w || v.x + v.w <= a.x || v.y >= a.y + a.h || v.y + v.h <= a.y) continue; if (v.x > a.x) a.w = v.x - a.x; else if (v.y > a.y) a.h = v.y - a.y; else { const x1 = a.x + a.w; a.x = v.x + v.w; a.w = x1 - a.x; } }
       gsDang = true; GS.batchUpdate(); for (const o of k.cu) if (o.nd !== a && !doi.some(([n]) => n === o.nd)) GS.update(o.nd.el, { x: o.x, y: o.y, w: o.w, h: o.h });
       GS.update(a.el, { x: a.x, y: a.y, w: a.w, h: a.h }); for (const [n, v] of doi) GS.update(n.el, v);
-      GS.batchUpdate(false); gsDang = false; ghiLuoi(); delete E.luoi.ten[D.loai]; luu(); veD(); });
-    GS.on('dragstop resizestop', (e) => { g.classList.remove('dang-keo'); const k = keoTab, d = k && e?.type === 'dragstop' ? dichDuoi(e) : null, vao = d?.dataset.chu; ketKeoTab(); if (gsDang || keoDoi) return;
+      GS.batchUpdate(false); gsDang = false; ghiLuoi(); delete E.luoi.ten[D.loai]; luu(); veD(); return true; };   // gridstack giữ MỘT hàm cho mỗi sự kiện: gọi từ hàm dragstop/resizestop chung bên dưới
+    GS.on('dragstop resizestop', (e, el) => { if (e?.type === 'resizestop' && keoDoi && mepChung(el)) return void g.classList.remove('dang-keo'); g.classList.remove('dang-keo'); const k = keoTab, d = k && e?.type === 'dragstop' ? dichDuoi(e) : null, vao = d?.dataset.chu; ketKeoTab(); if (gsDang) return;
       if (vao) return void setTimeout(() => gopTab(k.w, vao, k.truoc), 0);   // thả trong dải "Thả vào đây": gộp thành tab (làm sau khi gridstack khép lượt kéo)
       ghiLuoi(); delete E.luoi.ten[D.loai]; luu(); veD(); }); }
   g.style.setProperty('--so-cot', n); g.style.setProperty('--so-hang', r); g.classList.toggle('hien-luoi', E.luoi.hien);

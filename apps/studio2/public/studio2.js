@@ -622,7 +622,7 @@ const BUOC_SV = {
   td1: (t, sid) => ghiSv('sinhAmS2', t.tap, 'td', GOC[sid].id, layYc()),
   xuat: async (t) => { E.xuatThat = { job: await ghiSv('xuatTap', t.tap), tt: 'chay', url: null, loi: '' }; },
 };
-const veBuoc = () => { veAm(); if (co('qt')) veQt(); if (co('tt')) veTt(); if (E.xuat === 'that') vePhu(); };
+const veBuoc = () => { veAm(); if (co('qt')) veQt(); if (co('tt')) veTt(); if (co('mu')) veMu(); if (E.muMo != null) veNgan(); if (E.xuat === 'that') vePhu(); };   // nút trả tiền trong khung mẫu + ngăn chi tiết cũng đổi trạng thái (hộp giá, "bấm lần nữa")
 async function chayBuoc(k) {
   const t = D.that, b = k.split(':')[0]; if (!t || E.dangBuoc[k] || !BUOC_SV[b]) return; const gia = giaBuoc(k);
   if (coSua()) return bao('Có chỗ sửa chưa lưu. Bấm “Lưu về studio” trên thanh trên trước, rồi chạy bước này (chạy bước sẽ đọc lại phim từ studio).', false, 9000);
@@ -1494,7 +1494,7 @@ function lamD(a, d = {}, nut) {
     case 'cnGoi': E.cn = { ...(E.cn || {}), goi: g }; return veCn();
     case 'hdLoc': E.hdLoc = g; return veHd();
     case 'hdTai': return void napHd(true);
-    case 'slMo': { const tu = nut.closest('#tlAm') ? '#tlAm ' : ''; E.sl = E.sl?.k === g ? null : { k: g, yc: '', moi: !!d.moi }; veBuoc(); return void document.querySelector(`${tu}#slYc`)?.focus(); }
+    case 'slMo': { const tu = nut.closest('#tlAm') ? '#tlAm ' : nut.closest('#s2Ngan') ? '#s2Ngan ' : ''; E.sl = E.sl?.k === g ? null : { k: g, yc: '', moi: !!d.moi }; veBuoc(); return void document.querySelector(`${tu}#slYc`)?.focus(); }
     case 'slThoi': E.sl = null; return veBuoc();
     case 'slChay': { E.slYc = ((nut.closest('.sl-hop') || document).querySelector('#slYc')?.value || '').trim(); E.sl = null; E.cho = g; return void chayBuoc(g); }
     case 'nkBat': { const ds = E.bc[D.loai]; if (!ds.includes('nk')) ds.splice(ds.includes('tt') ? ds.indexOf('tt') : ds.length, 0, 'nk'); if (g) E.nkBuoc = g; luu(); return veD(); }

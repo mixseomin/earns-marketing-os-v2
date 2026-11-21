@@ -22,7 +22,7 @@ const JS = `(() => {
     document.body.appendChild(khung);
   }
   function hien(co) { if (!khung) return; khung.style.visibility = co ? 'visible' : 'hidden'; khung.style.pointerEvents = co ? 'auto' : 'none'; }
-  function guiMo() { if (!cho || !sanSang || !khung) return; khung.contentWindow.postMessage({ loai: 'gop-y:mo', trang: location.href, nguCanh: cho.nguCanh, anh: cho.anh, anhThem: cho.anhThem }, GOC); cho = null; }
+  function guiMo() { if (!cho || !sanSang || !khung) return; khung.contentWindow.postMessage({ loai: 'gop-y:mo', trang: location.href, nguCanh: cho.nguCanh, anh: cho.anh, anhThem: cho.anhThem }, GOC); }   // GIỮ cho tới khi đóng: iframe nạp lại (thẻ "cần đăng nhập" → hòm thật sau khi đăng nhập) báo san-sang lần nữa thì gửi lại
   function mo() {
     if (dangMo) return;
     dangMo = true;

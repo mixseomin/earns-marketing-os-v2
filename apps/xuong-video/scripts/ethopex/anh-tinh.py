@@ -27,10 +27,11 @@ DANG, NGUON, NGAY_MOI, GIAY_MIN, W, H = "ảnh tĩnh", "anh_tinh", 14, 9.0, 1080
 # MẪU CÂU GIỌNG — mỗi mẫu 3 vế (vế nào cũng được chứa {t} = tên phim · c = câu chốt, thẻ hét đặt trước nó) để KIEU_GIONG chèn thẻ cách đọc. Mỗi creative BỐC NGẪU NHIÊN một mẫu của ngôn ngữ
 # (anh 06/11/2026 "Thêm các mẫu voice này vào AT !!! Khi lên camp dạng AT, switch random giữa chúng"), số mẫu ghi vào etp.diem_cham.cham.voice.mau để đo. Chữ giữ nguyên văn anh đưa.
 CAU = {"en": [("Watch {t}", "for Free Now.", "Watch More Now!"),   # form anh chốt 05/11/2026
-              ("For Free.", "Watch the entire series: {t}.", "“Watch More” to continue the story!"),
+              ("Watch the entire series: {t}", "for free.", "“Watch More” to continue the story!"),   # câu đầu phải là tên phim — cấm mở bằng "For Free" (anh 21/11/2026)
               ("Watch the {t}", "for free.", "“Learn More” to enjoy the series!"),
               ("Watch the series {t}", "for free now.", "“See more” to continue watching!")],
        "es": [("¡Mira {t}", "gratis ahora!", "¡Mira más ahora!")]}
+assert not [m for l in CAU.values() for m in l if re.match(r"\W*(for\s+free|free|gratis)\b", m[0], re.I)], "mẫu giọng mở bằng Free/gratis — câu đầu phải là tên phim (anh 21/11/2026)"
 # GIỌNG THEO PHIM (anh 05/11/2026: "giọng kỳ dị, gào thét, ấn tượng … tuỳ theo film"): kiểu đọc chọn theo thể loại phim (etp.phim.the_loai);
 # chữ giữ nguyên form, chỉ chèn thẻ cách đọc ElevenLabs v3 ([shouting]…) — thẻ không thành tiếng. Thể loại chưa có → giọng thường.
 KIEU_GIONG = {

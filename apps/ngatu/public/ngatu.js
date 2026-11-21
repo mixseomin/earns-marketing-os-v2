@@ -904,7 +904,11 @@ function buocBo(a, dt) {
     // vạch) — anh 21/11/2026: người đi bộ phải chờ đèn, chờ xe, chờ cả khi ngã tư đang tắc.
     if (a.s < c.s0 && c.s0 - a.s < 2) {
       const [m, con] = denBo(c.g);
-      if (!((laLieu(a) || (m === 'd' && con > 6)) && !vachKet(a, c))) { vt = Math.min(vt, Math.max(0, c.s0 - 0.4 - a.s) * 1.5); cho = true; }
+      // Chỉ bước xuống khi còn đủ giờ đi hết vạch trước lúc xe hướng này xanh (+2 s dư) — trước chỉ cần còn 6 s, người
+      // bước muộn còn giữa đường khi xe được đi, xe đứng chờ dồn ngược vào lòng ngã tư (anh 22/11/2026: "đèn cho người
+      // đi bộ cũng cần tối ưu"). Hết giờ bước thì cuối pha vạch trống, xe rẽ cùng pha thoát hết.
+      const canDi = (c.s1 - a.s) / a.vmax + 2;
+      if (!((laLieu(a) || (m === 'd' && con > canDi)) && !vachKet(a, c))) { vt = Math.min(vt, Math.max(0, c.s0 - 0.4 - a.s) * 1.5); cho = true; }
     }
   }
   a.choDen = cho; // đứng chờ đèn (kể cả giữa dải phân cách) — xe không coi là "sắp bước ra" mà nhường mãi

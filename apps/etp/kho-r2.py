@@ -3,7 +3,8 @@
 # Chỉ ĐỌC (R2 liệt kê + Ethopex API + psql) — không chép, không xoá. Việc chuyển là của người giữ kho (tai).
 #   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; python3 apps/etp/kho-r2.py do
 #   … python3 apps/etp/kho-r2.py ds <nhom>      → khoá R2 (kho/ethopex/…) của nhóm, mỗi dòng một tệp
-#   python3 apps/etp/kho-r2.py --tu-kiem         → tự kiểm phần phân nhóm (không cần mạng)
+#   … python3 apps/etp/kho-r2.py chuyen <nhom> … → CHÉP nhóm sang Drive kho-may/ethopex/<cùng khoá> + đối kích thước (không xoá R2)
+#   python3 apps/etp/kho-r2.py --tu-kiem        → tự kiểm phần phân nhóm (không cần mạng)
 # Gốc sự thật "còn đọc": video_url / thumbnail_url / image_url của MỌI creative trên Ethopex + etp.creative.video/anh. Meta tải lại URL
 # mỗi lần camp/ad mới dùng creative (external_creative_id rỗng), nên creative còn có thể nhân bản thì tệp của nó phải ở R2.
 import json, os, re, subprocess, sys, time
@@ -55,6 +56,36 @@ def phan_loai(tep, ref, tv, nong, tu_choi, bay_gio):
             else: ra[k] = "tp_nghi"
         else: ra[k] = "khac"
     return ra
+
+DRIVE_DICH = "khodrive:kho-may/ethopex/"   # cùng gốc với `kho cat` (DRIVE=khodrive, DRIVE_GOC=kho-may) — khoá R2 kho/ethopex/<x> ↔ Drive kho-may/ethopex/<x>
+
+def _dong_chuyen(khoa):   # khoá R2 → đường tương đối dưới kho/ethopex/ cho --files-from; giọng CTA mp3 KHÔNG bao giờ đi (len-creative đọc thẳng R2)
+    f = os.path.basename(khoa)
+    if not khoa.startswith(GOC) or ".." in khoa or (khoa.startswith(GOC + "thanh-pham/") and (f.endswith(".mp3") or f.startswith("cta-"))): return None
+    return khoa[len(GOC):]
+
+def chuyen(nhoms):
+    """CHÉP các nhóm an toàn từ R2 sang Drive cùng đường dẫn, rồi ĐỐI kích thước từng tệp hai đầu. Không xoá gì ở R2 (gỡ R2 là bước riêng, cần duyệt)."""
+    if not nhoms or any(n not in NHOM or not NHOM[n][0] for n in nhoms): raise SystemExit("chỉ nhận nhóm chuyển được: " + " ".join(n for n in NHOM if NHOM[n][0]))
+    tep, ref, tv, nong, tu_choi = nap()
+    nhom = phan_loai(tep, ref, tv, nong, tu_choi, time.time())
+    ds = sorted({d for k, n in nhom.items() if n in nhoms for d in [_dong_chuyen(k)] if d})
+    if not ds: print("không có tệp nào"); return True
+    ff = f"/tmp/kho-r2-chuyen-{os.getpid()}.txt"
+    with open(ff, "w") as o: o.write("\n".join(ds) + "\n")
+    print(f"chép {len(ds)} tệp {sum(tep[GOC + d][0] for d in ds)/1e9:.1f} GB · R2 {GOC} → {DRIVE_DICH}", flush=True)
+    e = dict(os.environ, RCLONE_CONFIG_KHOR2_TYPE="s3", RCLONE_CONFIG_KHOR2_PROVIDER="Cloudflare", RCLONE_CONFIG_KHOR2_NO_CHECK_BUCKET="true",
+             RCLONE_CONFIG_KHOR2_ACCESS_KEY_ID=os.environ["R2_ACCESS_KEY_ID"], RCLONE_CONFIG_KHOR2_SECRET_ACCESS_KEY=os.environ["R2_SECRET_ACCESS_KEY"],
+             RCLONE_CONFIG_KHOR2_ENDPOINT=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com")
+    nguon = f"khor2:{os.environ['R2_BUCKET']}/{GOC}"
+    # copy bỏ qua tệp Drive đã có cùng kích thước (chạy lại an toàn); Drive giới hạn ~3 tệp mới/giây nên 8 luồng là đủ
+    r = subprocess.run(["rclone", "copy", nguon, DRIVE_DICH, "--files-from", ff, "--size-only", "--transfers", "8", "--checkers", "16",
+                        "--drive-chunk-size", "64M", "--retries", "5", "--stats-one-line", "--stats", "60s", "--log-level", "NOTICE"], env=e, text=True, timeout=6 * 3600)
+    k = subprocess.run(["rclone", "check", nguon, DRIVE_DICH, "--files-from", ff, "--size-only", "--one-way", "--log-level", "ERROR"], env=e, capture_output=True, text=True, timeout=3600)
+    thieu = [l for l in k.stderr.splitlines() if "ERROR" in l and "differences found" not in l]
+    for l in thieu[:20]: print("THIẾU/LỆCH", l)
+    print(f"đối kích thước R2 ↔ Drive: {len(ds) - len(thieu)}/{len(ds)} khớp · rclone copy mã {r.returncode} · check mã {k.returncode} · danh sách {ff}")
+    return r.returncode == 0 and k.returncode == 0
 
 def _psql(cau):
     r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-F", "\t", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=cau, capture_output=True, text=True, timeout=300)
@@ -132,13 +163,16 @@ def tu_kiem():
     r = _ref_tu_cr({"video_url": json.dumps(["https://img.on.tc/kho/ethopex/thanh-pham/2026-11/x.mp4"]), "thumbnail_url": "https://img.on.tc/kho/ethopex/thanh-pham/2026-11/x.jpg"})
     if r != {G+"thanh-pham/2026-11/x.mp4", G+"thanh-pham/2026-11/x.jpg"}: sai.append(("_ref_tu_cr", sorted(r), "2 khoá"))
     if not all(NHOM[n][0] is False for n in NHOM if n.startswith("giu_")): sai.append(("NHOM", "giu_* phải là giữ", ""))
+    d = [_dong_chuyen(G+"thanh-pham/2026-10/cta-en-1.mp3"), _dong_chuyen(G+"thanh-pham/2026-11/cta-x.mp4"), _dong_chuyen(G+"thu-vien/a.mp4"), _dong_chuyen("khac/a.mp4")]
+    if d != [None, None, "thu-vien/a.mp4", None]: sai.append(("_dong_chuyen", d, "cta/khác không đi, giữ đường tương đối"))
     for s in sai: print("SAI", *s)
-    print(f"kho-r2 tự kiểm: {len(mong) + 2 - len(sai)}/{len(mong) + 2} đạt"); return not sai
+    print(f"kho-r2 tự kiểm: {len(mong) + 3 - len(sai)}/{len(mong) + 3} đạt"); return not sai
 
 if __name__ == "__main__":
     a = sys.argv[1:]
     if a[:1] == ["--tu-kiem"]: sys.exit(0 if tu_kiem() else 1)
     if a[:1] == ["do"]: do(); sys.exit(0)
+    if a[:1] == ["chuyen"]: sys.exit(0 if chuyen(a[1:]) else 1)
     if a[:1] == ["ds"] and len(a) == 2 and a[1] in NHOM:
         tep, ref, tv, nong, tu_choi = nap()
         for k, n in sorted(phan_loai(tep, ref, tv, nong, tu_choi, time.time()).items()):

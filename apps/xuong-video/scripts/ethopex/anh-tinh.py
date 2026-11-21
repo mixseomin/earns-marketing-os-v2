@@ -454,11 +454,18 @@ def xoay_giong(ds, yeu_cau):
         k = min(KIEU_GIONG, key=lambda k: (k in co, dem[k], list(KIEU_GIONG).index(k))); ra[cid] = k; dem[k] += 1
     return ra
 
+def cau_doc(lang, so_mau, kieu, ten):
+    """câu đọc của một mẫu — MỘT chỗ cho giọng đọc lẫn dấu sổ. Gộp mạo từ lặp khi tên phim đã mở bằng nó ("Watch the The Great…" — Genie 21/11/2026)"""
+    a_, b_, c_ = CAU[lang][so_mau]
+    cau = KIEU_GIONG[kieu][1].format(a=a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten))
+    return re.sub(r"\b(the|el|la)\s+(?=\1\b)", "", cau, flags=re.I)
+assert all("the The" not in cau_doc("en", i, "thuong", "The X") for i in range(len(CAU["en"]))), "cau_doc không gộp được mạo từ lặp"
+
 def danh_dau(tv, kieu, lang, ten, so_mau=0, them=None):
     """DẤU KIỂU GIỌNG vào sổ điểm chạm của creative (etp.diem_cham.cham) để đo kiểu nào tốt / xấu — anh 05/11/2026. len-creative ghi khuôn
     cảnh cắt (thoại gốc, nút CTA mẫu Kiên); ảnh tĩnh không có những thứ đó → ghi đúng cái creative này có."""
-    v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang][so_mau]
-    j = json.dumps({"voice": {"thoai": "khong", "giong": kieu, "nguoi_doc": v, "mau": so_mau, "cau": mau.format(a=a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten))},
+    v, mau = KIEU_GIONG[kieu]
+    j = json.dumps({"voice": {"thoai": "khong", "giong": kieu, "nguoi_doc": v, "mau": so_mau, "cau": cau_doc(lang, so_mau, kieu, ten)},
                     "chu_video": {"bo_cuc": "anh_tinh_ten_phim", "phu_de": "xoa", **({"ten": "poster" if them.get("ten_poster") else "chu_vang"} if them else {})},
                     "cta": {"mau": "watch_for_free" if (them or {}).get("free") else "khong_nut"}, **({"anh_tinh": {"ban": them.get("ban"), "khung": f"{them.get('tap')}#{them.get('khung_so')}", "chon": "ai" if MOI else "may", "hd": MOI}} if them else {})}, ensure_ascii=False).replace("$J$", "")
     return sql(f"update etp.diem_cham d set cham = d.cham || $J${j}$J$::jsonb, luc = now() from etp.thu_vien v where v.id = {int(tv)} and d.creative_id = v.creative_id returning d.creative_id")
@@ -480,8 +487,7 @@ def doc_giong(cid, lang, v, cau, tm):
 
 def giong(cid, lang, ten, kieu, tm, so_mau=0):
     """giọng đọc mẫu câu CAU theo kiểu → (giong.mp3, ₫ đã chi, kiểu)"""
-    v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang][so_mau]
-    f, vnd = doc_giong(cid, lang, v, mau.format(a=a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten)), tm)
+    f, vnd = doc_giong(cid, lang, KIEU_GIONG[kieu][0], cau_doc(lang, so_mau, kieu, ten), tm)
     return f, vnd, kieu
 
 def dung(nen, chu, mp3, ra):

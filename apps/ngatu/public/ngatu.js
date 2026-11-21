@@ -96,7 +96,15 @@ function den(g, t) {
 }
 
 const DD = matchMedia('(pointer: coarse)').matches || innerWidth < 700; // điện thoại / máy tính bảng → giảm tải cho máy khỏi nóng
-const CAI = { matDo: DD ? 280 : 450, lieu: 0.12, rePhai: true, toc: 1, dung: false, vuot: 0 };
+// Tuỳ chọn người xem chỉnh được — lưu vào trình duyệt, F5 vẫn giữ (anh 21/11/2026); nút "Mặc định" đưa về như lúc đầu.
+const MAC_DINH = { matDo: DD ? 280 : 450, lieu: 0.12, rePhai: true, tyLeOto: 7, toc: 1 };
+const KHOA_LUU = 'ngatu-tuy-chon';
+const daLuu = (() => { try { const o = JSON.parse(localStorage.getItem(KHOA_LUU) || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
+const CAI = { ...MAC_DINH, dung: false, vuot: 0, don: 0 };
+for (const k of Object.keys(MAC_DINH)) if (typeof daLuu[k] === typeof MAC_DINH[k]) CAI[k] = daLuu[k];
+function luuTuyChon() {
+  try { localStorage.setItem(KHOA_LUU, JSON.stringify(Object.fromEntries(Object.keys(MAC_DINH).map((k) => [k, CAI[k]])))); } catch {}
+}
 let tc = 0, tg = 0;
 
 // ───────────────────────── lưới tra láng giềng ─────────────────────────
@@ -130,6 +138,7 @@ const AO = ['#f2f2f2', '#2a2f3a', '#c0392b', '#2f5d8a', '#e1b12c', '#7f8c8d', '#
 const MU = ['#f5f5f5', '#d7263d', '#1b1b1b', '#f9c80e', '#2e86ab', '#e94e77', '#ffffff', '#3c3c3c', '#ff8c42'];
 const SON_OTO = ['#f4f4f4', '#f4f4f4', '#1d1d1f', '#9aa0a6', '#c0c4c8', '#7b0f12', '#1f3b73', '#00a650', '#ffffff', '#2b2b2e'];
 const XANH_GRAB = '#00a650';
+const SON_TAXI = ['#f4f4f4', '#f4f4f4', '#0b8a3e', '#0b8a3e', '#f2c200'];
 const HANG = ['#a0764a', '#3f7fbf', '#c9b48a', '#d9d9d9'];
 let idDem = 0;
 function chonArm(chiEW) {
@@ -158,16 +167,26 @@ function sinhXe(loai) {
   const r0 = loai === 'xm' ? 2.3 : loai === 'oto' ? 6.5 : 9.5;
   if (gan(p.x[0], p.z[0], r0)) return null;
   const grab = loai === 'xm' && Math.random() < 0.14;
+  const taxi = loai === 'oto' && Math.random() < 0.4;
   const a = {
     id: idDem++, loai, p, s: 0, k: 0, dlat: 0, lv: 0, sp: vmax * 0.7, vmax, len, wid, g: arm.g, quay,
-    lieu: loai === 'xm' && Math.random() < CAI.lieu, lan: loai === 'xm' ? rnd(0, 2.5) : 0, hayLeo: loai === 'xm' && Math.random() < 0.3,
+    taxi, sDon: -1, tDon: 0, dangDon: false,
+    // taxi liều gấp ba xe máy, lấn vạch dừng như xe máy; ô tô thường liều bằng nửa
+    lieu: Math.random() < (loai === 'xm' ? CAI.lieu : taxi ? Math.min(0.9, CAI.lieu * 3) : loai === 'oto' ? CAI.lieu * 0.5 : 0),
+    lan: loai === 'xm' ? rnd(0, 2.5) : taxi ? rnd(0.5, 3) : 0, hayLeo: loai === 'xm' && Math.random() < 0.3,
     ket: 0, ma: 0, w: rnd(0.3, 0.8), ph: rnd(0, 6.28), nghieng: 0, y: 0,
-    c1: new THREE.Color(loai === 'xm' ? chon(SON_XM) : loai === 'oto' ? chon(SON_OTO) : '#f4f4f4'),
+    c1: new THREE.Color(loai === 'xm' ? chon(SON_XM) : taxi ? chon(SON_TAXI) : loai === 'oto' ? chon(SON_OTO) : '#f4f4f4'),
     c2: new THREE.Color(grab ? XANH_GRAB : chon(AO)), c3: new THREE.Color(grab ? XANH_GRAB : chon(MU)),
     cho: loai === 'xm' && !grab && Math.random() < 0.3, c4: new THREE.Color(chon(AO)),
     hang: loai === 'xm' && Math.random() < 0.06, c5: new THREE.Color(chon(HANG)),
   };
   if (a.hang) a.cho = false;
+  if (taxi && Math.random() < 0.75) {
+    // taxi tấp lề đón/trả khách bất chợt — ngay trước đèn hoặc vừa qua ngã tư, đứng chắn làn sát lề
+    const truoc = p.sStop > 30 && Math.random() < 0.5;
+    a.sDon = truoc ? rnd(10, p.sStop - 14) : p.sOut + rnd(5, Math.max(6, p.len - p.sOut - 12));
+    a.tDon = rnd(3, 8);
+  }
   mau(p, a);
   a.x = a.px - a.fz * a.dlat; a.z = a.pz + a.fx * a.dlat;
   a.goc = Math.atan2(-a.fz, a.fx);
@@ -268,6 +287,19 @@ function buocXe(a, dt) {
   let vt = a.vmax * (a.trongNga && xm ? 0.8 : 1);
   vt = Math.min(vt, Math.max(0, (f0 - s0) / T + vj * 0.85));
   a.choDen = false;
+  let latDich = 0;
+  if (a.sDon > 0) {
+    const con = a.sDon - a.s;
+    if (con < 16) {
+      latDich = a.s < a.p.sIn ? a.p.hw1 - a.p.o1 - 1.15 : a.p.hw2 - a.p.o2 - 1.15; // tạt sát lề, không xi nhan
+      vt = Math.min(vt, con < 0.3 ? 0 : Math.sqrt(2 * 4 * con));
+      if (con < 0.3) {
+        if (!a.dangDon) { a.dangDon = true; CAI.don++; }
+        a.tDon -= dt;
+        if (a.tDon <= 0) { a.sDon = -1; a.dangDon = false; }
+      }
+    }
+  }
   let m = 'x';
   if (a.s < p.sStop + a.lan) {
     const [mm, con, qua] = den(a.g, tc);
@@ -283,7 +315,7 @@ function buocXe(a, dt) {
   }
   const ac = xm ? 2.6 : a.loai === 'bus' ? 1.0 : 1.8;
   a.sp = vt > a.sp ? Math.min(vt, a.sp + ac * dt) : Math.max(vt, a.sp - 9 * dt);
-  if (a.sp < 0.2 && !a.choDen) { a.ket += dt; if (a.ket > 6) { a.ma = 2.5; a.ket = 0; } } else a.ket = Math.max(0, a.ket - dt);
+  if (a.sp < 0.2 && !a.choDen && !a.dangDon) { a.ket += dt; if (a.ket > 6) { a.ma = 2.5; a.ket = 0; } } else a.ket = Math.max(0, a.ket - dt);
   if (a.ma > 0) a.ma -= dt;
   if (xm) {
     const [lo, hi] = bien(a);
@@ -299,6 +331,11 @@ function buocXe(a, dt) {
     const lim = 0.35 + a.sp * 0.3;
     lvt = Math.max(-lim, Math.min(lim, lvt));
     a.lv += (lvt - a.lv) * Math.min(1, dt * 5);
+  } else if (a.loai === 'oto') {
+    // ô tô: về giữa làn, taxi thì tạt ngang ra lề / chen lại vào làn khá gắt
+    const lim = a.taxi ? 1.6 : 0.8;
+    const lvt = Math.max(-lim, Math.min(lim, (latDich - a.dlat) * 1.2)) * Math.min(1, a.sp / 2 + (a.dangDon ? 0 : 0.3));
+    a.lv += (lvt - a.lv) * Math.min(1, dt * 3);
   }
   const sTruoc = a.s;
   a.s += a.sp * dt;
@@ -342,7 +379,7 @@ function buoc(dt) {
   for (let i = DS.length - 1; i >= 0; i--) if (DS[i].s >= DS[i].p.len - 0.5) { DS[i].het = true; DS[i] = DS[DS.length - 1]; DS.pop(); }
   const dem = { xm: 0, oto: 0, bus: 0, bo: 0 };
   for (const a of DS) dem[a.loai]++;
-  const muc = { xm: CAI.matDo, oto: Math.round(CAI.matDo / 14), bus: 3, bo: Math.round(60 + CAI.matDo / 10) };
+  const muc = { xm: CAI.matDo, oto: Math.min(MAX_OTO, Math.round(CAI.matDo * CAI.tyLeOto / 100)), bus: 3, bo: Math.round(60 + CAI.matDo / 10) };
   for (let t = 0; t < 4 && dem.xm < muc.xm; t++) if (sinhXe('xm')) dem.xm++;
   if (dem.oto < muc.oto) sinhXe('oto');
   if (dem.bus < muc.bus && Math.random() < 0.02) sinhXe('bus');
@@ -427,6 +464,8 @@ const geoOto = ghep([
   [banh(0.33, 0.24, -1.4, 0.33, 0.82), DEN_B], [banh(0.33, 0.24, -1.4, 0.33, -0.82), DEN_B],
   [box(0.05, 0.16, 1.5).translate(2.16, 0.72, 0), '#ffe9a8'],
 ]);
+const MAX_OTO = 400;
+const geoMui = ghep([[box(0.62, 0.22, 0.42).translate(-0.3, 1.68, 0), TRANG], [box(0.64, 0.08, 0.44).translate(-0.3, 1.6, 0), '#222222']]); // hộp đèn TAXI trên nóc
 const geoBus = ghep([
   [box(10.5, 2.5, 2.5).translate(0, 1.7, 0), '#1f9d57'],
   [box(9.6, 0.95, 2.52).translate(-0.2, 2.25, 0), '#1d2730'],
@@ -455,7 +494,7 @@ function inst(geo, mat, n) {
 const MAX_XM = 1200;
 const mXm = inst(geoXm, vatLieuMau, MAX_XM), mNguoi = inst(geoNguoi, vatLieuMau, MAX_XM), mMu = inst(geoMu, vatLieu, MAX_XM);
 const mCho = inst(geoCho, vatLieuMau, MAX_XM), mHang = inst(geoHang, vatLieu, MAX_XM);
-const mOto = inst(geoOto, vatLieuMau, 160), mBus = inst(geoBus, vatLieuMau, 16);
+const mOto = inst(geoOto, vatLieuMau, MAX_OTO), mMui = inst(geoMui, vatLieuMau, MAX_OTO), mBus = inst(geoBus, vatLieuMau, 16);
 const mBo = inst(geoBo, vatLieuMau, 400), mDau = inst(geoDau, vatLieu, 400), mNon = inst(geoNon, vatLieu, 400);
 const NON_MAU = new THREE.Color('#e8d7a6');
 const mBong = (() => {
@@ -464,11 +503,12 @@ const mBong = (() => {
   g.addColorStop(0, 'rgba(0,0,0,0.62)'); g.addColorStop(0.6, 'rgba(0,0,0,0.38)'); g.addColorStop(1, 'rgba(0,0,0,0)');
   x.fillStyle = g; x.fillRect(0, 0, 64, 64);
   const mat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
-  const m = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), mat, MAX_XM + 600);
+  const m = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), mat, MAX_XM + 900);
   m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.renderOrder = 1;
   scene.add(m); return m;
 })();
 const SB = new THREE.Vector3();
+const MUI_TAXI = new THREE.Color('#ffd84a'), DEN_DON = new THREE.Color('#ff5a2a');
 
 // ── mặt đất, vỉa hè, vạch kẻ
 const mat0 = new THREE.Mesh(new THREE.PlaneGeometry(900, 900).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: '#4a4c50' }));
@@ -705,7 +745,7 @@ function ve() {
   let ix = 0, io = 0, ib = 0, ip = 0, is = 0;
   veXm.length = 0;
   for (const a of DS) {
-    if (is < MAX_XM + 600) { Q.setFromAxisAngle(UP, a.goc); V.set(a.x, a.y + 0.03, a.z); datMa(mBong, is++, V, Q, a.loai === 'bo' ? SB.set(0.75, 1, 0.75) : SB.set(a.len * 1.15, 1, a.wid * 1.7)); }
+    if (is < MAX_XM + 900) { Q.setFromAxisAngle(UP, a.goc); V.set(a.x, a.y + 0.03, a.z); datMa(mBong, is++, V, Q, a.loai === 'bo' ? SB.set(0.75, 1, 0.75) : SB.set(a.len * 1.15, 1, a.wid * 1.7)); }
     if (a.loai === 'bo') {
       Q.setFromAxisAngle(UP, a.goc);
       V.set(a.x, a.y + Math.abs(Math.sin(a.buoc)) * 0.04, a.z);
@@ -720,10 +760,10 @@ function ve() {
       datMa(mXm, ix, V, Q, MOT, a.c1); datMa(mNguoi, ix, V, Q, MOT, a.c2); datMa(mMu, ix, V, Q, MOT, a.c3);
       datMa(mCho, ix, V, Q, a.cho ? MOT : KHONG, a.c4); datMa(mHang, ix, V, Q, a.hang ? MOT : KHONG, a.c5);
       veXm[ix] = a; ix++;
-    } else if (a.loai === 'oto') datMa(mOto, io++, V, Q, MOT, a.c1);
+    } else if (a.loai === 'oto') { datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, a.c1); }
     else datMa(mBus, ib++, V, Q, MOT, a.c1);
   }
-  for (const [m, n] of [[mXm, ix], [mNguoi, ix], [mMu, ix], [mCho, ix], [mHang, ix], [mOto, io], [mBus, ib], [mBo, ip], [mDau, ip], [mNon, ip], [mBong, is]]) {
+  for (const [m, n] of [[mXm, ix], [mNguoi, ix], [mMu, ix], [mCho, ix], [mHang, ix], [mOto, io], [mMui, io], [mBus, ib], [mBo, ip], [mDau, ip], [mNon, ip], [mBong, is]]) {
     m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
   }
 }
@@ -749,13 +789,26 @@ function chonXeTheo() {
 }
 document.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => datCam(b.dataset.cam)));
 const $ = (id) => document.getElementById(id);
-$('md').value = CAI.matDo; $('vMd').textContent = CAI.matDo;
-$('md').addEventListener('input', (e) => { CAI.matDo = +e.target.value; $('vMd').textContent = CAI.matDo; });
-$('lieu').addEventListener('input', (e) => { CAI.lieu = +e.target.value / 100; $('vLieu').textContent = e.target.value + '%'; });
-$('rp').addEventListener('change', (e) => (CAI.rePhai = e.target.checked));
+const chuToc = () => 'Tốc độ ' + String(CAI.toc).replace('.', ',') + '×';
+function hienTuyChon() {
+  $('md').value = CAI.matDo; $('vMd').textContent = CAI.matDo;
+  $('lieu').value = Math.round(CAI.lieu * 100); $('vLieu').textContent = Math.round(CAI.lieu * 100) + '%';
+  $('oto').value = CAI.tyLeOto; $('vOto').textContent = CAI.tyLeOto + '%';
+  $('rp').checked = CAI.rePhai; $('toc').textContent = chuToc();
+}
+hienTuyChon();
+$('md').addEventListener('input', (e) => { CAI.matDo = +e.target.value; $('vMd').textContent = CAI.matDo; luuTuyChon(); });
+$('lieu').addEventListener('input', (e) => { CAI.lieu = +e.target.value / 100; $('vLieu').textContent = e.target.value + '%'; luuTuyChon(); });
+$('oto').addEventListener('input', (e) => { CAI.tyLeOto = +e.target.value; $('vOto').textContent = CAI.tyLeOto + '%'; luuTuyChon(); });
+$('rp').addEventListener('change', (e) => { CAI.rePhai = e.target.checked; luuTuyChon(); });
+$('macdinh').addEventListener('click', () => {
+  Object.assign(CAI, MAC_DINH);
+  try { localStorage.removeItem(KHOA_LUU); } catch {}
+  hienTuyChon();
+});
 $('mo').addEventListener('click', () => document.querySelector('.ben').classList.toggle('mo-ra'));
 $('dung').addEventListener('click', (e) => { CAI.dung = !CAI.dung; e.target.textContent = CAI.dung ? 'Chạy tiếp' : 'Tạm dừng'; });
-$('toc').addEventListener('click', (e) => { CAI.toc = CAI.toc === 1 ? 2 : CAI.toc === 2 ? 4 : CAI.toc === 4 ? 0.5 : 1; e.target.textContent = 'Tốc độ ' + String(CAI.toc).replace('.', ',') + '×'; });
+$('toc').addEventListener('click', (e) => { CAI.toc = CAI.toc === 1 ? 2 : CAI.toc === 2 ? 4 : CAI.toc === 4 ? 0.5 : 1; e.target.textContent = chuToc(); luuTuyChon(); });
 
 // bấm vào một xe máy → máy quay đi theo xe đó
 const ray = new THREE.Raycaster(), chuot = new THREE.Vector2();
@@ -786,10 +839,10 @@ const TEN_DEN = { x: 'XANH', v: 'VÀNG', d: 'ĐỎ' };
 function hud() {
   const chip = (ten, g) => { const [m, con] = den(g, tc); return `<span class="den ${m}"><i></i>${ten} <b>${TEN_DEN[m]} ${Math.ceil(con)} s</b></span>`; };
   $('den').innerHTML = chip('Đông–Tây', 0) + chip('Bắc–Nam', 1);
-  let cho = 0, leo = 0;
-  for (const a of DS) if (a.loai === 'xm') { if (a.choDen && a.sp < 0.5) cho++; if (a.y > 0) leo++; }
-  $('so').innerHTML = `<div><b>${demCu.xm}</b> xe máy</div><div><b>${demCu.oto}</b> ô tô</div><div><b>${demCu.bus}</b> xe buýt</div><div><b>${demCu.bo}</b> người đi bộ</div>`
-    + `<div><b>${cho}</b> xe đang chờ đèn</div><div><b>${leo}</b> xe leo lề</div><div><b>${CAI.vuot}</b> lượt vượt đèn đỏ</div>`;
+  let cho = 0, leo = 0, taxi = 0, don = 0;
+  for (const a of DS) { if (a.loai === 'xm') { if (a.choDen && a.sp < 0.5) cho++; if (a.y > 0) leo++; } else if (a.taxi) { taxi++; if (a.dangDon) don++; } }
+  $('so').innerHTML = `<div><b>${demCu.xm}</b> xe máy</div><div><b>${demCu.oto}</b> ô tô (${taxi} taxi)</div><div><b>${demCu.bus}</b> xe buýt</div><div><b>${demCu.bo}</b> người đi bộ</div>`
+    + `<div><b>${cho}</b> xe đang chờ đèn</div><div><b>${leo}</b> xe leo lề</div><div><b>${CAI.vuot}</b> lượt vượt đèn đỏ</div><div><b>${don}</b> taxi tấp lề đón khách</div>`;
 }
 
 function coKhung() {

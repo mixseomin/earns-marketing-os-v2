@@ -202,15 +202,44 @@ export function quyDoiMat(bo, pxDung) {
     const Cg = P.cong;
     if (Cg) cong = { ten: Cg.ten, thang: Cg.thang, duoiNguong: DP(Cg.nguong), cua: (Cg.nguong - Cg.dinhCua) / pD, khung: (Cg.nguong - Cg.dinhKhung) / pD, rongCua: Cg.rongCua / pN, rongKhung: Cg.rongKhung / pN };
   }
-  // tháp góc treo nhô ra trước mặt tường về phía người chụp (đứng dưới sân nhìn ngửa) → trên ảnh trông cao + to hơn thật:
-  // thapGoc.phoiCanh = { ti, matNguoi } co mọi độ cao tháp về ngang mắt người chụp (mặt sân + matNguoi) theo ti, bề ngang theo ti (góp ý #1649)
-  const G = bo.thapGoc, PC = G?.phoiCanh, matMay = PC && duoiSan != null ? duoiSan - PC.matNguoi : null;
-  const Dt = (y) => matMay == null ? Du(y) : matMay + PC.ti * (Du(y) - matMay), tiN = matMay == null ? 1 : PC.ti;
-  const thap = G && { ids: G.ids, chop: Dt(G.chop), chanChop: Dt(G.chanChop), dinhRang: Dt(G.dinhRang), dinhThan: Dt(G.dinhThan), frieze: G.frieze.map(Dt),
-    tang: G.tang.map((t) => ({ dinh: Dt(t.dinh), bau: Dt(t.bau), w: tiN * (t.o[1] - t.o[0]) / T.pxNgang })), go: G.go.map((g) => g.map(Dt)), rang: G.rang.map(Dt), chanThan: Dt(G.chanThan), mui: Dt(G.mui),
-    // bề ngang đo trên ảnh (thapGoc.rong: thân, vành, vòng răng, chân nón — px [trái, phải]) → bán kính đỉnh bát giác: bề ngang thấy ≈ đường kính ngoại tiếp chiếu từ chính diện ≈ R·(1 + cos 22,5°)
-    ...Object.fromEntries(Object.entries(G.rong || {}).filter(([, r]) => Array.isArray(r)).map(([k, r]) => ['r' + k[0].toUpperCase() + k.slice(1), tiN * (r[1] - r[0]) / T.pxNgang / (1 + Math.cos(Math.PI / 8))])) };
-  return { cum, tranh, banCong, go, cuaDon, duoiSan, cong, thap, gableCao: bo.neo ? (T.maiY - bo.neo.dinhY) / T.pxDung : null, pxDung: T.pxDung };
+  // tháp góc KHÔNG đổi bằng thước tuyến tính này (vật tròn treo nhô trước mặt tường, máy ngửa ~29° → sai 1–3 m): thapTheoTia bên dưới
+  return { cum, tranh, banCong, go, cuaDon, duoiSan, cong, gableCao: bo.neo ? (T.maiY - bo.neo.dinhY) / T.pxDung : null, pxDung: T.pxDung };
+}
+
+// CAMERA ẢNH ĐÃ ĐỊNH VỊ (bo.anh.camera — khop-lg.py: LightGlue + PnP ảnh chụp ↔ ảnh 3D Google; quy ước three.js Euler YXZ, nhìn −Z, fov dọc, toạ độ cảnh)
+// → chieu(P) = điểm ảnh [u, v] của điểm cảnh P trên khung W×H; tia(u, v) = hướng nhìn qua điểm ảnh. Không phụ thuộc cỡ ảnh lúc định vị (fov dọc, cùng tỉ lệ khung).
+export function mayAnh(c, W, H) {
+  const [cy, sy, cp, sp, cr, sr] = [Math.cos(c.yaw), Math.sin(c.yaw), Math.cos(c.pitch), Math.sin(c.pitch), Math.cos(c.roll), Math.sin(c.roll)];
+  const nhan = (A, B) => A.map((h) => [0, 1, 2].map((j) => h[0] * B[0][j] + h[1] * B[1][j] + h[2] * B[2][j]));
+  const R = nhan(nhan([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]], [[1, 0, 0], [0, cp, -sp], [0, sp, cp]]), [[cr, -sr, 0], [sr, cr, 0], [0, 0, 1]]);
+  const f = (H / 2) / Math.tan(c.fov * Math.PI / 360), O = [c.x, c.y, c.z];
+  return { O, f,
+    chieu: (P) => { const d = [P[0] - O[0], P[1] - O[1], P[2] - O[2]], q = [0, 1, 2].map((j) => R[0][j] * d[0] + R[1][j] * d[1] + R[2][j] * d[2]); return [W / 2 + f * q[0] / -q[2], H / 2 - f * q[1] / -q[2]]; },
+    tia: (u, v) => { const a = [(u - W / 2) / f, -(v - H / 2) / f, -1]; return R.map((h) => h[0] * a[0] + h[1] * a[1] + h[2] * a[2]); } };
+}
+
+// THÁP GÓC THEO TIA CAMERA (anh 21/11/2026 "ko chắp vá, làm thành chuẩn"): mỗi hàng điểm ảnh của thapGoc → cao độ TUYỆT ĐỐI bằng tia từ camera ảnh chính.
+// Mép ngang một vòng tròn / bát giác (gờ, vành, chân nón, đỉnh / bậu cửa) thấy trên ảnh là điểm PHÍA TRƯỚC vòng (gần máy hơn trục một bán kính) → tìm cao độ h để
+// điểm trục + r·(hướng về máy) chiếu đúng hàng đó; mũi nón / bầu / thánh giá / mũi con-xon nằm trên trục (r = 0), mũi nón đo riêng từng tháp trên trục của nó.
+// Bề ngang [trái, phải] ở hàng đo → góc ngang α giữa hai tia → bán kính tròn D·sin(α/2) → đỉnh bát giác 2r/(1 + cos 22,5°) (nhìn chéo, giữa cạnh và góc).
+// tam = { id: [x, z] } tâm thân tháp (mặt bằng OSM). Thay thước tuyến tính + hệ số phoiCanh gõ tay (#1649): thước đó chỉ đúng trên mặt tường, tháp treo nhô ra trước.
+export function thapTheoTia(bo, tam) {
+  const G = bo.thapGoc, c = bo.anh?.camera, Tia = G?.tia; if (!G || !c || !Tia || !tam[Tia.thap]) return null;
+  const M = mayAnh(c, bo.anh.rong, bo.anh.cao), K = Math.cos(Math.PI / 8);
+  const ve = ([x, z]) => { const dx = M.O[0] - x, dz = M.O[2] - z, D = Math.hypot(dx, dz); return { x, z, D, ux: dx / D, uz: dz / D }; };
+  const caoTai = (A, v, r = 0) => { let a = -100, b = 300; const P = [A.x + A.ux * r, 0, A.z + A.uz * r]; // hàng ảnh tăng khi hạ thấp → chia đôi
+    for (let i = 0; i < 60; i++) { P[1] = (a + b) / 2; if (M.chieu(P)[1] > v) a = P[1]; else b = P[1]; } return P[1]; };
+  const gocNgang = (u1, u2, v) => { const p = M.tia(u1, v), q = M.tia(u2, v); return Math.abs(Math.atan2(p[0] * q[2] - p[2] * q[0], p[0] * q[0] + p[2] * q[2])); };
+  const A = ve(tam[Tia.thap]), H = Tia.hangRong || {};
+  const rTron = (k) => G.rong?.[k] && H[k] != null ? A.D * Math.sin(gocNgang(G.rong[k][0], G.rong[k][1], H[k]) / 2) : null, dinh = (rt) => rt == null ? null : 2 * rt / (1 + K);
+  const rThan = dinh(rTron('than')), rVanh = dinh(rTron('vanh')), rRang = dinh(rTron('rang')), rChop = dinh(rTron('chop'));
+  const truoc = (R) => R == null ? 0 : R * (1 + K) / 2, Y = (v, R) => caoTai(A, v, truoc(R)); // mép trước bát giác ≈ giữa cạnh và góc
+  const mui = Tia.muiChop.filter(([id]) => tam[id]).map(([id, v]) => caoTai(ve(tam[id]), v)), chop = mui.reduce((s, y) => s + y, 0) / mui.length;
+  return { ids: G.ids, chop, muiTung: Object.fromEntries(Tia.muiChop.filter(([id]) => tam[id]).map(([id], i) => [id, mui[i]])),
+    bau: Tia.bau && Tia.bau.map((v) => Y(v)), thapGia: Tia.thapGia != null ? Y(Tia.thapGia) : null,
+    chanChop: Y(G.chanChop, rChop), dinhRang: Y(G.dinhRang, rRang), dinhThan: Y(G.dinhThan, rVanh), frieze: G.frieze.map((v) => Y(v, rThan)),
+    tang: G.tang.map((t) => ({ dinh: Y(t.dinh, rThan), bau: Y(t.bau, rThan), w: (A.D - truoc(rThan)) * gocNgang(t.o[0], t.o[1], (t.dinh + t.bau) / 2) })),
+    go: G.go.map((g) => g.map((v) => Y(v, rThan))), rang: G.rang.map((v) => Y(v, rThan)), chanThan: Y(G.chanThan, rThan), mui: Y(G.mui), rThan, rVanh, rRang, rChop, xa: A.D };
 }
 
 // MẶT PALAS HƯỚNG SÂN TRÊN: hai bức tranh tường (thánh George trái, Đức Mẹ Bavaria phải — cắt từ ảnh Commons CC BY-SA 4.0, Naturliebhaberin) ở tầng trên
@@ -441,8 +470,10 @@ export function datThapGoc({ THREE, mergeGeometries, v, b, mau, mauMai = '#56625
   const ra = [], gop = (ds, vl, bong = false) => { if (!ds.length) return; const m = new THREE.Mesh(mergeGeometries(ds), vl); m.castShadow = bong; m.receiveShadow = true; ra.push(m); };
   { // chóp bát giác mảnh đá phiến (trùm nón OSM tối bên trong) + nụ + thánh giá
     const h = b.chop - b.chanChop, g = cb(new THREE.ConeGeometry(b.rChop ?? R * 0.95, h, 8, 1, true)); g.translate(cx, b.chanChop + h / 2, cz);
-    const q = cb(new THREE.SphereGeometry(0.16, 8, 6)); q.translate(cx, b.chop + 0.1, cz);
-    const k = cb(new THREE.CylinderGeometry(0.03, 0.04, 1.0, 5)); k.translate(cx, b.chop + 0.6, cz); const ng = cb(new THREE.BoxGeometry(0.5, 0.06, 0.06)); ng.translate(cx, b.chop + 0.85, cz);
+    // chóp đỉnh đo trên ảnh (thapTheoTia: bầu = hai mép quả cầu, thapGia = thanh ngang thánh giá); thiếu số đo thì giữ cỡ mặc định cũ
+    const yB = b.bau ? (b.bau[0] + b.bau[1]) / 2 : b.chop + 0.1, rB = b.bau ? Math.min(0.3, Math.max(0.12, Math.abs(b.bau[1] - b.bau[0]) / 2)) : 0.16, yN = b.thapGia ?? b.chop + 0.85, dau = yN + 0.25;
+    const q = cb(new THREE.SphereGeometry(rB, 8, 6)); q.translate(cx, yB, cz);
+    const k = cb(new THREE.CylinderGeometry(0.03, 0.04, dau - b.chop, 5)); k.translate(cx, (b.chop + dau) / 2, cz); const ng = cb(new THREE.BoxGeometry(0.5, 0.06, 0.06)); ng.translate(cx, yN, cz);
     gop([g, q, k, ng], new THREE.MeshStandardMaterial({ color: mauMai, roughness: 0.6, metalness: 0.15, side: THREE.DoubleSide }), !nhe);
   }
   gop(da, new THREE.MeshStandardMaterial({ color: mau, roughness: 0.8 })); gop(toi, new THREE.MeshStandardMaterial({ color: '#1b1f27', roughness: 0.6 }));

@@ -23,7 +23,7 @@ import { datAnhSang } from './anhsang.js';
 import { taoChieuAnh } from './chieuanh.js';
 import { datDuong } from './duong.js';
 import { datTrangTri, datCuaCong } from './trangtri.js';
-import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, tiLeDung, datChop, oCum, boTriDo, datMai, banDoMat, datMatRieng } from './mattien.js';
+import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, thapTheoTia, tiLeDung, datChop, oCum, boTriDo, datMai, banDoMat, datMatRieng } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 import { ganAnhQuanh } from './anhquanh.js';
 import { datCanhXa } from './canhxa.js';
@@ -323,13 +323,18 @@ const KHOI_NEO = !GOC_OSM && MAT_BO?.neo ? dsKhoi.find((k) => k.id === MAT_BO.ne
 const PX_DUNG = DINH_NEO != null && MAT_SAN != null ? tiLeDung(MAT_BO, DINH_NEO, MAT_SAN) : null;
 const BO_MET = PX_DUNG ? quyDoiMat(MAT_BO, PX_DUNG) : null;
 const MAI_SAN = BO_MET ? DINH_NEO - BO_MET.gableCao : null; // chân đầu hồi mặt sân (= y1 khối neo)
+let THAP_TIA = null; // tháp góc đo theo tia camera ảnh chính (cao độ tuyệt đối)
 if (BO_MET) {
   const kn = dsKhoi.find((k) => k.id === MAT_BO.neo.khoi); if (kn) kn.tags['roof:height'] = String(BO_MET.gableCao);
-  for (const tid of BO_MET.thap?.ids || []) { const k = dsKhoi.find((q) => q.id === tid); if (!k) continue;
-    k.tags.min_height = String(MAI_SAN - BO_MET.thap.chanThan - k.ref); k.tags.height = String(MAI_SAN - BO_MET.thap.chop - k.ref); k.tags['roof:height'] = String(BO_MET.thap.chanChop - BO_MET.thap.chop);
+  // tháp góc: cao độ tuyệt đối theo tia camera ảnh chính (thapTheoTia), tâm trục = tâm mặt bằng OSM trước khi co
+  const tamThap = Object.fromEntries((MAT_BO.thapGoc?.ids || []).map((id) => dsKhoi.find((q) => q.id === id)).filter(Boolean).map((k) => [k.id, tamDa(k.v)]));
+  THAP_TIA = thapTheoTia(MAT_BO, tamThap);
+  for (const tid of THAP_TIA?.ids || []) { const k = dsKhoi.find((q) => q.id === tid); if (!k) continue; const T = THAP_TIA;
+    const mui = T.muiTung[k.id] ?? T.chop; k.tags.min_height = String(T.chanThan - k.ref); k.tags.height = String(mui - k.ref); k.tags['roof:height'] = String(mui - T.chanChop);
     // thân tròn OSM nằm TRONG thân bát giác đo trên ảnh (cạnh trong = rThan·cos 22,5°): co mặt bằng quanh tâm nếu rộng hơn — thay cho hệ số phóng gõ tay
-    const R = BO_MET.thap.rThan; if (R) { const [cx, cz] = tamDa(k.v), r0 = Math.max(...k.v.map(([x, z]) => Math.hypot(x - cx, z - cz))), f = Math.min(1, R * Math.cos(Math.PI / 8) * 0.95 / r0);
+    const R = T.rThan; if (R) { const [cx, cz] = tamDa(k.v), r0 = Math.max(...k.v.map(([x, z]) => Math.hypot(x - cx, z - cz))), f = Math.min(1, R * Math.cos(Math.PI / 8) * 0.95 / r0);
       if (f < 1) k.v = k.v.map(([x, z]) => [cx + (x - cx) * f, cz + (z - cz) * f]); } }
+  if (THAP_TIA) console.info('[ns] tháp góc theo tia camera: mũi', Object.entries(THAP_TIA.muiTung).map(([id, y]) => id + ' ' + y.toFixed(2)).join(' · '), '· chân nón', THAP_TIA.chanChop.toFixed(2), '· chân thân', THAP_TIA.chanThan.toFixed(2), '· r thân', THAP_TIA.rThan?.toFixed(2), '· xa', THAP_TIA.xa.toFixed(1), 'm');
   console.info('[ns] mặt Palas hướng sân: tỉ lệ đứng', PX_DUNG.toFixed(1), 'px/m · đầu hồi', BO_MET.gableCao.toFixed(1), 'm · mái', MAI_SAN.toFixed(1), '· sân', MAT_SAN.toFixed(1));
 }
 console.info('[ns] mốc chân nhà theo ảnh 3D:', dsKhoi.filter((k) => k.suaGoogle != null).map((k) => `${k.tags.name || k.id} ${k.suaGoogle > 0 ? '+' : ''}${k.suaGoogle}`).join(' · '));
@@ -773,9 +778,10 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
   })();
   // tháp góc treo trên con-xon (đánh dấu thap_goc trong tệp sửa theo ảnh): con-xon, gờ tầng, cửa sổ vòm nhỏ mặt ngoài, vành răng cưa
   const goc = dsKhoi.filter((k) => k.tags.thap_goc === 'yes' && k.yDuoi != null);
-  const T = BO_MET?.thap, Y = (d) => MAI_SAN - d; // cao độ tuyệt đối từ số đo ảnh (mét dưới mái)
-  const bT = T && { chop: Y(T.chop), chanChop: Y(T.chanChop), dinhRang: Y(T.dinhRang), dinhThan: Y(T.dinhThan), frieze: T.frieze.map(Y), tang: T.tang.map((t) => ({ dinh: Y(t.dinh), bau: Y(t.bau), w: t.w })), go: T.go.map((g) => g.map(Y)), rang: T.rang.map(Y), chanThan: Y(T.chanThan), mui: Y(T.mui), rThan: T.rThan, rVanh: T.rVanh, rRang: T.rRang, rChop: T.rChop };
-  if (bT) for (const k of goc) for (const m of datThapGoc({ THREE, mergeGeometries, v: k.v, b: bT, mauMai: k.tags['roof:colour'], mau: mauOSM(k.tags['building:colour'], new THREE.Color('#dcc48e')),
+  // cao độ tuyệt đối, đo theo tia camera (thapTheoTia); mũi nón + chóp đỉnh riêng từng tháp (đo trên trục của chính nó), thân / vành chung số đo tháp trái
+  const bTung = (id) => { const T = THAP_TIA, d = (T.muiTung[id] ?? T.chop) - T.chop; return { ...T, chop: T.chop + d, bau: T.bau?.map((y) => y + d), thapGia: T.thapGia == null ? null : T.thapGia + d }; };
+  const bT = THAP_TIA;
+  if (bT) for (const k of goc) for (const m of datThapGoc({ THREE, mergeGeometries, v: k.v, b: bTung(k.id), mauMai: k.tags['roof:colour'], mau: mauOSM(k.tags['building:colour'], new THREE.Color('#dcc48e')),
     ngoai: (x, z) => !dsKhoi.some((q) => q !== k && trongDa(x, z, q.v)), nhe: CHAM })) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
   // KHUNG VÒM CỔNG (đá): hai má + vòm bán nguyệt + bậu nền, hai mặt tường; lỗ đã khoét trong loCanh
   // màu đá sa thạch kem (VL.da nhân màu theo đỉnh — thiếu thuộc tính màu thì khung đen kịt như lỗ thủng)

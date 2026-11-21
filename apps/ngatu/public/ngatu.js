@@ -513,6 +513,12 @@ function choToi(j, a) {
   for (let x = j.choAi, n = 0; x && n < 80; x = x.choAi, n++) if (x === a) return true;
   return false;
 }
+// a và j đang rẽ trái từ hai hướng đối diện, cả hai theo đường máy (không phải nét anh vẽ) → mỗi xe một làn rẽ riêng
+function renRieng(a, j) {
+  if (a.quay !== 'trai' || j.quay !== 'trai' || a.loai === 'bo' || j.loai === 'bo' || a.p.ve || j.p.ve) return false;
+  const da = ARMS[a.arm].d, dj = ARMS[j.arm].d;
+  return da[0] * dj[0] + da[1] * dj[1] < -0.5;
+}
 function uuTien(a, j, ex, ez, hw) {
   const lonJ = -(ex * j.fx + ez * j.fz);
   if (lonJ <= 0.1 || lonJ > 16) return false;
@@ -545,7 +551,7 @@ function buocXe(a, dt) {
   const fx = a.fx, fz = a.fz, rx = -fz, rz = fx;
   const look = xm ? 11 : 18;
   let ai = null, chan = null;
-  let f0 = 99, fL = 99, fR = 99, vj = 0, day = 0, hoT = 99, hoP = 99;
+  let f0 = 99, fL = 99, fR = 99, vj = 0, day = 0, hoT = 99, hoP = 99, neBo = 0;
   const lanCat = []; // làn trước mũi các xe đang cắt ngang đường mình: [mép gần, mép xa, xe]
   const cr = xm ? 2 : 3, off = xm ? 1.3 : a.wid + 0.5;
   const cx = cellX(a.x), cz = cellX(a.z);
@@ -562,6 +568,9 @@ function buocXe(a, dt) {
         const lat = ex * rx + ez * rz;
         // bề ngang / bề dọc chung của hai thân theo hướng mình đi, tính cả góc nằm của từng xe (xe cắt ngang chiếm cả làn)
         const nL = nua(a, rx, rz) + nua(j, rx, rz);
+        // Hai xe rẽ trái ngược chiều đi hai làn rẽ riêng đã kẻ vạch, lướt qua nhau → không coi nhau là vật cản, không phanh
+        // vì đi gần (anh 22/11/2026: "làn đang là rẽ riêng từng xe → chậm chung"). Thân thật chồng nhau thì chốt va chạm lo.
+        if (renRieng(a, j) && Math.hypot(ex, ez) > nL + 0.1) continue;
         const hw = nL + (xm ? 0.15 : 0.3);
         const hl = nua(a, fx, fz) + nua(j, fx, fz);
         // khoảng hở hai bên với xe đang đi song song (gồm cả xe sắp ngang hàng) — để không tạt vào sườn xe khác
@@ -581,6 +590,16 @@ function buocXe(a, dt) {
         // Cả hai cùng nằm trong một vòng chờ (j chờ mình, mình cũng chờ j) thì chỉ xe quyền cao bỏ qua xe kia; trước cả hai
         // cùng "nó đang chờ mình" → cùng lao mũi vào nhau → khoá cứng (cặp xe máy cắt nhau giữa lòng ngã tư, 22/11/2026).
         const choMinh = () => (cm < 0 ? (cm = choToi(j, a) && (!choToi(a, j) || hon(a, j)) ? 1 : 0) : cm) === 1;
+        // Người đi bộ đang băng qua và đã đi quá tim mũi mình (đang rời khỏi làn mình) → luồn ra sau lưng họ mà đi, không
+        // đứng chờ người đi chậm qua hết (anh 22/11/2026: "xe VN thấy phía trước đủ rộng là chủ động đi vào, luồn ra sau
+        // lưng họ"). Chỉ khi phía sau lưng họ còn đủ chỗ cho thân mình; người còn chắn ngay trước mũi thì vẫn chờ.
+        if (j.loai === 'bo' && j.trenDuong && lon > 0.1 && lon < 6 && !j.choXe) {
+          const sJ = j.fx * rx + j.fz * rz;
+          if (Math.abs(sJ) > 0.5 && lat * sJ > 0 && Math.abs(lat) > 0.25) {
+            const lui = -Math.sign(sJ) * (nL + 0.35 - Math.abs(lat)); // cần dạt bao xa về phía sau lưng người
+            if (Math.abs(lui) < (xm ? 1.6 : 1.2)) { neBo = Math.abs(lui) > Math.abs(neBo) ? lui : neBo; continue; }
+          }
+        }
         if (lon > 0.1 && j.fx * fx + j.fz * fz < 0.7 && hon(j, a) && !(j.lui > 0) && (j.loai === 'bo' ? j.trenDuong : !chanMui(a, j) || chanMui(j, a)) && !choMinh()) {
           const tau = lon / Math.max(a.sp, 1.5);
           if (tau < 2.5) {
@@ -718,6 +737,7 @@ function buocXe(a, dt) {
     const vNe = xm ? 1.4 : a.loai === 'bus' ? 0.6 : 1.1;
     if (latDich) lvt = (latDich - a.dlat) * 1.2; // taxi tạt sát lề đón khách
     else if (neThoat) lvt = neThoat * vNe; // bị chặn mũi → lách sang bên phía trước thoáng (cả ở ngã tư lẫn ngoài đường)
+    else if (neBo) lvt = Math.sign(neBo) * vNe; // luồn ra sau lưng người đi bộ
     // không bị chặn: xe máy lượn nhẹ về giữa, ô tô giữ làn đang đi (ngoài đường) / bám đường cong (trong ngã tư)
     if (!lvt) lvt = xm ? -a.dlat * (a.trongNga ? 0.6 : 0.08) + Math.sin(tg * a.w + a.ph) * 0.25 : -a.dlat * (a.trongNga ? 0.5 : 0.03);
     if (xm) lvt += day * 0.9; // chỉ còn để tách nhẹ khi lỡ chồng nhau, không bật nẩy
@@ -1221,6 +1241,20 @@ for (const arm of ARMS) {
   }
 }
 
+// Vạch dẫn hướng rẽ trái trong lòng ngã tư (anh 22/11/2026: "đoạn giữa đường cũng phải kẻ vạch"): nét đứt theo mép
+// trong làn rẽ trái của mỗi hướng — mép phía luồng rẽ trái đối diện. Hai nét đối diện kẹp khoảng trống giữa hai luồng.
+for (const arm of ARMS) {
+  const d = arm.d, hw = hwAlong(d), p = taoDuongXe(d, neg(right(d)), hw * 0.75, hwAlong(neg(right(d))) * 0.75);
+  const n = p.s.length;
+  for (let u = p.sIn + 0.6; u < p.sOut - 0.6; u += 1.6) {
+    let i = 0; while (i < n - 2 && p.s[i + 1] < u) i++;
+    const t = (u - p.s[i]) / (p.s[i + 1] - p.s[i] || 1);
+    const x = p.x[i] + (p.x[i + 1] - p.x[i]) * t, z = p.z[i] + (p.z[i + 1] - p.z[i]) * t;
+    const tx = p.tx[i], tz = p.tz[i], ng = 0.55; // dời sang mép trong (phía trái xe đang rẽ)
+    PHANG.push([x + tz * ng, z - tx * ng, 0.8, 0.12, TRANG_V, Math.atan2(-tz, tx)]);
+  }
+}
+
 // ── nhà ống hai bên đường
 const NHA = ['#f2d98d', '#f6c7b6', '#bfe0e8', '#f1efe6', '#d8e7b9', '#f5e2c8', '#e9b7a6', '#c9d6f0', '#fff1a8', '#e6e1d6'];
 const CUA = ['#2b2622', '#8d9096', '#3b2f2a', '#6b4f3a', '#9a9da3'];
@@ -1404,7 +1438,7 @@ tinh(new THREE.ConeGeometry(1, 1, 16), NON, (b) => { M4.compose(V.set(b[0], b[1]
 {
   const g = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
   const m = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ polygonOffset: true, polygonOffsetFactor: -2 }), PHANG.length);
-  PHANG.forEach((b, i) => { M4.compose(V.set(b[0], 0.02, b[1]), Q.identity(), S3.set(b[2], 1, b[3])); m.setMatrixAt(i, M4); m.setColorAt(i, CL.set(b[4])); });
+  PHANG.forEach((b, i) => { Q.setFromAxisAngle(UP, b[5] || 0); M4.compose(V.set(b[0], 0.02, b[1]), Q, S3.set(b[2], 1, b[3])); m.setMatrixAt(i, M4); m.setColorAt(i, CL.set(b[4])); });
   m.receiveShadow = true; scene.add(m);
 }
 {

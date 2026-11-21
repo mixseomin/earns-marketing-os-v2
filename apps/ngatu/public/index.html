@@ -40,6 +40,7 @@
   <div id="than">
     <div id="so"></div>
     <label>Mật độ xe máy <b id="vMd">250</b><input id="md" type="range" min="50" max="1000" step="10" value="250"></label>
+    <label>Người đi bộ <b id="vNb">85</b><input id="nb" type="range" min="0" max="300" step="5" value="85"></label>
     <label>Liều (vượt đèn) <b id="vLieu">12%</b><input id="lieu" type="range" min="0" max="60" value="12"></label>
     <div class="nut">
       <button id="dung">Tạm dừng</button>
@@ -62,8 +63,41 @@
       <summary>🛵 Luật đi đường</summary>
       <label>Ô tô so với xe máy <b id="vOto">7%</b><input id="oto" type="range" min="0" max="40" value="7"></label>
       <label class="chk"><input id="rp" type="checkbox" checked> Xe máy rẽ phải khi đèn đỏ</label>
-      <label class="chk"><input id="cn" type="checkbox"> Lòng ngã tư kẹt thì chờ ở vạch (luật nước ngoài)</label>
+      <label class="chk"><input id="cn" type="checkbox"> Vạch mắt võng: lòng ngã tư kẹt thì chờ ở vạch, không dừng trong ô vàng</label>
       <label class="chk"><input id="nl" type="checkbox"> Nhường lối thoát (không lấn vào chỗ trống trước mũi xe đang kẹt)</label>
+    </details>
+    <details name="ngan" data-ngan="lan">
+      <summary>🛣️ Làn &amp; vạch (hoạch định)</summary>
+      <label>Hướng vào
+        <select id="lanHuong">
+          <option value="ca">Cả 4 hướng</option>
+          <option value="0">Từ Tây</option><option value="1">Từ Đông</option><option value="2">Từ Bắc</option><option value="3">Từ Nam</option>
+        </select>
+      </label>
+      <p class="goiy" id="lanKhac" hidden>Các hướng đang khác nhau, bảng dưới hiện hướng Tây. Đổi ở đây sẽ áp cho cả 4.</p>
+      <label>Mẫu nhanh
+        <select id="lanMau">
+          <option value="">Chọn mẫu…</option>
+          <option value="vn">Tự do kiểu VN</option>
+          <option value="chuyen">Làn chuyên rẽ (3 làn, vạch liền)</option>
+          <option value="hai">2 làn: trái + thẳng / thẳng + phải</option>
+          <option value="camTrai">Cấm rẽ trái</option>
+          <option value="chiPhai">Chỉ cho rẽ phải</option>
+        </select>
+      </label>
+      <label>Số làn chiều vào
+        <select id="lanSo"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+      </label>
+      <div id="lanDs"></div>
+      <label>Vạch chia làn trước vạch dừng
+        <select id="lanVach">
+          <option value="dut">Đứt (được chuyển làn)</option>
+          <option value="lien">Liền (cấm chuyển làn)</option>
+          <option value="khong">Không kẻ</option>
+        </select>
+      </label>
+      <label>Độ dài đoạn vạch <b id="vLanDai">30 m</b><input id="lanDai" type="range" min="10" max="60" step="2" value="30"></label>
+      <label class="chk"><input id="dt" type="checkbox" checked> Vạch dẫn rẽ trái trong lòng ngã tư</label>
     </details>
     <details name="ngan" data-ngan="so">
       <summary>📊 Số liệu &amp; cách dùng</summary>

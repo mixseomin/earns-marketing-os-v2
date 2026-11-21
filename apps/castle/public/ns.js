@@ -928,7 +928,7 @@ function apHienCach3() { // gọi lại sau mọi chỗ đặt hiện / ẩn LOP
       const tl = new THREE.TextureLoader(), TR = {};
       for (const ten of ['palas-thanh-george', 'palas-duc-me']) try { const t = await tl.loadAsync(`./du-lieu/anh/ngoai/${ten}.jpg`); t.colorSpace = THREE.SRGBColorSpace; TR[ten] = t; } catch (e) { console.warn('[ns] không tải được tranh mặt Palas', ten, e); }
       const mp = datMatPalas({ THREE, mergeGeometries, tuong: tot, tranh: TR, vanDa: VAN_DA, vanKhoi: VAN_KHOI, doSo: CT_DO_MAT_RIENG, nguong: CT_DO?.nguong }); CUA.push(...(mp.cua || []));
-      window.__nsKhopCum = mp.cua?.khop || []; console.info('[ns] cụm cửa Palas khớp sổ đo:', JSON.stringify(window.__nsKhopCum)); // cụm tay nào đã theo lỗ đo nhiều ảnh
+      window.__nsKhopCum = mp.cua?.khop || []; window.__nsLoDo = mp.cua?.los || []; console.info('[ns] cụm cửa Palas khớp sổ đo:', JSON.stringify(window.__nsKhopCum)); // cụm tay nào đã theo lỗ đo nhiều ảnh
       if (CT_DO_MAT_RIENG.length) { const ct = datChiTietDo({ THREE, mergeGeometries, ds: CT_DO_MAT_RIENG, nhe: CHAM, nguong: CT_DO.nguong, matDat, daCo: [...CUA_DA_CO_MT, ...(mp.cua || [])] }); // chi tiết đo trên mặt này (xem tachSo)
         for (const m of ct) { m.userData.nha = true; mp.push(m); } window.__nsBoTrung = [...(window.__nsBoTrung || []), ...(ct.dem?.boTrung || [])]; console.info('[ns] chi tiết đo trên mặt dựng riêng:', JSON.stringify({ ...ct.dem, boTrung: ct.dem?.boTrung?.length })); }
       for (const m of mp) { m.visible = !LOP_OSM.dangAn && !CACH3.bat; scene.add(m); LOP_OSM.push(m); LOP_NHA.add(m); } // cờ trên LOP_OSM (khai sớm) — anh3d khai sau, đọc ở đây dễ dính lỗi chưa khai báo

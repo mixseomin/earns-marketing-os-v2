@@ -289,8 +289,11 @@ const vlDa = (THREE, mau, vanDa, ro = 0.8) => new THREE.MeshStandardMaterial({ c
 // Cần ≥ 2 lỗ cho cụm nhiều ô (một lỗ chưa đủ biết nhịp). Trước: cụm tay rộng hơn thật (hai cụm biên lấn ra sau tháp góc), sổ ô cửa ghi CẢ cụm nên mọi lỗ đo
 // trong đó bị loTrung bỏ — bên kiểm báo THIẾU 16 lỗ qua mọi lần đo, không gì sửa được. cums: [{ s, y, h, n, w, buoc }] · los: [{ s0, s1, y0, y1 }] (cùng trục s)
 export function khopCum(cums, los) {
-  const gop = []; // lỗ trùng nhau (nhiều mục sổ cùng một ô) gộp thành một
-  for (const l of [...los].sort((a, b) => a.s0 - b.s0)) { const q = gop.find((g) => Math.min(g.s1, l.s1) - Math.max(g.s0, l.s0) > 0.5 * Math.min(g.s1 - g.s0, l.s1 - l.s0) && Math.min(g.y1, l.y1) - Math.max(g.y0, l.y0) > 0);
+  // gộp lỗ cùng một ô: mỗi ảnh đo lệch nhau vài tấc và có ảnh chỉ thấy nửa trên / nửa dưới ô (mạch ngang ở song cửa) → chồng ngang ≥ 25 % bề hẹp
+  // và hở đứng ≤ 0,3 m là CÙNG một ô (hai ô thật cạnh nhau luôn cách nhau cột đá, không bao giờ chồng ngang). Trước: chỉ gộp khi chồng ≥ 50 % và chồng đứng > 0
+  // → nửa trên + nửa dưới một ô thành hai lỗ, cụm "tầng trệt giữa" ra 4 ô cao 1,14 m (thật ~2,1 m)
+  const gop = [], chongNgang = (g, l) => Math.min(g.s1, l.s1) - Math.max(g.s0, l.s0), chongDung = (g, l) => Math.min(g.y1, l.y1) - Math.max(g.y0, l.y0);
+  for (const l of [...los].sort((a, b) => a.s0 - b.s0)) { const q = gop.find((g) => chongNgang(g, l) > 0.25 * Math.min(g.s1 - g.s0, l.s1 - l.s0) && chongDung(g, l) > -0.3);
     if (q) { q.s0 = Math.min(q.s0, l.s0); q.s1 = Math.max(q.s1, l.s1); q.y0 = Math.min(q.y0, l.y0); q.y1 = Math.max(q.y1, l.y1); } else gop.push({ ...l }); }
   const cua = cums.map(() => []);
   for (const l of gop) { const sc = (l.s0 + l.s1) / 2; let best = -1, kc = Infinity;
@@ -298,11 +301,34 @@ export function khopCum(cums, los) {
       if (dung < 0.5 * Math.min(l.y1 - l.y0, c.h) || Math.abs(sc - c.s) > nua + c.buoc) return; if (Math.abs(sc - c.s) < kc) { kc = Math.abs(sc - c.s); best = i; } });
     if (best >= 0) cua[best].push(l); }
   const trung = (a) => { const b = [...a].sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
-  return cums.map((c, i) => { const ls = cua[i].sort((a, b) => a.s0 - b.s0);
-    if (!ls.length || (c.n > 1 && ls.length < 2)) return { ...c, khop: 0 };
-    const tam = ls.map((l) => (l.s0 + l.s1) / 2), n = ls.length, w = Math.min(1.6, Math.max(0.25, trung(ls.map((l) => l.s1 - l.s0))));
-    const buoc = n > 1 ? Math.max(w + 0.08, (tam.at(-1) - tam[0]) / (n - 1)) : c.buoc, y = trung(ls.map((l) => l.y0)), h = trung(ls.map((l) => l.y1 - l.y0));
-    return { ...c, n, w, buoc, s: (tam[0] + tam.at(-1)) / 2, y, h, khop: n }; });
+  // tách lỗ rộng: dò ảnh có lúc nuốt hai ô liền (cột giữa mảnh, khuất bóng) thành một lỗ → bề rộng ô = trung vị các lỗ hẹp, lỗ rộng hơn 1,6 lần
+  // chia đều theo bước (ô + cột của cụm); lỗ mảnh dưới 0,6 bề ô tay (ảnh chỉ thấy một khe) vẫn là một ô nhưng không làm thước đo bề rộng. Trước: tầng trệt trái ra 2 ô rộng 0,98 m (thật 3 ô ~0,6 m)
+  const tach = (ls, c) => { const ws = ls.map((l) => l.s1 - l.s0).filter((w) => w >= 0.6 * c.w), hep = Math.min(...ws), wp = ws.length ? trung(ws.filter((w) => w <= 1.4 * hep)) : c.w, g = Math.max(0.08, c.buoc - c.w), ra = [];
+    for (const l of ls) { const W = l.s1 - l.s0, k = W > 1.6 * wp ? Math.max(2, Math.round((W + g) / (wp + g))) : 1, wo = (W - (k - 1) * g) / k;
+      for (let j = 0; j < k; j++) ra.push({ ...l, s0: l.s0 + j * (wo + g), s1: l.s0 + j * (wo + g) + wo, tach: k > 1 }); }
+    return ra; };
+  // lỗ chỉ thấy MỘT PHẦN ô (lan can ban công / mép mái che, thấp hơn 0,8 cao ô tay) không được làm ô ngắn lại: ô thật ≥ phần thấy → hợp với khung tay.
+  // Trước: cửa ra ban công (tay 2,86 m) thấy phần trên 0,9 m trên ảnh → co còn 0,96 m, phần dưới thành tường
+  const caoDu = (c, y, h) => h >= 0.8 * c.h ? [y, h] : ((a, b) => [a, b - a])(Math.min(y, c.y), Math.max(y + h, c.y + c.h));
+  return cums.map((c, i) => { if (!cua[i].length) return { ...c, khop: 0 }; let ls = tach(cua[i], c).sort((a, b) => a.s0 - b.s0);
+    // CÙNG HÀNG: lỗ của cụm phải chung một hàng ô — lỗ lệch hẳn hàng (chồng đứng < 30 % với hàng trung vị) là chi tiết khác lọt vào tầm (mép tranh, lan can)
+    const ym0 = trung(ls.map((l) => l.y0)), ym1 = trung(ls.map((l) => l.y1)); ls = ls.filter((l) => Math.min(l.y1, ym1) - Math.max(l.y0, ym0) >= 0.3 * Math.min(l.y1 - l.y0, ym1 - ym0));
+    // BÙ Ô KHUẤT: thấy 2+ ô nhưng ít hơn số ô tay, và tâm các ô thấy rơi đúng lưới bước = khoảng hai ô biên / (n tay − 1) (bước trong 0,6–1,6 bước tay) → ô khuất
+    // ở mắt lưới còn trống được thêm (không làm thước bề rộng). Trước: cửa ban công thấy hai ô biên → dựng 2 ô cách 2,5 m, ô giữa mất
+    if (ls.length >= 2 && ls.length < c.n) { const tm = ls.map((l) => (l.s0 + l.s1) / 2), b = (tm.at(-1) - tm[0]) / (c.n - 1), w0 = trung(ls.map((l) => l.s1 - l.s0)), j = tm.map((t) => (t - tm[0]) / b);
+      if (b >= 0.6 * c.buoc && b <= 1.6 * c.buoc && b >= w0 + 0.08 && j.every((v) => Math.abs(v - Math.round(v)) < 0.2)) { const co = new Set(j.map(Math.round));
+        for (let k = 0; k < c.n; k++) if (!co.has(k)) { const t = tm[0] + k * b; ls.push({ s0: t - w0 / 2, s1: t + w0 / 2, y0: ym0, y1: ym1, tach: true, bu: true }); }
+        ls.sort((a, b2) => a.s0 - b2.s0); } }
+    // cụm nhiều ô mà ảnh chỉ thấy rõ MỘT ô (ô kia khuất cột / bóng): một lỗ chưa đủ biết nhịp nhưng đủ biết CHỖ → giữ số ô + bước tay, dời cả cụm cho ô tay
+    // gần nhất trùng tâm lỗ, bậu / cao / bề ô lấy từ lỗ. Trước: bỏ khớp → cụm nằm nguyên chỗ tay (cặp thấp trái lệch 0,9 m), lỗ thật bị loTrung coi là trùng → THIẾU mãi
+    if (!ls.length) return { ...c, khop: 0 };
+    if (c.n > 1 && ls.length < 2) { const l = ls[0], sc = (l.s0 + l.s1) / 2, o0 = c.s - (c.n - 1) * c.buoc / 2;
+      const j = Math.max(0, Math.min(c.n - 1, Math.round((sc - o0) / c.buoc))), w = Math.min(1.6, Math.max(0.25, l.s1 - l.s0 >= 0.6 * c.w ? l.s1 - l.s0 : c.w));
+      const [y, h] = caoDu(c, l.y0, l.y1 - l.y0); return { ...c, w, buoc: Math.max(c.buoc, w + 0.08), s: c.s + (sc - (o0 + j * c.buoc)), y, h, khop: 1, neo: true, los: ls }; }
+    const caoNhat = Math.max(...ls.map((l) => l.y1 - l.y0)), du = ls.filter((l) => l.y1 - l.y0 >= 0.75 * caoNhat); // lỗ chỉ thấy một phần ô không quyết bậu / cao ô
+    const tam = ls.map((l) => (l.s0 + l.s1) / 2), n = ls.length, w = Math.min(1.6, Math.max(0.25, trung(((m) => m.length ? m : ls)(ls.filter((l) => !l.tach && l.s1 - l.s0 >= 0.6 * c.w)).map((l) => l.s1 - l.s0))));
+    const buoc = n > 1 ? Math.max(w + 0.08, (tam.at(-1) - tam[0]) / (n - 1)) : c.buoc, [y, h] = caoDu(c, trung(du.map((l) => l.y0)), trung(du.map((l) => l.y1 - l.y0)));
+    return { ...c, n, w, buoc, s: (tam[0] + tam.at(-1)) / 2, y, h, khop: ls.filter((l) => !l.bu).length, los: ls }; });
 }
 export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {}, vanDa = null, vanKhoi = null, doSo = [], nguong = {} }) {
   const { x1, z1, x2, z2, y1 } = tuong, L = Math.hypot(x2 - x1, z2 - z1), ux = (x2 - x1) / L, uz = (z2 - z1) / L, nx = uz, nz = -ux;
@@ -345,7 +371,7 @@ export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {}, vanDa =
       const tc = (d.t0 + d.t1) / 2, r = d.ra || 0, px = d.a0[0] + d.u[0] * tc + d.n[0] * r, pz = d.a0[1] + d.u[1] * tc + d.n[1] * r, sc = (px - mx) * ux + (pz - mz) * uz, nw = Math.min(c.w ?? (d.t1 - d.t0), d.t1 - d.t0) / 2;
       los.push({ s0: sc - nw, s1: sc + nw, y0: c.y0 ?? c.y, y1: c.y1 ?? c.y }); }
     const tay = [...bo.cum.map((c) => ({ c, s: C - c.x, y: y1 - c.duoi, h: c.h, n: c.n, w: c.w, buoc: c.buoc })), ...bo.cuaDon.map((c) => ({ c, don: true, s: C - c.x, y: y1 - c.duoi, h: c.h, n: 1, w: c.w, buoc: c.w + 0.2 }))];
-    const kq = khopCum(tay, los); cuaSo.khop = kq.filter((k) => k.khop).map((k) => ({ ten: k.c.ten, truoc: { n: k.c.n ?? 1, s: +(C - k.c.x).toFixed(2), w: k.c.w }, sau: { n: k.n, s: +k.s.toFixed(2), w: +k.w.toFixed(2), buoc: +k.buoc.toFixed(2), y: +k.y.toFixed(2), h: +k.h.toFixed(2) } }));
+    const kq = khopCum(tay, los); cuaSo.los = los.map((l) => [l.s0, l.s1, l.y0, l.y1].map((v) => +v.toFixed(2))); cuaSo.khop = kq.map((k) => ({ ten: k.c.ten, khop: k.khop, truoc: { n: k.c.n ?? 1, s: +(C - k.c.x).toFixed(2), w: k.c.w }, sau: { n: k.n, s: +k.s.toFixed(2), w: +k.w.toFixed(2), buoc: +k.buoc.toFixed(2), y: +k.y.toFixed(2), h: +k.h.toFixed(2) }, truocYH: [+k.c.duoi?.toFixed?.(2), k.c.h], lo: (k.los || []).map((l) => [l.s0, l.s1, l.y0, l.y1].map((v) => +v.toFixed(2))) }));
     for (const k of kq) { const c = k.c, xA = C - k.s; // x ảnh của tâm sau khớp (noiTai đọc theo x ảnh)
       if (k.don) { cum({ n: k.n, w: k.w, h: k.h, k: k.buoc - k.w, vom: false, cot: 0.08 }, k.s, k.y); continue; }
       const tl = k.khop ? ((k.n - 1) * k.buoc + k.w) / ((c.n - 1) * c.buoc + c.w) : 1; // vòm lớn bao cụm co giãn theo bề ngang mới; đỉnh vòm giữ khoảng hở trên đỉnh ô

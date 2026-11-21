@@ -39,7 +39,15 @@ bash apps/xuong-video/scripts/h3/may-h3.sh <thư-mục-ra> <vao-1.json> [vao-2.j
   dựng clip 3D nối (cum-seedance-tap.sh) → Seedance gửi Kie; H3 xếp job `hang_h3` cùng đầu vào (`thu-seedance-cum.mts --bo=h3`) rồi `song-song.sh` →
   `thu-seedance-cum.mts --nap-h3=<job> --tep=<mp4>` gắn clip + phiên bản nhãn H3 → `hang-video.mts --dong` đóng hàng.
 - Ô **🎬 Nguồn** cạnh đó hiện nguồn clip đang dùng của cả phim (đếm shot theo nhãn phiên bản) và đổi cho mọi tập tại chỗ (`chonNguonPhim`, 0đ).
-- Chưa có tiến trình nền tự chạy hàng — muốn tự động phải anh duyệt riêng (luật tiến trình ngầm).
+- **Tự chạy hàng (anh duyệt 20/11/2026 "Cho dựng tiến trình H3 và tối ưu nó")**: việc nền iMac `iMac:com.earns.studio-hang-h3` (sổ cty `cong-ty/viec-nen.json`, 5 phút một nhịp)
+  gọi `scripts/h3/tu-chay-hang.sh`: một câu SQL qua ssh hỏi hàng (trống thì thoát sau ~1 giây) → chờ hàng LẶNG 4 phút để gom cả tập vào một lượt thuê máy (shot cũ nhất chờ
+  quá 20 phút thì chạy luôn) → số máy theo khối lượng (≤ 2 cụm 1 máy · ≤ 6: 2 · ≤ 12: 3 · hơn: 4) → `chay-hang.sh --chay` với `XV_HANG_BO=h3` (hàng Seedance không tự chạy).
+  Một lượt một lúc (khoá `~/.cache/studio-hang-h3/khoa`); chỉ còn job cụm sót mà không có shot mới thì KHÔNG tự thuê máy lại. Nhật ký từng lượt + `so.jsonl` ở `~/.cache/studio-hang-h3/`.
+  Xem trước, 0đ: `bash scripts/h3/tu-chay-hang.sh --xem`.
+- **Cổng video trả phí**: shot chỉ vào được hàng khi đã thử VideoExpress hoặc tập được bật "Cho phép video trả phí" (Studio 2 › mục Dựng clip, chỉ quản trị; `moTraPhiS2`).
+- **Chưa làm — phim KHÔNG có dựng 3D** (vd phim #7999 của Studio 2): `xepHangCum` từ chối shot chưa có clip 3D, kế hoạch cụm và `thu-seedance-cum.mts` đều đòi clip 3D nối làm
+  tham chiếu. `chay-h3.py` thì đã nhận `video: null`. Muốn H3 dựng thẳng từ ảnh cảnh cần một nhánh riêng (xếp hàng, lập cụm mỗi shot một cụm, câu lệnh không có "Reference video",
+  lời kể ngoài khung không qua khớp miệng) và phải thử MỘT shot trước khi chạy cả tập.
 
 ## Luật chuẩn H3 (anh chốt 17/11/2026 — mọi phim kế thừa, học từ bài phim ngắn H3 trên X)
 

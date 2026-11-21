@@ -1,6 +1,6 @@
 // BÁO vào nhóm Telegram MINE (anh yêu cầu 08/10/2026), ba kênh đọc cùng sổ products (Directus):
 //   'published'      → topic "🛍️ Sản phẩm mới" (TG_TOPIC): mỗi dòng vừa lên sàn (Etsy, KDP, Gumroad, App Store…) một tin.
-//   'owner_review'   → topic "🏭 Sản xuất xong" (TG_TOPIC_SX): sách dựng xong chờ anh duyệt — gộp các dòng cùng tên, kèm link duyệt.
+//   'owner_review'   → topic "🏭 Sản xuất xong" (TG_TOPIC_SX): TẮT GỬI từ 21/11/2026 (Phòng Nội dung thẩm định thay anh), chỉ còn dọn tin cũ.
 //                     Anh duyệt xong → bot thả ❤ vào tin NGAY (nút Duyệt đánh thức bot qua bao-sp-telegram.path), 1 phút sau mới xoá.
 //   tới ngày chưa duyệt → topic "🛍️ Sản phẩm mới": ngày đăng dự kiến (giờ VN) đã tới mà sách còn planned/draft/owner_review —
 //                       mỗi sách tối đa MỘT tin mỗi ngày, kèm link mở thẳng drawer duyệt trên MOS2.
@@ -162,7 +162,10 @@ async function kenh(st, topic, tep, nhom, donKhiXong = false, loc = () => true) 
   if (!moi.length) console.log(`${st}: không có gì mới`);
 }
 await kenh('published', TG_TOPIC, 'da-bao.json', (ds) => ds.map((x) => [`${x.platform} · ${x.title}`, tin(x), [x.id]]));
-if (TG_TOPIC_SX) await kenh('owner_review', TG_TOPIC_SX, 'da-bao-sx.json', (ds) => gom(ds).map(([ten, xs]) => [ten, tinSx(ten, xs), xs.map((x) => x.id)]), true, choAnh);
+// anh 21/11/2026: "duyệt các sản phẩm KDP, Etsy giờ chuyển sang cho phòng nội dung thẩm định. Ko cần gửi cho tao nữa" → Ngọc thẩm định (cty worker/tham-dinh-sach.mjs).
+// Kênh vẫn chạy nhưng lọc RỖNG: không gửi tin mới, tin cũ còn nằm trong chủ đề được dọn (❤ rồi 1 phút sau xoá) như việc đã xong.
+const KHONG_GUI_ANH_DUYET = () => false;
+if (TG_TOPIC_SX) await kenh('owner_review', TG_TOPIC_SX, 'da-bao-sx.json', (ds) => gom(ds).map(([ten, xs]) => [ten, tinSx(ten, xs), xs.map((x) => x.id)]), true, KHONG_GUI_ANH_DUYET);
 
 // Kênh NHẮC THEO NGÀY: tệp = { tên sách: { ngay, tin: [message_id], xong? } }. Mỗi sách một tin mỗi ngày (tin mới thay tin cũ);
 // sách ra khỏi danh sách (anh duyệt / đã đăng) → thả ❤ ngay, 1 phút sau xoá.
@@ -187,7 +190,8 @@ async function nhacTheoNgay(tep, nhan, ds, viet, nut = () => undefined) {
 }
 const toiNgay = (x) => x.listing_config?.dangDuKien && x.listing_config.dangDuKien <= HOM_NAY;
 // Tới ngày mà CHƯA DUYỆT (hoặc chưa dựng xong)
-await nhacTheoNgay('da-nhac-tre.json', 'tới ngày chưa duyệt', (await doc('planned,draft,owner_review')).filter(choAnh).filter(toiNgay), (ten, xs) => tinTre(ten, xs, HOM_NAY));
+// Cũng thôi gửi anh (21/11/2026): bản xem do Phòng Nội dung thẩm định, sách dựng trễ do Thảo (cty may/sach-sua.mjs) nhận từ máy đêm. Danh sách rỗng = dọn tin nhắc cũ.
+await nhacTheoNgay('da-nhac-tre.json', 'tới ngày chưa duyệt', (await doc('planned,draft,owner_review')).filter(choAnh).filter(toiNgay).filter(KHONG_GUI_ANH_DUYET), (ten, xs) => tinTre(ten, xs, HOM_NAY));
 // Tới ngày, ĐÃ DUYỆT, nền máy không tự đăng được (KDP, Gumroad: nút Publish là của anh) → nhắc đăng. Etsy máy tự bật (may-chay dang) nên không nhắc.
 const daDuyet = [...(await doc('ready')), ...(await doc('owner_review')).filter((x) => !choAnh(x))];
 await nhacTheoNgay('da-nhac-dang.json', 'tới ngày cần đăng', daDuyet.filter((x) => ['kdp', 'gumroad'].includes(x.platform)).filter(canNhac).filter(toiNgay), (ten, xs) => tinCanDang(ten, xs, HOM_NAY), nutCanDang);

@@ -767,14 +767,14 @@ const muDangGo = () => { const a = document.activeElement; return !!(a && /TEXTA
 function veMu() { const o = muO(); if (!o) return; const ds = D.that?.mau || [];
   if (muDangGo()) return;   // đang gõ trong ô thêm / sửa mẫu: không vẽ lại dưới tay người dùng
   const dau = D.that ? `<div class="mu-dau"><button type="button" class="bt" data-d="muThem" data-g="${E.muThem ? '' : '1'}">${E.muThem ? 'Đóng' : '＋ Thêm nhân vật, bối cảnh, đồ vật'}</button></div>${E.muThem ? veMuForm(null) : ''}` : '';
-  if (!ds.length) { o.innerHTML = dau + `<p class="mu-trong">${D.that ? 'Phim này chưa có nhân vật hay bối cảnh nào. Bấm Thêm ở trên, hoặc chờ máy tự tách khi kịch bản xong.' : 'Mở một phim của studio để xem nhân vật và bối cảnh của phim.'}</p>`; return; }
+  if (!ds.length) { E.muMo = null; veNgan(); o.innerHTML = dau + `<p class="mu-trong">${D.that ? 'Phim này chưa có nhân vật hay bối cảnh nào. Bấm Thêm ở trên, hoặc chờ máy tự tách khi kịch bản xong.' : 'Mở một phim của studio để xem nhân vật và bối cảnh của phim.'}</p>`; return; }
   const nhom = {}; for (const x of ds) (nhom[x.loai] ||= []).push(x);
   const thu = ['nhan_vat', 'boi_canh', 'dao_cu'], hang = (k) => (thu.indexOf(k) + 1) || 9;
   const ct = (x) => { const gs = new Set(canhMau(x.id)), cs = D.canh.filter((c) => gs.has(GOC[c.id]));   // canhMau trả bản ghi gốc (mã DB); nút cần cảnh trên màn để đánh số + nhảy tới
     return `<div class="mu-ct">${x.anh ? `<button type="button" class="mu-lon" data-d="muZoom" data-g="${x.id}" title="Bấm để phóng to"><img src="${esc(nho(x.anh, 640))}" alt="${esc(x.ten)}"></button>` : '<p class="mu-trong">Mẫu này chưa có ảnh. Bấm "Vẽ lại ảnh mẫu" để máy vẽ theo mô tả.</p>'}
     ${E.muSua === x.id ? veMuForm(x) : `<p class="mu-mota">${x.moTa ? esc(x.moTa) : '<i>chưa có mô tả</i>'}</p><div class="qt-nut"><button type="button" class="bt" data-d="muSua" data-g="${x.id}">Sửa tên, mô tả</button>${nutBuoc(`mauVe:${x.id}`)}${canhMau(x.id).length ? nutBuoc(`kfMau:${x.id}`) : ''}</div>`}
     <h5>Cảnh dùng mẫu này</h5>${cs.length ? `<div class="mu-canh">${cs.map((c) => `<button type="button" class="bt" data-d="chonCanh" data-g="${c.id}">Cảnh ${vt(c.id) + 1}</button>`).join('')}</div>` : '<p class="mu-trong">Chưa cảnh nào dùng.</p>'}</div>`; };
-  o.innerHTML = dau + Object.keys(nhom).sort((a, b) => hang(a) - hang(b)).map((k) => `<section class="mu-nhom"><h4>${esc(S_VAI[k] || k)} <small>${nhom[k].length}</small></h4>${nhom[k].map((x) => { const n = canhMau(x.id).length, mo = E.muMo === x.id; return `<button type="button" class="qt-mau-o mu-o${mo ? ' mo' : ''}" data-d="muMo" data-g="${x.id}" aria-expanded="${mo}">${x.anh ? `<img src="${esc(nho(x.anh, 320))}" alt="${esc(x.ten)}" loading="lazy">` : '<i>chưa có ảnh</i>'}<div><b>${esc(x.ten)}</b><small>${n ? `${n} cảnh dùng` : 'chưa cảnh nào dùng'} · ${mo ? 'thu gọn' : 'bấm xem chi tiết'}</small></div></button>${mo ? ct(x) : ''}`; }).join('')}</section>`).join(''); }
+  o.innerHTML = dau + Object.keys(nhom).sort((a, b) => hang(a) - hang(b)).map((k) => `<section class="mu-nhom"><h4>${esc(S_VAI[k] || k)} <small>${nhom[k].length}</small></h4>${nhom[k].map((x) => { const n = canhMau(x.id).length, mo = E.muMo === x.id; return `<button type="button" class="qt-mau-o mu-o${mo ? ' mo' : ''}" data-d="muMo" data-g="${x.id}" aria-expanded="${mo}">${x.anh ? `<img src="${esc(nho(x.anh, 320))}" alt="${esc(x.ten)}" loading="lazy">` : '<i>chưa có ảnh</i>'}<div><b>${esc(x.ten)}</b><small>${n ? `${n} cảnh dùng` : 'chưa cảnh nào dùng'} · ${mo ? 'thu gọn' : 'bấm xem chi tiết'}</small></div></button>`; }).join('')}</section>`).join(''); MU_CT = ct; veNgan(); }
 function muZoom(x) { const z = document.createElement('div'); z.className = 'mu-zoom'; z.innerHTML = `<img src="${esc(x.anh)}" alt="${esc(x.ten)}"><p>${esc(x.ten)} · bấm ra ngoài hoặc Esc để đóng</p>`; const tat = () => { z.remove(); document.removeEventListener('keydown', esc1); }, esc1 = (e) => { if (e.key === 'Escape') tat(); }; z.addEventListener('click', tat); document.addEventListener('keydown', esc1); document.body.append(z); }
 async function muLuu(nut) { const f = nut.closest('.mu-form'), loi = f.querySelector('.mu-loi'), id = +f.dataset.mu || undefined;
   const d = { id, ten: f.querySelector('.mu-ten').value, mo_ta: f.querySelector('.mu-mt').value, loai: f.querySelector('.mu-loai')?.value };
@@ -1399,7 +1399,7 @@ function lamD(a, d = {}, nut) {
   const doi = (f) => { ghi(); f(); veD(); };
   switch (a) {
     case 'tab': E.tab = g; E.moNv = false; luu(); return veTv();
-    case 'muMo': E.muMo = E.muMo === +g ? null : +g; E.muSua = null; return veMu();
+    case 'muMo': E.muMo = E.muMo === +g ? null : +g; E.muSua = null; veMu(); return veNgan();
     case 'muSua': E.muSua = g ? +g : null; return veMu();
     case 'muThem': E.muThem = !!g; return veMu();
     case 'muZoom': { const x = (D.that?.mau || []).find((m) => m.id === +g); return x?.anh ? muZoom(x) : undefined; }
@@ -1686,18 +1686,18 @@ function aiVe() {
 const aiGon = (v) => `<details class="ai-gon"><summary>${v.xong === 'Đã bỏ.' ? '✕' : '✓'} ${esc(v.nhan)} · ${esc(v.xong)}</summary>${v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : ''}</details>`;
 /** nhiều bước của MỘT lệnh = một thẻ, một nút Chạy: chạy lần lượt, bước sau đợi bước trước xong (vd tạo đạo cụ → vẽ lại keyframe) */
 function aiTheChuoi(m, i, cho) { const tong = cho.reduce((a, [v]) => (a == null || aiCent(v) == null ? null : a + aiCent(v)), 0);
-  return `<div class="ai-the"><b>${cho.map(([v]) => esc(v.nhan)).join(' → ')}</b>${cho.map(([v, j], n) => `<label class="nho">Bước ${n + 1}: ${esc(v.nhan)}<textarea class="ai-y" rows="2" data-i="${i}" data-j="${j}">${esc(v.yeu_cau || '')}</textarea></label>`).join('')}
+  return `<div class="ai-the"${hlAttr(cho.map(([v]) => v))}><b>${cho.map(([v]) => esc(v.nhan)).join(' → ')}</b>${cho.map(([v, j], n) => `<label class="nho">Bước ${n + 1}: ${esc(v.nhan)}<textarea class="ai-y" rows="2" data-i="${i}" data-j="${j}">${esc(v.yeu_cau || '')}</textarea></label>`).join('')}
     <span class="nho ai-gia">${tong == null ? esc(cho.map(([v]) => aiGia(v)).join(' ')) : esc(`Cả chuỗi khoảng ${tienDo(tong)}.`)}</span>
     <button type="button" class="bt chinh" data-ai="chayhet" data-i="${i}">Chạy</button> <button type="button" class="bt" data-ai="bohet" data-i="${i}">Bỏ</button></div>`; }
 function aiTin(m, i) {
   if (m.gui_lai) return `<div class="ai-tin may loi">${esc(m.chu)} <button type="button" class="bt" data-ai="guilai" data-i="${i}">Gửi lại</button></div>`;
   if (m.ai === 'nguoi') return `<div class="ai-tin nguoi"><span class="nho">${esc(m.doi || '')}</span>${esc(m.chu)}</div>`;
-  const lam = (m.da_lam || []).map((v) => `<li>${esc(v.nhan)}: <i>${esc(v.hien ?? (typeof v.moi === 'object' ? (v.moi || []).map((t) => t.loi).join(' / ') : String(v.moi)))}</i></li>`).join('');
+  const lam = (m.da_lam || []).map((v) => `<li${hlAttr([v])}>${esc(v.nhan)}: <i>${esc(v.hien ?? (typeof v.moi === 'object' ? (v.moi || []).map((t) => t.loi).join(' / ') : String(v.moi)))}</i></li>`).join('');
   const cho = (m.de_xuat || []).map((v, j) => [v, j]).filter(([v]) => !v.xong);
-  const dx = cho.length > 1 && !m.chuoi ? aiTheChuoi(m, i, cho) + (m.de_xuat || []).map((v, j) => v.xong ? aiGon(v) : '').join('') : (m.de_xuat || []).map((v, j) => v.xong ? `<details class="ai-gon"><summary>${v.xong === 'Đã bỏ.' ? '✕' : '✓'} ${esc(v.nhan)} · ${esc(v.xong)}</summary>${v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : ''}</details>` : `<div class="ai-the"><b>${esc(v.nhan)}</b>${v.xong ? (v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : '') : `<label class="nho">Ý bổ sung<textarea class="ai-y" rows="2" data-i="${i}" data-j="${j}">${esc(v.yeu_cau || '')}</textarea></label>`}<span class="nho ai-gia">${esc(aiGia(v))}</span>${laQtThat() && v.loai.startsWith('sinh_') ? aiXemHtml(i, j) : ''}
-    ${v.xong ? `<span class="nho ok">${esc(v.xong)}</span>` : `<button type="button" class="bt chinh" data-ai="chay" data-i="${i}" data-j="${j}">Chạy</button> <button type="button" class="bt" data-ai="bodx" data-i="${i}" data-j="${j}">Bỏ</button>`}</div>`).join('');
+  const dx = cho.length > 1 && !m.chuoi ? aiTheChuoi(m, i, cho) + (m.de_xuat || []).map((v, j) => v.xong ? aiGon(v) : '').join('') : (m.de_xuat || []).map((v, j) => v.xong ? `<details class="ai-gon"><summary>${v.xong === 'Đã bỏ.' ? '✕' : '✓'} ${esc(v.nhan)} · ${esc(v.xong)}</summary>${v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : ''}</details>` : `<div class="ai-the"${hlAttr([v])}><b>${esc(v.nhan)}</b>${v.xong ? (v.yeu_cau ? `<span class="nho">${esc(v.yeu_cau)}</span>` : '') : `<label class="nho">Ý bổ sung<textarea class="ai-y" rows="2" data-i="${i}" data-j="${j}">${esc(v.yeu_cau || '')}</textarea></label>`}<span class="nho ai-gia">${esc(aiGia(v))}</span>${laQtThat() && v.loai.startsWith('sinh_') ? aiXemHtml(i, j) : ''}
+    ${hlNut(v)}${v.xong ? `<span class="nho ok">${esc(v.xong)}</span>` : `<button type="button" class="bt chinh" data-ai="chay" data-i="${i}" data-j="${j}">Chạy</button> <button type="button" class="bt" data-ai="bodx" data-i="${i}" data-j="${j}">Bỏ</button>`}</div>`).join('');
   if (lam && m.hoan) return `<div class="ai-tin may"><details class="ai-gon"><summary>↶ Đã hoàn tác: ${esc(m.chu)}</summary><ul>${lam}</ul></details>${dx}</div>`;
-  return `<div class="ai-tin may${m.loi ? ' loi' : ''}">${esc(m.chu)}${lam ? `<ul>${lam}</ul>${m.hoan ? '<span class="nho">Đã hoàn tác.</span>' : `<button type="button" class="bt" data-ai="hoan" data-i="${i}">Hoàn tác</button>`}` : ''}${dx}</div>`;
+  return `<div class="ai-tin may${m.loi ? ' loi' : ''}"${hlAttr([...(m.da_lam || []), ...(m.de_xuat || [])])}>${esc(m.chu)}${lam ? `<ul>${lam}</ul>${m.hoan ? '<span class="nho">Đã hoàn tác.</span>' : `<button type="button" class="bt" data-ai="hoan" data-i="${i}">Hoàn tác</button>`}` : ''}${dx}</div>`;
 }
 /** XEM LỆNH SẼ GỬI (chỉ quản trị): gập sẵn, mở ra mới đọc máy chủ (xemLenhS2, 0đ) — đường sinh, model, người trong khung, ảnh tham chiếu, ý riêng nối vào đâu, câu lệnh từng bước */
 function aiXemHtml(i, j) {
@@ -1780,3 +1780,66 @@ window.aiChon = () => { const a = document.activeElement; aiCapNhat(); if (AI.mo
 document.addEventListener('toggle', (e) => { const t = e.target; if (!t.classList?.contains('ai-xem')) return; const key = `${t.dataset.i}:${t.dataset.j}`;
   if (t.open && !AI.xem[key]?.mo) aiXem(+t.dataset.i, +t.dataset.j); else if (!t.open && AI.xem[key]) AI.xem[key].mo = false; }, true);
 setTimeout(aiVe, 0);
+
+// ── SÁNG ĐỐI TƯỢNG + TÌM CHUNG + NGĂN KÉO CHI TIẾT (anh 21/11/2026)
+// Khoá đối tượng = "c:<mã cảnh DB>" hoặc "m:<mã mẫu DB>". Một bộ sáng dùng chung cho tin Lệnh AI, kết quả tìm, và mọi chỗ sau này.
+const mauTheoTen = (ten) => { const k = khongDau(ten); return k ? (D.that?.mau || []).find((x) => { const t = khongDau(x.ten); return t === k || t.includes(k) || k.includes(t); }) : null; };
+function hlKhoa(ds) { const k = new Set();
+  for (const v of ds) { if (!v) continue; if (v.canhId != null) k.add(`c:${v.canhId}`); if (v.nhanVatId != null) k.add(`m:${v.nhanVatId}`);
+    if (v.loai === 'tao_nhan_vat' && v.ten) { const x = mauTheoTen(v.ten); if (x) k.add(`m:${x.id}`); } if (v.mauId != null) k.add(`m:${v.mauId}`); }
+  return [...k]; }
+const hlAttr = (ds) => { const k = hlKhoa(ds); return k.length ? ` data-hl="${k.join(',')}"` : ''; };
+/** nút nhỏ trên thẻ đề xuất: tới đúng cảnh / mở chi tiết mẫu */
+const hlNut = (v) => hlKhoa([v]).map((k) => { const [l, id] = k.split(':'); if (l === 'c') { const i = vt(`s${id}`); return i >= 0 ? `<button type="button" class="bt" data-ai="toi" data-k="${k}">Tới cảnh ${i + 1}</button> ` : ''; }
+  const x = (D.that?.mau || []).find((m) => m.id === +id); return x ? `<button type="button" class="bt" data-ai="toi" data-k="${k}">Xem ${esc(x.ten)}</button> ` : ''; }).join('');
+const khongDau = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd').toLowerCase().trim();
+function hlEls(k) { const [l, id] = k.split(':');
+  return l === 'c' ? [...document.querySelectorAll(`#dTl .clip[data-clip="s${id}"], #dPc [data-clip="s${id}"], #dPc [data-g="s${id}"]`)]
+    : [...document.querySelectorAll(`.mu-o[data-g="${id}"], .nv-bt[data-g="n${id}"], #s2Ngan[data-mau="${id}"]`)]; }
+/** sáng các đối tượng; cuon = cuộn phần tử đầu tiên vào tầm nhìn */
+function sang(khoa, cuon) { document.querySelectorAll('.s2-sang').forEach((e) => e.classList.remove('s2-sang')); const els = (khoa || []).flatMap(hlEls); els.forEach((e) => e.classList.add('s2-sang'));
+  if (cuon) for (const k of khoa || []) { const e = hlEls(k)[0]; if (e) e.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); }
+  return els.length; }
+/** tới đối tượng: cảnh → chọn + cuộn timeline; mẫu → mở ngăn kéo chi tiết */
+function toiDt(k) { const [l, id] = k.split(':');
+  if (l === 'c') { if (vt(`s${id}`) < 0) return bao('Cảnh này không còn trong tập.'); chon(`s${id}`, 'canh'); }
+  else { E.muMo = +id; E.muSua = null; veMu(); veNgan(); }
+  requestAnimationFrame(() => { sang([k], true); setTimeout(() => sang([]), 2200); }); }
+{ let dang = null; document.addEventListener('mouseover', (e) => { const el = e.target.closest?.('#aiDock [data-hl], #s2TimKq [data-hl]'); if (el === dang) return; dang = el; sang(el ? el.dataset.hl.split(',') : [], !!el?.closest('#s2TimKq')); }); }
+document.addEventListener('click', (e) => { const b = e.target.closest?.('#aiDock [data-ai=toi]'); if (b) { e.stopPropagation(); toiDt(b.dataset.k); } }, true);
+
+// ngăn kéo chi tiết mẫu (người, bối cảnh, đồ vật): nhiều thông tin nên mở ngăn bên phải thay vì bung trong widget
+let MU_CT = null;
+function veNgan() { let n = document.getElementById('s2Ngan'); const x = E.muMo != null && (D.that?.mau || []).find((m) => m.id === E.muMo);
+  if (!x || !MU_CT) { if (n) n.hidden = true; return; }
+  if (!n) { n = document.createElement('aside'); n.id = 's2Ngan'; n.className = 's2-ngan d-mu'; n.setAttribute('aria-label', 'Chi tiết'); document.getElementById('dung').append(n); }
+  const a = document.activeElement; if (a && n.contains(a) && /TEXTAREA|INPUT|SELECT/.test(a.tagName)) return;   // đang gõ trong ngăn: không vẽ lại dưới tay
+  n.dataset.mau = x.id; n.hidden = false;
+  n.innerHTML = `<div class="ng-dau"><div><small>${esc(S_VAI[x.loai] || x.loai)}</small><b>${esc(x.ten)}</b></div><button type="button" class="bt" data-d="muMo" data-g="${x.id}" aria-label="Đóng chi tiết">Đóng</button></div><div class="ng-than">${MU_CT(x)}</div>`; }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && E.muMo != null && !document.getElementById('s2Ngan')?.hidden && !e.target.closest?.('textarea, input, #aiDock')) { E.muMo = null; veMu(); veNgan(); } });
+
+// ô TÌM CHUNG trên thanh trên: tìm trong chi tiết từng cảnh (tên, chữ màn, lời, thoại, mô tả hình) và mẫu (tên, mô tả); rê = sáng, bấm / Enter = tới
+const TIM_TRUONG = [['nhan', 'Tên cảnh'], ['chu', 'Chữ trên màn'], ['loi', 'Lời đọc']], TIM_GOC = [['mo_ta', 'Mô tả hình'], ['hanh_dong_vi', 'Hành động']];
+function timDt(q) { const k = khongDau(q); if (k.length < 2) return []; const kq = [];
+  const doan = (t) => { const s = String(t), i = khongDau(s).indexOf(k); if (i < 0) return null; const a = Math.max(0, i - 30); return `${a ? '…' : ''}${esc(s.slice(a, i))}<mark>${esc(s.slice(i, i + q.trim().length))}</mark>${esc(s.slice(i + q.trim().length, i + q.trim().length + 50))}…`; };
+  for (const x of D.that?.mau || []) for (const [t, nh] of [[x.ten, 'Tên'], [x.moTa, 'Mô tả']]) { const d = t && doan(t); if (d) { kq.push({ k: `m:${x.id}`, dau: `${S_VAI[x.loai] || x.loai}: ${x.ten}`, nh, d }); break; } }
+  D.canh.forEach((c, i) => { const g = GOC[c.id] || {}, id = String(c.id).replace(/^s/, ''), ds = [...TIM_TRUONG.map(([f, nh]) => [c[f], nh]), ...(c.thoai || []).map((t) => [t.cau, `Thoại ${t.ai}`]), ...TIM_GOC.map(([f, nh]) => [g[f], nh])];
+    for (const [t, nh] of ds) { const d = t && typeof t === 'string' && doan(t); if (d) { kq.push({ k: `c:${id}`, dau: `Cảnh ${i + 1}`, nh, d }); if (kq.filter((r) => r.k === `c:${id}`).length >= 2) break; } } });
+  return kq.slice(0, 40); }
+const TIM = { o: null, kq: [], chon: 0 };
+function veTimKq() { const b = document.getElementById('s2TimKq'); if (!b) return; const q = TIM.o.value; TIM.kq = timDt(q);
+  b.hidden = khongDau(q).length < 2; if (b.hidden) { sang([]); return; }
+  b.innerHTML = TIM.kq.length ? TIM.kq.map((r, i) => `<button type="button" class="tim-r${i === TIM.chon ? ' chon' : ''}" data-hl="${r.k}" data-i="${i}"><b>${esc(r.dau)}</b><small>${esc(r.nh)}</small><span>${r.d}</span></button>`).join('') : '<p class="nho">Không thấy cảnh hay mẫu nào khớp.</p>';
+  sang([...new Set(TIM.kq.map((r) => r.k))]); }
+function oTim() { if (TIM.o) return TIM.o.parentNode; const w = document.createElement('span'); w.className = 's2-tim';
+  w.innerHTML = '<input type="search" id="s2Tim" placeholder="Tìm cảnh, lời, nhân vật…" aria-label="Tìm trong tập" autocomplete="off"><div class="s2-tim-kq" id="s2TimKq" hidden></div>'; TIM.o = w.firstChild;
+  const tat = () => { document.getElementById('s2TimKq').hidden = true; sang([]); };
+  TIM.o.addEventListener('input', (e) => { e.stopPropagation(); TIM.chon = 0; veTimKq(); });
+  TIM.o.addEventListener('focus', () => { if (TIM.o.value) veTimKq(); });
+  TIM.o.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') { TIM.o.value = ''; tat(); TIM.o.blur(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); TIM.chon = Math.max(0, Math.min(TIM.kq.length - 1, TIM.chon + (e.key === 'ArrowDown' ? 1 : -1))); veTimKq(); document.querySelector('#s2TimKq .chon')?.scrollIntoView({ block: 'nearest' }); const r = TIM.kq[TIM.chon]; if (r) sang([r.k], true); return; }
+    if (e.key === 'Enter') { const r = TIM.kq[TIM.chon]; if (r) { tat(); toiDt(r.k); } } });
+  w.addEventListener('mousedown', (e) => { const r = e.target.closest('.tim-r'); if (!r) return; e.preventDefault(); const x = TIM.kq[+r.dataset.i]; tat(); if (x) toiDt(x.k); });
+  TIM.o.addEventListener('blur', () => setTimeout(tat, 150));
+  return w; }
+{ const goc = veTren; veTren = function () { const a = document.activeElement === TIM.o; goc(); if (!D.that && !D.canh?.length) return; const w = oTim(), day = document.querySelector('#dTren .day'); if (day) day.before(w); else document.getElementById('dTren').append(w); if (a) TIM.o.focus(); }; }

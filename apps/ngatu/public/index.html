@@ -32,7 +32,7 @@
     <button id="mo" title="Số liệu và điều khiển">⚙</button>
   </div>
   <div class="nut cong">
-    <span>Bấm vào xe / người:</span>
+    <span>Bấm vào xe / người (bấm vào làn, vạch, lòng ngã tư để chỉnh đường):</span>
     <button data-cong="nhac" class="on">Túm ra chỗ khác</button>
     <button data-cong="nga">Đẩy ngã</button>
     <button data-cong="ve" title="Bấm giữ vào một xe rồi kéo để vẽ đường cho nó chạy; hết nét xe tự nhập làn gần nhất">✏️ Vẽ đường</button>
@@ -68,6 +68,7 @@
     </details>
     <details name="ngan" data-ngan="lan">
       <summary>🛣️ Làn &amp; vạch (hoạch định)</summary>
+      <p class="goiy">Nhanh hơn: bấm thẳng vào một làn hoặc vạch trên đường.</p>
       <label>Hướng vào
         <select id="lanHuong">
           <option value="ca">Cả 4 hướng</option>
@@ -107,6 +108,7 @@
     </details>
   </div>
 </aside>
+<div id="oLan" class="bang" hidden></div>
 <script type="module" src="ngatu.js?v=__BAN__"></script>
 </body>
 </html>

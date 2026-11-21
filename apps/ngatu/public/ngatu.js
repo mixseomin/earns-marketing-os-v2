@@ -1648,7 +1648,7 @@ function hienLan() {
   $('lanDs').innerHTML = h.lan.map((c, i) => `<label>Làn ${i + 1} ${i === 0 ? '(sát tim đường)' : i === h.soLan - 1 ? '(sát lề)' : ''}<select data-lan="${i}">`
     + Object.entries(CONG_NANG).map(([k, t]) => `<option value="${k}"${k === c ? ' selected' : ''}>${t}</option>`).join('') + '</select></label>').join('');
 }
-function doiLan(f) { for (const i of lanDang()) f(CAI.lanCfg[i]); veLan(); hienLan(); luuTuyChon(); }
+function doiLan(f) { for (const i of lanDang()) f(CAI.lanCfg[i]); veLan(); hienLan(); luuTuyChon(); if (chinh) veChinh(); }
 function hienTuyChon() {
   $('md').value = CAI.matDo; $('vMd').textContent = CAI.matDo;
   $('lieu').value = Math.round(CAI.lieu * 100); $('vLieu').textContent = Math.round(CAI.lieu * 100) + '%';
@@ -1777,11 +1777,84 @@ cv.addEventListener('pointerdown', (e) => (xuong = [e.clientX, e.clientY]));
 cv.addEventListener('pointerup', (e) => {
   if (!xuong || Math.hypot(e.clientX - xuong[0], e.clientY - xuong[1]) > 6) return;
   const a = chonXe(e);
-  if (!a) return;
+  if (!a) { moChinh(e); return; }
+  dongChinh();
   if (cong === 'nhac') nhac(a);
   else if (cong === 'nga') dayNga(a);
   else if (cong === 'theo') { theoXe = a; datCam('theo'); theoXe = a; }
 });
+// ── Bấm thẳng vào đường để chỉnh (anh 22/11/2026: "option phải bấm vào đối tượng mới trực quan"): bấm vào một làn → ô
+// chỉnh công năng làn đó + số làn của hướng; bấm vào vạch chia làn → kiểu vạch + độ dài; bấm lòng ngã tư → mắt võng,
+// vạch dẫn rẽ trái. Chỗ đang chỉnh được tô vàng trên mặt đường. Cùng sổ lanCfg với bảng "Làn & vạch" bên phải.
+const SANG = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd23f', transparent: true, opacity: 0.32, depthWrite: false }));
+SANG.position.y = 0.04; SANG.renderOrder = 8; SANG.visible = false; scene.add(SANG);
+let chinh = null; // { loai: 'lan' | 'vach' | 'nga', ia, i }
+function trungDat([x, z]) {
+  if (Math.abs(x) < HW_NS && Math.abs(z) < HW_EW) return { loai: 'nga' };
+  for (let ia = 0; ia < ARMS.length; ia++) {
+    const d = ARMS[ia].d, r = right(d), hw = hwAlong(d), t = x * d[0] + z * d[1], b = x * r[0] + z * r[1];
+    if (t > -eAlong(d) || b < 0 || b > hw) continue;
+    const h = CAI.lanCfg[ia], w = hw / h.soLan, k = Math.round(b / w);
+    if (k > 0 && k < h.soLan && Math.abs(b - k * w) < 0.45) return { loai: 'vach', ia, i: k };
+    return { loai: 'lan', ia, i: Math.min(h.soLan - 1, Math.floor(b / w)) };
+  }
+  return null;
+}
+function toSang() {
+  if (!chinh) { SANG.visible = false; return; }
+  if (chinh.loai === 'nga') { SANG.position.set(0, 0.04, 0); SANG.scale.set(2 * HW_NS, 1, 2 * HW_EW); SANG.visible = true; return; }
+  const h = CAI.lanCfg[chinh.ia], d = ARMS[chinh.ia].d, r = right(d), hw = hwAlong(d), e0 = eAlong(d) + CW;
+  if (chinh.loai === 'lan' && chinh.i >= h.soLan) chinh.i = h.soLan - 1;
+  const [l0, l1] = chinh.loai === 'lan' ? lanKhoang(h, chinh.i, hw) : [(chinh.i * hw) / h.soLan - 0.3, (chinh.i * hw) / h.soLan + 0.3];
+  const dai = Math.max(h.dai, 12), u = e0 + dai / 2, c = (l0 + l1) / 2;
+  SANG.position.set(-u * d[0] + c * r[0], 0.04, -u * d[1] + c * r[1]);
+  SANG.scale.set(d[0] ? dai : l1 - l0, 1, d[0] ? l1 - l0 : dai); SANG.visible = true;
+}
+const chonO = (id, ds, v) => `<select id="${id}">` + ds.map(([k, t]) => `<option value="${k}"${String(k) === String(v) ? ' selected' : ''}>${t}</option>`).join('') + '</select>';
+function veChinh() {
+  const o = $('oLan'), c = chinh;
+  if (!c) { o.hidden = true; toSang(); return; }
+  let html;
+  if (c.loai === 'nga') {
+    html = `<b>Lòng ngã tư</b><label class="chk"><input id="cMv" type="checkbox"${CAI.choNga ? ' checked' : ''}> Ô mắt võng vàng (kẹt thì chờ ở vạch, không dừng trong ô)</label>`
+      + `<label class="chk"><input id="cDt" type="checkbox"${CAI.danTrai ? ' checked' : ''}> Vạch dẫn rẽ trái</label>`;
+  } else {
+    const h = CAI.lanCfg[c.ia], ten = 'Từ ' + ARMS[c.ia].ten;
+    if (c.loai === 'lan' && c.i >= h.soLan) c.i = h.soLan - 1;
+    if (c.loai === 'vach' && c.i >= h.soLan) { chinh = { loai: 'lan', ia: c.ia, i: h.soLan - 1 }; return veChinh(); }
+    html = c.loai === 'lan'
+      ? `<b>${ten} · làn ${c.i + 1}/${h.soLan}</b><label>Làn này cho đi${chonO('cCn', Object.entries(CONG_NANG), h.lan[c.i])}</label>`
+      : `<b>${ten} · vạch giữa làn ${c.i} và ${c.i + 1}</b>`;
+    html += `<label>Vạch chia làn trước vạch dừng${chonO('cVach', [['dut', 'Đứt (được chuyển làn)'], ['lien', 'Liền (cấm chuyển làn)'], ['khong', 'Không kẻ']], h.vach)}</label>`
+      + `<label>Độ dài đoạn vạch <b id="cVd">${h.dai} m</b><input id="cDai" type="range" min="10" max="60" step="2" value="${h.dai}"></label>`
+      + `<label>Số làn chiều vào${chonO('cSo', [1, 2, 3, 4].map((n) => [n, n + ' làn']), h.soLan)}</label>`
+      + `<label>Mẫu nhanh cho hướng này${chonO('cMau', [['', 'Chọn mẫu…'], ...Object.entries(MAU_LAN).map(([k, m]) => [k, m.ten])], '')}</label>`
+      + '<button id="cCa">Áp y hệt cho cả 4 hướng</button>';
+  }
+  o.innerHTML = '<div class="dau">' + html.replace(/^<b>(.*?)<\/b>/, '<b>$1</b><button id="cDong" title="Đóng">✕</button></div>');
+  o.hidden = false; toSang();
+  const sua = (f) => { f(CAI.lanCfg[c.ia]); veLan(); hienLan(); luuTuyChon(); veChinh(); };
+  const on = (id, ev, f) => { const el = $(id); if (el) el.addEventListener(ev, f); };
+  on('cDong', 'click', dongChinh);
+  on('cMv', 'change', (e) => { CAI.choNga = e.target.checked; MV_MESH.visible = CAI.choNga; $('cn').checked = CAI.choNga; luuTuyChon(); });
+  on('cDt', 'change', (e) => { CAI.danTrai = e.target.checked; $('dt').checked = CAI.danTrai; veLan(); luuTuyChon(); });
+  on('cCn', 'change', (e) => sua((h) => { h.lan[c.i] = e.target.value; }));
+  on('cVach', 'change', (e) => sua((h) => { h.vach = e.target.value; }));
+  on('cDai', 'input', (e) => { CAI.lanCfg[c.ia].dai = +e.target.value; $('cVd').textContent = e.target.value + ' m'; veLan(); hienLan(); luuTuyChon(); toSang(); });
+  on('cSo', 'change', (e) => sua((h) => { const n = +e.target.value; h.lan = Array.from({ length: n }, (_, i) => h.lan[i] || 'tudo'); h.soLan = n; }));
+  on('cMau', 'change', (e) => { const k = e.target.value; if (k) sua((h) => Object.assign(h, structuredClone(MAU_LAN[k].h))); });
+  on('cCa', 'click', () => { const h = CAI.lanCfg[c.ia]; CAI.lanCfg = CAI.lanCfg.map(() => structuredClone(h)); veLan(); hienLan(); luuTuyChon(); });
+}
+function moChinh(e) {
+  const P = diemDat(e), t = P && trungDat(P);
+  if (!t) { dongChinh(); return; }
+  chinh = t; veChinh();
+  const o = $('oLan'), W = o.offsetWidth, H = o.offsetHeight;
+  o.style.left = Math.max(8, Math.min(innerWidth - W - 8, e.clientX + 14)) + 'px';
+  o.style.top = Math.max(8, Math.min(innerHeight - H - 8, e.clientY - H - 24 > 8 ? e.clientY - H - 24 : e.clientY + 24)) + 'px'; // đặt trên điểm bấm, không che chỗ tô vàng
+}
+function dongChinh() { chinh = null; veChinh(); }
+addEventListener('keydown', (e) => { if (e.key === 'Escape') dongChinh(); });
 let cong = 'nhac'; // 'theo' (đi theo xe) tạm bỏ khỏi giao diện 21/11/2026, mã giữ để bật lại
 document.querySelectorAll('[data-cong]').forEach((b) => b.addEventListener('click', () => {
   cong = b.dataset.cong;

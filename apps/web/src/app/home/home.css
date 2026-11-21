@@ -241,6 +241,10 @@
   .hm-luoi { height: auto; display: flex; flex-direction: column; gap: 8px; background-image: none; }
   .hm-o { position: static; width: auto; height: auto; z-index: auto !important; }
   .hm-ob { max-height: 72vh; }
+  /* góp ý #1749: ô có bảng trên điện thoại — bỏ hộp cuộn dọc lồng ngoài bảng (iOS Safari giao cú vuốt cho hộp dọc,
+     bảng không vuốt ngang được). Trang cuộn dọc, bảng chỉ cuộn ngang. */
+  .hm-ob:has(.dt-scroll) { max-height: none; overflow: visible; }
+  .hm-ob .dt-scroll { touch-action: pan-x pan-y; overscroll-behavior-x: contain; }
   .hm-noi-to { display: none; }
   .hm-to { position: fixed; inset: 0; z-index: 108 !important; border-radius: 0; }
   .hm-to .hm-ob { max-height: none; }

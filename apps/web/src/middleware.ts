@@ -132,7 +132,9 @@ export function middleware(req: NextRequest) {
 // Trang NHÚNG (/nhung/gop-y — hòm góp ý phủ màn trên trang ngoài) mà trình duyệt chưa đăng nhập mos2: chuyển về /login NGAY TRONG
 // iframe là ngõ cụt — Google không cho đăng nhập trong khung nhúng, và iframe phủ màn không có nút đóng (dantranh 21/11/2026).
 // Thay bằng thẻ nhỏ: báo rõ cần đăng nhập · nút mở /login ở tab mới (cookie mos2 dùng chung *.on.tc → quay lại bấm 💬 là được) · nút Đóng
-// (gửi 'gop-y:dong' — nút /api/gop-y-ngoai/nut nhận từ đúng iframe origin mos2 thì gỡ khung).
+// (gửi 'gop-y:dong' — nút /api/gop-y-ngoai/nut nhận từ đúng iframe origin mos2 thì ẩn khung).
+// Nút nạp SẴN iframe lúc trang rảnh → đăng nhập ở tab khác xong, iframe vẫn là thẻ này: mỗi lần bấm 💬 (tin 'gop-y:mo') thẻ hỏi
+// /api/auth/verify, có phiên thì tự nạp lại thành hòm thật (nút giữ gói ngữ cảnh tới khi hòm mới báo 'gop-y:san-sang').
 function nhungCanDangNhap() {
   const html = `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>html,body{margin:0;height:100%;background:rgba(0,0,0,.55);font:15px system-ui,sans-serif;color-scheme:normal}
@@ -143,7 +145,9 @@ a{background:#6aa8f7;color:#0b0d12;border:0}button{background:transparent;color:
 <body><div class="k" role="dialog" aria-labelledby="t"><h1 id="t">💬 Cần đăng nhập để góp ý</h1>
 <p>Hòm góp ý gửi vào MOS2 nên cần tài khoản MOS2. Bấm Đăng nhập (mở tab mới), xong quay lại trang này bấm 💬 lần nữa.</p>
 <div class="n"><a href="/login?next=%2F" target="_blank" rel="noopener">Đăng nhập</a><button id="d" type="button">Đóng</button></div></div>
-<script>const d=()=>parent.postMessage({loai:'gop-y:dong'},'*');document.getElementById('d').onclick=d;document.body.onclick=(e)=>{if(e.target===document.body)d()};addEventListener('keydown',(e)=>{if(e.key==='Escape')d()});</script>
+<script>const d=()=>parent.postMessage({loai:'gop-y:dong'},'*');document.getElementById('d').onclick=d;document.body.onclick=(e)=>{if(e.target===document.body)d()};addEventListener('keydown',(e)=>{if(e.key==='Escape')d()});
+addEventListener('message',(e)=>{if(e.source!==parent||!e.data||e.data.loai!=='gop-y:mo')return;fetch('/api/auth/verify',{credentials:'same-origin',cache:'no-store'}).then((r)=>{if(r.status!==401){document.querySelector('p').textContent='Đã đăng nhập — đang mở hòm góp ý…';location.reload();}}).catch(()=>{});});
+parent.postMessage({loai:'gop-y:san-sang'},'*');</script>
 </body></html>`;
   return new NextResponse(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
 }

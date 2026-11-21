@@ -2823,6 +2823,10 @@
   "doi_dom20": 4.1
  },
  "way/223110820#14": {
+  "rang_cua": 0,
+  "vom_nho": 7,
+  "ly_do_rang_cua": "góp ý #1653 (21/11/2026) đếm bằng mắt trên ảnh chụp thẳng cổng commons-Entering-the-Neuschwanstein-Castle-25121020852-.jpg: trên mặt đỏ này chỉ có đầu hồi bậc (4 bậc trái + 1 đỉnh + 4 bậc phải) — bậc đó đã dựng ở mái way/951894999#mai (hoi_bac), đỉnh tường không có răng cưa riêng → 0; ghi 9 thì kiem-ke báo thừa răng mặt đông (ảnh 11, mô hình 20)",
+  "ly_do_vom_nho": "cùng ảnh Entering: dải vòm nhỏ dưới mép bậc đầu hồi đếm được 7 vòm",
   "hang": [
    {
     "y0": 33.6,
@@ -2847,6 +2851,8 @@
   "doi_dom20": 7.8
  },
  "way/223110820#0": {
+  "vom_nho": 0,
+  "ly_do_vom_nho": "góp ý #1653 (21/11/2026): vai kem khối cổng dưới hàng răng là đá trơn, chỉ có chân chòi góc, không dải vòm — thấy trên commons-Entering-the-Neuschwanstein-Castle-25121020852-.jpg và commons-Dvorac-Neuschwanstein---pročelje.jpg; dải vòm chỉ có trên phần gạch đỏ",
   "hang": [
    {
     "y0": 34,
@@ -2866,6 +2872,8 @@
   "ly_do_rang_cua": "21/11/2026: ảnh c-Entering-the-Neuschwanstein-Castle-25121020852-.jpg đếm 3 răng cưa trên mỗi cánh gạch đỏ hai bên đầu hồi (răng sát đầu hồi dính một phần vào khung đá) → 3 răng mỗi cạnh"
  },
  "way/223110820#13": {
+  "vom_nho": 0,
+  "ly_do_vom_nho": "góp ý #1653 (21/11/2026): vai kem bên bắc khối cổng, như way/223110820#0 — đá trơn dưới răng, không dải vòm (commons-Entering-the-Neuschwanstein-Castle-25121020852-.jpg chụp thẳng thấy cả hai vai)",
   "hang": [
    {
     "y0": 34,
@@ -2885,6 +2893,8 @@
   "ly_do_rang_cua": "21/11/2026: ảnh c-Entering-the-Neuschwanstein-Castle-25121020852-.jpg đếm 3 răng cưa trên mỗi cánh gạch đỏ hai bên đầu hồi (răng sát đầu hồi dính một phần vào khung đá) → 3 răng mỗi cạnh"
  },
  "way/223110825#6": {
+  "da_goc": 0,
+  "ly_do_da_goc": "góp ý #1654 (21/11/2026): ảnh commons-Schloss-Neuschwanstein-6870.jpg (vùng phải, mặt hướng sân cánh nam) — góc tây nam là sa thạch cam xây đều với trụ ốp trơn, không có hàng đá góc dài ngắn xen kẽ",
   "hang": [
    {
     "y0": 20.37,
@@ -3280,6 +3290,8 @@
   ]
  },
  "way/223110818#0": {
+  "vom_nho": 13,
+  "ly_do_vom_nho": "góp ý #1652 (21/11/2026) đếm bằng mắt trên neuschwanstein-9.jpg (vùng trái, mặt hướng sân cánh bắc): đoạn sa thạch dưới cạnh vai khối cổng có hai dải vòm 6 + 7 = 13",
   "hang": [],
   "mau": {
    "duoi": "#e9e7e1",
@@ -3292,6 +3304,8 @@
   "doi_dom20": 4.1
  },
  "way/223110818#1": {
+  "vom_nho": 4,
+  "ly_do_vom_nho": "góp ý #1652 (21/11/2026) đếm bằng mắt trên neuschwanstein-9.jpg: đoạn xám #1 + #2 có một dải 8 vòm, chia theo chiều dài (1,6 m và 1,9 m) — #1 4 vòm",
   "hang": [],
   "mau": {
    "duoi": "#e9e7e1",
@@ -3303,6 +3317,8 @@
   "doi_dom20": 4.1
  },
  "way/223110818#2": {
+  "vom_nho": 4,
+  "ly_do_vom_nho": "góp ý #1652 (21/11/2026) như way/223110818#1: dải 8 vòm trên neuschwanstein-9.jpg chia theo chiều dài — #2 4 vòm",
   "hang": [],
   "mau": {
    "duoi": "#e9e7e1",
@@ -3323,7 +3339,24 @@
   "ly_do_mau": "ảnh Commons neuschwanstein-9.jpg (mặt tây Torbau nhìn từ sân dưới): tầng dưới đá vôi trắng, tầng trên sa thạch vàng, gờ chia ~23,4 m · gờ đổi màu liền cả mặt tiền: theo khung cánh nam v .54 → 24,0 m",
   "doi_dom20": 4.1
  },
+ "way/223110820#4": {
+  "rang_cua": 1,
+  "vom_nho": 1,
+  "ly_do_rang_cua": "góp ý #1653 (21/11/2026) đếm bằng mắt trên ảnh neuschwanstein-9.jpg (mặt nam gạch đỏ khối cổng, cắt vùng phải): sau răng góc có 6 răng + 9 vòm nhỏ trên 7,2 m của ba cạnh #4/#3/#2 — chia theo chiều dài: #4 (1,0 m) 1 răng 1 vòm"
+ },
+ "way/223110820#3": {
+  "rang_cua": 3,
+  "vom_nho": 4,
+  "ly_do_rang_cua": "góp ý #1653 (21/11/2026) như way/223110820#4: 6 răng + 9 vòm trên ảnh neuschwanstein-9.jpg chia theo chiều dài — #3 (3,2 m) 3 răng 4 vòm"
+ },
+ "way/223110820#2": {
+  "rang_cua": 2,
+  "vom_nho": 4,
+  "ly_do_rang_cua": "góp ý #1653 (21/11/2026) như way/223110820#4: 6 răng + 9 vòm trên ảnh neuschwanstein-9.jpg chia theo chiều dài — #2 (3,0 m) 2 răng 4 vòm"
+ },
  "way/223110820#5": {
+  "rang_cua": 3,
+  "ly_do_rang_cua": "góp ý #1653 (21/11/2026) đếm bằng mắt: vai nam mặt hướng sân — 2 răng rõ + 1 khối thấp sát đầu hồi trên neuschwanstein-9.jpg và commons-Schloss-Neuschwanstein-6870.jpg (hai ảnh khớp nhau)",
   "hang": [
    {
     "y0": 26.43,
@@ -3463,6 +3496,9 @@
   "doi_dom20": 7.8
  },
  "way/223110820#8": {
+  "rang_cua": 2,
+  "vom_nho": 6,
+  "ly_do_rang_cua": "góp ý #1653 (21/11/2026) đếm bằng mắt: vai bắc mặt hướng sân — 2 răng + 6 vòm nhỏ, khối kề bên là trụ đầu hồi chứ không phải răng; neuschwanstein-9.jpg và commons-Schloss-Neuschwanstein-6870.jpg khớp nhau",
   "hang": [
    {
     "y0": 27.31,
@@ -3499,6 +3535,8 @@
   "doi_dom20": 7.6
  },
  "way/223110825#7": {
+  "da_goc": 0,
+  "ly_do_da_goc": "góp ý #1654 (21/11/2026): như way/223110825#6 — chỗ giáp khối cổng trên commons-Schloss-Neuschwanstein-6870.jpg là đá xây đều, không hàng đá góc",
   "vom_nho": 6,
   "do_may_vom_nho": "máy đo 2026-11-20 (scripts/do-anh.mjs, không AI): ảnh c-Castelul-Neuschwanstein22.jpg (Cezar Suceveanu, CC BY-SA 3.0) định vị 131 điểm khớp · sai số 2.82 px, nắn 24 px/m, nhịp đo 0.58 m, độ tin 0.67",
   "rang_cua": 0,

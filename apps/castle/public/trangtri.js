@@ -70,7 +70,7 @@ export function datTrangTri({ THREE, mergeGeometries, dsKhoi, vl, ngoai, coSoDo 
         hop(p[0] + ux * L / 2 + nx * 0.08, yg, p[1] + uz * L / 2 + nz * 0.08, ux, uz, L + 0.1, 0.22, 0.16); hop(p[0] + ux * L / 2 + nx * 0.12, yg + 0.15, p[1] + uz * L / 2 + nz * 0.12, ux, uz, L + 0.2, 0.08, 0.24); ghi(c.mat, 'go_ngang', yg, 1, p[0] + ux * L / 2, p[1] + uz * L / 2); }
     }
     if (coThe('da_goc')) canh.forEach((c, i) => { const tr = canh[(i + v.length - 1) % v.length]; if (!c.ngoai && !tr.ngoai) return;
-      const nDa = +soDo?.(c.ngoai ? c.mat : tr.mat)?.da_goc; // số hàng đá góc đếm trên ảnh ở góc đầu cạnh này (cua-so.json da_goc) // góc giữa cạnh trước (tr) và cạnh này (c), tại đỉnh c.p
+      const goc = soDo?.(c.ngoai ? c.mat : tr.mat)?.da_goc, nDa = +goc; if (goc === 0) return; // da_goc = 0: ảnh thật thấy góc này KHÔNG có đá góc (không phải thiếu số đo) // số hàng đá góc đếm trên ảnh ở góc đầu cạnh này (cua-so.json da_goc) // góc giữa cạnh trước (tr) và cạnh này (c), tại đỉnh c.p
       const lo = tr.ux * c.uz - tr.uz * c.ux; if (lo <= 0.2) return;
       if (!(nDa > 0)) { (dem.thieuAnh ??= []).push((c.ngoai ? c.mat : tr.mat) + ' da_goc (số hàng đá góc trên ảnh)'); return; } // chỉ góc LỒI rõ (đa giác ngược chiều kim: rẽ trái là lồi)
       for (let j = 0, buoc = (y1 - 0.4 - yMong - 0.2) / nDa, y = yMong + 0.2; j < nDa; y += buoc, j++) { const dai = j % 2 ? 0.5 : 0.9;

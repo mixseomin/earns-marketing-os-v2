@@ -9,7 +9,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { doiSo, moTrang } from './chung.mjs';
-const iV = doiSo.indexOf('--vong'), VONG = iV >= 0 ? doiSo[iV + 1].split(',').map(Number) : null, viTri = doiSo.filter((a, k) => k !== iV && k !== iV + 1);
+const iV = doiSo.indexOf('--vong'), VONG = iV >= 0 ? doiSo[iV + 1].split(',').map(Number) : null, viTri = iV < 0 ? doiSo : doiSo.filter((a, k) => k !== iV && k !== iV + 1); // không có --vong thì iV = -1 → iV + 1 = 0 làm rơi mất <thư mục ra> (21/11/2026: kho 0 góc, thư mục rác "-20")
 const [RA, X0, X1, Z0, Z1, BUOC = 9] = viTri; if (!RA || Z1 === undefined) { console.error('dùng: kho-goc-nhin.mjs <thư mục> <x0> <x1> <z0> <z1> [bước]'); process.exit(1); }
 mkdirSync(RA, { recursive: true });
 const W = 1024, H = 768, FOV = 75, XA = VONG ? 1200 : 400;

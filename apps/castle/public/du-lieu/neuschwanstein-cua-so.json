@@ -2869,7 +2869,9 @@
   "ly_do": "16/11/2026 thẻ #1623 lần 3: mấu gạch đỏ phía nam chân đầu hồi (răng cưa ~30 m) có một cửa đơn 26,2–27,2 m nhìn trên ảnh 3D mặt đông, ngay trên mái cánh nam; ngang cách mũi đầu hồi ~5,1 m trên ảnh (÷ 0,83 nhìn xiên → ~6,1 m dọc mặt) → cách đầu giáp đầu hồi ~2,3 m",
   "doi_dom20": 7.8,
   "rang_cua": 3,
-  "ly_do_rang_cua": "21/11/2026: ảnh c-Entering-the-Neuschwanstein-Castle-25121020852-.jpg đếm 3 răng cưa trên mỗi cánh gạch đỏ hai bên đầu hồi (răng sát đầu hồi dính một phần vào khung đá) → 3 răng mỗi cạnh"
+  "ly_do_rang_cua": "21/11/2026: ảnh c-Entering-the-Neuschwanstein-Castle-25121020852-.jpg đếm 3 răng cưa trên mỗi cánh gạch đỏ hai bên đầu hồi (răng sát đầu hồi dính một phần vào khung đá) → 3 răng mỗi cạnh",
+  "da_goc": 0,
+  "ly_do_da_goc": "góp ý #1653 (21/11/2026): ảnh commons-Dvorac-Neuschwanstein---pročelje.jpg (vùng phải và vùng đỉnh) — đầu cạnh giáp chòi kem dưới đầu hồi là gạch xây liền vào chân chòi, không có hàng đá góc dài ngắn xen kẽ; dải đá góc chỉ có ở góc ngoài phía nam (đầu cạnh way/223110820#1)"
  },
  "way/223110820#13": {
   "vom_nho": 0,
@@ -3180,6 +3182,10 @@
   "mai": [],
   "yHien": null,
   "ly_do": "dò ảnh 3D + soát mắt: khớp ảnh"
+ },
+ "way/223110825#9": {
+  "da_goc": 0,
+  "ly_do_da_goc": "góp ý #1654 (21/11/2026): ảnh commons-Dvorac-Neuschwanstein---pročelje.jpg (vùng phải) — đầu cạnh là góc trong, tường gạch đỏ cánh nam chạy thẳng vào dải đá góc của khối cổng (dải đó thuộc góc ngoài way/223110820#0/#1, răng đá ăn vào mặt khối cổng), phía tường cánh nam không có hàng đá góc riêng"
  },
  "way/223110825#0": {
   "hang": [

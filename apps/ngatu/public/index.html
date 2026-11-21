@@ -40,26 +40,36 @@
     <div id="so"></div>
     <label>Mật độ xe máy <b id="vMd">250</b><input id="md" type="range" min="50" max="1000" step="10" value="250"></label>
     <label>Liều (vượt đèn) <b id="vLieu">12%</b><input id="lieu" type="range" min="0" max="60" value="12"></label>
-    <label>Ô tô so với xe máy <b id="vOto">7%</b><input id="oto" type="range" min="0" max="40" value="7"></label>
-    <label class="chk"><input id="rp" type="checkbox" checked> Xe máy rẽ phải khi đèn đỏ</label>
-    <label class="chk"><input id="cn" type="checkbox"> Lòng ngã tư kẹt thì chờ ở vạch (luật nước ngoài)</label>
-    <label class="chk"><input id="nl" type="checkbox"> Nhường lối thoát (không lấn vào chỗ trống trước mũi xe đang kẹt)</label>
-    <label>Kiểu đèn
-      <select id="kp">
-        <option value="2pha">2 pha (Đông–Tây / Bắc–Nam)</option>
-        <option value="trai">Có pha rẽ trái riêng (4 pha)</option>
-        <option value="huong">Từng hướng một (4 pha)</option>
-      </select>
-    </label>
-    <label>Chờ thoát ngã tư (đỏ cả 4 hướng) <b id="vCt">3 s</b><input id="ct" type="range" min="0" max="8" step="1" value="3"></label>
-    <label class="chk"><input id="ai" type="checkbox"> Đèn AI (xanh theo lượng xe chờ)</label>
-    <label class="chk"><input id="px" type="checkbox"> Mũi tên rẽ phải luôn xanh</label>
     <div class="nut">
       <button id="dung">Tạm dừng</button>
       <button id="toc">Tốc độ 1×</button>
-      <button id="macdinh" title="Đưa mọi tuỳ chọn về như lúc đầu">Mặc định</button>
     </div>
-    <p class="goiy">Kéo để xoay, lăn (hoặc chụm hai ngón) để phóng. Bấm vào xe hoặc người để làm việc đang chọn ở hàng "Bấm vào".</p>
+    <details name="ngan" data-ngan="den">
+      <summary>🚦 Đèn giao thông</summary>
+      <label>Kiểu đèn
+        <select id="kp">
+          <option value="2pha">2 pha (Đông–Tây / Bắc–Nam)</option>
+          <option value="trai">Có pha rẽ trái riêng (4 pha)</option>
+          <option value="huong">Từng hướng một (4 pha)</option>
+        </select>
+      </label>
+      <label>Chờ thoát ngã tư (đỏ cả 4 hướng) <b id="vCt">3 s</b><input id="ct" type="range" min="0" max="8" step="1" value="3"></label>
+      <label class="chk"><input id="ai" type="checkbox"> Đèn AI (xanh theo lượng xe chờ)</label>
+      <label class="chk"><input id="px" type="checkbox"> Mũi tên rẽ phải luôn xanh</label>
+    </details>
+    <details name="ngan" data-ngan="luat">
+      <summary>🛵 Luật đi đường</summary>
+      <label>Ô tô so với xe máy <b id="vOto">7%</b><input id="oto" type="range" min="0" max="40" value="7"></label>
+      <label class="chk"><input id="rp" type="checkbox" checked> Xe máy rẽ phải khi đèn đỏ</label>
+      <label class="chk"><input id="cn" type="checkbox"> Lòng ngã tư kẹt thì chờ ở vạch (luật nước ngoài)</label>
+      <label class="chk"><input id="nl" type="checkbox"> Nhường lối thoát (không lấn vào chỗ trống trước mũi xe đang kẹt)</label>
+    </details>
+    <details name="ngan" data-ngan="so">
+      <summary>📊 Số liệu &amp; cách dùng</summary>
+      <div id="soThem"></div>
+      <p class="goiy">Kéo để xoay, lăn (hoặc chụm hai ngón) để phóng. Bấm vào xe hoặc người để làm việc đang chọn ở hàng "Bấm vào".</p>
+      <button id="macdinh" title="Đưa mọi tuỳ chọn về như lúc đầu">↺ Về mặc định</button>
+    </details>
   </div>
 </aside>
 <script type="module" src="ngatu.js?v=__BAN__"></script>

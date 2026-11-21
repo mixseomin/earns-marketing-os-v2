@@ -12,11 +12,13 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #bcd3e6; fon
 .den { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.06); }
 .den i { width: 10px; height: 10px; border-radius: 50%; }
 .den.x i { background: #2bff5e; box-shadow: 0 0 8px #2bff5e; } .den.v i { background: #ffc21a; box-shadow: 0 0 8px #ffc21a; } .den.d i { background: #ff2a1f; box-shadow: 0 0 8px #ff2a1f; }
-.ben { top: 76px; right: 12px; width: 250px; display: flex; flex-direction: column; gap: 10px; }
+.ben { top: 76px; right: 12px; width: 270px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 88px); }
 #so { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; color: var(--mo); }
 #so b { color: var(--chu); font-size: 15px; }
 label { display: flex; flex-direction: column; gap: 4px; color: var(--mo); }
-label b { color: var(--nhan); }
+label b { color: var(--chu); font-weight: 600; }
+label:has(> input[type=range]) { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 8px; }
+label:has(> input[type=range]) > input { grid-column: 1 / -1; }
 label.chk { flex-direction: row; align-items: center; gap: 8px; color: var(--chu); }
 label select { font: inherit; color: var(--chu); background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 5px 6px; }
 label select option { background: #222; }
@@ -30,7 +32,22 @@ button.on { background: var(--nhan); color: #1a1a1a; border-color: var(--nhan); 
 .nut.cong span { flex: 1 0 100%; color: var(--mo); font-size: 12px; }
 .goiy { margin: 0; color: var(--mo); font-size: 12px; }
 #mo { display: none; flex: 0 0 auto; }
-#than { display: flex; flex-direction: column; gap: 10px; }
+#than { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; overflow: auto; }
+.nut.cam { flex-wrap: nowrap; }
+#soThem { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; color: var(--mo); }
+#soThem b { color: var(--chu); }
+details { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; }
+details > summary { cursor: pointer; color: var(--chu); font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::after { content: '▸'; color: var(--mo); font-size: 15px; line-height: 1; transition: transform .15s; }
+details[open] > summary::after { transform: rotate(90deg); }
+details[open] > :not(summary) { margin-top: 8px; }
+#macdinh { width: 100%; }
+@media (max-height: 520px) and (min-width: 641px) {
+  .ben { top: 8px; padding: 8px 10px; gap: 6px; max-height: calc(100vh - 16px); font-size: 12px; }
+  #than { gap: 6px; }
+  details { padding-top: 6px; }
+}
 @media (max-width: 640px) {
   .bang { padding: 7px 9px; border-radius: 10px; font-size: 12px; }
   .tren { top: 8px; left: 8px; max-width: calc(100% - 16px); gap: 6px 10px; }

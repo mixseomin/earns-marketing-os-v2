@@ -1372,7 +1372,17 @@ $('macdinh').addEventListener('click', () => {
   if (doiPha) dungPha();
   hienTuyChon();
 });
-$('mo').addEventListener('click', () => document.querySelector('.ben').classList.toggle('mo-ra'));
+// Ngăn đang mở (⚙ trên điện thoại + các mục gập) nằm trên URL ?mo=… để F5 vẫn y nguyên.
+const NGAN = new Set((new URLSearchParams(location.search).get('mo') || '').split(',').filter(Boolean));
+const ghiNgan = () => { const u = new URL(location.href); if (NGAN.size) u.searchParams.set('mo', [...NGAN].join(',')); else u.searchParams.delete('mo'); history.replaceState(null, '', u); };
+const ben = document.querySelector('.ben');
+ben.classList.toggle('mo-ra', NGAN.has('ben'));
+$('mo').addEventListener('click', () => { const m = ben.classList.toggle('mo-ra'); m ? NGAN.add('ben') : NGAN.delete('ben'); ghiNgan(); });
+for (const d of document.querySelectorAll('details[data-ngan]')) {
+  d.open = NGAN.has(d.dataset.ngan) && ![...document.querySelectorAll('details[open]')].length;
+  // name="ngan": mở mục này thì mục kia tự gập (một lúc một mục) để bảng vừa một màn hình.
+  d.addEventListener('toggle', () => { d.open ? NGAN.add(d.dataset.ngan) : NGAN.delete(d.dataset.ngan); ghiNgan(); });
+}
 $('dung').addEventListener('click', (e) => { CAI.dung = !CAI.dung; e.target.textContent = CAI.dung ? 'Chạy tiếp' : 'Tạm dừng'; });
 $('toc').addEventListener('click', (e) => { CAI.toc = CAI.toc === 1 ? 2 : CAI.toc === 2 ? 4 : CAI.toc === 4 ? 0.5 : 1; e.target.textContent = chuToc(); luuTuyChon(); });
 
@@ -1421,8 +1431,9 @@ function hud() {
   $('den').innerHTML = DEN.pha.map(chip).join('') + (CAI.denAI ? '<span class="den ai">AI</span>' : '');
   let cho = 0, leo = 0, taxi = 0, don = 0;
   for (const a of DS) { if (a.loai === 'xm') { if (a.choDen && a.sp < 0.5) cho++; if (a.y > 0) leo++; } else if (a.taxi) { taxi++; if (a.dangDon) don++; } }
-  $('so').innerHTML = `<div><b>${demCu.xm}</b> xe máy</div><div><b>${demCu.oto}</b> ô tô (${taxi} taxi)</div><div><b>${demCu.bus}</b> xe buýt</div><div><b>${demCu.bo}</b> người đi bộ</div>`
-    + `<div><b>${cho}</b> xe đang chờ đèn</div><div><b>${leo}</b> xe leo lề</div><div><b>${CAI.vuot}</b> lượt vượt đèn đỏ</div><div><b>${don}</b> taxi tấp lề đón khách</div><div><b>${CAI.nghich}</b> lượt bị nghịch</div>`;
+  $('so').innerHTML = `<div><b>${cho}</b> xe chờ đèn</div><div><b>${CAI.vuot}</b> lượt vượt đỏ</div>`;
+  if ($('soThem').closest('details').open) $('soThem').innerHTML = `<div><b>${demCu.xm}</b> xe máy</div><div><b>${demCu.oto}</b> ô tô (${taxi} taxi)</div><div><b>${demCu.bus}</b> xe buýt</div><div><b>${demCu.bo}</b> người đi bộ</div>`
+    + `<div><b>${leo}</b> xe leo lề</div><div><b>${don}</b> taxi tấp lề đón khách</div><div><b>${CAI.nghich}</b> lượt bị nghịch</div>`;
 }
 
 function coKhung() {

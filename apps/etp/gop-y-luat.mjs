@@ -733,6 +733,7 @@ export const LUAT = [
   { card: 'sm94-kho-2111', tep: 'apps/etp/kho-r2.py', co: '"--use-server-modtime"', vi: 'liệt kê R2 không HEAD từng tệp (20 nghìn tệp quá 10 phút)' },
   { card: 'chuyen-6shd', tep: 'apps/etp/kho-r2.py', co: '(f.endswith(".mp3") or f.startswith("cta-"))): return None', vi: 'chuyển R2→Drive không bao giờ mang giọng CTA thanh-pham/*/cta-*.mp3' },
   { card: 'chuyen-6shd', tep: 'apps/etp/kho-r2.py', co: 'DRIVE_DICH = "khodrive:kho-may/ethopex/"', vi: 'đích Drive cùng khoá với R2 (kho/ethopex/x ↔ kho-may/ethopex/x)' },
+  { card: 'chuyen-6shd', tep: 'apps/etp/kho-r2.py', co: '"--files-from", ff, "--size-only", "--fast-list"', vi: 'chép R2→Drive liệt kê cả cây một lượt (không cờ: 8 phút chưa chép tệp nào)' },
   { card: 'kho-thang-0311', tep: "apps/xuong-video/scripts/ethopex/len-creative.py", co: 'GOC = goc.pop()', cam: 'GOC = "https://img.on.tc/kho/ethopex/thanh-pham/2026-', vi: 'link video creative lấy từ URL kho trả về, không ghi cứng tháng (01/11 → 404)' },
   { card: 'cta-cuoi-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: 'a = {**a, "creative_id": sua}', vi: 'nhân bản camp thắng CTA cũ dùng BẢN SỬA CTA (02/11 giữ CTA cũ → anh đổi ý 06/11/2026 "Dùng bản sửa CTA"; giữ CTA cũ thì cổng CTA chặn hẳn)' },
   { card: 'cta-cuoi-0211', tep: "apps/xuong-video/scripts/ethopex/cat-canh.py", co: '_nt = os.environ.get("ETP_NUT_TU", "cuoi")', cam: 'os.environ.get("ETP_NUT_TU", "3")', vi: 'nút CTA chỉ ở thẻ cuối cho mọi kiểu — bỏ nút đè từ giây 3 (anh 02/11/2026)' },

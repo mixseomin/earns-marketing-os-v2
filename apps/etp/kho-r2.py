@@ -79,9 +79,10 @@ def chuyen(nhoms):
              RCLONE_CONFIG_KHOR2_ENDPOINT=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com")
     nguon = f"khor2:{os.environ['R2_BUCKET']}/{GOC}"
     # copy bỏ qua tệp Drive đã có cùng kích thước (chạy lại an toàn); Drive giới hạn ~3 tệp mới/giây nên 8 luồng là đủ
-    r = subprocess.run(["rclone", "copy", nguon, DRIVE_DICH, "--files-from", ff, "--size-only", "--transfers", "8", "--checkers", "16",
-                        "--drive-chunk-size", "64M", "--retries", "5", "--stats-one-line", "--stats", "60s", "--log-level", "NOTICE"], env=e, text=True, timeout=6 * 3600)
-    k = subprocess.run(["rclone", "check", nguon, DRIVE_DICH, "--files-from", ff, "--size-only", "--one-way", "--log-level", "ERROR"], env=e, capture_output=True, text=True, timeout=3600)
+    # --fast-list: không có cờ này rclone hỏi Drive TỪNG thư mục / tệp — 1.893 tệp đứng 8 phút chưa chép tệp nào; có cờ thì đối cả lô 1 phút (đo 21/11/2026)
+    r = subprocess.run(["rclone", "copy", nguon, DRIVE_DICH, "--files-from", ff, "--size-only", "--fast-list", "--transfers", "8", "--checkers", "16",
+                        "--drive-chunk-size", "64M", "--retries", "5", "--stats-one-line", "--stats", "60s", "--stats-log-level", "NOTICE", "--log-level", "NOTICE"], env=e, text=True, timeout=6 * 3600)
+    k = subprocess.run(["rclone", "check", nguon, DRIVE_DICH, "--files-from", ff, "--size-only", "--one-way", "--fast-list", "--checkers", "16", "--log-level", "ERROR"], env=e, capture_output=True, text=True, timeout=3600)
     thieu = [l for l in k.stderr.splitlines() if "ERROR" in l and "differences found" not in l]
     for l in thieu[:20]: print("THIẾU/LỆCH", l)
     print(f"đối kích thước R2 ↔ Drive: {len(ds) - len(thieu)}/{len(ds)} khớp · rclone copy mã {r.returncode} · check mã {k.returncode} · danh sách {ff}")

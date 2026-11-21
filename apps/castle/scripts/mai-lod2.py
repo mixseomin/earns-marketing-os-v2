@@ -100,7 +100,7 @@ def cao_mai(x, z, ds):  # mặt mái cao nhất chứa điểm (trong danh sách
 def cao_dom(x, z):
     E, N = utm(x + dx, z + dz); i, j = int((5269000 - N) / 0.2), int((E - 631000) / 0.2); o = dom[i - 2:i + 3, j - 2:j + 3]; return float(np.median(o)) - goc - bu
 SUA = json.load(open(PUB / 'neuschwanstein-sua.json')); BO = json.load(open(PUB / 'neuschwanstein-mat-palas-san.json'))
-NEO = (BO.get('neo') or {}).get('khoi'); RIENG = {NEO} | {i for i, e in SUA.items() if isinstance(e, dict) and (e.get('dau_hoi_bac') == 'yes' or e.get('thap_goc'))}
+NEO = (BO.get('neo') or {}).get('khoi'); RIENG = {NEO} | {i for i, e in SUA.items() if isinstance(e, dict) and (e.get('dau_hoi_bac') == 'yes' or e.get('thap_goc') or e.get('mai_lod2') == 'khong')}
 # mái nón / chóp / vòm (tháp tròn): LoD2 vẽ bằng vài mặt phẳng thô → mất chóp, lòi mảng (thử 20/11/2026 Treppenturm) — để tầng chóp từ DOM20 xử
 OSMK = {k['id']: dict(k.get('tags') or {}) for k in json.load(open(PUB / 'neuschwanstein.json'))['khoi']}
 for i, e in SUA.items():

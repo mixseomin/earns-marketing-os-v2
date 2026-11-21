@@ -537,7 +537,8 @@ function dungKhoi(k, G) {
   const kieu = (t['roof:shape'] || 'flat').toLowerCase();
   let hMai = kieu === 'flat' ? 0 : so(t['roof:height']) ?? Math.min(12, Math.max(2, Math.sqrt(Math.abs(dienTich(v))) * (kieu === 'cone' || kieu === 'pyramidal' ? 0.9 : 0.45)));
   hMai = Math.min(hMai, Math.max(0, h - hMin - 0.5));
-  const L2 = MAI_LOD2?.khoi?.[k.id];
+  // sua.json mai_lod2 "khong": khối đỉnh bằng có răng cưa đo trên ảnh (cụm cổng) — mặt mái LoD2 phủ lên mặt bằng của nó là mái nhà sau, không phải của nó
+  const L2 = t.mai_lod2 === 'khong' ? null : MAI_LOD2?.khoi?.[k.id];
   const goc = k.ref ?? k.day, y0 = hMin > 0 ? goc + hMin : Math.min(k.day, goc), y1 = L2 && Math.abs(L2.y1 - (goc + h - hMai)) > 1.5 ? L2.y1 : goc + h - hMai, y2 = L2 ? L2.y2 : goc + h; // chiều cao từ mốc chân nhà; mép tường LoD2 (mặt mái sát viền, cao hơn đỉnh tường vì mái chìa) chỉ thay mép OSM/ảnh khi lệch > 1,5 m — hàng cửa đo theo ảnh neo vào mép đó; tường không treo thì chạy xuống tới đất thấp nhất
   const yMong = hMin > 0 ? y0 : Math.min(y1, Math.max(y0, k.datCao + 1.2)); // móng đá thô tới quá mặt đất cao nhất 1,2 m
   k._yMong = yMong; k._y1 = y1; // loCanh khoét lỗ cửa sổ theo cùng bố cục với khung cửa 3D (mattien.js bocCuc)

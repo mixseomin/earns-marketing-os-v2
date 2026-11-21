@@ -111,6 +111,8 @@
   "y_tren": 31.6,
   "ly_do_dom20": "máy đo 2026-11-20 (không AI): đỉnh RIÊNG của khối trên DOM20 chính thức Bavaria (20 cm, CC BY 4.0), chỉ tính phần mặt bằng LỘ THIÊN (không bị khối Torbau cao hơn phủ lên, lùi 1 m khỏi mép), toạ độ cảnh với mốc −4,16 m: khối kem trước cổng chỉ lộ 7 điểm (phần còn lại nằm dưới đầu hồi): phân vị 90 = 31,6 — CHƯA CHẮC, cần ảnh chụp; trước khi theo DOM20: 24 → dời +7.6 m",
   "y_tren_truoc_dom20": 24,
+  "mai_lod2": "khong",
+  "ly_do_mai_lod2": "21/11/2026 thẻ #1624 (\"mặt này sai hoàn toàn, thiếu mái, 2 cánh đỏ cũng sai\"): mái LoD2 (scripts/mai-lod2.py) cắt theo mặt bằng khối này lấy luôn mái dốc nhà cổng phía sau (y1 37,8 · y2 41,35) → khối kem dựng cao 41,35 m, đè y_tren 31,6 và che kín đầu hồi bậc đỏ. Ảnh 3D cùng góc thẻ: đỉnh khối kem ngang răng cưa hai cánh, đầu hồi đỏ + mái đá phiến nhô hẳn lên phía sau. Mái nhà cổng vẫn do khối gạch đỏ 223110820 (LoD2) + đầu hồi 951894999 dựng",
   "rang_cua": "yes",
   "thap_canh": "yes",
   "ly_do2": "mặt tiền Torbau theo ảnh Mapillary 360° (990990575063069, 493003245182754, 2019): khối cổng sa thạch kem: răng cưa đỉnh + hai tháp canh treo ở hai góc trên",
@@ -120,6 +122,8 @@
  },
  "way/223110818": {
   "y_tren": 31.7,
+  "mai_lod2": "khong",
+  "ly_do_mai_lod2": "21/11/2026 thẻ #1624 (\"2 cánh đỏ cũng sai\"): mặt mái LoD2 cắt vào mặt bằng cánh này cao 31,1 → 40,42 (mép tường 36,14) trong khi DOM20 đo riêng phần lộ thiên của chính cánh chỉ 31,5–31,9 — các mặt 36–40 m là mái khối cổng / tháp bên cạnh lấn vào mặt bằng, kéo tường gạch đỏ lên ngang chóp tháp tròn (39,2). Ảnh thật cùng góc: vành răng cưa tháp tròn cao hơn răng cưa cánh đỏ khoảng một tầng, mái tối thấp nằm sau răng cưa → bỏ mái LoD2, dựng theo y_tren 31,7 + mái bốn mặt 2,6 đã đo",
   "ly_do_dom20": "máy đo 2026-11-20 (không AI): đỉnh RIÊNG của khối trên DOM20 chính thức Bavaria (20 cm, CC BY 4.0), chỉ tính phần mặt bằng LỘ THIÊN (không bị khối Torbau cao hơn phủ lên, lùi 1 m khỏi mép), toạ độ cảnh với mốc −4,16 m: mặt trên lộ thiên phẳng 31,5–31,9 (159 điểm); trước khi theo DOM20: 27.6 → dời +4.1 m",
   "y_tren_truoc_dom20": 27.6,
   "rang_cua": "yes",
@@ -133,6 +137,8 @@
  },
  "way/223110825": {
   "y_tren": 31.7,
+  "mai_lod2": "khong",
+  "ly_do_mai_lod2": "21/11/2026 thẻ #1624 (\"2 cánh đỏ cũng sai\"): mặt mái LoD2 cắt vào mặt bằng cánh này cao 22,65 → 40,03 trong khi DOM20 đo riêng phần lộ thiên của chính cánh chỉ 31,3–31,7 — mặt cao là mái khối cổng / tháp bên cạnh lấn vào; như way/223110818, ảnh thật hai cánh đối xứng, răng cưa thấp hơn vành tháp tròn một tầng → bỏ mái LoD2, dựng theo y_tren 31,7 + mái 1,2 đã đo",
   "ly_do_dom20": "máy đo 2026-11-20 (không AI): đỉnh RIÊNG của khối trên DOM20 chính thức Bavaria (20 cm, CC BY 4.0), chỉ tính phần mặt bằng LỘ THIÊN (không bị khối Torbau cao hơn phủ lên, lùi 1 m khỏi mép), toạ độ cảnh với mốc −4,16 m: mặt trên lộ thiên 31,3–31,7 (171 điểm); trước khi theo DOM20: 26.6 → dời +5.1 m",
   "y_tren_truoc_dom20": 26.6,
   "roof:shape": "hipped",

@@ -50,6 +50,14 @@ export function boHoaVan(THREE, { nhe = false } = {}) {
     dat(B, ten, new THREE.LatheGeometry(diem, canh), cx, y, cz);
     if (bong) { const hb = Math.min(0.5, cao * 2), g = cb(new THREE.CylinderGeometry(r + 0.015, r + 0.015, hb, canh, 1, true)); toMau(g, (_, yy) => 0.5 * (yy + hb / 2) / hb); dat(B, 'bong', g, cx, y - cao / 2 - hb / 2, cz); }
   }
+  // GỜ BẬC VÒNG (gờ đỡ vành răng cưa tháp): n lăng trụ ĐỨNG nhô dần từ r0 tới r0 + nho trên chiều cao cao, chân ở y0, mặt dưới mỗi bậc nằm ngang
+  // + dải bóng chuyển dưới mỗi bậc (ảnh: gờ dày nhiều lớp, đáy từng lớp tối); phào cong nhô xa trên chiều cao thấp nhìn từ dưới lên thành vạt nghiêng như mái
+  function bacVong(B, { r0, nho, cao, y0 = 0, n = 3, cx = 0, cz = 0, canh = 8, ten = 'vien', bong = true }) {
+    if (!(cao > 0.03 && nho > 0.01)) return;
+    for (let k = 0; k < n; k++) { const r = r0 + nho * (k + 1) / n, h = cao / n, yb = y0 + h * k;
+      dat(B, ten, new THREE.CylinderGeometry(r, r, h, canh, 1, false), cx, yb + h / 2, cz);
+      if (bong) { const hb = Math.min(0.3, h * 1.2), rb = k ? r0 + nho * k / n + 0.012 : r0 + 0.012, g = cb(new THREE.CylinderGeometry(rb, rb, hb, canh, 1, true)); toMau(g, (_, yy) => 0.55 * (yy + hb / 2) / hb); dat(B, 'bong', g, cx, yb - hb / 2, cz); } }
+  }
   // VÒM CUỐN bán nguyệt: R = mép trong, day = bề dày vành, n viên đá hình nêm có khe (n = 1: vành liền có vát — vòm nhỏ từng ô), khoa = viên đỉnh nhô cao hơn;
   // cao > 0: hai má thẳng từ chân vòm xuống cao mét + đá đỡ chân vòm. Gốc (x, y) = tâm vòm (đường chân vòm).
   function vomCuon(B, { R, day, nho, n = 9, khoa = n > 2, cao = 0, x = 0, y = 0, z = 0, ten = 'vien', bong = true }) {
@@ -84,6 +92,9 @@ export function boHoaVan(THREE, { nhe = false } = {}) {
     sh.lineTo(L / 2, -H); sh.lineTo(L / 2, 0); sh.lineTo(-L / 2, 0);
     dat(B, ten, dun(sh, nho, !nhe, nhe ? 4 : 6), x, y, z);
     if (bong) dat(B, 'bong', vienBong(sh, { yBo: 0, w: Math.min(0.1, H * 0.3) }), x, y, z + 0.012);
+    // lòng vòm: ô trống dưới mỗi vòm là mặt tường lùi vào → tối dần lên đỉnh vòm (ảnh: vòm đọc được nhờ lòng tối, không nhờ viền); trước đây ô trống cùng màu tường nên dải vòm gần như mất
+    if (bong) for (let i = 0; i < n; i++) { const cx = -L / 2 + (i + 0.5) * buoc, o = new THREE.Shape(); o.moveTo(cx - r, -H); o.lineTo(cx - r, yS); o.absarc(cx, yS, r, PI, 0, true); o.lineTo(cx + r, -H); o.lineTo(cx - r, -H);
+      const g = cb(new THREE.ShapeGeometry(o, nhe ? 4 : 8)); toMau(g, (_, yy) => 0.18 + 0.4 * (yy + H) / (yS + r + H)); dat(B, 'bong', g, x, y, z + 0.006); }
   }
   // CON-XON (đá đỡ ban công / vành tháp): mặt cắt chữ S (ogee) — đỉnh nhô nho ở y = 0, thu về 0,3·nho ở chân (y = −cao); bóng đổ xuống tường bên phải-dưới
   const MC_CX = nhe ? [[0, 0], [1, 0], [1, -0.15], [0.45, -0.7], [0.3, -1], [0, -1]]
@@ -105,5 +116,5 @@ export function boHoaVan(THREE, { nhe = false } = {}) {
     const tren = cb(new THREE.PlaneGeometry(wi, s)); toMau(tren, (_, yy) => (yy > 0 ? 0.5 : 0)); dat(B, 'bong', tren, x, y + hi / 2 - s / 2, z + 0.012);
     const trai = cb(new THREE.PlaneGeometry(s, hi - s)); toMau(trai, (xx) => (xx < 0 ? 0.4 : 0)); dat(B, 'bong', trai, x - wi / 2 + s / 2, y - s / 2, z + 0.012);
   }
-  return { xo, dat, cb, vienBong, daiBong, phao, phaoVong, vomCuon, vongTron, dieuVom, conXon, khungLom };
+  return { xo, dat, cb, vienBong, daiBong, phao, phaoVong, bacVong, vomCuon, vongTron, dieuVom, conXon, khungLom };
 }

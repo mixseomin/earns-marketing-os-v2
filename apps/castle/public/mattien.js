@@ -462,7 +462,7 @@ export function datMatRieng({ THREE, mergeGeometries, bo, bd, viTri, datTai, nhe
     const B = HV.xo(); HV.dieuVom(B, { L, H, n: d.n, nho: 0.12, day: Math.min(0.12, H * 0.25), y: yT }); datB(B, p, 0); }
   // KHUNG Ô TƯỜNG (gờ nổi viền từng ô tầng trên cánh nam)
   for (const k of bo.khungTam || []) { const xc = (k.tu + k.den) / 2, s = bd.s(xc), L = bd.m(k.tu, k.den), yT = bd.y(xc, k.tren), yD = bd.y(xc, k.duoi), p = choTuong(k.ten, s, yD, yT); if (!p) continue;
-    const B = HV.xo(); HV.khungLom(B, { w: L + 0.1, h: yT - yD + 0.1, vien: 0.1, nho: 0.06, y: (yT + yD) / 2 }); datB(B, p, 0); }
+    const B = HV.xo(); HV.khungLom(B, { w: L + 0.1, h: yT - yD + 0.1, vien: 0.14, nho: 0.1, y: (yT + yD) / 2 }); datB(B, p, 0); }
   // BỆ ĐÁ NHÔ
   for (const b of bo.be || []) { const xc = (b.tu + b.den) / 2, s = bd.s(xc), L = bd.m(b.tu, b.den), yT = bd.y(xc, b.tren), yD = bd.y(xc, b.duoi), p = choTuong(b.ten, s, yD, yT); if (!p) continue;
     dat('da', hop(L, yT - yD, b.nho, 0, (yT + yD) / 2, b.nho / 2), p, 0); const B = HV.xo(); HV.phao(B, { rong: L + 0.12, cao: 0.12, nho: b.nho + 0.08, y: yT - 0.06 }); datB(B, p, 0); }
@@ -539,13 +539,17 @@ export function datThapGoc({ THREE, mergeGeometries, v, b, mau, mauMai = '#56625
   const datM = (g, i, x, yy, d) => { const { ox, oz, quay } = matI(i); g.translate(x, 0, 0); g.rotateY(quay); g.translate(cx + ox * (AP + d), yy, cz + oz * (AP + d)); return g; };
   for (let i = 0; i < 8; i++) for (const x of [-0.3, -0.1, 0.1, 0.3]) da.push(datM(cb(new THREE.BoxGeometry(CANH * 0.12, b.rang[0] - b.rang[1], 0.12)), i, x * CANH, (b.rang[0] + b.rang[1]) / 2, 0.05));
   // đỉnh thân: diềm vòm nhỏ (mỗi mặt 2 vòm), gờ nhô, vành răng cưa nhô ra
-  const NHO = b.rVanh ? Math.max(0.1, b.rVanh - R) : 0.45, hF = b.frieze[0] - b.frieze[1];
-  for (let i = 0; i < 8; i++) { // mỗi mặt: diềm vòm Lombard dưới gờ + hàng con-xon chữ S đỡ vành
-    const B = HV.xo(); HV.dieuVom(B, { L: CANH * 0.94, H: hF * 0.8, n: 2, nho: 0.1, y: b.frieze[0] });
-    const hX = b.dinhThan - b.frieze[0]; if (hX > 0.15) for (const x of [-CANH * 0.3, 0, CANH * 0.3]) HV.conXon(B, { rong: Math.min(0.3, CANH * 0.14), cao: hX, nho: NHO, x, y: b.dinhThan });
+  const NHO = b.rVanh ? Math.max(0.1, b.rVanh - R) : 0.45;
+  // đỉnh thân theo ảnh (anh khoanh 21/11/2026): gờ đỡ vành = phào ba bậc nhô dần (không phải vạt nón phẳng) · ngay dưới là diềm vòm Lombard cao hết dải frieze
+  // · dưới diềm mỗi mặt một ô lõm khung đá chạy xuống sát đỉnh cửa tầng trên
+  // dải đo trên ảnh (frieze) chạy từ chân vòm tới sát chân răng cưa và có thể chồng lên đỉnh thân đo riêng → gờ phào chiếm phần trên, vòm phần dưới (tỉ lệ ảnh ~ 1 : 1)
+  const yDinh = Math.min(b.dinhThan, b.frieze[0]), yC = b.frieze[1] + (yDinh - b.frieze[1]) * 0.5, hX = yDinh - yC, tTren = b.tang.reduce((m, t) => (t.dinh > m.dinh ? t : m), b.tang[0]);
+  { const B = HV.xo(); HV.bacVong(B, { r0: R, nho: NHO, cao: hX, y0: yC, n: 3, cx, cz }); them(B); } // gờ phào ba bậc đỡ vành (bộ hoa văn chung)
+  for (let i = 0; i < 8; i++) {
+    const B = HV.xo(); HV.dieuVom(B, { L: CANH * 0.96, H: yC - b.frieze[1], n: 3, nho: 0.2, day: Math.min(0.16, (yC - b.frieze[1]) * 0.3), y: yC });
+    const yT = b.frieze[1] - 0.06, yD = (tTren?.dinh ?? yT) + 0.22; if (yT - yD > 0.3) HV.khungLom(B, { w: CANH * 0.8, h: yT - yD, vien: 0.14, nho: 0.1, y: (yT + yD) / 2 });
     them(B, (g) => datM(g, i, 0, 0, 0)); }
-  da.push(bat(R + NHO * 0.55, R + 0.05, b.dinhThan - b.frieze[0], (b.dinhThan + b.frieze[0]) / 2, true)); // lõi gờ nhô (con-xon phủ ngoài)
-  vanh(b.dinhThan, b.dinhThan + 0.25, NHO); // mặt vành
+  da.push(bat(R + NHO, R + NHO, 0.25, b.dinhThan + 0.125, true)); // mặt vành = dải đá ĐỨNG chân răng cưa (phào nhô NHO trên 0,25 m thành vạt nghiêng như mái — ảnh không có)
   const hRang = b.dinhRang - b.dinhThan - 0.25, Rr = b.rRang ?? R + NHO, APr = Rr * Math.cos(Math.PI / 8), CANHr = 2 * Rr * Math.sin(Math.PI / 8);
   if (hRang > 0.1) for (let i = 0; i < 8; i++) for (const x of [-CANHr / 4, CANHr / 4]) { const { ox, oz, quay } = matI(i), g = cb(new THREE.BoxGeometry(CANHr / 3.4, hRang, 0.3)); g.rotateY(quay); g.translate(cx + ox * (APr - 0.12) + Math.cos(quay) * x, b.dinhThan + 0.25 + hRang / 2, cz + oz * (APr - 0.12) - Math.sin(quay) * x); da.push(g); }
   // tầng cửa: mỗi mặt quay ra ngoài MỘT cửa vòm đơn có cột nhỏ
@@ -557,7 +561,8 @@ export function datThapGoc({ THREE, mergeGeometries, v, b, mau, mauMai = '#56625
   // con-xon: gờ chân đã có (go), dưới là khối nón bát giác thu về mũi treo
   const yX = Math.min(...b.go.flat()), cao = yX - b.mui;
   da.push(bat(R + 0.1, R * 0.35, cao * 0.75, yX - cao * 0.375, true), bat(R * 0.35, R * 0.18, cao * 0.25, b.mui + cao * 0.125, true));
-  const ra = [], gop = (ds, vl, bong = false) => { if (!ds.length) return; const m = new THREE.Mesh(mergeGeometries(ds), vl); m.castShadow = bong; m.receiveShadow = true; ra.push(m); };
+  // gộp: chỉ giữ thuộc tính MỌI mảnh đều có (bộ hoa văn có mảnh mang uv / color); không gộp được thì báo, không dựng lưới rỗng
+  const ra = [], gop = (ds, vl, bong = false) => { if (!ds.length) return; ds = ds.map((g) => (g.index ? g.toNonIndexed() : g)); const chung = Object.keys(ds[0].attributes).filter((k) => ds.every((g) => g.attributes[k])); for (const g of ds) for (const k of Object.keys(g.attributes)) if (!chung.includes(k)) g.deleteAttribute(k); const g = mergeGeometries(ds); if (!g) { console.warn('[ns] tháp góc: không gộp được lớp', vl.color?.getHexString?.()); return; } const m = new THREE.Mesh(g, vl); m.castShadow = bong; m.receiveShadow = true; ra.push(m); };
   { // chóp bát giác mảnh đá phiến (trùm nón OSM tối bên trong) + nụ + thánh giá
     const h = b.chop - b.chanChop, g = cb(new THREE.ConeGeometry(b.rChop ?? R * 0.95, h, 8, 1, true)); g.translate(cx, b.chanChop + h / 2, cz);
     // chóp đỉnh đo trên ảnh (thapTheoTia: bầu = hai mép quả cầu, thapGia = thanh ngang thánh giá); thiếu số đo thì giữ cỡ mặc định cũ
@@ -567,7 +572,7 @@ export function datThapGoc({ THREE, mergeGeometries, v, b, mau, mauMai = '#56625
     gop([g, q, k, ng], new THREE.MeshStandardMaterial({ color: mauMai, roughness: 0.6, metalness: 0.15, side: THREE.DoubleSide }), !nhe);
   }
   if (vanDa) for (const g of da) uvMet(THREE, g); // thân tháp mang hàng đá sa thạch như ảnh (vân chung với tường), không phải trụ kem trơn
-  gop(da, vlDa(THREE, mau, vanDa)); gop(toi, new THREE.MeshStandardMaterial({ color: '#1b1f27', roughness: 0.6 }));
+  gop(da, vlDa(THREE, mau, vanDa)); gop(toi, new THREE.MeshStandardMaterial({ color: '#1b1f27', roughness: 0.6 })); gop(bong, vlBong(THREE)); // bóng vẽ sẵn dưới gờ (trước đây gom mà không gộp → mất)
   if (bong.length) { const m = new THREE.Mesh(mergeGeometries(bong), vlBong(THREE)); m.renderOrder = 1; ra.push(m); }
   return ra;
 }

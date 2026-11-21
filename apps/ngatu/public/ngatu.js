@@ -637,7 +637,7 @@ function buocXe(a, dt) {
   // vạch dừng lúc đang được đi — trước gắn cho mọi xe còn ở phía sau lúc đèn xanh, nên cả hàng đứng chờ cũng thành
   // "đã cam kết", đèn đỏ vẫn chạy, mà bộ đếm lại bỏ qua xe cam kết → liều 0% vẫn vượt, đếm ra 0 lượt.
   const dau = a.s + a.len / 2;
-  let m = 'x', duoc = true;
+  let m = 'x', duoc = true, vDen = Infinity;
   if (!a.camKet && dau < p.sIn) {
     const [mm, con, qua] = den(a.arm * 3 + QI[a.quay]);
     m = mm;
@@ -659,7 +659,8 @@ function buocXe(a, dt) {
     if (!duoc) {
       if (m !== 'x' && !lieu) a.lenhDung = true;
       const gap = p.sStop + lan - 0.15 - dau;
-      vt = Math.min(vt, gap < 0.3 ? 0 : Math.sqrt(2 * 3.2 * gap));
+      vDen = gap < 0.3 ? 0 : Math.sqrt(2 * 3.2 * gap);
+      vt = Math.min(vt, vDen);
       a.choDen = true;
     }
   }
@@ -674,11 +675,17 @@ function buocXe(a, dt) {
   let neThoat = 0;
   if (!latDich && (a.loai !== 'bus' || a.ket > 1) && f0 < a.sp * 1.1 + (xm ? 2.5 : 5)) {
     const can = xm ? 0.6 : 2.5, thoat = Math.max(f0 + can, a.len + (xm ? 1.5 : 3));
-    if (fL > thoat && fL >= fR && hoT > a.wid * 0.6 && a.dlat - off * 0.5 > lo) neThoat = -1;
-    else if (fR > thoat && hoP > a.wid * 0.6 && a.dlat + off * 0.5 < hi) neThoat = 1;
-    if (neThoat && !a.choDen) vt = Math.max(vt, xm ? 0.9 : 0.5);
+    const tTrai = fL > thoat && hoT > a.wid * 0.6 && a.dlat - off * 0.5 > lo, tPhai = fR > thoat && hoP > a.wid * 0.6 && a.dlat + off * 0.5 < hi;
+    // hai bên cùng thoáng: chọn bên trống xa hơn phía trước, bằng nhau thì bên còn rộng hơn tới mép — trước luôn ưu tiên
+    // bên trái nên cả hàng dồn về tim đường, nửa sát lề bỏ trống
+    if (tTrai && tPhai) neThoat = fL !== fR ? (fL > fR ? -1 : 1) : a.dlat - lo > hi - a.dlat ? -1 : 1;
+    else neThoat = tTrai ? -1 : tPhai ? 1 : 0;
+    // Cả lúc đang dồn hàng chờ đèn đỏ: xe sau dồn lên chỗ trống bên cạnh (tới sát vạch), không xếp một hàng dọc dài sau
+    // xe trước trong khi nửa đường bên cạnh bỏ trống (anh 22/11/2026 khoanh ảnh). Chỉ nhích trong quãng tới vạch dừng.
+    if (neThoat) vt = Math.max(vt, Math.min(xm ? 0.9 : 0.5, vDen));
   }
-  if (a.lui > 0) { a.lui -= dt; vt = 0; } // đang lùi nhường lối: không tiến lại vào chỗ vừa chừa
+  if (a.lui > 0) { a.lui -= dt; vt = 0; if (a.lui <= 0 && a.luiDuoc === 0) a.camLui = 6; } // đang lùi nhường lối: không tiến lại vào chỗ vừa chừa
+  if (a.camLui > 0) a.camLui -= dt;
   const ac = (xm ? 2.6 : a.loai === 'bus' ? 1.0 : 1.8) * (a.ket > 1 ? 1.8 : 1);
   a.sp = vt > a.sp ? Math.min(vt, a.sp + ac * dt) : Math.max(vt, a.sp - 9 * dt);
   if (a.sp < 0.2 && !a.choDen && !a.dangDon) a.ket = Math.min(10, a.ket + dt); else a.ket = Math.max(0, a.ket - dt * 0.5);
@@ -796,8 +803,24 @@ function buocXe(a, dt) {
   // Hai xe chúi mũi vào nhau, xe kia không lùi nổi (đuôi kẹt xe sau): xe mình lùi hẳn ~2 s, trong lúc đó không tiến lại và
   // xe kia không phải nhường mình (j.lui) — nó đi qua chỗ vừa chừa. Không có thế này thì mình nhích tới, nó nhường mình,
   // mình lại chạm nó: hai xe đứng nhìn nhau cả phút (đo 22/11/2026).
-  if (chan && chan.loai !== 'bo' && chan.choAi === a && chan.sp < 0.05 && a.ket > 4 && !(a.lui > 0)) { a.lui = 2; a.luiJ = chan; }
-  if (a.lui > 0 && a.luiJ && a.sp < 0.05) goc = luiRa(a.luiJ, goc);
+  if (chan && chan.loai !== 'bo' && chan.choAi === a && chan.sp < 0.05 && a.ket > 4 && !(a.lui > 0) && !(a.camLui > 0)) { a.lui = 2; a.luiJ = chan; a.luiDuoc = 0; }
+  // Vòng chờ nhau từ ba xe trở lên (A bị thân B chặn, B chờ C, C lại chờ A — đo 22/11/2026, ảnh anh "sao lại kẹt"):
+  // luật trên chỉ gỡ cặp hai xe, vòng dài thì cả cụm đứng chết dù quanh còn trống. Xe đang chắn thân mình (chan) mà chuỗi
+  // chờ của nó vòng về chính mình → báo nó lùi ra khỏi mình một nhịp, mình đi qua chỗ vừa chừa, vòng tự tan.
+  // Lùi cả nhịp mà không nhích nổi (sau đuôi kín) thì thôi nhận lệnh lùi một lúc — không thì bị báo lùi mãi, đứng chết
+  // trong khi phía trước đã trống (ô tô lượt 3 đo 22/11/2026).
+  if (a.luiBao && a.sp < 0.05 && !(a.lui > 0) && !(a.camLui > 0)) { a.lui = 2; a.luiJ = a.luiBao; a.luiDuoc = 0; }
+  a.luiBao = null;
+  // Xe được báo mà sau đuôi kín (vừa lùi không nổi) thì báo xe kế trong vòng lùi khỏi xe đang chờ nó.
+  if (chan && chan.loai !== 'bo' && a.ket > 2 && chan.choAi !== a) {
+    const vong = [a, chan];
+    let x = chan.choAi;
+    while (x && x !== a && vong.length < 9) { vong.push(x); x = x.choAi; }
+    if (x === a && !vong.some((v) => v.lui > 0)) {
+      for (let i = 1; i < vong.length; i++) if (vong[i].loai !== 'bo' && !(vong[i].camLui > 0)) { vong[i].luiBao = vong[i - 1]; break; }
+    }
+  }
+  if (a.lui > 0 && a.luiJ && a.sp < 0.05) { goc = luiRa(a.luiJ, goc); if (a.s < sTruoc - 1e-6) a.luiDuoc = 1; }
   a.biChan = !!chan;
   a.choAi = chan || (f0 < 2 ? ai : null);
   if (!a.camKet) {

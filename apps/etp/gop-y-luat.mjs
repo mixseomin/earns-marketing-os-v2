@@ -1548,6 +1548,7 @@ export const LUAT = [
   { card: 'cr-duyet-vao-bang-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: '    where u.ok is null', vi: 'ô vàng chỉ giữ creative CHƯA duyệt (anh 22/11 "duyệt rồi thì phải cho vào table bên dưới")' },
   { card: 'cr-duyet-vao-bang-2211', tep: 'apps/etp2/src/lib/etp-doc.ts', co: 'camp_id: -cr, ten: `⏳ đã duyệt · chờ lên', vi: 'creative đã duyệt chưa camp = dòng xếp hàng trong nhóm phim ở bảng cây' },
   { card: 'cr-duyet-vao-bang-2211', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'const hangCay = du.hangCr?.length ? [...camps, ...du.hangCr] : camps;', vi: 'bảng cây camp nhận dòng xếp hàng, không trộn vào du.camps (số đếm ô lọc giữ nguyên)' },
+  { card: 'cr-duyet-vao-bang-2211', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<span style={{ width: 8, textAlign: \'center\', fontSize: 10 }}>⏳</span><Hex bo={c.bo}', vi: 'dòng xếp hàng dùng khuôn dòng camp thật (đèn ⏳ · bộ · cr # · badge dạng), chỉ thiếu ID camp' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'insert into etp.cho_anh_duyet (tv_id, ghi)', vi: 'khung chỉ định --anh tự vào hàng chờ anh duyệt' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp/lenh_cho.py', co: 'doi0, kcr = len_cr(st, chan, luc, xem, bao0)', vi: 'creative anh đã duyệt lúc phanh bật: máy tự lên camp ở nhịp đầu phanh nhả (anh 22/11 "thằng ngu !")' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', cam: 'Tắt dừng khẩn rồi bấm', vi: 'Duyệt lúc dừng khẩn không được bắt anh bấm lại Lên camp' },

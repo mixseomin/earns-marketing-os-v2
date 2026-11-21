@@ -462,13 +462,13 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   // CREATIVE ĐÃ DUYỆT CHỜ LÊN CAMP (anh 22/11/2026 "duyệt rồi thì phải cho vào table bên dưới"): ô vàng chỉ giữ creative CHƯA duyệt; creative đã duyệt chưa camp
   // thành dòng "xếp hàng" trong nhóm phim của nó ở bảng cây — camp_id = −creative_id; kiểu lên theo sổ len_cr_roas (★ ROAS) hay camp $1 (apps/etp/lenh_cho.py) — chỉ Nhà
   const hangRs = await runNha<Record<string, unknown>>(sql`select h.creative_id, r.content_id, f.ten phim, f.the_loai, r.dang, h.tao::text tao,
-      x.gia_tri -> h.creative_id::text ->> 'roas' ro, x.gia_tri -> h.creative_id::text ->> 'ns' ns
+      x.gia_tri -> h.creative_id::text ->> 'roas' ro, x.gia_tri -> h.creative_id::text ->> 'ns' ns, (select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo   -- bộ máy sẽ lên (lenh_cho.py đọc cùng khoá)
     from etp.cho_anh_duyet_cr h join etp.cham_duyet u on u.creative_id = h.creative_id and u.ok join etp.creative r on r.creative_id = h.creative_id
       left join etp.phim f on f.content_id = r.content_id left join etp.cau_hinh x on x.khoa = 'len_cr_roas'
     where not exists (select 1 from etp.camp c where c.creative_id = h.creative_id) order by h.creative_id`).catch((e) => { console.error('etp hangCr', e); return []; });
   const mai7 = (() => { const t = new Date(); return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() + 1)).toISOString(); })();   // 07:00 VN kế = 00:00 UTC kế
   const hangCr: CampEtpKho[] = hangRs.map((r) => { const ro = r.ro == null ? null : Number(r.ro), ns = r.ns == null ? 1 : Number(r.ns), cr = n(r.creative_id);
-    return { camp_id: -cr, ten: `⏳ đã duyệt · chờ lên ${ro != null ? `★ ROAS ${ro} · $${ns}` : 'camp $1'} · cr #${cr}`, bo: null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns,
+    return { camp_id: -cr, ten: `⏳ đã duyệt · chờ lên ${ro != null ? `★ ROAS ${ro} · $${ns}` : 'camp $1'} · cr #${cr}`, bo: (r.bo as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns,
       creative_id: cr, content_id: r.content_id == null ? null : n(r.content_id), goc: null, lich: mai7, tao: (r.tao as string) ?? null, loi: null, dong_bo: 'xep_hang',
       phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, ban: null, giong: null, doan: null, cung_doan: 0,
       thang: st(0, 0), qua: st(0, 0), nay: st(0, 0), lich_tat: false, nuoc: [], ab: null, dong: null, roas: ro, chien_luoc: ro != null ? 'LOWEST_COST_WITH_MIN_ROAS' : null }; });

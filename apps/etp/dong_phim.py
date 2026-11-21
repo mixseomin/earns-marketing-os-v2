@@ -641,9 +641,15 @@ def sang_ke_chuyen(d, buoc, ghi):
 # lại). Phim hồi chợ còn thiếu kho dự trữ (du_tru) vẫn chạy các bước sản xuất; bước camp luôn chờ (cổng lên camp chặn máy khi phanh).
 BUOC_SX = tuple(CG.SXC["buoc_cho"])   # sổ luật chung san_xuat_theo_cho.buoc_cho
 SX = [{}]
+# DÒNG LỆNH TRỰC TIẾP CỦA ANH (anh 21/11/2026 22:00 VN, lúc dừng khẩn đang bật: "Lên camp 2 phim này ở cả 2 ngôn ngữ en và es. Dùng các định dạng cc, ct và at") —
+# dòng có etp.dong_phim.ai bắt đầu DONG_TRUC_TIEP chạy các bước SẢN XUẤT qua mọi phanh (kể cả dừng khẩn); bước CAMP vẫn chờ phanh như mọi dòng: camp chỉ lên bằng
+# vé lệnh trực tiếp (cong.py --ve-truc-tiep, Claude cấp theo câu anh) — chữ ai tự khai giả được (18/11) nên nó không bao giờ mở cổng lên camp, chỉ mở sản xuất.
+DONG_TRUC_TIEP = "anh — TRỰC TIẾP"
+def la_truc_tiep(d): return str((d or {}).get("ai") or "").startswith(DONG_TRUC_TIEP)
 def cho_phanh(sx, d, buoc):
     """hàm thuần: khoá san_xuat_cho + dòng + bước → câu lý do chờ | None (chạy)"""
     if not (sx or {}).get("phanh"): return None
+    if la_truc_tiep(d): return None if buoc != "camp" else f"{sx['phanh']} · dòng lệnh trực tiếp: camp lên bằng vé cong.py --ve-truc-tiep"
     if sx.get("khan"): return None if buoc == "chay" else sx["phanh"]   # DỪNG KHẨN: mọi bước chưa bắt đầu đứng chờ, không miễn du_tru / chi_sx
     if buoc not in BUOC_SX: return None
     if buoc != "camp" and int(d.get("content_id") or 0) in {int(x) for x in [*(sx.get("du_tru") or []), *(sx.get("chi_sx") or [])]}: return None   # chi_sx: phim chỉ sản xuất không lên camp nên không chờ phanh
@@ -886,6 +892,8 @@ def tu_kiem():
     assert cho_phanh({**p, "chi_sx": [9]}, {"content_id": 9}, "creative") is None and cho_phanh({**p, "chi_sx": [9]}, {"content_id": 1}, "creative") == p["phanh"], "phim chỉ sản xuất không chờ phanh ở bước sản xuất"
     k = {"phanh": "chờ phanh nhả: ĐANG DỪNG KHẨN", "khan": True, "du_tru": [7], "chi_sx": [9]}
     assert cho_phanh(k, {"content_id": 7}, "creative") == k["phanh"] and cho_phanh(k, {"content_id": 9}, "cat") == k["phanh"] and cho_phanh(k, {"content_id": 1}, "chay") is None, "dừng khẩn: không miễn du_tru / chi_sx"
+    tt = {"content_id": 1, "ai": DONG_TRUC_TIEP + " (chat 21/11)"}
+    assert cho_phanh(k, tt, "cat") is None and cho_phanh(k, tt, "creative") is None and cho_phanh(k, tt, "camp").startswith(k["phanh"]) and cho_phanh(k, {**tt, "ai": "anh (etp.on.tc)"}, "cat") == k["phanh"], "dòng lệnh trực tiếp: sản xuất qua dừng khẩn, camp vẫn chờ vé"
     assert cho_phanh({}, {"content_id": 1}, "nhan") is None and cho_phanh({"phanh": None}, {"content_id": 1}, "nhan") is None and cho_phanh(None, {"content_id": 1}, "nhan") is None, "không phanh / khoá quá hạn → chạy như cũ"
     assert set(BUOC_SX) == {b for b, _ in BUOC} - {"chay"} and "not exists" in KHONG_TRUNG
     # phim cấm (etp:phim-cam-con-lai-2011): cùng bộ đọc cong.phim_cam qua ssh — 167292 dừng mọi bước, phim thường đi qua

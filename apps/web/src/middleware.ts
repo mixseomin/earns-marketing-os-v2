@@ -118,6 +118,7 @@ export function middleware(req: NextRequest) {
 
   // Check session cookie (presence only — DB validation happens in pages via getCurrentUser)
   const sessionToken = req.cookies.get(SESSION_COOKIE)?.value;
+  if (!sessionToken && pathname.startsWith('/nhung/')) return nhungCanDangNhap();
   if (!sessionToken) {
     const url = req.nextUrl.clone();
     url.pathname = '/login';
@@ -126,6 +127,25 @@ export function middleware(req: NextRequest) {
   }
 
   return NextResponse.next();
+}
+
+// Trang NHÚNG (/nhung/gop-y — hòm góp ý phủ màn trên trang ngoài) mà trình duyệt chưa đăng nhập mos2: chuyển về /login NGAY TRONG
+// iframe là ngõ cụt — Google không cho đăng nhập trong khung nhúng, và iframe phủ màn không có nút đóng (dantranh 21/11/2026).
+// Thay bằng thẻ nhỏ: báo rõ cần đăng nhập · nút mở /login ở tab mới (cookie mos2 dùng chung *.on.tc → quay lại bấm 💬 là được) · nút Đóng
+// (gửi 'gop-y:dong' — nút /api/gop-y-ngoai/nut nhận từ đúng iframe origin mos2 thì gỡ khung).
+function nhungCanDangNhap() {
+  const html = `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;height:100%;background:rgba(0,0,0,.55);font:15px system-ui,sans-serif;color-scheme:normal}
+.k{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100vw - 32px));background:#11141a;color:#e6e8ec;border:1px solid #2a2f3a;border-radius:12px;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+h1{font-size:17px;margin:0 0 8px}p{margin:0 0 16px;color:#a9b0bd;line-height:1.45}.n{display:flex;gap:8px}
+a,button{flex:1;padding:10px;border-radius:8px;font:600 14px system-ui,sans-serif;text-align:center;cursor:pointer;text-decoration:none}
+a{background:#6aa8f7;color:#0b0d12;border:0}button{background:transparent;color:#e6e8ec;border:1px solid #3a404c}</style></head>
+<body><div class="k" role="dialog" aria-labelledby="t"><h1 id="t">💬 Cần đăng nhập để góp ý</h1>
+<p>Hòm góp ý gửi vào MOS2 nên cần tài khoản MOS2. Bấm Đăng nhập (mở tab mới), xong quay lại trang này bấm 💬 lần nữa.</p>
+<div class="n"><a href="/login?next=%2F" target="_blank" rel="noopener">Đăng nhập</a><button id="d" type="button">Đóng</button></div></div>
+<script>const d=()=>parent.postMessage({loai:'gop-y:dong'},'*');document.getElementById('d').onclick=d;document.body.onclick=(e)=>{if(e.target===document.body)d()};addEventListener('keydown',(e)=>{if(e.key==='Escape')d()});</script>
+</body></html>`;
+  return new NextResponse(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
 
 export const config = {

@@ -470,7 +470,27 @@ function boO(vi, w) { const r = vi[w]; delete vi[w]; const ke = Object.entries(v
 function ghiLuoi(nho = true) { if (!GS) return; const kc = 24 / E.luoi.n, kr = 16 / HANG[E.luoi.n], vi = {}; for (const nd of GS.engine.nodes) vi[nd.id] = { x: nd.x * kc, y: nd.y * kr, w: nd.w * kc, h: nd.h * kr }; if (nho) E.luoi.vi[D.loai] = vi; gsDau = JSON.stringify([E.luoi.n, D.loai, vi]); }
 function tatLuoi() { const g = $('#dGiua'); if (GS) { GS.destroy(false); GS = null; } gsDau = ''; g.classList.remove('luoi-bat', 'grid-stack', 'dang-keo', 'hien-luoi'); g.style.height = ''; g.style.minHeight = '';
   ketKeoTab(); for (const w in WG) { const o = $(`#o-${w}`), noi = o.firstElementChild, k = $(`#w-${w}`); if (k.parentElement !== noi) noi.append(k); k.classList.remove('tab-an'); o.hidden = false; o.removeAttribute('style'); for (const a of [...o.attributes]) if (a.name.startsWith('gs-')) o.removeAttribute(a.name); o.querySelectorAll(':scope > .ui-resizable-handle').forEach((x) => x.remove()); } }
-let keoDoi = null, phimShift = false; for (const t of ['keydown', 'keyup']) document.addEventListener(t, (e) => { phimShift = e.shiftKey; }, true); document.addEventListener('pointerdown', (e) => { phimShift = e.shiftKey; }, true);
+// góp ý #1750: giữ Shift rồi kéo MÉP widget (mép phải / trái / dưới) = kéo MÉP CHUNG — widget sát bên co / giãn theo, cả hai chiều.
+// Tự làm cú kéo (gridstack không cho ô giãn vào chỗ ô kề đang chiếm trên lưới đầy): ô phải co thì co trước, ô kia giãn sau, nên không ô nào bị đẩy.
+let mepDang = false; document.addEventListener('mousedown', (e) => { if (mepDang) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);   // gridstack nghe mousedown trên mép: chặn để nó không co giãn chồng lên
+document.addEventListener('pointerdown', (e) => { const h = e.button === 0 && e.shiftKey && GS && e.target.closest?.('#dGiua > .grid-stack-item > .ui-resizable-e, #dGiua > .grid-stack-item > .ui-resizable-w, #dGiua > .grid-stack-item > .ui-resizable-s'); if (!h) return;
+  const a = h.parentElement.gridstackNode; if (!a) return; const huong = h.classList.contains('ui-resizable-e') ? 'e' : h.classList.contains('ui-resizable-w') ? 'w' : 's', doc = huong === 's';
+  const chong = (p0, p1, q0, q1) => p0 < q1 && q0 < p1, ns = GS.engine.nodes.filter((n) => n !== a), mep = huong === 'e' ? a.x + a.w : huong === 'w' ? a.x : a.y + a.h;
+  const ke = ns.filter((n) => huong === 'e' ? n.x === mep && chong(n.y, n.y + n.h, a.y, a.y + a.h) : huong === 'w' ? n.x + n.w === mep && chong(n.y, n.y + n.h, a.y, a.y + a.h) : n.y === mep && chong(n.x, n.x + n.w, a.x, a.x + a.w));
+  if (!ke.length) return;   // không có ô sát mép: để gridstack co giãn như thường
+  e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+  const g = $('#dGiua'), r = g.getBoundingClientRect(), o = doc ? (r.height / HANG[E.luoi.n]) : (r.width / E.luoi.n), goc = doc ? r.top : r.left;
+  const ma = huong === 'w' ? Math.max(...ke.map((n) => n.x + 1)) : huong === 'e' ? a.x + 1 : a.y + 1, mb = huong === 'w' ? a.x + a.w - 1 : huong === 'e' ? Math.min(...ke.map((n) => n.x + n.w - 1)) : Math.min(...ke.map((n) => n.y + n.h - 1));
+  let hien = mep; g.classList.add('dang-keo'); mepDang = true;
+  const dat = (m) => { m = Math.max(ma, Math.min(mb, m)); if (m === hien) return; const ve = [];
+    // ô nhỏ lại đặt trước, ô to ra đặt sau
+    const oA = huong === 'e' ? { x: a.x, w: m - a.x } : huong === 'w' ? { x: m, w: a.x + a.w - m } : { y: a.y, h: m - a.y }, aTo = huong === 'w' ? m < hien : m > hien;
+    const oK = ke.map((n) => [n, huong === 'e' ? { x: m, w: n.x + n.w - m } : huong === 'w' ? { x: n.x, w: m - n.x } : { y: m, h: n.y + n.h - m }]);
+    if (aTo) ve.push(...oK, [a, oA]); else ve.push([a, oA], ...oK);
+    gsDang = true; for (const [n, v] of ve) GS.update(n.el, v); gsDang = false; hien = m; };
+  const di = (ev) => dat(Math.round(((doc ? ev.clientY : ev.clientX) - goc) / o)), het = () => { document.removeEventListener('pointermove', di, true); document.removeEventListener('pointerup', het, true); document.removeEventListener('pointercancel', het, true);
+    g.classList.remove('dang-keo'); mepDang = false; if (hien === mep) return; ghiLuoi(); delete E.luoi.ten[D.loai]; luu(); veD(); };
+  document.addEventListener('pointermove', di, true); document.addEventListener('pointerup', het, true); document.addEventListener('pointercancel', het, true); }, true);
 let nhayW = null;   // widget vừa phải xếp chồng vào ô khác vì hết chỗ: sáng lên vài giây cho người dùng thấy nó mở ở đâu
 function dongBoLuoi(ds) {
   const ds0 = ds;
@@ -481,24 +501,8 @@ function dongBoLuoi(ds) {
   for (const w in WG) { const c = chuT[w], noi = $(`#o-${c || w}`).firstElementChild, k = $(`#w-${w}`); if (k.parentElement !== noi) noi.append(k); k.classList.toggle('tab-an', !!c && nh[c].mo !== w); }
   if (!GS) { g.classList.add('luoi-bat');
     GS = GridStack.init({ column: n, maxRow: r, cellHeight: caoO(), margin: 4, mode: 'float', animate: false, auto: false, handle: '.w-dau', draggable: { handle: '.w-dau', cancel: 'button, input, a, textarea, select' }, resizable: { handles: 'e, se, s, sw, w' }, alwaysShowResizeHandle: false }, g);
-    GS.on('dragstart resizestart', (e, el) => { g.classList.add('dang-keo'); if (e?.type === 'dragstart') batDauKeoTab(el);
-      // góp ý #1750: giữ Shift khi kéo mép = kéo MÉP CHUNG — ô sát bên co / giãn theo, không bị đẩy đi
-      if (e?.type === 'resizestart') keoDoi = phimShift ? { el, cu: GS.engine.nodes.map((nd) => ({ nd, x: nd.x, y: nd.y, w: nd.w, h: nd.h })) } : null; });
-    const mepChung = (el) => { const k = keoDoi; keoDoi = null; if (!k || k.el !== el) return; const a = el.gridstackNode, c0 = k.cu.find((o) => o.nd === a); if (!a || !c0) return;
-      const chong = (p0, p1, q0, q1) => p0 < q1 && q0 < p1, doi = [];
-      for (const o of k.cu) { if (o.nd === a) continue; let v = null;
-        if (chong(o.y, o.y + o.h, c0.y, c0.y + c0.h)) {
-          if (o.x === c0.x + c0.w && a.x + a.w !== c0.x + c0.w) { const r = o.x + o.w, x = Math.min(r - 1, a.x + a.w); v = { x, y: o.y, w: r - x, h: o.h }; }
-          else if (o.x + o.w === c0.x && a.x !== c0.x) { const w = Math.max(1, a.x - o.x); v = { x: o.x, y: o.y, w, h: o.h }; } }
-        if (!v && chong(o.x, o.x + o.w, c0.x, c0.x + c0.w) && o.y === c0.y + c0.h && a.y + a.h !== c0.y + c0.h) { const b = o.y + o.h, y = Math.min(b - 1, a.y + a.h); v = { x: o.x, y, w: o.w, h: b - y }; }
-        if (v) doi.push([o.nd, v]); }
-      if (!doi.length) return;
-      // ô sát bên chỉ chừa được tới 1 ô lưới: ô đang kéo cắt lại cho khít, rồi đặt từng ô (gridstack đã đẩy chúng lúc kéo)
-      for (const [, v] of doi) { if (v.x >= a.x + a.w || v.x + v.w <= a.x || v.y >= a.y + a.h || v.y + v.h <= a.y) continue; if (v.x > a.x) a.w = v.x - a.x; else if (v.y > a.y) a.h = v.y - a.y; else { const x1 = a.x + a.w; a.x = v.x + v.w; a.w = x1 - a.x; } }
-      gsDang = true; GS.batchUpdate(); for (const o of k.cu) if (o.nd !== a && !doi.some(([n]) => n === o.nd)) GS.update(o.nd.el, { x: o.x, y: o.y, w: o.w, h: o.h });
-      GS.update(a.el, { x: a.x, y: a.y, w: a.w, h: a.h }); for (const [n, v] of doi) GS.update(n.el, v);
-      GS.batchUpdate(false); gsDang = false; ghiLuoi(); delete E.luoi.ten[D.loai]; luu(); veD(); return true; };   // gridstack giữ MỘT hàm cho mỗi sự kiện: gọi từ hàm dragstop/resizestop chung bên dưới
-    GS.on('dragstop resizestop', (e, el) => { if (e?.type === 'resizestop' && keoDoi && mepChung(el)) return void g.classList.remove('dang-keo'); g.classList.remove('dang-keo'); const k = keoTab, d = k && e?.type === 'dragstop' ? dichDuoi(e) : null, vao = d?.dataset.chu; ketKeoTab(); if (gsDang) return;
+    GS.on('dragstart resizestart', (e, el) => { g.classList.add('dang-keo'); if (e?.type === 'dragstart') batDauKeoTab(el); });
+    GS.on('dragstop resizestop', (e) => { g.classList.remove('dang-keo'); const k = keoTab, d = k && e?.type === 'dragstop' ? dichDuoi(e) : null, vao = d?.dataset.chu; ketKeoTab(); if (gsDang) return;
       if (vao) return void setTimeout(() => gopTab(k.w, vao, k.truoc), 0);   // thả trong dải "Thả vào đây": gộp thành tab (làm sau khi gridstack khép lượt kéo)
       ghiLuoi(); delete E.luoi.ten[D.loai]; luu(); veD(); }); }
   g.style.setProperty('--so-cot', n); g.style.setProperty('--so-hang', r); g.classList.toggle('hien-luoi', E.luoi.hien);

@@ -26,11 +26,11 @@ export function ChoDuyetCr() {
     catch (e) { setBao((b) => ({ ...b, [cr]: { loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` } })); }
     setDang(null); void tai();
   };
-  const cho = du.ds.filter((x) => x.duyet == null).length;
+  const cho = du.ds.filter((x) => x.duyet == null).length, hang = du.ds.filter((x) => x.duyet && !x.camp_id).length;
   return (
     <div data-cho-duyet="" style={{ margin: '6px 0 10px', border: '1px solid #f59e0b', borderRadius: 8, padding: '8px 10px', background: 'rgba(245,158,11,.06)' }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 6 }}>
-        <b style={{ color: '#f59e0b' }} title={GIAI}>⏸ Chờ anh duyệt ({cho})</b>
+        <b style={{ color: '#f59e0b' }} title={GIAI}>⏸ Chờ anh duyệt ({cho}){hang ? ` · ${hang} đã duyệt chờ lên camp` : ''}</b>
         <span style={{ fontSize: 12, color: 'var(--fg-2)', cursor: 'help' }} title={GIAI}>Duyệt = camp $1 · hẹn theo lịch</span>
         {du.dungKhan ? <span style={{ fontSize: 12, color: '#f87171', fontWeight: 600, cursor: 'help' }} title={GIAI_DK}>⏳ đang DỪNG KHẨN — đã duyệt thì máy tự lên khi nhả</span> : null}
       </div>

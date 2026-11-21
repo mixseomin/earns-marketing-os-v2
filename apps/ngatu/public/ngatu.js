@@ -74,6 +74,7 @@ function mau(p, a) {
   const S = p.s, n = S.length - 1;
   let i = a.k;
   while (i < n - 1 && S[i + 1] <= a.s) i++;
+  while (i > 0 && S[i] > a.s) i--; // xe lùi qua đầu đoạn: trước chỉ dò tiến, thân đứng chết ở đầu đoạn dù s cứ giảm
   a.k = i;
   const t = Math.min(1, Math.max(0, (a.s - S[i]) / (S[i + 1] - S[i] || 1)));
   a.px = p.x[i] + (p.x[i + 1] - p.x[i]) * t;
@@ -162,7 +163,7 @@ function buocDen(dt) {
 const DD = matchMedia('(pointer: coarse)').matches || innerWidth < 700; // điện thoại / máy tính bảng → giảm tải cho máy khỏi nóng
 // Tuỳ chọn người xem chỉnh được — lưu vào trình duyệt, F5 vẫn giữ (anh 21/11/2026); nút "Mặc định" đưa về như lúc đầu.
 // choNga: luật "lòng ngã tư kẹt thì đứng chờ ở vạch" — ở VN không ai làm vậy, nên chỉ là tuỳ chọn, mặc định tắt.
-const MAC_DINH = { matDo: DD ? 200 : 250, lieu: 0.12, rePhai: true, tyLeOto: 7, toc: 1, choNga: false, choThoat: 3, denAI: false, kieuPha: '2pha', phaiXanh: false };
+const MAC_DINH = { matDo: DD ? 200 : 250, lieu: 0.12, rePhai: true, tyLeOto: 7, toc: 1, choNga: false, nhuongLoi: false, choThoat: 3, denAI: false, kieuPha: '2pha', phaiXanh: false };
 const KHOA_LUU = 'ngatu-tuy-chon';
 const daLuu = (() => { try { const o = JSON.parse(localStorage.getItem(KHOA_LUU) || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
 const CAI = { ...MAC_DINH, dung: false, vuot: 0, don: 0, nghich: 0 };
@@ -362,9 +363,14 @@ function vuong(a, x, z, g, xT, zT, gT) {
         if (dx * dx + dz * dz > r * r) continue;
         // Không có ngoại lệ nào: không xe nào đi xuyên xe nào. Lỡ đang chạm (vừa rơi xuống, người bước ra) thì chỉ được
         // dời sao cho chỗ chạm NÔNG HẲN đi — trước cho trượt ngang ở cùng độ sâu nên hai thân lướt qua nhau.
-        const o = lanSau(x, z, g, a.len, a.wid, j);
+        // Người đi bộ không bước sát vào thân xe (xe đâm là chết): bước của người kiểm với thân nới rộng ~0,35 m quanh
+        // người. Chỉ áp cho bước của NGƯỜI — áp cả cho xe thì xe sát người đang đứng chờ không nhích được, hai bên chờ nhau.
+        // Xe đang đứng (thường là đứng nhường chính người này) thì chỉ giữ hở ~15 cm, không thì người đứng chết bên xe
+        // đang chờ mình, xe chờ người — hai bên chờ nhau.
+        const M = a.loai === 'bo' && j.loai !== 'bo' ? (j.sp > 0.3 ? 0.7 : 0.3) : 0;
+        const o = lanSau(x, z, g, a.len + M, a.wid + M, j);
         if (o <= CHAM) continue; // chạm nhẹ (sượt gương) thì được, không ăn sâu hơn
-        const o0 = lanSau(xT, zT, gT, a.len, a.wid, j);
+        const o0 = lanSau(xT, zT, gT, a.len + M, a.wid + M, j);
         // Lấn quá mức chạm sượt chỉ được khi chỗ chạm nông đi thật, hoặc đang dời RA XA xe kia (tâm cách xa thêm) mà
         // không sâu thêm chút nào (trượt ra khỏi chỗ chạm). Không có "ra xa mà sâu thêm vài mm": dồn lại thành xuyên.
         const xa = (x - xT) * (xT - j.x) + (z - zT) * (zT - j.z) > 0;
@@ -387,6 +393,8 @@ function datCho(a, s, d, k) {
   return Math.atan2(-a.fz, a.fx) - Math.atan2(a.lv, a.sp + 1.2);
 }
 // a đang đứng chắn ngay trước mũi j → j không qua được chừng nào a chưa đi, nên a nhường j chỉ thành kẹt cứng cả hai.
+// Nhưng hai xe cắt nhau mà mỗi chiếc đều đã nằm trước mũi chiếc kia thì ngoại lệ này cho CẢ HAI cùng tiến → húc mũi
+// khoá chết (gốc nút tắc đo được 21/11/2026) — khi đó xe kém quyền vẫn nhường như thường.
 function chanMui(a, j) {
   const ex = a.x - j.x, ez = a.z - j.z;
   const lon = ex * j.fx + ez * j.fz, lat = ex * -j.fz + ez * j.fx;
@@ -478,7 +486,7 @@ function buocXe(a, dt) {
         if (j.loai !== 'bo' && Math.abs(lon) < hl + 0.3 + a.sp * 0.25) {
           if (lat > 0) hoP = Math.min(hoP, lat - hw); else hoT = Math.min(hoT, -lat - hw);
         }
-        if (xm && Math.abs(lon) < hl * 0.8 && Math.abs(lat) < hw + 0.2) {
+        if (xm && j.loai !== 'bo' && Math.abs(lon) < hl * 0.8 && Math.abs(lat) < hw + 0.2) { // người đi bộ không đẩy được xe
           const o = hw + 0.2 - Math.abs(lat);
           day += lat > 0.01 ? -o : lat < -0.01 ? o : a.id & 1 ? o : -o;
         }
@@ -488,13 +496,16 @@ function buocXe(a, dt) {
         // thành cả vòng đứng nhìn nhau: mình phải đi để dọn lối. Đi được tới đâu là do chốt va chạm cứng quyết, nên không
         // có chuyện húc xuyên qua nó.
         let cm = -1;
-        const choMinh = () => (cm < 0 ? (cm = choToi(j, a) ? 1 : 0) : cm) === 1;
-        if (lon > 0.1 && j.fx * fx + j.fz * fz < 0.7 && hon(j, a) && (j.loai === 'bo' ? j.trenDuong : !chanMui(a, j)) && !choMinh()) {
+        // Cả hai cùng nằm trong một vòng chờ (j chờ mình, mình cũng chờ j) thì chỉ xe quyền cao bỏ qua xe kia; trước cả hai
+        // cùng "nó đang chờ mình" → cùng lao mũi vào nhau → khoá cứng (cặp xe máy cắt nhau giữa lòng ngã tư, 22/11/2026).
+        const choMinh = () => (cm < 0 ? (cm = choToi(j, a) && (!choToi(a, j) || hon(a, j)) ? 1 : 0) : cm) === 1;
+        if (lon > 0.1 && j.fx * fx + j.fz * fz < 0.7 && hon(j, a) && !(j.lui > 0) && (j.loai === 'bo' ? j.trenDuong : !chanMui(a, j) || chanMui(j, a)) && !choMinh()) {
           const tau = lon / Math.max(a.sp, 1.5);
           if (tau < 2.5) {
-            // xe kia đang đứng vì kẹt (không phải chờ đèn) vẫn "muốn đi": giữ chỗ đường nó sắp đi, đừng chen vào lấp mất
-            // lối ra của nó — chính chỗ lấp đó biến lòng ngã tư thành nút khoá chết.
-            const vJ = Math.max(j.sp, j.choDen || j.dangDon || j.nga ? 0 : j.loai === 'bo' ? 1.1 : 2.5);
+            // Đoán theo tốc độ THẬT của xe kia. Trước coi xe đang đứng kẹt như sắp lao tới 2,5 m/s → xe giữa lòng đường
+            // trống đứng chờ một chiếc không bao giờ tới (anh 21/11/2026 khoanh ảnh). Giữ lối thoát cho xe kẹt là việc
+            // của tuỳ chọn "Nhường lối thoát" (lanCat) — đo đúng làn trước mũi nó, không đoán bừa.
+            const vJ = Math.max(j.sp, j.loai === 'bo' && !j.choDen && !j.nga ? 1.1 : 0);
             const latT = lat + vJ * (j.fx * rx + j.fz * rz) * tau;
             if (Math.min(lat, latT) < hw + 0.3 && Math.max(lat, latT) > -hw - 0.3) { const g = lon - hl; if (g < f0) { f0 = g; vj = 0; ai = j; } }
           }
@@ -502,11 +513,14 @@ function buocXe(a, dt) {
         // Làn trước mũi xe cắt ngang (xe đó đang muốn đi, không đứng chờ đèn): đường mình băng qua nó ở đâu, rộng bao nhiêu.
         if (j.loai !== 'bo' && !j.choDen && !j.dangDon && !j.nhac) {
           const c = j.fx * fx + j.fz * fz, sn = j.fx * rx + j.fz * rz;
-          if (Math.abs(c) < 0.7 && Math.abs(sn) > 0.3) {
+          // Tuỳ chọn "nhường lối thoát": xe kia đang đứng kẹt muốn đi thì lối trước mũi nó là của nó — kể cả xe đi gần
+          // ngược chiều (rẽ trái cắt mặt), nhìn xa hơn trước mũi nó.
+          const nl = CAI.nhuongLoi && j.sp < 0.5;
+          if (Math.abs(c) < (nl ? 0.92 : 0.7) && Math.abs(sn) > (nl ? 0.2 : 0.3)) {
             const t = -lat / sn, u = lon + t * c, nj = nua(j, j.fx, j.fz);
-            if (t > nj - 0.2 && t < nj + 4) {
+            if (t > nj - 0.2 && t < nj + (nl ? 5 : 4)) {
               const w = (j.wid / 2 + a.wid / 2 + 0.25) / Math.abs(sn) + a.len / 2;
-              if (u - w > 0.3 && u - w < look) lanCat.push([u - w, u + w, j]);
+              if (u - w > 0.3 && u - w < look) lanCat.push([u - w, u + w, j, nl]);
             }
           }
         }
@@ -533,7 +547,10 @@ function buocXe(a, dt) {
   // — mỗi xe đứng chắn mũi một xe, xe đó lại đứng chắn mũi xe kế. Luật này của từng xe, không phải chặn cả hàng ở vạch.
   if (lanCat.length) {
     const toi = f0 + vj * 1.5; // chỗ xa nhất thân mình sẽ tới (xe trước đang đi thì tính cả quãng nó dọn ra)
-    for (const [gan, xa, j] of lanCat) if (toi < xa && gan < f0 && !choToi(j, a)) { f0 = gan; vj = 0; ai = j; }
+    // Nhường lối thoát (tuỳ chọn, cách người VN đi): thấy xe kia đang kẹt mà mình tiến vào chỗ trống trước mũi nó là
+    // nó hết đường ra → không lấn vào, dừng ngoài lối đó cho nó đi trước, dù mình lọt qua được. Xe kia lại đang chờ
+    // chính mình (choToi) thì mình đi, không thì cả hai nhường nhau đứng im.
+    for (const [gan, xa, j, nl] of lanCat) if ((nl || toi < xa) && gan < f0 && !(choToi(j, a) && (!choToi(a, j) || hon(a, j)))) { f0 = gan; vj = 0; ai = j; }
   }
   a.trongNga = a.s > p.sIn && a.s < p.sOut;
   let vt = a.vmax * (a.trongNga && xm ? 0.8 : 1);
@@ -573,6 +590,9 @@ function buocXe(a, dt) {
     if (m === 'd') duoc = (khongKip && qua < 1.5) || (xm && a.quay === 'phai' && CAI.rePhai) || (lieu && (qua < 3 || con < 2.5));
     // Tuỳ chọn (mặc định tắt): lòng ngã tư đã kẹt / hướng kia còn đầy xe thì đứng chờ ở vạch kể cả đèn xanh.
     if (CAI.choNga && (ketNga > NGUONG_KET || trongNgaG[1 - a.g] > NGUONG_CAT) && dau < p.sStop) duoc = false;
+    // Mặc định, kiểu người VN: vẫn lao vào khe — nhưng không lao khi ngay sau vạch phía trước mũi đã kín (không đủ một thân
+    // xe + khoảng thoát). Vào rồi đứng chết giữa lòng ngã tư là chặn luôn lối hướng kia; kẹt kín lòng ngã tư từ đây.
+    if (duoc && dau < p.sStop && p.sStop - dau < 2 && f0 < a.len + (xm ? 2 : 4)) duoc = false;
     if (!duoc) {
       if (m !== 'x' && !lieu) a.lenhDung = true;
       const gap = p.sStop + lan - 0.15 - dau;
@@ -582,6 +602,7 @@ function buocXe(a, dt) {
   }
   // Gỡ nút: xe đứng kẹt (không phải chờ đèn) lâu thì được ưu tiên đi trước (hang), tăng tốc gấp hơn khi có chỗ,
   // và dạt sang bên tìm lối — không bao giờ đi xuyên hay cắt mặt xe khác.
+  if (a.lui > 0) { a.lui -= dt; vt = 0; } // đang lùi nhường lối: không tiến lại vào chỗ vừa chừa
   const ac = (xm ? 2.6 : a.loai === 'bus' ? 1.0 : 1.8) * (a.ket > 1 ? 1.8 : 1);
   a.sp = vt > a.sp ? Math.min(vt, a.sp + ac * dt) : Math.max(vt, a.sp - 9 * dt);
   if (a.sp < 0.2 && !a.choDen && !a.dangDon) a.ket = Math.min(10, a.ket + dt); else a.ket = Math.max(0, a.ket - dt * 0.5);
@@ -593,9 +614,11 @@ function buocXe(a, dt) {
     else if (a.loai !== 'bus' || a.ket > 1) {
       // bị chặn mũi → lách sang bên nào phía trước thoáng hơn (cả ở ngã tư lẫn ngoài đường, ô tô cũng lách)
       if (f0 < a.sp * 1.1 + (xm ? 2.5 : 5)) {
-        if (fL > f0 + can && fL >= fR && a.dlat - off * 0.5 > lo) lvt = -vNe;
-        else if (fR > f0 + can && a.dlat + off * 0.5 < hi) lvt = vNe;
-        else if (a.ket > 1.5) lvt = (hoP > hoT ? 1 : -1) * vNe * 0.6; // đứng kẹt: nhích sang bên rộng hơn
+        // Chỉ lách khi bên đó có đường thoát thật: phía trước bên đó trống ít nhất một thân xe + khoảng an toàn, và hở
+        // sườn bên đó đủ một thân xe — không lách bừa vào khe rồi đứng kẹt chắn luôn lối người khác (anh 21/11/2026).
+        const thoat = Math.max(f0 + can, a.len + (xm ? 1.5 : 3));
+        if (fL > thoat && fL >= fR && hoT > a.wid * 0.6 && a.dlat - off * 0.5 > lo) lvt = -vNe;
+        else if (fR > thoat && hoP > a.wid * 0.6 && a.dlat + off * 0.5 < hi) lvt = vNe;
       }
     }
     // không bị chặn: xe máy lượn nhẹ về giữa, ô tô giữ làn đang đi (ngoài đường) / bám đường cong (trong ngã tư)
@@ -612,9 +635,33 @@ function buocXe(a, dt) {
   let dl = a.lv * dt;
   if (dl > 0 && dl > hoP - 0.05) { dl = Math.max(0, hoP - 0.05); a.lv *= 0.5; }
   else if (dl < 0 && -dl > hoT - 0.05) { dl = -Math.max(0, hoT - 0.05); a.lv *= 0.5; }
-  if (day) dl += day * 0.6 * dt; // tách khỏi chồng lấn (nếu có) — chậm, không giật
+  // Không xe nào bị đẩy (anh 21/11/2026): xe chỉ dời ngang được khi bánh lăn tới — không quá LAI lần quãng vừa tiến
+  // (góc lái tối đa). Trước xe đứng im vẫn trượt ngang (lực tách chồng lấn, kể cả từ người đi bộ; nước "nhích ngang tại
+  // chỗ") — nhìn như bị người / xe khác đẩy đi ngang, và chính các cú trượt đó lấp chỗ xe khác sắp đi, gây tắc.
+  // Kẹt thì đứng im — xe máy thật ở VN cũng vậy. Xe máy được bẻ lái gấp hơn ô tô (LAI lớn hơn) nhưng vẫn chỉ khi lăn.
+  const LAI = xm ? 1.0 : a.loai === 'bus' ? 0.25 : 0.35, mL = LAI * a.sp * dt;
+  dl = Math.max(-mL, Math.min(mL, dl));
+  if (day) dl += Math.max(-mL, Math.min(mL, day * 0.6 * dt)); // tách khỏi chồng lấn chỉ khi đang lăn, chậm, không giật
+  a.lv = Math.max(-LAI * a.sp, Math.min(LAI * a.sp, a.lv));
   // Đặt thử chỗ mới. Thân xe lấn sâu thêm vào xe / người khác thì bỏ bớt: đi thẳng thôi → tạt ngang thôi → đứng yên.
   // Đây là chốt cứng cuối cùng: luật bám đuôi / nhường ở trên có đoán sai thì xe vẫn không đi xuyên qua nhau.
+  // Lùi ra khỏi xe j (thân giữ hướng, bẻ lái ra phía xa j theo quãng lùi thật); lùi không nổi thì đứng nguyên.
+  const luiRa = (j, goc) => {
+    const ket = (g) => vuong(a, a.x, a.z, g, xT, zT, gT);
+    const ex = j.x - xT, ez = j.z - zT, xa = ex * -a.fz + ez * a.fx > 0 ? -1 : 1;
+    const trong = sTruoc >= p.sIn && sTruoc <= p.sOut, rong = trong ? (xm ? 2.5 : 1.5) : 0.05, loT = lo - (trong ? rong : 1.5), hiT = hi + rong;
+    const lui = (xm ? 0.5 : 0.35) * dt;
+    for (const h of [xa, 0, -xa]) {
+      const d = dTruoc + h * LAI * lui;
+      if (h && (d < loT || d > hiT)) continue;
+      a.lv = 0;
+      goc = datCho(a, sTruoc - lui, d, kTruoc);
+      if (!ket(goc)) return goc;
+      if (!ket(gT)) return gT; // lùi thẳng theo thân đang nằm, không xoay thân tại chỗ
+    }
+    goc = datCho(a, sTruoc, dTruoc, kTruoc);
+    return ket(goc) ? gT : goc;
+  };
   let goc = datCho(a, sTruoc + a.sp * dt, dTruoc + dl, kTruoc);
   // xoay thân tại chỗ (góc theo vận tốc ngang) cũng quét qua xe bên cạnh → cũng phải kiểm, không chỉ khi tiến / tạt
   const len0 = a.sp * dt;
@@ -626,7 +673,7 @@ function buocXe(a, dt) {
       chan = len0 > 1e-4 ? vuongJ : null;
       a.lv *= 0.5;
       // Thử lần lượt các nước đi thật của tài xế: tiến thẳng (bớt đánh lái) → tiến chậm hơn → lách sang phía XA xe
-      // đang chặn → phía kia → (đứng kẹt lâu) nhích ngang tại chỗ. Mỗi nước thử cả với thân giữ nguyên hướng cũ: thân
+      // đang chặn → phía kia; nước lách chỉ ngang theo quãng tiến thật. Mỗi nước thử cả với thân giữ nguyên hướng cũ: thân
       // xoay theo tay lái lúc gần đứng yên quét sang xe bên cạnh, nên giữ hướng là cách duy nhất để trượt ra khỏi chỗ cạ.
       const len = a.sp * dt, ne = (xm ? 1.4 : a.loai === 'oto' ? 0.8 : 0.4) * dt * Math.max(1, a.sp);
       const ex = vuongJ.x - a.x, ez = vuongJ.z - a.z, xa = ex * -a.fz + ez * a.fx > 0 ? -1 : 1; // phía +dlat là (-fz, fx)
@@ -635,13 +682,13 @@ function buocXe(a, dt) {
       // thêm 1,5 m mỗi bên là thật; ngoài đường chỉ được lấn về phía tim đường (như ngoài đời), phía lề vẫn chặn.
       const trong = a.s >= p.sIn && a.s <= p.sOut, rong = trong ? (xm ? 2.5 : 1.5) : 0.05, loT = lo - (trong ? rong : 1.5), hiT = hi + rong;
       let duocDi = false, tien = 1;
-      for (tien of a.ket > 1 ? [1, 0.6, 0.3, 0] : [1, 0.6, 0.3]) {
+      for (tien of [1, 0.6, 0.3]) {
         for (const h of [0, xa, -xa]) {
-          if (tien === 0 && h === 0) continue;
-          const d = dTruoc + h * ne;
+          const neT = Math.min(ne, LAI * len * tien); // lách theo quãng tiến thật, không trượt ngang tại chỗ
+          const d = dTruoc + h * neT;
           if (h && (d < loT || d > hiT)) continue;
           const lv0 = a.lv;
-          a.lv = h ? h * ne / dt : a.lv * 0.5;
+          a.lv = h ? h * neT / dt : a.lv * 0.5;
           goc = datCho(a, sTruoc + len * tien, d, kTruoc);
           if (!ket(goc)) { duocDi = true; break; }
           if (!ket(gT)) { goc = gT; duocDi = true; break; }
@@ -651,15 +698,41 @@ function buocXe(a, dt) {
       }
       if (duocDi) a.sp *= tien; // tốc độ theo quãng thật sự đi được
       else {
-        a.sp = 0;
-        goc = datCho(a, sTruoc, dTruoc + dl, kTruoc);
-        if (ket(goc)) { datCho(a, sTruoc, dTruoc, kTruoc); goc = gT; a.lv = 0; }
+        a.sp = 0; a.lv = 0;
+        goc = datCho(a, sTruoc, dTruoc, kTruoc); // đứng hẳn: không tiến thì cũng không dời ngang
+        if (ket(goc)) goc = gT;
+        // Hai xe chúi mũi vào nhau (không ai tiến được, không được trượt ngang): xe kém quyền LÙI lại như ngoài đời — xe
+        // máy chống chân lùi, ô tô gài số lùi — vừa lùi vừa bẻ lái ra phía xa xe kia, chừa chỗ cho xe quyền cao đi trước.
+        // Dời ngang khi lùi cũng chỉ theo quãng bánh lăn thật. Không có bước này cả lòng ngã tư khoá vào một cặp xe đó.
+        // Xe kém quyền lùi trước; nó không lùi nổi (đuôi kẹt xe sau) thì sau 4 s xe quyền cao cũng lùi để gỡ.
+        if (a.ket > 1.5 && vuongJ && vuongJ.loai !== 'bo' && (hon(vuongJ, a) || a.ket > 4)) goc = luiRa(vuongJ, goc);
+        // Xe máy kẹt cứng giữa lòng ngã tư quá 6 s: người lái chống chân dắt xe dạt sang bên ~0,3 m/s — tự mình dời đi,
+        // chỉ vào chỗ trống thật (không chạm ai, không đẩy ai). Không có nước này nút tắc kín lòng ngã tư không bao giờ gỡ.
+        else if (xm && trong && a.ket > 6) {
+          const dat = 0.3 * dt;
+          for (const h of [xa, -xa]) {
+            const d = dTruoc + h * dat;
+            if (d < loT || d > hiT) continue;
+            a.lv = 0; goc = datCho(a, sTruoc, d, kTruoc);
+            if (!ket(gT)) { goc = gT; a.dat = true; break; }
+            goc = datCho(a, sTruoc, dTruoc, kTruoc); if (ket(goc)) goc = gT;
+          }
+        }
       }
     }
   }
   // ai đang giữ chân xe này (bị chặn thân, hoặc đứng sát chờ / nhường) — để tinhQuyen cho xe đó mượn quyền
   // Ghi cả khi xe còn nhích chậm: vòng bám đuôi nhau trong lòng ngã tư thường có vài xe đang bò 0,3–0,6 m/s — cắt chuỗi
   // ở đó là không xe nào thấy mình nằm trong vòng, cả vòng bò rồi đứng hẳn. Mượn quyền thì chỉ xe đứng thật mới cho.
+  // Mình đang đứng nhường j, mà chính thân mình lại chắn cứng mũi j (j muốn đi, bị mình chặn) — đứng nhường như thế là cả
+  // hai đứng im mãi (cặp khoá đo được 22/11/2026). Xe nhường phải lùi ra chừa lối, như người ta chống chân lùi xe máy.
+  if (!chan && ai && ai.loai !== 'bo' && ai.choAi === a && ai.biChan && a.sp < 0.05 && a.ket > 1.5) goc = luiRa(ai, goc);
+  // Hai xe chúi mũi vào nhau, xe kia không lùi nổi (đuôi kẹt xe sau): xe mình lùi hẳn ~2 s, trong lúc đó không tiến lại và
+  // xe kia không phải nhường mình (j.lui) — nó đi qua chỗ vừa chừa. Không có thế này thì mình nhích tới, nó nhường mình,
+  // mình lại chạm nó: hai xe đứng nhìn nhau cả phút (đo 22/11/2026).
+  if (chan && chan.loai !== 'bo' && chan.choAi === a && chan.sp < 0.05 && a.ket > 4 && !(a.lui > 0)) { a.lui = 2; a.luiJ = chan; }
+  if (a.lui > 0 && a.luiJ && a.sp < 0.05) goc = luiRa(a.luiJ, goc);
+  a.biChan = !!chan;
   a.choAi = chan || (f0 < 2 ? ai : null);
   if (!a.camKet) {
     const dau2 = a.s + a.len / 2;
@@ -794,7 +867,7 @@ function bay(a, dt) {
   } else { const u = (t - 0.72) / 0.28; a.x = D.x; a.z = D.z; a.goc = D.goc; a.y = CAO * (1 - u * u); }
   if (n.t < 1) return;
   // chạm đất: lấy đường mới, đứng yên rồi tự đi tiếp
-  a.nhac = null; a.p = D.p; a.s = D.s; a.k = 0; a.dlat = 0; a.lv = 0; a.sp = 0; a.y = 0; a.ket = 0;
+  a.nhac = null; a.p = D.p; a.s = D.s; a.k = 0; a.dlat = 0; a.lv = 0; a.sp = 0; a.y = 0; a.ket = 0; a.lui = 0;
   if (a.loai !== 'bo') { a.g = D.arm.g; a.arm = ARMS.indexOf(D.arm); a.quay = D.quay; a.camKet = D.s + a.len / 2 >= D.p.sStop; a.sDon = -1; if (a.dangDon) a.dangDon = false; a.nghieng = 0; }
   mau(a.p, a);
   a.x = a.px; a.z = a.pz; a.goc = D.goc;
@@ -1276,7 +1349,7 @@ function hienTuyChon() {
   $('md').value = CAI.matDo; $('vMd').textContent = CAI.matDo;
   $('lieu').value = Math.round(CAI.lieu * 100); $('vLieu').textContent = Math.round(CAI.lieu * 100) + '%';
   $('oto').value = CAI.tyLeOto; $('vOto').textContent = CAI.tyLeOto + '%';
-  $('rp').checked = CAI.rePhai; $('cn').checked = CAI.choNga; $('toc').textContent = chuToc();
+  $('rp').checked = CAI.rePhai; $('cn').checked = CAI.choNga; $('nl').checked = CAI.nhuongLoi; $('toc').textContent = chuToc();
   $('ct').value = CAI.choThoat; $('vCt').textContent = CAI.choThoat + ' s';
   $('kp').value = CAI.kieuPha; $('ai').checked = CAI.denAI; $('px').checked = CAI.phaiXanh;
 }
@@ -1291,6 +1364,7 @@ $('lieu').addEventListener('input', (e) => { CAI.lieu = +e.target.value / 100; $
 $('oto').addEventListener('input', (e) => { CAI.tyLeOto = +e.target.value; $('vOto').textContent = CAI.tyLeOto + '%'; luuTuyChon(); });
 $('rp').addEventListener('change', (e) => { CAI.rePhai = e.target.checked; luuTuyChon(); });
 $('cn').addEventListener('change', (e) => { CAI.choNga = e.target.checked; luuTuyChon(); });
+$('nl').addEventListener('change', (e) => { CAI.nhuongLoi = e.target.checked; luuTuyChon(); });
 $('macdinh').addEventListener('click', () => {
   const doiPha = CAI.kieuPha !== MAC_DINH.kieuPha;
   Object.assign(CAI, MAC_DINH);

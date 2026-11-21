@@ -1106,9 +1106,17 @@ const mOto = inst(geoOto, vatLieuMau, MAX_OTO), mMui = inst(geoMui, vatLieuMau, 
 const mBo = inst(geoBo, vatLieuMau, 400), mDau = inst(geoDau, vatLieu, 400), mNon = inst(geoNon, vatLieu, 400);
 const NON_MAU = new THREE.Color('#e8d7a6');
 // Đèn xi nhan (anh 22/11/2026): xe sắp rẽ nháy cam ở góc trước + góc sau phía rẽ, từ ~35 m trước lòng ngã tư tới lúc ra
-const mXn = (() => { const m = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: '#ffa31a' }), 2 * (MAX_XM + MAX_OTO + 16)); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; scene.add(m); return m; })();
-// [dọc trước, dọc sau, ngang, cao, cỡ] theo loại xe — toạ độ thân xe: +dọc = mũi, +ngang = bên phải
-const XN = { xm: [0.78, -0.92, 0.2, 0.95, 0.16], oto: [2.12, -2.12, 0.8, 0.78, 0.2], bus: [5.22, -5.22, 1.18, 1.25, 0.28] };
+// Đèn gắn liền thân xe: dựng trong khung toạ độ của chính xe (bên phải, +z), bên trái lật z; vẽ cùng vị trí + góc quay + độ nghiêng của thân
+const VL_XN = new THREE.MeshBasicMaterial({ color: '#ffa31a', side: THREE.DoubleSide });
+const denXn = (ds) => { const g = mergeGeometries(ds.map(([w, h, d, x, y, z]) => box(w, h, d).translate(x, y, z))); return inst(g, VL_XN, 2 * MAX_XM); };
+const XN = {
+  // xe máy: góc trên yếm trước + đuôi thân sau
+  xm: denXn([[0.08, 0.11, 0.12, 0.5, 0.78, 0.14], [0.08, 0.11, 0.12, -0.68, 0.62, 0.13]]),
+  // ô tô: góc đầu, góc đuôi, đèn hông trên vè trước
+  oto: denXn([[0.06, 0.13, 0.17, 2.18, 0.74, 0.8], [0.06, 0.13, 0.17, -2.18, 0.74, 0.8], [0.22, 0.08, 0.04, 1.55, 0.86, 0.9]]),
+  bus: denXn([[0.06, 0.22, 0.3, 5.28, 0.9, 1.05], [0.06, 0.22, 0.3, -5.28, 0.9, 1.05], [0.34, 0.12, 0.04, 0, 1.0, 1.26]]),
+};
+const SXN = new THREE.Vector3();
 function xiNhan(a) {
   if (a.quay === 'thang' || a.nhac || a.nga || a.lac) return 0;
   const p = a.p;
@@ -1365,7 +1373,7 @@ const KHONG = new THREE.Vector3(0, 0, 0), MOT = new THREE.Vector3(1, 1, 1);
 const veXm = [], veOto = [], veBus = [], veBo = [];
 function datMa(m, i, pos, q, s, c) { M4.compose(pos, q, s); m.setMatrixAt(i, M4); if (c) m.setColorAt(i, c); }
 function ve() {
-  let ix = 0, io = 0, ib = 0, ip = 0, is = 0, iq = 0;
+  let ix = 0, io = 0, ib = 0, ip = 0, is = 0; const nx = { xm: 0, oto: 0, bus: 0 };
   veXm.length = 0; veOto.length = 0; veBus.length = 0; veBo.length = 0;
   for (const a of DS) {
     if (is < MAX_XM + 900) { Q.setFromAxisAngle(UP, a.goc); V.set(a.x, a.nhac ? 0.03 : a.y + 0.03, a.z); datMa(mBong, is++, V, Q, a.loai === 'bo' ? SB.set(0.75, 1, 0.75) : SB.set(a.len * 1.15, 1, a.wid * 1.7)); }
@@ -1378,11 +1386,6 @@ function ve() {
       ip++; continue;
     }
     const ben = xiNhan(a);
-    if (ben) {
-      const [d1, d2, ng, cao, co] = XN[a.loai], fx = Math.cos(a.goc), fz = -Math.sin(a.goc), rx = -fz, rz = fx;
-      Q.setFromAxisAngle(UP, a.goc); SB.set(co, co * 0.8, co);
-      for (const d of [d1, d2]) { V.set(a.x + fx * d + rx * ng * ben, a.y + cao, a.z + fz * d + rz * ng * ben); datMa(mXn, iq++, V, Q, SB); }
-    }
     Q.setFromAxisAngle(UP, a.goc);
     V.set(a.x, a.y + (a.lac ? (a.wid / 2) * Math.abs(Math.sin(a.lac)) : 0), a.z); // nằm nghiêng: nhấc thân lên để không chìm xuống mặt đường
     if (a.loai !== 'xm' && a.lac) Q.multiply(Q2.setFromAxisAngle(TRUC_X, a.lac));
@@ -1391,11 +1394,12 @@ function ve() {
       Q2.setFromAxisAngle(TRUC_X, a.nghieng); Q.multiply(Q2);
       datMa(mXm, ix, V, Q, MOT, a.c1); datMa(mNguoi, ix, V, Q, MOT, a.c2); datMa(mMu, ix, V, Q, MOT, a.c3);
       datMa(mCho, ix, V, Q, a.cho ? MOT : KHONG, a.c4); datMa(mHang, ix, V, Q, a.hang ? MOT : KHONG, a.c5);
+      if (ben) datMa(XN.xm, nx.xm++, V, Q, SXN.set(1, 1, ben));
       veXm[ix] = a; ix++;
-    } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, a.c1); }
-    else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, a.c1); }
+    } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, a.c1); if (ben) datMa(XN.oto, nx.oto++, V, Q, SXN.set(1, 1, ben)); }
+    else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, a.c1); if (ben) datMa(XN.bus, nx.bus++, V, Q, SXN.set(1, 1, ben)); }
   }
-  for (const [m, n] of [[mXm, ix], [mNguoi, ix], [mMu, ix], [mCho, ix], [mHang, ix], [mOto, io], [mMui, io], [mBus, ib], [mBo, ip], [mDau, ip], [mNon, ip], [mBong, is], [mXn, iq]]) {
+  for (const [m, n] of [[mXm, ix], [mNguoi, ix], [mMu, ix], [mCho, ix], [mHang, ix], [mOto, io], [mMui, io], [mBus, ib], [mBo, ip], [mDau, ip], [mNon, ip], [mBong, is], [XN.xm, nx.xm], [XN.oto, nx.oto], [XN.bus, nx.bus]]) {
     m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
   }
 }

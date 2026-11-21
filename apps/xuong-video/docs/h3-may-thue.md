@@ -63,6 +63,14 @@ Gắn trong máy, phim mới không phải bật gì:
 Chưa gắn máy (làm khi có ca dùng): đoạn phản ứng không thoại 3–5 s phủ thoại dài (hiện do cổng tiền kỳ "vai kể" nhắc chen phản ứng); nâng nét riêng bản được chọn;
 ghi kích thước thật đạo cụ trong câu lệnh; cảnh hội thoại 3 ảnh bối cảnh (góc A, góc ngược B, toàn cảnh).
 
+## Năng lực theo hoàn cảnh (chọn H3 hay Seedance)
+
+Mỗi dòng là một lần thử thật, kèm link xem.
+
+| Ngày | Ca thử | Kết quả H3 | Chọn |
+|---|---|---|---|
+| 21/11/2026 | Máy quay xoay quanh người đi bộ (theo previs khối xám của genel_ai, so với Muse của họ): một người phụ nữ đi giữa lối văn phòng, máy từ chéo trái ra sau lưng, đám đông ngồi phía sau. Đầu vào: video previs 7 s + ảnh khung đầu/cuối. Video: https://img.on.tc/xuong-video/thu-h3/orbit-h3-orbit.b1.mp4 · so sánh (hàng 1 previs, 2 Muse, 3–5 là 3 bản H3): https://img.on.tc/xuong-video/thu-h3/orbit-h3-so-sanh.jpg | **Đạt:** giữ đúng bố cục (lối đi, vách ngăn bên phải, cột), chỉ một người đi, đám đông ngồi không nhân đôi hay méo. **Chưa đạt:** góc xoay quá nhẹ, khung đầu đã gần như sau lưng; Muse mở bằng góc nghiêng thấy nửa mặt rồi mới xoay ra sau. Ba bản seed gần như giống hệt nhau, nên chọn bản không giúp gì ở ca này. Ảnh 768×480, kém nét hơn Muse. 11 phút RunPod 4090 ≈ 4.300₫ | Cảnh đi bộ có đám đông, máy theo sau: **H3**. Cần xoay góc rộng (nghiêng ra sau lưng): **Seedance**, hoặc H3 với khung đầu là ảnh góc nghiêng thật thay vì khung previs |
+
 ## Bài học (mỗi dòng là một lần đã mất tiền máy)
 
 1. Image tự khai yêu cầu CUDA 13 → RunPod chỉ xếp máy driver mới → "hết chỗ" mọi loại máy. Dùng image không khai, kiểm driver sau khi lên.

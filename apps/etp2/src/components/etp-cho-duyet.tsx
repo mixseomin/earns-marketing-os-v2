@@ -9,6 +9,9 @@ const nut: React.CSSProperties = { fontSize: 12, padding: '3px 10px', borderRadi
 const GIAI = 'chưa duyệt thì máy không lên camp. ✓ Duyệt = lên camp $1, giờ chạy theo lịch: ngoài 07–12h VN thì hẹn 07:00. ✕ Loại = không bao giờ lên.';
 const GIAI_DK = 'đang DỪNG KHẨN (etp.cau_hinh.dung_khan): bấm Duyệt vẫn ghi duyệt, nhưng máy chặn tạo camp tới khi tắt dừng khẩn — máy tự lên camp ở nhịp đầu nhả (apps/etp/lenh_cho.py), anh không phải bấm lại.';
 
+/** kiểu camp máy sẽ lên: ★ ROAS (sổ len_cr_roas, lệnh anh 22/11/2026 "roas kiểu Sơn") hoặc camp $1 */
+const kieu = (r: string | null) => { const [ro, ns] = (r ?? '').split('|'); return ro && ns ? `★ ROAS ${ro} · ${'$'}${ns}` : 'camp $1'; };
+
 export function ChoDuyetCr() {
   const [du, setDu] = useState<{ ds: ChoDuyet[]; dungKhan: boolean } | null>(null);
   const [loiDs, setLoiDs] = useState<string | null>(null);
@@ -57,7 +60,7 @@ export function ChoDuyetCr() {
                   </div>
                 ) : x.camp_id ? <div style={{ color: '#4ade80', marginTop: 'auto' }}>✓ đã duyệt → camp #{x.camp_id} ({x.trang_thai})</div> : (
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 'auto' }}>
-                    <span style={{ color: '#60a5fa' }} title={du.dungKhan ? GIAI_DK : 'máy đang lên camp / thử lại theo nhịp'}>{du.dungKhan ? '⏳ đã duyệt · xếp hàng lên camp' : '✓ đã duyệt · đang lên camp'}</span>
+                    <span style={{ color: '#60a5fa' }} title={du.dungKhan ? GIAI_DK : 'máy đang lên camp / thử lại theo nhịp'}>{du.dungKhan ? '⏳ đã duyệt · xếp hàng lên ' : '✓ đã duyệt · đang lên '}{kieu(x.roas)}</span>
                     {du.dungKhan ? null : <button type="button" disabled={dang != null} onClick={() => bam(x.creative_id, () => lenCamp(x.creative_id))} style={nut}>{dang === x.creative_id ? '…' : 'Lên lại'}</button>}
                   </div>)}
                 {b.loi ? <div role="alert" style={{ padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5' }}>{b.loi}</div> : null}

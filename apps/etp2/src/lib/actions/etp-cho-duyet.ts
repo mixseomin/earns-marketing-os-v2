@@ -13,6 +13,7 @@ import { lenCampCr } from '@/lib/actions/etp-dong';
 export type ChoDuyet = {
   creative_id: number; content_id: number | null; phim: string | null; lang: string | null; dang: string | null; video: string | null; anh: string | null;
   ghi: string; tao: string; duyet: boolean | null; diem_thap: string | null; camp_id: number | null; trang_thai: string | null; nhat_ky: string | null;
+  /** '1|5' = máy lên ★ ROAS 1 · $5 thay camp $1 (etp.cau_hinh.len_cr_roas, apps/etp/lenh_cho.py — anh 22/11/2026) */ roas: string | null;
 };
 
 const run = async <T,>(s: ReturnType<typeof sql>) => (await getDb()!.execute(s)) as unknown as T[];
@@ -29,7 +30,8 @@ export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean 
   const ds = await run<Omit<ChoDuyet, 'nhat_ky'>>(sql`select h.creative_id, r.content_id, f.ten phim, r.lang, r.dang, r.video, r.anh, h.ghi, h.tao::text tao, u.ok duyet,
       (select string_agg(e.k || ' ' || e.v, ', ' order by e.v::numeric) from etp.cham c, jsonb_each_text(c.diem) e(k, v)
         where c.creative_id = h.creative_id and (e.k like 'meta.%' or e.k like 'afs.%') and e.v::numeric <= 4) diem_thap,
-      k.camp_id, k.trang_thai
+      k.camp_id, k.trang_thai,
+      (select (x.gia_tri -> h.creative_id::text ->> 'roas') || '|' || (x.gia_tri -> h.creative_id::text ->> 'ns') from etp.cau_hinh x where x.khoa = 'len_cr_roas') roas
     from etp.cho_anh_duyet_cr h join etp.creative r on r.creative_id = h.creative_id left join etp.phim f on f.content_id = r.content_id
       left join etp.cham_duyet u on u.creative_id = h.creative_id
       left join lateral (select c.camp_id, c.trang_thai from etp.camp c where c.creative_id = h.creative_id order by c.camp_id desc limit 1) k on true
@@ -55,7 +57,10 @@ export async function duyetChoAnh(cr: number, ok: boolean): Promise<{ ok: true; 
 export async function lenCamp(cr: number): Promise<{ ok: true; chu: string } | { loi: string }> {
   const id = Math.trunc(Number(cr));
   const [dk] = await run<{ v: boolean }>(sql`select coalesce((select gia_tri = 'true'::jsonb from etp.cau_hinh where khoa = 'dung_khan'), false) v`);
-  if (dk?.v) return { ok: true, chu: `đã duyệt #${id} — xếp hàng: máy tự lên camp $1 ở nhịp đầu nhả dừng khẩn, giờ chạy theo lịch` };
+  if (dk?.v) return { ok: true, chu: `đã duyệt #${id} — xếp hàng: máy tự lên camp ở nhịp đầu nhả dừng khẩn, giờ chạy theo lịch` };
+  // creative trong sổ ★ ROAS (len_cr_roas): KHÔNG đi đường $1 — lenh_cho.py lên ★ ROAS ở nhịp worker kế (một creative một camp)
+  const [ro] = await run<{ x: number }>(sql`select 1 x from etp.cau_hinh where khoa = 'len_cr_roas' and gia_tri ? ${String(id)}`);
+  if (ro) return { ok: true, chu: `đã duyệt #${id} — máy lên ★ ROAS ở nhịp worker kế (apps/etp/lenh_cho.py), giờ chạy theo lịch` };
   const r = await lenCampCr(-1, id);
   if ('loi' in r) return { loi: `Đã ghi DUYỆT #${id}, nhưng chưa lên camp: ${r.loi}` };
   return { ok: true, chu: `đã gửi lệnh lên camp $1 cho creative #${id} — giờ chạy theo lịch (ngoài 07–12h VN hẹn 07:00); dòng này tự hiện số camp khi xong` };

@@ -96,14 +96,42 @@ SQL_CR_DUYET = """select h.creative_id, r.content_id, coalesce(r.lang, 'en'), re
     from etp.cho_anh_duyet_cr h join etp.creative r on r.creative_id = h.creative_id join etp.cham_duyet u on u.creative_id = h.creative_id and u.ok
       left join etp.phim f on f.content_id = r.content_id join etp.cham_cong g on g.creative_id = h.creative_id and g.duoc_len
     where r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = h.creative_id) order by u.luc limit 20"""
+# ★ ROAS TỪ CREATIVE ANH DUYỆT (anh 22/11/2026 "lên thêm các camp kiểu đó tương tự … roas kiểu Sơn đang lên"): khoá etp.cau_hinh.len_cr_roas = {"<cr>": {roas, ns, luc, ai}}
+# — creative có trong sổ này lên ★ ROAS (nhan-ban --roas … --creative, ns trong hoi_cho.ns_khoang $5–10) THAY cho camp $1: luật "một creative một camp" (nhan-ban roas_main)
+KHOA_ROAS = "len_cr_roas"
+def doc_roas():
+    try: return json.loads(q(f"select gia_tri from etp.cau_hinh where khoa = '{KHOA_ROAS}'") or "{}")
+    except ValueError: return {}
+
+def lenh_cr(cr, ct, lang, ten, bo, ro):
+    """dòng lệnh nhan-ban cho một creative đã duyệt — ro = mục len_cr_roas (★ ROAS) hoặc None ($1)"""
+    if ro: return [NB, str(KHUON_CR[lang]), "--roas", f"{float(ro['roas']):g}", "--ns", str(int(ro["ns"])), "--tay", "--bo", bo, "--creative", cr, "--content", ct,
+                   "--ten", f"duyet {ten} {lang.upper()} - cr moi #{cr}", "--that", "--luat", f"anh duyệt creative #{cr} + lệnh ★ ROAS {float(ro['roas']):g} · ${int(ro['ns'])} kiểu Sơn (chat 22/11/2026) — lên khi phanh nhả",
+                   "--ai", ro.get("ai") or "anh (chat 22/11/2026: roas kiểu Sơn đang lên) — máy lên khi phanh nhả"]
+    return [NB, str(KHUON_CR[lang]), "--tay", "--bo", bo, "--creative", cr, "--content", ct, "--ten", f"duyet {ten} {lang.upper()} - creative #{cr}", "--that",
+            "--luat", f"anh duyệt creative #{cr} (etp2 › Camp · Chờ anh duyệt) — lên khi phanh nhả", "--ai", "anh (etp2 › Chờ anh duyệt) — máy lên khi phanh nhả"]
+
+def nap_roas(crs, roas, ns):
+    """ghi sổ len_cr_roas cho creative ĐÃ DUYỆT chưa có camp; ns ngoài hoi_cho.ns_khoang → từ chối (nhan-ban cũng chặn)"""
+    lo_, hi_ = json.load(open(os.path.join(D, "..", "web", "src", "lib", "etp-bang-luat.json")))["hoi_cho"]["ns_khoang"]   # cùng sổ nhan-ban đọc
+    if not lo_ <= ns <= hi_: raise SystemExit(f"ngân sách ★ ROAS creative mới ${lo_:g}–{hi_:g} (sổ luật hoi_cho)")
+    duyet = {l.split("|")[0] for l in (q(SQL_CR_DUYET) or "").splitlines() if l.strip()}
+    sai = [c for c in crs if c not in duyet]
+    if sai: raise SystemExit(f"không phải creative đã duyệt chưa có camp: {', '.join(sai)}")
+    m = doc_roas(); luc = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    for c in crs: m[c] = {"roas": roas, "ns": ns, "luc": luc, "ai": "anh (chat 22/11/2026: roas kiểu Sơn đang lên) — máy lên khi phanh nhả"}
+    q(f"""insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('{KHOA_ROAS}', $J${json.dumps(m)}$J$::jsonb, 'creative anh duyệt lên ★ ROAS thay camp $1 (apps/etp/lenh_cho.py)', 'lenh_cho.py')
+          on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()""")
+    return m
 
 def len_cr(st, chan, luc, xem, bao):
     """creative đã duyệt chưa có camp: phanh còn → giữ hàng (st['len_cr'][cr].tt='cho'); nhả → gọi nhan-ban một lần mỗi creative"""
     hang = st.setdefault("len_cr", {}); doi, kq = False, []
     ds = [l.split("|") for l in (q(SQL_CR_DUYET) or "").splitlines() if l.strip()]
     bo = q("select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi'") or ""
+    ro_ = doc_roas()
     for cr, ct, lang, ten in ds:
-        h = hang.setdefault(cr, {"tt": "cho", "luc": luc}); kq.append({"cr": int(cr), "tt": h["tt"], "ly": chan})
+        h = hang.setdefault(cr, {"tt": "cho", "luc": luc}); kq.append({"cr": int(cr), "tt": h["tt"], "ly": chan, "kieu": f"★ ROAS {float(ro_[cr]['roas']):g} · ${int(ro_[cr]['ns'])}" if cr in ro_ else "$1"})
         if h["tt"] == "dang" and h.get("xet", "") < (dt.datetime.fromisoformat(luc) - dt.timedelta(hours=1)).isoformat(): h["tt"] = "cho"   # lượt bị cắt giữa chừng, 1 giờ chưa thấy camp → về hàng
         if h["tt"] == "dang" or (h["tt"] == "loi" and h.get("xet", "") > (dt.datetime.fromisoformat(luc) - dt.timedelta(hours=6)).isoformat()): continue   # lỗi thật: thử lại sau 6 giờ
         if chan or xem or not bo:
@@ -111,12 +139,11 @@ def len_cr(st, chan, luc, xem, bao):
             continue
         lang = "es" if lang == "es" else "en"
         h.update(tt="dang", xet=luc); ghi(st)   # GHI TRƯỚC khi gọi — mỗi lần nhả một lần gọi
-        r = chay_script([NB, str(KHUON_CR[lang]), "--tay", "--bo", bo, "--creative", cr, "--content", ct, "--ten", f"duyet {ten} {lang.upper()} - creative #{cr}", "--that",
-                         "--luat", f"anh duyệt creative #{cr} (etp2 › Camp · Chờ anh duyệt) — lên khi phanh nhả", "--ai", "anh (etp2 › Chờ anh duyệt) — máy lên khi phanh nhả"])
+        ro = ro_.get(cr); r = chay_script(lenh_cr(cr, ct, lang, ten, bo, ro))
         try:
             with open(f"/tmp/etp-len-cr-{cr}.log", "a") as f: f.write(f"{luc} lên camp sau khi phanh nhả: {json.dumps(r, ensure_ascii=False, default=str)[:600]}\n")
         except OSError: pass
-        if r.get("ok"): h.update(tt="xong", ly=None, moi=r.get("moi")); bao.append(f"✅ lên camp creative anh duyệt #{cr}" + (f" → camp #{r['moi']}" if r.get("moi") else ""))
+        if r.get("ok"): h.update(tt="xong", ly=None, moi=r.get("moi")); bao.append(f"✅ lên camp {'★ ROAS' if ro else '$1'} creative anh duyệt #{cr}" + (f" → camp #{r['moi']}" if r.get("moi") else ""))
         elif CHO_LAI.search(str(r.get("loi") or "")): h.update(tt="cho", ly=str(r.get("loi"))[:200])
         else: h.update(tt="loi", ly=str(r.get("loi") or "script không trả kết quả")[:200]); bao.append(f"⚠ creative anh duyệt #{cr} chưa lên camp: {h['ly']}")
         doi = True
@@ -199,6 +226,9 @@ def nap():
     ghi(st); return st
 
 def _tu_kiem():
+    r_ = lenh_cr("1", "2", "es", "X", "3", {"roas": 1, "ns": 5}); d_ = lenh_cr("1", "2", "en", "X", "3", None)
+    assert r_[1] == "65734" and r_[r_.index("--roas") + 1] == "1" and r_[r_.index("--ns") + 1] == "5" and "--that" in r_, "★ ROAS: khuôn cùng tiếng + roas + ns"
+    assert "--roas" not in d_ and d_[1] == "65110", "không có trong sổ len_cr_roas → camp $1 như cũ"
     b = _u("2026-11-20T03:00:00Z")
     l = {"id": "x", "viec": "nhan_roas", "camp": 66055, "roas": 1.0, "ns": 5, "han": "2026-11-23T02:30:00+00:00", "tt": "cho"}
     t = {"id": "y", "viec": "tang", "camp": 102508, "ns": 3, "han": "2026-11-23T02:30:00+00:00", "tt": "cho"}
@@ -228,5 +258,8 @@ def _tu_kiem():
 if __name__ == "__main__":
     a = sys.argv[1:]
     if "--tu-kiem" in a: _tu_kiem()
+    elif "--roas-cr" in a:   # python3 lenh_cho.py --roas-cr 113335,113336 [--roas 1] [--ns 5]
+        g = lambda k, d: a[a.index(k) + 1] if k in a else d
+        print(json.dumps(nap_roas([x.strip() for x in g("--roas-cr", "").split(",") if x.strip()], float(g("--roas", "1")), int(g("--ns", "5"))), ensure_ascii=False))
     elif "--nap" in a: st = nap(); print(json.dumps({"ok": True, "lenh": len(st["lenh"]), "do_duong": len(st["do_duong"])}, ensure_ascii=False))
     else: print(json.dumps(chay("--xem" in a), ensure_ascii=False, default=str))

@@ -22,6 +22,7 @@ import { maGiong } from '@/lib/etp-dang';
 import { lyDoChan, chuChan, type TieuChi } from '@/lib/etp-chan';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
+import { VideoXem } from '@/components/ui/video-xem';
 import { moTabNeuModifier } from '@/lib/url-mo-tab';
 import { quetPhimEtp } from '@/lib/actions/etp-phim';
 import { docGioNgay, type SoGio } from '@/lib/actions/etp-gio';
@@ -1450,7 +1451,7 @@ function TheXem({ t, noi }: { t: The; noi: Noi }) {
           </div>) : null}
         {t.chu ? <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6, maxHeight: 120, overflow: 'hidden' }}>{t.chu}</div> : null}
       </div>
-      {t.video ? <video ref={vid} key={`${t.video}#${giay}`} src={`${t.video}#t=${giay.toFixed(1)}`} autoPlay muted loop playsInline controls style={{ width: W, height: 533, objectFit: 'contain', background: '#000', borderRadius: 6 }} /> : null}
+      {t.video ? <VideoXem ref={vid} key={`${t.video}#${giay}`} src={`${t.video}#t=${giay.toFixed(1)}`} loop playsInline controls style={{ width: W, height: 533, objectFit: 'contain', background: '#000', borderRadius: 6 }} /> : null}
     </KhungNoi>
   );
 }
@@ -1705,7 +1706,8 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
       {noiV.v ? (() => { const x = crTheoId.get(noiV.v.cr); if (!x) return null; const cta = noiV.v.k.startsWith('cta.'), d = daiCr(noiV.v.cr), bd = cta && d > 8 ? d - 6 : 0;
         return <KhungNoi x={noiV.v.x} y={noiV.v.y} rong={300} cao={560} noi={noiV} style={{ width: 300, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ fontSize: 12, paddingRight: 26 }}><b>cr #{x.creative_id}</b> · {x.phim ?? ''} <span style={{ color: 'var(--fg-2)' }}>· {nhan(noiV.v.k, giaTri(x.creative_id, noiV.v.k))}{cta ? ' · đang xem 6 giây cuối' : ''}</span></div>
-          {x.video ? <video key={`${x.video}#${cta}`} src={x.video} onLoadedMetadata={cta ? cuoiVideo(6) : undefined} autoPlay muted loop playsInline controls={!cta} style={{ width: '100%', height: 500, objectFit: 'contain', background: '#000', borderRadius: 6 }} />
+          {x.video ? (cta ? <video key={`${x.video}#cta`} src={x.video} onLoadedMetadata={cuoiVideo(6)} autoPlay muted loop playsInline style={{ width: '100%', height: 500, objectFit: 'contain', background: '#000', borderRadius: 6 }} />
+            : <VideoXem key={x.video} src={x.video} loop playsInline controls style={{ width: '100%', height: 500, objectFit: 'contain', background: '#000', borderRadius: 6 }} />)
             : x.anh ? <img src={x.anh} alt="" style={{ width: '100%', borderRadius: 6 }} /> : null}
         </KhungNoi>; })() : null}
     </div>
@@ -3455,7 +3457,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         return <KhungNoi x={xem.x} y={xem.y} rong={270} cao={CAO} noi={noiAnh} style={{ width: 270, height: CAO, overflow: 'hidden', background: '#000', display: 'flex', flexDirection: 'column' }}>
           <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
             {xem.anh ? <img src={xem.anh} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}
-            {xem.video ? <video src={xem.video} autoPlay muted loop playsInline controls style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}
+            {xem.video ? <VideoXem src={xem.video} loop playsInline controls style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}
           </div>
         </KhungNoi>; })() : null}
     </div>

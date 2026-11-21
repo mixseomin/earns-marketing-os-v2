@@ -5,6 +5,7 @@
 // Chấm điểm / lý do chặn KHÔNG nằm trong khung — chỗ gọi đặt TheCr bên ngoài.
 import { useEffect, useState } from 'react';
 import { docBaiQc, type BaiQc } from '@/lib/actions/etp-bai';
+import { VideoXem } from '@/components/ui/video-xem';
 
 const CACHE = new Map<string, Promise<BaiQc | { loi: string }>>();
 const lay = (cr: number, camp?: number | null) => {
@@ -60,7 +61,7 @@ export function KhungBaiQc({ cr, camp, anh, video, caoMedia }: { cr: number; cam
       </div>
       {/* hình / video */}
       <div style={{ position: 'relative', width: '100%', ...(caoMedia != null ? { height: caoMedia } : { aspectRatio: '9 / 16' }), background: '#000' }}>
-        {video ? <video src={video} poster={anh ?? undefined} autoPlay muted loop playsInline controls style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
+        {video ? <VideoXem src={video} poster={anh ?? undefined} loop playsInline controls style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
           : anh ? <img src={anh} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}
       </div>
       {/* dải dưới: tên miền · tiêu đề · mô tả · CTA */}

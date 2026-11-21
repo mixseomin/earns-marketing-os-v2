@@ -100,7 +100,7 @@ export function BanMauLuoi({ m: mGoc, cot = 3, nhom = false, oRong, onLoai }: { 
     title={m.ban.length > cot ? `${m.ban.length} creative mẫu — kéo ngang / lăn chuột để xem hết` : undefined}>
     {m.ban.map((b, i) => <div key={i} title={b.goi_y} style={{ scrollSnapAlign: 'start', position: 'relative', aspectRatio: '9 / 16', background: '#000', borderRadius: 6, overflow: 'hidden', outline: b.vai === 'dung' ? '2px solid rgba(37,99,235,0.9)' : b.vai === 'duyet' ? '2px solid rgba(22,163,74,0.9)' : undefined }}>
       {b.video
-        ? <video src={b.video} poster={b.anh ?? undefined} controls muted loop playsInline preload="none" onClick={(e) => e.stopPropagation()} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+        ? <video src={b.video} poster={b.anh ?? undefined} controls loop playsInline preload="none" onClick={(e) => e.stopPropagation()} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
         : b.anh ? <img src={b.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
       <span style={{ position: 'absolute', left: 4, top: 4, display: 'inline-flex', gap: 4, pointerEvents: 'none' }}>
         {b.nhan ? <span style={{ fontSize: 10.5, padding: '0 6px', borderRadius: 8, background: b.vai === 'dung' ? 'rgba(37,99,235,0.92)' : b.vai === 'duyet' ? 'rgba(22,163,74,0.92)' : b.vai === 'goc' ? 'rgba(194,65,12,0.92)' : 'rgba(0,0,0,0.7)', color: b.con_chay && b.vai !== 'goc' ? XANH : '#fff', fontWeight: b.vai ? 600 : undefined, fontVariantNumeric: 'tabular-nums' }}>{b.nhan}{b.con_chay ? ' ●' : ''}</span> : null}

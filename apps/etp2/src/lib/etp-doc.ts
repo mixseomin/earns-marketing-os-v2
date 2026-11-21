@@ -105,7 +105,7 @@ export type TuVan = { nguoi_id: number; nguoi: string; luc: string; du: {
 /** token Ethopex máy đang dùng (#1667): nguon 'nha' | 'nguoi:<id>' (phiên dự phòng của người team) | 'het' (không còn token dùng được) — chỉ chữ trạng thái */
 export type TokenEtp = { nguon: string | null; ten: string | null; het: string | null; nhaHet: string | null; loi: string | null; kiem: string | null;
   nguoi: { id: number; ten: string | null; het: string | null }[] | null };
-export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt — etp-view tải bù khi tab cần (taiNangEtp) */; luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[]; thuVien: ThuVienMuc[];
+export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt — etp-view tải bù khi tab cần (taiNangEtp) */; luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; /** CREATIVE ĐÃ DUYỆT CHỜ LÊN CAMP — dòng xếp hàng camp_id = −creative_id, chỉ bảng cây (không vào camps: không lệch số đếm) */ hangCr?: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[]; thuVien: ThuVienMuc[];
   cauHinh: { khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }[];
   nhatKy: { luc: string; viec: string; camp_id: number | null; truoc: string | null; sau: string | null; ok: boolean | null; loi: string | null; luat: string | null; ai: string | null }[];
   canhBao: { luc: string; muc: string; noi_dung: string; da_gui: string | null }[]; dongBo: { lan: number; bat_dau: string; xong: string | null; so_camp: number | null; loi: string | null; token?: TokenEtp | null } | null;
@@ -459,6 +459,19 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     thang: st(r.tc, r.tt), qua: st(r.qc, r.qt), nay: st(r.nc, r.nt), lich_tat: !!r.lich_tat, roas: r.roas == null ? null : n(r.roas), chien_luoc: (r.chien_luoc as string) ?? null,
     nuoc: ((r.nuoc as { g: string; c: unknown; t: unknown }[] | null) ?? []).map((x) => ({ g: x.g, c: n(x.c), t: n(x.t) })),
     ab: r.ab_ma ? { ma: String(r.ab_ma), ten: String(r.ab_ten), kieu: String(r.ab_kieu), nhanh: r.ab_nhanh === 'thu' ? 'thu' : 'doi', nhanhTen: String(r.ab_nhanh_ten ?? r.ab_nhanh), giaThuyet: (r.ab_gt as string) ?? null, batDau: String(r.ab_bd) } : null }));
+  // CREATIVE ĐÃ DUYỆT CHỜ LÊN CAMP (anh 22/11/2026 "duyệt rồi thì phải cho vào table bên dưới"): ô vàng chỉ giữ creative CHƯA duyệt; creative đã duyệt chưa camp
+  // thành dòng "xếp hàng" trong nhóm phim của nó ở bảng cây — camp_id = −creative_id; kiểu lên theo sổ len_cr_roas (★ ROAS) hay camp $1 (apps/etp/lenh_cho.py) — chỉ Nhà
+  const hangRs = await runNha<Record<string, unknown>>(sql`select h.creative_id, r.content_id, f.ten phim, f.the_loai, r.dang, h.tao::text tao,
+      x.gia_tri -> h.creative_id::text ->> 'roas' ro, x.gia_tri -> h.creative_id::text ->> 'ns' ns
+    from etp.cho_anh_duyet_cr h join etp.cham_duyet u on u.creative_id = h.creative_id and u.ok join etp.creative r on r.creative_id = h.creative_id
+      left join etp.phim f on f.content_id = r.content_id left join etp.cau_hinh x on x.khoa = 'len_cr_roas'
+    where not exists (select 1 from etp.camp c where c.creative_id = h.creative_id) order by h.creative_id`).catch((e) => { console.error('etp hangCr', e); return []; });
+  const mai7 = (() => { const t = new Date(); return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() + 1)).toISOString(); })();   // 07:00 VN kế = 00:00 UTC kế
+  const hangCr: CampEtpKho[] = hangRs.map((r) => { const ro = r.ro == null ? null : Number(r.ro), ns = r.ns == null ? 1 : Number(r.ns), cr = n(r.creative_id);
+    return { camp_id: -cr, ten: `⏳ đã duyệt · chờ lên ${ro != null ? `★ ROAS ${ro} · $${ns}` : 'camp $1'} · cr #${cr}`, bo: null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns,
+      creative_id: cr, content_id: r.content_id == null ? null : n(r.content_id), goc: null, lich: mai7, tao: (r.tao as string) ?? null, loi: null, dong_bo: 'xep_hang',
+      phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, ban: null, giong: null, doan: null, cung_doan: 0,
+      thang: st(0, 0), qua: st(0, 0), nay: st(0, 0), lich_tat: false, nuoc: [], ab: null, dong: null, roas: ro, chien_luoc: ro != null ? 'LOWEST_COST_WITH_MIN_ROAS' : null }; });
   // gộp creative / phim từ camp (cùng nguồn số)
   const cong = (a: SoTien, b: SoTien) => ({ chi: a.chi + b.chi, thu: a.thu + b.thu });
   const crMap = new Map<number, CreativeEtpKho>();
@@ -592,7 +605,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   for (const c of cs) if (c.trang_thai !== 'ACTIVE') { const g = dongCua.get(c.camp_id); c.dong = g ? { ...g, ma: tatCua.get(c.camp_id) ?? null,
     dieu: /luật:\s*(.+?)(?: · duyệt:|$)/.exec(g.ly_do)?.[1]?.trim() ?? null, duyet: /duyệt:\s*(.+?)(?:\s+—\s*máy chạy)?$/.exec(g.ly_do)?.[1]?.trim() ?? null } : null; }
   const tuVan = (await tuVanP).map((r) => ({ nguoi_id: n(r.nguoi_id), nguoi: String(r.nguoi ?? ''), luc: r.luc, du: r.du }));
-  return { tuVan, nguoi: { ds: nguoiDs, dang: dangId, nha: nhaId, ngoai, doi }, luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp), ns: r.ns == null ? null : n(r.ns) })), camps: cs, creatives: [...crMap.values()], phims, thuVien,
+  return { tuVan, nguoi: { ds: nguoiDs, dang: dangId, nha: nhaId, ngoai, doi }, luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp), ns: r.ns == null ? null : n(r.ns) })), camps: cs, hangCr, creatives: [...crMap.values()], phims, thuVien,
     dongChay: dcyR.map((r) => ({ ...r, content_id: n(r.content_id), id: n(r.id), so_camp: r.so_camp == null ? null : n(r.so_camp) })),
     ket: ketR.map((r) => ({ ...r, content_id: n(r.content_id), id: n(r.id) })),
     moRong: mrR.map((r) => ({ ...r, content_id: n(r.content_id), n: n(r.n), k: n(r.k), san: n(r.san), can_sx: n(r.can_sx) })),

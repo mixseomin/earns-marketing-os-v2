@@ -23,7 +23,7 @@ function nhatKy(cr: number): string | null {
   try { const t = readFileSync(`/tmp/etp-len-cr-${cr}.log`, 'utf8').trim(); return t ? t.split('\n').slice(-3).join('\n').slice(-400) : null; } catch { return null; }
 }
 
-/** creative đang giữ: chưa duyệt, hoặc đã duyệt mà chưa có camp (đang lên / lên hỏng), hoặc vừa lên camp trong 24 giờ (để anh thấy kết quả) */
+/** creative máy giữ CHƯA duyệt — đã duyệt chưa camp là dòng xếp hàng ở bảng cây camp (etp-doc.ts hangCr) */
 export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean } | { loi: string }> {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') return { loi: 'chỉ admin' };
@@ -35,8 +35,8 @@ export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean 
     from etp.cho_anh_duyet_cr h join etp.creative r on r.creative_id = h.creative_id left join etp.phim f on f.content_id = r.content_id
       left join etp.cham_duyet u on u.creative_id = h.creative_id
       left join lateral (select c.camp_id, c.trang_thai from etp.camp c where c.creative_id = h.creative_id order by c.camp_id desc limit 1) k on true
-    where (u.ok is null) or (u.ok and (k.camp_id is null or u.luc > now() - interval '24 hours'))
-    order by (u.ok is null) desc, h.tao, h.creative_id`);
+    where u.ok is null   -- ô vàng CHỈ giữ creative chưa duyệt; đã duyệt thì xuống bảng cây camp (etp-doc hangCr — anh 22/11/2026 "duyệt rồi thì phải cho vào table bên dưới")
+    order by h.tao, h.creative_id`);
   const [dk] = await run<{ v: boolean }>(sql`select coalesce((select gia_tri = 'true'::jsonb from etp.cau_hinh where khoa = 'dung_khan'), false) v`);
   return { ds: ds.map((x) => ({ ...x, creative_id: Number(x.creative_id), camp_id: x.camp_id == null ? null : Number(x.camp_id), nhat_ky: x.duyet && !x.camp_id ? nhatKy(Number(x.creative_id)) : null })), dungKhan: !!dk?.v };
 }

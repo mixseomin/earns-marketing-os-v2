@@ -368,15 +368,15 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
 // Máy chỉ VIẾT chữ; tìm câu hỏi thật (br, iMac) + nạp (nap-bai.mjs dungDong → studio --nap) + chấm (Phòng Nội dung kiem-bai) + đăng (dang-may) là các khâu sẵn có.
 export const TuKhoaSchema = z.object({ tu_khoa: z.array(z.string().describe('a short English Quora search query (3-7 words) a real person in this angle would type')).min(2).max(3) });
 export const VietBaiSchema = z.object({
-  tra_loi: z.string().describe('The Quora answer, English, 1100-2200 characters and never over 2400 characters, plain human voice. Open with the direct answer in one sentence, then 3-5 short paragraphs or a short numbered list with concrete specifics, one round-number worked example if numbers matter, a 3-4 item "quick self-check" list, and a natural closing sentence that contains the token {LINK} exactly once (the machine replaces it with the destination URL). No em dashes, no hashtags, no headings, no made-up statistics.'),
-  trang: z.string().describe('the ONE site page URL from the list given that best fits this answer, copied exactly; empty string if no list was given'),
+  tra_loi: z.string().describe('The Quora answer, English, 1100-2200 characters and never over 2400 characters, plain human voice. Open with the direct answer in one sentence, then 3-5 short paragraphs or a short numbered list with concrete specifics, one round-number worked example if numbers matter, and a 3-4 item "quick self-check" list. Near the end, optionally include the token {LINK} exactly once only when one of the listed site pages directly answers or usefully extends this specific question; omit it when no page fits. The machine replaces the token with the destination URL. No em dashes, no hashtags, no headings, no made-up statistics.'),
+  trang: z.string().describe('the ONE site page URL from the list given that directly fits this answer, copied exactly; empty string when no page is a useful destination'),
   truy: z.string().describe('3-6 English words for a real stock photo that fits the answer (Pexels search), no brand names'),
 });
 /** Kiểm câu trả lời trước khi nạp (đúng các chặn cứng của Phòng Nội dung + link đích). Thuần. */
-export function kiemBaiViet(chu: string, link: string): string[] {
+export function kiemBaiViet(chu: string, link?: string): string[] {
   const loi: string[] = [], t = chu.toLowerCase();
   if (chu.length < 1100 || chu.length > 2400) loi.push(`độ dài ${chu.length} ký tự (cần 1100-2400)`);
-  if (!chu.includes(link)) loi.push('thiếu link đích đúng như đưa (kèm UTM)');
+  if (link && !chu.includes(link)) loi.push('thiếu link đích đúng như đưa (kèm UTM)');
   if (/[—–]/.test(chu)) loi.push('có gạch ngang dài');
   const tm = TU_MAY.filter((w) => new RegExp(`(^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`).test(t)); if (tm.length) loi.push(`từ máy: ${tm.join(', ')}`);
   if (/(^|\s)#\w+/.test(chu)) loi.push('có hashtag');
@@ -412,11 +412,11 @@ export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; li
     // 18/11/2026: Phòng Nội dung trả SỬA LẠI vì né câu hỏi ("name some places" mà không gọi tên), link lạc đề, thiếu ví dụ cụ thể → luật cứng cho mọi máy
     'Answer the EXACT thing asked: if it asks to name places/tools/options, name 2-4 real, well-known ones; if it asks how something works, explain the mechanism plainly. Never dodge the core question.',
     'Never say you are an AI or that you lack personal experience, points, trips or cases (no "I don\'t have personal..."); write the example as a typical case ("A common case: ...").',
-    'Include one concrete worked example or real-life scenario. The closing link sentence must say why that page helps THIS reader with THIS question; if the site is only loosely related, frame it as a side tip for a related risk, never as the answer.',`You answer Quora questions as an experienced, helpful person who also runs "${sp_ten(o.sp)}" (${o.sp.mo_ta}). Audience: US, English.`,
+    'Include one concrete worked example or real-life scenario. If and only if one listed site page directly answers or usefully extends THIS question, add a natural closing sentence explaining what the reader can check there; otherwise end with a useful takeaway and do not mention a site or link. Vary the closing wording and sentence structure from answer to answer. Never force a link when the page is only loosely related.',`You answer Quora questions as an experienced, helpful person who also runs "${sp_ten(o.sp)}" (${o.sp.mo_ta}). Audience: US, English.`,
     'Rules (hard): answer the question first and fully, be concrete and accurate, never invent statistics, prices, laws or testimonials; if a number depends on the reader, explain how to work it out with a round-number example labelled as an example.',
     'Cover every major variant that changes the answer (old vs new system, with vs without dependents, by state or country…) — leaving one out makes readers calculate wrong. State deadlines and conditions exactly; if unsure of an exact rule, say what to check and where instead of guessing.',
     'Plain human voice, no hype, no em dashes (— or –), no hashtags, no headings, never these words: ' + TU_MAY.join(', ') + '.',
-    'Put the token {LINK} exactly once near the end where the destination link goes (do not write any URL yourself).',
+    'Do not use {LINK} unless a listed site page directly answers or usefully extends this exact question. If a page fits, use the token exactly once near the end and make the surrounding sentence specific to this question; if no page fits, omit the token entirely. Do not write any URL yourself.',
     ...(o.suThat ? ['VERIFIED FACTS (use ONLY these for rules, rates, numbers and deadlines; if the question needs something not listed, tell the reader where to check it officially instead of stating it):', o.suThat] : [])].join('\n');
   const trangs = trangSuThat(o.suThat ?? null);
   let vnd = 0, loiCu: string[] = [];
@@ -425,9 +425,10 @@ export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; li
       user: `Quora question: "${o.cauHoi}"\nAngle to lean on (internal label, may be Vietnamese): "${o.goc.ten}".${trangs.length ? `\nSite pages to choose from for "trang": ${trangs.join(' | ')}` : ''}${o.gopY ? `\nAn editor rejected the previous version of this answer. Fix every point: ${o.gopY}` : ''}${loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''}\nReturn the JSON now.` });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += giaVnd(r);
-    const link = trangs.includes(r.data.trang) && o.utm ? ganUtm(r.data.trang, o.utm) : o.link;   // trang mô hình chọn phải nằm trong danh sách, không thì trang đích mặc định
-    const chu = r.data.tra_loi.trim().split('{LINK}').join(link);
-    loiCu = [...kiemBaiViet(chu, link), ...(r.data.tra_loi.split('{LINK}').length !== 2 ? ['token {LINK} phải có đúng một lần'] : [])];
+    const coLink = r.data.tra_loi.split('{LINK}').length === 2 && trangs.includes(r.data.trang);
+    const link = coLink && o.utm ? ganUtm(r.data.trang, o.utm) : coLink ? r.data.trang : '';
+    const chu = link ? r.data.tra_loi.trim().replace('{LINK}', link) : r.data.tra_loi.trim().replaceAll('{LINK}', '');
+    loiCu = [...kiemBaiViet(chu, link), ...(r.data.tra_loi.includes('{LINK}') && !coLink ? ['token {LINK} chỉ được dùng đúng một lần khi trang đích thực sự hợp câu hỏi'] : []), ...(r.data.tra_loi.split('{LINK}').length > 2 ? ['token {LINK} phải có tối đa một lần'] : [])];
     if (!loiCu.length) return { ok: true, tra_loi: chu, truy: r.data.truy, link, vnd, model: r.model };
   }
   return { ok: false, loi: `câu trả lời sai luật sau 2 lượt: ${loiCu.join('; ')}`, vnd };

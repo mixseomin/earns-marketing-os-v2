@@ -241,7 +241,10 @@ def ghi_sx(q):
     # GIỮ HÀNG CHẤM KHI PHANH: cửa máy chấm (/api/ext/etp-cham) chỉ nhận việc 'cho' → mọi việc 'cho' (xếp mới, xếp lại, thử lại — mọi nguồn: dòng phim, đội, lịch giờ,
     # nhan-ban) trừ nút anh bấm + creative phim hồi chợ còn thiếu kho dự trữ đổi sang 'giu_phanh' (không xoá); phanh nhả / phim vào du_tru thì trả về 'cho'
     du = ",".join(str(int(x)) for x in sx["du_tru"]) or "0"
-    o_du = f"exists (select 1 from etp.creative c where c.creative_id = h.creative_id and c.content_id in ({du}))"
+    # + phim anh vừa LỆNH TRỰC TIẾP (vé loai 'truc_tiep' cấp trong 24 giờ, cong.py --ve-truc-tiep): anh 20/11/2026 "Không PHANH nào được hạn chế quyền trực tiếp" —
+    # 22/11/2026 Genie EN 49869 + Bugatti ES 82854 đã có vé lên camp mà creative kẹt giu_phanh ở hàng chấm, dòng phim chờ máy chấm mãi
+    o_du = (f"exists (select 1 from etp.creative c where c.creative_id = h.creative_id and (c.content_id in ({du}) or exists (select 1 from etp.ve_tay v"
+            f" where v.loai = 'truc_tiep' and v.content_id = c.content_id and v.tao > now() - interval '24 hours')))")
     if ly: sx["giu_cham"] = int(q(f"""with g as (update etp.cham_hang h set trang_thai = 'giu_phanh', buoc = 'chờ phanh nhả (sổ luật san_xuat_theo_cho)'
                                          where h.trang_thai = 'cho' and h.nguon <> 'nut' and not {o_du} returning 1) select count(*) from g""") or 0)
     sx["tra_cham"] = int(q(f"""with g as (update etp.cham_hang h set trang_thai = 'cho', buoc = null where h.trang_thai = 'giu_phanh' and ({'false' if ly else 'true'} or {o_du})

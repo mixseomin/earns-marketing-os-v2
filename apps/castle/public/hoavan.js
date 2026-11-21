@@ -6,7 +6,11 @@
 // Hình trong giỏ: không chỉ số, chỉ position + normal (giỏ bong thêm color RGBA) → gộp ngay bằng mergeGeometries; bóng: vlBong (máy không đổ bóng chi tiết nhỏ — bóng vẽ sẵn, gộp một lưới).
 // nhe (điện thoại): ít cạnh hơn, bỏ vát, vòm ít viên — giữ dáng, bớt tam giác.
 
-export const vlBong = (THREE) => new THREE.MeshBasicMaterial({ color: '#000000', vertexColors: true, transparent: true, depthWrite: false });
+// VẬT DÁN SÁT TƯỜNG (lòng tối, kính, lõm, bóng vẽ sẵn — đặt cách mặt tường 0,01–0,05 m): khe vài phân KHÔNG tách được độ sâu — camera near 0,5 / far 25 km,
+// bộ đệm độ sâu 16 bit (nhiều điện thoại, cả ảnh chụp của máy đo) ở 60 m chỉ phân giải ~0,1 m → tường đè lên kính thành sọc trắng song cửa (21/11/2026: ô cụm
+// cửa Palas tầng dưới chụp từ sân thành ô trắng kẻ đen, máy đo báo THIẾU lỗ mãi dù 3D có kính tối). polygonOffset đẩy mặt dán lên trước theo độ dốc, không theo khoảng cách
+export const danTuong = (m) => Object.assign(m, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
+export const vlBong = (THREE) => danTuong(new THREE.MeshBasicMaterial({ color: '#000000', vertexColors: true, transparent: true, depthWrite: false }));
 
 export function boHoaVan(THREE, { nhe = false } = {}) {
   const PI = Math.PI, V2 = (x, y) => new THREE.Vector2(x, y);

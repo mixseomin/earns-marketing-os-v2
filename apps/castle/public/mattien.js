@@ -1,4 +1,4 @@
-import { boHoaVan, vlBong } from './hoavan.js';
+import { boHoaVan, vlBong, danTuong } from './hoavan.js';
 // MẶT TIỀN CHI TIẾT (bước 2 "lâu đài chi tiết"): cửa sổ 3D thật thay cửa sổ vẽ trên vân — khung đá nhô ra, đầu vòm bán nguyệt, bậu, lòng cửa tối;
 // Palas dùng cửa vòm BA Ô có hai cột nhỏ (như mặt sân trên, ảnh anh gửi 15/11/2026); gờ đá ngang chạy theo từng tầng. Vẽ hàng loạt (InstancedMesh + một lưới gờ).
 // tra-repo-ok: anh chọn "cách 2 — tự dựng mặt tiền" sau bảng tra Google tiles / Sketchfab / CGTrader (15/11/2026); đây là mã dán keo riêng của cảnh, không có thư viện tương ứng.
@@ -143,7 +143,7 @@ export function datMatTien({ THREE, mergeGeometries, tuong, biChe, nhe = false, 
     const m = new THREE.Mesh(mergeGeometries(gs), vl); m.receiveShadow = true; ra.push(m); }
   if (doDa.length) { const m = new THREE.Mesh(mergeGeometries(doDa), new THREE.MeshStandardMaterial({ color: '#ece6da', roughness: 0.8 })); m.receiveShadow = true; if (nhe) m.userData.lod = 'gan'; ra.push(m); } // ở xa: còn tấm kính tối (doToi) + gờ, đủ đọc ra cửa
   if (doBong.length) { const m = new THREE.Mesh(mergeGeometries(doBong), vlBong(THREE)); m.renderOrder = 1; if (nhe) m.userData.lod = 'gan'; ra.push(m); } // bóng vẽ sẵn dưới vòm / bậu (bộ hoa văn)
-  if (doToi.length) { const m = new THREE.Mesh(mergeGeometries(doToi), new THREE.MeshStandardMaterial({ color: '#2a3038', roughness: 0.35, metalness: 0.2 })); ra.push(m); }
+  if (doToi.length) { const m = new THREE.Mesh(mergeGeometries(doToi), danTuong(new THREE.MeshStandardMaterial({ color: '#2a3038', roughness: 0.35, metalness: 0.2 }))); ra.push(m); }
   return { ra, cua, dem: { oDo: dem.do, cua: viTri.mot.length, cuaBa: viTri.ba.length, cuaMo: viTri.baMo.length, go: go.length } };
 }
 
@@ -340,10 +340,10 @@ export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {}, vanDa =
     if (m.material.userData.rieng) { ra.push(m); return m; } m.updateMatrix(); const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry).applyMatrix4(m.matrix);
     if (m.material.map) uvMet(THREE, g); else if (g.attributes.uv) g.deleteAttribute('uv'); // đá có vân: UV theo mét trong thế giới; còn lại bỏ UV cho gộp được
     if (!gom.has(m.material)) gom.set(m.material, []); gom.get(m.material).push(g); return m; };
-  const TOI = new THREE.MeshStandardMaterial({ color: '#1b1f27', roughness: 0.6 });
+  const TOI = danTuong(new THREE.MeshStandardMaterial({ color: '#1b1f27', roughness: 0.6 }));
   const cuaSo = []; // ô cửa của mặt này (toạ độ thế giới) — ns.js dùng cho mở cửa trèo vào
   // lòng cửa: ảnh thật nhìn từ sân là ô SẪM sâu (kính chì trong hốc tường, cột trắng nổi trên nền tối) — kính sáng trước đây đọc như sơn phẳng
-  const KINH = new THREE.MeshStandardMaterial({ color: '#343a43', roughness: 0.22, metalness: 0.35, emissive: '#0c0f13' });
+  const KINH = danTuong(new THREE.MeshStandardMaterial({ color: '#343a43', roughness: 0.22, metalness: 0.35, emissive: '#0c0f13' }));
   // vien (kiểm chồng lấn): rong đã gồm trụ hai bên nên cụm có vòm khai ngang 0 (main 280167213: viền mặc định 0,25 m báo nhầm hai cửa đôi sát nhau); cụm có vòm lớn → bề ngang c.rong đã là mép ngoài vòm, đỉnh vòm cao hơn đỉnh ô (vomDinh − h); cụm không vòm → bậu nhô 0,1 m, vòm nhỏ từng ô ~0,2 m
   const cum = (o, s, y, z = 0) => { const c = nhomCua(THREE, { k: 0.23, cot: 0.125, ...o }), coVom = o.vom !== false;
     cuaSo.push({ x: mx + ux * s, y, z: mz + uz * s, nx, nz, nua: c.rong / 2, cao: o.h, ten: 'Palas', vien: coVom && o.vomR ? { ngang: 0, tren: Math.max(0.2, (o.vomDinh ?? o.h) - o.h) } : coVom ? { ngang: 0, tren: 0.6 } : { ngang: 0.1, tren: 0.2 } }); for (const g of c.da) dat(new THREE.Mesh(g, DA), s, y, z); for (const g of c.bong) dat(new THREE.Mesh(g, BONG), s, y, z); for (const g of c.toi) dat(new THREE.Mesh(g, KINH), s, y, z); };
@@ -355,14 +355,16 @@ export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {}, vanDa =
   const SA = vlDa(THREE, '#e0d2ae', vanDa, 0.75);
   // mọi chi tiết nổi đi qua bộ hoa văn chung (hoavan.js): giỏ da → đá tường, vien → sa thạch, toi → lòng tối, bong → bóng vẽ sẵn (gộp một lưới)
   const HV = boHoaVan(THREE), BONG = vlBong(THREE), VL_GIO = { da: DA, vien: SA, toi: TOI, bong: BONG };
-  const datB = (B, s, y, z = 0) => { for (const [ten, ds] of Object.entries(B)) for (const g of ds) dat(new THREE.Mesh(g, VL_GIO[ten]), s, y, z); };
+  const datB = (B, s, y, z = 0, vl = VL_GIO) => { for (const [ten, ds] of Object.entries(B)) for (const g of ds) dat(new THREE.Mesh(g, vl[ten]), s, y, z); };
+  // VẬT CHE (ban công): đá y như tường nhưng vật liệu riêng mang cờ che (gộp riêng một lưới, +1 lệnh vẽ) — lượt mặt nạ vật che của máy đo mặt đọc cờ này
+  const DA_CHE = DA.clone(); DA_CHE.userData.che = true; const VL_CHE = { ...VL_GIO, da: DA_CHE };
   const phao = (x, rong, y, cao, nho, z0 = 0) => { const B = HV.xo(); HV.phao(B, { rong, cao, nho }); datB(B, C - x, y, z0); }; // y = tâm gờ
   // mảng nổi chứa điểm (x sang phải ảnh, yr = độ cao so với chân đầu hồi) → độ nổi (cửa, tranh, cửa tròn nằm trên mảng phải đẩy ra theo)
   const noiTai = (x, yr) => { let n = 0; for (const o of bo?.oNoi || []) if (x >= o.x0 - 0.02 && x <= o.x1 + 0.02 && yr >= o.chan && (yr <= o.vai || o.u.some((u) => Math.abs(x - u.x) <= u.r && yr <= u.tam + u.r))) n = Math.max(n, o.noi); return n; };
   if (!bo) console.warn('[mattien] thiếu tệp bố cục mặt Palas — không dựng chi tiết mặt'); else {
     for (const t of bo.tranh) {
       const tx = tranh[t.ten]; if (!tx) continue;
-      const vl = new THREE.MeshStandardMaterial({ map: tx, roughness: 0.9, emissive: '#ffffff', emissiveMap: tx, emissiveIntensity: 0.18 }); vl.userData.rieng = true; // tranh tường hơi sáng hơn đá như ảnh · lưới riêng (không gộp)
+      const vl = new THREE.MeshStandardMaterial({ map: tx, roughness: 0.9, emissive: '#ffffff', emissiveMap: tx, emissiveIntensity: 0.18 }); vl.userData.rieng = true; vl.userData.che = true; // che: máy đo mặt (so-anh-that lượt mặt nạ vật che) biết chỗ này là tranh, mảng tối trong tranh không phải cửa thiếu · tranh tường hơi sáng hơn đá như ảnh · lưới riêng (không gộp)
       dat(new THREE.Mesh(new THREE.PlaneGeometry(t.rong, t.cao), vl), C - t.x, y1 - t.duoi - t.cao / 2, 0.03 + noiTai(t.x, -t.duoi - t.cao / 2));
     }
     // lỗ sổ đo trên mặt này → trục s của khung (tâm mặt, theo ux); cụm tay khớp theo (khopCum)
@@ -397,16 +399,16 @@ export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {}, vanDa =
     const b = bo.banCong;
     if (b) { // sàn, lan can, tay vịn, hai đầu, con-xon đỡ — theo hộp đo trên ảnh; ảnh thật: lan can là dãy Ô LÕM có khung, con-xon mặt cắt chữ S (bộ hoa văn)
       const yS = y1 - b.duoiSan, day = b.duoiDay - b.duoiSan, lc = b.duoiSan - b.duoiLanCan, cx = b.duoiConXon - b.duoiDay, s0 = C - b.x, B = HV.xo();
-      dat(new THREE.Mesh(new THREE.BoxGeometry(b.rong, day, 1.2), DA), s0, yS - day / 2, 0.6);
+      dat(new THREE.Mesh(new THREE.BoxGeometry(b.rong, day, 1.2), DA_CHE), s0, yS - day / 2, 0.6);
       HV.phao(B, { rong: b.rong + 0.1, cao: day, nho: 0.08, y: yS - day / 2, z: 1.2, ten: 'da' });          // mép sàn có phào
-      dat(new THREE.Mesh(new THREE.BoxGeometry(b.rong, lc, 0.14), DA), s0, yS + lc / 2, 1.13);
+      dat(new THREE.Mesh(new THREE.BoxGeometry(b.rong, lc, 0.14), DA_CHE), s0, yS + lc / 2, 1.13);
       HV.phao(B, { rong: b.rong + 0.18, cao: 0.12, nho: 0.3, y: yS + lc, z: 1.0, ten: 'da' });            // tay vịn = phào đỉnh lan can
-      for (const k of [-1, 1]) dat(new THREE.Mesh(new THREE.BoxGeometry(0.14, lc, 1.2), DA), s0 + k * (b.rong / 2 - 0.07), yS + lc / 2, 0.6);
+      for (const k of [-1, 1]) dat(new THREE.Mesh(new THREE.BoxGeometry(0.14, lc, 1.2), DA_CHE), s0 + k * (b.rong / 2 - 0.07), yS + lc / 2, 0.6);
       const nCx = Math.max(2, Math.round(b.rong / 1.1)), buoc = b.rong / nCx;
       for (let i = 0; i < nCx; i++) { const xi = -b.rong / 2 + (i + 0.5) * buoc;
         HV.conXon(B, { rong: 0.26, cao: cx, nho: 1.0, x: xi, y: yS - day, ten: 'da' });
         HV.khungLom(B, { w: buoc - 0.12, h: lc - 0.16, vien: 0.08, nho: 0.05, x: xi, y: yS + lc / 2 - 0.02, z: 1.2, ten: 'da' }); } // ô lan can thẳng hàng con-xon
-      datB(B, s0, 0, 0);
+      datB(B, s0, 0, 0, VL_CHE);
     }
     const g = bo.cong;
     if (g && Number.isFinite(tuong.cong?.s)) { // CỔNG ĐẦU CẦU THANG (góp ý #1644): khung sa thạch nhô ra, lòng cửa vòm, cánh gỗ, hai cột, vòm viền, diềm răng, gờ mái
@@ -566,9 +568,9 @@ export function datMatRieng({ THREE, mergeGeometries, bo, bd, viTri, datTai, nhe
   if (H) { const s = bd.s(H.x), y = bd.y(H.x, H.y), r = bd.m(H.x - H.r, H.x + H.r) / 2, p = choTuong(H.ten, s, y - r, y + r); if (p) {
     { const B = HV.xo(); HV.vongTron(B, { r, day: Math.max(0.12, r * 0.28), nho: 0.14 }); datB(B, p, y); } const d = new THREE.CircleGeometry(r * 0.8, nhe ? 12 : 24); d.translate(0, 0, 0.05); dat('mat', d, p, y);
     dat('kim', hop(0.05, r * 0.55, 0.03, 0, r * 0.25, 0.08), p, y); dat('kim', hop(r * 0.42, 0.05, 0.03, r * 0.19, 0, 0.08), p, y); kk.push({ mat: p.mat, loai: 'dong_ho', y, x: p.x, z: p.z }); } }
-  const VL = { da: new THREE.MeshStandardMaterial({ color: '#ece6da', roughness: 0.8 }), kinh: new THREE.MeshStandardMaterial({ color: '#4d5560', roughness: 0.3, metalness: 0.2, emissive: '#22272e' }),
+  const VL = { da: new THREE.MeshStandardMaterial({ color: '#ece6da', roughness: 0.8 }), kinh: danTuong(new THREE.MeshStandardMaterial({ color: '#4d5560', roughness: 0.3, metalness: 0.2, emissive: '#22272e' })),
     go: new THREE.MeshStandardMaterial({ color: '#7a4f2c', roughness: 0.75 }), mat: new THREE.MeshStandardMaterial({ color: '#efe9dc', roughness: 0.7 }), kim: new THREE.MeshStandardMaterial({ color: '#1d2228', roughness: 0.5 }),
-    mai: new THREE.MeshStandardMaterial({ color: '#4b5058', roughness: 0.6, metalness: 0.15 }), lom: new THREE.MeshStandardMaterial({ color: '#8c7a5c', roughness: 0.9 }), bong: vlBong(THREE) };
+    mai: new THREE.MeshStandardMaterial({ color: '#4b5058', roughness: 0.6, metalness: 0.15 }), lom: danTuong(new THREE.MeshStandardMaterial({ color: '#8c7a5c', roughness: 0.9 })), bong: vlBong(THREE) };
   const ra = [];
   for (const [ten, gs] of Object.entries(nhom)) { if (!gs.length) continue; const m = new THREE.Mesh(mergeGeometries(gs), VL[ten]); m.castShadow = !nhe && ten === 'da'; m.receiveShadow = ten !== 'bong'; if (ten === 'bong') m.renderOrder = 1; ra.push(m); }
   return { ra, cua, kk, boQua };
@@ -626,7 +628,7 @@ export function datThapGoc({ THREE, mergeGeometries, v, b, mau, mauMai = '#56625
     gop([g, q, k, ng], new THREE.MeshStandardMaterial({ color: mauMai, roughness: 0.6, metalness: 0.15, side: THREE.DoubleSide }), !nhe);
   }
   if (vanDa) for (const g of da) uvMet(THREE, g); // thân tháp mang hàng đá sa thạch như ảnh (vân chung với tường), không phải trụ kem trơn
-  gop(da, vlDa(THREE, mau, vanDa)); gop(toi, new THREE.MeshStandardMaterial({ color: '#1b1f27', roughness: 0.6 })); gop(bong, vlBong(THREE)); // bóng vẽ sẵn dưới gờ (trước đây gom mà không gộp → mất)
+  gop(da, vlDa(THREE, mau, vanDa)); gop(toi, danTuong(new THREE.MeshStandardMaterial({ color: '#1b1f27', roughness: 0.6 }))); gop(bong, vlBong(THREE)); // bóng vẽ sẵn dưới gờ (trước đây gom mà không gộp → mất)
   if (bong.length) { const m = new THREE.Mesh(mergeGeometries(bong), vlBong(THREE)); m.renderOrder = 1; ra.push(m); }
   return ra;
 }
@@ -731,8 +733,8 @@ export function datChiTietDo({ THREE, mergeGeometries, ds, nhe = false, nguong =
       dat('kinh', new THREE.PlaneGeometry(w, h), d, tm, y, 0.02); dem.lo++;
     }
   }
-  const VL = { da: new THREE.MeshStandardMaterial({ color: '#ece6da', roughness: 0.8 }), kinh: new THREE.MeshStandardMaterial({ color: '#4d5560', roughness: 0.3, metalness: 0.2, emissive: '#22272e' }),
-    lom: new THREE.MeshStandardMaterial({ color: '#8c7a5c', roughness: 0.9 }), bong: vlBong(THREE), toi: new THREE.MeshStandardMaterial({ color: '#2a2622', roughness: 1, side: THREE.DoubleSide }) };
+  const VL = { da: new THREE.MeshStandardMaterial({ color: '#ece6da', roughness: 0.8 }), kinh: danTuong(new THREE.MeshStandardMaterial({ color: '#4d5560', roughness: 0.3, metalness: 0.2, emissive: '#22272e' })),
+    lom: danTuong(new THREE.MeshStandardMaterial({ color: '#8c7a5c', roughness: 0.9 })), bong: vlBong(THREE), toi: new THREE.MeshStandardMaterial({ color: '#2a2622', roughness: 1, side: THREE.DoubleSide }) };
   const ra = [];
   for (const [ten, gs] of Object.entries(nhom)) { if (!gs.length) continue; const m = new THREE.Mesh(mergeGeometries(gs), VL[ten]); m.castShadow = !nhe && ten === 'da'; m.receiveShadow = ten !== 'bong'; if (ten === 'bong') m.renderOrder = 1; ra.push(m); }
   ra.dem = dem; return ra;

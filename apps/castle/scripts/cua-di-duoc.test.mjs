@@ -48,3 +48,9 @@ const kT = khopCum([cumG], [{ s0: -0.9, s1: -0.3, y0: 38, y1: 40.1 }, { s0: -0.1
 assert.equal(kT.n, 3, 'lỗ rộng 1,4 m tách hai ô → 3 ô'); assert.ok(Math.abs(kT.w - 0.6) < 0.05, 'bề rộng ô theo lỗ hẹp: ' + kT.w);
 assert.equal(khopCum([cumG], [{ s0: -0.9, s1: -0.3, y0: 38, y1: 40.1 }, { s0: -0.2, s1: 0.4, y0: 38, y1: 40.1 }])[0].n, 2, 'hai ô cách cột 0,1 m → giữ hai');
 console.log('25/25 ✓');
+// vật dán sát tường (kính / lòng tối / lõm / bóng) phải có polygonOffset — thiếu là tường đè kính thành sọc trắng ở bộ đệm 16 bit (21/11/2026, ô cụm Palas THIẾU mãi)
+{ const { danTuong, vlBong } = await import(new URL('../public/hoavan.js', import.meta.url)); const m = danTuong({});
+  assert.ok(m.polygonOffset && m.polygonOffsetFactor < 0 && m.polygonOffsetUnits < 0, 'danTuong kéo mặt dán lên trước');
+  const THREE = { MeshBasicMaterial: function (o) { Object.assign(this, o); } }; assert.ok(vlBong(THREE).polygonOffset, 'bóng vẽ sẵn cũng dán');
+  const src = (await import('node:fs')).readFileSync(new URL('../public/mattien.js', import.meta.url), 'utf8');
+  const tran = src.match(/(?:kinh|lom|KINH|TOI)\s*[:=]\s*new THREE\.Mesh\w*Material/g) || []; assert.deepEqual(tran, [], 'vật liệu kính / lõm / tối mặt tiền chưa qua danTuong: ' + tran.join(' · ')); }

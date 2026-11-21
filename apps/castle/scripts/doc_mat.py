@@ -135,8 +135,18 @@ def lo(N, V, rho):
     return ra
 
 
+def hang_cua(y0, y1, cac_lo):
+    """dải [y0, y1] là HÀNG CỬA khi ≥ 2 lỗ cao ≥ 1,5× dải chiếm ≥ nửa bề cao dải: nhịp lặp đến từ chính các ô cửa (đã so riêng bằng lỗ), không phải dãy vòm / răng cưa.
+    Trước 21/11/2026 bộ dò dãy coi hàng cửa Palas là dãy → bước dựng đắp dải đá ngang vắt qua cửa → lượt sau cửa bị che, báo THIẾU lỗ mãi (vòng tự nuôi lỗi)"""
+    h = abs(y1 - y0); lo_, hi = min(y0, y1) - h, max(y0, y1) + h  # nới một bề dải mỗi phía: mép trên / dưới hàng cửa cũng lặp theo nhịp cửa
+    # lỗ phải CAO HƠN hẳn dải (≥ 1,5×): hốc vòm mù cao đúng bằng dải là thân dãy vòm, không phải cửa
+    return sum(1 for a, b in cac_lo if abs(b - a) >= 1.5 * h and min(hi, max(a, b)) - max(lo_, min(a, b)) >= 0.5 * h) >= 2
+
+
 def do_ca(N, V, rho):
-    b, du = bang(N, V, rho); return {'bang': b, 'day': day(N, V, rho), 'lo': lo(N, V, rho), 'du': du}
+    b, du = bang(N, V, rho); L = lo(N, V, rho)
+    D = [d for d in day(N, V, rho) if not hang_cua(d['r0'], d['r1'], [(o['r0'], o['r1']) for o in L if d['j0'] <= (o['j0'] + o['j1']) / 2 <= d['j1']])]
+    return {'bang': b, 'day': D, 'lo': L, 'du': du}
 
 
 def loai_lo(o, chan, rho):
@@ -168,8 +178,27 @@ def chong(a, b):
     return h * w / max(1e-9, min((a['r1'] - a['r0']) * (a['j1'] - a['j0']), (b['r1'] - b['r0']) * (b['j1'] - b['j0'])))
 
 
-def so(A, M, rho):
-    """phát hiện trên ảnh (A) đối chiếu mô hình (M) → danh sách lệch (đơn vị hàng / cột của lưới)"""
+CHE_KHE = 1.2  # m: khe giữa hai vật che cùng hàng (con-xon dưới ban công cách ~1,1 m) cũng tính là che — bóng tối trong khe không phải cửa (22/11/2026 Palas #23 y 47,5)
+
+
+def che_dong(che, rho):
+    """mặt nạ vật che (lưới R×C, 0–1) → đóng khe ngang ≤ CHE_KHE: ảnh nhìn qua khe con-xon chỉ thấy bóng hốc dưới ban công, không đo được tường sau"""
+    if che is None: return None
+    k = max(1, int(CHE_KHE * rho)) | 1
+    return np.maximum(che, cv2.morphologyEx((che >= 0.5).astype(np.uint8), cv2.MORPH_CLOSE, np.ones((1, k), np.uint8)).astype(np.float32))
+
+
+def sau_che(o, che):
+    return che is not None and float(che[o['r0']:o['r1'] + 1, o['j0']:o['j1'] + 1].mean()) >= CHE_PHU
+
+
+CHE_PHU = 0.3  # lỗ ảnh có ≥ 30 % diện tích nằm sau VẬT CHE của mô hình (tranh tường, ban công — mặt nạ <ảnh>-che.png) = không phải cửa thiếu
+
+
+def so(A, M, rho, che=None):
+    """phát hiện trên ảnh (A) đối chiếu mô hình (M) → danh sách lệch (đơn vị hàng / cột của lưới).
+    che: phần VẬT CHE thấy được (0–1, lưới R×C; lượt mặt nạ của máy chụp đọc cờ userData.che) — lỗ ảnh nằm sau tranh / ban công không báo THIẾU.
+    Trước dùng độ NHÔ hình khối: tranh dán sát tường nhô 0 → lọt (21/11/2026 Palas #23 y 51,5), nên vật che phải do mô hình TỰ KHAI"""
     ra = []
     for d in A['day']:
         cung = [m for m in M['day'] if min(d['r1'], m['r1']) - max(d['r0'], m['r0']) > 0 and min(d['j1'], m['j1']) - max(d['j0'], m['j0']) > 0]
@@ -184,9 +213,12 @@ def so(A, M, rho):
     for b in M['bang']:
         if A['du'][b['r']] and not any(abs(b['r'] - a['r']) <= 0.25 * rho for a in A['bang']): ra.append({'loai': 'THỪA', 'chi_tiet': 'gờ', 'r': b['r'], 'j0': b['j0'], 'j1': b['j1'], 'tin': round(min(1, b['manh'] / 0.2) * b['dong'], 2)})
     p = int(0.3 * rho)
+    # ô cửa MÔ HÌNH nằm sau vật che: ảnh không bao giờ xác nhận được (chỉ thấy bóng) → THỪA; sổ đo tự gỡ ô dựng nhầm từ lượt trước khi có mặt nạ che (lỗ viết tay không có trong sổ → không bị gỡ)
+    ra += [{'loai': 'THỪA', 'chi_tiet': 'lỗ', **m, 'tin': 0.5, 'tu': 'che'} for m in M['lo'] if sau_che(m, che)]
     for o in A['lo']:
         cy, cx = (o['r0'] + o['r1']) / 2, (o['j0'] + o['j1']) / 2
         if any(x['chi_tiet'] == 'dãy' and x['r0'] - p <= cy <= x['r1'] + p and x['j0'] <= cx <= x['j1'] for x in ra): continue  # hốc của dãy thiếu — dãy đã nói
+        if sau_che(o, che): continue  # mảng tối trong tranh / bóng ban công: dựng cửa ở đó cũng bị vật che che → THIẾU mãi
         if la_bong(o, rho):
             # dải tối dẹt = BÓNG dưới phần nhô ra (gờ, ban công), không phải ô cửa: mép trên của dải là chỗ gờ. Mô hình đã có gờ / dải tối ở đó → đã giải thích;
             # chưa có → THIẾU gờ (trước 21/11/2026 báo "THIẾU lỗ" mà bước dựng bỏ qua dải dẹt → mãi còn THIẾU, vòng dò → dựng không bao giờ khép)
@@ -215,12 +247,13 @@ def go_nho(R, V, rho):
     return np.clip((d - cv2.morphologyEx(d, cv2.MORPH_OPEN, np.ones((k, 1), np.uint8))) / 0.12, 0, 1) * V
 
 
-def trai_mat(anh, troiA, CK, P, MAT, mai, hinh, mh, sau, d, khoi_ds):
+def trai_mat(anh, troiA, CK, P, MAT, mai, hinh, mh, sau, d, khoi_ds, che=None):
     """nắn từng khối nhìn thấy → [{khoi, rho, ytop, s0, chu_vi, cum, A, M, V, do_A, do_M, lech}]"""
     H, W = MAT.shape; tg = math.tan(math.radians(d['fov']) / 2); cam = np.array(d['m']).reshape(4, 4).T[:3, 3]
     gA = cv2.cvtColor(anh, cv2.COLOR_BGR2GRAY).astype(np.float32) / 255
     nv = hinh.astype(np.float32)[..., ::-1] / 255 * 2 - 1; bong = np.clip(nv @ ANH_SANG.astype(np.float32), 0.05, 1)
     gM = cv2.cvtColor(mh, cv2.COLOR_BGR2GRAY).astype(np.float32) / 255
+    cheM = np.zeros(gM.shape, np.float32) if che is None else (che[..., :3].max(-1) > 127).astype(np.float32)  # mặt nạ vật che (thư mục cũ chưa có lượt này → không che)
     ys, xs = np.where((MAT != '') & ~mai)
     if not len(ys): return []
     Xp = np.round(CK[0, 0] * xs + CK[0, 1] * ys + CK[0, 2]).astype(int); Yp = np.round(CK[1, 0] * xs + CK[1, 1] * ys + CK[1, 2]).astype(int)
@@ -251,14 +284,14 @@ def trai_mat(anh, troiA, CK, P, MAT, mai, hinh, mh, sau, d, khoi_ds):
         R, C = int((ymax - ymin) * rho) + 1, min(4000, int((smax - smin) * rho) + 1)
         ii = np.clip(((ymax - yy) * rho).astype(int), 0, R - 1); jj = np.clip(((s - smin) * rho).astype(int), 0, C - 1); ix = ii * C + jj
         dem = np.bincount(ix, minlength=R * C).reshape(R, C).astype(np.float32); tong = lambda w: np.bincount(ix, weights=w, minlength=R * C).reshape(R, C).astype(np.float32)
-        lop = [tong(gA[Yp[c], Xp[c]]), tong(bong[ys[c], xs[c]]), tong(gM[ys[c], xs[c]]), tong(rr)]
+        lop = [tong(gA[Yp[c], Xp[c]]), tong(bong[ys[c], xs[c]]), tong(gM[ys[c], xs[c]]), tong(rr), tong(cheM[ys[c], xs[c]])]
         for _ in range(2):  # lấp lỗ một hai ô do lưới mịn hơn điểm ảnh
             b3 = cv2.blur(dem, (3, 3)); trong = (dem == 0) & (b3 > 0)
             for L in lop: L[trong] = (cv2.blur(L, (3, 3)) / np.maximum(b3, 1e-6))[trong]
             dem = np.where(trong, 1, dem)
         V = dem > 0; dem = np.maximum(dem, 1)
         chan = np.where(V.any(0), V.shape[0] - 1 - np.argmax(V[::-1], 0), -1)  # chân tường từng cột — lấy TRƯỚC khi gọt mép (gọt rồi thì cửa đi trông như hở 0,15 m trên đất)
-        gAm, bm, mm, rm = [L / dem for L in lop]
+        gAm, bm, mm, rm, cm = [L / dem for L in lop]
         V = cv2.erode(V.astype(np.uint8), np.ones((max(1, int(0.15 * rho)) * 2 + 1, 1), np.uint8)).astype(bool)  # bỏ mép trên / dưới: chỗ giáp mái, giáp đất
         if V.sum() < 6 * rho * rho: continue
         lom = np.clip(-(rm - np.median(rm[V])), 0, 0.6) / 0.6; sm = max(1, int(0.15 * rho)) * 2 + 1
@@ -266,7 +299,7 @@ def trai_mat(anh, troiA, CK, P, MAT, mai, hinh, mh, sau, d, khoi_ds):
         A_, M_ = chuan_hoa(gAm, V, rho), chuan_hoa(Mg, V, rho); dA, dM = do_ca(A_, V, rho), do_ca(M_, V, rho)
         dM['lo'] += lo(chuan_hoa(mm, V, rho), V, rho) + lo(np.where(lom > 0.3, -1.0, 0.0), V, rho)  # lỗ mô hình = màu VẬT LIỆU (kính tối, chưa trộn bóng / chưa nhoè) hoặc HÌNH lõm ≥ 0,18 m; Mg trộn bóng làm ô kính chỉ còn N −0,2 nên trước đây mô hình có cửa mà máy đếm 0
         gan_loai(dA, chan, rho); gan_loai(dM, chan, rho)
-        ra.append({'khoi': k_id, 'chan': chan, 'pa': a.tolist(), 'pu': u.tolist(), 'pn': no.tolist(), 'R': rm, 'rho': rho, 'ytop': ymax, 'smin': smin, 's0': s0, 'chu_vi': chu, 'cum': cum.tolist(), 'A': A_, 'M': M_, 'V': V, 'do_A': dA, 'do_M': dM, 'lech': so(dA, dM, rho)})
+        ra.append({'khoi': k_id, 'chan': chan, 'pa': a.tolist(), 'pu': u.tolist(), 'pn': no.tolist(), 'R': rm, 'rho': rho, 'ytop': ymax, 'smin': smin, 's0': s0, 'chu_vi': chu, 'cum': cum.tolist(), 'A': A_, 'M': M_, 'V': V, 'do_A': dA, 'do_M': dM, 'che': che_dong(cm, rho), 'lech': so(dA, dM, rho, che_dong(cm, rho))})
     return ra
 
 
@@ -313,7 +346,7 @@ def thay(m):
     một ảnh không thấy gờ (nắng gắt, xa, nghiêng) không được gỡ chi tiết mà ảnh khác thấy rõ (21/11/2026: gỡ gờ 33,15 xong lượt sau 3 ảnh lại báo THIẾU → dao động)"""
     A = m['do_A']; ra = [mo_ta(m, {'loai': 'CÓ', 'chi_tiet': 'gờ', 'r': b['r'], 'j0': b['j0'], 'j1': b['j1'], 'tin': 1}) for b in A['bang']]
     ra += [mo_ta(m, {'loai': 'CÓ', 'chi_tiet': 'dãy', **{k: d[k] for k in ('r0', 'r1', 'j0', 'j1', 'p')}, 'p_mh': None, 'tin': 1}) for d in A['day']]
-    return ra + [mo_ta(m, {'loai': 'CÓ', 'chi_tiet': 'lỗ', **{k: o[k] for k in ('r0', 'r1', 'j0', 'j1')}, 'cua': o.get('cua'), 'tin': 1}) for o in A['lo']]
+    return ra + [mo_ta(m, {'loai': 'CÓ', 'chi_tiet': 'lỗ', **{k: o[k] for k in ('r0', 'r1', 'j0', 'j1')}, 'cua': o.get('cua'), 'tin': 1}) for o in A['lo'] if not sau_che(o, m.get('che'))]  # bóng sau vật che không phải phiếu "có"
 
 
 # màu từng loại lệch trên ảnh ghép — MỘT bảng; bài tự kiểm đòi mọi loại so() sinh ra đều có màu (21/11/2026 thêm LỆCH mà quên màu → so-anh-that.py sập giữa vòng)
@@ -424,6 +457,24 @@ def tu_kiem():
     ok(not [x for x in so(D, D, rho) if x['loai'] != 'THỪA'], 'tự so chính nó → không thiếu gì')
     mo2 = da(); go(mo2, 2.5); go(mo2, 7.0); vom(mo2, 9.0, 9.8, 1.4); cua(mo2); L2 = so(D, do_ca(chuan_hoa(mo2, V, rho), V, rho), rho)
     ok(any(x['chi_tiet'] == 'dãy' and x['loai'] == 'SAI_NHIP' for x in L2), f"mô hình vòm nhịp 1,4 (ảnh 0,7): {[(x['loai'], x['chi_tiet'], x.get('p'), x.get('p_mh')) for x in L2 if x['chi_tiet'] == 'dãy']}")
+    # hàng cửa thật (8 cửa cao 2,3 m, nhịp 3,5 m) KHÔNG được báo là dãy: 21/11/2026 dãy đắp ngang vắt qua cửa Palas → cửa bị che, THIẾU lỗ mãi
+    hc = da()
+    for x in np.arange(1.0, Wm - 1.5, 3.5): hc[rr(6.3):rr(4.0), int(x * rho):int((x + 1.0) * rho)] *= 0.35
+    DH = do_ca(chuan_hoa(hc, V, rho), V, rho)
+    ok(not [x for x in DH['day'] if Hm - x['r0'] / rho <= 6.6 and Hm - x['r1'] / rho >= 3.7] and len(DH['lo']) >= 6, f"hàng cửa → không có dãy: dãy {[(round(Hm - x['r1'] / rho, 1), round(Hm - x['r0'] / rho, 1), x['p']) for x in DH['day']]} · lỗ {len(DH['lo'])}")
+    ok(hang_cua(39.0, 39.4, [(38.3, 40.6), (38.3, 40.6)]) and not hang_cua(9.0, 9.8, [(9.0, 9.8), (9.0, 9.8)]), 'hang_cua: cửa cao hơn dải → hàng cửa; hốc vòm cao bằng dải → không')
+    # lỗ ảnh nằm trên vật nhô của mô hình (tranh treo 0,13 m) → không THIẾU; cùng lỗ trên mặt phẳng → vẫn THIẾU
+    tr = da(); tr[rr(6.3):rr(4.0), int(10 * rho):int(11 * rho)] *= 0.35; DT = do_ca(chuan_hoa(tr, V, rho), V, rho); DP = do_ca(chuan_hoa(da(), V, rho), V, rho)
+    nho = np.zeros((R, C), np.float32); nho[rr(7.0):rr(3.5), int(9 * rho):int(12 * rho)] = 1.0  # mặt nạ vật che: tranh phủ trọn lỗ
+    ok(len([x for x in so(DT, DP, rho) if x['chi_tiet'] == 'lỗ']) == 1 and not [x for x in so(DT, DP, rho, nho) if x['chi_tiet'] == 'lỗ'], f'lỗ sau vật che (tranh dán sát, mặt nạ che) → không THIẾU; trên mặt phẳng → THIẾU: phẳng {[(x["loai"], x["chi_tiet"]) for x in so(DT, DP, rho)]} · nhô {[(x["loai"], x["chi_tiet"]) for x in so(DT, DP, rho, nho)]}')
+    # khe giữa hai con-xon (che 0,8 m mỗi bên, khe 0,6 m) → đóng khe: lỗ ảnh trong khe không THIẾU; khe rộng 3 m (ngoài CHE_KHE) → vẫn THIẾU
+    cx = np.zeros((R, C), np.float32); cx[rr(7.0):rr(3.5), int(9.6 * rho):int(10.0 * rho)] = 1; cx[rr(7.0):rr(3.5), int(11.0 * rho):int(11.4 * rho)] = 1
+    ok(not [x for x in so(DT, DP, rho, che_dong(cx, rho)) if x['chi_tiet'] == 'lỗ' and x['loai'] != 'THỪA'], 'lỗ trong khe con-xon (khe 1 m) → không THIẾU')
+    cr = np.zeros((R, C), np.float32); cr[rr(7.0):rr(3.5), int(8.0 * rho):int(8.4 * rho)] = 1; cr[rr(7.0):rr(3.5), int(12.6 * rho):int(13.0 * rho)] = 1
+    ok([x['loai'] for x in so(DT, DP, rho, che_dong(cr, rho)) if x['chi_tiet'] == 'lỗ'] == ['THIẾU'], 'bài phá — khe 4,2 m (ngoài CHE_KHE) → vẫn THIẾU')
+    # ô cửa MÔ HÌNH sau vật che → THỪA (sổ tự gỡ ô dựng nhầm); không che → không THỪA
+    ok([x['loai'] for x in so(DP, DT, rho, nho) if x['chi_tiet'] == 'lỗ'] == ['THỪA'] and not [x for x in so(DP, DT, rho) if x['chi_tiet'] == 'lỗ' and x['loai'] == 'THỪA'],
+       f"ô mô hình sau vật che → THỪA: che {[x['loai'] for x in so(DP, DT, rho, nho) if x['chi_tiet'] == 'lỗ']} · không che {[x['loai'] for x in so(DP, DT, rho) if x['chi_tiet'] == 'lỗ']}")
     # dải tối dẹt (bóng ban công 4 × 0,4 m) ở ảnh, mô hình chưa có gờ → THIẾU gờ ở mép trên dải, KHÔNG báo lỗ (bước dựng không dựng dải dẹt thành cửa)
     bo = {'r0': rr(5.6), 'r1': rr(5.2), 'j0': 10 * rho, 'j1': 14 * rho}; cu_a = {'day': [], 'bang': [], 'lo': [bo], 'du': np.ones(R, bool)}
     L3 = so(cu_a, {'day': [], 'bang': [], 'lo': [], 'du': np.ones(R, bool)}, rho)

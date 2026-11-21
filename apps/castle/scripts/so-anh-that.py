@@ -282,6 +282,7 @@ def phan_tich(anh, d, thu, bd, chon, khoa=None):
     kk = khoa_khung(d) if khoa is not None else None
     if kk and kk in khoa: CK = ck_tu_so(khoa[kk], W, H); loi_ck = khoa[kk]['tang_F']
     else: CK, loi_ck = canh_khung(eA0, eM0, MAT != '')
+    che = cv2.imread(str(thu / f'{ten}-che.png'))  # mặt nạ VẬT CHE (tranh, ban công) — thư mục cũ chưa có thì None
     goc = (P, MAT.copy(), mai, hinh, mh.copy(), sau.copy())  # khung mô hình CHƯA canh: dò chi tiết mặt cần toạ độ 3D gốc, tra ảnh qua CK
     if loi_ck:
         wa = lambda x, nen=0: cv2.warpAffine(x, CK, (W, H), flags=cv2.INTER_NEAREST, borderMode=cv2.BORDER_CONSTANT, borderValue=nen)
@@ -290,7 +291,7 @@ def phan_tich(anh, d, thu, bd, chon, khoa=None):
         _, inv = np.unique(MAT, return_inverse=True); ten_m = np.unique(MAT); MAT = ten_m[wa(inv.reshape(H, W).astype(np.float32), float(np.where(ten_m == '')[0][0]) if '' in ten_m else 0).astype(int)]
         MAT[troiM] = ''
     vM = vien(troiM); troiA = troi_anh(anh, troiM, vM); vA = vien(troiA)
-    chi_tiet = doc_mat.trai_mat(anh, troiA, CK, goc[0], goc[1], goc[2], goc[3], goc[4], goc[5], d, bd.khoi)
+    chi_tiet = doc_mat.trai_mat(anh, troiA, CK, goc[0], goc[1], goc[2], goc[3], goc[4], goc[5], d, bd.khoi, che)
     lau = MAT != ''
     cot = np.where(lau.any(0))[0]
     if not len(cot): return None
@@ -464,8 +465,12 @@ def dung(xn, xn_thua, thay=(), tep=TEP_DUNG):
     def tim(x):
         y = x.get('y', (x.get('y0', 0) + x.get('y1', 0)) / 2)
         return next((m for m in muc if doc_mat.cung_cho({**m, 'loai': 'THIẾU'}, {**x, 'loai': 'THIẾU'}, y)), None)
+    def la_hang_cua(m):  # dãy mà ≥ 2 ảnh thấy là HÀNG CỬA (lỗ cùng khối, cùng cạnh) — dùng cả lúc THÊM lẫn lúc dọn: trước đây chỉ dọn → mỗi vòng +1 rồi gỡ 1 (21/11/2026)
+        canh = {o['canh'] for o in m.get('doan', [])}
+        return len({a for a in {a for a, _ in thay} if doc_mat.hang_cua(m['y0'], m['y1'], [(t['y0'], t['y1']) for a2, t in thay if a2 == a and t['chi_tiet'] == 'lỗ' and t['khoi'] == m['khoi'] and canh & {o['canh'] for o in t.get('doan', [])}])}) >= 2
     for x in xn:
         if x['chi_tiet'] not in LOAI_DUNG or not x.get('doan'): continue
+        if x['chi_tiet'] == 'dãy' and x.get('y0') is not None and la_hang_cua(x): continue
         m = tim(x)
         if x['loai'] == 'SAI_NHIP':
             if m and m['chi_tiet'] == 'dãy': m['p'] = x['p']; sua += 1
@@ -489,6 +494,8 @@ def dung(xn, xn_thua, thay=(), tep=TEP_DUNG):
         co = {a for a, t in thay if doc_mat.cung_cho({**m, 'loai': 'THIẾU'}, {**t, 'loai': 'THIẾU'}, t.get('y', (t.get('y0', 0) + t.get('y1', 0)) / 2))}
         if x['so_anh'] > len(co - set(x['anh'])): muc.remove(m); go_ += 1
         else: giu += 1
+    # dãy trong sổ mà ≥ 2 ảnh thấy là HÀNG CỬA (≥ 2 lỗ chiếm ≥ nửa dải, cùng cạnh) → dựng nhầm từ bộ dò cũ: gỡ (dải đá vắt ngang cửa che ô cửa → THIẾU lỗ mãi)
+    for m in [m for m in muc if m['chi_tiet'] == 'dãy' and la_hang_cua(m)]: muc.remove(m); go_ += 1
     so.update({'ghi': 'sinh bởi scripts/so-anh-that.py --dung (bước dựng) — chi tiết THIẾU xác nhận ≥ 2 ảnh; mattien.js datChiTietDo dựng; không sửa tay', 'nguong': doc_mat.NGUONG, 'muc': muc})
     tep.write_text(json.dumps(so, ensure_ascii=False, indent=1)); print(f"   BƯỚC DỰNG: +{moi} chi tiết mới · {sua} cập nhật · {go_} gỡ (THỪA thắng phiếu) · {giu} giữ (ảnh thấy ≥ ảnh THỪA) → {len(muc)} trong sổ {tep}")
     return moi, sua, go_

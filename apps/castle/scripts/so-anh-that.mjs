@@ -45,6 +45,9 @@ await pg.evaluate((XA) => { const n = window.__ns, T = n.THREE;
     vertexShader: 'varying float vD; void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vD = -mv.z; gl_Position = projectionMatrix * mv; }',
     fragmentShader: 'precision highp float; uniform float xa; varying float vD; void main() { float v = floor(clamp(vD / xa, 0.0, 1.0) * 16777215.0); float r = floor(v / 65536.0); float g = floor((v - r * 65536.0) / 256.0); float b = v - r * 65536.0 - g * 256.0; gl_FragColor = vec4(r / 255.0, g / 255.0, b / 255.0, 1.0); }' });
   const phap = new T.MeshNormalMaterial({ side: T.DoubleSide });
+  // MẶT NẠ VẬT CHE: vật liệu mang cờ userData.che (tranh tường, ban công — mattien.js) vẽ trắng, mọi thứ khác đen, cùng bộ đệm sâu → chỉ phần vật che THẤY ĐƯỢC.
+  // Máy đo mặt (doc_mat.so) bỏ lỗ ảnh nằm sau vật che: mảng tối trong tranh / bóng ban công không phải cửa thiếu (21/11/2026 Palas #23)
+  const CHE = [new T.MeshBasicMaterial({ color: 0x000000, side: T.DoubleSide }), new T.MeshBasicMaterial({ color: 0xffffff, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 })];
   const doc = () => { const gl = n.renderer.getContext(), w = gl.drawingBufferWidth, h = gl.drawingBufferHeight, px = new Uint8Array(w * h * 4); gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
     const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'), d = g.createImageData(w, h);
     for (let y = 0; y < h; y++) d.data.set(px.subarray((h - 1 - y) * w * 4, (h - y) * w * 4), y * w * 4); for (let i = 3; i < d.data.length; i += 4) d.data[i] = 255;
@@ -64,15 +67,17 @@ await pg.evaluate((XA) => { const n = window.__ns, T = n.THREE;
     const nen = n.scene.background, suong = n.scene.fog; n.scene.background = null; n.scene.fog = null; n.renderer.setClearColor(0x000000, 1); n.scene.overrideMaterial = sau;
     n.renderer.render(n.scene, cam); const ds = doc().toDataURL('image/png');
     n.scene.overrideMaterial = phap; n.renderer.render(n.scene, cam); const hinh = doc().toDataURL('image/png'); // màu pháp tuyến: hình khối không vân — chỉ để canh khung
-    n.scene.overrideMaterial = null; n.scene.background = nen; n.scene.fog = suong; for (const o of an) o.visible = true;
-    return { mau, sau: ds, hinh, m: Array.from(cam.matrixWorld.elements), nang };
+    n.scene.overrideMaterial = null; const doi = []; n.scene.traverse((o) => { if (o.isMesh || o.isInstancedMesh) { doi.push([o, o.material]); o.material = CHE[[].concat(o.material).some((m) => m?.userData?.che) ? 1 : 0]; } });
+    n.renderer.render(n.scene, cam); const che = doc().toDataURL('image/png'); for (const [o, m] of doi) o.material = m;
+    n.scene.background = nen; n.scene.fog = suong; for (const o of an) o.visible = true;
+    return { mau, sau: ds, hinh, che, m: Array.from(cam.matrixWorld.elements), nang };
   };
 }, XA);
 const ds = [];
 for (const t of VIEC) {
   const a = SO[t], ten = t.split('/').pop().replace(/\.[a-z]+$/i, ''), H = CAO, W = Math.round(CAO * a.rong / a.cao);
   nhip(`vẽ ảnh ${ten}`); const r = await pg.evaluate((o) => window.__veAnh(o), { x: a.x, y: a.camera.y, z: a.z, yaw: a.camera.yaw, pitch: a.camera.pitch, roll: a.camera.roll, fov: a.camera.fov, W, H });
-  writeFileSync(join(THU, `${ten}-mo-hinh.jpg`), Buffer.from(r.mau.split(',')[1], 'base64')); writeFileSync(join(THU, `${ten}-sau.png`), Buffer.from(r.sau.split(',')[1], 'base64')); writeFileSync(join(THU, `${ten}-hinh.png`), Buffer.from(r.hinh.split(',')[1], 'base64'));
+  writeFileSync(join(THU, `${ten}-mo-hinh.jpg`), Buffer.from(r.mau.split(',')[1], 'base64')); writeFileSync(join(THU, `${ten}-sau.png`), Buffer.from(r.sau.split(',')[1], 'base64')); writeFileSync(join(THU, `${ten}-hinh.png`), Buffer.from(r.hinh.split(',')[1], 'base64')); writeFileSync(join(THU, `${ten}-che.png`), Buffer.from(r.che.split(',')[1], 'base64'));
   ds.push({ ten, anh: duongAnh(t), tep: t, W, H, fov: a.camera.fov, xa: XA, m: r.m, tacGia: a.tacGia || '', giayPhep: a.giayPhep || '' });
   console.log(`   ${ten}: chỗ đứng (${a.x}, ${a.camera.y}, ${a.z}) · ống ${a.camera.fov}° · ${a.dung} điểm khớp${r.nang ? ` · camera dưới mặt đứng → nâng ${r.nang.toFixed(2)} m` : ''}`);
 }

@@ -643,12 +643,12 @@ function buocXe(a, dt) {
     }
   }
   // Luồn sau lưng người đi bộ chỉ khi bên đó CÓ KHOẢNG TRỐNG thật (anh 22/11/2026: "luồn lách nhưng phải có khoảng
-  // trống"): sườn bên đó hở hơn một thân xe + lề, phía trước bên đó trống quá chỗ người đứng, không lấn ra ngoài mép
+  // trống"): sườn bên đó sau khi dạt vẫn hở ≥ 0,2 m, phía trước bên đó trống quá chỗ người đứng, không lấn ra ngoài mép
   // đường. Không đủ thì người đi bộ vẫn là vật cản — dừng chờ như thường.
   if (neBo) {
     const [lo0, hi0] = bien(a), trai = neBo < 0;
     const ho = trai ? hoT : hoP, fS = trai ? fL : fR, dich = a.dlat + neBo;
-    if (!(ho > Math.abs(neBo) + 0.3 && fS > boG + a.len && dich > lo0 && dich < hi0)) { neBo = 0; if (boG < f0) { f0 = boG; vj = 0; ai = boJ; } }
+    if (!(ho > Math.abs(neBo) + 0.2 && fS > boG + a.len && dich > lo0 && dich < hi0)) { neBo = 0; if (boG < f0) { f0 = boG; vj = 0; ai = boJ; } }
   }
   const T = xm ? 0.75 : a.loai === 'bus' ? 1.6 : 1.3, s0 = xm ? 0.45 : 1.6;
   // Không dừng chắn ngang trước mũi xe khác: phía trước không đủ chỗ để thân mình qua HẾT làn của xe đang cắt ngang thì

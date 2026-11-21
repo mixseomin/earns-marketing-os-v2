@@ -329,7 +329,7 @@ const duAnCho = () => ({ ten: 'Đang mở phim…', loai: 'hinh', tile: '9:16', 
 const LOAI = { hinh: 'Kể chuyện bằng hình', tailieu: 'Tài liệu lời dẫn', phim: 'Phim nhân vật 3D', doc: 'Phim ngắn · series', qc: 'Quảng cáo', may: 'Video máy dựng' };
 const DU_AN = { cn: { bia: 'v/cn/k14.jpg', tao: () => tuDL('cn') }, ynt: { bia: 'v/ynt/k3.jpg', tao: () => tuDL('ynt') }, leo: { bia: 'v/leo-k1.jpg', tao: duAnMau } };
 // ── widget: mỗi bảng là một widget; mỗi LOẠI HÌNH video có một bố cục (danh sách widget theo thứ tự trái sang phải), đổi được và nhớ lại
-const WG = { tv: ['Thư viện', '252px'], kb: ['Kịch bản', '300px'], pc: ['Phân cảnh', 'minmax(220px, .8fr)'], xem: ['Khung xem', 'minmax(0, 1.3fr)'], mb: ['Mặt bằng', 'minmax(190px, .75fr)'], lp: ['Lớp', '250px'], nk: ['Nhật ký', '300px'], hd: ['Hàng đợi', '320px'], cn: ['Cẩm nang', '340px'], qt: ['Quy trình', '320px'], tt: ['Thuộc tính', '300px'], mu: ['Nhân vật, bối cảnh', '280px'] };
+const WG = { tv: ['Thư viện', '252px'], kb: ['Kịch bản', '300px'], pc: ['Phân cảnh', 'minmax(220px, .8fr)'], xem: ['Khung xem', 'minmax(0, 1.3fr)'], mb: ['Mặt bằng', 'minmax(190px, .75fr)'], lp: ['Lớp', '250px'], nk: ['Nhật ký', '300px'], hd: ['Hàng đợi', '320px'], cn: ['Cẩm nang', '340px'], qt: ['Quy trình', '320px'], tt: ['Thuộc tính', '300px'], mu: ['Nhân vật, bối cảnh', '280px'], tl: ['Timeline', 'minmax(0, 1fr)'] };
 // BỐ CỤC ĐẶT SẴN theo loại video — mỗi bố cục là các widget đã đặt chỗ trên lưới 24 × 16 ([x, y, rộng, cao]); `cho` = các thể loại của studio.on.tc dùng bố cục này
 // (gói thể loại: apps/xuong-video/src/lib/xuong-video/goi-the-loai.ts · template QC: apps/xuong-video/mau/templates.json · video máy dựng: may-dung-*.ts).
 // Sáu bố cục đầu là mặc định của sáu loại hình (LOAI); 'soi' là bố cục làm việc dùng cho mọi loại. Thêm loại video mới = thêm một mục ở đây + tên ở LOAI.
@@ -343,9 +343,11 @@ const BO_CUC = {
   lam: { ten: 'Làm video mới', cho: 'Đi từng bước của quy trình studio: ý tưởng, kịch bản, cảnh, ảnh, giọng, clip, xuất (phim của studio)', o: { qt: [0, 0, 8, 16], xem: [8, 0, 8, 16], kb: [16, 0, 8, 8], tt: [16, 8, 8, 8] }, tab: { qt: ["pc", "tv"], kb: ["mu", "lp", "mb"], tt: ["nk", "hd", "cn"] } },
   soi: { ten: 'Soi từng bước sinh', cho: 'Gỡ lỗi mọi loại video: phân cảnh và nhật ký lượt sinh (phim của studio)', o: { pc: [0, 0, 6, 16], xem: [6, 0, 8, 16], nk: [14, 0, 10, 8], tt: [14, 8, 10, 8] }, tab: { pc: ["kb", "tv"], nk: ["hd", "qt", "cn"], tt: ["mu", "lp", "mb"] } },
 };
-const viMau = (k) => Object.fromEntries(Object.entries(BO_CUC[k].o).map(([w, [x, y, rong, cao]]) => [w, { x, y, w: rong, h: cao }]));
+// Timeline là một widget như mọi widget khác (góp ý #1752): bố cục đặt sẵn / bố cục cũ chưa có nó → dồn các ô lên 11 hàng trên, Timeline nằm dải 5 hàng dưới cùng, kéo đi đâu cũng được
+function tlDuoi(vi) { if (vi.tl) return vi; for (const v of Object.values(vi)) { const y1 = Math.round(v.y * 11 / 16), y2 = Math.round((v.y + v.h) * 11 / 16); v.y = y1; v.h = Math.max(1, y2 - y1); } vi.tl = { x: 0, y: 11, w: 24, h: 5 }; return vi; }
+const viMau = (k) => tlDuoi(Object.fromEntries(Object.entries(BO_CUC[k].o).map(([w, [x, y, rong, cao]]) => [w, { x, y, w: rong, h: cao }])));
 // tab: widget xếp chồng thành tab trong ô của widget chủ (góp ý #1747) — mỗi bố cục bày đủ mọi widget, cái chính hiện ô riêng, cái phụ nằm tab cạnh ô hợp việc
-const BC_MAU = Object.fromEntries(Object.entries(BO_CUC).map(([k, b]) => [k, Object.keys(b.o).sort((a, c) => b.o[a][0] - b.o[c][0] || b.o[a][1] - b.o[c][1]).flatMap((w) => [w, ...(b.tab?.[w] || [])])]));
+const BC_MAU = Object.fromEntries(Object.entries(BO_CUC).map(([k, b]) => [k, Object.keys(b.o).sort((a, c) => b.o[a][0] - b.o[c][0] || b.o[a][1] - b.o[c][1]).flatMap((w) => [w, ...(b.tab?.[w] || [])]).concat('tl')]));
 const nhomMau = (k) => Object.entries(BO_CUC[k].tab || {}).map(([c, x]) => ({ ds: [c, ...x], mo: c }));
 function apBoCuc(k, L) { E.bc[L] = [...BC_MAU[k]]; (E.luoi.nhom ||= {})[L] = nhomMau(k); if (k === L) { delete E.luoi.vi[L]; delete E.luoi.ten[L]; } else { E.luoi.vi[L] = viMau(k); E.luoi.ten[L] = k; } }
 
@@ -355,12 +357,13 @@ const E = { man: 'dung', ban: 'pro', da: 'cn', nguon: 'anh', hop: true, tat: fal
 try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { if (l.ban === 'gon' || l.ban === 'pro') E.ban = l.ban; if (DU_AN[l.da] || /^\d+$/.test(l.da || '')) { E.da = l.da; E.tap = +l.tap || null; } for (const k in BC_MAU) if (Array.isArray(l.bc?.[k]) && l.bc[k].includes('xem') && l.bc[k].every((w) => WG[w])) E.bc[k] = l.bc[k]; if (!l.muDa) for (const k in E.bc) if (!E.bc[k].includes('mu')) E.bc[k].push('mu'); if ([6, 12, 24, 48].includes(l.luoi?.n) && l.luoi.day) E.luoi.n = l.luoi.n; E.luoi.hien = !!l.luoi?.hien; if (l.luoi?.pb === 2 && l.luoi.vi && typeof l.luoi.vi === 'object') for (const k in BC_MAU) { if (BO_CUC[l.luoi.ten?.[k]]) E.luoi.ten[k] = l.luoi.ten[k];   // pb: bản 1 tự ghi bố cục một hàng vào sổ, che mất bố cục đặt sẵn → bỏ
      if (l.luoi.vi[k]) E.luoi.vi[k] = l.luoi.vi[k];
      const nh = (Array.isArray(l.luoi.nhom?.[k]) ? l.luoi.nhom[k] : []).filter((x) => Array.isArray(x?.ds) && x.ds.length > 1 && x.ds.every((w) => WG[w])); if (nh.length) (E.luoi.nhom ||= {})[k] = nh.map((x) => ({ ds: [...new Set(x.ds)], mo: x.mo })); }   // nhóm tab trong ô
+   if (!l.tlWg) for (const k in E.bc) if (!E.bc[k].includes('tl')) { E.bc[k].push('tl'); if (E.luoi.vi[k]) tlDuoi(E.luoi.vi[k]); }   // sổ cũ: Timeline vào lưới ở dải dưới (#1752)
    if (l.tlCao >= 110) E.tlCao = +l.tlCao; E.nhuMoi = !!l.nhuMoi; E.qtXem = !!l.qtXem; } } catch {}
 for (const k in BC_MAU) if (!E.luoi.nhom?.[k] && BC_MAU[k].length === E.bc[k].length && BC_MAU[k].every((w) => E.bc[k].includes(w))) (E.luoi.nhom ||= {})[k] = nhomMau(k);   // bố cục mặc định chưa tự xếp: bày sẵn các tab (#1747)
 try { const q = new URLSearchParams(location.search); if (q.get('ban') === 'gon' || q.get('ban') === 'pro') E.ban = q.get('ban'); if (DU_AN[q.get('phim')] || /^\d+$/.test(q.get('phim') || '')) { E.da = q.get('phim'); E.tap = +q.get('tap') || null; } } catch {}
 const VT_K = () => (E.da && E.tap ? `s2-vt-${E.da}-${E.tap}` : '');   // vị trí đang đứng theo từng phim + tập: cảnh chọn, tab, khung, kim — F5 về đúng chỗ (#1743)
 function apVt() { const k = VT_K(); if (!k) return; let v = null; try { v = JSON.parse(localStorage.getItem(k) || 'null'); } catch {} const q = +new URLSearchParams(location.search).get('canh'); const cq = q > 0 && D.canh[q - 1] ? { id: D.canh[q - 1].id, loai: 'canh' } : null; const c = cq || (v?.c && (v.c.id === 'nhac' || canh(v.c.id)) ? v.c : null); if (v) { if (typeof v.tab === 'string') E.tab = v.tab; if (typeof v.tt === 'string') E.ttTab = v.tt; if (typeof v.o === 'string') E.o = v.o; if (v.ng && nguonCo().includes(v.ng)) E.nguon = v.ng; if (v.t >= 0) E.t = Math.min(v.t, Math.max(0, tong() - 0.01)); } if (c) { E.chon = c; if (c.id !== 'nhac') { const i = vt(c.id), s = batDau(i); if (E.t < s || E.t >= s + D.canh[i].tg) E.t = s + 0.001; } } }
-const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc, luoi: E.luoi, tlCao: E.tlCao, nhuMoi: E.nhuMoi, qtXem: E.qtXem, muDa: 1 })); } catch {} try { const k = VT_K(); if (k && !E.dangMo && !D.cho) localStorage.setItem(k, JSON.stringify({ c: E.chon, tab: E.tab, tt: E.ttTab, o: E.o, ng: E.nguon, t: E.t })); } catch {} const iC = E.chon && E.chon.id !== 'nhac' && !E.dangMo ? vt(E.chon.id) : -1; try { history.replaceState(null, '', `?${E.da ? `phim=${E.da}` : 'trang=moi'}${E.tap ? `&tap=${E.tap}` : ''}${iC >= 0 ? `&canh=${iC + 1}` : ''}&ban=${E.ban}${pro() && D.that && co('nk') ? `&nk=${E.nkBuoc}` : ''}${E.luoi.ten[D.loai] && E.luoi.vi[D.loai] ? `&bc=${E.luoi.ten[D.loai]}` : ''}`); } catch {} };
+const luu = () => { try { localStorage.setItem('studio2', JSON.stringify({ ban: E.ban, da: E.da, tap: E.tap, bc: E.bc, luoi: E.luoi, tlCao: E.tlCao, nhuMoi: E.nhuMoi, qtXem: E.qtXem, muDa: 1, tlWg: 1 })); } catch {} try { const k = VT_K(); if (k && !E.dangMo && !D.cho) localStorage.setItem(k, JSON.stringify({ c: E.chon, tab: E.tab, tt: E.ttTab, o: E.o, ng: E.nguon, t: E.t })); } catch {} const iC = E.chon && E.chon.id !== 'nhac' && !E.dangMo ? vt(E.chon.id) : -1; try { history.replaceState(null, '', `?${E.da ? `phim=${E.da}` : 'trang=moi'}${E.tap ? `&tap=${E.tap}` : ''}${iC >= 0 ? `&canh=${iC + 1}` : ''}&ban=${E.ban}${pro() && D.that && co('nk') ? `&nk=${E.nkBuoc}` : ''}${E.luoi.ten[D.loai] && E.luoi.vi[D.loai] ? `&bc=${E.luoi.ten[D.loai]}` : ''}`); } catch {} };
 const pro = () => E.ban === 'pro', boCuc = () => (D.trongTrang ? ['qt', 'xem'] : pro() ? E.bc[D.loai].filter((w) => ((w !== 'nk' && w !== 'qt' && w !== 'hd') || !!D.that) && (!D.that || ((w !== 'lp' || coLop()) && (w !== 'mb' || !!D.set)))) : D.that ? ['qt', 'xem', 'tt'] : BC_MAU.hinh), co = (w) => boCuc().includes(w);
 const tong = () => D.canh.reduce((a, c) => a + c.tg, 0), canh = (id) => D.canh.find((c) => c.id === id), vt = (id) => D.canh.findIndex((c) => c.id === id);
 const batDau = (i) => D.canh.slice(0, i).reduce((a, c) => a + c.tg, 0), lam2 = (x) => Math.round(x * 100) / 100;
@@ -421,7 +424,7 @@ const veKq = () => { const el = $('#mnKq'); if (el) { el.innerHTML = veKqTim(); 
 //    kéo MÉP / GÓC để co giãn ngang + dọc, widget khác tự nhường chỗ; lưới vừa đúng một màn (không cuộn). Độ mịn lưới chọn ở menu Bố cục (6 × 4 · 12 × 8 · 24 × 16).
 //    Vị trí nhớ theo từng loại hình ở E.luoi.vi[loại][widget] = { x, y, w, h } tính theo lưới MỊN NHẤT 24 × 16 (đổi độ mịn không mất bố cục).
 //    Bản Gọn + màn hẹp không dùng lưới: lớp bọc .w-o thành display: contents, bố cục cũ chạy như trước. E.bc[loại] vẫn là danh sách widget đang bật.
-const HANG = { 6: 4, 12: 8, 24: 16, 48: 32 }, NANG = { tv: 5, kb: 5, pc: 5, xem: 9, mb: 5, lp: 4, nk: 5, hd: 5, cn: 5, qt: 6, tt: 5, mu: 5 };
+const HANG = { 6: 4, 12: 8, 24: 16, 48: 32 }, NANG = { tv: 5, kb: 5, pc: 5, xem: 9, mb: 5, lp: 4, nk: 5, hd: 5, cn: 5, qt: 6, tt: 5, mu: 5, tl: 6 };
 let GS = null, gsDang = false, gsDau = '';
 for (const w in WG) { const s = $(`#w-${w}`), o = document.createElement('div'), c = document.createElement('div'); o.className = 'grid-stack-item w-o'; o.id = `o-${w}`; c.className = 'grid-stack-item-content'; s.before(o); c.append(s); o.append(c); }
 // TAB TRONG Ô (anh 20/11/2026: "các widget cho phép xếp chồng lên nhau và trở thành tab giống mos2.on.tc/home") — học cách làm của trang chủ mos2 (apps/web/src/lib/home/luoi.ts: gop / boTab / moTab).
@@ -1096,8 +1099,8 @@ function veD() {
 }
 function veBoCuc() {
   const ds = boCuc(), nhT = luoiBat() ? nhomTab(ds) : {}, chuT = {}; for (const [c, x] of Object.entries(nhT)) for (const m of x.ds) chuT[m] = c;
-  $('#dGiua').style.gridTemplateColumns = luoiBat() ? '' : pro() ? ds.map((w) => WG[w][1]).join(' ') : '292px minmax(0, 1fr) 304px';
-  for (const w in WG) { const el = $(`#w-${w}`), i = ds.indexOf(w); el.hidden = i < 0; el.style.order = i + 10; if (i < 0 || !pro()) continue;
+  $('#dGiua').style.gridTemplateColumns = luoiBat() ? '' : pro() ? ds.filter((w) => w !== 'tl').map((w) => WG[w][1]).join(' ') : '292px minmax(0, 1fr) 304px';
+  for (const w in WG) { const el = $(`#w-${w}`), i = w === 'tl' && !luoiBat() ? -1 : ds.indexOf(w); el.hidden = i < 0; el.style.order = i + 10; if (i < 0 || !pro()) continue;
     let them = '';
     if (w === 'xem') { const ng = nguonCo(), ten = TEN_NG;
       them = (ng.length > 1 ? `<span class="doan-bt">${ng.map((n) => `<button type="button" class="bt" data-d="nguon" data-g="${n}" aria-pressed="${E.nguon === n}">${ten[n]}</button>`).join('')}</span>` + `<button type="button" class="bt" data-d="ss" aria-pressed="${!!E.ss}" title="Xem các nguồn cạnh nhau cùng lúc để so sánh">So sánh</button>` : '')
@@ -1105,6 +1108,10 @@ function veBoCuc() {
         + (coClip() ? `<button type="button" class="bt ic-bt" data-d="tat" title="${E.tat ? 'Bật tiếng' : 'Tắt tiếng'}" aria-label="${E.tat ? 'Bật tiếng' : 'Tắt tiếng'}">${ic(E.tat ? 'Tắt tiếng' : 'Tiếng')}</button>` : ''); }
     const gr = nhT[chuT[w]];
     $(`#wd-${w}`).innerHTML = (gr ? `<span class="w-tabs" role="tablist" aria-label="Các widget trong ô này">${gr.ds.map((m) => `<button type="button" role="tab" class="w-tab" data-d="tabMo" data-g="${m}" aria-selected="${m === gr.mo}" title="${WG[m][0]}">${ic(WG[m][0])}<b>${WG[m][0]}</b></button>`).join('')}</span>` : `<span class="w-ten" tabindex="0" role="button" data-wg="${w}" aria-label="Widget ${WG[w][0]}: kéo để dời tới ô khác, phím mũi tên trái phải để đổi chỗ với widget bên cạnh" title="Kéo để dời · thả lên đầu widget khác để xếp thành tab · kéo mép hoặc góc widget để co giãn · phím ← → đổi chỗ">${ic(WG[w][0])}<b>${WG[w][0]}</b></span>`) + `<span class="w-them">${them}</span><span class="w-nut">${gr ? `<button type="button" class="bt w-tach" data-d="tabTach" data-g="${w}" title="Đưa tab đang mở ra ô riêng">Tách</button>` : ''}${w === 'xem' ? '' : `<button type="button" class="bt ic-bt" data-d="wg" data-g="${w}" title="Ẩn widget này" aria-label="Ẩn widget này">${ic('Đóng')}</button>`}</span>`; }
+  // Timeline trong lưới (#1752): lưới bật + có ô Timeline thì khung timeline chuyển vào ô; không thì về chỗ cũ dưới màn
+  const tl = $('#dTl'), oTl = luoiBat() && ds.includes('tl');
+  if (oTl && tl.parentNode !== $('#dTlW')) $('#dTlW').append(tl); else if (!oTl && tl.parentNode === $('#dTlW')) $('#dGiua').after(tl);
+  $('#dung').classList.toggle('tl-o', oTl);
   dongBoLuoi(ds);
 }
 const chipMoi = () => (E.nhuMoi && laQtThat() ? '<button type="button" class="thu canh nut" data-d="nhuMoi" title="Đang ẩn phim cũ của studio, phim mẫu và mọi thứ chỉ quản trị thấy. Bấm để về lại chế độ quản trị.">Đang xem như người mới · Thoát</button>' : '');
@@ -1136,7 +1143,7 @@ function veMenu() {
 }
 function veTv() {
   const T = ['Mẫu', 'Hình', 'Nhân vật', 'Chữ', 'Giọng', 'Nhạc']; let h = '';
-  if (E.tab === 'Mẫu') h = `<span class="nho">Bấm một mẫu để dựng sẵn cả video theo kiểu đó, rồi sửa từng cảnh.</span><div class="luoi2">${KIEU.map((k) => `<button type="button" class="o-mau" data-d="mau" data-g="${k.ma}" aria-pressed="${D.kieu === k.ma}"><img src="${ANH(k.ma)}" alt="" loading="lazy"><span>${k.ten}</span></button>`).join('')}</div>`;
+  if (E.tab === 'Mẫu') h = `<span class="nho">${D.that ? 'Các kiểu video dựng sẵn để tham khảo. Tập đang mở là tập thật nên bấm mẫu không đổi tập.' : 'Bấm một mẫu để dựng sẵn cả video theo kiểu đó, rồi sửa từng cảnh.'}</span><div class="luoi2">${KIEU.map((k) => `<button type="button" class="o-mau" data-d="mau" data-g="${k.ma}" aria-pressed="${D.kieu === k.ma}"><img src="${ANH(k.ma)}" alt="" loading="lazy"><span>${k.ten}</span></button>`).join('')}</div>`;
   if (E.tab === 'Hình') h = `${muc('Vẽ hình mới', `<input type="text" id="tvMoTa" placeholder="Tả hình bạn cần, vd: sư tử nằm dưới trăng"><div><button type="button" class="bt" data-d="veHinh">Vẽ và thêm vào timeline</button></div>`)}
     ${muc('Hình có sẵn', `<span class="nho">Bấm một hình để thêm thành cảnh mới sau cảnh đang chọn.</span><div class="luoi3">${khoHinh().map((a) => `<button type="button" class="o-hinh cong" data-d="hinh" data-g="${a}" aria-label="Thêm hình thành cảnh mới"><img src="${a}" alt="" loading="lazy"></button>`).join('')}</div>`)}`;
   if (E.tab === 'Nhân vật') { const con = KHO_NV.filter(([i]) => !D.nvs.some((n) => n.id === i)), nhom = [...new Set(D.nvs.map((n) => n.vai))];
@@ -1499,7 +1506,10 @@ function lamD(a, d = {}, nut) {
     case 'veDung': return man('dung');
     case 'moDung': { const hm = HINH.find((h) => h[0] === S.hinh)?.[1];
       D = duAnTu(S.kieu, { ai: S.ai, mo: S.mo, ych: S.ych, ket: S.ket, hinhMa: hm, ten: S.y.trim(), giong: S.giong, nhac: S.nhac }); E.da = null; E.nguon = 'anh'; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.vua = false; return man('dung'); }
-    case 'mau': { const k = KIEU.find((x) => x.ma === g); ghi(); D = duAnTu(g, { giong: D.giong, nhac: D.nhac }); E.chon = null; E.t = 0; E.nguon = 'anh'; vuaKhung(); veD(); return bao(`Đã dựng lại theo mẫu “${k.ten}”.`, true); }
+    case 'mau': { const k = KIEU.find((x) => x.ma === g); if (!k) return;
+      // tập thật trên studio: bấm mẫu KHÔNG được thay cả tập rồi vẽ lại toàn màn (#1751) — chỉ báo, màn đứng yên
+      if (D.that) return bao(`Mẫu “${k.ten}” chỉ dùng cho video nháp mới. Tập này là tập thật trên studio nên giữ nguyên, màn không tải lại.`, false, 7000);
+      ghi(); D = duAnTu(g, { giong: D.giong, nhac: D.nhac }); E.chon = null; E.t = 0; E.nguon = 'anh'; vuaKhung(); veD(); return bao(`Đã dựng lại theo mẫu “${k.ten}”.`, true); }
     case 'themCanh': if (D.that && a === 'themCanh') { if (coSua()) return bao('Có chỗ sửa chưa lưu. Bấm “Lưu về studio” trước rồi thêm cảnh.', false, 9000); return void ghiSv('themCanh', D.that.tap).then(() => taiLai(true)).then(() => { const c = D.canh[D.canh.length - 1]; if (c) { chon(c.id, 'hinh'); tua(batDau(D.canh.length - 1)); } bao('Đã thêm một cảnh trống vào tập trên studio.'); }).catch((e) => bao(`Studio không thêm được cảnh: ${e.message}`, false, 12000)); }
     // falls through
     case 'hinh': case 'veHinh': {

@@ -525,3 +525,8 @@ body.ai-mo{padding-right:360px}
 .ai-tab{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink-2);cursor:pointer;white-space:nowrap}
 .ai-tab.on{background:var(--brass-nhat);color:var(--ink);border-color:transparent;font-weight:600}
 .o-nv-mo{all:unset;cursor:pointer}
+/* Timeline là widget trong lưới (#1752) */
+.d-tlw{display:flex;min-height:0;padding:0}
+.d-tlw>.d-tl{flex:1;max-height:none!important;height:auto!important;border:0;margin:0;min-height:0;grid-area:auto}
+.d-tlw .tl-keo{display:none}
+.dung.tl-o{grid-template-areas:"tren" "giua";grid-template-rows:auto minmax(0,1fr)}

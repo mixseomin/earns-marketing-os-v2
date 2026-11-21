@@ -479,7 +479,7 @@ document.addEventListener('pointerdown', (e) => { const h = e.button === 0 && e.
   const ke = ns.filter((n) => huong === 'e' ? n.x === mep && chong(n.y, n.y + n.h, a.y, a.y + a.h) : huong === 'w' ? n.x + n.w === mep && chong(n.y, n.y + n.h, a.y, a.y + a.h) : n.y === mep && chong(n.x, n.x + n.w, a.x, a.x + a.w));
   if (!ke.length) return;   // không có ô sát mép: để gridstack co giãn như thường
   e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-  const g = $('#dGiua'), r = g.getBoundingClientRect(), o = doc ? (r.height / HANG[E.luoi.n]) : (r.width / E.luoi.n), goc = doc ? r.top : r.left;
+  const g = $('#dGiua'), r = a.el.getBoundingClientRect(), o = doc ? r.height / a.h : r.width / a.w, goc = doc ? r.top - a.y * o : r.left - a.x * o;   // cỡ một ô lưới đo từ chính widget đang kéo
   const ma = huong === 'w' ? Math.max(...ke.map((n) => n.x + 1)) : huong === 'e' ? a.x + 1 : a.y + 1, mb = huong === 'w' ? a.x + a.w - 1 : huong === 'e' ? Math.min(...ke.map((n) => n.x + n.w - 1)) : Math.min(...ke.map((n) => n.y + n.h - 1));
   let hien = mep; g.classList.add('dang-keo'); mepDang = true;
   const dat = (m) => { m = Math.max(ma, Math.min(mb, m)); if (m === hien) return; const ve = [];

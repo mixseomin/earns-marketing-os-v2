@@ -244,7 +244,7 @@ Gọi cảnh bằng "cảnh <so>" (so trong NGỮ CẢNH), không lấy số tro
   // mô tả mẫu đổi = ảnh mẫu cũ hết đúng → luôn có thẻ vẽ lại, vẽ theo mô tả mới (ý riêng bỏ trống để không đè mô tả)
   if (mau && vaMau.mo_ta) { const ve = de_xuat.filter((x) => x.loai === 've_mau'); if (ve.length) ve.forEach((x) => { x.yeu_cau = ''; });
     else de_xuat.push({ loai: 've_mau', nhanVatId: Number(mau.id), mauId: Number(mau.id), tapId: tid, yeu_cau: '', nhan: `Vẽ lại ảnh mẫu ${String(mau.ten)}` }); }
-  if (mau && Object.keys(vaMau).length) await db.execute(sql`UPDATE xv_nhan_vat SET ten = coalesce(${vaMau.ten ?? null}::text, ten), mo_ta = coalesce(${vaMau.mo_ta ?? null}::text, mo_ta), updated_at = now() WHERE id = ${Number(mau.id)} AND phim_id = ${pid}`);
+  if (mau && Object.keys(vaMau).length) { const k = await luuMauS2(pid, { id: Number(mau.id), ...vaMau }); if (!k.ok) return { ok: false, loi: `không sửa được mẫu: ${k.loi}` }; }
   if (thoaiMoi) { vaCanh.thoai = thoaiMoi; da_lam.push({ loai: 'sua_canh', truong: 'thoai', cu: thoai, moi: thoaiMoi, canhId: Number(cn!.id), nhan: `Sửa lời đọc cảnh ${Math.round(Number(cn!.thu_tu))}` }); }
   else if ('loi_thoai' in vaCanh) da_lam.push({ loai: 'sua_canh', truong: 'loi_thoai', cu: cn!.loi_thoai ?? '', moi: vaCanh.loi_thoai, canhId: Number(cn!.id), nhan: `Sửa lời đọc cảnh ${Math.round(Number(cn!.thu_tu))}` });
   if (cn && Object.keys(vaCanh).length) { const k = await suaCanh(Number(cn.id), vaCanh as Parameters<typeof suaCanh>[1]); if (k && (k as { ok?: boolean }).ok === false) return { ok: false, loi: `không sửa được cảnh: ${(k as { loi?: string }).loi}` }; }
@@ -266,8 +266,7 @@ export async function luuAiS2(tapId: number, ls: TinAi[]): Promise<{ ok: true; d
   for (const m of (await docAiS2(tid)).ls) if (m?.id) map.set(String(m.id), m);
   for (const m of Array.isArray(ls) ? ls.slice(0, 400) : []) { if (!m || typeof m !== 'object' || !m.id) continue; const k = String(m.id).slice(0, 40), c = map.get(k);
     if (!c || Number(m.u ?? 0) >= Number(c.u ?? 0)) map.set(k, { ...m, id: k }); }
-  let gop = [...map.values()].sort((a, b) => Number(a.ts ?? 0) - Number(b.ts ?? 0)).slice(-400);
-  while (gop.length > 20 && JSON.stringify(gop).length > 600_000) gop = gop.slice(Math.ceil(gop.length / 10));
+  const gop = [...map.values()].sort((a, b) => Number(a.ts ?? 0) - Number(b.ts ?? 0));   // giữ HẾT: lịch sử không tự xoá tin cũ
   await db.execute(sql`INSERT INTO xv_s2_ai (tap_id, ls, user_id, updated_at) VALUES (${tid}, ${JSON.stringify(gop)}::jsonb, ${me.id}, now())
     ON CONFLICT (tap_id) DO UPDATE SET ls = excluded.ls, user_id = excluded.user_id, updated_at = now()`);
   return { ok: true, data: gop };
@@ -376,14 +375,19 @@ export async function veLaiAnhMauS2(phimId: number, nhanVatId: number, yeuCau = 
 
 /** THÊM / SỬA MẪU của phim từ khung "Nhân vật, bối cảnh" (góp ý #1745: "ko xem đc chi tiết… ko thêm đc mới… phải cho khả năng điều khiển"):
  *  id có → sửa tên + mô tả (giữ ảnh, giọng, quan hệ); id trống → thêm mẫu mới chưa có ảnh. KHÔNG tốn tiền — vẽ ảnh mẫu là nút riêng (veLaiAnhMauS2). */
-export async function luuMauS2(phimId: number, d: { id?: number; ten: string; mo_ta: string; loai?: string }): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
+/** MỘT đường ghi mẫu (form mẫu, Lệnh AI sua_mau, hoàn tác). Sửa (có id) = chỉ đổi trường được gửi; mô tả rỗng hợp lệ khi sửa vì hoàn tác
+ *  trả mẫu về đúng bản cũ (23 mẫu chưa có mô tả) — form mẫu tự đòi mô tả. Tạo mới thì bắt buộc tên + mô tả. */
+export async function luuMauS2(phimId: number, d: { id?: number; ten?: string; mo_ta?: string; loai?: string }): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
   const db = getDb(); if (!db) return { ok: false, loi: 'no db' };
+  const coTen = typeof d?.ten === 'string', coMt = typeof d?.mo_ta === 'string';
   const ten = String(d?.ten ?? '').trim().slice(0, 60), mt = String(d?.mo_ta ?? '').trim().slice(0, 1200);
-  if (!ten) return { ok: false, loi: 'thiếu tên' }; if (!mt) return { ok: false, loi: 'thiếu mô tả: máy vẽ ảnh mẫu theo mô tả này' };
+  if (coTen && !ten) return { ok: false, loi: 'thiếu tên' };
   if (d.id) {
-    const r = (await db.execute(sql`UPDATE xv_nhan_vat SET ten = ${ten}, mo_ta = ${mt}, updated_at = now() WHERE id = ${Number(d.id)} AND phim_id = ${Number(phimId)} RETURNING id`)) as unknown as Row[];
+    if (!coTen && !coMt) return { ok: false, loi: 'không có trường nào để lưu' };
+    const r = (await db.execute(sql`UPDATE xv_nhan_vat SET ten = CASE WHEN ${coTen} THEN ${ten} ELSE ten END, mo_ta = CASE WHEN ${coMt} THEN ${mt} ELSE mo_ta END, updated_at = now() WHERE id = ${Number(d.id)} AND phim_id = ${Number(phimId)} RETURNING id`)) as unknown as Row[];
     return r[0] ? { ok: true, data: Number(d.id) } : { ok: false, loi: 'mẫu này không thuộc phim' };
   }
+  if (!ten) return { ok: false, loi: 'thiếu tên' }; if (!mt) return { ok: false, loi: 'thiếu mô tả: máy vẽ ảnh mẫu theo mô tả này' };
   const lo = (['nhan_vat', 'dao_cu', 'san_pham', 'boi_canh'].includes(String(d.loai)) ? d.loai : 'nhan_vat') as Parameters<typeof luuNhanVat>[0]['loai'];
   const k = await luuNhanVat({ phim_id: Number(phimId), loai: lo, ten, mo_ta: mt, anh_ref: [], giong: '' });
   return k.ok ? { ok: true, data: k.data } : { ok: false, loi: k.loi };

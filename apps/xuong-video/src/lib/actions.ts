@@ -1289,8 +1289,9 @@ export async function chonKeyframe(canhId: number, url: string): Promise<Kq> {
   await chupTruoc(db, { bang: 'xv_canh', id: canhId, cot: ['keyframe_url', 'keyframe_uv', 'trang_thai'], moTa: 'chọn keyframe', nguoi: await ai() });
   await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${url}, keyframe_uv = CASE WHEN keyframe_uv @> ${JSON.stringify([url])}::jsonb THEN keyframe_uv ELSE keyframe_uv || ${JSON.stringify([url])}::jsonb END,
     trang_thai = CASE WHEN trang_thai IN ('nhap', 'loi') THEN 'co_keyframe' ELSE trang_thai END, updated_at = now() WHERE id = ${canhId}`);
-  // 🧩 Tự bóc tách + đối chiếu NGAY sau khi chọn keyframe (Bước 3 — khỏi bấm tay); hỏng thì bỏ qua, không chặn việc chọn keyframe.
-  try { await bocTachCanh(canhId); } catch { /* bóc tách lỗi (cổng ảnh…) không làm hỏng việc chọn keyframe — vẫn bấm nút 🧩 chạy lại được */ }
+  // 🧩 Tự bóc tách + đối chiếu sau khi chọn keyframe (Bước 3 — khỏi bấm tay), CHẠY NỀN: đó là một lượt AI soi ảnh ~45 s — chờ nó thì
+  //    đổi ảnh treo gần một phút (anh 21/11/2026 "đổi ảnh cũng vậy, quá chậm"). Lỗi ghi log nền; nút 🧩 chạy lại được.
+  chayNen(async () => { const r = await bocTachCanhDb(db, canhId); if (!r.ok) console.error('[xuong-video nền] bóc tách cảnh', canhId, r.loi); });
   return { ok: true, data: undefined };
 }
 

@@ -799,6 +799,7 @@ function veMu() { const o = muO(); if (!o) return; const ds = D.that?.mau || [];
 function muZoom(x) { const z = document.createElement('div'); z.className = 'mu-zoom'; z.innerHTML = `<img src="${esc(x.anh)}" alt="${esc(x.ten)}"><p>${esc(x.ten)} · bấm ra ngoài hoặc Esc để đóng</p>`; const tat = () => { z.remove(); document.removeEventListener('keydown', esc1); }, esc1 = (e) => { if (e.key === 'Escape') tat(); }; z.addEventListener('click', tat); document.addEventListener('keydown', esc1); document.body.append(z); }
 async function muLuu(nut) { const f = nut.closest('.mu-form'), loi = f.querySelector('.mu-loi'), id = +f.dataset.mu || undefined;
   const d = { id, ten: f.querySelector('.mu-ten').value, mo_ta: f.querySelector('.mu-mt').value, loai: f.querySelector('.mu-loai')?.value };
+  if (!d.mo_ta.trim()) { loi.textContent = 'Cần mô tả: máy vẽ ảnh mẫu và mọi cảnh có mẫu này theo mô tả.'; loi.hidden = false; return; }
   nut.disabled = true; loi.hidden = true;
   try { const moi = await ghiSv('luuMauS2', D.that.phim, d); E.muThem = false; E.muSua = null; E.muMo = id || moi; await taiLai(true); veMu(); bao(id ? 'Đã lưu mô tả. Bấm "Vẽ lại ảnh mẫu" nếu muốn ảnh theo mô tả mới.' : 'Đã thêm mẫu. Bấm "Vẽ lại ảnh mẫu" để máy vẽ ảnh cho mẫu này.', false, 8000); }
   catch (e) { loi.textContent = `Studio không lưu được: ${e.message}`; loi.hidden = false; nut.disabled = false; } }
@@ -1669,7 +1670,7 @@ man('dung');
 
 // ── LỆNH AI (anh 20/11/2026): ô chat cố định bên phải. Chọn clip trên timeline → chip "Đang sửa: …" + gợi ý theo loại; gõ lệnh → máy chủ lenhAiS2.
 // Sửa chữ chạy ngay (nút Hoàn tác); sinh lại tốn credit hiện thẻ xác nhận, bấm Chạy mới gọi đường ghi. Lịch sử chat lưu trên máy chủ theo tập (xv_s2_ai), mọi máy thấy như nhau; bản trong trình duyệt chỉ để hiện ngay.
-const AI = { mo: (() => { try { return localStorage.getItem('s2-ai-mo') === '1'; } catch { return false; } })(), dang: false, ls: {}, xem: {}, tai: {}, ban: {}, dau: {}, cho: {}, tab: null,
+const AI = { mo: (() => { try { return localStorage.getItem('s2-ai-mo') === '1'; } catch { return false; } })(), dang: false, ls: {}, xem: {}, tai: {}, ban: {}, dau: {}, cho: {}, loiDay: {}, tab: null,
   may: (() => { try { let m = localStorage.getItem('s2-ai-may'); if (!m) { m = Math.random().toString(36).slice(2, 10); localStorage.setItem('s2-ai-may', m); } return m; } catch { return 'x' + Math.random().toString(36).slice(2, 8); } })() };
 const aiNhap = (v) => { const k = aiKhoa(); if (!k) return ''; try { if (v === undefined) return localStorage.getItem(`${k}-nhap`) || ''; if (v) localStorage.setItem(`${k}-nhap`, v); else localStorage.removeItem(`${k}-nhap`); } catch { /* bỏ qua */ } return v; };
 const aiKhoa = () => (D.that ? `s2-ai-${D.that.tap}` : '');
@@ -1695,8 +1696,8 @@ const aiLuu = () => { const k = aiKhoa(); if (!k) return; const ls = aiLs(); aiC
   try { localStorage.setItem(k, JSON.stringify(ls)); } catch { /* bỏ qua */ }
   if (doi) { AI.cho[k] = 1; clearTimeout(AI.hDay); AI.hDay = setTimeout(aiDay, 1500); } };
 async function aiDay() { for (const k of Object.keys(AI.cho)) { delete AI.cho[k]; const ls = AI.ls[k] || []; const gui = ls.filter((m) => (m.u || 1) > (AI.ban[m.id] || 0)); if (!gui.length) continue; const u0 = gui.map((m) => m.u || 1);
-    try { const ra = await ghiSv('luuAiS2', +k.slice(6), gui); gui.forEach((m, n) => { AI.ban[m.id] = Math.max(AI.ban[m.id] || 0, u0[n]); }); if (aiTron(k, ra) && k === aiKhoa()) aiVeNhe(); }
-    catch { AI.cho[k] = 1; clearTimeout(AI.hDay); AI.hDay = setTimeout(aiDay, 15000); } } }
+    try { const ra = await ghiSv('luuAiS2', +k.slice(6), gui); gui.forEach((m, n) => { AI.ban[m.id] = Math.max(AI.ban[m.id] || 0, u0[n]); }); const coLoi = AI.loiDay[k]; delete AI.loiDay[k]; if ((aiTron(k, ra) || coLoi) && k === aiKhoa()) aiVeNhe(); }
+    catch (er) { AI.loiDay[k] = er.message || 'lỗi mạng'; AI.cho[k] = 1; clearTimeout(AI.hDay); AI.hDay = setTimeout(aiDay, 15000); if (k === aiKhoa()) aiVeNhe(); } } }
 /** trộn bản máy chủ vào bản đang có: tin mới thì thêm, tin có u lớn hơn thì thay */
 function aiTron(k, ra) { if (!Array.isArray(ra)) return false; const ls = AI.ls[k] || (AI.ls[k] = []); let doi = false;
   for (const r of ra) { if (!r?.id) continue; const u = r.u || 1; AI.ban[r.id] = Math.max(AI.ban[r.id] || 0, u); const c = ls.find((m) => m.id === r.id);
@@ -1746,6 +1747,7 @@ function aiVe() {
   o.innerHTML = `<div class="ai-dau"><strong>Lệnh AI</strong><button type="button" class="bt" data-ai="dong">Đóng</button></div>
     <div class="ai-chip">Đang sửa: <b>${esc(d.nhan)}</b>${d.loai !== 'tap' ? ' <button type="button" class="ai-x" data-ai="bo" title="Bỏ chọn, ra lệnh cho cả tập">×</button>' : ''}</div>
     <div class="ai-tabs"><button type="button" class="ai-tab${tab === 'tat' ? ' on' : ''}" data-ai="tab" data-t="tat">Tất cả</button>${tsT.map((t) => `<button type="button" class="ai-tab${tab === t ? ' on' : ''}" data-ai="tab" data-t="${t}">${esc(aiTenTab(t))}</button>`).join('')}</div>
+    ${AI.loiDay[k0] ? `<div class="bao">Chưa lưu được lịch sử lên máy chủ (${esc(AI.loiDay[k0])}), đang thử lại sau 15 giây. Tin vẫn giữ trên máy này.</div>` : ''}
     <div class="ai-ls">${AI.tai[k0] === 'dang' && !ls.length ? '<p class="nho">Đang tải lịch sử…</p>' : AI.tai[k0] === 'loi' && !ls.length ? '<div class="bao">Chưa tải được lịch sử từ máy chủ, đang thử lại sau 15 giây.</div>' : hien.length ? hien.map(([m, i]) => aiTin(m, i)).join('') : ls.some((m) => !m.an) ? `<p class="nho">Chưa có lệnh nào cho ${esc(d.nhan)}. Bấm Tất cả để xem mọi lệnh của tập.</p>` : '<p class="nho">Chọn một clip trên timeline (keyframe, lời, tiếng động, nhạc) rồi gõ điều muốn đổi. Sửa chữ chạy ngay và hoàn tác được; sinh lại hình / clip / giọng tốn credits nên con hỏi trước.</p>'}${AI.dang ? '<div class="ai-tin may"><span class="nho">Đang nghĩ…</span></div>' : ''}</div>
     <div class="ai-goi">${(AI_GOI_Y[d.loai] || []).map((g) => `<button type="button" class="ai-g" data-ai="g">${esc(g)}</button>`).join('')}</div>
     <div class="ai-nhap"><textarea id="aiO" rows="2" placeholder="Ví dụ: cận mặt hơn, lời đọc ngắn lại…"${AI.dang ? ' disabled' : ''}>${esc(giu)}</textarea><button type="button" class="bt chinh" data-ai="gui"${AI.dang ? ' disabled' : ''}>Gửi</button></div>`;
@@ -1821,7 +1823,7 @@ async function aiBam(e) {
   if (k === 'guilai') { const i = +b.dataset.i, m = ls[i]; if (!m) return; const h = m.gui_lai; m.an = true; for (let j = i - 1; j >= 0; j--) if (!ls[j].an && ls[j].ai === 'nguoi') { ls[j].an = true; break; } aiLuu(); aiGui(h); return; }
   const m = ls[+b.dataset.i]; if (!m) return;
   if (k === 'hoan') { b.disabled = true;
-    try { const mu = {}; for (const v of [...m.da_lam].reverse()) { if (v.loai === 'sua_mau') { const x = (D.that.mau || []).find((y) => y.id === v.mauId); if (!x) continue; (mu[v.mauId] ||= { id: x.id, ten: x.ten, mo_ta: x.moTa })[v.truong] = v.cu; }
+    try { const mu = {}; for (const v of [...m.da_lam].reverse()) { if (v.loai === 'sua_mau') (mu[v.mauId] ||= { id: v.mauId })[v.truong] = v.cu;
         else if (v.loai === 'sua_tap') await ghiSv('suaTap', v.tapId, { [v.truong]: v.cu }); else await ghiSv('suaCanh', v.canhId, { [v.truong]: v.cu }); }
       for (const mo of Object.values(mu)) await ghiSv('luuMauS2', D.that.phim, mo);
       m.hoan = true; await taiLai(true); } catch (er) { ls.push(aiMoi({ ai: 'may', loi: true, t: m.t, chu: `Hoàn tác không được: ${er.message}` })); }

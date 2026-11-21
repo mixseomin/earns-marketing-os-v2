@@ -2,7 +2,7 @@
 // HÒM GÓP Ý CHUẨN cho TRANG TĨNH (castle.on.tc …): trang tĩnh không chạy được React / server action, nên nó mở trang này trong một iframe
 // trong suốt phủ màn (nạp bằng <script src="https://mos2.on.tc/api/gop-y-ngoai/nut">). Hòm chính là GopYMos2 mà layout gốc đã gắn —
 // trang này chỉ nối: ?trang= → window.__trangGopY (card mang đúng trang người dùng đang đứng), ngữ cảnh + ảnh khung hình trang ngoài
-// gửi qua postMessage → window.__nguCanhTrang / hàng ảnh __anhGopY, mở hòm ('gop-y:mo'), hòm đóng ('gop-y:dong') → báo trang ngoài gỡ iframe.
+// gửi qua postMessage → window.__nguCanhTrang / hàng ảnh __anhGopY, mở hòm ('gop-y:mo'), hòm đóng ('gop-y:dong') → báo trang ngoài ẨN iframe (nút chuẩn nạp sẵn và giữ iframe để lần mở sau tức thì).
 import { useEffect, useState } from 'react';
 
 export default function NhungGopY() {
@@ -31,8 +31,10 @@ export default function NhungGopY() {
     let goc = '*'; try { goc = new URL(trang).origin; } catch { /* không có trang → không trả lời ai */ }
     const nhan = (e: MessageEvent) => {
       if (goc === '*' || e.origin !== goc || e.source !== window.parent) return;
-      const d = (e.data || {}) as { loai?: string; nguCanh?: string; anh?: string | null; anhThem?: string[] };
+      const d = (e.data || {}) as { loai?: string; trang?: string; nguCanh?: string; anh?: string | null; anhThem?: string[] };
       if (d.loai !== 'gop-y:mo') return;
+      // iframe được nút chuẩn NẠP SẴN từ lúc trang mở → trang một-trang (studio2…) đã đổi URL; card phải mang URL lúc bấm, không phải lúc nạp
+      if (typeof d.trang === 'string') { try { if (new URL(d.trang).origin === goc) { const t = d.trang.slice(0, 2000); w.__trangGopY = () => t; } } catch { /* URL hỏng → giữ ?trang= */ } }
       const nc = String(d.nguCanh || '').slice(0, 1000); w.__nguCanhTrang = () => nc;
       if (typeof d.anh === 'string' && d.anh.startsWith('data:image/')) (w.__anhGopY ||= []).push(d.anh);
       for (const u of Array.isArray(d.anhThem) ? d.anhThem.slice(0, 5) : []) if (typeof u === 'string' && u.startsWith('data:image/')) (w.__anhGopY ||= []).push(u); // ảnh thật trang ngoài đã chọn (castle 📷) — vào ô ảnh đính kèm như ảnh chụp trang

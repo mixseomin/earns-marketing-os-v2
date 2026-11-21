@@ -97,8 +97,11 @@ def mo_rong(goc):
     return f"https://www.reelshort.com/movie/{m.group(1)}"
 
 def main(goc, ra, so=3):
-    goc = mo_rong(goc)
     os.makedirs(ra, exist_ok=True)
+    # KHOÁ THEO THƯ MỤC PHIM (21/11/2026, Genie 49869: dòng CC #7059 và CT #7060 cùng gọi tai-tap vào một nguon/49869 — #7060 cắt lúc mới có 4/9 tập
+    # → "không có khung cuối sạch"). Lượt sau CHỜ lượt đang tải xong rồi mới xét da_het, không bao giờ đọc thư mục đang tải dở.
+    import fcntl; khoa = open(os.path.join(ra, ".tai.lock"), "w"); fcntl.flock(khoa, fcntl.LOCK_EX)
+    goc = mo_rong(goc)
     if da_het(ra):
         kq = json.load(open(os.path.join(ra, "tap.json")))
         print(json.dumps({"phim": goc, "tap": [(x["tap"], x["giay"]) for x in kq], "poster": os.path.exists(os.path.join(ra, "poster.jpg")), "da_het": True}, ensure_ascii=False)); return

@@ -39,15 +39,7 @@ bash apps/xuong-video/scripts/h3/may-h3.sh <thư-mục-ra> <vao-1.json> [vao-2.j
   dựng clip 3D nối (cum-seedance-tap.sh) → Seedance gửi Kie; H3 xếp job `hang_h3` cùng đầu vào (`thu-seedance-cum.mts --bo=h3`) rồi `song-song.sh` →
   `thu-seedance-cum.mts --nap-h3=<job> --tep=<mp4>` gắn clip + phiên bản nhãn H3 → `hang-video.mts --dong` đóng hàng.
 - Ô **🎬 Nguồn** cạnh đó hiện nguồn clip đang dùng của cả phim (đếm shot theo nhãn phiên bản) và đổi cho mọi tập tại chỗ (`chonNguonPhim`, 0đ).
-- **Tự chạy hàng (anh duyệt 20/11/2026 "Cho dựng tiến trình H3 và tối ưu nó")**: việc nền iMac `iMac:com.earns.studio-hang-h3` (sổ cty `cong-ty/viec-nen.json`, 5 phút một nhịp)
-  gọi `scripts/h3/tu-chay-hang.sh`: một câu SQL qua ssh hỏi hàng (trống thì thoát sau ~1 giây) → chờ hàng LẶNG 4 phút để gom cả tập vào một lượt thuê máy (shot cũ nhất chờ
-  quá 20 phút thì chạy luôn) → số máy theo khối lượng (≤ 2 cụm 1 máy · ≤ 6: 2 · ≤ 12: 3 · hơn: 4) → `chay-hang.sh --chay` với `XV_HANG_BO=h3` (hàng Seedance không tự chạy).
-  Một lượt một lúc (khoá `~/.cache/studio-hang-h3/khoa`); chỉ còn job cụm sót mà không có shot mới thì KHÔNG tự thuê máy lại. Nhật ký từng lượt + `so.jsonl` ở `~/.cache/studio-hang-h3/`.
-  Xem trước, 0đ: `bash scripts/h3/tu-chay-hang.sh --xem`.
-- **Cổng video trả phí**: shot chỉ vào được hàng khi đã thử VideoExpress hoặc tập được bật "Cho phép video trả phí" (Studio 2 › mục Dựng clip, chỉ quản trị; `moTraPhiS2`).
-- **Chưa làm — phim KHÔNG có dựng 3D** (vd phim #7999 của Studio 2): `xepHangCum` từ chối shot chưa có clip 3D, kế hoạch cụm và `thu-seedance-cum.mts` đều đòi clip 3D nối làm
-  tham chiếu. `chay-h3.py` thì đã nhận `video: null`. Muốn H3 dựng thẳng từ ảnh cảnh cần một nhánh riêng (xếp hàng, lập cụm mỗi shot một cụm, câu lệnh không có "Reference video",
-  lời kể ngoài khung không qua khớp miệng) và phải thử MỘT shot trước khi chạy cả tập.
+- Chưa có tiến trình nền tự chạy hàng — muốn tự động phải anh duyệt riêng (luật tiến trình ngầm).
 
 ## Luật chuẩn H3 (anh chốt 17/11/2026 — mọi phim kế thừa, học từ bài phim ngắn H3 trên X)
 
@@ -70,8 +62,11 @@ Mỗi dòng là một lần thử thật, kèm link xem.
 | Ngày | Ca thử | Kết quả H3 | Chọn |
 |---|---|---|---|
 | 21/11/2026 | Máy quay xoay quanh người đi bộ (theo previs khối xám của genel_ai, so với Muse của họ): một người phụ nữ đi giữa lối văn phòng, máy từ chéo trái ra sau lưng, đám đông ngồi phía sau. Đầu vào: video previs 7 s + ảnh khung đầu/cuối. Video: https://img.on.tc/xuong-video/thu-h3/orbit-h3-orbit.b1.mp4 · so sánh (hàng 1 previs, 2 Muse, 3–5 là 3 bản H3): https://img.on.tc/xuong-video/thu-h3/orbit-h3-so-sanh.jpg | **Đạt:** giữ đúng bố cục (lối đi, vách ngăn bên phải, cột), chỉ một người đi, đám đông ngồi không nhân đôi hay méo. **Chưa đạt:** góc xoay quá nhẹ, khung đầu đã gần như sau lưng; Muse mở bằng góc nghiêng thấy nửa mặt rồi mới xoay ra sau. Ba bản seed gần như giống hệt nhau, nên chọn bản không giúp gì ở ca này. Ảnh 768×480, kém nét hơn Muse. 11 phút RunPod 4090 ≈ 4.300₫ | Cảnh đi bộ có đám đông, máy theo sau: **H3**. Cần xoay góc rộng (nghiêng ra sau lưng): **Seedance**, hoặc H3 với khung đầu là ảnh góc nghiêng thật thay vì khung previs |
+| 21/11/2026 | Cùng cảnh, **H3 tối đa**: mô hình đầy đủ `minimax_h3_ref2va_int8_convrot` (bộ `XV_MO_HINH=h3-thu`), tắt turbo, 30 bước, 1152×720; `<Picture 1>` = **ảnh thật** khung đầu (bỏ hai khung xám), previs chỉ lấy đường máy; câu lệnh ép live-action / máy điện ảnh 35 mm / không hoạt hình. Video: https://img.on.tc/xuong-video/thu-h3/orbit-max.mp4 · so 3 hàng (Muse / H3 thường / H3 tối đa): https://img.on.tc/xuong-video/thu-h3/so-sanh-max.jpg · cận giây 3 (trái Muse, phải H3): https://img.on.tc/xuong-video/thu-h3/cat-3s.jpg | **Đạt:** ra người thật, ngang Muse về chất da, vải, ánh đèn; mở bằng góc nghiêng thấy nửa mặt rồi xoay ra sau đúng như mẫu; đám đông ngồi thật, không nhân đôi. **Chưa đạt:** máy đứng gần hơn mẫu (khung ngang hông, mất chân), văn phòng thoáng hơn mẫu. Gốc "hoạt hình" ở lượt trước là **ảnh đầu vào khối xám**, không phải mô hình. Sinh 39 phút, máy L40S 48 GB 48 phút ≈ 23.000₫ (thêm 2 lượt hỏng cài ≈ 4.800₫) | Cần người thật: **khung đầu phải là ảnh thật** (keyframe), không bao giờ đưa khung previs làm ảnh. H3 tối đa đạt chất Muse nhưng ~23.000₫/bản, đắt hơn H3 thường ~5 lần — dùng cho shot chủ lực |
 
 ## Bài học (mỗi dòng là một lần đã mất tiền máy)
+
+- 21/11/2026: H3 đầy đủ trên RunPod phải kèm `XV_MO_HINH=h3-thu` **và** `XV_H3_DIA_RUNPOD=130` (ổ mặc định 60 GB không chứa nổi 31,7 GB mô hình đầy đủ + bộ thường) + `XV_H3_VRAM=46000`, card 48 GB (L40S). Thiếu một trong hai: hỏng "unet_name not in list" sau 5 phút.
 
 1. Image tự khai yêu cầu CUDA 13 → RunPod chỉ xếp máy driver mới → "hết chỗ" mọi loại máy. Dùng image không khai, kiểm driver sau khi lên.
 2. Ubuntu 24.04 chặn pip cài vào Python hệ thống (PEP 668) → `PIP_BREAK_SYSTEM_PACKAGES=1`.

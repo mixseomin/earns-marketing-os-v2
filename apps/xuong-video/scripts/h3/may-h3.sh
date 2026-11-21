@@ -68,7 +68,7 @@ thue_runpod() {
   local g cl R KHOA; KHOA=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1]).read().strip()))' "$HOME/.ssh/id_ed25519.pub")
   IFS='|' read -ra DS <<< "$GPU"
   for g in "${DS[@]}"; do for cl in COMMUNITY SECURE; do
-    R=$(GQ "mutation { podFindAndDeployOnDemand(input: {cloudType: $cl, gpuCount: 1, gpuTypeId: \"$g\", name: \"xv-h3-thu\", imageName: \"$ANH\", containerDiskInGb: 60, volumeInGb: 0, ports: \"22/tcp\", supportPublicIp: true, minVcpuCount: 8, minMemoryInGb: 30, env: [{key: \"PUBLIC_KEY\", value: $KHOA}]}) { id costPerHr } }")
+    R=$(GQ "mutation { podFindAndDeployOnDemand(input: {cloudType: $cl, gpuCount: 1, gpuTypeId: \"$g\", name: \"xv-h3-thu\", imageName: \"$ANH\", containerDiskInGb: ${XV_H3_DIA_RUNPOD:-60}, volumeInGb: 0, ports: \"22/tcp\", supportPublicIp: true, minVcpuCount: 8, minMemoryInGb: 30, env: [{key: \"PUBLIC_KEY\", value: $KHOA}]}) { id costPerHr } }")
     MAY=$(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin); p=(d.get("data") or {}).get("podFindAndDeployOnDemand"); print(p["id"] if p else "")' 2>/dev/null)
     if [ -z "$MAY" ]; then echo "  RunPod $g $cl: $(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin); e=d.get("errors"); print(e[0]["message"][:100] if e else "không nhận")' 2>/dev/null)" >&2; continue; fi
     LOAI=runpod; GIA=$(echo "$R" | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["podFindAndDeployOnDemand"]["costPerHr"])'); echo "máy runpod $MAY · $g $cl · $GIA\$/giờ" >&2

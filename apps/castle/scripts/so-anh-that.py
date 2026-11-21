@@ -208,7 +208,10 @@ def phan_tich(anh, d, thu, bd, chon):
     co = ~troiM; idx = np.where(co.ravel())[0]
     MAT = np.full(H * W, '', dtype=object); MAT[idx] = bd.mat(P.reshape(-1, 3)[idx], mai.ravel()[idx]); MAT = MAT.reshape(H, W)
     # canh khung: dời / phóng mọi lớp mô hình cho nét trùng nét ảnh, rồi mới đo
-    eM0 = net_mo_hinh(mh, sau, n) & (MAT != ''); eA0 = net_anh(anh) & ~(troiM & (np.arange(H)[:, None] < vien(troiM)[None, :] - 0.08 * H))
+    # canh khung chỉ bằng nét HÌNH (lượt vẽ màu pháp tuyến <ten>-hinh.png, không vân / vật liệu): vân đá, mạch vữa đổi theo vật liệu — nếu được kéo khung thì mỗi lần
+    # sửa vật liệu khung lại trôi, viền so với TRƯỚC tụt mà hình khối không đổi (21/11/2026: viền 66 → 6 %, khung dời 130 px chỉ vì thêm vân đá)
+    hinh = cv2.imread(str(thu / f'{ten}-hinh.png')); hinh = mh if hinh is None else hinh  # thư mục cũ chưa có lượt hình
+    eM0 = net_mo_hinh(hinh, sau, n) & (MAT != ''); eA0 = net_anh(anh) & ~(troiM & (np.arange(H)[:, None] < vien(troiM)[None, :] - 0.08 * H))
     CK, loi_ck = canh_khung(eA0, eM0, MAT != '')
     if loi_ck:
         wa = lambda x, nen=0: cv2.warpAffine(x, CK, (W, H), flags=cv2.INTER_NEAREST, borderMode=cv2.BORDER_CONSTANT, borderValue=nen)
@@ -372,9 +375,13 @@ def chay(thu_goc, nhan):
             if mat_mat: dong.append('mặt không còn ở SAU: ' + ', '.join(mat_mat[:4]))
             for m in sorted(set(t['mat']) & set(kq['mat']), key=lambda m: kq['mat'][m]['F'] - t['mat'][m]['F'])[:3] + sorted(set(t['mat']) & set(kq['mat']), key=lambda m: t['mat'][m]['F'] - kq['mat'][m]['F'])[:3]:
                 dong.append(f"{m}: F {t['mat'][m]['F']:.2f} → {kq['mat'][m]['F']:.2f}")
+            # camera chui trong vật (đất / tường) → khung độ sâu không có trời → viền lượt đó là rác (cột nào cũng "khớp" ở hàng 0): không so viền với lượt rác
+            rac = lambda nh: (lambda s: float(((s <= 1e-6) | (s >= 0.999 * d['xa'])).mean()) < 0.005)(giai_sau(thu_goc / nh / f"{d['ten']}-sau.png", d['xa']))
+            rac_t, rac_k = rac('truoc'), rac('sau')
+            if rac_t or rac_k: dong.insert(0, f"viền không so: camera {'TRƯỚC' if rac_t else 'SAU'} nằm trong vật (khung độ sâu không có trời)")
+            kem = (not (rac_t or rac_k) and kq['vien_khop'] < t['vien_khop'] - 0.02) or rac_k and not rac_t or nk < nt - 0.03
+            print(f"      TRƯỚC → SAU: viền {t['vien_khop'] * 100:.0f}{' (rác: camera trong vật)' if rac_t else ''} → {kq['vien_khop'] * 100:.0f}{' (rác: camera trong vật)' if rac_k else ''} % · nét (mặt chung) {nt:.2f} → {nk:.2f}{'  ✗ KÉM HƠN TRƯỚC' if kem else ''}{'  · mặt không còn: ' + ', '.join(mat_mat[:4]) if mat_mat else ''} → {thu_goc / (d['ten'] + '-truoc-sau.png')}")
             ghep([anh_pil, tc, chong], ['ẢNH THẬT', 'TRƯỚC', 'SAU'], list(dict.fromkeys(dong))).save(thu_goc / f"{d['ten']}-truoc-sau.png")
-            kem = kq['vien_khop'] < t['vien_khop'] - 0.02 or nk < nt - 0.03
-            print(f"      TRƯỚC → SAU: viền {t['vien_khop'] * 100:.0f} → {kq['vien_khop'] * 100:.0f} % · nét (mặt chung) {nt:.2f} → {nk:.2f}{'  ✗ KÉM HƠN TRƯỚC' if kem else ''}{'  · mặt không còn: ' + ', '.join(mat_mat[:4]) if mat_mat else ''} → {thu_goc / (d['ten'] + '-truoc-sau.png')}")
             hong += kem
     (thu / 'tong.json').write_text(json.dumps(tong, ensure_ascii=False, indent=1))
     return 1 if hong else 0

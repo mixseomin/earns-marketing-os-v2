@@ -162,11 +162,14 @@ export function co(r) { // cỏ: nền xanh loang + nét lá ngắn
 }
 
 // ---- lâu đài có thật (Neuschwanstein): đá vôi trắng, mặt tiền cửa sổ vòm, mái đá phiến, móng đá thô ----
-function khoiDa(g, r, hang, sangTB, bienDo, sac = 40, bao = 6) { // hàng khối đá so le phủ kín canvas
+function khoiDa(g, r, hang, sangTB, bienDo, sac = 40, bao = 6, mep = 1) { // hàng khối đá so le phủ kín canvas
   const cao = N / hang;
   for (let y = 0; y < hang; y++) { let x = -r() * 60; while (x < N) { const w = 60 + r() * 90;
     g.fillStyle = hsl(sac + (r() - 0.5) * 10, bao + r() * 6, sangTB - bienDo / 2 + r() * bienDo); g.fillRect(x + 1.5, y * cao + 1.5, Math.min(w, N - x) - 3, cao - 3);
-    if (x + w > N) g.fillRect(x + 1.5 - N, y * cao + 1.5, w - 3, cao - 3); x += w; } }
+    if (x + w > N) g.fillRect(x + 1.5 - N, y * cao + 1.5, w - 3, cao - 3);
+    // mép khối như ảnh thật: cạnh trên bắt sáng, cạnh dưới đổ bóng vào mạch (nhìn từ sân vẫn thấy từng hàng đá) — vẽ trên cả hai nửa khi khối vắt qua mép canvas
+    for (const dx of x + w > N ? [0, -N] : [0]) { g.fillStyle = `rgba(255,255,255,${0.16 * mep})`; g.fillRect(x + 1.5 + dx, y * cao + 1.5, w - 3, 2); g.fillStyle = `rgba(0,0,0,${0.2 * mep})`; g.fillRect(x + 1.5 + dx, y * cao + cao - 4.5, w - 3, 3); }
+    x += w; } }
 }
 // 512 px = 4 m ngang × 4 m cao (một gian, một tầng): đá vôi + một cửa sổ vòm có khung
 export function matTien(r) {
@@ -185,8 +188,10 @@ export function matTien(r) {
 // mặt tiền TRƠN (đá vôi sáng, mạch đá + gờ tầng mờ) — cửa sổ là hình 3D thật của mattien.js, không vẽ lên vân nữa
 export function matTron(r) {
   const [c, g] = bang();
-  g.fillStyle = '#c9c3b6'; g.fillRect(0, 0, N, N); khoiDa(g, r, 14, 86, 8);
-  hat(g, r, 10, 1);
+  // đá vôi Palas: mạch MẢNH, gần màu đá — ảnh sân trên chụp từ 30–60 m gần như không thấy mạch (so-anh-that: mặt way/223140032#9 ảnh 5 083 điểm nét; mạch sẫm
+  // #8f897d cho mô hình 34 918 = gấp 7, nét F 0,56 → 0,46). Độ sống của mặt tường đến từ cửa / gờ / bóng 3D, không từ mạch vẽ
+  g.fillStyle = '#b3ac9f'; g.fillRect(0, 0, N, N); khoiDa(g, r, 14, 85, 8, 40, 6, 0.35);
+  hat(g, r, 12, 1);
   return { map: tex(c), bump: tex(c, false) };
 }
 export function daVoi(r) { const [c, g] = bang(); g.fillStyle = '#a9a294'; g.fillRect(0, 0, N, N); khoiDa(g, r, 12, 82, 12); hat(g, r, 12, 1); return { map: tex(c), bump: tex(c, false) }; }

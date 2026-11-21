@@ -140,7 +140,7 @@ def chon(so):
                                      capture_output=True, text=True, check=True).stdout.strip() or "{}")
     ds = json.loads(sql(f"""with p as (select c.content_id, min(c.tao) dau, sum(n.chi) filter (where n.ngay >= current_date - 3) chi3, sum(n.thu) filter (where n.ngay >= current_date - 3) thu3
         from etp.camp c join etp.so_ngay n using (camp_id) where c.content_id is not null group by 1)
-      select coalesce(json_agg(x order by x.dau desc), '[]') from (select p.content_id, f.ten, coalesce(f.locale, 'en') locale, f.url, f.the_loai, p.dau, round(p.thu3 - p.chi3, 2) lai3 from p join etp.phim f using (content_id)
+      select coalesce(json_agg(x order by x.dau desc), '[]') from (select p.content_id, f.ten, coalesce(f.locale, substring(f.url from 'dramaboxdb[.]com/([a-z][a-z])/(?:ep|movie)/'), 'en') locale, f.url, f.the_loai, p.dau, round(p.thu3 - p.chi3, 2) lai3 from p join etp.phim f using (content_id)
         where p.dau > now() - interval '{NGAY_MOI} days' and ((p.chi3 >= 3 and p.thu3 > p.chi3) or exists (select 1 from etp.camp_co_hoi h where h.content_id = p.content_id)) and f.url is not null
           and exists (select 1 from etp.camp k where k.content_id = p.content_id and k.trang_thai = 'ACTIVE')
           and not exists (select 1 from etp.thu_vien v where v.content_id = p.content_id and v.dang = '{DANG}')) x""") or "[]")
@@ -149,7 +149,7 @@ def chon(so):
     return [x for x in ds if str(x["content_id"]) not in chan][:so]
 
 def phim(ids):
-    return json.loads(sql(f"select coalesce(json_agg(x), '[]') from (select content_id, ten, coalesce(locale, 'en') locale, url, the_loai from etp.phim where content_id in ({','.join(map(str, ids))})) x") or "[]")
+    return json.loads(sql(f"select coalesce(json_agg(x), '[]') from (select content_id, ten, coalesce(locale, substring(url from 'dramaboxdb[.]com/([a-z][a-z])/(?:ep|movie)/'), 'en') locale, url, the_loai from etp.phim where content_id in ({','.join(map(str, ids))})) x") or "[]")
 
 def may_doc():
     import importlib.util
@@ -270,7 +270,10 @@ def hop_ten(ten, j):
     """các hộp chữ (x, y, rộng, cao — tỉ lệ ảnh) là TÊN PHIM trong kết quả máy đọc chữ một poster; không thấy → [] (dùng chung: ten_poster + logo-goc.py)"""
     tu = lambda x: set(re.findall(r"[a-z0-9áéíóúñü]+", x.lower()))
     can = tu(ten); hop = [k[1:] for k in j.get("khung") or [] if tu(k[0]) and len(tu(k[0]) & can) / len(tu(k[0])) >= 0.6]
-    if not hop or len(set().union(*[tu(k[0]) for k in j.get("khung") or [] if k[1:] in hop]) & can) < 0.6 * len(can):
+    # TÊN PHẢI ĐỦ TỪ (21/11/2026 Get Out of My Bugatti: "Bugatti" chữ viết tay Vision không đọc ra, 4/5 từ khớp ≥ 60% → cắt mất chữ Bugatti, 3 creative
+    # chỉ còn "Get Out of My"): đã khớp được dòng chữ của tên mà còn thiếu từ → tên trên poster có phần máy không đọc được → bỏ, chữ vàng gõ đủ tên
+    if hop and set().union(*[tu(k[0]) for k in j.get("khung") or [] if k[1:] in hop]) & can != can: return None
+    if not hop:
         # CHỮ HOA VĂN (08/11/2026 The Dragon's Silly Captive: chữ gothic, Vision đọc lệch → không khớp tên): tên phim gần như luôn là KHỐI CHỮ TO NHẤT nửa dưới poster
         # → dòng cao nhất (y > 0,45) + các dòng liền trên / dưới cao ≥ 50% nó; khối phải rộng ≥ 35% poster, không thì bỏ (chữ vàng)
         dd = sorted([k[1:] for k in j.get("khung") or [] if k[2] > 0.45 and k[4] > 0.025], key=lambda b: -b[3])
@@ -285,6 +288,7 @@ def ten_poster(ten, poster, ra):
     """TÊN PHIM TÁCH TỪ POSTER (anh 08/11/2026 "tách phần tên phim từ poster ra và gắn lên creative"): Vision đọc chữ poster → các dòng chữ khớp từ
     của tên phim → cắt vùng đó, chỉ giữ nét chữ (màu nhiều trong lõi dòng chữ, ít ở viền vùng cắt), thêm viền tối để đọc rõ trên mọi khung.
     Không có poster / không dòng nào khớp ≥ 60% từ của tên → None (anh() quay về chữ vàng)."""
+    if os.path.exists(ra): os.remove(ra)   # tệp tên của lượt trước (bản 2, 3 dùng lại tệp này) — lượt này không tách được thì không được để bản cũ sót lại
     if not os.path.exists(poster): return None
     from collections import Counter
     j = json.loads(subprocess.run([may_doc(), poster], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")

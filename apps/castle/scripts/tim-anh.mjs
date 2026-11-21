@@ -3,6 +3,7 @@
 //   node apps/castle/scripts/tim-anh.mjs --the <id>                 tải các ảnh người báo đã chọn ở nút 📷 (ANH-THAT-JSON trong thẻ)
 //   node apps/castle/scripts/tim-anh.mjs --khoi way/221599096 [--r 100]   tìm quanh tâm một khối OSM (Commons + Mapillary nhìn vào khối)
 //   node apps/castle/scripts/tim-anh.mjs --xz 37,-13 [--r 100]       tìm quanh một toạ độ cảnh (x đông, z nam, mét)
+//   node apps/castle/scripts/tim-anh.mjs --ghi-cong              ảnh đã nằm trong anh/web mà sổ ghi công thiếu → tra lại nguồn theo tên tệp, ghi bổ sung
 //   … thêm --tai 1,3,5  → tải đúng các ảnh số đó trong danh sách vừa in (--tai het = tải hết)
 // Ảnh tải về: apps/castle/public/du-lieu/anh/web/<nguồn>-<id>.jpg; tác giả / giấy phép / toạ độ / hướng ghi vào public/du-lieu/<lâu>-anh-web.json (bắt buộc ghi công
 // khi dùng). Đo mặt tiền trên ảnh thì theo QUY-TRINH.md (đo điểm ảnh → du-lieu/<lâu>-mat-*.json). Khoá Mapillary: MLY_TOKEN hoặc vault acct #689 (~/bin/acct).
@@ -32,7 +33,7 @@ async function taiVe(ds, the = null) {
   mkdirSync(THU, { recursive: true });
   const so = existsSync(SO) ? JSON.parse(readFileSync(SO, 'utf8')) : [];
   for (const a of ds) {
-    const tep = `${a.nguon}-${String(a.id).replace(/\.[a-z]+$/i, '').replace(/[^\p{L}\p{N}_-]+/gu, '-').slice(0, 80)}.jpg`, duong = join(THU, tep);
+    const tep = tenTep(a.nguon, a.id), duong = join(THU, tep);
     if (!existsSync(duong)) {
       const r = await fetch(a.url || a.lon, { headers: { 'User-Agent': 'castle-lau-dai-that/1.0 (tim-anh)' } });
       if (!r.ok) { console.error(`✗ ${a.nguon} ${a.id}: tải lỗi ${r.status}`); continue; }
@@ -49,6 +50,32 @@ async function taiVe(ds, the = null) {
 function layKhoaMly() { // khoá Mapillary: biến môi trường hoặc vault (không in ra)
   if (process.env.MLY_TOKEN) return process.env.MLY_TOKEN;
   try { return execFileSync(join(homedir(), 'bin', 'acct'), ['reveal', '689', 'api', 'client_token', 'token'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim().split('\n').pop() || null; } catch { return null; }
+}
+// --ghi-cong: ảnh trong anh/web chưa có dòng ghi công (tải bằng đường khác / sổ bị ghi đè) → tra lại nguồn từ chính tên tệp, ghi bổ sung (do-anh.mjs chỉ thấy ảnh có trong sổ)
+const tenTep = (nguon, id) => `${nguon}-${String(id).replace(/\.[a-z]+$/i, '').replace(/[^\p{L}\p{N}_-]+/gu, '-').slice(0, 80)}.jpg`;
+if (doiSo.includes('--ghi-cong')) {
+  const { readdirSync } = await import('node:fs'), so = existsSync(SO) ? JSON.parse(readFileSync(SO, 'utf8')) : [], co = new Set(so.map((a) => a.tep)), mly = layKhoaMly(), UA = { 'User-Agent': 'castle-lau-dai-that/1.0 (tim-anh)' };
+  let them = 0; const sot = [], cho = (ms) => new Promise((ok) => setTimeout(ok, ms));
+  const layJson = async (u) => { for (let lan = 0; ; lan++) { const t = await (await fetch(u, { headers: UA })).text(); try { return JSON.parse(t); } catch { if (lan > 4) throw new Error('Commons từ chối: ' + t.slice(0, 60)); await cho(5000 * (lan + 1)); } } }; // Commons chặn khi gọi dồn
+  for (const f of readdirSync(THU).filter((f) => /\.jpg$/i.test(f) && !co.has(`anh/web/${f}`))) {
+    const [, ng, ten] = f.match(/^([a-z]+)-(.*)\.jpg$/i) || [];
+    try {
+      let a = null;
+      if (ng === 'mapillary') a = await chiTietAnh('m:' + ten, mly);
+      else if (ng === 'commons' || ng === 'c') { // tên đã bị làm gọn → tìm trên Commons rồi so lại đúng cách làm gọn
+        const u = new URL('https://commons.wikimedia.org/w/api.php');
+        for (const [k, v] of Object.entries({ action: 'query', format: 'json', list: 'search', srnamespace: '6', srlimit: '20', srsearch: ten.replace(/-+/g, ' ').trim() })) u.searchParams.set(k, v);
+        const kq = (await layJson(u)).query?.search || [], t = kq.find((x) => tenTep(ng, x.title.replace(/^File:/, '')) === f);
+        if (t) { await cho(800); a = await chiTietAnh('c:' + t.title.replace(/^File:/, '')).catch(async () => (await cho(8000), chiTietAnh('c:' + t.title.replace(/^File:/, '')))); }
+        await cho(800);
+      }
+      if (!a) { sot.push(f); continue; }
+      so.push({ tep: `anh/web/${f}`, nguon: a.nguon, id: a.id, trang: a.trang, tacGia: a.tacGia, giayPhep: a.giayPhep, lat: a.lat, lng: a.lng, huong: a.huong ?? null, luc: a.luc ?? null }); them++;
+    } catch (e) { sot.push(`${f} (${e.message})`); }
+  }
+  writeFileSync(SO, JSON.stringify(so, null, 1) + '\n');
+  console.log(`ghi công bổ sung ${them} ảnh · sổ ${so.length} dòng${sot.length ? ` · KHÔNG tra được ${sot.length}:\n  ` + sot.join('\n  ') : ''}`);
+  process.exit(sot.length ? 1 : 0);
 }
 const the = arg('--the');
 if (the) {

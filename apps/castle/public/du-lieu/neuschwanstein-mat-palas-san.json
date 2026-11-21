@@ -415,6 +415,25 @@
    760
   ],
   "chanThan": 955,
-  "mui": 1060
+  "mui": 1060,
+  "rong": {
+   "than": [
+    395,
+    535
+   ],
+   "vanh": [
+    390,
+    592
+   ],
+   "rang": [
+    400,
+    560
+   ],
+   "chop": [
+    433,
+    546
+   ],
+   "ly_do": "anh 21/11/2026 \"chân các tháp còn có xu hướng xoè rộng hơn\" + so-anh-that.mjs trên ảnh c-02-10-2010 (thân mô hình rộng hơn ảnh ~15 %, nón lùn bè gần bằng vành): bề ngang đo trên ảnh chính tháp trái (gần, nắng), px: thân giữa hai gờ y 650 · gờ vòm đỡ vành y 525 · vành răng cưa y 475 · chân nón ngang đỉnh vành y 450 (mép nón nội suy từ dải 280–440 dò theo nền trời). mattien.js quyDoiMat đổi ra bán kính bát giác = bề ngang × ti phối cảnh / pxNgang / (1 + cos 22,5°) (nhìn chéo, giữa bề ngang hai cạnh và hai góc) → thân ~1,69 m (bản phong 2 cũ: 2,28 m), nón ~1,36 m. Thay phong gõ tay trong sua.json: ns.js co mặt bằng OSM cho nằm gọn trong thân đo"
+  }
  }
 }

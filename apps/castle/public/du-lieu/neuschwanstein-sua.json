@@ -26,17 +26,15 @@
  },
  "way/223145711": {
   "building:colour": "#f3e3bb",
-  "roof:colour": "#8fb5a0",
-  "phong": 2,
+  "roof:colour": "#56625f",
   "thap_goc": "yes",
-  "ly_do": "ảnh sân trên (Naturliebhaberin, Commons): tháp góc Palas hướng sân bằng sa thạch vàng, mái đồng xanh, rộng ~0,4 bề ngang đầu hồi (phong 2,0). Cao độ (chân thân, đỉnh thân, chóp) KHÔNG ghi ở đây: ns.js lấy từ tệp bố cục mặt Palas (thapGoc, đo trên ảnh, neo bằng ảnh 3D Google)"
+  "ly_do": "ảnh sân trên (Naturliebhaberin, Commons): tháp góc Palas hướng sân bằng sa thạch vàng; chóp đá phiến / đồng đã xỉn tối (trung vị điểm ảnh nón trái: mặt nắng 137,158,156 · giữa 73,80,82 · ảnh c-02-10 67,72,77 → #56625f; bản cũ ghi \"đồng xanh\" #8fb5a0 sai so ảnh). Bề ngang thân / vành / nón và cao độ KHÔNG ghi ở đây: ns.js lấy từ tệp bố cục mặt Palas (thapGoc.rong + cao độ, đo trên ảnh, neo bằng ảnh 3D Google)"
  },
  "way/223145712": {
   "building:colour": "#f3e3bb",
-  "roof:colour": "#8fb5a0",
-  "phong": 2,
+  "roof:colour": "#56625f",
   "thap_goc": "yes",
-  "ly_do": "ảnh sân trên (Naturliebhaberin, Commons): tháp góc Palas hướng sân bằng sa thạch vàng, mái đồng xanh, rộng ~0,4 bề ngang đầu hồi (phong 2,0). Cao độ (chân thân, đỉnh thân, chóp) KHÔNG ghi ở đây: ns.js lấy từ tệp bố cục mặt Palas (thapGoc, đo trên ảnh, neo bằng ảnh 3D Google)"
+  "ly_do": "ảnh sân trên (Naturliebhaberin, Commons): tháp góc Palas hướng sân bằng sa thạch vàng; chóp đá phiến / đồng đã xỉn tối (trung vị điểm ảnh nón trái: mặt nắng 137,158,156 · giữa 73,80,82 · ảnh c-02-10 67,72,77 → #56625f; bản cũ ghi \"đồng xanh\" #8fb5a0 sai so ảnh). Bề ngang thân / vành / nón và cao độ KHÔNG ghi ở đây: ns.js lấy từ tệp bố cục mặt Palas (thapGoc.rong + cao độ, đo trên ảnh, neo bằng ảnh 3D Google)"
  },
  "way/221599098": {
   "y_tren": 54,

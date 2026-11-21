@@ -11,6 +11,8 @@
 //       --ghi      ghi số đạt vào <lâu>-cua-so.json (chỉ trường CHƯA có; --ghi-de: đè cả trường đã có). Không --ghi = chỉ in bảng.
 //       --cua      đếm thêm CỬA SỔ + GỜ NGANG (scripts/dem-cua-so.py): ghi khi mặt đang trống cửa và ảnh phủ ≥ 90 % cạnh; mặt đã có số thì chỉ so KHỚP / LỆCH
 //       --lam-lai  định vị lại cả ảnh đã có trong sổ đo
+//       --vong [70,120,190,280]  kho VÒNG NHÌN VÀO (kho-goc-nhin.mjs --vong): ảnh chụp xa (đường lên, cầu, đồi) mà lưới sát chân tường không ghép được; thư mục kho riêng <vùng>_vong,
+//                  vùng chỗ đứng hợp lệ nới theo vòng ngoài cùng; ảnh đã thử hỏng 2 vùng lưới vẫn được thử một lần ở kho vòng
 //   node apps/castle/scripts/do-anh.mjs --tu-kiem     bài kiểm có thể hỏng: bộ đếm trên mặt vẽ có đáp án + định vị lại góc nhìn của chính kho + ghi thử tệp
 // Cần venv /Users/htuan/.venvs/castle-khop (torch, lightglue, opencv, numpy, pillow) — thiếu thì lệnh in cách cài rồi dừng.
 // tra-repo-ok: điều phối các bước của cảnh; phần nặng dùng thư viện có sẵn (cvg/LightGlue Apache-2.0, OpenCV) — xem khop-lg.py.
@@ -116,26 +118,28 @@ const KHOI = (gt('--khoi') || '').split(',').filter(Boolean); if (!KHOI.length) 
 const D = JSON.parse(readFileSync(join(PUB, 'du-lieu', `${LAU}.json`), 'utf8')), M = 111320, C = Math.cos(D.tam[0] * Math.PI / 180), raLatLng = (x, z) => [+(D.tam[0] - z / M).toFixed(7), +(D.tam[1] + x / (M * C)).toFixed(7)];
 const dinh = KHOI.flatMap((id) => { const k = D.khoi.find((b) => b.id === id); if (!k) { console.error('không có khối ' + id); process.exit(1); } return k.ngoai[0]; });
 const lam = (v, f) => f(v / 10) * 10, V = [lam(Math.min(...dinh.map((p) => p[0])) - 45, Math.floor), lam(Math.max(...dinh.map((p) => p[0])) + 45, Math.ceil), lam(Math.min(...dinh.map((p) => p[1])) - 45, Math.floor), lam(Math.max(...dinh.map((p) => p[1])) + 45, Math.ceil)];
-const KHO = join(KHO_GOC, V.join('_')), NAN = join(KHO, 'nan'), SO = du('do-anh'); mkdirSync(NAN, { recursive: true });
+const VONG = co('--vong') ? (/^[\d,]+$/.test(gt('--vong') || '') ? gt('--vong') : '70,120,190,280') : null, RV = VONG ? Math.max(...VONG.split(',').map(Number)) : 0;
+const VUNG = VONG ? [V[0] - RV, V[1] + RV, V[2] - RV, V[3] + RV] : V; // chỗ đứng hợp lệ của lời giải
+const KHO = join(KHO_GOC, V.join('_') + (VONG ? '_vong' : '')), NAN = join(KHO, 'nan'), SO = du('do-anh'); mkdirSync(NAN, { recursive: true });
 const so = existsSync(SO) ? JSON.parse(readFileSync(SO, 'utf8')) : { anh: {}, mat: {} };
 
 console.log(`1. KHO GÓC NHÌN vùng x ${V[0]}…${V[1]} · z ${V[2]}…${V[3]}`);
-if (!existsSync(join(KHO, 'kho.json')) && chay(process.execPath, [join(SC, 'kho-goc-nhin.mjs'), KHO, ...V.map(String), '9', '--lau', LAU])) process.exit(1);
+if (!existsSync(join(KHO, 'kho.json')) && chay(process.execPath, [join(SC, 'kho-goc-nhin.mjs'), KHO, ...V.map(String), '9', '--lau', LAU, ...(VONG ? ['--vong', VONG] : [])])) process.exit(1);
 const kho = JSON.parse(readFileSync(join(KHO, 'kho.json'), 'utf8')), khoY = [Math.min(...kho.map((g) => g.p[1])), Math.max(...kho.map((g) => g.p[1]))];
 console.log(`   ${kho.length} góc nhìn (${KHO})`);
 
 const dienTich = (v) => Math.abs(v.reduce((a, p, i) => a + p[0] * v[(i + 1) % v.length][1] - v[(i + 1) % v.length][0] * p[1], 0)) / 2;
 if (co('--tim')) for (const id of [...KHOI].sort((a, b) => dienTich(D.khoi.find((k) => k.id === b).ngoai[0]) - dienTich(D.khoi.find((k) => k.id === a).ngoai[0])).slice(0, 4)) { /* 4 khối lớn nhất của nhóm: khối cạnh nhau ra cùng danh mục ảnh */ console.log(`   tìm ảnh quanh ${id}`); chay(process.execPath, [join(SC, 'tim-anh.mjs'), '--khoi', id, '--r', '80', '--tai', 'het', '--lau', LAU]); }
 const WEB = existsSync(du('anh-web')) ? JSON.parse(readFileSync(du('anh-web'), 'utf8')) : [], coTep = WEB.filter((a) => existsSync(join(PUB, 'du-lieu', a.tep)));
-const VK = V.join('_'), raCu = join(KHO, 'khop.json'), nhoKhop = existsSync(raCu) && !co('--lam-lai') ? JSON.parse(readFileSync(raCu, 'utf8')) : {};
+const VK = V.join('_') + (VONG ? '_vong' : ''), raCu = join(KHO, 'khop.json'), nhoKhop = existsSync(raCu) && !co('--lam-lai') ? JSON.parse(readFileSync(raCu, 'utf8')) : {};
 // ảnh chưa có camera được thử ở tối đa 2 vùng (ảnh của vùng khác ghép hỏng ở vùng này là thường — không thử mãi); kết quả ghép của vùng nhớ ở khop.json: đổi ngưỡng không phải ghép lại
-const canThu = coTep.filter((a) => co('--lam-lai') || (!so.anh[a.tep]?.camera && !(so.anh[a.tep]?.vung_thu || []).includes(VK) && (so.anh[a.tep]?.vung_thu || []).length < 2)).map((a) => a.tep);
+const canThu = coTep.filter((a) => co('--lam-lai') || (!so.anh[a.tep]?.camera && !(so.anh[a.tep]?.vung_thu || []).includes(VK) && ((so.anh[a.tep]?.vung_thu || []).filter((k) => k.endsWith('_vong') === !!VONG).length < 2))).map((a) => a.tep);
 const can = canThu.filter((t) => !nhoKhop[t]);
 console.log(`2. ĐỊNH VỊ ${can.length} ảnh mới + ${canThu.length - can.length} ảnh đã ghép ở vùng này (sổ ảnh web ${coTep.length} tệp, có camera ${Object.values(so.anh).filter((a) => a.camera).length})`);
 if (canThu.length) {
   const ra = join(KHO, 'khop-moi.json'); if (can.length && spawnSync(PY, ['-W', 'ignore', join(SC, 'khop-lg.py'), KHO, join(PUB, 'du-lieu'), '--ra', ra, '--chi', can.join(',')], { stdio: 'inherit' }).status) process.exit(1); // in thẳng: thấy tiến độ từng ảnh
   const kqKhop = { ...nhoKhop, ...(can.length ? JSON.parse(readFileSync(ra, 'utf8')) : {}) }; writeFileSync(raCu, JSON.stringify(kqKhop, null, 1));
-  for (const tep of canThu) { const r = kqKhop[tep]; if (!r) continue; const loi = anhDat(r, khoY, V), w = WEB.find((a) => a.tep === tep) || {};
+  for (const tep of canThu) { const r = kqKhop[tep]; if (!r) continue; const loi = anhDat(r, khoY, VUNG), w = WEB.find((a) => a.tep === tep) || {};
     so.anh[tep] = loi ? { hong: loi, vung_thu: [...new Set([...(so.anh[tep]?.vung_thu || []), VK])], luc: new Date().toISOString().slice(0, 10) } : { lat: raLatLng(r.x, r.z)[0], lng: raLatLng(r.x, r.z)[1], rong: r.w, cao: r.h, tacGia: w.tacGia || '', giayPhep: w.giayPhep || '', trang: w.trang || '',
       camera: { y: +r.y.toFixed(2), yaw: r.yaw, pitch: r.pitch, roll: r.roll, fov: r.fov }, dung: r.dung, lech_px: +r.lech_px.toFixed(2), tach_m: +r.tach_m.toFixed(2), x: +r.x.toFixed(1), z: +r.z.toFixed(1), vung: VK, luc: new Date().toISOString().slice(0, 10) }; }
   writeFileSync(SO, JSON.stringify(so, null, 1) + '\n');

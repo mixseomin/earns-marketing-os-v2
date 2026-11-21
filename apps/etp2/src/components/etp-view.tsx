@@ -36,6 +36,7 @@ import { NenLam } from '@/components/etp-tu-van';
 import { TabInsight } from '@/components/etp-insight';
 import { TabLogs } from '@/components/etp-logs';
 import { ChoDuyetCr } from '@/components/etp-cho-duyet';
+import { NutLenGio } from '@/components/etp-len-gio';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLenCamp, datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 // CHỈ XEM (anh 29/10/2026 "sso thêm 1 người … chỉ view"): khách một trang etp (users.chi_host) — ẩn mọi nút ghi; action máy chủ cũng đòi admin
@@ -2419,7 +2420,9 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, dongCr, 
     { key: 'ht', header: 'Thị trường', align: 'center', width: 40, title: 'thị trường của phim (độ hấp thụ): ROI biên 14 ngày (mỗi $1 chi thêm đem về bao nhiêu) — xanh còn hút · vàng gần đỉnh · đỏ bão hoà; chưa đủ số thì trống',
       cell: () => null, total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <DongHoPhim cid={k} m={du.moRong?.find((x) => x.content_id === k)} ten={rs.find((x) => x.camp_id > 0)?.phim} /> : null; } },   // cột riêng (anh 04/11/2026)
     { key: 'tt', header: 'TT', align: 'left', width: 74, title: 'trạng thái camp trên Ethopex', total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return HIEN_SX_CAY && k && rs.every((x) => x.content_id === k)   // ĐỒNG HỒ CÁC ĐỢT SẢN XUẤT ở dòng phim, sát mép phải → ngay cạnh ＋ (cột Tuổi) (anh 04/11/2026) · TẠM ẨN (#1668) — xem HIEN_SX_CAY
-      ? <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}><BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} /></span> : null; }, cell: (c) => { const x = ttCamp(c); const o = <span style={{ display: 'block', fontSize: 11, color: x.mau, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'help' }}>{x.chu}</span>;
+      ? <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}><BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} /></span> : null; }, cell: (c) => { if (c.camp_id < 0) return <NutLenGio cr={c.creative_id} />;   // ▶ Lên ngay / đặt giờ dòng xếp hàng (anh 22/11/2026)
+        const x = ttCamp(c); const o0 = <span style={{ display: 'block', fontSize: 11, color: x.mau, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'help' }}>{x.chu}</span>;
+        const o = choGio(c) ? <span style={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}><span style={{ flex: 1, minWidth: 0 }}>{o0}</span><NutLenGio camp={c.camp_id} lich={c.lich} /></span> : o0;   // 🕒 đổi giờ camp đã đẩy chưa chạy (anh 22/11/2026)
         return c.trang_thai === 'ACTIVE' || c.giao === 'DISAPPROVED' ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: x.chu, mau: x.mau, moc: [{ ten: 'Trạng thái', mau: x.mau, chu: x.t }] })}>{o}</ReThe> : <ReDung c={c}>{o}</ReDung>; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
     { key: 'tuoi', header: 'Tuổi', width: 52, title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: tuoiTitle, cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)),
       // NÚT ＋ MỞ RỘNG ở dòng PHIM, thẳng một cột (anh 04/11/2026 "phải thẳng cột") — dòng tổng bảng (nhiều phim) không có

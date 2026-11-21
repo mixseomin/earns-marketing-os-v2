@@ -17,5 +17,19 @@ export function xinVeTay(viec: ViecVe, o: { camp?: number | null; content?: numb
   }));
 }
 
+/** VÉ LỆNH TRỰC TIẾP từ nút anh bấm (▶ Lên / 🕒 đổi giờ — anh 22/11/2026 "nút bấm Lên ngay = Tao ra lệnh sao phải xin mày ?"): cong.py --ve-truc-tiep.
+ *  Có phanh → lần đầu chỉ trả { canh } (cảnh báo MỘT lần, luật 20/11/2026), bấm lại trong 30 phút mới cấp { ma }. Phim cấm / camp đội → { loi }. */
+export function xinVeTrucTiep(viec: ViecVe, o: { camp?: number | null; content?: number | null; lenh: string; ns?: number | null }): Promise<{ ma: string } | { canh: string } | { loi: string }> {
+  const repo = process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2';
+  const args = [`${repo}/apps/etp/cong.py`, '--ve-truc-tiep', viec, ...(o.camp ? ['--camp', String(o.camp)] : ['--phim', String(o.content ?? '')]), '--lenh', o.lenh.slice(0, 900), ...(o.ns ? ['--ns', String(o.ns)] : [])];
+  return new Promise((ok) => execFile('python3', args, { timeout: 60_000, env: { ...process.env, ETP_VE: '', CLAUDE_SESSION_ID: 'etp2-nut-anh' } }, (e, out, err) => {
+    const ma = String(out ?? '').trim().split('\n').pop() ?? '', loi = String(err ?? '').trim();
+    const code = (e as { code?: number } | null)?.code;
+    if (!e && /^[0-9a-f]{32}$/.test(ma)) return ok({ ma });
+    if (code === 4) return ok({ canh: loi.replace(/^⚠ CẢNH BÁO MỘT LẦN — phanh sẽ bị bỏ qua: /, '').split('\n')[0] ?? '' });
+    ok({ loi: loi.replace(/^✗ không cấp: /, '').slice(0, 400) || `cong.py lỗi (mã ${code ?? '?'}): ${String(e?.message ?? '').slice(0, 200)}` });
+  }));
+}
+
 /** env cho tiến trình con: mang vé khi có, KHÔNG BAO GIỜ thừa kế ETP_VE cũ của tiến trình web */
 export const envVe = (ma: string | null): NodeJS.ProcessEnv => ({ ...process.env, ETP_VE: ma ?? '' });

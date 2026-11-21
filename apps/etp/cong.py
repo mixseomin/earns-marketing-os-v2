@@ -254,7 +254,8 @@ def ve_hop_le(viec, camp_ids=(), content_id=None, dung=False, cho="", ma=None, l
 # Vé loai 'truc_tiep' chỉ cấp từ CLI `cong.py --ve-truc-tiep` (gop-y-luat.mjs giữ danh sách nơi gọi VE_TRUC_TIEP_XIN — máy luật / worker / dòng phim / kỹ sư máy KHÔNG gọi),
 # mỗi vé ghi nguyên văn câu lệnh + phiên + MỘT dòng Telegram. Miễn MỌI phanh (phanh chợ + báo sớm + rút chợ, bảo trì, khung giờ, nhịp 24 giờ, trần camp test / phim,
 # trần camp mới / ngày, nắp ROI 3 ngày, tran_camp, trần $30, ngân sách ROAS ngoài $15–20, camp mới $1); KHÔNG miễn: phim cấm, camp đội (camp_ngoai), giới hạn của Ethopex / Meta.
-VE_TRUC_TIEP_XIN = ("apps/etp/cong.py",)   # chỉ CLI của chính tệp này (Claude gõ theo câu anh trong chat)
+# + nút etp2 ▶ Lên / 🕒 đổi giờ (anh 22/11/2026 "nút bấm Lên ngay = Tao ra lệnh sao phải xin mày ?"): anh bấm = lệnh trực tiếp, vỏ gọi apps/etp2/src/lib/etp-ve.ts xinVeTrucTiep
+VE_TRUC_TIEP_XIN = ("apps/etp/cong.py", "apps/etp2/src/lib/etp-ve.ts")   # CLI của chính tệp này (Claude gõ theo câu anh trong chat) + nút anh bấm trên etp2
 CANH_BAO_PHUT = int(_BL["mot_cua"]["truc_tiep"]["canh_bao_phut"])   # sổ luật mot_cua.truc_tiep (30 phút)
 def truc_tiep(viec, camp_ids=(), content_id=None, ma=None):
     """chữ ai của vé TRỰC TIẾP hợp lệ cho lệnh này (chưa đốt) | None — mọi chỗ phanh hỏi hàm này để miễn"""

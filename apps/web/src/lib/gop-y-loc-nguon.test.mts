@@ -29,4 +29,11 @@ assert.equal(hien('mos2.on.tc', refS, C), false);
 assert.equal(hien('mos2.on.tc', null, S2), false);
 assert.equal(hien('mos2.on.tc', refC, S2), false);
 assert.equal(hien('etp2.on.tc', null, S2), false);
+// dantranh: hòm khách nhúng → chỉ card dantranh; mos2 không thấy card dantranh
+const D = 'https://dantranh.on.tc/', refD = 'https://mos2.on.tc/nhung/gop-y?trang=' + encodeURIComponent(D);
+assert.equal(hien('mos2.on.tc', refD, D), true);
+assert.equal(hien('mos2.on.tc', refD, 'https://dantranh2.on.tc/x'), true);
+assert.equal(hien('mos2.on.tc', refD, M), false);
+assert.equal(hien('mos2.on.tc', refD, C), false);
+assert.equal(hien('mos2.on.tc', null, D), false);
 console.log('gop-y-loc-nguon: đạt');

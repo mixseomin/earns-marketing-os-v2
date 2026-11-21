@@ -26,8 +26,10 @@ const Khung: KhungHom = ({ onClose, tieuDe, dau, children }) => (
 /** tren = nút ở góc phải TRÊN (etp.on.tc: hàng tiêu đề trống, bảng camp chiếm hết mép phải + dòng tổng dính chân — anh 29/10/2026 "nút này để chỗ khác") */
 export function GopYMos2({ hom = 'mos2', tren = false }: { hom?: 'mos2' | 'city'; tren?: boolean }) {
   // khung nhúng /nhung/gop-y?trang=https://studio2.on.tc/… → hòm Xưởng video (máy chủ tự đổi hòm theo nơi gửi, lib/actions/gop-y-mos2 HOM_THEO_NOI); tên hòm theo đó
-  const [laS2, datLaS2] = useState(false);
-  useEffect(() => { try { datLaS2(new URL(new URLSearchParams(location.search).get('trang') || '').hostname === 'studio2.on.tc'); } catch { /* không nhúng */ } }, []);
+  // dantranh(2).on.tc: hòm khách (lib/gop-y-khach.ts) — tên + nháp riêng
+  const [noiNhung, datNoiNhung] = useState('');
+  useEffect(() => { try { datNoiNhung(new URL(new URLSearchParams(location.search).get('trang') || '').hostname); } catch { /* không nhúng */ } }, []);
+  const laS2 = noiNhung === 'studio2.on.tc', laDt = /^dantranh2?\.on\.tc$/.test(noiNhung);
   const hd: HanhDongGopY = {
     guiGopY: (i) => guiGopYMos2({ ...i, hom }),
     dsGopYCuaToi: () => dsGopYCuaToi(hom),
@@ -38,7 +40,7 @@ export function GopYMos2({ hom = 'mos2', tren = false }: { hom?: 'mos2' | 'city'
     xoaAnhGopY: deleteImage,
   };
   // City: trái cụm nút điều hướng, nổi trên cảnh 3D. (mos2 cũ: right 60 tránh nút ⚙ Tweaks góc phải-dưới — 05/10/2026)
-  return <HomGopY ten={laS2 ? 'Studio 2' : hom === 'city' ? 'Thành phố' : 'MOS2'} khoa={laS2 ? 'xuong-video' : hom === 'city' ? 'city' : 'mos2'} hd={hd} Khung={Khung} chonNgan='[data-comp="ui.Drawer"]' chonLoi="[data-loi]"
+  return <HomGopY ten={laDt ? 'Đàn Tranh' : laS2 ? 'Studio 2' : hom === 'city' ? 'Thành phố' : 'MOS2'} khoa={laDt ? 'dantranh' : laS2 ? 'xuong-video' : hom === 'city' ? 'city' : 'mos2'} hd={hd} Khung={Khung} chonNgan='[data-comp="ui.Drawer"]' chonLoi="[data-loi]"
     // mos2: tab nhỏ ở MÉP PHẢI GIỮA MÀN (anh 29/10/2026 etp "nút này để chỗ khác") — góc phải-dưới đè dòng tổng dính chân của mọi DataTable (+ nút ⚙ Tweaks)
     nutStyle={hom === 'city' ? { right: 112, zIndex: 10000 } : tren ? { right: 16, top: 12, bottom: 'auto', minWidth: 32, height: 32, fontSize: 14 } : { right: 0, bottom: 'auto', top: '50%', transform: 'translateY(-50%)', minWidth: 30, width: 30, height: 44, borderRadius: '10px 0 0 10px', borderRight: 'none', fontSize: 15 }} />;
 }

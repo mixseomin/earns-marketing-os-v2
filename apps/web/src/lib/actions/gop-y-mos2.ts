@@ -6,9 +6,12 @@
 // Góp ý etp.on.tc / etp2.on.tc nằm CHUNG hòm mos2; luật lọc nguồn này có cả ở apps/etp2 — sửa thì sửa cả hai.
 import * as hom from '@mos2/gop-y/server';
 import { headers } from 'next/headers';
+import { sql } from 'drizzle-orm';
+import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 import { boLocNguon, noiDangXem } from '@/lib/gop-y-loc-nguon';
+import { HEADER_KHACH, laTrangKhach, nguoiKhach } from '@/lib/gop-y-khach';
 import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture';
 
 export type TinTraoDoi = hom.TinTraoDoi;
@@ -21,6 +24,20 @@ const HOM_GOP_Y = ['mos2', 'city', 'xuong-video'];
 const HOM_THEO_NOI: Record<string, { hom: string; kySu: string }> = { 'studio2.on.tc': { hom: 'xuong-video', kySu: 'vinh' } };
 async function noiGui() { const h = await headers(); return noiDangXem(h.get('host'), h.get('referer')); }
 async function homCua(x: unknown) { const theoNoi = HOM_THEO_NOI[await noiGui()]; if (theoNoi) return theoNoi.hom; return typeof x === 'string' && HOM_GOP_Y.includes(x) ? x : 'mos2'; }
+/** Người gửi: phiên mos2, hoặc KHÁCH của trang công khai (dantranh — middleware đã kiểm VN + gắn mã, lib/gop-y-khach.ts). */
+async function nguoiGui(): Promise<hom.Nguoi | null> {
+  const me = await getCurrentUser();
+  if (me) return me;
+  return nguoiKhach((await headers()).get(HEADER_KHACH), await noiGui());
+}
+/** Khách gửi tối đa 6 góp ý / giờ — trang công khai không đăng nhập, chặn xả rác (dòng lỗi hiện ngay dưới nút Gửi). */
+async function khachQuaNhieu(email: string) {
+  const db = getDb(); if (!db) return false;
+  const r = (await db.execute(sql`SELECT count(*)::int AS n FROM human_tasks WHERE prep_payload->>'source_platform' = 'feedback'
+    AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${email}) AND created_at > now() - interval '1 hour'`)) as unknown as Array<{ n: number }>;
+  return Number(r[0]?.n ?? 0) >= 6;
+}
+const hostCua = (u: unknown) => { try { return new URL(String(u || '')).hostname; } catch { return ''; } };
 const laTrangEtp = (u: string) => { try { return new URL(u).hostname === 'etp.on.tc'; } catch { return false; } };
 const homNayVN = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
 /** Thẻ do MÁY / Claude tạo thay anh: admin thấy trong "Của tôi" để theo dõi / trả lời / duyệt (anh 17/11/2026). */
@@ -33,20 +50,23 @@ const ghiTrangThai: hom.TuyChon = {
 async function tuyChonDoc(): Promise<hom.TuyChon> {
   const h = await headers(); // nguồn theo nơi đang xem: mos2 / etp / castle (lib/gop-y-loc-nguon.ts)
   // castle.on.tc nằm trong hòm mos2 nhưng do Thắng xử (SOUL thang runner castle-gop-y) → dải đầu hòm + rung theo Thắng, không theo Đạt (góp ý #1673)
-  const noi = noiDangXem(h.get('host'), h.get('referer')), kySu = noi === 'castle.on.tc' ? 'thang' : HOM_THEO_NOI[noi]?.kySu;
+  // dantranh: Nguyệt (cty may/dantranh-gop-y.mjs) — trước đây dải đầu hòm báo "Đạt đang rảnh"
+  const noi = noiDangXem(h.get('host'), h.get('referer')), kySu = noi === 'castle.on.tc' ? 'thang' : laTrangKhach(noi) ? 'nguyet' : HOM_THEO_NOI[noi]?.kySu;
   return { ...ghiTrangThai, nguoiMay: NGUOI_MAY, locNguon: boLocNguon(h.get('host'), h.get('referer')), kySu };
 }
 
 export async function guiGopYMos2(input: { loai: string; noiDung: string; trang: string; anhUrls: string[]; nguCanh?: string; hom?: string }) {
-  const me = await getCurrentUser(), h = await homCua(input.hom);
-  const choPhepGui = !!me && me.role !== 'admin' && h === 'mos2' && laTrangEtp(String(input.trang || '')) && (await quyenEtp(me));
+  const me = await nguoiGui(), h = await homCua(input.hom);
+  if (me?.role === 'khach' && (await khachQuaNhieu(me.email))) return { ok: false, error: 'Bạn đã gửi 6 góp ý trong một giờ — đợi một lúc rồi gửi tiếp; nháp vẫn giữ.' };
+  const choPhepGui = !!me && me.role !== 'admin' && h === 'mos2'
+    && ((me.role === 'khach' && laTrangKhach(hostCua(input.trang))) || (laTrangEtp(String(input.trang || '')) && !!(await quyenEtp(await getCurrentUser()))));
   return hom.guiGopY(h, me, input, { ...ghiTrangThai, choPhepGui });
 }
-export async function dsGopYCuaToi(homVao?: string) { return hom.dsGopYCuaToi(await homCua(homVao), await getCurrentUser(), await tuyChonDoc()); }
+export async function dsGopYCuaToi(homVao?: string) { return hom.dsGopYCuaToi(await homCua(homVao), await nguoiGui(), await tuyChonDoc()); }
 /** Số cho nút 💬 (CHUAN.md): rung khi Đạt đang làm + số đỏ góp ý đang chờ ý kiến của chính người xem. */
-export async function demGopY(homVao?: string) { return hom.demGopY(await homCua(homVao), await getCurrentUser(), await tuyChonDoc()); }
+export async function demGopY(homVao?: string) { return hom.demGopY(await homCua(homVao), await nguoiGui(), await tuyChonDoc()); }
 /** Luồng trao đổi — card có thể ở hòm mos2 hoặc city (drawer card trên plays gọi theo id). */
-export async function docTraoDoiCard(taskId: number) { return hom.docTraoDoi(HOM_GOP_Y, await getCurrentUser(), taskId); }
+export async function docTraoDoiCard(taskId: number) { return hom.docTraoDoi(HOM_GOP_Y, await nguoiGui(), taskId); }
 export async function guiTraoDoiCard(input: { taskId: number; noiDung: string; anhUrls: string[]; xuLy: string }) {
-  return hom.guiTraoDoi(HOM_GOP_Y, await getCurrentUser(), input, ghiTrangThai);
+  return hom.guiTraoDoi(HOM_GOP_Y, await nguoiGui(), input, ghiTrangThai);
 }

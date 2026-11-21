@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { COOKIE_KHACH, HEADER_KHACH, hostTrangNhung, laTrangKhach, maKhachHopLe, nuocDuocKhach } from '@/lib/gop-y-khach';
 
 // Routes that don't require auth
 const PUBLIC_PATHS = [
@@ -71,6 +72,8 @@ function corsHeaders() {
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  // Header danh tính khách góp ý chỉ do middleware đặt (lib/gop-y-khach.ts) — trình duyệt không bao giờ gửi; ai tự gửi là giả → chặn.
+  if (req.headers.has(HEADER_KHACH)) return new NextResponse('bad request', { status: 400 });
 
   // CORS preflight for /api/ext/* (called from browser extension cross-origin)
   if (pathname.startsWith('/api/ext/') && req.method === 'OPTIONS') {
@@ -118,6 +121,7 @@ export function middleware(req: NextRequest) {
 
   // Check session cookie (presence only — DB validation happens in pages via getCurrentUser)
   const sessionToken = req.cookies.get(SESSION_COOKIE)?.value;
+  if (!sessionToken && pathname.startsWith('/nhung/gop-y')) { const k = khachGopY(req); if (k) return k; }
   if (!sessionToken && pathname.startsWith('/nhung/')) return nhungCanDangNhap();
   if (!sessionToken) {
     const url = req.nextUrl.clone();
@@ -127,6 +131,23 @@ export function middleware(req: NextRequest) {
   }
 
   return NextResponse.next();
+}
+
+// KHÁCH GÓP Ý (lib/gop-y-khach.ts, dantranh 21/11/2026): hòm nhúng của trang công khai (?trang= hoặc Referer — lượt server action) mà người
+// vào từ VN → cho qua không cần đăng nhập, gắn mã khách (cookie ngẫu nhiên, giữ 1 năm) vào header để layout + actions nhận ra.
+function khachGopY(req: NextRequest) {
+  const trang = req.nextUrl.searchParams.get('trang');
+  let host = '';
+  try { host = trang ? new URL(trang).hostname.toLowerCase() : ''; } catch { /* trang hỏng */ }
+  if (!host) host = hostTrangNhung(req.headers.get('referer') || '');
+  if (!laTrangKhach(host) || !nuocDuocKhach(req.headers.get('cf-ipcountry'))) return null;
+  const cu = req.cookies.get(COOKIE_KHACH)?.value;
+  const ma = maKhachHopLe(cu) ? cu! : crypto.randomUUID();
+  const h = new Headers(req.headers);
+  h.set(HEADER_KHACH, ma);
+  const res = NextResponse.next({ request: { headers: h } });
+  if (ma !== cu) res.cookies.set(COOKIE_KHACH, ma, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 365 * 24 * 3600 });
+  return res;
 }
 
 // Trang NHÚNG (/nhung/gop-y — hòm góp ý phủ màn trên trang ngoài) mà trình duyệt chưa đăng nhập mos2: chuyển về /login NGAY TRONG

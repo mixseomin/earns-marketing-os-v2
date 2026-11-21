@@ -9,6 +9,7 @@ import '@mos2/bang/bang.css';
 import { readTablePrefs } from '@/lib/table-prefs';
 import { getCurrentUser } from '@/lib/auth';
 import { GopYMos2 } from '@/components/gop-y-mos2';
+import { HEADER_KHACH } from '@/lib/gop-y-khach';
 import { quyenEtp } from '@/lib/etp-quyen';
 import { NHIP_LAM_MOI_SCRIPT } from '@/lib/nhip-lam-moi';
 
@@ -60,10 +61,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Reviewers (role 'viewer') are confined to the user.on.tc review portal. If one lands
   // on the main dashboard host, bounce them to the portal. (course.on.tc is gated at nginx
   // via /api/auth/verify.) Only costs a getCurrentUser on mos2.on.tc renders.
-  const host = (await headers()).get('host')?.split(':')[0] || '';
+  const hd = await headers(), host = hd.get('host')?.split(':')[0] || '';
   const u = await getCurrentUser();
   // nút góp ý: admin mọi host; etp.on.tc thêm người có quyền etp (anh 02/11/2026 "bật phần góp ý cho tk của Sơn")
-  const coGopY = u?.role === 'admin' || (host === 'etp.on.tc' && !!(await quyenEtp(u)));
+  // + KHÁCH trang công khai (dantranh, người vào từ VN — middleware gắn mã khách vào khung nhúng /nhung/gop-y, lib/gop-y-khach.ts)
+  const coGopY = u?.role === 'admin' || (host === 'etp.on.tc' && !!(await quyenEtp(u))) || (!u && !!hd.get(HEADER_KHACH));
   if (host === 'mos2.on.tc' && u && u.role === 'viewer') redirect('https://user.on.tc/review');
   // Cột/sort/lọc của MỌI bảng — đọc ở đây để lần sơn đầu đã đúng (hết nháy khi F5).
   const tablePrefs = await readTablePrefs();

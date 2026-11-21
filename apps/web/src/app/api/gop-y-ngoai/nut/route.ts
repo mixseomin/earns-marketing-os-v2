@@ -6,6 +6,8 @@
 // Trang khai window.__nguCanhTrang = () => string (chỗ đứng, chế độ…), window.__chupTrang = () => dataURL (khung hình canvas) và
 // window.__anhNgoaiTrang = () => [dataURL] (ảnh thật đã chọn — castle 📷, trang tự tải sẵn) — đọc lúc bấm mở; hiện thành ảnh đính kèm trong hòm (tải lên R2 như ảnh chụp trang).
 // Không đuôi .js + no-store: zone Cloudflare on.tc giữ .js 30 ngày.
+import { nuocDuocKhach, TRANG_KHACH } from '@/lib/gop-y-khach';
+
 export const dynamic = 'force-dynamic';
 
 const JS = `(() => {
@@ -45,6 +47,10 @@ const JS = `(() => {
   if (document.readyState === 'complete') napSan(); else addEventListener('load', napSan, { once: true });
 })();`;
 
-export function GET() {
-  return new Response(JS, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' } });
+// Trang công khai (TRANG_KHACH, vd dantranh): nút chỉ hiện cho người vào TỪ VN (anh 21/11/2026) — nước lấy CF-IPCountry lúc tải script,
+// ngoài VN thì giấu mọi [data-gop-y-mo] (cả phần tử thêm sau) và không nạp hòm. Trang nội bộ (castle/studio2…) không đổi.
+export function GET(req: Request) {
+  const vn = nuocDuocKhach(req.headers.get('cf-ipcountry'));
+  const chan = `if (${JSON.stringify(TRANG_KHACH)}.includes(location.hostname) && !${vn}) { const s = document.createElement('style'); s.textContent = '[data-gop-y-mo]{display:none!important}'; document.head.appendChild(s); return; }`;
+  return new Response(JS.replace('(() => {\n', '(() => {\n  ' + chan + '\n'), { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' } });
 }

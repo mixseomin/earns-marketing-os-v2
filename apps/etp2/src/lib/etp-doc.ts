@@ -412,7 +412,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
         p.ten phim, p.the_loai, cr.dang, ${banCr('cr.creative_id', 'cr.dang')} ban, ${giongCr('cr.creative_id')} giong, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, (lt.camp_id is not null) lich_tat,
         (select json_agg(json_build_object('g', cn.geo, 'c', round(cn.chi, 2), 't', round(cn.thu, 2)) order by cn.chi desc) from etp.camp_nuoc cn where cn.camp_id = c.camp_id) nuoc,
         ab.ma ab_ma, ab.ten ab_ten, ab.kieu ab_kieu, cab.nhanh ab_nhanh, ab.nhanh->cab.nhanh->>'ten' ab_nhanh_ten, ab.gia_thuyet ab_gt, ab.bat_dau::text ab_bd
-      from etp.camp c left join etp.camp_ab cab on cab.camp_id = c.camp_id left join etp.ab ab on ab.ma = cab.ab left join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) left join etp.phim p on p.content_id = c.content_id left join etp.lich_tat lt on lt.camp_id = c.camp_id
+      from etp.camp c left join etp.camp_ab cab on cab.camp_id = c.camp_id left join etp.ab ab on ab.ma = cab.ab and ab.trang_thai <> 'xong' left join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) left join etp.phim p on p.content_id = c.content_id left join etp.lich_tat lt on lt.camp_id = c.camp_id
         left join cd on cd.doan = cr.doan left join s on s.camp_id = c.camp_id
       where c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`),
     run<{ khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }>(sql`select khoa, gia_tri, ghi, ai, luc::text luc from etp.cau_hinh order by khoa`),

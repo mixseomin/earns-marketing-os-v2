@@ -1419,6 +1419,9 @@ export const LUAT = [
   { card: 'san-xuat-theo-cho-1811', tep: 'apps/etp/lo_trinh_phim.py', co: "update etp.cham_hang h set trang_thai = 'giu_phanh'", vi: 'phanh: hàng chấm giữ lại (trừ nút anh + kho dự trữ hồi chợ), không xoá' },
   { card: 'san-xuat-theo-cho-1811', tep: 'apps/etp/lo_trinh_phim.py', co: "where not exists (select 1 from etp.dong_phim x where x.content_id = {cid} and x.loai = '{loai}' and x.trang_thai = 'chay')", vi: 'xếp dòng kiểm trùng ngay lúc xếp' },
   { card: 'san-xuat-theo-cho-1811', tep: 'apps/etp/lo_trinh_phim.py', co: "and not ('{loai}' = any({SQL_CHO_CONG.format(cid=int(cid))}))", vi: 'dạng có dòng chờ cổng ở bước camp không xếp dòng thứ hai' },
+  // BỎ A/B (anh 22/11/2026 "sao vẫn còn AB05. Bỏ hết !!"): lần A/B đã đóng (etp.ab.trang_thai = 'xong') không còn hiện nhãn trên camp — camp_ab giữ nguyên làm sử
+  { card: 'bo-ab-2211', tep: 'apps/web/src/lib/etp-doc.ts', co: "left join etp.ab ab on ab.ma = cab.ab and ab.trang_thai <> 'xong'", vi: 'nhãn A/B trên camp chỉ của lần đang chạy' },
+  { card: 'bo-ab-2211', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "left join etp.ab ab on ab.ma = cab.ab and ab.trang_thai <> 'xong'", vi: 'nhãn A/B trên camp chỉ của lần đang chạy' },
   { card: 'san-xuat-theo-cho-1811', tep: 'apps/etp/dong_phim.py', co: 'if not dang and (ly := cho_phanh(SX[0], d, ke, co_ve=', vi: 'dòng đang chạy dừng TRƯỚC bước tốn AI khi phanh, giữ chỗ chờ nhả (co_ve: chỉ bước camp của dòng lệnh trực tiếp có vé đi qua)' },
   { card: 'san-xuat-theo-cho-1811', tep: 'apps/etp/dong_phim.py', co: 'if ket == "cho" and buoc == "creative" and (ly := cho_phanh(SX[0], d, buoc)):', vi: 'creative chờ chấm khi phanh trả bước về hàng, giữ kết quả, không làm lại' },
   { card: 'san-xuat-theo-cho-1811', tep: 'apps/etp/dong_phim.py', co: 'KHONG_TRUNG = CG.SQL_KHONG_TRUNG', vi: 'mo_tran_* mở lại không trùng' },

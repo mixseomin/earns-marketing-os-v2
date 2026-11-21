@@ -622,7 +622,8 @@ const BUOC_SV = {
   td1: (t, sid) => ghiSv('sinhAmS2', t.tap, 'td', GOC[sid].id, layYc()),
   xuat: async (t) => { E.xuatThat = { job: await ghiSv('xuatTap', t.tap), tt: 'chay', url: null, loi: '' }; },
 };
-const veBuoc = () => { veAm(); if (co('qt')) veQt(); if (co('tt')) veTt(); if (co('mu')) veMu(); if (E.muMo != null) veNgan(); if (E.xuat === 'that') vePhu(); };   // nút trả tiền trong khung mẫu + ngăn chi tiết cũng đổi trạng thái (hộp giá, "bấm lần nữa")
+const veBuoc = () => { if (!E.sl && document.activeElement?.id === 'slYc') document.activeElement.blur();   // hộp giá vừa đóng (Thôi / Sinh lại) mà con trỏ còn kẹt trong ô yêu cầu thì các khung chặn vẽ-lại-khi-đang-gõ sẽ giữ hộp cũ
+  veAm(); if (co('qt')) veQt(); if (co('tt')) veTt(); if (co('mu')) veMu(); if (E.muMo != null) veNgan(); if (E.xuat === 'that') vePhu(); };   // nút trả tiền trong khung mẫu + ngăn chi tiết cũng đổi trạng thái (hộp giá, "bấm lần nữa")
 async function chayBuoc(k) {
   const t = D.that, b = k.split(':')[0]; if (!t || E.dangBuoc[k] || !BUOC_SV[b]) return; const gia = giaBuoc(k);
   if (coSua()) return bao('Có chỗ sửa chưa lưu. Bấm “Lưu về studio” trên thanh trên trước, rồi chạy bước này (chạy bước sẽ đọc lại phim từ studio).', false, 9000);
@@ -791,7 +792,7 @@ function veNx() { const x = D.that?.nx; if (!x) return ''; const dong = (c, s) =
 const MU_LOAI = ['nhan_vat', 'boi_canh', 'dao_cu', 'san_pham'];
 function veMuForm(x) { const moi = !x; return `<div class="mu-form" data-mu="${moi ? '' : x.id}">${moi ? `<label>Loại<select class="mu-loai">${MU_LOAI.map((k) => `<option value="${k}">${esc(S_VAI[k] || k)}</option>`).join('')}</select></label>` : ''}<label>Tên<input class="mu-ten" maxlength="60" value="${esc(x?.ten || '')}" placeholder="vd: Cô gái áo đỏ"></label><label>Mô tả <small>máy vẽ ảnh mẫu và mọi cảnh có mẫu này theo đúng mô tả</small><textarea class="mu-mt" rows="5" maxlength="1200" placeholder="Ngoại hình, tuổi, quần áo, chất liệu, ánh sáng…">${esc(x?.moTa || '')}</textarea></label><div class="qt-nut"><button type="button" class="bt chinh" data-d="muLuu">${moi ? 'Thêm mẫu' : 'Lưu mô tả'}</button><button type="button" class="bt" data-d="${moi ? 'muThem' : 'muSua'}" data-g="">Huỷ</button></div><p class="mu-loi" hidden></p></div>`; }
 const muO = () => (co('mu') ? $('#dMu') : $('#dMuQt'));   // Pro: khung riêng; Gọn không có khung đó nên vẽ cùng nội dung vào mục Mẫu của Quy trình
-const muDangGo = () => { const a = document.activeElement; return !!(a && /TEXTAREA|INPUT|SELECT/.test(a.tagName) && a.closest('.d-mu')); };
+const muDangGo = () => { const a = document.activeElement, o = muO(); return !!(a && o && o.contains(a) && /TEXTAREA|INPUT|SELECT/.test(a.tagName)); };   // chỉ tính ô đang gõ NẰM TRONG khung danh sách mẫu; gõ ở ngăn chi tiết bên phải (cũng .d-mu) không được chặn khung này vẽ lại
 function veMu() { const o = muO(); if (!o) return; const ds = D.that?.mau || [];
   if (muDangGo()) return;   // đang gõ trong ô thêm / sửa mẫu: không vẽ lại dưới tay người dùng
   const dau = D.that ? `<div class="mu-dau"><button type="button" class="bt" data-d="muThem" data-g="${E.muThem ? '' : '1'}">${E.muThem ? 'Đóng' : '＋ Thêm nhân vật, bối cảnh, đồ vật'}</button></div>${E.muThem ? veMuForm(null) : ''}` : '';

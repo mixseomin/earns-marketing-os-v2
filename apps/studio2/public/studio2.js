@@ -334,17 +334,20 @@ const WG = { tv: ['Thư viện', '252px'], kb: ['Kịch bản', '300px'], pc: ['
 // (gói thể loại: apps/xuong-video/src/lib/xuong-video/goi-the-loai.ts · template QC: apps/xuong-video/mau/templates.json · video máy dựng: may-dung-*.ts).
 // Sáu bố cục đầu là mặc định của sáu loại hình (LOAI); 'soi' là bố cục làm việc dùng cho mọi loại. Thêm loại video mới = thêm một mục ở đây + tên ở LOAI.
 const BO_CUC = {
-  phim: { ten: 'Phim nhân vật 3D', cho: 'Series hoạt hình, phim ngắn dựng 3D: phân cảnh, mặt bằng, máy quay', o: { pc: [0, 0, 6, 16], xem: [6, 0, 10, 16], mb: [16, 0, 8, 5], tt: [16, 5, 8, 6], mu: [16, 11, 8, 5] } },
-  doc: { ten: 'Phim ngắn · series', cho: 'Phim ngắn dọc, kinh dị, hài, tình cảm, anime, MV, trailer', o: { pc: [0, 0, 6, 16], xem: [6, 0, 8, 16], kb: [14, 0, 4, 16], tt: [18, 0, 6, 9], mu: [18, 9, 6, 7] } },
-  qc: { ten: 'Quảng cáo', cho: 'UGC, khuyến mãi, demo sản phẩm, thử đồ, các template quảng cáo', o: { kb: [0, 0, 6, 16], xem: [6, 0, 8, 16], tt: [14, 0, 10, 8], nk: [14, 8, 10, 8] } },
-  tailieu: { ten: 'Tài liệu lời dẫn', cho: 'Tài liệu ngắn, giải thích, tin tức, video bản đồ: lời dẫn và lớp hình', o: { kb: [0, 0, 6, 16], xem: [6, 0, 10, 16], lp: [16, 0, 8, 8], tt: [16, 8, 8, 8] } },
-  hinh: { ten: 'Kể chuyện bằng hình', cho: 'Kể chuyện có người dẫn, thiếu nhi, slideshow ảnh: chọn hình và lời', o: { tv: [0, 0, 6, 16], xem: [6, 0, 12, 16], tt: [18, 0, 6, 16] } },
-  may: { ten: 'Video máy dựng', cho: 'Top, so sánh, câu đố, lật thẻ, carousel: máy dựng cả tập từ dữ liệu', o: { kb: [0, 0, 6, 16], xem: [6, 0, 12, 16], tt: [18, 0, 6, 16] } },
-  lam: { ten: 'Làm video mới', cho: 'Đi từng bước của quy trình studio: ý tưởng, kịch bản, cảnh, ảnh, giọng, clip, xuất (phim của studio)', o: { qt: [0, 0, 8, 16], xem: [8, 0, 8, 16], kb: [16, 0, 8, 8], tt: [16, 8, 8, 8] } },
-  soi: { ten: 'Soi từng bước sinh', cho: 'Gỡ lỗi mọi loại video: phân cảnh và nhật ký lượt sinh (phim của studio)', o: { pc: [0, 0, 6, 16], xem: [6, 0, 8, 16], nk: [14, 0, 10, 8], tt: [14, 8, 10, 8] } },
+  phim: { ten: 'Phim nhân vật 3D', cho: 'Series hoạt hình, phim ngắn dựng 3D: phân cảnh, mặt bằng, máy quay', o: { pc: [0, 0, 6, 16], xem: [6, 0, 10, 16], mb: [16, 0, 8, 5], tt: [16, 5, 8, 6], mu: [16, 11, 8, 5] }, tab: { pc: ["kb", "tv"], mb: ["lp"], tt: ["nk", "hd", "qt", "cn"] } },
+  doc: { ten: 'Phim ngắn · series', cho: 'Phim ngắn dọc, kinh dị, hài, tình cảm, anime, MV, trailer', o: { pc: [0, 0, 6, 16], xem: [6, 0, 8, 16], kb: [14, 0, 4, 16], tt: [18, 0, 6, 9], mu: [18, 9, 6, 7] }, tab: { pc: ["tv"], kb: ["mb", "lp"], tt: ["nk", "hd", "qt", "cn"] } },
+  qc: { ten: 'Quảng cáo', cho: 'UGC, khuyến mãi, demo sản phẩm, thử đồ, các template quảng cáo', o: { kb: [0, 0, 6, 16], xem: [6, 0, 8, 16], tt: [14, 0, 10, 8], nk: [14, 8, 10, 8] }, tab: { kb: ["tv", "pc", "mu"], tt: ["lp", "mb"], nk: ["hd", "qt", "cn"] } },
+  tailieu: { ten: 'Tài liệu lời dẫn', cho: 'Tài liệu ngắn, giải thích, tin tức, video bản đồ: lời dẫn và lớp hình', o: { kb: [0, 0, 6, 16], xem: [6, 0, 10, 16], lp: [16, 0, 8, 8], tt: [16, 8, 8, 8] }, tab: { kb: ["pc", "tv"], lp: ["mb", "mu"], tt: ["nk", "hd", "qt", "cn"] } },
+  hinh: { ten: 'Kể chuyện bằng hình', cho: 'Kể chuyện có người dẫn, thiếu nhi, slideshow ảnh: chọn hình và lời', o: { tv: [0, 0, 6, 16], xem: [6, 0, 12, 16], tt: [18, 0, 6, 16] }, tab: { tv: ["pc", "kb", "mu"], tt: ["lp", "mb", "nk", "hd", "qt", "cn"] } },
+  may: { ten: 'Video máy dựng', cho: 'Top, so sánh, câu đố, lật thẻ, carousel: máy dựng cả tập từ dữ liệu', o: { kb: [0, 0, 6, 16], xem: [6, 0, 12, 16], tt: [18, 0, 6, 16] }, tab: { kb: ["pc", "tv"], tt: ["mu", "lp", "mb", "nk", "hd", "qt", "cn"] } },
+  lam: { ten: 'Làm video mới', cho: 'Đi từng bước của quy trình studio: ý tưởng, kịch bản, cảnh, ảnh, giọng, clip, xuất (phim của studio)', o: { qt: [0, 0, 8, 16], xem: [8, 0, 8, 16], kb: [16, 0, 8, 8], tt: [16, 8, 8, 8] }, tab: { qt: ["pc", "tv"], kb: ["mu", "lp", "mb"], tt: ["nk", "hd", "cn"] } },
+  soi: { ten: 'Soi từng bước sinh', cho: 'Gỡ lỗi mọi loại video: phân cảnh và nhật ký lượt sinh (phim của studio)', o: { pc: [0, 0, 6, 16], xem: [6, 0, 8, 16], nk: [14, 0, 10, 8], tt: [14, 8, 10, 8] }, tab: { pc: ["kb", "tv"], nk: ["hd", "qt", "cn"], tt: ["mu", "lp", "mb"] } },
 };
 const viMau = (k) => Object.fromEntries(Object.entries(BO_CUC[k].o).map(([w, [x, y, rong, cao]]) => [w, { x, y, w: rong, h: cao }]));
-const BC_MAU = Object.fromEntries(Object.entries(BO_CUC).map(([k, b]) => [k, Object.keys(b.o).sort((a, c) => b.o[a][0] - b.o[c][0] || b.o[a][1] - b.o[c][1])]));
+// tab: widget xếp chồng thành tab trong ô của widget chủ (góp ý #1747) — mỗi bố cục bày đủ mọi widget, cái chính hiện ô riêng, cái phụ nằm tab cạnh ô hợp việc
+const BC_MAU = Object.fromEntries(Object.entries(BO_CUC).map(([k, b]) => [k, Object.keys(b.o).sort((a, c) => b.o[a][0] - b.o[c][0] || b.o[a][1] - b.o[c][1]).flatMap((w) => [w, ...(b.tab?.[w] || [])])]));
+const nhomMau = (k) => Object.entries(BO_CUC[k].tab || {}).map(([c, x]) => ({ ds: [c, ...x], mo: c }));
+function apBoCuc(k, L) { E.bc[L] = [...BC_MAU[k]]; (E.luoi.nhom ||= {})[L] = nhomMau(k); if (k === L) { delete E.luoi.vi[L]; delete E.luoi.ten[L]; } else { E.luoi.vi[L] = viMau(k); E.luoi.ten[L] = k; } }
 
 let D = duAnMau();
 const E = { man: 'dung', ban: 'pro', da: 'cn', nguon: 'anh', hop: true, tat: false, ttTab: 'may', bc: JSON.parse(JSON.stringify(BC_MAU)), menu: null,
@@ -353,6 +356,7 @@ try { const l = JSON.parse(localStorage.getItem('studio2') || 'null'); if (l) { 
      if (l.luoi.vi[k]) E.luoi.vi[k] = l.luoi.vi[k];
      const nh = (Array.isArray(l.luoi.nhom?.[k]) ? l.luoi.nhom[k] : []).filter((x) => Array.isArray(x?.ds) && x.ds.length > 1 && x.ds.every((w) => WG[w])); if (nh.length) (E.luoi.nhom ||= {})[k] = nh.map((x) => ({ ds: [...new Set(x.ds)], mo: x.mo })); }   // nhóm tab trong ô
    if (l.tlCao >= 110) E.tlCao = +l.tlCao; E.nhuMoi = !!l.nhuMoi; E.qtXem = !!l.qtXem; } } catch {}
+for (const k in BC_MAU) if (!E.luoi.nhom?.[k] && BC_MAU[k].length === E.bc[k].length && BC_MAU[k].every((w) => E.bc[k].includes(w))) (E.luoi.nhom ||= {})[k] = nhomMau(k);   // bố cục mặc định chưa tự xếp: bày sẵn các tab (#1747)
 try { const q = new URLSearchParams(location.search); if (q.get('ban') === 'gon' || q.get('ban') === 'pro') E.ban = q.get('ban'); if (DU_AN[q.get('phim')] || /^\d+$/.test(q.get('phim') || '')) { E.da = q.get('phim'); E.tap = +q.get('tap') || null; } } catch {}
 const VT_K = () => (E.da && E.tap ? `s2-vt-${E.da}-${E.tap}` : '');   // vị trí đang đứng theo từng phim + tập: cảnh chọn, tab, khung, kim — F5 về đúng chỗ (#1743)
 function apVt() { const k = VT_K(); if (!k) return; let v = null; try { v = JSON.parse(localStorage.getItem(k) || 'null'); } catch {} const q = +new URLSearchParams(location.search).get('canh'); const cq = q > 0 && D.canh[q - 1] ? { id: D.canh[q - 1].id, loai: 'canh' } : null; const c = cq || (v?.c && (v.c.id === 'nhac' || canh(v.c.id)) ? v.c : null); if (v) { if (typeof v.tab === 'string') E.tab = v.tab; if (typeof v.tt === 'string') E.ttTab = v.tt; if (typeof v.o === 'string') E.o = v.o; if (v.ng && nguonCo().includes(v.ng)) E.nguon = v.ng; if (v.t >= 0) E.t = Math.min(v.t, Math.max(0, tong() - 0.01)); } if (c) { E.chon = c; if (c.id !== 'nhac') { const i = vt(c.id), s = batDau(i); if (E.t < s || E.t >= s + D.canh[i].tg) E.t = s + 0.001; } } }
@@ -388,7 +392,7 @@ async function moPhimThat(pid, tid, khoiDong) {
     const tap = pd.tap.find((t) => t.id === +tid) || pd.tap.find((t) => t.so_canh > 0) || pd.tap[0]; if (!tap) throw new Error('phim này chưa có tập nào (mở trong studio để thêm tập)');
     const ds = ds0 && tap.id === +tid ? ds0 : await goi('dsCanh', tap.id); if (so !== soMo) return;
     D = tuStudio(pd, tap, ds); E.nk = null; E.nkCt = {}; E.nkMo = null; datPhimThat(ds, tap); if (D.that.trong && !BO_CUC[E.bcUrl] && !E.bc[D.loai].includes('qt')) E.bcUrl = 'lam';   // phim chưa có cảnh: luôn mở bố cục Làm video mới (có widget Quy trình)
-    if (BO_CUC[E.bcUrl]) { E.bc[D.loai] = [...BC_MAU[E.bcUrl]]; E.luoi.vi[D.loai] = viMau(E.bcUrl); E.luoi.ten[D.loai] = E.bcUrl; if (E.luoi.nhom) delete E.luoi.nhom[D.loai]; } E.bcUrl = ''; E.da = String(pd.phim.id); E.tap = tap.id; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.nguon = nguonDau(); E.solo = null; E.tab = 'Mẫu'; E.vua = false; E.dangMo = false; apVt(); luu(); man('dung');
+    if (BO_CUC[E.bcUrl]) apBoCuc(E.bcUrl, D.loai); E.bcUrl = ''; E.da = String(pd.phim.id); E.tap = tap.id; E.lui = []; E.toi = []; E.chon = null; E.t = 0; E.canhDang = null; E.nguon = nguonDau(); E.solo = null; E.tab = 'Mẫu'; E.vua = false; E.dangMo = false; apVt(); luu(); man('dung');
   } catch (e) { if (so !== soMo) return; E.dangMo = false; if (khoiDong || D.cho) { if (nguoiMoi()) { D = duAnTrong(); E.da = null; E.tap = null; } else moDuAn('cn'); } veD(); bao(`Không mở được phim #${pid}: ${e.message}`, false, 15000); }
 }
 /** danh sách phim của studio trong menu chọn phim: gõ là tìm (studio lọc theo tên), chưa gõ = phim sửa gần đây */
@@ -1465,7 +1469,7 @@ function lamD(a, d = {}, nut) {
     case 'slThoi': E.sl = null; return veBuoc();
     case 'slChay': { E.slYc = ((nut.closest('.sl-hop') || document).querySelector('#slYc')?.value || '').trim(); E.sl = null; E.cho = g; return void chayBuoc(g); }
     case 'nkBat': { const ds = E.bc[D.loai]; if (!ds.includes('nk')) ds.splice(ds.includes('tt') ? ds.indexOf('tt') : ds.length, 0, 'nk'); if (g) E.nkBuoc = g; luu(); return veD(); }
-    case 'bcMau': E.bc[D.loai] = [...BC_MAU[g]]; if (E.luoi.nhom) delete E.luoi.nhom[D.loai]; delete E.luoi.ten[D.loai]; if (g === D.loai) delete E.luoi.vi[D.loai]; else { E.luoi.vi[D.loai] = viMau(g); E.luoi.ten[D.loai] = g; } luu(); return veD();
+    case 'bcMau': apBoCuc(g, D.loai); luu(); return veD();
     case 'luoi': E.luoi.n = +g; tatLuoi(); luu(); return veD();
     case 'luoiHien': E.luoi.hien = !E.luoi.hien; luu(); return veD();
     case 'luoiLai': delete E.luoi.ten[D.loai]; E.luoi.vi[D.loai] = luoiMau(boCuc(), 24, 16); luu(); return veD();
@@ -1634,7 +1638,7 @@ goi('toiS2').then((t) => { E.nguoi = t; if (!laQtThat()) E.nhuMoi = false; if (n
 try { const bc = new URLSearchParams(location.search).get('bc'); if (BO_CUC[bc]) E.bcUrl = bc; } catch {}   // link có &bc=<tên bố cục đặt sẵn>: áp bố cục đó khi phim mở xong
 try { const nk = new URLSearchParams(location.search).get('nk'); if (BUOC_NK.some((x) => x[0] === nk)) { E.nkBuoc = nk; for (const k in E.bc) if (!E.bc[k].includes('nk')) E.bc[k].splice(E.bc[k].includes('tt') ? E.bc[k].indexOf('tt') : E.bc[k].length, 0, 'nk'); } } catch {}
 if (E.nhuMoi && DU_AN[E.da]) { D = duAnTrong(); E.da = null; E.tap = null; E.dangMo = true; }
-else if (DU_AN[E.da]) { moDuAn(E.da); if (BO_CUC[E.bcUrl] && E.bcUrl !== D.loai) { E.bc[D.loai] = [...BC_MAU[E.bcUrl]]; E.luoi.vi[D.loai] = viMau(E.bcUrl); E.luoi.ten[D.loai] = E.bcUrl; if (E.luoi.nhom) delete E.luoi.nhom[D.loai]; } E.bcUrl = ''; } else moPhimThat(E.da, E.tap, true);
+else if (DU_AN[E.da]) { moDuAn(E.da); if (BO_CUC[E.bcUrl] && E.bcUrl !== D.loai) apBoCuc(E.bcUrl, D.loai); E.bcUrl = ''; } else moPhimThat(E.da, E.tap, true);
 
 // GÓP Ý = hòm chuẩn mos2 (packages/gop-y/CHUAN.md): index.html nạp script https://mos2.on.tc/api/gop-y-ngoai/nut, nút 💬 trên thanh trên mang data-gop-y-mo.
 // Hòm đọc hàm này lúc mở để card mang đúng chỗ người gửi đang đứng (phim, tập, bản, bố cục, cảnh đang chọn, bước đang chạy / vừa bị từ chối).

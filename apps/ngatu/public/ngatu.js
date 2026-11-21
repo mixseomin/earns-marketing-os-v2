@@ -1800,16 +1800,46 @@ function trungDat([x, z]) {
   }
   return null;
 }
-function toSang() {
-  if (!chinh) { SANG.visible = false; return; }
-  if (chinh.loai === 'nga') { SANG.position.set(0, 0.04, 0); SANG.scale.set(2 * HW_NS, 1, 2 * HW_EW); SANG.visible = true; return; }
-  const h = CAI.lanCfg[chinh.ia], d = ARMS[chinh.ia].d, r = right(d), hw = hwAlong(d), e0 = eAlong(d) + CW;
-  if (chinh.loai === 'lan' && chinh.i >= h.soLan) chinh.i = h.soLan - 1;
-  const [l0, l1] = chinh.loai === 'lan' ? lanKhoang(h, chinh.i, hw) : [(chinh.i * hw) / h.soLan - 0.3, (chinh.i * hw) / h.soLan + 0.3];
+// Tô một vùng bấm được lên mặt đường: lòng ngã tư / một làn / một vạch chia làn (đoạn trước vạch dừng).
+function toVung(m, t) {
+  if (!t) { m.visible = false; return; }
+  if (t.loai === 'nga') { m.position.set(0, m.position.y, 0); m.scale.set(2 * HW_NS, 1, 2 * HW_EW); m.visible = true; return; }
+  const h = CAI.lanCfg[t.ia], d = ARMS[t.ia].d, r = right(d), hw = hwAlong(d), e0 = eAlong(d) + CW;
+  if (t.loai === 'lan' && t.i >= h.soLan) t.i = h.soLan - 1;
+  const [l0, l1] = t.loai === 'lan' ? lanKhoang(h, t.i, hw) : [(t.i * hw) / h.soLan - 0.3, (t.i * hw) / h.soLan + 0.3];
   const dai = Math.max(h.dai, 12), u = e0 + dai / 2, c = (l0 + l1) / 2;
-  SANG.position.set(-u * d[0] + c * r[0], 0.04, -u * d[1] + c * r[1]);
-  SANG.scale.set(d[0] ? dai : l1 - l0, 1, d[0] ? l1 - l0 : dai); SANG.visible = true;
+  m.position.set(-u * d[0] + c * r[0], m.position.y, -u * d[1] + c * r[1]);
+  m.scale.set(d[0] ? dai : l1 - l0, 1, d[0] ? l1 - l0 : dai); m.visible = true;
 }
+const toSang = () => toVung(SANG, chinh);
+// Rê chuột (anh 22/11/2026: "cái nào bấm được thì khi hover vào highlight nó lên"): xe / người → vòng sáng dưới chân,
+// làn / vạch / lòng ngã tư → tô nhạt vùng đó; con trỏ thành bàn tay. Không chạy khi đang kéo xoay hay trên màn cảm ứng.
+const RE = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#fff0a0', transparent: true, opacity: 0.3, depthWrite: false }));
+RE.position.y = 0.035; RE.renderOrder = 7; RE.visible = false; scene.add(RE);
+const VONG = new THREE.Mesh(new THREE.RingGeometry(0.82, 1, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd23f', transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }));
+VONG.renderOrder = 9; VONG.visible = false; scene.add(VONG);
+let reXe = null, reCho = 0, reE = null;
+function reVao() {
+  reCho = 0;
+  const e = reE; reXe = null; RE.visible = false;
+  if (!e) { cv.style.cursor = ''; return; }
+  const a = chonXe(e);
+  if (a && !a.het) { reXe = a; cv.style.cursor = 'pointer'; return; }
+  const P = diemDat(e), t = P && trungDat(P);
+  if (t && !(chinh && JSON.stringify(t) === JSON.stringify(chinh))) toVung(RE, t);
+  cv.style.cursor = t ? 'pointer' : '';
+}
+cv.addEventListener('pointermove', (e) => {
+  if (e.pointerType === 'touch' || e.buttons) { reE = null; } else reE = e;
+  if (!reCho) reCho = setTimeout(reVao, 60);
+});
+cv.addEventListener('pointerleave', () => { reE = null; if (!reCho) reCho = setTimeout(reVao, 0); });
+(function bamVong() {
+  requestAnimationFrame(bamVong);
+  if (!reXe || reXe.het) { VONG.visible = false; return; }
+  const k = Math.max(0.7, (reXe.len || 1) * 0.6);
+  VONG.position.set(reXe.x, 0.06, reXe.z); VONG.scale.set(k, 1, k); VONG.visible = true;
+})();
 const chonO = (id, ds, v) => `<select id="${id}">` + ds.map(([k, t]) => `<option value="${k}"${String(k) === String(v) ? ' selected' : ''}>${t}</option>`).join('') + '</select>';
 function veChinh() {
   const o = $('oLan'), c = chinh;

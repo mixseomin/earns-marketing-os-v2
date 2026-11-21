@@ -14,6 +14,8 @@ Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--ban N bản / phi
   giọng mặc định = giọng tốt nhất đã đo (sổ luật giong_at.mac_dinh = ky_di / Brian, anh 18/11/2026) cho MỌI bản; --giong xoay = xoay 5 kiểu như 05/11/2026;
   dấu kiểu ghi vào etp.diem_cham.cham.voice.giong để đo
   lớp Free (nhãn tím "All Episodes Released" + tên phim + nút xanh "Watch For Free") LUÔN vẽ — anh chốt 19/11/2026 (at_chi_dang_free): AT chỉ một dạng, không tắt được
+  --anh <tệp ảnh> (lặp được) = KHUNG CHỈ ĐỊNH (anh 22/11/2026 "trên spy … cắt theo 1 cảnh tương tự … ảnh dùng chung cho cả EN/ES thay nội dung"): bỏ bước tải tập + AI xếp hạng,
+    dựng đúng ảnh đưa vào (một ảnh dùng cho mọi phim trong lệnh — bản EN và ES cùng cảnh, chỉ đổi tên phim / lớp Free / giọng theo ngôn ngữ từng phim)
   không id = tự chọn N phim (mặc định 10) · --xem = chỉ dựng + tờ khung (~/.cache/ethopex/anh-tinh/to-<giờ>.jpg), không nạp thư viện / tạo creative"""
 import hashlib, json, os, random, re, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
@@ -241,6 +243,20 @@ def khung(cid, url, tm):
         if len(uv) >= UNG_VIEN: break
     return uv
 
+KHUNG_CHI = []   # --anh (main đặt)
+def khung_chi(tm):
+    """ứng viên từ ảnh chỉ định (--anh): mặt to nhất theo máy đọc (cần một mặt để đặt chữ dưới mặt), chữ in cứng để anh() đọc lại + xoá trên ảnh gốc"""
+    uv = []
+    for i, f in enumerate(KHUNG_CHI):
+        if not os.path.exists(f): raise RuntimeError(f"--anh: không có tệp {f}")
+        j = json.loads((subprocess.run([may_doc(), "--mat", f], capture_output=True, text=True, timeout=300).stdout.strip().splitlines() or ["{}"])[-1])
+        mat = [m for m in j.get("mat") or [] if m[4] >= 0.3]
+        if not mat: raise RuntimeError(f"--anh {os.path.basename(f)}: máy không thấy mặt nào — chọn ảnh có mặt nhân vật rõ")
+        x, y, w, h, q = max(mat, key=lambda m: m[2] * m[3])
+        uv.append({"tap": "chi-" + re.sub(r"\W+", "-", os.path.splitext(os.path.basename(f))[0])[:40], "so": i + 1, "mat": (x, y, w, h), "diem": round(q, 3), "nho": f,
+                   "so_khung": 1, "dat": 1, "xoa": [], "goc_tep": os.path.abspath(f)})
+    return uv
+
 def _mo_ta(url):
     """tóm tắt thật của phim (tai-tap.mo_ta) — lỗi thì rỗng, AI xếp theo luật chung"""
     try:
@@ -386,7 +402,9 @@ def anh(cid, ten, k, tm, ban=0):
     FREE_BAN[0] = ban   # mỗi bản một kiểu nhãn + nút (FREE_KIEU)
     goc = os.path.join(tm, f"goc-{ban}.png")
     # khung gốc lấy bằng ĐÚNG chuỗi lọc đã trích khung nhỏ + số thứ tự khung (05/11/2026: tính giây tay lệch sang cảnh khác — chấm mặt cận, dựng ra cảnh đám đông)
-    sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k["tap"] + ".mp4"), "-vf", f"{LOC},select=eq(n\\,{k['so'] - 1})", "-frames:v", "1", goc)
+    if os.path.exists(goc): os.remove(goc)
+    if k.get("goc_tep"): Image.open(k["goc_tep"]).convert("RGB").save(goc)   # khung chỉ định (--anh)
+    else: sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k["tap"] + ".mp4"), "-vf", f"{LOC},select=eq(n\\,{k['so'] - 1})", "-frames:v", "1", goc)
     if not os.path.exists(goc): raise RuntimeError(f"không lấy được khung gốc {k['tap']} #{k['so']}")
     j = json.loads(subprocess.run([may_doc(), goc], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")   # đọc chữ lại trên khung gốc: chữ nhỏ ("R") ảnh 540px bỏ sót
     k["xoa"] += [[x - w / 2, y - h / 2, w * 2, h * 2] if goc_nho([t, x, y, w, h]) else [x, y, w, h] for t, x, y, w, h in j.get("khung") or []]
@@ -536,7 +554,8 @@ def mot(p, xem, kieu, ban=1):
     cid, lang = int(p["content_id"]), "es" if str(p.get("locale")).startswith("es") else "en"; ten = ten_sach(p["ten"])
     tm = os.path.join(C, str(cid)); os.makedirs(tm, exist_ok=True)
     try:
-        uv = khung(cid, p["url"], tm); uv, ly_ai, vnd_ai = xep_ai(ten, uv, _mo_ta(p["url"])) if MOI and len(uv) > 1 else (uv, "", 0)   # + tóm tắt phim: khung đúng móc câu chuyện (20/11/2026)
+        if KHUNG_CHI: uv, ly_ai, vnd_ai = khung_chi(tm), "khung chỉ định (--anh)", 0
+        else: uv = khung(cid, p["url"], tm); uv, ly_ai, vnd_ai = xep_ai(ten, uv, _mo_ta(p["url"])) if MOI and len(uv) > 1 else (uv, "", 0)   # + tóm tắt phim: khung đúng móc câu chuyện (20/11/2026)
     except Exception as e:
         return [{"content_id": cid, "ten": ten, "loi": str(e)[-300:]}]
     mau0 = random.randrange(len(CAU[lang])); ra = []
@@ -581,7 +600,8 @@ if __name__ == "__main__":
     yc = a[a.index("--giong") + 1] if "--giong" in a else None
     if yc and yc not in ("theo-phim", "xoay") and yc not in KIEU_GIONG: sys.exit(f"--giong phải là một trong: {', '.join(KIEU_GIONG)} · theo-phim · xoay")
     XOAY = yc == "xoay"
-    ids = [int(x) for i, x in enumerate(a) if x.isdigit() and (i == 0 or a[i - 1] not in ("--so", "--ban"))]
+    KHUNG_CHI[:] = [a[i + 1] for i, x in enumerate(a) if x == "--anh" and i + 1 < len(a)]
+    ids = [int(x) for i, x in enumerate(a) if x.isdigit() and (i == 0 or a[i - 1] not in ("--so", "--ban", "--anh"))]
     ds = phim(ids) if ids else chon(so)
     if not ds: sys.exit("không có phim nào hợp (mới bắt đầu lãi, chưa có ảnh tĩnh)")
     print(f"{len(ds)} phim: " + " · ".join(f"{x['content_id']} {ten_sach(x['ten'])[:30]}" for x in ds), flush=True)

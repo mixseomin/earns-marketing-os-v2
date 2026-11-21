@@ -1119,7 +1119,7 @@ function veTv() {
     ${muc('Hình có sẵn', `<span class="nho">Bấm một hình để thêm thành cảnh mới sau cảnh đang chọn.</span><div class="luoi3">${khoHinh().map((a) => `<button type="button" class="o-hinh cong" data-d="hinh" data-g="${a}" aria-label="Thêm hình thành cảnh mới"><img src="${a}" alt="" loading="lazy"></button>`).join('')}</div>`)}`;
   if (E.tab === 'Nhân vật') { const con = KHO_NV.filter(([i]) => !D.nvs.some((n) => n.id === i)), nhom = [...new Set(D.nvs.map((n) => n.vai))];
     h = `<span class="nho">Mỗi nhân vật, đồ vật giữ một vẻ ngoài suốt video. Gắn vào cảnh ở bảng Thuộc tính.</span>
-    ${nhom.map((v) => `${nhom.length > 1 ? `<h3>${v}</h3>` : ''}${D.nvs.filter((n) => n.vai === v).map((n) => `<div class="o-nv"><img src="${anhNv(n)}" alt=""><div><b>${esc(n.ten)}</b><span class="nho">có mặt ở ${D.canh.filter((c) => c.nv.includes(n.id)).length} cảnh</span>
+    ${nhom.map((v) => `${nhom.length > 1 ? `<h3>${v}</h3>` : ''}${D.nvs.filter((n) => n.vai === v).map((n) => `<div class="o-nv">${/^n\d+$/.test(n.id) ? `<button type="button" class="o-nv-mo" data-d="muMo" data-g="${n.id.slice(1)}" title="Mở mẫu, ra Lệnh AI cho mẫu này"><img src="${anhNv(n)}" alt=""></button>` : `<img src="${anhNv(n)}" alt="">`}<div>${/^n\d+$/.test(n.id) ? `<button type="button" class="o-nv-mo" data-d="muMo" data-g="${n.id.slice(1)}"><b>${esc(n.ten)}</b></button>` : `<b>${esc(n.ten)}</b>`}<span class="nho">có mặt ở ${D.canh.filter((c) => c.nv.includes(n.id)).length} cảnh</span>
       <input type="text" data-f="nvmo" data-id="${n.id}" id="nv-${n.id}" placeholder="Tả vẻ ngoài" value="${esc(n.mo)}"><span class="day-bt"><button type="button" class="bt" data-d="veNv" data-g="${n.id}">Vẽ lại</button><button type="button" class="bt" data-d="boNv" data-g="${n.id}">Bỏ</button></span></div></div>`).join('')}`).join('') || '<span class="nho">Video này chưa có nhân vật.</span>'}
     ${E.moNv ? muc('Chọn nhân vật', `<div class="day-bt">${con.map(([i, t]) => `<button type="button" class="bt" data-d="themNv" data-g="${i}">${t}</button>`).join('')}</div><span class="nho">Bản thật: gõ tên hoặc tải hình để tạo nhân vật riêng.</span>`) : `<div><button type="button" class="bt" data-d="moNv">＋ Thêm nhân vật</button></div>`}`; }
   if (E.tab === 'Chữ') h = `<span class="nho">Kiểu chữ dùng chung cho cả video. Nội dung chữ sửa ở từng đoạn trên hàng Chữ.</span><div class="luoi2">${KCHU.map((k, i) => `<button type="button" class="o-chu" data-d="kchu" data-g="${k}" aria-pressed="${D.kieuChu === k}"${giaiNut(k)}><small>${k}</small>${i < 3 ? `<span class="k-chu kc-${i}" style="position:static;font-size:15px;transform:none">Your sign</span>` : ''}</button>`).join('')}</div>`;
@@ -1388,7 +1388,7 @@ function chay() {
 }
 function tua(t) { E.t = Math.max(0, Math.min(tong(), t)); if (E.chay) moc = performance.now() - E.t * 1000; veKhung(); veKim(); }
 function chon(id, loai) {
-  E.amL = ['giong', 'td', 'nhac'].includes(loai) ? loai : null;
+  E.aiMau = null; E.amL = ['giong', 'td', 'nhac'].includes(loai) ? loai : null;
   if (loai === 'k3') { loai = 'canh'; E.ttTab = 'hinh'; if (nguonCo().includes('3d')) E.nguon = '3d'; } else if (loai === 'lp') { loai = 'canh'; E.nguon = 'lop'; } else if (loai === 'td') { loai = 'giong'; E.ttTab = 'thoai'; }
   else if (loai !== 'canh') E.ttTab = 'thoai'; else if (E.ttTab === 'thoai') E.ttTab = 'may';
   E.chon = { id, loai }; E.moDoi = false; E.o = 'tt';
@@ -1403,7 +1403,7 @@ function lamD(a, d = {}, nut) {
   const doi = (f) => { ghi(); f(); veD(); };
   switch (a) {
     case 'tab': E.tab = g; E.moNv = false; luu(); return veTv();
-    case 'muMo': E.muMo = E.muMo === +g ? null : +g; E.muSua = null; veMu(); return veNgan();
+    case 'muMo': { E.muMo = E.muMo === +g ? null : +g; E.muSua = null; E.aiMau = E.muMo; veMu(); const r = veNgan(); window.aiChon?.(); return r; }
     case 'muSua': E.muSua = g ? +g : null; return veMu();
     case 'muThem': E.muThem = !!g; return veMu();
     case 'muZoom': { const x = (D.that?.mau || []).find((m) => m.id === +g); return x?.anh ? muZoom(x) : undefined; }
@@ -1651,13 +1651,50 @@ document.addEventListener('change', (e) => { if (e.target.dataset?.f === 'nhoLai
 man('dung');
 
 // ── LỆNH AI (anh 20/11/2026): ô chat cố định bên phải. Chọn clip trên timeline → chip "Đang sửa: …" + gợi ý theo loại; gõ lệnh → máy chủ lenhAiS2.
-// Sửa chữ chạy ngay (nút Hoàn tác); sinh lại tốn credit hiện thẻ xác nhận, bấm Chạy mới gọi đường ghi. Lịch sử chat giữ theo tập trong trình duyệt.
-const AI = { mo: (() => { try { return localStorage.getItem('s2-ai-mo') === '1'; } catch { return false; } })(), dang: false, ls: {}, xem: {} };
+// Sửa chữ chạy ngay (nút Hoàn tác); sinh lại tốn credit hiện thẻ xác nhận, bấm Chạy mới gọi đường ghi. Lịch sử chat lưu trên máy chủ theo tập (xv_s2_ai), mọi máy thấy như nhau; bản trong trình duyệt chỉ để hiện ngay.
+const AI = { mo: (() => { try { return localStorage.getItem('s2-ai-mo') === '1'; } catch { return false; } })(), dang: false, ls: {}, xem: {}, tai: {}, ban: {}, dau: {}, cho: {}, tab: null,
+  may: (() => { try { let m = localStorage.getItem('s2-ai-may'); if (!m) { m = Math.random().toString(36).slice(2, 10); localStorage.setItem('s2-ai-may', m); } return m; } catch { return 'x' + Math.random().toString(36).slice(2, 8); } })() };
 const aiNhap = (v) => { const k = aiKhoa(); if (!k) return ''; try { if (v === undefined) return localStorage.getItem(`${k}-nhap`) || ''; if (v) localStorage.setItem(`${k}-nhap`, v); else localStorage.removeItem(`${k}-nhap`); } catch { /* bỏ qua */ } return v; };
 const aiKhoa = () => (D.that ? `s2-ai-${D.that.tap}` : '');
-const aiLs = () => { const k = aiKhoa(); if (!k) return []; if (!AI.ls[k]) { try { AI.ls[k] = JSON.parse(localStorage.getItem(k) || '[]'); } catch { AI.ls[k] = []; } } return AI.ls[k]; };
-const aiLuu = () => { try { localStorage.setItem(aiKhoa(), JSON.stringify(aiLs().slice(-40))); } catch { /* bỏ qua */ } };
-function aiDoi() {
+const aiId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+const aiMoi = (o) => ({ id: aiId(), ts: Date.now(), u: 1, nguon: AI.may, ...o });
+const aiDau = (m) => { const { u, ...r } = m; return JSON.stringify(r); };
+/** tab của một tin = đối tượng nó nói tới: m<mẫu> · c<cảnh> · nhac · tap (tin cũ chưa có thì suy từ việc đã làm / nhãn đối tượng) */
+const aiTDx = (m) => { for (const v of [...(m?.da_lam || []), ...(m?.de_xuat || [])]) { if (v.mauId != null) return `m${v.mauId}`; if (v.canhId != null) return `c${v.canhId}`; if (v.loai === 'sinh_nhac' || v.truong === 'nhac_mo_ta') return 'nhac'; } return ''; };
+const aiTDoi = (doi) => { const s = String(doi || ''); if (/^Nhạc/.test(s)) return 'nhac'; const n = s.match(/cảnh (\d+)/); if (n) { const c = canhThat().find((x) => x && Math.round(+x.thu_tu) === +n[1]); if (c) return `c${c.id}`; } return 'tap'; };
+function aiChuan(ls) { let doi = false; const t0 = Date.now() - ls.length * 1000;
+  ls.forEach((m, i) => { if (!m.id) { m.id = aiId() + i; doi = true; } if (!m.ts) { m.ts = t0 + i; doi = true; } if (!m.u) { m.u = 1; doi = true; } });
+  ls.forEach((m, i) => { if (m.t) return; let t = '';
+    if (m.ai === 'nguoi') { for (let j = i + 1; j < ls.length && ls[j]?.ai !== 'nguoi'; j++) { t = aiTDx(ls[j]); if (t) break; } t ||= aiTDoi(m.doi); }
+    else { t = aiTDx(m); if (!t) for (let j = i - 1; j >= 0; j--) if (ls[j]?.ai === 'nguoi') { t = ls[j].t || aiTDoi(ls[j].doi); break; } }
+    m.t = t || 'tap'; doi = true; });
+  return doi; }
+const aiLs = () => { const k = aiKhoa(); if (!k) return []; if (!AI.ls[k]) { let a; try { a = JSON.parse(localStorage.getItem(k) || '[]'); } catch { a = []; } a = Array.isArray(a) ? a.filter((m) => m && typeof m === 'object') : [];
+  const doi = aiChuan(a); AI.ls[k] = a; for (const m of a) AI.dau[m.id] = aiDau(m); if (doi) { try { localStorage.setItem(k, JSON.stringify(a)); } catch { /* bỏ qua */ } } } return AI.ls[k]; };
+const aiVeNhe = () => { const a = document.activeElement; if (AI.mo && !(a && a.closest?.('#aiDock') && /TEXTAREA|INPUT/.test(a.tagName))) aiVe(); };
+/** lưu: bộ nhớ trình duyệt ngay (hiện tức thì), máy chủ sau 1,5 giây (gom nhiều lần sửa); tin nào đổi nội dung thì u + 1 */
+const aiLuu = () => { const k = aiKhoa(); if (!k) return; const ls = aiLs(); aiChuan(ls); let doi = false;
+  for (const m of ls) { const d = aiDau(m); if (AI.dau[m.id] === d) continue; if (AI.dau[m.id] !== undefined) m.u = (m.u || 1) + 1; AI.dau[m.id] = d; doi = true; }
+  try { localStorage.setItem(k, JSON.stringify(ls)); } catch { /* bỏ qua */ }
+  if (doi) { AI.cho[k] = 1; clearTimeout(AI.hDay); AI.hDay = setTimeout(aiDay, 1500); } };
+async function aiDay() { for (const k of Object.keys(AI.cho)) { delete AI.cho[k]; const ls = AI.ls[k] || []; const gui = ls.filter((m) => (m.u || 1) > (AI.ban[m.id] || 0)); if (!gui.length) continue; const u0 = gui.map((m) => m.u || 1);
+    try { const ra = await ghiSv('luuAiS2', +k.slice(6), gui); gui.forEach((m, n) => { AI.ban[m.id] = Math.max(AI.ban[m.id] || 0, u0[n]); }); if (aiTron(k, ra) && k === aiKhoa()) aiVeNhe(); }
+    catch { AI.cho[k] = 1; clearTimeout(AI.hDay); AI.hDay = setTimeout(aiDay, 15000); } } }
+/** trộn bản máy chủ vào bản đang có: tin mới thì thêm, tin có u lớn hơn thì thay */
+function aiTron(k, ra) { if (!Array.isArray(ra)) return false; const ls = AI.ls[k] || (AI.ls[k] = []); let doi = false;
+  for (const r of ra) { if (!r?.id) continue; const u = r.u || 1; AI.ban[r.id] = Math.max(AI.ban[r.id] || 0, u); const c = ls.find((m) => m.id === r.id);
+    if (!c) { ls.push(r); AI.dau[r.id] = aiDau(r); doi = true; } else if (u > (c.u || 1)) { for (const x of Object.keys(c)) delete c[x]; Object.assign(c, r); AI.dau[r.id] = aiDau(c); doi = true; } }
+  if (doi) { ls.sort((a, b) => (a.ts || 0) - (b.ts || 0)); try { localStorage.setItem(k, JSON.stringify(ls)); } catch { /* bỏ qua */ } } return doi; }
+/** mở dock / đổi tập: đọc lịch sử máy chủ; tin chỉ có ở máy này (lịch sử cũ trước khi có máy chủ) tự đẩy lên */
+async function aiNap() { const k = aiKhoa(); if (!k || AI.tai[k]) return; AI.tai[k] = 'dang'; const ls = aiLs();
+  try { const r = await goi('docAiS2', +k.slice(6)); aiTron(k, r?.ls); AI.tai[k] = 1;
+    if (ls.some((m) => (m.u || 1) > (AI.ban[m.id] || 0))) { AI.cho[k] = 1; clearTimeout(AI.hDay); AI.hDay = setTimeout(aiDay, 300); } }
+  catch { AI.tai[k] = 'loi'; setTimeout(() => { if (AI.tai[k] === 'loi') { delete AI.tai[k]; if (AI.mo && k === aiKhoa()) aiVeNhe(); } }, 15000); }
+  if (AI.mo && k === aiKhoa()) aiVeNhe(); }
+window.addEventListener('focus', () => { const k = aiKhoa(); if (AI.mo && k && AI.tai[k] === 1) { delete AI.tai[k]; aiNap(); } });
+function aiDoi() { const d = aiDoi0(); d.t = d.loai === 'mau' ? `m${d.mauId}` : d.canhId != null ? `c${d.canhId}` : d.loai === 'nhac' ? 'nhac' : 'tap'; return d; }
+function aiDoi0() {
+  if (E.aiMau != null && D.that) { const x = (D.that.mau || []).find((m) => m.id === E.aiMau); if (x) return { loai: 'mau', mauId: x.id, nhan: `${S_VAI[x.loai] || 'Mẫu'} ${x.ten}` }; }
   const c = E.chon; if (!c || !D.that) return { loai: 'tap', nhan: `Cả tập ${D.that?.soTap ? '' : ''}`.trim() || 'Cả tập' };
   if (c.id === 'nhac') return { loai: 'nhac', nhan: 'Nhạc nền của tập' };
   const g = GOC[c.id]; if (!g) return { loai: 'tap', nhan: 'Cả tập' }; const so = Math.round(+g.thu_tu);
@@ -1667,21 +1704,32 @@ function aiDoi() {
 }
 const AI_GOI_Y = { canh: ['Cận mặt hơn, ánh sáng ấm', 'Rút cảnh còn 3 giây', 'Đổi chữ trên màn cho gọn', 'Sinh lại keyframe, nhân vật nhìn thẳng máy'],
   giong: ['Viết lại lời cho tự nhiên hơn', 'Rút lời còn một câu ngắn', 'Đọc lại giọng hào hứng hơn'], td: ['Thêm tiếng mưa nhẹ', 'Bỏ tiếng ồn, chỉ để gió'],
-  nhac: ['Nhạc nhẹ, piano buồn', 'Nhạc nhanh, sôi động hơn'], tap: ['Viết lại tóm tắt tập cho hấp dẫn', 'Đặt tên tập ngắn gọn hơn'] };
+  nhac: ['Nhạc nhẹ, piano buồn', 'Nhạc nhanh, sôi động hơn'], tap: ['Viết lại tóm tắt tập cho hấp dẫn', 'Đặt tên tập ngắn gọn hơn'],
+  mau: ['Vẽ lại ảnh mẫu theo mô tả mới', 'Sửa mô tả cho rõ hơn', 'Đổi tên ngắn gọn hơn'] };
+const aiXepTab = (t) => t === 'tap' ? -2 : t === 'nhac' ? -1 : t[0] === 'c' ? (vt('s' + t.slice(1)) + 1 || 1e5) : 2e5;
+const aiTenTab = (t) => { if (t === 'tap') return 'Cả tập'; if (t === 'nhac') return 'Nhạc nền'; const id = +t.slice(1);
+  if (t[0] === 'c') { const g = GOC['s' + id]; return g ? `Cảnh ${Math.round(+g.thu_tu)}` : 'Cảnh đã xoá'; } const x = (D.that?.mau || []).find((m) => m.id === id); return x ? x.ten : 'Mẫu đã xoá'; };
 function aiVe() {
   let o = document.getElementById('aiDock');
   if (!o) { o = document.createElement('aside'); o.id = 'aiDock'; o.className = 'ai-dock'; document.body.append(o);
     const n = document.createElement('button'); n.type = 'button'; n.id = 'aiMoNut'; n.className = 'ai-mo-nut'; n.textContent = '✦ Lệnh AI'; n.title = 'Mở ô lệnh AI: sửa đối tượng đang chọn bằng câu lệnh'; document.body.append(n);
-    n.onclick = () => { AI.mo = !AI.mo; try { localStorage.setItem('s2-ai-mo', AI.mo ? '1' : '0'); } catch { /* bỏ qua */ } aiVe(); if (AI.mo) setTimeout(() => document.getElementById('aiO')?.focus(), 30); };
+    n.onclick = () => { AI.mo = !AI.mo; if (AI.mo && AI.tai[aiKhoa()] === 1) delete AI.tai[aiKhoa()]; try { localStorage.setItem('s2-ai-mo', AI.mo ? '1' : '0'); } catch { /* bỏ qua */ } aiVe(); if (AI.mo) setTimeout(() => document.getElementById('aiO')?.focus(), 30); };
     o.addEventListener('click', aiBam); o.addEventListener('input', (e) => { const t = e.target; if (t.id === 'aiO') { aiNhap(t.value); return; } if (!t.classList.contains('ai-y')) return; const v = aiLs()[+t.dataset.i]?.de_xuat?.[+t.dataset.j]; if (!v) return;
       v.yeu_cau = t.value.slice(0, 600); const g = t.closest('.ai-the')?.querySelector('.ai-gia'); if (g) g.textContent = aiGia(v); const x = AI.xem[`${t.dataset.i}:${t.dataset.j}`]; if (x) x.cu = true; aiLuu(); }); o.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'aiO') { e.preventDefault(); aiGui(); } }); }
   o.dataset.tap = D.that?.tap || ''; document.body.classList.toggle('ai-mo', AI.mo); o.hidden = !AI.mo; document.getElementById('aiMoNut').hidden = AI.mo; if (!AI.mo) return;
   if (!D.that) { o.innerHTML = `<div class="ai-dau"><strong>Lệnh AI</strong><button type="button" class="bt" data-ai="dong">Đóng</button></div><p class="nho">Mở một phim thật của studio để dùng lệnh AI.</p>`; return; }
   const d = aiDoi(), ls = aiLs(), giu = document.getElementById('aiO')?.value || aiNhap();
-  const cuoi = ls.at(-1); if (cuoi?.ai === 'nguoi' && !AI.dang) ls.push({ ai: 'may', loi: true, chu: 'Lượt này bị ngắt (trang tải lại khi máy đang nghĩ).', gui_lai: cuoi.chu });
+  const k0 = aiKhoa(); if (!AI.tai[k0]) aiNap();
+  // tin cuối là câu hỏi chưa có trả lời: chỉ báo ngắt khi chính máy này hỏi (máy khác có thể đang nghĩ) hoặc đã quá 3 phút
+  const cuoi = ls.filter((m) => !m.an).at(-1);
+  if (cuoi?.ai === 'nguoi' && !AI.dang && AI.tai[k0] === 1 && (cuoi.nguon === AI.may || Date.now() - (cuoi.ts || 0) > 180000)) { ls.push(aiMoi({ ai: 'may', loi: true, chu: 'Lượt này bị ngắt (trang tải lại khi máy đang nghĩ).', gui_lai: cuoi.chu, t: cuoi.t })); aiLuu(); }
+  const tab = AI.tab === 'tat' ? 'tat' : d.t;
+  const tsT = [...new Set([...ls.filter((m) => !m.an).map((m) => m.t || 'tap'), d.t])].sort((a, b) => aiXepTab(a) - aiXepTab(b) || aiTenTab(a).localeCompare(aiTenTab(b)));
+  const hien = ls.map((m, i) => [m, i]).filter(([m]) => !m.an && (tab === 'tat' || (m.t || 'tap') === tab));
   o.innerHTML = `<div class="ai-dau"><strong>Lệnh AI</strong><button type="button" class="bt" data-ai="dong">Đóng</button></div>
     <div class="ai-chip">Đang sửa: <b>${esc(d.nhan)}</b>${d.loai !== 'tap' ? ' <button type="button" class="ai-x" data-ai="bo" title="Bỏ chọn, ra lệnh cho cả tập">×</button>' : ''}</div>
-    <div class="ai-ls">${ls.length ? ls.map(aiTin).join('') : '<p class="nho">Chọn một clip trên timeline (keyframe, lời, tiếng động, nhạc) rồi gõ điều muốn đổi. Sửa chữ chạy ngay và hoàn tác được; sinh lại hình / clip / giọng tốn credits nên con hỏi trước.</p>'}${AI.dang ? '<div class="ai-tin may"><span class="nho">Đang nghĩ…</span></div>' : ''}</div>
+    <div class="ai-tabs"><button type="button" class="ai-tab${tab === 'tat' ? ' on' : ''}" data-ai="tab" data-t="tat">Tất cả</button>${tsT.map((t) => `<button type="button" class="ai-tab${tab === t ? ' on' : ''}" data-ai="tab" data-t="${t}">${esc(aiTenTab(t))}</button>`).join('')}</div>
+    <div class="ai-ls">${AI.tai[k0] === 'dang' && !ls.length ? '<p class="nho">Đang tải lịch sử…</p>' : AI.tai[k0] === 'loi' && !ls.length ? '<div class="bao">Chưa tải được lịch sử từ máy chủ, đang thử lại sau 15 giây.</div>' : hien.length ? hien.map(([m, i]) => aiTin(m, i)).join('') : ls.some((m) => !m.an) ? `<p class="nho">Chưa có lệnh nào cho ${esc(d.nhan)}. Bấm Tất cả để xem mọi lệnh của tập.</p>` : '<p class="nho">Chọn một clip trên timeline (keyframe, lời, tiếng động, nhạc) rồi gõ điều muốn đổi. Sửa chữ chạy ngay và hoàn tác được; sinh lại hình / clip / giọng tốn credits nên con hỏi trước.</p>'}${AI.dang ? '<div class="ai-tin may"><span class="nho">Đang nghĩ…</span></div>' : ''}</div>
     <div class="ai-goi">${(AI_GOI_Y[d.loai] || []).map((g) => `<button type="button" class="ai-g" data-ai="g">${esc(g)}</button>`).join('')}</div>
     <div class="ai-nhap"><textarea id="aiO" rows="2" placeholder="Ví dụ: cận mặt hơn, lời đọc ngắn lại…"${AI.dang ? ' disabled' : ''}>${esc(giu)}</textarea><button type="button" class="bt chinh" data-ai="gui"${AI.dang ? ' disabled' : ''}>Gửi</button></div>`;
   const l = o.querySelector('.ai-ls'); l.scrollTop = l.scrollHeight;
@@ -1732,28 +1780,34 @@ const aiGia = (v) => { const k = aiKhoaGia(v);
   return g == null ? `Bước này tốn ${xemQt() ? 'tiền' : 'credits'} (studio chưa báo được giá cho bước này).` : `Khoảng ${tienDo(g + dich)}${dich ? ' (gồm một lượt dịch ý riêng)' : ''}.${xemQt() ? '' : ' Hiện tài khoản không giới hạn credits.'}`; };
 async function aiGui(cau) {
   const o = document.getElementById('aiO'), hoi = String(cau ?? o?.value ?? '').trim(); if (!hoi || AI.dang || !D.that) return;
-  const d = aiDoi(), ls = aiLs(), lich = ls.slice(-6).map((m) => ({ ai: m.ai, chu: m.chu }));
-  ls.push({ ai: 'nguoi', chu: hoi, doi: d.nhan }); if (o) o.value = ''; aiNhap(''); AI.dang = true; aiLuu(); aiVe();
-  try { const k = await ghiSv('lenhAiS2', D.that.phim, D.that.tap, { loai: d.loai, canhId: d.canhId ?? null }, hoi, lich);
-    const m = { ai: 'may', chu: k.tra_loi || 'Xong.', da_lam: k.da_lam || [], de_xuat: k.de_xuat || [] }; ls.push(m); if ((k.da_lam || []).length) await taiLai(true);
+  const d = aiDoi(), ls = aiLs(), lich = ls.filter((m) => !m.an && (m.t || 'tap') === d.t && m.chu).slice(-6).map((m) => ({ ai: m.ai, chu: m.chu }));
+  ls.push(aiMoi({ ai: 'nguoi', chu: hoi, doi: d.nhan, t: d.t })); AI.tab = null; if (o) o.value = ''; aiNhap(''); AI.dang = true; aiLuu(); aiVe();
+  try { const k = await ghiSv('lenhAiS2', D.that.phim, D.that.tap, { loai: d.loai, canhId: d.canhId ?? null, mauId: d.mauId ?? null }, hoi, lich);
+    const m = aiMoi({ ai: 'may', t: d.t, chu: k.tra_loi || 'Xong.', da_lam: k.da_lam || [], de_xuat: k.de_xuat || [] }); ls.push(m); if ((k.da_lam || []).length) await taiLai(true);
     if (m.de_xuat.length) { if (!E.gia) await napQt(true).catch(() => {}); const tong = m.de_xuat.reduce((a, v) => (a == null || aiCent(v) == null ? null : a + aiCent(v)), 0);
       if (tong != null && tong <= AI_NGUONG_CENT) { m.chu += ` Chi phí khoảng ${tienDo(tong)}, dưới ngưỡng nên tự chạy luôn.`; m.chuoi = true; aiChuoi(m); } }
-  } catch (e) { ls.push({ ai: 'may', loi: true, chu: `Không chạy được: ${e.message}` }); }
+  } catch (e) { ls.push(aiMoi({ ai: 'may', loi: true, t: d.t, chu: `Không chạy được: ${e.message}` })); }
   AI.dang = false; aiLuu(); aiVe();
 }
 async function aiBam(e) {
   const b = e.target.closest('[data-ai]'); if (!b) return; const k = b.dataset.ai, ls = aiLs();
   if (k === 'dong') { AI.mo = false; aiVe(); return; }
-  if (k === 'bo') { E.chon = null; veD(); aiVe(); return; }
+  if (k === 'bo') { if (E.aiMau != null) E.aiMau = null; else E.chon = null; veD(); aiVe(); return; }
+  if (k === 'tab') { const t = b.dataset.t; if (t === 'tat') { AI.tab = 'tat'; aiVe(); return; } AI.tab = null;
+    if (t === 'tap') { E.aiMau = null; E.chon = null; veD(); aiVe(); return; } if (t === 'nhac') { E.aiMau = null; chon('nhac', 'nhac'); return; }
+    const id = +t.slice(1); if (t[0] === 'c') { if (vt(`s${id}`) < 0) { bao('Cảnh này không còn trong tập.'); aiVe(); return; } chon(`s${id}`, 'canh'); return; }
+    if (!(D.that?.mau || []).some((x) => x.id === id)) { bao('Mẫu này không còn trong phim.'); aiVe(); return; } E.aiMau = E.muMo = id; E.muSua = null; veMu(); veNgan(); aiVe(); return; }
   if (k === 'g') { aiGui(b.textContent); return; }
   if (k === 'gui') { aiGui(); return; }
   if (k === 'chayhet' || k === 'bohet') { const m = ls[+b.dataset.i]; if (!m) return; if (k === 'bohet') m.de_xuat.forEach((v) => { if (!v.xong) v.xong = 'Đã bỏ.'; }); else { m.chuoi = true; aiChuoi(m); } aiLuu(); aiVe(); return; }
   if (k === 'xemlai') { e.preventDefault(); aiXem(+b.dataset.i, +b.dataset.j); return; }
-  if (k === 'guilai') { const h = ls[+b.dataset.i]?.gui_lai; ls.splice(+b.dataset.i - 1, 2); aiLuu(); aiGui(h); return; }
+  if (k === 'guilai') { const i = +b.dataset.i, m = ls[i]; if (!m) return; const h = m.gui_lai; m.an = true; for (let j = i - 1; j >= 0; j--) if (!ls[j].an && ls[j].ai === 'nguoi') { ls[j].an = true; break; } aiLuu(); aiGui(h); return; }
   const m = ls[+b.dataset.i]; if (!m) return;
   if (k === 'hoan') { b.disabled = true;
-    try { for (const v of [...m.da_lam].reverse()) { if (v.loai === 'sua_tap') await ghiSv('suaTap', v.tapId, { [v.truong]: v.cu }); else await ghiSv('suaCanh', v.canhId, { [v.truong]: v.cu }); }
-      m.hoan = true; await taiLai(true); } catch (er) { ls.push({ ai: 'may', loi: true, chu: `Hoàn tác không được: ${er.message}` }); }
+    try { const mu = {}; for (const v of [...m.da_lam].reverse()) { if (v.loai === 'sua_mau') { const x = (D.that.mau || []).find((y) => y.id === v.mauId); if (!x) continue; (mu[v.mauId] ||= { id: x.id, ten: x.ten, mo_ta: x.moTa })[v.truong] = v.cu; }
+        else if (v.loai === 'sua_tap') await ghiSv('suaTap', v.tapId, { [v.truong]: v.cu }); else await ghiSv('suaCanh', v.canhId, { [v.truong]: v.cu }); }
+      for (const mo of Object.values(mu)) await ghiSv('luuMauS2', D.that.phim, mo);
+      m.hoan = true; await taiLai(true); } catch (er) { ls.push(aiMoi({ ai: 'may', loi: true, t: m.t, chu: `Hoàn tác không được: ${er.message}` })); }
     aiLuu(); aiVe(); return; }
   const v = m.de_xuat?.[+b.dataset.j]; if (!v) return;
   if (k === 'bodx') { v.xong = 'Đã bỏ.'; aiLuu(); aiVe(); return; }
@@ -1770,7 +1824,7 @@ async function aiChay(m, v) { const ls = aiLs();
       else if (v.loai === 'sinh_td') await ghiSv('sinhAmS2', v.tapId, 'td', v.canhId ?? null, v.yeu_cau || '');
       else if (v.loai === 'sinh_nhac') await ghiSv('sinhAmS2', v.tapId, 'nhac', null, v.yeu_cau || '');
       v.xong = 'Đang chạy bên studio…'; v.cho = Date.now(); taiLai(true).catch(() => {}).finally(theoDoi);
-    } catch (er) { v.xong = ''; v.loi = true; ls.push({ ai: 'may', loi: true, chu: `${v.nhan} bị từ chối: ${er.message}` }); }
+    } catch (er) { v.xong = ''; v.loi = true; ls.push(aiMoi({ ai: 'may', loi: true, t: m.t, chu: `${v.nhan} bị từ chối: ${er.message}` })); }
 }
 /** thẻ đề xuất đã gửi: đọc cờ đang-chạy của cảnh sau mỗi vòng theo dõi; hết cờ (hoặc vòng theo dõi đã dừng vì hết việc) → Xong */
 function aiCapNhat() { let doi = false; const CO = { sinh_lai_anh: 'dang_sinh_anh', tao_nhan_vat: 'dang_sinh_anh', sinh_lai_clip: 'video_dang', sinh_lai_giong: 'dang_sinh_giong', sinh_td: 'dang_sinh_sfx' };
@@ -1807,7 +1861,7 @@ function sang(khoa, cuon) { document.querySelectorAll('.s2-sang').forEach((e) =>
 /** tới đối tượng: cảnh → chọn + cuộn timeline; mẫu → mở ngăn kéo chi tiết */
 function toiDt(k) { const [l, id] = k.split(':');
   if (l === 'c') { if (vt(`s${id}`) < 0) return bao('Cảnh này không còn trong tập.'); chon(`s${id}`, 'canh'); }
-  else { E.muMo = +id; E.muSua = null; veMu(); veNgan(); }
+  else { E.muMo = +id; E.muSua = null; E.aiMau = +id; veMu(); veNgan(); window.aiChon?.(); }
   requestAnimationFrame(() => { sang([k], true); setTimeout(() => sang([]), 2200); }); }
 { let dang = null; document.addEventListener('mouseover', (e) => { const el = e.target.closest?.('#aiDock [data-hl], #s2TimKq [data-hl]'); if (el === dang) return; dang = el; sang(el ? el.dataset.hl.split(',') : [], !!el?.closest('#s2TimKq')); }); }
 document.addEventListener('click', (e) => { const b = e.target.closest?.('#aiDock [data-ai=toi]'); if (b) { e.stopPropagation(); toiDt(b.dataset.k); } }, true);
@@ -1820,7 +1874,7 @@ function veNgan() { let n = document.getElementById('s2Ngan'); const x = E.muMo 
   const a = document.activeElement; if (a && n.contains(a) && /TEXTAREA|INPUT|SELECT/.test(a.tagName)) return;   // đang gõ trong ngăn: không vẽ lại dưới tay
   n.dataset.mau = x.id; n.hidden = false;
   n.innerHTML = `<div class="ng-dau"><div><small>${esc(S_VAI[x.loai] || x.loai)}</small><b>${esc(x.ten)}</b></div><button type="button" class="bt" data-d="muMo" data-g="${x.id}" aria-label="Đóng chi tiết">Đóng</button></div><div class="ng-than">${MU_CT(x)}</div>`; }
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && E.muMo != null && !document.getElementById('s2Ngan')?.hidden && !e.target.closest?.('textarea, input, #aiDock')) { E.muMo = null; veMu(); veNgan(); } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && E.muMo != null && !document.getElementById('s2Ngan')?.hidden && !e.target.closest?.('textarea, input, #aiDock')) { E.muMo = null; E.aiMau = null; veMu(); veNgan(); window.aiChon?.(); } });
 
 // ô TÌM CHUNG trên thanh trên: tìm trong chi tiết từng cảnh (tên, chữ màn, lời, thoại, mô tả hình) và mẫu (tên, mô tả); rê = sáng, bấm / Enter = tới
 const TIM_TRUONG = [['nhan', 'Tên cảnh'], ['chu', 'Chữ trên màn'], ['loi', 'Lời đọc']], TIM_GOC = [['mo_ta', 'Mô tả hình'], ['hanh_dong_vi', 'Hành động']];

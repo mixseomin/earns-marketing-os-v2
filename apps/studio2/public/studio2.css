@@ -521,3 +521,7 @@ body.ai-mo{padding-right:360px}
 .s2-ngan { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100vw); background: var(--mat); border-left: 1px solid var(--line); box-shadow: -12px 0 30px rgba(0,0,0,.16); z-index: 70; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-right: env(safe-area-inset-right, 0px) }
 .s2-ngan .ng-dau { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line) } .s2-ngan .ng-dau small { display: block; color: var(--ink-3); font-size: 11.5px } .s2-ngan .ng-dau b { font-family: var(--f-hien); font-size: 17px }
 .s2-ngan .ng-than { overflow: auto; padding: 10px 14px 20px; min-height: 0 } .s2-ngan .mu-ct { border-left: 0; margin: 0; padding: 0 } .s2-ngan .mu-lon img { width: 100%; border-radius: 8px }
+.ai-tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:2px;flex-shrink:0}
+.ai-tab{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.ai-tab.on{background:var(--brass-nhat);color:var(--ink);border-color:transparent;font-weight:600}
+.o-nv-mo{all:unset;cursor:pointer}

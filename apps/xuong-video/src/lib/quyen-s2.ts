@@ -18,13 +18,13 @@ type Doi = 'phim' | 'tap' | 'canh' | 'job' | 'viec' | 'khong';
 const LUAT: Record<string, { doi: Doi; tien?: boolean }> = {
   // đọc
   toiS2: { doi: 'khong' }, creditS2: { doi: 'khong' }, camNangS2: { doi: 'khong' }, dsPhimS2: { doi: 'khong' }, dsGoiTheLoai: { doi: 'khong' }, dsTemplateS2: { doi: 'khong' }, dsMauPhim: { doi: 'khong' }, docTemplate: { doi: 'khong' },
-  docPhim: { doi: 'phim' }, quyTrinhTap: { doi: 'phim' }, dsCanh: { doi: 'tap' }, uocTien: { doi: 'tap' }, uocAm: { doi: 'tap' }, nhatKyTap: { doi: 'tap' }, nhatKyCanh: { doi: 'canh' }, docCoSoS2: { doi: 'tap' }, hangDoiS2: { doi: 'phim' }, xemLenhS2: { doi: 'canh' },
+  docPhim: { doi: 'phim' }, quyTrinhTap: { doi: 'phim' }, dsCanh: { doi: 'tap' }, uocTien: { doi: 'tap' }, uocAm: { doi: 'tap' }, nhatKyTap: { doi: 'tap' }, nhatKyCanh: { doi: 'canh' }, docCoSoS2: { doi: 'tap' }, hangDoiS2: { doi: 'phim' }, xemLenhS2: { doi: 'canh' }, docAiS2: { doi: 'tap' },
   docViecNen: { doi: 'viec' }, trangThaiXuat: { doi: 'job' },
   // công cụ thiết kế (actions-thiet-ke.ts)
   dsThietKe: { doi: 'khong' }, docThietKe: { doi: 'khong' }, dsMauCrS2: { doi: 'khong' }, anhMauCrS2: { doi: 'khong' }, dsPhimThuS2: { doi: 'khong' }, anhPhimS2: { doi: 'khong' }, luuThietKe: { doi: 'khong' }, luuTruThietKe: { doi: 'khong' }, dsThuMucTK: { doi: 'khong' }, taoThuMucTK: { doi: 'khong' }, chuyenThuMucTK: { doi: 'khong' }, doiThuMucTK: { doi: 'khong' },
   // ghi không tốn tiền
   taoPhimS2: { doi: 'khong' }, taoPhimTuTemplate: { doi: 'khong' }, taoTap: { doi: 'phim' }, suaPhim: { doi: 'phim' }, suaTap: { doi: 'tap' }, suaCanh: { doi: 'canh' }, xepCanh: { doi: 'tap' }, themCanh: { doi: 'tap' },
-  duyetNguoiXemTayAction: { doi: 'tap' }, luuKhuonChuoi: { doi: 'tap' }, chonKeyframe: { doi: 'canh' }, chonBanS2: { doi: 'canh' }, chonNhacS2: { doi: 'tap' }, banDaSinhS2: { doi: 'canh' }, banNhacS2: { doi: 'tap' }, duyetKhungTayAction: { doi: 'canh' }, boQuaSoiClipAction: { doi: 'canh' }, duyetCanh: { doi: 'canh' }, duyetAnimatic: { doi: 'tap' }, xuatTap: { doi: 'tap' }, moTraPhiS2: { doi: 'tap' },
+  duyetNguoiXemTayAction: { doi: 'tap' }, luuKhuonChuoi: { doi: 'tap' }, chonKeyframe: { doi: 'canh' }, chonBanS2: { doi: 'canh' }, chonNhacS2: { doi: 'tap' }, banDaSinhS2: { doi: 'canh' }, banNhacS2: { doi: 'tap' }, duyetKhungTayAction: { doi: 'canh' }, boQuaSoiClipAction: { doi: 'canh' }, duyetCanh: { doi: 'canh' }, duyetAnimatic: { doi: 'tap' }, xuatTap: { doi: 'tap' }, moTraPhiS2: { doi: 'tap' }, luuAiS2: { doi: 'tap' }, luuMauS2: { doi: 'phim' },
   // ghi tốn tiền
   taoPhimMau: { doi: 'khong', tien: true }, phanTichAstrolasS2: { doi: 'tap', tien: true }, vietKichBanTap: { doi: 'tap', tien: true }, tachCanhTap: { doi: 'tap', tien: true }, batDauNguoiXem: { doi: 'tap', tien: true }, kiemKhungTapAction: { doi: 'tap', tien: true }, suaTheoNguoiXem: { doi: 'tap', tien: true },
   goiYAIKinhThanh: { doi: 'phim', tien: true }, goiYAIBoAnchor: { doi: 'phim', tien: true }, sinhAnhThieuAction: { doi: 'phim', tien: true }, veLaiAnhMauS2: { doi: 'phim', tien: true }, taoNhanVatS2: { doi: 'canh', tien: true }, sinhKeyframe: { doi: 'canh', tien: true }, sinhLaiCanhS2: { doi: 'canh', tien: true },

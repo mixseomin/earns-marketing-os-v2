@@ -185,7 +185,23 @@ s = importlib.util.spec_from_file_location("nb", "apps/xuong-video/scripts/ethop
 tk = m.q("select ad_account_id from etp.tai_khoan where nha and ad_account_id is not null order by nguoi_id limit 1")
 print(json.dumps({"ly": m.trang_chua_san(%d, tk)}, ensure_ascii=False))
 '''
+def lech_ngon_ngu(cid):
+    """LINK TẬP SAI NGÔN NGỮ (21/11/2026, Sal de mi Bugatti 82854 es): kho spy + trang phim Nhà đưa link DramaBox bản EN cho phim es → đoạn cắt / ảnh tĩnh
+    mang phụ đề tiếng Anh. DramaBox đặt ngôn ngữ ở đoạn đầu đường dẫn (/es/ep/…, bản EN không có) → đọc VẬT là đường dẫn, mọi dạng dòng qua đây trước khi cắt.
+    Nguồn khác chưa có quy ước đường dẫn → không xét (không chặn oan)."""
+    lc = (sql(f"select coalesce(locale, '') from etp.phim where content_id = {int(cid)}") or "").strip().lower()
+    us = [sql(f"select coalesce(url, '') from ethopex_content where id = {int(cid)}", spy=True), sql(f"select coalesce(url, '') from etp.phim where content_id = {int(cid)}")]
+    if not lc: lc = (sql(f"select coalesce(locale, '') from ethopex_content where id = {int(cid)}", spy=True) or "").strip().lower()
+    return next((f"link tập sai ngôn ngữ: phim {lc} nhưng link DramaBox là bản {l} ({u[:120]}) — sửa link trong kho spy ethopex_content + etp.phim rồi chạy lại"
+                 for u in (x.strip() for x in us) for l in [ngon_ngu_link(u)] if l and lc and l != lc[:2]), "")
+
+def ngon_ngu_link(u):
+    m = re.match(r"https?://(?:www\.)?dramaboxdb\.com/(?:([a-z]{2})/)?(?:ep|movie)/", u or "")
+    return (m.group(1) or "en") if m else ""
+
 def b_ws(d):
+    lech = lech_ngon_ngu(d["content_id"])
+    if lech: return "dung", lech, None
     rc, out = box(f"python3 - <<'PYEOF'\n{TRANG % d['content_id']}\nPYEOF", 300)
     m = re.findall(r'^\{"ly".*$', out, re.M)
     if not m: return "loi", f"không đọc được cổng trang phim: {out[-200:]}", None
@@ -907,6 +923,9 @@ def tu_kiem():
     assert "sổ cấm" in (CG.phim_cam(cts=[167292], q=sql) or ""), "LỌT: dòng phim 167292 không bị chặn"
     assert thuong and CG.phim_cam(cts=[thuong], q=sql) is None, f"phim thường #{thuong} bị chặn nhầm"
     print(f"✓ phim cấm: dòng phim 167292 dừng trước mọi bước, phim thường #{thuong} đi qua")
+    assert ngon_ngu_link("https://www.dramaboxdb.com/ep/42000026686_get-out-of-my-bugatti/701580673_Episode-1") == "en" and ngon_ngu_link("https://www.dramaboxdb.com/es/ep/42000028394_x/1_Episode-1") == "es" and ngon_ngu_link("https://www.dramaboxdb.com/movie/42000026686/x") == "en" and ngon_ngu_link("https://www.reelshort.com/es/x") == "", "đọc ngôn ngữ link DramaBox"
+    assert lech_ngon_ngu(82854) == "" and lech_ngon_ngu(85055) == "", "Bugatti es đã sửa link es, bản en đúng en"
+    print("✓ link tập sai ngôn ngữ: DramaBox /es/ ↔ phim es, bản không tiền tố = en")
     print("✓ dong_phim.py tự kiểm (sản xuất theo chợ: bước chờ phanh, kho dự trữ hồi chợ, mở lại không trùng)")
 
 # BẢN SAO BÁM MAIN (anh 20/11/2026 "tiếp và hoàn thiện b3"): máy từng chạy từ cây làm việc chung /Users/htuan/Me/GitHub/earns-marketing-os-v2 — cây đó chậm main 327 commit

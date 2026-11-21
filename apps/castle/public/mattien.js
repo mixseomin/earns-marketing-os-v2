@@ -487,6 +487,11 @@ export function datMatRieng({ THREE, mergeGeometries, bo, bd, viTri, datTai, nhe
       for (const xx of [o[0][0], ...o.slice(1).map((q, i) => (o[i][1] + q[0]) / 2), o.at(-1)[1]]) { const cy = new THREE.CylinderGeometry(0.1, 0.12, yDinh - yS - 0.2, nhe ? 6 : 10); cy.translate(xx, yS + (yDinh - yS - 0.2) / 2, N - 0.12); dat('da', cy, p, 0); }
       dat('da', hop(W, yMD - yDinh + 0.1, 0.22, 0, (yMD + yDinh) / 2, N - 0.11), p, 0); // dầm đá trên vòm
       const R = bd.m(G.maiRong[0], G.maiRong[1]), doc = Math.atan2(yMT - yMD, N + 0.3), dai = Math.hypot(yMT - yMD, N + 0.3), m = new THREE.BoxGeometry(R, 0.12, dai); m.rotateX(doc); m.translate(0, (yMT + yMD) / 2, (N + 0.3) / 2); dat('mai', m, p, 0);
+      // tôn sóng đứng (góp ý #1655): sống chạy dọc dốc, bước = khoảng giữa các nắp đo trên ảnh, trải đều hết bề rộng mái; viền xối tối + nắp sáng ở đầu mỗi sống
+      if (G.suong?.length > 1) { const buoc = bd.m(G.suong[0], G.suong.at(-1)) / (G.suong.length - 1), nS = Math.max(1, Math.floor(R / buoc)), hV = G.vienMai ? Math.max(0.05, Y(G.maiDuoi - G.vienMai) - yMD) : 0.1;
+        for (let i = 0; i <= nS; i++) { const xx = -nS * buoc / 2 + i * buoc, sg = new THREE.BoxGeometry(0.05, 0.07, dai); sg.translate(xx, 0.09, 0); sg.rotateX(doc); sg.translate(0, (yMT + yMD) / 2, (N + 0.3) / 2); dat('kim', sg, p, 0);
+          dat('mat', hop(0.09, Math.min(0.1, hV * 0.6), 0.05, xx, yMD + hV * 0.55, N + 0.3 + 0.06), p, 0); }
+        dat('kim', hop(R, hV, 0.06, 0, yMD + hV / 2, N + 0.3 + 0.02), p, 0); }
       const nCx = G.nConXon, yCx = Y(G.conXon[1]); for (let i = 0; i < nCx; i++) { const xx = -W / 2 + (i + 0.5) * W / nCx; dat('da', hop(0.32, yDay - yCx, N * 0.8, xx, (yDay + yCx) / 2, N * 0.4), p, 0); }
       cua.push({ x: p.x, y: yS, z: p.z, nx: p.nx, nz: p.nz, nua: W / 2, cao: yDinh - yS, ten: G.ten, mat: p.mat, vien: { ngang: 0, tren: yMT - yDinh } });
       kk.push({ mat: p.mat, loai: 'ban_cong', y: yS, x: p.x, z: p.z });

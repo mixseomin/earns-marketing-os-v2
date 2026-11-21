@@ -78,6 +78,12 @@ def chuyen(nhoms):
              RCLONE_CONFIG_KHOR2_ACCESS_KEY_ID=os.environ["R2_ACCESS_KEY_ID"], RCLONE_CONFIG_KHOR2_SECRET_ACCESS_KEY=os.environ["R2_SECRET_ACCESS_KEY"],
              RCLONE_CONFIG_KHOR2_ENDPOINT=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com")
     nguon = f"khor2:{os.environ['R2_BUCKET']}/{GOC}"
+    # Drive không có client_id riêng = rclone dùng khoá OAuth CHUNG của rclone (dự án 202264815644), hạn mức lệnh/phút chia cả thế giới:
+    # 21/11/2026 giảm còn 1 lệnh/giây vẫn 403 "Quota exceeded … Requests per minute", 7.053 tệp chỉ đi ~20 tệp/phút → kêu to ngay đầu lệnh
+    try: cau_hinh = json.loads(subprocess.run(["rclone", "config", "dump"], capture_output=True, text=True, timeout=30).stdout or "{}").get(DRIVE_DICH.split(":")[0], {})
+    except Exception: cau_hinh = {}
+    if not cau_hinh.get("client_id"):
+        print(f"CẢNH BÁO: {DRIVE_DICH.split(':')[0]} chưa có client_id riêng — đang dùng khoá chung của rclone, Drive sẽ từ chối 403 vượt hạn mức và chép rất chậm (~20 tệp/phút). Cần tạo khoá OAuth riêng rồi cấp lại quyền.", flush=True)
     # copy bỏ qua tệp Drive đã có cùng kích thước (chạy lại an toàn); Drive giới hạn ~3 tệp mới/giây nên 8 luồng là đủ
     # --fast-list: không có cờ này rclone hỏi Drive TỪNG thư mục / tệp — 1.893 tệp đứng 8 phút chưa chép tệp nào; có cờ thì đối cả lô 1 phút (đo 21/11/2026)
     r = subprocess.run(["rclone", "copy", nguon, DRIVE_DICH, "--files-from", ff, "--size-only", "--fast-list", "--transfers", "8", "--checkers", "16",

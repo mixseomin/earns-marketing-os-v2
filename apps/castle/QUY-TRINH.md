@@ -78,6 +78,17 @@ Mỗi mặt chỉ xong khi: kiểm kê sạch **và** chụp mô hình từ đú
 chụp hai bản cùng camera (`window.__ns.chupHaiBan`, cùng hàm nút trên trang), so (`scripts/so-lech.py`: viền trời · màu khối chuẩn hoá · đường nét, lưới 32 × 20 ô), vùng tô đỏ ×2 điểm,
 dò mỗi vùng ra mặt tường (`window.__ns.diemTaiAnh`). Phá thử đã chạy: hạ tháp góc Torbau còn 10 m → vùng đỉnh tháp lên #1 (bản đúng không có vùng đó).
 
+### 4c. So ảnh thật đúng camera — TRƯỚC / SAU mỗi lần sửa (bắt buộc)
+
+`node apps/castle/scripts/so-anh-that.mjs --khoi <khối OSM> --nhan truoc` trước khi sửa, `--nhan sau` sau khi sửa: mọi ảnh đã định vị (`<lâu>-do-anh.json`) thấy khối → vẽ mô hình đúng
+camera ảnh, so viền trời + nét từng mặt (`scripts/so-anh-that.py`), ghép ẢNH THẬT · TRƯỚC · SAU vào `apps/castle/.so-anh/<khối>/`. Mã thoát 1 = có ảnh kém đi (viền −2 điểm hoặc nét −0,03)
+→ chưa xong. Gửi anh ảnh ghép các ảnh có số đổi. Chấm hồng = viền DOM20 (mặt số chính thức Bavaria).
+
+**Mặt dựng theo ảnh có camera** (mẫu: Palas mặt sân, 21/11/2026): đổi điểm ảnh ra mét bằng TIA camera cắt mặt đứng (`mattien.js diemTheoTia` / `caoTheoTia`, mặt đứng qua hai mốc mặt bằng),
+không thước px/m tuyến tính (ảnh chụp ngửa → sai dần theo độ cao). Đường viền nhìn thấy (mép đầu hồi, mép tháp) đo HAI điểm ảnh mỗi mép ghi vào tệp bố cục (vd `tiLe.hoiMep`)
+→ tia → đường thẳng trên mặt đứng; không lấy chân tam giác từ đầu mút tường OSM (đầu mút = tâm tháp, mép thật dốc hơn: viền cao 8–13 px ở 3 ảnh). Bề ngang bố cục mặt (tháp tới tháp)
+và chân mép đầu hồi là HAI trường riêng (`hoi.sA/sB` · `hoi.mA/mB`).
+
 ## 5. Không lùi
 
 **Sau MỌI lần sửa mã castle:** `node apps/castle/scripts/kiem-chu-thich.mjs` (chú thích `//` nuốt mã — `node --check` không bắt được khi phần bị nuốt vẫn đúng cú pháp; tự kiểm `--tu-kiem`). Khi sửa bằng thay chuỗi: chú thích mới đặt trên DÒNG RIÊNG, không nối vào cuối đoạn thay.

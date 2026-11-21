@@ -68,9 +68,10 @@ def sql(cau, spy=False):
     return r.stdout.strip()
 def s(v): return "null" if v is None else "$Q$" + str(v).replace("$Q$", "") + "$Q$"
 def js(v): return "$J$" + json.dumps(v, ensure_ascii=False).replace("$J$", "") + "$J$::jsonb"
-def box(lenh, timeout=1800):
-    """lệnh trên box3 (trong /opt/earns-marketing-os-v2, có env) — trả (mã thoát, stdout+stderr)"""
-    r = subprocess.run([*SSH, B, f"{ENV}; timeout {int(timeout)} {lenh}"], capture_output=True, text=True, timeout=timeout + 60)
+def box(lenh, timeout=1800, ve=None):
+    """lệnh trên box3 (trong /opt/earns-marketing-os-v2, có env) — trả (mã thoát, stdout+stderr) · ve: mã vé lệnh trực tiếp → ETP_VE của lệnh đó (nhan-ban đốt vé lúc gửi)"""
+    ve = re.sub(r"[^0-9a-f]", "", str(ve or ""))
+    r = subprocess.run([*SSH, B, f"{ENV}; {'ETP_VE=' + ve + ' ' if ve else ''}timeout {int(timeout)} {lenh}"], capture_output=True, text=True, timeout=timeout + 60)
     return r.returncode, (r.stdout + r.stderr).strip()
 def khoa_studio(ten): return json.loads(sql(f"select coalesce(gia_tri, '{{}}'::jsonb)::text from xv_khoa_ngoai where ten = '{ten}'") or "{}")
 
@@ -421,7 +422,7 @@ def b_camp_lt(d, truoc):
     for i_, x in enumerate(sach):
         sql(f"update etp.dong_buoc set ghi = {s(f'đang lên camp {i_ + 1}/{len(sach)} (creative #{x["creative_id"]})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")   # trang Sản xuất thấy tiến độ ngay sau khi anh bấm
         lang = x.get("lang") or "en"; ten = re.sub(r"['\"$`\\]", "", x.get("ten") or f"dp{d['id']} phim {d['content_id']}")
-        rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --tay --bo 2 --creative {int(x["creative_id"])} --content {d["content_id"]} --ten "{ten}" --that --luat "lộ trình test rộng (anh 03/11/2026: 8-10 USD/phim + T2)" --ai "{ai_dong(d, "dòng phim LT, anh bắt đầu")}"'""", 900)
+        rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --tay --bo 2 --creative {int(x["creative_id"])} --content {d["content_id"]} --ten "{ten}" --that --luat "lộ trình test rộng (anh 03/11/2026: 8-10 USD/phim + T2)" --ai "{ai_dong(d, "dòng phim LT, anh bắt đầu")}"'""", 900, ve=ve_dong(d))
         j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}
         (xong if j.get("ok") and j.get("moi") else loi).append(j.get("moi") or f"#{x['creative_id']}: {(j.get('loi') or out[-120:])[:120]}")
         if j.get("ok") and j.get("moi"): gan.append({"creative_id": int(x["creative_id"]), "camp": int(j["moi"])})
@@ -463,7 +464,7 @@ def b_camp_mr(d, truoc):
         sql(f"update etp.dong_buoc set ghi = {s(f'đang lên camp {i_ + 1}/{len(ds)} (creative #{c})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")
         lang = sql(f"select coalesce(lang, 'en') from etp.creative where creative_id = {c}") or "en"
         ten = re.sub(r"[^ -~]|['\"$`\\]", "", f"dp{d['id']} {d.get('ten') or ''} {lang.upper()} - mo rong #{c}")
-        rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --tay --bo {bo} --creative {c} --content {d["content_id"]} --ten "{ten}" --that --luat "mở rộng phim — anh chọn {d['so_camp']} camp (etp.on.tc)" --ai "{ai_dong(d, "etp.on.tc: nút mở rộng ở dòng phim, 04/11/2026")}"'""", 900)
+        rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --tay --bo {bo} --creative {c} --content {d["content_id"]} --ten "{ten}" --that --luat "mở rộng phim — anh chọn {d['so_camp']} camp (etp.on.tc)" --ai "{ai_dong(d, "etp.on.tc: nút mở rộng ở dòng phim, 04/11/2026")}"'""", 900, ve=ve_dong(d))
         j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}
         if j.get("ok") and j.get("moi"): xong.append(int(j["moi"]))
         else: loi.append(f"#{c}: {(j.get('loi') or out[-120:])[:120]}"); may_ = may_ or not j or bool(j.get("may"))
@@ -483,7 +484,7 @@ def b_camp(d, truoc):
     if not x.get("creative_id"): return "loi", "chưa có creative", None
     if (cu := camp_co_san([x["creative_id"]])): return ket_camp(d, [], [], cu)
     lang = x.get("lang") or "en"; ten = re.sub(r"['\"$`\\]", "", x.get("ten") or f"dp{d['id']} phim {d['content_id']}")
-    rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --tay --bo 2 --creative {int(x["creative_id"])} --content {d["content_id"]} --ten "{ten}" --that --luat "dòng phim tự động #{d["id"]} (etp.on.tc)" --ai "{ai_dong(d, "etp.on.tc: Chạy tự động dòng phim, 03/11/2026")}"'""", 900)
+    rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --tay --bo 2 --creative {int(x["creative_id"])} --content {d["content_id"]} --ten "{ten}" --that --luat "dòng phim tự động #{d["id"]} (etp.on.tc)" --ai "{ai_dong(d, "etp.on.tc: Chạy tự động dòng phim, 03/11/2026")}"'""", 900, ve=ve_dong(d))
     j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None)
     if not j: return "loi", f"nhan-ban không trả kết quả: {out[-300:]}", None
     if j.get("ok") and j.get("moi"):
@@ -646,10 +647,14 @@ SX = [{}]
 # vé lệnh trực tiếp (cong.py --ve-truc-tiep, Claude cấp theo câu anh) — chữ ai tự khai giả được (18/11) nên nó không bao giờ mở cổng lên camp, chỉ mở sản xuất.
 DONG_TRUC_TIEP = "anh — TRỰC TIẾP"
 def la_truc_tiep(d): return str((d or {}).get("ai") or "").startswith(DONG_TRUC_TIEP)
-def cho_phanh(sx, d, buoc):
-    """hàm thuần: khoá san_xuat_cho + dòng + bước → câu lý do chờ | None (chạy)"""
+# VÉ CHO DÒNG (21/11/2026): Claude cấp vé --ve-truc-tiep nhan_ban --phim <cid> theo câu anh, MỖI CAMP MỘT VÉ; máy dòng không cấp vé, chỉ DÙNG vé còn hạn của đúng phim:
+# bước camp của dòng trực tiếp mở khi phim có vé, mỗi lệnh nhan-ban mang một vé (ETP_VE) — nhan-ban đốt lúc gửi, lệnh sau lấy vé kế; hết vé thì cổng chặn như thường.
+SQL_VE_DONG = "select ma from etp.ve_tay where loai = 'truc_tiep' and viec = 'nhan_ban' and content_id = {cid} and camp_id is null and da_dung is null and het_han > now() order by tao limit 1"
+def ve_dong(d): return (sql(SQL_VE_DONG.format(cid=int(d["content_id"]))) or None) if la_truc_tiep(d) else None
+def cho_phanh(sx, d, buoc, co_ve=False):
+    """hàm thuần: khoá san_xuat_cho + dòng + bước (+ phim có vé trực tiếp) → câu lý do chờ | None (chạy)"""
     if not (sx or {}).get("phanh"): return None
-    if la_truc_tiep(d): return None if buoc != "camp" else f"{sx['phanh']} · dòng lệnh trực tiếp: camp lên bằng vé cong.py --ve-truc-tiep"
+    if la_truc_tiep(d): return None if buoc != "camp" or co_ve else f"{sx['phanh']} · dòng lệnh trực tiếp: camp lên bằng vé cong.py --ve-truc-tiep nhan_ban --phim {d.get('content_id')}"
     if sx.get("khan"): return None if buoc == "chay" else sx["phanh"]   # DỪNG KHẨN: mọi bước chưa bắt đầu đứng chờ, không miễn du_tru / chi_sx
     if buoc not in BUOC_SX: return None
     if buoc != "camp" and int(d.get("content_id") or 0) in {int(x) for x in [*(sx.get("du_tru") or []), *(sx.get("chi_sx") or [])]}: return None   # chi_sx: phim chỉ sản xuất không lên camp nên không chờ phanh
@@ -833,7 +838,7 @@ def vong():
             sql(f"""update etp.dong_buoc set trang_thai = 'bo_qua', ghi = {s(ly_sx)}, nhip = now() where dong_id = {d['id']} and buoc in ('camp', 'chay') and trang_thai = 'cho';
                     update etp.dong_phim set trang_thai = 'xong', ly_do = {s(ly_sx)}, xong_luc = now() where id = {d['id']} and trang_thai = 'chay'""")
             DON[0] = 0; print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} — {ly_sx}", flush=True); continue
-        if not dang and (ly := cho_phanh(SX[0], d, ke)): cho_ph.setdefault(f"{ke}: {ly}", []).append(d["id"]); continue   # phanh chợ: bước chưa bắt đầu đứng chờ (BUOC_SX)
+        if not dang and (ly := cho_phanh(SX[0], d, ke, co_ve=ke == "camp" and la_truc_tiep(d) and bool(ve_dong(d)))): cho_ph.setdefault(f"{ke}: {ly}", []).append(d["id"]); continue   # phanh chợ: bước chưa bắt đầu đứng chờ (BUOC_SX)
         # LƯỢT NẶNG trên iMac = bước cắt + bước creative AT (anh-tinh.py cũng tải tập + ffmpeg + Vision) → chung trần TRAN_CAT, kẻo 13 dòng AT xếp một lúc chạy đồng loạt
         LOAI_DONG[d["id"]] = d.get("loai"); nang = lambda i, b: kieu_nang(i, b) is not None
         if nang(d["id"], ke) and not dang and not khe_nang(d["id"], ke, cho_nang):
@@ -893,6 +898,7 @@ def tu_kiem():
     k = {"phanh": "chờ phanh nhả: ĐANG DỪNG KHẨN", "khan": True, "du_tru": [7], "chi_sx": [9]}
     assert cho_phanh(k, {"content_id": 7}, "creative") == k["phanh"] and cho_phanh(k, {"content_id": 9}, "cat") == k["phanh"] and cho_phanh(k, {"content_id": 1}, "chay") is None, "dừng khẩn: không miễn du_tru / chi_sx"
     tt = {"content_id": 1, "ai": DONG_TRUC_TIEP + " (chat 21/11)"}
+    assert cho_phanh(k, tt, "camp", co_ve=True) is None and cho_phanh(k, {"content_id": 1}, "camp", co_ve=True) == k["phanh"], "vé trực tiếp chỉ mở bước camp của dòng trực tiếp"
     assert cho_phanh(k, tt, "cat") is None and cho_phanh(k, tt, "creative") is None and cho_phanh(k, tt, "camp").startswith(k["phanh"]) and cho_phanh(k, {**tt, "ai": "anh (etp.on.tc)"}, "cat") == k["phanh"], "dòng lệnh trực tiếp: sản xuất qua dừng khẩn, camp vẫn chờ vé"
     assert cho_phanh({}, {"content_id": 1}, "nhan") is None and cho_phanh({"phanh": None}, {"content_id": 1}, "nhan") is None and cho_phanh(None, {"content_id": 1}, "nhan") is None, "không phanh / khoá quá hạn → chạy như cũ"
     assert set(BUOC_SX) == {b for b, _ in BUOC} - {"chay"} and "not exists" in KHONG_TRUNG

@@ -368,14 +368,14 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
 // Máy chỉ VIẾT chữ; tìm câu hỏi thật (br, iMac) + nạp (nap-bai.mjs dungDong → studio --nap) + chấm (Phòng Nội dung kiem-bai) + đăng (dang-may) là các khâu sẵn có.
 export const TuKhoaSchema = z.object({ tu_khoa: z.array(z.string().describe('a short English Quora search query (3-7 words) a real person in this angle would type')).min(2).max(3) });
 export const VietBaiSchema = z.object({
-  tra_loi: z.string().describe('The Quora answer, English, 1200-2200 characters, plain human voice. Open with the direct answer in one sentence, then 3-5 short paragraphs or a short numbered list with concrete specifics, one round-number worked example if numbers matter, a 3-4 item "quick self-check" list, and a natural closing sentence that contains the token {LINK} exactly once (the machine replaces it with the destination URL). No em dashes, no hashtags, no headings, no made-up statistics.'),
+  tra_loi: z.string().describe('The Quora answer, English, 1100-2200 characters and never over 2400 characters, plain human voice. Open with the direct answer in one sentence, then 3-5 short paragraphs or a short numbered list with concrete specifics, one round-number worked example if numbers matter, a 3-4 item "quick self-check" list, and a natural closing sentence that contains the token {LINK} exactly once (the machine replaces it with the destination URL). No em dashes, no hashtags, no headings, no made-up statistics.'),
   trang: z.string().describe('the ONE site page URL from the list given that best fits this answer, copied exactly; empty string if no list was given'),
   truy: z.string().describe('3-6 English words for a real stock photo that fits the answer (Pexels search), no brand names'),
 });
 /** Kiểm câu trả lời trước khi nạp (đúng các chặn cứng của Phòng Nội dung + link đích). Thuần. */
 export function kiemBaiViet(chu: string, link: string): string[] {
   const loi: string[] = [], t = chu.toLowerCase();
-  if (chu.length < 1100 || chu.length > 2600) loi.push(`độ dài ${chu.length} ký tự (cần 1100-2600)`);
+  if (chu.length < 1100 || chu.length > 2400) loi.push(`độ dài ${chu.length} ký tự (cần 1100-2400)`);
   if (!chu.includes(link)) loi.push('thiếu link đích đúng như đưa (kèm UTM)');
   if (/[—–]/.test(chu)) loi.push('có gạch ngang dài');
   const tm = TU_MAY.filter((w) => new RegExp(`(^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`).test(t)); if (tm.length) loi.push(`từ máy: ${tm.join(', ')}`);

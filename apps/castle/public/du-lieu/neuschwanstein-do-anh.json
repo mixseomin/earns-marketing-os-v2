@@ -1196,10 +1196,11 @@
    "luc": "2026-11-21"
   },
   "anh/web/commons-2004-neuschwanstein-castle.jpg": {
-   "hong": "không đủ điểm khớp",
+   "hong": "chỉ 20 điểm khớp đúng (< 30)",
    "vung_thu": [
     "-100_10_-50_70",
-    "-140_20_-50_100_vong"
+    "-140_20_-50_100_vong",
+    "-20_90_-80_50"
    ],
    "luc": "2026-11-21"
   },
@@ -1230,47 +1231,53 @@
    "hong": "không đủ điểm khớp",
    "vung_thu": [
     "-100_10_-50_70",
-    "-140_20_-50_100_vong"
+    "-140_20_-50_100_vong",
+    "-20_90_-80_50"
    ],
    "luc": "2026-11-21"
   },
   "anh/web/commons-Neuschwanstein-Castle-05.jpg": {
-   "hong": "không đủ điểm khớp",
+   "hong": "chỉ 9 điểm khớp đúng (< 30)",
    "vung_thu": [
     "-100_10_-50_70",
-    "-140_20_-50_100_vong"
+    "-140_20_-50_100_vong",
+    "-20_90_-80_50"
    ],
    "luc": "2026-11-21"
   },
   "anh/web/commons-Neuschwanstein-Castle-08.jpg": {
-   "hong": "chỉ 14 điểm khớp đúng (< 30)",
+   "hong": "không đủ điểm khớp",
    "vung_thu": [
     "-100_10_-50_70",
-    "-140_20_-50_100_vong"
+    "-140_20_-50_100_vong",
+    "-20_90_-80_50"
    ],
    "luc": "2026-11-21"
   },
   "anh/web/commons-Neuschwanstein-Castle-14.jpg": {
-   "hong": "chỉ 9 điểm khớp đúng (< 30)",
+   "hong": "chỉ 14 điểm khớp đúng (< 30)",
    "vung_thu": [
     "-100_10_-50_70",
-    "-140_20_-50_100_vong"
+    "-140_20_-50_100_vong",
+    "-20_90_-80_50"
    ],
    "luc": "2026-11-21"
   },
   "anh/web/commons-Neuschwanstein-Castle-15.jpg": {
-   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau không giải được (> 3 m) — lời giải không vững",
+   "hong": "mắt ở độ cao -11 m — ngoài vùng người đứng được",
    "vung_thu": [
     "-100_10_-50_70",
-    "-140_20_-50_100_vong"
+    "-140_20_-50_100_vong",
+    "-20_90_-80_50"
    ],
    "luc": "2026-11-21"
   },
   "anh/web/commons-Ostallgaeu-Schwangau-Neuschwanstein-north-side-02ASD.jpg": {
-   "hong": "chỉ 12 điểm khớp đúng (< 30)",
+   "hong": "không đủ điểm khớp",
    "vung_thu": [
     "-100_10_-50_70",
-    "-140_20_-50_100_vong"
+    "-140_20_-50_100_vong",
+    "-20_90_-80_50"
    ],
    "luc": "2026-11-21"
   },
@@ -1302,7 +1309,8 @@
    "hong": "không đủ điểm khớp",
    "vung_thu": [
     "-100_10_-50_70",
-    "-140_20_-50_100_vong"
+    "-140_20_-50_100_vong",
+    "-20_90_-80_50"
    ],
    "luc": "2026-11-21"
   },
@@ -1422,6 +1430,157 @@
     "-100_10_-50_70"
    ],
    "luc": "2026-11-20"
+  },
+  "anh/web/mapillary-918322632081559.jpg": {
+   "hong": "mắt ở độ cao 0 m — ngoài vùng người đứng được",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-824075714897288.jpg": {
+   "hong": "mắt ở độ cao 5 m — ngoài vùng người đứng được",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Neuschwanstein-Castle-Schwangau-8511703116-.jpg": {
+   "hong": "chỉ 13 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Alone-Schwangau.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Neuschwanstein---panoramio.jpg": {
+   "hong": "góc nhìn 97.5° ngoài khoảng ống kính thật",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-336577534524508.jpg": {
+   "hong": "chỉ 29 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-231844341813368.jpg": {
+   "hong": "chỉ 25 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-2628136220665632.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau 5.8 m (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-1064303907309767.jpg": {
+   "lat": 47.5578811,
+   "lng": 10.7494409,
+   "rong": 1024,
+   "cao": 576,
+   "tacGia": "gpsvid / Mapillary",
+   "giayPhep": "CC BY-SA 4.0",
+   "trang": "https://www.mapillary.com/app/?pKey=1064303907309767",
+   "camera": {
+    "y": 7.54,
+    "yaw": -1.3943,
+    "pitch": 0.0544,
+    "roll": 0.2232,
+    "fov": 48
+   },
+   "dung": 105,
+   "lech_px": 1.88,
+   "tach_m": 0.85,
+   "x": -27,
+   "z": -31.3,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-170611085036166.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau 6.0 m (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-2852680028317489.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau 6.9 m (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-486939065868305.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-343913237105180.jpg": {
+   "hong": "không đủ điểm khớp",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Schloss-Neuschwanstein---panoramio---Seko-Naotomo-1-.jpg": {
+   "lat": 47.5576082,
+   "lng": 10.7499419,
+   "rong": 680,
+   "cao": 1024,
+   "tacGia": "Seko Naotomo",
+   "giayPhep": "CC BY 3.0",
+   "trang": "https://commons.wikimedia.org/wiki/File:Schloss_Neuschwanstein_-_panoramio_-_Seko_Naotomo_(1).jpg",
+   "camera": {
+    "y": 26.25,
+    "yaw": 1.8609,
+    "pitch": 0.325,
+    "roll": -0.0327,
+    "fov": 54.5
+   },
+   "dung": 1582,
+   "lech_px": 2.68,
+   "tach_m": 1.64,
+   "x": 10.7,
+   "z": -0.9,
+   "vung": "-20_90_-80_50",
+   "luc": "2026-11-21"
+  },
+  "anh/web/commons-Schloss-Neuschwanstein---panoramio---Ainars-Brūvelis-1-.jpg": {
+   "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau 5.0 m (> 3 m) — lời giải không vững",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-418154652487423.jpg": {
+   "hong": "chỉ 14 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
+  },
+  "anh/web/mapillary-395542015074735.jpg": {
+   "hong": "chỉ 9 điểm khớp đúng (< 30)",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-21"
   }
  },
  "mat": {

@@ -22,7 +22,7 @@
  },
  "way/223140032": {
   "y_tren": 65.7,
-  "ly_do": "góp ý #1634 (17/11/2026): khối neo đầu hồi mặt Palas hướng sân — đo tia từ góc thẻ (so-lech --do: 16 cột, trải 1,5 m) đỉnh thật 64,98 m, mô hình ở 67,28 lệch −1,6 m, đề xuất 65,7; bảng chấm góc chuẩn cũng ghi lệch −1,3 m. Đỉnh khối này là mốc trên của tỉ lệ đứng mặt Palas (tệp bố cục) → hạ mốc thì hai tháp góc (đang cao hơn thật 2,2 m) hạ theo"
+  "ly_do": "góp ý #1634 (17/11/2026): khối neo đầu hồi mặt Palas hướng sân — đo tia từ góc thẻ (so-lech --do: 16 cột, trải 1,5 m) đỉnh thật 64,98 m, mô hình ở 67,28 lệch −1,6 m, đề xuất 65,7; bảng chấm góc chuẩn cũng ghi lệch −1,3 m. Đỉnh khối này là mốc trên của tỉ lệ đứng mặt Palas (tệp bố cục) → hạ mốc thì hai tháp góc (đang cao hơn thật 2,2 m) hạ theo. 21/11/2026: y_tren 65,7 = nóc mái theo DOM20; đầu hồi mặt sân là TƯỜNG CHẮN nhô quá nóc — đỉnh 67,2 m, chân 57,6 m đo bằng tia camera ảnh chính (Naturliebhaberin) cắt mặt đứng qua tâm hai tháp góc, hai mép theo tiLe.hoiMep trong neuschwanstein-mat-palas-san.json (so-anh-that.py)"
  },
  "way/223145711": {
   "building:colour": "#f3e3bb",

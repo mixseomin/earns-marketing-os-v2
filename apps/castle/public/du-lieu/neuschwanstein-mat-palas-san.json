@@ -25,7 +25,12 @@
   "ghi_chu": "Ngang: tâm hai tháp góc trên ảnh 490 → 1095 px = 14,7 m (tâm hai tháp góc OSM) → 41,2 px/m. Đứng: KHÔNG đặt tay — mattien.js quyDoiMat tính từ hai mốc tuyệt đối đo trên ảnh 3D Google (neo): đỉnh đầu hồi (dinhY) = đỉnh khối Palas, mặt sân trên (ảnh phụ matSan) = mặt sân Google. Trục giữa mặt: tâm các cụm giữa / cửa ban công. maiY: chân đầu hồi (mép mái chạm tháp góc)",
   "pxNgang": 41.2,
   "trucX": 799,
-  "maiY": 405
+  "maiY": 405,
+  "hoiMep": {
+   "ghi_chu": "hai mép NGOÀI đầu hồi trên ảnh chính (điểm ảnh [u, v], dò mép trời từng hàng 130–390, khớp đường thẳng: trái u = −0,870·v + 877,8; phải u = 0,81·v + 714 — phải chỉ lấy hàng ≤ 240 và 380, giữa bị chóp tháp phía sau che). ns.js đổi hai điểm mỗi mép ra mét bằng tia camera → độ dốc thật; chân đầu hồi = chỗ mép chạm hàng chân (maiY) — ở MÉP tháp góc, không phải tâm tháp (21/11/2026: lấy chân ở tâm tháp làm hai mép thoải, viền cao hơn ảnh 8–13 px ở 3 ảnh thật)",
+   "trai": [[747, 150], [548, 380]],
+   "phai": [[836, 150], [1023, 380]]
+  }
  },
  "cum": [
   {

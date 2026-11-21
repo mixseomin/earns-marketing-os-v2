@@ -23,7 +23,7 @@ import { datAnhSang } from './anhsang.js';
 import { taoChieuAnh } from './chieuanh.js';
 import { datDuong } from './duong.js';
 import { datTrangTri, datCuaCong } from './trangtri.js';
-import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, thapTheoTia, tiLeDung, datChop, oCum, boTriDo, datMai, banDoMat, datMatRieng } from './mattien.js';
+import { datMatTien, datMatPalas, datThapGoc, bocCuc, O_MO, quyDoiMat, caoTheoTia, diemTheoTia, thapTheoTia, tiLeDung, datChop, oCum, boTriDo, datMai, banDoMat, datMatRieng } from './mattien.js';
 import { taoNhieuNguoi } from './nhieunguoi.js';
 import { ganAnhQuanh } from './anhquanh.js';
 import { datCanhXa } from './canhxa.js';
@@ -321,12 +321,17 @@ const MAT_SAN = NEN?.san ?? null;
 const KHOI_NEO = !GOC_OSM && MAT_BO?.neo ? dsKhoi.find((k) => k.id === MAT_BO.neo.khoi && k.ref != null) : null, DINH_NEO = KHOI_NEO ? KHOI_NEO.ref + chieuCao(KHOI_NEO.tags) : null; // đỉnh khối neo sau khi khớp ảnh 3D
 // tỉ lệ đứng mặt sân: hai mốc đỉnh khối neo + mặt sân. CHƯA NHẤT QUÁN (15/11/2026): ra 31,8 px/m trong khi ngang 41,2 px/m (ảnh gần chính diện → phải xấp xỉ);
 // neo bằng mái hiên đo trên ảnh 3D ra 20,1 px/m — tệ hơn → giữ cách này, mặt neo không dùng mái hiên đo
-const PX_DUNG = DINH_NEO != null && MAT_SAN != null ? tiLeDung(MAT_BO, DINH_NEO, MAT_SAN) : null;
-const BO_MET = PX_DUNG ? quyDoiMat(MAT_BO, PX_DUNG) : null;
-const MAI_SAN = BO_MET ? DINH_NEO - BO_MET.gableCao : null; // chân đầu hồi mặt sân (= y1 khối neo)
+// 21/11/2026: ảnh chính có camera định vị → mọi hàng điểm ảnh đổi ra cao độ bằng TIA cắt mặt đứng qua tâm hai tháp góc (caoTheoTia), không còn thước tuyến tính
+// neo vào đỉnh khối: đầu hồi mặt sân là TƯỜNG CHẮN nhô quá nóc (tia: 57,6 → 67,2 m; nóc DOM20 65,7) — neo đỉnh hồi vào nóc làm đầu hồi lùn, sai cả thước.
+const TAM_THAP_GOC = KHOI_NEO ? (MAT_BO.thapGoc?.ids || []).map((id) => dsKhoi.find((q) => q.id === id)).filter(Boolean).map((k) => tamDa(k.v)) : [];
+const TIA_MAT = TAM_THAP_GOC.length === 2 ? caoTheoTia(MAT_BO, ...TAM_THAP_GOC) : null;
+const DIEM_MAT = TAM_THAP_GOC.length === 2 ? diemTheoTia(MAT_BO, ...TAM_THAP_GOC) : null; // điểm ảnh → điểm cảnh trên mặt đứng (mép đầu hồi đo trên ảnh)
+const PX_DUNG = TIA_MAT || DINH_NEO == null || MAT_SAN == null ? null : tiLeDung(MAT_BO, DINH_NEO, MAT_SAN);
+const BO_MET = TIA_MAT && MAT_SAN != null ? quyDoiMat(MAT_BO, null, TIA_MAT, MAT_SAN) : PX_DUNG ? quyDoiMat(MAT_BO, PX_DUNG) : null;
+const MAI_SAN = BO_MET ? (BO_MET.maiTuyet ?? DINH_NEO - BO_MET.gableCao) : null; // chân đầu hồi mặt sân (= y1 khối neo)
 let THAP_TIA = null; // tháp góc đo theo tia camera ảnh chính (cao độ tuyệt đối)
 if (BO_MET) {
-  const kn = dsKhoi.find((k) => k.id === MAT_BO.neo.khoi); if (kn) kn.tags['roof:height'] = String(BO_MET.gableCao);
+  const kn = dsKhoi.find((k) => k.id === MAT_BO.neo.khoi); if (kn) kn.tags['roof:height'] = String(DINH_NEO - MAI_SAN); // nóc giữ DOM20 (y_tren), chân mái = chân đầu hồi theo ảnh
   // tháp góc: cao độ tuyệt đối theo tia camera ảnh chính (thapTheoTia), tâm trục = tâm mặt bằng OSM trước khi co
   const tamThap = Object.fromEntries((MAT_BO.thapGoc?.ids || []).map((id) => dsKhoi.find((q) => q.id === id)).filter(Boolean).map((k) => [k.id, tamDa(k.v)]));
   THAP_TIA = thapTheoTia(MAT_BO, tamThap);
@@ -336,7 +341,7 @@ if (BO_MET) {
     const R = T.rThan; if (R) { const [cx, cz] = tamDa(k.v), r0 = Math.max(...k.v.map(([x, z]) => Math.hypot(x - cx, z - cz))), f = Math.min(1, R * Math.cos(Math.PI / 8) * 0.95 / r0);
       if (f < 1) k.v = k.v.map(([x, z]) => [cx + (x - cx) * f, cz + (z - cz) * f]); } }
   if (THAP_TIA) console.info('[ns] tháp góc theo tia camera: mũi', Object.entries(THAP_TIA.muiTung).map(([id, y]) => id + ' ' + y.toFixed(2)).join(' · '), '· chân nón', THAP_TIA.chanChop.toFixed(2), '· chân thân', THAP_TIA.chanThan.toFixed(2), '· r thân', THAP_TIA.rThan?.toFixed(2), '· xa', THAP_TIA.xa.toFixed(1), 'm');
-  console.info('[ns] mặt Palas hướng sân: tỉ lệ đứng', PX_DUNG.toFixed(1), 'px/m · đầu hồi', BO_MET.gableCao.toFixed(1), 'm · mái', MAI_SAN.toFixed(1), '· sân', MAT_SAN.toFixed(1));
+  console.info('[ns] mặt Palas hướng sân:', TIA_MAT ? 'cao độ theo tia camera' : 'thước tuyến tính', BO_MET.pxDung.toFixed(1), 'px/m ở đầu hồi · đầu hồi', BO_MET.gableCao.toFixed(1), 'm · chân', MAI_SAN.toFixed(1), '· đỉnh', (MAI_SAN + BO_MET.gableCao).toFixed(1), '· nóc', DINH_NEO.toFixed(1), '· sân', MAT_SAN.toFixed(1));
 }
 // NÓN THEO TIA ẢNH ĐỊNH VỊ (non-tia.json, non-theo-tia.py: trục liền từ đỉnh mô hình tới trời, ≥ 3 ảnh tách mũi khớp ±1 m): luật chung mọi khối mái nón / chóp —
 // chỉ sửa khi đỉnh nón lệch > 1,5 m hoặc chân nón hẹp hơn 80% mặt bằng; mũi (thánh giá / chong chóng) cao hơn đỉnh nón > 0,4 m thì thêm cột mũi. Khối THAP_TIA đã đo riêng → chỉ đối chiếu
@@ -670,7 +675,14 @@ const MAT_PALAS = (() => {
       if (q.some(([x, , z]) => Math.abs((x - x1) * nx + (z - z1) * nz) > 0.25)) continue; const dinh = Math.max(...q.map((p) => p[1]));
       if (dinh > tot.y1 + 1 && (!P || dinh > Math.max(...P.map((p) => p[1])))) P = q; }
     if (P) { const s = P.map(([x, y, z]) => [(x - mx) * ux + (z - mz) * uz, y]).sort((a, b) => b[1] - a[1]), chan = s.slice(1).sort((a, b) => a[0] - b[0]);
-      tot.hoi = { sD: s[0][0], yD: s[0][1], sA: chan[0][0], sB: chan[1][0], yC: Math.min(chan[0][1], chan[1][1]) }; }
+      tot.hoi = { sD: s[0][0], yD: s[0][1], sA: chan[0][0], sB: chan[1][0], yC: Math.min(chan[0][1], chan[1][1]) };
+      if (BO_MET?.dinhTuyet != null) tot.hoi.yD = BO_MET.dinhTuyet;
+      // CHÂN HAI MÉP theo ảnh (tiLe.hoiMep: hai điểm ảnh mỗi mép): tia → mét (s, y) trên mặt đứng → đường thẳng → s ở chân yC. Chân OSM (tháp tới tháp) làm mép
+      // thoải hơn thật, viền cao hơn ảnh 8–13 px ở 3 ảnh thật (so-anh-that 21/11/2026); sA / sB giữ cho bề ngang bố cục mặt
+      const hm = MAT_BO?.tiLe?.hoiMep; if (DIEM_MAT && hm?.trai && hm?.phai) {
+        const chanMep = (ds) => { const [a, b] = ds.map(([u, v]) => { const [x, y, z] = DIEM_MAT(u, v); return [(x - mx) * ux + (z - mz) * uz, y]; }); return a[0] + (b[0] - a[0]) * (tot.hoi.yC - a[1]) / (b[1] - a[1]); };
+        const [mA, mB] = [chanMep(hm.trai), chanMep(hm.phai)].sort((p, q) => p - q); if (mA < tot.hoi.sD && mB > tot.hoi.sD) Object.assign(tot.hoi, { mA, mB });
+        console.info('[ns] chân đầu hồi theo ảnh:', { sA: +tot.hoi.sA.toFixed(2), mA: +mA.toFixed(2), sD: +tot.hoi.sD.toFixed(2), mB: +mB.toFixed(2), sB: +tot.hoi.sB.toFixed(2) }); } } // tường chắn đầu hồi nhô quá nóc: đỉnh theo tia camera ảnh chính, chân = chân mái (MAI_SAN)
     tot.bo = BO_MET;
   } // cả mặt dựng riêng theo ảnh (mattien.js datMatPalas)
   return tot;

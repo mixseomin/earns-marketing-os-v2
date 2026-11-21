@@ -179,18 +179,25 @@ export function tiLeDung(bo, dinhKhoi, matSan) { // px/m theo chiều đứng t�
   const P = bo.anhPhu, N = bo.neo; if (!P || !N || !(dinhKhoi > matSan)) return null;
   return ((P.mocYChinh - N.dinhY) + (P.matSan - P.mocY) / P.tiDung) / (dinhKhoi - matSan);
 }
-export function quyDoiMat(bo, pxDung) {
-  const T = { ...bo.tiLe, pxDung }, X = (x) => (x - T.trucX) / T.pxNgang, Du = (y) => (y - T.maiY) / T.pxDung, tb = (a) => a.reduce((p, q) => p + q, 0) / a.length;
-  const cum = bo.cum.map((c) => { const tam = c.o.map(([a, b]) => (a + b) / 2), rong = c.o.map(([a, b]) => b - a);
-    return { ten: c.ten, x: X(tb(tam)), duoi: Du(c.bau), n: c.o.length, w: tb(rong) / T.pxNgang, buoc: c.o.length > 1 ? (tam.at(-1) - tam[0]) / (c.o.length - 1) / T.pxNgang : tb(rong) / T.pxNgang + 0.2,
-      h: (c.bau - c.dinhO) / T.pxDung, vomR: c.vom ? (c.vom[1] - c.vom[0]) / 2 / T.pxNgang : null, vomDinh: c.vom ? (c.bau - c.vom[2]) / T.pxDung : null }; });
-  const tranh = (bo.tranh || []).map((t) => ({ ten: t.ten, x: X((t.hop[0] + t.hop[2]) / 2), rong: (t.hop[2] - t.hop[0]) / T.pxNgang, duoi: Du(t.hop[1]), cao: (t.hop[3] - t.hop[1]) / T.pxDung }));
-  const b = bo.banCong, banCong = b && { x: X((b.trai + b.phai) / 2), rong: (b.phai - b.trai) / T.pxNgang, duoiLanCan: Du(b.lanCan), duoiSan: Du(b.san), duoiDay: Du(b.dayBan), duoiConXon: Du(b.conXon) };
+// tia = caoTheoTia(...) (ảnh chính có camera định vị): mỗi hàng điểm ảnh → cao độ TUYỆT ĐỐI trên mặt đứng, KHÔNG thước tuyến tính. Ảnh chụp ngửa (~29°) nên một
+// thước cho cả mặt sai theo hàng: 31 px/m ở đầu hồi, 44 px/m ở tầng trệt (21/11/2026: thước 37,7 px/m làm đầu hồi lùn 1,7 m, đỉnh thấp hơn tường chắn thật 1,5 m).
+// Ảnh phụ neo bằng hai mốc tuyệt đối: mốc chung (mocYChinh, cao độ theo tia) + mặt sân (matSan ↔ cao độ sân đo trên ảnh 3D).
+export function quyDoiMat(bo, pxDung, tia = null, matSan = null) {
+  const T = { ...bo.tiLe, pxDung }, X = (x) => (x - T.trucX) / T.pxNgang, tb = (a) => a.reduce((p, q) => p + q, 0) / a.length;
+  const maiTuyet = tia ? tia(T.trucX, T.maiY) : null;
+  const Du = tia ? (y, u = T.trucX) => maiTuyet - tia(u, y) : (y) => (y - T.maiY) / T.pxDung; // mét dưới chân đầu hồi
+  const Cao = tia ? (tren, duoi, u = T.trucX) => tia(u, tren) - tia(u, duoi) : (tren, duoi) => (duoi - tren) / T.pxDung; // bề cao giữa hai hàng
+  const cum = bo.cum.map((c) => { const tam = c.o.map(([a, b]) => (a + b) / 2), rong = c.o.map(([a, b]) => b - a), u = tb(tam);
+    return { ten: c.ten, x: X(u), duoi: Du(c.bau, u), n: c.o.length, w: tb(rong) / T.pxNgang, buoc: c.o.length > 1 ? (tam.at(-1) - tam[0]) / (c.o.length - 1) / T.pxNgang : tb(rong) / T.pxNgang + 0.2,
+      h: Cao(c.dinhO, c.bau, u), vomR: c.vom ? (c.vom[1] - c.vom[0]) / 2 / T.pxNgang : null, vomDinh: c.vom ? Cao(c.vom[2], c.bau, u) : null }; });
+  const tranh = (bo.tranh || []).map((t) => { const u = (t.hop[0] + t.hop[2]) / 2; return { ten: t.ten, x: X(u), rong: (t.hop[2] - t.hop[0]) / T.pxNgang, duoi: Du(t.hop[1], u), cao: Cao(t.hop[1], t.hop[3], u) }; });
+  const b = bo.banCong, ub = b && (b.trai + b.phai) / 2, banCong = b && { x: X(ub), rong: (b.phai - b.trai) / T.pxNgang, duoiLanCan: Du(b.lanCan, ub), duoiSan: Du(b.san, ub), duoiDay: Du(b.dayBan, ub), duoiConXon: Du(b.conXon, ub) };
   const go = (bo.go || []).map((g) => Du(g.y));
   let cuaDon = [], duoiSan = null, cong = null;
   const P = bo.anhPhu;
   if (P) {
-    const pN = T.pxNgang * P.tiNgang, pD = T.pxDung * P.tiDung, XP = (x) => X(P.mocXChinh) + (x - P.mocX) / pN, DP = (y) => Du(P.mocYChinh) + (y - P.mocY) / pD;
+    const moc = Du(P.mocYChinh, P.mocXChinh), pD = tia && matSan != null && P.matSan != null ? (P.matSan - P.mocY) / (maiTuyet - matSan - moc) : T.pxDung * P.tiDung;
+    const pN = T.pxNgang * P.tiNgang, XP = (x) => X(P.mocXChinh) + (x - P.mocX) / pN, DP = (y) => moc + (y - P.mocY) / pD;
     cuaDon = P.cuaDon.map((c) => ({ x: XP((c.o[0] + c.o[1]) / 2), w: (c.o[1] - c.o[0]) / pN, duoi: DP(c.bau), h: (c.bau - c.dinh) / pD }));
     if (P.doiXung) cuaDon = [...cuaDon, ...cuaDon.map((c) => ({ ...c, x: -c.x, giaDinh: true }))];
     // cụm cửa phần dưới đo thẳng trên ảnh 3D (cumPhu, toạ độ hệ ảnh phụ, không lấy đối xứng): mỗi cụm một khung như cụm ảnh chính
@@ -203,8 +210,19 @@ export function quyDoiMat(bo, pxDung) {
     if (Cg) cong = { ten: Cg.ten, thang: Cg.thang, duoiNguong: DP(Cg.nguong), cua: (Cg.nguong - Cg.dinhCua) / pD, khung: (Cg.nguong - Cg.dinhKhung) / pD, rongCua: Cg.rongCua / pN, rongKhung: Cg.rongKhung / pN };
   }
   // tháp góc KHÔNG đổi bằng thước tuyến tính này (vật tròn treo nhô trước mặt tường, máy ngửa ~29° → sai 1–3 m): thapTheoTia bên dưới
-  return { cum, tranh, banCong, go, cuaDon, duoiSan, cong, gableCao: bo.neo ? (T.maiY - bo.neo.dinhY) / T.pxDung : null, pxDung: T.pxDung };
+  const gableCao = bo.neo ? Cao(bo.neo.dinhY, T.maiY) : null;
+  return { cum, tranh, banCong, go, cuaDon, duoiSan, cong, gableCao, maiTuyet, dinhTuyet: tia && gableCao != null ? maiTuyet + gableCao : null,
+    pxDung: tia && gableCao ? (T.maiY - bo.neo.dinhY) / gableCao : T.pxDung };
 }
+// CAO ĐỘ THEO TIA trên mặt đứng: tia camera ảnh chính qua điểm ảnh (u, v) cắt mặt phẳng đứng qua hai điểm mặt bằng A, B ([x, z]) → cao độ tuyệt đối y.
+// Mặt Palas hướng sân: A, B = tâm hai tháp góc (tia hàng mái cắt mặt tường OSM ra 57,57 m, mặt qua tâm tháp 57,64 m — cùng mặt).
+// diemTheoTia: cùng phép cắt, trả điểm cảnh [x, y, z] (đo vị trí ngang trên mặt đứng — mép đầu hồi, chân tháp — không chỉ cao độ)
+export function diemTheoTia(bo, A, B) {
+  const c = bo.anh?.camera; if (!c || !A || !B) return null;
+  const M = mayAnh(c, bo.anh.rong, bo.anh.cao), nx = B[1] - A[1], nz = -(B[0] - A[0]);
+  return (u, v) => { const d = M.tia(u, v), t = ((A[0] - M.O[0]) * nx + (A[1] - M.O[2]) * nz) / (d[0] * nx + d[2] * nz); return [M.O[0] + d[0] * t, M.O[1] + d[1] * t, M.O[2] + d[2] * t]; };
+}
+export function caoTheoTia(bo, A, B) { const f = diemTheoTia(bo, A, B); return f && ((u, v) => f(u, v)[1]); }
 
 // CAMERA ẢNH ĐÃ ĐỊNH VỊ (bo.anh.camera — khop-lg.py: LightGlue + PnP ảnh chụp ↔ ảnh 3D Google; quy ước three.js Euler YXZ, nhìn −Z, fov dọc, toạ độ cảnh)
 // → chieu(P) = điểm ảnh [u, v] của điểm cảnh P trên khung W×H; tia(u, v) = hướng nhìn qua điểm ảnh. Không phụ thuộc cỡ ảnh lúc định vị (fov dọc, cùng tỉ lệ khung).
@@ -302,9 +320,13 @@ export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {} }) {
   }
   // ĐẦU HỒI — tam giác thật lấy từ hình khối đã dựng (tuong.hoi = { sD, yD: đỉnh · sA, sB: hai chân · yC: chân }, s đo dọc tường từ giữa theo ux;
   // đỉnh không nhất thiết ở giữa bức tường): gờ đá viền hai mép, diềm răng cưa bậc song song hai mép, cửa sổ tròn, lỗ tròn nhỏ, bệ + tượng sư tử trên đỉnh — như ảnh
+  // chân hai mép mA / mB (đo trên ảnh: tiLe.hoiMep, ns.js) có thể khác sA / sB (tháp tới tháp = bề ngang bố cục mặt) — không có thì trùng
   const hoi = tuong.hoi || (tuong.y2 > y1 + 4 ? { sD: 0, yD: tuong.y2, sA: -L / 2, sB: L / 2, yC: y1 } : null);
   if (hoi && hoi.yD > hoi.yC + 4) {
-    const { sD, yD, sA, sB, yC } = hoi, H = yD - yC, BAC = 1.45, VT = 0.2, SAU = 0.12;
+    const { sD, yD, yC } = hoi, sA = hoi.mA ?? hoi.sA, sB = hoi.mB ?? hoi.sB, H = yD - yC, BAC = 1.45, VT = 0.2, SAU = 0.12;
+    // thân tường chắn: tam giác đá đặc dày 0,6 m sau mặt tường — đỉnh hồi theo tia camera cao hơn nóc mái (đầu hồi kiểu tường chắn), hình khối chỉ có tam giác tới nóc
+    { const sh = new THREE.Shape([new THREE.Vector2(-(sA - sD), yC - yD), new THREE.Vector2(-(sB - sD), yC - yD), new THREE.Vector2(0, 0)]);
+      const g = new THREE.ExtrudeGeometry(sh, { depth: 0.6, bevelEnabled: false }); g.translate(0, 0, -0.6); dat(new THREE.Mesh(g, DA), sD, yD, 0.01); }
     const be = (y, k) => (k < 0 ? sD - sA : sB - sD) * (1 - (y - yC) / H) - 1.1; // bề ngang từ trục đỉnh tới mép (thụt 1,1 m) ở độ cao y, phía k
     let y = yC + 0.5;
     for (; Math.min(be(y + BAC, -1), be(y + BAC, 1)) > 0.9; y += BAC) for (const k of [-1, 1]) {
@@ -315,8 +337,9 @@ export function datMatPalas({ THREE, mergeGeometries, tuong, tranh = {} }) {
     }
     const wl = be(y, -1), wr = be(y, 1);
     dat(new THREE.Mesh(new THREE.BoxGeometry(wl + wr + VT, VT, SAU), DA), sD + (wr - wl) / 2, y, SAU / 2); // bậc trên cùng nối hai bên
-    // gờ viền hai mép đầu hồi: trục x cục bộ của khung chạy NGƯỢC ux → góc nghiêng tính theo −Δs
-    for (const sE of [sA, sB]) { const ds = sD - sE, g = new THREE.BoxGeometry(Math.hypot(ds, H) + 0.3, 0.36, 0.3); g.rotateZ(Math.atan2(H, -ds)); dat(new THREE.Mesh(g, DA), (sD + sE) / 2, yC + H / 2 + 0.12, 0.15); }
+    // gờ viền hai mép đầu hồi: trục x cục bộ của khung chạy NGƯỢC ux → góc nghiêng tính theo −Δs. Mặt TRÊN của gờ nằm đúng trên mép tam giác (hình khối = viền đo
+    // chính thức, so-anh-that.py + DOM20 21/11/2026: gờ đặt nổi trên mép làm viền đầu hồi cao hơn thật cả dải) → tâm gờ hạ nửa bề dày theo phương vuông góc mép
+    for (const sE of [sA, sB]) { const ds = sD - sE, dai = Math.hypot(ds, H), g = new THREE.BoxGeometry(dai, 0.36, 0.3); g.rotateZ(Math.atan2(H, -ds)); dat(new THREE.Mesh(g, DA), (sD + sE) / 2, yC + H / 2 - 0.18 * dai / Math.abs(ds), 0.15); }
     const DONG = new THREE.MeshStandardMaterial({ color: '#6d6a58', roughness: 0.5, metalness: 0.35 });
     dat(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), DA), sD, yD + 0.15, 0.1);
     dat(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.14, 1.1), DA), sD, yD + 0.65, 0.1);

@@ -57,6 +57,56 @@ class BanDo:
         return ra
 
 
+class Dom:
+    """NHÂN CHỨNG THỨ BA (21/11/2026): ảnh ↔ mô hình lệch thì chưa biết bên nào sai — camera PnP lệch 1 m ở 25 m (ảnh chụp trong sân) đủ làm mái thật
+    "biến mất" khỏi tia (Castelul-16: mô hình khớp DOM20 trong 1 m dọc cánh 223069513, ảnh vẫn thấy nhà nơi tia đi qua trời). DOM20 (mặt trên thật 20 cm, Bavaria)
+    không phụ thuộc camera ảnh lẫn mô hình: bắn tia của chính điểm ảnh vào DOM20 → viền trời DOM20 vD từng cột. vD ≈ vA, ≠ vM → lỗi MÔ HÌNH;
+    vD ≈ vM, ≠ vA → lỗi CAMERA (ảnh chưa tin, không sửa mô hình theo nó). Thiếu tệp DOM20 (du-lieu-goc/bayern, scripts/tai-bayern.sh) → bỏ qua, báo một dòng."""
+    def __init__(s):
+        G = pathlib.Path(__file__).resolve().parent.parent / 'du-lieu-goc/bayern'; s.ok = (G / 'dom20-32631_5268.tif').exists() and (G / 'so-dom20.json').exists()
+        if not s.ok: return
+        import tifffile
+        s.a = tifffile.imread(G / 'dom20-32631_5268.tif').astype(np.float32); S = json.loads((G / 'so-dom20.json').read_text())
+        s.goc = json.loads((G / 'diem-mo-hinh.json').read_text())['goc']; s.dx, s.dz, s.bu = S['dx'], S['dz'], S['bu']
+        g = math.radians(1.7498 * math.sin(math.radians(47.5576))); s.c, s.s = math.cos(g), math.sin(g)
+        s.tran = float(np.nanmax(np.where(s.a < -1000, np.nan, s.a))) - s.goc - s.bu  # mặt cao nhất trong ô: tia lên quá mức này chắc chắn là trời
+        # bước tia: 0,5 m tới 100 m, sau đó 0,5 % quãng (ảnh chụp từ Hohenschwangau / Marienbrücke cách 0,5–2 km)
+        T = [0.5]
+        while T[-1] < 2500: T.append(T[-1] + max(0.5, 0.005 * T[-1]))
+        s.T = np.array(T, np.float32)
+
+    def cao(s, x, z):  # độ cao cảnh của DOM20 tại các điểm (mảng); ngoài ô / ô trống → NaN (không biết)
+        x, z = x + s.dx, -(z + s.dz); E = 631637.44 + (s.c * x - s.s * z) * 0.99981; N = 5268614.78 + (s.s * x + s.c * z) * 0.99981
+        j = ((E - 631000) / 0.2).astype(int); i = ((5269000 - N) / 0.2).astype(int); ok = (i >= 0) & (i < s.a.shape[0]) & (j >= 0) & (j < s.a.shape[1])
+        h = np.full(x.shape, np.nan, np.float32); h[ok] = s.a[i[ok], j[ok]]; h[h < -1000] = np.nan; return h - s.goc - s.bu
+
+    def vien(s, d, xs, Ci, y_max):
+        """viền trời DOM20 ở các cột xs (khung ĐÃ canh): hàng đầu tiên mà tia điểm ảnh (đổi ngược về khung camera bằng Ci) chạm mặt DOM20.
+        Hàng trên đó phải BIẾT là trời (tia lên quá mặt cao nhất của ô trước khi ra khỏi ô) — tia đi ra ngoài ô 1 km còn thấp (núi phía sau ô) thì cột đó −1 (không biết):
+        DOM20 không thấy núi ngoài ô, đừng để nó "chứng" rằng ảnh sai."""
+        H, W = d['H'], d['W']; t = math.tan(math.radians(d['fov']) / 2); M = np.array(d['m']).reshape(4, 4).T; o = M[:3, 3]; ra = []
+        for x, ym in zip(xs, y_max):
+            ys = np.arange(0, min(H, ym), 2, dtype=np.float32); X = Ci[0, 0] * x + Ci[0, 1] * ys + Ci[0, 2]; Y = Ci[1, 0] * x + Ci[1, 1] * ys + Ci[1, 2]
+            v = np.stack([((X + 0.5) / W * 2 - 1) * t * W / H, (1 - (Y + 0.5) / H * 2) * t, -np.ones_like(X)], -1) @ M[:3, :3].T; v /= np.linalg.norm(v, axis=1, keepdims=True)
+            c, biet = s.cham(o, v, True); k = int(np.argmax(c)) if c.any() else len(ys)
+            ra.append(-1 if not biet[:k].all() else int(ys[k]) if k < len(ys) else H)
+        return np.array(ra)
+
+    def cham(s, o, v, biet=False, xa=2500):
+        """tia từ o theo các hướng v (đơn vị): chạm mặt DOM20 trước khi ra khỏi ô không; biet=True trả thêm "không chạm là chắc trời"
+        (mọi điểm trên tia hoặc trong ô dưới mặt, hoặc đã cao hơn mặt cao nhất của ô)"""
+        T = s.T[s.T <= xa]; P = np.asarray(o, np.float32)[None, None] + v[:, None].astype(np.float32) * T[None, :, None]
+        # chạm = đi từ TRÊN mặt xuống dưới mặt: camera đứng dưới mái hiên / tán cây / thấp hơn mặt sân DOM vài dm thì đoạn đầu tia nằm dưới mặt — không tính là chạm
+        h = s.cao(P[..., 0], P[..., 2]); tren = h < P[..., 1]; da_tren = np.zeros_like(tren); da_tren[:, 1:] = np.maximum.accumulate(tren, 1)[:, :-1]
+        cc = (h >= P[..., 1]) & da_tren; c = cc.any(1)
+        if biet == 'diem': return np.where(c[:, None], P[np.arange(len(v)), np.argmax(cc, 1)], np.nan)  # điểm chạm đầu tiên (N, 3), không chạm → NaN
+        if not biet: return c
+        return c, c | (~np.isnan(h) | (P[..., 1] > s.tran)).all(1)
+
+
+DOM = Dom()
+
+
 def phap_tuyen(P):
     dx = np.zeros_like(P); dy = np.zeros_like(P); dx[:, 1:-1] = P[:, 2:] - P[:, :-2]; dy[1:-1] = P[2:] - P[:-2]
     n = np.cross(dx, dy); return n / np.maximum(np.linalg.norm(n, axis=-1, keepdims=True), 1e-9)
@@ -190,6 +240,20 @@ def phan_tich(anh, d, thu, bd, chon):
                         'mat': mat_, 'y': int(min(vA[xm], vM[xm]))})
     cot_lau = [x for x in xet if lau[:, x].any()]
     vien_khop = sum(1 for x in cot_lau if abs(int(vM[x]) - int(vA[x])) <= tol) / max(1, len(cot_lau))
+    # nhân chứng DOM20: mỗi đoạn lệch xét 3 cột (tứ phân vị + cột lệch nhất), cả khung xét mỗi 16 cột lâu đài → độ tin camera
+    dom, tolD, Ci = DOM, round(1.5 * tol), cv2.invertAffineTransform(CK)
+    nhan_chung = {'co': bool(dom and dom.ok)}
+    if nhan_chung['co']:
+        ym = lambda xs: [int(max(vA[x], vM[x])) + 3 * tolD for x in xs]
+        for s_ in ra_doan:
+            xs = sorted({s_['x0'] + (s_['x1'] - s_['x0']) // 4, (s_['x0'] + s_['x1']) // 2, s_['x1'] - (s_['x1'] - s_['x0']) // 4})
+            vD = dom.vien(d, xs, Ci, ym(xs)); khop_a = sum(abs(int(vD[i]) - int(vA[x])) <= tolD for i, x in enumerate(xs)); khop_m = sum(abs(int(vD[i]) - int(vM[x])) <= tolD for i, x in enumerate(xs))
+            s_['dom'] = 'mo_hinh' if khop_a >= 2 and khop_m == 0 else 'camera' if khop_m >= 2 and khop_a == 0 else 'chua_ro'; s_['vD'] = [[int(x), int(vD[i])] for i, x in enumerate(xs)]
+            if s_['dom'] == 'mo_hinh': s_['sua'] = cho_sua(s_, d, Ci, vA, vM, sau, dom)
+        mau = cot_lau[::16]; vD = dom.vien(d, mau, Ci, ym(mau)); co_d = [i for i, x in enumerate(mau) if 0 <= vD[i] < H]
+        nhan_chung.update({'cot': len(co_d), 'anh_khop': round(sum(abs(int(vD[i]) - int(vA[mau[i]])) <= tolD for i in co_d) / max(1, len(co_d)), 3),
+                           'mh_khop': round(sum(abs(int(vD[i]) - int(vM[mau[i]])) <= tolD for i in co_d) / max(1, len(co_d)), 3), 'vD': [[int(mau[i]), int(vD[i])] for i in co_d]})
+        nhan_chung['camera_tin'] = nhan_chung['cot'] < 8 or nhan_chung['anh_khop'] >= 0.7 or nhan_chung['anh_khop'] >= nhan_chung['mh_khop'] - 0.1
     # nét theo mặt
     eM = net_mo_hinh(mh, sau, n); eA = net_anh(anh) & cv2.dilate(lau.astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool) & ~troiM
     eM &= lau; r = max(3, round(0.004 * H))
@@ -216,7 +280,27 @@ def phan_tich(anh, d, thu, bd, chon):
     F_chon = sum(mats[m]['F'] * mats[m]['net_anh'] for m in trong) / max(1, sum(mats[m]['net_anh'] for m in trong))
     ck = {'ti_le': round(float(np.hypot(CK[0, 0], CK[0, 1])), 3), 'xoay': round(float(np.degrees(np.arctan2(CK[1, 0], CK[0, 0]))), 2), 'doi_px': [round(float(CK[0, 2] - (1 - CK[0, 0]) * W / 2 + CK[0, 1] * H / 2)), round(float(CK[1, 2] - (1 - CK[1, 1]) * H / 2 - CK[1, 0] * W / 2))], 'tang_F': loi_ck}
     return {'ten': ten, 'tep': d['tep'], 'canh_khung': ck, 'tacGia': d.get('tacGia', ''), 'giayPhep': d.get('giayPhep', ''), 'vien_khop': round(vien_khop, 3), 'net_chon': round(F_chon, 3),
-            'doan': ra_doan, 'mat': mats, 'kem': kem, '_ve': {'vA': vA.tolist(), 'vM': vM.tolist(), 'eM': eM, 'eA': eA, 'mh': mh}}
+            'doan': ra_doan, 'dom': nhan_chung, 'mat': mats, 'kem': kem, '_ve': {'vA': vA.tolist(), 'vM': vM.tolist(), 'eM': eM, 'eA': eA, 'mh': mh}}
+
+
+def cho_sua(s_, d, Ci, vA, vM, sau, dom):
+    """đoạn DOM20 đã xác nhận lỗi mô hình → CHỖ SỬA trong cảnh (mét), mỗi cột tứ phân vị:
+    THỪA: điểm viền mô hình (độ sâu ngay dưới viền) — mô hình cao y_mh, thật (DOM20 cùng x, z) cao y_dom → hạ bao nhiêu / chỗ đó thật là trời
+    THIẾU: tia của viền ẢNH chạm DOM20 ở (x, y_dom, z) — thật có vật tới độ cao đó mà mô hình không có"""
+    H, W = d['H'], d['W']; t = math.tan(math.radians(d['fov']) / 2); M = np.array(d['m']).reshape(4, 4).T; o = M[:3, 3]; ra = []
+    for x in sorted({s_['x0'] + (s_['x1'] - s_['x0']) // 4, (s_['x0'] + s_['x1']) // 2, s_['x1'] - (s_['x1'] - s_['x0']) // 4}):
+        y = int(vA[x]) + 1 if s_['kieu'] == 'THIẾU' else int(vM[x]) + 2
+        if y >= H: continue
+        X = Ci[0, 0] * x + Ci[0, 1] * y + Ci[0, 2]; Y = Ci[1, 0] * x + Ci[1, 1] * y + Ci[1, 2]
+        v = np.array([((X + 0.5) / W * 2 - 1) * t * W / H, (1 - (Y + 0.5) / H * 2) * t, -1.0]) @ M[:3, :3].T
+        if s_['kieu'] == 'THỪA':
+            if sau[y, x] <= 0: continue
+            P = o + v * sau[y, x]; yd = float(dom.cao(np.array([P[0]]), np.array([P[2]]))[0])
+            ra.append({'x': round(float(P[0]), 1), 'z': round(float(P[2]), 1), 'y_mh': round(float(P[1]), 1), 'y_dom': None if np.isnan(yd) else round(yd, 1)})
+        else:
+            P = dom.cham(o, (v / np.linalg.norm(v))[None], 'diem')[0]
+            if not np.isnan(P[0]): ra.append({'x': round(float(P[0]), 1), 'z': round(float(P[2]), 1), 'y_dom': round(float(P[1]), 1)})
+    return ra
 
 
 def ve_chong(anh, kq, chu=True):
@@ -225,9 +309,11 @@ def ve_chong(anh, kq, chu=True):
     g[v['eM']] = (60, 230, 60)
     im = Image.fromarray(cv2.cvtColor(g, cv2.COLOR_BGR2RGB)); dr = ImageDraw.Draw(im, 'RGBA')
     for s in kq['doan']:
-        c = (255, 40, 40, 110) if s['kieu'] == 'THIẾU' else (40, 120, 255, 110)
+        c = (150, 150, 150, 120) if s.get('dom') == 'camera' else (255, 40, 40, 110) if s['kieu'] == 'THIẾU' else (40, 120, 255, 110)
         dr.polygon([(x, v['vA'][x]) for x in range(s['x0'], s['x1'] + 1)] + [(x, v['vM'][x]) for x in range(s['x1'], s['x0'] - 1, -1)], fill=c)
     dr.line([(x, v['vA'][x]) for x in range(W) if v['vA'][x] < H], fill=(255, 60, 60, 255), width=2)
+    for x, y in kq['dom'].get('vD', []) + [p for s in kq['doan'] for p in s.get('vD', [])]:
+        if y < H: dr.ellipse([x - 4, y - 4, x + 4, y + 4], fill=(255, 0, 255, 255))
     for i, m in enumerate(kq['kem']):
         x0, y0, x1, y1 = kq['mat'][m]['hop']; dr.rectangle([x0, y0, x1, y1], outline=(255, 220, 0, 255), width=3)
         if chu: dr.rectangle([x0, y0, x0 + 34, y0 + 30], fill=(255, 220, 0, 255)); dr.text((x0 + 9, y0 + 2), str(i + 1), fill=(0, 0, 0, 255), font=fo(24))
@@ -244,11 +330,17 @@ def ghep(cot, nhan, chan, cao=640):
 
 def chan_kq(kq):
     c = kq['canh_khung']; ra = [f"canh khung (lỗi camera đo): tỉ lệ ×{c['ti_le']:.3f} · xoay {c['xoay']:+.1f}° · dời {c['doi_px']} px · F +{c['tang_F']:.2f}" if c['tang_F'] else 'canh khung: camera đo đã khớp, giữ nguyên']
+    D = kq['dom']
+    if not D['co']: ra.append('nhân chứng DOM20: thiếu tệp du-lieu-goc/bayern (scripts/tai-bayern.sh) — chưa phân xử được lệch là camera hay mô hình')
+    else: ra.append(f"DOM20 (chấm tím): khớp viền ẢNH {D['anh_khop'] * 100:.0f} % · khớp viền MÔ HÌNH {D['mh_khop'] * 100:.0f} % trên {D['cot']} cột"
+                    + (' (ít cột DOM20 biết chắc — chưa phân xử)' if D['cot'] < 8 else '') + ('' if D['camera_tin'] else ' → CAMERA CHƯA TIN: lệch ở ảnh này phần lớn do camera đo, không sửa mô hình theo nó'))
     ra += [f"viền khớp {kq['vien_khop'] * 100:.0f} % · nét khớp khối chọn F {kq['net_chon']:.2f} · ảnh {kq['tacGia'] or '?'} ({kq['giayPhep'] or '?'})"]
     for i, m in enumerate(kq['kem']):
         q = kq['mat'][m]; ra.append(f"{i + 1}. {m}: F {q['F']:.2f} (đủ nét {q['du']:.2f}, đúng chỗ {q['dung']:.2f}) · dời khớp nhất {q['doi_m'][0]:+.2f} m ngang, {q['doi_m'][1]:+.2f} m đứng")
     for s in sorted(kq['doan'], key=lambda s: -s['lech_px'])[:4]:
-        ra.append(f"{s['kieu']} cột {s['x0']}–{s['x1']} lệch {s['lech_px']} px" + (f" ≈ {s['lech_m']:.1f} m" if s['lech_m'] else '') + f" trên {s['mat']}")
+        ra.append(f"{s['kieu']} cột {s['x0']}–{s['x1']} lệch {s['lech_px']} px" + (f" ≈ {s['lech_m']:.1f} m" if s['lech_m'] else '') + f" trên {s['mat']}"
+                  + {'mo_hinh': ' · DOM20 xác nhận: LỖI MÔ HÌNH', 'camera': ' · DOM20 khớp mô hình: lỗi CAMERA (xám)', 'chua_ro': ' · DOM20 chưa rõ'}.get(s.get('dom'), ''))
+        for q in s.get('sua', []): ra.append(f"      chỗ sửa ({q['x']}, {q['z']}): " + (f"mô hình {q['y_mh']} m · DOM20 {q['y_dom'] if q['y_dom'] is not None else '?'} m" if 'y_mh' in q else f"thật có vật tới {q['y_dom']} m"))
     return ra
 
 
@@ -270,7 +362,7 @@ def chay(thu_goc, nhan):
         chong.save(thu / f"{d['ten']}-chong.png")
         luu = {k: v for k, v in kq.items() if k != '_ve'}; (thu / f"{d['ten']}.json").write_text(json.dumps(luu, ensure_ascii=False, indent=1)); tong.append(luu)
         print(f"   {d['ten']}: viền khớp {kq['vien_khop'] * 100:.0f} % · nét F {kq['net_chon']:.2f} · {len(kq['doan'])} đoạn viền lệch → {thu / (d['ten'] + '-so.png')}")
-        for t in chan_kq(kq)[:1] + chan_kq(kq)[2:]: print('      ' + t)
+        for t in chan_kq(kq)[:2] + chan_kq(kq)[3:]: print('      ' + t)
         cu = thu_goc / 'truoc' / f"{d['ten']}.json"
         if nhan == 'sau' and cu.exists():
             t = json.loads(cu.read_text()); tc = Image.open(thu_goc / 'truoc' / f"{d['ten']}-chong.png")
@@ -312,6 +404,14 @@ def tu_kiem():
     dich = np.roll(gia, 20, 0); dich[:20] = XANH; k2 = phan_tich(dich, d, thu, bd, chon); c2 = k2['canh_khung']
     ok(c2['tang_F'] and abs(c2['doi_px'][1] - 20) <= 6 and abs(c2['ti_le'] - 1) < 0.04, f"cả khung dời 20 px: canh khung tìm ra dời {c2['doi_px']} · tỉ lệ ×{c2['ti_le']}")
     ok(k2['vien_khop'] >= 0.9, f"cả khung dời 20 px: viền sau canh {k2['vien_khop'] * 100:.0f} % ≥ 90 % (lỗi camera không đổ cho mô hình)")
+    # 5. nhân chứng DOM20: điểm mái đã đo (-19,4; 47; -1,5) — tia từ camera ảnh mẫu tới điểm phải chạm, tới điểm cao hơn 3 m phải không chạm (nằm trên mái → trời)
+    if DOM.ok:
+        o = np.array(d['m']).reshape(4, 4).T[:3, 3]; tg = np.array([-19.4, 47.0, -1.5]); h = float(DOM.cao(tg[[0]], tg[[2]])[0])
+        ok(abs(h - 47) < 2.5, f"DOM20 tại điểm mái đã đo: {h:.1f} m (mong 47 ± 2,5)")
+        hu = lambda p: (p - o) / np.linalg.norm(p - o)
+        ok(bool(DOM.cham(o, hu(tg - [0, 0.6, 0])[None], np.linalg.norm(tg - o) + 2)[0]) and not bool(DOM.cham(o, hu(tg + [0, 3, 0])[None], np.linalg.norm(tg - o) + 2)[0]),
+           'tia tới mái (−0,6 m) chạm DOM20, tia tới điểm cao hơn 3 m không chạm')
+    else: print('– tự kiểm DOM20 bỏ qua: thiếu du-lieu-goc/bayern')
     hop = np.where((vm > 0.05 * d['H']) & (vm < 0.9 * d['H']))[0]; a0 = int(np.percentile(hop, 40)); a1 = a0 + max(30, d['W'] // 12)
     cat = gia.copy()
     for x in range(a0, a1):

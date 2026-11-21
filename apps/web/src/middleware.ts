@@ -25,6 +25,10 @@ const PUBLIC_API_PREFIXES = [
   // → bytes icon). Để sau tường đăng nhập thì <img> trả 307 về /login, icon không hiện và trình duyệt
   // cũng không cache được — tức là hỏng đúng cái nó sinh ra để làm.
   '/api/platform-icon/',
+  // Nút hòm góp ý cho trang ngoài (dantranh/castle/studio2…): JS TĨNH, không đọc dữ liệu nào. Để sau tường thì
+  // trình duyệt chưa đăng nhập mos2 nhận 307 → /login, <script> hỏng im lặng, bấm 💬 không ra gì (dantranh 21/11/2026).
+  // Hòm thật (/nhung/gop-y) vẫn sau tường: chưa đăng nhập thì iframe hiện trang đăng nhập.
+  '/api/gop-y-ngoai/nut',
 ];
 
 // Nền tảng network affiliate ở SUBDOMAIN RIÊNG, mỗi host một vai — đúng nếp net VN (pub.* cho

@@ -88,12 +88,52 @@ def hop_le(goc, roas, ns):
     return any(l["viec"] == "nhan_roas" and int(l["camp"]) == int(goc) and abs(float(l["roas"]) - float(roas)) < 1e-9 and int(l["ns"]) == int(ns) and l.get("tt") == "dang"
                for l in doc().get("lenh") or [])
 
+# CREATIVE ANH ĐÃ DUYỆT CHỜ PHANH NHẢ (anh 22/11/2026 "thằng ngu !" — bấm ✓ Duyệt ở etp2 › Camp lúc DỪNG KHẨN ra ô đỏ bắt bấm lại "Lên camp"):
+# Duyệt = lệnh của anh, xếp hàng ngay. Nhịp đầu tiên phanh_sx nhả → lên camp $1 bằng ĐÚNG đường nút (nhan-ban khuôn theo ngôn ngữ, bộ bo_phim_moi,
+# giờ chạy do nhan-ban.lich_len); lỗi do phanh → về hàng; lỗi khác → ghi lý do vào nhật ký /tmp/etp-len-cr-<cr>.log (etp2 hiện ô đỏ + nút Lên camp).
+KHUON_CR = {"en": 65110, "es": 65734}   # trùng KHUON của apps/etp2/src/lib/actions/etp-dong.ts
+SQL_CR_DUYET = """select h.creative_id, r.content_id, coalesce(r.lang, 'en'), regexp_replace(coalesce(f.ten, r.content_id::text), '[^A-Za-z0-9 .,:!?#-]', '', 'g')
+    from etp.cho_anh_duyet_cr h join etp.creative r on r.creative_id = h.creative_id join etp.cham_duyet u on u.creative_id = h.creative_id and u.ok
+      left join etp.phim f on f.content_id = r.content_id join etp.cham_cong g on g.creative_id = h.creative_id and g.duoc_len
+    where r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = h.creative_id) order by u.luc limit 20"""
+
+def len_cr(st, chan, luc, xem, bao):
+    """creative đã duyệt chưa có camp: phanh còn → giữ hàng (st['len_cr'][cr].tt='cho'); nhả → gọi nhan-ban một lần mỗi creative"""
+    hang = st.setdefault("len_cr", {}); doi, kq = False, []
+    ds = [l.split("|") for l in (q(SQL_CR_DUYET) or "").splitlines() if l.strip()]
+    bo = q("select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi'") or ""
+    for cr, ct, lang, ten in ds:
+        h = hang.setdefault(cr, {"tt": "cho", "luc": luc}); kq.append({"cr": int(cr), "tt": h["tt"], "ly": chan})
+        if h["tt"] == "dang" and h.get("xet", "") < (dt.datetime.fromisoformat(luc) - dt.timedelta(hours=1)).isoformat(): h["tt"] = "cho"   # lượt bị cắt giữa chừng, 1 giờ chưa thấy camp → về hàng
+        if h["tt"] == "dang" or (h["tt"] == "loi" and h.get("xet", "") > (dt.datetime.fromisoformat(luc) - dt.timedelta(hours=6)).isoformat()): continue   # lỗi thật: thử lại sau 6 giờ
+        if chan or xem or not bo:
+            if chan and h.get("ly") != chan: h["ly"] = chan; doi = True
+            continue
+        lang = "es" if lang == "es" else "en"
+        h.update(tt="dang", xet=luc); ghi(st)   # GHI TRƯỚC khi gọi — mỗi lần nhả một lần gọi
+        r = chay_script([NB, str(KHUON_CR[lang]), "--tay", "--bo", bo, "--creative", cr, "--content", ct, "--ten", f"duyet {ten} {lang.upper()} - creative #{cr}", "--that",
+                         "--luat", f"anh duyệt creative #{cr} (etp2 › Camp · Chờ anh duyệt) — lên khi phanh nhả", "--ai", "anh (etp2 › Chờ anh duyệt) — máy lên khi phanh nhả"])
+        try:
+            with open(f"/tmp/etp-len-cr-{cr}.log", "a") as f: f.write(f"{luc} lên camp sau khi phanh nhả: {json.dumps(r, ensure_ascii=False, default=str)[:600]}\n")
+        except OSError: pass
+        if r.get("ok"): h.update(tt="xong", ly=None, moi=r.get("moi")); bao.append(f"✅ lên camp creative anh duyệt #{cr}" + (f" → camp #{r['moi']}" if r.get("moi") else ""))
+        elif CHO_LAI.search(str(r.get("loi") or "")): h.update(tt="cho", ly=str(r.get("loi"))[:200])
+        else: h.update(tt="loi", ly=str(r.get("loi") or "script không trả kết quả")[:200]); bao.append(f"⚠ creative anh duyệt #{cr} chưa lên camp: {h['ly']}")
+        doi = True
+    con = {cr for cr, *_ in ds}
+    for cr in [k for k in hang if k not in con]: hang.pop(cr); doi = True   # đã có camp / bị bỏ duyệt → rời hàng
+    return doi, kq
+
 def chay(xem=False):
     st = doc()
-    if not (st.get("lenh") or st.get("do_duong")): return {"lenh": 0}
     bay = dt.datetime.now(dt.timezone.utc); luc = bay.isoformat(timespec="seconds")
     chan = CG.phanh_sx(CG.doc_cau_hinh(), bay)
-    kq, bao, doi, lam = {"chan": chan, "lenh": [], "do_duong": []}, [], False, 0
+    bao0 = []; doi0, kcr = len_cr(st, chan, luc, xem, bao0)
+    if not (st.get("lenh") or st.get("do_duong")):
+        if doi0 and not xem: ghi(st)
+        if bao0 and not xem: q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) values ('lenh_cho', 'lenh_cho:{bay:%Y%m%d%H%M%S}', 'info', $N$🧭 CREATIVE ANH ĐÃ DUYỆT\n""" + "\n".join(f"• {x}" for x in bao0) + """$N$) on conflict (khoa) do nothing""")
+        return {"lenh": 0, "len_cr": kcr, "chan": chan}
+    kq, bao, doi, lam = {"chan": chan, "lenh": [], "do_duong": [], "len_cr": kcr}, bao0, doi0, 0
     for l in st.get("lenh") or []:
         if l.get("tt") != "cho": continue
         th = None if chan else the(l["camp"])

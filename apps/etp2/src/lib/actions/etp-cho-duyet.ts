@@ -39,7 +39,8 @@ export async function dsChoDuyet(): Promise<{ ds: ChoDuyet[]; dungKhan: boolean 
   return { ds: ds.map((x) => ({ ...x, creative_id: Number(x.creative_id), camp_id: x.camp_id == null ? null : Number(x.camp_id), nhat_ky: x.duyet && !x.camp_id ? nhatKy(Number(x.creative_id)) : null })), dungKhan: !!dk?.v };
 }
 
-/** ✓ Duyệt → ghi duyệt + lên camp $1; ✕ Loại → ghi loại. Dừng khẩn đang bật: vẫn ghi duyệt, báo rõ chưa lên được (bấm "Lên camp" lại khi tắt dừng khẩn) */
+/** ✓ Duyệt → ghi duyệt + lên camp $1; ✕ Loại → ghi loại. Phanh đang bật (dừng khẩn…): duyệt = XẾP HÀNG, máy tự lên camp ở nhịp đầu phanh nhả
+ *  (apps/etp/lenh_cho.py len_cr — anh 22/11/2026 "thằng ngu !": không bắt anh bấm lại) */
 export async function duyetChoAnh(cr: number, ok: boolean): Promise<{ ok: true; chu: string } | { loi: string }> {
   const id = Math.trunc(Number(cr));
   const [h] = await run<{ x: number }>(sql`select 1 x from etp.cho_anh_duyet_cr where creative_id = ${id}`);
@@ -54,7 +55,7 @@ export async function duyetChoAnh(cr: number, ok: boolean): Promise<{ ok: true; 
 export async function lenCamp(cr: number): Promise<{ ok: true; chu: string } | { loi: string }> {
   const id = Math.trunc(Number(cr));
   const [dk] = await run<{ v: boolean }>(sql`select coalesce((select gia_tri = 'true'::jsonb from etp.cau_hinh where khoa = 'dung_khan'), false) v`);
-  if (dk?.v) return { loi: `Đã ghi DUYỆT #${id}, nhưng CHƯA lên camp: đang DỪNG KHẨN (etp.cau_hinh.dung_khan) — máy chặn mọi lệnh tạo camp, kể cả nút của anh. Tắt dừng khẩn rồi bấm "Lên camp" ở dòng này.` };
+  if (dk?.v) return { ok: true, chu: `đã duyệt #${id} — xếp hàng: máy tự lên camp $1 ở nhịp đầu nhả dừng khẩn, giờ chạy theo lịch` };
   const r = await lenCampCr(-1, id);
   if ('loi' in r) return { loi: `Đã ghi DUYỆT #${id}, nhưng chưa lên camp: ${r.loi}` };
   return { ok: true, chu: `đã gửi lệnh lên camp $1 cho creative #${id} — giờ chạy theo lịch (ngoài 07–12h VN hẹn 07:00); dòng này tự hiện số camp khi xong` };

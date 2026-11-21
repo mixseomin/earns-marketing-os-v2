@@ -1543,4 +1543,7 @@ export const LUAT = [
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/components/etp-view.tsx', co: "<ChoDuyetCr />", vi: 'ô Chờ anh duyệt nằm ở tab Camp etp2' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: 'lenCampCr(-1, id)', vi: 'Duyệt = lên camp $1 bằng đúng đường nút Lên camp (lich_len)' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'insert into etp.cho_anh_duyet (tv_id, ghi)', vi: 'khung chỉ định --anh tự vào hàng chờ anh duyệt' },
+  { card: 'cho-anh-duyet-2211', tep: 'apps/etp/lenh_cho.py', co: 'doi0, kcr = len_cr(st, chan, luc, xem, bao0)', vi: 'creative anh đã duyệt lúc phanh bật: máy tự lên camp ở nhịp đầu phanh nhả (anh 22/11 "thằng ngu !")' },
+  { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', cam: 'Tắt dừng khẩn rồi bấm', vi: 'Duyệt lúc dừng khẩn không được bắt anh bấm lại Lên camp' },
+  { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'width: 162, height: 288', vi: 'ảnh / video creative chờ duyệt đủ to để xem (anh 22/11 "hình cũng phải to hơn")' },
 ];

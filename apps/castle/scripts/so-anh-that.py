@@ -500,8 +500,11 @@ def dung(xn, xn_thua, thay=(), tep=TEP_DUNG):
         m = tim(x)
         if not m: continue
         co = {a for a, t in thay if doc_mat.cung_cho({**m, 'loai': 'THIẾU'}, {**t, 'loai': 'THIẾU'}, t.get('y', (t.get('y0', 0) + t.get('y1', 0)) / 2))}
-        if x['so_anh'] > len(co - set(x['anh'])): muc.remove(m); go_ += 1
-        else: giu += 1
+        # ảnh đã đo ra THIẾU để sổ dựng chi tiết này mà nay báo THỪA đúng nó = ảnh TỰ MÂU THUẪN (canh khung đổi khi mô hình thêm nét → dời mốc đo) → phiếu đó không tính;
+        # trước đây cùng 2 ảnh vòng lẻ đòi dựng, vòng chẵn đòi gỡ → +2 / −2 mãi (22/11/2026 gờ 37,0 + 41,6 m way/1573767747, 6 vòng không khép)
+        phieu = set(x['anh']) - set(m.get('anh', []))
+        if len(phieu) >= 2 and len(phieu) > len(co - set(x['anh'])): muc.remove(m); go_ += 1; print(f"      gỡ {m['chi_tiet']} {m['khoi']} y {m['y']} m: THỪA {sorted(phieu)} · thấy {sorted(co)} · sổ dựng từ {m.get('anh')}")
+        else: giu += 1; print(f"      giữ {m['chi_tiet']} {m['khoi']} y {m['y']} m: ảnh tự mâu thuẫn {sorted(set(x['anh']) & set(m.get('anh', [])))} không tính phiếu") if set(x['anh']) & set(m.get('anh', [])) else None
     # dãy trong sổ mà ≥ 2 ảnh thấy là HÀNG CỬA (≥ 2 lỗ chiếm ≥ nửa dải, cùng cạnh) → dựng nhầm từ bộ dò cũ: gỡ (dải đá vắt ngang cửa che ô cửa → THIẾU lỗ mãi)
     for m in [m for m in muc if m['chi_tiet'] == 'dãy' and la_hang_cua(m)]: muc.remove(m); go_ += 1
     so.update({'ghi': 'sinh bởi scripts/so-anh-that.py --dung (bước dựng) — chi tiết THIẾU xác nhận ≥ 2 ảnh; mattien.js datChiTietDo dựng; không sửa tay', 'nguong': doc_mat.NGUONG, 'muc': muc})
@@ -612,6 +615,10 @@ def tu_kiem():
             st.write_text(json.dumps({'muc': [{**g_(33.15), 'loai': 'go', 'so_anh': 3, 'anh': []}]}))
             dung([], [{**g_(33.1), 'loai': 'THỪA', 'so_anh': n_thua, 'anh': [f't{i}' for i in range(n_thua)]}], [(f'c{i}', {**g_(33.12), 'loai': 'CÓ'}) for i in range(n_thay)], tep=st)
             ok(bool(json.loads(st.read_text())['muc']) == con, f"cân phiếu THỪA {n_thua} ảnh · thấy {n_thay} ảnh → {'giữ' if con else 'gỡ'}")
+        # 0b'. ảnh đã đòi dựng (trong 'anh' của mục) quay sang báo THỪA đúng mục đó → không tính phiếu, giữ (vòng +2/−2 mãi, 22/11/2026)
+        st.write_text(json.dumps({'muc': [{**g_(37.04), 'loai': 'go', 'so_anh': 2, 'anh': ['a', 'b']}]}))
+        dung([], [{**g_(37.0), 'loai': 'THỪA', 'so_anh': 2, 'anh': ['a', 'b']}], [], tep=st)
+        ok(len(json.loads(st.read_text())['muc']) == 1, "THỪA từ chính 2 ảnh đã đòi dựng → giữ (ảnh tự mâu thuẫn)")
         # 0c. đổi loại cửa phải kèm cỡ cùng lượt đo, rồi chốt bằng ngưỡng chung (sổ từng giữ cửa vào 0,52 m — 21/11/2026)
         lo_ = lambda **k: {'chi_tiet': 'lỗ', 'khoi': 'k', 'y0': 0, 'y1': 2.0, 'y': 1.0, 'doan': [{**dn, 't0': 2, 't1': 2.6}], **k}
         for w_moi, cua_ra in ((0.8, 'cua_vao'), (0.5, 'cua_so')):

@@ -5,9 +5,9 @@
 
 import { openSync, readFileSync } from 'node:fs';
 import { execFile, spawn } from 'node:child_process';
-import { envVe, xinVeTrucTiep } from '@/lib/etp-ve';
+import { envVe, xinVeTay, xinVeTrucTiep } from '@/lib/etp-ve';
 import { docNhatKyLen, gioVnIso, moNhatKyLen } from '@/lib/etp-nhat-ky-len';
-import { chuGio, daQua, gioVn } from '@/lib/etp-nb';   // giờ VN dùng chung với nhân bản ★ ROAS bài cũ (etp-tay.ts)
+import { THEO_LICH, chayLuc, chuGio, daQua, gioVn } from '@/lib/etp-nb';   // giờ VN dùng chung với nhân bản ★ ROAS bài cũ (etp-tay.ts)
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
@@ -101,10 +101,11 @@ export async function dsCrMoiCamp(campId: number): Promise<{ cr: number; lang: s
 }
 
 /** o.khuon = camp ★ đang chạy làm KHUÔN (cùng bộ, cùng phim): ★ ROAS creative mới mức o.roas · $o.ns — từ nút nhân bản ★ ROAS "creative mới" */
-type LenhNb = { args: string[]; lenh: string; ro: { roas: number; ns: number } | null; content: number; g: string | null };
+type LenhNb = { args: string[]; lenh: string; ro: { roas: number; ns: number } | null; content: number; g: string | null; lich: boolean };
 /** MỘT chỗ dựng lệnh nhan-ban cho ▶ Lên — nút lên thật (lenNgayCr, thêm --that) và 👁 xem trước (xemTruocLen, thêm --xem-truoc) đi CÙNG lệnh này,
  *  nên cái anh xem trước đúng là cái sẽ gửi Ethopex (anh 22/11/2026 "tao cần xem mọi thứ mày sẽ submit thì mới gọi là review") */
 async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: number; khuon: number } | null): Promise<LenhNb | { loi: string }> {
+  const lich = gio === THEO_LICH; if (lich) gio = null;   // #1772 "⏱ Lên theo lịch": không --gio, không vé trực tiếp → lịch lên của máy quyết giờ
   const id = Math.trunc(Number(cr)), g = gioVn(gio);
   if (gio && !g) return { loi: `giờ không đọc được: "${gio}" — dạng YYYY-MM-DD HH:MM giờ VN` };
   if (g && daQua(g)) return { loi: `giờ ${g} VN đã qua — chọn giờ sau bây giờ` };
@@ -124,9 +125,10 @@ async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: n
     if (Number(k.content_id) !== Number(x.content_id)) return { loi: `creative #${id} không cùng phim với camp #${o.khuon}` };
   }
   const lang = x.lang === 'es' ? 'es' : 'en', ro = o ? { roas: o.roas, ns: o.ns } : x.roas && x.ns ? { roas: Number(x.roas), ns: Math.trunc(Number(x.ns)) } : null;
-  const lenh = o ? `anh bấm nhân bản ★ ROAS ${o.roas} creative mới #${id} từ camp #${o.khuon} trên etp2 (${chuGio(g)})` : `anh bấm ▶ Lên ngay creative #${id} trên etp2 (${chuGio(g)})`;
+  const chu = lich ? `theo lịch: ${chayLuc(Date.now(), !!ro)}` : chuGio(g);
+  const lenh = o ? `anh bấm nhân bản ★ ROAS ${o.roas} creative mới #${id} từ camp #${o.khuon} trên etp2 (${chu})` : `anh bấm ${lich ? '⏱ Lên theo lịch' : '▶ Lên ngay'} creative #${id} trên etp2 (${chu})`;
   const ten = `duyet ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - ${ro ? 'cr moi' : 'creative'} #${id}`;   // spawn không qua shell — chỉ chữ ASCII
-  return { lenh, ro, content: Number(x.content_id), g, args: ['nhan-ban.py', String(o ? Math.trunc(Number(o.khuon)) : KHUON_CR[lang]), ...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), '--tay', ...(o ? [] : ['--bo', String(x.bo)]), '--creative', String(id),   // khuôn ★: không --bo → giữ bộ camp khuôn
+  return { lenh, ro, content: Number(x.content_id), g, lich, args: ['nhan-ban.py', String(o ? Math.trunc(Number(o.khuon)) : KHUON_CR[lang]), ...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), '--tay', ...(o ? [] : ['--bo', String(x.bo)]), '--creative', String(id),   // khuôn ★: không --bo → giữ bộ camp khuôn
     '--content', String(x.content_id), '--ten', ten, ...(g ? ['--gio', g] : [])] };
 }
 
@@ -135,11 +137,12 @@ export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: num
   const L = await lenhNb(cr, gio, o); if ('loi' in L) return L;
   const id = Math.trunc(Number(cr)), { ro, g, lenh } = L;
   const dg = docNhatKyLen(id).gui; if (dg) return { canh: `đã gửi lệnh lên lúc ${gioVnIso(dg)} giờ VN, máy đang tạo camp — chờ xong, không gửi lần hai` };   // #1770: dòng "đang lên" bấm lại không nhân đôi camp
-  const v = await xinVeTrucTiep('tao_camp', { content: L.content, lenh, ns: ro?.ns ?? 1 });
+  const v = L.lich ? await xinVeTay('tao_camp', { content: L.content, ai: `anh (etp2 ${me.email})` }).then((ma) => ma ? { ma } : { loi: 'Máy gác chưa cho lên camp theo lịch lúc này (không cấp quyền thao tác). Thử lại sau ít phút, hoặc dùng ▶ Lên ngay nếu cần chạy luôn.' })
+    : await xinVeTrucTiep('tao_camp', { content: L.content, lenh, ns: ro?.ns ?? 1 });   // theo lịch = vé thao tác thường (nhan-ban không ép chạy ngay); ▶ Lên ngay / hẹn giờ = vé trực tiếp
   if (!('ma' in v)) return v;
   const log = moNhatKyLen(id, `anh (etp2 ${me.email})`);   // #1770: dòng gửi → bảng hiện "đang lên" ngay
   spawn('python3', [...L.args, '--that', '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
-  return { ok: true, chu: `đã gửi lệnh lên ${ro ? `★ ROAS ${ro.roas} · $${ro.ns}` : 'camp $1'} — ${chuGio(g)}`, gui: docNhatKyLen(id).gui };
+  return { ok: true, chu: `đã gửi lệnh lên ${ro ? `★ ROAS ${ro.roas} · $${ro.ns}` : 'camp $1'} — ${L.lich ? `theo lịch: ${chayLuc(Date.now(), !!ro)}` : chuGio(g)}`, gui: docNhatKyLen(id).gui };
 }
 
 export type XemTruoc = { ten: string | null; chay: string | null; canh: string[]; payload: Record<string, unknown> } | { loi: string };
@@ -148,7 +151,7 @@ export type XemTruoc = { ten: string | null; chay: string | null; canh: string[]
 export async function xemTruocLen(cr: number, gio?: string | null): Promise<XemTruoc> {
   const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin' };
   const L = await lenhNb(cr, gio); if ('loi' in L) return L;
-  const out = await new Promise<string>((ok) => execFile('python3', [...L.args, '--xem-truoc'], { cwd: DIR_NB(), timeout: 240_000, maxBuffer: 8 << 20 },
+  const out = await new Promise<string>((ok) => execFile('python3', [...L.args, '--xem-truoc'].concat(L.lich ? ['--theo-lich'] : []), { cwd: DIR_NB(), timeout: 240_000, maxBuffer: 8 << 20 },
     (e, so, se) => ok(String(so || '') + (e && !so ? `\n{"loi": ${JSON.stringify(String(se || e.message).trim().split('\n').slice(-3).join(' · ').slice(0, 400))}}` : ''))));
   const t = out.trim().split('\n').reverse().find((l) => l.startsWith('{'));
   if (!t) return { loi: `nhan-ban không trả kết quả: ${out.slice(-300)}` };

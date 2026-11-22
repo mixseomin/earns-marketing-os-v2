@@ -551,6 +551,8 @@ def main(a):
     xem_truoc = "--xem-truoc" in a
     if xem_truoc and that: raise SystemExit("--xem-truoc là chạy khô — không đi cùng --that")
     truc = xem_truoc or bool(CONG.truc_tiep("tao_camp" if moi else "nhan_ban", [] if moi else [goc], moi["content"] if moi else None))
+    xt_lich = xem_truoc and "--theo-lich" in a   # 👁 xem trước của nút "⏱ Lên theo lịch" (etp2 #1772): chạy khô ĐI ĐƯỜNG LỊCH (lich_len / gio_roas) như vé thường, không như vé trực tiếp
+    if xt_lich: truc = False
     if (gio or cu) and not truc: raise SystemExit("--gio / --thay-cho chỉ đi cùng vé TRỰC TIẾP (ETP_VE từ nút etp2, cong.py --ve-truc-tiep)")
     if truc: lich = "today" if not gio or (dt.datetime.strptime(gio.strip()[:16], "%Y-%m-%d %H:%M") - dt.timedelta(hours=7)).date() == dt.datetime.now(dt.timezone.utc).date() else "tomorrow"
     ep = "--ep" in a and bool(lay("--bo")); mien_cham = "--mien-cham" in a   # clone sang bộ khác theo lệnh anh — xem docstring

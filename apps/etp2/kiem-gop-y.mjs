@@ -470,6 +470,11 @@ const LUAT = [
   { card: '1770', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'useDangLenTam(c.creative_id ?? -c.camp_id, du.luc)', vi: 'LẶP: ô trạng thái dòng chờ duyệt đọc dấu tạm, đổi "đang lên" liền sau ▶ Lên' },
   { card: '1770', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: 'gui: docNhatKyLen(id).gui', vi: 'LẶP: lenNgayCr trả giờ máy chủ ghi dòng gửi cho trình duyệt' },
   { card: '1770', tep: 'apps/etp2/src/lib/etp-dang-len-tam.ts', co: 'if (lucDu && Date.parse(lucDu) >= t) return null;', vi: 'LẶP: bộ số máy chủ dựng sau lúc gửi thì số thật thắng (hỏng nhanh về lại chờ duyệt)' },
+  { card: '1772', tep: 'apps/etp2/src/components/etp-len-gio.tsx', mot: 'onClick={() => bam(THEO_LICH)}', vi: 'khung ▶ Lên có đúng một nút ⏱ Lên theo lịch' },
+  { card: '1772', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: "L.lich ? await xinVeTay('tao_camp'", vi: 'lên theo lịch xin vé thường (không vé trực tiếp) → nhan-ban lich_len quyết giờ' },
+  { card: '1772', tep: 'apps/etp2/src/components/etp-view.tsx', cam: "laMoi ? null : <button onClick={() => setChay('lich')}", vi: 'ngăn Nhân bản: creative mới không bị giấu chip theo lịch' },
+  { card: '1772', tep: 'apps/etp2/src/components/etp-view.tsx', co: "g = chay === 'lich' ? THEO_LICH :", vi: 'creative mới chọn theo lịch thì gửi đúng theo lịch, không thành chạy ngay' },
+  { card: '1772', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'xt_lich = xem_truoc and "--theo-lich" in a', vi: 'xem trước theo lịch chạy khô đúng đường lịch' },
 ];
 
 const loi = [];

@@ -3,7 +3,7 @@
 // · "nếu camp đang chờ (đã push lên etho) thì mày cũng phải xử lý được nó"). Anh bấm = lệnh trực tiếp (vé cong.py --ve-truc-tiep): phanh đang áp thì lần đầu hiện
 // ô VÀNG cảnh báo một lần, bấm lại là lên. Lỗi = ô ĐỎ ngay dưới nút. Camp đã đẩy lên Ethopex không sửa được giờ → camp mới đúng giờ, camp cũ tạm dừng.
 import { useEffect, useRef, useState } from 'react';
-import { bayGioVn } from '@/lib/etp-nb';
+import { THEO_LICH, bayGioVn, chayLuc } from '@/lib/etp-nb';
 import { danhDauDangLen } from '@/lib/etp-dang-len-tam';
 import { useRouter } from 'next/navigation';
 import { AnchoredPopover } from '@/components/ui';
@@ -83,10 +83,10 @@ function XemTruocLen({ cr, gio, anh, video }: { cr: number; gio: string | null; 
 export function NutLenGio({ cr, camp, lich, nhan, anh, video }: { cr?: number | null; camp?: number; lich?: string | null; nhan?: React.ReactNode; anh?: string | null; video?: string | null }) {
   const router = useRouter();
   const neo = useRef<HTMLButtonElement>(null);
-  const [mo, setMo] = useState(false), [gio, setGio] = useState(''), [dang, setDang] = useState<'ngay' | 'gio' | 'khong' | null>(null)   /* MỖI NÚT MỘT CỜ (anh 22/11/2026 "sao lại 2 chữ đang gửi"): chỉ nút vừa bấm hiện đang gửi */, [kq, setKq] = useState<KqNut | null>(null);
+  const [mo, setMo] = useState(false), [gio, setGio] = useState(''), [dang, setDang] = useState<'ngay' | 'lich' | 'gio' | 'khong' | null>(null)   /* MỖI NÚT MỘT CỜ (anh 22/11/2026 "sao lại 2 chữ đang gửi"): chỉ nút vừa bấm hiện đang gửi */, [kq, setKq] = useState<KqNut | null>(null);
   const doiGio = camp != null && camp > 0;
   const bam = async (g: string | null, khong?: boolean) => {
-    setDang(khong ? 'khong' : g ? 'gio' : 'ngay'); setKq(null);
+    setDang(khong ? 'khong' : g === THEO_LICH ? 'lich' : g ? 'gio' : 'ngay'); setKq(null);
     let r: KqNut;
     try { r = khong ? await khongDuyetCr(Number(cr)) : doiGio ? await doiGioCamp(camp, g ?? '') : await lenNgayCr(Number(cr), g); }
     catch (e) { r = { loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` }; }
@@ -108,9 +108,11 @@ export function NutLenGio({ cr, camp, lich, nhan, anh, video }: { cr?: number | 
         <b>{doiGio ? `Đổi giờ chạy camp #${camp}` : `Lên camp creative #${cr}`}</b>
         <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>Giờ VN
           <OGioVn gio={gio} setGio={setGio} /></label>
-        {doiGio ? <span style={{ color: 'var(--fg-2)' }}>Ethopex không sửa giờ được: lên camp mới đúng giờ, tạm dừng camp cũ.</span> : null}
+        {doiGio ? <span style={{ color: 'var(--fg-2)' }}>Ethopex không sửa giờ được: lên camp mới đúng giờ, tạm dừng camp cũ.</span>
+          : <span data-theo-lich-chu="" style={{ color: 'var(--fg-2)' }}>⏱ Theo lịch: {chayLuc()}.</span>}
         <div style={{ display: 'flex', gap: 6 }}>
           {doiGio ? null : <button disabled={!!dang} onClick={() => bam(null)} title="bỏ qua ô giờ, lên camp ngay" style={nutXanh}>{dang === 'ngay' ? 'đang gửi…' : '▶ Lên ngay'}</button>}
+          {doiGio ? null : <button data-len-theo-lich="" disabled={!!dang} onClick={() => bam(THEO_LICH)} title="bỏ qua ô giờ, máy lên camp theo khung giờ lên trong sổ luật (#1772)" style={nutXanh}>{dang === 'lich' ? 'đang gửi…' : '⏱ Lên theo lịch'}</button>}
           <button disabled={!!dang || !gio} onClick={() => bam(gio)} title="camp chạy đúng giờ VN trong ô" style={nutXanh}>{dang === 'gio' ? 'đang gửi…' : doiGio ? '🕒 Đặt giờ mới' : '🕒 Lên theo giờ này'}</button>
           {doiGio ? null : <button data-khong-duyet="" disabled={!!dang} onClick={() => bam(null, true)}
             title="ghi LOẠI creative + bỏ khỏi sổ ★ ROAS: không tạo camp, không gửi Ethopex, dòng biến mất khỏi bảng (anh 22/11/2026)"

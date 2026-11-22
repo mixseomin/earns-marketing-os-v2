@@ -1,3 +1,4 @@
+import BANG_LUAT from '@/lib/etp-bang-luat.json';
 // SỔ MỨC NHÂN BẢN ★ ROAS dùng chung cho bảng điều khiển camp (client) và server action (etp-tay.ts / etp-cho-duyet.ts) — một chỗ khai, hai đầu đọc.
 // Mức cùng nhan-ban.py ROAS_MIN / ROAS_MAX (0.9–1.4) · ngân sách bài cũ $5–20 (Dol 22/11/2026: camp mới $5, lãi thì nuôi dần lên).
 export const ROAS_KHOANG = [0.9, 1.4] as const, NS_ROAS_KHOANG = [5, 20] as const;
@@ -15,3 +16,12 @@ export const gioVn = (g: string | null | undefined) => { const t = (g ?? '').tri
 export const bayGioVn = () => new Date(Math.ceil((Date.now() + 7 * 3600_000) / 60_000) * 60_000).toISOString().slice(0, 16);
 export const daQua =(g: string) => Date.parse(`${g.replace(' ', 'T')}:00+07:00`) < Date.now() - 60_000;
 export const chuGio = (g: string | null) => g ? `hẹn ${g.slice(11)} ${g.slice(8, 10)}/${g.slice(5, 7)} giờ VN` : 'chạy ngay';
+/** giá trị `gio` của nút "⏱ Lên theo lịch" (anh 23/11/2026 #1772 "Cần option lên theo lịch"): KHÔNG vé trực tiếp, KHÔNG --gio → nhan-ban lich_len / gio_roas quyết giờ */
+export const THEO_LICH = 'lich';
+/** LÚC CAMP NHÂN BẢN THỰC SỰ CHẠY khi đi theo lịch — cùng luật nhan-ban.lich_len (khung_doi.len, camp thường) / gio_roas (khung_doi.len_roas, ★ ROAS, khung qua nửa đêm) */
+export function chayLuc(now = Date.now(), roas = false): string {
+  const [a, b] = (roas ? BANG_LUAT.khung_doi.len_roas : BANG_LUAT.khung_doi.len) as [number, number], vn = new Date(now + 7 * 36e5), h = vn.getUTCHours();
+  const p = (n: number) => String(n).padStart(2, '0'), ngay = (d: Date) => `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}`;
+  if (a <= b ? a <= h && h < b : h >= a || h < b) return `chạy ngay khi Ethopex / Meta đồng bộ xong (~2–20 phút, từ ${p(h)}:${p(vn.getUTCMinutes())} ${ngay(vn)} giờ VN)`;
+  return `hẹn chạy ${p(a)}:00 ${ngay(new Date(vn.getTime() + (h >= a ? 864e5 : 0)))} giờ VN (ngoài khung lên ${roas ? '★ ROAS ' : ''}${a}–${b}h)`;
+}

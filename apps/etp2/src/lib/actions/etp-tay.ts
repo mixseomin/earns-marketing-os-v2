@@ -11,15 +11,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { envVe, xinVeTay, xinVeTrucTiep } from '@/lib/etp-ve';
-import { NS_ROAS_KHOANG, NS_TAY_KHOANG, ROAS_KHOANG, chuGio, daQua, gioVn } from '@/lib/etp-nb';
-/** LÚC CAMP NHÂN BẢN THỰC SỰ CHẠY (anh 10/11/2026 "khi nhân bản phải ghi rõ ngày, giờ sẽ thực sự active") — cùng luật nhan-ban.lich_len / chay_luc: trong khung lên → chạy ngay khi đồng bộ xong; ngoài khung → 07:00 VN */
-function chayLuc(now = Date.now()): string {
-  const [a, b] = BANG_LUAT.khung_doi.len as [number, number], vn = new Date(now + 7 * 36e5), h = vn.getUTCHours();
-  const hh = (d: Date) => `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-  if (a <= h && h < b) return `chạy ngay khi Ethopex / Meta đồng bộ xong (~2–20 phút, từ ${hh(vn)} giờ VN)`;
-  const mai = new Date(vn.getTime() + (h >= a ? 864e5 : 0));
-  return `hẹn chạy 07:00 ${String(mai.getUTCDate()).padStart(2, '0')}/${String(mai.getUTCMonth() + 1).padStart(2, '0')} giờ VN (ngoài khung lên ${a}–${b}h)`;
-}
+import { NS_ROAS_KHOANG, NS_TAY_KHOANG, ROAS_KHOANG, chayLuc, chuGio, daQua, gioVn } from '@/lib/etp-nb';   // chayLuc: lúc camp thực sự chạy (anh 10/11/2026) — một chỗ ở etp-nb, nút "⏱ Lên theo lịch" đọc cùng
 
 const DIR = `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
 const AI = 'anh (etp2)';

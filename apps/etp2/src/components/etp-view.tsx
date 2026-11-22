@@ -14,7 +14,7 @@ import { catTokenEthopex, datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegr
 import { campTay, nhanBanTay, xemNhanBan, type ChoAp, type KieuNb } from '@/lib/actions/etp-tay';
 import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import { useDangLenTam } from '@/lib/etp-dang-len-tam';   // #1770: dấu "đang lên" ngay sau ▶ Lên
-import { NS_ROAS_CHIP, NS_ROAS_KHOANG, NS_TAY_CHIP, NS_TAY_KHOANG, ROAS_BA, ROAS_CAP, ROAS_MUC } from '@/lib/etp-nb';   // mức bid / ngân sách nhân bản ★ ROAS — cùng sổ với server (etp-tay.ts)
+import { NS_ROAS_CHIP, NS_ROAS_KHOANG, NS_TAY_CHIP, NS_TAY_KHOANG, ROAS_BA, ROAS_CAP, ROAS_MUC, THEO_LICH, chayLuc } from '@/lib/etp-nb';   // mức bid / ngân sách nhân bản ★ ROAS — cùng sổ với server (etp-tay.ts)
 import type { TrangPhim } from '@/lib/etp-doc';
 import { moXet, type DuLieuEtpGui } from '@/lib/etp-xet-gon';
 import { Dem, KeToan, tienKT, mauLai, MAU_DANG, MA_DANG, BadgeDang, BadgeDangNgan } from '@/components/etp-so';
@@ -901,7 +901,7 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
     setKq({ ok: true, chu: r.chu, o: ten }); router.refresh();
   };
   const kieuNb = (): KieuNb => kieu === 'thang' ? { kieu, ns: Number(nsThang) } : kieu === 'bo' ? { kieu, bo: boDen, ns: nsTay ? Number(nsTay) : undefined } : kieu === 'roas' ? { kieu, roas: Number(roas), ns: Number(nsRoas), tamDung, cap: nhieu ? [...nhieu] : undefined, gio: chay === 'lich' ? null : chay === 'ngay' ? 'ngay' : gioDat } : { kieu: 'thuong', ns: nsTay ? Number(nsTay) : undefined };
-  const moCrMoi = async () => { setNguonRoas('moi'); setNhieu(null); setXem(null); setChay((v) => (v === 'lich' ? 'ngay' : v)); if (Number(nsRoas) > 10) setNsRoas('5'); if (crDs == null) setCrDs(await dsCrMoiCamp(c.camp_id)); };
+  const moCrMoi = async () => { setNguonRoas('moi'); setNhieu(null); setXem(null); if (Number(nsRoas) > 10) setNsRoas('5'); if (crDs == null) setCrDs(await dsCrMoiCamp(c.camp_id)); };
   const nut: React.CSSProperties = { fontSize: 12, padding: '4px 12px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: dang ? 'wait' : 'pointer' };
   const chip = (on: boolean): React.CSSProperties => ({ ...nut, padding: '2px 9px', borderColor: on ? 'var(--accent, #60a5fa)' : 'var(--line)', background: on ? 'var(--accent-soft, #60a5fa22)' : 'transparent' });
   const o = (k: string) => (kq && kq.o === k ? <div style={{ marginTop: 6, padding: '6px 8px', borderRadius: 6, background: kq.ok ? '#22c55e18' : '#ef444422', color: kq.ok ? '#4ade80' : '#fca5a5', whiteSpace: 'pre-wrap' }}>{kq.ok ? '✓ ' : '✕ '}{kq.chu}</div>
@@ -991,7 +991,7 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
             const nhan = (t: string) => <span style={{ color: 'var(--fg-2)', lineHeight: '24px', whiteSpace: 'nowrap' }}>{t}</span>;
             const dong: React.CSSProperties = { display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center', minHeight: 24 };
             const ch = (on: boolean): React.CSSProperties => ({ ...chip(on), minWidth: 38, textAlign: 'center' });
-            const chuChay = chay === 'lich' ? 'theo lịch lên camp' : chay === 'ngay' ? 'chạy ngay' : gioDat ? `hẹn ${gioDat.slice(11, 16)} ${gioDat.slice(8, 10)}/${gioDat.slice(5, 7)} giờ VN` : 'chưa chọn giờ';
+            const chuChay = chay === 'lich' ? `theo lịch — ${chayLuc(Date.now(), kieu === 'roas')}` : chay === 'ngay' ? 'chạy ngay' : gioDat ? `hẹn ${gioDat.slice(11, 16)} ${gioDat.slice(8, 10)}/${gioDat.slice(5, 7)} giờ VN` : 'chưa chọn giờ';
             const n = nhieu?.length ?? 1, mucChu = nhieu ? nhieu.join(' + ') : roas;
             // ô ngân sách bản không bid / sang bộ (anh 22/11/2026): chip + ô tự nhập, "máy đặt" = mặc định md
             const oNsTay = (md: number) => <>{NS_TAY_CHIP.map((x) => <button key={x} onClick={() => { setNsTay(x === md ? '' : String(x)); setXem(null); }} style={ch((nsTay || String(md)) === String(x))}>${x}{x === md ? ' (mặc định)' : ''}</button>)}
@@ -1028,7 +1028,7 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
                     <span>$</span><input value={nsRoas} onChange={(e) => { setNsRoas(e.target.value.replace(/\D/g, '')); setXem(null); }} style={{ ...o2, width: 54 }} title={`$${nsKhoang[0]}–${nsKhoang[1]}`} />
                     <span style={{ color: 'var(--fg-3, #777)' }}>{n > 1 ? 'mỗi camp · ' : ''}${nsKhoang[0]}–{nsKhoang[1]}</span></>}</div>
                   {nhan('Giờ chạy')}<div style={dong}>{kieu === 'thuong' ? <span style={{ color: 'var(--fg-2)' }}>theo lịch lên camp</span> : <>
-                    {laMoi ? null : <button onClick={() => setChay('lich')} style={ch(chay === 'lich')} title="lịch lên camp của máy quyết (trong khung lên → chạy ngay khi đồng bộ, ngoài khung → 07:00 sáng)">theo lịch</button>}
+                    <button onClick={() => setChay('lich')} style={ch(chay === 'lich')} title={`lịch lên camp của máy quyết — lúc này: ${chayLuc(Date.now(), true)}`}>theo lịch</button>{/* #1772: creative mới cũng lên theo lịch được */}
                     <button onClick={() => setChay('ngay')} style={ch(chay === 'ngay')} title="lệnh trực tiếp — phanh đang áp thì cảnh báo một lần, bấm lại là lên">chạy ngay</button>
                     <button onClick={() => setChay('gio')} style={ch(chay === 'gio')} title="lệnh trực tiếp — camp chạy đúng giờ VN đặt">đặt giờ</button>
                     {chay === 'gio' ? <OGioVn gio={gioDat} setGio={setGioDat} style={o2} /> : null}</>}</div>
@@ -1038,7 +1038,7 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
               <div data-nb-tom="" style={{ marginBottom: 8, padding: '6px 10px', borderRadius: 6, background: 'var(--bg-2)', lineHeight: 1.45 }}>Sẽ tạo: <b>{tom}</b></div>
               {laMoi ? <div style={{ display: 'flex', gap: 6 }}>
                 <button disabled={!!dang || thieu} title={thieu ? 'chọn đủ các hàng trước' : undefined}
-                  onClick={() => { const cr = crChon!, o3 = { roas: Number(roas), ns: Number(nsRoas), khuon: c.camp_id }, g = chay === 'gio' ? gioDat : null;
+                  onClick={() => { const cr = crChon!, o3 = { roas: Number(roas), ns: Number(nsRoas), khuon: c.camp_id }, g = chay === 'lich' ? THEO_LICH : chay === 'gio' ? gioDat : null;
                     setCho({ o: 'nb', chu: tom, f: async () => { const r = await lenNgayCr(cr, g, o3);
                       return 'canh' in r ? { loi: `⚠ Phanh đang áp: ${r.canh} — bấm Lên lại trong 30 phút là máy bỏ qua phanh và lên` } : r; } }); }}
                   style={{ ...nut, borderColor: thieu ? 'var(--line)' : '#4ade80' }}>＋ Lên camp creative mới</button>

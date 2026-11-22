@@ -114,7 +114,10 @@ export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt —
   /** SỔ A/B (etp.ab, migration 0426): mọi lần A/B đang chạy — ô lọc A/B hiện theo sổ, kể cả khi chưa camp nào mang mã; chỉ Nhà */
   abSo?: { ma: string; ten: string; batDau: string; giaThuyet: string | null; thu: string; doi: string }[];
   /** số camp × ngày (lọc khoảng thời gian ở client) · đếm theo ngày: camp mới lên, creative mới, camp tắt · thông tin bộ tài khoản (khối lục giác) */
-  soNgay: { c: number; d: string; chi: number; thu: number }[]; demNgay: Record<string, { camp_moi: number; cr_moi: number; tat: number }>;
+  soNgay: { c: number; d: string; chi: number; thu: number; x?: number; q?: number; h?: number; b?: number }[];
+  /** chợ AdSense từng ngày (etp.qc_camp_v): i Impression RPM · f fill % · p Page RPM · t trung vị CPC Facebook camp nhà */
+  qcCho?: Record<string, { i: number | null; f: number | null; p: number | null; t: number | null }>;
+  demNgay: Record<string, { camp_moi: number; cr_moi: number; tat: number }>;
   boTk: Record<string, { ten: string; tk: string; page: string; tk_id: number; page_id: number; chi_phim_moi?: boolean; mui_gio?: string }>;
   /** REPORT THEO NGƯỜI (anh 28/10/2026): người dùng Ethopex của từng tài khoản QC (etp.tai_khoan) · người đang xem (?ng=) · người nhà (tài khoản bộ 1/2/3 — luật chỉ áp ở đây).
    *  Xem người khác: camp + số từ etp.camp_ngoai / so_ngay_ngoai (chỉ xem, máy luật không đụng) */
@@ -284,12 +287,17 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       from etp.phim_nhan_v n left join etp.thu_vien_phim v using (content_id) left join etp.phim p using (content_id) where n.trang_thai in ('giu', 'da_len') order by n.content_id, n.nhan_luc desc`).catch(() => []));
   const qNhanTd = som(run<{ content_id: string; buoc: string; ghi: string | null }>(sql`select distinct on (content_id) content_id, buoc, ghi from etp.phim_nhan_td order by content_id, id desc`).catch(() => []));
   const qSoNgay = som(Promise.all([
-    run<{ c: number; d: string; chi: string; thu: string }>(sql`select camp_id c, ngay::text d, chi, thu from ${SN} where chi > 0 or thu > 0`),
+    // số AdSense của camp × ngày (etp.so_pheu, migration 0461) đi kèm — nhóm cột "QC trang" (anh 23/11/2026): lượt xem trang, lượt xin QC, QC hiện, bấm Facebook
+    run<{ c: number; d: string; chi: string; thu: string; x: string | null; q: string | null; h: string | null; b: string | null }>(sql`select so_ngay.camp_id c, so_ngay.ngay::text d, so_ngay.chi, so_ngay.thu, p.luot_xem x, p.xin_qc q, p.hien h, p.s_nhap b
+      from ${SN} left join etp.so_pheu p on p.camp_id = so_ngay.camp_id and p.ngay = so_ngay.ngay where so_ngay.chi > 0 or so_ngay.thu > 0`),
     runNha<{ d: string; n: string }>(sql`select (luc at time zone 'UTC')::date::text d, count(distinct camp_id) n from etp.nhat_ky where viec = 'tat' and ok group by 1`),   // nhật ký máy nhà — xem người khác thì không có
     ngoai && !doi ? run<{ gia_tri: Record<string, { ten: string; tk: number; ext: string; page: number | null; chi_phim_moi?: boolean; mui_gio?: string }> | null }>(sql`select jsonb_object_agg(r::text, jsonb_build_object('ten', coalesce(ten, 'TK ' || ad_account_id), 'tk', ad_account_id, 'ext', coalesce(ext, ad_account_id::text), 'page', null)) gia_tri
       from (select *, rank() over (order by ad_account_id) r from etp.tai_khoan where nguoi_id = ${dangId} and not nha) t`)   // người trong đội: bộ = tài khoản QC (không có Page / múi giờ — Ethopex không trả)
       : run<{ gia_tri: Record<string, { ten: string; tk: number; ext: string; page: number | null; chi_phim_moi?: boolean; mui_gio?: string }> | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_bo_tk'`),
   ]));
+  // CHỢ từng ngày cho nhóm cột "QC trang": Impression RPM / fill / Page RPM chợ (rpm_ngay) + trung vị CPC Facebook camp nhà — cùng nguồn với view etp.qc_camp_v
+  const qQcCho = som(run<{ d: string; i: string | null; f: string | null; p: string | null; t: string | null }>(sql`select ngay::text d, max(cho_irpm) i, max(cho_fill) f, max(cho_prpm) p, max(cpc_tv) t
+    from etp.qc_camp_v where ngay >= current_date - 45 group by 1`).catch(() => []));
   const qSanXuat = som(Promise.all([
     runNha<{ c: number; d: string; h: number; n: number; v: number; sh: number; sn: number; sv: number; sg: string }>(sql`select camp_id c, ngay::text d, hien h, nhap n, chuyen v, s_hien sh, s_nhap sn, s_chuyen sv, s_gt sg from etp.so_pheu where hien > 0 or s_hien > 0 or nhap > 0`).catch(() => []),
     runNha<{ creative_id: number; cham: DiemCham }>(sql`select creative_id, cham from etp.diem_cham`).catch(() => []),
@@ -569,6 +577,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       nhom_goc: (i.nhom_goc as string) ?? null, moc: i.moc ? String(i.moc) : null, doi_chay: doiChay.get(ma) ?? 0, creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 },
       trang: null, test: null, nhan: null, cam: { luc: v?.luc ?? null, ly_do: v?.ly_do ?? null } }); }
   const [soNgay, tatNgay, boRow] = await qSoNgay;
+  const qcChoR = await qQcCho;
   const [pheuR, dcR, slR, tvR, tvCr, ttR, mrR, dcyR, ketR] = await qSanXuat;
   // gộp: bản thư viện đã lên Ethopex (creative_id) mang số chạy của creative đó; bản chưa lên đứng riêng
   const tvTheoCr = new Map(tvR.filter((v) => v.creative_id != null).map((v) => [n(v.creative_id), v]));
@@ -619,7 +628,8 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     moRong: mrR.map((r) => ({ ...r, content_id: n(r.content_id), n: n(r.n), k: n(r.k), san: n(r.san), can_sx: n(r.can_sx) })),
     thayThe: ttR.map((r) => ({ ...r, id: n(r.id), content_id: n(r.content_id), camp_cu: n(r.camp_cu), creative_id: r.creative_id == null ? null : n(r.creative_id), camp_moi: r.camp_moi == null ? null : n(r.camp_moi) })),
     pheu: pheuR.map((r) => ({ c: n(r.c), d: r.d, h: n(r.h), n: n(r.n), v: n(r.v), sh: n(r.sh), sn: n(r.sn), sv: n(r.sv), sg: n(r.sg) })), diemCham: Object.fromEntries(dcR.map((r) => [n(r.creative_id), r.cham])), soLuat: slR.map((r) => ({ ma: r.ma, luc: r.luc, ...r.so })),
-    cauHinh, nhatKy, xetLuat: Object.fromEntries(xetR.map((r) => [Number(r.camp_id), theDaLam(r.xet, r.luc, lamR.filter((x) => Number(x.c) === Number(r.camp_id)))])), xetLuc: xetR.reduce<string | null>((m, r) => (!m || r.luc > m ? r.luc : m), null), lsBac: lsBacR.reduce<DuLieuEtp['lsBac']>((m, r) => { (m[r.camp_id] ??= []).push({ luc: r.luc, viec: r.viec, truoc: r.truoc, sau: r.sau, luat: r.luat, ai: r.ai }); return m; }, {}), canhBao, dongBo: dongBo[0] ?? null, theLoai: tl[0]?.gia_tri?.the_loai ?? {}, abSo, soNgay: soNgay.map((r) => ({ c: n(r.c), d: r.d, chi: n(r.chi), thu: n(r.thu) })), demNgay, boTk,
+    cauHinh, nhatKy, xetLuat: Object.fromEntries(xetR.map((r) => [Number(r.camp_id), theDaLam(r.xet, r.luc, lamR.filter((x) => Number(x.c) === Number(r.camp_id)))])), xetLuc: xetR.reduce<string | null>((m, r) => (!m || r.luc > m ? r.luc : m), null), lsBac: lsBacR.reduce<DuLieuEtp['lsBac']>((m, r) => { (m[r.camp_id] ??= []).push({ luc: r.luc, viec: r.viec, truoc: r.truoc, sau: r.sau, luat: r.luat, ai: r.ai }); return m; }, {}), canhBao, dongBo: dongBo[0] ?? null, theLoai: tl[0]?.gia_tri?.the_loai ?? {}, abSo, soNgay: soNgay.map((r) => ({ c: n(r.c), d: r.d, chi: n(r.chi), thu: n(r.thu), ...(r.x == null ? {} : { x: n(r.x), q: n(r.q), h: n(r.h), b: n(r.b) }) })), demNgay, boTk,
+    qcCho: Object.fromEntries(qcChoR.map((r) => [r.d, { i: r.i == null ? null : n(r.i), f: r.f == null ? null : n(r.f), p: r.p == null ? null : n(r.p), t: r.t == null ? null : n(r.t) }])),
     taiNguyen, mayTho: mayTho.map((r) => ({ may: String(r.may), xong: n(r.xong), loi: n(r.loi), dang: n(r.dang), cuoi: (r.cuoi as string) ?? null, giay_tb: r.giay_tb == null ? null : n(r.giay_tb) })),
     hangDoi: { cho: n(hd[0]?.cho), dang: n(hd[0]?.dang), xong: n(hd[0]?.xong), loi: n(hd[0]?.loi) },
     quet: (sKhoa.find((r) => r.ten === 'ethopex_quet')?.gia_tri ?? {}) as unknown as DuLieuEtp['quet'],

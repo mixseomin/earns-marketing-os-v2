@@ -1681,4 +1681,9 @@ export const LUAT = [
   { card: 'qc-adsense-camp-2311', tep: 'apps/etp/dong-bo.py', co: '"luot_xem": int(v[2]), "xin_qc": int(v[3]), "qc_hien": int(v[4])', vi: 'phim × giờ ghi Page views / Ad requests / Impressions AdSense vào so_gio + so_gio_ngoai' },
   { card: 'qc-adsense-camp-2311', tep: 'packages/db/migrations/0461_etp_qc_trang.sql', co: "gia_tri->'qc_trang'", vi: 'view chẩn đoán đọc ngưỡng từ sổ luật chung, không cứng trong mã' },
   { card: 'qc-adsense-camp-2311', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"qc_trang": {"yeu_kem": 0.2, "yeu_hien": 300, "fb_dat": 0.3', vi: 'ngưỡng trang yếu / FB đắt / trang hỏng nằm ở sổ luật' },
+  { card: 'qc-adsense-camp-2311', tep: 'apps/etp2/src/lib/qc-trang.ts', co: "(BANG_LUAT as unknown as { qc_trang: NguongQc }).qc_trang", vi: 'bản TypeScript chẩn đoán đọc cùng ngưỡng sổ luật với hàm SQL' },
+  { card: 'qc-adsense-camp-2311', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'columns={cotCamp} groups={[...NHOM, NHOM_QC]}', vi: 'bảng camp có nhóm cột QC trang (ẩn / hiện bằng ⚙)' },
+  { card: 'qc-adsense-camp-2311', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'columns={cotPh} groups={[...NHOM, NHOM_QC]}', vi: 'bảng phim có nhóm cột QC trang' },
+  { card: 'qc-adsense-camp-2311', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<BieuDoQc chuoi={chuoiQc(', vi: 'thẻ camp có biểu đồ IRPM / fill theo ngày so với chợ' },
+  { card: 'qc-adsense-camp-2311', tep: 'apps/etp2/src/lib/etp-quyen.ts', co: "'soNgay', 'qcCho',", vi: 'chợ QC theo ngày được giữ cho vai người (số chợ, không lộ camp nhà)' },
 ];

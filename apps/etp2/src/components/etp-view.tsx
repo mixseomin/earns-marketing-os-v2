@@ -19,6 +19,8 @@ import type { TrangPhim } from '@/lib/etp-doc';
 import { moXet, type DuLieuEtpGui } from '@/lib/etp-xet-gon';
 import { Dem, KeToan, tienKT, mauLai, MAU_DANG, MA_DANG, BadgeDang, BadgeDangNgan } from '@/components/etp-so';
 import { CAM_CHAN, nguonCam } from '@/lib/etp-phim-cam';
+import { NHOM_QC, cotQc, BieuDoQc } from '@/components/etp-qc-trang';   // card etp:qc-adsense-camp-2311
+import { gopQc, chuoiQc, type DongQc, type GopQc } from '@/lib/qc-trang';
 import { NHOM_DANG } from '@/lib/etp-dang';
 import { maGiong } from '@/lib/etp-dang';
 import { lyDoChan, chuChan, type TieuChi } from '@/lib/etp-chan';
@@ -1372,6 +1374,7 @@ function CotCampNoi({ c, nhan, du, bid, anh }: { c: CampEtpKho | undefined; nhan
         <tbody>{dong('Hôm nay', c.nay)}{dong('Hôm qua', c.qua)}{dong('Tháng này', c.thang)}{dong('Từ 19/10', tong)}
           {ngay.slice(0, 7).map((r) => dong(`${r.d.slice(8, 10)}/${r.d.slice(5, 7)}`, r))}</tbody>
       </table>
+      <div style={{ marginTop: 8 }}><BieuDoQc chuoi={chuoiQc(ngay.slice(0, 14), du.qcCho ?? {})} rong={300} /></div>
     </div>
   );
 }
@@ -3048,6 +3051,16 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
   const ckh = (id: number) => khCamp.get(id) ?? KHONG;
   const crKh = useMemo(() => { const m = new Map<number, SoTien>(); for (const c of du.camps) if (c.creative_id) { const a = m.get(c.creative_id) ?? { chi: 0, thu: 0 }; const x = khCamp.get(c.camp_id); if (x) { a.chi += x.chi; a.thu += x.thu; } m.set(c.creative_id, a); } return m; }, [du.camps, khCamp]);
   const phKh = useMemo(() => { const m = new Map<number, SoTien>(); for (const c of du.camps) if (c.content_id) { const a = m.get(c.content_id) ?? { chi: 0, thu: 0 }; const x = khCamp.get(c.camp_id); if (x) { a.chi += x.chi; a.thu += x.thu; } m.set(c.content_id, a); } return m; }, [du.camps, khCamp]);
+  // nhóm "QC trang": số AdSense camp / phim trong khoảng đang chọn (Hôm nay khi chọn Hôm nay)
+  const qcKh = useMemo(() => {
+    const theoCamp = new Map<number, DongQc[]>();
+    for (const r of du.soNgay) if (r.x != null && ngayKh(r.d)) theoCamp.set(r.c, [...(theoCamp.get(r.c) ?? []), r]);
+    const camp = new Map<number, GopQc>(), phim = new Map<number, GopQc>(), theoPhim = new Map<number, DongQc[]>();
+    for (const [id, rs] of theoCamp) { const g = gopQc(rs, du.qcCho ?? {}); if (g) camp.set(id, g); }
+    for (const c of du.camps) if (c.content_id && theoCamp.has(c.camp_id)) theoPhim.set(c.content_id, [...(theoPhim.get(c.content_id) ?? []), ...theoCamp.get(c.camp_id)!]);
+    for (const [id, rs] of theoPhim) { const g = gopQc(rs, du.qcCho ?? {}); if (g) phim.set(id, g); }
+    return { camp, phim };
+  }, [du.soNgay, du.camps, du.qcCho, ngayKh]);
   const NHOM = [{ key: 'nay', label: 'Hôm nay (đang chạy)', color: '#22d3ee' }, { key: 'qua', label: 'Hôm qua', color: '#a78bfa' }, ...(khNay ? [] : [{ key: 'kh', label: khNhan, color: '#fbbf24' }])];   // chọn khoảng Hôm nay → không lặp nhóm hôm nay lần hai
   const crAnh = useMemo(() => new Map(du.creatives.map((r) => [r.creative_id, r])), [du.creatives]);
   const anh = (cr: number | null) => { const r = cr ? crAnh.get(cr) : null; return r?.anh
@@ -3182,6 +3195,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     ...soCot<CampEtpKho>('nay', (c) => c.nay), ...soCot<CampEtpKho>('qua', (c) => c.qua), ...(khNay ? [] : soCot<CampEtpKho>('kh', (c) => ckh(c.camp_id))),
     { key: 'tuoi', header: 'Tuổi (ngày)', title: 'tuổi camp tính bằng NGÀY từ lúc tạo (0.3 ≈ 7 giờ) — lọc 🔍 theo ngày: > 2 = camp hơn 2 ngày', cellTitle: tuoiTitle, cell: (c) => tuoiChu(tuoiNgay(c.tao)), sortValue: (c) => tuoiLoc(tuoiNgay(c.tao)) },
     { key: 'tao', header: 'Tạo', cell: (c) => <span style={{ fontSize: 11 }}>{vn(c.tao)}</span>, sortValue: (c) => c.tao ?? '' },
+    ...cotQc<CampEtpKho>((c) => qcKh.camp.get(c.camp_id)),
   ];
   const cotCr: DataColumn<CreativeEtpKho>[] = [
     { key: 'id', header: 'Creative', align: 'left', cell: (r) => <span style={{ whiteSpace: 'nowrap' }}>#{r.creative_id} <span style={{ fontSize: 11, color: r.cta_dat ? 'var(--neon-lime,#4ade80)' : '#ffb74d' }}>{r.cta_dat ? 'CTA đạt' : 'CTA cũ'}</span>{r.tu_choi ? <span style={{ fontSize: 11, color: '#f87171' }}> · Meta từ chối</span> : null}</span>, sortValue: (r) => r.creative_id },
@@ -3241,6 +3255,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     { key: 'dung', header: 'Tạm dừng', title: 'camp PAUSED: lịch giờ, luật T7, luật chấm, tắt tay', cell: (p) => <Dem v={p.camp - p.chay} />, sortValue: (p) => p.camp - p.chay },
     { key: 'tong', header: 'Tổng camp', title: 'mọi camp của phim trừ camp đã lưu trữ', cell: (p) => <Dem v={p.camp} />, sortValue: (p) => p.camp },
     ...soCot<PhimEtpKho>('nay', (p) => p.nay), ...soCot<PhimEtpKho>('qua', (p) => p.qua), ...(khNay ? [] : soCot<PhimEtpKho>('kh', (p) => phKh.get(p.content_id) ?? KHONG)),
+    ...cotQc<PhimEtpKho>((p) => qcKh.phim.get(p.content_id)),
   ];
   const ngayGanNhat = du.ngay.filter((r) => ngayKh(r.ngay)).map((r) => ({ ...r, ...(du.demNgay[r.ngay] ?? { camp_moi: 0, cr_moi: 0, tat: 0 }) }));
   // BIỂU ĐỒ NGÀY luôn ≥ 7 ngày (#1526 anh 04/11/2026 "luôn show tối thiểu 7 ngày gần nhất nếu chọn chu kỳ dưới 7 ngày"): kỳ ngắn hơn thì lùi thêm ngày trước mốc cuối của kỳ —
@@ -3486,7 +3501,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         <>
         <TongPhim du={du} ckh={ckh} anh={anh} tl={tl} khTen={khNhan} chon={phimLoc} onChon={doiPhim} />
         <DaiLuat opts={luatOpts} chon={luatLoc} onChon={(t) => { const mo = !!t && !t.startsWith(DA_LAM); doi({ luat: t, ...(mo ? { loc: 'all' as const } : {}) }, () => { setLuatLoc(t); if (mo) setLoc('all'); }); }} />
-        <DataTable rows={camps} columns={cotCamp} groups={NHOM} groupHeader rowStyle={(c) => (hetNs(c) ? { opacity: 0.5 } : undefined)} defaultSort={[{ key: 'tao', dir: 'desc' }]} getRowKey={(c) => String(c.camp_id)} persistKey="etp-camp" minWidth={1400} pageSize={100}
+        <DataTable rows={camps} columns={cotCamp} groups={[...NHOM, NHOM_QC]} groupHeader rowStyle={(c) => (hetNs(c) ? { opacity: 0.5 } : undefined)} defaultSort={[{ key: 'tao', dir: 'desc' }]} getRowKey={(c) => String(c.camp_id)} persistKey="etp-camp" minWidth={1400} pageSize={100}
           searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tl(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…" locTuDong={false} onTimDoi={setTimCay} khiTimTrong={giaiTim()} />
         </>
       ) : choNang ? (
@@ -3513,7 +3528,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       ) : tab === 'tn' ? (
         <TabTaiNguyen du={du} kh={kh} khCamp={khCamp} />
       ) : tab === 'phim' ? (
-        <DataTable rows={du.phims} columns={cotPh} groups={NHOM} groupHeader getRowKey={(p) => String(p.content_id)} persistKey="etp-phim" minWidth={1200} pageSize={100} defaultSort={[{ key: 'hang', dir: 'asc' }]}
+        <DataTable rows={du.phims} columns={cotPh} groups={[...NHOM, NHOM_QC]} groupHeader getRowKey={(p) => String(p.content_id)} persistKey="etp-phim" minWidth={1200} pageSize={100} defaultSort={[{ key: 'hang', dir: 'asc' }]}
           dauThanh={laNguoi || du.nguoi.ngoai || du.nguoi.doi ? undefined : <NutQuetPhim />}
           searchText={(p) => `${p.content_id} ${p.ten ?? ''} ${tl(p.the_loai)}`} searchPlaceholder="Tìm phim, thể loại…" />
       ) : (

@@ -17,7 +17,8 @@ export type SoTong2 = {
   nguoiNgay: { n: number; d: string; chi: number; thu: number; camp: number }[];
   tk: { id: number; ten: string; n: number; nha: boolean; bo: string | null }[];
   tkNgay: { tk: number; d: string; chi: number; thu: number; c: number }[];
-  tkNay: { tk: number; chay: number; ns: number; loi: number }[];
+  /** chay = camp ĐANG CHẠY THẬT (ACTIVE đã tới giờ) · cho = ACTIVE còn chờ tới giờ chạy (không cộng vào chay, #1768) · ns = ngân sách / ngày của camp đang chạy */
+  tkNay: { tk: number; chay: number; cho: number; ns: number; loi: number }[];
   gioNgay: { d: string; g: number; nha: boolean; chi: number; thu: number }[];
   luat: { tang: number; giam: number; tat: number } | null;
   /** thẻ luật nhịp tới theo nhóm (etp.bao) · việc máy đã làm theo luật từng ngày (etp.nhat_ky ok, tên luật theo sổ luật chung) — chỉ nhà */
@@ -48,10 +49,15 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
       select c.ad_account_id::int tk, s.ngay::text d, sum(s.chi) chi, sum(s.thu) thu, count(*) filter (where s.chi > 0)::int c from etp.so_ngay s join etp.camp c using (camp_id) where s.ngay >= current_date - 40 group by 1, 2
       union all
       select c.ad_account_id::int, s.ngay::text, sum(s.chi), sum(s.thu), count(*) filter (where s.chi > 0)::int from etp.so_ngay_ngoai s join etp.camp_ngoai c using (camp_id) where s.ngay >= current_date - 40 group by 1, 2`),
-    run<{ tk: number; chay: number; ns: string; loi: number }>(sql`
-      select ad_account_id::int tk, count(*)::int chay, sum(ngan_sach) ns, count(*) filter (where loi is not null)::int loi from etp.camp where trang_thai = 'ACTIVE' group by 1
+    // CAMP BẬT = ĐANG CHẠY THẬT (anh 22/11/2026 etp2 #1768 "Bật thì phải là dạng đang chạy. Còn chờ lên… ko thống kê vào đây"): Ethopex để camp hẹn giờ ở ACTIVE từ lúc tạo —
+    // đếm ACTIVE trần thì camp chờ 07:00 cộng vào "Camp bật" (nhà 22/11: 25 = 14 chạy + 11 chờ). Cùng định nghĩa dangChay (lib/etp-chay.ts): ACTIVE, lich null / đã tới, không phải dòng xếp hàng.
+    // Camp chờ giờ đếm riêng (cho) chỉ để hiện trong chữ rê; ngân sách / ngày cũng chỉ của camp đang chạy
+    run<{ tk: number; chay: number; cho: number; ns: string; loi: number }>(sql`
+      select ad_account_id::int tk, count(*) filter (where lich is null or lich <= now())::int chay, count(*) filter (where lich > now())::int cho,
+        coalesce(sum(ngan_sach) filter (where lich is null or lich <= now()), 0) ns, count(*) filter (where loi is not null)::int loi
+        from etp.camp where trang_thai = 'ACTIVE' and dong_bo is distinct from 'xep_hang' group by 1
       union all
-      select ad_account_id::int, count(*)::int, sum(ngan_sach), 0 from etp.camp_ngoai where trang_thai = 'ACTIVE' group by 1`),
+      select ad_account_id::int, count(*)::int, 0, sum(ngan_sach), 0 from etp.camp_ngoai where trang_thai = 'ACTIVE' group by 1`),
     run<{ d: string; g: number; nha: boolean; chi: string; thu: string }>(sql`
       select ngay::text d, gio::int g, true nha, sum(chi) chi, sum(thu) thu from etp.so_gio where ngay >= current_date - 14 group by 1, 2
       union all

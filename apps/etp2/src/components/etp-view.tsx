@@ -253,7 +253,7 @@ function TongPhim({ du, ckh, anh, tl, khTen, chon, onChon }: { du: DuLieuEtp; ck
       const loAm = am.reduce((a, y) => a + (y.s.thu - y.s.chi), 0);
       const top = [...x.camps].sort((a, b) => b.s.chi - a.s.chi)[0];
       return { id, p: x.p, camps: x.camps, tong, lai: tong.thu - tong.chi, am, loAm, laiNeuTat: tong.thu - tong.chi - loAm,
-        chay: x.camps.filter((y) => y.c.trang_thai === 'ACTIVE').length, cr: top?.c.creative_id ?? null };
+        chay: x.camps.filter((y) => dangChay(y.c)).length, cr: top?.c.creative_id ?? null };   // #1768: chay chỉ đếm camp đang chạy thật, camp chờ tới giờ không tính
     }).filter((x) => x.tong.chi > 0 || x.chay > 0).sort((a, b) => b.lai - a.lai);
   }, [du.camps, du.phims, ckh]);
   const lai = phim.reduce((a, x) => a + x.lai, 0), loAm = phim.reduce((a, x) => a + x.loAm, 0), soAm = phim.reduce((a, x) => a + x.am.length, 0);
@@ -2693,7 +2693,7 @@ function LichGio({ du, tl, hep }: { du: DuLieuEtp; tl: (k: string | null) => str
   const kn = du.khungNay; const KHUNG_GIO = khungCua(du);
   const o = useMemo(() => new Map(du.lichGio.map((r) => [`${r.the_loai}|${r.khung}`, r])), [du.lichGio]);
   const so = useMemo(() => new Map(du.khungSo.map((r) => [`${r.the_loai}|${r.khung}`, r])), [du.khungSo]);
-  const camp = useMemo(() => { const m = new Map<string, { chay: number; tam: number }>(); for (const c of du.camps) { const t = c.the_loai ?? '_khac'; const a = m.get(t) ?? { chay: 0, tam: 0 }; if (c.trang_thai === 'ACTIVE') a.chay++; if (c.lich_tat) a.tam++; m.set(t, a); } return m; }, [du.camps]);
+  const camp = useMemo(() => { const m = new Map<string, { chay: number; tam: number }>(); for (const c of du.camps) { const t = c.the_loai ?? '_khac'; const a = m.get(t) ?? { chay: 0, tam: 0 }; if (dangChay(c)) a.chay++; if (c.lich_tat) a.tam++; m.set(t, a); } return m; }, [du.camps]);
   const chi7 = (t: string) => KHUNG_GIO.reduce((a, k) => a + (so.get(`${t}|${k.k}`)?.chi ?? 0), 0);
   const dong = [...new Set(du.lichGio.map((r) => r.the_loai))].sort((a, b) => (a === '_khac' ? 1 : b === '_khac' ? -1 : chi7(b) - chi7(a)));
   const doi = async (t: string, k: string, bat: boolean) => { setDang(`${t}|${k}`); const r = await datLichGio(t, k, bat); if ('loi' in r) alert(r.loi); setDang(null); router.refresh(); };
@@ -3226,7 +3226,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (p) => <span style={{ fontSize: 12 }}>{tl(p.the_loai)}</span>, sortValue: (p) => p.the_loai ?? '' },
     // anh 27/10/2026 "chia thành các cột độc lập": số creative · camp đang bật · camp tạm dừng · tổng camp (không archived)
     { key: 'cr', header: 'Creative', title: 'số creative (video) khác nhau của phim', cell: (p) => <Dem v={p.creative} />, sortValue: (p) => p.creative },
-    { key: 'sl', header: 'Camp bật', title: 'camp ACTIVE (gồm camp đã bật chờ tới giờ chạy)', cell: (p) => <Dem v={p.chay} />, sortValue: (p) => p.chay },
+    { key: 'sl', header: 'Camp bật', title: 'camp đang chạy thật (camp đã bật còn chờ tới giờ chạy không tính)', cell: (p) => <Dem v={p.chay} />, sortValue: (p) => p.chay },
     { key: 'dung', header: 'Tạm dừng', title: 'camp PAUSED: lịch giờ, luật T7, luật chấm, tắt tay', cell: (p) => <Dem v={p.camp - p.chay} />, sortValue: (p) => p.camp - p.chay },
     { key: 'tong', header: 'Tổng camp', title: 'mọi camp của phim trừ camp đã lưu trữ', cell: (p) => <Dem v={p.camp} />, sortValue: (p) => p.camp },
     ...soCot<PhimEtpKho>('nay', (p) => p.nay), ...soCot<PhimEtpKho>('qua', (p) => p.qua), ...(khNay ? [] : soCot<PhimEtpKho>('kh', (p) => phKh.get(p.content_id) ?? KHONG)),

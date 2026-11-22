@@ -225,25 +225,25 @@ function tinhNguoi(s: SoTong2, ky: { tu: string; den: string }) {
     const rs = s.nguoiNgay.filter((r) => r.n === p.id), k = cong(rs.filter((r) => trong(r.d, tu, den))), t = cong(rs.filter((r) => trong(r.d, tuTruoc, denTruoc)));
     const r3 = roi(cong(rs.filter((r) => trong(r.d, ngay7[4]!, qua)))), r7 = roi(cong(rs.filter((r) => trong(r.d, ngay7[0]!, qua))));
     const tks = s.tk.filter((a) => a.n === p.id).map((a) => a.id), nay = s.tkNay.filter((a) => tks.includes(a.tk));
-    return { ...p, k, t, r3, r7, duong: ngay7.map((d) => roi(cong(rs.filter((r) => r.d === d)))), camp: nay.reduce((a, b) => a + b.chay, 0), ns: nay.reduce((a, b) => a + b.ns, 0) };
+    return { ...p, k, t, r3, r7, duong: ngay7.map((d) => roi(cong(rs.filter((r) => r.d === d)))), camp: nay.reduce((a, b) => a + b.chay, 0), cho: nay.reduce((a, b) => a + (b.cho ?? 0), 0), ns: nay.reduce((a, b) => a + b.ns, 0) };
   });
   return { qua, tu, den, dai, ngay7, nguoi };
 }
 type NguoiSo = ReturnType<typeof tinhNguoi>['nguoi'][number];
-type SoO = Pick<NguoiSo, 'k' | 't' | 'camp' | 'ns' | 'duong'>;
+type SoO = Pick<NguoiSo, 'k' | 't' | 'camp' | 'cho' | 'ns' | 'duong'>;
 /** dòng Tổng / Team (#1581): cộng chi/thu kỳ + kỳ trước của mọi người, ROI từ tổng (không cộng %), đường ROI 7 ngày từ tổng từng ngày */
 function tongNguoi(s: SoTong2, nguoi: NguoiSo[]): SoO {
   const ids = new Set(nguoi.map((p) => p.id)), ngay7 = Array.from({ length: 7 }, (_, i) => congNgay(s.nay, i - 7));
-  return { k: cong(nguoi.map((p) => p.k)), t: cong(nguoi.map((p) => p.t)), camp: nguoi.reduce((a, p) => a + p.camp, 0), ns: nguoi.reduce((a, p) => a + p.ns, 0),
+  return { k: cong(nguoi.map((p) => p.k)), t: cong(nguoi.map((p) => p.t)), camp: nguoi.reduce((a, p) => a + p.camp, 0), cho: nguoi.reduce((a, p) => a + p.cho, 0), ns: nguoi.reduce((a, p) => a + p.ns, 0),
     duong: ngay7.map((d) => roi(cong(s.nguoiNgay.filter((r) => r.d === d && ids.has(r.n))))) };
 }
 /** cột hiệu quả của bảng Người — chung cho widget Người và menu chọn Người (Chon2 cot / o) */
 export const COT_NGUOI: { key: string; h: string; rong: number; phai?: boolean; title?: string }[] = [
   { key: 'chi', h: 'Chi', rong: 64, phai: true }, { key: 'lai', h: 'Lãi', rong: 64, phai: true }, { key: 'roi', h: 'ROI', rong: 82, phai: true, title: 'ROI kỳ này · ▲▼ so kỳ trước' },
-  { key: 'camp', h: 'Camp bật', rong: 66, phai: true, title: 'camp ACTIVE lúc này · tổng ngân sách / ngày' }, { key: 'duong', h: 'ROI 7 ngày', rong: 72, title: 'ROI từng ngày, 7 ngày đã khép' }];
+  { key: 'camp', h: 'Camp bật', rong: 66, phai: true, title: 'camp đang chạy thật lúc này (camp đã bật còn chờ tới giờ chạy không tính) · rê số: ngân sách / ngày + số camp chờ' }, { key: 'duong', h: 'ROI 7 ngày', rong: 72, title: 'ROI từng ngày, 7 ngày đã khép' }];
 const oNguoi = (p: SoO): ReactNode[] => [
   <KeToan key="chi" v={p.k.chi} />, <KeToan key="lai" v={p.k.thu - p.k.chi} mau={mauLai(p.k.thu - p.k.chi)} />, <span key="roi">{roiSoTruoc(p.k, p.t)}</span>,
-  <span key="camp" title={`ngân sách ${tien(p.ns)}/ngày`}><Dem v={p.camp} /></span>, <DuongRoi key="duong" v={p.duong} />];
+  <span key="camp" title={`${p.camp} camp đang chạy · ngân sách ${tien(p.ns)}/ngày${p.cho ? `\n${p.cho} camp đã bật còn chờ tới giờ chạy — không tính vào số này` : ''}`}><Dem v={p.camp} /></span>, <DuongRoi key="duong" v={p.duong} />];
 
 /** MENU CHỌN NGƯỜI có số hiệu quả (anh 22/11/2026 #1759 "Show bảng chi tiết hiệu quả này vào menu chọn người"): ô số từng người theo id + dòng Team (cộng mọi người),
  *  cùng số / cùng cách tính với widget Người — chung một bản tải taiTong2 (useSoNho 'tong2', không tải thêm) */
@@ -271,8 +271,8 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
       if (ba.every((b) => b.chi > 0 && b.thu < b.chi)) co.push('lỗ 3 ngày đã khép liền');
       if (nguoiChi > 0 && k.chi / nguoiChi > 0.4 && s.tk.filter((b) => b.n === a.n && cong(s.tkNgay.filter((r) => r.tk === b.id && trong(r.d, tu, den))).chi > 0).length >= 2) co.push(`dồn ${Math.round((k.chi / nguoiChi) * 100)}% chi của người`);
       if ((nay?.loi ?? 0) > 0) co.push(`${nay!.loi} camp lỗi`);
-      if ((nay?.chay ?? 0) > 0 && homNay.chi === 0 && ba[0]!.chi === 0) co.push('có camp bật mà 24 giờ không chi');
-      return { ...a, k, chay: nay?.chay ?? 0, ns: nay?.ns ?? 0, tieu: nay?.ns ? homNay.chi / nay.ns : null, co };
+      if ((nay?.chay ?? 0) > 0 && homNay.chi === 0 && ba[0]!.chi === 0) co.push('có camp đang chạy mà 24 giờ không chi');
+      return { ...a, k, chay: nay?.chay ?? 0, cho: nay?.cho ?? 0, ns: nay?.ns ?? 0, tieu: nay?.ns ? homNay.chi / nay.ns : null, co };
     });
     return { qua, tu, den, dai, nguoi, tk };
   }, [s, ky.tu, ky.den]);
@@ -449,7 +449,7 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
             const nen = trong ? 'transparent' : r == null ? 'var(--bg-2)' : r >= 0 ? `rgba(74,222,128,${Math.min(0.35, 0.08 + r / 150)})` : `rgba(248,113,113,${Math.min(0.4, 0.1 - r / 120)})`;
             return <a key={a.id} href={a.bo ? `?t=camp&b=${a.bo}` : `?t=camp${p.nha ? '' : `&ng=${p.id}`}`}
               title={[`${a.ten} · ${p.ten}`, trong ? 'chưa dùng (không camp, không chi trong kỳ)' : `kỳ: chi ${tien(a.k.chi)} · thu ${tien(a.k.thu)} · lãi ${tien(lai)} · ROI ${pct(r)}`,
-                `${a.chay} camp bật · ngân sách ${tien(a.ns)}/ngày${a.tieu != null ? ` · hôm nay đã tiêu ${Math.round(a.tieu * 100)}%` : ''}`, ...a.co.map((c) => `⚠ ${c}`)].join('\n')}
+                `${a.chay} camp đang chạy · ngân sách ${tien(a.ns)}/ngày${a.cho ? ` · ${a.cho} camp chờ tới giờ chạy (không tính)` : ''}${a.tieu != null ? ` · hôm nay đã tiêu ${Math.round(a.tieu * 100)}%` : ''}`, ...a.co.map((c) => `⚠ ${c}`)].join('\n')}
               style={{ width: o, padding: '4px 6px', borderRadius: 6, border: `1px solid ${a.co.length ? DO : 'var(--line)'}`, background: nen, color: trong ? MO : 'var(--fg-1)', textDecoration: 'none', boxSizing: 'border-box', lineHeight: 1.35 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}><b>{a.ten.replace(/^ETP_/, '')}</b>{a.co.length ? <span style={{ color: DO }}>⚠</span> : null}</div>
               {trong ? <div>trống</div> : <><div style={{ color: mauLai(lai) }}>{tien(lai)} · {pct(r)}</div><div style={{ color: 'var(--fg-3)' }}>{a.chay} bật{a.tieu != null ? ` · ${Math.round(a.tieu * 100)}%` : ''}</div></>}

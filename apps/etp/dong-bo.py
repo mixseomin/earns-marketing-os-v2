@@ -4,6 +4,7 @@ Kéo về schema `etp` (migration 0313):
   · camp: danh sách camp Ethopex (1 lượt gọi) + chi tiết ad (creative / content / ad_id / lịch) CHỈ cho camp mới hoặc updated_at đổi
   · so_ngay: Report camp × ngày — lượt đầu từ 19/10, các lượt sau 3 ngày gần nhất (doanh thu về trễ, ghi đè)
   · so_gio: Report phim × giờ cho hôm nay + hôm qua (mỗi ngày một lượt gọi)
+  · bc_ad_ngay / bc_ad (0462, anh 23/11/2026 "kéo hết về"): Report ad × nước × ngày đủ 17 cột đếm / tiền + chiều của ad (lịch sử đổi ở bc_ad_doi) — 3 ngày gần nhất + lấp ngược 2 ngày / lượt
   · phim / creative: studio (xv_phim kinh_thanh.ethopex, ethopex_cta_dat, ethopex_cta_thay, ethopex_tu_choi, ethopex_the_loai, ethopex_phim_tk) + spy (tên, nguồn, url)
   · nhat_ky: chép dòng mới từ studio ethopex_nhat_ky (bản đó chỉ giữ 1000 dòng — kho giữ hết)
 Ghi bằng psql + jsonb_to_recordset (không cần thư viện ngoài). Lỗi một phần không chặn phần khác; ghi lượt vào etp.dong_bo.
@@ -55,13 +56,81 @@ def ghi(bang, rows, khoa_, cot):
     q(f"insert into etp.{bang} ({cs}) select {cs} from jsonb_to_recordset($J${j}$J$::jsonb) as x({dk}) on conflict ({', '.join(khoa_)}) do update set {cap}")
     return len(rows)
 
+# ── KHO THÔ REPORT THEO AD (anh 23/11/2026 "cơ bản là kéo hết về" — etp:keo-het-report-2311, migration 0462): mọi cột đếm / tiền ở hạt ad × nước × ngày
+# → etp.bc_ad_ngay; chiều của ad (camp, người, team, miền, landing, phim, tk QC, Page, pixel…) → etp.bc_ad (trigger ghi lịch sử đổi vào etp.bc_ad_doi). Tỉ lệ ở view etp.bc_v.
+BC_M = ["cost", "revenue", "supply_conversion_value", "supply_conversions", "conversions", "supply_impressions", "supply_clicks", "traffics", "page_views",
+        "ad_requests", "impressions", "conversions_rt", "clicks", "error_count", "all_traffic", "pre_revenue", "chn_revenue"]
+BC_TIEN = {"cost", "revenue", "supply_conversion_value", "pre_revenue", "chn_revenue"}
+# chiều: group_by gom ĐỦ id chiều (gom ad_id trần trả 502); một ad có thể ra vài dòng (miền con pre* / chn*, Page "Unknown Page", đổi content type) → gộp ở bc_chieu
+BC_G = ["ad_id", "ad_group_id", "campaign_id", "user_id", "team_id", "workspace_id", "traffic_source", "domain", "sub_domain", "landing_page_id", "content_group_id", "content_type_id",
+        "tag", "content_creator_id", "bm_supply_id", "account_supply_id", "page_fb_id", "pixel_id"]
+BC_D = {"ad_external_id": "text", "ad_name": "text", "ad_status": "text", "ad_delivery": "text", "ad_group_id": "bigint", "ad_group_name": "text",
+        "campaign_id": "bigint", "campaign_name": "text", "external_campaign_id": "text", "campaign_link": "text", "daily_budget": "numeric", "campaign_source_status": "text",
+        "campaign_delivery": "text", "active_day": "int", "external_account_id": "text", "user_id": "int", "user_email": "text", "user_username": "text", "team_id": "int",
+        "team_name": "text", "workspace_id": "int", "workspace_name": "text", "traffic_source": "text", "domain": "text", "sub_domain": "text", "landing_page_id": "bigint",
+        "content_group_id": "bigint", "content_group_name": "text", "content_source": "text", "content_source_url": "text", "content_type_id": "int", "content_type_name": "text",
+        "tag": "text", "content_creator_id": "int", "content_creator_username": "text", "bm_supply_id": "text", "account_supply_id": "text", "account_supply_name": "text",
+        "page_fb_id": "text", "page_fb_name": "text", "pixel_id": "text", "pixel_name": "text"}
+BC_KEM = {"external_campaign_id", "campaign_link", "external_account_id"}
+BC_TU = "2026-10-19"   # mốc kho (cùng so_ngay)
+
+def _bc_gt(v, t):
+    """giá trị report → kiểu cột; rỗng / 'Unknown …' / id 0 = không có (None)"""
+    if v is None or (isinstance(v, str) and (not v.strip() or v.startswith("Unknown"))): return None
+    try:
+        if t in ("int", "bigint"): v = int(float(v)); return v or None
+        if t == "numeric": return float(v)
+    except (TypeError, ValueError): return None
+    return str(v)
+
+def bc_ngay_ad(camp, tu, den):
+    """fact ad × nước × ngày (một lượt gọi report, cổng chia theo ngày / giờ / lô camp) → list dict cho etp.bc_ad_ngay"""
+    g = {}
+    for x in EA.doc_het("/api/v1/report", {"columns": ["ad_id", "geo", "date"] + BC_M, "group_by": ["ad_id", "geo", "date"], "filters": {"campaign_id": camp},
+                                           "metric_conditions": [], "date_from": tu, "date_to": den}, 180)["rows"]:
+        m = re.match(r"\(([A-Z]{2})\)", str(x.get("geo") or ""))
+        k = (str(x.get("report_date") or x.get("date"))[:10], int(x.get("ad_id") or 0), str(x.get("country_code") or (m.group(1) if m else "") or ""))
+        e = g.setdefault(k, [0.0] * len(BC_M))
+        for i, c in enumerate(BC_M): e[i] += float(x.get(c) or 0)
+    return [{"ngay": d, "ad_id": a, "geo": n, **{c: (round(v[i], 6) if c in BC_TIEN else int(v[i])) for i, c in enumerate(BC_M)}} for (d, a, n), v in g.items()]
+
+def bc_chieu(camp, tu, den):
+    """chiều của ad: các dòng của một ad xếp theo (ngày, chi) — dòng gần nhất / chi nhiều nhất thắng từng cột, bỏ giá trị rỗng; sub_domains = mọi miền con"""
+    by = {}
+    # external_campaign_id / campaign_link / external_account_id: report tự trả kèm mọi dòng, xin trong columns thì 403 "column not allowed"
+    for x in EA.doc_het("/api/v1/report", {"columns": [c for c in BC_D if c not in BC_KEM] + ["ad_id", "cost"], "group_by": BC_G + ["date"], "filters": {"campaign_id": camp},
+                                           "metric_conditions": [], "date_from": tu, "date_to": den}, 180)["rows"]:
+        if x.get("ad_id"): by.setdefault(int(x["ad_id"]), []).append(x)
+    out = []
+    for a, ds in by.items():
+        ds.sort(key=lambda x: (str(x.get("report_date") or x.get("date"))[:10], float(x.get("cost") or 0)))
+        r = {"ad_id": a, **{c: None for c in BC_D}}
+        for x in ds:
+            for c, t in BC_D.items():
+                v = _bc_gt(x.get(c), t)
+                if v is not None: r[c] = v
+        ngay = [str(x.get("report_date") or x.get("date"))[:10] for x in ds]
+        r.update(nha=str(r["external_account_id"] or "") in EA.EXT, ngay_dau=min(ngay), ngay_cuoi=max(ngay),
+                 sub_domains=sorted({x["sub_domain"] for x in ds if _bc_gt(x.get("sub_domain"), "text")}))
+        out.append(r)
+    return out
+
+def bc_ghi(camp, tu, den):
+    """kéo + ghi fact và chiều cho [tu, den]; trả (số dòng fact, số ad). Lấp ngược (ngày cũ) không đè chiều mới: trigger 0462 giữ chiều khi ngay_cuoi mới < cũ"""
+    f = bc_ngay_ad(camp, tu, den)
+    n = sum(ghi("bc_ad_ngay", f[i:i + 5000], ["ngay", "ad_id", "geo"], {"ngay": "date", "ad_id": "bigint", "geo": "text", **{c: ("numeric" if c in BC_TIEN else "int") for c in BC_M}})
+            for i in range(0, len(f), 5000))
+    ch = bc_chieu(camp, tu, den)
+    ghi("bc_ad", ch, ["ad_id"], {"ad_id": "bigint", **BC_D, "nha": "boolean", "ngay_dau": "date", "ngay_cuoi": "date", "sub_domains": "text[]"})
+    return n, len(ch)
+
 import hau_kiem as HK   # hậu kiểm cửa API (anh 18/11/2026) — chụp kho / so sổ etp.cua
 import so_dang as DG   # SỔ DẠNG một nơi (apps/web/src/lib/etp-dang.json) — dạng đọc từ tên camp: DG.theo_ten (nhãn dài khớp trước)
 def main():
     day_du = "--day-du" in sys.argv
     lan = q("insert into etp.dong_bo default values returning lan"); loi = []; kq = {"so_camp": 0, "so_chi_tiet": 0, "so_dong_ngay": 0}
     hk_cu = hk_ds = None   # hậu kiểm cửa (hau_kiem.py): chụp kho giữa lượt, so cuối lượt
-    nay = dt.datetime.now(dt.timezone.utc).date()
+    nay = dt.datetime.now(dt.timezone.utc).date(); t0 = time.time()
     if TOKEN.get("nguon") in ("het", "?"): loi.append(f"token Ethopex: không còn token dùng được ({TOKEN.get('loi')}) — etp2 bấm 🔑 Sửa token")
     # ── LỊCH GIỜ (anh 25/10/2026): bật / tắt camp theo thể loại × khung giờ VN — chạy ĐẦU lượt cho đúng giờ (lượt đồng bộ dài vài phút); lỗi không chặn đồng bộ
     try:
@@ -300,6 +369,19 @@ def main():
             for (c, d), v in gp.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "hien": "int", "nhap": "int", "chuyen": "int", "s_hien": "int", "s_nhap": "int", "s_chuyen": "int", "s_gt": "numeric",
                                                               "luot_xem": "int", "xin_qc": "int"})
     except Exception as e: loi.append(f"so_pheu: {e}")
+    # ── KHO THÔ REPORT THEO AD (anh 23/11/2026 "kéo hết về", migration 0462): 3 ngày gần nhất ghi đè (số về trễ) + lấp ngược MỘT mẩu 2 ngày mỗi lượt về 19/10
+    # (đo 23/11: 4 ngày chợ đông 12–15/11 = 53.651 dòng, 174 s; cả 35 ngày một lượt vượt nhịp 10 phút của timer) — mẩu lấp ngược bỏ khi lượt đã dài quá 7 phút
+    try:
+        camp_bc = sorted(int(c["id"]) for c in EA.ds_tat_ca())   # lọc đủ camp (nhà + ngoài) để cổng chia lô camp khi một ngày > 10.000 dòng
+        kq["so_dong_bc_ad"], kq["so_ad_bc"] = bc_ghi(camp_bc, (nay - dt.timedelta(days=3)).isoformat(), nay.isoformat())
+        dau = q("select min(ngay) from etp.bc_ad_ngay")
+        if dau and dau > BC_TU and time.time() - t0 < 420:
+            den_l = dt.date.fromisoformat(dau) - dt.timedelta(days=1)
+            tu_l = max(dt.date.fromisoformat(BC_TU), den_l - dt.timedelta(days=1))
+            n, _ = bc_ghi(camp_bc, tu_l.isoformat(), den_l.isoformat()); kq["so_dong_bc_ad"] += n
+            print(f"bc_ad lấp ngược {tu_l}..{den_l}: {n} dòng")
+        print(f"bc_ad: {kq['so_dong_bc_ad']} dòng ad × nước × ngày, {kq['so_ad_bc']} ad")
+    except Exception as e: loi.append(f"bc_ad: {e}")
     # ── NƯỚC GIAO THẬT của camp, 7 ngày gần nhất (anh 29/10/2026 "các camp hãy thêm icon quốc gia target"): camp đều nhắm cùng 39 nước, nước GIAO mới cho biết
     # camp chạy ở đâu. Report gom campaign_name + geo (gom geo trần trả 1 dòng / nước cho mọi team, không tách được nhà) → etp.camp_nuoc, ghi đè cả bảng mỗi lượt
     try:

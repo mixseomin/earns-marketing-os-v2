@@ -4,7 +4,7 @@
 // Nhà PLATEAU giữ nguyên bố cục thật, khoác chất liệu xanh xám; nhà thật ≥ 90 m bị khoét bỏ trong shader để tháp đỏ đứng thay.
 import * as THREE from 'three';
 import { taoSong } from './song.js';
-import { TL, batTang, luoiTuyen } from './khop.js';
+import { TL, batTang } from './khop.js';
 import { taoNguoiGan } from './nguoi-gan.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -383,19 +383,32 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
   // dA, dB tuyến tính trong mỗi đoạn chạy giữa hai nút → shader vẽ giao lộ sạch, ngựa vằn, vạch dừng đúng chỗ.
   const D = TL.duong, LOP = { lon: { hw: D.lon, u: -14 }, dibo: { hw: D.dibo, u: -12 }, vua: { hw: D.vua, u: -10 }, tau: { hw: D.tau, u: -8 }, pho: { hw: D.pho, u: -6 } }; // u: độ lệch sâu, cách nhau 2 nấc (lượt phủ vua = -11)
   const RONG = { lon: 2 * D.lon, vua: 2 * D.vua, dibo: 2 * D.dibo }, LONG = { lon: 7, vua: 5.6 };
-  const tuyen = [...ql.daiLo.map((d) => ({ lop: d.lop, g: d.g })), ...ql.pho.map((g) => ({ lop: 'pho', g })), ...ql.tau.map((g) => ({ lop: 'tau', g }))];
+  // khuôn ngang MỖI tuyến xe (k): raP / raM = mép lòng nhựa phía s dương / âm, hwP / hwM = mép ngoài dải, lan = số làn, mot = một chiều (xe đi theo thứ tự g),
+  // giua = phía có dải phân cách (+1 / -1 / 0). OSM vẽ đường đôi thành hai tuyến một chiều (doi = khoảng cách tới nửa kia, có dấu) → mỗi nửa chỉ có vỉa hè phía ngoài,
+  // phía trong là dải phân cách kéo tới nửa khoảng hở; không thì hai dải hai chiều chồng nhau thành vỉa hè chạy giữa đường (sprawl.on.tc 23/11/2026).
+  const LAN_RONG = 3.1, VIA_HE = { lon: D.lon - LONG.lon, vua: D.vua - LONG.vua };
+  const khuon = (d) => { if (!LONG[d.lop]) return null; const via = VIA_HE[d.lop];
+    if (d.mot) { const n = d.lan || (d.lop === 'lon' ? 2 : 1), a = Math.min(9, (n * LAN_RONG + 0.8) / 2), k = { raP: a, raM: a, hwP: a + via, hwM: a + via, lan: n, mot: 1, giua: 0 };
+      if (d.doi) { const h = Math.abs(d.doi) / 2, ri = Math.min(a, h), hi = Math.min(h, a + 6); if (d.doi > 0) { k.raP = ri; k.hwP = hi; k.giua = 1; } else { k.raM = ri; k.hwM = hi; k.giua = -1; } }
+      return k; }
+    const a = d.lan ? Math.min(12, Math.max(3, (d.lan * LAN_RONG + 0.8) / 2)) : LONG[d.lop];
+    return { raP: a, raM: a, hwP: a + via, hwM: a + via, lan: d.lan || (d.lop === 'lon' ? 4 : 2), mot: 0, giua: 0 }; };
+  for (const d of ql.daiLo) d.k = khuon(d);
+  const tuyen = [...ql.daiLo.map((d) => ({ lop: d.lop, g: d.g, k: d.k, hw: d.k ? Math.max(d.k.hwP, d.k.hwM) : LOP[d.lop].hw })), ...ql.pho.map((g) => ({ lop: 'pho', g, hw: D.pho })), ...ql.tau.map((g) => ({ lop: 'tau', g, hw: D.tau }))];
   const khoa = (p) => p[0].toFixed(1) + ',' + p[1].toFixed(1), nut = new Map(); // bậc mỗi điểm: giữa tuyến 2, đầu tuyến 1
-  for (const t of tuyen) { if (t.lop === 'tau') continue; const hw = LOP[t.lop].hw, xe = t.lop !== 'pho';
-    t.g.forEach((p, i) => { const k = khoa(p); let n = nut.get(k); if (!n) nut.set(k, n = { xe: 0, tat: 0, hw: 0, hwXe: 0 });
-      const b = i === 0 || i === t.g.length - 1 ? 1 : 2; n.tat += b; n[t.lop] = (n[t.lop] || 0) + b; n.hw = Math.max(n.hw, hw); if (xe) { n.xe += b; n.hwXe = Math.max(n.hwXe, hw); } }); }
+  for (const t of tuyen) { if (t.lop === 'tau') continue; const hw = t.hw, xe = t.lop !== 'pho';
+    t.g.forEach((p, i) => { const k = khoa(p); let n = nut.get(k); if (!n) nut.set(k, n = { xe: 0, tat: 0, hw: 0, hwXe: 0, hwlon: 0, hwvua: 0 });
+      const b = i === 0 || i === t.g.length - 1 ? 1 : 2; n.tat += b; n[t.lop] = (n[t.lop] || 0) + b; n.hw = Math.max(n.hw, hw); if (xe) { n.xe += b; n.hwXe = Math.max(n.hwXe, hw); if (n['hw' + t.lop] !== undefined) n['hw' + t.lop] = Math.max(n['hw' + t.lop], hw); } }); }
   // đường xe chỉ cắt bởi đường lớn (phố nhỏ chui dưới vỉa hè liền); phố nhỏ cắt bởi mọi đường; đại lộ cắt bởi đại lộ khác (rộng 15) hoặc đường xe (rộng 9)
   const nuaNut = (lop, p) => { const n = nut.get(khoa(p)); if (!n) return 0; if (lop === 'vua') return n.xe >= 3 ? n.hwXe : 0;
-    if (lop === 'lon') return n.xe >= 3 ? ((n.lon || 0) >= 3 ? D.lon : n.vua ? D.vua : 0) : 0; if (lop === 'pho') return n.tat >= 3 ? n.hw : 0; return 0; };
+    if (lop === 'lon') return n.xe >= 3 ? ((n.lon || 0) >= 3 ? n.hwlon : n.vua ? n.hwvua : 0) : 0; if (lop === 'pho') return n.tat >= 3 ? n.hw : 0; return 0; };
   const loDuong = {};
-  for (const k of Object.keys(LOP)) loDuong[k] = { xz: [], r: [], idx: [] };
+  for (const k of Object.keys(LOP)) loDuong[k] = { xz: [], r: [], k: [], l: [], idx: [] };
   for (const t of tuyen) {
-    const hw = LOP[t.lop].hw, B = loDuong[t.lop], g = [t.g[0]];
-    for (let i = 1; i < t.g.length; i++) if (Math.hypot(t.g[i][0] - g[g.length - 1][0], t.g[i][1] - g[g.length - 1][1]) > 0.5) g.push(t.g[i]);
+    const hw = t.hw, kh = t.k || { raP: 0, raM: 0, hwP: hw, hwM: hw, lan: 0, mot: 0, giua: 0 }, B = loDuong[t.lop], g = [t.g[0]];
+    for (let i = 1; i < t.g.length; i++) { const q = g[g.length - 1], l = Math.hypot(t.g[i][0] - q[0], t.g[i][1] - q[1]); if (l <= 0.5) continue;
+      const n = Math.ceil(l / 8); for (let c = 1; c < n; c++) g.push([q[0] + (t.g[i][0] - q[0]) * c / n, q[1] + (t.g[i][1] - q[1]) * c / n]); // chia đoạn ≤ 8 m: đỉnh dải đường bám đất (ô đất 16 m), không để mặt đất cong trồi xuyên lòng đường giữa hai nút OSM xa nhau → hết nháy
+      g.push(t.g[i]); }
     if (g.length < 2) continue;
     const v = [0]; for (let i = 1; i < g.length; i++) v.push(v[i - 1] + Math.hypot(g[i][0] - g[i - 1][0], g[i][1] - g[i - 1][1]));
     const cat = [0]; for (let i = 1; i < g.length - 1; i++) if (nuaNut(t.lop, g[i])) cat.push(i); cat.push(g.length - 1);
@@ -410,47 +423,64 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
         const dau = (i === 0 && !hA) ? -1 : (i === g.length - 1 && !hB) ? 1 : 0; // đầu tuyến hở: kéo dài cho kín mối nối
         if (dau) { x += tx * hw * 0.4 * dau; z += tz * hw * 0.4 * dau; vv += hw * 0.4 * dau; }
         const dA = hA ? vv - v[a] - hA : 1e4, dB = hB ? v[b] - vv - hB : 1e4;
-        for (const sd of [1, -1]) { B.xz.push(x - tz * hw * m * sd, z + tx * hw * m * sd); B.r.push(hw * sd, vv, dA, dB); }
+        for (const sd of [1, -1]) { const h = sd > 0 ? kh.hwP : kh.hwM; B.xz.push(x - tz * h * m * sd, z + tx * h * m * sd); B.r.push(h * sd, vv, dA, dB); B.k.push(kh.raP, kh.raM, kh.hwP, kh.hwM); B.l.push(kh.lan, kh.giua, kh.mot, 0); }
       }
       for (let i = 0; i < b - a; i++) { const l0 = goc0 + i * 2, r0 = l0 + 1, l1 = l0 + 2, r1 = l0 + 3; B.idx.push(l0, l1, r0, r0, l1, r1); }
     }
   }
   const DAU = `float s = vR.x, as = abs(s), v = vR.y, dj = min(vR.z, vR.w);
+      float ra = s >= 0.0 ? vK.x : vK.y, hs = s >= 0.0 ? vK.z : vK.w, nl = vL.x, mot = vL.z, giua = step(0.5, s * vL.y); // khuôn ngang của tuyến (xem khuon)
       float e = max(fwidth(s), 0.003) * 0.8, ro = 1.0 - smoothstep(0.07, 0.3, e);   // ro: vạch / mạch mờ dần ở xa, khỏi nhiễu răng cưa
       float n1 = bam(floor(vWp.xz * 1.7)), n2 = bam(floor(vWp.xz / 7.0) + 3.1);
       vec3 NHUA = vec3(0.045, 0.05, 0.057) * (0.86 + 0.18 * n1 + 0.16 * n2), TRANG = vec3(0.82, 0.82, 0.78), VIA = vec3(0.36, 0.34, 0.3);`;
+  // vạch làn: hai chiều thì m làn mỗi chiều chia đều [0,3 .. ra − 0,3] hai bên tim; một chiều thì nl làn chia đều cả lòng [−raM .. raP]
+  const VACH_LAN = `float vLan = 0.0;
+      if (mot > 0.5) { float W = vK.x + vK.y, w = (W - 0.8) / max(nl, 1.0), q = (s + vK.y - 0.4) / w, kq = floor(q + 0.5);
+        vLan = dai(abs(q - kq) * w, -1.0, 0.07, e) * step(0.5, kq) * step(kq, nl - 0.5); }
+      else { float m = max(1.0, floor(nl / 2.0)), w = (ra - 0.6) / m, q = (as - 0.3) / w, kq = floor(q + 0.5);
+        vLan = dai(abs(q - kq) * w, -1.0, 0.07, e) * step(0.5, kq) * step(kq, m - 0.5); }
+      vLan *= step(fract(v / 10.0), 0.5) * step(7.5, dj);
+      float dung = dai(dj, 6.0, 6.4, e) * mix(step(0.0, -s * sign(vR.z - vR.w)), step(vR.w, vR.z), mot); // vạch dừng: hai chiều = nửa bên trái (Nhật); một chiều = cả lòng, chỉ ở đầu xe tới`;
+  // dải phân cách giữa hai nửa đường đôi (phía giua): bó vỉa sát lòng đường + thảm cỏ / bụi thấp, thay cho vỉa hè
+  const DAI_GIUA = `vec3 dg = vec3(0.24, 0.31, 0.17) * (0.78 + 0.3 * n1 + 0.12 * n2);
+      dg = mix(dg, vec3(0.56, 0.55, 0.5), dai(as, ra, ra + 0.4, e)); he = mix(he, dg, giua);`;
   const VE = {
-    lon: `float ra = ${LONG.lon.toFixed(1)}, giao = 1.0 - step(0.0, dj);                     // giao: đang trong lòng đường cắt
+    lon: `float giao = 1.0 - step(0.0, dj);                     // giao: đang trong lòng đường cắt
       vec2 f = abs(fract(vWp.xz / 3.0) - 0.5);
       vec3 he = vec3(0.74, 0.69, 0.6) * (0.93 + 0.09 * n2) * (1.0 - 0.13 * smoothstep(0.455, 0.475, max(f.x, f.y)) * ro);
       he = mix(he, vec3(0.42, 0.39, 0.34), dai(as, ra + 1.6, ra + 1.9, e) * ro);  // lằn đá trang trí dọc vỉa hè
-      he = mix(he, vec3(0.2, 0.19, 0.17), dai(as, 14.35, 16.0, e));               // bó vỉa mép ngoài
+      he = mix(he, vec3(0.2, 0.19, 0.17), dai(as, hs - 0.65, hs + 1.0, e));       // bó vỉa mép ngoài
+      ${DAI_GIUA}
       float leDuong = smoothstep(ra - e, ra + e, as) * (1.0 - giao);
       vec3 c = mix(NHUA, he, leDuong);
       c = mix(c, VIA, dai(as, ra, ra + 0.3, e) * (1.0 - giao));        // bó vỉa dọc
       c = mix(c, VIA, dai(dj, 0.0, 0.3, e) * smoothstep(ra - e, ra + e, as)); // bó vỉa vòng góc giao lộ
       float trong = 1.0 - smoothstep(ra - 0.35 - e, ra - 0.35 + e, as), vach = 0.0;
-      vach += dai(as, 0.1, 0.22, e) * step(7.5, dj);                                           // tim đường: vạch đôi liền
-      vach += dai(abs(as - 3.4), -1.0, 0.07, e) * step(fract(v / 10.0), 0.5) * step(7.5, dj); // vạch chia 2 làn mỗi chiều
+      ${VACH_LAN}
+      vach += dai(as, 0.1, 0.22, e) * step(7.5, dj) * (1.0 - mot);                             // tim đường hai chiều: vạch đôi liền
+      vach += vLan;                                                                             // vạch chia làn
       vach += dai(as, ra - 0.6, ra - 0.45, e) * step(0.0, dj);                                 // mép liền
       vach += dai(dj, 1.2, 5.2, e) * smoothstep(0.5 - e, 0.5 + e, fract(s / 1.0)) * trong;     // ngựa vằn
-      vach += dai(dj, 6.0, 6.4, e) * step(0.0, -s * sign(vR.z - vR.w)) * trong;                 // vạch dừng (xe đi bên trái)
+      vach += dung * trong;                                                                     // vạch dừng
       c = mix(c, TRANG, clamp(vach, 0.0, 1.0) * ro * (1.0 - smoothstep(ra - e, ra + e, as)));`,
     dibo: `vec2 q = vWp.xz / 1.5, f = abs(fract(q) - 0.5);
       vec3 c = vec3(0.66, 0.62, 0.55) * (0.9 + 0.14 * bam(floor(q))) * (1.0 - 0.15 * smoothstep(0.45, 0.48, max(f.x, f.y)) * ro);
       c = mix(c, vec3(0.24, 0.22, 0.2), dai(as, 6.4, 8.0, e));`,
-    vua: `float ra = ${LONG.vua.toFixed(1)}, giao = 1.0 - step(0.0, dj);                     // giao: đang trong lòng đường cắt
+    vua: `float giao = 1.0 - step(0.0, dj);                     // giao: đang trong lòng đường cắt
       vec2 q = vWp.xz / 0.9, f = abs(fract(q) - 0.5);
       vec3 he = vec3(0.56, 0.53, 0.46) * (0.9 + 0.12 * bam(floor(q))) * (1.0 - 0.12 * smoothstep(0.44, 0.48, max(f.x, f.y)) * ro);
+      ${DAI_GIUA}
       float leDuong = smoothstep(ra - e, ra + e, as) * (1.0 - giao);
       vec3 c = mix(NHUA, he, leDuong);
       c = mix(c, VIA, dai(as, ra, ra + 0.3, e) * (1.0 - giao));        // bó vỉa dọc
       c = mix(c, VIA, dai(dj, 0.0, 0.3, e) * smoothstep(ra - e, ra + e, as)); // bó vỉa vòng góc giao lộ
       float trong = 1.0 - smoothstep(ra - 0.35 - e, ra - 0.35 + e, as), vach = 0.0;
-      vach += dai(as, -1.0, 0.08, e) * step(fract(v / 10.0), 0.5) * step(7.5, dj);          // tim đường đứt
+      ${VACH_LAN}
+      vach += dai(as, -1.0, 0.08, e) * step(fract(v / 10.0), 0.5) * step(7.5, dj) * (1.0 - mot); // tim đường hai chiều: vạch đứt
+      vach += vLan;                                                                           // vạch chia làn
       vach += dai(as, ra - 0.6, ra - 0.45, e) * step(0.0, dj);                               // mép liền
       vach += dai(dj, 1.2, 5.2, e) * smoothstep(0.5 - e, 0.5 + e, fract(s / 1.0)) * trong;   // ngựa vằn
-      vach += dai(dj, 6.0, 6.4, e) * step(0.0, -s * sign(vR.z - vR.w)) * trong;               // vạch dừng (xe đi bên trái)
+      vach += dung * trong;                                                                   // vạch dừng
       c = mix(c, TRANG, clamp(vach, 0.0, 1.0) * ro * (1.0 - smoothstep(ra - e, ra + e, as)));`,
     pho: `vec3 c = NHUA * 1.35;
       c = mix(c, vec3(0.27, 0.26, 0.23), smoothstep(3.0 - e, 3.0 + e, as) * step(0.0, dj));            // rãnh bê tông mép
@@ -465,10 +495,10 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
   const vatDuong = (k, phu) => { const m = new THREE.MeshLambertMaterial({ polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: phu ? LOP.lon.u - 2 - (k === 'lon' ? 1 : 0) : LOP[k].u }); // phu: lượt vẽ riêng phần lòng nhựa, nằm trên MỌI vỉa hè (kể cả vỉa hè của đại lộ chạy song song đè sang) → lòng đường không bị vỉa hè tuyến bên cạnh che
     m.customProgramCacheKey = () => 'duong-' + k + (phu ? '-phu' : '');
     m.onBeforeCompile = (sh) => {
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 aR; varying vec4 vR; varying vec3 vWp;')
-        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvR = aR; vWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 aR, aK, aL; varying vec4 vR, vK, vL; varying vec3 vWp;')
+        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvR = aR; vK = aK; vL = aL; vWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-      varying vec4 vR; varying vec3 vWp;
+      varying vec4 vR, vK, vL; varying vec3 vWp;
       float bam(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       float dai(float x, float a, float b, float e) { return smoothstep(a - e, a + e, x) - smoothstep(b - e, b + e, x); }`)
         .replace('#include <color_fragment>', `#include <color_fragment>
@@ -481,7 +511,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
   for (const k of Object.keys(LOP)) { const B = loDuong[k], g = new THREE.BufferGeometry(), n = B.xz.length / 2;
     g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3));
     g.setAttribute('normal', new THREE.Float32BufferAttribute(new Float32Array(n * 3).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
-    g.setAttribute('aR', new THREE.Float32BufferAttribute(B.r, 4)); g.setIndex(B.idx);
+    g.setAttribute('aR', new THREE.Float32BufferAttribute(B.r, 4)); g.setAttribute('aK', new THREE.Float32BufferAttribute(B.k, 4)); g.setAttribute('aL', new THREE.Float32BufferAttribute(B.l, 4)); g.setIndex(B.idx);
     duongMesh[k] = new THREE.Mesh(g, vatDuong(k)); duongMesh[k].frustumCulled = false; duongMesh[k].renderOrder = -1; goc.add(duongMesh[k]);
     if (LONG[k]) { const m2 = new THREE.Mesh(g, vatDuong(k, true)); m2.frustumCulled = false; m2.renderOrder = -1; goc.add(m2); } }
 
@@ -492,6 +522,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
   const texVuon = new THREE.CanvasTexture(cv); texVuon.colorSpace = THREE.NoColorSpace; texVuon.flipY = false;
   const uDat = { uVuon: { value: texVuon }, uDo: { value: 0 } };
   function khoacDat(mat) { // gắn vào vật liệu đất chung: chỉ đổi màu khi đang ở kiểu Red Spires
+    Object.assign(mat, { polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 4 }); // đất lùi sau mọi lớp đường ở chỗ gần trùng mặt phẳng
     mat.customProgramCacheKey = () => 'dat-rs';
     mat.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, uDat);
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWd;')
@@ -515,7 +546,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     const ux = (bx - ax) / L, uz = (bz - az) / L, w = RONG[d.lop];
     for (let s = 0; s < L; s += 6) {
       const x = ax + ux * s, z = az + uz * s, kc = Math.hypot(x, z);
-      diem.push({ x, z, ux, uz, w, lop: d.lop, gan: Math.exp(-kc / 900) });
+      diem.push({ x, z, ux, uz, w, lop: d.lop, k: d.k, gan: Math.exp(-kc / 900) });
     }
   }
   let hat = 1234567; const ngau = () => ((hat = (hat * 16807) % 2147483647) / 2147483647);
@@ -624,29 +655,38 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
   }
 
   // trongLong: điểm có nằm trong lòng đường nhựa của một đường xe nào không (kể cả đường CẮT NGANG ở nút giao) — người, sạp, đồ phố không được đặt ở đó
-  const luoiXe = luoiTuyen(ql), trongLong = (x, z, du = 0.6) => luoiXe.xa(x, z, 24, ['lon']).d + D.lon < LONG.lon + du || luoiXe.xa(x, z, 24, ['vua']).d + D.vua < LONG.vua + du;
+  // Đo theo khuôn ngang TỪNG tuyến (d.k), từng phía: phía dải phân cách tính hết tới mép dải (không đặt sạp / người giữa hai nửa đường đôi).
+  const O_L = 40, oL = new Map(), kL = (i, j) => i * 100003 + j;
+  for (const d of ql.daiLo) { const k = d.k; if (!k) continue; const lP = k.giua > 0 ? k.hwP : k.raP, lM = k.giua < 0 ? k.hwM : k.raM, r = Math.max(lP, lM);
+    for (let i = 1; i < d.g.length; i++) { const [ax, az] = d.g[i - 1], [bx, bz] = d.g[i], L = Math.hypot(bx - ax, bz - az); if (L < 0.01) continue; const sg = { ax, az, ux: (bx - ax) / L, uz: (bz - az) / L, L, lP, lM };
+      for (let a = Math.floor((Math.min(ax, bx) - r) / O_L); a <= Math.floor((Math.max(ax, bx) + r) / O_L); a++) for (let b = Math.floor((Math.min(az, bz) - r) / O_L); b <= Math.floor((Math.max(az, bz) + r) / O_L); b++) { const kk = kL(a, b); let l = oL.get(kk); if (!l) oL.set(kk, l = []); l.push(sg); } } }
+  const trongLong = (x, z, du = 0.6) => { for (const sg of oL.get(kL(Math.floor(x / O_L), Math.floor(z / O_L))) || []) {
+    const rx = x - sg.ax, rz = z - sg.az, t = Math.min(sg.L, Math.max(0, rx * sg.ux + rz * sg.uz)), ex = rx - sg.ux * t, ez = rz - sg.uz * t, lg = (ez * sg.ux - ex * sg.uz >= 0 ? sg.lP : sg.lM) + du;
+    if (ex * ex + ez * ez < lg * lg) return true; } return false; };
+  // mép từng phía của một điểm rải: ben = +1 phía s dương. Đường có xe: mep = mép ngoài vỉa hè, ra = mép lòng nhựa, giua = phía dải phân cách (không rải gì)
+  const mepB = (d, ben) => (d.k ? (ben > 0 ? d.k.hwP : d.k.hwM) : d.w / 2), raB = (d, ben) => (d.k ? (ben > 0 ? d.k.raP : d.k.raM) : 0), giuaB = (d, ben) => !!d.k && d.k.giua === ben;
   // rải dọc đại lộ: hai mép có cột đèn + bồn cây xen kẽ, quầy chợ kèm người bán; giữa lối là người đi; ghế, thùng, xe đẩy lác đác
   for (const d of diem) {
-    const huong = Math.atan2(d.ux, d.uz), mep = d.w / 2;
-    if (ngau() < d.gan * 0.55 + 0.05) for (const ben of [-1, 1]) {
+    const huong = Math.atan2(d.ux, d.uz);
+    if (ngau() < d.gan * 0.55 + 0.05) for (const ben of [-1, 1]) { if (giuaB(d, ben)) continue; const mep = mepB(d, ben);
       const r = ngau(), lech = ben * (mep - 1.2), x = d.x - d.uz * lech, z = d.z + d.ux * lech; if (trongLong(x, z, 1.5)) continue;
       if (r < 0.22) datDo[0].push({ x, z, h: huong + (ben > 0 ? -Math.PI / 2 : Math.PI / 2) });
       else if (r < 0.42) datDo[2].push({ x, z, h: ngau() * 6.28 });
       else if (r < 0.5) datDo[1].push({ x: d.x - d.uz * ben * (mep - 2.4), z: d.z + d.ux * ben * (mep - 2.4), h: huong + (ben > 0 ? Math.PI / 2 : -Math.PI / 2) });
     }
     if (d.lop !== 'vua' && datQuay.length < NQ && ngau() < d.gan * 1.1) {
-      const ben = ngau() < 0.5 ? -1 : 1, lech = ben * (mep - 3.4), hq = huong + (ben > 0 ? Math.PI / 2 : -Math.PI / 2);
+      const ben = ngau() < 0.5 ? -1 : 1, mep = mepB(d, ben); if (giuaB(d, ben) || mep - raB(d, ben) < 5) continue; const lech = ben * (mep - 3.4), hq = huong + (ben > 0 ? Math.PI / 2 : -Math.PI / 2);
       const x = d.x - d.uz * lech, z = d.z + d.ux * lech; if (trongLong(x, z, 3.5)) continue; datQuay.push({ x, z, h: hq });
       quay[1].setColorAt(datQuay.length - 1, _c.set(MAU_MAI[(ngau() * MAU_MAI.length) | 0]));
       const lui = ben * (mep - 2.2); themNguoi(d.x - d.uz * lui, d.z + d.ux * lui, hq, 0);              // người bán sau quầy
       if (ngau() < 0.7) { const tr = ben * (mep - 5.6); themNguoi(d.x - d.uz * tr + (ngau() - 0.5), d.z + d.ux * tr + (ngau() - 0.5), hq + Math.PI, 0); } // khách đứng xem
     }
-    if (d.lop !== 'vua' && ngau() < d.gan * 0.12) { const lech = d.lop === 'lon' ? (ngau() < 0.5 ? -1 : 1) * (LONG.lon + 1.2 + ngau() * 5) : (ngau() - 0.5) * d.w * 0.6, x = d.x - d.uz * lech, z = d.z + d.ux * lech;
+    if (d.lop !== 'vua' && ngau() < d.gan * 0.12) { const bn = ngau() < 0.5 ? -1 : 1; if (giuaB(d, bn)) continue; const lech = d.lop === 'lon' ? bn * (raB(d, bn) + 1.2 + ngau() * Math.max(0.5, mepB(d, bn) - raB(d, bn) - 3)) : (ngau() - 0.5) * d.w * 0.6, x = d.x - d.uz * lech, z = d.z + d.ux * lech;
       if (!trongLong(x, z, 1.5)) datDo[ngau() < 0.6 ? 3 : 4].push({ x, z, h: ngau() * 6.28 }); }
   }
   for (let thu = 0; datNguoi.length < NN && thu < NN * 40; thu++) {
     const d = diem[(ngau() * diem.length) | 0]; if (!d || ngau() > d.gan * 1.8) continue;
-    const lg = LONG[d.lop], lech = lg ? (ngau() < 0.5 ? -1 : 1) * (lg + 0.7 + ngau() * (d.w / 2 - lg - 1.3)) : (ngau() - 0.5) * d.w * 0.7, nhoe = lg ? 0.4 : 3; // đường có xe: người chỉ trên vỉa hè
+    const bn = ngau() < 0.5 ? -1 : 1; if (giuaB(d, bn)) continue; const lg = raB(d, bn), lech = d.k ? bn * (lg + 0.7 + ngau() * Math.max(0.2, mepB(d, bn) - lg - 1.3)) : (ngau() - 0.5) * d.w * 0.7, nhoe = d.k ? 0.4 : 3; // đường có xe: người chỉ trên vỉa hè
     const x = d.x - d.uz * lech + (ngau() - 0.5) * nhoe, z = d.z + d.ux * lech + (ngau() - 0.5) * nhoe; if (trongLong(x, z)) continue;
     let di = ngau() < 0.62; // người đi tới lui ±12 m dọc đường: quãng đó cắt ngang một lòng đường thì đứng yên tại chỗ (băng qua đường thật = bước 2 của ô phố mẫu)
     if (di) for (const k of [-12, -6, 6, 12]) if (trongLong(x + d.ux * k, z + d.uz * k)) { di = false; break; }

@@ -84,33 +84,31 @@ export function taoSong({ goc, ql, dsThap, nuaNut, LONG }) {
   const vet = new THREE.InstancedMesh(gVet, vVet, nB * 2);
   for (const m of [thanBay, denTruoc, vet]) { m.frustumCulled = false; goc.add(m); }
 
-  // ---------- xe chạy trên đường có lòng nhựa: đi bên trái (Nhật), làn nằm TRONG lòng đường (LONG của redspires.js), cả làn một tốc độ ----------
+  // ---------- xe chạy trên đường có lòng nhựa: đi bên trái (Nhật), làn nằm TRONG lòng đường (khuôn ngang d.k của redspires.js), cả làn một tốc độ ----------
   // Xe trong một làn giữ khoảng cách với xe trước, dừng ở vạch dừng khi đèn nút giao đang đỏ, và dừng trước vật cản (người chơi, chiếc xe vàng).
-  const LAN = { lon: [1.8, 4.95], vua: [2.75] }, TOC_LAN = { lon: [8.5, 10.5], vua: [8] }; // m lệch tim · m/s (30–38 km/h, tốc độ phố đông)
-  for (const [k, l] of Object.entries(LAN)) if (l[l.length - 1] + 1.1 > LONG[k]) console.error(`[sprawl] làn xe ngoài cùng của đường '${k}' (${l[l.length - 1]} m) tràn khỏi lòng đường ${LONG[k]} m`);
+  // Làn lấy từ KHUÔN NGANG của mỗi tuyến (d.k, redspires.js khuon): đường một chiều (nửa đường đôi) có n làn trải hết lòng [-raM, raP], cùng chiều g;
+  // đường hai chiều chia đôi: m làn mỗi chiều, chiều xuôi nằm phía s âm (bên trái hướng đi). Lệch ben = -s (xem _p.x += _d.z * ben).
+  const TOC = { lon: [9, 11, 12.5], vua: [8, 9] }; // m/s theo làn trong → ngoài (32–45 km/h, phố đông)
+  const lanCua = (k) => { const ds = [];
+    if (k.mot) { const W = k.raP + k.raM, n = Math.max(1, Math.min(k.lan, Math.floor(W / 2.6))); for (let li = 0; li < n; li++) ds.push({ li, ben: -(-k.raM + 0.4 + (li + 0.5) * (W - 0.8) / n), chieu: 1 }); }
+    else { const a = Math.min(k.raP, k.raM), m = Math.max(1, Math.min(Math.floor(k.lan / 2), Math.floor((a - 0.3) / 2.6))); for (let li = 0; li < m; li++) { const ben = 0.3 + (li + 0.5) * (a - 0.6) / m; ds.push({ li, ben, chieu: 1 }, { li, ben, chieu: -1 }); } }
+    for (const l of ds) { const sl = -l.ben * l.chieu; if (Math.abs(sl) + 0.9 > (sl >= 0 ? k.raP : k.raM) + 1e-6) console.error(`[sprawl] làn xe ở s=${sl.toFixed(2)} m tràn khỏi lòng đường`, k); } // thân xe rộng 1,8 m
+    return ds; };
   // Dữ liệu có tuyến lặp y hệt (cùng hai đầu mút, cùng số điểm): giữ một, không thì hai đoàn xe chạy chồng lên nhau.
   const daTuyen = new Set(), khoaTuyen = (g) => { const a = g[0], b = g[g.length - 1], k1 = Math.round(a[0]) + ',' + Math.round(a[1]), k2 = Math.round(b[0]) + ',' + Math.round(b[1]); return (k1 < k2 ? k1 + '|' + k2 : k2 + '|' + k1) + '|' + g.length; };
   const huongNut = new Map(); // nút giao → hướng (0–π) của tuyến đầu tiên tới đó; tuyến lệch quá 45° so với nó thuộc nhóm đèn kia
-  const tuyenXe = ql.daiLo.filter((d) => { if (!LAN[d.lop]) return false; const k = khoaTuyen(d.g); if (daTuyen.has(k)) return false; daTuyen.add(k); return true; }).map((d) => { const t = { lop: d.lop, ...taoTuyen(d.g, 15), nut: [] };
+  const tuyenXe = ql.daiLo.filter((d) => { if (!d.k) return false; const k = khoaTuyen(d.g); if (daTuyen.has(k)) return false; daTuyen.add(k); return true; }).map((d) => { const t = { lop: d.lop, k: d.k, ...taoTuyen(d.g, 15), nut: [] };
     let sd = 0; for (let i = 0; i < d.g.length; i++) { if (i) sd += Math.hypot(d.g[i][0] - d.g[i - 1][0], d.g[i][1] - d.g[i - 1][1]);
       const h = nuaNut(d.lop, d.g[i]); if (!h) continue; const a = d.g[Math.max(0, i - 1)], b = d.g[Math.min(d.g.length - 1, i + 1)];
       const kn = Math.round(d.g[i][0]) + ',' + Math.round(d.g[i][1]), goc = (Math.atan2(b[1] - a[1], b[0] - a[0]) + Math.PI) % Math.PI; if (!huongNut.has(kn)) huongNut.set(kn, goc);
       const lech = Math.abs(goc - huongNut.get(kn));
       t.nut.push({ s: sd, h, nhom: Math.min(lech, Math.PI - lech) > Math.PI / 4 ? 1 : 0, pha: (Math.abs(Math.round(d.g[i][0]) * 7 + Math.round(d.g[i][1]) * 13) % 36) }); } // hai đường cắt nhau cùng điểm nút → cùng pha, khác nhóm
     return t; }).filter((t) => t.L > 60);
-  // Đại lộ đôi: dữ liệu vẽ mỗi chiều thành một tuyến riêng chạy song song cách nhau dưới 26 m. Mỗi nửa chỉ chạy MỘT chiều —
-  // chiều nào để nửa kia nằm bên phải (đi bên trái) — không thì xe hai nửa lao ngược vào nhau ở dải giữa.
-  for (const t of tuyenXe) { let trai = 0, phai = 0, mau = 0;
-    for (let i = 1; i < t.P.length; i += 2) { const p = t.P[i], q = t.P[i - 1], ux = p.x - q.x, uz = p.z - q.z, ul = Math.hypot(ux, uz) || 1; mau++; let gan = 26 * 26, ben = 0;
-      for (const o of tuyenXe) { if (o === t) continue; for (let j = 1; j < o.P.length; j++) { const a = o.P[j], rx = a.x - p.x, rz = a.z - p.z, k = rx * rx + rz * rz; if (k >= gan) continue;
-        const b = o.P[j - 1], vx = a.x - b.x, vz = a.z - b.z; if (Math.abs(ux * vx + uz * vz) < 0.85 * ul * (Math.hypot(vx, vz) || 1)) continue; // phải gần song song
-        const lech = (rx * uz - rz * ux) / ul; if (Math.abs(lech) < 3) continue; gan = k; ben = lech; } } // lech > 0: tuyến kia nằm phía các làn chiều xuôi của tuyến này
-      if (ben > 0) trai++; else if (ben < 0) phai++; }
-    t.motChieu = trai + phai > mau * 0.5 ? (phai >= trai ? 1 : -1) : 0; }
+  // Đại lộ đôi: mỗi nửa là tuyến một chiều riêng (d.k.mot, từ dữ liệu oneway) → không còn đoán chiều theo tuyến song song.
   const xe = [], lanXe = [], rX = gieo(23);
-  for (const t of tuyenXe) for (const [li, ben] of LAN[t.lop].entries()) for (const chieu of t.motChieu ? [t.motChieu] : [1, -1]) {
+  for (const t of tuyenXe) for (const { li, ben, chieu } of lanCua(t.k)) { const toc = TOC[t.lop]; 
     const n = Math.floor(t.L / (42 + li * 14)), lan = [];
-    for (let k = 0; k < n; k++) { const c = { t, s: (k + rX() * 0.5) / n * t.L, v: 0, vMuon: TOC_LAN[t.lop][li], chieu, ben, cao: rX() < 0.12 ? 1 : 0, x: 0, z: 0 }; lan.push(c); xe.push(c); }
+    for (let k = 0; k < n; k++) { const c = { t, s: (k + rX() * 0.5) / n * t.L, v: 0, vMuon: toc[Math.min(li, toc.length - 1)], chieu, ben, cao: rX() < 0.12 ? 1 : 0, x: 0, z: 0 }; lan.push(c); xe.push(c); }
     if (lan.length) lanXe.push(lan); // trong một làn thứ tự s không đổi (không vượt nhau)
   }
   const CHU_KY = 36, XANH = 15; // đèn: nhóm 0 xanh giây 0–15, nhóm 1 xanh giây 18–33, giữa hai lượt 3 giây đỏ cả hai cho xe thoát nút

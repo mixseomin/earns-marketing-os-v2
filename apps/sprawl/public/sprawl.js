@@ -239,7 +239,7 @@ if (toi) {
   camUng = taoCamUng({ dom: renderer.domElement, di, nut: [
     { id: 'nhay', chu: () => (di.nguCanh() === 'leo' ? 'Bật ra' : di.nguCanh() === 'tuong' ? 'Leo' : 'Nhảy'), bam: () => camUng.nhay() },
     { id: 'goc', chu: () => '👁', bam: () => di.doiGocNhin() },
-    { id: 'xe', chu: () => (xe.dangLai ? 'Xuống' : xe.gan() ? 'Lái xe' : null), bam: () => xe.doi() },
+    { id: 'xe', chu: () => (xe.dangLai ? 'Xuống' : xe.gan() ? 'Lái xe' : 'Gọi xe'), bam: () => xe.doi() }, // E / nút: ở đâu cũng gọi được xe tới
   ] });
 }
 function diBo() { // đứng xuống mặt đất ngay dưới tâm nhìn, quay mặt theo hướng camera đang nhìn

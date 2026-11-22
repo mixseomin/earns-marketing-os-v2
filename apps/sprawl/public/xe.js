@@ -8,7 +8,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 const BANH_R = 0.32, NGHI = 0.3, NOI_Y = -0.05; // bán kính bánh, độ dài nghỉ của giảm xóc, cao độ điểm treo so với tâm thân
 const BANH = [[0.8, 1.35], [-0.8, 1.35], [0.8, -1.35], [-0.8, -1.35]]; // x (trái +), z (mũi +) — hai bánh đầu là bánh lái
 const GHE = { x: -0.36, y: -0.12, z: -0.1 }; // tay lái bên phải như xe Nhật
-const TOC_MAX = 13, TOC_LUI = 5, LUC = 800, PHANH = 45; // 13 m/s ≈ 47 km/h: tốc độ phố đông, nhỉnh hơn dòng xe chung quanh (8–10 m/s) · m/s, N mỗi bánh, xung phanh mỗi bánh mỗi bước
+const TOC_MAX = 24, TOC_NHANH = 40, TOC_LUI = 7, LUC = 1500, PHANH = 45; // 24 m/s ≈ 86 km/h; giữ Shift: 40 m/s ≈ 144 km/h (anh chê chậm 23/11/2026) · m/s, N mỗi bánh, xung phanh mỗi bánh mỗi bước
 
 function hop(w, h, d, x, y, z, mau) {
   const g = new THREE.BoxGeometry(w, h, d).translate(x, y, z), c = new THREE.Color(mau), n = g.attributes.position.count, a = new Float32Array(n * 3);
@@ -61,28 +61,30 @@ export function taoXe({ RAPIER, world, scene, toi, layDi, datTai, bao = () => {}
   const api = {
     than, dk, goc, get dangLai() { return dangLai; }, get toc() { return dk.currentVehicleSpeed(); }, huong, dat,
     gan() { if (!daDat) return false; const p = layDi().viTri(), q = than.translation(); return Math.hypot(p.x - q.x, p.z - q.z) < 3.4 && Math.abs(p.y - q.y) < 3; },
-    goiNeuXa(x, y, z, h) { // người vừa đứng xuống: xe ở xa quá 150 m (hoặc chưa có) thì đỗ sẵn bên phải, cách 3 m
-      const q = than.translation(); if (dangLai || (daDat && Math.hypot(x - q.x, z - q.z) < 150)) return;
+    goiNeuXa(x, y, z, h, luon) { // người vừa đứng xuống: xe ở xa quá 150 m (hoặc chưa có) thì đỗ sẵn bên phải, cách 3 m · luon: gọi xe tới dù gần hay xa (phím E khi xe không ở cạnh)
+      const q = than.translation(); if (dangLai || (!luon && daDat && Math.hypot(x - q.x, z - q.z) < 150)) return;
       const cx = x - Math.cos(h) * 3, cz = z + Math.sin(h) * 3, tia = world.castRay(new RAPIER.Ray({ x: cx, y: y + 3, z: cz }, { x: 0, y: -1, z: 0 }), 12, true, RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC | RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC);
       dat(cx, tia ? y + 3 - tia.timeOfImpact : y, cz, h);
     },
-    len() { if (dangLai || !api.gan()) return; dangLai = true; layDi().va.setEnabled(false); bao('W S: ga, lùi · A D: lái · Space: phanh · E: xuống xe'); },
+    len() { if (dangLai || !api.gan()) return; dangLai = true; layDi().va.setEnabled(false); bao('W S: ga, lùi · A D: lái · Shift: tăng tốc · Space: phanh · E: xuống xe'); },
     xuong() { if (!dangLai) return; dangLai = false; vao = { fx: 0, fz: 0, phanh: false }; const di = layDi(), q = than.translation(), h = huong(); // xuống bên ghế lái (phải); bên đó sát tường thì xuống bên trái
       const ket = world.castRay(new RAPIER.Ray({ x: q.x, y: q.y + 0.5, z: q.z }, { x: -Math.cos(h), y: 0, z: Math.sin(h) }), 2.6, true, RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC | RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC);
       const p = diem(ket ? 1.75 : -1.75, 0.5, GHE.z); di.va.setEnabled(true); di.datCho(p, null, null, h); },
-    doi() { if (dangLai) api.xuong(); else api.len(); },
+    doi() { if (dangLai) return api.xuong(); // ở đâu cũng lấy được xe: xe không ở cạnh thì gọi tới đỗ sát bên phải rồi lên luôn
+      if (!api.gan()) { const di = layDi(), p = di.viTri(), h = di.huongMat?.() ?? huong(); api.goiNeuXa(p.x, p.y - 0.3, p.z, h, true); if (!api.gan()) { const q = than.translation(); di.datCho({ x: q.x + Math.cos(huong()) * 1.75, y: q.y + 0.5, z: q.z - Math.sin(huong()) * 1.75 }, null, null, huong()); } }
+      api.len(); },
     lai(dt, tr) { // móc ngoai.buoc của bộ đi bộ: đang lái thì nhận phím, người không tự đi
-      if (!dangLai) return false; const di = layDi(); vao = { fx: tr.fx, fz: tr.fz, phanh: !!di.phim.Space };
+      if (!dangLai) return false; const di = layDi(); vao = { fx: tr.fx, fz: tr.fz, phanh: !!di.phim.Space, nhanh: !!(di.phim.ShiftLeft || di.phim.ShiftRight) };
       const p = than.translation(); di.than.setTranslation({ x: p.x, y: p.y + 0.6, z: p.z }, true); // thân người bám theo xe: máy quay + nạp ô va chạm lấy chỗ này
       const v = dk.currentVehicleSpeed();
       if (Math.abs(v) > 1.5 && performance.now() - di.lucChuot > 1500) { const muon = huong() - Math.PI, lech = Math.atan2(Math.sin(muon - di.yaw), Math.cos(muon - di.yaw)); di.yaw += lech * (1 - Math.exp(-dt * 2.6)); } // máy quay tự về sau đuôi xe
       return true;
     },
     buoc(dt) { // mỗi bước vật lý, trước world.step — cả khi đỗ (không gọi thì giảm xóc không đỡ thân)
-      if (!daDat) return; const v = dk.currentVehicleSpeed(), { fx, fz, phanh } = vao;
+      if (!daDat) return; const v = dk.currentVehicleSpeed(), { fx, fz, phanh, nhanh } = vao, tMax = nhanh ? TOC_NHANH : TOC_MAX;
       let luc = 0, ham = dangLai ? 1.5 : PHANH;
       if (phanh) ham = PHANH * 1.3;
-      else if (fz > 0.05) { if (v < -0.6) ham = PHANH; else luc = LUC * fz * Math.max(0, 1 - v / TOC_MAX); }
+      else if (fz > 0.05) { if (v < -0.6) ham = PHANH; else luc = LUC * (nhanh ? 1.6 : 1) * fz * Math.max(0, 1 - v / tMax); }
       else if (fz < -0.05) { if (v > 0.6) ham = PHANH; else luc = LUC * 0.7 * fz * Math.max(0, 1 + v / TOC_LUI); }
       const laiMuon = -fx * 0.55 / (1 + Math.abs(v) / 9); lai += (laiMuon - lai) * (1 - Math.exp(-dt * 7));
       for (let i = 0; i < 4; i++) { dk.setWheelEngineForce(i, luc); dk.setWheelBrake(i, luc ? 0 : ham); dk.setWheelSteering(i, i < 2 ? lai : 0); }

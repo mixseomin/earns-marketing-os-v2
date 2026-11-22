@@ -57,7 +57,12 @@ for (const e of osmTuyen) {
   const t = e.tags || {}; if (!e.geometry) continue; const g = e.geometry.map((p) => xz(p.lat, p.lon));
   if (t.highway) {
     const lop = LOP_DUONG[t.highway] || (t.highway === 'pedestrian' && t.name ? 'dibo' : 'nho');
-    if (lop === 'lon' || lop === 'vua' || lop === 'dibo') ql.daiLo.push({ lop, ten: t.name || '', g });
+    if (lop === 'lon' || lop === 'vua' || lop === 'dibo') { const d = { lop, ten: t.name || '', g };
+      // OSM vẽ đường đôi thành HAI tuyến một chiều song song: giữ chiều (mot = 1: xe đi theo thứ tự điểm g, oneway=-1 thì đảo g) + số làn để vẽ đúng từng nửa
+      const mc = t.oneway === '-1' ? -1 : (['yes', 'true', '1'].includes(t.oneway) || t.junction === 'roundabout' || (t.highway === 'motorway' && t.oneway !== 'no')) ? 1 : 0;
+      if (mc && lop !== 'dibo') { if (mc < 0) g.reverse(); d.mot = 1; }
+      const lan = parseInt(t.lanes, 10); if (lan > 0 && lan < 12 && lop !== 'dibo') d.lan = lan;
+      ql.daiLo.push(d); }
     else ql.pho.push(g);
   } else if (t.railway) ql.tau.push(g);
   else ql.vuon.push({ ten: t.name || '', g });
@@ -76,6 +81,23 @@ for (const t of ql.thap) {
 }
 ql.thap = gop.map((t, i) => ({ ...t, id: i }));
 // làn xe bay: chạy trên đại lộ lớn, độ cao 140–220 m
+// nửa kia của đường đôi: tuyến một chiều khác, NGƯỢC chiều, gần song song, cách ≤ 40 m. doi = khoảng cách có dấu từ tim tuyến này tới tim nửa kia
+// (dương = phía phải theo chiều xe, cùng quy ước s của dải đường trong redspires.js). Tuyến khớp < 50% chiều dài thì coi như không có nửa kia.
+{ const mot = ql.daiLo.filter((d) => d.mot), O = 50, o = new Map(), kk = (i, j) => i * 100003 + j;
+  for (const d of mot) for (let i = 1; i < d.g.length; i++) { const [ax, az] = d.g[i - 1], [bx, bz] = d.g[i];
+    for (let a = Math.floor((Math.min(ax, bx) - 40) / O); a <= Math.floor((Math.max(ax, bx) + 40) / O); a++) for (let b = Math.floor((Math.min(az, bz) - 40) / O); b <= Math.floor((Math.max(az, bz) + 40) / O); b++) { const k = kk(a, b); if (!o.has(k)) o.set(k, []); o.get(k).push({ d, ax, az, bx, bz }); } }
+  let coDoi = 0;
+  for (const d of mot) { const lech = []; let mau = 0;
+    for (let i = 1; i < d.g.length; i++) { const [ax, az] = d.g[i - 1], [bx, bz] = d.g[i], L = Math.hypot(bx - ax, bz - az); if (L < 0.5) continue; const ux = (bx - ax) / L, uz = (bz - az) / L;
+      for (let s = Math.min(5, L / 2); s < L; s += 10) { mau++; const px = ax + ux * s, pz = az + uz * s; let best = null;
+        for (const q of o.get(kk(Math.floor(px / O), Math.floor(pz / O))) || []) { if (q.d === d) continue; const vx = q.bx - q.ax, vz = q.bz - q.az, vl = Math.hypot(vx, vz); if (vl < 0.5) continue;
+          if ((ux * vx + uz * vz) / vl > -0.9) continue; // phải ngược chiều, lệch < 25°
+          const t = Math.max(0, Math.min(1, ((px - q.ax) * vx + (pz - q.az) * vz) / (vl * vl))), cx = q.ax + vx * t - px, cz = q.az + vz * t - pz, kc = Math.hypot(cx, cz);
+          if (kc > 40 || kc < 2 || (best && kc >= Math.abs(best))) continue; best = (cx * -uz + cz * ux) >= 0 ? kc : -kc; } // (-uz, ux) = phía s dương
+        if (best !== null) lech.push(best); } }
+    if (lech.length < mau * 0.5) continue; const duong = lech.filter((x) => x > 0).length, cung = lech.filter((x) => (x > 0) === (duong * 2 >= lech.length)).map(Math.abs).sort((a, b) => a - b);
+    d.doi = Math.round(cung[cung.length >> 1] * 10) / 10 * (duong * 2 >= lech.length ? 1 : -1); coDoi++; }
+  console.log(`đường một chiều ${mot.length} · có nửa kia (đường đôi) ${coDoi}`); }
 ql.lanBay = ql.daiLo.filter((d) => d.lop === 'lon' && d.g.length > 3).map((d, i) => ({ cao: 140 + (i % 4) * 25, g: d.g.filter((_, k) => k % 3 === 0 || k === d.g.length - 1) }));
 // vành khối khổng lồ mờ xa (nền ảnh mẫu): 18 khối ngoài vùng, 2,2–4 km
 for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2 + (i % 3) * 0.11, r = 2200 + ((i * 577) % 1800); ql.khoiXa.push({ o: [Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r)], cao: 350 + ((i * 331) % 450), rong: 90 + ((i * 97) % 120) }); }

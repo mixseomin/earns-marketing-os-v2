@@ -38,23 +38,25 @@ export function taoNguoiGan({ tuyen, LOP, LONG, nuaNut, vatTinh, nguoi, bo, geos
   function dungLuoi(tx, tz) {
     cx = tx; cz = tz; x0 = cx - NUA; z0 = cz - NUA; bit = new Uint8Array(N * N); vid = new Int16Array(N * N).fill(-1); vach = [];
     const xa = x0 - 30, xb = x0 + 2 * NUA + 30, za = z0 - 30, zb = z0 + 2 * NUA + 30;
-    for (const t of tuyen) { if (t.lop === 'tau') continue; const hw = LOP[t.lop].hw, lg = LONG[t.lop] || 0, g = t.g;
+    for (const t of tuyen) { if (t.lop === 'tau') continue; const k = t.k, hw = t.hw, lg = k ? Math.max(k.raP, k.raM) : 0, g = t.g;
+      // khuôn ngang từng phía (s > 0 = bên phải hướng g): hwS = mép ngoài, lgS = mép lòng nhựa; phía dải phân cách (giua) cấm đi hết bề ngang, chỉ qua ở vạch
+      const hwP = k ? k.hwP : hw, hwM = k ? k.hwM : hw, lgP = !k ? 0 : k.giua > 0 ? k.hwP : k.raP, lgM = !k ? 0 : k.giua < 0 ? k.hwM : k.raM;
       for (let s = 1; s < g.length; s++) { const [ax, az] = g[s - 1], [bx, bz] = g[s];
         if (Math.max(ax, bx) < xa || Math.min(ax, bx) > xb || Math.max(az, bz) < za || Math.min(az, bz) > zb) continue;
-        const L = Math.hypot(bx - ax, bz - az); if (L < 0.01) continue; const ux = (bx - ax) / L, uz = (bz - az) / L, hw2 = hw * hw, lg2 = lg * lg;
+        const L = Math.hypot(bx - ax, bz - az); if (L < 0.01) continue; const ux = (bx - ax) / L, uz = (bz - az) / L;
         for (let a = 0; a < L; a += 10) { const b = Math.min(L, a + 10), px = ax + ux * a, pz = az + uz * a, qx = ax + ux * b, qz = az + uz * b, l = b - a;
           to(Math.min(px, qx) - hw, Math.min(pz, qz) - hw, Math.max(px, qx) + hw, Math.max(pz, qz) + hw, (k, x, z) => {
-            const rx = x - px, rz = z - pz, d = Math.min(l, Math.max(0, rx * ux + rz * uz)), ex = rx - ux * d, ez = rz - uz * d, d2 = ex * ex + ez * ez;
-            if (d2 < hw2) bit[k] |= B_DUONG; if (lg && d2 < lg2) bit[k] |= B_LONG; }); } }
+            const rx = x - px, rz = z - pz, d = Math.min(l, Math.max(0, rx * ux + rz * uz)), ex = rx - ux * d, ez = rz - uz * d, d2 = ex * ex + ez * ez, P = ez * ux - ex * uz >= 0, h = P ? hwP : hwM, lgS = P ? lgP : lgM;
+            if (d2 < h * h) bit[k] |= B_DUONG; if (lgS && d2 < lgS * lgS) bit[k] |= B_LONG; }); } }
       if (!lg) continue;
       // vạch qua đường: dải h+1,2 … h+5,2 m tính từ nút, ngang hết lòng đường (đúng chỗ shader vẽ ngựa vằn)
       g.forEach((p, i) => { const h = nuaNut(t.lop, p); if (!h || p[0] < xa || p[0] > xb || p[1] < za || p[1] > zb) return;
         for (const j of [i - 1, i + 1]) { const nb = g[j]; if (!nb) continue; const L = Math.hypot(nb[0] - p[0], nb[1] - p[1]); if (L < h + 6) continue;
-          const ux = (nb[0] - p[0]) / L, uz = (nb[1] - p[1]) / L, w = lg + 0.3, id = vach.length; if (id > 32000) return;
+          const ux = (nb[0] - p[0]) / L, uz = (nb[1] - p[1]) / L, xuoi = j > i, wP = (xuoi ? lgP : lgM) + 0.3, wM = (xuoi ? lgM : lgP) + 0.3, id = vach.length; if (id > 32000) return; // đi ngược g thì hai phía đổi chỗ
           vach.push({ nx: p[0], nz: p[1], ux, uz, h, lg });
-          const s0 = h + 1.2, s1 = h + 5.2, cs = [[s0, -w], [s0, w], [s1, -w], [s1, w]].map(([s, n]) => [p[0] + ux * s - uz * n, p[1] + uz * s + ux * n]);
+          const s0 = h + 1.2, s1 = h + 5.2, cs = [[s0, -wM], [s0, wP], [s1, -wM], [s1, wP]].map(([s, n]) => [p[0] + ux * s - uz * n, p[1] + uz * s + ux * n]);
           to(Math.min(...cs.map((c) => c[0])), Math.min(...cs.map((c) => c[1])), Math.max(...cs.map((c) => c[0])), Math.max(...cs.map((c) => c[1])), (k, x, z) => {
-            const rx = x - p[0], rz = z - p[1], s = rx * ux + rz * uz, n = Math.abs(rz * ux - rx * uz); if (s >= s0 && s <= s1 && n < w) { bit[k] |= B_VACH; vid[k] = id; } }); } }); }
+            const rx = x - p[0], rz = z - p[1], s = rx * ux + rz * uz, n = rz * ux - rx * uz; if (s >= s0 && s <= s1 && n < wP && n > -wM) { bit[k] |= B_VACH; vid[k] = id; } }); } }); }
     // vật cản đứng yên: quầy, đồ phố, cây, người đứng (người bán, khách xem)
     for (const [ds, r] of vatTinh) for (const o of ds) { if (o.x < xa || o.x > xb || o.z < za || o.z > zb) continue; const r2 = r * r;
       to(o.x - r, o.z - r, o.x + r, o.z + r, (k, x, z) => { if ((x - o.x) ** 2 + (z - o.z) ** 2 < r2) bit[k] |= B_CAN; }); }

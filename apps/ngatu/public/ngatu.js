@@ -498,7 +498,7 @@ function vuong(a, x, z, g, xT, zT, gT) {
         // Trần cứng 2,5 lần mức sượt: trong trần đó được cạ trượt qua nhau (thân xoay theo đường cong lún thêm vài mm là
         // thật), vượt trần là chặn — nên không bao giờ thành xuyên. Đòi "không sâu thêm 1 mm nào" là hai xe cắt nhau khoá chết.
         if (o0 <= CHAM * 2.5 && o <= CHAM * 2.5) continue;
-        // Xe máy kẹt lâu (> 3 s) len qua xe máy khác: hai xe máy VN lách sát, gương sượt gương — cho thân chồng tới 0,3 m
+        // Xe máy kẹt lâu (> 3 s) len qua xe máy khác: hai xe máy VN lách sát, gương sượt gương — cho thân chồng tới 0,2 m (sâu hơn nhìn như dính nhau, anh 22/11/2026)
         // khi đang TIẾN tới (không lùi, không bị đẩy). Thay nước lùi / dắt dạt ngang đã bỏ (anh 22/11/2026); không có nước
         // này lòng ngã tư khoá cứng khi đông (link anh gửi: 35 xe kẹt lòng).
         // Hai xe máy đã lỡ chồng sườn nhau, nằm gần song song (lệch < 25°): đi tới theo thân mà chỗ chồng KHÔNG sâu thêm là
@@ -506,7 +506,7 @@ function vuong(a, x, z, g, xT, zT, gT) {
         // 22/11/2026 khoanh ảnh: "sao 2 con này lại dừng lại"). Lệch góc lớn thì không áp — trượt chéo mới thành xuyên.
         if (a.loai === 'xm' && j.loai === 'xm' && o0 > CHAM && o0 <= 0.4 && o <= o0 + 1e-6 &&
           Math.abs(Math.cos(g - j.goc)) > 0.9 && (x - xT) * Math.cos(g) - (z - zT) * Math.sin(g) > 0) continue;
-        if (a.loai === 'xm' && j.loai === 'xm' && (a.ket > 3 || a.lui > 0) && o <= 0.3 && o0 <= 0.3) continue;
+        if (a.loai === 'xm' && j.loai === 'xm' && (a.ket > 3 || a.lui > 0) && o <= 0.2 && o0 <= 0.2) continue;
         vuongJ = j; return true;
       }
     }
@@ -652,9 +652,16 @@ function buocXe(a, dt) {
         // lưng họ"). Chỉ khi phía sau lưng họ còn đủ chỗ cho thân mình; người còn chắn ngay trước mũi thì vẫn chờ.
         if (j.loai === 'bo' && j.trenDuong && lon > 0.1 && lon < 6 && !j.choXe) {
           const sJ = j.fx * rx + j.fz * rz;
-          if (Math.abs(sJ) > 0.5 && lat * sJ > 0 && Math.abs(lat) > 0.25) {
-            const lui = -Math.sign(sJ) * (nL + 0.35 - Math.abs(lat)); // cần dạt bao xa về phía sau lưng người
-            if (Math.abs(lui) < (xm ? 1.6 : 1.2)) { neBo = Math.abs(lui) > Math.abs(neBo) ? lui : neBo; if (lon - hl < boG) { boG = lon - hl; boJ = j; } continue; }
+          // Xe máy VN không đứng nhường người đi bộ khi vượt được (anh 22/11/2026): người còn trước mũi cũng vòng qua —
+          // ưu tiên phía sau lưng người (họ đang bước ra xa), người đi dọc đường thì bên nào dạt ít hơn. Ô tô giữ luật cũ.
+          let lui = null;
+          if (Math.abs(sJ) > 0.5 && lat * sJ > 0 && Math.abs(lat) > 0.25) lui = -Math.sign(sJ) * (nL + 0.35 - Math.abs(lat));
+          else if (xm && !j.nga) {
+            const dT = lat + (nL + 0.35), dP = lat - (nL + 0.35); // dạt để người nằm hẳn bên phải / bên trái mình
+            lui = Math.abs(sJ) > 0.5 ? (sJ > 0 ? dP : dT) : Math.abs(dT) < Math.abs(dP) ? dT : dP;
+          }
+          if (lui !== null) {
+            if (Math.abs(lui) < (xm ? 2.0 : 1.2)) { neBo = Math.abs(lui) > Math.abs(neBo) ? lui : neBo; if (lon - hl < boG) { boG = lon - hl; boJ = j; } continue; }
           }
         }
         if (lon > 0.1 && j.fx * fx + j.fz * fz < 0.7 && hon(j, a) && !(j.lui > 0) && (j.loai === 'bo' ? j.trenDuong : !chanMui(a, j) || chanMui(j, a)) && !choMinh()) {
@@ -926,6 +933,32 @@ function buocXe(a, dt) {
             goc = datCho(a, sTruoc, dTruoc, kTruoc); if (ket(goc)) goc = gT;
           }
         }
+      }
+    }
+  }
+  // Hai xe máy đứng dính thân nhau (lỡ sượt sâu khi lách, rồi cả hai cùng đứng): người lái chống chân dắt xe tách ra
+  // ~0,35 m/s theo hướng rời xa xe kia, chỉ những bước làm chỗ chồng NÔNG đi và không lấn ai khác (chốt va chạm). Không
+  // có nước này hai xe dính nhau mãi không tách (anh 22/11/2026 khoanh ảnh). Chỉ tách chồng — không trượt vào chỗ trống.
+  if (xm && a.sp < 0.4 && !a.nga) { // cả lúc đang bò chậm trong nút: bò mà vẫn dính thì vẫn tách
+    let jD = null, oD = CHAM * 1.5;
+    const cx2 = cellX(a.x), cz2 = cellX(a.z);
+    for (let gx = cx2 - 1; gx <= cx2 + 1; gx++) for (let gz = cz2 - 1; gz <= cz2 + 1; gz++) {
+      if (gx < 0 || gx >= G || gz < 0 || gz >= G) continue;
+      for (let k = head[gx * G + gz]; k !== -1; k = nxt[k]) {
+        const j = DS[k];
+        if (!j || j === a || j.loai !== 'xm' || j.y > 2) continue;
+        const o = lanSau(a.x, a.z, a.goc, a.len, a.wid, j);
+        if (o > oD) { oD = o; jD = j; }
+      }
+    }
+    if (jD) {
+      const vx = a.x - jD.x, vz = a.z - jD.z, l = Math.hypot(vx, vz) || 1, b = 0.35 * dt;
+      const ds = ((vx * a.fx + vz * a.fz) / l) * b, dd = ((vx * -a.fz + vz * a.fx) / l) * b;
+      const s0 = a.s, d0 = a.dlat, x0 = a.x, z0 = a.z;
+      for (const [u, w] of [[ds, dd], [0, Math.sign(dd || 1) * b], [Math.sign(ds || 1) * b, 0]]) {
+        datCho(a, s0 + u, d0 + w, a.k);
+        if (!vuong(a, a.x, a.z, goc, x0, z0, goc) && lanSau(a.x, a.z, goc, a.len, a.wid, jD) < oD) { a.lv = 0; break; }
+        datCho(a, s0, d0, a.k);
       }
     }
   }

@@ -162,8 +162,14 @@ submit)
   fi
   la_hoi=$(psql "$DATABASE_URL" -At -c "SELECT (COALESCE(prep_payload->>'loai','') = 'cau_hoi' OR title LIKE 'Hỏi: %') FROM human_tasks WHERE id = $id AND $SCOPE")
   if [ "$la_hoi" != "t" ] && [ "$P" != "spy" ]; then
+    repo=""; sha=""
     if [[ "$url" =~ ^https://github\.com/mixseomin/([A-Za-z0-9._-]+)/commit/([0-9a-f]{7,40})$ ]]; then
       repo="${BASH_REMATCH[1]}"; sha="${BASH_REMATCH[2]}"
+    elif [[ "$url" =~ ^https://dantranh\.on\.tc(/[^[:space:]]*)?[?\&#]commit=([0-9a-f]{7,40})$ ]]; then
+      # dantranh không có trên GitHub (repo chỉ ở iMac) → link trang thật kèm mã commit: https://dantranh.on.tc/<trang>#commit=<sha> (hoặc ?commit=<sha>)
+      repo=dantranh; sha="${BASH_REMATCH[2]}"
+    fi
+    if [ -n "$repo" ]; then
       case "$repo" in
         cty) dir=/opt/cty ;;
         earns-marketing-os-v2) dir=/opt/earns-marketing-os-v2 ;;
@@ -181,7 +187,7 @@ submit)
         echo "submit #$id bị chặn: commit $sha chưa nằm trong bản đang chạy trên box3 ($dir đang ở $(git -C "$dir" log -1 --format=%h)) — push chưa thành công hoặc deploy chưa xong. Chờ deploy xanh, kiểm trên trang thật, rồi mới nộp." >&2; exit 1
       fi
     else
-      echo "submit #$id bị chặn: nộp Review phải kèm link commit đã lên máy chủ: https://github.com/mixseomin/<repo>/commit/<sha> (card câu hỏi thì không cần)." >&2; exit 1
+      echo "submit #$id bị chặn: nộp Review phải kèm link commit đã lên máy chủ: https://github.com/mixseomin/<repo>/commit/<sha> — repo dantranh (không có trên GitHub): https://dantranh.on.tc/<trang>#commit=<sha> (card câu hỏi thì không cần)." >&2; exit 1
     fi
   fi
   them_tin "$id" "$loi" | bat_buoc_trung "$id"

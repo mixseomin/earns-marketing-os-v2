@@ -224,7 +224,9 @@
 }
 
 @media (max-width: 768px) {
-  .hm { height: auto; min-height: 100dvh; display: block; }
+  /* góp ý #1760: body toàn app là overflow:hidden (globals.css) → .hm cao tự do bị cắt, không cuộn được.
+     Trên điện thoại .hm tự làm hộp cuộn dọc cao đúng màn (đầu trang sticky vẫn bám trong hộp này). */
+  .hm { height: 100dvh; display: block; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
   .hm-hd { position: sticky; top: 0; z-index: 104; min-height: 44px; }
   .hm-chi-may { display: none !important; }
   .hm-chi-dt { display: inline-block; }

@@ -23,7 +23,6 @@ Chạy trên box3 (khoá ở studio):
     Tạo xong đọc lại: mức ROAS sai → tạm dừng camp ngay + báo lỗi (Support: "nhập sai là lỗi camp"). --tam-dung = để PAUSED chờ anh review.
   python3 nhan-ban.py <camp_khuôn> --roas 1 --creative <id> --content <id> --ten "<tên>" [--bo <bộ>] [--ns 5] --that …   → ★ ROAS TỪ CREATIVE MỚI (anh 18/11/2026,
     đợt lên hồi chợ apps/etp/hoi_cho.py — sổ luật hoi_cho): ad = creative mới (chấm Sạch, chưa có camp), ngân sách $5–10 (ns_khoang), tên "★ ROAS 1 · <tên> roas 1".
-  … [--mien <miền>]   → mọi lệnh tạo / nhân bản bằng creative: đổi miền trang đích của ad (mặc định giữ miền camp gốc), anh 23/11/2026
   python3 nhan-ban.py <camp_gốc> --hoi-cho --nac --that …   → NHÂN BẢN BÀI CŨ của camp từng lãi trước đợt sụt (đợt hồi chợ): gốc đã tắt vẫn dùng được bài đăng; không dùng được bài cũ thì thôi.
   ETP_SUA_NGUOI=<nguoi_id> python3 nhan-ban.py <camp_gốc> [--roas …] --that …   → CAMP CỦA NGƯỜI TRONG TEAM (Luật tự động, anh 31/10/2026: "giống hệt nhà nhưng chỉ
     áp dụng cho tk của Sơn"; creative nhà dùng được vì cùng co-founder): lệnh đi bằng phiên Ethopex riêng của người đó, cổng chung chỉ cho tạo vào tài khoản của họ.
@@ -511,9 +510,8 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
                 "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo) if bo else None,
                 "external_account_id": ext,
                 "campaign": {"source_payload": sp_c, "ad_groups": [{"type_run": lich, "source_payload": sp_g,
-                    "ads": [{"content_id": moi["content"], "creative_id": moi["creative"], "facebook_page_id": page, "domain": _mien(a.get("domain")),
+                    "ads": [{"content_id": moi["content"], "creative_id": moi["creative"], "facebook_page_id": page, "domain": a.get("domain") or "",
                              "source_payload": {"name": ten, "status": "ACTIVE"}}]}]}}
-        if MIEN: raise ValueError("--mien không dùng được khi camp ROAS dùng lại bài đăng của gốc (miền nằm sẵn trong bài) — bỏ --mien hoặc lên bằng creative mới")
         if not re.fullmatch(r"\d+_\d+", sid): raise ValueError(f"camp gốc #{goc_id} không có mã bài đăng (effective_object_story_id) để dùng lại")
         if bo and str(bo) != str(bo_cua_camp(c)): raise ValueError("camp ROAS dùng bài đăng của camp gốc → phải cùng bộ tài khoản / Page với camp gốc")
         return d, ten, a.get("content_id"), {
@@ -525,15 +523,8 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
         "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo) if bo else None, "bai_cu": sid_goc if bai else None,
         "external_account_id": ext,
         "campaign": {"source_payload": sp_c, "ad_groups": [{"type_run": lich, "source_payload": sp_g,
-            "ads": [{"content_id": a.get("content_id"), "creative_id": a.get("creative_id"), "facebook_page_id": page, "domain": _mien(a.get("domain")),
+            "ads": [{"content_id": a.get("content_id"), "creative_id": a.get("creative_id"), "facebook_page_id": page, "domain": a.get("domain") or "",
                      "source_payload": {"name": ten, "status": "ACTIVE"}}]}]}}
-
-# CHỌN MIỀN TRANG ĐÍCH (anh 23/11/2026 "có cách chọn domain khi lên camp ko ?"): --mien <miền> thay miền của ad gốc (ad.domain, vd maybic.com / marcusbeilby.com);
-# không có --mien thì giữ miền gốc như cũ. Miền phải được bật cho nguồn traffic trong workspace Ethopex, không thì Ethopex trả "domain is not enabled for this traffic source".
-# Ad dùng lại BÀI ĐĂNG cũ (effective_object_story_id) mang sẵn link trong bài → không đổi miền được, --mien ở đường đó bị từ chối.
-MIEN = next((sys.argv[i + 1].strip().lower() for i, x in enumerate(sys.argv[:-1]) if x == "--mien"), None)
-if MIEN is not None and not re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", MIEN): raise SystemExit(f"--mien {MIEN!r} không phải tên miền (vd maybic.com)")
-def _mien(goc): return MIEN or goc or ""
 
 class ChanLuat(ValueError):
     """LUẬT CHẶN, KHÔNG PHẢI LỖI (anh 27/10/2026: ⚠302 trên cây camp gồm cả "chưa chạm trần $30" — máy đúng luật mà bị đếm là nhân bản hỏng):

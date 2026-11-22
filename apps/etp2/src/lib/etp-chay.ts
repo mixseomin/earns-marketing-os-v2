@@ -8,9 +8,12 @@ export const dangTao = (c: Pick<CampTt, 'dong_bo'>) => !!c.dong_bo && !['done', 
 // coi now = 0, 1, 2… → mọi camp có giờ hẹn thành 'chờ giờ', trang báo 0 camp đang chạy trong khi kho có 178)
 type Luc = { now?: number } | number;   // số (số thứ tự từ filter / map) bị bỏ qua
 const gio = (o: Luc) => (typeof o === 'object' ? o.now ?? Date.now() : Date.now());
-export const choGio = (c: CampTt, o: Luc = {}) => { const now = gio(o); return !!c.lich && Date.parse(c.lich) > now && (c.trang_thai === 'ACTIVE' || dangTao(c)); };
+/** CHỜ DUYỆT = dòng ⏳ xếp hàng (etp-doc hangCr, dong_bo 'xep_hang'): creative đã chấm Đạt, chưa có camp — chờ bấm ▶ Lên / máy lên ở nhịp kế.
+ *  Là một trạng thái RIÊNG: không phải chạy, không phải chờ giờ, không phải tắt (#1767 anh 22/11/2026 "Thiếu 1 trạng thái là Chờ duyệt à?" — dòng ⏳ hiện cả khi lọc Đang chạy) */
+export const choDuyet = (c: Pick<CampTt, 'dong_bo'>) => c.dong_bo === 'xep_hang';
+export const choGio = (c: CampTt, o: Luc = {}) => { const now = gio(o); return !choDuyet(c) && !!c.lich && Date.parse(c.lich) > now && (c.trang_thai === 'ACTIVE' || dangTao(c)); };
 /** đang chạy thật = ACTIVE và đã tới giờ chạy */
-export const dangChay = (c: CampTt, o: Luc = {}) => c.trang_thai === 'ACTIVE' && !choGio(c, { now: gio(o) });
+export const dangChay = (c: CampTt, o: Luc = {}) => c.trang_thai === 'ACTIVE' && !choDuyet(c) && !choGio(c, { now: gio(o) });
 /** "hẹn 07:00" (trong 24 giờ tới) / "hẹn 07:00 08/11" cho camp chờ giờ */
 export const chuHen = (lich: string, o: Luc = {}) => { const now = gio(o); const t = Date.parse(lich), d = new Date(t + 7 * 3600_000); const p = (n: number) => String(n).padStart(2, '0');
   return `hẹn ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}${t - now < 86_400_000 ? '' : ` ${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}`}`; };   // trong 24 giờ tới chỉ ghi giờ (ô hẹp)

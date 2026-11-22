@@ -379,7 +379,7 @@ const LUAT = [
   { card: 1514, tep: 'apps/etp2/src/app/globals.css', co: 'opacity: 1; visibility: visible; animation: tre-hien 0s var(--tre-mo) both;', vi: 'InfoHint chờ --tre-mo' },
   { card: 1514, tep: 'apps/etp2/src/components/ui/month-calendar.tsx', co: '.cal-pill-wrap:hover .cal-brief{display:block!important;animation:tre-hien 0s var(--tre-mo) both}', vi: 'brief lịch tháng chờ --tre-mo' },
   { card: 1514, tep: 'apps/etp2/src/components/etp-noi.tsx', co: '}), TRE_MO);   // #1514', vi: 'thẻ nổi đang mở thẻ khác cũng chờ đủ trễ' },
-  { card: 1522, tep: 'apps/etp2/src/components/etp-view.tsx', co: "const hangCay = du.hangCr?.length ? [...con.ds, ...du.hangCr] : con.ds;", cam: 'mở rộng +${', vi: 'cây camp chỉ có camp thật: phim đang sản xuất KHÔNG hiện dòng plan "mở rộng +N camp · chờ đo lượt"; camp mới chỉ hiện khi đã lên thật, như camp ổn định (anh 03/11 + 09/11/2026); dòng ⏳ xếp hàng creative đã duyệt (hangCr, anh 22/11/2026) không phải dòng plan' },
+  { card: 1522, tep: 'apps/etp2/src/components/etp-view.tsx', co: "const hangCay = hang?.length ? [...con.ds, ...hang] : con.ds;", cam: 'mở rộng +${', vi: 'cây camp chỉ có camp thật: phim đang sản xuất KHÔNG hiện dòng plan "mở rộng +N camp · chờ đo lượt"; camp mới chỉ hiện khi đã lên thật, như camp ổn định (anh 03/11 + 09/11/2026); dòng ⏳ xếp hàng creative đã duyệt (hangCr, anh 22/11/2026) không phải dòng plan' },
   { card: 1529, tep: 'apps/etp2/src/components/etp-view.tsx', co: "so={tt === 'xong' ? (x.so_len ?? 0) : (x.so_camp ?? 1)}", vi: 'đồng hồ đợt dừng / lỗi giữ số camp của lô (anh 04/11/2026 "khi bị dừng thì số ở giữa vẫn phải là số camp thuộc lô đó"), không về 0' },
   { card: 1529, tep: 'apps/etp2/src/components/etp-view.tsx', co: "style={{ opacity: tt === 'chay' ? 1 : 0.6 }}><ReThe the={the}><DongHoSx", vi: 'đồng hồ đợt đã dừng / lỗi / xong mờ đi (anh "nếu muốn thì mờ đi thôi")' },
   { card: 1529, tep: 'apps/etp2/src/components/ui/dong-ho.tsx', co: "fill={(ket && MAU_SO[ket as TrangThaiNut]) || '#fff'}>{so}</text>", vi: 'DongHo vẽ đúng số được truyền (không thay bằng 0 khi có ket)' },
@@ -445,6 +445,11 @@ const LUAT = [
   { card: '1762', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<OGioVn gio={gioDat} setGio={setGioDat}', vi: 'bảng điều khiển camp "đặt giờ" dùng ô giờ chung' },
   { card: '1762', tep: 'apps/etp2/src/components/etp-view.tsx', cam: 'type="datetime-local"', vi: 'không còn ô ngày giờ tự chế trống trơn ở bảng camp' },
   { card: '1762', tep: 'apps/etp2/src/lib/etp-nb.ts', mot: 'export const bayGioVn = ', vi: 'một hàm giờ VN lúc này cho giá trị sẵn của ô giờ' },
+  { card: '1767', tep: 'apps/etp2/src/lib/etp-chay.ts', mot: 'export const choDuyet = ', vi: 'một định nghĩa trạng thái Chờ duyệt (dòng ⏳ xếp hàng) cho mọi màn etp2' },
+  { card: '1767', tep: 'apps/etp2/src/lib/etp-chay.ts', co: '!choDuyet(c) && !choGio(c', vi: 'dòng chờ duyệt không bị tính là Đang chạy' },
+  { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', co: "m('duyet', 'Chờ duyệt'", vi: 'ô Lọc có mục Chờ duyệt' },
+  { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'hang={hangLoc}', vi: 'dòng chờ duyệt đi qua bộ lọc trước khi vào cây camp' },
+  { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', cam: '[...con.ds, ...du.hangCr]', vi: 'không nối thẳng dòng chờ duyệt vào cây bỏ qua bộ lọc' },
 ];
 
 const loi = [];

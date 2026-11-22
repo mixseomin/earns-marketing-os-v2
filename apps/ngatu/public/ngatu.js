@@ -501,6 +501,11 @@ function vuong(a, x, z, g, xT, zT, gT) {
         // Xe máy kẹt lâu (> 3 s) len qua xe máy khác: hai xe máy VN lách sát, gương sượt gương — cho thân chồng tới 0,3 m
         // khi đang TIẾN tới (không lùi, không bị đẩy). Thay nước lùi / dắt dạt ngang đã bỏ (anh 22/11/2026); không có nước
         // này lòng ngã tư khoá cứng khi đông (link anh gửi: 35 xe kẹt lòng).
+        // Hai xe máy đã lỡ chồng sườn nhau, nằm gần song song (lệch < 25°): đi tới theo thân mà chỗ chồng KHÔNG sâu thêm là
+        // trượt dọc qua nhau (vượt sát gương), không phải xuyên. Cấm thì cả hai đứng chết dính nhau ở mép ngã tư (anh
+        // 22/11/2026 khoanh ảnh: "sao 2 con này lại dừng lại"). Lệch góc lớn thì không áp — trượt chéo mới thành xuyên.
+        if (a.loai === 'xm' && j.loai === 'xm' && o0 > CHAM && o0 <= 0.4 && o <= o0 + 1e-6 &&
+          Math.abs(Math.cos(g - j.goc)) > 0.9 && (x - xT) * Math.cos(g) - (z - zT) * Math.sin(g) > 0) continue;
         if (a.loai === 'xm' && j.loai === 'xm' && (a.ket > 3 || a.lui > 0) && o <= 0.3 && o0 <= 0.3) continue;
         vuongJ = j; return true;
       }

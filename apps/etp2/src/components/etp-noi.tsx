@@ -45,6 +45,11 @@ export function ReThe({ the, children, rong = 380, cao = 320 }: { the: () => The
 // không phải lúc vừa rê vào ô (chuột đã đi tiếp trong ô). Một bộ nghe cho cả trang, không gắn theo từng ô.
 const CHUOT = { x: 0, y: 0 };
 if (typeof window !== 'undefined') window.addEventListener('mousemove', (e) => { CHUOT.x = e.clientX; CHUOT.y = e.clientY; }, { passive: true });
+// CHẠM KHÔNG PHẢI RÊ (anh 22/11/2026 #1769 "Ko dùng kiểu hover này ở mọi nơi", ảnh iPhone: chạm nút "⊞ Mở hết" bật thẻ "mở mọi phim + bản nhân bản" có ✕):
+// iOS / Android sau mỗi lần chạm bắn mouseover giả → HoverChu mở thẻ chữ rê ở MỌI nút có title=. Sự kiện con trỏ (pointer*) tới TRƯỚC mouseover giả và mang pointerType
+// → ghi lại loại con trỏ cuối; HoverChu chỉ mở khi là chuột thật. Một chỗ cho mọi title= của trang.
+const TRO = { cham: false };
+if (typeof window !== 'undefined') for (const ev of ['pointerover', 'pointerdown'] as const) window.addEventListener(ev, (e) => { TRO.cham = e.pointerType !== 'mouse'; }, { capture: true, passive: true });
 export function useNoi<T>() {
   const [v, setV] = useState<(T & { x: number; y: number }) | null>(null);
   const hen = useRef<number | undefined>(undefined);
@@ -175,6 +180,7 @@ export function HoverChu({ goc }: { goc: React.RefObject<HTMLElement | null> }) 
       return null;
     };
     const vao = (e: MouseEvent) => {
+      if (TRO.cham) return;   // #1769: chạm ngón tay không mở thẻ chữ rê
       const el = tim(e.target); if (!el) return;
       const t = el.getAttribute('title');
       if (t != null) { el.removeAttribute('title'); if (t.trim()) el.setAttribute('data-tip', t); else el.removeAttribute('data-tip'); }

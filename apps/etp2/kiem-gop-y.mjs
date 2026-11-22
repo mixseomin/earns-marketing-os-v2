@@ -454,6 +454,8 @@ const LUAT = [
   { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', co: "m('duyet', 'Chờ duyệt'", vi: 'ô Lọc có mục Chờ duyệt' },
   { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'hang={hangLoc}', vi: 'dòng chờ duyệt đi qua bộ lọc trước khi vào cây camp' },
   { card: '1767', tep: 'apps/etp2/src/components/etp-view.tsx', cam: '[...con.ds, ...du.hangCr]', vi: 'không nối thẳng dòng chờ duyệt vào cây bỏ qua bộ lọc' },
+  { card: '1769', tep: 'apps/etp2/src/components/etp-noi.tsx', co: "TRO.cham = e.pointerType !== 'mouse';", vi: 'ghi loại con trỏ cuối (chạm / chuột) trước mouseover giả của điện thoại' },
+  { card: '1769', tep: 'apps/etp2/src/components/etp-noi.tsx', co: 'if (TRO.cham) return;   // #1769', vi: 'HoverChu không mở thẻ chữ rê khi chạm ngón tay (anh "Ko dùng kiểu hover này ở mọi nơi")' },
 ];
 
 const loi = [];

@@ -2,7 +2,7 @@
 // Ethopex để camp hẹn giờ ở ACTIVE ngay từ lúc tạo — trang lấy ACTIVE là "chạy" thì camp hẹn 07:00 hiện như đang chạy từ 23:00 tối trước.
 type CampTt = { trang_thai: string | null; lich: string | null; dong_bo?: string | null };   // dong_bo có thể thiếu (CampEtpKho để optional) — dangTao coi thiếu = đã xong
 /** camp Ethopex còn đang tạo / kiểm ad (dong_bo ≠ done · synced · error): PAUSED tới khi kiểm xong, không phải đã tắt */
-export const dangTao = (c: Pick<CampTt, 'dong_bo'>) => !!c.dong_bo && !['done', 'synced', 'error'].includes(c.dong_bo);
+export const dangTao = (c: Pick<CampTt, 'dong_bo'>) => !!c.dong_bo && !['done', 'synced', 'error', 'DISAPPROVED'].includes(c.dong_bo);   // DISAPPROVED = Meta đã từ chối, xong rồi (cùng cong.py)
 /** đã tạo, hẹn chạy lúc c.lich (lịch lên camp nhan-ban.lich_len) */
 // giờ "bây giờ" đi qua ĐỐI TƯỢNG { now } (chỉ bài tự kiểm cần) — tham số số đứng thứ hai bị Array.filter / map truyền SỐ THỨ TỰ vào (06/11/2026: du.camps.filter(choGio)
 // coi now = 0, 1, 2… → mọi camp có giờ hẹn thành 'chờ giờ', trang báo 0 camp đang chạy trong khi kho có 178)
@@ -12,6 +12,9 @@ const gio = (o: Luc) => (typeof o === 'object' ? o.now ?? Date.now() : Date.now(
  *  Là một trạng thái RIÊNG: không phải chạy, không phải chờ giờ, không phải tắt (#1767 anh 22/11/2026 "Thiếu 1 trạng thái là Chờ duyệt à?" — dòng ⏳ hiện cả khi lọc Đang chạy) */
 export const choDuyet = (c: Pick<CampTt, 'dong_bo'>) => c.dong_bo === 'xep_hang';
 export const choGio = (c: CampTt, o: Luc = {}) => { const now = gio(o); return !choDuyet(c) && !!c.lich && Date.parse(c.lich) > now && (c.trang_thai === 'ACTIVE' || dangTao(c)); };
+/** CHỜ CHẠY = chờ giờ hẹn, HOẶC vừa bấm Lên mà Ethopex còn đang tạo / kiểm ad (camp "chạy ngay" có lich đã qua, PAUSED tới khi kiểm xong).
+ *  #1770 (anh 22/11/2026 "đã gửi thì status này phải update ngay lập tức chứ ?"): camp vừa lên chạy ngay không khớp choGio → bị đếm vào Đã tắt, rời khỏi lọc Chạy + Chờ + Duyệt */
+export const choChay = (c: CampTt, o: Luc = {}) => choGio(c, o) || (!choDuyet(c) && c.trang_thai !== 'ACTIVE' && dangTao(c));
 /** đang chạy thật = ACTIVE và đã tới giờ chạy */
 export const dangChay = (c: CampTt, o: Luc = {}) => c.trang_thai === 'ACTIVE' && !choDuyet(c) && !choGio(c, { now: gio(o) });
 /** "hẹn 07:00" (trong 24 giờ tới) / "hẹn 07:00 08/11" cho camp chờ giờ */

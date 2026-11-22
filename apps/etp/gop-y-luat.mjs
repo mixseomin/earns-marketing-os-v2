@@ -1599,5 +1599,7 @@ export const LUAT = [
   { card: 'roas-nuoi-2211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tang_roas": m(tang_roas)', vi: 'danh sách RN ra worker' },
   { card: 'roas-nuoi-2211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'tang_roas = _bo_phanh(tang_roas)', vi: 'RN cũng phanh khi chợ xấu (anh 18/11/2026)' },
   { card: 'roas-nuoi-2211', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'if ns not in MUC and not (ns in RN_BAC and cid in CONG.camp_roas())', vi: 'lệnh tăng nhận $10 / $15 chỉ với camp ★ ROAS' },
+  { card: 'de-ham-2211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '_rn_ke = min(b for b in RN_BAC if b > ns_)', vi: 'RN không đặt biến tên ke (đè hàm ke() → thẻ xét luật gãy int not callable)' },
+  { card: 'de-ham-2211', tep: 'scripts/check-etp-gop-y.mjs', co: "spawnSync('python3', ['apps/etp/kiem-de-ham.py']", vi: 'máy gác biến tầng ngoài đè hàm chạy mỗi lần kiểm' },
   { card: 'roas-nuoi-2211', tep: 'apps/cty/worker/ethopex.mjs', co: "['tang_roas', '↑ <b>RN — ★ ROAS NUÔI</b>", vi: 'worker có nhóm tin RN riêng (không gọi nhầm T30)' },
 ];

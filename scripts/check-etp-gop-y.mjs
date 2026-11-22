@@ -69,6 +69,9 @@ if (!CHI_CTY) {   // hai sổ dưới nằm trong web / studio — chỉ monorep
   process.stdout.write(r.stdout || '');
   if (r.status !== 0) loi.push(`  #ra-xung-dot-luat-1911 lưới xung đột luật tăng đỏ:\n${(r.stdout || '').split('\n').filter((x) => x.startsWith('ĐỎ')).slice(0, 12).map((x) => `    ${x}`).join('\n')}\n    ${(r.stderr || r.error?.message || '').trim().slice(-400)}`); }
 }
+// BIẾN TẦNG NGOÀI ĐÈ HÀM (22/11/2026): luật RN gán ke = … đè hàm ke() → thẻ xét luật 'int' object is not callable trên 8 camp — gác cả lớp ở mọi máy Ethopex
+if (!CHI_CTY) { const r = spawnSync('python3', ['apps/etp/kiem-de-ham.py'], { encoding: 'utf8', timeout: 60_000 });
+  if (r.status !== 0) loi.push(`  #de-ham-2211 biến tầng ngoài đè hàm trong máy Ethopex:\n${(r.stdout || r.stderr || '').split('\n').filter(Boolean).slice(0, 12).map((x) => `    ${x}`).join('\n')}`); }
 for (const l of LUAT) { const e = sai(l, readFileSync(l.tep, 'utf8')); if (e) loi.push(`  #${l.card || 'chat'} ${l.vi} — ${e}`); }
 if (loi.length) {
   console.error(`✗ góp ý etp đã sửa bị quay về bản cũ (${loi.length}):\n${loi.join('\n')}\n  Sửa mã cho đúng lại — KHÔNG xoá điều kiện trong scripts/check-etp-gop-y.mjs trừ khi anh đổi ý.`);

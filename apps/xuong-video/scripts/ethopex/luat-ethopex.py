@@ -961,15 +961,15 @@ try:
     _db = _TVX.du_bao(dt.datetime.now(dt.timezone.utc)); CX_CHO = (_db or {}).get("bao_dong")
     _d3c = {dt.date.fromisoformat(d(i)) for i in (1, 2, 3)}
     for _k, _h in hom.items():
-        _c = int(_k); _ch, _th = float(_h.get("chi") or 0), float(_h.get("thu") or 0)
-        if _c not in _bat or _ch < (_RUT_CHI if _RUT else CX_CHI): continue
+        _c = int(_k); _chc, _th = float(_h.get("chi") or 0), float(_h.get("thu") or 0)
+        if _c not in _bat or _chc < (_RUT_CHI if _RUT else CX_CHI): continue
         _x3 = [x for x in (_ng.get(_c) or [None, []])[1] if x[0] in _d3c]; _c3, _t3 = sum(x[1] for x in _x3), sum(x[2] for x in _x3)
-        _r3 = (_t3 - _c3) / _c3 * 100 if _c3 >= 0.3 else None; _rn = (_th - _ch) / _ch * 100
-        _cx[_c] = (_ch, _th, _rn, _r3)
+        _r3 = (_t3 - _c3) / _c3 * 100 if _c3 >= 0.3 else None; _rn = (_th - _chc) / _chc * 100
+        _cx[_c] = (_chc, _th, _rn, _r3)
         if _RUT and _rn < 0:
-            tat_cx.append((_c, f"#{str(_h.get('ten') or '')[:70]} · hôm nay chi ${_ch:.2f} · lãi ${_th - _ch:+.2f} · ROI {_rn:+.0f}% → TẮT (luật CX · RÚT KHỎI CHỢ: giá sáng {float(_RUT.get('gia') or 0) * 100:.0f}% nền, ROI sáng nhà {float(_RUT.get('roi') or 0):+.0f}% — cắt mọi camp thường đang âm)"))
+            tat_cx.append((_c, f"#{str(_h.get('ten') or '')[:70]} · hôm nay chi ${_chc:.2f} · lãi ${_th - _chc:+.2f} · ROI {_rn:+.0f}% → TẮT (luật CX · RÚT KHỎI CHỢ: giá sáng {float(_RUT.get('gia') or 0) * 100:.0f}% nền, ROI sáng nhà {float(_RUT.get('roi') or 0):+.0f}% — cắt mọi camp thường đang âm)"))
         elif CX_CHO and not CX_CHO.get("hoi") and _rn <= CX_CHO["roi"] - CX_LECH and (_r3 is None or _r3 < CX_ROI3):
-            tat_cx.append((_c, f"#{str(_h.get('ten') or '')[:70]} · hôm nay chi ${_ch:.2f} · lãi ${_th - _ch:+.2f} · ROI {_rn:+.0f}% (chợ {CX_CHO['roi']:+d}%) · 3 ngày khép {'—' if _r3 is None else f'{_r3:+.0f}%'} → TẮT (luật CX: chợ âm, cắt camp tệ nhất trước)"))
+            tat_cx.append((_c, f"#{str(_h.get('ten') or '')[:70]} · hôm nay chi ${_chc:.2f} · lãi ${_th - _chc:+.2f} · ROI {_rn:+.0f}% (chợ {CX_CHO['roi']:+d}%) · 3 ngày khép {'—' if _r3 is None else f'{_r3:+.0f}%'} → TẮT (luật CX: chợ âm, cắt camp tệ nhất trước)"))
     tat_cx = sorted(tat_cx, key=lambda x: float(x[1].split("lãi $")[1].split(" ")[0]))[:None if _RUT else CX_TOI_DA]
 except Exception as e:
     loi_may.append((0, f"luật CX lỗi: {str(e)[:80]}"))
@@ -1089,11 +1089,11 @@ try:
             group by 1, 2""").splitlines():
             p = l.split("|")
             if len(p) < 4: continue
-            c, moc, chi_, thu_ = int(p[0]), p[1], float(p[2]), float(p[3]); ns_ = _rn_ns[c]; ke = min(b for b in RN_BAC if b > ns_)
+            c, moc, chi_, thu_ = int(p[0]), p[1], float(p[2]), float(p[3]); ns_ = _rn_ns[c]; _rn_ke = min(b for b in RN_BAC if b > ns_)   # KHÔNG đặt tên ke: đè hàm ke() dòng 104 → thẻ xét luật 'int' object is not callable (22/11/2026)
             r_ = (thu_ - chi_) / chi_ * 100 if chi_ > 0 else None
-            _rn_so[c] = {"moc": moc, "chi": chi_, "thu": thu_, "roi": r_, "ns": ns_, "ke": ke}
+            _rn_so[c] = {"moc": moc, "chi": chi_, "thu": thu_, "roi": r_, "ns": ns_, "ke": _rn_ke}
             if chi_ > RN_CHI and r_ is not None and r_ > RN_ROI:
-                tang_roas.append((c, f"#{(_rn_cm[c].get('name') or '')[:80]} · từ {moc} VN: chi ${chi_:.2f} · thu ${thu_:.2f} · ROI {r_:+.0f}% · ${ns_:g} → ${ke}"))
+                tang_roas.append((c, f"#{(_rn_cm[c].get('name') or '')[:80]} · từ {moc} VN: chi ${chi_:.2f} · thu ${thu_:.2f} · ROI {r_:+.0f}% · ${ns_:g} → ${_rn_ke}"))
 except Exception as e:
     loi_may.append((0, f"luật RN (★ ROAS nuôi dần) lỗi: {str(e)[:80]}"))
 # G10 — HẠ VỀ $10 RỒI TẮT (hướng dẫn team 31/10/2026: "ngân sách lên $30 mà camp rois giảm là mình giảm luôn budget về ~ 10$ sau đó theo dõi 1,2 ngày mà rois

@@ -2,7 +2,7 @@
 // Ô CHỌN KIỂU SELECT2 (anh 27/10/2026, etp.on.tc: "Gộp lại theo nhóm. Tất cả dùng select2"): nút gọn "Nhãn: giá trị ▾" → bảng nổi có ô tìm,
 // lựa chọn gom theo NHÓM (tiêu đề nhóm), số đếm bên phải, dấu ✓ ở mục đang chọn; phím ↑ ↓ Enter Esc. Thay cho <select> trần và hàng chip dài —
 // mọi bộ lọc dùng chung một kiểu. Bảng nổi = AnchoredPopover (portal ra body, không lệch trong Drawer).
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { AnchoredPopover } from './anchored-popover';
 import { coChuot } from '@/lib/co-chuot';
 
@@ -12,6 +12,9 @@ export interface Chon2Muc { value: string; label: ReactNode; nhom?: string; dem?
 export interface Chon2Cot { key: string; h: string; rong: number; phai?: boolean; title?: string }
 
 const KHO_RONG = 'etp2-chon2-xem-rong';
+/** ô TÊN khi bảng có cột số (#1759): lề trái 10 + dấu ✓ 14 + khe 8 + chữ tối thiểu 118 — đủ đọc "Nguyễn Sơn · 5 TK" trên điện thoại */
+const O_TEN = 10 + 14 + 8 + 118;
+const NEN = 'var(--bg-0, #0b0d12)', NEN_TRO = 'linear-gradient(var(--hover, rgba(255,255,255,.07)), var(--hover, rgba(255,255,255,.07))), var(--bg-0, #0b0d12)';
 
 export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', title, minWidth, align = 'left', anRong, href, chan, nhieu, tatCa = '', cot, oRong }: {
   /** cột số cạnh nhãn của từng mục (Chon2Muc.o) — có cot thì bảng nổi rộng thêm theo tổng bề rộng cột */ cot?: Chon2Cot[];
@@ -37,6 +40,11 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
   const doiRong = () => setXemRong((v) => { try { localStorage.setItem(KHO_RONG, v ? '0' : '1'); } catch { /* bỏ qua */ } return !v; });
   const ds =useMemo(() => (anRong ? options : [{ value: '', label: rong, o: oRong } as Chon2Muc, ...options]), [options, rong, anRong, oRong]);
   const rongCot = cot ? cot.reduce((a, c) => a + c.rong + 8, 0) : 0;   // + gap 8 mỗi cột
+  // CÓ CỘT SỐ TRÊN MÀN HẸP (anh 22/11/2026 etp2 #1759 "Mobile lỗi ko chọn đc người. Trình bày lởm quá"): bảng nổi bị chặn 92vw mà cột số rộng cố định
+  // → ô tên co về 0, mất tên người, dòng đang chọn lệch, cột cuối bị cắt. Gốc sửa: ô TÊN không bao giờ hẹp hơn O_TEN và DÍNH MÉP TRÁI; mọi dòng chung
+  // một bề rộng tối thiểu = tên + mọi cột; thiếu chỗ thì khung danh sách cuộn NGANG (tên đứng yên, số trượt) → cột luôn thẳng hàng ở mọi khổ màn
+  const rongDong = cot ? O_TEN + rongCot + 10 : 0;
+  const oTen = (nen: string): CSSProperties => ({ position: 'sticky', left: 0, zIndex: 1, flex: `1 0 ${O_TEN}px`, boxSizing: 'border-box', minWidth: 0, alignSelf: 'stretch', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0 6px 10px', background: nen });
   const oCot = (c: Chon2Cot, v: ReactNode) => <span key={c.key} data-cot={c.key} data-cot-can={c.phai ? 'phai' : undefined} title={c.title}
     style={{ flex: `0 0 ${c.rong}px`, display: 'flex', justifyContent: c.phai ? 'flex-end' : 'flex-start', fontSize: 11.5, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', whiteSpace: 'nowrap', fontWeight: 400 }}>{v}</span>;
   const chu = (m: Chon2Muc) => (m.tim ?? (typeof m.label === 'string' ? m.label : m.value)).toLowerCase();
@@ -80,23 +88,31 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
               <span style={{ alignSelf: 'center', fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{daChon.size ? `${daChon.size} đã chọn` : 'tất cả'}</span>
             </div> : null}
           </div>
-          <div style={{ maxHeight: xemRong ? '72vh' : 340, overflowY: 'auto', padding: cot ? '0 0 4px' : '4px 0' }}>
-            {cot ? <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', background: 'var(--bg-0, #0b0d12)', borderBottom: '1px solid var(--line)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3, #777)' }}>
-              <span style={{ width: 12 }} /><span data-cot="ten" style={{ flex: 1, minWidth: 0 }}>{nhan ?? ''}</span>
+          <div data-k="chon2-ds" style={{ maxHeight: xemRong ? '72vh' : 340, overflowY: 'auto', overflowX: cot ? 'auto' : undefined, overscrollBehavior: 'contain', padding: cot ? '0 0 4px' : '4px 0' }}>
+           <div style={cot ? { minWidth: rongDong } : undefined}>
+            {cot ? <div style={{ position: 'sticky', top: 0, zIndex: 2, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px 0 0', background: NEN, borderBottom: '1px solid var(--line)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3, #777)' }}>
+              <span data-cot="ten" style={oTen(NEN)}><span style={{ flex: '0 0 14px' }} />{nhan ?? ''}</span>
               {cot.map((c) => oCot(c, c.h))}
             </div> : null}
             {loc.length ? loc.map((m, i) => (
               <div key={m.value || '_'}>
                 {m.nhom && m.nhom !== loc[i - 1]?.nhom ? <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3, #777)', padding: '8px 10px 3px' }}>{m.nhom}</div> : null}
-                <a role="option" aria-selected={coChon(m.value)} title={m.title} href={href?.(m.value)} onMouseEnter={() => setTro(i)}
+                {/* trỏ theo rê chuột CHỈ với chuột: trên cảm ứng, đổi giao diện lúc mouseenter có thể làm Safari iOS nuốt cú chạm đầu (#1759 "không chọn được") */}
+                <a role="option" aria-selected={coChon(m.value)} title={m.title} href={href?.(m.value)} onPointerEnter={(e) => { if (e.pointerType === 'mouse') setTro(i); }}
                   onClick={(e) => { if (href && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return; e.preventDefault(); chon(m.value); }}   // phím phụ = để trình duyệt mở tab mới
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '5px 10px', cursor: 'pointer', color: 'inherit', textDecoration: 'none', background: i === tro ? 'var(--hover, rgba(255,255,255,.07))' : undefined, fontWeight: coChon(m.value) ? 600 : 400 }}>
-                  <span style={{ width: 12, color: 'var(--accent, #60a5fa)' }}>{nhieu && m.value !== tatCa ? (coChon(m.value) ? '☑' : '☐') : coChon(m.value) ? '✓' : ''}</span>
-                  <span data-cot={cot ? 'ten' : undefined} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.label}</span>
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: cot ? '0 10px 0 0' : '5px 10px', minHeight: cot ? 34 : undefined, cursor: 'pointer', color: 'inherit', textDecoration: 'none', background: i === tro ? 'var(--hover, rgba(255,255,255,.07))' : undefined, fontWeight: coChon(m.value) ? 600 : 400, WebkitTapHighlightColor: 'transparent' }}>
+                  {cot ? <span data-cot="ten" style={oTen(i === tro ? NEN_TRO : NEN)}>
+                    <span style={{ flex: '0 0 14px', color: 'var(--accent, #60a5fa)' }}>{nhieu && m.value !== tatCa ? (coChon(m.value) ? '☑' : '☐') : coChon(m.value) ? '✓' : ''}</span>
+                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.label}</span>
+                  </span> : <>
+                    <span style={{ width: 12, color: 'var(--accent, #60a5fa)' }}>{nhieu && m.value !== tatCa ? (coChon(m.value) ? '☑' : '☐') : coChon(m.value) ? '✓' : ''}</span>
+                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.label}</span>
+                  </>}
                   {cot ? cot.map((c, j) => oCot(c, m.o?.[j])) : null}
                   {m.dem != null ? <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{m.dem}</span> : null}
                 </a>
               </div>)) : <div style={{ fontSize: 12, color: 'var(--fg-2)', padding: '8px 10px' }}>Không có mục khớp</div>}
+           </div>
           </div>
         </div>
       </AnchoredPopover>

@@ -239,7 +239,7 @@ function tongNguoi(s: SoTong2, nguoi: NguoiSo[]): SoO {
 }
 /** cột hiệu quả của bảng Người — chung cho widget Người và menu chọn Người (Chon2 cot / o) */
 export const COT_NGUOI: { key: string; h: string; rong: number; phai?: boolean; title?: string }[] = [
-  { key: 'chi', h: 'Chi', rong: 64, phai: true }, { key: 'lai', h: 'Lãi', rong: 64, phai: true }, { key: 'roi', h: 'ROI', rong: 64, phai: true },
+  { key: 'chi', h: 'Chi', rong: 64, phai: true }, { key: 'lai', h: 'Lãi', rong: 64, phai: true }, { key: 'roi', h: 'ROI', rong: 82, phai: true, title: 'ROI kỳ này · ▲▼ so kỳ trước' },
   { key: 'camp', h: 'Camp bật', rong: 66, phai: true, title: 'camp ACTIVE lúc này · tổng ngân sách / ngày' }, { key: 'duong', h: 'ROI 7 ngày', rong: 72, title: 'ROI từng ngày, 7 ngày đã khép' }];
 const oNguoi = (p: SoO): ReactNode[] => [
   <KeToan key="chi" v={p.k.chi} />, <KeToan key="lai" v={p.k.thu - p.k.chi} mau={mauLai(p.k.thu - p.k.chi)} />, <span key="roi">{roiSoTruoc(p.k, p.t)}</span>,

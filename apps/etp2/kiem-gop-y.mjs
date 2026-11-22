@@ -428,6 +428,11 @@ const LUAT = [
   { card: '1759', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'const soNguoi = useNguoiMenu(khK);', vi: 'số trong menu Người theo kỳ đang xem' },
   { card: '1759', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'cot={COT_NGUOI}', vi: 'menu chọn Người hiện cột số của bảng Người, dòng Team = tổng' },
   { card: '1759', tep: 'apps/etp2/src/components/ui/chon2.tsx', co: 'cot ? cot.map((c, j) => oCot(c, m.o?.[j]))', vi: 'ô chọn có cột số thẳng hàng (tiêu đề dính + ô cố định rộng)' },
+  { card: '1759', tep: 'apps/etp2/src/components/ui/chon2.tsx', mot: 'const rongDong = cot ? O_TEN + rongCot + 10 : 0;', vi: 'điện thoại: mọi dòng chung bề rộng tối thiểu tên + cột, thiếu chỗ thì cuộn ngang' },
+  { card: '1759', tep: 'apps/etp2/src/components/ui/chon2.tsx', co: "position: 'sticky', left: 0", vi: 'điện thoại: ô tên người dính mép trái, không co về 0' },
+  { card: '1759', tep: 'apps/etp2/src/components/ui/chon2.tsx', co: "overflowX: cot ? 'auto' : undefined", vi: 'điện thoại: bảng nổi có cột số cuộn ngang được' },
+  { card: '1759', tep: 'apps/etp2/src/components/ui/chon2.tsx', cam: 'onMouseEnter={() => setTro(i)}', vi: 'không quay về đổi trỏ khi chạm (Safari iOS nuốt cú chạm đầu)' },
+  { card: '1759', tep: 'apps/etp2/src/components/etp-tong2-widget.tsx', cam: "{ key: 'roi', h: 'ROI', rong: 64", vi: 'cột ROI đủ rộng cho số kèm ▲▼ so kỳ trước, không bị cắt' },
 ];
 
 const loi = [];

@@ -41,11 +41,18 @@ for (const i of ds) {
   let cam, tot = 999;
   const gan = !!a.cameraDau, cham = (c) => pg.evaluate(([c, v, nen, gan]) => window.__cham(c, v, nen, gan), [c, vA, nen, gan]);
   const GIOI_XA = { dx: [-10, 10], dz: [-10, 10] }; // ảnh chụp xa (cầu Marienbrücke…): toạ độ Commons ước trên bản đồ, sai số chỗ đứng ~10 m — 22/11/2026 dời khung 7 m làm ảnh 0 từ 3 → 28 px khi chỉ dò y / hướng
-  const GIOI = { h: [1.2, 3], dx: [-6, 6], dz: [-6, 6] }; // ảnh đứng đất: mắt 1,2–3 m trên đất thật, sai số GPS điện thoại ≤ 6 m — trước đây dò tự do y nên camera tụt 3–13 m dưới đất bù cho lệch ngang
+  const GIOI = { h: [1.2, 3], dx: [-10, 10], dz: [-10, 10] }; // ảnh đứng đất: mắt 1,2–3 m trên đất thật, sai số chỗ đứng ≤ 10 m (22/11/2026: ±6 m làm ảnh 16 dò chạm biên dx −6, lệch 27 px) — trước đây dò tự do y nên camera tụt 3–13 m dưới đất bù cho lệch ngang
+  const coTroi = vA.filter((y) => y > 3).length / vA.length; // phần cột ảnh thật có trời
+  if (a.cameraDau && coTroi < 0.2) { // ÍT TRỜI (22/11/2026: ảnh 13 / 14 / 15 chỉ 5–14 % cột có trời → khung ảnh 3D toàn tường cũng 'lệch 12 px', máy dò kéo hướng lệch la bàn 30°, ngẩng 0,48 khi ảnh thật nhìn xuống bãi cỏ): viền trời không đủ để dò → giữ la bàn + GPS Mapillary
+    const y = await pg.evaluate(([la, ln]) => window.__yDat(la, ln, 0, 0), [a.lat, a.lng]);
+    a.camera = { dx: 0, dz: 0, mat: 1.6, y: +(y + 1.6).toFixed(2), yaw: a.cameraDau.yaw, pitch: a.cameraDau.pitch, fov: a.cameraDau.fov,
+      ghi_chu: `ít trời (${Math.round(coTroi * 100)} % cột) → không dò viền, camera theo la bàn + GPS Mapillary (scripts/khop-camera.mjs, ${new Date().toISOString().slice(0, 10)})` };
+    writeFileSync(TEP, JSON.stringify(ANH, null, 1) + '\n'); console.log(`ảnh ${i}: ít trời ${Math.round(coTroi * 100)} % cột → camera theo la bàn + GPS`); continue;
+  }
   if (a.cameraDau) { // ẢNH ĐỨNG ĐẤT (Mapillary): hướng la bàn + ống kính ban đầu; dò hướng / ngẩng ở chỗ GPS, rồi dò cả chỗ đứng (dx, dz) + chiều cao mắt trong GIOI
     const goc = a.camera ? { yaw: a.camera.yaw, pitch: a.camera.pitch, fov: a.camera.fov } : a.cameraDau;
     for (let k = 0; k < 3; k++) await cham({ h: 1.6, dx: 0, dz: 0, ...goc });
-    for (const [dx, dz] of [[0, 0], [-4, 0], [4, 0], [0, -4], [0, 4]]) for (const pitch of [0, 0.12, 0.24, 0.36, 0.48]) for (let d = -0.3; d <= 0.31; d += 0.1) {
+    for (const [dx, dz] of [[0, 0], [-4, 0], [4, 0], [0, -4], [0, 4], [-8, 0], [8, 0], [0, -8], [0, 8]]) for (const pitch of [0, 0.12, 0.24, 0.36, 0.48]) for (let d = -0.3; d <= 0.31; d += 0.1) {
       const c = { h: 1.6, dx, dz, yaw: goc.yaw + d, pitch, fov: goc.fov }, e = await cham(c); if (e < tot) { tot = e; cam = c; } }
     console.log(`  dò quanh hướng ban đầu + chỗ đứng: lệch ${tot.toFixed(1)} px`, JSON.stringify(cam));
     if (!cam) { console.log(`ảnh ${i}: BỎ — không đo được viền trời`); continue; }

@@ -500,6 +500,11 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
     if roas:   # đúng đường form Ethopex (bid strategy cấp campaign + roas_average_floor cấp Ad Set, tối ưu VALUE) — đọc từ mã app 26/10/2026
         sp_c.update(bid_strategy="LOWEST_COST_WITH_MIN_ROAS", daily_budget=int(ns_roas))
         sp_g.update(optimization_goal="VALUE", bid_constraints={"roas_average_floor": roas}); sp_g.pop("bid_amount", None)
+        # GỐC KHÔNG CÓ BÀI ĐĂNG (anh 22/11/2026, nhân đôi ★ ROAS lãi qua đêm): ad dựng từ creative (★ ROAS creative mới, is_existing_post false) → Ethopex không giữ
+        # effective_object_story_id → bản ROAS dùng lại đúng creative + content của gốc (đăng bài mới, như nút Duplicate trên Ethopex) thay vì gãy "không có mã bài đăng"
+        sid = (a.get("effective_object_story_id") or "").strip()
+        if not moi and not re.fullmatch(r"\d+_\d+", sid) and a.get("creative_id") and a.get("content_id"):
+            moi = {"creative": a["creative_id"], "content": a["content_id"]}
         if moi:   # ★ ROAS creative mới: ad = creative mới (đăng bài mới, như camp mới thường) — khuôn chỉ cho cấu hình
             return d, ten, moi["content"], {
                 "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo) if bo else None,
@@ -507,7 +512,6 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
                 "campaign": {"source_payload": sp_c, "ad_groups": [{"type_run": lich, "source_payload": sp_g,
                     "ads": [{"content_id": moi["content"], "creative_id": moi["creative"], "facebook_page_id": page, "domain": a.get("domain") or "",
                              "source_payload": {"name": ten, "status": "ACTIVE"}}]}]}}
-        sid = (a.get("effective_object_story_id") or "").strip()
         if not re.fullmatch(r"\d+_\d+", sid): raise ValueError(f"camp gốc #{goc_id} không có mã bài đăng (effective_object_story_id) để dùng lại")
         if bo and str(bo) != str(bo_cua_camp(c)): raise ValueError("camp ROAS dùng bài đăng của camp gốc → phải cùng bộ tài khoản / Page với camp gốc")
         return d, ten, a.get("content_id"), {

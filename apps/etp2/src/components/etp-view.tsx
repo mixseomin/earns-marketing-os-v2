@@ -2399,7 +2399,8 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
     const cha = new Map<number, number>(); for (const c of ds) { let me = meHien(c); if (me == null) { const b = baiCua(c), ch = b ? chuBai.get(b) : undefined; if (ch != null && ch !== c.camp_id) me = ch; } if (me != null) cha.set(c.camp_id, me); }
     for (const c of ds) { let x = cha.get(c.camp_id); for (let n = 0; x != null && n < 60; n++) { if (x === c.camp_id) { cha.delete(c.camp_id); break; } x = cha.get(x); } }   // chặn vòng (dữ liệu hỏng) → dòng gốc
     for (const c of ds) { const me = cha.get(c.camp_id); if (me != null) { const a = m.get(me) ?? []; a.push(c); m.set(me, a); } else goc.push(c); } return { m, goc, cha, ds, them }; }, [camps, du.camps]);
-  const theoPhim = useMemo(() => { const g = new Map<string, CampEtpKho[]>(); for (const c of con.goc) { const k = String(c.content_id ?? 0); g.set(k, [...(g.get(k) ?? []), c]); } return g; }, [con.goc]);
+  // điện thoại: dòng ⏳ CHỜ ANH DUYỆT (hang, camp_id < 0) vào nhóm phim như bảng máy tính — trước chỉ con.goc nên lọc Chờ duyệt ra "Tổng 0 phim" (anh 22/11/2026)
+  const theoPhim = useMemo(() => { const g = new Map<string, CampEtpKho[]>(); for (const c of hep && hang?.length ? [...con.goc, ...hang] : con.goc) { const k = String(c.content_id ?? 0); g.set(k, [...(g.get(k) ?? []), c]); } return g; }, [con.goc, hang, hep]);
   const laiDai = (c: CampEtpKho) => { const x = laiKy(c); return x.thu - x.chi; };
   const sapXep = (ds: CampEtpKho[]) => [...ds].sort((a, b) => (xep === 'tuoi' ? (tuoi(b) ?? -1) - (tuoi(a) ?? -1) : laiDai(b) - laiDai(a)));
   const dem = (c: CampEtpKho): number => (con.m.get(c.camp_id) ?? []).reduce((a, x) => a + 1 + dem(x), 0);
@@ -2423,6 +2424,10 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
             {(() => { const n = giongHet(c); return n ? <span title={`camp này được nhân bản GIỐNG HỆT ${n} lần (cùng creative cr #${c.creative_id}, mọi cấp con, kể cả bản đã tắt)`} style={{ order: 9, marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: 'var(--fg-1, #eee)' }}>×{n}</span> : null; })()}
             {(() => { const ch = c.creative_id ? du.cham[c.creative_id] : undefined; return ch ? <span title="điểm chấm nội dung Meta · AFS (thang 10, cao = an toàn; xanh ≥ 8, vàng 5–7, đỏ < 5)" style={{ fontSize: 10.5 }}><span style={{ color: mauDiem(ch.meta) }}>M{ch.meta ?? '–'}</span> <span style={{ color: mauDiem(ch.afs) }}>A{ch.afs ?? '–'}</span></span> : <span style={{ fontSize: 10.5, color: 'var(--fg-3, #777)' }}>chưa chấm</span>; })()}</span>); };
   const Dong = ({ c, cap }: { c: CampEtpKho; cap: number }) => {
+    if (c.camp_id < 0) { const a = c.creative_id ? anhCr.get(c.creative_id) : undefined;   // dòng CHỜ ANH DUYỆT trên điện thoại: ảnh creative + tóm tắt + ▶ Lên / ✕ Không duyệt (cùng NutLenGio của bảng máy tính)
+      return <div className="dong" data-camp-dong={c.camp_id} data-cho-duyet-hep="" style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 4px', fontSize: 12, borderTop: '1px solid var(--line)', background: 'rgba(250,204,21,.06)' }}>
+        {oCr(c)}<span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}><span title={chuChoDuyet(c)} style={{ color: 'var(--fg-2)', whiteSpace: 'normal' }}>{c.ten}</span><ChoDuyetNgan c={c} /></span>
+        <span style={{ flex: 'none' }}><NutLenGio cr={c.creative_id} anh={a?.anh} video={a?.video} /></span></div>; }
     const ds = con.m.get(c.camp_id) ?? []; const l = loiNb.get(c.camp_id); const n = dem(c); const cr = c.creative_id ? anhCr.get(c.creative_id) : undefined;
     const mau = l ? '#ef4444' : giam(c) ? '#f59e0b' : null;   // dòng cảnh báo: vạch mép trái + nền nhạt — đỏ nhân bản lỗi, cam ROI giảm 2 ngày
     // VẠCH MÉP TRÁI PHẢI CÓ GIẢI THÍCH KHI RÊ (anh 27/10/2026 "dòng có gạch bên trái nghĩa là gì? Phải có giải thích khi hover vào chứ")

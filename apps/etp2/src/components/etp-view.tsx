@@ -2477,13 +2477,23 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
     rs.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 })];
   // số camp có chi mỗi ngày, cùng thứ tự với tongNgay (ô cuối = hôm nay)
   const demCamp = (rs: CampEtpKho[]): number[] => [...ngay.map((d) => rs.filter((c) => (so.get(c.camp_id)?.get(d)?.chi ?? 0) > 0).length), rs.filter((c) => c.nay.chi > 0).length];
+  // DÒNG CHỜ ANH DUYỆT (anh 22/11/2026 "Chờ duyệt thì tao phải xem được mày đang làm gì mới duyệt được"): ▶ Lên sẽ tạo đúng camp nào + cổng nào sẽ bỏ qua — máy KHÔNG tự lên dòng ★ ROAS
+  const chuChoDuyet = (c: CampEtpKho) => { const x = c.xep, gio = c.lich ? new Date(c.lich) : null, vn = gio ? new Date(gio.getTime() + 7 * 3600_000) : null;
+    const chuGio = !vn || gio!.getTime() <= Date.now() + 60_000 ? 'chạy ngay khi Ethopex / Meta đồng bộ xong' : `hẹn chạy ${String(vn.getUTCHours()).padStart(2, '0')}:${String(vn.getUTCMinutes()).padStart(2, '0')} ${String(vn.getUTCDate()).padStart(2, '0')}/${String(vn.getUTCMonth() + 1).padStart(2, '0')} giờ VN${c.roas != null ? ' (★ ROAS lên ban tối) — muốn giờ khác bấm 🕒 đặt giờ' : ''}`;
+    return [`⏳ CHỜ ANH DUYỆT — máy không tự lên, anh bấm ▶ Lên mới tạo camp`, '',
+      `▶ Lên sẽ tạo: 1 camp ${c.roas != null ? `★ ROAS ${c.roas} (Lowest cost + min ROAS) · $${c.ngan_sach}/ngày` : `$${c.ngan_sach}/ngày`}`,
+      `· phim: ${c.phim ?? `#${c.content_id ?? '?'}`} · creative #${c.creative_id} (${c.dang ?? '?'}${x ? `, ${x.lang.toUpperCase()}` : ''})`,
+      x ? `· chép khung từ camp khuôn #${x.khuon} (${x.lang.toUpperCase()}) · bộ ${c.bo ?? '?'}` : `· bộ ${c.bo ?? '?'}`,
+      `· giờ chạy: ${chuGio}`, '',
+      x && !x.cta ? '⚠ cổng sẽ bỏ qua khi anh bấm: creative chưa đạt luật CTA mới (dựng trước 22/10 — nút "TAP LEARN MORE" + mũi tên)' : '✓ creative đã đạt luật CTA mới',
+      x?.truoc ? `⚠ lần thử trước: ${x.truoc}` : ''].filter((l, i, a) => l || (i > 0 && a[i - 1])).join('\n').trim(); };
   const cotCay: DataColumn<CampEtpKho>[] = [
     // chữ rê ô camp: tên camp + nghĩa vạch mép trái (đỏ / cam) — #1546: trước nằm ở rowTitle của cả dòng (hộp chữ thô, rê đâu cũng bật); nay ở ô camp, HoverChu dựng thẻ nổi chung
     { key: 'camp', header: 'Phim → camp gốc → bản nhân', align: 'left', width: 260, cellTitle: (c) => { const l = loiNb.get(c.camp_id); const r3 = ngayGan.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d)));
       const vach = l ? `Vạch ĐỎ: máy không nhân bản được camp này (${l.lan} lần thử trong 24 giờ) — ${loiThuong(l.loi)}` : giam(c) ? `Vạch CAM: ROI giảm 2 ngày liền ${ngayGan.slice(-3).map((d, i) => `${d.slice(8, 10)}/${d.slice(5, 7)} ${r3[i]}%`).join(' → ')}` : '';
       return [c.ten ?? `#${c.camp_id}`, vach].filter(Boolean).join('\n') || undefined; }, sortValue: (c) => c.camp_id,
       // loại (CC…) + số bản nhân (x9 / ⚠) DẠT PHẢI ô, thẳng một cột ở mọi tầng cây — trước bám sau số camp nên thụt theo tầng (anh 31/10/2026 #1493 "cho sang phải")
-      cell: (c) => { if (c.camp_id < 0) return <span data-o="camp-cay" data-xep-hang="" title={`${c.ten}\nđã duyệt, chưa có camp nên chưa có ID — máy lên ở nhịp worker kế (apps/etp/lenh_cho.py), dừng khẩn thì chờ nhả`} style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0, cursor: 'help' }}>   {/* khuôn dòng camp thật, ID = ⏳ chờ (anh 22/11/2026 "trình bày gần giống camp đang có, chỉ thiếu ID") */}
+      cell: (c) => { if (c.camp_id < 0) return <span data-o="camp-cay" data-xep-hang="" title={chuChoDuyet(c)} style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0, cursor: 'help' }}>   {/* khuôn dòng camp thật, ID = ⏳ chờ (anh 22/11/2026 "trình bày gần giống camp đang có, chỉ thiếu ID") */}
           <span style={{ width: 8, textAlign: 'center', fontSize: 10 }}>⏳</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /><b style={{ color: laRoas(c) ? MAU_ROAS : '#60a5fa', opacity: 0.75 }}>cr #{c.creative_id}</b>
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} /><span style={{ minWidth: 22 }} /></span></span>;
         const n = dem(c); return <span data-o="camp-cay" style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />

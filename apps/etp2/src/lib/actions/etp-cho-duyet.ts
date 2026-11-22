@@ -64,7 +64,7 @@ export async function lenCamp(cr: number): Promise<{ ok: true; chu: string } | {
   if (dk?.v) return { ok: true, chu: `đã duyệt #${id} — xếp hàng: máy tự lên camp ở nhịp đầu nhả dừng khẩn, giờ chạy theo lịch` };
   // creative trong sổ ★ ROAS (len_cr_roas): KHÔNG đi đường $1 — lenh_cho.py lên ★ ROAS ở nhịp worker kế (một creative một camp)
   const [ro] = await run<{ x: number }>(sql`select 1 x from etp.cau_hinh where khoa = 'len_cr_roas' and gia_tri ? ${String(id)}`);
-  if (ro) return { ok: true, chu: `đã duyệt #${id} — máy lên ★ ROAS ở nhịp worker kế (apps/etp/lenh_cho.py), giờ chạy theo lịch` };
+  if (ro) return { ok: true, chu: `đã ghi duyệt #${id} — dòng ★ ROAS hiện ở bảng Camp, lọc ⏳ Chờ duyệt: rê xem camp sẽ tạo, anh bấm ▶ Lên mới lên (máy không tự lên — anh 22/11/2026)` };
   const r = await lenCampCr(-1, id);
   if ('loi' in r) return { loi: `Đã ghi DUYỆT #${id}, nhưng chưa lên camp: ${r.loi}` };
   return { ok: true, chu: `đã gửi lệnh lên camp $1 cho creative #${id} — giờ chạy theo lịch (ngoài 07–12h VN hẹn 07:00); dòng này tự hiện số camp khi xong` };

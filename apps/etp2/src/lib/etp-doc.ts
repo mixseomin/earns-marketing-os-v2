@@ -6,6 +6,7 @@ import { sqlBan, banCr, sqlGiong, giongCr } from './etp-ban';
 import { getDb } from '@mos2/db';
 import { tvSx } from '@/lib/etp-sx';
 import BANG_LUAT from './etp-bang-luat.json';
+import { readFileSync } from 'node:fs';
 
 // chữ --luat trong nhật ký máy → tên luật theo SỔ LUẬT CHUNG (regex nhat_ky của từng khoá); không khớp luật nào thì lấy tên lý do trước ' (' / ' —' / ' ·'
 const NHAT_KY_LUAT = Object.values(BANG_LUAT.khoa).flatMap((v) => {
@@ -24,7 +25,7 @@ export type SoTien = { chi: number; thu: number };
 /** ns = tổng ngân sách ngày của camp đang chạy (anh 26/10/2026): ngày cũ = ảnh chụp cuối ngày trong etp.so_ngay (camp ACTIVE); hôm nay = view camp_dang_chay (gồm camp tạm dừng vì lịch); null = chưa ghi */
 export type DongNgayEtp = SoTien & { ngay: string; camp: number; ns: number | null };
 export type XetLuat = { ma: string; ten: string; mo_ta: string; dk: [string, string, string, boolean][]; ket: 'dat' | 'gan' | 'xa' | 'khong_ap'; vao: string | null; ghi: string | null; /** thẻ Tăng bậc bị cổng nhịp chặn: mốc UTC được tăng (luat-ethopex · nhip_tang.cho_tang) */ cho_toi?: string | null; chan?: Partial<Record<string, boolean>>; /** máy ĐÃ LÀM việc của thẻ sau lúc ghi thẻ — giờ VN (etp-doc theDaLam) */ da?: string; /** thẻ tăng bị Siết TS chặn: mốc UTC sớm nhất thôi chặn + điều kiện còn phải đạt lúc đó (luat-ethopex _ts_mo, anh 10/11/2026) */ mo?: { luc: string; can: string | null } };
-export type CampEtpKho = { camp_id: number; ten: string; bo: string | null; trang_thai: string; giao: string | null; ngan_sach: number; creative_id: number | null; content_id: number | null; cam?: { luc: string | null; ly_do: string | null } | null;
+export type CampEtpKho = { camp_id: number; /** DÒNG CHỜ ANH DUYỆT (camp_id < 0): ▶ Lên sẽ tạo gì + cổng sẽ bỏ qua (anh 22/11/2026 "phải xem được đang làm gì mới duyệt được") */ xep?: { khuon: number; lang: string; cta: boolean; truoc: string | null } | null; ten: string; bo: string | null; trang_thai: string; giao: string | null; ngan_sach: number; creative_id: number | null; content_id: number | null; cam?: { luc: string | null; ly_do: string | null } | null;
   goc: number | null; /** mã bài post "<page>_<post>" của ad (etp.camp.bai_viet) — cây camp gom các camp chung bài (#1758) */ bai?: string | null; lich: string | null; tao: string | null; loi: string | null; dong_bo?: string | null; phim: string | null; the_loai: string | null; dang: string | null; /** bản mẫu (PO.1…PO.5) — sqlBan */ ban: string | null; /** giọng đọc (ky_di…) — sqlGiong */ giong: string | null; doan: string | null; cung_doan: number;
   thang: SoTien; qua: SoTien; nay: SoTien;
   /** đang tạm dừng vì LỊCH GIỜ (etp.lich_tat — apps/etp/lich-gio.py tự bật lại khi tới khung BẬT) */
@@ -461,15 +462,23 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     ab: r.ab_ma ? { ma: String(r.ab_ma), ten: String(r.ab_ten), kieu: String(r.ab_kieu), nhanh: r.ab_nhanh === 'thu' ? 'thu' : 'doi', nhanhTen: String(r.ab_nhanh_ten ?? r.ab_nhanh), giaThuyet: (r.ab_gt as string) ?? null, batDau: String(r.ab_bd) } : null }));
   // CREATIVE ĐÃ DUYỆT CHỜ LÊN CAMP (anh 22/11/2026 "duyệt rồi thì phải cho vào table bên dưới"): ô vàng chỉ giữ creative CHƯA duyệt; creative đã duyệt chưa camp
   // thành dòng "xếp hàng" trong nhóm phim của nó ở bảng cây — camp_id = −creative_id; kiểu lên theo sổ len_cr_roas (★ ROAS) hay camp $1 (apps/etp/lenh_cho.py) — chỉ Nhà
-  const hangRs = await runNha<Record<string, unknown>>(sql`select h.creative_id, r.content_id, f.ten phim, f.the_loai, r.dang, h.tao::text tao,
+  const hangRs = await runNha<Record<string, unknown>>(sql`select h.creative_id, r.content_id, f.ten phim, f.the_loai, r.dang, h.tao::text tao, coalesce(r.lang, 'en') lang, r.cta_dat cta,
       x.gia_tri -> h.creative_id::text ->> 'roas' ro, x.gia_tri -> h.creative_id::text ->> 'ns' ns, (select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'bo_phim_moi') bo   -- bộ máy sẽ lên (lenh_cho.py đọc cùng khoá)
     from etp.cho_anh_duyet_cr h join etp.cham_duyet u on u.creative_id = h.creative_id and u.ok join etp.creative r on r.creative_id = h.creative_id
       left join etp.phim f on f.content_id = r.content_id left join etp.cau_hinh x on x.khoa = 'len_cr_roas'
     where not exists (select 1 from etp.camp c where c.creative_id = h.creative_id) order by h.creative_id`).catch((e) => { console.error('etp hangCr', e); return []; });
+  // giờ chạy THẬT của ▶ Lên: ★ ROAS theo nhan-ban.gio_roas (sổ khung_doi.len_roas — trong [23, 03) VN chạy ngay, ngoài khung hẹn 23:00 VN kế); camp $1 theo lich_len (07:00 VN kế)
+  const [lrA, lrB] = ((BANG_LUAT.khung_doi as unknown as { len_roas?: [number, number] }).len_roas ?? [23, 3]);
+  const gioRoas = (() => { const vn = new Date(Date.now() + 7 * 3600_000), h = vn.getUTCHours(); if (lrA <= lrB ? h >= lrA && h < lrB : h >= lrA || h < lrB) return null;
+    return new Date(Date.UTC(vn.getUTCFullYear(), vn.getUTCMonth(), vn.getUTCDate() + (h < lrA ? 0 : 1), lrA - 7)).toISOString(); })();
+  const lanTruoc = (cr: number) => { try { const t = readFileSync(`/tmp/etp-len-cr-${cr}.log`, 'utf8').trim().split('\n').pop() ?? ''; const j = JSON.parse(t.slice(t.indexOf('{'))) as { loi?: string | null };
+    return j.loi ? String(j.loi).slice(0, 300) : null; } catch { return null; } };   // lần lên trước hỏng vì gì (nhật ký nhan-ban của nút / lenh_cho)
   const mai7 = (() => { const t = new Date(); return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() + 1)).toISOString(); })();   // 07:00 VN kế = 00:00 UTC kế
   const hangCr: CampEtpKho[] = hangRs.map((r) => { const ro = r.ro == null ? null : Number(r.ro), ns = r.ns == null ? 1 : Number(r.ns), cr = n(r.creative_id);
-    return { camp_id: -cr, ten: `⏳ đã duyệt · chờ lên ${ro != null ? `★ ROAS ${ro} · $${ns}` : 'camp $1'} · cr #${cr}`, bo: (r.bo as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns,
-      creative_id: cr, content_id: r.content_id == null ? null : n(r.content_id), goc: null, lich: mai7, tao: (r.tao as string) ?? null, loi: null, dong_bo: 'xep_hang',
+    const lang = r.lang === 'es' ? 'es' : 'en';
+    return { camp_id: -cr, xep: { khuon: lang === 'es' ? 65734 : 65110, lang, cta: r.cta === true || r.cta === 't', truoc: lanTruoc(cr) },   // khuôn cùng KHUON_CR của lenNgayCr
+      ten: `⏳ chờ anh duyệt · ${ro != null ? `★ ROAS ${ro} · $${ns}` : 'camp $1'} · cr #${cr}`, bo: (r.bo as string) || null, trang_thai: 'ACTIVE', giao: null, ngan_sach: ns,
+      creative_id: cr, content_id: r.content_id == null ? null : n(r.content_id), goc: null, lich: ro != null ? (gioRoas ?? new Date().toISOString()) : mai7, tao: (r.tao as string) ?? null, loi: null, dong_bo: 'xep_hang',
       phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, ban: null, giong: null, doan: null, cung_doan: 0,
       thang: st(0, 0), qua: st(0, 0), nay: st(0, 0), lich_tat: false, nuoc: [], ab: null, dong: null, roas: ro, chien_luoc: ro != null ? 'LOWEST_COST_WITH_MIN_ROAS' : null }; });
   // gộp creative / phim từ camp (cùng nguồn số)

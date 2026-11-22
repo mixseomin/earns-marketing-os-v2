@@ -99,6 +99,7 @@ SQL_CR_DUYET = """select h.creative_id, r.content_id, coalesce(r.lang, 'en'), re
 # ★ ROAS TỪ CREATIVE ANH DUYỆT (anh 22/11/2026 "lên thêm các camp kiểu đó tương tự … roas kiểu Sơn đang lên"): khoá etp.cau_hinh.len_cr_roas = {"<cr>": {roas, ns, luc, ai}}
 # — creative có trong sổ này lên ★ ROAS (nhan-ban --roas … --creative, ns trong hoi_cho.ns_khoang $5–10) THAY cho camp $1: luật "một creative một camp" (nhan-ban roas_main)
 KHOA_ROAS = "len_cr_roas"
+TAY_LY = "chờ anh duyệt tay ở etp2 › Camp (▶ Lên)"
 def doc_roas():
     try: return json.loads(q(f"select gia_tri from etp.cau_hinh where khoa = '{KHOA_ROAS}'") or "{}")
     except ValueError: return {}
@@ -134,6 +135,9 @@ def len_cr(st, chan, luc, xem, bao):
         h = hang.setdefault(cr, {"tt": "cho", "luc": luc}); kq.append({"cr": int(cr), "tt": h["tt"], "ly": chan, "kieu": f"★ ROAS {float(ro_[cr]['roas']):g} · ${int(ro_[cr]['ns'])}" if cr in ro_ else "$1"})
         if h["tt"] == "dang" and h.get("xet", "") < (dt.datetime.fromisoformat(luc) - dt.timedelta(hours=1)).isoformat(): h["tt"] = "cho"   # lượt bị cắt giữa chừng, 1 giờ chưa thấy camp → về hàng
         if h["tt"] == "dang" or (h["tt"] == "loi" and h.get("xet", "") > (dt.datetime.fromisoformat(luc) - dt.timedelta(hours=6)).isoformat()): continue   # lỗi thật: thử lại sau 6 giờ
+        if cr in ro_:   # ★ ROAS từ len_cr_roas: CHỜ ANH DUYỆT TAY ở etp2 (▶ Lên) — máy không tự lên (anh 22/11/2026 "show … ở trạng thái Chờ duyệt rồi tao sẽ duyệt = tay")
+            if h.get("ly") != TAY_LY: h.update(tt="cho", ly=TAY_LY); doi = True
+            continue
         if chan or xem or not bo:
             if chan and h.get("ly") != chan: h["ly"] = chan; doi = True
             continue

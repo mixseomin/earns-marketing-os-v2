@@ -10,6 +10,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // ───────────────────────── hình học đường ─────────────────────────
 // Trục x = Đông, trục z = Nam. Đường Đông–Tây rộng 2×10 m, Bắc–Nam 2×8 m, vỉa hè 4 m. Xe đi bên phải.
@@ -1852,6 +1853,7 @@ function ve() {
     if (a.loai === 'xm') {
       if (ix >= MAX_XM) continue;
       Q2.setFromAxisAngle(TRUC_X, a.nghieng); Q.multiply(Q2);
+      if (XMT.on) { const k = XMT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % XMT.ds.length]; datMa(k.t, k.n, V, Q, MOT, uot(a.c1, a)); datMa(k.f, k.n++, V, Q, MOT); }
       datMa(mXm, ix, V, Q, MOT, uot(a.c1, a)); datMa(mNguoi, ix, V, Q, MOT, uot(a.c2, a)); datMa(mMu, ix, V, Q, MOT, uot(a.c3, a));
       datMa(mCho, ix, V, Q, a.cho ? MOT : KHONG, a.c4); datMa(mHang, ix, V, Q, a.hang ? MOT : KHONG, a.c5);
       if (ben) datMa(XN.xm, nx.xm++, V, Q, SXN.set(1, 1, ben));
@@ -1859,6 +1861,7 @@ function ve() {
     } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, uot(a.c1, a)); if (ben) datMa(XN.oto, nx.oto++, V, Q, SXN.set(1, 1, ben)); }
     else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, uot(a.c1, a)); if (ben) datMa(XN.bus, nx.bus++, V, Q, SXN.set(1, 1, ben)); }
   }
+  if (XMT.on) for (const k of XMT.ds) { for (const m of [k.t, k.f]) { m.count = k.n; m.instanceMatrix.needsUpdate = true; } k.t.instanceColor.needsUpdate = true; k.n = 0; }
   for (const [m, n] of [[mXm, ix], [mNguoi, ix], [mMu, ix], [mCho, ix], [mHang, ix], [mOto, io], [mMui, io], [mBus, ib], [mBo, ip], [mDau, ip], [mNon, ip], [mBong, is], [XN.xm, nx.xm], [XN.oto, nx.oto], [XN.bus, nx.bus]]) {
     m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
   }
@@ -2216,8 +2219,63 @@ function vanNhua() { // vân nhựa đường: hạt sỏi + vệt bánh xe, t�
   t.anisotropy = renderer.capabilities.getMaxAnisotropy();
   return t;
 }
+// Xe máy thật (bản thật): 3 mẫu tay ga low-poly, CC BY trên poly.pizza — Thomas Saint Pierre, Jasmine Roberts, Poly by Google.
+// Mỗi mẫu = 2 InstancedMesh: phần thân (nhuộm theo màu xe a.c1) + phần cố định (bánh, yên, đèn). Tải nền khi bật 🧩 lần đầu.
+const XMT = { on: false, ds: [], tai: null };
+const XM_DAI = 1.5; // dài bằng khối hộp cũ (bánh ±0.6, r 0.29)
+function geoTuGlb(goc) {
+  goc.updateMatrixWorld(true);
+  const phan = new Map(); // vật liệu -> [geo]
+  goc.traverse((o) => {
+    if (!o.isMesh || /^cube$/i.test(o.name) && goc.children.length > 1 && o.geometry.attributes.position.count <= 24) return;
+    const g = o.geometry.clone().applyMatrix4(o.matrixWorld);
+    for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
+    g.clearGroups(); const ml = Array.isArray(o.material) ? o.material : [o.material];
+    const nhom = o.geometry.groups.length ? o.geometry.groups : [{ start: 0, count: (g.index || g.attributes.position).count, materialIndex: 0 }];
+    for (const gr of nhom) {
+      const m = ml[gr.materialIndex] || ml[0];
+      let gg = g;
+      if (nhom.length > 1) { gg = g.clone(); gg.setIndex(g.index ? Array.from(g.index.array.slice(gr.start, gr.start + gr.count)) : null); }
+      if (!phan.has(m)) phan.set(m, []); phan.get(m).push(gg.index ? gg.toNonIndexed() : gg);
+    }
+  });
+  // thân = vật liệu sáng có nhiều đỉnh nhất
+  let than = null, nMax = -1;
+  for (const [m, gs] of phan) { const c = m.color, sang = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b, n = gs.reduce((s, g) => s + g.attributes.position.count, 0); if (sang > 0.12 && n > nMax) { nMax = n; than = m; } }
+  const to = (ds, mau) => mergeGeometries(ds.map(([g, c]) => { const n = g.attributes.position.count, col = new Float32Array(n * 3); for (let i = 0; i < n; i++) col.set([c.r, c.g, c.b], i * 3); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); return g; }));
+  const T = [], F = [], TRANG_L = new THREE.Color(1, 1, 1);
+  for (const [m, gs] of phan) for (const g of gs) (m === than ? T : F).push([g, m === than ? TRANG_L : m.color]);
+  const gt = to(T), gf = F.length ? to(F) : new THREE.BufferGeometry();
+  // đặt chiều dài dọc +x, đáy ở y = 0
+  const bb = new THREE.Box3().setFromBufferAttribute(gt.attributes.position); if (F.length) bb.union(new THREE.Box3().setFromBufferAttribute(gf.attributes.position));
+  const sz = bb.getSize(new THREE.Vector3()), tam = bb.getCenter(new THREE.Vector3());
+  const M = new THREE.Matrix4().makeTranslation(-tam.x, -bb.min.y, -tam.z);
+  if (sz.z > sz.x) M.premultiply(new THREE.Matrix4().makeRotationY(Math.PI / 2));
+  M.premultiply(new THREE.Matrix4().makeScale(XM_DAI / Math.max(sz.x, sz.z), XM_DAI / Math.max(sz.x, sz.z), XM_DAI / Math.max(sz.x, sz.z)));
+  for (const g of [gt, gf]) if (g.attributes.position) { g.applyMatrix4(M); g.computeVertexNormals(); }
+  return [gt, gf];
+}
+function taiXm() {
+  if (XMT.tai) return XMT.tai;
+  const ld = new GLTFLoader(), vl = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.1, envMapIntensity: 0.6 });
+  XMT.tai = Promise.all([1, 2, 3].map((i) => ld.loadAsync(`mohinh/xm${i}.glb?v=1`).then((g) => {
+    const [gt, gf] = geoTuGlb(g.scene), lat = XMT.lat?.[i] ? Math.PI : 0;
+    if (lat) { gt.rotateY(lat); gf.rotateY(lat); }
+    const t = new THREE.InstancedMesh(gt, vl, MAX_XM), f = new THREE.InstancedMesh(gf, vl, MAX_XM);
+    for (const m of [t, f]) { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.visible = false; scene.add(m); }
+    t.setColorAt(0, new THREE.Color());
+    return { t, f, n: 0 };
+  }).catch((e) => { console.warn('xe máy thật', i, e); return null; }))).then((ds) => { XMT.ds = ds.filter(Boolean); datXm(THAT.on); });
+  return XMT.tai;
+}
+function datXm(on) {
+  XMT.on = on && XMT.ds.length > 0;
+  mXm.visible = !XMT.on;
+  for (const k of XMT.ds) { k.t.visible = k.f.visible = XMT.on; }
+}
 function datHinh(on) {
   THAT.on = on;
+  if (on) taiXm(); datXm(on);
   if (on && !THAT.env) {
     const pm = new THREE.PMREMGenerator(renderer);
     THAT.env = pm.fromScene(new RoomEnvironment(renderer), 0.04).texture; pm.dispose();
@@ -2245,7 +2303,7 @@ function datHinh(on) {
   }
   if (THAT.composer) THAT.composer.setSize(innerWidth, innerHeight);
   renderer.shadowMap.needsUpdate = true;
-  const b = $('hinh'); if (b) { b.classList.toggle('on', on); b.title = on ? 'Đang xem BẢN THẬT — bấm để về bản hiện tại' : 'Xem BẢN THẬT (vật liệu PBR, ánh sáng môi trường, che bóng góc) để so với bản hiện tại'; }
+  const b = $('hinh'); if (b) { b.classList.toggle('on', on); b.title = on ? 'Đang xem BẢN THẬT — bấm để về bản hiện tại' : 'Xem BẢN THẬT (vật liệu PBR, ánh sáng môi trường, che bóng góc, xe máy thật) để so với bản hiện tại. Mô hình xe: poly.pizza, CC BY'; }
   const u = new URL(location.href); if (on) u.searchParams.set('hinh', 'that'); else u.searchParams.delete('hinh'); history.replaceState(null, '', u);
 }
 $('hinh')?.addEventListener('click', () => datHinh(!THAT.on));

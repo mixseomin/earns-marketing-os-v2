@@ -569,7 +569,7 @@ def main(a):
     if roas is not None:
         if thang or hoi_cho: raise SystemExit("--roas không đi kèm --thang / --hoi-cho")
         if not ROAS_MIN <= roas <= ROAS_MAX: raise SystemExit(f"--roas phải trong {ROAS_MIN}–{ROAS_MAX} (Support 26/10/2026)")
-        return roas_main(goc, roas, int(float(lay("--ns", str(HOI_CHO["ns"]) if moi else "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a, tay, moi=moi, bo=bo, lenh_cho="--lenh-cho" in a, gio=gio, cu=cu, doi="--roas-doi" in a)
+        return roas_main(goc, roas, int(float(lay("--ns", str(HOI_CHO["ns"]) if moi else "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a, tay, moi=moi, bo=bo, lenh_cho="--lenh-cho" in a, gio=gio, cu=cu, doi="--roas-doi" in a, truc=truc)
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None, "chay": lich}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep, hoi_cho=hoi_cho and not moi and not thang, ns_tay=ns_tay); kq["ten"] = ten; bo = pl.pop("bo"); bai0 = bai = pl.pop("bai_cu", None); cr_bai = pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"]
@@ -735,7 +735,22 @@ assert BANG_LUAT["khung_doi"]["len_roas"] == [23, 3], "★ ROAS lên ban tối 2
 assert gio_roas(_u("2026-11-22T16:30:00")) is None and gio_roas(_u("2026-11-22T19:59:00")) is None, "23:30 / 02:59 VN trong khung → chạy ngay"
 assert gio_roas(_u("2026-11-22T00:14:00")) == "2026-11-22 23:00" and gio_roas(_u("2026-11-22T15:59:00")) == "2026-11-22 23:00" and gio_roas(_u("2026-11-22T20:00:00")) == "2026-11-23 23:00", "ngoài khung → 23:00 VN kế tiếp"
 
-def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False, tay=False, moi=None, bo=None, lenh_cho=False, gio=None, cu=None, doi=False):   # tay truyền từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)
+def bao_hay_chan(truc, kq, *cua):
+    """cổng → lý do chặn đầu tiên (máy tự lên). Vé TRỰC TIẾP của anh (truc): chạy HẾT các cổng, gom lý do vào kq["canh"] + stderr, trả None — không bao giờ chặn
+    (anh 22/11/2026 "bố cấm mày từ chối vì bất kỳ lý do gì"; cảnh báo một lần đã hiện ở nút etp2 trước khi cấp vé)."""
+    if not truc:
+        for f in cua:
+            ly = f()
+            if ly: return ly
+        return None
+    for f in cua:
+        ly = f()
+        if ly: kq.setdefault("canh", []).append(str(ly)); print(f"⚠ anh duyệt tay — bỏ qua cổng: {ly}", file=sys.stderr)
+    return None
+_k = {}; assert bao_hay_chan(False, _k, lambda: None, lambda: "x", lambda: "y") == "x" and not _k, "máy tự lên: cổng chặn ở lý do đầu"
+assert bao_hay_chan(True, _k, lambda: "x", lambda: None, lambda: "y") is None and _k["canh"] == ["x", "y"], "vé trực tiếp của anh: cổng chỉ cảnh báo, không chặn (anh 22/11/2026)"
+
+def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False, tay=False, moi=None, bo=None, lenh_cho=False, gio=None, cu=None, doi=False, truc=False):   # tay truyền từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)
     """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim.
     moi = {creative, content, ten} (anh 18/11/2026, đợt lên hồi chợ): ★ ROAS từ CREATIVE MỚI trên khuôn `goc` — ngân sách trong sổ luật hoi_cho.ns_khoang ($5–10),
     creative mới nên PHẢI qua cổng chấm Sạch + cổng 18+ / CTA / bài học + trang phim + một creative một camp (khác ★ ROAS bài cũ)."""
@@ -757,11 +772,15 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
         d, ten, cid, pl = payload(goc, lich, moi=moi, bo=bo if moi else None, roas=roas, ns_roas=ns, nhan=nhan); kq["ten"] = ten; bo = pl.pop("bo")
         if moi:
             kq["content"], kq["creative"] = cid, int(moi["creative"])
-            ly = cham_sach(int(moi["creative"])) or cong(cid, int(moi["creative"]), ten) or trang_chua_san(cid, pl.get("ad_account_id")) or giu_boi_nguoi_khac(cid, pl.get("ad_account_id"))
+            # ANH DUYỆT TAY Ở ETP2 (anh 22/11/2026 "tao sẽ duyệt = tay !! Khi đó bố cấm mày từ chối vì bất kỳ lý do gì"): có vé TRỰC TIẾP (nút ▶ Lên, cảnh báo một lần ở
+            # xinVeTrucTiep) thì mọi cổng creative (chấm Sạch, 18+, CTA, bài học, trang phim, giữ bởi người khác, đã có camp) chỉ CẢNH BÁO (kq.canh + stderr), không chặn.
+            ly = bao_hay_chan(truc, kq, lambda: cham_sach(int(moi["creative"])), lambda: cong(cid, int(moi["creative"]), ten),
+                              lambda: trang_chua_san(cid, pl.get("ad_account_id")), lambda: giu_boi_nguoi_khac(cid, pl.get("ad_account_id")))
             if ly: raise ChanLuat(ly)
             dem_dang_chay(cid)
             if DEM_CR.get(int(moi["creative"]), 0) > 0 or q(f"select 1 from etp.camp where creative_id = {int(moi['creative'])} limit 1") == "1":
-                raise ChanLuat(f"creative #{moi['creative']} đã có camp — ★ ROAS creative mới chỉ lên creative chưa có camp")
+                ly = bao_hay_chan(truc, kq, lambda: f"creative #{moi['creative']} đã có camp — ★ ROAS creative mới chỉ lên creative chưa có camp")
+                if ly: raise ChanLuat(ly)
         else:
             # CAMP ROAS KHÔNG QUA CỔNG CHẤM (anh 29/10/2026: "Camp roas lên ko cần chấm lại" — thay luật 26/10 "áp cho mọi loại camp"): ad ROAS = đúng bài đăng
             # của camp gốc đang chạy lãi (lãi 30 ngày ≥ $75), không phải creative mới. Điểm chấm chỉ ghi vào nhật ký để xem; luật chấm lich-gio cũng bỏ qua camp ★.
@@ -770,7 +789,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
             if ly: kq["mien_cham"] = ly
         # camp ROAS là dạng riêng, miễn mọi luật (anh 26/10/2026) — kể cả trần 30 camp/phim: không bị chặn, cũng không chiếm chỗ camp thường (dem_dang_chay bỏ ★)
         if any(x.get("name") == ten for x in api("/api/v1/campaigns?page_size=500")["data"]): raise ChanLuat(f"đã có camp '{ten}' — không tạo trùng")
-        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, ns, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, roas=True)   # ROAS miễn luật trùng phim với đội (anh 05/11/2026)
+        ly = bao_hay_chan(truc, kq, lambda: CONG.kiem("tao_camp" if moi else "nhan_ban", None, ns, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, roas=True))   # ROAS miễn luật trùng phim với đội (anh 05/11/2026); vé trực tiếp → chỉ cảnh báo
         if ly: raise ChanLuat(ly)   # luật chặn → nhật ký ok NULL như đường thường (05/11/2026: chặn trùng phim bị đếm là lỗi 3–6 lần/ngày)
         kq["content"] = cid
         tn = ab_lay(kq, pl, lich, goc, None, roas=True) if not moi else None

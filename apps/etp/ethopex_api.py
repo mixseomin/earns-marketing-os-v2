@@ -223,7 +223,7 @@ def _id_cham(duong, body):
 # Mọi lệnh ghi đi qua (cho qua / chặn / gửi hỏng) ghi một dòng etp.cua — hậu kiểm apps/etp/hau_kiem.py (dong-bo mỗi lượt) so với thay đổi thật trên Ethopex.
 class ChanCua(NgoaiNha, ValueError): pass
 # CAMP TẠO TRƯỚC 20/11/2026 DỪNG TRIỆT ĐỂ (anh 23/11/2026 "các thứ từ trước 20/11 phải dừng triệt để"): máy không ghi gì vào camp cũ nữa — không bật lại, không tăng /
-# giảm, không đổi creative, không nhân bản từ camp cũ làm gốc. Chỉ còn TẠM DỪNG (dừng thêm thì luôn được) và lệnh TRỰC TIẾP của anh (vé truc_tiep). Một cửa ở đây:
+# giảm, không đổi creative (máy luật bỏ camp cũ khỏi danh sách nên cũng không nhân bản camp cũ thắng). Camp MỚI tạo từ khuôn cũ vẫn lên. Chỉ còn TẠM DỪNG (dừng thêm thì luôn được) và lệnh TRỰC TIẾP của anh (vé truc_tiep). Một cửa ở đây:
 # mọi script (luat-ethopex, thay-tu-choi, sua-cta, soat_doan, lich-gio, nhan-ban…) đi qua api(). Người đọc (máy luật, hàng chờ) lọc thêm bằng camp_cu() để khỏi báo / thử.
 MOC_CU = "2026-11-20 00:00+07"
 _CU = None
@@ -308,7 +308,7 @@ def cua(duong, body):
     ra = []
     for l in ds:
         v = l["viec"]
-        cu = camp_cu([x for x in (l.get("camp_id"), l.get("goc")) if x]) if v != "tat" else set()
+        cu = camp_cu([l["camp_id"]]) if v != "tat" and l.get("camp_id") else set()   # chỉ camp BỊ GHI; tạo camp mới từ khuôn cũ (▶ Lên etp2, nhan-ban <khuôn>) không chạm camp cũ → vẫn đi
         if cu and not CG.truc_tiep(v, sorted(cu), l.get("content_id")):   # camp trước 20/11: chỉ tạm dừng / lệnh trực tiếp của anh (anh 23/11/2026)
             ly = f"camp #{', #'.join(map(str, sorted(cu)))} tạo trước 20/11 — dừng triệt để, máy không {v} (anh 23/11/2026)"
             _ghi_cua(l, False, ly); raise ChanCua(f"cửa API chặn {v}: {ly}")

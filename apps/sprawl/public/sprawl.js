@@ -34,7 +34,9 @@ const canAnh = (k) => k === 'thuc';
 
 // ---------- khung ----------
 const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, CHAM ? 1.25 : 1.5)); renderer.setSize(innerWidth, innerHeight);
+// mật độ điểm ảnh: trần 1,5 (máy chậm 1,25) và trần tổng ~4,5 triệu điểm — màn 5K ở mật độ 1,5 là 8,3 triệu điểm qua cả chuỗi bloom, card đồ hoạ chạy hết công suất
+const matDo = () => Math.min(devicePixelRatio, CHAM ? 1.25 : 1.5, Math.max(1, Math.sqrt(4.5e6 / (innerWidth * innerHeight))));
+renderer.setPixelRatio(matDo()); renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.info.autoReset = false; // đếm tam giác cả khung (composer render nhiều lượt, tự reset chỉ còn lượt bloom cuối)
 const scene = new THREE.Scene();
@@ -384,7 +386,7 @@ function datCo() { // &4k: khung vẽ đúng KW × KH; &doc: khung dọc 9:16 (k
     else { renderer.setSize(w, h, false); composer.setSize(w, h); }
     Object.assign(c.style, { width: w + 'px', height: h + 'px', left: (innerWidth - w) / 2 + 'px', top: (innerHeight - h) / 2 + 'px', inset: 'auto', position: 'fixed' });
     camera.aspect = tl;
-  } else { renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; }
+  } else { renderer.setPixelRatio(matDo()); composer.setPixelRatio(matDo()); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; }
   camera.updateProjectionMatrix();
 }
 if (K4 || DOC) datCo();
@@ -423,8 +425,15 @@ addEventListener('keydown', (e) => { if (e.target.closest?.('input,textarea') ||
 let daGoc = false, lan = 0, tichLuy = 0, demKhung = 0, tFps = performance.now(), fps = 0, tDat = 0, tO = 0;
 const _camO = new THREE.Matrix4(), _chieuO = new THREE.Matrix4();
 const dongHo = new THREE.Clock();
+// nhịp vẽ: đang đi / lái / quay phim / vừa chạm chuột, phím hay camera còn trôi → tối đa 60 khung/s (màn 120 Hz không vẽ gấp đôi);
+// để yên quá 2 s → 30 khung/s. Thành phố vẫn chạy, chỉ vẽ thưa hơn; chạm vào là về nhịp đầy ngay khung kế.
+let tDong = performance.now(), tVe = 0;
+for (const k of ['pointerdown', 'wheel', 'keydown', 'touchstart']) addEventListener(k, () => { tDong = performance.now(); }, { passive: true, capture: true });
+addEventListener('pointermove', (e) => { if (e.buttons) tDong = performance.now(); }, { passive: true, capture: true });
 function ve() { renderer.info.reset(); if (KIEU[kieu].bloom > 0) composer.render(); else renderer.render(scene, camera); }
 renderer.setAnimationLoop(() => {
+  { const t = performance.now(), yen = !di?.dang && !ghi && t - tDong > 2000;
+    if (t - tVe < (yen ? 30 : 14)) return; tVe = t; }
   const dt = Math.min(0.05, dongHo.getDelta());
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); xe?.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } xe?.khung(); di.khung(dt); }
   else { bayTien(dt); orbit.update(); }
@@ -434,6 +443,7 @@ renderer.setAnimationLoop(() => {
   // ô nhà: chỉ duyệt cây ô khi camera đổi, còn ô đang tải, hoặc mỗi 0,5 s (trước đây mỗi khung)
   const now = performance.now(); camera.updateMatrixWorld();
   if (!camera.matrixWorld.equals(_camO) || !camera.projectionMatrix.equals(_chieuO) || now - tO > 500 || dsTiles.some((t) => t.stats.queued + t.stats.downloading + t.stats.parsing > 0)) {
+    if (!camera.matrixWorld.equals(_camO)) tDong = now; // camera còn trôi (quán tính, tự xoay, bay tới) = chưa yên
     _camO.copy(camera.matrixWorld); _chieuO.copy(camera.projectionMatrix); tO = now;
     for (const t of dsTiles) { t.setCamera(camera); t.setResolutionFromRenderer(camera, renderer); t.update(); } }
   if (chanDoi && now - tDat > (datY ? 2500 : 600)) { tDat = now; dungDat(); if (!di?.dang && qs.has('goc') && !qs.has('bay')) daGoc = false; } // đất đổi cao độ khi ô nhà nạp thêm → góc dựng sẵn đặt lại theo (chỉ khi anh chưa tự xoay)

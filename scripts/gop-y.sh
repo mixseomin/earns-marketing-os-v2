@@ -168,9 +168,16 @@ submit)
         cty) dir=/opt/cty ;;
         earns-marketing-os-v2) dir=/opt/earns-marketing-os-v2 ;;
         outreach) dir=/opt/outreach ;;
+        dantranh) dir=/opt/dantranh ;;
         *) echo "submit #$id bị chặn: chưa biết thư mục deploy của repo $repo trên box3 để kiểm commit (thêm vào scripts/gop-y.sh)." >&2; exit 1 ;;
       esac
-      if ! git -C "$dir" merge-base --is-ancestor "$sha" HEAD 2>/dev/null; then
+      if [ ! -e "$dir/.git" ] && [ -f "$dir/.ban-dung" ]; then
+        # Lên bản bằng rsync, không có git: commit đang chạy = chữ đầu dòng đầu .ban-dung
+        dang=$(head -1 "$dir/.ban-dung" | awk '{print $1}')
+        if [ -z "$dang" ] || [[ "$dang" != "$sha"* && "$sha" != "$dang"* ]]; then
+          echo "submit #$id bị chặn: commit $sha không phải bản đang chạy trên box3 ($dir/.ban-dung ghi ${dang:0:7}) — lên bản chưa xong. Lên bản xong, kiểm trên trang thật, rồi mới nộp." >&2; exit 1
+        fi
+      elif ! git -C "$dir" merge-base --is-ancestor "$sha" HEAD 2>/dev/null; then
         echo "submit #$id bị chặn: commit $sha chưa nằm trong bản đang chạy trên box3 ($dir đang ở $(git -C "$dir" log -1 --format=%h)) — push chưa thành công hoặc deploy chưa xong. Chờ deploy xanh, kiểm trên trang thật, rồi mới nộp." >&2; exit 1
       fi
     else

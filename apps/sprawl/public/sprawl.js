@@ -19,6 +19,7 @@ import { napNguoi3d, taoNguoi3d } from './chung/nguoi3d.js';
 import { taoCamUng, CHAM } from './chung/camung.js';
 import { ganGopY, chupCanvas } from './chung/gopy.js';
 import { taoRedSpires } from './redspires.js';
+import { taoNhat2200 } from './nhat2200.js';
 
 const $ = (id) => document.getElementById(id);
 // tâm cảnh: Nishi-Shinjuku, giữa ga Shinjuku và toà thị chính Tokyo
@@ -45,6 +46,7 @@ const KIEU = {
   thuc: { ten: 'Thật', nen: '#b9cfe3', suong: () => new THREE.Fog('#c9d8e6', 1200, 7000), bloom: 0, troi: 1.1, nang: 1.4, mu: 1.0 },
   bui: { ten: 'Phố Bụi', nen: '#9a6234', suong: () => new THREE.FogExp2('#9a6234', 0.0009), bloom: 0.75, troi: 0.7, nang: 0.5, mu: 0.9, tuong: '#2a1e16', cua: ['#ffb35c', '#9ee0ff'], lit: 0.72 },
   do: { ten: 'Red Spires', nen: '#a7b6c2', suong: () => new THREE.FogExp2('#a3b2be', 0.00042), bloom: 0, troi: 1.15, nang: 1.25, mu: 1.0 },
+  nhat: { ten: 'Nhật 2200', nen: '#bcd6ec', suong: () => new THREE.FogExp2('#d3e2ee', 0.00028), bloom: 0, troi: 1.25, nang: 1.8, mu: 1.0 }, // reel Japan 2200: nắng trong, tháp trắng xoắn, cao tốc trên cao, xe bay đĩa bạc
 };
 const uNeon = { uLit: { value: 0.7 }, uCuaA: { value: new THREE.Color() }, uCuaB: { value: new THREE.Color() } };
 const vatNeon = new THREE.MeshStandardMaterial({ color: '#2a1e16', roughness: 0.88, metalness: 0.1 });
@@ -107,7 +109,7 @@ function dungDat() { // lấp ô trống theo ô có dữ liệu gần nhất (l
   datMesh.geometry.dispose(); datMesh.geometry = g;
   if (datVa) world.removeCollider(datVa, false);
   datVa = world.createCollider(RAPIER.ColliderDesc.trimesh(vs, Uint32Array.from(idx)), tinh);
-  rs?.datLai(datMuot);
+  rs?.datLai(datMuot); n2?.datLai(datMuot);
   world.step();
   $('b-di').disabled = false;
 }
@@ -120,7 +122,9 @@ function datTai(x, z) { if (!datY) return 0; const i = Math.max(0, Math.min(LUOI
 let rs = null;
 try { rs = taoRedSpires({ RAPIER, world, tinh, datTai, ql: await fetch('./du-lieu/quy-hoach.json', { cache: 'no-cache' }).then((r) => r.json()) }); scene.add(rs.goc); rs.khoacDat(datMesh.material); }
 catch (e) { console.warn('[sprawl] không nạp được quy hoạch Red Spires', e); }
-const vatCho = (o) => (kieu === 'thuc' ? o.userData.vatThuc : kieu === 'do' && rs ? rs.vatPho : vatNeon);
+let n2 = null; // Nhật 2200 dựng trên chính Red Spires: giữ phố, người, xe đất; tháp đỏ nhường chỗ tháp trắng
+try { if (rs) { n2 = taoNhat2200({ rs, ql: rs.ql, datTai }); scene.add(n2.goc); } } catch (e) { console.warn('[sprawl] không dựng được Nhật 2200', e); }
+const vatCho = (o) => (kieu === 'thuc' ? o.userData.vatThuc : (kieu === 'do' || kieu === 'nhat') && rs ? rs.vatPho : vatNeon);
 
 // ---------- nhà PLATEAU theo ô ----------
 const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/gltf/');
@@ -164,8 +168,8 @@ function datKieu(k) {
   scene.background = new THREE.Color(K.nen); scene.fog = K.suong();
   troi.intensity = K.troi; nang.intensity = K.nang; renderer.toneMappingExposure = K.mu; bloom.strength = K.bloom;
   if (K.cua) { uNeon.uLit.value = K.lit; uNeon.uCuaA.value.set(K.cua[0]); uNeon.uCuaB.value.set(K.cua[1]); vatNeon.color.set(K.tuong); }
-  datMesh.material.color.set(k === 'thuc' ? '#6d6a66' : k === 'bui' ? '#3b2a1c' : '#858b84');
-  rs?.hien(k === 'do');
+  datMesh.material.color.set(k === 'thuc' ? '#6d6a66' : k === 'bui' ? '#3b2a1c' : k === 'nhat' ? '#9a9c98' : '#858b84');
+  rs?.hien(k === 'do' || k === 'nhat'); rs?.sang?.(k === 'nhat' ? 0.62 : 0); n2?.hien(k === 'nhat');
   for (const t of dsTiles) t.group.traverse((o) => { if (o.isMesh && o.userData.vatThuc) o.material = vatCho(o); });
   document.querySelectorAll('#kieu button').forEach((b) => b.classList.toggle('on', b.dataset.k === k));
   try { localStorage.setItem('sprawl-kieu', k); } catch {}
@@ -234,7 +238,7 @@ function laLatLon(x, z) { return { lat: TAM.lat - z / 110950, lon: TAM.lon + x /
 // ---------- góc quay dựng sẵn + quay 4K ----------
 // ?goc=anh|cum|gan|pho|tren  ·  &cam=x,y,z,tx,ty,tz[,fov]  ·  &sach (ẩn giao diện, H bật tắt)  ·  &4k (khung vẽ 3840 × 2160)
 // &bay=quay|tien (chuyển động chậm cho quay phim) · phím: C chép góc hiện tại thành link · P chụp ảnh 4K · R bắt đầu / dừng quay video
-const qs = new URLSearchParams(location.search), K4 = qs.has('4k');
+const qs = new URLSearchParams(location.search), K4 = qs.has('4k'), DOC = qs.has('doc'), KW = DOC ? 2160 : 3840, KH = DOC ? 3840 : 2160; // &doc = khung dọc 9:16 cho reel
 let gocTay = false; orbit.addEventListener('start', () => { gocTay = true; });
 function gocDung(ten) { // trả [cam xyz, đích xyz, fov]; góc theo dữ liệu quy hoạch nên đổi bản quy hoạch vẫn đúng chỗ
   const ql = rs?.ql, d0 = (x, z) => datTai(x, z) || 0;
@@ -276,12 +280,41 @@ function gocDung(ten) { // trả [cam xyz, đích xyz, fov]; góc theo dữ li�
       const y = d0(x, z); return [[x + ux * 55 - uz * 6, y + 26, z + uz * 55 + ux * 6], [x, y, z], 50];
     }
   }
+  if (ten === '2200' && n2?.cao?.length && ql) { // reel Japan 2200: cao ~150 m, chúc xuống ~30° dọc cao tốc trên cao, hai hàng tháp trắng kẹp hai bên
+    let tot = null;
+    for (const c of n2.cao) for (let i = 16; i < c.P.length - 16; i += 2) for (const sg of [1, -1]) {
+      if (c.kc[i] < 340 || c.kc[i] > c.L - 340) continue;                                            // bỏ đoạn dốc hai đầu tuyến
+      const [ax, az] = c.P[i], [bx, bz] = c.P[i + 12 * sg], L = Math.hypot(bx - ax, bz - az) || 1, ux = (bx - ax) / L, uz = (bz - az) / L;
+      const cx = ax - ux * 60, cz = az - uz * 60; let tr = 0, ph = 0, ket = false;
+      for (const t of ql.thap) { const dx = t.o[0] - ax, dz = t.o[1] - az, doc = dx * ux + dz * uz, s = dx * uz - dz * ux, ng = Math.abs(s);
+        if (Math.hypot(t.o[0] - cx, t.o[1] - cz) < t.banKinh + 45) ket = true;                      // máy không đứng sát / trong thân tháp
+        if (doc > -40 && doc < 600 && ng > 30 && ng < 260) { const w = (1 + t.caoSpire / 300) * (1 - doc / 900); if (s > 0) tr += w; else ph += w; } }
+      if (ket) continue;
+      const r0 = Math.hypot(ax, az) || 1, vao = -(ax * ux + az * uz) / r0;                              // nhìn vào tâm: nền xa là phố PLATEAU (dữ liệu chỉ phủ quận Shinjuku), không phải đất trống
+      const diem = Math.min(tr, ph) * 2.5 + tr + ph - r0 / 300 + vao * 4;
+      if (!tot || diem > tot.diem) tot = { diem, ax, az, ux, uz };
+    }
+    if (tot) { const { ax, az, ux, uz } = tot, y = d0(ax, az); return [[ax - ux * 60, y + 150, az - uz * 60], [ax + ux * 200, y + 10, az + uz * 200], 55]; }
+  }
+  if (ten === '2200' && ql) { // dự phòng khi chưa có cao tốc: dọc đại lộ lớn
+    let tot = null;
+    for (const dl of ql.daiLo) if (dl.lop === 'lon') for (let i = 0; i < dl.g.length - 1; i++) {
+      const [ax, az] = dl.g[i]; let j = i + 1; while (j < dl.g.length - 1 && Math.hypot(dl.g[j][0] - ax, dl.g[j][1] - az) < 250) j++;
+      const [bx, bz] = dl.g[j], L = Math.hypot(bx - ax, bz - az); if (L < 120) continue;
+      const ux = (bx - ax) / L, uz = (bz - az) / L; let tr = 0, ph = 0;
+      for (const t of ql.thap) { const dx = t.o[0] - ax, dz = t.o[1] - az, doc = dx * ux + dz * uz, s = dx * uz - dz * ux, ng = Math.abs(s);
+        if (doc > -80 && doc < 520 && ng > 35 && ng < 240) { const w = 1 + t.caoSpire / 300; if (s > 0) tr += w; else ph += w; } }
+      const diem = Math.min(tr, ph) * 2 + tr + ph - Math.hypot(ax, az) / 2000;
+      if (!tot || diem > tot.diem) tot = { diem, ax, az, ux, uz };
+    }
+    if (tot) { const { ax, az, ux, uz } = tot, y = d0(ax, az); return [[ax - ux * 90, y + 150, az - uz * 90], [ax + ux * 230, y + 5, az + uz * 230], 55]; }
+  }
   if (ten === 'tren') return [[0, 1800, 400], [0, 0, 0], 55];
-  if (kieu === 'do' || ten === 'cum') return [[420, 210, 620], [-260, 150, -120], 60]; // cụm tháp Nishi-Shinjuku
+  if (kieu === 'do' || kieu === 'nhat' || ten === 'cum') return [[420, 210, 620], [-260, 150, -120], 60]; // cụm tháp Nishi-Shinjuku
   return [[500, 650, 900], [0, 60, 0], 60];
 }
 function datGoc() {
-  const c = qs.get('cam')?.split(',').map(Number), g = c?.length >= 6 && c.every(Number.isFinite) ? [c.slice(0, 3), c.slice(3, 6), c[6] || 60] : gocDung(qs.get('goc') || '');
+  const c = qs.get('cam')?.split(',').map(Number), g = c?.length >= 6 && c.every(Number.isFinite) ? [c.slice(0, 3), c.slice(3, 6), c[6] || 60] : gocDung(qs.get('goc') || (kieu === 'nhat' ? '2200' : ''));
   camera.position.set(...g[0]); orbit.target.set(...g[1]); camera.fov = g[2]; camera.updateProjectionMatrix(); orbit.update();
 }
 datGoc();
@@ -292,23 +325,24 @@ function linkGoc() { const u = new URL(location.href), f = (v) => Math.round(v *
 function baoNho(chu) { let b = $('bao-nho'); if (!b) { b = document.createElement('div'); b.id = 'bao-nho'; document.body.appendChild(b); }
   b.textContent = chu; b.classList.add('hien'); clearTimeout(b._t); b._t = setTimeout(() => b.classList.remove('hien'), 3500); }
 // khung vẽ: chế độ 4K giữ đúng 3840 × 2160, hiển thị co vừa màn (viền đen hai bên nếu màn không 16:9)
-function datCo() {
-  if (K4) { const w = Math.min(innerWidth, innerHeight * 16 / 9), c = renderer.domElement;
-    renderer.setPixelRatio(1); renderer.setSize(3840, 2160, false); composer.setSize(3840, 2160);
-    Object.assign(c.style, { width: w + 'px', height: w * 9 / 16 + 'px', left: (innerWidth - w) / 2 + 'px', top: (innerHeight - w * 9 / 16) / 2 + 'px', inset: 'auto' });
-    camera.aspect = 16 / 9;
+function datCo() { // &4k: khung vẽ đúng KW × KH; &doc: khung dọc 9:16 (kèm &4k = 2160 × 3840), co vừa màn, viền đen hai bên
+  if (K4 || DOC) { const tl = KW / KH, w = Math.min(innerWidth, innerHeight * tl), h = w / tl, c = renderer.domElement;
+    if (K4) { renderer.setPixelRatio(1); renderer.setSize(KW, KH, false); composer.setSize(KW, KH); }
+    else { renderer.setSize(w, h, false); composer.setSize(w, h); }
+    Object.assign(c.style, { width: w + 'px', height: h + 'px', left: (innerWidth - w) / 2 + 'px', top: (innerHeight - h) / 2 + 'px', inset: 'auto', position: 'fixed' });
+    camera.aspect = tl;
   } else { renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; }
   camera.updateProjectionMatrix();
 }
-if (K4) datCo();
-async function chup4k() { // một khung 3840 × 2160 (kể cả khi đang xem khung thường), tải về PNG
+if (K4 || DOC) datCo();
+async function chup4k() { // một khung KW × KH (3840 × 2160, &doc = 2160 × 3840) kể cả khi đang xem khung thường, tải về PNG
   const cu = new THREE.Vector2(); renderer.getSize(cu); const pr = renderer.getPixelRatio(), asp = camera.aspect;
-  renderer.setPixelRatio(1); renderer.setSize(3840, 2160, false); composer.setSize(3840, 2160); camera.aspect = 16 / 9; camera.updateProjectionMatrix();
+  renderer.setPixelRatio(1); renderer.setSize(KW, KH, false); composer.setSize(KW, KH); camera.aspect = KW / KH; camera.updateProjectionMatrix();
   for (const t of dsTiles) { t.setResolutionFromRenderer(camera, renderer); t.update(); }
   rs?.loc(camera, true);
   ve(); const blob = await new Promise((ok) => renderer.domElement.toBlob(ok, 'image/png'));
   if (!K4) { renderer.setPixelRatio(pr); renderer.setSize(cu.x, cu.y, false); composer.setSize(cu.x, cu.y); camera.aspect = asp; camera.updateProjectionMatrix(); }
-  taiVe(blob, `sprawl-${kieu}-${Date.now()}.png`); baoNho('Đã chụp 3840 × 2160');
+  taiVe(blob, `sprawl-${kieu}-${Date.now()}.png`); baoNho(`Đã chụp ${KW} × ${KH}`);
 }
 function taiVe(blob, ten) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ten; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); }
 let ghi = null;
@@ -342,7 +376,7 @@ renderer.setAnimationLoop(() => {
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
   else { bayTien(dt); orbit.update(); }
   saKhung(dt);
-  rs?.khung(dt, camera);
+  rs?.khung(dt, camera); n2?.khung(dt, camera);
   if (datY && !gocTay && !daGoc) { daGoc = true; datGoc(); } // đất dựng xong mới biết độ cao thật → đặt lại góc dựng sẵn (nếu anh chưa tự xoay)
   // ô nhà: chỉ duyệt cây ô khi camera đổi, còn ô đang tải, hoặc mỗi 0,5 s (trước đây mỗi khung)
   const now = performance.now(); camera.updateMatrixWorld();
@@ -357,4 +391,4 @@ renderer.setAnimationLoop(() => {
     if (!lan && tk.o) { lan = 1; $('nap').style.display = 'none'; } }
 });
 addEventListener('resize', datCo);
-window.__sprawl = { scene, camera, orbit, renderer, dsTiles, tk, datTai, rs, get di() { return di; } };
+window.__sprawl = { scene, camera, orbit, renderer, dsTiles, tk, datTai, rs, n2, get di() { return di; } };

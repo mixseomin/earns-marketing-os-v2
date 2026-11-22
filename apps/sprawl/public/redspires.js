@@ -68,6 +68,7 @@ function khiaGan(geo, than, n, bien) {
 
 // cửa sổ sáng đèn: ô kính ngẫu nhiên bật đèn ấm, vài ô đổi trạng thái mỗi ~10 giây (dùng chung tháp đỏ + nhà PLATEAU)
 const U_DEN = { uDen: { value: 0.85 }, uTg: { value: 0 } };
+const uSang = { uSang: { value: 0 } }; // kiểu Nhật 2200: phố thấp sáng màu kem trắng thay xanh xám
 const DEN_EMIT = '#include <emissivemap_fragment>\n      totalEmissiveRadiance += vec3(1.0, 0.74, 0.46) * den * uDen;';
 
 function vatThap(gen) {
@@ -301,11 +302,11 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
   const uKhoet = { uThap: { value: thap.map((t) => new THREE.Vector4(t.o[0], t.o[1], t.banKinh * 1.25, 0)) } };
   const vatPho = new THREE.MeshLambertMaterial({ color: '#7f93a3' });
   vatPho.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, uKhoet, U_DEN);
+    Object.assign(sh.uniforms, uKhoet, U_DEN, uSang);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-      varying vec3 vWp; uniform vec4 uThap[${thap.length}]; uniform float uDen, uTg;
+      varying vec3 vWp; uniform vec4 uThap[${thap.length}]; uniform float uDen, uTg, uSang;
       float bam(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }`)
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
       for (int i = 0; i < ${thap.length}; i++) { vec4 t = uThap[i]; float d = length(vWp.xz - t.xy);
@@ -318,6 +319,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
       vec3 m0 = vec3(0.50, 0.58, 0.64), m1 = vec3(0.74, 0.71, 0.64), m2 = vec3(0.40, 0.45, 0.50), m3 = vec3(0.50, 0.60, 0.57), m4 = vec3(0.68, 0.56, 0.50);
       vec3 mk = hm < 0.42 ? m0 : hm < 0.6 ? m2 : hm < 0.76 ? m1 : hm < 0.9 ? m3 : m4;
       diffuseColor.rgb = mk * (0.85 + 0.25 * hk);
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.85, 0.82) * (0.86 + 0.16 * hk), uSang);
       float den = 0.0;
       if (abs(nw.y) > 0.6) {                                                   // mái: vườn mái hoặc bê tông, có bồn nước / máy lạnh rải
         if (hk > 0.55) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.33, 0.46, 0.28), 0.75 * step(0.3, bam(floor(vWp.xz / 3.0))));
@@ -676,5 +678,5 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     U_DEN.uTg.value += dt; song.khung(dt);
   }
 
-  return { goc, vatPho, khoacDat, datLai, hien, khung, loc, ql, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), ...song.tk } };
+  return { goc, vatPho, khoacDat, datLai, hien, khung, loc, ql, song, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), ...song.tk } };
 }

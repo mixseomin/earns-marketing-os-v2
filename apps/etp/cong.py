@@ -294,6 +294,9 @@ def ve_truc_tiep(viec, camp_id=None, content_id=None, lenh="", ns=None, phien=""
     except Exception as e: print(f"⚠ không gửi được Telegram: {str(e)[:100]}", file=__import__("sys").stderr)
     return ma, phanh
 
+# PHANH CHỢ CHỈ CẢNH BÁO (anh 22/11/2026 "Phanh chợ ko bật lúc này. Chỉ dùng để cảnh báo"): sổ luật phanh_cho.chan = false → phanh_cho() vẫn ra câu cảnh báo cho trang / thẻ,
+# nhưng MỌI chỗ CHẶN (chan_cua, phanh_sx nấc rút, luat-ethopex bỏ khỏi danh sách tăng / rút CX) đọc PC_CHAN trước khi chặn.
+PC_CHAN = bool(_BL["phanh_cho"].get("chan", True))
 def phanh_cho(tt, viec, bay_gio=None, thay=False):
     """hàm thuần: trạng thái etp.cau_hinh.phanh_cho + việc → câu lý do chặn | None (miễn trừ ROAS / lệnh anh / ngoài do kiem() xét)"""
     pc = (tt or {}).get("phanh") or {}; bay = (bay_gio or dt.datetime.now(dt.timezone.utc)).isoformat()
@@ -438,7 +441,7 @@ def chan_cua(viec, ch, camp_id=None, thay=False, ve=False, lich=False, cts=(), g
     # PHANH CHỢ (anh 16/11/2026 "Làm theo đề xuất" — sổ luật phanh_cho, apps/etp/gia_adsense.py xet_phanh chốt 20h VN): không tăng bậc tới den_tang, không tạo camp / nhân bản
     # tới den_len. ANH BẤM TAY KHÔNG BỊ PHANH (anh 16/11/2026: "mày ko đc chặn với thao tác thủ công. Chỉ được cảnh báo thêm 1 lần nữa") — người bấm thật = có VÉ.
     ly_pc = phanh_cho(ch.get("phanh_cho"), viec, thay=thay)
-    if ly_pc and not ve: return ly_pc
+    if ly_pc and not ve and PC_CHAN: return ly_pc
     return None
 
 # SẢN XUẤT THEO CHỢ (anh 18/11/2026 "cứ sx rồi để đấy hay theo plan? mấy hôm nay không cho lên camp mới thì sx cũng không bật lên được" — sổ luật chung san_xuat_theo_cho):
@@ -456,7 +459,7 @@ def phanh_sx(ch, bay_gio=None):
     bay = bay_gio or dt.datetime.now(dt.timezone.utc)   # bay_gio chỉ cho nấc rút (bài tự kiểm); cổng chan_cua xét giờ hiện tại như lúc lên camp
     ly = chan_cua("tao_camp", ch or {})
     rut = ((((ch or {}).get("phanh_cho") or {}).get("rut")) or {}).get("den") or ""
-    if not ly and rut > bay.isoformat(): ly = f"RÚT KHỎI CHỢ tới {dt.datetime.fromisoformat(rut) + dt.timedelta(hours=7):%H:%M %d/%m} giờ VN (sổ luật phanh_cho.rut)"
+    if not ly and PC_CHAN and rut > bay.isoformat(): ly = f"RÚT KHỎI CHỢ tới {dt.datetime.fromisoformat(rut) + dt.timedelta(hours=7):%H:%M %d/%m} giờ VN (sổ luật phanh_cho.rut)"
     return f"chờ phanh nhả: {ly}" if ly else None
 
 def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False, lenh_anh=False, bac=False, bai_cu=False, thay=False, anh_bam=False, goc=None):
@@ -604,6 +607,12 @@ def ns_tao(body):
     return None, tran
 
 def _tu_kiem():
+    global PC_CHAN
+    _pc0 = PC_CHAN; PC_CHAN = False   # chỉ cảnh báo: phanh có mà không chặn gì
+    _b = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=6)).isoformat(); _c = {"phanh_cho": {"phanh": {"den_tang": _b, "den_len": _b, "ly_do": "thử"}, "gia6": {"ti": 0.6, "den": _b}, "rut": {"den": _b}}}
+    assert all(chan_cua(v, _c) is None for v in ("tang", "nhan_ban", "tao_camp")) and phanh_sx(_c) is None and phanh_cho(_c["phanh_cho"], "tang"), "chan=false: không chặn nhưng vẫn có câu cảnh báo"
+    assert chan_cua("tang", {**_c, "dung_khan": True}) == LY_DUNG_KHAN, "dừng khẩn vẫn chặn khi phanh chợ chỉ cảnh báo"
+    PC_CHAN = True
     # PHÁ THỬ MỘT CỬA (anh 18/11/2026): phanh đang chạy → mọi lệnh máy bị chặn bất kể cờ / chữ ai; chỉ vé (ve=True) qua; thay bài bị từ chối qua; dừng khẩn chặn cả vé
     _bay = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=6)).isoformat()
     _ch = {"phanh_cho": {"phanh": {"den_tang": _bay, "den_len": _bay, "ly_do": "thử"}}}

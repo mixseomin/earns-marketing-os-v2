@@ -21,6 +21,9 @@ dong-bo.py gọi chay(q) mỗi lượt (10 phút):
 Tự kiểm: python3 apps/etp/gia_adsense.py"""
 import json, os, datetime as dt
 PC = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web", "src", "lib", "etp-bang-luat.json")))["phanh_cho"]   # sổ luật chung
+PC_CHAN = bool(PC.get("chan", True))   # false = phanh chợ chỉ cảnh báo (anh 22/11/2026) → tin Telegram nói rõ máy vẫn chạy
+_CB = " CHỈ CẢNH BÁO — máy vẫn tăng bậc, lên camp mới, nhân bản như thường (anh 22/11/2026: \"Phanh chợ ko bật lúc này. Chỉ dùng để cảnh báo\")."
+def _viec(chan): return chan if PC_CHAN else _CB   # câu "máy dừng…" chỉ đúng khi phanh thật sự chặn
 PC_GIO = ((PC["khung_do"][0] - 7) % 24, (PC["khung_do"][1] - 7) % 24); PC_CHOT = (PC["gio_chot"] - 7) % 24   # giờ VN → giờ UTC (ngày Ethopex = ngày UTC)
 assert 0 <= PC_GIO[0] < PC_GIO[1] <= PC_CHOT < 24, "khung đo phanh chợ phải nằm trọn trong một ngày Ethopex và trước giờ chốt"
 
@@ -213,17 +216,17 @@ def chay(q, luc=None):
     vn_ = lambda s: f"{dt.datetime.fromisoformat(s) + dt.timedelta(hours=7):%H:%M %d/%m}"
     ds_bao = []
     if moi.get("gia6") and not ((cu.get("gia6") or {}).get("den") or "") > luc.isoformat():
-        ds_bao.append((f"gia6:{luc:%Y-%m-%dT%H}", f"⛔ PHANH CHỢ (báo sớm) — giá quảng cáo cả chợ {PC['truot']['gio']} giờ gần nhất chỉ bằng {moi['gia6']['ti'] * 100:.0f}% mức thường. Máy dừng tăng bậc, camp mới và nhân bản cho tới khi giá về lại ≥ {PC['truot']['nguong'] * 100:.0f}%. Giảm / tắt vẫn chạy."))
+        ds_bao.append((f"gia6:{luc:%Y-%m-%dT%H}", f"⛔ PHANH CHỢ (báo sớm) — giá quảng cáo cả chợ {PC['truot']['gio']} giờ gần nhất chỉ bằng {moi['gia6']['ti'] * 100:.0f}% mức thường." + _viec(f" Máy dừng tăng bậc, camp mới và nhân bản cho tới khi giá về lại ≥ {PC['truot']['nguong'] * 100:.0f}%. Giảm / tắt vẫn chạy.")))
     if (moi.get("roi_sang") or {}).get("ngay") == hn.isoformat() and (cu.get("roi_sang") or {}).get("ngay") != hn.isoformat():
-        ds_bao.append((f"roi_sang:{hn.isoformat()}", f"⛔ PHANH MỞ RỘNG — ROI camp nhà 07–13h hôm nay {moi['roi_sang']['roi']:+.0f}%, kém cùng khung 7 ngày trước {abs(moi['roi_sang']['kem']):.0f} điểm. Máy dừng tăng bậc, camp mới và nhân bản tới {vn_(moi['roi_sang']['den'])}."))
+        ds_bao.append((f"roi_sang:{hn.isoformat()}", f"⛔ PHANH MỞ RỘNG — ROI camp nhà 07–13h hôm nay {moi['roi_sang']['roi']:+.0f}%, kém cùng khung 7 ngày trước {abs(moi['roi_sang']['kem']):.0f} điểm." + _viec(f" Máy dừng tăng bậc, camp mới và nhân bản tới {vn_(moi['roi_sang']['den'])}.")))
     if (moi.get("rut") or {}).get("ngay") == hn.isoformat() and (cu.get("rut") or {}).get("ngay") != hn.isoformat():
-        ds_bao.append((f"rut:{hn.isoformat()}", f"🚨 RÚT KHỎI CHỢ — giá 07–13h chỉ bằng {moi['rut']['gia'] * 100:.0f}% mức thường và ROI camp nhà 07–13h {moi['rut']['roi']:+.0f}%. Máy tắt mọi camp thường đang âm hôm nay (báo trước một nhịp), tới {vn_(moi['rut']['den'])}. Camp ★ ROAS không áp."))
+        ds_bao.append((f"rut:{hn.isoformat()}", f"🚨 RÚT KHỎI CHỢ — giá 07–13h chỉ bằng {moi['rut']['gia'] * 100:.0f}% mức thường và ROI camp nhà 07–13h {moi['rut']['roi']:+.0f}%." + (f" Máy tắt mọi camp thường đang âm hôm nay (báo trước một nhịp), tới {vn_(moi['rut']['den'])}. Camp ★ ROAS không áp." if PC_CHAN else " CHỈ CẢNH BÁO — máy KHÔNG tắt camp (anh 22/11/2026).")))
     for kb, chu in ds_bao:
         q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'phanh_cho', 'phanh_cho:{kb}', 'info', $N${chu}$N$ where not exists (select 1 from etp.canh_bao where khoa = 'phanh_cho:{kb}')""")
     bao = None
     if (moi.get("phanh") or {}).get("ngay") == hn.isoformat() and (cu.get("phanh") or {}).get("ngay") != hn.isoformat():
         vn = lambda s: f"{dt.datetime.fromisoformat(s) + dt.timedelta(hours=7):%H:%M %d/%m}"
-        bao = ("phanh", f"⛔ PHANH CHỢ — {moi['phanh']['ly_do']}. Máy không tăng bậc tới {vn(moi['phanh']['den_tang'])}, không tạo camp mới / nhân bản tới {vn(moi['phanh']['den_len'])} (giờ VN). "
+        bao = ("phanh", f"⚠ PHANH CHỢ — {moi['phanh']['ly_do']}." + _CB) if not PC_CHAN else ("phanh", f"⛔ PHANH CHỢ — {moi['phanh']['ly_do']}. Máy không tăng bậc tới {vn(moi['phanh']['den_tang'])}, không tạo camp mới / nhân bản tới {vn(moi['phanh']['den_len'])} (giờ VN). "
                         "Giảm / tắt vẫn chạy; camp ★ ROAS, camp thay bài bị từ chối, lệnh anh không bị chặn (sổ luật phanh_cho, apps/etp/gia_adsense.py).")
     elif moi["som"] and not cu.get("som"):
         h = moi["hom_nay"]; bao = ("som", f"⚠ CẢNH BÁO SỚM giá chợ — Impression RPM cả chợ 07–13h hôm nay {h['irpm']:.0f} = {h['ti'] * 100:.0f}% nền 7 ngày ({h['nen']:.0f}); "

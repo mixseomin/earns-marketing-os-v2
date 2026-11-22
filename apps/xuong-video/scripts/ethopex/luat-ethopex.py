@@ -953,7 +953,7 @@ tat_cx, _cx, CX_CHO = [], {}, None
 # trong ngày rút, CX cắt MỌI camp thường đang âm hôm nay có chi ≥ rut.chi_min — bỏ điều kiện kém chợ / 3 ngày khép, bỏ trần CX_TOI_DA. Hết ngày Ethopex tự nhả. ★ ROAS không áp.
 try: _RUT = (json.loads(q("select coalesce((select gia_tri->'rut' from etp.cau_hinh where khoa = 'phanh_cho'), 'null')::text") or "null") or {})
 except Exception as e: _RUT = {}; loi_may.append((0, f"không đọc được trạng thái rút khỏi chợ: {str(e)[:80]}"))
-_RUT = _RUT if (_RUT.get("den") or "") > dt.datetime.now(dt.timezone.utc).isoformat() else {}
+_RUT = _RUT if CONG.PC_CHAN and (_RUT.get("den") or "") > dt.datetime.now(dt.timezone.utc).isoformat() else {}   # phanh chợ chỉ cảnh báo (anh 22/11/2026) → không rút
 _RUT_CHI = float(BANG_LUAT["phanh_cho"]["rut"]["chi_min"])
 try:
     import importlib.util as _iuc
@@ -1278,7 +1278,7 @@ def _ly_tang(c):
 # danh sách vẫn giữ ★ ROAS nên trang hứa tăng mà cổng chặn (xung đột 4, ra-xung-dot-luat-1911).
 try: _PHANH_TT = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'phanh_cho'), '{}')") or "{}")
 except Exception as e: _PHANH_TT = {}; loi_may.append((0, f"không đọc được trạng thái phanh chợ: {str(e)[:80]}"))
-_LY_PHANH = CONG.phanh_cho(_PHANH_TT, "tang")
+_LY_PHANH = CONG.phanh_cho(_PHANH_TT, "tang") if CONG.PC_CHAN else None   # chỉ cảnh báo (anh 22/11/2026): trang vẫn hiện biển, máy vẫn tăng
 if _LY_PHANH:
     def _bo_phanh(ds):
         for x in ds: _KHONG_TANG[int(x[0] or 0)] = _LY_PHANH

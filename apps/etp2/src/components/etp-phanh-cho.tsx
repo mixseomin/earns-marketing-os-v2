@@ -27,6 +27,10 @@ type TrangThai = {
   rut?: { ngay: string; gia: number; roi: number; den: string } | null;
 };
 const PC = BANG_LUAT.phanh_cho;
+/** chan = false: phanh chợ CHỈ CẢNH BÁO (anh 22/11/2026 "Phanh chợ ko bật lúc này. Chỉ dùng để cảnh báo") — biển vàng, máy vẫn tăng / lên camp, nút không hỏi lại */
+const CHAN = (PC as { chan?: boolean }).chan !== false;
+const VIEC = (chu: string) => (CHAN ? chu : 'chỉ cảnh báo, máy vẫn chạy');
+const NEN = CHAN ? '#d93025' : '#f59e0b', MAU = CHAN ? '#fff' : '#1a1a1a', DAU = CHAN ? '⛔' : '⚠';
 const p2 = (n: number) => String(n).padStart(2, '0');
 /** mốc ISO (UTC) → "07:00 17/11" giờ VN */
 const gioVn = (iso: string) => { const d = new Date(Date.parse(iso) + 7 * 3600_000); return `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())} ${p2(d.getUTCDate())}/${p2(d.getUTCMonth() + 1)}`; };
@@ -37,6 +41,7 @@ const KHUNG = { margin: '0 0 8px', padding: '4px 10px', borderRadius: 6, fontSiz
 export function canhBaoPhanh(cauHinh: { khoa: string; gia_tri: unknown }[]): { tang: string | null; len: string | null } {
   const ph = ((cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null)?.phanh, nay = Date.now();
   const tt0 = (cauHinh.find((c) => c.khoa === 'phanh_cho')?.gia_tri ?? null) as TrangThai | null;
+  if (!CHAN) return { tang: null, len: null };   // chỉ cảnh báo: thao tác tay không cần xác nhận thêm
   const som = tt0?.gia6 && Date.parse(tt0.gia6.den) > nay ? `⛔ Đang phanh chợ (giá chợ 6 giờ ${Math.round(tt0.gia6.ti * 100)}% nền)` : tt0?.roi_sang && Date.parse(tt0.roi_sang.den) > nay ? `⛔ Đang phanh mở rộng (ROI sáng kém nền ${Math.abs(Math.round(tt0.roi_sang.kem))} điểm)` : null;
   if (som && !ph) return { tang: `${som}. Bấm Làm là vẫn tăng.`, len: `${som}. Bấm Làm là vẫn tạo.` };
   if (!ph) return { tang: null, len: null };
@@ -53,10 +58,10 @@ export function BienPhanhCho({ cauHinh }: { cauHinh: { khoa: string; gia_tri: un
   const con = <T extends { den: string }>(x: T | null | undefined) => (x && Date.parse(x.den) > nay ? x : null);
   const rut = con(tt?.rut), g6 = con(tt?.gia6), rs = con(tt?.roi_sang), ph = tt?.phanh && Date.parse(tt.phanh.den_len) > nay ? tt.phanh : null, h = tt?.hom_nay;
   const ds: { chu: string; nen: string; mau: string }[] = [];   // nặng → nhẹ
-  if (rut) ds.push({ chu: `🚨 RÚT KHỎI CHỢ · giá sáng ${Math.round(rut.gia * 100)}% nền, ROI sáng ${Math.round(rut.roi)}% · máy tắt camp thường đang âm tới ${gioVn(rut.den)}`, nen: '#7f1d1d', mau: '#fff' });
-  if (g6) ds.push({ chu: `⛔ PHANH CHỢ · giá chợ ${g6.mat_so ? `? (hết camp chạy, lần đo cuối ${Math.round(g6.ti * 100)}%)` : `${Math.round(g6.ti * 100)}%`} nền · dừng tăng + camp mới tới khi giá về ≥ ${Math.round(PC.truot.nguong * 100)}%`, nen: '#d93025', mau: '#fff' });
-  if (rs) ds.push({ chu: `⛔ PHANH MỞ RỘNG · ROI sáng kém nền ${Math.abs(Math.round(rs.kem))} điểm · dừng tăng + camp mới tới ${gioVn(rs.den)}`, nen: '#d93025', mau: '#fff' });
-  if (ph) ds.push({ chu: `⛔ PHANH CHỢ${ph.ti != null ? ` · giá chợ ${Math.round(ph.ti * 100)}% nền` : ' · lịch'} · ${Date.parse(ph.den_tang) > nay ? `tăng dừng tới ${gioVn(ph.den_tang)}` : 'tăng đã mở'} · camp mới dừng tới ${gioVn(ph.den_len)}`, nen: '#d93025', mau: '#fff' });
+  if (rut) ds.push({ chu: `${CHAN ? '🚨' : '⚠'} RÚT KHỎI CHỢ · giá sáng ${Math.round(rut.gia * 100)}% nền, ROI sáng ${Math.round(rut.roi)}% · ${VIEC(`máy tắt camp thường đang âm tới ${gioVn(rut.den)}`)}`, nen: CHAN ? '#7f1d1d' : NEN, mau: MAU });
+  if (g6) ds.push({ chu: `${DAU} PHANH CHỢ · giá chợ ${g6.mat_so ? `? (hết camp chạy, lần đo cuối ${Math.round(g6.ti * 100)}%)` : `${Math.round(g6.ti * 100)}%`} nền · ${VIEC(`dừng tăng + camp mới tới khi giá về ≥ ${Math.round(PC.truot.nguong * 100)}%`)}`, nen: NEN, mau: MAU });
+  if (rs) ds.push({ chu: `${DAU} PHANH MỞ RỘNG · ROI sáng kém nền ${Math.abs(Math.round(rs.kem))} điểm · ${VIEC(`dừng tăng + camp mới tới ${gioVn(rs.den)}`)}`, nen: NEN, mau: MAU });
+  if (ph) ds.push({ chu: `${DAU} PHANH CHỢ${ph.ti != null ? ` · giá chợ ${Math.round(ph.ti * 100)}% nền` : ' · lịch'} · ${VIEC(`${Date.parse(ph.den_tang) > nay ? `tăng dừng tới ${gioVn(ph.den_tang)}` : 'tăng đã mở'} · camp mới dừng tới ${gioVn(ph.den_len)}`)}`, nen: NEN, mau: MAU });
   if (tt?.som && h?.ti != null) ds.push({ chu: `⚠ Giá chợ ${Math.round(h.ti * 100)}% nền · ${PC.gio_chot}:00 có thể phanh`, nen: '#f59e0b', mau: '#1a1a1a' });
   if (bt?.bat) ds.push({ chu: `🛠 Ethopex bảo trì lên camp${bt.tu ? ` từ ${bt.tu}` : ''} · máy dừng tạo camp`, nen: '#7c3aed', mau: '#fff' });
   const dau = ds[0]; if (!dau) return null;

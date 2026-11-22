@@ -78,7 +78,7 @@ def cham(o, T):
         ten = f"{h:02d}h · tiêu {int(x['p'] * 100)}% · ROI {x['r']}% · phanh {'bật' if x['ph'] else 'tắt'} · {'★ ROAS' if x['roas'] else 'thường'}"
         tt = PHANH if x["ph"] else {}
         dat = NT.qua_cong(x["chi"], x["thu"], NS, b_)                       # máy luật: cổng theo giờ (cờ qua_cong)
-        ly_phanh = CONG.phanh_cho(tt, "tang", b_)                            # máy luật _bo_phanh — cả ★ ROAS
+        ly_phanh = CONG.phanh_cho(tt, "tang", b_) if CONG.PC_CHAN else None   # máy luật _bo_phanh — cả ★ ROAS; chan=false chỉ cảnh báo (anh 22/11/2026), y như luat-ethopex
         vao_ds = dat and not ly_phanh                                        # thẻ "Máy xếp tăng nhịp này"
         giam_nay = trong(h, KD["giam"])                                      # máy luật _GIAM_NAY → thẻ "đạt — máy tăng lúc 21:00 VN"
         cong_chan = CONG.chan_cua("tang", {"phanh_cho": tt}, ve=False)       # cổng (không vé: máy tự tăng)

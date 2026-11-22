@@ -1,0 +1,31 @@
+:root { --nen: rgba(30, 18, 8, 0.62); --chu: #f6ead8; --mo: #cbb39a; --nhan: #ffb347; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #9a6234; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: var(--chu); }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#c:active { cursor: grabbing; }
+#nap { position: fixed; inset: 0; display: grid; place-items: center; background: #2a1a0c; font-size: 18px; z-index: 9; }
+#nap[hidden] { display: none; }
+.bang { position: fixed; background: var(--nen); backdrop-filter: blur(6px); border-radius: 12px; padding: 10px 14px; font-size: 13px; }
+.tren { top: 12px; left: 12px; max-width: calc(100% - 24px); }
+.tren h1 { margin: 0; font-size: 18px; font-weight: 700; }
+.tren h1 small { font-weight: 400; color: var(--mo); font-size: 13px; margin-left: 6px; }
+.ben { top: 12px; right: 12px; width: 250px; display: flex; flex-direction: column; gap: 10px; }
+.nut { display: flex; gap: 6px; }
+button { flex: 1 1 auto; font: inherit; font-size: 12px; color: var(--chu); background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16); border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+button:hover { background: rgba(255,255,255,0.16); }
+button.on { background: var(--nhan); color: #1a1006; border-color: var(--nhan); }
+label { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; color: var(--mo); }
+label b { color: var(--chu); }
+label input { grid-column: 1 / -1; width: 100%; margin: 0; accent-color: var(--nhan); }
+.goiy { margin: 0; color: var(--mo); font-size: 12px; line-height: 1.45; }
+.goiy b { color: var(--chu); font-weight: 600; }
+.phim { display: none; position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); gap: 6px; }
+.phim button { padding: 12px 14px; font-size: 13px; background: var(--nen); backdrop-filter: blur(6px); user-select: none; -webkit-user-select: none; touch-action: none; }
+@media (hover: none), (max-width: 640px) {
+  .phim { display: flex; }
+  .goiy { display: none; }
+  .tren h1 small { display: none; }
+  .tren { top: 8px; left: 8px; padding: 7px 10px; }
+  .tren h1 { font-size: 15px; }
+  .ben { top: 8px; right: 8px; width: 180px; padding: 7px 9px; gap: 6px; }
+}

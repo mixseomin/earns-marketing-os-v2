@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Phố Bụi</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23b8743a'/><rect x='6' y='12' width='5' height='16' fill='%23402510'/><rect x='13' y='5' width='6' height='23' fill='%23402510'/><rect x='21' y='10' width='5' height='18' fill='%23402510'/><rect x='15' y='9' width='2' height='2' fill='%23ff3ad0'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="phobui.css?v=__BAN__">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="nap">Đang dựng thành phố…</div>
+<header class="bang tren">
+  <h1>Phố Bụi <small>bay qua thành phố dưới bầu trời cháy</small></h1>
+</header>
+<aside class="bang ben">
+  <div class="nut">
+    <button id="tuBay" class="on" title="Máy quay tự lượn qua thành phố; chạm điều khiển là tắt">🎥 Tự bay</button>
+    <button id="toc" title="Tốc độ bay">Tốc độ 1×</button>
+  </div>
+  <label>Bụi <b id="vBui">70%</b><input id="bui" type="range" min="0" max="100" value="70"></label>
+  <p class="goiy">Kéo chuột để nhìn quanh. <b>W A S D</b> hoặc phím mũi tên để bay, <b>Space</b> lên, <b>C</b> xuống, giữ <b>Shift</b> bay nhanh. Lăn chuột đổi tốc độ.</p>
+</aside>
+<div class="phim">
+  <button data-k="len">▲ Lên</button>
+  <button data-k="tien">Tiến</button>
+  <button data-k="lui">Lùi</button>
+  <button data-k="xuong">▼ Xuống</button>
+</div>
+<script type="module" src="phobui.js?v=__BAN__"></script>
+</body>
+</html>

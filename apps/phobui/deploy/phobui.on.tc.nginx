@@ -1,0 +1,22 @@
+# phobui.on.tc — Phố Bụi (apps/phobui/public, tệp tĩnh three.js): thành phố tương lai chìm trong bão bụi cam, bay tự do. Anh 22/11/2026 "Thử ở sub mới xem".
+# SSO mos2 như mọi sub mới (khuôn ngatu.on.tc). deploy.sh khối 5e5 cài tệp này; DNS do deploy/dns-on-tc.sh tự tạo.
+server { listen 80; server_name phobui.on.tc; return 301 https://$host$request_uri; }
+server {
+  listen 443 ssl; http2 on;
+  server_name phobui.on.tc;
+  include snippets/cloudflare-allow.conf;
+  ssl_certificate /etc/letsencrypt/live/on.tc/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/on.tc/privkey.pem;
+  root /opt/earns-marketing-os-v2/apps/phobui/public;
+  add_header X-Robots-Tag "noindex, nofollow" always;
+  gzip on; gzip_types text/css application/javascript image/svg+xml application/json; gzip_min_length 1024;
+  auth_request /_mos2auth;
+  error_page 401 = @login;
+  location = /_mos2auth { internal; proxy_pass http://127.0.0.1:3821/api/auth/verify; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header Cookie $http_cookie; proxy_set_header Host mos2.on.tc; }
+  location @login { return 302 https://mos2.on.tc/login?next=https://phobui.on.tc$request_uri; }
+  location = /robots.txt { auth_request off; default_type text/plain; return 200 "User-agent: *\nDisallow: /\n"; }
+  # Mã bản của tệp tĩnh (deploy.sh khối 5e5 ghi snippets/phobui-ban.conf = băm nội dung .js + .css): index.html gọi tệp kèm ?v=__BAN__, nginx thay ở đây.
+  # Lý do: Cloudflare zone on.tc giữ .js / .css 7 ngày dù ở đây gửi no-cache — không có ?v= thì deploy xong người dùng vẫn chạy mã cũ (dính thật 19/11/2026).
+  include snippets/phobui-ban.conf;
+  location / { add_header Cache-Control "no-cache"; add_header X-Robots-Tag "noindex, nofollow" always; sub_filter '__BAN__' $phobui_ban; sub_filter_once off; try_files $uri /index.html; }
+}

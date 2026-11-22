@@ -249,6 +249,12 @@ echo "set \$ngatu_ban \"$NG_BAN\";" > /tmp/ngatu-ban.conf
 if ! cmp -s /tmp/ngatu-ban.conf /etc/nginx/snippets/ngatu-ban.conf || ! cmp -s apps/ngatu/deploy/ngatu.on.tc.nginx /etc/nginx/sites-enabled/ngatu.on.tc; then
   cp /tmp/ngatu-ban.conf /etc/nginx/snippets/ngatu-ban.conf && cp apps/ngatu/deploy/ngatu.on.tc.nginx /etc/nginx/sites-enabled/ngatu.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx ngatu.on.tc cài/cập nhật (bản $NG_BAN)" || { echo "✗ nginx ngatu.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/ngatu.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
 fi
+# 5e5. PHỐ BỤI (apps/phobui/public, phobui.on.tc) — thành phố tương lai trong bão bụi cam trên three.js, tệp tĩnh sau SSO mos2 (anh 22/11/2026). Cùng khuôn 5e4.
+PB_BAN=$(cat apps/phobui/public/*.js apps/phobui/public/*.css | md5sum | cut -c1-12)
+echo "set \$phobui_ban \"$PB_BAN\";" > /tmp/phobui-ban.conf
+if ! cmp -s /tmp/phobui-ban.conf /etc/nginx/snippets/phobui-ban.conf || ! cmp -s apps/phobui/deploy/phobui.on.tc.nginx /etc/nginx/sites-enabled/phobui.on.tc; then
+  cp /tmp/phobui-ban.conf /etc/nginx/snippets/phobui-ban.conf && cp apps/phobui/deploy/phobui.on.tc.nginx /etc/nginx/sites-enabled/phobui.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx phobui.on.tc cài/cập nhật (bản $PB_BAN)" || { echo "✗ nginx phobui.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/phobui.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
+fi
 
 # 5z. vhost etp.on.tc cài từ repo (có trang "đang cập nhật" tự tải lại khi mos2-web khởi động lại) — chỉ khi tệp đổi
 if ! cmp -s apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc; then

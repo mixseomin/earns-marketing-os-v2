@@ -9,7 +9,7 @@ import { chuChan, type TieuChi } from '@/lib/etp-chan';
 import { duyetCham } from '@/lib/actions/etp-cham';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { TRE_MO } from '@/lib/etp-tre';
-import { chiRe, KhungNoi, ReThe, TheChung, useCaoThat, useDongKhiCuon, useNoi, viTriNoi, type Moc, type TheNoi } from '@/components/etp-noi';
+import { KhungNoi, laCham, ReThe, TheChung, useCaoThat, useDongKhiCuon, useNoi, viTriNoi, type Moc, type TheNoi } from '@/components/etp-noi';
 import { chuLich } from '@/lib/etp-khung';
 import { choGio, chuHen, dangChay, dangTao } from '@/lib/etp-chay';
 import { batDauCamp, chayDong, docChiTiet, docDong, dungDong, fixBuoc, formDong, lenCampCr, type CampDong, type CrDong, type DongPhim, type BuocDong, type LoaiNoiDung, type LocDong } from '@/lib/actions/etp-dong';
@@ -116,7 +116,7 @@ type Xem = { anh?: string | null; video?: string | null; chu?: string; x: number
 let datXemNgay: (v: Xem | null) => void = () => {};
 let henXem: number | undefined;
 // rê trễ TRE_MO (chung etp-view, #1514) mới mở; rời là tắt ngay
-const datXem = (v: Xem | null) => { window.clearTimeout(henXem); if (!v) { datXemNgay(null); return; } henXem = window.setTimeout(() => datXemNgay(v), TRE_MO); };
+const datXem = (v: Xem | null) => { window.clearTimeout(henXem); if (!v) { datXemNgay(null); return; } if (laCham()) return;   /* chạm trên điện thoại không bật ảnh to (CHẠM KHÔNG PHẢI RÊ, etp-noi) */ henXem = window.setTimeout(() => datXemNgay(v), TRE_MO); };
 function KhungXem() {
   const [v, setV] = useState<Xem | null>(null); datXemNgay = setV;
   const dong = useCallback(() => datXem(null), []); useDongKhiCuon(!!v, dong);
@@ -212,7 +212,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
         <span style={{ fontSize: 10, color: 'var(--fg-3)', marginLeft: 6 }}>{ngayGio(d.tao_luc)}</span></td> :
       <td style={{ padding: '4px 6px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', width: 12, flex: 'none', textAlign: 'center', color: 'var(--fg-3)', fontSize: 10 }}>{mo ? '▼' : '▶'}</span>
-        {d.anh ? <img src={d.anh} alt="" onMouseEnter={chiRe((e: React.MouseEvent) => datXem({ anh: d.anh, chu: d.ten ?? '', x: e.clientX, y: e.clientY }))} onMouseLeave={() => datXem(null)} style={{ cursor: 'zoom-in', width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
+        {d.anh ? <img src={d.anh} alt="" onMouseEnter={(e) => datXem({ anh: d.anh, chu: d.ten ?? '', x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ cursor: 'zoom-in', width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
         <div style={{ minWidth: 0 }}><a onClick={() => openEntityDrawer('etp-phim', d.content_id)} title={d.ten ?? ''} style={{ cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.ten ?? `phim #${d.content_id}`}</a>
           <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{d.ngoai ? <ReThe the={() => theY('Ngoài dòng phim', XAM, [['Làm bởi', d.ngoai], ['Chỉ xem', 'không qua máy dòng phim — không FIX / Dừng']], d.ten)}><span style={{ cursor: 'help' }}>{LOAI_DE[d.loai] ?? d.loai} · ngoài dòng</span></ReThe> : LOAI_DE[d.loai] ?? d.loai} · {ngayGio(d.tao_luc)}</span></div></div></td>}
       {con ? <td colSpan={COT_PHIM.length} /> : COT_PHIM.map(([k]) => <React.Fragment key={k}>{oBuoc(b(k), undefined, k === 'poster' && d.anh ? { anh: d.anh, chu: `${TEN_BUOC.poster![0]} · ${MAU[b(k)?.trang_thai ?? 'cho']?.[1] ?? ''}` } : undefined)}</React.Fragment>)}
@@ -262,7 +262,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
       const lai_ = camp ? camp.thu - camp.chi : 0;
       return <tr key={id ?? `d${i}`}>
         <td style={{ padding: `2px 6px 2px ${con ? 52 : 34}px`, fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {xemCr?.anh ? <img src={xemCr.anh} alt="" onMouseEnter={chiRe((e: React.MouseEvent) => datXem({ ...xemCr, chu: `creative #${id} · đoạn ${g}`, x: e.clientX, y: e.clientY }))} onMouseLeave={() => datXem(null)} style={{ width: 16, height: 28, objectFit: 'cover', borderRadius: 2, verticalAlign: 'middle', marginRight: 6, cursor: 'zoom-in' }} /> : <span style={{ marginRight: 6 }}>└</span>}
+          {xemCr?.anh ? <img src={xemCr.anh} alt="" onMouseEnter={(e) => datXem({ ...xemCr, chu: `creative #${id} · đoạn ${g}`, x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ width: 16, height: 28, objectFit: 'cover', borderRadius: 2, verticalAlign: 'middle', marginRight: 6, cursor: 'zoom-in' }} /> : <span style={{ marginRight: 6 }}>└</span>}
           {id ? `Creative #${id}` : kt ? 'Video kể chuyện' : `Đoạn ${i + 1}`}<BadgeDangNgan d={cx?.dang ?? null} ban={cx?.ban} giong={cx?.giong} /> <span style={{ color: 'var(--fg-3)' }}>{kt ? 'máy sinh' : g}</span></td>
         <td colSpan={COT_PHIM.length} />
         {kt ? <O tt={id ? 'xong' : 'dang'} chu={id ? 'đã sinh' : 'đang sinh'} the={() => theY(`Video kể chuyện · ${id ? 'đã sinh' : 'đang sinh'}`, id ? '#22c55e' : '#60a5fa', [['Nguồn', 'máy sinh từ tóm tắt phim (VideoExpress)'], ['Creative', id ? `#${id}` : null]], d.ten)} />
@@ -301,7 +301,7 @@ function NhomPhim({ ds, xong, moCamp }: { ds: DongPhim[]; xong: () => void; moCa
     <tr style={{ borderTop: '2px solid var(--line)', background: 'rgba(96,165,250,.12)' }}>
       <td style={{ padding: '4px 6px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', width: 12, flex: 'none', textAlign: 'center', color: 'var(--fg-3)', fontSize: 10 }}>{mo ? '▼' : '▶'}</span>
-        {d0.anh ? <img src={d0.anh} alt="" onMouseEnter={chiRe((e: React.MouseEvent) => datXem({ anh: d0.anh, chu: d0.ten ?? '', x: e.clientX, y: e.clientY }))} onMouseLeave={() => datXem(null)} style={{ cursor: 'zoom-in', width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
+        {d0.anh ? <img src={d0.anh} alt="" onMouseEnter={(e) => datXem({ anh: d0.anh, chu: d0.ten ?? '', x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ cursor: 'zoom-in', width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
         <div style={{ minWidth: 0 }}><a onClick={() => openEntityDrawer('etp-phim', d0.content_id)} title={d0.ten ?? ''} style={{ cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d0.ten ?? `phim #${d0.content_id}`}</a>
           <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{ds.length} loại nội dung: {ds.map((d) => LOAI_DE[d.loai] ?? d.loai).join(' · ')}</span></div></div></td>
       {COT_PHIM.map(([k]) => { const x = b(k); const tt = x ? (ket(x) ? 'loi' : x.trang_thai) : 'cho'; return <O cap={1} key={k} tt={tt} chu={x?.bat_dau && x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : ''} the={() => theBuoc(x, d0.ten)} xem={k === 'poster' && d0.anh ? { anh: d0.anh } : undefined} />; })}

@@ -51,6 +51,7 @@ if (typeof window !== 'undefined') window.addEventListener('mousemove', (e) => {
 const TRO = { cham: false };
 if (typeof window !== 'undefined') for (const ev of ['pointerover', 'pointerdown'] as const) window.addEventListener(ev, (e) => { TRO.cham = e.pointerType !== 'mouse'; }, { capture: true, passive: true });
 /** bọc onMouseEnter tự viết (xem ảnh to, tô dòng…): bỏ qua mouseover giả sau khi chạm — cùng luật CHẠM KHÔNG PHẢI RÊ với useNoi.mo */
+export const laCham = () => TRO.cham;
 export const chiRe = <E,>(f: (e: E) => void) => (e: E) => { if (!TRO.cham) f(e); };
 export function useNoi<T>() {
   const [v, setV] = useState<(T & { x: number; y: number }) | null>(null);

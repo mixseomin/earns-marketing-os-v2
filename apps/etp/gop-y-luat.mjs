@@ -1576,7 +1576,7 @@ export const LUAT = [
   { card: 'khong-duyet-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', co: "set gia_tri = gia_tri - ${String(id)} where khoa = 'len_cr_roas'", vi: 'không duyệt = ghi loại + bỏ khỏi sổ ★ ROAS, không tạo camp' },
   { card: 'len-ngay-roas-2211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if truc and not gio: ro = None', vi: '▶ Lên ngay ★ ROAS chạy liền, không hẹn khung 23h (anh 22/11/2026 "ko còn gì đc cản tao lên camp thủ công")' },
   { card: 'cham-khong-re-2211', tep: 'apps/etp2/src/components/etp-noi.tsx', co: "if (TRO.cham && e.type.startsWith('mouse')) return;", vi: 'thẻ nổi useNoi không bật khi chạm trên điện thoại' },
-  { card: 'cham-khong-re-2211', tep: 'apps/etp2/src/components/etp-dong.tsx', co: 'onMouseEnter={chiRe((e: React.MouseEvent) => datXem(', vi: 'ảnh to creative không bật khi chạm' },
+  { card: 'cham-khong-re-2211', tep: 'apps/etp2/src/components/etp-dong.tsx', co: 'if (laCham()) return;   /* chạm trên điện thoại không bật ảnh to', vi: 'ảnh to creative không bật khi chạm' },
   { card: 'nut-mot-lan-2211', tep: 'apps/etp2/src/lib/etp-ve.ts', co: "...(o.ns ? ['--ns', String(o.ns)] : []), '--ngay'];", vi: 'nút etp2 bấm một lần là lên — không bắt bấm lại trong 30 phút (anh 22/11/2026 chửi vì phanh LUẬT CŨ chặn chính nút etp2)' },
   { card: 'nut-mot-lan-2211', tep: 'apps/etp/cong.py', co: 'minutes\' limit 1") != "1" and not ngay:', vi: 'cổng cấp vé ngay cho nút anh bấm' },
   { card: 'cho-duyet-hep-2211', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'for (const c of hep && hang?.length ? [...con.goc, ...hang] : con.goc)', vi: 'điện thoại lọc Chờ duyệt thấy dòng chờ duyệt trong nhóm phim — anh 22/11/2026 "Camp chờ duyệt đâu" (trước Tổng 0 phim)' },

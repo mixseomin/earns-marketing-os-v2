@@ -37,6 +37,7 @@ import { TabInsight } from '@/components/etp-insight';
 import { TabLogs } from '@/components/etp-logs';
 import { ChoDuyetCr } from '@/components/etp-cho-duyet';
 import { NutLenGio } from '@/components/etp-len-gio';
+import { dsCrMoiCamp, lenNgayCr } from '@/lib/actions/etp-cho-duyet';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLenCamp, datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 // CHỈ XEM (anh 29/10/2026 "sso thêm 1 người … chỉ view"): khách một trang etp (users.chi_host) — ẩn mọi nút ghi; action máy chủ cũng đòi admin
@@ -862,7 +863,7 @@ const NB_KIEU: { k: KieuNb['kieu']; ten: string; mo: string }[] = [
   { k: 'thuong', ten: 'Nhân bản used post', mo: 'Bản sao camp gốc cùng bộ (tài khoản, Page, pixel, nhóm QC) — ad dùng LẠI bài đăng của camp gốc (used post, giữ tương tác), ngân sách $2, giờ chạy do lịch lên camp quyết. Chỉ khi đoạn video đã đủ camp chạy máy mới đổi creative khác cùng phim (bài mới $1). Máy chặn khi camp gốc không bật, phim đã đủ camp chạy, hoặc creative chưa chấm sạch.' },
   { k: 'thang', ten: 'Thang (bậc cao hơn)', mo: 'Bản used post ở bậc ngân sách cao hơn camp gốc (vd gốc $9 → bản $13), dùng lại bài đăng camp gốc. Camp gốc giữ nguyên.' },
   { k: 'bo', ten: 'Sang bộ tài khoản khác', mo: 'Clone sang bộ tài khoản khác — KHÔNG dùng được used post (bài đăng thuộc Page của bộ gốc) nên đăng bài mới cùng creative camp gốc, $1; bỏ qua các cổng chỉ dành cho nhân trong cùng bộ. Vẫn qua cổng chấm sạch + rào chắn etp.' },
-  { k: 'roas', ten: 'Camp ROAS', mo: 'Nhân bản với bid ROAS goal (giá thầu theo ROAS tối thiểu), dùng LẠI bài đăng cũ của camp gốc (giữ tương tác), ngân sách $15–20. Hợp với camp đã chi > $100 mà ROI > 50%. Mức ROAS nhập sai = lỗi camp — máy đọc lại, sai thì tạm dừng.' },
+  { k: 'roas', ten: 'Camp ROAS', mo: 'Nhân bản với bid ROAS goal (giá thầu theo ROAS tối thiểu), dùng LẠI bài đăng cũ của camp gốc (giữ tương tác), ngân sách $5–20 (camp mới $5, lãi thì nuôi dần lên). Mức 0.9 / 1 / 1.1, hoặc cặp 0.9 + 1.1 một lần bấm hai camp (Dol 22/11/2026: camp ★ lên mà lãi → nhân thêm 2 camp bid 0.9, 1.1). Nguồn "creative mới" = creative đã duyệt cùng phim chưa có camp, $5–10. Hợp với camp đã chi > $100 mà ROI > 50%, hoặc camp ★ ROAS chi > $10 mà ROI > 50%. Mức ROAS nhập sai = lỗi camp — máy đọc lại, sai thì tạm dừng.' },
 ];
 function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang'> & { cam?: CampEtpKho['cam'] }; /** nút chữ to (ngăn camp — điện thoại) */ lon?: boolean; /** bộ tài khoản khi đứng ngoài DieuKhienCtx */ boDs?: string[]; /** lệnh chờ áp khi đứng ngoài DieuKhienCtx */ choDs?: ChoAp[]; /** lịch sử khi đứng ngoài DieuKhienCtx */ lsDk?: LsDk }) {
   const router = useRouter();
@@ -870,7 +871,9 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
   const ls = lsDk ?? ctx?.ls(c.camp_id) ?? { tay: [], batTat: [], bac: [] };
   const [mo, setMo] = useState(false), [dang, setDang] = useState<string | null>(null), [kq, setKq] = useState<{ ok: boolean; chu: string; o: string } | null>(null);
   const [ns, setNs] = useState(String(c.ngan_sach)), [ep, setEp] = useState(false), [ghi, setGhi] = useState('');
-  const [kieu, setKieu] = useState<KieuNb['kieu']>('thuong'), [nsThang, setNsThang] = useState(''), [boDen, setBoDen] = useState(''), [roas, setRoas] = useState('1.2'), [nsRoas, setNsRoas] = useState('20'), [tamDung, setTamDung] = useState(true);
+  const [kieu, setKieu] = useState<KieuNb['kieu']>('thuong'), [nsThang, setNsThang] = useState(''), [boDen, setBoDen] = useState(''), [roas, setRoas] = useState('1'), [nsRoas, setNsRoas] = useState('5'), [tamDung, setTamDung] = useState(true);
+  // ★ ROAS (Dol 22/11/2026): cặp 0.9 + 1.1 bài cũ · nguồn creative mới cùng phim (dsCrMoiCamp → lenNgayCr khuôn = camp này)
+  const [capRoas, setCapRoas] = useState(false), [nguonRoas, setNguonRoas] = useState<'cu' | 'moi'>('cu'), [crDs, setCrDs] = useState<{ cr: number; lang: string | null; dang: string | null }[] | null>(null), [crChon, setCrChon] = useState<number | null>(null);
   const [xem, setXem] = useState<string | null>(null);
   // ba nhóm việc = ba TAB (YDNI: >2 nhóm thì chia tab, không chồng dọc) · xác nhận NGAY TRONG BẢNG (ui-conventions §3: không confirm() gốc)
   const [tab, setTab] = useState<'tt' | 'ns' | 'nb' | 'ls'>('ns');
@@ -880,13 +883,15 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
   const rQua = roiOf(c.qua), rThang = roiOf(c.thang), bacNay = BAC_NS.indexOf(c.ngan_sach);
   const goiNs = rQua == null ? null : rQua >= 30 && c.qua.chi >= c.ngan_sach * 0.5 && bacNay >= 0 && bacNay < BAC_NS.length - 1 ? { ns: BAC_NS[bacNay + 1]!, ly: `hôm qua ROI ${rQua}%, đã tiêu ${Math.round((c.qua.chi / c.ngan_sach) * 100)}% ngân sách` }
     : rQua < 0 && bacNay > 0 ? { ns: BAC_NS[bacNay - 1]!, ly: `hôm qua lỗ (ROI ${rQua}%)` } : null;
-  const goiNb: KieuNb['kieu'] | null = c.thang.chi > 100 && (rThang ?? 0) > 50 ? 'roas' : (rQua ?? -1) >= 30 ? 'thuong' : null;
+  const laSao = /★ ROAS/.test(c.ten ?? ''), saoLai = laSao && c.thang.chi > 10 && (rThang ?? 0) > 50;   // camp ★ ROAS vừa lên đã lãi (Dol 22/11/2026 "2 camp lên mà lãi luôn → duplicate thêm 2 camp, bid 0.9, 1.1")
+  const goiNb: KieuNb['kieu'] | null = (c.thang.chi > 100 && (rThang ?? 0) > 50) || saoLai ? 'roas' : (rQua ?? -1) >= 30 ? 'thuong' : null;
   const lam = async (ten: string, f: () => Promise<{ ok: true; chu: string } | { loi: string }>) => {
     setDang(ten); setKq(null); const r = await f(); setDang(null);
     if ('loi' in r) { setKq({ ok: false, chu: r.loi, o: ten }); return; }
     setKq({ ok: true, chu: r.chu, o: ten }); router.refresh();
   };
-  const kieuNb = (): KieuNb => kieu === 'thang' ? { kieu, ns: Number(nsThang) } : kieu === 'bo' ? { kieu, bo: boDen } : kieu === 'roas' ? { kieu, roas: Number(roas), ns: Number(nsRoas), tamDung } : { kieu: 'thuong' };
+  const kieuNb = (): KieuNb => kieu === 'thang' ? { kieu, ns: Number(nsThang) } : kieu === 'bo' ? { kieu, bo: boDen } : kieu === 'roas' ? { kieu, roas: Number(roas), ns: Number(nsRoas), tamDung, cap: capRoas } : { kieu: 'thuong' };
+  const moCrMoi = async () => { setNguonRoas('moi'); setCapRoas(false); setXem(null); if (Number(nsRoas) > 10) setNsRoas('5'); if (crDs == null) setCrDs(await dsCrMoiCamp(c.camp_id)); };
   const nut: React.CSSProperties = { fontSize: 12, padding: '4px 12px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: dang ? 'wait' : 'pointer' };
   const chip = (on: boolean): React.CSSProperties => ({ ...nut, padding: '2px 9px', borderColor: on ? 'var(--accent, #60a5fa)' : 'var(--line)', background: on ? 'var(--accent-soft, #60a5fa22)' : 'transparent' });
   const o = (k: string) => (kq && kq.o === k ? <div style={{ marginTop: 6, padding: '6px 8px', borderRadius: 6, background: kq.ok ? '#22c55e18' : '#ef444422', color: kq.ok ? '#4ade80' : '#fca5a5', whiteSpace: 'pre-wrap' }}>{kq.ok ? '✓ ' : '✕ '}{kq.chu}</div>
@@ -968,24 +973,40 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
         </div> : null}
         {tab === 'nb' ? <div style={hop}>
           {muc('Nhân bản camp', 'Chọn kiểu, bấm Xem trước (máy chạy khô, không tạo gì — hiện payload hoặc lý do bị chặn), đúng rồi mới Tạo camp.')}
-          {goiNb ? <div style={{ marginBottom: 6, color: '#a78bfa' }}>Gợi ý: <b>{NB_KIEU.find((x) => x.k === goiNb)!.ten}</b> — {goiNb === 'roas' ? `tháng này chi $${c.thang.chi.toFixed(0)}, ROI ${rThang}%` : `hôm qua ROI ${rQua}%`}</div> : null}
+          {goiNb ? <div style={{ marginBottom: 6, color: '#a78bfa' }}>Gợi ý: <b>{NB_KIEU.find((x) => x.k === goiNb)!.ten}</b> — {goiNb === 'roas' ? (saoLai ? `camp ★ đã chi $${c.thang.chi.toFixed(0)}, ROI ${rThang}% — nhân cặp 0.9 + 1.1` : `tháng này chi $${c.thang.chi.toFixed(0)}, ROI ${rThang}%`) : `hôm qua ROI ${rQua}%`}</div> : null}
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
             {NB_KIEU.map((x) => <button key={x.k} title={x.mo} onClick={() => { setKieu(x.k); setXem(null); }} style={chip(kieu === x.k)}>{x.ten}{x.k === goiNb ? ' ★' : ''}</button>)}
           </div>
           {hd ? <div style={{ color: 'var(--fg-2)', lineHeight: 1.45, marginBottom: 8 }}>{NB_KIEU.find((x) => x.k === kieu)!.mo}</div> : null}
           {kieu === 'thang' ? <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>{BAC_NS.filter((x) => x > c.ngan_sach).map((x) => <button key={x} onClick={() => setNsThang(String(x))} style={chip(nsThang === String(x))}>${x}</button>)}</div> : null}
           {kieu === 'bo' ? <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>{bo.map((b) => <button key={b} onClick={() => setBoDen(b)} style={chip(boDen === b)}>Bộ {b}</button>)}</div> : null}
-          {kieu === 'roas' ? <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-            <span>ROAS goal <input value={roas} onChange={(e) => setRoas(e.target.value.replace(/[^\d.]/g, ''))} style={o2} title="1.0–1.4 (1.2 = mỗi $1 chi đòi $1,2 thu)" /></span>
-            <span>ngân sách $<input value={nsRoas} onChange={(e) => setNsRoas(e.target.value.replace(/\D/g, ''))} style={o2} title="$15–20" /></span>
-            <label style={{ display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={tamDung} onChange={(e) => setTamDung(e.target.checked)} />để tạm dừng chờ review</label>
+          {kieu === 'roas' ? <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>nguồn
+              <button onClick={() => { setNguonRoas('cu'); setXem(null); }} style={chip(nguonRoas === 'cu')} title="dùng lại bài đăng của camp này (giữ tương tác)">bài cũ</button>
+              <button onClick={() => void moCrMoi()} style={chip(nguonRoas === 'moi')} title="creative đã duyệt cùng phim, chưa có camp — camp này làm khuôn (cùng bộ)">creative mới</button></div>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>mức
+              {['0.9', '1', '1.1'].map((r) => <button key={r} onClick={() => { setRoas(r); setCapRoas(false); setXem(null); }} style={chip(!capRoas && roas === r)}>{r}</button>)}
+              {nguonRoas === 'cu' ? <button onClick={() => { setCapRoas(true); setXem(null); }} style={chip(capRoas)} title="một lần bấm hai camp bài cũ: ROAS 0.9 và 1.1">0.9 + 1.1 (2 camp){saoLai ? ' ★' : ''}</button> : null}
+              {capRoas ? null : <input value={roas} onChange={(e) => setRoas(e.target.value.replace(/[^\d.]/g, ''))} style={o2} title="0.9–1.4 (1.2 = mỗi $1 chi đòi $1,2 thu)" />}</div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span>ngân sách $<input value={nsRoas} onChange={(e) => setNsRoas(e.target.value.replace(/\D/g, ''))} style={o2} title={nguonRoas === 'moi' ? '$5–10 (sổ luật hoi_cho)' : '$5–20 (camp mới $5)'} />{capRoas ? ' mỗi camp' : ''}</span>
+              {nguonRoas === 'cu' ? <label style={{ display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={tamDung} onChange={(e) => setTamDung(e.target.checked)} />để tạm dừng chờ review</label> : null}</div>
+            {nguonRoas === 'moi' ? <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{crDs == null ? <span style={{ color: '#60a5fa' }}>đang tải creative…</span>
+              : !crDs.length ? <span style={{ color: '#fca5a5' }}>Phim này chưa có creative đã duyệt nào chưa có camp — duyệt creative ở hàng chờ trước.</span>
+              : crDs.map((x) => <button key={x.cr} onClick={() => setCrChon(x.cr)} style={chip(crChon === x.cr)}>#{x.cr}{x.lang ? ` ${x.lang.toUpperCase()}` : ''}{x.dang ? ` · ${x.dang}` : ''}</button>)}</div> : null}
           </div> : null}
-          <div style={{ display: 'flex', gap: 6 }}>
+          {kieu === 'roas' && nguonRoas === 'moi' ? <div style={{ display: 'flex', gap: 6 }}>
+            <button disabled={!!dang || crChon == null} title={crChon == null ? 'chọn creative trước' : undefined}
+              onClick={() => { const cr = crChon!, o3 = { roas: Number(roas), ns: Number(nsRoas), khuon: c.camp_id };
+                setCho({ o: 'nb', chu: `lên ★ ROAS ${roas} · $${nsRoas} creative mới #${cr} (khuôn #${c.camp_id})`, f: async () => { const r = await lenNgayCr(cr, null, o3);
+                  return 'canh' in r ? { loi: `⚠ Phanh đang áp: ${r.canh} — bấm Lên lại trong 30 phút là máy bỏ qua phanh và lên` } : r; } }); }}
+              style={{ ...nut, borderColor: crChon == null ? 'var(--line)' : '#4ade80' }}>＋ Lên camp creative mới</button>
+          </div> : <div style={{ display: 'flex', gap: 6 }}>
             <button disabled={!!dang} onClick={() => { setXem(null); void (async () => { setDang('nb'); setKq(null); const r = await xemNhanBan(c.camp_id, kieuNb()); setDang(null); if ('loi' in r) setKq({ ok: false, chu: r.loi, o: 'nb' }); else setXem(r.chu); })(); }} style={nut}>Xem trước</button>
             <button disabled={!!dang || xem == null} title={xem == null ? 'bấm Xem trước trước' : undefined}
               onClick={() => { const x = kieuNb(); setCho({ o: 'nb', chu: `tạo camp mới (${NB_KIEU.find((k) => k.k === kieu)!.ten}) từ #${c.camp_id}`, f: () => nhanBanTay(c.camp_id, x, ghi) }); }}
               style={{ ...nut, borderColor: xem == null ? 'var(--line)' : '#4ade80' }}>＋ Tạo camp</button>
-          </div>
+          </div>}
           {xem != null ? <pre style={{ marginTop: 6, maxHeight: 220, overflow: 'auto', fontSize: 10.5, padding: 8, borderRadius: 6, background: 'var(--bg-2)', whiteSpace: 'pre-wrap' }}>{xem}</pre> : null}
           {xacNhan('nb')}{o('nb')}
         </div> : null}

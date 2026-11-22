@@ -16,9 +16,9 @@ Chạy trên box3 (khoá ở studio):
   python3 nhan-ban.py <camp_gốc> --bo <bộ> --ep --that   → CLONE SANG BỘ KHÁC theo lệnh đích danh của anh (anh 27/10/2026: "clone 1 camp tốt
     nhất sang bộ tk 03"): giữ NGUYÊN creative camp gốc (bản CTA sửa nếu có), bỏ qua 4 cổng chỉ dành cho nhân camp trong cùng bộ — mỗi phim một bộ, chạm trần $30,
     bão hoà phim, buộc đổi creative khác (và trần 30 camp/phim); vẫn qua cổng chấm sạch + rào chắn etp. --ep chỉ dùng khi anh ra lệnh trong lượt đó.
-  python3 nhan-ban.py <camp_gốc> --roas <1.0–1.4> [--ns 20] [--tam-dung] [--nhan "chay ngay"] [--mien-cham] --that …   → CAMP ROAS (tài liệu Support 26/10/2026, anh duyệt 26/10/2026):
+  python3 nhan-ban.py <camp_gốc> --roas <0.9–1.4> [--ns 5] [--tam-dung] [--nhan "chay ngay"] [--mien-cham] --that …   → CAMP ROAS (tài liệu Support 26/10/2026, anh duyệt 26/10/2026):
     nhân bản camp gốc (chi all time > $100, ROI > 50%) với bid ROAS goal (LOWEST_COST_WITH_MIN_ROAS + roas_average_floor ở Ad Set),
-    ad = BÀI ĐĂNG CŨ của camp gốc (use existing post — giữ tương tác), ngân sách $15–20, lịch do lich_len quyết, tên "… roas X duplicate by <gốc>".
+    ad = BÀI ĐĂNG CŨ của camp gốc (use existing post — giữ tương tác), ngân sách $5–20 (Dol 22/11/2026: camp mới $5; trước $15–20), lịch do lich_len quyết, tên "… roas X duplicate by <gốc>".
     Camp ROAS là loại riêng: KHÔNG qua luật clone-khác-creative / cổng chấm / chạm trần / bão hoà (dùng lại đúng bài cũ); vẫn qua cổng etp; miễn trần 30 camp/phim và không chiếm chỗ camp thường (anh 26/10/2026).
     Tạo xong đọc lại: mức ROAS sai → tạm dừng camp ngay + báo lỗi (Support: "nhập sai là lỗi camp"). --tam-dung = để PAUSED chờ anh review.
   python3 nhan-ban.py <camp_khuôn> --roas 1 --creative <id> --content <id> --ten "<tên>" [--bo <bộ>] [--ns 5] --that …   → ★ ROAS TỪ CREATIVE MỚI (anh 18/11/2026,
@@ -441,7 +441,7 @@ THANG_BO = [str(x) for x in _cau_hinh("thang_bo", ["2"])]
 THANG_MUC = {float(x) for x in _cau_hinh("thang_muc", [1, 3, 7, 15, 30]) if float(x) > 1}   # bậc mở bản mới (trừ bậc đầu $1)
 BO_DANG_CHAN = {str(k): set(v) for k, v in _cau_hinh("bo_dang_chan", {}).items()}   # bộ → dạng creative không lên camp mới (migration 0394, anh 01/11/2026 "bộ 2 chỉ lên cảnh cuối")
 BO_CHI_PHIM_LAI = {str(x) for x in _cau_hinh("bo_chi_phim_lai", [])}   # bộ chỉ mở camp cho phim đã lãi 7 ngày ở bộ đó (migration 0399, anh 02/11/2026 "chặn mở camp phim mới" ở bộ 2)
-ROAS_MIN, ROAS_MAX = 1.0, 1.4
+ROAS_MIN, ROAS_MAX = 0.9, 1.4   # 0.9 (Dol 22/11/2026: "ngoài mức bid roas 1, lên camp test thêm mức 0.9, 1.1")
 def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None, ep=False, hoi_cho=False):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
     — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh).
@@ -731,7 +731,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
             lo_, hi_ = HOI_CHO["ns_khoang"]
             _sl = _iuc.spec_from_file_location("etp_lenh_cho", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "lenh_cho.py")); LC = _iuc.module_from_spec(_sl); _sl.loader.exec_module(LC)
             if not (lo_ <= ns <= hi_ and LC.hop_le(goc, roas, ns)): raise ValueError(f"--lenh-cho: không có lệnh chờ phanh đang chạy cho #{goc} roas {roas:g} ${ns} (hoặc ngoài ${lo_:g}–{hi_:g})")
-        elif not 15 <= ns <= 20 and not CONG.truc_tiep("nhan_ban", [goc]): raise ValueError("ngân sách camp ROAS $15–20 (Support 26/10/2026) — lệnh trực tiếp của anh: cấp vé cong.py --ve-truc-tiep")   # LỆNH TRỰC TIẾP (anh 20/11/2026 09:35) miễn khoảng $15–20
+        elif not 5 <= ns <= 20 and not CONG.truc_tiep("nhan_ban", [goc]): raise ValueError("ngân sách camp ROAS $5–20 (Dol 22/11/2026: camp mới $5, lãi thì nuôi dần lên) — lệnh trực tiếp của anh: cấp vé cong.py --ve-truc-tiep")   # LỆNH TRỰC TIẾP (anh 20/11/2026 09:35) miễn khoảng $15–20
         d, ten, cid, pl = payload(goc, lich, moi=moi, bo=bo if moi else None, roas=roas, ns_roas=ns, nhan=nhan); kq["ten"] = ten; bo = pl.pop("bo")
         if moi:
             kq["content"], kq["creative"] = cid, int(moi["creative"])

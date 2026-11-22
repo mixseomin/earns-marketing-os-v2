@@ -11,6 +11,7 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { duyetCham } from '@/lib/actions/etp-cham';
 import { lenCampCr } from '@/lib/actions/etp-dong';
+import BANG_LUAT from '@/lib/etp-bang-luat.json';
 
 export type ChoDuyet = {
   creative_id: number; content_id: number | null; phim: string | null; lang: string | null; dang: string | null; video: string | null; anh: string | null;
@@ -78,7 +79,19 @@ const gioVn = (g: string | null | undefined) => { const t = (g ?? '').trim().rep
 const daQua = (g: string) => Date.parse(`${g.replace(' ', 'T')}:00+07:00`) < Date.now() - 60_000;
 const chuGio = (g: string | null) => g ? `hẹn ${g.slice(11)} ${g.slice(8, 10)}/${g.slice(5, 7)} giờ VN` : 'chạy ngay';
 
-export async function lenNgayCr(cr: number, gio?: string | null): Promise<KqNut> {
+const ROAS_CR = [0.9, 1.4] as const, NS_CR = BANG_LUAT.hoi_cho.ns_khoang as [number, number];   // ★ ROAS creative mới: mức cùng nhan-ban.py ROAS_MIN/MAX · ngân sách sổ luật hoi_cho.ns_khoang
+
+/** creative ĐÃ DUYỆT, chưa có camp, CÙNG PHIM với camp — nguồn "creative mới" của nhân bản ★ ROAS ở bảng điều khiển camp (Dol 22/11/2026) */
+export async function dsCrMoiCamp(campId: number): Promise<{ cr: number; lang: string | null; dang: string | null }[]> {
+  const me = await getCurrentUser(); if (me?.role !== 'admin') return [];
+  return run<{ cr: number; lang: string | null; dang: string | null }>(sql`select r.creative_id cr, r.lang, r.dang from etp.creative r
+      join etp.cham_duyet u on u.creative_id = r.creative_id and u.ok
+    where r.content_id = (select content_id from etp.camp where camp_id = ${Math.trunc(Number(campId))})
+      and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id) order by r.creative_id desc limit 30`);
+}
+
+/** o.khuon = camp ★ đang chạy làm KHUÔN (cùng bộ, cùng phim): ★ ROAS creative mới mức o.roas · $o.ns — từ nút nhân bản ★ ROAS "creative mới" */
+export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: number; ns: number; khuon: number } | null): Promise<KqNut> {
   const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được lên camp' };
   const id = Math.trunc(Number(cr)), g = gioVn(gio);
   if (gio && !g) return { loi: `giờ không đọc được: "${gio}" — dạng YYYY-MM-DD HH:MM giờ VN` };
@@ -90,14 +103,21 @@ export async function lenNgayCr(cr: number, gio?: string | null): Promise<KqNut>
   if (!x) return { loi: `không thấy creative #${id}` };
   if (!x.ok) return { loi: `creative #${id} chưa duyệt — duyệt trước rồi mới lên` };
   if (x.co_camp) return { loi: `creative #${id} đã có camp` };
-  if (!x.bo || !x.content_id) return { loi: 'thiếu bộ lên camp (bo_phim_moi) hoặc phim của creative' };
-  const lang = x.lang === 'es' ? 'es' : 'en', ro = x.roas && x.ns ? { roas: Number(x.roas), ns: Math.trunc(Number(x.ns)) } : null;
-  const lenh = `anh bấm ▶ Lên ngay creative #${id} trên etp2 (${chuGio(g)})`;
+  if (!x.content_id || (!o && !x.bo)) return { loi: 'thiếu bộ lên camp (bo_phim_moi) hoặc phim của creative' };
+  if (o) {
+    if (!(o.roas >= ROAS_CR[0] && o.roas <= ROAS_CR[1])) return { loi: `ROAS goal phải trong ${ROAS_CR[0]}–${ROAS_CR[1]}` };
+    if (!(Number.isInteger(o.ns) && o.ns >= NS_CR[0] && o.ns <= NS_CR[1])) return { loi: `ngân sách ★ ROAS creative mới $${NS_CR[0]}–${NS_CR[1]} (sổ luật hoi_cho)` };
+    const [k] = await run<{ content_id: number | null }>(sql`select content_id from etp.camp where camp_id = ${Math.trunc(Number(o.khuon))}`);
+    if (!k) return { loi: `không thấy camp khuôn #${o.khuon}` };
+    if (Number(k.content_id) !== Number(x.content_id)) return { loi: `creative #${id} không cùng phim với camp #${o.khuon}` };
+  }
+  const lang = x.lang === 'es' ? 'es' : 'en', ro = o ? { roas: o.roas, ns: o.ns } : x.roas && x.ns ? { roas: Number(x.roas), ns: Math.trunc(Number(x.ns)) } : null;
+  const lenh = o ? `anh bấm nhân bản ★ ROAS ${o.roas} creative mới #${id} từ camp #${o.khuon} trên etp2 (${chuGio(g)})` : `anh bấm ▶ Lên ngay creative #${id} trên etp2 (${chuGio(g)})`;
   const v = await xinVeTrucTiep('tao_camp', { content: x.content_id, lenh, ns: ro?.ns ?? 1 });
   if (!('ma' in v)) return v;
   const ten = `duyet ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - ${ro ? 'cr moi' : 'creative'} #${id}`;   // spawn không qua shell — chỉ chữ ASCII
   const log = openSync(`/tmp/etp-len-cr-${id}.log`, 'a');
-  spawn('python3', ['nhan-ban.py', String(KHUON_CR[lang]), ...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), '--tay', '--bo', x.bo, '--creative', String(id),
+  spawn('python3', ['nhan-ban.py', String(o ? Math.trunc(Number(o.khuon)) : KHUON_CR[lang]), ...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), '--tay', ...(o ? [] : ['--bo', String(x.bo)]), '--creative', String(id),   // khuôn ★: không --bo → giữ bộ camp khuôn
     '--content', String(x.content_id), '--ten', ten, ...(g ? ['--gio', g] : []), '--that', '--luat', lenh, '--ai', `anh (etp2 ${me.email})`],
     { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
   return { ok: true, chu: `đã gửi lệnh lên ${ro ? `★ ROAS ${ro.roas} · $${ro.ns}` : 'camp $1'} — ${chuGio(g)}` };

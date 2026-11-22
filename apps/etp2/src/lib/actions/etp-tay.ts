@@ -68,13 +68,15 @@ export async function campTay(campId: number, viec: 'bat' | 'tat' | 'ns', o: { n
   return { ok: true, chu: k.lich ?? (viec === 'ns' ? `$${k.truoc?.ns ?? '?'} → $${k.sau?.ns ?? '?'}` : `${k.truoc?.tt ?? '?'} → ${k.sau?.tt ?? '?'}`) };
 }
 
-export type KieuNb = { kieu: 'thuong' } | { kieu: 'thang'; ns: number } | { kieu: 'bo'; bo: string } | { kieu: 'roas'; roas: number; ns: number; tamDung: boolean };
+export type KieuNb = { kieu: 'thuong' } | { kieu: 'thang'; ns: number } | { kieu: 'bo'; bo: string } | { kieu: 'roas'; roas: number; ns: number; tamDung: boolean; /** cặp 0.9 + 1.1 (Dol 22/11/2026) — một lần bấm hai camp bài cũ */ cap?: boolean };
+const ROAS_KHOANG = [0.9, 1.4] as const, NS_ROAS_KHOANG = [5, 20] as const, ROAS_CAP = [0.9, 1.1] as const;   // Dol 22/11/2026: bid 0.9 / 1 / 1.1, camp mới $5 (cùng nhan-ban.py ROAS_MIN/ROAS_MAX)
 const thamNb = (x: KieuNb): string[] | string => {
   if (x.kieu === 'thuong') return [];
   if (x.kieu === 'thang') return Number.isInteger(x.ns) && x.ns > 1 ? ['--thang', String(x.ns)] : 'mức thang không hợp lệ';
   if (x.kieu === 'bo') return /^[A-Za-z0-9_ -]{1,20}$/.test(x.bo) ? ['--bo', x.bo, '--ep'] : 'bộ không hợp lệ';
-  if (!(x.roas >= 1 && x.roas <= 1.4)) return 'ROAS goal phải trong 1.0–1.4';
-  if (!(x.ns >= 15 && x.ns <= 20)) return 'ngân sách camp ROAS $15–20';
+  if (!x.cap && !(x.roas >= ROAS_KHOANG[0] && x.roas <= ROAS_KHOANG[1])) return `ROAS goal phải trong ${ROAS_KHOANG[0]}–${ROAS_KHOANG[1]}`;
+  if (!(Number.isInteger(x.ns) && x.ns >= NS_ROAS_KHOANG[0] && x.ns <= NS_ROAS_KHOANG[1])) return `ngân sách camp ROAS $${NS_ROAS_KHOANG[0]}–${NS_ROAS_KHOANG[1]}`;
+  if (x.cap) return ['--ns', String(x.ns), ...(x.tamDung ? ['--tam-dung'] : [])];   // mức ROAS gắn ở từng lượt (nhanBanTay / xemNhanBan)
   return ['--roas', x.roas.toFixed(2), '--ns', String(x.ns), ...(x.tamDung ? ['--tam-dung'] : [])];
 };
 
@@ -83,7 +85,7 @@ export async function xemNhanBan(campId: number, x: KieuNb): Promise<{ ok: true;
   if (!(await laChu())) return { loi: 'chỉ admin mos2 điều khiển camp' };
   const t = thamNb(x); if (typeof t === 'string') return { loi: t };
   const ve = await xinVeTay('nhan_ban', { camp: campId, ai: AI });   // chạy khô không gửi gì nên không đốt vé — vé tự hết hạn
-  const ra = await chay(['nhan-ban.py', String(campId), '--tay', '--anh', ...t], 120_000, ve);   // --anh: anh bấm tay — máy không chặn bằng luật mềm (10/11/2026), chỉ có nghĩa khi mang vé (18/11/2026)
+  const ra = await chay(['nhan-ban.py', String(campId), '--tay', '--anh', ...t, ...(x.kieu === 'roas' && x.cap ? ['--roas', ROAS_CAP[0].toFixed(2)] : [])], 120_000, ve);   // cặp: chạy khô mức đầu — mức sau chỉ khác roas   // --anh: anh bấm tay — máy không chặn bằng luật mềm (10/11/2026), chỉ có nghĩa khi mang vé (18/11/2026)
   const k = dongJson<{ ok?: boolean; loi?: string | null; ten?: string }>(ra);
   if (k && (k.ok === false || k.loi)) return { loi: k.loi || 'máy chặn' };   // chạy khô bị chặn: ok null + loi (vd ĐANG DỪNG LÊN CAMP MỚI)
   return { ok: true, chu: ra.trim().slice(-3000) || '(máy không in gì)' };
@@ -95,6 +97,14 @@ export async function nhanBanTay(campId: number, x: KieuNb, ghi?: string): Promi
   if (!Number.isInteger(campId) || campId <= 0) return { loi: 'camp không hợp lệ' };
   const t = thamNb(x); if (typeof t === 'string') return { loi: t };
   const log = openSync(`/tmp/etp2-nb-${campId}.log`, 'a');
+  if (x.kieu === 'roas' && x.cap) {   // CẶP ★ ROAS 0.9 + 1.1 bài cũ (Dol 22/11/2026 "2 camp lên mà lãi luôn → duplicate thêm 2 camp, bid 0.9, 1.1"): hai lượt NỐI TIẾP, mỗi lượt một vé
+    const ves = await Promise.all(ROAS_CAP.map(() => xinVeTay('nhan_ban', { camp: campId, ai: AI })));
+    const chung = ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that', '--luat', `tay etp2: nhân bản cặp ROAS ${ROAS_CAP.join(' + ')} — ANH CHỊU TRÁCH NHIỆM, máy không chặn${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI];
+    spawn('sh', ['-c', ROAS_CAP.map((r, i) => `ETP_VE="$V${i}" python3 "$@" --roas ${r.toFixed(2)}`).join('; '), 'sh', ...chung],
+      { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: { ...envVe(null), ...Object.fromEntries(ves.map((v, i) => [`V${i}`, v ?? ''])) } }).unref();
+    await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản cặp ROAS ${ROAS_CAP.join(' + ')} · $${x.ns}` });
+    return { ok: true, chu: `đã gửi máy hai camp ★ ROAS ${ROAS_CAP.join(' và ')} · $${x.ns} (bài cũ của #${campId}, chạy nối tiếp) · camp mới ${chayLuc()} · kết quả ghi nhật ký luật` };
+  }
   const ve = await xinVeTay('nhan_ban', { camp: campId, ai: AI });   // vé thao tác tay (anh 18/11/2026): phanh chợ chỉ miễn lệnh mang vé
   spawn('python3', ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that', '--luat', `tay etp2: nhân bản ${x.kieu} — ANH CHỊU TRÁCH NHIỆM, máy không chặn${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI],
     { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();

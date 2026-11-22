@@ -1,0 +1,19 @@
+:root { --o: rgba(12, 14, 20, .82); --vien: rgba(255, 255, 255, .16); --chu: #eceff4; --mo: #9aa3b2; --nhan: #ff4a5a; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #101218; color: var(--chu); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.o { position: fixed; z-index: 5; background: var(--o); border: 1px solid var(--vien); border-radius: 10px; backdrop-filter: blur(6px); }
+.tren { top: 12px; left: 12px; padding: 7px 12px; }
+.tren b { font-size: 16px; letter-spacing: .04em; color: var(--nhan); }
+.tren span { color: var(--mo); margin-left: 6px; }
+.ben { top: 12px; right: 12px; width: min(300px, calc(100vw - 24px)); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.hang { display: flex; gap: 6px; flex-wrap: wrap; }
+button { font: 600 13px system-ui, sans-serif; color: var(--chu); background: rgba(255, 255, 255, .07); border: 1px solid var(--vien); border-radius: 7px; padding: 7px 10px; cursor: pointer; }
+button:hover:not(:disabled) { background: rgba(255, 255, 255, .16); }
+button.on { border-color: var(--nhan); background: rgba(255, 74, 90, .18); }
+button:disabled { opacity: .45; cursor: default; }
+.goiy, .mo { margin: 0; color: var(--mo); font-size: 12px; }
+#nap { position: fixed; z-index: 6; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 12px 18px; background: var(--o); border: 1px solid var(--vien); border-radius: 10px; }
+#nguon { left: 12px; bottom: 12px; padding: 5px 10px; font-size: 11px; color: var(--mo); max-width: calc(100vw - 24px); }
+#nguon a { color: var(--chu); }
+@media (max-width: 640px) { .ben { top: auto; bottom: 46px; } .goiy { display: none; } .tren { top: 8px; left: 8px; } }

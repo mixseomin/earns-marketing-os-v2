@@ -256,6 +256,13 @@ if ! cmp -s /tmp/phobui-ban.conf /etc/nginx/snippets/phobui-ban.conf || ! cmp -s
   cp /tmp/phobui-ban.conf /etc/nginx/snippets/phobui-ban.conf && cp apps/phobui/deploy/phobui.on.tc.nginx /etc/nginx/sites-enabled/phobui.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx phobui.on.tc cài/cập nhật (bản $PB_BAN)" || { echo "✗ nginx phobui.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/phobui.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
 fi
 
+# 5e6. SPRAWL (apps/sprawl/public, sprawl.on.tc) — thành phố 3D trên bản đồ thật Tokyo (PLATEAU + OSM), tệp tĩnh sau SSO mos2 (anh 22/11/2026). Cùng khuôn 5e5.
+SP_BAN=$(cat apps/sprawl/public/*.js apps/sprawl/public/*.css | md5sum | cut -c1-12)
+echo "set \$sprawl_ban \"$SP_BAN\";" > /tmp/sprawl-ban.conf
+if ! cmp -s /tmp/sprawl-ban.conf /etc/nginx/snippets/sprawl-ban.conf || ! cmp -s apps/sprawl/deploy/sprawl.on.tc.nginx /etc/nginx/sites-enabled/sprawl.on.tc; then
+  cp /tmp/sprawl-ban.conf /etc/nginx/snippets/sprawl-ban.conf && cp apps/sprawl/deploy/sprawl.on.tc.nginx /etc/nginx/sites-enabled/sprawl.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx sprawl.on.tc cài/cập nhật (bản $SP_BAN)" || { echo "✗ nginx sprawl.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/sprawl.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
+fi
+
 # 5z. vhost etp.on.tc cài từ repo (có trang "đang cập nhật" tự tải lại khi mos2-web khởi động lại) — chỉ khi tệp đổi
 if ! cmp -s apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc; then
   cp /etc/nginx/sites-enabled/etp.on.tc /tmp/etp.on.tc.nginx.cu 2>/dev/null

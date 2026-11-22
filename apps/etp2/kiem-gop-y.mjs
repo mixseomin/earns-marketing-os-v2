@@ -7,6 +7,9 @@ import { join } from 'node:path';
 
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
+  { card: 0, tep: 'apps/etp2/src/components/etp-view.tsx', mot: "{ key: 'mien', header: 'Miền'", vi: 'bảng cây camp có cột Miền (domain trang đích của ad) — anh 23/11/2026 "trên page camp, show thêm cột domain"' },
+  { card: 0, tep: 'apps/etp/dong-bo.py', co: '"mien": (a.get("domain") or "") if d else None', vi: 'máy đồng bộ ghi miền camp nhà từ chi tiết ad' },
+  { card: 0, tep: 'apps/etp/dong-bo.py', co: 'mien = x.m from jsonb_to_recordset', vi: 'máy đồng bộ ghi miền camp đội' },
   { card: 1730, tep: 'apps/etp2/src/lib/actions/etp-mau-cr.ts', mot: 'const tvChuaLen = ', vi: 'bản máy đã dựng xong nằm trong thư viện mà chưa có mã creative Ethopex vẫn hiện ở tab Phim sản xuất + ngăn chi tiết dựng (anh 20/11/2026 "Show creative đã sx tại đây": 2 phim mà 0 creative)' },
   { card: 1730, tep: 'apps/etp2/src/lib/actions/etp-mau-cr.ts', mot: 'cr.unshift(...(await tvChuaLen(ma, cid)).map(crTv))', vi: 'ngăn chi tiết dựng đọc cùng một hàm với tab, không truy vấn riêng' },
   { card: 1730, tep: 'apps/etp2/src/components/etp-mau-cr.tsx', mot: 'function nhanCr(', vi: 'nhãn dưới ảnh creative theo trạng thái thật (chưa lên / chưa camp / ROI), số tiền chỉ ở chữ rê, không "0 camp · chi $0.00" (anh 20/11/2026 "trình bày ngu thế")' },

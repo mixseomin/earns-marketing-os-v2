@@ -153,15 +153,18 @@ def main():
         # PHIM / CREATIVE CỦA CAMP NGOÀI lấy từ AD của camp (chi tiết camp), không từ report: report trả nhóm nội dung riêng của team ("Unknown Content" #143938)
         # trong khi ad trỏ đúng phim (#67443 → 94344 Number One Nobody) — anh 28/10/2026. Chỉ camp mới / đổi / chưa có phim
         cu_n = {int(l.split("|")[0]): l.split("|", 1)[1] for l in q("select camp_id || '|' || coalesce(cap_nhat_etp::text, '') from etp.camp_ngoai where content_id is not null and creative_id is not null").splitlines() if l}
-        doi_n = [c for c in ngoai if c["id"] not in cu_n or str(c.get("updated_at") or "")[:19] != (cu_n.get(c["id"]) or "")[:19].replace(" ", "T")]
+        # + LẤP NGƯỢC MIỀN (anh 23/11/2026 cột domain): camp chưa đọc miền — tối đa 300 camp / lượt, mới trước
+        _idn = {c["id"] for c in ngoai}
+        lap_n = set([x for x in (int(v) for v in q("select camp_id from etp.camp_ngoai where mien is null and trang_thai <> 'ARCHIVED' order by tao desc nulls last").split()) if x in _idn][:300])
+        doi_n = [c for c in ngoai if c["id"] not in cu_n or c["id"] in lap_n or str(c.get("updated_at") or "")[:19] != (cu_n.get(c["id"]) or "")[:19].replace(" ", "T")]
         def ct_n(c):
             try: a = (EA.api(f"/api/v1/campaigns/{c['id']}").get("ad_groups") or [{}])[0].get("ads", [{}])[0]
             except Exception: return None
-            return {"id": c["id"], "ct": a.get("content_id"), "cr": a.get("creative_id")}
-        with ThreadPoolExecutor(10) as ex: ad_n = [x for x in ex.map(ct_n, doi_n) if x and (x["ct"] or x["cr"])]
+            return {"id": c["id"], "ct": a.get("content_id"), "cr": a.get("creative_id"), "m": a.get("domain") or ""}
+        with ThreadPoolExecutor(10) as ex: ad_n = [x for x in ex.map(ct_n, doi_n) if x]
         if ad_n:
             _an = json.dumps(ad_n)
-            q(f"update etp.camp_ngoai n set content_id = coalesce(x.ct, n.content_id), creative_id = coalesce(x.cr, n.creative_id) from jsonb_to_recordset($J${_an}$J$::jsonb) as x(id int, ct int, cr int) where n.camp_id = x.id")
+            q(f"update etp.camp_ngoai n set content_id = coalesce(x.ct, n.content_id), creative_id = coalesce(x.cr, n.creative_id), mien = x.m from jsonb_to_recordset($J${_an}$J$::jsonb) as x(id int, ct int, cr int, m text) where n.camp_id = x.id")
         kq["chi_tiet_ngoai"] = len(ad_n)
         # BẢN NHÂN BẢN CỦA TEAM ("Dup by 68596 ROAS 1.1" · "…_D69655_ROAS1"): ad của bản dup Ethopex trả phim / creative rỗng hoặc 0 → cây phim dồn vào "#0"
         # (anh 31/10/2026 #1492 "sao ko bắt được tên phim các camp này"). Thừa hưởng từ camp gốc ghi trong tên — cùng mẫu gốc với cong.py _GOC_ID
@@ -203,9 +206,10 @@ def main():
         # + camp ACTIVE ≤ 3 ngày mà kho còn ghi giao ≠ ACTIVE: Ethopex KHÔNG đổi updated_at của camp khi nhóm QC được duyệt / tới giờ chạy (05/11/2026: 60 camp
         #   ACTIVE từ 08:29 mà kho đứng ADSET_PAUSED) → đọc lại chi tiết tới khi giao khớp thật
         cho = set() if day_du else {int(x) for x in q("select camp_id from etp.camp where trang_thai = 'ACTIVE' and giao is distinct from 'ACTIVE' and tao > now() - interval '3 days'").split()}
-        # + LẤP NGƯỢC MÃ BÀI (kho bài viết, anh 20/11/2026): camp chưa từng đọc mã bài (bai_doc trống) — tối đa 150 camp / lượt, mới trước; chỉ camp còn trong danh sách
+        # + LẤP NGƯỢC MÃ BÀI (kho bài viết, anh 20/11/2026) + MIỀN (cột domain, anh 23/11/2026): camp chưa từng đọc mã bài / miền — tối đa 150 camp / lượt, mới trước; chỉ camp còn trong danh sách
         _ids = {c["id"] for c in ds}
-        lap = set() if day_du else set([x for x in (int(v) for v in q("select camp_id from etp.camp where bai_doc is null order by tao desc nulls last").split()) if x in _ids][:150])
+        lap = set() if day_du else set([x for x in (int(v) for v in q("select camp_id from etp.camp where bai_doc is null order by tao desc nulls last").split()) if x in _ids][:150]) \
+            | set([x for x in (int(v) for v in q("select camp_id from etp.camp where mien is null order by tao desc nulls last").split()) if x in _ids][:150])
         doi = [c for c in ds if day_du or c["id"] not in cu or c["id"] in lap or c["id"] in cho or str(c.get("updated_at") or "")[:19] != (cu.get(c["id"]) or "")[:19].replace(" ", "T")]
         kq["so_lap_bai"] = len(lap)
         def ct(c):
@@ -227,10 +231,11 @@ def main():
                              "creative_id": a.get("creative_id"), "content_id": a.get("content_id"), "ad_id": a.get("id"), "goc": goc,
                              "lich": sp.get("start_time"), "loi": (a.get("error") or c.get("error") or None), "tao": c.get("created_at"), "cap_nhat_etp": c.get("updated_at"),
                              "roas": _roas(sp), "chien_luoc": (d or {}).get("campaign", {}).get("source_bidding_strategy") or c.get("source_bidding_strategy"),
-                             "bai_viet": a.get("effective_object_story_id") or None, "bai_doc": _luc if d else None})   # mã bài "<fb page>_<post>" → kho bài viết etp.bai_viet_v (0454)
+                             "bai_viet": a.get("effective_object_story_id") or None, "bai_doc": _luc if d else None,
+                             "mien": (a.get("domain") or "") if d else None})   # miền trang đích của ad (cột Miền trên etp2, 0462)   # mã bài "<fb page>_<post>" → kho bài viết etp.bai_viet_v (0454)
         kq["so_chi_tiet"] = ghi("camp", rows, ["camp_id"], {"camp_id": "int", "ten": "text", "bo": "text", "ad_account_id": "bigint", "trang_thai": "text", "giao": "text", "dong_bo": "text",
             "ngan_sach": "numeric", "creative_id": "int", "content_id": "int", "ad_id": "int", "goc": "int", "lich": "timestamptz", "loi": "text", "tao": "timestamptz", "cap_nhat_etp": "timestamptz", "roas": "numeric", "chien_luoc": "text",
-            "bai_viet": "text", "bai_doc": "timestamptz"})
+            "bai_viet": "text", "bai_doc": "timestamptz", "mien": "text"})
         # camp ROAS chạy BÀI ĐĂNG CŨ: ad không mang content/creative → nhận phim của camp gốc (cây camp + số theo phim trên etp.on.tc)
         q("""update etp.camp c set content_id = g.content_id from etp.camp g where c.goc = g.camp_id and coalesce(c.content_id, 0) = 0 and coalesce(g.content_id, 0) <> 0""")
     except Exception as e: loi.append(f"camp: {e}")

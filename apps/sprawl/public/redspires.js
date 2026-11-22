@@ -492,7 +492,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
       c = mix(c, vec3(0.3, 0.29, 0.27), dai(as, 4.0, 5.0, e));                                       // vai nền`,
   };
   // phu = lượt phủ lòng đường: cùng hình, bỏ vỉa hè, nằm trên mọi vỉa hè cùng lớp → đường đôi / dải chồng nhau không còn vỉa hè dải này đè lòng đường dải kia (răng cưa)
-  const vatDuong = (k, phu) => { const m = new THREE.MeshLambertMaterial({ polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: phu ? LOP.lon.u - 2 - (k === 'lon' ? 1 : 0) : LOP[k].u }); // phu: lượt vẽ riêng phần lòng nhựa, nằm trên MỌI vỉa hè (kể cả vỉa hè của đại lộ chạy song song đè sang) → lòng đường không bị vỉa hè tuyến bên cạnh che
+  const vatDuong = (k, phu) => { const m = new THREE.MeshLambertMaterial({ depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: phu ? LOP.lon.u - 2 - (k === 'lon' ? 1 : 0) : LOP[k].u }); m.userData.thuTu = -m.polygonOffsetUnits; // dải đường KHÔNG ghi chiều sâu, vẽ sau mọi vật đặc theo thứ tự lớp cố định (lớp trên vẽ sau): dải chồng nhau (bãi ray ga, nút giao, đường song song) không còn giành điểm ảnh → hết nháy; đất/nhà/xe đã ghi chiều sâu nên vẫn che đường đúng // phu: lượt vẽ riêng phần lòng nhựa, nằm trên MỌI vỉa hè (kể cả vỉa hè của đại lộ chạy song song đè sang) → lòng đường không bị vỉa hè tuyến bên cạnh che
     m.customProgramCacheKey = () => 'duong-' + k + (phu ? '-phu' : '');
     m.onBeforeCompile = (sh) => {
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 aR, aK, aL; varying vec4 vR, vK, vL; varying vec3 vWp;')
@@ -512,8 +512,8 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
     g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3));
     g.setAttribute('normal', new THREE.Float32BufferAttribute(new Float32Array(n * 3).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
     g.setAttribute('aR', new THREE.Float32BufferAttribute(B.r, 4)); g.setAttribute('aK', new THREE.Float32BufferAttribute(B.k, 4)); g.setAttribute('aL', new THREE.Float32BufferAttribute(B.l, 4)); g.setIndex(B.idx);
-    duongMesh[k] = new THREE.Mesh(g, vatDuong(k)); duongMesh[k].frustumCulled = false; duongMesh[k].renderOrder = -1; goc.add(duongMesh[k]);
-    if (LONG[k]) { const m2 = new THREE.Mesh(g, vatDuong(k, true)); m2.frustumCulled = false; m2.renderOrder = -1; goc.add(m2); } }
+    duongMesh[k] = new THREE.Mesh(g, vatDuong(k)); duongMesh[k].frustumCulled = false; duongMesh[k].renderOrder = duongMesh[k].material.userData.thuTu; goc.add(duongMesh[k]);
+    if (LONG[k]) { const m2 = new THREE.Mesh(g, vatDuong(k, true)); m2.frustumCulled = false; m2.renderOrder = m2.material.userData.thuTu; goc.add(m2); } }
 
   // ---------- vườn: vẽ đa giác công viên OSM vào mặt nạ 1024² (3 m / điểm ảnh), đất Red Spires đọc mặt nạ để tô cỏ ----------
   const NUA_V = 1536, cv = document.createElement('canvas'); cv.width = cv.height = 1024;

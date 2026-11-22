@@ -1,0 +1,1443 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-22T17:00:51Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 738815124,
+  "lat": 21.0215815,
+  "lon": 105.8506652,
+  "tags": {
+    "bench": "no",
+    "bin": "no",
+    "bus": "yes",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "name": "Thư viện Hà Nội - 54E Trần Hưng Đạo",
+    "public_transport": "platform",
+    "route_ref": "3;11;38;43;52",
+    "shelter": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 738815312,
+  "lat": 21.0219618,
+  "lon": 105.8503463,
+  "tags": {
+    "bus": "yes",
+    "highway": "bus_stop",
+    "name": "58B Bà Triệu",
+    "public_transport": "platform"
+  }
+},
+{
+  "type": "node",
+  "id": 1008752719,
+  "lat": 21.0201787,
+  "lon": 105.8497393,
+  "tags": {
+    "amenity": "bank",
+    "brand": "Techcombank",
+    "brand:wikidata": "Q10541776",
+    "name": "Techcombank"
+  }
+},
+{
+  "type": "node",
+  "id": 3541989300,
+  "lat": 21.0216211,
+  "lon": 105.8494073,
+  "tags": {
+    "addr:city": "Hà Nội",
+    "addr:country": "VN",
+    "addr:district": "Hoàn Kiếm",
+    "addr:housenumber": "65B",
+    "addr:street": "Trần Hưng Đạo",
+    "amenity": "pharmacy",
+    "description": "Siêu thi thực phẩm chức năng GPCare - Cơ sở 3 - tại 65B Trần Hưng Đạo cung cấp hàng trăm sản phẩm từ các thương hiệu danh tiếng thế giới như Life Extension, Puritan's Pride, Nutrasal, New Chapter,... mang lại sự lựa chọn tốt nhất cho sức khỏa của bạn",
+    "dispensing": "yes",
+    "emergency": "no",
+    "healthcare": "pharmacy",
+    "name": "Siêu thị thực phẩm chức năng GPCare - Cơ sở 3 - 65B Trần Hưng Đạo",
+    "operator": "Công ty cổ phần dinh dưỡng thiên nhiên GP Hoa Kỳ",
+    "phone": "0996986666",
+    "website": "https://www.gpcare.vn/"
+  }
+},
+{
+  "type": "node",
+  "id": 4592627190,
+  "lat": 21.0207943,
+  "lon": 105.8489956,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Nhà Hàng Le Tonkin",
+    "name:en": "Le Tonkin",
+    "name:it": "Le Tonkin",
+    "name:vi": "Le Tonkin"
+  }
+},
+{
+  "type": "node",
+  "id": 5542149321,
+  "lat": 21.0216856,
+  "lon": 105.8505169,
+  "tags": {
+    "amenity": "cafe",
+    "name": "Vietnam Speciality Coffee",
+    "name:en": "Helio coffee"
+  }
+},
+{
+  "type": "node",
+  "id": 5591986121,
+  "lat": 21.0204041,
+  "lon": 105.8497565,
+  "tags": {
+    "addr:housenumber": "53",
+    "addr:street": "Phố Bà Triệu",
+    "email": "ngothanhtu.niags@gmail.com",
+    "name": "Xe dap Khanh Hiep 53 Ba Trieu (Totem )",
+    "name:en": "Totem Bicycle Shop",
+    "opening_hours": "Mo-Su 08:00-20:30",
+    "phone": "0977022357",
+    "shop": "bicycle"
+  }
+},
+{
+  "type": "node",
+  "id": 6662289411,
+  "lat": 21.0220875,
+  "lon": 105.8488230,
+  "tags": {
+    "addr:street": "Phố Quang Trung",
+    "brand": "Circle K",
+    "brand:wikidata": "Q3268010",
+    "name": "Circle K",
+    "shop": "convenience"
+  }
+},
+{
+  "type": "node",
+  "id": 6975785986,
+  "lat": 21.0218192,
+  "lon": 105.8500931,
+  "tags": {
+    "amenity": "restaurant",
+    "diet:vegetarian": "only",
+    "name": "Nhà Hàng Bodhi",
+    "survey:date": "2019-11-14"
+  }
+},
+{
+  "type": "node",
+  "id": 8205232247,
+  "lat": 21.0218851,
+  "lon": 105.8489463,
+  "tags": {
+    "bench": "no",
+    "bin": "no",
+    "bus": "yes",
+    "highway": "bus_stop",
+    "lit": "no",
+    "name": "67 Trần Hưng Đạo",
+    "public_transport": "platform",
+    "shelter": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 9252326517,
+  "lat": 21.0216655,
+  "lon": 105.8493078,
+  "tags": {
+    "addr:postcode": "11019",
+    "amenity": "restaurant",
+    "name": "Nhà Hàng Maison Sen",
+    "name:en": "Maison Sen Buffet"
+  }
+},
+{
+  "type": "node",
+  "id": 11184862852,
+  "lat": 21.0227167,
+  "lon": 105.8505143,
+  "tags": {
+    "addr:district": "Quận Hoàn Kiếm",
+    "addr:province": "Thành phố Hà Nội",
+    "addr:street": "52 Bà Triệu,",
+    "addr:subdistrict": "Phường Trần Hưng Đạo",
+    "name": "52 Bà Triệu"
+  }
+},
+{
+  "type": "node",
+  "id": 11866085369,
+  "lat": 21.0202038,
+  "lon": 105.8507310,
+  "tags": {
+    "addr:housenumber": "61",
+    "addr:postcode": "100000",
+    "addr:street": "Phố Hàm Long",
+    "amenity": "restaurant",
+    "cuisine": "vietnamese",
+    "diet:vegan": "yes",
+    "diet:vegetarian": "yes",
+    "name": "Nhà Hàng Chay Me&An Vegetarian",
+    "name:en": "Me&An Vegetarian",
+    "phone": "0943679886"
+  }
+},
+{
+  "type": "node",
+  "id": 13630080601,
+  "lat": 21.0208818,
+  "lon": 105.8490400,
+  "tags": {
+    "addr:housenumber": "14",
+    "addr:street": "Phố Ngô Văn Sở",
+    "amenity": "restaurant",
+    "cuisine": "vietnamese",
+    "email": "thanh.luong@fbee.vn",
+    "internet_access": "wlan",
+    "name": "Hà Thành Mansion",
+    "opening_hours": "Mo-Su 10:00-14:00, 17:00-22:00",
+    "phone": "+84 946 398 558",
+    "website": "https://www.hathanhmansion.vn/"
+  }
+},
+{
+  "type": "node",
+  "id": 13819750160,
+  "lat": 21.0220916,
+  "lon": 105.8504273,
+  "tags": {
+    "addr:district": "Thành phố Hà Nội",
+    "addr:province": "Việt Nam",
+    "addr:street": "56B Bà Triệu, Phường Hàng Bài, Quận Hoàn Kiếm, Thành Phố Hà Nội",
+    "addr:subdistrict": "Phường Cửa Nam",
+    "name": "56B Bà Triệu"
+  }
+},
+{
+  "type": "way",
+  "id": 11551725,
+  "center": {
+    "lat": 21.0207150,
+    "lon": 105.8490926
+  },
+  "tags": {
+    "highway": "residential",
+    "name": "Phố Ngô Văn Sở",
+    "name:en": "Ngo Van So Street",
+    "name:etymology:wikidata": "Q181437",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 36084514,
+  "center": {
+    "lat": 21.0223015,
+    "lon": 105.8493234
+  },
+  "tags": {
+    "highway": "residential",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "name": "Phố Thợ Nhuộm",
+    "name:en": "Tho Nhuom Street",
+    "oneway": "yes",
+    "smoothness": "excellent",
+    "source": "AsiaGPS",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 408818507,
+  "center": {
+    "lat": 21.0204947,
+    "lon": 105.8499221
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "name:id": "Jalan Ba Trieu",
+    "name:zh": "婆赵街",
+    "oneway": "yes",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 704147290,
+  "center": {
+    "lat": 21.0217722,
+    "lon": 105.8507249
+  },
+  "tags": {
+    "addr:city": "Hà Nội",
+    "addr:district": "Hoàn Kiếm",
+    "addr:housenumber": "54E",
+    "addr:province": "Hà Nội",
+    "addr:street": "Phố Trần Hưng Đạo",
+    "addr:subdistrict": "Hàng Bài",
+    "amenity": "library",
+    "building": "yes",
+    "email": "thuvien_sovhtt@hanoi.gov.vn",
+    "name": "Thư viện Hà Nội",
+    "name:en": "Ha Noi Library",
+    "website": "https://www.thuvienhanoi.org.vn/"
+  }
+},
+{
+  "type": "way",
+  "id": 704147308,
+  "center": {
+    "lat": 21.0215524,
+    "lon": 105.8487138
+  },
+  "tags": {
+    "addr:city": "Hà Nội",
+    "addr:housenumber": "29",
+    "addr:province": "Hà Nội",
+    "addr:street": "Phố Quang Trung",
+    "addr:subdistrict": "Phường Cửa Nam",
+    "building": "government",
+    "government": "public_service",
+    "name": "Điểm Hỗ trợ dịch vụ công số Cửa Nam",
+    "office": "government"
+  }
+},
+{
+  "type": "way",
+  "id": 704147309,
+  "center": {
+    "lat": 21.0217017,
+    "lon": 105.8488153
+  },
+  "tags": {
+    "landuse": "commercial",
+    "name": "Japan Foundation",
+    "office": "association"
+  }
+},
+{
+  "type": "way",
+  "id": 704147354,
+  "center": {
+    "lat": 21.0221158,
+    "lon": 105.8492820
+  },
+  "tags": {
+    "addr:city": "Hà Nội",
+    "addr:district": "Hoàn Kiếm",
+    "addr:housenumber": "58-60",
+    "addr:postcode": "10214",
+    "addr:province": "Hà Nội",
+    "addr:street": "Phố Trần Hưng Đạo",
+    "addr:subdistrict": "Hàng Bài",
+    "contact:phone": "+84 24 3633 0536",
+    "contact:website": "https://www.indembassyhanoi.gov.in/",
+    "country": "IN",
+    "diplomatic": "embassy",
+    "embassy": "yes",
+    "name": "Đại sứ quán Ấn Độ",
+    "name:en": "Indian Embassy",
+    "name:fr": "Ambassade d'Inde",
+    "name:tr": "Hindistan Büyükelçiliği",
+    "office": "diplomatic",
+    "target": "VN",
+    "wikidata": "Q108377576"
+  }
+},
+{
+  "type": "way",
+  "id": 704147371,
+  "center": {
+    "lat": 21.0228844,
+    "lon": 105.8496923
+  },
+  "tags": {
+    "addr:housenumber": "47",
+    "addr:street": "Phố Lý Thường Kiệt",
+    "amenity": "school",
+    "education": "school",
+    "grades": "10-12",
+    "name": "Trường Trung học phổ thông Việt Đức",
+    "name:en": "Viet Duc High School"
+  }
+},
+{
+  "type": "way",
+  "id": 708997707,
+  "center": {
+    "lat": 21.0213659,
+    "lon": 105.8509258
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "parking:both:restriction": "no_parking",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 842605277,
+  "center": {
+    "lat": 21.0223768,
+    "lon": 105.8509227
+  },
+  "tags": {
+    "addr:city": "Hà Nội",
+    "addr:district": "Hoàn Kiếm",
+    "addr:housenumber": "37",
+    "addr:province": "Hà Nội",
+    "addr:street": "Phố Bà Triệu",
+    "addr:subdistrict": "Hàng Bài",
+    "amenity": "studio",
+    "landuse": "commercial",
+    "name": "Đài Tiếng nói Việt Nam",
+    "studio": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 842605278,
+  "center": {
+    "lat": 21.0219995,
+    "lon": 105.8507424
+  },
+  "tags": {
+    "building": "yes",
+    "building:levels": "6",
+    "name": "Ban Đối ngoại (VOV5)"
+  }
+},
+{
+  "type": "way",
+  "id": 842605281,
+  "center": {
+    "lat": 21.0224532,
+    "lon": 105.8509636
+  },
+  "tags": {
+    "building": "yes",
+    "building:levels": "6",
+    "name": "Trung tâm Sản xuất và Lưu trữ Chương trình",
+    "old_name": "Trung tâm Âm thanh",
+    "operator": "Đài Tiếng nói Việt Nam"
+  }
+},
+{
+  "type": "way",
+  "id": 863793800,
+  "center": {
+    "lat": 21.0229029,
+    "lon": 105.8503989
+  },
+  "tags": {
+    "addr:city": "Hà Nội",
+    "addr:district": "Hoàn Kiếm",
+    "addr:housenumber": "46-48",
+    "addr:province": "Hà Nội",
+    "addr:street": "Phố Bà Triệu",
+    "addr:subdistrict": "Hàng Bài",
+    "building": "yes",
+    "building:levels": "9",
+    "building:levels:underground": "2",
+    "name": "Vinedimex Group Building"
+  }
+},
+{
+  "type": "way",
+  "id": 863793803,
+  "center": {
+    "lat": 21.0227114,
+    "lon": 105.8503183
+  },
+  "tags": {
+    "addr:city": "Hà Nội",
+    "addr:district": "Hoàn Kiếm",
+    "addr:housenumber": "52",
+    "addr:province": "Hà Nội",
+    "addr:street": "Phố Bà Triệu",
+    "addr:subdistrict": "Hàng Bài",
+    "building": "yes",
+    "building:levels": "9",
+    "healthcare": "clinic",
+    "name": "Phòng khám Meditec"
+  }
+},
+{
+  "type": "way",
+  "id": 863793806,
+  "center": {
+    "lat": 21.0223648,
+    "lon": 105.8494227
+  },
+  "tags": {
+    "addr:city": "Hà Nội",
+    "addr:district": "Hoàn Kiếm",
+    "addr:housenumber": "87",
+    "addr:province": "Hà Nội",
+    "addr:street": "Phố Thợ Nhuộm",
+    "addr:subdistrict": "Trần Hưng Đạo",
+    "building": "yes",
+    "name": "Công đoàn ngành Giáo dục Hà Nội"
+  }
+},
+{
+  "type": "way",
+  "id": 863793816,
+  "center": {
+    "lat": 21.0220281,
+    "lon": 105.8498468
+  },
+  "tags": {
+    "addr:city": "Hà Nội",
+    "addr:district": "Hoàn Kiếm",
+    "addr:housenumber": "91A",
+    "addr:province": "Hà Nội",
+    "addr:street": "Phố Thợ Nhuộm",
+    "addr:subdistrict": "Trần Hưng Đạo",
+    "building": "yes",
+    "cuisine": "chocolate;offee",
+    "internet_access": "yes",
+    "internet_access:fee": "customers",
+    "name": "Maison Marou Hanoi",
+    "opening_hours": "Su-Th 09:00-22:00; Fr-Sa 9:00-23:00",
+    "outdoor_seating": "no",
+    "payment:QR_Pay": "yes",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "phone": "+84 243 717 3969",
+    "shop": "chocolate",
+    "website": "https://maisonmarou.com/"
+  }
+},
+{
+  "type": "way",
+  "id": 863793823,
+  "center": {
+    "lat": 21.0223590,
+    "lon": 105.8503481
+  },
+  "tags": {
+    "addr:city": "Hà Nội",
+    "addr:district": "Hoàn Kiếm",
+    "addr:housenumber": "56",
+    "addr:province": "Hà Nội",
+    "addr:street": "Phố Bà Triệu",
+    "addr:subdistrict": "Hàng Bài",
+    "amenity": "cafe",
+    "brand": "The Coffee House",
+    "brand:wikidata": "Q60775742",
+    "brand:wikipedia": "en:The Coffee House (coffeehouse chain)",
+    "building": "yes",
+    "building:levels": "3",
+    "cuisine": "coffee_shop;vietnamese",
+    "internet_access": "yes",
+    "name": "The Coffee House",
+    "name:en": "The Coffee House",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 951487940,
+  "center": {
+    "lat": 21.0224748,
+    "lon": 105.8505778
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "name:id": "Jalan Ba Trieu",
+    "name:zh": "婆赵街",
+    "oneway": "yes",
+    "parking:right:restriction": "no_parking",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 951487941,
+  "center": {
+    "lat": 21.0218632,
+    "lon": 105.8492473
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "surface": "asphalt",
+    "turn:lanes": "through|through;left;right"
+  }
+},
+{
+  "type": "way",
+  "id": 1116503008,
+  "center": {
+    "lat": 21.0227116,
+    "lon": 105.8516477
+  },
+  "tags": {
+    "highway": "residential",
+    "maxspeed": "50",
+    "name": "Ngõ 39 Phố Lý Thường Kiệt"
+  }
+},
+{
+  "type": "way",
+  "id": 1189686007,
+  "center": {
+    "lat": 21.0221282,
+    "lon": 105.8517801
+  },
+  "tags": {
+    "addr:housenumber": "40",
+    "addr:street": "Phố Hàng Bài",
+    "amenity": "theatre",
+    "building": "yes",
+    "name": "Nhà hát Hồ Gươm",
+    "name:en": "Ho Guom Theatre"
+  }
+},
+{
+  "type": "way",
+  "id": 1207653651,
+  "center": {
+    "lat": 21.0197981,
+    "lon": 105.8488157
+  },
+  "tags": {
+    "highway": "residential",
+    "name": "Phố Trương Hán Siêu",
+    "name:en": "Truong Han Sieu Street",
+    "name:etymology:wikidata": "Q10828700",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1236900579,
+  "center": {
+    "lat": 21.0212444,
+    "lon": 105.8498400
+  },
+  "tags": {
+    "addr:housenumber": "62",
+    "addr:postcode": "10091",
+    "addr:street": "Phố Bà Triệu",
+    "landuse": "commercial",
+    "name": "Trung ương Đoàn Thanh niên Cộng sản Hồ Chí Minh"
+  }
+},
+{
+  "type": "way",
+  "id": 1363298839,
+  "center": {
+    "lat": 21.0230923,
+    "lon": 105.8504258
+  },
+  "tags": {
+    "addr:housenumber": "45",
+    "addr:street": "Phố Lý Thường Kiệt",
+    "building": "yes",
+    "name": "Trung tâm Thông tin tín dụng Quốc gia Việt Nam",
+    "office": "government"
+  }
+},
+{
+  "type": "way",
+  "id": 1551231855,
+  "center": {
+    "lat": 21.0216796,
+    "lon": 105.8498935
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1559801497,
+  "center": {
+    "lat": 21.0216783,
+    "lon": 105.8503184
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "name:id": "Jalan Ba Trieu",
+    "name:zh": "婆赵街",
+    "oneway": "yes",
+    "surface": "asphalt",
+    "turn:lanes": "through;left|through|through|through;right"
+  }
+},
+{
+  "type": "way",
+  "id": 1559802245,
+  "center": {
+    "lat": 21.0218528,
+    "lon": 105.8503760
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "name:id": "Jalan Ba Trieu",
+    "name:zh": "婆赵街",
+    "oneway": "yes",
+    "parking:right:restriction": "no_parking",
+    "surface": "asphalt",
+    "turn:lanes": "through;left|through|through|through;right"
+  }
+},
+{
+  "type": "way",
+  "id": 1563483973,
+  "center": {
+    "lat": 21.0202076,
+    "lon": 105.8509378
+  },
+  "tags": {
+    "highway": "residential",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Hàm Long",
+    "name:en": "Ham Long Street",
+    "parking:both:restriction": "no_parking",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563483974,
+  "center": {
+    "lat": 21.0206068,
+    "lon": 105.8500121
+  },
+  "tags": {
+    "highway": "residential",
+    "lanes": "2",
+    "name": "Phố Hàm Long",
+    "name:en": "Ham Long Street",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563681534,
+  "center": {
+    "lat": 21.0215327,
+    "lon": 105.8503673
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563681535,
+  "center": {
+    "lat": 21.0211302,
+    "lon": 105.8517294
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "parking:both:restriction": "no_parking",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1563681536,
+  "center": {
+    "lat": 21.0212177,
+    "lon": 105.8514324
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "parking:left:restriction": "no_parking",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1573874789,
+  "center": {
+    "lat": 21.0215931,
+    "lon": 105.8501816
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1573874791,
+  "center": {
+    "lat": 21.0214837,
+    "lon": 105.8502555
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "60",
+    "name": "Phố Bà Triệu",
+    "name:en": "Ba Trieu Street",
+    "name:etymology:wikidata": "Q269989",
+    "name:id": "Jalan Ba Trieu",
+    "name:zh": "婆赵街",
+    "oneway": "yes",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1573887407,
+  "center": {
+    "lat": 21.0217824,
+    "lon": 105.8498852
+  },
+  "tags": {
+    "highway": "residential",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "name": "Phố Thợ Nhuộm",
+    "name:en": "Tho Nhuom Street",
+    "oneway": "yes",
+    "smoothness": "excellent",
+    "source": "AsiaGPS",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 1573887430,
+  "center": {
+    "lat": 21.0220155,
+    "lon": 105.8487075
+  },
+  "tags": {
+    "highway": "secondary",
+    "lanes": "2",
+    "maxspeed": "50",
+    "name": "Phố Trần Hưng Đạo",
+    "name:en": "Tran Hung Dao Street",
+    "name:etymology:wikidata": "Q511375",
+    "old_name:fr": "Boulevard Gambetta",
+    "surface": "asphalt",
+    "turn:lanes": "through|through;left;right"
+  }
+},
+{
+  "type": "way",
+  "id": 1582903180,
+  "center": {
+    "lat": 21.0207469,
+    "lon": 105.8515390
+  },
+  "tags": {
+    "addr:housenumber": "51",
+    "addr:postcode": "10087",
+    "addr:street": "Phố Trần Hưng Đạo",
+    "landuse": "commercial",
+    "name": "Liên hiệp các Hội Văn học nghệ thuật Việt Nam",
+    "office": "association"
+  }
+},
+{
+  "type": "way",
+  "id": 1582903181,
+  "center": {
+    "lat": 21.0218230,
+    "lon": 105.8515596
+  },
+  "tags": {
+    "amenity": "police",
+    "name": "Công an Thành phố Hà Nội"
+  }
+},
+{
+  "type": "way",
+  "id": 1582903226,
+  "center": {
+    "lat": 21.0207868,
+    "lon": 105.8508240
+  },
+  "tags": {
+    "addr:city": "Hà Nội",
+    "addr:country": "VN",
+    "addr:district": "Hoàn Kiếm",
+    "addr:housenumber": "57",
+    "addr:postcode": "10312",
+    "addr:street": "Trần Hưng Đạo",
+    "contact:fax": "+84 24 3944 5717",
+    "contact:phone": "+84 24 3944 5700",
+    "contact:website": "http://www.ambafrance-vn.org/",
+    "country": "FR",
+    "diplomatic": "embassy",
+    "embassy": "yes",
+    "name": "Đại sứ quán Pháp",
+    "name:de": "Französische Botschaft",
+    "name:en": "French Embassy",
+    "name:fr": "Ambassade de France",
+    "name:tr": "Fransa Büyükelçiliği",
+    "office": "diplomatic",
+    "opening_hours": "Mo-Fr 08:30-11:40",
+    "target": "VN",
+    "wikidata": "Q2841697",
+    "wikipedia": "fr:Ambassade de France au Viêt Nam"
+  }
+},
+{
+  "type": "relation",
+  "id": 11367550,
+  "center": {
+    "lat": 21.0212919,
+    "lon": 105.8520238
+  },
+  "tags": {
+    "admin_level": "8",
+    "boundary": "historic",
+    "name": "Phường Hàng Bài",
+    "source": "GADM",
+    "type": "boundary",
+    "wikidata": "Q30923287"
+  }
+},
+{
+  "type": "relation",
+  "id": 11367551,
+  "center": {
+    "lat": 21.0229307,
+    "lon": 105.8466755
+  },
+  "tags": {
+    "admin_level": "8",
+    "boundary": "historic",
+    "name": "Phường Trần Hưng Đạo",
+    "name:ja": "チャンフンダオ区",
+    "source": "GADM",
+    "type": "boundary",
+    "wikidata": "Q10829312"
+  }
+},
+{
+  "type": "relation",
+  "id": 12724269,
+  "center": {
+    "lat": 21.0295969,
+    "lon": 105.8911219
+  },
+  "tags": {
+    "charge": "10000 VND",
+    "colour": "#9cdd31",
+    "fee": "yes",
+    "from": "Công viên Thống Nhất",
+    "interval": "00:11-00:12",
+    "name": "Công viên Thống Nhất - Học viện Nông nghiệp Việt Nam",
+    "name:en": "Thong Nhat Park - Vietnam Academy of Agriculture",
+    "network": "Hanoibus",
+    "opening_hours": "Mo-Th 05:00-21:35; Fr 05:00-18:00",
+    "operator": "Xí Nghiệp Xe Buýt Hà Nội",
+    "public_transport:version": "2",
+    "ref": "11",
+    "route": "bus",
+    "to": "Học viện Nông nghiệp Việt Nam",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 12724270,
+  "center": {
+    "lat": 21.0301739,
+    "lon": 105.8948434
+  },
+  "tags": {
+    "charge": "10000 VND",
+    "colour": "#9cdd31",
+    "from": "Học viện Nông nghiệp Việt Nam",
+    "interval": "00:11-00:12",
+    "name": "Học viện Nông nghiệp Việt Nam - Công viên Thống Nhất",
+    "name:en": "Vietnam Academy of Agriculture - Thong Nhat Park",
+    "network": "Hanoibus",
+    "opening_hours": "Mo-Th 05:00-21:35; Fr 05:00-18:00",
+    "operator": "Xí Nghiệp Xe Buýt Hà Nội",
+    "public_transport:version": "2",
+    "ref": "11",
+    "route": "bus",
+    "to": "Công viên Thống Nhất",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 12812221,
+  "center": {
+    "lat": 21.0619758,
+    "lon": 105.8196675
+  },
+  "tags": {
+    "charge": "12000 VND",
+    "colour": "#11a471",
+    "fee": "yes",
+    "from": "Bệnh viện Bệnh nhiệt đới Trung ương cơ sở 2",
+    "interval": "00:15-00:20",
+    "name": "Bệnh viện Bệnh nhiệt đới Trung ương cơ sở 2 - Khu đô thị Times City",
+    "name:en": "National Hospital for Tropical Diseases II - Times City Urban Area",
+    "network": "Hanoibus",
+    "opening_hours": "Mo-Su 05:00-19:30",
+    "operator": "Công ty Bảo Yến",
+    "public_transport:version": "2",
+    "ref": "159",
+    "route": "bus",
+    "to": "Khu đô thị Times City",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 12835459,
+  "center": {
+    "lat": 21.0464587,
+    "lon": 105.8142878
+  },
+  "tags": {
+    "colour": "#9cdd31",
+    "from": "Đại học Mỏ",
+    "interval": "00:10-00:20",
+    "name": "Chèm (Đại học Mỏ) - Đại học Bách Khoa",
+    "name:en": "Hanoi University of Mining and Geology - Hanoi University of Science and Technology",
+    "network": "Hanoibus",
+    "opening_hours": "Mo-Su 05:00-21:00",
+    "operator": "Xí nghiệp Xe buýt Hà Nội",
+    "public_transport:version": "2",
+    "ref": "31",
+    "route": "bus",
+    "to": "Đại học Bách Khoa",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 12921723,
+  "center": {
+    "lat": 21.0214528,
+    "lon": 105.8201418
+  },
+  "tags": {
+    "charge": "8000 VND",
+    "colour": "#9cdd31",
+    "from": "Trần Khánh Dư",
+    "interval": "00:16",
+    "name": "Trần Khánh Dư - Công viên Thống Nhất - Bến xe Mỹ Đình",
+    "name:en": "Tran Khanh Du Bus Interchange - Thong Nhat Park - My Dinh Bus Station",
+    "network": "Hanoibus",
+    "opening_hours": "Mo-Th 05:00-21:30; Fr 05:00-19:00",
+    "operator": "Công ty CPVT & DV Liên Ninh",
+    "public_transport:version": "2",
+    "ref": "09B",
+    "route": "bus",
+    "to": "Bến xe Mỹ Đình",
+    "type": "route",
+    "via": "Công viên Thống Nhất"
+  }
+},
+{
+  "type": "relation",
+  "id": 12921749,
+  "center": {
+    "lat": 21.0151088,
+    "lon": 105.8599236
+  },
+  "tags": {
+    "colour": "#27baff",
+    "fee": "yes",
+    "from": "Bến xe Giáp Bát",
+    "interval": "00:11-00:20",
+    "name": "Bến xe Giáp Bát - Bến xe Gia Lâm",
+    "name:en": "Giap Bat Bus Station - Gia Lam Bus Station",
+    "network": "Hanoibus",
+    "opening_hours": "Mo-Su 05:03-21:05",
+    "operator": "Xí nghiệp Xe buýt Hà Nội",
+    "public_transport:version": "2",
+    "ref": "03A",
+    "route": "bus",
+    "to": "Bến xe Gia Lâm",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 12921750,
+  "center": {
+    "lat": 21.0138956,
+    "lon": 105.8627148
+  },
+  "tags": {
+    "colour": "#27baff",
+    "fee": "yes",
+    "from": "Bến xe Gia Lâm",
+    "interval": "00:11-00:20",
+    "name": "Bến xe Gia Lâm - Bến xe Giáp Bát",
+    "name:en": "Gia Lam Bus Station - Giap Bat Bus Station",
+    "network": "Hanoibus",
+    "opening_hours": "Mo-Su 05:03-21:05",
+    "operator": "Xí nghiệp Xe buýt Hà Nội",
+    "public_transport:version": "2",
+    "ref": "03A",
+    "route": "bus",
+    "to": "Bến xe Giáp Bát",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 12989441,
+  "center": {
+    "lat": 20.9793121,
+    "lon": 105.8572538
+  },
+  "tags": {
+    "charge": "10000 VND",
+    "colour": "#9cdd31",
+    "fee": "yes",
+    "from": "Long Biên",
+    "interval": "00:10-00:15",
+    "name": "Long Biên - Đông Mỹ",
+    "name:en": "Long Bien Bus Interchange - Dong My (Nam Phu Commune)",
+    "network": "Hanoibus",
+    "opening_hours": "Mo-Th 05:00-22:05; Fr 05:00-18:00",
+    "operator": "Công ty Cổ phần Vận tải và Dịch vụ Liên Ninh",
+    "public_transport:version": "2",
+    "ref": "08A",
+    "route": "bus",
+    "to": "Đông Mỹ",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 17022788,
+  "center": {
+    "lat": 21.0020461,
+    "lon": 105.8240846
+  },
+  "tags": {
+    "charge": "10000 VND",
+    "colour": "#9cdd31",
+    "fee": "yes",
+    "from": "Long Biên",
+    "interval": "00:25",
+    "name": "Long Biên - Yên Xá",
+    "name:en": "Long Bien Bus Interchange - Yen Xa",
+    "network": "Hanoibus",
+    "opening_hours": "Mo-Su 05:00-21:00",
+    "operator": "Xe buýt Hà Nội",
+    "ref": "36",
+    "route": "bus",
+    "to": "Yên Xá",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 17038656,
+  "center": {
+    "lat": 21.0371151,
+    "lon": 105.8203084
+  },
+  "tags": {
+    "charge": "10000 VND",
+    "colour": "#27baff",
+    "fee": "yes",
+    "from": "Trần Khánh Dư",
+    "interval": "00:15-00:20",
+    "name": "Trần Khánh Dư - Nam Thăng Long",
+    "name:en": "Tran Khanh Du Bus Interchange - Nam Thang Long Bus Interchange",
+    "network": "Hanoibus",
+    "opening_hours": "Mo-Su 05:00-21:00",
+    "operator": "Công ty CP Xe điện",
+    "ref": "35A",
+    "route": "bus",
+    "to": "Nam Thăng Long",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 17038831,
+  "center": {
+    "lat": 21.0337868,
+    "lon": 105.8225429
+  },
+  "tags": {
+    "charge": "10000 VND",
+    "colour": "#9cdd31",
+    "fee": "yes",
+    "from": "Tân Xuân",
+    "interval": "00:18-00:20",
+    "name": "Tân Xuân - Mai Động",
+    "name:en": "Tan Xuan Road - Mai Dong (Hoang Mai Ward)",
+    "network": "Hanoibus",
+    "opening_hours": "Mo-Su 05:00-21:00",
+    "operator": "Xí nghiệp xa khách Nam Hà Nội",
+    "public_transport:version": "2",
+    "ref": "38",
+    "route": "bus",
+    "to": "Mai Động",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 17086818,
+  "center": {
+    "lat": 20.9850766,
+    "lon": 105.9165080
+  },
+  "tags": {
+    "colour": "#9cdd31",
+    "fee": "no",
+    "from": "Nhà hát Lớn",
+    "interval": "00:15-00:30",
+    "name": "Nhà hát Lớn - Công viên VinWonders - Water Park",
+    "name:en": "Hanoi Opera House - VinWonders Park - Water Park",
+    "opening_hours": "Mo-Su 06:05-24:00",
+    "operator": "VinBus",
+    "ref": "OCT2",
+    "route": "bus",
+    "to": "Công viên VinWonders - Water Park",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 17141294,
+  "center": {
+    "lat": 20.9793121,
+    "lon": 105.8572538
+  },
+  "tags": {
+    "charge": "10000 VND",
+    "colour": "#9cdd31",
+    "fee": "yes",
+    "from": "Long Biên",
+    "interval": "00:10-00:15",
+    "name": "Long Biên - Đông Mỹ (cuối tuần)",
+    "name:en": "Long Bien Bus Interchange - Dong My (Nam Phu Commune) (weekend)",
+    "network": "Hanoibus",
+    "opening_hours": "Fr 18:00-22:05; Sa-Su 05:00-22:05",
+    "operator": "Công ty Cổ phần Vận tải & Dịch vụ Liên Ninh",
+    "public_transport:version": "2",
+    "ref": "08ACT",
+    "route": "bus",
+    "to": "Đông Mỹ",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 17227337,
+  "center": {
+    "lat": 21.0295969,
+    "lon": 105.8902336
+  },
+  "tags": {
+    "charge": "10000 VND",
+    "colour": "#9cdd31",
+    "fee": "yes",
+    "from": "Công viên Thống Nhất",
+    "interval": "00:11-00:12",
+    "name": "Công viên Thống Nhất - Học viện Nông Nghiệp Việt Nam (cuối tuần)",
+    "name:en": "Thong Nhat Park - Vietnam Academy of Agriculture (weekend)",
+    "network": "Hanoibus",
+    "opening_hours": "Fr 18:00-21:35; Sa-Su 05:00-21:35",
+    "operator": "Xí nghiệp xe buýt Hà Nội",
+    "public_transport:version": "2",
+    "ref": "11CT",
+    "route": "bus",
+    "to": "Học viện Nông Nghiệp Việt Nam",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 17227338,
+  "center": {
+    "lat": 21.0301739,
+    "lon": 105.8948434
+  },
+  "tags": {
+    "charge": "10000 VND",
+    "colour": "#9cdd31",
+    "fee": "yes",
+    "from": "Học viện Nông nghiệp VIệt Nam",
+    "interval": "00:11-00:12",
+    "name": "Học viện Nông nghiệp Việt Nam - Công viên Thống Nhất (cuối tuần)",
+    "name:en": "Vietnam Academy of Agriculture - Thong Nhat Park (weekend)",
+    "network": "Hanoibus",
+    "opening_hours": "Fr 18:00-21:35; Sa-Su 05:00-21:35",
+    "operator": "Xí nghiệp xe buýt Hà Nội",
+    "public_transport:version": "2",
+    "ref": "11CT",
+    "route": "bus",
+    "to": "Công viên Thống Nhất",
+    "type": "route"
+  }
+},
+{
+  "type": "relation",
+  "id": 21101998,
+  "center": {
+    "lat": 21.0214528,
+    "lon": 105.8201418
+  },
+  "tags": {
+    "charge": "10000 VND",
+    "colour": "#9cdd31",
+    "fee": "yes",
+    "from": "Trần Khánh Dư",
+    "name": "Trần Khánh Dư - Công viên Thống Nhất - Bến xe Mỹ Đình (cuối tuần)",
+    "name:en": "Tran Khanh Du Bus Interchange - Thong Nhat Park - My Dinh Bus Station (weekend)",
+    "network": "Hanoibus",
+    "opening_hours": "Fr 19:00-21:30; Sa-Su 05:00-21:30",
+    "operator": "Công ty Cổ phần Vận tải & Dịch vụ Liên Ninh",
+    "public_transport:version": "2",
+    "ref": "09BCT",
+    "route": "bus",
+    "to": "Bến xe Mỹ Đình",
+    "type": "route",
+    "via": "Công viên Thống Nhất"
+  }
+},
+{
+  "type": "relation",
+  "id": 21990190,
+  "center": {
+    "lat": 21.0221301,
+    "lon": 105.8514597
+  },
+  "tags": {
+    "admin_level": "9",
+    "boundary": "administrative",
+    "name": "Tổ dân phố Hàng Bài",
+    "type": "boundary"
+  }
+},
+{
+  "type": "relation",
+  "id": 21990192,
+  "center": {
+    "lat": 21.0199038,
+    "lon": 105.8507853
+  },
+  "tags": {
+    "admin_level": "9",
+    "boundary": "administrative",
+    "name": "Tổ dân phố Trần Quốc Toản",
+    "type": "boundary"
+  }
+},
+{
+  "type": "relation",
+  "id": 21990193,
+  "center": {
+    "lat": 21.0203631,
+    "lon": 105.8489743
+  },
+  "tags": {
+    "admin_level": "9",
+    "boundary": "administrative",
+    "name": "Tổ dân phố Quang Trung",
+    "type": "boundary"
+  }
+}
+
+  ]
+}

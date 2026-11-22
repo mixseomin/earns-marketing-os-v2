@@ -25,6 +25,15 @@ const NGA_THAT = {
     nhanh: [{ ten: 'Trần Hưng Đạo (Tây)', w: 0.32 }, { ten: 'Trần Hưng Đạo (Đông)', w: 0.32 }, { ten: 'Bà Triệu (Bắc)', w: 0.36, mot: 'vao' }, { ten: 'Bà Triệu (Nam)', w: 0, mot: 'ra' }],
     lan: [{ soLan: 2, lan: ['tudo', 'tudo'], vach: 'dut', dai: 30 }, { soLan: 2, lan: ['tudo', 'tudo'], vach: 'dut', dai: 30 },
       { soLan: 4, lan: ['trai-thang', 'thang', 'thang', 'thang-phai'], vach: 'dut', dai: 30 }, { soLan: 2, lan: ['tudo', 'tudo'], vach: 'dut', dai: 30 }],
+    // biển tên phố ở bốn góc + biển hiệu cơ sở thật quanh ngã tư (OSM, du-lieu-osm/ba-trieu-poi.json): [mét Đông, mét Bắc, chữ, màu nền]
+    // toạ độ thật xoay −19° để Trần Hưng Đạo nằm trên trục x như cảnh
+    xoay: 19, pho: ['TRẦN HƯNG ĐẠO', 'BÀ TRIỆU'], phuong: 'P. Hàng Bài',
+    co: [[46.2, 23.4, 'THƯ VIỆN HÀ NỘI · 54E', '#7a1f1f'], [24.6, 13.8, 'VIETNAM SPECIALITY COFFEE', '#3b2a1e'], [-19.4, 28.6, 'NHÀ HÀNG BODHI', '#2f5d3a'],
+      [7.1, 88.2, 'THE COFFEE HOUSE · 56 BÀ TRIỆU', '#e07a1f'], [15.3, 58.7, '56B BÀ TRIỆU', '#1f4e8c'], [6.9, 44.3, '58B BÀ TRIỆU', '#1f4e8c'],
+      [-45.0, 51.6, 'MAISON MAROU', '#b3262d'], [-101.0, 11.6, 'MAISON SEN', '#6a3d7a'], [-90.7, 6.6, 'GPCARE · 65B TRẦN HƯNG ĐẠO', '#0f7a5a'],
+      [-45.7, -35.0, 'TRUNG ƯƠNG ĐOÀN TNCS HỒ CHÍ MINH · 62', '#a3171d'], [-54.4, -127.9, 'XE ĐẠP KHÁNH HIỆP · 53 BÀ TRIỆU', '#c9341b'],
+      [-56.2, -152.8, 'TECHCOMBANK', '#d81f26'], [56.5, -85.6, 'ĐẠI SỨ QUÁN PHÁP · 57', '#20376f'], [-103.7, 61.3, 'ĐẠI SỨ QUÁN ẤN ĐỘ · 58-60', '#c46a12'],
+      [66.8, 90.2, 'ĐÀI TIẾNG NÓI VIỆT NAM · 37 BÀ TRIỆU', '#1d4f91'], [130.8, -90.0, 'LIÊN HIỆP HỘI VHNT VN · 51', '#5a4632']],
   },
 };
 const NGA_K = new URLSearchParams(location.search).get('nga'), NGA = NGA_THAT[NGA_K] || null;
@@ -1638,6 +1647,46 @@ function dayNha(diemF, n, u0, u1) {
     u += w;
   }
 }
+// Ngã tư thật: biển tên phố xanh ở bốn góc + biển hiệu cơ sở thật gắn lên mặt tiền gần chỗ thật nhất (anh 23/11/2026:
+// "phải có tên phố ở biển hiệu, các toà nhà hay cửa hàng thực thì mới nhận ra được phố này").
+function bienChu(chu, nen, rong, cao, phu) {
+  const c = document.createElement('canvas'); c.width = 1024; c.height = Math.round((1024 * cao) / rong);
+  const g = c.getContext('2d'); g.fillStyle = nen; g.fillRect(0, 0, c.width, c.height);
+  g.strokeStyle = '#ffffff'; g.lineWidth = c.height * 0.06; g.strokeRect(g.lineWidth, g.lineWidth, c.width - 2 * g.lineWidth, c.height - 2 * g.lineWidth);
+  g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  let px = c.height * (phu ? 0.42 : 0.58); g.font = `800 ${px}px system-ui, sans-serif`;
+  while (g.measureText(chu).width > c.width * 0.9 && px > 10) { px *= 0.93; g.font = `800 ${px}px system-ui, sans-serif`; }
+  g.fillText(chu, c.width / 2, c.height * (phu ? 0.4 : 0.52));
+  if (phu) { g.font = `600 ${c.height * 0.2}px system-ui, sans-serif`; g.fillText(phu, c.width / 2, c.height * 0.78); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return new THREE.MeshBasicMaterial({ map: t });
+}
+// biển hai mặt: hai tấm một mặt quay lưng nhau → đứng phía nào cũng đọc xuôi (DoubleSide làm mặt sau ngược chữ)
+function hai(geo, mat, x, y, z, ry) {
+  for (const d of [0, Math.PI]) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.y = ry + d; scene.add(m); }
+}
+function dungBienThat() {
+  if (!NGA || !NGA.co) return;
+  const cot = new THREE.MeshLambertMaterial({ color: '#5d6166' });
+  const mEW = bienChu(NGA.pho[0], '#1546a0', 2.4, 0.6, NGA.phuong), mNS = bienChu(NGA.pho[1], '#1546a0', 2.4, 0.6, NGA.phuong);
+  for (const qx of [-1, 1]) for (const qz of [-1, 1]) {
+    const x = qx * (HW_NS + 0.9), z = qz * (HW_EW + 0.9);
+    const tru = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 3.4, 6), cot); tru.position.set(x, 1.7, z); scene.add(tru);
+    const gb = new THREE.PlaneGeometry(2.4, 0.6);
+    hai(gb, mEW, x + qx * 1.25, 3.05, z, 0); // dọc Trần Hưng Đạo
+    hai(gb, mNS, x, 3.75, z + qz * 1.25, Math.PI / 2);
+  }
+  const k = (NGA.xoay * Math.PI) / 180, cs = Math.cos(k), sn = Math.sin(k), dung = new Set();
+  for (const [e, nb, chu, nen] of NGA.co) {
+    const x = e * cs + nb * sn, z = -(-e * sn + nb * cs);
+    let tot = -1, dm = 40;
+    NHA_CT.forEach(([F], i) => { const dd = Math.hypot(F[0] - x, F[1] - z); if (dd < dm && !dung.has(i)) { dm = dd; tot = i; } });
+    if (tot < 0) continue;
+    dung.add(tot); BIEN[tot][3] = BIEN[tot][4] = 0.001; // nhà có biển thật → giấu biển ngẫu nhiên
+    const [F, n, w] = NHA_CT[tot], p = theo(F, n, 0, 0.42), rw = Math.max(3, w - 0.3);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(rw, 1.05), bienChu(chu, nen, rw, 1.05)); m.position.set(p[0], 3.3, p[1]); m.rotation.y = Math.atan2(n[0], n[1]); scene.add(m);
+  }
+}
 for (const qx of [-1, 1]) for (const qz of [-1, 1]) {
   const fz = HW_EW + SW, fx = HW_NS + SW;
   dayNha((u) => [qx * (fx + u), qz * fz], [0, -qz], 0, 150);
@@ -1886,6 +1935,7 @@ function veLan() {
   A.forEach((b, i) => { Q.setFromAxisAngle(UP, b[5] || 0); M4.compose(V.set(b[0], 0.02, b[1]), Q, S3.set(b[2], 1, b[3])); m.setMatrixAt(i, M4); m.setColorAt(i, CL.set(b[4])); });
   m.receiveShadow = true; scene.add(m); LAN_MESH = m;
 }
+dungBienThat();
 veLan();
 {
   const g = new THREE.PlaneGeometry(1, 1);

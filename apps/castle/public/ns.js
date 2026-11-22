@@ -44,7 +44,11 @@ if (CACH === '3') { const S3 = await fetch(`./du-lieu/${ten}-sua-cach3.json`, { 
 // bố cục mặt Palas hướng sân đo từ ảnh (điểm ảnh thô; kiểm với ảnh: apps/castle/scripts/kiem-mat-tien.py) — mattien.js quyDoiMat đổi ra mét
 const MAT_BO = await fetch(`./du-lieu/${ten}-mat-palas-san.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 // mặt Torbau hướng sân dưới đo từ ảnh chụp chéo (góp ý #1641; kiểm: apps/castle/scripts/kiem-mat-tien.py <tệp>) — mattien.js banDoMat / datMatRieng
-const MAT_TB_BO = await fetch(`./du-lieu/${ten}-mat-torbau-san.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+// MỌI MẶT DỰNG RIÊNG THEO ẢNH: danh sách tệp bố cục ở du-lieu/<lâu>-mat-rieng.json { tep: ["torbau-san", …] } (kiem-mat-tien.py kêu khi tệp có mat.khung mà chưa có tên ở đây)
+const MAT_RIENG_BO = await (async () => { const ds = await fetch(`./du-lieu/${ten}-mat-rieng.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const tep = Array.isArray(ds?.tep) ? ds.tep : ['torbau-san'];
+  return (await Promise.all(tep.map((t) => fetch(`./du-lieu/${ten}-mat-${t}.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((j) => { if (!j) console.warn('[ns] thiếu tệp bố cục mặt', t); return j && { ...j, _ten: t }; })))).filter(Boolean); })();
+const MAT_TB_BO = MAT_RIENG_BO.find((b) => b._ten === 'torbau-san') || null; // cổng riêng (CONG_RIENG) chỉ có ở mặt Torbau
 // ĐO TRÊN ẢNH 3D GOOGLE (scripts/do-khoi-google.mjs): mặt đất quanh lâu đài, mặt sân trên, đỉnh từng khối — mốc chân nhà + mặt đất thật
 const NEN = await fetch(`./du-lieu/${ten}-nen.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 // SÂN TRƯỚC CỔNG theo ảnh trực giao + bề mặt chính thức Bavaria (scripts/san-cong-dop.py, 20/11/2026): { san: đa giác, co: [bồn cỏ], y } — thay sân suy từ tim đường
@@ -746,8 +750,8 @@ if (MAT_PALAS) { const P = MAT_PALAS, nx = (P.z2 - P.z1) / P.L, nz = -(P.x2 - P.
 // MẶT TORBAU HƯỚNG SÂN DƯỚI dựng riêng theo ảnh chụp (góp ý #1641): trục = cạnh khung trong tệp; mốc ngang = đỉnh OSM (chiếu lên trục) + tâm vòm cổng mô hình;
 // mốc đứng = gờ đổi màu (v = vGo) + mái hiên của khung. Mọi cạnh CÙNG MẶT PHẲNG (cùng hướng, cách ≤ 1,5 m — khối cổng nhô ~1 m) trong khoảng mặt dựng riêng bị khoá
 // (máy dựng cửa chung không đặt thêm) và số đo cửa / ô tròn / ban công / đồng hồ cũ (cua-so.json, thước 55,8 px/m không tính phối cảnh) của các mặt đó bỏ trong bộ nhớ.
-const MAT_TB = (() => {
-  const bo = MAT_TB_BO; if (!bo?.mat?.khung) return null;
+const dungMatRieng = (bo) => {
+  if (!bo?.mat?.khung) return null;
   const [kid, si] = bo.mat.khung.split('#'), kK = dsKhoi.find((q) => q.id === kid); if (!kK || kK._y1 == null) return null;
   const f = khungMat(kK, +si, kK._y1), ux = (f.q[0] - f.p[0]) / f.L, uz = (f.q[1] - f.p[1]) / f.L, [nx, nz] = f.n;
   const sTai = (x, z) => (x - f.p[0]) * ux + (z - f.p[1]) * uz, dTai = (x, z) => (x - f.p[0]) * nx + (z - f.p[1]) * nz;
@@ -777,9 +781,10 @@ const MAT_TB = (() => {
     for (const c of ung) { if (s < Math.min(c.a1, c.a2) - 0.05 || s > Math.max(c.a1, c.a2) + 0.05) continue; if (y < (c.k.yDuoi ?? -1e9) - 0.2 || y > (c.k.yTren ?? c.t.y2 ?? c.t.y1) + 0.2) continue;
       const d = c.d1 + (c.d2 - c.d1) * (s - c.a1) / (c.a2 - c.a1 || 1); if (!tot || d > tot.d + 0.05) tot = { d, mat: `${c.k.id}#${c.i}` }; }
     return tot && { x: f.p[0] + ux * s + nx * tot.d, z: f.p[1] + uz * s + nz * tot.d, nx, nz, mat: tot.mat }; };
-  console.info('[ns] mặt Torbau hướng sân (ảnh chụp):', neo.length, 'mốc', JSON.stringify(neo.map(([x, s]) => [x, +s.toFixed(2)])), '· khoá', khoa.size, 'mặt');
-  return { bo, bd, viTri, neo, khoa: [...khoa], yGo: f.y(bo.mat.vGo), yMai: f.y1 };
-})();
+  console.info(`[ns] mặt ${bo._ten} (ảnh chụp):`, neo.length, 'mốc', JSON.stringify(neo.map(([x, s]) => [x, +s.toFixed(2)])), '· khoá', khoa.size, 'mặt');
+  return { ten: bo._ten, bo, bd, viTri, neo, khoa: [...khoa], yGo: f.y(bo.mat.vGo), yMai: f.y1 };
+};
+const MAT_DS = MAT_RIENG_BO.map(dungMatRieng).filter(Boolean), MAT_TB = MAT_DS.find((m) => m.ten === 'torbau-san') || null;
 // NỀN SÂN TRÊN: mặt sân đo từ ảnh (ảnh phụ Josef Albert trong tệp bố cục mặt Palas: mặt sân ~22 m dưới mái), không phải lưới đất EU-DEM (thô 12 m, ở sân thấp hơn ~6 m).
 // OSM ghi chú khối courtyard là "building for 3D reasons" — dựng thành nền đá: mặt lát đá, tường chắn, lan can mép hở, bậc thang xuống phía cổng.
 const matDat = datThat; // mặt đứng được = mặt đất thật (ảnh 3D) quanh lâu đài
@@ -801,11 +806,11 @@ const LOD_MT = { gan: new THREE.Group(), xa: new THREE.Group(), dangXa: false };
   for (const m of ra) { if (m.userData.lod) { LOD_MT[m.userData.lod].add(m); continue; } scene.add(m); LOP_OSM.push(m); }
   for (const g of [LOD_MT.gan, LOD_MT.xa]) { scene.add(g); LOP_OSM.push(g); }
   CUA.push(...cua); for (const c of cua) ghiKK(c.mat, 'cua_so', c.y + c.cao / 2, 1, c.x, c.z); // tâm ô cửa
-  if (MAT_TB) { // mặt Torbau hướng sân dưới theo ảnh chụp (góp ý #1641): cụm cửa, ô tròn, diềm vòm, khung ô, bệ, cửa vào, lô-gia, đồng hồ — mattien.js datMatRieng
-    const r = datMatRieng({ THREE, mergeGeometries, bo: MAT_TB.bo, bd: MAT_TB.bd, viTri: MAT_TB.viTri, datTai: matDat, nhe: CHAM });
+  for (const M of MAT_DS) { // mặt dựng riêng theo ảnh chụp (Torbau sân dưới: góp ý #1641; …): cụm cửa, ô tròn, diềm vòm, khung ô, bệ, cửa vào, lô-gia, đồng hồ — mattien.js datMatRieng
+    const r = datMatRieng({ THREE, mergeGeometries, bo: M.bo, bd: M.bd, viTri: M.viTri, datTai: matDat, nhe: CHAM });
     for (const m of r.ra) { m.userData.nha = true; scene.add(m); LOP_OSM.push(m); }
-    CUA.push(...r.cua); for (const e of r.kk) ghiKK(e.mat, e.loai, e.y, 1, e.x, e.z, e.hop); MAT_TB.dung = { cum: r.cua.length, kk: r.kk.length, boQua: [...r.boQua], nhoLoGia: r.boQua.nhoLoGia ?? null };
-    console.info('[ns] mặt Torbau hướng sân:', r.cua.length, 'cụm ·', r.kk.length, 'chi tiết kiểm kê', r.boQua.length ? '· bỏ (không có tường ở độ cao đó): ' + r.boQua.join(' | ') : ''); }
+    CUA.push(...r.cua); for (const e of r.kk) ghiKK(e.mat, e.loai, e.y, 1, e.x, e.z, e.hop); M.dung = { cum: r.cua.length, kk: r.kk.length, boQua: [...r.boQua], nhoLoGia: r.boQua.nhoLoGia ?? null };
+    console.info(`[ns] mặt ${M.ten}:`, r.cua.length, 'cụm ·', r.kk.length, 'chi tiết kiểm kê', r.boQua.length ? '· bỏ (không có tường ở độ cao đó): ' + r.boQua.join(' | ') : ''); }
   // ẢNH DÁN MẶT TƯỜNG (LOD2 + ảnh mặt tiền): mỗi mặt có ảnh → một tấm phẳng sát ngoài tường, từ chân tường lên mái hiên mô hình (phần ảnh trên mái hiên bỏ),
   // lỗ cửa mở được (dải phòng) khoét trong suốt trên ảnh để vẫn nhìn / trèo vào; ảnh tải nền, không chặn trang
   (async () => {
@@ -1724,7 +1729,7 @@ function khoiPhucGoc(gDua = null) { // gDua: chuỗi góc đưa thẳng vào (kh
 }
 addEventListener('pagehide', () => luuGoc(true)); addEventListener('beforeunload', () => luuGoc(true));
 window.__ns.luuGoc = luuGoc; window.__ns.gocHienTai = gocHienTai;
-window.__ns.matTb = () => MAT_TB; // mặt Torbau dựng theo ảnh chụp: mốc, ánh xạ ảnh → mét, cạnh khoá, đã dựng / bỏ (scripts/xem-mat-rieng.mjs)
+window.__ns.matTb = () => MAT_TB; window.__ns.matDs = () => MAT_DS; // mặt Torbau dựng theo ảnh chụp: mốc, ánh xạ ảnh → mét, cạnh khoá, đã dựng / bỏ (scripts/xem-mat-rieng.mjs)
 window.__ns.kiemKe = () => KIEM_KE; window.__ns.datCach3Hien = (b) => datCach3Hien(b); window.__ns.chupHaiBan = chupHaiBan; window.__ns.khoiTrongVung = khoiTrongVung; window.__ns.doKhoiAnh3d = doKhoiAnh3d; window.__ns.doKhoiTheoTia = doKhoiTheoTia; window.__ns.batAnh3dTam = batAnh3dTam; window.__ns.diemTaiAnh = diemTaiAnh;
 // CHỒNG LẤN: hai ô cửa cùng một mặt tường mà khung chạm nhau (kể cả cửa dựng theo luật chung) → danh sách cặp (scripts/kiem-ke.mjs báo lỗi)
 // so MỌI cặp cửa CÙNG MẶT PHẲNG (cùng hướng, cách ≤ 0,8 m), mọi nguồn (mặt OSM, mặt dựng riêng Palas) — trước gom theo mã mặt nên hai khối cùng mặt phẳng đè nhau không thấy (17/11/2026)

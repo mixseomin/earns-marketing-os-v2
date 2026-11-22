@@ -1845,6 +1845,7 @@ function ve() {
       V.set(a.x, a.y + Math.abs(Math.sin(a.buoc)) * 0.04, a.z);
       if (a.lac) { Q.multiply(Q2.setFromAxisAngle(TRUC_X, a.lac)); V.y += 0.12 * Math.abs(Math.sin(a.lac)); }
       veBo[ip] = a;
+      if (NG.on) veNguoi(V, Q, a, ip, uot(a.c2, a));
       datMa(mBo, ip, V, Q, MOT, uot(a.c2, a)); datMa(mDau, ip, V, Q, MOT, uot(a.c3, a)); datMa(mNon, ip, V, Q, a.non ? MOT : KHONG, NON_MAU);
       ip++; continue;
     }
@@ -1863,6 +1864,7 @@ function ve() {
     } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, uot(a.c1, a)); if (ben) datMa(XN.oto, nx.oto++, V, Q, SXN.set(1, 1, ben)); }
     else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, uot(a.c1, a)); if (ben) datMa(XN.bus, nx.bus++, V, Q, SXN.set(1, 1, ben)); }
   }
+  if (NG.on) { for (const [m, c] of [[NG.than, ip], [NG.tay, ip * 2], [NG.chan, ip * 2]]) { m.count = c; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; } }
   if (XMT.on) for (const k of XMT.ds) { for (const m of [k.t, k.f]) { m.count = k.n; m.instanceMatrix.needsUpdate = true; } k.t.instanceColor.needsUpdate = true; k.n = 0; }
   for (const [m, n] of [[mXm, ix], [mNguoi, ix], [mMu, ix], [mCho, ix], [mHang, ix], [mOto, io], [mMui, io], [mBus, ib], [mBo, ip], [mDau, ip], [mNon, ip], [mBong, is], [XN.xm, nx.xm], [XN.oto, nx.oto], [XN.bus, nx.bus]]) {
     m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
@@ -2287,7 +2289,7 @@ function dungChiTiet() {
   for (const [F, n, w, tang, hat] of NHA_CT) {
     let h0 = hat; const r = () => { h0 = (h0 * 1103515245 + 12345) & 0x7fffffff; return h0 / 0x7fffffff; };
     const goc = Math.atan2(n[0], n[1]);
-    const b = (lx, ly, lz, sx, sy, sz, hex) => { const p = theo(F, n, lx, lz); ds.push([box(sx, sy, sz).rotateY(goc).translate(p[0], ly, p[1]), hex]); };
+    const b = (lx, ly, lz, sx, sy, sz, hex) => { const p = theo(F, n, lx, lz); ds.push(p[0], ly, p[1], sx, sy, sz, goc, hex); };
     // cửa cuốn tầng trệt: gân ngang (nửa nhà kéo lên, nửa kéo xuống)
     const cuon = r() < 0.4, cw = w - 0.5;
     if (cuon) for (let k = 0; k < (DT ? 4 : 9); k++) b(0, 0.25 + k * 0.28, 0.1, cw, 0.05, 0.03, '#a7abb0');
@@ -2312,12 +2314,47 @@ function dungChiTiet() {
       if (r() < 0.6) { const ax = (r() < 0.5 ? -1 : 1) * (w / 2 - 0.55); b(ax, y0 + 2.2, 0.3, 0.8, 0.55, 0.3, '#eceff1'); b(ax + 0.12, y0 + 2.2, 0.46, 0.42, 0.42, 0.02, '#78858f'); }
     }
   }
-  const g = ghep(ds), m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0.05, envMapIntensity: 0.3 }));
-  m.receiveShadow = true; m.castShadow = !DT; m.matrixAutoUpdate = false; scene.add(m);
+  // một InstancedMesh hộp đơn vị (24 đỉnh dùng chung) thay cho gộp hàng nghìn hộp: ít bộ nhớ, dựng nhanh
+  const N = ds.length / 8, m = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0.05, envMapIntensity: 0.3 }), N);
+  const mm = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3(), c = new THREE.Color(), Y = new THREE.Vector3(0, 1, 0), MAU = new Map();
+  for (let i = 0; i < N; i++) {
+    const k = i * 8; v.set(ds[k], ds[k + 1], ds[k + 2]); sc.set(ds[k + 3], ds[k + 4], ds[k + 5]); q.setFromAxisAngle(Y, ds[k + 6]);
+    m.setMatrixAt(i, mm.compose(v, q, sc));
+    const hx = ds[k + 7]; if (!MAU.has(hx)) MAU.set(hx, new THREE.Color(hx)); m.setColorAt(i, MAU.get(hx));
+  }
+  m.receiveShadow = true; m.castShadow = !DT; m.matrixAutoUpdate = false; m.computeBoundingSphere(); scene.add(m);
   return m;
 }
+// Người đi bộ có khớp (bản thật, lớp 4): thân + 2 tay + 2 chân là InstancedMesh riêng, tay chân đung đưa theo nhịp bước a.buoc.
+// Trục +x là hướng đi (như geoBo), vai/hông nằm theo trục z. Chân treo ở hông (y 0.86), tay treo ở vai (y 1.42).
+const NG = { on: false };
+function dungNguoi() {
+  const vl = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, envMapIntensity: 0.3 });
+  const mk = (g) => { const m = new THREE.InstancedMesh(g, vl, 400); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.visible = false; scene.add(m); return m; };
+  const than = mk(ghep([[box(0.22, 0.56, 0.38).translate(0, 1.15, 0), TRANG], [box(0.24, 0.16, 0.36).translate(0, 0.88, 0), '#3a3a40'], [box(0.1, 0.08, 0.1).translate(0, 1.48, 0), '#d9a982']]));
+  than.setColorAt(0, new THREE.Color());
+  // tay: áo (nhuộm) + bàn tay da; gốc ở vai. Chân: quần + giày; gốc ở hông.
+  const tay = mk(ghep([[box(0.1, 0.5, 0.1).translate(0, -0.25, 0), TRANG], [box(0.09, 0.1, 0.09).translate(0, -0.55, 0), '#d9a982']])); tay.setColorAt(0, new THREE.Color());
+  const chan = mk(ghep([[box(0.13, 0.78, 0.14).translate(0, -0.39, 0), '#3a3a40'], [box(0.24, 0.08, 0.13).translate(0.04, -0.82, 0), '#1c1c1c']]));
+  Object.assign(NG, { than, tay, chan });
+}
+const NG_M = new THREE.Matrix4(), NG_L = new THREE.Matrix4(), NG_R = new THREE.Matrix4(), NG_Z = new THREE.Vector3(0, 0, 1);
+function veNguoi(V, Q, a, ip, mau) {
+  const { than, tay, chan } = NG;
+  NG_M.compose(V, Q, MOT); than.setMatrixAt(ip, NG_M); than.setColorAt(ip, mau);
+  const di = a.sp > 0.05 && !a.nga, s = di ? Math.sin(a.buoc) * Math.min(0.6, 0.25 + a.sp * 0.3) : 0;
+  for (const [k, z, g] of [[0, 0.09, s], [1, -0.09, -s]]) {
+    NG_L.makeTranslation(0, 0.86, z).multiply(NG_R.makeRotationAxis(NG_Z, g)); chan.setMatrixAt(ip * 2 + k, NG_L.premultiply(NG_M));
+    NG_L.makeTranslation(0, 1.4, z * 2.6).multiply(NG_R.makeRotationAxis(NG_Z, -g * 0.8)); tay.setMatrixAt(ip * 2 + k, NG_L.premultiply(NG_M)); tay.setColorAt(ip * 2 + k, mau);
+  }
+}
+function datNguoi(on) {
+  if (on && !NG.than) dungNguoi();
+  NG.on = on; mBo.visible = !on;
+  if (NG.than) for (const m of [NG.than, NG.tay, NG.chan]) m.visible = on;
+}
 function datHinh(on) {
-  THAT.on = on;
+  THAT.on = on; datNguoi(on);
   if (on && !THAT.ct) THAT.ct = dungChiTiet();
   if (THAT.ct) THAT.ct.visible = on;
   if (on) taiXm(); datXm(on);

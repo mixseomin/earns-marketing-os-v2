@@ -2490,7 +2490,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
   const ChoDuyetNgan = ({ c }: { c: CampEtpKho }) => { const x = c.xep, g = c.lich ? new Date(new Date(c.lich).getTime() + 7 * 3600_000) : null, ngay = !g || g.getTime() - 7 * 3600_000 <= Date.now() + 60_000;
     return <span data-o="cho-duyet-ngan" title={chuChoDuyet(c)} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, fontSize: 10.5, lineHeight: 1.25, cursor: 'help' }}>
       <span style={{ color: 'var(--warn, #f5a524)', fontWeight: 600 }}>chờ anh duyệt</span>
-      <span>{c.roas != null ? `★${c.roas}` : '$1'} · ${c.ngan_sach}{x ? ` · khuôn #${x.khuon}` : ''} · {ngay ? 'chạy ngay' : `${String(g!.getUTCHours()).padStart(2, '0')}:${String(g!.getUTCMinutes()).padStart(2, '0')} VN`}</span>
+      <span>{c.roas != null ? `★${c.roas}` : '$1'} · ${c.ngan_sach} · {ngay ? 'chạy ngay' : `${String(g!.getUTCHours()).padStart(2, '0')}:${String(g!.getUTCMinutes()).padStart(2, '0')} VN`}</span>
       {x && !x.cta ? <span style={{ color: 'var(--bad, #f31260)' }}>⚠ chưa đạt CTA</span> : x ? <span style={{ color: 'var(--good, #17c964)' }}>✓ CTA</span> : null}
     </span>; };
   const cotCay: DataColumn<CampEtpKho>[] = [

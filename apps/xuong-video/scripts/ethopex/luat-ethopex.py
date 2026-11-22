@@ -237,6 +237,16 @@ def nhat_ky_tat(cid, luc_utc):
         if d <= 1200 and (best is None or d < best[0]): best = (d, x)
     return best[1] if best else None
 
+_DG = None
+def doi_gio(cid, luc_utc):
+    """camp cũ nhan-ban.thay_cho tạm dừng vì đã lên lại thành camp mới (nút etp2 ▶ Lên ngay / 🕒 đổi giờ) — sổ etp.cau_hinh 'camp_doi_gio' {cũ: {moi, gio, luc}}, khớp ±20 phút"""
+    global _DG
+    if _DG is None:
+        _DG = json.loads(subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", "select gia_tri::text from etp.cau_hinh where khoa='camp_doi_gio'"], capture_output=True, text=True).stdout.strip() or "{}")
+    x = _DG.get(str(int(cid)))
+    try: return x if x and abs((dt.datetime.fromisoformat(x["luc"]) - luc_utc).total_seconds()) <= 1200 else None
+    except Exception: return None
+
 def ly_do_dong(c):
     """LÝ DO camp bị đóng (anh 21/10/2026: "lý do đóng là gì phải ghi rõ"). API Ethopex không có trường lý do → đọc lịch sử camp
     (/campaigns/<id>/history: ai đổi state → PAUSED, qua đường nào, kèm metadata) + đối chiếu luật của mình (OFF, ad bị từ chối).
@@ -253,9 +263,11 @@ def ly_do_dong(c):
         # tắt qua API = lệnh của mình → LUẬT + AI DUYỆT lấy từ nhật ký luật (anh 22/10/2026: "phải ghi rõ lý do tắt camp thuộc rule nào")
         if h.get("source") == "api":
             nk = nhat_ky_tat(c["id"], dt.datetime.fromisoformat(str(h["created_at"]).replace("Z", "+00:00")))
+            dg = None if nk else doi_gio(c["id"], dt.datetime.fromisoformat(str(h["created_at"]).replace("Z", "+00:00")))
             # không khớp dòng nhật ký: lệnh API bằng khoá Ethopex nhà nhưng không phải lệnh máy luật đã ghi — KHÔNG phải tắt tay trên web (nguồn web thì source = web);
             # trước 02/11/2026 lệnh máy luật Ethopex áp chậm > 60 giây cũng không được ghi (#73533 L3) — nói đúng hai khả năng, không gán "tắt tay"
             cau = (f"tắt qua API — luật: {nk['luat']} · duyệt: {nk.get('ai') or '?'}" if nk else
+                   f"tạm dừng vì đã lên lại thành camp #{dg['moi']} ({'hẹn ' + dg['gio'] + ' giờ VN' if dg.get('gio') else 'chạy ngay'}) theo lệnh ▶ Lên trên etp2 — camp không mất" if dg else
                    f"lệnh API bằng khoá Ethopex của {h.get('actor_name') or '?'} — không có dòng nhật ký luật khớp (script ngoài máy luật, hoặc lệnh máy luật Ethopex áp chậm chưa được ghi trước 02/11)")
     else: cau = f"{h.get('actor_type_label') or ai or 'hệ thống'} Ethopex tự tắt" + (f" ({h.get('actor_name')})" if h.get("actor_name") else "")
     if md: cau += " · " + ", ".join(f"{k}={str(v)[:40]}" for k, v in list(md.items())[:3])

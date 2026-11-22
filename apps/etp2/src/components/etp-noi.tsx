@@ -50,6 +50,8 @@ if (typeof window !== 'undefined') window.addEventListener('mousemove', (e) => {
 // → ghi lại loại con trỏ cuối; HoverChu chỉ mở khi là chuột thật. Một chỗ cho mọi title= của trang.
 const TRO = { cham: false };
 if (typeof window !== 'undefined') for (const ev of ['pointerover', 'pointerdown'] as const) window.addEventListener(ev, (e) => { TRO.cham = e.pointerType !== 'mouse'; }, { capture: true, passive: true });
+/** bọc onMouseEnter tự viết (xem ảnh to, tô dòng…): bỏ qua mouseover giả sau khi chạm — cùng luật CHẠM KHÔNG PHẢI RÊ với useNoi.mo */
+export const chiRe = <E,>(f: (e: E) => void) => (e: E) => { if (!TRO.cham) f(e); };
 export function useNoi<T>() {
   const [v, setV] = useState<(T & { x: number; y: number }) | null>(null);
   const hen = useRef<number | undefined>(undefined);
@@ -62,6 +64,7 @@ export function useNoi<T>() {
   const dongTre = useCallback(() => { giu(); hen.current = window.setTimeout(() => setV(null), 300); }, [giu]);
   const dong = useCallback(() => { giu(); setV(null); }, [giu]);
   const mo = useCallback((x: T, e: React.MouseEvent) => {
+    if (TRO.cham && e.type.startsWith('mouse')) return;   // CHẠM KHÔNG PHẢI RÊ (anh 22/11/2026 "sửa cả cái hover trên mobile"): mouseover giả sau mỗi lần chạm không mở thẻ — điện thoại mở bằng bấm (bam / moNgay)
     giu(); const toaDo = { x: e.clientX, y: e.clientY }; hang.current = (e.currentTarget as Element | null)?.closest?.('.dong, summary, tr') ?? null;
     hen.current = window.setTimeout(() => setV({ ...x, ...(CHUOT.x || CHUOT.y ? { x: CHUOT.x, y: CHUOT.y } : toaDo) }), TRE_MO);   // #1514: đang mở thẻ khác cũng chờ đủ trễ (trước đổi ngay)
   }, [giu]);

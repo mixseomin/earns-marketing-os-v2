@@ -31,7 +31,7 @@ import { quetPhimEtp } from '@/lib/actions/etp-phim';
 import { docGioNgay, type SoGio } from '@/lib/actions/etp-gio';
 import { NutLichPhim, PHA_HT } from '@/components/etp-lich-phim';
 import { DongHoSx, FormChayDong, MAU as MAU_DONG, NUT_SX, TabDong, xuLy } from '@/components/etp-dong';
-import { DongMoc, HoverChu, KhungNoi, ReThe, useNoi, type Moc, type Noi, type TheNoi } from '@/components/etp-noi';
+import { chiRe, DongMoc, HoverChu, KhungNoi, ReThe, useNoi, type Moc, type Noi, type TheNoi } from '@/components/etp-noi';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
@@ -2415,7 +2415,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
     // USED POST (#1561, anh 12/11/2026 — luật Ethopex 11/11 "nhân bản phải kèm used post"): bản nhân bài cũ không có creative riêng → trước hiện ô xám "chưa chấm", anh tưởng máy không dùng
     if (!c.creative_id && laBaiCu(c)) return <span data-cot="creative" title={`USED POST — ad dùng lại bài đăng của camp gốc${c.goc ? ` #${c.goc}` : ''} (giữ tương tác), không đăng creative mới`} style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 6px', border: '1px solid #4ade80', borderRadius: 4, color: '#4ade80', fontSize: 10.5, whiteSpace: 'nowrap' }}>used post</span>;
     return (
-          <span data-cot="creative" onMouseEnter={c.creative_id && moCr ? (e) => moCr(c.creative_id!, e, c.camp_id) : undefined} onMouseLeave={dongCr}
+          <span data-cot="creative" onMouseEnter={c.creative_id && moCr ? chiRe((e: React.MouseEvent) => moCr(c.creative_id!, e, c.camp_id)) : undefined} onMouseLeave={dongCr}
             onClick={c.creative_id && moCr ? (e) => { e.stopPropagation(); e.preventDefault(); moCr(c.creative_id!, e, c.camp_id); } : undefined} title={`cr #${c.creative_id ?? '?'}${c.doan ? ` · đoạn ${c.doan.split(':')[1] ?? ''}s` : ''}`} style={{ cursor: c.creative_id ? 'zoom-in' : undefined,  display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
             {(() => { const [w, h] = c.camp_id < 0 ? [40, 60] : [14, 24];   // dòng CHỜ ANH DUYỆT: ảnh creative to để duyệt bằng mắt, rê / bấm xem video (anh 22/11/2026 "cần xem cả creative")
               return cr?.anh ? <img src={cr.anh} alt="" style={{ width: w, height: h, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: w, height: h, background: 'var(--line)' }} />; })()}

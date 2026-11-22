@@ -760,6 +760,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
     creative mới nên PHẢI qua cổng chấm Sạch + cổng 18+ / CTA / bài học + trang phim + một creative một camp (khác ★ ROAS bài cũ)."""
     # GIỜ LÊN ★ ROAS BAN TỐI (gio_roas, sổ khung_doi.len_roas): trong khung chạy ngay, ngoài khung hẹn lần mở khung kế — thay khung sáng lich_len cho ★ ROAS
     ro = None if (gio or doi) else gio_roas()
+    if truc and not gio: ro = None   # LỆNH TRỰC TIẾP (nút etp2 ▶ Lên ngay — anh 22/11/2026 "ko còn gì đc cản tao lên camp thủ công"): chạy liền, khung tối 23h không giữ lại
     if not (gio or doi) and ro is None: lich = "today"
     kq = {"ok": False, "viec": "roas", "goc": goc, "moi": None, "ten": None, "roas": roas, "loi": None, "chay": lich}
     try:

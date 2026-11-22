@@ -21,6 +21,7 @@ import { taoCamUng, CHAM } from './chung/camung.js';
 import { ganGopY, chupCanvas } from './chung/gopy.js';
 import { taoRedSpires } from './redspires.js';
 import { taoNhat2200 } from './nhat2200.js';
+import { taoMua } from './mua.js';
 
 const $ = (id) => document.getElementById(id);
 // tâm cảnh: Nishi-Shinjuku, giữa ga Shinjuku và toà thị chính Tokyo
@@ -104,6 +105,8 @@ composer.addPass(new OutputPass());
 let kieu = 'thuc';
 try { kieu = new URLSearchParams(location.search).get('kieu') || localStorage.getItem('sprawl-kieu') || 'thuc'; } catch {}
 if (!KIEU[kieu]) kieu = 'thuc';
+let troiMua = false; // &mua trên link hoặc lần bật gần nhất
+try { troiMua = new URLSearchParams(location.search).has('mua') || localStorage.getItem('sprawl-mua') === '1'; } catch {}
 
 // ---------- vật lý + mặt đất ----------
 await RAPIER.init();
@@ -188,11 +191,17 @@ const dsTiles = VUNG.map((v) => {
   return t;
 });
 
+const mua = taoMua({ renderer, scene, camera }); // mưa: đất + đường ướt soi bóng, hạt mưa (mua.js). Gắn SAU khoacDat để nối tiếp phần tô màu đất
+mua.uot(datMesh.material, true); for (const o of rs?.duong || []) mua.uot(o.material);
+const dsUot = [datMesh, ...(rs?.duong || [])];
 function datKieu(k) {
   if (canAnh(k) !== canAnh(kieu)) { try { localStorage.setItem('sprawl-kieu', k); } catch {} location.search = '?kieu=' + k; return; } // đổi bộ ô có/không ảnh = nạp lại trang
   kieu = k; const K = KIEU[k];
-  scene.background = new THREE.Color(K.nen); scene.fog = K.suong(); datTroi(K.bauTroi);
-  troi.intensity = K.troi; nang.intensity = K.nang; renderer.toneMappingExposure = K.mu; bloom.strength = K.bloom;
+  const M = troiMua; // trời mưa: mây đục phủ kín, nắng yếu, sương dày hơn
+  scene.background = new THREE.Color(K.nen); scene.fog = K.suong(); if (M) { if (scene.fog.isFogExp2) scene.fog.density *= 1.6; else { scene.fog.near *= 0.35; scene.fog.far *= 0.55; } }
+  datTroi(K.bauTroi && (M ? { ...K.bauTroi, duc: 20, ray: 1.0, mie: 0.1, g: 0.55, ds: K.bauTroi.ds * 0.8 } : K.bauTroi));
+  troi.intensity = K.troi * (M ? 0.8 : 1); nang.intensity = K.nang * (M ? 0.3 : 1); renderer.toneMappingExposure = K.mu * (M ? 0.92 : 1); bloom.strength = K.bloom;
+  mua.dat(M, K.bloom > 0 ? 1.6 : 1); $('b-mua')?.classList.toggle('on', M);
   if (K.cua) { uNeon.uLit.value = K.lit; uNeon.uCuaA.value.set(K.cua[0]); uNeon.uCuaB.value.set(K.cua[1]); vatNeon.color.set(K.tuong); }
   datMesh.material.color.set(k === 'thuc' ? '#6d6a66' : k === 'bui' ? '#3b2a1c' : k === 'nhat' ? '#9a9c98' : '#858b84');
   rs?.hien(k === 'do' || k === 'nhat', k === 'do'); rs?.sang?.(k === 'nhat' ? 0.62 : 0); n2?.hien(k === 'nhat');
@@ -203,6 +212,8 @@ function datKieu(k) {
 $('kieu').innerHTML = [...new Set(Object.values(KIEU).map((v) => v.nhom))].map((n) => `<div class="nhom"><span>${n}</span>${
   Object.entries(KIEU).filter(([, v]) => v.nhom === n).map(([k, v]) => `<button data-k="${k}">${v.ten}</button>`).join('')}</div>`).join('');
 $('kieu').onclick = (e) => { const b = e.target.closest('button'); if (b) datKieu(b.dataset.k); };
+function doiMua() { troiMua = !troiMua; try { localStorage.setItem('sprawl-mua', troiMua ? '1' : '0'); } catch {} datKieu(kieu); }
+$('b-mua').onclick = doiMua;
 datKieu(kieu);
 
 // ---------- đi bộ (castle dibo.js) ----------
@@ -395,7 +406,7 @@ addEventListener('keydown', (e) => { if (e.target.closest?.('input,textarea') ||
   if (e.code === 'KeyH') document.body.classList.toggle('sach');
   else if (e.code === 'KeyC' && !di?.dang) $('b-goc').onclick();
   else if (e.code === 'KeyP') chup4k();
-  else if (e.code === 'KeyR') quayPhim(); });
+  else if (e.code === 'KeyR') quayPhim(); else if (e.code === 'KeyM') doiMua(); });
 
 // ---------- vòng vẽ ----------
 let daGoc = false, lan = 0, tichLuy = 0, demKhung = 0, tFps = performance.now(), fps = 0, tDat = 0, tO = 0;
@@ -416,6 +427,7 @@ renderer.setAnimationLoop(() => {
     for (const t of dsTiles) { t.setCamera(camera); t.setResolutionFromRenderer(camera, renderer); t.update(); } }
   if (chanDoi && now - tDat > (datY ? 2500 : 600)) { tDat = now; dungDat(); }
   bauTroi.position.copy(camera.position);
+  if (mua.bat) { const pM = di?.dang ? di.viTri() : orbit.target; mua.khung(dt, datTai(pM.x, pM.z), dsUot, bauTroi.visible ? bauTroi : null); }
   ve(); demKhung++;
   if (now - tFps > 1000) { fps = Math.round(demKhung * 1000 / (now - tFps)); demKhung = 0; tFps = now;
     const p = di?.dang ? di.viTri() : orbit.target, ll = laLatLon(p.x, p.z);

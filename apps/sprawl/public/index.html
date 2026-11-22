@@ -20,6 +20,7 @@
     <button id="b-goc" title="Chép link mở lại đúng góc nhìn này (C)">📌</button>
     <button id="b-chup" title="Chụp ảnh 3840 × 2160 (P)">📷</button>
     <button id="b-quay" title="Quay video khung vẽ (R). Mở link có &amp;4k để quay 4K, &amp;sach để ẩn giao diện">🎬</button>
+    <button id="b-mua" title="Bật / tắt mưa (M): đường ướt soi bóng nhà và đèn, vũng nước gợn, hạt mưa rơi. Vẽ thêm một lượt soi bóng nên máy yếu sẽ chậm hơn">🌧</button>
     <button id="b-gy" title="Góp ý / báo lỗi">💬</button>
   </div>
   <p class="goiy">Bay: kéo chuột trái để dời, chuột phải để xoay, lăn để gần xa, <b>bấm đúp</b> vào phố để sà xuống (bấm đúp lần nữa sà sát hơn, <b>Enter</b> đứng xuống đi bộ). Đi bộ: <b>WASD</b>, <b>Shift</b> chạy, <b>Space</b> nhảy / leo, <b>V</b> đổi góc nhìn, <b>Esc</b> bay lên. Quay phim: <b>H</b> ẩn giao diện, <b>C</b> chép góc, <b>P</b> chụp 4K, <b>R</b> quay video.</p>
@@ -29,7 +30,7 @@
 <script>
 // nạp theo dấu phiên bản (khuôn castle neuschwanstein.html): Cloudflare zone on.tc giữ .js 30 ngày → hỏi ETag rồi nạp ./x.js?v=<ETag>
 (async () => {
-  const TEP = ['sprawl.js', 'redspires.js', 'song.js', 'nhat2200.js', 'khop.js', 'chung/dibo.js', 'chung/nguoi3d.js', 'chung/camung.js', 'chung/gopy.js'];
+  const TEP = ['sprawl.js', 'redspires.js', 'song.js', 'nhat2200.js', 'khop.js', 'mua.js', 'chung/dibo.js', 'chung/nguoi3d.js', 'chung/camung.js', 'chung/gopy.js'];
   const lay = (f) => fetch(`./${f}?ban=${Date.now()}`, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' })
     .then((r) => (r.ok && (r.headers.get('etag') || r.headers.get('last-modified')) || '').replace(/[^\w-]/g, '')).catch(() => '');
   const dau = await Promise.all(TEP.map(lay));

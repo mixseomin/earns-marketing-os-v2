@@ -694,5 +694,5 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     U_DEN.uTg.value += dt; song.khung(dt);
   }
 
-  return { goc, vatPho, khoacDat, datLai, hien, khoet, khung, loc, ql, song, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), ...song.tk } };
+  return { goc, vatPho, khoacDat, duong: goc.children.filter((o) => o.isMesh && o.material.customProgramCacheKey?.().startsWith('duong-')), datLai, hien, khoet, khung, loc, ql, song, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), ...song.tk } };
 }

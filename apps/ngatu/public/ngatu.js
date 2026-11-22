@@ -1711,7 +1711,7 @@ function tinh(geo, list, dat) {
   m.count = list.length; m.castShadow = true; m.receiveShadow = true;
   scene.add(m); return m;
 }
-tinh(box(1, 1, 1), HOP, (b) => { Q.setFromAxisAngle(UP, b[6]); M4.compose(V.set(b[0], b[1], b[2]), Q, S3.set(b[3], b[4], b[5])); CL.set(b[7]); });
+const mHop = tinh(box(1, 1, 1), HOP, (b) => { Q.setFromAxisAngle(UP, b[6]); M4.compose(V.set(b[0], b[1], b[2]), Q, S3.set(b[3], b[4], b[5])); CL.set(b[7]); });
 tinh(new THREE.CylinderGeometry(1, 1, 1, 12), TRU, (b) => { M4.compose(V.set(b[0], b[1], b[2]), Q.identity(), S3.set(b[3], b[4], b[3])); CL.set(b[5]); });
 tinh(new THREE.IcosahedronGeometry(1, 1), TAN, (b) => { M4.compose(V.set(b[0], b[1], b[2]), Q.identity(), S3.set(b[3], b[3] * 0.85, b[3])); CL.set(b[4]); });
 tinh(new THREE.ConeGeometry(1, 1, 16), NON, (b) => { M4.compose(V.set(b[0], b[1], b[2]), Q.identity(), S3.set(b[3], b[4], b[3])); CL.set(b[5]); });
@@ -2221,6 +2221,29 @@ function vlThat(m) {
   });
   THAT.vl.set(m, n); return n;
 }
+// Vân bề mặt thật (bản thật, bước 2): ảnh ambientCG CC0 nén 512 px (~140 KB cả ba). Hộp tĩnh (nhà, vỉa hè, bó vỉa) là hộp đơn vị
+// kéo giãn nên không dùng UV được → chiếu theo toạ độ thế giới: mặt ngang thấp (vỉa hè) lấy gạch, mặt đứng + mái lấy tường vôi,
+// nhân vào màu từng hộp (ảnh xám, chia trung bình → giữ nguyên màu sơn, chỉ thêm loang, vết bẩn, ron gạch).
+function vanThe(vl) {
+  const ld = new THREE.TextureLoader(), tx = (f) => { const t = ld.load(`mohinh/${f}?v=1`); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t; };
+  const U = { tGach: { value: tx('van-gach.jpg') }, tVoi: { value: tx('van-voi.jpg') } };
+  vl.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, U);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWP; varying vec3 vWN;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\n{ mat4 mw = modelMatrix; \n#ifdef USE_INSTANCING\n mw = mw * instanceMatrix;\n#endif\n vWP = (mw * vec4(transformed, 1.0)).xyz; vWN = normalize(mat3(mw) * objectNormal); }');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vWP; varying vec3 vWN; uniform sampler2D tGach; uniform sampler2D tVoi;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+      { vec3 an = abs(vWN); float d;
+        if (an.y > 0.5 && vWP.y < 0.4) d = texture2D(tGach, vWP.xz / 1.6).r / 0.8;
+        else { vec2 q = an.y > 0.5 ? vWP.xz : (an.x > an.z ? vWP.zy : vWP.xy); d = mix(1.0, texture2D(tVoi, q / 3.0).r / 0.74, 0.55); }
+        diffuseColor.rgb *= clamp(d, 0.55, 1.25); }`);
+  };
+  vl.customProgramCacheKey = () => 'vanThe'; vl.needsUpdate = true;
+}
+function vanNhuaThat() { // nhựa đường ảnh thật, phủ mặt đất 900 m, mỗi ô 5 m
+  const t = new THREE.TextureLoader().load('mohinh/van-nhua.jpg?v=1'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(180, 180);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t;
+}
 function vanNhua() { // vân nhựa đường: hạt sỏi + vệt bánh xe, tự sinh (0 byte tải)
   const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d');
   const d = x.createImageData(512, 512);
@@ -2428,7 +2451,7 @@ function datHinh(on) {
   if (on && !THAT.env) {
     const pm = new THREE.PMREMGenerator(renderer);
     THAT.env = pm.fromScene(new RoomEnvironment(renderer), 0.04).texture; pm.dispose();
-    THAT.duong = vanNhua();
+    THAT.duong = vanNhuaThat();
     // bầu trời ảnh thật (Poly Haven, CC0, 1K ~1,4 MB): tải ngầm, xong thì thay cho môi trường phòng giả + làm nền trời
     new RGBELoader().setDataType(THREE.FloatType).loadAsync('mohinh/troi-1k.hdr?v=1').then((t) => {
       // cắt đốm mặt trời (giá trị hàng nghìn) — để nguyên thì mọi mặt nhám đều ám vàng; nắng thật đã có DirectionalLight lo
@@ -2444,8 +2467,9 @@ function datHinh(on) {
       if (o.material.isMeshLambertMaterial) { o.userData.vlCu = o.material; o.material = vlThat(o.material); }
     } else if (o.userData.vlCu) { o.material = o.userData.vlCu; o.material.needsUpdate = true; delete o.userData.vlCu; }
   });
+  if (on && !THAT.vanHop) { const vh = THAT.vl.get(mHop.userData.vlCu || mHop.material); if (vh) { vanThe(vh); THAT.vanHop = true; } }
   const vd = THAT.vl.get(mat0.userData.vlCu || mat0.material);
-  if (vd) { vd.map = on ? THAT.duong : null; vd.roughness = 0.95; vd.envMapIntensity = 0.04; vd.needsUpdate = true; }
+  if (vd) { vd.map = on ? THAT.duong : null; vd.color = new THREE.Color(0.62, 0.62, 0.64); vd.roughness = 0.95; vd.envMapIntensity = 0.04; vd.needsUpdate = true; }
   scene.environment = on ? THAT.env : null;
   if (!THAT.nenCu) THAT.nenCu = scene.background; scene.background = on && THAT.troi ? THAT.troi : THAT.nenCu;
   renderer.toneMapping = on ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;

@@ -31,6 +31,8 @@ const NUT = {
   ],
 };
 const ARMS = NUT.nhanh;
+const SO_MV = ARMS.length * 3; // chuyển động: mỗi nhánh × thẳng / phải / trái
+NUT.nhom = ['Đông–Tây', 'Bắc–Nam']; // tên hai nhóm đường giao nhau (g = 0 / 1)
 // nhánh nằm trên cùng con đường với hướng d (cùng chiều hoặc ngược chiều)
 const nhanhTheo = (d) => {
   let tot = ARMS[0], m = -2;
@@ -204,17 +206,22 @@ function mau(p, a) {
 // dài khi còn xe tới, cắt sớm khi hết xe mà hướng khác đang chờ, bỏ qua pha không ai chờ, lòng ngã tư kẹt thì giữ đỏ
 // toàn phần thêm cho xe thoát. Mũi tên rẽ phải: rẽ phải luôn xanh, mọi xe.
 const QI = { thang: 0, phai: 1, trai: 2 }, T_VANG = 3;
-const DEN = { pha: [], cua: new Int8Array(12), i: 0, giai: 'r', t: 0, dai: 0, them: 0, doTu: new Float32Array(12).fill(99), cau: new Int16Array(12) };
+const DEN = { pha: [], cua: new Int8Array(SO_MV), i: 0, giai: 'r', t: 0, dai: 0, them: 0, doTu: new Float32Array(SO_MV).fill(99), cau: new Int16Array(SO_MV) };
+// thứ tự pha 'từng hướng': xen kẽ hai nhóm đường (Tây, Bắc, Đông, Nam) để hai pha liền nhau không cùng một trục
+function thuTuHuong() {
+  const hang = ARMS.map((A, i) => ARMS.slice(0, i).filter((B) => B.g === A.g).length);
+  return ARMS.map((A, i) => i).sort((a, b) => hang[a] - hang[b] || ARMS[a].g - ARMS[b].g || a - b);
+}
 function dungPha() {
   const k = (i, q) => i * 3 + QI[q];
   const nhom = (g, qs) => ARMS.flatMap((A, i) => (A.g === g ? qs.map((q) => k(i, q)) : []));
   const ca = ['thang', 'phai', 'trai'];
   const P = CAI.kieuPha === 'trai'
-    ? [{ ten: 'Đông–Tây thẳng', mv: nhom(0, ['thang', 'phai']), x: 16 }, { ten: 'Đông–Tây rẽ trái', mv: nhom(0, ['trai']), x: 8 },
-      { ten: 'Bắc–Nam thẳng', mv: nhom(1, ['thang', 'phai']), x: 13 }, { ten: 'Bắc–Nam rẽ trái', mv: nhom(1, ['trai']), x: 7 }]
+    ? [{ ten: NUT.nhom[0] + ' thẳng', mv: nhom(0, ['thang', 'phai']), x: 16 }, { ten: NUT.nhom[0] + ' rẽ trái', mv: nhom(0, ['trai']), x: 8 },
+      { ten: NUT.nhom[1] + ' thẳng', mv: nhom(1, ['thang', 'phai']), x: 13 }, { ten: NUT.nhom[1] + ' rẽ trái', mv: nhom(1, ['trai']), x: 7 }]
     : CAI.kieuPha === 'huong'
-      ? [0, 2, 1, 3].map((i) => ({ ten: 'Từ ' + ARMS[i].ten, mv: ca.map((q) => k(i, q)), x: ARMS[i].g === 0 ? 13 : 10 }))
-      : [{ ten: 'Đông–Tây', mv: nhom(0, ca), x: 22 }, { ten: 'Bắc–Nam', mv: nhom(1, ca), x: 18 }];
+      ? thuTuHuong().map((i) => ({ ten: 'Từ ' + ARMS[i].ten, mv: ca.map((q) => k(i, q)), x: ARMS[i].g === 0 ? 13 : 10 }))
+      : [{ ten: NUT.nhom[0], mv: nhom(0, ca), x: 22 }, { ten: NUT.nhom[1], mv: nhom(1, ca), x: 18 }];
   DEN.pha = P; DEN.cua.fill(-1);
   P.forEach((p, j) => { for (const m of p.mv) DEN.cua[m] = j; });
   DEN.i = P.length - 1; DEN.giai = 'r'; DEN.t = 0; DEN.dai = 0; DEN.them = 0; DEN.doTu.fill(99); // bắt đầu bằng đỏ toàn phần
@@ -239,7 +246,7 @@ function den(k) {
 // người qua vạch của nhóm g: chỉ đi khi mọi chuyển động nhóm g đều đỏ
 function denBo(g) {
   let con = 99;
-  for (let i = 0; i < 4; i++) if (ARMS[i].g === g) for (let q = 0; q < 3; q++) {
+  for (let i = 0; i < ARMS.length; i++) if (ARMS[i].g === g) for (let q = 0; q < 3; q++) {
     if (q === 1 && CAI.phaiXanh) continue;
     const [m, c] = den(i * 3 + q);
     if (m !== 'd') return [m, c, 0];
@@ -250,7 +257,7 @@ function denBo(g) {
 const cauPha = (p) => p.mv.reduce((t, m) => t + DEN.cau[m], 0);
 function buocDen(dt) {
   const D = DEN, P = D.pha[D.i];
-  for (let k = 0; k < 12; k++) D.doTu[k] += dt;
+  for (let k = 0; k < SO_MV; k++) D.doTu[k] += dt;
   D.t += dt;
   if (D.giai === 'x') {
     if (CAI.denAI && D.t >= Math.min(6, P.x)) {

@@ -169,13 +169,13 @@ const _fr = new THREE.Frustum(), _pv = new THREE.Matrix4(), _cau = new THREE.Sph
 function taoBo(ms, n, R, r) {
   const src = new Float32Array(n * 16), mau = ms.map((m) => m.instanceColor ? new Float32Array(m.instanceColor.array.length) : null);
   const phu = []; for (const m of ms) for (const a of Object.values(m.geometry.attributes)) if (a.isInstancedBufferAttribute && !phu.some((p) => p.a === a)) phu.push({ a, src: null });
-  return { ms, n, R, r, src, mau, phu, dem: 0,
+  return { ms, n, R, r, src, mau, phu, dem: 0, Rmin: 0, // Rmin: bỏ cái GẦN hơn mức này (lớp xa của một cặp gần / xa)
     chot() { // gọi sau khi dựng xong màu / thuộc tính: chép bản gốc
       ms.forEach((m, k) => { if (mau[k]) mau[k].set(m.instanceColor.array); }); for (const p of phu) p.src = p.a.array.slice(); },
     dat(i, m4) { m4.toArray(src, i * 16); },
-    loc(cam) { const R2 = this.R * this.R, cx = cam.position.x, cy = cam.position.y, cz = cam.position.z, dst = ms[0].instanceMatrix.array; let k = 0;
+    loc(cam) { const R2 = this.R * this.R, Rm2 = this.Rmin * this.Rmin, cx = cam.position.x, cy = cam.position.y, cz = cam.position.z, dst = ms[0].instanceMatrix.array; let k = 0;
       for (let i = 0; i < this.dem; i++) { const o = i * 16, x = src[o + 12], y = src[o + 13], z = src[o + 14], d2 = (x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2;
-        if (d2 > R2) continue; _cau.center.set(x, y, z); _cau.radius = this.r + Math.sqrt(d2) * 0.15; if (!_fr.intersectsSphere(_cau)) continue;
+        if (d2 > R2 || d2 < Rm2) continue; _cau.center.set(x, y, z); _cau.radius = this.r + Math.sqrt(d2) * 0.15; if (!_fr.intersectsSphere(_cau)) continue;
         if (k !== i) { const ok = k * 16; for (let j = 0; j < 16; j++) dst[ok + j] = src[o + j];
           for (const [q, a] of mau.entries()) if (a) { const d = ms[q].instanceColor.array; d[k * 3] = a[i * 3]; d[k * 3 + 1] = a[i * 3 + 1]; d[k * 3 + 2] = a[i * 3 + 2]; }
           for (const p of phu) { const s = p.a.itemSize; for (let j = 0; j < s; j++) p.a.array[k * s + j] = p.src[i * s + j]; } }
@@ -585,6 +585,25 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
   const G_CAYV = gop([tru(0.14, 0.22, 3.2, 0, 1.6, 0, '#4a3a2c'), cau(1.9, 0, 4.6, 0, '#4f7a3c', 8, 6), cau(1.4, 0.9, 4.0, 0.5, '#5f8a46', 7, 5), cau(1.3, -0.8, 4.3, -0.6, '#46703a', 7, 5), cau(1.1, 0.2, 5.8, -0.2, '#5a8443', 7, 5)]);
   const doPho = [G_DEN, G_GHE, G_CAY, G_THUNG, G_XE, G_CAYV].map((g) => { const m = new THREE.InstancedMesh(g, vMau, 3000); m.frustumCulled = false; m.count = 0; return m; });
   const datDo = doPho.map(() => []);
+  // ---- cây GẦN (trong TAM_CAY m): lưới nướng sẵn từ ez-tree (scripts/nuong-cay.mjs → du-lieu/cay.json): cành thật + tán lá bằng tấm ảnh lá. Xa hơn vẫn là cây khối cầu ở trên (ít tam giác).
+  // Không nạp được tệp cây thì cây khối cầu vẽ ở mọi tầm như trước (Rmin của lớp xa chỉ bật khi lưới gần đã vào).
+  const TAM_CAY = 200, anhLa = new THREE.TextureLoader();
+  // tấm lá vẽ hai mặt nhưng KHÔNG lật pháp tuyến ở mặt sau: pháp tuyến đã nướng hướng ra khỏi tâm tán, lật là nửa số tấm đen kịt
+  const vLa = () => { const m = new THREE.MeshLambertMaterial({ vertexColors: true, alphaTest: 0.45, side: THREE.DoubleSide });
+    m.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nnormal = normalize(vNormal);'); }; return m; };
+  const cayGan = [[2, 'pho'], [5, 'vuon']].map(([k, ten]) => { const nh = new THREE.InstancedMesh(new THREE.BufferGeometry(), vMau, 3000), la = new THREE.InstancedMesh(new THREE.BufferGeometry(), vLa(), 3000);
+    la.instanceMatrix = nh.instanceMatrix; for (const m of [nh, la]) { m.frustumCulled = false; m.count = 0; m.visible = false; } return { k, ten, nh, la, bo: null }; });
+  fetch(new URL('./du-lieu/cay.json', import.meta.url)).then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(({ cay }) => {
+    for (const c of cayGan) { const d = cay[c.ten], nang = c.k === 2 ? 0.58 : 0, f = (a, n) => new THREE.Float32BufferAttribute(a, n); // cây phố mọc từ mặt đất trong bồn
+      const gn = new THREE.BufferGeometry(); gn.setAttribute('position', f(d.nhanh.p, 3)); gn.setAttribute('normal', f(d.nhanh.n, 3)); gn.setIndex(d.nhanh.i); gn.translate(0, nang, 0);
+      const canh = mauG(gn, c.k === 2 ? '#5a4636' : '#4a3a2c');
+      c.nh.geometry = c.k === 2 ? gop([hop(1.6, 0.6, 1.6, 0, 0.3, 0, '#9a948a'), hop(1.45, 0.06, 1.45, 0, 0.58, 0, '#4a3a2c'), canh]) : canh;
+      const gl = new THREE.BufferGeometry(), mau = new Float32Array(d.tan.c.length * 3); const sac = c.k === 2 ? [0.92, 1, 0.86] : [0.76, 0.88, 0.7]; d.tan.c.forEach((v, i) => { mau[i * 3] = v * sac[0]; mau[i * 3 + 1] = v * sac[1]; mau[i * 3 + 2] = v * sac[2]; }); // ảnh lá sồi gốc ngả vàng chói → hạ sắc cho hợp cây phố
+      gl.setAttribute('position', f(d.tan.p, 3)); gl.setAttribute('normal', f(d.tan.n, 3)); gl.setAttribute('uv', f(d.tan.uv, 2)); gl.setAttribute('color', f(mau, 3)); gl.setIndex(d.tan.i); gl.translate(0, nang, 0);
+      c.la.geometry = gl; const anh = anhLa.load(new URL(`./du-lieu/la-${d.la}.webp`, import.meta.url).href); anh.colorSpace = THREE.SRGBColorSpace; c.la.material.map = anh; c.la.material.needsUpdate = true;
+      c.nh.visible = c.la.visible = true; boDo[c.k].Rmin = TAM_CAY; }
+    canLoc = true;
+  }).catch((e) => console.warn('[sprawl] không nạp được cây nướng (du-lieu/cay.json) — giữ cây khối cầu ở mọi tầm:', e));
   { // cây trong vườn: rải theo mặt nạ vườn, ~1 cây / 90 m²
     const px = cv.getContext('2d').getImageData(0, 0, 1024, 1024).data;
     for (let j = 0; j < 1024; j++) for (let i = 0; i < 1024; i++) if (px[(j * 1024 + i) * 4] > 200 && ngau() < 0.1) {
@@ -618,10 +637,11 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
   for (const m of lopNguoi) { m.count = datNguoi.length; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
   for (const m of quay) m.count = datQuay.length;
   for (const [i, m] of doPho.entries()) m.count = Math.min(3000, datDo[i].length);
-  goc.add(...lopNguoi, ...quay, ...doPho);
+  goc.add(...lopNguoi, ...quay, ...doPho, ...cayGan.flatMap((c) => [c.nh, c.la]));
   // tầm xa mỗi lớp (m): người 650 · quầy 900 · cột đèn / bồn cây 900 (cao, thấy từ xa) · ghế / thùng 450 · xe đẩy 600
   const boNguoi = taoBo(lopNguoi, NN, 650, 14), boQuay = taoBo(quay, NQ, 900, 4), boDo = doPho.map((m, k) => taoBo([m], 3000, [900, 450, 900, 450, 600, 1100][k], 5));
-  const dsBo = [boNguoi, boQuay, ...boDo];
+  for (const c of cayGan) { c.bo = taoBo([c.nh, c.la], 3000, TAM_CAY, 6); c.bo.dem = Math.min(3000, datDo[c.k].length); }
+  const dsBo = [boNguoi, boQuay, ...boDo, ...cayGan.map((c) => c.bo)];
   boNguoi.dem = datNguoi.length; boQuay.dem = datQuay.length; boDo.forEach((b, k) => { b.dem = Math.min(3000, datDo[k].length); });
   for (const b of dsBo) b.chot();
 
@@ -658,6 +678,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     _s.setScalar(1);
     for (const [i, p] of datQuay.entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); boQuay.dat(i, _m.compose(_p, _q, _s)); }
     for (const [k, ds] of datDo.entries()) for (const [i, p] of ds.slice(0, 3000).entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); _s.setScalar(p.s || 1); boDo[k].dat(i, _m.compose(_p, _q, _s)); }
+    for (const c of cayGan) c.bo.src.set(boDo[c.k].src); // cây gần đứng đúng chỗ cây xa
     _s.setScalar(1);
     napKhoet(); canLoc = true;
     if (goc.visible && thapDo) { boVa(); dungVa(); }

@@ -69,7 +69,7 @@ export async function campTay(campId: number, viec: 'bat' | 'tat' | 'ns', o: { n
   return { ok: true, chu: k.lich ?? (viec === 'ns' ? `$${k.truoc?.ns ?? '?'} → $${k.sau?.ns ?? '?'}` : `${k.truoc?.tt ?? '?'} → ${k.sau?.tt ?? '?'}`) };
 }
 
-/** ns của không bid / sang bộ: anh chỉnh $1–20 (22/11/2026); bỏ trống = máy đặt ($2 bài cũ · $1 bài mới) */
+/** ns của không bid / sang bộ: anh chỉnh $1–20 (22/11/2026); bỏ trống = máy đặt ($10 bài cũ NB · $1 bài mới) */
 export type KieuNb = { kieu: 'thuong'; ns?: number } | { kieu: 'thang'; ns: number } | { kieu: 'bo'; bo: string; ns?: number } | { kieu: 'roas'; roas: number; ns: number; tamDung: boolean; /** nhiều mức bài cũ một lần bấm (Dol 22/11/2026: cặp 0.9 + 1.1 · bộ ba 0.9 + 1 + 1.1) — mỗi mức một camp */ cap?: number[];
   /** giờ chạy: bỏ trống = lịch lên camp quyết · 'ngay' · 'YYYY-MM-DD HH:MM' VN — hai cái sau là lệnh trực tiếp (vé cong.py --ve-truc-tiep) */ gio?: string | null };
 /** các mức ROAS của một lần bấm — mỗi mức một camp */

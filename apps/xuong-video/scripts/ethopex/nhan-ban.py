@@ -550,7 +550,7 @@ def main(a):
     if thang and (moi or thang not in THANG_MUC): raise SystemExit(f"--thang phải là một trong {sorted(THANG_MUC)} và không đi kèm --creative")
     if moi and not (moi["content"] and moi["ten"]): raise SystemExit("--creative cần kèm --content và --ten")
     roas = float(lay("--roas")) if lay("--roas") else None
-    # NGÂN SÁCH ANH CHỈNH cho bản không bid / sang bộ khác (anh 22/11/2026 "Ngân sách cho điều chỉnh"): chỉ khi anh bấm tay (vé), $1–20 nguyên; thiếu = mặc định cũ ($2 bài cũ · $1 bài mới)
+    # NGÂN SÁCH ANH CHỈNH cho bản không bid / sang bộ khác (anh 22/11/2026 "Ngân sách cho điều chỉnh"): chỉ khi anh bấm tay (vé), $1–20 nguyên; thiếu = mặc định ($10 bài cũ NB từ 22/11/2026 · $1 bài mới)
     ns_tay = int(float(lay("--ns"))) if lay("--ns") and roas is None and not thang else None
     if ns_tay is not None and not (anh and 1 <= ns_tay <= 20): raise SystemExit("--ns cho bản không bid / sang bộ khác chỉ đi cùng vé thao tác tay, $1–20")
     hoi_cho = "--hoi-cho" in a   # ĐỢT LÊN HỒI CHỢ (anh 18/11/2026, apps/etp/hoi_cho.py): nhân bản BÀI CŨ của camp từng lãi trước đợt sụt — gốc tắt vẫn được, BẮT BUỘC bài cũ

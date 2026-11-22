@@ -6,7 +6,7 @@ Phanh chợ nhả (hết den_len của lần phanh gần nhất — etp.canh_bao
      (truoc_ngay ngày trước moc_sut, camp nhà chi ≥ phim.chi, ROI ≥ phim.roi%) → nhan-ban.py <khuôn cùng tiếng> --roas <roas> --ns <ns> --creative … --bo <bộ phim>,
      trần tran_ngay camp / ngày VN, mỗi phim một camp / đợt.
   2. NHÂN BẢN BÀI CŨ — camp từng lãi tốt TRƯỚC đợt sụt (cùng cửa sổ: chi ≥ goc.chi, ROI ≥ goc.roi% — nấc NB $10 / +50%; KHÔNG dùng số gần đây đang âm)
-     → nhan-ban.py <gốc> --hoi-cho --nac ($2 như NB bài cũ, gốc đã tắt vẫn được), trần tran_bai_cu / ngày VN.
+     → nhan-ban.py <gốc> --hoi-cho --nac ($10 như NB bài cũ — anh 22/11/2026, gốc đã tắt vẫn được), trần tran_bai_cu / ngày VN.
 Giờ chạy theo nhan-ban.lich_len. Mọi cổng etp vẫn áp (cong.kiem: dừng khẩn, bảo trì, Âu-Mỹ, phim cất, trần camp test / phim cho bản nhân, trần camp mới / ngày).
 Mỗi creative / gốc chỉ thử MỘT lần mỗi đợt (etp.cau_hinh.hoi_cho_da) — bị cổng chặn thì không gọi lại mỗi nhịp. Camp lên được → etp.canh_bao 'hoi_cho:<camp>' (tin Telegram).
   python3 apps/etp/hoi_cho.py --xem      → trạng thái đợt + ứng viên nhịp này (không tạo gì)

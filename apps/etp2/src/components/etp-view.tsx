@@ -864,7 +864,7 @@ function SuaCamp({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ngan_sach' | 'trang_t
 // SỬA TAY LÀ CHÍNH (ô số tự gõ, ô "ép" bỏ chặn mềm). Đi đúng máy Nhà: lam-ethopex.py / nhan-ban.py (actions/etp-tay.ts), nhật ký luật ghi "anh (etp2)".
 const NB_KIEU: { k: KieuNb['kieu']; ten: string; mo: string }[] = [
   // #1561 (luật Ethopex 11/11/2026 "nhân bản phải kèm used post"): nhan-ban.py cùng bộ tự dùng lại bài đăng camp gốc ($2) — chữ cũ "creative gốc, ngân sách $1" làm anh tưởng máy còn nhân bài mới
-  { k: 'thuong', ten: 'Nhân bản used post', mo: 'Bản sao camp gốc cùng bộ (tài khoản, Page, pixel, nhóm QC) — ad dùng LẠI bài đăng của camp gốc (used post, giữ tương tác), ngân sách $2, giờ chạy do lịch lên camp quyết. Chỉ khi đoạn video đã đủ camp chạy máy mới đổi creative khác cùng phim (bài mới $1). Máy chặn khi camp gốc không bật, phim đã đủ camp chạy, hoặc creative chưa chấm sạch.' },
+  { k: 'thuong', ten: 'Nhân bản used post', mo: 'Bản sao camp gốc cùng bộ (tài khoản, Page, pixel, nhóm QC) — ad dùng LẠI bài đăng của camp gốc (used post, giữ tương tác), ngân sách $10 (anh 22/11/2026), giờ chạy do lịch lên camp quyết. Chỉ khi đoạn video đã đủ camp chạy máy mới đổi creative khác cùng phim (bài mới $1). Máy chặn khi camp gốc không bật, phim đã đủ camp chạy, hoặc creative chưa chấm sạch.' },
   { k: 'thang', ten: 'Thang (bậc cao hơn)', mo: 'Bản used post ở bậc ngân sách cao hơn camp gốc (vd gốc $9 → bản $13), dùng lại bài đăng camp gốc. Camp gốc giữ nguyên.' },
   { k: 'bo', ten: 'Sang bộ tài khoản khác', mo: 'Clone sang bộ tài khoản khác — KHÔNG dùng được used post (bài đăng thuộc Page của bộ gốc) nên đăng bài mới cùng creative camp gốc, $1; bỏ qua các cổng chỉ dành cho nhân trong cùng bộ. Vẫn qua cổng chấm sạch + rào chắn etp.' },
   { k: 'roas', ten: 'Camp ROAS', mo: 'Nhân bản với bid ROAS goal (giá thầu theo ROAS tối thiểu), dùng LẠI bài đăng cũ của camp gốc (giữ tương tác), ngân sách $5–20 (camp mới $5, lãi thì nuôi dần lên). Mức 0.9 / 1 / 1.1, hoặc cặp 0.9 + 1.1 một lần bấm hai camp (Dol 22/11/2026: camp ★ lên mà lãi → nhân thêm 2 camp bid 0.9, 1.1). Nguồn "creative mới" = creative đã duyệt cùng phim chưa có camp, $5–10. Hợp với camp đã chi > $100 mà ROI > 50%, hoặc camp ★ ROAS chi > $10 mà ROI > 50%. Mức ROAS nhập sai = lỗi camp — máy đọc lại, sai thì tạm dừng.' },
@@ -881,7 +881,7 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
   const [xem, setXem] = useState<string | null>(null);
   // giờ chạy (anh 22/11/2026 "thêm các option khác của roas"): theo lịch lên camp · chạy ngay · đặt giờ VN — hai cái sau là lệnh trực tiếp
   const [chay, setChay] = useState<'lich' | 'ngay' | 'gio'>('lich'), [gioDat, setGioDat] = useState('');
-  const [nsTay, setNsTay] = useState('');   // ngân sách không bid / sang bộ — trống = máy đặt ($2 bài cũ · $1 bài mới), anh 22/11/2026 "Ngân sách cho điều chỉnh"
+  const [nsTay, setNsTay] = useState('');   // ngân sách không bid / sang bộ — trống = máy đặt ($10 bài cũ NB · $1 bài mới), anh 22/11/2026 "Ngân sách cho điều chỉnh"
   // ba nhóm việc = ba TAB (YDNI: >2 nhóm thì chia tab, không chồng dọc) · xác nhận NGAY TRONG BẢNG (ui-conventions §3: không confirm() gốc)
   const [tab, setTab] = useState<'tt' | 'ns' | 'nb' | 'ls'>('ns');
   // YDNI (anh 09/11/2026 "sao thiết kế cứ ghi hết chữ ra thế kia"): mọi đoạn hướng dẫn gập sau nút ℹ; lịch sử mỗi thay đổi MỘT dòng, lý do bấm dòng mới mở
@@ -1252,7 +1252,7 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
     c('cc_n', 'Cùng cr', 'nb', nb('cung_cr', 'n'), 'so', 'clone giữ nguyên creative camp gốc (giống hệt)'), c('cc_roi', 'ROI cùng cr', 'nb', nb('cung_cr', 'roi'), 'roi', 'ROI clone giống hệt'),
     c('kc_n', 'Khác cr', 'nb', nb('khac_cr', 'n'), 'so', 'clone đổi sang creative khác cùng phim'), c('kc_roi', 'ROI khác cr', 'nb', nb('khac_cr', 'roi'), 'roi', 'ROI clone đổi creative'),
     // nhân bản BÀI CŨ (anh 11/11/2026): dùng lại bài đăng camp gốc (giữ tương tác, $2) ↔ đăng bài mới — so-luat.py tách theo tên ' bai-cu '
-    c('bc_n', 'Bài cũ', 'nb', nb('bai_cu', 'n'), 'so', 'clone dùng lại bài đăng của camp gốc (Use existing post, $2)'), c('bc_roi', 'ROI bài cũ', 'nb', nb('bai_cu', 'roi'), 'roi', 'ROI clone dùng bài đăng cũ'),
+    c('bc_n', 'Bài cũ', 'nb', nb('bai_cu', 'n'), 'so', 'clone dùng lại bài đăng của camp gốc (Use existing post, $10 từ 22/11/2026)'), c('bc_roi', 'ROI bài cũ', 'nb', nb('bai_cu', 'roi'), 'roi', 'ROI clone dùng bài đăng cũ'),
     c('bm_roi', 'ROI bài mới', 'nb', nb('bai_moi', 'roi'), 'roi', 'ROI clone đăng bài mới (so với bài cũ)'),
     c('g6_roi', 'ROI gốc < $6', 'nb', goc('gốc tiêu < $6/ngày', 'roi'), 'roi', 'ROI clone khi camp gốc tiêu < $6/ngày lúc clone'), c('g14_roi', 'ROI gốc $6–14', 'nb', goc('gốc tiêu $6–14/ngày', 'roi'), 'roi', 'ROI clone khi camp gốc tiêu $6–14/ngày'),
     c('g20_roi', 'ROI gốc ≥ $14', 'nb', goc('gốc tiêu ≥ $14/ngày', 'roi'), 'roi', 'ROI clone khi camp gốc tiêu ≥ $14/ngày'),

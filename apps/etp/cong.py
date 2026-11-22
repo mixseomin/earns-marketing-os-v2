@@ -217,7 +217,9 @@ def phim_chan_len():
 
 # NHÂN BẢN BÀI CŨ (anh 11/11/2026, Dol: "chạy lại post cũ để $2 luôn cũng được" — anh chốt "$2 cho camp dùng bài cũ thắng"): bản nhân bản camp thắng thường
 # dùng LẠI bài đăng của camp gốc (Use existing post, ad chỉ mang effective_object_story_id) được lên tới NS_BAI_CU; mọi camp mới khác vẫn $1.
-NS_BAI_CU = 2
+# NB $10 (anh 22/11/2026, Dol "Camp dup ra, anh có thể để luôn budget ~ 10$ thử" — anh: "duyệt nb vào $10 luôn ko cần nắp"): bản nhân dùng bài cũ lên thẳng $10;
+# nắp camp trẻ / nắp ROI 3 ngày chỉ áp lệnh TĂNG, không áp mức khởi điểm của bản nhân. Camp mới từ creative vẫn $1.
+NS_BAI_CU = 10
 TRAN_TUYET = 30   # trần tuyệt đối $/camp/ngày (anh 14/11/2026) — kiem() chặn trước mọi miễn trừ
 # VÉ THAO TÁC TAY (anh 18/11/2026 "kiểm soát tuyệt đối" — thay cho chữ ai / cờ anh_bam: 17/11 dòng phim gọi nhan-ban --tay lọt 91 camp, 18/11 máy AT ghi ai
 # "anh (chat 05/11/2026: …)" lọt 31 camp — mọi chữ người gọi tự khai đều giả được). Nút người bấm (etp2 · nút Telegram · nút etp) xin MỘT vé ngay lúc bấm
@@ -707,7 +709,7 @@ def _tu_kiem():
     assert ns_tao(_pl(3, ten="X (thang $5 cua 87811) copy"))[0], "chữ thang giữa tên không tính"
     assert ns_tao(_pl(1, g={"is_adset_budget_sharing_enabled": True}))[0] is None, "cờ boolean không phải ngân sách"
     _bc = lambda ns, ad: {"name": "X", "campaign": {"source_payload": {"name": "X", "daily_budget": ns}, "ad_groups": [{"source_payload": {}, "ads": [ad]}]}}
-    assert ns_tao(_bc(2, {"effective_object_story_id": "1_2"})) == (None, 2.0) and ns_tao(_bc(3, {"effective_object_story_id": "1_2"}))[0], "bài cũ tới đúng $2"
+    assert ns_tao(_bc(10, {"effective_object_story_id": "1_2"})) == (None, 10.0) and ns_tao(_bc(11, {"effective_object_story_id": "1_2"}))[0], "bài cũ (NB) tới đúng $10"
     assert ns_tao(_bc(2, {"effective_object_story_id": "1_2", "creative_id": 5}))[0] and ns_tao(_bc(2, {"creative_id": 5}))[0], "có creative mới → vẫn camp mới $1"
     # AT CHỈ DẠNG FREE (anh 19/11/2026) — phá thử: AT cta kien / khong_nut / chưa sổ phải đỏ; AT Free, cảnh thật mẫu Kiên, AT team không sổ qua
     assert ly_at([(1, "ảnh tĩnh", "ảnh tĩnh", "kien", "tv1", True)]) and "kien" in ly_at([(1, "ảnh tĩnh", "ảnh tĩnh", "kien", "tv1", True)]), "AT cta kien phải bị chặn"

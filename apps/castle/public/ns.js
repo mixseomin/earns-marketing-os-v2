@@ -50,6 +50,10 @@ const NEN = await fetch(`./du-lieu/${ten}-nen.json`, { cache: 'no-cache' }).then
 // SÂN TRƯỚC CỔNG theo ảnh trực giao + bề mặt chính thức Bavaria (scripts/san-cong-dop.py, 20/11/2026): { san: đa giác, co: [bồn cỏ], y } — thay sân suy từ tim đường
 const CAY = await fetch(`./du-lieu/${ten}-cay.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // ngọn cây theo tán chính thức (scripts/cay-tu-dom.py)
 const SAN_CONG = await fetch(`./du-lieu/${ten}-san-cong.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+// BỀ MẶT TỪNG Ô LƯỚI ĐẤT theo ảnh trực giao DOP20 + DOM20 − DGM1 (scripts/be-mat-dop20.py, 22/11/2026): c cỏ · r rừng · l nền trơ (nhựa / đá lát / đá trần)
+const BE_MAT = await fetch(`./du-lieu/${ten}-be-mat.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+const beMat = (x, z) => { if (!BE_MAT) return null; const i = Math.floor((x - BE_MAT.x0) / BE_MAT.B), j = Math.floor((z - BE_MAT.z0) / BE_MAT.B);
+  return i >= 0 && j >= 0 && i < BE_MAT.W && j < BE_MAT.H ? BE_MAT.ma[j * BE_MAT.W + i] : null; };
 const CT_DO = await fetch(`./du-lieu/${ten}-chi-tiet-do.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // chi tiết dựng theo đo (so-anh-that.mjs --dung)
 const CHOP = await fetch(`./du-lieu/${ten}-chop.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // chóp / tháp nhỏ OSM không có (scripts/them-chop.mjs)
 const NON_TIA = new URLSearchParams(location.search).get('non_tia') === '0' ? null : await fetch(`./du-lieu/${ten}-non-tia.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null); // đỉnh nón + mũi + chân đo bằng tia ảnh định vị (scripts/non-theo-tia.mjs)
@@ -278,7 +282,18 @@ const NEN_LUOI = (() => {
     }
   }
   sanPhangHoa();
-  return { x0, z0, B, W, H, G, G_GOC, nang, id, sanCong, caoSan };
+  // ĐỈNH TRONG NHÀ KHÔNG CAO HƠN ĐẤT NGOÀI KỀ NÓ (anh 22/11/2026, chiếu sáng mới lộ gò cỏ / mỏm đá dựng sát chân tường: ảnh 13 đất 13,3 m → đỉnh trong nhà 26,5 m,
+  // ảnh 15 đất 14 m → 19,9 m): trong mặt bằng nhà ảnh 3D chỉ thấy mái, lấp / san sân kéo đỉnh đó lên → ô vắt qua chân tường (tâm ngoài nhà, được vẽ) thành dốc
+  // NGOÀI tường. Đỉnh trong nhà kề đỉnh ngoài nhà (8 hướng) hạ về đỉnh ngoài thấp nhất: dốc (nếu có) nằm TRONG tường, bị tường che. Lối đi qua cổng (tsan > 0) giữ.
+  let trongNha = null;
+  { const nhaL = dsKhoi.filter((k) => k.tags.building !== 'courtyard').map((k) => { const xs = k.v.map((p) => p[0]), zs = k.v.map((p) => p[1]); return { v: k.v, a: Math.min(...xs), b: Math.max(...xs), c: Math.min(...zs), d: Math.max(...zs) }; });
+    const trong = new Uint8Array(N); for (let q = 0; q < N; q++) { const x = x0 + (q % W) * B, z = z0 + Math.floor(q / W) * B; trong[q] = nhaL.some((h) => x > h.a && x < h.b && z > h.c && z < h.d && trongDa(x, z, h.v)) ? 1 : 0; }
+    const G1 = G.slice(); let ha = 0;
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const q = id(i, j); if (!trong[q] || tsan[q] > 0) continue; let m = Infinity;
+      for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) continue; const r = id(ii, jj); if (!trong[r]) m = Math.min(m, G1[r]); }
+      if (m < G[q] - 0.05) { G[q] = m; nang[q] = Math.max(nang[q], 0.2); ha++; } }
+    console.info('[ns] đỉnh trong nhà hạ về đất ngoài kề:', ha); trongNha = trong; }
+  return { x0, z0, B, W, H, G, G_GOC, nang, id, sanCong, caoSan, trongNha, tsan };
 })();
 function datThat(x, z) {
   const L = NEN_LUOI; if (!L) return caoDat(x, z) - GOC_Y;
@@ -970,7 +985,7 @@ const duoiThang = (x, z) => THANG.some((d) => d.v.some((p, k) => k + 1 < d.v.len
 if (NEN_LUOI) {
   // chia theo ĐỘ DỐC từng ô (anh 16/11/2026: mỏm đá thành vách lát gạch xám, nhìn giả): dốc > 45° = vách đá tự nhiên (vân bazan sáng, chiếu ngang),
   // thoải = đất rừng có cỏ (như sườn có cây ngoài đời); va chạm vẫn là một lưới chung
-  const L = NEN_LUOI, p = [], uv = [], nhom = { da: { p: [], uv: [] }, co: { p: [], uv: [] }, xay: { p: [], uv: [] } };
+  const L = NEN_LUOI, p = [], uv = [], nhom = { da: { p: [], uv: [] }, co: { p: [], uv: [] }, xay: { p: [], uv: [] }, lat: { p: [], uv: [] } };
   // MÉP NỀN SÂN TRÊN (góp ý #1633): ô lưới cắt ngang mép đa giác sân mà chênh > 1,5 m → các đỉnh TRONG sân hạ xuống mức đỉnh ngoài thấp nhất (khối đất nằm dưới mặt lát
   // phẳng, cắt đúng mép); vách đứng là tường chắn (duong.js tuongSan) — trước ô đó là một mặt dốc đá tự nhiên từ sân trên xuống sân dưới
   const trongSan = SAN_PHANG ? Uint8Array.from({ length: L.W * L.H }, (_, q) => (trongDa(L.x0 + (q % L.W) * L.B, L.z0 + Math.floor(q / L.W) * L.B, SAN_PHANG.v) ? 1 : 0)) : null;
@@ -984,12 +999,16 @@ if (NEN_LUOI) {
     if (trongSan) { const tr = o.map(([a, b]) => trongSan[L.id(a, b)]);
       if (tr.some(Boolean) && !tr.every(Boolean)) { const thap = Math.min(...q.filter((_, k) => !tr[k]).map((v) => v[1])); if (Math.max(...q.map((v) => v[1])) - thap > 1.5) { q.forEach((v, k) => { if (tr[k]) v[1] = thap; }); haMep++; } } }
     const ys = q.map((v) => v[1]), doc = (Math.max(...ys) - Math.min(...ys)) / (L.B * Math.SQRT2), ngang = doc > 1;
-    const g = !ngang ? nhom.co : VUNG_XAY.some((v) => trongDa(L.x0 + (i + 0.5) * L.B, L.z0 + (j + 0.5) * L.B, v)) ? nhom.xay : nhom.da;
+    // vật liệu theo MÀU nhìn từ trên (ảnh trực giao, be-mat.json) trước, độ dốc sau: bồn cỏ dốc / rừng trên sườn vẫn là cỏ (ảnh 15, ảnh 0), nền trơ phẳng là mặt lát
+    // xám (sân nhựa sát chân tường ảnh 13, OSM không có), nền trơ dốc mới là vách đá / tường xây. Thiếu tệp → luật cũ chỉ theo độ dốc.
+    const cx = L.x0 + (i + 0.5) * L.B, cz = L.z0 + (j + 0.5) * L.B, bm = beMat(cx, cz), xanh = bm === 'c' || bm === 'r';
+    const g = xanh || (!bm && !ngang) ? nhom.co : !ngang ? nhom.lat : VUNG_XAY.some((v) => trongDa(cx, cz, v)) ? nhom.xay : nhom.da;
     for (const k of [0, 2, 1, 0, 3, 2]) { p.push(...q[k]); g.p.push(...q[k]); g.uv.push(ngang ? (q[k][0] + q[k][2]) / 6 : q[k][0] / 4, ngang ? q[k][1] / 6 : q[k][2] / 4); }
   }
   if (p.length) {
     // đá vôi xám sáng chia mặt (như vách Pöllat ngoài đời) — vân bazan đen + cỏ xanh đậm trước đó nhìn như đất cháy (anh 16/11/2026)
-    const vlNhom = { da: new THREE.MeshStandardMaterial({ color: '#b3ada2', roughness: 0.95, flatShading: true }), co: new THREE.MeshStandardMaterial({ color: '#7d9256', roughness: 1, flatShading: true }), xay: VL.mong };
+    const vlNhom = { da: new THREE.MeshStandardMaterial({ color: '#b3ada2', roughness: 0.95, flatShading: true }), co: new THREE.MeshStandardMaterial({ color: '#7d9256', roughness: 1, flatShading: true }), xay: VL.mong,
+      lat: new THREE.MeshStandardMaterial({ color: '#9d9a93', roughness: 0.9 }) }; // nền trơ phẳng theo ảnh trực giao: nhựa / đá lát xám (cùng tông mặt đường ô tô)
     for (const [k, gg] of Object.entries(nhom)) { if (!gg.p.length) continue;
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(gg.p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(gg.uv, 2)); g.computeVertexNormals();
       const m = new THREE.Mesh(g, vlNhom[k]); m.receiveShadow = true; scene.add(m); LOP_OSM.push(m); }
@@ -1455,18 +1474,23 @@ function ve(now = 0) { // chạy ở cuối tệp (sau khi khai báo chế độ
 const ANH = await fetch(`./du-lieu/${ten}-anh.json`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
 const M_LAT = 111320, M_LNG = 111320 * Math.cos(D.tam[0] * Math.PI / 180);
 const raMet = (la, ln) => [(ln - D.tam[1]) * M_LNG, -(la - D.tam[0]) * M_LAT];
+// KHUNG CẢNH ≠ KHUNG GPS: cảnh dựng theo mặt bằng OSM, lệch toạ độ thật (Google 3D, DGM1 / DOM20, GPS ảnh Mapillary / Commons) một độ dời ngang — chính độ dời ô 3D
+// trong google3d.json `lech` (OSM nằm 7 m phía tây chỗ thật). Chỗ đứng chụp ảnh là toạ độ THẬT → phải dời cùng độ đó, không thì camera khớp viền bù sai bằng cách
+// tụt xuống dưới đất 3–13 m (ảnh Mapillary sân trước, 22/11/2026). Mọi chỗ đổi lat/lng ảnh ra cảnh dùng raCanh (scripts/khop-camera.mjs gọi qua window.__ns.raCanh).
+const KHUNG_LECH = await fetch('./du-lieu/google3d.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((c) => ({ x: c?.lech?.x ?? 0, z: c?.lech?.z ?? 0 })).catch(() => ({ x: 0, z: 0 }));
+const raCanh = (la, ln) => { const [x, z] = raMet(la, ln); return [x + KHUNG_LECH.x, z + KHUNG_LECH.z]; };
 // ẢNH CHỤP CHIẾU LÊN MÁI + THÁP (chieuanh.js): ảnh so khớp camera tốt nhất (ghi chú khớp tự động, lệch viền ≤ 10 px) → cửa mái, ống khói, chóp, hoa văn trên mái
 // hiện đúng chỗ như ảnh. Chỉ tô chỗ ảnh nhìn thấy; tải nền sau khi cảnh dựng xong
 (async () => {
   // mọi ảnh khớp camera tốt (lệch viền ≤ 10 px) đều chiếu; ảnh chụp GẦN hơn vẽ sau (đè) ở chỗ cùng thấy — nét hơn
   if (!DAN_ANH) return;
   const ds = ANH.map((a, i) => ({ a, i, lech: +(/lệch viền ([\d.]+) px/.exec(a.camera?.ghi_chu || '')?.[1] ?? 999) })).filter((x) => x.a.camera && x.lech <= 10)
-    .map((x) => { const [px, pz] = raMet(x.a.lat, x.a.lng); return { ...x, px, pz, xa: Math.hypot(px + 30, pz - 15) }; }).sort((p, q) => q.xa - p.xa);
+    .map((x) => { const [px, pz] = raCanh(x.a.lat, x.a.lng); return { ...x, px, pz, xa: Math.hypot(px + 30, pz - 15) }; }).sort((p, q) => q.xa - p.xa);
   const nha = LOP_OSM.filter((m) => m.isMesh && m.userData.nha); if (!ds.length || !nha.length) return;
   for (const [k, x] of ds.entries()) {
     const c = x.a.camera, quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(c.pitch, c.yaw, 0, 'YXZ'));
     try {
-      const phu = await taoChieuAnh({ THREE, renderer, anh: { url: `./du-lieu/${x.a.tep}`, w: x.a.rong, h: x.a.cao }, cam: { pos: new THREE.Vector3(x.px, c.y, x.pz), quat, fov: c.fov }, che: nha, nhan: nha, thu: k });
+      const phu = await taoChieuAnh({ THREE, renderer, anh: { url: `./du-lieu/${x.a.tep}`, w: x.a.rong, h: x.a.cao }, cam: { pos: new THREE.Vector3(x.px + (c.dx || 0), c.y, x.pz + (c.dz || 0)), quat, fov: c.fov }, che: nha, nhan: nha, thu: k });
       for (const p of phu) { p.visible = !LOP_OSM.dangAn; scene.add(p); LOP_OSM.push(p); }
       console.info('[ns] chiếu ảnh', x.a.tieuDe, `(cách ${x.xa.toFixed(0)} m, lệch ${x.lech} px) lên`, phu.length, 'lưới nhà');
     } catch (e) { console.warn('[ns] chiếu ảnh lỗi', x.a.tieuDe, e); }
@@ -1479,14 +1503,15 @@ function khungAnh(a) { // khung lớn nhất cùng tỉ lệ ảnh, giữa màn
   return { w: Math.round(w), h: Math.round(h), x: Math.round((innerWidth - w) / 2), y: Math.round((innerHeight - h) / 2) };
 }
 function datCamSo() {
-  const [x, z] = raMet(dangSo.lat, dangSo.lng);
+  const [x0, z0] = raCanh(dangSo.lat, dangSo.lng), x = x0 + (cam.dx || 0), z = z0 + (cam.dz || 0); // dx / dz: bù sai số GPS của chỗ chụp (khop-camera.mjs dò, ±6 m)
+  if (dangSo.cameraDau && cam.y < matDat(x, z) + 0.5) console.warn('[ns] camera ảnh so DƯỚI MẶT ĐẤT', dangSo.tep, `y ${cam.y.toFixed(2)} < đất ${matDat(x, z).toFixed(2)} — chạy lại scripts/khop-camera.mjs`); // ảnh chụp đứng dưới đất = camera khớp sai
   camera.position.set(x, cam.y, z); camera.fov = cam.fov; camera.rotation.set(cam.pitch, cam.yaw, cam.roll || 0, 'YXZ'); camera.updateProjectionMatrix(); // roll: camera giải bằng PnP (scripts/khop-lg.py) có nghiêng máy
   $('so-tt').textContent = `cao ${(cam.y + GOC_Y).toFixed(0)} m (so mặt biển) · quay ${(cam.yaw * 180 / Math.PI).toFixed(1)}° · ngẩng ${(cam.pitch * 180 / Math.PI).toFixed(1)}° · ống kính ${cam.fov.toFixed(1)}°`;
 }
 function moSo(i) {
   if ($('so-than')) $('so-than').style.display = 'block'; // đang so ảnh: bảng mở (có nút Tắt, thanh độ mờ)
   di?.ra(); dangSo = ANH[i]; if (!dangSo) return; for (const r of RUNG) r.visible = false;
-  const [x, z] = raMet(dangSo.lat, dangSo.lng);
+  const [x, z] = raCanh(dangSo.lat, dangSo.lng);
   let yDat = -1e9; for (let dx = -15; dx <= 15; dx += 5) for (let dz = -15; dz <= 15; dz += 5) yDat = Math.max(yDat, caoDat(x + dx, z + dz) - GOC_Y); // đứng trên cầu / mép vực: lấy mặt cao nhất quanh chỗ chụp
   const huong = Math.atan2(-(0 - x), -(0 - z)); // nhìn về tâm lâu đài
   cam = dangSo.camera ? { ...dangSo.camera } : { y: yDat + 1.6, yaw: huong, pitch: Math.atan2(30 - (yDat + 1.6), Math.hypot(x, z)), fov: 30 };
@@ -1522,7 +1547,7 @@ if (ANH.length) {
 }
 addEventListener('resize', () => { if (dangSo) moSo(ANH.indexOf(dangSo)); });
 
-window.__ns = { D, dsKhoi, camera, orbit, caoDat, GOC_Y, scene, renderer, world, RAPIER, di: () => di, toi: () => toi, vaoCong, ANH, moSo, tatSo, thapTia: () => THAP_TIA, cam: () => cam, datCam: (c) => { Object.assign(cam, c); datCamSo(); } };
+window.__ns = { raCanh, D, dsKhoi, camera, orbit, caoDat, GOC_Y, scene, renderer, world, RAPIER, di: () => di, toi: () => toi, vaoCong, ANH, moSo, tatSo, thapTia: () => THAP_TIA, cam: () => cam, datCam: (c) => { Object.assign(cam, c); datCamSo(); } };
 // ---------- cầu Marienbrücke (toạ độ hai đầu từ OpenStreetMap way "Marienbrücke"): sàn + lan can, đứng ngắm lâu đài như ảnh thật
 const CAU = [[47.554991, 10.7492138], [47.5549237, 10.7495946]].map(([la, ln]) => raMet(la, ln));
 {

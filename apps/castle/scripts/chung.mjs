@@ -66,6 +66,9 @@ export async function moTrang({ anh3d = false, them = '', khung = { width: 1600,
   // trangMoi(): thêm một trang cùng trình duyệt, cùng máy chủ (đo nhiều góc song song — cham-goc.mjs)
   const trangMoi = async () => { const pg = await b.newPage({ viewport: khung });
     pg.on('pageerror', (e) => console.log('LỖI TRANG', e.message));
+    // mỗi pg.evaluate TRẢ VỀ = một nhịp (trang còn sống): vòng dò dài không tự gọi nhip() vẫn không bị giết oan (22/11/2026 khop-camera bị giết ở ảnh 18 dù đang dò đều);
+    // trang treo thật thì evaluate không bao giờ trả về → gác vẫn bắt
+    const evGoc = pg.evaluate.bind(pg); pg.evaluate = async (...a) => { const r = await evGoc(...a); nhip(); return r; };
     if (nhanLog) pg.on('console', (m) => { if (m.text().startsWith(nhanLog)) console.log(m.text()); });
     await pg.addInitScript((a) => { try { localStorage.setItem('ns-anh3d', a ? '1' : '0'); localStorage.setItem('ns-anh3d-cong-cu', '1'); localStorage.setItem('ns-dau-thu', '1'); } catch {} }, anh3d);
     nhip('nạp trang'); await pg.goto(`http://127.0.0.1:${cong}/neuschwanstein.html?lau=${encodeURIComponent(LAU)}${them ? '&' + them : ''}`);

@@ -11,11 +11,13 @@
   "giayPhep": "CC BY-SA 3.0",
   "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/3.0",
   "camera": {
-   "y": 60.86,
-   "yaw": 0.0031,
-   "pitch": -0.058,
-   "fov": 25.4,
-   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 3.0 px trên khung 1600 px"
+   "y": 53.73,
+   "yaw": -0.0144,
+   "pitch": -0.018,
+   "fov": 25.15,
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-22): trung vị lệch viền 3.0 px trên khung 1600 px",
+   "dx": 2,
+   "dz": 2
   },
   "nhan": "Cầu Marienbrücke 2011"
  },
@@ -31,11 +33,11 @@
   "giayPhep": "CC BY-SA 3.0 de",
   "giayPhepUrl": "https://creativecommons.org/licenses/by-sa/3.0/de/deed.en",
   "camera": {
-   "y": 57.96,
-   "yaw": 0.0856,
+   "y": 63.21,
+   "yaw": 0.0631,
    "pitch": -0.0441,
    "fov": 28.5,
-   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 22.0 px trên khung 1600 px"
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-22): trung vị lệch viền 5.0 px trên khung 1600 px"
   },
   "nhan": "Cầu Marienbrücke 2013"
  },
@@ -225,11 +227,14 @@
    "fov": 60.8
   },
   "camera": {
-   "y": 17.6,
-   "yaw": -2.0171,
-   "pitch": 0.21,
-   "fov": 60.8,
-   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 73.0 px trên khung 1600 px"
+   "y": 14.92,
+   "yaw": -1.8171,
+   "pitch": 0.245,
+   "fov": 57.8,
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-22): trung vị lệch viền 25.0 px trên khung 1600 px",
+   "dx": 0,
+   "dz": -3,
+   "mat": 1.75
   },
   "ongKinh": {
    "kieu": "perspective",
@@ -265,11 +270,14 @@
    "fov": 35.4
   },
   "camera": {
-   "y": 11.8,
-   "yaw": -3.4731,
-   "pitch": 0.495,
+   "y": 15.95,
+   "yaw": -3.1731,
+   "pitch": 0.48,
    "fov": 35.4,
-   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 12.0 px trên khung 1600 px"
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-22): trung vị lệch viền 12.0 px trên khung 1600 px",
+   "dx": -0.5,
+   "dz": -4,
+   "mat": 1.6
   },
   "ongKinh": {
    "kieu": "perspective",
@@ -304,11 +312,14 @@
    "fov": 48.2
   },
   "camera": {
-   "y": -2.03,
-   "yaw": -2.3578,
-   "pitch": 0,
+   "y": 13.4,
+   "yaw": -2.1578,
+   "pitch": 0.12,
    "fov": 48.2,
-   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 11.0 px trên khung 1600 px"
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-22): trung vị lệch viền 9.0 px trên khung 1600 px",
+   "dx": 0,
+   "dz": 4,
+   "mat": 1.6
   },
   "ongKinh": {
    "kieu": "perspective",
@@ -344,11 +355,14 @@
    "fov": 48.2
   },
   "camera": {
-   "y": -4.74,
-   "yaw": -3.0109,
-   "pitch": -0.03,
+   "y": 12.04,
+   "yaw": -3.2109,
+   "pitch": 0.36,
    "fov": 48.2,
-   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 22.0 px trên khung 1600 px"
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-22): trung vị lệch viền 27.0 px trên khung 1600 px",
+   "dx": -6,
+   "dz": 0,
+   "mat": 1.3
   },
   "ongKinh": {
    "kieu": "perspective",
@@ -405,11 +419,14 @@
    "fov": 57.3
   },
   "camera": {
-   "y": -6.61,
-   "yaw": -3.8236,
+   "y": 7.02,
+   "yaw": -4.0236,
    "pitch": 0.24,
    "fov": 57.3,
-   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 32.0 px trên khung 1600 px"
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-22): trung vị lệch viền 23.0 px trên khung 1600 px",
+   "dx": 4,
+   "dz": 0,
+   "mat": 1.6
   },
   "ongKinh": {
    "kieu": "perspective",
@@ -466,11 +483,14 @@
    "fov": 57.3
   },
   "camera": {
-   "y": -7.56,
+   "y": 6.77,
    "yaw": -2.9902,
-   "pitch": 0.4781,
+   "pitch": 0.24,
    "fov": 56.3,
-   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-15): trung vị lệch viền 13.0 px trên khung 1600 px"
+   "ghi_chu": "khớp tự động bằng viền ảnh thật 3D Google (scripts/khop-camera.mjs, 2026-11-22): trung vị lệch viền 13.0 px trên khung 1600 px",
+   "dx": 4,
+   "dz": 0,
+   "mat": 1.6
   },
   "ongKinh": {
    "kieu": "perspective",

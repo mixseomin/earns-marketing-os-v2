@@ -2508,6 +2508,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
       <span>{c.roas != null ? `★${c.roas}` : '$1'} · ${c.ngan_sach} · {ngay ? 'chạy ngay' : `${String(g!.getUTCHours()).padStart(2, '0')}:${String(g!.getUTCMinutes()).padStart(2, '0')} VN`}</span>
       {x && !x.cta ? <span style={{ color: 'var(--bad, #f31260)' }}>⚠ chưa đạt CTA</span> : x ? <span style={{ color: 'var(--good, #17c964)' }}>✓ CTA</span> : null}
     </span>; };
+  const tenMien = (m: string | null | undefined) => (m ? m.replace(/\.com$/, '') : '—');   // maybic.com → maybic (cột hẹp)
   const cotCay: DataColumn<CampEtpKho>[] = [
     // chữ rê ô camp: tên camp + nghĩa vạch mép trái (đỏ / cam) — #1546: trước nằm ở rowTitle của cả dòng (hộp chữ thô, rê đâu cũng bật); nay ở ô camp, HoverChu dựng thẻ nổi chung
     { key: 'camp', header: 'Phim → camp gốc → bản nhân', align: 'left', width: 260, cellTitle: (c) => { const l = loiNb.get(c.camp_id); const r3 = ngayGan.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d)));
@@ -2533,6 +2534,10 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
     { key: 'tuoi', header: 'Tuổi', width: 52, title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: tuoiTitle, cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)),
       // NÚT ＋ MỞ RỘNG ở dòng PHIM, thẳng một cột (anh 04/11/2026 "phải thẳng cột") — dòng tổng bảng (nhiều phim) không có
       total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <NutMoRong cid={k} cam={rs.find((x) => x.cam)?.cam} /> : null; } },   // ＋ thẳng cột trong cột Tuổi (hẹp 52); đồng hồ các đợt ở ô TT ngay bên trái
+    // MIỀN TRANG ĐÍCH (anh 23/11/2026 "trên page camp, show thêm cột domain"): ad.domain Ethopex, dong-bo.py ghi etp.camp(_ngoai).mien — dòng phim gộp: một miền thì hiện miền đó, nhiều miền thì ghi số miền
+    { key: 'mien', header: 'Miền', align: 'left', width: 84, loc: 'chu', title: 'miền trang đích của camp (domain ad trên Ethopex) — lọc 🔍 theo chữ; trống = máy chưa đọc chi tiết ad', cellTitle: (c) => c.mien ?? 'chưa đọc miền',
+      cell: (c) => tenMien(c.mien), sortValue: (c) => c.mien ?? '',
+      total: (rs) => { const m = [...new Set(rs.filter((x) => x.camp_id > 0 && x.mien).map((x) => x.mien as string))]; return m.length === 1 ? <span title={m[0]}>{tenMien(m[0])}</span> : m.length > 1 ? <span title={m.join(' · ')}>{m.length} miền</span> : null; } },
     { key: 'ns', header: 'Ngân sách', align: 'left', width: 106, loc: 'so', title: 'ngân sách $/ngày — rê xem lịch sử bậc', cell: (c) => <BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach,
       total: (rs) => { const t = rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0);   // $0 mờ · ≥ $20 đậm sáng (anh 28/10/2026)
         return <span title="tổng ngân sách/ngày camp đang bật" style={{ display: 'inline-block', width: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: t >= 20 ? 'var(--fg)' : 'var(--fg-2)', fontWeight: t >= 20 ? 700 : 400, opacity: t ? 1 : 0.45 }}>${t}</span>; } },   // cùng ô 30px canh phải với $ của camp (anh 29/10/2026 #1476 "thò thụt")

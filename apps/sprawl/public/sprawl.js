@@ -520,4 +520,15 @@ renderer.setAnimationLoop(() => {
     if (!lan && tk.o) { lan = 1; $('nap').style.display = 'none'; } }
 });
 addEventListener('resize', datCo);
-window.__sprawl = { RAPIER, world, scene, camera, orbit, renderer, dsTiles, tk, datTai, datMuot, rs, n2, get di() { return di; }, get xe() { return xe; } };
+// bộ đo khung va (2f nhịp A): thả tia Rapier từ trên mặt từng công trình xuống, mặt nào tia không chạm đúng độ cao = công trình nhìn thấy mà xuyên qua được.
+// Đo bằng tia Rapier chứ không bằng tia three.js vì người + đồ phố vẽ bằng shader instanced, tia three.js không thấy hình thật.
+function kiemVa({ buoc = 4, lech = 0.6 } = {}) {
+  const ra = { caoToc: { thu: 0, truot: [] }, cau: { thu: 0, truot: [] }, vaGan: rs?.tk.vaGan ?? 0 };
+  const tha = (x, y, z) => { const t = world.castRay(new RAPIER.Ray({ x, y: y + 3, z }, { x: 0, y: -1, z: 0 }), 6, true, RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC | RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC); return t ? y + 3 - t.timeOfImpact : null; };
+  if (n2?.goc.visible) for (const [a, c] of (n2.cao || []).entries()) for (let i = 0; i < c.P.length; i += buoc) { ra.caoToc.thu++;
+    const y = tha(c.P[i][0], c.y[i], c.P[i][1]); if (y == null || Math.abs(y - c.y[i]) > lech) ra.caoToc.truot.push({ a, i, x: Math.round(c.P[i][0]), z: Math.round(c.P[i][1]), can: +c.y[i].toFixed(1), cham: y == null ? null : +y.toFixed(1) }); }
+  if (rs?.tk.vaCau) for (const [k, c] of rs.song.cau.entries()) { if (!c.va) continue; const v = c.va;
+    for (const f of [-0.4, 0, 0.4]) { ra.cau.thu++; const x = v.x + v.dx * v.L * f, z = v.z + v.dz * v.L * f, y = tha(x, v.y + 0.7, z);
+      if (y == null || Math.abs(y - (v.y + 0.7)) > lech) ra.cau.truot.push({ k, f, can: +(v.y + 0.7).toFixed(1), cham: y == null ? null : +y.toFixed(1) }); } }
+  ra.dat = !ra.caoToc.truot.length && !ra.cau.truot.length; return ra; }
+window.__sprawl = { RAPIER, world, scene, camera, orbit, renderer, dsTiles, tk, datTai, datMuot, rs, n2, kiemVa, get di() { return di; }, get xe() { return xe; } };

@@ -1686,4 +1686,14 @@ export const LUAT = [
   { card: 'qc-adsense-camp-2311', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'columns={cotPh} groups={[...NHOM, NHOM_QC]}', vi: 'bảng phim có nhóm cột QC trang' },
   { card: 'qc-adsense-camp-2311', tep: 'apps/etp2/src/components/etp-view.tsx', co: '<BieuDoQc chuoi={chuoiQc(', vi: 'thẻ camp có biểu đồ IRPM / fill theo ngày so với chợ' },
   { card: 'qc-adsense-camp-2311', tep: 'apps/etp2/src/lib/etp-quyen.ts', co: "'soNgay', 'qcCho',", vi: 'chợ QC theo ngày được giữ cho vai người (số chợ, không lộ camp nhà)' },
+  // KÉO HẾT REPORT VỀ KHO (anh 23/11/2026 "cơ bản là kéo hết về"): ad × nước × ngày đủ cột đếm / tiền + chiều của ad có lịch sử đổi
+  { card: 'keo-het-report-2311', tep: 'apps/etp/dong-bo.py', co: '"group_by": ["ad_id", "geo", "date"], "filters": {"campaign_id": camp}', vi: 'fact kéo ở hạt ad × nước × ngày, lọc đủ camp để cổng chia lô khi một ngày > 10.000 dòng' },
+  { card: 'keo-het-report-2311', tep: 'apps/etp/dong-bo.py', co: '"ad_requests", "impressions", "conversions_rt", "clicks", "error_count", "all_traffic", "pre_revenue", "chn_revenue"]', vi: 'đủ 17 cột đếm / tiền của report, không lưu cột tỉ lệ' },
+  { card: 'keo-het-report-2311', tep: 'apps/etp/dong-bo.py', co: 'BC_KEM = {"external_campaign_id", "campaign_link", "external_account_id"}', vi: 'ba cột report tự trả kèm không được xin trong columns (403 column not allowed)' },
+  { card: 'keo-het-report-2311', tep: 'apps/etp/dong-bo.py', co: 'if dau and dau > BC_TU and time.time() - t0 < 420:', vi: 'lấp ngược từng mẩu về 19/10, bỏ mẩu khi lượt đồng bộ đã dài (không vượt nhịp timer)' },
+  { card: 'keo-het-report-2311', tep: 'apps/etp/dong-bo.py', mot: 'def bc_ghi(', vi: 'một hàm ghi kho report theo ad (gần nhất + lấp ngược dùng chung)' },
+  { card: 'keo-het-report-2311', tep: 'packages/db/migrations/0462_etp_bc_ad.sql', co: 'if coalesce(b->>k, \'\') = \'\' then', vi: 'dòng report thiếu chiều (JSON null / rỗng) không xoá chiều đã có của ad' },
+  { card: 'keo-het-report-2311', tep: 'packages/db/migrations/0462_etp_bc_ad.sql', co: 'if old.ngay_cuoi is not null and new.ngay_cuoi < old.ngay_cuoi then', vi: 'lấp ngược ngày cũ không đè chiều mới nhất của ad' },
+  { card: 'keo-het-report-2311', tep: 'packages/db/migrations/0462_etp_bc_ad.sql', co: 'insert into etp.bc_ad_doi (ad_id, cot, cu, moi)', vi: 'chiều của ad đổi thì ghi lịch sử từng cột' },
+  { card: 'keo-het-report-2311', tep: 'packages/db/migrations/0462_etp_bc_ad.sql', co: 'from etp.bc_ad_ngay f left join etp.bc_ad a using (ad_id)', vi: 'view bc_v: fact × chiều + tỉ lệ tính lại từ số đếm' },
 ];

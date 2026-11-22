@@ -498,6 +498,10 @@ function vuong(a, x, z, g, xT, zT, gT) {
         // Trần cứng 2,5 lần mức sượt: trong trần đó được cạ trượt qua nhau (thân xoay theo đường cong lún thêm vài mm là
         // thật), vượt trần là chặn — nên không bao giờ thành xuyên. Đòi "không sâu thêm 1 mm nào" là hai xe cắt nhau khoá chết.
         if (o0 <= CHAM * 2.5 && o <= CHAM * 2.5) continue;
+        // Xe máy kẹt lâu (> 3 s) len qua xe máy khác: hai xe máy VN lách sát, gương sượt gương — cho thân chồng tới 0,3 m
+        // khi đang TIẾN tới (không lùi, không bị đẩy). Thay nước lùi / dắt dạt ngang đã bỏ (anh 22/11/2026); không có nước
+        // này lòng ngã tư khoá cứng khi đông (link anh gửi: 35 xe kẹt lòng).
+        if (a.loai === 'xm' && j.loai === 'xm' && (a.ket > 3 || a.lui > 0) && o <= 0.3 && o0 <= 0.3) continue;
         vuongJ = j; return true;
       }
     }
@@ -786,7 +790,12 @@ function buocXe(a, dt) {
     // xe trước trong khi nửa đường bên cạnh bỏ trống (anh 22/11/2026 khoanh ảnh). Chỉ nhích trong quãng tới vạch dừng.
     if (neThoat) vt = Math.max(vt, Math.min(xm ? 0.9 : 0.5, vDen));
   }
-  if (a.lui > 0) { a.lui -= dt; vt = 0; if (a.lui <= 0 && a.luiDuoc === 0) a.camLui = 6; } // đang lùi nhường lối: không tiến lại vào chỗ vừa chừa
+  // xe máy đứng kẹt giữa lòng ngã tư > 6 s (thường là vòng chờ nhau): bỏ khoảng giữ đuôi, bò lên 0,6 m/s — thân chỉ được
+  // sượt xe máy khác tới 0,3 m (chốt va chạm), không lùi, không trượt ngang. Thay nước lùi gỡ vòng đã bỏ.
+  if (xm && a.trongNga && a.ket > 6) vt = Math.max(vt, 0.6);
+  // xe máy không lùi: lượt "lùi nhường" của nó thành lượt len lên chỗ hở phía trước, sượt gương xe máy bên cạnh
+  if (a.lui > 0 && xm) { a.lui -= dt; vt = Math.max(vt, 0.8); if (a.lui <= 0) a.camLui = 3; }
+  else if (a.lui > 0) { a.lui -= dt; vt = 0; if (a.lui <= 0 && a.luiDuoc === 0) a.camLui = 6; } // đang lùi nhường lối: không tiến lại vào chỗ vừa chừa
   if (a.camLui > 0) a.camLui -= dt;
   const ac = (xm ? 2.6 : a.loai === 'bus' ? 1.0 : 1.8) * (a.ket > 1 ? 1.8 : a.trongNga && f0 > 4 ? 1.5 : 1); // có chỗ thoát khỏi lòng ngã tư → tăng tốc gấp
   a.sp = vt > a.sp ? Math.min(vt, a.sp + ac * dt) : Math.max(vt, a.sp - 9 * dt);

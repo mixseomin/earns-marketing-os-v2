@@ -4,7 +4,7 @@
 // ngoài 07–12h VN hẹn 07:00). Loại = cham_duyet ok=false. Không tự lên khi chưa bấm — view chặn mọi đường lên camp khác.
 
 import { openSync, readFileSync } from 'node:fs';
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { envVe, xinVeTrucTiep } from '@/lib/etp-ve';
 import { chuGio, daQua, gioVn } from '@/lib/etp-nb';   // giờ VN dùng chung với nhân bản ★ ROAS bài cũ (etp-tay.ts)
 import { sql } from 'drizzle-orm';
@@ -89,8 +89,10 @@ export async function dsCrMoiCamp(campId: number): Promise<{ cr: number; lang: s
 }
 
 /** o.khuon = camp ★ đang chạy làm KHUÔN (cùng bộ, cùng phim): ★ ROAS creative mới mức o.roas · $o.ns — từ nút nhân bản ★ ROAS "creative mới" */
-export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: number; ns: number; khuon: number } | null): Promise<KqNut> {
-  const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được lên camp' };
+type LenhNb = { args: string[]; lenh: string; ro: { roas: number; ns: number } | null; content: number; g: string | null };
+/** MỘT chỗ dựng lệnh nhan-ban cho ▶ Lên — nút lên thật (lenNgayCr, thêm --that) và 👁 xem trước (xemTruocLen, thêm --xem-truoc) đi CÙNG lệnh này,
+ *  nên cái anh xem trước đúng là cái sẽ gửi Ethopex (anh 22/11/2026 "tao cần xem mọi thứ mày sẽ submit thì mới gọi là review") */
+async function lenhNb(cr: number, gio?: string | null, o?: { roas: number; ns: number; khuon: number } | null): Promise<LenhNb | { loi: string }> {
   const id = Math.trunc(Number(cr)), g = gioVn(gio);
   if (gio && !g) return { loi: `giờ không đọc được: "${gio}" — dạng YYYY-MM-DD HH:MM giờ VN` };
   if (g && daQua(g)) return { loi: `giờ ${g} VN đã qua — chọn giờ sau bây giờ` };
@@ -111,14 +113,35 @@ export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: num
   }
   const lang = x.lang === 'es' ? 'es' : 'en', ro = o ? { roas: o.roas, ns: o.ns } : x.roas && x.ns ? { roas: Number(x.roas), ns: Math.trunc(Number(x.ns)) } : null;
   const lenh = o ? `anh bấm nhân bản ★ ROAS ${o.roas} creative mới #${id} từ camp #${o.khuon} trên etp2 (${chuGio(g)})` : `anh bấm ▶ Lên ngay creative #${id} trên etp2 (${chuGio(g)})`;
-  const v = await xinVeTrucTiep('tao_camp', { content: x.content_id, lenh, ns: ro?.ns ?? 1 });
-  if (!('ma' in v)) return v;
   const ten = `duyet ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - ${ro ? 'cr moi' : 'creative'} #${id}`;   // spawn không qua shell — chỉ chữ ASCII
+  return { lenh, ro, content: Number(x.content_id), g, args: ['nhan-ban.py', String(o ? Math.trunc(Number(o.khuon)) : KHUON_CR[lang]), ...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), '--tay', ...(o ? [] : ['--bo', String(x.bo)]), '--creative', String(id),   // khuôn ★: không --bo → giữ bộ camp khuôn
+    '--content', String(x.content_id), '--ten', ten, ...(g ? ['--gio', g] : [])] };
+}
+
+export async function lenNgayCr(cr: number, gio?: string | null, o?: { roas: number; ns: number; khuon: number } | null): Promise<KqNut> {
+  const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được lên camp' };
+  const L = await lenhNb(cr, gio, o); if ('loi' in L) return L;
+  const id = Math.trunc(Number(cr)), { ro, g, lenh } = L;
+  const v = await xinVeTrucTiep('tao_camp', { content: L.content, lenh, ns: ro?.ns ?? 1 });
+  if (!('ma' in v)) return v;
   const log = openSync(`/tmp/etp-len-cr-${id}.log`, 'a');
-  spawn('python3', ['nhan-ban.py', String(o ? Math.trunc(Number(o.khuon)) : KHUON_CR[lang]), ...(ro ? ['--roas', String(ro.roas), '--ns', String(ro.ns)] : []), '--tay', ...(o ? [] : ['--bo', String(x.bo)]), '--creative', String(id),   // khuôn ★: không --bo → giữ bộ camp khuôn
-    '--content', String(x.content_id), '--ten', ten, ...(g ? ['--gio', g] : []), '--that', '--luat', lenh, '--ai', `anh (etp2 ${me.email})`],
-    { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
+  spawn('python3', [...L.args, '--that', '--luat', lenh, '--ai', `anh (etp2 ${me.email})`], { cwd: DIR_NB(), detached: true, stdio: ['ignore', log, log], env: envVe(v.ma) }).unref();
   return { ok: true, chu: `đã gửi lệnh lên ${ro ? `★ ROAS ${ro.roas} · $${ro.ns}` : 'camp $1'} — ${chuGio(g)}` };
+}
+
+export type XemTruoc = { ten: string | null; chay: string | null; canh: string[]; payload: Record<string, unknown> } | { loi: string };
+/** 👁 XEM TRƯỚC ▶ Lên: nhan-ban chạy KHÔ (--xem-truoc, cấm đi cùng --that) đúng lệnh của nút → payload THẬT sẽ POST /api/v1/campaigns/facebook + cổng sẽ bỏ qua.
+ *  Không tạo gì, không cấp vé; chỉ đọc khuôn + danh sách camp Ethopex. */
+export async function xemTruocLen(cr: number, gio?: string | null): Promise<XemTruoc> {
+  const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin' };
+  const L = await lenhNb(cr, gio); if ('loi' in L) return L;
+  const out = await new Promise<string>((ok) => execFile('python3', [...L.args, '--xem-truoc'], { cwd: DIR_NB(), timeout: 240_000, maxBuffer: 8 << 20 },
+    (e, so, se) => ok(String(so || '') + (e && !so ? `\n{"loi": ${JSON.stringify(String(se || e.message).trim().split('\n').slice(-3).join(' · ').slice(0, 400))}}` : ''))));
+  const t = out.trim().split('\n').reverse().find((l) => l.startsWith('{'));
+  if (!t) return { loi: `nhan-ban không trả kết quả: ${out.slice(-300)}` };
+  const j = JSON.parse(t) as { loi?: string | null; ten?: string; chay_luc?: string; gio_roas?: string; gio_anh?: string; canh?: string[]; payload?: Record<string, unknown> };
+  if (!j.payload) return { loi: j.loi || 'nhan-ban chạy khô không ra payload' };
+  return { ten: j.ten ?? null, chay: j.gio_anh ?? j.gio_roas ?? j.chay_luc ?? null, canh: j.canh ?? [], payload: j.payload };
 }
 
 /** camp ĐÃ đẩy lên Ethopex, còn chờ giờ chạy: Ethopex không sửa được start_time Ad Set → nhan-ban tạo camp MỚI đúng giờ anh đặt rồi TẠM DỪNG camp cũ (--thay-cho) */

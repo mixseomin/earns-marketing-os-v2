@@ -223,7 +223,7 @@ export async function docEtp(ng?: string, nhe = false): Promise<DuLieuEtp> {
   const d = await docEtpDu(ng);
   if (!nhe) return d;
   // etp2 09/11/2026 "sửa load chậm": creative (2,6 MB / 3.475 dòng) bản nhẹ chỉ giữ creative của camp + thư viện bản nhẹ; đủ bộ tải bù khi mở tab Creative / Thư viện
-  const tv = d.thuVien.filter(tvCay), crCan = new Set<number>([...d.camps.map((c) => c.creative_id), ...tv.map((v) => v.creative_id)].filter((x): x is number => x != null));
+  const tv = d.thuVien.filter(tvCay), crCan = new Set<number>([...d.camps.map((c) => c.creative_id), ...(d.hangCr ?? []).map((c) => c.creative_id), ...tv.map((v) => v.creative_id)].filter((x): x is number => x != null));
   return { ...d, nhe: true, pheu: [], diemCham: {}, dangSx: [], thuVien: tv, creatives: d.creatives.filter((c) => crCan.has(c.creative_id)),
     cham: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { ...c, lop: {}, diem: {}, ly_do: {}, khung: {} }])) };
 }
@@ -598,7 +598,8 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const daLam = (await qDaLam).map((r) => ({ camp_id: n(r.camp_id), viec: r.viec, ma: luatDaLam(r.viec, r.luat), maSo: maLuat(r.viec, r.luat), luc: String(r.luc), ngay: String(r.ngay) }));
   const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi, phot, tieuChi, cham, chamHang, roasChay, viecSx, choCamp] = await qBaoCham;
   // creative đã chấm / có phốt mà không còn ở camp nào (camp đã thay creative khác) vẫn phải hiện ở Quét nội dung — lấy thẳng từ etp.creative
-  const thieu = [...new Set([...cham.map((r) => n(r.creative_id)), ...phot.map((r) => n(r.creative_id))])].filter((id) => id && !crMap.has(id));
+  // + creative dòng CHỜ ANH DUYỆT (hangCr): chưa camp nên không vào crMap từ cs — thiếu thì ô creative trống (anh 22/11/2026 "Tao cần xem cả creative !!")
+  const thieu = [...new Set([...cham.map((r) => n(r.creative_id)), ...phot.map((r) => n(r.creative_id)), ...hangCr.map((c) => c.creative_id!)])].filter((id) => id && !crMap.has(id));
   if (thieu.length) {
     const ds = await run<Record<string, unknown>>(sql`select c.creative_id, c.content_id, p.ten phim, p.the_loai, c.dang, ${banCr('c.creative_id', 'c.dang')} ban, ${giongCr('c.creative_id')} giong, c.doan, c.tu, c.den, c.lang, c.cta_dat, c.tu_choi, c.video, coalesce(nullif(c.anh, ''), (select a.anh from etp.anh_cr a where a.creative_id = c.creative_id)) anh
       from etp.creative c left join etp.phim p on p.content_id = c.content_id where c.creative_id = any(${`{${thieu.join(',')}}`}::int[])`);

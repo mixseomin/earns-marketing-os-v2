@@ -546,7 +546,11 @@ def main(a):
     # LỆNH TRỰC TIẾP TỪ NÚT ETP2 (anh 22/11/2026 "nút bấm Lên ngay = Tao ra lệnh sao phải xin mày ?"): vé TRỰC TIẾP của đúng camp gốc / phim → chạy ngay (today) hoặc đúng
     # giờ anh đặt (--gio, giờ VN) thay cho khung lich_len; không có vé thì --gio / --thay-cho bị từ chối. Camp trực tiếp không áp lịch giờ TẮT (lich_ap).
     gio, cu = lay("--gio"), lay("--thay-cho")
-    truc = bool(CONG.truc_tiep("tao_camp" if moi else "nhan_ban", [] if moi else [goc], moi["content"] if moi else None))
+    # 👁 XEM TRƯỚC (etp2 xemTruocLen — anh 22/11/2026 "tao cần xem mọi thứ mày sẽ submit thì mới gọi là review"): chạy KHÔ đúng đường vé trực tiếp của nút ▶ Lên
+    # (cổng chỉ cảnh báo, cùng giờ chạy) để in payload THẬT sẽ gửi — cấm đi cùng --that, nên không bao giờ tạo camp.
+    xem_truoc = "--xem-truoc" in a
+    if xem_truoc and that: raise SystemExit("--xem-truoc là chạy khô — không đi cùng --that")
+    truc = xem_truoc or bool(CONG.truc_tiep("tao_camp" if moi else "nhan_ban", [] if moi else [goc], moi["content"] if moi else None))
     if (gio or cu) and not truc: raise SystemExit("--gio / --thay-cho chỉ đi cùng vé TRỰC TIẾP (ETP_VE từ nút etp2, cong.py --ve-truc-tiep)")
     if truc: lich = "today" if not gio or (dt.datetime.strptime(gio.strip()[:16], "%Y-%m-%d %H:%M") - dt.timedelta(hours=7)).date() == dt.datetime.now(dt.timezone.utc).date() else "tomorrow"
     ep = "--ep" in a and bool(lay("--bo")); mien_cham = "--mien-cham" in a   # clone sang bộ khác theo lệnh anh — xem docstring

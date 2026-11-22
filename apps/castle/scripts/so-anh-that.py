@@ -460,8 +460,12 @@ def dung(xn, xn_thua, thay=(), tep=TEP_DUNG):
     Cộng dồn: chi tiết đã dựng thì lượt sau hết THIẾU → không còn trong xn nhưng vẫn giữ; chỉ gỡ khi THỪA xác nhận đúng chỗ (dựng nhầm).
     Gặp lại chỗ đã có → hợp đoạn (ảnh mới thấy thêm phần mặt). SAI_NHIP chỉ sửa nhịp dãy do chính sổ này dựng (dãy viết tay trong mattien: báo, không dựng chồng)."""
     so = json.loads(tep.read_text()) if tep.exists() else {'muc': []}; muc = so['muc']; moi = sua = go_ = giu = 0
+    def dau_muc(o):  # dấu so sánh: số chuẩn về float làm tròn mm (0 với 0.0, nhiễu dấu phẩy động không tính là đổi)
+        if isinstance(o, dict): return {k: dau_muc(v) for k, v in sorted(o.items())}
+        if isinstance(o, list): return [dau_muc(v) for v in o]
+        return round(float(o), 3) if isinstance(o, (int, float)) and not isinstance(o, bool) else o
     def doi_cua(m, x):  # đổi loại cửa KÈM cỡ của cùng lượt đo (loại mới, cỡ cũ = lỗ không có thật: cửa vào 0,52 m 21/11/2026) rồi chốt bằng ngưỡng chung
-        m['cua'] = x['cua']; m.update({k: x[k] for k in ('w', 'h', 'y0', 'y1') if x.get(k) is not None}); doc_mat.chot_cua(m)
+        m['cua'] = x['cua']; m.update({k: x[k] for k in ('w', 'h', 'y0', 'y1', 'doan') if x.get(k) is not None}); doc_mat.chot_cua(m)  # đoạn = bề rộng ô → đổi cỡ phải đổi đoạn
     def tim(x):
         y = x.get('y', (x.get('y0', 0) + x.get('y1', 0)) / 2)
         return next((m for m in muc if doc_mat.cung_cho({**m, 'loai': 'THIẾU'}, {**x, 'loai': 'THIẾU'}, y)), None)
@@ -471,18 +475,22 @@ def dung(xn, xn_thua, thay=(), tep=TEP_DUNG):
     for x in xn:
         if x['chi_tiet'] not in LOAI_DUNG or not x.get('doan'): continue
         if x['chi_tiet'] == 'dãy' and x.get('y0') is not None and la_hang_cua(x): continue
-        m = tim(x)
+        m = tim(x); truoc = dau_muc(m) if m else None
+        doi = lambda: int(dau_muc(m) != truoc)  # chỉ tính "cập nhật" khi mục THẬT SỰ đổi: ghi đè cùng giá trị mỗi vòng làm vòng không bao giờ khép (22/11/2026: 10 vòng "2 cập nhật" mà sổ y nguyên)
         if x['loai'] == 'SAI_NHIP':
-            if m and m['chi_tiet'] == 'dãy': m['p'] = x['p']; sua += 1
+            if m and m['chi_tiet'] == 'dãy': m['p'] = x['p']; sua += doi()
             continue
         if x['loai'] == 'SAI_LOAI':  # cửa vào ↔ cửa sổ: lỗ do sổ dựng → đổi loại; lỗ viết tay trong mattien → chỉ báo (như dãy viết tay SAI_NHIP)
-            if m and m['chi_tiet'] == 'lỗ' and x.get('cua'): doi_cua(m, x); sua += 1
+            if m and m['chi_tiet'] == 'lỗ' and x.get('cua'): doi_cua(m, x); sua += doi()
             else: print(f"      ⚠ SAI_LOAI lỗ viết tay {x['khoi']} y {x.get('y0')}–{x.get('y1')} m: ảnh {x.get('cua')} · mô hình {x.get('cua_mh')} — sửa bố cục trong mattien.js")
             continue
         if m:
-            m['doan'] = doc_mat.hop_doan(m['doan'], x['doan'])
+            # lỗ: đoạn = BỀ RỘNG lỗ (mattien đặt lỗ giữa đoạn) → ảnh còn báo THIẾU đúng chỗ = lỗ trong sổ đặt lệch: dời về chỗ ảnh đo, không hợp đoạn
+            # (hợp đoạn làm đoạn nở 5,85–6,92 m với lỗ 0,35 m → lỗ dựng ở 6,2–6,6 trong khi ảnh thấy 6,48–6,88, THIẾU mãi — 22/11/2026 Palas #23)
+            if m['chi_tiet'] == 'lỗ' and x['loai'] == 'THIẾU': m['doan'] = x['doan']; m.update({k: x[k] for k in ('y0', 'y1', 'w', 'h') if x.get(k) is not None}); m['y'] = round(x.get('y', (m['y0'] + m['y1']) / 2), 2)
+            else: m['doan'] = doc_mat.hop_doan(m['doan'], x['doan'])
             if x.get('cua') and x['so_anh'] >= m['so_anh']: doi_cua(m, x)  # loại cửa theo lượt nhiều ảnh hơn
-            m['so_anh'] = max(m['so_anh'], x['so_anh']); m['anh'] = sorted(set(m['anh']) | set(x['anh'])); sua += 1; continue
+            m['so_anh'] = max(m['so_anh'], x['so_anh']); m['anh'] = sorted(set(m['anh']) | set(x['anh'])); sua += doi(); continue
         y = x.get('y', (x.get('y0', 0) + x.get('y1', 0)) / 2)
         muc.append({k: v for k, v in {'chi_tiet': x['chi_tiet'], 'loai': LOAI_DUNG[x['chi_tiet']], 'khoi': x['khoi'], 'y': round(y, 2), 'y0': x.get('y0'), 'y1': x.get('y1'), 'p': x.get('p'),
                                        'w': x.get('w'), 'h': x.get('h'), 'cua': x.get('cua'), 'doan': x['doan'], 'so_anh': x['so_anh'], 'anh': x['anh']}.items() if v is not None}); doc_mat.chot_cua(muc[-1]); moi += 1
@@ -497,8 +505,23 @@ def dung(xn, xn_thua, thay=(), tep=TEP_DUNG):
     # dãy trong sổ mà ≥ 2 ảnh thấy là HÀNG CỬA (≥ 2 lỗ chiếm ≥ nửa dải, cùng cạnh) → dựng nhầm từ bộ dò cũ: gỡ (dải đá vắt ngang cửa che ô cửa → THIẾU lỗ mãi)
     for m in [m for m in muc if m['chi_tiet'] == 'dãy' and la_hang_cua(m)]: muc.remove(m); go_ += 1
     so.update({'ghi': 'sinh bởi scripts/so-anh-that.py --dung (bước dựng) — chi tiết THIẾU xác nhận ≥ 2 ảnh; mattien.js datChiTietDo dựng; không sửa tay', 'nguong': doc_mat.NGUONG, 'muc': muc})
+    for m in muc: doc_mat.chuan_lo(m)  # sổ không bao giờ ghi lỗ tự mâu thuẫn (h ≠ y1 − y0, đoạn rộng hơn ô)
     tep.write_text(json.dumps(so, ensure_ascii=False, indent=1)); print(f"   BƯỚC DỰNG: +{moi} chi tiết mới · {sua} cập nhật · {go_} gỡ (THỪA thắng phiếu) · {giu} giữ (ảnh thấy ≥ ảnh THỪA) → {len(muc)} trong sổ {tep}")
     return moi, sua, go_
+
+
+def da_dung(x, tep=TEP_DUNG):
+    """chi tiết ảnh báo THIẾU / SAI mà sổ ĐÃ dựng đúng chỗ đó: áp lại vào sổ không đổi gì → mô hình đã có, chỉ là ảnh chụp mô hình không lộ
+    (gờ 0,22 m cùng màu tường, không nắng → bộ dò dải trên ảnh mô hình không bắt; ảnh thật thấy nhờ bóng). Trước 22/11/2026 tính là còn thiếu →
+    'THIẾU gờ Palas #23 y 43,6' báo mãi dù sổ có, mã thoát CHƯA XONG mãi trong khi sổ đã khép. Không khớp mục nào trong sổ (dãy viết tay…) → vẫn thiếu."""
+    if not tep.exists() or x['chi_tiet'] not in LOAI_DUNG or not x.get('doan'): return False
+    so = json.loads(tep.read_text()); y = x.get('y', (x.get('y0', 0) + x.get('y1', 0)) / 2)
+    if not any(doc_mat.cung_cho({**m, 'loai': 'THIẾU'}, {**x, 'loai': 'THIẾU'}, y) for m in so['muc']): return False
+    import tempfile, io, contextlib
+    with tempfile.TemporaryDirectory() as td:
+        st = pathlib.Path(td) / 's.json'; st.write_text(json.dumps(so, ensure_ascii=False))
+        with contextlib.redirect_stdout(io.StringIO()): moi, sua, _ = dung([x], [], tep=st)
+    return moi + sua == 0
 
 
 MA_KEM, MA_CHUA_XONG = 1, 3
@@ -555,13 +578,15 @@ def chay(thu_goc, nhan, lam_dung=False):
         if khoi_thua: print('   KHỐI GÂY THỪA: ' + ', '.join(f'{k} ({n} ảnh)' for k, n in sorted(khoi_thua.items(), key=lambda kv: -kv[1])))
     # CHI TIẾT MẶT gộp mọi ảnh: cùng chỗ thấy trên ≥ 2 ảnh = xác nhận (một ảnh = nghi: bóng đổ / người đứng / camera lệch)
     g = doc_mat.gop(ds_ct); (thu / 'chi-tiet.json').write_text(json.dumps(g, ensure_ascii=False, indent=1))
-    xn = [x for x in g if x['so_anh'] >= 2]; thieu_chon = [x for x in xn if x['khoi'] in chon and x['loai'] in ('THIẾU', 'SAI_NHIP', 'SAI_LOAI')]
+    xn = [x for x in g if x['so_anh'] >= 2]
     print(f"   CHI TIẾT MẶT: {len(xn)} chỗ xác nhận (≥ 2 ảnh), {len(g) - len(xn)} nghi → {thu / 'chi-tiet.json'}")
     for x in xn[:40]:
         cho = f"y {x['y']:.1f} m" if x['chi_tiet'] == 'gờ' else f"y {x['y0']:.1f}–{x['y1']:.1f} m"
         print(f"      {x['loai']} {x['chi_tiet']}{' ' + x['cua'] if x.get('cua') else ''} {x['khoi']} {cho}" + (f" nhịp {x['p']} m" + (f" (mô hình {x['p_mh']})" if x.get('p_mh') else '') + f" dài {x['dai_m']} m" if x['chi_tiet'] == 'dãy' else '')
               + (f" mặt {','.join(x['mat'][:3])}" if x['mat'] else '') + f" · {x['so_anh']} ảnh")
     if lam_dung: dung(xn, [x for x in doc_mat.gop(ds_thua) if x['so_anh'] >= 2], ds_thay)
+    con = [x for x in xn if x['khoi'] in chon and x['loai'] in ('THIẾU', 'SAI_NHIP', 'SAI_LOAI')]; thieu_chon = [x for x in con if not da_dung(x)]
+    if len(con) > len(thieu_chon): print(f"   ✓ {len(con) - len(thieu_chon)} chi tiết ảnh báo thiếu mà sổ đã dựng đúng chỗ đó (mô hình có, ảnh chụp mô hình chưa lộ — gờ cùng màu tường, không nắng): không tính còn thiếu")
     if thieu_chon: print(f"   ✗ khối đang làm còn {len(thieu_chon)} chi tiết THIẾU / SAI NHỊP đã xác nhận")
     # mã thoát: 1 = KÉM ĐI (cổng đỏ, trả sổ) · 3 = CHƯA XONG (còn THIẾU đã xác nhận → vòng kế dựng tiếp, KHÔNG phải hỏng) · 0 = xong
     # 21/11/2026 gộp chung mã 1 → lam-mat 18/18 ảnh đạt vẫn trả sổ vì 'còn 12 chi tiết THIẾU'
@@ -591,8 +616,24 @@ def tu_kiem():
         lo_ = lambda **k: {'chi_tiet': 'lỗ', 'khoi': 'k', 'y0': 0, 'y1': 2.0, 'y': 1.0, 'doan': [{**dn, 't0': 2, 't1': 2.6}], **k}
         for w_moi, cua_ra in ((0.8, 'cua_vao'), (0.5, 'cua_so')):
             st.write_text(json.dumps({'muc': [{**lo_(w=0.52, h=2.0, cua='cua_so'), 'loai': 'lo', 'so_anh': 2, 'anh': []}]}))
-            dung([{**lo_(w=w_moi, h=2.0, cua='cua_vao'), 'loai': 'SAI_LOAI', 'so_anh': 2, 'anh': ['a', 'b']}], [], tep=st); m0 = json.loads(st.read_text())['muc'][0]
+            dung([{**lo_(w=w_moi, h=2.0, cua='cua_vao'), 'doan': [{**dn, 't0': 2.3 - w_moi / 2, 't1': 2.3 + w_moi / 2}], 'loai': 'SAI_LOAI', 'so_anh': 2, 'anh': ['a', 'b']}], [], tep=st); m0 = json.loads(st.read_text())['muc'][0]
             ok((m0['cua'], m0['w']) == (cua_ra, w_moi), f"SAI_LOAI → cửa vào, cỡ mới {w_moi} m → sổ {cua_ra}, rộng {w_moi}: {(m0['cua'], m0['w'])}")
+        import io, contextlib, re
+        # 0e. lỗ trong sổ đặt lệch (đoạn nở rộng), ảnh báo THIẾU lỗ hẹp đúng chỗ → sổ dời lỗ về chỗ ảnh, không nở thêm
+        st.write_text(json.dumps({'muc': [{**lo_(w=0.35, h=0.8, cua='cua_so'), 'doan': [{**dn, 't0': 5.85, 't1': 6.92}], 'loai': 'lo', 'so_anh': 3, 'anh': []}]}))
+        with contextlib.redirect_stdout(io.StringIO()): dung([{**lo_(w=0.35, h=0.8, cua='cua_so'), 'doan': [{**dn, 't0': 6.48, 't1': 6.83}], 'loai': 'THIẾU', 'so_anh': 2, 'anh': ['a', 'b']}], [], tep=st)
+        d0 = json.loads(st.read_text())['muc'][0]['doan'][0]; ok((d0['t0'], d0['t1']) == (6.48, 6.83), f"lỗ lệch → dời về chỗ ảnh 6.48–6.83: {(d0['t0'], d0['t1'])}")
+        # 0d. gặp lại ĐÚNG mục đã có → 0 cập nhật (vòng khép được); ảnh mới thấy thêm đoạn → 1 cập nhật
+        import io, contextlib, re
+        for t1, n_ra in ((5, 0), (7, 1)):
+            st.write_text(json.dumps({'muc': [{**g_(33.15), 'loai': 'go', 'so_anh': 2, 'anh': ['a', 'b']}]}))
+            with contextlib.redirect_stdout(io.StringIO()) as f_: dung([{**g_(33.15), 'doan': [{**dn, 't1': t1}], 'loai': 'THIẾU', 'so_anh': 2, 'anh': ['a', 'b']}], [], tep=st)
+            n = int(re.search(r'(\d+) cập nhật', f_.getvalue()).group(1)); ok(n == n_ra, f"gặp lại gờ (đoạn tới {t1} m) → {n_ra} cập nhật: {n}")
+        # 0f. ảnh báo THIẾU đúng chỗ sổ đã dựng (áp lại không đổi) = đã dựng, không tính còn thiếu; chỗ khác / đoạn dài hơn / sổ không có → vẫn thiếu
+        st.write_text(json.dumps({'muc': [{**g_(33.15), 'loai': 'go', 'so_anh': 2, 'anh': ['a', 'b']}]}))
+        x_ = lambda y, t1=5: {**g_(y), 'doan': [{**dn, 't1': t1}], 'loai': 'THIẾU', 'so_anh': 2, 'anh': ['a', 'b']}
+        kq_ = (da_dung(x_(33.15), tep=st), da_dung(x_(33.15, 7), tep=st), da_dung(x_(36.0), tep=st), da_dung(x_(33.15), tep=pathlib.Path(td) / 'khong.json'))
+        ok(kq_ == (True, False, False, False), f"THIẾU trùng mục sổ đã dựng → đã dựng; đoạn dài hơn / chỗ khác / không sổ → còn thiếu: {kq_}")
     # 0. mặt ngang sát tường (mặt trên phào nhô 0,14 m) thuộc mặt tường; mặt ngang sâu trong khối là mái
     bv = BanDo([{'id': 'vuong', 'v': [[0, 0], [10, 0], [10, 10], [0, 10]]}]); nh = bv.mat(np.array([[5.0, 20, -0.14], [5.0, 20, 0.3], [5.0, 20, 5.0], [5.0, 20, 0.3]]), np.array([True, True, True, False]))
     ok(list(nh) == ['vuong#0', 'vuong#0', 'vuong#mái', 'vuong#0'], f"mặt trên phào / bậu → cạnh tường, giữa khối → mái: {list(nh)}")

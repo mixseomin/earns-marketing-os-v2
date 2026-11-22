@@ -391,6 +391,22 @@ def cung_cho(g, x, y):
     return True
 
 
+def chuan_lo(g):
+    """lỗ trong sổ phải TỰ KHỚP: h = y1 − y0, đoạn (một khúc) = bề rộng ô. Bản ghi lệch → chỉnh theo đúng cái mattien đang dựng
+    (tâm đứng (y0+y1)/2 cao h, tâm ngang giữa đoạn rộng min(w, đoạn)) nên nhìn không đổi; ảnh đo vòng sau dời tiếp nếu ô sai chỗ.
+    Gốc: gop cũ lấy y0/y1 của ảnh đầu + h trung vị + hợp đoạn (52/85 lỗ sổ lệch, 22/11/2026)."""
+    if g.get('chi_tiet') != 'lỗ' or g.get('y0') is None or g.get('y1') is None: return g
+    yc = (g['y0'] + g['y1']) / 2
+    if g.get('h') is not None and abs(g['h'] - (g['y1'] - g['y0'])) > 0.01: g['y0'], g['y1'] = round(yc - g['h'] / 2, 2), round(yc + g['h'] / 2, 2)
+    g['h'] = round(g['y1'] - g['y0'], 2); g['y'] = round((g['y0'] + g['y1']) / 2, 2)
+    d = g.get('doan') or []
+    if len(d) == 1 and g.get('w'):
+        L = d[0]['t1'] - d[0]['t0']; w = min(g['w'], L); tc = (d[0]['t0'] + d[0]['t1']) / 2
+        if L - w > 0.01: g['doan'] = [{**d[0], 't0': round(tc - w / 2, 2), 't1': round(tc + w / 2, 2)}]
+        g['w'] = round(w, 2)
+    return g
+
+
 def chot_cua(g):
     """loại và cỡ phải cùng một lỗ: 'cua_vao' mà cỡ (trung vị gộp / cỡ mới ghi vào sổ) dưới ngưỡng cửa đi → 'cua_so'. Gộp nhiều ảnh và cập nhật sổ đều gọi hàm này"""
     if g.get('cua') == 'cua_vao' and (g.get('w', 0) < NGUONG['cua_w'] or g.get('h', 0) < NGUONG['cua_h']): g['cua'] = 'cua_so'
@@ -405,18 +421,30 @@ def gop(ds):
         for g in nhom:
             if cung_cho(g, x, y):
                 g['anh'].add(anh); g['tin'] = max(g['tin'], x['tin']); g['mat'] = sorted(set(g['mat']) | set(x.get('mat', []))); g['doan'] = hop_doan(g.get('doan', []), x.get('doan', []))
-                for k in ('w', 'h', 'cua'):
+                for k in ('w', 'h', 'cua', 'y0', 'y1'):
                     if k in x: g['_' + k].append(x[k])
+                g['_tam'] += [(d['canh'], (d['t0'] + d['t1']) / 2, d) for d in x.get('doan', [])[:1]]
                 break
-        else: nhom.append({**x, 'y': round(y, 2), 'anh': {anh}, 'mat': x.get('mat', []), 'doan': x.get('doan', []), **{'_' + k: [x[k]] if k in x else [] for k in ('w', 'h', 'cua')}})
+        else: nhom.append({**x, 'y': round(y, 2), 'anh': {anh}, 'mat': x.get('mat', []), 'doan': x.get('doan', []), '_tam': [(d['canh'], (d['t0'] + d['t1']) / 2, d) for d in x.get('doan', [])[:1]],
+                           **{'_' + k: [x[k]] if k in x else [] for k in ('w', 'h', 'cua', 'y0', 'y1')}})
     for g in nhom:
         g['so_anh'] = len(g['anh']); g['anh'] = sorted(g['anh'])
-        for k in ('w', 'h'):
+        for k in ('w', 'h', 'y0', 'y1'):
             v = g.pop('_' + k)
             if v: g[k] = round(float(np.median(v)), 2)
+        tam = g.pop('_tam')
+        # LỖ là một ô có kích thước: mỗi ảnh đo một bản → mọi số lấy trung vị, rồi suy ra cho khớp nhau (h = y1 − y0, đoạn = tâm ± w/2).
+        # Trước: y0/y1 của ảnh ĐẦU, h trung vị, đoạn = HỢP các ảnh → bản ghi tự mâu thuẫn (Palas #23 22/11/2026: y 47,57–48,39 mà h 1,66, đoạn nở 5,85–6,92 với w 0,35
+        # → mattien dựng ô cao 47,15–48,81 lệch ngang, ảnh báo THIẾU mãi). Gờ / dãy giữ hợp đoạn (dải dài, mỗi ảnh thấy một khúc).
+        if g['chi_tiet'] == 'lỗ' and 'y0' in g and 'y1' in g:
+            g['h'] = round(g['y1'] - g['y0'], 2); g['y'] = round((g['y0'] + g['y1']) / 2, 2)
+            if tam:
+                c = max(sorted({t[0] for t in tam}), key=[t[0] for t in tam].count); ts = [t for t in tam if t[0] == c]; tc = float(np.median([t[1] for t in ts]))
+                w = g.get('w') or float(np.median([t[2]['t1'] - t[2]['t0'] for t in ts]))
+                g['doan'] = [{**ts[0][2], 't0': round(tc - w / 2, 2), 't1': round(tc + w / 2, 2), 'ra': round(float(np.median([t[2].get('ra', 0) for t in ts])), 3)}]
         v = g.pop('_cua')
         if v: g['cua'] = max(sorted(set(v)), key=v.count)  # đa số ảnh; hoà thì 'cua_so' (chữ cái trước) — không khoét tường khi ảnh chưa chắc
-        chot_cua(g)
+        chot_cua(g); chuan_lo(g)
     return sorted(nhom, key=lambda g: (-g['so_anh'], -g['tin']))
 
 
@@ -513,6 +541,13 @@ def tu_kiem():
     ok(len(g) == 1 and g[0]['cua'] == 'cua_so' and g[0]['w'] == 0.5, f"ba ảnh cùng nói cửa đi nhưng rộng gộp 0,5 m < ngưỡng → cua_so: {[(x.get('cua'), x.get('w')) for x in g]}")
     g = gop([(n, {'loai': 'THIẾU', 'chi_tiet': 'lỗ', 'khoi': 'k', 'y0': 0, 'y1': 2.4, 'tin': 0.5, 'cua': 'cua_vao', 'w': 1.1, 'h': 2.4, 'doan': [{'canh': 0, 't0': 3, 't1': 4.2, 'ra': 0}]}) for n in 'ab'])
     ok(len(g) == 1 and g[0]['cua'] == 'cua_vao', f"hai ảnh cửa đi 1,1 × 2,4 m → giữ cua_vao: {[x.get('cua') for x in g]}")
+    # lỗ hai ảnh đo hai bản → một ô tự khớp: y0/y1 trung vị, h = y1 − y0, đoạn = tâm trung vị ± w/2 (không hợp đoạn)
+    g = gop([(n, {'loai': 'THIẾU', 'chi_tiet': 'lỗ', 'khoi': 'k', 'y0': a0, 'y1': a1, 'tin': 0.5, 'cua': 'cua_so', 'w': 0.35, 'h': a1 - a0, 'doan': [{'canh': 0, 't0': t0, 't1': t0 + 0.4, 'ra': 0}]})
+             for n, a0, a1, t0 in (('a', 47.57, 48.39, 6.48), ('b', 47.5, 49.0, 6.1))])
+    x = g[0] if len(g) == 1 else {}; ok(x.get('h') == round(x.get('y1', 0) - x.get('y0', 0), 2) and abs(x['doan'][0]['t1'] - x['doan'][0]['t0'] - 0.35) < 0.011,
+                                         f"lỗ gộp tự khớp (h = y1 − y0, đoạn = w): {[(x.get('y0'), x.get('y1'), x.get('h'), x.get('doan'))]}")
+    c = chuan_lo({'chi_tiet': 'lỗ', 'y0': 47.57, 'y1': 48.39, 'h': 1.66, 'w': 0.35, 'doan': [{'canh': 23, 't0': 5.85, 't1': 6.92}]})
+    ok((c['y0'], c['y1'], c['h'], c['doan'][0]['t0'], c['doan'][0]['t1']) == (47.15, 48.81, 1.66, 6.21, 6.56), f"chuan_lo giữ đúng hình đang dựng, bản ghi tự khớp: {c}")
     # vệt tối ảnh 1,6 m (hai ô cửa nhoè thành một) phủ lên ô cửa 0,6 m mô hình đã có ở mép cụm: tâm ngoài đệm 0,3 m nhưng hộp chồng → LỆCH, không THIẾU
     # (không dựng ô thứ hai đè lên ô đã có); hộp rời hẳn → vẫn THIẾU
     A6 = {'day': [], 'bang': [], 'lo': [cv(1.0, 2.6, 7, 1.6)], 'du': np.ones(R, bool)}; M6 = {'day': [], 'bang': [], 'lo': [cv(1.0, 2.6, 8.3, 0.6)], 'du': np.ones(R, bool)}

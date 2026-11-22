@@ -235,14 +235,14 @@
    "fov": 60.8
   },
   "camera": {
-   "dx": 0,
-   "dz": 0,
+   "dx": -1,
+   "dz": -6,
    "mat": 1.6,
-   "y": 15.79,
-   "yaw": -1.7171,
+   "y": 14.73,
+   "yaw": -1.6,
    "pitch": 0.1,
    "fov": 60.8,
-   "ghi_chu": "ít trời (14 % cột) → không dò viền, camera theo la bàn + GPS Mapillary (scripts/khop-camera.mjs, 2026-11-22)"
+   "ghi_chu": "GPS Mapillary rơi vào dải dốc cây trong bóng (DOP20), ảnh là sân nhựa phẳng: dời 6 m bắc 1 m tây tới sân phẳng DOM20 ≈ đất, hướng chỉnh theo chân tường (2026-11-22)"
   },
   "ongKinh": {
    "kieu": "perspective",

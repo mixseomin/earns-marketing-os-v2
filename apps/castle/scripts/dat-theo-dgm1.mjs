@@ -3,6 +3,7 @@
 // của Bayerische Vermessungsverwaltung (CC BY 4.0, scripts/tai-bayern.sh). Lý do: so-dat-dgm1.mjs đo sân trước cổng đông trong mô hình thấp hơn thật 8,7 m, sân dưới
 // 3,7 m (lưới Google bẹp quanh cổng) trong khi sân trên đúng (+0,7 m). Mỗi điểm [x, z] giữ nguyên, y mới = mặt chính thức tại (x + 7, z + 1) − mốc cảnh ↔ DHHN2016
 // (mốc của scripts/sua-theo-dom20.mjs, du-lieu-goc/bayern/so-chieu-cao.json): chỗ đất trống (DOM20 − DGM1 < 0,7 m) lấy DOM20 (sân lát, bậc), còn lại lấy DGM1 (dưới cây / nhà).
+// Đã thử 22/11/2026 lấy cả DOM20 "phẳng" cao hơn DGM1 dưới 6 m: sân ảnh 13 thành mặt gồ ghề (gỗ xếp, pallet trên DOM20) — bỏ, đừng thử lại.
 // Neo sân (sua.json "<id sân>".neo_mat_dat) cũng lấy lại theo cùng nguồn.
 //   node apps/castle/scripts/dat-theo-dgm1.mjs [--ghi]
 // tra-repo-ok: đổi nguồn số đo của tệp dữ liệu riêng; đọc GeoTIFF bằng tifffile (venv đo ảnh).

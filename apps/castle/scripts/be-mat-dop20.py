@@ -3,8 +3,8 @@
 Lý do: ns.js chọn vật liệu lưới đất mịn CHỈ theo độ dốc (dốc > 45° = vách đá, còn lại = cỏ) → bồn cỏ dốc trước tháp (ảnh 15) thành mỏm đá xám, sân nhựa sát chân tường
 (ảnh 13) thành cỏ, rừng dưới chân lâu đài (ảnh 0) thành đá. Ngoài đời thứ phân biệt là MÀU nhìn từ trên, không phải độ dốc.
 Mỗi ô (cùng lưới neuschwanstein-nen.json: hop, buoc) lấy trung vị 7 × 7 điểm ảnh quanh tâm ô:
-  c = cỏ (chỉ số xanh lá ExG > 18, tán thấp) · r = rừng (xanh + DOM − DGM > 2,5 m) · l = nền trơ (nhựa / đá lát / đá trần — ns.js: phẳng = mặt lát, dốc = vách đá)
-  bóng tối (độ sáng < 55) → theo đa số ô kề đã biết; không có → theo DOM − DGM (> 2,5 m rừng, còn lại cỏ)
+  c = cỏ (chỉ số xanh lá chuẩn hoá (2G − R − B) / (R + G + B) > 0,09 — đúng cả trong bóng râm, tán thấp) · r = rừng (xanh + DOM − DGM > 2,5 m) · l = nền trơ (nhựa / đá lát / đá trần — ns.js: phẳng = mặt lát, dốc = vách đá)
+  bóng tối đặc (độ sáng < 30) → theo đa số ô kề đã biết; không có → theo DOM − DGM (> 2,5 m rừng, còn lại cỏ)
 Ghi public/du-lieu/<lâu>-be-mat.json { x0, z0, B, W, H (số ô), ma: chuỗi W × H ký tự, hàng z tăng dần }.
   ~/.venvs/castle-khop/bin/python apps/castle/scripts/be-mat-dop20.py [--anh ra.png]
 tra-repo-ok: phân loại raster bằng numpy, cùng phép đổi toạ độ với scripts/san-cong-dop.py."""
@@ -22,9 +22,13 @@ for j in range(H):
         if not (4 <= a < 4996 and 4 <= b < 4996): continue
         px = dop[a - 3:a + 4, b - 3:b + 4, :3].reshape(-1, 3).astype(float); r_, g_, b_ = np.median(px, axis=0)
         h = float(np.median(dom[a - 3:a + 4, b - 3:b + 4])) - float(dgm[int(5269000 - N), int(E - 631000)]); cao[j, i] = h
-        exg = 2 * g_ - r_ - b_
-        if (r_ + g_ + b_) / 3 < 55: ma[j, i] = 's'
-        elif exg > 18: ma[j, i] = 'r' if h > 2.5 else 'c'
+        # ExG CHUẨN HOÁ theo độ sáng: cỏ trong bóng râm (48, 59, 52) chỉ ExG 18 tuyệt đối → trước xếp nhầm nền trơ = gò đá xám trước ảnh 15/16.
+        # Mẫu đo: cỏ bóng râm 0,096–0,12 · cỏ nắng ~0,23 · đường nhựa bóng râm 0,056–0,077 · mái đá xám trong bóng cũng ~0,05 nên KHÔNG hạ ngưỡng theo độ cao
+        exg = (2 * g_ - r_ - b_) / max(r_ + g_ + b_, 1)
+        # Đã thử 23/11/2026: dải trong bóng ExG 0,09–0,12 (nhựa bóng tường ảnh 13 (55, 65, 58) ExG 0,096 lẫn cỏ bóng râm ảnh 15/16) cho ô kề 5 × 5 phân xử,
+        # rồi cả theo độ dốc DGM1 — 174 ô đổi, gò cỏ ảnh 15/16 thành đá, sườn rừng 40–50° thành nền trơ, dải xanh ảnh 13 chỉ bớt chút. Màu DOP20 không tách được, đừng thử lại.
+        if (r_ + g_ + b_) / 3 < 30: ma[j, i] = 's'
+        elif exg > 0.09: ma[j, i] = 'r' if h > 2.5 else 'c'
         else: ma[j, i] = 'l'
 for _ in range(6):   # bóng tối: đa số ô kề đã biết
     O = ma.copy()

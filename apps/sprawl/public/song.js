@@ -3,6 +3,7 @@
 // tra-repo-ok: mã dán keo nội bộ, dựng trên dữ liệu quy hoạch + tháp đã có
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { TL, batTang, luoiTuyen, kiem } from './khop.js';
 
 const _m = new THREE.Matrix4(), _p = new THREE.Vector3(), _d = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(1, 1, 1), _t = new THREE.Vector3();
 const LEN = new THREE.Vector3(0, 1, 0);
@@ -108,14 +109,20 @@ export function taoSong({ goc, ql, dsThap }) {
   for (const m of [thanTau, kinhTau, socTau]) { m.frustumCulled = false; goc.add(m); }
 
   // ---------- cầu nối + vườn treo giữa các tháp gần nhau ----------
-  const cau = []; const daCo = new Set();
+  // luật khớp: cầu đặt trên một sàn tầng thật của tháp thấp hơn (chân mọi tháp trên lưới tầng chung → cùng sàn ở tháp kia, cầu nằm ngang),
+  // nối MẶT tháp tới mặt tháp (không xuyên tâm), nhịp ≤ cauMax, không đi xuyên tháp thứ ba, không quá 85% chiều cao tháp nào.
+  const cau = []; const daCo = new Set(), dDoan = (x, z, a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], l = dx * dx + dz * dz, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / l)); return Math.hypot(x - a[0] - t * dx, z - a[1] - t * dz); };
   for (const [i, a] of dsThap.entries()) {
-    let tot = -1, dMin = 240;
-    for (const [j, b] of dsThap.entries()) { if (j === i) continue; const d = Math.hypot(a.t.o[0] - b.t.o[0], a.t.o[1] - b.t.o[1]); if (d < dMin) { dMin = d; tot = j; } }
+    let tot = -1, hMin = Infinity;
+    for (const [j, b] of dsThap.entries()) { if (j === i) continue; const nhip = Math.hypot(a.t.o[0] - b.t.o[0], a.t.o[1] - b.t.o[1]) - a.R - b.R;
+      if (nhip > TL.cauMax || nhip >= hMin) continue;
+      if (dsThap.some((c, k) => k !== i && k !== j && dDoan(c.t.o[0], c.t.o[1], a.t.o, b.t.o) < c.R + 5)) continue;
+      hMin = nhip; tot = j; }
     if (tot < 0) continue; const k = Math.min(i, tot) + '-' + Math.max(i, tot); if (daCo.has(k)) continue; daCo.add(k);
-    const b = dsThap[tot], hMin = Math.min(a.t.caoSpire, b.t.caoSpire);
-    for (const f of hMin > 220 ? [0.32, 0.56] : [0.42]) cau.push({ a, b, y: hMin * f });
+    const b = dsThap[tot], hThap = Math.min(a.than, b.than);
+    for (const f of hThap > 200 ? [0.32, 0.56] : [0.42]) cau.push({ a, b, y: batTang(hThap * f) });
   }
+  const khop = { tong: 0, luat: {} }; // bộ đếm luật khớp, cập nhật mỗi lần đất dựng lại (redspires.tk.khop trỏ cùng đối tượng)
   const vCau = new THREE.MeshStandardMaterial({ color: '#8f8578', roughness: 0.8, metalness: 0.1 });
   const vKinhCau = new THREE.MeshStandardMaterial({ color: '#41525c', roughness: 0.1, metalness: 0.75, transparent: true, opacity: 0.75 });
   const vLa = new THREE.MeshStandardMaterial({ color: '#4f7a3e', roughness: 0.95 });
@@ -130,9 +137,11 @@ export function taoSong({ goc, ql, dsThap }) {
   function datCau() {
     let r = 0;
     for (const [i, c] of cau.entries()) {
-      const ax = c.a.t.o[0], az = c.a.t.o[1], bx = c.b.t.o[0], bz = c.b.t.o[1], y = Math.min(c.a.y0 ?? 0, c.b.y0 ?? 0) + c.y;
-      const L = Math.hypot(bx - ax, bz - az); _d.set(bx - ax, 0, bz - az).normalize(); huong(_d, _q);
-      _p.set((ax + bx) / 2, y, (az + bz) / 2);
+      const ax = c.a.t.o[0], az = c.a.t.o[1], bx = c.b.t.o[0], bz = c.b.t.o[1], yA0 = c.a.y0 ?? 0, yB0 = c.b.y0 ?? 0;
+      const y = Math.max(yA0, yB0) + c.y; c.yA = y - yA0; c.yB = y - yB0; c.ra = c.a.rTai(c.yA); c.rb = c.b.rTai(c.yB); // cùng sàn ở cả hai tháp
+      const D = Math.hypot(bx - ax, bz - az); _d.set(bx - ax, 0, bz - az).normalize(); huong(_d, _q);
+      const ga = c.ra - 0.8, gb = c.rb - 0.8, L = D - ga - gb; // mặt tới mặt, ngập 0,8 m vào thân cho kín mối nối
+      _p.set(ax + _d.x * (ga + L / 2), y - 0.7, az + _d.z * (ga + L / 2)); // sàn cầu dày 1,4 m, MẶT sàn đúng cao độ sàn tầng
       _s.set(9, 1, L); sanCau.setMatrixAt(i, _m.compose(_p, _q, _s));
       _s.set(7.5, 1, L); kinhCau.setMatrixAt(i, _m.compose(_p, _q, _s));
       _s.set(8.6, 1, L * 0.82); vuonCau.setMatrixAt(i, _m.compose(_p, _q, _s));
@@ -142,6 +151,10 @@ export function taoSong({ goc, ql, dsThap }) {
     }
     _s.set(1, 1, 1);
     for (const m of [sanCau, kinhCau, vuonCau, ruCau]) m.instanceMatrix.needsUpdate = true;
+    const k = kiem(luoiTuyen(ql), {
+      thap: dsThap.map((d) => ({ x: d.t.o[0], z: d.t.o[1], r: d.R, y0: d.y0 ?? 0, cao: d.t.caoSpire, rong: 2 * d.R })),
+      cau: cau.map((c) => ({ ax: c.a.t.o[0], az: c.a.t.o[1], ra: c.ra, bx: c.b.t.o[0], bz: c.b.t.o[1], rb: c.rb, yA: c.yA, yB: c.yB, yAbs: (c.a.y0 ?? 0) + c.yA, yBabs: (c.b.y0 ?? 0) + c.yB, caoA: c.a.than, caoB: c.b.than })) });
+    khop.tong = k.tong; khop.luat = k.luat; khop.vd = k.vd;
   }
 
   // ---------- đất dựng xong: dò lại độ cao các tuyến + cầu + sương ----------
@@ -181,5 +194,5 @@ export function taoSong({ goc, ql, dsThap }) {
     }
     thanTau.instanceMatrix.needsUpdate = kinhTau.instanceMatrix.needsUpdate = socTau.instanceMatrix.needsUpdate = true;
   }
-  return { datLai, khung, uT, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau, vuonCau, ruCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length } };
+  return { datLai, khung, uT, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau, vuonCau, ruCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length, khop } };
 }

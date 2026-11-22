@@ -4,6 +4,7 @@
 // Nhà PLATEAU giữ nguyên bố cục thật, khoác chất liệu xanh xám; nhà thật ≥ 90 m bị khoét bỏ trong shader để tháp đỏ đứng thay.
 import * as THREE from 'three';
 import { taoSong } from './song.js';
+import { TL, batTang } from './khop.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const MAU_NGUOI = ['#2b2f36', '#4a3b33', '#c9b8a0', '#6d7f8c', '#8a3b2e', '#d8d2c4', '#3e5566', '#9b8a6a'];
@@ -187,8 +188,11 @@ function taoBo(ms, n, R, r) {
 
 // một tháp đỏ hoàn chỉnh (thân + ban công + đỉnh + chi tiết nhìn gần), gốc toạ độ ở chân.
 // Mesh mang userData.va = khung va chạm (ẩn, ít đỉnh) — dungVa gộp thành một trimesh mỗi tháp để đứng / leo được.
-function dungThap(R, H, gen, r, vKim) {
+// vMax: bán kính ngoài cùng được phép (thân + ban công) — dấu chân luật khớp; thân phình quá thì thu cả hồ sơ lại cho vừa.
+const BC_MAX = 5; // ban công rộng nhất (đài kính trên cùng 3–5 m)
+function dungThap(R, H, gen, r, vKim, vMax = R * TL.vetDo) {
   const g = new THREE.Group(), hs = dungHoSo(R, H, gen.dang, r);
+  { const k = Math.min(1, (vMax - BC_MAX) / hs.rMax); if (k < 1) { for (const v of hs.p) v.x *= k; hs.rC *= k; hs.rMax *= k; } }
   gen.than = hs.than;
   const va = (geo, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo); m.visible = false; m.userData.va = true; m.position.set(x, y, z); g.add(m); return m; };
   const vT = vatThap(gen), vBC = new THREE.MeshStandardMaterial({ color: new THREE.Color(gen.mau).multiplyScalar(0.72), roughness: 0.85, side: THREE.DoubleSide });
@@ -203,19 +207,19 @@ function dungThap(R, H, gen, r, vKim) {
   const nBC = 2 + ((r() * 4) | 0), dsBC = [];
   for (let k = 0; k < nBC; k++) {
     const cuoi = k === nBC - 1 && r() < 0.65;
-    const y = cuoi ? hs.than * (0.9 + r() * 0.04) : hs.than * (0.22 + 0.62 * (k + 0.3 + r() * 0.4) / nBC);
+    const y = Math.min(batTang(hs.than * 0.94) - TL.tang, batTang(cuoi ? hs.than * (0.9 + r() * 0.04) : hs.than * (0.22 + 0.62 * (k + 0.3 + r() * 0.4) / nBC))); // sàn ban công = sàn tầng thật
     const rv = hs.rTai(y), rong = cuoi ? 3 + r() * 2 : 1.8 + r() * 1.8, ro = rv + rong, mv = r() < 0.35 ? vV : vBC;
     const kieu = cuoi ? 'kinh' : chon(r, ['lan', 'lan', 'kinh', 'tuong']);
     dsBC.push(y);
     const gSan = new THREE.CylinderGeometry(ro, ro, 0.5, 72);
     const san = new THREE.Mesh(gSan, mv); san.position.y = y; g.add(san); va(gSan, 0, y, 0);
     if (kieu === 'lan') {
-      for (const yy of [1.15, 0.6]) { const t = new THREE.Mesh(new THREE.TorusGeometry(ro - 0.1, yy > 1 ? 0.07 : 0.045, 4, 96), vKim); t.rotation.x = Math.PI / 2; t.position.y = y + 0.25 + yy; g.add(t); }
+      for (const yy of [TL.lanCan, 0.6]) { const t = new THREE.Mesh(new THREE.TorusGeometry(ro - 0.1, yy > 1 ? 0.07 : 0.045, 4, 96), vKim); t.rotation.x = Math.PI / 2; t.position.y = y + 0.25 + yy; g.add(t); }
       const n = Math.round(Math.PI * 2 * ro / 1.6), cot = new THREE.InstancedMesh(G_COT, vKim, n);
-      for (let i = 0; i < n; i++) datRa(cot, i, (i / n) * Math.PI * 2, ro - 0.1, y + 0.8, 1, 1.15, 1);
+      for (let i = 0; i < n; i++) datRa(cot, i, (i / n) * Math.PI * 2, ro - 0.1, y + 0.8, 1, TL.lanCan, 1);
       g.add(cot); va(new THREE.CylinderGeometry(ro - 0.1, ro - 0.1, 1.2, 32, 1, true), 0, y + 0.85, 0);
     } else if (kieu === 'kinh') {
-      const hk = 3.2, gV = new THREE.CylinderGeometry(ro - 0.2, ro - 0.2, hk, 72, 1, true);
+      const hk = TL.tang - 0.4, gV = new THREE.CylinderGeometry(ro - 0.2, ro - 0.2, hk, 72, 1, true);
       const vach = new THREE.Mesh(gV, V_KINH); vach.position.y = y + 0.25 + hk / 2; g.add(vach); va(gV, 0, y + 0.25 + hk / 2, 0);
       const n = Math.round(Math.PI * 2 * ro / 2.4), dua = new THREE.InstancedMesh(G_HOP, vV, n);
       for (let i = 0; i < n; i++) datRa(dua, i, (i / n) * Math.PI * 2, ro - 0.2, y + 0.25 + hk / 2, 0.18, hk, 0.18);
@@ -300,7 +304,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
 
   // ---------- chất liệu nhà PLATEAU: xanh xám, cửa tối, vườn mái; khoét nhà thật dưới tháp đỏ ----------
   // bộ khoét đổi được: Red Spires khoét dưới tháp đỏ, Nhật 2200 nạp bộ tháp trắng của nó (rs.khoet); z = bán kính, w = chân tháp
-  const MAX_KHOET = 128, khoetDo = thap.map((t) => new THREE.Vector4(t.o[0], t.o[1], t.banKinh * 1.25, 0));
+  const MAX_KHOET = 128, khoetDo = thap.map((t) => new THREE.Vector4(t.o[0], t.o[1], t.banKinh * TL.vetDo, 0)); // khoét phố thấp đúng dấu chân luật khớp
   const uKhoet = { uThap: { value: Array.from({ length: MAX_KHOET }, () => new THREE.Vector4()) }, uSoKhoet: { value: 0 } };
   let khoetRieng = null;
   function napKhoet() { const src = khoetRieng || khoetDo, n = Math.min(MAX_KHOET, src.length);
@@ -334,14 +338,14 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
       } else {
         bool trucX = abs(nw.x) > abs(nw.z);
         float u = (trucX ? vWp.z : vWp.x);
-        vec2 g = vec2(u / 2.2, vWp.y / 3.4), f = fract(g);
+        vec2 g = vec2(u / 2.2, vWp.y / ${TL.tang.toFixed(2)}), f = fract(g);
         float cua;
         if (hs < 0.4) cua = step(0.22, f.x) * step(f.x, 0.78) * step(0.3, f.y) * step(f.y, 0.78);          // ô cửa lưới
         else if (hs < 0.7) cua = step(0.35, f.y) * step(f.y, 0.8);                                            // dải kính ngang
         else { cua = step(0.15, fract(u / 1.1)) * step(0.2, f.y); diffuseColor.rgb *= 0.9 + 0.12 * step(0.85, fract(u / 1.1)); } // vây dọc
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.2, 0.25, 0.3), cua * 0.6);
         vec2 oc = floor(g) + k * 31.0; den = cua * step(0.84, bam(oc + floor(uTg * 0.08 + bam(oc) * 9.0))) * (0.5 + 0.5 * bam(oc + 2.0)) * 0.8;
-        diffuseColor.rgb *= 1.0 - 0.18 * step(fract(vWp.y / 3.4), 0.08) * step(0.5, hk);                     // gờ tầng
+        diffuseColor.rgb *= 1.0 - 0.18 * step(fract(vWp.y / ${TL.tang.toFixed(2)}), 0.08) * step(0.5, hk);                     // gờ tầng
       }`)
       .replace('#include <emissivemap_fragment>', DEN_EMIT);
   };
@@ -351,7 +355,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
   const dsThap = thap.map((t, i) => {
     const r = gieo(t.id + 17), R = t.banKinh, H = t.caoSpire;
     const dang = DANG[(i * 5 + ((r() * 2) | 0)) % DANG.length]; // xoay vòng đủ sáu dáng, tháp liền hạng không trùng dáng
-    const tang = 3.3 + r() * 0.9;
+    const tang = TL.tang; // một chiều cao tầng cho mọi tháp — cầu nối, ban công, sàn vườn mới khớp nhau
     const gen = { dang, r: r(), mau: chon(r, MAU_DO), vien: chon(r, MAU_VIEN), oRong: 2.2 + r() * 1.1, tang, bang: tang * (6 + ((r() * 5) | 0)),
       tron: 0.78 + r() * 0.17, soc: (r() * 4) | 0, gan: r() < 0.4 ? 14 + ((r() * 14) | 0) : 0, dinh: r() < 0.45 ? 'kim' : 'ang' };
     const { g, hs } = dungThap(R, H, gen, r, vKim);
@@ -360,23 +364,23 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
       const n = 2 + (r() < 0.5 ? 1 : 0), g0 = r() * 6.28;
       for (let k = 0; k < n; k++) {
         const gv = { ...gen, dang: chon(r, ['dan', 'non', 'hanh']), gan: 0, dinh: 'kim', soc: (gen.soc + k + 1) % 4, phu: 1 }, a = g0 + k * 6.28 / n;
-        const v = dungThap(R * (0.42 + r() * 0.15), H * (0.45 + r() * 0.25), gv, r, vKim);
-        v.g.position.set(Math.cos(a) * R * 1.05, 0, Math.sin(a) * R * 1.05); g.add(v.g);
+        const dV = R * 0.8, v = dungThap(R * (0.36 + r() * 0.08), batTang(H * (0.45 + r() * 0.25)), gv, r, vKim, R * TL.vetDo - dV); // vệ tinh nằm gọn trong dấu chân
+        v.g.position.set(Math.cos(a) * dV, 0, Math.sin(a) * dV); g.add(v.g);
       }
-      rVa = hs.rMax * 1.6;
+      rVa = R * TL.vetDo;
     }
     gopThap(g);
     g.rotation.y = r() * 6.28;
     g.position.set(t.o[0], 0, t.o[1]);
     goc.add(g);
-    return { t, g, R: rVa, than: hs.than, dang, va: null };
+    return { t, g, R: rVa, than: hs.than, rTai: hs.rTai, dang, va: null };
   });
 
   // ---------- đường phân cấp: đại lộ đi bộ lát đá · đường xe (lòng nhựa, vỉa hè, vạch, ngựa vằn) · phố nhỏ · đường tàu ----------
   // mỗi đỉnh mang aR = (s lệch ngang m, v dọc đường m, dA / dB = khoảng cách tới mép đường cắt ở nút trước / sau).
   // dA, dB tuyến tính trong mỗi đoạn chạy giữa hai nút → shader vẽ giao lộ sạch, ngựa vằn, vạch dừng đúng chỗ.
-  const LOP = { lon: { hw: 15, u: -14 }, dibo: { hw: 7, u: -12 }, vua: { hw: 9, u: -10 }, tau: { hw: 4.5, u: -8 }, pho: { hw: 3.5, u: -6 } }; // u: độ lệch sâu, cách nhau 2 nấc (lượt phủ vua = -11)
-  const RONG = { lon: 30, vua: 18, dibo: 14 };
+  const D = TL.duong, LOP = { lon: { hw: D.lon, u: -14 }, dibo: { hw: D.dibo, u: -12 }, vua: { hw: D.vua, u: -10 }, tau: { hw: D.tau, u: -8 }, pho: { hw: D.pho, u: -6 } }; // u: độ lệch sâu, cách nhau 2 nấc (lượt phủ vua = -11)
+  const RONG = { lon: 2 * D.lon, vua: 2 * D.vua, dibo: 2 * D.dibo };
   const tuyen = [...ql.daiLo.map((d) => ({ lop: d.lop, g: d.g })), ...ql.pho.map((g) => ({ lop: 'pho', g })), ...ql.tau.map((g) => ({ lop: 'tau', g }))];
   const khoa = (p) => p[0].toFixed(1) + ',' + p[1].toFixed(1), nut = new Map(); // bậc mỗi điểm: giữa tuyến 2, đầu tuyến 1
   for (const t of tuyen) { if (t.lop === 'tau') continue; const hw = LOP[t.lop].hw, xe = t.lop !== 'pho';
@@ -643,7 +647,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     const muot = datMuot || datTai;
     for (const [i, d] of dsThap.entries()) {
       let y0 = Infinity; for (let a = 0; a < 8; a++) y0 = Math.min(y0, datTai(d.t.o[0] + Math.cos(a) * d.R, d.t.o[1] + Math.sin(a) * d.R));
-      y0 = Math.min(y0, datTai(d.t.o[0], d.t.o[1])) - 1;
+      y0 = Math.floor((Math.min(y0, datTai(d.t.o[0], d.t.o[1])) - 1) / TL.tang) * TL.tang; // chân tháp trên lưới tầng chung toàn thành phố → sàn mọi tháp cùng độ cao, cầu nối nằm ngang
       d.g.position.y = y0; khoetDo[i].w = y0; d.y0 = y0;
     }
     song.datLai(muot, datTai(0, 0));

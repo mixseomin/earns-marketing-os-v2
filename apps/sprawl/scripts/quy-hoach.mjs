@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { TL, luoiTuyen, datThap, banKinhThon, kiem, inKiem } from '../public/khop.js';
 
 const GOC = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const TAM = { lat: 35.6900, lon: 139.6975 }; // trùng sprawl.js
@@ -61,11 +62,19 @@ for (const e of osmTuyen) {
   } else if (t.railway) ql.tau.push(g);
   else ql.vuon.push({ ten: t.name || '', g });
 }
-// tháp sát nhau (< 70 m) gộp thành một tháp cao hơn — ảnh mẫu: tháp đứng thành cụm thưa, có khoảng thở
+// đặt tháp theo luật khớp (public/khop.js): cao trước, dấu chân = banKinh × vetDo hở mép đường ≥ viaHe và hở tháp khác ≥ khe,
+// không chỗ thì dời ≤ 120 m, rồi thu bán kính tới rMin, vẫn không được thì bỏ (đếm). Thân mảnh: rộng ≤ cao / thon.
 ql.thap.sort((a, b) => b.cao - a.cao);
-const gop = [];
-for (const t of ql.thap) { if (!gop.some((k) => Math.hypot(k.o[0] - t.o[0], k.o[1] - t.o[1]) < 70)) gop.push(t); }
-ql.thap = gop.map((t, i) => ({ ...t, id: i, caoSpire: Math.round(t.cao * 1.35 + 30) })); // tháp đỏ cao hơn nhà thật, chóp vòm + ăng-ten
+const luoi = luoiTuyen(ql), daDat = [], gop = []; let boThap = 0, doiThap = 0;
+for (const t of ql.thap) {
+  const caoSpire = Math.round(t.cao * 1.35 + 30); // tháp đỏ cao hơn nhà thật, chóp vòm + ăng-ten
+  const p = datThap(luoi, daDat, t.o[0], t.o[1], banKinhThon(t.banKinh, caoSpire, TL.vetDo), TL.vetDo);
+  if (!p) { boThap++; continue; }
+  if (Math.hypot(p.x - t.o[0], p.z - t.o[1]) > 1) doiThap++;
+  daDat.push({ x: p.x, z: p.z, r: p.banKinh * TL.vetDo });
+  gop.push({ ...t, goc: t.o, o: [Math.round(p.x * 10) / 10, Math.round(p.z * 10) / 10], banKinh: Math.round(p.banKinh * 10) / 10, caoSpire });
+}
+ql.thap = gop.map((t, i) => ({ ...t, id: i }));
 // làn xe bay: chạy trên đại lộ lớn, độ cao 140–220 m
 ql.lanBay = ql.daiLo.filter((d) => d.lop === 'lon' && d.g.length > 3).map((d, i) => ({ cao: 140 + (i % 4) * 25, g: d.g.filter((_, k) => k % 3 === 0 || k === d.g.length - 1) }));
 // vành khối khổng lồ mờ xa (nền ảnh mẫu): 18 khối ngoài vùng, 2,2–4 km
@@ -95,4 +104,5 @@ const svg = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1100" fo
   ...ql.thap.slice(0, 10).map((t, i) => `<text y="${334 + i * 22}" fill="#333">${t.caoSpire} m ← ${t.cao} m ${t.ten ? '· ' + t.ten.slice(0, 26) : ''}</text>`),
   `</g></svg>`].join('\n');
 fs.writeFileSync(path.join(GOC, 'quy-hoach.svg'), svg);
+console.log(inKiem('tháp đỏ', kiem(luoi, { thap: ql.thap.map((t) => ({ x: t.o[0], z: t.o[1], r: t.banKinh * TL.vetDo, cao: t.caoSpire, rong: 2 * t.banKinh * TL.vetDo })) })) + ` · dời ${doiThap} · bỏ ${boThap}`);
 console.log(`tháp ${ql.thap.length} · đại lộ ${ql.daiLo.length} · phố ${ql.pho.length} · nhà thấp ${ql.nhaThap} · vườn ${ql.vuon.length} · tàu ${ql.tau.length} · làn bay ${ql.lanBay.length}`);

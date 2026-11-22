@@ -29,7 +29,7 @@
 <script>
 // nạp theo dấu phiên bản (khuôn castle neuschwanstein.html): Cloudflare zone on.tc giữ .js 30 ngày → hỏi ETag rồi nạp ./x.js?v=<ETag>
 (async () => {
-  const TEP = ['sprawl.js', 'redspires.js', 'song.js', 'nhat2200.js', 'chung/dibo.js', 'chung/nguoi3d.js', 'chung/camung.js', 'chung/gopy.js'];
+  const TEP = ['sprawl.js', 'redspires.js', 'song.js', 'nhat2200.js', 'khop.js', 'chung/dibo.js', 'chung/nguoi3d.js', 'chung/camung.js', 'chung/gopy.js'];
   const lay = (f) => fetch(`./${f}?ban=${Date.now()}`, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' })
     .then((r) => (r.ok && (r.headers.get('etag') || r.headers.get('last-modified')) || '').replace(/[^\w-]/g, '')).catch(() => '');
   const dau = await Promise.all(TEP.map(lay));

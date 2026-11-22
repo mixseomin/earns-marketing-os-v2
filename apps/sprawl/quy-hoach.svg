@@ -2569,58 +2569,63 @@
 <path d="M859.4,533.5L863.0,518.7L864.0,513.8L865.0,497.3L864.2,476.7L863.1,465.9" stroke="#38d6ff" stroke-width="1.5" stroke-dasharray="3 6" fill="none" opacity=".9"/>
 <path d="M898.4,106.8L904.0,60.4" stroke="#38d6ff" stroke-width="1.5" stroke-dasharray="3 6" fill="none" opacity=".9"/>
 <path d="M907.1,62.1L902.2,106.9" stroke="#38d6ff" stroke-width="1.5" stroke-dasharray="3 6" fill="none" opacity=".9"/>
-<circle cx="198.4" cy="839.3" r="20.5" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="171.7" cy="862.3" r="20.5" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
 <circle cx="334.0" cy="747.3" r="11.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="654.5" cy="310.9" r="15.3" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="675.8" cy="282.9" r="15.3" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
 <circle cx="482.5" cy="480.3" r="13.5" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="430.8" cy="472.3" r="14.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="428.6" cy="472.3" r="14.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
 <circle cx="479.6" cy="428.3" r="12.9" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="189.2" cy="394.9" r="12.9" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="1093.0" cy="471.5" r="14.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="314.6" cy="308.0" r="18.8" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="504.5" cy="440.7" r="17.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="531.3" cy="485.1" r="12.3" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="319.4" cy="720.5" r="12.9" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="695.9" cy="599.9" r="14.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="281.6" cy="302.9" r="18.8" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="231.7" cy="433.0" r="11.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="214.9" cy="317.2" r="18.2" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="181.2" cy="422.4" r="12.9" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="318.9" cy="726.7" r="11.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="1090.8" cy="467.7" r="14.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="278.2" cy="299.3" r="16.0" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="506.7" cy="440.7" r="15.0" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="528.4" cy="522.4" r="12.3" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="320.8" cy="700.8" r="12.9" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="678.1" cy="608.4" r="14.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="324.7" cy="294.1" r="13.1" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="260.3" cy="433.0" r="11.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="177.4" cy="335.7" r="14.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
 <circle cx="461.6" cy="634.0" r="17.0" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
 <circle cx="736.3" cy="778.1" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="635.1" cy="661.5" r="15.3" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="446.6" cy="551.8" r="27.0" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="491.3" cy="373.3" r="12.3" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="358.2" cy="570.2" r="15.8" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="172.3" cy="537.9" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="337.7" cy="440.4" r="28.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="295.5" cy="348.3" r="13.5" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="481.4" cy="524.7" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="84.7" cy="296.6" r="22.9" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="455.0" cy="605.7" r="12.9" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="230.3" cy="816.2" r="12.3" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="225.9" cy="384.3" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="415.8" cy="627.7" r="22.9" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="760.8" cy="685.7" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="37.8" cy="278.7" r="14.1" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="337.0" cy="485.8" r="16.4" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="289.7" cy="456.9" r="16.4" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="214.1" cy="343.6" r="14.1" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="908.2" cy="308.7" r="16.4" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="267.7" cy="348.0" r="16.4" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="466.8" cy="702.5" r="18.8" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="90.2" cy="249.3" r="14.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="379.9" cy="766.7" r="14.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="576.0" cy="270.2" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="802.3" cy="957.0" r="18.2" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="920.0" cy="279.0" r="27.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="548.9" cy="458.0" r="14.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="368.5" cy="297.4" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="375.1" cy="388.7" r="27.0" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
-<circle cx="1072.9" cy="547.8" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="234.5" cy="432.1" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="603.2" cy="681.0" r="15.3" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="446.6" cy="551.8" r="16.3" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="515.2" cy="384.5" r="12.3" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="358.2" cy="570.2" r="15.2" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="189.7" cy="535.0" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="337.7" cy="440.4" r="15.2" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="327.4" cy="367.9" r="13.5" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="483.0" cy="526.2" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="488.9" cy="562.4" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="84.7" cy="296.6" r="14.5" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="453.5" cy="604.2" r="12.9" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="236.9" cy="816.2" r="12.3" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="224.3" cy="385.8" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="415.8" cy="627.7" r="14.0" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="796.0" cy="685.7" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="38.5" cy="283.0" r="13.9" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="337.0" cy="485.8" r="13.9" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="261.4" cy="461.3" r="13.9" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="211.9" cy="343.6" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="909.0" cy="313.1" r="13.4" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="279.9" cy="385.6" r="13.0" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="466.8" cy="702.5" r="12.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="88.7" cy="218.6" r="12.3" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="383.2" cy="769.5" r="12.0" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="578.2" cy="270.2" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="802.3" cy="954.8" r="11.7" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="927.7" cy="286.8" r="11.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="538.1" cy="484.5" r="11.4" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="375.1" cy="297.4" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="375.1" cy="388.7" r="11.1" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="656.0" cy="309.8" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="1078.7" cy="571.3" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
+<circle cx="35.5" cy="318.8" r="10.6" fill="#d9483a" stroke="#5a120c" stroke-width="1.5"/>
 <circle cx="550" cy="550" r="5" fill="#fff" stroke="#000"/>
 </g>
 <g transform="translate(1120,30)"><text font-size="22" font-weight="700" y="0">Quy hoạch Red Spires</text><text y="24" fill="#555">Shinjuku · 3 × 3 km · OSM thật</text>
-<rect x="0" y="50" width="20" height="20" fill="#d9483a" stroke="#333"/><text x="30" y="65">Tháp đỏ: 48 tháp (nhà thật ≥ 90 m)</text>
+<rect x="0" y="50" width="20" height="20" fill="#d9483a" stroke="#333"/><text x="30" y="65">Tháp đỏ: 53 tháp (nhà thật ≥ 90 m)</text>
 <rect x="0" y="80" width="20" height="20" fill="#efe9dc" stroke="#333"/><text x="30" y="95">Đại lộ đi bộ lát đá: 557 đoạn</text>
 <rect x="0" y="110" width="20" height="20" fill="#7f93a3" stroke="#333"/><text x="30" y="125">Phố thấp xanh xám: 22.372 nhà</text>
 <rect x="0" y="140" width="20" height="20" fill="#6f9a5e" stroke="#333"/><text x="30" y="155">Vườn / vườn mái: 239 khu</text>
@@ -2636,7 +2641,7 @@
 <text y="422" fill="#333">316 m ← 212 m · 新宿三井ビル</text>
 <text y="444" fill="#333">314 m ← 210 m · 新宿野村ビル</text>
 <text y="466" fill="#333">312 m ← 209 m · ザ・パークハウス　西新宿タワー60</text>
-<text y="488" fill="#333">288 m ← 191 m · 富久クロスコンフォートタワー</text>
-<text y="510" fill="#333">285 m ← 189 m · 住友不動産新宿グランドタワー</text>
-<text y="532" fill="#333">282 m ← 187 m · 損保ジャパン本社ビル</text>
+<text y="488" fill="#333">301 m ← 201 m · 新宿パークタワー</text>
+<text y="510" fill="#333">288 m ← 191 m · 富久クロスコンフォートタワー</text>
+<text y="532" fill="#333">285 m ← 189 m · 住友不動産新宿グランドタワー</text>
 </g></svg>

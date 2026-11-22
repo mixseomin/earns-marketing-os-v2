@@ -82,7 +82,7 @@ for (const [f, tiLe] of MAU) {
   xoay('UpperLeg.L', X, -1.45); xoay('UpperLeg.R', X, -1.45); xoay('LowerLeg.L', X, 1.25); xoay('LowerLeg.R', X, 1.25);
   xoay('UpperLeg.L', Z, 0.12 * sL); xoay('UpperLeg.R', Z, -0.12 * sL);
   xoay('Abdomen', X, 0.22);
-  xoay('UpperArm.L', Y, -1.4 * sL); xoay('UpperArm.R', Y, 1.4 * sL); xoay('UpperArm.L', X, 0.5); xoay('UpperArm.R', X, 0.5);
+  xoay('UpperArm.L', Z, -0.55 * sL); xoay('UpperArm.R', Z, 0.55 * sL); xoay('UpperArm.L', Y, -1.25 * sL); xoay('UpperArm.R', Y, 1.25 * sL); xoay('LowerArm.L', Y, -0.35 * sL); xoay('LowerArm.R', Y, 0.35 * sL);
   const hong = new THREE.Vector3(); xuong.Hips.getWorldPosition(hong);
   const ngoi = chup(); const hv = hong.clone(); hv.y -= lo; hv.multiplyScalar(s).applyMatrix4(quay);
   dang.push(dat(ngoi, 0.9 - hv.y, 0.02 - hv.x));

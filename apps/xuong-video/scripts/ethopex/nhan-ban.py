@@ -89,6 +89,14 @@ def lich_len(_bo_qua=None, luc=None):
     gợi ý cũ bị bỏ qua — KHÔNG đường nào ép chạy ngay (anh 05/11/2026 "không cho lên ngay mà phải 100% tuân thủ")."""
     a, b = BANG_LUAT["khung_doi"]["len"]; h = ((luc or dt.datetime.now(dt.timezone.utc)).hour + 7) % 24
     return "today" if (a <= h < b if a <= b else (h >= a or h < b)) else "tomorrow"
+def gio_roas(luc=None):
+    """GIỜ LÊN ★ ROAS (anh 22/11/2026 "Làm luôn" — so Sơn ↔ Nhà sau reset 20/11: ★ ROAS của Sơn lên ~23h VN, camp nhà 07–08h): khung_doi.len_roas [từ, tới) giờ VN.
+    Tạo trong khung → None (chạy ngay); ngoài khung → "YYYY-MM-DD HH:MM" giờ VN của lần mở khung kế tiếp (Ad Set lịch Custom qua dat_gio).
+    Chỉ áp camp ★ ROAS (roas_main); giờ anh đặt (--gio) và bản nhân đôi ROAS của roas_doi.py (--roas-doi, lên sáng theo lich_len) đứng trên."""
+    a, b = BANG_LUAT["khung_doi"]["len_roas"]; vn = (luc or dt.datetime.now(dt.timezone.utc)) + dt.timedelta(hours=7)
+    if (a <= vn.hour < b if a <= b else (vn.hour >= a or vn.hour < b)): return None
+    d = vn.date() if vn.hour < a else vn.date() + dt.timedelta(days=1)
+    return f"{d.isoformat()} {int(a):02d}:00"
 NGOAI = EA.SUA or EA.XEM   # camp của người trong team (xem docstring) — 0 = nhà; ETP_XEM_NGUOI = chạy khô trên camp thật của người đó (cổng chặn mọi lệnh ghi)
 _TK_SQL = ",".join(str(int(x)) for x in sorted(EA.TK)) or "0"
 def _ap_nuoc(pl, nh):   # A/B kieu 'nuoc': danh sách nước của nhánh vào Ad Set
@@ -100,14 +108,14 @@ def _ap_gio(pl, nh):   # A/B kieu 'gio' (AB05, anh 10/11/2026 "lên 10% theo khu
     g = int(nh["gio_utc"]); bay = dt.datetime.now(dt.timezone.utc); ngay = bay.date() if bay.hour < g else bay.date() + dt.timedelta(days=1)
     ag = pl["campaign"]["ad_groups"][0]; ag["type_run"] = "custom"; ag["start_time"] = f"{ngay.isoformat()} {g:02d}:00:00"
     ag.get("source_payload", {}).pop("start_time", None)
-def dat_gio(pl, gio_vn):
+def dat_gio(pl, gio_vn, ai="anh đặt"):
     """GIỜ CHẠY ANH ĐẶT (nút etp2 ▶ Lên / 🕒 đổi giờ — anh 22/11/2026 "tao có thể điều chỉnh ngày, giờ lên camp"): "YYYY-MM-DD HH:MM" giờ VN → Ad Set lịch Custom
     start_time UTC (cùng dạng _ap_gio). Chỉ gọi khi lệnh mang vé TRỰC TIẾP. Trả chữ lúc chạy cho kq.chay_luc."""
     vn = dt.datetime.strptime(gio_vn.strip()[:16], "%Y-%m-%d %H:%M"); utc = vn - dt.timedelta(hours=7)
     if utc < dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) - dt.timedelta(minutes=2): raise ValueError(f"giờ chạy {vn:%H:%M %d/%m} VN đã qua — chọn giờ sau bây giờ")
     ag = pl["campaign"]["ad_groups"][0]; ag["type_run"] = "custom"; ag["start_time"] = f"{utc:%Y-%m-%d %H:%M}:00"
     ag.get("source_payload", {}).pop("start_time", None)
-    return f"hẹn chạy {vn:%H:%M %d/%m} giờ VN (anh đặt)"
+    return f"hẹn chạy {vn:%H:%M %d/%m} giờ VN ({ai})"
 def thay_cho(cu, moi, gio):
     """ĐỔI GIỜ CAMP ĐÃ ĐẨY LÊN ETHOPEX (anh 22/11/2026 "dừng hẳn rồi lên camp mới với giờ đã set, nếu ko thể xoá"): Ethopex không có lệnh sửa start_time Ad Set →
     camp mới đúng giờ đã tạo xong thì TẠM DỪNG camp cũ, gỡ khỏi etp.lich_tat (lich-gio không bật lại), ghi sổ etp.cau_hinh 'camp_doi_gio'. Trả chữ kết quả."""
@@ -462,7 +470,7 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
     elif roas:
         # mức ROAS ĐẦU tên (anh 26/10/2026 "đặt thêm chỉ số ROAS vào tên camp để kiểm tra cho tiện" — bảng Ethopex cắt mất đuôi); đuôi "roas X duplicate by <gốc>" giữ cho máy đọc
         # gốc là camp ★ ROAS (anh 06/11/2026 "duplicate camp roas chạm trần"): bỏ đầu "★ ROAS x · " + đuôi " roas x duplicate by N" của gốc, không lặp hai lần
-        lo = re.sub(r"\s+roas [\d.]+ duplicate by \d+$", "", re.sub(r"^★ ROAS [\d.]+ · ", "", re.sub(r'^\d+:\s*', '', c['name'])))
+        lo = re.sub(r"\s+roas [\d.]+( duplicate by \d+)?$", "", re.sub(r"^★ ROAS [\d.]+ · ", "", re.sub(r'^\d+:\s*', '', c['name'])))
         lo = ten_sach_roas(lo)   # bỏ ghi chú nội bộ trong ngoặc (anh 10/11/2026 "sao lại có chữ Son trong đó … lên camp phải bỏ hết những thông tin kia")
         ten = f"★ ROAS {roas:g} · {lo}{f' {nhan}' if nhan else ''} roas {roas:g} duplicate by {goc_id}"   # nhan: phân biệt bản cùng mức (vd "chay ngay")   # ★ = dấu camp ROAS (anh 26/10/2026), cong.la_roas nhận theo tên
     elif moi:
@@ -557,7 +565,7 @@ def main(a):
     if roas is not None:
         if thang or hoi_cho: raise SystemExit("--roas không đi kèm --thang / --hoi-cho")
         if not ROAS_MIN <= roas <= ROAS_MAX: raise SystemExit(f"--roas phải trong {ROAS_MIN}–{ROAS_MAX} (Support 26/10/2026)")
-        return roas_main(goc, roas, int(float(lay("--ns", str(HOI_CHO["ns"]) if moi else "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a, tay, moi=moi, bo=bo, lenh_cho="--lenh-cho" in a, gio=gio, cu=cu)
+        return roas_main(goc, roas, int(float(lay("--ns", str(HOI_CHO["ns"]) if moi else "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a, tay, moi=moi, bo=bo, lenh_cho="--lenh-cho" in a, gio=gio, cu=cu, doi="--roas-doi" in a)
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None, "chay": lich}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep, hoi_cho=hoi_cho and not moi and not thang, ns_tay=ns_tay); kq["ten"] = ten; bo = pl.pop("bo"); bai0 = bai = pl.pop("bai_cu", None); cr_bai = pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"]
@@ -680,7 +688,7 @@ def main(a):
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": int(ns_dich)}}}); time.sleep(8)
             kq["ns"] = api(f"/api/v1/campaigns/{moi}")["campaign"].get("budget_daily")
         if kq["ok"] and tn: ab_ghi(moi, tn)
-        kq["chay_luc"] = kq.get("gio_anh") or chay_luc(lich)
+        kq["chay_luc"] = kq.get("gio_anh") or kq.get("gio_roas") or chay_luc(lich)
         if kq["ok"] and cu: kq["thay_cho"] = thay_cho(cu, moi, gio)
         if kq["ok"] and anh:   # ĐÁNH DẤU camp anh nhân bản tay — anh chịu trách nhiệm (10/11/2026)
             q("insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('camp_anh_tay', '{}'::jsonb, 'camp anh nhân bản tay trên etp2 — anh chịu trách nhiệm, máy không chặn lúc tạo', 'nhan-ban.py') on conflict (khoa) do nothing")
@@ -718,11 +726,18 @@ def ten_sach_roas(t):
 assert ten_sach_roas("3010 The Dragon Lord Comes Home EN - tap nguyen ep8 (cr tk Son 54757)") == "3010 The Dragon Lord Comes Home EN - tap nguyen ep8"
 assert ten_sach_roas("dp20lt Bound to the Wrong Dragon Prince EN - canh that 267-394s (thay 81599)") == "dp20lt Bound to the Wrong Dragon Prince EN - canh that 267-394s"
 assert ten_sach_roas("2110 Number One Nobody EN - ke chuyen (nhan ban 1 cua 65725)") == "2110 Number One Nobody EN - ke chuyen"
+_u = lambda s: dt.datetime.fromisoformat(s + "+00:00")   # gio_roas: 23–03h VN chạy ngay, ngoài khung hẹn 23:00 kế (anh 22/11/2026)
+assert BANG_LUAT["khung_doi"]["len_roas"] == [23, 3], "★ ROAS lên ban tối 23–03h VN (anh 22/11/2026)"
+assert gio_roas(_u("2026-11-22T16:30:00")) is None and gio_roas(_u("2026-11-22T19:59:00")) is None, "23:30 / 02:59 VN trong khung → chạy ngay"
+assert gio_roas(_u("2026-11-22T00:14:00")) == "2026-11-22 23:00" and gio_roas(_u("2026-11-22T15:59:00")) == "2026-11-22 23:00" and gio_roas(_u("2026-11-22T20:00:00")) == "2026-11-23 23:00", "ngoài khung → 23:00 VN kế tiếp"
 
-def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False, tay=False, moi=None, bo=None, lenh_cho=False, gio=None, cu=None):   # tay truyền từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)
+def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False, tay=False, moi=None, bo=None, lenh_cho=False, gio=None, cu=None, doi=False):   # tay truyền từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)
     """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim.
     moi = {creative, content, ten} (anh 18/11/2026, đợt lên hồi chợ): ★ ROAS từ CREATIVE MỚI trên khuôn `goc` — ngân sách trong sổ luật hoi_cho.ns_khoang ($5–10),
     creative mới nên PHẢI qua cổng chấm Sạch + cổng 18+ / CTA / bài học + trang phim + một creative một camp (khác ★ ROAS bài cũ)."""
+    # GIỜ LÊN ★ ROAS BAN TỐI (gio_roas, sổ khung_doi.len_roas): trong khung chạy ngay, ngoài khung hẹn lần mở khung kế — thay khung sáng lich_len cho ★ ROAS
+    ro = None if (gio or doi) else gio_roas()
+    if not (gio or doi) and ro is None: lich = "today"
     kq = {"ok": False, "viec": "roas", "goc": goc, "moi": None, "ten": None, "roas": roas, "loi": None, "chay": lich}
     try:
         if moi:
@@ -755,6 +770,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
         if ly: raise ChanLuat(ly)   # luật chặn → nhật ký ok NULL như đường thường (05/11/2026: chặn trùng phim bị đếm là lỗi 3–6 lần/ngày)
         kq["content"] = cid
         tn = ab_lay(kq, pl, lich, goc, None, roas=True) if not moi else None
+        if ro: kq["gio_roas"] = dat_gio(pl, ro, f"★ ROAS lên ban tối {BANG_LUAT['khung_doi']['len_roas'][0]}h")
         if gio: kq["gio_anh"] = dat_gio(pl, gio)   # giờ anh đặt (vé trực tiếp, main đã kiểm)   # gốc nhánh thu A/B → camp ★ mang cùng mã (Ad Set chép từ gốc đã mang tham số nhánh); creative mới trên khuôn không thuộc A/B của khuôn
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
@@ -791,7 +807,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
             if not kq["tam_dung"]: raise ValueError(f"đã gửi lệnh tạm dừng nhưng camp #{moi} vẫn {tt.get('state')} — tắt tay ngay")
         if sai: raise ValueError(f"đọc lại sai ROAS (đặt {roas}, Ethopex {san}, chiến lược {c.get('source_bidding_strategy')}) — đã tạm dừng camp")
         kq["ok"] = True
-        kq["chay_luc"] = kq.get("gio_anh") or chay_luc(lich)
+        kq["chay_luc"] = kq.get("gio_anh") or kq.get("gio_roas") or chay_luc(lich)
         if cu: kq["thay_cho"] = thay_cho(cu, moi, gio)
         if tn: ab_ghi(moi, tn)
         if not NGOAI: ghi_bo(cid, bo)

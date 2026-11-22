@@ -823,6 +823,8 @@ function buocXe(a, dt) {
   // Đây là chốt cứng cuối cùng: luật bám đuôi / nhường ở trên có đoán sai thì xe vẫn không đi xuyên qua nhau.
   // Lùi ra khỏi xe j (thân giữ hướng, bẻ lái ra phía xa j theo quãng lùi thật); lùi không nổi thì đứng nguyên.
   const luiRa = (j, goc) => {
+    // Xe máy không lùi (anh 22/11/2026: "không để xe máy đi lùi") — chỉ ô tô gài số lùi gỡ kẹt; xe máy đứng chờ.
+    if (xm) return goc;
     const ket = (g) => vuong(a, a.x, a.z, g, xT, zT, gT);
     const ex = j.x - xT, ez = j.z - zT, xa = ex * -a.fz + ez * a.fx > 0 ? -1 : 1;
     const trong = sTruoc >= p.sIn && sTruoc <= p.sOut, rong = trong ? (xm ? 2.5 : 1.5) : 0.05, loT = lo - (trong ? rong : 1.5), hiT = hi + rong;
@@ -884,7 +886,8 @@ function buocXe(a, dt) {
         if (a.ket > 1.5 && vuongJ && vuongJ.loai !== 'bo' && (hon(vuongJ, a) || a.ket > 4)) goc = luiRa(vuongJ, goc);
         // Xe máy kẹt cứng giữa lòng ngã tư quá 6 s: người lái chống chân dắt xe dạt sang bên ~0,3 m/s — tự mình dời đi,
         // chỉ vào chỗ trống thật (không chạm ai, không đẩy ai). Không có nước này nút tắc kín lòng ngã tư không bao giờ gỡ.
-        else if (xm && trong && a.ket > 6) {
+        // Bỏ nước "chống chân dắt xe dạt ngang" lúc đứng im (anh 22/11/2026): nhìn như người đi bộ cạnh đó đẩy xe đi.
+        else if (false) {
           const dat = 0.3 * dt;
           for (const h of [xa, -xa]) {
             const d = dTruoc + h * dat;

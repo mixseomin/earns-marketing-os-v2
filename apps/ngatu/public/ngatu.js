@@ -1958,6 +1958,11 @@ const NGAN = new Set((new URLSearchParams(location.search).get('mo') || '').spli
 const ghiNgan = () => { const u = new URL(location.href); if (NGAN.size) u.searchParams.set('mo', [...NGAN].join(',')); else u.searchParams.delete('mo'); history.replaceState(null, '', u); };
 const ben = document.querySelector('.ben');
 ben.classList.toggle('mo-ra', NGAN.has('ben'));
+{ // thu gọn bảng điều khiển (mọi cỡ màn), nhớ theo từng người xem
+  const KG = 'ngatu-gon', datGon = (g) => { ben.classList.toggle('gon', g); const b = $('gon'); b.textContent = g ? '▾' : '▴'; b.title = g ? 'Mở lại bảng điều khiển' : 'Thu gọn bảng để xem toàn cảnh'; try { localStorage.setItem(KG, g ? '1' : ''); } catch {} };
+  let g0 = false; try { g0 = localStorage.getItem(KG) === '1'; } catch {}
+  datGon(g0); $('gon').addEventListener('click', () => datGon(!ben.classList.contains('gon')));
+}
 $('mo').addEventListener('click', () => { const m = ben.classList.toggle('mo-ra'); m ? NGAN.add('ben') : NGAN.delete('ben'); ghiNgan(); });
 for (const d of document.querySelectorAll('details[data-ngan]')) {
   d.open = NGAN.has(d.dataset.ngan) && ![...document.querySelectorAll('details[open]')].length;

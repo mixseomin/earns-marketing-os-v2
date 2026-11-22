@@ -11,6 +11,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 
 // ───────────────────────── hình học đường ─────────────────────────
 // Trục x = Đông, trục z = Nam. Đường Đông–Tây rộng 2×10 m, Bắc–Nam 2×8 m, vỉa hè 4 m. Xe đi bên phải.
@@ -2428,6 +2429,14 @@ function datHinh(on) {
     const pm = new THREE.PMREMGenerator(renderer);
     THAT.env = pm.fromScene(new RoomEnvironment(renderer), 0.04).texture; pm.dispose();
     THAT.duong = vanNhua();
+    // bầu trời ảnh thật (Poly Haven, CC0, 1K ~1,4 MB): tải ngầm, xong thì thay cho môi trường phòng giả + làm nền trời
+    new RGBELoader().setDataType(THREE.FloatType).loadAsync('mohinh/troi-1k.hdr?v=1').then((t) => {
+      // cắt đốm mặt trời (giá trị hàng nghìn) — để nguyên thì mọi mặt nhám đều ám vàng; nắng thật đã có DirectionalLight lo
+      const dl = t.image.data; for (let i = 0; i < dl.length; i++) if (dl[i] > 4) dl[i] = 4; t.needsUpdate = true;
+      const pm2 = new THREE.PMREMGenerator(renderer); THAT.env = pm2.fromEquirectangular(t).texture; pm2.dispose();
+      t.mapping = THREE.EquirectangularReflectionMapping; THAT.troi = t;
+      if (THAT.on) { scene.environment = THAT.env; scene.background = t; scene.backgroundIntensity = 0.9; }
+    }).catch((e) => console.warn('trời HDRI', e));
   }
   scene.traverse((o) => {
     if (!o.isMesh) return;
@@ -2436,8 +2445,9 @@ function datHinh(on) {
     } else if (o.userData.vlCu) { o.material = o.userData.vlCu; o.material.needsUpdate = true; delete o.userData.vlCu; }
   });
   const vd = THAT.vl.get(mat0.userData.vlCu || mat0.material);
-  if (vd) { vd.map = on ? THAT.duong : null; vd.roughness = 0.95; vd.needsUpdate = true; }
+  if (vd) { vd.map = on ? THAT.duong : null; vd.roughness = 0.95; vd.envMapIntensity = 0.04; vd.needsUpdate = true; }
   scene.environment = on ? THAT.env : null;
+  if (!THAT.nenCu) THAT.nenCu = scene.background; scene.background = on && THAT.troi ? THAT.troi : THAT.nenCu;
   renderer.toneMapping = on ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
   renderer.toneMappingExposure = on ? 0.7 : 1;
   troi.intensity = on ? 0.5 : 1.1; sun.intensity = on ? 2.6 : 1.9;
@@ -2544,7 +2554,9 @@ function khoiDong() {
     if (cam === 'theo') capNhatCamTheo(dtThuc); else controls.update();
     hudT -= dtThuc; if (hudT <= 0) { hud(); hudT = 0.25; }
     KHUNG.setFromProjectionMatrix(MK.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)); daCoKhung = true;
-    if (THAT.on && THAT.composer) THAT.composer.render(); else renderer.render(scene, camera);
+    // tự hạ chất lượng: bản thật trung bình < 45 khung/giây suốt ~3 giây thì tắt che bóng góc (GTAO), giữ phần còn lại
+    if (THAT.on && THAT.composer && !THAT.ha) { THAT.fps = (THAT.fps ?? 60) * 0.97 + (1 / Math.max(dtThuc, 1e-3)) * 0.03; THAT.cham = THAT.fps < 45 ? (THAT.cham || 0) + dtThuc : 0; if (THAT.cham > 3) { THAT.ha = true; console.info('ngatu: máy chậm, tắt GTAO'); } }
+    if (THAT.on && THAT.composer && !THAT.ha) THAT.composer.render(); else renderer.render(scene, camera);
   });
 }
 requestAnimationFrame(() => setTimeout(khoiDong, 30));

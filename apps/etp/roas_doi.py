@@ -37,7 +37,8 @@ def da_lam():
 
 def nb(args, luat):
     try:
-        r = subprocess.run(["python3", NB, *args, "--that", "--luat", luat, "--ai", AI], capture_output=True, text=True, timeout=1500, cwd=os.path.dirname(NB))
+        r = subprocess.run(["python3", NB, *args, "--that", "--luat", luat, "--ai", AI], capture_output=True, text=True, timeout=1500, cwd=os.path.dirname(NB),
+                           env={**os.environ, "ETP_NGUON": "roas_doi"})   # luật mới anh 22/11/2026 → cong.luat_cu_chan cho qua (NGUON_MOI)
         return json.loads(next((l for l in reversed(r.stdout.strip().splitlines()) if l.startswith("{")), "{}"))
     except Exception as e: return {"ok": False, "loi": str(e)[:200]}
 

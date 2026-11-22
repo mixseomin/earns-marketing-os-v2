@@ -312,10 +312,13 @@ PC_CHAN = bool(_BL["phanh_cho"].get("chan", True))
 _LC = _BL.get("luat_cu") or {}
 LUAT_CU_DUNG, LUAT_CU_MOC = bool(_LC.get("dung")), str(_LC.get("moc") or "2026-11-20")
 LY_LUAT_CU = f"LUẬT CŨ DỪNG: luật máy thử phim / lên camp mới có từ trước {LUAT_CU_MOC[8:10]}/{LUAT_CU_MOC[5:7]} dừng hẳn (anh 22/11/2026) — chỉ lệnh mới của anh (vé trực tiếp / nút etp2 / hàng lệnh chờ) được lên"
+# NGUỒN LỆNH MỚI (từ LUAT_CU_MOC trở đi): lenh_cho = hàng lệnh chờ của anh (20/11 lenh_cho + 22/11 len_cr_roas, apps/etp/lenh_cho.chay_script đặt);
+# roas_doi = nhân đôi ★ ROAS lãi qua đêm (anh 22/11/2026 "Làm luôn", apps/etp/roas_doi.nb đặt)
+NGUON_MOI = ("lenh_cho", "roas_doi")
 def luat_cu_chan(viec, camp_ids=(), content_id=None):
     """LY_LUAT_CU nếu việc lên camp mới này đến từ luật máy cũ (trước LUAT_CU_MOC) | None — lệnh mới = vé ETP_VE hợp lệ (trực tiếp / anh bấm) hoặc hàng lệnh chờ lenh_cho"""
     if not LUAT_CU_DUNG or viec not in ("tao_camp", "nhan_ban"): return None
-    if os.environ.get("ETP_NGUON") == "lenh_cho": return None   # hàng lệnh chờ của anh (20/11 lenh_cho + 22/11 len_cr_roas) — apps/etp/lenh_cho.chay_script đặt
+    if os.environ.get("ETP_NGUON") in NGUON_MOI: return None   # luật / lệnh anh ra từ mốc trở đi — mỗi máy tự đặt ETP_NGUON khi gọi nhan-ban
     if ve_hop_le(viec, camp_ids, content_id) or truc_tiep(viec, camp_ids, content_id): return None
     return LY_LUAT_CU
 def phanh_cho(tt, viec, bay_gio=None, thay=False):

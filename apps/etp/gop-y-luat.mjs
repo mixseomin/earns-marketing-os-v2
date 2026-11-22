@@ -696,6 +696,8 @@ export const LUAT = [
   { card: 'roas-dem-2211', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"roas_doi": {"muc": [0.9, 1.1], "ns": 10,', vi: 'sổ nhân đôi ★ ROAS lãi qua đêm: 0.9 + 1.1 ở $10, giữ gốc' },
   { card: 'roas-dem-2211', tep: 'apps/etp/nuoi_bo.py', co: 'import roas_doi; rd = roas_doi.chay(xem)', vi: 'worker gọi máy nhân đôi ★ ROAS mỗi nhịp' },
   { card: 'roas-dem-2211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'moi = {"creative": a["creative_id"], "content": a["content_id"]}', vi: 'gốc ★ ROAS creative mới không có bài đăng → bản ROAS dùng lại creative + content của gốc (trước gãy "không có mã bài đăng")' },
+  { card: 'roas-dem-2211', tep: 'apps/etp/cong.py', co: 'NGUON_MOI = ("lenh_cho", "roas_doi")', vi: 'nhân đôi ★ ROAS là luật mới 22/11 — cổng luật cũ không chặn' },
+  { card: 'roas-dem-2211', tep: 'apps/etp/roas_doi.py', co: 'env={**os.environ, "ETP_NGUON": "roas_doi"}', vi: 'máy nhân đôi tự khai nguồn khi gọi nhan-ban' },
   { card: 'roas-dem-2211', tep: 'apps/etp/roas_doi.py', co: '"--roas-doi"]', vi: 'bản nhân đôi lên sáng theo lich_len, không chờ khung tối' },
   { card: 'thang-phien-2211', tep: 'apps/xuong-video/scripts/ethopex/nhip_tang.py', co: 'if t0 and gap < NGHI_PHUT:', vi: 'thang phiên: nghỉ 60 phút giữa hai lần tăng (anh 22/11/2026 "Nghỉ 1h ok"; thay tăng dồn 3 giờ / 24 giờ)' },
   { card: 'thang-phien-2211', tep: 'apps/xuong-video/scripts/ethopex/nhip_tang.py', co: 'if dau_cap and so and la_manh(*so) and _du(): return None, None', vi: 'tín hiệu mạnh: bước +1 thứ hai sau 30 phút, chỉ một cặp — không +2 một lần (anh 22/11/2026 "chia thành 2 lần cách nhau 30\'")' },

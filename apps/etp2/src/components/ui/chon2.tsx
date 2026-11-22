@@ -6,11 +6,16 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnchoredPopover } from './anchored-popover';
 import { coChuot } from '@/lib/co-chuot';
 
-export interface Chon2Muc { value: string; label: ReactNode; nhom?: string; dem?: number; title?: string; tim?: string; /** nhãn gọn trên nút (danh sách vẫn hiện label đủ) */ ngan?: string }
+export interface Chon2Muc { value: string; label: ReactNode; nhom?: string; dem?: number; title?: string; tim?: string; /** nhãn gọn trên nút (danh sách vẫn hiện label đủ) */ ngan?: string;
+  /** ô số của mục theo thứ tự cột `cot` của Chon2 (anh 22/11/2026 etp2 #1759: menu chọn Người hiện số hiệu quả của bảng Người) */ o?: ReactNode[] }
+/** CỘT SỐ trong bảng nổi: tiêu đề dính trên đầu danh sách, mỗi mục hiện ô `o` cùng thứ tự — mọi dòng chung một độ rộng cột nên thẳng hàng */
+export interface Chon2Cot { key: string; h: string; rong: number; phai?: boolean; title?: string }
 
 const KHO_RONG = 'etp2-chon2-xem-rong';
 
-export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', title, minWidth, align = 'left', anRong, href, chan, nhieu, tatCa = '' }: {
+export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', title, minWidth, align = 'left', anRong, href, chan, nhieu, tatCa = '', cot, oRong }: {
+  /** cột số cạnh nhãn của từng mục (Chon2Muc.o) — có cot thì bảng nổi rộng thêm theo tổng bề rộng cột */ cot?: Chon2Cot[];
+  /** ô số của mục '' tự thêm (rong) */ oRong?: ReactNode[];
   value: string; onChange: (v: string) => void; options: Chon2Muc[];
   /** chữ đứng trước giá trị trên nút: "Luật", "Loại"… */ nhan?: string;
   /** nhãn khi value = '' (mục "tất cả" tự thêm đầu danh sách) */ rong?: string;
@@ -30,7 +35,10 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
   const [xemRong, setXemRong] = useState(false);
   useEffect(() => { if (mo) { try { setXemRong(localStorage.getItem(KHO_RONG) === '1'); } catch { /* máy chặn localStorage → giữ hẹp */ } } }, [mo]);
   const doiRong = () => setXemRong((v) => { try { localStorage.setItem(KHO_RONG, v ? '0' : '1'); } catch { /* bỏ qua */ } return !v; });
-  const ds =useMemo(() => (anRong ? options : [{ value: '', label: rong } as Chon2Muc, ...options]), [options, rong, anRong]);
+  const ds =useMemo(() => (anRong ? options : [{ value: '', label: rong, o: oRong } as Chon2Muc, ...options]), [options, rong, anRong, oRong]);
+  const rongCot = cot ? cot.reduce((a, c) => a + c.rong + 8, 0) : 0;   // + gap 8 mỗi cột
+  const oCot = (c: Chon2Cot, v: ReactNode) => <span key={c.key} data-cot={c.key} data-cot-can={c.phai ? 'phai' : undefined} title={c.title}
+    style={{ flex: `0 0 ${c.rong}px`, display: 'flex', justifyContent: c.phai ? 'flex-end' : 'flex-start', fontSize: 11.5, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', whiteSpace: 'nowrap', fontWeight: 400 }}>{v}</span>;
   const chu = (m: Chon2Muc) => (m.tim ?? (typeof m.label === 'string' ? m.label : m.value)).toLowerCase();
   const loc = useMemo(() => { const k = q.trim().toLowerCase(); return k ? ds.filter((m) => chu(m).includes(k) || (m.nhom ?? '').toLowerCase().includes(k)) : ds; }, [ds, q]);
   useEffect(() => { if (mo) { setQ(''); setTro(Math.max(0, ds.findIndex((m) => (nhieu ? m.value !== tatCa && value.split(',').includes(m.value) : m.value === value)))); } }, [mo]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -57,7 +65,7 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
         <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>▾</span>
       </button>
       <AnchoredPopover anchorRef={ref} open={mo} onClose={() => setMo(false)} align={align}>
-        <div onKeyDown={phim} style={{ width: xemRong ? 560 : 260, maxWidth: '92vw', background: 'var(--bg-0, #0b0d12)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.5)', color: 'var(--fg-1)', overflow: 'hidden' }}>
+        <div onKeyDown={phim} style={{ width: (xemRong ? 560 : 260) + rongCot, maxWidth: '92vw', background: 'var(--bg-0, #0b0d12)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.5)', color: 'var(--fg-1)', overflow: 'hidden' }}>
           <div style={{ padding: 6, borderBottom: '1px solid var(--line)' }}>
             {/* KHÔNG tự focus ô tìm trên màn cảm ứng (anh 01/11/2026 etp #1502: mở ô chọn trên điện thoại là bật bàn phím che danh sách) — chỉ máy có chuột (pointer: fine) mới focus để gõ / ↑ ↓ ngay */}
             <div style={{ display: 'flex', gap: 6 }}>
@@ -72,7 +80,11 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
               <span style={{ alignSelf: 'center', fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{daChon.size ? `${daChon.size} đã chọn` : 'tất cả'}</span>
             </div> : null}
           </div>
-          <div style={{ maxHeight: xemRong ? '72vh' : 340, overflowY: 'auto', padding: '4px 0' }}>
+          <div style={{ maxHeight: xemRong ? '72vh' : 340, overflowY: 'auto', padding: cot ? '0 0 4px' : '4px 0' }}>
+            {cot ? <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', background: 'var(--bg-0, #0b0d12)', borderBottom: '1px solid var(--line)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3, #777)' }}>
+              <span style={{ width: 12 }} /><span data-cot="ten" style={{ flex: 1, minWidth: 0 }}>{nhan ?? ''}</span>
+              {cot.map((c) => oCot(c, c.h))}
+            </div> : null}
             {loc.length ? loc.map((m, i) => (
               <div key={m.value || '_'}>
                 {m.nhom && m.nhom !== loc[i - 1]?.nhom ? <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3, #777)', padding: '8px 10px 3px' }}>{m.nhom}</div> : null}
@@ -80,7 +92,8 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
                   onClick={(e) => { if (href && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return; e.preventDefault(); chon(m.value); }}   // phím phụ = để trình duyệt mở tab mới
                   style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '5px 10px', cursor: 'pointer', color: 'inherit', textDecoration: 'none', background: i === tro ? 'var(--hover, rgba(255,255,255,.07))' : undefined, fontWeight: coChon(m.value) ? 600 : 400 }}>
                   <span style={{ width: 12, color: 'var(--accent, #60a5fa)' }}>{nhieu && m.value !== tatCa ? (coChon(m.value) ? '☑' : '☐') : coChon(m.value) ? '✓' : ''}</span>
-                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.label}</span>
+                  <span data-cot={cot ? 'ten' : undefined} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.label}</span>
+                  {cot ? cot.map((c, j) => oCot(c, m.o?.[j])) : null}
                   {m.dem != null ? <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{m.dem}</span> : null}
                 </a>
               </div>)) : <div style={{ fontSize: 12, color: 'var(--fg-2)', padding: '8px 10px' }}>Không có mục khớp</div>}

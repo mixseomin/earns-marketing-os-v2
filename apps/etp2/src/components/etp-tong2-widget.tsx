@@ -1,7 +1,7 @@
 'use client';
 // WIDGET SỐ của Tổng quan 2 etp (anh 01/11/2026 "cụm nhóm Insight dựa vào Người, Tài khoản và Time"): đọc gói taiTong2 (actions/etp-tong2.ts), theo kỳ đang chọn trên trang.
 // Khoá của VE_SO phải có trong sổ lib/etp-widget.json (check-etp-gop-y đối chiếu) — thêm widget = mục trong sổ + một hàm ở đây.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { SimpleTable, StatsStrip, type SimpleColumn } from '@/components/ui';
 import { ThanhPho, laiPhim, xepTang, TANG, capToa, CAP, GIAI_CAP } from '@/components/etp-toa-nha';
@@ -214,21 +214,55 @@ function ThanhPhoVe({ ds, nguoi, laNha, cao }: { ds: PhimThanhPho[]; nguoi: stri
   return full ? <>{createPortal(ruot, document.body)}<div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MO, fontSize: 12 }}>đang xem full</div></> : ruot;
 }
 
+/** SỐ TỪNG NGƯỜI TRONG KỲ — MỘT chỗ tính cho widget Người và menu chọn Người (#1759): chi/thu kỳ (k), kỳ trước cùng độ dài (t), ROI 3/7 ngày đã khép,
+ *  đường ROI 7 ngày, camp đang bật + ngân sách/ngày */
+function tinhNguoi(s: SoTong2, ky: { tu: string; den: string }) {
+  const qua = congNgay(s.nay, -1), tu = ky.tu < '2000' ? (s.nguoiNgay.map((r) => r.d).sort()[0] ?? s.nay) : ky.tu, den = ky.den;
+  const dai = soNgayGiua(tu, den), tuTruoc = congNgay(tu, -dai), denTruoc = congNgay(tu, -1);
+  const trong = (d: string, a: string, b: string) => d >= a && d <= b;
+  const ngay7 = Array.from({ length: 7 }, (_, i) => congNgay(s.nay, i - 7));   // 7 ngày đã khép
+  const nguoi = s.nguoi.map((p) => {
+    const rs = s.nguoiNgay.filter((r) => r.n === p.id), k = cong(rs.filter((r) => trong(r.d, tu, den))), t = cong(rs.filter((r) => trong(r.d, tuTruoc, denTruoc)));
+    const r3 = roi(cong(rs.filter((r) => trong(r.d, ngay7[4]!, qua)))), r7 = roi(cong(rs.filter((r) => trong(r.d, ngay7[0]!, qua))));
+    const tks = s.tk.filter((a) => a.n === p.id).map((a) => a.id), nay = s.tkNay.filter((a) => tks.includes(a.tk));
+    return { ...p, k, t, r3, r7, duong: ngay7.map((d) => roi(cong(rs.filter((r) => r.d === d)))), camp: nay.reduce((a, b) => a + b.chay, 0), ns: nay.reduce((a, b) => a + b.ns, 0) };
+  });
+  return { qua, tu, den, dai, ngay7, nguoi };
+}
+type NguoiSo = ReturnType<typeof tinhNguoi>['nguoi'][number];
+type SoO = Pick<NguoiSo, 'k' | 't' | 'camp' | 'ns' | 'duong'>;
+/** dòng Tổng / Team (#1581): cộng chi/thu kỳ + kỳ trước của mọi người, ROI từ tổng (không cộng %), đường ROI 7 ngày từ tổng từng ngày */
+function tongNguoi(s: SoTong2, nguoi: NguoiSo[]): SoO {
+  const ids = new Set(nguoi.map((p) => p.id)), ngay7 = Array.from({ length: 7 }, (_, i) => congNgay(s.nay, i - 7));
+  return { k: cong(nguoi.map((p) => p.k)), t: cong(nguoi.map((p) => p.t)), camp: nguoi.reduce((a, p) => a + p.camp, 0), ns: nguoi.reduce((a, p) => a + p.ns, 0),
+    duong: ngay7.map((d) => roi(cong(s.nguoiNgay.filter((r) => r.d === d && ids.has(r.n))))) };
+}
+/** cột hiệu quả của bảng Người — chung cho widget Người và menu chọn Người (Chon2 cot / o) */
+export const COT_NGUOI: { key: string; h: string; rong: number; phai?: boolean; title?: string }[] = [
+  { key: 'chi', h: 'Chi', rong: 64, phai: true }, { key: 'lai', h: 'Lãi', rong: 64, phai: true }, { key: 'roi', h: 'ROI', rong: 64, phai: true },
+  { key: 'camp', h: 'Camp bật', rong: 56, phai: true, title: 'camp ACTIVE lúc này · tổng ngân sách / ngày' }, { key: 'duong', h: 'ROI 7 ngày', rong: 72, title: 'ROI từng ngày, 7 ngày đã khép' }];
+const oNguoi = (p: SoO): ReactNode[] => [
+  <KeToan key="chi" v={p.k.chi} />, <KeToan key="lai" v={p.k.thu - p.k.chi} mau={mauLai(p.k.thu - p.k.chi)} />, <span key="roi">{roiSoTruoc(p.k, p.t)}</span>,
+  <span key="camp" title={`ngân sách ${tien(p.ns)}/ngày`}><Dem v={p.camp} /></span>, <DuongRoi key="duong" v={p.duong} />];
+
+/** MENU CHỌN NGƯỜI có số hiệu quả (anh 22/11/2026 #1759 "Show bảng chi tiết hiệu quả này vào menu chọn người"): ô số từng người theo id + dòng Team (cộng mọi người),
+ *  cùng số / cùng cách tính với widget Người — chung một bản tải taiTong2 (useSoNho 'tong2', không tải thêm) */
+export function useNguoiMenu(ky: { tu: string; den: string }): { theoId: Map<number, ReactNode[]>; team: ReactNode[] } | null {
+  const { so: s } = useSoNho<SoTong2>('tong2', taiTong2, 120_000);
+  return useMemo(() => {
+    if (!s) return null;
+    const { nguoi } = tinhNguoi(s, ky);
+    return { theoId: new Map(nguoi.map((p) => [p.id, oNguoi(p)])), team: oNguoi(tongNguoi(s, nguoi)) };
+  }, [s, ky.tu, ky.den]);   // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidget> {
   const { so: s } = useSoNho<SoTong2>('tong2', taiTong2, 120_000);   // bản lần trước hiện ngay, tải mới ngầm (anh 13/11/2026 widget Người đứng "đang tải số…")
 
   const x = useMemo(() => {
     if (!s) return null;
-    const qua = congNgay(s.nay, -1), tu = ky.tu < '2000' ? (s.nguoiNgay.map((r) => r.d).sort()[0] ?? s.nay) : ky.tu, den = ky.den;
-    const dai = soNgayGiua(tu, den), tuTruoc = congNgay(tu, -dai), denTruoc = congNgay(tu, -1);
+    const { qua, tu, den, dai, nguoi } = tinhNguoi(s, ky);
     const trong = (d: string, a: string, b: string) => d >= a && d <= b;
-    const ngay7 = Array.from({ length: 7 }, (_, i) => congNgay(s.nay, i - 7));   // 7 ngày đã khép
-    const nguoi = s.nguoi.map((p) => {
-      const rs = s.nguoiNgay.filter((r) => r.n === p.id), k = cong(rs.filter((r) => trong(r.d, tu, den))), t = cong(rs.filter((r) => trong(r.d, tuTruoc, denTruoc)));
-      const r3 = roi(cong(rs.filter((r) => trong(r.d, ngay7[4]!, qua)))), r7 = roi(cong(rs.filter((r) => trong(r.d, ngay7[0]!, qua))));
-      const tks = s.tk.filter((a) => a.n === p.id).map((a) => a.id), nay = s.tkNay.filter((a) => tks.includes(a.tk));
-      return { ...p, k, t, r3, r7, duong: ngay7.map((d) => roi(cong(rs.filter((r) => r.d === d)))), camp: nay.reduce((a, b) => a + b.chay, 0), ns: nay.reduce((a, b) => a + b.ns, 0) };
-    });
     const tk = s.tk.map((a) => {
       const rs = s.tkNgay.filter((r) => r.tk === a.id), k = cong(rs.filter((r) => trong(r.d, tu, den))), nay = s.tkNay.find((r) => r.tk === a.id);
       const homNay = cong(rs.filter((r) => r.d === s.nay)), ba = [1, 2, 3].map((i) => cong(rs.filter((r) => r.d === congNgay(s.nay, -i))));
@@ -338,23 +372,12 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
     nguoi: () => {
       if (!x || !s) return cho;
       // dòng Tổng (sticky đáy, #1581): cộng chi/thu kỳ + kỳ trước của mọi người đang hiện, ROI tính từ tổng (không cộng %), đường ROI 7 ngày từ tổng từng ngày
-      const tk = cong(x.nguoi.map((p) => p.k)), tt = cong(x.nguoi.map((p) => p.t));
-      const ids = new Set(x.nguoi.map((p) => p.id)), ngay7 = Array.from({ length: 7 }, (_, i) => congNgay(s.nay, i - 7));
-      const tong = {
-        ten: `Tổng (${x.nguoi.length} người)`,
-        chi: <KeToan v={tk.chi} />,
-        lai: <KeToan v={tk.thu - tk.chi} mau={mauLai(tk.thu - tk.chi)} />,
-        roi: roiSoTruoc(tk, tt),
-        camp: <span title={`ngân sách ${tien(x.nguoi.reduce((a, p) => a + p.ns, 0))}/ngày`}><Dem v={x.nguoi.reduce((a, p) => a + p.camp, 0)} /></span>,
-        duong: <DuongRoi v={ngay7.map((d) => roi(cong(s.nguoiNgay.filter((r) => r.d === d && ids.has(r.n)))))} />,
-      };
+      const [chi, lai, roiO, camp, duong] = oNguoi(tongNguoi(s, x.nguoi));
+      const tong = { ten: `Tổng (${x.nguoi.length} người)`, chi, lai, roi: roiO, camp, duong };
+      // ô số từng cột = oNguoi (chung với menu chọn Người #1759)
       return <SimpleTable rows={x.nguoi} getRowKey={(p) => String(p.id)} tong={tong} rowStyle={(p) => (p.nha ? { fontWeight: 600 } : undefined)} columns={[
         { key: 'ten', header: 'Người', cell: (p) => <a href={`?t=camp${p.nha ? '' : `&ng=${p.id}`}`} style={{ color: 'inherit' }} title="xem camp của người này">{p.ten}{p.nha ? ' (nhà)' : ''}</a> },
-        { key: 'chi', header: 'Chi', align: 'right', cell: (p) => <KeToan v={p.k.chi} /> },
-        { key: 'lai', header: 'Lãi', align: 'right', cell: (p) => <KeToan v={p.k.thu - p.k.chi} mau={mauLai(p.k.thu - p.k.chi)} /> },
-        { key: 'roi', header: 'ROI', align: 'right', cell: (p) => roiSoTruoc(p.k, p.t) },
-        { key: 'camp', header: 'Camp bật', align: 'right', title: 'camp ACTIVE lúc này · tổng ngân sách / ngày', cell: (p) => <span title={`ngân sách ${tien(p.ns)}/ngày`}><Dem v={p.camp} /></span> },
-        { key: 'duong', header: 'ROI 7 ngày', title: 'ROI từng ngày, 7 ngày đã khép', cell: (p) => <DuongRoi v={p.duong} /> },
+        ...COT_NGUOI.map((c, i) => ({ key: c.key, header: c.h, title: c.title, align: c.phai ? 'right' as const : undefined, cell: (p: NguoiSo) => oNguoi(p)[i] })),
       ]} />;
     },
     nha_thua: () => {

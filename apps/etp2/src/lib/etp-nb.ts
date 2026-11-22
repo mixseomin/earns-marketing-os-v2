@@ -6,6 +6,8 @@ export const ROAS_MUC = [0.9, 1, 1.1, 1.2, 1.3, 1.4] as const;
 /** nhiều mức một lần bấm, bài cũ: cặp 0.9 + 1.1 (Dol 22/11/2026 "2 camp lên mà lãi luôn → duplicate thêm 2 camp, bid 0.9, 1.1") · bộ ba thêm mức 1 */
 export const ROAS_CAP = [0.9, 1.1] as const, ROAS_BA = [0.9, 1, 1.1] as const;
 export const NS_ROAS_CHIP = [5, 10, 15, 20] as const;
+/** ngân sách bản KHÔNG BID / SANG BỘ KHÁC anh chỉnh (anh 22/11/2026 "Ngân sách cho điều chỉnh") — cùng nhan-ban.py --ns $1–20 */
+export const NS_TAY_KHOANG = [1, 20] as const, NS_TAY_CHIP = [1, 2, 3, 5, 10] as const;
 
 /** "YYYY-MM-DD HH:MM" giờ VN (nhận cả dạng datetime-local "…T…") hoặc null */
 export const gioVn = (g: string | null | undefined) => { const t = (g ?? '').trim().replace('T', ' ').slice(0, 16); return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(t) ? t : null; };

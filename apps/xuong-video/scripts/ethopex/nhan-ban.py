@@ -442,7 +442,7 @@ THANG_MUC = {float(x) for x in _cau_hinh("thang_muc", [1, 3, 7, 15, 30]) if floa
 BO_DANG_CHAN = {str(k): set(v) for k, v in _cau_hinh("bo_dang_chan", {}).items()}   # bộ → dạng creative không lên camp mới (migration 0394, anh 01/11/2026 "bộ 2 chỉ lên cảnh cuối")
 BO_CHI_PHIM_LAI = {str(x) for x in _cau_hinh("bo_chi_phim_lai", [])}   # bộ chỉ mở camp cho phim đã lãi 7 ngày ở bộ đó (migration 0399, anh 02/11/2026 "chặn mở camp phim mới" ở bộ 2)
 ROAS_MIN, ROAS_MAX = 0.9, 1.4   # 0.9 (Dol 22/11/2026: "ngoài mức bid roas 1, lên camp test thêm mức 0.9, 1.1")
-def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None, ep=False, hoi_cho=False):
+def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None, ep=False, hoi_cho=False, ns_tay=None):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
     — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh).
     roas + moi (anh 18/11/2026, đợt lên hồi chợ — sổ luật hoi_cho): camp ★ ROAS từ CREATIVE MỚI trên khuôn (ad = creative mới, không phải bài cũ; bộ đổi được).
@@ -483,7 +483,7 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
     # BỎ mọi mã định danh + mốc thời gian của camp GỐC (chạy khô 22/10/2026: source_payload Ad Set mang campaign_id FB + start_time của camp gốc
     # → gửi nguyên là gắn nhầm vào camp gốc / chạy theo lịch cũ). Lịch của bản mới do type_run quyết.
     BO = {"id", "campaign_id", "adset_id", "account_id", "start_time", "end_time", "stop_time", "created_time", "updated_time", "effective_status", "configured_status", "issues_info"}
-    sp_c = {k: v for k, v in js(c.get("source_payload")).items() if k not in BO}; sp_c.update(name=ten, daily_budget=int(thang) if thang else (CONG.NS_BAI_CU if bai else 1), status="PAUSED")   # số nguyên như lam-ethopex tang (bậc thang đều là $ nguyên)
+    sp_c = {k: v for k, v in js(c.get("source_payload")).items() if k not in BO}; sp_c.update(name=ten, daily_budget=int(thang) if thang else (int(ns_tay) if ns_tay else (CONG.NS_BAI_CU if bai else 1)), status="PAUSED")   # số nguyên như lam-ethopex tang (bậc thang đều là $ nguyên)
     tk, ext, page = c.get("ad_account_id"), c.get("external_account_id"), a.get("facebook_page_id")
     bo = None if NGOAI else (bo or bo_cua_camp(c) or "1")   # người trong team: không có bộ — dựng đúng tài khoản / Page của camp gốc
     if bo and bo_cua_camp(c) != str(bo):   # dựng trên khuôn camp của bộ khác → đổi đúng 3 trường tài khoản / Page (pixel dùng chung, bài đăng FB tạo mới)
@@ -550,6 +550,9 @@ def main(a):
     if thang and (moi or thang not in THANG_MUC): raise SystemExit(f"--thang phải là một trong {sorted(THANG_MUC)} và không đi kèm --creative")
     if moi and not (moi["content"] and moi["ten"]): raise SystemExit("--creative cần kèm --content và --ten")
     roas = float(lay("--roas")) if lay("--roas") else None
+    # NGÂN SÁCH ANH CHỈNH cho bản không bid / sang bộ khác (anh 22/11/2026 "Ngân sách cho điều chỉnh"): chỉ khi anh bấm tay (vé), $1–20 nguyên; thiếu = mặc định cũ ($2 bài cũ · $1 bài mới)
+    ns_tay = int(float(lay("--ns"))) if lay("--ns") and roas is None and not thang else None
+    if ns_tay is not None and not (anh and 1 <= ns_tay <= 20): raise SystemExit("--ns cho bản không bid / sang bộ khác chỉ đi cùng vé thao tác tay, $1–20")
     hoi_cho = "--hoi-cho" in a   # ĐỢT LÊN HỒI CHỢ (anh 18/11/2026, apps/etp/hoi_cho.py): nhân bản BÀI CŨ của camp từng lãi trước đợt sụt — gốc tắt vẫn được, BẮT BUỘC bài cũ
     if roas is not None:
         if thang or hoi_cho: raise SystemExit("--roas không đi kèm --thang / --hoi-cho")
@@ -557,7 +560,7 @@ def main(a):
         return roas_main(goc, roas, int(float(lay("--ns", str(HOI_CHO["ns"]) if moi else "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a, tay, moi=moi, bo=bo, lenh_cho="--lenh-cho" in a, gio=gio, cu=cu)
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None, "chay": lich}
     try:
-        d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep, hoi_cho=hoi_cho and not moi and not thang); kq["ten"] = ten; bo = pl.pop("bo"); bai0 = bai = pl.pop("bai_cu", None); cr_bai = pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"]
+        d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep, hoi_cho=hoi_cho and not moi and not thang, ns_tay=ns_tay); kq["ten"] = ten; bo = pl.pop("bo"); bai0 = bai = pl.pop("bai_cu", None); cr_bai = pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"]
         if hoi_cho and not bai0: raise ChanLuat(f"camp gốc #{goc} không dùng được bài đăng cũ (không có mã bài / khác bộ) — đợt hồi chợ chỉ nhân bản bài cũ (anh 18/11/2026)")
         ly = None if NGOAI else (None if moi or ep else q(f"select etp.bo_chan_mo_camp('{bo}', {int(goc)})"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (0339); camp gốc tự thắng (3 ngày khép ROI ≥ 30%) thì miễn (0372, anh 30/10/2026)
         if ly: raise ChanLuat(ly)

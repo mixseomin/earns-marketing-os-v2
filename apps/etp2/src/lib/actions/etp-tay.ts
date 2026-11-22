@@ -11,7 +11,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { envVe, xinVeTay, xinVeTrucTiep } from '@/lib/etp-ve';
-import { NS_ROAS_KHOANG, ROAS_KHOANG, chuGio, daQua, gioVn } from '@/lib/etp-nb';
+import { NS_ROAS_KHOANG, NS_TAY_KHOANG, ROAS_KHOANG, chuGio, daQua, gioVn } from '@/lib/etp-nb';
 /** LÚC CAMP NHÂN BẢN THỰC SỰ CHẠY (anh 10/11/2026 "khi nhân bản phải ghi rõ ngày, giờ sẽ thực sự active") — cùng luật nhan-ban.lich_len / chay_luc: trong khung lên → chạy ngay khi đồng bộ xong; ngoài khung → 07:00 VN */
 function chayLuc(now = Date.now()): string {
   const [a, b] = BANG_LUAT.khung_doi.len as [number, number], vn = new Date(now + 7 * 36e5), h = vn.getUTCHours();
@@ -69,14 +69,17 @@ export async function campTay(campId: number, viec: 'bat' | 'tat' | 'ns', o: { n
   return { ok: true, chu: k.lich ?? (viec === 'ns' ? `$${k.truoc?.ns ?? '?'} → $${k.sau?.ns ?? '?'}` : `${k.truoc?.tt ?? '?'} → ${k.sau?.tt ?? '?'}`) };
 }
 
-export type KieuNb = { kieu: 'thuong' } | { kieu: 'thang'; ns: number } | { kieu: 'bo'; bo: string } | { kieu: 'roas'; roas: number; ns: number; tamDung: boolean; /** nhiều mức bài cũ một lần bấm (Dol 22/11/2026: cặp 0.9 + 1.1 · bộ ba 0.9 + 1 + 1.1) — mỗi mức một camp */ cap?: number[];
+/** ns của không bid / sang bộ: anh chỉnh $1–20 (22/11/2026); bỏ trống = máy đặt ($2 bài cũ · $1 bài mới) */
+export type KieuNb = { kieu: 'thuong'; ns?: number } | { kieu: 'thang'; ns: number } | { kieu: 'bo'; bo: string; ns?: number } | { kieu: 'roas'; roas: number; ns: number; tamDung: boolean; /** nhiều mức bài cũ một lần bấm (Dol 22/11/2026: cặp 0.9 + 1.1 · bộ ba 0.9 + 1 + 1.1) — mỗi mức một camp */ cap?: number[];
   /** giờ chạy: bỏ trống = lịch lên camp quyết · 'ngay' · 'YYYY-MM-DD HH:MM' VN — hai cái sau là lệnh trực tiếp (vé cong.py --ve-truc-tiep) */ gio?: string | null };
 /** các mức ROAS của một lần bấm — mỗi mức một camp */
 const mucRoas = (x: Extract<KieuNb, { kieu: 'roas' }>) => (x.cap?.length ? x.cap : [x.roas]);
 const thamNb = (x: KieuNb): string[] | string => {
-  if (x.kieu === 'thuong') return [];
+  if ((x.kieu === 'thuong' || x.kieu === 'bo') && x.ns != null && !(Number.isInteger(x.ns) && x.ns >= NS_TAY_KHOANG[0] && x.ns <= NS_TAY_KHOANG[1])) return `ngân sách $${NS_TAY_KHOANG[0]}–${NS_TAY_KHOANG[1]}`;
+  const nsTay = (x.kieu === 'thuong' || x.kieu === 'bo') && x.ns != null ? ['--ns', String(x.ns)] : [];
+  if (x.kieu === 'thuong') return nsTay;
   if (x.kieu === 'thang') return Number.isInteger(x.ns) && x.ns > 1 ? ['--thang', String(x.ns)] : 'mức thang không hợp lệ';
-  if (x.kieu === 'bo') return /^[A-Za-z0-9_ -]{1,20}$/.test(x.bo) ? ['--bo', x.bo, '--ep'] : 'bộ không hợp lệ';
+  if (x.kieu === 'bo') return /^[A-Za-z0-9_ -]{1,20}$/.test(x.bo) ? ['--bo', x.bo, '--ep', ...nsTay] : 'bộ không hợp lệ';
   const muc = mucRoas(x);
   if (muc.length > 3 || new Set(muc).size !== muc.length || muc.some((r) => !(r >= ROAS_KHOANG[0] && r <= ROAS_KHOANG[1]))) return `ROAS goal phải trong ${ROAS_KHOANG[0]}–${ROAS_KHOANG[1]}, tối đa 3 mức khác nhau`;
   if (!(Number.isInteger(x.ns) && x.ns >= NS_ROAS_KHOANG[0] && x.ns <= NS_ROAS_KHOANG[1])) return `ngân sách camp ROAS $${NS_ROAS_KHOANG[0]}–${NS_ROAS_KHOANG[1]}`;
@@ -123,6 +126,6 @@ export async function nhanBanTay(campId: number, x: KieuNb, ghi?: string): Promi
   const ve = await xinVeTay('nhan_ban', { camp: campId, ai: AI });   // vé thao tác tay (anh 18/11/2026): phanh chợ chỉ miễn lệnh mang vé
   spawn('python3', ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that', '--luat', `tay etp2: nhân bản ${x.kieu} — ANH CHỊU TRÁCH NHIỆM, máy không chặn${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI],
     { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: envVe(ve) }).unref();
-  await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ${x.kieu === 'thuong' ? 'thường' : x.kieu === 'thang' ? `thang $${x.ns}` : `sang bộ ${x.bo}`}` });
+  await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ${x.kieu === 'thuong' ? 'thường' : x.kieu === 'thang' ? `thang $${x.ns}` : `sang bộ ${x.bo}`}${x.kieu !== 'thang' && x.ns != null ? ` · $${x.ns}` : ''}` });
   return { ok: true, chu: `đã gửi máy nhân bản (anh chịu trách nhiệm — máy không chặn bằng luật, chỉ dừng khẩn) · camp mới ${chayLuc()} · camp hiện sau lượt đồng bộ kế, kết quả ghi nhật ký luật` };
 }

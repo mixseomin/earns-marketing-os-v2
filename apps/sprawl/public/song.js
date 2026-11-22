@@ -181,5 +181,5 @@ export function taoSong({ goc, ql, dsThap }) {
     }
     thanTau.instanceMatrix.needsUpdate = kinhTau.instanceMatrix.needsUpdate = socTau.instanceMatrix.needsUpdate = true;
   }
-  return { datLai, khung, uT, anKhi2200: [thanBay, denTruoc, vet, suong], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length } };
+  return { datLai, khung, uT, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau, vuonCau, ruCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length } };
 }

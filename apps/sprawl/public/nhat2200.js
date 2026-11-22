@@ -53,9 +53,41 @@ export function taoNhat2200({ rs, ql, datTai }) {
           totalEmissiveRadiance += (1.0 - gSan) * (vec3(0.05, 0.08, 0.11) + smoothstep(0.0, 1.0, vWp.y / 400.0) * vec3(0.10, 0.13, 0.16) + fr * vec3(0.62, 0.74, 0.86)); }`);
   };
 
+  // ---------- cao tốc trên cao: theo các đại lộ lớn thật dài nhất, bỏ tuyến song song trùng, uốn mượt, né tháp ----------
+  const NUA = 1480, chon = [], luoiDa = new Map(), oKey = (x, z) => `${Math.floor(x / 45)},${Math.floor(z / 45)}`;
+  const dai = (g) => g.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - g[i - 1][0], p[1] - g[i - 1][1]) : 0), 0);
+  for (const dl of ql.daiLo.filter((d) => d.lop === 'lon').map((d) => ({ g: d.g, L: dai(d.g) })).sort((a, b) => b.L - a.L)) {
+    if (chon.length >= 7 || dl.L < 500) break;
+    // chia đều 20 m, cắt trong vùng đất
+    let P = []; for (let i = 1; i < dl.g.length; i++) { const a = dl.g[i - 1], b = dl.g[i], k = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 20));
+      for (let j = i === 1 ? 0 : 1; j <= k; j++) P.push([a[0] + (b[0] - a[0]) * j / k, a[1] + (b[1] - a[1]) * j / k]); }
+    P = P.filter((p) => Math.abs(p[0]) < NUA && Math.abs(p[1]) < NUA); if (P.length < 30) continue;
+    const trung = P.filter((p) => luoiDa.has(oKey(p[0], p[1]))).length; if (trung > P.length * 0.35) continue;
+    const muot = (A, r) => A.map((p, i) => { if (i < r || i >= A.length - r) return p; let x = 0, z = 0; for (let k = -r; k <= r; k++) { x += A[i + k][0]; z += A[i + k][1]; } return [x / (2 * r + 1), z / (2 * r + 1)]; });
+    for (let l = 0; l < 3; l++) P = muot(P, 3);
+    for (const p of P) for (const d of ds) { const dx = p[0] - d.t.o[0], dz = p[1] - d.t.o[1], dd = Math.hypot(dx, dz), can = d.t.banKinh * 1.05 + 16;
+      if (dd < can) { p[0] = d.t.o[0] + dx / (dd || 1) * can; p[1] = d.t.o[1] + dz / (dd || 1) * can; } }
+    P = muot(P, 2);
+    for (const p of P) for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) luoiDa.set(oKey(p[0] + a * 30, p[1] + b * 30), 1);
+    const kc = [0]; for (let i = 1; i < P.length; i++) kc.push(kc[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
+    chon.push({ P, kc, L: kc[kc.length - 1], y: new Float32Array(P.length), pha: chon.length * 1.7 });
+  }
+  // ---------- tháp đứng hai bên cao tốc (reel Japan 2200: cao tốc luồn giữa hai hàng tháp) — thêm vào quy hoạch tháp đỏ, né tháp có sẵn + mọi tuyến ----------
+  const dsT = ds.map((d) => ({ t: d.t, d })), rTh = gieo(2200), THEM_TOI_DA = 44;
+  const xaTuyen = (x, z, can) => chon.every((c) => c.P.every((p, i) => i % 2 || Math.hypot(p[0] - x, p[1] - z) > can));
+  for (const c of chon) for (let i = 18, ben = 1; i < c.P.length - 18 && dsT.length < ds.length + THEM_TOI_DA; i += 7, ben = -ben) {
+    if (c.kc[i] < 300 || c.kc[i] > c.L - 300 || rTh() < 0.25) continue;
+    const [ax, az] = c.P[i - 2], [bx, bz] = c.P[i + 2], L = Math.hypot(bx - ax, bz - az) || 1, nx = -(bz - az) / L, nz = (bx - ax) / L;
+    const R = 20 + rTh() * 16, lui = 9 + R + 6 + rTh() * 22, x = c.P[i][0] + nx * lui * ben, z = c.P[i][1] + nz * lui * ben;
+    if (Math.abs(x) > NUA - 60 || Math.abs(z) > NUA - 60) continue;
+    if (!dsT.every((q) => Math.hypot(q.t.o[0] - x, q.t.o[1] - z) > R + q.t.banKinh + 22)) continue;
+    if (!xaTuyen(x, z, R + 12)) continue;
+    dsT.push({ t: { id: 5000 + dsT.length, o: [x, z], banKinh: R / 0.78, caoSpire: 170 + rTh() * 230 } });
+  }
+
   // ---------- tháp trắng: thân siêu elip xoắn / thon / cong, sàn vườn trắng (vòng đủ, xoắn ốc, nửa vòng), vòm đỉnh, kim ----------
   const gT = taoGom(), cay = [];
-  for (const [ti, d] of ds.entries()) {
+  for (const [ti, d] of dsT.entries()) {
     const t = d.t, r = gieo(t.id * 7 + 3), loai = ['xoan', 'bac', 'cong'][(ti + ((r() * 3) | 0)) % 3];
     const R = t.banKinh * (loai === 'bac' ? 0.62 : 0.78), Hc = t.caoSpire * (0.82 + r() * 0.1), x0 = t.o[0], z0 = t.o[1];
     const n = loai === 'xoan' ? 2.6 + r() * 1.2 : 2 + r() * 0.5, xoan = loai === 'xoan' ? 0.9 + r() * 1.1 : loai === 'bac' ? r() * 0.3 : 0.2 + r() * 0.4;
@@ -99,25 +131,6 @@ export function taoNhat2200({ rs, ql, datTai }) {
   const cayMesh = new THREE.InstancedMesh(gCay, new THREE.MeshLambertMaterial({ color: '#4f7f3c' }), Math.max(1, cay.length)); cayMesh.count = cay.length;
   cayMesh.frustumCulled = false; goc.add(cayMesh);
 
-  // ---------- cao tốc trên cao: theo các đại lộ lớn thật dài nhất, bỏ tuyến song song trùng, uốn mượt, né tháp ----------
-  const NUA = 1480, chon = [], luoiDa = new Map(), oKey = (x, z) => `${Math.floor(x / 45)},${Math.floor(z / 45)}`;
-  const dai = (g) => g.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - g[i - 1][0], p[1] - g[i - 1][1]) : 0), 0);
-  for (const dl of ql.daiLo.filter((d) => d.lop === 'lon').map((d) => ({ g: d.g, L: dai(d.g) })).sort((a, b) => b.L - a.L)) {
-    if (chon.length >= 7 || dl.L < 500) break;
-    // chia đều 20 m, cắt trong vùng đất
-    let P = []; for (let i = 1; i < dl.g.length; i++) { const a = dl.g[i - 1], b = dl.g[i], k = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 20));
-      for (let j = i === 1 ? 0 : 1; j <= k; j++) P.push([a[0] + (b[0] - a[0]) * j / k, a[1] + (b[1] - a[1]) * j / k]); }
-    P = P.filter((p) => Math.abs(p[0]) < NUA && Math.abs(p[1]) < NUA); if (P.length < 30) continue;
-    const trung = P.filter((p) => luoiDa.has(oKey(p[0], p[1]))).length; if (trung > P.length * 0.35) continue;
-    const muot = (A, r) => A.map((p, i) => { if (i < r || i >= A.length - r) return p; let x = 0, z = 0; for (let k = -r; k <= r; k++) { x += A[i + k][0]; z += A[i + k][1]; } return [x / (2 * r + 1), z / (2 * r + 1)]; });
-    for (let l = 0; l < 3; l++) P = muot(P, 3);
-    for (const p of P) for (const d of ds) { const dx = p[0] - d.t.o[0], dz = p[1] - d.t.o[1], dd = Math.hypot(dx, dz), can = d.t.banKinh * 1.05 + 16;
-      if (dd < can) { p[0] = d.t.o[0] + dx / (dd || 1) * can; p[1] = d.t.o[1] + dz / (dd || 1) * can; } }
-    P = muot(P, 2);
-    for (const p of P) for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) luoiDa.set(oKey(p[0] + a * 30, p[1] + b * 30), 1);
-    const kc = [0]; for (let i = 1; i < P.length; i++) kc.push(kc[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
-    chon.push({ P, kc, L: kc[kc.length - 1], y: new Float32Array(P.length), pha: chon.length * 1.7 });
-  }
   // mặt cắt (ngang, đứng): lan can hai bên, lòng đường, bụng cong thót
   // lòng đường chia dải: vạch mép trắng · làn xám · vạch tim trắng · làn xám · vạch mép (MAU_MC theo từng đoạn)
   const MC = [[-7.2, 0], [-7.2, 1.3], [-6.8, 1.3], [-6.8, 0.15], [-6.4, 0.15], [-0.15, 0.15], [0.15, 0.15], [6.4, 0.15], [6.8, 0.15], [6.8, 1.3], [7.2, 1.3], [7.2, 0], [4.2, -2.6], [-4.2, -2.6], [-7.2, 0]];
@@ -166,9 +179,10 @@ export function taoNhat2200({ rs, ql, datTai }) {
 
   // ---------- bám đất: cộng chân tháp, dò đất dọc cao tốc ----------
   function datLai(muot) {
-    const pT = T.geo.attributes.position; for (let i = 0; i < T.so.length; i++) pT.setY(i, T.goc[i] + (ds[T.so[i]].y0 ?? 0));
+    const yT = dsT.map((q) => q.d ? (q.d.y0 ?? 0) : muot(q.t.o[0], q.t.o[1]));          // tháp thêm: đất tại chân
+    const pT = T.geo.attributes.position; for (let i = 0; i < T.so.length; i++) pT.setY(i, T.goc[i] + yT[T.so[i]]);
     pT.needsUpdate = true; T.geo.computeBoundingSphere();
-    for (const [i, c] of cay.entries()) { _p.set(c.x, c.y + (ds[c.ti].y0 ?? 0), c.z); _s.setScalar(c.s); cayMesh.setMatrixAt(i, _m.compose(_p, _q.identity(), _s)); }
+    for (const [i, c] of cay.entries()) { _p.set(c.x, c.y + yT[c.ti], c.z); _s.setScalar(c.s); cayMesh.setMatrixAt(i, _m.compose(_p, _q.identity(), _s)); }
     cayMesh.instanceMatrix.needsUpdate = true; _s.setScalar(1);
     for (const c of chon) { const n = c.P.length, d = Float32Array.from(c.P, (p) => muot(p[0], p[1])), m = new Float32Array(n);
       for (let i = 0; i < n; i++) { let s = 0, k = 0; for (let j = Math.max(0, i - 8); j <= Math.min(n - 1, i + 8); j++) { s += d[j]; k++; } m[i] = s / k; }
@@ -199,5 +213,5 @@ export function taoNhat2200({ rs, ql, datTai }) {
     for (const m of [diaMesh, kinhMesh, denMesh, quangMesh]) m.instanceMatrix.needsUpdate = true;
   }
 
-  return { goc, datLai, hien, khung, cao: chon, tk: { thap2200: ds.length, cay: cay.length, caoToc: chon.length, toa: toa.length, dia: dia.length, dinhThap: T.so.length } };
+  return { goc, datLai, hien, khung, cao: chon, thap: dsT.map((q) => q.t), tk: { thap2200: dsT.length, thapThem: dsT.length - ds.length, cay: cay.length, caoToc: chon.length, toa: toa.length, dia: dia.length, dinhThap: T.so.length } };
 }

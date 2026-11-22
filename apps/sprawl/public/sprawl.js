@@ -286,15 +286,19 @@ function gocDung(ten) { // trả [cam xyz, đích xyz, fov]; góc theo dữ li�
       if (c.kc[i] < 340 || c.kc[i] > c.L - 340) continue;                                            // bỏ đoạn dốc hai đầu tuyến
       const [ax, az] = c.P[i], [bx, bz] = c.P[i + 12 * sg], L = Math.hypot(bx - ax, bz - az) || 1, ux = (bx - ax) / L, uz = (bz - az) / L;
       const cx = ax - ux * 60, cz = az - uz * 60; let tr = 0, ph = 0, ket = false;
-      for (const t of ql.thap) { const dx = t.o[0] - ax, dz = t.o[1] - az, doc = dx * ux + dz * uz, s = dx * uz - dz * ux, ng = Math.abs(s);
+      for (const t of n2.thap || ql.thap) { const dx = t.o[0] - ax, dz = t.o[1] - az, doc = dx * ux + dz * uz, s = dx * uz - dz * ux, ng = Math.abs(s);
         if (Math.hypot(t.o[0] - cx, t.o[1] - cz) < t.banKinh + 45) ket = true;                      // máy không đứng sát / trong thân tháp
         if (doc > -40 && doc < 600 && ng > 30 && ng < 260) { const w = (1 + t.caoSpire / 300) * (1 - doc / 900); if (s > 0) tr += w; else ph += w; } }
       if (ket) continue;
       const r0 = Math.hypot(ax, az) || 1, vao = -(ax * ux + az * uz) / r0;                              // nhìn vào tâm: nền xa là phố PLATEAU (dữ liệu chỉ phủ quận Shinjuku), không phải đất trống
-      const diem = Math.min(tr, ph) * 2.5 + tr + ph - r0 / 300 + vao * 4;
-      if (!tot || diem > tot.diem) tot = { diem, ax, az, ux, uz };
+      const [mx, mz] = c.P[i + 6 * sg], g1 = Math.atan2(mz - az, mx - ax), g2 = Math.atan2(bz - mz, bx - mx);
+      const cong = Math.abs(Math.atan2(Math.sin(g2 - g1), Math.cos(g2 - g1)));                       // đoạn thẳng: cao tốc chạy dọc giữa khung, không cua ra mép
+      const diem = Math.min(tr, ph) * 2.5 + tr + ph - r0 / 300 + vao * 4 - cong * 12;
+      if (!tot || diem > tot.diem) tot = { diem, ax, az, ux, uz, c, i, sg };
     }
-    if (tot) { const { ax, az, ux, uz } = tot, y = d0(ax, az); return [[ax - ux * 60, y + 150, az - uz * 60], [ax + ux * 200, y + 10, az + uz * 200], 55]; }
+    if (tot) { // nhắm vào CHÍNH mặt cao tốc ~200 m phía trước (độ cao tuyến, không phải đất dưới gầm), máy cao ~150 m so với đất
+      const { ax, az, ux, uz, c, i, sg } = tot, y = d0(ax, az), [tx, tz] = c.P[i + 10 * sg], yc = c.y[i + 10 * sg] || d0(tx, tz) + 46;
+      return [[ax - ux * 70, y + 150, az - uz * 70], [tx, yc, tz], 55]; }
   }
   if (ten === '2200' && ql) { // dự phòng khi chưa có cao tốc: dọc đại lộ lớn
     let tot = null;

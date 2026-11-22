@@ -7,8 +7,8 @@ Khác scripts/do-cua-so.py (viết cho ảnh 3D Google nhoè, dò theo lưới h
   GỜ NGANG (chỉ tường gạch) = dải đá chạy ≥ 80 % bề ngang phần thấy, dày 0,12–0,7 m, trên dưới đều là gạch → độ cao tuyệt đối tâm dải.
 Mỗi hàng / gờ một độ tin 0–1. Ghi <thư mục>/cua-<nhãn>.json { "khối#cạnh": { hang: [{ y0, y1, cum, tin }], go_y: [[y, tin]], phu } }.
 
-  python3 apps/castle/scripts/dem-cua-so.py <thư mục nan-mat> <nhãn> [--anh]
-  python3 apps/castle/scripts/dem-cua-so.py --tu-kiem      mặt vẽ có đáp án: 2 cửa đôi + 3 cửa đơn kính xanh + gờ đá; mồi nhử: ống thoát nước, neo sắt, mảng tối không khung đá, ô bị cắt ở mép
+  python3 apps/castle/scripts/dem-cua-so.py <thư mục nan-mat> <nhãn> [--anh] [--khong-deu]
+  python3 apps/castle/scripts/dem-cua-so.py --tu-kiem [--khong-deu]      mặt vẽ có đáp án: 2 cửa đôi + 3 cửa đơn kính xanh + gờ đá; mồi nhử: ống thoát nước, neo sắt, mảng tối không khung đá, ô bị cắt ở mép
 """
 import json, sys, pathlib
 import numpy as np
@@ -38,6 +38,33 @@ def loc(mask, n):
         return r
     def co(m): return ~no(~m)
     return no(co(co(no(mask))))
+
+DEU = '--khong-deu' not in sys.argv
+def deu_hoa(cum, o, sang, tuong, nguong):
+    """ĐIỀU HOÀ THEO NHỊP LẶP (23/11/2026, cùng ý nhap-mat-tien.py --deu): cửa cùng hàng trên một mặt lặp cùng một mẫu (đôi / ba ô). Ô kính phản sáng / bóng đổ
+    lọt ngưỡng tối → cụm đó đếm hụt. Cụm mẫu = cụm nhiều ô nhất hàng; cụm hụt thử đặt mẫu sao cho một ô đã thấy trùng một ô mẫu, các ô còn thiếu phải
+    nằm trọn trên tường, không chồng ô khác, và tối hơn tường (< nguong — nới hơn ngưỡng dò, vẫn chặt hơn tường trơn). Không đặt được → giữ nguyên."""
+    if len(cum) < 2: return 0
+    mau = max(cum, key=len); n = len(mau)
+    if n < 2: return 0
+    lech = [(b[0] - mau[0][0], b[1] - mau[0][1], b[2] - b[0], b[3] - b[1]) for b in mau]; them = 0
+    for ci, c in enumerate(cum):
+        if len(c) >= n: continue
+        tot = None
+        for b in c:
+            for j in range(n):
+                gx, gy = b[0] - lech[j][0], b[1] - lech[j][1]; moi = []; ok = True; tong = 0
+                for k, (dx, dy, w, h) in enumerate(lech):
+                    x0, y0 = int(gx + dx), int(gy + dy); x1, y1 = x0 + w, y0 + h
+                    if any(abs(x0 - q[0]) < w * 0.5 and abs(y0 - q[1]) < h * 0.5 for q in c): continue        # ô này đã thấy
+                    if x0 < 0 or y0 < 0 or x1 > sang.shape[1] or y1 > sang.shape[0] or tuong[y0:y1, x0:x1].mean() < 0.96: ok = False; break
+                    if any(min(x1, q[2]) - max(x0, q[0]) > 0 and min(y1, q[3]) - max(y0, q[1]) > 0 for q in o): ok = False; break
+                    t = float(sang[y0:y1, x0:x1].mean())
+                    if t >= nguong: ok = False; break
+                    moi.append((x0, y0, x1, y1, 0.5)); tong += t
+                if ok and moi and len(c) + len(moi) == n and (tot is None or tong < tot[0]): tot = (tong, moi)
+        if tot: cum[ci] = sorted(c + tot[1], key=lambda q: q[0]); o.extend(tot[1]); them += len(tot[1])
+    return them
 
 def dem_mat(m):
     PX = m['px']; im = np.asarray(Image.open(m['tep']).convert('RGBA')).astype(float); H, W = im.shape[:2]
@@ -69,11 +96,13 @@ def dem_mat(m):
             t, d = max(b[1], hg[0][1]), min(b[3], hg[0][3])
             if d - t >= 0.5 * min(b[3] - b[1], hg[0][3] - hg[0][1]): hg.append(b); break
         else: hang.append([b])
+    bu = 0
     for hg in hang:
         hg.sort(key=lambda b: b[0]); cum = [[hg[0]]]
         for b in hg[1:]:
             if (b[0] - cum[-1][-1][2]) / PX < 0.6: cum[-1].append(b)
             else: cum.append([b])
+        if DEU: bu += deu_hoa(cum, o, sang, tuong, Lw * 0.85)
         cao = np.array([b[3] - b[1] for b in hg]) / PX; tin = float(np.mean([b[4] for b in hg])) * (1 - min(1, float(cao.std()) / float(cao.mean())))
         kq['hang'].append({'y0': round(m['y1'] - float(np.median([b[3] for b in hg])) / PX, 2), 'y1': round(m['y1'] - float(np.median([b[1] for b in hg])) / PX, 2),
                            'cum': [[round(c[0][0] / PX, 2), round(c[-1][2] / PX, 2), len(c)] for c in cum], 'tin': round(tin, 2)})
@@ -97,6 +126,7 @@ if TU_KIEM:
     gach, da, toi, kinh = (170, 70, 55, 255), (190, 185, 170, 255), (35, 38, 45, 255), (150, 175, 215, 255); hop = lambda x, y, w, h, mau: g.rectangle([x * PX, y * PX, (x + w) * PX - 1, (y + h) * PX - 1], fill=mau)
     hop(0, 1.5, 10, 10.5, gach); hop(0, 6.0, 10, 0.3, da)                                               # tường gạch từ y 1,5 m (trên là trời) + gờ đá ở 6,0–6,3 m
     for x in (2.0, 6.0): hop(x - 0.15, 2.85, 1.5, 2.0, da); hop(x, 3.0, 0.5, 1.7, toi); hop(x + 0.7, 3.0, 0.5, 1.7, toi)   # 2 cửa đôi (lòng tối) trong khung đá
+    hop(6.7, 3.0, 0.5, 1.7, (78, 74, 72, 255))                                                          # ô phải cửa đôi thứ hai phản sáng: ngưỡng dò bỏ sót, điều hoà theo nhịp phải bù lại (--khong-deu thì hỏng)
     for x in (1.5, 4.5, 7.5): hop(x - 0.12, 7.38, 0.84, 1.64, da); hop(x, 7.5, 0.6, 1.4, kinh)             # 3 cửa đơn kính xanh
     hop(9.0, 1.5, 0.12, 9, toi)                                                                          # mồi: ống thoát nước
     for x in (3.3, 5.2): hop(x, 5.0, 0.5, 0.08, toi); hop(x + 0.21, 4.7, 0.08, 0.7, toi)                  # mồi: neo sắt chữ thập

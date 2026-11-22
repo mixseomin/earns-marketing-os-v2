@@ -75,7 +75,7 @@ def giai(p2, p3, w, h):
     return {'x': C[0], 'y': C[1], 'z': C[2], 'pitch': math.asin(-max(-1, min(1, Rw[1, 2]))), 'yaw': math.atan2(Rw[0, 2], Rw[2, 2]), 'roll': math.atan2(Rw[1, 0], Rw[1, 1]),
             'fov': float(fov), 'dung': int(len(inl)), 'lech_px': e}
 
-kq = {}; hong = 0
+kq = {}; hong = 0; tk = []   # tk: kết quả tự kiểm từng góc, --ra <tệp> thì ghi ra để do-anh.mjs chấm bằng ĐÚNG cổng anhDat của đường đo thật
 DS = [KHO / (g['ten'] + '.jpg') for g in kho[len(kho) // 12::len(kho) // 6][:6]] if TU_KIEM else [ANH / t for t in sorted(CHI)] if CHI else sorted(ANH.glob('*.jpg'))
 for tep in DS:
     if not tep.exists(): print('không có', tep); continue
@@ -120,12 +120,13 @@ for tep in DS:
     kq[str(tep.relative_to(ANH))] = {'w': w, 'h': h, 'cap': sum(len(a) for a in p2) if p2 else 0, 'goc': goc[:4], 'giay': round(time.time() - t1, 1), **({k: (round(v, 4) if isinstance(v, float) else v) for k, v in r.items()} if r else {'hong': 'không đủ điểm khớp'})}
     if TU_KIEM:
         g = next(x for x in kho if x['ten'] == tep.stem); c = g['M'][:3, 3]
-        if not r: trong_ = globals().get('trong_', 0) + 1; globals()['trong_'] = trong_; hong += trong_ > 1; print(f'– {tep.stem}: không giải được camera (góc nhìn vào rừng / trời — cho phép MỘT góc)'); continue
+        if not r: tk.append({'ten': tep.stem, 'hong': True}); trong_ = globals().get('trong_', 0) + 1; globals()['trong_'] = trong_; hong += trong_ > 1; print(f'– {tep.stem}: không giải được camera (góc nhìn vào rừng / trời — cho phép MỘT góc)'); continue
         kc = float(np.linalg.norm(np.array([r['x'], r['y'], r['z']]) - c)); goc_ = math.degrees(abs((r['yaw'] - g['yaw'] + math.pi) % (2 * math.pi) - math.pi)) + math.degrees(abs(r['pitch'] - g['pitch']))
-        dat = kc <= 1.5 and goc_ <= 3 and abs(r['fov'] - g['fov']) <= 4; hong += not dat
+        dat = kc <= 1.5 and goc_ <= 3 and abs(r['fov'] - g['fov']) <= 4; hong += not dat; tk.append({**r, 'ten': tep.stem, 'dung_goc': bool(dat), 'kc': round(kc, 2)})
         if not dat: print('   giải', {k: round(r[k], 3) for k in ('yaw', 'pitch', 'roll', 'fov')}, 'thật', g['yaw'], g['pitch'])
         print(f"{'✓' if dat else '✗'} {tep.stem}: lệch chỗ đứng {kc:.2f} m · lệch hướng {goc_:.1f}° · góc nhìn {r['fov']:.1f}° (thật {g['fov']}°) · {r['dung']} điểm", flush=True); continue
     json.dump(kq, open(RA, 'w'), ensure_ascii=False, indent=1)   # ghi dần: lô dài hỏng giữa chừng không mất phần đã chạy
     print(tep.name[:44].ljust(44), json.dumps({k: v for k, v in kq[str(tep.relative_to(ANH))].items() if k not in ('goc', 'w', 'h')}), flush=True)
+if TU_KIEM and '--ra' in sys.argv: json.dump(tk, open(RA, 'w'), ensure_ascii=False, default=float)   # chỉ khi gọi rõ --ra: mặc định RA = khop.json của kho, không được đè
 if TU_KIEM: print('khop-lg tự kiểm:', 'ĐẠT' if not hong else f'HỎNG {hong} góc'); sys.exit(1 if hong else 0)
 json.dump(kq, open(RA, 'w'), ensure_ascii=False, indent=1); print('ghi', RA)

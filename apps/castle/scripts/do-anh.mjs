@@ -16,10 +16,10 @@
 //   node apps/castle/scripts/do-anh.mjs --tu-kiem     bài kiểm có thể hỏng: bộ đếm trên mặt vẽ có đáp án + định vị lại góc nhìn của chính kho + ghi thử tệp
 // Cần venv /Users/htuan/.venvs/castle-khop (torch, lightglue, opencv, numpy, pillow) — thiếu thì lệnh in cách cài rồi dừng.
 // tra-repo-ok: điều phối các bước của cảnh; phần nặng dùng thư viện có sẵn (cvg/LightGlue Apache-2.0, OpenCV) — xem khop-lg.py.
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { GOC, PUB, LAU, du, doiSo } from './chung.mjs';
 
 process.env.KMP_DUPLICATE_LIB_OK = 'TRUE'; // torch + opencv cùng nạp libomp → khop-lg.py chết 'OMP Error #15' (20/11/2026)
@@ -101,8 +101,16 @@ if (co('--tu-kiem')) {
   ok(JSON.parse(t2)['c#0'].vom_nho === 11 && JSON.parse(t2)['b#2'].x === '}{', 'chenTruong: khoá mới ở cuối tệp, chuỗi chứa ngoặc không làm lệch');
   ok(JSON.parse(t3)['b#2'].rang_cua === 5 && (t3.match(/"rang_cua": [35]/g) || []).length === 1, 'chenTruong: ghi đè thay dòng cũ, không nhân đôi khoá');
   ok(chay('python3', ['-W', 'ignore', join(SC, 'dem-chi-tiet.py'), '--tu-kiem']) === 0 || chay(PY, ['-W', 'ignore', join(SC, 'dem-chi-tiet.py'), '--tu-kiem']) === 0, 'dem-chi-tiet.py --tu-kiem');
-  const kho1 = existsSync(KHO_GOC) ? execFileSync('find', [KHO_GOC, '-name', 'kho.json', '-maxdepth', '2'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)[0] : null;
-  if (kho1) ok(chay(PY, ['-W', 'ignore', join(SC, 'khop-lg.py'), dirname(kho1), '--tu-kiem']) === 0, 'khop-lg.py --tu-kiem (định vị lại góc nhìn của kho)'); else console.log('– chưa có kho góc nhìn nào: bỏ bài định vị (chạy --khoi một lần sẽ dựng)');
+  // ĐỊNH VỊ: lấy 6 góc của kho MỚI NHẤT làm ảnh chụp, chấm bằng ĐÚNG cổng anhDat của đường đo (23/11/2026: bài cũ tính mọi lời giải sai là hỏng, kể cả lời giải
+  // cổng đã loại — kho sân dưới -50_90_-70_50 có g044-5 trượt 18 m dọc trục nhìn mà cổng tách đôi loại được → báo HỎNG oan). Hỏng thật = lời giải SAI mà cổng NHẬN,
+  // hoặc giải đúng < 4 / 6 góc (bộ khớp hỏng hẳn thì mọi góc bị loại, cổng không nhận gì mà vẫn phải đỏ).
+  const kho1 = existsSync(KHO_GOC) ? execFileSync('find', [KHO_GOC, '-name', 'kho.json', '-maxdepth', '2'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean).sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0] : null;
+  if (kho1) { const ra = join(tmpdir(), `khop-tu-kiem-${process.pid}.json`); chay(PY, ['-W', 'ignore', join(SC, 'khop-lg.py'), dirname(kho1), '--tu-kiem', '--ra', ra]);
+    const tk = existsSync(ra) ? JSON.parse(readFileSync(ra, 'utf8')) : [], kg = JSON.parse(readFileSync(kho1, 'utf8')), kY = [Math.min(...kg.map((g) => g.p[1])), Math.max(...kg.map((g) => g.p[1]))];
+    const vg = dirname(kho1).split('/').pop().replace(/_vong$/, '').split('_').map(Number), lot = tk.filter((t) => !t.hong && !t.dung_goc && anhDat(t, kY, vg) === null), dung = tk.filter((t) => t.dung_goc).length;
+    for (const t of tk.filter((t) => !t.hong && !t.dung_goc)) console.log(`   ${t.ten}: giải sai ${t.kc} m → cổng ${anhDat(t, kY, vg) ?? 'NHẬN (lọt)'}`);
+    ok(tk.length === 6 && dung >= 4 && !lot.length, `khop-lg định vị lại góc nhìn kho ${dirname(kho1).split('/').pop()}: đúng ${dung} / ${tk.length} góc · lời giải sai mà cổng nhận: ${lot.length}`); }
+  else console.log('– chưa có kho góc nhìn nào: bỏ bài định vị (chạy --khoi một lần sẽ dựng)');
   console.log(hong ? `do-anh tự kiểm: HỎNG ${hong} bài` : 'do-anh tự kiểm: ĐẠT'); process.exit(hong ? 1 : 0);
 }
 
@@ -167,19 +175,27 @@ if (co('--cua')) { console.log('4b. ĐẾM CỬA SỔ + GỜ NGANG (--cua)');
     for (const [mat, d] of Object.entries(JSON.parse(readFileSync(join(NAN, `cua-${nhan(t)}.json`), 'utf8')))) { if (d.hang?.length) (uvCua[mat] ??= []).push({ hang: d.hang, phu: d.phu, thay: d.thay, anh: t }); for (const [y, tin] of d.go_y || []) (uvGo[mat] ??= []).push({ y, tin, anh: t, phu: d.phu }); } } }
 console.log('5. GỘP');
 const cs = readFileSync(du('cua-so'), 'utf8'), CS = JSON.parse(cs); let moi = cs, nGhi = 0;
+const ngoaiLe = []; // TỜ DUYỆT CHỈ MẶT NGOẠI LỆ (23/11/2026): người / Claude chỉ nhìn mặt máy KHÔNG GHI hoặc LỆCH tệp, không đọc lại cả bảng + từng ảnh soát
 for (const mat of Object.keys(uv).sort()) for (const f of TRUONG) { if (!uv[mat][f]) continue;
   const g = gop(uv[mat][f]); (so.mat[mat] ??= {})[f] = { ...g, luc: new Date().toISOString().slice(0, 10) };
   const cu = CS[mat]?.[f], ghi = !g.khong_ghi && (cu === undefined || co('--ghi-de')) && cu !== g.gia_tri;
+  if (g.khong_ghi || (cu !== undefined && cu !== g.gia_tri)) ngoaiLe.push({ mat, loai: 'dem', anh: (uv[mat][f].map((u) => u.anh)), ly: `${f}: ${g.khong_ghi || `máy ${g.gia_tri} ≠ tệp ${cu}`}` });
   console.log(`   ${mat.padEnd(18)} ${f.padEnd(9)} ${g.khong_ghi ? `KHÔNG GHI — ${g.khong_ghi}` : `${g.gia_tri}${g.nhip_m ? ` (nhịp ${g.nhip_m} m)` : ''} · tin ${g.tin} · ${g.so_anh} ảnh · ${g.anh.split('/').pop()}`}${cu !== undefined ? ` · tệp đang ghi ${cu}${!g.khong_ghi && cu !== g.gia_tri ? ' ≠ máy đo' : ''}` : ''}`);
   if (ghi && co('--ghi')) { const a = so.anh[g.anh] || {};
     moi = chenTruong(moi, mat, { [f]: g.gia_tri, [`do_may_${f}`]: `máy đo ${new Date().toISOString().slice(0, 10)} (scripts/do-anh.mjs, không AI): ảnh ${g.anh.split('/').pop()} (${a.tacGia || '?'}, ${a.giayPhep || '?'}) định vị ${a.dung} điểm khớp · sai số ${a.lech_px} px, nắn 24 px/m${g.nhip_m ? `, nhịp đo ${g.nhip_m} m trên cạnh ${(CS[mat]?.L ?? '')}` : ''}, độ tin ${g.tin}${g.so_anh > 1 ? `, ${g.so_anh} ảnh cùng số (±1)` : ''}`.replace(' trên cạnh ,', ',') }); nGhi++; } }
 for (const mat of Object.keys(uvCua).sort()) { const g = gopCua(uvCua[mat]); if (!g) continue; const cu = CS[mat]?.hang, trong = !cu?.length; (so.mat[mat] ??= {}).cua_so = { ...g, tep_dang_ghi: tomCua(cu), luc: new Date().toISOString().slice(0, 10) };
+  if (g.khong_ghi || (!trong && tomCua(g.hang) !== tomCua(cu))) ngoaiLe.push({ mat, loai: 'cua', anh: uvCua[mat].map((u) => u.anh), ly: `cửa sổ: ${g.khong_ghi || `máy ${tomCua(g.hang)} ≠ tệp ${tomCua(cu)}`}` });
   console.log(`   ${mat.padEnd(18)} cửa sổ   máy ${tomCua(g.hang)} · tệp ${tomCua(cu)}${g.khong_ghi ? ` · KHÔNG GHI — ${g.khong_ghi}` : trong ? ' · ghi được (tệp đang trống)' : tomCua(g.hang) === tomCua(cu) ? ' · KHỚP tệp' : ' · LỆCH tệp (không đè — xem ảnh soát cua-*.png)'}`);
   if (!g.khong_ghi && trong && co('--ghi')) { const a = so.anh[g.anh] || {}; moi = chenTruong(moi, mat, { hang: g.hang, do_may_hang: `máy đo ${new Date().toISOString().slice(0, 10)} (scripts/do-anh.mjs --cua, không AI): ảnh ${g.anh.split('/').pop()} (${a.tacGia || '?'}, ${a.giayPhep || '?'}) định vị ${a.dung} điểm khớp, phủ ${(g.phu * 100).toFixed(0)} % cạnh, độ tin ${g.tin}` }); nGhi++; } }
 for (const mat of Object.keys(uvGo).sort()) { const tot = uvGo[mat].filter((u) => u.tin >= 0.8 && u.phu >= 0.5), ys = []; for (const u of tot.sort((a, b) => b.tin - a.tin)) if (!ys.some((y) => Math.abs(y - u.y) < 0.6)) ys.push(u.y);
   if (!ys.length) continue; (so.mat[mat] ??= {}).go_y = { gia_tri: ys.sort((a, b) => a - b), tin: Math.min(...tot.map((u) => u.tin)), anh: tot[0].anh, luc: new Date().toISOString().slice(0, 10) };
   console.log(`   ${mat.padEnd(18)} gờ ngang  ${ys.join(', ')} m${CS[mat]?.go_y ? ` · tệp đang ghi ${JSON.stringify(CS[mat].go_y)}` : ''}`);
   if (CS[mat]?.go_y === undefined && co('--ghi')) { moi = chenTruong(moi, mat, { go_y: ys, do_may_go_y: `máy đo ${new Date().toISOString().slice(0, 10)} (scripts/do-anh.mjs --cua, không AI): ảnh ${tot[0].anh.split('/').pop()}, dải đá ≥ 80 % bề ngang mảng gạch` }); nGhi++; } }
+const soMat = new Set([...Object.keys(uv), ...Object.keys(uvCua)]).size;
+if (ngoaiLe.length) { const TO = join(KHO, 'ngoai-le.png'); writeFileSync(join(KHO, 'ngoai-le.json'), JSON.stringify(ngoaiLe.map((n) => ({ ...n, anh: n.anh.map(nhan) })), null, 1));
+  const r = spawnSync(PY, ['-W', 'ignore', join(SC, 'to-ngoai-le.py'), NAN, join(KHO, 'ngoai-le.json'), TO], { encoding: 'utf8' });
+  console.log(`6. NGOẠI LỆ ${ngoaiLe.length} / ${soMat} mặt cần nhìn — ${r.status ? `vẽ tờ hỏng: ${String(r.stderr).split('\n').filter(Boolean).pop()}` : `tờ duyệt: ${TO}`}`); for (const n of ngoaiLe) console.log(`   ${n.mat.padEnd(18)} ${n.ly}`); }
+else console.log(`6. NGOẠI LỆ 0 / ${soMat} mặt — không mặt nào cần nhìn`);
 writeFileSync(SO, JSON.stringify(so, null, 1) + '\n');
 if (nGhi) { JSON.parse(moi); writeFileSync(du('cua-so'), moi); }
 console.log(co('--ghi') ? `đã ghi ${nGhi} trường vào ${du('cua-so')} — chạy kiem-ke + trong-tai trước khi commit` : 'chưa ghi tệp cửa sổ (thêm --ghi). Ảnh soát từng mặt: ' + join(NAN, 'dem-<ảnh>-<k>.png'));

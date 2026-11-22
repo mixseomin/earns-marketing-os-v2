@@ -790,6 +790,20 @@ function buocXe(a, dt) {
     // xe trước trong khi nửa đường bên cạnh bỏ trống (anh 22/11/2026 khoanh ảnh). Chỉ nhích trong quãng tới vạch dừng.
     if (neThoat) vt = Math.max(vt, Math.min(xm ? 0.9 : 0.5, vDen));
   }
+  // Phóng lách (anh 22/11/2026: "xe máy kẹt quá lâu mà khe hẹp nhất — vẫn phải có khoảng trống — cũng phóng vọt lên lách
+  // cho qua"): xe máy đứng kẹt > 4 s, một bên còn khe thật (hoT/hoP đã trừ hai nửa thân + 0,15 m) và phía trước bên đó trống
+  // ≥ 1,5 m → bốc đầu lách vào khe trong 1,5 s: tăng tốc gấp, bẻ lái gắt. Chốt cứng va chạm phía dưới vẫn giữ — không xuyên xe.
+  if (a.phong > 0) a.phong -= dt;
+  if (xm && !latDich && a.ket > 4 && !(a.phong > 0) && (vDen === undefined || vDen > 1) && f0 < 2.5) {
+    const kT = hoT > 0.05 && fL > Math.max(1.5, f0 + 0.6) && a.dlat > lo, kP = hoP > 0.05 && fR > Math.max(1.5, f0 + 0.6) && a.dlat < hi;
+    if (kT || kP) { a.phong = 1.5; a.phongBen = kT && kP ? (fL >= fR ? -1 : 1) : kT ? -1 : 1; }
+  }
+  if (a.phong > 0) {
+    // khe khép lại (bên đó hết hở sườn / phía trước bên đó bị lấp) thì thôi phóng ngay, không chen cố vào rồi đứng chắn ngang
+    const fB = a.phongBen < 0 ? fL : fR, hB = a.phongBen < 0 ? hoT : hoP;
+    if (hB < 0.02 || fB < 1.2) { a.phong = 0; a.ket = Math.min(a.ket, 2); }
+    else { neThoat = a.phongBen; vt = Math.max(vt, Math.min(4, (fB - 0.5) * 1.5, vDen)); }
+  }
   // xe máy đứng kẹt giữa lòng ngã tư > 6 s (thường là vòng chờ nhau): bỏ khoảng giữ đuôi, bò lên 0,6 m/s — thân chỉ được
   // sượt xe máy khác tới 0,3 m (chốt va chạm), không lùi, không trượt ngang. Thay nước lùi gỡ vòng đã bỏ.
   if (xm && a.trongNga && a.ket > 6) vt = Math.max(vt, 0.6);
@@ -797,12 +811,12 @@ function buocXe(a, dt) {
   if (a.lui > 0 && xm) { a.lui -= dt; vt = Math.max(vt, 0.8); if (a.lui <= 0) a.camLui = 3; }
   else if (a.lui > 0) { a.lui -= dt; vt = 0; if (a.lui <= 0 && a.luiDuoc === 0) a.camLui = 6; } // đang lùi nhường lối: không tiến lại vào chỗ vừa chừa
   if (a.camLui > 0) a.camLui -= dt;
-  const ac = (xm ? 2.6 : a.loai === 'bus' ? 1.0 : 1.8) * (a.ket > 1 ? 1.8 : a.trongNga && f0 > 4 ? 1.5 : 1); // có chỗ thoát khỏi lòng ngã tư → tăng tốc gấp
+  const ac = (a.phong > 0 ? 3 : 1) * (xm ? 2.6 : a.loai === 'bus' ? 1.0 : 1.8) * (a.ket > 1 ? 1.8 : a.trongNga && f0 > 4 ? 1.5 : 1); // có chỗ thoát khỏi lòng ngã tư → tăng tốc gấp
   a.sp = vt > a.sp ? Math.min(vt, a.sp + ac * dt) : Math.max(vt, a.sp - 9 * dt);
   if (a.sp < 0.2 && !a.choDen && !a.dangDon) a.ket = Math.min(10, a.ket + dt); else a.ket = Math.max(0, a.ket - dt * 0.5);
   {
     let lvt = 0;
-    const vNe = xm ? 1.4 : a.loai === 'bus' ? 0.6 : 1.1;
+    const vNe = xm ? (a.phong > 0 ? 2.5 : 1.4) : a.loai === 'bus' ? 0.6 : 1.1;
     if (latDich) lvt = (latDich - a.dlat) * 1.2; // taxi tạt sát lề đón khách
     else if (neThoat) lvt = neThoat * vNe; // bị chặn mũi → lách sang bên phía trước thoáng (cả ở ngã tư lẫn ngoài đường)
     else if (neBo) lvt = Math.sign(neBo) * vNe; // luồn ra sau lưng người đi bộ
@@ -811,7 +825,7 @@ function buocXe(a, dt) {
     if (xm) lvt += day * 0.9; // chỉ còn để tách nhẹ khi lỡ chồng nhau, không bật nẩy
     if (a.dlat < lo) lvt = Math.max(lvt, (lo - a.dlat) * 1.5);
     if (a.dlat > hi) lvt = Math.min(lvt, (hi - a.dlat) * 1.5);
-    const lim = xm ? 0.35 + a.sp * 0.3 : (a.taxi ? 1.6 : 1.1) * Math.min(1, a.sp / 2 + (a.dangDon ? 0 : 0.4));
+    const lim = xm ? (a.phong > 0 ? 0.8 : 0.35) + a.sp * (a.phong > 0 ? 0.6 : 0.3) : (a.taxi ? 1.6 : 1.1) * Math.min(1, a.sp / 2 + (a.dangDon ? 0 : 0.4));
     lvt = Math.max(-lim, Math.min(lim, lvt));
     a.lv += (lvt - a.lv) * Math.min(1, dt * (xm ? 5 : 3));
   }
@@ -824,7 +838,7 @@ function buocXe(a, dt) {
   // (góc lái tối đa). Trước xe đứng im vẫn trượt ngang (lực tách chồng lấn, kể cả từ người đi bộ; nước "nhích ngang tại
   // chỗ") — nhìn như bị người / xe khác đẩy đi ngang, và chính các cú trượt đó lấp chỗ xe khác sắp đi, gây tắc.
   // Kẹt thì đứng im — xe máy thật ở VN cũng vậy. Xe máy được bẻ lái gấp hơn ô tô (LAI lớn hơn) nhưng vẫn chỉ khi lăn.
-  const LAI = xm ? 1.0 : a.loai === 'bus' ? 0.25 : 0.35, mL = LAI * a.sp * dt;
+  const LAI = xm ? (a.phong > 0 ? 1.6 : 1.0) : a.loai === 'bus' ? 0.25 : 0.35, mL = LAI * a.sp * dt;
   dl = Math.max(-mL, Math.min(mL, dl));
   if (day) dl += Math.max(-mL, Math.min(mL, day * 0.6 * dt)); // tách khỏi chồng lấn chỉ khi đang lăn, chậm, không giật
   a.lv = Math.max(-LAI * a.sp, Math.min(LAI * a.sp, a.lv));

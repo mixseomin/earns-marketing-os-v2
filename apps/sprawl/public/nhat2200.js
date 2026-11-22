@@ -32,7 +32,7 @@ function taoGom() {
   return g;
 }
 
-export function taoNhat2200({ rs, ql, datTai }) {
+export function taoNhat2200({ rs, ql, datTai, RAPIER, world, tinh }) {
   const goc = new THREE.Group(); goc.visible = false; goc.name = 'nhat-2200';
 
   // ---------- chất liệu: kính xanh trời có gờ sàn trắng mỗi tầng, phản trời theo góc nhìn; mặt trắng / vườn theo màu đỉnh ----------
@@ -218,8 +218,9 @@ export function taoNhat2200({ rs, ql, datTai }) {
     const K = TL.caoToc.doc * 0.9, CT = TL.caoToc;
     for (const [ia, c] of chon.entries()) { const n = c.P.length, d = Float32Array.from(c.P, (p) => muot(p[0], p[1])), m = new Float32Array(n);
       for (let i = 0; i < n; i++) { let s = 0, k = 0; for (let j = Math.max(0, i - 8); j <= Math.min(n - 1, i + 8); j++) { s += d[j]; k++; } m[i] = s / k; }
-      const muc = baoDoc(Float32Array.from(m, (g, i) => (i === 0 || i === n - 1 ? g + 4 : g + CT.cao + CT.song * Math.sin(c.kc[i] / 300 + c.pha))), c.kc, K, true);
-      const san = Float32Array.from(d, (g) => g + 4);
+      const DAU = 0.45; // hai đầu đáp đúng mặt đường (lòng cao tốc = c.y + 0,15 = mặt đường muot + 0,6) → xe chạy từ phố lên dốc được
+      const muc = baoDoc(Float32Array.from(m, (g, i) => (i === 0 || i === n - 1 ? d[i] + DAU : g + CT.cao + CT.song * Math.sin(c.kc[i] / 300 + c.pha))), c.kc, K, true);
+      const san = Float32Array.from(d, (g, i) => g + Math.min(4, DAU + K * Math.min(c.kc[i], c.L - c.kc[i]))); // sàn cũng thoải về hai đầu, không thì đầu dốc dựng đứng
       for (let ib = 0; ib < ia; ib++) for (let i = 0; i < n; i++) { const g = ganNhat(chon[ib], c.P[i][0], c.P[i][1]); if (g.d < 2 * CT.nua + 4) san[i] = Math.max(san[i], g.y + CT.tinh + 1); }
       baoDoc(san, c.kc, K, false); for (let i = 0; i < n; i++) c.y[i] = Math.max(muc[i], san[i]); }
     const pC = C.geo.attributes.position; let b = 0; const yTuyen = new Float32Array(soDiem); for (const c of chon) { yTuyen.set(c.y, b); b += c.y.length; }
@@ -242,10 +243,21 @@ export function taoNhat2200({ rs, ql, datTai }) {
     const k = kiem(luoi, { thap: thapTren.map((t, i) => ({ ...t, cao: dsT[i].d.Hc, rong: 2 * t.r })), caoToc: chon.map((c) => ({ P: c.P, y: c.y })), bay, thapTren });
     Object.assign(khop, k, { cotBo, bayNang: dia.filter((c) => c.yBay > c.y + 0.5).length });
     console.info(inKiem('nhật 2200', k), `· cột bỏ vì đâm mặt dưới ${cotBo} · làn bay nâng ${khop.bayNang}/${dia.length}`);
+    vaCot = cot.map((k) => { cotMesh.getMatrixAt(cot.indexOf(k), _m); _p.setFromMatrixPosition(_m); const cao = _m.elements[5]; return cao > 0 ? { x: _p.x, y: _p.y, z: _p.z, cao } : null; });
+    if (goc.visible) dungVa();
   }
 
+  // ---------- khung va chạm (2f nhịp A): mặt cao tốc + lan can + bụng, tháp trắng, cột — ĐÚNG các đỉnh đang vẽ, chỉ khi kiểu Nhật 2200 đang bật ----------
+  let va = [], vaCot = [];
+  const triTu = (geo) => world.createCollider(RAPIER.ColliderDesc.trimesh(Float32Array.from(geo.attributes.position.array), Uint32Array.from(geo.index.array)), tinh);
+  function boVa() { for (const c of va) world.removeCollider(c, false); va = []; }
+  function dungVa() { boVa(); if (!world) return;
+    try { va.push(triTu(C.geo), triTu(T.geo));
+      for (const c of vaCot) if (c) va.push(world.createCollider(RAPIER.ColliderDesc.cylinder(c.cao / 2, 2).setTranslation(c.x, c.y + c.cao / 2, c.z), tinh));
+    } catch (e) { console.warn('[nhật 2200] dựng khung va lỗi', e); } }
+
   // ---------- ẩn / hiện: tháp đỏ (hình, khung va, cầu, xe bay) do rs.hien(phố, tháp) tắt; ở đây chỉ đổi bộ khoét ----------
-  function hien(bat) { goc.visible = bat; rs.khoet(bat ? khoetN : null); }
+  function hien(bat) { goc.visible = bat; rs.khoet(bat ? khoetN : null); if (bat) dungVa(); else boVa(); }
 
   const o = {};
   function khung(dt) {
@@ -261,5 +273,5 @@ export function taoNhat2200({ rs, ql, datTai }) {
     for (const m of [diaMesh, kinhMesh, denMesh, quangMesh]) m.instanceMatrix.needsUpdate = true;
   }
 
-  return { goc, datLai, hien, khung, cao: chon, thap: dsT.map((q) => q.t), tk: { thap2200: dsT.length, thapDoc: soDoc, cay: cay.length, caoToc: chon.length, toa: toa.length, dia: dia.length, dinhThap: T.so.length, khop } };
+  return { goc, datLai, hien, khung, cao: chon, thap: dsT.map((q) => q.t), tk: { thap2200: dsT.length, thapDoc: soDoc, cay: cay.length, caoToc: chon.length, toa: toa.length, dia: dia.length, dinhThap: T.so.length, khop, va: () => va.length } };
 }

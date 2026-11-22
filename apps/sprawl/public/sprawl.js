@@ -163,7 +163,7 @@ let rs = null;
 try { rs = taoRedSpires({ RAPIER, world, tinh, datTai, bao: baoNho, ql: await fetch('./du-lieu/quy-hoach.json', { cache: 'no-cache' }).then((r) => r.json()) }); scene.add(rs.goc); rs.khoacDat(datMesh.material); }
 catch (e) { console.warn('[sprawl] không nạp được quy hoạch Red Spires', e); }
 let n2 = null; // Nhật 2200 mượn phố của Red Spires (nhà, người, xe đất), tháp trắng tự đặt — tháp đỏ không có mặt
-try { if (rs) { n2 = taoNhat2200({ rs, ql: rs.ql, datTai }); scene.add(n2.goc); } } catch (e) { console.warn('[sprawl] không dựng được Nhật 2200', e); }
+try { if (rs) { n2 = taoNhat2200({ rs, ql: rs.ql, datTai, RAPIER, world, tinh }); scene.add(n2.goc); } } catch (e) { console.warn('[sprawl] không dựng được Nhật 2200', e); }
 const vatCho = (o) => (kieu === 'thuc' ? o.userData.vatThuc : (kieu === 'do' || kieu === 'nhat') && rs ? rs.vatPho : vatNeon);
 
 // ---------- nhà PLATEAU theo ô ----------
@@ -520,4 +520,4 @@ renderer.setAnimationLoop(() => {
     if (!lan && tk.o) { lan = 1; $('nap').style.display = 'none'; } }
 });
 addEventListener('resize', datCo);
-window.__sprawl = { scene, camera, orbit, renderer, dsTiles, tk, datTai, rs, n2, get di() { return di; }, get xe() { return xe; } };
+window.__sprawl = { world, scene, camera, orbit, renderer, dsTiles, tk, datTai, rs, n2, get di() { return di; }, get xe() { return xe; } };

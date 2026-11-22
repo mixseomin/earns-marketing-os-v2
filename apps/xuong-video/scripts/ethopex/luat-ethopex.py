@@ -480,6 +480,10 @@ try:
             tu_choi.append((c["id"], f"#{c['id']}: {c['name'][:60]} · ad bị Meta từ chối → Edit camp, thay creative sạch đã duyệt cùng phim (soat-camp-api.py gợi ý)"))
 except Exception as e:
     loi_may.append((0, f"không đọc được chi tiết camp: {str(e)[:80]}"))
+# camp bị từ chối mà thay-tu-choi.py ĐÃ XỬ XONG (sổ ethopex_tu_choi_thay_moi = đã lên camp mới thay thế; ethopex_tu_choi_bo_qua = đã báo một lần, không thay được)
+# không đưa vào tu_choi nữa: trước 23/11/2026 #88925 #81616 #68850 (thay bằng camp mới 12/11) vẫn vào ⛔ mỗi nhịp → THAY bị gọi lại hoài + tin ⛔ lặp mỗi 00:xx (anh: "Cái của nợ gì đây ?")
+_tc_xong = set(q("select k from xv_khoa_ngoai, jsonb_object_keys(gia_tri) k where ten in ('ethopex_tu_choi_thay_moi', 'ethopex_tu_choi_bo_qua')").split())
+tu_choi = [x for x in tu_choi if str(x[0]) not in _tc_xong]
 # LUẬT NB — NHÂN BẢN CAMP THẮNG (anh 22/10/2026: tự động, báo Telegram, mỗi phim tối đa 30 camp ĐANG CHẠY — camp thua tắt thì nhường chỗ cho creative mới).
 # Camp đang bật, ROI tháng ≥ 100%, đã tiêu ≥ $10, ROI 3 ngày ≥ 50% (còn đang thắng) → 1 bản $1; mỗi camp gốc tối đa 1 bản / 24 giờ, mỗi phim tối đa
 # 3 bản / ngày. Bản nhân bản do nhan-ban.py tạo (tên "(nhan ban N cua <gốc>)"), Phòng Ethopex tự chạy + báo 🧬.

@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { taoSong } from './song.js';
 import { TL, batTang, luoiTuyen } from './khop.js';
+import { taoNguoiGan } from './nguoi-gan.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const MAU_NGUOI = ['#2b2f36', '#4a3b33', '#c9b8a0', '#6d7f8c', '#8a3b2e', '#d8d2c4', '#3e5566', '#9b8a6a'];
@@ -169,13 +170,13 @@ const _fr = new THREE.Frustum(), _pv = new THREE.Matrix4(), _cau = new THREE.Sph
 function taoBo(ms, n, R, r) {
   const src = new Float32Array(n * 16), mau = ms.map((m) => m.instanceColor ? new Float32Array(m.instanceColor.array.length) : null);
   const phu = []; for (const m of ms) for (const a of Object.values(m.geometry.attributes)) if (a.isInstancedBufferAttribute && !phu.some((p) => p.a === a)) phu.push({ a, src: null });
-  return { ms, n, R, r, src, mau, phu, dem: 0, Rmin: 0, // Rmin: bỏ cái GẦN hơn mức này (lớp xa của một cặp gần / xa)
+  return { ms, n, R, r, src, mau, phu, dem: 0, Rmin: 0, an: null, // an[i] = 1: bỏ (người gần đang do nguoi-gan.js vẽ) // Rmin: bỏ cái GẦN hơn mức này (lớp xa của một cặp gần / xa)
     chot() { // gọi sau khi dựng xong màu / thuộc tính: chép bản gốc
       ms.forEach((m, k) => { if (mau[k]) mau[k].set(m.instanceColor.array); }); for (const p of phu) p.src = p.a.array.slice(); },
     dat(i, m4) { m4.toArray(src, i * 16); },
     loc(cam) { const R2 = this.R * this.R, Rm2 = this.Rmin * this.Rmin, cx = cam.position.x, cy = cam.position.y, cz = cam.position.z, dst = ms[0].instanceMatrix.array; let k = 0;
       for (let i = 0; i < this.dem; i++) { const o = i * 16, x = src[o + 12], y = src[o + 13], z = src[o + 14], d2 = (x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2;
-        if (d2 > R2 || d2 < Rm2) continue; _cau.center.set(x, y, z); _cau.radius = this.r + Math.sqrt(d2) * 0.15; if (!_fr.intersectsSphere(_cau)) continue;
+        if (d2 > R2 || d2 < Rm2 || (this.an && this.an[i])) continue; _cau.center.set(x, y, z); _cau.radius = this.r + Math.sqrt(d2) * 0.15; if (!_fr.intersectsSphere(_cau)) continue;
         if (k !== i) { const ok = k * 16; for (let j = 0; j < 16; j++) dst[ok + j] = src[o + j];
           for (const [q, a] of mau.entries()) if (a) { const d = ms[q].instanceColor.array; d[k * 3] = a[i * 3]; d[k * 3 + 1] = a[i * 3 + 1]; d[k * 3 + 2] = a[i * 3 + 2]; }
           for (const p of phu) { const s = p.a.itemSize; for (let j = 0; j < s; j++) p.a.array[k * s + j] = p.src[i * s + j]; } }
@@ -298,7 +299,7 @@ function dungThap(R, H, gen, r, vKim, vMax = R * TL.vetDo) {
   return { g, hs };
 }
 
-export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
+export function taoRedSpires({ RAPIER, world, tinh, datTai, ql, bao }) {
   const goc = new THREE.Group(); goc.visible = false; goc.name = 'red-spires';
   const thap = ql.thap;
 
@@ -523,19 +524,19 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
   // ---- người đi phố: dáng thấp đa giác (chân, thân, tay, đầu, tóc), 4 lớp instanced chung một ma trận ----
   // đi bộ chạy trong shader (khỏi cập nhật ma trận từng khung): mỗi người đi tới lui trên đoạn 24 m theo hướng đại lộ, chân tay đánh nhịp
   const uNguoi = { uT: { value: 0 } };
-  const vNguoi = () => { const v = new THREE.MeshLambertMaterial(); v.customProgramCacheKey = () => 'nguoi-di';
+  const vNguoi = (tu) => { const v = new THREE.MeshLambertMaterial(); v.customProgramCacheKey = () => tu ? 'nguoi-tu' : 'nguoi-di'; // tu: người gần đi bằng CPU (nguoi-gan.js), aDi = (tốc độ, pha bước)
     v.onBeforeCompile = (sh) => { sh.uniforms.uT = uNguoi.uT;
       sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
       uniform float uT; attribute vec2 aDi; attribute float aPhan;
       // aDi.x = tốc độ m/s (0 = đứng), aDi.y = pha 0..1 · aPhan: 1/2 chân trái/phải, 3/4 tay trái/phải
       vec3 diNguoi(vec3 p, float laVt) {
         float v = aDi.x, dang = step(0.01, v);
-        float goc = sin(uT * v * 5.2 + aDi.y * 40.0) * 0.5 * dang;
+        float goc = ${tu ? 'sin(aDi.y) * 0.5 * dang' : 'sin(uT * v * 5.2 + aDi.y * 40.0) * 0.5 * dang'};
         float tru = aPhan > 2.5 ? 1.44 : 0.86, dau = (aPhan == 1.0 || aPhan == 4.0) ? 1.0 : -1.0;
         if (aPhan > 0.5) { float c = cos(goc * dau), s = sin(goc * dau); float y = p.y - tru * laVt; p = vec3(p.x, y * c - p.z * s + tru * laVt, y * s + p.z * c); }
-        float L = 24.0, d = mod(uT * v + aDi.y * 2.0 * L, 2.0 * L), lui = step(L, d), di = d < L ? d : 2.0 * L - d;
+        ${tu ? '' : `float L = 24.0, d = mod(uT * v + aDi.y * 2.0 * L, 2.0 * L), lui = step(L, d), di = d < L ? d : 2.0 * L - d;
         p.xz *= 1.0 - 2.0 * lui * dang;
-        p.z += (di - L * 0.5) * dang * laVt;
+        p.z += (di - L * 0.5) * dang * laVt;`}
         return p; }`)
         .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nobjectNormal = diNguoi(objectNormal, 0.0);')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed = diNguoi(transformed, 1.0);');
@@ -623,7 +624,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
   }
 
   // trongLong: điểm có nằm trong lòng đường nhựa của một đường xe nào không (kể cả đường CẮT NGANG ở nút giao) — người, sạp, đồ phố không được đặt ở đó
-  const luoiXe = luoiTuyen(ql), trongLong = (x, z, du = 0.6) => luoiXe.xa(x, z, 24, ['lon']).d + D.lon < LONG.lon + du || luoiXe.xa(x, z, 24, ['vua']).d + D.vua < LONG.vua + du || luoiXe.xa(x, z, 24, ['tau']).d < du; // cả đường tàu: không bày sạp / người đứng trên ray (góp ý #1771)
+  const luoiXe = luoiTuyen(ql), trongLong = (x, z, du = 0.6) => luoiXe.xa(x, z, 24, ['lon']).d + D.lon < LONG.lon + du || luoiXe.xa(x, z, 24, ['vua']).d + D.vua < LONG.vua + du;
   // rải dọc đại lộ: hai mép có cột đèn + bồn cây xen kẽ, quầy chợ kèm người bán; giữa lối là người đi; ghế, thùng, xe đẩy lác đác
   for (const d of diem) {
     const huong = Math.atan2(d.ux, d.uz), mep = d.w / 2;
@@ -679,6 +680,9 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
 
   // ---------- phố sống: sương thành lớp, xe bay, xe đường, tàu, cầu + vườn treo (song.js) ----------
   const song = taoSong({ goc, ql, dsThap, nuaNut, LONG });
+  // người gần camera né xe + né nhau (recast crowd) — bước 2 ô phố mẫu
+  const nguoiGan = taoNguoiGan({ tuyen, LOP, LONG, nuaNut, nguoi: datNguoi, bo: boNguoi, geos: [G_QUAN, G_AO, G_DA, G_TOC], vatLieu: vNguoi(true), song, goc, bao,
+    vatTinh: [[datQuay, 1.6], [datDo[0].slice(0, 3000), 0.3], [datDo[1].slice(0, 3000), 0.9], [datDo[2].slice(0, 3000), 0.9], [datDo[3].slice(0, 3000), 1.0], [datDo[4].slice(0, 3000), 1.0], [datDo[5].slice(0, 3000), 0.4], [datNguoi.filter((_, i) => aDi.getX(i) < 0.01), 0.35]] });
 
   function datLai(datMuot) { // gắn mọi thứ xuống mặt đất mới dựng (gọi sau mỗi lần dungDat)
     const muot = datMuot || datTai;
@@ -687,7 +691,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
       y0 = Math.floor((Math.min(y0, datTai(d.t.o[0], d.t.o[1])) - 1) / TL.tang) * TL.tang; // chân tháp trên lưới tầng chung toàn thành phố → sàn mọi tháp cùng độ cao, cầu nối nằm ngang
       d.g.position.y = y0; khoetDo[i].w = y0; d.y0 = y0;
     }
-    song.datLai(muot, datTai(0, 0));
+    song.datLai(muot, datTai(0, 0)); nguoiGan.datMuot(muot);
     for (const k of Object.keys(LOP)) { const B = loDuong[k], pos = duongMesh[k].geometry.attributes.position; // dải đường bám đất
       for (let i = 0; i < B.xz.length / 2; i++) { const x = B.xz[i * 2], z = B.xz[i * 2 + 1]; pos.setXYZ(i, x, muot(x, z) + 0.6, z); }
       pos.needsUpdate = true; duongMesh[k].geometry.computeBoundingSphere(); }
@@ -744,7 +748,8 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     if (cam) loc(cam);
     uNguoi.uT.value += dt;
     U_DEN.uTg.value += dt; song.khung(dt);
+    if (cam && nguoiGan.khung(dt, cam)) canLoc = true;
   }
 
-  return { goc, vatPho, khoacDat, duong: goc.children.filter((o) => o.isMesh && o.material.customProgramCacheKey?.().startsWith('duong-')), datLai, hien, khoet, khung, loc, ql, song, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), ...song.tk } };
+  return { goc, vatPho, khoacDat, duong: goc.children.filter((o) => o.isMesh && o.material.customProgramCacheKey?.().startsWith('duong-')), datLai, hien, khoet, khung, loc, ql, song, nguoiGan, sang: (v) => { uSang.uSang.value = v; }, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), ...song.tk } };
 }

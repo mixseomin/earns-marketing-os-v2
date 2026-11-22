@@ -159,7 +159,7 @@ function datTai(x, z) { if (!datY) return 0; const i = Math.max(0, Math.min(LUOI
 
 // ---------- Red Spires theo quy hoạch chung ----------
 let rs = null;
-try { rs = taoRedSpires({ RAPIER, world, tinh, datTai, ql: await fetch('./du-lieu/quy-hoach.json', { cache: 'no-cache' }).then((r) => r.json()) }); scene.add(rs.goc); rs.khoacDat(datMesh.material); }
+try { rs = taoRedSpires({ RAPIER, world, tinh, datTai, bao: baoNho, ql: await fetch('./du-lieu/quy-hoach.json', { cache: 'no-cache' }).then((r) => r.json()) }); scene.add(rs.goc); rs.khoacDat(datMesh.material); }
 catch (e) { console.warn('[sprawl] không nạp được quy hoạch Red Spires', e); }
 let n2 = null; // Nhật 2200 mượn phố của Red Spires (nhà, người, xe đất), tháp trắng tự đặt — tháp đỏ không có mặt
 try { if (rs) { n2 = taoNhat2200({ rs, ql: rs.ql, datTai }); scene.add(n2.goc); } } catch (e) { console.warn('[sprawl] không dựng được Nhật 2200', e); }
@@ -450,7 +450,9 @@ renderer.setAnimationLoop(() => {
   bauTroi.position.copy(camera.position);
   { const pM = di?.dang ? di.viTri() : orbit.target; mua.khung(dt, datTai(pM.x, pM.z), dsUot, bauTroi.visible ? bauTroi : null); } // mưa: soi bóng ướt · khô: bóng mờ khi nhìn sát mặt đường
   const vc = rs?.song.vatCan; if (vc) { vc.length = 0; // xe trên phố dừng trước người chơi và trước chiếc xe của người chơi
-    if (di?.dang) { if (!xe?.dangLai) { const p = di.viTri(); vc.push({ x: p.x, z: p.z, r: 0.5 }); } if (xe) { const p = xe.than.translation(); if (p.y > -300) vc.push({ x: p.x, z: p.z, r: 1.6 }); } } }
+    if (di?.dang) { if (!xe?.dangLai) { const p = di.viTri(); vc.push({ x: p.x, z: p.z, r: 0.5 }); } if (xe) { const p = xe.than.translation(); if (p.y > -300) vc.push({ x: p.x, z: p.z, r: 1.6 }); } }
+    rs.nguoiGan.dayVatCan(vc); } // người gần đang băng qua lòng đường: xe dừng trước họ
+  rs?.nguoiGan.datChoi(di?.dang && !xe?.dangLai ? di.viTri() : null); // người chơi đi bộ: người gần né
   ve(); demKhung++;
   if (now - tFps > 1000) { fps = Math.round(demKhung * 1000 / (now - tFps)); demKhung = 0; tFps = now;
     const p = di?.dang ? di.viTri() : orbit.target, ll = laLatLon(p.x, p.z);

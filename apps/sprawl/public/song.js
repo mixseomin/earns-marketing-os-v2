@@ -234,5 +234,12 @@ export function taoSong({ goc, ql, dsThap, nuaNut, LONG }) {
     }
     thanTau.instanceMatrix.needsUpdate = kinhTau.instanceMatrix.needsUpdate = socTau.instanceMatrix.needsUpdate = true;
   }
-  return { datLai, khung, uT, vatCan, gt: { xe, tuyenXe, lay, denDo }, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau, vuonCau, ruCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length, khop } };
+  // cho người đi bộ (nguoi-gan.js): đèn cho XE của đường hướng (ux, uz) tại nút (x, z) — true đỏ, false xanh, null không phải nút có đèn
+  const denXe = (x, z, ux, uz, them = 0) => { const kn = Math.round(x) + ',' + Math.round(z), g0 = huongNut.get(kn); if (g0 === undefined) return null;
+    const goc = (Math.atan2(uz, ux) + Math.PI) % Math.PI, lech = Math.abs(goc - g0);
+    return denDo({ pha: Math.abs(Math.round(x) * 7 + Math.round(z) * 13) % 36, nhom: Math.min(lech, Math.PI - lech) > Math.PI / 4 ? 1 : 0 }, uT.value + them); };
+  // duyệt xe quanh (x, z) bán kính r theo lưới oXe; fn trả false = dừng, hàm trả false
+  const xeQuanh = (x, z, r, fn) => { const o = Math.ceil(r / O_XE), ox = Math.floor(x / O_XE), oz = Math.floor(z / O_XE);
+    for (let a = -o; a <= o; a++) for (let b = -o; b <= o; b++) for (let j = oXe.get((ox + a) * 8192 + oz + b) ?? -1; j >= 0; j = keXe[j]) if (fn(xe[j]) === false) return false; return true; };
+  return { datLai, khung, uT, vatCan, gt: { xe, tuyenXe, lay, denDo, denXe, xeQuanh }, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau, vuonCau, ruCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length, khop } };
 }

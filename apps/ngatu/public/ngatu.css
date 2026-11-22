@@ -91,3 +91,10 @@ button:disabled { opacity: .6; cursor: progress; }
 
 /* chế độ chỉ xem: ẩn hàng công cụ tương tác tới khi bật ✏️ Chỉnh sửa */
 .ben:not(.sua) .nut.cong { display: none !important; }
+
+/* hàng nút: góc nhìn chia đều một hàng, nút biểu tượng thành thanh công cụ riêng bên dưới (22/11/2026) */
+.nut.cam button { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nut.cuc { flex-wrap: nowrap; gap: 4px; }
+.nut.cuc button { flex: 1 1 0; min-width: 0; padding: 5px 0; font-size: 15px; line-height: 1; }
+.nut.cam button { padding: 6px 4px; }
+.nut.cuc #gon { flex: 1 1 0; }

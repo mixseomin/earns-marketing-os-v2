@@ -1355,7 +1355,8 @@ function buoc(dt) {
 // ───────────────────────── cảnh 3D ─────────────────────────
 const cv = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: !DD, powerPreference: DD ? 'low-power' : 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, DD ? 1.25 : 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, DD ? 1.25 : 1.5)); // 2× trên màn Retina = gấp ~1,8 lần điểm ảnh phải tô, nhìn gần như không khác
+const TRAN_FPS = +(new URLSearchParams(location.search).get('fps') || 30);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 // Bóng đổ chỉ tính MỘT lần cho nhà, cây, cột (đứng yên). Xe và người dùng bóng dán sát đất (BONG bên dưới): rẻ hơn hẳn,
@@ -2719,8 +2720,9 @@ function khoiDong() {
   renderer.shadowMap.needsUpdate = true;
   let truoc = performance.now(), boQua = false;
   renderer.setAnimationLoop(() => {
-    if (DD && (boQua = !boQua)) return; // điện thoại: vẽ 30 khung/giây thay vì 60 — đủ mượt, máy mát hơn nhiều
+    // mọi máy: trần 30 khung/giây (màn 60–120 Hz vẽ gấp 2–4 lần cho cùng mô phỏng → quạt kêu); ?fps=60 để bỏ trần
     const bay = performance.now();
+    if (bay - truoc < 1000 / TRAN_FPS - 2) return;
     const dtThuc = Math.min(0.1, (bay - truoc) / 1000);
     truoc = bay;
     if (!CAI.dung) {

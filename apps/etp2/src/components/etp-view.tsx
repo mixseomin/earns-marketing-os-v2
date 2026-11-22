@@ -2469,7 +2469,8 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
       </div>);
     return ds.length ? <details open={moCay.has(`c${c.camp_id}`)} onToggle={(e) => doiMo(`c${c.camp_id}`, e.currentTarget.open)}><summary style={{ cursor: 'pointer' }}>{hang}</summary>{moCay.has(`c${c.camp_id}`) ? sapXep(ds).map((x) => <Fragment key={x.camp_id}>{Dong({ c: x, cap: cap + 1 })}</Fragment>) : null}</details> : hang;
   };
-  const phim = [...theoPhim.entries()].map(([k, ds]) => { const all: CampEtpKho[] = []; const gom = (c: CampEtpKho) => { all.push(c); (con.m.get(c.camp_id) ?? []).forEach(gom); }; ds.forEach(gom);
+  const phim = [...theoPhim.entries()].map(([k, ds]) => { const all: CampEtpKho[] = []; const gom = (c: CampEtpKho) => { if (c.camp_id > 0) all.push(c);   // dòng ⏳ chờ duyệt (âm) chỉ hiện, không đếm vào số camp / $ đang bật của phim
+    (con.m.get(c.camp_id) ?? []).forEach(gom); }; ds.forEach(gom);
     const b = bh.get(Number(k)); const loi = all.filter((c) => loiNb.has(c.camp_id)).length; const sut = all.filter(giam).length;
     return { k, ds, all, b, loi, sut, chi: all.reduce((a, c) => a + c.nay.chi + c.qua.chi, 0), canh: (b ? 2 : 0) + (loi ? 1 : 0) + (sut ? 1 : 0) }; })
     .sort((a, b) => b.canh - a.canh || b.chi - a.chi);
@@ -2630,7 +2631,7 @@ function CayCamp({ camps, hang, du, hep: hepNgoai, laiKy, tenKy, kyCay, moCr, do
         <details key={p.k} open={moCay.has(`p${p.k}`)} onToggle={(e) => { const mo = e.currentTarget.open; doiMo(mo ? [`p${p.k}`, ...p.all.filter((c) => con.m.has(c.camp_id)).map((c) => `c${c.camp_id}`)] : `p${p.k}`, mo); }} style={{ borderTop: '1px solid var(--line)' }}>
           <summary className="dong-phim" onClick={(e) => { if (!hep || !moPhim || !(e.target as HTMLElement).closest('[data-cot^="roi-"],[data-cot="lai"]')) return; e.preventDefault(); moPhim(p.k); }} style={{ cursor: 'pointer', padding: '6px 0', fontSize: 13, display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, rowGap: 2, alignItems: 'center' }}>
             {/* điện thoại (anh 27/10/2026 "đéo đọc được tên phim"): tên phim một dòng riêng trọn bề ngang, không cắt …; dòng dưới là số camp + ký hiệu + cột số */}
-            {hep ? <span style={{ gridColumn: '1 / -1', display: 'flex', gap: 6, minWidth: 0, alignItems: 'flex-start' }}><span className="mui">▸</span><b style={{ whiteSpace: 'normal', lineHeight: 1.3 }}>{p.all[0]?.phim ?? `#${p.k}`}</b>
+            {hep ? <span style={{ gridColumn: '1 / -1', display: 'flex', gap: 6, minWidth: 0, alignItems: 'flex-start' }}><span className="mui">▸</span><b style={{ whiteSpace: 'normal', lineHeight: 1.3 }}>{p.all[0]?.phim ?? p.ds[0]?.phim ?? `#${p.k}`}</b>
               {/* badge bộ tài khoản của phim (anh 27/10/2026) — mỗi bộ có camp một badge, cùng khuôn Hex của bảng camp */}
               <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 3, flex: 'none', paddingTop: 2 }}>{<HexBo bos={p.all.map((c) => c.bo)} boTk={du.boTk} />}</span></span> : null}
             {/* THẲNG CỘT NGÂN SÁCH (anh 27/10/2026): ô đầu dòng phim dùng CÙNG lưới trong của dòng camp (LUOI_CAMP_HEP / LUOI_TRONG), cột 1 bù phần lề trái

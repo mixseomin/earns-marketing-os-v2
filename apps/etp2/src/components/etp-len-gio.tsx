@@ -51,6 +51,7 @@ function XemTruocLen({ cr, gio, anh, video }: { cr: number; gio: string | null; 
     ['Ngân sách', tien(cs.daily_budget ?? as.daily_budget)],
     ['Cách thầu', cs.bid_strategy === 'LOWEST_COST_WITH_MIN_ROAS' ? 'Lowest cost + ROAS tối thiểu' : cs.bid_strategy ?? '—'],
     ['ROAS sàn', as.bid_constraints?.roas_average_floor != null ? String(as.bid_constraints.roas_average_floor) : '—'],
+    ['Mục tiêu', `${cs.objective === 'OUTCOME_SALES' ? 'Bán hàng (OUTCOME_SALES)' : cs.objective ?? '—'}${cs.dsa_payor ? ` · DSA ${cs.dsa_payor}` : ''}`],
     ['Tối ưu', as.optimization_goal === 'VALUE' ? 'giá trị đơn (VALUE)' : as.optimization_goal ?? '—'],
     ['Trạng thái', `camp ${cs.status ?? '—'} · ad ${ads.status ?? '—'} (Ethopex tự bật camp khi đồng bộ)`],
     ['Giờ chạy', x.chay ?? (ag.start_time ? tg2(ag.start_time) : 'chạy ngay khi Ethopex / Meta đồng bộ xong')],

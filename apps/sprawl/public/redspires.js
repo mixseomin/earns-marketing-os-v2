@@ -92,38 +92,135 @@ function vatThap(gen) {
       if (uKieu.x > 0.5 && uKieu.x < 1.5) soc = step(0.94, fract(goc * 6.0 / 6.2832 + 0.5));
       else if (uKieu.x > 1.5 && uKieu.x < 2.5) soc = step(fract(vLo.y / (uNhip.z * 2.0)), 0.035);
       if (vLo.y > uKieu.y) { vec2 v2 = vec2(goc * 18.0 / 6.2832, vLo.y / 2.4); soc = max(soc, step(0.5, uKieu.x) * step(0.82, abs(fract(v2.x + floor(v2.y) * 0.5) - 0.5) * 2.0)); }
+      // ---- chi tiết nhìn gần (ảnh mẫu): mạch ghép tấm ốp, khung cửa, vệt gỉ chảy dưới cửa, sơn bong, lá chớp thông gió.
+      // Mờ dần theo cỡ điểm ảnh (fwidth) → xa không nhiễu răng cưa, lại gần hiện đủ.
+      float px = fwidth(vLo.y) + fwidth(cung), gan = 1.0 - smoothstep(0.06, 0.45, px), aa = max(px, 0.002);
+      float trongThan = step(vLo.y, uKieu.y);
+      float cx = cung / 2.4 + mod(tang, 2.0) * 0.5;
+      float eX = (0.5 - abs(fract(cx) - 0.5)) * 2.4, eY = (0.5 - abs(fy - 0.5)) * uNhip.y;
+      float mep = max(1.0 - smoothstep(0.035, 0.035 + aa, eX), 1.0 - smoothstep(0.05, 0.05 + aa, eY)) * gan * trongThan;
+      float sang = (1.0 - smoothstep(0.09, 0.09 + aa, abs(eY - 0.16))) * gan * trongThan * step(fy, 0.5); // gờ sáng trên mạch ngang (ánh nắng bắt cạnh)
+      float coCua = step(0.18, h) * trongThan;
+      float khungCua = step(0.26, f.x) * step(f.x, 0.74) * step(0.28, f.y) * step(f.y, 0.82) * coCua - cua;
+      float chay = step(0.43, f.x) * step(f.x, 0.57) * step(f.y, 0.32) * coCua * step(0.45, bam(o + 1.7)) * (f.y / 0.32) * gan;
+      float laChop = (1.0 - coCua) * trongThan * step(0.3, f.x) * step(f.x, 0.7) * step(0.35, f.y) * step(f.y, 0.75) * step(0.5, fract(f.y * 14.0)) * step(0.6, bam(o + 9.1));
+      vec2 nb = vec2(cung, vLo.y) / 1.7; vec2 i0 = floor(nb), t0 = fract(nb); t0 = t0 * t0 * (3.0 - 2.0 * t0);
+      float nh = mix(mix(bam(i0), bam(i0 + vec2(1, 0)), t0.x), mix(bam(i0 + vec2(0, 1)), bam(i0 + vec2(1, 1)), t0.x), t0.y);
+      float bong = smoothstep(0.8, 0.84, nh) * step(0.55, bam(floor(vec2(cung, vLo.y) / 13.0) + 4.4));
       diffuseColor.rgb *= tam * (1.0 - 0.32 * vet) * (1.0 - 0.35 * bang);
       diffuseColor.rgb = mix(diffuseColor.rgb, uVien * (1.0 - 0.25 * vet), soc * 0.85);
-      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.13, 0.16, 0.19), cua * 0.85);
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.74, 0.68), bong * 0.8);
+      diffuseColor.rgb *= (1.0 - 0.45 * mep) * (1.0 + 0.18 * sang) * (1.0 - 0.4 * chay) * (1.0 - 0.35 * laChop);
+      diffuseColor.rgb = mix(diffuseColor.rgb, uVien * 0.8, max(khungCua, 0.0) * 0.55 * gan);
+      vec3 kinh = mix(vec3(0.11, 0.14, 0.17), vec3(0.36, 0.44, 0.5), smoothstep(0.32, 0.78, f.y) * 0.7 + 0.3 * bam(o + 2.2));
+      diffuseColor.rgb = mix(diffuseColor.rgb, kinh, cua * 0.9);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.22, 0.27, 0.3), tron);`);
   };
   return v;
 }
 
-// một tháp đỏ hoàn chỉnh (thân + ban công + đỉnh), gốc toạ độ ở chân
+// chất liệu dùng chung mọi tháp (kính đài quan sát, cửa tròn tối, hộp ốp tường tô màu theo từng hộp)
+const V_KINH = new THREE.MeshStandardMaterial({ color: '#3d4b54', roughness: 0.12, metalness: 0.7, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
+const V_TRON = new THREE.MeshStandardMaterial({ color: '#1d2429', roughness: 0.2, metalness: 0.6 });
+const V_HOP = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.82, metalness: 0.08 });
+const G_HOP = new THREE.BoxGeometry(1, 1, 1), G_COT = new THREE.CylinderGeometry(0.05, 0.05, 1, 4), G_VANH = new THREE.TorusGeometry(1, 0.13, 6, 28), G_KINH_TRON = new THREE.CircleGeometry(1, 28);
+const _m4 = new THREE.Matrix4(), _q4 = new THREE.Quaternion(), _v4 = new THREE.Vector3(), _s4 = new THREE.Vector3(), _e4 = new THREE.Euler(), _c4 = new THREE.Color();
+// đặt instance quay mặt ra ngoài theo góc a (trục z cục bộ = hướng bán kính)
+function datRa(im, i, a, rr, y, sx, sy, sz) { _q4.setFromEuler(_e4.set(0, Math.PI / 2 - a, 0)); im.setMatrixAt(i, _m4.compose(_v4.set(Math.cos(a) * rr, y, Math.sin(a) * rr), _q4, _s4.set(sx, sy, sz))); }
+
+// một tháp đỏ hoàn chỉnh (thân + ban công + đỉnh + chi tiết nhìn gần), gốc toạ độ ở chân.
+// Mesh mang userData.va = khung va chạm (ẩn, ít đỉnh) — dungVa gộp thành một trimesh mỗi tháp để đứng / leo được.
 function dungThap(R, H, gen, r, vKim) {
   const g = new THREE.Group(), hs = dungHoSo(R, H, gen.dang, r);
   gen.than = hs.than;
-  const vT = vatThap(gen), vBC = new THREE.MeshStandardMaterial({ color: new THREE.Color(gen.mau).multiplyScalar(0.72), roughness: 0.85 });
-  const vV = new THREE.MeshStandardMaterial({ color: gen.vien, roughness: 0.7, metalness: 0.15 });
-  let geo = new THREE.LatheGeometry(hs.p, 64);
+  const va = (geo, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo); m.visible = false; m.userData.va = true; m.position.set(x, y, z); g.add(m); return m; };
+  const vT = vatThap(gen), vBC = new THREE.MeshStandardMaterial({ color: new THREE.Color(gen.mau).multiplyScalar(0.72), roughness: 0.85, side: THREE.DoubleSide });
+  const vV = new THREE.MeshStandardMaterial({ color: gen.vien, roughness: 0.7, metalness: 0.15, side: THREE.DoubleSide });
+  let geo = new THREE.LatheGeometry(hs.p, 96);
   if (gen.gan) geo = khiaGan(geo, hs.than, gen.gan, 0.035);
   g.add(new THREE.Mesh(geo, vT));
-  // ban công vòng: 2-5 vòng, có tháp viền cùng màu viền
-  const nBC = 2 + ((r() * 4) | 0);
+  const kVa = 1 / Math.cos(Math.PI / 28) * 0.5 + 0.5; // khung va thô 28 cạnh, nới ra cho mặt va sát mặt nhìn
+  va(new THREE.LatheGeometry(hs.p, 28).scale(kVa, 1, kVa));
+
+  // ban công vòng: lan can (sàn + cột + tay vịn) · đài kính quan sát (vách kính, đố, mái, lan can trên mái) · tường chắn
+  const nBC = 2 + ((r() * 4) | 0), dsBC = [];
   for (let k = 0; k < nBC; k++) {
-    const y = hs.than * (0.22 + 0.68 * (k + 0.3 + r() * 0.4) / nBC), rv = hs.rTai(y), rong = 1.6 + r() * 1.8, mv = r() < 0.35 ? vV : vBC;
-    const vong = new THREE.Mesh(new THREE.CylinderGeometry(rv + rong, rv + rong, 1.2 + r(), 64, 1, true), mv); vong.position.y = y; g.add(vong);
-    const san = new THREE.Mesh(new THREE.RingGeometry(rv - 0.5, rv + rong, 64), mv); san.rotation.x = -Math.PI / 2; san.position.y = y - 0.6; g.add(san);
+    const cuoi = k === nBC - 1 && r() < 0.65;
+    const y = cuoi ? hs.than * (0.9 + r() * 0.04) : hs.than * (0.22 + 0.62 * (k + 0.3 + r() * 0.4) / nBC);
+    const rv = hs.rTai(y), rong = cuoi ? 3 + r() * 2 : 1.8 + r() * 1.8, ro = rv + rong, mv = r() < 0.35 ? vV : vBC;
+    const kieu = cuoi ? 'kinh' : chon(r, ['lan', 'lan', 'kinh', 'tuong']);
+    dsBC.push(y);
+    const gSan = new THREE.CylinderGeometry(ro, ro, 0.5, 72);
+    const san = new THREE.Mesh(gSan, mv); san.position.y = y; g.add(san); va(gSan, 0, y, 0);
+    if (kieu === 'lan') {
+      for (const yy of [1.15, 0.6]) { const t = new THREE.Mesh(new THREE.TorusGeometry(ro - 0.1, yy > 1 ? 0.07 : 0.045, 4, 96), vKim); t.rotation.x = Math.PI / 2; t.position.y = y + 0.25 + yy; g.add(t); }
+      const n = Math.round(Math.PI * 2 * ro / 1.6), cot = new THREE.InstancedMesh(G_COT, vKim, n);
+      for (let i = 0; i < n; i++) datRa(cot, i, (i / n) * Math.PI * 2, ro - 0.1, y + 0.8, 1, 1.15, 1);
+      g.add(cot); va(new THREE.CylinderGeometry(ro - 0.1, ro - 0.1, 1.2, 32, 1, true), 0, y + 0.85, 0);
+    } else if (kieu === 'kinh') {
+      const hk = 3.2, gV = new THREE.CylinderGeometry(ro - 0.2, ro - 0.2, hk, 72, 1, true);
+      const vach = new THREE.Mesh(gV, V_KINH); vach.position.y = y + 0.25 + hk / 2; g.add(vach); va(gV, 0, y + 0.25 + hk / 2, 0);
+      const n = Math.round(Math.PI * 2 * ro / 2.4), dua = new THREE.InstancedMesh(G_HOP, vV, n);
+      for (let i = 0; i < n; i++) datRa(dua, i, (i / n) * Math.PI * 2, ro - 0.2, y + 0.25 + hk / 2, 0.18, hk, 0.18);
+      g.add(dua);
+      const gM = new THREE.CylinderGeometry(ro + 0.3, ro + 0.3, 0.4, 72), mai = new THREE.Mesh(gM, vV); mai.position.y = y + 0.45 + hk; g.add(mai); va(gM, 0, y + 0.45 + hk, 0);
+      const tv = new THREE.Mesh(new THREE.TorusGeometry(ro + 0.1, 0.07, 4, 96), vKim); tv.rotation.x = Math.PI / 2; tv.position.y = y + 1.75 + hk; g.add(tv);
+      const nc = Math.round(Math.PI * 2 * ro / 1.8), cot = new THREE.InstancedMesh(G_COT, vKim, nc);
+      for (let i = 0; i < nc; i++) datRa(cot, i, (i / nc) * Math.PI * 2, ro + 0.1, y + 1.2 + hk, 1, 1.1, 1);
+      g.add(cot); va(new THREE.CylinderGeometry(ro + 0.1, ro + 0.1, 1.2, 32, 1, true), 0, y + 1.25 + hk, 0);
+    } else {
+      const hc = 1.2 + r(), gT = new THREE.CylinderGeometry(ro, ro, hc, 72, 1, true);
+      const tuong = new THREE.Mesh(gT, mv); tuong.position.y = y + 0.25 + hc / 2; g.add(tuong); va(gT, 0, y + 0.25 + hc / 2, 0);
+    }
   }
   // cổ chóp: đai viền dày
   const yc = hs.than, rc = hs.rC;
-  const dai = new THREE.Mesh(new THREE.CylinderGeometry(rc + 1.2, rc + 1.6, 3.2, 64), vV); dai.position.y = yc - 1; g.add(dai);
+  const gDai = new THREE.CylinderGeometry(rc + 1.2, rc + 1.6, 3.2, 72), dai = new THREE.Mesh(gDai, vV); dai.position.y = yc - 1; g.add(dai); va(gDai, 0, yc - 1, 0);
+
+  // hộp ốp tường: máy lạnh, cửa sập, ống đứng — rải theo thân, tô đỏ đậm nhạt / xám / màu viền
+  const nHop = Math.round(hs.than * (0.5 + r() * 0.4)), hop = new THREE.InstancedMesh(G_HOP, V_HOP, nHop), mauDo = new THREE.Color(gen.mau);
+  for (let i = 0; i < nHop; i++) {
+    const y = 5 + r() * (hs.than * 0.94 - 5), a = r() * Math.PI * 2, rr = hs.rTai(y), loai = r();
+    const [sx, sy, sz] = loai < 0.5 ? [1.3 + r() * 0.6, 0.8 + r() * 0.3, 0.7 + r() * 0.3] : loai < 0.8 ? [1.8 + r(), 2.4 + r() * 0.6, 0.35] : [0.35, 5 + r() * 14, 0.35];
+    datRa(hop, i, a, rr + sz / 2 - 0.05, y, sx, sy, sz);
+    const c = r(); hop.setColorAt(i, c < 0.55 ? _c4.copy(mauDo).multiplyScalar(0.55 + r() * 0.35) : c < 0.8 ? _c4.set('#6d6a66').multiplyScalar(0.8 + r() * 0.4) : _c4.set(gen.vien));
+  }
+  g.add(hop);
+  // cửa tròn lớn: vành viền + kính tối
+  const nTron = 3 + ((r() * 8) | 0), vanh = new THREE.InstancedMesh(G_VANH, vV, nTron), kt = new THREE.InstancedMesh(G_KINH_TRON, V_TRON, nTron);
+  for (let i = 0; i < nTron; i++) {
+    const y = hs.than * (0.12 + r() * 0.8), a = r() * Math.PI * 2, rr = hs.rTai(y), rp = 1.4 + r() * 1.2;
+    datRa(vanh, i, a, rr + 0.18, y, rp, rp, rp); datRa(kt, i, a, rr + 0.1, y, rp, rp, 1);
+  }
+  g.add(vanh, kt);
+  // bầu bên: 0-2 khoang tròn bám thân, có chân đỡ hình nón + đai cổ, tự mang cửa sổ như thân chính
+  const nBau = gen.phu ? 0 : (r() * 3) | 0;
+  for (let i = 0; i < nBau; i++) {
+    const rb = R * (0.18 + r() * 0.1), hb = rb * (2.4 + r() * 0.6), y = hs.than * (0.35 + r() * 0.4), a = r() * Math.PI * 2, d = hs.rTai(y) + rb * 0.7;
+    const hp = dungHoSo(rb, hb, 'dan', r), gb = { ...gen, than: hp.than, soc: 0 };
+    const bx = Math.cos(a) * d, bz = Math.sin(a) * d;
+    const bau = new THREE.Mesh(new THREE.LatheGeometry(hp.p, 48), vatThap(gb)); bau.position.set(bx, y, bz); g.add(bau);
+    va(new THREE.LatheGeometry(hp.p, 16).scale(1.02, 1, 1.02), bx, y, bz);
+    const gN = new THREE.ConeGeometry(rb * 0.95, rb * 1.8, 24).rotateX(Math.PI), non = new THREE.Mesh(gN, vV); non.position.set(bx, y - rb * 0.9, bz); g.add(non); va(gN, bx, y - rb * 0.9, bz);
+    const co = new THREE.Mesh(new THREE.TorusGeometry(hp.rC + 0.25, 0.3, 6, 32), vV); co.rotation.x = Math.PI / 2; co.position.set(bx, y + hp.than, bz); g.add(co);
+  }
+  // cần trục: 1-2 tay vươn gần đỉnh (dầm, thanh chống chéo, cáp, kiện hàng)
+  const nCan = 1 + (r() < 0.4 ? 1 : 0);
+  for (let i = 0; i < nCan; i++) {
+    const y = hs.than * (0.84 + r() * 0.12), a = r() * Math.PI * 2, rr = hs.rTai(y), L = 8 + r() * 10, cg = new THREE.Group();
+    cg.position.y = y; cg.rotation.y = -a;
+    const dam = new THREE.Mesh(new THREE.BoxGeometry(L, 0.6, 0.6), vKim); dam.position.x = rr + L / 2 - 0.3; cg.add(dam);
+    const dx = L * 0.7, dy = L * 0.35, chong = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(dx, dy), 0.35, 0.35), vKim);
+    chong.position.set(rr + dx / 2, -dy / 2, 0); chong.rotation.z = Math.atan2(dy, dx); cg.add(chong);
+    const hc = 5 + r() * 15, cap = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, hc, 4), vKim); cap.position.set(rr + L - 0.8, -hc / 2, 0); cg.add(cap);
+    const kien = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, 1.8), vV); kien.position.set(rr + L - 0.8, -hc - 0.7, 0); cg.add(kien);
+    g.add(cg);
+  }
   // đỉnh: ăng-ten chùm · kim cao + vòng hào quang · chòi nhỏ có mái vòm
   const dinh = gen.dinh, yTop = H;
   if (hs.chop === 'choi') {
-    const rr = rc * 0.32, ch = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr * 1.1, rr * 1.6, 24), vV); ch.position.y = yTop + rr * 0.8 - 0.5; g.add(ch);
-    const vm = new THREE.Mesh(new THREE.SphereGeometry(rr * 1.05, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2), vT); vm.position.y = yTop + rr * 1.6 - 0.5; g.add(vm);
+    const rr = rc * 0.32, gC = new THREE.CylinderGeometry(rr, rr * 1.1, rr * 1.6, 24), ch = new THREE.Mesh(gC, vV); ch.position.y = yTop + rr * 0.8 - 0.5; g.add(ch); va(gC, 0, yTop + rr * 0.8 - 0.5, 0);
+    const gV = new THREE.SphereGeometry(rr * 1.05, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2), vm = new THREE.Mesh(gV, vT); vm.position.y = yTop + rr * 1.6 - 0.5; g.add(vm); va(gV, 0, yTop + rr * 1.6 - 0.5, 0);
   }
   const yDinh = hs.chop === 'choi' ? yTop + rc * 0.32 * 2.6 : yTop;
   if (dinh === 'kim' || hs.chop === 'nhon') {
@@ -194,7 +291,7 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     if (dang === 'chum') { // 2-3 tháp vệ tinh dính chân, thấp hơn, cùng họ màu
       const n = 2 + (r() < 0.5 ? 1 : 0), g0 = r() * 6.28;
       for (let k = 0; k < n; k++) {
-        const gv = { ...gen, dang: chon(r, ['dan', 'non', 'hanh']), gan: 0, dinh: 'kim', soc: (gen.soc + k + 1) % 4 }, a = g0 + k * 6.28 / n;
+        const gv = { ...gen, dang: chon(r, ['dan', 'non', 'hanh']), gan: 0, dinh: 'kim', soc: (gen.soc + k + 1) % 4, phu: 1 }, a = g0 + k * 6.28 / n;
         const v = dungThap(R * (0.42 + r() * 0.15), H * (0.45 + r() * 0.25), gv, r, vKim);
         v.g.position.set(Math.cos(a) * R * 1.05, 0, Math.sin(a) * R * 1.05); g.add(v.g);
       }
@@ -230,25 +327,111 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     }
   }
   let hat = 1234567; const ngau = () => ((hat = (hat * 16807) % 2147483647) / 2147483647);
-  const NN = 7000, NQ = 900;
-  const nguoi = new THREE.InstancedMesh(new THREE.BoxGeometry(0.5, 1.7, 0.35).translate(0, 0.85, 0), new THREE.MeshLambertMaterial(), NN);
-  const quay = new THREE.InstancedMesh(new THREE.BoxGeometry(3, 2.6, 2.4), new THREE.MeshLambertMaterial(), NQ);
   const _c = new THREE.Color(), _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(1, 1, 1), _p = new THREE.Vector3(), _e = new THREE.Euler();
-  const datNguoi = [], datQuay = [];
-  for (let n = 0, thu = 0; n < NN && thu < NN * 40; thu++) {
-    const d = diem[(ngau() * diem.length) | 0]; if (!d || ngau() > d.gan * 1.4) continue;
-    const lech = (ngau() - 0.5) * d.w * 0.9;
-    datNguoi.push({ x: d.x - d.uz * lech + (ngau() - 0.5) * 5, z: d.z + d.ux * lech + (ngau() - 0.5) * 5, h: ngau() * 6.28, s: 0.9 + ngau() * 0.25 });
-    nguoi.setColorAt(n++, _c.set(MAU_NGUOI[(ngau() * MAU_NGUOI.length) | 0]));
+
+  // ---- người đi phố: dáng thấp đa giác (chân, thân, tay, đầu, tóc), 4 lớp instanced chung một ma trận ----
+  // đi bộ chạy trong shader (khỏi cập nhật ma trận từng khung): mỗi người đi tới lui trên đoạn 24 m theo hướng đại lộ, chân tay đánh nhịp
+  const uNguoi = { uT: { value: 0 } };
+  const vNguoi = () => { const v = new THREE.MeshLambertMaterial(); v.customProgramCacheKey = () => 'nguoi-di';
+    v.onBeforeCompile = (sh) => { sh.uniforms.uT = uNguoi.uT;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
+      uniform float uT; attribute vec2 aDi; attribute float aPhan;
+      // aDi.x = tốc độ m/s (0 = đứng), aDi.y = pha 0..1 · aPhan: 1/2 chân trái/phải, 3/4 tay trái/phải
+      vec3 diNguoi(vec3 p, float laVt) {
+        float v = aDi.x, dang = step(0.01, v);
+        float goc = sin(uT * v * 5.2 + aDi.y * 40.0) * 0.5 * dang;
+        float tru = aPhan > 2.5 ? 1.44 : 0.86, dau = (aPhan == 1.0 || aPhan == 4.0) ? 1.0 : -1.0;
+        if (aPhan > 0.5) { float c = cos(goc * dau), s = sin(goc * dau); float y = p.y - tru * laVt; p = vec3(p.x, y * c - p.z * s + tru * laVt, y * s + p.z * c); }
+        float L = 24.0, d = mod(uT * v + aDi.y * 2.0 * L, 2.0 * L), lui = step(L, d), di = d < L ? d : 2.0 * L - d;
+        p.xz *= 1.0 - 2.0 * lui * dang;
+        p.z += (di - L * 0.5) * dang * laVt;
+        return p; }`)
+        .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nobjectNormal = diNguoi(objectNormal, 0.0);')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed = diNguoi(transformed, 1.0);');
+    }; return v; };
+  const hopP = (w, h, d, x, y, z, phan) => { const g = new THREE.BoxGeometry(w, h, d).translate(x, y, z).toNonIndexed(); g.setAttribute('aPhan', new THREE.Float32BufferAttribute(new Array(g.attributes.position.count).fill(phan), 1)); return g; };
+  const cauP = (r, sx, sy, sz, x, y, z, nua) => { const g = new THREE.SphereGeometry(r, 9, 6, 0, Math.PI * 2, 0, nua ? Math.PI * 0.55 : Math.PI).scale(sx, sy, sz).translate(x, y, z).toNonIndexed(); g.setAttribute('aPhan', new THREE.Float32BufferAttribute(new Array(g.attributes.position.count).fill(0), 1)); return g; };
+  const gop = (ds) => { const n = ds.reduce((a, g) => a + g.attributes.position.count, 0), out = new THREE.BufferGeometry();
+    for (const k of Object.keys(ds[0].attributes)) { const sz = ds[0].attributes[k].itemSize, a = new Float32Array(n * sz); let o = 0; for (const g of ds) { a.set(g.attributes[k].array, o); o += g.attributes[k].array.length; } out.setAttribute(k, new THREE.BufferAttribute(a, sz)); }
+    return out; };
+  const G_QUAN = gop([hopP(0.17, 0.82, 0.2, -0.1, 0.45, 0, 1), hopP(0.17, 0.82, 0.2, 0.1, 0.45, 0, 2), hopP(0.18, 0.08, 0.28, -0.1, 0.04, 0.04, 1), hopP(0.18, 0.08, 0.28, 0.1, 0.04, 0.04, 2), hopP(0.38, 0.14, 0.22, 0, 0.84, 0, 0)]);
+  const G_AO = gop([hopP(0.42, 0.58, 0.24, 0, 1.16, 0, 0), hopP(0.36, 0.1, 0.22, 0, 1.47, 0, 0), hopP(0.11, 0.6, 0.13, -0.27, 1.15, 0, 3), hopP(0.11, 0.6, 0.13, 0.27, 1.15, 0, 4)]);
+  const G_DA = gop([cauP(0.115, 1, 1.12, 1, 0, 1.66, 0), hopP(0.1, 0.08, 0.1, 0, 1.52, 0, 0), hopP(0.08, 0.1, 0.09, -0.27, 0.8, 0.0, 3), hopP(0.08, 0.1, 0.09, 0.27, 0.8, 0.0, 4)]);
+  const G_TOC = gop([cauP(0.125, 1.02, 1.05, 1.06, 0, 1.69, -0.012, true), hopP(0.26, 0.3, 0.12, 0, 1.2, -0.17, 0)]); // tóc + ba lô / túi sau lưng
+  const MAU_DA = ['#e8c4a2', '#d9a982', '#c48d66', '#a8714d', '#f0d2b6', '#8a5a3c'];
+  const MAU_TOC = ['#1d1a18', '#2e2420', '#4a3426', '#6b4a30', '#8c8a86', '#1d1a18', '#b5562f'];
+  const MAU_QUAN = ['#26292e', '#3a3f47', '#4b4036', '#2f3d52', '#6b6457', '#1f2226', '#7a6a55'];
+  const NN = 16000;
+  const lopNguoi = [G_QUAN, G_AO, G_DA, G_TOC].map((g) => new THREE.InstancedMesh(g, vNguoi(), NN));
+  const aDi = new THREE.InstancedBufferAttribute(new Float32Array(NN * 2), 2);
+  for (const m of lopNguoi) { m.geometry.setAttribute('aDi', aDi); m.instanceMatrix = lopNguoi[0].instanceMatrix; m.frustumCulled = false; }
+  const datNguoi = [];
+  const themNguoi = (x, z, h, v) => { const n = datNguoi.length; if (n >= NN) return;
+    datNguoi.push({ x, z, h, s: 0.92 + ngau() * 0.16 }); aDi.setXY(n, v, ngau());
+    lopNguoi[0].setColorAt(n, _c.set(MAU_QUAN[(ngau() * MAU_QUAN.length) | 0]));
+    lopNguoi[1].setColorAt(n, _c.set(MAU_NGUOI[(ngau() * MAU_NGUOI.length) | 0]));
+    lopNguoi[2].setColorAt(n, _c.set(MAU_DA[(ngau() * MAU_DA.length) | 0]));
+    lopNguoi[3].setColorAt(n, _c.set(MAU_TOC[(ngau() * MAU_TOC.length) | 0])); };
+
+  // ---- quầy chợ: khung gỗ + quầy, mái bạt nghiêng sọc, hàng hoá (thùng trái cây, bao, đèn lồng) ----
+  const mauG = (g, hex) => { g = g.index ? g.toNonIndexed() : g; const c = new THREE.Color(hex), a = new Float32Array(g.attributes.position.count * 3); for (let i = 0; i < a.length; i += 3) { a[i] = c.r; a[i + 1] = c.g; a[i + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); g.deleteAttribute('uv'); return g; };
+  const hop = (w, h, d, x, y, z, hex) => mauG(new THREE.BoxGeometry(w, h, d).translate(x, y, z), hex);
+  const tru = (r1, r2, h, x, y, z, hex, n = 6) => mauG(new THREE.CylinderGeometry(r1, r2, h, n).translate(x, y, z), hex);
+  const cau = (r, x, y, z, hex) => mauG(new THREE.SphereGeometry(r, 7, 5).translate(x, y, z), hex);
+  const G_KHUNG = gop([hop(3, 0.95, 1.1, 0, 0.475, 0.55, '#7a5a3e'), hop(3.06, 0.07, 1.2, 0, 0.98, 0.55, '#9b7a55'), hop(3, 0.12, 1.1, 0, 0.06, 0.55, '#3a2e26'),
+    ...[[-1.45, 1.1], [1.45, 1.1], [-1.45, -1.0], [1.45, -1.0]].map(([x, z]) => tru(0.05, 0.05, z > 0 ? 2.5 : 2.85, x, z > 0 ? 1.25 : 1.42, z, '#4a3b30')),
+    hop(1.2, 0.5, 0.06, 0.6, 2.25, 1.2, '#efe6cf'), hop(0.06, 0.6, 0.06, 0.6, 2.55, 1.2, '#4a3b30')]); // bảng hiệu treo trước mái
+  const maiG = new THREE.BoxGeometry(3.4, 0.05, 2.7, 6, 1, 1).rotateX(-0.22).translate(0, 2.7, 0.08);
+  { const p = maiG.attributes.position, c = new Float32Array(p.count * 3); for (let i = 0; i < p.count; i++) { const k = Math.floor((p.getX(i) + 1.7) / 3.4 * 6 + 0.001) % 2 ? 1 : 0.82; c.set([k, k, k], i * 3); } maiG.setAttribute('color', new THREE.BufferAttribute(c, 3)); }
+  const G_MAI = maiG.toNonIndexed(); G_MAI.deleteAttribute('uv');
+  const HANG = ['#e07a2e', '#c2312a', '#e8c23a', '#6d9a3a', '#8a4b8f', '#d9d2c2', '#3f7f8c', '#b5562f'];
+  const G_HANG = (bo) => gop([...[-1.05, -0.35, 0.35, 1.05].flatMap((x, k) => [hop(0.6, 0.22, 0.5, x, 1.12, 0.62, '#8a6a46'), ...[0, 1, 2].map((j) => cau(0.1, x - 0.16 + j * 0.16, 1.27, 0.55 + (j % 2) * 0.12, HANG[(bo + k * 3 + j) % HANG.length]))]),
+    hop(0.5, 0.55, 0.45, -1.0, 0.27, -0.55, '#b89a6a'), hop(0.45, 0.4, 0.45, -0.45, 0.2, -0.6, '#9b7a55'), tru(0.22, 0.26, 0.55, 1.0, 0.27, -0.55, '#d8cdb0', 8),
+    cau(0.16, -0.9, 2.05, 1.05, bo % 2 ? '#d93b2b' : '#e8b04a'), cau(0.16, 0.9, 2.05, 1.05, bo % 2 ? '#d93b2b' : '#e8b04a')]);
+  const vMau = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const NQ = 1100;
+  const quay = [new THREE.InstancedMesh(G_KHUNG, vMau, NQ), new THREE.InstancedMesh(G_MAI, vMau, NQ), new THREE.InstancedMesh(G_HANG(0), vMau, NQ), new THREE.InstancedMesh(G_HANG(3), vMau, NQ)];
+  for (const m of quay) { m.instanceMatrix = quay[0].instanceMatrix; m.frustumCulled = false; }
+  const datQuay = [];
+
+  // ---- đồ phố: cột đèn, ghế dài, bồn cây có cây, thùng hàng, xe đẩy ----
+  const G_DEN = gop([tru(0.07, 0.11, 6, 0, 3, 0, '#2f3338'), hop(0.08, 0.08, 1.4, 0, 5.9, 0.65, '#2f3338'), hop(0.38, 0.22, 0.5, 0, 5.75, 1.3, '#3a3f45'), hop(0.3, 0.06, 0.42, 0, 5.62, 1.3, '#fff2c8'), tru(0.22, 0.26, 0.3, 0, 0.15, 0, '#2f3338')]);
+  const G_GHE = gop([hop(1.8, 0.07, 0.45, 0, 0.45, 0, '#8a6a46'), hop(1.8, 0.4, 0.06, 0, 0.72, -0.22, '#8a6a46'), ...[-0.75, 0.75].map((x) => hop(0.07, 0.45, 0.42, x, 0.22, 0, '#2f3338'))]);
+  const G_CAY = gop([hop(1.6, 0.6, 1.6, 0, 0.3, 0, '#9a948a'), hop(1.45, 0.06, 1.45, 0, 0.58, 0, '#4a3a2c'), tru(0.09, 0.14, 2.6, 0, 1.8, 0, '#5a4636'),
+    cau(1.15, 0, 3.6, 0, '#5d7f45'), cau(0.85, 0.5, 3.2, 0.3, '#6d8f4f'), cau(0.8, -0.45, 3.4, -0.35, '#54733e'), cau(0.7, 0.1, 4.3, -0.1, '#6a8a4c')]);
+  const G_THUNG = gop([hop(0.8, 0.6, 0.6, 0, 0.3, 0, '#9b7a55'), hop(0.7, 0.5, 0.55, 0.15, 0.85, 0.05, '#b89a6a'), hop(0.6, 0.45, 0.5, 0.9, 0.22, 0.1, '#7a5a3e'), tru(0.3, 0.3, 0.9, -0.9, 0.45, 0.1, '#5d6d78', 10)]);
+  const G_XE = gop([hop(1.5, 0.5, 0.9, 0, 0.75, 0, '#c9483a'), hop(1.5, 0.06, 0.9, 0, 1.02, 0, '#d9d2c2'), ...[-0.55, 0.55].map((x) => mauG(new THREE.CylinderGeometry(0.32, 0.32, 0.08, 10).rotateX(Math.PI / 2).translate(x, 0.32, 0.5), '#2a2a2a')),
+    hop(0.06, 0.06, 0.9, 0.9, 1.05, 0, '#3a3a3a'), tru(0.03, 0.03, 1.7, -0.7, 1.85, -0.4, '#3a3a3a'), mauG(new THREE.ConeGeometry(1.2, 0.5, 10).translate(-0.7, 2.75, -0.4), '#e0a83c')]);
+  const doPho = [G_DEN, G_GHE, G_CAY, G_THUNG, G_XE].map((g) => { const m = new THREE.InstancedMesh(g, vMau, 3000); m.frustumCulled = false; m.count = 0; return m; });
+  const datDo = doPho.map(() => []);
+
+  // rải dọc đại lộ: hai mép có cột đèn + bồn cây xen kẽ, quầy chợ kèm người bán; giữa lối là người đi; ghế, thùng, xe đẩy lác đác
+  for (const d of diem) {
+    const huong = Math.atan2(d.ux, d.uz), mep = d.w / 2;
+    if (ngau() < d.gan * 0.55 + 0.05) for (const ben of [-1, 1]) {
+      const r = ngau(), lech = ben * (mep - 1.2), x = d.x - d.uz * lech, z = d.z + d.ux * lech;
+      if (r < 0.22) datDo[0].push({ x, z, h: huong + (ben > 0 ? -Math.PI / 2 : Math.PI / 2) });
+      else if (r < 0.42) datDo[2].push({ x, z, h: ngau() * 6.28 });
+      else if (r < 0.5) datDo[1].push({ x: d.x - d.uz * ben * (mep - 2.4), z: d.z + d.ux * ben * (mep - 2.4), h: huong + (ben > 0 ? Math.PI / 2 : -Math.PI / 2) });
+    }
+    if (d.w >= 14 && datQuay.length < NQ && ngau() < d.gan * 1.1) {
+      const ben = ngau() < 0.5 ? -1 : 1, lech = ben * (mep - 3.4), hq = huong + (ben > 0 ? Math.PI / 2 : -Math.PI / 2);
+      const x = d.x - d.uz * lech, z = d.z + d.ux * lech; datQuay.push({ x, z, h: hq });
+      quay[1].setColorAt(datQuay.length - 1, _c.set(MAU_MAI[(ngau() * MAU_MAI.length) | 0]));
+      const lui = ben * (mep - 2.2); themNguoi(d.x - d.uz * lui, d.z + d.ux * lui, hq, 0);              // người bán sau quầy
+      if (ngau() < 0.7) { const tr = ben * (mep - 5.6); themNguoi(d.x - d.uz * tr + (ngau() - 0.5), d.z + d.ux * tr + (ngau() - 0.5), hq + Math.PI, 0); } // khách đứng xem
+    }
+    if (ngau() < d.gan * 0.12) { const lech = (ngau() - 0.5) * d.w * 0.6; datDo[ngau() < 0.6 ? 3 : 4].push({ x: d.x - d.uz * lech, z: d.z + d.ux * lech, h: ngau() * 6.28 }); }
   }
-  for (let n = 0, thu = 0; n < NQ && thu < NQ * 60; thu++) {
-    const d = diem[(ngau() * diem.length) | 0]; if (!d || d.w < 18 || ngau() > d.gan * 1.6) continue;
-    const ben = ngau() < 0.5 ? -1 : 1, lech = ben * (d.w / 2 - 2.5);
-    datQuay.push({ x: d.x - d.uz * lech, z: d.z + d.ux * lech, h: Math.atan2(d.ux, d.uz) });
-    quay.setColorAt(n++, _c.set(MAU_MAI[(ngau() * MAU_MAI.length) | 0]));
+  for (let thu = 0; datNguoi.length < NN && thu < NN * 40; thu++) {
+    const d = diem[(ngau() * diem.length) | 0]; if (!d || ngau() > d.gan * 1.8) continue;
+    const lech = (ngau() - 0.5) * d.w * 0.7, di = ngau() < 0.62;
+    themNguoi(d.x - d.uz * lech + (ngau() - 0.5) * 3, d.z + d.ux * lech + (ngau() - 0.5) * 3, di ? Math.atan2(d.ux, d.uz) + (ngau() < 0.5 ? 0 : Math.PI) : ngau() * 6.28, di ? 0.9 + ngau() * 0.7 : 0);
   }
-  nguoi.count = datNguoi.length; quay.count = datQuay.length;
-  goc.add(nguoi, quay);
+  for (const m of lopNguoi) { m.count = datNguoi.length; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
+  for (const m of quay) m.count = datQuay.length;
+  for (const [i, m] of doPho.entries()) m.count = Math.min(3000, datDo[i].length);
+  goc.add(...lopNguoi, ...quay, ...doPho);
 
   // ---------- khối khổng lồ mờ xa (không chịu sương, tự pha màu sương) ----------
   const vXa = new THREE.MeshBasicMaterial({ color: '#97a8b6', fog: false });
@@ -298,20 +481,29 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
       } }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(vs, 3)); g.setIndex(idx); g.computeVertexNormals();
     loMesh.geometry.dispose(); loMesh.geometry = g;
-    for (const [i, p] of datNguoi.entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); _s.setScalar(p.s); nguoi.setMatrixAt(i, _m.compose(_p, _q, _s)); }
+    for (const [i, p] of datNguoi.entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); _s.setScalar(p.s); lopNguoi[0].setMatrixAt(i, _m.compose(_p, _q, _s)); }
     _s.setScalar(1);
-    for (const [i, p] of datQuay.entries()) { _p.set(p.x, muot(p.x, p.z) + 1.9, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); quay.setMatrixAt(i, _m.compose(_p, _q, _s)); }
-    nguoi.instanceMatrix.needsUpdate = true; quay.instanceMatrix.needsUpdate = true;
+    for (const [i, p] of datQuay.entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); quay[0].setMatrixAt(i, _m.compose(_p, _q, _s)); }
+    for (const [k, ds] of datDo.entries()) { for (const [i, p] of ds.slice(0, 3000).entries()) { _p.set(p.x, muot(p.x, p.z) + 0.6, p.z); _q.setFromEuler(_e.set(0, p.h, 0)); doPho[k].setMatrixAt(i, _m.compose(_p, _q, _s)); } doPho[k].instanceMatrix.needsUpdate = true; }
+    lopNguoi[0].instanceMatrix.needsUpdate = true; quay[0].instanceMatrix.needsUpdate = true;
     if (goc.visible) { boVa(); dungVa(); }
   }
-  function dungVa() { for (const d of dsThap) if (!d.va && d.y0 !== undefined)
-    d.va = world.createCollider(RAPIER.ColliderDesc.cylinder(d.than / 2, d.R).setTranslation(d.t.o[0], d.y0 + d.than / 2, d.t.o[1]), tinh); }
+  // khung va: gộp mọi mesh userData.va của tháp (kể cả tháp vệ tinh, bầu bên) thành MỘT trimesh toạ độ thế giới → đứng trên ban công, mái đài kính, chóp vòm
+  function dungVa() { const v = new THREE.Vector3();
+    for (const d of dsThap) if (!d.va && d.y0 !== undefined) {
+      d.g.updateMatrixWorld(true); const P = [], I = [];
+      d.g.traverse((m) => { if (!m.userData.va) return; const geo = m.geometry, pos = geo.attributes.position, b = P.length / 3;
+        for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld); P.push(v.x, v.y, v.z); }
+        if (geo.index) for (const k of geo.index.array) I.push(b + k); else for (let i = 0; i < pos.count; i++) I.push(b + i); });
+      d.va = world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(P), new Uint32Array(I)), tinh);
+    } }
   function boVa() { for (const d of dsThap) if (d.va) { world.removeCollider(d.va, false); d.va = null; } }
   function hien(bat) { goc.visible = bat; if (bat) dungVa(); else boVa(); }
 
   const _a = new THREE.Vector3();
   function khung(dt) {
     if (!goc.visible) return;
+    uNguoi.uT.value += dt;
     for (const [i, c] of xe.entries()) {
       const l = c.l; c.s = ((c.s + c.v * dt) % l.L + l.L) % l.L;
       let k = 1; while (k < l.dai.length - 1 && l.dai[k] < c.s) k++;
@@ -324,5 +516,5 @@ export function taoRedSpires({ RAPIER, world, tinh, datTai, ql }) {
     xeMesh.instanceMatrix.needsUpdate = true; den.instanceMatrix.needsUpdate = true;
   }
 
-  return { goc, vatPho, datLai, hien, khung, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, xe: xe.length } };
+  return { goc, vatPho, datLai, hien, khung, ql, thap: dsThap, tk: { thap: dsThap.length, nguoi: datNguoi.length, quay: datQuay.length, doPho: datDo.map((d) => d.length).join('/'), xe: xe.length } };
 }

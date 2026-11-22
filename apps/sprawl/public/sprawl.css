@@ -17,3 +17,8 @@ button:disabled { opacity: .45; cursor: default; }
 #nguon { left: 12px; bottom: 12px; padding: 5px 10px; font-size: 11px; color: var(--mo); max-width: calc(100vw - 24px); }
 #nguon a { color: var(--chu); }
 @media (max-width: 640px) { .ben { top: auto; bottom: 46px; } .goiy { display: none; } .tren { top: 8px; left: 8px; } }
+
+/* quay phim: ẩn mọi lớp giao diện, chỉ còn khung vẽ */
+body.sach .o, body.sach #nap, body.sach #bao-nho { display: none !important; }
+#bao-nho { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 9; padding: 8px 14px; border-radius: 8px; background: rgba(0,0,0,.7); color: #fff; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+#bao-nho.hien { opacity: 1; }

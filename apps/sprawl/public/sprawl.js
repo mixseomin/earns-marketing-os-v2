@@ -38,7 +38,7 @@ const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.3, 12
 const troi = new THREE.HemisphereLight('#dfe8f2', '#5a5048', 1.1); scene.add(troi);
 const nang = new THREE.DirectionalLight('#fff1dc', 1.4); nang.position.set(-600, 900, 400); scene.add(nang);
 const orbit = new MapControls(camera, renderer.domElement);
-orbit.enableDamping = true; orbit.maxPolarAngle = Math.PI * 0.49; orbit.minDistance = 20; orbit.maxDistance = 6000; orbit.screenSpacePanning = false;
+orbit.enableDamping = true; orbit.maxPolarAngle = Math.PI * 0.49; orbit.minDistance = 3; orbit.maxDistance = 6000; orbit.screenSpacePanning = false;
 
 // ---------- kiểu nhìn ----------
 const KIEU = {
@@ -190,8 +190,8 @@ if (toi) {
 function diBo() { // đứng xuống mặt đất ngay dưới tâm nhìn, quay mặt theo hướng camera đang nhìn
   if (!di || !datY) return;
   const x = orbit.target.x, z = orbit.target.z, h = Math.atan2(orbit.target.x - camera.position.x, orbit.target.z - camera.position.z);
-  const tia = world.castRay(new RAPIER.Ray({ x, y: datTai(x, z) + 400, z }, { x: 0, y: -1, z: 0 }), 800, true);
-  const y = tia ? datTai(x, z) + 400 - tia.timeOfImpact : datTai(x, z);
+  const tia = world.castRay(new RAPIER.Ray({ x, y: datTai(x, z) + 1200, z }, { x: 0, y: -1, z: 0 }), 2400, true); // tháp đỏ cao tới ~450 m: thả từ trên đỉnh → đứng lên chóp / ban công nếu tâm nhìn trúng tháp
+  const y = tia ? datTai(x, z) + 1200 - tia.timeOfImpact : datTai(x, z);
   di.vao(x, y + 0.3, z, h);
 }
 $('b-di').onclick = diBo; $('b-bay').onclick = () => di?.ra();
@@ -201,18 +201,105 @@ ganGopY({ nut: $('b-gy'), chupAnh: () => chupCanvas(renderer.domElement, () => v
   return `kiểu ${KIEU[kieu].ten} · ${di?.dang ? 'đi bộ' : 'bay'} · ${ll.lat.toFixed(5)}, ${ll.lon.toFixed(5)} · ô ${tk.o} · va chạm ${tk.va}`; } });
 function laLatLon(x, z) { return { lat: TAM.lat - z / 110950, lon: TAM.lon + x / (111320 * Math.cos(TAM.lat * Math.PI / 180)) }; } // X đông, Z nam
 
+// ---------- góc quay dựng sẵn + quay 4K ----------
+// ?goc=anh|cum|gan|pho|tren  ·  &cam=x,y,z,tx,ty,tz[,fov]  ·  &sach (ẩn giao diện, H bật tắt)  ·  &4k (khung vẽ 3840 × 2160)
+// &bay=quay|tien (chuyển động chậm cho quay phim) · phím: C chép góc hiện tại thành link · P chụp ảnh 4K · R bắt đầu / dừng quay video
+const qs = new URLSearchParams(location.search), K4 = qs.has('4k');
+let gocTay = false; orbit.addEventListener('start', () => { gocTay = true; });
+function gocDung(ten) { // trả [cam xyz, đích xyz, fov]; góc theo dữ liệu quy hoạch nên đổi bản quy hoạch vẫn đúng chỗ
+  const ql = rs?.ql, d0 = (x, z) => datTai(x, z) || 0;
+  if (!datY && ten && ten !== 'tren') return [[500, 650, 900], [0, 60, 0], 60]; // đất chưa dựng: đứng cao nhìn bao quát cho ô nhà nạp về, đất xong vòng vẽ tự đặt lại góc sát đất
+  if (ten === 'anh' && ql) { // ảnh mẫu: nhìn cao, chếch xuống dọc đại lộ lớn kẹp giữa hai hàng tháp đỏ, xa là thành phố mờ sương
+    let tot = null;
+    for (const dl of ql.daiLo) if (dl.lop === 'lon') for (let i = 0; i < dl.g.length - 1; i++) {
+      const [ax, az] = dl.g[i]; let j = i + 1; while (j < dl.g.length - 1 && Math.hypot(dl.g[j][0] - ax, dl.g[j][1] - az) < 300) j++;
+      const [bx, bz] = dl.g[j], L = Math.hypot(bx - ax, bz - az); if (L < 150) continue;
+      const ux = (bx - ax) / L, uz = (bz - az) / L; let diem = 0;
+      for (const t of ql.thap) { const dx = t.o[0] - ax, dz = t.o[1] - az, doc = dx * ux + dz * uz, ngang = Math.abs(dx * uz - dz * ux);
+        if (doc > 0 && doc < 900 && ngang > 30 && ngang < 220) diem += 1 + t.caoSpire / 300 - doc / 1500; }
+      if (!tot || diem > tot.diem) tot = { diem, ax, az, ux, uz };
+    }
+    if (tot) { const { ax, az, ux, uz } = tot, y = d0(ax, az); return [[ax - ux * 160, y + 240, az - uz * 160], [ax + ux * 900, y + 40, az + uz * 900], 50]; }
+  }
+  if (ten === 'gan' && rs?.thap?.length) { // sát một tháp cao: thấy mạch tấm ốp, ban công, cửa tròn, hộp ốp
+    const d = [...rs.thap].sort((a, b) => b.than - a.than)[1] || rs.thap[0], [x, z] = d.t.o, y = (d.y0 ?? d0(x, z)) + d.than * 0.62;
+    return [[x + d.R * 1.9, y + 14, z + d.R * 1.6], [x, y, z], 55];
+  }
+  if ((ten === 'pho' || ten === 'cho') && ql) { // xuống phố: đoạn đại lộ rộng gần tâm nhất (đông người + chợ nhất)
+    let tot = null;
+    for (const dl of ql.daiLo) if (dl.lop !== 'nho') for (let j = 1; j < dl.g.length; j++) {
+      const [ax, az] = dl.g[j - 1], [bx, bz] = dl.g[j], L = Math.hypot(bx - ax, bz - az); if (L < 60) continue;
+      const k = Math.hypot((ax + bx) / 2, (az + bz) / 2) - (dl.lop === 'lon' ? 150 : 0); if (!tot || k < tot.k) tot = { k, ax, az, ux: (bx - ax) / L, uz: (bz - az) / L };
+    }
+    if (tot) { const { ax, az, ux, uz } = tot, y = d0(ax, az);
+      return ten === 'pho' ? [[ax, y + 2.2, az], [ax + ux * 40, y + 1.6, az + uz * 40], 55]             // ngang tầm mắt giữa dòng người
+        : [[ax + ux * 4, y + 22, az + uz * 4], [ax + ux * 50, y, az + uz * 50], 50]; }              // máy bay thấp nhìn xuống chợ
+  }
+  if (ten === 'tren') return [[0, 1800, 400], [0, 0, 0], 55];
+  if (kieu === 'do' || ten === 'cum') return [[420, 210, 620], [-260, 150, -120], 60]; // cụm tháp Nishi-Shinjuku
+  return [[500, 650, 900], [0, 60, 0], 60];
+}
+function datGoc() {
+  const c = qs.get('cam')?.split(',').map(Number), g = c?.length >= 6 && c.every(Number.isFinite) ? [c.slice(0, 3), c.slice(3, 6), c[6] || 60] : gocDung(qs.get('goc') || '');
+  camera.position.set(...g[0]); orbit.target.set(...g[1]); camera.fov = g[2]; camera.updateProjectionMatrix(); orbit.update();
+}
+datGoc();
+function linkGoc() { const u = new URL(location.href), f = (v) => Math.round(v * 10) / 10;
+  u.searchParams.delete('goc'); u.searchParams.set('kieu', kieu);
+  u.searchParams.set('cam', [...camera.position.toArray(), ...orbit.target.toArray()].map(f).concat(camera.fov).join(','));
+  return u.toString().replace(/%2C/g, ','); }
+function baoNho(chu) { let b = $('bao-nho'); if (!b) { b = document.createElement('div'); b.id = 'bao-nho'; document.body.appendChild(b); }
+  b.textContent = chu; b.classList.add('hien'); clearTimeout(b._t); b._t = setTimeout(() => b.classList.remove('hien'), 3500); }
+// khung vẽ: chế độ 4K giữ đúng 3840 × 2160, hiển thị co vừa màn (viền đen hai bên nếu màn không 16:9)
+function datCo() {
+  if (K4) { const w = Math.min(innerWidth, innerHeight * 16 / 9), c = renderer.domElement;
+    renderer.setPixelRatio(1); renderer.setSize(3840, 2160, false); composer.setSize(3840, 2160);
+    Object.assign(c.style, { width: w + 'px', height: w * 9 / 16 + 'px', left: (innerWidth - w) / 2 + 'px', top: (innerHeight - w * 9 / 16) / 2 + 'px', inset: 'auto' });
+    camera.aspect = 16 / 9;
+  } else { renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; }
+  camera.updateProjectionMatrix();
+}
+if (K4) datCo();
+async function chup4k() { // một khung 3840 × 2160 (kể cả khi đang xem khung thường), tải về PNG
+  const cu = new THREE.Vector2(); renderer.getSize(cu); const pr = renderer.getPixelRatio(), asp = camera.aspect;
+  renderer.setPixelRatio(1); renderer.setSize(3840, 2160, false); composer.setSize(3840, 2160); camera.aspect = 16 / 9; camera.updateProjectionMatrix();
+  for (const t of dsTiles) { t.setResolutionFromRenderer(camera, renderer); t.update(); }
+  ve(); const blob = await new Promise((ok) => renderer.domElement.toBlob(ok, 'image/png'));
+  if (!K4) { renderer.setPixelRatio(pr); renderer.setSize(cu.x, cu.y, false); composer.setSize(cu.x, cu.y); camera.aspect = asp; camera.updateProjectionMatrix(); }
+  taiVe(blob, `sprawl-${kieu}-${Date.now()}.png`); baoNho('Đã chụp 3840 × 2160');
+}
+function taiVe(blob, ten) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ten; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); }
+let ghi = null;
+function quayPhim() { // ghi khung vẽ thành video (mp4 nếu trình duyệt hỗ trợ, không thì webm); 4K khi mở &4k
+  if (ghi) { ghi.stop(); return; }
+  const loai = ['video/mp4;codecs=avc1.640033', 'video/webm;codecs=vp9', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m));
+  const luong = renderer.domElement.captureStream(60), phan = [];
+  ghi = new MediaRecorder(luong, { mimeType: loai, videoBitsPerSecond: K4 ? 60e6 : 20e6 });
+  ghi.ondataavailable = (e) => e.data.size && phan.push(e.data);
+  ghi.onstop = () => { taiVe(new Blob(phan, { type: loai }), `sprawl-${kieu}-${Date.now()}.${loai.includes('mp4') ? 'mp4' : 'webm'}`); ghi = null; $('b-quay').textContent = '🎬'; baoNho('Đã lưu video'); };
+  ghi.start(1000); $('b-quay').textContent = '⏹'; baoNho(K4 ? 'Đang quay 3840 × 2160 · R để dừng' : 'Đang quay theo cỡ màn · mở &4k để quay 4K · R để dừng');
+}
+const BAY = qs.get('bay'); if (BAY === 'quay') { orbit.autoRotate = true; orbit.autoRotateSpeed = 0.12; }
+function bayTien(dt) { if (BAY !== 'tien' || di?.dang) return; const v = new THREE.Vector3().subVectors(orbit.target, camera.position).setY(0).normalize().multiplyScalar(8 * dt); camera.position.add(v); orbit.target.add(v); }
+if (qs.has('sach')) document.body.classList.add('sach');
+$('b-chup').onclick = chup4k; $('b-quay').onclick = quayPhim;
+$('b-goc').onclick = () => navigator.clipboard?.writeText(linkGoc()).then(() => baoNho('Đã chép link góc này'), () => prompt('Link góc này:', linkGoc()));
+addEventListener('keydown', (e) => { if (e.target.closest?.('input,textarea') || e.metaKey || e.ctrlKey) return;
+  if (e.code === 'KeyH') document.body.classList.toggle('sach');
+  else if (e.code === 'KeyC' && !di?.dang) $('b-goc').onclick();
+  else if (e.code === 'KeyP') chup4k();
+  else if (e.code === 'KeyR') quayPhim(); });
+
 // ---------- vòng vẽ ----------
-if (kieu === 'do') { camera.position.set(420, 210, 620); orbit.target.set(-260, 150, -120); } // nhìn cụm tháp Nishi-Shinjuku như ảnh mẫu
-else camera.position.set(500, 650, 900), orbit.target.set(0, 60, 0);
-orbit.update();
-let lan = 0, tichLuy = 0, demKhung = 0, tFps = performance.now(), fps = 0, tDat = 0;
+let daGoc = false, lan = 0, tichLuy = 0, demKhung = 0, tFps = performance.now(), fps = 0, tDat = 0;
 const dongHo = new THREE.Clock();
 function ve() { renderer.info.reset(); if (KIEU[kieu].bloom > 0) composer.render(); else renderer.render(scene, camera); }
 renderer.setAnimationLoop(() => {
   const dt = Math.min(0.05, dongHo.getDelta());
   if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
-  else orbit.update();
+  else { bayTien(dt); orbit.update(); }
   rs?.khung(dt);
+  if (datY && !gocTay && !daGoc) { daGoc = true; datGoc(); } // đất dựng xong mới biết độ cao thật → đặt lại góc dựng sẵn (nếu anh chưa tự xoay)
   for (const t of dsTiles) { t.setCamera(camera); t.setResolutionFromRenderer(camera, renderer); t.update(); }
   const now = performance.now();
   if (chanDoi && now - tDat > (datY ? 2500 : 600)) { tDat = now; dungDat(); }
@@ -222,5 +309,5 @@ renderer.setAnimationLoop(() => {
     $('tt').textContent = `${fps} khung/s · ${tk.o} ô nhà · ${renderer.info.render.triangles.toLocaleString('vi')} tam giác · ${ll.lat.toFixed(4)}, ${ll.lon.toFixed(4)}`;
     if (!lan && tk.o) { lan = 1; $('nap').style.display = 'none'; } }
 });
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); });
+addEventListener('resize', datCo);
 window.__sprawl = { scene, camera, orbit, dsTiles, tk, datTai, rs, get di() { return di; } };

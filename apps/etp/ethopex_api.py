@@ -222,6 +222,20 @@ def _id_cham(duong, body):
 # DISAPPROVED đọc lại) · đặt lại ngân sách camp vừa tạo trong cùng tiến trình (_TRAN_TAO — đã chấm lúc tạo) · giảm / tắt luôn qua.
 # Mọi lệnh ghi đi qua (cho qua / chặn / gửi hỏng) ghi một dòng etp.cua — hậu kiểm apps/etp/hau_kiem.py (dong-bo mỗi lượt) so với thay đổi thật trên Ethopex.
 class ChanCua(NgoaiNha, ValueError): pass
+# CAMP TẠO TRƯỚC 20/11/2026 DỪNG TRIỆT ĐỂ (anh 23/11/2026 "các thứ từ trước 20/11 phải dừng triệt để"): máy không ghi gì vào camp cũ nữa — không bật lại, không tăng /
+# giảm, không đổi creative, không nhân bản từ camp cũ làm gốc. Chỉ còn TẠM DỪNG (dừng thêm thì luôn được) và lệnh TRỰC TIẾP của anh (vé truc_tiep). Một cửa ở đây:
+# mọi script (luat-ethopex, thay-tu-choi, sua-cta, soat_doan, lich-gio, nhan-ban…) đi qua api(). Người đọc (máy luật, hàng chờ) lọc thêm bằng camp_cu() để khỏi báo / thử.
+MOC_CU = "2026-11-20 00:00+07"
+_CU = None
+def camp_cu(ids=None):
+    """camp nhà tạo trước MOC_CU (etp.camp.tao) — ids=None: cả bộ; có ids: phần giao. Lỗi đọc → coi mọi id hỏi tới là cũ (chặn cho an toàn)."""
+    global _CU
+    if _CU is None:
+        try: _CU = {int(x) for x in _q(f"select camp_id from etp.camp where tao < '{MOC_CU}'").split() if x.isdigit()}
+        except Exception:
+            if ids is None: raise
+            return {int(x) for x in ids if str(x).isdigit()}
+    return set(_CU) if ids is None else {int(x) for x in ids if str(x).isdigit()} & _CU
 _THAY_TEN = re.compile(r"\(thay (\d+) bi tu choi\)\s*$")
 def _js(x):
     if isinstance(x, str):
@@ -294,6 +308,10 @@ def cua(duong, body):
     ra = []
     for l in ds:
         v = l["viec"]
+        cu = camp_cu([x for x in (l.get("camp_id"), l.get("goc")) if x]) if v != "tat" else set()
+        if cu and not CG.truc_tiep(v, sorted(cu), l.get("content_id")):   # camp trước 20/11: chỉ tạm dừng / lệnh trực tiếp của anh (anh 23/11/2026)
+            ly = f"camp #{', #'.join(map(str, sorted(cu)))} tạo trước 20/11 — dừng triệt để, máy không {v} (anh 23/11/2026)"
+            _ghi_cua(l, False, ly); raise ChanCua(f"cửa API chặn {v}: {ly}")
         if v not in CG.TANG: ra.append((l, None)); continue
         ids = [x for x in (l.get("camp_id"), l.get("goc")) if x]
         ct = l.get("content_id") or (_q(f"select content_id from etp.camp where camp_id = {int(l['goc'])}") or None if l.get("goc") else None)
@@ -365,6 +383,11 @@ def api(duong, body=None, timeout=90):
         # ĐỦ MỌI TRANG (29/10/2026: report tách dòng theo camp × phim — khung 9 ngày 1818 dòng / 2 trang; chỉ đọc trang 1 thì camp ở trang 2 thành $0,
         # máy luật không xét nhân bản / T30 cho #65722 $20 đang lãi). Mọi caller đi qua đây — không tự gọi report thẳng.
         d = doc_het(duong, body if isinstance(body, dict) else None, timeout); d["rows"] = loc_report(d.get("rows")); return d
+    if body is not None and not duong.endswith("/campaigns/facebook"):   # mọi lệnh ghi khác chạm camp trước 20/11 mà cua() chưa cho qua (đổi creative, sửa tên, lịch…) → chặn
+        _ad = sorted({int(a.get("ad_id")) for a in (body.get("ads") or []) if isinstance(a, dict) and str(a.get("ad_id") or "").isdigit()}) if isinstance(body, dict) else []
+        _dung = _id_cham(duong, body if not isinstance(body, list) else {"x": body}) | ({int(x) for x in _q(f"select camp_id from etp.camp where ad_id in ({','.join(map(str, _ad))})").split() if x.isdigit()} if _ad else set())
+        _con = camp_cu(_dung) - {int(l["camp_id"]) for l, _ in lenh if l.get("camp_id")}
+        if _con: raise ChanCua(f"cửa API chặn {duong}: camp #{', #'.join(map(str, sorted(_con)[:5]))} tạo trước 20/11 — dừng triệt để, máy không ghi gì vào camp cũ (anh 23/11/2026)")
     if body is not None and isinstance(body, dict) and body.get("ads") and not duong.endswith("/campaigns/facebook"):
         # CHỈ ĐỔI CREATIVE CHO AD ĐANG BỊ META TỪ CHỐI (anh 03/11/2026: "Đổi creative khác cho ad bị meta từ chối. Cấm tự ý đổi creative.") — sau khi
         # thay-tu-choi đổi luôn 10 camp chưa bị từ chối (cùng creative) trong đó 4 camp ACTIVE. Mọi đường (thay-tu-choi, sua-cta, soat_doan) đi qua đây:

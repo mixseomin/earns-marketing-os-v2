@@ -451,7 +451,9 @@ def _nap_truoc(ds):
 _api_goc = api
 api = lambda p, b=None: _NAP.pop(p) if b is None and p in _NAP else _api_goc(p, b)
 try:
-    _ds = api("/api/v1/campaigns?page_size=500")["data"]; _nap_truoc(_ds)
+    _ds = api("/api/v1/campaigns?page_size=500")["data"]
+    _cu20 = EA.camp_cu() if not EA.XEM else set()   # camp tạo trước 20/11 dừng triệt để (anh 23/11/2026): máy luật không xét, không báo, không nhân bản từ chúng
+    _ds = [c for c in _ds if int(c["id"]) not in _cu20]; _nap_truoc(_ds)
     for c in _ds:
         ds_camp.append(c)
         if c.get("state") == "ARCHIVED": continue

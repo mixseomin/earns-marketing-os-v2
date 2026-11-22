@@ -29,7 +29,15 @@ def sql(cau, spy=False):
     """một truy vấn trên box3 (studio, hoặc kho spy) → stdout; câu đi qua stdin, không đụng dấu nháy shell"""
     nen = ". /root/.secrets/spy.env" if spy else ENV
     return subprocess.run(["ssh", B, f'{nen}; psql "$DATABASE_URL" -tA -F"\t" -f -'], input=cau, capture_output=True, text=True).stdout.strip()
-khoa = lambda ten: json.loads(sql(f"select coalesce(gia_tri, '{{}}'::jsonb)::text from xv_khoa_ngoai where ten='{ten}'") or "{}")
+_khoa_tho = lambda ten: json.loads(sql(f"select coalesce(gia_tri, '{{}}'::jsonb)::text from xv_khoa_ngoai where ten='{ten}'") or "{}")
+_CU20 = None
+def khoa(ten):
+    """sổ xv_khoa_ngoai — bỏ mục có camp gốc tạo trước 20/11 (anh 23/11/2026 "các thứ từ trước 20/11 phải dừng triệt để": không cắt góc / sửa CTA / nhân bản cho camp cũ)"""
+    global _CU20
+    d = _khoa_tho(ten)
+    if not any(isinstance(v, dict) and v.get("goc") for v in d.values()): return d
+    if _CU20 is None: _CU20 = set(sql("select camp_id from etp.camp where tao < '2026-11-20 00:00+07'").split())
+    return {k: v for k, v in d.items() if not (isinstance(v, dict) and str(v.get("goc") or "") in _CU20)}
 
 def nguon_spy(qc):
     f = os.path.join(Q, f"{qc}.mp4")

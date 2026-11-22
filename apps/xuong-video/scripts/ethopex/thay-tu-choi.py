@@ -103,6 +103,7 @@ def ung_vien(cid, cu, tu_choi, dat):
 
 def mot(camp, tu_choi, dat):
     kq = {"camp": camp, "ok": False}
+    if EA.camp_cu([camp]): return {**kq, "ok": True, "viec": "camp_cu_20"}   # camp tạo trước 20/11 dừng triệt để (anh 23/11/2026) — không thay, không bật lại, không báo
     d = api(f"/api/v1/campaigns/{camp}"); a = d["ad_groups"][0]["ads"][0]
     cu, cid = a.get("creative_id"), a.get("content_id")
     lan = False   # CHỈ AD ĐANG BỊ META TỪ CHỐI (anh 03/11/2026: "Cấm tự ý đổi creative") — bỏ thay trước cho camp khác cùng creative
@@ -192,6 +193,7 @@ def don_doan(that=True):
     for doan, ds in theo.items():
         ds.sort(key=lambda x: (-(pct(x["c3"], x["t3"]) if pct(x["c3"], x["t3"]) is not None else -1e9), -x["c3"]))
         for x in ds[GIU_DOAN:]:
+            if EA.camp_cu([x["camp"]]): continue   # camp trước 20/11 dừng triệt để (anh 23/11/2026)
             r3, rn = pct(x["c3"], x["t3"]), pct(x["cn"], x["tn"]) if x["cn"] >= 0.3 else None
             if x["tuoi"] < 2 or r3 is None or r3 >= ROI_DU or (rn is not None and rn >= ROI_DU): continue   # camp dư đang lãi / chưa đủ số → giữ
             if nk.get(str(x["camp"]), "")[-10:] == (_d.datetime.now(_d.timezone.utc) + _d.timedelta(hours=7)).strftime("%d/%m/%Y") or str(x["camp"]) in vua: continue

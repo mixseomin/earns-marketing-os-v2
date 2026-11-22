@@ -1470,7 +1470,7 @@ const mBong = (() => {
   m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.renderOrder = 1;
   scene.add(m); return m;
 })();
-const SB = new THREE.Vector3(), VY = new THREE.Vector3();
+const SB = new THREE.Vector3(), VY = new THREE.Vector3(), VO = new THREE.Vector3();
 const MUI_TAXI = new THREE.Color('#ffd84a'), DEN_DON = new THREE.Color('#ff5a2a');
 
 // ── mặt đất, vỉa hè, vạch kẻ
@@ -1859,10 +1859,15 @@ function ve() {
       if (ix >= MAX_XM) continue;
       Q2.setFromAxisAngle(TRUC_X, a.nghieng); Q.multiply(Q2);
       if (XMT.on) { const k = XMT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % XMT.ds.length]; datMa(k.t, k.n, V, Q, MOT, uot(a.c1, a)); datMa(k.f, k.n++, V, Q, MOT); }
-      if (NG.on && NGT.ok) { const m = NGT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % NGT.ds.length].m[NGT.buoc + 1], yen = XMT.on ? XMT.ds[a.mau % XMT.ds.length].yen : null;
-        if (yen) { VY.copy(yen).applyQuaternion(Q).add(V); datMa(m, m.userData.n++, VY, Q, MOT, uot(a.c2, a)); } else datMa(m, m.userData.n++, V, Q, MOT, uot(a.c2, a)); }
-      datMa(mXm, ix, V, Q, MOT, uot(a.c1, a)); datMa(mNguoi, ix, V, Q, MOT, uot(a.c2, a)); datMa(mMu, ix, V, Q, MOT, uot(a.c3, a));
-      datMa(mCho, ix, V, Q, a.cho ? MOT : KHONG, a.c4); datMa(mHang, ix, V, Q, a.hang ? MOT : KHONG, a.c5);
+      // bản thật: người lái đặt hông vào yên đo của mẫu xe; mũ đi theo đầu người lái; người ngồi sau là người thật (mẫu khác) lùi 0,36 m, cao hơn 0,05
+      const nThat = NG.on && NGT.ok, yen = nThat && XMT.on ? XMT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % XMT.ds.length].yen : null;
+      VY.copy(V); if (yen) VY.add(VO.copy(yen).applyQuaternion(Q));
+      if (nThat) {
+        const mau = (a.mau ??= (Math.random() * 1e6) | 0), m = NGT.ds[mau % NGT.ds.length].m[NGT.buoc + 1]; datMa(m, m.userData.n++, VY, Q, MOT, uot(a.c2, a));
+        if (a.cho) { const m2 = NGT.ds[(mau + 1) % NGT.ds.length].m[NGT.buoc + 1]; VO.set(-0.36, 0.05, 0).applyQuaternion(Q).add(VY); datMa(m2, m2.userData.n++, VO, Q, MOT, uot(a.c4, a)); }
+      }
+      datMa(mXm, ix, V, Q, MOT, uot(a.c1, a)); datMa(mNguoi, ix, V, Q, MOT, uot(a.c2, a)); datMa(mMu, ix, VY, Q, MOT, uot(a.c3, a));
+      datMa(mCho, ix, V, Q, a.cho && !nThat ? MOT : KHONG, a.c4); datMa(mHang, ix, VY, Q, a.hang && !(nThat && a.cho) ? MOT : KHONG, a.c5);
       if (ben) datMa(XN.xm, nx.xm++, V, Q, SXN.set(1, 1, ben));
       veXm[ix] = a; ix++;
     } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, uot(a.c1, a)); if (OTT.on) { const k = a.taxi && OTT.taxi ? OTT.taxi : OTT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % OTT.ds.length]; datMa(k.t, k.n, V, Q, MOT, uot(a.c1, a)); datMa(k.f, k.n++, V, Q, MOT); } if (ben) datMa(XN.oto, nx.oto++, V, Q, SXN.set(1, 1, ben)); }

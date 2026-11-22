@@ -25,7 +25,7 @@ import { GOC, PUB, LAU, du, doiSo } from './chung.mjs';
 process.env.KMP_DUPLICATE_LIB_OK = 'TRUE'; // torch + opencv cùng nạp libomp → khop-lg.py chết 'OMP Error #15' (20/11/2026)
 const PY = join(homedir(), '.venvs/castle-khop/bin/python'), SC = join(GOC, 'scripts'), KHO_GOC = join(GOC, '.kho-goc', LAU);
 const co = (c) => doiSo.includes(c), gt = (c) => { const k = doiSo.indexOf(c); return k < 0 ? null : doiSo[k + 1]; };
-export const NGUONG = { thay: 0.5, dung: 30, lech_px: 4, roll: 0.35, fov: [15, 95], tach_m: 3, tin: 0.6 }; // ảnh định vị ĐẠT · số đo ĐẠT (lô thử 71 ảnh 20/11/2026: chỉ đếm điểm khớp thì lọt lời giải lệch 45–200 m → gác chính là VÙNG + TÁCH ĐÔI; kho đúng 6 hướng cho ảnh tốt ~40–50 điểm)
+export const NGUONG = { thay: 0.5, dung: 30, lech_px: 4, roll: 0.35, fov: [15, 95], tach_m: 3, dong_thuan: 3, tin: 0.6 }; // ảnh định vị ĐẠT · số đo ĐẠT (lô thử 71 ảnh 20/11/2026: chỉ đếm điểm khớp thì lọt lời giải lệch 45–200 m → gác chính là VÙNG + TÁCH ĐÔI; kho đúng 6 hướng cho ảnh tốt ~40–50 điểm)
 const TRUONG = ['rang_cua', 'vom_nho', 'da_goc'], TIN = { rang_cua: 'tin_rang', vom_nho: 'tin_vom', da_goc: 'tin_da' }, NHIP = { rang_cua: 'rang_nhip_m', vom_nho: 'vom_nhip_m' };
 
 /** camera giải ra có dùng được không (thuần — tự kiểm gọi). khoY: [thấp nhất, cao nhất] của mắt các góc nhìn trong kho */
@@ -38,6 +38,9 @@ export function anhDat(r, khoY, vung) {
   if (khoY && (r.y < khoY[0] - 3 || r.y > khoY[1] + 12)) return `mắt ở độ cao ${r.y.toFixed(0)} m — ngoài vùng người đứng được`;
   if (vung && (r.x < vung[0] - 20 || r.x > vung[1] + 20 || r.z < vung[2] - 20 || r.z > vung[3] + 20)) return `chỗ đứng (${r.x.toFixed(0)}, ${r.z.toFixed(0)}) nằm ngoài vùng kho góc nhìn — lời giải trượt`;
   if (!(r.tach_m <= NGUONG.tach_m)) return `hai nửa góc nhìn ra hai chỗ đứng cách nhau ${r.tach_m > 900 ? 'không giải được' : r.tach_m.toFixed(1) + ' m'} (> ${NGUONG.tach_m} m) — lời giải không vững`;
+  // đồng thuận (khop-lg.py): số chỗ đứng nguồn mà giải RIÊNG từng góc cũng ra gần đúng chỗ (≤ 3 m). Đòi min(3, số chỗ đứng giải được): ảnh chỉ khớp một chỗ đứng thì phép này không phân xử được
+  if (r.dong_thuan == null) return 'kết quả ghép cũ chưa có số đồng thuận — ghép lại';
+  if (r.dong_thuan < Math.min(NGUONG.dong_thuan, r.cho_dung)) return `chỉ ${r.dong_thuan} / ${r.cho_dung} chỗ đứng nguồn đồng ý với chỗ đứng giải ra (< ${Math.min(NGUONG.dong_thuan, r.cho_dung)}) — lời giải trượt theo một cụm góc nhìn`;
   return null;
 }
 /** gộp số đếm của nhiều ảnh cho một trường (thuần): ứng viên [{ gia_tri, tin, anh, nhip_m }] → { gia_tri, … } | { khong_ghi: lý do } */
@@ -79,13 +82,16 @@ if (!existsSync(PY)) { console.error(`thiếu venv đo ảnh. Cài một lần (
 
 if (co('--tu-kiem')) {
   let hong = 0; const ok = (dk, ten) => { console.log(`${dk ? '✓' : '✗'} ${ten}`); hong += !dk; };
-  const tot = { dung: 194, lech_px: 3, roll: -0.09, fov: 55.5, y: 13.5, x: 45, z: -21, tach_m: 0.4 }, VT = [-20, 90, -80, 50];
+  const tot = { dung: 194, lech_px: 3, roll: -0.09, fov: 55.5, y: 13.5, x: 45, z: -21, tach_m: 0.4, dong_thuan: 6, cho_dung: 8 }, VT = [-20, 90, -80, 50];
   ok(anhDat(tot, [8, 17], VT) === null, 'anhDat: ảnh tốt qua');
   ok(/ngoài vùng/.test(anhDat({ ...tot, dung: 254, x: 142, z: -53 }, [8, 30], VT)), 'anhDat: 254 điểm khớp nhưng chỗ đứng ngoài vùng 52 m bị loại (ca Mapillary lệch GPS 133 m)');
   ok(/không vững/.test(anhDat({ ...tot, tach_m: 7.5 }, [8, 17], VT)), 'anhDat: hai nửa góc nhìn lệch nhau 7,5 m bị loại');
   ok(/điểm khớp/.test(anhDat({ ...tot, dung: 21 }, [8, 17], VT)), 'anhDat: 21 điểm khớp bị loại');
   ok(/nghiêng/.test(anhDat({ ...tot, roll: 1.51 }, [8, 17], VT)), 'anhDat: lời giải lật (roll 87°) bị loại');
   ok(/độ cao/.test(anhDat({ ...tot, y: 90 }, [8, 17], VT)), 'anhDat: mắt lơ lửng 90 m bị loại');
+  ok(/chỗ đứng nguồn/.test(anhDat({ ...tot, dong_thuan: 1, cho_dung: 9 }, [8, 17], VT)), 'anhDat: chỉ 1 / 9 chỗ đứng đồng ý bị loại (tự kiểm g044-5 trượt 18 m)');
+  ok(anhDat({ ...tot, dong_thuan: 1, cho_dung: 1 }, [8, 17], VT) === null, 'anhDat: ảnh xa chỉ khớp một chỗ đứng, chỗ đó đồng ý → qua (Hohenschwangau 3390836296)');
+  ok(/ghép lại/.test(anhDat({ ...tot, dong_thuan: undefined }, [8, 17], VT)), 'anhDat: kết quả cũ thiếu số đồng thuận → không nhận');
   ok(gop([{ gia_tri: 7, tin: 0.99, anh: 'a' }, { gia_tri: 8, tin: 0.7, anh: 'b' }]).gia_tri === 7, 'gop: lệch 1 → lấy số tin cao nhất');
   ok(!!gop([{ gia_tri: 7, tin: 0.99, anh: 'a' }, { gia_tri: 11, tin: 0.8, anh: 'b' }]).khong_ghi, 'gop: hai ảnh lệch 4 → không ghi');
   ok(!!gop([{ gia_tri: 7, tin: 0.4, anh: 'a' }]).khong_ghi, 'gop: độ tin 0,4 → không ghi');
@@ -142,7 +148,7 @@ const WEB = existsSync(du('anh-web')) ? JSON.parse(readFileSync(du('anh-web'), '
 const VK = V.join('_') + (VONG ? '_vong' : ''), raCu = join(KHO, 'khop.json'), nhoKhop = existsSync(raCu) && !co('--lam-lai') ? JSON.parse(readFileSync(raCu, 'utf8')) : {};
 // ảnh chưa có camera được thử ở tối đa 2 vùng (ảnh của vùng khác ghép hỏng ở vùng này là thường — không thử mãi); kết quả ghép của vùng nhớ ở khop.json: đổi ngưỡng không phải ghép lại
 const canThu = coTep.filter((a) => co('--lam-lai') || (!so.anh[a.tep]?.camera && !(so.anh[a.tep]?.vung_thu || []).includes(VK) && ((so.anh[a.tep]?.vung_thu || []).filter((k) => k.endsWith('_vong') === !!VONG).length < 2))).map((a) => a.tep);
-const can = canThu.filter((t) => !nhoKhop[t]);
+const can = canThu.filter((t) => !nhoKhop[t] || (!nhoKhop[t].hong && nhoKhop[t].dong_thuan == null)); // kết quả ghép trước khi có phép đồng thuận → ghép lại
 console.log(`2. ĐỊNH VỊ ${can.length} ảnh mới + ${canThu.length - can.length} ảnh đã ghép ở vùng này (sổ ảnh web ${coTep.length} tệp, có camera ${Object.values(so.anh).filter((a) => a.camera).length})`);
 if (canThu.length) {
   const ra = join(KHO, 'khop-moi.json'); if (can.length && spawnSync(PY, ['-W', 'ignore', join(SC, 'khop-lg.py'), KHO, join(PUB, 'du-lieu'), '--ra', ra, '--chi', can.join(',')], { stdio: 'inherit' }).status) process.exit(1); // in thẳng: thấy tiến độ từng ảnh

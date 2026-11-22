@@ -71,7 +71,8 @@ def giai(p2, p3, w, h):
         if not ok: continue
         e = np.linalg.norm(cv2.projectPoints(a3, r2, t2, K, None)[0][:, 0] - a2, axis=1)
         if tot2 is None or np.median(e) < tot2[0]: tot2 = (float(np.median(e)), fov, r2, t2)
-    e, fov, r, t = tot2; R = cv2.Rodrigues(r)[0]; C = (-R.T @ t)[:, 0]; Rw = R.T @ np.diag([1.0, -1, -1])   # camera three.js: x phải, y lên, nhìn −z
+    e, fov, r, t = tot2; R = cv2.Rodrigues(r)[0]; C = (-R.T @ t)[:, 0]
+    Rw = R.T @ np.diag([1.0, -1, -1])   # camera three.js: x phải, y lên, nhìn −z
     return {'x': C[0], 'y': C[1], 'z': C[2], 'pitch': math.asin(-max(-1, min(1, Rw[1, 2]))), 'yaw': math.atan2(Rw[0, 2], Rw[2, 2]), 'roll': math.atan2(Rw[1, 0], Rw[1, 1]),
             'fov': float(fov), 'dung': int(len(inl)), 'lech_px': e}
 
@@ -116,6 +117,15 @@ for tep in DS:
             if ok and inl is not None and len(inl) >= 10: tam2.append((-cv2.Rodrigues(rv)[0].T @ tv)[:, 0])
         r['tach_m'] = float(np.linalg.norm(tam2[0] - tam2[1])) if len(tam2) == 2 else 999.0
     elif r: r['tach_m'] = 999.0
+    if r and len(p2) >= 2:   # ĐỒNG THUẬN (23/11/2026): giải riêng từng góc nguồn (cùng tiêu cự) → bao nhiêu CHỖ ĐỨNG nguồn tự cho ra gần đúng chỗ lời giải chung (≤ 3 m).
+        # Lời giải sai lọt cổng cũ (tự kiểm g044-5 lệch 18 m, g027-0 lệch 4,3 m: tách ≤ 3 m, lệch ≤ 3 px) chỉ được 1–2 chỗ đứng đồng ý; lời giải đúng 4–10. do-anh.mjs anhDat đòi ≥ min(3, số chỗ đứng giải được)
+        f = (h / 2) / math.tan(math.radians(r['fov']) / 2); K = np.array([[f, 0, w / 2], [0, f, h / 2], [0, 0, 1.0]]); C0 = np.array([r['x'], r['y'], r['z']]); mg = []
+        for a2, a3, gg in zip(p2, p3, goc):
+            if len(a2) < 10: continue
+            try: ok, rv, tv, inl = cv2.solvePnPRansac(a3.astype(np.float64), a2.astype(np.float64), K, None, iterationsCount=500, reprojectionError=5.0, flags=cv2.SOLVEPNP_SQPNP)
+            except cv2.error: ok = False
+            if ok and inl is not None and len(inl) >= 8: mg.append([gg[0], int(len(inl)), round(float(np.linalg.norm((-cv2.Rodrigues(rv)[0].T @ tv)[:, 0] - C0)), 2)])
+        r['moi_goc'] = mg; r['dong_thuan'] = len({m[0][:4] for m in mg if m[2] <= 3}); r['cho_dung'] = len({m[0][:4] for m in mg})
     if r and TRUOC.get(tep.name): r['lech_gps'] = float(math.hypot(r['x'] - TRUOC[tep.name][0], r['z'] - TRUOC[tep.name][1]))
     kq[str(tep.relative_to(ANH))] = {'w': w, 'h': h, 'cap': sum(len(a) for a in p2) if p2 else 0, 'goc': goc[:4], 'giay': round(time.time() - t1, 1), **({k: (round(v, 4) if isinstance(v, float) else v) for k, v in r.items()} if r else {'hong': 'không đủ điểm khớp'})}
     if TU_KIEM:

@@ -1488,27 +1488,34 @@
    "luc": "2026-11-21"
   },
   "anh/web/mapillary-1064303907309767.jpg": {
-   "lat": 47.5578811,
-   "lng": 10.7494409,
-   "rong": 1024,
-   "cao": 576,
-   "tacGia": "gpsvid / Mapillary",
-   "giayPhep": "CC BY-SA 4.0",
-   "trang": "https://www.mapillary.com/app/?pKey=1064303907309767",
-   "camera": {
-    "y": 7.54,
-    "yaw": -1.3943,
-    "pitch": 0.0544,
-    "roll": 0.2232,
-    "fov": 48
-   },
-   "dung": 105,
-   "lech_px": 1.88,
-   "tach_m": 0.85,
-   "x": -27,
-   "z": -31.3,
-   "vung": "-20_90_-80_50",
-   "luc": "2026-11-21"
+   "hong": "chỉ 1 / 6 chỗ đứng nguồn đồng ý với chỗ đứng giải ra (< 3) — lời giải trượt theo một cụm góc nhìn (chấm lại bằng phép đồng thuận 23/11/2026: ghép lại lệch 6,3 m)",
+   "vung_thu": [
+    "-20_90_-80_50"
+   ],
+   "luc": "2026-11-23",
+   "cu": {
+    "lat": 47.5578811,
+    "lng": 10.7494409,
+    "rong": 1024,
+    "cao": 576,
+    "tacGia": "gpsvid / Mapillary",
+    "giayPhep": "CC BY-SA 4.0",
+    "trang": "https://www.mapillary.com/app/?pKey=1064303907309767",
+    "camera": {
+     "y": 7.54,
+     "yaw": -1.3943,
+     "pitch": 0.0544,
+     "roll": 0.2232,
+     "fov": 48
+    },
+    "dung": 105,
+    "lech_px": 1.88,
+    "tach_m": 0.85,
+    "x": -27,
+    "z": -31.3,
+    "vung": "-20_90_-80_50",
+    "luc": "2026-11-21"
+   }
   },
   "anh/web/mapillary-170611085036166.jpg": {
    "hong": "hai nửa góc nhìn ra hai chỗ đứng cách nhau 6.0 m (> 3 m) — lời giải không vững",

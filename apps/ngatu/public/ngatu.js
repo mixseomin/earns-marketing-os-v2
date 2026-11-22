@@ -1861,10 +1861,11 @@ function ve() {
       datMa(mCho, ix, V, Q, a.cho ? MOT : KHONG, a.c4); datMa(mHang, ix, V, Q, a.hang ? MOT : KHONG, a.c5);
       if (ben) datMa(XN.xm, nx.xm++, V, Q, SXN.set(1, 1, ben));
       veXm[ix] = a; ix++;
-    } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, uot(a.c1, a)); if (ben) datMa(XN.oto, nx.oto++, V, Q, SXN.set(1, 1, ben)); }
+    } else if (a.loai === 'oto') { veOto[io] = a; datMa(mMui, io, V, Q, a.taxi ? MOT : KHONG, a.dangDon ? DEN_DON : MUI_TAXI); datMa(mOto, io++, V, Q, MOT, uot(a.c1, a)); if (OTT.on) { const k = a.taxi && OTT.taxi ? OTT.taxi : OTT.ds[(a.mau ??= (Math.random() * 1e6) | 0) % OTT.ds.length]; datMa(k.t, k.n, V, Q, MOT, uot(a.c1, a)); datMa(k.f, k.n++, V, Q, MOT); } if (ben) datMa(XN.oto, nx.oto++, V, Q, SXN.set(1, 1, ben)); }
     else { veBus[ib] = a; datMa(mBus, ib++, V, Q, MOT, uot(a.c1, a)); if (ben) datMa(XN.bus, nx.bus++, V, Q, SXN.set(1, 1, ben)); }
   }
   if (NG.on) { for (const [m, c] of [[NG.than, ip], [NG.tay, ip * 2], [NG.chan, ip * 2]]) { m.count = c; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; } }
+  if (OTT.on) for (const k of OTT.tat) { for (const m of [k.t, k.f]) { m.count = k.n; m.instanceMatrix.needsUpdate = true; } k.t.instanceColor.needsUpdate = true; k.n = 0; }
   if (XMT.on) for (const k of XMT.ds) { for (const m of [k.t, k.f]) { m.count = k.n; m.instanceMatrix.needsUpdate = true; } k.t.instanceColor.needsUpdate = true; k.n = 0; }
   for (const [m, n] of [[mXm, ix], [mNguoi, ix], [mMu, ix], [mCho, ix], [mHang, ix], [mOto, io], [mMui, io], [mBus, ib], [mBo, ip], [mDau, ip], [mNon, ip], [mBong, is], [XN.xm, nx.xm], [XN.oto, nx.oto], [XN.bus, nx.bus]]) {
     m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
@@ -2277,6 +2278,71 @@ function taiXm() {
   }).catch((e) => { console.warn('xe máy thật', i, e); return null; }))).then((ds) => { XMT.ds = ds.filter(Boolean); datXm(THAT.on); });
   return XMT.tai;
 }
+// Ô tô thật (bản thật): Kenney Car Kit (CC0, kenney.nl) — sedan, SUV, van 16 chỗ, hatchback, xe tải nhỏ, taxi.
+// Màu nằm trong ảnh bảng màu (colormap) → lấy mẫu ảnh theo UV ra màu đỉnh; mảng màu chiếm nhiều đỉnh nhất của "body" là sơn xe → nhuộm theo a.c1.
+const OTT = { on: false, ds: [], tai: null, taxi: null };
+const OTO_MAU = ['sedan', 'sedan', 'suv', 'van', 'hatchback-sports', 'delivery', 'truck', 'suv-luxury', 'sedan'];
+function geoOtoGlb(goc) {
+  goc.updateMatrixWorld(true);
+  const T = [], F = [], cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true });
+  let anh = null, W = 0, H = 0;
+  goc.traverse((o) => {
+    if (!o.isMesh) return;
+    const map = o.material.map;
+    if (map && !anh) { W = cv.width = map.image.width; H = cv.height = map.image.height; cx.drawImage(map.image, 0, 0); anh = cx.getImageData(0, 0, W, H).data; }
+    const g = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()).applyMatrix4(o.matrixWorld);
+    const uv = g.attributes.uv, n = g.attributes.position.count, col = new Float32Array(n * 3), dem = new Map();
+    for (let i = 0; i < n; i++) {
+      let r = 1, gg = 1, b = 1;
+      if (anh && uv) { const u = uv.getX(i) - Math.floor(uv.getX(i)), v = uv.getY(i) - Math.floor(uv.getY(i)); const k = (Math.min(H - 1, (v * H) | 0) * W + Math.min(W - 1, (u * W) | 0)) * 4; r = anh[k] / 255; gg = anh[k + 1] / 255; b = anh[k + 2] / 255; }
+      const c = new THREE.Color().setRGB(r, gg, b, THREE.SRGBColorSpace); col.set([c.r, c.g, c.b], i * 3);
+      const key = ((r * 31) | 0) + ',' + ((gg * 31) | 0) + ',' + ((b * 31) | 0); dem.set(key, (dem.get(key) || 0) + 1);
+    }
+    for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
+    let son = null;
+    if (/body/i.test(o.name)) { let m = 0; for (const [k, c] of dem) { const [r, gg, b] = k.split(',').map(Number); if (r + gg + b > 12 && c > m) { m = c; son = k; } } }
+    // tách tam giác: sơn xe → T (trắng, nhuộm), còn lại → F (giữ màu ảnh)
+    const ps = g.attributes.position.array, nt = [], nf = [], ct = [], cf = [];
+    for (let i = 0; i < n; i += 3) {
+      const k0 = i * 3, key = ((col[k0] > 0 ? Math.pow(col[k0], 1 / 2.2) : 0) * 31 | 0);
+      const r = col.subarray(k0, k0 + 9); void key;
+      let laSon = false;
+      if (son) { const c = new THREE.Color(r[0], r[1], r[2]).convertLinearToSRGB(); laSon = ((c.r * 31) | 0) + ',' + ((c.g * 31) | 0) + ',' + ((c.b * 31) | 0) === son; }
+      (laSon ? nt : nf).push(...ps.subarray(k0, k0 + 9)); (laSon ? ct.push(1, 1, 1, 1, 1, 1, 1, 1, 1) : cf.push(...r));
+    }
+    const mk = (pp, cc) => { if (!pp.length) return null; const q = new THREE.BufferGeometry(); q.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); q.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3)); return q; };
+    const a = mk(nt, ct), b2 = mk(nf, cf); if (a) T.push(a); if (b2) F.push(b2);
+  });
+  const gt = T.length ? mergeGeometries(T) : new THREE.BufferGeometry(), gf = mergeGeometries(F);
+  const bb = new THREE.Box3().setFromBufferAttribute(gf.attributes.position); if (gt.attributes.position) bb.union(new THREE.Box3().setFromBufferAttribute(gt.attributes.position));
+  const sz = bb.getSize(new THREE.Vector3()), tam = bb.getCenter(new THREE.Vector3());
+  const M = new THREE.Matrix4().makeTranslation(-tam.x, -bb.min.y, -tam.z);
+  if (sz.z > sz.x) M.premultiply(new THREE.Matrix4().makeRotationY(Math.PI / 2));
+  const k = 4.4 / Math.max(sz.x, sz.z); M.premultiply(new THREE.Matrix4().makeScale(k, k, k));
+  for (const g of [gt, gf]) if (g.attributes.position) { g.applyMatrix4(M); g.computeVertexNormals(); }
+  return [gt, gf];
+}
+function taiOto() {
+  if (OTT.tai) return OTT.tai;
+  const ld = new GLTFLoader(), vl = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.15, envMapIntensity: 0.7 });
+  const ten = [...new Set(OTO_MAU), 'taxi'];
+  OTT.tai = Promise.all(ten.map((t) => ld.loadAsync(`mohinh/${t}.glb?v=1`).then((g) => {
+    const [gt, gf] = geoOtoGlb(g.scene);
+    const t1 = new THREE.InstancedMesh(gt, vl, MAX_OTO), f = new THREE.InstancedMesh(gf, vl, MAX_OTO);
+    for (const m of [t1, f]) { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.visible = false; m.castShadow = !DD; scene.add(m); }
+    t1.setColorAt(0, new THREE.Color());
+    return { ten: t, t: t1, f, n: 0 };
+  }).catch((e) => { console.warn('ô tô thật', t, e); return null; }))).then((ds) => {
+    const ok = ds.filter(Boolean); OTT.taxi = ok.find((k) => k.ten === 'taxi') || null;
+    OTT.ds = OTO_MAU.map((t) => ok.find((k) => k.ten === t)).filter(Boolean); OTT.tat = ok; datOto(THAT.on);
+  });
+  return OTT.tai;
+}
+function datOto(on) {
+  OTT.on = on && OTT.ds.length > 0;
+  mOto.visible = mMui.visible = !OTT.on;
+  for (const k of OTT.tat || []) k.t.visible = k.f.visible = OTT.on;
+}
 function datXm(on) {
   XMT.on = on && XMT.ds.length > 0;
   mXm.visible = !XMT.on;
@@ -2357,7 +2423,7 @@ function datHinh(on) {
   THAT.on = on; datNguoi(on);
   if (on && !THAT.ct) THAT.ct = dungChiTiet();
   if (THAT.ct) THAT.ct.visible = on;
-  if (on) taiXm(); datXm(on);
+  if (on) { taiXm(); taiOto(); } datXm(on); datOto(on);
   if (on && !THAT.env) {
     const pm = new THREE.PMREMGenerator(renderer);
     THAT.env = pm.fromScene(new RoomEnvironment(renderer), 0.04).texture; pm.dispose();

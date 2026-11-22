@@ -154,7 +154,7 @@ if (canThu.length) {
   const ra = join(KHO, 'khop-moi.json'); if (can.length && spawnSync(PY, ['-W', 'ignore', join(SC, 'khop-lg.py'), KHO, join(PUB, 'du-lieu'), '--ra', ra, '--chi', can.join(',')], { stdio: 'inherit' }).status) process.exit(1); // in thẳng: thấy tiến độ từng ảnh
   const kqKhop = { ...nhoKhop, ...(can.length ? JSON.parse(readFileSync(ra, 'utf8')) : {}) }; writeFileSync(raCu, JSON.stringify(kqKhop, null, 1));
   for (const tep of canThu) { const r = kqKhop[tep]; if (!r) continue; const loi = anhDat(r, khoY, VUNG), w = WEB.find((a) => a.tep === tep) || {};
-    so.anh[tep] = loi ? { hong: loi, vung_thu: [...new Set([...(so.anh[tep]?.vung_thu || []), VK])], luc: new Date().toISOString().slice(0, 10) } : { lat: raLatLng(r.x, r.z)[0], lng: raLatLng(r.x, r.z)[1], rong: r.w, cao: r.h, tacGia: w.tacGia || '', giayPhep: w.giayPhep || '', trang: w.trang || '',
+    so.anh[tep] = loi ? { ...(so.anh[tep]?.cu && { cu: so.anh[tep].cu }), hong: loi, vung_thu: [...new Set([...(so.anh[tep]?.vung_thu || []), VK])], luc: new Date().toISOString().slice(0, 10) } : { lat: raLatLng(r.x, r.z)[0], lng: raLatLng(r.x, r.z)[1], rong: r.w, cao: r.h, tacGia: w.tacGia || '', giayPhep: w.giayPhep || '', trang: w.trang || '',
       camera: { y: +r.y.toFixed(2), yaw: r.yaw, pitch: r.pitch, roll: r.roll, fov: r.fov }, dung: r.dung, lech_px: +r.lech_px.toFixed(2), tach_m: +r.tach_m.toFixed(2), x: +r.x.toFixed(1), z: +r.z.toFixed(1), vung: VK, luc: new Date().toISOString().slice(0, 10) }; }
   writeFileSync(SO, JSON.stringify(so, null, 1) + '\n');
 }

@@ -82,39 +82,41 @@ function XemTruocLen({ cr, gio, anh, video }: { cr: number; gio: string | null; 
 export function NutLenGio({ cr, camp, lich, nhan, anh, video }: { cr?: number | null; camp?: number; lich?: string | null; nhan?: React.ReactNode; anh?: string | null; video?: string | null }) {
   const router = useRouter();
   const neo = useRef<HTMLButtonElement>(null);
-  const [mo, setMo] = useState(false), [gio, setGio] = useState(''), [dang, setDang] = useState(false), [kq, setKq] = useState<KqNut | null>(null);
+  const [mo, setMo] = useState(false), [gio, setGio] = useState(''), [dang, setDang] = useState<'ngay' | 'gio' | 'khong' | null>(null)   /* MỖI NÚT MỘT CỜ (anh 22/11/2026 "sao lại 2 chữ đang gửi"): chỉ nút vừa bấm hiện đang gửi */, [kq, setKq] = useState<KqNut | null>(null);
   const doiGio = camp != null && camp > 0;
   const bam = async (g: string | null, khong?: boolean) => {
-    setDang(true); setKq(null);
+    setDang(khong ? 'khong' : g ? 'gio' : 'ngay'); setKq(null);
     try { setKq(khong ? await khongDuyetCr(Number(cr)) : doiGio ? await doiGioCamp(camp, g ?? '') : await lenNgayCr(Number(cr), g)); }
     catch (e) { setKq({ loi: `máy chủ lỗi: ${String((e as Error)?.message ?? e).slice(0, 200)}` }); }
-    setDang(false); router.refresh();
+    setDang(null); daGui.current = true;   // làm mới bảng lúc ĐÓNG khung — làm mới ngay thì dòng chờ duyệt biến mất, khung + kết quả mất theo
   };
+  const daGui = useRef(false);
+  const dong = () => { setMo(false); if (daGui.current) { daGui.current = false; router.refresh(); } };
   const nutXanh: React.CSSProperties = { ...nut, borderColor: '#22c55e', color: '#4ade80', fontWeight: 600, cursor: dang ? 'wait' : 'pointer', flex: 1 };
   return <>
     <button ref={neo} data-nut-len-gio="" onClick={(e) => { e.stopPropagation(); setMo((v) => !v); setKq(null); setGio((doiGio ? vnInput(lich) : '') || bayGioVn()); }}
       title={doiGio ? 'đổi giờ chạy camp đang chờ' : 'lên camp ngay hoặc đặt giờ chạy'}
       style={doiGio ? { border: 'none', background: 'transparent', color: '#f59e0b', cursor: 'pointer', padding: '0 2px', fontSize: 11 } : { ...nut, padding: '1px 8px', fontSize: 11, borderColor: '#22c55e', color: '#4ade80', fontWeight: 600 }}>
       {nhan ?? (doiGio ? '🕒' : '▶ Lên')}</button>
-    <AnchoredPopover anchorRef={neo} open={mo} onClose={() => setMo(false)}>
+    <AnchoredPopover anchorRef={neo} open={mo} onClose={dong}>
       <div onClick={(e) => e.stopPropagation()} style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, width: doiGio ? 300 : 'min(560px, 92vw)', maxHeight: doiGio ? undefined : '78vh', overflowY: doiGio ? undefined : 'auto', fontSize: 12, lineHeight: 1.45,
         background: 'var(--bg-1)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>
         <b>{doiGio ? `Đổi giờ chạy camp #${camp}` : `Lên camp creative #${cr}`}</b>
         <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>Giờ VN
           <OGioVn gio={gio} setGio={setGio} /></label>
-        {!doiGio && cr ? <XemTruocLen cr={Number(cr)} gio={null} anh={anh} video={video} /> : null}
         {doiGio ? <span style={{ color: 'var(--fg-2)' }}>Ethopex không sửa giờ được: lên camp mới đúng giờ, tạm dừng camp cũ.</span> : null}
         <div style={{ display: 'flex', gap: 6 }}>
-          {doiGio ? null : <button disabled={dang} onClick={() => bam(null)} title="bỏ qua ô giờ, lên camp ngay" style={nutXanh}>{dang ? 'đang gửi…' : '▶ Lên ngay'}</button>}
-          <button disabled={dang || !gio} onClick={() => bam(gio)} title="camp chạy đúng giờ VN trong ô" style={nutXanh}>{dang ? 'đang gửi…' : doiGio ? '🕒 Đặt giờ mới' : '🕒 Lên theo giờ này'}</button>
-          {doiGio ? null : <button data-khong-duyet="" disabled={dang} onClick={() => bam(null, true)}
+          {doiGio ? null : <button disabled={!!dang} onClick={() => bam(null)} title="bỏ qua ô giờ, lên camp ngay" style={nutXanh}>{dang === 'ngay' ? 'đang gửi…' : '▶ Lên ngay'}</button>}
+          <button disabled={!!dang || !gio} onClick={() => bam(gio)} title="camp chạy đúng giờ VN trong ô" style={nutXanh}>{dang === 'gio' ? 'đang gửi…' : doiGio ? '🕒 Đặt giờ mới' : '🕒 Lên theo giờ này'}</button>
+          {doiGio ? null : <button data-khong-duyet="" disabled={!!dang} onClick={() => bam(null, true)}
             title="ghi LOẠI creative + bỏ khỏi sổ ★ ROAS: không tạo camp, không gửi Ethopex, dòng biến mất khỏi bảng (anh 22/11/2026)"
-            style={{ ...nut, borderColor: '#ef4444', color: '#fca5a5', fontWeight: 600, cursor: dang ? 'wait' : 'pointer' }}>✕ Không duyệt</button>}
+            style={{ ...nut, borderColor: '#ef4444', color: '#fca5a5', fontWeight: 600, cursor: dang ? 'wait' : 'pointer' }}>{dang === 'khong' ? 'đang gửi…' : '✕ Không duyệt'}</button>}
         </div>
         {kq && 'canh' in kq ? <div role="alert" style={{ padding: 6, border: '1px solid #f59e0b', borderRadius: 4, background: 'rgba(245,158,11,.12)', color: '#fde68a' }}>
           ⚠ Phanh đang áp: {kq.canh}<br />Bấm lại trong 30 phút là máy bỏ qua phanh và lên.</div> : null}
         {kq && 'loi' in kq ? <div role="alert" style={{ padding: 6, border: '1px solid #ef4444', borderRadius: 4, background: 'rgba(239,68,68,.12)', color: '#fca5a5' }}>{kq.loi}</div> : null}
-        {kq && 'ok' in kq ? <div style={{ color: '#86efac' }}>✓ {kq.chu}</div> : null}
+        {kq && 'ok' in kq ? <div role="status" style={{ padding: 6, border: '1px solid #22c55e', borderRadius: 4, background: 'rgba(34,197,94,.12)', color: '#86efac' }}>✓ {kq.chu}</div> : null}
+        {!doiGio && cr ? <XemTruocLen cr={Number(cr)} gio={null} anh={anh} video={video} /> : null}
       </div>
     </AnchoredPopover>
   </>;

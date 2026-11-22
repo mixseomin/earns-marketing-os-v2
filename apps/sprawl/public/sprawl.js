@@ -11,6 +11,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { Sky } from 'three/addons/objects/Sky.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { TilesRenderer } from '3d-tiles-renderer/three';
 import { ReorientationPlugin, GLTFExtensionsPlugin } from '3d-tiles-renderer/three/plugins';
@@ -38,15 +39,40 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.3, 12000);
 const troi = new THREE.HemisphereLight('#dfe8f2', '#5a5048', 1.1); scene.add(troi);
 const nang = new THREE.DirectionalLight('#fff1dc', 1.4); nang.position.set(-600, 900, 400); scene.add(nang);
+// bầu trời thật (tán xạ khí quyển, addon Sky của three) thay nền một màu; chính bầu trời đó lọc thành môi trường phản chiếu → kính, kim loại soi được trời.
+// Mặt trời của bầu trời và đèn nắng dùng chung một hướng (cao / hướng theo từng kiểu).
+const bauTroi = new Sky(); bauTroi.scale.setScalar(9000);
+// bầu trời vật lý sáng gấp nhiều lần cảnh → giảm sáng RIÊNG nó (uDoSang), không hạ phơi sáng cả cảnh (hạ cả cảnh làm cây đen, tháp vẫn loá)
+bauTroi.material.uniforms.uDoSang = { value: 0.3 };
+bauTroi.material.fragmentShader = bauTroi.material.fragmentShader.replace('void main() {', 'uniform float uDoSang;\nvoid main() {').replace('gl_FragColor = vec4( retColor, 1.0 );', 'gl_FragColor = vec4( retColor * uDoSang, 1.0 );');
+if (!bauTroi.material.fragmentShader.includes('retColor * uDoSang')) console.warn('[sprawl] addon Sky đổi mã, chưa giảm sáng được bầu trời'); bauTroi.frustumCulled = false; bauTroi.visible = false; scene.add(bauTroi);
+const pmrem = new THREE.PMREMGenerator(renderer), canhTroi = new THREE.Scene(); let moiTruong = null;
+const dichDo = new THREE.WebGLRenderTarget(1, 1, { type: THREE.FloatType });
+function datTroi(B) {
+  if (!B) { bauTroi.visible = false; scene.environment = null; nang.position.set(-600, 900, 400); return; }
+  const u = bauTroi.material.uniforms, huongNang = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - B.cao), THREE.MathUtils.degToRad(B.huong));
+  u.turbidity.value = B.duc; u.rayleigh.value = B.ray; u.mieCoefficient.value = B.mie; u.mieDirectionalG.value = B.g; u.sunPosition.value.copy(huongNang); u.uDoSang.value = B.ds;
+  nang.position.copy(huongNang).multiplyScalar(1500); bauTroi.visible = true;
+  const vt = bauTroi.position.clone(); bauTroi.position.set(0, 0, 0); canhTroi.add(bauTroi); moiTruong?.dispose(); moiTruong = pmrem.fromScene(canhTroi, 0, 1, 20000).texture;
+  // sương + nền lấy đúng màu chân trời của bầu trời này (đo đúng một điểm trên đường chân trời, vuông góc hướng nắng): lệch màu là hiện vạch ở đường chân trời
+  try {
+    const mayDo = new THREE.PerspectiveCamera(6, 1, 1, 20000); mayDo.lookAt(-huongNang.z, 0, huongNang.x); mayDo.updateMatrixWorld();
+    const cu = renderer.getRenderTarget(), px = new Float32Array(4); renderer.setRenderTarget(dichDo); renderer.render(canhTroi, mayDo);
+    renderer.readRenderTargetPixels(dichDo, 0, 0, 1, 1, px); renderer.setRenderTarget(cu);
+    if (px[0] + px[1] + px[2] > 0.01 && Number.isFinite(px[0])) { scene.fog?.color.setRGB(px[0], px[1], px[2]); scene.background.setRGB(px[0], px[1], px[2]); }
+    else console.warn('[sprawl] không đo được màu chân trời, giữ màu sương của kiểu', px);
+  } catch (e) { console.warn('[sprawl] không đo được màu chân trời, giữ màu sương của kiểu', e); }
+  scene.add(bauTroi); bauTroi.position.copy(vt); scene.environment = moiTruong; scene.environmentIntensity = B.mt;
+}
 const orbit = new MapControls(camera, renderer.domElement);
 orbit.enableDamping = true; orbit.maxPolarAngle = Math.PI * 0.49; orbit.minDistance = 3; orbit.maxDistance = 6000; orbit.screenSpacePanning = false;
 
 // ---------- kiểu nhìn ----------
 const KIEU = {
-  thuc: { ten: 'Thật', nhom: 'Phố thật', nen: '#b9cfe3', suong: () => new THREE.Fog('#c9d8e6', 1200, 7000), bloom: 0, troi: 1.1, nang: 1.4, mu: 1.0 },
+  thuc: { ten: 'Thật', nhom: 'Phố thật', nen: '#b9cfe3', suong: () => new THREE.Fog('#c9d8e6', 1200, 7000), bloom: 0, troi: 1.0, nang: 1.4, mu: 1.0, bauTroi: { duc: 4, ray: 2.2, mie: 0.004, g: 0.8, cao: 44, huong: -56, ds: 0.3, mt: 0.4 } },
   bui: { ten: 'Phố Bụi', nhom: 'Phố thật', nen: '#9a6234', suong: () => new THREE.FogExp2('#9a6234', 0.0009), bloom: 0.75, troi: 0.7, nang: 0.5, mu: 0.9, tuong: '#2a1e16', cua: ['#ffb35c', '#9ee0ff'], lit: 0.72 },
-  do: { ten: 'Red Spires', nhom: 'Tương lai', nen: '#a7b6c2', suong: () => new THREE.FogExp2('#a3b2be', 0.00042), bloom: 0, troi: 1.15, nang: 1.25, mu: 1.0 },
-  nhat: { ten: 'Nhật 2200', nhom: 'Tương lai', nen: '#bcd6ec', suong: () => new THREE.FogExp2('#d3e2ee', 0.00028), bloom: 0, troi: 1.25, nang: 1.8, mu: 1.0 }, // reel Japan 2200: nắng trong, tháp trắng xoắn, cao tốc trên cao, xe bay đĩa bạc
+  do: { ten: 'Red Spires', nhom: 'Tương lai', nen: '#a7b6c2', suong: () => new THREE.FogExp2('#a3b2be', 0.00042), bloom: 0, troi: 1.05, nang: 1.25, mu: 1.0, bauTroi: { duc: 10, ray: 1.4, mie: 0.01, g: 0.86, cao: 26, huong: -56, ds: 0.26, mt: 0.4 } },
+  nhat: { ten: 'Nhật 2200', nhom: 'Tương lai', nen: '#bcd6ec', suong: () => new THREE.FogExp2('#d3e2ee', 0.00028), bloom: 0, troi: 1.1, nang: 1.8, mu: 1.0, bauTroi: { duc: 2, ray: 3.6, mie: 0.003, g: 0.8, cao: 36, huong: -56, ds: 0.2, mt: 0.4 } }, // reel Japan 2200: nắng trong, tháp trắng xoắn, cao tốc trên cao, xe bay đĩa bạc
 };
 const uNeon = { uLit: { value: 0.7 }, uCuaA: { value: new THREE.Color() }, uCuaB: { value: new THREE.Color() } };
 const vatNeon = new THREE.MeshStandardMaterial({ color: '#2a1e16', roughness: 0.88, metalness: 0.1 });
@@ -165,7 +191,7 @@ const dsTiles = VUNG.map((v) => {
 function datKieu(k) {
   if (canAnh(k) !== canAnh(kieu)) { try { localStorage.setItem('sprawl-kieu', k); } catch {} location.search = '?kieu=' + k; return; } // đổi bộ ô có/không ảnh = nạp lại trang
   kieu = k; const K = KIEU[k];
-  scene.background = new THREE.Color(K.nen); scene.fog = K.suong();
+  scene.background = new THREE.Color(K.nen); scene.fog = K.suong(); datTroi(K.bauTroi);
   troi.intensity = K.troi; nang.intensity = K.nang; renderer.toneMappingExposure = K.mu; bloom.strength = K.bloom;
   if (K.cua) { uNeon.uLit.value = K.lit; uNeon.uCuaA.value.set(K.cua[0]); uNeon.uCuaB.value.set(K.cua[1]); vatNeon.color.set(K.tuong); }
   datMesh.material.color.set(k === 'thuc' ? '#6d6a66' : k === 'bui' ? '#3b2a1c' : k === 'nhat' ? '#9a9c98' : '#858b84');
@@ -389,6 +415,7 @@ renderer.setAnimationLoop(() => {
     _camO.copy(camera.matrixWorld); _chieuO.copy(camera.projectionMatrix); tO = now;
     for (const t of dsTiles) { t.setCamera(camera); t.setResolutionFromRenderer(camera, renderer); t.update(); } }
   if (chanDoi && now - tDat > (datY ? 2500 : 600)) { tDat = now; dungDat(); }
+  bauTroi.position.copy(camera.position);
   ve(); demKhung++;
   if (now - tFps > 1000) { fps = Math.round(demKhung * 1000 / (now - tFps)); demKhung = 0; tFps = now;
     const p = di?.dang ? di.viTri() : orbit.target, ll = laLatLon(p.x, p.z);

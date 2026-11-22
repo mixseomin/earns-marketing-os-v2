@@ -46,12 +46,16 @@ export function taoNhat2200({ rs, ql, datTai }) {
         if (vKinh > 0.5) {
           gSan = step(0.83, fract(vWp.y / ${TL.tang.toFixed(2)}));                 // gờ sàn trắng ngay dưới mỗi mặt sàn (chân tháp nằm trên lưới tầng chung)
           float doc = step(0.93, fract((vWp.x + vWp.z) / 2.4)) * 0.35;              // song kính mảnh
-          diffuseColor.rgb = mix(vec3(0.16, 0.25, 0.34) + doc * 0.5, vec3(0.95, 0.95, 0.93), gSan);
+          diffuseColor.rgb = mix(vec3(0.26, 0.42, 0.62) + doc * 0.18, vec3(0.86, 0.87, 0.86), gSan);   // kính: màu này nhuộm ảnh trời phản chiếu (kính là mặt gương, xem dưới)
         }`)
+      .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>
+        if (vKinh > 0.5 && gSan < 0.5) { roughnessFactor = 0.07; metalnessFactor = 0.92; }   // ô kính soi bầu trời thật (scene.environment), gờ sàn vẫn là bê tông trắng nhám`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-        if (vKinh > 0.5) { float fr = pow(1.0 - abs(dot(normalize(vViewPosition), normal)), 2.0);
-          totalEmissiveRadiance += (1.0 - gSan) * (vec3(0.05, 0.08, 0.11) + smoothstep(0.0, 1.0, vWp.y / 400.0) * vec3(0.10, 0.13, 0.16) + fr * vec3(0.62, 0.74, 0.86)); }`);
+        if (vKinh > 0.5) totalEmissiveRadiance += (1.0 - gSan) * vec3(0.03, 0.05, 0.07);   // chút sáng trong nhà sau kính`);
   };
+
+  vat.envMapIntensity = 1.5; // kính soi trời mạnh hơn môi trường chung của cảnh (môi trường chung để thấp cho đất, bê tông không bị nhuộm xanh)
+  const soiTroi = (r, sc) => { if (vat.envMap !== sc.environment) { vat.envMap = sc.environment; vat.needsUpdate = true; } };
 
   // ---------- cao tốc trên cao: theo các đại lộ lớn thật dài nhất, bỏ tuyến song song trùng, uốn mượt, né tháp ----------
   const NUA = 1480, chon = [], luoiDa = new Map(), oKey = (x, z) => `${Math.floor(x / 45)},${Math.floor(z / 45)}`;
@@ -141,7 +145,7 @@ export function taoNhat2200({ rs, ql, datTai }) {
       }
     }
   }
-  const T = gT.xong(), thapMesh = new THREE.Mesh(T.geo, vat); thapMesh.frustumCulled = false; goc.add(thapMesh);
+  const T = gT.xong(), thapMesh = new THREE.Mesh(T.geo, vat); thapMesh.frustumCulled = false; goc.add(thapMesh); thapMesh.onBeforeRender = soiTroi;
   const gCay = new THREE.IcosahedronGeometry(1, 0).scale(1.3, 1.6, 1.3).translate(0, 1.4, 0);
   const cayMesh = new THREE.InstancedMesh(gCay, new THREE.MeshLambertMaterial({ color: '#4f7f3c' }), Math.max(1, cay.length)); cayMesh.count = cay.length;
   cayMesh.frustumCulled = false; goc.add(cayMesh);

@@ -118,7 +118,7 @@ function datTai(x, z) { if (!datY) return 0; const i = Math.max(0, Math.min(LUOI
 
 // ---------- Red Spires theo quy hoạch chung ----------
 let rs = null;
-try { rs = taoRedSpires({ RAPIER, world, tinh, datTai, ql: await fetch('./du-lieu/quy-hoach.json', { cache: 'no-cache' }).then((r) => r.json()) }); scene.add(rs.goc); }
+try { rs = taoRedSpires({ RAPIER, world, tinh, datTai, ql: await fetch('./du-lieu/quy-hoach.json', { cache: 'no-cache' }).then((r) => r.json()) }); scene.add(rs.goc); rs.khoacDat(datMesh.material); }
 catch (e) { console.warn('[sprawl] không nạp được quy hoạch Red Spires', e); }
 const vatCho = (o) => (kieu === 'thuc' ? o.userData.vatThuc : kieu === 'do' && rs ? rs.vatPho : vatNeon);
 
@@ -164,7 +164,7 @@ function datKieu(k) {
   scene.background = new THREE.Color(K.nen); scene.fog = K.suong();
   troi.intensity = K.troi; nang.intensity = K.nang; renderer.toneMappingExposure = K.mu; bloom.strength = K.bloom;
   if (K.cua) { uNeon.uLit.value = K.lit; uNeon.uCuaA.value.set(K.cua[0]); uNeon.uCuaB.value.set(K.cua[1]); vatNeon.color.set(K.tuong); }
-  datMesh.material.color.set(k === 'thuc' ? '#6d6a66' : k === 'bui' ? '#3b2a1c' : '#a29f96');
+  datMesh.material.color.set(k === 'thuc' ? '#6d6a66' : k === 'bui' ? '#3b2a1c' : '#858b84');
   rs?.hien(k === 'do');
   for (const t of dsTiles) t.group.traverse((o) => { if (o.isMesh && o.userData.vatThuc) o.material = vatCho(o); });
   document.querySelectorAll('#kieu button').forEach((b) => b.classList.toggle('on', b.dataset.k === k));
@@ -264,6 +264,17 @@ function gocDung(ten) { // trả [cam xyz, đích xyz, fov]; góc theo dữ li�
     if (tot) { const { ax, az, ux, uz } = tot, y = d0(ax, az);
       return ten === 'pho' ? [[ax, y + 2.2, az], [ax + ux * 40, y + 1.6, az + uz * 40], 55]             // ngang tầm mắt giữa dòng người
         : [[ax + ux * 4, y + 22, az + uz * 4], [ax + ux * 50, y, az + uz * 50], 50]; }              // máy bay thấp nhìn xuống chợ
+  }
+  if (ten === 'nga' && ql) { // ngã tư đường xe gần tâm nhất: thấy vạch qua đường, vạch dừng, vạch tim, bó vỉa
+    const m = new Map();
+    for (const dl of ql.daiLo) if (dl.lop === 'vua') dl.g.forEach((p, i) => { const k = p[0].toFixed(1) + ',' + p[1].toFixed(1); m.set(k, (m.get(k) || 0) + (i === 0 || i === dl.g.length - 1 ? 1 : 2)); });
+    const n = [...m].filter(([, v]) => v >= 3).map(([k]) => k.split(',').map(Number)).sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]))[0];
+    if (n) { // máy đặt lùi dọc trục một nhánh đường (lòng đường không có nhà che), lệch sang lề cho thấy cả vỉa hè
+      const [x, z] = n; let ux = 0, uz = 1;
+      for (const dl of ql.daiLo) if (dl.lop === 'vua') { const i = dl.g.findIndex((p) => Math.abs(p[0] - x) < 0.05 && Math.abs(p[1] - z) < 0.05); const q = i < 0 ? null : dl.g[i + 1] || dl.g[i - 1];
+        if (q) { const L = Math.hypot(q[0] - x, q[1] - z) || 1; ux = (q[0] - x) / L; uz = (q[1] - z) / L; break; } }
+      const y = d0(x, z); return [[x + ux * 55 - uz * 6, y + 26, z + uz * 55 + ux * 6], [x, y, z], 50];
+    }
   }
   if (ten === 'tren') return [[0, 1800, 400], [0, 0, 0], 55];
   if (kieu === 'do' || ten === 'cum') return [[420, 210, 620], [-260, 150, -120], 60]; // cụm tháp Nishi-Shinjuku

@@ -57,6 +57,7 @@ const choQuay = (cn, quay) => cn === 'tudo' || cn.split('-').includes(quay);
 const lanKhoang = (h, i, hw) => [(i * hw) / h.soLan, ((i + 1) * hw) / h.soLan];
 const lanHopLe = (v) => Array.isArray(v) && v.length === ARMS.length && v.every((h) => h && h.soLan >= 1 && h.soLan <= 4 && Array.isArray(h.lan)
   && h.lan.length === h.soLan && h.lan.every((c) => c in CONG_NANG) && ['dut', 'lien', 'khong'].includes(h.vach) && h.dai >= 10 && h.dai <= 60);
+const GOC_LE = 7; // xe leo vỉa hè phải bước xuống đường trước vạch dừng chừng này mét, không chạy tới góc phố
 const RE_TRAI_CACH = 1.6; // nửa khoảng cách hai luồng rẽ trái ngược chiều (m)
 function taoDuongXe(d, d2, o1, o2) {
   const r1 = right(d), r2 = right(d2), e1 = eAlong(d), e2 = eAlong(d2);
@@ -587,11 +588,13 @@ function bien(a) {
     return [h - p.o2, p.hw2 - h2 - p.o2];
   }
   if (p.lan && a.s > p.sStop - p.lanDai && a.s < p.sIn) { // đoạn vạch liền: ở yên trong làn của mình
-    const leo = p.lan[1] >= p.hw1 - 0.01 && a.hayLeo && a.s < p.sStop && a.sp < 2.5 ? 2.0 : 0;
+    const leo = p.lan[1] >= p.hw1 - 0.01 && a.hayLeo && a.s < p.sStop - GOC_LE && a.sp < 2.5 ? 2.0 : 0;
     return [p.lan[0] + h - p.o1, p.lan[1] - h2 - p.o1 + leo];
   }
   if (a.s < p.sIn) {
-    const leo = a.hayLeo && a.s < p.sStop && a.sp < 2.5 ? 2.0 : 0; // leo lề khi kẹt trước đèn đỏ
+    // leo lề khi kẹt trước đèn đỏ — chỉ ở đoạn vỉa hè còn cách vạch dừng GOC_LE m; góc phố (cột đèn, người chờ sang đường)
+    // không bao giờ leo tới (anh 22/11/2026 khoanh ảnh: xe leo lề đều dồn vào góc rồi kẹt ở đó)
+    const leo = a.hayLeo && a.s < p.sStop - GOC_LE && a.sp < 2.5 ? 2.0 : 0;
     return [h - p.o1 - (a.lanTrai || 0), p.hw1 - h2 - p.o1 + leo];
   }
   if (a.s > p.sOut) return [h - p.o2 - (a.lanTrai || 0), p.hw2 - h2 - p.o2];
@@ -831,6 +834,14 @@ function buocXe(a, dt) {
   if (a.lui > 0 && xm) { a.lui -= dt; vt = Math.max(vt, 0.8); if (a.lui <= 0) a.camLui = 3; }
   else if (a.lui > 0) { a.lui -= dt; vt = 0; if (a.lui <= 0 && a.luiDuoc === 0) a.camLui = 6; } // đang lùi nhường lối: không tiến lại vào chỗ vừa chừa
   if (a.camLui > 0) a.camLui -= dt;
+  // Đang ở trên vỉa hè: chưa bước xuống được lòng đường thì dừng trên lề trước góc phố, kể cả đèn xanh, kể cả đang lách /
+  // phóng — chờ khe rồi mới xuống. Đặt sau mọi nước tăng tốc để không luật nào đẩy xe chạy tiếp trên lề tới góc.
+  // Bên trái (phía lòng đường) có khe thì bò 0,5 m/s chéo xuống — xe chỉ bẻ lái được khi bánh lăn, đứng im là kẹt trên lề mãi.
+  if (xm && a.s < p.sIn && p.o1 + a.dlat > p.hw1 && dau < p.sStop - GOC_LE + 2.5) {
+    const g = p.sStop - GOC_LE - dau, xuong = hoT > 0.3 && dau < p.sStop - GOC_LE + 2;
+    vt = Math.min(vt, Math.max(g < 0.3 ? 0 : Math.sqrt(2 * 3.2 * g), xuong ? 0.5 : 0));
+    if (xuong) neThoat = -1;
+  }
   const ac = (a.phong > 0 ? 3 : 1) * (xm ? 2.6 : a.loai === 'bus' ? 1.0 : 1.8) * (a.ket > 1 ? 1.8 : a.trongNga && f0 > 4 ? 1.5 : 1); // có chỗ thoát khỏi lòng ngã tư → tăng tốc gấp
   a.sp = vt > a.sp ? Math.min(vt, a.sp + ac * dt) : Math.max(vt, a.sp - 9 * dt);
   if (a.sp < 0.2 && !a.choDen && !a.dangDon) a.ket = Math.min(10, a.ket + dt); else a.ket = Math.max(0, a.ket - dt * 0.5);
@@ -961,8 +972,9 @@ function buocXe(a, dt) {
     if (jD) {
       const vx = a.x - jD.x, vz = a.z - jD.z, l = Math.hypot(vx, vz) || 1, b = 0.35 * dt;
       const ds = ((vx * a.fx + vz * a.fz) / l) * b, dd = ((vx * -a.fz + vz * a.fx) / l) * b;
-      const s0 = a.s, d0 = a.dlat, x0 = a.x, z0 = a.z;
+      const s0 = a.s, d0 = a.dlat, x0 = a.x, z0 = a.z, [bl, bh] = bien(a);
       for (const [u, w] of [[ds, dd], [0, Math.sign(dd || 1) * b], [Math.sign(ds || 1) * b, 0]]) {
+        if ((w > 0 && d0 + w > bh) || (w < 0 && d0 + w < bl)) continue; // không dắt ra ngoài biên (lên vỉa hè, sang làn ngược)
         datCho(a, s0 + u, d0 + w, a.k);
         if (!vuong(a, a.x, a.z, goc, x0, z0, goc) && lanSau(a.x, a.z, goc, a.len, a.wid, jD) < oD) { a.lv = 0; break; }
         datCho(a, s0, d0, a.k);

@@ -62,7 +62,9 @@ export async function runOutreachCron(): Promise<{
     WHERE c.status = 'active' AND c.auto_send = true
       AND (p.status = 'sent' OR p.status LIKE 'followup\\_%')
       AND p.email IS NOT NULL AND p.email <> ''
-      AND p.next_followup_at IS NOT NULL AND p.next_followup_at <= now()
+      -- tới hạn theo NGÀY Việt Nam, không theo giờ: hẹn = lúc gửi (21:0x) + N ngày luôn rơi sau 21:00:00 của lượt ngày hẹn,
+      -- so theo giờ thì thư nhắc lỡ lượt đúng hạn, trôi sang lượt Thứ 2–6 kế ("cách 4 ngày" thành ~7 ngày — đo 22/11/2026, outreach #7)
+      AND p.next_followup_at IS NOT NULL AND (p.next_followup_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date <= (now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
       AND (p.snooze_until IS NULL OR p.snooze_until <= now())
     ORDER BY p.next_followup_at ASC
     LIMIT ${FOLLOWUP_PER_RUN}`)) as unknown as Row[];

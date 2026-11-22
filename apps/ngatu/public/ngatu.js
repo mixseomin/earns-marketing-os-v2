@@ -600,6 +600,7 @@ function buocXe(a, dt) {
   if (a.nhac) return bay(a, dt);
   if (a.dangVe) { a.sp = 0; return; } // đang được vẽ đường: đứng chờ nét vẽ xong
   if (a.nga && nam(a, dt)) return;
+  if (trangThaiTro(a, dt)) return;
   const xm = a.loai === 'xm';
   const p = a.p;
   const fx = a.fx, fz = a.fz, rx = -fz, rz = fx;
@@ -1004,6 +1005,7 @@ function vachKet(a, c) {
 function buocBo(a, dt) {
   if (a.nhac) return bay(a, dt);
   if (a.nga && nam(a, dt)) return;
+  trangThaiTro(a, dt);
   let vt = a.vmax;
   let trenDuong = false, cho = false;
   for (const c of a.p.qua) {
@@ -1115,6 +1117,80 @@ function dayNga(a) {
   a.sp = 0; a.lv = 0;
   CAI.nghich++;
 }
+// ── Trò nghịch thêm (anh 22/11/2026: "thêm trò dội nước lên xe… thêm trò nữa") ──
+// 💦 Dội nước: một xô nước đổ từ trên xuống chỗ bấm. Người lái / người đi bộ bị dội giật mình: xe phanh khựng ~1 s, xe máy
+// có khi loạng choạng ngã; người đi bộ ướt thì chạy vội. Nước để lại vũng trên mặt đường ~25 s — xe máy phóng nhanh qua
+// vũng có thể trượt bánh ngã.
+// 🍌 Vỏ chuối: bấm lên mặt đường thả một vỏ chuối. Xe máy / người đi bộ giẫm phải là ngã; ô tô cán qua thì bẹp mất.
+const GIOT = [], VUNG = [], CHUOI = [];
+const VAT_GIOT = new THREE.MeshBasicMaterial({ color: '#7fc8ff', transparent: true, opacity: 0.85 });
+const HINH_GIOT = new THREE.SphereGeometry(0.07, 6, 4);
+const HINH_VUNG = new THREE.CircleGeometry(1, 28).rotateX(-Math.PI / 2);
+const HINH_CHUOI = new THREE.TorusGeometry(0.16, 0.05, 6, 10, Math.PI * 1.3).rotateX(-Math.PI / 2);
+const VAT_CHUOI = new THREE.MeshLambertMaterial({ color: '#ffd84a' });
+function doiNuoc(x, z, a) {
+  for (let i = 0; i < 70; i++) {
+    const m = new THREE.Mesh(HINH_GIOT, VAT_GIOT);
+    const r = Math.random() * 0.9, t = Math.random() * Math.PI * 2;
+    m.position.set(x + Math.cos(t) * r * 0.4, 5 + Math.random() * 1.5, z + Math.sin(t) * r * 0.4);
+    scene.add(m);
+    GIOT.push({ m, vx: Math.cos(t) * r * 2.2, vz: Math.sin(t) * r * 2.2, vy: -Math.random() * 2, tre: Math.random() * 0.15 });
+  }
+  const vm = new THREE.Mesh(HINH_VUNG, new THREE.MeshBasicMaterial({ color: '#3d6f94', transparent: true, opacity: 0, depthWrite: false }));
+  vm.position.set(x, 0.035, z); vm.scale.setScalar(0.3); vm.renderOrder = 3; scene.add(vm);
+  VUNG.push({ m: vm, x, z, t: 0, r: rnd(1.4, 2), qua: new Set() });
+  if (a) a.choDoi = 0.45; // nước rơi tới người thì mới giật mình
+  CAI.nghich++;
+}
+function trungNuoc(a) {
+  if (a.nhac || a.nga) return;
+  if (a.loai === 'bo') { a.vmax0 = a.vmax0 || a.vmax; a.vmax = a.vmax0 * 2.2; a.chayUot = 4; return; }
+  if (a.loai === 'xm' && Math.random() < 0.35) { dayNga(a); CAI.nghich--; return; }
+  a.khung = 1.1; // giật mình phanh khựng
+}
+function thaChuoi(x, z) {
+  const m = new THREE.Mesh(HINH_CHUOI, VAT_CHUOI);
+  m.position.set(x, 0.06, z); m.rotation.y = Math.random() * 6.3; scene.add(m);
+  CHUOI.push({ m, x, z });
+  if (CHUOI.length > 12) { const c = CHUOI.shift(); scene.remove(c.m); }
+}
+function buocTro(dt) {
+  for (let i = GIOT.length - 1; i >= 0; i--) {
+    const g = GIOT[i];
+    if (g.tre > 0) { g.tre -= dt; continue; }
+    g.vy -= 14 * dt; g.m.position.x += g.vx * dt; g.m.position.y += g.vy * dt; g.m.position.z += g.vz * dt;
+    if (g.m.position.y < 0.05) { scene.remove(g.m); GIOT.splice(i, 1); }
+  }
+  for (let i = VUNG.length - 1; i >= 0; i--) {
+    const v = VUNG[i]; v.t += dt;
+    const lon = Math.min(1, v.t / 0.8), mo = v.t < 0.5 ? 0 : v.t < 20 ? 0.55 : Math.max(0, 0.55 * (1 - (v.t - 20) / 5));
+    v.m.scale.setScalar(v.r * (0.3 + 0.7 * lon)); v.m.material.opacity = mo;
+    if (v.t > 25) { scene.remove(v.m); v.m.material.dispose(); VUNG.splice(i, 1); continue; }
+    if (v.t < 0.6) continue;
+    for (const a of DS) {
+      if (a.loai !== 'xm' || a.nga || a.nhac || a.sp < 3 || v.qua.has(a)) continue;
+      if ((a.x - v.x) ** 2 + (a.z - v.z) ** 2 > v.r * v.r) continue;
+      v.qua.add(a);
+      if (Math.random() < 0.3) dayNga(a);
+    }
+  }
+  for (let i = CHUOI.length - 1; i >= 0; i--) {
+    const c = CHUOI[i];
+    for (const a of DS) {
+      if (a.nga || a.nhac || a.y > 0.3) continue;
+      const r = a.loai === 'bo' ? 0.35 : a.loai === 'xm' ? 0.6 : Math.max(a.len, a.wid) / 2;
+      if ((a.x - c.x) ** 2 + (a.z - c.z) ** 2 > r * r) continue;
+      if (a.loai === 'xm' || a.loai === 'bo') dayNga(a);
+      scene.remove(c.m); CHUOI.splice(i, 1); break;
+    }
+  }
+}
+function trangThaiTro(a, dt) {
+  if (a.choDoi > 0) { a.choDoi -= dt; if (a.choDoi <= 0) trungNuoc(a); }
+  if (a.chayUot > 0) { a.chayUot -= dt; if (a.chayUot <= 0) a.vmax = a.vmax0; }
+  if (a.khung > 0) { a.khung -= dt; a.sp = Math.max(0, a.sp - 8 * dt); return true; }
+  return false;
+}
 function nam(a, dt) {
   const n = a.nga;
   n.t += dt;
@@ -1149,6 +1225,7 @@ function buoc(dt) {
   buocDen(dt);
   tinhQuyen(dt);
   for (let i = 0; i < DS.length; i++) { const a = DS[i]; if (a.loai === 'bo') buocBo(a, dt); else buocXe(a, dt); }
+  buocTro(dt);
   for (const a of DS) if (a.loai !== 'bo' && !a.nhac && a.sp < 0.5 && a.s < a.p.sStop) a.tCho = (a.tCho || 0) + dt; // giây đứng chờ trước vạch của từng xe
   if (DIEM) { DIEM.t += dt; DIEM.ket += ketNga * dt; if (ketNga > DIEM.ketMax) DIEM.ketMax = ketNga; }
   const muc = { xm: CAI.matDo, oto: Math.min(MAX_OTO, Math.round(CAI.matDo * CAI.tyLeOto / 100)), bus: 3, bo: CAI.nguoiBo }; // người đi bộ có thanh kéo riêng — không phố nào cũng đông như nhau (anh 22/11/2026)
@@ -1883,6 +1960,8 @@ cv.addEventListener('pointerdown', (e) => (xuong = [e.clientX, e.clientY]));
 cv.addEventListener('pointerup', (e) => {
   if (!xuong || Math.hypot(e.clientX - xuong[0], e.clientY - xuong[1]) > 6) return;
   const a = chonXe(e);
+  if (cong === 'chuoi') { const d = diemDat(e); if (d) thaChuoi(d[0], d[1]); return; }
+  if (cong === 'nuoc') { const d = a ? [a.x, a.z] : diemDat(e); if (d) doiNuoc(d[0], d[1], a); return; }
   if (!a) { moChinh(e); return; }
   dongChinh();
   if (cong === 'nhac') nhac(a);

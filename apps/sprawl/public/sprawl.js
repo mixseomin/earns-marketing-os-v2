@@ -111,7 +111,7 @@ let kieu = 'thuc';
 try { kieu = new URLSearchParams(location.search).get('kieu') || localStorage.getItem('sprawl-kieu') || 'thuc'; } catch {}
 if (!KIEU[kieu]) kieu = 'thuc';
 let troiMua = false; // &mua trên link hoặc lần bật gần nhất
-try { troiMua = new URLSearchParams(location.search).has('mua') || localStorage.getItem('sprawl-mua') === '1'; } catch {}
+try { const q = new URLSearchParams(location.search); troiMua = q.has('mua') ? q.get('mua') !== '0' : localStorage.getItem('sprawl-mua') === '1'; } catch {}
 
 // ---------- vật lý + mặt đất ----------
 await RAPIER.init();
@@ -152,7 +152,7 @@ function dungDat() { // lấp ô trống theo ô có dữ liệu gần nhất (l
   datVa = world.createCollider(RAPIER.ColliderDesc.trimesh(vs, Uint32Array.from(idx)), tinh);
   rs?.datLai(datMuot); n2?.datLai(datMuot);
   world.step();
-  $('b-di').disabled = false;
+  if (choDi) { choDi = false; diBo(); } // anh bấm Đi bộ lúc đất chưa có → đứng xuống ngay khi đất dựng xong
 }
 function datMuot(x, z) { if (!datY) return 0; // nội suy song tuyến giữa tâm ô — khớp lưới đất đang vẽ
   const u = Math.max(0, Math.min(LUOI_N - 1.001, (x + NUA) / LUOI_O - 0.5)), v = Math.max(0, Math.min(LUOI_N - 1.001, (z + NUA) / LUOI_O - 0.5)), i = u | 0, j = v | 0, a = u - i, b = v - j, k = j * LUOI_N + i;
@@ -246,14 +246,18 @@ if (toi) {
     { id: 'xe', chu: () => (xe.dangLai ? 'Xuống' : xe.gan() ? 'Lái xe' : 'Gọi xe'), bam: () => xe.doi() }, // E / nút: ở đâu cũng gọi được xe tới
   ] });
 }
+let choDi = false;
 function diBo() { // đứng xuống mặt đất ngay dưới tâm nhìn, quay mặt theo hướng camera đang nhìn
-  if (!di || !datY) return;
+  if (!di || !datY) { choDi = true; baoNho(`Đang tải nhà để dựng mặt đất (${tk.o} ô đã nạp) — có đất là tự đứng xuống`); return; } // trước đây nút xám chờ đất, mạng chậm thì kẹt mãi như hỏng
   const x = orbit.target.x, z = orbit.target.z, h = Math.atan2(orbit.target.x - camera.position.x, orbit.target.z - camera.position.z), y = matTren(x, z);
   di.vao(x, y + 0.3, z, h); xe?.goiNeuXa(x, y, z, h);
 }
 function matTren(x, z, tu = 1200) { // mặt cao nhất dưới điểm (x, z): tháp đỏ cao tới ~450 m → thả từ trên đỉnh, trúng tháp thì đứng lên chóp / ban công
   const y0 = datTai(x, z) + tu, tia = world.castRay(new RAPIER.Ray({ x, y: y0, z }, { x: 0, y: -1, z: 0 }), tu * 2, true);
   return tia ? y0 - tia.timeOfImpact : datTai(x, z); }
+$('b-dat').onclick = () => { // đặt lại: xoá chỗ đứng / kiểu / mưa đã nhớ, mở trang trắng như lần đầu
+  try { for (const k of Object.keys(localStorage)) if (k.startsWith('sprawl-')) localStorage.removeItem(k); } catch {}
+  removeEventListener('pagehide', ghiCho); location.replace(location.pathname); };
 $('b-di').onclick = diBo; $('b-bay').onclick = () => di?.ra();
 
 // ---------- bấm đúp = sà xuống chỗ đó ----------
@@ -381,15 +385,33 @@ function datGoc() {
 // ---------- nhớ chỗ qua F5 (khuôn castle ns-cho): mỗi giây + lúc rời trang ghi chế độ (bay / đi bộ), camera, chỗ chân + hướng ----------
 const KHOA_CHO = 'sprawl-cho';
 let choCu = null; try { choCu = JSON.parse(localStorage.getItem(KHOA_CHO) || 'null'); if (!Array.isArray(choCu?.cam) || !Array.isArray(choCu?.dich)) choCu = null; } catch {}
-let choCho = choCu?.di && !qs.has('cam') && !qs.has('goc') ? choCu : null, lucCho = performance.now(); // đang chờ đất + ô nhà quanh chỗ cũ nạp xong mới đặt người xuống
+const diLink = qs.get('di')?.split(',').map(Number); // link mang chỗ đứng: anh gửi link là mở lại đúng chỗ, đúng kiểu, đúng hướng nhìn
+let choCho = diLink?.length >= 3 && diLink.slice(0, 3).every(Number.isFinite) ? { di: { p: diLink.slice(0, 3), huong: diLink[3] || 0, yaw: diLink[4], pitch: diLink[5] } }
+  : choCu?.di && !qs.has('cam') && !qs.has('goc') ? choCu : null, lucCho = performance.now(); // đang chờ đất + ô nhà quanh chỗ cũ nạp xong mới đặt người xuống
 function ghiCho() {
   if (choCho) return; // chưa đặt lại xong thì không ghi đè chỗ cũ bằng góc tạm
   const f = (v) => Math.round(v * 100) / 100, d = di?.dang ? di.viTri() : null;
   const o = { cam: camera.position.toArray().map(f), dich: orbit.target.toArray().map(f), fov: camera.fov,
     ...(d ? { di: { p: [f(d.x), f(d.y), f(d.z)], huong: f(di.huong), yaw: f(di.yaw), pitch: f(di.pitch) }, cam: [f(d.x + 40), f(d.y + 60), f(d.z + 70)], dich: [f(d.x), f(d.y), f(d.z)] } : {}) };
   try { localStorage.setItem(KHOA_CHO, JSON.stringify(o)); } catch {}
+  // cùng trạng thái đó lên URL (anh 23/11/2026: "phải lưu hết lên URL, gửi link là debug được"): kiểu, mưa, camera, chỗ đứng, đang lái
+  const u = new URL(location.href), sp = u.searchParams; sp.delete('goc'); sp.set('kieu', kieu); troiMua ? sp.set('mua', '1') : sp.delete('mua');
+  sp.set('cam', [...o.cam, ...o.dich, o.fov].join(','));
+  if (o.di) sp.set('di', [...o.di.p, o.di.huong, o.di.yaw, o.di.pitch].join(',')); else sp.delete('di');
+  xe?.dangLai ? sp.set('lai', '1') : sp.delete('lai');
+  const moi = u.toString().replace(/%2C/g, ','); if (moi !== location.href) history.replaceState(null, '', moi);
 }
 addEventListener('pagehide', ghiCho);
+// lọt xuống dưới đất (đất dựng lại cao hơn chân khi ô nhà nạp thêm, hoặc chỗ cũ đã lưu nằm dưới mặt đất): kéo lên mặt cao nhất ngay trên đầu
+let soCuu = 0;
+function cuuLot() {
+  if (!di?.dang || !datY || choCho) return;
+  const p = xe?.dangLai ? xe.than.translation() : di.viTri(), g = Math.min(datTai(p.x, p.z), datMuot(p.x, p.z));
+  if (!(p.y < g - 3)) return;
+  const y = matTren(p.x, p.z); soCuu++;
+  if (xe?.dangLai) xe.dat(p.x, y, p.z, xe.huong()); else di.vao(p.x, y + 0.3, p.z, di.huong);
+  baoNho('Bị lọt xuống dưới đất, đã kéo lên mặt đường'); console.warn('[sprawl] cứu lọt đất', { x: p.x, y: p.y, dat: g, len: y });
+}
 function datLaiCho(now) { // F5 lúc đang đi bộ: đứng lại đúng chỗ khi đất đã dựng và ô nhà quanh đó hết hàng đợi (tối đa 15 s)
   if (!choCho || !di || !datY) return;
   const ban = dsTiles.some((t) => t.stats.queued + t.stats.downloading + t.stats.parsing > 0);
@@ -397,7 +419,8 @@ function datLaiCho(now) { // F5 lúc đang đi bộ: đứng lại đúng chỗ 
   const { p, huong, yaw, pitch } = choCho.di; choCho = null;
   const y = Math.max(p[1], matTren(p[0], p[2], Math.max(4, p[1] - datTai(p[0], p[2]) + 2)));
   di.vao(p[0], y + 0.2, p[2], huong); if (Number.isFinite(yaw)) di.yaw = yaw; if (Number.isFinite(pitch)) di.pitch = pitch;
-  baoNho('Đã về chỗ đứng lần trước');
+  if (qs.get('lai') === '1') xe?.goiNeuXa(p[0], y, p[2], huong, true); // link đang lái: xe đỗ sẵn cạnh, bấm E lên
+  baoNho(diLink ? 'Đã về chỗ đứng trong link' : 'Đã về chỗ đứng lần trước');
 }
 datGoc();
 function linkGoc() { const u = new URL(location.href), f = (v) => Math.round(v * 10) / 10;
@@ -516,7 +539,7 @@ renderer.setAnimationLoop(() => {
     rs.nguoiGan.dayVatCan(vc); } // người gần đang băng qua lòng đường: xe dừng trước họ
   rs?.nguoiGan.datChoi(di?.dang && !xe?.dangLai ? di.viTri() : null); // người chơi đi bộ: người gần né
   ve(); demKhung++;
-  datLaiCho(now); veBanDo(now);
+  datLaiCho(now); cuuLot(); veBanDo(now);
   if (now - tFps > 1000) { fps = Math.round(demKhung * 1000 / (now - tFps)); demKhung = 0; tFps = now; ghiCho();
     const p = di?.dang ? di.viTri() : orbit.target, ll = laLatLon(p.x, p.z);
     $('tt').textContent = `${fps} khung/s · ${tk.o} ô nhà · ${renderer.info.render.triangles.toLocaleString('vi')} tam giác · ${renderer.info.render.calls} lượt vẽ · ${ll.lat.toFixed(4)}, ${ll.lon.toFixed(4)}`;
@@ -534,4 +557,4 @@ function kiemVa({ buoc = 4, lech = 0.6 } = {}) {
     for (const f of [-0.4, 0, 0.4]) { ra.cau.thu++; const x = v.x + v.dx * v.L * f, z = v.z + v.dz * v.L * f, y = tha(x, v.y + 0.7, z);
       if (y == null || Math.abs(y - (v.y + 0.7)) > lech) ra.cau.truot.push({ k, f, can: +(v.y + 0.7).toFixed(1), cham: y == null ? null : +y.toFixed(1) }); } }
   ra.dat = !ra.caoToc.truot.length && !ra.cau.truot.length; return ra; }
-window.__sprawl = { RAPIER, world, scene, camera, orbit, renderer, dsTiles, tk, datTai, datMuot, rs, n2, kiemVa, get di() { return di; }, get xe() { return xe; }, xeDuong };
+window.__sprawl = { get soCuu() { return soCuu; }, RAPIER, world, scene, camera, orbit, renderer, dsTiles, tk, datTai, datMuot, rs, n2, kiemVa, get di() { return di; }, get xe() { return xe; }, xeDuong };

@@ -11,6 +11,11 @@ import { trongDa, keMep } from './hinhhoc.js';
 export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao, vl, trongNha = null, vungLat = [], tuongSan = [] }) { // eslint-disable-line no-param-reassign
   const LAT = new Set(['footway', 'pedestrian', 'steps', 'service', 'residential', 'unclassified']); // đường lát / nhựa; còn lại (track, path) là đất
   const OTO = new Set(['service', 'residential', 'unclassified']); // đường ô tô: mặt nhựa (vl.oto) — đường lên cổng ngoài đời là nhựa xám sáng, không lát đá
+  // MẶT ĐƯỜNG THEO surface OSM (d.mat, scripts/tai-duong.mjs) trước, loại đường chỉ là dự phòng khi OSM không ghi: ảnh 13 sân dưới chân tường là track surface=asphalt
+  // mà trước vẽ đất cuội (9 track nhựa, 4 path lát đá thành đất; 2 footway sỏi thành lát)
+  const NHUA = new Set(['asphalt', 'concrete', 'paved', 'concrete:plates']), DA_LAT = new Set(['sett', 'paving_stones', 'cobblestone', 'unhewn_cobblestone', 'stone']);
+  const DAT = new Set(['gravel', 'fine_gravel', 'compacted', 'ground', 'dirt', 'earth', 'unpaved', 'pebblestone', 'grass', 'sand', 'mud', 'rock']);
+  const matDuong = (d) => NHUA.has(d.mat) ? (vl.oto ? 'oto' : 'nhua') : DA_LAT.has(d.mat) ? 'nhua' : DAT.has(d.mat) ? 'dat' : OTO.has(d.loai) && vl.oto ? 'oto' : LAT.has(d.loai) ? 'nhua' : 'dat';
   const nhom = { nhua: [], oto: [], dat: [], bac: [], tuong: [], nap: [] }, dem = { duong: 0, bac: 0, m: 0 };
   const uvTheGioi = (g) => { const p = g.attributes.position, n = g.attributes.normal, uv = new Float32Array(p.count * 2); // vân đá theo toạ độ thật (tường chắn cao vài mét không bị kéo dãn)
     for (let i = 0; i < p.count; i++) { const ngang = Math.abs(n.getX(i)) > Math.abs(n.getZ(i)) ? p.getZ(i) : p.getX(i); uv[i * 2] = ngang / 2.5; uv[i * 2 + 1] = p.getY(i) / 2.5; } g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); return g; };
@@ -151,8 +156,8 @@ export function datDuong({ THREE, mergeGeometries, RAPIER, world, tinh, ds, cao,
       }
       dem.duong++; continue;
     }
-    if (!LAT.has(d.loai) && phuLat(d.v)) { dem.boLoi = (dem.boLoi || 0) + 1; continue; }
-    const g = dai(d.v, d.rong); (OTO.has(d.loai) && vl.oto ? nhom.oto : LAT.has(d.loai) ? nhom.nhua : nhom.dat).push(g); dem.duong++;
+    if (matDuong(d) === 'dat' && phuLat(d.v)) { dem.boLoi = (dem.boLoi || 0) + 1; continue; }
+    const g = dai(d.v, d.rong); nhom[matDuong(d)].push(g); dem.duong++;
     const p = g.attributes.position; world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(p.array), Uint32Array.from({ length: p.count }, (_, i) => i)), tinh);
   }
   for (const { v, cao: m } of vungLat) lanCan([...v, v[0]], 0, false, { mat: m || cao, nguong: 0.8, moLoi: true }); // mép sân trước cổng: lan can chỗ đất ngoài tụt (phía vực), dọc chân nhà thì không

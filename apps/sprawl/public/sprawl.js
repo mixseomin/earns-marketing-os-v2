@@ -438,7 +438,9 @@ renderer.setAnimationLoop(() => {
     for (const t of dsTiles) { t.setCamera(camera); t.setResolutionFromRenderer(camera, renderer); t.update(); } }
   if (chanDoi && now - tDat > (datY ? 2500 : 600)) { tDat = now; dungDat(); if (!di?.dang && qs.has('goc') && !qs.has('bay')) daGoc = false; } // đất đổi cao độ khi ô nhà nạp thêm → góc dựng sẵn đặt lại theo (chỉ khi anh chưa tự xoay)
   bauTroi.position.copy(camera.position);
-  if (mua.bat) { const pM = di?.dang ? di.viTri() : orbit.target; mua.khung(dt, datTai(pM.x, pM.z), dsUot, bauTroi.visible ? bauTroi : null); }
+  { const pM = di?.dang ? di.viTri() : orbit.target; mua.khung(dt, datTai(pM.x, pM.z), dsUot, bauTroi.visible ? bauTroi : null); } // mưa: soi bóng ướt · khô: bóng mờ khi nhìn sát mặt đường
+  const vc = rs?.song.vatCan; if (vc) { vc.length = 0; // xe trên phố dừng trước người chơi và trước chiếc xe của người chơi
+    if (di?.dang) { if (!xe?.dangLai) { const p = di.viTri(); vc.push({ x: p.x, z: p.z, r: 0.5 }); } if (xe) { const p = xe.than.translation(); if (p.y > -300) vc.push({ x: p.x, z: p.z, r: 1.6 }); } } }
   ve(); demKhung++;
   if (now - tFps > 1000) { fps = Math.round(demKhung * 1000 / (now - tFps)); demKhung = 0; tFps = now;
     const p = di?.dang ? di.viTri() : orbit.target, ll = laLatLon(p.x, p.z);

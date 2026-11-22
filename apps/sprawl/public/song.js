@@ -25,7 +25,7 @@ function lay(t, s, p, d) {
 }
 const huong = (d, q) => q.setFromAxisAngle(LEN, Math.atan2(d.x, d.z));
 
-export function taoSong({ goc, ql, dsThap }) {
+export function taoSong({ goc, ql, dsThap, nuaNut, LONG }) {
   const uT = { value: 0 };
   // ---------- sương thành lớp: mảng mây ngang ở 4 độ cao, nhiễu trôi theo gió, mờ dần khi camera lại gần ----------
   const vSuong = new THREE.ShaderMaterial({
@@ -84,18 +84,43 @@ export function taoSong({ goc, ql, dsThap }) {
   const vet = new THREE.InstancedMesh(gVet, vVet, nB * 2);
   for (const m of [thanBay, denTruoc, vet]) { m.frustumCulled = false; goc.add(m); }
 
-  // ---------- xe chạy trên đường lớn: đi bên trái (Nhật), nhiều làn, màu xe ngẫu nhiên ----------
-  const LAN = { lon: [2.5, 6, 9.5], vua: [2.2, 5.2] };
-  const tuyenXe = ql.daiLo.filter((d) => LAN[d.lop]).map((d) => ({ lop: d.lop, ...taoTuyen(d.g, 15) })).filter((t) => t.L > 60);
-  const xe = [], rX = gieo(23);
-  for (const t of tuyenXe) for (const [li, ben] of LAN[t.lop].entries()) for (const chieu of [1, -1]) {
-    const n = Math.floor(t.L / (38 + li * 14));
-    for (let k = 0; k < n; k++) xe.push({ t, s: (k + rX() * 0.6) / n * t.L, v: chieu * (10 + li * 3 + rX() * 4), ben: ben * chieu, cao: rX() < 0.12 ? 1 : 0 });
+  // ---------- xe chạy trên đường có lòng nhựa: đi bên trái (Nhật), làn nằm TRONG lòng đường (LONG của redspires.js), cả làn một tốc độ ----------
+  // Xe trong một làn giữ khoảng cách với xe trước, dừng ở vạch dừng khi đèn nút giao đang đỏ, và dừng trước vật cản (người chơi, chiếc xe vàng).
+  const LAN = { lon: [1.8, 4.95], vua: [2.75] }, TOC_LAN = { lon: [8.5, 10.5], vua: [8] }; // m lệch tim · m/s (30–38 km/h, tốc độ phố đông)
+  for (const [k, l] of Object.entries(LAN)) if (l[l.length - 1] + 1.1 > LONG[k]) console.error(`[sprawl] làn xe ngoài cùng của đường '${k}' (${l[l.length - 1]} m) tràn khỏi lòng đường ${LONG[k]} m`);
+  // Dữ liệu có tuyến lặp y hệt (cùng hai đầu mút, cùng số điểm): giữ một, không thì hai đoàn xe chạy chồng lên nhau.
+  const daTuyen = new Set(), khoaTuyen = (g) => { const a = g[0], b = g[g.length - 1], k1 = Math.round(a[0]) + ',' + Math.round(a[1]), k2 = Math.round(b[0]) + ',' + Math.round(b[1]); return (k1 < k2 ? k1 + '|' + k2 : k2 + '|' + k1) + '|' + g.length; };
+  const huongNut = new Map(); // nút giao → hướng (0–π) của tuyến đầu tiên tới đó; tuyến lệch quá 45° so với nó thuộc nhóm đèn kia
+  const tuyenXe = ql.daiLo.filter((d) => { if (!LAN[d.lop]) return false; const k = khoaTuyen(d.g); if (daTuyen.has(k)) return false; daTuyen.add(k); return true; }).map((d) => { const t = { lop: d.lop, ...taoTuyen(d.g, 15), nut: [] };
+    let sd = 0; for (let i = 0; i < d.g.length; i++) { if (i) sd += Math.hypot(d.g[i][0] - d.g[i - 1][0], d.g[i][1] - d.g[i - 1][1]);
+      const h = nuaNut(d.lop, d.g[i]); if (!h) continue; const a = d.g[Math.max(0, i - 1)], b = d.g[Math.min(d.g.length - 1, i + 1)];
+      const kn = Math.round(d.g[i][0]) + ',' + Math.round(d.g[i][1]), goc = (Math.atan2(b[1] - a[1], b[0] - a[0]) + Math.PI) % Math.PI; if (!huongNut.has(kn)) huongNut.set(kn, goc);
+      const lech = Math.abs(goc - huongNut.get(kn));
+      t.nut.push({ s: sd, h, nhom: Math.min(lech, Math.PI - lech) > Math.PI / 4 ? 1 : 0, pha: (Math.abs(Math.round(d.g[i][0]) * 7 + Math.round(d.g[i][1]) * 13) % 36) }); } // hai đường cắt nhau cùng điểm nút → cùng pha, khác nhóm
+    return t; }).filter((t) => t.L > 60);
+  // Đại lộ đôi: dữ liệu vẽ mỗi chiều thành một tuyến riêng chạy song song cách nhau dưới 26 m. Mỗi nửa chỉ chạy MỘT chiều —
+  // chiều nào để nửa kia nằm bên phải (đi bên trái) — không thì xe hai nửa lao ngược vào nhau ở dải giữa.
+  for (const t of tuyenXe) { let trai = 0, phai = 0, mau = 0;
+    for (let i = 1; i < t.P.length; i += 2) { const p = t.P[i], q = t.P[i - 1], ux = p.x - q.x, uz = p.z - q.z, ul = Math.hypot(ux, uz) || 1; mau++; let gan = 26 * 26, ben = 0;
+      for (const o of tuyenXe) { if (o === t) continue; for (let j = 1; j < o.P.length; j++) { const a = o.P[j], rx = a.x - p.x, rz = a.z - p.z, k = rx * rx + rz * rz; if (k >= gan) continue;
+        const b = o.P[j - 1], vx = a.x - b.x, vz = a.z - b.z; if (Math.abs(ux * vx + uz * vz) < 0.85 * ul * (Math.hypot(vx, vz) || 1)) continue; // phải gần song song
+        const lech = (rx * uz - rz * ux) / ul; if (Math.abs(lech) < 3) continue; gan = k; ben = lech; } } // lech > 0: tuyến kia nằm phía các làn chiều xuôi của tuyến này
+      if (ben > 0) trai++; else if (ben < 0) phai++; }
+    t.motChieu = trai + phai > mau * 0.5 ? (phai >= trai ? 1 : -1) : 0; }
+  const xe = [], lanXe = [], rX = gieo(23);
+  for (const t of tuyenXe) for (const [li, ben] of LAN[t.lop].entries()) for (const chieu of t.motChieu ? [t.motChieu] : [1, -1]) {
+    const n = Math.floor(t.L / (42 + li * 14)), lan = [];
+    for (let k = 0; k < n; k++) { const c = { t, s: (k + rX() * 0.5) / n * t.L, v: 0, vMuon: TOC_LAN[t.lop][li], chieu, ben, cao: rX() < 0.12 ? 1 : 0, x: 0, z: 0 }; lan.push(c); xe.push(c); }
+    if (lan.length) lanXe.push(lan); // trong một làn thứ tự s không đổi (không vượt nhau)
   }
+  const CHU_KY = 36, XANH = 15; // đèn: nhóm 0 xanh giây 0–15, nhóm 1 xanh giây 18–33, giữa hai lượt 3 giây đỏ cả hai cho xe thoát nút
+  const denDo = (n, tg) => { const p = (tg + n.pha) % CHU_KY - n.nhom * 18; return !(p >= 0 && p < XANH); };
+  const O_XE = 12, oXe = new Map(), keXe = new Int32Array(xe.length); // lưới chỗ đứng của xe, dựng lại mỗi nhịp (danh sách móc nối, không cấp phát)
+  const vatCan = []; // { x, z, r }: sprawl.js đặt mỗi khung (người chơi, xe của người chơi)
   const gXe = new THREE.BoxGeometry(1.8, 1.45, 4.4).translate(0, 0.72, 0);
   const thanXe = new THREE.InstancedMesh(gXe, new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.45 }), xe.length);
   const MAU_XE = ['#e8e8e6', '#e8e8e6', '#1c1f22', '#9aa2a8', '#4b5560', '#a13a32', '#2d4a6a', '#d8cfb8'];
-  for (const [i, c] of xe.entries()) thanXe.setColorAt(i, new THREE.Color(c.cao ? '#3d6b5a' : MAU_XE[(rX() * MAU_XE.length) | 0]));
+  for (const [i, c] of xe.entries()) { c.i = i; thanXe.setColorAt(i, new THREE.Color(c.cao ? '#3d6b5a' : MAU_XE[(rX() * MAU_XE.length) | 0])); }
   const dauXe = new THREE.InstancedMesh(new THREE.BoxGeometry(1.5, 0.55, 2).translate(0, 1.7, -0.3), new THREE.MeshStandardMaterial({ color: '#1e262c', roughness: 0.15, metalness: 0.7 }), xe.length);
   for (const m of [thanXe, dauXe]) { m.frustumCulled = false; goc.add(m); }
 
@@ -176,13 +201,28 @@ export function taoSong({ goc, ql, dsThap }) {
       for (const b of [-0.9, 0.9]) { _t.set(_d.z * b, 0, -_d.x * b).add(_p); _t.addScaledVector(_d, -2.6); vet.setMatrixAt(i * 2 + (b > 0 ? 1 : 0), _m.compose(_t, _q, _s)); }
     }
     thanBay.instanceMatrix.needsUpdate = denTruoc.instanceMatrix.needsUpdate = vet.instanceMatrix.needsUpdate = true;
-    // xe đường đất: nửa tốc độ khung (đủ mượt ở 10–20 m/s), đỡ việc cho CPU
+    // xe đường đất: nửa tốc độ khung (đủ mượt ở 8–10 m/s), đỡ việc cho CPU
     tXe += dt; if (tXe >= 1 / 30) {
-      for (const [i, c] of xe.entries()) {
-        const t = c.t; c.s = ((c.s + c.v * tXe) % t.L + t.L) % t.L;
-        lay(t, c.s, _p, _d); if (c.v < 0) _d.negate();
-        const b = Math.abs(c.ben); _p.x += _d.z * b; _p.z -= _d.x * b;
-        huong(_d, _q); _m.compose(_p, _q, _s); thanXe.setMatrixAt(i, _m); dauXe.setMatrixAt(i, _m);
+      oXe.clear(); for (const c of xe) { if (c.dx === undefined) continue; const k = Math.floor(c.x / O_XE) * 8192 + Math.floor(c.z / O_XE); keXe[c.i] = oXe.has(k) ? oXe.get(k) : -1; oXe.set(k, c.i); } // lưới 12 m: xe nào đang ở ô nào
+      for (const lan of lanXe) for (let k = 0; k < lan.length; k++) { const c = lan[k], t = c.t, ch = c.chieu;
+        let trong = 1e4; // quãng trống phía trước tới chỗ phải dừng (m)
+        if (lan.length > 1) { const tr = lan[(k + ch + lan.length) % lan.length]; trong = (((tr.s - c.s) * ch) % t.L + t.L) % t.L - 7; } // xe trước: giữ hở 2,6 m sau đuôi
+        for (const n of t.nut) { const d = (n.s - c.s) * ch - n.h - 8.6; if (d > -1 && d < trong && denDo(n, uT.value)) trong = d; } // vạch dừng ở 6,2 m trước mép đường cắt; qua vạch rồi thì đi tiếp
+        for (const o of vatCan) { const dx = o.x - c.x, dz = o.z - c.z; if (dx * dx + dz * dz > 1600) continue; lay(t, c.s, _p, _d); if (ch < 0) _d.negate();
+          const doc = dx * _d.x + dz * _d.z, ngang = Math.abs(dx * _d.z - dz * _d.x); if (doc > 0 && ngang < 1.3 + o.r) trong = Math.min(trong, doc - 2.6 - o.r - 1.5); }
+        // xe của TUYẾN KHÁC nằm trong hành lang phía trước (hai nửa đại lộ chập nhau, chỗ nhập tuyến, xe cắt ngang còn kẹt trong nút):
+        // cùng chiều thì xe sau nhường; đè ngang nhau hoặc cắt nhau thì xe số lớn nhường (một chiều duy nhất → không khoá chết nhau)
+        if (c.dx !== undefined) { const ox = Math.floor(c.x / O_XE), oz = Math.floor(c.z / O_XE);
+          for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let j = oXe.get((ox + a) * 8192 + oz + b) ?? -1; j >= 0; j = keXe[j]) { const o = xe[j]; if (o.t === t) continue;
+            const rx = o.x - c.x, rz = o.z - c.z, doc = rx * c.dx + rz * c.dz, ngang = Math.abs(rx * c.dz - rz * c.dx); if (ngang > 2.3 || doc > 16 || doc < -4.4) continue;
+            const cung = o.dx * c.dx + o.dz * c.dz; if (cung < -0.5) continue; // ngược chiều: làn bên kia
+            if (cung > 0.5 ? (doc > 4.4 || (doc > -4.4 && o.i < c.i)) : (doc > 0 && o.i < c.i)) trong = Math.min(trong, doc - 7); } }
+        const vDuoc = Math.min(c.vMuon, Math.sqrt(2 * 3.5 * Math.max(0, trong))); // hãm êm 3,5 m/s² là dừng kịp
+        c.v = vDuoc > c.v ? Math.min(vDuoc, c.v + 1.8 * tXe) : Math.max(vDuoc, c.v - 7 * tXe);
+        c.s = ((c.s + c.v * ch * tXe) % t.L + t.L) % t.L;
+        lay(t, c.s, _p, _d); if (ch < 0) _d.negate();
+        _p.x += _d.z * c.ben; _p.z -= _d.x * c.ben; c.x = _p.x; c.z = _p.z; c.dx = _d.x; c.dz = _d.z;
+        huong(_d, _q); _m.compose(_p, _q, _s); thanXe.setMatrixAt(c.i, _m); dauXe.setMatrixAt(c.i, _m);
       }
       thanXe.instanceMatrix.needsUpdate = dauXe.instanceMatrix.needsUpdate = true; tXe = 0;
     }
@@ -194,5 +234,5 @@ export function taoSong({ goc, ql, dsThap }) {
     }
     thanTau.instanceMatrix.needsUpdate = kinhTau.instanceMatrix.needsUpdate = socTau.instanceMatrix.needsUpdate = true;
   }
-  return { datLai, khung, uT, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau, vuonCau, ruCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length, khop } };
+  return { datLai, khung, uT, vatCan, gt: { xe, tuyenXe, lay, denDo }, anKhi2200: [thanBay, denTruoc, vet, suong, sanCau, kinhCau, vuonCau, ruCau], tk: { xeBay: nB, xe: xe.length, tau: tau.length, cau: cau.length, suong: o.length, khop } };
 }

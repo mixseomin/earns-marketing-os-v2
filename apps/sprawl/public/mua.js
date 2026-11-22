@@ -1,9 +1,9 @@
-// Sprawl · mưa: mặt đất + mặt đường ướt soi bóng cảnh thật (vẽ cảnh lật qua mặt phẳng đất, khuôn three addons Reflector), vũng nước có gợn, hạt mưa rơi quanh máy quay.
+// Sprawl · mưa và mặt đường bóng: lúc KHÔ mặt đất + mặt đường vẫn hắt bóng mờ của cảnh ở góc nhìn xiên (nhựa, đá lát đều bóng lên khi nhìn sát mặt), lúc mưa thì ướt soi bóng cảnh thật (vẽ cảnh lật qua mặt phẳng đất, khuôn three addons Reflector), vũng nước có gợn, hạt mưa rơi quanh máy quay.
 // tra-repo-ok: dán keo nội bộ quanh vật liệu sẵn có của Sprawl; phần soi bóng theo đúng cách tính của three/addons/objects/Reflector.js (không dùng thẳng được vì đất là lưới cao độ dùng vật liệu riêng).
 import * as THREE from 'three';
 
 export function taoMua({ renderer, scene, camera }) {
-  const U = { uMua: { value: 0 }, uGioM: { value: 0 }, tPhan: { value: null }, uMatPhan: { value: new THREE.Matrix4() }, uY0: { value: 0 }, uDamPhan: { value: 1 } };
+  const U = { uMua: { value: 0 }, uGioM: { value: 0 }, tPhan: { value: null }, uMatPhan: { value: new THREE.Matrix4() }, uY0: { value: 0 }, uDamPhan: { value: 1 }, uKho: { value: 0 } };
   const dich = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
   U.tPhan.value = dich.texture;
 
@@ -16,7 +16,7 @@ export function taoMua({ renderer, scene, camera }) {
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWm;')
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWm = (modelMatrix * vec4(transformed, 1.0)).xyz;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-      varying vec3 vWm; uniform float uMua, uGioM, uY0, uDamPhan; uniform sampler2D tPhan; uniform mat4 uMatPhan;
+      varying vec3 vWm; uniform float uMua, uGioM, uY0, uDamPhan, uKho; uniform sampler2D tPhan; uniform mat4 uMatPhan;
       float bamM(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
       float nhM(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
         return mix(mix(bamM(i), bamM(i + vec2(1.0, 0.0)), f.x), mix(bamM(i + vec2(0.0, 1.0)), bamM(i + 1.0), f.x), f.y); }
@@ -37,6 +37,11 @@ export function taoMua({ renderer, scene, camera }) {
         float cv = clamp(normalize(cameraPosition - vWm).y, 0.0, 1.0);
         float fr = 0.07 + 0.93 * pow(1.0 - cv, 4.0);
         outgoingLight = outgoingLight * mix(1.0, 0.5, doUot) + phan * fr * doUot * uDamPhan;
+      } else if (uKho > 0.001) { // khô: không tối màu, không vũng; chỉ một lớp bóng nhoè, mạnh dần khi nhìn sát mặt đường, đứt quãng theo vân mặt
+        vec4 q = uMatPhan * vec4(vWm.x, uY0, vWm.z, 1.0);
+        float hatM = nhM(vWm.xz * 2.3) - 0.5, cv = clamp(normalize(cameraPosition - vWm).y, 0.0, 1.0);
+        vec3 phan = texture2D(tPhan, clamp(q.xy / max(q.w, 1e-4) + vec2(hatM * 0.006, hatM * 0.05), 0.002, 0.998), 3.5).rgb;
+        outgoingLight += phan * (0.03 + 0.97 * pow(1.0 - cv, 5.0)) * (0.75 + 0.5 * nhM(vWm.xz * 0.35)) * uKho * uDamPhan;
       }
       #include <opaque_fragment>`); };
     mat.needsUpdate = true;
@@ -76,11 +81,15 @@ export function taoMua({ renderer, scene, camera }) {
     const hien = an.map((o) => o.visible), cu = renderer.getRenderTarget(), vtTroi = troi?.position.clone();
     an.forEach((o) => { o.visible = false; }); hat.visible = false; troi?.position.copy(may.position);
     renderer.setRenderTarget(dich); renderer.clear(); renderer.render(scene, may); renderer.setRenderTarget(cu);
-    an.forEach((o, i) => { o.visible = hien[i]; }); hat.visible = true; if (vtTroi) troi.position.copy(vtTroi);
+    an.forEach((o, i) => { o.visible = hien[i]; }); hat.visible = bat; if (vtTroi) troi.position.copy(vtTroi);
   }
 
   let bat = false;
+  const KHO = 0.55, CAO_KHO = [45, 140]; // độ bóng lúc khô · máy quay cao hơn mặt đất 45 → 140 m thì bóng tắt dần rồi thôi vẽ lượt soi (nhìn từ trên xuống không thấy bóng, khỏi tốn một lượt vẽ)
   return { uot, get bat() { return bat; },
     dat(b, dam = 1) { bat = !!b; U.uMua.value = bat ? 1 : 0; U.uDamPhan.value = dam; hat.visible = bat; },
-    khung(dt, y0, an, troi) { if (!bat) return; U.uGioM.value = (U.uGioM.value + dt) % 3600; hat.material.uniforms.uCam.value.copy(camera.position); vePhan(y0, an, troi); } };
+    khung(dt, y0, an, troi) {
+      if (bat) { U.uGioM.value = (U.uGioM.value + dt) % 3600; hat.material.uniforms.uCam.value.copy(camera.position); vePhan(y0, an, troi); return; }
+      const cao = camera.position.y - y0; U.uKho.value = KHO * (1 - THREE.MathUtils.smoothstep(cao, CAO_KHO[0], CAO_KHO[1]));
+      if (U.uKho.value > 0.001) vePhan(y0, an, troi); } };
 }

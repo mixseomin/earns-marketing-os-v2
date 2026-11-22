@@ -8,7 +8,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 const BANH_R = 0.32, NGHI = 0.3, NOI_Y = -0.05; // bán kính bánh, độ dài nghỉ của giảm xóc, cao độ điểm treo so với tâm thân
 const BANH = [[0.8, 1.35], [-0.8, 1.35], [0.8, -1.35], [-0.8, -1.35]]; // x (trái +), z (mũi +) — hai bánh đầu là bánh lái
 const GHE = { x: -0.36, y: -0.12, z: -0.1 }; // tay lái bên phải như xe Nhật
-const TOC_MAX = 24, TOC_LUI = 7, LUC = 1500, PHANH = 45; // m/s, N mỗi bánh, xung phanh mỗi bánh mỗi bước
+const TOC_MAX = 13, TOC_LUI = 5, LUC = 800, PHANH = 45; // 13 m/s ≈ 47 km/h: tốc độ phố đông, nhỉnh hơn dòng xe chung quanh (8–10 m/s) · m/s, N mỗi bánh, xung phanh mỗi bánh mỗi bước
 
 function hop(w, h, d, x, y, z, mau) {
   const g = new THREE.BoxGeometry(w, h, d).translate(x, y, z), c = new THREE.Color(mau), n = g.attributes.position.count, a = new Float32Array(n * 3);

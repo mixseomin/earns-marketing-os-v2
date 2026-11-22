@@ -276,7 +276,7 @@ def camp_truc_tiep_24h(q=None):
     """camp vừa được anh lệnh trực tiếp (vé đã dùng) trong 24 giờ — máy luật không hạ / tắt lại (trừ phim cấm)"""
     try: return {int(x) for x in (q or _q)(SQL_TRUC_TIEP_24H).split() if x.isdigit()}
     except Exception: return set()
-def ve_truc_tiep(viec, camp_id=None, content_id=None, lenh="", ns=None, phien=""):
+def ve_truc_tiep(viec, camp_id=None, content_id=None, lenh="", ns=None, phien="", ngay=False):
     """CLI --ve-truc-tiep: lần đầu có phanh → (None, [câu phanh]) + ghi dấu đã cảnh báo; gọi lại trong CANH_BAO_PHUT phút (hoặc không phanh) → (mã vé, [câu phanh đã bỏ qua])."""
     import secrets
     v = VE_VIEC.get(viec)
@@ -292,7 +292,8 @@ def ve_truc_tiep(viec, camp_id=None, content_id=None, lenh="", ns=None, phien=""
     ly = kiem(viec, cid, ns, float(_q(f"select coalesce(ngan_sach, 0) from etp.camp where camp_id = {cid}") or 0) if cid else 0, content_id=ct)
     phanh = [ly] if ly else []
     dk = f"viec = '{v}' and {'camp_id = ' + str(cid) if cid is not None else 'camp_id is null'} and {'content_id = ' + str(ct) if ct is not None else 'content_id is null'}"
-    if phanh and _q(f"select 1 from etp.ve_canh_bao where {dk} and da_cap is null and luc > now() - interval '{CANH_BAO_PHUT} minutes' limit 1") != "1":
+    # ngay=True = NÚT ANH BẤM trên etp2 (anh 22/11/2026 "cấm mày từ chối vì bất kỳ lý do gì"): cái bấm CHÍNH LÀ lệnh, phanh đã hiện sẵn trong khung xem trước → cấp vé luôn, không bắt bấm lần hai
+    if phanh and _q(f"select 1 from etp.ve_canh_bao where {dk} and da_cap is null and luc > now() - interval '{CANH_BAO_PHUT} minutes' limit 1") != "1" and not ngay:
         _q(f"insert into etp.ve_canh_bao (viec, camp_id, content_id, lenh, phanh) values ('{v}', {cid if cid is not None else 'null'}, {ct if ct is not None else 'null'}, $L${lenh[:500]}$L$, $P${phanh[0].replace('$', '')[:500]}$P$)")
         return None, phanh
     if phanh: _q(f"update etp.ve_canh_bao set da_cap = now() where {dk} and da_cap is null")
@@ -753,8 +754,9 @@ if __name__ == "__main__":
         print(xin_ve(a[1], a[2], a[3], " ".join(a[4:]))); sys.exit(0)
     if a[:1] == ["--ve-truc-tiep"]:   # --ve-truc-tiep <tang|bat|nhan_ban|tao_camp> --camp <id> | --phim <id> --lenh "<nguyên văn câu anh>" [--ns N] — CHỈ Claude gõ theo câu anh trong chat
         o = {k: (a[i + 1] if i + 1 < len(a) else "") for i, k in enumerate(a) if k in ("--camp", "--phim", "--lenh", "--ns")}
+        ngay = "--ngay" in a   # --ngay: chỉ vỏ nút etp2 (etp-ve.ts) truyền — anh bấm là lệnh, cấp vé ngay
         if len(a) < 2 or not o.get("--lenh"): print('dùng: cong.py --ve-truc-tiep <việc> --camp <id> | --phim <id> --lenh "<câu lệnh của anh>" [--ns N]', file=sys.stderr); sys.exit(2)
-        try: ma, ph = ve_truc_tiep(a[1], o.get("--camp"), o.get("--phim"), o["--lenh"], float(o["--ns"]) if o.get("--ns") else None)
+        try: ma, ph = ve_truc_tiep(a[1], o.get("--camp"), o.get("--phim"), o["--lenh"], float(o["--ns"]) if o.get("--ns") else None, ngay=ngay)
         except ValueError as e: print(f"✗ không cấp: {e}", file=sys.stderr); sys.exit(3)
         if not ma:
             print(f"⚠ CẢNH BÁO MỘT LẦN — phanh sẽ bị bỏ qua: {ph[0]}\n   → báo anh câu này; anh vẫn muốn thì gõ lại đúng lệnh trong {CANH_BAO_PHUT} phút là cấp vé (anh 20/11/2026: phanh chỉ cảnh báo một lần)", file=sys.stderr); sys.exit(4)

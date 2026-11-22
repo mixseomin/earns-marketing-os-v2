@@ -6,6 +6,7 @@
 //   node apps/xuong-video/scripts/sinh-bai-dai.mjs --may militarycalc [--nen substack] [--so 7] [--xem]     (iMac; --xem: chỉ in góc sẽ viết, 0đ)
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { GIA_UOC_BAI_DAI_VND, NGUONG_TU_CHAY_VND } from '../src/lib/xuong-video/chot-tien-nguong.mjs';
 
 const PB = '/Users/htuan/puzzle-books/scripts';
 const a = process.argv.slice(2), lay = (k) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] ?? '' : null; };
@@ -14,11 +15,16 @@ export const slugDai = (goc, tieuDe) => `dai-${goc}-${String(tieuDe).toLowerCase
 /** id ảnh Pexels trong HTML bài. Thuần. */
 export const idAnh = (h) => Number(String(h ?? '').match(/pexels\.com\/photos\/(\d+)\//)?.[1] ?? 0) || null;
 
+export const duocTuChay = (tien) => tien + GIA_UOC_BAI_DAI_VND < NGUONG_TU_CHAY_VND;
+
 if (a.includes('--tu-kiem')) {
   const t = (await import('node:assert')).strict;
   t.equal(slugDai(42939, 'How BAH Works: A Plain Guide for 2026'), 'dai-42939-how-bah-works-a-plain');
   t.equal(idAnh('<img src="https://images.pexels.com/photos/123/pexels-photo-123.jpeg?w=1600">'), 123); t.equal(idAnh('x'), null);
-  console.log('sinh-bai-dai: 3/3 ok'); process.exit(0);
+  t.equal(duocTuChay(0), true, 'bài 1: 2.000₫ còn dưới ngưỡng');
+  t.equal(duocTuChay(2000), true, 'bài 2: cộng dồn 4.000₫ còn dưới ngưỡng');
+  t.equal(duocTuChay(4000), false, 'bài 3: cộng dồn 6.000₫ phải dừng');
+  console.log('sinh-bai-dai: 6/6 ok'); process.exit(0);
 }
 const may = lay('--may'); if (!may) { console.error('cần --may <mã máy>'); process.exit(2); }
 const NEN = lay('--nen') ?? 'substack', SO = Math.max(1, Math.min(7, Number(lay('--so') ?? 1))), XEM = a.includes('--xem'), LAI = a.includes('--lai');
@@ -39,6 +45,10 @@ let moi = 0, tien = 0;
 for (const g of gocs.filter((x) => !daGoc.has(Number(x.id)) && (!chiGoc || chiGoc.has(Number(x.id)))).sort((x, y) => hang(x) - hang(y) || x.id - y.id)) {
   if (moi >= SO) break;
   if (XEM) { console.log(`→ góc #${g.id} "${g.ten}"`); moi++; continue; }
+  if (process.env.DUYET_SINH_1_LAN !== '1' && tien + GIA_UOC_BAI_DAI_VND >= NGUONG_TU_CHAY_VND) {
+    console.error(`dừng: cộng dồn ${Math.round(tien)}₫, vượt ngưỡng tự chạy ${NGUONG_TU_CHAY_VND}₫ — cần anh duyệt`);
+    break;
+  }
   const vb = JSON.parse(studio('--viet-bai-dai', JSON.stringify({ goc: g, slug: `dai-${g.id}`, tieu_de_cu: tieuDeCu, anh_da_dung: anhDaDung }), may).trim().split('\n').pop());
   tien += Number(vb.vnd ?? 0);
   if (!vb.ok) { console.log(`✗ góc #${g.id}: ${vb.loi} (${Math.round(vb.vnd ?? 0)}₫)`); if (/TỐN TIỀN/.test(vb.loi)) break; continue; }

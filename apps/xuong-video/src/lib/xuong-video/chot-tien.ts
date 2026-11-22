@@ -13,7 +13,8 @@ export const laScript = (argv1: string | undefined = process.argv[1]): boolean =
 /** LUẬT TỰ CHẠY DƯỚI NGƯỠNG — anh 16/10/2026 "dưới $0.01 thì tự chạy luôn", NÂNG 31/10/2026: "Từ giờ duyệt chi < 5000đ ko cần xin. Chỉ cần báo cáo".
  *  Lượt chạy script được TỰ tiêu tới 5.000₫ (~19,2¢) mà không cần DUYET_SINH_1_LAN — CỘNG DỒN cả tiến trình, ước theo GIÁ NIÊM YẾT; tiền thật vẫn
  *  ghi sổ + báo cáo sau lượt. Không biết giá (video, Claude…) → luôn hỏi. */
-export const NGUONG_TU_CHAY_VND = 5000;
+export { NGUONG_TU_CHAY_VND } from './chot-tien-nguong.mjs';
+import { NGUONG_TU_CHAY_VND } from './chot-tien-nguong.mjs';
 export const NGUONG_TU_CHAY_CENTS = Math.round((NGUONG_TU_CHAY_VND / 26000) * 100 * 100) / 100;   // 26.000₫/$ — cùng tỉ giá cong-ai.ts › VND_MOI_USD
 let daTuChay = 0;
 /** Reset bộ đếm cộng dồn — chỉ cho tự kiểm. */

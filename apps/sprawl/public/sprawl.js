@@ -22,6 +22,7 @@ import { ganGopY, chupCanvas } from './chung/gopy.js';
 import { taoRedSpires } from './redspires.js';
 import { taoNhat2200 } from './nhat2200.js';
 import { taoMua } from './mua.js';
+import { taoXe } from './xe.js';
 
 const $ = (id) => document.getElementById(id);
 // tâm cảnh: Nishi-Shinjuku, giữa ga Shinjuku và toà thị chính Tokyo
@@ -224,16 +225,19 @@ $('b-mua').onclick = doiMua;
 datKieu(kieu);
 
 // ---------- đi bộ (castle dibo.js) ----------
-let toi = null, di = null, camUng = null;
+let toi = null, di = null, camUng = null, xe = null;
 try { await napNguoi3d('./chung/tai-san/nguoi.glb'); toi = taoNguoi3d(); toi.goc.visible = false; scene.add(toi.goc); } catch (e) { console.warn('[sprawl] không nạp được người 3D', e); }
 if (toi) {
-  di = taoDiBo({ RAPIER, world, camera, dom: renderer.domElement, toi, layTruc: () => camUng?.layTruc(), khiDoi: (dang) => {
+  xe = taoXe({ RAPIER, world, scene, toi, layDi: () => di, datTai, bao: (c) => baoNho(c) }); // xe lái được (ô phố mẫu, bước 1)
+  di = taoDiBo({ RAPIER, world, camera, dom: renderer.domElement, toi, layTruc: () => camUng?.layTruc(), ngoai: { buoc: (dt, tr) => xe.lai(dt, tr), khung: () => xe.nguoi() }, khiDoi: (dang) => {
+    if (!dang) xe.xuong();
     camUng?.hien(dang); orbit.enabled = !dang; $('b-di').style.display = dang ? 'none' : ''; $('b-bay').style.display = dang ? '' : 'none';
     if (!dang) { const p = di.viTri(); orbit.target.set(p.x, p.y, p.z); camera.position.set(p.x + 120, p.y + 160, p.z + 200); }
   } });
   camUng = taoCamUng({ dom: renderer.domElement, di, nut: [
     { id: 'nhay', chu: () => (di.nguCanh() === 'leo' ? 'Bật ra' : di.nguCanh() === 'tuong' ? 'Leo' : 'Nhảy'), bam: () => camUng.nhay() },
     { id: 'goc', chu: () => '👁', bam: () => di.doiGocNhin() },
+    { id: 'xe', chu: () => (xe.dangLai ? 'Xuống' : xe.gan() ? 'Lái xe' : null), bam: () => xe.doi() },
   ] });
 }
 function diBo() { // đứng xuống mặt đất ngay dưới tâm nhìn, quay mặt theo hướng camera đang nhìn
@@ -241,7 +245,7 @@ function diBo() { // đứng xuống mặt đất ngay dưới tâm nhìn, quay 
   const x = orbit.target.x, z = orbit.target.z, h = Math.atan2(orbit.target.x - camera.position.x, orbit.target.z - camera.position.z);
   const tia = world.castRay(new RAPIER.Ray({ x, y: datTai(x, z) + 1200, z }, { x: 0, y: -1, z: 0 }), 2400, true); // tháp đỏ cao tới ~450 m: thả từ trên đỉnh → đứng lên chóp / ban công nếu tâm nhìn trúng tháp
   const y = tia ? datTai(x, z) + 1200 - tia.timeOfImpact : datTai(x, z);
-  di.vao(x, y + 0.3, z, h);
+  di.vao(x, y + 0.3, z, h); xe?.goiNeuXa(x, y, z, h);
 }
 $('b-di').onclick = diBo; $('b-bay').onclick = () => di?.ra();
 
@@ -274,7 +278,7 @@ function saKhung(dt) {
   orbit.target.lerpVectors(sa.tu[1], sa.toi[1], k); orbit.update();
   if (sa.t >= 1) sa = null;
 }
-addEventListener('keydown', (e) => { if (e.code === 'Escape' && di?.dang) di.ra(); if (e.code === 'Enter' && !di?.dang && !e.target.closest?.('input,textarea')) diBo(); });
+addEventListener('keydown', (e) => { if (e.code === 'Escape' && di?.dang) di.ra(); if (e.code === 'KeyE' && di?.dang && !e.repeat && !e.target.closest?.('input,textarea')) xe?.doi(); if (e.code === 'Enter' && !di?.dang && !e.target.closest?.('input,textarea')) diBo(); });
 
 ganGopY({ nut: $('b-gy'), chupAnh: () => chupCanvas(renderer.domElement, () => ve()), nguCanh: () => { const p = di?.dang ? di.viTri() : orbit.target, ll = laLatLon(p.x, p.z);
   return `kiểu ${KIEU[kieu].ten} · ${di?.dang ? 'đi bộ' : 'bay'} · ${ll.lat.toFixed(5)}, ${ll.lon.toFixed(5)} · ô ${tk.o} · va chạm ${tk.va}`; } });
@@ -422,7 +426,7 @@ const dongHo = new THREE.Clock();
 function ve() { renderer.info.reset(); if (KIEU[kieu].bloom > 0) composer.render(); else renderer.render(scene, camera); }
 renderer.setAnimationLoop(() => {
   const dt = Math.min(0.05, dongHo.getDelta());
-  if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } di.khung(dt); }
+  if (di?.dang) { tichLuy += dt; while (tichLuy >= 1 / 60) { di.buoc(1 / 60); xe?.buoc(1 / 60); world.step(); tichLuy -= 1 / 60; } xe?.khung(); di.khung(dt); }
   else { bayTien(dt); orbit.update(); }
   saKhung(dt);
   rs?.khung(dt, camera); n2?.khung(dt, camera);
@@ -442,4 +446,4 @@ renderer.setAnimationLoop(() => {
     if (!lan && tk.o) { lan = 1; $('nap').style.display = 'none'; } }
 });
 addEventListener('resize', datCo);
-window.__sprawl = { scene, camera, orbit, renderer, dsTiles, tk, datTai, rs, n2, get di() { return di; } };
+window.__sprawl = { scene, camera, orbit, renderer, dsTiles, tk, datTai, rs, n2, get di() { return di; }, get xe() { return xe; } };

@@ -834,7 +834,7 @@ export const LUAT = [
   { card: 'ht-0411', tep: 'apps/etp/mo_rong.py', co: 'round(((regr_slope(thu, chi) - 1) * 100)::numeric)::int roi_bien', vi: 'ROI biên 14 ngày (độ hấp thụ) mỗi phim (anh 04/11/2026)' },
   { card: 'ht-0411', tep: 'apps/web/src/components/etp-view.tsx', co: 'function DongHoHapThu({ m, ten, boc }: { m?: MoRong; ten?: string | null;', vi: 'đồng hồ hấp thụ ở dòng phim' },
   { card: 'g10hoi-0411', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if cs >= ns and (ts - cs) / cs * 100 >= G10_HOI:', vi: 'G10 hồi: 2 ngày đã khép sau hạ ROI ≥ 30% → về ngân sách trước lúc hạ, cả ★ ROAS (anh 04/11/2026)' },
-  { card: 'g10hoi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: "for (const k of ['hoi_g10', 'dau_phien', 'tang', 'tang30'])", vi: 'worker tự nâng G10 hồi, gỡ khỏi sổ G10' },
+  { card: 'g10hoi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: "for (const k of ['hoi_g10', 'dau_phien', 'tang', 'tang30', 'tang_roas'])", vi: 'worker tự nâng G10 hồi, gỡ khỏi sổ G10' },
   { card: 'g10hoi-0411', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"hoi_g10":', vi: 'G10 hồi có trong sổ luật chung' },
   { card: 'g10hoi-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'tran_ = cu_ if nh_ and nh_[1] == "doi" else min(cu_, ns * 1.5)', vi: 'G10 hồi: nhánh thu / không A/B lên theo thang ≤ ×1,5; chỉ nhánh doi AB02 về ngân sách cũ' },
   { card: 'hen-chay-0611', tep: 'apps/web/src/lib/etp-chay.ts', co: "export const dangChay = (c: CampTt, o: Luc = {}) => c.trang_thai === 'ACTIVE' && !choGio(c, { now: gio(o) });", vi: 'camp ACTIVE chưa tới giờ hẹn không phải đang chạy — một định nghĩa' },
@@ -1588,4 +1588,12 @@ export const LUAT = [
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp/lenh_cho.py', co: 'doi0, kcr = len_cr(st, chan, luc, xem, bao0)', vi: 'creative anh đã duyệt lúc phanh bật: máy tự lên camp ở nhịp đầu phanh nhả (anh 22/11 "thằng ngu !")' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/lib/actions/etp-cho-duyet.ts', cam: 'Tắt dừng khẩn rồi bấm', vi: 'Duyệt lúc dừng khẩn không được bắt anh bấm lại Lên camp' },
   { card: 'cho-anh-duyet-2211', tep: 'apps/etp2/src/components/etp-cho-duyet.tsx', co: 'width: 162, height: 288', vi: 'ảnh / video creative chờ duyệt đủ to để xem (anh 22/11 "hình cũng phải to hơn")' },
+  // RN ★ ROAS NUÔI DẦN (Dol 22/11/2026 "camp mới $5, lãi thì nuôi dần"; anh "Ok. Làm theo đề xuất"): $5 → $10 → $15 → $20 khi từ lần đổi gần nhất chi > $10, ROI > 50%
+  { card: 'roas-nuoi-2211', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"roas_nuoi": {"chi": 10, "roi": 50, "bac": [5, 10, 15, 20]}', vi: 'bậc RN trong sổ luật chung' },
+  { card: 'roas-nuoi-2211', tep: 'apps/etp2/src/lib/etp-bang-luat.json', co: '"roas_nuoi": {"chi": 10, "roi": 50, "bac": [5, 10, 15, 20]}', vi: 'etp2 cùng sổ luật' },
+  { card: 'roas-nuoi-2211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'RN = BANG_LUAT["roas_nuoi"]', vi: 'máy luật đọc RN từ sổ, không gõ số tay' },
+  { card: 'roas-nuoi-2211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tang_roas": m(tang_roas)', vi: 'danh sách RN ra worker' },
+  { card: 'roas-nuoi-2211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'tang_roas = _bo_phanh(tang_roas)', vi: 'RN cũng phanh khi chợ xấu (anh 18/11/2026)' },
+  { card: 'roas-nuoi-2211', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'if ns not in MUC and not (ns in RN_BAC and cid in CONG.camp_roas())', vi: 'lệnh tăng nhận $10 / $15 chỉ với camp ★ ROAS' },
+  { card: 'roas-nuoi-2211', tep: 'apps/cty/worker/ethopex.mjs', co: "['tang_roas', '↑ <b>RN — ★ ROAS NUÔI</b>", vi: 'worker có nhóm tin RN riêng (không gọi nhầm T30)' },
 ];

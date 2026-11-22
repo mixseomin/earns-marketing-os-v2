@@ -15,6 +15,7 @@ import importlib.util as _iuc
 _sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
 BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))
 MUC = set(BANG_LUAT["thang"]) - {1}   # thang bậc = sổ luật chung (anh 05/11/2026) · $30 chỉ qua luật T30 (camp $20 tiêu đủ + ROI cao 2–3 ngày, Support 23/10/2026) — máy tự tăng từ 28/10/2026 (anh: "ko cần xin nữa")
+RN_BAC = {int(x) for x in BANG_LUAT["roas_nuoi"]["bac"]}   # RN ★ ROAS nuôi dần $5 → $10 → $15 → $20 (Dol 22/11/2026): $10 / $15 ngoài thang chỉ mở cho camp ★ ROAS
 MUC_GIAM = MUC | {1, BANG_LUAT["g10_dich"]}   # đường GIẢM: thang + sàn $1 + đích G10 ($10, ngoài thang từ 05/11/2026 — 16/11/2026 cả 13 lượt hạ G10 bị chặn vì cổng này chỉ nhận mức trên thang)
 assert BANG_LUAT["g10_dich"] in MUC_GIAM and BANG_LUAT["g10_dich"] not in MUC, "đích G10 phải giảm được và không thành bậc tăng"
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
@@ -193,7 +194,7 @@ def main(a):
         truoc = doc(cid); kq["truoc"] = truoc
         if viec == "tang":
             ns = int(a[2])
-            if ns not in MUC: raise ValueError(f"${ns} không phải mức hợp lệ {sorted(MUC)}")
+            if ns not in MUC and not (ns in RN_BAC and cid in CONG.camp_roas()): raise ValueError(f"${ns} không phải mức hợp lệ {sorted(MUC)}" + (f" (★ ROAS thêm {sorted(RN_BAC)})" if ns in RN_BAC else ""))
             if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đang {truoc['tt']}, không tăng")
             if ns <= float(truoc["ns"] or 0): raise ValueError(f"camp đã ${truoc['ns']} ≥ ${ns}")
             # LỆNH TRỰC TIẾP của anh (vé truc_tiep, cong.py --ve-truc-tiep — anh 20/11/2026 09:35): miễn nhịp 24 giờ + khoá sau giảm; cổng kiem vẫn chặn phim cấm

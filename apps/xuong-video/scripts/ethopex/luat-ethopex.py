@@ -1070,6 +1070,32 @@ try:
 except Exception as e:
     loi_may.append((0, f"luật R0 (ROAS không tiêu) lỗi: {str(e)[:80]}"))
 _rl = {int(x[0] or 0) for x in tat_roas + tat_r0}; tang30 = [x for x in tang30 if int(x[0] or 0) not in _rl]   # một camp một quyết định: RL thắng ★ ROAS thắng → $30
+# RN — ★ ROAS NUÔI DẦN (Dol 22/11/2026 "camp mới $5, lãi thì nuôi dần lên"; anh "Ok. Làm theo đề xuất"): camp ★ ROAS đang bật, ngân sách $5–$15 — từ lần đổi
+# ngân sách gần nhất (tăng / giảm thành công trong etp.nhat_ky; chưa đổi thì từ lúc lên camp) chi > roas_nuoi.chi và ROI > roas_nuoi.roi% → máy tăng bậc kế trong
+# roas_nuoi.bac ($5 → $10 → $15 → $20, sổ luật chung). Từ $20 đi tiếp qua T30. Một camp một quyết định: RL / R0 / sắp tắt thắng RN. Khung giờ / nhịp / rào chắn ở worker + lam-ethopex + cong.kiem.
+RN = BANG_LUAT["roas_nuoi"]; RN_CHI, RN_ROI, RN_BAC = float(RN["chi"]), float(RN["roi"]), sorted(int(x) for x in RN["bac"])
+tang_roas, _rn_so = [], {}
+try:
+    _rn_cm = {int(c["id"]): c for c in ds_camp}
+    _rn_ns = {c: float((_rn_cm.get(c) or {}).get("budget_daily") or 0) for c in (_ROAS & {int(x) for x in _bat}) if c not in _rl and c not in {int(x) for x in _SE_TAT}}
+    _rn_ds = sorted(c for c, n in _rn_ns.items() if RN_BAC[0] <= n < RN_BAC[-1])
+    _rn_tao = {int(k): v for k, v in _tao.items()}
+    if _rn_ds:
+        _v = ",".join(f"({int(c)}, " + (f"'{_rn_tao[c].isoformat()}'" if _rn_tao.get(c) else "NULL") + "::timestamptz)" for c in _rn_ds)
+        for l in q(f"""with v(c, t0) as (values {_v}),
+              m as (select c, greatest(coalesce(t0, now() - interval '30 days'), coalesce((select max(k.luc) from etp.nhat_ky k where k.ok and k.viec in ('tang', 'giam') and k.camp_id = v.c), '-infinity')) t from v)
+            select m.c, to_char(m.t at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM'), coalesce(sum(s.chi), 0), coalesce(sum(s.thu / {_HS_S}), 0)
+            from m left join etp.so_gio_camp s on s.camp_id = m.c and s.ngay::timestamp + make_interval(hours => s.gio::int) >= date_trunc('hour', m.t at time zone 'UTC')
+            group by 1, 2""").splitlines():
+            p = l.split("|")
+            if len(p) < 4: continue
+            c, moc, chi_, thu_ = int(p[0]), p[1], float(p[2]), float(p[3]); ns_ = _rn_ns[c]; ke = min(b for b in RN_BAC if b > ns_)
+            r_ = (thu_ - chi_) / chi_ * 100 if chi_ > 0 else None
+            _rn_so[c] = {"moc": moc, "chi": chi_, "thu": thu_, "roi": r_, "ns": ns_, "ke": ke}
+            if chi_ > RN_CHI and r_ is not None and r_ > RN_ROI:
+                tang_roas.append((c, f"#{(_rn_cm[c].get('name') or '')[:80]} · từ {moc} VN: chi ${chi_:.2f} · thu ${thu_:.2f} · ROI {r_:+.0f}% · ${ns_:g} → ${ke}"))
+except Exception as e:
+    loi_may.append((0, f"luật RN (★ ROAS nuôi dần) lỗi: {str(e)[:80]}"))
 # G10 — HẠ VỀ $10 RỒI TẮT (hướng dẫn team 31/10/2026: "ngân sách lên $30 mà camp rois giảm là mình giảm luôn budget về ~ 10$ sau đó theo dõi 1,2 ngày mà rois
 # vẫn kém, mình off đi"; anh: "Có áp dụng g10 cho roas") — MỌI camp đang bật, kể cả ★ ROAS (xét SAU _bo_roas). Bước 1: ngân sách > G10_NS, 3 ngày đã khép
 # (D−1..D−3) chi ≥ 1 ngày ngân sách mà ROI < G10_ROI% → máy hạ THẲNG về $10. Ngưỡng ngân sách đúng bộ lọc team gửi trên Ethopex (anh 31/10/2026 ảnh:
@@ -1225,7 +1251,7 @@ def _don_dk(c, ns):
 dat, dau_phien = ([x for x in ds if _du_tang(int(x[0] or 0))] for ds in (dat, dau_phien))
 # camp đã hạ, đang trong 2 ngày theo dõi — có danh sách riêng để trang etp / bộ lọc thấy (anh 01/11/2026 "Thiếu luật G10 vừa áp dụng?": trước đó camp đang theo dõi rơi khỏi mọi danh sách)
 g10_theo = [(cid, f"#{(thang.get(cid) or {}).get('ten', '')[:70]} · đã hạ về ${G10_DICH} ngày {ngay:%d/%m} — theo dõi {G10_THEO} ngày đã khép, ROI vẫn < {G10_ROI}% thì tắt; đang khoá tăng") for cid, ngay in sorted(_g10_theo.items())]
-dat, dau_phien, tang30, thang_nb, nb, moc30 = ([x for x in v if int(x[0] or 0) not in _g10_cam] for v in (dat, dau_phien, tang30, thang_nb, nb, moc30))
+dat, dau_phien, tang30, thang_nb, nb, moc30, tang_roas = ([x for x in v if int(x[0] or 0) not in _g10_cam] for v in (dat, dau_phien, tang30, thang_nb, nb, moc30, tang_roas))
 if CONG.LUAT_CU_DUNG: thang_nb, nb, moc30 = [], [], []   # LUẬT CŨ DỪNG (anh 22/11/2026): NB 25/10 · THANG · ★ lên ROAS tự động 29/10 là luật trước 20/11 — worker không nhân bản / lên ROAS nữa
 # GIỮ CAMP CUỐI CỦA PHIM — CHỈ CAMP LÃI (anh 05/11/2026 sau đó: "cam lỗ vẫn phải cắt nhưng thay bằng = camp test duy nhất !!! Thử các hướng creative khác nhau") (anh 05/11/2026: "nếu phim ko có camp thay thế thì sẽ bị mất dấu vết. Ít nhất vẫn phải có 1 camp lãi duy trì, trừ trường hợp bị bão hoà
 # + lỗ quá theo luật"): mọi camp đang bật của phim đều nằm trong danh sách tắt mà phim chưa có camp nối (camp đã tạo, hẹn lịch chưa tới giờ chạy) → gỡ camp tốt nhất
@@ -1285,9 +1311,10 @@ if _LY_PHANH:
         for x in ds: _KHONG_TANG[int(x[0] or 0)] = _LY_PHANH
         return []
     dat, dau_phien, tang30, hoi_g10 = _bo_phanh(dat), _bo_phanh(dau_phien), _bo_phanh(tang30), _bo_phanh(hoi_g10)
+    tang_roas = _bo_phanh(tang_roas)   # RN ★ ROAS nuôi dần cũng phanh như T30 ★ (anh 18/11/2026)
 def _xet_luat():
     vao = {k: {int(x[0] or 0) for x in v} for k, v in (("tat_l3", tat_l3), ("tat_l4", tat_l4), ("tat_pl", tat_pl), ("tat_d24", tat_d24), ("tat2", tat2), ("tat1", tat1), ("tat_t8", tat_t8), ("tat_tv", tat_tv), ("tat_cx", tat_cx), ("tat", tat_l), ("tang", dat), ("dau_phien", dau_phien), ("ha", ha), ("giam", giam), ("nb", nb),
-           ("thang_nb", thang_nb), ("thang_tat", thang_tat), ("tang30", tang30), ("tat_l0", tat_l0), ("h3", h3), ("dung_dem", dung_dem), ("tat_roas", tat_roas), ("tat_r0", tat_r0), ("g10", g10), ("tat_g10", tat_g10), ("hoi_g10", hoi_g10), ("moc30", moc30))}
+           ("thang_nb", thang_nb), ("thang_tat", thang_tat), ("tang30", tang30), ("tang_roas", tang_roas), ("tat_l0", tat_l0), ("h3", h3), ("dung_dem", dung_dem), ("tat_roas", tat_roas), ("tat_r0", tat_r0), ("g10", g10), ("tat_g10", tat_g10), ("hoi_g10", hoi_g10), ("moc30", moc30))}
     # THẺ LÊN ROAS (anh 11/11/2026 "nhìn vào đây đéo biết bao giờ mày sẽ lên camp ROAS. Các chỉ số thì viết hết ra ngoài"): điều kiện + cổng chặn thật của lần lên
     # (worker ethopex.mjs ★ LÊN ROAS → nhan-ban.py --roas → cong.kiem) vào bảng, lần thử gần nhất bị chặn ghi ở dòng cam, trần camp mới / ngày chặn → mốc 00:00 VN
     try: _roas_thu = {int(x["c"]): x for x in json.loads(q("""select coalesce(json_agg(t), '[]') from (select distinct on (camp_id) camp_id c, to_char(luc at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI') g, ok, loi
@@ -1357,6 +1384,12 @@ def _xet_luat():
                     "tat_r0" if int(cid) in vao["tat_r0"] else None, tien=1))
                 ns = float(a.get("budget") or 0); du30 = [n[cid] for n in (ngay3 if "ngay3" in globals() else []) if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
                 r30 = roi({"chi": sum(x["chi"] for x in du30), "thu": sum(x["thu"] for x in du30)}) if du30 else None
+                _rn = _rn_so.get(int(cid)) or {}
+                ls.append(L("rn", "RN · ★ ROAS nuôi dần $5 → $20", f"Dol 22/11/2026: camp ★ mới lên ${RN_BAC[0]}, lãi thì nuôi dần. Ngân sách ${RN_BAC[0]}–${RN_BAC[-2]}, từ lần đổi ngân sách gần nhất (chưa đổi thì từ lúc lên) chi > ${RN_CHI:g} và ROI > {RN_ROI:g}% → máy tự tăng bậc kế ({' → '.join(f'${b}' for b in RN_BAC)}). Từ ${RN_BAC[-1]} đi tiếp qua T30.",
+                    [["Ngân sách", f"${ns:g}", f"${RN_BAC[0]}–${RN_BAC[-2]}", RN_BAC[0] <= ns < RN_BAC[-1]], [f"Chi từ {_rn.get('moc') or 'lần đổi gần nhất'} VN", f(_rn.get("chi"), "$"), f"> ${RN_CHI:g}", (_rn.get("chi") or 0) > RN_CHI],
+                     ["ROI cùng khoảng", f(_rn.get("roi"), "%"), f"> {RN_ROI:g}%", _rn.get("roi") is not None and _rn["roi"] > RN_ROI]]
+                    + ([["Phanh chợ", f"đang phanh — {_LY_PHANH[:200]}", "không phanh (★ ROAS cũng bị phanh, anh 18/11/2026)", False]] if _LY_PHANH else []),
+                    "tang_roas" if int(cid) in vao["tang_roas"] else None, (f"bậc kế ${_rn['ke']}" if _rn.get("ke") else None), tien=1))
                 ls.append(L("t30", "★ ROAS thắng · $20 → $30", ("Đang tạm dừng — máy không tăng. " if T30_ROAS_DUNG else "Đang theo dõi (02/11/2026: mới 3 lần đo, +$1.80/ngày so với đối chứng; sổ luật dòng t30_roas). ") + f"Camp ROAS đang $20, ≥ {T30_NGAY}/3 ngày đã khép tiêu > {T30_SP}% ngân sách ($16), ROI các ngày đó > {T30_ROI}% → máy tự tăng $30.",
                     [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], ["Ngày tiêu > $16", f"{len(du30)}/3", f"≥ {T30_NGAY}", len(du30) >= T30_NGAY], ["ROI các ngày đó", f(r30, "%"), f"> {T30_ROI}%", r30 is not None and r30 > T30_ROI]]
                     + ([["Phanh chợ", f"đang phanh — {_LY_PHANH[:200]}", "không phanh (★ ROAS cũng bị phanh, anh 18/11/2026)", False]] if _LY_PHANH else []),
@@ -1567,7 +1600,7 @@ if JSON:
             _bo = [x for x in _L if isinstance(x, (tuple, list)) and x and str(x[0]).isdigit() and int(x[0]) in _TT]
             giu_tt += [(int(x[0]), f"TRỰC TIẾP — anh lệnh trong 24 giờ, máy luật không hạ / tắt (bỏ: {str(x[1] if len(x) > 1 else '')[:80]})") for x in _bo]
             _L[:] = [x for x in _L if x not in _bo]
-    ra_ = {"luc":f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_l0": m(tat_l0), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat2": m(tat2), "tat1": m(tat1), "tat_t8": m(tat_t8), "tat_tv": m(tat_tv), "tat_cx": m(tat_cx), "t1_cho": m(t1_cho), "giu_cuoi": m(giu_cuoi), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "h3": m(h3), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(_dat_ab()), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "hoi_g10": m(hoi_g10), "giu_truc_tiep": m(giu_tt)}
+    ra_ = {"luc":f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_l0": m(tat_l0), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat2": m(tat2), "tat1": m(tat1), "tat_t8": m(tat_t8), "tat_tv": m(tat_tv), "tat_cx": m(tat_cx), "t1_cho": m(t1_cho), "giu_cuoi": m(giu_cuoi), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "h3": m(h3), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(_dat_ab()), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "tang_roas": m(tang_roas), "dong": m(dong_l), "gan": m(theo), "hoi_g10": m(hoi_g10), "giu_truc_tiep": m(giu_tt)}
     # SỔ LUẬT CHUNG (apps/web/src/lib/etp-bang-luat.json): mọi danh sách máy luật xuất ra phải có mục ở sổ — thiếu là trang etp / bộ lọc / worker không biết luật đó (gốc vụ G10 01/11/2026)
     _thieu = sorted(k for k in ra_ if k != "luc" and k not in BANG_LUAT["khoa"])
     if _thieu: ra_["loi_may"] = ra_.get("loi_may", []) + [{"id": 0, "chu": f"luật chưa có trong sổ luật chung etp-bang-luat.json: {', '.join(_thieu)}"}]
@@ -1594,6 +1627,7 @@ in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5)
 in_("THANG NHÂN BẢN BỘ 2 — MỞ BẢN MỚI Ở BẬC KẾ (không đổi ngân sách camp đang chạy):", thang_nb, "(chưa có)")
 in_("BẢN THANG LỖ (chi ≥ 1 ngày ngân sách, ROI ≤ −30%) — MÁY TẮT (báo trước một nhịp):", thang_tat, "(không)")
 in_("T30 — CAMP $20, 5 NGÀY ĐÃ KHÉP CHI TB ≥ $12 + ROI ≥ 50% → LÊN $30 (MÁY TỰ TĂNG — nới 29/10/2026):", tang30, "(chưa có)")
+in_(f"RN — ★ ROAS NUÔI {' → '.join(f'${b}' for b in RN_BAC)} (từ lần đổi ngân sách gần nhất chi > ${RN_CHI:g}, ROI > {RN_ROI:g}% — Dol 22/11/2026, MÁY TỰ TĂNG):", tang_roas, "(chưa có)")
 in_(f"ĐỦ TIÊU CHÍ LÊN ROAS (lãi 30 ngày ≥ ${ROAS_LAI}, chưa có camp ★) — MÁY TỰ LÊN:", moc30, "(chưa có)")
 in_(f"ĐỦ ĐIỀU KIỆN TĂNG (ROI 30 ngày / từ lúc lên ≥ {roi_min:g}% và spending hôm nay > {sp_min:g}%) — CHỜ ANH DUYỆT:", dat, "(chưa có)")
 in_("THA HÔM NAY — luật tắt (T2 / L3 / L4 / L0 / OFF / TV) chạm nhưng hôm nay ROI > 50%, không tắt hôm nay:", tha_nay, "(không)")

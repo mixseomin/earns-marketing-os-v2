@@ -22,3 +22,17 @@ Chốt 22/11/2026: gốc bản đồ = **Tokyo**.
 6. Người dân có lịch sống (sáng đi làm, trưa ra chợ, tối về nhà).
 7. Chuyện + nhiệm vụ cho 20 địa điểm thử — tốn tiền AI, chỉ chạy khi anh bảo, báo giá thật trong lượt đó.
 8. Mở rộng chuyện + nhiệm vụ ra toàn thành phố (cũng hỏi tiền trước).
+
+## Bước 1 — kết quả tra (22/11/2026)
+| Việc | Repo / nguồn | Sao · giấy phép · cập nhật | Quyết |
+|---|---|---|---|
+| Nạp nhà 3D theo ô, tự giảm chi tiết theo khoảng cách | NASA-AMMOS/3DTilesRendererJS | 2.545 · Apache-2.0 · 11/2026 | **DÙNG** (đọc thẳng 3D Tiles PLATEAU trên three.js) |
+| Dữ liệu nhà Tokyo | PLATEAU datacatalog `api.plateauview.mlit.go.jp/datacatalog/plateau-datasets` | CC BY 4.0 · bản 2025 | **DÙNG**: Shinjuku LoD2 có texture + bản không texture, tileset.json trả 200 |
+| Đổi CityGML sang glTF/3D Tiles khi cần tự cắt | Project-PLATEAU/PLATEAU-GIS-Converter | 77 · MIT · 02/2026 | dự phòng (khi muốn tự nướng ô) |
+| Đi lại nhân vật ngôi thứ ba | pmndrs/ecctrl | 821 · MIT · 09/2026 | HỌC cách làm (nó dựa React Three Fiber; bộ máy mình three.js thuần) |
+| Sketchbook (đi, leo, xe) | swift502/Sketchbook | 1.753 · MIT · **đã lưu trữ 2024** | chỉ học, không dùng |
+| Người dân tìm đường | donmccurdy/three-pathfinding · isaac-mason/recast-navigation-js | 1.380 MIT · 443 MIT, đều 10/2026 | **DÙNG** recast-navigation-js cho bước 6 |
+| Cesium | CesiumGS/cesium | 15.975 · Apache-2.0 | không dùng (bản đồ địa cầu, nặng, khó khoác phong cách game) |
+| OSMBuildings / procedural-gl | — | không bảo trì từ 2021 | bỏ |
+
+Bộ máy: three.js thuần + 3DTilesRendererJS, nhà PLATEAU khoác shader phong cách riêng; đường/địa điểm từ OSM.

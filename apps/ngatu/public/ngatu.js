@@ -276,7 +276,8 @@ function luuTuyChon() {
 }
 const NGUONG_KET = 22, NGUONG_CAT = 8;
 let tg = 0, ketNga = 0; // ketNga: số xe đang đứng kẹt trong lòng ngã tư
-let DIEM = null, DIEM_CHAY = false; // bảng chấm phương án: đang đo thì cộng dồn chỉ số; đang chạy chấm thì bớt xe không phụ thuộc máy quay
+let DIEM = null, DIEM_CHAY = false;
+const QUA_GAN = [], CHO_GAN = []; // xe qua trong 60 s gần nhất (thời điểm, giây đã chờ) cho số liệu thời gian thực // bảng chấm phương án: đang đo thì cộng dồn chỉ số; đang chạy chấm thì bớt xe không phụ thuộc máy quay
 const trongNgaG = [0, 0]; // số xe mỗi hướng đèn còn nằm trong lòng ngã tư
 
 // ───────────────────────── lưới tra láng giềng ─────────────────────────
@@ -1127,6 +1128,7 @@ function buoc(dt) {
   if (du.xm > 0 || du.oto > 0 || du.bo > 0) for (const a of DS) if (du[a.loai] > 0 && !a.trenDuong && (a.loai === 'bo' || a.s < 30 || a.s > a.p.len - 30 || ngoaiKhung(a) || camera.position.distanceTo(VK.set(a.x, 1, a.z)) > 70) && a !== theoXe && !a.nhac && !a.nga) { a.s = a.p.len; a.bot = true; du[a.loai]--; dem[a.loai]--; }
   for (let i = DS.length - 1; i >= 0; i--) if (DS[i].s >= DS[i].p.len - 0.5) {
     const a = DS[i];
+    if (!a.bot && a.loai !== 'bo') { QUA_GAN.push(tg); CHO_GAN.push(a.tCho || 0); }
     if (DIEM && !a.bot) { if (a.loai === 'bo') DIEM.bo++; else { DIEM.qua++; DIEM.cho += a.tCho || 0; } } // bị bớt vì giảm mật độ thì không tính là qua
     a.het = true; DS[i] = DS[DS.length - 1]; DS.pop(); }
   dungLuoi(); // xe vừa đi / vừa bị bớt làm lệch chỉ số lưới — dựng lại để chỗ sinh xe kiểm đúng thân từng xe
@@ -1986,7 +1988,10 @@ function hud() {
   $('den').innerHTML = DEN.pha.map(chip).join('') + (CAI.denAI ? '<span class="den ai">AI</span>' : '');
   let cho = 0, leo = 0, taxi = 0, don = 0;
   for (const a of DS) { if (a.loai === 'xm') { if (a.choDen && a.sp < 0.5) cho++; if (a.y > 0) leo++; } else if (a.taxi) { taxi++; if (a.dangDon) don++; } }
-  $('so').innerHTML = `<div><b>${cho}</b> xe chờ đèn</div><div><b>${CAI.vuot}</b> lượt vượt đỏ</div>`;
+  while (QUA_GAN.length && QUA_GAN[0] < tg - 60) { QUA_GAN.shift(); CHO_GAN.shift(); }
+  const qpp = QUA_GAN.length * 60 / Math.max(10, Math.min(60, tg));
+  const choTB = CHO_GAN.length ? CHO_GAN.reduce((x, y) => x + y, 0) / CHO_GAN.length : 0;
+  $('so').innerHTML = `<div><b>${Math.round(qpp)}</b>xe/phút</div><div><b>${choTB.toFixed(0)}s</b>chờ TB</div><div><b>${cho}</b>chờ đèn</div><div><b>${ketNga}</b>kẹt lòng</div><div><b>${CAI.vuot}</b>vượt đỏ</div>`;
   if ($('soThem').closest('details').open) $('soThem').innerHTML = `<div><b>${demCu.xm}</b> xe máy</div><div><b>${demCu.oto}</b> ô tô (${taxi} taxi)</div><div><b>${demCu.bus}</b> xe buýt</div><div><b>${demCu.bo}</b> người đi bộ</div>`
     + `<div><b>${leo}</b> xe leo lề</div><div><b>${don}</b> taxi tấp lề đón khách</div><div><b>${CAI.nghich}</b> lượt bị nghịch</div>`;
 }

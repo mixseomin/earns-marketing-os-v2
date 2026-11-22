@@ -32,13 +32,12 @@
     <button id="mo" title="Số liệu và điều khiển">⚙</button>
   </div>
   <div class="nut cong">
-    <span>Bấm vào xe / người (bấm vào làn, vạch, lòng ngã tư để chỉnh đường):</span>
-    <button data-cong="nhac" class="on">Túm ra chỗ khác</button>
-    <button data-cong="nga">Đẩy ngã</button>
-    <button data-cong="ve" title="Bấm giữ vào một xe rồi kéo để vẽ đường cho nó chạy; hết nét xe tự nhập làn gần nhất">✏️ Vẽ đường</button>
+    <button data-cong="nhac" class="on" title="Bấm vào xe / người để túm ra chỗ khác; bấm làn, vạch, lòng ngã tư để chỉnh đường">✋ Túm</button>
+    <button data-cong="nga" title="Bấm vào xe / người để đẩy ngã">💥 Đẩy ngã</button>
+    <button data-cong="ve" title="Bấm giữ vào một xe rồi kéo để vẽ đường cho nó chạy; hết nét xe tự nhập làn gần nhất">✏️ Vẽ</button>
   </div>
+  <div id="so"></div>
   <div id="than">
-    <div id="so"></div>
     <label>Mật độ xe máy <b id="vMd">250</b><input id="md" type="range" min="50" max="1000" step="10" value="250"></label>
     <label>Người đi bộ <b id="vNb">85</b><input id="nb" type="range" min="0" max="300" step="5" value="85"></label>
     <label>Liều (vượt đèn) <b id="vLieu">12%</b><input id="lieu" type="range" min="0" max="60" value="12"></label>

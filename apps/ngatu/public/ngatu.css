@@ -13,7 +13,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #bcd3e6; fon
 .den i { width: 10px; height: 10px; border-radius: 50%; }
 .den.x i { background: #2bff5e; box-shadow: 0 0 8px #2bff5e; } .den.v i { background: #ffc21a; box-shadow: 0 0 8px #ffc21a; } .den.d i { background: #ff2a1f; box-shadow: 0 0 8px #ff2a1f; }
 .ben { top: 76px; right: 12px; width: 270px; overflow-x: hidden; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 88px); }
-#so { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; color: var(--mo); }
+#so { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; color: var(--mo); font-size: 11px; text-align: center; }
+#so div { display: flex; flex-direction: column; line-height: 1.2; }
 #so b { color: var(--chu); font-size: 15px; }
 label { display: flex; flex-direction: column; gap: 4px; color: var(--mo); }
 label b { color: var(--chu); font-weight: 600; }
@@ -73,12 +74,11 @@ button:disabled { opacity: .6; cursor: progress; }
   .nut.cam { flex-wrap: nowrap; gap: 4px; }
   .nut.cam button, .nut.cong button { padding: 6px 4px; font-size: 11px; }
   .nut.cong { flex-wrap: wrap; gap: 4px; }
-  .nut.cong span { flex: 1 0 100%; font-size: 11px; }
   .nut.cong button { flex: 1 1 0; min-width: 0; }
   #mo { display: block; padding: 6px 10px; font-size: 14px; }
   #than { display: none; flex-direction: column; gap: 8px; max-height: 38vh; overflow-y: auto; overflow-x: hidden; }
   .ben.mo-ra #than { display: flex; }
   .ben.mo-ra #mo { background: var(--nhan); color: #1a1a1a; }
-  #so { grid-template-columns: 1fr 1fr 1fr; font-size: 11px; }
-  #so b { font-size: 13px; }
+  #so { font-size: 10px; }
+  #so b { font-size: 14px; }
 }
